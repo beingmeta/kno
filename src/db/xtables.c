@@ -454,3 +454,10 @@ FD_EXPORT void fd_init_xtables_c()
   fd_tablefns[fd_choice_type]->keys=choice_keys;
   fd_tablefns[fd_choice_type]->getsize=NULL;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

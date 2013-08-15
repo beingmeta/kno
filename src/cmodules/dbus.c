@@ -19,3 +19,10 @@
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
 #include <libu8/u8crypto.h>
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

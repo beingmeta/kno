@@ -1189,3 +1189,10 @@ FD_EXPORT void fd_init_strings_c()
   entity_escape=fd_intern("ENTITIES");
 
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

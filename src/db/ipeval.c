@@ -462,3 +462,10 @@ FD_EXPORT void fd_init_ipeval_c()
   fd_make_hashtable(&fcn_caches,128);
 
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

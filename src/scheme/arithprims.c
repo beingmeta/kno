@@ -690,3 +690,10 @@ FD_EXPORT void fd_init_numeric_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CITYHASH128",cityhash128,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHPTR",hashptr_prim,1));
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

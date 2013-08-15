@@ -284,3 +284,10 @@ FD_EXPORT void fd_init_netindices_c()
   ixserver_addn=fd_intern("IXSERVER-BULK-ADD!");
   iserver_reset=fd_intern("IXSERVER-RESET!");
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -345,3 +345,10 @@ static struct FD_POOL_HANDLER dbxpool_handler={
    NULL}; /* sync */
 
 
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

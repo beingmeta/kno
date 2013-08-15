@@ -1440,3 +1440,10 @@ FD_EXPORT void fd_init_oidpools_c()
      open_oidpool,fd_read_pool_metadata,fd_write_pool_metadata);
 }
 
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

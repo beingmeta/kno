@@ -1228,3 +1228,10 @@ FD_EXPORT void fd_init_zindices_c()
   fd_register_index_opener(FD_ZINDEX_MAGIC_NUMBER,open_zindex,NULL,NULL);
   fd_register_index_opener(FD_ZINDEX3_MAGIC_NUMBER,open_zindex,NULL,NULL);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

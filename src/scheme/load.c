@@ -393,3 +393,10 @@ FD_EXPORT void fd_init_load_c()
 		    fd_boolconfig_get,fd_boolconfig_set,&trace_load_eval);
 }
 
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

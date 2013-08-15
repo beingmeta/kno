@@ -301,3 +301,10 @@ void fd_init_mime_c()
 
   u8_register_source_file(_FILEINFO);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

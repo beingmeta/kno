@@ -111,3 +111,10 @@ FD_EXPORT void fd_init_dtproc_c()
   fd_unparsers[fd_dtproc_type]=unparse_dtproc;
   fd_recyclers[fd_dtproc_type]=recycle_dtproc;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

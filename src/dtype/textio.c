@@ -1357,3 +1357,10 @@ FD_EXPORT void fd_init_textio_c()
   sharpamp_symbol=fd_intern("#&");
   comment_symbol=fd_intern("COMMENT");
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

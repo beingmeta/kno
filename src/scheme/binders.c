@@ -1113,3 +1113,10 @@ FD_EXPORT void fd_init_binders_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2x
 	   ("XAPPLY",xapply_prim,2,fd_sproc_type,FD_VOID,-1,FD_VOID));
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

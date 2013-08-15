@@ -2380,3 +2380,10 @@ void fd_init_ofsm_c()
   fd_register_config("LEXDATA","The location (file/server) for the tagger lexicon",
 		     config_get_lexdata,config_set_lexdata,NULL);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

@@ -365,3 +365,10 @@ FD_EXPORT void fd_init_compounds_c()
 			   -1,FD_VOID,-1,FD_VOID));
 }
 
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

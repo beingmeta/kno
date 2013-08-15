@@ -269,3 +269,10 @@ FD_EXPORT void fd_init_netpools_c()
   boundp=fd_intern("BOUND?");
   quote_symbol=fd_intern("QUOTE");
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

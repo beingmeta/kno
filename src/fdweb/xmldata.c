@@ -206,3 +206,10 @@ void fd_init_xmldata_c()
   name_slotid=fd_intern("%XMLTAG");
   content_slotid=fd_intern("%CONTENT");
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

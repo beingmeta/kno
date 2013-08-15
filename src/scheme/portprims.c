@@ -1565,3 +1565,10 @@ FD_EXPORT void fd_init_portfns_c()
 	   fd_make_ndprim(fd_make_cprim3("%SHOW",lisp_show_table,1)));
 
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

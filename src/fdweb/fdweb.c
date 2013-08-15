@@ -57,3 +57,10 @@ FD_EXPORT void fd_init_fdweb()
   u8_register_source_file(FRAMERD_FDWEB_H_INFO);
   u8_register_source_file(_FILEINFO);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

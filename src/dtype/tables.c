@@ -2939,3 +2939,10 @@ void fd_init_tables_c()
     e->restore=restore_hashtable;}
 
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

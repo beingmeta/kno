@@ -306,3 +306,10 @@ char *fd_stem_english_word(u8_byte *original)
 ;;;  compile-command: "cd ../..; make" ***
 ;;;  End: ***
 */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

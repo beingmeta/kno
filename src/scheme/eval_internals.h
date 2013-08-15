@@ -82,3 +82,9 @@ FD_FASTOP fdtype eval_exprs(fdtype body,fd_lispenv inner_env)
   return result;
 }
 
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

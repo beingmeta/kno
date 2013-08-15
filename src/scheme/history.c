@@ -281,3 +281,10 @@ FD_EXPORT void fd_init_history_c()
   fd_finish_module(history_module);
 
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

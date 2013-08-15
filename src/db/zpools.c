@@ -922,3 +922,10 @@ FD_EXPORT void fd_init_zpools_c()
      fd_read_pool_metadata,fd_write_pool_metadata);
   schemas_slotid=fd_intern("SCHEMAS");
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

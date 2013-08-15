@@ -466,3 +466,10 @@ FD_EXPORT void fd_init_filedb_c()
   fd_persist_module(filedb_module);
 }
 
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

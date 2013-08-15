@@ -119,3 +119,10 @@ extern void abort ();
 }
 
 #endif /* not BIGINT_DISABLE_ASSERTION_CHECKS */
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

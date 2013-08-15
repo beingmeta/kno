@@ -209,3 +209,10 @@ FD_EXPORT void fd_init_conditionals_c()
   fd_defspecial(fd_scheme_module,"OR",or_handler);
   fd_idefn(fd_scheme_module,fd_make_cprim1("NOT",not_prim,1));
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

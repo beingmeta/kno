@@ -1220,3 +1220,10 @@ FD_EXPORT void fd_init_dtypeio_c()
   fd_init_mutex(&(dtype_unpacker_lock));
 #endif
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

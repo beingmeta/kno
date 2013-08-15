@@ -1163,3 +1163,10 @@ FD_EXPORT void fd_init_fileindices_c()
   fd_register_index_opener(FD_MULT_FILE_INDEX_TO_RECOVER,open_file_index,NULL,NULL);
 }
 
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

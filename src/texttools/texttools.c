@@ -2403,3 +2403,10 @@ void fd_init_texttools()
   fd_finish_module(texttools_module);
   fd_persist_module(texttools_module);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

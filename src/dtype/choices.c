@@ -1086,3 +1086,10 @@ void fd_init_choices_c()
 
   fd_type_names[fd_choice_type]="choice";
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/
