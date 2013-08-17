@@ -185,6 +185,7 @@
 (put 'debug%watch 'scheme-indent-function 1)
 (put 'info%watch 'scheme-indent-function 1)
 (put 'notice%watch 'scheme-indent-function 1)
+(put 'warn%watch 'scheme-indent-function 1)
 (put 'saveoutput 'scheme-indent-function 1)
 
 (put 'extdb/proc 'scheme-indent-function 1)
