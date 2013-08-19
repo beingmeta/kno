@@ -9,11 +9,11 @@
 (module-export! '{s3/signature s3/op s3/expected
 		  s3/uri s3/signeduri s3/pathuri s3/hosturi})
 (module-export! '{s3loc s3/getloc s3loc/s3uri make-s3loc
-		  s3loc/uri s3loc/filename s3loc/get s3loc/exists?
-		  s3loc/head s3loc/content s3loc/put
-		  s3loc/copy! s3loc/link!})
-(module-export! '{s3/get s3/get+ s3/modified s3/bucket?
-		  s3/copy! s3/link! s3/put s3/head s3/ctype s3/exists?})
+		  s3loc/uri s3loc/filename})
+(module-export! '{s3loc/get s3loc/head s3loc/exists? s3loc/etag s3loc/modified
+		  s3loc/content s3loc/put s3loc/copy! s3loc/link!})
+(module-export! '{s3/get s3/get+ s3/head s3/ctype s3/exists? s3/modified s3/etag
+		  s3/bucket? s3/copy! s3/link! s3/put})
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %info!)
@@ -43,6 +43,9 @@
 					  (if (string? (cdr val)) (cdr val) (cadr val)))
 			   (error 'NOT_AN_S3BUCKET val)))
 		   (hashset-elts website-buckets))))
+
+(define s3cache #f)
+(varconfig! s3cache s3cache)
 
 ;;; This is used by the S3 API sample code and we can use it to
 ;;;  test the signature algorithm
@@ -126,7 +129,7 @@
  '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath
    s3loc->string})
 
-;;; Computing S3 signatures
+;;; Computing signatures for S3 calls
 
 (define (s3/signature op bucket path (date (gmtimestamp)) (headers '())
 		      (content-sig "") (content-ctype ""))
@@ -170,6 +173,8 @@
       (do ((scan pheaders (cdr scan)))
 	  ((null? scan) (printout))
 	(printout (second (car scan)) ":" (third (car scan)) "\n")))))
+
+;;; Making S3 calls
 
 (define (s3op op bucket path (content #f) (ctype) (headers '()) args)
   (default! ctype
@@ -228,6 +233,14 @@
 			 result))
 	      result)))))
 
+(define (s3/expected response)
+  (->string (map (lambda (x) (integer->char (string->number x 16)))
+		 (segment (car (get (xmlget (xmlparse (get response '%content))
+					    'stringtosignbytes)
+				    '%content))))))
+
+;;; Getting S3 URIs for the API
+
 (define (s3/uri bucket path (scheme s3scheme) (usepath default-usepath))
   (if usepath
       (stringout scheme s3root "/" bucket path)
@@ -238,6 +251,8 @@
   (s3/uri bucket path scheme #t))
 (define (s3/hosturi bucket path (scheme s3scheme))
   (s3/uri bucket path scheme #f))
+
+;;; Getting signed URIs
 
 (define (signeduri bucket path (scheme s3scheme)
 		   (expires (* 17 3600))
@@ -271,11 +286,7 @@
 		       (* 48 3600))))
       (apply signeduri arg args)))
 
-(define (s3/expected response)
-  (->string (map (lambda (x) (integer->char (string->number x 16)))
-		 (segment (car (get (xmlget (xmlparse (get response '%content))
-					    'stringtosignbytes)
-				    '%content))))))
+;;; Operations
 
 (define (s3/write! loc content (ctype) (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
@@ -294,29 +305,14 @@
 		   (s3loc-bucket loc)
 		   (s3loc-path loc) err "" #f headers) loc))
 
-(module-export! '{s3/write! s3/delete!})
+(define (s3/bucket? loc)
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (let ((req (s3/op "HEAD" (s3loc-bucket loc) "" #f "")))
+    (response/ok? req)))
 
-;;; Functions over S3 locations, mapping URLs to S3 and back
+(module-export! '{s3/bucket? s3/write! s3/delete!})
 
-;;; Rules for converting URLs into S3 locations
-
-(define s3urlrules '())
-(ruleconfig! AWS:S3URLMAP s3urlrules)
-;;; Each rule is of the form (<pat> <bucket>) where
-;;;   <bucket> is an S3 bucket <pat> is either a string
-;;;   or a texttools pattern/subst rule
-;;; If <pat> is a string, the rule applies to all URLs beinging
-;;;   with that string and the S3 path is the reset of the string
-;;;   after the prfix.
-;;; These rules can be configured with the AWS:S3URLMAP config variable
-
-(define (s3/getloc url)
-  (tryseq (rule s3urlrules)
-    (tryif (string-starts-with? url (car rule))
-      (make-s3loc (cadr rule)
-		  (if (string? (car rule))
-		      (subseq url (length (car rule)))
-		      (textsubst url (car rule)))))))
+;;; User facing s3loc constructors, exporters, etc
 
 (define (s3loc bucket path)
   (if (s3loc? bucket)
@@ -335,27 +331,7 @@
   (if (string? s3loc) (set! s3loc (->s3loc s3loc)))
   (stringout "s3://" (s3loc-bucket s3loc) (s3loc-path s3loc)))
 
-;; Rules for mapping S3 locations into the local file system
-(define s3diskrules '())
-(ruleconfig! AWS:S3DISKMAP s3diskrules)
-;; Each rule has the form (<bucket> <pat>)
-;;  <pat> can be:
-;;    a string to append to the S3 path to get a local file path
-;;    a function to call on the S3LOC to get a local file path
-;;    a text subst pattern which is called to generate a local file path
-
-(define (s3loc/filename loc)
-  (tryseq (rule s3diskrules)
-    (tryif (equal? (s3loc-bucket loc) (car rule))
-      (if (applicable? (cadr rule))
-	  ((cdr rule) loc)
-	  (if (string? (cadr rule))
-	      (string-append (if (has-suffix (cadr rule) "/")
-				 (slice (cadr rule) 0 -1)
-				 (cadr rule))
-			     (s3loc-path loc))
-	      (tryif (exists? (textmatcher (cadr rule) (s3loc-path loc)))
-		(textsubst (s3loc-path loc) (cadr rule))))))))
+;;; Basic S3LOC network methods
 
 (define (s3loc/get loc (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
@@ -366,9 +342,28 @@
   (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f ""))
 (define s3/head s3loc/head)
 
-(define (s3/modified loc)
+(define (s3loc/get+ loc (text #t) (headers '()) (err s3errs))
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
+		err "" "text"headers))
+	 (status (get req 'response)))
+    (if (and status (>= 299 status 200))
+	`#[content ,(get req '%content)
+	   ctype ,(try (get req 'content-type)
+		       (guess-mimetype (s3loc-path loc))
+		       (if text "text" "application"))
+	   encoding ,(get req 'content-encoding)
+	   modified ,(try (get req 'last-modified) (timestamp))
+	   etag ,(try (get req 'etag) (md5 (get req '%content)))]
+	(and err (error S3FAILURE S3LOC/CONTENT req)))))
+(define s3/get+ s3loc/get+)
+
+;;; Basic S3 network metadata methods
+
+(define (s3loc/modified loc)
   (let ((info (s3loc/head loc)))
     (try (get info 'last-modified) #f)))
+(define s3/modified s3loc/modified)
 
 (define (s3loc/exists? loc)
   (when (string? loc) (set! loc (->s3loc loc)))
@@ -376,13 +371,19 @@
     (response/ok? req)))
 (define s3/exists? s3loc/exists?)
 
-(define (s3/bucket? loc)
+(define (s3loc/etag loc)
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let ((req (s3/op "HEAD" (s3loc-bucket loc) "" #f "")))
-    (response/ok? req)))
+  (let ((req (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f "")))
+    (and (response/ok? req)
+	 (try (get req 'etag) (md5 (s3loc/content loc))))))
+(define s3/etag s3loc/etag)
 
-(define (s3/ctype loc)
+(define (s3loc/ctype loc)
+  (when (string? loc) (set! loc (->s3loc loc)))
   (get (s3loc/head loc) 'content-type))
+(define s3/ctype s3loc/ctype)
+
+;;; Basic S3 network write methods
 
 (define (s3loc/put loc content (ctype) (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
@@ -424,33 +425,6 @@
 		   (stringout "/" (s3loc-bucket src) (s3loc-path src))
 		   src))))))
 (define s3/link! s3loc/link!)
-
-(define (s3loc/content loc (text #t) (headers '()) (err s3errs))
-  (when (string? loc) (set! loc (->s3loc loc)))
-  (try (if text (filestring (s3loc/filename loc))
-	   (filedata (s3loc/filename loc)))
-       (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
-		     err "" "text" headers ))
-	      (status (get req 'response)))
-	 (if (and status (>= 299 status 200))
-	     (get req '%content)
-	     (and err (error S3FAILURE S3LOC/CONTENT req))))))
-(define s3/get s3loc/content)
-
-(define (s3/get+ loc (text #t) (headers '()) (err s3errs))
-  (when (string? loc) (set! loc (->s3loc loc)))
-  (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
-		err "" "text"headers))
-	 (status (get req 'response)))
-    (if (and status (>= 299 status 200))
-	`#[content ,(get req '%content)
-	   ctype ,(try (get req 'content-type)
-		       (guess-mimetype (s3loc-path loc))
-		       (if text "text" "application"))
-	   encoding ,(get req 'content-encoding)
-	   modified ,(try (get req 'last-modified) (timestamp))
-	   etag ,(try (get req 'etag) (md5 (get req '%content)))]
-	(and err (error S3FAILURE S3LOC/CONTENT req)))))
 
 ;;; Working with S3 'dirs'
 
@@ -494,6 +468,60 @@
     (do-choices (path (s3/list* loc err))
       (s3/delete! path headers))))
 (module-export! 's3/axe!)
+
+;;; Rules for converting URLs into S3 locations
+
+(define s3urlrules '())
+(ruleconfig! AWS:S3URLMAP s3urlrules)
+;;; Each rule is of the form (<pat> <bucket>) where
+;;;   <bucket> is an S3 bucket <pat> is either a string
+;;;   or a texttools pattern/subst rule
+;;; If <pat> is a string, the rule applies to all URLs beinging
+;;;   with that string and the S3 path is the reset of the string
+;;;   after the prfix.
+;;; These rules can be configured with the AWS:S3URLMAP config variable
+
+(define (s3/getloc url)
+  (tryseq (rule s3urlrules)
+    (tryif (string-starts-with? url (car rule))
+      (make-s3loc (cadr rule)
+		  (if (string? (car rule))
+		      (subseq url (length (car rule)))
+		      (textsubst url (car rule)))))))
+
+;; Rules for mapping S3 locations into the local file system
+(define s3diskrules '())
+(ruleconfig! AWS:S3DISKMAP s3diskrules)
+;; Each rule has the form (<bucket> <pat>)
+;;  <pat> can be:
+;;    a string to append to the S3 path to get a local file path
+;;    a function to call on the S3LOC to get a local file path
+;;    a text subst pattern which is called to generate a local file path
+
+(define (s3loc/filename loc)
+  (tryseq (rule s3diskrules)
+    (tryif (equal? (s3loc-bucket loc) (car rule))
+      (if (applicable? (cadr rule))
+	  ((cdr rule) loc)
+	  (if (string? (cadr rule))
+	      (string-append (if (has-suffix (cadr rule) "/")
+				 (slice (cadr rule) 0 -1)
+				 (cadr rule))
+			     (s3loc-path loc))
+	      (tryif (exists? (textmatcher (cadr rule) (s3loc-path loc)))
+		(textsubst (s3loc-path loc) (cadr rule))))))))
+
+(define (s3loc/content loc (text #t) (headers '()) (err s3errs))
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (try (if text (filestring (s3loc/filename loc))
+	   (filedata (s3loc/filename loc)))
+       (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
+		     err "" "text" headers ))
+	      (status (get req 'response)))
+	 (if (and status (>= 299 status 200))
+	     (get req '%content)
+	     (and err (error S3FAILURE S3LOC/CONTENT req))))))
+(define s3/get s3loc/content)
 
 ;;; Some test code
 

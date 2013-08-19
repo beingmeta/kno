@@ -9,7 +9,7 @@
    gp/fetch gp/fetch+ gp/modified gp/exists?
    gp/urlfetch gp/urlinfo
    gp/path gp/mkpath gp/makepath gpath->string
-   gp/location gp/basename
+   gp/location gp/basename gp/etag
    gpath? ->gpath gp/has-suffix gp:config})
 
 ;;; This is a generic path facility (it grew out of the savecontent
@@ -390,6 +390,36 @@
 	 (s3/exists? (->s3loc ref)))
 	((string? ref) (file-exists? ref))
 	(else (error "Weird docbase ref" ref))))
+
+(define (gp/etag ref (compute #f))
+  (cond ((s3loc? ref) (s3/etag ref))
+	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
+	 (and (zip/exists? (car ref) (cdr ref)) compute
+	      (md5 (zip/get (car ref) (cdr ref)))))
+	((and (pair? ref) (hashtable? (car ref)) (string? (cdr ref)))
+	 (and (test (car ref) (cdr ref)) compute
+	      (md5 (get (car ref) (cdr ref)))))
+	((and (pair? ref) (hashfs? (car ref)) (string? (cdr ref)))
+	 (try (md5 (hashfs/get (car ref) (cdr ref))) #f))
+	((and (pair? ref) (pair? (car ref)))
+	 (gp/etag (gp/path (car ref) (cdr ref)) compute))
+	((pair? ref) (gp/etag (gp/path (car ref) (cdr ref)) compute))
+	((and (string? ref) (exists has-prefix ref {"http:" "https:"}))
+	 (let ((response (urlhead ref)))
+	   (and (test response 'response)
+		(<= 200 (get response 'response) 299)
+		(try (get response 'tag)
+		     (and compute
+			  (begin (set! response (urlget ref))
+			    (and (test response 'response)
+				 (<= 200 (get response 'response) 299)
+				 (try (get response 'etag)
+				      (md5 (get response '%content))))))))))
+	((and (string? ref) (has-prefix ref "s3:"))
+	 (s3/etag (->s3loc ref) compute))
+	((string? ref)
+	 (and (file-exists? ref) compute (md5 (filedata ref))))
+	(else (error "Weird GPATH ref" ref))))
 
 ;;; Recognizing and parsing GPATHs
 
