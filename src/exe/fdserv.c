@@ -846,6 +846,7 @@ static int webservefn(u8_client ucl)
     /* First we try to apply the error page if it's defined */
     if (FD_APPLICABLEP(errorpage)) {
       fdtype err_value=fd_init_exception(NULL,ex);
+      fdtype curdata=fd_push_reqinfo(init_cgidata);
       fd_store(init_cgidata,error_symbol,err_value); fd_decref(err_value);
       fd_store(init_cgidata,reqdata_symbol,cgidata); fd_decref(cgidata);
       if (outstream->u8_outptr>outstream->u8_outbuf) {
@@ -857,9 +858,7 @@ static int webservefn(u8_client ucl)
 	/* Save the output to date on the request */
 	fd_store(init_cgidata,output_symbol,output);
 	fd_decref(output);}
-      /* Reset the cgidata and store it. */
-      fd_use_reqinfo(init_cgidata);
-      cgidata=init_cgidata; fd_incref(cgidata);
+      cgidata=init_cgidata;
       /* Reset the output stream */
       outstream->u8_outptr=outstream->u8_outbuf;
       /* Apply the error page object */
