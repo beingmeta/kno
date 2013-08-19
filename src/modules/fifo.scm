@@ -201,8 +201,8 @@
       (begin (condvar-lock (fifo-state fifo))
 	(when nonzero
 	  (while (zero? (fifo-waiting fifo))
-	    (condvar-wait (fifo-state fifo)))
-	  (fifo-waiting fifo)))
+	    (condvar-wait (fifo-state fifo))))
+	(fifo-waiting fifo))
     (condvar-unlock (fifo-state fifo))))
 
 (define (fifo/idle? fifo)
