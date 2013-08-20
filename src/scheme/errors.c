@@ -299,6 +299,15 @@ static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
   return result;
 }
 
+/* Clear errors */
+
+static fdtype clear_errors()
+{
+  int n_errs=fd_clear_errors(1);
+  if (n_errs) return FD_INT2DTYPE(n_errs);
+  else return FD_FALSE;
+}
+
 FD_EXPORT void fd_init_errors_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -329,4 +338,8 @@ FD_EXPORT void fd_init_errors_c()
 
   fd_defspecial(fd_scheme_module,"DYNAMIC-WIND",dynamic_wind_handler);
   fd_defspecial(fd_scheme_module,"UNWIND-PROTECT",unwind_protect_handler);
+
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim0("CLEAR-ERRORS!",clear_errors,0));
+
 }
