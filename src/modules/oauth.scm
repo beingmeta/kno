@@ -390,7 +390,7 @@
 	      (logwarn OAUTH/VERIFY:REQFAIL spec req)
 	      (error OAUTH:REQFAIL OAUTH:VERIFY "Web call failed" req))))))
 
-(define (oauth/getaccess spec (code) (ckey) (csecret))
+(define (oauth/getaccess spec (code) (ckey) (csecret) (verifier))
   (set! spec (oauth/spec spec))
   (default! code
     (and (or (testopt spec 'grant "authorization_code")
@@ -398,6 +398,7 @@
 	 (getopt spec 'code (req/get 'code))))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
+  (default! verifier (getopt spec 'verifier))
   (debug%watch "OAUTH/GETACCESS" code spec)
   (let* ((callback (getcallback spec))
 	 (req (urlpost (getopt spec 'access)

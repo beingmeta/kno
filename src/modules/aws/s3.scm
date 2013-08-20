@@ -371,11 +371,11 @@
     (response/ok? req)))
 (define s3/exists? s3loc/exists?)
 
-(define (s3loc/etag loc)
+(define (s3loc/etag loc (compute #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   (let ((req (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f "")))
     (and (response/ok? req)
-	 (try (get req 'etag) (md5 (s3loc/content loc))))))
+	 (try (get req 'etag) (and compute (md5 (s3loc/content loc)))))))
 (define s3/etag s3loc/etag)
 
 (define (s3loc/ctype loc)

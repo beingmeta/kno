@@ -314,7 +314,7 @@
 	       "\n\tbased on " signature
 	       "\n\texpecting " expected
 	       "\n\tgetting " sig))
-    (and sig payload info (equal? sig computed) (->vector info))))
+    (and sig payload info (equal? sig expected) (->vector info))))
 
 ;;;; Core functions
 
@@ -392,7 +392,8 @@
     (req/get 'https #f)
     (not (not secret)))
   (cond ((fail? authinfo) (fail))
-	((not authinfo) (authfail  "No authorization info" authid authinfo))
+	((not authinfo)
+	 (authfail  "No authorization info" authid authinfo signal))
 	;; If the info is a string, convert it and authorize that
 	;; (conversion might fail if the info is invalid)
 	((string? authinfo)
