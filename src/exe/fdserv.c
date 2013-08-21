@@ -192,6 +192,8 @@ static fdtype statinterval_get(fdtype var,void *data)
 		 ((((double)v)/((double)n))*(((double)v)/((double)n))))))
 #define getmean(v,n) (((double)v)/((double)n))
 
+static int short_status=1, log_status=-1;
+
 static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 {
   double elapsed=u8_elapsed_time();
@@ -201,54 +203,57 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 	       stats->tmax,
 	       stdev(stats->tsum,stats->tsum2,stats->tcount),
 	       stats->tcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,src,"busy",
-	   getmean(stats->tsum,stats->tcount),
-	   stats->tmax,
-	   stdev(stats->tsum,stats->tsum2,stats->tcount),
-	   stats->tcount);}
+    if (log_status>0)
+      u8_log(log_status,"fdserv",STATUS_LINEX,src,"busy",
+	     getmean(stats->tsum,stats->tcount),
+	     stats->tmax,
+	     stdev(stats->tsum,stats->tsum2,stats->tcount),
+	     stats->tcount);}
   
   if (stats->qcount>0) {
     u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"queued",
 	       getmean(stats->qsum,stats->qcount),stats->qmax,
 	       stdev(stats->qsum,stats->qsum2,stats->qcount),
 	       stats->qcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,src,"queued",
-	   getmean(stats->qsum,stats->qcount),stats->qmax,
-	   stdev(stats->qsum,stats->qsum2,stats->qcount),
-	   stats->qcount);}
+    if (log_status>0)
+      u8_log(log_status,"fdserv",STATUS_LINEX,src,"queued",
+	     getmean(stats->qsum,stats->qcount),stats->qmax,
+	     stdev(stats->qsum,stats->qsum2,stats->qcount),
+	     stats->qcount);}
 
   if (stats->rcount>0) {
     u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"read",
 	       getmean(stats->rsum,stats->rcount),stats->rmax,
 	       stdev(stats->rsum,stats->rsum2,stats->rcount),
 	       stats->rcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,src,"read",
-	   getmean(stats->rsum,stats->rcount),stats->rmax,
-	   stdev(stats->rsum,stats->rsum2,stats->rcount),
-	   stats->rcount);}
-
+    if (log_status>0)
+      u8_log(log_status,"fdserv",STATUS_LINEX,src,"read",
+	     getmean(stats->rsum,stats->rcount),stats->rmax,
+	     stdev(stats->rsum,stats->rsum2,stats->rcount),
+	     stats->rcount);}
+  
   if (stats->wcount>0) {
     u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"write",
 	       getmean(stats->wsum,stats->wcount),stats->wmax,
 	       stdev(stats->wsum,stats->wsum2,stats->wcount),
 	       stats->wcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,src,"write",
-	   getmean(stats->wsum,stats->wcount),stats->wmax,
-	   stdev(stats->wsum,stats->wsum2,stats->wcount),
-	   stats->wcount);}
-
+    if (log_status>0)
+      u8_log(log_status,"fdserv",STATUS_LINEX,src,"write",
+	     getmean(stats->wsum,stats->wcount),stats->wmax,
+	     stdev(stats->wsum,stats->wsum2,stats->wcount),
+	     stats->wcount);}
+  
   if (stats->xcount>0) {
     u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"run",
 	       getmean(stats->xsum,stats->xcount),stats->xmax,
 	       stdev(stats->xsum,stats->xsum2,stats->xcount),
 	       stats->xcount);
-    u8_log(LOG_INFO,"fdserv",STATUS_LINEX,src,"run",
-	   getmean(stats->xsum,stats->xcount),stats->xmax,
-	   stdev(stats->xsum,stats->xsum2,stats->xcount),
-	   stats->xcount);}
+    if (log_status>0)
+      u8_log(log_status,"fdserv",STATUS_LINEX,src,"run",
+	     getmean(stats->xsum,stats->xcount),stats->xmax,
+	     stdev(stats->xsum,stats->xsum2,stats->xcount),
+	     stats->xcount);}
 }
-
-static int short_status=1;
 
 static void report_status()
 {
