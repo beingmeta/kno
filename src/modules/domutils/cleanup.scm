@@ -51,10 +51,11 @@
        (subst (+ "\&mdash;") ,wrapdash)})))
 (define (dom/unipunct! arg)
   (if (string? arg) (unipunct arg)
-      (if (pair? arg) (map dom/unipunct arg)
+      (if (pair? arg) (map dom/unipunct! arg)
 	  (if (not (table? arg)) arg
 	      (if (test arg '%content)
-		  (begin (store! arg '%content (map dom/unipunct! (get arg '%content)))
+		  (begin (store! arg '%content
+				 (map dom/unipunct! (get arg '%content)))
 		    arg)
 		  arg)))))
 
