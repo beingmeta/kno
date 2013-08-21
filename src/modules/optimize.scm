@@ -544,6 +544,9 @@
 
 (add! special-form-tighteners unwind-protect tighten-unwind-protect)
 
+(add! special-form-tighteners
+      {"ONERROR" "UNWIND-PROTECT" "DYNAMIC-WIND"}
+      tighten-block)
 (add! special-form-tighteners {"FILEOUT" "SYSTEM"} tighten-block)
 ;; Don't optimize these because they look at the symbol that is the head
 ;; of the expression to get their tag name.
