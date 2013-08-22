@@ -48,13 +48,18 @@
 	 (dir (mkpath daily (stringout "BJ" (uuid->string uuid)))))
     dir))
 
-(define (bugjar! uuid exception . more)
-  (let* ((uuid (if uuid (getuuid uuid) (getuuid)))
+(define (bugjar! spec exception . more)
+  (if (uuid? spec) (set! spec `#[uuid ,spec]) (set! spec #[]))
+  (when (getopt spec 'sections)
+    (set! more (append more (getopt spec 'sections))))
+  (let* ((uuid (try (getopt spec 'uuid) (getuuid)))
 	 (logbase (getlogbase uuid))
 	 (fileroot (abspath (mkpath fileroot logbase)))
 	 (webroot (and webroot (mkpath webroot logbase)))
-	 (reqdata (and (req/get 'SCRIPT_FILENAME)
-		       (or (req/get 'reqdata #f) (req/data))))
+	 (reqdata (try (getopt spec 'reqdata)
+		       (and (req/get 'SCRIPT_FILENAME)
+			    (or (req/get 'reqdata #f) (req/data)))))
+	 (head (getopt spec 'head))
 	 (sections '()))
     (mkdirs (mkpath fileroot "example"))
     (when reqdata
@@ -82,8 +87,8 @@
        (htmlheader
 	(xmlblock STYLE ((type "text/css"))
 	  (xhtml "\n" (filestring bugjar-css))))
-       (stylesheet! "http://static.beingmeta.com/static/fdjt.css")
-       (body! 'class "fdjtbugreport")
+       (stylesheet! "https://s3.amazonaws.com/beingmeta/static/fdjt/fdjt.css")
+       (body! 'class "fdjtbugjar")
        (htmlheader
 	(xmlelt "META" http-equiv "Content-type"
 	  content "text/html; charset=utf-8"))
@@ -105,6 +110,9 @@
 			     (not (empty-string? (get reqdata 'query_string))))
 		    (span ((class "query"))
 		      (span ((class "qmark")) "?") (get reqdata 'query_string))))))
+	 (when head
+	   (onerror (xmleval head)
+	     (lambda (x) (h3* ((class "errerrerr")) "Recursive error rendering head") #f)))
 	 (h1 (span ((class "condition")) (->string (error-condition exception)))
 	   (when (error-context exception)
 	     (span ((class "context")) " (" (error-context exception) ") ")))
@@ -158,6 +166,8 @@
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (mkpath fileroot "backtrace.html")))))
+
+
 
 
 

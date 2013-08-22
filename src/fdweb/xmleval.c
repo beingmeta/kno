@@ -582,7 +582,7 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
 	/* A symbol entity is just included as a symbol, but we
 	   don't want to override any valid character entities,
 	   so we check. */
-	if ((semi)&&((semi-start)<40)&&
+	if ((semi)&&((semi-scan)<40)&&
 	    (check_symbol_entity(scan+1,semi-1))) {
 	  /* Make a different kind of node to be evaluated */
 	  struct U8_OUTPUT out; u8_byte buf[64];
@@ -597,7 +597,7 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
 	    fd_add_content(node,fd_extract_string(NULL,start,scan));
 	  fd_add_content(node,symbol);
 	  start=semi+1; scan=strchr(start,'&');}
-	else scan=strchr(start+1,'&');}}
+	else scan=strchr(scan+1,'&');}}
     if (start<(s+len))
       fd_add_content(node,fd_extract_string(NULL,start,lim));}
   else fd_add_content(node,fd_init_string(NULL,len,s));
