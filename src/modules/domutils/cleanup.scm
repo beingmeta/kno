@@ -168,6 +168,7 @@
 	    (strings '())
 	    (hgroup '())
 	    (merged '()))
+	(when (test node '%xmltag 'font) (fix-font-node node))
 	(when (and cleanstyles (test node 'style))
 	  (dom/set! node 'style
 		    (if (eq? cleanstyles #t)
@@ -232,6 +233,23 @@
 	(store! node '%content merged)
 	node)
       node))
+
+(define (fix-font-node node (style))
+  (default! style (try (get node 'style) ""))
+  (store! node '%xmltag 'span)
+  (when (exists? (get node 'size))
+    (set! style (glom style " font-size: "
+		  (+ 60 (* 20 (get node 'size))) 
+		  "%;"))
+    (dom/drop! node 'size))
+  (when (exists? (get node 'face))
+    (set! style (glom style " font-family: " (get node 'face) ";"))
+    (dom/drop! node 'face))
+  (when (exists? (get node 'color))
+    (set! style (glom style " color: " (get node 'color) ";"))
+    (dom/drop! node 'color))
+  (dom/store! node 'style style)
+  node)
 
 (define (empty-child? x)
   (if (string? x) (empty-string? x)
