@@ -10,9 +10,11 @@
 		  s3/uri s3/signeduri s3/pathuri s3/hosturi})
 (module-export! '{s3loc s3/getloc s3loc/s3uri make-s3loc
 		  s3loc/uri s3loc/filename})
-(module-export! '{s3loc/get s3loc/head s3loc/exists? s3loc/etag s3loc/modified
+(module-export! '{s3loc/get s3loc/head s3loc/exists?
+		  s3loc/etag s3loc/modified s3loc/info
 		  s3loc/content s3loc/put s3loc/copy! s3loc/link!})
-(module-export! '{s3/get s3/get+ s3/head s3/ctype s3/exists? s3/modified s3/etag
+(module-export! '{s3/get s3/get+ s3/head s3/ctype s3/exists?
+		  s3/modified s3/etag  s3/info
 		  s3/bucket? s3/copy! s3/link! s3/put})
 (module-export! '{s3/bytecodes->string})
 
@@ -382,6 +384,19 @@
   (when (string? loc) (set! loc (->s3loc loc)))
   (get (s3loc/head loc) 'content-type))
 (define s3/ctype s3loc/ctype)
+
+(define (s3loc/info loc)
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (let ((req (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f "")))
+    (and (response/ok? req)
+	 `#[path ,(s3loc/s3uri loc)
+	    ctype ,(try (get req 'content-type)
+			(guess-mimetype (s3loc-path loc))
+			(if text "text" "application"))
+	    encoding ,(get req 'content-encoding)
+	    modified ,(try (get req 'last-modified) (timestamp))
+	    etag ,(try (get req 'etag) (md5 (get req '%content)))])))
+(define s3/info s3loc/info)
 
 ;;; Basic S3 network write methods
 

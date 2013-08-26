@@ -8,7 +8,8 @@
 (use-module '{mimetable ezrecords gpath})
 
 (module-export! '{hashfs? hashfs/open hashfs/save!
-		  hashfs/get hashfs/get+ hashfs/commit!})
+		  hashfs/get hashfs/get+ hashfs/commit!
+		  hashfs/string})
 
 (defrecord (hashfs OPAQUE)
   files (label (getuuid)) (source #f))
@@ -19,6 +20,9 @@
   (when (not label) (set! label (getuuid)))
   (cons-hashfs (if (not init) (make-hashtable) (hashfs-init init))
 	       label (and (gpath? init) init)))
+(define (hashfs/string hashfs path)
+  (stringout "hashfs:" path
+    "(" (or (hashfs-source hashfs) (hashfs-label hashfs)) ")"))
 
 (define (hashfs-init init)
   (if (hashtable? init) init
@@ -46,6 +50,12 @@
 (define (hashfs/get+ hashfs path)
   (unless (has-prefix path "/") (set! path (glom "/" path)))
   (get (hashfs-files hashfs) path))
+
+(define (hashfs/info hashfs path)
+  (unless (has-prefix path "/") (set! path (glom "/" path)))
+  `#[path ,(hashfs/string hashfs path)
+     ctype ,(get (get hashfs path) 'ctype)
+     modified ,(get (get hashfs path) 'ctype)])
 
 (define (hashfs/commit! hashfs)
   (if (hashfs-source hashfs)

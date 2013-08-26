@@ -9,7 +9,7 @@
    gp/fetch gp/fetch+ gp/modified gp/exists?
    gp/urlfetch gp/urlinfo
    gp/path gp/mkpath gp/makepath gpath->string
-   gp/location gp/basename gp/etag
+   gp/info gp/location gp/basename gp/etag
    gpath? ->gpath gp/has-suffix gp:config})
 
 ;;; This is a generic path facility (it grew out of the savecontent
@@ -202,6 +202,13 @@
 	      (string? (cdr path))
 	      (position #\/ (cdr path)))
 	 (mkpath (car path) (cdr path)))
+	((and (pair? path) (pair? (car path)))
+	 (gpath->string (gp/mkpath (car path) (cdr path))))
+	((and (pair? path) (hashtable? (car path)) (string? (cdr path)))
+	 (stringout "hashtable:" (cdr path)
+	   "(0x" (number->string (hashptr (car path)) 16) ")"))
+	((and (pair? path) (hashfs? (car path)) (string? (cdr path)))
+	 (hashfs/string (car path) (cdr path)))
 	((s3loc? path) (s3loc->string path))
 	((and (pair? path) (s3loc? (car path)))
 	 (s3loc->string (s3/mkpath (car path) (cdr path))))
@@ -342,6 +349,36 @@
 		modified ,(file-modtime ref)]
 	     `#[content ,(filedata ref) ctype ,(or ctype {})
 		modified ,(file-modtime ref)]))
+	(else (error "Weird docbase ref" ref))))
+
+(define (gp/info ref (ctype))
+  (default! ctype (guess-mimetype (get-namestring ref)))
+  (cond ((s3loc? ref) (s3/info ref))
+	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
+	 `#[path ,(gpath->string ref) ctype ,(tryif ctype ctype)])
+	((and (pair? ref) (hashtable? (car ref)) (string? (cdr ref)))
+	 `#[path ,(gpath->string ref)
+	    ctype ,(try (memfile-ctype (get (car ref) (cdr ref))) ctype)
+	    modified ,(try (memfile-modified (get (car ref) (cdr ref))))])
+	((and (pair? ref) (hashfs? (car ref)) (string? (cdr ref)))
+	 (hashfs/info (car ref) (cdr ref)))
+	((pair? ref) (gp/info (gp/path (car ref) (cdr ref))))
+	((and (string? ref) (exists has-prefix ref {"http:" "https:" "ftp:"}))
+	 (gp/urlinfo ref))
+	((and (string? ref) (has-prefix ref "s3:"))
+	 (s3/info (->s3loc ref)))
+	((and (string? ref) (not (file-exists? ref))) #f)
+	((string? ref)
+	 (if (and ctype
+		  (or (has-prefix ctype "text")
+		      (textsearch #{"xml" ".htm" ".txt" ".text" ".md" "charset"}
+				  ctype)))
+	     `#[path ,(gpath->string ref)
+		ctype ,(or ctype {})
+		charset ,(or (and ctype (ctype->charset ctype)) {})
+		modified ,(file-modtime ref)]
+	     `#[path ,(gpath->string ref)
+		ctype ,(or ctype {}) modified ,(file-modtime ref)]))
 	(else (error "Weird docbase ref" ref))))
 
 (define (gp/modified ref)
