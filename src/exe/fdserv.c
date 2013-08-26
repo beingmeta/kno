@@ -295,9 +295,10 @@ static void report_status()
   u8_fprintf(logto,STATUS_LINE1,elapsed,
 	     fdwebserver.n_busy,fdwebserver.n_queued,
 	     fdwebserver.n_clients,fdwebserver.n_threads);
-  u8_log(LOG_INFO,"fdserv",STATUS_LINE1,elapsed,
-	 fdwebserver.n_busy,fdwebserver.n_queued,
-	 fdwebserver.n_clients,fdwebserver.n_threads);
+  if (log_status>0)
+    u8_log(log_status,"fdserv",STATUS_LINE1,elapsed,
+	   fdwebserver.n_busy,fdwebserver.n_queued,
+	   fdwebserver.n_clients,fdwebserver.n_threads);
 
   u8_server_curstats(&fdwebserver,&stats);
   output_stats(&stats,logto,"cur");
