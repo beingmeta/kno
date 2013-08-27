@@ -248,7 +248,7 @@
   (when (exists? (get node 'color))
     (set! style (glom style " color: " (get node 'color) ";"))
     (dom/drop! node 'color))
-  (dom/store! node 'style style)
+  (dom/set! node 'style style)
   node)
 
 (define (empty-child? x)
