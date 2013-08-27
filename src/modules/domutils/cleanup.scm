@@ -166,7 +166,6 @@
 			textfn))
 	    (isblock (test node '%xmltag *block-tags*))
 	    (strings '())
-	    (hgroup '())
 	    (merged '()))
 	(when (test node '%xmltag 'font) (fix-font-node node))
 	(when (and cleanstyles (test node 'style))
@@ -177,62 +176,66 @@
 	  (when (empty-string? (get node 'style))
 	    (dom/drop! node 'style)))
 	(doseq (child vec)
-	  (if (string? child)
-	      (if (or (null? hgroup) (not mergeheads))
-		  (set! strings (cons child strings))
-		  (if (empty-string? child)
-		      (set! hgroup (cons child hgroup))
-		      (begin
-			(set! merged
-			      (cons* `#[%xmltag HGROUP %content
-					,(cons "\n" (reverse hgroup))]
-				     "\n" merged))
-			(set! hgroup '()))))
-	      (unless (and dropfn (dropfn child))
-		(set! child
-		      (dom/cleanup! child textfn
-				    (qc dropfn) dropempty
-				    mergeheads (qc cleanstyles)))
-		(when (and dropempty isblock
-			   (test child '%content)
-			   (or (null? (get child '%content))
-			       (every? empty-child? (get child '%content))))
-		  (set! child #f))
-		(unless (or (not child) (and dropfn (dropfn child)))
-		  (unless (null? strings)
-		    (set! merged (cons (if textfn
-					   (textfn (apply glom (reverse strings)))
-					   (apply glom (reverse strings)))
-				       merged))
-		    (set! strings '()))
-		  (if (test child '%xmltag *head-tags*)
-		      (set! hgroup (cons child hgroup))
-		      (set! merged (cons child merged)))))))
+	  (cond ((string? child)
+		 (unless (empty-string? child)
+		   (set! strings (cons child strings))))
+		(else
+		 (set! child
+		       (dom/cleanup! child textfn
+				     (qc dropfn) dropempty
+				     mergeheads (qc cleanstyles)))
+		 (when (and dropempty isblock
+			    (test child '%content)
+			    (or (null? (get child '%content))
+				(every? empty-child? (get child '%content))))
+		   (set! child #f))
+		 (when (and child dropfn (dropfn child)) (set! child #f))
+		 (when (and child (not (null? strings)))
+		   (set! merged
+			 (cons (if textfn
+				   (textfn (apply glom (reverse strings)))
+				   (apply glom (reverse strings)))
+			       merged))
+		   (set! strings '()))
+		 (when (pair? child)
+		   (set! merged (append (reverse child) merged))))))
 	(unless (null? strings)
 	  (set! merged
 		(cons (if textfn (textfn (apply glom (reverse strings)))
 			  (apply glom (reverse strings)))
 		      merged))
 	  (set! strings '()))
-	(unless (null? hgroup)
-	  (set! merged
-		(cons* `#[%xmltag HGROUP %content ,(cons "\n" (reverse hgroup))]
-		       "\n" merged))
-	  (set! hgroup '()))
 	(when isblock
 	  (if (not (string? (car merged)))
 	      (set! merged (cons "\n" merged))
-	      (if (not (has-suffix (car merged) "\n"))
-		  (set-car! merged (glom (car merged) "\n")))))
-	(set! merged (reverse merged))
+	      (unless (or (test node '%xmltag 'P)
+			  (has-suffix (car merged) "\n"))
+		(set-car! merged (glom (car merged) "\n")))))
+	(set! merged (reverser merged))
 	(when isblock
 	  (if (not (string? (car merged)))
 	      (set! merged (cons "\n" merged))
 	      (if (not (has-prefix (car merged) "\n"))
 		  (set-car! merged (glom "\n" (car merged))))))
 	(store! node '%content merged)
-	node)
+	(if (and (test node '%xmltag 'span)
+		 (fail? (get node '%attribids))
+		 (fail? (get node '%attribs)))
+	    merged
+	    node))
       node))
+
+(define (reverser e (result '()))
+  ;; This reverses e and also insures that blocks are preceded
+  ;;  and succeeded by newlines
+  (if (null? e) result
+      (if (string? (car e))
+	  (if (and (not (has-prefix (car e) "\n"))
+		   (pair? (cdr e)) (not (string? (cadr e)))
+		   (overlaps? (get (cadr e) '%xmltag) *block-tags*))
+	      (reverser (cdr e) (cons (glom "\n" (car e) ) result))
+	      (reverser (cdr e) (cons (car e) result)))
+	  (reverser (cdr e) (cons (car e) result)))))
 
 (define (fix-font-node node (style))
   (default! style (try (get node 'style) ""))
