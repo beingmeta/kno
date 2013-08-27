@@ -61,6 +61,15 @@
 	      (if (eq? (car bindlist) sym) sym
 		  (get-lexref sym (cdr bindlist) base))))))
 
+(define (isbound? var bindlist)
+  (if (null? bindlist) #f
+      (if (pair? (car bindlist))
+	  (position var (car bindlist))
+	  (if (null? (car bindlist))
+	      (isbound? var (cdr bindlist))
+	      (or (eq? (car bindlist) var)
+		  (isbound? var (cdr bindlist)))))))
+
 ;;; Opcode mapping
 
 ;;; When opcodes are introduced, the idea is that a given primitive 
@@ -85,7 +94,6 @@
   (if n-args
       (add! opcode-map (cons prim n-args) (make-opcode code))
       (add! opcode-map prim (make-opcode code))))
-
 
 (when (bound? make-opcode)
   (def-opcode QUOTE      0x00)
@@ -155,10 +163,15 @@
 (defambda (dotighten expr env bound dolex dorail)
   (cond ((ambiguous? expr)
 	 (for-choices (each expr) (dotighten each env bound dolex dorail)))
+	((fail? expr) expr)
 	((symbol? expr)
 	 (let ((lexref (get-lexref expr bound 0)))
 	   (if lexref (if dolex lexref expr)
 	       (let ((module (wherefrom expr env)))
+		 (add! env '%free_vars expr)
+		 (when module
+		   (add! env '%used_modules
+			 (pick (get module '%moduleid) symbol?)))
 		 (if module
 		     (cond ((%test module '%nosubst expr) expr)
 			   ((%test module '%constants expr)
@@ -170,6 +183,8 @@
 		     (begin
 		       (when optdowarn
 			 (codewarning (cons* 'UNBOUND expr bound))
+			 (when env
+			   (add! env '%warnings (cons* 'UNBOUND expr bound)))
 			 (warning "The symbol " expr
 				  " appears to be unbound given bindings "
 				  (apply append bound)))

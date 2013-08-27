@@ -263,6 +263,7 @@ static fd_lispenv become_module
   else if (FD_VOIDP(module)) {
     if (!(FD_HASHTABLEP(env->exports)))
       env->exports=fd_make_hashtable(NULL,0);
+    fd_store(env->exports,moduleid_symbol,module_spec);
     fd_register_module(FD_SYMBOL_NAME(module_spec),(fdtype)env,
 		       ((safe) ? (FD_MODULE_SAFE) : (0)));}
   fd_decref(module);
@@ -391,11 +392,14 @@ static u8_mutex exports_lock;
 static fd_hashtable get_exports(fd_lispenv env)
 {
   fd_hashtable exports;
+  fdtype moduleid=fd_get(env->bindings,moduleid_symbol,FD_VOID);
   fd_lock_mutex(&exports_lock);
   if (FD_HASHTABLEP(env->exports)) {
     fd_unlock_mutex(&exports_lock);
     return (fd_hashtable) env->exports;}
   exports=(fd_hashtable)(env->exports=fd_make_hashtable(NULL,16));
+  if (!(FD_VOIDP(moduleid)))
+    fd_hashtable_store(exports,moduleid_symbol,moduleid);
   fd_unlock_mutex(&exports_lock);
   return exports;
 }
