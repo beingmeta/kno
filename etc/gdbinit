@@ -114,8 +114,9 @@ set env MallocGuardEdges=1
 set env MallocScribble=1
 set env MallocBadFreeAbort=1
 set env MallocCheckHeapAbort=1
+set env MallocCorruptionAbort=1
 
-define check_heap
+define osx_check_heap
   set env MallocCheckHeapStart=0
   set env MallocCheckHeapEach=$arg0
 end
