@@ -8,7 +8,8 @@
 (use-module '{mimetable ezrecords gpath})
 
 (module-export! '{hashfs? hashfs/open hashfs/save!
-		  hashfs/get hashfs/get+ hashfs/commit!
+		  hashfs/get hashfs/get+ hashfs/info
+		  hashfs/commit!
 		  hashfs/string})
 
 (defrecord (hashfs OPAQUE)
