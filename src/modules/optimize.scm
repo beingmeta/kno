@@ -16,7 +16,6 @@
 (use-module 'logger)
 
 (define %loglevel %warning%)
-(set! %loglevel %debug%)
 (define useopcodes #t)
 (define optdowarn #t)
 
