@@ -343,6 +343,15 @@
 	(when (and (exists? value) (compound-procedure? value))
 	  (set! count (1+ count))
 	  (optimize! value))))
+    #|
+    (let* ((referenced-modules (get module '%used_modules))
+	   (used-modules (eval `(,getmodules) module))
+	   (unused (difference used-modules referenced-modules)))
+      (when (exists? unused)
+	(logwarn "Module " (get module '%moduleid) " declares "
+		 (choice-size unused) " unused modules: "
+		 (do-choices (um unused i) (printout (if (> i 0) ", ") um)))))
+    |#
     count))
 
 (define (optimize-bindings! bindings)
