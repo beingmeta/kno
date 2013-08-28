@@ -297,6 +297,33 @@ static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
   else return fd_type_error(_("symbol"),"wherefrom",symbol);
 }
 
+/* Finding all the modules used from an environment */
+
+static fdtype moduleid_symbol;
+
+static fdtype getmodules_handler(fdtype expr,fd_lispenv call_env)
+{
+  fdtype env_arg=fd_eval(fd_get_arg(expr,1),call_env), modules=FD_EMPTY_CHOICE;
+  fd_lispenv env=call_env;
+  if (FD_VOIDP(env_arg)) {}
+  else if (FD_PRIM_TYPEP(env_arg,fd_environment_type))
+    env=FD_GET_CONS(env_arg,fd_environment_type,fd_lispenv);
+  else return fd_type_error(_("environment"),"wherefrom",env_arg);
+  if (env->copy) env=env->copy;
+  while (env) {
+    if (fd_test(env->bindings,moduleid_symbol,FD_VOID)) {
+      fdtype ids=fd_get(env->bindings,moduleid_symbol,FD_VOID);
+      if ((FD_CHOICEP(ids))||(FD_ACHOICEP(ids))) {
+	FD_DO_CHOICES(id,ids) {
+	  if (FD_SYMBOLP(id)) {FD_ADD_TO_CHOICE(modules,id);}}}
+      else if (FD_SYMBOLP(ids)) {FD_ADD_TO_CHOICE(modules,ids);}
+      else {}}
+    env=env->parent;
+    if ((env) && (env->copy)) env=env->copy;}
+  fd_decref(env_arg);
+  return modules;
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_reflection_c()
@@ -307,6 +334,8 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,apropos_cprim);
   fd_defn(fd_scheme_module,apropos_cprim);
   
+  moduleid_symbol=fd_intern("%MODULEID");
+
   fd_idefn(module,fd_make_cprim1("MACRO?",macrop,1));
   fd_idefn(module,fd_make_cprim1("APPLICABLE?",applicablep,1));
   fd_idefn(module,fd_make_cprim1("COMPOUND-PROCEDURE?",compound_procedurep,1));
@@ -344,6 +373,7 @@ FD_EXPORT void fd_init_reflection_c()
   fd_defspecial(module,"%BINDINGS",local_bindings_handler);
 
   fd_defspecial(module,"WHEREFROM",wherefrom_handler);
+  fd_defspecial(module,"GETMODULES",getmodules_handler);
 
   fd_finish_module(module);
   fd_persist_module(module);
