@@ -15,7 +15,8 @@
 (use-module 'reflection)
 (use-module 'logger)
 
-(define %loglevel %warning!)
+(define %loglevel %warning%)
+(set! %loglevel %debug%)
 (define useopcodes #t)
 (define optdowarn #t)
 
@@ -168,10 +169,11 @@
 	 (let ((lexref (get-lexref expr bound 0)))
 	   (if lexref (if dolex lexref expr)
 	       (let ((module (wherefrom expr env)))
-		 (add! env '%free_vars expr)
-		 (when module
-		   (add! env '%used_modules
-			 (pick (get module '%moduleid) symbol?)))
+		 (when (table? env)
+		   (add! env '%free_vars expr)
+		   (when (and module (table? module))
+		     (add! env '%used_modules
+			   (pick (get module '%moduleid) symbol?))))
 		 (if module
 		     (cond ((%test module '%nosubst expr) expr)
 			   ((%test module '%constants expr)
@@ -308,15 +310,23 @@
   (let* ((env (procedure-env proc))
 	 (arglist (procedure-args proc))
 	 (body (procedure-body proc))
+	 (initial (and (pair? body) (car body)))
 	 (bound (list (arglist->vars arglist))))
-    (logdebug "Optimizing " proc)
-    (threadset! 'codewarnings #{})
-    (set-procedure-body!
-     proc (map (lambda (b) (dotighten b env bound dolex dorail))
-	       body))
-    (when (exists? (threadget 'codewarnings))
-      (warning "Errors optimizing " proc)
-      (threadset! 'codewarnings #{}))))
+    (unless (and initial (pair? initial)
+		 (eq? (car initial) 'COMMENT)
+		 (pair? (cdr initial))
+		 (eq? (cadr initial) '|original|))
+      (threadset! 'codewarnings #{})
+      (set-procedure-body!
+       proc `((comment |original| ,@body)
+	      ,@(map (lambda (b)
+		       (dotighten b env bound dolex dorail))
+		     body)))
+      (when (exists? (threadget 'codewarnings))
+	(warning "Errors optimizing " proc ": "
+		 (do-choices (warning (threadget 'codewarnings))
+		   (printout "\n\t" warning)))
+	(threadset! 'codewarnings #{})))))
 
 (define (optimize-module! module)
   (logdebug "Optimizing module " module)
@@ -325,8 +335,9 @@
     (do-choices (var bindings)
       (logdebug "Optimizing binding " var)
       (let ((value (get module var)))
-	(when (compound-procedure? value)
-	  (set! count (1+ count)) (optimize! value))))
+	(when (and (exists? value) (compound-procedure? value))
+	  (set! count (1+ count))
+	  (optimize! value))))
     count))
 
 (define (optimize-bindings! bindings)
