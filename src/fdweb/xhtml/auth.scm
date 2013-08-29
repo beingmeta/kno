@@ -4,7 +4,8 @@
 (in-module 'xhtml/auth)
 
 (use-module '{fdweb texttools})
-(use-module '{varconfig logger rulesets crypto ezrecords})
+(use-module '{varconfig logger crypto ezrecords})
+(define %used_modules '{varconfig ezrecords})
 
 (define-init %loglevel %notify!)
 ;;(define %loglevel %debug!)

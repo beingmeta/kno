@@ -3,9 +3,10 @@
 
 (in-module 'bugjar)
 
-(use-module '{fdweb xhtml xhtml/tableout texttools})
-(use-module '{varconfig stringfmts logger rulesets crypto
-	      getcontent})
+(use-module '{fdweb})
+(use-module '{varconfig stringfmts logger})
+(define %used_modules '{varconfig})
+
 (module-export! 'bugjar!)
 
 (define-init %loglevel %notify!)

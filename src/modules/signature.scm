@@ -4,9 +4,10 @@
 (in-module 'signature)
 
 (use-module '{fdweb texttools packetfns})
-(use-module '{varconfig logger rulesets ezrecords})
+(use-module '{varconfig logger})
+(define %used_modules 'varconfig)
 
-(module-export! '{sig/make sig/check sig/check/ })
+(module-export! '{sig/make sig/check sig/check/})
 
 (define-init %loglevel %notify!)
 (varconfig! sbooks:signature:loglevel %loglevel)

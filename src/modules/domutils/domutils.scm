@@ -3,9 +3,10 @@
 
 (in-module 'domutils)
 
-(use-module '{fdweb xhtml texttools reflection ezrecords
+(use-module '{fdweb texttools reflection ezrecords
 	      varconfig logger})
 
+(define %used_modules '{varconfig ezrecords})
 (define %loglevel %notice%)
 
 (module-export!
@@ -981,7 +982,7 @@
       (try (get node '%oid)
 	   (let ((oid (allocate-oids pool)) (cur #f) (prev #f)
 		 (content (try (->vector (get node '%content)) #f)))
-	     ;; (logdebug "Allocated " oid " for " (get node 'id))
+	     (logdebug "Allocated " oid " for " (get node 'id))
 	     (store! node '%oid oid)
 	     (set-oid-value! oid node #t)
 	     (when parent (store! node '%parent parent))

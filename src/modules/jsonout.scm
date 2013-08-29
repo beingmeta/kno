@@ -1,6 +1,6 @@
 (in-module 'jsonout)
 
-(use-module '{reflection fdweb})
+(use-module '{fdweb})
 
 (define json-lisp-prefix ":")
 

@@ -5,10 +5,7 @@
 
 ;;; Module for simple text analysis, including morphrules and
 ;;;  reference point extraction
-(define id "$Id$")
-(define revision "$Revision: 5078 $")
-
-(use-module '{texttools varconfig logger reflection})
+(use-module '{texttools logger reflection})
 
 ;;; Some terminology
 ;;;  In the code below,

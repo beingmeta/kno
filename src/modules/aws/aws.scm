@@ -4,7 +4,6 @@
 ;;; Core file for accessing Amazon Web Services
 (in-module 'aws)
 
-
 (module-export! '{awskey secretawskey awsaccount})
 
 (module-export! '{aws/datesig aws/datesig/head})

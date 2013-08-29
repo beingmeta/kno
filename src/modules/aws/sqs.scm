@@ -3,7 +3,8 @@
 
 (in-module 'aws/sqs)
 
-(use-module '{aws aws/aws4 fdweb texttools logger varconfig})
+(use-module '{aws aws/aws4 texttools logger varconfig})
+(define %used_modules '{aws varconfig})
 
 (module-export! '{sqs/get sqs/send sqs/list sqs/info sqs/delete sqs/extend})
 

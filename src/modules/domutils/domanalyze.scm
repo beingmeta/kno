@@ -5,7 +5,7 @@
 
 (in-module 'domutils/analyze)
 
-(use-module '{tagger texttools textindex domutils domutils/index logger})
+(use-module '{textindex domutils logger})
 
 ;;(define %loglevel %debug!)
 (define %loglevel %notice!)

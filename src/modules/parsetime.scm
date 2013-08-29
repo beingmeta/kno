@@ -5,11 +5,10 @@
 
 ;;; Simple generic time parser making heavy use of TEXTTOOLS
 ;;; pattern matching and extraction.
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module 'texttools)
 (use-module '{logger varconfig})
+(define %used_modules 'varconfig)
 
 (define %loglevel %notice!)
 

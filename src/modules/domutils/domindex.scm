@@ -4,9 +4,9 @@
 ;;; Utilites for indexing XML content, especially XHTML
 (in-module 'domutils/index)
 
-(use-module '{reflection
-	      fdweb xhtml texttools domutils
-	      morph varconfig logger})
+(define %used_modules '{varconfig})
+
+(use-module '{reflection domutils varconfig logger})
 
 (module-export! '{dom/index! dom/indexer})
 

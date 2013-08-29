@@ -5,6 +5,7 @@
 
 (use-module '{aws fdweb texttools mimetable
 	      ezrecords rulesets logger varconfig})
+(define %used_modules '{aws varconfig ezrecords rulesets})
 
 (module-export! '{s3/signature s3/op s3/expected
 		  s3/uri s3/signeduri s3/pathuri s3/hosturi})
@@ -403,7 +404,7 @@
 (define (s3loc/put loc content (ctype) (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! ctype
-    (path->mimetype (s3loc-path path)
+    (path->mimetype (s3loc-path loc)
 		    (if (packet? content) "application" "text")))
   (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err
     content ctype headers))

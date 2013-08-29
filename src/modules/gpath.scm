@@ -2,6 +2,8 @@
 ;;; Copyright (C) 2005-2013 beingmeta, inc. All rights reserved.
 
 (in-module 'gpath)
+(define %used_modules '{varconfig ezrecords})
+
 (module-export!
  '{gp/write! gp/save!
    writeout writeout/type
@@ -27,7 +29,7 @@
        (define (zipfile? x) #f)
        (define (zip/add! . args) #f)))
 
-(use-module '{fileio aws/s3 varconfig logger fdweb reflection
+(use-module '{fileio aws/s3 varconfig logger fdweb 
 	      texttools mimetable ezrecords hashfs})
 (define %loglevel %notice%)
 

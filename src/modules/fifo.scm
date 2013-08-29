@@ -4,10 +4,9 @@
 (in-module 'fifo)
 
 ;;; Simple FIFO queue gated by a condition variable
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module '{ezrecords logger})
+(define %used_modules 'ezrecords)
 
 (module-export!
  '{fifo/make fifo/close

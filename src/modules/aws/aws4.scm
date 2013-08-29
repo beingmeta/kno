@@ -3,8 +3,8 @@
 
 (in-module 'aws/aws4)
 
-(use-module '{aws fdweb texttools mimetable crypto stringfmts
-	      ezrecords rulesets logger varconfig})
+(use-module '{aws fdweb texttools logger varconfig})
+(define %used_modules '{aws varconfig})
 
 (define-init %loglevel %info!)
 ;;(define %loglevel %debug!)
@@ -146,12 +146,11 @@
   (default! params (try (getopt args '%params {})  (getopt args 'params {})
 			(getkeys args)))
   (let* ((pairs (for-choices (key params)
-		  (let ((v ))
-		    (cons (uriencode key)
-			  (for-choices (v (get args key))
-			    (if (string? v) (uriencode v)
-				(if (timestamp? v) (get v 'isobasic)
-				    (uriencode (stringout v))))))))))
+		  (cons (uriencode key)
+			(for-choices (v (get args key))
+			  (if (string? v) (uriencode v)
+			      (if (timestamp? v) (get v 'isobasic)
+				  (uriencode (stringout v)))))))))
     (stringout
       (doseq (q (sorted pairs car) i)
 	(printout (if (> i 0) "&")

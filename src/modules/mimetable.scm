@@ -4,6 +4,7 @@
 (in-module 'mimetable)
 
 (use-module '{texttools varconfig texttools})
+(define %used_modules 'varconfig)
 
 (module-export! '{*mimetable* getsuffix ctype->suffix path->ctype path->mimetype ctype->charset})
 
