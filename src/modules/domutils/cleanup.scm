@@ -205,14 +205,14 @@
 			  (apply glom (reverse strings)))
 		      merged))
 	  (set! strings '()))
-	(when isblock
+	(when (and isblock (pair? merged))
 	  (if (not (string? (car merged)))
 	      (set! merged (cons "\n" merged))
 	      (unless (or (test node '%xmltag 'P)
 			  (has-suffix (car merged) "\n"))
 		(set-car! merged (glom (car merged) "\n")))))
 	(set! merged (reverser merged))
-	(when isblock
+	(when (and isblock (pair? merged))
 	  (if (not (string? (car merged)))
 	      (set! merged (cons "\n" merged))
 	      (if (not (has-prefix (car merged) "\n"))
