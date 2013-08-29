@@ -390,9 +390,10 @@
   (when (knodule? dterms)
     (set! kl dterms)
     (set! dterms (hashset-elts (knodule-alldterms kl))))
-  (default! sep (try (get settings 'sep) ";\n"))
-  (default! kl (knodule (try (get settings 'knodule)
-			     (pick-one (get dterms 'knodule)))))
+  (default! sep (try (getopt settings 'sep) ";\n"))
+  (default! kl
+    (knodule/ref (try (getopt settings 'knodule)
+		      (pick-one (get dterms 'knodule)))))
   (if (sequence? dterms)
       (doseq (dterm dterms i)
 	(if (> i 0) (printout sep))
