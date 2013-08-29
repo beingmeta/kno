@@ -6,6 +6,10 @@
 ;;;  use of constant OPCODEs and relative lexical references
 (in-module 'optimize)
 
+(define-init standard-modules
+  (choice (get (get-module 'reflection) 'getmodules)
+	  'scheme 'xscheme 'fileio 'filedb 'history 'logger))
+
 ;; This module optimizes an expression or procedure by replacing
 ;; certain variable references with their values directly, which
 ;; avoids many environment lookups.  The trick is to not replace
@@ -343,15 +347,17 @@
 	(when (and (exists? value) (compound-procedure? value))
 	  (set! count (1+ count))
 	  (optimize! value))))
-    #|
-    (let* ((referenced-modules (get module '%used_modules))
-	   (used-modules (eval `(,getmodules) module))
-	   (unused (difference used-modules referenced-modules)))
-      (when (exists? unused)
-	(logwarn "Module " (get module '%moduleid) " declares "
-		 (choice-size unused) " unused modules: "
-		 (do-choices (um unused i) (printout (if (> i 0) ", ") um)))))
-    |#
+    (when (exists symbol? (get module '%moduleid))
+      (let* ((referenced-modules (get module '%used_modules))
+	     (used-modules (eval `(within-module ',(pick (get module '%moduleid) symbol?)
+						 (,getmodules))))
+	     (unused (difference used-modules referenced-modules standard-modules
+				 (get module '%moduleid))))
+	(when (exists? unused)
+	  (logwarn "Module " (try (pick (get module '%moduleid) symbol?)
+				  (get module '%moduleid))
+		   " declares " (choice-size unused) " possibly unused modules: "
+		   (do-choices (um unused i) (printout (if (> i 0) ", ") um))))))
     count))
 
 (define (optimize-bindings! bindings)
@@ -556,7 +562,7 @@
 (add! special-form-tighteners (choice let* letq*) tighten-let*)
 (add! special-form-tighteners (choice lambda ambda slambda)
       tighten-lambda)
-(add! special-form-tighteners (choice set! set+!)
+(add! special-form-tighteners (choice set! set+! default! define)
       tighten-set-form)
 
 (add! special-form-tighteners
