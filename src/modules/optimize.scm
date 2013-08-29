@@ -556,6 +556,12 @@
     ,@(map (lambda (elt) (dotighten elt env bound dolex dorail))
 	   (cdr (cddr expr)))))
 
+(define (tighten-xmlblock fcn expr env bound dolex dorail)
+  `(,(car expr) ,(cadr expr)
+    ,(tighten-attribs (third expr) env bound dolex dorail)
+    ,@(map (lambda (elt) (dotighten elt env bound dolex dorail))
+	   (cdr (cddr expr)))))
+
 ;;; Declare them
 
 (add! special-form-tighteners (choice let letq) tighten-let)
@@ -600,6 +606,9 @@
 (add! special-form-tighteners {"markup*block" "markup*"} tighten-markup*)
 (add! special-form-tighteners "emptymarkup" tighten-emptymarkup)
 (add! special-form-tighteners "ANCHOR*" tighten-anchor*)
+(add! special-form-tighteners "XMLBLOCK" tighten-xmlblock)
+(add! special-form-tighteners "WITH/REQUEST" tighten-block)
+(add! special-form-tighteners "WITH/REQUEST/OUT" tighten-block)
 
 (when (bound? fileout)
   (add! special-form-tighteners
