@@ -174,32 +174,44 @@
   (macro expr
     `(if (>= %loglevel ,%deluge%)
 	 (,%watchcall ,@(cdr expr))
-	 ,(cadr expr))))
+	 (if (string? (cadr expr))
+	     `(,@(cddr expr))
+	     `(,@(cdr expr))))))
 (define detail%call
   (macro expr
     `(if (>= %loglevel ,%detail%)
 	 (,%watchcall ,@(cdr expr))
-	 ,(cadr expr))))
+	 (if (string? (cadr expr))
+	     `(,@(cddr expr))
+	     `(,@(cdr expr))))))
 (define debug%call
   (macro expr
     `(if (>= %loglevel ,%debug%)
 	 (,%watchcall ,@(cdr expr))
-	 ,(cadr expr))))
+	 (if (string? (cadr expr))
+	     `(,@(cddr expr))
+	     `(,@(cdr expr))))))
 (define info%call
   (macro expr
     `(if (>= %loglevel ,%info%)
 	 (,%watchcall ,@(cdr expr))
-	 ,(cadr expr))))
+	 (if (string? (cadr expr))
+	     `(,@(cddr expr))
+	     `(,@(cdr expr))))))
 (define notice%call
   (macro expr
     `(if (>= %loglevel ,%notice%)
 	 (,%watchcall ,@(cdr expr))
-	 ,(cadr expr))))
+	 (if (string? (cadr expr))
+	     `(,@(cddr expr))
+	     `(,@(cdr expr))))))
 (define warn%call
   (macro expr
     `(if (>= %loglevel ,%warn%)
 	 (,%watchcall ,@(cdr expr))
-	 ,(cadr expr))))
+	 (if (string? (cadr expr))
+	     `(,@(cddr expr))
+	     `(,@(cdr expr))))))
 
 ;;; Local loglevel predicates
 
