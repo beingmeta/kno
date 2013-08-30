@@ -21,12 +21,12 @@
       (getloglevel arg)))
 
 (define (record-loglevel! modname level)
-  (let ((entry (pick levels modname)))
+  (let ((entry (pick levels car modname)))
     (if (exists? entry)
 	(set-cdr! entry level)
 	(set+! levels (cons modname level)))))
 (define (save-loglevel! modname level)
-  (let ((entry (pick saved-levels modname)))
+  (let ((entry (pick saved-levels car modname)))
     (unless (exists? entry)
       (set+! saved-levels (cons modname level)))))
 
@@ -42,7 +42,8 @@
       (logdebug "Setting loglevel of " id " to " level)
       (logdebug "Resetting loglevel of " id " to "
 		(get saved-levels id)))
-  (set! id (get mod '%moduleid))
+  (set! id (try (pick (get mod '%moduleid) symbol?)
+		(get mod '%moduleid)))
   (when level
     (save-loglevel! id (get mod '%loglevel))
     (store! mod '%loglevel level)
