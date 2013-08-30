@@ -1430,7 +1430,9 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel
     else return 0;
   else if (FD_TABLEP(test))
     return fd_test(test,candidate,FD_VOID);
-  else return fd_type_error(_("test object"),"test_selector_predicate",test);
+  else {
+    fdtype ev=fd_type_error(_("test object"),"test_selector_predicate",test);
+    return fd_interr(ev);;}
 }
 
 FD_FASTOP int test_selector_clauses(fdtype candidate,int n,fdtype *args,int datalevel)
