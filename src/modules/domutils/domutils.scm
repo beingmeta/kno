@@ -22,7 +22,7 @@
    dom/selector dom/match dom/lookup dom/find dom/find->list
    dom/getrules dom/add-rule!
    dom/search dom/search/first dom/strip! dom/map dom/map! dom/combine!
-   dom/gethead dom/getschemas dom/getmeta dom/getlinks
+   dom/gethead dom/getschemas dom/getmeta dom/getlinks dom/count
    dom/split-space dom/split-semi dom/split-comma
    ->selector selector-tag selector-class selector-id
    *block-text-tags* dom/block? dom/terminal?
@@ -668,6 +668,26 @@
 					  (if (eq? return 'path) (exitor (cons node path))
 					      (exitor (cons* string node path)))))))))))
 
+
+;;; Counting nodes
+
+(define (dom/count under (sel #f) (sum 0))
+  (if (string? under) sum
+      (if (pair? under)
+	  (begin (doseq (child (->vector under))
+		   (unless (or (string? child)
+			       (and sel (not (dom/match child sel))))
+		     (set! sum (dom/count child sel sum))))
+	    sum)
+	  (if (table? under)
+	      (if (exists? (get under '%content))
+		  (begin
+		    (doseq (child (->vector (get under '%content)))
+		      (unless (or (string? child)
+				  (and sel (not (dom/match child sel))))
+			(set! sum (dom/count child sel sum))))
+		    (1+ sum))
+		  (1+ sum))))))
 
 ;;; Stripping out some elements
 
