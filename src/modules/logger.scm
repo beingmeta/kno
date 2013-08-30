@@ -25,6 +25,9 @@
    %debug! %debug%
    %detail% %detail! %details%
    %deluge% %deluge!})
+(module-export! '{logdeluge? logdetail? logdebug?
+		  loginfo? lognotice? logwarn?
+		  logerr? logcrit? logalert? logpanic?})
 
 (module-export!
  '{detail%watch debug%watch info%watch notice%watch warn%watch})
@@ -164,4 +167,29 @@
     `(if (>= %loglevel ,%warn%)
 	 (,%watch ,@(cdr expr))
 	 ,(cadr expr))))
+
+;;; Local loglevel predicates
+
+(define logdeluge?
+  (macro expr `(>= %loglevel ,%deluge%)))
+(define logdetail?
+  (macro expr `(>= %loglevel ,%detail%)))
+(define logdebug?
+  (macro expr `(>= %loglevel ,%debug%)))
+(define loginfo?
+  (macro expr `(>= %loglevel ,%info%)))
+(define lognotice?
+  (macro expr `(>= %loglevel ,%notice%)))
+(define logwarn?
+  (macro expr `(>= %loglevel ,%warn%)))
+(define logerr?
+  (macro expr `(>= %loglevel ,%err%)))
+(define logcrit?
+  (macro expr `(>= %loglevel ,%crit%)))
+(define logalert?
+  (macro expr `(>= %loglevel ,%alert%)))
+(define logpanic?
+  (macro expr `(>= %loglevel ,%panic%)))
+
+
 
