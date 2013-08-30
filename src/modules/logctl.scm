@@ -4,14 +4,15 @@
 (in-module 'logctl)
 
 ;;; Provides module-level logging control together with the LOGGER file
-(define version "$Id$")
-(define revision "$Revision$")
 
 (use-module 'logger)
 
-(module-export! 'logctl!)
+(module-export! '{logctl! set-loglevel!})
 
+(define saved-levels {})
 (define levels {})
+
+(define %loglevel %notice%)
 
 (define (convert-log-arg arg)
   (if (and (pair? arg) (eq? (car arg) 'quote) (pair? (cdr arg))
@@ -24,31 +25,58 @@
     (if (exists? entry)
 	(set-cdr! entry level)
 	(set+! levels (cons modname level)))))
+(define (save-loglevel! modname level)
+  (let ((entry (pick saved-levels modname)))
+    (unless (exists? entry)
+      (set+! saved-levels (cons modname level)))))
 
-(define logctl!
-  (macro expr
-    (let ((modname (second expr))
-	  (loglevel (convert-log-arg (third expr))))
-      (if (and (pair? modname) (eq? (car modname) 'quote)
-	       (pair? (cdr modname)))
-	  (set! modname (cadr modname)))
-      (when (fail? loglevel) (error "Bad LOGLEVEL" expr))
-      (let ((modref (if (symbol? modname) `',modname modname)))
-	`(begin (within-module ,modref (define %loglevel ,loglevel))
-	   (,record-loglevel! ,modref ,loglevel))))))
+(define (logctl! id (level #f) (mod #f))
+  (if (string? id)
+      (set! mod (get-module (string->lisp id)))
+      (if (symbol? id)
+	  (set! mod (get-module id))))
+  (unless (and (environment? mod)
+	       (exists? (get mod '%moduleid)))
+    (error "No module from " id ": " mod))
+  (if level
+      (logdebug "Setting loglevel of " id " to " level)
+      (logdebug "Resetting loglevel of " id " to "
+		(get saved-levels id)))
+  (set! id (get mod '%moduleid))
+  (when level
+    (save-loglevel! id (get mod '%loglevel))
+    (store! mod '%loglevel level)
+    (record-loglevel! id level))
+  (unless level
+    (store! mod '%loglevel (get saved-levels id))
+    (record-loglevel! id (get saved-levels id))))
 
 (define (logctl-config var (val))
   (if (not (bound? val)) levels
       (if (pair? val)
-	  (eval `(within-module ',(car val) (define %loglevel ,(cdr val))))
+	  (logctl! (car val) (cdr val))
 	  (if (string? val)
 	      (let ((split (position #\: val)))
 		(if (not position)
 		    (error "Invalid LOGCTL spec" val)
 		    (let ((module (get-module (string->lisp (slice val 0 split))))
 			  (level (getloglevel (string->lisp (slice val (1+ split))))))
-		      (eval `(within-module ',module (define %loglevel ,level))))))))))
+		      (logctl! module level))))))))
 (config-def! 'logctl logctl-config)
 
+(define (make-logconfigfn level)
+  (lambda (var (val))
+    (if (bound? val) (logctl! val level)
+	(car (pick levels cdr level)))))
 
+(config-def! 'logdeluge (make-logconfigfn %deluge%))
+(config-def! 'logdetail (make-logconfigfn %detail%))
+(config-def! 'logdebug (make-logconfigfn %debug%))
+(config-def! 'loginfo (make-logconfigfn %info%))
+(config-def! 'lognotice (make-logconfigfn %notice%))
+(config-def! 'logwarn (make-logconfigfn %warn%))
+(config-def! 'logerr (make-logconfigfn %error%))
+(config-def! 'logcrit (make-logconfigfn %critical%))
+(config-def! 'logalert (make-logconfigfn %alert%))
+(config-def! 'logpanic (make-logconfigfn %panic%))
 
