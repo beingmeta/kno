@@ -506,19 +506,23 @@ static int check_line_length(u8_output out,int off,int max_len)
 static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
 {
   struct U8_OUTPUT out;
-  fdtype watch=fd_get_arg(expr,1); 
   u8_string dflt_label="%CALL", label=dflt_label, arglabel="%ARG";
-  fdtype *rail, result=FD_EMPTY_CHOICE;
-  int i=0, n_args;
-  if (FD_VOIDP(watch))
+  fdtype watch, head=fd_get_arg(expr,1), *rail, result=FD_EMPTY_CHOICE;
+  int i=0, n_args, expr_len=fd_seq_length(expr);
+  if (FD_VOIDP(head))
     return fd_err(fd_SyntaxError,"%WATCHCALL",NULL,expr);
-  else if (FD_STRINGP(watch)) {
-    watch=fd_get_arg(expr,2);
-    if (FD_VOIDP(watch)) 
+  else if (FD_STRINGP(head)) {
+    if (expr_len==2)
       return fd_err(fd_SyntaxError,"%WATCHCALL",NULL,expr);
-    label=u8_strdup(FD_STRDATA(fd_get_arg(expr,1)));
-    arglabel=u8_mkstring("%s/ARG",FD_STRDATA(fd_get_arg(expr,1)));}
-  else {}
+    else {
+      label=u8_strdup(FD_STRDATA(head));
+      arglabel=u8_mkstring("%s/ARG",FD_STRDATA(head));
+      if ((expr_len>3)||(FD_APPLICABLEP(fd_get_arg(expr,2)))) {
+	watch=fd_get_body(expr,2);}
+      else watch=fd_get_arg(expr,2);}}
+  else if ((expr_len>2)||(FD_APPLICABLEP(head))) {
+    watch=fd_get_body(expr,1);}
+  else watch=head;
   n_args=fd_seq_length(watch);
   rail=u8_alloc_n(n_args,fdtype);
   U8_INIT_OUTPUT(&out,1024);
@@ -528,6 +532,7 @@ static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
   while (i<n_args) {
     fdtype arg=fd_get_arg(watch,i);
     fdtype val=fd_eval(arg,env);
+    val=fd_simplify_choice(val);
     if (FD_ABORTP(val)) {
       u8_string errstring=fd_errstring(NULL);
       i--; while (i>=0) {fd_decref(rail[i]); i--;}
@@ -1859,3 +1864,10 @@ FD_EXPORT int fd_init_fdscheme()
     
     return fdscheme_initialized;}
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/
