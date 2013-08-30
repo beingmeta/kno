@@ -18,6 +18,7 @@
 ;; or function which just runs faster.
 
 (use-module 'reflection)
+(use-module 'varconfig)
 (use-module 'logger)
 
 (define-init %loglevel %warning%)
