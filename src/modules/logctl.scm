@@ -9,8 +9,8 @@
 
 (module-export! '{logctl! set-loglevel!})
 
-(define saved-levels {})
-(define levels {})
+(define-init saved-levels {})
+(define-init levels {})
 
 (define %loglevel %notice%)
 
