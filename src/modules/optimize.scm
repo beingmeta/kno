@@ -9,6 +9,7 @@
 (define-init standard-modules
   (choice (get (get-module 'reflection) 'getmodules)
 	  'scheme 'xscheme 'fileio 'filedb 'history 'logger))
+(define-init check-module-usage #f)
 
 ;; This module optimizes an expression or procedure by replacing
 ;; certain variable references with their values directly, which
@@ -19,9 +20,9 @@
 (use-module 'reflection)
 (use-module 'logger)
 
-(define %loglevel %warning%)
-(define useopcodes #t)
-(define optdowarn #t)
+(define-init %loglevel %warning%)
+(define-init useopcodes #t)
+(define-init optdowarn #t)
 
 (defslambda (codewarning warning)
   (threadset! 'codewarnings (choice warning (threadget 'codewarnings))))
@@ -43,6 +44,8 @@
 (module-export! '{optimize! optimize-procedure! optimize-module!})
 
 (define %volatile '{optdowarn useopcodes %loglevel})
+
+(varconfig! optimize:checkmodules check-module-usage)
 
 ;;; Utility functions
 
@@ -353,7 +356,7 @@
 						 (,getmodules))))
 	     (unused (difference used-modules referenced-modules standard-modules
 				 (get module '%moduleid))))
-	(when (exists? unused)
+	(when (and check-module-usage (exists? unused))
 	  (logwarn "Module " (try (pick (get module '%moduleid) symbol?)
 				  (get module '%moduleid))
 		   " declares " (choice-size unused) " possibly unused modules: "
