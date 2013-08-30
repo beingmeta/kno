@@ -197,8 +197,9 @@
 				   (apply glom (reverse strings)))
 			       merged))
 		   (set! strings '()))
-		 (when (pair? child)
-		   (set! merged (append (reverse child) merged))))))
+		 (if (pair? child)
+		     (set! merged (append (reverse child) merged))
+		     (when child (set! merged (cons child merged)))))))
 	(unless (null? strings)
 	  (set! merged
 		(cons (if textfn (textfn (apply glom (reverse strings)))
