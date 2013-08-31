@@ -57,7 +57,6 @@ int fd_interpret_pointers=1;
 int (*fd_unparse_error)(U8_OUTPUT *,fdtype x,u8_string details)=NULL;
 
 static fdtype quote_symbol, histref_symbol, comment_symbol;
-static fdtype sharpat_symbol, sharpdollar_symbol, sharpamp_symbol;
 static fdtype quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 
 static int skip_whitespace(u8_input s)
@@ -538,24 +537,24 @@ fdtype fd_parse_atom(u8_string start,int len)
       fd_seterr("Invalid timestamp","fd_parse_atom",u8_strdup(start),FD_VOID);
       return FD_PARSE_ERROR;}
     else return fd_make_timestamp(&xt);}
+  else if ((start[0]=='#')&&(start[1]=='!')&&(isxdigit(start[2]))) {
+    if (fd_interpret_pointers) {
+      unsigned long pval;
+      if (sscanf(start+2,"%lx",&pval)!=1) 
+        return fd_err
+          (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),FD_VOID);
+      else if (FD_CHECK_PTR(pval))
+        return fd_incref((fdtype)pval);
+      else return fd_err
+             (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),FD_VOID);}
+    else return fd_err
+           (fd_NoPointerExpressions,"fd_parse_atom",
+            u8_strdup(start),FD_VOID);}
   else if (start[0]=='#') { /* It's a constant */
     int i=0; while (constant_names[i])
       if (strcmp(start,constant_names[i]) == 0)
 	return constant_values[i];
       else i++;
-    if (start[1] == '!') {
-      if (fd_interpret_pointers) {
-	unsigned long pval;
-	if (sscanf(start+2,"%lx",&pval)!=1) 
-	  return fd_err
-	    (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),FD_VOID);
-	else if (FD_CHECK_PTR(pval))
-	  return fd_incref((fdtype)pval);
-	else return fd_err
-	       (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),FD_VOID);}
-      else return fd_err
-	     (fd_NoPointerExpressions,"fd_parse_atom",
-	      u8_strdup(start),FD_VOID);}
     if (strchr("XxOoBbEeIiDd",start[1])) {
       fdtype result=_fd_parse_number(start,-1);
       if (!(FD_FALSEP(result))) return result;}
@@ -1108,6 +1107,8 @@ static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
 
 /* The main parser procedure */
 
+static fdtype parse_atom(u8_input in,int ch1,int ch2);
+
 FD_EXPORT
 /* fd_parser:
      Arguments: a U8 input stream and a memory pool
@@ -1160,6 +1161,8 @@ fdtype fd_parser(u8_input in)
       return fd_make_list(2,unquotestar_symbol,content);
     else return fd_make_list(2,unquote_symbol,content);}
   case '#': {
+    /* Absorb the # and set ch to the next character, dispatching on
+       that */
     int ch=u8_getc(in); ch=u8_getc(in);
     switch (ch) {
     case '(': return parse_vector(in);
@@ -1188,14 +1191,10 @@ fdtype fd_parser(u8_input in)
       if (c=='(') return parse_record(in);
       else return FD_PARSE_ERROR;}
     case '\\': return parse_character(in);
-    case '#':
-      return fd_make_list(2,histref_symbol,fd_parser(in));
-    case '@':
-      return fd_make_list(2,sharpat_symbol,fd_parser(in));
-    case '$':
-      return fd_make_list(2,sharpdollar_symbol,fd_parser(in));
-    case '&':
-      return fd_make_list(2,sharpamp_symbol,fd_parser(in));
+    case '#': return fd_make_list(2,histref_symbol,fd_parser(in));
+    case 'U': return parse_atom(in,inchar,ch); /* UUID */
+    case 'T': return parse_atom(in,inchar,ch); /* TIMESTAMP */
+    case '!': return parse_atom(in,inchar,ch); /* pointer reference */
     default:
       if (u8_ispunct(ch)) {
 	u8_byte buf[16]; struct U8_OUTPUT out;
@@ -1203,19 +1202,26 @@ fdtype fd_parser(u8_input in)
 	u8_putc(&out,'#'); u8_putc(&out,ch);
 	return fd_make_list(2,fd_intern(buf),fd_parser(in));}
       else u8_ungetc(in,ch);}}
-  default: { /* Parse an atom */
-    struct U8_OUTPUT tmpbuf; char buf[128];
-    fdtype result; MAYBE_UNUSED int c; 
-    U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
-    if (inchar == '#') u8_putc(&tmpbuf,'#');
-    c=copy_atom(in,&tmpbuf);
-    if (tmpbuf.u8_outptr==tmpbuf.u8_outbuf) result=FD_EOX;
-    else if (inchar == '|')
-      result=fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
-    else result=fd_parse_atom(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
-    if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
-    return result;}
-  }
+  default:
+    return parse_atom(in,-1,-1);}
+}
+
+static fdtype parse_atom(u8_input in,int ch1,int ch2)
+{
+  /* Parse an atom, i.e. a printed representation which doesn't
+     contain any special spaces or other special characters */
+  struct U8_OUTPUT tmpbuf; char buf[128];
+  fdtype result; MAYBE_UNUSED int c; 
+  U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
+  if (ch1>=0) u8_putc(&tmpbuf,ch1);
+  if (ch2>=0) u8_putc(&tmpbuf,ch2);
+  c=copy_atom(in,&tmpbuf);
+  if (tmpbuf.u8_outptr==tmpbuf.u8_outbuf) result=FD_EOX;
+  else if (ch1 == '|')
+    result=fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+  else result=fd_parse_atom(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+  if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
+  return result;
 }
   
 FD_EXPORT
@@ -1352,9 +1358,6 @@ FD_EXPORT void fd_init_textio_c()
   unquote_symbol=fd_intern("UNQUOTE");
   unquotestar_symbol=fd_intern("UNQUOTE*");
   histref_symbol=fd_intern("%HISTREF");
-  sharpat_symbol=fd_intern("#@");
-  sharpdollar_symbol=fd_intern("#$");
-  sharpamp_symbol=fd_intern("#&");
   comment_symbol=fd_intern("COMMENT");
 }
 
