@@ -1201,7 +1201,9 @@ fdtype fd_parser(u8_input in)
 	U8_INIT_OUTPUT_X(&out,16,buf,0);
 	u8_putc(&out,'#'); u8_putc(&out,ch);
 	return fd_make_list(2,fd_intern(buf),fd_parser(in));}
-      else u8_ungetc(in,ch);}}
+      else {
+        u8_ungetc(in,ch);
+        return parse_atom(in,'#',-1);}}}
   default:
     return parse_atom(in,-1,-1);}
 }
