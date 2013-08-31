@@ -6,7 +6,7 @@
 (use-module '{fdweb xhtml texttools reflection ezrecords logger varconfig
 	      domutils domutils/styles})
 
-(define-init %loglevel %notice!)
+(define-init %loglevel %notice%)
 
 (module-export! '{dom/cleanup! dom/mergestyles! dom/unipunct!})
 
@@ -66,9 +66,11 @@
 (define (mergeheadrunrule head level)
   `(ic (subst (GREEDY #("<" ,head (not> ">") ">" (not> "</") "</" ,head ">"
 			(+ #((spaces)
-			     "<" ,head (not> ">") ">" (not> "</") "</" ,head ">"))))
+			     "<" ,head (not> ">") ">"
+			     (not> "</") "</" ,head ">"))))
 	      ,wrap
-	      ,(stringout "<div class='sbookterminal sbookid sbook"level"head'>\n")
+	      ,(stringout
+		 "<div class='sbookterminal sbookid sbook"level"head'>\n")
 	      "\n</div>\n")))
 (define dom/mergeheadruns/subst
   '(subst  (greedy (+ #("<" {"H" "h"} (isdigit)
@@ -155,8 +157,8 @@
 (define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
 
 (define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f)
-		      (mergeheads #f)
 		      (cleanstyles #f))
+  (logdetail "Cleanup " (dom/eltref node))
   (if (test node '%content)
       (let ((vec (->vector (get node '%content)))
 	    (newfn (and textfn
@@ -177,13 +179,11 @@
 	    (dom/drop! node 'style)))
 	(doseq (child vec)
 	  (cond ((string? child)
-		 (unless (empty-string? child)
-		   (set! strings (cons child strings))))
+		 (unless (= (length child) 0) (set! strings (cons child strings))))
 		(else
 		 (set! child
 		       (dom/cleanup! child textfn
-				     (qc dropfn) dropempty
-				     mergeheads (qc cleanstyles)))
+				     (qc dropfn) dropempty (qc cleanstyles)))
 		 (when (and dropempty isblock
 			    (test child '%content)
 			    (or (null? (get child '%content))
@@ -212,6 +212,9 @@
 	      (unless (or (test node '%xmltag 'P)
 			  (has-suffix (car merged) "\n"))
 		(set-car! merged (glom (car merged) "\n")))))
+	(logdetail "Reversing " (length merged)
+		   " merged content elements for "
+		   (dom/eltref node))
 	(set! merged (reverser merged))
 	(when (and isblock (pair? merged))
 	  (if (not (string? (car merged)))
@@ -234,9 +237,12 @@
 	  (if (and (not (has-prefix (car e) "\n"))
 		   (pair? (cdr e)) (not (string? (cadr e)))
 		   (overlaps? (get (cadr e) '%xmltag) *block-tags*))
-	      (reverser (cdr e) (cons (glom "\n" (car e) ) result))
+	      (reverser (cdr e) (cons (glom "\n" (car e)) result))
 	      (reverser (cdr e) (cons (car e) result)))
-	  (reverser (cdr e) (cons (car e) result)))))
+	  (if (and (pair? result) (not (string? (car result)))
+		   (test (car e) '%xmltag *block-tags*))
+	      (reverser (cdr e) (cons* (car e) "\n" result))
+	      (reverser (cdr e) (cons (car e) result))))))
 
 (define (fix-font-node node (style))
   (default! style (try (get node 'style) ""))
