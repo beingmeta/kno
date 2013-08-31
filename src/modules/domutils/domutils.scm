@@ -14,7 +14,7 @@
    dom/textify
    dom/textual? dom/structural?
    dom/hasclass? dom/addclass! dom/dropclass!
-   dom/oidify dom/oidmap dom/nodeid
+   dom/oidify dom/oidmap dom/sig dom/nodeid dom/eltref
    dom/get dom/set-tag! dom/set! dom/add! dom/drop!
    dom/append! dom/prepend!
    dom/remove-child! dom/remove!
@@ -1060,21 +1060,33 @@
 		      (doseq (elt node) (set! table (dom/oidmap elt table))))
 		    table))))))
 
-(define (dom/nodeid oid)
+(define (dom/sig elt (attribs #f) (showptr #t))
   (stringout
-    (try (get oid '%%xmltag) (get oid '%xmltag))
-    (when (test oid 'class)
-      ;; (->string (get oid 'class))
-      (printout "." (string-subst (get oid 'class) " " ".")))
-    (when (test oid 'id) (printout "#" (get oid 'id)))
-    (when (test oid 'name) (printout "[NAME=" (get oid 'name) "]"))
-    (if (and (singleton? (get oid '%attribids))
-	     (vector? (get oid '%attribids)))
-	(doseq (attrib (get oid '%attribids))
-	  (unless (overlaps? attrib '{name class id})
-	    (printout "[" attrib "]")))
-	(do-choices (attrib (difference (get oid '%attribids) '{name class id}))
-	  (printout "[" attrib "]")))))
+    (try (get elt '%%xmltag) (get elt '%xmltag))
+    (when (test elt 'class)
+      ;; (->string (get elt 'class))
+      (printout "." (string-subst (get elt 'class) " " ".")))
+    (when (test elt 'id) (printout "#" (get elt 'id)))
+    (when (test elt 'name) (printout "[NAME=" (get elt 'name) "]"))
+    (when attribs
+      (if (and (singleton? (get elt '%attribids))
+	       (vector? (get elt '%attribids)))
+	  (doseq (attrib (get elt '%attribids))
+	    (unless (overlaps? attrib '{name class id})
+	      (printout "[" attrib "]")))
+	  (do-choices (attrib (difference (get elt '%attribids) '{name class id}))
+	    (printout "[" attrib "]"))))
+    (when (and showptr
+	       (or (overlaps? showptr '{force always})
+		   (not (test elt 'id))))
+      (printout (hashref elt)))))
+(define (dom/nodeid elt (attribs #t) (showptr #f))
+  (dom/sig elt attribs showptr))
+
+(define (dom/eltref elt)
+  (if (oid? elt)
+      (stringout (oid->string elt) "\"" (dom/sig elt #f #f))
+      (dom/sig elt #f 'force)))
 
 (varconfig! DOMPOOL dompool use-pool)
 
@@ -1085,6 +1097,4 @@
       (try (get elt 'oid) (get elt 'id))))
 (define (id->dom id index)
   (if (oid? id) id (find-frames index 'id id)))
-
-
 
