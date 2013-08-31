@@ -1051,14 +1051,21 @@ fdtype fd_time2timestamp(time_t moment)
   return fd_make_timestamp(&xt);
 }
 
+static int reversible_time=1;
+
 static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_TIMESTAMP *tm=
     FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
-  u8_printf(out,"#<TIMESTAMP 0x%x \"",(unsigned int)x);
-  u8_xtime_to_iso8601(out,&(tm->xtime));
-  u8_printf(out,"\">");
-  return 1;
+  if (reversible_time) {
+    u8_puts(out,"#T");
+    u8_xtime_to_iso8601(out,&(tm->xtime));
+    return 1;}
+  else {
+    u8_printf(out,"#<TIMESTAMP 0x%x \"",(unsigned int)x);
+    u8_xtime_to_iso8601(out,&(tm->xtime));
+    u8_printf(out,"\">");
+    return 1;}
 }
 
 static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_entry e)
