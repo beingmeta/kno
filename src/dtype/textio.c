@@ -1160,6 +1160,14 @@ fdtype fd_parser(u8_input in)
     else if (c == '@')
       return fd_make_list(2,unquotestar_symbol,content);
     else return fd_make_list(2,unquote_symbol,content);}
+  case '|': { /* Escaped symbol */
+    struct U8_OUTPUT tmpbuf; char buf[128];
+    fdtype result; MAYBE_UNUSED int c; 
+    U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
+    c=copy_atom(in,&tmpbuf);
+    result=fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
+    if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
+    return result;}
   case '#': {
     /* Absorb the # and set ch to the next character, dispatching on
        that */
