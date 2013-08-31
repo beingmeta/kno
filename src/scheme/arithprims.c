@@ -468,6 +468,16 @@ static fdtype hashptr_prim(fdtype x)
   else return (fdtype)fd_ulong_long_to_bigint(intval);
 }
 
+static fdtype hashref_prim(fdtype x)
+{
+  unsigned long long intval=(unsigned long long)x;
+  char buf[64];
+  if ((intval<FD_MAX_FIXNUM)&&(intval>FD_MIN_FIXNUM)) 
+    sprintf(buf,"%d",((int)intval));
+  else sprintf(buf,"#!%llx",intval);
+  return fd_make_string(NULL,-1,buf);
+}
+
 /* Integer hashing etc. */
 
 static fdtype knuth_hash(fdtype arg)
@@ -689,6 +699,7 @@ FD_EXPORT void fd_init_numeric_c()
 					    -1,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CITYHASH128",cityhash128,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHPTR",hashptr_prim,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("HASHREF",hashref_prim,1));
 }
 
 /* Emacs local variables
