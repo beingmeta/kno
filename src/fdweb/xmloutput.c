@@ -657,7 +657,7 @@ static fdtype get_compound_tag(fdtype tag)
 static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(val);
-  u8_string typename=((argtype<FD_TYPE_MAX)?(fd_type_names[argtype]):(NULL));
+  u8_string typename=((FD_VALID_TYPEP(argtype))?(fd_type_names[argtype]):(NULL));
   if (FD_STRINGP(val)) {
     int len=FD_STRLEN(val);
     u8_string data=FD_STRDATA(val);

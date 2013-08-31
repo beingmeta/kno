@@ -18,8 +18,11 @@
 #include "framerd/apply.h"
 
 #include <libu8/u8printf.h>
-#include <libu8/u8srvfns.h>
 #include <libu8/u8filefns.h>
+#if HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+#include <libu8/u8srvfns.h>
 
 static fd_pool primary_pool=NULL;
 static fd_pool served_pools[FDBSERV_MAX_POOLS];

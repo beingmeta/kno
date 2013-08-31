@@ -365,7 +365,7 @@ int fd_unparse(u8_output out,fdtype x)
   case fd_cons_ptr_type: {/* output cons */
     struct FD_CONS *cons=FD_CONS_DATA(x);
     fd_ptr_type ct=FD_CONS_TYPE(cons);
-    if ((ct < FD_TYPE_MAX) && (fd_unparsers[ct]) && (fd_unparsers[ct](out,x)))
+    if ((FD_VALID_TYPEP(ct)) && (fd_unparsers[ct]) && (fd_unparsers[ct](out,x)))
       return 1;
     else if (fd_unparse_error) 
       return fd_unparse_error(out,x,_("no handler"));

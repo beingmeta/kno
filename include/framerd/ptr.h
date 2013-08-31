@@ -180,6 +180,8 @@ typedef unsigned int fd_consbits;
 typedef struct FD_CONS { FD_CONS_HEADER; } FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
+#define FD_VALID_TYPEP(x) (FD_EXPECT_TRUE(((int)x)<256))
+
 #if FD_CHECKFDTYPE
 FD_FASTOP MAYBE_UNUSED fd_cons FD_CONS_DATA(fdtype x){ return (fd_cons) x;}
 FD_FASTOP MAYBE_UNUSED fdtype FDTYPE(fdtype x){ return x;}

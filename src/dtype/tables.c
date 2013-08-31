@@ -2488,7 +2488,7 @@ FD_EXPORT fdtype fd_get(fdtype arg,fdtype key,fdtype dflt)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   if (FD_EMPTY_CHOICEP(arg)) return arg;
-  else if (FD_EXPECT_TRUE(argtype<FD_TYPE_MAX))
+  else if (FD_VALID_TYPEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->get!=NULL))
 	if (FD_CHOICEP(key)) {
@@ -2510,7 +2510,7 @@ FD_EXPORT fdtype fd_get(fdtype arg,fdtype key,fdtype dflt)
 FD_EXPORT int fd_store(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  if (FD_EXPECT_TRUE(argtype<FD_TYPE_MAX))
+  if (FD_VALID_TYPEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->store!=NULL)) 
 	if (FD_CHOICEP(key)) {
@@ -2528,7 +2528,7 @@ FD_EXPORT int fd_store(fdtype arg,fdtype key,fdtype value)
 FD_EXPORT int fd_add(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  if (FD_EXPECT_TRUE(argtype<FD_TYPE_MAX))
+  if (FD_VALID_TYPEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->add!=NULL))
 	if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_CHOICEP(key))))
@@ -2565,7 +2565,7 @@ FD_EXPORT int fd_drop(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   if (FD_EMPTY_CHOICEP(arg)) return 0;
-  if (FD_EXPECT_TRUE(argtype<FD_TYPE_MAX))
+  if (FD_VALID_TYPEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->drop!=NULL))
 	if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) ||
@@ -2612,7 +2612,7 @@ FD_EXPORT int fd_test(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   if (FD_EMPTY_CHOICEP(arg)) return 0;
-  if (FD_EXPECT_TRUE(argtype<FD_TYPE_MAX))
+  if (FD_VALID_TYPEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->test!=NULL))
 	if (FD_EXPECT_FALSE
@@ -2651,7 +2651,7 @@ FD_EXPORT int fd_test(fdtype arg,fdtype key,fdtype value)
 FD_EXPORT int fd_getsize(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  if (argtype<FD_TYPE_MAX)
+  if (FD_VALID_TYPEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->getsize)
 	return (fd_tablefns[argtype]->getsize)(arg);
@@ -2671,7 +2671,7 @@ FD_EXPORT int fd_getsize(fdtype arg)
 FD_EXPORT fdtype fd_getkeys(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  if (argtype<FD_TYPE_MAX)
+  if (FD_VALID_TYPEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->keys)
 	return (fd_tablefns[argtype]->keys)(arg);
