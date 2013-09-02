@@ -33,19 +33,15 @@
     (cons-fakezip (abspath filename) tmpdir tmpzip)))
 
 (define (fz/close fz (cleanup #t))
+  ;; Ignore cleanup for consistency with ziptools auto-reopen
   (write-file (fakezip-filename fz)
-	      (filedata (mkpath (fakezip-tmpdir fz) (fakezip-tmpzip fz))))
-  (if cleanup
-      (system (config 'RM "rm -rf") " " (fakezip-tmpdir fz))
-      (message "Leaving temporary dir " (fakezip-tmpdir fz))))
+	      (filedata (mkpath (fakezip-tmpdir fz) (fakezip-tmpzip fz)))))
 
 (define (fz/add! fz path content (addcomment #f) (compress #t))
   (let ((fspath (mkpath (fakezip-tmpdir fz) path))
 	(curdir (getcwd))
 	(args (list path))
 	(moreopts '()))
-    (when extra
-      (logwarn "Fakezip doesn't support extra fields on zip entries"))
     (when addcomment
       (logwarn "Fakezip doesn't support comments on zip entries"))
     (checkdir! (dirname fspath))
@@ -55,16 +51,16 @@
 	       (apply forkwait
 		      (config 'zipbin "/usr/bin/zip")
 		      (fakezip-tmpzip fz)
+		      "-X"
 		      (if compress "-9" "-0")
 		      (append moreopts (list path))))
       (setcwd curdir))))
 
-(define (fz/update! fz path content (compress #t) (extra #t))
+(define (fz/update! fz path content (compress #t))
   (let ((fspath (mkpath (fakezip-tmpdir fz) path))
 	(curdir (getcwd))
 	(args (list path))
 	(moreopts '()))
-    (unless extra (set! moreopts (cons "-X" moreopts)))
     (checkpath! fspath)
     (write-file fspath content)
     (unwind-protect
