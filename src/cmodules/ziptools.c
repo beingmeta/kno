@@ -231,14 +231,14 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
 #endif
 #if (HAVE_ZIP_SET_FILE_COMPRESSION)
   if (FD_FALSEP(compress)) {
-  int retval=zip_set_file_compression(zf->zip,index,ZIP_CM_STORE,0);
-  if (retval<0) {
-  u8_unlock_mutex(&(zf->lock));
-  return ziperr("zipadd/nocompresss",zf,(fdtype)zf);}}
+    int retval=zip_set_file_compression(zf->zip,index,ZIP_CM_STORE,0);
+    if (retval<0) {
+      u8_unlock_mutex(&(zf->lock));
+      return ziperr("zipadd/nocompresss",zf,(fdtype)zf);}}
 #else
   if (FD_FALSEP(compress)) {
     u8_log(LOG_WARNING,"zipadd/compress",
-    "available libzip doesn't support uncompressed fields");}
+           "available libzip doesn't support uncompressed fields");}
 #endif
   u8_unlock_mutex(&(zf->lock));
   return FD_INT2DTYPE(index);
