@@ -8,11 +8,12 @@
  '{gp/write! gp/save!
    writeout writeout/type
    gp/writeout gp/writeout! gp/writeout+!
-   gp/fetch gp/fetch+ gp/modified gp/exists?
-   gp/urlfetch gp/urlinfo
+   gpath? ->gpath gp/has-suffix gp/location gp/basename
+   gp/fetch gp/fetch+ gp/etag gp/info
+   gp/exists? gp/exists gp/modified gp/newer
    gp/path gp/mkpath gp/makepath gpath->string
-   gp/info gp/location gp/basename gp/etag
-   gpath? ->gpath gp/has-suffix gp:config})
+   gp:config
+   gp/urlfetch gp/urlinfo})
 
 ;;; This is a generic path facility (it grew out of the savecontent
 ;;; module, which still exists for legacy and historical reasons).  A
@@ -408,6 +409,14 @@
 	((string? ref) (file-modtime ref))
 	(else (error "Invalid GPATH" ref))))
 
+(define (gp/newer ref base)
+  (if (gp/exists? base) (gp/exists ref)
+      (and (gp/exists? ref)
+	   (let ((bmod (gp/modified base))
+		 (rmod (gp/modified ref)))
+	     (and bmod rmod) (not (time<? bmod rmod)))
+	   ref)))
+
 (define (gp/exists? ref)
   (cond ((s3loc? ref) (s3loc/exists? ref))
 	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
@@ -429,6 +438,8 @@
 	 (s3/exists? (->s3loc ref)))
 	((string? ref) (file-exists? ref))
 	(else (error "Weird docbase ref" ref))))
+
+(define (gp/exists ref) (and (gp/exists? ref) ref))
 
 (define (gp/etag ref (compute #f))
   (cond ((s3loc? ref) (s3/etag ref))
@@ -484,5 +495,5 @@
       (has-suffix (downcase (gp/basename gpath)) (downcase suffixes))
       (has-suffix (gp/basename gpath) suffixes)))
 
-(define gp:config ->gpath)
+(define (gp:config spec) (->gpath spec))
 
