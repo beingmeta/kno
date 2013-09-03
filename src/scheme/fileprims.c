@@ -791,24 +791,22 @@ static int tempdirs_add(fdtype sym,fdtype value,void *ignore)
     fd_type_error("string","tempdirs_add",value);
     return -1;}
   else fd_incref(value);
-  fd_unlock_mutex(&tempdirs_lock);
+  fd_lock_mutex(&tempdirs_lock);
   FD_ADD_TO_CHOICE(tempdirs,value);
   fd_unlock_mutex(&tempdirs_lock);
   return 1;
 }
 
-static fdtype keeptemp_get(fdtype sym,void *ignore)
+static fdtype keepdirs_get(fdtype sym,void *ignore)
 {
   /* If delete_tempdirs_on_exit is zero, we keep all of the current
      tempdirs, or return true if there aren't any.  Otherwise, we just
      return the stored value. */
-  fdtype dirs=((delete_tempdirs_on_exit)?(keeptemp):
-	       (FD_EMPTY_CHOICEP(tempdirs)?(tempdirs):
-		(FD_TRUE)));
-  fd_incref(dirs);
-  return dirs;
+  if (delete_tempdirs_on_exit==0)
+    return fd_deep_copy(tempdirs);
+  else return fd_deep_copy(keeptemp);
 }
-static int keeptemp_add(fdtype sym,fdtype value,void *ignore)
+static int keepdirs_add(fdtype sym,fdtype value,void *ignore)
 {
   if (FD_TRUEP(value)) {
     if (delete_tempdirs_on_exit) {
@@ -821,18 +819,55 @@ static int keeptemp_add(fdtype sym,fdtype value,void *ignore)
       return 1;}
     else return 0;}
   else if (!(FD_STRINGP(value))) {
-    fd_type_error("string","tempdirs_add",value);
+    fd_type_error("string","keepdirs_add",value);
     return -1;}
   else if ((fd_boolstring(FD_STRDATA(value),-1))>=0) {
     int val=fd_boolstring(FD_STRDATA(value),-1);
+    if (val) val=0; else val=1;
     if (delete_tempdirs_on_exit==val) return 0;
     else {
       delete_tempdirs_on_exit=val;
       return 1;}}
   else fd_incref(value);
-  fd_unlock_mutex(&tempdirs_lock);
+  fd_lock_mutex(&tempdirs_lock);
   FD_ADD_TO_CHOICE(keeptemp,value);
   fd_unlock_mutex(&tempdirs_lock);
+  return 1;
+}
+
+static fdtype keeptemp_get(fdtype sym,void *ignore)
+{
+  /* If delete_tempdirs_on_exit is zero, we keep all of the current
+     tempdirs, or return true if there aren't any.  Otherwise, we just
+     return the stored value. */
+  if (delete_tempdirs_on_exit==0) return FD_TRUE;
+  else return FD_FALSE;
+}
+static int keeptemp_set(fdtype sym,fdtype value,void *ignore)
+{
+  if (FD_TRUEP(value)) {
+    if (delete_tempdirs_on_exit) {
+      delete_tempdirs_on_exit=0;
+      return 1;}
+    else return 0;}
+  else if (FD_FALSEP(value)) {
+    if (!(delete_tempdirs_on_exit)) {
+      delete_tempdirs_on_exit=1;
+      return 1;}
+    else return 0;}
+  else if (!(FD_STRINGP(value))) {
+    fd_type_error("string","keeptemp_add",value);
+    return -1;}
+  else if ((fd_boolstring(FD_STRDATA(value),-1))>=0) {
+    int val=fd_boolstring(FD_STRDATA(value),-1);
+    if (val) val=0; else val=1;
+    if (delete_tempdirs_on_exit==val) return 0;
+    else {
+      delete_tempdirs_on_exit=val;
+      return 1;}}
+  else {
+    fd_type_error("string","keeptemp_set",value);
+    return -1;}
   return 1;
 }
 
@@ -2152,13 +2187,16 @@ FD_EXPORT void fd_init_fileio_c()
   
   fd_register_config
     ("TEMPROOT","Template for generating temporary directory names",
-     temproot_get,temproot_set,&tempdir_template);
+     temproot_get,temproot_set,NULL);
   fd_register_config
     ("TEMPDIRS","Declared temporary directories to be deleted on exit",
-     tempdirs_get,tempdirs_add,&tempdirs);
+     tempdirs_get,tempdirs_add,NULL);
+  fd_register_config
+    ("KEEPDIRS","Temporary directories to not be deleted on exit",
+     keepdirs_get,keepdirs_add,NULL);
   fd_register_config
     ("KEEPTEMP","Temporary directories to not be deleted on exit",
-     keeptemp_get,keeptemp_add,&keeptemp);
+     keeptemp_get,keeptemp_set,NULL);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1("RELOAD-MODULE",safe_reload_module,1));
