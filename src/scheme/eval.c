@@ -1746,6 +1746,7 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"%WATCH",watched_eval);
   fd_defspecial(fd_scheme_module,"PROFILE",profiled_eval);
   fd_defspecial(fd_scheme_module,"%WATCHCALL",watchcall_handler);
+  fd_defalias(fd_scheme_module,"%WC","%WATCHCALL");
   fd_defspecial(fd_scheme_module,"EVAL1",eval1);
   fd_defspecial(fd_scheme_module,"EVAL2",eval2);
   fd_defspecial(fd_scheme_module,"EVAL3",eval3);
