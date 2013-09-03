@@ -345,12 +345,14 @@ FD_EXPORT int fd_argv_config(int argc,char **argv)
   u8_threadcheck();
   while (i<argc)
     if (strchr(argv[i],'=')) {
-      char *carg=argv[i++];
-      u8_string arg=u8_fromlibc(carg);
-      int retval=fd_config_assignment(arg);
-      u8_free(arg);
-      if (retval<0) u8_clear_errors(0);
-      else n++;}
+      char *carg=argv[i++], *eq=strchr(carg,'=');
+      if ((eq>carg)&&(*(eq-1)=='\\')) continue;
+      else {
+        u8_string arg=u8_fromlibc(carg);
+        int retval=fd_config_assignment(arg);
+        u8_free(arg);
+        if (retval<0) u8_clear_errors(0);
+        else n++;}}
     else i++;
   return n;
 }
@@ -509,8 +511,8 @@ FD_EXPORT int fd_boolconfig_set(fdtype var,fdtype v,void *vptr)
 
 /* Someday, these should be configurable. */
 static u8_string false_strings[]={
-  "no","false","off","n","f" "#f","#false",
-  "0","disable","non","nei","not",NULL};
+  "no","false","off","n","f" "#f","#false","nope",
+  "0","disable","non","nei","nein","not","never",NULL};
 
 static int false_stringp(u8_string string)
 {
@@ -522,7 +524,7 @@ static int false_stringp(u8_string string)
 }
 
 static u8_string true_strings[]={
-  "yes","true","on","y","t" "#t","#true","1","enable",
+  "yes","true","on","y","t","#t","#true","1","enable","ok",
   "oui","yah","yeah","yep","sure","hai",NULL};
 
 static int true_stringp(u8_string string)
