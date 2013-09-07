@@ -9,7 +9,7 @@
 
 (module-export! '{sig/make sig/check sig/check/})
 
-(define-init %loglevel %notify!)
+(define-init %loglevel %info%)
 (varconfig! sbooks:signature:loglevel %loglevel)
 
 (defambda (makesigtext . args)
@@ -41,12 +41,13 @@
 
 (defambda (sig/make key . args)
   (let ((text (apply makesigtext args)))
-    (debug%watch (hmac-sha1 text key) "SIG/MAKE" text key args)))
+    ;; debug%watch
+    (info%watch (hmac-sha1 text key) "SIG/MAKE" text key args)))
 
 (defambda (sig/check sig key . args)
   (let ((text (apply makesigtext args)))
-    (debug%watch "SIG/CHECK" args)
-    (debug%watch "SIG/CHECK" sig key text (hmac-sha1 text key))
+    ;; debug%watch
+    (debug%watch "SIG/CHECK" sig key text (hmac-sha1 text key) args)
     (when (string? sig) (set! sig (base16->packet sig)))
     (and sig (or (equal? sig (hmac-sha1 text key))
 		 (begin (warn%watch "SIG/CHECK/FAILED"
