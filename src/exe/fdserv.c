@@ -1561,12 +1561,12 @@ int main(int argc,char **argv)
 		     _("Whether to have libu8 log queue activity"),
 		     config_get_u8server_flag,config_set_u8server_flag,
 		     (void *)(U8_SERVER_LOG_QUEUE));
-#ifdef U8_SERVER_LOG_TRANSFERS
+#ifdef U8_SERVER_LOG_TRANSFER
   fd_register_config
     ("U8LOGTRANSFER",
      _("Whether to have libu8 log data transmission/receiption"),
      config_get_u8server_flag,config_set_u8server_flag,
-     (void *)(U8_SERVER_LOG_TRANSFERS));
+     (void *)(U8_SERVER_LOG_TRANSFER));
 #endif
 #ifdef U8_SERVER_ASYNC
   fd_register_config("U8ASYNC",
