@@ -252,10 +252,14 @@ static int dtypeserver(u8_client ucl)
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
   if (auto_reload) fd_update_file_modules(0);
   if ((client->reading>0)&&(u8_client_finished(ucl))) { 
-    stream->end=stream->ptr+client->len;
     expr=fd_dtsread_dtype(stream);}
   else if ((client->writing>0)&&(u8_client_finished(ucl))) { 
-    /* Just report that the transaction is over. */
+    /* Reset the stream */
+    stream->ptr=stream->start;
+    /* Update the stream if we were doing asynchronous I/O */
+    if ((client->buf==stream->start)&&(client->len))
+      stream->end=stream->ptr+client->len;
+    /* And report that we're finished */
     return 0;}
   else if ((client->reading>0)||(client->writing>0))
     /* These should never happen, but let's be complete */
@@ -284,8 +288,8 @@ static int dtypeserver(u8_client ucl)
     return 0;}
   else if (FD_ABORTP(expr)) {
     u8_log(LOG_ERR,BadRequest,
-	   "%s[%d]: Received bad request",
-	   client->idstring,client->n_trans);
+	   "%s[%d]: Received bad request %q",
+	   client->idstring,client->n_trans,expr);
     fd_clear_errors(1);
     u8_client_close(ucl);
     return -1;}
@@ -760,11 +764,11 @@ int main(int argc,char **argv)
 		     _("Whether to have libu8 log each transaction"),
 		     config_get_dtype_server_flag,config_set_dtype_server_flag,
 		     (void *)(U8_SERVER_LOG_TRANSACT));
-#ifdef U8_SERVER_LOG_TRANSFERS
+#ifdef U8_SERVER_LOG_TRANSFER
   fd_register_config("U8LOGTRANSFER",
 		     _("Whether to have libu8 log all data transfers for fine-grained debugging"),
 		     config_get_dtype_server_flag,config_set_dtype_server_flag,
-		     (void *)(U8_SERVER_LOG_TRANSFERS));
+		     (void *)(U8_SERVER_LOG_TRANSFER));
 #endif
   fd_register_config("U8ASYNC",
 		     _("Whether to support thread-asynchronous transactions"),
