@@ -43,6 +43,8 @@ fd_exception fd_BadLSEEK=_("lseek() failed");
 fd_exception fd_OverSeek=_("Seeking past end of file");
 fd_exception fd_UnderSeek=_("Seeking before the beginning of the file");
 
+#define FD_DEBUG_DTYPEIO 0
+
 static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n);
 
 /* Locking functions */
@@ -138,7 +140,7 @@ FD_EXPORT struct FD_DTYPE_STREAM *fd_init_dtype_stream
 FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
    (struct FD_DTYPE_STREAM *stream,
     u8_string fname,fd_dtstream_mode mode,int bufsiz)
- {
+{
   int fd, flags=POSIX_OPEN_FLAGS, lock=0, writing=0;
   char *localname=u8_localpath(fname);
   switch (mode) {
@@ -300,7 +302,11 @@ FD_EXPORT int fd_dtsflush(fd_dtype_stream s)
     return leftover;}
   else {
     int bytes_written=writeall(s->fd,s->start,s->ptr-s->start);
-    /* u8_raise("write failed","fd_dtsflush",NULL); */
+#if FD_DEBUG_DTYPEIO
+    u8_log(LOG_DEBUG,"DTSFLUSH",
+           "Wrote %d bytes to %s#%d, %d/%d bytes in buffer",
+           bytes_written,s->id,s->fd,s->ptr-s->start,s->end-s->start);
+#endif
     if (bytes_written<0) return -1;
     if ((s->flags)&FD_DTSTREAM_DOSYNC) fsync(s->fd);
     if ((s->flags&FD_DTSTREAM_CANSEEK) && (s->filepos>=0))
@@ -644,6 +650,12 @@ FD_EXPORT int _fd_dtswrite_bytes
      written bytes. */
   if (s->ptr+n>=s->end) {
     int bytes_written=writeall(s->fd,bytes,n);
+#if FD_DEBUG_DTYPE_IO
+    u8_log(LOG_DEBUG,"DTSWRITE",
+           "Wrote %d/%d bytes to %s#%d, %d/%d bytes in buffer",
+           bytes_written,n,
+           s->id,s->fd,s->ptr-s->start,s->end-s->start);
+#endif
     if (bytes_written<0) return bytes_written;
     s->filepos=s->filepos+bytes_written;}
   else {
