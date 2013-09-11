@@ -1340,10 +1340,15 @@ u8_string fd_unparse_arg(fdtype arg)
 /* U8_PRINTF extensions */
 
 static u8_string lisp_printf_handler
-  (u8_output s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
+  (struct U8_OUTPUT *s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
 {
   fdtype value=va_arg(*args,fdtype);
-  fd_unparse(s,value);
+  int taciturn=(strchr(cmd,'u')!=NULL), oldflags=s->u8_streaminfo, retval;
+  if (taciturn) s->u8_streaminfo=oldflags|U8_STREAM_TACITURN;
+  else s->u8_streaminfo=oldflags|(~U8_STREAM_TACITURN);
+  retval=fd_unparse(s,value);
+  s->u8_streaminfo=oldflags;
+  if (retval<0) fd_clear_errors(1);
   if (strchr(cmd,'-')) fd_decref(value);
   return NULL;
 }
