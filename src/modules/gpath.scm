@@ -243,8 +243,9 @@
   (let ((result (makepath (->gpath root) path)))
     (if (null? more) result
 	(if (not (car more))
-	    (apply gp/path result (car more) (cdr more))
-	    (apply gp/path result (cdr more))))))
+	    (if (null? (cdr more)) result
+		(apply gp/path result (cdr more)))
+	    (apply gp/path result (car more) (cdr more))))))
 (define gp/mkpath gp/path)
 
 (define (gp/fetch ref (ctype))
