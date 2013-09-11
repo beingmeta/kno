@@ -747,6 +747,64 @@ static fdtype has_prefix(fdtype string,fdtype prefix)
 static fdtype is_prefix(fdtype prefix,fdtype string) {
   return has_prefix(string,prefix); }
 
+/* YES/NO */
+
+static int check_yesp(u8_string arg,fdtype strings,int ignorecase)
+{
+  if (FD_STRINGP(strings)) {
+    if (ignorecase)
+      return ((strcasecmp(arg,FD_STRDATA(strings)))==0);
+    else return ((strcmp(arg,FD_STRDATA(strings)))==0);}
+  else if (FD_SYMBOLP(strings))
+    return ((strcasecmp(arg,FD_SYMBOL_NAME(strings)))==0);
+  else if (FD_VECTORP(strings)) {
+    fdtype *v=FD_VECTOR_DATA(strings);
+    int i=0, lim=FD_VECTOR_LENGTH(strings); 
+    while (i<lim) {
+      fdtype s=FD_VECTOR_REF(v,i); i++;
+      if ((ignorecase)&&
+          (((FD_STRINGP(s))&&((strcasecmp(arg,FD_STRDATA(s)))==0))||
+           ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0))))
+        return 1;
+      else if (((FD_STRINGP(s))&&((strcmp(arg,FD_STRDATA(s)))==0))||
+               ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0)))
+        return 1;}}
+  else if (FD_PAIRP(strings)) {
+    FD_DOLIST(s,strings) {
+      if ((ignorecase)&&
+          (((FD_STRINGP(s))&&((strcasecmp(arg,FD_STRDATA(s)))==0))||
+           ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0))))
+        return 1;
+      else if (((FD_STRINGP(s))&&((strcmp(arg,FD_STRDATA(s)))==0))||
+               ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0)))
+        return 1;}}
+  else if ((FD_CHOICEP(strings))||(FD_ACHOICEP(strings))) {
+    FD_DO_CHOICES(s,strings) {
+      if ((ignorecase)&&
+          (((FD_STRINGP(s))&&((strcasecmp(arg,FD_STRDATA(s)))==0))||
+           ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0))))
+        return 1;
+      else if (((FD_STRINGP(s))&&((strcmp(arg,FD_STRDATA(s)))==0))||
+               ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0)))
+        return 1;}}
+  else {}
+  return 0;
+}
+
+static fdtype yesp_prim(fdtype arg,fdtype dflt,fdtype yes,fdtype no)
+{
+  u8_string string_arg; int ignorecase=0, retval=0;
+  if (FD_STRINGP(arg)) string_arg=FD_STRDATA(arg);
+  else if (FD_SYMBOLP(arg)) {
+    string_arg=FD_SYMBOL_NAME(arg); ignorecase=1;}
+  else return fd_type_error("string or symbol","yesp_prim",arg);
+  if ((!(FD_VOIDP(yes)))&&(check_yesp(string_arg,yes,ignorecase))) 
+    return FD_TRUE;
+  else if ((!(FD_VOIDP(no)))&&(check_yesp(string_arg,no,ignorecase)))
+    return FD_FALSE;
+  else return fd_boolstring(FD_STRDATA(arg),((FD_FALSEP(dflt))?(0):(1)));
+}
+
 /* Conversion */
 
 static fdtype entity_escape;
@@ -1155,6 +1213,11 @@ FD_EXPORT void fd_init_strings_c()
 	   fd_make_cprim2x("IS-SUFFIX",is_suffix,2,
 			   fd_string_type,FD_VOID,
 			   fd_string_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim4x("YES?",yesp_prim,1,
+                           -1,FD_VOID,-1,FD_FALSE,
+                           -1,FD_EMPTY_CHOICE,
+                           -1,FD_EMPTY_CHOICE));
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("STRING-APPEND",string_append,0));
   fd_idefn(fd_scheme_module,fd_make_cprimn("STRING",string_prim,0));
