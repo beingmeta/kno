@@ -1345,7 +1345,7 @@ static u8_string lisp_printf_handler
   fdtype value=va_arg(*args,fdtype);
   int taciturn=(strchr(cmd,'u')!=NULL), oldflags=s->u8_streaminfo, retval;
   if (taciturn) s->u8_streaminfo=oldflags|U8_STREAM_TACITURN;
-  else s->u8_streaminfo=oldflags|(~U8_STREAM_TACITURN);
+  else s->u8_streaminfo=oldflags&(~U8_STREAM_TACITURN);
   retval=fd_unparse(s,value);
   s->u8_streaminfo=oldflags;
   if (retval<0) fd_clear_errors(1);
