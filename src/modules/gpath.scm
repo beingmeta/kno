@@ -225,7 +225,8 @@
   (if (string? root) (set! root (string->root root))
       (if (and (pair? root) (string? (car root)))
 	  (set! root (cons (string->root (car root)) (cdr root)))))
-  (cond ((s3loc? root) (s3/mkpath root path))
+  (cond ((not path) root)
+	((s3loc? root) (s3/mkpath root path))
 	((zipfile? root) (cons root path))
 	((hashtable? root) (cons root path))
 	((hashfs? root) (cons root path))
@@ -241,7 +242,9 @@
 (define (gp/path root path . more)
   (let ((result (makepath (->gpath root) path)))
     (if (null? more) result
-	(apply gp/path result (car more) (cdr more)))))
+	(if (not (car more))
+	    (apply gp/path result (car more) (cdr more))
+	    (apply gp/path result (cdr more))))))
 (define gp/mkpath gp/path)
 
 (define (gp/fetch ref (ctype))
