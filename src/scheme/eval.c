@@ -567,7 +567,7 @@ static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
   else result=fd_apply(rail[0],n_args-1,rail+1);
   if (FD_ABORTP(result)) {
     u8_string errstring=fd_errstring(NULL);
-    u8_printf(&out,"%q !!!> %s",watch,result);
+    u8_printf(&out,"%q !!!> %s",watch,errstring);
     u8_free(errstring);}
   else u8_printf(&out,"%q ===> %q",watch,result);
   u8_logger(-10,label,out.u8_outbuf);
