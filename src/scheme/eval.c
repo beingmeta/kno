@@ -540,7 +540,7 @@ static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
       u8_printf(&out,"\t%q !!!> %s",arg,errstring);
       u8_logger(-10,arglabel,out.u8_outbuf);
       if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
-      u8_free(out.u8_outptr); u8_free(errstring);
+      u8_free(out.u8_outbuf); u8_free(errstring);
       return val;}
     if ((FD_PAIRP(arg))||(FD_SYMBOLP(arg))) {
       u8_printf(&out,"%q ==> %q",arg,val);
@@ -561,7 +561,7 @@ static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
 	u8_free(rail);
 	fd_decref(result);
 	if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
-	u8_free(out.u8_outptr); u8_free(errstring);
+	u8_free(out.u8_outbuf); u8_free(errstring);
 	return r;}
       else {FD_ADD_TO_CHOICE(result,r);}}}
   else result=fd_apply(rail[0],n_args-1,rail+1);
@@ -574,7 +574,7 @@ static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
   i--; while (i>=0) {fd_decref(rail[i]); i--;}
   u8_free(rail);
   if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
-  u8_free(out.u8_outptr);
+  u8_free(out.u8_outbuf);
   return result;
 }
 
