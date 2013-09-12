@@ -14,7 +14,7 @@
 	(let ((breakat (textsearch break string min)))
 	  (if (and breakat (< breakat max))
 	      (subseq string 0 breakat)
-	      (subseq 0 (floor (+ min (/~ (- max min) 2)))))))
+	      (subseq string 0 (floor (+ min (/~ (- max min) 2)))))))
     ellipsis))
 
 
