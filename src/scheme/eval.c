@@ -546,6 +546,11 @@ static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
       u8_printf(&out,"%q ==> %q",arg,val);
       u8_logger(-10,arglabel,out.u8_outbuf);
       out.u8_outptr=out.u8_outbuf;}
+    else if ((FD_PAIRP(arg))||(FD_SYMBOLP(arg))) {
+      u8_printf(&out,"%q",arg);
+      u8_logger(-10,arglabel,out.u8_outbuf);
+      out.u8_outptr=out.u8_outbuf;}
+    else {}
     rail[i++]=val;}
   if (FD_CHOICEP(rail[0])) {
     FD_DO_CHOICES(fn,rail[0]) {
