@@ -424,7 +424,7 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_defspecial(fd_scheme_module,"SPAWN",threadeval_handler);
   fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL",threadcall_prim,1));
   fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
-  fd_idefn(fd_scheme_module,fd_make_cprim0("THREADYIELD",threadyield_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("THREAD/YIELD",threadyield_prim,0));
   fd_defalias(fd_scheme_module,"THREADYIELD","THREAD/YIELD");
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("THREADJOIN",threadjoin_prim,1)));
