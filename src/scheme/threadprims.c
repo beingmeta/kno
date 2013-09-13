@@ -388,6 +388,25 @@ static fdtype parallel_handler(fdtype expr,fd_lispenv env)
   return result;
 }
 
+static fdtype threadyield_prim()
+{
+#if _POSIX_PRIORITY_SCHEDULING
+  int retval=sched_yield();
+#elif HAVE_NANOSLEEP
+  struct timespec req={0,1000}, rem={0,0};
+  int retval=nanosleep(&req,&rem);
+  if (retval>=0)
+    retval=((rem.tv_sec==0)&&(rem.tv_nsec<1000));
+#elif HAVE_SLEEP
+  int retval=sleep(1);
+  if (retval>=0) {
+    if (retval==0) retval=1; else retval=0;}
+#endif
+  if (retval<0) return FD_ERROR_VALUE;
+  else if (retval) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 #endif
 
 #if FD_THREADS_ENABLED
@@ -403,9 +422,13 @@ FD_EXPORT void fd_init_threadprims_c()
 
   fd_defspecial(fd_scheme_module,"PARALLEL",parallel_handler);
   fd_defspecial(fd_scheme_module,"SPAWN",threadeval_handler);
-  fd_idefn(fd_scheme_module,fd_make_cprimn("THREADCALL",threadcall_prim,1));
+  fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL",threadcall_prim,1));
+  fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
+  fd_idefn(fd_scheme_module,fd_make_cprim0("THREADYIELD",threadyield_prim,0));
+  fd_defalias(fd_scheme_module,"THREADYIELD","THREAD/YIELD");
   fd_idefn(fd_scheme_module,
 	   fd_make_ndprim(fd_make_cprim1("THREADJOIN",threadjoin_prim,1)));
+  fd_defalias(fd_scheme_module,"THREADJOIN","THREAD/JOIN");
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("MAKE-CONDVAR",make_condvar,0));
   fd_idefn(fd_scheme_module,fd_make_cprim2("CONDVAR-WAIT",condvar_wait,1));
