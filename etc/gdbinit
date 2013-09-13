@@ -158,7 +158,7 @@ define sbooksweb
 end
 
 define sbooksdaemon
-    set args /src/sbooks/daemons$arg0.fdz CONFIG=/src/sbooks/site.cfg
+    set args /src/sbooks/daemons/$arg0.fdz CONFIG=/src/sbooks/site.cfg
 end
 
 define staticweb
