@@ -1068,6 +1068,12 @@ FD_EXPORT fdtype fd_req(fdtype var)
   return fd_get(try_reqinfo(),var,FD_VOID);
 }
 
+FD_EXPORT int fd_isreqlive()
+{
+  fdtype info=try_reqinfo();
+  if (FD_TABLEP(info)) return 1; else return 0;
+}
+
 FD_EXPORT fdtype fd_req_get(fdtype var,fdtype dflt)
 {
   fdtype info=try_reqinfo();

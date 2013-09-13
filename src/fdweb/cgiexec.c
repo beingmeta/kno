@@ -888,133 +888,16 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
   else return fd_apply(proc,0,NULL);
 }
 
-static fdtype reqcall_prim(fdtype proc)
+/* Parsing query strings */
+
+static fdtype cgiparse(fdtype qstring)
 {
-  fdtype value=FD_VOID;
-  if (FD_PTR_TYPEP(proc,fd_sproc_type)) 
-    value=
-      fd_xapply_sproc((fd_sproc)proc,(void *)FD_VOID,
-		      (fdtype (*)(void *,fdtype))cgigetvar);
-  else if (FD_APPLICABLEP(proc))
-    value=fd_apply(proc,0,NULL);
-  else value=fd_type_error("applicable","cgicall",proc);
-  return value;
+  fdtype smap=fd_empty_slotmap();
+  parse_query_string((fd_slotmap)smap,FD_STRDATA(qstring),FD_STRLEN(qstring));
+  return smap;
 }
 
-static fdtype reqget_prim(fdtype var,fdtype dflt)
-{
-  fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
-  fdtype val=fd_req_get(name,FD_VOID);
-  if (FD_VOIDP(val))
-    if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
-    else return fd_incref(dflt);
-  else return val;
-}
-
-static fdtype reqval_prim(fdtype var,fdtype dflt)
-{
-  fdtype val;
-  if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
-  val=fd_req_get(var,FD_VOID);
-  if (FD_VOIDP(val))
-    if (FD_VOIDP(dflt))
-      return FD_EMPTY_CHOICE;
-    else return fd_incref(dflt);
-  else if (FD_STRINGP(val)) {
-    fdtype parsed=fd_parse_arg(FD_STRDATA(val));
-    fd_decref(val);
-    return parsed;}
-  else if (FD_CHOICEP(val)) {
-    fdtype result=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(v,val)
-      if (FD_STRINGP(v)) {
-	fdtype parsed=fd_parse_arg(FD_STRDATA(v));
-	FD_ADD_TO_CHOICE(result,parsed);}
-      else {fd_incref(v); FD_ADD_TO_CHOICE(result,v);}
-    fd_decref(val);
-    return result;}
-  else return val;
-}
-
-static fdtype reqtest_prim(fdtype vars,fdtype val)
-{
-  FD_DO_CHOICES(var,vars) {
-    fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
-    int retval=fd_req_test(name,val);
-    if (retval<0) {
-      FD_STOP_DO_CHOICES;
-      return FD_ERROR_VALUE;}
-    else if (retval) {
-      FD_STOP_DO_CHOICES;
-      return FD_TRUE;}
-    else {}}
-  return FD_FALSE;
-}
-
-static fdtype reqset_prim(fdtype vars,fdtype value)
-{
-  {FD_DO_CHOICES(var,vars) {
-      fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
-      fd_req_store(name,value);}}
-  return FD_VOID;
-}
-
-static fdtype reqadd_prim(fdtype vars,fdtype value)
-{
-  {FD_DO_CHOICES(var,vars) {
-      fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
-      fd_req_add(name,value);}}
-  return FD_VOID;
-}
-
-static fdtype reqdrop_prim(fdtype vars,fdtype value)
-{
-  {FD_DO_CHOICES(var,vars) {
-      fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
-      fd_req_drop(name,value);}}
-  return FD_VOID;
-}
-
-static fdtype reqpush_prim(fdtype vars,fdtype values)
-{
-  {FD_DO_CHOICES(var,vars) {
-      fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
-      FD_DO_CHOICES(value,values) {
-	/* fd_req_push is weird because it doesn't incref its arg */
-	fd_incref(value); fd_req_push(name,value);}}}
-  return FD_VOID;
-}
-
-fdtype reqdata_prim()
-{
-  return fd_req_call(fd_deep_copy);
-}
-
-/*
-static fdtype cgivar_handler(fdtype expr,fd_lispenv env)
-{
-  fdtype table=get_reqdata();
-  FD_DOBODY(var,expr,1) {
-    if (FD_TABLEP(table)) {
-      fdtype val=fd_get(table,var,FD_VOID);
-      fd_bind_value(var,val,env);}
-    else fd_bind_value(var,FD_VOID,env);}
-  fd_decref(table);
-  return FD_VOID;
-}
-*/
-
-static fdtype withreq_handler(fdtype expr,fd_lispenv env)
-{
-  fdtype body=fd_get_body(expr,1), result=FD_VOID;
-  fd_use_reqinfo(FD_TRUE);
-  {FD_DOLIST(ex,body) {
-      if (FD_ABORTP(result)) return result;
-      fd_decref(result);
-      result=fd_eval(ex,env);}}
-  fd_use_reqinfo(FD_EMPTY_CHOICE);
-  return result;
-}
+/* Bind request and output */
 
 static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
 {
@@ -1041,15 +924,6 @@ static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
   u8_flush(oldout);
   fd_use_reqinfo(oldinfo);
   return FD_VOID;
-}
-
-/* Parsing query strings */
-
-static fdtype cgiparse(fdtype qstring)
-{
-  fdtype smap=fd_empty_slotmap();
-  parse_query_string((fd_slotmap)smap,FD_STRDATA(qstring),FD_STRLEN(qstring));
-  return smap;
 }
 
 /* URI mapping */
@@ -1095,24 +969,17 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_cprim4("CLEAR-COOKIE!",clearcookie,1));  
   fd_idefn(module,fd_make_cprimn("BODY!",set_body_attribs,1));
 
-  fd_idefn(module,fd_make_cprim1("REQ/CALL",reqcall_prim,1));
-  fd_idefn(module,fd_make_cprim2("REQ/GET",reqget_prim,1));
-  fd_idefn(module,fd_make_cprim2("REQ/VAL",reqval_prim,1));
-  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/TEST",reqtest_prim,1)));
-  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/SET!",reqset_prim,2)));
-  fd_idefn(module,fd_make_cprim2("REQ/ADD!",reqadd_prim,2));
-  fd_idefn(module,fd_make_cprim2("REQ/DROP!",reqdrop_prim,1));
-  fd_idefn(module,fd_make_cprim2("REQ/PUSH!",reqpush_prim,2));
+  fd_defspecial(module,"WITH/REQUEST/OUT",withreqout_handler);
+  fd_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
 
-  fd_idefn(module,fd_make_cprim0("REQ/DATA",reqdata_prim,0));
-
-  fd_defalias(module,"CGICALL","REQ/CALL");
-  fd_defalias(module,"CGIGET","REQ/GET");
-  fd_defalias(module,"CGIVAL","REQ/VAL");
-  fd_defalias(module,"CGITEST","REQ/TEST");
-  fd_defalias(module,"CGISET!","REQ/SET!");
-  fd_defalias(module,"CGIADD!","REQ/ADD!");
-  fd_defalias(module,"CGIADD!","REQ/DROP!");
+  fd_defalias2(module,"WITHCGI",fd_scheme_module,"WITH/REQUEST");
+  fd_defalias2(module,"CGICALL",fd_scheme_module,"REQ/CALL");
+  fd_defalias2(module,"CGIGET",fd_scheme_module,"REQ/GET");
+  fd_defalias2(module,"CGIVAL",fd_scheme_module,"REQ/VAL");
+  fd_defalias2(module,"CGITEST",fd_scheme_module,"REQ/TEST");
+  fd_defalias2(module,"CGISET!",fd_scheme_module,"REQ/SET!");
+  fd_defalias2(module,"CGIADD!",fd_scheme_module,"REQ/ADD!");
+  fd_defalias2(module,"CGIADD!",fd_scheme_module,"REQ/DROP!");
 
   fd_idefn(module,fd_make_cprim1x("MAPURL",mapurl,1,fd_string_type,FD_VOID));
 
@@ -1121,12 +988,6 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_cprim1x
 	   ("CGIPARSE",cgiparse,1,fd_string_type,FD_VOID));
   
-  fd_defspecial(module,"WITH/REQUEST",withreq_handler);
-  fd_defspecial(module,"WITH/REQUEST/OUT",withreqout_handler);
-  /* fd_idefn(module,fd_make_cprim0("GETREQDATA",get_reqdata,0));*/
-  fd_defalias(module,"WITHCGI","WITH/REQUEST");
-  fd_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
-
   fd_defspecial(xhtmlout_module,"HTMLHEADER",htmlheader);
   fd_defspecial(xhtmlout_module,"TITLE!",title_handler);
   fd_idefn(xhtmlout_module,

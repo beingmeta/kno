@@ -119,6 +119,7 @@ FD_EXPORT fdtype fd_make_ndprim(fdtype prim);
 FD_EXPORT void fd_defn(fdtype table,fdtype fcn);
 FD_EXPORT void fd_idefn(fdtype table,fdtype fcn);
 FD_EXPORT void fd_defalias(fdtype table,u8_string to,u8_string from);
+FD_EXPORT void fd_defalias2(fdtype table,u8_string to,fdtype src,u8_string from);
 
 /* Apply functions */
 

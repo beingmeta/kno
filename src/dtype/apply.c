@@ -1033,6 +1033,15 @@ FD_EXPORT void fd_defalias(fdtype table,u8_string to,u8_string from)
   fd_decref(v);
 }
 
+FD_EXPORT void fd_defalias2(fdtype table,u8_string to,fdtype src,u8_string from)
+{
+  fdtype to_symbol=fd_intern(to);
+  fdtype from_symbol=fd_intern(from);
+  fdtype v=fd_get(src,from_symbol,FD_VOID);
+  fd_store(table,to_symbol,v);
+  fd_decref(v);
+}
+
 FD_EXPORT void fd_init_apply_c()
 {
   int i=0; while (i < FD_TYPE_MAX) fd_applyfns[i++]=NULL;
