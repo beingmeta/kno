@@ -74,7 +74,7 @@ static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 
 static u8_output get_output_port(fdtype portarg)
 {
-  if (FD_VOIDP(portarg))
+  if ((FD_VOIDP(portarg))||(FD_TRUEP(portarg)))
     return u8_current_output;
   else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
     struct FD_PORT *p=
@@ -1243,16 +1243,26 @@ static fdtype lisp_show_table(fdtype tables,fdtype slotids,fdtype portarg)
 
 /* PPRINT lisp primitives */
 
-static fdtype lisp_pprint(fdtype x,fdtype portarg,fdtype widtharg)
+static fdtype lisp_pprint(fdtype x,fdtype portarg,fdtype widtharg,fdtype marginarg)
 {
   struct U8_OUTPUT tmpout;
   U8_OUTPUT *out=get_output_port(portarg);
   int width=((FD_FIXNUMP(widtharg)) ? (FD_FIX2INT(widtharg)) : (60));
+  if ((out==NULL)&&(!(FD_FALSEP(portarg))))
+    return fd_type_error(_("port"),"lisp_pprint",portarg);
   U8_INIT_OUTPUT(&tmpout,512);
-  fd_pprint(&tmpout,x,NULL,0,0,width,1);
-  u8_puts(out,tmpout.u8_outbuf); u8_free(tmpout.u8_outbuf);
-  u8_flush(out);
- return FD_VOID;
+  if (FD_VOIDP(marginarg))
+    fd_pprint(&tmpout,x,NULL,0,0,width,1);
+  else if (FD_STRINGP(marginarg))
+    fd_pprint(&tmpout,x,FD_STRDATA(marginarg),0,0,width,1);
+  else if ((FD_FIXNUMP(marginarg))&&(FD_FIX2INT(marginarg)>=0))
+    fd_pprint(&tmpout,x,NULL,(FD_FIX2INT(marginarg)),0,width,1);
+  else fd_pprint(&tmpout,x,NULL,0,0,width,1);
+  if (out) {
+    u8_puts(out,tmpout.u8_outbuf); u8_free(tmpout.u8_outbuf);
+    u8_flush(out);
+    return FD_VOID;}
+  else return fd_init_string(NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf);
 }
 
 static u8_string lisp_pprintf_handler
@@ -1461,7 +1471,7 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("WRITE",write_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("DISPLAY",display_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("NEWLINE",newline_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim3("PPRINT",lisp_pprint,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim4("PPRINT",lisp_pprint,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("PUTCHAR",putchar_prim,1));
   fd_defalias(fd_scheme_module,"WRITE-CHAR","PUTCHAR");
