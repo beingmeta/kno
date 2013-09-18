@@ -6,7 +6,8 @@
 (use-module '{aws aws/aws4 texttools logger varconfig})
 (define %used_modules '{aws varconfig})
 
-(module-export! '{sqs/get sqs/send sqs/list sqs/info sqs/delete sqs/extend})
+(module-export! '{sqs/get sqs/send sqs/list sqs/info sqs/delete
+		  sqs/extend sqs/req/extend})
 
 (define-init %loglevel %info!)
 ;;(define %loglevel %debug!)
@@ -30,7 +31,7 @@
    (sqs-field-pattern "ReceiptHandle" 'handle)
    (sqs-field-pattern "MessageId" 'msgid)
    (sqs-field-pattern "RequestId" 'reqid)
-   (sqs-field-pattern "QueueUrl" 'qurl)
+   (sqs-field-pattern "QueueUrl" 'queue)
    (sqs-field-pattern "SenderId" 'sender)
    (sqs-field-pattern "SentTimestamp" 'sent)
    (sqs-field-pattern "ApproximateReceiveCount")
@@ -101,4 +102,24 @@
 	     `#["Action" "ChangeMessageVisibility"
 		"ReceiptHandle" ,(get message 'handle)
 		"VisibilityTimeout" ,secs])))
+
+(define reqvar '_sqs)
+(define default-extension 60)
+(varconfig! sqs:extension default-extension)
+(varconfig! sqs:reqvar reqvar)
+
+(define (sqs/req/extend (secs #f))
+  (when (req/test reqvar)
+    (let ((entry (req/get reqvar)))
+      (and (or (pair? entry) (table? entry))
+	   (testopt entry 'handle) (testopt entry 'queue)
+	   (sqs/extend `#[handle ,(getopt entry 'handle)
+			  queue ,(getopt entry 'queue)]
+		       (or secs (getopt entry 'extension default-extension)))))))
+
+
+
+
+
+
 
