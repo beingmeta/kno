@@ -928,7 +928,7 @@
 (define inline-tags '{a em strong i b span cite})
 
 (define (dom/structural? node)
-  "Returns true if a node only contains other blocks"
+  "Returns true if a node only contains other blocks or empty strings"
   (and (test node '%content)
        (every? (lambda (x) (if (string? x) (empty-string? x)
 			       (not (and (test x '%xmltag inline-tags)
