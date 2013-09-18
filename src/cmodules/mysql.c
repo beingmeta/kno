@@ -37,6 +37,7 @@ static fdtype read_timeout_symbol, write_timeout_symbol, lazy_symbol;
 
 static fdtype boolean_symbol;
 u8_condition ServerReset=_("MYSQL server reset");
+u8_condition UnusedType=_("MYSQL unused parameter type");
 
 #define dupstring(x) ((x==NULL) ? (x) : ((char *)u8_strdup(x)))
 
@@ -769,6 +770,7 @@ static fdtype mysqlmakeproc
   int n_params, n_cols, retval;
   struct FD_MYSQL_PROC *dbproc=u8_alloc(struct FD_MYSQL_PROC);
   unsigned int mysqlerrno=0, lazy_init=0;
+  fdtype *aptypes=NULL;
   fdtype lazy_opt=fd_getopt(dbp->options,lazy_symbol,FD_VOID);
   if (FD_VOIDP(lazy_opt)) 
     lazy_init=default_lazy_init;
@@ -804,11 +806,18 @@ static fdtype mysqlmakeproc
   /* Register the procedure on the database's list */
   fd_register_extdb_proc((struct FD_EXTDB_PROC *)dbproc);
   
+  /* This indicates that the procedure hasn't been initialized */
+  dbproc->n_cols=-1;
+
+  dbproc->n_params=n; {
+    fdtype *init_ptypes=u8_alloc_n(n,fdtype);
+    int i=0; while (i<n) {
+      init_ptypes[i]=fd_incref(ptypes[i]); i++;}
+    dbproc->paramtypes=init_ptypes;}
+
   if (lazy_init) {
     dbproc->stmt=NULL;
-    dbproc->need_init=1;
-    dbproc->n_cols=-1;
-    dbproc->n_params=-1;}
+    dbproc->need_init=1;}
   else {
     u8_mutex_lock(&(dbp->lock));
     retval=init_mysqlproc(dbp,dbproc);
@@ -833,7 +842,7 @@ static fdtype mysqlmakeprochandler
 static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
 {
   MYSQL *db=dbp->db;
-  int retval=0, n_cols, n_params;
+  int retval=0, n_cols, n_params, reinit=(dbproc->n_cols<0);
   /* Reinitialize these structures in case there have been schema
      changes. */
   if (dbproc->outbound) {
@@ -842,13 +851,17 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
     u8_free(dbproc->colnames); dbproc->colnames=NULL;}
   if (dbproc->isnull) {
     u8_free(dbproc->isnull); dbproc->isnull=NULL;}
-
+  if (dbproc->bindbuf) {
+    u8_free(dbproc->bindbuf); dbproc->bindbuf=NULL;}
+  
+  /* Close any existing statement */
   if (dbproc->stmt) {
     retval=mysql_stmt_close(dbproc->stmt);
     if (retval) {
       const char *errmsg=mysql_stmt_error(dbproc->stmt);
       u8_seterr(MySQL_Error,"init_mysqlproc/closeold",u8_strdup(errmsg));
-      return -1;}}
+      return -1;}
+    else dbproc->stmt=NULL;}
 
   dbproc->stmt=mysql_stmt_init(db);
   if (dbproc->stmt)
@@ -861,44 +874,51 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
   
   if (retval) {
     const char *errmsg=mysql_stmt_error(dbproc->stmt);
-    u8_free(dbproc);
     u8_seterr(MySQL_Error,"init_mysqlproc/prepare",u8_strdup(errmsg));
-    return FD_ERROR_VALUE;}
+    mysql_stmt_close(dbproc->stmt); dbproc->stmt=NULL;
+    return -1;}
   
   n_cols=init_stmt_results(dbproc->stmt,
                            &(dbproc->outbound),
                            &(dbproc->colnames),
                            &(dbproc->isnull));
-  
+  n_params=mysql_stmt_param_count(dbproc->stmt);
+
+  if (n_params==dbproc->n_params) {}
+  else {
+    fdtype *init_ptypes=dbproc->paramtypes, *ptypes=u8_alloc_n(n_params,fdtype);
+    int i=0, init_n=dbproc->n_params; while ((i<init_n)&&(i<n_params)) {
+      ptypes[i]=init_ptypes[i]; i++;}
+    while (i<n_params) ptypes[i++]=FD_VOID;
+    while (i<init_n) {
+      /* We make this a warning rather than an error, because we don't
+         need that information.  Note that this should only generate a warning
+         the first time that the statement is created. */
+      fdtype ptype=init_ptypes[i++];
+      if (FD_VOIDP(ptype)) {}
+      else u8_log(LOG_WARN,UnusedType,
+                  "Parameter type %q is not used for %s",ptype,dbproc->qtext);
+      fd_decref(ptype);}
+    dbproc->paramtypes=ptypes; dbproc->n_params=n_params;
+    u8_free(init_ptypes);}
+
   /* Check that the number of returned columns has not changed
      (this could happen if there were schema changes) */
   if ((dbproc->n_cols>=0)&&(n_cols!=dbproc->n_cols)) {
     u8_log(LOG_WARN,ServerReset,
 	   "The number of columns for query '%s' on %s (%s) has changed",
-	   dbproc->qtext,dbp->spec,dbp->info);
-    dbproc->n_cols=n_cols;}
+	   dbproc->qtext,dbp->spec,dbp->info);}
+  dbproc->n_cols=n_cols;
   
   /* Check that the number of parameters has not changed
      (this might happen if there were schema changes) */
-  n_params=mysql_stmt_param_count(dbproc->stmt);
-  dbproc->arity=dbproc->min_arity=n_params;
+  dbproc->min_arity=n_params;
   
-  if (n_params!=dbproc->n_params) {
-    if (dbproc->n_params>=0)
-      /* Only issue the warning if the n_params have been initialized */
-      u8_log(LOG_WARN,ServerReset,
-             "The number of parmaters for query '%s' on %s (%s) has changed",
-             dbproc->qtext,dbp->spec,dbp->info);
-    dbproc->n_params=n_params;
-    if (dbproc->inbound) {
-      u8_free(dbproc->inbound); dbproc->inbound=NULL;}
-    if (dbproc->bindbuf) {
-      u8_free(dbproc->bindbuf); dbproc->bindbuf=NULL;}
-    if (n_params) {
-      dbproc->inbound=u8_alloc_n(n_params,MYSQL_BIND);
-      memset(dbproc->inbound,0,sizeof(MYSQL_BIND)*n_params);
-      dbproc->bindbuf=u8_alloc_n(n_params,union BINDBUF);
-      memset(dbproc->bindbuf,0,sizeof(union BINDBUF)*n_params);}}
+  if (n_params) {
+    dbproc->inbound=u8_alloc_n(n_params,MYSQL_BIND);
+    memset(dbproc->inbound,0,sizeof(MYSQL_BIND)*n_params);
+    dbproc->bindbuf=u8_alloc_n(n_params,union BINDBUF);
+    memset(dbproc->bindbuf,0,sizeof(union BINDBUF)*n_params);}
 
   dbproc->need_init=0;
   
@@ -910,21 +930,23 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
   struct FD_MYSQL_PROC *dbp=(struct FD_MYSQL_PROC *)c;
   int i, lim;
   fd_release_extdb_proc(c);
-  mysql_stmt_close(dbp->stmt);
+  if (dbp->stmt) mysql_stmt_close(dbp->stmt);
   fd_decref(dbp->colinfo);
 
-  u8_free(dbp->bindbuf);
-  u8_free(dbp->isnull);
-  u8_free(dbp->inbound);
+  if (dbp->bindbuf) u8_free(dbp->bindbuf);
+  if (dbp->isnull) u8_free(dbp->isnull);
+  if (dbp->inbound) u8_free(dbp->inbound);
 
-  i=0; lim=dbp->n_cols; while (i<lim) {
-    if (dbp->outbound[i].buffer) u8_free(dbp->outbound[i].buffer);
-    i++;}
-  u8_free(dbp->outbound);
-
-  i=0; lim=dbp->n_params; while (i< lim) {
-    fd_decref(dbp->paramtypes[i]); i++;}
-  u8_free(dbp->paramtypes);
+  if (dbp->outbound) {
+    i=0; lim=dbp->n_cols; while (i<lim) {
+      if (dbp->outbound[i].buffer) u8_free(dbp->outbound[i].buffer);
+      i++;}
+    u8_free(dbp->outbound);}
+    
+  if (dbp->paramtypes) {
+    i=0; lim=dbp->n_params; while (i< lim) {
+      fd_decref(dbp->paramtypes[i]); i++;}
+    u8_free(dbp->paramtypes);}
   
   u8_free(dbp->spec); u8_free(dbp->qtext);
   
@@ -966,13 +988,19 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
   int proclock=0, dblock=0;
   volatile unsigned int mysqlerrno;
   const char *mysqlerrmsg=NULL;
-  fdtype _argbuf[4], *argbuf=
-    ((n_params<4) ? (_argbuf) : (u8_alloc_n(n_params,fdtype)));
+  fdtype _argbuf[4], *argbuf=_argbuf;
   
   u8_mutex_lock(&(dbproc->lock)); proclock=1;
 
-  /* Reinitialize it if it needs it */
-  if (dbproc->need_init) init_mysqlproc(dbp,dbproc);
+  /* Initialize it if it needs it */
+  if (dbproc->need_init) {
+    init_mysqlproc(dbp,dbproc);
+    n_params=dbproc->n_params;
+    inbound=dbproc->inbound;
+    bindbuf=dbproc->bindbuf;
+    ptypes=dbproc->paramtypes;}
+
+  if (n_params>4) argbuf=u8_alloc_n(n_params,fdtype);
 
   /* Initialize the input parameters from the arguments.
      None of this accesses the database, so we don't lock it yet.*/
@@ -1303,6 +1331,10 @@ FD_EXPORT int fd_init_mysql()
 		     "whether MYSQL should try to auto-reconnect",
 		     fd_boolconfig_get,fd_boolconfig_set,
 		     &default_reconnect);
+  fd_register_config("MYSQL:LAZYPROCS",
+		     "whether MYSQL should delay initializing dbprocs (statements)",
+		     fd_boolconfig_get,fd_boolconfig_set,
+		     &default_lazy_init);
 
   u8_register_source_file(_FILEINFO);
 
