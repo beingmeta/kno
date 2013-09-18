@@ -33,7 +33,7 @@ extern my_bool my_init(void);
 static fdtype sslca_symbol, sslcert_symbol, sslkey_symbol, sslcadir_symbol;
 static fdtype sslciphers_symbol, port_symbol, reconnect_symbol;
 static fdtype timeout_symbol, connect_timeout_symbol;
-static fdtype read_timeout_symbol, write_timeout_symbol;
+static fdtype read_timeout_symbol, write_timeout_symbol, lazy_symbol;
 
 static fdtype boolean_symbol;
 u8_condition ServerReset=_("MYSQL server reset");
@@ -772,7 +772,7 @@ static fdtype mysqlmakeproc
   fdtype lazy_opt=fd_getopt(dbp->options,lazy_symbol,FD_VOID);
   if (FD_VOIDP(lazy_opt)) 
     lazy_init=default_lazy_init;
-  else if ((FD_TRUEP(lazy_opt))&&(!(FD_ZEROP(lazy_opt))))
+  else if (FD_TRUEP(lazy_opt))
     lazy_init=1;
   else lazy_init=0;
   fd_decref(lazy_opt);
@@ -811,60 +811,11 @@ static fdtype mysqlmakeproc
     dbproc->n_params=-1;}
   else {
     u8_mutex_lock(&(dbp->lock));
-    retval=init_mysqlproc(&dbp);
+    retval=init_mysqlproc(dbp,dbproc);
     u8_mutex_unlock(&(dbp->lock));}
   if (retval<0) return FD_ERROR_VALUE;
   else return FDTYPE_CONS(dbproc);
 }
-
-/* 
-{
-  dbproc->stmt=mysql_stmt_init(db);
-  if (dbproc->stmt==NULL) {
-    const char *errmsg=mysql_error(db);
-    u8_free(dbproc);
-    u8_seterr(MySQL_Error,"mysqlproc/init",u8_mkstring("(%s) %s",errmsg,stmt));
-    u8_mutex_unlock(&(dbp->lock));
-    return FD_ERROR_VALUE;}
-  else retval=mysql_stmt_prepare(dbproc->stmt,stmt,stmt_len);
-    
-  if (retval) {
-    mysqlerrno=mysql_stmt_errno(dbproc->stmt);
-    if (NEED_RESTART(mysqlerrno)) {
-      restart_connection(dbp);
-      mysql_stmt_close(dbproc->stmt);
-      dbproc->stmt=mysql_stmt_init(db);
-      if (dbproc->stmt==NULL) {
-        const char *errmsg=mysql_error(db); u8_free(dbproc);
-        u8_seterr(MySQL_Error,"mysqlproc/init",
-                  u8_mkstring("(%s) %s",errmsg,stmt));
-        u8_mutex_unlock(&(dbp->lock));
-        return FD_ERROR_VALUE;}
-      else retval=mysql_stmt_prepare(dbproc->stmt,stmt,stmt_len);}}
-  if (retval==RETVAL_OK) {
-    /* We're done with the connection */
-    u8_mutex_unlock(&(dbp->lock));}
-  /* Set up the structures we'll use for statement execution. */
-  dbproc->n_cols=n_cols=
-    init_stmt_results(dbproc->stmt,&(dbproc->outbound),&(dbproc->colnames),
-                      &(dbproc->isnull));
-  dbproc->n_params=n_params=mysql_stmt_param_count(dbproc->stmt);
-  dbproc->inbound=u8_alloc_n(n_params,MYSQL_BIND);
-  memset(dbproc->inbound,0,sizeof(MYSQL_BIND)*n_params);
-  dbproc->bindbuf=u8_alloc_n(n_params,union BINDBUF);
-  memset(dbproc->bindbuf,0,sizeof(union BINDBUF)*n_params);
-  dbproc->need_init=0;
-  
-  {/* Set up the paramtypes which determine how application arguments
-      are converted to SQL parameters. */
-    fdtype *paramtypes=u8_alloc_n(n_params,fdtype);
-    int j=0; while (j<n_params) {
-      if (j<n) paramtypes[j]=fd_incref(ptypes[j]);
-      else paramtypes[j]=FD_VOID;
-      j++;}
-    dbproc->paramtypes=paramtypes;}
-}
-*/
 
 /* This is the handler stored in the method table */
 static fdtype mysqlmakeprochandler
@@ -889,7 +840,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
     u8_free(dbproc->outbound); dbproc->outbound=NULL;}
   if (dbproc->colnames) {
     u8_free(dbproc->colnames); dbproc->colnames=NULL;}
-  if (dpbroc->isnull) {
+  if (dbproc->isnull) {
     u8_free(dbproc->isnull); dbproc->isnull=NULL;}
 
   if (dbproc->stmt) {
@@ -1344,6 +1295,7 @@ FD_EXPORT int fd_init_mysql()
   connect_timeout_symbol=fd_intern("CONNECT-TIMEOUT");
   read_timeout_symbol=fd_intern("READ-TIMEOUT");
   write_timeout_symbol=fd_intern("WRITE-TIMEOUT");
+  lazy_symbol=fd_intern("LAZYPROCS");
   
   fd_finish_module(module);
 
