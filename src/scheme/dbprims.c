@@ -526,7 +526,8 @@ static fdtype cons_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
      ((FD_FALSEP(state))?(FD_VOID):(state)),
      0);
   if (FD_FALSEP(usecache)) fd_index_setcache(ix,0);
-  return fd_index2lisp(ix);
+  if (ix->serialno>=0) return fd_index2lisp(ix);
+  else return (fdtype)ix;
 }
 
 static fdtype extindex_cacheadd(fdtype index,fdtype key,fdtype values)
