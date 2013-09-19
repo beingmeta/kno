@@ -1478,6 +1478,9 @@ int main(int argc,char **argv)
   fd_register_config("INITCONN",
 		     _("Number of clients to prepare for/grow by"),
 		     fd_intconfig_get,fd_intconfig_set,&init_clients);
+  fd_register_config("WEBTHREADS",_("Number of threads in the thread pool"),
+		     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
+  /* This one, NTHREADS, is deprecated */
   fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
 		     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
   fd_register_config("STATLOG",_("File for recording status reports"),

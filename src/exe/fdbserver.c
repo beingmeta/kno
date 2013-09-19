@@ -738,6 +738,9 @@ int main(int argc,char **argv)
   fd_register_config("INITCLIENTS",
 		     _("Number of clients to prepare for/grow by"),
 		     fd_intconfig_get,fd_intconfig_set,&init_clients);
+  fd_register_config("REQTHREADS",_("Number of threads in the thread pool"),
+		     fd_intconfig_get,fd_intconfig_set,&n_threads);
+  /* This version is deprecated. */
   fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
 		     fd_intconfig_get,fd_intconfig_set,&n_threads);
   fd_register_config("PORT",_("port or port@host to listen on"),
