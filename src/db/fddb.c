@@ -326,7 +326,7 @@ static int config_use_index(fdtype var,fdtype spec,void *data)
     if (fd_use_index(FD_STRDATA(spec))) return 1;
     else return -1;
   else if (FD_INDEXP(spec))
-    if (fd_add_to_background(fd_lisp2index(spec))) return 1;
+    if (fd_add_to_background(fd_indexptr(spec))) return 1;
     else return -1;
 
   else {

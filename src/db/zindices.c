@@ -205,14 +205,14 @@ static int zwrite_key
 static fdtype set_symbol, drop_symbol;
 static struct FD_INDEX_HANDLER zindex_handler;
 
-static fd_index open_zindex(u8_string fname,int read_only)
+static fd_index open_zindex(u8_string fname,int read_only,int consed)
 {
   struct FD_ZINDEX *index=u8_alloc(struct FD_ZINDEX);
   struct FD_DTYPE_STREAM *s=&(index->stream);
   unsigned int magicno;
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_index((fd_index)index,&zindex_handler,fname);
+  fd_init_index((fd_index)index,&zindex_handler,fname,consed);
   if (fd_init_dtype_file_stream(s,fname,mode,FD_FILEDB_BUFSIZE)==NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_zindex",u8_strdup(fname));

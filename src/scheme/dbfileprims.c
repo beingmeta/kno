@@ -216,7 +216,7 @@ static fdtype make_hash_index(fdtype fname,fdtype size,fdtype slotids,fdtype bas
 static fdtype populate_hash_index
   (fdtype ix_arg,fdtype from,fdtype blocksize_arg,fdtype keys)
 {
-  fd_index ix=fd_lisp2index(ix_arg); int blocksize=-1, retval;
+  fd_index ix=fd_indexptr(ix_arg); int blocksize=-1, retval;
   const fdtype *keyvec; fdtype *consed_keyvec=NULL;
   unsigned int n_keys; fdtype keys_choice=FD_VOID;
   if (!(fd_hash_indexp(ix)))
@@ -227,8 +227,8 @@ static fdtype populate_hash_index
   else if (FD_VECTORP(keys)) {
     keyvec=FD_VECTOR_DATA(keys); n_keys=FD_VECTOR_LENGTH(keys);}
   else if (FD_VOIDP(keys)) {
-    if (FD_INDEXP(from)) {
-      fd_index ix=fd_lisp2index(from);
+    if ((FD_INDEXP(from))||(FD_PRIM_TYPEP(from,fd_raw_index_type))) {
+      fd_index ix=fd_indexptr(from);
       if (ix->handler->fetchkeys!=NULL) {
 	consed_keyvec=ix->handler->fetchkeys(ix,&n_keys);
 	keyvec=consed_keyvec;}
@@ -258,7 +258,7 @@ static fdtype populate_hash_index
 
 static fdtype hash_index_bucket(fdtype ix_arg,fdtype key,fdtype modulus)
 {
-  fd_index ix=fd_lisp2index(ix_arg); int bucket;
+  fd_index ix=fd_indexptr(ix_arg); int bucket;
   if (!(fd_hash_indexp(ix)))
     return fd_type_error(_("hash index"),"hash_index_bucket",ix_arg);
   bucket=fd_hash_index_bucket((struct FD_HASH_INDEX *)ix,key,FD_VOIDP(modulus));
@@ -269,7 +269,7 @@ static fdtype hash_index_bucket(fdtype ix_arg,fdtype key,fdtype modulus)
 
 static fdtype hash_index_stats(fdtype ix_arg)
 {
-  fd_index ix=fd_lisp2index(ix_arg);
+  fd_index ix=fd_indexptr(ix_arg);
   if ((ix==NULL) || (!(fd_hash_indexp(ix))))
     return fd_type_error(_("hash index"),"hash_index_stats",ix_arg);
   return fd_hash_index_stats((struct FD_HASH_INDEX *)ix);
@@ -277,7 +277,7 @@ static fdtype hash_index_stats(fdtype ix_arg)
 
 static fdtype hash_index_slotids(fdtype ix_arg)
 {
-  fd_index ix=fd_lisp2index(ix_arg);
+  fd_index ix=fd_indexptr(ix_arg);
   if (!(fd_hash_indexp(ix)))
     return fd_type_error(_("hash index"),"hash_index_slotids",ix_arg);
   else {
@@ -330,7 +330,7 @@ static fdtype load_caches_prim(fdtype arg)
     fd_for_pools(load_pool_cache,NULL);
     fd_for_indices(load_index_cache,NULL);}
   else if (FD_PRIM_TYPEP(arg,fd_index_type))
-    load_index_cache(fd_lisp2index(arg),NULL);
+    load_index_cache(fd_indexptr(arg),NULL);
   else if (FD_PRIM_TYPEP(arg,fd_pool_type))
     load_pool_cache(fd_lisp2pool(arg),NULL);
   else {}

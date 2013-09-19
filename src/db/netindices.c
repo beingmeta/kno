@@ -43,8 +43,8 @@ static int server_supportsp(struct FD_NETWORK_INDEX *ni,fdtype operation)
   else {fd_decref(response); return 1;}
 }
 
-FD_EXPORT fd_index fd_open_network_index
-  (u8_string spec,u8_string source,fdtype xname)
+FD_EXPORT fd_index fd_open_network_index_x
+  (u8_string spec,u8_string source,fdtype xname,int consed)
 {
   struct FD_NETWORK_INDEX *ix;
   fdtype writable_response; u8_string xid=NULL;
@@ -53,7 +53,7 @@ FD_EXPORT fd_index fd_open_network_index
 				  fd_dbconn_init_default);
   if (cp==NULL) return NULL;
   ix=u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(*ix));
-  fd_init_index((fd_index)ix,&netindex_handler,spec);
+  fd_init_index((fd_index)ix,&netindex_handler,spec,consed);
   ix->connpool=cp;
   ix->xname=xname; ix->xid=xid;
   if (FD_VOIDP(xname))
@@ -71,6 +71,12 @@ FD_EXPORT fd_index fd_open_network_index
   
   if (ix) fd_register_index((fd_index)ix);
   return (fd_index) ix;
+}
+
+FD_EXPORT fd_index fd_open_network_index
+  (u8_string spec,u8_string source,fdtype xname)
+{
+  return fd_open_network_index_x(spec,source,xname,0);
 }
 
 static fdtype netindex_fetch(fd_index ix,fdtype key)

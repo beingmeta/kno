@@ -89,7 +89,7 @@ static fdtype _overlay_get
   else if (FD_INDEXP(overlay)) {
     fdtype tmp_key, mods;
     struct FD_PAIR p;
-    fd_index ix=fd_lisp2index(overlay);
+    fd_index ix=fd_indexptr(overlay);
     FD_INIT_STATIC_CONS(&p,fd_pair_type);
     p.car=car; p.cdr=cdr;
     tmp_key=(fdtype)&p;
@@ -156,7 +156,7 @@ static int _overlay_test
   else if (FD_INDEXP(overlay)) {
     fdtype tmp_key, mods;
     struct FD_PAIR p;
-    fd_index ix=fd_lisp2index(overlay);
+    fd_index ix=fd_indexptr(overlay);
     FD_INIT_STATIC_CONS(&p,fd_pair_type);
     p.car=slotid; p.cdr=frame;
     tmp_key=(fdtype)&p;
@@ -184,7 +184,7 @@ static fdtype overlay_add
   int retval=0;
   fdtype key=fd_init_pair(NULL,slotid,fd_incref(frame));
   fdtype entry=((FD_INDEXP(overlay)) ?
-		(fd_index_get(fd_lisp2index(overlay),key)) :
+		(fd_index_get(fd_indexptr(overlay),key)) :
 		(fd_hashtable_get((fd_hashtable)overlay,key,FD_VOID))),
     new_entry;
   if (FD_ABORTP(entry)) {fd_decref(key); return entry;}
@@ -206,7 +206,7 @@ static fdtype overlay_add
   if (FD_HASHTABLEP(overlay))
     retval=fd_hashtable_store((fd_hashtable)overlay,key,new_entry);
   else if (FD_INDEXP(overlay))
-    retval=fd_index_store(fd_lisp2index(overlay),key,new_entry);
+    retval=fd_index_store(fd_indexptr(overlay),key,new_entry);
   else {
     fd_seterr(fd_TypeError,"overlay_add",NULL,overlay);
     retval=-1;}
@@ -222,7 +222,7 @@ static fdtype overlay_drop
   int retval=0;
   fdtype key=fd_init_pair(NULL,slotid,fd_incref(frame));
   fdtype entry=((FD_INDEXP(overlay)) ?
-		(fd_index_get(fd_lisp2index(overlay),key)) :
+		(fd_index_get(fd_indexptr(overlay),key)) :
 		(fd_hashtable_get((fd_hashtable)overlay,key,FD_VOID))),
     new_entry;
   if (FD_ABORTP(entry)) {fd_decref(key); return entry;}
@@ -243,7 +243,7 @@ static fdtype overlay_drop
   if (FD_HASHTABLEP(overlay))
     retval=fd_hashtable_store((fd_hashtable)overlay,key,new_entry);
   else if (FD_INDEXP(overlay))
-    retval=fd_index_store(fd_lisp2index(overlay),key,new_entry);
+    retval=fd_index_store(fd_indexptr(overlay),key,new_entry);
   else {
     fd_seterr(fd_TypeError,"overlay_add",NULL,overlay);
     retval=-1;}
@@ -262,7 +262,7 @@ static fdtype overlay_store
   if (FD_HASHTABLEP(overlay))
     fd_hashtable_store((fd_hashtable)overlay,key,entry);
   else if (FD_INDEXP(overlay)) {
-    fd_index ix=fd_lisp2index(overlay);
+    fd_index ix=fd_indexptr(overlay);
     fd_index_store(ix,key,entry);}
   else {
     fd_decref(entry); fd_decref(key);
@@ -983,8 +983,8 @@ FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotids,fdtype values)
   if (FD_CHOICEP(indices)) {
     fdtype combined=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(index,indices)
-      if (FD_INDEXP(index)) {
-	fd_index ix=fd_lisp2index(index);
+      if ((FD_INDEXP(index))||(FD_PRIM_TYPEP(index,fd_raw_index_type))) {
+	fd_index ix=fd_indexptr(index);
 	if (ix==NULL) {
 	  fd_decref(combined);
 	  return FD_ERROR_VALUE;}
@@ -1017,7 +1017,7 @@ FD_EXPORT fdtype fd_prim_find(fdtype indices,fdtype slotids,fdtype values)
     return combined;}
   else {
     fdtype combined=FD_EMPTY_CHOICE;
-    fd_index ix=fd_lisp2index(indices);
+    fd_index ix=fd_indexptr(indices);
     if (ix==NULL) {
       fd_decref(combined);
       return FD_ERROR_VALUE;}

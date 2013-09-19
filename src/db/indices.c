@@ -29,7 +29,7 @@ fd_exception fd_BadIndexSpec=_("bad index specification");
 fd_exception fd_IndexCommitError=_("can't save changes to index");
 static u8_condition ipeval_ixfetch="IXFETCH";
 
-fd_index (*fd_file_index_opener)(u8_string)=NULL;
+fd_index (*fd_file_index_opener)(u8_string,int)=NULL;
 
 fd_index fd_primary_indices[FD_N_PRIMARY_INDICES], *fd_secondary_indices=NULL;
 int fd_n_primary_indices=0, fd_n_secondary_indices=0;
@@ -163,7 +163,7 @@ FD_EXPORT fd_index fd_find_index_by_cid(u8_string cid)
   return NULL;
 }
 
-FD_EXPORT fd_index fd_open_index(u8_string spec)
+FD_EXPORT fd_index fd_open_index_x(u8_string spec,int consed)
 {
   if (strchr(spec,';')) {
     fd_seterr(fd_BadIndexSpec,"fd_open_index",u8_strdup(spec),FD_VOID);
@@ -180,13 +180,22 @@ FD_EXPORT fd_index fd_open_index(u8_string spec)
 	if (at-spec>63) return NULL;
 	strncpy(buf,spec,at-spec); buf[at-spec]='\0';
 	xname=fd_parse(buf);
-	return fd_open_network_index(spec,at+1,xname);}
+        if (consed)
+          return fd_open_network_index_x(spec,at+1,xname,consed);
+        else return fd_open_network_index(spec,at+1,xname);}
+      else if (consed)
+        return fd_open_network_index_x(spec,spec,FD_VOID,consed);
       else return fd_open_network_index(spec,spec,FD_VOID);}}
   else if (fd_file_index_opener)
-    return fd_file_index_opener(spec);
+    return fd_file_index_opener(spec,consed);
   else {
     fd_seterr3(fd_NoFileIndices,"fd_open_index",u8_strdup(spec));
     return NULL;}
+}
+
+FD_EXPORT fd_index fd_open_index(u8_string spec) 
+{
+  return fd_open_index_x(spec,0);
 }
 
 /* Background indices */
@@ -194,6 +203,10 @@ FD_EXPORT fd_index fd_open_index(u8_string spec)
 FD_EXPORT int fd_add_to_background(fd_index ix)
 {
   if (ix==NULL) return 0;
+  if (ix->serialno<0) {
+    fdtype lix=(fdtype)ix; fd_incref(lix);
+    fd_seterr(fd_TypeError,"fd_add_to_background","static index",lix);
+    return -1;}
   fd_lock_mutex(&background_lock);
   ix->flags=ix->flags|FD_INDEX_IN_BACKGROUND;
   if (fd_background) 
@@ -298,7 +311,9 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 {
   FDTC *fdtc=((FD_USE_THREADCACHE)?(fd_threadcache):(NULL)); 
   fdtype *keyvec=NULL, *values=NULL;
-  fdtype lix=FDTYPE_IMMEDIATE(fd_index_type,ix->serialno);
+  fdtype lix=((ix->serialno>=0)?
+              (FDTYPE_IMMEDIATE(fd_index_type,ix->serialno)):
+              ((fdtype)ix));
   int free_keys=0, n_fetched=0, cachelevel=0;
   if (ix == NULL) return -1;
   else init_cache_level(ix);
@@ -542,7 +557,7 @@ FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
 }
 static fdtype table_indexget(fdtype ixarg,fdtype key,fdtype dflt)
 {
-  fd_index ix=fd_lisp2index(ixarg);
+  fd_index ix=fd_indexptr(ixarg);
   if (ix) {
     fdtype v=fd_index_get(ix,key);
     if (FD_EMPTY_CHOICEP(v)) return fd_incref(dflt);
@@ -607,7 +622,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
 }
 static int table_indexadd(fdtype ixarg,fdtype key,fdtype value)
 {
-  fd_index ix=fd_lisp2index(ixarg); 
+  fd_index ix=fd_indexptr(ixarg); 
   if (ix) return fd_index_add(ix,key,value);
   else return -1;
 }
@@ -649,7 +664,7 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
 }
 static int table_indexdrop(fdtype ixarg,fdtype key,fdtype value)
 {
-  fd_index ix=fd_lisp2index(ixarg); 
+  fd_index ix=fd_indexptr(ixarg); 
   if (ix) return fd_index_drop(ix,key,value);
   else return -1;
 }
@@ -691,14 +706,14 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
 }
 static int table_indexstore(fdtype ixarg,fdtype key,fdtype value)
 {
-  fd_index ix=fd_lisp2index(ixarg); 
+  fd_index ix=fd_indexptr(ixarg); 
   if (ix) return fd_index_store(ix,key,value);
   else return -1;
 }
 
 static fdtype table_indexkeys(fdtype ixarg)
 {
-  fd_index ix=fd_lisp2index(ixarg); 
+  fd_index ix=fd_indexptr(ixarg); 
   if (ix) return fd_index_keys(ix);
   else return fd_type_error(_("index"),"table_index_keys",ixarg);
 }
@@ -747,9 +762,10 @@ FD_EXPORT void fd_index_close(fd_index ix)
 /* Common init function */
 
 FD_EXPORT void fd_init_index
-  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source)
+  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,int consed)
 {
-  FD_INIT_CONS(ix,fd_raw_index_type);
+  if (consed) {FD_INIT_CONS(ix,fd_raw_index_type);}
+  else {FD_INIT_STATIC_CONS(ix,fd_raw_index_type);}
   ix->serialno=-1; ix->cache_level=-1; ix->read_only=1;
   ix->flags=((h->fetchn)?(FD_INDEX_BATCHABLE):(0));
   FD_INIT_STATIC_CONS(&(ix->cache),fd_hashtable_type);
@@ -767,7 +783,7 @@ FD_EXPORT void fd_init_index
 
 static int unparse_index(u8_output out,fdtype x)
 {
-  fd_index ix=fd_lisp2index(x); u8_string type;
+  fd_index ix=fd_indexptr(x); u8_string type;
   if (ix==NULL) return 0;
   if ((ix->handler) && (ix->handler->name)) type=ix->handler->name;
   else type="unrecognized";
@@ -1012,11 +1028,11 @@ static struct FD_INDEX_HANDLER memindex_handler={
 };
 
 FD_EXPORT
-fd_index fd_make_mem_index()
+fd_index fd_make_mem_index(int consed)
 {
   struct FD_MEM_INDEX *mix=u8_alloc(struct FD_MEM_INDEX);
   FD_INIT_STRUCT(mix,struct FD_MEM_INDEX);
-  fd_init_index((fd_index)mix,&memindex_handler,"ephemeral");
+  fd_init_index((fd_index)mix,&memindex_handler,"ephemeral",consed);
   mix->cache_level=1; mix->read_only=0; mix->flags=FD_INDEX_NOSWAP;
   fd_register_index((fd_index)mix);
   return (fd_index)mix;
@@ -1030,7 +1046,7 @@ fd_index fd_make_extindex
 {
   struct FD_EXTINDEX *fetchix=u8_alloc(struct FD_EXTINDEX);
   FD_INIT_STRUCT(fetchix,struct FD_EXTINDEX);
-  fd_init_index((fd_index)fetchix,&fd_extindex_handler,name);
+  fd_init_index((fd_index)fetchix,&fd_extindex_handler,name,(!(reg)));
   fetchix->cache_level=1;
   fetchix->read_only=(FD_VOIDP(commitfn));
   fetchix->fetchfn=fd_incref(fetchfn);
@@ -1210,9 +1226,9 @@ static int check_index(fdtype x)
   else return (fd_secondary_indices[serial-FD_N_PRIMARY_INDICES]!=NULL);
 }
 
-FD_EXPORT fd_index _fd_get_indexptr(fdtype x)
+FD_EXPORT fd_index _fd_indexptr(fdtype x)
 {
-  return fd_get_indexptr(x);
+  return fd_indexptr(x);
 }
 
 /* Initializations */

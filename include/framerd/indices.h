@@ -80,7 +80,7 @@ struct FD_INDEX_HANDLER some_handler={
 FD_EXPORT int fd_for_indices(int (*fcn)(fd_index,void *),void *data);
 
 FD_EXPORT void fd_init_index
-  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source);
+  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,int consed);
 
 FD_EXPORT void fd_register_index(fd_index ix);
 
@@ -88,7 +88,7 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_commit(fd_index ix);
 FD_EXPORT void fd_index_close(fd_index ix);
-FD_EXPORT fd_index _fd_get_indexptr(fdtype x);
+FD_EXPORT fd_index _fd_indexptr(fdtype x);
 FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key);
 FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key);
 FD_EXPORT fdtype fd_index_keys(fd_index ix);
@@ -97,6 +97,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys);
 
 FD_EXPORT fd_index fd_open_index(u8_string);
+FD_EXPORT fd_index fd_open_index_x(u8_string,int);
 FD_EXPORT fd_index fd_find_index_by_cid(u8_string);
 
 FD_EXPORT void fd_index_swapout(fd_index ix);
@@ -127,6 +128,8 @@ typedef struct FD_NETWORK_INDEX *fd_network_index;
 
 FD_EXPORT fd_index fd_open_network_index
   (u8_string spec,u8_string source,fdtype xname);
+FD_EXPORT fd_index fd_open_network_index_x
+  (u8_string spec,u8_string source,fdtype xname,int consed);
 
 /* Server capabilities */
 #define FD_ISERVER_FETCHN 1
@@ -141,7 +144,7 @@ typedef struct FD_MEM_INDEX {
   int (*commitfn)(struct FD_MEM_INDEX *,u8_string);} FD_MEM_INDEX;
 typedef struct FD_MEM_INDEX *fd_mem_index;
 
-FD_EXPORT fd_index fd_make_mem_index(void);
+FD_EXPORT fd_index fd_make_mem_index(int consed);
 
 /* EXTernal indices */
 
@@ -225,25 +228,29 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
       return retval;}
   else return _fd_index_add(ix,key,value);
 }
-FD_FASTOP MAYBE_UNUSED fd_index fd_get_indexptr(fdtype x)
+FD_FASTOP MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
 {
-  int serial=FD_GET_IMMEDIATE(x,fd_index_type); 
-  if (serial<0) return NULL;
-  else if (serial<FD_N_PRIMARY_INDICES)
-    return fd_primary_indices[serial];
-  else if (serial<(FD_N_PRIMARY_INDICES+fd_n_secondary_indices))
-    return fd_secondary_indices[serial-FD_N_PRIMARY_INDICES];
-  else return NULL;
+  if (FD_IMMEDIATEP(x)) {
+    int serial=FD_GET_IMMEDIATE(x,fd_index_type); 
+    if (serial<0) return NULL;
+    else if (serial<FD_N_PRIMARY_INDICES)
+      return fd_primary_indices[serial];
+    else if (serial<(FD_N_PRIMARY_INDICES+fd_n_secondary_indices))
+      return fd_secondary_indices[serial-FD_N_PRIMARY_INDICES];
+    else return NULL;}
+  else if ((FD_CONSP(x))&&(FD_PRIM_TYPEP(x,fd_raw_index_type)))
+    return (fd_index)x;
+  else return (fd_index)NULL;
 }
 #else
 #define fd_index_get(ix,key) _fd_index_get(ix,key) 
 #define fd_index_add(ix,key,val) _fd_index_add(ix,key,val)
-#define fd_get_indexptr(ix) _fd_get_indexptr(ix) 
+#define fd_indexptr(ix) _fd_indexptr(ix) 
 #endif
 
 /* Opening file indices */
 
-FD_EXPORT fd_index (*fd_file_index_opener)(u8_string);
+FD_EXPORT fd_index (*fd_file_index_opener)(u8_string,int);
 
 /* IPEVAL delays */
 

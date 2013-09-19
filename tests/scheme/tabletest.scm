@@ -158,15 +158,15 @@
 
 ;;; Top level
 
-(define (table-for file)
+(define (table-for file (consed #f))
   (cond ((has-suffix file ".slotmap") (frame-create #f))
 	((has-suffix file ".table") (make-hashtable))
 	((has-suffix file ".index")
 	 (make-file-index file 1000000)
-	 (open-index file))
+	 (open-index file consed))
 	((has-suffix file ".hashindex")
 	 (make-hash-index file 1000000)
-	 (open-index file))
+	 (open-index file consed))
 	;; ((has-suffix file ".zindex") (make-zindex file))
 	(else (make-hashtable))))
 (define (table-from file)
@@ -245,7 +245,7 @@
 
 (define (main filename (size #f))
   (if (and size (number? size))
-      (let ((table (table-for filename))
+      (let ((table (table-for filename (config 'CONSINDEX #f)))
 	    (atomicp (has-suffix filename ".slotmap")))
 	(set! intable table)
 	(message "Generating table for " size " items")

@@ -182,7 +182,7 @@ FD_EXPORT fd_index fd_make_compound_index(int n_indices,fd_index *indices)
 {
   struct FD_COMPOUND_INDEX *cix=u8_alloc(struct FD_COMPOUND_INDEX);
   u8_string cid=get_compound_id(n_indices,indices);
-  fd_init_index((fd_index)cix,&compoundindex_handler,cid);
+  fd_init_index((fd_index)cix,&compoundindex_handler,cid,0);
   fd_init_mutex(&(cix->lock)); u8_free(cid);
   cix->n_indices=n_indices; cix->indices=indices;
   fd_register_index((fd_index)cix);
@@ -201,6 +201,8 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
       cix->indices=u8_realloc_n(cix->indices,cix->n_indices+1,fd_index);
     else cix->indices=u8_alloc_n(1,fd_index);
     cix->indices[cix->n_indices++]=add;
+    if (add->serialno<0) {
+      fdtype alix=(fdtype)add; fd_incref(alix);}
     if ((cix->cid) || (cix->source)) {
       if ((cix->cid)==(cix->source)) {
 	u8_free(cix->cid); cix->cid=cix->source=NULL;}

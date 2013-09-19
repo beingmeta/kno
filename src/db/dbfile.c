@@ -351,7 +351,7 @@ static u8_mutex index_openers_lock;
 
 FD_EXPORT void fd_register_index_opener
   (unsigned int id,
-   fd_index (*opener)(u8_string filename,int read_only),
+   fd_index (*opener)(u8_string filename,int read_only,int consed),
    fdtype (*mdreader)(FD_DTYPE_STREAM *),
    fdtype (*mdwriter)(FD_DTYPE_STREAM *,fdtype))
 {
@@ -384,7 +384,7 @@ static u8_string get_index_filename(u8_string spec)
   else return NULL;
 }
 
-static fd_index open_file_index(u8_string filename)
+static fd_index open_file_index(u8_string filename,int consed)
 {
   u8_string index_filename=get_index_filename(filename);
   fd_index ix;
@@ -412,7 +412,7 @@ static fd_index open_file_index(u8_string filename)
       if (((index_openers[i].initial_word&0xFF)==0) ?
 	  (index_openers[i].initial_word == (word&0xFFFFFF00)) :
 	  (index_openers[i].initial_word == word)) {
-	ix=index_openers[i].opener(index_filename,read_only);
+	ix=index_openers[i].opener(index_filename,read_only,consed);
 	break;}
       else i++;
     if (ix) {
@@ -444,9 +444,9 @@ static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
   else return 0;
 }
 
-static fd_index open_memindex(u8_string file,int read_only)
+static fd_index open_memindex(u8_string file,int read_only,int consed)
 {
-  struct FD_MEM_INDEX *mix=(fd_mem_index)fd_make_mem_index();
+  struct FD_MEM_INDEX *mix=(fd_mem_index)fd_make_mem_index(consed);
   fdtype lispval; struct FD_HASHTABLE *h;
   struct FD_DTYPE_STREAM stream;
   fd_init_dtype_file_stream

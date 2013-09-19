@@ -279,7 +279,7 @@ static int init_baseoids
   (struct FD_HASH_INDEX *hx,int n_baseoids,fdtype *baseoids_init);
 static int recover_hash_index(struct FD_HASH_INDEX *hx);
 
-static fd_index open_hash_index(u8_string fname,int read_only)
+static fd_index open_hash_index(u8_string fname,int read_only,int consed)
 {
   struct FD_HASH_INDEX *index=u8_alloc(struct FD_HASH_INDEX);
   struct FD_DTYPE_STREAM *s=&(index->stream);
@@ -288,7 +288,7 @@ static fd_index open_hash_index(u8_string fname,int read_only)
   fd_size_t slotids_size, baseoids_size;
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_index((fd_index)index,&hash_index_handler,fname);
+  fd_init_index((fd_index)index,&hash_index_handler,fname,consed);
   if (fd_init_dtype_file_stream(s,fname,mode,FD_FILEDB_BUFSIZE)
       == NULL) {
     u8_free(index);
@@ -1573,7 +1573,8 @@ FD_EXPORT int fd_populate_hash_index
     fd_seterr(fd_MallocFailed,"populuate_hash_index",NULL,FD_VOID);
     return -1;}
 
-  if (FD_INDEXP(from)) ix=fd_lisp2index(from);
+  if ((FD_INDEXP(from))||(FD_PRIM_TYPEP(from,fd_raw_index_type)))
+    ix=fd_indexptr(from);
 
   /* Population doesn't leave any odd keys */
   if ((hx->hxflags)&(FD_HASH_INDEX_ODDKEYS)) 

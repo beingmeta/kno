@@ -494,7 +494,14 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 
 
 SCHEMETAGS: ${SCHEME_MODULES}
-	etags -o SCHEMETAGS ${SCHEME_MODULES}
+	@rm -f SCHEMETAGS
+	@# We skip module.scm files because they are always links
+	@#  to other files (with more distinctive names)
+	@find src/modules -name "*.scm" | \
+		grep -v module.scm | \
+		grep -v sandbox | \
+		xargs etags -o SCHEMETAGS -a
+	@ls -l SCHEMETAGS
 
 profile-clean:
 	find . -name "*.gcda" | xargs rm -f

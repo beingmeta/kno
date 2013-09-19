@@ -172,7 +172,7 @@ static fdtype iserver_changes(fdtype sid,fdtype xid)
 
 static fdtype ixserver_changes(fdtype index,fdtype sid,fdtype xid)
 {
-  fd_index ix=fd_lisp2index(index);
+  fd_index ix=fd_indexptr(index);
   struct FD_CHANGELOG *clog=get_subindex_changelog(ix,0);
   if (clog == NULL) return FD_EMPTY_CHOICE;
   else if (FD_FIX2INT(sid) != init_timestamp) return FD_FALSE;
@@ -458,7 +458,7 @@ static fdtype iserver_add(fdtype key,fdtype values)
 
 static fdtype ixserver_add(fdtype ixarg,fdtype key,fdtype values)
 {
-  fd_index ix=fd_lisp2index(ixarg);
+  fd_index ix=fd_indexptr(ixarg);
   struct FD_CHANGELOG *clog=get_subindex_changelog(ix,1);
   fd_index_add(ix,key,values);
   add_to_changelog(clog,key);
@@ -486,7 +486,7 @@ static fdtype ixserver_bulk_add(fdtype ixarg,fdtype vec)
 {
   if (read_only) return FD_FALSE;
   else if (FD_VECTORP(vec)) {
-    fd_index ix=fd_lisp2index(ixarg);
+    fd_index ix=fd_indexptr(ixarg);
     struct FD_CHANGELOG *clog=get_subindex_changelog(ix,1);
     fdtype *data=FD_VECTOR_DATA(vec), keys=FD_EMPTY_CHOICE;
     int i=0, limit=FD_VECTOR_LENGTH(vec);
@@ -510,7 +510,7 @@ static fdtype iserver_drop(fdtype key,fdtype values)
 
 static fdtype ixserver_drop(fdtype ixarg,fdtype key,fdtype values)
 {
-  fd_index ix=fd_lisp2index(ixarg);
+  fd_index ix=fd_indexptr(ixarg);
   struct FD_CHANGELOG *clog=get_subindex_changelog(ix,1);
   fd_index_drop(ix,key,values);
   add_to_changelog(clog,key);
@@ -639,17 +639,17 @@ static fdtype iserver_writablep()
 
 static fdtype ixserver_get(fdtype index,fdtype key)
 {
-  if (FD_INDEXP(index))
-    return fd_index_get(fd_lisp2index(index),key);
+  if ((FD_INDEXP(index))||(FD_PRIM_TYPEP(index,fd_raw_index_type)))
+    return fd_index_get(fd_indexptr(index),key);
   else if (FD_TABLEP(index))
     return fd_get(index,key,FD_EMPTY_CHOICE);
   else return fd_type_error("index","ixserver_get",FD_VOID);
 }
 static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
 {
-  if (FD_INDEXP(index)) 
+  if ((FD_INDEXP(index))||(FD_PRIM_TYPEP(index,fd_raw_index_type))) 
     if (FD_VECTORP(keys)) {
-      fd_index ix=fd_lisp2index(index);
+      fd_index ix=fd_indexptr(index);
       int i=0, n=FD_VECTOR_LENGTH(keys);
       fdtype *data=FD_VECTOR_DATA(keys),
 	*results=u8_alloc_n(n,fdtype);
@@ -675,8 +675,8 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
 }
 static fdtype ixserver_get_size(fdtype index,fdtype key)
 {
-  if (FD_INDEXP(index)) {
-    fdtype value=fd_index_get(fd_lisp2index(index),key);
+  if ((FD_INDEXP(index))||(FD_PRIM_TYPEP(index,fd_raw_index_type))) {
+    fdtype value=fd_index_get(fd_indexptr(index),key);
     int size=FD_CHOICE_SIZE(value);
     fd_decref(value);
     return FD_INT2DTYPE(size);}
@@ -689,16 +689,16 @@ static fdtype ixserver_get_size(fdtype index,fdtype key)
 }
 static fdtype ixserver_keys(fdtype index)
 {
-  if (FD_INDEXP(index))
-    return fd_index_keys(fd_lisp2index(index));
+  if ((FD_INDEXP(index))||(FD_PRIM_TYPEP(index,fd_raw_index_type)))
+    return fd_index_keys(fd_indexptr(index));
   else if (FD_TABLEP(index))
     return fd_getkeys(index);
   else return fd_type_error("index","ixserver_get",FD_VOID);
 }
 static fdtype ixserver_sizes(fdtype index)
 {
-  if (FD_INDEXP(index))
-    return fd_index_sizes(fd_lisp2index(index));
+  if ((FD_INDEXP(index))||(FD_PRIM_TYPEP(index,fd_raw_index_type)))
+    return fd_index_sizes(fd_indexptr(index));
   else if (FD_TABLEP(index)) {
     fdtype results=FD_EMPTY_CHOICE, keys=fd_getkeys(index);
     FD_DO_CHOICES(key,keys) {
@@ -781,7 +781,7 @@ static int serve_index(fdtype var,fdtype val,void *data)
       int retval=serve_index(var,v,data);
       if (retval<0) return retval;}
     return 1;}
-  else if (FD_INDEXP(val)) ix=fd_lisp2index(val);
+  else if (FD_INDEXP(val)) ix=fd_indexptr(val);
   else if (FD_STRINGP(val)) 
     ix=fd_open_index(FD_STRDATA(val));
   else if (val==FD_TRUE) 

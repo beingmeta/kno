@@ -132,13 +132,13 @@ FD_EXPORT fd_exception fd_SchemaInconsistency;
 
 FD_EXPORT void fd_register_index_opener
   (unsigned int id,
-   fd_index (*opener)(u8_string filename,int read_only),
+   fd_index (*opener)(u8_string filename,int read_only,int consed),
    fdtype (*mdreader)(FD_DTYPE_STREAM *),
    fdtype (*mdwriter)(FD_DTYPE_STREAM *,fdtype));
 
 typedef struct FD_INDEX_OPENER {
   unsigned int initial_word;
-  fd_index (*opener)(u8_string filename,int read_only);
+  fd_index (*opener)(u8_string filename,int read_only,int consed);
   fdtype (*read_metadata)(FD_DTYPE_STREAM *);
   fdtype (*write_metadata)(FD_DTYPE_STREAM *,fdtype);} FD_INDEX_OPENER;
 typedef struct FD_INDEX_OPENER *fd_index_opener;
