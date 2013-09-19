@@ -589,8 +589,9 @@ int main(int argc,char **argv)
     if (!((FD_CHECK_PTR(result)==0) || (is_histref) ||
 	  (FD_VOIDP(result)) || (FD_EMPTY_CHOICEP(result)) ||
 	  (FD_TRUEP(result)) || (FD_FALSEP(result)) ||
-	  (FD_ABORTP(result)) || (FD_FIXNUMP(result))))
-      histref=fd_histpush(result);
+	  (FD_ABORTP(result)) || (FD_FIXNUMP(result)))) {
+      int ref=fd_histpush(result);
+      if (ref>=0) histref=ref;}
     if (FD_ABORTP(result)) stat_line=0;
     else if ((showtime_threshold>=0.0) &&
 	     (((finish_time-start_time)>showtime_threshold) ||

@@ -116,11 +116,15 @@ FD_EXPORT int fd_history_find(fdtype history,fdtype value,int equal)
 
 FD_EXPORT int fd_history_push(fdtype history,fdtype value)
 {
-  int top, len; fdtype *data, current; fd_hashtable h;
+  int top, len; fdtype *data, current, stored; fd_hashtable h;
   if (unpack_history(history,&top,&len,&data,&h)<0)
     return fd_type_error(_("history"),"fd_history_push",history);
   current=data[top%len];
-  data[top%len]=fd_incref(value);
+  stored=fd_incref(value);
+  if (FD_ABORTP(stored)) {
+    fd_clear_errors(1);
+    return -1;}
+  data[top%len]=stored;
   fd_decref(current);
   FD_VECTOR_SET(history,0,FD_INT2DTYPE(top+1));
   return top;
