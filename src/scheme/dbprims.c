@@ -496,7 +496,21 @@ static fdtype make_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
     (FD_STRDATA(label),
      ((FD_FALSEP(fetchfn))?(FD_VOID):(fetchfn)),
      ((FD_FALSEP(commitfn))?(FD_VOID):(commitfn)),
-     ((FD_FALSEP(state))?(FD_VOID):(state)));
+     ((FD_FALSEP(state))?(FD_VOID):(state)),
+     1);
+  if (FD_FALSEP(usecache)) fd_index_setcache(ix,0);
+  return fd_index2lisp(ix);
+}
+
+static fdtype cons_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
+			    fdtype state,fdtype usecache)
+{
+  fd_index ix=fd_make_extindex
+    (FD_STRDATA(label),
+     ((FD_FALSEP(fetchfn))?(FD_VOID):(fetchfn)),
+     ((FD_FALSEP(commitfn))?(FD_VOID):(commitfn)),
+     ((FD_FALSEP(state))?(FD_VOID):(state)),
+     0);
   if (FD_FALSEP(usecache)) fd_index_setcache(ix,0);
   return fd_index2lisp(ix);
 }
@@ -2542,22 +2556,27 @@ FD_EXPORT void fd_init_dbfns_c()
 			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
 			   -1,FD_TRUE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("EXTINDEX-DECACHE!",extindex_decache,1,
-			   fd_index_type,FD_VOID,-1,FD_VOID));
+	   fd_make_cprim5x("CONS-EXTINDEX",cons_extindex,2,
+			   fd_string_type,FD_VOID,
+			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+			   -1,FD_TRUE));
 
   fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("EXTINDEX-DECACHE!",extindex_decache,1,
+			   -1,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
 	   fd_make_cprim3x("EXTINDEX-CACHEADD!",extindex_cacheadd,3,
-			   fd_index_type,FD_VOID,-1,FD_VOID,
+			   -1,FD_VOID,-1,FD_VOID,
 			   -1,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("EXTINDEX-FETCHFN",extindex_fetchfn,1,
-			   fd_index_type,FD_VOID));
+			   -1,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("EXTINDEX-COMMITFN",extindex_commitfn,1,
-			   fd_index_type,FD_VOID));
+			   -1,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("EXTINDEX-STATE",extindex_state,1,
-			   fd_index_type,FD_VOID));
+			   -1,FD_VOID));
 
 
   fd_idefn(fd_scheme_module,

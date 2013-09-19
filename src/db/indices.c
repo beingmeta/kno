@@ -128,7 +128,9 @@ FD_EXPORT void fd_register_index(fd_index ix)
 
 FD_EXPORT fdtype fd_index2lisp(fd_index ix)
 {
-  return FDTYPE_IMMEDIATE(fd_index_type,ix->serialno);
+  if (ix->serialno>=0)
+    return FDTYPE_IMMEDIATE(fd_index_type,ix->serialno);
+  else return fd_incref((fdtype)ix);
 }
 FD_EXPORT fd_index fd_lisp2index(fdtype lix)
 {
@@ -136,6 +138,8 @@ FD_EXPORT fd_index fd_lisp2index(fdtype lix)
     int serial=FD_GET_IMMEDIATE(lix,fd_index_type);
     if (serial<FD_N_PRIMARY_INDICES) return fd_primary_indices[serial];
     else return fd_secondary_indices[serial-FD_N_PRIMARY_INDICES];}
+  else if (FD_PTR_TYPEP(lix,fd_raw_index_type)) 
+    return (fd_index) lix;
   else if (FD_STRINGP(lix)) 
     return fd_open_index(FD_STRDATA(lix));
   else {
@@ -745,6 +749,7 @@ FD_EXPORT void fd_index_close(fd_index ix)
 FD_EXPORT void fd_init_index
   (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source)
 {
+  FD_INIT_CONS(ix,fd_raw_index_type);
   ix->serialno=-1; ix->cache_level=-1; ix->read_only=1;
   ix->flags=((h->fetchn)?(FD_INDEX_BATCHABLE):(0));
   FD_INIT_STATIC_CONS(&(ix->cache),fd_hashtable_type);
@@ -763,6 +768,19 @@ FD_EXPORT void fd_init_index
 static int unparse_index(u8_output out,fdtype x)
 {
   fd_index ix=fd_lisp2index(x); u8_string type;
+  if (ix==NULL) return 0;
+  if ((ix->handler) && (ix->handler->name)) type=ix->handler->name;
+  else type="unrecognized";
+  if ((ix->xid) && (strcmp(ix->source,ix->xid)))
+    u8_printf(out,_("#<INDEX %s 0x%lx \"%s|%s\">"),
+	      type,x,ix->source,ix->xid);
+  else u8_printf(out,_("#<INDEX %s 0x%lx \"%s\">"),type,x,ix->source);
+  return 1;
+}
+
+static int unparse_raw_index(u8_output out,fdtype x)
+{
+  fd_index ix=(fd_index)(x); u8_string type;
   if (ix==NULL) return 0;
   if ((ix->handler) && (ix->handler->name)) type=ix->handler->name;
   else type="unrecognized";
@@ -1008,7 +1026,7 @@ fd_index fd_make_mem_index()
 
 FD_EXPORT
 fd_index fd_make_extindex
-  (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state)
+  (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state,int reg)
 {
   struct FD_EXTINDEX *fetchix=u8_alloc(struct FD_EXTINDEX);
   FD_INIT_STRUCT(fetchix,struct FD_EXTINDEX);
@@ -1018,7 +1036,8 @@ fd_index fd_make_extindex
   fetchix->fetchfn=fd_incref(fetchfn);
   fetchix->commitfn=fd_incref(commitfn);
   fetchix->state=fd_incref(state);
-  fd_register_index((fd_index)fetchix);
+  if (reg) fd_register_index((fd_index)fetchix);
+  else fetchix->serialno=-1;
   return (fd_index)fetchix;
 }
 
@@ -1167,9 +1186,19 @@ struct FD_INDEX_HANDLER fd_extindex_handler={
   NULL /* sync */
 };
 
+static void recycle_raw_index(struct FD_CONS *c)
+{
+  struct FD_INDEX *ix=(struct FD_INDEX *)c;
+  if (ix->handler==&fd_extindex_handler) {
+    struct FD_EXTINDEX *ei=(struct FD_EXTINDEX *)c;
+    fd_decref(ei->fetchfn);
+    fd_decref(ei->commitfn);
+    fd_decref(ei->state);}
+}
+
 /* Initialize */
 
-fd_ptr_type fd_index_type;
+fd_ptr_type fd_index_type, fd_raw_index_type;
 
 static int check_index(fdtype x)
 {
@@ -1193,6 +1222,7 @@ FD_EXPORT void fd_init_indices_c()
   u8_register_source_file(_FILEINFO);
 
   fd_index_type=fd_register_immediate_type("index",check_index);
+  fd_raw_index_type=fd_register_cons_type("raw index");
   
   {
     struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("INDEX"),NULL,NULL);
@@ -1206,6 +1236,19 @@ FD_EXPORT void fd_init_indices_c()
   fd_tablefns[fd_index_type]->test=NULL;
   fd_tablefns[fd_index_type]->keys=table_indexkeys;
   fd_tablefns[fd_index_type]->getsize=NULL;
+
+  fd_tablefns[fd_raw_index_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_raw_index_type]->get=table_indexget;
+  fd_tablefns[fd_raw_index_type]->add=table_indexadd;
+  fd_tablefns[fd_raw_index_type]->drop=table_indexdrop;
+  fd_tablefns[fd_raw_index_type]->store=table_indexstore;
+  fd_tablefns[fd_raw_index_type]->test=NULL;
+  fd_tablefns[fd_raw_index_type]->keys=table_indexkeys;
+  fd_tablefns[fd_raw_index_type]->getsize=NULL;
+
+  fd_recyclers[fd_raw_index_type]=recycle_raw_index;
+  fd_unparsers[fd_raw_index_type]=unparse_raw_index;
+
   set_symbol=fd_make_symbol("SET",3);
   drop_symbol=fd_make_symbol("DROP",4);
   fd_unparsers[fd_index_type]=unparse_index;

@@ -162,7 +162,7 @@
 		       ((table? normalize)
 			(lambda (x) (get normalize (rawgetter x))))
 		       (else rawgetter)))
-	 (index (make-extindex (stringout slotid) getter #f #f cache)))
+	 (index (cons-extindex (stringout slotid) getter #f #f cache)))
     (store! get-indices (cons pool slotid) index)
     (use-adjunct index slotid pool)))
 

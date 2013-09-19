@@ -28,6 +28,7 @@ FD_EXPORT fd_exception
 #define FD_N_PRIMARY_INDICES 128
 
 #define FD_INDEX_FIELDS \
+  FD_CONS_HEADER;                                \
   int serialno, read_only, cache_level, flags;   \
   u8_string source, cid, xid;                    \
   struct FD_INDEX_HANDLER *handler;              \
@@ -150,7 +151,7 @@ typedef struct FD_EXTINDEX {
 typedef struct FD_EXTINDEX *fd_extindex;
 
 FD_EXPORT fd_index fd_make_extindex
-  (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state);
+  (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state,int reg);
 
 FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
 

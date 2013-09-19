@@ -64,7 +64,7 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
 
 FD_EXPORT int fd_dbconn_reserve_default, fd_dbconn_cap_default, fd_dbconn_init_default;
 
-FD_EXPORT fd_ptr_type fd_index_type, fd_pool_type, fd_raw_pool_type;
+FD_EXPORT fd_ptr_type fd_index_type, fd_pool_type, fd_raw_index_type, fd_raw_pool_type;
 
 #define FD_INDEXP(x) (FD_PTR_TYPEP(x,fd_index_type))
 #define FD_POOLP(x) (FD_PTR_TYPEP(x,fd_pool_type))
