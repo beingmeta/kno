@@ -144,6 +144,33 @@
 
 ;;; Getting slots
 
+(define (simple-get key sqlget)
+  (if (vector? key) (sqlget (elts key)) (sqlget key)))
+(define (get-getter normalize)
+  (cond ((not normalize) simple-get)
+	((applicable? normalize)
+	 (lambda (key sqlget)
+	   (normalize (if (vector? key) (sqlget (elts key)) (sqlget key)))))
+	((slotid? normalize)
+	 (lambda (key sqlget)
+	   (get (if (vector? key) (sqlget (elts key)) (sqlget key)) normalize)))
+	((table? normalize)
+	 (lambda (key sqlget)
+	   (get normalize (if (vector? key) (sqlget (elts key)) (sqlget key)))))
+	(else simple-get)))
+
+(defambda (xo/defget pool slotid db query
+		     (sqlmap default-sqlmap)
+		     (normalize #f)
+		     (cache usecache))
+  (let ((index (cons-extindex (stringout slotid) (get-getter normalize) #f
+			      (extdb/proc db query (cons #[%merge #t] sqlmap)
+					  (pool-base pool)) cache)))
+    (store! get-indices (cons pool slotid) index)
+    (use-adjunct index slotid pool)))
+
+#|
+;;; This is a good debugging case for circular GC references in SPROCs 
 (defambda (xo/defget pool slotid db query
 		     (sqlmap default-sqlmap)
 		     (normalize #f)
@@ -165,6 +192,7 @@
 	 (index (cons-extindex (stringout slotid) getter #f #f cache)))
     (store! get-indices (cons pool slotid) index)
     (use-adjunct index slotid pool)))
+|#
 
 (defambda (xo/defgetstore pool slotid index)
   (store! get-indices (cons pool slotid) index))
