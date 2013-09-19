@@ -79,7 +79,9 @@ static void clearloadlock(fdtype spec)
 {
   u8_lock_mutex(&module_wait_lock);
   if (fd_choice_containsp(spec,loading_modules)) {
+    fdtype prev_loading=loading_modules;
     loading_modules=fd_difference(loading_modules,spec);
+    fd_decref(prev_loading);
     u8_condvar_broadcast(&module_wait);}
   u8_unlock_mutex(&module_wait_lock);
 }
