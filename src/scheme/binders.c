@@ -556,7 +556,9 @@ FD_EXPORT void recycle_sproc(struct FD_CONS *c)
   fd_decref(sproc->arglist); fd_decref(sproc->body);
   u8_free(sproc->schema);
   if (sproc->env->copy) {
-    fd_decref((fdtype)sproc->env->copy);}
+    fd_decref((fdtype)(sproc->env->copy));
+    /* fd_recycle_environment(sproc->env->copy); */
+  }
   if (sproc->synchronized) fd_destroy_mutex(&(sproc->lock));
   if (sproc->filename) u8_free(sproc->filename);
   if (FD_MALLOCD_CONSP(c)) u8_free(sproc);
