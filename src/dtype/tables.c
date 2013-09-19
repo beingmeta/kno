@@ -2098,8 +2098,12 @@ FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
 {
   struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)c;
   FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if (ht->n_slots==0) return 0;
   fd_write_lock_struct(ht);
+  if (ht->n_slots==0) {
+    fd_rw_unlock_struct(ht);
+    fd_destroy_rwlock(&(ht->rwlock));
+    if (!(FD_STACK_CONSP(ht))) u8_free(ht);
+    return 0;}
   if (ht->n_slots) {
     struct FD_HASHENTRY **scan=ht->slots, **lim=scan+ht->n_slots;
     while (scan < lim)
