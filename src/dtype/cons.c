@@ -363,7 +363,9 @@ fdtype fd_copier(fdtype x,int flags)
     default:
       if (fd_copiers[ctype])
 	return (fd_copiers[ctype])(x,flags);
-      else if ((flags)&(FD_STRICT_COPY)) 
+      else if (!(FD_MALLOCD_CONSP((fd_cons)x)))
+        return fd_err(fd_NoMethod,"fd_copier/static",fd_type_names[ctype],FD_VOID);
+      else if ((flags)&(FD_STRICT_COPY))
 	return fd_err(fd_NoMethod,"fd_copier",fd_type_names[ctype],x);
       else {fd_incref(x); return x;}}}
 }
