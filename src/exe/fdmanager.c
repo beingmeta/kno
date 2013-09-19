@@ -31,7 +31,7 @@
 #define NUL '\0'
 
 #ifndef FD_DBSERVER
-#define FD_DBSERVER "/usr/bin/fdbserver"
+#define FD_DBSERVER "/usr/bin/fdserver"
 #endif
 
 #ifndef O_SYNC

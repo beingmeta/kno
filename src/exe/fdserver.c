@@ -234,7 +234,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   if (client->stream.id==NULL) {
     if (client->idstring)
       client->stream.id=u8_strdup(client->idstring);
-    else client->stream.id=u8_strdup("fdbserver/dtypestream");}
+    else client->stream.id=u8_strdup("fdserver/dtypestream");}
   client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
   client->elapsed=0; client->lastlive=((time_t)(-1));
   u8_set_nodelay(sock,1);
@@ -943,13 +943,13 @@ int main(int argc,char **argv)
     source_file=NULL;}
   else {
     fprintf(stderr,
-	    "Usage: fdbserver [conf=val]* source_file [conf=val]*\n");
+	    "Usage: fdserver [conf=val]* source_file [conf=val]*\n");
     return 1;}
   if (fullscheme==0) {
     fd_decref((fdtype)(core_env->parent)); core_env->parent=NULL;}
   if (n_ports>0) {
     u8_log(LOG_INFO,NULL,
-	   "FramerD (%s) fdbserver running, %d/%d pools/indices",
+	   "FramerD (%s) fdserver running, %d/%d pools/indices",
 	   FRAMERD_REV,fd_n_pools,
 	   fd_n_primary_indices+fd_n_secondary_indices);
     u8_message

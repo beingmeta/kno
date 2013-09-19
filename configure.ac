@@ -419,10 +419,10 @@ AC_DEFINE_UNQUOTED(FD_BOOT_CONFIG,"$with_boot_config")
 
 if test $exec_prefix = "NONE"; then
   AC_DEFINE_UNQUOTED(FD_EXEC,"$prefix/bin/fdexec")
-  AC_DEFINE_UNQUOTED(FD_DBSERVER,"$prefix/bin/fdbserver")
+  AC_DEFINE_UNQUOTED(FD_DBSERVER,"$prefix/bin/fdserver")
 else
   AC_DEFINE_UNQUOTED(FD_EXEC,"$exec_prefix/bin/fdexec")
-  AC_DEFINE_UNQUOTED(FD_DBSERVER,"$prefix/bin/fdbserver")
+  AC_DEFINE_UNQUOTED(FD_DBSERVER,"$prefix/bin/fdserver")
 fi
 
 AC_CHECK_FUNCS(sigprocmask)

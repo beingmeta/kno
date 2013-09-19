@@ -27,6 +27,7 @@ CLEAN		= @CLEAN@
 ECHO		= @ECHO@
 MSG		= @MSG@
 SYSINSTALL	= @SUDO@@INSTALL@
+SUDO	        = @SUDO@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
 MACOSX_DEPLOYMENT_TARGET=10.3
@@ -117,10 +118,10 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     ${SUNDOWN_OBJS}
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
-	    exe/fdserv@suffix@ exe/fdbserver@suffix@ exe/fdmanager@suffix@
+	    exe/fdserv@suffix@ exe/fdserver@suffix@ exe/fdmanager@suffix@
 STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
 	static/fdbatch@suffix@ \
-	static/fdserv@suffix@ static/fdbserver@suffix@ \
+	static/fdserv@suffix@ static/fdserver@suffix@ \
 	static/fdmanager@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
@@ -172,7 +173,7 @@ FRAMERD_SOURCES=\
 	include/framerd/tagger.h                                           \
 	src/exe/fdconsole.c                                            \
 	src/exe/fdexec.c src/exe/fdbatch.c                             \
-	src/exe/fdserv.c src/exe/fdcgiexec.c src/exe/fdbserver.c
+	src/exe/fdserv.c src/exe/fdcgiexec.c src/exe/fdserver.c
 
 CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
@@ -304,10 +305,10 @@ etc: etc/logrotate etc/install-script etc/framerd-rc.d \
 
 suinstall:
 	make all
-	sudo make install
+	@$(SUDO) make install
 dbginstall:
 	make XCFLAGS="-O0" all
-	sudo make install
+	@$(SUDO) make install
 
 # Make rules
 
@@ -344,7 +345,7 @@ static/%@suffix@: src/exe/%.c $(STATIC_LIBS)
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/fdcgiexec@suffix@ exe/fdbserver@suffix@ exe/fdserv@suffix@: \
+exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdserv@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
 exe/fdcgiexec@suffix@ exe/fdserv@suffix@: src/exe/webcommon.h
 
@@ -374,7 +375,7 @@ $(LIBINSTALLDIR)/framerd/%@suffix@.so.@FDVERSION@: \
 	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/framerd/%@suffix@.so: \
 		$(LIBINSTALLDIR)/framerd/%@suffix@.so.@FDVERSION@
-	@@SUDO@ln -sf $(shell basename $<) $@
+	@$(SUDO) ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@: lib/%@suffix@.so.@FDVERSION@
 	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
@@ -382,7 +383,7 @@ $(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@: lib/%@suffix@.so.@FDVERSION@
 	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/%@suffix@.so: \
 		$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
-	@@SUDO@ln -sf $(shell basename $<) $@
+	@$(SUDO) ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/framerd/%@suffix@.@FDVERSION@.dylib: \
     lib/framerd/%@suffix@.@FDVERSION@.dylib $(LIBINSTALLDIR)/framerd
@@ -391,7 +392,7 @@ $(LIBINSTALLDIR)/framerd/%@suffix@.@FDVERSION@.dylib: \
 	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/framerd/%@suffix@.dylib: \
 		$(LIBINSTALLDIR)/framerd/%@suffix@.@FDVERSION@.dylib
-	@@SUDO@ln -sf $(shell basename $<) $@
+	@$(SUDO) ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib: \
     lib/%@suffix@.@FDVERSION@.dylib $(LIBINSTALLDIR)
@@ -400,7 +401,7 @@ $(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib: \
 	@$(MSG) INSTALL $@
 $(LIBINSTALLDIR)/%@suffix@.dylib: \
 		$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
-	@@SUDO@ln -sf $(shell basename $<) $@
+	@$(SUDO) ln -sf $(shell basename $<) $@
 
 $(BININSTALLDIR)/%: exe/%
 
@@ -450,7 +451,7 @@ uninstall-core:
 	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.dylib" $(LIBBASE)
 	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@FDVERSION@.so" $(LIBBASE)
 	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.so" $(LIBBASE)
-	rm -rf $(LIBINSTALLDIR)/framerd
+	rm -rf $(DESTDIR)$(LIBINSTALLDIR)/framerd
 uninstall-all: uninstall-core
 	rm -rf $(DESTDIR)@data_dir@ $(DESTDIR)@config_dir@ \
 		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
@@ -527,7 +528,7 @@ clean: tidy
 	rm -f lib/framerd/*@suffix@.so lib/framerd/*@suffix@.so.* 
 	rm -f lib/framerd/*.dylib
 	rm -f exe/fdexec@suffix@ exe/fdbatch@suffix@
-	rm -f exe/fdserv@suffix@ exe/fdbserver@suffix@
+	rm -f exe/fdserv@suffix@ exe/fdserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f exe/fdmanager@suffix@
 	rm -f src/exe/fdversion.h
@@ -739,7 +740,7 @@ lib/framerd/sundown.@FDVERSION@.dylib: $(SUNDOWN_OBJECTS)
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
-	@SUDO@install -D $^ $@
+	@$(SUDO) install -D $^ $@
 
 etc/intl/framerd.pot:
 	xgettext --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
@@ -874,6 +875,8 @@ install-headers: $(INCINSTALLDIR)
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(MSG) Installing executables
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
+	@$(SUDO) rm -f $(BININSTALLDIR)/fdbserver
+	@$(SUDO) ln -s $(BININSTALLDIR)/fdserver $(BININSTALLDIR)/fdbserver
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
@@ -979,7 +982,7 @@ setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)@logdir@/framerd
 enable-rc.d: setup-rc.d
 	@$(MSG) Updating rc.d
-	@@SUDO@update-rc.d framerd defaults
+	@$(SUDO) update-rc.d framerd defaults
 
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
 $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate
@@ -993,7 +996,7 @@ setup-linux: setup-unix
 setup-osx: @data_dir@ $(DESTDIR)@rundir@/framerd \
 		$(DESTDIR)@logdir@/framerd
 	@$(MSG) Setting up OSX system configuration
-	@@SUDO@ etc/setup-osx "@data_dir@" \
+	@$(SUDO) etc/setup-osx "@data_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \
 		"${INSTALL} @install_exe_opts@" \
@@ -1960,19 +1963,19 @@ src/exe/fdcgiexec.o: ./include/framerd/fddb.h ./include/framerd/indices.h
 src/exe/fdcgiexec.o: ./include/framerd/frames.h ./include/framerd/fdweb.h
 src/exe/fdcgiexec.o: ./include/framerd/ports.h ./include/framerd/fileprims.h
 src/exe/fdcgiexec.o: src/exe/main.h src/exe/fdversion.h src/exe/webcommon.h
-src/exe/fdbserver.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/exe/fdbserver.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/exe/fdbserver.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/exe/fdbserver.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/exe/fdbserver.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/exe/fdbserver.o: ./include/framerd/tables.h ./include/framerd/numbers.h
-src/exe/fdbserver.o: ./include/framerd/tables.h ./include/framerd/fddb.h
-src/exe/fdbserver.o: ./include/framerd/dtypestream.h
-src/exe/fdbserver.o: ./include/framerd/dtype.h ./include/framerd/pools.h
-src/exe/fdbserver.o: ./include/framerd/fddb.h ./include/framerd/indices.h
-src/exe/fdbserver.o: ./include/framerd/frames.h ./include/framerd/eval.h
-src/exe/fdbserver.o: ./include/framerd/apply.h ./include/framerd/ports.h
-src/exe/fdbserver.o: src/exe/main.h src/exe/fdversion.h
+src/exe/fdserver.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/exe/fdserver.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/exe/fdserver.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/exe/fdserver.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/exe/fdserver.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/exe/fdserver.o: ./include/framerd/tables.h ./include/framerd/numbers.h
+src/exe/fdserver.o: ./include/framerd/tables.h ./include/framerd/fddb.h
+src/exe/fdserver.o: ./include/framerd/dtypestream.h
+src/exe/fdserver.o: ./include/framerd/dtype.h ./include/framerd/pools.h
+src/exe/fdserver.o: ./include/framerd/fddb.h ./include/framerd/indices.h
+src/exe/fdserver.o: ./include/framerd/frames.h ./include/framerd/eval.h
+src/exe/fdserver.o: ./include/framerd/apply.h ./include/framerd/ports.h
+src/exe/fdserver.o: src/exe/main.h src/exe/fdversion.h
 src/cmodules/odbc.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/cmodules/odbc.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/cmodules/odbc.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h

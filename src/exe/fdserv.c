@@ -1606,7 +1606,7 @@ int main(int argc,char **argv)
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2013, all rights reserved");
   u8_server_loop(&fdwebserver);
 
-  u8_message("fdbserver, normal exit of u8_server_loop()");
+  u8_message("fdserv, normal exit of u8_server_loop()");
   
   shutdown_server("exit");
 
