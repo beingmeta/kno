@@ -120,9 +120,10 @@ fdtype fd_handle_compound_mime_field(fdtype fields,fdtype slotid,fdtype orig_slo
     return major_type;}
 }
 
-static fdtype convert_data(char *start,char *end,fdtype dataenc,int could_be_string)
+static fdtype convert_data(char *start,char *end,fdtype dataenc,
+                           int could_be_string)
 {
-  char *data; int len;
+  fdtype result=FD_VOID; char *data; int len;
   /* First do any conversion you need to do. */
   if (FD_STRINGP(dataenc))
     if (strcasecmp(FD_STRDATA(dataenc),"quoted-printable")==0) 
@@ -133,21 +134,14 @@ static fdtype convert_data(char *start,char *end,fdtype dataenc,int could_be_str
       len=end-start; data=u8_malloc(len); memcpy(data,start,len);}
   else {
     len=end-start; data=u8_malloc(len); memcpy(data,start,len);}
-  if ((could_be_string) && (!(FD_STRINGP(dataenc))) && (len<50000)) {
-    /* If it might be a string, check if it's ASCII without NULs.
-       If so, return a string, otherwise return a packet. */
-    fdtype result=FD_VOID;
-    int i=0; while (i<len) {
-      if (data[i]<=0) {
-	result=fd_make_packet(NULL,len,data); break;}
-      else i++;}
-    if (FD_VOIDP(result)) result=fd_make_string(NULL,len,data);
-    u8_free(data);
-    return result;}
-  else {
-    fdtype result=fd_make_packet(NULL,len,data);
-    u8_free(data);
-    return result;}
+  if ((could_be_string) &&
+      (!(FD_STRINGP(dataenc))) &&
+      (len<50000) &&
+      (u8_validate(data,len)))
+    result=fd_make_string(NULL,len,data);
+  else result=fd_make_packet(NULL,len,data);
+  u8_free(data);
+  return result;
 }
 
 static fdtype convert_text
@@ -250,7 +244,8 @@ fdtype fd_parse_mime(char *start,char *end)
 {
   fdtype slotmap=fd_empty_slotmap();
   char *scan=parse_headers(slotmap,start,end);
-  fdtype majtype=fd_handle_compound_mime_field(slotmap,content_type_slotid,FD_VOID);
+  fdtype majtype=fd_handle_compound_mime_field
+    (slotmap,content_type_slotid,FD_VOID);
   fdtype charenc, dataenc;
   fd_handle_compound_mime_field(slotmap,content_disposition_slotid,FD_VOID);
   if (FD_ABORTP(majtype)) 
