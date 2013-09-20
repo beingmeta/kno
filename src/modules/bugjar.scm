@@ -4,7 +4,7 @@
 (in-module 'bugjar)
 
 (use-module '{fdweb xhtml texttools xhtml/tableout})
-(use-module '{varconfig stringfmts logger})
+(use-module '{varconfig stringfmts getcontent logger})
 (define %used_modules '{varconfig})
 
 (module-export! 'bugjar!)
@@ -34,6 +34,13 @@
 	((not (string? val))
 	 (error BADLOGROOT BUGJAR-CONFIG
 		"Not a valid logroot specification: " val))
+	((position #\Space val)
+	 (let ((split (segment val " ")))
+	   (if (urish? (first split))
+	       (begin (set! webroot (first split))
+		 (set! fileroot (second split)))
+	       (begin (set! webroot (second split))
+		 (set! fileroot (first split))))))
 	((urish? val) (set! webroot val))
 	(else (set! fileroot val))))
 (config-def! 'bugjar bugjar-config)
@@ -87,9 +94,9 @@
 		 (printout " \&ldquo;" (error-context exception) "\&rdquo;")))
        (htmlheader
 	(xmlblock STYLE ((type "text/css"))
-	  (xhtml "\n" (filestring bugjar-css))))
+	  (xhtml "\n" (getcontent bugjar-css))))
        (stylesheet! "https://s3.amazonaws.com/beingmeta/static/fdjt/fdjt.css")
-       (body! 'class "fdjtbugjar")
+       (body! 'class "fdjtbugreport")
        (htmlheader
 	(xmlelt "META" http-equiv "Content-type"
 	  content "text/html; charset=utf-8"))
