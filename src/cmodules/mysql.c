@@ -897,7 +897,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
       fdtype ptype=init_ptypes[i++];
       if (FD_VOIDP(ptype)) {}
       else u8_log(LOG_WARN,UnusedType,
-                  "Parameter type %q is not used for %s",ptype,dbproc->qtext);
+                  "Parameter type %hq is not used for %s",ptype,dbproc->qtext);
       fd_decref(ptype);}
     dbproc->paramtypes=ptypes; dbproc->n_params=n_params;
     u8_free(init_ptypes);}
