@@ -196,7 +196,6 @@
 	 (url (if (null? args) baseurl (apply scripturl baseurl args)))
 	 ;; Hide the expect field going to S3
 	 (urlparams (frame-create #f 'header "Expect:")))
-    (debug%watch url sig authorization)
     (when (and content (overlaps? op {"GET" "HEAD"}))
       (add! urlparams 'content-type ctype))
     (when (equal? op "DELETE") (store! urlparams 'method 'DELETE))
@@ -206,7 +205,14 @@
     (add! urlparams 'header (string-append "Authorization: " authorization))
     (add! urlparams 'header (elts headers))
     (when (>= %loglevel %detail%) (add! urlparams 'verbose #t))
-    (debug%watch url ctype urlparams (and (sequence? content) (length content)))
+    (loginfo |S3OP| op " " bucket ":" path " "
+	     (when (and content (not (= (length content) 0)))
+	       (glom " ("
+		 (if ctype ctype "content") ", " (length content) 
+		 (if (string? content) " characters)" "bytes)")))
+	     (if (null? headers) " headers=" " headers=\n\t") headers
+	     "\n\turl:\t" url)
+    (debug%watch "S3OP/sig" url sig authorization)
     (if (equal? op "GET")
 	(urlget url urlparams)
 	(if (equal? op "HEAD")
@@ -220,21 +226,22 @@
 	       (content #f) (ctype) (headers '()) . args)
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
-  (let* ((result (s3op op bucket path content ctype headers args))
+  (let* ((result (debug%watch (s3op op bucket path content ctype headers args)
+		   op bucket path ctype headers args))
 	 (status (get result 'response)))
-    (debug%watch result)
     (if (>= 299 status 200) result
-	(if err
-	    (error S3FAILURE S3/OP result)
-	    (begin
-	      (unless (and (equal? op "HEAD") (overlaps? status {404 410}))
-		;; Don't generate warnings for HEAD operations because
-		;;  they're often probes
-		(warning "Bad result " status " (" (get result 'header)
-			 ") for" (get result 'effective-url)
-			 "\n#|" (get result '%content) "|#\n"
-			 result))
-	      result)))))
+	(cond ((and (not err) (equal? op "HEAD") (overlaps? status {404 410}))
+	       ;; Don't generate warnings for HEAD operations because they're often probes
+	       result)
+	      ((not err)
+	       (logwarn |S3/Failure| S3/OP
+			(try (get result 'header) "HTTP return failed")
+			":\n\t" result)
+	       result)
+	      ((and err (= status 404)) (error |S3/NotFound| S3/OP result))
+	      ((and err (= status 403)) (error |S3/Forbidden| S3/OP result))
+	      (err (error |S3/Failure| S3/OP result))
+	      (else result)))))
 
 (define (s3/expected response)
   (->string (map (lambda (x) (integer->char (string->number x 16)))
