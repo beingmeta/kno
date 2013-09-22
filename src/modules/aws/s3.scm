@@ -19,8 +19,8 @@
 		  s3/bucket? s3/copy! s3/link! s3/put})
 (module-export! '{s3/bytecodes->string})
 
-(define-init %loglevel %info!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notify%)
+;;(set! %loglevel %debug%)
 
 (define s3root "s3.amazonaws.com")
 (varconfig! s3root s3root)
@@ -434,6 +434,7 @@
 		     (path->mimetype
 		      (s3loc-path loc)
 		      (path->mimetype (s3loc-path src) "text")))))
+    (loginfo |S3/copy| "Copying " src " to " loc)
     (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err "" ctype
 	   `(("x-amz-copy-source" .
 	      ,(stringout "/" (s3loc-bucket src) (s3loc-path src)))))))
@@ -451,6 +452,7 @@
 		       (if (s3loc? src) (s3loc-path src)
 			   (uripath src))
 		       "text")))))
+    (loginfo |S3/link| "Linking (via redirect) " src " to " loc)
     (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err "" ctype
 	   `(("x-amz-website-redirect-location" .
 	      ,(if (s3loc? src)
