@@ -16,7 +16,7 @@
 ### END INIT INFO
 
 export FDMANAGER=@prefix@/bin/fdmanager
-export FDSERVER=@prefix@/bin/fdbserver
+export FDSERVER=@prefix@/bin/fdserver
 export FDAEMON_USER=@fdaemon@
 export FDAEMON_GROUP=@admin_group@
 CTLFILE=@config_dir@/servers

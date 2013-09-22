@@ -96,7 +96,7 @@ CMODULES=""
 INSTALLCMODULES=""
 SUDO=""
 TAGS="TAGS SCHEMETAGS"
-default_config_dir="\$PREFIX/etc/framerd"
+default_config_dir="\$prefix/etc/framerd"
 rundir="${localstatedir}/run"
 logdir="${localstatedir}/log"
 archflags=""
@@ -189,12 +189,6 @@ AC_CHECK_PROG(ECHO,echo,,/bin/echo)
 AC_CHECK_PROG(VALGRIND,valgrind)
 AC_CHECK_PROGS(APXS,apxs2 apxs /usr/sbin/apxs2 /usr/sbin/apxs /usr/sbin/apxs /usr/bin/apxs,apxs)
 AC_CHECK_PROGS(buildrpm,"lsb-rpmbuild","rpmbuild","lsb-rpm","na")
-
-if test $prefix = "usr"; then 
-   default_config_dir="/etc/framerd";
-else
-   default_config_dir=$prefix/etc/framerd;
-fi
 
 AC_CHECK_GROUP(default_admin_group,framerd adm admin)
 AC_CHECK_USER(default_fdaemon,fdaemon daemon nobody)
@@ -380,6 +374,8 @@ AC_ARG_WITH(extlib,
 AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=$prefix/share/framerd)
 AC_DEFINE_UNQUOTED(FD_DATA_DIR,"$with_data_dir")
 data_dir=$with_data_dir
+
+default_config_dir=$prefix/etc/framerd;
 
 AC_ARG_WITH(config_dir,--with-config-dir location,,with_config_dir=$default_config_dir)
 config_dir=$with_config_dir
