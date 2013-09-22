@@ -165,7 +165,7 @@
   (cond ((has-prefix string "s3:") (->s3loc string))
 	((has-prefix string "zip:")
 	 (zip/open (subseq string 4)))
-	(else string)))
+	(else (uribase string))))
 
 (define (gp/basename path)
   (when (string? path) (set! path (string->root path)))
