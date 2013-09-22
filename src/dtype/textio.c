@@ -1343,7 +1343,7 @@ static u8_string lisp_printf_handler
   (struct U8_OUTPUT *s,char *cmd,u8_byte *buf,int bufsiz,va_list *args)
 {
   fdtype value=va_arg(*args,fdtype);
-  int taciturn=(strchr(cmd,'u')!=NULL), oldflags=s->u8_streaminfo, retval;
+  int taciturn=(strchr(cmd,'h')!=NULL), oldflags=s->u8_streaminfo, retval;
   if (taciturn) s->u8_streaminfo=oldflags|U8_STREAM_TACITURN;
   else s->u8_streaminfo=oldflags&(~U8_STREAM_TACITURN);
   retval=fd_unparse(s,value);

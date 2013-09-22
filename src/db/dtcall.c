@@ -105,7 +105,7 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
       return fd_err(fd_UnexpectedEOD,"",NULL,expr);}}
   if (log_eval_response) {
     if (FD_CONSP(result))
-      u8_log(LOG_DEBUG,"DTEVAL","On %s%s#%d ==> %uq",
+      u8_log(LOG_DEBUG,"DTEVAL","On %s%s#%d ==> %hq",
              (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
             (async)?(" (async) "):("")),
              cpool->u8cp_id,conn,FD_PTR_TYPE(result));
