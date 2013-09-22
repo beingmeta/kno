@@ -226,12 +226,22 @@
 	       (content #f) (ctype) (headers '()) . args)
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
-  (let* ((result (debug%watch (s3op op bucket path content ctype headers args)
-		   op bucket path ctype headers args))
+  (let* ((result (s3op op bucket path content ctype headers args))
+	 (content (get result '%content))
 	 (status (get result 'response)))
+    (unless (>= 299 status 200)
+      (onerror
+	  (store! result '%content (xmlparse content))
+	(lambda (ex) #f)))
     (if (>= 299 status 200) result
 	(cond ((and (not err) (equal? op "HEAD") (overlaps? status {404 410}))
-	       ;; Don't generate warnings for HEAD operations because they're often probes
+	       ;; Don't generate warnings for HEAD probes
+	       result)
+	      ((and (not err) (= status 404))
+	       (logwarn |S3/NotFound| S3/OP result)
+	       result)
+	      ((and (not err) (= status 403))
+	       (logwarn |S3/Forbidden| S3/OP result)
 	       result)
 	      ((not err)
 	       (logwarn |S3/Failure| S3/OP
@@ -240,8 +250,7 @@
 	       result)
 	      ((and err (= status 404)) (error |S3/NotFound| S3/OP result))
 	      ((and err (= status 403)) (error |S3/Forbidden| S3/OP result))
-	      (err (error |S3/Failure| S3/OP result))
-	      (else result)))))
+	      (else (error |S3/Failure| S3/OP result))))))
 
 (define (s3/expected response)
   (->string (map (lambda (x) (integer->char (string->number x 16)))
