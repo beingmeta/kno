@@ -134,10 +134,8 @@ static fdtype convert_data(char *start,char *end,fdtype dataenc,
       len=end-start; data=u8_malloc(len); memcpy(data,start,len);}
   else {
     len=end-start; data=u8_malloc(len); memcpy(data,start,len);}
-  if ((could_be_string) &&
-      (!(FD_STRINGP(dataenc))) &&
-      (len<50000) &&
-      (u8_validate(data,len)))
+  if ((could_be_string) && (!(FD_STRINGP(dataenc))) &&
+      (len<50000) && ((len==0)||(u8_validate(data,len))))
     result=fd_make_string(NULL,len,data);
   else result=fd_make_packet(NULL,len,data);
   u8_free(data);
