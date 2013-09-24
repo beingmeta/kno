@@ -1188,15 +1188,15 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
   /* Now convert the MYSQL results into LISP.  We don't check for
      connection errors because we've stored the whole result locally. */
   if (retval==RETVAL_OK) {
-    if (dbproc->n_cols) {
+    if (dbproc->n_cols) 
       values=get_stmt_values(dbproc->stmt,
 			     dbproc->colinfo,dbproc->n_cols,dbproc->colnames,
 			     dbproc->outbound,dbproc->isnull);
-      mysql_stmt_free_result(dbproc->stmt);}
     else {
       /* We could possibly do something with this */
       int MAYBE_UNUSED rows=mysql_stmt_affected_rows(dbproc->stmt);
       values=FD_VOID;}}
+  mysql_stmt_free_result(dbproc->stmt);
       
   if (retval!=RETVAL_OK) {
     /* Log any errors (even ones we're going to handle) */
