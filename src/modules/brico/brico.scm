@@ -11,7 +11,7 @@
 		   freqfns use-wordforms})
 
 ;; For index-name, at least
-(use-module '{texttools reflection})
+(use-module '{texttools reflection logger})
 ;; When BRICOSOURCE is ".db"
 (use-module 'usedb)
 ;; For custom methods
@@ -37,8 +37,10 @@
 	  ((equal? val bricosource)
 	   bricosource)
 	  ((exists? brico-pool)
-	   (message "Redundant configuration of BRICOSOURCE "
-		    "which is already provided from " brico-pool)
+	   (logwarn |Redefinition| BRICO
+		    "Redundant configuration of BRICOSOURCE "
+		    "from " val "; it is already provided from "
+		    (pool-source brico-pool))
 	   #f)
 	  ((and (string? val)
 		(or (has-suffix val ".db")
