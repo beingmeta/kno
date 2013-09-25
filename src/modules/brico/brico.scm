@@ -37,9 +37,10 @@
 	  ((equal? val bricosource)
 	   bricosource)
 	  ((exists? brico-pool)
-	   (logwarn |Redefinition| BRICO
-		    "Redundant configuration of BRICOSOURCE "
-		    "from " val "; it is already provided from "
+	   (logwarn BRICOSOURCE
+		    "Redundant configuration "
+		    "from " val " &mdash; "
+		    "BRICO is already provided from "
 		    (pool-source brico-pool))
 	   #f)
 	  ((and (string? val)
