@@ -22,7 +22,9 @@
    dom/selector dom/match dom/lookup dom/find dom/find->list
    dom/getrules dom/add-rule!
    dom/search dom/search/first dom/strip! dom/map dom/map! dom/combine!
-   dom/gethead dom/getschemas dom/getmeta dom/getlinks dom/count
+   dom/findmeta dom/getmeta dom/findlinks dom/getlinks
+   dom/gethead dom/getschemas 
+   dom/count
    dom/split-space dom/split-semi dom/split-comma
    ->selector selector-tag selector-class selector-id
    *block-text-tags* dom/block? dom/terminal?
@@ -757,17 +759,20 @@
 	    (glom prefixes "." (subseq field (1+ sep)))))
       field))
 
-(define (dom/getmeta doc field (xform) (dflt))
+(define (dom/findmeta doc field (xform) (dflt))
   (let* ((head (dom/gethead doc))
 	 (meta (dom/find head "META"))
 	 (names
 	  (if (symbol? field)
 	      (getnames doc (symbol->string field))
-	      (getnames doc field)))
-	 (elts (if (symbol? field)
-		   (pick meta lname (downcase names))
-		   (try (pick meta 'name names)
-			(pick meta 'name field)))))
+	      (getnames doc field))))
+    (if (symbol? field)
+	(pick meta lname (downcase names))
+	(try (pick meta 'name names)
+	     (pick meta 'name field)))))
+
+(define (dom/getmeta doc field (xform) (dflt))
+  (let ((elts (dom/findmeta doc field)))
     (try (if (and (bound? xform) xform)
 	     (if (applicable? xform)
 		 (xform (get elts 'content))
@@ -777,18 +782,22 @@
 		 (get elts 'content)))
 	 (if (bound? dflt) dflt (fail)))))
 
-(define (dom/getlinks doc field (dflt))
+(define (dom/findlinks doc field)
   (let* ((head (dom/gethead doc))
 	 (links (dom/find head "LINK"))
 	 (names
 	  (if (symbol? field)
 	      (getnames doc (symbol->string field))
-	      (getnames doc field)))
-	 (elts (if (symbol? field)
-		   (pick links lname (downcase names))
-		   (try (pick links 'rel names)
-			(pick links 'rel field)))))
-    (get elts 'href)))
+	      (getnames doc field))))
+    (if (symbol? field)
+	(pick links lname (downcase names))
+	(try (pick links 'rel names)
+	     (pick links 'rel field)))))
+
+(define (dom/getlinks doc field (dflt #f))
+  (if dflt
+      (try (get (dom/findlinks doc field) 'href) dflt)
+      (get (dom/findlinks doc field) 'href)))
 
 (define (lname x (name))
   (default! name (try (get x 'rel) (get x 'name)))
