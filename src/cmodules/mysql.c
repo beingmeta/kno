@@ -42,7 +42,7 @@ u8_condition UnusedType=_("MYSQL unused parameter type");
 #define dupstring(x) ((x==NULL) ? (x) : ((char *)u8_strdup(x)))
 
 #define NEED_RESTART(err)                               \
-  ((err==CR_SERVER_GONE_ERROR) ||			\
+  ((err==CR_SERVER_GONE_ERROR) ||                       \
    (err==CR_SERVER_LOST))
 #define RETVAL_OK 0
 
@@ -118,7 +118,7 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
   else if (colinfo==dbp->colinfo)
     return fd_incref(colinfo);
   else if ((FD_PAIRP(colinfo))&&
-	   ((FD_CDR(colinfo))==(dbp->colinfo)))
+           ((FD_CDR(colinfo))==(dbp->colinfo)))
     return fd_incref(colinfo);
   else {
     fd_incref(dbp->colinfo); fd_incref(colinfo);
@@ -154,25 +154,25 @@ static int setup_connection(struct FD_MYSQL *dbp)
     if (FD_FIXNUMP(wtoval)) wtimeout=FD_FIX2INT(wtoval);
     else wtimeout=timeout;
     if (!((FD_VOIDP(sslca))&&(FD_VOIDP(sslcert))&&
-	  (FD_VOIDP(sslkey))&&(FD_VOIDP(sslcadir))&&
-	  (FD_VOIDP(sslciphers)))) {
+          (FD_VOIDP(sslkey))&&(FD_VOIDP(sslcadir))&&
+          (FD_VOIDP(sslciphers)))) {
       if (!((FD_VOIDP(sslca))||(FD_STRINGP(sslca))))
-	return fd_type_error("SSLCA","open_mysql",sslca);
+        return fd_type_error("SSLCA","open_mysql",sslca);
       else if (!((FD_VOIDP(sslcert))||(FD_STRINGP(sslcert))))
-	return fd_type_error("SSLCERT","open_mysql",sslcert);
+        return fd_type_error("SSLCERT","open_mysql",sslcert);
       else if (!((FD_VOIDP(sslkey))||(FD_STRINGP(sslkey))))
-	return fd_type_error("SSLKEY","open_mysql",sslkey);
+        return fd_type_error("SSLKEY","open_mysql",sslkey);
       else if (!((FD_VOIDP(sslcadir))||(FD_STRINGP(sslcadir))))
-	return fd_type_error("SSLCADIR","open_mysql",sslcadir);
+        return fd_type_error("SSLCADIR","open_mysql",sslcadir);
       else if (!((FD_VOIDP(sslciphers))||(FD_STRINGP(sslciphers))))
-	return fd_type_error("SSLCIPHERS","open_mysql",sslciphers);
+        return fd_type_error("SSLCIPHERS","open_mysql",sslciphers);
       else retval=mysql_ssl_set
-	     (dbp->db,
-	      ((FD_VOIDP(sslkey))?(NULL):(FD_STRDATA(sslkey))),
-	      ((FD_VOIDP(sslcert))?(NULL):(FD_STRDATA(sslcert))),
-	      ((FD_VOIDP(sslca))?(NULL):(FD_STRDATA(sslca))),
-	      ((FD_VOIDP(sslcadir))?(NULL):(FD_STRDATA(sslcadir))),
-	      ((FD_VOIDP(sslciphers))?(NULL):(FD_STRDATA(sslciphers))));}}
+             (dbp->db,
+              ((FD_VOIDP(sslkey))?(NULL):(FD_STRDATA(sslkey))),
+              ((FD_VOIDP(sslcert))?(NULL):(FD_STRDATA(sslcert))),
+              ((FD_VOIDP(sslca))?(NULL):(FD_STRDATA(sslca))),
+              ((FD_VOIDP(sslcadir))?(NULL):(FD_STRDATA(sslcadir))),
+              ((FD_VOIDP(sslciphers))?(NULL):(FD_STRDATA(sslciphers))));}}
 
   if (retval==0) {
     option="charset";
@@ -197,18 +197,18 @@ static int restart_connection(struct FD_MYSQL *dbp)
   unsigned int cur_thread_id=mysql_thread_id(db);
   if ((retval==RETVAL_OK)&&(old_thread_id==cur_thread_id)) {
     u8_log(LOG_WARN,"myql/restart_connection",
-	   "MYSQL connection #%d appears %s (%s) seems to be up w/id=%ld",
-	   mysql_thread_id(db),dbp->spec,dbp->info);
+           "MYSQL connection #%d appears %s (%s) seems to be up w/id=%ld",
+           mysql_thread_id(db),dbp->spec,dbp->info);
     return 0;}
   u8_mutex_lock(&mysql_connect_lock);
   if ((retval==RETVAL_OK)&&(old_thread_id!=cur_thread_id)) {
     u8_log(LOG_WARN,"myql/restart_connection",
-	   "The MYSQL connection with %s (%s) appears to have been reset behind FramerD's back from id %d to %d",
-	   dbp->spec,dbp->info,old_thread_id,cur_thread_id);}
+           "The MYSQL connection with %s (%s) appears to have been reset behind FramerD's back from id %d to %d",
+           dbp->spec,dbp->info,old_thread_id,cur_thread_id);}
   else {
     u8_log(LOG_WARN,"myql/restarting_connection",
-	   "Restart #%d for MYSQL with %s (%s), newid %d (was %d)",
-	   dbp->restarts+1,dbp->spec,dbp->info,dbp->thread_id,old_thread_id);
+           "Restart #%d for MYSQL with %s (%s), newid %d (was %d)",
+           dbp->restarts+1,dbp->spec,dbp->info,dbp->thread_id,old_thread_id);
     mysql_options(db,MYSQL_OPT_RECONNECT,(char *)&reconn);
     retval=mysql_ping(db);}
   if (retval==RETVAL_OK) {
@@ -223,8 +223,8 @@ static int restart_connection(struct FD_MYSQL *dbp)
   dbp->restarts++; dbp->restarted=u8_elapsed_time();
   dbp->thread_id=mysql_thread_id(dbp->db);
   u8_log(LOG_WARN,"myql/restarted_connection",
-	 "Restart #%d MYSQL connection #%d with %s (%s)",
-	 dbp->restarts,dbp->thread_id,dbp->spec,dbp->info);
+         "Restart #%d MYSQL connection #%d with %s (%s)",
+         dbp->restarts,dbp->thread_id,dbp->spec,dbp->info);
   return -(retval);
 }
 
@@ -282,8 +282,8 @@ static void recycle_mysqldb(struct FD_EXTDB *c)
     struct FD_EXTDB_PROC *p=dbp->procs[--i];
     if (FD_CONS_REFCOUNT(p)>1)
       u8_log(LOG_WARN,"freemysqldb",
-	     "dangling pointer to extdbproc %s on %s (%s)",
-	     p->qtext,dbp->spec,dbp->info);
+             "dangling pointer to extdbproc %s on %s (%s)",
+             p->qtext,dbp->spec,dbp->info);
     *write++=(fdtype)p;}
   u8_mutex_unlock(&(dbp->proclock));
 
@@ -305,8 +305,8 @@ static fdtype refresh_mysqldb(fdtype c,fdtype flags)
   struct FD_MYSQL *dbp=(struct FD_MYSQL *)c;
   
   int retval=mysql_refresh(dbp->db,
-			   REFRESH_GRANT|REFRESH_TABLES|REFRESH_HOSTS|
-			   REFRESH_STATUS|REFRESH_THREADS);
+                           REFRESH_GRANT|REFRESH_TABLES|REFRESH_HOSTS|
+                           REFRESH_STATUS|REFRESH_THREADS);
   if (retval) {
     const char *errmsg=mysql_error(dbp->db);
     return fd_err(MySQL_Error,"mysql/refresh",(u8_string)errmsg,((fdtype)c));}
@@ -365,8 +365,8 @@ static fdtype open_mysql
 
   dbp->info=
     u8_mkstring("%s;client %s",
-		mysql_get_host_info(dbp->db),
-		mysql_get_client_info());
+                mysql_get_host_info(dbp->db),
+                mysql_get_client_info());
   dbp->startup=u8_elapsed_time();
 
   return FDTYPE_CONS(dbp);
@@ -435,7 +435,7 @@ static void outbound_setup(MYSQL_BIND *outval)
    One potential optimization would be to go ahead and preallocate buffers
      for those columns when their size is known or constrained.  */
 static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
-			   my_bool *isnull,int column)
+                           my_bool *isnull,int column)
 {
   MYSQL_BIND *outval=&(bindings[column]);
   if (isnull[column]) return FD_EMPTY_CHOICE;
@@ -532,58 +532,58 @@ static fdtype get_stmt_values
       fdtype value=outbound_get(stmt,outbound,isnullbuf,i);
       /* Convert outbound variables via colmaps if specified. */
       if (FD_EMPTY_CHOICEP(value)) /* NULL value, don't convert */
-	if (noempty) {i++; continue;}
-	else kv[n_slots].value=value;
+        if (noempty) {i++; continue;}
+        else kv[n_slots].value=value;
       else if (FD_VOIDP(colmaps[i]))
-	kv[n_slots].value=value;
+        kv[n_slots].value=value;
       else if (FD_APPLICABLEP(colmaps[i])) {
-	kv[n_slots].value=fd_apply(colmaps[i],1,&value);
-	fd_decref(value);}
+        kv[n_slots].value=fd_apply(colmaps[i],1,&value);
+        fd_decref(value);}
       else if (FD_OIDP(colmaps[i]))
-	if (FD_STRINGP(value)) {
-	  kv[n_slots].value=fd_parse(FD_STRDATA(value));
-	  fd_decref(value);}
-	else {
-	  FD_OID base=FD_OID_ADDR(colmaps[i]);
-	  int offset=fd_getint(value);
-	  if (offset<0) kv[n_slots].value=value;
-	  else {
-	    FD_OID baseplus=FD_OID_PLUS(base,offset);
-	    kv[n_slots].value=fd_make_oid(baseplus);
-	    fd_decref(value);}}
+        if (FD_STRINGP(value)) {
+          kv[n_slots].value=fd_parse(FD_STRDATA(value));
+          fd_decref(value);}
+        else {
+          FD_OID base=FD_OID_ADDR(colmaps[i]);
+          int offset=fd_getint(value);
+          if (offset<0) kv[n_slots].value=value;
+          else {
+            FD_OID baseplus=FD_OID_PLUS(base,offset);
+            kv[n_slots].value=fd_make_oid(baseplus);
+            fd_decref(value);}}
       else if (colmaps[i]==FD_TRUE)
-	if (FD_STRINGP(value)) {
-	  if (FD_STRLEN(value))
-	    kv[n_slots].value=fd_parse(FD_STRDATA(value));
-	  else kv[n_slots].value=FD_EMPTY_CHOICE;
-	  fd_decref(value);}
-	else kv[n_slots].value=value;
+        if (FD_STRINGP(value)) {
+          if (FD_STRLEN(value))
+            kv[n_slots].value=fd_parse(FD_STRDATA(value));
+          else kv[n_slots].value=FD_EMPTY_CHOICE;
+          fd_decref(value);}
+        else kv[n_slots].value=value;
       else if (FD_PRIM_TYPEP(colmaps[i],fd_secret_type)) {
-	FD_SET_CONS_TYPE(value,fd_secret_type);
-	kv[n_slots].value=value;}
+        FD_SET_CONS_TYPE(value,fd_secret_type);
+        kv[n_slots].value=value;}
       else if (FD_PRIM_TYPEP(colmaps[i],fd_uuid_type))
-	if ((FD_PACKETP(value))||(FD_STRINGP(value))) {
-	  struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
-	  unsigned char *data=
-	    ((FD_PACKETP(value))?(FD_PACKET_DATA(value)):(FD_STRDATA(value)));
-	  unsigned char *uuidbytes;
-	  FD_INIT_CONS(uuid,fd_uuid_type);
-	  uuidbytes=uuid->uuid;
-	  memcpy(uuidbytes,data,16);
-	  fd_decref(value);
-	  kv[n_slots].value=FDTYPE_CONS(uuid);}
-	else kv[n_slots].value=value;
+        if ((FD_PACKETP(value))||(FD_STRINGP(value))) {
+          struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
+          unsigned char *data=
+            ((FD_PACKETP(value))?(FD_PACKET_DATA(value)):(FD_STRDATA(value)));
+          unsigned char *uuidbytes;
+          FD_INIT_CONS(uuid,fd_uuid_type);
+          uuidbytes=uuid->uuid;
+          memcpy(uuidbytes,data,16);
+          fd_decref(value);
+          kv[n_slots].value=FDTYPE_CONS(uuid);}
+        else kv[n_slots].value=value;
       else if (FD_EQ(colmaps[i],boolean_symbol)) {
-	if (FD_FIXNUMP(value)) {
-	  int ival=FD_FIX2INT(value);
-	  if (ival) kv[n_slots].value=FD_TRUE;
-	  else kv[n_slots].value=FD_FALSE;}
-	else {kv[n_slots].value=value;}}
+        if (FD_FIXNUMP(value)) {
+          int ival=FD_FIX2INT(value);
+          if (ival) kv[n_slots].value=FD_TRUE;
+          else kv[n_slots].value=FD_FALSE;}
+        else {kv[n_slots].value=value;}}
       else kv[n_slots].value=value;
       kv[n_slots].key=colnames[i];
       if (FD_ABORTP(kv[n_slots].value)) {
-	result=kv[n_slots].value;
-	break;}
+        result=kv[n_slots].value;
+        break;}
       n_slots++;
       i++;}
     /* How to merge values.  Currently, if MERGEFN is #t
@@ -602,8 +602,8 @@ static fdtype get_stmt_values
       result=kv[0].value;
       u8_free(kv);}
     else if ((FD_VOIDP(mergefn)) ||
-	     (FD_FALSEP(mergefn)) ||
-	     (FD_TRUEP(mergefn)))
+             (FD_FALSEP(mergefn)) ||
+             (FD_TRUEP(mergefn)))
       result=fd_init_slotmap(NULL,n_slots,kv);
     else if (!(FD_APPLICABLEP(mergefn))) {
       result=fd_type_error("applicable","mysql/get_stmt_values",mergefn);}
@@ -667,17 +667,17 @@ static int init_stmt_results
       /* Synchronize the signed and unsigned fields to get error handling. */
       if ((fields[i].flags)&(UNSIGNED_FLAG)) outbound[i].is_unsigned=1;
       /* TEXT fields are confusingly labelled with MYSQL_TYPE_BLOB.
-	 We check the BINARY flag and set the corresponding MYSQL_BIND
-	 buffer type to MYSQL_TYPE_STRING or MYSQL_TYPE_BLOB as
-	 appropriate. */
+         We check the BINARY flag and set the corresponding MYSQL_BIND
+         buffer type to MYSQL_TYPE_STRING or MYSQL_TYPE_BLOB as
+         appropriate. */
       if (fields[i].type==MYSQL_TYPE_BLOB)
-	if ((fields[i].flags)&(BINARY_FLAG))
-	  outbound[i].buffer_type=fields[i].type;
-	else outbound[i].buffer_type=MYSQL_TYPE_STRING;
+        if ((fields[i].flags)&(BINARY_FLAG))
+          outbound[i].buffer_type=fields[i].type;
+        else outbound[i].buffer_type=MYSQL_TYPE_STRING;
       else if (fields[i].type==MYSQL_TYPE_STRING)
-	if (fields[i].charsetnr==63)
-	  outbound[i].buffer_type=MYSQL_TYPE_BLOB;
-	else outbound[i].buffer_type=MYSQL_TYPE_STRING;
+        if (fields[i].charsetnr==63)
+          outbound[i].buffer_type=MYSQL_TYPE_BLOB;
+        else outbound[i].buffer_type=MYSQL_TYPE_STRING;
       else outbound[i].buffer_type=fields[i].type;
       outbound_setup(&(outbound[i]));
       outbound[i].is_null=&(nullbuf[i]);
@@ -700,7 +700,7 @@ static int init_stmt_results
    use raw C types consistent with prepared statements, rather than
    using the converted strings from mysql_fetch_row.  */
 static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,
-			fdtype colinfo_arg,int reconn)
+                        fdtype colinfo_arg,int reconn)
 {
   MYSQL *db=dbp->db;
   MYSQL_BIND *outbound=NULL; fdtype *colnames=NULL; my_bool *isnullbuf=NULL;
@@ -906,8 +906,8 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
      (this could happen if there were schema changes) */
   if ((dbproc->n_cols>=0)&&(n_cols!=dbproc->n_cols)) {
     u8_log(LOG_WARN,ServerReset,
-	   "The number of columns for query '%s' on %s (%s) has changed",
-	   dbproc->qtext,dbp->spec,dbp->info);}
+           "The number of columns for query '%s' on %s (%s) has changed",
+           dbproc->qtext,dbp->spec,dbp->info);}
   dbproc->n_cols=n_cols;
   
   /* Check that the number of parameters has not changed
@@ -1078,20 +1078,20 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
       inbound[i].length=NULL;}
     else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
       struct FD_TIMESTAMP *tm=
-	FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
+        FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
       MYSQL_TIME *mt=u8_alloc(MYSQL_TIME);
       struct U8_XTIME *xt=&(tm->xtime), gmxtime; time_t tick;
       if (n_mstimes<4) mstimes[n_mstimes++]=mt;
       if ((xt->u8_tzoff)||(xt->u8_dstoff)) {
-	/* If it's not UTC, we need to convert it. */
-	tick=xt->u8_tick;
-	u8_init_xtime(&gmxtime,tick,xt->u8_prec,xt->u8_nsecs,0,0);
-	xt=&gmxtime;}
+        /* If it's not UTC, we need to convert it. */
+        tick=xt->u8_tick;
+        u8_init_xtime(&gmxtime,tick,xt->u8_prec,xt->u8_nsecs,0,0);
+        xt=&gmxtime;}
       inbound[i].buffer=mt;
       inbound[i].buffer_type=
-	((xt->u8_prec>u8_day) ?
-	 (MYSQL_TYPE_DATETIME) :
-	 (MYSQL_TYPE_DATE));
+        ((xt->u8_prec>u8_day) ?
+         (MYSQL_TYPE_DATETIME) :
+         (MYSQL_TYPE_DATE));
       mt->year=xt->u8_year;
       mt->month=xt->u8_mon+1;
       mt->day=xt->u8_mday;
@@ -1124,33 +1124,33 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
       return FD_ERROR_VALUE;}
     else if (FD_TRUEP(ptypes[i])) {
       /* If the ptype is #t, try to convert it into a string,
-	 and catch it if you have an error. */
+         and catch it if you have an error. */
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
       if (fd_unparse(&out,arg)<0) {
-	int j=0;
-	fd_seterr(MySQL_NoConvert,"callmysqlproc",
-		  u8_strdup(dbproc->qtext),fd_incref(arg));
-	while (j<i) {fd_decref(argbuf[i]); i++;}
-	j=0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
-	if (argbuf!=_argbuf) u8_free(argbuf);
-	if (dblock) {u8_mutex_unlock(&(dbp->lock)); dblock=0;}
-	if (proclock)  {u8_mutex_unlock(&(dbproc->lock)); proclock=0;}
-	return FD_ERROR_VALUE;}
+        int j=0;
+        fd_seterr(MySQL_NoConvert,"callmysqlproc",
+                  u8_strdup(dbproc->qtext),fd_incref(arg));
+        while (j<i) {fd_decref(argbuf[i]); i++;}
+        j=0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
+        if (argbuf!=_argbuf) u8_free(argbuf);
+        if (dblock) {u8_mutex_unlock(&(dbp->lock)); dblock=0;}
+        if (proclock)  {u8_mutex_unlock(&(dbproc->lock)); proclock=0;}
+        return FD_ERROR_VALUE;}
       else {
-	u8_string as_string=out.u8_outbuf;
-	int stringlen=out.u8_outptr-out.u8_outbuf;
-	inbound[i].buffer_type=MYSQL_TYPE_STRING;
-	inbound[i].buffer=as_string;
-	inbound[i].buffer_length=stringlen;
-	inbound[i].length=NULL;
-	/* We put the consed string into the argbug as a Lisp
-	   string so that we'll free it when we're done. */
-	argbuf[i]=fd_init_string(NULL,stringlen,as_string);}}
+        u8_string as_string=out.u8_outbuf;
+        int stringlen=out.u8_outptr-out.u8_outbuf;
+        inbound[i].buffer_type=MYSQL_TYPE_STRING;
+        inbound[i].buffer=as_string;
+        inbound[i].buffer_length=stringlen;
+        inbound[i].length=NULL;
+        /* We put the consed string into the argbug as a Lisp
+           string so that we'll free it when we're done. */
+        argbuf[i]=fd_init_string(NULL,stringlen,as_string);}}
     else {
       int j;
       /* Finally, if we can't convert the value, we error. */
       fd_seterr(MySQL_NoConvert,"callmysqlproc",
-		u8_strdup(dbproc->qtext),fd_incref(arg));
+                u8_strdup(dbproc->qtext),fd_incref(arg));
       j=0; while (j<n_mstimes) {u8_free(mstimes[j]); j++;}
       j=0; while (j<i) {fd_decref(argbuf[j]); j++;}
       if (argbuf!=_argbuf) u8_free(argbuf);
@@ -1172,8 +1172,8 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
     u8_mutex_lock(&(dbproc->fdbptr->lock)); dblock=1;
     if (dbproc->need_init) {
       /* Once more, if there's been a restart before we get the lock,
-	 set retry=1 and pretend to fail.  Once we have the lock, we
-	 no longer have to worry about restarts. */
+         set retry=1 and pretend to fail.  Once we have the lock, we
+         no longer have to worry about restarts. */
       retval=-1; retry=1;}
     else retval=eretval=mysql_stmt_execute(dbproc->stmt);}
   
@@ -1188,27 +1188,27 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
   /* Now convert the MYSQL results into LISP.  We don't check for
      connection errors because we've stored the whole result locally. */
   if (retval==RETVAL_OK) {
-    if (dbproc->n_cols) 
+    if (dbproc->n_cols) {
       values=get_stmt_values(dbproc->stmt,
-			     dbproc->colinfo,dbproc->n_cols,dbproc->colnames,
-			     dbproc->outbound,dbproc->isnull);
+                             dbproc->colinfo,dbproc->n_cols,dbproc->colnames,
+                             dbproc->outbound,dbproc->isnull);
+      mysql_stmt_free_result(dbproc->stmt);}
     else {
       /* We could possibly do something with this */
       int MAYBE_UNUSED rows=mysql_stmt_affected_rows(dbproc->stmt);
       values=FD_VOID;}}
-  mysql_stmt_free_result(dbproc->stmt);
       
   if (retval!=RETVAL_OK) {
     /* Log any errors (even ones we're going to handle) */
     mysqlerrno=mysql_stmt_errno(dbproc->stmt);
     mysqlerrmsg=mysql_stmt_error(dbproc->stmt);
     u8_log(LOG_WARN,
-	   ((sretval)?("callmysqlproc/store"):
-	    (eretval)?("callmysqlproc/exec"):
-	    (bretval)?("callmysqlproc/bind"):
-	    ("callmysqlproc")),
-	   "MYSQL error '%s' for %s at %s",
-	   mysqlerrmsg,dbproc->stmt_string,dbp->spec);}
+           ((sretval)?("callmysqlproc/store"):
+            (eretval)?("callmysqlproc/exec"):
+            (bretval)?("callmysqlproc/bind"):
+            ("callmysqlproc")),
+           "MYSQL error '%s' for %s at %s",
+           mysqlerrmsg,dbproc->stmt_string,dbp->spec);}
   else mysqlerrno=mysql_stmt_errno(dbproc->stmt);
 
   /* Figure out if we're going to retry */
@@ -1293,17 +1293,17 @@ FD_EXPORT int fd_init_mysql()
   fd_register_extdb_handler(&mysql_handler);
 
   fd_defn(module,
-	  fd_make_cprim6x("MYSQL/OPEN",open_mysql,1,
-			  fd_string_type,FD_VOID,
-			  fd_string_type,FD_VOID,
-			  -1,FD_VOID,
-			  fd_string_type,FD_VOID,
-			  fd_string_type,FD_VOID,
-			  -1,FD_VOID));
+          fd_make_cprim6x("MYSQL/OPEN",open_mysql,1,
+                          fd_string_type,FD_VOID,
+                          fd_string_type,FD_VOID,
+                          -1,FD_VOID,
+                          fd_string_type,FD_VOID,
+                          fd_string_type,FD_VOID,
+                          -1,FD_VOID));
   fd_defn(module,
-	  fd_make_cprim2x("MYSQL/REFRESH",refresh_mysqldb,1,
-			  fd_extdb_type,FD_VOID,
-			  -1,FD_VOID));
+          fd_make_cprim2x("MYSQL/REFRESH",refresh_mysqldb,1,
+                          fd_extdb_type,FD_VOID,
+                          -1,FD_VOID));
   mysql_initialized=1;
 
   boolean_symbol=fd_intern("BOOLEAN");
@@ -1328,13 +1328,13 @@ FD_EXPORT int fd_init_mysql()
   fd_finish_module(module);
 
   fd_register_config("MYSQL:RECONNECT",
-		     "whether MYSQL should try to auto-reconnect",
-		     fd_boolconfig_get,fd_boolconfig_set,
-		     &default_reconnect);
+                     "whether MYSQL should try to auto-reconnect",
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &default_reconnect);
   fd_register_config("MYSQL:LAZYPROCS",
-		     "whether MYSQL should delay initializing dbprocs (statements)",
-		     fd_boolconfig_get,fd_boolconfig_set,
-		     &default_lazy_init);
+                     "whether MYSQL should delay initializing dbprocs (statements)",
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &default_lazy_init);
 
   u8_register_source_file(_FILEINFO);
 
