@@ -613,6 +613,9 @@
 (add! special-form-tighteners "XMLBLOCK" tighten-xmlblock)
 (add! special-form-tighteners "WITH/REQUEST" tighten-block)
 (add! special-form-tighteners "WITH/REQUEST/OUT" tighten-block)
+(add! special-form-tighteners "XMLOUT" tighten-block)
+(add! special-form-tighteners "XHTML" tighten-block)
+(add! special-form-tighteners "XMLEVAL" tighten-block)
 
 (when (bound? fileout)
   (add! special-form-tighteners
