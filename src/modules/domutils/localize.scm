@@ -123,10 +123,32 @@
    ;;  fragment and put the fragment back.  We don't bother checking
    ;; fragment ID uniqueness, though we probably should.
    (tryif (position #\# ref)
-     (let ((hashpos (position #\# ref)))
-       (string-append (localref (subseq ref 0 hashpos) urlmap
-				base saveto read options)
-		      (subseq ref hashpos))))
+     (if (has-prefix (get urlmap ref) "#")
+	 (get urlmap ref)
+	 (let* ((hashpos (position #\# ref))
+		(baseuri (subseq ref 0 hashpos))
+		(hashid (subseq ref hashpos))
+		(lref (localref baseuri urlmap baseuri base saveto read options))
+		(useref hashid))
+	   (if (has-prefix lref "#")
+	       (begin
+		 ;; To be correct, we'll need to clean up these
+		 ;;  references later, which we can catch by examining
+		 ;;  the urlmap; in particular an urlmap key which
+		 ;;  starts with #hash but isn't the suffix of its
+		 ;;  value indicates a renaming.  We can then get the
+		 ;;  section id and the local reference in order to
+		 ;;  find the node we need to rename.  This is not yet
+		 ;;  implemented.
+		 (when (and (test urlmap useref) (not (test urlmap useref ref)))
+		   (set! useref (glom lref "-" hashid)))
+		 (store! urlmap useref ref)
+		 (store! urlmap ref useref)
+		 useref)
+	       ;; Not clear what the right to do is when the baseuri
+	       ;; isn't amalgamated into the same namespace, so we
+	       ;; leave the ref as it is
+	       ref))))
    ;; if we're gluing a bunch of files together (amalgamating them),
    ;;  the ref will just be moved to the current file by stripping
    ;;  off the URL part
@@ -152,7 +174,7 @@
      ;;  conflicts
      (when (and (not (get urlmap (vector ref)))
 		(exists? (get urlmap lref)))
-       ;; Name conflict
+       ;; Filename conflict
        (set! name (glom (packet->base16 (md5 absref)) suffix))
        (set! lref (mkpath read name))
        (set! savepath (gp/mkpath saveto name)))
@@ -178,14 +200,18 @@
 		    ",\n\tsynced from " base "\n\tto " saveto)
 	   ref)))))
 
-(define (dom/localize! dom base saveto read (options #f) (urlmap) (doanchors) (dolinks))
+(define (dom/localize! dom base saveto read (options #f)
+		       (urlmap) (doanchors) (dolinks))
   (default! urlmap (getopt options 'urlmap (make-hashtable)))
   (default! doanchors (getopt options 'doanchors #f))
   (default! dolinks (getopt options 'synclinks {}))
-  (lognotice "Localizing references from " (write (gp->s base))
-	     " to " (write read) ", copying content to " 
+  (lognotice "Localizing references for "
+	     (try (gpath->string (get dom 'source)) "source")
+	     "\n\tfrom " (write (gp->s base))
+	     "\n\tto " (write read) ", copying content to "
 	     (if (singleton? saveto) (write (gp->s saveto))
-		 (do-choices saveto (printout "\n\t" (write (gp->s saveto))))))
+		 (do-choices saveto
+		   (printout "\n\t\t" (write (gp->s saveto))))))
   (debug%watch "DOM/LOCALIZE!" base saveto read options doanchors)
   (let ((head (dom/find dom "HEAD" #f))
 	(files {}))
@@ -239,7 +265,8 @@
 	  (dom/set! node 'href ref)
 	  (set+! files ref))))
     (dolist (node (dom/find->list dom "[href]"))
-      (when (test node 'rel {dolinks "stylesheet" "knodule"})
+      (when (or (test node '%xmltag 'a)
+		(test node 'rel {dolinks "stylesheet" "knodule"}))
 	(logdebug "Localizing " (get node 'href) "\n\tfrom " base
 		  "\n\tto " saveto "\n\tfor " node)
 	(let* ((href (get node 'href))
@@ -251,6 +278,15 @@
 	  (when (and (exists? ref) ref)
 	    (dom/set! node 'href ref)
 	    (set+! files ref)))))
+    (dolist (node (dom/find->list dom "[href]"))
+      (unless (test node 'rel {dolinks "x-resource" "stylesheet" "knodule"})
+	(let* ((href (get node 'href))
+	       (hashpos (position #\# href)))
+	  (cond ((test urlmap href)
+		 (dom/set! node 'href (get urlmap href)))
+		((and hashpos (test urlmap (slice href 0 hashpos)))
+		 (get urlmap (slice href 0 hashpos))
+		 (dom/set! node 'href (slice href hashpos)))))))
     (let ((xresources '()))
       (do-choices (resource (pick (pickstrings (get urlmap (getkeys urlmap)))
 				  has-prefix (choice read (glom "../" read))))
