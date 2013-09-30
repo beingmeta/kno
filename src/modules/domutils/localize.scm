@@ -132,11 +132,11 @@
    ;;  off the URL part
    (tryif (overlaps? (getopt options 'amalgamate)
 		     (gp/mkpath base ref))
-     (try (%wc get urlmap (gp/mkpath base ref))
-	  (%wc get urlmap ref)
+     (try (get urlmap (gp/mkpath base ref))
+	  (get urlmap ref)
 	  ""))
    ;; Check the cache
-   (%wc get urlmap ref)
+   (get urlmap ref)
    ;; don't bother localizing these references
    (tryif (exists string-starts-with? ref
 		  (getopt options 'localhosts {}))
