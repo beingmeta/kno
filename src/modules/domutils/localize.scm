@@ -128,7 +128,7 @@
 	 (let* ((hashpos (position #\# ref))
 		(baseuri (subseq ref 0 hashpos))
 		(hashid (subseq ref hashpos))
-		(lref (localref baseuri urlmap baseuri base saveto read options))
+		(lref (localref baseuri urlmap base saveto read options))
 		(useref hashid))
 	   (if (has-prefix lref "#")
 	       (begin
