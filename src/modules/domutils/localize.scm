@@ -73,22 +73,23 @@
   (default! exists (gp/exists? savepath))
   (logdebug |LOCALIZE/sync| "Syncing " ref " with " savepath " from " absref)
   (cond ((and checksync exists (needsync? savepath absref))
-	 (loginfo "Content " ref " is up to date in " (gp->s savepath)
-		  " from " (gp->s absref))
+	 (logdebug "Content " ref " is up to date in " (gp->s savepath)
+		   " from " (gp->s absref))
 	 #t)
 	(else
-	 (let ((fetched (onerror (gp/fetch+ absref)
-			  (lambda (ex)
-			    (logwarn |LOCALIZE/sync| "Error fetching " absref ":\n\t" ex)
-			    #f)))
+	 (let ((fetched
+		(onerror (gp/fetch+ absref)
+		  (lambda (ex)
+		    (logwarn |LOCALIZE/sync| "Error fetching " absref ":\n\t" ex)
+		    #f)))
 	       (xform (getopt options 'xform)))
 	   (cond ((and exists (not fetched))
-		  (logwarn "Couldn't update content for " ref
+		  (logwarn |LOCALIZE/sync| "Couldn't update content for " ref
 			   " from " (gp->s absref) ", using current " (gp->s savepath)))
 		 ((or (not fetched)
 		      (fail? (get fetched 'content))
 		      (not (get fetched 'content)))
-		  (logwarn "Couldn't download content from " (gp->s absref)
+		  (logwarn |LOCALIZE/sync| "Couldn't download content from " (gp->s absref)
 			   " for " ref))
 		 (xform (gp/save! savepath (xform (get fetched 'content)) ctype))
 		 (else (gp/save! savepath (get fetched 'content) ctype)))
@@ -142,7 +143,7 @@
 		 ;;  implemented.
 		 (when (and (test urlmap useref) (not (test urlmap useref ref)))
 		   (set! useref (glom lref "-" hashid)))
-		 (store! urlmap useref ref)
+		 (store! urlmap (vector useref) ref)
 		 (store! urlmap ref useref)
 		 useref)
 	       ;; Not clear what the right to do is when the baseuri
@@ -167,20 +168,20 @@
    (let* ((absref (getabsref ref base))
 	  (name (gp/basename ref))
 	  (suffix (filesuffix name))
-	  (lref (try (get urlmap (vector ref))
+	  (lref (try (get urlmap ref)
+		     (get urlmap absref)
 		     (mkpath read name)))
 	  (savepath (gp/mkpath saveto name)))
      ;; We store inverse links as #(ref) keys, so this is where we detect
      ;;  conflicts
-     (when (and (not (get urlmap (vector ref)))
+     (when (and (fail? (get urlmap (vector lref)))
 		(exists? (get urlmap lref)))
        ;; Filename conflict
        (set! name (glom (packet->base16 (md5 absref)) suffix))
        (set! lref (mkpath read name))
        (set! savepath (gp/mkpath saveto name)))
      (store! urlmap ref lref)
-     (store! urlmap lref ref)
-     (store! urlmap (vector ref) lref)
+     (store! urlmap (vector lref) ref)
      (when (string? absref) (store! urlmap absref lref))
      (debug%watch "LOCALREF" lref ref base absref saveto read
 		  (get urlmap absref))
@@ -191,11 +192,11 @@
 	   ;;  same table)
 	   (store! urlmap absref lref)
 	   (when (string? absref) (store! urlmap lref absref))
-	   (loginfo |LOCALIZE/ref| "LOCALREF " ref "==>" lref
-		    ",\n\tsynced from " base "\n\tto " saveto)
+	   (logdebug |LOCALIZE/ref| "LOCALREF " ref "==>" lref
+		     ",\n\tsynced from " base "\n\tto " saveto)
 	   lref)
 	 (begin 
-	   (logwarn |LOCALIZE/ref|
+	   (logwarn |LOCALIZE/sync|
 		    "Couldn't sync " ref "==>" lref
 		    ",\n\tsynced from " base "\n\tto " saveto)
 	   ref)))))
@@ -205,26 +206,32 @@
   (default! urlmap (getopt options 'urlmap (make-hashtable)))
   (default! doanchors (getopt options 'doanchors #f))
   (default! dolinks (getopt options 'synclinks {}))
-  (lognotice "Localizing references for "
-	     (try (gpath->string (get dom 'source)) "source")
-	     "\n\tfrom " (write (gp->s base))
-	     "\n\tto " (write read) ", copying content to "
-	     (if (singleton? saveto) (write (gp->s saveto))
-		 (do-choices saveto
-		   (printout "\n\t\t" (write (gp->s saveto))))))
+  (loginfo "Localizing references for "
+	   (try (gpath->string (get dom 'source)) "source")
+	   "\n\tfrom " (write (gp->s base))
+	   "\n\tto " (write read) ", copying content to "
+	   (if (singleton? saveto) (write (gp->s saveto))
+	       (do-choices saveto
+		 (printout "\n\t\t" (write (gp->s saveto))))))
   (debug%watch "DOM/LOCALIZE!" base saveto read options doanchors)
-  (let ((head (dom/find dom "HEAD" #f))
-	(files {}))
+  (let ((head (dom/find dom "HEAD" #f)) (files {}))
     (dolist (node (dom/find->list dom "[src]"))
+      (logdebug "Localizing " (dom/sig node)
+		"\n\tfrom " base "\n\tto " saveto
+		"\n\t" node)
       (let ((ref (localref (get node 'src) urlmap
 			   base (qc saveto) read options)))
-	(logdebug "Localized " (write (get node 'src)) " to " (write ref) " for\n\t" node)
+	(loginfo "Localized " (write (get node 'src))
+		 " to " (write ref) " for " (dom/sig node #t))
 	(when (and (exists? ref) ref)
 	  (dom/set! node 'src ref)
 	  (set+! files ref))))
     ;; Convert url() references in stylesheets
-    (do-choices (node (pick (dom/find head "link") 'rel "stylesheet"))
-      (logdebug "Localizing stylesheet " node "\n\tfrom " base "\n\tto " saveto)
+    (do-choices (node (pick (pick (dom/find head "link") 'rel "stylesheet")
+			    'href))
+      (logdebug "Localizing stylesheet " (get node 'href)
+		"\n\tfrom " base "\n\tto " saveto
+		"\n\t" node)
       (let* ((ctype (try (get node 'type) "text"))
 	     (href (get node 'href))
 	     (xformurlfn
@@ -260,7 +267,8 @@
 					 xform ,xformcss]
 				      options)
 				options))))
-	(logdebug "Localized " (write href) " to " (write ref) " for " node)
+	(loginfo "Localized " (write href) " to " (write ref)
+		 " for " (dom/sig node #t))
 	(when (and (exists? ref) ref)
 	  (dom/set! node 'href ref)
 	  (set+! files ref))))
@@ -274,7 +282,8 @@
 			       href #((isalpha) (isalpha) (isalpha+) ":")))
 			 (or (not doanchors) (textsearch doanchors href))
 			 (localref href urlmap base (qc saveto) read options))))
-	  (logdebug "Localized " (write href) " to " (write ref) "\n\tfor " node)
+	  (loginfo "Localized " (write href) " to " (write ref)
+		   " for " (dom/sig node #t))
 	  (when (and (exists? ref) ref)
 	    (dom/set! node 'href ref)
 	    (set+! files ref)))))
