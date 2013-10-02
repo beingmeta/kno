@@ -2022,15 +2022,15 @@ static int scan_fgets(char *buf,int n_bytes,void *stream)
       if (bytes[0]=='\n') break;}
     *write='\0';
 #if DEBUG_FDSERV
-      ap_log_error
-	(APLOG_MARK,LOGDEBUG,OK,r->server,
-	 "mod_fdserv/scan_fgets: Read header string %s from %d",buf,sock);
+    ap_log_error
+      (APLOG_MARK,LOGDEBUG,OK,r->server,
+       "mod_fdserv/scan_fgets: Read header string %s from %d",buf,sock);
 #endif
-      if (write>=limit) return write-buf;
-      else return write-buf;}
+    if (write>=limit) return write-buf;
+    else return write-buf;}
   else {
     /*
-    ap_log_error
+      ap_log_error
       (APLOG_MARK,APLOG_CRIT,500,r->server,"Bad fdsocket passed");
     */
     return -1;}
@@ -2188,6 +2188,7 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
   apr_table_t *headers=r->headers_out;
   const char *clength_string=apr_table_get(headers,"Content-Length");
   long int content_length=((clength_string)?(atoi(clength_string)):(-1));
+  if (content_length>=0) ap_set_content_length(r,content_length);
   if (content_length<0)
     ap_log_rerror
       (APLOG_MARK,LOGDEBUG,OK,r,
@@ -2473,7 +2474,8 @@ static int fdserv_handler(request_rec *r)
   
   if (rv!=OK) {
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,rv,r,
-		  "Error reading header from %s",fdsocketinfo(sock,infobuf));
+		  "Error (%s) reading header from %s",
+		  errbuf,fdsocketinfo(sock,infobuf));
     servlet_close_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
   else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
