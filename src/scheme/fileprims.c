@@ -56,6 +56,8 @@ static u8_condition StackDumpEvent=_("StackDump");
 static u8_condition SnapshotSaved=_("Snapshot Saved");
 static u8_condition SnapshotRestored=_("Snapshot Restored");
 
+static int log_reloads=1;
+
 /* Making ports */
 
 static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
@@ -1486,6 +1488,8 @@ FD_EXPORT int fd_update_file_modules(int force)
       u8_string filename=this->filename;
       fd_lispenv env=this->env; reloads=this->next;
       time_t mtime=u8_file_mtime(this->filename);
+      if (log_reloads)
+        u8_log(LOG_WARN,"fd_update_file_modules","Reloading %s",filename);
       load_result=fd_load_source(filename,env,"auto");
       if (FD_ABORTP(load_result)) {
 	u8_log(LOG_CRIT,"update_file_modules","Error reloading %s",filename);
@@ -1538,7 +1542,10 @@ FD_EXPORT int fd_update_file_module(u8_string module_filename,int force)
   scan->reloading=1;
   fd_unlock_mutex(&load_record_lock);
   if ((force) || (mtime>scan->mtime)) {
-    fdtype load_result=fd_load_source(scan->filename,scan->env,"auto");
+    fdtype load_result;
+    if (log_reloads)
+      u8_log(LOG_WARN,"fd_update_file_module","Reloading %s",scan->filename);
+    load_result=fd_load_source(scan->filename,scan->env,"auto");
     if (FD_ABORTP(load_result)) {
       fd_seterr(fd_ReloadError,"fd_reload_modules",
 		u8_strdup(scan->filename),load_result);
@@ -1636,7 +1643,10 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
 	  u8_init_xtime(&(tstamp->xtime),mod_time,u8_second,0,0,0);
 	  fd_decref(pair->cdr);
 	  pair->cdr=FDTYPE_CONS(tstamp);
-	  result=fd_load_source(FD_STRDATA(FD_CAR(entry)),scan,"auto");
+          if (log_reloads)
+            u8_log(LOG_WARN,"fd_load_latest","Reloading %s",
+                   FD_STRDATA(FD_CAR(entry)));
+          result=fd_load_source(FD_STRDATA(FD_CAR(entry)),scan,"auto");
 	  if (FD_ABORTP(result)) {
 	    fd_decref(sources);
 	    return fd_interr(result);}
@@ -1676,6 +1686,8 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
       entry=fd_init_pair(NULL,fd_incref(abspath_dtype),FDTYPE_CONS(tstamp));
       if (FD_EMPTY_CHOICEP(sources)) fd_bind_value(source_symbol,entry,env);
       else fd_add_value(source_symbol,entry,env);}
+    if (log_reloads)
+      u8_log(LOG_WARN,"fd_load_latest","Reloading %s",abspath);
     result=fd_load_source(abspath,env,"auto");
     u8_free(abspath);
     fd_decref(abspath_dtype);
@@ -2197,6 +2209,9 @@ FD_EXPORT void fd_init_fileio_c()
   fd_register_config
     ("KEEPTEMP","Temporary directories to not be deleted on exit",
      keeptemp_get,keeptemp_set,NULL);
+  fd_register_config
+    ("LOGRELOADS","Whether or not to log module/file reloads",
+     fd_boolconfig_get,fd_boolconfig_set,&log_reloads);
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1("RELOAD-MODULE",safe_reload_module,1));
