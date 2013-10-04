@@ -33,6 +33,6 @@
   (xmlblock `(,(if (getopt opts 'html5 html5) 'time 'span)
 	      (datetime ,(get time 'iso8601))
 	      (class ,(glom (and (not (getopt opts 'html5 html5)) "fdjtime ")
-			"fdjt" (getopt opts 'class "localetime"))))
+			"fdjt" (getopt opts 'class "humantime"))))
       (get time (getopt opts 'display 'string))))
 
