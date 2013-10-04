@@ -32,7 +32,6 @@
 	   " cannot be converted into a time"))
   (xmlblock `(,(if (getopt opts 'html5 html5) 'time 'span)
 	      (datetime ,(get time 'iso8601))
-	      (class ,(glom (and (not (getopt opts 'html5 html5)) "fdjtime ")
-			"fdjt" (getopt opts 'class "humantime"))))
+	      (class ,(glom "fdjtime " (getopt opts 'class "fdjthumantime"))))
       (get time (getopt opts 'display 'string))))
 
