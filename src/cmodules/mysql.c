@@ -855,28 +855,30 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
     u8_free(dbproc->bindbuf); dbproc->bindbuf=NULL;}
   
   /* Close any existing statement */
-  if (dbproc->stmt) {
+  if (dbproc->stmt) 
     retval=mysql_stmt_close(dbproc->stmt);
-    if (retval) {
-      const char *errmsg=mysql_stmt_error(dbproc->stmt);
-      u8_seterr(MySQL_Error,"init_mysqlproc/closeold",u8_strdup(errmsg));
-      return -1;}
-    else dbproc->stmt=NULL;}
+  else dbproc->stmt=NULL;
 
-  dbproc->stmt=mysql_stmt_init(db);
-  if (dbproc->stmt)
-    retval=mysql_stmt_prepare
-      (dbproc->stmt,dbproc->stmt_string,dbproc->stmt_len);
-  else {
-    const char *errmsg=mysql_error(db);
-    u8_seterr(MySQL_Error,"init_mysqlproc/mysql_stmt_init",u8_strdup(errmsg));
-    return -1;}
+  if (!(retval)) {
+    dbproc->stmt=mysql_stmt_init(db);
+    if (dbproc->stmt)
+      retval=mysql_stmt_prepare
+        (dbproc->stmt,dbproc->stmt_string,dbproc->stmt_len);}
   
   if (retval) {
-    const char *errmsg=mysql_stmt_error(dbproc->stmt);
-    u8_seterr(MySQL_Error,"init_mysqlproc/prepare",u8_strdup(errmsg));
-    mysql_stmt_close(dbproc->stmt); dbproc->stmt=NULL;
-    return -1;}
+    int mysqlerrno=mysql_stmt_errno(dbproc->stmt);
+    if (NEED_RESTART(mysqlerrno)) {
+      struct FD_MYSQL *dbp=dbproc->fdbptr;
+      u8_mutex_lock(&(dbp->lock));
+      restart_connection(dbp);
+      u8_mutex_unlock(&(dbp->lock));
+      retval=mysql_stmt_prepare
+        (dbproc->stmt,dbproc->stmt_string,dbproc->stmt_len);}}
+  if (retval) {
+      const char *errmsg=mysql_stmt_error(dbproc->stmt);
+      u8_seterr(MySQL_Error,"init_mysqlproc/prepare",u8_strdup(errmsg));
+      mysql_stmt_close(dbproc->stmt); dbproc->stmt=NULL;
+      return -1;}
   
   n_cols=init_stmt_results(dbproc->stmt,
                            &(dbproc->outbound),
