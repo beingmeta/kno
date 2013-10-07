@@ -39,7 +39,7 @@
 	  ((exists? brico-pool)
 	   (logwarn BRICOSOURCE
 		    "Redundant configuration "
-		    "from " val " &mdash; "
+		    "from " val " \&mdash; "
 		    "BRICO is already provided from "
 		    (pool-source brico-pool))
 	   #f)
