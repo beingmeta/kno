@@ -54,15 +54,15 @@
 			  (hmac-sha1 text key) sig key text)
 		   #f)))))
 
-(defambda (sig/check/ sig key condense . args)
+(defambda (sig/check/ sigarg key condense . args)
   (let* ((text (apply makesigtext args))
 	 (hash (hmac-sha1 text key))
-	 (usesig (if condense (packet/condense hash condense) hash)))
-    (when (string? sig) (set! sig (base16->packet sig)))
+	 (usesig (if condense (packet/condense hash condense) hash))
+	 (sig (if (string? sigarg) (base16->packet sigarg) sigarg)))
     (debug%watch "SIG/CHECK/"
-      sig usesig condense hash text args)
+      sigarg sig usesig condense hash text args)
     (and sig (or (equal? sig usesig) (equal? sig hash)
 		 (begin (warn%watch (hmac-sha1 text key)
-				    "SIG/CHECK/FAILED" sig key text)
+				    "SIG/CHECK//FAILED" sig key text)
 		   #f)))))
 
