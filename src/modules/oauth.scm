@@ -20,7 +20,7 @@
    oauth/sigstring oauth/callsig})
 
 (define-init %loglevel %notice!)
-(set!  %loglevel %debug%)
+;;(set!  %loglevel %debug%)
 
 (define (getxmldata string)
   (let ((parsed (xmlparse string '{data slotify})))
