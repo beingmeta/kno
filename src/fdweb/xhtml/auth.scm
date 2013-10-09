@@ -408,7 +408,7 @@
 	((not (authinfo? authinfo)) 
 	 (authfail "Invalid authorization object" authid authinfo signal))
 	((and (authinfo-issued authinfo)
-	      (> (authinfo-issued authinfo) (+ (time) 60)))
+	      (> (authinfo-issued authinfo) (+ (time) 300)))
 	 (authfail "Authorization time paradox" authid authinfo signal))
 	((and (authinfo-expires authinfo)
 	      (> (time) (authinfo-expires authinfo)))
