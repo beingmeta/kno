@@ -68,6 +68,8 @@
 		       (and (req/get 'SCRIPT_FILENAME)
 			    (or (req/get 'reqdata #f) (req/data)))))
 	 (head (getopt spec 'head))
+	 (detailsblock #f)
+	 (irritantblock #f)
 	 (sections '()))
     (mkdirs (mkpath fileroot "example"))
     (when reqdata
@@ -90,8 +92,8 @@
 	       (error-condition exception)
 	       (when (error-context exception)
 		 (printout " (" (error-context exception) ") "))
-	       (when (error-details exception)
-		 (printout " \&ldquo;" (error-context exception) "\&rdquo;")))
+	       (when (and (error-details exception) (< (length (error-details exception)) 40))
+		 (printout " \&ldquo;" (error-details exception) "\&rdquo;")))
        (htmlheader
 	(xmlblock STYLE ((type "text/css"))
 	  (xhtml "\n" (getcontent bugjar-css))))
@@ -127,14 +129,16 @@
 	       (->string (error-condition exception)))
 	   (when (error-context exception)
 	     (span ((class "context")) " (" (error-context exception) ") ")))
-	 (when (error-details exception)
-	   (h2* ((class "detail"))
-	     (printout " \&ldquo;" (error-details exception) "\&rdquo;")))
+	 (if (and (error-details exception) (< (length (error-details exception)) 120))
+	     (h2* ((class "detail"))
+	       (xmlout " \&ldquo;" (error-details exception) "\&rdquo;"))
+	     (set! detailsblock #t))
 	 (let* ((irritant (error-irritant exception))
 		(stringval (and (exists? irritant) irritant
 				(lisp->string (qc irritant)))))
-	   (when (and stringval (< (length stringval) 50))
-	     (h2* ((class "irritant")) stringval)))
+	   (if (and stringval (< (length stringval) 50))
+	       (h2* ((class "irritant")) stringval)
+	       (set! irritantblock #t)))
 	 (when bughead (req/call bughead)))
        (div ((class "navbar"))
 	 (span ((class "buginfo"))
@@ -157,6 +161,8 @@
 		     (set! scan (cddr scan)))
 		   (begin (set! leftover (cons (car scan) leftover))
 		     (set! scan (cddr scan))))))
+	   (if detailsblock (anchor "#DETAILS" "Details")) " "
+	   (if irritantblock (anchor "#IRRITANT" "Irritant")) " "
 	   (anchor "#REQDATA" "Request") " "
 	   (anchor "#RESOURCES" "Resources") " "
 	   (anchor "#BACKTRACE" "Backtrace")))
@@ -174,7 +180,15 @@
 	 (h2* ((id "RESOURCES")) "Resource data")
 	 (tableout (rusage) #[skipempty #t class "fdjtdata rusage"])
 	 (h2* ((id "BACKTRACE")) "Full backtrace")
-	 (void (backtrace->html exception)))))
+	 (void (backtrace->html exception))
+	 (when detailsblock
+	   (h2* ((id "DETAILS")) "Details")
+	   (xmlblock PRE ((class "errdetails"))
+	     (xmlout (exception-details ex))))
+	 (when irritantblock
+	   (h2* ((id "IRRITANT")) "Irritant")
+	   (xmlblock PRE ((class "irritant"))
+	     (xmlout (stringout (pprint irritant))))))))
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (mkpath fileroot "backtrace.html")))))
