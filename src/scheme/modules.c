@@ -629,13 +629,16 @@ FD_EXPORT void fd_init_modules_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("GET-MODULE",safe_get_module,1));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
+  fd_defalias(fd_scheme_module,"%LS","GET-EXPORTS");
 
   fd_defspecial(fd_xscheme_module,"IN-MODULE",in_module);
   fd_defspecial(fd_xscheme_module,"WITHIN-MODULE",within_module);
   fd_defspecial(fd_xscheme_module,"ACCESSING-MODULE",accessing_module);
   fd_defspecial(fd_xscheme_module,"USE-MODULE",use_module);
   fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-MODULE",get_module,1));
-  fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-EXPORTS",get_exports_prim,1));
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim1("GET-EXPORTS",get_exports_prim,1));
+  fd_defalias(fd_xscheme_module,"%LS","GET-EXPORTS");
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("BRONZE-MODULE!",bronze_module,1));
 }
