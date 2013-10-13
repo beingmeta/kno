@@ -4,18 +4,16 @@
 (in-module 'facebook/fbcall)
 
 ;;; Calling the Facebook API and various standard calls
-(define version "$Id$")
-(define revision "$Revision$")
 
 (use-module '{fdweb xhtml texttools facebook logger})
+
+(define-init %loglevel %notice%)
 
 (module-export!
  '{fbcall
    fbcalluri fbcalluri*
    fbcall/raw fbcall/open fbcall/vec fbcall/open/vec fbcall/xml
    fb/false? fb/true?})
-
-(define %loglevel %notice!)
 
 (define (getsecret sessionid)
   (get (get fb/sessions sessionid) "secret"))

@@ -4,18 +4,16 @@
 (in-module 'facebook)
 
 ;;; Basic access to facebook, including authorization
-(define version "$Id$")
-(define revision "$Revision$")
 
 (use-module '{fdweb texttools reflection varconfig logger})
 (use-module '{xhtml xhtml/auth facebook/fbcall})
 
+(define-init %loglevel %notice%)
+;;(set! %loglevel %debug!)
+
 (module-export! '{appname appid apikey apisecretkey fb/authorized})
 (module-export! '{fb/session! fb/sessions fb/auth fb/connected?})
 (module-export! '{fb/embedded? fb/incanvas? fb/added?})
-
-(define %loglevel %notice!)
-;;(define %loglevel %debug!)
 
 (define applock #f)
 (define appname #f)
