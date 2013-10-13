@@ -66,8 +66,8 @@
 	  (do-choices (key (getkeys field))
 	    (add! combined key (get field key))))
 	(if (exists? fields) combined (fail)))
-      (error |Bad SQS response| sqs/get (get result 'effective-url)
-	     result)))
+      (irritant result |Bad SQS response| SQS/GET
+		"Received from " (get result 'effective-url))))
 
 (define (sqs/get queue (opts #[])
 		 (args `#["Action" "ReceiveMessage" "AttributeName.1" "all"]))

@@ -248,9 +248,14 @@
 			(try (get result 'header) "HTTP return failed")
 			":\n\t" result)
 	       result)
-	      ((and err (= status 404)) (error |S3/NotFound| S3/OP result))
-	      ((and err (= status 403)) (error |S3/Forbidden| S3/OP result))
-	      (else (error |S3/Failure| S3/OP result))))))
+	      ((and err (= status 404))
+	       (irritant result |S3/NotFound| S3/OP
+			 "s3://" bucket path))
+	      ((and err (= status 403))
+	       (irritant result |S3/Forbidden| S3/OP
+			 "s3://" bucket path))
+	      (else (irritant result |S3/Failure| S3/OP
+			      "s3://" bucket path))))))
 
 (define (s3/expected response)
   (->string (map (lambda (x) (integer->char (string->number x 16)))
@@ -374,7 +379,8 @@
 	   encoding ,(get req 'content-encoding)
 	   modified ,(try (get req 'last-modified) (timestamp))
 	   etag ,(try (get req 'etag) (md5 (get req '%content)))]
-	(and err (error S3FAILURE S3LOC/CONTENT req)))))
+	(and err (irritant req S3FAILURE S3LOC/CONTENT
+			   (s3loc->string loc))))))
 (define s3/get+ s3loc/get+)
 
 ;;; Basic S3 network metadata methods
@@ -554,7 +560,8 @@
 	      (status (get req 'response)))
 	 (if (and status (>= 299 status 200))
 	     (get req '%content)
-	     (and err (error S3FAILURE S3LOC/CONTENT req))))))
+	     (and err (irritant req S3FAILURE S3LOC/CONTENT
+				(s3loc->string loc)))))))
 (define s3/get s3loc/content)
 
 ;;; Some test code
