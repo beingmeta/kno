@@ -5,8 +5,6 @@
 
 ;;; Provides lightweight logging functions with levels, module-level
 ;;; control, etc
-(define version "$Id$")
-(define revision "$Revision$")
 
 (module-export!
  '{logger
