@@ -96,6 +96,13 @@ static void restore_sourcebase(u8_string old)
 }
 #endif
 
+static fdtype loading_symbol;
+static void record_error_source(u8_string sourceid)
+{
+  fdtype entry=fd_make_list(2,loading_symbol,fd_make_string(NULL,-1,sourceid));
+  fd_push_error_context("fd_load_source",entry);
+}
+
 FD_EXPORT fdtype fd_load_source
   (u8_string sourceid,fd_lispenv env,u8_string enc_name)
 {
@@ -126,9 +133,11 @@ FD_EXPORT fdtype fd_load_source
       else start_time=-1.0;
       result=fd_eval(expr,env);
       if (FD_ABORTP(result)) {
-	u8_log(LOG_ERR,(u8_condition)u8_current_exception,
-	       "Error in %s while evaluating %q",sourcebase,expr);
-	restore_sourcebase(outer_sourcebase);
+        if (FD_TROUBLEP(result)) {
+          u8_log(LOG_ERR,(u8_condition)u8_current_exception,
+                 "Error in %s while evaluating %q",sourcebase,expr);
+          record_error_source(sourceid);}
+        restore_sourcebase(outer_sourcebase);
 	u8_free(sourcebase);
 	u8_free(content);
 	fd_decref(last_expr); last_expr=FD_VOID;
@@ -147,10 +156,9 @@ FD_EXPORT fdtype fd_load_source
       fd_incref(last_expr); fd_incref(expr); fd_decref(result);
       fd_seterr(NULL,"fd_parse_expr",u8_strdup("just after"),
 		last_expr);
-      fd_push_error_context("fd_load_source",fd_lispstring(sourceid));
+      record_error_source(sourceid);
       result=expr;}
     else if (FD_ABORTP(expr)) {
-      fd_push_error_context("fd_load_source",fd_lispstring(sourceid));
       result=expr; fd_incref(expr); expr=FD_VOID;}
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_NOTICE,FileDone,"Loaded %s in %f seconds",
@@ -372,6 +380,7 @@ FD_EXPORT void fd_init_load_c()
 #endif
 
  after_symbol=fd_intern("AFTEREXPR");
+ loading_symbol=fd_intern("%LOADING");
  traceloadeval_symbol=fd_intern("%TRACELOADEVAL");
  
  fd_defspecial(fd_xscheme_module,"LOAD",load_source);
