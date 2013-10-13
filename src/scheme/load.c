@@ -147,8 +147,10 @@ FD_EXPORT fdtype fd_load_source
       fd_incref(last_expr); fd_incref(expr); fd_decref(result);
       fd_seterr(NULL,"fd_parse_expr",u8_strdup("just after"),
 		last_expr);
+      fd_push_error_context("fd_load_source",fd_lispstring(sourceid));
       result=expr;}
     else if (FD_ABORTP(expr)) {
+      fd_push_error_context("fd_load_source",fd_lispstring(sourceid));
       result=expr; fd_incref(expr); expr=FD_VOID;}
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_NOTICE,FileDone,"Loaded %s in %f seconds",
