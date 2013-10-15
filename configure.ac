@@ -83,6 +83,7 @@ WWWUSER="apache"
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
 apache_modinfo="/etc/apache2"
+APXS_FLAGS=
 A2EN="none"
 standard_module_path=""
 safe_module_path=""
@@ -195,11 +196,15 @@ AC_CHECK_USER(default_fdaemon,fdaemon daemon nobody)
 AC_CHECK_USER(default_daemon,xdaemon fdaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
 
+CFLAGS="$CFLAGS -I$prefix/include"
+
 AC_ARG_WITH(optinclude,--with-optinclude Use optional include directory,,with_optinclude="none")
 if test $with_optinclude != "none"; then
   CPPFLAGS="$CPPFLAGS -I$with_optinclude"
   CFLAGS="$CFLAGS -I$with_optinclude"
 fi
+
+LDFLAGS="$LDFLAGS -L$prefix/lib"
 
 AC_ARG_WITH(optlib,--with-optlib Use optional library directory,,with_optlib="none")
 if test $with_optlib != "none"; then
@@ -210,17 +215,13 @@ AC_ARG_WITH(optdir,--with-optdir Use optional header/lib,,with_optdir="/opt/loca
 if test -d $with_optdir/include; then
   CPPFLAGS="$CPPFLAGS -I$with_optdir/include"
   CFLAGS="$CFLAGS -I$with_optdir/include"
+  APXSFLAGS="$APXSFLAGS -I$with_optdir/include"
 fi
 if test -d $with_optdir/lib; then
   LDFLAGS="$LDFLAGS -L$with_optdir/lib"
 fi
 if test -d $with_optdir/bin; then
   PATH="$PATH:$with_optdir/bin"
-fi
-
-AC_ARG_WITH(optlib,--with-optlib Use optional library directory,,with_optlib="none")
-if test $with_optlib != "none"; then
-  LDFLAGS="$LDFLAGS -L$with_optlib"
 fi
 
 dnl Specifies an admin group; files written by installation scripts will be
@@ -309,7 +310,7 @@ case $host_os in
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
    vshared_suffix=$VERSION.dylib
-   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a"
+   APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
    ifmacosx=""
    setup_target="setup-osx"
    ;;
@@ -545,7 +546,7 @@ fi
 
 dnl Use a different directory for libu8
 AC_ARG_WITH(libu8,--with[out]-libu8 Use libu8 includes,,with_libu8="")
-if test "$with_libu8" != ""; then
+if test "x$with_libu8" != "x"; then
   CFLAGS="-I$with_libu8/include $CFLAGS"
   LDFLAGS="-L$with_libu8/lib $LDFLAGS"
   EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
