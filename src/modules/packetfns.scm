@@ -4,7 +4,7 @@
 (in-module 'packetfns)
 
 (module-export!
- '{packet->digits digits->packet
+ '{packet->digits digits->packet number->digits digits->number
    packetfns/base62 packetfns/base57 packetfns/base36 packetfns/base16
    packet/condense}) 
 
@@ -17,7 +17,8 @@
 (define packetfns/base16 "0123456789ABCDEF")
 
 (define (packet->digits packet (digits packetfns/base62))
-  (let ((num (string->number (packet->base16 packet) 16))
+  (let ((num (if (number? packet) packet
+		 (string->number (packet->base16 packet) 16)))
 	(base (length digits))
 	(result '()))
     (while (> num base)
@@ -35,6 +36,12 @@
 		       (base16->packet hex)
 		       (base16->packet (glom "0" hex)))))
       packet)))
+
+(define (digits->number string (digits packetfns/base62))
+  (let ((num 0) (base (length digits)) (i 0) (n (length string)))
+    (dotimes (i n)
+      (set! num (+ (* base num) (position (elt string i) digits))))
+    num))
 
 (define (packet/condense packet factor)
   (let* ((len (length packet))
