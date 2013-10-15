@@ -184,11 +184,11 @@
 	 (when detailsblock
 	   (h2* ((id "DETAILS")) "Details")
 	   (xmlblock PRE ((class "errdetails"))
-	     (xmlout (exception-details ex))))
+	     (xmlout (error-details exception))))
 	 (when irritantblock
 	   (h2* ((id "IRRITANT")) "Irritant")
 	   (xmlblock PRE ((class "irritant"))
-	     (xmlout (stringout (pprint irritant))))))))
+	     (xmlout (stringout (pprint (error-irritant exception)))))))))
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (mkpath fileroot "backtrace.html")))))
