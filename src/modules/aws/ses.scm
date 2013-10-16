@@ -70,10 +70,12 @@
     
     (debug%watch "SES/CALL" query)
     
-    (urlput (getopt opts 'endpoint ses-endpoint)
-	    (subseq (scripturl+ "" query) 1)
-	    "application/x-www-form-urlencoded"
-	    handle)))
+    (let ((response
+	   (urlput (getopt opts 'endpoint ses-endpoint)
+		   (subseq (scripturl+ "" query) 1)
+		   "application/x-www-form-urlencoded"
+		   handle)))
+      response)))
 
 
 

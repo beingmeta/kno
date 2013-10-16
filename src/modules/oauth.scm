@@ -154,8 +154,8 @@
 				 (get val 'realm) ", changes may be lost!"))
 		      (do-choices val
 			(store! oauth-servers (get val 'realm) val)))
-		     (else (error OAUTH:BADSPEC
-				  "Invalid OAUTH provider spec: " val)))))
+		     (else (irritant val OAUTH:BADSPEC
+				     "Invalid OAUTH provider spec")))))
 
 (define (thisurl)
   (tryif (req/get 'request_uri #f)
@@ -180,15 +180,15 @@
   (if (symbol? val) (getckey spec (config val))
       (if (string? val) val
 	  (if (packet? val) val
-	      (error OAUTH:NOCKEY "Can't determine consumer key: " spec)))))
+	      (irritant spec OAUTH:NOCKEY "Can't determine consumer key")))))
 (define (getcsecret spec (val))
   (default! val (getopt spec 'secret))
   (->secret
    (if (symbol? val) (getcsecret spec (config val))
        (if (string? val) val
 	   (if (packet? val) val
-	       (error OAUTH:NOCSECRET
-		      "Can't determine consumer secret: " spec))))))
+	       (irritant spec OAUTH:NOCSECRET
+			 "Can't determine consumer secret"))))))
 (define (getcallback spec)
   (getopt spec 'callback
 	  (req/get 'oauth_callback
@@ -265,8 +265,8 @@
 	       (getopt spec 'verify))
     ;; This should exit
     (logwarn OAUTH/REQUEST/BADSPEC "Invalid OAUTH spec: " spec)
-    (error OAUTH:BADSPEC OAUTH/REQUEST
-	   "Missing methods for OAuth 1.0 request " spec))
+    (irritant spec OAUTH:BADSPEC OAUTH/REQUEST
+	      "Missing methods for OAuth 1.0 request"))
   ;; We allow the nonce, time, etc to come from the spec
   ;;  to allow signature debugging
   (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
@@ -299,10 +299,10 @@
     (if (test req 'response 200)
 	(cons (cgiparse (get req '%content)) spec)
 	(begin (warn%watch "Can't get request token" spec req)
-	  (error OAUTH/REQFAILED OAUTH/REQUEST
-		 "Can't get request token for " (getopt spec 'realm)
-		 "\n\t" spec
-		 "\n\t" req)))))
+	  (irritant req
+		    OAUTH/REQFAILED OAUTH/REQUEST
+		    "Can't get request token for " (getopt spec 'realm)
+		    "given \n\t" spec)))))
 
 (define (oauth/authurl spec (scope #f))
   "Returns a URL for redirection and authorization and authentication. \
@@ -312,8 +312,7 @@
   (debug%watch "OAUTH/AUTHURL" spec (getcallback spec))
   (unless (and (getopt spec 'authenticate (getopt spec 'authorize))
 	       (or (getopt spec 'oauth_token) (getckey spec)))
-    (error OAUTH:BADSPEC OAUTH/AUTHURL
-	   "Incomplete OAUTH spec: " spec))
+    (irritant spec OAUTH:BADSPEC OAUTH/AUTHURL "Incomplete OAUTH spec"))
   (if (testopt spec 'version "1.0")
       (scripturl+ (if scope
 		      (getopt spec 'authorize (getopt spec 'authenticate))
@@ -338,16 +337,16 @@
   (unless (and (getopt spec 'request)
 	       (getopt spec 'authorize)
 	       (getopt spec 'verify))
-    (error OAUTH:BADSPEC OAUTH/VERIFY "Invalid OAUTH1.0 spec: " spec))
+    (irritant spec OAUTH:BADSPEC OAUTH/VERIFY "Invalid OAUTH1.0 spec"))
   (debug%watch "OAUTH/VERIFY/1.0" verifier spec)
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (unless (getopt spec 'oauth_token)
     (logwarn OAUTH/VERIFY:NOTOKEN "No OAUTH token in " spec)
-    (error OAUTH:NOTOKEN OAUTH/VERIFY "No OAUTH token in " spec))
+    (irritant spec OAUTH:NOTOKEN OAUTH/VERIFY "No OAUTH token"))
   (unless verifier
     (logwarn OAUTH/VERIFY:NOVERIFIER "No OAUTH verifier for " spec)
-    (error OAUTH:NOVERIFIER OAUTH/VERIFY "No OAUTH verifier"))
+    (irritant spec OAUTH:NOVERIFIER OAUTH/VERIFY "No OAUTH verifier"))
   (let* ((nonce (uuid->string (getuuid)))
 	 (endpoint (getopt spec 'verify default-verify-endpoint))
 	 (callback (uriencode (getcallback spec)))
@@ -389,7 +388,7 @@
 	    ((getopt spec 'noverify) spec verifier req)
 	    (begin
 	      (logwarn OAUTH/VERIFY:REQFAIL spec req)
-	      (error OAUTH:REQFAIL OAUTH:VERIFY "Web call failed" req))))))
+	      (irritant req OAUTH:REQFAIL OAUTH:VERIFY "Web call failed"))))))
 
 (define (oauth/getaccess spec (code) (ckey) (csecret) (verifier))
   (set! spec (oauth/spec spec))
@@ -439,19 +438,19 @@
 		   "OAUTH/GETACCESS failed " spec " ==> " req)
 	  (if (getopt spec 'noverify)
 	      ((getopt spec 'noverify) spec verifier req)
-	      (error OAUTH:REQFAIL OAUTH/GETACCESS
-		     "Web call failed: " req))))))
+	      (irritant req OAUTH:REQFAIL OAUTH/GETACCESS
+			"Web call failed"))))))
 
 ;;; Actually calling the API
 
 (define (oauth/call10 spec method endpoint args ckey csecret)
   (debug%watch "OAUTH/CALL1.0" method endpoint args)
   (unless (getopt spec 'token)
-    (error OAUTH:NOTOKEN OAUTH/CALL
-	   "No OAUTH token for OAuth1.0 call in " spec))
+    (irritant spec OAUTH:NOTOKEN OAUTH/CALL
+	      "No OAUTH token for OAuth1.0 call"))
   (unless (getopt spec 'oauth_secret)
-    (error OAUTH:NOSECRET OAUTH/CALL
-	   "No OAUTH secret for OAuth1.0 call in " spec))
+    (irritant spec OAUTH:NOSECRET OAUTH/CALL
+	      "No OAUTH secret for OAuth1.0 call"))
   (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
 	 (endpoint (or endpoint
 		       (getopt args 'endpoint
@@ -513,15 +512,15 @@
     (if (and (test req 'response) (number? (get req 'response))
 	     (<= 200 (get req 'response) 299))
 	(getreqdata req)
-	(error OAUTH:REQFAIL OAUTH/CALL1.0
-	       "Failed to " method " at " endpoint
-	       " with " args "\n\t" spec "\n\t" req))))
+	(irritant req OAUTH:REQFAIL OAUTH/CALL1.0
+		  "Failed to " method " at " endpoint
+		  " with " args "\n\t" spec))))
 
 (define (oauth/call20 spec method endpoint args ckey csecret (expires))
   (debug%watch "OAUTH/CALL2.0" method endpoint args ckey csecret)
   (unless (getopt spec 'token)
-    (error OAUTH:NOTOKEN OAUTH/CALL
-	   "No OAUTH token for OAuth2 call in " spec))
+    (irritant spec OAUTH:NOTOKEN OAUTH/CALL
+	      "No OAUTH token for OAuth2 call"))
   (default! expires (getopt spec 'expires))
   (when (and expires (time-earlier? expires)) (oauth/refresh! spec))
   (let* ((endpoint (or endpoint
@@ -572,9 +571,9 @@
 	      (debug%watch 'OAUTH/ERROR "RESPONSE" response req)
 	      (oauth/refresh! spec)
 	      (oauth/call20 spec method endpoint args ckey csecret))
-	    (error OAUTH:REQFAIL OAUTH/CALL2
-		   method " at " endpoint " with " args
-		   "\n\t" spec "\n\t" req)))))
+	    (irritant req OAUTH:REQFAIL OAUTH/CALL2
+		      method " at " endpoint " with " args
+		      "\n\t" spec)))))
 
 (define (args->post args (first #t) (elt #f))
   (if (not (pair? args)) (set! args (list args)))
@@ -603,8 +602,8 @@
 
 (define (oauth/refresh! spec)
   (unless (getopt spec 'refresh)
-    (error OAUTH:NOREFRESH OAUTH/REFRESH!
-	   "No OAUTH2 refresh key in " spec))
+    (irritant spec OAUTH:NOREFRESH OAUTH/REFRESH!
+	      "No OAUTH2 refresh key"))
   (unless (pair? spec) (set! spec (oauth/spec spec)))
   (let* ((endpoint (getopt spec 'access (getopt spec 'authorize)))
 	 (auth-header
@@ -637,8 +636,8 @@
 	    (drop! head 'expires) (drop! head 'refresh))
 	  (when getuser (getuser spec))
 	  spec)
-	(error OAUTH:NOREFRESH OAUTH/REFRESH!
-	       "Can't refresh token" spec req))))
+	(irritant req OAUTH:NOREFRESH OAUTH/REFRESH!
+		  "Can't refresh token" spec))))
 
 ;;; Generic call function
 
@@ -662,9 +661,9 @@
   (let ((ckey (getckey spec))
 	(csecret (getcsecret spec)))
     (unless (getopt spec 'oauth_token)
-      (error "OAUTH/CALL: No OAUTH token: " spec))
+      (irritant spec |OAUTH/Missing| OAUTH/CALLSIG "No OAUTH token"))
     (unless (getopt spec 'oauth_secret)
-      (error "OAUTH/CALL: No OAUTH secret: " spec))
+      (irritant spec |OAUTH/Missing| OAUTH/CALLSIG "No OAUTH secret"))
     (let* ((nonce (getopt spec 'nonce (uuid->string (getuuid))))
 	   (endpoint (or endpoint
 			 (getopt args 'endpoint
