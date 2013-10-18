@@ -7,6 +7,7 @@
 
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
+#include "framerd/support.h"
 #include "framerd/numbers.h"
 #include "framerd/eval.h"
 #include "framerd/fddb.h"
@@ -312,16 +313,10 @@ static void report_status()
   if (statlog) fflush(statlog);
 }
 
-static void setup_statlog(char *socketfile)
+static void setup_statlog()
 {
   if (statlogfile==NULL) {
-    char *dot=strrchr(socketfile,'.'), *statfile;
-    if (dot) {
-      int newlen=(dot-socketfile)+7;
-      statfile=u8_malloc(newlen+1);
-      strncpy(statfile,socketfile,(dot-socketfile));
-      strcpy(statfile+(dot-socketfile),".status");}
-    else statfile=u8_string_append(socketfile,".status",NULL);
+    u8_string statfile=fd_runbase_filename(".status");
     statlogfile=statfile;}
 }
 
@@ -474,40 +469,37 @@ static fdtype servlet_status()
 
 /* Writing the PID file */
 
-static int check_pid_file(char *sockname)
+static int check_pid_file()
 {
-  int fd, rv; u8_string dir=NULL; char buf[128]; 
-  char *dot=strchr(sockname,'.');
-  if (dot) *dot='\0';
-  if (sockname[0]!='/') dir=u8_getcwd();
-  pidfile=u8_string_append(dir,((dir)?"/":""),sockname,".pid",NULL);
-  if (dot) *dot='.'; if (dir) u8_free(dir);
-  fd=open(pidfile,O_WRONLY|O_CREAT|O_EXCL,644);
+  char buf[128];
+  u8_string pid_file=fd_runbase_filename(".pid");
+  int fd=open(pid_file,O_WRONLY|O_CREAT|O_EXCL,644), rv;
   if (fd<0) {
     struct stat fileinfo;
-    int rv=stat(pidfile,&fileinfo);
+    int rv=stat(pid_file,&fileinfo);
     if (rv<0) {
       u8_log(LOG_CRIT,"Can't write file",
-	     "Couldn't write file","Couldn't write PID file %s",pidfile);
+	     "Couldn't write file","Couldn't write PID file %s",pid_file);
       return 0;}
     else if ((!(ignore_leftovers))&&
 	     (((time(NULL))-(fileinfo.st_mtime))<FD_LEFTOVER_AGE)) {
       u8_log(LOG_CRIT,"Race Condition",
 	     "Current pidfile (%s) too young to replace",
-	     pidfile);
+	     pid_file);
       return 0;}
     else {
-      remove(pidfile);
-      fd=open(pidfile,O_WRONLY|O_CREAT|O_EXCL,644);
+      remove(pid_file);
+      fd=open(pid_file,O_WRONLY|O_CREAT|O_EXCL,644);
       if (fd<0) {
 	u8_log(LOG_CRIT,"Couldn't write file",
-	       "Couldn't write PID file %s",pidfile);
+	       "Couldn't write PID file %s",pid_file);
 	return 0;}}}
   sprintf(buf,"%d",getpid());
   if ((u8_writeall(fd,buf,strlen(buf)))<0)
     u8_log(LOG_CRIT,"Couldn't write file",
-	   "Couldn't write data to PID file %s",pidfile);
+	   "Couldn't write data to PID file %s",pid_file);
   close(fd);
+  pidfile=pid_file;
   return 1;
 }
 
@@ -1365,7 +1357,9 @@ int main(int argc,char **argv)
   while (i<argc)
     if (strchr(argv[i],'=')) i++;
     else if (socket_spec) i++;
-    else socket_spec=argv[i++];
+    else {
+      socket_spec=argv[i++];
+      fd_setapp(socket_spec);}
   i=1;
 
   u8_init_mutex(&server_port_lock);
@@ -1521,10 +1515,10 @@ int main(int argc,char **argv)
     u8_uuid tmp=u8_getuuid(NULL);
     server_id=u8_uuidstring(tmp,NULL);}
 
-  if (!(check_pid_file(server_id)))
+  if (!(check_pid_file()))
     exit(EXIT_FAILURE);
 
-  setup_statlog(server_id);
+  setup_statlog();
   
   u8_log(LOG_DEBUG,Startup,"Updating preloads");
   /* Initial handling of preloads */

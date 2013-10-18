@@ -133,6 +133,10 @@ FD_EXPORT void fd_use_reqinfo(fdtype reqinfo);
 FD_EXPORT fdtype fd_push_reqinfo(fdtype reqinfo);
 FD_EXPORT int fd_isreqlive(void);
 
+/* Sets the application identifier and runbase */
+
+FD_EXPORT void fd_setapp(u8_string spec);
+
 /* Runbase */
 
 FD_EXPORT u8_string fd_runbase_filename(u8_string suffix);

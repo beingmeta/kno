@@ -7,6 +7,7 @@
 
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
+#include "framerd/support.h"
 #include "framerd/tables.h"
 #include "framerd/fddb.h"
 #include "framerd/eval.h"
@@ -827,7 +828,7 @@ int main(int argc,char **argv)
     else if (source_file) i++;
     else {
       source_file=u8_fromlibc(argv[i++]);
-      u8_default_appid(source_file);}
+      fd_setapp(source_file);}
 
   if (source_file) {
     /* The source file is loaded into a full (non sandbox environment).
@@ -893,20 +894,9 @@ int main(int argc,char **argv)
 
     /* Now, write the state files.  */
     {
-      u8_string bname=u8_basename(source_file,".fdz");
-      u8_string fullname=u8_abspath(bname,NULL);
-      u8_string appid=u8_basename(u8_appid(),"*");
       FILE *f;
-      /* Get state files and write info */
-      if ((state_dir) && (appid)) {
-	u8_string pid_name=u8_mkstring("%s.pid",appid);
-	u8_string nid_name=u8_mkstring("%s.nid",appid);
-	pid_file=u8_mkpath(state_dir,pid_name);
-	nid_file=u8_mkpath(state_dir,nid_name);
-	u8_free(pid_name); u8_free(nid_name);}
-      else {	
-	pid_file=u8_string_append(fullname,".pid",NULL);
-	nid_file=u8_string_append(fullname,".nid",NULL);}
+      pid_file=fd_runbase_filename(".pid");
+      nid_file=fd_runbase_filename(".pid");
       atexit(cleanup_state_files);
       /* Write the PID file */
       f=u8_fopen(pid_file,"w");
@@ -937,8 +927,7 @@ int main(int argc,char **argv)
 		   dtype_server.server_info[i].idstring);
 	    i++;}}
 	else u8_log(LOG_NOTICE,ServerStartup,"temp.socket\n");
-	errno=0;}
-      u8_free(fullname); u8_free(bname);}
+	errno=0;}}
     u8_free(source_file);
     source_file=NULL;}
   else {

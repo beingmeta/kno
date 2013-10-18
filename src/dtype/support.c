@@ -1467,6 +1467,27 @@ static int config_setrunbase(fdtype var,fdtype val,void *data)
   else return fd_type_error(_("string"),"config_setrunbase",val);
 }
 
+/* fd_setapp */
+
+FD_EXPORT void fd_setapp(u8_string spec)
+{
+  if (strchr(spec,'/')) {
+    u8_string fullpath=
+      ((spec[0]=='/')?((u8_string)(u8_strdup(spec))):(u8_abspath(spec,NULL)));
+    u8_string base=u8_basename(spec,"*"), dir=u8_dirname(fullpath);
+    u8_identify_application(base);
+    runbase=u8_mkpath(dir,base);
+    u8_free(dir); u8_free(base); u8_free(fullpath);}
+  else {
+    u8_byte *atpos=strchr(spec,'@');
+    u8_string appid=((atpos)?(u8_slice(spec,atpos)):
+                     ((u8_string)(u8_strdup(spec))));
+    u8_string wd=u8_getcwd();
+    u8_identify_application(appid);
+    runbase=u8_mkpath(wd,appid);
+    u8_free(appid); u8_free(wd);}
+}
+
 /* Accessing source file registry */
 
 static void add_source_file(u8_string s,void *vp)
