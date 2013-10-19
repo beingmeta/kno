@@ -118,10 +118,10 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     ${SUNDOWN_OBJS}
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
-	    exe/fdserv@suffix@ exe/fdserver@suffix@ exe/fdmanager@suffix@
+	    exe/fdservlet@suffix@ exe/fdserver@suffix@ exe/fdmanager@suffix@
 STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
 	static/fdbatch@suffix@ \
-	static/fdserv@suffix@ static/fdserver@suffix@ \
+	static/fdservlet@suffix@ static/fdserver@suffix@ \
 	static/fdmanager@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
@@ -173,7 +173,7 @@ FRAMERD_SOURCES=\
 	include/framerd/tagger.h                                           \
 	src/exe/fdconsole.c                                            \
 	src/exe/fdexec.c src/exe/fdbatch.c                             \
-	src/exe/fdserv.c src/exe/fdcgiexec.c src/exe/fdserver.c
+	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
 
 CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
@@ -345,9 +345,9 @@ static/%@suffix@: src/exe/%.c $(STATIC_LIBS)
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdserv@suffix@: \
+exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdservlet@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/fdcgiexec@suffix@ exe/fdserv@suffix@: src/exe/webcommon.h
+exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
 
 lib/%@suffix@.a:
 	@$(MKSTATIC) $@ $^
@@ -528,7 +528,7 @@ clean: tidy
 	rm -f lib/framerd/*@suffix@.so lib/framerd/*@suffix@.so.* 
 	rm -f lib/framerd/*.dylib
 	rm -f exe/fdexec@suffix@ exe/fdbatch@suffix@
-	rm -f exe/fdserv@suffix@ exe/fdserver@suffix@
+	rm -f exe/fdservlet@suffix@ exe/fdserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f exe/fdmanager@suffix@
 	rm -f src/exe/fdversion.h
@@ -578,7 +578,7 @@ lib/libfdbserv@suffix@.@FDVERSION@.dylib: $(FDBSERV_OBJS) \
 	lib/libfdtype@suffix@.@FDVERSION@.dylib
 	@$(MACLIBTOOL) -install_name $(@F) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
-lib/libfdserv@suffix@.dylib: lib/libfdbserv@suffix@.@FDVERSION@.dylib
+lib/libfdbserv@suffix@.dylib: lib/libfdbserv@suffix@.@FDVERSION@.dylib
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
 lib/libfdscheme@suffix@.so.@FDVERSION@: $(SCHEME_OBJS)
@@ -877,6 +877,8 @@ install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
 	@$(SUDO) rm -f $(BININSTALLDIR)/fdbserver
 	@$(SUDO) ln -s $(BININSTALLDIR)/fdserver $(BININSTALLDIR)/fdbserver
+	@$(SUDO) rm -f $(BININSTALLDIR)/fdserv
+	@$(SUDO) ln -s $(BININSTALLDIR)/fdservlet $(BININSTALLDIR)/fdserv
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
@@ -1935,20 +1937,20 @@ src/exe/fdbatch.o: ./include/framerd/indices.h ./include/framerd/frames.h
 src/exe/fdbatch.o: ./include/framerd/dbfile.h ./include/framerd/eval.h
 src/exe/fdbatch.o: ./include/framerd/apply.h ./include/framerd/ports.h
 src/exe/fdbatch.o: src/exe/main.h src/exe/fdversion.h
-src/exe/fdserv.o: ./include/framerd/dtype.h ./include/framerd/common.h
-src/exe/fdserv.o: ./include/framerd/defines.h ./include/framerd/config.h
-src/exe/fdserv.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
-src/exe/fdserv.o: ./include/framerd/support.h ./include/framerd/ptr.h
-src/exe/fdserv.o: ./include/framerd/cons.h ./include/framerd/choices.h
-src/exe/fdserv.o: ./include/framerd/tables.h ./include/framerd/tables.h
-src/exe/fdserv.o: ./include/framerd/numbers.h ./include/framerd/eval.h
-src/exe/fdserv.o: ./include/framerd/apply.h ./include/framerd/fddb.h
-src/exe/fdserv.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
-src/exe/fdserv.o: ./include/framerd/pools.h ./include/framerd/fddb.h
-src/exe/fdserv.o: ./include/framerd/indices.h ./include/framerd/frames.h
-src/exe/fdserv.o: ./include/framerd/fdweb.h ./include/framerd/ports.h
-src/exe/fdserv.o: ./include/framerd/fileprims.h src/exe/main.h
-src/exe/fdserv.o: src/exe/fdversion.h src/exe/webcommon.h
+src/exe/fdservlet.o: ./include/framerd/dtype.h ./include/framerd/common.h
+src/exe/fdservlet.o: ./include/framerd/defines.h ./include/framerd/config.h
+src/exe/fdservlet.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h
+src/exe/fdservlet.o: ./include/framerd/support.h ./include/framerd/ptr.h
+src/exe/fdservlet.o: ./include/framerd/cons.h ./include/framerd/choices.h
+src/exe/fdservlet.o: ./include/framerd/tables.h ./include/framerd/tables.h
+src/exe/fdservlet.o: ./include/framerd/numbers.h ./include/framerd/eval.h
+src/exe/fdservlet.o: ./include/framerd/apply.h ./include/framerd/fddb.h
+src/exe/fdservlet.o: ./include/framerd/dtypestream.h ./include/framerd/dtype.h
+src/exe/fdservlet.o: ./include/framerd/pools.h ./include/framerd/fddb.h
+src/exe/fdservlet.o: ./include/framerd/indices.h ./include/framerd/frames.h
+src/exe/fdservlet.o: ./include/framerd/fdweb.h ./include/framerd/ports.h
+src/exe/fdservlet.o: ./include/framerd/fileprims.h src/exe/main.h
+src/exe/fdservlet.o: src/exe/fdversion.h src/exe/webcommon.h
 src/exe/fdcgiexec.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/exe/fdcgiexec.o: ./include/framerd/defines.h ./include/framerd/config.h
 src/exe/fdcgiexec.o: ./include/framerd/malloc.h ./include/framerd/dtypeio.h

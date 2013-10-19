@@ -37,7 +37,7 @@ TESTCONFIG	=
 RUNTEST		= $(RUNENV)$(TESTPROG)
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
 
-TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdserv fdcgiexec # fdsh
+TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdservlet fdcgiexec # fdsh
 
 all: $(TESTBIN) 
 
@@ -75,7 +75,7 @@ $(TESTBIN): $(EXTRA_LIBS) \
 %: %.c $(EXTRA_LIBS) $(CORE_LIBS)
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(EXTRA_LIBS) $(CORE_LIBS) $(LIBS) -lu8stdio
 	@echo MKTEST_STATIC $@
-fdserv: ../../src/exe/webcommon.h
+fdservlet: ../../src/exe/webcommon.h
 fdcgiexec: ../../src/exe/webcommon.h
 
 clean: testclean

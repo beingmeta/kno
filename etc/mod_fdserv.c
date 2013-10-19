@@ -1021,7 +1021,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 		       (dconfig->server_executable) :
 		       (sconfig->server_executable) ?
 		       (sconfig->server_executable) :
-		       "/usr/bin/fdserv");
+		       "/usr/bin/fdservlet");
   const char **server_configs=(sconfig->config_args);
   const char **dir_configs=(dconfig->config_args);
   const char **server_env=(sconfig->servlet_env);

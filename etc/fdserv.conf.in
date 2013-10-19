@@ -1,6 +1,6 @@
 <IfModule mod_fdserv.c>
         AddHandler fdservlet .fdcgi .fdxml
-	FDServletExecutable @prefix@/bin/fdserv
+	FDServletExecutable @prefix@/bin/fdservlet
 	FDServletUser @webuser@
 	FDServletGroup @admin_group@
 	FDServletPrefix @rundir@/fdserv

@@ -21,7 +21,7 @@ static int trace_cgidata=0;
 static int use_threadcache=0;
 
 /* When non-null, this overrides the document root coming from the
-   server.  It is for cases where fdserv is running on a different
+   server.  It is for cases where fdservlet is running on a different
    machine than the HTTP server. */
 static u8_string docroot=NULL;
 

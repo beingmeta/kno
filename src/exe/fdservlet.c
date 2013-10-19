@@ -42,7 +42,7 @@
 /* This is the size of file to return all at once. */
 #define FD_FILEBUF_MAX (256*256)
 
-static u8_condition Startup=_("FDSERV Startup");
+static u8_condition Startup=_("FDServlet Startup");
 
 FD_EXPORT int fd_init_fddbserv(void);
 
@@ -98,7 +98,7 @@ static int max_backlog=-1;
    away, so we can start another server.  */
 static int shutdown_grace=30000000; /* 30 seconds */
 
-static u8_condition fdservWriteError="fdserv write error";
+static u8_condition fdservWriteError="FDServelt write error";
 
 /* STATLOG config */
 
@@ -205,7 +205,7 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 	       stdev(stats->tsum,stats->tsum2,stats->tcount),
 	       stats->tcount);
     if (log_status>0)
-      u8_log(log_status,"fdserv",STATUS_LINEX,src,"busy",
+      u8_log(log_status,"FDServlet",STATUS_LINEX,src,"busy",
 	     getmean(stats->tsum,stats->tcount),
 	     stats->tmax,
 	     stdev(stats->tsum,stats->tsum2,stats->tcount),
@@ -217,7 +217,7 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 	       stdev(stats->qsum,stats->qsum2,stats->qcount),
 	       stats->qcount);
     if (log_status>0)
-      u8_log(log_status,"fdserv",STATUS_LINEX,src,"queued",
+      u8_log(log_status,"FDServlet",STATUS_LINEX,src,"queued",
 	     getmean(stats->qsum,stats->qcount),stats->qmax,
 	     stdev(stats->qsum,stats->qsum2,stats->qcount),
 	     stats->qcount);}
@@ -228,7 +228,7 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 	       stdev(stats->rsum,stats->rsum2,stats->rcount),
 	       stats->rcount);
     if (log_status>0)
-      u8_log(log_status,"fdserv",STATUS_LINEX,src,"read",
+      u8_log(log_status,"FDServlet",STATUS_LINEX,src,"read",
 	     getmean(stats->rsum,stats->rcount),stats->rmax,
 	     stdev(stats->rsum,stats->rsum2,stats->rcount),
 	     stats->rcount);}
@@ -239,7 +239,7 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 	       stdev(stats->wsum,stats->wsum2,stats->wcount),
 	       stats->wcount);
     if (log_status>0)
-      u8_log(log_status,"fdserv",STATUS_LINEX,src,"write",
+      u8_log(log_status,"FDServlet",STATUS_LINEX,src,"write",
 	     getmean(stats->wsum,stats->wcount),stats->wmax,
 	     stdev(stats->wsum,stats->wsum2,stats->wcount),
 	     stats->wcount);}
@@ -250,7 +250,7 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 	       stdev(stats->xsum,stats->xsum2,stats->xcount),
 	       stats->xcount);
     if (log_status>0)
-      u8_log(log_status,"fdserv",STATUS_LINEX,src,"run",
+      u8_log(log_status,"FDServlet",STATUS_LINEX,src,"run",
 	     getmean(stats->xsum,stats->xcount),stats->xmax,
 	     stdev(stats->xsum,stats->xsum2,stats->xcount),
 	     stats->xcount);}
@@ -297,7 +297,7 @@ static void report_status()
 	     fdwebserver.n_busy,fdwebserver.n_queued,
 	     fdwebserver.n_clients,fdwebserver.n_threads);
   if (log_status>0)
-    u8_log(log_status,"fdserv",STATUS_LINE1,elapsed,
+    u8_log(log_status,"FDServlet",STATUS_LINE1,elapsed,
 	   fdwebserver.n_busy,fdwebserver.n_queued,
 	   fdwebserver.n_clients,fdwebserver.n_threads);
 
@@ -684,13 +684,13 @@ static int webservefn(u8_client ucl)
     cgidata=fd_dtsread_dtype(stream);
     if (cgidata==FD_EOD) {
       if (traceweb>0)
-	u8_log(LOG_NOTICE,"FDSERV/webservefn","Client %s (sock=%d) closing",
+	u8_log(LOG_NOTICE,"FDServlet/webservefn","Client %s (sock=%d) closing",
 	       client->idstring,client->socket);
       u8_client_close(ucl);
       return -1;}
     else if (!(FD_TABLEP(cgidata))) {
-      u8_log(LOG_CRIT,"FDSERV/webservefn",
-	     "Bad fdserv request on client %s (sock=%d), closing",
+      u8_log(LOG_CRIT,"FDServlet/webservefn",
+	     "Bad fdservlet request on client %s (sock=%d), closing",
 	     client->idstring,client->socket);
       u8_client_close(ucl);
       return -1;}
@@ -804,13 +804,13 @@ static int webservefn(u8_client ucl)
     if ((!(FD_VOIDP(content)))&&
 	(!((FD_STRINGP(content))||(FD_PACKETP(content))))) {
       fd_decref(result);
-      result=fd_err(fd_TypeError,"fdserv_content","string or packet",
+      result=fd_err(fd_TypeError,"FDServlet/content","string or packet",
 		    content);}
     if ((!(FD_VOIDP(retfile)))&&
 	((!(FD_STRINGP(retfile)))||
 	 (!(u8_file_existsp(FD_STRDATA(retfile)))))) {
       fd_decref(result);
-      result=fd_err(u8_CantOpenFile,"fdserv_retfile","existing filename",
+      result=fd_err(u8_CantOpenFile,"FDServlet/retfile","existing filename",
 		    retfile);}}
   if (!(FD_TROUBLEP(result))) u8_set_default_output(NULL);
   else recovered=0;
@@ -1005,7 +1005,7 @@ static int webservefn(u8_client ucl)
 	if ((async)&&(total_len<FD_FILEBUF_MAX))
 	  filebuf=u8_malloc(total_len);
 	if (filebuf) {
-	  /* This is the case where we hand off a buffer to fdserv
+	  /* This is the case where we hand off a buffer to mod_fdserv
 	     to write for us. */
 	  unsigned char *write=filebuf+http_len;
 	  off_t to_read=fileinfo.st_size;
@@ -1185,7 +1185,7 @@ static void shutdown_server(u8_condition reason)
     if (!(spec)) {}
     else if (strchr(spec,'/')) {
       if (remove(spec)<0) 
-	u8_log(LOG_WARN,"FDSERV/shutdown",
+	u8_log(LOG_WARN,"FDServlet/shutdown",
 	       "Couldn't remove portfile %s",spec);
       u8_free(spec); ports[i]=NULL;}
     else {u8_free(spec); ports[i]=NULL;}
@@ -1196,7 +1196,7 @@ static void shutdown_server(u8_condition reason)
   if (pidfile) {
     int retval=u8_removefile(pidfile);
     if (retval<0) 
-      u8_log(LOG_WARN,"FDSERV/shutdown","Couldn't remove pid file %s",pidfile);
+      u8_log(LOG_WARN,"FDServlet/shutdown","Couldn't remove pid file %s",pidfile);
     u8_free(pidfile);}
   pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
@@ -1319,15 +1319,15 @@ static int start_servers()
       if (stealsockets) {
 	int retval=u8_removefile(port);
 	if (retval<0)
-	  u8_log(LOG_WARN,"FDSERV/start","Couldn't remove socket file %s",
+	  u8_log(LOG_WARN,"FDServlet/start","Couldn't remove socket file %s",
 		 port);}
       else {
-	u8_log(LOG_WARN,"FDSERV/start","Socket file %s already exists",
+	u8_log(LOG_WARN,"FDServlet/start","Socket file %s already exists",
 	       port);}}}
   i=0; while (i<lim) {
     int retval=add_server(ports[i]);
     if (retval<0) {
-      u8_log(LOG_CRIT,"FDSERV/START","Couldn't start server %s",ports[i]);
+      u8_log(LOG_CRIT,"FDServlet/START","Couldn't start server %s",ports[i]);
       u8_clear_errors(1);}
     i++;}
   server_running=1;
@@ -1500,7 +1500,7 @@ int main(int argc,char **argv)
   fd_init_mutex(&log_lock);
 #endif
 
-  u8_log(LOG_NOTICE,"LAUNCH","fdserv %s",socket_spec);
+  u8_log(LOG_NOTICE,"LAUNCH","FDServlet %s",socket_spec);
 
   /* Process the config statements */
   while (i<argc)
@@ -1579,28 +1579,28 @@ int main(int argc,char **argv)
   /* We check this now, to kludge around some race conditions */
   if ((file_socket)&&(u8_file_existsp(socket_spec))) {
     if (((time(NULL))-(u8_file_mtime(socket_spec)))<FD_LEFTOVER_AGE) {
-      u8_log(LOG_CRIT,"FDSERV/SOCKETRACE",
+      u8_log(LOG_CRIT,"FDServlet/SOCKETRACE",
 	     "Aborting due to recent socket file %s",socket_spec);
       return -1;}
     else {
-      u8_log(LOG_WARN,"FDSERV/SOCKETZAP",
+      u8_log(LOG_WARN,"FDServlet/SOCKETZAP",
 	     "Removing leftover socket file %s",socket_spec);
       remove(socket_spec);}}
 
   update_preloads();
 
   if (start_servers()<=0) {
-    u8_log(LOG_CRIT,"FDSERV/STARTUP","Startup failed");
+    u8_log(LOG_CRIT,"FDServlet/STARTUP","Startup failed");
     exit(1);}
 
   u8_log(LOG_INFO,NULL,
-	 "FramerD (%s) fdserv servlet running, %d/%d pools/indices",
+	 "FramerD (%s) FDServlet running, %d/%d pools/indices",
 	 FRAMERD_REV,fd_n_pools,
 	 fd_n_primary_indices+fd_n_secondary_indices);
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2013, all rights reserved");
   u8_server_loop(&fdwebserver);
 
-  u8_message("fdserv, normal exit of u8_server_loop()");
+  u8_message("FDServlet, normal exit of u8_server_loop()");
   
   shutdown_server("exit");
 
