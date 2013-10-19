@@ -1357,13 +1357,11 @@ int main(int argc,char **argv)
   while (i<argc)
     if (strchr(argv[i],'=')) i++;
     else if (socket_spec) i++;
-    else {
-      socket_spec=argv[i++];
-      fd_setapp(socket_spec);}
+    else socket_spec=argv[i++];
   i=1;
-
+  
   u8_init_mutex(&server_port_lock);
-
+  
   if (socket_spec) {
     ports=u8_malloc(sizeof(u8_string)*8);
     max_ports=8; n_ports=1;
@@ -1510,6 +1508,8 @@ int main(int argc,char **argv)
       u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i]);
       fd_config_assignment(argv[i++]);}
     else i++;
+
+  fd_setapp(socket_spec,NULL);
 
   if (!(server_id)) {
     u8_uuid tmp=u8_getuuid(NULL);

@@ -817,7 +817,7 @@ int main(int argc,char **argv)
   fd_idefn((fdtype)core_env,fd_make_cprim0("ASYNCOK?",asyncok,0));
   fd_idefn((fdtype)core_env,
 	   fd_make_cprim0("SERVER-STATUS",get_server_status,0));
-
+  
   /* And create the exposed environment */
   exposed_environment=fd_make_env(fd_incref(fd_fdbserv_module),core_env);
   
@@ -826,10 +826,10 @@ int main(int argc,char **argv)
     if (strchr(argv[i],'=')) 
       fd_config_assignment(argv[i++]);
     else if (source_file) i++;
-    else {
-      source_file=u8_fromlibc(argv[i++]);
-      fd_setapp(source_file);}
+    else source_file=u8_fromlibc(argv[i++]);
 
+  fd_setapp(source_file,state_dir);
+  
   if (source_file) {
     /* The source file is loaded into a full (non sandbox environment).
        It's exports are then exposed through the server. */

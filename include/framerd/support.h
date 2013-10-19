@@ -135,7 +135,7 @@ FD_EXPORT int fd_isreqlive(void);
 
 /* Sets the application identifier and runbase */
 
-FD_EXPORT void fd_setapp(u8_string spec);
+FD_EXPORT void fd_setapp(u8_string spec,u8_string dir);
 
 /* Runbase */
 

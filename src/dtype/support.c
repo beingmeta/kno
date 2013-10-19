@@ -1469,23 +1469,31 @@ static int config_setrunbase(fdtype var,fdtype val,void *data)
 
 /* fd_setapp */
 
-FD_EXPORT void fd_setapp(u8_string spec)
+FD_EXPORT void fd_setapp(u8_string spec,u8_string statedir)
 {
   if (strchr(spec,'/')) {
     u8_string fullpath=
       ((spec[0]=='/')?((u8_string)(u8_strdup(spec))):(u8_abspath(spec,NULL)));
-    u8_string base=u8_basename(spec,"*"), dir=u8_dirname(fullpath);
+    u8_string base=u8_basename(spec,"*");
     u8_identify_application(base);
-    runbase=u8_mkpath(dir,base);
-    u8_free(dir); u8_free(base); u8_free(fullpath);}
+    if (statedir) runbase=u8_mkpath(statedir,base);
+    else {
+      u8_string dir=u8_dirname(fullpath);
+      runbase=u8_mkpath(dir,base);
+      u8_free(dir);}
+    u8_free(base); u8_free(fullpath);}
   else {
     u8_byte *atpos=strchr(spec,'@');
     u8_string appid=((atpos)?(u8_slice(spec,atpos)):
                      ((u8_string)(u8_strdup(spec))));
-    u8_string wd=u8_getcwd();
     u8_identify_application(appid);
-    runbase=u8_mkpath(wd,appid);
-    u8_free(appid); u8_free(wd);}
+    if (statedir) 
+      runbase=u8_mkpath(statedir,appid);
+    else {
+      u8_string wd=u8_getcwd();
+      runbase=u8_mkpath(wd,appid);
+      u8_free(wd);}
+    u8_free(appid);}
 }
 
 /* Accessing source file registry */
