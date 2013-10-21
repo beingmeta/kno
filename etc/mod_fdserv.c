@@ -21,6 +21,10 @@
 #include "mpm_common.h"
 #include "netdb.h"
 
+#if ((AP_SERVER_MAJORVERSION_NUMBER<=2)&&(AP_SERVER_MINORVERSION_NUMBER<4))
+#define ap_unixd_config unixd_config
+#endif
+
 #ifndef DEBUG_ALL
 #define DEBUG_ALL 0
 #endif
