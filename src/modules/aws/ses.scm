@@ -20,7 +20,7 @@
 	   " in " args))
   (unless (and (test args 'from)
 	       (forall email/ok? (get args 'dest)))
-    (error 'bademail "Bad DEST: " (reject (get args 'dest) email/ok?)
+    (error 'bademail "Bad TO: " (reject (get args 'to) email/ok?)
 	   " in " args))
   (let* ((date (gmtimestamp 'seconds))
 	 (datestring
