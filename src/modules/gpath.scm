@@ -453,12 +453,14 @@
 	(else (error "Invalid GPATH" ref))))
 
 (define (gp/newer ref base)
-  (if (gp/exists? base) (gp/exists ref)
+  (if (gp/exists? base) 
       (and (gp/exists? ref)
 	   (let ((bmod (gp/modified base))
 		 (rmod (gp/modified ref)))
-	     (and bmod rmod) (not (time<? bmod rmod)))
-	   ref)))
+	     (if (and bmod rmod (not (time<? bmod rmod)))
+		 ref
+		 base)))
+      (gp/exists ref)))
 
 (define (gp/exists? ref)
   (cond ((s3loc? ref) (s3loc/exists? ref))
