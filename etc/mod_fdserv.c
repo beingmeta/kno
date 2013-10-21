@@ -954,7 +954,7 @@ static int check_directory(apr_pool_t *p,const char *filename)
   char *dirname=ap_make_dirstr_parent(p,filename);
   int retval=apr_dir_make_recursive(dirname,RUN_FDSERV_PERMISSIONS,p);
   if (retval) return retval;
-  else if (chown(dirname,unixd_config.user_id,unixd_config.group_id)<0)
+  else if (chown(dirname,ap_unixd_config.user_id,ap_unixd_config.group_id)<0)
     return 1;
   else return 0;
 }
