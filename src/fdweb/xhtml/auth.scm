@@ -7,7 +7,7 @@
 (use-module '{varconfig logger crypto ezrecords})
 (define %used_modules '{varconfig ezrecords})
 
-(define-init %loglevel %notify!)
+(define-init %loglevel %warn%)
 ;;(define %loglevel %debug!)
 
 (module-export! '{auth/getinfo
