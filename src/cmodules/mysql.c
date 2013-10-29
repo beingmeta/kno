@@ -23,8 +23,8 @@
 #include <libu8/u8timefns.h>
 #include <libu8/u8crypto.h>
 
-#include <mysql/mysql.h>
 #include <mysql/my_global.h>
+#include <mysql/mysql.h>
 #include <mysql/my_sys.h>
 #include <mysql/errmsg.h>
 
