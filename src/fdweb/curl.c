@@ -26,8 +26,8 @@
 
 static fdtype curl_defaults, url_symbol;
 static fdtype content_type_symbol, charset_symbol, type_symbol;
-static fdtype content_length_symbol, etag_symbol, verbose_symbol;
-static fdtype text_symbol, content_symbol, header_symbol;
+static fdtype content_length_symbol, etag_symbol, content_encoding_symbol;
+static fdtype verbose_symbol, text_symbol, content_symbol, header_symbol;
 static fdtype referer_symbol, useragent_symbol, cookie_symbol;
 static fdtype date_symbol, last_modified_symbol, name_symbol;
 static fdtype cookiejar_symbol, authinfo_symbol, basicauth_symbol;
@@ -520,7 +520,8 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,INBUF *da
     if (data->size==0)
       cval=fd_init_packet(NULL,data->size,data->bytes);
     else cval=FD_EMPTY_CHOICE;}
-  else if (fd_test(result,type_symbol,text_types)) {
+  else if ((fd_test(result,type_symbol,text_types))&&
+           (!(fd_test(result,content_encoding_symbol,FD_VOID)))) {
     fdtype chset=fd_get(result,charset_symbol,FD_VOID);
     if (FD_STRINGP(chset)) {
       U8_OUTPUT out;
@@ -717,7 +718,8 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
     if (data.size==0)
       cval=fd_init_packet(NULL,data.size,data.bytes);
     else cval=FD_EMPTY_CHOICE;}
-  else if (fd_test(result,type_symbol,text_types)) {
+  else if ((fd_test(result,type_symbol,text_types))&&
+           (!(fd_test(result,content_encoding_symbol,FD_VOID)))) {
     U8_INPUT in; u8_string buf;
     struct FD_XML xmlnode, *xmlret;
     fdtype chset=fd_get(result,charset_symbol,FD_VOID);
@@ -1203,6 +1205,7 @@ FD_EXPORT void fd_init_curl_c()
   url_symbol=fd_intern("URL");
   content_type_symbol=fd_intern("CONTENT-TYPE");
   content_length_symbol=fd_intern("CONTENT-LENGTH");
+  content_encoding_symbol=fd_intern("CONTENT-ENCODING");
   etag_symbol=fd_intern("ETAG");
   charset_symbol=fd_intern("CHARSET");
   type_symbol=fd_intern("TYPE");
