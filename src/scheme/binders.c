@@ -838,7 +838,7 @@ static fdtype define_init_handler(fdtype expr,fd_lispenv env)
       fd_decref(current);
       return FD_VOID;}
     else {
-      fdtype init_value=fd_eval(init_expr,env), bound;
+      fdtype init_value=fd_eval(init_expr,env); int bound=0;
       if (FD_ABORTP(init_value)) return init_value;
       else bound=fd_bind_value(var,init_value,env);
       if (bound>0) {
