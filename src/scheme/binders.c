@@ -838,10 +838,13 @@ static fdtype define_init_handler(fdtype expr,fd_lispenv env)
       fd_decref(current);
       return FD_VOID;}
     else {
-      fdtype init_value=fd_eval(init_expr,env);
-      if (fd_bind_value(var,init_value,env)) {
+      fdtype init_value=fd_eval(init_expr,env), bound;
+      if (FD_ABORTP(init_value)) return init_value;
+      else bound=fd_bind_value(var,init_value,env);
+      if (bound>0) {
 	fd_decref(init_value);
 	return FD_VOID;}
+      else if (bound<0) return FD_ERROR_VALUE;
       else return fd_err(fd_BindError,"DEFINE-INIT",FD_SYMBOL_NAME(var),var);}}
   else return fd_err(fd_NotAnIdentifier,"DEFINE_INIT",NULL,var);
 }
