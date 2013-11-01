@@ -6,7 +6,7 @@
 (use-module '{aws fdweb texttools logger varconfig})
 (define %used_modules '{aws varconfig})
 
-(define-init %loglevel %info!)
+(define-init %loglevel %notify%)
 ;;(define %loglevel %debug!)
 
 (module-export! '{aws4/prepare aws4/get}) ;; aws4/post
@@ -49,7 +49,8 @@
 	(glom "Authorization: AWS4-HMAC-SHA256 Credential=" (getopt req 'credential) ", "
 	  "SignedHeaders=" (getopt req 'signed-headers) ", "
 	  "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
-  (cons (urlget (scripturl+ endpoint args) curl )
+  (info%watch "AWS4/get" endpoint args)
+  (cons (urlget (scripturl+ endpoint args) curl)
 	req))
 
 ;;; Doing a post with AWS authentication
