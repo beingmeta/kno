@@ -395,11 +395,11 @@ AC_ARG_WITH(standard_module_dir,--with-standard-module-dir location,,with_standa
 standard_module_dir=$with_standard_module_dir
 safe_module_dir=$standard_module_dir/safe
 
-standard_module_path=$standard_module_dir/%/module.scm:$with_standard_module_dir/%.scm
-standard_safe_module_path=$with_standard_module_dir/safe/%/module.scm:$with_standard_module_dir/safe/%.scm
+standard_module_path=$standard_module_dir/%/module.scm:$standard_module_dir/%/%.scm:$with_standard_module_dir/%.scm
+standard_safe_module_path=$standard_module_dir/safe/%/module.scm:$standard_module_dir/safe/%/%.scm:$standard_module_dir/safe/%.scm
 
-default_module_path=$module_dir/%/module.scm:$module_dir/%.scm:$standard_module_path
-default_safe_module_path=$safe_module_dir/%/module.scm:$safe_module_dir/%.scm:$standard_safe_module_path
+default_module_path=$module_dir/%/module.scm:$module_dir/%/%.scm:$module_dir/%.scm:$standard_module_path
+default_safe_module_path=$safe_module_dir/%/module.scm:$safe_module_dir/%/%.scm:$safe_module_dir/%.scm:$standard_safe_module_path
 
 AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
 AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_path=$default_safe_module_path)
