@@ -234,9 +234,10 @@
 		"\n\t" node)
       (let* ((ctype (try (get node 'type) "text"))
 	     (href (get node 'href))
+	     (xformurlmap (make-hashtable))
 	     (xformurlfn
 	      (lambda (url)
-		(localref url urlmap
+		(localref url xformurlmap
 			  (if (position #\/ href)
 			      (gp/mkpath base (dirname href))
 			      base)
