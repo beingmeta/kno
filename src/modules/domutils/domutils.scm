@@ -740,8 +740,8 @@
 	    (let* ((rel (get link 'rel))
 		   (href (get link 'href))
 		   (prefix (string->symbol (subseq rel 7))))
-	      (add! doc '%schemas (cons prefix rel))
-	      (add! doc '%schemas (cons rel prefix)))))
+	      (add! doc '%schemas (cons prefix href))
+	      (add! doc '%schemas (cons href prefix)))))
 	(get doc '%schemas))))
 
 (define (getnames doc field)
