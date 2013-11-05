@@ -8,7 +8,8 @@
  '{gp/write! gp/save!
    writeout writeout/type
    gp/writeout gp/writeout! gp/writeout+!
-   gpath? ->gpath gp/has-suffix gp/location gp/basename
+   gpath? ->gpath
+   gp/location? gp/location gp/basename  gp/has-suffix
    gp/fetch gp/fetch+ gp/etag gp/info
    gp/exists? gp/exists gp/modified gp/newer
    gp/path gp/mkpath gp/makepath gpath->string
@@ -176,6 +177,15 @@
 	((s3loc? path) (basename (s3loc-path path)))
 	((string? path) (basename path))
 	(else "")))
+
+(define (gp/location? path)
+  (when (string? path) (set! path (string->root path)))
+  (cond ((string? path) (has-suffix path "/"))
+	((and (pair? path) (string? (cdr path)))
+	 (has-suffix (cdr path) "/"))
+	((and (s3loc? path) (string? (s3loc-path path)))
+	 (has-suffix (s3loc-path path) "/"))
+	(else #f)))
 
 (define (gp/location path)
   (when (string? path) (set! path (string->root path)))
