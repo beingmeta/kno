@@ -38,18 +38,17 @@
      "DIV" "SECTION" "ASIDE" "DETAIL"
      "UL" "DL" "OL"
      "H1" "H2" "H3" "H4" "H5" "H6" "H7"}))
-(define stdschemas
-  '{(sbooks . "http://sbooks.net/")
-    (sbook . "http://sbooks.net/")
-    (olib . "http://openlibrary.org/")
-    (ia . "http://archive.org/")
-    (fdjt . "http://fdjt.org/")
-    (fd . "http://framerd.org/")
-    (kno . "http://knodules.org/")
-    (bm . "http://beingmeta.com/")
-    (beingmeta . "http://beingmeta.com/")})
-(do-choices (schema stdschemas)
-  (set+! stdschemas (cons (cdr schema) (car schema))))
+(define-init stdschemas
+  (for-choices (def '{(sbooks . "http://sbooks.net/")
+		      (sbook . "http://sbooks.net/")
+		      (olib . "http://openlibrary.org/")
+		      (ia . "http://archive.org/")
+		      (fdjt . "http://fdjt.org/")
+		      (fd . "http://framerd.org/")
+		      (kno . "http://knodules.org/")
+		      (bm . "http://beingmeta.com/")
+		      (beingmeta . "http://beingmeta.com/")})
+    (choice def (cons (cdr def) (car def)))))
 (config-def! 'stdschemas
 	     (lambda (name (val))
 	       (if (bound? val)
@@ -60,7 +59,7 @@
 				(symbol? (cdr val))
 				(string? (car val))))
 		       (set+! stdschemas
-			      (choice val (cons (cdr val) (car val))))
+			      (choice (cons (cdr val) (car val)) val))
 		       (error "Bad DOM schema spec" "stdschemas:config"
 			      val))
 		   stdschemas))
