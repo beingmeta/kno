@@ -540,12 +540,12 @@
 	       (has-prefix val {"http:" "https:" "ftp:" "s3:" "/"}))
 	  (or (s3loc? val) (zipfile? val)))))
 
-(define (->gpath val)
+(define (->gpath val (root #f))
   (if (string? val)
       (if (has-prefix val {"s3:" "S3:"}) (->s3loc val)
 	  (if (has-prefix val {"http:" "https:" "ftp:"}) val
 	      (if (has-prefix val "/") val
-		  (abspath val))))
+		  (if root (gp/mkpath root val) (abspath val)))))
       val))
 
 (defambda (gp/has-suffix gpath suffixes (casematch #f))
