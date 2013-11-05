@@ -266,6 +266,12 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
 {
   if (FD_STRINGP(xml)) {}
   else if (FD_PAIRP(xml)) {}
+  else if ((FD_CHOICEP(xml))||(FD_ACHOICEP(xml))) {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(e,xml) {
+      fdtype r=fd_unparse_xml(out,e,env);
+      if (!(FD_VOIDP(r))) {FD_ADD_TO_CHOICE(results,r);}}
+    return results;}
   else if (FD_TABLEP(xml))
     if (fd_test(xml,elt_name,comment_symbol)) {
       fdtype content=fd_get(xml,content_slotid,FD_VOID);
