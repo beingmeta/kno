@@ -89,7 +89,7 @@
 		 ((or (not fetched)
 		      (fail? (get fetched 'content))
 		      (not (get fetched 'content)))
-		  (logwarn |LOCALIZE/sync| "Couldn't download content from " (gp->s absref)
+		  (logwarn |LOCALIZE/sync| "Couldn't read content from " (gp->s absref)
 			   " for " ref))
 		 (xform (gp/save! savepath (xform (get fetched 'content)) ctype))
 		 (else (gp/save! savepath (get fetched 'content) ctype)))
