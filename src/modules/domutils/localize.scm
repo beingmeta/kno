@@ -32,26 +32,23 @@
 (define absurlstart #((isalpha) (isalpha) (isalpha+) ":")) ;; (choice  "/")
 
 (define (getabsref ref (base #f))
-  (if (string-starts-with? ref absurlstart) ref
-      (if (string? base)
-	  (if (has-prefix ref "./")
-	      (mkuripath (if (has-suffix base "/") base
-			     (dirname base))
-			 (slice ref 2))
-	      (if (has-prefix ref "../")
-		  (mkuripath (if (has-suffix base "/")
-				 (dirname base)
-				 (dirname (dirname base)))
-			     (slice ref 3))
-		  (mkuripath (if (has-suffix base "/") base
-				 (dirname base))
-			     ref)))
-	  (if (has-prefix ref "./")
-	      (gp/path (gp/location base) (slice ref 2))
-	      (if (has-prefix ref "../")
-		  (gp/path (gp/location (gp/location base))
-			   (subseq ref 3))
-		  (gp/path base ref))))))
+  (cond ((string-starts-with? ref absurlstart) ref)
+	((not base) ref)
+	((string? base)
+	 (if (has-prefix ref "./")
+	     (mkuripath (if (has-suffix base "/") base
+			    (dirname base))
+			(slice ref 2))
+	     (if (has-prefix ref "../")
+		 (mkuripath (if (has-suffix base "/")
+				(dirname base)
+				(dirname (dirname base)))
+			    (slice ref 3))
+		 (mkuripath (if (has-suffix base "/") base
+				(dirname base))
+			    ref))))
+	((gp/location? base) (gp/mkpath base ref))
+	(else (gp/mkpath (gp/location base) ref))))
 
 (define (fix-crlfs string)
   (string-subst (string-subst string "\r\n" "\n")
@@ -89,7 +86,8 @@
 		 ((or (not fetched)
 		      (fail? (get fetched 'content))
 		      (not (get fetched 'content)))
-		  (logwarn |LOCALIZE/sync| "Couldn't read content from " (gp->s absref)
+		  (logwarn |LOCALIZE/sync|
+			   "Couldn't read content from " (gp->s absref)
 			   " for " ref))
 		 (xform (gp/save! savepath (xform (get fetched 'content)) ctype))
 		 (else (gp/save! savepath (get fetched 'content) ctype)))
@@ -201,6 +199,10 @@
 		    ",\n\tsynced from " base "\n\tto " saveto)
 	   ref)))))
 
+(define image-suffixes
+  (choice {".png" ".gif" ".jpg" ".jpeg" ".svg"}
+	  (upcase {".png" ".gif" ".jpg" ".jpeg" ".svg"})))
+
 (define (dom/localize! dom base saveto read (options #f)
 		       (urlmap) (doanchors) (dolinks))
   (default! urlmap (getopt options 'urlmap (make-hashtable)))
@@ -295,8 +297,11 @@
 	  (cond ((test urlmap href)
 		 (dom/set! node 'href (get urlmap href)))
 		((and hashpos (test urlmap (slice href 0 hashpos)))
-		 (get urlmap (slice href 0 hashpos))
-		 (dom/set! node 'href (slice href hashpos)))))))
+		 (dom/set! node 'href (slice href hashpos)))
+		((has-suffix href image-suffixes)
+		 (dom/set! node 'href
+			   (localref href urlmap base (qc saveto)
+				     read options)))))))
     (let ((xresources '()))
       (do-choices (resource (pick (pickstrings (get urlmap (getkeys urlmap)))
 				  has-prefix (choice read (glom "../" read))))
