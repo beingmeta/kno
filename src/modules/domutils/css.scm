@@ -3,9 +3,10 @@
 
 (in-module 'domutils/css)
 
-(use-module '{reflection texttools domutils varconfig logger})
+(use-module '{reflection texttools varconfig logger
+	      domutils gpath})
 
-(module-export! '{css-rules css-rule domutils/css})
+(module-export! '{css-rules css-rule dom/parsecss dom/getcss})
 
 (define property-extract
   #((label property #((opt "-") (lword)))
@@ -26,7 +27,9 @@
 
 (define base-selector '(char-not " \t\n,{}><+()@/"))
 (define selector
-  `(GREEDY #(,base-selector (* #({(spaces) #((spaces) {"+" ">"} (spaces))} ,base-selector)))))
+  `(GREEDY #(,base-selector
+	     (* #({(spaces) #((spaces) {"+" ">"} (spaces))}
+		  ,base-selector)))))
 
 (define css-rule-match
   `#((GREEDY #(,selector
@@ -50,7 +53,13 @@
   `#("@media" (spaces) (label media (not> "{")  ,trim-spaces)
      "{" (label rules (* #((spaces) ,css-rule (spaces)))) "}"))
 
-(define css-rules `{,css-media-rule ,css-rule-extract ,css-comment})
+(define css-charset-rule
+  `#("@charset" (spaces) (label charset (not> (eol)))))
+(define css-include-rule
+  `#("@include" (spaces) (label include (not> (eol)))))
+
+(define css-rules `{,css-media-rule ,css-rule-extract
+		    ,css-charset-rule ,css-include-rule ,css-comment})
 
 (define (parse-rule rule (media #f))
   (if (not (string? rule)) rule
@@ -69,7 +78,29 @@
 				      `#[match ,(get ex 'selector) media ,media]
 				      `#[match ,(get ex 'selector)])))))))
 
-(define (domutils/css string (media #f))
-  (map parse-rule (remove '() (gather->list (qc css-rules) string))))
+(define (dom/parsecss string (media #f))
+  (map (lambda (x) (parse-rule x media))
+       (remove '() (gather->list (qc css-rules) string))))
 
+
+(define (dom/getcss dom source (count 0))
+  (remove
+   #f (map (lambda (node)
+	     (if (test node '%xmltag 'style)
+		 (cons (try (get node 'id)
+			    (begin (set! count (1+ count)) count))
+		       (dom/parsecss
+			(textsubst
+			 (apply glom (get node '%content))
+			 {"<!--" "-->" "<![CDATA" "]>"} "")
+			(try (get node 'media) #f)))
+		 (and (test node 'rel "stylesheet")
+		      (let* ((href (get node 'href))
+			     (media (try (get node 'media) #f))
+			     (absref (->gpath href source))
+			     (content (gp/fetch absref)))
+			(if (and (exists? content) (string? content))
+			    (cons href (dom/parsecss content media))
+			    (list href))))))
+	   (dom/find->list dom "style,link"))))
 
