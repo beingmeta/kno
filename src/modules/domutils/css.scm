@@ -93,7 +93,7 @@
 	   (seltext (stdspace (slice rule 0 (position #\{ rule))))
 	   (props (get ex 'props))
 	   (base `#[selectors ,selectors parsed ,parsed
-		    matchers ,matchers match+ ,match+ ex ,ex
+		    matchers ,matchers matchers+ ,match+ ex ,ex
 		    rule ,rule props ,props sel ,seltext]))
       (when media (store! base 'media media))
       (parse-properties props base))))
@@ -142,11 +142,12 @@
        (or (not (test pat 'attrib))
 	   (contains? (get pat 'attrib) (get sample 'attrib)))))
 
-(define (css/matches rules pat)
+(define (css/matches rules pat (plus #f))
   (if (string? pat) (set! pat (css/selector/parse pat)))
   (remove #f (map (lambda (x)
 		    (and (not (string? x))
-			 (exists css/match pat (get x 'matchers))
+			 (or (exists css/match pat (get x 'matchers))
+			     (exists css/match pat (get x 'matchers+)))
 			 x))
 		  rules)))
 
