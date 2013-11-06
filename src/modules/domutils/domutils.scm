@@ -631,7 +631,6 @@
 	      (pair? (get under '%content)))
 	 (let ((nodes '()))
 	   (dolist (under (get under '%content))
-	     (%watch nodes)
 	     (set! nodes (append nodes (dom/find->list under sel))))
 	   nodes))
 	(else '())))
