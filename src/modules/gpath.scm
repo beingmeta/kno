@@ -56,7 +56,7 @@
 
 (define (get-charset ctype)
   (and ctype (try
-	      (get (text->frames #("charset=" (label encoding (not> ";"))) ctype)
+	      (get (text->frames #("charset=" (label charset (not> ";"))) ctype)
 		   'charset)
 	      #f)))
 
