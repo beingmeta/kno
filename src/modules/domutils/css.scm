@@ -105,7 +105,7 @@
 ;;; Parsing selectors
 
 (define selector-extract
-  '(+ {#((bow) (label tag (char-not ".#:[ \t\n")))
+  `(+ {#((bow) (label tag (char-not ".#:[ \t\n")))
        #("." (label class (char-not ".#:[ \t\n")))
        #("#" (label id (char-not ".#:[ \t\n")))
        #("[" (label attrib (not> "]")) "]")
@@ -135,12 +135,14 @@
 (define (css/match pat sample)
   (when (string? pat) (set! pat (css/selector/parse pat)))
   (when (string? sample) (set! sample (css/selector/parse sample)))
-  (and (or (not (test pat 'tag)) (test sample 'tag (get pat 'tag)))
+  (and (or (not (test pat 'tag))
+	   (identical? (downcase (get sample 'tag))
+		       (downcase (get pat 'tag))))
        (or (not (test pat 'class))
-	   (contains? (get pat 'class) (get sample 'class)))
+	   (contains? (get sample 'class) (get pat 'class)))
        (or (not (test pat 'id)) (test sample 'id (get pat 'id)))
        (or (not (test pat 'attrib))
-	   (contains? (get pat 'attrib) (get sample 'attrib)))))
+	   (contains? (get sample 'attrib) (get pat 'attrib)))))
 
 (define (css/matches rules pat (plus #f))
   (if (string? pat) (set! pat (css/selector/parse pat)))
@@ -175,26 +177,27 @@
 			(if (and (exists? content) (string? content))
 			    (cons href (css/parse content media))
 			    (list href))))))
-	   (dom/find->list dom "style,link"))))
+	   (%watch (dom/find->list dom "style,link")))))
 
 ;;; Output parsed CSS rule
 
 (define (css/textout entry (norm #t))
-  (if (pair? entry)
-      (doseq (e entry)
-	(when e (css/textout e) (printout "\n")))
-      (begin
-	(do-choices (sel (get entry 'parsed) i)
-	  (printout (if (> i 0) ", ")
-	    (if (vector? sel)
-		(doseq (elt sel i)
-		  (printout (if (> i 0) " ")
-		    (if (string? elt) elt (css/selector/norm elt))))
-		(css/selector/norm sel))))
-	(printout " {")
-	(doseq (prop (get entry 'properties))
-	  (printout "\n\t" prop ": " (get entry prop) ";"))
-	(printout "}"))))
+  (unless (null? entry)
+    (if (pair? entry)
+	(doseq (e entry)
+	  (when e (css/textout e) (printout "\n")))
+	(begin
+	  (do-choices (sel (get entry 'parsed) i)
+	    (printout (if (> i 0) ", ")
+	      (if (vector? sel)
+		  (doseq (elt sel i)
+		    (printout (if (> i 0) " ")
+		      (if (string? elt) elt (css/selector/norm elt))))
+		  (css/selector/norm sel))))
+	  (printout " {")
+	  (doseq (prop (get entry 'properties))
+	    (printout "\n\t" prop ": " (get entry prop) ";"))
+	  (printout "}")))))
 
 
 
