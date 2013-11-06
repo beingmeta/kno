@@ -57,26 +57,30 @@
   `#("@charset" (spaces) (label charset (not> (eol)))))
 (define css-include-rule
   `#("@include" (spaces) (label include (not> (eol)))))
+(define css-page-rule
+  `#("@page" (spaces) "{" (not> "}") "}"))
 
 (define css-rules `{,css-media-rule ,css-rule-extract
-		    ,css-charset-rule ,css-include-rule ,css-comment})
+		    ,css-charset-rule ,css-include-rule
+		    ,css-page-rule ,css-comment})
 
 (define (parse-rule rule (media #f))
-  (if (not (string? rule)) rule
-      (if (has-prefix rule "/*")
-	  `#[comment ,rule]
-	  (if (has-prefix rule "@media")
-	      (let ((parsed (text->frames css-media-rule rule)))
-		`#[media ,(get parsed 'media)
-		   rules ,(difference
-			   (map (lambda (x) (parse-rule x media))
-				(gather->list css-rules (get parsed 'rules)))
-			   '())])
-	      (for-choices (ex (text->frames css-rule-extract rule))
-		(parse-properties (get ex 'props)
-				  (if media
-				      `#[match ,(get ex 'selector) media ,media]
-				      `#[match ,(get ex 'selector)])))))))
+  (cond ((not (string? rule)) rule)
+	((has-prefix rule {"/*" "@include" "@charset" "@page"}) rule)
+	((has-prefix rule "@media")
+	 (let ((parsed (text->frames css-media-rule rule)))
+	   `#[media ,(get parsed 'media)
+	      rules ,(difference
+		      (map (lambda (x) (parse-rule x media))
+			   (gather->list css-rules (get parsed 'rules)))
+		      '())
+	      text ,rule]))
+	(else
+	 (for-choices (ex (text->frames css-rule-extract rule))
+	   (parse-properties (get ex 'props)
+			     (if media
+				 `#[selectors ,(get ex 'selector) media ,media]
+				 `#[selectors ,(get ex 'selector) ]))))))
 
 (define (dom/parsecss string (media #f))
   (map (lambda (x) (parse-rule x media))
