@@ -3,13 +3,12 @@
 
 (in-module 'domutils/css)
 
-(use-module '{reflection texttools varconfig logger
-	      domutils gpath})
+(use-module '{reflection texttools varconfig logger domutils gpath})
 
 (module-export! '{css-rules css-rule css/parse dom/getcss
 		  css/selector/parse css/selector/norm
 		  css/match css/matches
-		  css/textout css/htmlout})
+		  css/textout css/norm})
 
 (define property-extract
   #((label property #((opt "-") (lword)))
@@ -199,5 +198,11 @@
 	    (printout "\n\t" prop ": " (get entry prop) ";"))
 	  (printout "}")))))
 
-
+(define (css/norm entry)
+  (stringout
+    (doseq (sel (sorted (css/selector/norm (get entry 'parsed))) i)
+      (printout (if (> i 0) ",") sel))
+    " {" (doseq (prop (sorted (elts (get entry 'props))))
+	   (printout prop ":" (get entry prop) ";"))
+    "}"))
 
