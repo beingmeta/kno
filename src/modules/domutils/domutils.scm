@@ -496,10 +496,10 @@
        (fail?
 	(try-choices (attrib (selector-attribs sel))
 	  (if (null? (cdr attrib))
-	      (tryif (test elt (car attrib)) attrib)
-	      (tryif (if (string? (cdr attrib))
-			 (test elt (car attrib) (cdr attrib))
-			 (textsearch (cdr attrib) (get elt (car attrib))))
+	      (tryif (not (test elt (car attrib))) attrib)
+	      (tryif (not (if (string? (cdr attrib))
+			      (test elt (car attrib) (cdr attrib))
+			      (textsearch (cdr attrib) (get elt (car attrib)))))
 		attrib))))))
 
 (defambda (dom/match elt sel)
