@@ -631,6 +631,17 @@ static void webcommon_shutdown()
   if (pidfile) u8_removefile(pidfile);
   pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
+  {
+    u8_string exit_filename=fd_runbase_filename(".exit");
+    FILE *exitfile;
+    exitfile=u8_fopen(exit_filename,"w");
+    if (exitfile) {
+      struct U8_XTIME xt; struct U8_OUTPUT out;
+      char timebuf[64]; double elapsed=u8_elapsed_time();
+      u8_now(&xt); U8_INIT_FIXED_OUTPUT(&out,sizeof(timebuf),timebuf);
+      u8_xtime_to_iso8601(&out,&xt);
+      fprintf(exitfile,"%s(%f\n",timebuf,elapsed);
+      fclose(exitfile);}}
 }
 
 static void shutdown_on_signal(int sig)
@@ -653,7 +664,8 @@ static void shutdown_on_signal(int sig)
   return;  
 }
 
-static void shutdown_on_exit(){shutdown_server("EXIT");}
+static void shutdown_on_exit(){
+  shutdown_server("EXIT");}
 
 static void init_webcommon_finalize()
 {

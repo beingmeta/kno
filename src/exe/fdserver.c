@@ -470,6 +470,17 @@ static void shutdown_dtypeserver_onexit()
     value=fd_apply(shutdown_proc,1,&shutval);
     fd_decref(value);}
   cleanup_state_files();
+  {
+    u8_string exit_filename=fd_runbase_filename(".exit");
+    FILE *exitfile;
+    exitfile=u8_fopen(exit_filename,"w");
+    if (exitfile) {
+      struct U8_XTIME xt; struct U8_OUTPUT out;
+      char timebuf[64]; double elapsed=u8_elapsed_time();
+      u8_now(&xt); U8_INIT_FIXED_OUTPUT(&out,sizeof(timebuf),timebuf);
+      u8_xtime_to_iso8601(&out,&xt);
+      fprintf(exitfile,"%s(%f\n",timebuf,elapsed);
+      fclose(exitfile);}}
   u8_log(LOG_WARN,ServerShutdown,"Done shutting down server");
 }
 

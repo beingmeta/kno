@@ -1370,6 +1370,33 @@ static fdtype uuidpacket_prim(fdtype uuid_arg)
   return fd_make_packet(NULL,16,uuid->uuid);
 }
 
+/* Corelimit config variable */
+
+static fdtype corelimit_get(fdtype symbol,void *vptr)
+{
+  struct rlimit limit;
+  int rv=getrlimit(RLIMIT_CORE,&limit);
+  return FD_INT2DTYPE(limit.rlim_cur);
+}
+
+static int corelimit_set(fdtype symbol,fdtype value,void *vptr)
+{
+  struct rlimit limit; int rv;
+  if (FD_FIXNUMP(value))
+    limit.rlim_cur=limit.rlim_max=FD_FIX2INT(value);
+  else if (FD_TRUEP(value))
+    limit.rlim_cur=limit.rlim_max=RLIM_INFINITY;
+  else if (FD_PRIM_TYPEP(value,fd_bigint_type))
+    limit.rlim_cur=limit.rlim_max=fd_bigint_to_long_long
+      ((struct FD_BIGINT *)(value));
+  else {
+    fd_seterr(fd_TypeError,"corelimit",NULL,value);
+    return -1;}
+  rv=setrlimit(RLIMIT_CORE,&limit);
+  if (rv<0) return rv;
+  else return 1;
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_timeprims_c()
@@ -1561,6 +1588,11 @@ FD_EXPORT void fd_init_timeprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));
+
+  fd_register_config
+    ("CORELIMIT",_("Set core size limit"),
+     corelimit_get,corelimit_set,NULL);
+
 
   /* Initialize utime and stime sensors */
 #if FD_CALLTRACK_ENABLED

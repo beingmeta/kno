@@ -749,44 +749,40 @@ static fdtype is_prefix(fdtype prefix,fdtype string) {
 
 /* YES/NO */
 
+static int strmatch(u8_string s,fdtype lval,int ignorecase)
+{
+  u8_string sval=NULL;
+  if (FD_STRINGP(lval)) sval=FD_STRDATA(lval);
+  else if (FD_SYMBOLP(lval)) sval=FD_SYMBOL_NAME(lval);
+  else {}
+  if (sval==NULL) return 0;
+  else if (ignorecase)
+    return (strcasecmp(s,sval)==0);
+  else return (strcmp(s,sval)==0);
+}
+
 static int check_yesp(u8_string arg,fdtype strings,int ignorecase)
 {
-  if (FD_STRINGP(strings)) {
-    if (ignorecase)
-      return ((strcasecmp(arg,FD_STRDATA(strings)))==0);
-    else return ((strcmp(arg,FD_STRDATA(strings)))==0);}
-  else if (FD_SYMBOLP(strings))
-    return ((strcasecmp(arg,FD_SYMBOL_NAME(strings)))==0);
+  if ((FD_STRINGP(strings))||(FD_SYMBOLP(strings)))
+    return strmatch(arg,strings,ignorecase);
   else if (FD_VECTORP(strings)) {
     fdtype *v=FD_VECTOR_DATA(strings);
     int i=0, lim=FD_VECTOR_LENGTH(strings); 
     while (i<lim) {
       fdtype s=FD_VECTOR_REF(v,i); i++;
-      if ((ignorecase)&&
-          (((FD_STRINGP(s))&&((strcasecmp(arg,FD_STRDATA(s)))==0))||
-           ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0))))
-        return 1;
-      else if (((FD_STRINGP(s))&&((strcmp(arg,FD_STRDATA(s)))==0))||
-               ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0)))
-        return 1;}}
+      if (strmatch(arg,s,ignorecase))
+        return 1;}
+    return 0;}
   else if (FD_PAIRP(strings)) {
     FD_DOLIST(s,strings) {
-      if ((ignorecase)&&
-          (((FD_STRINGP(s))&&((strcasecmp(arg,FD_STRDATA(s)))==0))||
-           ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0))))
-        return 1;
-      else if (((FD_STRINGP(s))&&((strcmp(arg,FD_STRDATA(s)))==0))||
-               ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0)))
-        return 1;}}
+      if (strmatch(arg,s,ignorecase)) return 1;}
+    return 0;}
   else if ((FD_CHOICEP(strings))||(FD_ACHOICEP(strings))) {
     FD_DO_CHOICES(s,strings) {
-      if ((ignorecase)&&
-          (((FD_STRINGP(s))&&((strcasecmp(arg,FD_STRDATA(s)))==0))||
-           ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0))))
-        return 1;
-      else if (((FD_STRINGP(s))&&((strcmp(arg,FD_STRDATA(s)))==0))||
-               ((FD_SYMBOLP(s))&&((strcasecmp(arg,FD_SYMBOL_NAME(s)))==0)))
+      if (strmatch(arg,s,ignorecase)) {
+        FD_STOP_DO_CHOICES;
         return 1;}}
+    return 0;}
   else {}
   return 0;
 }
