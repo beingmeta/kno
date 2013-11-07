@@ -15,6 +15,7 @@
    gp/path gp/mkpath gp/makepath gpath->string
    gp:config
    gp/urlfetch gp/urlinfo})
+(module-export! '{zip/gopen zip/gclose})
 
 ;;; This is a generic path facility (it grew out of the savecontent
 ;;; module, which still exists for legacy and historical reasons).  A
@@ -555,3 +556,20 @@
 
 (define (gp:config spec) (->gpath spec))
 
+;;; Opening zip files at GPATHs
+
+(define-init ziptemps (make-hashtable))
+
+(define (zip/gopen path)
+  (let* ((content (gp/fetch path))
+	 (temporary (tempdir))
+	 (file (mkpath temporary (gp/basename path))))
+    (write-file file content)
+    (prog1 (zip/open file)
+      (store! ziptemps file temporary))))
+
+(define (zip/gclose zip)
+  (let* ((filename (zip/filename zip))
+	 (dir (get ziptemps filename)))
+    (prog1 (zip/close zip)
+      (tempdir/done dir))))
