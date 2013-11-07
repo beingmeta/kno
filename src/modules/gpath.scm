@@ -377,7 +377,7 @@
 	 (let* ((ctype (or default-ctype (guess-mimetype (get-namestring ref))))
 		(istext (and ctype (has-prefix ctype "text")))
 		(charset (and istext (ctype->charset ctype)))
-		(content (if istext (filestring ref ctype) (filedata ref))))
+		(content (if istext (filestring ref charset) (filedata ref))))
 	   `#[content  ,content
 	      ctype    ,(or ctype {})
 	      charset  ,(or charset {})
