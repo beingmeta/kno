@@ -1305,6 +1305,23 @@ static fdtype to_base64_prim(fdtype packet)
   else return FD_ERROR_VALUE;
 }
 
+static fdtype any_to_base64_prim(fdtype arg)
+{
+  unsigned int data_len, ascii_len;
+  u8_byte *data; char *ascii_string;
+  if (FD_PACKETP(arg)) {
+    data=FD_PACKET_DATA(arg);
+    data_len=FD_PACKET_LENGTH(arg);}
+  else if ((FD_STRINGP(arg))||(FD_PRIM_TYPEP(arg,fd_secret_type))) {
+    data=FD_STRDATA(arg);
+    data_len=FD_STRLEN(arg);}
+  else return fd_type_error("packet or string","any_to_base64_prim",arg);
+  ascii_string=u8_write_base64(data,data_len,&ascii_len);
+  if (ascii_string)
+    return fd_init_string(NULL,ascii_len,ascii_string);
+  else return FD_ERROR_VALUE;
+}
+
 /* Base 16 stuff */
 
 static fdtype from_base16_prim(fdtype string)
@@ -1558,6 +1575,7 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("PACKET->BASE64",to_base64_prim,1,
 			   fd_packet_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("->BASE64",any_to_base64_prim,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("BASE16->PACKET",from_base16_prim,1,
