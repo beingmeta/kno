@@ -1179,7 +1179,7 @@ static void shutdown_server(u8_condition reason)
 	   "Shutting down, removing socket files and pidfile %s",
 	   pidfile);
   u8_server_shutdown(&fdwebserver,shutdown_grace);
-  webcommon_shutdown();
+  webcommon_shutdown(reason);
   while (i>=0) {
     u8_string spec=ports[i];
     if (!(spec)) {}
