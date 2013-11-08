@@ -591,6 +591,8 @@ static fdtype urlget(fdtype url,fdtype curl)
   if (FD_ABORTP(conn)) return conn;
   else if (!(FD_PRIM_TYPEP(conn,fd_curl_type))) 
     return fd_type_error("CURLCONN","urlget",conn);
+  else if (!((FD_STRINGP(url))||(FD_PRIM_TYPEP(url,fd_secret_type))))
+    return fd_type_error("string","urlget",url);
   result=fetchurl((fd_curl_handle)conn,FD_STRDATA(url));
   fd_decref(conn);
   return result;
@@ -602,6 +604,8 @@ static fdtype urlhead(fdtype url,fdtype curl)
   if (FD_ABORTP(conn)) return conn;
   else if (!(FD_PRIM_TYPEP(conn,fd_curl_type))) 
     return fd_type_error("CURLCONN","urlhead",conn);
+  else if (!((FD_STRINGP(url))||(FD_PRIM_TYPEP(url,fd_secret_type))))
+    return fd_type_error("string","urlhead",url);
   result=fetchurlhead((fd_curl_handle)conn,FD_STRDATA(url));
   fd_decref(conn);
   return result;
@@ -939,6 +943,8 @@ static fdtype urlpost(int n,fdtype *args)
   if (n<2) return fd_err(fd_TooFewArgs,"URLPOST",NULL,FD_VOID);
   else if (FD_STRINGP(args[0])) {
     url=FD_STRDATA(args[0]); urlarg=args[0];}
+  else if (FD_PRIM_TYPEP(args[0],fd_secret_type)) {
+    url=FD_STRDATA(args[0]); urlarg=args[0];}
   else return fd_type_error("url","urlpost",args[0]);
   if ((FD_PRIM_TYPEP(args[1],fd_curl_type))||(FD_TABLEP(args[1]))) {
     conn=curl_arg(args[1],"urlpost"); start=2;}
@@ -1095,7 +1101,7 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
   fdtype result=FD_VOID;
 
   if (FD_ABORTP(url)) return url;
-  else if (!(FD_STRINGP(url)))
+  else if (!((FD_STRINGP(url))||(FD_PRIM_TYPEP(url,fd_secret_type))))
     return fd_type_error("url","urlpostdata_handler",url);
   else {
     ctype=fd_eval(fd_get_arg(expr,2),env);
@@ -1157,7 +1163,8 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
 
 /* Using URLs for code source */
 
-static u8_string url_sourcefn(u8_string uri,u8_string enc,u8_string *path,time_t *timep)
+static u8_string url_sourcefn(u8_string uri,u8_string enc,
+                              u8_string *path,time_t *timep)
 {
   if (((strncmp(uri,"http:",5))==0) ||
       ((strncmp(uri,"https:",6))==0) ||
@@ -1245,8 +1252,8 @@ FD_EXPORT void fd_init_curl_c()
 
   fd_defspecial(module,"URLPOSTOUT",urlpostdata_handler);
 
-  fd_idefn(module,fd_make_cprim2x("URLGET",urlget,1,fd_string_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim2x("URLHEAD",urlhead,1,fd_string_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim2("URLGET",urlget,1));
+  fd_idefn(module,fd_make_cprim2("URLHEAD",urlhead,1));
   fd_idefn(module,fd_make_cprimn("URLPOST",urlpost,1));
   fd_idefn(module,fd_make_cprim4("URLPUT",urlput,2));
   fd_idefn(module,fd_make_cprim2("URLCONTENT",urlcontent,1));
