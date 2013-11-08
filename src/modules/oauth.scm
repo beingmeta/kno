@@ -78,22 +78,6 @@
        VERSION "2.0"
        REALM DROPBOX
        NAME "Dropbox"]
-;;     #[REQUEST "https://api.linkedin.com/uas/oauth/requestToken"
-;;       AUTHORIZE "https://api.linkedin.com/uas/oauth/authorize"
-;;       AUTHENTICATE "https://api.linkedin.com/uas/oauth/authorize"
-;;       VERIFY "https://api.linkedin.com/uas/oauth/accessToken"
-;;       KEY LINKEDIN_KEY SECRET LINKEDIN_SECRET
-;;       VERSION "1.0"
-;;       REALM LINKEDIN
-;;       NAME "LinkedIn"]
-     ;; GOOGLE
-     ;; #[REQUEST "https://www.google.com/accounts/OAuthGetRequestToken"
-     ;;   AUTHORIZE "https://www.google.com/accounts/OAuthAuthorizeToken"
-     ;;   VERIFY "https://www.google.com/accounts/OAuthGetAccessToken"
-     ;;   KEY GOOGLE_KEY SECRET GOOGLE_SECRET
-     ;;   VERSION "1.0"
-     ;;   REALM GOOGLE
-     ;;   NAME "Google"]
      GOOGLE
      #[AUTHORIZE "https://accounts.google.com/o/oauth2/auth"
        ACCESS "https://accounts.google.com/o/oauth2/token"
