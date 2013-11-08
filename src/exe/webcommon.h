@@ -623,48 +623,60 @@ static void init_webcommon_configs()
 
 static void shutdown_server(u8_condition why);
 
-static void webcommon_shutdown()
+static void webcommon_shutdown(u8_condition why)
 {
+  u8_string exit_filename=fd_runbase_filename(".exit");
+  FILE *exitfile=u8_fopen(exit_filename,"w");
+  u8_log(LOG_CRIT,"web_shutdown","Shutting down server on %s",
+	 ((why==NULL)?((u8_condition)"a whim"):(why)));
   if (portfile)
     if (remove(portfile)>=0) {
       u8_free(portfile); portfile=NULL;}
   if (pidfile) u8_removefile(pidfile);
   pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
-  {
-    u8_string exit_filename=fd_runbase_filename(".exit");
-    FILE *exitfile;
-    exitfile=u8_fopen(exit_filename,"w");
-    if (exitfile) {
-      struct U8_XTIME xt; struct U8_OUTPUT out;
-      char timebuf[64]; double elapsed=u8_elapsed_time();
-      u8_now(&xt); U8_INIT_FIXED_OUTPUT(&out,sizeof(timebuf),timebuf);
-      u8_xtime_to_iso8601(&out,&xt);
-      fprintf(exitfile,"%s(%f\n",timebuf,elapsed);
-      fclose(exitfile);}}
+  if (exitfile) {
+    struct U8_XTIME xt; struct U8_OUTPUT out;
+    char timebuf[64]; double elapsed=u8_elapsed_time();
+    u8_now(&xt); U8_INIT_FIXED_OUTPUT(&out,sizeof(timebuf),timebuf);
+    u8_xtime_to_iso8601(&out,&xt);
+    fprintf(exitfile,"%d@%s(%f\n",getpid(),timebuf,elapsed);
+    fclose(exitfile);}
 }
+
+static int server_shutdown=0;
 
 static void shutdown_on_signal(int sig)
 {
   char buf[64];
+  if (server_shutdown) {
+    u8_log(LOG_CRIT,"shutdown_on_signal","Already shutdown but received signal %d",
+	   sig);
+    return;}
 #ifdef SIGHUP
   if (sig==SIGHUP) {
+    server_shutdown=1;
     shutdown_server("SIGHUP"); return;}
 #endif
 #ifdef SIGHUP
   if (sig==SIGQUIT) {
+    server_shutdown=1;
     shutdown_server("SIGQUIT"); return;}
 #endif
 #ifdef SIGHUP
   if (sig==SIGTERM) {
+    server_shutdown=1;
     shutdown_server("SIGTERM"); return;}
 #endif
   sprintf(buf,"SIG%d",sig);
+  server_shutdown=1;
   shutdown_server((u8_condition)buf);
   return;  
 }
 
 static void shutdown_on_exit(){
+  if (server_shutdown) return;
+  server_shutdown=1;
   shutdown_server("EXIT");}
 
 static void init_webcommon_finalize()
