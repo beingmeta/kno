@@ -22,13 +22,12 @@
 (define (twilio/send string opts)
   (logdebug "Sending " (write string) " to " opts)
   (when (string? opts) (set! opts `#[to ,opts]))
-  (urlpost (glom "https://"
-	     (getopt opts 'sid default-sid) ":"
-	     (getopt opts 'auth default-auth)
-	     "@api.twilio.com"
-	     "/2010-04-01/Accounts/"
+  (urlpost (glom "https://api.twilio.com/2010-04-01/Accounts/"
 	     (getopt opts 'sid default-sid)
 	     "/Messages")
+	   `#[header ,(glom "Authorization: Basic "
+			(->base64 (glom (getopt opts 'sid default-sid) ":"
+				    (getopt opts 'auth default-auth))))]
 	   "From" (getopt opts 'from default-from)
 	   "To" (getopt opts 'to)
 	   "Body" string))
