@@ -1486,7 +1486,7 @@ FD_EXPORT int fd_update_file_modules(int force)
     rscan=reloads; while (rscan) {
       module_reload this=rscan; fdtype load_result;
       u8_string filename=this->filename;
-      fd_lispenv env=this->env; reloads=this->next;
+      fd_lispenv env=this->env; rscan=this->next;
       time_t mtime=u8_file_mtime(this->filename);
       if (log_reloads)
         u8_log(LOG_WARN,"fd_update_file_modules","Reloading %s",filename);
@@ -1496,8 +1496,7 @@ FD_EXPORT int fd_update_file_modules(int force)
 	fd_clear_errors(1);}
       else {
 	fd_decref(load_result); n_reloads++;
-	this->mtime=mtime;}
-      rscan=rscan->next;}
+	this->mtime=mtime;}}
     fd_lock_mutex(&load_record_lock);
     rscan=reloads; while (rscan) {
       module_reload this=rscan;
