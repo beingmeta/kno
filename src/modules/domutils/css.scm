@@ -9,6 +9,7 @@
 		  css/selector/parse css/selector/norm
 		  css/match css/matches
 		  css/drop-class! css/drop-prop!
+		  css/change-class! css/change-prop!
 		  css/textout css/norm})
 
 (define property-extract
@@ -170,7 +171,7 @@
 
 (define (css/drop-class! sheet classname)
   (let ((csspat `#[class ,classname])
-	(textpat `#("." ,classname {(isspace) "." "#" "[" ":"}))
+	(textpat `#("." ,classname {(eos) (isspace) "." "#" "[" ":"}))
 	(rules (->vector (cdr sheet)))
 	(deletions 0))
     (doseq (rule rules)
@@ -188,7 +189,8 @@
 		       (exists? (pick (elts p) 'class classname))
 		       (test p 'class classname))))
 	  (drop! (get rule 'ex) 'selector
-		 (pick (get (get rule 'ex) 'selector) string-contains? textpat)))))
+		 (pick (get (get rule 'ex) 'selector)
+		       string-contains? textpat)))))
     (doseq (rule rules i)
       (unless (string? rule)
 	(when (and (test rule 'rule) (fail? (get rule 'selector)))
@@ -196,6 +198,46 @@
 	  (set! deletions (1+ deletions)))))
     (unless (zero? deletions)
       (set-cdr! sheet (->list (remove #f rules))))))
+
+(define (css/change-class! sheet classname newname)
+  (let ((csspat `#[class ,classname])
+	(textpat `#("." ,classname {(eos) (isspace) "." "#" "[" ":"}))
+	(rules (->vector (cdr sheet))))
+    (doseq (rule rules)
+      (unless (string? rule)
+	(when (and (test rule 'rule) (css/match pat rule))
+	  (add! (pick (get rule 'matchers) 'class classname)
+		'class newname)
+	  (drop! (pick (get rule 'matchers) 'class classname)
+		 'class classname)
+	  (add! (pick (get rule 'matchers+) 'class classname)
+		'class newname)
+	  (drop! (pick (get rule 'matchers+) 'class classname)
+		 'class classname)
+	  (store! rule 'selectors
+		  (for-choices (s (get rule 'selectors))
+		    (textsubst s textpat (glom "." newname))))
+	  (do-choices (parse (get rule 'parsed))
+	    (doseq (e (if (vector? parse) parse (vector parse)))
+	      (when (test e 'class classname)
+		(add! e 'class newname)
+		(drop! e 'class classname))))
+	  (store! rule 'parsed
+		  (rewrite-parsed (get rule 'parsed) classname newname))
+	  (store! (get rule 'ex) 'selector
+		  (for-choices (s (get (get rule 'ex) 'selector))
+		    (textsubst s textpat (glom "." newname)))))))
+    (let ((seen (make-hashset)) (newrules '()) (norm #f))
+      (doseq (rule (reverse rules))
+	(if (string? rule)
+	    (set! newrules (cons rule newrules))
+	    (begin
+	      (set! norm (css/norm rule))
+	      (unless (hashset-get seen norm)
+		(hashset-add! seen norm)
+		(set! newrules (cons rule newrules))))))
+      (set-car! sheet newrules))
+    sheet))
 
 (define (css/drop-prop! sheet propname)
   (let ((rules (->vector (cdr sheet)))
@@ -208,7 +250,10 @@
 	  (drop! rule propname)
 	  (store! rule 'properties (remove propname (get rule 'properties)))
 	  (store! rule 'proplist
-		  (remove #f (map (lambda (x) (and (not (has-prefix x prefix)) x))))))))
+		  (remove #f
+			  (map (lambda (x)
+				 (and (not (has-prefix x prefix)) x))
+			       proplist))))))
     (doseq (rule rules i)
       (unless (string? rule)
 	(when (and (test rule 'rule) (test rule 'properties '()))
@@ -216,6 +261,22 @@
 	  (set! deletions (1+ deletions)))))
     (unless (zero? deletions)
       (set-cdr! sheet (->list (remove #f rules))))))
+
+(define (css/change-prop! sheet propname value newvalue)
+  (let ((rules (->vector (cdr sheet)))
+	(prefix (glom propname ":")))
+    (doseq (rule rules)
+      (unless (string? rule)
+	(when (and (test rule 'rule)
+		   (position propname (get rule 'properties))
+		   (test rule propname value))
+	  (store! rule propname newvalue)
+	  (store! rule 'proplist
+		  (map (lambda (x)
+			 (if (has-prefix x prefix)
+			     (glom prefix " " newvalue)
+			     x))
+		       (get rule 'proplist))))))))
 
 ;;; Getting CSS from a parsed DOM
 
