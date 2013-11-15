@@ -424,11 +424,10 @@ fdtype fd_text_domatch
     if (off == lim) return FD_EMPTY_CHOICE;
     else {
       u8_unichar code=FD_CHAR2CODE(pat);
-      if (code < 0x7f)
-	if (string[off] == code) return FD_INT2DTYPE(off+1);
-	else return FD_EMPTY_CHOICE;
-      else if (code == string_ref(string+off)) 
-	return FD_INT2DTYPE(forward_char(string,1));
+      if ((code < 0x7f)?(string[off] == code):
+          (code == string_ref(string+off))) {
+        int next=forward_char(string,off);
+        return FD_INT2DTYPE(next);}
       else return FD_EMPTY_CHOICE;}
   else if (FD_VECTORP(pat))
     return match_sequence(pat,next,env,string,off,lim,flags);
@@ -593,12 +592,13 @@ static fdtype textract
     if (off == lim) return FD_EMPTY_CHOICE;
     else {
       u8_unichar code=FD_CHAR2CODE(pat);
-      if (code < 0x7f)
-	if (string[off] == code)
-	  return fd_init_pair(NULL,FD_INT2DTYPE(off+1),pat);
-	else return FD_EMPTY_CHOICE;
-      else if (code == string_ref(string+off)) 
-	return fd_init_pair(NULL,FD_INT2DTYPE(forward_char((string+off),1)),pat);
+      if ((code < 0x7f)?(string[off] == code):
+          (code == string_ref(string+off))) {
+        struct U8_OUTPUT str; u8_byte buf[16];
+        int next=forward_char(string,off);
+        U8_INIT_FIXED_OUTPUT(&str,16,buf);
+        u8_putc(&str,code);
+        return fd_init_pair(NULL,FD_INT2DTYPE(next),fdtype_string(buf));}
       else return FD_EMPTY_CHOICE;}
   else if (FD_VECTORP(pat)) {
     fdtype seq_matches=extract_sequence(pat,0,next,env,string,off,lim,flags);

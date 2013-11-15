@@ -8,6 +8,8 @@
 (module-export! '{css-rules css-rule css/parse dom/getcss
 		  css/selector/parse css/selector/norm
 		  css/match css/matches
+		  css/drop-class! css/drop-prop!
+		  css/change-class! css/change-prop!
 		  css/textout css/norm})
 
 (define property-extract
@@ -61,14 +63,16 @@
   `#("@include" (spaces) (label include (not> (eol)))))
 (define css-page-rule
   `#("@page" (spaces) "{" (not> "}") "}"))
+(define css-fontface-rule
+  `#("@font-face" (spaces) "{" (not> "}") "}"))
 
 (define css-rules `{,css-media-rule ,css-rule-extract
 		    ,css-charset-rule ,css-include-rule
-		    ,css-page-rule ,css-comment})
+		    ,css-fontface-rule ,css-page-rule ,css-comment})
 
 (define (parse-rule rule (media #f))
   (cond ((not (string? rule)) rule)
-	((has-prefix rule {"/*" "@include" "@charset" "@page"}) rule)
+	((has-prefix rule {"/*" "@include" "@charset" "@page" "@font-face"}) rule)
 	((has-prefix rule "@media")
 	 (let ((parsed (text->frames css-media-rule rule)))
 	   `#[media ,(get parsed 'media)
@@ -145,20 +149,142 @@
 
 (define (css/matches rules pat (plus #f))
   (if (string? pat) (set! pat (css/selector/parse pat)))
-  (remove #f (map (lambda (x)
-		    (and (not (string? x))
-			 (or (exists css/match pat (get x 'matchers))
-			     (exists css/match pat (get x 'matchers+)))
-			 x))
-		  rules)))
+  (let ((seen (make-hashset)))
+    (remove-if
+     (lambda (x)
+       (or (not x)
+	   (and (not (string? x))
+		(or (hashset-get seen (css/norm x))
+		    (begin (hashset-add! seen (css/norm x)) #f)))))
+     (if (pair? (car rules))
+	 ;; It's actually a list of sheets
+	 (apply append (map (lambda (sheet) (css/matches (cdr sheet) pat))
+			    rules))
+	 (map (lambda (x)
+		(and (not (string? x))
+		     (or (exists css/match pat (get x 'matchers))
+			 (exists css/match pat (get x 'matchers+)))
+		     x))
+	      rules)))))
+
+;;; Manipulating sheets
+
+(define (css/drop-class! sheet classname)
+  (let ((csspat `#[class ,classname])
+	(textpat `#("." ,classname {(eos) (isspace) "." "#" "[" ":"}))
+	(rules (->vector (cdr sheet)))
+	(deletions 0))
+    (doseq (rule rules)
+      (unless (string? rule)
+	(when (and (test rule 'rule) (css/match pat rule))
+	  (drop! rule 'matchers
+		 (pick (get rule 'matchers) 'class classname))
+	  (drop! rule 'matchers+
+		 (pick (get rule 'matchers+) 'class classname))
+	  (drop! rule 'selectors
+		 (pick (get rule 'selectors) string-contains? textpat))
+	  (drop! rule 'parsed
+		 (filter-choices (p (get rule 'parsed))
+		   (if (vector? p)
+		       (exists? (pick (elts p) 'class classname))
+		       (test p 'class classname))))
+	  (drop! (get rule 'ex) 'selector
+		 (pick (get (get rule 'ex) 'selector)
+		       string-contains? textpat)))))
+    (doseq (rule rules i)
+      (unless (string? rule)
+	(when (and (test rule 'rule) (fail? (get rule 'selector)))
+	  (store! rules i #f)
+	  (set! deletions (1+ deletions)))))
+    (unless (zero? deletions)
+      (set-cdr! sheet (->list (remove #f rules))))))
+
+(define (css/change-class! sheet classname newname)
+  (let ((csspat `#[class ,classname])
+	(textpat `#("." ,classname {(eos) (isspace) "." "#" "[" ":"}))
+	(rules (->vector (cdr sheet))))
+    (doseq (rule rules)
+      (unless (string? rule)
+	(when (and (test rule 'rule) (css/match pat rule))
+	  (add! (pick (get rule 'matchers) 'class classname)
+		'class newname)
+	  (drop! (pick (get rule 'matchers) 'class classname)
+		 'class classname)
+	  (add! (pick (get rule 'matchers+) 'class classname)
+		'class newname)
+	  (drop! (pick (get rule 'matchers+) 'class classname)
+		 'class classname)
+	  (store! rule 'selectors
+		  (for-choices (s (get rule 'selectors))
+		    (textsubst s textpat (glom "." newname))))
+	  (do-choices (parse (get rule 'parsed))
+	    (doseq (e (if (vector? parse) parse (vector parse)))
+	      (when (test e 'class classname)
+		(add! e 'class newname)
+		(drop! e 'class classname))))
+	  (store! rule 'parsed
+		  (rewrite-parsed (get rule 'parsed) classname newname))
+	  (store! (get rule 'ex) 'selector
+		  (for-choices (s (get (get rule 'ex) 'selector))
+		    (textsubst s textpat (glom "." newname)))))))
+    (let ((seen (make-hashset)) (newrules '()) (norm #f))
+      (doseq (rule (reverse rules))
+	(if (string? rule)
+	    (set! newrules (cons rule newrules))
+	    (begin
+	      (set! norm (css/norm rule))
+	      (unless (hashset-get seen norm)
+		(hashset-add! seen norm)
+		(set! newrules (cons rule newrules))))))
+      (set-car! sheet newrules))
+    sheet))
+
+(define (css/drop-prop! sheet propname)
+  (let ((rules (->vector (cdr sheet)))
+	(prefix (glom propname ":"))
+	(deletions 0))
+    (doseq (rule rules)
+      (unless (string? rule)
+	(when (and (test rule 'rule)
+		   (position propname (get rule 'properties)))
+	  (drop! rule propname)
+	  (store! rule 'properties (remove propname (get rule 'properties)))
+	  (store! rule 'proplist
+		  (remove #f
+			  (map (lambda (x)
+				 (and (not (has-prefix x prefix)) x))
+			       proplist))))))
+    (doseq (rule rules i)
+      (unless (string? rule)
+	(when (and (test rule 'rule) (test rule 'properties '()))
+	  (store! rules i #f)
+	  (set! deletions (1+ deletions)))))
+    (unless (zero? deletions)
+      (set-cdr! sheet (->list (remove #f rules))))))
+
+(define (css/change-prop! sheet propname value newvalue)
+  (let ((rules (->vector (cdr sheet)))
+	(prefix (glom propname ":")))
+    (doseq (rule rules)
+      (unless (string? rule)
+	(when (and (test rule 'rule)
+		   (position propname (get rule 'properties))
+		   (test rule propname value))
+	  (store! rule propname newvalue)
+	  (store! rule 'proplist
+		  (map (lambda (x)
+			 (if (has-prefix x prefix)
+			     (glom prefix " " newvalue)
+			     x))
+		       (get rule 'proplist))))))))
 
 ;;; Getting CSS from a parsed DOM
 
-(define (dom/getcss dom source (count 0))
+(define (getcss dom source (count 0))
   (remove
    #f (map (lambda (node)
 	     (if (test node '%xmltag 'style)
-		 (cons (try (get node 'id)
+		 (cons (try (glom "#" (get node 'id))
 			    (begin (set! count (1+ count)) count))
 		       (css/parse
 			(textsubst
@@ -176,7 +302,12 @@
 			(if (and (exists? content) (string? content))
 			    (cons href (css/parse content media))
 			    (list href))))))
-	   (%watch (dom/find->list dom "style,link")))))
+	   (dom/find->list dom "style,link"))))
+(define (dom/getcss dom source)
+  (try (get dom 'css)
+       (let ((computed (getcss dom source 0)))
+	 (store! dom 'css computed)
+	 computed)))
 
 ;;; Output parsed CSS rule
 
