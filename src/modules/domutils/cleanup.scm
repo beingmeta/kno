@@ -14,7 +14,9 @@
  '{dom/mergeheads/subst
    dom/mergeheads
    dom/mergebreaks/subst
-   dom/mergebreaks})
+   dom/mergebreaks
+   dom/mergenbsp/subst
+   dom/mergenbsp})
 
 (module-export! '{dom/cleanup/mergelines dom/cleanup/unipunct
 		  dom/cleanup/mergelines+unipunct})
@@ -26,29 +28,31 @@
 (define (unipunct string)
   (textsubst
    (textsubst
-    (let ((n-quotes (length (gather->list "\"" string))))
-      (if (even? n-quotes)
-	  (stringout
-	    (let* ((scan 0)
-		   (start (position #\" string scan))
-		   (end (and start (position #\" string (1+ start)))))
-	      (while (and start end)
-		(printout (subseq string scan start) "\&ldquo;"
-		  (subseq string (1+ start) end)
-		  "\&rdquo;")
-		(set! scan (1+ end))
-		(set! start (position #\" string scan))
-		(set! end (and start (position #\" string (1+ start)))))
-	      (when scan (printout (subseq string scan)))))
-	  string))
-    #((spaces*)
-      {(subst "-" "\&ndash;")
-       (subst "--" "\&mdash;")
-       (subst "..." "\u2026;")}
-      {(spaces) (eos)}))
-   `#({(islower) (ispunct)}
-      {(subst (+ "&mdash;") ,wrapdash)
-       (subst (+ "\&mdash;") ,wrapdash)})))
+    (textsubst
+     (let ((n-quotes (length (gather->list "\"" string))))
+       (if (even? n-quotes)
+	   (stringout
+	     (let* ((scan 0)
+		    (start (position #\" string scan))
+		    (end (and start (position #\" string (1+ start)))))
+	       (while (and start end)
+		 (printout (subseq string scan start) "\&ldquo;"
+		   (subseq string (1+ start) end)
+		   "\&rdquo;")
+		 (set! scan (1+ end))
+		 (set! start (position #\" string scan))
+		 (set! end (and start (position #\" string (1+ start)))))
+	       (when scan (printout (subseq string scan)))))
+	   string))
+     #((spaces*)
+       {(subst "-" "\&ndash;")
+	(subst "--" "\&mdash;")
+	(subst "..." "\u2026;")}
+       {(spaces) (eos)}))
+    `#({(islower) (ispunct)}
+       {(subst (+ "&mdash;") ,wrapdash)
+	(subst (+ "\&mdash;") ,wrapdash)}))
+   (+ {"&nbsp" #\u00a0}) "\&nbsp;"))
 (define (dom/unipunct! arg)
   (if (string? arg) (unipunct arg)
       (if (pair? arg) (map dom/unipunct! arg)
@@ -115,6 +119,22 @@
 		  (unless (string? elt) (dom/mergeheads elt wrapper)))
 		node)
 	      node))))
+
+;;; Merging nbsp runs
+
+(define dom/mergenbsp/subst
+  '(SUBST (+ {"&nbsp" #\u00a0}) "\&nbsp;"))
+(define (dom/mergenbsp node)
+  (if (string? node)
+      (textsubst node dom/mergenbsp/subst)
+      (if (test node '%content)
+	  (if (or (test node '%xmltag 'pre)
+		  (test node 'xml:space "preserve"))
+	      node
+	      (begin (store! node '%content
+			     (map dom/mergenbsp (get node '%content)))
+		node))
+	  node)))
 
 ;;; Merging breaks
 
