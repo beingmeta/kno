@@ -121,7 +121,15 @@
        VERSION "2.0"
        REALM PAYPAL
        ACCESS_TOKEN HTTP
-       NAME "Paypal"]])
+       NAME "Paypal"]
+     DWOLLA
+     #[AUTHORIZE "https://www.dwolla.com/oauth/v2/authenticate"
+       ACCESS "https://www.dwolla.com/oauth/v2/token"
+       KEY DWOLLA:KEY SECRET DWOLLA:SECRET
+       SCOPE "openid profile email"
+       VERSION "2.0"
+       REALM DWOLLA
+       NAME "Dwolla"]])
 
 (define (oauth/provider spec) (get oauth-servers spec))
 (module-export! 'oauth/provider)
