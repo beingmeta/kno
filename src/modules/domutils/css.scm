@@ -8,8 +8,8 @@
 (module-export! '{css-rules css-rule css/parse dom/getcss
 		  css/selector/parse css/selector/norm
 		  css/match css/matches
-		  css/drop-class! css/drop-prop!
-		  css/change-class! css/change-prop!
+		  css/drop-class! css/drop-property!
+		  css/change-class! css/change-property!
 		  css/textout css/norm})
 
 (define property-extract
@@ -72,7 +72,9 @@
 
 (define (parse-rule rule (media #f))
   (cond ((not (string? rule)) rule)
-	((has-prefix rule {"/*" "@include" "@charset" "@page" "@font-face"}) rule)
+	((has-prefix rule
+		     {"/*" "@include" "@charset" "@page" "@font-face"})
+	 rule)
 	((has-prefix rule "@media")
 	 (let ((parsed (text->frames css-media-rule rule)))
 	   `#[media ,(get parsed 'media)
@@ -138,14 +140,17 @@
 (define (css/match pat sample)
   (when (string? pat) (set! pat (css/selector/parse pat)))
   (when (string? sample) (set! sample (css/selector/parse sample)))
-  (and (or (not (test pat 'tag))
-	   (identical? (downcase (get sample 'tag))
-		       (downcase (get pat 'tag))))
-       (or (not (test pat 'class))
-	   (contains? (get sample 'class) (get pat 'class)))
-       (or (not (test pat 'id)) (test sample 'id (get pat 'id)))
-       (or (not (test pat 'attrib))
-	   (contains? (get sample 'attrib) (get pat 'attrib)))))
+  (if (test sample 'matchers)
+      (or (exists css/match pat (get sample 'matchers))
+	  (exists css/match pat (get sample 'matchers+)))
+      (and (or (not (test pat 'tag))
+	       (identical? (downcase (get sample 'tag))
+			   (downcase (get pat 'tag))))
+	   (or (not (test pat 'class))
+	       (contains? (get sample 'class) (get pat 'class)))
+	   (or (not (test pat 'id)) (test sample 'id (get pat 'id)))
+	   (or (not (test pat 'attrib))
+	       (contains? (get sample 'attrib) (get pat 'attrib))))))
 
 (define (css/matches rules pat (plus #f))
   (if (string? pat) (set! pat (css/selector/parse pat)))
@@ -176,7 +181,7 @@
 	(deletions 0))
     (doseq (rule rules)
       (unless (string? rule)
-	(when (and (test rule 'rule) (css/match pat rule))
+	(when (and (test rule 'rule) (css/match csspat rule))
 	  (drop! rule 'matchers
 		 (pick (get rule 'matchers) 'class classname))
 	  (drop! rule 'matchers+
@@ -193,8 +198,8 @@
 		       string-contains? textpat)))))
     (doseq (rule rules i)
       (unless (string? rule)
-	(when (and (test rule 'rule) (fail? (get rule 'selector)))
-	  (store! rules i #f)
+	(when (and (test rule 'rule) (fail? (get rule 'selectors)))
+	  (vector-set! rules i #f)
 	  (set! deletions (1+ deletions)))))
     (unless (zero? deletions)
       (set-cdr! sheet (->list (remove #f rules))))))
@@ -205,7 +210,7 @@
 	(rules (->vector (cdr sheet))))
     (doseq (rule rules)
       (unless (string? rule)
-	(when (and (test rule 'rule) (css/match pat rule))
+	(when (and (test rule 'rule) (css/match csspat rule))
 	  (add! (pick (get rule 'matchers) 'class classname)
 		'class newname)
 	  (drop! (pick (get rule 'matchers) 'class classname)
@@ -236,10 +241,21 @@
 	      (unless (hashset-get seen norm)
 		(hashset-add! seen norm)
 		(set! newrules (cons rule newrules))))))
-      (set-car! sheet newrules))
+      (set-cdr! sheet newrules))
     sheet))
 
-(define (css/drop-prop! sheet propname)
+(define (rewrite-parsed parsed classname newname)
+  (if (string? parsed) parsed
+      (if (vector? parsed)
+	  (map (lambda (x) (rewrite-parsed x classname newname))
+	       parsed)
+	  (if (test parsed 'class classname)
+	      (begin (drop! parsed 'class classname)
+		(add! parsed 'class newname)
+		parsed)
+	      parsed))))
+
+(define (css/drop-property! sheet propname)
   (let ((rules (->vector (cdr sheet)))
 	(prefix (glom propname ":"))
 	(deletions 0))
@@ -253,16 +269,16 @@
 		  (remove #f
 			  (map (lambda (x)
 				 (and (not (has-prefix x prefix)) x))
-			       proplist))))))
+			       (get rule 'proplist)))))))
     (doseq (rule rules i)
       (unless (string? rule)
 	(when (and (test rule 'rule) (test rule 'properties '()))
-	  (store! rules i #f)
+	  (vector-set! rules i #f)
 	  (set! deletions (1+ deletions)))))
     (unless (zero? deletions)
       (set-cdr! sheet (->list (remove #f rules))))))
 
-(define (css/change-prop! sheet propname value newvalue)
+(define (css/change-property! sheet propname value newvalue)
   (let ((rules (->vector (cdr sheet)))
 	(prefix (glom propname ":")))
     (doseq (rule rules)
@@ -313,21 +329,26 @@
 
 (define (css/textout entry (norm #t))
   (unless (null? entry)
-    (if (pair? entry)
-	(doseq (e entry)
-	  (when e (css/textout e) (printout "\n")))
-	(begin
-	  (do-choices (sel (get entry 'parsed) i)
-	    (printout (if (> i 0) ", ")
-	      (if (vector? sel)
-		  (doseq (elt sel i)
-		    (printout (if (> i 0) " ")
-		      (if (string? elt) elt (css/selector/norm elt))))
-		  (css/selector/norm sel))))
-	  (printout " {")
-	  (doseq (prop (get entry 'properties))
-	    (printout "\n\t" prop ": " (get entry prop) ";"))
-	  (printout "}")))))
+    (if (string? entry)
+	(printout entry)
+	(if (pair? entry)
+	    (doseq (e entry)
+	      (when e
+		(printout
+		  (if (string? e) e (css/textout e))
+		  "\n")))
+	    (begin
+	      (do-choices (sel (get entry 'parsed) i)
+		(printout (if (> i 0) ", ")
+		  (if (vector? sel)
+		      (doseq (elt sel i)
+			(printout (if (> i 0) " ")
+			  (if (string? elt) elt (css/selector/norm elt))))
+		      (css/selector/norm sel))))
+	      (printout " {")
+	      (doseq (prop (get entry 'properties))
+		(printout "\n\t" prop ": " (get entry prop) ";"))
+	      (printout "}\n"))))))
 
 (define (css/norm entry)
   (stringout
