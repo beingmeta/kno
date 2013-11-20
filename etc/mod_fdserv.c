@@ -1729,10 +1729,9 @@ static fdservlet request_servlet(request_rec *r)
   struct FDSERV_DIR_CONFIG *dconfig=
     ap_get_module_config(r->per_dir_config,&fdserv_module);
   fdservlet servlet; int keep_socks=sconfig->keep_socks;
-#if DEBUG_FDSERV
-  ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-		"Resolving through servlet %s",sockname);
-#endif
+  ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
+		"Resolving %s using servlet %s",
+		r->unparsed_uri,sockname);
   servlet=get_servlet(sockname);
   if ((dconfig)&&(dconfig->keep_socks>keep_socks)) keep_socks=dconfig->keep_socks;
   if (servlet) {
@@ -1745,7 +1744,7 @@ static fdservlet request_servlet(request_rec *r)
     return servlet;}
   else {
     servlet=add_servlet(r,sockname,keep_socks);
-    ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
+    ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
 		  "Allocated new servlet entry @ #%d for use with %s",
 		  servlet->servlet_index,servlet->sockname);
     return servlet;}
