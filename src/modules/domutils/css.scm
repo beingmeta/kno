@@ -5,6 +5,8 @@
 
 (use-module '{reflection texttools varconfig logger domutils gpath})
 
+(define %loglevel %debug%)
+
 (module-export! '{css-rules css-rule css/parse dom/getcss
 		  css/selector/parse css/selector/norm
 		  css/match css/matches
@@ -124,16 +126,22 @@
 		   (if (overlaps? x {">" "+"}) x
 		       (text->frame selector-extract x)))
 		 (->vector clauses))))))
-(define (css/selector/norm string)
+(define (css/selector/norm/out string)
   (let ((parsed (if (not (string? string)) string
 		    (text->frame selector-extract string))))
-    (stringout (try (get parsed 'tag) "")
-      (doseq (id (sorted (get parsed 'id))) (printout "#" id))
-      (doseq (class (sorted (get parsed 'class))) (printout "." class))
-      (doseq (attrib (sorted (get parsed 'attrib)))
-	(printout "[" attrib "]"))
-      (doseq (pseudo (sorted (get parsed 'pseudo)))
-	(printout ":" pseudo)))))
+    (if (vector? parsed)
+	(doseq (elt parsed i)
+	  (printout (if (> i 0) " ")
+	    (if (string? elt) (printout elt)
+		(css/selector/norm/out elt))))
+	(printout (try (get parsed 'tag) "")
+	  (doseq (id (sorted (get parsed 'id))) (printout "#" id))
+	  (doseq (class (sorted (get parsed 'class))) (printout "." class))
+	  (doseq (attrib (sorted (get parsed 'attrib)))
+	    (printout "[" attrib "]"))
+	  (doseq (pseudo (sorted (get parsed 'pseudo)))
+	    (printout ":" pseudo))))))
+(define (css/selector/norm arg) (stringout (css/selector/norm/out arg)))
 
 ;;; Matching selectors
 
@@ -161,20 +169,22 @@
 	   (and (not (string? x))
 		(or (hashset-get seen (css/norm x))
 		    (begin (hashset-add! seen (css/norm x)) #f)))))
-     (if (pair? (car rules))
-	 ;; It's actually a list of sheets
-	 (apply append (map (lambda (sheet) (css/matches (cdr sheet) pat))
-			    rules))
-	 (map (lambda (x)
-		(and (not (string? x))
-		     (or (exists css/match pat (get x 'matchers))
-			 (exists css/match pat (get x 'matchers+)))
-		     x))
-	      rules)))))
+     (if (null? rules) '()
+	 (if (pair? (car rules))
+	     ;; It's actually a list of sheets
+	     (apply append (map (lambda (sheet) (css/matches (cdr sheet) pat))
+				rules))
+	     (map (lambda (x)
+		    (and (not (string? x))
+			 (or (exists css/match pat (get x 'matchers))
+			     (exists css/match pat (get x 'matchers+)))
+			 x))
+		  rules))))))
 
 ;;; Manipulating sheets
 
 (define (css/drop-class! sheet classname)
+  (loginfo "Dropping class " classname " from " (car sheet))
   (let ((csspat `#[class ,classname])
 	(textpat `#("." ,classname {(eos) (isspace) "." "#" "[" ":"}))
 	(rules (->vector (cdr sheet)))
@@ -205,6 +215,7 @@
       (set-cdr! sheet (->list (remove #f rules))))))
 
 (define (css/change-class! sheet classname newname)
+  (loginfo "Renaming class " classname  " ==> " newname " in " (car sheet))
   (let ((csspat `#[class ,classname])
 	(textpat `#("." ,classname {(eos) (isspace) "." "#" "[" ":"}))
 	(rules (->vector (cdr sheet))))
@@ -256,6 +267,7 @@
 	      parsed))))
 
 (define (css/drop-property! sheet propname)
+  (loginfo "Deleting property " propname " from " (car sheet))
   (let ((rules (->vector (cdr sheet)))
 	(prefix (glom propname ":"))
 	(deletions 0))
@@ -279,6 +291,8 @@
       (set-cdr! sheet (->list (remove #f rules))))))
 
 (define (css/change-property! sheet propname value newvalue)
+  (loginfo "Merging property " propname " in " (car sheet)
+	   " from " value " => " newvalue)
   (let ((rules (->vector (cdr sheet)))
 	(prefix (glom propname ":")))
     (doseq (rule rules)
@@ -344,7 +358,8 @@
 		      (doseq (elt sel i)
 			(printout (if (> i 0) " ")
 			  (if (string? elt) elt (css/selector/norm elt))))
-		      (css/selector/norm sel))))
+		      (if (string? sel) (printout sel)
+			  (css/selector/norm sel)))))
 	      (printout " {")
 	      (doseq (prop (get entry 'properties))
 		(printout "\n\t" prop ": " (get entry prop) ";"))
