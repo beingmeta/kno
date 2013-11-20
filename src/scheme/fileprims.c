@@ -1330,15 +1330,17 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
 
 static fdtype safe_loadpath=FD_EMPTY_LIST;
 static fdtype loadpath=FD_EMPTY_LIST;
-static void add_load_record(u8_string filename,fd_lispenv env,time_t mtime);
-static fdtype load_source_for_module(u8_string module_filename,int safe);
+static void add_load_record
+  (fdtype spec,u8_string filename,fd_lispenv env,time_t mtime);
+static fdtype load_source_for_module
+  (fdtype spec,u8_string module_filename,int safe);
 static u8_string get_module_filename(fdtype spec,int safe);
 
 static int load_source_module(fdtype spec,int safe)
 {
   u8_string module_filename=get_module_filename(spec,safe);
   if (module_filename) {
-    fdtype load_result=load_source_for_module(module_filename,safe);
+    fdtype load_result=load_source_for_module(spec,module_filename,safe);
     if (FD_ABORTP(load_result)) {
       u8_free(module_filename); fd_decref(load_result);
       return -1;}
@@ -1385,7 +1387,8 @@ static u8_string get_module_filename(fdtype spec,int safe)
   else return NULL;
 }
 
-static fdtype load_source_for_module(u8_string module_filename,int safe)
+static fdtype load_source_for_module
+  (fdtype spec,u8_string module_filename,int safe)
 {
   fd_lispenv env=
     ((safe) ?
@@ -1398,7 +1401,7 @@ static fdtype load_source_for_module(u8_string module_filename,int safe)
       fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
     fd_decref((fdtype)env);
     return load_result;}
-  add_load_record(module_filename,env,mtime);
+  add_load_record(spec,module_filename,env,mtime);
   fd_decref(load_result);
   return (fdtype)env;
 }
@@ -1429,11 +1432,12 @@ static u8_mutex update_modules_lock;
 #endif
 
 struct FD_LOAD_RECORD {
-  u8_string filename; fd_lispenv env;
+  u8_string filename; fd_lispenv env; fdtype spec;
   time_t mtime; int reloading:1;
   struct FD_LOAD_RECORD *next;} *load_records=NULL;
 
-static void add_load_record(u8_string filename,fd_lispenv env,time_t mtime)
+static void add_load_record
+  (fdtype spec,u8_string filename,fd_lispenv env,time_t mtime)
 {
   struct FD_LOAD_RECORD *scan;
   fd_lock_mutex(&load_record_lock);
@@ -1449,14 +1453,15 @@ static void add_load_record(u8_string filename,fd_lispenv env,time_t mtime)
     else scan=scan->next;
   scan=u8_alloc(struct FD_LOAD_RECORD);
   scan->filename=u8_strdup(filename);
-  scan->env=env; scan->mtime=mtime; scan->reloading=0;
-  fd_incref((fdtype)env);
+  scan->mtime=mtime; scan->reloading=0;
+  scan->env=(fd_lispenv)fd_incref((fdtype)env);
+  scan->spec=fd_incref(spec);
   scan->next=load_records; load_records=scan;
   fd_unlock_mutex(&load_record_lock);
 }
 
 typedef struct MODULE_RELOAD {
-  u8_string filename; fd_lispenv env;
+  u8_string filename; fd_lispenv env; fdtype spec;
   struct FD_LOAD_RECORD *record; time_t mtime;
   struct MODULE_RELOAD *next;} RELOAD_MODULE;
 typedef struct MODULE_RELOAD *module_reload;
@@ -1477,6 +1482,7 @@ FD_EXPORT int fd_update_file_modules(int force)
       if (mtime>scan->mtime) {
 	struct MODULE_RELOAD *toreload=u8_alloc(struct MODULE_RELOAD);
 	toreload->filename=scan->filename; toreload->env=scan->env;
+        toreload->spec=scan->spec;
 	toreload->record=scan; toreload->mtime=-1;
 	toreload->next=reloads;
 	rscan=reloads=toreload;
@@ -1489,12 +1495,17 @@ FD_EXPORT int fd_update_file_modules(int force)
       fd_lispenv env=this->env; rscan=this->next;
       time_t mtime=u8_file_mtime(this->filename);
       if (log_reloads)
-        u8_log(LOG_WARN,"fd_update_file_modules","Reloading %s",filename);
+        u8_log(LOG_WARN,"fd_update_file_modules","Reloading %q from %s",
+               this->spec,filename);
       load_result=fd_load_source(filename,env,"auto");
       if (FD_ABORTP(load_result)) {
-	u8_log(LOG_CRIT,"update_file_modules","Error reloading %s",filename);
+	u8_log(LOG_CRIT,"update_file_modules","Error reloading %q from %s",
+               this->spec,filename);
 	fd_clear_errors(1);}
       else {
+        if (log_reloads)
+          u8_log(LOG_WARN,"fd_update_file_modules","Reloaded %q from %s",
+                 this->spec,filename);
 	fd_decref(load_result); n_reloads++;
 	this->mtime=mtime;}}
     fd_lock_mutex(&load_record_lock);
