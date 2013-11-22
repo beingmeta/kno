@@ -110,6 +110,7 @@
   (def-opcode OR         0x03)
   (def-opcode NOT        0x04)
   (def-opcode FAIL       0x05)
+  (def-opcode MODREF     0x06)
   (def-opcode IF         0x10)
   (def-opcode WHEN       0x11)
   (def-opcode UNLESS     0x12)
@@ -353,8 +354,9 @@
 	  (optimize! value))))
     (when (exists symbol? (get module '%moduleid))
       (let* ((referenced-modules (get module '%used_modules))
-	     (used-modules (eval `(within-module ',(pick (get module '%moduleid) symbol?)
-						 (,getmodules))))
+	     (used-modules
+	      (eval `(within-module ',(pick (get module '%moduleid) symbol?)
+				    (,getmodules))))
 	     (unused (difference used-modules referenced-modules standard-modules
 				 (get module '%moduleid))))
 	(when (and check-module-usage (exists? unused))

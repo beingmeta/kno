@@ -365,6 +365,7 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_OR_OPCODE         FD_OPCODE(0x03)
 #define FD_NOT_OPCODE        FD_OPCODE(0x04)
 #define FD_FAIL_OPCODE       FD_OPCODE(0x05)
+#define FD_MODREF_OPCODE     FD_OPCODE(0x06)
 
 #define FD_IF_OPCODE         FD_OPCODE(0x10)
 #define FD_WHEN_OPCODE       FD_OPCODE(0x11)
