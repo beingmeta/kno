@@ -1195,6 +1195,19 @@ static fdtype boundp_handler(fdtype expr,fd_lispenv env)
       fd_decref(val); return FD_TRUE;}}
 }
 
+static fdtype modref_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype module=fd_get_arg(expr,1);
+  fdtype symbol=fd_get_arg(expr,2);
+  if ((FD_VOIDP(module))||(FD_VOIDP(module)))
+    return fd_err(fd_SyntaxError,"modref_handler",NULL,fd_incref(expr));
+  else if (!(FD_HASHTABLEP(module)))
+    return fd_type_error("module hashtable","modref_handler",module);
+  else if (!(FD_SYMBOLP(symbol)))
+    return fd_type_error("symbol","modref_handler",symbol);
+  else return fd_hashtable_get((fd_hashtable)module,symbol,FD_UNBOUND);
+}
+
 static fdtype default_handler(fdtype expr,fd_lispenv env)
 {
   fdtype symbol=fd_get_arg(expr,1);
@@ -1695,6 +1708,7 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"VOID?",voidp_handler);
   fd_defspecial(fd_scheme_module,"QUOTE",quote_handler);
   fd_defspecial(fd_scheme_module,"%ENV",env_handler);
+  fd_defspecial(fd_scheme_module,"%MODREF",modref_handler);  
   fd_defspecial(fd_scheme_module,"DEFAULT",default_handler);
   fd_idefn(fd_scheme_module,fd_make_cprim1("ENVIRONMENT?",environmentp_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("SYMBOL-BOUND?",symbol_boundp_prim,2));

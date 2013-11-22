@@ -110,7 +110,7 @@
   (def-opcode OR         0x03)
   (def-opcode NOT        0x04)
   (def-opcode FAIL       0x05)
-  (def-opcode MODREF     0x06)
+  (def-opcode %MODREF    0x06)
   (def-opcode IF         0x10)
   (def-opcode WHEN       0x11)
   (def-opcode UNLESS     0x12)
@@ -189,7 +189,7 @@
 			      (if (or (pair? v) (symbol? v) (ambiguous? v))
 				  (list 'quote (qc v))
 				  v)))
-			   (else `(,%get ,module ',expr)))
+			   (else `(,%modref ,module ,expr)))
 		     (begin
 		       (when optdowarn
 			 (codewarning (cons* 'UNBOUND expr bound))
@@ -256,7 +256,7 @@
 				      (cond ((not from) value)
 					    ((test from '%nosubst head) head)
 					    ((test from '%volatile head)
-					     `(,%get ,from ',head))
+					     `(,%modref ,from ,head))
 					    (else value))
 				      n-exprs))
 				 (tighten-call (cdr expr) env bound dolex dorail)
