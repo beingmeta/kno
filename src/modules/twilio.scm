@@ -7,7 +7,7 @@
 
 (module-export! '{twilio/send smsout sms/norm sms/norm})
 
-(define %loglevel %debug%)
+(define-init %loglevel %notify%)
 
 (define-init default-sid
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567")
@@ -20,19 +20,19 @@
 (varconfig! twilio:auth default-auth)
 
 (define (twilio/send string opts)
-  (logdebug "Sending " (write string) " to " opts)
+  (loginfo "Sending " (write string) " to " opts)
   (when (string? opts) (set! opts `#[to ,opts]))
-  (debug%watch
-      (urlpost (glom "https://api.twilio.com/2010-04-01/Accounts/"
-		 (getopt opts 'sid default-sid)
-		 "/Messages")
-	       `#[header ,(glom "Authorization: Basic "
-			    (->base64 (glom (getopt opts 'sid default-sid) ":"
-					(getopt opts 'auth default-auth))))]
-	       "From" (getopt opts 'from default-from)
-	       "To" (getopt opts 'to)
-	       "Body" string)
-    opts string))
+  (detail%watch
+   (urlpost (glom "https://api.twilio.com/2010-04-01/Accounts/"
+	      (getopt opts 'sid default-sid)
+	      "/Messages")
+	    `#[header ,(glom "Authorization: Basic "
+			 (->base64 (glom (getopt opts 'sid default-sid) ":"
+				     (getopt opts 'auth default-auth))))]
+	    "From" (getopt opts 'from default-from)
+	    "To" (getopt opts 'to)
+	    "Body" string)
+   opts string))
 
 (define smsout
   (macro expr
