@@ -238,8 +238,7 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         return fd_type_error("module exports(hashtable)",
                              "MODREF opcode",module);
       else if (FD_EXPECT_FALSE((!(FD_SYMBOLP(symbol)))))
-        return fd_type_error("module exports(hashtable)",
-                             "MODREF opcode",module);
+        return fd_type_error("symbol","MODREF opcode",symbol);
       else return fd_hashtable_get
              (FD_STRIP_CONS(module,fd_hashtable_type,fd_hashtable),
               symbol,FD_UNBOUND);}
