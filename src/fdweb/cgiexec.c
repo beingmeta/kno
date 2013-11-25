@@ -810,7 +810,7 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
     fdtype result=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(v,val) {
       if (!(FD_STRINGP(v))) {
-	FD_ADD_TO_CHOICE(result,v); fd_incref(v);}
+	fd_incref(v); FD_ADD_TO_CHOICE(result,v);}
       else {
 	u8_string data=FD_STRDATA(v); fdtype parsed=v;
 	if (*data=='\\') parsed=fdtype_string(data+1);

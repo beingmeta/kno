@@ -71,7 +71,7 @@ fdtype fd_xml_get(fdtype xml,fdtype slotid)
   fdtype content=fd_get(xml,content_slotid,FD_VOID);
   FD_DOLIST(item,content)
     if ((FD_TABLEP(item)) && (fd_test(item,elt_name,slotid))) {
-      FD_ADD_TO_CHOICE(results,item);}
+      fd_incref(item); FD_ADD_TO_CHOICE(results,item);}
   fd_decref(content);
   return results;
 }

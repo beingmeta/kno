@@ -70,6 +70,7 @@ static fdtype getloadlock(fdtype spec,int safe)
     u8_unlock_mutex(&module_wait_lock);
     return module;}
   else {
+    fd_incref(spec);
     FD_ADD_TO_CHOICE(loading_modules,spec);
     u8_unlock_mutex(&module_wait_lock);
     return FD_VOID;}

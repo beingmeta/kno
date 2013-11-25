@@ -1138,7 +1138,8 @@ static fdtype textfilter(fdtype strings,fdtype pattern)
   FD_DO_CHOICES(string,strings)
     if (FD_STRINGP(string))
       if (fd_text_match(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0)) {
-	FD_ADD_TO_CHOICE(results,fd_incref(string));}
+	string=fd_incref(string);
+        FD_ADD_TO_CHOICE(results,string);}
       else {}
     else {
       fd_decref(results);
@@ -1725,8 +1726,8 @@ static fdtype apply_suffixrule
 	    fdtype checked=check_string(rewrite,lexicon);
 	    if (FD_ABORTP(checked)) {
 	      fd_decref(rewrites); return checked;}
-	    FD_ADD_TO_CHOICE(accepted,checked);
-	    fd_incref(checked);}}
+	    fd_incref(checked);
+            FD_ADD_TO_CHOICE(accepted,checked);}}
 	fd_decref(rewrites);
 	return accepted;}
       else if (FD_STRINGP(rewrites))

@@ -575,7 +575,7 @@ static fdtype extindex_decache(fdtype index,fdtype key)
     fdtype keys=fd_hashtable_keys(h), drop=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(key,keys) {
       if ((FD_PAIRP(key))&&(FD_CAR(key)==lix)) {
-	fd_decref(key); FD_ADD_TO_CHOICE(drop,key);}}
+	fd_incref(key); FD_ADD_TO_CHOICE(drop,key);}}
     if (!(FD_EMPTY_CHOICEP(drop))) {
       FD_DO_CHOICES(d,drop) fd_hashtable_drop(h,d,FD_VOID);}
     fd_decref(drop); fd_decref(keys);}
@@ -2156,7 +2156,7 @@ static int walkgraph(fdtype fn,fdtype state,fdtype arcs,
       else {
 	FD_DO_CHOICES(next,expand)
 	  if (!(fd_hashset_get(seen,next))) {
-	    FD_ADD_TO_CHOICE(next_state,next);}}
+	    fd_incref(next); FD_ADD_TO_CHOICE(next_state,next);}}
       fd_decref(expand);}
   fd_decref(state);
   if (!(FD_EMPTY_CHOICEP(next_state)))

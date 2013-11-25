@@ -3252,7 +3252,7 @@ static fdtype hashset_match
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(possibility,iresults)
       if (hashset_strget(h,string+off,fd_getint(possibility)-off)) {
-	FD_ADD_TO_CHOICE(results,possibility);}
+	fd_incref(possibility); FD_ADD_TO_CHOICE(results,possibility);}
     return get_longest_match(results);}
   else {
     fd_hashset h=to_hashset(hs);
@@ -3262,7 +3262,7 @@ static fdtype hashset_match
 	fdtype origin=fd_extract_string(NULL,string+off,string+fd_getint(possibility));
 	fdtype xformed=fd_apply(xform,1,&origin);
 	if (fd_hashset_get(h,xformed)) {
-	  FD_ADD_TO_CHOICE(results,possibility);}
+	  fd_incref(possibility); FD_ADD_TO_CHOICE(results,possibility);}
 	fd_decref(xformed); fd_decref(origin);}}
     return get_longest_match(results);}
 }
@@ -3306,7 +3306,7 @@ static fdtype hashset_not_match
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(possibility,iresults)
       if (hashset_strget(h,string+off,fd_getint(possibility)-off)) {}
-      else {FD_ADD_TO_CHOICE(results,possibility);}
+      else {fd_incref(possibility); FD_ADD_TO_CHOICE(results,possibility);}
     return get_longest_match(results);}
   else  {
     fd_hashset h=to_hashset(hs);
@@ -3316,7 +3316,7 @@ static fdtype hashset_not_match
 	fdtype origin=fd_extract_string(NULL,string+off,string+fd_getint(possibility));
 	fdtype xformed=fd_apply(xform,1,&origin);
 	if (!(fd_hashset_get(h,xformed))) {
-	  FD_ADD_TO_CHOICE(results,possibility);}
+	  fd_incref(possibility); FD_ADD_TO_CHOICE(results,possibility);}
 	fd_decref(xformed); fd_decref(origin);}}
     return get_longest_match(results);}
 }

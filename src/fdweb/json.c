@@ -74,8 +74,8 @@ static fdtype convert_value(fdtype fn,fdtype val,int free,int warn)
 	  fd_clear_errors(warn); fd_incref(elts[i]);
 	  FD_ADD_TO_CHOICE(results,elts[i]);}
 	else if (FD_VOIDP(cval)) {
-	  FD_ADD_TO_CHOICE(results,elts[i]);
-	  fd_incref(elts[i]);}
+          fd_incref(elts[i]);
+	  FD_ADD_TO_CHOICE(results,elts[i]);}
 	else {
 	  FD_ADD_TO_CHOICE(results,cval);}
 	i++;}

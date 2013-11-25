@@ -2846,7 +2846,8 @@ FD_EXPORT fdtype fd_table_skim(fdtype table,fdtype maxval,fdtype scope)
 	 if (FD_NUMBERP(val)) {
 	   int cmp=fd_numcompare(val,maxval);
 	   if (cmp>=0) {
-	     FD_ADD_TO_CHOICE(results,key);}
+	     fd_incref(key);
+             FD_ADD_TO_CHOICE(results,key);}
 	   fd_decref(val);}
 	 else fd_decref(val);}}
     fd_decref(keys);
