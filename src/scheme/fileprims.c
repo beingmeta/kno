@@ -185,16 +185,19 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
     bytes=out.u8_outbuf; len=out.u8_outptr-out.u8_outbuf;
     free_bytes=1;}
   if ((FD_FALSEP(enc)) || (FD_VOIDP(enc))) {
-    FILE *f=u8_fopen(FD_STRDATA(filename),"w"); size_t off=0;
+    FILE *f=u8_fopen(FD_STRDATA(filename),"w");
+    size_t off=0, to_write=len;
     if (f==NULL) {
       if (free_bytes) u8_free(bytes);
       return fd_err(OpenFailed,"writefile_prim",NULL,filename);}
-    while (len>0) {
+    while (to_write>0) {
       ssize_t n_bytes=fwrite(bytes+off,1,len,f);
       if (n_bytes<0) {
 	u8_graberr(errno,"writefile_prim",u8_strdup(FD_STRDATA(filename)));
 	return FD_ERROR_VALUE;}
-      else len=len-n_bytes;}
+      else {
+        to_write=to_write-n_bytes;
+        off=off+n_bytes;}}
     fclose(f);}
   else if ((FD_TRUEP(enc)) || (FD_STRINGP(enc))) {
     struct U8_TEXT_ENCODING *encoding=
