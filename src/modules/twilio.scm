@@ -50,11 +50,11 @@
 	      #((isdigit) (isdigit) (isdigit) (opt "-")
 		(isdigit) (isdigit) (isdigit) (isdigit))))
      #("+" (label cc (isdigit+)) (spaces*)
-       (label areacode #((isdigit+))) 
+       (label areacode (isdigit+)) 
        {(spaces*) "/" "-" "."}
        (label number
 	      #((isdigit+) (* #({"." (spaces) "/" "-"} (isdigit+))))))
-     #((opt (label cc "1"))
+     #((opt "+") (opt (label cc "1"))
        (label areacode
 	      #({"2" "3" "4" "5" "6" "7" "8" "9"} (isdigit) (isdigit)))
        {"-" "/" "." ""} (spaces*)
