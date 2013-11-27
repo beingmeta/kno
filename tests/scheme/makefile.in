@@ -118,7 +118,7 @@ indextests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index CONSINDEX=yes 
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index \
 		CACHELEVEL=2 CONSINDEX=yes
-	# Generate test edits
+	# Do test edits (no cache)
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype
 	# Verify test edits
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype
@@ -127,23 +127,25 @@ indextests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index CACHELEVEL=2
 	# Try testing without the cache
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index
+	# Do test edits (with cache)
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype \
+	# Verify test edits
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype
 	# Build with both cache and consindices
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE) \
 		CACHELEVEL=2 CONSINDEX=yes
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index \
 		CACHELEVEL=2 CONSINDEX=yes
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype \
-		CACHELEVEL=2
+	# Do test edits (with cache and consindex)
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype \
 		CACHELEVEL=2 CONSINDEX=yes
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype \
-		CACHELEVEL=2
+	# Verify test edits
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype
 	@echo "*** Completed scheme tests to exercise file indices "
 
 hashindextests:
 	@echo "*** Running scheme tests to exercise hash indices "
-	rm -f edit.dtype
 	# The cache is off by default
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE)
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex
@@ -152,28 +154,30 @@ hashindextests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex CONSINDEX=yes 
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex \
 		CACHELEVEL=2 CONSINDEX=yes
-	# Generate test edits
+	# Do test edits (no cache)
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
 	# Verify test edits
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
 	# New test, building with cache enabled
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE) \
-		CACHELEVEL=2
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE) CACHELEVEL=2
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex CACHELEVEL=2
 	# Try testing without the cache
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex
+	# Do test edits (with cache)
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype \
+	# Verify test edits
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
 	# Build with both cache and consindices
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE) \
 		CACHELEVEL=2 CONSINDEX=yes
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex \
 		CACHELEVEL=2 CONSINDEX=yes
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype \
-		CACHELEVEL=2
+	# Do test edits (with cache and consindex)
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype \
 		CACHELEVEL=2 CONSINDEX=yes
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype \
-		CACHELEVEL=2
+	# Verify test edits
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
 	@echo "*** Completed scheme tests to exercise hash indices "
 
 
