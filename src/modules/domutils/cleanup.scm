@@ -323,3 +323,35 @@
     classdefs))
 
 
+;;; Fix font styles
+
+;;; Fixing CSS font sizes
+
+(define named-sizes
+  #["medium" "1.0em"
+    "large" "1.2em" "x-large" "1.5em" "xx-large" "1.8em"
+    "small" "0.8em" "x-small" "0.6em" "xx-small" "0.45em" ])
+
+(define (fix-font-size s)
+  (try (get named-sizes s)
+       (tryif (has-suffix s "px")
+	 (glom (inexact->string  (/ (string->number (slice s 0 -2)) 16.0) 2)
+	   "em"))
+       (tryif (has-suffix s "pt")
+	 (glom (inexact->string (/ (string->number (slice s 0 -2)) 12.0) 2)
+	   "em"))))
+
+(define (xform-font-size s)
+  (try (fix-font-size s) s))
+
+(define dom/fixfontsizes
+  `(ic #({(spaces) "{"} "font-size:" (spaces*)
+	 (subst {"small" "x-small" "xx-small"
+		 "large" "x-large" "xx-large" "medium"
+		 #((isdigit+) {"px" "pt"})
+		 #((isdigit+) "." (isdigit+) "px")}
+		,xform-font-size)
+	 (not> ";") ";")))
+
+(module-export! '{dom/cleanup/fixfontsizes})
+
