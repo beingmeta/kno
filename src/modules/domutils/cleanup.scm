@@ -344,7 +344,7 @@
 (define (xform-font-size s)
   (try (fix-font-size s) s))
 
-(define dom/fixfontsizes
+(define dom/cleanup/fixfontsizes
   `(ic #({(spaces) "{"} "font-size:" (spaces*)
 	 (subst {"small" "x-small" "xx-small"
 		 "large" "x-large" "xx-large" "medium"
