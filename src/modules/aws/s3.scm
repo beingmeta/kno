@@ -226,35 +226,36 @@
 	       (content #f) (ctype) (headers '()) . args)
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
-  (let* ((result (s3op op bucket path content ctype headers args))
-	 (content (get result '%content))
-	 (status (get result 'response)))
+  (let* ((s3result (s3op op bucket path content ctype headers args))
+	 (content (get s3result '%content))
+	 (status (get s3result 'response)))
     (unless (>= 299 status 200)
       (onerror
-	  (store! result '%content (xmlparse content))
+	  (store! s3result '%content (xmlparse content))
 	(lambda (ex) #f)))
-    (if (>= 299 status 200) result
+    (if (>= 299 status 200)
+	(detail%watch s3result)
 	(cond ((and (not err) (equal? op "HEAD") (overlaps? status {404 410}))
 	       ;; Don't generate warnings for HEAD probes
-	       result)
+	       s3result)
 	      ((and (not err) (= status 404))
-	       (logwarn |S3/NotFound| S3/OP result)
-	       result)
+	       (logwarn |S3/NotFound| S3/OP s3result)
+	       s3result)
 	      ((and (not err) (= status 403))
-	       (logwarn |S3/Forbidden| S3/OP result)
-	       result)
+	       (logwarn |S3/Forbidden| S3/OP s3result)
+	       s3result)
 	      ((not err)
 	       (logwarn |S3/Failure| S3/OP
-			(try (get result 'header) "HTTP return failed")
-			":\n\t" result)
-	       result)
+			(try (get s3result 'header) "HTTP return failed")
+			":\n\t" s3result)
+	       s3result)
 	      ((and err (= status 404))
-	       (irritant result |S3/NotFound| S3/OP
+	       (irritant s3result |S3/NotFound| S3/OP
 			 "s3://" bucket path))
 	      ((and err (= status 403))
-	       (irritant result |S3/Forbidden| S3/OP
+	       (irritant s3result |S3/Forbidden| S3/OP
 			 "s3://" bucket path))
-	      (else (irritant result |S3/Failure| S3/OP
+	      (else (irritant s3result |S3/Failure| S3/OP
 			      "s3://" bucket path))))))
 
 (define (s3/expected response)
@@ -369,7 +370,7 @@
 (define (s3loc/get+ loc (text #t) (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
-		err "" "text"headers))
+		err "" "text" headers))
 	 (status (get req 'response)))
     (if (and status (>= 299 status 200))
 	`#[content ,(get req '%content)
