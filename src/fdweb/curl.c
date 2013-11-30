@@ -516,28 +516,28 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,INBUF *da
   else {
     data->bytes=u8_realloc(data->bytes,data->size+4);
     data->bytes[data->size]='\0';}
-  if (data->size<=0) {
-    if (data->size==0)
-      cval=fd_init_packet(NULL,data->size,data->bytes);
-    else cval=FD_EMPTY_CHOICE;}
+  if (data->size<0) cval=FD_EMPTY_CHOICE;
   else if ((fd_test(result,type_symbol,text_types))&&
-           (!(fd_test(result,content_encoding_symbol,FD_VOID)))) {
-    fdtype chset=fd_get(result,charset_symbol,FD_VOID);
-    if (FD_STRINGP(chset)) {
-      U8_OUTPUT out;
-      u8_encoding enc=u8_get_encoding(FD_STRDATA(chset));
-      if (enc) {
-	unsigned char *scan=data->bytes;
-	U8_INIT_OUTPUT(&out,data->size);
-	u8_convert(enc,1,&out,&scan,data->bytes+data->size);
-	cval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+           (!(fd_test(result,content_encoding_symbol,FD_VOID))))
+    if (data->size==0)
+      cval=fd_init_string(NULL,data->size,data->bytes);
+    else {
+      fdtype chset=fd_get(result,charset_symbol,FD_VOID);
+      if (FD_STRINGP(chset)) {
+        U8_OUTPUT out;
+        u8_encoding enc=u8_get_encoding(FD_STRDATA(chset));
+        if (enc) {
+          unsigned char *scan=data->bytes;
+          U8_INIT_OUTPUT(&out,data->size);
+          u8_convert(enc,1,&out,&scan,data->bytes+data->size);
+          cval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+        else if (strstr(data->bytes,"\r\n"))
+          cval=fd_lispstring(u8_convert_crlfs(data->bytes));
+        else cval=fd_lispstring(u8_valid_copy(data->bytes));}
       else if (strstr(data->bytes,"\r\n"))
-	cval=fd_lispstring(u8_convert_crlfs(data->bytes));
-      else cval=fd_lispstring(u8_valid_copy(data->bytes));}
-    else if (strstr(data->bytes,"\r\n"))
-      cval=fd_lispstring(u8_convert_crlfs(data->bytes));
-    else cval=fd_lispstring(u8_valid_copy(data->bytes));
-    u8_free(data->bytes);}
+        cval=fd_lispstring(u8_convert_crlfs(data->bytes));
+      else cval=fd_lispstring(u8_valid_copy(data->bytes));
+      u8_free(data->bytes);}
   else {
     cval=fd_make_packet(NULL,data->size,data->bytes);
     u8_free(data->bytes);}
