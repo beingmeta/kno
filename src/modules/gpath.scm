@@ -203,6 +203,8 @@
 	((and (s3loc? path) (string? (s3loc-path path)))
 	 (make-s3loc (s3loc-bucket path) ""))
 	((and (string? path) (has-prefix path "/")) (dirname path))
+	((and (string? path) (has-prefix path {"ftp:" "http:" "https:"}))
+	 (if (has-suffix path "/") path (dirname path)))
 	((and (string? path) (position #\/ path))
 	 (mkpath (getcwd) (dirname path)))
 	((string? path) (mkpath (getcwd) path))
