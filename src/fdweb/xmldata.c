@@ -71,12 +71,12 @@ static fdtype xmlget_sorted(fdtype doc,fdtype attrib_id)
   if (FD_EMPTY_LISTP(results))
     return fd_make_vector(0,NULL);
   else {
-    int i=0, len=listlen(results);
+    int len=listlen(results), i=len-1;
     fdtype vec=fd_make_vector(len,NULL), scan=results;
-    while ((i<len)&&(FD_PAIRP(scan))) {
+    while ((i>=0)&&(FD_PAIRP(scan))) {
       fdtype car=FD_CAR(scan); 
       FD_VECTOR_SET(vec,i,car); fd_incref(car);
-      scan=FD_CDR(scan); i++;}
+      scan=FD_CDR(scan); i--;}
     fd_decref(results);
     return vec;}
 }
