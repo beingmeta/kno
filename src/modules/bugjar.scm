@@ -55,15 +55,27 @@
 		  "D" (padnum (get date 'date) 2)))
 	 (dir (mkpath daily (stringout "BJ" (uuid->string uuid)))))
     dir))
+(define (makelogbase uuid (root fileroot))
+  (if (file-directory? root)
+      (let* ((date (uuid-time uuid))
+	     (yname (mkpath root (glom "Y0" (get date 'year))))
+	     (mname (mkpath yname (glom "M" (padnum (1+ (get date 'month)) 2))))
+	     (dname (mkpath mname (glom "M" (padnum (1+ (get date 'month)) 2))))
+	     (dir (mkpath dname (stringout "BJ" (uuid->string uuid)))))
+	(unless (file-directory? yname) (mkdir yname #o777))
+	(unless (file-directory? mname) (mkdir mname #o777))
+	(unless (file-directory? dname) (mkdir dname #o777))
+	(unless (file-directory? dir) (mkdir dir))
+	dir)
+      (error "Root doesn't exist: " root)))
 
 (define (bugjar! spec exception . more)
   (if (uuid? spec) (set! spec `#[uuid ,spec]) (set! spec #[]))
   (when (getopt spec 'sections)
     (set! more (append more (getopt spec 'sections))))
   (let* ((uuid (try (getopt spec 'uuid) (getuuid)))
-	 (logbase (getlogbase uuid))
-	 (fileroot (abspath (mkpath fileroot logbase)))
-	 (webroot (and webroot (mkpath webroot logbase)))
+	 (fileroot (makelogbase uuid fileroot))
+	 (webroot (and webroot (mkpath webroot (getlogbase uuid))))
 	 (reqdata (try (getopt spec 'reqdata)
 		       (and (req/get 'SCRIPT_FILENAME)
 			    (or (req/get 'reqdata #f) (req/data)))))
@@ -192,6 +204,7 @@
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (mkpath fileroot "backtrace.html")))))
+
 
 
 
