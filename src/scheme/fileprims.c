@@ -612,7 +612,11 @@ static fdtype mkdir_prim(fdtype dirname,fdtype mode_arg)
   if (retval<0) {
     u8_condition cond=u8_strerror(errno); errno=0;
     return fd_err(cond,"mkdir_prim",NULL,dirname);}
-  else if (retval) return FD_TRUE;
+  else if (retval) {
+    /* Force the mode to be set if provided */
+    if (FD_FIXNUMP(mode_arg)) 
+      u8_chmod(FD_STRDATA(dirname),((mode_t)(FD_FIX2INT(mode_arg))));
+    return FD_TRUE;}
   else return FD_FALSE;
 }
 
