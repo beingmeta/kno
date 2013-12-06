@@ -5,7 +5,7 @@
 const u8_string fd_opcode_names[256]={
   /* 0x00 */
   "quote","begin","and","or","not","fail",
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  "%modref",NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0x10 */
   "if","when","unless","ifelse",
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -37,7 +37,7 @@ const u8_string fd_opcode_names[256]={
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0xA0 */
-  "get","test","xref",NULL,NULL,NULL,NULL,NULL,
+  "get","test","xref","%get","%test",NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0xB0 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -772,12 +772,17 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       if (opcode==FD_GET_OPCODE)
 	result=fd_fget(arg1,slotids);
       else {
-	fdtype dflt=fd_eval(fd_get_arg(expr,3),env);
-	if (FD_ABORTP(dflt)) result=dflt;
-	else if (FD_VOIDP(dflt)) {
-	  result=fd_err(fd_VoidArgument,"OPCODE fget",NULL,fd_get_arg(expr,3));}
-	else result=fd_get(arg1,slotids,dflt);
-	fd_decref(dflt);}
+	fdtype dflt_arg=fd_get_arg(expr,3);
+        if (FD_VOIDP(dflt_arg))
+          result=fd_get(arg1,slotids,FD_EMPTY_CHOICE);
+        else {
+          fdtype dflt=fd_eval(dflt_arg,env);
+          if (FD_ABORTP(dflt)) result=dflt;
+          else if (FD_VOIDP(dflt)) {
+            result=fd_err(fd_VoidArgument,"OPCODE pget",NULL,
+                          fd_get_arg(expr,3));}
+          else result=fd_get(arg1,slotids,dflt);
+          fd_decref(dflt);}}
       fd_decref(arg1); fd_decref(slotids);
       return result;}
   else if ((opcode==FD_TEST_OPCODE) || (opcode==FD_PTEST_OPCODE))
@@ -790,7 +795,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       else if (FD_VOIDP(slotids))
 	return fd_err(fd_SyntaxError,"OPCODE ftest",NULL,expr);
       else if (FD_VOIDP(values_arg))
-	values=FD_EMPTY_CHOICE;
+	values=FD_VOID;
       else values=fd_eval(values_arg,env);
       if (FD_ABORTP(values)) return values;
       if (opcode==FD_TEST_OPCODE)
