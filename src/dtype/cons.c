@@ -1037,7 +1037,9 @@ fdtype fd_make_timestamp(struct U8_XTIME *tm)
   struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
   memset(tstamp,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tstamp,fd_timestamp_type);
-  memcpy(&(tstamp->xtime),tm,sizeof(struct U8_XTIME));
+  if (tm)
+    memcpy(&(tstamp->xtime),tm,sizeof(struct U8_XTIME));
+  else u8_now(&(tstamp->xtime));
   return FDTYPE_CONS(tstamp);
 }
 
