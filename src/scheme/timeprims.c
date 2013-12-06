@@ -326,6 +326,26 @@ static fdtype use_strftime(char *format,struct U8_XTIME *xt)
   else return fd_init_string(NULL,n_bytes,buf);
 }
 
+static int tzvalueok(fdtype value,int *off,u8_context caller)
+{
+  int secs;
+  if (FD_FIXNUMP(value)) {
+    int fixval=FD_FIX2INT(value);
+    if ((fixval<(48*3600))&&(fixval>(-48*3600))) {
+      if ((fixval>=0)&&(fixval<48)) *off=fixval*3600;
+      else if ((fixval<=0)&&(fixval>=(-48))) *off=fixval*3600;
+      else *off=fixval;
+      return 1;}}
+  else if (FD_FLONUMP(value)) {
+    double floatval=FD_FLONUM(value);
+    int fixval=(int) floatval;
+    if ((fixval<(48*3600))&&(fixval>(-48*3600))) {
+      *off=fixval;
+      return 1;}}
+  fd_seterr(fd_TypeError,caller,"invalid timezone offset",value);
+  return 0;
+}
+
 static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
 {
   if (FD_EQ(slotid,year_symbol))
@@ -703,34 +723,28 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
       xt->u8_sec=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("seconds")),value);
   else if (FD_EQ(slotid,gmtoff_symbol)) {
-    if (FD_FIXNUMP(value)) {
+    int gmtoff; if (tzvalueok(value,&gmtoff,"xtime_set/gmtoff")) {
       u8_tmprec prec=xt->u8_prec; 
       time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs; 
-      int gmtoff=FD_FIX2INT(value); 
       int tzoff=xt->u8_tzoff, dstoff=xt->u8_dstoff;
       u8_init_xtime(xt,tick,prec,nsecs,gmtoff-dstoff,dstoff);
       return 0;}
-    else return fd_reterr(fd_TypeError,"xtime_set",
-			  u8_strdup(_("time offset (seconds)")),value);}
+    else return FD_ERROR_VALUE;}
   else if (FD_EQ(slotid,dstoff_symbol)) {
-    if (FD_FIXNUMP(value)) {
+    int dstoff; if (tzvalueok(value,&dstoff,"xtime_set/dstoff")) {
       u8_tmprec prec=xt->u8_prec; 
       time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs; 
-      int dstoff=FD_FIX2INT(value);
       int gmtoff=xt->u8_tzoff+xt->u8_dstoff;
       u8_init_xtime(xt,tick,prec,nsecs,gmtoff-dstoff,dstoff);
       return 0;}
-    else return fd_reterr(fd_TypeError,"xtime_set",
-			  u8_strdup(_("time offset (seconds)")),value);}
+    else return FD_ERROR_VALUE;}
   else if (FD_EQ(slotid,tzoff_symbol)) {
-    if (FD_FIXNUMP(value)) {
-      u8_tmprec prec=xt->u8_prec; 
+    int tzoff; if (tzvalueok(value,&tzoff,"xtime_set/tzoff")) {
+      u8_tmprec prec=xt->u8_prec; int dstoff=xt->u8_dstoff;
       time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs; 
-      int tzoff=FD_FIX2INT(value), dstoff=xt->u8_dstoff;
       u8_init_xtime(xt,tick,prec,nsecs,tzoff,dstoff);
       return 0;}
-    else return fd_reterr(fd_TypeError,"xtime_set",
-			  u8_strdup(_("time offset (seconds)")),value);}
+    else return FD_ERROR_VALUE;}
   else if (FD_EQ(slotid,timezone_symbol)) {
     if (FD_STRINGP(value)) {
       u8_apply_tzspec(xt,FD_STRDATA(value));
@@ -799,6 +813,28 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
       u8_init_xtime(xt,moment,xt->u8_prec,xt->u8_nsecs,0,0);
       return result;}}
 }      
+
+static fdtype mktime_lexpr(int n,fdtype *args)
+{
+  fdtype base; struct U8_XTIME *xt; int scan=0;
+  if (n%2) {
+    fdtype spec=args[0]; scan=1;
+    if (FD_PRIM_TYPEP(spec,fd_timestamp_type)) 
+      base=fd_deep_copy(spec);
+    else if ((FD_FIXNUMP(spec))||(FD_BIGINTP(spec))) {
+      time_t moment=(time_t)
+        ((FD_FIXNUMP(spec))?(FD_FIX2INT(spec)):
+         (fd_bigint_to_long_long((fd_bigint)spec)));
+      base=fd_time2timestamp(moment);}
+    else return fd_type_error(_("time base"),"mktime_lexpr",spec);}
+  else base=fd_make_timestamp(NULL);
+  xt=&(((struct FD_TIMESTAMP *)(base))->xtime);
+  while (scan<n) {
+    int rv=xtime_set(xt,args[scan],args[scan+1]);
+    if (rv<0) {fd_decref(base); return FD_ERROR_VALUE;}
+    else scan=scan+2;}
+  return (fdtype)base;
+}
 
 /* Miscellanous time utilities */
 
@@ -1590,6 +1626,8 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("TIME<?",timestamp_lesser,1));
   fd_defalias(fd_scheme_module,"TIME-EARLIER?","TIME<?");
   fd_defalias(fd_scheme_module,"TIME-LATER?","TIME>?");
+
+  fd_idefn(fd_scheme_module,fd_make_cprimn("MKTIME",mktime_lexpr,0));
 
 #if ((HAVE_SLEEP) || (HAVE_NANOSLEEP))
   fd_idefn(fd_scheme_module,fd_make_cprim1("SLEEP",sleep_prim,1));
