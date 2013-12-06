@@ -97,6 +97,7 @@ dtypetests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cachecall.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) misctest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) texttest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) timefns.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) threadtest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) i18n.scm
 	@echo "*** Completed scheme tests to exercise the data/eval layer"

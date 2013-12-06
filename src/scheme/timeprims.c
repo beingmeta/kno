@@ -37,7 +37,7 @@ static fdtype year_symbol, month_symbol, date_symbol;
 static fdtype hours_symbol, minutes_symbol, seconds_symbol;
 static fdtype milliseconds_symbol, microseconds_symbol, nanoseconds_symbol;
 static fdtype picoseconds_symbol, femtoseconds_symbol;
-static fdtype precision_symbol, tzoff_symbol;
+static fdtype precision_symbol, tzoff_symbol, dstoff_symbol, gmtoff_symbol;
 static fdtype spring_symbol, summer_symbol, autumn_symbol, winter_symbol;
 static fdtype season_symbol, gmt_symbol, timezone_symbol;
 static fdtype morning_symbol, afternoon_symbol, evening_symbol, nighttime_symbol;
@@ -579,6 +579,10 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,tzoff_symbol))
     return FD_SHORT2DTYPE(xt->u8_tzoff);
+  else if (FD_EQ(slotid,dstoff_symbol))
+    return FD_SHORT2DTYPE(xt->u8_dstoff);
+  else if (FD_EQ(slotid,gmtoff_symbol))
+    return FD_SHORT2DTYPE((xt->u8_tzoff+xt->u8_dstoff));
   else if (FD_EQ(slotid,tick_symbol))
     if (xt->u8_prec>=u8_second) {
       time_t tick=xt->u8_tick;
@@ -668,8 +672,9 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
 
 static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
 {
+  time_t tick=xt->u8_tick; int rv=-1;
   if (FD_EQ(slotid,year_symbol))
-    if (FD_FIXNUMP(value))
+    if (FD_FIXNUMP(value)) 
       xt->u8_year=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("year")),value);
   else if (FD_EQ(slotid,month_symbol))
@@ -697,19 +702,45 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
 	(FD_FIX2INT(value)>=0) && (FD_FIX2INT(value)<60))
       xt->u8_sec=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("seconds")),value);
+  else if (FD_EQ(slotid,gmtoff_symbol)) {
+    if (FD_FIXNUMP(value)) {
+      u8_tmprec prec=xt->u8_prec; 
+      time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs; 
+      int gmtoff=FD_FIX2INT(value); 
+      int tzoff=xt->u8_tzoff, dstoff=xt->u8_dstoff;
+      u8_init_xtime(xt,tick,prec,nsecs,gmtoff-dstoff,dstoff);
+      return 0;}
+    else return fd_reterr(fd_TypeError,"xtime_set",
+			  u8_strdup(_("time offset (seconds)")),value);}
+  else if (FD_EQ(slotid,dstoff_symbol)) {
+    if (FD_FIXNUMP(value)) {
+      u8_tmprec prec=xt->u8_prec; 
+      time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs; 
+      int dstoff=FD_FIX2INT(value);
+      int gmtoff=xt->u8_tzoff+xt->u8_dstoff;
+      u8_init_xtime(xt,tick,prec,nsecs,gmtoff-dstoff,dstoff);
+      return 0;}
+    else return fd_reterr(fd_TypeError,"xtime_set",
+			  u8_strdup(_("time offset (seconds)")),value);}
+  else if (FD_EQ(slotid,tzoff_symbol)) {
+    if (FD_FIXNUMP(value)) {
+      u8_tmprec prec=xt->u8_prec; 
+      time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs; 
+      int tzoff=FD_FIX2INT(value), dstoff=xt->u8_dstoff;
+      u8_init_xtime(xt,tick,prec,nsecs,tzoff,dstoff);
+      return 0;}
+    else return fd_reterr(fd_TypeError,"xtime_set",
+			  u8_strdup(_("time offset (seconds)")),value);}
   else if (FD_EQ(slotid,timezone_symbol)) {
     if (FD_STRINGP(value)) {
-      int tz=u8_parse_tzspec(FD_STRDATA(value),xt->u8_tzoff);
-      xt->u8_tzoff=tz;}
-    else if (FD_FIXNUMP(value)) {
-      int offset=0;
-      if ((FD_FIX2INT(value)>=-12) && (FD_FIX2INT(value)<=12))
-	offset=3600*FD_FIX2INT(value);
-      else offset=FD_FIX2INT(value);
-      xt->u8_tzoff=offset;}
+      u8_apply_tzspec(xt,FD_STRDATA(value));
+      return 0;}
     else return fd_reterr(fd_TypeError,"xtime_set",
-			  u8_strdup(_("seconds")),value);}
-  return 0;
+			  u8_strdup(_("timezone string")),value);}
+  rv=u8_mktime(xt);
+  if (rv<0) return rv;
+  else if (xt->u8_tick==tick) return 0;
+  else return 1;
 }
 
 static fdtype timestamp_get(fdtype timestamp,fdtype slotid,fdtype dflt)
@@ -722,6 +753,13 @@ static fdtype timestamp_get(fdtype timestamp,fdtype slotid,fdtype dflt)
     fdtype result=xtime_get(&(tms->xtime),slotid,0);
     if (FD_EMPTY_CHOICEP(result)) return dflt;
     else return result;}
+}
+
+static int timestamp_store(fdtype timestamp,fdtype slotid,fdtype val)
+{
+  struct FD_TIMESTAMP *tms=
+    FD_GET_CONS(timestamp,fd_timestamp_type,struct FD_TIMESTAMP *);
+  return xtime_set(&(tms->xtime),slotid,val);
 }
 
 static fdtype timestamp_getkeys(fdtype timestamp)
@@ -1411,7 +1449,7 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_tablefns[fd_timestamp_type]->get=timestamp_get;
   fd_tablefns[fd_timestamp_type]->add=NULL;
   fd_tablefns[fd_timestamp_type]->drop=NULL;
-  fd_tablefns[fd_timestamp_type]->store=NULL;
+  fd_tablefns[fd_timestamp_type]->store=timestamp_store;
   fd_tablefns[fd_timestamp_type]->test=NULL;
   fd_tablefns[fd_timestamp_type]->keys=timestamp_getkeys;
 
@@ -1431,6 +1469,10 @@ FD_EXPORT void fd_init_timeprims_c()
   FD_ADD_TO_CHOICE(xtime_keys,precision_symbol);
   tzoff_symbol=fd_intern("TZOFF");
   FD_ADD_TO_CHOICE(xtime_keys,tzoff_symbol);
+  dstoff_symbol=fd_intern("DSTOFF");
+  FD_ADD_TO_CHOICE(xtime_keys,dstoff_symbol);
+  gmtoff_symbol=fd_intern("GMTOFF");
+  FD_ADD_TO_CHOICE(xtime_keys,gmtoff_symbol);
   
   milliseconds_symbol=fd_intern("MILLISECONDS");
   FD_ADD_TO_CHOICE(xtime_keys,milliseconds_symbol);
