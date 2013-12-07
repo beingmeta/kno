@@ -42,6 +42,8 @@
 /* This is the size of file to return all at once. */
 #define FD_FILEBUF_MAX (256*256)
 
+#include "main.c"
+
 static u8_condition Startup=_("FDServlet Startup");
 
 FD_EXPORT int fd_init_fddbserv(void);
@@ -125,9 +127,13 @@ static int statlog_set(fdtype var,fdtype val,void *data)
       u8_free(statlogfile); statlogfile=NULL;}
     statlogfile=u8_abspath(filename,NULL);
     statlog=u8_fopen_locked(statlogfile,"a");
+    if ((statlog==NULL)&&(u8_file_existsp(statlogfile))) {
+      int rv=u8_removefile(statlogfile);
+      if (rv>=0) statlog=u8_fopen_locked(statlogfile,"a");}
     if (statlog) {
       u8_string tmp;
       tmp=u8_mkstring("# Log open %*lt for %s\n",u8_sessionid());
+      u8_chmod(statlogfile,0774);
       fputs(tmp,statlog);
       fd_unlock_mutex(&log_lock);
       u8_free(tmp);
@@ -725,6 +731,7 @@ static int webservefn(u8_client ucl)
       fd_decref(uri);}
     /* This is what we'll execute, be it a procedure or FDXML */
     proc=getcontent(path);}
+
   u8_set_default_output(outstream);
   init_cgidata=fd_deep_copy(cgidata);
   fd_use_reqinfo(cgidata);
@@ -1416,8 +1423,9 @@ int main(int argc,char **argv)
   u8_init_chardata_c();
 #endif
 
-  /* Now we initialize the u8 configuration variables */
+  /* Now we initialize the libu8 logging configuration */
   u8_log_show_date=1;
+  u8_log_show_elapsed=1;
   u8_log_show_procinfo=1;
   u8_log_show_threadinfo=1;
   u8_use_syslog(0);
