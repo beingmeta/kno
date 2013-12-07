@@ -35,6 +35,8 @@
 
 FD_EXPORT int fd_update_file_modules(int force);
 
+#include "main.c"
+
 #define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
 
@@ -719,8 +721,9 @@ int main(int argc,char **argv)
   u8_init_chardata_c();
 #endif
 
-  /* Show more information */
+  /* Now we initialize the libu8 logging configuration */
   u8_log_show_date=1;
+  u8_log_show_elapsed=1;
   u8_log_show_procinfo=1;
   u8_log_show_threadinfo=1;
   u8_use_syslog(1);
