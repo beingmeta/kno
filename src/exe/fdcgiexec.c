@@ -41,6 +41,8 @@
 #include <fcgiapp.h>
 #endif
 
+#include "main.c"
+
 static u8_condition Startup=_("FDCGIEXEC/Startup");
 
 FD_EXPORT void fd_init_fdweb(void);

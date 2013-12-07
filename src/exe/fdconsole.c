@@ -45,6 +45,8 @@
 
 #define EVAL_PROMPT ";; Eval: "
 
+#include "main.c"
+
 int skip_whitespace(u8_input in)
 {
   int c=u8_getc(in);

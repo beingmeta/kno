@@ -38,6 +38,8 @@
 
 #define MAX_CONFIGS 256
 
+#include "main.c"
+
 static int debug_maxelts=32, debug_maxchars=80;
 
 static char *configs[MAX_CONFIGS], *exe_arg=NULL, *file_arg=NULL;

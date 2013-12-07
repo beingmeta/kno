@@ -38,11 +38,9 @@
 
 #include "main.h"
 
-FD_EXPORT void fd_init_fdweb(void);
-FD_EXPORT void fd_init_texttools(void);
-FD_EXPORT void fd_init_tagger(void);
-
 #define EVAL_PROMPT ";; Eval: "
+
+#include "main.c"
 
 int skip_whitespace(u8_input in)
 {
