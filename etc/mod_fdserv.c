@@ -49,6 +49,8 @@
 #define DEBUG_SOCKETS DEBUG_ALL
 #endif
 
+#define LOGNOTICE APLOG_NOTICE
+
 #if DEBUG_FDSERV
 #define LOGDEBUG APLOG_NOTICE
 #else
@@ -1562,7 +1564,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
       /* There should be a free open socket to reuse, so we scan */
       struct FDSOCKET *sockets=s->sockets;
       while (i<lim) {
-	ap_log_error(APLOG_MARK,LOGDEBUG,OK,s->server,
+	ap_log_error(APLOG_MARK,LOGNOTICE,OK,s->server,
 		     "Checking %s #%d/%d busy=%d closed=%d",
 		     s->sockname,i,lim,sockets[i].busy,sockets[i].closed);
 	if (sockets[i].busy>0) i++;
@@ -1574,7 +1576,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	  s->n_busy++;
 	  apr_thread_mutex_unlock(s->lock);
 #if DEBUG_SOCKETS
-	  ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,"Using cached %s ",
+	  ap_log_rerror(APLOG_MARK,LOGNOTICE,OK,r,"Using cached %s ",
 			fdsocketinfo(&(sockets[i]),infobuf));
 #endif
 	  return &(sockets[i]);}}}
@@ -1582,10 +1584,8 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
     else i=s->n_socks;
     if (closed>=0) {
       struct FDSOCKET *sockets=s->sockets; fdsocket sock;
-#if DEBUG_SOCKETS
-      ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,"Reopening cached %s ",
+      ap_log_rerror(APLOG_MARK,LOGNOTICE,OK,r,"Reopening cached %s ",
 		    fdsocketinfo(&(sockets[closed]),infobuf));
-#endif
       sock=servlet_open(s,&(sockets[closed]),r); s->n_busy++;
       apr_thread_mutex_unlock(s->lock);
       return sock;}
