@@ -34,7 +34,7 @@ static fdtype get_method, post_method, browseinfo_symbol, redirect_field;
 static fdtype query_string, query_elts, query, http_cookie, http_referrer;
 static fdtype http_headers, html_headers, cookiedata_symbol;
 static fdtype cookies_symbol, incookies_symbol, bad_cookie, text_symbol;
-static fdtype doctype_slotid, xmlpi_slotid, body_attribs_slotid;
+static fdtype doctype_slotid, xmlpi_slotid, html_attribs_slotid, body_attribs_slotid;
 static fdtype content_slotid, content_type, cgi_content_type;
 static fdtype remote_user_symbol, remote_host_symbol, remote_addr_symbol;
 static fdtype remote_info_symbol, remote_agent_symbol, remote_ident_symbol;
@@ -712,7 +712,9 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
 {
   fdtype doctype=fd_get(cgidata,doctype_slotid,FD_VOID);
   fdtype xmlpi=fd_get(cgidata,xmlpi_slotid,FD_VOID);
+  fdtype html_attribs=fd_get(cgidata,html_attribs_slotid,FD_VOID);
   fdtype body_attribs=fd_get(cgidata,body_attribs_slotid,FD_VOID);
+  fdtype headers=fd_get(cgidata,html_headers,FD_VOID);
   if (FD_VOIDP(doctype)) u8_puts(out,DEFAULT_DOCTYPE);
   else if (FD_STRINGP(doctype))
     u8_putn(out,FD_STRDATA(doctype),FD_STRLEN(doctype));
@@ -721,9 +723,12 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
   if (FD_STRINGP(xmlpi))
     u8_putn(out,FD_STRDATA(xmlpi),FD_STRLEN(xmlpi));
   else u8_puts(out,DEFAULT_XMLPI);
-  u8_puts(out,"\n<html>\n<head>\n");
-  {
-    fdtype headers=fd_get(cgidata,html_headers,FD_EMPTY_LIST);
+  if (FD_VOIDP(html_attribs))
+    u8_puts(out,"\n<html>\n<head>\n");
+  else {
+    fd_open_markup(out,"html",body_attribs,0);
+    u8_puts(out,"\n<head>\n");}
+  if (!(FD_VOIDP(headers))) {
     output_headers(out,headers);
     fd_decref(headers);}
   u8_puts(out,"</head>\n");
@@ -731,7 +736,8 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
   else if (FD_VOIDP(body_attribs)) u8_puts(out,"<body>");
   else {
     fd_open_markup(out,"body",body_attribs,0);}
-  fd_decref(doctype); fd_decref(xmlpi); fd_decref(body_attribs);
+  fd_decref(doctype); fd_decref(xmlpi);
+  fd_decref(html_attribs); fd_decref(body_attribs);
   return 1;
 }
 
@@ -1036,6 +1042,7 @@ FD_EXPORT void fd_init_cgiexec_c()
 
   doctype_slotid=fd_intern("DOCTYPE");
   xmlpi_slotid=fd_intern("XMLPI");
+  html_attribs_slotid=fd_intern("%HTML");
   body_attribs_slotid=fd_intern("%BODY");
 
   post_data_slotid=fd_intern("POST_DATA");
