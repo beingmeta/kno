@@ -60,7 +60,7 @@
       (let* ((date (uuid-time uuid))
 	     (yname (mkpath root (glom "Y0" (get date 'year))))
 	     (mname (mkpath yname (glom "M" (padnum (1+ (get date 'month)) 2))))
-	     (dname (mkpath mname (glom "D" (padnum (1+ (get date 'date)) 2))))
+	     (dname (mkpath mname (glom "D" (padnum (get date 'date) 2))))
 	     (dir (mkpath dname (stringout "BJ" (uuid->string uuid)))))
 	(unless (file-directory? yname) (mkdir yname #o777))
 	(unless (file-directory? mname) (mkdir mname #o777))
