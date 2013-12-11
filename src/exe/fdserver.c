@@ -82,6 +82,8 @@ static int shutdown_grace=30000000; /* 30 seconds */
    transactions (request/response pairs). */
 static int logeval=0, logerrs=0, logtrans=0, logbacktrace=0;
 
+static int no_fddb=0;
+
 #if FD_THREADS_ENABLED
 static u8_mutex init_server_lock;
 #endif
@@ -206,7 +208,7 @@ static fdtype config_get_fullscheme(fdtype var,void MAYBE_UNUSED *data)
     the server's process id, and an nid file indicating the ports on which
     the server is listening. */
 
-static u8_string pid_file=NULL, nid_file=NULL;
+static u8_string pid_file=NULL, nid_file=NULL, log_file=NULL;
 
 static void cleanup_state_files()
 {
@@ -684,6 +686,8 @@ static void init_server()
 }
 
 FD_EXPORT int fd_init_fddbserv(void);
+static int start_server(u8_string source_file);
+static int fork_server(u8_string source_file);
 
 int main(int argc,char **argv)
 {
@@ -756,8 +760,6 @@ int main(int argc,char **argv)
   /* This version is deprecated. */
   fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
 		     fd_intconfig_get,fd_intconfig_set,&n_threads);
-  fd_register_config("PORT",_("port or port@host to listen on"),
-		     config_get_ports,config_serve_port,NULL);
   fd_register_config("MODULE",_("modules to provide in the server environment"),
 		     config_get_modules,config_use_module,NULL);
   fd_register_config("FULLSCHEME",_("whether to provide full scheme interpretation to client"), 
@@ -809,15 +811,9 @@ int main(int argc,char **argv)
   fd_register_config("AUTORELOAD",
 		     _("Whether to automatically reload changed files"),
 		     fd_boolconfig_get,fd_boolconfig_set,&auto_reload);
-
-  /* Prepare for the end */
-  atexit(shutdown_dtypeserver_onexit);
-#ifdef SIGTERM
-  signal(SIGTERM,shutdown_dtypeserver_onsignal);
-#endif
-#ifdef SIGQUIT
-  signal(SIGQUIT,shutdown_dtypeserver_onsignal);
-#endif
+  fd_register_config("NOFDDB",
+		     _("Whether to disable exported FramerD DB API"),
+		     fd_boolconfig_get,fd_boolconfig_set,&no_fddb);
 
   /* This is a safe environment (e.g. a sandbox without file/io etc). */
   core_env=fd_safe_working_environment();
@@ -830,8 +826,12 @@ int main(int argc,char **argv)
   fd_idefn((fdtype)core_env,
 	   fd_make_cprim0("SERVER-STATUS",get_server_status,0));
   
-  /* And create the exposed environment */
-  exposed_environment=fd_make_env(fd_incref(fd_fdbserv_module),core_env);
+  /* Create the exposed environment.  This may be modified by MODULE
+     configs. */
+  if (no_fddb)
+    exposed_environment=core_env;
+  else exposed_environment=
+	 fd_make_env(fd_incref(fd_fdbserv_module),core_env);
   
   /* Now process all the configuration arguments and find the source file */
   while (i<argc)
@@ -840,7 +840,23 @@ int main(int argc,char **argv)
     else if (source_file) i++;
     else source_file=u8_fromlibc(argv[i++]);
 
-  fd_setapp(source_file,state_dir);
+  if (!(source_file)) {
+    fprintf(stderr,
+	    "Usage: fdserver [conf=val]* source_file [conf=val]*\n");
+    return 1;}
+  else if (!(u8_file_existsp(source_file))) {
+    fprintf(stderr,"The file %s doesn't exist.\n",source_file);
+    return 1;}
+  else {}
+
+  /* Store server initialization information in the configuration
+     environment. */
+  fd_setapp(source_file,state_dir); {
+    fdtype interpreter=fd_lispstring(u8_fromlibc(argv[0]));
+    fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
+    fd_config_set("INTERPRETER",interpreter);
+    fd_config_set("SOURCE",src);
+    fd_decref(interpreter); fd_decref(src);}
   
   if (source_file) {
     /* The source file is loaded into a full (non sandbox environment).
@@ -858,29 +874,21 @@ int main(int argc,char **argv)
       fd_decref(result);
       fd_decref((fdtype)env);
       return -1;}
-    else {fd_decref(result); result=FD_VOID;}
-
-    /* Store server initialization information in the configuration
-       environment. */
-    {
-      fdtype interp=fd_lispstring(u8_fromlibc(argv[0]));
-      fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
-      fd_config_set("INTERPRETER",interp);
-      fd_config_set("SOURCE",src);
-      fd_decref(interp); fd_decref(src);}
-
-    /* If the init file did any exporting, expose those exports to clients.
-       Otherwise, expose all the definitions in the init file.  Note that the clients
-       won't be able to get at the unsafe "empowered" environment but that the
-       procedures defined are closed in that environment. */
-    if (FD_HASHTABLEP(env->exports))
-      server_env=fd_make_env(fd_incref(env->exports),exposed_environment);
-    else server_env=fd_make_env(fd_incref(env->bindings),exposed_environment);
-
-    /* Handle server startup and shutdown procedures defined in the environment. */
-    {
+    else {
       fdtype startup_proc=fd_symeval(fd_intern("STARTUP"),env);
       shutdown_proc=fd_symeval(fd_intern("SHUTDOWN"),env);
+      fd_decref(result); result=FD_VOID;
+      /* If the init file did any exporting, expose those exports to clients.
+	 Otherwise, expose all the definitions in the init file.  Note that the clients
+	 won't be able to get at the unsafe "empowered" environment but that the
+	 procedures defined are closed in that environment. */
+      if (FD_HASHTABLEP(env->exports))
+	server_env=fd_make_env(fd_incref(env->exports),exposed_environment);
+      else server_env=fd_make_env(fd_incref(env->bindings),exposed_environment);
+      if (fullscheme==0) {
+	/* Cripple the core environment if requested */
+	fd_decref((fdtype)(core_env->parent));
+	core_env->parent=NULL;}
       if (FD_VOIDP(startup_proc)) {}
       else {
 	FD_DO_CHOICES(p,startup_proc) {
@@ -899,76 +907,109 @@ int main(int argc,char **argv)
 	    u8_free(out.u8_outbuf);
 	    u8_free_exception(ex,1);
 	    exit(fd_interr(result));}
-	  else fd_decref(result);}}}
+	  else fd_decref(result);}}}}
 
-    /* You're done loading the file now. */
-    fd_decref((fdtype)env);
+  pid_file=fd_runbase_filename(".pid");
+  nid_file=fd_runbase_filename(".nid");
+  
+  if (getenv("FOREGROUND"))
+    return start_server(source_file);
+  else return fork_server(source_file);
+}
 
-    /* Now, write the state files.  */
-    {
-      FILE *f;
-      pid_file=fd_runbase_filename(".pid");
-      nid_file=fd_runbase_filename(".pid");
-      atexit(cleanup_state_files);
-      /* Write the PID file */
-      f=u8_fopen(pid_file,"w");
-      if (f) {
-	fprintf(f,"%d\n",getpid());
-	fclose(f);}
-      else {
-	u8_log(LOG_WARN,u8_strerror(errno),
-		"Couldn't write PID %d to '%s'",
-	       getpid(),pid_file);
-	errno=0;}
-      /* Write the NID file */
-      f=u8_fopen(nid_file,"w");
-      if (f) {
-	if (dtype_server.n_servers) {
-	  int i=0; while (i<dtype_server.n_servers) {
-	    fprintf(f,"%s\n",dtype_server.server_info[i].idstring);
-	    i++;}}
-	else fprintf(f,"temp.socket\n");
-	fclose(f);}
-      else {
-	u8_log(LOG_WARN,u8_strerror(errno),
-	       "Couldn't write NID info to '%s'",
-	       getpid(),pid_file);
-	if (dtype_server.n_servers) {
-	  int i=0; while (i<dtype_server.n_servers) {
-	    u8_log(LOG_NOTICE,ServerStartup,"%s\n",
-		   dtype_server.server_info[i].idstring);
-	    i++;}}
-	else u8_log(LOG_NOTICE,ServerStartup,"temp.socket\n");
-	errno=0;}}
-    u8_free(source_file);
-    source_file=NULL;}
+static int fork_server(u8_string source_file)
+{
+  pid_t child, grandchild; double start=u8_elapsed_time();
+  if (child=fork()) {
+    if (grandchild=fork())
+      start_server(source_file);
+    else {
+      fprintf(stdout,"Server for %s has PID %d\n",source_file,grandchild);
+      exit(0);}}
   else {
-    fprintf(stderr,
-	    "Usage: fdserver [conf=val]* source_file [conf=val]*\n");
-    return 1;}
-  if (fullscheme==0) {
-    fd_decref((fdtype)(core_env->parent)); core_env->parent=NULL;}
-  if (n_ports>0) {
-    u8_log(LOG_INFO,NULL,
-	   "FramerD (%s) fdserver running, %d/%d pools/indices",
-	   FRAMERD_REV,fd_n_pools,
-	   fd_n_primary_indices+fd_n_secondary_indices);
-    u8_message
-      ("beingmeta FramerD, (C) beingmeta 2004-2013, all rights reserved");
-    u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
-    u8_server_loop(&dtype_server); normal_exit=1;
-    u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop",n_ports);
-    exit(0);
-    return 0;}
-  else if (n_ports==0) {
+    int count=60; double done;
+    while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
+      count--; sleep(1);}
+    done=u8_elapsed_time();
+    if (u8_file_existsp(pid_file)) {
+      u8_log(LOG_NOTICE,"fdserver","Server %s started in %02fs",source_file,done-start);
+      fprintf(stdout,"Server %s started in %02fs\n",source_file,done-start);}
+    else {
+      u8_log(LOG_CRIT,"fdserver","Server %s hasn't started after %02fs",
+	     source_file,done-start);
+      fprintf(stdout,"Server %s hasn't started after %02fs\n",
+	      source_file,done-start);}
+    exit(0);}
+}
+
+static void write_state_files(void);
+
+static int start_server(u8_string source_file)
+{
+  if (getenv("LOGFILE")) {
+    char *logfile=u8_strdup(getenv("LOGFILE"));
+    int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
+    int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
+    if (log_fd<0) {
+      u8_log(LOG_WARN,"Startup","Couldn't open log file %s",logfile);
+      exit(1);}
+    dup2(log_fd,1);
+    dup2(log_fd,2);}  
+  close(0); /* No input */
+  init_server();
+  /* Prepare for the end */
+  atexit(shutdown_dtypeserver_onexit);
+#ifdef SIGTERM
+  signal(SIGTERM,shutdown_dtypeserver_onsignal);
+#endif
+#ifdef SIGQUIT
+  signal(SIGQUIT,shutdown_dtypeserver_onsignal);
+#endif
+  fd_register_config("PORT",_("port or port@host to listen on"),
+		     config_get_ports,config_serve_port,NULL);
+  if (n_ports<=0) {
     u8_log(LOG_WARN,NoServers,"No servers configured, exiting..");
     exit(-1);
     return -1;}
-  else {
-    fd_clear_errors(1);
-    shutdown_dtypeserver_onexit();
-    fd_clear_errors(1);
-    exit(-1);
-    return -1;}
+  write_state_files();
+  u8_message("beingmeta FramerD, (C) beingmeta 2004-2013, all rights reserved");
+  u8_log(LOG_NOTICE,NULL,
+	 "FramerD (%s) fdserver %s running, %d/%d pools/indices, %d ports",
+	 FRAMERD_REV,source_file,fd_n_pools,
+	 fd_n_primary_indices+fd_n_secondary_indices,n_ports);
+  u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
+  u8_server_loop(&dtype_server); normal_exit=1;
+  u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop",n_ports);
+  exit(0);
 }
 
+static void write_state_files()
+{
+  FILE *f=u8_fopen(pid_file,"w"); if (f) {
+    fprintf(f,"%d\n",getpid());
+    fclose(f);}
+  else {
+    u8_log(LOG_WARN,u8_strerror(errno),
+	   "Couldn't write PID %d to '%s'",
+	   getpid(),pid_file);
+    errno=0;}
+  /* Write the NID file */
+  f=u8_fopen(nid_file,"w"); if (f) {
+    if (dtype_server.n_servers) {
+      int i=0; while (i<dtype_server.n_servers) {
+	fprintf(f,"%s\n",dtype_server.server_info[i].idstring);
+	i++;}}
+    fclose(f);}
+  else {
+    u8_log(LOG_WARN,u8_strerror(errno),
+	   "Couldn't write NID info to '%s'",
+	   getpid(),pid_file);
+    if (dtype_server.n_servers) {
+      int i=0; while (i<dtype_server.n_servers) {
+	u8_log(LOG_NOTICE,ServerStartup,"%s\n",
+	       dtype_server.server_info[i].idstring);
+	i++;}}
+    else u8_log(LOG_NOTICE,ServerStartup,"temp.socket\n");
+    errno=0;}
+  atexit(cleanup_state_files);
+}
