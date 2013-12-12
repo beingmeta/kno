@@ -90,6 +90,53 @@ static u8_mutex init_server_lock;
 
 static void init_server(void);
 
+u8_condition LogFileError=_("Log file error");
+
+static u8_string log_filename=NULL;
+static int log_fd=-1, foreground=-1;
+static int set_logfile(u8_string logfile,int exitonfail)
+{
+  int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
+  if (!(logfile)) {
+    u8_log(LOG_WARN,"Config","Can't specify NULL log file");
+    if (exitonfail) exit(1);
+    u8_seterr(LogFileError,"set_logfile",u8_strdup("Can't set NULL log file"));
+    return -1;}
+  int new_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
+  if (new_fd<0) {
+    u8_log(LOG_WARN,"Config","Couldn't open log file %s",logfile);
+    if (exitonfail) exit(1);
+    u8_seterr(LogFileError,"set_logfile",u8_strdup(logfile));
+    return -1;}
+  else if ((log_filename)&&((strcmp(logfile,log_filename))!=0)) 
+    u8_log(LOG_WARN,"Config","Changing log file to %s from %s",
+	   logfile,log_filename);
+  else u8_log(LOG_WARN,"Config","Using log file %s",logfile);
+  dup2(new_fd,1);
+  dup2(new_fd,2);
+  if (log_fd>=0) close(log_fd);
+  log_fd=new_fd;
+  if (log_filename) u8_free(log_filename);
+  log_filename=u8_strdup(logfile);
+  return 1;
+}
+
+static fdtype config_get_logfile(fdtype var,void *state)
+{
+  if (log_filename)
+    return fdtype_string(log_filename);
+  else return FD_FALSE;
+}
+
+static int config_set_logfile(fdtype var,fdtype val,void *state)
+{
+  if (!(FD_STRINGP(val)))  {
+    fd_seterr(fd_TypeError,"config_set_logfile,",u8_strdup("filename"),val);
+    return -1;}
+  else if (set_logfile(FD_STRDATA(val),0)<0) return -1;
+  else return 1;
+}
+
 /* Configuration
    This uses the CONFIG facility to setup the server.  Some
     config options just set static variables which control the server,
@@ -686,11 +733,14 @@ static void init_server()
 }
 
 FD_EXPORT int fd_init_fddbserv(void);
-static int start_server(u8_string source_file);
-static int fork_server(u8_string source_file);
+static fd_lispenv init_core_env(void);
+static int launch_server(u8_string source_file,fd_lispenv env);
+static int fork_server(u8_string source_file,fd_lispenv env);
+static int run_server(u8_string source_file);
 
 int main(int argc,char **argv)
 {
+  int u8_version=u8_initialize();
   int fd_version;
   int i=1; u8_string source_file=NULL;
   /* This is the base of the environment used to be passed to the server.
@@ -702,7 +752,41 @@ int main(int argc,char **argv)
      set by the FULLSCHEME configuration parameter. */
   fd_lispenv core_env; 
 
+  if (u8_version<0) {
+    u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
+    exit(1);}
+  /* Record the startup time for UPTIME */
+  else u8_now(&boot_time);
+
+  /* Find the source file (the non-config arg)
+     Also initialize the log file if needed.  */
+  while (i<argc)
+    if ((strncmp(argv[i],"LOGFILE=",8))==0)
+      set_logfile(argv[i]+8,1);
+    else if (strchr(argv[i],'=')) i++;
+    else if (source_file) i++;
+    else source_file=argv[i++];
+  i=1;
+
+  if (!(source_file)) {
+    fprintf(stderr,
+	    "Usage: fdserver [conf=val]* source_file [conf=val]*\n");
+    return 1;}
+  else if (!(u8_file_existsp(source_file))) {
+    fprintf(stderr,"The file %s doesn't exist.\n",source_file);
+    return 1;}
+  else {}
+
   fddb_loglevel=LOG_INFO;
+
+  if ((!(log_filename))&&(getenv("LOGFILE")))
+    set_logfile(getenv("LOGFILE"),1);
+
+  if (!(log_filename))
+    u8_log(LOG_WARN,ServerStartup,"No logfile, using stdout");
+
+  /* Close STDIN */ 
+  close(0);
 
   fd_version=fd_init_fdscheme();
 
@@ -710,9 +794,6 @@ int main(int argc,char **argv)
     fprintf(stderr,"Can't initialize FramerD libraries\n");
     return -1;}
   
-  /* Record the startup time for UPTIME */
-  u8_now(&boot_time);
-
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
      dynamically loaded.  However, if we are statically linked, or we
@@ -733,7 +814,6 @@ int main(int argc,char **argv)
   u8_use_syslog(1);
 
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
-  fd_init_fdscheme();
   fd_init_schemeio();
   fd_init_texttools();
   fd_init_tagger();
@@ -741,8 +821,45 @@ int main(int argc,char **argv)
   FD_INIT_SCHEME_BUILTINS();
 #endif
 
-  fd_init_fddbserv();
+  /* Get the core environment */
+  core_env=init_core_env();
 
+  /* Create the exposed environment.  This may be further modified by
+     MODULE configs. */
+  if (no_fddb)
+    exposed_environment=core_env;
+  else exposed_environment=
+	 fd_make_env(fd_incref(fd_fdbserv_module),core_env);
+  
+  /* Now process all the configuration arguments and find the source file */
+  while (i<argc)
+    if ((strncmp(argv[i],"LOGFILE=",8))==0) i++;
+    else if (strchr(argv[i],'=')) 
+      fd_config_assignment(argv[i++]);
+    else i++;
+
+  /* Store server initialization information in the configuration
+     environment. */
+  fd_setapp(source_file,state_dir); {
+    fdtype interpreter=fd_lispstring(u8_fromlibc(argv[0]));
+    fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
+    fd_config_set("INTERPRETER",interpreter);
+    fd_config_set("SOURCE",src);
+    fd_decref(interpreter); fd_decref(src);}
+  
+  if (foreground<0) {
+    if (getenv("FOREGROUND")) foreground=1; else foreground=0;}
+
+  if (foreground)
+    return launch_server(source_file,core_env);
+  else return fork_server(source_file,core_env);
+}
+
+static fd_lispenv init_core_env()
+{
+  /* This is a safe environment (e.g. a sandbox without file/io etc). */
+  fd_lispenv core_env=fd_safe_working_environment();
+  fd_init_fddbserv();
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_fdbserv_module);
   fd_persist_module(fd_fdbserv_module);
@@ -815,9 +932,6 @@ int main(int argc,char **argv)
 		     _("Whether to disable exported FramerD DB API"),
 		     fd_boolconfig_get,fd_boolconfig_set,&no_fddb);
 
-  /* This is a safe environment (e.g. a sandbox without file/io etc). */
-  core_env=fd_safe_working_environment();
-
   /* We add some special functions */
   fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);
   fd_idefn((fdtype)core_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
@@ -826,38 +940,38 @@ int main(int argc,char **argv)
   fd_idefn((fdtype)core_env,
 	   fd_make_cprim0("SERVER-STATUS",get_server_status,0));
   
-  /* Create the exposed environment.  This may be modified by MODULE
-     configs. */
-  if (no_fddb)
-    exposed_environment=core_env;
-  else exposed_environment=
-	 fd_make_env(fd_incref(fd_fdbserv_module),core_env);
-  
-  /* Now process all the configuration arguments and find the source file */
-  while (i<argc)
-    if (strchr(argv[i],'=')) 
-      fd_config_assignment(argv[i++]);
-    else if (source_file) i++;
-    else source_file=u8_fromlibc(argv[i++]);
+  return core_env;
+}
 
-  if (!(source_file)) {
-    fprintf(stderr,
-	    "Usage: fdserver [conf=val]* source_file [conf=val]*\n");
-    return 1;}
-  else if (!(u8_file_existsp(source_file))) {
-    fprintf(stderr,"The file %s doesn't exist.\n",source_file);
-    return 1;}
-  else {}
+static int fork_server(u8_string source_file,fd_lispenv env)
+{
+  pid_t child, grandchild; double start=u8_elapsed_time();
+  if ((child=fork())) {
+    int count=60; double done;
+    while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
+      count--; sleep(1);}
+    done=u8_elapsed_time();
+    if (u8_file_existsp(pid_file)) {
+      u8_log(LOG_NOTICE,"fdserver","Server %s started in %02fs",
+	     source_file,done-start);
+      fprintf(stdout,"Server %s started in %02fs\n",source_file,done-start);}
+    else {
+      u8_log(LOG_CRIT,"fdserver","Server %s hasn't started after %02fs",
+	     source_file,done-start);
+      fprintf(stdout,"Server %s hasn't started after %02fs\n",
+	      source_file,done-start);}
+    exit(0);}
+  else {
+    if ((grandchild=fork())) {
+      fprintf(stdout,"Server for %s has PID %d\n",source_file,grandchild);
+      exit(0);}
+    else return launch_server(source_file,env);}
+}
 
-  /* Store server initialization information in the configuration
-     environment. */
-  fd_setapp(source_file,state_dir); {
-    fdtype interpreter=fd_lispstring(u8_fromlibc(argv[0]));
-    fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
-    fd_config_set("INTERPRETER",interpreter);
-    fd_config_set("SOURCE",src);
-    fd_decref(interpreter); fd_decref(src);}
-  
+static void write_state_files(void);
+
+static int launch_server(u8_string source_file,fd_lispenv core_env)
+{
   if (source_file) {
     /* The source file is loaded into a full (non sandbox environment).
        It's exports are then exposed through the server. */
@@ -912,49 +1026,11 @@ int main(int argc,char **argv)
   pid_file=fd_runbase_filename(".pid");
   nid_file=fd_runbase_filename(".nid");
   
-  if (getenv("FOREGROUND"))
-    return start_server(source_file);
-  else return fork_server(source_file);
+  return run_server(source_file);
 }
 
-static int fork_server(u8_string source_file)
+static int run_server(u8_string source_file)
 {
-  pid_t child, grandchild; double start=u8_elapsed_time();
-  if (child=fork()) {
-    int count=60; double done;
-    while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
-      count--; sleep(1);}
-    done=u8_elapsed_time();
-    if (u8_file_existsp(pid_file)) {
-      u8_log(LOG_NOTICE,"fdserver","Server %s started in %02fs",source_file,done-start);
-      fprintf(stdout,"Server %s started in %02fs\n",source_file,done-start);}
-    else {
-      u8_log(LOG_CRIT,"fdserver","Server %s hasn't started after %02fs",
-	     source_file,done-start);
-      fprintf(stdout,"Server %s hasn't started after %02fs\n",
-	      source_file,done-start);}
-    exit(0);}
-  else {
-    if (grandchild=fork()) {
-      fprintf(stdout,"Server for %s has PID %d\n",source_file,grandchild);
-      exit(0);}
-    else start_server(source_file);}
-}
-
-static void write_state_files(void);
-
-static int start_server(u8_string source_file)
-{
-  if (getenv("LOGFILE")) {
-    char *logfile=u8_strdup(getenv("LOGFILE"));
-    int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
-    int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
-    if (log_fd<0) {
-      u8_log(LOG_WARN,"Startup","Couldn't open log file %s",logfile);
-      exit(1);}
-    dup2(log_fd,1);
-    dup2(log_fd,2);}  
-  close(0); /* No input */
   init_server();
   /* Prepare for the end */
   atexit(shutdown_dtypeserver_onexit);

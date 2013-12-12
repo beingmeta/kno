@@ -1384,7 +1384,7 @@ int main(int argc,char **argv)
   else u8_log(LOG_WARN,Startup,"LOGFILE='%s'",getenv("LOGFILE"));
   
   /* We do this using the Unix environment (rather than configuration
-     variables) for twor reasons.  First, we want to redirect errors
+     variables) for two reasons.  First, we want to redirect errors
      from the processing of the configuration variables themselves
      (where lots of errors could happen); second, we want to be able
      to set this in the environment we wrap around calls (which is how
