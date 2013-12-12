@@ -65,7 +65,7 @@ struct SERVER_ENTRY {
   char *control_file, *serverexe;
   char *dirname, *basename, *statebase, *logbase, *nid;
   long int wait, dependent, sleeping;
-  char **argv;
+  char **argv, **env;
   pid_t pid;};
 
 static struct SERVER_ENTRY *servers;
@@ -271,6 +271,14 @@ static char **generate_argv(char *exe,char *control_file,char *string)
   return argvec;
 }
 
+static char **generate_env(char *exe,char *control_file,char *string)
+{
+  char **env=u8_alloc_n(2,char *);
+  env[0]=u8_strdup("FOREGROUND=yes");
+  env[1]=NULL;
+  return env;
+}
+
 static char *init_server_entry(struct SERVER_ENTRY *e,char *control_line)
 {
   char *scan, *base;
@@ -304,6 +312,7 @@ static char *init_server_entry(struct SERVER_ENTRY *e,char *control_line)
     u8_free(e->control_file); return NULL;}
   /* Generate the arg vector */
   e->argv=generate_argv(e->serverexe,e->control_file,scan);
+  e->env=generate_env(e->serverexe,e->control_file,scan);
   /* Generate the dirname */
   e->dirname=u8_dirname(e->control_file); 
   /* Generate the  basename */
@@ -387,9 +396,9 @@ pid_t start_fdserver(struct SERVER_ENTRY *e,char *control_line)
 	       e->control_file,
 	       e->pid);
     become_runas();
-    if (e->serverexe) execv(e->serverexe,e->argv);
-    else if (fdserver) execv(fdserver,e->argv);
-    else execvp("fdserver",e->argv);}
+    if (e->serverexe) execve(e->serverexe,e->argv,e->env);
+    else if (fdserver) execve(fdserver,e->argv,e->env);
+    else execve("/usr/local/bin/fdserver",e->argv,e->env);}
   return proc;
 }
 
