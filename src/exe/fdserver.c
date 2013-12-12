@@ -772,9 +772,7 @@ int main(int argc,char **argv)
   /* Find the source file (the non-config arg)
      Also initialize the log file if needed.  */
   while (i<argc)
-    if ((strncmp(argv[i],"LOGFILE=",8))==0)
-      set_logfile(argv[i]+8,1);
-    else if (strchr(argv[i],'=')) i++;
+    if (strchr(argv[i],'=')) i++;
     else if (source_file) i++;
     else source_file=argv[i++];
   i=1;
@@ -842,10 +840,12 @@ int main(int argc,char **argv)
   else exposed_environment=
 	 fd_make_env(fd_incref(fd_fdbserv_module),core_env);
   
+  if (foreground<0) {
+    if (getenv("FOREGROUND")) foreground=1; else foreground=0;}
+
   /* Now process all the configuration arguments and find the source file */
   while (i<argc)
-    if ((strncmp(argv[i],"LOGFILE=",8))==0) i++;
-    else if (strchr(argv[i],'=')) 
+    if (strchr(argv[i],'=')) 
       fd_config_assignment(argv[i++]);
     else i++;
 
@@ -861,9 +861,6 @@ int main(int argc,char **argv)
   pid_file=fd_runbase_filename(".pid");
   nid_file=fd_runbase_filename(".nid");
   
-  if (foreground<0) {
-    if (getenv("FOREGROUND")) foreground=1; else foreground=0;}
-
   if (foreground)
     return launch_server(source_file,core_env);
   else return fork_server(source_file,core_env);
