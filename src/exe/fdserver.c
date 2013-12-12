@@ -921,12 +921,6 @@ static int fork_server(u8_string source_file)
 {
   pid_t child, grandchild; double start=u8_elapsed_time();
   if (child=fork()) {
-    if (grandchild=fork())
-      start_server(source_file);
-    else {
-      fprintf(stdout,"Server for %s has PID %d\n",source_file,grandchild);
-      exit(0);}}
-  else {
     int count=60; double done;
     while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
       count--; sleep(1);}
@@ -940,6 +934,11 @@ static int fork_server(u8_string source_file)
       fprintf(stdout,"Server %s hasn't started after %02fs\n",
 	      source_file,done-start);}
     exit(0);}
+  else {
+    if (grandchild=fork()) {
+      fprintf(stdout,"Server for %s has PID %d\n",source_file,grandchild);
+      exit(0);}
+    else start_server(source_file);}
 }
 
 static void write_state_files(void);
