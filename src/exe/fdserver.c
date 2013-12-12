@@ -31,6 +31,10 @@
 #include <signal.h>
 #include <stdio.h>
 
+#if HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+
 #include "main.h"
 
 FD_EXPORT int fd_update_file_modules(int force);
@@ -733,6 +737,7 @@ static void init_server()
 }
 
 FD_EXPORT int fd_init_fddbserv(void);
+static void init_configs(void);
 static fd_lispenv init_core_env(void);
 static int launch_server(u8_string source_file,fd_lispenv env);
 static int fork_server(u8_string source_file,fd_lispenv env);
@@ -751,6 +756,12 @@ int main(int argc,char **argv)
      fullscheme is zero after configuration and file loading.  fullscheme can be
      set by the FULLSCHEME configuration parameter. */
   fd_lispenv core_env; 
+
+  /* Close and reopen STDIN */ 
+  close(0);  if (open("/dev/null",O_RDONLY) == -1) {
+    u8_log(LOG_CRIT,"fdserver","Unable to reopen stdin for daemon");
+    exit(1);}
+  /* We handle stderr and stdout below */
 
   if (u8_version<0) {
     u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
@@ -785,9 +796,6 @@ int main(int argc,char **argv)
   if (!(log_filename))
     u8_log(LOG_WARN,ServerStartup,"No logfile, using stdout");
 
-  /* Close STDIN */ 
-  close(0);
-
   fd_version=fd_init_fdscheme();
 
   if (fd_version<0) {
@@ -821,6 +829,9 @@ int main(int argc,char **argv)
   FD_INIT_SCHEME_BUILTINS();
 #endif
 
+  /* Initialize config settings */
+  init_configs();
+
   /* Get the core environment */
   core_env=init_core_env();
 
@@ -847,6 +858,9 @@ int main(int argc,char **argv)
     fd_config_set("SOURCE",src);
     fd_decref(interpreter); fd_decref(src);}
   
+  pid_file=fd_runbase_filename(".pid");
+  nid_file=fd_runbase_filename(".nid");
+  
   if (foreground<0) {
     if (getenv("FOREGROUND")) foreground=1; else foreground=0;}
 
@@ -855,15 +869,8 @@ int main(int argc,char **argv)
   else return fork_server(source_file,core_env);
 }
 
-static fd_lispenv init_core_env()
+static void init_configs()
 {
-  /* This is a safe environment (e.g. a sandbox without file/io etc). */
-  fd_lispenv core_env=fd_safe_working_environment();
-  fd_init_fddbserv();
-  fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
-  fd_finish_module(fd_fdbserv_module);
-  fd_persist_module(fd_fdbserv_module);
-
   fd_register_config("BACKLOG",
 		     _("Number of pending connection requests allowed"),
 		     fd_intconfig_get,fd_intconfig_set,&max_backlog);
@@ -931,6 +938,16 @@ static fd_lispenv init_core_env()
   fd_register_config("NOFDDB",
 		     _("Whether to disable exported FramerD DB API"),
 		     fd_boolconfig_get,fd_boolconfig_set,&no_fddb);
+}
+
+static fd_lispenv init_core_env()
+{
+  /* This is a safe environment (e.g. a sandbox without file/io etc). */
+  fd_lispenv core_env=fd_safe_working_environment();
+  fd_init_fddbserv();
+  fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
+  fd_finish_module(fd_fdbserv_module);
+  fd_persist_module(fd_fdbserv_module);
 
   /* We add some special functions */
   fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);
@@ -947,23 +964,40 @@ static int fork_server(u8_string source_file,fd_lispenv env)
 {
   pid_t child, grandchild; double start=u8_elapsed_time();
   if ((child=fork())) {
-    int count=60; double done;
+    int count=60; double done; int status=0;
+    if (child<0) {
+      u8_log(LOG_CRIT,"fork_server","Fork failed for %s\n",source_file);
+      exit(1);}
+#if HAVE_WAITPID
+    if (waitpid(child,&status,0)<0) {
+      u8_log(LOGCRIT,ServerStartup,"Fork wait failed");
+      exit(1);}
+    if (!(WIFEXITED(status))) {
+      u8_log(LOGCRIT,ServerStartup,"First fork failed to finish");
+      exit(1);}
+    else if (WEXITSTATUS(status)!=0) {
+      u8_log(LOGCRIT,ServerStartup,"First fork return non-zero status");
+      exit(1);}
+#endif
     while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
       count--; sleep(1);}
     done=u8_elapsed_time();
-    if (u8_file_existsp(pid_file)) {
-      u8_log(LOG_NOTICE,"fdserver","Server %s started in %02fs",
+    if (u8_file_existsp(pid_file)) 
+      u8_log(LOG_NOTICE,"fdserver","Server %s launched in %02fs",
 	     source_file,done-start);
-      fprintf(stdout,"Server %s started in %02fs\n",source_file,done-start);}
-    else {
-      u8_log(LOG_CRIT,"fdserver","Server %s hasn't started after %02fs",
-	     source_file,done-start);
-      fprintf(stdout,"Server %s hasn't started after %02fs\n",
-	      source_file,done-start);}
+    else u8_log(LOG_CRIT,"fdserver","Server %s hasn't launched after %02fs",
+		source_file,done-start);
     exit(0);}
   else {
+    if (setsid()==-1) {
+      u8_log(LOG_CRIT,"fork_server",
+	     "Server %s failed to become session leader",source_file);
+      exit(1);}
     if ((grandchild=fork())) {
-      fprintf(stdout,"Server for %s has PID %d\n",source_file,grandchild);
+      if (grandchild<0) {
+	u8_log(LOG_CRIT,"fork_server","Second fork failed for %s",source_file);
+	exit(1);}
+      u8_log(LOG_NOTICE,"fork_server","Server %s has PID %d",source_file,grandchild);
       exit(0);}
     else return launch_server(source_file,env);}
 }
@@ -1023,9 +1057,6 @@ static int launch_server(u8_string source_file,fd_lispenv core_env)
 	    exit(fd_interr(result));}
 	  else fd_decref(result);}}}}
 
-  pid_file=fd_runbase_filename(".pid");
-  nid_file=fd_runbase_filename(".nid");
-  
   return run_server(source_file);
 }
 
