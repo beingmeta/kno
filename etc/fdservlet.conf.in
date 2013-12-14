@@ -3,6 +3,10 @@ author "Ken Haase"
 description "Starts a FramerD servlet daemon"
 expect daemon
 console none
+respawn
+
+limit nofile 20000 20000
+kill timeout 90 # wait 90s between SIGTERM and SIGKILL.
 
 setuid @webuser@
 setgid @admin_group@

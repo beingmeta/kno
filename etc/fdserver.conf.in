@@ -3,6 +3,10 @@ author "Ken Haase"
 description "Starts a FramerD DType eval server daemon"
 expect daemon
 console none
+respawn
+
+limit nofile 20000 20000
+kill timeout 90 # wait 90s between SIGTERM and SIGKILL.
 
 env LOGDIR=@logdir@/framerd
 setuid @fdaemon@

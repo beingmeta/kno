@@ -1017,7 +1017,7 @@ $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate
 	@$(SYSINSTALL) -T -m 0644 etc/logrotate \
 	  $(DESTDIR)/etc/logrotate.d/framerd
 
-setup-unix: setup-rc.d enable-rc.d setup-logrotate
+setup-unix: setup-upstart setup-logrotate
 setup-linux: setup-unix
 
 setup-osx: @data_dir@ $(DESTDIR)@rundir@/framerd \

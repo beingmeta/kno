@@ -1,29 +1,39 @@
-instance framerd
+# FramerD upstart config, replaces fdmanager
+task
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
 author "Ken Haase"
 description "Starts FramerD servers and servlets"
 expect none
 console log
 
 pre-start script
-	  mkdir -p @rundir@/fdserv
-	  mkdir -p @logdir@/fdserv
-	  mkdir -p @rundir@/framerd
-	  mkdir -p @logdir@/framerd
-	  chown @webuser@ @rundir@/fdserv @logdir@/fdserv
-	  chown @fdaemon@ @rundir@/framerd @logdir@/framerd
-	  chgrp @admin_group@ @rundir@/fdserv @logdir@/fdserv
-	  chgrp @admin_group@ @rundir@/framerd @logdir@/framerd
-	  chmod g+rwx @rundir@/fdserv  @logdir@/fdserv
-  	  chmod g+rwx @rundir@/framerd @logdir@/framerd
-end script
+    mkdir -p @rundir@/fdserv
+    mkdir -p @logdir@/fdserv
+    mkdir -p @rundir@/framerd
+    mkdir -p @logdir@/framerd
+    chown @webuser@ @rundir@/fdserv @logdir@/fdserv
+    chown @fdaemon@ @rundir@/framerd @logdir@/framerd
+    chgrp @admin_group@ @rundir@/fdserv @logdir@/fdserv
+    chgrp @admin_group@ @rundir@/framerd @logdir@/framerd
+    chmod g+rwx @rundir@/fdserv  @logdir@/fdserv
+    chmod g+rwx @rundir@/framerd @logdir@/framerd
 
-script
-   for ctl in @config_dir@/daemons/*.fdz @config_dir@/daemons/*/*.fdz;
+   for ctl in @config_dir@/daemons/*.fdz;
     do if (readlink ${ctl}>/dev/null);
      then start fdserver CTL=`readlink ${ctl}`;
      else start fdserver CTL=${ctl};
      fi;
     done;
+end script
+
+post-stop script
+	  for inst in `initctl list|grep "^fdserver "|awk '{print $2}'|tr -d ')'|tr -d '('`
+	  do
+	    stop fdserver CTL=$inst || :
+          done
 end script
 
 
