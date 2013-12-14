@@ -1,0 +1,15 @@
+instance $SOCK
+author "Ken Haase"
+description "Starts a FramerD DType eval server daemon"
+expect daemon
+console none
+
+setuid @webuser@
+setgid @admin_group@
+script
+    export LOGFILE=@logdir@/fdserv/${SOCK}.log;
+    @prefix@/bin/fdservlet ${SOCK} @config_dir@/fdservlets/${CTL}/${CTL}.fdz
+end script
+
+
+

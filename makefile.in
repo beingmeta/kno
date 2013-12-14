@@ -930,6 +930,12 @@ confdirs:
 	@if test ! -f $(DESTDIR)@config_dir@/servers; then \
 		$(INSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
+	@if test ! -d $(DESTDIR)@config_dir@/fdservers; then \
+		$(INSTALL) @install_dir_opts@ \
+			$(DESTDIR)@config_dir@/fdservers; fi
+	@if test ! -d $(DESTDIR)@config_dir@/fdservlets; then \
+		$(INSTALL) @install_dir_opts@ \
+			$(DESTDIR)@config_dir@/fdservlets; fi
 
 MODULE_DIRS=aws brico facebook misc paypal tests twitter webapi
 SAFE_MODULE_DIRS=domutils knodules textindex 

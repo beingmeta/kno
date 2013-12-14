@@ -1,0 +1,14 @@
+instance $CTL
+author "Ken Haase"
+description "Starts a FramerD DType eval server daemon"
+expect daemon
+console none
+
+setuid @fdaemon@
+setgid @admin_group@
+script
+    LOGFILE=@logdir@/framerd/${CTL}.log @prefix@/bin/fdserver @config_dir@/fdservers/${CTL}/${CTL}.fdz
+end script
+
+
+

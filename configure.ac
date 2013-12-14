@@ -991,6 +991,7 @@ AC_OUTPUT(makefile exe/.gdbinit
 	  tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
 	  etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d
 	  etc/OSXStartupItem/FramerD etc/logrotate
+	  etc/fdserver.conf etc/fdservlet.conf
 	  etc/fdserv.conf etc/fdserv.load
 	  etc/install-script)
 
