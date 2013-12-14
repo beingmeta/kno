@@ -992,6 +992,18 @@ enable-rc.d: setup-rc.d
 	@$(MSG) Updating rc.d
 	@$(SUDO) update-rc.d framerd defaults
 
+setup-upstart: $(DESTDIR)/etc/init/fdserver.conf $(DESTDIR)/etc/init/fdservlet.conf
+$(DESTDIR)/etc/init:
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init.d
+$(DESTDIR)/etc/init/fdserver.conf: etc/fdserver.conf $(DESTDIR)/etc/init
+	@$(MSG) Installing fdserver Upstart config
+	@$(SYSINSTALL) -m 0555 @admininstall@ \
+		   etc/fdserver.conf $(DESTDIR)/etc/init/fdserver.conf
+$(DESTDIR)/etc/init/fdservlet.conf: etc/fdservlet.conf $(DESTDIR)/etc/init
+	@$(MSG) Installing fdservlet Upstart config
+	@$(SYSINSTALL) -m 0555 @admininstall@ \
+		   etc/fdservlet.conf $(DESTDIR)/etc/init/fdservlet.conf
+
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
 $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate
 	@$(MSG) Installing logrotate script
