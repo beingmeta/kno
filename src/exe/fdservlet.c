@@ -1389,6 +1389,7 @@ int main(int argc,char **argv)
   int fd_version; /* Wait to set this until we have a log file */
   int i=1, file_socket=0;
   u8_string socket_spec=NULL;
+  char *logfile=NULL;
 
   if (u8_version<0) {
     u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
@@ -1416,9 +1417,14 @@ int main(int argc,char **argv)
   fd_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
 		     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
   
-  if (!(getenv("LOGFILE"))) 
-    u8_log(LOG_WARN,ServletStartup,"No logfile, using stdout");
-  else u8_log(LOG_WARN,ServletStartup,"LOGFILE='%s'",getenv("LOGFILE"));
+  if (getenv("LOGFILE"))
+    logfile=u8_strdup(getenv("LOGFILE"));
+  else if ((getenv("LOGDIR"))&&(socket_spec)) {
+    u8_string base=u8_basename(socket_spec,"*");
+    u8_string logname=u8_mkstring("%s.log",base);
+    logfile=u8_mkpath(getenv("LOGDIR"),logname);
+    u8_free(base); u8_free(logname);}
+  else u8_log(LOG_WARN,ServletStartup,"No logfile, using stdout");
   
   /* Close and reopen STDIN */ 
   close(0);  if (open("/dev/null",O_RDONLY) == -1) {
@@ -1431,8 +1437,7 @@ int main(int argc,char **argv)
      (where lots of errors could happen); second, we want to be able
      to set this in the environment we wrap around calls (which is how
      mod_fdserv does it). */
-  if (getenv("LOGFILE")) {
-    char *logfile=u8_strdup(getenv("LOGFILE"));
+  if (logfile) {
     int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
     int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
     if (log_fd<0) {

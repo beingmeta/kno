@@ -387,6 +387,8 @@ static int preload_set(fdtype var,fdtype val,void *ignored)
   if (!(FD_STRINGP(val)))
     return fd_reterr
       (fd_TypeError,"preload_config_set",u8_strdup("string"),val);
+  else if (FD_STRLEN(val)==0)
+    return 0;
   else {
     struct FD_PRELOAD_LIST *scan;
     u8_string filename=FD_STRDATA(val); time_t mtime;

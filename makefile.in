@@ -992,7 +992,8 @@ enable-rc.d: setup-rc.d
 	@$(MSG) Updating rc.d
 	@$(SUDO) update-rc.d framerd defaults
 
-setup-upstart: $(DESTDIR)/etc/init/fdserver.conf $(DESTDIR)/etc/init/fdservlet.conf
+setup-upstart: $(DESTDIR)/etc/init/fdserver.conf $(DESTDIR)/etc/init/fdservlet.conf \
+   $(DESTDIR)/etc/init/framerd.conf $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 $(DESTDIR)/etc/init:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init.d
 $(DESTDIR)/etc/init/fdserver.conf: etc/fdserver.conf $(DESTDIR)/etc/init
@@ -1003,6 +1004,12 @@ $(DESTDIR)/etc/init/fdservlet.conf: etc/fdservlet.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing fdservlet Upstart config
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/fdservlet.conf $(DESTDIR)/etc/init/fdservlet.conf
+$(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
+	@$(MSG) Installing framerd Upstart config
+	@$(SYSINSTALL) -m 0555 @admininstall@ \
+		   etc/framerd.conf $(DESTDIR)/etc/init/framerd.conf
+$(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets:
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
 $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate

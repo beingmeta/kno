@@ -4,11 +4,11 @@ description "Starts a FramerD DType eval server daemon"
 expect daemon
 console none
 
+env LOGDIR=@logdir@/framerd
 setuid @fdaemon@
 setgid @admin_group@
-script
-    LOGFILE=@logdir@/framerd/${CTL}.log @prefix@/bin/fdserver @config_dir@/fdservers/${CTL}/${CTL}.fdz
-end script
+exec @prefix@/bin/fdserver ${CTL}
+
 
 
 

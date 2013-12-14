@@ -1,0 +1,21 @@
+instance framerd
+author "Ken Haase"
+description "Starts FramerD servers and servlets"
+expect none
+console log
+
+script
+   for x in @config_dir@/daemons/*.fdz @config_dir@/daemons/*/*.fdz;
+    do
+    if test -h $x;
+     then start fdserver CTL=`readlink $x`;
+     else start fdserver CTL=$x;
+    done;
+   for x in @config_dir@/servlets/*.cfg @config_dir@/servlets/*/*.cfg;
+    do start fdservlet SOCK=`basename $x .cfg` CONFIG=$x;
+    done;
+end script
+
+
+
+

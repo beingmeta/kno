@@ -334,7 +334,7 @@ static fdtype get_config_files(fdtype var,void MAYBE_UNUSED *data)
 
 static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 {
-  if (FD_STRINGP(val)) {
+  if ((FD_STRINGP(val))&&(FD_STRLEN(val)>0)) {
     int retval;
     struct FD_CONFIG_RECORD on_stack, *scan, *newrec;
     u8_string pathname=u8_abspath(FD_STRDATA(val),NULL);
@@ -363,6 +363,8 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
     config_stack=on_stack.next;
     fd_unlock_mutex(&config_file_lock);
     return retval;}
+  else if ((FD_STRINGP(val))&&(FD_STRLEN(val)>0))
+    return 0;
   else return -1;
 }
 /* Initialization */

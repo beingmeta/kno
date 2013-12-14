@@ -790,6 +790,12 @@ int main(int argc,char **argv)
 
   if ((!(log_filename))&&(getenv("LOGFILE")))
     set_logfile(getenv("LOGFILE"),1);
+  if ((!(log_filename))&&(getenv("LOGDIR"))) {
+    u8_string base=u8_basename(source_file,"*");
+    u8_string logname=u8_mkstring("%s.log",base);
+    u8_string logfile=u8_mkpath(getenv("LOGDIR"),logname);
+    set_logfile(logfile,1);
+    u8_free(base); u8_free(logname);}
 
   if (!(log_filename))
     u8_log(LOG_WARN,ServerStartup,"No logfile, using stdout");
