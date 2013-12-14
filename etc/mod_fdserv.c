@@ -259,6 +259,20 @@ static int file_writablep(apr_pool_t *p,server_rec *s,const char *filename)
   else return 0;
 }
 
+static int file_socket_existsp(apr_pool_t *p,server_rec *s,const char *filename)
+{
+  fileinfo finfo; int retval;
+  ap_log_error(APLOG_MARK,LOGDEBUG,OK,s,
+	       "Checking existence of file %s",filename);
+  retval=get_file_info(p,filename,&finfo);
+  if (retval) return 0;
+  else if (stat_can_writep(p,s,&finfo)) {
+    ap_log_error(APLOG_MARK,LOGDEBUG,retval,s,
+		 "found file writable: %s",filename);
+    return 1;}
+  else return 0;
+}
+
 static char *convert_path(const char *spec,char *buf)
 {
   /* Convert the spec (essentially the path to the location plus
@@ -287,6 +301,7 @@ struct FDSERV_SERVER_CONFIG {
   const char *log_prefix;
   const char *log_file;
   int keep_socks;
+  int servlet_spawn;
   int servlet_wait;
   int use_dtblock;
   int log_sync;
@@ -304,6 +319,7 @@ struct FDSERV_DIR_CONFIG {
   const char *log_prefix;
   const char *log_file;
   int keep_socks;
+  int servlet_spawn;
   int servlet_wait;
   int log_sync;};
 
@@ -367,6 +383,7 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
   config->log_file=NULL;
   config->log_sync=-1;
   config->keep_socks=2;
+  config->servlet_spawn=-1;
   config->servlet_wait=-1;
   config->use_dtblock=-1;
   config->uid=-1; config->gid=-1;
@@ -388,6 +405,10 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
   if (child->keep_socks <= 0)
     config->keep_socks=parent->keep_socks;
   else config->keep_socks=child->keep_socks;
+
+  if (child->servlet_spawn <= 0)
+    config->servlet_spawn=parent->servlet_spawn;
+  else config->servlet_spawn=child->servlet_spawn;
 
   if (child->servlet_wait <= 0)
     config->servlet_wait=parent->servlet_wait;
@@ -487,6 +508,7 @@ static void *create_dir_config(apr_pool_t *p,char *dir)
   config->log_prefix=NULL;
   config->log_file=NULL;
   config->keep_socks=-1;
+  config->servlet_spawn=-1;
   config->servlet_wait=-1;
   config->log_sync=-1;
   return (void *) config;
@@ -504,6 +526,10 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
   if (child->keep_socks <= 0)
     config->keep_socks=parent->keep_socks;
   else config->keep_socks=child->keep_socks;
+
+  if (child->servlet_spawn <= 0)
+    config->servlet_spawn=parent->servlet_spawn;
+  else config->servlet_spawn=child->servlet_spawn;
 
   if (child->servlet_wait <= 0)
     config->servlet_wait=parent->servlet_wait;
@@ -665,12 +691,46 @@ static const char *servlet_executable
 
 static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
 {
+  struct FDSERV_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&fdserv_module);
+  struct FDSERV_DIR_CONFIG *dconfig=mconfig;
+  char *end=NULL; long wait_interval=-1;
+  if (*arg=='\0') {
+    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,"Bad wait interval '%s'",arg);
+    return NULL;}
+  else wait_interval=strtol(arg,&end,10);
+  if (*end!='\0') {
+    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,"Bad wait interval '%s'",arg);
+    return NULL;}
   if (parms->path) {
-    struct FDSERV_DIR_CONFIG *dconfig=mconfig;
-    int wait_interval=atoi(arg);
     dconfig->servlet_wait=wait_interval;
     return NULL;}
-  else return NULL;
+  else {
+    sconfig->servlet_wait=wait_interval;
+    return NULL;}
+}
+
+static const char *servlet_spawn(cmd_parms *parms,void *mconfig,const char *arg)
+{
+  struct FDSERV_SERVER_CONFIG *sconfig=
+    ap_get_module_config(parms->server->module_config,&fdserv_module);
+  struct FDSERV_DIR_CONFIG *dconfig=mconfig;
+  int spawn_wait; char *end;
+  if (strcasecmp(arg,"on")==0) spawn_wait=10;
+  else if (strcasecmp(arg,"off")==0) spawn_wait=0;
+  else if (*arg=='\0') {
+    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,"Bad spawn wait '%s'",arg);
+    return NULL;}
+  else spawn_wait=strtol(arg,&end,10);
+  if ((end)&&(*end!='\0')) {
+    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,"Bad spawn wait '%s'",arg);
+    return NULL;}
+  if (parms->path) {
+    dconfig->servlet_spawn=spawn_wait;
+    return NULL;}
+  else {
+    sconfig->servlet_spawn=spawn_wait;
+    return NULL;}
 }
 
 static const char *log_sync(cmd_parms *parms,void *mconfig,const char *arg)
@@ -918,8 +978,10 @@ static const command_rec fdserv_cmds[] =
 		"how many connections to the servlet to keep open"),
 
   /* Everything below here is stuff about how to start a servlet */
+  AP_INIT_TAKE1("FDServletSpawn", servlet_spawn, NULL, OR_ALL,
+		"How long to wait for servlets to start (on=5, off=0)"),
   AP_INIT_TAKE1("FDServletExecutable", servlet_executable, NULL, OR_ALL,
-	       "the executable used to start a servlet"),
+		"the executable used to start a servlet"),
   AP_INIT_TAKE1("FDServletWait", servlet_wait, NULL, OR_ALL,
 		"the number of seconds to wait for the servlet to startup"),
   AP_INIT_TAKE2("FDServletConfig", servlet_config, NULL, OR_ALL,
@@ -1017,7 +1079,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   /* Executable, socket name, NULL, LOG_FILE env, NULL */
   const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
   struct stat stat_data; int rv, n_configs=0, retval=0;
-
+  
   server_rec *server=r->server;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(r->server->module_config,&fdserv_module);
@@ -1033,18 +1095,30 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   const char **server_env=(sconfig->servlet_env);
   const char **dir_env=(dconfig->servlet_env);
   const char *log_file=get_log_file(r,NULL);
-  int servlet_wait=dconfig->servlet_wait;
+  int servlet_wait=dconfig->servlet_spawn;
   int log_sync=dconfig->log_sync;
   uid_t uid; gid_t gid;
   if (log_sync<0) log_sync=sconfig->log_sync;
   if (log_sync<0) log_sync=DEFAULT_LOG_SYNC;
 
-  if (servlet_wait<0) servlet_wait=DEFAULT_SERVLET_WAIT;
-
+  if (servlet_wait<0) servlet_wait=sconfig->servlet_spawn;
+  if (servlet_wait<0) servlet_wait=dconfig->servlet_wait;
+  if (servlet_wait<0) servlet_wait=sconfig->servlet_wait;
+  if ((servlet_wait<0)&&((strchr(sockname,'@')!=NULL)||(strchr(sockname,':')!=NULL)))
+    servlet_wait=0;
+  else servlet_wait=DEFAULT_SERVLET_WAIT;
+  
+  if (servlet_wait==0) {
+    ap_log_error(APLOG_MARK,APLOG_CRIT,500,server,
+		 "Waiting for external socket %s for %s, uid=%d, gid=%d"
+		 "Waiting for external socket",
+		 sockname,r->unparsed_uri,uid,gid);
+    return 0;}
+  
   if (log_file==NULL) log_file=get_log_file(r,sockname);
-
+    
   apr_uid_current(&uid,&gid,p);
-
+    
   if (s->spawning) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,500,server,
 		 "Waiting for spawned socket %s using %s for %s, uid=%d, gid=%d",
@@ -1056,7 +1130,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 		 sockname,exename,r->unparsed_uri,uid,gid);
     s->spawning=apr_time_now();
     s->spawned=0;}
-
+    
   if (!(file_writablep(p,server,sockname))) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,500,server,
 		 "Can't write socket file '%s' (%s) for %s, uid=%d, gid=%d",
@@ -1067,7 +1141,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 		 "Logfile %s isn't writable for processing %s",
 		 log_file,r->unparsed_uri);
     return -1;}
-
+    
   if (log_file)
     ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,server,
 		 "Spawning fdservlet %s @%s>%s for %s, uid=%d, gid=%d",
@@ -1075,14 +1149,14 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   else ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,server,
 		    "Spawning fdservlet %s @%s for %s, uid=%d, gid=%d",
 		    exename,sockname,r->unparsed_uri,uid,gid);
-  
+    
   *write_argv++=(char *)exename;
   *write_argv++=(char *)sockname;
-  
+    
   if (gid>0) {
     char *gidconfig=apr_psprintf(p,"RUNGROUP=%d",gid);
     *write_argv++=gidconfig;}
-
+    
   if (server_configs) {
     const char **scan_config=server_configs;
     while (*scan_config) {
@@ -1111,9 +1185,9 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 	*write_argv++=(char *)(*scan_config);}
       scan_config++;
       n_configs++;}}
-
+    
   *write_argv++=NULL; n_configs++;
-
+    
   envp=NULL;
   /* Pass the logfile in through the environment, so we can
      use it to record processing of config variables */
@@ -1156,7 +1230,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 	*write_argv++=(char *)(*scan_env);}
       scan_env++;
       n_configs++;}}
-
+    
   if (dir_env) {
     const char **scan_env=dir_configs;
     while (*scan_env) {
@@ -1172,13 +1246,13 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 	*write_argv++=(char *)(*scan_env);}
       scan_env++;
       n_configs++;}}
-
+    
   *write_argv++=NULL;
-  
+    
   /* Make sure the socket is writable, creating directories
      if needed. */
   check_directory(p,sockname);
-
+    
   if (((rv=apr_procattr_create(&attr,p)) != APR_SUCCESS) ||
       ((rv=apr_procattr_cmdtype_set(attr,APR_PROGRAM)) != APR_SUCCESS) ||
       ((rv=apr_procattr_detach_set(attr,1)) != APR_SUCCESS) ||
@@ -1190,7 +1264,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   else ap_log_rerror
 	 (APLOG_MARK, LOGDEBUG, rv, r,
 	  "Successfully set child process attributes: %s", r->filename);
-  
+    
   {
     const char **scanner=argv; while (scanner<write_argv) {
       if ((envp) && (scanner>=envp))
@@ -1201,7 +1275,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 			 "%s ARG[%ld]='%s'",
 			 exename,((long int)(scanner-argv)),*scanner);
       scanner++;}}
-
+    
   if ((stat(sockname,&stat_data) == 0)&&
       (((time(NULL))-stat_data.st_mtime)>15)) {
     if (remove(sockname) == 0)
@@ -1211,7 +1285,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
       ap_log_error(APLOG_MARK,APLOG_CRIT,500,server,
 		   "Could not remove socket file %s",sockname);
       return -1;}}
-  
+    
   errno=0;
   rv=apr_proc_create(&proc,exename,(const char **)argv,envp,
 		     attr,p);
@@ -1230,7 +1304,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   else ap_log_error(APLOG_MARK,APLOG_NOTICE,rv,server,
 		    "Spawned %s @%s (nolog) for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
 		    exename,sockname,r->unparsed_uri,rv,proc.pid,uid,gid);
-  
+    
   /* Now wait for the socket file to exist */
   {
     int sleep_count=1;
@@ -1253,7 +1327,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     s->spawned=apr_time_now();
     s->spawning=0;}
 
-  if (rv>=0) return 0;
+  if (rv>=0) return 1;
   else return retval;
 }
 
@@ -1448,10 +1522,12 @@ static char *fdsocketinfo(fdsocket s,char *buf)
   return buf;
 }
 
+static int get_servlet_wait(request_rec *r);
+
 /* Opens a servlet socket, either a cached one (if given != NULL) or a new one (malloc) */
 static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 {
-  struct FDSOCKET *result; apr_pool_t *pool; int one=1;
+  struct FDSOCKET *result; apr_pool_t *pool; int one=1, dospawn=-1, wait=-1;
   if (given) pool=fdserv_pool; else pool=r->pool;
   if (given) result=given;
   else {
@@ -1479,6 +1555,12 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 #endif
     connval=connect(unix_sock,(struct sockaddr *)&(s->endpoint.path),
 		    SUN_LEN(&(s->endpoint.path)));
+    if ((connval<0)&&(file_socket_existsp(pool,r->server,sockname))) {
+      int wait=get_servlet_wait(r), count=0;
+      while ((count<wait)&&(connval<0)) {
+	sleep(1); count++;
+	connval=connect(unix_sock,(struct sockaddr *)&(s->endpoint.path),
+			SUN_LEN(&(s->endpoint.path)));}}
     if (connval<0) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_CRIT,500,r,
@@ -1490,19 +1572,23 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_EMERG,500,r,"Couldn't spawn fdservlet @ %s",sockname);
 	return NULL;}
-      else ap_log_rerror
-	     (APLOG_MARK,LOGDEBUG,OK,r,"Waiting to connect to %s",sockname);
-      /* Now try again */
-      connval=connect(unix_sock,(struct sockaddr *)&(s->endpoint.path),
-		      SUN_LEN(&(s->endpoint.path)));
-      if (connval < 0) {
-	ap_log_rerror
-	  (APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
-	   sockname,errno,strerror(errno));
-	errno=0;
-	return NULL;}
-      else {}}
-    else {}
+      else if (rv)
+	ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
+		      "Spawn succeeded, waiting to connect to %s",sockname);
+      else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
+			 "Waiting to connect to %s",sockname);}
+    if ((connval<0)&&(file_socket_existsp(pool,r->server,sockname))) {
+      int wait=get_servlet_wait(r), count=0;
+      while ((count<wait)&&(connval<0)) {
+	sleep(1); count++;
+	connval=connect(unix_sock,(struct sockaddr *)&(s->endpoint.path),
+			SUN_LEN(&(s->endpoint.path)));}}
+    if (connval<0) {
+      ap_log_rerror
+	(APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
+	 sockname,errno,strerror(errno));
+      errno=0;
+      return NULL;}
 #if DEBUG_CONNECT
     ap_log_rerror
       (APLOG_MARK,LOGDEBUG,OK,r,"Opened new %s file socket (fd=%d) to %s",
@@ -1530,11 +1616,15 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
       return NULL;}
     retval=apr_socket_connect(sock,s->endpoint.addr);
     if (retval!=APR_SUCCESS) {
-      ap_log_rerror
-	(APLOG_MARK,APLOG_WARNING,OK,r,
-	 "Unable to make connection to %s",
-	 s->sockname);
-      return NULL;}
+      int count=0, wait=get_servlet_wait(r);
+      ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+		    "Unable to make connection to %s",s->sockname);
+      while ((count<wait)&&(retval!=APR_SUCCESS)) {
+	sleep(1); count++; retval=apr_socket_connect(sock,s->endpoint.addr);}
+      if (retval!=APR_SUCCESS) {
+	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+		      "Timeout making connection to %s",s->sockname);
+	return NULL;}}
 #if DEBUG_CONNECT
     ap_log_rerror
       (APLOG_MARK,LOGDEBUG,OK,r,"Opening new %s APR socket to %s",
@@ -1553,6 +1643,17 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
   else {
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,OK,r,"Bad servlet arg");}
   return NULL;
+}
+
+static int get_servlet_wait(request_rec *r)
+{
+  struct FDSERV_SERVER_CONFIG *sconfig=
+    ap_get_module_config(r->server->module_config,&fdserv_module);
+  struct FDSERV_DIR_CONFIG *dconfig=
+    ap_get_module_config(r->per_dir_config,&fdserv_module);
+  if (dconfig->servlet_wait>=0) return dconfig->servlet_wait;
+  else if (sconfig->servlet_wait>=0) return sconfig->servlet_wait;
+  else return DEFAULT_SERVLET_WAIT;
 }
 
 static fdsocket servlet_connect(fdservlet s,request_rec *r)
