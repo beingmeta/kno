@@ -6,6 +6,7 @@ console none
 respawn
 
 limit nofile 20000 20000
+limit core unlimited unlimited
 kill timeout 90 # wait 90s between SIGTERM and SIGKILL.
 
 setuid @webuser@

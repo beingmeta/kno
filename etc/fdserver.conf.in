@@ -6,12 +6,13 @@ console none
 respawn
 
 limit nofile 20000 20000
+limit core unlimited unlimited
 kill timeout 90 # wait 90s between SIGTERM and SIGKILL.
 
 env LOGDIR=@logdir@/framerd
 setuid @fdaemon@
 setgid @admin_group@
-exec @prefix@/bin/fdserver ${CTL}
+exec @prefix@/bin/fdserver ${CTL} STATEDIR=@rundir@/framerd
 
 
 
