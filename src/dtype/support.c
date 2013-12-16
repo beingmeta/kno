@@ -609,7 +609,7 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
             (strcasecmp(FD_STRDATA(v),"nolimit")==0)||
             (strcasecmp(FD_STRDATA(v),"infinity")==0)||
             (strcasecmp(FD_STRDATA(v),"infinite")==0)||
-            (strcasecmp(FD_STRDATA(v),"false")==0)
+            (strcasecmp(FD_STRDATA(v),"false")==0)||
             (strcasecmp(FD_STRDATA(v),"none")==0)))
     setval=(RLIM_INFINITY);
   else {
