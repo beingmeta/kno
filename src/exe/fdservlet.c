@@ -1382,13 +1382,14 @@ static int start_servers()
 FD_EXPORT void fd_init_dbfile(void); 
 static int launch_servlet(u8_string socket_spec);
 static int fork_servlet(u8_string socket_spec);
+static u8_string get_socket_spec(u8_string spec);
 
 int main(int argc,char **argv)
 {
   int u8_version=u8_initialize();
   int fd_version; /* Wait to set this until we have a log file */
   int i=1, file_socket=0;
-  u8_string socket_spec=NULL;
+  u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;
   char *logfile=NULL;
 
   if (u8_version<0) {
@@ -1405,6 +1406,29 @@ int main(int argc,char **argv)
     else socket_spec=argv[i++];
   i=1;
   
+  if (!(socket_spec)) {}
+  else if (u8_has_suffix(socket_spec,".scm",1)) {
+    load_source=socket_spec; socket_spec=NULL;}
+  else if (u8_has_suffix(socket_spec,".cfg",1)) {
+    load_config=socket_spec; socket_spec=NULL;}
+  else if (u8_symlinkp(socket_spec)) {
+    u8_string realfile=u8_readlink(socket_spec,1);
+    if (!(u8_file_existsp(realfile))) {
+      if (u8_file_writablep(realfile))
+	socket_spec=realfile;}
+    else if (u8_socketp(realfile))
+      socket_spec=realfile;
+    else if ((u8_has_suffix(realfile,".scm",1))||
+	     (u8_has_suffix(realfile,".fdcgi",1))) {
+      load_source=realfile;
+      socket_spec=get_socket_spec(socket_spec);}
+    else if ((u8_has_suffix(realfile,".cfg",1))||
+	     (u8_has_suffix(realfile,".conf",1))) {
+      load_config=realfile;
+      socket_spec=get_socket_spec(socket_spec);}
+    else {}}
+  else {}
+    
   u8_init_mutex(&server_port_lock);
   
   if (socket_spec) {
@@ -1447,7 +1471,7 @@ int main(int argc,char **argv)
     dup2(log_fd,2);}
 
   fd_version=fd_init_fdscheme();
-  
+
   if (fd_version<0) {
     u8_log(LOG_WARN,ServletStartup,"Couldn't initialize FramerD");
     exit(EXIT_FAILURE);}
@@ -1457,6 +1481,8 @@ int main(int argc,char **argv)
 
   /* Record the startup time for UPTIME and other functions */
   u8_now(&boot_time);
+
+  if (load_config) fd_load_config(load_config);
 
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
@@ -1572,10 +1598,33 @@ int main(int argc,char **argv)
 
   pid_file=fd_runbase_filename(".pid");
 
+  if (!(load_source)) {}
+  else if ((u8_has_suffix(load_source,".scm",1))||
+	   (u8_has_suffix(load_source,".fdcgi",1))||
+	   (u8_has_suffix(load_source,".fdxml",1))) {
+    fdtype path=fdtype_string(load_source);
+    fdtype result=getcontent(path);
+    fd_decref(path); fd_decref(result);}
+  else {}
+
   if (getenv("FOREGROUND"))
     return launch_servlet(socket_spec);
   else return fork_servlet(socket_spec);
 
+}
+
+static u8_string get_socket_spec(u8_string spec)
+{
+  if (strchr(spec,':')) return u8_strdup(spec);
+  else if (strchr(spec,'@')) return u8_strdup(spec);
+  else {
+    u8_string sock_dir=((getenv("SOCKDIR"))?
+			(u8_getenv("SOCKDIR")):
+			(u8_mkpath(FD_RUN_DIR,"fdserv")));
+    u8_string base=u8_basename(spec,NULL);
+    u8_string sock_file=u8_mkpath(sock_dir,base);
+    u8_free(sock_dir); u8_free(base);
+    return sock_file;}
 }
 
 static int launch_servlet(u8_string socket_spec)
