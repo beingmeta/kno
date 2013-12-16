@@ -208,8 +208,14 @@
 /* Define if you have the CURL header file */
 #undef HAVE_LIBEXIF_EXIF_DATA_H
 
-/* The root data dir */
+/* The root data directory */
 #undef FD_DATA_DIR
+
+/* The root state directory */
+#undef FD_RUN_DIR
+
+/* The root log directory */
+#undef FD_LOG_DIR
 
 /* Where to find config information */
 #undef FD_CONFIG_FILE_PATH

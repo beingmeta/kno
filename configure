@@ -4103,6 +4103,10 @@ else
 fi
 
 rundir=$with_rundir
+cat >>confdefs.h <<_ACEOF
+#define FD_RUN_DIR "$rundir"
+_ACEOF
+
 
 
 # Check whether --with-logdir was given.
@@ -4113,6 +4117,10 @@ else
 fi
 
 logdir=$with_logdir
+cat >>confdefs.h <<_ACEOF
+#define FD_LOG_DIR "$logdir"
+_ACEOF
+
 
 
 ac_ext=c

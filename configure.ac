@@ -288,10 +288,12 @@ apache_modules_dir=$with_apachelib
 dnl Specifies where server state files should live
 AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$localstatedir/run")
 rundir=$with_rundir
+AC_DEFINE_UNQUOTED(FD_RUN_DIR,"$rundir")
 
 dnl Specifies where log files should live
 AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="$localstatedir/log")
 logdir=$with_logdir
+AC_DEFINE_UNQUOTED(FD_LOG_DIR,"$logdir")
 
 AC_AIX
 
