@@ -27,12 +27,19 @@ pre-start script
      else start fdserver CTL=${ctl};
      fi;
     done;
+   for sock in @config_dir@/servlets/*;
+    do start fdservlet SOCK=${sock};
+   done
 end script
 
 post-stop script
 	  for inst in `initctl list|grep "^fdserver "|awk '{print $2}'|tr -d ')'|tr -d '('`
 	  do
-	    stop fdserver CTL=$inst || :
+	    stop fdserver CTL=$inst || true
+          done
+	  for inst in `initctl list|grep "^fdservlet "|awk '{print $2}'|tr -d ')'|tr -d '('`
+	  do
+	    stop fdservlet SOCK=$inst || true
           done
 end script
 
