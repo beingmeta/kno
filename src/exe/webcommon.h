@@ -450,11 +450,13 @@ static FD_HASHTABLE pagemap;
 
 static int whitespace_stringp(u8_string s)
 {
-  int c=u8_sgetc(&s);
-  while (c>0)
-    if (u8_isspace(c)) c=u8_sgetc(&s);
-    else return 0;
-  return 1;
+  if (s==NULL) return 1;
+  else {
+    int c=u8_sgetc(&s);
+    while (c>0)
+      if (u8_isspace(c)) c=u8_sgetc(&s);
+      else return 0;
+    return 1;}
 }
 
 static fdtype loadcontent(fdtype path)
