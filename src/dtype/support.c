@@ -594,8 +594,29 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
 {
   struct rlimit rlim;
   struct NAMED_RLIMIT *nrl=(struct NAMED_RLIMIT *)vptr;
-  rlim_t setval=((FD_FALSEP(v)) ? (RLIM_INFINITY) : (fd_getint(v)));
-  int retval=getrlimit(nrl->code,&rlim);
+  int retval=getrlimit(nrl->code,&rlim); rlim_t setval;
+  if ((FD_FIXNUMP(v))||(FD_BIGINTP(v))) {
+    long lval=fd_getint(v);
+    if (lval<0) {
+      fd_incref(v);
+      fd_seterr(fd_TypeError,"fd_config_rlimit_set",
+                u8_strdup("resource limit (integer)"),v);
+      return -1;}
+    else setval=lval;}
+  else if ((FD_FALSEP(v))) setval=(RLIM_INFINITY);
+  else if ((FD_STRINGP(v))&&
+           ((strcasecmp(FD_STRDATA(v),"unlimited")==0)||
+            (strcasecmp(FD_STRDATA(v),"nolimit")==0)||
+            (strcasecmp(FD_STRDATA(v),"infinity")==0)||
+            (strcasecmp(FD_STRDATA(v),"infinite")==0)||
+            (strcasecmp(FD_STRDATA(v),"false")==0)
+            (strcasecmp(FD_STRDATA(v),"none")==0)))
+    setval=(RLIM_INFINITY);
+  else {
+    fd_incref(v);
+    fd_seterr(fd_TypeError,"fd_config_rlimit_set",
+              u8_strdup("resource limit (integer)"),v);
+    return -1;}
   if (retval<0) {
     u8_condition cond=u8_strerror(errno); errno=0;
     return fd_err(cond,"rlimit_get",u8_strdup(nrl->name),FD_VOID);}
