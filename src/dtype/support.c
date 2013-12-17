@@ -603,7 +603,7 @@ FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
                 u8_strdup("resource limit (integer)"),v);
       return -1;}
     else setval=lval;}
-  else if ((FD_FALSEP(v))) setval=(RLIM_INFINITY);
+  else if (FD_FALSEP(v)) setval=(RLIM_INFINITY);
   else if ((FD_STRINGP(v))&&
            ((strcasecmp(FD_STRDATA(v),"unlimited")==0)||
             (strcasecmp(FD_STRDATA(v),"nolimit")==0)||
