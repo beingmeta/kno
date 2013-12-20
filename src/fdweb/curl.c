@@ -47,6 +47,7 @@ typedef struct FD_CURL_HANDLE {
   FD_CONS_HEADER;
   CURL *handle;
   struct curl_slist *headers;
+  char curl_errbuf[CURL_ERROR_SIZE];
   fdtype initdata;} FD_CURL_HANDLE;
 typedef struct FD_CURL_HANDLE *fd_curl_handle;
 
@@ -296,6 +297,8 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
     FD_INTPTR ptrval=(FD_INTPTR) h->handle;
     u8_log(LOG_DEBUG,"CURL","Creating CURL handle %llx",ptrval);
     curl_easy_setopt(h,CURLOPT_VERBOSE,1);}
+  memset(h->curl_errbuf,0,sizeof(h->curl_errbuf));
+  curl_easy_setopt(h,CURLOPT_ERRORBUFFER,h->curl_errbuf);
   curl_set(h,CURLOPT_NOPROGRESS,1);
   curl_set(h,CURLOPT_FILETIME,(long)1);
   curl_set(h,CURLOPT_NOSIGNAL,1);
@@ -327,6 +330,13 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
   return h;
 #undef curl_set
 #undef curl_set2dtype
+}
+
+static char *getcurlerror(char *buf,int code)
+{
+  if (*buf=='\0')
+    return (char *) curl_easy_strerror(code);
+  else return buf;
 }
 
 static void recycle_curl_handle(struct FD_CONS *c)
@@ -462,18 +472,16 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
   int consed_handle=0;
   fdtype result=fd_empty_slotmap();
   fdtype url=fixurl(urltext);
-  char errbuf[CURL_ERROR_SIZE];
   fd_add(result,url_symbol,url); fd_decref(url);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
   if (h==NULL) {h=fd_open_curl_handle(); consed_handle=1;}
   curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));  
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
-  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
   curl_easy_setopt(h->handle,CURLOPT_NOBODY,0);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"fetchurl",errbuf,url);
+    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(h->curl_errbuf,retval),url);
     fd_decref(result); u8_free(data.bytes);
     return errval;}
   handlefetchresult(h,result,&data);
@@ -487,18 +495,16 @@ static fdtype fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
   int consed_handle=0;
   fdtype result=fd_empty_slotmap();
   fdtype url=fixurl(urltext);
-  char errbuf[CURL_ERROR_SIZE];
   fd_add(result,url_symbol,url); fd_decref(url);
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
   if (h==NULL) {h=fd_open_curl_handle(); consed_handle=1;}
   curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));  
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
-  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
   curl_easy_setopt(h->handle,CURLOPT_NOBODY,1);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"fetchurl",errbuf,url);
+    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(h->curl_errbuf,retval),url);
     fd_decref(result); u8_free(data.bytes);
     return errval;}
   handlefetchresult(h,result,&data);
@@ -616,7 +622,6 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
   fdtype conn;
   INBUF data; OUTBUF rdbuf; CURLcode retval; 
   fdtype result=FD_VOID;
-  char errbuf[CURL_ERROR_SIZE];
   struct FD_CURL_HANDLE *h=NULL;
   if (!((FD_STRINGP(content))||(FD_PACKETP(content)))) 
     return fd_type_error("string or packet","urlput",content);
@@ -636,7 +641,6 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
   curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
-  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
   curl_easy_setopt(h->handle,CURLOPT_UPLOAD,1);
   if (FD_STRINGP(content)) {
     size_t length=FD_STRLEN(content);
@@ -653,7 +657,7 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
   curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"fetchurl",errbuf,url);
+    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(h->curl_errbuf,retval),url);
     fd_decref(result); u8_free(data.bytes);
     return errval;}
   else handlefetchresult(h,result,&data);
@@ -683,7 +687,6 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
   fdtype result, cval, conn=curl_arg(curl,"urlxml");
   int flags; long http_response=0;
   FD_CURL_HANDLE *h; CURLcode retval;
-  char errbuf[CURL_ERROR_SIZE];
   if (FD_ABORTP(conn)) return conn;
   else if (!(FD_PRIM_TYPEP(conn,fd_curl_type))) 
     return fd_type_error("CURLCONN","urlxml",conn);
@@ -701,16 +704,15 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
   curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));  
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
-  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"urlxml",errbuf,url);
+    fdtype errval=fd_err(CurlError,"urlxml",getcurlerror(h->curl_errbuf,retval),url);
     fd_decref(result); u8_free(data.bytes);
     fd_decref(curl);
     return errval;}
   retval=curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"urlxml",errbuf,url);
+    fdtype errval=fd_err(CurlError,"urlxml",getcurlerror(h->curl_errbuf,retval),url);
     fd_decref(result); u8_free(data.bytes);
     fd_decref(curl);
     return errval;}
@@ -938,7 +940,6 @@ static fdtype urlpost(int n,fdtype *args)
   fdtype result=FD_VOID, conn, urlarg=FD_VOID;
   u8_string url; int start;
   struct FD_CURL_HANDLE *h=NULL;
-  char errbuf[CURL_ERROR_SIZE];
   struct curl_httppost *post = NULL;
   if (n<2) return fd_err(fd_TooFewArgs,"URLPOST",NULL,FD_VOID);
   else if (FD_STRINGP(args[0])) {
@@ -959,7 +960,6 @@ static fdtype urlpost(int n,fdtype *args)
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
   curl_easy_setopt(h->handle,CURLOPT_POST,1);
-  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
   if ((n-start)==1) {
     if (FD_STRINGP(args[start])) {
       size_t length=FD_STRLEN(args[start]);
@@ -1085,7 +1085,7 @@ static fdtype urlpost(int n,fdtype *args)
   handlefetchresult(h,result,&data);
   fd_decref(conn);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"fetchurl",errbuf,urlarg);
+    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(h->curl_errbuf,retval),urlarg);
     return errval;}
   else return result;
 }
@@ -1097,7 +1097,6 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
   struct U8_OUTPUT out;
   INBUF data; OUTBUF rdbuf; CURLcode retval; 
   struct FD_CURL_HANDLE *h=NULL;
-  char errbuf[CURL_ERROR_SIZE];
   fdtype result=FD_VOID;
 
   if (FD_ABORTP(url)) return url;
@@ -1139,7 +1138,6 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
   curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,rdbuf.end-rdbuf.scan);
   curl_easy_setopt(h->handle,CURLOPT_READFUNCTION,copy_upload_data);
   curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);
-  curl_easy_setopt(h->handle,CURLOPT_ERRORBUFFER,errbuf);
 
   data.bytes=u8_malloc(8192); data.size=0; data.limit=8192;
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
@@ -1150,7 +1148,7 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
   retval=curl_easy_perform(h->handle);
 
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"fetchurl",errbuf,urlarg);
+    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(h->curl_errbuf,retval),urlarg);
     fd_decref(url); fd_decref(ctype); fd_decref(curl);
     fd_decref(conn);
     return errval;}
