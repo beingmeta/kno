@@ -283,25 +283,28 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
 {
   u8_string abspath=((dumpfile)?(u8_abspath(dumpfile,NULL)):(fd_tempdir(NULL,0)));
   if (u8_directoryp(abspath)) {
-    changemode(abspath,755);
+    changemode(abspath,0755);
     if (html_backtrace) {
       u8_string btfile=u8_mkpath(abspath,"backtrace.html");
       dump_backtrace(ex,btfile);
-      changemode(btfile,444);
+      changemode(btfile,0444);
       u8_free(btfile);}
     if (dtype_backtrace) {
       u8_string btfile=u8_mkpath(abspath,"backtrace.dtype");
       dump_backtrace(ex,btfile);
+      changemode(btfile,0444);
       u8_free(btfile);}
     if (lisp_backtrace) {
       u8_string btfile=u8_mkpath(abspath,"backtrace.lispdata");
       dump_backtrace(ex,btfile);
+      changemode(btfile,0444);
       u8_free(btfile);}
     if ((text_backtrace)||
 	(!((dtype_backtrace)||(lisp_backtrace)||
 	   ((html_backtrace)&&(FD_HTMLDUMP_ENABLED))))) {
       u8_string btfile=u8_mkpath(abspath,"backtrace.text");
       dump_backtrace(ex,btfile);
+      changemode(btfile,0444);
       u8_free(btfile);}}
   else if ((u8_has_suffix(dumpfile,".scm",1))||
 	   (u8_has_suffix(dumpfile,".lisp",1))||
@@ -310,6 +313,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
     fdtype backtrace=fd_exception_backtrace(ex);
     fd_pprint(outfile,backtrace,NULL,0,0,120,1);
     u8_close((u8_stream)outfile);
+    changemode(abspath,0444);
     u8_log(LOG_ERROR,ex->u8x_cond,"Backtrace object written to %s",abspath);}
 #if FD_HTMLDUMP_ENABLED
   else if ((u8_has_suffix(dumpfile,".html",1))||(u8_has_suffix(dumpfile,".htm",1))) {
@@ -317,6 +321,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
     u8_string bugurl=NULL;
     fd_xhtmldebugpage(outfile,ex);
     u8_close((u8_stream)outfile);
+    changemode(abspath,0444);
     if ((bugdumps)&&(bugurlbase)&&(u8_has_prefix(abspath,bugdumps,0))) 
       bugurl=u8_mkpath(bugurlbase,abspath+strlen(bugdumps));
     else bugurl=u8_string_append("file://",abspath,NULL);
@@ -353,12 +358,14 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
       fd_dtsclose(out,FD_DTSCLOSE_FULL);
       u8_movefile(temp_name,abspath);
       u8_free(temp_name);
+      changemode(abspath,0444);
       u8_log(LOG_ERROR,ex->u8x_cond,"DType backtrace written to %s",abspath);}}
   else {
     u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
     fdtype backtrace=fd_exception_backtrace(ex);
     fd_pprint(outfile,backtrace,NULL,0,0,120,1);
     u8_close((u8_stream)outfile);
+    changemode(abspath,0444);
     u8_log(LOG_ERROR,ex->u8x_cond,"Plaintext backtrace written to %s",abspath);}
   u8_free(abspath);
 }
