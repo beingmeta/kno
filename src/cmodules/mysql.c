@@ -841,6 +841,7 @@ static fdtype mysqlmakeprochandler
 
 static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
 {
+  /* This assumes that both dbp and dpbroc have been locked.  */
   MYSQL *db=dbp->db;
   int retval=0, n_cols, n_params, reinit=(dbproc->n_cols<0);
   /* Reinitialize these structures in case there have been schema
@@ -869,9 +870,9 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
     int mysqlerrno=mysql_stmt_errno(dbproc->stmt);
     if (NEED_RESTART(mysqlerrno)) {
       struct FD_MYSQL *dbp=dbproc->fdbptr;
-      u8_mutex_lock(&(dbp->lock));
+      /* u8_mutex_lock(&(dbp->lock));*/
       restart_connection(dbp);
-      u8_mutex_unlock(&(dbp->lock));
+      /* u8_mutex_unlock(&(dbp->lock)); */
       retval=mysql_stmt_prepare
         (dbproc->stmt,dbproc->stmt_string,dbproc->stmt_len);}}
   if (retval) {
@@ -996,7 +997,10 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
 
   /* Initialize it if it needs it */
   if (dbproc->need_init) {
-    init_mysqlproc(dbp,dbproc);
+    u8_lock_mutex(&(dbp->lock));
+    retval=init_mysqlproc(dbp,dbproc);
+    u8_unlock_mutex(&(dbp->lock));
+    if (retval<0) return FD_ERROR_VALUE;
     n_params=dbproc->n_params;
     inbound=dbproc->inbound;
     bindbuf=dbproc->bindbuf;
@@ -1236,11 +1240,12 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
     else u8_seterr(MySQL_Error,"mysqlproc",u8_strdup(mysqlerrmsg));
     return FD_ERROR_VALUE;}
   else if (retry) {
-    if (dbproc->need_init) init_mysqlproc(dbp,dbproc);
-    else restart_connection(dbp);
+    if (dbproc->need_init) retval=init_mysqlproc(dbp,dbproc);
+    else retval=restart_connection(dbp);
     if (dblock) {u8_mutex_unlock(&(dbp->lock)); dblock=0;}
     if (proclock) {u8_mutex_unlock(&(dbproc->lock)); proclock=0;}
-    return applymysqlproc(fn,n,args,reconn-1);}
+    if (retval<0) return FD_ERROR_VALUE;
+    else return applymysqlproc(fn,n,args,reconn-1);}
   else {
     if (dblock) {u8_mutex_unlock(&(dbp->lock)); dblock=0;}
     if (proclock) {u8_mutex_unlock(&(dbproc->lock)); proclock=0;}
