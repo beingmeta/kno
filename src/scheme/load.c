@@ -26,9 +26,6 @@
 u8_condition FileLoad=_("File Load"), FileDone=_("File Done");
 u8_condition LoadEval=_("Load Eval");
 
-fd_exception fd_NotAFilename=_("Not a filename");
-fd_exception fd_FileNotFound=_("File not found");
-
 static int trace_load=0, trace_load_eval=0;
 
 static fdtype after_symbol, traceloadeval_symbol;
@@ -243,7 +240,7 @@ static fdtype load_source(fdtype expr,fd_lispenv env)
     return fd_err(fd_TooFewExpressions,"LOAD",NULL,expr);
   else source=fd_eval(source_expr,env);
   if (!(FD_STRINGP(source)))
-    return fd_err(fd_NotAFilename,"LOAD",NULL,source);
+    return fd_type_error("filename","LOAD",source);
   encval=fd_eval(encname_expr,env);
   if (FD_VOIDP(encval)) encname="auto";
   else if (FD_STRINGP(encval)) 
@@ -268,7 +265,7 @@ static fdtype load_component(fdtype expr,fd_lispenv env)
   if (FD_ABORTP(source))
     return source;
   else if (!(FD_STRINGP(source)))
-    return fd_err(fd_NotAFilename,"LOAD-COMPONENT",NULL,source);
+    return fd_type_error("filename","LOAD-COMPONENT",source);
   encval=fd_eval(encname_expr,env);
   if (FD_VOIDP(encval)) encname="auto";
   else if (FD_STRINGP(encval)) 

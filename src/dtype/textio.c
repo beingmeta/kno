@@ -35,7 +35,7 @@
   ((c<=0) || ((c<128) && ((isspace(c)) || (strchr("{}()[]#\"',`",c)))))
 
 fd_exception fd_CantOpenFile=_("Can't open file");
-fd_exception fd_CantFindFile=_("Can't find file");
+fd_exception fd_FileNotFound=_("File not found");
 fd_exception fd_BadEscapeSequence=_("Invalid escape sequence");
 fd_exception fd_InvalidConstant=_("Invalid constant reference");
 fd_exception fd_InvalidCharacterConstant=_("Invalid character constant");

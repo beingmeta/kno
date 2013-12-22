@@ -79,9 +79,9 @@ FD_EXPORT fd_exception fd_ParseError, fd_ParseArgError, fd_TypeError;
 FD_EXPORT fd_exception fd_DTypeError, fd_InconsistentDTypeSize;
 FD_EXPORT fd_exception fd_RangeError, fd_BadEscapeSequence, fd_ConstantTooLong;
 FD_EXPORT fd_exception fd_CantParseRecord, fd_CantUnparse, fd_InvalidConstant;
-FD_EXPORT fd_exception  fd_InvalidCharacterConstant, fd_BadAtom;
+FD_EXPORT fd_exception fd_InvalidCharacterConstant, fd_BadAtom;
 FD_EXPORT fd_exception fd_NoPointerExpressions, fd_BadPointerRef;
-FD_EXPORT fd_exception fd_CantOpenFile, fd_CantFindFile;
+FD_EXPORT fd_exception fd_CantOpenFile, fd_FileNotFound;
 
 #include "malloc.h"
 #include "dtypeio.h"

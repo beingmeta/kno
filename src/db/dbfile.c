@@ -73,7 +73,7 @@ static fd_pool open_file_pool(u8_string filename)
   u8_string pool_filename=get_pool_filename(filename);
   fd_pool p;
   if (pool_filename==NULL) {
-    fd_seterr3(fd_CantFindFile,"open_file_pool",u8_strdup(filename));
+    fd_seterr3(fd_FileNotFound,"open_file_pool",u8_strdup(filename));
     return NULL;}
   else p=fd_find_pool_by_cid(pool_filename);
   if (p) {
@@ -389,7 +389,7 @@ static fd_index open_file_index(u8_string filename,int consed)
   u8_string index_filename=get_index_filename(filename);
   fd_index ix;
   if (index_filename==NULL) {
-    fd_seterr3(fd_CantFindFile,"open_file_index",u8_strdup(filename));
+    fd_seterr3(fd_FileNotFound,"open_file_index",u8_strdup(filename));
     return NULL;}
   else ix=fd_find_index_by_cid(index_filename);
   if (ix) {

@@ -393,7 +393,7 @@ static int preload_set(fdtype var,fdtype val,void *ignored)
     struct FD_PRELOAD_LIST *scan;
     u8_string filename=FD_STRDATA(val); time_t mtime;
     if (!(u8_file_existsp(filename))) 
-      return fd_reterr("File does not exist","preload_config_set",
+      return fd_reterr(fd_FileNotFound,"preload_config_set",
 		       u8_strdup(filename),FD_VOID);
     fd_lock_mutex(&preload_lock);
     scan=preloads; while (scan) {
@@ -466,6 +466,9 @@ static fdtype loadcontent(fdtype path)
   u8_string content=u8_filestring(pathname,NULL);
   if (traceweb>0)
     u8_log(LOG_NOTICE,"LOADING","Loading %s",pathname);
+  if (!(content)) {
+    u8_seterr(fd_FileNotFound,"loadcontent",u8_strdup(pathname));
+    return FD_ERROR_VALUE;}
   if (content[0]=='<') {
     U8_INPUT in; FD_XML *xml; fd_lispenv env;
     fdtype lenv, ldata, parsed;
@@ -512,7 +515,7 @@ static fdtype loadcontent(fdtype path)
 
 static fdtype getcontent(fdtype path)
 {
-  if (FD_STRINGP(path)) {
+  if ((FD_STRINGP(path))&&(u8_file_existsp(FD_STRDATA(path)))) {
     fdtype value=fd_hashtable_get(&pagemap,path,FD_VOID);
     if (FD_VOIDP(value)) {
       fdtype table_value, content;
@@ -565,6 +568,8 @@ static fdtype getcontent(fdtype path)
 	fd_decref(value);
 	u8_free(lpath);
 	return retval;}}}
+  else if (FD_STRINGP(path))
+    return fd_err(fd_FileNotFound,"getcontent",NULL,path);
   else {
     return fd_type_error("pathname","getcontent",path);}
 }
