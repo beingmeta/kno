@@ -406,19 +406,19 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
     config->keep_socks=parent->keep_socks;
   else config->keep_socks=child->keep_socks;
 
-  if (child->servlet_spawn <= 0)
+  if (child->servlet_spawn < 0)
     config->servlet_spawn=parent->servlet_spawn;
   else config->servlet_spawn=child->servlet_spawn;
 
-  if (child->servlet_wait <= 0)
+  if (child->servlet_wait < 0)
     config->servlet_wait=parent->servlet_wait;
   else config->servlet_wait=child->servlet_wait;
 
-  if (child->log_sync <= 0)
+  if (child->log_sync < 0)
     config->log_sync=parent->log_sync;
   else config->log_sync=child->log_sync;
 
-  if (child->use_dtblock <= 0)
+  if (child->use_dtblock < 0)
     config->use_dtblock=parent->use_dtblock;
   else config->use_dtblock=child->use_dtblock;
 
@@ -523,19 +523,19 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
 
   memset(config,0,sizeof(struct FDSERV_DIR_CONFIG));
 
-  if (child->keep_socks <= 0)
+  if (child->keep_socks < 0)
     config->keep_socks=parent->keep_socks;
   else config->keep_socks=child->keep_socks;
 
-  if (child->servlet_spawn <= 0)
+  if (child->servlet_spawn < 0)
     config->servlet_spawn=parent->servlet_spawn;
   else config->servlet_spawn=child->servlet_spawn;
 
-  if (child->servlet_wait <= 0)
+  if (child->servlet_wait < 0)
     config->servlet_wait=parent->servlet_wait;
   else config->servlet_wait=child->servlet_wait;
 
-  if (child->log_sync <= 0)
+  if (child->log_sync < 0)
     config->log_sync=parent->log_sync;
   else config->log_sync=child->log_sync;
 
