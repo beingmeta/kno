@@ -47,7 +47,7 @@ typedef struct FD_CURL_HANDLE {
   FD_CONS_HEADER;
   CURL *handle;
   struct curl_slist *headers;
-  char curl_errbuf[CURL_ERROR_SIZE];
+  /* char curl_errbuf[CURL_ERROR_SIZE]; */
   fdtype initdata;} FD_CURL_HANDLE;
 typedef struct FD_CURL_HANDLE *fd_curl_handle;
 
@@ -297,8 +297,10 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
     FD_INTPTR ptrval=(FD_INTPTR) h->handle;
     u8_log(LOG_DEBUG,"CURL","Creating CURL handle %llx",ptrval);
     curl_easy_setopt(h,CURLOPT_VERBOSE,1);}
+  /*
   memset(h->curl_errbuf,0,sizeof(h->curl_errbuf));
-  curl_easy_setopt(h,CURLOPT_ERRORBUFFER,h->curl_errbuf);
+  curl_easy_setopt(h,CURLOPT_ERRORBUFFER,(h->curl_errbuf));
+  */
   curl_set(h,CURLOPT_NOPROGRESS,1);
   curl_set(h,CURLOPT_FILETIME,(long)1);
   curl_set(h,CURLOPT_NOSIGNAL,1);
@@ -334,9 +336,12 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
 
 static char *getcurlerror(char *buf,int code)
 {
+  return (char *) curl_easy_strerror(code);
+  /*
   if (*buf=='\0')
     return (char *) curl_easy_strerror(code);
   else return buf;
+  */
 }
 
 static void recycle_curl_handle(struct FD_CONS *c)
@@ -345,6 +350,7 @@ static void recycle_curl_handle(struct FD_CONS *c)
   if (debugging_curl) {
     FD_INTPTR ptrval=(FD_INTPTR) ch->handle;
     u8_log(LOG_DEBUG,"CURL","Freeing CURL handle %llx",ptrval);}
+  /* curl_easy_setopt(ch->handle,CURLOPT_ERRORBUFFER,NULL); */
   curl_slist_free_all(ch->headers);
   curl_easy_cleanup(ch->handle);
   fd_decref(ch->initdata);
@@ -481,7 +487,9 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
   curl_easy_setopt(h->handle,CURLOPT_NOBODY,0);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(h->curl_errbuf,retval),url);
+    char buf[CURL_ERROR_SIZE];
+    fdtype errval=
+      fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
     fd_decref(result); u8_free(data.bytes);
     return errval;}
   handlefetchresult(h,result,&data);
@@ -504,7 +512,8 @@ static fdtype fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
   curl_easy_setopt(h->handle,CURLOPT_NOBODY,1);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(h->curl_errbuf,retval),url);
+    char buf[CURL_ERROR_SIZE];
+    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
     fd_decref(result); u8_free(data.bytes);
     return errval;}
   handlefetchresult(h,result,&data);
@@ -657,7 +666,8 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
   curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(h->curl_errbuf,retval),url);
+    char buf[CURL_ERROR_SIZE];
+    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
     fd_decref(result); u8_free(data.bytes);
     return errval;}
   else handlefetchresult(h,result,&data);
@@ -706,13 +716,15 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"urlxml",getcurlerror(h->curl_errbuf,retval),url);
+    char buf[CURL_ERROR_SIZE];
+    fdtype errval=fd_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
     fd_decref(result); u8_free(data.bytes);
     fd_decref(curl);
     return errval;}
   retval=curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"urlxml",getcurlerror(h->curl_errbuf,retval),url);
+    char buf[CURL_ERROR_SIZE];
+    fdtype errval=fd_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
     fd_decref(result); u8_free(data.bytes);
     fd_decref(curl);
     return errval;}
@@ -1085,7 +1097,8 @@ static fdtype urlpost(int n,fdtype *args)
   handlefetchresult(h,result,&data);
   fd_decref(conn);
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(h->curl_errbuf,retval),urlarg);
+    char buf[CURL_ERROR_SIZE];
+    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),urlarg);
     return errval;}
   else return result;
 }
@@ -1148,7 +1161,8 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
   retval=curl_easy_perform(h->handle);
 
   if (retval!=CURLE_OK) {
-    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(h->curl_errbuf,retval),urlarg);
+    char buf[CURL_ERROR_SIZE];
+    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),urlarg);
     fd_decref(url); fd_decref(ctype); fd_decref(curl);
     fd_decref(conn);
     return errval;}
