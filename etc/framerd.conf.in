@@ -28,8 +28,8 @@ pre-start script
      done;
    for sock in $(find @config_dir@/servlets/ -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
-        then start fdserlvet SOCKET=`basename ${sock}` PRELOAD=`readlink ${sock}`;
-        else start fdservlet SOCKET=`basename ${sock}` PRELOAD=${sock}; fi;
+        then start fdserlvet SOCKET=`basename ${sock}` CONFIG=`readlink ${sock}`;
+        else start fdservlet SOCKET=`basename ${sock}` CONFIG=${sock}; fi;
    done
 end script
 
