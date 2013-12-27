@@ -1,4 +1,4 @@
-instance $SOCK
+instance $SOCKET
 author "Ken Haase"
 description "Starts a FramerD servlet daemon"
 expect daemon
@@ -13,12 +13,4 @@ setuid @webuser@
 setgid @admin_group@
 env LOGDIR=@logdir@/fdserv
 export PRELOAD
-exec @prefix@/bin/fdservlet ${SOCK} PRELOAD=${PRELOAD}
-
-
-
-
-
-
-
-
+exec @prefix@/bin/fdservlet ${SOCKET} PRELOAD=${PRELOAD}
