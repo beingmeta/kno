@@ -10,19 +10,17 @@ expect none
 console log
 
 pre-start script
-    mkdir -p @rundir@/fdserv
-    mkdir -p @logdir@/fdserv
-    mkdir -p @rundir@/framerd
-    mkdir -p @logdir@/framerd
-    chown @webuser@ @rundir@/fdserv @logdir@/fdserv
-    chown @fdaemon@ @rundir@/framerd @logdir@/framerd
-    chgrp @admin_group@ @rundir@/fdserv @logdir@/fdserv
-    chgrp @admin_group@ @rundir@/framerd @logdir@/framerd
-    chmod g+rwx @rundir@/fdserv  @logdir@/fdserv
-    chmod g+rwx @rundir@/framerd @logdir@/framerd
-end script
+   mkdir -p @rundir@/fdserv
+   mkdir -p @logdir@/fdserv
+   mkdir -p @rundir@/framerd
+   mkdir -p @logdir@/framerd
+   chown @webuser@ @rundir@/fdserv @logdir@/fdserv
+   chown @fdaemon@ @rundir@/framerd @logdir@/framerd
+   chgrp @admin_group@ @rundir@/fdserv @logdir@/fdserv
+   chgrp @admin_group@ @rundir@/framerd @logdir@/framerd
+   chmod g+rwx @rundir@/fdserv  @logdir@/fdserv
+   chmod g+rwx @rundir@/framerd @logdir@/framerd
 
-post-start script
    for ctl in $(find @config_dir@/daemons/ -mindepth 1 -maxdepth 1);
      do if (readlink ${ctl}>/dev/null);
         then start fdserver CTL=`readlink ${ctl}`;
