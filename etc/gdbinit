@@ -123,6 +123,7 @@ set env MallocCorruptionAbort=1
 define osx_check_heap
   set env MallocCheckHeapStart=0
   set env MallocCheckHeapEach=$arg0
+  break malloc_error_break
 end
 
 # Init fdb print limits (init done through the config interface)
