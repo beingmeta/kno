@@ -792,7 +792,7 @@ dist/debs.done: staging/framerd-@FDVERSION@
 # Installation targets
 
 install: install-core install-cmodules @setup_target@
-install-core: confdirs @INSTALLI18N@                   \
+install-core: confdirs workdirs @INSTALLI18N@          \
 	 install-static install-shared install-headers \
          install-exe install-scripts 
 
@@ -924,7 +924,8 @@ install-sundown: $(LIBINSTALLDIR)/framerd/sundown.@shared_suffix@ \
 
 # Setup targets
 
-confdirs: 
+workdirs: $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/framerd/bugjar $(DESTDIR)@rundir@/framerd 
+confdirs:
 	@$(MSG) Setting up configuration directories
 	@$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
 	@if test ! -f $(DESTDIR)@config_dir@/servers; then \
@@ -985,6 +986,10 @@ $(DESTDIR)@logdir@/framerd:
 	@$(MSG) Installing FramerD log directory
 	@$(SYSINSTALL) -m 0775 @fdaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@logdir@/framerd
+$(DESTDIR)@logdir@/framerd/bugjar: $(DESTDIR)@logdir@/framerd
+	@$(MSG) Installing FramerD bugjar directory
+	@$(SYSINSTALL) -m 0777 @fdaemoninstall@  @admininstall@ -d \
+		   $(DESTDIR)@logdir@/framerd/bugjar
 setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)@rundir@/framerd \
             $(DESTDIR)@logdir@/framerd
