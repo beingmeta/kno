@@ -16,7 +16,11 @@
 
 ;;; Configurable
 
-(define-init fileroot "/tmp/bugs/")
+(define-init fileroot
+  (if (config 'logdir)
+      (glom (mkpath (mkpath (config 'logdir) "framerd")
+		    "bugjar") "/")
+      "/tmp/bugjar/"))
 (define-init webroot #f)
 
 (define (urish? string)
@@ -56,12 +60,15 @@
 	 (dir (mkpath daily (stringout "BJ" (uuid->string uuid)))))
     dir))
 (define (makelogbase uuid (root fileroot))
-  (if (file-directory? root)
+
+  (if (or (file-directory? root)
+	  (file-directory? (dirname root)))
       (let* ((date (uuid-time uuid))
 	     (yname (mkpath root (glom "Y0" (get date 'year))))
 	     (mname (mkpath yname (glom "M" (padnum (1+ (get date 'month)) 2))))
 	     (dname (mkpath mname (glom "D" (padnum (get date 'date) 2))))
 	     (dir (mkpath dname (stringout "BJ" (uuid->string uuid)))))
+	(unless (file-directory? root) (mkdir root #o777))
 	(unless (file-directory? yname) (mkdir yname #o777))
 	(unless (file-directory? mname) (mkdir mname #o777))
 	(unless (file-directory? dname) (mkdir dname #o777))
