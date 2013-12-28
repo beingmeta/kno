@@ -50,6 +50,8 @@ fd_exception fd_ConfigError=_("Configuration error");
 fd_exception fd_OutOfMemory=_("Memory apparently exhausted");
 fd_exception fd_ExitException=_("Unhandled exception at exit");
 
+static u8_string logdir=FD_LOG_DIR, datadir=FD_DATA_DIR;
+
 /* Configuration handling */
 
 struct FD_CONFIG_HANDLER *config_handlers=NULL;
@@ -1692,6 +1694,14 @@ void fd_init_support_c()
 		     get_google_profile,set_google_profile,
 		     NULL);
 #endif
+
+  fd_register_config
+    ("LOGDIR",_("Root directory for logging directories"),
+     fd_sconfig_get,fd_sconfig_set,&logdir);
+  fd_register_config
+    ("DATADIR",_("Data directory for FramerD"),
+     fd_sconfig_get,fd_sconfig_set,&datadir);
+
 
 #if FD_FILECONFIG_ENABLED
   fd_register_config
