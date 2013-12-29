@@ -224,7 +224,7 @@ optimizing:
 nitpicking:
 	make XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
 
-all: testbin exe cmodules etc @TAGS@
+all: testbin exe cmodules etc i18n @TAGS@
 
 # Handy targets
 
