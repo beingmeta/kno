@@ -37,7 +37,8 @@
    '{"P" "LI" "DT" "DD" "BLOCKQUOTE"
      "DIV" "SECTION" "ASIDE" "DETAIL"
      "UL" "DL" "OL"
-     "H1" "H2" "H3" "H4" "H5" "H6" "H7"}))
+     "H1" "H2" "H3" "H4" "H5" "H6" "H7"
+     "PRE"}))
 (define-init stdschemas
   (for-choices (def '{(sbooks . "http://sbooks.net/")
 		      (sbook . "http://sbooks.net/")
@@ -162,7 +163,7 @@
 		       (pick allattribs lunqname (downcase (try unq aname)))))
 	 (ids (get node '%attribids))
 	 (stringval (if (and (not fdxml) (string? val)) val
-			(unparse-arg val)))
+			(->domstring val)))
 	 (qattrib (string->lisp (first (singleton attribs)))))
     (when index
       (drop! index (cons (choice attrib slotid qattrib) (get node attrib)) node)
@@ -256,14 +257,23 @@
 			(doseq (class (remove classname classes) i)
 			  (printout (if (> i 0) " ") class)))))))))
 
-(define (dom/add! node attrib value (sep ";") (index #f))
+(define (->domstring value)
+  (cond ((string? value) value)
+	((oid? value) (oid->string value))
+	((symbol? value) (symbol->string value))
+	((uuid? value)  (uuid->string value))
+	((number? value) (number->string value))
+	(else (stringout value))))
+
+(define (dom/add! node attrib value (sep ";") (index #f) (svalue))
   (drop! node '%markup)
-  (let ((current (dom/get node attrib)))
+  (let ((current (dom/get node attrib))
+	(svalue (->domstring value)))
     (if (fail? current)
 	(dom/set! node attrib value)
 	(let ((values (segment current sep)))
-	  (unless (position value values)
-	    (dom/set! node attrib (string-append value sep current))
+	  (unless (position svalue values)
+	    (dom/set! node attrib (string-append svalue sep current))
 	    (when index (add! index (cons attrib value) node)))))))
 
 (define (dom/remove-child! node elt (recur #t))
