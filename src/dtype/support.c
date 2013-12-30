@@ -50,7 +50,7 @@ fd_exception fd_ConfigError=_("Configuration error");
 fd_exception fd_OutOfMemory=_("Memory apparently exhausted");
 fd_exception fd_ExitException=_("Unhandled exception at exit");
 
-static u8_string logdir=FD_LOG_DIR, datadir=FD_DATA_DIR;
+static u8_string logdir=NULL, datadir=NULL;
 
 /* Configuration handling */
 
@@ -1700,9 +1700,12 @@ void fd_init_support_c()
 		     NULL);
 #endif
 
+  if (!(logdir)) logdir=u8_strdup(FD_LOG_DIR);
   fd_register_config
     ("LOGDIR",_("Root directory for logging directories"),
      fd_sconfig_get,fd_sconfig_set,&logdir);
+  if (!(datadir)) datadir=u8_strdup(FD_DATA_DIR);
+
   fd_register_config
     ("DATADIR",_("Data directory for FramerD"),
      fd_sconfig_get,fd_sconfig_set,&datadir);
