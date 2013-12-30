@@ -1406,31 +1406,18 @@ int main(int argc,char **argv)
     else socket_spec=argv[i++];
   i=1;
   
-  if (!(socket_spec)) {}
-  else if (u8_has_suffix(socket_spec,".scm",1)) {
-    load_source=socket_spec; socket_spec=NULL;}
-  else if (u8_has_suffix(socket_spec,".cfg",1)) {
-    load_config=socket_spec; socket_spec=NULL;}
-  else if (u8_symlinkp(socket_spec)) {
-    u8_string realfile=u8_readlink(socket_spec,1);
-    if (!(u8_file_existsp(realfile))) {
-      if (u8_file_writablep(realfile))
-	socket_spec=realfile;}
-    else if (u8_socketp(realfile))
-      socket_spec=realfile;
-    else if ((u8_has_suffix(realfile,".scm",1))||
-	     (u8_has_suffix(realfile,".fdcgi",1))) {
-      load_source=realfile;
-      socket_spec=get_socket_spec(socket_spec);}
-    else if ((u8_has_suffix(realfile,".cfg",1))||
-	     (u8_has_suffix(realfile,".conf",1))) {
-      load_config=realfile;
-      socket_spec=get_socket_spec(socket_spec);}
-    else {}}
-  else {}
-    
   u8_init_mutex(&server_port_lock);
   
+  if (!(socket_spec)) {}
+  else if (strchr(socket_spec,'/')) 
+    socket_spec=u8_abspath(socket_spec,NULL);
+  else if ((strchr(socket_spec,':'))||(strchr(socket_spec,'@')))
+    socket_spec=u8_strdup(socket_spec);
+  else {
+    u8_string sockets_dir=u8_mkpath(FD_RUN_DIR,"fdserv");
+    socket_spec=u8_mkpath(sockets_dir,socket_spec);
+    u8_free(sockets_dir);}
+
   if (socket_spec) {
     ports=u8_malloc(sizeof(u8_string)*8);
     max_ports=8; n_ports=1;
