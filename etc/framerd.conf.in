@@ -28,7 +28,7 @@ pre-start script
      done;
    for sock in $(find @config_dir@/servlets/ -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
-        then start fdserlvet SOCKET=`basename ${sock}` CONFIG=`readlink ${sock}`;
+        then start fdservlet SOCKET=`basename ${sock}` CONFIG=`readlink ${sock}`;
         else start fdservlet SOCKET=`basename ${sock}` CONFIG=${sock}; fi;
    done
 end script
@@ -37,7 +37,7 @@ post-stop script
    for inst in `initctl list|grep "^fdserver "|awk '{print $2}'|tr -d ')'|tr -d '('`;
        do stop fdserver CTL=$inst || true; done
     for inst in `initctl list|grep "^fdservlet "|awk '{print $2}'|tr -d ')'|tr -d '('`;
-       do stop fdservlet SOCK=$inst || true; done
+       do stop fdservlet SOCKET=$inst || true; done
 end script
 
 

@@ -13,4 +13,5 @@ setuid @webuser@
 setgid @admin_group@
 env LOGDIR=@logdir@/fdserv
 export PRELOAD
-exec @prefix@/bin/fdservlet ${SOCKET} PRELOAD=${PRELOAD}
+export CONFIG
+exec @prefix@/bin/fdservlet ${SOCKET} PRELOAD=${PRELOAD} CONFIG=${CONFIG}
