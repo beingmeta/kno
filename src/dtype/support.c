@@ -1621,6 +1621,11 @@ void fd_init_support_c()
     ("STDERRLEVEL",_("Required priority for messages to be displayed on stderr"),
      fd_intconfig_get,loglevelconfig_set,
      &u8_stderr_loglevel);
+  /* Default logindent for FramerD */
+  if (!(u8_logindent)) u8_logindent=u8_strdup("       ");
+  fd_register_config
+    ("LOGINDENT",_("String for indenting multi-line log messages"),
+     fd_sconfig_get,fd_sconfig_set,&u8_logindent);
   fd_register_config
     ("SHOWDATE",_("Whether to show the date in log messages"),
      fd_boolconfig_get,fd_boolconfig_set,
