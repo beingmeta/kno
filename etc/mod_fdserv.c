@@ -1102,11 +1102,14 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   if (log_sync<0) log_sync=DEFAULT_LOG_SYNC;
 
   if (servlet_wait<0) servlet_wait=sconfig->servlet_spawn;
+  if (servlet_wait<0) servlet_wait=dconfig->servlet_spawn;
   if (servlet_wait<0) servlet_wait=dconfig->servlet_wait;
   if (servlet_wait<0) servlet_wait=sconfig->servlet_wait;
   if ((servlet_wait<0)&&((strchr(sockname,'@')!=NULL)||(strchr(sockname,':')!=NULL)))
     servlet_wait=0;
-  else servlet_wait=DEFAULT_SERVLET_WAIT;
+  else if (servlet_wait<0)
+    servlet_wait=DEFAULT_SERVLET_WAIT;
+  else {}
   
   if (servlet_wait==0) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,500,server,
