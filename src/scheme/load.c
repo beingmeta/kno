@@ -360,7 +360,7 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
     config_stack=on_stack.next;
     fd_unlock_mutex(&config_file_lock);
     return retval;}
-  else if ((FD_STRINGP(val))&&(FD_STRLEN(val)>0))
+  else if (FD_STRINGP(val))
     return 0;
   else return -1;
 }

@@ -12,6 +12,5 @@ kill timeout 90 # wait 90s between SIGTERM and SIGKILL.
 setuid @webuser@
 setgid @admin_group@
 env LOGDIR=@logdir@/fdserv
-export PRELOAD
 export CONFIG
-exec @prefix@/bin/fdservlet ${SOCKET} PRELOAD=${PRELOAD} CONFIG=${CONFIG}
+exec @prefix@/bin/fdservlet ${SOCKET} CONFIG=${CONFIG}
