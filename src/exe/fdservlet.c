@@ -1242,6 +1242,7 @@ static void shutdown_server(u8_condition reason)
     u8_free(pidfile);}
   pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
+  exit(0);
 }
 
 static fdtype servlet_status_string()

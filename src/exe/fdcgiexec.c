@@ -86,6 +86,7 @@ static void shutdown_server(u8_condition reason)
 	   "Shutting down, removing socket %s and pidfile %s",
 	   portfile,pidfile);
   webcommon_shutdown(reason);
+  exit(0);
 }
 
 /* Running the server */

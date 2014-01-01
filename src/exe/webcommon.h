@@ -719,6 +719,9 @@ static void init_webcommon_finalize()
 #if SIGHUP
     sigaddset(&newset,SIGHUP);
 #endif
+#if SIGKILL
+    sigaddset(&newset,SIGKILL);
+#endif
     if (sigprocmask(SIG_UNBLOCK,&newset,&oldset)<0)
       u8_log(LOG_WARN,"Sigerror","Error setting signal mask");
   }
