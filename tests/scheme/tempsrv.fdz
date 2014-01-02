@@ -1,5 +1,5 @@
 (use-module '{optimize samplefns})
-(config! 'port "temp@localhost")
+(config! 'port "tempx@localhost")
 (define runfile (get-component "tempsrv.run"))
 (define (startup)
   (optimize! plus)
