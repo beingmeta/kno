@@ -50,9 +50,10 @@
 #endif
 
 #define LOGNOTICE APLOG_NOTICE
+#define LOGINFO APLOG_INFO
 
 #if DEBUG_FDSERV
-#define LOGDEBUG APLOG_NOTICE
+#define LOGDEBUG APLOG_INFO
 #else
 #define LOGDEBUG APLOG_DEBUG
 #endif
@@ -1668,7 +1669,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
       /* There should be a free open socket to reuse, so we scan */
       struct FDSOCKET *sockets=s->sockets;
       while (i<lim) {
-	ap_log_error(APLOG_MARK,LOGNOTICE,OK,s->server,
+	ap_log_error(APLOG_MARK,LOGDEBUG,OK,s->server,
 		     "Checking %s #%d/%d busy=%d closed=%d",
 		     s->sockname,i,lim,sockets[i].busy,sockets[i].closed);
 	if (sockets[i].busy>0) i++;
@@ -1833,7 +1834,7 @@ static fdservlet request_servlet(request_rec *r)
   struct FDSERV_DIR_CONFIG *dconfig=
     ap_get_module_config(r->per_dir_config,&fdserv_module);
   fdservlet servlet; int keep_socks=sconfig->keep_socks;
-  ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
+  ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
 		"Resolving %s using servlet %s",
 		r->unparsed_uri,sockname);
   servlet=get_servlet(sockname);
