@@ -9,7 +9,7 @@
    writeout writeout/type
    gp/writeout gp/writeout! gp/writeout+!
    gpath? ->gpath
-   gp/location? gp/location gp/basename  gp/has-suffix
+   gp/location? gp/location gp/basename gp/has-suffix gp/has-prefix
    gp/fetch gp/fetch+ gp/etag gp/info
    gp/exists? gp/exists gp/modified gp/newer
    gp/path gp/mkpath gp/makepath gpath->string
@@ -553,8 +553,13 @@
 
 (defambda (gp/has-suffix gpath suffixes (casematch #f))
   (if casematch
-      (has-suffix (downcase (gp/basename gpath)) (downcase suffixes))
-      (has-suffix (gp/basename gpath) suffixes)))
+      (has-suffix (gp/basename gpath) suffixes)
+      (has-suffix (downcase (gp/basename gpath)) (downcase suffixes))))
+
+(defambda (gp/has-prefix gpath prefixes (casematch #f))
+  (if casematch
+      (has-prefix (gp/basename gpath) prefixes)
+      (has-prefix (downcase (gp/basename gpath)) (downcase prefixes))))
 
 (define (gp:config spec) (->gpath spec))
 
