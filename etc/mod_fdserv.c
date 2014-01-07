@@ -1575,6 +1575,7 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
       if (rv<0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_EMERG,500,r,"Couldn't spawn fdservlet @ %s",sockname);
+	close(unix_sock);
 	return NULL;}
       else if (rv)
 	ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
@@ -1592,6 +1593,7 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 	(APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
 	 sockname,errno,strerror(errno));
       errno=0;
+      close(unix_sock);
       return NULL;}
 #if DEBUG_CONNECT
     ap_log_rerror
@@ -1628,6 +1630,7 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
       if (retval!=APR_SUCCESS) {
 	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
 		      "Timeout making connection to %s",s->sockname);
+	apr_socket_close(sock);
 	return NULL;}}
 #if DEBUG_CONNECT
     ap_log_rerror
