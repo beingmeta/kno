@@ -13,7 +13,7 @@
    gp/fetch gp/fetch+ gp/etag gp/info
    gp/exists? gp/exists gp/modified gp/newer
    gp/path gp/mkpath gp/makepath gpath->string
-   gp:config
+   gp:config gpath/handler
    gp/urlfetch gp/urlinfo})
 (module-export! '{zip/gopen zip/gclose})
 
@@ -40,6 +40,20 @@
 (varconfig! gp:urlsubst gp/urlsubst #f)
 
 (defrecord memfile mimetype content modified (hash #f))
+
+(defrecord gpath-handler name get (save #f))
+(define gpath/handler cons-gpath-handler)
+
+(define-init gpath-handlers (make-hashtable))
+
+(config-def! 'GPATH:HANDLERS
+	     (lambda (var (val))
+	       (if (bound? val)
+		   (if (gpath-handler? val)
+		       (store! gpath-handlers (gpath-handler-name val)
+			       val)
+		       (error "NOT a GPATH HANDLER"))
+		   (get gpath-handlers (getkeys gpath-handlers)))))
 
 (define (guess-mimetype name (content))
   (or (path->mimetype (gp/basename name) #f)
@@ -124,6 +138,11 @@
 		  (zipfile? (car dest))
 		  (string? (cdr dest)))
 	     (zip/add! (car dest) (cdr dest) content))
+	    ((and (pair? dest) (compound-type? (car dest))
+		  (test gpath-handlers (compound-tag (car dest)))
+		  (gpath-handler-save (get gpath-handlers (compound-tag (car dest)))))
+	     ((gpath-handler-save (get gpath-handlers (compound-tag (car dest))))
+	      (car dest) (cdr dest) content ctype charset))
 	    (else (error "Bad GP/SAVE call")))
       (loginfo "Saved " (length content)
 	       (if (string? content) " characters of "
@@ -280,6 +299,10 @@
 	 (memfile-content (get (car ref) (cdr ref))))
 	((and (pair? ref) (hashfs? (car ref)) (string? (cdr ref)))
 	 (hashfs/get (car ref) (cdr ref)))
+	((and (pair? ref) (compound-type? (car ref))
+	      (test gpath-handlers (compound-tag (car ref))))
+	 ((gpath-handler-get (get gpath-handlers (compound-tag (car ref))))
+	  (car ref) (cdr ref)))
 	((pair? ref) (gp/fetch (gp/path (car ref) (cdr ref))))
 	((and (string? ref)
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
@@ -373,6 +396,10 @@
 		       etag ,(packet->base16 (md5 mf))]))))
 	((and (pair? ref) (hashfs? (car ref)) (string? (cdr ref)))
 	 (hashfs/get+ (car ref) (cdr ref)))
+	((and (pair? ref) (compound-type? (car ref))
+	      (test gpath-handlers (compound-tag (car ref))))
+	 ((gpath-handler-get (get gpath-handlers (compound-tag (car ref))))
+	  (car ref) (cdr ref) #t))
 	((pair? ref) (gp/fetch+ (gp/path (car ref) (cdr ref)) default-ctype))
 	((and (string? ref) (exists has-prefix ref {"http:" "https:" "ftp:"}))
 	 (gp/urlfetch ref))
@@ -423,6 +450,10 @@
 			   (md5 mf))))]))
 	((and (pair? ref) (hashfs? (car ref)) (string? (cdr ref)))
 	 (hashfs/info (car ref) (cdr ref)))
+	((and (pair? ref) (compound-type? (car ref))
+	      (test gpath-handlers (compound-tag (car ref))))
+	 ((gpath-handler-get (get gpath-handlers (compound-tag (car ref))))
+	  (car ref) (cdr ref) #f))
 	((pair? ref) (gp/info (gp/path (car ref) (cdr ref))))
 	((and (string? ref) (exists has-prefix ref {"http:" "https:" "ftp:"}))
 	 (gp/urlinfo ref))
@@ -582,3 +613,27 @@
 	 (dir (get ziptemps filename)))
     (prog1 (zip/close zip)
       (tempdir/done dir))))
+
+
+;;;; Example configuration
+
+(defrecord samplegfs (name #f) (data (make-hashtable)) (metadata (make-hashtable)))
+(define (samplegfs-get gfs path (info))
+  (if (bound? info)
+      (let ((metadata (get (samplegfs-metadata gfs) path)))
+	(when info
+	  (set! metadata (deep-copy metadata))
+	  (store! metadata 'content (get (samplegfs-data gfs) path)))
+	metadata)
+      (get (samplegfs-data gfs) path)))
+(define (samplegfs-save gfs path content (ctype) (charset))
+  (default! ctype (guess-mimetype path content))
+  (default! charset (get-charset ctype))
+  (store! (samplegfs-data gfs) path content)
+  (store! (samplegfs-metadata gfs) path
+	  (frame-create #f
+	    'ctype ctype
+	    'charset (tryif charset (if (string? charset) charset "utf-8"))
+	    'modified (timestamp) 'length (length content)
+	    'etag (md5 content))))
+(config! 'gpath:handlers (gpath/handler 'samplegfs samplegfs-get samplegfs-save))
