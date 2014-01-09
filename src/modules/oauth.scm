@@ -320,8 +320,9 @@
        "client_id" (getckey spec)
        "redirect_uri" (getcallback spec)
        "scope"
-       (stringout (do-choices (scope (or scope (getopt spec 'scope)) i)
-		    (printout (if (> i 0) " ") scope)))
+       (tryif (or scope (getopt spec 'scope))
+	 (stringout (do-choices (scope (or scope (getopt spec 'scope)) i)
+		      (printout (if (> i 0) " ") scope))))
        "state" (getopt spec 'state (uuid->string (getuuid)))
        "response_type" "code")))
 
@@ -435,7 +436,7 @@
 
 ;;; Actually calling the API
 
-(define (oauth/call10 spec method endpoint args ckey csecret)
+(define (oauth/call10 spec method endpoint args body ckey csecret)
   (debug%watch "OAUTH/CALL1.0" method endpoint args)
   (unless (getopt spec 'token)
     (irritant spec OAUTH:NOTOKEN OAUTH/CALL
@@ -471,7 +472,7 @@
 		     newtable)
 		   args))))
 	 (sig (hmac-sha1 (glom csecret "&" (getopt spec 'oauth_secret))
-			 sigstring))
+		sigstring))
 	 (sig64 (packet->base64 sig))
 	 (auth-header
 	  (glom "Authorization: OAuth "
@@ -483,19 +484,32 @@
 	    "oauth_timestamp=\"" now "\", "
 	    "oauth_token=\"" (getopt spec 'token) "\", "
 	    "oauth_version=\"" (getopt spec 'version "1.0") "\""))
+	 (content (if (pair? body) (car body) body))
+	 (ctype (if (pair? body) (cdr body)
+		    (getopt spec 'ctype (if (packet? content) "application" "text"))))
+	 (handle (curlopen 'header "Expect: "
+			   'header auth-header
+			   'method method))
 	 (req (if (eq? method 'GET)
 		  (urlget (if (pair? args)
 			      (apply scripturl endpoint args)
 			      (scripturl+ endpoint args))
-			  (curlopen 'header "Expect: "
-				    'header auth-header
-				    'method method))
-		  (if (eq? method 'POST)
-		      (urlpost endpoint
-			       (curlopen 'header "Expect: "
-					 'header auth-header
-					 'method method)
-			       (args->post args))))))
+			  handle)
+		  (if (eq? method 'HEAD)
+		      (urlhead (if (pair? args)
+				   (apply scripturl endpoint args)
+				   (scripturl+ endpoint args))
+			       handle)
+		      (if (eq? method 'POST)
+			  (urlpost endpoint handle (args->post args))
+			  (if (eq? method 'PUT)
+			      (urlput (if (pair? args)
+					  (apply scripturl endpoint args)
+					  (scripturl+ endpoint args))
+				      content ctype handle)
+			      (error OAUTH:BADMETHOD OAUTH/CALL10
+				     "Only GET, HEAD, PUT, and POST are allowed: "
+				     method endpoint args)))))))
     (debug%watch now nonce sig64)
     ;; Keeping these watchpoints separate makes them easier to read
     ;;  (maybe %watch needs a redesign?)
@@ -508,7 +522,7 @@
 		  "Failed to " method " at " endpoint
 		  " with " args "\n\t" spec))))
 
-(define (oauth/call20 spec method endpoint args ckey csecret (expires))
+(define (oauth/call20 spec method endpoint args body ckey csecret (expires))
   (debug%watch "OAUTH/CALL2.0" method endpoint args ckey csecret)
   (unless (getopt spec 'token)
     (irritant spec OAUTH:NOTOKEN OAUTH/CALL
@@ -524,36 +538,38 @@
 	  (if httpauth
 	      (glom "Authorization: Bearer " (getopt spec 'token))
 	      ""))
-	 (req (if (eq? method 'GET)
-		  (urlget (if httpauth
-			      (apply scripturl endpoint args)
-			      (if (pair? args)
-				  (apply scripturl endpoint
-					 (getopt spec 'access_token "access_token")
-					 (getopt spec 'token)
-					 args)
-				  (apply scripturl endpoint args)))
-			  (curlopen 'header "Expect: "
-				    'header auth-header
-				    'method method))
-		  (if (eq? method 'POST)
-		      (if httpauth
-			  (urlpost endpoint
-				   (curlopen 'header "Expect: "
-					     'header auth-header
-					     'method method)
-				   (args->post args))
-			  (urlpost endpoint
-				   (curlopen 'header "Expect: "
-					     'header auth-header
-					     'method method)
-				   (args->post
-				    (cons* (getopt spec 'access_token "access_token")
-					   (getopt spec 'token)
-					   args))))
-		      (error OAUTH:BADMETHOD OAUTH/CALL2
-			     "Only GET and POST are allowed: "
-			     method endpoint args)))))
+	 (content (if (pair? body) (car body) body))
+	 (ctype (if (pair? body) (cdr body)
+		    (getopt spec 'ctype (if (packet? content) "application" "text"))))
+	 (useurl (if (or (eq? method 'get) (eq? method 'put) (and (eq? method 'post) body))
+		     (if httpauth
+			 (if (or (not args) (null? args)) endpoint
+			     (apply scripturl endpoint args))
+			 (if (pair? args)
+			     (apply scripturl endpoint
+				    (getopt spec 'access_token "access_token")
+				    (getopt spec 'token)
+				    args)
+			     (if (or (not args) (null? args))
+				 (scripturl endpoint
+				     (getopt spec 'access_token "access_token")
+				   (getopt spec 'token))
+				 (apply scripturl endpoint args))))
+		     endpoint))
+	 (handle (if httpauth
+		     (curlopen 'header "Expect: " 'header auth-header 'method method)
+		     (curlopen 'header "Expect: " 'method method)))
+	 (req (if (eq? method 'GET) (urlget useurl handle)
+		  (if (eq? method 'HEAD) (urlget useurl handle)
+		      (if (eq? method 'POST)
+			  (if body
+			      (urlput useurl content ctype handle)
+			      (urlpost useurl handle (args->post args)))
+			  (if (eq? method 'PUT)
+			      (urlput useurl content ctype handle)
+			      (error OAUTH:BADMETHOD OAUTH/CALL20
+				     "Only GET, HEAD, PUT, and POST are allowed: "
+				     method endpoint args)))))))
     (debug%watch endpoint auth-header req)
     (if (and (test req 'response) (number? (get req 'response))
 	     (<= 200 (get req 'response) 299))
@@ -562,8 +578,8 @@
 	    (begin
 	      (debug%watch 'OAUTH/ERROR "RESPONSE" response req)
 	      (oauth/refresh! spec)
-	      (oauth/call20 spec method endpoint args ckey csecret))
-	    (irritant req OAUTH:REQFAIL OAUTH/CALL2
+	      (oauth/call20 spec method endpoint args body ckey csecret))
+	    (irritant req OAUTH:REQFAIL OAUTH/CALL20
 		      method " at " endpoint " with " args
 		      "\n\t" spec)))))
 
@@ -633,13 +649,13 @@
 
 ;;; Generic call function
 
-(define (oauth/call spec method endpoint (args '()) (ckey) (csecret))
+(define (oauth/call spec method endpoint (args '()) (body #f) (ckey) (csecret))
   (set! spec (oauth/spec spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (if (testopt spec 'version "1.0")
       (oauth/call10 spec method endpoint args ckey csecret)
-      (oauth/call20 spec method endpoint args ckey csecret)))
+      (oauth/call20 spec method endpoint args body ckey csecret)))
 (define (oauth/call* spec method endpoint . args)
   (oauth/call spec method endpoint args))
 
