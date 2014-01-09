@@ -3,7 +3,7 @@
 
 (in-module 'oauth)
 
-(use-module '{fdweb xhtml/auth varconfig})
+(use-module '{fdweb reflection xhtml/auth varconfig})
 (use-module '{texttools logger})
 (define %used_modules '{varconfig xhtml/auth})
 
@@ -158,6 +158,34 @@
 		    (= (req/get 'SERVER_PORT) 443))
 	  (printout ":" (req/get 'SERVER_PORT))))
       (uribase (try (req/get 'request_uri) (req/get 'path_info))))))
+
+;;; Managing state
+
+(define-init oauth-pending (make-hashtable))
+(define-init oauth-sessionfn #f)
+(varconfig! oauth:sessionstore oauth-sessionfn)
+
+(define (oauth/pending id)
+  (try (get oauth-pending id)
+       (tryif oauth-sessionfn
+	 (let ((pending (oauth-sessionfn id)))
+	   (if (exists? pending)
+	       (store! oauth-pending id (oauth/spec pending)))
+	   pending))))
+(define (oauth/pending! id (state))
+  (debug%watch "OAUTH/PENDING!" id state oauth-sessionfn)
+  (if (and (bound? state) state)
+      (drop! oauth-pending id state)
+      (drop! oauth-pending id))
+  (when oauth-sessionfn
+    (if (bound? state)
+	(if (pair? state)
+	    (let ((copied (deep-copy (car state)))
+		  (realm (getopt state 'realm)))
+	      (store! copied 'realm realm)
+	      (oauth-sessionfn id copied))
+	    (oauth-sessionfn id state))
+	(oauth-sessionfn id))))
 
 ;;; Getting consumer/client keys and secrets
 
@@ -716,10 +744,25 @@
 (define (oauth/put spec endpoint (args #[]))
   (getreqdata (oauth/call spec 'PUT endpoint args)))
 
-;;; Top level authenication
+;;; Top level authentication
 
-(define-init oauth-pending (make-hashtable))
 (define-init oauth-info (make-hashtable))
+(define-init oauth-onaccess (make-hashtable))
+
+(config-def! 'oauth:onaccess
+	     (lambda (var (val))
+	       (if (bound? val)
+		   (if (and (procedure? val) (string? (procedure-name val)))
+		       (let* ((name (string->symbol (procedure-name val)))
+			      (cur (get oauth-onaccess name)))
+			 (cond ((fail? cur) (store! oauth-onaccess name val))
+			       ((identical? cur val))
+			       (else (logwarn "Redefining ONACCESS handler for "
+					      name)
+				     (store! oauth-onaccess name val))))
+		       (error |TypeError| 'OAUTH:ONACCESS
+			      "Not a named procedure: " val))
+		   (get oauth-onaccess (getkeys oauth-onaccess)))))
 
 ;;; For calling (via req/call) from CGI scripts
 ;;; Arguments come from CGI
@@ -728,20 +771,30 @@
 	       (scope #f))
   (debug%watch "OAUTH" oauth_realm code oauth_token oauth_verifier getuser)
   (if oauth_verifier ;; 1.0
-      (let* ((auth-state (get oauth-pending oauth_token))
+      (let* ((auth-state (oauth/pending oauth_token))
 	     (verified (oauth/verify auth-state oauth_verifier)))
-	(drop! oauth-pending oauth_token)
+	(oauth/pending! oauth_token) ;; Drop state
 	(store! oauth-info oauth_token (cons verified (cdr auth-state)))
 	(let ((user (getuser verified)))
 	  (debug%watch "OAUTH1/complete" user verified auth-state)
 	  user))
       (if code ;; 2.0
-	  (let* ((spec (get oauth-pending state))
+	  (let* ((spec (oauth/pending state))
 		 (access (and spec (oauth/getaccess spec code))))
 	    (and access
 		 (let* ((handler (getopt spec 'onaccess getuser))
-			(user (handler access)))
+			(redirect (getopt spec 'redirect))
+			(user (if (applicable? handler)
+				  (handler access)
+				  (if (and (test oauth-onaccess handler)
+					   (procedure? (get oauth-onaccess handler)))
+				      ((get oauth-onaccess handler) access)
+				      (error "Not a valid OAUTH ONACCESS handler" handler)))))
 		   (debug%watch "OAUTH2/complete" handler user access spec)
+		   (oauth/pending! state) ;; Drop state
+		   (when redirect
+		     (req/set! 'status 303)
+		     (httpheader "Location: " redirect))
 		   user)))
 	  (let* ((spec (and oauth_realm
 			    (if (table? oauth_realm)
@@ -754,9 +807,8 @@
 				  spec)))
 		 (redirect (oauth/authurl state)))
 	    (debug%watch "OAUTH/redirect" redirect state)
-	    (store! oauth-pending
-		    (getopt state 'oauth_token (getopt state 'state))
-		    state)
+	    (oauth/pending! (getopt state 'oauth_token (getopt state 'state))
+			    state)
 	    (req/set! 'status 303)
 	    (httpheader "Location: " redirect)
 	    #f))))
@@ -769,9 +821,9 @@
 		    spec))
 	 (redirect (oauth/authurl state)))
     (debug%watch "OAUTH/START/redirect" redirect state)
-    (store! oauth-pending
-	    (getopt state 'oauth_token (getopt state 'state))
-	    state)
+    (oauth/pending!
+     (getopt state 'oauth_token (getopt state 'state))
+     state)
     (req/set! 'status 303)
     (httpheader "Location: " redirect)
     #f))
