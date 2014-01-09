@@ -184,8 +184,10 @@
 		  (realm (getopt state 'realm)))
 	      (store! copied 'realm realm)
 	      (oauth-sessionfn id copied))
-	    (oauth-sessionfn id state))
-	(oauth-sessionfn id))))
+	    (if state
+		(oauth-sessionfn id state)
+		(oauth-sessionfn id #f)))
+	(oauth-sessionfn id #f))))
 
 ;;; Getting consumer/client keys and secrets
 
