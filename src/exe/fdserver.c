@@ -1112,7 +1112,7 @@ static void write_state_files()
   else {
     u8_log(LOG_WARN,u8_strerror(errno),
 	   "Couldn't write NID info to '%s'",
-	   getpid(),pid_file);
+	   pid_file);
     if (dtype_server.n_servers) {
       int i=0; while (i<dtype_server.n_servers) {
 	u8_log(LOG_NOTICE,ServerStartup,"%s\n",
