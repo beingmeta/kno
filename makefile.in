@@ -938,7 +938,7 @@ confdirs:
 		$(INSTALL) @install_dir_opts@ \
 			$(DESTDIR)@config_dir@/fdservlets; fi
 
-MODULE_DIRS=aws brico facebook misc paypal tests twitter webapi
+MODULE_DIRS=aws brico facebook misc paypal tests twitter webapi dropbox
 SAFE_MODULE_DIRS=domutils knodules textindex 
 link-modules:
 	@$(MSG) Linking modules
