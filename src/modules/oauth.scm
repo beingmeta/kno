@@ -16,7 +16,8 @@
 (module-export!
  '{oauth oauth/spec oauth/start oauth/refresh!
    oauth/request oauth/authurl oauth/verify oauth/getaccess
-   oauth/call oauth/call* oauth/get oauth/post oauth/put
+   oauth/call oauth/call* oauth/call/req
+   oauth/get oauth/post oauth/put
    oauth/sigstring oauth/callsig})
 
 (define-init %loglevel %notice!)
@@ -75,6 +76,7 @@
      #[AUTHORIZE "https://www.dropbox.com/1/oauth2/authorize"
        ACCESS "https://api.dropbox.com/1/oauth2/token"
        KEY DROPBOX:KEY SECRET DROPBOX:SECRET
+       ;; ACCESS_TOKEN HTTP
        VERSION "2.0"
        REALM DROPBOX
        NAME "Dropbox"]
@@ -466,7 +468,7 @@
 
 ;;; Actually calling the API
 
-(define (oauth/call10 spec method endpoint args body ckey csecret)
+(define (oauth/call10 spec method endpoint args body raw ckey csecret)
   (debug%watch "OAUTH/CALL1.0" method endpoint args)
   (unless (getopt spec 'token)
     (irritant spec OAUTH:NOTOKEN OAUTH/CALL
@@ -545,14 +547,15 @@
     ;;  (maybe %watch needs a redesign?)
     (debug%watch sigstring)
     (debug%watch auth-header)
-    (if (and (test req 'response) (number? (get req 'response))
-	     (<= 200 (get req 'response) 299))
-	(getreqdata req)
-	(irritant req OAUTH:REQFAIL OAUTH/CALL1.0
-		  "Failed to " method " at " endpoint
-		  " with " args "\n\t" spec))))
+    (if raw req
+	(if (and (test req 'response) (number? (get req 'response))
+		 (<= 200 (get req 'response) 299))
+	    (getreqdata req)
+	    (irritant req OAUTH:REQFAIL OAUTH/CALL1.0
+		      "Failed to " method " at " endpoint
+		      " with " args "\n\t" spec)))))
 
-(define (oauth/call20 spec method endpoint args body ckey csecret (expires))
+(define (oauth/call20 spec method endpoint args body raw ckey csecret (expires))
   (debug%watch "OAUTH/CALL2.0" method endpoint args ckey csecret)
   (unless (getopt spec 'token)
     (irritant spec OAUTH:NOTOKEN OAUTH/CALL
@@ -601,17 +604,18 @@
 				     "Only GET, HEAD, PUT, and POST are allowed: "
 				     method endpoint args)))))))
     (debug%watch endpoint auth-header req)
-    (if (and (test req 'response) (number? (get req 'response))
-	     (<= 200 (get req 'response) 299))
-	(getreqdata req)
-	(if (and (<= 400 (get req 'response) 499) (getopt spec 'refresh))
-	    (begin
-	      (debug%watch 'OAUTH/ERROR "RESPONSE" response req)
-	      (oauth/refresh! spec)
-	      (oauth/call20 spec method endpoint args body ckey csecret))
-	    (irritant req OAUTH:REQFAIL OAUTH/CALL20
-		      method " at " endpoint " with " args
-		      "\n\t" spec)))))
+    (if raw req
+	(if (and (test req 'response) (number? (get req 'response))
+		 (<= 200 (get req 'response) 299))
+	    (getreqdata req)
+	    (if (and (<= 400 (get req 'response) 499) (getopt spec 'refresh))
+		(begin
+		  (debug%watch 'OAUTH/ERROR "RESPONSE" response req)
+		  (oauth/refresh! spec)
+		  (oauth/call20 spec method endpoint args body raw ckey csecret))
+		(irritant req OAUTH:REQFAIL OAUTH/CALL20
+			  method " at " endpoint " with " args
+			  "\n\t" spec))))))
 
 (define (args->post args (first #t) (elt #f))
   (if (not (pair? args)) (set! args (list args)))
@@ -679,15 +683,23 @@
 
 ;;; Generic call function
 
-(define (oauth/call spec method endpoint (args '()) (body #f) (ckey) (csecret))
+(define (oauth/call spec method endpoint (args '()) (body #f) (raw) (ckey) (csecret))
+  (set! spec (oauth/spec spec))
+  (default! ckey (getckey spec))
+  (default! csecret (getcsecret spec))
+  (default! raw (getopt spec 'noparse))
+  (if (testopt spec 'version "1.0")
+      (oauth/call10 spec method endpoint args body raw ckey csecret)
+      (oauth/call20 spec method endpoint args body raw ckey csecret)))
+(define (oauth/call* spec method endpoint . args)
+  (oauth/call spec method endpoint args))
+(define (oauth/call/req spec method endpoint (args '()) (body #f) (ckey) (csecret))
   (set! spec (oauth/spec spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (if (testopt spec 'version "1.0")
-      (oauth/call10 spec method endpoint args ckey csecret)
-      (oauth/call20 spec method endpoint args body ckey csecret)))
-(define (oauth/call* spec method endpoint . args)
-  (oauth/call spec method endpoint args))
+      (oauth/call10 spec method endpoint args body #t ckey csecret)
+      (oauth/call20 spec method endpoint args body #t ckey csecret)))
 
 ;;; This is helpful for debugging OAUTH1
 
@@ -829,5 +841,3 @@
     (req/set! 'status 303)
     (httpheader "Location: " redirect)
     #f))
-
-
