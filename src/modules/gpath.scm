@@ -268,6 +268,8 @@
 	((zipfile? root) (cons root path))
 	((hashtable? root) (cons root path))
 	((hashfs? root) (cons root path))
+	((and (compound-type? root) (test gpath-handlers (compound-tag root)))
+	 (cons root path))
 	((and (pair? root) (not (string? (cdr root))))
 	 (error "Bad GPATH root" root))
 	((string? root) (checkdir (mkpath root path)))
@@ -275,7 +277,7 @@
 	 (checkdir (mkpath (mkpath (car root) (cdr root)) path)))
 	((pair? root) (cons (car root) (mkpath (cdr root) path)))
 	((string? root) (cons (checkdir root) path))
-	(else (error "Weird docbase root" root " for " path))))
+	(else (error "Weird GPATH root" root " for " path))))
 (define gp/makepath makepath)
 (define (gp/path root path . more)
   (let ((result (makepath (->gpath root) path)))
@@ -316,7 +318,7 @@
 				   ctype)))
 	      (filestring ref (or (and ctype (ctype->charset ctype)) "auto"))
 	      (filedata ref)))
-	(else (error "Weird docbase ref" ref))))
+	(else (error "Weird GPATH ref" ref))))
 
 (define (gp/urlfetch url (err #t) (max-redirects 10))
   (let* ((newurl (textsubst url (qc gp/urlsubst)))
@@ -415,7 +417,7 @@
 	      charset  ,(or charset {})
 	      etag     ,(packet->base16 (md5 content))
 	      modified ,(file-modtime ref)]))
-	(else (error "Weird docbase ref" ref))))
+	(else (error "Weird GPATH ref" ref))))
 
 (define (gp/info ref (etag #t) (default-ctype #f))
   (cond ((s3loc? ref) (s3/info ref))
@@ -474,7 +476,7 @@
 			       (filestring ref charset)
 			       (if istext (filestring ref)
 				   (filedata ref)))))))))
-	(else (error "Weird docbase ref" ref))))
+	(else (error "Weird GPATH ref" ref))))
 
 (define (gp/modified ref)
   (cond ((s3loc? ref) (s3/modified ref))
@@ -531,7 +533,7 @@
 	((and (string? ref) (has-prefix ref "s3:"))
 	 (s3/exists? (->s3loc ref)))
 	((string? ref) (file-exists? ref))
-	(else (error "Weird docbase ref" ref))))
+	(else (error "Weird GPATH ref" ref))))
 
 (define (gp/exists ref) (and (gp/exists? ref) ref))
 
