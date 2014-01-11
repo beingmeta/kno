@@ -272,7 +272,7 @@ static void cleanup_state_files()
     char timebuf[64]; double elapsed=u8_elapsed_time();
     u8_now(&xt); U8_INIT_FIXED_OUTPUT(&out,sizeof(timebuf),timebuf);
     u8_xtime_to_iso8601(&out,&xt);
-    fprintf(exitfile,"%d@%s(%f\n",getpid(),timebuf,elapsed);
+    fprintf(exitfile,"%d@%s(%f)\n",getpid(),timebuf,elapsed);
     fclose(exitfile);}
 }
 
@@ -1077,7 +1077,7 @@ static int run_server(u8_string source_file)
   fd_register_config("PORT",_("port or port@host to listen on"),
 		     config_get_ports,config_serve_port,NULL);
   if (n_ports<=0) {
-    u8_log(LOG_WARN,NoServers,"No servers configured, exiting..");
+    u8_log(LOG_WARN,NoServers,"No servers configured, exiting...");
     exit(-1);
     return -1;}
   write_state_files();
@@ -1088,7 +1088,7 @@ static int run_server(u8_string source_file)
 	 fd_n_primary_indices+fd_n_secondary_indices,n_ports);
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
   u8_server_loop(&dtype_server); normal_exit=1;
-  u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop",n_ports);
+  u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop");
   exit(0);
 }
 
