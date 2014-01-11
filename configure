@@ -8008,6 +8008,17 @@ _ACEOF
 fi
 done
 
+for ac_func in CRYPTO_set_locking_callback
+do :
+  ac_fn_c_check_func "$LINENO" "CRYPTO_set_locking_callback" "ac_cv_func_CRYPTO_set_locking_callback"
+if test "x$ac_cv_func_CRYPTO_set_locking_callback" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_CRYPTO_SET_LOCKING_CALLBACK 1
+_ACEOF
+
+fi
+done
+
 # For UUID functions
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
 $as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }

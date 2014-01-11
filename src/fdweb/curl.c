@@ -24,6 +24,15 @@
 
 #include <ctype.h>
 
+#if HAVE_CRYPTO_set_locking_callback
+/* we have this global to let the callback get easy access to it */
+static pthread_mutex_t *ssl_lockarray;
+#include <openssl/crypto.h>
+#define LOCK_OPENSSL 1
+#else
+#define LOCK_OPENSSL 0
+#endif
+
 static fdtype curl_defaults, url_symbol;
 static fdtype content_type_symbol, charset_symbol, type_symbol;
 static fdtype content_length_symbol, etag_symbol, content_encoding_symbol;
@@ -1199,7 +1208,70 @@ static u8_string url_sourcefn(u8_string uri,u8_string enc,
   else return NULL;
 }
 
+/* This is largely based on code from
+     http://curl.haxx.se/libcurl/c/threaded-ssl.html
+   to handle problems with multi-threaded https: calls.
+*/
+
+#if LOCK_OPENSSL
+/* we have this global to let the callback get easy access to it */
+static pthread_mutex_t *ssl_lockarray;
+
+#include <openssl/crypto.h>
+static void lock_callback(int mode, int type, char MAYBE_UNUSED *file, int MAYBE_UNUSED line)
+{
+  if (mode & CRYPTO_LOCK) {
+    pthread_mutex_lock(&(ssl_lockarray[type]));
+  }
+  else {
+    pthread_mutex_unlock(&(ssl_lockarray[type]));
+  }
+}
+
+static unsigned long thread_id(void)
+{
+  unsigned long ret;
+
+  ret=(unsigned long)pthread_self();
+  return ret;
+}
+
+static void init_ssl_locks(void)
+{
+  int i;
+
+  ssl_lockarray=
+    (pthread_mutex_t *)OPENSSL_malloc
+    (CRYPTO_num_locks() * sizeof(pthread_mutex_t));
+  for (i=0; i<CRYPTO_num_locks(); i++) {
+    pthread_mutex_init(&(ssl_lockarray[i]),NULL);}
+
+  CRYPTO_set_id_callback((unsigned long (*)())thread_id);
+  CRYPTO_set_locking_callback((void (*)())lock_callback);
+}
+
+static void destroy_ssl_locks(void)
+{
+  int i;
+
+  CRYPTO_set_locking_callback(NULL);
+  for (i=0; i<CRYPTO_num_locks(); i++)
+    pthread_mutex_destroy(&(ssl_lockarray[i]));
+
+  OPENSSL_free(ssl_lockarray);
+}
+#else
+#define init_ssl_locks()
+#define destroy_ssl_locks()
+#endif
+
 /* Initialization stuff */
+
+static void global_curl_cleanup()
+{
+  destroy_ssl_locks();
+  curl_global_cleanup();
+}
 
 static int curl_initialized=0;
 
@@ -1219,7 +1291,8 @@ FD_EXPORT void fd_init_curl_c()
   fd_unparsers[fd_curl_type]=unparse_curl_handle;
   
   curl_global_init(CURL_GLOBAL_ALL|CURL_GLOBAL_SSL);
-  atexit(curl_global_cleanup);
+  init_ssl_locks();
+  atexit(global_curl_cleanup);
   
   url_symbol=fd_intern("URL");
   content_type_symbol=fd_intern("CONTENT-TYPE");

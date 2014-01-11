@@ -39,6 +39,9 @@
 /* Define if you have the <pthread.h> header file.  */
 #undef HAVE_PTHREAD_H
 
+/* Define if you might need to set a crypto locking fallback (for multi-threaded CURL https) */
+#undef HAVE_CRYPTO_SET_LOCKING_CALLBACK
+
 /* Define if you have the uchar type.  */
 #undef HAVE_UCHAR
 
