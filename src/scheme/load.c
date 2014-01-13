@@ -346,9 +346,9 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
     on_stack.source=pathname;
     on_stack.next=config_stack;
     config_stack=&on_stack;
-    /* fd_config_lock(0); */
+    fd_unlock_mutex(&config_file_lock);
     retval=fd_load_config(pathname);
-    /* fd_config_lock(1); */
+    fd_lock_mutex(&config_file_lock);
     if (retval<0) {
       u8_free(pathname); config_stack=on_stack.next;
       fd_unlock_mutex(&config_file_lock);
