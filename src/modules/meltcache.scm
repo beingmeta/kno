@@ -8,8 +8,6 @@
 ;;; Meltcaches are caches whose values decay selectively, so that
 ;;;  fast changing values decay more quickly and slower changing values
 ;;;  decay more slowly.
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (define-init %loglevel 4)
 (define-init trace-values #f)

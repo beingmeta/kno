@@ -5,8 +5,6 @@
 
 ;;; This implements simple access to the Facebook API
 ;;;  Basically replaced by the directory-based facebook module
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module '{ezrecords fdweb texttools})
 

@@ -4,8 +4,6 @@
 (in-module 'misc/oidshift)
 
 ;;; Moving OIDs around for big DB updates
-(define version "$Id:$")
-(define revision "$Revision:$")
 
 (use-module '{optimize mttools varconfig logger})
 

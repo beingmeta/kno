@@ -3,9 +3,6 @@
 
 (in-module 'xtags)
 
-(define version "$Id: pings.scm 4101 2009-07-02 21:08:28Z bemeta $")
-(define revision "$Revision: 4101 $")
-
 (use-module '{fdweb texttools reflection})
 (use-module '{varconfig ezrecords})
 (use-module '{brico brico/lookup brico/dterms})

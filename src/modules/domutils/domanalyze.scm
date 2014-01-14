@@ -13,8 +13,6 @@
 (module-export! 'dom/analyze)
 
 ;;; Module for analyzing text in a DOM
-(define id "$Id$")
-(define revision "$Revision: 4048 $")
 
 (define (get-table doc slotid)
   (try (get doc slotid)

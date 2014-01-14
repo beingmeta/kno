@@ -10,8 +10,6 @@
 ;; The CALLTRACK data only covers function applications, so any time spent in
 ;;  special form execution (which doesn't bottom out in function application) 
 ;;  is credited towards the function itself.
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module 'texttools)
 

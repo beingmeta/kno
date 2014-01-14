@@ -4,11 +4,8 @@
 (in-module 'myweb)
 
 ;;; Access to Yahoo's MYWEB through API and RSS
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module '{texttools fdweb meltcache})
-
 
 (module-export!
  '{myweb/gettags

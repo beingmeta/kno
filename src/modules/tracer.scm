@@ -4,8 +4,6 @@
 (in-module 'tracer)
 
 ;;; Simple tracing facility, not really used anymore.
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (define tracelevel #f)
 

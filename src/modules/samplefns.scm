@@ -4,8 +4,6 @@
 (in-module 'samplefns)
 
 ;;; This provides various sample functions for testing and benchmarking
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (module-export! '{fibr fibi fibflt factr facti slowfib})
 (module-export! '{ack tak takflt})

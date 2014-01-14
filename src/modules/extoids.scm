@@ -1,8 +1,5 @@
 (in-module 'extoids)
 
-(define version "$Id$")
-(define revision "$Revision$")
-
 (use-module '{extdb varconfig reflection logger})
 
 (define default-sqlmap #[])

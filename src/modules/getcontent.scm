@@ -5,8 +5,6 @@
 
 ;;; This handles automatic updating of the content of files
 ;;; It is a more flexible version of load-latest
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module '{fileio ezrecords varconfig logger reflection})
 

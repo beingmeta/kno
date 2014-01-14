@@ -4,8 +4,6 @@
 (in-module 'stringfmts)
 
 ;;; Generation of strings from various other kinds of values
-(define version "$Id$")
-(define revision "$Revision$")
 
 (module-export! '{get% show%
 		       interval-string short-interval-string

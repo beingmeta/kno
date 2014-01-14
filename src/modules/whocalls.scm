@@ -4,8 +4,6 @@
 (in-module 'whocalls)
 
 ;;; Code analyzer for FramerD fdscript
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module '{reflection codewalker ezrecords})
 

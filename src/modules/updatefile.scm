@@ -4,8 +4,6 @@
 (in-module 'updatefile)
 
 ;;; This handles automatic updating of files into environments. 
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module 'fileio)
 

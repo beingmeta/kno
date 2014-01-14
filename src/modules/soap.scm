@@ -4,8 +4,6 @@
 (in-module 'soap)
 
 ;;; Wrappers and parsersfor SOAP requests
-(define version "$Id:$")
-(define revision "$Revision:$")
 
 (use-module 'fdweb)
 

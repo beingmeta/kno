@@ -5,8 +5,6 @@
 
 ;;; This provides for both audited edits and for assertions and
 ;;; retractions which respects audited values.
-(define version "$Id$")
-(define revision "$Revision: 4048 $")
 
 (use-module '{brico brico/indexing logger})
 

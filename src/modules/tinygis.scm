@@ -6,8 +6,6 @@
 ;;; Provides some simple and roughly accurate GIS functionality, especially
 ;;;  distances and the ability to get ambiguous lat/long keys to use for
 ;;;  location indexing.
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module 'texttools)
 

@@ -4,8 +4,6 @@
 (in-module 'mergeutils)
 
 ;;; Tools for combining tables in different ways
-(define version "$Id:$")
-(define revision "$Revision:$")
 
 (define (diffkeys table1 table2 (symmetric #t))
   (if symmetric

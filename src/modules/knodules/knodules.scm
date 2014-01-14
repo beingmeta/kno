@@ -6,8 +6,6 @@
 ;;; Core file for the knodules implementation
 ;;; Provides data structures, core tables, and basic
 ;;;  KR functions
-(define id "$Id$")
-(define revision "$Revision: 4048 $")
 
 (use-module '{texttools ezrecords varconfig logger reflection})
 (use-module 'knodules/drules)

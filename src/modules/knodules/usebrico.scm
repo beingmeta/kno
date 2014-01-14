@@ -4,9 +4,6 @@
 (in-module 'knodules/usebrico)
 
 ;;; Using brico from knodules, especially for importing information
-(define id "$Id$")
-(define revision "$Revision: 4048 $")
-
 
 (use-module '{texttools knodules brico})
 (use-module '{brico/lookup brico/dterms brico/analytics})

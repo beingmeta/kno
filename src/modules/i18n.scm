@@ -4,8 +4,6 @@
 (in-module 'i18n)
 
 ;;; Provides various kinds of internationalization support
-(define version "$Id$")
-(define revision "$Revision$")
 
 (use-module '{texttools reflection})
 

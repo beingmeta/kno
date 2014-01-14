@@ -7,8 +7,6 @@
 ;;; in applications.  It also provides a way to easily implement the
 ;;; prefetch/execute cycles which can improve performance on many
 ;;; database-intensive operations. 
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module 'reflection)
 (use-module 'stringfmts)

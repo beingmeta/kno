@@ -4,8 +4,6 @@
 (in-module 'lexml)
 
 ;;; Implements handling of custom lexicons in lexml
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module '{fdweb texttools tagger})
 

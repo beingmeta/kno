@@ -4,8 +4,6 @@
 (in-module 'histogram)
 
 ;;; Computes index/table histograms
-(define version "$Id$")
-(define revision "$Revision$")
 
 (defambda (index-histogram index (slotids #f) (normalize #f))
   (let* ((values (if slotids

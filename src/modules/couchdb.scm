@@ -3,9 +3,6 @@
 
 (in-module 'couchdb)
 
-(define version "$Id: glosses.scm 5530 2010-09-13 16:53:19Z haase $")
-(define revision "$Revision: 5530 $")
-
 (use-module '{fdweb ezrecords extoids jsonout})
 (use-module '{texttools logger})
 

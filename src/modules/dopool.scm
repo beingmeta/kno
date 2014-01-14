@@ -4,8 +4,6 @@
 (in-module 'dopool)
 
 ;;; This provides macros for iteration across pools
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (define dopool
   (macro expr

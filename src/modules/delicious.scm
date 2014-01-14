@@ -4,8 +4,6 @@
 (in-module 'delicious)
 
 ;;; Provides access to del.icio.us through both their API and RSS urls
-(define version "$Id$")
-(define revsion "$Revision:$")
 
 (use-module '{texttools fdweb meltcache})
 ;(use-module '{gnosys/webapp/userinfo gnosys/urldb gnosys/metakeys/tagmaps})

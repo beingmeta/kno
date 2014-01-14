@@ -4,8 +4,6 @@
 (in-module 'rss)
 
 ;;; Provides access to RSS feeds with automatic caching and intervals.
-(define version "$Id$")
-(define revision "$Revision$")
 
 (use-module '{fdweb texttools varconfig parsetime})
 

@@ -6,8 +6,6 @@
 ;;; This code helps debugging prefetching by executing a prefetch function
 ;;;  and then executing a thunk and tracking OID/background loads during
 ;;;  its execution.
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module 'varconfig)
 

@@ -4,8 +4,6 @@
 (in-module 'facebook/fbml)
 
 ;;; Outputting FBML (FaceBook Markup Language)
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (use-module '{fdweb xhtml})
 

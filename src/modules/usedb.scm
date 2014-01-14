@@ -7,8 +7,6 @@
 ;;;  Currently, it just allows for configurations specifying pools
 ;;;  and indices, but the intent is to keep information relevant to
 ;;;  journalling and syncing in this same data structure.
-(define version "$Id$")
-(define revision "$Revision$")
 
 (module-export! 'usedb)
 

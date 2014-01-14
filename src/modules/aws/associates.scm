@@ -4,8 +4,6 @@
 (in-module 'aws/associates)
 
 ;;; Access to Amazon Associates functions
-(define version "$Id$")
-(define revision "$Revision$")
 
 (use-module '{fdweb texttools})
 

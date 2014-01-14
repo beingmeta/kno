@@ -7,8 +7,6 @@
 ;;; Adding an item to a ruleset either adds the item to the collection
 ;;; or replaces the identically named item on the list (it actually
 ;;; conses a new list, so you have to use the return value).
-(define version "$Id$")
-(define revision "$Revision:$")
 
 (module-export! '{ruleset+ ruleset-configfn ruleconfig!})
 

@@ -5,8 +5,6 @@
 
 ;;; This module provides for targeted calltracking (as opposed to the
 ;;; general calltracking provided by the interpreter)
-(define version "$Id$")
-(define revision "$Revision: 4048 $")
 
 (use-module 'logger)
 

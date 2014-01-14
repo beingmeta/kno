@@ -3,9 +3,6 @@
 
 (in-module 'varconfig)
 
-(define version "$Id$")
-(define revision "$Revision:$")
-
 (use-module '{logger})
 
 (module-export! '{varconfigfn varconfig! optconfigfn optconfig!})

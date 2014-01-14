@@ -4,8 +4,6 @@
 (in-module 'codewalker)
 
 ;;; Walks code for a variety of purposes
-(define version "$Id$")
-(define revision "$Revision: 4048 $")
 
 (use-module 'reflection)
 
