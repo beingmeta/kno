@@ -592,9 +592,15 @@
       (has-suffix (downcase (gp/basename gpath)) (downcase suffixes))))
 
 (defambda (gp/has-prefix gpath prefixes (casematch #f))
-  (if casematch
-      (has-prefix (gp/basename gpath) prefixes)
-      (has-prefix (downcase (gp/basename gpath)) (downcase prefixes))))
+  (if (pair? gpath)
+      (if casematch
+	  (has-prefix (cdr gpath) prefixes)
+	  (has-prefix (downcase (cdr gpath)) (downcase prefixes)))
+      (if (string? gpath)
+	  (if casematch
+	      (has-prefix gpath prefixes)
+	      (has-prefix (downcase gpath) (downcase prefixes)))
+	  #f)))
 
 (define (gp:config spec) (->gpath spec))
 
