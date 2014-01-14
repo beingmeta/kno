@@ -566,7 +566,7 @@
 		       (getopt args 'endpoint
 			       (getopt spec 'endpoint
 				       default-endpoint))))
-	 (httpauth (test spec 'access_token 'http))
+	 (httpauth (testopt spec 'access_token 'http))
 	 (auth-header
 	  (if httpauth
 	      (glom "Authorization: Bearer " (getopt spec 'token))
