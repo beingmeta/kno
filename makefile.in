@@ -972,7 +972,7 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	@cp -pRf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 
 $(DESTDIR)/etc/init.d:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init.d
+	@$(SYSINSTALL) -m 0755 -d $(DESTDIR)/etc/init.d
 $(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
 	@$(MSG) Installing FramerD init.d
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
@@ -1018,10 +1018,12 @@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
-$(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate
+$(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate $(DESTDIR)/etc/logrotate.d
 	@$(MSG) Installing logrotate script
 	@$(SYSINSTALL) -T -m 0644 etc/logrotate \
 	  $(DESTDIR)/etc/logrotate.d/framerd
+$(DESTDIR)/etc/logrotate.d:
+	@$(SYSINSTALL) -m 0755 -d $@
 
 setup-unix: @BOOTSETUP@ setup-logrotate
 setup-linux: setup-unix
