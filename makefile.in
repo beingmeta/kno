@@ -993,8 +993,10 @@ install-rc.d: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)@rundir@/framerd \
             $(DESTDIR)@logdir@/framerd
 setup-sysv: install-rc.d
-	@$(MSG) Updating rc.d
-	@$(SUDO) update-rc.d framerd defaults
+	@if which update-rc.d; then \
+		$(MSG) Updating rc.d; \
+		$(SUDO) update-rc.d framerd defaults; \
+	 fi
 
 setup-upstart: $(DESTDIR)/etc/init/fdserver.conf $(DESTDIR)/etc/init/fdservlet.conf \
    $(DESTDIR)/etc/init/framerd.conf $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
