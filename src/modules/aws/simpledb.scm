@@ -10,9 +10,14 @@
 (module-export! '{sdb/put sdb/fetch sdb/addvalues sdb/dropvalues})
 (module-export! '{sdb/get sdb/add! sdb/drop!})
 
-(use-module '{aws fdweb texttools logger rulesets})
+(use-module '{aws fdweb texttools logger fdweb varconfig jsonout rulesets})
 
 (define %loglevel %notice!)
+
+(define-init use-json #t)
+(varconfig! sdb:json use-json)
+
+(define-init simpledb-domains (make-hashtable))
 
 (define (get-ptable params (integrate #f))
   "This returns a parameter table from a list of arguments."
@@ -95,12 +100,14 @@
 	      ((has-prefix string "!b") #t)
 	      ((has-prefix string "!i") (string->number (slice string 2)))
 	      ((has-prefix string "!I") (- (string->number (slice string 2))))
+	      ((has-prefix string "!:") (parse-arg (slice string 2)))
+	      ((has-prefix string "!$") (jsonparse (slice string 2)))
 	      (else (try (tryseq (method tolisp-conversions)
 			   ((cdr method) string attrib))
 			 (string->lisp (slice string 1))))))
       string))
 
-(define (sdb/fromlisp object (padlen 10))
+(define (sdb/fromlisp object (padlen 10) (json use-json))
   (cond ((oid? object)
 	 (string-append "!" (oid->string object)))
 	((string? object)
@@ -117,8 +124,10 @@
 		      irep)))
 	((eq? object #t) "!b")
 	((not object) "!B")
+	((symbol? object) (stringout "!:" (symbol->string object)))
 	(else (try (tryseq (method fromlisp-conversions)
 		     ((cdr method) object))
+		   (tryif json (stringout "!$" (jsonout object)))
 		   (stringout "!:" object)))))
 
 ;;; PUT/GET/ETC
@@ -132,15 +141,15 @@
 	((or (not (pair? kv)) (not (pair? (cdr kv))))
 	 (sdb/op "PutAttributes"
 		 "DomainName" domain
-		 "ItemName" (unparse-arg item)
+		 "ItemName" (sdb/fromlisp item)
 		 ptable))
       (store! ptable (stringout "Attribute." i ".Name")
 	      (unparse-arg (car kv)))
       (store! ptable (stringout "Attribute." i ".Value")
 	      (sdb/fromlisp (cadr kv))))))
 
-(define (sdb/fetch domain item (key #f))
-  (let* ((key (and key (unparse-arg key)))
+(define (sdb/fetch domain item (key #f) (raw #f))
+  (let* ((key (and key (sdb/fromlisp key)))
 	 (xml (if key
 		  (sdb/opxml "GetAttributes"
 			     "DomainName" domain
@@ -155,12 +164,16 @@
     ;; (message "xml=" xml)
     ;; (message "result=" result)
     (if key
-	(get (pick result 'name key) 'value)
+	(if raw
+	    (get (pick result 'name key) 'value)
+	    (sdb/tolisp (get (pick result 'name key) 'value)))
 	(let ((table (frame-create #f)))
 	  (do-choices (r result)
-	    (add! table
-		  (parse-arg (get r 'name))
-		  (sdb/tolisp (get r 'value) (get r 'name))))
+	    (if raw
+		(add! table (get r 'name) (get r 'value))
+		(add! table
+		      (sdb/tolisp (get r 'name))
+		      (sdb/tolisp (get r 'value) (get r 'name)))))
 	  table))))
 
 (defambda (sdb/addvalues domain item slotids values)
@@ -169,7 +182,7 @@
       (let ((ptable `#["DomainName" ,domain
 		       "ItemName" ,(unparse-arg item)])
 	    (count 0))
-	(do-choices (key (unparse-arg slotids))
+	(do-choices (key (sdb/fromlisp slotids))
 	  (do-choices (value (sdb/fromlisp values))
 	    (store! ptable (stringout "Attribute." count ".Name")
 		    key)
@@ -183,9 +196,9 @@
   (when (and (exists? slotids) (exists? values))
     (do-choices item
       (let ((ptable `#["DomainName" ,domain
-		       "ItemName" ,(unparse-arg item)])
+		       "ItemName" ,(sdb/fromlisp item)])
 	    (count 0))
-	(do-choices (key (unparse-arg slotids))
+	(do-choices (key (sdb/fromlisp slotids))
 	  (do-choices (value (sdb/fromlisp values))
 	    (store! ptable (stringout "Attribute." count ".Name")
 		    key)
