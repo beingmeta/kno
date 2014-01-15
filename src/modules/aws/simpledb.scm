@@ -24,7 +24,7 @@
 
 ;;; Simple DB stuff
 
-(define simpledb-base-uri "http://sdb.amazonaws.com/?")
+(define simpledb-base-uri "https://sdb.amazonaws.com/?")
 
 (define sdb-common-params
   '("Version" "2007-11-07" "SignatureVersion" "1"))
@@ -87,16 +87,17 @@
 (define (sdb/tolisp string (attrib #f))
   (if (has-prefix string "!")
       (let ((tcode (and (> (length string) 1) (elt string 1))))
-	(cond
-	  ((has-prefix string "!!") (subseq string 1))
-	  ((has-prefix string "!d") (timestamp (subseq string 2)))
-	  ((has-prefix string "!B") #f)
-	  ((has-prefix string "!b") #t)
-	  ((has-prefix string "!i") (string->number (subseq string 2)))
-	  ((has-prefix string "!I") (- (string->number (subseq string 2))))
-	  (else (try (tryseq (method tolisp-conversions)
-		       ((cdr method) string attrib))
-		     (string->lisp (subseq string 1))))))
+	(cond ((has-prefix string "!@") (parse-arg (slice string 1)))
+	      ((has-prefix string "!!") (slice string 1))
+	      ((has-prefix string "!d") (timestamp (slice string 2)))
+	      ((has-prefix string "!U") (getuuid (slice string 2)))
+	      ((has-prefix string "!B") #f)
+	      ((has-prefix string "!b") #t)
+	      ((has-prefix string "!i") (string->number (slice string 2)))
+	      ((has-prefix string "!I") (- (string->number (slice string 2))))
+	      (else (try (tryseq (method tolisp-conversions)
+			   ((cdr method) string attrib))
+			 (string->lisp (slice string 1))))))
       string))
 
 (define (sdb/fromlisp object (padlen 10))
@@ -108,6 +109,7 @@
 	     object))
 	((timestamp? object)
 	 (stringout "!d" (get (get object 'gmt) 'iso)))
+	((uuid? object) (stringout "!U" (uuid->string object)))
 	((integer? object)
 	 (let ((irep (number->string (abs object))))
 	   (stringout "!" (if (>= object 0) "i" "I")
