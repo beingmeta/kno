@@ -162,7 +162,7 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
       unsigned int word2=(p->offsets)[offset*3+1];
       unsigned int word3=(p->offsets)[offset*3+2];
 #endif
-      result.off=(off_t) ((((ll)word1)<<32)|(((ll)word2)));
+      result.off=(fd_off_t) ((((ll)word1)<<32)|(((ll)word2)));
       result.size=(size_t) word3;
       break;}
     default:
@@ -200,7 +200,7 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
       result.off=-1;
       result.size=-1;}
     if (error) {
-      result.off=(off_t)-1; result.size=(size_t)-1;}
+      result.off=(fd_off_t)-1; result.size=(size_t)-1;}
     fd_unlock_mutex(&p->lock);}
   return result;
 }
@@ -225,7 +225,7 @@ static int convert_FD_B40_ref(FD_CHUNK_REF ref,unsigned int *word1,unsigned int 
   return 0;
 }
 
-static unsigned char *read_chunk(fd_oidpool p,off_t off,uint size,uchar *buf)
+static unsigned char *read_chunk(fd_oidpool p,fd_off_t off,uint size,uchar *buf)
 {
   if (p->mmap) {
     if (buf==NULL) buf=u8_malloc(size);
@@ -360,7 +360,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
 {
   FD_OID base=FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load, flags;
-  off_t label_loc, schemas_loc; fdtype label;
+  fd_off_t label_loc, schemas_loc; fdtype label;
   struct FD_OIDPOOL *pool=u8_alloc(struct FD_OIDPOOL);
   struct FD_DTYPE_STREAM *stream=&(pool->stream);
   fd_dtstream_mode mode=
@@ -577,7 +577,7 @@ FD_EXPORT int fd_make_oidpool
    time_t ctime,time_t mtime,int cycles)
 {
   time_t now=time(NULL);
-  off_t schemas_pos=0, metadata_pos=0, label_pos=0;
+  fd_off_t schemas_pos=0, metadata_pos=0, label_pos=0;
   size_t schemas_size=0, metadata_size=0, label_size=0;
   struct FD_DTYPE_STREAM _stream, *stream=
     fd_init_dtype_file_stream(&_stream,fname,FD_DTSTREAM_CREATE,8192);
@@ -964,7 +964,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_BYTE_OUTPUT tmpout;
   unsigned char *zbuf=u8_malloc(4096);
   unsigned int i=0, zbuf_size=4096;
-  off_t endpos, recovery_pos;
+  fd_off_t endpos, recovery_pos;
   FD_OID base=op->base;
   FD_INIT_BYTE_OUTPUT(&tmpout,4096);
   fd_lock_struct(op); endpos=fd_endpos(stream);
@@ -1128,7 +1128,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
 static int recover_oidpool(struct FD_OIDPOOL *fp)
 {
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
-  off_t recovery_data_pos;
+  fd_off_t recovery_data_pos;
   unsigned int i=0, new_load, n_changes;
   struct OIDPOOL_SAVEINFO *saveinfo;
   fd_endpos(stream); fd_movepos(stream,-8);
@@ -1139,8 +1139,8 @@ static int recover_oidpool(struct FD_OIDPOOL *fp)
   saveinfo=u8_alloc_n(n_changes,struct OIDPOOL_SAVEINFO);
   while (i<n_changes) {
     saveinfo[i].oidoff=fd_dtsread_4bytes(stream);
-    saveinfo[i].chunk.off=(off_t)fd_dtsread_8bytes(stream);
-    saveinfo[i].chunk.size=(off_t)fd_dtsread_4bytes(stream);
+    saveinfo[i].chunk.off=(fd_off_t)fd_dtsread_8bytes(stream);
+    saveinfo[i].chunk.size=(fd_off_t)fd_dtsread_4bytes(stream);
     i++;}
   if (oidpool_finalize(fp,stream,n_changes,saveinfo,new_load)<0) {
     u8_free(saveinfo);
@@ -1385,7 +1385,7 @@ static fdtype oidpool_metadata(fd_pool p,fdtype md)
 {
   fd_oidpool op=(fd_oidpool)p;
   if (FD_VOIDP(md)) {
-    fdtype metadata; off_t metadata_pos;
+    fdtype metadata; fd_off_t metadata_pos;
     fd_dtype_stream stream=&(op->stream);
     fd_lock_struct(op);
     fd_setpos(stream,FD_OIDPOOL_METADATA_POS);
@@ -1402,7 +1402,7 @@ static fdtype oidpool_metadata(fd_pool p,fdtype md)
     return fd_err(fd_ReadOnlyPool,"oidpool_metadata",op->cid,FD_VOID);
   else {
     fd_dtype_stream stream=&(op->stream);
-    off_t metadata_pos=fd_endpos(stream);
+    fd_off_t metadata_pos=fd_endpos(stream);
     fd_dtswrite_dtype(stream,md);
     fd_setpos(stream,FD_OIDPOOL_METADATA_POS);
     fd_dtswrite_8bytes(stream,metadata_pos);

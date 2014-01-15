@@ -131,12 +131,12 @@ fd_pool fd_unregistered_file_pool(u8_string filename)
 
 /* Handling file pool metadata */
 
-static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,off_t mdblockpos)
+static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,fd_off_t mdblockpos)
 {
   fdtype metadata=FD_VOID;
   struct U8_XTIME _gentime, _packtime, _modtime; int rev;
   int mdversion, timehi, timelo;
-  off_t mdpos;
+  fd_off_t mdpos;
   fd_setpos(ds,mdblockpos);
   mdversion=fd_dtsread_4bytes(ds);
   if (mdversion==0xFFFFFFFF) {
@@ -182,8 +182,8 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,off_t mdblockpos)
 FD_EXPORT
 fdtype fd_read_pool_metadata(struct FD_DTYPE_STREAM *ds)
 {
-  int capacity; off_t mdblockpos;
-  off_t ret=fd_setpos(ds,12);
+  int capacity; fd_off_t mdblockpos;
+  fd_off_t ret=fd_setpos(ds,12);
   if (ret<0) return FD_ERROR_VALUE;
   else capacity=fd_dtsread_4bytes(ds);
   mdblockpos=24+capacity*4;
@@ -193,8 +193,8 @@ fdtype fd_read_pool_metadata(struct FD_DTYPE_STREAM *ds)
 FD_EXPORT
 fdtype fd_read_index_metadata(struct FD_DTYPE_STREAM *ds)
 {
-  int n_slots; off_t mdblockpos;
-  off_t ret=fd_setpos(ds,4);
+  int n_slots; fd_off_t mdblockpos;
+  fd_off_t ret=fd_setpos(ds,4);
   if (ret<0) return FD_ERROR_VALUE;
   else n_slots=fd_dtsread_4bytes(ds);
   mdblockpos=8+n_slots*4;
@@ -211,7 +211,7 @@ static void copy_timeinfo(struct U8_XTIME *tp,fdtype md,fdtype slotid)
   else u8_init_xtime(tp,-1,u8_second,0,0,0);
 }
 
-static fdtype write_metadata(fd_dtype_stream ds,off_t mdblockpos,fdtype metadata)
+static fdtype write_metadata(fd_dtype_stream ds,fd_off_t mdblockpos,fdtype metadata)
 {
   struct U8_XTIME _gentime, _packtime, _modtime;
   int rev, mdpos, mdversion;
@@ -243,8 +243,8 @@ static fdtype write_metadata(fd_dtype_stream ds,off_t mdblockpos,fdtype metadata
 FD_EXPORT
 fdtype fd_write_pool_metadata(fd_dtype_stream ds,fdtype metadata)
 {
-  off_t md_pos;
-  off_t ret=fd_setpos(ds,12);
+  fd_off_t md_pos;
+  fd_off_t ret=fd_setpos(ds,12);
   if (ret<0) return FD_ERROR_VALUE;
   else md_pos=fd_dtsread_4bytes(ds)*4+24;
   write_metadata(ds,md_pos,metadata);
@@ -254,8 +254,8 @@ fdtype fd_write_pool_metadata(fd_dtype_stream ds,fdtype metadata)
 FD_EXPORT
 fdtype fd_write_index_metadata(fd_dtype_stream ds,fdtype metadata)
 {
-  off_t md_pos; 
-  off_t ret=fd_setpos(ds,4);
+  fd_off_t md_pos; 
+  fd_off_t ret=fd_setpos(ds,4);
   if (ret<0) return FD_ERROR_VALUE;
   else md_pos=4*fd_dtsread_4bytes(ds)+8;
   return write_metadata(ds,md_pos,metadata);

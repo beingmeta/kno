@@ -125,7 +125,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *s)
   int probe;
   probe=fd_dtsread_4bytes(s);
   if (probe == 0xFFFFFFFF) { /* Version 1 */
-    off_t md_loc;
+    fd_off_t md_loc;
     /* Write the time information (actually, its absence in this version). */
     md_loc=fd_dtsread_off_t(s);
     if (md_loc) {
@@ -135,7 +135,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *s)
       else return fd_dtsread_dtype(s);}
     else return FD_EMPTY_CHOICE;}
   else if (probe == 0xFFFFFFFE) { /* Version 2 */
-    int i=0; off_t md_loc;
+    int i=0; fd_off_t md_loc;
     while (i<8) {fd_dtsread_4bytes(s); i++;}
     md_loc=fd_dtsread_off_t(s);
     if (md_loc) {
@@ -425,7 +425,7 @@ static fd_pool open_zpool(u8_string fname,int read_only)
   struct FD_ZPOOL *pool=u8_alloc(struct FD_ZPOOL);
   struct FD_DTYPE_STREAM *s=&(pool->stream);
   unsigned int hi, lo, magicno, capacity, load;
-  off_t label_loc; fdtype label;
+  fd_off_t label_loc; fdtype label;
   u8_string rname=u8_realpath(fname,NULL);
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
@@ -445,7 +445,7 @@ static fd_pool open_zpool(u8_string fname,int read_only)
   fd_init_pool((fd_pool)pool,base,capacity,&zpool_handler,fname,rname);
   u8_free(rname);
   load=fd_dtsread_4bytes(s);
-  label_loc=(off_t)fd_dtsread_4bytes(s);
+  label_loc=(fd_off_t)fd_dtsread_4bytes(s);
   if (label_loc) {
     if (fd_setpos(s,label_loc)>0) {
       label=fd_dtsread_dtype(s);
@@ -534,7 +534,7 @@ static fdtype zpool_fetch(fd_pool p,fdtype oid)
   struct FD_ZPOOL *fp=(struct FD_ZPOOL *)p;
   FD_OID addr=FD_OID_ADDR(oid);
   int offset=FD_OID_DIFFERENCE(addr,fp->base);
-  off_t data_pos;
+  fd_off_t data_pos;
   fd_lock_struct(fp);
   if (FD_EXPECT_FALSE(offset>=fp->load)) {
     fd_unlock_struct(fp);
@@ -563,7 +563,7 @@ static fdtype zpool_fetch(fd_pool p,fdtype oid)
 }
 
 struct POOL_FETCH_SCHEDULE {
-  unsigned int vpos; off_t filepos;};
+  unsigned int vpos; fd_off_t filepos;};
 
 static int compare_filepos(const void *x1,const void *x2)
 {
@@ -644,7 +644,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   struct FD_SCHEMA_TABLE *schemas=fp->schemas_byptr;
   int n_schemas=fp->n_schemas;
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
-  off_t endpos, pos_limit=0xFFFFFFFF;
+  fd_off_t endpos, pos_limit=0xFFFFFFFF;
   int i=0, retcode=n, load;
   fd_lock_struct(fp); load=fp->load;
   endpos=fd_endpos(stream);
@@ -677,7 +677,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 		oids[i]);
       retcode=-1; break;}
     else if (FD_EXPECT_FALSE(delta<0)) {retcode=-1; break;}
-    else if (FD_EXPECT_FALSE(((off_t)(endpos+delta))>pos_limit)) {
+    else if (FD_EXPECT_FALSE(((fd_off_t)(endpos+delta))>pos_limit)) {
       fd_seterr(fd_FileSizeOverflow,
 		"file_pool_storen",u8_strdup(fp->cid),
 		oids[i]);

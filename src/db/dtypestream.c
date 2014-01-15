@@ -229,13 +229,13 @@ FD_EXPORT fdtype fd_dtsread_dtype(fd_dtype_stream s)
 }
 FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x)
 {
-  int n_bytes; off_t start;
+  int n_bytes; fd_off_t start;
   if ((s->flags)&(FD_DTSTREAM_READING))
     if (fd_set_read(s,0)<0) return -1;
-  if (fd_check_dtsize) start=fd_getpos(s); else start=(off_t)-1;
+  if (fd_check_dtsize) start=fd_getpos(s); else start=(fd_off_t)-1;
   n_bytes=fd_write_dtype((struct FD_BYTE_OUTPUT *)s,x);
   if ((fd_check_dtsize) && (start>=0)) {
-    off_t end=fd_getpos(s);
+    fd_off_t end=fd_getpos(s);
     if ((end-start)!= n_bytes) 
       u8_log((((s->flags)&(FD_DTSTREAM_CANSEEK)) ? (LOG_CRIT) : (LOG_ERR)),
 	     fd_InconsistentDTypeSize,
@@ -381,19 +381,19 @@ FD_EXPORT int fd_set_read(fd_dtype_stream s,int read)
 }
 
 /* This gets the position when it isn't cached on the stream. */
-FD_EXPORT off_t _fd_getpos(fd_dtype_stream s)
+FD_EXPORT fd_off_t _fd_getpos(fd_dtype_stream s)
 {
   if (((s->flags)&FD_DTSTREAM_CANSEEK) == 0) return -1;
   else if ((s->flags)&FD_DTSTREAM_READING) {
-    off_t current=lseek(s->fd,0,SEEK_CUR);
+    fd_off_t current=lseek(s->fd,0,SEEK_CUR);
     s->filepos=current-(s->end-s->start);
     return s->filepos+(s->ptr-s->start);}
   else {
-    off_t current=lseek(s->fd,0,SEEK_CUR);
+    fd_off_t current=lseek(s->fd,0,SEEK_CUR);
     s->filepos=current;
     return s->filepos+(s->ptr-s->start);}
 }
-FD_EXPORT off_t fd_setpos(fd_dtype_stream s,off_t pos)
+FD_EXPORT fd_off_t fd_setpos(fd_dtype_stream s,fd_off_t pos)
 {
   /* This is optimized for the case where the new position is
      in the range we have buffered. */
@@ -404,9 +404,9 @@ FD_EXPORT off_t fd_setpos(fd_dtype_stream s,off_t pos)
 		     FD_INT2DTYPE(pos));
   else if (s->filepos<0) {
     /* We're not tracking filepos, so we'll check by hand. */
-    off_t maxpos;
+    fd_off_t maxpos;
     if (fd_dtsflush(s)<0) return -1;
-    maxpos=lseek(s->fd,(off_t)0,SEEK_END);
+    maxpos=lseek(s->fd,(fd_off_t)0,SEEK_END);
     if (maxpos<0)
       return fd_reterr(fd_BadLSEEK,"fd_setpos",
 		       ((s->id)?(u8_strdup(s->id)):(NULL)),
@@ -438,12 +438,12 @@ FD_EXPORT off_t fd_setpos(fd_dtype_stream s,off_t pos)
   fd_dtsflush(s);
   return (s->filepos=(lseek(s->fd,pos,SEEK_SET)));
 }
-FD_EXPORT off_t fd_movepos(fd_dtype_stream s,int delta)
+FD_EXPORT fd_off_t fd_movepos(fd_dtype_stream s,int delta)
 {
   if (((s->flags)&FD_DTSTREAM_CANSEEK) == 0) return -1;
   else if (s->filepos<0) {
     /* We're not tracking filepos, so we'll check by hand. */
-    off_t pos, maxpos;
+    fd_off_t pos, maxpos;
     fd_dtsflush(s);
     pos=lseek(s->fd,0,SEEK_CUR);
     maxpos=lseek(s->fd,0,SEEK_END);
@@ -483,7 +483,7 @@ FD_EXPORT off_t fd_movepos(fd_dtype_stream s,int delta)
   fd_dtsflush(s);
   return (s->filepos=(lseek(s->fd,delta,SEEK_CUR)));
 }
-FD_EXPORT off_t fd_endpos(fd_dtype_stream s)
+FD_EXPORT fd_off_t fd_endpos(fd_dtype_stream s)
 {
   if (((s->flags)&FD_DTSTREAM_CANSEEK) == 0) return -1;
   fd_dtsflush(s);
@@ -555,14 +555,14 @@ FD_EXPORT fd_8bytes _fd_dtsread_zint8(fd_dtype_stream stream)
   return fd_dtsread_zint8(stream);
 }
 
-FD_EXPORT off_t _fd_dtsread_off_t(fd_dtype_stream s)
+FD_EXPORT fd_off_t _fd_dtsread_off_t(fd_dtype_stream s)
 {
   fd_dts_start_read(s);
   if (fd_needs_bytes((fd_byte_input)s,4)) {
     unsigned int bytes=fd_get_4bytes(s->ptr);
     s->ptr=s->ptr+4;
-    return (off_t) bytes;}
-  else return ((off_t)(-1));
+    return (fd_off_t) bytes;}
+  else return ((fd_off_t)(-1));
 }
 
 FD_EXPORT int fd_dtsread_ints(fd_dtype_stream s,int len,unsigned int *words)
@@ -571,7 +571,7 @@ FD_EXPORT int fd_dtsread_ints(fd_dtype_stream s,int len,unsigned int *words)
     if (fd_set_read(s,1)<0) return -1;
   /* This is special because we ignore the buffer if we can. */
   if ((s->flags)&FD_DTSTREAM_CANSEEK) {
-    off_t real_pos=fd_getpos(s); int bytes_read=0, bytes_needed=len*4;
+    fd_off_t real_pos=fd_getpos(s); int bytes_read=0, bytes_needed=len*4;
     lseek(s->fd,real_pos,SEEK_SET);
     while (bytes_read<bytes_needed) {
       int delta=read(s->fd,words+bytes_read,bytes_needed-bytes_read);
@@ -670,7 +670,7 @@ FD_EXPORT int fd_dtswrite_ints(fd_dtype_stream s,int len,unsigned int *words)
     if (fd_set_read(s,0)<0) return -1;
   /* This is special because we ignore the buffer if we can. */
   if (((s->flags))&FD_DTSTREAM_CANSEEK) {
-    off_t real_pos; int bytes_written;
+    fd_off_t real_pos; int bytes_written;
     fd_dtsflush(s);
     real_pos=fd_getpos(s);
     lseek(s->fd,real_pos,SEEK_SET);

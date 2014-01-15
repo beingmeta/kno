@@ -1041,7 +1041,7 @@ static int webservefn(u8_client ucl)
       struct stat fileinfo; FILE *f;
       if ((stat(filename,&fileinfo)==0)&&(f=u8_fopen(filename,"rb")))  {
 	int bytes_read=0;
-	unsigned char *filebuf=NULL; off_t total_len=-1;
+	unsigned char *filebuf=NULL; fd_off_t total_len=-1;
 	u8_printf(&httphead,"Content-length: %ld\r\n\r\n",
 		  (long int)(fileinfo.st_size));
 	http_len=httphead.u8_outptr-httphead.u8_outbuf;
@@ -1052,7 +1052,7 @@ static int webservefn(u8_client ucl)
 	  /* This is the case where we hand off a buffer to mod_fdserv
 	     to write for us. */
 	  unsigned char *write=filebuf+http_len;
-	  off_t to_read=fileinfo.st_size;
+	  fd_off_t to_read=fileinfo.st_size;
 	  memcpy(write,httphead.u8_outbuf,http_len);
 	  while ((to_read>0)&&
 		 ((bytes_read=fread(write,sizeof(uchar),to_read,f))>0)) {

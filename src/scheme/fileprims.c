@@ -1233,7 +1233,7 @@ static fdtype getpos_prim(fdtype portarg)
   if (FD_PRIM_TYPEP(portarg,fd_port_type)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
-    off_t result=-1;
+    fd_off_t result=-1;
     if (p->in)
       result=u8_getpos((struct U8_STREAM *)(p->in));
     else if (p->out)
@@ -1246,7 +1246,7 @@ static fdtype getpos_prim(fdtype portarg)
     else return fd_make_bigint(result);}
   else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
     fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
-    off_t pos=fd_getpos(ds->dt_stream);
+    fd_off_t pos=fd_getpos(ds->dt_stream);
     if (pos<0) return FD_ERROR_VALUE;
     else if (pos<FD_MAX_FIXNUM) return FD_INT2DTYPE(pos);
     else return fd_make_bigint(pos);}
@@ -1258,7 +1258,7 @@ static fdtype endpos_prim(fdtype portarg)
   if (FD_PRIM_TYPEP(portarg,fd_port_type)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
-    off_t result=-1;
+    fd_off_t result=-1;
     if (p->in)
       result=u8_endpos((struct U8_STREAM *)(p->in));
     else if (p->out)
@@ -1271,7 +1271,7 @@ static fdtype endpos_prim(fdtype portarg)
     else return fd_make_bigint(result);}
   else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
     fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
-    off_t pos=fd_endpos(ds->dt_stream);
+    fd_off_t pos=fd_endpos(ds->dt_stream);
     if (pos<0) return FD_ERROR_VALUE;
     else if (pos<FD_MAX_FIXNUM) return FD_INT2DTYPE(pos);
     else return fd_make_bigint(pos);}
@@ -1296,15 +1296,15 @@ static fdtype file_progress_prim(fdtype portarg)
 static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
 {
   if (FD_PRIM_TYPEP(portarg,fd_port_type)) {
-    off_t off, result;
+    fd_off_t off, result;
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
     if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
     else if (FD_PTR_TYPEP(off_arg,fd_bigint_type)) 
 #if (_FILE_OFFSET_BITS==64)
-      off=(off_t)fd_bigint_to_long_long((fd_bigint)off_arg);
+      off=(fd_off_t)fd_bigint_to_long_long((fd_bigint)off_arg);
 #else
-    off=(off_t)fd_bigint_to_long((fd_bigint)off_arg);
+    off=(fd_off_t)fd_bigint_to_long((fd_bigint)off_arg);
 #endif
     else return fd_type_error(_("offset"),"setpos_prim",off_arg);
     if (p->in)
@@ -1319,13 +1319,13 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
     else return fd_make_bigint(result);}
   else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
     fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
-    off_t off, result;
+    fd_off_t off, result;
     if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
     else if (FD_PTR_TYPEP(off_arg,fd_bigint_type)) 
 #if (_FILE_OFFSET_BITS==64)
-      off=(off_t)fd_bigint_to_long_long((fd_bigint)off_arg);
+      off=(fd_off_t)fd_bigint_to_long_long((fd_bigint)off_arg);
 #else
-    off=(off_t)fd_bigint_to_long((fd_bigint)off_arg);
+    off=(fd_off_t)fd_bigint_to_long((fd_bigint)off_arg);
 #endif
     else return fd_type_error(_("offset"),"setpos_prim",off_arg);
     result=fd_setpos(ds->dt_stream,off);

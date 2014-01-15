@@ -191,21 +191,10 @@ unsigned int fd_hash_dtype_rep(fdtype x);
    whose cars are in its slotids.  */
 #define FD_HASH_INDEX_ODDKEYS (FD_HASH_INDEX_DTYPEV2<<1)
 
-#ifndef FD_USE_OFF_T
-#define FD_USE_OFF_T 0
-#endif
-
-typedef unsigned int fd_off_t;
-typedef unsigned int fd_size_t;
-#if FD_USE_OFF_T
-typedef off_t fd_off_t;
-typedef size_t fd_size_t;
-#endif
-
 /* Full sized chunk refs, usually passed and returned but not
    directly stored on disk. */
 typedef struct FD_CHUNK_REF {
-  off_t off; size_t size;} FD_CHUNK_REF;
+  fd_off_t off; size_t size;} FD_CHUNK_REF;
 typedef struct FD_CHUNK_REF *fd_chunk_ref;
 
 typedef struct FD_SLOTID_LOOKUP {

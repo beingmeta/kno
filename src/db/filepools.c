@@ -56,7 +56,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
   struct FD_DTYPE_STREAM *s=&(pool->stream);
   FD_OID base=FD_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load;
-  off_t label_loc; fdtype label;
+  fd_off_t label_loc; fdtype label;
   u8_string rname=u8_realpath(fname,NULL);
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
@@ -76,7 +76,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
       fd_seterr(fd_MallocFailed,"open_file_pool",NULL,FD_VOID);
       return NULL;}}
   load=fd_dtsread_4bytes(s);
-  label_loc=(off_t)fd_dtsread_4bytes(s);
+  label_loc=(fd_off_t)fd_dtsread_4bytes(s);
   if (label_loc) {
     if (fd_setpos(s,label_loc)>0) {
       label=fd_dtsread_dtype(s);
@@ -153,7 +153,7 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   FD_OID addr=FD_OID_ADDR(oid);
   int offset=FD_OID_DIFFERENCE(addr,fp->base);
-  off_t data_pos;
+  fd_off_t data_pos;
   fd_lock_struct(fp);
   if (FD_EXPECT_FALSE(offset>=fp->load)) {
     fd_unlock_struct(fp);
@@ -182,7 +182,7 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
 }
 
 struct POOL_FETCH_SCHEDULE {
-  unsigned int vpos; off_t filepos;};
+  unsigned int vpos; fd_off_t filepos;};
 
 static int compare_filepos(const void *x1,const void *x2)
 {
@@ -276,8 +276,8 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
      has been written, indexed by the OIDs position in *oids. */
   unsigned int *changed_offsets=u8_alloc_n(n,unsigned int);
   struct FD_DTYPE_STREAM *stream=&(fp->stream);
-  /* Make sure that pos_limit fits into an int, in case off_t is an int. */
-  off_t endpos, pos_limit=0xFFFFFFFF;
+  /* Make sure that pos_limit fits into an int, in case fd_off_t is an int. */
+  fd_off_t endpos, pos_limit=0xFFFFFFFF;
   int i=0, retcode=n, load;
   unsigned int *tmp_offsets=NULL, old_size=0;
   fd_lock_struct(fp); load=fp->load;
@@ -293,7 +293,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 		oids[i]);
       retcode=-1; break;}
     else if (FD_EXPECT_FALSE(delta<0)) {retcode=-1; break;}
-    else if (FD_EXPECT_FALSE(((off_t)(endpos+delta))>pos_limit)) {
+    else if (FD_EXPECT_FALSE(((fd_off_t)(endpos+delta))>pos_limit)) {
       fd_seterr(fd_FileSizeOverflow,
 		"file_pool_storen",u8_strdup(fp->cid),
 		oids[i]);
@@ -356,7 +356,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
        that doesn't require recovery and truncate away the saved
        recovery information. */
     if (fp->offsets) {
-      off_t end=fd_endpos(stream); int retval;
+      fd_off_t end=fd_endpos(stream); int retval;
       fd_setpos(stream,0);
       /* This was overwritten with FD_FILE_POOL_TO_RECOVER by
 	 fd_write_file_pool_recovery_data. */
@@ -412,7 +412,7 @@ static int recover_file_pool(struct FD_FILE_POOL *fp)
 {
   /* This reads the offsets vector written at the end of the file
      during commitment. */
-  int i=0, len=fp->capacity, load; off_t new_end, retval;
+  int i=0, len=fp->capacity, load; fd_off_t new_end, retval;
   unsigned int *offsets=u8_malloc(4*len);
   struct FD_DTYPE_STREAM *s=&(fp->stream);
   fd_endpos(s); new_end=fd_movepos(s,-(4+4*len));

@@ -63,7 +63,7 @@ static fdtype label_file_pool(fdtype fname,fdtype label)
   fd_dtype_stream stream
     =fd_dtsopen(FD_STRING_DATA(fname),FD_DTSTREAM_MODIFY);
   if (stream) {
-    off_t endpos=fd_endpos(stream);
+    fd_off_t endpos=fd_endpos(stream);
     if (endpos>0) {
       int bytes=fd_dtswrite_dtype(stream,label);
       if (bytes>0) {

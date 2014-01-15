@@ -46,7 +46,7 @@ typedef struct FD_DTYPE_STREAM {
   int (*fillfn)(struct FD_DTYPE_STREAM *,int);
   int (*flushfn)(struct FD_DTYPE_STREAM *);
   u8_string id; int mallocd, bufsiz;
-  off_t filepos, maxpos; int fd;} FD_DTYPE_STREAM;
+  fd_off_t filepos, maxpos; int fd;} FD_DTYPE_STREAM;
 typedef struct FD_DTYPE_STREAM *fd_dtype_stream;
 
 FD_EXPORT struct FD_DTYPE_STREAM *fd_init_dtype_stream
@@ -66,14 +66,14 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd);
 
 /* Structure functions and macros */
 
-FD_EXPORT off_t _fd_getpos(fd_dtype_stream s);
+FD_EXPORT fd_off_t _fd_getpos(fd_dtype_stream s);
 #define fd_getpos(s) \
   ((((s)->flags)&FD_DTSTREAM_CANSEEK) ? \
    ((((s)->filepos)>=0) ? (((s)->filepos)+(((s)->ptr)-((s)->start))) : (_fd_getpos(s))) \
    : (-1))
-FD_EXPORT off_t fd_setpos(fd_dtype_stream s,off_t pos);
-FD_EXPORT off_t fd_movepos(fd_dtype_stream s,int delta);
-FD_EXPORT off_t fd_endpos(fd_dtype_stream s);
+FD_EXPORT fd_off_t fd_setpos(fd_dtype_stream s,fd_off_t pos);
+FD_EXPORT fd_off_t fd_movepos(fd_dtype_stream s,int delta);
+FD_EXPORT fd_off_t fd_endpos(fd_dtype_stream s);
 
 FD_EXPORT int fd_set_read(fd_dtype_stream s,int read);
 FD_EXPORT int fd_dtsflush(fd_dtype_stream s);
@@ -105,7 +105,7 @@ FD_EXPORT fd_4bytes _fd_dtsread_4bytes(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT fd_8bytes _fd_dtsread_8bytes(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT int _fd_dtsread_bytes
   (struct FD_DTYPE_STREAM *stream,unsigned char *bytes,int len);
-FD_EXPORT off_t _fd_dtsread_off_t(struct FD_DTYPE_STREAM *stream);
+FD_EXPORT fd_off_t _fd_dtsread_off_t(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT fd_4bytes _fd_dtsread_zint(fd_dtype_stream s);
 FD_EXPORT fd_8bytes _fd_dtsread_zint8(fd_dtype_stream s);
 
@@ -177,14 +177,14 @@ FD_FASTOP int fd_dtsread_bytes
 #endif
 }
 
-FD_FASTOP off_t fd_dtsread_off_t(fd_dtype_stream s)
+FD_FASTOP fd_off_t fd_dtsread_off_t(fd_dtype_stream s)
 {
   fd_dts_start_read(s);
   if (fd_needs_bytes((fd_byte_input)s,4)) {
     unsigned int bytes=fd_get_4bytes(s->ptr);
     s->ptr=s->ptr+4;
-    return (off_t) bytes;}
-  else return (off_t) -1;
+    return (fd_off_t) bytes;}
+  else return (fd_off_t) -1;
 }
 
 FD_FASTOP unsigned int fd_dtsread_zint(fd_dtype_stream s)

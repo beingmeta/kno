@@ -105,6 +105,38 @@
 #define FD_TESTCONFIG 0
 #endif
 
+#if (HAVE_OFF_T)
+#if ((FD_LARGEFILES_ENABLED)&&(SIZEOF_OFF_T==8))
+typedef off_t fd_off_t;
+#elif (FD_LARGEFILES_ENABLED)
+typedef long long int fd_off_t;
+#else
+typedef off_t fd_off_t;
+#endif
+#else /* (!(HAVE_OFF_T)) */
+#if (FD_LARGEFILES_ENABLED)
+typedef long long int fd_off_t;
+#else
+typedef int fd_off_t;
+#endif
+#endif
+
+#if (HAVE_SIZE_T)
+#if ((FD_LARGEFILES_ENABLED)&&(SIZEOF_SIZE_T==8))
+typedef size_t fd_size_t;
+#elif (FD_LARGEFILES_ENABLED)
+typedef long long int fd_size_t;
+#else
+typedef size_t fd_size_t;
+#endif
+#else /* (!(HAVE_SIZE_T)) */
+#if (FD_LARGEFILES_ENABLED)
+typedef long long int fd_size_t;
+#else
+typedef int fd_size_t;
+#endif
+#endif
+
 #if ((FD_LARGEFILES_ENABLED) && (HAVE_FSEEKO))
 #define _FILE_OFFSET_BITS 64
 #define _LARGEFILE_SOURCE 1

@@ -97,6 +97,12 @@
 /* The number of bytes in a time_t value.  */
 #undef SIZEOF_TIME_T
 
+/* The number of bytes in an off_t value.  */
+#undef SIZEOF_OFF_T
+
+/* The number of bytes in a size_t value.  */
+#undef SIZEOF_SIZE_T
+
 /* Define if you have the strdup function.  */
 #undef HAVE_STRDUP
 
