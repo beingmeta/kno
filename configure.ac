@@ -105,6 +105,8 @@ with_mysql_default="yes"
 with_crypto_default="yes"
 with_imagick_default="no"
 use_dtblock_default="yes"
+default_bootsystem="none"
+BOOTSETUP="none"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 IMAGICK_CFLAGS=
@@ -173,6 +175,7 @@ AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
 AC_SUBST(WWWUSER)
 AC_SUBST(CMODULES)
+AC_SUBST(BOOTSETUP)
 AC_SUBST(INSTALLCMODULES)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
@@ -202,6 +205,20 @@ AC_ARG_WITH(optinclude,--with-optinclude Use optional include directory,,with_op
 if test $with_optinclude != "none"; then
   CPPFLAGS="$CPPFLAGS -I$with_optinclude"
   CFLAGS="$CFLAGS -I$with_optinclude"
+fi
+
+if test -d /etc/init; then
+  default_bootsystem="upstart";
+ elif test -d /etc/init.d; then
+  default_bootsystem="init.d";
+ else
+  default_bootsystem="none"
+fi
+
+AC_ARG_WITH(bootsystem,--with-bootsytem Setup boot method,,with_bootsystem=$default_bootsystem)
+
+if test $with_bootsystem != "none"; then
+  BOOTSETUP="setup-$with_bootsystem"
 fi
 
 LDFLAGS="$LDFLAGS -L$prefix/lib"

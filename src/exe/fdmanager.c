@@ -7,7 +7,8 @@
 
 /* fdmananger: a program for running a set of inferior fdservers */
     
-/* #include "framerd/dtype.h" */
+#include "framerd/source.h"
+#include "framerd/dtype.h"
 
 #include <libu8/libu8.h>
 #include <libu8/libu8io.h>
