@@ -1,3 +1,6 @@
+;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
+;;; Copyright (C) 2010-2014 beingmeta, inc. All rights reserved
+
 (in-module 'extoids)
 
 (use-module '{extdb varconfig reflection logger})
