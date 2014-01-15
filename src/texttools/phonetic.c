@@ -13,6 +13,7 @@
 
 #define U8_INLINE_IO 1
 
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 
 #include <libu8/libu8.h>

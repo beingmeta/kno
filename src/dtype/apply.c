@@ -11,10 +11,15 @@
 
 #define FD_INLINE_PPTRS 1
 
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 #include "framerd/apply.h"
 
 #include <libu8/u8printf.h>
+
+#if HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 #include <stdarg.h>
 

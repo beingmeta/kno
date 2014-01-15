@@ -64,6 +64,7 @@
 
 #define FD_INLINE_DTYPEIO 1
 
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 #include "framerd/dtypeio.h"
 #include "framerd/dtypestream.h"

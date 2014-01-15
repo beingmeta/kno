@@ -9,6 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 #include "libu8/u8logging.h"

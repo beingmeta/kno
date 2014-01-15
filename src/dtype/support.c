@@ -9,6 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
 
@@ -37,6 +38,10 @@ extern void ProfilerFlush();
 
 #if HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
+
+#if HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 
 #if HAVE_GRP_H

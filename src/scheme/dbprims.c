@@ -13,6 +13,7 @@
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1
 
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 #include "framerd/fddb.h"

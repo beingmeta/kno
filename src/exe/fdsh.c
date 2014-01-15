@@ -9,6 +9,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/source.h"
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/fddb.h"

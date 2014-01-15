@@ -11,6 +11,7 @@
 
 #define FD_INLINE_PPTRS 1
 
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/eval.h"

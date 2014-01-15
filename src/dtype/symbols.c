@@ -9,6 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 
 typedef struct FD_SYMBOL_ENTRY {

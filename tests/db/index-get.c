@@ -5,6 +5,7 @@
    and a valuable trade secret of beingmeta, inc.
 */
 
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/dbfile.h"

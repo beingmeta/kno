@@ -10,7 +10,6 @@
 #ifndef FRAMERD_APPLY_H_INFO
 #define FRAMERD_APPLY_H_INFO "include/framerd/apply.h"
 #endif
-#include "framerd/dtype.h"
 
 FD_EXPORT fd_exception fd_NotAFunction, fd_TooManyArgs, fd_TooFewArgs;
 

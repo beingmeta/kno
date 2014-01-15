@@ -9,6 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 #include "framerd/numbers.h"

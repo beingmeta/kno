@@ -11,6 +11,7 @@
 
 #define FD_INLINE_IPEVAL 1
 
+#include "framerd/source.h"
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/apply.h"
