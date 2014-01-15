@@ -989,10 +989,10 @@ $(DESTDIR)@logdir@/framerd/bugjar: $(DESTDIR)@logdir@/framerd
 	@$(MSG) Installing FramerD bugjar directory
 	@$(SYSINSTALL) -m 0777 @fdaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@logdir@/framerd/bugjar
-setup-rc.d: $(DESTDIR)/etc/init.d/framerd \
+install-rc.d: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)@rundir@/framerd \
             $(DESTDIR)@logdir@/framerd
-enable-rc.d: setup-rc.d
+setup-rc.d: install-rc.d
 	@$(MSG) Updating rc.d
 	@$(SUDO) update-rc.d framerd defaults
 
@@ -1021,7 +1021,7 @@ $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate
 	@$(SYSINSTALL) -T -m 0644 etc/logrotate \
 	  $(DESTDIR)/etc/logrotate.d/framerd
 
-setup-unix: setup-upstart setup-logrotate
+setup-unix: @BOOTSETUP@ setup-logrotate
 setup-linux: setup-unix
 
 setup-osx: @data_dir@ $(DESTDIR)@rundir@/framerd \
@@ -1032,6 +1032,9 @@ setup-osx: @data_dir@ $(DESTDIR)@rundir@/framerd \
 		"${INSTALL} @install_exe_opts@" \
 		"${INSTALL} @install_exe_opts@" \
 		/Library /etc
+
+setup-none:
+	@echo "Not setting up a boot system"
 
 # Build setups
 
