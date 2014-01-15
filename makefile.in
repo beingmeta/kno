@@ -987,10 +987,10 @@ $(DESTDIR)@logdir@/framerd/bugjar: $(DESTDIR)@logdir@/framerd
 	@$(MSG) Installing FramerD bugjar directory
 	@$(SYSINSTALL) -m 0777 @fdaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@logdir@/framerd/bugjar
-install-rc.d: $(DESTDIR)/etc/init.d/framerd \
+setup-sysv: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)@rundir@/framerd \
             $(DESTDIR)@logdir@/framerd
-setup-sysv: install-rc.d
+enable-sysv: setup-sysv
 	@if which update-rc.d; then \
 		$(MSG) Updating rc.d; \
 		$(SUDO) update-rc.d framerd defaults; \
