@@ -1,11 +1,6 @@
 Name:           framerd
-<<<<<<< HEAD:dist/framerd-3.4.spec
-Version:        3.4.9
-Release:        26%{?dist}
-=======
 Version:        3.5.1
 Release:        2%{?dist}
->>>>>>> master:dist/framerd-3.5.spec
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
