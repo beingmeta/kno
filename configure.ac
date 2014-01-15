@@ -313,6 +313,7 @@ case $host_os in
    shared_suffix="dylib"
    vshared_suffix=$VERSION.dylib
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
+   CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
    ifmacosx=""
    setup_target="setup-osx"
    ;;
