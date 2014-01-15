@@ -134,7 +134,7 @@ The %{name}-tidy package implements external bindings to libtidy
 %setup -q
 
 %build
-%configure --prefix=/usr --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-ziptools --without-qrcode --without-imagick --without-sudo --with-bootsystem=rc.d
+%configure --prefix=/usr --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-ziptools --without-qrcode --without-imagick --without-sudo --with-bootsystem=sysv
 #make %{?_smp_mflags}
 make
 make mod_fdserv

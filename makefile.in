@@ -992,7 +992,7 @@ $(DESTDIR)@logdir@/framerd/bugjar: $(DESTDIR)@logdir@/framerd
 install-rc.d: $(DESTDIR)/etc/init.d/framerd \
             $(DESTDIR)@rundir@/framerd \
             $(DESTDIR)@logdir@/framerd
-setup-rc.d: install-rc.d
+setup-sysv: install-rc.d
 	@$(MSG) Updating rc.d
 	@$(SUDO) update-rc.d framerd defaults
 
