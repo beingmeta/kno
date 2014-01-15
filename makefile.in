@@ -969,6 +969,7 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	@cp -pRf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
 	@cp -pRf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 
+statedirs: $(DESTDIR)@rundir@/framerd $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/framerd/bugjar
 $(DESTDIR)/etc/init.d:
 	@$(SYSINSTALL) -m 0755 -d $(DESTDIR)/etc/init.d
 $(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
@@ -987,9 +988,7 @@ $(DESTDIR)@logdir@/framerd/bugjar: $(DESTDIR)@logdir@/framerd
 	@$(MSG) Installing FramerD bugjar directory
 	@$(SYSINSTALL) -m 0777 @fdaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@logdir@/framerd/bugjar
-setup-sysv: $(DESTDIR)/etc/init.d/framerd \
-            $(DESTDIR)@rundir@/framerd \
-            $(DESTDIR)@logdir@/framerd
+setup-sysv: $(DESTDIR)/etc/init.d/framerd statedirs
 enable-sysv: setup-sysv
 	@if which update-rc.d; then \
 		$(MSG) Updating rc.d; \
@@ -997,9 +996,10 @@ enable-sysv: setup-sysv
 	 fi
 
 setup-upstart: $(DESTDIR)/etc/init/fdserver.conf $(DESTDIR)/etc/init/fdservlet.conf \
-   $(DESTDIR)/etc/init/framerd.conf $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
+   $(DESTDIR)/etc/init/framerd.conf upstartdirs
+upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 $(DESTDIR)/etc/init:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init.d
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
 $(DESTDIR)/etc/init/fdserver.conf: etc/fdserver.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing fdserver Upstart config
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
@@ -1018,8 +1018,7 @@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets:
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
 $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate $(DESTDIR)/etc/logrotate.d
 	@$(MSG) Installing logrotate script
-	@$(SYSINSTALL) -T -m 0644 etc/logrotate \
-	  $(DESTDIR)/etc/logrotate.d/framerd
+	@$(SYSINSTALL) -T -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
 $(DESTDIR)/etc/logrotate.d:
 	@$(SYSINSTALL) -m 0755 -d $@
 
