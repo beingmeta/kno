@@ -161,6 +161,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %attr(-,root,adm) /etc/init.d/framerd
+%attr(-,root,adm) /etc/logrotate.d/framerd
 %attr(-,fdaemon,adm) /var/run/framerd
 %attr(-,fdaemon,adm) /var/log/framerd
 %attr(-,fdaemon,adm) %{_prefix}/etc/framerd/servers
@@ -200,10 +201,13 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libfdweb.so.*
 %{_libdir}/libtexttools.so.*
 %{_libdir}/framerd/crypto.so*
+%{_libdir}/framerd/sundown.so*
 %{_libdir}/framerd/regex.so*
 %{_bindir}/fdexec
 %{_bindir}/fdconsole
 %{_bindir}/fdbatch
+%{_bindir}/fdserver
+%{_bindir}/fdservlet
 %{_bindir}/fdserv
 %{_bindir}/fdbserver
 %{_bindir}/fdmanager
@@ -230,6 +234,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libfdweb.so
 %{_libdir}/libtexttools.so
 %{_libdir}/framerd/crypto.so
+%{_libdir}/framerd/sundown.so
 %{_libdir}/framerd/regex.so
 
 %files static
