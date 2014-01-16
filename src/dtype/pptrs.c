@@ -18,7 +18,7 @@
 
 #define FD_INLINE_PPTRS 1
 
-#include "framerd/source.h"
+#include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 
 #include <libu8/u8printf.h>

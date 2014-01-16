@@ -11,7 +11,7 @@
 
 #define FD_INLINE_DTYPEIO 1
 
-#include "framerd/source.h"
+#include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/dtcall.h"

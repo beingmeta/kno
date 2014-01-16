@@ -117,7 +117,7 @@ MSG=echo
 
 AC_PREFIX_DEFAULT(/usr)
 AC_CONFIG_AUX_DIR(etc)
-AC_CONFIG_HEADER(include/framerd/config.h)
+AC_CONFIG_HEADER(include/framerd/fdsource.h include/framerd/config.h)
 
 AC_SUBST(install_dir_opts)
 AC_SUBST(install_file_opts)
@@ -187,6 +187,7 @@ AC_SUBST(MSG)
 
 AC_CANONICAL_HOST
 AC_PROG_CC([cc gcc])
+AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_CHECK_PROG(ECHO,echo,,/bin/echo)

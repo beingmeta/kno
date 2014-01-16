@@ -15,7 +15,7 @@
 #include <png.h>
 #include <qrencode.h>
 
-#include "framerd/source.h"
+#include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 #include "framerd/numbers.h"
