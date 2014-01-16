@@ -42,6 +42,7 @@ DEBUG_FDSERV    = 0
 RPMFLAGS	=
 
 DTYPE_HEADERS=\
+ include/framerd/fdsource.h                          \
  include/framerd/config.h                            \
  include/framerd/common.h                            \
  include/framerd/defines.h                           \

@@ -10,7 +10,7 @@
 #endif
 
 #define FD_INLINE_CHOICES 1
-#include "framerd/source.h"
+#include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 
 #define MYSTERIOUS_MODULUS 256001281

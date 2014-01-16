@@ -7,7 +7,7 @@
 
 #define U8_INLINE_IO 1
 
-#include "framerd/source.h"
+#include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/tables.h"
 #include "framerd/eval.h"
