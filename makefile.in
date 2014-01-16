@@ -760,11 +760,10 @@ rpmtar: staging/framerd-@FDVERSION@.tar.gz
 cleanrpms: 
 	rm -rf dist/rpms.done staging/framerd-?.?.?.tar.gz staging/framerd-?.?.?
 	find dist -name "*.rpm" | xargs rm -f
-freshrpms: 
+rpms: 
 	rm -rf dist/rpms.done staging/framerd-?.?.?.tar.gz staging/framerd-?.?.?
 	find dist -name "*.rpm" | xargs rm -f
-	make rpms
-rpms: dist/rpms.done
+	make dist/rpms.done
 
 staging/framerd-@FDVERSION@: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
 		      configure.ac makefile.in makefile
