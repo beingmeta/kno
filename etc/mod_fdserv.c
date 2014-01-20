@@ -720,12 +720,15 @@ static const char *servlet_spawn(cmd_parms *parms,void *mconfig,const char *arg)
   if (strcasecmp(arg,"on")==0) spawn_wait=10;
   else if (strcasecmp(arg,"off")==0) spawn_wait=0;
   else if (*arg=='\0') {
-    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,"Bad spawn wait '%s'",arg);
+    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,
+		 "Bad spawn wait '%s'",arg);
     return NULL;}
-  else spawn_wait=strtol(arg,&end,10);
-  if ((end)&&(*end!='\0')) {
-    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,"Bad spawn wait '%s'",arg);
-    return NULL;}
+  else {
+    spawn_wait=strtol(arg,&end,10);
+    if ((end)&&(*end!='\0')) {
+      ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,
+		   "Bad spawn wait '%s'",arg);
+      return NULL;}}
   if (parms->path) {
     dconfig->servlet_spawn=spawn_wait;
     return NULL;}

@@ -72,10 +72,10 @@
 /* Define if you have rusage.ru_nswap.  */
 #undef HAVE_STRUCT_RUSAGE_RU_NSWAP
 
-/* Define if you have <sys/types.h> declares struct tm.  */
+/* Define if you have <sys/types.h> */
 #undef HAVE_SYS_TYPES_H
 
-/* Define if you have <sys/wait.h> declares struct tm.  */
+/* Define if you have <sys/wait.h> */
 #undef HAVE_SYS_WAIT_H
 
 /* Define if your processor stores words with the most significant

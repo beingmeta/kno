@@ -15,8 +15,15 @@
 #include "fdexec.c"
 #undef main
 
+#if HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
+#if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
+#if HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
 
 #define LOGMODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)
 
