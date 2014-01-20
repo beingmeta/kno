@@ -521,7 +521,7 @@ if test $doi18n = "yes"; then
   INSTALLI18N="install-i18n"
 fi
 
-AX_PTHREAD()
+AX_PTHREAD
 AX_PTHREAD(threads_default="yes",threads_default="no")
 
 AC_ARG_ENABLE(checkptrs,--en/disable-checkfdtype Enable compile-time checking for fdtype pointers,,enable_checkfdtype=$checkfdtype_default)
