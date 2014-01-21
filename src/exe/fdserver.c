@@ -520,6 +520,7 @@ static void shutdown_dtypeserver_onsignal(int sig)
     value=fd_apply(shutdown_proc,1,&sigval);
     fd_decref(value);}
   cleanup_state_files();
+  fd_doexit(FD_INT2DTYPE(sig));
   u8_log(LOG_CRIT,ServerShutdown,"Done shutting down server");
 }
 

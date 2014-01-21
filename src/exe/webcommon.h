@@ -649,7 +649,9 @@ static void webcommon_shutdown(u8_condition why)
     char timebuf[64]; double elapsed=u8_elapsed_time();
     u8_now(&xt); U8_INIT_FIXED_OUTPUT(&out,sizeof(timebuf),timebuf);
     u8_xtime_to_iso8601(&out,&xt);
-    fprintf(exitfile,"%d@%s(%f\n",getpid(),timebuf,elapsed);
+    if (why)
+      fprintf(exitfile,"%d@%s(%f) %s\n",getpid(),timebuf,elapsed,why);
+    else fprintf(exitfile,"%d@%s(%f)\n",getpid(),timebuf,elapsed);
     fclose(exitfile);}
 }
 
@@ -680,6 +682,7 @@ static void shutdown_on_signal(int sig)
   sprintf(buf,"SIG%d",sig);
   server_shutdown=1;
   shutdown_server((u8_condition)buf);
+  fd_doexit(FD_INT2DTYPE(sig));
   return;  
 }
 

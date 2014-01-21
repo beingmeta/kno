@@ -12,6 +12,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
+#include "framerd/apply.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -66,6 +67,7 @@ static fdtype configuration_table;
 #if FD_THREADS_ENABLED
 static u8_mutex config_lookup_lock;
 static u8_mutex config_register_lock;
+static u8_mutex atexit_handlers_lock;
 #endif
 
 static struct FD_CONFIG_LOOKUPS *config_lookupfns=NULL;
@@ -1552,6 +1554,63 @@ static int config_add_source_file(fdtype var,fdtype val,void *data)
     return -1;}
 }
 
+/* Termination */
+
+static struct FD_ATEXIT {
+  fdtype handler; struct FD_ATEXIT *next;} *atexit_handlers=NULL;
+static int n_atexit_handlers=0;
+
+static fdtype config_atexit_get(fdtype var,void *data)
+{
+  struct FD_ATEXIT *scan; int i=0; fdtype result;
+  fd_lock_mutex(&atexit_handlers_lock);
+  result=fd_make_vector(n_atexit_handlers,NULL);
+  scan=atexit_handlers; while (scan) {
+    fdtype handler=scan->handler; fd_incref(handler);
+    FD_VECTOR_SET(result,i,handler);
+    scan=scan->next; i++;}
+  fd_unlock_mutex(&atexit_handlers_lock);
+  return result;
+}
+
+static int config_atexit_set(fdtype var,fdtype val,void *data)
+{
+  struct FD_ATEXIT *fresh=u8_malloc(sizeof(struct FD_ATEXIT));
+  if (!(FD_APPLICABLEP(val))) {
+    fd_type_error("applicable","config_atexit",val);
+    return -1;}
+  fd_lock_mutex(&atexit_handlers_lock);
+  fresh->next=atexit_handlers; fresh->handler=val; fd_incref(val);
+  n_atexit_handlers++; atexit_handlers=fresh;
+  fd_unlock_mutex(&atexit_handlers_lock);
+  return 1;
+}
+
+FD_EXPORT void fd_doexit(fdtype arg)
+{
+  struct FD_ATEXIT *scan, *tmp;
+  if (!(atexit_handlers)) {
+    u8_log(LOG_CRIT,"fd_doexit","No FramerD exit handlers!");
+    return;}
+  fd_lock_mutex(&atexit_handlers_lock);
+  u8_log(LOG_CRIT,"fd_doexit","Running %d FramerD exit handlers",n_atexit_handlers);
+  scan=atexit_handlers; atexit_handlers=NULL;
+  fd_unlock_mutex(&atexit_handlers_lock);
+  while (scan) {
+    fdtype handler=scan->handler, result=FD_VOID;
+    u8_log(LOG_INFO,"fd_doexit","Running FramerD exit handler %q",handler);
+    if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler))) 
+      result=fd_apply(handler,1,&arg);
+    else result=fd_apply(handler,0,NULL);
+    if (FD_ABORTP(result)) {
+      fd_clear_errors(1);}
+    else fd_decref(result);
+    fd_decref(handler); tmp=scan; scan=scan->next;
+    u8_free(tmp);}
+}
+
+static void doexit_atexit(){fd_doexit(FD_FALSE);}
+
 /* Initialization */
 
 static int boot_config()
@@ -1576,6 +1635,8 @@ void fd_init_support_c()
 
   u8_register_textdomain("FramerD");
 
+  atexit(doexit_atexit);
+
   /* atexit(report_errors_atexit); */
 
 #if FD_USE_TLS
@@ -1587,6 +1648,7 @@ void fd_init_support_c()
 #if FD_THREADS_ENABLED
   fd_init_mutex(&config_lookup_lock);
   fd_init_mutex(&config_register_lock);
+  fd_init_mutex(&atexit_handlers_lock);
 #endif
 
   fd_register_config_lookup(getenv_config_lookup,NULL);
@@ -1726,6 +1788,10 @@ void fd_init_support_c()
     ("SOURCES",_("Registered source files"),
      config_get_source_files,config_add_source_file,
      &u8_log_show_procinfo);
+
+  fd_register_config("ATEXIT",_("Procedures to call on exit"),
+		     config_atexit_get,config_atexit_set,NULL);
+  
 
 
 }

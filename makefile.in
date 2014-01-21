@@ -255,9 +255,9 @@ makefile: makefile.in config.status
 	./config.status --recheck
 configure: configure.ac
 	autoconf
-include/framerd/config.h: include/framerd/config.h.in config.status
+include/framerd/config.h: include/framerd/config.h.in
 	./config.status
-include/framerd/fdsource.h: include/framerd/fdsource.h.in config.status
+include/framerd/fdsource.h: include/framerd/fdsource.h.in
 	./config.status
 
 tests/dtype/makefile: tests/dtype/makefile.in ./configure

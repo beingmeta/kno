@@ -107,6 +107,10 @@ FD_EXPORT fdtype fd_make_cprim9x(u8_string name,fd_cprim9 fn,int mina,...);
   ((FD_FUNCTIONP(x)) ? \
    ((struct FD_FUNCTION *)(FD_CONS_DATA(fd_pptr_ref(x)))) : \
    ((struct FD_FUNCTION *)(u8_raise(fd_TypeError,"function",NULL),NULL)))
+#define FD_FUNCTION_ARITY(x)  \
+  ((FD_FUNCTIONP(x)) ? \
+   (((struct FD_FUNCTION *)(FD_CONS_DATA(fd_pptr_ref(x))))->arity) : \
+   (0))
 
 /* #define FD_XFUNCTION(x) (FD_GET_CONS(x,fd_function_type,struct FD_FUNCTION *)) */
 #define FD_PRIMITIVEP(x) (FD_PTR_TYPEP(x,fd_function_type))
