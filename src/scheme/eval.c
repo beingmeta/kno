@@ -1264,6 +1264,63 @@ static fdtype environmentp_prim(fdtype arg)
   else return FD_FALSE;
 }
 
+/* Withenv forms */
+
+static fdtype withenv(fdtype expr,fd_lispenv env,fd_lispenv consed_env,u8_context cxt)
+{
+  fdtype bindings=fd_get_arg(expr,1);
+  if (FD_VOIDP(bindings))
+    return fd_err(fd_TooFewExpressions,cxt,NULL,expr);
+  else if ((FD_EMPTY_LISTP(bindings))||(FD_FALSEP(bindings))) {}
+  else if (FD_PAIRP(bindings)) {
+    FD_DOLIST(varval,bindings) {
+      if ((FD_PAIRP(varval))&&(FD_SYMBOLP(FD_CAR(varval)))&&
+          (FD_PAIRP(FD_CDR(varval)))&&
+          (FD_EMPTY_LISTP(FD_CDR(FD_CDR(varval))))) {
+        fdtype var=FD_CAR(varval), val=fd_eval(FD_CADR(varval),env);
+        if (FD_ABORTP(val)) {
+          fd_recycle_environment(consed_env);
+          return FD_ERROR_VALUE;}
+        fd_bind_value(var,val,consed_env);}
+      else {
+        fd_recycle_environment(consed_env);
+        return fd_err(fd_SyntaxError,cxt,NULL,expr);}}}
+  else if (FD_TABLEP(bindings)) {
+    fdtype keys=fd_getkeys(bindings);
+    FD_DO_CHOICES(key,keys) {
+      if (FD_SYMBOLP(key)) {
+        fdtype value=fd_get(bindings,key,FD_VOID);
+        if (!(FD_VOIDP(value)))
+          fd_bind_value(key,value,consed_env);
+        fd_decref(value);}
+      else {
+        FD_STOP_DO_CHOICES;
+        fd_recycle_environment(consed_env);
+        return fd_err(fd_SyntaxError,cxt,NULL,expr);}
+      fd_decref(keys);}}
+  else return fd_err(fd_SyntaxError,cxt,NULL,expr);
+  /* Execute the body */ {
+    fdtype result=FD_VOID;
+    FD_DOBODY(elt,expr,2) {
+      fd_decref(result); result=fd_eval(elt,consed_env);}
+    fd_decref((fdtype)consed_env);
+    return result;}
+}
+
+static fdtype withenv_handler(fdtype expr,fd_lispenv env)
+{
+  fd_lispenv consed_env=fd_working_environment();
+  return withenv(expr,env,consed_env,"WITHENV");
+}
+
+static fdtype withenv_safe_handler(fdtype expr,fd_lispenv env)
+{
+  fd_lispenv consed_env=fd_safe_working_environment();
+  return withenv(expr,env,consed_env,"WITHENV/SAFE");
+}
+
+/* Eval/apply related primitives */
+
 static fdtype get_arg_prim(fdtype expr,fdtype elt,fdtype dflt)
 {
   if (FD_PAIRP(expr))
@@ -1716,6 +1773,12 @@ static void init_localfns()
   fd_idefn(fd_scheme_module,fd_make_cprim2x("%LEXREF",lexref_prim,2,
 					    fd_fixnum_type,FD_VOID,
 					    fd_fixnum_type,FD_VOID));
+
+  fd_defspecial(fd_scheme_module,"WITHENV",withenv_safe_handler);
+  fd_defspecial(fd_xscheme_module,"WITHENV",withenv_handler);
+  fd_defspecial(fd_xscheme_module,"WITHENV/SAFE",withenv_safe_handler);
+
+
   fd_idefn(fd_scheme_module,fd_make_cprim3("GET-ARG",get_arg_prim,2));
   fd_defspecial(fd_scheme_module,"GETOPT",getopt_handler);
   fd_idefn(fd_scheme_module,

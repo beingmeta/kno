@@ -72,6 +72,8 @@
 (put 'when 'scheme-indent-function 1)
 (put 'unless 'scheme-indent-function 1)
 (put 'tryif 'scheme-indent-function 1)
+(put 'withenv 'scheme-indent-function 1)
+(put 'withenv/safe 'scheme-indent-function 1)
 
 (put 'ambda 'scheme-indent-function 1)
 (put 'sambda 'scheme-indent-function 1)

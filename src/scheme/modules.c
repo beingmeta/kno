@@ -307,60 +307,6 @@ static fdtype safe_within_module(fdtype expr,fd_lispenv env)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype with_temp_module
-  (fdtype expr,fd_lispenv env,fd_lispenv consed_env,u8_context cxt)
-{
-  fdtype bindings=fd_get_arg(expr,1);
-  if (FD_VOIDP(bindings))
-    return fd_err(fd_TooFewExpressions,cxt,NULL,expr);
-  else if ((FD_EMPTY_LISTP(bindings))||(FD_FALSEP(bindings))) {}
-  else if (FD_PAIRP(bindings)) {
-    FD_DOLIST(varval,bindings) {
-      if ((FD_PAIRP(varval))&&(FD_SYMBOLP(FD_CAR(varval)))&&
-          (FD_PAIRP(FD_CDR(varval)))&&
-          (FD_NULLP(FD_CDR(FD_CDR(varval))))) {
-        fdtype var=FD_CAR(varval), val=fd_eval(FD_CADR(varval),env);
-        if (FD_ABORTP(val)) {
-          fd_recycle_environment(consed_env);
-          return FD_ERROR_VALUE;}
-        fd_bind_value(var,val,consed_env);}
-      else {
-        fd_recycle_environment(consed_env);
-        return fd_err(fd_SyntaxError,cxt,NULL,expr);}}}
-  else if (FD_TABLEP(bindings)) {
-    fdtype keys=fd_getkeys(bindings);
-    FD_DO_CHOICES(key,keys) {
-      if (FD_SYMBOLP(key)) {
-        fdtype value=fd_get(bindings,key,FD_VOID);
-        if (!(FD_VOIDP(value)))
-          fd_bind_value(key,value,consed_env);
-        fd_decref(value);}
-      else {
-        FD_STOP_DO_CHOICES;
-        fd_recycle_environment(consed_env);
-        return fd_err(fd_SyntaxError,cxt,NULL,expr);}
-      fd_decref(keys);}}
-  else return fd_err(fd_SyntaxError,cxt,NULL,expr);
-  /* Execute the body */ {
-    fdtype result=FD_VOID;
-    FD_DOBODY(elt,expr,2) {
-      fd_decref(result); result=fd_eval(elt,consed_env);}
-    fd_decref((fdtype)consed_env);
-    return result;}
-}
-
-static fdtype with_module_handler(fdtype expr,fd_lispenv env)
-{
-  fd_lispenv consed_env=fd_working_environment();
-  return with_temp_module(expr,env,consed_env,"WITH-WORKING-MODULE");
-}
-
-static fdtype with_safe_module_handler(fdtype expr,fd_lispenv env)
-{
-  fd_lispenv consed_env=fd_safe_working_environment();
-  return with_temp_module(expr,env,consed_env,"WITH-SAFE-WORKING-MODULE");
-}
-
 static fdtype within_module(fdtype expr,fd_lispenv env)
 {
   fd_lispenv consed_env=fd_working_environment();
@@ -686,13 +632,6 @@ FD_EXPORT void fd_init_modules_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
   fd_defalias(fd_scheme_module,"%LS","GET-EXPORTS");
-
-  fd_defspecial(fd_scheme_module,"WITH-WORKING-MODULE",
-                with_safe_module_handler);
-  fd_defspecial(fd_xscheme_module,"WITH-WORKING-MODULE",
-                with_module_handler);
-  fd_defspecial(fd_xscheme_module,"WITH-SAFE-WORKING-MODULE",
-                with_safe_module_handler);
 
   fd_defspecial(fd_xscheme_module,"IN-MODULE",in_module);
   fd_defspecial(fd_xscheme_module,"WITHIN-MODULE",within_module);
