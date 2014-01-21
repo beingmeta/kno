@@ -254,7 +254,9 @@ makefile: makefile.in config.status
 ./config.status: configure
 	./config.status --recheck
 configure: configure.ac
-	autoconf
+	@if test -f .autoautoconf; then \
+	     echo "REBUILDING configure"; autoconf; \
+	else echo "WARNING: configure may be out of date"; fi
 include/framerd/config.h: include/framerd/config.h.in
 	./config.status
 include/framerd/fdsource.h: include/framerd/fdsource.h.in
