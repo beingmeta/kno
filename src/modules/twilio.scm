@@ -5,7 +5,7 @@
 
 (use-module '{fdweb texttools varconfig logger})
 
-(module-export! '{twilio/send smsout sms/norm sms/norm})
+(module-export! '{twilio/send smsout sms/display sms/norm})
 
 (define-init %loglevel %notify%)
 
