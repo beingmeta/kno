@@ -307,11 +307,12 @@ static fdtype safe_within_module(fdtype expr,fd_lispenv env)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype with_temp_module(fdtype expr,fd_lispenv env,fd_lispenv consed_env)
+static fdtype with_temp_module
+  (fdtype expr,fd_lispenv env,fd_lispenv consed_env,u8_context cxt)
 {
   fdtype bindings=fd_get_arg(expr,1);
   if (FD_VOIDP(bindings))
-    return fd_err(fd_TooFewExpressions,"LET-MODULE",NULL,expr);
+    return fd_err(fd_TooFewExpressions,cxt,NULL,expr);
   else if ((FD_EMPTY_LISTP(bindings))||(FD_FALSEP(bindings))) {}
   else if (FD_PAIRP(bindings)) {
     FD_DOLIST(varval,bindings) {
@@ -321,11 +322,11 @@ static fdtype with_temp_module(fdtype expr,fd_lispenv env,fd_lispenv consed_env)
         fdtype var=FD_CAR(varval), val=fd_eval(FD_CADR(varval),env);
         if (FD_ABORTP(val)) {
           fd_recycle_environment(consed_env);
-          return fd_err(fd_SyntaxError,"LET-MODULE",NULL,expr);}
+          return FD_ERROR_VALUE;}
         fd_bind_value(var,val,consed_env);}
       else {
         fd_recycle_environment(consed_env);
-        return fd_err(fd_SyntaxError,"LET-MODULE",NULL,expr);}}}
+        return fd_err(fd_SyntaxError,cxt,NULL,expr);}}}
   else if (FD_TABLEP(bindings)) {
     fdtype keys=fd_getkeys(bindings);
     FD_DO_CHOICES(key,keys) {
@@ -337,9 +338,9 @@ static fdtype with_temp_module(fdtype expr,fd_lispenv env,fd_lispenv consed_env)
       else {
         FD_STOP_DO_CHOICES;
         fd_recycle_environment(consed_env);
-        return fd_err(fd_SyntaxError,"LET-MODULE",NULL,expr);}
+        return fd_err(fd_SyntaxError,cxt,NULL,expr);}
       fd_decref(keys);}}
-  else return fd_err(fd_SyntaxError,"LET-MODULE",NULL,expr);
+  else return fd_err(fd_SyntaxError,cxt,NULL,expr);
   /* Execute the body */ {
     fdtype result=FD_VOID;
     FD_DOBODY(elt,expr,2) {
@@ -351,13 +352,13 @@ static fdtype with_temp_module(fdtype expr,fd_lispenv env,fd_lispenv consed_env)
 static fdtype with_module_handler(fdtype expr,fd_lispenv env)
 {
   fd_lispenv consed_env=fd_working_environment();
-  return with_temp_module(expr,env,consed_env);
+  return with_temp_module(expr,env,consed_env,"WITH-WORKING-MODULE");
 }
 
 static fdtype with_safe_module_handler(fdtype expr,fd_lispenv env)
 {
   fd_lispenv consed_env=fd_safe_working_environment();
-  return with_temp_module(expr,env,consed_env);
+  return with_temp_module(expr,env,consed_env,"WITH-SAFE-WORKING-MODULE");
 }
 
 static fdtype within_module(fdtype expr,fd_lispenv env)
