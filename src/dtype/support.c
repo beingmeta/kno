@@ -212,7 +212,7 @@ FD_EXPORT fdtype fd_config_get(u8_string var)
 
 FD_EXPORT int fd_config_set(u8_string var,fdtype val)
 {
-  fdtype symbol=config_intern(var); int retval;
+  fdtype symbol=config_intern(var); int retval=0;
   struct FD_CONFIG_HANDLER *scan=config_handlers;
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
@@ -220,8 +220,8 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
       retval=scan->config_set_method(symbol,val,scan->data);
       break;}
     else scan=scan->next;
-  if (scan==NULL) return config_set(var,val);
-  else if (retval<0) {
+  config_set(var,val);
+  if (retval<0) {
     u8_string errsum=fd_errstring(NULL);
     u8_log(LOG_WARN,fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
     u8_free(errsum);}
@@ -230,17 +230,18 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
 
 FD_EXPORT int fd_config_default(u8_string var,fdtype val)
 {
-  fdtype symbol=config_intern(var); int retval=-1;
+  fdtype symbol=config_intern(var); int retval=1;
   struct FD_CONFIG_HANDLER *scan=config_handlers;
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
-      if ((scan->flags)&(FD_CONFIG_ALREADY_MODIFIED)) break;
+      if ((scan->flags)&(FD_CONFIG_ALREADY_MODIFIED)) return 0;
       scan->flags=scan->flags|FD_CONFIG_ALREADY_MODIFIED;
       retval=scan->config_set_method(symbol,val,scan->data);
       break;}
     else scan=scan->next;
-  if (scan==NULL) return config_set(var,val);
-  else if (retval<0) {
+  if (fd_test(configuration_table,symbol,FD_VOID)) return 0;
+  else config_set(var,val);
+  if (retval<0) {
     u8_string errsum=fd_errstring(NULL);
     u8_log(LOG_WARN,fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
     u8_free(errsum);}
@@ -263,7 +264,7 @@ FD_EXPORT int fd_register_config
    int (*setfn)(fdtype,fdtype,void *),
    void *data)
 {
-  fdtype symbol=config_intern(var), current=FD_VOID;
+  fdtype symbol=config_intern(var), current=config_get(var);
   int retval=0;
   struct FD_CONFIG_HANDLER *scan;
   fd_lock_mutex(&config_register_lock);
@@ -275,10 +276,6 @@ FD_EXPORT int fd_register_config
 	   Possibly not the right thing. */
 	if (scan->doc) u8_free(scan->doc);
 	scan->doc=u8_strdup(doc);}
-      /* Get the 'current' value which is computed */
-      if (scan->config_get_method)
-	current=(scan->config_get_method)(symbol,(void *)scan->data);
-      else current=config_get(var);
       scan->config_get_method=getfn;
       scan->config_set_method=setfn;
       scan->data=data;
@@ -299,27 +296,23 @@ FD_EXPORT int fd_register_config
   if (FD_ABORTP(current)) {
     fd_clear_errors(1);
     retval=-1;}
-  else if (!(FD_VOIDP(current))) {
-    FD_DO_CHOICES(c,current) {
+  else if (FD_VOIDP(current)) {}
+  else if (FD_PAIRP(current)) {
+    /* There have been multiple configuration specifications,
+       so run them all backwards. */
+    int n=0; fdtype *vals, *write;
+    {FD_DOLIST(cv,current) n++;}
+    vals=u8_alloc_n(n,fdtype); write=vals;
+    {FD_DOLIST(cv,current) *write++=cv;}
+    while (n>0) {
+      n=n-1;
       if (retval<0) {
-	fd_decref(current); return retval;}
-      else if (FD_PAIRP(c)) {
-	/* There have been multiple configuration specifications,
-	   so run them all backwards. */
-	int n=0; fdtype *vals, *write;
-	{FD_DOLIST(cv,c) n++;}
-	vals=u8_alloc_n(n,fdtype); write=vals;
-	{FD_DOLIST(cv,c) *write++=cv;}
-	while (n>0) {
-	  n=n-1;
-	  if (retval<0) {
-	    u8_free(vals); fd_decref(current);
-	    return retval;}
-	  else retval=setfn(symbol,vals[n],data);}
-	fd_decref(current); u8_free(vals);
-	return retval;}
-     else retval=setfn(symbol,current,data);}}
-  else {}
+        u8_free(vals); fd_decref(current);
+        return retval;}
+      else retval=setfn(symbol,vals[n],data);}
+    fd_decref(current); u8_free(vals);
+    return retval;}
+  else retval=setfn(symbol,current,data);
   fd_decref(current);
   return retval;
 }
