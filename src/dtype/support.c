@@ -1590,10 +1590,11 @@ FD_EXPORT void fd_doexit(fdtype arg)
 {
   struct FD_ATEXIT *scan, *tmp;
   if (!(atexit_handlers)) {
-    u8_log(LOG_CRIT,"fd_doexit","No FramerD exit handlers!");
+    u8_log(LOG_INFO,"fd_doexit","No FramerD exit handlers!");
     return;}
   fd_lock_mutex(&atexit_handlers_lock);
-  u8_log(LOG_CRIT,"fd_doexit","Running %d FramerD exit handlers",n_atexit_handlers);
+  u8_log(LOG_NOTICE,"fd_doexit","Running %d FramerD exit handlers",
+         n_atexit_handlers);
   scan=atexit_handlers; atexit_handlers=NULL;
   fd_unlock_mutex(&atexit_handlers_lock);
   while (scan) {
