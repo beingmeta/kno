@@ -599,11 +599,13 @@ fi
 
 AC_CHECK_HEADERS(sqlite3.h sql.h)
 
-AC_CHECK_PROGS(mysql_config,mysql_config,"na")
-AC_CHECK_PROGS(pkg_config,pkg-config,"na")
+AC_CHECK_PROGS(mysql_config,mysql_config /usr/local/bin/mysql_config /opt/bin/mysql_config /opt/local/bin/mysql_config ,"na")
+AC_CHECK_PROGS(pkg_config,pkg-config /usr/local/bin/pkg-config /opt/bin/pkg-config /opt/local/bin/pkg-config ,"na")
 
 if test $mysql_config != "na"; then
    with_mysql_default="auto"
+else
+   with_mysql_default="no";
 fi
 
 if test $pkg_config != "na"; then
@@ -618,11 +620,11 @@ fi
 AC_ARG_WITH(mysql,--with[out]-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
 
 if test x$with_mysql = "xauto"; then
-  MYSQL_CFLAGS=`mysql_config --cflags`
-  MYSQL_LDFLAGS=`mysql_config --libs_r`
+  MYSQL_CFLAGS=`$mysql_config --cflags`
+  MYSQL_LDFLAGS=`$mysql_config --libs_r`
 elif test x$with_mysql = "xyes"; then
-  MYSQL_CFLAGS=\`mysql_config --cflags\`
-  MYSQL_LDFLAGS=\`mysql_config --libs_r\`
+  MYSQL_CFLAGS=\`$mysql_config --cflags\`
+  MYSQL_LDFLAGS=\`$mysql_config --libs_r\`
 elif test x$with_mysql != "xno"; then
   MYSQL_CFLAGS="-I$with_mysql/include"
   MYSQL_LDFLAGS="-I$with_mysql/lib"
