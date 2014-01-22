@@ -29,7 +29,7 @@ u8_condition LoadEval=_("Load Eval");
 
 static int trace_load=0, trace_load_eval=0;
 
-static fdtype after_symbol, traceloadeval_symbol;
+static fdtype after_symbol, traceloadeval_symbol, postload_symbol;
 
 /* Getting sources */
 
@@ -105,6 +105,7 @@ FD_EXPORT fdtype fd_load_source
   (u8_string sourceid,fd_lispenv env,u8_string enc_name)
 {
   struct U8_INPUT stream;
+  fdtype postload=FD_VOID;
   u8_string sourcebase=NULL, outer_sourcebase;
   u8_string encoding=((enc_name)?(enc_name):((u8_string)("auto")));
   u8_string content=fd_get_source(sourceid,encoding,&sourcebase,NULL);
@@ -161,6 +162,18 @@ FD_EXPORT fdtype fd_load_source
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_NOTICE,FileDone,"Loaded %s in %f seconds",
 	     sourcebase,u8_elapsed_time()-start);
+    postload=fd_symeval(postload_symbol,env);
+    if ((!(FD_ABORTP(result)))&&(!(FD_VOIDP(postload)))) {
+      if ((FD_FALSEP(postload))||(FD_EMPTY_CHOICEP(postload))) {}
+      else if (FD_APPLICABLEP(postload)) {
+        fdtype post_result=fd_apply(postload,0,NULL);
+        if (FD_ABORTP(post_result)) {
+          fd_clear_errors(1);}
+        fd_decref(post_result);}
+      else u8_log(LOG_WARN,"fd_load_source",
+                  "Postload method is not applicable: ",
+                  postload);}
+    fd_decref(postload);
     restore_sourcebase(outer_sourcebase);
     u8_free(sourcebase);
     u8_free(content);
@@ -382,6 +395,8 @@ FD_EXPORT void fd_init_load_c()
  after_symbol=fd_intern("AFTEREXPR");
  loading_symbol=fd_intern("%LOADING");
  traceloadeval_symbol=fd_intern("%TRACELOADEVAL");
+ postload_symbol=fd_intern("%POSTLOAD");
+
  
  fd_defspecial(fd_xscheme_module,"LOAD",load_source);
  fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component);
