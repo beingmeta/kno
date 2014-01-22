@@ -374,9 +374,10 @@ if test $etags = "na"; then
    TAGS=""
 fi
 
-AC_CHECK_HEADERS(resource.h sys/resource.h sys/types.h sys/wait.h sys/stat.h)
+dnl Some system headers and members
 
-AC_CHECK_HEADERS(resource.h sys/resource.h sys/types.h sys/wait.h sys/stat.h)
+AC_CHECK_HEADERS(resource.h sys/resource.h)
+AC_CHECK_HEADERS(sys/types.h sys/wait.h sys/stat.h)
 
 AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],
 	         [#include <sys/resource.h>])
