@@ -81,7 +81,7 @@
 	(irritant result CALLFAILED DROPBOX/GET+
 		  path " with " oauth))))
 
-(define (dropbox/info oauth path (revision #f))
+(define (dropbox/info oauth path (revision #f) (error #f))
   (let* ((endpoint (glom "https://api.dropbox.com/1/metadata/"
 		     (getopt oauth 'root
 			     (if (testopt oauth 'live)
@@ -103,8 +103,9 @@
 				    (get parsed 'size))
 		       'bytes))
 	  parsed)
-	(irritant result CALLFAILED DROPBOX/INFO
-		  path " with " oauth))))
+	(and (or error (not (<= 400 status 500)))
+	     (irritant result CALLFAILED DROPBOX/INFO
+		       path " with " oauth)))))
 
 (define (dropbox/list oauth path (revision #f))
   (let* ((endpoint (glom "https://api.dropbox.com/1/metadata/"
