@@ -9,7 +9,8 @@
    writeout writeout/type
    gp/writeout gp/writeout! gp/writeout+!
    gpath? ->gpath
-   gp/location? gp/location gp/basename gp/has-suffix gp/has-prefix
+   gp/location? gp/location gp/basename
+   gp/has-suffix gp/has-prefix
    gp/fetch gp/fetch+ gp/etag gp/info
    gp/exists? gp/exists gp/modified gp/newer
    gp/path gp/mkpath gp/makepath gpath->string
@@ -212,6 +213,9 @@
   (cond ((and (pair? path)
 	      (or (null? (cdr path)) (empty-string? (cdr path))))
 	 (gp/location (car path)))
+	((and (pair? path) (string? (cdr path))
+	      (has-suffix (cdr path) "/"))
+	 (gp/mkpath (car path) (slice (cdr path) 0 -1)))
 	((and (pair? path) (string? (cdr path))
 	      (position #\/ (cdr path)))
 	 (gp/mkpath (car path) (dirname (cdr path))))
@@ -490,6 +494,11 @@
 	 (get (hashfs/get+ (car ref) (cdr ref)) 'modified))
 	((and (pair? ref) (pair? (car ref)))
 	 (gp/modified (gp/path (car ref) (cdr ref))))
+	((and (pair? ref) (compound-type? (car ref))
+	      (test gpath-handlers (compound-tag (car ref))))
+	 (get ((gpath-handler-get (get gpath-handlers (compound-tag (car ref))))
+	       (car ref) (cdr ref) #t)
+	      'modified))
 	((and (string? ref)
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
 	 (let ((response (urlget ref)))
@@ -523,6 +532,10 @@
 	 (exists? (hashfs/get+ (car ref) (cdr ref))))
 	((and (pair? ref) (pair? (car ref)))
 	 (gp/exists? (gp/path (car ref) (cdr ref))))
+	((and (pair? ref) (compound-type? (car ref))
+	      (test gpath-handlers (compound-tag (car ref))))
+	 ((gpath-handler-get (get gpath-handlers (compound-tag (car ref))))
+	  (car ref) (cdr ref) #t))
 	((pair? ref) (gp/exists? (gp/path (car ref) (cdr ref))))
 	((and (string? ref)
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
