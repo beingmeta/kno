@@ -250,7 +250,7 @@
 		      (random-string 128))
 		    secret)))
       auth-cookie-domain auth-cookie-path
-      (timestamp+ (* 3600 24 42))
+      (and (authinfo-sticky? auth) (timestamp+ (* 3600 24 42)))
       (req/get 'https))))
 
 (define (getauthinfo var)
