@@ -12,6 +12,7 @@
 
 (module-export! '{auth/getinfo
 		  auth/getuser
+		  auth/sticky?
 		  auth/update!
 		  auth/identify!
 		  auth/maketoken
@@ -446,8 +447,11 @@
 	 (try user #f))
        #f))
 
-(define (auth/update! (authid authid))
-  (freshauth (auth/getinfo authid)))
+(define (auth/update! (_authid authid))
+  (freshauth (auth/getinfo _authid)))
+
+(define (auth/sticky? (_authid authid))
+  (authinfo-sticky? (auth/getinfo _authid)))
 
 ;;;; Authorize/deauthorize API
 
