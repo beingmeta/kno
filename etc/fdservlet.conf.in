@@ -1,6 +1,6 @@
 instance $SOCKET
 author "Ken Haase"
-description "Starts a FramerD servlet daemon"
+description "FramerD servlet"
 expect daemon
 console none
 respawn
