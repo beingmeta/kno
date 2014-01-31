@@ -267,6 +267,7 @@
 ;;; Getting S3 URIs for the API
 
 (define (s3/uri bucket path (scheme s3scheme) (usepath default-usepath))
+  (when (not scheme) (set! scheme s3scheme))
   (if usepath
       (stringout scheme s3root "/" bucket path)
       (if (and (hashset-get website-buckets bucket) (equal? scheme "http://"))
