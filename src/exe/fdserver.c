@@ -1002,7 +1002,8 @@ static int fork_server(u8_string source_file,fd_lispenv env)
       if (grandchild<0) {
 	u8_log(LOG_CRIT,"fork_server","Second fork failed for %s",source_file);
 	exit(1);}
-      u8_log(LOG_NOTICE,"fork_server","Server %s has PID %d",source_file,grandchild);
+      u8_log(LOG_NOTICE,"fork_server","Server %s has PID %d",
+	     source_file,grandchild);
       exit(0);}
     else return launch_server(source_file,env);}
 }

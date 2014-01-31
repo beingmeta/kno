@@ -1736,7 +1736,8 @@ static int fork_servlet(u8_string servlet_id)
       if (grandchild<0) {
 	u8_log(LOG_CRIT,"fdservlet","Second fork failed for %s",servlet_id);
 	exit(1);}
-      u8_log(LOG_NOTICE,"fdservlet/forked","Server %s has PID %d",servlet_id,grandchild);
+      u8_log(LOG_NOTICE,"fdservlet/forked","Server %s has PID %d",
+	     servlet_id,grandchild);
       exit(0);}
     else return launch_servlet(servlet_id);}
 }

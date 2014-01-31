@@ -1,6 +1,6 @@
 instance $CTL
 author "Ken Haase"
-description "Starts a FramerD DType eval server daemon"
+description "FramerD DType server"
 expect daemon
 console none
 respawn
