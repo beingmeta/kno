@@ -13,6 +13,7 @@
 ;;(define %loglevel %debug!)
 
 (define bugjar-css (get-component "bugjar.css"))
+(define bugjar-js (get-component "bugjar.js"))
 
 ;;; Configurable
 
@@ -116,6 +117,9 @@
        (htmlheader
 	(xmlblock STYLE ((type "text/css"))
 	  (xhtml "\n" (getcontent bugjar-css))))
+       (htmlheader
+	(xmlblock SCRIPT ((type "text/javascript") (language "javascript"))
+	  (xhtml "\n" (getcontent bugjar-js))))
        (stylesheet! "https://s3.amazonaws.com/beingmeta/static/fdjt/fdjt.css")
        (body! 'class "fdjtbugreport")
        (htmlheader
@@ -199,7 +203,8 @@
 	 (h2* ((id "RESOURCES")) "Resource data")
 	 (tableout (rusage) #[skipempty #t class "fdjtdata rusage"])
 	 (h2* ((id "BACKTRACE")) "Full backtrace")
-	 (void (backtrace->html exception))
+	 (div ((class "backtracediv") (onclick "expandTBODY(event);"))
+	   (void (backtrace->html exception)))
 	 (when detailsblock
 	   (h2* ((id "DETAILS")) "Details")
 	   (xmlblock PRE ((class "errdetails"))
@@ -211,6 +216,8 @@
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (mkpath fileroot "backtrace.html")))))
+
+
 
 
 
