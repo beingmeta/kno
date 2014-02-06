@@ -123,24 +123,31 @@
 	  (extdb/proc db query
 		      (qc default-sqlmap)
 		      valtype (pool-base pool))))
-(define (xo/defstore! slotid method (pool #f))
-  (store! store-procs (if pool (cons pool slotid) slotid) method))
+(defambda (xo/defstore! slotid method (pool #f))
+  (do-choices slotid
+    (do-choices pool
+      (store! store-procs (if pool (cons pool slotid) slotid)
+	      method))))
 (define (xo/defadd pool slotid db query (valtype #f))
   (store! add-procs
 	  (if pool (cons pool slotid) slotid)
 	  (extdb/proc db query
 		      (qc default-sqlmap)
 		      valtype (pool-base pool))))
-(define (xo/defadd! slotid method (pool #f))
-  (store! add-procs (if pool (cons pool slotid) slotid) method))
+(defambda (xo/defadd! slotid method (pool #f))
+  (do-choices slotid
+    (do-choices pool
+      (store! add-procs (if pool (cons pool slotid) slotid) method))))
 (define (xo/defdrop pool slotid db query (valtype #f))
   (store! drop-procs
 	  (if pool (cons pool slotid) slotid)
 	  (extdb/proc db query
 		      (qc default-sqlmap)
 		      valtype (pool-base pool))))
-(define (xo/defdrop! slotid method (pool #f))
-  (store! drop-procs (if pool (cons pool slotid) slotid) method))
+(defambda (xo/defdrop! slotid method (pool #f))
+  (do-choices slotid
+    (do-choices pool
+      (store! drop-procs (if pool (cons pool slotid) slotid) method))))
 
 ;;; Getting slots
 
@@ -197,5 +204,10 @@
 (defambda (xo/defgetstore pool slotid index)
   (store! get-indices (cons pool slotid) index))
 
-
+(defambda (xo/defget! slotid methods (pool #f))
+  (let ((index (cons-extindex (stringout slotid) methods #f)))
+    (do-choices slotid
+      (do-choices pool
+	(store! get-indices (cons pool slotid) index)
+	(use-adjunct index slotid pool)))))
 
