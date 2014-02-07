@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-12-19 16:32+0000\n"
+"POT-Creation-Date: 2014-02-06 20:00-0500\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -17,2197 +17,2205 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/dtype/cons.c:23
+#: src/dtype/cons.c:24
 msgid "malloc/realloc failed"
 msgstr ""
 
-#: src/dtype/cons.c:24
+#: src/dtype/cons.c:25
 msgid "Type error"
 msgstr ""
 
-#: src/dtype/cons.c:24
+#: src/dtype/cons.c:25
 msgid "Range error"
 msgstr ""
 
-#: src/dtype/cons.c:25
+#: src/dtype/cons.c:26
 msgid "bad dtype pointer"
 msgstr ""
 
-#: src/dtype/cons.c:26
+#: src/dtype/cons.c:27
 msgid "Freeing already freed CONS"
 msgstr ""
 
-#: src/dtype/cons.c:27
+#: src/dtype/cons.c:28
 msgid "Using freed CONS"
 msgstr ""
 
-#: src/dtype/cons.c:28
+#: src/dtype/cons.c:29
 msgid "Freeing non-heap cons"
 msgstr ""
 
-#: src/dtype/cons.c:665 src/dtype/cons.c:692
+#: src/dtype/cons.c:666 src/dtype/cons.c:693
 msgid "positive byte"
 msgstr ""
 
-#: src/dtype/cons.c:893
+#: src/dtype/cons.c:894
 #, c-format
 msgid "#<MysteryVector 0x%x/0x%x %d elements>"
 msgstr ""
 
-#: src/dtype/cons.c:895
+#: src/dtype/cons.c:896
 #, c-format
 msgid "#<MysteryPacket 0x%x/0x%x %d bytes>"
 msgstr ""
 
-#: src/dtype/tables.c:24
+#: src/dtype/tables.c:25
 msgid "No such key"
 msgstr ""
 
-#: src/dtype/tables.c:25
+#: src/dtype/tables.c:26
 msgid "Read-Only hashtable"
 msgstr ""
 
-#: src/dtype/tables.c:26
+#: src/dtype/tables.c:27
 msgid "Hashset Overflow"
 msgstr ""
 
-#: src/dtype/tables.c:27
+#: src/dtype/tables.c:28
 msgid "Not a table"
 msgstr ""
 
-#: src/dtype/tables.c:28
+#: src/dtype/tables.c:29
 msgid "Table doesn't support get"
 msgstr ""
 
-#: src/dtype/tables.c:29
+#: src/dtype/tables.c:30
 msgid "Table doesn't support set"
 msgstr ""
 
-#: src/dtype/tables.c:30
+#: src/dtype/tables.c:31
 msgid "Table doesn't support add"
 msgstr ""
 
-#: src/dtype/tables.c:31
+#: src/dtype/tables.c:32
 msgid "Table doesn't support drop"
 msgstr ""
 
-#: src/dtype/tables.c:32
+#: src/dtype/tables.c:33
 msgid "Table doesn't support test"
 msgstr ""
 
-#: src/dtype/tables.c:33
+#: src/dtype/tables.c:34
 msgid "Table doesn't support getkeys"
 msgstr ""
 
-#: src/dtype/tables.c:34
+#: src/dtype/tables.c:35
 msgid "Invalid hashtable method"
 msgstr ""
 
-#: src/dtype/tables.c:67
+#: src/dtype/tables.c:68
 #, c-format
 msgid "Noticed %s on %lx\n"
 msgstr ""
 
-#: src/dtype/tables.c:2483
+#: src/dtype/tables.c:2484
 msgid "value is not a boolean"
 msgstr ""
 
-#: src/dtype/pptrs.c:27
+#: src/dtype/pptrs.c:28
 msgid "Invalid persistent pointer reference"
 msgstr ""
 
-#: src/dtype/pptrs.c:28
+#: src/dtype/pptrs.c:29
 msgid "No more valid persistent pointers"
 msgstr ""
 
-#: src/dtype/pptrs.c:73
+#: src/dtype/pptrs.c:74
 msgid "persistent pointer"
 msgstr ""
 
-#: src/dtype/dtypeio.c:27
+#: src/dtype/dtypeio.c:28
 msgid "Unexpected end of data"
 msgstr ""
 
-#: src/dtype/dtypeio.c:28
+#: src/dtype/dtypeio.c:29
 msgid "Malformed DTYPE representation"
 msgstr ""
 
-#: src/dtype/dtypeio.c:29
+#: src/dtype/dtypeio.c:30
 msgid "Inconsistent DTYPE size"
 msgstr ""
 
-#: src/dtype/dtypeio.c:31
+#: src/dtype/dtypeio.c:32
 msgid "Inconsistent read/unread byte"
 msgstr ""
 
-#: src/dtype/dtypeio.c:225
+#: src/dtype/dtypeio.c:226
 msgid "Invalid constant"
 msgstr ""
 
-#: src/dtype/dtypeio.c:235 src/dtype/dtypeio.c:366
+#: src/dtype/dtypeio.c:236 src/dtype/dtypeio.c:367
 msgid "Can't write DTYPE"
 msgstr ""
 
-#: src/dtype/dtypeio.c:1046
+#: src/dtype/dtypeio.c:1047
 msgid "Poorly Restored Error"
 msgstr ""
 
-#: src/dtype/dtypeio.c:1216
+#: src/dtype/dtypeio.c:1217
 msgid "Use the DTBLOCK dtype code when appropriate"
 msgstr ""
 
-#: src/dtype/textio.c:37
+#: src/dtype/textio.c:38
 msgid "Can't open file"
 msgstr ""
 
-#: src/dtype/textio.c:38
-msgid "Can't find file"
-msgstr ""
-
 #: src/dtype/textio.c:39
-msgid "Invalid escape sequence"
+msgid "File not found"
 msgstr ""
 
 #: src/dtype/textio.c:40
-msgid "Invalid constant reference"
+msgid "Invalid escape sequence"
 msgstr ""
 
 #: src/dtype/textio.c:41
-msgid "Invalid character constant"
+msgid "Invalid constant reference"
 msgstr ""
 
 #: src/dtype/textio.c:42
-msgid "Bad atomic expression"
+msgid "Invalid character constant"
 msgstr ""
 
 #: src/dtype/textio.c:43
-msgid "no pointer expressions allowed"
+msgid "Bad atomic expression"
 msgstr ""
 
 #: src/dtype/textio.c:44
-msgid "bad pointer reference"
+msgid "no pointer expressions allowed"
 msgstr ""
 
 #: src/dtype/textio.c:45
-msgid "Unexpected EOF in LISP expression"
+msgid "bad pointer reference"
 msgstr ""
 
 #: src/dtype/textio.c:46
-msgid "LISP expression parse error"
+msgid "Unexpected EOF in LISP expression"
 msgstr ""
 
 #: src/dtype/textio.c:47
-msgid "External LISP argument parse error"
+msgid "LISP expression parse error"
 msgstr ""
 
 #: src/dtype/textio.c:48
-msgid "LISP expression unparse error"
+msgid "External LISP argument parse error"
 msgstr ""
 
 #: src/dtype/textio.c:49
-msgid "Can't parse record object"
+msgid "LISP expression unparse error"
 msgstr ""
 
 #: src/dtype/textio.c:50
+msgid "Can't parse record object"
+msgstr ""
+
+#: src/dtype/textio.c:51
 msgid "Expression open/close mismatch"
 msgstr ""
 
-#: src/dtype/textio.c:371
+#: src/dtype/textio.c:372
 msgid "no handler"
 msgstr ""
 
-#: src/dtype/fdtype.c:19
+#: src/dtype/fdtype.c:20
 msgid "Method not supported"
 msgstr ""
 
-#: src/dtype/fdtype.c:43 src/db/dbserv.c:351
+#: src/dtype/fdtype.c:44 src/db/dbserv.c:352
 msgid "oid"
 msgstr ""
 
-#: src/dtype/fdtype.c:44 src/dtype/support.c:455 src/scheme/eval.c:1275
-#: src/scheme/dbprims.c:1841 src/scheme/portprims.c:701
-#: src/scheme/choiceprims.c:1100 src/scheme/choiceprims.c:1104
-#: src/scheme/choiceprims.c:1105 src/scheme/seqprims.c:806
-#: src/scheme/seqprims.c:828 src/scheme/dbfileprims.c:93
-#: src/scheme/dbfileprims.c:102 src/scheme/dbfileprims.c:106
-#: src/texttools/texttools.c:1862 src/texttools/match.c:3356
-#: src/texttools/match.c:3373 src/texttools/match.c:3400
-#: src/texttools/match.c:3432 src/exe/fdservlet.c:176 src/exe/fdservlet.c:191
+#: src/dtype/fdtype.c:45 src/dtype/support.c:457 src/scheme/eval.c:1333
+#: src/scheme/dbprims.c:1842 src/scheme/portprims.c:702
+#: src/scheme/choiceprims.c:1101 src/scheme/choiceprims.c:1105
+#: src/scheme/choiceprims.c:1106 src/scheme/seqprims.c:807
+#: src/scheme/seqprims.c:829 src/scheme/dbfileprims.c:94
+#: src/scheme/dbfileprims.c:103 src/scheme/dbfileprims.c:107
+#: src/texttools/texttools.c:1863 src/texttools/match.c:3357
+#: src/texttools/match.c:3374 src/texttools/match.c:3401
+#: src/texttools/match.c:3433 src/exe/fdservlet.c:177 src/exe/fdservlet.c:192
 msgid "fixnum"
 msgstr ""
 
-#: src/dtype/fdtype.c:45
+#: src/dtype/fdtype.c:46
 msgid "cons"
 msgstr ""
 
-#: src/dtype/fdtype.c:46
+#: src/dtype/fdtype.c:47
 msgid "immediate"
 msgstr ""
 
-#: src/dtype/fdtype.c:47
+#: src/dtype/fdtype.c:48
 msgid "constant"
 msgstr ""
 
-#: src/dtype/fdtype.c:48 src/scheme/seqprims.c:424 src/scheme/seqprims.c:1483
-#: src/scheme/seqprims.c:1492
+#: src/dtype/fdtype.c:49 src/scheme/seqprims.c:425 src/scheme/seqprims.c:1484
+#: src/scheme/seqprims.c:1493
 msgid "character"
 msgstr ""
 
-#: src/dtype/fdtype.c:49 src/scheme/eval.c:1245 src/scheme/modules.c:421
-#: src/scheme/reflection.c:297
+#: src/dtype/fdtype.c:50 src/scheme/eval.c:1246 src/scheme/modules.c:422
+#: src/scheme/reflection.c:298
 msgid "symbol"
 msgstr ""
 
-#: src/dtype/fdtype.c:50 src/scheme/eval.c:1681
+#: src/dtype/fdtype.c:51 src/scheme/eval.c:1739
 msgid "lexref"
 msgstr ""
 
-#: src/dtype/fdtype.c:51 src/scheme/eval.c:1665
+#: src/dtype/fdtype.c:52 src/scheme/eval.c:1723
 msgid "opcode"
 msgstr ""
 
-#: src/dtype/fdtype.c:52 src/dtype/support.c:439 src/dtype/support.c:1488
-#: src/dtype/support.c:1544 src/scheme/dbprims.c:212 src/scheme/dbprims.c:240
-#: src/scheme/portprims.c:255 src/scheme/portprims.c:641
-#: src/scheme/portprims.c:706 src/scheme/stringprims.c:602
-#: src/scheme/stringprims.c:623 src/scheme/stringprims.c:920
-#: src/scheme/fileprims.c:256 src/scheme/fileprims.c:576
-#: src/scheme/fileprims.c:1006 src/scheme/fileprims.c:1032
-#: src/scheme/fileprims.c:1052 src/scheme/fileprims.c:1072
-#: src/scheme/fileprims.c:1090 src/scheme/fileprims.c:1108
-#: src/scheme/fileprims.c:1125 src/scheme/fileprims.c:1142
-#: src/scheme/dbfileprims.c:99 src/fdweb/xmloutput.c:1710
-#: src/fdweb/uriprims.c:392 src/fdweb/mime.c:106 src/fdweb/curl.c:430
-#: src/texttools/texttools.c:130 src/texttools/texttools.c:157
-#: src/texttools/texttools.c:455 src/tagger/ofsm.c:228 src/exe/fdservlet.c:158
+#: src/dtype/fdtype.c:53 src/dtype/support.c:441 src/dtype/support.c:1490
+#: src/dtype/support.c:1546 src/scheme/dbprims.c:213 src/scheme/dbprims.c:241
+#: src/scheme/portprims.c:256 src/scheme/portprims.c:642
+#: src/scheme/portprims.c:707 src/scheme/stringprims.c:603
+#: src/scheme/stringprims.c:624 src/scheme/stringprims.c:921
+#: src/scheme/fileprims.c:257 src/scheme/fileprims.c:577
+#: src/scheme/fileprims.c:1008 src/scheme/fileprims.c:1034
+#: src/scheme/fileprims.c:1054 src/scheme/fileprims.c:1074
+#: src/scheme/fileprims.c:1092 src/scheme/fileprims.c:1110
+#: src/scheme/fileprims.c:1127 src/scheme/fileprims.c:1144
+#: src/scheme/dbfileprims.c:100 src/fdweb/xmloutput.c:1711
+#: src/fdweb/uriprims.c:393 src/fdweb/mime.c:107 src/fdweb/curl.c:456
+#: src/texttools/texttools.c:131 src/texttools/texttools.c:158
+#: src/texttools/texttools.c:456 src/tagger/ofsm.c:229 src/exe/fdservlet.c:159
 msgid "string"
 msgstr ""
 
-#: src/dtype/fdtype.c:53
+#: src/dtype/fdtype.c:54
 msgid "packet"
 msgstr ""
 
-#: src/dtype/fdtype.c:54 src/dtype/fdtype.c:77
+#: src/dtype/fdtype.c:55 src/dtype/fdtype.c:78
 msgid "secret"
 msgstr ""
 
-#: src/dtype/fdtype.c:55
+#: src/dtype/fdtype.c:56
 msgid "bigint"
 msgstr ""
 
-#: src/dtype/fdtype.c:56 src/scheme/eval.c:1276 src/tagger/tagxtract.c:151
+#: src/dtype/fdtype.c:57 src/scheme/eval.c:1334 src/tagger/tagxtract.c:152
 msgid "pair"
 msgstr ""
 
-#: src/dtype/fdtype.c:57
+#: src/dtype/fdtype.c:58
 msgid "compound"
 msgstr ""
 
-#: src/dtype/fdtype.c:58
+#: src/dtype/fdtype.c:59
 msgid "choice"
 msgstr ""
 
-#: src/dtype/fdtype.c:59
+#: src/dtype/fdtype.c:60
 msgid "achoice"
 msgstr ""
 
-#: src/dtype/fdtype.c:60 src/scheme/dbfileprims.c:125
+#: src/dtype/fdtype.c:61 src/scheme/dbfileprims.c:126
 msgid "vector"
 msgstr ""
 
-#: src/dtype/fdtype.c:61 src/scheme/dbfileprims.c:32
-#: src/scheme/dbfileprims.c:50
+#: src/dtype/fdtype.c:62 src/scheme/dbfileprims.c:33
+#: src/scheme/dbfileprims.c:51
 msgid "slotmap"
 msgstr ""
 
-#: src/dtype/fdtype.c:62
+#: src/dtype/fdtype.c:63
 msgid "schemap"
 msgstr ""
 
-#: src/dtype/fdtype.c:63 src/tagger/ofsm.c:1950 src/tagger/ofsm.c:2011
+#: src/dtype/fdtype.c:64 src/tagger/ofsm.c:1951 src/tagger/ofsm.c:2012
 msgid "hashtable"
 msgstr ""
 
-#: src/dtype/fdtype.c:64
+#: src/dtype/fdtype.c:65
 msgid "flonum"
 msgstr ""
 
-#: src/dtype/fdtype.c:65
+#: src/dtype/fdtype.c:66
 msgid "wrapper"
 msgstr ""
 
-#: src/dtype/fdtype.c:66
+#: src/dtype/fdtype.c:67
 msgid "mystery"
 msgstr ""
 
-#: src/dtype/fdtype.c:67
+#: src/dtype/fdtype.c:68
 msgid "quoted choice"
 msgstr ""
 
-#: src/dtype/fdtype.c:68 src/scheme/tableprims.c:875
-#: src/texttools/match.c:3248 src/texttools/match.c:3279
-#: src/texttools/match.c:3302 src/texttools/match.c:3333
+#: src/dtype/fdtype.c:69 src/scheme/tableprims.c:876
+#: src/texttools/match.c:3249 src/texttools/match.c:3280
+#: src/texttools/match.c:3303 src/texttools/match.c:3334
 msgid "hashset"
 msgstr ""
 
-#: src/dtype/fdtype.c:69 src/scheme/reflection.c:70 src/scheme/reflection.c:85
-#: src/scheme/reflection.c:100 src/scheme/choiceprims.c:731
-#: src/scheme/choiceprims.c:788 src/scheme/choiceprims.c:910
-#: src/scheme/choiceprims.c:963 src/scheme/seqprims.c:1031
-#: src/scheme/seqprims.c:1065
+#: src/dtype/fdtype.c:70 src/scheme/reflection.c:71 src/scheme/reflection.c:86
+#: src/scheme/reflection.c:101 src/scheme/choiceprims.c:732
+#: src/scheme/choiceprims.c:789 src/scheme/choiceprims.c:911
+#: src/scheme/choiceprims.c:964 src/scheme/seqprims.c:1032
+#: src/scheme/seqprims.c:1066
 msgid "function"
 msgstr ""
 
-#: src/dtype/fdtype.c:70
+#: src/dtype/fdtype.c:71
 msgid "error"
 msgstr ""
 
-#: src/dtype/fdtype.c:71
+#: src/dtype/fdtype.c:72
 msgid "complex"
 msgstr ""
 
-#: src/dtype/fdtype.c:72
+#: src/dtype/fdtype.c:73
 msgid "rational"
 msgstr ""
 
-#: src/dtype/fdtype.c:73 src/db/dtproc.c:107
+#: src/dtype/fdtype.c:74 src/db/dtproc.c:108
 msgid "dtproc"
 msgstr ""
 
-#: src/dtype/fdtype.c:74
+#: src/dtype/fdtype.c:75
 msgid "tailcall"
 msgstr ""
 
-#: src/dtype/fdtype.c:75
+#: src/dtype/fdtype.c:76
 msgid "UUID"
 msgstr ""
 
-#: src/dtype/fdtype.c:76
+#: src/dtype/fdtype.c:77
 msgid "rail"
 msgstr ""
 
-#: src/dtype/support.c:46
+#: src/dtype/support.c:52
 msgid "SetRLimit"
 msgstr ""
 
-#: src/dtype/support.c:48
+#: src/dtype/support.c:54
 msgid "Unknown error condition"
 msgstr ""
 
-#: src/dtype/support.c:49
+#: src/dtype/support.c:55
 msgid "Configuration error"
 msgstr ""
 
-#: src/dtype/support.c:50
+#: src/dtype/support.c:56
 msgid "Memory apparently exhausted"
 msgstr ""
 
-#: src/dtype/support.c:51
+#: src/dtype/support.c:57
 msgid "Unhandled exception at exit"
 msgstr ""
 
-#: src/dtype/support.c:625
+#: src/dtype/support.c:627
 msgid "RLIMIT too high"
 msgstr ""
 
-#: src/dtype/support.c:644
+#: src/dtype/support.c:646
 msgid "Weird option specification"
 msgstr ""
 
-#: src/dtype/support.c:675 src/dtype/support.c:684 src/dtype/support.c:706
-#: src/dtype/support.c:718 src/dtype/support.c:752 src/dtype/support.c:763
+#: src/dtype/support.c:677 src/dtype/support.c:686 src/dtype/support.c:708
+#: src/dtype/support.c:720 src/dtype/support.c:754 src/dtype/support.c:765
 msgid "Couldn't handle %q"
 msgstr ""
 
-#: src/dtype/support.c:845 src/dtype/support.c:852 src/scheme/eval.c:1019
-#: src/scheme/eval.c:1042
+#: src/dtype/support.c:847 src/dtype/support.c:854 src/scheme/eval.c:1020
+#: src/scheme/eval.c:1043
 #, c-format
 msgid "object is not a %m"
 msgstr ""
 
-#: src/dtype/support.c:1590
+#: src/dtype/support.c:1653
 msgid "application ID used in messages and SESSIONID"
 msgstr ""
 
-#: src/dtype/support.c:1593
+#: src/dtype/support.c:1656
 msgid "unique session identifier"
 msgstr ""
 
-#: src/dtype/support.c:1596 src/dtype/support.c:1599
+#: src/dtype/support.c:1659 src/dtype/support.c:1662
 msgid "warn on bad UTF-8 sequences"
 msgstr ""
 
-#: src/dtype/support.c:1602
+#: src/dtype/support.c:1665
 msgid "random seed used for stochastic operations"
 msgstr ""
 
-#: src/dtype/support.c:1606
+#: src/dtype/support.c:1669
 msgid "Threshold at which to use an external hashset for merging"
 msgstr ""
 
-#: src/dtype/support.c:1611
+#: src/dtype/support.c:1674
 msgid "Required priority for messages to be displayed"
 msgstr ""
 
-#: src/dtype/support.c:1615
+#: src/dtype/support.c:1678
 msgid "Required priority for messages to be displayed on stdout"
 msgstr ""
 
-#: src/dtype/support.c:1619
+#: src/dtype/support.c:1682
 msgid "Required priority for messages to be displayed on stderr"
 msgstr ""
 
-#: src/dtype/support.c:1623
-msgid "Whether to show the date in log messages"
-msgstr ""
-
-#: src/dtype/support.c:1627
-msgid "Whether to show PID/appid info in messages"
-msgstr ""
-
-#: src/dtype/support.c:1631
-msgid "Whether to show thread id info in messages"
-msgstr ""
-
-#: src/dtype/support.c:1635
-msgid "Whether to show elapsed time in messages"
-msgstr ""
-
-#: src/dtype/support.c:1640
-msgid "Max number of chars to show in strings"
-msgstr ""
-
-#: src/dtype/support.c:1645
-msgid "Max number of elements to show in vectors/lists/choices, etc"
-msgstr ""
-
-#: src/dtype/support.c:1649
-msgid "Path prefix for program state files"
-msgstr ""
-
-#: src/dtype/support.c:1652
-msgid "Set current group"
-msgstr ""
-
-#: src/dtype/support.c:1657
-msgid "Max CPU execution time limit"
-msgstr ""
-
-#: src/dtype/support.c:1662
-msgid "Max resident set (RSS) size"
-msgstr ""
-
-#: src/dtype/support.c:1667
-msgid "Max core dump size"
-msgstr ""
-
-#: src/dtype/support.c:1672
-msgid "Max number of subprocesses"
-msgstr ""
-
-#: src/dtype/support.c:1677
-msgid "Max number of open file descriptors"
-msgstr ""
-
-#: src/dtype/support.c:1682
-msgid "Max stack depth"
+#: src/dtype/support.c:1688
+msgid "String for indenting multi-line log messages"
 msgstr ""
 
 #: src/dtype/support.c:1691
-msgid "File to store profile output from Google perftools"
+msgid "Whether to show the date in log messages"
 msgstr ""
 
-#: src/dtype/support.c:1698
-msgid "Directory for looking up config entries"
+#: src/dtype/support.c:1695
+msgid "Whether to show PID/appid info in messages"
+msgstr ""
+
+#: src/dtype/support.c:1699
+msgid "Whether to show thread id info in messages"
 msgstr ""
 
 #: src/dtype/support.c:1703
+msgid "Whether to show elapsed time in messages"
+msgstr ""
+
+#: src/dtype/support.c:1708
+msgid "Max number of chars to show in strings"
+msgstr ""
+
+#: src/dtype/support.c:1713
+msgid "Max number of elements to show in vectors/lists/choices, etc"
+msgstr ""
+
+#: src/dtype/support.c:1717
+msgid "Path prefix for program state files"
+msgstr ""
+
+#: src/dtype/support.c:1720
+msgid "Set current group"
+msgstr ""
+
+#: src/dtype/support.c:1725
+msgid "Max CPU execution time limit"
+msgstr ""
+
+#: src/dtype/support.c:1730
+msgid "Max resident set (RSS) size"
+msgstr ""
+
+#: src/dtype/support.c:1735
+msgid "Max core dump size"
+msgstr ""
+
+#: src/dtype/support.c:1740
+msgid "Max number of subprocesses"
+msgstr ""
+
+#: src/dtype/support.c:1745
+msgid "Max number of open file descriptors"
+msgstr ""
+
+#: src/dtype/support.c:1750
+msgid "Max stack depth"
+msgstr ""
+
+#: src/dtype/support.c:1759
+msgid "File to store profile output from Google perftools"
+msgstr ""
+
+#: src/dtype/support.c:1766
+msgid "Root directory for logging directories"
+msgstr ""
+
+#: src/dtype/support.c:1771
+msgid "Data directory for FramerD"
+msgstr ""
+
+#: src/dtype/support.c:1777
+msgid "Directory for looking up config entries"
+msgstr ""
+
+#: src/dtype/support.c:1782
 msgid "Registered source files"
 msgstr ""
 
-#: src/dtype/apply.c:27
+#: src/dtype/support.c:1786
+msgid "Procedures to call on exit"
+msgstr ""
+
+#: src/dtype/apply.c:32
 msgid "calling a non function"
 msgstr ""
 
-#: src/dtype/apply.c:28
+#: src/dtype/apply.c:33
 msgid "too many arguments"
 msgstr ""
 
-#: src/dtype/apply.c:29
+#: src/dtype/apply.c:34
 msgid "too few arguments"
 msgstr ""
 
-#: src/dtype/apply.c:30
+#: src/dtype/apply.c:35
 msgid "no default value for #default argument"
 msgstr ""
 
-#: src/dtype/apply.c:31
+#: src/dtype/apply.c:36
 msgid "profiling not built"
 msgstr ""
 
-#: src/dtype/apply.c:34
+#: src/dtype/apply.c:39
 msgid "designated calltrack sensor does not exist"
 msgstr ""
 
-#: src/dtype/apply.c:36
+#: src/dtype/apply.c:41
 msgid "Too many calltrack sensors"
 msgstr ""
 
-#: src/dtype/apply.c:288
+#: src/dtype/apply.c:293
 msgid "not a pathname"
 msgstr ""
 
-#: src/dtype/apply.c:671
+#: src/dtype/apply.c:676
 #, c-format
 msgid "%s:%s"
 msgstr ""
 
-#: src/dtype/apply.c:672
+#: src/dtype/apply.c:677
 #, c-format
 msgid "%s"
 msgstr ""
 
-#: src/dtype/apply.c:682
+#: src/dtype/apply.c:687
 #, c-format
 msgid "#<NDPrimitive %s (%s args)>"
 msgstr ""
 
-#: src/dtype/apply.c:683
+#: src/dtype/apply.c:688
 #, c-format
 msgid "#<Primitive %s (%s args)>"
 msgstr ""
 
-#: src/dtype/apply.c:1010
+#: src/dtype/apply.c:1015
 msgid "Definition Failed"
 msgstr ""
 
-#: src/dtype/apply.c:1052
+#: src/dtype/apply.c:1057
 msgid "File used for calltrack profiling (#f disables calltrack)"
 msgstr ""
 
-#: src/dtype/apply.c:1072
+#: src/dtype/apply.c:1077
 msgid "Active calltrack sensors"
 msgstr ""
 
-#: src/dtype/apply.c:1075
+#: src/dtype/apply.c:1080
 msgid "Ignore calltrack sensors"
 msgstr ""
 
-#: src/db/fddb.c:24
+#: src/db/fddb.c:25
 msgid "FramerD Database internal error"
 msgstr ""
 
-#: src/db/fddb.c:25
+#: src/db/fddb.c:26
 msgid "Ambiguous object name"
 msgstr ""
 
-#: src/db/fddb.c:26
+#: src/db/fddb.c:27
 msgid "Unknown object name"
 msgstr ""
 
-#: src/db/fddb.c:27
+#: src/db/fddb.c:28
 msgid "bad server response"
 msgstr ""
 
-#: src/db/fddb.c:28
+#: src/db/fddb.c:29
 msgid "No default background indices"
 msgstr ""
 
-#: src/db/fddb.c:29
+#: src/db/fddb.c:30
 msgid "Reference to unallocated OID"
 msgstr ""
 
-#: src/db/fddb.c:30
+#: src/db/fddb.c:31
 msgid "Connection to server failed"
 msgstr ""
 
-#: src/db/fddb.c:31
+#: src/db/fddb.c:32
 msgid "COMMIT"
 msgstr ""
 
-#: src/db/fddb.c:32
+#: src/db/fddb.c:33
 msgid "Resetting server connection"
 msgstr ""
 
-#: src/db/fddb.c:33
+#: src/db/fddb.c:34
 msgid "SwapCheck"
 msgstr ""
 
-#: src/db/fddb.c:34
+#: src/db/fddb.c:35
 msgid "Error getting metadata"
 msgstr ""
 
-#: src/db/fddb.c:280 src/db/pools.c:1780 src/scheme/dbprims.c:755
-#: src/scheme/dbprims.c:766 src/scheme/dbprims.c:774 src/scheme/dbprims.c:782
-#: src/scheme/dbprims.c:827 src/scheme/dbprims.c:840 src/scheme/dbprims.c:852
-#: src/scheme/dbprims.c:888 src/scheme/dbprims.c:901 src/scheme/dbprims.c:1836
-#: src/scheme/dbprims.c:1884
+#: src/db/fddb.c:281 src/db/pools.c:1781 src/scheme/dbprims.c:756
+#: src/scheme/dbprims.c:767 src/scheme/dbprims.c:775 src/scheme/dbprims.c:783
+#: src/scheme/dbprims.c:828 src/scheme/dbprims.c:841 src/scheme/dbprims.c:853
+#: src/scheme/dbprims.c:889 src/scheme/dbprims.c:902 src/scheme/dbprims.c:1837
+#: src/scheme/dbprims.c:1885
 msgid "pool spec"
 msgstr ""
 
-#: src/db/fddb.c:513
+#: src/db/fddb.c:514
 msgid "Sets a level of time/memory tradeoff [0-3], default 1"
 msgstr ""
 
-#: src/db/fddb.c:517
+#: src/db/fddb.c:518
 msgid "Default oid display level [0-3]"
 msgstr ""
 
-#: src/db/fddb.c:521
+#: src/db/fddb.c:522
 msgid "Default log level for database messages"
 msgstr ""
 
-#: src/db/fddb.c:524
+#: src/db/fddb.c:525
 msgid "Whether to prefetch for large operations"
 msgstr ""
 
-#: src/db/fddb.c:528
+#: src/db/fddb.c:529
 msgid "pools used for OID resolution"
 msgstr ""
 
-#: src/db/fddb.c:530
+#: src/db/fddb.c:531
 msgid "indices opened"
 msgstr ""
 
-#: src/db/fddb.c:532
+#: src/db/fddb.c:533
 msgid "indices in the default search background"
 msgstr ""
 
-#: src/db/fddb.c:535
+#: src/db/fddb.c:536
 msgid "Number of connections (default) to keep for each DB server"
 msgstr ""
 
-#: src/db/fddb.c:537
+#: src/db/fddb.c:538
 msgid "Max number of connections (default) for each DB server"
 msgstr ""
 
-#: src/db/fddb.c:539
+#: src/db/fddb.c:540
 msgid "Number of connections (default) to initially create for each DB server"
 msgstr ""
 
-#: src/db/fddb.c:543
+#: src/db/fddb.c:544
 msgid "Functions and slotids for lookup up objects by name (@?name)"
 msgstr ""
 
-#: src/db/dtypestream.c:37
+#: src/db/dtypestream.c:38
 msgid "Read-only stream"
 msgstr ""
 
-#: src/db/dtypestream.c:38
+#: src/db/dtypestream.c:39
 msgid "Can't read data"
 msgstr ""
 
-#: src/db/dtypestream.c:39
+#: src/db/dtypestream.c:40
 msgid "Can't write data"
 msgstr ""
 
-#: src/db/dtypestream.c:40
+#: src/db/dtypestream.c:41
 msgid "Bad seek argument"
 msgstr ""
 
-#: src/db/dtypestream.c:41
+#: src/db/dtypestream.c:42
 msgid "Can't seek on stream"
 msgstr ""
 
-#: src/db/dtypestream.c:42
+#: src/db/dtypestream.c:43
 msgid "lseek() failed"
 msgstr ""
 
-#: src/db/dtypestream.c:43
+#: src/db/dtypestream.c:44
 msgid "Seeking past end of file"
 msgstr ""
 
-#: src/db/dtypestream.c:44
+#: src/db/dtypestream.c:45
 msgid "Seeking before the beginning of the file"
 msgstr ""
 
-#: src/db/dbserv.c:33
+#: src/db/dbserv.c:34
 msgid "private OID"
 msgstr ""
 
-#: src/db/dbserv.c:197
+#: src/db/dbserv.c:198
 msgid "The OID is not locked"
 msgstr ""
 
-#: src/db/dbserv.c:198 src/db/pools.c:28
+#: src/db/dbserv.c:199 src/db/pools.c:29
 msgid "Can't lock OID"
 msgstr ""
 
-#: src/db/dbserv.c:339
+#: src/db/dbserv.c:340
 msgid "Locks file already set"
 msgstr ""
 
-#: src/db/dbserv.c:527
+#: src/db/dbserv.c:528
 msgid "No primary pool"
 msgstr ""
 
-#: src/db/dbserv.c:532
+#: src/db/dbserv.c:533
 msgid "No method for load"
 msgstr ""
 
-#: src/db/dbserv.c:557
+#: src/db/dbserv.c:558
 msgid "oid vector"
 msgstr ""
 
-#: src/db/dbserv.c:737
+#: src/db/dbserv.c:738
 msgid "too many pools to serve"
 msgstr ""
 
-#: src/db/dbserv.c:790
+#: src/db/dbserv.c:791
 msgid "No background"
 msgstr ""
 
-#: src/db/indices.c:24
+#: src/db/indices.c:25
 msgid "ephemeral index"
 msgstr ""
 
-#: src/db/indices.c:25
+#: src/db/indices.c:26
 msgid "read-only index"
 msgstr ""
 
-#: src/db/indices.c:26
+#: src/db/indices.c:27
 msgid "file indices are not supported"
 msgstr ""
 
-#: src/db/indices.c:27
+#: src/db/indices.c:28
 msgid "not a file index"
 msgstr ""
 
-#: src/db/indices.c:28
+#: src/db/indices.c:29
 msgid "bad index specification"
 msgstr ""
 
-#: src/db/indices.c:29
+#: src/db/indices.c:30
 msgid "can't save changes to index"
 msgstr ""
 
-#: src/db/indices.c:146
+#: src/db/indices.c:147
 msgid "not an index"
 msgstr ""
 
-#: src/db/indices.c:718 src/db/frames.c:1008 src/scheme/dbprims.c:429
-#: src/scheme/dbprims.c:1019 src/scheme/dbprims.c:1042
+#: src/db/indices.c:719 src/db/frames.c:1009 src/scheme/dbprims.c:430
+#: src/scheme/dbprims.c:1020 src/scheme/dbprims.c:1043
 msgid "index"
 msgstr ""
 
-#: src/db/indices.c:735
+#: src/db/indices.c:736
 #, c-format
 msgid "Error saving %d keys to %s after %f secs"
 msgstr ""
 
-#: src/db/indices.c:739
+#: src/db/indices.c:740
 #, c-format
 msgid "Saved %d keys to %s in %f secs"
 msgstr ""
 
-#: src/db/indices.c:791 src/db/indices.c:804
+#: src/db/indices.c:792 src/db/indices.c:805
 #, c-format
 msgid "#<INDEX %s 0x%lx \"%s|%s\">"
 msgstr ""
 
-#: src/db/indices.c:793 src/db/indices.c:806
+#: src/db/indices.c:794 src/db/indices.c:807
 #, c-format
 msgid "#<INDEX %s 0x%lx \"%s\">"
 msgstr ""
 
-#: src/db/indices.c:1151 src/db/indices.c:1152 src/db/netindices.c:179
+#: src/db/indices.c:1152 src/db/indices.c:1153 src/db/netindices.c:180
 msgid "Bad edit key in index"
 msgstr ""
 
-#: src/db/netindices.c:34
+#: src/db/netindices.c:35
 msgid "Server doesn't support method"
 msgstr ""
 
-#: src/db/pools.c:27
+#: src/db/pools.c:28
 msgid "Unknown pool"
 msgstr ""
 
-#: src/db/pools.c:29
+#: src/db/pools.c:30
 msgid "pool is read-only"
 msgstr ""
 
-#: src/db/pools.c:30
+#: src/db/pools.c:31
 msgid "Invalid pool PTR"
 msgstr ""
 
-#: src/db/pools.c:31
+#: src/db/pools.c:32
 msgid "not a file pool"
 msgstr ""
 
-#: src/db/pools.c:32
+#: src/db/pools.c:33
 msgid "file pools are not supported"
 msgstr ""
 
-#: src/db/pools.c:33
+#: src/db/pools.c:34
 msgid "no pool covers this OID"
 msgstr ""
 
-#: src/db/pools.c:34 src/scheme/dbprims.c:184 src/scheme/dbprims.c:1032
+#: src/db/pools.c:35 src/scheme/dbprims.c:185 src/scheme/dbprims.c:1033
 msgid "pool"
 msgstr ""
 
-#: src/db/pools.c:35
+#: src/db/pools.c:36
 msgid "file pool label is not a string"
 msgstr ""
 
-#: src/db/pools.c:36
+#: src/db/pools.c:37
 msgid "pool has no more OIDs"
 msgstr ""
 
-#: src/db/pools.c:37
+#: src/db/pools.c:38
 msgid "pool overlaps 0x100000 boundary"
 msgstr ""
 
-#: src/db/pools.c:38
+#: src/db/pools.c:39
 msgid "can't save changes to pool"
 msgstr ""
 
-#: src/db/pools.c:39
+#: src/db/pools.c:40
 msgid "internal error with unregistered pool"
 msgstr ""
 
-#: src/db/pools.c:40
+#: src/db/pools.c:41
 msgid "Cannot resolve pool specification"
 msgstr ""
 
-#: src/db/pools.c:277
+#: src/db/pools.c:278
 msgid "Pool conflict"
 msgstr ""
 
-#: src/db/pools.c:280
+#: src/db/pools.c:281
 msgid "Pool confict"
 msgstr ""
 
-#: src/db/pools.c:852 include/framerd/pools.h:298
+#: src/db/pools.c:853 include/framerd/pools.h:298
 msgid "Corrupted pool table"
 msgstr ""
 
-#: src/db/pools.c:892 src/scheme/dbfileprims.c:89 include/framerd/pools.h:339
+#: src/db/pools.c:893 src/scheme/dbfileprims.c:90 include/framerd/pools.h:339
 msgid "OID"
 msgstr ""
 
-#: src/db/pools.c:938
+#: src/db/pools.c:939
 msgid "not a pool"
 msgstr ""
 
-#: src/db/pools.c:1117
+#: src/db/pools.c:1118
 msgid "Too many pools for commit"
 msgstr ""
 
-#: src/db/pools.c:1119
+#: src/db/pools.c:1120
 msgid "No pool for OID"
 msgstr ""
 
-#: src/db/pools.c:1568
+#: src/db/pools.c:1569
 msgid "mempool"
 msgstr ""
 
-#: src/db/pools.c:1767
+#: src/db/pools.c:1768
 msgid "Config mis-config"
 msgstr ""
 
-#: src/db/pools.c:1816
+#: src/db/pools.c:1817
 msgid "whether value of anonymous OIDs are {} or signal an error"
 msgstr ""
 
-#: src/db/pools.c:1819
+#: src/db/pools.c:1820
 msgid "Default location for new OID allocation"
 msgstr ""
 
-#: src/db/dtcall.c:225
+#: src/db/dtcall.c:226
 msgid "Assume asynchronous DType servers"
 msgstr ""
 
-#: src/db/ipeval.c:452
+#: src/db/ipeval.c:453
 msgid "Trace ipeval execution"
 msgstr ""
 
-#: src/db/threadcache.c:18
+#: src/db/threadcache.c:19
 msgid "Attempt to free foreign threadcache"
 msgstr ""
 
-#: src/db/threadcache.c:20
+#: src/db/threadcache.c:21
 msgid "Attempt to free in-use threadcache"
 msgstr ""
 
-#: src/db/threadcache.c:22
+#: src/db/threadcache.c:23
 msgid "Attempt to push in-use threadcache"
 msgstr ""
 
-#: src/db/threadcache.c:24
+#: src/db/threadcache.c:25
 msgid "Attempt to set in-use threadcache"
 msgstr ""
 
-#: src/db/frames.c:23
+#: src/db/frames.c:24
 msgid "Odd number of args to find frames"
 msgstr ""
 
-#: src/db/frames.c:24
+#: src/db/frames.c:25
 msgid "Corrupt overlay table"
 msgstr ""
 
-#: src/db/frames.c:944
+#: src/db/frames.c:945
 msgid "No default pool"
 msgstr ""
 
-#: src/db/frames.c:1272
+#: src/db/frames.c:1273
 msgid "Slot overlay table"
 msgstr ""
 
-#: src/db/frames.c:1276
+#: src/db/frames.c:1277
 msgid "Index overlay table"
 msgstr ""
 
-#: src/db/filepools.c:39
+#: src/db/filepools.c:40
 msgid "MMAP Error"
 msgstr ""
 
-#: src/db/filepools.c:40
+#: src/db/filepools.c:41
 msgid "MUNMAP Error"
 msgstr ""
 
-#: src/db/filepools.c:41
+#: src/db/filepools.c:42
 msgid "Corrupted file pool"
 msgstr ""
 
-#: src/db/filepools.c:42
+#: src/db/filepools.c:43
 msgid "File pool overflowed file size"
 msgstr ""
 
-#: src/db/filepools.c:43
+#: src/db/filepools.c:44
 msgid "RECOVERY"
 msgstr ""
 
-#: src/db/zpools.c:356
+#: src/db/zpools.c:357
 msgid "Schema inconsistency"
 msgstr ""
 
-#: src/db/oidpools.c:46
+#: src/db/oidpools.c:47
 msgid "Invalid schema definition data"
 msgstr ""
 
-#: src/db/oidpools.c:47
+#: src/db/oidpools.c:48
 msgid "Invalid encoded schema reference"
 msgstr ""
 
-#: src/db/oidpools.c:48
+#: src/db/oidpools.c:49
 msgid "Inconsistent schema reference and value data"
 msgstr ""
 
-#: src/db/oidpools.c:50
+#: src/db/oidpools.c:51
 msgid "Invalid offset in OIDPOOL"
 msgstr ""
 
-#: src/db/oidpools.c:261 src/db/oidpools.c:295 src/scheme/portprims.c:1411
+#: src/db/oidpools.c:262 src/db/oidpools.c:296 src/scheme/portprims.c:1412
 msgid "ZLIB ran out of memory"
 msgstr ""
 
-#: src/db/oidpools.c:269
+#: src/db/oidpools.c:270
 msgid "OIDPOOL uncompress ran out of memory"
 msgstr ""
 
-#: src/db/oidpools.c:272
+#: src/db/oidpools.c:273
 msgid "ZLIB uncompress data error"
 msgstr ""
 
-#: src/db/oidpools.c:274 src/db/oidpools.c:308 src/scheme/portprims.c:1424
+#: src/db/oidpools.c:275 src/db/oidpools.c:309 src/scheme/portprims.c:1425
 msgid "Bad ZLIB return code"
 msgstr ""
 
-#: src/db/oidpools.c:303 src/scheme/portprims.c:1419
+#: src/db/oidpools.c:304 src/scheme/portprims.c:1420
 msgid "OIDPOOL compress ran out of memory"
 msgstr ""
 
-#: src/db/oidpools.c:306 src/scheme/portprims.c:1422
+#: src/db/oidpools.c:307 src/scheme/portprims.c:1423
 msgid "ZLIB compress data error"
 msgstr ""
 
-#: src/db/oidpools.c:757
+#: src/db/oidpools.c:758
 msgid "Bad compress level"
 msgstr ""
 
-#: src/db/oidpools.c:948
+#: src/db/oidpools.c:949
 msgid "Out of luck"
 msgstr ""
 
-#: src/db/fileindices.c:40
+#: src/db/fileindices.c:41
 msgid "file index hash overflow"
 msgstr ""
 
-#: src/db/fileindices.c:41
+#: src/db/fileindices.c:42
 msgid "Internal error with index file"
 msgstr ""
 
-#: src/db/fileindices.c:151 src/db/zindices.c:334
+#: src/db/fileindices.c:152 src/db/zindices.c:335
 msgid "Bad hash version"
 msgstr ""
 
-#: src/db/fileindices.c:220 src/db/zindices.c:376
+#: src/db/fileindices.c:221 src/db/zindices.c:377
 msgid "inconsistent file index"
 msgstr ""
 
-#: src/db/hashindices.c:138
+#: src/db/hashindices.c:139
 msgid "Corrupted hash_index file"
 msgstr ""
 
-#: src/db/hashindices.c:139
+#: src/db/hashindices.c:140
 msgid "hash_index has unknown hash function"
 msgstr ""
 
-#: src/db/zindices.c:21
+#: src/db/zindices.c:22
 msgid "Bad ZKEY reference"
 msgstr ""
 
-#: src/scheme/eval.c:43
+#: src/scheme/eval.c:44
 msgid "Test failed"
 msgstr ""
 
-#: src/scheme/eval.c:44
+#: src/scheme/eval.c:45
 msgid "Continuation is no longer valid"
 msgstr ""
 
-#: src/scheme/eval.c:45
+#: src/scheme/eval.c:46
 msgid "Continuation used twice"
 msgstr ""
 
-#: src/scheme/eval.c:46
+#: src/scheme/eval.c:47
 msgid "Lost invoked continuation"
 msgstr ""
 
-#: src/scheme/eval.c:51
+#: src/scheme/eval.c:52
 msgid "SCHEME expression syntax error"
 msgstr ""
 
-#: src/scheme/eval.c:52
+#: src/scheme/eval.c:53
 msgid "invalid macro transformer"
 msgstr ""
 
-#: src/scheme/eval.c:53
+#: src/scheme/eval.c:54
 msgid "the variable is unbound"
 msgstr ""
 
-#: src/scheme/eval.c:54
+#: src/scheme/eval.c:55
 msgid "VOID result passed as argument"
 msgstr ""
 
-#: src/scheme/eval.c:55
+#: src/scheme/eval.c:56
 msgid "not an identifier"
 msgstr ""
 
-#: src/scheme/eval.c:56
+#: src/scheme/eval.c:57
 msgid "too few subexpressions"
 msgstr ""
 
-#: src/scheme/eval.c:57
+#: src/scheme/eval.c:58
 msgid "can't add binding to environment"
 msgstr ""
 
-#: src/scheme/eval.c:58
+#: src/scheme/eval.c:59
 msgid "Read only environment"
 msgstr ""
 
-#: src/scheme/eval.c:717 src/scheme/reflection.c:186
+#: src/scheme/eval.c:718 src/scheme/reflection.c:187
 msgid "macro expansion"
 msgstr ""
 
-#: src/scheme/eval.c:1256 src/scheme/reflection.c:282
-#: src/scheme/reflection.c:311
+#: src/scheme/eval.c:1257 src/scheme/reflection.c:283
+#: src/scheme/reflection.c:312
 msgid "environment"
 msgstr ""
 
-#: src/scheme/eval.c:1504
+#: src/scheme/eval.c:1562
 msgid "Server unconfigured"
 msgstr ""
 
-#: src/scheme/eval.c:1556 src/scheme/eval.c:1566
+#: src/scheme/eval.c:1614 src/scheme/eval.c:1624
 msgid "server"
 msgstr ""
 
-#: src/scheme/eval.c:1669
+#: src/scheme/eval.c:1727
 msgid "scheme environment"
 msgstr ""
 
-#: src/scheme/eval.c:1670
+#: src/scheme/eval.c:1728
 msgid "scheme special form"
 msgstr ""
 
-#: src/scheme/eval.c:1671
+#: src/scheme/eval.c:1729
 msgid "DType server"
 msgstr ""
 
-#: src/scheme/binders.c:21
+#: src/scheme/binders.c:22
 msgid "Malformed argument list"
 msgstr ""
 
-#: src/scheme/binders.c:22
+#: src/scheme/binders.c:23
 msgid "Can't bind variable"
 msgstr ""
 
-#: src/scheme/binders.c:23
+#: src/scheme/binders.c:24
 msgid "Bad binding expression"
 msgstr ""
 
-#: src/scheme/binders.c:24
+#: src/scheme/binders.c:25
 msgid "Bad procedure defining form"
 msgstr ""
 
-#: src/scheme/binders.c:1079
+#: src/scheme/binders.c:1080
 msgid "scheme syntactic macro"
 msgstr ""
 
-#: src/scheme/errors.c:17
+#: src/scheme/errors.c:18
 msgid "Undistinguished Scheme Error"
 msgstr ""
 
-#: src/scheme/errors.c:246
+#: src/scheme/errors.c:247
 msgid "Unwind error"
 msgstr ""
 
-#: src/scheme/conditionals.c:91
+#: src/scheme/conditionals.c:92
 msgid "invalid cond clause"
 msgstr ""
 
-#: src/scheme/iterators.c:97 src/scheme/iterators.c:100
-#: src/scheme/choiceprims.c:44 src/scheme/choiceprims.c:47
+#: src/scheme/iterators.c:98 src/scheme/iterators.c:101
+#: src/scheme/choiceprims.c:45 src/scheme/choiceprims.c:48
 msgid "identifier is not a symbol"
 msgstr ""
 
-#: src/scheme/threadprims.c:33
+#: src/scheme/threadprims.c:34
 msgid "Thread returned with error"
 msgstr ""
 
-#: src/scheme/threadprims.c:34
+#: src/scheme/threadprims.c:35
 msgid "ThreadBacktrace"
 msgstr ""
 
-#: src/scheme/threadprims.c:95 src/scheme/threadprims.c:117
-#: src/scheme/threadprims.c:130 src/scheme/threadprims.c:133
+#: src/scheme/threadprims.c:96 src/scheme/threadprims.c:118
+#: src/scheme/threadprims.c:131 src/scheme/threadprims.c:134
 msgid "valid condvar"
 msgstr ""
 
-#: src/scheme/threadprims.c:109 src/scheme/threadprims.c:111
-#: src/scheme/timeprims.c:1008
+#: src/scheme/threadprims.c:110 src/scheme/threadprims.c:112
+#: src/scheme/timeprims.c:1009
 msgid "time interval"
 msgstr ""
 
-#: src/scheme/threadprims.c:348 src/scheme/threadprims.c:415
+#: src/scheme/threadprims.c:349 src/scheme/threadprims.c:416
 msgid "thread"
 msgstr ""
 
-#: src/scheme/threadprims.c:419
+#: src/scheme/threadprims.c:420
 msgid "condvar"
 msgstr ""
 
-#: src/scheme/modules.c:22
+#: src/scheme/modules.c:23
 msgid "Argument is not a module (table)"
 msgstr ""
 
-#: src/scheme/modules.c:23
+#: src/scheme/modules.c:24
 msgid "Can't find named module"
 msgstr ""
 
-#: src/scheme/modules.c:24
+#: src/scheme/modules.c:25
 msgid "Loading failed to resolve module"
 msgstr ""
 
-#: src/scheme/modules.c:25
+#: src/scheme/modules.c:26
 msgid "Can't switch to opaque module"
 msgstr ""
 
-#: src/scheme/modules.c:109
+#: src/scheme/modules.c:110
 msgid "module name"
 msgstr ""
 
-#: src/scheme/modules.c:140
+#: src/scheme/modules.c:141
 msgid "Anonymous module"
 msgstr ""
 
-#: src/scheme/load.c:26
+#: src/scheme/load.c:27
 msgid "File Load"
 msgstr ""
 
-#: src/scheme/load.c:26
+#: src/scheme/load.c:27
 msgid "File Done"
 msgstr ""
 
-#: src/scheme/load.c:27
+#: src/scheme/load.c:28
 msgid "Load Eval"
 msgstr ""
 
-#: src/scheme/load.c:29
-msgid "Not a filename"
-msgstr ""
-
-#: src/scheme/load.c:30
-msgid "File not found"
-msgstr ""
-
-#: src/scheme/reflection.c:125 src/scheme/reflection.c:134
+#: src/scheme/reflection.c:126 src/scheme/reflection.c:135
 msgid "procedure"
 msgstr ""
 
-#: src/scheme/reflection.c:200 src/scheme/coreprims.c:510
-#: src/scheme/coreprims.c:527 src/scheme/coreprims.c:539
-#: src/cmodules/sqlite.c:187
+#: src/scheme/reflection.c:201 src/scheme/coreprims.c:511
+#: src/scheme/coreprims.c:528 src/scheme/coreprims.c:540
+#: src/cmodules/sqlite.c:188
 msgid "string or symbol"
 msgstr ""
 
-#: src/scheme/reflection.c:220 src/scheme/reflection.c:225
-#: src/scheme/reflection.c:247 src/scheme/reflection.c:252
+#: src/scheme/reflection.c:221 src/scheme/reflection.c:226
+#: src/scheme/reflection.c:248 src/scheme/reflection.c:253
 msgid "module"
 msgstr ""
 
-#: src/scheme/compounds.c:95
+#: src/scheme/compounds.c:96
 msgid "Immutable record"
 msgstr ""
 
-#: src/scheme/coreprims.c:396 src/scheme/arithprims.c:352
-#: src/scheme/arithprims.c:369 src/scheme/arithprims.c:386
-#: src/scheme/arithprims.c:414
+#: src/scheme/coreprims.c:397 src/scheme/arithprims.c:353
+#: src/scheme/arithprims.c:370 src/scheme/arithprims.c:387
+#: src/scheme/arithprims.c:415
 msgid "scalar"
 msgstr ""
 
-#: src/scheme/dbprims.c:171
+#: src/scheme/dbprims.c:172
 msgid "Unknown pool name"
 msgstr ""
 
-#: src/scheme/dbprims.c:188
+#: src/scheme/dbprims.c:189
 msgid "namefn"
 msgstr ""
 
-#: src/scheme/dbprims.c:279
+#: src/scheme/dbprims.c:280
 msgid "index spec"
 msgstr ""
 
-#: src/scheme/dbprims.c:634
+#: src/scheme/dbprims.c:635
 msgid "slotid"
 msgstr ""
 
-#: src/scheme/dbprims.c:663 src/scheme/dbprims.c:668 src/scheme/dbprims.c:682
+#: src/scheme/dbprims.c:664 src/scheme/dbprims.c:669 src/scheme/dbprims.c:683
 msgid "pool, index, or OIDs"
 msgstr ""
 
-#: src/scheme/dbprims.c:707 src/scheme/dbprims.c:931
+#: src/scheme/dbprims.c:708 src/scheme/dbprims.c:932
 msgid "pool or index"
 msgstr ""
 
-#: src/scheme/dbprims.c:791 src/scheme/dbprims.c:794 src/scheme/dbprims.c:799
-#: src/scheme/dbprims.c:804
+#: src/scheme/dbprims.c:792 src/scheme/dbprims.c:795 src/scheme/dbprims.c:800
+#: src/scheme/dbprims.c:805
 msgid "pool offset"
 msgstr ""
 
-#: src/scheme/dbprims.c:1226
+#: src/scheme/dbprims.c:1227
 msgid "value test"
 msgstr ""
 
-#: src/scheme/dbprims.c:1254 src/scheme/tableprims.c:187
-#: src/scheme/tableprims.c:754 src/scheme/tableprims.c:771
-#: src/scheme/tableprims.c:786 src/fdweb/xmloutput.c:1725
-#: src/fdweb/uriprims.c:196 src/fdweb/uriprims.c:198 src/fdweb/uriprims.c:294
+#: src/scheme/dbprims.c:1255 src/scheme/tableprims.c:188
+#: src/scheme/tableprims.c:755 src/scheme/tableprims.c:772
+#: src/scheme/tableprims.c:787 src/fdweb/xmloutput.c:1726
+#: src/fdweb/uriprims.c:197 src/fdweb/uriprims.c:199 src/fdweb/uriprims.c:295
 msgid "table"
 msgstr ""
 
-#: src/scheme/dbprims.c:1416
+#: src/scheme/dbprims.c:1417
 msgid "test relation"
 msgstr ""
 
-#: src/scheme/dbprims.c:1470
+#: src/scheme/dbprims.c:1471
 msgid "test object"
 msgstr ""
 
-#: src/scheme/dbprims.c:1871 src/scheme/dbprims.c:1873
-#: src/scheme/seqprims.c:92 src/scheme/seqprims.c:155
-#: src/scheme/seqprims.c:514 src/scheme/seqprims.c:796
-#: src/scheme/seqprims.c:804 src/scheme/seqprims.c:810
-#: src/scheme/seqprims.c:825 src/scheme/seqprims.c:923
-#: src/scheme/seqprims.c:954 src/scheme/seqprims.c:970
-#: src/scheme/seqprims.c:986 src/scheme/seqprims.c:1002
-#: src/scheme/seqprims.c:1021 src/scheme/seqprims.c:1374
-#: src/scheme/seqprims.c:1420 src/scheme/seqprims.c:1432
-#: src/scheme/seqprims.c:1456 src/scheme/seqprims.c:1495
-#: src/scheme/seqprims.c:1593
+#: src/scheme/dbprims.c:1872 src/scheme/dbprims.c:1874
+#: src/scheme/seqprims.c:93 src/scheme/seqprims.c:156
+#: src/scheme/seqprims.c:515 src/scheme/seqprims.c:797
+#: src/scheme/seqprims.c:805 src/scheme/seqprims.c:811
+#: src/scheme/seqprims.c:826 src/scheme/seqprims.c:924
+#: src/scheme/seqprims.c:955 src/scheme/seqprims.c:971
+#: src/scheme/seqprims.c:987 src/scheme/seqprims.c:1003
+#: src/scheme/seqprims.c:1022 src/scheme/seqprims.c:1375
+#: src/scheme/seqprims.c:1421 src/scheme/seqprims.c:1433
+#: src/scheme/seqprims.c:1457 src/scheme/seqprims.c:1496
+#: src/scheme/seqprims.c:1594
 msgid "sequence"
 msgstr ""
 
-#: src/scheme/dbprims.c:1988
+#: src/scheme/dbprims.c:1989
 msgid "offset base"
 msgstr ""
 
-#: src/scheme/portprims.c:31
+#: src/scheme/portprims.c:32
 msgid "Unknown encoding"
 msgstr ""
 
-#: src/scheme/portprims.c:264 src/scheme/portprims.c:275
-#: src/scheme/portprims.c:1252 src/scheme/fileprims.c:1239
-#: src/scheme/fileprims.c:1264 src/scheme/fileprims.c:1288
-#: src/scheme/fileprims.c:1312
+#: src/scheme/portprims.c:265 src/scheme/portprims.c:276
+#: src/scheme/portprims.c:1253 src/scheme/fileprims.c:1241
+#: src/scheme/fileprims.c:1266 src/scheme/fileprims.c:1290
+#: src/scheme/fileprims.c:1314
 msgid "port"
 msgstr ""
 
-#: src/scheme/portprims.c:287 src/scheme/portprims.c:299
-#: src/scheme/portprims.c:314 src/scheme/portprims.c:324
-#: src/scheme/fileprims.c:247
+#: src/scheme/portprims.c:288 src/scheme/portprims.c:300
+#: src/scheme/portprims.c:315 src/scheme/portprims.c:325
+#: src/scheme/fileprims.c:248
 msgid "output port"
 msgstr ""
 
-#: src/scheme/portprims.c:534 src/scheme/portprims.c:567
+#: src/scheme/portprims.c:535 src/scheme/portprims.c:568
 msgid "LOGIF condition expression cannot be a string"
 msgstr ""
 
-#: src/scheme/portprims.c:577 src/scheme/portprims.c:580
+#: src/scheme/portprims.c:578 src/scheme/portprims.c:581
 msgid "LOGIF+ loglevel invalid"
 msgstr ""
 
-#: src/scheme/portprims.c:629 src/scheme/portprims.c:638
-#: src/scheme/portprims.c:664 src/scheme/portprims.c:674
-#: src/scheme/portprims.c:698 src/texttools/texttools.c:1859
+#: src/scheme/portprims.c:630 src/scheme/portprims.c:639
+#: src/scheme/portprims.c:665 src/scheme/portprims.c:675
+#: src/scheme/portprims.c:699 src/texttools/texttools.c:1860
 msgid "input port"
 msgstr ""
 
-#: src/scheme/portprims.c:644
+#: src/scheme/portprims.c:645
 msgid "fixum"
 msgstr ""
 
-#: src/scheme/portprims.c:794
+#: src/scheme/portprims.c:795
 msgid "string or number"
 msgstr ""
 
-#: src/scheme/choiceprims.c:911
+#: src/scheme/choiceprims.c:912
 msgid "part"
 msgstr ""
 
-#: src/scheme/choiceprims.c:922
+#: src/scheme/choiceprims.c:923
 msgid "map function"
 msgstr ""
 
-#: src/scheme/seqprims.c:28
+#: src/scheme/seqprims.c:29
 msgid "Mismatch of sequence lengths"
 msgstr ""
 
-#: src/scheme/seqprims.c:29
+#: src/scheme/seqprims.c:30
 msgid "No sequence elements to reduce"
 msgstr ""
 
-#: src/scheme/seqprims.c:437 src/scheme/seqprims.c:1451
+#: src/scheme/seqprims.c:438 src/scheme/seqprims.c:1452
 msgid "byte"
 msgstr ""
 
-#: src/scheme/seqprims.c:462
+#: src/scheme/seqprims.c:463
 msgid "sequence type"
 msgstr ""
 
-#: src/scheme/seqprims.c:729
+#: src/scheme/seqprims.c:730
 msgid "test"
 msgstr ""
 
-#: src/scheme/seqprims.c:1362
+#: src/scheme/seqprims.c:1363
 msgid "positive"
 msgstr ""
 
-#: src/scheme/stringprims.c:223
+#: src/scheme/stringprims.c:224
 msgid "string, symbol, or character"
 msgstr ""
 
-#: src/scheme/stringprims.c:251 src/scheme/stringprims.c:272
-#: src/scheme/stringprims.c:286 src/scheme/stringprims.c:300
+#: src/scheme/stringprims.c:252 src/scheme/stringprims.c:273
+#: src/scheme/stringprims.c:287 src/scheme/stringprims.c:301
 msgid "string or character"
 msgstr ""
 
-#: src/scheme/stringprims.c:819 src/scheme/stringprims.c:864
+#: src/scheme/stringprims.c:820 src/scheme/stringprims.c:865
 msgid "text encoding"
 msgstr ""
 
-#: src/scheme/fileprims.c:49
+#: src/scheme/fileprims.c:50
 msgid "Module reload error"
 msgstr ""
 
-#: src/scheme/fileprims.c:50 src/cmodules/sqlite.c:31
+#: src/scheme/fileprims.c:51 src/cmodules/sqlite.c:32
 msgid "file does not exist"
 msgstr ""
 
-#: src/scheme/fileprims.c:51
+#: src/scheme/fileprims.c:52
 msgid "File removal failed"
 msgstr ""
 
-#: src/scheme/fileprims.c:52
+#: src/scheme/fileprims.c:53
 msgid "File link failed"
 msgstr ""
 
-#: src/scheme/fileprims.c:53
+#: src/scheme/fileprims.c:54
 msgid "File open failed"
 msgstr ""
 
-#: src/scheme/fileprims.c:55
+#: src/scheme/fileprims.c:56
 msgid "StackDump"
 msgstr ""
 
-#: src/scheme/fileprims.c:56
+#: src/scheme/fileprims.c:57
 msgid "Snapshot Saved"
 msgstr ""
 
-#: src/scheme/fileprims.c:57
+#: src/scheme/fileprims.c:58
 msgid "Snapshot Restored"
 msgstr ""
 
-#: src/scheme/fileprims.c:587 src/fdweb/uriprims.c:400
+#: src/scheme/fileprims.c:588 src/fdweb/uriprims.c:401
 msgid "string CONFIG var"
 msgstr ""
 
-#: src/scheme/fileprims.c:589 src/fdweb/uriprims.c:402
+#: src/scheme/fileprims.c:590 src/fdweb/uriprims.c:403
 msgid "string or string CONFIG var"
 msgstr ""
 
-#: src/scheme/fileprims.c:764
+#: src/scheme/fileprims.c:766
 msgid "Keeping temp directory"
 msgstr ""
 
-#: src/scheme/fileprims.c:767
+#: src/scheme/fileprims.c:769
 msgid "Deleting temp directory"
 msgstr ""
 
-#: src/scheme/fileprims.c:773
+#: src/scheme/fileprims.c:775
 msgid "Weird temp directory"
 msgstr ""
 
-#: src/scheme/fileprims.c:1307 src/scheme/fileprims.c:1328
+#: src/scheme/fileprims.c:1309 src/scheme/fileprims.c:1330
 msgid "offset"
 msgstr ""
 
-#: src/scheme/fileprims.c:1551
+#: src/scheme/fileprims.c:1553
 #, c-format
 msgid "The file %s has never been loaded"
 msgstr ""
 
-#: src/scheme/fileprims.c:1601
+#: src/scheme/fileprims.c:1603
 msgid "Module does not exist"
 msgstr ""
 
-#: src/scheme/fileprims.c:1742
+#: src/scheme/fileprims.c:1744
 msgid "SNAPSHOT"
 msgstr ""
 
-#: src/scheme/dbfileprims.c:119
+#: src/scheme/dbfileprims.c:120
 msgid "Misaligned pool"
 msgstr ""
 
-#: src/scheme/dbfileprims.c:223 src/scheme/dbfileprims.c:263
-#: src/scheme/dbfileprims.c:274 src/scheme/dbfileprims.c:282
+#: src/scheme/dbfileprims.c:224 src/scheme/dbfileprims.c:264
+#: src/scheme/dbfileprims.c:275 src/scheme/dbfileprims.c:283
 msgid "hash index"
 msgstr ""
 
-#: src/scheme/timeprims.c:31
+#: src/scheme/timeprims.c:32
 msgid "Timestamp too imprecise"
 msgstr ""
 
-#: src/scheme/timeprims.c:32
+#: src/scheme/timeprims.c:33
 msgid "Invalid timestamp object"
 msgstr ""
 
-#: src/scheme/timeprims.c:33
+#: src/scheme/timeprims.c:34
 msgid "OS doesn't support operation"
 msgstr ""
 
-#: src/scheme/timeprims.c:34
+#: src/scheme/timeprims.c:35
 msgid "internal strftime error"
 msgstr ""
 
-#: src/scheme/timeprims.c:699
+#: src/scheme/timeprims.c:700
 msgid "year"
 msgstr ""
 
-#: src/scheme/timeprims.c:704
+#: src/scheme/timeprims.c:705
 msgid "month"
 msgstr ""
 
-#: src/scheme/timeprims.c:709
+#: src/scheme/timeprims.c:710
 msgid "date"
 msgstr ""
 
-#: src/scheme/timeprims.c:714
+#: src/scheme/timeprims.c:715
 msgid "hours"
 msgstr ""
 
-#: src/scheme/timeprims.c:719
+#: src/scheme/timeprims.c:720
 msgid "minutes"
 msgstr ""
 
-#: src/scheme/timeprims.c:724 src/scheme/timeprims.c:894
+#: src/scheme/timeprims.c:725 src/scheme/timeprims.c:895
 msgid "seconds"
 msgstr ""
 
-#: src/scheme/timeprims.c:753
+#: src/scheme/timeprims.c:754
 msgid "timezone string"
 msgstr ""
 
-#: src/scheme/timeprims.c:829
+#: src/scheme/timeprims.c:830
 msgid "time base"
 msgstr ""
 
-#: src/scheme/timeprims.c:915
+#: src/scheme/timeprims.c:916
 #, c-format
 msgid "%d years"
 msgstr ""
 
-#: src/scheme/timeprims.c:917
+#: src/scheme/timeprims.c:918
 msgid "one year"
 msgstr ""
 
-#: src/scheme/timeprims.c:925
+#: src/scheme/timeprims.c:926
 #, c-format
 msgid "%d months"
 msgstr ""
 
-#: src/scheme/timeprims.c:927
+#: src/scheme/timeprims.c:928
 msgid "one month"
 msgstr ""
 
-#: src/scheme/timeprims.c:935
+#: src/scheme/timeprims.c:936
 #, c-format
 msgid "%d weeks"
 msgstr ""
 
-#: src/scheme/timeprims.c:937
+#: src/scheme/timeprims.c:938
 msgid "one week"
 msgstr ""
 
-#: src/scheme/timeprims.c:945
+#: src/scheme/timeprims.c:946
 #, c-format
 msgid "%d days"
 msgstr ""
 
-#: src/scheme/timeprims.c:947
+#: src/scheme/timeprims.c:948
 msgid "one day"
 msgstr ""
 
-#: src/scheme/timeprims.c:955
+#: src/scheme/timeprims.c:956
 #, c-format
 msgid "%d hours"
 msgstr ""
 
-#: src/scheme/timeprims.c:957
+#: src/scheme/timeprims.c:958
 msgid "one hour"
 msgstr ""
 
-#: src/scheme/timeprims.c:965
+#: src/scheme/timeprims.c:966
 #, c-format
 msgid "%d minutes"
 msgstr ""
 
-#: src/scheme/timeprims.c:967
+#: src/scheme/timeprims.c:968
 msgid "one minute"
 msgstr ""
 
-#: src/scheme/timeprims.c:977 src/scheme/timeprims.c:983
+#: src/scheme/timeprims.c:978 src/scheme/timeprims.c:984
 #, c-format
 msgid "%d seconds"
 msgstr ""
 
-#: src/scheme/timeprims.c:980
+#: src/scheme/timeprims.c:981
 #, c-format
 msgid "%f seconds"
 msgstr ""
 
-#: src/scheme/timeprims.c:1005
+#: src/scheme/timeprims.c:1006
 msgid "fixnum time interval"
 msgstr ""
 
-#: src/scheme/timeprims.c:1206
+#: src/scheme/timeprims.c:1207
 msgid "rusage"
 msgstr ""
 
-#: src/scheme/timeprims.c:1673
+#: src/scheme/timeprims.c:1674
 msgid "Set core size limit"
 msgstr ""
 
-#: src/scheme/extdb.c:52
+#: src/scheme/extdb.c:53
 msgid "No implementation for prepared SQL statements"
 msgstr ""
 
-#: src/scheme/extdb.c:75
+#: src/scheme/extdb.c:76
 msgid "Too many extdb handlers"
 msgstr ""
 
-#: src/scheme/extdb.c:111
+#: src/scheme/extdb.c:112
 msgid "EXTDB proc without a database"
 msgstr ""
 
-#: src/scheme/extdb.c:148 src/scheme/extdb.c:151
+#: src/scheme/extdb.c:149 src/scheme/extdb.c:152
 msgid "recycle failed"
 msgstr ""
 
-#: src/scheme/extdb.c:152
+#: src/scheme/extdb.c:153
 #, c-format
 msgid "No recycle method for %s database procs"
 msgstr ""
 
-#: src/scheme/extdb.c:189
+#: src/scheme/extdb.c:190
 msgid "Direct SQL execution disabled"
 msgstr ""
 
-#: src/scheme/extdb.c:309
+#: src/scheme/extdb.c:310
 msgid "whether direct execution of SQL strings is allowed"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:286
+#: src/fdweb/xmloutput.c:287
 #, c-format
 msgid "missing alternating attrib value for %s"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:439
+#: src/fdweb/xmloutput.c:440
 msgid "invalid XML element name"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:451
+#: src/fdweb/xmloutput.c:452
 msgid "odd number of arguments"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:452
+#: src/fdweb/xmloutput.c:453
 msgid "invalid XML attribute name"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:1338 src/fdweb/xmloutput.c:1411
+#: src/fdweb/xmloutput.c:1339 src/fdweb/xmloutput.c:1412
 msgid "valid anchor target"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:1872
+#: src/fdweb/xmloutput.c:1873
 msgid "javascript function name"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:2195
+#: src/fdweb/xmloutput.c:2196
 msgid "Default style sheet for web errors"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:2200
+#: src/fdweb/xmloutput.c:2201
 msgid "How many entries in a web backtrace to indent "
 msgstr ""
 
-#: src/fdweb/xmloutput.c:2205
+#: src/fdweb/xmloutput.c:2206
 msgid "How to display OIDs for browsing in HTML/XML"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:2209
+#: src/fdweb/xmloutput.c:2210
 msgid "Default anchor URI for OID references"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:2213
+#: src/fdweb/xmloutput.c:2214
 msgid "Default HTML CSS class for OID references"
 msgstr ""
 
-#: src/fdweb/xmlinput.c:30
+#: src/fdweb/xmlinput.c:31
 msgid "XML parsing error"
 msgstr ""
 
-#: src/fdweb/xmlinput.c:938 src/fdweb/xmlinput.c:955
+#: src/fdweb/xmlinput.c:939 src/fdweb/xmlinput.c:956
 msgid "xmlparse option"
 msgstr ""
 
-#: src/fdweb/xmlinput.c:974 src/fdweb/xmlinput.c:1019
+#: src/fdweb/xmlinput.c:975 src/fdweb/xmlinput.c:1020
 msgid "string or port"
 msgstr ""
 
-#: src/fdweb/xmleval.c:744
+#: src/fdweb/xmleval.c:745
 #, c-format
 msgid "In config '%s' %m"
 msgstr ""
 
-#: src/fdweb/xmleval.c:747
+#: src/fdweb/xmleval.c:748
 #, c-format
 msgid "In config '%s' %m@%s"
 msgstr ""
 
-#: src/fdweb/xmleval.c:750
+#: src/fdweb/xmleval.c:751
 #, c-format
 msgid "In config '%s' [%m@%s] %s"
 msgstr ""
 
-#: src/fdweb/xmleval.c:752
+#: src/fdweb/xmleval.c:753
 msgid "In config '%s' [%m@%s] %s %q"
 msgstr ""
 
-#: src/fdweb/xmleval.c:755
+#: src/fdweb/xmleval.c:756
 #, c-format
 msgid "In config '%s', unknown error"
 msgstr ""
 
-#: src/fdweb/xmleval.c:1132
+#: src/fdweb/xmleval.c:1133
 msgid "Missing XML attribute"
 msgstr ""
 
-#: src/fdweb/xmleval.c:1157
+#: src/fdweb/xmleval.c:1158
 msgid "no LOOP arg"
 msgstr ""
 
-#: src/fdweb/xmleval.c:1512
+#: src/fdweb/xmleval.c:1513
 msgid "Whether to cache markup generated from unparsing XML"
 msgstr ""
 
-#: src/fdweb/cgiexec.c:354 src/fdweb/cgiexec.c:367 src/fdweb/cgiexec.c:385
+#: src/fdweb/cgiexec.c:355 src/fdweb/cgiexec.c:368 src/fdweb/cgiexec.c:386
 msgid "malformed cookie"
 msgstr ""
 
-#: src/fdweb/cgiexec.c:1067
+#: src/fdweb/cgiexec.c:1068
 msgid "Functions to execute between parsing and responding to a CGI request"
 msgstr ""
 
-#: src/fdweb/cgiexec.c:1070
+#: src/fdweb/cgiexec.c:1071
 msgid "Whether to log CGI bindings passed to FramerD"
 msgstr ""
 
-#: src/fdweb/cgiexec.c:1074
+#: src/fdweb/cgiexec.c:1075
 msgid "Whether to parse REST query args when there is POST data"
 msgstr ""
 
-#: src/fdweb/uriprims.c:413
+#: src/fdweb/uriprims.c:414
 msgid "URI or URI CONFIG var"
 msgstr ""
 
-#: src/fdweb/mime.c:26
+#: src/fdweb/mime.c:27
 msgid "Multipart MIME document has no separator"
 msgstr ""
 
-#: src/fdweb/mime.c:272
+#: src/fdweb/mime.c:273
 msgid "mime data"
 msgstr ""
 
-#: src/fdweb/email.c:136
+#: src/fdweb/email.c:137
 msgid "SMTP host"
 msgstr ""
 
-#: src/fdweb/email.c:138
+#: src/fdweb/email.c:139
 msgid "SMTP default domain"
 msgstr ""
 
-#: src/fdweb/email.c:140
+#: src/fdweb/email.c:141
 msgid "SMTP default from"
 msgstr ""
 
-#: src/fdweb/curl.c:43
+#: src/fdweb/curl.c:53
 msgid "can't parse non-textual content as XML"
 msgstr ""
 
-#: src/fdweb/curl.c:44
+#: src/fdweb/curl.c:54
 msgid "Internal libcurl error"
 msgstr ""
 
-#: src/fdweb/curl.c:431
+#: src/fdweb/curl.c:457
 msgid "Unknown CURL option"
 msgstr ""
 
-#: src/fdweb/curl.c:1292
+#: src/fdweb/curl.c:1378
 msgid "Whether to debug low level CURL interaction"
 msgstr ""
 
-#: src/texttools/texttools.c:28
+#: src/texttools/texttools.c:29
 msgid "Bad extract data"
 msgstr ""
 
-#: src/texttools/texttools.c:29
+#: src/texttools/texttools.c:30
 msgid "Bad morphrule"
 msgstr ""
 
-#: src/texttools/texttools.c:343
+#: src/texttools/texttools.c:344
 msgid "fragment spec"
 msgstr ""
 
-#: src/texttools/texttools.c:345 src/texttools/texttools.c:351
+#: src/texttools/texttools.c:346 src/texttools/texttools.c:352
 msgid "natural number"
 msgstr ""
 
-#: src/texttools/texttools.c:647
+#: src/texttools/texttools.c:648
 msgid "column width"
 msgstr ""
 
-#: src/texttools/texttools.c:697
+#: src/texttools/texttools.c:698
 msgid "column parse function"
 msgstr ""
 
-#: src/texttools/texttools.c:914
+#: src/texttools/texttools.c:915
 msgid "Unknown subst function"
 msgstr ""
 
-#: src/texttools/texttools.c:1783
+#: src/texttools/texttools.c:1784
 msgid "morphrule"
 msgstr ""
 
-#: src/texttools/match.c:216
+#: src/texttools/match.c:217
 msgid "Internal match error"
 msgstr ""
 
-#: src/texttools/match.c:217
+#: src/texttools/match.c:218
 msgid "match syntax error"
 msgstr ""
 
-#: src/texttools/match.c:218
+#: src/texttools/match.c:219
 msgid "Not a valid TX text pattern"
 msgstr ""
 
-#: src/texttools/match.c:443
+#: src/texttools/match.c:444
 msgid "unknown match operator"
 msgstr ""
 
-#: src/texttools/match.c:452
+#: src/texttools/match.c:453
 msgid "unknown match symbol"
 msgstr ""
 
-#: src/texttools/match.c:3404 src/texttools/match.c:3434
+#: src/texttools/match.c:3405 src/texttools/match.c:3435
 msgid "positive fixnum"
 msgstr ""
 
-#: src/tagger/ofsm.c:42
+#: src/tagger/ofsm.c:43
 msgid "Too many words"
 msgstr ""
 
-#: src/tagger/ofsm.c:43
+#: src/tagger/ofsm.c:44
 msgid "Parser failed"
 msgstr ""
 
-#: src/tagger/ofsm.c:44
+#: src/tagger/ofsm.c:45
 msgid "LEXDATA has already been configured"
 msgstr ""
 
-#: src/tagger/ofsm.c:45
+#: src/tagger/ofsm.c:46
 msgid "No grammar identified"
 msgstr ""
 
-#: src/tagger/ofsm.c:1931 src/tagger/ofsm.c:1937 src/tagger/ofsm.c:1939
-#: src/tagger/ofsm.c:1992 src/tagger/ofsm.c:1998 src/tagger/ofsm.c:2000
+#: src/tagger/ofsm.c:1932 src/tagger/ofsm.c:1938 src/tagger/ofsm.c:1940
+#: src/tagger/ofsm.c:1993 src/tagger/ofsm.c:1999 src/tagger/ofsm.c:2001
 msgid "text input"
 msgstr ""
 
-#: src/tagger/tagxtract.c:186 src/tagger/tagxtract.c:213
+#: src/tagger/tagxtract.c:187 src/tagger/tagxtract.c:214
 msgid "parse"
 msgstr ""
 
-#: src/tagger/tagxtract.c:257 src/tagger/tagxtract.c:271
-#: src/tagger/tagxtract.c:288 src/tagger/tagxtract.c:308
-#: src/tagger/tagxtract.c:330 src/tagger/tagxtract.c:395
-#: src/tagger/tagxtract.c:419 src/tagger/tagxtract.c:451
-#: src/tagger/tagxtract.c:485 src/tagger/tagxtract.c:610
-#: src/tagger/tagxtract.c:686
+#: src/tagger/tagxtract.c:258 src/tagger/tagxtract.c:272
+#: src/tagger/tagxtract.c:289 src/tagger/tagxtract.c:309
+#: src/tagger/tagxtract.c:331 src/tagger/tagxtract.c:396
+#: src/tagger/tagxtract.c:420 src/tagger/tagxtract.c:452
+#: src/tagger/tagxtract.c:486 src/tagger/tagxtract.c:611
+#: src/tagger/tagxtract.c:687
 msgid "tagged word"
 msgstr ""
 
-#: src/tagger/tagxtract.c:264 src/tagger/tagxtract.c:281
-#: src/tagger/tagxtract.c:301 src/tagger/tagxtract.c:323
-#: src/tagger/tagxtract.c:352 src/tagger/tagxtract.c:410
+#: src/tagger/tagxtract.c:265 src/tagger/tagxtract.c:282
+#: src/tagger/tagxtract.c:302 src/tagger/tagxtract.c:324
+#: src/tagger/tagxtract.c:353 src/tagger/tagxtract.c:411
 msgid "compound term"
 msgstr ""
 
-#: src/exe/fdconsole.c:110
+#: src/exe/fdconsole.c:111
 #, c-format
 msgid ";; Done in %f seconds, with %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:112
+#: src/exe/fdconsole.c:113
 #, c-format
 msgid ";; ##%d computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:214
+#: src/exe/fdconsole.c:215
 #, c-format
 msgid "%s ;; ##%d= (%d/%d items)"
 msgstr ""
 
-#: src/exe/fdconsole.c:216
+#: src/exe/fdconsole.c:217
 #, c-format
 msgid "%s ;; ##%d= (%d items)"
 msgstr ""
 
-#: src/exe/fdconsole.c:423
+#: src/exe/fdconsole.c:431
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/fdconsole.c:427 src/exe/fdserver.c:924
+#: src/exe/fdconsole.c:435 src/exe/fdserver.c:926
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:431
+#: src/exe/fdconsole.c:439
 msgid "Max number of sequence/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:435
+#: src/exe/fdconsole.c:443
 msgid "Whether to be minimalist in console interaction"
 msgstr ""
 
-#: src/exe/fdconsole.c:439
+#: src/exe/fdconsole.c:447
 msgid "Number of characters available for pretty-printing console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:443
+#: src/exe/fdconsole.c:451
 msgid "Number of elements to initially show in displaying results"
 msgstr ""
 
-#: src/exe/fdconsole.c:446
+#: src/exe/fdconsole.c:454
 msgid "Where to create directories for saving backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:449
+#: src/exe/fdconsole.c:457
 msgid "The base URL for referencing HTML backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:452
+#: src/exe/fdconsole.c:460
 msgid "The command to use to open saved backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:455
+#: src/exe/fdconsole.c:463
 msgid "Whether to dump HTML versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:458
+#: src/exe/fdconsole.c:466
 msgid "Whether to dump LISP object versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:461
+#: src/exe/fdconsole.c:469
 msgid "Whether to dump binary DTYPE versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:464
+#: src/exe/fdconsole.c:472
 msgid "Whether to plaintext versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:467
+#: src/exe/fdconsole.c:475
 msgid "Whether to always save backtraces in the history"
 msgstr ""
 
-#: src/exe/fdconsole.c:470
+#: src/exe/fdconsole.c:478
 msgid "Whether to always output backtraces to stderr"
 msgstr ""
 
-#: src/exe/fdconsole.c:546
+#: src/exe/fdconsole.c:554
 #, c-format
 msgid ";; Assigned %s\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:547
+#: src/exe/fdconsole.c:555
 msgid ";; Bad assignment expression\n"
 msgstr ""
 
-#: src/exe/fdexec.c:48
+#: src/exe/fdexec.c:49
 msgid "FILEWAIT"
 msgstr ""
 
-#: src/exe/fdexec.c:75
+#: src/exe/fdexec.c:76
 msgid "Too many configs to CHAIN"
 msgstr ""
 
-#: src/exe/fdexec.c:124
+#: src/exe/fdexec.c:125
 msgid "Max number of chars in strings output with error reports"
 msgstr ""
 
-#: src/exe/fdexec.c:128
+#: src/exe/fdexec.c:129
 msgid ""
 "Max number of elements in vectors/choices/lists output with error reports"
 msgstr ""
 
-#: src/exe/fdexec.c:132
+#: src/exe/fdexec.c:133
 msgid "File to wait to exist before starting"
 msgstr ""
 
-#: src/exe/fdbatch.c:130
+#: src/exe/fdbatch.c:137
 msgid "Whether to append to log files"
 msgstr ""
 
-#: src/exe/fdservlet.c:50
+#: src/exe/fdservlet.c:51
 msgid "FDServlet Startup"
 msgstr ""
 
-#: src/exe/fdservlet.c:1439
+#: src/exe/fdservlet.c:1428
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/fdservlet.c:1441 src/exe/fdserver.c:933
+#: src/exe/fdservlet.c:1430 src/exe/fdserver.c:935
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/fdservlet.c:1541
+#: src/exe/fdservlet.c:1530
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/fdservlet.c:1544 src/exe/fdcgiexec.c:691 src/exe/fdserver.c:878
+#: src/exe/fdservlet.c:1533 src/exe/fdcgiexec.c:693 src/exe/fdserver.c:880
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/fdservlet.c:1546 src/exe/fdserver.c:880
+#: src/exe/fdservlet.c:1535 src/exe/fdserver.c:882
 msgid "Max number of requests to keep queued"
 msgstr ""
 
-#: src/exe/fdservlet.c:1549
+#: src/exe/fdservlet.c:1538
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1552 src/exe/fdserver.c:883
+#: src/exe/fdservlet.c:1541 src/exe/fdserver.c:885
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
-#: src/exe/fdservlet.c:1554 src/exe/fdservlet.c:1557 src/exe/fdcgiexec.c:693
-#: src/exe/fdserver.c:885 src/exe/fdserver.c:888
+#: src/exe/fdservlet.c:1543 src/exe/fdservlet.c:1546 src/exe/fdcgiexec.c:695
+#: src/exe/fdserver.c:887 src/exe/fdserver.c:890
 msgid "Number of threads in the thread pool"
 msgstr ""
 
-#: src/exe/fdservlet.c:1559
+#: src/exe/fdservlet.c:1548
 msgid "File for recording status reports"
 msgstr ""
 
-#: src/exe/fdservlet.c:1562
+#: src/exe/fdservlet.c:1551
 msgid "Milliseconds (roughly) between status reports"
 msgstr ""
 
-#: src/exe/fdservlet.c:1565 src/exe/fdserver.c:936
+#: src/exe/fdservlet.c:1554 src/exe/fdserver.c:938
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
-#: src/exe/fdservlet.c:1569
+#: src/exe/fdservlet.c:1558
 msgid "Remove existing socket files with extreme prejudice"
 msgstr ""
 
-#: src/exe/fdservlet.c:1573
+#: src/exe/fdservlet.c:1562
 msgid "Whether to check for existing PID files"
 msgstr ""
 
-#: src/exe/fdservlet.c:1658
+#: src/exe/fdservlet.c:1647
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/fdservlet.c:1662 src/exe/fdserver.c:905
+#: src/exe/fdservlet.c:1651 src/exe/fdserver.c:907
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/fdservlet.c:1666 src/exe/fdserver.c:909
+#: src/exe/fdservlet.c:1655 src/exe/fdserver.c:911
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
-#: src/exe/fdservlet.c:1670
+#: src/exe/fdservlet.c:1659
 msgid "Whether to have libu8 log queue activity"
 msgstr ""
 
-#: src/exe/fdservlet.c:1676
+#: src/exe/fdservlet.c:1665
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/fdservlet.c:1682 src/exe/fdserver.c:919
+#: src/exe/fdservlet.c:1671 src/exe/fdserver.c:921
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
-#: src/exe/fdcgiexec.c:46
+#: src/exe/fdcgiexec.c:47
 msgid "FDCGIEXEC/Startup"
 msgstr ""
 
-#: src/exe/fdcgiexec.c:695
+#: src/exe/fdcgiexec.c:697
 msgid "The socket file used by this server for use with external versions"
 msgstr ""
 
-#: src/exe/fdserver.c:53
+#: src/exe/fdserver.c:54
 msgid "Bad port spec"
 msgstr ""
 
-#: src/exe/fdserver.c:54
+#: src/exe/fdserver.c:55
 msgid "Bad client request"
 msgstr ""
 
-#: src/exe/fdserver.c:55
+#: src/exe/fdserver.c:56
 msgid "NoServers"
 msgstr ""
 
-#: src/exe/fdserver.c:56
+#: src/exe/fdserver.c:57
 msgid "ServerStart"
 msgstr ""
 
-#: src/exe/fdserver.c:57
+#: src/exe/fdserver.c:58
 msgid "ServerShutdown"
 msgstr ""
 
-#: src/exe/fdserver.c:59
+#: src/exe/fdserver.c:60
 msgid "Incoming"
 msgstr ""
 
-#: src/exe/fdserver.c:59
+#: src/exe/fdserver.c:60
 msgid "Outgoing"
 msgstr ""
 
-#: src/exe/fdserver.c:97
+#: src/exe/fdserver.c:98
 msgid "Log file error"
 msgstr ""
 
-#: src/exe/fdserver.c:890
+#: src/exe/fdserver.c:892
 msgid "modules to provide in the server environment"
 msgstr ""
 
-#: src/exe/fdserver.c:892
+#: src/exe/fdserver.c:894
 msgid "whether to provide full scheme interpretation to client"
 msgstr ""
 
-#: src/exe/fdserver.c:894
+#: src/exe/fdserver.c:896
 msgid "Whether to log each request and response"
 msgstr ""
 
-#: src/exe/fdserver.c:896
+#: src/exe/fdserver.c:898
 msgid "Whether to log each transaction"
 msgstr ""
 
-#: src/exe/fdserver.c:899
+#: src/exe/fdserver.c:901
 msgid "Whether to log errors returned by the server to clients"
 msgstr ""
 
-#: src/exe/fdserver.c:902
+#: src/exe/fdserver.c:904
 msgid "Whether to include a detailed backtrace when logging errors"
 msgstr ""
 
-#: src/exe/fdserver.c:914
+#: src/exe/fdserver.c:916
 msgid "Whether to have libu8 log all data transfers for fine-grained debugging"
 msgstr ""
 
-#: src/exe/fdserver.c:928
+#: src/exe/fdserver.c:930
 msgid "Max number of list/vector/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/fdserver.c:931
+#: src/exe/fdserver.c:933
 msgid "Where to write server pid/nid files"
 msgstr ""
 
-#: src/exe/fdserver.c:939
+#: src/exe/fdserver.c:941
 msgid "Whether to automatically reload changed files"
 msgstr ""
 
-#: src/exe/fdserver.c:942
+#: src/exe/fdserver.c:944
 msgid "Whether to disable exported FramerD DB API"
 msgstr ""
 
-#: src/exe/fdserver.c:1077
+#: src/exe/fdserver.c:1080
 msgid "port or port@host to listen on"
 msgstr ""
 
-#: src/cmodules/odbc.c:63
+#: src/cmodules/odbc.c:64
 msgid "ODBC error"
 msgstr ""
 
-#: src/cmodules/sqlite.c:55
+#: src/cmodules/sqlite.c:56
 msgid "SQLite Error"
 msgstr ""
 
-#: src/cmodules/mysql.c:39
+#: src/cmodules/mysql.c:38
 msgid "MYSQL server reset"
 msgstr ""
 
-#: src/cmodules/mysql.c:40
+#: src/cmodules/mysql.c:39
 msgid "MYSQL unused parameter type"
 msgstr ""
 
-#: src/cmodules/mysql.c:92
+#: src/cmodules/mysql.c:91
 msgid "MySQL Error"
 msgstr ""
 
-#: src/cmodules/mysql.c:93
+#: src/cmodules/mysql.c:92
 msgid "Can't convert value to SQL"
 msgstr ""
 
-#: src/cmodules/regex.c:25
+#: src/cmodules/regex.c:26
 msgid "Regular expression error"
 msgstr ""
 
-#: src/cmodules/ziptools.c:26
+#: src/cmodules/ziptools.c:27
 msgid "Zip file error"
 msgstr ""
 
-#: src/cmodules/tidy.c:30
+#: src/cmodules/tidy.c:31
 msgid "Tidy Error"
 msgstr ""
