@@ -1,6 +1,6 @@
 Name:           framerd
 Version:        3.5.1
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -140,7 +140,14 @@ make
 make mod_fdserv
 
 %pre
-if grep -q ^fdaemon /etc/passwd; then echo "User fdaemon already exists"; else useradd fdaemon; fi
+if grep -q ^fdaemon /etc/passwd;
+    then echo "User fdaemon already exists";
+    else useradd -r fdaemon -c "FramerD daemon";
+fi
+if grep -q ^framerd /etc/group;
+    then echo "Group framerd already exists";
+    else groupadd -f -r framerd -c "FramerD admin group";
+fi
 
 %install
 rm -rf $RPM_BUILD_ROOT
