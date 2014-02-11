@@ -880,8 +880,8 @@ install-headers: $(INCINSTALLDIR)
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(MSG) Installing executables
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
-	cd $(BININSTALLDIR); @$(SUDO) rm -f fdbserver; 	$(SUDO) ln -s fdserver fdbserver
-	cd $(BININSTALLDIR); @$(SUDO) rm -f fdserv; $(SUDO) ln -s fdservlet fdserv
+	@cd $(BININSTALLDIR); $(SUDO) rm -f fdbserver; 	$(SUDO) ln -s fdserver fdbserver
+	@cd $(BININSTALLDIR); $(SUDO) rm -f fdserv; $(SUDO) ln -s fdservlet fdserv
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
