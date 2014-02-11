@@ -212,8 +212,28 @@ static fdtype error_irritant(fdtype x,fdtype top_arg)
       if  (ex->u8x_xdata)
 	found=fd_exception_xdata(ex);
       ex=ex->u8x_prev;}
-  if (FD_VOIDP(found)) return FD_FALSE;
+  if (FD_VOIDP(found)) return FD_VOID;
   else return fd_incref(found);
+}
+
+static fdtype error_has_irritant(fdtype x,fdtype top_arg)
+{
+  int top=(!(FD_FALSEP(top_arg)));
+  struct FD_EXCEPTION_OBJECT *xo=
+    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
+  u8_exception ex=xo->ex;
+  fdtype found=FD_VOID;
+  if (top) {
+    while (ex) {
+      if (ex->u8x_xdata) {
+	found=fd_exception_xdata(ex); break;}
+      else ex=ex->u8x_prev;}}
+  else while (ex) {
+      if  (ex->u8x_xdata)
+	found=fd_exception_xdata(ex);
+      ex=ex->u8x_prev;}
+  if (FD_VOIDP(found)) return FD_FALSE;
+  else return FD_TRUE;
 }
 
 static fdtype error_backtrace(fdtype x)
@@ -329,6 +349,9 @@ FD_EXPORT void fd_init_errors_c()
 			   fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("ERROR-IRRITANT",error_irritant,1,
+			   fd_error_type,FD_VOID,-1,FD_FALSE));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim2x("ERROR-IRRITANT?",error_has_irritant,1,
 			   fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("ERROR-XDATA",error_xdata,1,
