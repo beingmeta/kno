@@ -177,7 +177,7 @@
 (define (oauth/pending! id (state))
   (debug%watch "OAUTH/PENDING!" id state oauth-sessionfn)
   (if (and (bound? state) state)
-      (drop! oauth-pending id state)
+      (store! oauth-pending id state)
       (drop! oauth-pending id))
   (when oauth-sessionfn
     (if (bound? state)
@@ -359,6 +359,7 @@
        "response_type" "code")))
 
 (define (oauth/verify spec verifier (ckey) (csecret))
+  (set! spec (oauth/spec spec))
   (unless (and (getopt spec 'request)
 	       (getopt spec 'authorize)
 	       (getopt spec 'verify))
