@@ -95,6 +95,21 @@ static u8_mutex init_server_lock;
 
 static void init_server(void);
 
+/* Managing your dependent (for restarting servers) */
+
+static pid_t dependent=-1;
+static void kill_dependent_onexit(){
+  pid_t dep=dependent; dependent=-1;
+  if (dep>0) kill(dep,SIGTERM);}
+static void kill_dependent_onsignal(int sig){
+  pid_t dep=dependent; dependent=-1;
+  u8_log(LOG_WARN,"FDServer/signal",
+	 "FDServer controller %d got signal %d, passing to %d",
+	 getpid(),sig,dep);
+  if (dep>0) kill(dep,sig);}
+
+/* Log files */
+
 u8_condition LogFileError=_("Log file error");
 
 static u8_string log_filename=NULL;
@@ -965,32 +980,38 @@ static fd_lispenv init_core_env()
   return core_env;
 }
 
+static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env);
+
 static int fork_server(u8_string source_file,fd_lispenv env)
 {
   pid_t child, grandchild; double start=u8_elapsed_time();
   if ((child=fork())) {
-    int count=60; double done; int status=0;
+    int count=10; double done; int status=0;
     if (child<0) {
       u8_log(LOG_CRIT,"fork_server","Fork failed for %s\n",source_file);
       exit(1);}
+    else u8_log(LOG_WARN,"fork_server","Initial fork spawned pid %d",child);
 #if HAVE_WAITPID
-    if (waitpid(child,&status,0)<0) {
-      u8_log(LOGCRIT,ServerStartup,"Fork wait failed");
-      exit(1);}
-    if (!(WIFEXITED(status))) {
-      u8_log(LOGCRIT,ServerStartup,"First fork failed to finish");
-      exit(1);}
-    else if (WEXITSTATUS(status)!=0) {
-      u8_log(LOGCRIT,ServerStartup,"First fork return non-zero status");
-      exit(1);}
+    if (!(getenv("RESTART"))) {
+      if (waitpid(child,&status,0)<0) {
+	u8_log(LOG_CRIT,ServerStartup,"Fork wait failed");
+	exit(1);}
+      if (!(WIFEXITED(status))) {
+	u8_log(LOG_CRIT,ServerStartup,"First fork failed to finish");
+	exit(1);}
+      else if (WEXITSTATUS(status)!=0) {
+	u8_log(LOG_CRIT,ServerStartup,"First fork return non-zero status");
+	exit(1);}}
 #endif
     while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
+      u8_log(LOG_WARN,ServerStartup,"Waiting for PID file %s",pid_file);
       count--; sleep(1);}
     done=u8_elapsed_time();
     if (u8_file_existsp(pid_file)) 
       u8_log(LOG_NOTICE,"fdserver","Server %s launched in %02fs",
 	     source_file,done-start);
-    else u8_log(LOG_CRIT,"fdserver","Server %s hasn't launched after %02fs",
+    else u8_log(LOG_CRIT,"fdserver",
+		"Server %s hasn't launched after %02fs",
 		source_file,done-start);
     exit(0);}
   else {
@@ -1002,10 +1023,46 @@ static int fork_server(u8_string source_file,fd_lispenv env)
       if (grandchild<0) {
 	u8_log(LOG_CRIT,"fork_server","Second fork failed for %s",source_file);
 	exit(1);}
-      u8_log(LOG_NOTICE,"fork_server","Server %s has PID %d",
+      u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
 	     source_file,grandchild);
-      exit(0);}
+      if (getenv("RESTART"))
+	return sustain_server(grandchild,source_file,env);
+      else exit(0);}
     else return launch_server(source_file,env);}
+}
+
+static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env)
+{
+  int status=-1;
+  dependent=grandchild;
+  atexit(kill_dependent_onexit);
+#ifdef SIGTERM
+  signal(SIGTERM,kill_dependent_onsignal);
+#endif
+#ifdef SIGQUIT
+  signal(SIGQUIT,kill_dependent_onsignal);
+#endif
+  while (waitpid(grandchild,&status,0)) {
+    if (WIFSIGNALED(status))
+      u8_log(LOG_WARN,"FDServer/restart",
+	     "Server %s(%d) terminated on signal %d",
+	     source_file,grandchild,WTERMSIG(status));
+    else if (WIFEXITED(status))
+      u8_log(LOG_WARN,"FDServer/restart",
+	     "Server %s(%d) terminated normally with status %d",
+	     source_file,grandchild,status);
+    else continue;
+    if (dependent<0) {
+      u8_log(LOG_WARN,"FDServer/done",
+	     "Terminating restart process for %s",source_file);
+      exit(0);}
+    sleep(5);
+    if ((grandchild=fork())) {
+      dependent=grandchild;
+      continue;}
+    else return launch_server(source_file,env);}
+  exit(0);
+  return 0;
 }
 
 static void write_state_files(void);
@@ -1125,3 +1182,4 @@ static void write_state_files()
     errno=0;}
   atexit(cleanup_state_files);
 }
+
