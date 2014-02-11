@@ -1596,7 +1596,7 @@ int main(int argc,char **argv)
     fd_decref(path); fd_decref(result);}
   else {}
 
-  if (getenv("FOREGROUND"))
+  if (getenv("FD_FOREGROUND"))
     return launch_servlet(socket_spec);
   else return fork_servlet(socket_spec);
 

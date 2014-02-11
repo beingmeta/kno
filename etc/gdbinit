@@ -1,5 +1,5 @@
 set env UNDERGDB=yes
-set env FOREGROUND=yes
+set env FD_FOREGROUND=yes
 set env FD_IGNORELEFTOVERS=yes
 set env FD_STEALSOCKETS=yes
 set print elements 64

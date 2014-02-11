@@ -285,7 +285,7 @@ static char **generate_argv(char *exe,char *control_file,char *string)
 static char **generate_env(char *exe,char *control_file,char *string)
 {
   char **env=u8_alloc_n(2,char *);
-  env[0]=u8_strdup("FOREGROUND=yes");
+  env[0]=u8_strdup("FD_FOREGROUND=yes");
   env[1]=NULL;
   return env;
 }

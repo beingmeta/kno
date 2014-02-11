@@ -103,9 +103,10 @@ static void kill_dependent_onexit(){
   if (dep>0) kill(dep,SIGTERM);}
 static void kill_dependent_onsignal(int sig){
   pid_t dep=dependent; dependent=-1;
-  u8_log(LOG_WARN,"FDServer/signal",
-	 "FDServer controller %d got signal %d, passing to %d",
-	 getpid(),sig,dep);
+  if (dep>0)
+    u8_log(LOG_WARN,"FDServer/signal",
+	   "FDServer controller %d got signal %d, passing to %d",
+	   getpid(),sig,dep);
   if (dep>0) kill(dep,sig);}
 
 /* Log files */
@@ -113,7 +114,7 @@ static void kill_dependent_onsignal(int sig){
 u8_condition LogFileError=_("Log file error");
 
 static u8_string log_filename=NULL;
-static int log_fd=-1, foreground=-1;
+static int log_fd=-1;
 static int set_logfile(u8_string logfile,int exitonfail)
 {
   int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
@@ -863,8 +864,6 @@ int main(int argc,char **argv)
   else exposed_environment=
 	 fd_make_env(fd_incref(fd_fdbserv_module),core_env);
   
-  if (foreground<0) {
-    if (getenv("FOREGROUND")) foreground=1; else foreground=0;}
 
   /* Now process all the configuration arguments and find the source file */
   while (i<argc)
@@ -884,9 +883,10 @@ int main(int argc,char **argv)
   pid_file=fd_runbase_filename(".pid");
   nid_file=fd_runbase_filename(".nid");
   
-  if (foreground)
-    return launch_server(source_file,core_env);
-  else return fork_server(source_file,core_env);
+  if ((getenv("FD_RESTART"))||(!(getenv("FD_FOREGROUND"))))
+    return fork_server(source_file,core_env);
+  else return launch_server(source_file,core_env);
+
 }
 
 static void init_configs()
@@ -985,26 +985,43 @@ static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env)
 static int fork_server(u8_string source_file,fd_lispenv env)
 {
   pid_t child, grandchild; double start=u8_elapsed_time();
-  if ((child=fork())) {
-    int count=10; double done; int status=0;
+  if ((getenv("FD_FOREGROUND"))&&(getenv("FD_RESTART"))) {
+    /* This is the scenario where we stay in the foreground but
+       restart automatically.  */
+    if ((child=fork())) {
+      if (child<0) {
+	u8_log(LOG_CRIT,"fork_server","Fork failed for %s",source_file);
+	exit(1);}
+      else {
+	u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
+	       source_file,child);
+	return sustain_server(child,source_file,env);}}
+    else return launch_server(source_file,env);}
+  else if ((child=fork()))  {
+    /* The grandparent waits until the parent exits and then
+       waits until the .pid file has been written. */
+    int count=60; double done; int status=0;
     if (child<0) {
       u8_log(LOG_CRIT,"fork_server","Fork failed for %s\n",source_file);
       exit(1);}
-    else u8_log(LOG_WARN,"fork_server","Initial fork spawned pid %d",child);
+    else u8_log(LOG_WARN,"fork_server","Initial fork spawned pid %d from %d",
+		child,getpid());
 #if HAVE_WAITPID
-    if (!(getenv("RESTART"))) {
-      if (waitpid(child,&status,0)<0) {
-	u8_log(LOG_CRIT,ServerStartup,"Fork wait failed");
-	exit(1);}
-      if (!(WIFEXITED(status))) {
-	u8_log(LOG_CRIT,ServerStartup,"First fork failed to finish");
-	exit(1);}
-      else if (WEXITSTATUS(status)!=0) {
-	u8_log(LOG_CRIT,ServerStartup,"First fork return non-zero status");
-	exit(1);}}
+    if (waitpid(child,&status,0)<0) {
+      u8_log(LOG_CRIT,ServerStartup,"Fork wait failed");
+      exit(1);}
+    if (!(WIFEXITED(status))) {
+      u8_log(LOG_CRIT,ServerStartup,"First fork failed to finish");
+      exit(1);}
+    else if (WEXITSTATUS(status)!=0) {
+      u8_log(LOG_CRIT,ServerStartup,"First fork return non-zero status");
+      exit(1);}
 #endif
+    /* If the parent has exited, we wait around for the pid_file to be created
+       by our grandchild. */
     while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
-      u8_log(LOG_WARN,ServerStartup,"Waiting for PID file %s",pid_file);
+      if ((count%10)==0)
+	u8_log(LOG_WARN,ServerStartup,"Waiting for PID file %s",pid_file);
       count--; sleep(1);}
     done=u8_elapsed_time();
     if (u8_file_existsp(pid_file)) 
@@ -1015,26 +1032,57 @@ static int fork_server(u8_string source_file,fd_lispenv env)
 		source_file,done-start);
     exit(0);}
   else {
+    /* If we get here, we're the parent, and we start by trying to
+       become session leader */
     if (setsid()==-1) {
       u8_log(LOG_CRIT,"fork_server",
-	     "Server %s failed to become session leader",source_file);
+	     "Process %d failed to become session leader for %s (%s)",
+	     getpid(),source_file,strerror(errno));
+      errno=0;
       exit(1);}
+    else u8_log(LOG_INFO,"fork_server",
+		"Process %d become session leader for %s",getpid(),source_file);
+    /* Now we fork again.  In the normal case, this fork (the grandchild) is
+       the actual server.  If we're auto-restarting, this fork is the one which
+       does the restarting. */
     if ((grandchild=fork())) {
       if (grandchild<0) {
 	u8_log(LOG_CRIT,"fork_server","Second fork failed for %s",source_file);
 	exit(1);}
-      u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
-	     source_file,grandchild);
-      if (getenv("RESTART"))
-	return sustain_server(grandchild,source_file,env);
-      else exit(0);}
+      else if (getenv("FD_RESTART"))
+	u8_log(LOG_NOTICE,"fork_server","Restart monitor for %s has PID %d",
+	       source_file,grandchild);
+      else u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
+		  source_file,grandchild);
+      /* This is the parent, which always exits */
+      exit(0);}
+    else if (getenv("FD_RESTART")) {
+      pid_t worker;
+      if (worker=fork()) {
+	if (worker<0) 
+	  u8_log(LOG_CRIT,"fork_server","Worker fork failed for %s",source_file);
+	else {
+	  u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
+		 source_file,worker);
+	  return sustain_server(worker,source_file,env);}}
+      else return launch_server(source_file,env);}
     else return launch_server(source_file,env);}
+  exit(0);
 }
 
 static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env)
 {
-  int status=-1;
+  char *restartval=getenv("FD_RESTART");
+  int status=-1, sleepfor=atoi(restartval); 
+  /* Don't try to catch an error here */
+  if (sleepfor<0) sleepfor=7;
+  else if (sleepfor>60) sleepfor=60;
+  errno=0;
+  /* Update the global variable with our current dependent grandchild */
   dependent=grandchild;
+  /* Setup atexit and signal handlers to kill our dependent when we're
+     gone. */
+  u8_log(LOG_WARN,"FDServer/sustain %s pid=%d",source_file,grandchild);
   atexit(kill_dependent_onexit);
 #ifdef SIGTERM
   signal(SIGTERM,kill_dependent_onsignal);
@@ -1048,7 +1096,7 @@ static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env)
 	     "Server %s(%d) terminated on signal %d",
 	     source_file,grandchild,WTERMSIG(status));
     else if (WIFEXITED(status))
-      u8_log(LOG_WARN,"FDServer/restart",
+      u8_log(LOG_NOTICE,"FDServer/restart",
 	     "Server %s(%d) terminated normally with status %d",
 	     source_file,grandchild,status);
     else continue;
@@ -1056,8 +1104,11 @@ static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env)
       u8_log(LOG_WARN,"FDServer/done",
 	     "Terminating restart process for %s",source_file);
       exit(0);}
-    sleep(5);
+    sleep(sleepfor);
     if ((grandchild=fork())) {
+      u8_log(LOG_NOTICE,"FDServer/restart",
+	     "Server %s restarted with pid %d",
+	     source_file,grandchild);
       dependent=grandchild;
       continue;}
     else return launch_server(source_file,env);}
