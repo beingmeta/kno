@@ -744,6 +744,8 @@ dnl   Google perftools
 AC_ARG_WITH(tcmalloc,--with[out]-tcmalloc Use the Google malloc library,,with_tcmalloc="no")
 if test $with_tcmalloc = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
+elif test $with_tcmalloc = "debug"; then
+  AC_CHECK_LIB(tcmalloc_debug,malloc)
 fi
 
 # For OS X
@@ -1014,7 +1016,7 @@ fi
 
 AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
 
-AC_OUTPUT(makefile exe/.gdbinit
+AC_OUTPUT(makefile exe/.gdbinit DIY/makefile
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	  tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
 	  etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d

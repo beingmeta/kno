@@ -1,0 +1,15 @@
+
+libzip/README:
+	hg clone http://hg.nih.at/libzip
+update-libzip: libzip/README
+	cd libzip; hg update
+	cd libzip; cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=@prefix@
+
+libzip/lib/libzip.so: update-libzip
+	cd libzip; make
+build-libzip: libzip/lib/libzip.so
+
+@prefix@/lib/libzip.so:
+	cd libzip; sudo make install
+install-libzip: @prefix@/lib/libzip.so
+

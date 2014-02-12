@@ -8006,6 +8006,52 @@ _ACEOF
 
 fi
 
+elif test $with_tcmalloc = "debug"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
+$as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
+if ${ac_cv_lib_tcmalloc_debug_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc_debug  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_debug_malloc=yes
+else
+  ac_cv_lib_tcmalloc_debug_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_debug_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_debug_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_debug_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTCMALLOC_DEBUG 1
+_ACEOF
+
+  LIBS="-ltcmalloc_debug $LIBS"
+
+fi
+
 fi
 
 # For OS X
@@ -9058,7 +9104,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-ac_config_files="$ac_config_files makefile exe/.gdbinit tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d etc/OSXStartupItem/FramerD etc/logrotate etc/fdserver.conf etc/fdservlet.conf etc/framerd.conf etc/fdserv.conf etc/fdserv.load etc/install-script"
+ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d etc/OSXStartupItem/FramerD etc/logrotate etc/fdserver.conf etc/fdservlet.conf etc/framerd.conf etc/fdserv.conf etc/fdserv.load etc/install-script"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -9755,6 +9801,7 @@ do
     "include/framerd/config.h") CONFIG_HEADERS="$CONFIG_HEADERS include/framerd/config.h" ;;
     "makefile") CONFIG_FILES="$CONFIG_FILES makefile" ;;
     "exe/.gdbinit") CONFIG_FILES="$CONFIG_FILES exe/.gdbinit" ;;
+    "DIY/makefile") CONFIG_FILES="$CONFIG_FILES DIY/makefile" ;;
     "tests/dtype/makefile") CONFIG_FILES="$CONFIG_FILES tests/dtype/makefile" ;;
     "tests/db/makefile") CONFIG_FILES="$CONFIG_FILES tests/db/makefile" ;;
     "tests/scheme/makefile") CONFIG_FILES="$CONFIG_FILES tests/scheme/makefile" ;;
