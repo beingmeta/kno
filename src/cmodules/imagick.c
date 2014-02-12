@@ -55,6 +55,7 @@ static struct CTYPEMAP {
   {LZWCompression,"LZW"},
   {RLECompression,"RLE"},
   {ZipCompression,"Zip"},
+#if (MagickLibVersion>0x670)
   {ZipSCompression,"ZipS"},
   {PizCompression,"Piz"},
   {Pxr24Compression,"Pxr24"},
@@ -63,6 +64,7 @@ static struct CTYPEMAP {
   {LZMACompression,"LZMA"},             /* Lempel-Ziv-Markov chain algorithm */
   {JBIG1Compression,"JBIG1"},           /* ISO/IEC std 11544 / ITU-T rec T.82 */
   {JBIG2Compression,"JBIG2"},           /* ISO/IEC std 14492 / ITU-T rec T.88 */
+#endif
   {UndefinedCompression,"Undefined"}};
 
 static struct CSMAP {
@@ -237,10 +239,12 @@ static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
   if (FD_EQ(field,format)) {
     const char *fmt=MagickGetImageFormat(wand);
     return fdtype_string((char *)fmt);}
+#if (MagickLibVersion>0x670)
   else if (FD_EQ(field,resolution)) {
     double x=0, y=0;
     MagickBooleanType rv=MagickGetResolution(wand,&x,&y);
     return fd_init_pair(NULL,fd_make_double(x),fd_make_double(y));}
+#endif
   else if (FD_EQ(field,size)) {
     size_t w=MagickGetImageWidth(wand);
     size_t h=MagickGetImageHeight(wand);
