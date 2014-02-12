@@ -73,10 +73,11 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
   /* First we write an uppercase ASCII version of the string to a buffer. */
   if (len>=32) {
     scan=start=u8_malloc(len+1);
-    capscan=capstart=u8_malloc(len+1);}
+    capscan=capstart=u8_malloc(len+1);
+    memset(scan,0,len+1); memset(capscan,0,len+1);}
   else {
-    scan=start=buf;
-    capscan=capstart=capbuf;}
+    scan=start=buf; memset(scan,0,sizeof(buf));
+    capscan=capstart=capbuf; memset(capscan,0,sizeof(buf));}
   /* If the string is capitalized, we insert an asterisk,
      which is a modification on the standard metaphone algorithm. */
   /* if (u8_isupper(c)) u8_putc(&out,'*'); */
@@ -120,12 +121,16 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
 	if (*capscan) u8_putc(&out,'X'); else u8_putc(&out,'x');
 	scan=scan+2; capscan=capscan+2;
 	continue;}
-      else if ((strncmp(scan,"CI",3)==0) || (strncmp(scan,"CE",2)==0) || (strncmp(s,"CY",2)==0)) {
+      else if ((strncmp(scan,"CI",3)==0) ||
+               (strncmp(scan,"CE",2)==0) ||
+               (strncmp(scan,"CY",2)==0)) {
 	if (*capscan) u8_putc(&out,'S'); else u8_putc(&out,'s');
 	scan=scan+2; capscan=capscan+2;
 	continue;}
       else if ((scan>start) &&
-	       ((strncmp(scan-1,"SCI",3)==0) || (strncmp(scan-1,"SCE",3)==0) || (strncmp(scan-1,"SCY",3)==0))) {
+	       ((strncmp(scan-1,"SCI",3)==0) ||
+                (strncmp(scan-1,"SCE",3)==0) ||
+                (strncmp(scan-1,"SCY",3)==0))) {
 	scan=scan+2; capscan=capscan+2; continue;}
       else if ((scan>start) && (strncmp(scan-1,"SCH",3)==0)) {
 	if (*capscan) u8_putc(&out,'K'); else u8_putc(&out,'k');
