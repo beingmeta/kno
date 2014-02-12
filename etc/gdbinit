@@ -2,6 +2,7 @@ set env UNDERGDB=yes
 set env FD_FOREGROUND=yes
 set env FD_IGNORELEFTOVERS=yes
 set env FD_STEALSOCKETS=yes
+set env PPROF_PATH=/usr/bin/pprof
 set print elements 64
 define dtype
   printf "%s\n",fd_dtype2string($arg0)
