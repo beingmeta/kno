@@ -1058,7 +1058,7 @@ static int fork_server(u8_string source_file,fd_lispenv env)
       exit(0);}
     else if (getenv("FD_RESTART")) {
       pid_t worker;
-      if (worker=fork()) {
+      if ((worker=fork())) {
 	if (worker<0) 
 	  u8_log(LOG_CRIT,"fork_server","Worker fork failed for %s",source_file);
 	else {
