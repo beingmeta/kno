@@ -2,7 +2,7 @@ set env UNDERGDB=yes
 set env FD_FOREGROUND=yes
 set env FD_IGNORELEFTOVERS=yes
 set env FD_STEALSOCKETS=yes
-set env PPROF_PATH=/usr/bin/pprof
+#set env PPROF_PATH=/usr/bin/pprof
 set print elements 64
 define dtype
   printf "%s\n",fd_dtype2string($arg0)
@@ -11,7 +11,7 @@ define showtypename
   printf "object type is 0x%x: %s\n",_fd_ptr_type($arg0),fd_type_names[_fd_ptr_type($arg0)]
 end
 define showtype
-  print (((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->consbits)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>24)&0x7f)+0x04)))
+  print (((($arg0)&0x03)==2)?(fd_fixnum_type):((($arg0)&0x3)==3)?(fd_oid_type):((($arg0)&0x3)==0)?((enum FD_PTR_TYPE)(((((struct FD_CONS *)($arg0))->consbits)&0x7F)+0x84)):((enum FD_PTR_TYPE)(((($arg0)>>25)&0x7f)+0x04)))
 end
 define refcount
   if (($arg0)&3)
