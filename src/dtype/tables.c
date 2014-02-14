@@ -1126,28 +1126,13 @@ FD_EXPORT fdtype fd_hashtable_get
       return fd_incref(dflt);}
     else if (FD_ACHOICEP(rv)) {
       struct FD_ACHOICE *ach=FD_XACHOICE(rv);
-      if (ach->size<=1) {
-	fdtype v=fd_make_simple_choice(rv);
-	if (unlock) fd_rw_unlock_struct(ht);
-	return v;}
-      else if (ach->uselock) {
-	if (unlock) fd_rw_unlock_struct(ht);
-	return fd_make_simple_choice(rv);}
-      else {
-	fdtype v=fd_incref(rv);
-	ach->uselock=1;
-	if (unlock) fd_rw_unlock_struct(ht);
-	unlock=0;
-	v=fd_make_simple_choice(rv);
-	if (ht->uselock) {
-	  fd_write_lock_struct(ht);
-	  ach->uselock=0;
-	  fd_rw_unlock_struct(ht);}
-	else ach->uselock=0;
-	fd_decref(rv);
-	return v;}}
+      fdtype newv=fd_make_simple_choice(rv);
+      result->value=newv;
+      fd_incref(newv);
+      fd_decref(rv);
+      if (unlock) fd_rw_unlock_struct(ht);
+      return newv;}
     else {
-      fd_incref(rv);
       if (unlock) fd_rw_unlock_struct(ht);
       return rv;}}
   else {
