@@ -176,6 +176,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/fdconsole.el
 %attr(-,fdaemon,adm) %{_datadir}/framerd/scheme_modules
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.js
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.css
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/aws/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.scm
@@ -190,6 +191,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/xhtml/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/xhtml/*.css
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/xhtml/*.js
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/domutils/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.table
