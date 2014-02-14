@@ -1143,7 +1143,6 @@ FD_EXPORT fdtype fd_hashtable_get
       if (unlock) fd_rw_unlock_struct(ht);
       return fd_incref(dflt);}
     else if (FD_ACHOICEP(rv)) {
-      struct FD_ACHOICE *ach=FD_XACHOICE(rv);
       fdtype simple=fd_make_simple_choice(rv);
       if (unlock) fd_rw_unlock_struct(ht);
       return simple;}
