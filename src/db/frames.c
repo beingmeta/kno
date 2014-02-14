@@ -1176,8 +1176,8 @@ FD_EXPORT fdtype fd_bg_get(fdtype slotid,fdtype value)
 	else {
 	  fdtype overlaid_results=
 	    overlay_get(index_overlay,result,slotid,value);
-	  FD_ADD_TO_CHOICE(results,overlaid_results);}}}
-    fd_decref(features);
+	  FD_ADD_TO_CHOICE(results,overlaid_results);}}
+      fd_decref(features);}
     return fd_simplify_choice(results);}
   else return FD_EMPTY_CHOICE;
 }
