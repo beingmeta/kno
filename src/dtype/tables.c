@@ -1108,6 +1108,24 @@ FD_EXPORT struct FD_KEYVAL *fd_hashvec_insert
 
 /* Hashtables */
 
+/* Optimizing ACHOICEs in hashtables
+
+   An ACHOICE in a hashtable should always be a unique value, since
+   adding to a key in the table shouldn't effect anything else,
+   especially whatever ACHOICE was passed in.
+
+   We implement this as follows:
+
+   When storing, if we have an ACHOICE, we always copy it and set
+     uselock to zero in the copy.
+
+   When adding, we don't bother locking and just add straight away.
+
+   When getting, we normalize the results and return that.
+
+   When dropping, we normalize and store that.
+*/
+
 FD_EXPORT fdtype fd_hashtable_get
   (struct FD_HASHTABLE *ht,fdtype key,fdtype dflt)
 {
@@ -1126,15 +1144,12 @@ FD_EXPORT fdtype fd_hashtable_get
       return fd_incref(dflt);}
     else if (FD_ACHOICEP(rv)) {
       struct FD_ACHOICE *ach=FD_XACHOICE(rv);
-      fdtype newv=fd_make_simple_choice(rv);
-      result->value=newv;
-      fd_incref(newv);
-      fd_decref(rv);
+      fdtype simple=fd_make_simple_choice(rv);
       if (unlock) fd_rw_unlock_struct(ht);
-      return newv;}
+      return simple;}
     else {
       if (unlock) fd_rw_unlock_struct(ht);
-      return rv;}}
+      return fd_incref(rv);}}
   else {
     if (unlock) fd_rw_unlock_struct(ht);
     return fd_incref(dflt);}
@@ -1267,7 +1282,11 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   result=fd_hashvec_insert
     (key,ht->slots,ht->n_slots,&(ht->n_keys));
   if (ht->n_keys>n_keys) added=1; else added=0;
-  ht->modified=1; oldv=result->value; newv=fd_incref(value);
+  ht->modified=1; oldv=result->value;
+  if (FD_ACHOICEP(value)) 
+    /* Copy achoices */
+    newv=fd_make_simple_choice(value);
+  else newv=fd_incref(value);
   if (FD_ABORTP(newv)) {
     fd_rw_unlock_struct(ht);
     return fd_interr(newv);}
@@ -1306,16 +1325,12 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
   else if (FD_VOIDP(result->value))
     result->value=newv;
   else {FD_ADD_TO_CHOICE(result->value,newv);}
-#if 0
   /* If the value is an achoice, it doesn't need to be locked because
-     it will be protected by the hashtable's lock.  (however, unless
-     we normalize the choice whenever we return it, we can't really
-     count on this.  It's a tradeoff, and currently we're keeping locking
-     on the internal ACHOICE. */
+     it will be protected by the hashtable's lock.  However this requires
+     that we always normalize the choice when we return it.  */
   if (FD_ACHOICEP(result->value)) {
     struct FD_ACHOICE *ch=FD_XACHOICE(result->value);
     if (ch->uselock) ch->uselock=0;}
-#endif
   fd_rw_unlock_struct(ht);
   if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
     /* We resize when n_keys/n_slots < loading/4; 
@@ -1408,7 +1423,7 @@ FD_EXPORT void fd_hash_quality
 static int do_hashtable_op
   (struct FD_HASHTABLE *ht,fd_tableop op,fdtype key,fdtype value)
 {
-  struct FD_KEYVAL *result; int added=0;
+  struct FD_KEYVAL *result; int added=0, was_achoice=0;
   if (FD_EMPTY_CHOICEP(key)) return 0;
   if ((ht->readonly) && (op!=fd_table_test)) {
     fd_seterr(fd_ReadOnlyHashtable,"do_hashtable_op",NULL,FD_VOID);
@@ -1445,6 +1460,7 @@ static int do_hashtable_op
        (op==fd_table_minimize_if_present)||
        (op==fd_table_increment_if_present)))
     return 0;
+  if ((result)&&(FD_ACHOICEP(result->value))) was_achoice=1;
   switch (op) {
   case fd_table_replace_novoid:
     if (FD_VOIDP(result->value)) return 0;
@@ -1591,15 +1607,13 @@ static int do_hashtable_op
     break;
   }
   ht->modified=1;
-#if 0
-  if ((achoicep==0) && (FD_ACHOICEP(result->value))) {
+  if ((was_achoice==0) && (FD_ACHOICEP(result->value))) {
     /* If we didn't have an achoice before and we do now, that means
        a new achoice was created with a mutex and everything.  We can
        safely destroy it and set the choice to not use locking, since 
        the value will be protected by the hashtable's lock. */
     struct FD_ACHOICE *ch=FD_XACHOICE(result->value);
     if (ch->uselock) ch->uselock=0;}
-#endif
   return added;
 }
 
