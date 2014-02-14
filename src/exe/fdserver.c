@@ -99,15 +99,23 @@ static void init_server(void);
 
 static pid_t dependent=-1;
 static void kill_dependent_onexit(){
+  u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
-  if (dep>0) kill(dep,SIGTERM);}
+  if (dep>0) kill(dep,SIGTERM);
+  if (u8_file_existsp(ppid_file)) {
+    u8_removefile(ppid_file);
+    u8_free(ppid_file);}}
 static void kill_dependent_onsignal(int sig){
+  u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
   if (dep>0)
     u8_log(LOG_WARN,"FDServer/signal",
 	   "FDServer controller %d got signal %d, passing to %d",
 	   getpid(),sig,dep);
-  if (dep>0) kill(dep,sig);}
+  if (dep>0) kill(dep,sig);
+  if (u8_file_existsp(ppid_file)) {
+    u8_removefile(ppid_file);
+    u8_free(ppid_file);}}
 
 /* Log files */
 
@@ -883,7 +891,7 @@ int main(int argc,char **argv)
   pid_file=fd_runbase_filename(".pid");
   nid_file=fd_runbase_filename(".nid");
   
-  if ((getenv("FD_RESTART"))||(!(getenv("FD_FOREGROUND"))))
+  if ((getenv("FD_DAEMONIZE"))||(!(getenv("FD_FOREGROUND"))))
     return fork_server(source_file,core_env);
   else return launch_server(source_file,core_env);
 
@@ -985,7 +993,7 @@ static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env)
 static int fork_server(u8_string source_file,fd_lispenv env)
 {
   pid_t child, grandchild; double start=u8_elapsed_time();
-  if ((getenv("FD_FOREGROUND"))&&(getenv("FD_RESTART"))) {
+  if ((getenv("FD_FOREGROUND"))&&(getenv("FD_DAEMONIZE"))) {
     /* This is the scenario where we stay in the foreground but
        restart automatically.  */
     if ((child=fork())) {
@@ -1049,14 +1057,14 @@ static int fork_server(u8_string source_file,fd_lispenv env)
       if (grandchild<0) {
 	u8_log(LOG_CRIT,"fork_server","Second fork failed for %s",source_file);
 	exit(1);}
-      else if (getenv("FD_RESTART"))
+      else if (getenv("FD_DAEMONIZE"))
 	u8_log(LOG_NOTICE,"fork_server","Restart monitor for %s has PID %d",
 	       source_file,grandchild);
       else u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
 		  source_file,grandchild);
       /* This is the parent, which always exits */
       exit(0);}
-    else if (getenv("FD_RESTART")) {
+    else if (getenv("FD_DAEMONIZE")) {
       pid_t worker;
       if ((worker=fork())) {
 	if (worker<0) 
@@ -1072,8 +1080,18 @@ static int fork_server(u8_string source_file,fd_lispenv env)
 
 static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env)
 {
-  char *restartval=getenv("FD_RESTART");
+  u8_string ppid_filename=fd_runbase_filename(".ppid");
+  FILE *f=fopen(ppid_filename,"w"); 
+  char *restartval=getenv("FD_DAEMONIZE");
   int status=-1, sleepfor=atoi(restartval); 
+  if (f) {
+    fprintf(f,"%ld\n",(long)getpid());
+    fclose(f);
+    u8_free(ppid_filename);}
+  else {
+    u8_log(LOG_WARN,"CantWritePPID","Couldn't write ppid file %s",
+	   ppid_filename);
+    u8_free(ppid_filename);}
   /* Don't try to catch an error here */
   if (sleepfor<0) sleepfor=7;
   else if (sleepfor>60) sleepfor=60;
