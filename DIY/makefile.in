@@ -20,12 +20,11 @@ httperf-0.8.1/configure:
 httperf-0.8.1/Makefile: httperf-0.8.1/configure
 	cd httperf-0.8.1; ./configure --prefix=@prefix@
 
-build-libzip: httperf-0.8.1/Makefile
+build-httperf: httperf-0.8.1/Makefile
 	cd httperf-0.8.1; make
 
 @prefix@/bin/httperf:
 	cd httperf-0.8.1; sudo make install
-	cd libzip; sudo make install
 install-httperf: @prefix@/bin/httperf
 
 
