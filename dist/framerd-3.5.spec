@@ -191,7 +191,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/xhtml/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/xhtml/*.css
-%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/xhtml/*.js
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/domutils/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.table
