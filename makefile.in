@@ -119,11 +119,10 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     ${SUNDOWN_OBJS}
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
-	    exe/fdservlet@suffix@ exe/fdserver@suffix@ exe/fdmanager@suffix@
+	    exe/fdservlet@suffix@ exe/fdserver@suffix@
 STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
 	static/fdbatch@suffix@ \
-	static/fdservlet@suffix@ static/fdserver@suffix@ \
-	static/fdmanager@suffix@
+	static/fdservlet@suffix@ static/fdserver@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
                exe/scripts/make-hash-index \
