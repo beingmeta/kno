@@ -17,8 +17,10 @@
 
 export FDMANAGER=@prefix@/bin/fdmanager
 export FDSERVER=@prefix@/bin/fdserver
+export FDSERVLET=@prefix@/bin/fdservlet
 export FDAEMON_USER=@fdaemon@
 export FDAEMON_GROUP=@admin_group@
+export WEB_USER=@webuser@
 CTLFILE=@config_dir@/servers
 PIDFILE=/var/run/framerd.pid
 STATFILE=/var/run/framerd.status
@@ -26,66 +28,76 @@ STATFILE=/var/run/framerd.status
 # See how we were called.
 case "$1" in
   start)
-	if (test ! -s $CTLFILE) then
-	  echo "No FramerD servers specified in " $CTLFILE
-        else
-          echo "Starting framerd servers from " $CTLFILE ":"
-          $FDMANAGER $CTLFILE $PIDFILE $STATFILE &
-          sleep 5; time=5;
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 5; time=10
-	  fi
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 10; time=20
-	  fi
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 10; time=30
-	  fi
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 10; time=40
-	  fi
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 10; time=50
-	  fi
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 10; time=60
-	  fi
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 10; time=70
-	  fi
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 10; time=80
-	  fi
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 10; time=90
-	  fi
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 10; time=100
-	  fi
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 10; time=110
-	  fi
-          if ((test ! -f $STATFILE) && (test -f $PIDFILE)) then
-	    echo "Waited $time seconds for fdmanager"; sleep 10; time=120
-	  fi
-          if (test -f $STATFILE) then
-	    echo "fdmanager started in $time seconds"
-	    cat $STATFILE
-          elif (test ! -f $PIDFILE) then
-	    echo "fdmanager failed to start"
-          else
-            echo "fdmanager hasn't finished starting up after $time seconds"
-          fi
+	if test -f @rundir@/framerd/_started;
+	then echo "FramerD daemons/servlets already started"; exit;
+	else date > @rundir@/framerd/_started;
 	fi
+	for ctl in @config_dir@/daemons/*; do
+	    if test ! -f ${ctl}; then echo > /dev/null;
+	    elif (readlink ${ctl}>/dev/null);
+	    then FD_DAEMONIZE=3 \
+		 LOGFILE=@logdir@/framerd/`basename ${ctl}`.log \
+		 ${FDSERVER} `readlink ${ctl}` "PORT=`basename ${ctl}`" \
+		             STATEDIR=@rundir@/framerd;
+	    else FD_DAEMONIZE=3 \
+		 LOGFILE=@logdir@/framerd/`basename ${ctl}`.log \
+		 ${FDSERVER} ${ctl} "PORT=`basename ${ctl}`" \
+		             STATEDIR=@rundir@/framerd;
+	    fi;
+	done;
+	for ctl in @config_dir@/servlets/*@* @config_dir@/servlets/*:*; do
+	    if test ! -f ${ctl}; then echo > /dev/null;
+	    elif (readlink ${ctl}>/dev/null);
+	    then FD_DAEMONIZE=3 \
+		 LOGFILE=@logdir@/fdserv/`basename ${ctl}`.log \
+		 ${FDSERVLET} `basename ${ctl}` "CONFIG=`readlink ${ctl}`" \
+		             STATEDIR=@rundir@/fdserv;
+	    else FD_DAEMONIZE=3 \
+		 LOGFILE=@logdir@/fdserv/`basename ${ctl}`.log \
+		 ${FDSERVLET} `basename ${ctl}` "CONFIG=${ctl}" \
+		             STATEDIR=@rundir@/fdserv;
+	    fi;
+	done;
+	for ctl in @config_dir@/servlets/*.sock; do
+	    if test ! -f ${ctl}; then echo > /dev/null;
+	    elif (readlink ${ctl}>/dev/null);
+	    then FD_DAEMONIZE=3 \
+		 LOGFILE=@logdir@/fdserv/`basename ${ctl} .sock`.log \
+		 ${FDSERVLET} `basename ${ctl}` "CONFIG=`readlink ${ctl}`" \
+		             STATEDIR=@rundir@/fdserv;
+	    else FD_DAEMONIZE=3 \
+		 LOGFILE=@logdir@/fdserv/`basename ${ctl} .sock`.log \
+		 ${FDSERVLET} `basename ${ctl}` "CONFIG=${ctl}" \
+		             STATEDIR=@rundir@/fdserv;
+	    fi;
+	done;
 	;;
   stop)
-        if (test -f $PIDFILE) then
-          kill -TERM `cat $PIDFILE`
-	else echo "fdmanager is not running"
-        fi
-	while (test -f $PIDFILE)
-	do sleep 1
-	done
+	for ctl in @config_dir@/daemons/*; do
+	    ppid_file=@rundir@/framerd/`basename ${ctl}`.ppid
+	    if test ! -f ${ppid_file}; then echo > /dev/null;
+	    elif test @rundir@/framerd/_started -nt ${ppid_file};
+	    then rm ${ppid_file};
+	    else kill `cat ${ppid_file}`;
+	    fi;
+	done;
+	for ctl in @config_dir@/servlets/*@* @config_dir@/servlets/*:*; do
+	    ppid_file=@rundir@/fdserv/`basename ${ctl}`.ppid
+	    if test ! -f ${ppid_file}; then echo > /dev/null;
+	    elif test @rundir@/framerd/_started -nt ${ppid_file};
+	    then rm ${ppid_file};
+	    else kill `cat ${ppid_file}`;
+	    fi;
+	done;
+	for ctl in @config_dir@/servlets/*.sock; do
+	    ppid_file=@rundir@/fdserv/`basename ${ctl} .sock`.ppid
+	    if test ! -f ${ppid_file}; then echo > /dev/null;
+	    elif test @rundir@/framerd/_started -nt ${ppid_file};
+	    then rm ${ppid_file};
+	    else kill `cat ${ppid_file}`;
+	    fi;
+	done;
+	rm  @rundir@/framerd/_started;
 	;;
   status)
 	if (test -f $STATFILE) then
