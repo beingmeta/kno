@@ -773,7 +773,7 @@ int main(int argc,char **argv)
 {
   int u8_version=u8_initialize();
   int fd_version;
-  int i=1; u8_string source_file=NULL;
+  int i=1; u8_string server_spec=NULL, source_file=NULL, server_port=NULL;
   /* This is the base of the environment used to be passed to the server.
      It is augmented by the fdbserv module, all of the modules declared by
      MODULE= configurations, and either the exports or the definitions of
@@ -799,25 +799,24 @@ int main(int argc,char **argv)
      Also initialize the log file if needed.  */
   while (i<argc)
     if (strchr(argv[i],'=')) i++;
-    else if (source_file) i++;
-    else source_file=argv[i++];
+    else if (server_spec) i++;
+    else server_spec=argv[i++];
   i=1;
 
-  if (!(source_file)) {
+  if (!(server_spec)) {
     fprintf(stderr,
-	    "Usage: fdserver [conf=val]* source_file [conf=val]*\n");
+	    "Usage: fdserver [conf=val]* (port|control_file) [conf=val]*\n");
     return 1;}
-  else if (!(u8_file_existsp(source_file))) {
-    fprintf(stderr,"The file %s doesn't exist.\n",source_file);
-    return 1;}
-  else {}
+  else if (u8_file_existsp(server_spec)) 
+    source_file=server_spec;
+  else server_port=server_spec;
 
   fddb_loglevel=LOG_INFO;
 
   if ((!(log_filename))&&(getenv("LOGFILE")))
     set_logfile(getenv("LOGFILE"),1);
   if ((!(log_filename))&&(getenv("LOGDIR"))) {
-    u8_string base=u8_basename(source_file,"*");
+    u8_string base=u8_basename(server_spec,"*");
     u8_string logname=u8_mkstring("%s.log",base);
     u8_string logfile=u8_mkpath(getenv("LOGDIR"),logname);
     set_logfile(logfile,1);
@@ -872,8 +871,7 @@ int main(int argc,char **argv)
   else exposed_environment=
 	 fd_make_env(fd_incref(fd_fdbserv_module),core_env);
   
-
-  /* Now process all the configuration arguments and find the source file */
+  /* Now process all the configuration arguments */
   while (i<argc)
     if (strchr(argv[i],'=')) 
       fd_config_assignment(argv[i++]);
@@ -881,19 +879,24 @@ int main(int argc,char **argv)
 
   /* Store server initialization information in the configuration
      environment. */
-  fd_setapp(source_file,state_dir); {
+  fd_setapp(server_spec,state_dir);
+  if (source_file) {
     fdtype interpreter=fd_lispstring(u8_fromlibc(argv[0]));
     fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
     fd_config_set("INTERPRETER",interpreter);
     fd_config_set("SOURCE",src);
     fd_decref(interpreter); fd_decref(src);}
+  if (server_port) {
+    fdtype sval=fdtype_string(server_port);
+    fd_config_set("PORT",sval);
+    fd_decref(sval);}
   
   pid_file=fd_runbase_filename(".pid");
   nid_file=fd_runbase_filename(".nid");
   
   if ((getenv("FD_DAEMONIZE"))||(!(getenv("FD_FOREGROUND"))))
-    return fork_server(source_file,core_env);
-  else return launch_server(source_file,core_env);
+    return fork_server(server_spec,core_env);
+  else return launch_server(server_spec,core_env);
 
 }
 
@@ -988,9 +991,11 @@ static fd_lispenv init_core_env()
   return core_env;
 }
 
-static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env);
+static int sustain_server(pid_t grandchild,
+			  u8_string server_spec,
+			  fd_lispenv env);
 
-static int fork_server(u8_string source_file,fd_lispenv env)
+static int fork_server(u8_string server_spec,fd_lispenv env)
 {
   pid_t child, grandchild; double start=u8_elapsed_time();
   if ((getenv("FD_FOREGROUND"))&&(getenv("FD_DAEMONIZE"))) {
@@ -998,19 +1003,19 @@ static int fork_server(u8_string source_file,fd_lispenv env)
        restart automatically.  */
     if ((child=fork())) {
       if (child<0) {
-	u8_log(LOG_CRIT,"fork_server","Fork failed for %s",source_file);
+	u8_log(LOG_CRIT,"fork_server","Fork failed for %s",server_spec);
 	exit(1);}
       else {
 	u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
-	       source_file,child);
-	return sustain_server(child,source_file,env);}}
-    else return launch_server(source_file,env);}
+	       server_spec,child);
+	return sustain_server(child,server_spec,env);}}
+    else return launch_server(server_spec,env);}
   else if ((child=fork()))  {
     /* The grandparent waits until the parent exits and then
        waits until the .pid file has been written. */
     int count=60; double done; int status=0;
     if (child<0) {
-      u8_log(LOG_CRIT,"fork_server","Fork failed for %s\n",source_file);
+      u8_log(LOG_CRIT,"fork_server","Fork failed for %s\n",server_spec);
       exit(1);}
     else u8_log(LOG_WARN,"fork_server","Initial fork spawned pid %d from %d",
 		child,getpid());
@@ -1034,10 +1039,10 @@ static int fork_server(u8_string source_file,fd_lispenv env)
     done=u8_elapsed_time();
     if (u8_file_existsp(pid_file)) 
       u8_log(LOG_NOTICE,"fdserver","Server %s launched in %02fs",
-	     source_file,done-start);
+	     server_spec,done-start);
     else u8_log(LOG_CRIT,"fdserver",
 		"Server %s hasn't launched after %02fs",
-		source_file,done-start);
+		server_spec,done-start);
     exit(0);}
   else {
     /* If we get here, we're the parent, and we start by trying to
@@ -1045,40 +1050,41 @@ static int fork_server(u8_string source_file,fd_lispenv env)
     if (setsid()==-1) {
       u8_log(LOG_CRIT,"fork_server",
 	     "Process %d failed to become session leader for %s (%s)",
-	     getpid(),source_file,strerror(errno));
+	     getpid(),server_spec,strerror(errno));
       errno=0;
       exit(1);}
     else u8_log(LOG_INFO,"fork_server",
-		"Process %d become session leader for %s",getpid(),source_file);
+		"Process %d become session leader for %s",getpid(),server_spec);
     /* Now we fork again.  In the normal case, this fork (the grandchild) is
        the actual server.  If we're auto-restarting, this fork is the one which
        does the restarting. */
     if ((grandchild=fork())) {
       if (grandchild<0) {
-	u8_log(LOG_CRIT,"fork_server","Second fork failed for %s",source_file);
+	u8_log(LOG_CRIT,"fork_server","Second fork failed for %s",server_spec);
 	exit(1);}
       else if (getenv("FD_DAEMONIZE"))
 	u8_log(LOG_NOTICE,"fork_server","Restart monitor for %s has PID %d",
-	       source_file,grandchild);
+	       server_spec,grandchild);
       else u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
-		  source_file,grandchild);
+		  server_spec,grandchild);
       /* This is the parent, which always exits */
       exit(0);}
     else if (getenv("FD_DAEMONIZE")) {
       pid_t worker;
       if ((worker=fork())) {
 	if (worker<0) 
-	  u8_log(LOG_CRIT,"fork_server","Worker fork failed for %s",source_file);
+	  u8_log(LOG_CRIT,"fork_server","Worker fork failed for %s",server_spec);
 	else {
 	  u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
-		 source_file,worker);
-	  return sustain_server(worker,source_file,env);}}
-      else return launch_server(source_file,env);}
-    else return launch_server(source_file,env);}
+		 server_spec,worker);
+	  return sustain_server(worker,server_spec,env);}}
+      else return launch_server(server_spec,env);}
+    else return launch_server(server_spec,env);}
   exit(0);
 }
 
-static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env)
+static int sustain_server(pid_t grandchild,
+			  u8_string server_spec,fd_lispenv env)
 {
   u8_string ppid_filename=fd_runbase_filename(".ppid");
   FILE *f=fopen(ppid_filename,"w"); 
@@ -1100,7 +1106,7 @@ static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env)
   dependent=grandchild;
   /* Setup atexit and signal handlers to kill our dependent when we're
      gone. */
-  u8_log(LOG_WARN,"FDServer/sustain %s pid=%d",source_file,grandchild);
+  u8_log(LOG_WARN,"FDServer/sustain %s pid=%d",server_spec,grandchild);
   atexit(kill_dependent_onexit);
 #ifdef SIGTERM
   signal(SIGTERM,kill_dependent_onsignal);
@@ -1112,35 +1118,36 @@ static int sustain_server(pid_t grandchild,u8_string source_file,fd_lispenv env)
     if (WIFSIGNALED(status))
       u8_log(LOG_WARN,"FDServer/restart",
 	     "Server %s(%d) terminated on signal %d",
-	     source_file,grandchild,WTERMSIG(status));
+	     server_spec,grandchild,WTERMSIG(status));
     else if (WIFEXITED(status))
       u8_log(LOG_NOTICE,"FDServer/restart",
 	     "Server %s(%d) terminated normally with status %d",
-	     source_file,grandchild,status);
+	     server_spec,grandchild,status);
     else continue;
     if (dependent<0) {
       u8_log(LOG_WARN,"FDServer/done",
-	     "Terminating restart process for %s",source_file);
+	     "Terminating restart process for %s",server_spec);
       exit(0);}
     sleep(sleepfor);
     if ((grandchild=fork())) {
       u8_log(LOG_NOTICE,"FDServer/restart",
 	     "Server %s restarted with pid %d",
-	     source_file,grandchild);
+	     server_spec,grandchild);
       dependent=grandchild;
       continue;}
-    else return launch_server(source_file,env);}
+    else return launch_server(server_spec,env);}
   exit(0);
   return 0;
 }
 
 static void write_state_files(void);
 
-static int launch_server(u8_string source_file,fd_lispenv core_env)
+static int launch_server(u8_string server_spec,fd_lispenv core_env)
 {
-  if (source_file) {
+  if (u8_file_existsp(server_spec)) {
     /* The source file is loaded into a full (non sandbox environment).
        It's exports are then exposed through the server. */
+    u8_string source_file=server_spec;
     fd_lispenv env=fd_working_environment();
     fdtype result=fd_load_source(source_file,env,NULL);
     if (FD_TROUBLEP(result)) {
@@ -1188,11 +1195,12 @@ static int launch_server(u8_string source_file,fd_lispenv core_env)
 	    u8_free_exception(ex,1);
 	    exit(fd_interr(result));}
 	  else fd_decref(result);}}}}
+  else server_env=exposed_environment;
 
-  return run_server(source_file);
+  return run_server(server_spec);
 }
 
-static int run_server(u8_string source_file)
+static int run_server(u8_string server_spec)
 {
   init_server();
   /* Prepare for the end */
@@ -1213,7 +1221,7 @@ static int run_server(u8_string source_file)
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2013, all rights reserved");
   u8_log(LOG_NOTICE,NULL,
 	 "FramerD (%s) fdserver %s running, %d/%d pools/indices, %d ports",
-	 FRAMERD_REV,source_file,fd_n_pools,
+	 FRAMERD_REV,server_spec,fd_n_pools,
 	 fd_n_primary_indices+fd_n_secondary_indices,n_ports);
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
   u8_server_loop(&dtype_server); normal_exit=1;
