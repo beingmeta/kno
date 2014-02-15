@@ -1147,7 +1147,7 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
   if (u8_file_existsp(server_spec)) {
     /* The source file is loaded into a full (non sandbox environment).
        It's exports are then exposed through the server. */
-    u8_string source_file=server_spec;
+    u8_string source_file=u8_abspath(server_spec,NULL);
     fd_lispenv env=fd_working_environment();
     fdtype result=fd_load_source(source_file,env,NULL);
     if (FD_TROUBLEP(result)) {
