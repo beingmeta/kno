@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2013 beingmeta, inc.
+/* Copyright (C) 2004-2014 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -1709,7 +1709,7 @@ static int launch_servlet(u8_string socket_spec)
 	 "FramerD (%s) FDServlet running, %d/%d pools/indices",
 	 FRAMERD_REV,fd_n_pools,
 	 fd_n_primary_indices+fd_n_secondary_indices);
-  u8_message("beingmeta FramerD, (C) beingmeta 2004-2013, all rights reserved");
+  u8_message("beingmeta FramerD, (C) beingmeta 2004-2014, all rights reserved");
   u8_server_loop(&fdwebserver);
 
   u8_message("FDServlet, normal exit of u8_server_loop()");

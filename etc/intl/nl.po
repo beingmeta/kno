@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-02-06 20:00-0500\n"
+"POT-Creation-Date: 2014-02-14 05:14-0500\n"
 "PO-Revision-Date: 2005-03-04 22:55-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
-"Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: nl\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/dtype/cons.c:24
@@ -108,7 +108,7 @@ msgstr ""
 msgid "Noticed %s on %lx\n"
 msgstr ""
 
-#: src/dtype/tables.c:2484
+#: src/dtype/tables.c:2469
 msgid "value is not a boolean"
 msgstr ""
 
@@ -1175,7 +1175,7 @@ msgstr ""
 msgid "Undistinguished Scheme Error"
 msgstr ""
 
-#: src/scheme/errors.c:247
+#: src/scheme/errors.c:267
 msgid "Unwind error"
 msgstr ""
 
@@ -1925,7 +1925,7 @@ msgstr ""
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/fdconsole.c:435 src/exe/fdserver.c:926
+#: src/exe/fdconsole.c:435 src/exe/fdserver.c:941
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
@@ -2023,7 +2023,7 @@ msgstr ""
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/fdservlet.c:1430 src/exe/fdserver.c:935
+#: src/exe/fdservlet.c:1430 src/exe/fdserver.c:950
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
@@ -2031,11 +2031,11 @@ msgstr ""
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/fdservlet.c:1533 src/exe/fdcgiexec.c:693 src/exe/fdserver.c:880
+#: src/exe/fdservlet.c:1533 src/exe/fdcgiexec.c:693 src/exe/fdserver.c:895
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/fdservlet.c:1535 src/exe/fdserver.c:882
+#: src/exe/fdservlet.c:1535 src/exe/fdserver.c:897
 msgid "Max number of requests to keep queued"
 msgstr ""
 
@@ -2043,12 +2043,12 @@ msgstr ""
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1541 src/exe/fdserver.c:885
+#: src/exe/fdservlet.c:1541 src/exe/fdserver.c:900
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
 #: src/exe/fdservlet.c:1543 src/exe/fdservlet.c:1546 src/exe/fdcgiexec.c:695
-#: src/exe/fdserver.c:887 src/exe/fdserver.c:890
+#: src/exe/fdserver.c:902 src/exe/fdserver.c:905
 msgid "Number of threads in the thread pool"
 msgstr ""
 
@@ -2060,7 +2060,7 @@ msgstr ""
 msgid "Milliseconds (roughly) between status reports"
 msgstr ""
 
-#: src/exe/fdservlet.c:1554 src/exe/fdserver.c:938
+#: src/exe/fdservlet.c:1554 src/exe/fdserver.c:953
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
@@ -2076,11 +2076,11 @@ msgstr ""
 msgid "Whether to have libu8 log each monitored address"
 msgstr ""
 
-#: src/exe/fdservlet.c:1651 src/exe/fdserver.c:907
+#: src/exe/fdservlet.c:1651 src/exe/fdserver.c:922
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/fdservlet.c:1655 src/exe/fdserver.c:911
+#: src/exe/fdservlet.c:1655 src/exe/fdserver.c:926
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
@@ -2092,7 +2092,7 @@ msgstr ""
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/fdservlet.c:1671 src/exe/fdserver.c:921
+#: src/exe/fdservlet.c:1671 src/exe/fdserver.c:936
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
@@ -2132,55 +2132,55 @@ msgstr ""
 msgid "Outgoing"
 msgstr ""
 
-#: src/exe/fdserver.c:98
+#: src/exe/fdserver.c:114
 msgid "Log file error"
 msgstr ""
 
-#: src/exe/fdserver.c:892
+#: src/exe/fdserver.c:907
 msgid "modules to provide in the server environment"
 msgstr ""
 
-#: src/exe/fdserver.c:894
+#: src/exe/fdserver.c:909
 msgid "whether to provide full scheme interpretation to client"
 msgstr ""
 
-#: src/exe/fdserver.c:896
+#: src/exe/fdserver.c:911
 msgid "Whether to log each request and response"
 msgstr ""
 
-#: src/exe/fdserver.c:898
+#: src/exe/fdserver.c:913
 msgid "Whether to log each transaction"
 msgstr ""
 
-#: src/exe/fdserver.c:901
+#: src/exe/fdserver.c:916
 msgid "Whether to log errors returned by the server to clients"
 msgstr ""
 
-#: src/exe/fdserver.c:904
+#: src/exe/fdserver.c:919
 msgid "Whether to include a detailed backtrace when logging errors"
 msgstr ""
 
-#: src/exe/fdserver.c:916
+#: src/exe/fdserver.c:931
 msgid "Whether to have libu8 log all data transfers for fine-grained debugging"
 msgstr ""
 
-#: src/exe/fdserver.c:930
+#: src/exe/fdserver.c:945
 msgid "Max number of list/vector/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/fdserver.c:933
+#: src/exe/fdserver.c:948
 msgid "Where to write server pid/nid files"
 msgstr ""
 
-#: src/exe/fdserver.c:941
+#: src/exe/fdserver.c:956
 msgid "Whether to automatically reload changed files"
 msgstr ""
 
-#: src/exe/fdserver.c:944
+#: src/exe/fdserver.c:959
 msgid "Whether to disable exported FramerD DB API"
 msgstr ""
 
-#: src/exe/fdserver.c:1080
+#: src/exe/fdserver.c:1188
 msgid "port or port@host to listen on"
 msgstr ""
 

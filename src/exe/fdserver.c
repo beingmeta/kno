@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2013 beingmeta, inc.
+/* Copyright (C) 2004-2014 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright 
    and a valuable trade secret of beingmeta, inc.
 */
@@ -1218,7 +1218,7 @@ static int run_server(u8_string server_spec)
     exit(-1);
     return -1;}
   write_state_files();
-  u8_message("beingmeta FramerD, (C) beingmeta 2004-2013, all rights reserved");
+  u8_message("beingmeta FramerD, (C) beingmeta 2004-2014, all rights reserved");
   u8_log(LOG_NOTICE,NULL,
 	 "FramerD (%s) fdserver %s running, %d/%d pools/indices, %d ports",
 	 FRAMERD_REV,server_spec,fd_n_pools,
