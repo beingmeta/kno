@@ -7,6 +7,7 @@
 
 export DEB_HOST_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 export DEB_BUILD_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
 PREFIX = /usr
 MANDIR = $(PREFIX)/share/man
@@ -15,8 +16,11 @@ DESTDIR := $(shell pwd)/debian/framerd
 
 INSTALL = install --preserve-timestamps
 
-CONF_FLAGS = --build=$(DEB_BUILD_GNU_TYPE) --host=$(DEB_HOST_GNU_TYPE) \
-	--prefix=$(PREFIX) --mandir=$(MANDIR)
+CONF_FLAGS = --without-sudo \
+	--build=$(DEB_BUILD_GNU_TYPE) --host=$(DEB_HOST_GNU_TYPE) \
+	--libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH) \
+	--prefix=$(PREFIX)  \
+	--mandir=$(MANDIR)
 
 #configure: configure.in
 #	autoconf
