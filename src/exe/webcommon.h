@@ -86,7 +86,7 @@ static void init_webcommon_symbols()
   errorpage_symbol=fd_intern("ERRORPAGE");
   crisispage_symbol=fd_intern("CRISISPAGE");  
   output_symbol=fd_intern("OUTPUT");
-  error_symbol=fd_intern("ERROR");
+  error_symbol=fd_intern("REQERROR");
   reqdata_symbol=fd_intern("REQDATA");
 }
 
