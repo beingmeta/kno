@@ -1212,8 +1212,8 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
             (eretval)?("callmysqlproc/exec"):
             (bretval)?("callmysqlproc/bind"):
             ("callmysqlproc")),
-           "MYSQL error '%s' for %s at %s",
-           mysqlerrmsg,dbproc->stmt_string,dbp->spec);}
+           "MYSQL error '%s' (%d) for %s at %s",
+           mysqlerrmsg,mysqlerrno,dbproc->stmt_string,dbp->spec);}
   else mysqlerrno=mysql_stmt_errno(dbproc->stmt);
 
   /* Figure out if we're going to retry */
@@ -1231,12 +1231,16 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
     if (dblock) {u8_mutex_unlock(&(dbp->lock)); dblock=0;}
     if (proclock) {u8_mutex_unlock(&(dbproc->lock)); proclock=0;}
     if (!(bretval==RETVAL_OK))
-      u8_seterr(MySQL_Error,"mysqlproc/bind",u8_strdup(mysqlerrmsg));
+      u8_seterr(MySQL_Error,"mysqlproc/bind",
+                u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
     else if (!(eretval==RETVAL_OK))
-      u8_seterr(MySQL_Error,"mysqlproc/exec",u8_strdup(mysqlerrmsg));
+      u8_seterr(MySQL_Error,"mysqlproc/exec",
+                u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
     else if (!(sretval==RETVAL_OK))
-      u8_seterr(MySQL_Error,"mysqlproc/store",u8_strdup(mysqlerrmsg));
-    else u8_seterr(MySQL_Error,"mysqlproc",u8_strdup(mysqlerrmsg));
+      u8_seterr(MySQL_Error,"mysqlproc/store",
+                u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
+    else u8_seterr(MySQL_Error,"mysqlproc",
+                   u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
     return FD_ERROR_VALUE;}
   else if (retry) {
     if (dbproc->need_init) retval=init_mysqlproc(dbp,dbproc);
