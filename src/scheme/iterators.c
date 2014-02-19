@@ -276,6 +276,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
   result=fd_makeseq(FD_PTR_TYPE(seq),lim,results);
   fd_decref(seq);
   i=0; while (i<lim) {fdtype v=results[i++]; fd_decref(v);}
+  u8_free(results);
   return result;
 }
 
