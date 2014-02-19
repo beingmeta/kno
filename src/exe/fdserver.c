@@ -188,12 +188,16 @@ static int config_serve_port(fdtype var,fdtype val,void MAYBE_UNUSED *data)
   if (n_ports<0) return -1;
   else if (FD_FIXNUMP(val)) {
     int retval=u8_add_server(&dtype_server,NULL,FD_FIX2INT(val));
-    if (retval<0) n_ports=-1;
+    if (retval<0) {
+      fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
+      return -1;}
     else n_ports=n_ports+retval;
     return retval;}
   else if (FD_STRINGP(val)) {
     int retval=u8_add_server(&dtype_server,FD_STRDATA(val),0);
-    if (retval<0) n_ports=-1;
+    if (retval<0) {
+      fd_seterr(BadPortSpec,"config_serve_port",NULL,val);
+      return -1;}
     else n_ports=n_ports+retval;
     return retval;}
   else {
