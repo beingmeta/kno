@@ -653,6 +653,7 @@ static void webcommon_shutdown(u8_condition why)
       fprintf(exitfile,"%d@%s(%f) %s\n",getpid(),timebuf,elapsed,why);
     else fprintf(exitfile,"%d@%s(%f)\n",getpid(),timebuf,elapsed);
     fclose(exitfile);}
+  u8_free(exit_filename);
 }
 
 static int server_shutdown=0;

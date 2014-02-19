@@ -347,6 +347,7 @@ static void cleanup_pid_file()
     u8_xtime_to_iso8601(&out,&xt);
     fprintf(exitfile,"%d@%s(%f\n",getpid(),timebuf,elapsed);
     fclose(exitfile);}
+  u8_free(exit_filename);
 }
 
 static void write_pid_file()
