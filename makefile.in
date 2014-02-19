@@ -42,6 +42,9 @@ BUILDMODE       := `cat buildmode || echo none`
 DEBUG_FDSERV    = 0
 RPMFLAGS	=
 
+COMPONENT=main
+CODENAME=beingmeta
+
 DTYPE_HEADERS=\
  include/framerd/fdsource.h                          \
  include/framerd/config.h                            \
@@ -789,9 +792,25 @@ dist/rpms.done: staging/framerd-@FDVERSION@.tar.gz
 		staging/framerd-@FDVERSION@.tar.gz \
 	&& touch dist/rpms.done
 
-dist/debs.done: staging/framerd-@FDVERSION@
-	cd staging/framerd-@FDVERSION@; dpkg-buildpackage -F -rfakeroot && \
-	  cd ../..; rm -rf staging/framerd-@FDVERSION@; mv staging/framerd* dist; touch dist/debs.done
+staging/framerd_@FDVERSION@.orig.tar.gz: \
+	makefile.in configure makefile $(FRAMERD_SOURCES) $(COMMON_HEADERS)
+	rm -rf staging/framerd_@FDVERSION@ staging/framerd_@FDVERSION@.orig.tar.gz
+	git archive --prefix=framerd_@FDVERSION@/ \
+	            -o staging/framerd_@FDVERSION@.orig.tar HEAD
+	cd staging; tar -xf framerd_@FDVERSION@.orig.tar
+	gzip staging/framerd_@FDVERSION@.orig.tar
+
+dist/debs.done: staging/framerd_@FDVERSION@.orig.tar.gz
+	(cd staging/framerd_@FDVERSION@; dpkg-buildpackage -F -rfakeroot) && \
+	(cd staging; mv framerd_@FDVERSION@*.deb framerd_@FDVERSION@*.dsc \
+			framerd_@FDVERSION@*.gz framerd_@FDVERSION@*.changes \
+			../dist) && \
+	touch dist/debs.done; rm -rf staging/framerd_@FDVERSION@;
+update-apt: dist/debs.done
+	deb-s3 upload --bucket=repo.beingmeta.com \
+		      --component=$(COMPONENT) \
+		      --codename=$(CODENAME) \
+		dist/framerd_@FDVERSION@*.deb
 
 # Installation targets
 
