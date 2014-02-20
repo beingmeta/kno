@@ -984,7 +984,7 @@ static fdtype pickone(fdtype x)
       fd_incref(data[i]); fd_decref(normal);
       return chosen;}
     else return FD_EMPTY_CHOICE;}
-  else return fd_incref(normal);
+  else return normal;
 }
 
 static fdtype samplen(fdtype x,fdtype count)
