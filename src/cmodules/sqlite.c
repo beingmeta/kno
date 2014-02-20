@@ -552,13 +552,14 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
   if (!((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) ||
 	(FD_FALSEP(mergefn)) || (FD_APPLICABLEP(mergefn))))
     return fd_type_error("%MERGE","sqlite_values",mergefn);
-  if (sorted) {
-    resultsv=u8_malloc(sizeof(fdtype)*64); rmax=64;}
   if (n_cols==0) {
     int retval=sqlite3_step(stmt);
     if ((retval) && (retval<100))
       return FD_ERROR_VALUE;
     else return FD_EMPTY_CHOICE;}
+  else if (sorted) {
+    resultsv=u8_malloc(sizeof(fdtype)*64); rmax=64;}
+  else {}
   if (n_cols>16) {
     colnames=u8_alloc_n(n_cols,fdtype);
     colmaps=u8_alloc_n(n_cols,fdtype);}
@@ -692,6 +693,8 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
   u8_free(out.u8_outbuf);
   fd_decref(mergefn);
   fd_decref(sortfn);
+  if (colnames!=_colnames) u8_free(colnames);
+  if (colmaps!=_colmaps) u8_free(colmaps);
   if (FD_ABORTP(results)) return results;
   else if (sorted)
     return fd_init_vector(NULL,rn,resultsv);
