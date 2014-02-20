@@ -809,6 +809,7 @@ with_tidy
 with_imagick
 with_fileinfo
 with_tcmalloc
+with_google
 enable_largefiles
 with_crypto
 with_sundown
@@ -1503,6 +1504,7 @@ Optional Packages:
 --with-imagick Build and install imagemagick library
 --without-fileinfo record fileinfo
 --without-tcmalloc Use the Google malloc library
+--without-google Use the Google perftools
 --without-crypto Compile the crypto module
 --without-sundown Compile the sundown module
 --with/out-profiling compile to generate profile information
@@ -8070,6 +8072,203 @@ if test "x$ac_cv_lib_tcmalloc_debug_malloc" = xyes; then :
 _ACEOF
 
   LIBS="-ltcmalloc_debug $LIBS"
+
+fi
+
+  heaptest_prefix=gp_
+  memtest_prefix=gp_
+fi
+
+
+# Check whether --with-google was given.
+if test "${with_google+set}" = set; then :
+  withval=$with_google;
+else
+  with_google="no"
+fi
+
+if test $with_google = "yes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
+$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
+if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_malloc=yes
+else
+  ac_cv_lib_tcmalloc_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTCMALLOC 1
+_ACEOF
+
+  LIBS="-ltcmalloc $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
+$as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
+if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lprofiler  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ProfilerStart ();
+int
+main ()
+{
+return ProfilerStart ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_profiler_ProfilerStart=yes
+else
+  ac_cv_lib_profiler_ProfilerStart=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
+$as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
+if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPROFILER 1
+_ACEOF
+
+  LIBS="-lprofiler $LIBS"
+
+fi
+
+  debuglibs="${debuglibs} -ltcmalloc_debug"
+  memtest_prefix=gp_
+  heaptest_prefix=gp_
+elif test $with_google = "debug"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
+$as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
+if ${ac_cv_lib_tcmalloc_debug_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc_debug  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_debug_malloc=yes
+else
+  ac_cv_lib_tcmalloc_debug_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_debug_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_debug_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_debug_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTCMALLOC_DEBUG 1
+_ACEOF
+
+  LIBS="-ltcmalloc_debug $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
+$as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
+if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lprofiler  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ProfilerStart ();
+int
+main ()
+{
+return ProfilerStart ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_profiler_ProfilerStart=yes
+else
+  ac_cv_lib_profiler_ProfilerStart=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_profiler_ProfilerStart" >&5
+$as_echo "$ac_cv_lib_profiler_ProfilerStart" >&6; }
+if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPROFILER 1
+_ACEOF
+
+  LIBS="-lprofiler $LIBS"
 
 fi
 
