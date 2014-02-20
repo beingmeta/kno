@@ -252,7 +252,7 @@ static int open_connection(struct FD_MYSQL *dbp)
   u8_mutex_unlock(&mysql_connect_lock);
 
   if (db==NULL) {
-    const char *errmsg=mysql_error(db);
+    const char *errmsg=mysql_error(&(dbp->_db));
     u8_seterr(MySQL_Error,"open_connection",u8_strdup(errmsg));
     u8_mutex_unlock(&mysql_connect_lock);
     return -1;}
@@ -307,7 +307,7 @@ static fdtype refresh_mysqldb(fdtype c,fdtype flags)
                            REFRESH_GRANT|REFRESH_TABLES|REFRESH_HOSTS|
                            REFRESH_STATUS|REFRESH_THREADS);
   if (retval) {
-    const char *errmsg=mysql_error(dbp->db);
+    const char *errmsg=mysql_error(&(dbp->_db));
     return fd_err(MySQL_Error,"mysql/refresh",(u8_string)errmsg,((fdtype)c));}
   else return FD_VOID;
 }
@@ -710,7 +710,7 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,
   stmt=mysql_stmt_init(db);
   if (!(stmt)) {
     u8_log(LOG_WARN,"mysqlexec/stmt_init","Call to mysql_stmt_init failed");
-    const char *errmsg=(mysql_error(db));
+    const char *errmsg=(mysql_error(&(dbp->_db)));
     u8_seterr(MySQL_Error,"mysqlexec",u8_strdup(errmsg));
     fd_decref(colinfo);
     u8_mutex_unlock(&(dbp->lock));
