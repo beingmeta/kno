@@ -1,7 +1,7 @@
 #!/bin/sh
 VERSION="$Id$"
 case $1 in
-  config)
+    config)
 	echo "@local_config@";;
     cflags)
 	echo "@CFLAGS@";;
@@ -18,7 +18,11 @@ case $1 in
     cmodules)
 	echo "@libdir@/framerd";;
     etc)
-	echo "@data_dir@/etc";;
+	echo "@config_dir@";;
+    servlets)
+	echo "@config_dir@/servlets/";;
+    daemons)
+	echo "@config_dir@/daemons/";;
     data)
 	echo "@data_dir@";;
     else)
