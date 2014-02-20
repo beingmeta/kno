@@ -326,7 +326,9 @@ static fdtype getopt_handler(fdtype expr,fd_lispenv env)
 	    FD_STOP_DO_CHOICES;}
 	  else if (!(FD_VOIDP(v))) {FD_ADD_TO_CHOICE(results,v);}}
 	if (FD_ABORTP(results)) {FD_STOP_DO_CHOICES;}}
-      if (FD_ABORTP(results)) return results;
+      fd_decref(keys); fd_decref(opts);
+      if (FD_ABORTP(results)) {
+        return results;}
       else if (FD_EMPTY_CHOICEP(results)) {
 	fdtype dflt_expr=fd_get_arg(expr,3);
 	if (FD_VOIDP(dflt_expr)) return FD_FALSE;
