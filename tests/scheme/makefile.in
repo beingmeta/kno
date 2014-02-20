@@ -253,37 +253,37 @@ vg_memdbhashtests:
 
 gp_memtests:
 	@echo "*** Running alltests with memory debugging"
-	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 alltests
+	make TESTSIZE=$(TESTSIZE)/4 alltests
 	@echo "*** Finished running alltests with memory debugging"
 
 gp_memdtypetests:
 	@echo "*** Running tests on data/eval layers with memory debugging"
-	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 dtypetests
+	make TESTSIZE=$(TESTSIZE)/4 dtypetests
 	@echo "*** Finished running tests on data/eval layers with memory debugging"
 
 gp_memtabletests:
 	@echo "*** Running tests on table/index layers with memory debugging"
-	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 tabletests
+	make TESTSIZE=$(TESTSIZE)/4 tabletests
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
 gp_memindextests:
 	@echo "*** Running tests on table/index layers with memory debugging"
-	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 indextests
+	make TESTSIZE=$(TESTSIZE)/4 indextests
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
 gp_memhashindextests:
 	@echo "*** Running tests on table/index layers with memory debugging"
-	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 hashindextests
+	make TESTSIZE=$(TESTSIZE)/4 hashindextests
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
 gp_memdbtests:
 	@echo "*** Running tests on database layers with memory debugging"
-	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 dbtests dbhashtests
+	make TESTSIZE=$(TESTSIZE)/4 dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with memory debugging"
 
 gp_memdbhashtests:
 	@echo "*** Running tests on database layers with memory debugging"
-	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 dbhashtests
+	make TESTSIZE=$(TESTSIZE)/4 dbhashtests
 	@echo "*** Finished running tests on database layers with memory debugging"
 
 heaptests: @heaptest_prefix@heaptests
