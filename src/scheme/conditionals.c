@@ -69,11 +69,11 @@ static fdtype tryif_handler(fdtype expr,fd_lispenv env)
   else if (FD_FALSEP(test_result))
     return FD_EMPTY_CHOICE; 
   else {
-    fdtype value=FD_VOID;
-    FD_DOBODY(clause,expr,2) {
-      fd_decref(value); value=fd_eval(clause,env);
-      if (!(FD_EMPTY_CHOICEP(value)))
-	return value;}
+    fdtype value=FD_VOID; fd_decref(test_result);
+    {FD_DOBODY(clause,expr,2) {
+        fd_decref(value); value=fd_eval(clause,env);
+        if (!(FD_EMPTY_CHOICEP(value)))
+          return value;}}
     return value;}
 }
 
