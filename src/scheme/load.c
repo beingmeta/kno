@@ -147,16 +147,18 @@ FD_EXPORT fdtype fd_load_source
 	  u8_log(LOG_NOTICE,LoadEval,"Took %fs to evaluate %q",
 		 u8_elapsed_time()-start_time,expr);}
       else {}
-      fd_decref(last_expr);  last_expr=expr;
+      fd_decref(last_expr); last_expr=expr;
       expr=fd_parse_expr(&stream);}
     if (expr==FD_EOF) {
       fd_decref(last_expr); last_expr=FD_VOID;}
     else if (FD_TROUBLEP(expr)) {
-      fd_incref(last_expr); fd_incref(expr); fd_decref(result);
       fd_seterr(NULL,"fd_parse_expr",u8_strdup("just after"),
 		last_expr);
       record_error_source(sourceid);
-      result=expr;}
+      fd_decref(result); /* This is the previous result */
+      fd_decref(last_expr); last_expr=FD_VOID;
+      /* This is now also the result */
+      result=expr; fd_incref(expr);}
     else if (FD_ABORTP(expr)) {
       result=expr; fd_incref(expr); expr=FD_VOID;}
     if ((trace_load) || (trace_load_eval))
