@@ -408,7 +408,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   envstruct.parent=fn->env; envstruct.copy=NULL;
   if (fn->n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
   bindings.values=vals;
-  if (fn->arity>0)
+  if (fn->arity>0) {
     if (n==fn->n_vars) {
       int i=0; while (i<n) {
 	fdtype val=args[i];
@@ -452,7 +452,8 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 	  fdtype default_value=fd_eval(default_expr,fn->env);
 	  vals[i]=default_value; i++;}}
       else {}
-      assert(i==fn->n_vars);}
+      assert(i==fn->n_vars);}}
+  else if (fn->arity==0) {}
   else { /* We have a lexpr */
     int i=0, j=n-1;
     {FD_DOLIST(arg,fn->arglist)
