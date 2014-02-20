@@ -11,7 +11,9 @@ CFLAGS=-I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ $(DYNAMIC_CFLAG) \
        -I./include $(XCFLAGS)  $(ARCHFLAGS)
 LDFLAGS = -L./lib @LDFLAGS@ $(EFENCE) $(XLDFLAGS)
 EXELDFLAGS = @EXELDFLAGS@
-LIBS=@LIBS@
+XLIBS=
+LIBS=$(XLIBS) @LIBS@
+
 
 DESTDIR		=
 prefix		= @prefix@
@@ -221,7 +223,8 @@ update: buildmode
 standard:
 	make testbin exe cmodules etc @TAGS@
 debugging:
-	make XCFLAGS="-O0 -g3 -ggdb" testbin exe cmodules etc @TAGS@
+	make XCFLAGS="@debugcflags@" XLDFLAGS="@debugldflags@" XLIBS="@debuglibs@" \
+		testbin exe cmodules etc @TAGS@
 optimizing:
 	make XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
 nitpicking:
@@ -248,7 +251,9 @@ fast:
 	@echo Building `cat buildmode` configuration
 	@make `cat buildmode`
 buildmode:
-	echo standard > buildmode
+	@echo standard > buildmode
+showbuildmode showmode showbuild: buildmode
+	@cat buildmode
 
 # configure/autoconf stuff
 
@@ -435,11 +440,11 @@ static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
 dtypetestbin: libs tests/dtype/makefile tests/dtype/.gdbinit src/exe/fdversion.h
-	@make -s -C tests/dtype
+	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" -C tests/dtype
 dbtestbin: libs tests/db/makefile tests/db/.gdbinit src/exe/fdversion.h
-	@make -s -C tests/db
+	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" -C tests/db
 schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h src/exe/fdversion.h
-	@make -s -C tests/scheme
+	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" -C tests/scheme 
 exe: $(EXECUTABLES) exe/.gdbinit
 static-exe: $(STATIC_EXECUTABLES)
 

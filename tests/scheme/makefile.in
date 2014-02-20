@@ -11,7 +11,8 @@ CFLAGS=-I../../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
 LDFLAGS=@LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
 BASELIBS=@LIBS@ -lm -lz
 BMLIBS=-lu8io -lu8data -lu8
-LIBS=${BMLIBS} ${BASELIBS}
+XLIBS=
+LIBS=${XLIBS} ${BMLIBS} ${BASELIBS}
 
 CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
 	  	  	../../lib/libfdbserv@suffix@.a  \
@@ -29,7 +30,8 @@ LIBINSTALLDIR	= $(DESTDIR)@libdir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
 #RUNENV		= LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib 
-VALGRIND	= INVALGRIND=yes valgrind --tool=memcheck --leak-check=yes --num-callers=9
+VALGRIND	= INVALGRIND=yes valgrind --tool=memcheck --num-callers=9
+VALGRINDHEAP	= INVALGRIND=yes valgrind --tool=memcheck --leak-check=yes --num-callers=9
 TESTPROG	= 
 RUNENV		= 
 TESTSIZE	= 64
@@ -206,58 +208,125 @@ dbhash32tests:
 	make FD_HASHINDEX=yes dbtests
 	make FD_HASHINDEX="(COMPRESS B32)" dbtests
 	@echo "*** Completed scheme tests to exercise hashindices with B32 reprepresentation "***""
+memtests: @memtest_prefix@memtests
+memdtypetests: @memtest_prefix@memdtypetests
+memtabletests: @memtest_prefix@memtabletests
+memindextests: @memtest_prefix@memindextests
+memhashindextests: @memtest_prefix@memhashindextests
+memdbtests: @memtest_prefix@memdbtests
+memdbhashtests: @memtest_prefix@memdbhashtests
 
-memtests:
-	@echo "*** Running alltests with memory debugging"
+vg_memtests:
+	@echo "*** Running alltests with valgrind memory debugging"
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 alltests
+	@echo "*** Finished running alltests with valgrind memory debugging"
+
+vg_memdtypetests:
+	@echo "*** Running tests on data/eval layers with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dtypetests
+	@echo "*** Finished running tests on data/eval layers with valgrind memory debugging"
+
+vg_memtabletests:
+	@echo "*** Running tests on table/index layers with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 tabletests
+	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
+
+vg_memindextests:
+	@echo "*** Running tests on table/index layers with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 indextests
+	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
+
+vg_memhashindextests:
+	@echo "*** Running tests on table/index layers with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 hashindextests
+	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
+
+vg_memdbtests:
+	@echo "*** Running tests on database layers with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
+	@echo "*** Finished running tests on database layers with valgrind memory debugging"
+
+vg_memdbhashtests:
+	@echo "*** Running tests on database layers with valgrind memory debugging"
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbhashtests
+	@echo "*** Finished running tests on database layers with valgrind memory debugging"
+
+gp_memtests:
+	@echo "*** Running alltests with memory debugging"
+	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 alltests
 	@echo "*** Finished running alltests with memory debugging"
 
-memdtypetests:
+gp_memdtypetests:
 	@echo "*** Running tests on data/eval layers with memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dtypetests
+	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 dtypetests
 	@echo "*** Finished running tests on data/eval layers with memory debugging"
 
-memtabletests:
+gp_memtabletests:
 	@echo "*** Running tests on table/index layers with memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 tabletests
+	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 tabletests
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
-memindextests:
+gp_memindextests:
 	@echo "*** Running tests on table/index layers with memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 indextests
+	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 indextests
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
-memhashindextests:
+gp_memhashindextests:
 	@echo "*** Running tests on table/index layers with memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 hashindextests
+	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 hashindextests
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
-memdbtests:
+gp_memdbtests:
 	@echo "*** Running tests on database layers with memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
+	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with memory debugging"
 
-memdbhashtests:
+gp_memdbhashtests:
 	@echo "*** Running tests on database layers with memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbhashtests
+	make "RUNENV=LD_PRELOAD=@tcmallocdebug@" TESTSIZE=$(TESTSIZE)/4 dbhashtests
 	@echo "*** Finished running tests on database layers with memory debugging"
 
-heaptests:
+heaptests: @heaptest_prefix@heaptests
+heapdtypetests: @heaptest_prefix@heapdtypetests
+heaptabletests: @heaptest_prefix@heaptabletests
+heapdbtests: @heaptest_prefix@heapdbtests
+
+vg_heaptests:
+	@echo "*** Running alltests with tcmalloc memory debugging"
+	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 alltests
+	@echo "*** Finished running alltests with tcmalloc memory debugging"
+
+vg_heapdtypetests:
+	@echo "*** Running tests on data/eval layers with tcmalloc memory debugging"
+	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 dtypetests
+	@echo "*** Finished running tests on data/eval layers with tcmalloc memory debugging"
+
+vg_heaptabletests:
+	@echo "*** Running tests on table/index layers with tcmalloc memory debugging"
+	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 tabletests
+	@echo "*** Finished running tests on table/index layers with tcmalloc memory debugging"
+
+vg_heapdbtests:
+	@echo "*** Running tests on database layers with tcmalloc memory debugging"
+	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
+	@echo "*** Finished running tests on database layers with tcmalloc memory debugging"
+
+gp_heaptests:
 	@echo "*** Running alltests with tcmalloc memory debugging"
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 alltests
 	@echo "*** Finished running alltests with tcmalloc memory debugging"
 
-heapdtypetests:
+gp_heapdtypetests:
 	@echo "*** Running tests on data/eval layers with tcmalloc memory debugging"
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 dtypetests
 	@echo "*** Finished running tests on data/eval layers with tcmalloc memory debugging"
 
-heaptabletests:
+gp_heaptabletests:
 	@echo "*** Running tests on table/index layers with tcmalloc memory debugging"
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 tabletests
 	@echo "*** Finished running tests on table/index layers with tcmalloc memory debugging"
 
-heapdbtests:
+gp_heapdbtests:
 	@echo "*** Running tests on database layers with tcmalloc memory debugging"
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with tcmalloc memory debugging"

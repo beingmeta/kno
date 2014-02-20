@@ -68,6 +68,7 @@ daemon_identity_default="daemon"
 setup_target="setup-unix"
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
+TESTLIBS=
 TESTLDFLAGS=
 EXELDFLAGS=
 SHARED_LIB_TARGET=shared-libs
@@ -114,6 +115,11 @@ IMAGICK_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
 MSG=echo
+debugcflags="-O0 -g3 -ggdb"
+debugldflags=""
+debuglibs=""
+memtest_prefix=vg_
+heaptest_prefix=vg_
 
 AC_PREFIX_DEFAULT(/usr)
 AC_CONFIG_AUX_DIR(etc)
@@ -155,6 +161,11 @@ AC_SUBST(archflags)
 AC_SUBST(versionsh)
 AC_SUBST(definefileinfo)
 AC_SUBST(setup_target)
+AC_SUBST(debugcflags)
+AC_SUBST(debugldflags)
+AC_SUBST(debuglibs)
+AC_SUBST(memtest_prefix)
+AC_SUBST(heaptest_prefix)
 
 AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
@@ -162,6 +173,7 @@ AC_SUBST(SHARED_LIB_TARGET)
 AC_SUBST(SHARED_LIB)
 AC_SUBST(SHARED_LIBV)
 AC_SUBST(TESTLDFLAGS)
+AC_SUBST(TESTLIBS)
 AC_SUBST(EXELDFLAGS)
 AC_SUBST(FDVERSION)
 AC_SUBST(FDMAJOR)
@@ -744,8 +756,13 @@ dnl   Google perftools
 AC_ARG_WITH(tcmalloc,--with[out]-tcmalloc Use the Google malloc library,,with_tcmalloc="no")
 if test $with_tcmalloc = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
+  debuglibs="${debuglibs} -ltcmalloc_debug"
+  memtest_prefix=gp_
+  heaptest_prefix=gp_
 elif test $with_tcmalloc = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
+  heaptest_prefix=gp_
+  memtest_prefix=gp_
 fi
 
 # For OS X

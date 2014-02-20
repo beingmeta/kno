@@ -678,12 +678,18 @@ FDMINOR
 FDMAJOR
 FDVERSION
 EXELDFLAGS
+TESTLIBS
 TESTLDFLAGS
 SHARED_LIBV
 SHARED_LIB
 SHARED_LIB_TARGET
 DREENTRANT
 TAGS
+heaptest_prefix
+memtest_prefix
+debuglibs
+debugldflags
+debugcflags
 setup_target
 definefileinfo
 versionsh
@@ -2741,6 +2747,7 @@ daemon_identity_default="daemon"
 setup_target="setup-unix"
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
+TESTLIBS=
 TESTLDFLAGS=
 EXELDFLAGS=
 SHARED_LIB_TARGET=shared-libs
@@ -2787,6 +2794,11 @@ IMAGICK_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
 MSG=echo
+debugcflags="-O0 -g3 -ggdb"
+debugldflags=""
+debuglibs=""
+memtest_prefix=vg_
+heaptest_prefix=vg_
 
 
 ac_aux_dir=
@@ -2819,6 +2831,12 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
+
+
+
+
 
 
 
@@ -8006,6 +8024,9 @@ _ACEOF
 
 fi
 
+  debuglibs="${debuglibs} -ltcmalloc_debug"
+  memtest_prefix=gp_
+  heaptest_prefix=gp_
 elif test $with_tcmalloc = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
@@ -8052,6 +8073,8 @@ _ACEOF
 
 fi
 
+  heaptest_prefix=gp_
+  memtest_prefix=gp_
 fi
 
 # For OS X
