@@ -29,6 +29,8 @@
 	    (cons ',get-method-name
 		  (,make-xref-generator ,(position field fields) ',tag)))))
 
+(define (fieldname x)
+  (if (pair? x) (car x) x))
 
 ;(defrecord tag field1 (field2 opt) field3)
 (define defrecord
@@ -46,7 +48,7 @@
 	   (consfn (getopt defspec 'consfn))
 	   (stringfn (getopt defspec 'stringfn))
 	   (fields (cddr expr))
-	   (field-names (map (lambda (x) (if (pair? x) (car x) x)) fields))
+	   (field-names (map fieldname fields))
 	   (cons-method-name (string->symbol (stringout "CONS-" tag)))
 	   (predicate-method-name (string->symbol (stringout tag "?"))))
       `(begin (bind-default! %rewrite {})
@@ -69,4 +71,5 @@
 	 ,@(if consfn `((compound-set-consfn! ',tag ,consfn)) '())
 	 ,@(if stringfn `((compound-set-stringfn! ',tag ,stringfn)) '())))))
 
-(module-export! 'defrecord)
+(module-export! '{defrecord})
+
