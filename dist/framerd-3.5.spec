@@ -1,6 +1,6 @@
 Name:           framerd
 Version:        3.5.1
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -218,7 +218,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/fdservlet
 %{_bindir}/fdserv
 %{_bindir}/fdbserver
-%{_bindir}/fdmanager
 %{_bindir}/fdsetconfig
 %{_bindir}/fdgetconfig
 %{_bindir}/fdconfig
