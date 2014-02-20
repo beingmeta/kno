@@ -607,7 +607,9 @@ static fdtype try_handler(fdtype expr,fd_lispenv env)
     int ipe_state=fd_ipeval_status();
     fd_decref(value);
     value=fd_eval(clause,env);
-    if (!(FD_EMPTY_CHOICEP(value))) return value;
+    if (FD_VOIDP(value))
+      return fd_err(fd_VoidArgument,"try_handler",NULL,clause);
+    else if (!(FD_EMPTY_CHOICEP(value))) return value;
     else if (fd_ipeval_status()!=ipe_state) return value;}
   return value;
 }
