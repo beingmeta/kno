@@ -619,7 +619,8 @@ static fdtype textract
 	return scan->extract(pat,next,env,string,off,lim,flags);
       else {
 	fdtype matches=scan->matcher(pat,next,env,string,off,lim,flags);
-	fdtype answer=extract_text(string,off,matches); fd_decref(matches);
+	fdtype answer=extract_text(string,off,matches);
+        fd_decref(matches);
 	return answer;}
     else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);}
   else if (FD_SYMBOLP(pat))
@@ -662,7 +663,7 @@ static fdtype extract_sequence
     if (FD_ABORTP(sub_matches)) return sub_matches;
     else {
       fdtype results=FD_EMPTY_CHOICE;
-      FD_DO_CHOICES(sub_match,sub_matches)
+      FD_DO_CHOICES(sub_match,sub_matches) {
 	if (fd_getint(FD_CAR(sub_match)) <= lim) {
 	  u8_byteoff noff=fd_getint(FD_CAR(sub_match));
 	  fdtype remainders=extract_sequence
@@ -679,8 +680,8 @@ static fdtype extract_sequence
 			     fd_init_pair
 			     (NULL,fd_incref(FD_CDR(sub_match)),
 			      fd_incref(FD_CDR(remainder))));
-	      FD_ADD_TO_CHOICE(results,result);}}
-	  fd_decref(remainders);}
+	      FD_ADD_TO_CHOICE(results,result);}
+            fd_decref(remainders);}}}
       fd_decref(sub_matches);
       return results;}}
 }
@@ -693,7 +694,8 @@ static fdtype lists_to_vectors(fdtype lists)
     while (FD_PAIRP(scan)) {lim++; scan=FD_CDR(scan);}
     vec=fd_init_vector(NULL,lim,NULL);
     scan=FD_CDR(list); while (i < lim) {
-      FD_VECTOR_SET(vec,i,fd_incref(FD_CAR(scan)));
+      fdtype car=FD_CAR(scan); fd_incref(car);
+      FD_VECTOR_SET(vec,i,car);
       i++; scan=FD_CDR(scan);}
     elt=fd_init_pair(NULL,lsize,vec);
     FD_ADD_TO_CHOICE(answer,elt);}
@@ -1095,14 +1097,15 @@ static fdtype label_extract
     else {
       FD_DO_CHOICES(extraction,extractions) {
 	fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);    
-	fdtype xtract, addval;
+	fdtype xtract, addval; fd_incref(data);
 	if (FD_VOIDP(parser))
-	  xtract=fd_make_list(3,FD_CAR(pat),sym,fd_incref(data));
+	  xtract=fd_make_list(3,FD_CAR(pat),sym,data);
 	else if ((env) && ((FD_SYMBOLP(parser)) || (FD_PAIRP(parser)))) {
 	  fdtype parser_val=fd_eval(parser,env);
-	  xtract=fd_make_list(4,FD_CAR(pat),sym,fd_incref(data),parser_val);}
-	else xtract=
-	       fd_make_list(4,FD_CAR(pat),sym,fd_incref(data),fd_incref(parser));
+	  xtract=fd_make_list(4,FD_CAR(pat),sym,data,parser_val);}
+	else {
+          fd_incref(parser);
+          xtract=fd_make_list(4,FD_CAR(pat),sym,data,parser);}
 	addval=fd_init_pair(NULL,size,xtract);
 	FD_ADD_TO_CHOICE(answers,addval);}
       fd_decref(extractions);

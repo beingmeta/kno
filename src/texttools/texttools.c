@@ -1421,13 +1421,14 @@ static fdtype text2frame(fdtype pattern,fdtype string,
     if (FD_ABORTP(extract_results)) return extract_results;
     else {
       fdtype frame_results=FD_EMPTY_CHOICE;
-      FD_DO_CHOICES(extraction,extract_results)
+      FD_DO_CHOICES(extraction,extract_results) {
 	if (fd_getint(FD_CAR(extraction))==lim) {
 	  fdtype frame=fd_empty_slotmap();
 	  if (framify(frame,NULL,FD_CDR(extraction))<0) {
 	    fd_decref(frame_results); fd_decref(extract_results);
 	    return FD_ERROR_VALUE;}
-	  FD_ADD_TO_CHOICE(frame_results,frame);}
+	  FD_ADD_TO_CHOICE(frame_results,frame);}}
+      fd_decref(extract_results);
       return frame_results;}}
 }
 
