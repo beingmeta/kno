@@ -1,5 +1,7 @@
 AC_PREREQ(2.50)
 AC_INIT(include/framerd/dtype.h)
+AC_PREFIX_PROGRAM(autoconf)
+
 m4_include([etc/ax_pthread.m4])
 
 AC_DEFUN([AC_CHECK_USER],[
@@ -29,7 +31,12 @@ AC_MSG_CHECKING([for group $1])
   AC_MSG_RESULT($found_group)])
 
 # Override the default value for localstatedir
-if (test "x$localstatedir" == "x\${prefix}/var"); then localstatedir="/var"; fi
+if (test "x${prefix}" == "x/usr"); then
+   localstatedir="/var";
+elif (test "x${prefix}" == "x/usr/local"); then
+   localstatedir="/var/local";
+else localstatedir="\${prefix}/var";
+fi
 
 threads_default="yes"
 checkfdtype_default="no"
@@ -121,7 +128,6 @@ debuglibs=""
 memtest_prefix=vg_
 heaptest_prefix=vg_
 
-AC_PREFIX_DEFAULT(/usr)
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/framerd/fdsource.h include/framerd/config.h)
 
@@ -1057,3 +1063,4 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile
 	  etc/install-script)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
+chmod a+x etc/fdconfig

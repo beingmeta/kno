@@ -1,12 +1,14 @@
 #!/bin/sh
-VERSION="$Id$"
+prefix=@prefix@
 case $1 in
     config)
 	echo "@local_config@";;
     cflags)
 	echo "@CFLAGS@";;
     include)
-	echo "@prefix@/include/fdb";;
+	echo "@prefix@/include/framerd";;
+    state)
+	echo "@localstatedir@";;
     lib)
 	echo "@libdir@";;
     bin)
