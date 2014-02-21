@@ -809,7 +809,7 @@ with_tidy
 with_imagick
 with_fileinfo
 with_tcmalloc
-with_google
+with_perftools
 enable_largefiles
 with_crypto
 with_sundown
@@ -8177,14 +8177,14 @@ fi
 fi
 
 
-# Check whether --with-google was given.
-if test "${with_google+set}" = set; then :
-  withval=$with_google;
+# Check whether --with-perftools was given.
+if test "${with_perftools+set}" = set; then :
+  withval=$with_perftools;
 else
-  with_google="no"
+  with_perftools="no"
 fi
 
-if test $with_google = "yes"; then
+if test $with_perftools = "yes"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
 $as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
 if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
@@ -8278,7 +8278,7 @@ fi
   debuglibs="${debuglibs} -ltcmalloc_debug"
   memtest_prefix=gp_
   heaptest_prefix=gp_
-elif test $with_google = "debug"; then
+elif test $with_perftools = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
 if ${ac_cv_lib_tcmalloc_debug_malloc+:} false; then :

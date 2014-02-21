@@ -771,14 +771,14 @@ elif test $with_tcmalloc = "debug"; then
   memtest_prefix=gp_
 fi
 
-AC_ARG_WITH(google,--with[out]-google Use the Google perftools,,with_google="no")
-if test $with_google = "yes"; then
+AC_ARG_WITH(perftools,--with[out]-google Use the Google perftools,,with_perftools="no")
+if test $with_perftools = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)
   debuglibs="${debuglibs} -ltcmalloc_debug"
   memtest_prefix=gp_
   heaptest_prefix=gp_
-elif test $with_google = "debug"; then
+elif test $with_perftools = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)
   heaptest_prefix=gp_
