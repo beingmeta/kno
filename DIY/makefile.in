@@ -9,7 +9,7 @@ libzip/lib/libzip.so: update-libzip
 	cd libzip; make
 build-libzip: libzip/lib/libzip.so
 
-@prefix@/lib/libzip.so:
+@prefix@/lib/libzip.so: libzip/lib/libzip.so
 	cd libzip; sudo make install
 install-libzip: @prefix@/lib/libzip.so
 
