@@ -27,4 +27,14 @@ build-httperf: httperf-0.8.1/Makefile
 	cd httperf-0.8.1; sudo make install
 install-httperf: @prefix@/bin/httperf
 
+http_load/README:
+	svn checkout svn+ssh://dev.beingmeta.com/svn/src/http_load/trunk http_load
 
+update-http_load: http_load/README
+	cd http_load; svn update
+http_load/http_load: http_load/*.c http_load/*.h
+	cd http_load; make
+
+@prefix@/bin/http_load: http_load
+	cd http_load; make BINDIR=@prefix@/bin MANDIR=@prefix@/man/man1 install
+install-http_load: @prefix@/bin/http_load
