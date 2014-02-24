@@ -107,6 +107,9 @@ safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
 SUDO=""
+RPMDIR=${RPMDIR:-dist}
+RPMFLAGS=${RPMFLAGS:-}
+GPGID=${GPGID:-}
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$prefix/etc/framerd"
 rundir="${localstatedir}/run"
@@ -175,9 +178,6 @@ AC_SUBST(debugldflags)
 AC_SUBST(debuglibs)
 AC_SUBST(memtest_prefix)
 AC_SUBST(heaptest_prefix)
-AC_SUBST(rpmflags)
-AC_SUBST(rpmdir)
-AC_SUBST(gpgid)
 
 AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
@@ -209,6 +209,13 @@ AC_SUBST(DEFAULTISASYNC)
 AC_SUBST(USEDTBLOCK)
 AC_SUBST(MSG)
 
+AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
+AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
+AC_ARG_VAR(GPGID,"Default GnuPG id for signing packages")
+AC_SUBST(RPMDIR)
+AC_SUBST(RPMFLAGS)
+AC_SUBST(GPGID)
+
 AC_CANONICAL_HOST
 AC_PROG_CC([cc gcc])
 AC_USE_SYSTEM_EXTENSIONS
@@ -219,10 +226,7 @@ AC_CHECK_PROG(VALGRIND,valgrind)
 AC_CHECK_PROGS(APXS,apxs2 apxs /usr/sbin/apxs2 /usr/sbin/apxs /usr/sbin/apxs /usr/bin/apxs,apxs)
 
 AC_CHECK_PROGS(buildrpm,"lsb-rpmbuild","rpmbuild","lsb-rpm","na")
-AC_ARG_WITH(rpmdir,--with-rpmdir Location for saving RPMs,,with_rpmdir=dist)
-AC_ARG_WITH(rpmflags,--with-rpmflags Default RPM flags,,with_rpmflags="")
-rpmdir=$with_rpmdir
-rpmflags=$with_rpmflags
+AC_CHECK_PROGS(rpm,"lsb-rpm","rpm","na")
 
 AC_CHECK_GROUP(default_admin_group,framerd adm admin)
 AC_CHECK_USER(default_fdaemon,fdaemon daemon nobody)
