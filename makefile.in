@@ -42,7 +42,8 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 BUILD		= `pwd`
 BUILDMODE       := `cat buildmode || echo none`
 DEBUG_FDSERV    = 0
-RPMFLAGS	=
+RPMFLAGS	= @rpmflags@
+RPMDIR		= @rpmdir@
 
 COMPONENT=main
 CODENAME=beingmeta
@@ -792,7 +793,7 @@ staging/framerd-@FDVERSION@.tar.gz: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAM
 
 dist/rpms.done: staging/framerd-@FDVERSION@.tar.gz
 	@buildrpm@ ${RPMFLAGS} \
-		--define "_rpmdir dist" --define "_srcrpmdir dist" \
+		--define "_rpmdir ${RPMDIR}" --define "_srcrpmdir ${RPMDIR}" \
 		--nodeps -ta \
 		staging/framerd-@FDVERSION@.tar.gz \
 	&& touch dist/rpms.done

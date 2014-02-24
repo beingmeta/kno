@@ -62,6 +62,8 @@ curlconfig=""
 curl_default="no"
 exifo=""
 doi18n="no"
+rpmflags=""
+rmpdir=dist
 exif_default="no"
 dynamic_cflag="-rdynamic"
 xstatic_exe_libs=""
@@ -172,6 +174,8 @@ AC_SUBST(debugldflags)
 AC_SUBST(debuglibs)
 AC_SUBST(memtest_prefix)
 AC_SUBST(heaptest_prefix)
+AC_SUBST(rpmflags)
+AC_SUBST(rpmdir)
 
 AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
@@ -211,7 +215,12 @@ AC_PROG_RANLIB
 AC_CHECK_PROG(ECHO,echo,,/bin/echo)
 AC_CHECK_PROG(VALGRIND,valgrind)
 AC_CHECK_PROGS(APXS,apxs2 apxs /usr/sbin/apxs2 /usr/sbin/apxs /usr/sbin/apxs /usr/bin/apxs,apxs)
+
 AC_CHECK_PROGS(buildrpm,"lsb-rpmbuild","rpmbuild","lsb-rpm","na")
+AC_ARG_WITH(rpmdir,--with-rpmdir Location for saving RPMs,,with_rpmdir=dist)
+AC_ARG_WITH(rpmflags,--with-rpmflags Default RPM flags,,with_rpmflags="")
+rpmdir=$with_rpmdir
+rpmflags=$with_rpmflags
 
 AC_CHECK_GROUP(default_admin_group,framerd adm admin)
 AC_CHECK_USER(default_fdaemon,fdaemon daemon nobody)
