@@ -797,7 +797,7 @@ staging/framerd_@FDVERSION@.orig.tar.gz: staging/framerd-@FDVERSION@
 
 dist/rpms.done: staging/framerd-@FDVERSION@ \
 	staging/framerd-@FDVERSION@.tar.gz staging/framerd_@FDVERSION@.orig.tar.gz
-	@(buildrpm@ ${RPMFLAGS} \
+	@(@buildrpm@ ${RPMFLAGS} \
 		--define "_rpmdir ${RPMDIR}" --define "_srcrpmdir ${RPMDIR}" \
 		--nodeps -ta \
 		staging/framerd-@FDVERSION@.tar.gz) && \
