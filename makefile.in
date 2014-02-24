@@ -44,6 +44,7 @@ BUILDMODE       := `cat buildmode || echo none`
 DEBUG_FDSERV    = 0
 RPMFLAGS	= @rpmflags@
 RPMDIR		= @rpmdir@
+GPGID		= @gpgid@
 
 COMPONENT=main
 CODENAME=beingmeta
@@ -779,15 +780,15 @@ rpms:
 	find dist -name "*.rpm" | xargs rm -f
 	make dist/rpms.done
 
-staging/framerd-@FDVERSION@: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
-		      configure.ac makefile.in makefile
-	git archive --prefix=framerd-@FDVERSION@/ \
+staging/framerd-@FDVERSION@: \
+	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
+	@git archive --prefix=framerd-@FDVERSION@/ \
 	            -o staging/framerd-@FDVERSION@.tar HEAD
 	cd staging; tar -xf framerd-@FDVERSION@.tar; rm framerd-@FDVERSION@.tar
 	$(ECHO) "#define FRAMERD_REV \""`git describe`"\"" \
 		> staging/framerd-@FDVERSION@/etc/fdversion.h;
-staging/framerd-@FDVERSION@.tar.gz: $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS) \
-		      		configure.ac makefile.in makefile
+staging/framerd-@FDVERSION@.tar.gz: \
+	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	make staging/framerd-@FDVERSION@
 	tar -czvf $@ -C staging framerd-@FDVERSION@
 
@@ -798,13 +799,28 @@ dist/rpms.done: staging/framerd-@FDVERSION@.tar.gz
 		staging/framerd-@FDVERSION@.tar.gz \
 	&& touch dist/rpms.done
 
-staging/framerd_@FDVERSION@.orig.tar.gz: \
-	makefile.in configure makefile $(FRAMERD_SOURCES) $(COMMON_HEADERS)
-	rm -rf staging/framerd_@FDVERSION@ staging/framerd_@FDVERSION@.orig.tar.gz
-	git archive --prefix=framerd_@FDVERSION@/ \
-	            -o staging/framerd_@FDVERSION@.orig.tar HEAD
-	cd staging; tar -xf framerd_@FDVERSION@.orig.tar
-	gzip staging/framerd_@FDVERSION@.orig.tar
+dist/rpms.signed: dist/rpms.done
+	@if (test "x${GPGID}" != "x") && \
+	   (test "x${GPGID}" != "xnone"); then \
+	   echo "Signing password for ${GPGID}:"; \
+	   rpm --define "_gpg_name \"${GPGID}\"" \
+	       --addsign $(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
+	 		 $(RPMDIR)/*/framerd-*-@FDVERSION@-*.rpm; \
+	else rpm --addsign $(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
+	 		   $(RPMDIR)/*/framerd-*-@FDVERSION@-*.rpm; \
+	fi
+
+dist/rpms.zip: dist/rpms.signed
+	@rm -f dist/rpms.zip
+	@zip dist/rpms.zip \
+		$(RPMDIR)/framerd*-@FDVERSION@-*.src.rpm \
+		$(RPMDIR)/*/framerd-*-@FDVERSION@-*.rpm
+repo: dist/rpms.signed
+	createrepo $(RPMDIR)
+
+staging/framerd_@FDVERSION@.orig.tar.gz: staging/framerd-@FDVERSION@
+	cd staging; tar -czvf framerd_@FDVERSION@.orig.tar.gz \
+		framerd-@FDVERSION@
 
 dist/debs.done: staging/framerd_@FDVERSION@.orig.tar.gz
 	(cd staging/framerd_@FDVERSION@; dpkg-buildpackage -F -rfakeroot) && \

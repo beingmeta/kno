@@ -63,7 +63,8 @@ curl_default="no"
 exifo=""
 doi18n="no"
 rpmflags=""
-rmpdir=dist
+rmpdir="dist"
+gpgid=
 exif_default="no"
 dynamic_cflag="-rdynamic"
 xstatic_exe_libs=""
@@ -176,6 +177,7 @@ AC_SUBST(memtest_prefix)
 AC_SUBST(heaptest_prefix)
 AC_SUBST(rpmflags)
 AC_SUBST(rpmdir)
+AC_SUBST(gpgid)
 
 AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
@@ -250,6 +252,10 @@ if test $with_bootsystem != "none"; then
 fi
 
 LDFLAGS="$LDFLAGS -L$prefix/lib"
+
+if test "x${GPGID}" != "x"; then
+   gpgid=${GPGID};
+fi
 
 AC_ARG_WITH(optlib,--with-optlib Use optional library directory,,with_optlib="none")
 if test $with_optlib != "none"; then

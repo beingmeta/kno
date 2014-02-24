@@ -684,6 +684,7 @@ SHARED_LIB
 SHARED_LIB_TARGET
 DREENTRANT
 TAGS
+gpgid
 rpmdir
 rpmflags
 heaptest_prefix
@@ -2841,7 +2842,8 @@ curl_default="no"
 exifo=""
 doi18n="no"
 rpmflags=""
-rmpdir=dist
+rmpdir="dist"
+gpgid=
 exif_default="no"
 dynamic_cflag="-rdynamic"
 xstatic_exe_libs=""
@@ -2938,6 +2940,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -4603,6 +4606,10 @@ if test $with_bootsystem != "none"; then
 fi
 
 LDFLAGS="$LDFLAGS -L$prefix/lib"
+
+if test "x${GPGID}" != "x"; then
+   gpgid=${GPGID};
+fi
 
 
 # Check whether --with-optlib was given.
