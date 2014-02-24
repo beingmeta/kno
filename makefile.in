@@ -42,9 +42,9 @@ MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
 BUILD		= `pwd`
 BUILDMODE       := `cat buildmode || echo none`
 DEBUG_FDSERV    = 0
-RPMFLAGS	= @rpmflags@
-RPMDIR		= @rpmdir@
-GPGID		= @gpgid@
+RPMFLAGS	= @RPMFLAGS@
+RPMDIR		= @RPMDIR@
+GPGID		= @GPGID@
 
 COMPONENT=main
 CODENAME=beingmeta
