@@ -773,14 +773,16 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 # Packaging targets
 
-rpmtar: staging/framerd-@FDVERSION@.tar.gz
-cleanrpms: 
-	rm -rf dist/rpms.done staging/framerd-?.?.?.tar.gz staging/framerd-?.?.?
-	find dist -name "*.rpm" | xargs rm -f
-rpms: 
-	rm -rf dist/rpms.done staging/framerd-?.?.?.tar.gz staging/framerd-?.?.?
-	find dist -name "*.rpm" | xargs rm -f
-	make dist/rpms.done
+rpms: dist/rpms.done
+debian deb debs: dist/debs.done
+
+cleandist: 
+	rm -rf dist/rpms.done dist/rpms.ready dist/debs.done dist/debs.ready
+	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.spec dist/*.dsc
+	find dist -name "*.rpm" | xargs -r rm
+	rm -rf staging/framerd*
+
+# Creating staging areas from GIT
 
 staging/framerd-@FDVERSION@: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
@@ -789,6 +791,13 @@ staging/framerd-@FDVERSION@: \
 	cd staging; tar -xf framerd-@FDVERSION@.tar; rm framerd-@FDVERSION@.tar
 	$(ECHO) "#define FRAMERD_REV \""`git describe`"\"" \
 		> staging/framerd-@FDVERSION@/etc/fdversion.h;
+staging/framerd_@FDVERSION@: \
+	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
+	@git archive --prefix=framerd_@FDVERSION@/ \
+	            -o staging/framerd_@FDVERSION@.tar HEAD
+	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar
+	$(ECHO) "#define FRAMERD_REV \""`git describe`"\"" \
+		> staging/framerd_@FDVERSION@/etc/fdversion.h;
 staging/framerd-@FDVERSION@.tar.gz: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	make staging/framerd-@FDVERSION@
@@ -797,42 +806,50 @@ staging/framerd_@FDVERSION@.orig.tar.gz: staging/framerd-@FDVERSION@
 	cd staging; tar -czvf framerd_@FDVERSION@.orig.tar.gz \
 		framerd-@FDVERSION@
 
-dist/rpms.done: staging/framerd-@FDVERSION@ \
-	staging/framerd-@FDVERSION@.tar.gz staging/framerd_@FDVERSION@.orig.tar.gz
-	@(@buildrpm@ ${RPMFLAGS} \
-		--define "_rpmdir ${RPMDIR}" --define "_srcrpmdir ${RPMDIR}" \
-		--nodeps -ta \
-		staging/framerd-@FDVERSION@.tar.gz) && \
-	((test "x$(GPGID)" = "xnone")|| \
-         (if (test "x$(GPGID)" = "x"); then \
-	   echo "Enter passphrase for RPM signing GPG key:"; \
+# RPM rules
+
+dist/rpms.ready: staging/framerd-@FDVERSION@ \
+	staging/framerd_@FDVERSION@.orig.tar.gz staging/framerd-@FDVERSION@.tar.gz
+	@@buildrpm@ $(RPMFLAGS)  \
+	   --define="_rpmdir $(RPMDIR)" --define="_srcrpmdir $(RPMDIR)" \
+	   --nodeps -ta \
+	    staging/framerd-@FDVERSION@.tar.gz && \
+	touch dist/rpms.ready
+dist/rpms.done: dist/rpms.ready
+	if (test "x$(GPGID)" = "xnone") || (test "x$(GPGID)" = "x"); then \
+	   echo "Enter passphrase for the RPM signing key:"; \
 	   @rpm@ --addsign \
 		$(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
 		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; \
 	   else \
-	     echo "Enter passphrase for RPM signing key '$(GPGID)':"; \
+	     echo "Enter passphrase for the RPM signing key '$(GPGID)':"; \
 	     @rpm@ --addsign --define="_gpg_name $(GPGID)" \
-		$(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
-		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; fi)) && \
-	touch dist/rpms.done && \
+		$(RPMDIR)/framerd-@FDVERSION@*.src.rpm \
+		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; fi && \
+	createrepo $(RPMDIR) && \
+	touch dist/rpms.done;
 	ls -l $(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
 		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm;
 
+update-rpms:
+	rm -f dist/rpms.done dist/rpms.ready
+	make dist/rpms.done
 dist/rpms.zip: dist/rpms.done
 	@rm -f dist/rpms.zip
 	@zip dist/rpms.zip \
 		$(RPMDIR)/framerd*-@FDVERSION@-*.src.rpm \
 		$(RPMDIR)/*/framerd-*-@FDVERSION@-*.rpm
-repo: dist/rpms.done
-	createrepo $(RPMDIR)
+
+# Rules for Debian building
 
 dist/debs.done: staging/framerd_@FDVERSION@.orig.tar.gz
-	(cd staging/framerd_@FDVERSION@; dpkg-buildpackage -F -rfakeroot) && \
+	(cd staging/framerd_@FDVERSION@; \
+	 dpkg-buildpackage -k $(GPGID:-default) -F -rfakeroot) && \
 	(cd staging; mv framerd_@FDVERSION@*.deb framerd_@FDVERSION@*.dsc \
 			framerd_@FDVERSION@*.gz framerd_@FDVERSION@*.changes \
 			../dist) && \
-	touch dist/debs.done; rm -rf staging/framerd_@FDVERSION@;
-update-apt: dist/debs.done
+	touch dist/debs.done; rm -rf staging/framerd_@FDVERSION@*;
+update-repo: dist/debs.done
 	deb-s3 upload --bucket=repo.beingmeta.com \
 		      --component=$(COMPONENT) \
 		      --codename=$(CODENAME) \
