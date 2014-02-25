@@ -1142,6 +1142,17 @@ FD_EXPORT fdtype fd_req_call(fd_reqfn reqfn)
 FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
 {
   fdtype curinfo=try_reqinfo();
+#if 1
+  if (FD_CONSP(curinfo))
+    u8_log(LOG_WARN,"CURINFO","0x%lx %d",
+           curinfo,FD_CONS_REFCOUNT((fd_cons)curinfo));
+  else u8_log(LOG_WARN,"CURINFO","%q",curinfo);
+  if (FD_CONSP(newinfo))
+    u8_log(LOG_WARN,"NEWINFO","0x%lx %d",
+           newinfo,FD_CONS_REFCOUNT((fd_cons)newinfo));
+  else u8_log(LOG_WARN,"NEWINFO","%q",newinfo);
+#endif
+
   if (curinfo==newinfo) return;
   if ((FD_TRUEP(newinfo))&&(FD_TABLEP(curinfo))) return;
   if (FD_SLOTMAPP(curinfo)) {
