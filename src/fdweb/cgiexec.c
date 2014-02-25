@@ -342,7 +342,8 @@ static void convert_cookie_arg(fd_slotmap c)
 	else if (isascii) slotid=fd_parse(buf);
 	else {
 	  u8_string s=u8_valid_copy(buf);
-	  slotid=fd_parse(s);}
+	  slotid=fd_parse(s);
+          u8_free(s);}
 	if (slotid==bad_cookie)
 	  write[-1]='=';
 	else {write=buf; isascii=1;}
@@ -448,9 +449,10 @@ static void add_remote_info(fdtype cgidata)
     fd_init_string(NULL,remote_info.u8_outptr-remote_info.u8_outbuf,
                    remote_info.u8_outbuf);
   fd_store(cgidata,remote_info_symbol,remote_info_string);
+  fd_decref(remote_user); fd_decref(remote_ident); fd_decref(remote_host);
+  fd_decref(remote_addr); fd_decref(remote_agent);
   fd_decref(remote_info_string);
 }
-
 
 /* Generating headers */
 
