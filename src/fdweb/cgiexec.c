@@ -444,7 +444,9 @@ static void add_remote_info(fdtype cgidata)
 	    ((FD_STRINGP(remote_host)) ? ((u8_string)"/") : ((u8_string)"")),
 	    ((FD_STRINGP(remote_addr)) ? (FD_STRDATA(remote_addr)) : ((u8_string)"noaddr")),
 	    ((FD_STRINGP(remote_agent)) ? (FD_STRDATA(remote_agent)) : ((u8_string)"noagent")));
-  remote_info_string=fd_init_string(NULL,remote_info.u8_outptr-remote_info.u8_outbuf,remote_info.u8_outbuf);
+  remote_info_string=
+    fd_init_string(NULL,remote_info.u8_outptr-remote_info.u8_outbuf,
+                   remote_info.u8_outbuf);
   fd_store(cgidata,remote_info_symbol,remote_info_string);
   fd_decref(remote_info_string);
 }
