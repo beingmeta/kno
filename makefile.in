@@ -225,7 +225,9 @@ update: buildmode
 standard:
 	make testbin exe cmodules etc @TAGS@
 debugging:
-	make XCFLAGS="@debugcflags@" XLDFLAGS="@debugldflags@" XLIBS="@debuglibs@" \
+	make XCFLAGS="@debugcflags@ $(XCFLAGS)"    \
+	     XLDFLAGS="@debugldflags@ $(XLDFLAGS)" \
+	     XLIBS="@debuglibs@ $(XLIBS)"          \
 		testbin exe cmodules etc @TAGS@
 optimizing:
 	make XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
