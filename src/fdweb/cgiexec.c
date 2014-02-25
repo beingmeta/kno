@@ -434,10 +434,10 @@ static void add_remote_info(fdtype cgidata)
   fdtype remote_host=fd_get(cgidata,remote_host_symbol,FD_VOID);
   fdtype remote_addr=fd_get(cgidata,remote_addr_symbol,FD_VOID);
   fdtype remote_agent=fd_get(cgidata,remote_agent_symbol,FD_VOID);
-  fdtype remote_info_string=FD_VOID;
-  struct U8_OUTPUT remote_info;
-  U8_INIT_OUTPUT(&remote_info,128);
-  u8_printf(&remote_info,"%s%s%s@%s%s%s<%s",
+  fdtype remote_string=FD_VOID;
+  struct U8_OUTPUT remote;
+  U8_INIT_OUTPUT(&remote,128);
+  u8_printf(&remote,"%s%s%s@%s%s%s<%s",
 	    ((FD_STRINGP(remote_ident)) ? (FD_STRDATA(remote_ident)) : ((u8_string)"")),
 	    ((FD_STRINGP(remote_ident)) ? ((u8_string)"|") : ((u8_string)"")),
 	    ((FD_STRINGP(remote_user)) ? (FD_STRDATA(remote_user)) : ((u8_string)"nobody")),
@@ -445,13 +445,13 @@ static void add_remote_info(fdtype cgidata)
 	    ((FD_STRINGP(remote_host)) ? ((u8_string)"/") : ((u8_string)"")),
 	    ((FD_STRINGP(remote_addr)) ? (FD_STRDATA(remote_addr)) : ((u8_string)"noaddr")),
 	    ((FD_STRINGP(remote_agent)) ? (FD_STRDATA(remote_agent)) : ((u8_string)"noagent")));
-  remote_info_string=
-    fd_init_string(NULL,remote_info.u8_outptr-remote_info.u8_outbuf,
-                   remote_info.u8_outbuf);
-  fd_store(cgidata,remote_info_symbol,remote_info_string);
+  remote_string=
+    fd_init_string(NULL,remote.u8_outptr-remote.u8_outbuf,
+                   remote.u8_outbuf);
+  fd_store(cgidata,remote_info_symbol,remote_string);
   fd_decref(remote_user); fd_decref(remote_ident); fd_decref(remote_host);
   fd_decref(remote_addr); fd_decref(remote_agent);
-  fd_decref(remote_info_string);
+  fd_decref(remote_string);
 }
 
 /* Generating headers */
