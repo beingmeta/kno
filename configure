@@ -8194,7 +8194,7 @@ _ACEOF
 
 fi
 
-  debuglibs="${debuglibs} -ltcmalloc_debug"
+#  debuglibs="${debuglibs} -ltcmalloc_debug"
   memtest_prefix=gp_
   heaptest_prefix=gp_
 elif test $with_tcmalloc = "debug"; then
@@ -8346,7 +8346,7 @@ _ACEOF
 
 fi
 
-  debuglibs="${debuglibs} -ltcmalloc_debug"
+#  debuglibs="${debuglibs} -ltcmalloc_debug"
   memtest_prefix=gp_
   heaptest_prefix=gp_
 elif test $with_perftools = "debug"; then

@@ -781,7 +781,7 @@ dnl   Google perftools
 AC_ARG_WITH(tcmalloc,--with[out]-tcmalloc Use the Google malloc library,,with_tcmalloc="no")
 if test $with_tcmalloc = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
-  debuglibs="${debuglibs} -ltcmalloc_debug"
+#  debuglibs="${debuglibs} -ltcmalloc_debug"
   memtest_prefix=gp_
   heaptest_prefix=gp_
 elif test $with_tcmalloc = "debug"; then
@@ -794,7 +794,7 @@ AC_ARG_WITH(perftools,--with[out]-google Use the Google perftools,,with_perftool
 if test $with_perftools = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)
-  debuglibs="${debuglibs} -ltcmalloc_debug"
+#  debuglibs="${debuglibs} -ltcmalloc_debug"
   memtest_prefix=gp_
   heaptest_prefix=gp_
 elif test $with_perftools = "debug"; then
