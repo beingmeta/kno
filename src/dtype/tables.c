@@ -1175,6 +1175,34 @@ FD_EXPORT fdtype fd_hashtable_get_nolock
 FD_EXPORT fdtype fd_hashtable_get_noref
   (struct FD_HASHTABLE *ht,fdtype key,fdtype dflt)
 {
+  struct FD_KEYVAL *result; int unlock=0;
+  KEY_CHECK(key,ht); FD_CHECK_TYPE_RETDTYPE(ht,fd_hashtable_type);
+  if (ht->n_keys == 0) return dflt;
+  if (ht->uselock) { fd_read_lock_struct(ht); unlock=1; }
+  if (ht->n_keys == 0) {
+    if (unlock) fd_rw_unlock_struct(ht);
+    return dflt;}
+  else result=fd_hashvec_get(key,ht->slots,ht->n_slots);
+  if (result) {
+    fdtype rv=result->value;
+    if (FD_VOIDP(rv)) {
+      if (unlock) fd_rw_unlock_struct(ht);
+      return dflt;}
+    else if (FD_ACHOICEP(rv)) {
+      rv=result->value=fd_simplify_choice(rv);
+      if (unlock) fd_rw_unlock_struct(ht);
+      return rv;}
+    else {
+      if (unlock) fd_rw_unlock_struct(ht);
+      return rv;}}
+  else {
+    if (unlock) fd_rw_unlock_struct(ht);
+    return dflt;}
+}
+
+FD_EXPORT fdtype fd_hashtable_get_nolockref
+  (struct FD_HASHTABLE *ht,fdtype key,fdtype dflt)
+{
   struct FD_KEYVAL *result;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RETDTYPE(ht,fd_hashtable_type);
   if (ht->n_keys == 0) return dflt;

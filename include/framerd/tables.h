@@ -426,6 +426,8 @@ FD_EXPORT fdtype fd_hashtable_get_nolock
    (struct FD_HASHTABLE *ht,fdtype key,fdtype dflt);
 FD_EXPORT fdtype fd_hashtable_get_noref
    (struct FD_HASHTABLE *ht,fdtype key,fdtype dflt);
+FD_EXPORT fdtype fd_hashtable_get_nolockref
+   (struct FD_HASHTABLE *ht,fdtype key,fdtype dflt);
 FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value);
 FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value);
 FD_EXPORT int fd_hashtable_drop(fd_hashtable ht,fdtype key,fdtype value);
