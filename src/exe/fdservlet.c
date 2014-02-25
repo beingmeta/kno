@@ -623,7 +623,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   U8_INIT_OUTPUT(&(consed->out),8192);
   u8_set_nodelay(sock,1);
   consed->cgidata=FD_VOID;
-  u8_log(LOG_NOTICE,"webclient/open","Created web client (0x%lx) %s",
+  u8_log(LOG_INFO,"webclient/open","Created web client (0x%lx) %s",
 	 consed,
 	 ((consed->idstring==NULL)?((u8_string)""):(consed->idstring)));
   return (u8_client) consed;
@@ -1208,7 +1208,7 @@ static int webservefn(u8_client ucl)
 static int close_webclient(u8_client ucl)
 {
   fd_webconn client=(fd_webconn)ucl;
-  u8_log(LOG_NOTICE,"webclient/close","Closing web client %s (0x%lx)",
+  u8_log(LOG_INFO,"webclient/close","Closing web client %s (0x%lx)",
 	 ucl->idstring,ucl);
   fd_decref(client->cgidata); client->cgidata=FD_VOID;
   fd_dtsclose(&(client->in),2);
@@ -1222,7 +1222,7 @@ static int reuse_webclient(u8_client ucl)
   fdtype cgidata=client->cgidata;
   int refcount=((FD_CONSP(cgidata))?
 		(FD_CONS_REFCOUNT((fd_cons)cgidata)):(0));
-  u8_log(LOG_NOTICE,"webclient/reuse",
+  u8_log(LOG_INFO,"webclient/reuse",
 	 "Reusing web client %s (0x%lx) refs(cgidata)=%d",
 	 ucl->idstring,ucl,refcount);
   fd_decref(cgidata); client->cgidata=FD_VOID;
