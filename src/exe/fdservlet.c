@@ -769,6 +769,7 @@ static int webservefn(u8_client ucl)
 	       start_load[0],start_load[1],start_load[2]);
       else if (FD_STRINGP(uri))
 	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s (q=%s)",FD_STRDATA(uri));
+      fd_decref(remote);
       fd_decref(referer);
       fd_decref(uri);}
     /* This is what we'll execute, be it a procedure or FDXML */
