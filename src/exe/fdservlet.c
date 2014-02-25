@@ -619,12 +619,13 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   /* We could do access control here. */
   fd_webconn consed=(fd_webconn)
     u8_client_init(NULL,sizeof(FD_WEBCONN),addr,len,sock,srv);
-  u8_log(LOG_NOTICE,"webclient/open","Created web client %s (0x%lx)",
-	 consed->idstring,consed);
   fd_init_dtype_stream(&(consed->in),sock,4096);
   U8_INIT_OUTPUT(&(consed->out),8192);
   u8_set_nodelay(sock,1);
   consed->cgidata=FD_VOID;
+  u8_log(LOG_NOTICE,"webclient/open","Created web client (0x%lx) %s",
+	 consed,
+	 ((consed->idstring==NULL)?((u8_string)""):(consed->idstring)));
   return (u8_client) consed;
 }
 
@@ -753,22 +754,21 @@ static int webservefn(u8_client ucl)
 	  (FD_STRINGP(referer)) &&
 	  (FD_STRINGP(remote)))
 	u8_log(LOG_NOTICE,
-	       "REQUEST","Handling request for %s from %s by %s, load=%f/%f/%f, reqptr=0x%lx",
+	       "REQUEST","Handling request for %s from %s by %s, load=%f/%f/%f",
 	       FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote),
-	       start_load[0],start_load[1],start_load[2],cgidata);
+	       start_load[0],start_load[1],start_load[2]);
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
 	u8_log(LOG_NOTICE,
-	       "REQUEST","Handling request for %s by %s, load=%f/%f/%f, reqptr=0x%lx",
+	       "REQUEST","Handling request for %s by %s, load=%f/%f/%f",
 	       FD_STRDATA(uri),FD_STRDATA(remote),
-	       start_load[0],start_load[1],start_load[2],cgidata);
+	       start_load[0],start_load[1],start_load[2]);
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
 	u8_log(LOG_NOTICE,
-	       "REQUEST","Handling request for %s from %s, load=%f/%f/%f, reqptr=0x%lx",
+	       "REQUEST","Handling request for %s from %s, load=%f/%f/%f",
 	       FD_STRDATA(uri),FD_STRDATA(referer),
-	       start_load[0],start_load[1],start_load[2],cgidata);
+	       start_load[0],start_load[1],start_load[2]);
       else if (FD_STRINGP(uri))
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s (q=%s), reqdata=0x%lx",
-	       FD_STRDATA(uri),cgidata);
+	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s (q=%s)",FD_STRDATA(uri));
       fd_decref(referer);
       fd_decref(uri);}
     /* This is what we'll execute, be it a procedure or FDXML */
