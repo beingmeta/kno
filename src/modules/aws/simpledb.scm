@@ -170,8 +170,7 @@
 	 (result (get (get (xmlget xml 'getattributesresponse)
 			   'getattributesresult)
 		      'attribute)))
-    ;; (message "xml=" xml)
-    ;; (message "result=" result)
+    (debug%watch result xml)
     (if key
 	(if raw
 	    (get (pick result 'name key) 'value)
@@ -262,12 +261,15 @@
 	  (add! cache slotid toadd)
 	  (sdb/addvalues domain item slotid toadd))))))
 
-(defambda (sdb/drop! item slotid values (domain default-domain))
+(defambda (sdb/drop! item slotid (values #f) (domain default-domain))
   "Removes values from an attribute of an item, updating a local cache"
   (do-choices item
     (let ((cache (sdb/cached item domain)))
       (do-choices slotid
-	(let ((todrop (intersection (get cache slotid) values)))
+	(let ((todrop (if (and (bound? values)
+			       (or (fail? values) values))
+			  (intersection (get cache slotid) values)
+			  (get cache slotid))))
 	  (drop! cache slotid todrop)
 	  (sdb/dropvalues domain item slotid todrop))))))
 
