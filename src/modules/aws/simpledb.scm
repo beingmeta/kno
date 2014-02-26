@@ -9,6 +9,8 @@
 (module-export! '{sdb/fromlisp sdb/tolisp})
 (module-export! '{sdb/put sdb/fetch sdb/addvalues sdb/dropvalues})
 (module-export! '{sdb/get sdb/add! sdb/drop!})
+(module-export! '{sdb/domains sdb/domains/new
+		  sdb/domain/info sdb/domain/drop!})
 
 (use-module '{aws fdweb texttools logger fdweb varconfig jsonout rulesets})
 
@@ -26,6 +28,13 @@
        (if (not (pair? p)) (frame-create #f)
 	   (if (table? (car p)) (car p)
 	       (frame-create #f))))))
+
+(define (just-result xml)
+  (if (and (pair? xml) (pair? (cdr xml))
+	   (string-starts-with? (car xml) #((spaces*) "<?"))
+	   (null? (cdr (cdr xml))))
+      (cadr xml)
+      xml))
 
 ;;; Simple DB stuff
 
@@ -208,6 +217,22 @@
 	(%debug "Doing DeleteAttributes on " ptable)
 	(sdb/op "DeleteAttributes" ptable)))))
 
+
+(define (sdb/domain/info name)
+  (let* ((result (just-result (sdb/opxml "DomainMetadata" "DomainName" name)))
+	 (core (tryif (and (slotmap? result)
+			   (test result 'domainmetadataresult))
+		 (get result 'domainmetadataresult))))
+    (tryif (exists? core)
+      `#[domain ,name
+	 timestamp ,(gmtimestamp (string->lisp (get core 'timestamp)))
+	 itemcount ,(string->lisp (get core 'itemcount))
+	 itemnamesize ,(string->lisp (get core 'ITEMNAMESSIZEBYTES))
+	 attribcount ,(string->lisp (get core 'ATTRIBUTENAMECOUNT))
+	 attribsize  ,(string->lisp (get core 'ATTRIBUTENAMESSIZEBYTES))
+	 valuecount ,(string->lisp (get core 'ATTRIBUTEVALUECOUNT))
+	 valuesize ,(string->lisp (get core 'ATTRIBUTEVALUESSIZEBYTES))])))
+
 ;;; Using an item cache
 
 (define sdb-cache (make-hashtable))
@@ -245,6 +270,17 @@
 	(let ((todrop (intersection (get cache slotid) values)))
 	  (drop! cache slotid todrop)
 	  (sdb/dropvalues domain item slotid todrop))))))
+
+;;;; Operations on domains
+
+(define (sdb/domains)
+  (get (get (xmlget (sdb/opxml "ListDomains") 'listdomainsresponse)
+	    'listdomainsresult)
+       'domainname))
+(define (sdb/domains/new name)
+  (just-result (sdb/opxml "CreateDomain" "DomainName" name)))
+(define (sdb/domains/drop! name)
+  (just-result (sdb/opxml "DeleteDomain" "DomainName" name)))
 
 ;;;; CONFIG stuff
 
