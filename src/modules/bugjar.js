@@ -1,6 +1,6 @@
 function expandTBODY(evt){
     evt=evt||event;
-    var target=evt.target|evt.relatedTarget;
+    var target=evt.target||evt.relatedTarget;
     var scan=target; while (scan) {
 	if (scan.tagName==="TBODY") break;
 	else if ((scan.tagName==="A")||(scan.onclick))
