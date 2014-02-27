@@ -149,8 +149,9 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
-  else if (FD_ABORTP(choices))
-    return choices;
+  else if (FD_ABORTP(choices)) {
+    fd_push_error_context("trychoices_handler",expr);
+    return choices;}
   else if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type); 
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type); 
@@ -607,8 +608,14 @@ static fdtype try_handler(fdtype expr,fd_lispenv env)
     int ipe_state=fd_ipeval_status();
     fd_decref(value);
     value=fd_eval(clause,env);
-    if (FD_VOIDP(value))
-      return fd_err(fd_VoidArgument,"try_handler",NULL,clause);
+    if (FD_ABORTP(value)) {
+      fd_push_error_context("TRY",clause);
+      fd_push_error_context("TRY",expr);
+      return value;}
+    else if (FD_VOIDP(value)) {
+      fd_seterr(fd_VoidArgument,"try_handler",NULL,clause);
+      fd_push_error_context("TRY",expr);
+      return FD_ERROR_VALUE;}
     else if (!(FD_EMPTY_CHOICEP(value))) return value;
     else if (fd_ipeval_status()!=ipe_state) return value;}
   return value;
@@ -625,6 +632,9 @@ static fdtype ifexists_handler(fdtype expr,fd_lispenv env)
   else if (!(FD_EMPTY_LISTP(FD_CDR(FD_CDR(expr)))))
     return fd_err(fd_SyntaxError,"ifexists_handler",NULL,expr);
   else value=fd_eval(value_expr,env);
+  if (FD_ABORTP(value)) {
+    fd_push_error_context("ifexists_handler",expr);
+    return value;}
   if (FD_EMPTY_CHOICEP(value)) return FD_VOID;
   else return value;
 }

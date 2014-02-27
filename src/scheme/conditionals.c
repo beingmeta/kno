@@ -65,15 +65,23 @@ static fdtype tryif_handler(fdtype expr,fd_lispenv env)
   if ((FD_VOIDP(test_expr)) || (FD_VOIDP(first_consequent)))
     return fd_err(fd_TooFewExpressions,"TRYIF",NULL,expr);
   test_result=fd_eval(test_expr,env);
-  if (FD_ABORTP(test_result)) return test_result;
+  if (FD_ABORTP(test_result)) {
+    fd_push_error_context("tryif_handler",expr);
+    return test_result;}
   else if (FD_FALSEP(test_result))
     return FD_EMPTY_CHOICE; 
   else {
     fdtype value=FD_VOID; fd_decref(test_result);
     {FD_DOBODY(clause,expr,2) {
         fd_decref(value); value=fd_eval(clause,env);
-        if (FD_VOIDP(value))
-          return fd_err(fd_VoidArgument,"try_handler",NULL,clause);
+        if (FD_ABORTP(value)) {
+          fd_push_error_context("TRYIF",clause);
+          fd_push_error_context("TRYIF",expr);
+          return value;}
+        else if (FD_VOIDP(value)) {
+          fd_seterr(fd_VoidArgument,"try_handler",NULL,clause);
+          fd_push_error_context("TRY",expr);
+          return FD_ERROR_VALUE;}
         else if (!(FD_EMPTY_CHOICEP(value)))
           return value;}}
     return value;}
