@@ -5,11 +5,16 @@
 
 (module-export! '{ses/call})
 
-(use-module '{aws fdweb texttools logger email})
+(use-module '{aws fdweb texttools logger email varconfig})
 (define %used_modules '{aws})
 
 (define %loglevel %notify!)
 ;;(set!  %loglevel %debug%)
+
+(define ses-key #f)
+(define ses-secret #f)
+(varconfig! ses:key ses-key)
+(varconfig! ses:secret ses-secret)
 
 (define ses-endpoint "https://email.us-east-1.amazonaws.com/")
 
@@ -27,12 +32,12 @@
 	  (string-subst (string-subst (get date 'rfc822) "+0000" "GMT")
 			" 1 Jan" " 01 Jan"))
 	 (datestring (get date 'rfc822))
-	 (secret (getopt opts 'aws:secret (config 'AWS:SECRET)))
+	 (secret (getopt opts 'aws:secret (or ses-secret secretawskey)))
 	 (sig (hmac-sha256 secret datestring))
 	 (authstring
 	  (debug%watch
 	      (stringout "AWS3-HTTPS AWSAccessKeyId="
-		(getopt opts 'aws:key (config 'AWS:KEY)) ", "
+		(getopt opts 'aws:key (or ses-key awskey)) ", "
 		"Signature=" (packet->base64 sig) ", "
 		"Algorithm=HmacSHA256")))
 	 (query #[])

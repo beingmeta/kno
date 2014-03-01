@@ -6,7 +6,7 @@
 ;;; Accessing Amazon Simple DB
 
 (module-export! '{sdb/signature sdb/uri sdb/op sdb/opxml})
-(module-export! '{sdb/fromlisp sdb/tolisp})
+(module-export! '{lisp->sdb sdb->lisp})
 (module-export! '{sdb/put sdb/fetch sdb/addvalues sdb/dropvalues})
 (module-export! '{sdb/get sdb/add! sdb/drop!})
 (module-export! '{sdb/domains sdb/domains/new
@@ -15,6 +15,11 @@
 (use-module '{aws fdweb texttools logger fdweb varconfig jsonout rulesets})
 
 (define %loglevel %notice!)
+
+(define-init sdb-key #f)
+(define-init sdb-secret #f)
+(varconfig! simpledb:key sdb-key)
+(varconfig! simpledb:secret sdb-secret)
 
 (define-init use-json #t)
 (varconfig! sdb:json use-json)
@@ -48,10 +53,10 @@
 		(doseq (key (lexsorted (getkeys ptable) downcase))
 		  (printout key
 			    (do-choices (v (get ptable key)) (printout v)))))))
-    (hmac-sha1 secretawskey desc)))
+    (hmac-sha1 (or simpledb-secret secretawskey) desc)))
 (define (sdb/signature0 action timestamp)
   (let ((desc (stringout action (get timestamp 'iso))))
-    (hmac-sha1 secretawskey desc)))
+    (hmac-sha1 (or simpledb-secret secretawskey) desc)))
 
 (define (sdb/uri . params)
   (let ((timestamp (gmtimestamp 'seconds))
@@ -65,7 +70,7 @@
       (unless (test ptable (car p))
 	(store! ptable (car p) (cadr p))))
     (store! ptable "Timestamp" (get timestamp 'iso))
-    (store! ptable "AWSAccessKeyId" awskey)
+    (store! ptable "AWSAccessKeyId" (or simpledb-key awskey))
     (stringout simpledb-base-uri
       (do-choices (key (getkeys ptable) i)
 	(printout (if (> i 0) "&")
@@ -98,26 +103,48 @@
 (ruleconfig! sdb:tolisp tolisp-conversions)
 (ruleconfig! sdb:fromlisp fromlisp-conversions)
 
-(define (sdb/tolisp string (attrib #f))
+(define (sdb->lisp string (attrib #f))
   (if (has-prefix string "!")
       (let ((tcode (and (> (length string) 1) (elt string 1))))
 	(cond ((has-prefix string "!@") (parse-arg (slice string 1)))
 	      ((has-prefix string "!!") (slice string 1))
 	      ((has-prefix string "!d") (timestamp (slice string 2)))
 	      ((has-prefix string "!U") (getuuid (slice string 2)))
-	      ((has-prefix string "!B") #f)
-	      ((has-prefix string "!b") #t)
+	      ((has-prefix string "!B") #t)
+	      ((has-prefix string "!b") #f)
+	      ((has-prefix string "!E") (fail))
 	      ((has-prefix string "!i") (string->number (slice string 2)))
 	      ((has-prefix string "!I") (- (string->number (slice string 2))))
 	      ((has-prefix string "!:") (parse-arg (slice string 2)))
-	      ((has-prefix string "!$") (jsonparse (slice string 2)))
+	      ((has-prefix string "!#") (elts (jsonparse (slice string 2))))
+	      ((has-prefix string "!C") (elts (jsonparse (slice string 2))))
+	      ((has-prefix string "!$")
+	       (let ((v (jsonparse (slice string 2))))
+		 (if (vector? v) (map sdb->lisp v)
+		     (if (slotmap? v) (sdb->lisp/table v)
+			 v))))
 	      (else (try (tryseq (method tolisp-conversions)
 			   ((cdr method) string attrib))
 			 (string->lisp (slice string 1))))))
       string))
+(define sdb/tolisp sdb->lisp)
 
-(define (sdb/fromlisp object (padlen 10) (json use-json))
-  (cond ((oid? object)
+(define (sdb->lisp/table v)
+  (let ((result #[]) (keyval #f))
+    (do-choices (key (getkeys v))
+      (set! keyval (get v key))
+      (if (vector? keyval)
+	  (add! result (sdb->lisp key) (sdb->lisp (elts keyval)))
+	  (add! result (sdb->lisp key) (sdb->lisp keyval))))
+    result))
+
+(defambda (lisp->sdb object (json use-json) (padlen 0))
+  (cond ((fail? object) "!E")
+	((ambiguous? object)
+	 (if json
+	     (stringout "!C" (jsonout (choice->vector object)))
+	     (stringout "!:" (write object))))
+	((oid? object)
 	 (string-append "!" (oid->string object)))
 	((string? object)
 	 (if (has-prefix object "!")
@@ -131,13 +158,25 @@
 	   (stringout "!" (if (>= object 0) "i" "I")
 		      (dotimes (i (- padlen (length irep))) (printout "0"))
 		      irep)))
-	((eq? object #t) "!b")
-	((not object) "!B")
+	((eq? object #t) "!B")
+	((not object) "!b")
 	((symbol? object) (stringout "!:" (symbol->string object)))
 	(else (try (tryseq (method fromlisp-conversions)
 		     ((cdr method) object))
-		   (tryif json (stringout "!$" (jsonout object)))
-		   (stringout "!:" object)))))
+		   (if (or (vector? object) (slotmap? object))
+		       (if json
+			   (stringout "!$" (jsonout (lisp->sdb/table object)))
+			   (stringout "!:" (write object)))
+		       (if json
+			   (stringout "!$" (jsonout object))
+			   (stringout "!:" (write object))))))))
+(define sdb/fromlisp lisp->sdb)
+
+(define (lisp->sdb/table v)
+  (let ((result #[]))
+    (do-choices (key (getkeys v))
+      (store! result (sdb->lisp key) (sdb->lisp (get v key))))
+    result))
 
 ;;; PUT/GET/ETC
 ;;; We convert items and attributes using FramerD's parse-arg/unparse-arg
@@ -150,15 +189,15 @@
 	((or (not (pair? kv)) (not (pair? (cdr kv))))
 	 (sdb/op "PutAttributes"
 		 "DomainName" domain
-		 "ItemName" (sdb/fromlisp item)
+		 "ItemName" (lisp->sdb item)
 		 ptable))
       (store! ptable (stringout "Attribute." i ".Name")
 	      (unparse-arg (car kv)))
       (store! ptable (stringout "Attribute." i ".Value")
-	      (sdb/fromlisp (cadr kv))))))
+	      (lisp->sdb (cadr kv))))))
 
 (define (sdb/fetch domain item (key #f) (raw #f))
-  (let* ((key (and key (sdb/fromlisp key)))
+  (let* ((key (and key (lisp->sdb key)))
 	 (xml (if key
 		  (sdb/opxml "GetAttributes"
 			     "DomainName" domain
@@ -174,14 +213,14 @@
     (if key
 	(if raw
 	    (get (pick result 'name key) 'value)
-	    (sdb/tolisp (get (pick result 'name key) 'value)))
+	    (sdb->lisp (get (pick result 'name key) 'value)))
 	(let ((table (frame-create #f)))
 	  (do-choices (r result)
 	    (if raw
 		(add! table (get r 'name) (get r 'value))
 		(add! table
-		      (sdb/tolisp (get r 'name))
-		      (sdb/tolisp (get r 'value) (get r 'name)))))
+		      (sdb->lisp (get r 'name))
+		      (sdb->lisp (get r 'value) (get r 'name)))))
 	  table))))
 
 (defambda (sdb/addvalues domain item slotids values)
@@ -190,8 +229,8 @@
       (let ((ptable `#["DomainName" ,domain
 		       "ItemName" ,(unparse-arg item)])
 	    (count 0))
-	(do-choices (key (sdb/fromlisp slotids))
-	  (do-choices (value (sdb/fromlisp values))
+	(do-choices (key (lisp->sdb slotids))
+	  (do-choices (value (lisp->sdb values))
 	    (store! ptable (stringout "Attribute." count ".Name")
 		    key)
 	    (store! ptable (stringout "Attribute." count ".Value")
@@ -204,10 +243,10 @@
   (when (and (exists? slotids) (exists? values))
     (do-choices item
       (let ((ptable `#["DomainName" ,domain
-		       "ItemName" ,(sdb/fromlisp item)])
+		       "ItemName" ,(lisp->sdb item)])
 	    (count 0))
-	(do-choices (key (sdb/fromlisp slotids))
-	  (do-choices (value (sdb/fromlisp values))
+	(do-choices (key (lisp->sdb slotids))
+	  (do-choices (value (lisp->sdb values))
 	    (store! ptable (stringout "Attribute." count ".Name")
 		    key)
 	    (store! ptable (stringout "Attribute." count ".Value")
