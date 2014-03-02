@@ -12,6 +12,11 @@
 (define-init %loglevel %info!)
 ;;(define %loglevel %debug!)
 
+(define sqs-key #f)
+(define sqs-secret #f)
+(varconfig! sqs:key sqs-key)
+(varconfig! sqs:secret sqs-secret)
+
 (define sqs-endpoint "https://sqs.us-east-1.amazonaws.com/")
 (varconfig! sqs:endpoint sqs-endpoint)
 
@@ -25,6 +30,8 @@
   `#("<Attribute><Name>" ,name "</Name><Value>"
      (label ,label (not> "</Value>") ,parser)
      "</Value></Attribute>"))
+
+(define queue-opts (make-hashtable))
 
 (define sqs-fields
   {(sqs-field-pattern "Body")
@@ -69,35 +76,45 @@
       (irritant result |Bad SQS response| SQS/GET
 		"Received from " (get result 'effective-url))))
 
+(define (get-queue-opts (queue #f) (opts #[]) (qopts))
+  (default! qopts (try (tryif queue (get queue-opts queue)) #[]))
+  (frame-create #f
+    '%queue (tryif queue queue)
+    'aws:key (getopt opts 'aws:key
+		     (getopts qopts (or sqs-key awskey)))
+    'aws:secret (getopt opts 'aws:secret
+			(getopts qopts (or sqs-secret secretawskey)))))
+
 (define (sqs/get queue (opts #[])
 		 (args `#["Action" "ReceiveMessage" "AttributeName.1" "all"]))
   (when (getopt opts 'wait)
     (store! args "WaitTimeSeconds" (getopt opts 'wait)))
   (when (getopt opts 'reserve)
     (store! args "VisibilityTimeout" (getopt opts 'reserve)))
-  (handle-sqs-response (aws4/get (frame-create #f '%queue queue) queue args)))
+  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args)))
 
 (define (sqs/send queue msg (opts #[]) (args `#["Action" "SendMessage"]))
   (store! args "MessageBody" msg)
   (when (getopt opts 'delay) (store! args "DelaySeconds" (getopt opts 'delay)))
-  (handle-sqs-response (aws4/get (frame-create #f '%queue queue) queue args)))
+  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args)))
 
-(define (sqs/list (prefix #f) (args #["Action" "ListQueues"]))
+(define (sqs/list (prefix #f) (args #["Action" "ListQueues"]) (opts #[]))
   (when prefix (set! args `#["Action" "ListQueues" "QueueNamePrefix" ,prefix]))
-  (handle-sqs-response (aws4/get (frame-create #f) sqs-endpoint args)))
+  (handle-sqs-response (aws4/get (get-queue-opts #f opts) sqs-endpoint args)))
 
 (define (sqs/info queue (args #["Action" "GetQueueAttributes" "AttributeName.1" "All"]))
-  (handle-sqs-response (aws4/get (frame-create #f) queue args)
+  (handle-sqs-response (aws4/get (get-queue-opts) queue args)
 		       (qc sqs-info-fields)))
 
 (define (sqs/delete message)
   (handle-sqs-response
-   (aws4/get (frame-create #f '%queue (get message 'queue)) (get message 'queue)
+   (aws4/get (get-queue-opts (get message 'queue))
+	     (get message 'queue)
 	     `#["Action" "DeleteMessage" "ReceiptHandle" ,(get message 'handle)])))
 
 (define (sqs/extend message secs)
   (handle-sqs-response
-   (aws4/get (frame-create #f '%queue (get message 'queue))
+   (aws4/get (get-queue-opts (get message 'queue))
 	     (get message 'queue)
 	     `#["Action" "ChangeMessageVisibility"
 		"ReceiptHandle" ,(get message 'handle)
@@ -116,10 +133,4 @@
 	   (sqs/extend `#[handle ,(getopt entry 'handle)
 			  queue ,(getopt entry 'queue)]
 		       (or secs (getopt entry 'extension default-extension)))))))
-
-
-
-
-
-
 
