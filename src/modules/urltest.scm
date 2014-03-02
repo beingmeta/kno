@@ -8,13 +8,23 @@
 (use-module '{twilio aws/ses})
 (define %used_modules '{varconfig})
 
+(define %loglevel %warn%)
+
 (module-export! 'urltest)
 
-(define-init workdir (config 'workdir (tempdir)))
+(define-init workdir #f)
 (varconfig! workdir workdir)
+
+(define (default-cookiejar)
+  (unless workdir (set! workdir (tempdir)))
+  (set! cookiejar (mkpath workdir "cookies"))
+  cookiejar)
 
 (define cookiejar #f)
 (varconfig! urltest:cookiejar cookiejar)
+
+(define verbose #f)
+(varconfig! urltest:verbose verbose)
 
 (define email #f)
 (varconfig! urltest:email email)
@@ -33,7 +43,7 @@
 	  (let ((copy (deep-copy opts)))
 	    (unless (test opts 'cookiejar)
 	      (store! copy 'cookiejar
-		      (or cookiejar (mkpath workdir "cookies"))))
+		      (or cookiejar (default-cookiejar))))
 	    (unless (test opts 'maxtime)
 	      (store! copy 'maxtime maxtime))
 	    copy))
@@ -128,7 +138,9 @@
 (define (urltest testid url (opts (getopts)) (testfn #f))
   (let ((result (urltest-inner testid url opts testfn)))
     (if result
-	(lognotice "Successful test " testid " @ " url)
+	(if verbose
+	    (logwarn "Successful test " testid " @ " url)
+	    (lognotice "Successful test " testid " @ " url))
 	(logwarn "Failed test " testid " @ " url))
     result))
 
