@@ -29,7 +29,7 @@
 (define email #f)
 (varconfig! urltest:email email)
 (define sms #f)
-(varconfig! urltest:sms email)
+(varconfig! urltest:sms sms)
 (define email-from "admin@beingmeta.com")
 (varconfig! urltest:from email-from)
 
