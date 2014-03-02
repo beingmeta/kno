@@ -75,6 +75,7 @@
 		   (subseq (scripturl+ "" query) 1)
 		   "application/x-www-form-urlencoded"
 		   handle)))
+      (debug%watch "SES/RESPONSE" response)
       response)))
 
 
