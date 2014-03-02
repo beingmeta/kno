@@ -81,9 +81,10 @@
   (frame-create #f
     '%queue (tryif queue queue)
     'aws:key (getopt opts 'aws:key
-		     (getopts qopts (or sqs-key awskey)))
+		     (getopt qopts 'aws:key (or sqs-key awskey)))
     'aws:secret (getopt opts 'aws:secret
-			(getopts qopts (or sqs-secret secretawskey)))))
+			(getopt qopts 'aws:secret
+				(or sqs-secret secretawskey)))))
 
 (define (sqs/get queue (opts #[])
 		 (args `#["Action" "ReceiveMessage" "AttributeName.1" "all"]))
