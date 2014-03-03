@@ -292,44 +292,44 @@ heaptabletests: @heaptest_prefix@heaptabletests
 heapdbtests: @heaptest_prefix@heapdbtests
 
 vg_heaptests:
-	@echo "*** Running alltests with tcmalloc memory debugging"
+	@echo "*** Running alltests with valgrind heap debugging"
 	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 alltests
-	@echo "*** Finished running alltests with tcmalloc memory debugging"
+	@echo "*** Finished running alltests with valgrind heap debugging"
 
 vg_heapdtypetests:
-	@echo "*** Running tests on data/eval layers with tcmalloc memory debugging"
+	@echo "*** Running tests on data/eval layers with valgrind heap debugging"
 	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 dtypetests
-	@echo "*** Finished running tests on data/eval layers with tcmalloc memory debugging"
+	@echo "*** Finished running tests on data/eval layers with valgrind heap debugging"
 
 vg_heaptabletests:
-	@echo "*** Running tests on table/index layers with tcmalloc memory debugging"
+	@echo "*** Running tests on table/index layers with valgrind heap debugging"
 	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 tabletests
-	@echo "*** Finished running tests on table/index layers with tcmalloc memory debugging"
+	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
 
 vg_heapdbtests:
-	@echo "*** Running tests on database layers with tcmalloc memory debugging"
+	@echo "*** Running tests on database layers with valgrind heap debugging"
 	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
-	@echo "*** Finished running tests on database layers with tcmalloc memory debugging"
+	@echo "*** Finished running tests on database layers with valgrind heap debugging"
 
 gp_heaptests:
-	@echo "*** Running alltests with tcmalloc memory debugging"
+	@echo "*** Running alltests with gperftools memory debugging"
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 alltests
-	@echo "*** Finished running alltests with tcmalloc memory debugging"
+	@echo "*** Finished running alltests with gperftools memory debugging"
 
 gp_heapdtypetests:
-	@echo "*** Running tests on data/eval layers with tcmalloc memory debugging"
+	@echo "*** Running tests on data/eval layers with gperftools memory debugging"
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 dtypetests
-	@echo "*** Finished running tests on data/eval layers with tcmalloc memory debugging"
+	@echo "*** Finished running tests on data/eval layers with gperftools memory debugging"
 
 gp_heaptabletests:
-	@echo "*** Running tests on table/index layers with tcmalloc memory debugging"
+	@echo "*** Running tests on table/index layers with gperftools memory debugging"
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 tabletests
-	@echo "*** Finished running tests on table/index layers with tcmalloc memory debugging"
+	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
 
 gp_heapdbtests:
-	@echo "*** Running tests on database layers with tcmalloc memory debugging"
+	@echo "*** Running tests on database layers with gperftools memory debugging"
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
-	@echo "*** Finished running tests on database layers with tcmalloc memory debugging"
+	@echo "*** Finished running tests on database layers with gperftools memory debugging"
 
 randomtests:
 	@echo "*** Running alltests with a really random seed"
