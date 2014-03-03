@@ -200,6 +200,7 @@ static fdtype statinterval_get(fdtype var,void *data)
 }
 
 #define STATUS_LINE1 "[%*t][%f] %d/%d/%d/%d busy/waiting/clients/threads\n"
+#define STATUS_LINE2 "[%*t][%f] %d/%d/%d requests/responses/errors\n"
 #define STATUS_LINEXN "[%*t][%f] %s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)\n"
 #define STATUS_LINEX "%s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)"
 
@@ -271,7 +272,7 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 	     stats->xcount);}
 }
 
-static void report_status()
+static void update_status()
 {
   FILE *logto=statlog;
   struct U8_SERVER_STATS stats;
@@ -308,6 +309,7 @@ static void report_status()
 	errno=0;}}
     logto=statlog;}
   else logto=stderr;
+
   u8_fprintf(logto,STATUS_LINE1,elapsed,
 	     fdwebserver.n_busy,fdwebserver.n_queued,
 	     fdwebserver.n_clients,fdwebserver.n_threads);
@@ -316,17 +318,35 @@ static void report_status()
 	   fdwebserver.n_busy,fdwebserver.n_queued,
 	   fdwebserver.n_clients,fdwebserver.n_threads);
 
+  {
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+    u8_list_clients(&out,&fdwebserver);
+    fprintf(logto,"# Connections:\n%s",out.u8_outbuf);
+    u8_free(out.u8_outbuf);}
+
+  /*
+  fprintf(logto,"# Current metrics:\n");
   u8_server_curstats(&fdwebserver,&stats);
   output_stats(&stats,logto,"cur");
 
+  fprintf(logto,"# Live metrics:\n");
   u8_server_livestats(&fdwebserver,&stats);
   output_stats(&stats,logto,"live");
 
+  fprintf(logto,"# Aggregate metrics:\n");
   u8_server_statistics(&fdwebserver,&stats);
   output_stats(&stats,logto,"aggregate");
 
+  */
   if (statlog) fflush(statlog);
 }
+
+static int statlog_server_update(struct U8_SERVER *server){
+  if ((status_interval>=0)&&(u8_microtime()>(last_status+status_interval)))
+    update_status();}
+static int statlog_client_update(struct U8_CLIENT *client){
+  if ((status_interval>=0)&&(u8_microtime()>(last_status+status_interval)))
+    update_status();}
 
 static void setup_statlog()
 {
@@ -345,7 +365,7 @@ static void cleanup_pid_file()
     char timebuf[64]; double elapsed=u8_elapsed_time();
     u8_now(&xt); U8_INIT_FIXED_OUTPUT(&out,sizeof(timebuf),timebuf);
     u8_xtime_to_iso8601(&out,&xt);
-    fprintf(exitfile,"%d@%s(%f\n",getpid(),timebuf,elapsed);
+    fprintf(exitfile,"%d@%s(%f)\n",getpid(),timebuf,elapsed);
     fclose(exitfile);}
   u8_free(exit_filename);
 }
@@ -647,8 +667,6 @@ static int webservefn(u8_client ucl)
   size_t http_len=0, head_len=0, content_len=0;
   fd_dtype_stream stream=&(client->in);
   u8_output outstream=&(client->out);
-  if ((status_interval>=0)&&(u8_microtime()>(last_status+status_interval)))
-    report_status();
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
   int return_code=0, buffered=0, recovered=1;
   /* Reset the streams */
@@ -1657,7 +1675,6 @@ static int launch_servlet(u8_string socket_spec)
 {
   write_pid_file();
   setup_statlog();
-  
   u8_log(LOG_DEBUG,ServletStartup,"Updating preloads");
   /* Initial handling of preloads */
   if (update_preloads()<0) {
@@ -1679,6 +1696,9 @@ static int launch_servlet(u8_string socket_spec)
      U8_SERVER_MAX_QUEUE,max_queue,
      U8_SERVER_MAX_CLIENTS,max_conn,
      U8_SERVER_END_INIT); 
+
+  fdwebserver.xserverfn=statlog_server_update;
+  fdwebserver.xclientfn=statlog_client_update;
 
   fd_register_config("U8LOGLISTEN",
 		     _("Whether to have libu8 log each monitored address"),
