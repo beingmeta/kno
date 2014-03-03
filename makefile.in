@@ -222,7 +222,7 @@ ALL=testbin exe cmodules @TAGS@
 update: buildmode
 	@echo Building `cat buildmode` configuration
 	@make `cat buildmode`
-standard:
+normal:
 	make testbin exe cmodules etc @TAGS@
 debugging:
 	make XCFLAGS="@debugcflags@ $(XCFLAGS)"    \
@@ -242,8 +242,8 @@ debug:
 	@if test $(BUILDMODE) != "debugging"; then echo debugging > buildmode; fi
 	@echo Building `cat buildmode` configuration
 	@make `cat buildmode`
-default:
-	@if test $(BUILDMODE) != "standard"; then echo standard > buildmode; fi
+standard:
+	@if test $(BUILDMODE) != "normal"; then echo normal > buildmode; fi
 	@echo Building `cat buildmode` configuration
 	@make `cat buildmode`
 nitpick:
@@ -255,7 +255,7 @@ fast:
 	@echo Building `cat buildmode` configuration
 	@make `cat buildmode`
 buildmode:
-	@echo standard > buildmode
+	@echo normal > buildmode
 showbuildmode showmode showbuild: buildmode
 	@cat buildmode
 
