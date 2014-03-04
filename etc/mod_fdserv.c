@@ -1118,6 +1118,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   /* Executable, socket name, NULL, LOG_FILE env, NULL */
   const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
   struct stat stat_data; int rv, n_configs=0, retval=0;
+  const char *lockname=apr_pstrcat(p,sockname,".launch",NULL);
   
   server_rec *server=r->server;
   struct FDSERV_SERVER_CONFIG *sconfig=
@@ -1137,6 +1138,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   int servlet_wait=dconfig->servlet_spawn;
   int log_sync=dconfig->log_sync;
   uid_t uid; gid_t gid;
+
   if (log_sync<0) log_sync=sconfig->log_sync;
   if (log_sync<0) log_sync=DEFAULT_LOG_SYNC;
 
@@ -1150,38 +1152,53 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     servlet_wait=DEFAULT_SERVLET_WAIT;
   else {}
   
+  apr_uid_current(&uid,&gid,p);
+
+  if (servlet_wait) {
+    apr_file_t *lockfile;
+    apr_status_t lock_status=
+      apr_file_open(&lockfile,lockname,
+		    APR_FOPEN_WRITE|APR_FOPEN_CREATE|APR_FOPEN_EXCL,
+		    0666,p);
+    if (lock_status!=OK) {
+      char errbuf[512];
+      ap_log_error(APLOG_MARK,APLOG_CRIT,lock_status,server,
+		   "Failed to open lock file %s with status %d (%s) for %s uid=%d gid=%d",
+		   lockname,lock_status,apr_strerror(lock_status,errbuf,512),
+		   r->unparsed_uri,uid,gid);
+      s->spawning=apr_time_now();}
+    else apr_file_close(lockfile);}
+
   if (servlet_wait==0) {
-    ap_log_error(APLOG_MARK,APLOG_CRIT,500,server,
-		 "Waiting for external socket %s for %s, uid=%d, gid=%d"
-		 "Waiting for external socket",
+    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
+		 "Waiting on external socket %s for %s, uid=%d, gid=%d",
 		 sockname,r->unparsed_uri,uid,gid);
     return 0;}
   
   if (log_file==NULL) log_file=get_log_file(r,sockname);
     
-  apr_uid_current(&uid,&gid,p);
-    
   if (s->spawning) {
-    ap_log_error(APLOG_MARK,APLOG_CRIT,500,server,
-		 "Waiting for spawned socket %s using %s for %s, uid=%d, gid=%d",
-		 sockname,exename,r->unparsed_uri,uid,gid);
+    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
+		 "Waiting on spawned socket %s for %s, uid=%d, gid=%d",
+		 sockname,r->unparsed_uri,uid,gid);
     return spawn_wait(s,r);}
   else {
-    ap_log_error(APLOG_MARK,APLOG_CRIT,500,server,
-		 "Spawning socket %s using %s for %s, uid=%d, gid=%d",
-		 sockname,exename,r->unparsed_uri,uid,gid);
+    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,server,
+		 "Spawning %s %s for %s, uid=%d, gid=%d",
+		 exename,sockname,r->unparsed_uri,uid,gid);
     s->spawning=apr_time_now();
     s->spawned=0;}
     
   if (!(file_writablep(p,server,sockname))) {
-    ap_log_error(APLOG_MARK,APLOG_CRIT,500,server,
+    ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
 		 "Can't write socket file '%s' (%s) for %s, uid=%d, gid=%d",
 		 sockname,exename,r->unparsed_uri,uid,gid);
     return -1;}
   if ((log_file) && (!(file_writablep(p,server,log_file)))) {
-    ap_log_error(APLOG_MARK,APLOG_CRIT,500,server,
+    ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
 		 "Logfile %s isn't writable for processing %s",
 		 log_file,r->unparsed_uri);
+    apr_file_remove(lockname,p);
     return -1;}
     
   if (log_file)
@@ -1191,7 +1208,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   else ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,server,
 		    "Spawning fdservlet %s @%s for %s, uid=%d, gid=%d",
 		    exename,sockname,r->unparsed_uri,uid,gid);
-    
+
   *write_argv++=(char *)exename;
   *write_argv++=(char *)sockname;
     
@@ -1324,8 +1341,9 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
       ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,server,
 		   "Removed leftover socket file %s",sockname);
     else {
-      ap_log_error(APLOG_MARK,APLOG_CRIT,500,server,
+      ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
 		   "Could not remove socket file %s",sockname);
+      apr_file_remove(lockname,p);
       return -1;}}
     
   errno=0;
@@ -1352,11 +1370,12 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     int sleep_count=1;
     sleep(1); while ((rv=stat(sockname,&stat_data)) < 0) {
       if (sleep_count>servlet_wait) {
-	ap_log_rerror(APLOG_MARK,APLOG_EMERG,500,r,
+	ap_log_rerror(APLOG_MARK,APLOG_EMERG,apr_get_os_error(),r,
 		      "Failed to spawn socket file %s (i=%d/wait=%d) (%d:%s)",
 		      sockname,sleep_count,servlet_wait,
 		      errno,strerror(errno));
 	errno=0;
+	apr_file_remove(lockname,p);
 	return -1;}
       if (((sleep_count+1)%4)==0) {
 	ap_log_rerror
@@ -1367,6 +1386,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
       else sleep(1);
       sleep_count++;}
     s->spawned=apr_time_now();
+    apr_file_remove(lockname,p);
     s->spawning=0;}
 
   if (rv>=0) return 1;
@@ -1386,7 +1406,7 @@ static int spawn_wait(fdservlet s,request_rec *r)
   int sleep_count=1;
   sleep(1); while ((rv=stat(sockname,&stat_data)) < 0) {
       if (sleep_count>servlet_wait) {
-	ap_log_rerror(APLOG_MARK,APLOG_EMERG,500,r,
+	ap_log_rerror(APLOG_MARK,APLOG_EMERG,apr_get_os_error(),r,
 		      "Failed to spawn socket file %s (i=%d/wait=%d) (%d:%s)",
 		      sockname,sleep_count,servlet_wait,
 		      errno,strerror(errno));
@@ -1588,7 +1608,7 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
     const char *sockname=s->sockname;
     int unix_sock=socket(PF_LOCAL,SOCK_STREAM,0), connval=-1, rv=-1, intval=1;
     if (unix_sock<0) {
-      ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
+      ap_log_rerror(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r,
 		    "Couldn't open socket for %s (errno=%d:%s)",
 		    sockname,errno,strerror(errno));
       return NULL;}
@@ -1607,14 +1627,13 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 			SUN_LEN(&(s->endpoint.path)));}}
     if (connval<0) {
       ap_log_rerror
-	(APLOG_MARK,APLOG_CRIT,500,r,
-	 "Couldn't connect socket to %s (errno=%d:%s), spawning",
-	 sockname,errno,strerror(errno));
+	(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r,
+	 "Couldn't connect socket @ %s, spawning fdservlet",sockname);
       errno=0;
       rv=spawn_fdservlet(s,r,fdserv_pool);
       if (rv<0) {
 	ap_log_rerror
-	  (APLOG_MARK,APLOG_EMERG,500,r,"Couldn't spawn fdservlet @ %s",sockname);
+	  (APLOG_MARK,APLOG_EMERG,apr_get_os_error(),r,"Couldn't spawn fdservlet @ %s",sockname);
 	close(unix_sock);
 	return NULL;}
       else if (rv)
@@ -1630,7 +1649,7 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 			SUN_LEN(&(s->endpoint.path)));}}
     if (connval<0) {
       ap_log_rerror
-	(APLOG_MARK,APLOG_CRIT,500,r,"Couldn't connect to %s (errno=%d:%s)",
+	(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r,"Couldn't connect to %s (errno=%d:%s)",
 	 sockname,errno,strerror(errno));
       errno=0;
       close(unix_sock);
@@ -2196,7 +2215,7 @@ static int scan_fgets(char *buf,int n_bytes,void *stream)
   else {
     /*
       ap_log_error
-      (APLOG_MARK,APLOG_CRIT,500,r->server,"Bad fdsocket passed");
+      (APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r->server,"Bad fdsocket passed");
     */
     return -1;}
 }
@@ -2342,7 +2361,7 @@ static int sock_write(request_rec *r,
     return bytes_written;}
   else {
     ap_log_rerror
-      (APLOG_MARK,APLOG_CRIT,500,r,"Bad fdsocket passed");
+      (APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r,"Bad fdsocket passed");
     return -1;}
 }
 
@@ -2462,7 +2481,7 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
     else return bytes_read;}
   else {
     ap_log_error
-      (APLOG_MARK,APLOG_CRIT,500,r->server,"Bad fdsocket passed");
+      (APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r->server,"Bad fdsocket passed");
     return -1;}
 }
 
