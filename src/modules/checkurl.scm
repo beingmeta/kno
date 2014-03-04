@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2014 beingmeta, inc. All rights reserved
 
-(in-module 'urltest)
+(in-module 'checkurl)
 
 (use-module '{fdweb xhtml reflection texttools})
 (use-module '{varconfig stringfmts logger})
@@ -10,7 +10,7 @@
 
 (define %loglevel %warn%)
 
-(module-export! 'urltest)
+(module-export! 'checkurl)
 
 (define-init workdir #f)
 (varconfig! workdir workdir)
@@ -21,17 +21,17 @@
   cookiejar)
 
 (define cookiejar #f)
-(varconfig! urltest:cookiejar cookiejar)
+(varconfig! checkurl:cookiejar cookiejar)
 
 (define verbose #f)
-(varconfig! urltest:verbose verbose)
+(varconfig! checkurl:verbose verbose)
 
 (define email #f)
-(varconfig! urltest:email email)
+(varconfig! checkurl:email email)
 (define sms #f)
-(varconfig! urltest:sms sms)
+(varconfig! checkurl:sms sms)
 (define email-from "admin@beingmeta.com")
-(varconfig! urltest:from email-from)
+(varconfig! checkurl:from email-from)
 
 (define maxtime 60)
 (varconfig! testurl:maxtime maxtime)
@@ -100,7 +100,7 @@
 	(set! url nexturl)))
     req))
 
-(define (urltest-inner testid url (opts #f) (testfn #f))
+(define (checkurl-inner testid url (opts #f) (testfn #f))
   (set! opts (getopts opts))
   (let ((req (onerror (if (and (table? testfn) (test testfn '{location response}))
 			  (urlget url opts)
@@ -135,8 +135,8 @@
 	  ((and (test req 'response) (>= 399 (get req 'response) 200)) #t)
 	  (else (report-trouble testid url req testfn)))))
 
-(define (urltest testid url (opts (getopts)) (testfn #f))
-  (let ((result (urltest-inner testid url opts testfn)))
+(define (checkurl testid url (opts (getopts)) (testfn #f))
+  (let ((result (checkurl-inner testid url opts testfn)))
     (if result
 	(if verbose
 	    (logwarn "Successful test " testid " @ " url)
