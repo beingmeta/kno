@@ -109,6 +109,14 @@ typedef unsigned int INTPOINTER;
 
 #define FDSERV_MAGIC_TYPE "application/x-httpd-fdserv"
 
+#ifndef DEFAULT_KEEP_SOCKS
+#define DEFAULT_KEEP_SOCKS 2
+#endif
+
+#ifndef DEFAULT_MAX_SOCKS
+#define DEFAULT_MAX_SOCKS 16
+#endif
+
 /* This is where cross-server consing for the entire module happens. */
 static apr_pool_t *fdserv_pool;
 
@@ -137,7 +145,8 @@ typedef struct FDSERVLET {
   apr_thread_mutex_t *lock; /* Lock to get/add sockets */
   /* How many sockets are currently kept open and live in the sockets array. */
   int n_socks;
-  int max_socks; /* How many sockets to keep open */
+  int max_socks; /* Total number of connections to keep open */
+  int keep_socks; /* How many sockets to keep open */
   int n_busy; /* How many sockets are currently busy */
   int n_ephemeral;
   struct FDSOCKET *sockets;} FDSERVLET;
@@ -163,7 +172,7 @@ static apr_thread_mutex_t *servlets_lock;
 
 static int use_dtblock=USEDTBLOCK;
 
-char *version_num="2.3.1";
+char *version_num="2.4.1";
 char version_info[256];
 
 static void init_version_info()
@@ -301,6 +310,7 @@ struct FDSERV_SERVER_CONFIG {
   const char *socket_spec;
   const char *log_prefix;
   const char *log_file;
+  int max_socks;
   int keep_socks;
   int servlet_spawn;
   int servlet_wait;
@@ -319,6 +329,7 @@ struct FDSERV_DIR_CONFIG {
   const char *socket_spec;
   const char *log_prefix;
   const char *log_file;
+  int max_socks;
   int keep_socks;
   int servlet_spawn;
   int servlet_wait;
@@ -383,7 +394,8 @@ static void *create_server_config(apr_pool_t *p,server_rec *s)
   config->log_prefix=NULL;
   config->log_file=NULL;
   config->log_sync=-1;
-  config->keep_socks=2;
+  config->max_socks=-1;
+  config->keep_socks=-1;
   config->servlet_spawn=-1;
   config->servlet_wait=-1;
   config->use_dtblock=-1;
@@ -402,6 +414,10 @@ static void *merge_server_config(apr_pool_t *p,void *base,void *new)
 
   if (child->uid <= 0) config->uid=parent->uid; else config->uid=child->uid;
   if (child->gid <= 0) config->gid=parent->gid; else config->gid=child->gid;
+
+  if (child->max_socks <= 0)
+    config->max_socks=parent->max_socks;
+  else config->max_socks=child->max_socks;
 
   if (child->keep_socks <= 0)
     config->keep_socks=parent->keep_socks;
@@ -508,6 +524,7 @@ static void *create_dir_config(apr_pool_t *p,char *dir)
   config->socket_spec=NULL;
   config->log_prefix=NULL;
   config->log_file=NULL;
+  config->max_socks=-1;
   config->keep_socks=-1;
   config->servlet_spawn=-1;
   config->servlet_wait=-1;
@@ -524,6 +541,10 @@ static void *merge_dir_config(apr_pool_t *p,void *base,void *new)
 
   memset(config,0,sizeof(struct FDSERV_DIR_CONFIG));
 
+  if (child->max_socks <= 0)
+    config->max_socks=parent->max_socks;
+  else config->max_socks=child->max_socks;
+  
   if (child->keep_socks < 0)
     config->keep_socks=parent->keep_socks;
   else config->keep_socks=child->keep_socks;
@@ -668,6 +689,20 @@ static const char *servlet_keep(cmd_parms *parms,void *mconfig,const char *arg)
     struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
     int n_connections=atoi(arg);
     sconfig->keep_socks=n_connections;
+    return NULL;}
+}
+
+static const char *servlet_maxconn(cmd_parms *parms,void *mconfig,const char *arg)
+{
+  if (parms->path) {
+    struct FDSERV_DIR_CONFIG *dconfig=mconfig;
+    int n_connections=atoi(arg);
+    dconfig->max_socks=n_connections;
+    return NULL;}
+  else {
+    struct FDSERV_SERVER_CONFIG *sconfig=mconfig;
+    int n_connections=atoi(arg);
+    sconfig->max_socks=n_connections;
     return NULL;}
 }
 
@@ -1381,26 +1416,26 @@ static fdservlet get_servlet(const char *sockname)
 }
 
 /* TODO: This should also handle growing down */
-static fdservlet servlet_set_max_socks(fdservlet s,int max_socks)
+static fdservlet servlet_set_keep_socks(fdservlet s,int keep_socks)
 {
-  if (s->max_socks>=max_socks) return s;
+  if (s->keep_socks>=keep_socks) return s;
   else {
     apr_thread_mutex_lock(s->lock);
-    if (s->max_socks>=max_socks) {
+    if (s->keep_socks>=keep_socks) {
       apr_thread_mutex_unlock(s->lock);
       return s;}
     else {
       struct FDSOCKET *fresh=
-	apr_pcalloc(fdserv_pool,sizeof(struct FDSOCKET)*max_socks);
+	apr_pcalloc(fdserv_pool,sizeof(struct FDSOCKET)*keep_socks);
       ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s->server,
 		   "Growing socket pool for %s from %d/%d to %d/%d",
-		   s->sockname,s->n_socks,s->max_socks,s->n_socks,max_socks);
+		   s->sockname,s->n_socks,s->keep_socks,s->n_socks,keep_socks);
       if (s->n_socks) {
 	memcpy(fresh,s->sockets,(sizeof(struct FDSOCKET))*(s->n_socks));}
       if (fresh) {
-	memset(fresh+((sizeof(struct FDSOCKET))*(s->max_socks)),0,
-	       ((sizeof(struct FDSOCKET))*(max_socks-s->n_socks)));
-	s->sockets=fresh; s->max_socks=max_socks;
+	memset(fresh+((sizeof(struct FDSOCKET))*(s->keep_socks)),0,
+	       ((sizeof(struct FDSOCKET))*(keep_socks-s->n_socks)));
+	s->sockets=fresh; s->keep_socks=keep_socks;
 	apr_thread_mutex_unlock(s->lock);
 	return s;}
       else {
@@ -1411,7 +1446,7 @@ static fdservlet servlet_set_max_socks(fdservlet s,int max_socks)
 }
 
 /* Adds a servlet for sockname, setup for */
-static fdservlet add_servlet(struct request_rec *r,const char *sockname,int max_socks)
+static fdservlet add_servlet(struct request_rec *r,const char *sockname,int keep_socks,int max_socks)
 {
   int i=0; int lim=n_servlets;
   apr_thread_mutex_lock(servlets_lock);
@@ -1420,8 +1455,9 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,int max_
     /* If the number of servlets gets big, this could be made into a
        binary search in a custom table. */
     if (strcmp(sockname,servlets[i].sockname)==0) {
-      if (servlets[i].max_socks<max_socks)
-	servlet_set_max_socks(&(servlets[i]),max_socks);
+      if (servlets[i].keep_socks<keep_socks)
+	servlet_set_keep_socks(&(servlets[i]),keep_socks);
+      servlets[i].max_socks=max_socks;
       apr_thread_mutex_unlock(servlets_lock);
       return &(servlets[i]);}
     else i++;}
@@ -1498,9 +1534,10 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,int max_
 	   "Got info for port %d at %s, addr=%s, port=%d",
 	   portno,hostname,rname,addr->port);}}
     apr_thread_mutex_create(&(servlet->lock),APR_THREAD_MUTEX_DEFAULT,fdserv_pool);
-    if (max_socks>=0) {
-      servlet_set_max_socks(servlet,max_socks);}
-    else {servlet->sockets=NULL; servlet->max_socks=-1;}
+    servlet->max_socks=max_socks;
+    if (keep_socks>=0) {
+      servlet_set_keep_socks(servlet,keep_socks);}
+    else {servlet->sockets=NULL; servlet->keep_socks=-1;}
     servlet->n_socks=0;
     servlet->n_busy=0;
     servlet->n_ephemeral=0;
@@ -1700,17 +1737,24 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
       sock=servlet_open(s,&(sockets[closed]),r); s->n_busy++;
       apr_thread_mutex_unlock(s->lock);
       return sock;}
-    if (i>=s->max_socks) {
-      fdsocket sock=servlet_open(s,NULL,r);
-      s->n_ephemeral++; s->n_busy++;
-      /* Can't allocate any more keepers, so just open a regular socket. */
+    if (i>=s->keep_socks) {
+      if ((s->max_socks>0)&&(s->n_busy>=s->max_socks)) {
+	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s->server,
+		     "Reached max sockets on %s busy=%d>%d=max",
+		     s->sockname,s->n_busy,s->max_socks);
+	apr_thread_mutex_unlock(s->lock);
+	return NULL;}
+      else {
+	fdsocket sock=servlet_open(s,NULL,r);
+	s->n_ephemeral++; s->n_busy++;
+	/* Can't allocate any more keepers, so just open a regular socket. */
 #if DEBUG_SOCKETS
-      ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-		    "Using ephemeral (#%d) %s because all %d cached sockets are busy",
-		    s->n_ephemeral,fdsocketinfo(sock,infobuf),s->max_socks);
+	ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
+		      "Using ephemeral (#%d) %s because all %d cached sockets are busy",
+		      s->n_ephemeral,fdsocketinfo(sock,infobuf),s->keep_socks);
 #endif
-      apr_thread_mutex_unlock(s->lock);
-      return sock;}
+	apr_thread_mutex_unlock(s->lock);
+	return sock;}}
     else {
       /* i should be the same as n_socks, so we try to open that socket. */
       struct FDSOCKET *sockets=s->sockets;
@@ -1839,22 +1883,29 @@ static fdservlet request_servlet(request_rec *r)
     ap_get_module_config(r->server->module_config,&fdserv_module);
   struct FDSERV_DIR_CONFIG *dconfig=
     ap_get_module_config(r->per_dir_config,&fdserv_module);
-  fdservlet servlet; int keep_socks=sconfig->keep_socks;
+  fdservlet servlet;
+  int keep_socks=sconfig->keep_socks, max_socks=sconfig->max_socks;
   ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
 		"Resolving %s using servlet %s",
 		r->unparsed_uri,sockname);
   servlet=get_servlet(sockname);
   if ((dconfig)&&(dconfig->keep_socks>keep_socks)) keep_socks=dconfig->keep_socks;
+  if ((dconfig)&&(dconfig->max_socks>max_socks)) max_socks=dconfig->max_socks;
+  /* Get valid values by using defaults.  Note that zero is a valid
+     value for keep socks (no socket cache), but not for max socks.  */
+  if (keep_socks<0) keep_socks=DEFAULT_KEEP_SOCKS;
+  if (max_socks<=0) keep_socks=DEFAULT_MAX_SOCKS;
   if (servlet) {
 #if DEBUG_FDSERV
     ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		  "Found existing servlet @#%d for use with %s",
 		  servlet->servlet_index,servlet->sockname);
 #endif
-    servlet_set_max_socks(servlet,keep_socks);
+    servlet_set_keep_socks(servlet,keep_socks);
+    servlet->max_socks=max_socks;
     return servlet;}
   else {
-    servlet=add_servlet(r,sockname,keep_socks);
+    servlet=add_servlet(r,sockname,keep_socks,max_socks);
     ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
 		  "Allocated new servlet entry @ #%d for use with %s",
 		  servlet->servlet_index,servlet->sockname);
@@ -1901,7 +1952,7 @@ static apr_status_t close_servlets(void *data)
 /* In Apache 2.0, BUFFs seem to be replaced by buckets in brigades,
     but that seems a little overhead heavy for the output buffers used
     here, which are just used to write slotmaps to servlets.  So a
-    simple reimplementation happens. here.  */
+    simple reimplementation is done here.  */
 typedef struct BUFF {
   apr_pool_t *p; unsigned char *buf, *ptr, *lim;} BUFF;
 static int ap_bneeds(BUFF *b,size_t n)
@@ -2560,7 +2611,9 @@ static int fdserv_handler(request_rec *r)
 		  (long int)bytes_written,fdsocketinfo(sock,infobuf),
 		  r->unparsed_uri,r->filename);
     servlet_close_socket(servlet,sock);
-    return HTTP_INTERNAL_SERVER_ERROR;}
+    if (bytes_written==0)
+      return HTTP_SERVICE_UNAVAILABLE;
+    else return HTTP_INTERNAL_SERVER_ERROR;}
   else {
     bytes_written=sock_write(r,reqdata->buf,reqdata->ptr-reqdata->buf,sock);
     if (bytes_written<(reqdata->ptr-reqdata->buf)) {
@@ -2569,7 +2622,9 @@ static int fdserv_handler(request_rec *r)
 		    (long int)bytes_written,fdsocketinfo(sock,infobuf),
 		    r->unparsed_uri,r->filename);
       servlet_close_socket(servlet,sock);
-      return HTTP_INTERNAL_SERVER_ERROR;}
+      if (bytes_written==0)
+	return HTTP_SERVICE_UNAVAILABLE;
+      else return HTTP_INTERNAL_SERVER_ERROR;}
     else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		       "Wrote %ld bytes of request data to %s for %s (%s)",
 		       ((long int)(reqdata->ptr-reqdata->buf)),
