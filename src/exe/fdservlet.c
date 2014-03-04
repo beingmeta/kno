@@ -49,6 +49,7 @@
 #include "main.c"
 
 static u8_condition ServletStartup=_("FDServlet Startup");
+static u8_condition NoServers=_("No servers configured");
 #define Startup ServletStartup
 
 FD_EXPORT int fd_init_fddbserv(void);
@@ -199,8 +200,8 @@ static fdtype statinterval_get(fdtype var,void *data)
   else return FD_FIX2INT(status_interval);
 }
 
-#define STATUS_LINE1 "[%*t][%f] %d/%d/%d/%d busy/waiting/clients/threads\n"
-#define STATUS_LINE2 "[%*t][%f] %d/%d/%d requests/responses/errors\n"
+#define STATUS_LINE1 "#[%*t][%f] Current: %d/%d/%d/%d busy/waiting/clients/threads\n"
+#define STATUS_LINE2 "#[%*t][%f] Aggregate: %d/%d/%d connections/responses/errors\n"
 #define STATUS_LINEXN "[%*t][%f] %s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)\n"
 #define STATUS_LINEX "%s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)"
 
@@ -313,6 +314,9 @@ static void update_status()
   u8_fprintf(logto,STATUS_LINE1,elapsed,
 	     fdwebserver.n_busy,fdwebserver.n_queued,
 	     fdwebserver.n_clients,fdwebserver.n_threads);
+  u8_fprintf(logto,STATUS_LINE2,elapsed,
+	     fdwebserver.n_accepted,fdwebserver.n_trans,
+	     fdwebserver.n_errs);
   if (log_status>0)
     u8_log(log_status,"FDServlet",STATUS_LINE1,elapsed,
 	   fdwebserver.n_busy,fdwebserver.n_queued,
@@ -1634,6 +1638,12 @@ int main(int argc,char **argv)
       fd_config_assignment(argv[i++]);}
     else i++;
 
+  if ((strchr(socket_spec,'/'))&&
+      (u8_file_existsp(socket_spec))&&
+      (!((stealsockets)||(getenv("FD_STEALSOCKETS"))))) {
+    u8_log(LOG_CRIT,"Socket exists","Socket file %s already exists!",socket_spec);
+    exit(1);}
+
   fd_setapp(socket_spec,NULL);
 
   if (!(server_id)) {
@@ -1745,7 +1755,11 @@ static int launch_servlet(u8_string socket_spec)
 	 FRAMERD_REV,fd_n_pools,
 	 fd_n_primary_indices+fd_n_secondary_indices);
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2014, all rights reserved");
-  u8_server_loop(&fdwebserver);
+  if (fdwebserver.n_servers>0) u8_server_loop(&fdwebserver);
+  else {
+    u8_log(LOG_CRIT,NoServers,"No servers configured, exiting...");
+    exit(-1);
+    return -1;}
 
   u8_message("FDServlet, normal exit of u8_server_loop()");
   
