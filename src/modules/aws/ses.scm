@@ -3,7 +3,7 @@
 
 (in-module 'aws/ses)
 
-(module-export! '{ses/call})
+(module-export! '{ses/call ses/sendmail ses/send})
 
 (use-module '{aws fdweb texttools logger email varconfig})
 (define %used_modules '{aws})
@@ -16,15 +16,20 @@
 (varconfig! ses:key ses-key)
 (varconfig! ses:secret ses-secret)
 
+(define default-from #f)
+(varconfig! ses:from default-from)
+
 (define ses-endpoint "https://email.us-east-1.amazonaws.com/")
 
-(define (ses/call args (opts #[]))
-  (unless (and (test args 'from)
-	       (forall email/ok? (get args 'from)))
-    (error 'bademail "Bad FROM: " (reject (get args 'from) email/ok?)
-	   " in " args))
-  (unless (and (test args 'from)
-	       (forall email/ok? (get args 'dest)))
+(define (ses/call args (opts #[]) (from))
+  (default! from (try (get args 'from) (getopt opts 'from {})
+		      default-from))
+  (if from
+      (unless (forall email/ok? from)
+	(error 'bademail "Bad FROM origin: " (reject from email/ok?)
+	       " in " args))
+      (error 'bademail "No email origin (FROM) specified in: " args))
+  (unless (and (test args 'to) (forall email/ok? (get args 'to)))
     (error 'bademail "Bad TO: " (reject (get args 'to) email/ok?)
 	   " in " args))
   (let* ((date (gmtimestamp 'seconds))
@@ -48,7 +53,7 @@
 			   'verbose (getopt opts 'verbose #f))))
     (store! query "Action" (try (get args 'action) "SendEmail"))
     (store! query "Timestamp" (get date 'iso8601))
-    (store! query "Source" (get args 'from))
+    (store! query "Source" from)
     (when (exists? (get args 'returnpath))
       (store! query "ReturnPath" (get args 'returnpath)))
     (do-choices (dest (get args 'to) i)
@@ -83,9 +88,18 @@
       (debug%watch "SES/RESPONSE" response)
       response)))
 
+(define (ses/sendmail to text)
+  (if (string? to)
+      (ses/call `#[TO ,to
+		   SUBJECT ,(stringout "Message from " (config 'sessionid))
+		   TEXT ,text])
+      (ses/call (frame-create to
+		  'text text
+		  'subject
+		  (tryif (not (test to 'subject))
+		    (stringout "Message from " (config 'sessionid)))))))
 
-
-
-
-
+(define ses/send
+  (macro expr
+    `(,ses/sendmail ,(cadr expr) (,stringout ,@(cddr expr)))))
 
