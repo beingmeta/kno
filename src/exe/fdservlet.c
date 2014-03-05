@@ -66,7 +66,7 @@ FD_EXPORT int fd_init_fddbserv(void);
 static int async_mode=1;
 
 /* Logging declarations */
-static FILE *statlog=NULL;
+static FILE *statlog=NULL, *statusout=NULL;
 static double overtime=0;
 static int stealsockets=0;
 
@@ -121,7 +121,7 @@ static u8_condition fdservWriteError="FDServelt write error";
 #define DEFAULT_STATUS_INTERVAL 1000000
 #endif
 
-static u8_string statlogfile;
+static u8_string statlogfile, statfile;
 static long long last_status=0;
 static long status_interval=DEFAULT_STATUS_INTERVAL;
 
@@ -200,8 +200,13 @@ static fdtype statinterval_get(fdtype var,void *data)
   else return FD_FIX2INT(status_interval);
 }
 
-#define STATUS_LINE1 "#[%*t][%f] Current: %d/%d/%d/%d busy/waiting/clients/threads\n"
-#define STATUS_LINE2 "#[%*t][%f] Aggregate: %d/%d/%d connections/responses/errors\n"
+#define STATUS_LINE_AGGREGATE "#[%*t][%f] Aggregate %d/%d/%d connections/responses/errors\n"
+#define STATUS_LINE_TIMING "#[%*t] Response: %0.2fus, max=%ldus, run: %0.2fus, max=%ldus\n"
+#define STATUS_LINE_CURRENT "#[%*t] Currently: %d/%d/%d/%d busy/waiting/clients/threads\n"
+#define STATUS_SNAPSHOT \
+  "#[%*t][%f] %d/%d/%d/%d busy/waiting/clients/threads, response: %0.2fus, max=%ldus, run: %0.2fus, max=%ldus"
+#define STATUS_SNAPSHOT_LINE \
+  "#[%*t][%f] %d/%d/%d/%d busy/waiting/clients/threads, response: %0.2fus, max=%ldus, run: %0.2fus, max=%ldus\n"
 #define STATUS_LINEXN "[%*t][%f] %s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)\n"
 #define STATUS_LINEX "%s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)"
 
@@ -275,88 +280,73 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 
 static void update_status()
 {
-  FILE *logto=statlog;
+  FILE *mon=statusout, *log=statlog;
   struct U8_SERVER_STATS stats;
   double elapsed=u8_elapsed_time();
-  if ((!(logto))&&(statlogfile)) {
+  if (((!(mon))&&(statfile))||
+      ((!(log))&&(statlogfile))) {
     fd_lock_mutex(&log_lock);
-    if (statlog) {
-      logto=statlog; fd_unlock_mutex(&log_lock);}
-    else {
-      statlog=((short_status)?(u8_fopen_locked(statlogfile,"w")):
-	       (u8_fopen_locked(statlogfile,"a")));
-      if (statlog) {
-	u8_string tmp;
-	tmp=u8_mkstring("# Log open %*lt for %s\n",u8_sessionid());
-	fputs(tmp,statlog);
-	u8_free(tmp);
-	logto=statlog;}
-      fd_unlock_mutex(&log_lock);}}
-  if ((logto)&&(logto==statlog)&&(short_status)) {
-    int rv=fseek(statlog,0,SEEK_SET);
-    if (rv>=0) rv=ftruncate(fileno(statlog),0);
+    if (statusout) mon=statusout;
+    else mon=statusout=(u8_fopen_locked(statfile,"w"));
+    if (statlog) log=statlog;
+    else log=statlog=(u8_fopen_locked(statlogfile,"a"));
+    fd_unlock_mutex(&log_lock);}
+  if (mon) {
+    int fd=fileno(mon);
+    off_t rv=lseek(fd,0,SEEK_SET);
+    if (rv>=0) rv=ftruncate(fd,0);
     if (rv<0) {
       u8_log(LOG_WARN,"output_status","File truncate failed (%s:%d)",
 	     strerror(errno),errno);
       errno=0;}}
-  else if (logto) {}
-  else if (statlog) {
-    if (short_status) {
-      int rv=fseek(statlog,0,SEEK_SET);
-      if (rv>=0) rv=ftruncate(fileno(statlog),0);
-      if (rv<0) {
-	u8_log(LOG_WARN,"output_status","File truncate failed (%s:%d)",
-	       strerror(errno),errno);
-	errno=0;}}
-    logto=statlog;}
-  else logto=stderr;
 
-  u8_fprintf(logto,STATUS_LINE1,elapsed,
-	     fdwebserver.n_busy,fdwebserver.n_queued,
-	     fdwebserver.n_clients,fdwebserver.n_threads);
-  u8_fprintf(logto,STATUS_LINE2,elapsed,
-	     fdwebserver.n_accepted,fdwebserver.n_trans,
-	     fdwebserver.n_errs);
-  if (log_status>0)
-    u8_log(log_status,"FDServlet",STATUS_LINE1,elapsed,
-	   fdwebserver.n_busy,fdwebserver.n_queued,
-	   fdwebserver.n_clients,fdwebserver.n_threads);
-
-  {
-    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
-    u8_list_clients(&out,&fdwebserver);
-    fprintf(logto,"# Connections:\n%s",out.u8_outbuf);
-    u8_free(out.u8_outbuf);}
-
-  /*
-  fprintf(logto,"# Current metrics:\n");
-  u8_server_curstats(&fdwebserver,&stats);
-  output_stats(&stats,logto,"cur");
-
-  fprintf(logto,"# Live metrics:\n");
-  u8_server_livestats(&fdwebserver,&stats);
-  output_stats(&stats,logto,"live");
-
-  fprintf(logto,"# Aggregate metrics:\n");
   u8_server_statistics(&fdwebserver,&stats);
-  output_stats(&stats,logto,"aggregate");
+  
+  if (log_status>0)
+    u8_log(log_status,"FDServlet",STATUS_SNAPSHOT,elapsed,
+	   fdwebserver.n_busy,fdwebserver.n_queued,
+	   fdwebserver.n_clients,fdwebserver.n_threads,
+	   (((double)(stats.tsum))/((double)(stats.tsum))),stats.tmax,
+	   (((double)(stats.xsum))/((double)(stats.xsum))),stats.xmax);
+  if (statlog)
+    u8_fprintf(statlog,STATUS_SNAPSHOT_LINE,elapsed,
+	       fdwebserver.n_busy,fdwebserver.n_queued,
+	       fdwebserver.n_clients,fdwebserver.n_threads,
+	       (((double)(stats.tsum))/((double)(stats.tsum))),stats.tmax,
+	       (((double)(stats.xsum))/((double)(stats.xsum))),stats.xmax);
 
-  */
-  if (statlog) fflush(statlog);
+  if (mon) {
+    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+    u8_printf(&out,STATUS_LINE_AGGREGATE,elapsed,
+	      fdwebserver.n_accepted,fdwebserver.n_trans,fdwebserver.n_errs);
+    u8_printf(&out,STATUS_LINE_TIMING,
+	      (((double)(stats.tsum))/((double)(stats.tsum))),stats.tmax,
+	      (((double)(stats.xsum))/((double)(stats.xsum))),stats.xmax);
+    u8_printf(&out,STATUS_LINE_CURRENT,
+	      fdwebserver.n_busy,fdwebserver.n_queued,
+	      fdwebserver.n_clients,fdwebserver.n_threads);
+
+    u8_list_clients(&out,&fdwebserver);
+    fprintf(mon,"# Connections:\n%s",out.u8_outbuf);
+    u8_free(out.u8_outbuf);}
+  if (mon) fflush(mon);
+  if (log) fflush(log);
 }
 
 static int statlog_server_update(struct U8_SERVER *server){
   if ((status_interval>=0)&&(u8_microtime()>(last_status+status_interval)))
-    update_status();}
+    update_status();
+  return 0;}
 static int statlog_client_update(struct U8_CLIENT *client){
   if ((status_interval>=0)&&(u8_microtime()>(last_status+status_interval)))
-    update_status();}
+    update_status();
+  return 0;}
 
-static void setup_statlog()
+static void setup_status_file()
 {
-  if (statlogfile==NULL) {
-    u8_string statfile=fd_runbase_filename(".status");
-    statlogfile=statfile;}
+  if (statfile==NULL) {
+    u8_string filename=fd_runbase_filename(".status");
+    statfile=filename;}
 }
 
 static void cleanup_pid_file()
@@ -1684,7 +1674,7 @@ static u8_string get_socket_spec(u8_string spec)
 static int launch_servlet(u8_string socket_spec)
 {
   write_pid_file();
-  setup_statlog();
+  setup_status_file();
   u8_log(LOG_DEBUG,ServletStartup,"Updating preloads");
   /* Initial handling of preloads */
   if (update_preloads()<0) {
