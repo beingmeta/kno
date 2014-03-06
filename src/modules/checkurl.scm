@@ -47,7 +47,7 @@
 	    (unless (test opts 'maxtime)
 	      (store! copy 'maxtime maxtime))
 	    copy))
-      `#[cookiejar ,(or cookiejar (mkpath workdir "cookies"))
+      `#[cookiejar ,(or cookiejar (default-cookiejar))
 	 maxtime ,maxtime]))
 
 (define (report-trouble testid url req testfn)
