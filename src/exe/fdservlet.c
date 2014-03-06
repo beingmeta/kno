@@ -244,13 +244,13 @@ static fdtype statinterval_get(fdtype var,void *data)
 }
 
 #define STATUS_LINE_CURRENT \
-  "[%*t][%f] Currently: %d/%d/%d/%d busy/waiting/clients/threads\n"
+  "[%*t][%f] Currently: %d/%d/%d/%d busy/waiting/connections/threads\n"
 #define STATUS_LINE_AGGREGATE \
-  "[%*t] Aggregate %d/%d/%d connected/requested/errors\n"
+  "[%*t] Aggregate %d/%d/%d connected/requested/failed\n"
 #define STATUS_LINE_TIMING \
   "[%*t] Response: mean=%0.2fus, max=%ldus, run: mean=%0.2fus, max=%ldus\n"
 #define STATUS_LOG_SNAPSHOT \
-  "[%*t][%f] %d/%d/%d/%d busy/waiting/clients/threads, %d/%d/%d reqs/resps/errs, response: %0.2fus, max=%ldus, run: %0.2fus, max=%ldus"
+  "[%*t][%f] %d/%d/%d/%d busy/waiting/connections/threads, %d/%d/%d reqs/resps/errs, response: %0.2fus, max=%ldus, run: %0.2fus, max=%ldus"
 #define STATUSLOG_LINE "%*t\t%f\t%d\t%d\t%d\t%d\t%0.2f\t%0.2f\n"
 #define STATUS_LINEXN "[%*t][%f] %s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)\n"
 #define STATUS_LINEX "%s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)"
@@ -380,8 +380,14 @@ static void update_status()
     u8_printf(&out,STATUS_LINE_AGGREGATE,
 	      fdwebserver.n_accepted,fdwebserver.n_trans,fdwebserver.n_errs);
     u8_printf(&out,STATUS_LINE_TIMING,
-	      (((double)(stats.tsum))/((double)(stats.tsum))),stats.tmax,
-	      (((double)(stats.xsum))/((double)(stats.xsum))),stats.xmax);
+	      ((stats.tcount)?
+	       (((double)(stats.tsum))/((double)(stats.tcount))):
+	       (0.0)),
+	       stats.tmax,
+	      ((stats.xcount)?
+	       (((double)(stats.xsum))/((double)(stats.xcount))):
+	       (0.0)),
+	      stats.xmax);
     u8_list_clients(&out,&fdwebserver);
     len=out.u8_outptr-out.u8_outbuf;
     while ((delta=write(mon,out.u8_outbuf+written,len-written))>0)
