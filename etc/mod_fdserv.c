@@ -323,7 +323,7 @@ struct FDSERV_SERVER_CONFIG {
   int use_dtblock;
   int log_sync;
   /* We make these ints because apr_uid_t and even uid_t is sometimes
-     unsigned, leaving no way to signal an empty value.  Go figure. */
+     unsigned, leaving no way to signal an empty value.	 Go figure. */
   int uid; int gid;};
 
 struct FDSERV_DIR_CONFIG {
@@ -1227,7 +1227,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     while (*scan_config) {
       if (n_configs>MAX_CONFIGS) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		     "Stopped after %d configs!  Not passing FramerD server config %s",
+		     "Stopped after %d configs!	 Not passing FramerD server config %s",
 		     n_configs,*scan_config);}
       else {
 	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
@@ -1241,7 +1241,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     while (*scan_config) {
       if (n_configs>MAX_CONFIGS) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		     "Stopped after %d configs!  Not passing FramerD path config %s",
+		     "Stopped after %d configs!	 Not passing FramerD path config %s",
 		     n_configs,*scan_config);}
       else {
 	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
@@ -1307,7 +1307,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
 		     "Passing path ENV %s to %s for %s",
 		     *scan_env,exename,sockname);
-	if (!(envp)) envp=write_argv;      
+	if (!(envp)) envp=write_argv;	   
 	*write_argv++=(char *)(*scan_env);}
       scan_env++;
       n_configs++;}}
@@ -2030,7 +2030,7 @@ static BUFF *ap_bcreate(apr_pool_t *p,int ignore_flag)
 static int buf_write_4bytes(unsigned int i,BUFF *b)
 {
   if (ap_bneeds(b,4)<0) return -1; 
-  ap_bputc((i>>24),b);       ap_bputc(((i>>16)&0xFF),b);
+  ap_bputc((i>>24),b);	     ap_bputc(((i>>16)&0xFF),b);
   ap_bputc(((i>>8)&0xFF),b); ap_bputc((i&0xFF),b);
   return 4;
 }
@@ -2397,7 +2397,11 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
     while ((content_length<0)||(bytes_read<content_length)) {
       apr_size_t delta=4096, written=0;
       apr_status_t rv;
-      rv=apr_socket_recv(sock,buf,&delta);
+      if (r->connection->aborted) {
+	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+		      "Connection aborted for %s",r->uri);
+	return -1;}
+      else rv=apr_socket_recv(sock,buf,&delta);
       if (rv!=OK) {
 	ap_log_rerror(APLOG_MARK,LOGDEBUG,rv,r,
 		      "Stopped after reading %ld/%ld bytes from %s for %s (%s)",
@@ -2425,6 +2429,9 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
 	errno=0; error=1; break;}}
     if (error) return -(bytes_read+1);
     rv=ap_rflush(r);
+    if (r->connection->aborted) {
+      ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,"Connection aborted for %s",r->uri);
+      return -1;}
     if (rv!=OK) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_ERR,rv,r,
@@ -2446,6 +2453,9 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
     int sock=sockval->conn.fd; int error=0, rv=-1;
     while ((content_length<0)||(bytes_read<content_length)) {
       ssize_t delta=read(sock,buf,4096), written=-1;
+      if (r->connection->aborted) {
+	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,"Connection aborted for %s",r->uri);
+	return -1;}
       if (delta>0) {
 	int chunk=ap_rwrite(buf,delta,r); written=0;
 	bytes_read=bytes_read+delta;
@@ -2477,6 +2487,10 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
 	errno=0; error=1; break;}
       else bytes_written=bytes_written+written;}
     rv=ap_rflush(r);
+    if (r->connection->aborted) {
+      ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+		    "Connection aborted for %s",r->uri);
+      return -1;}
     if ((error)||(rv!=OK)) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_ERR,rv,r,
@@ -2492,13 +2506,29 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
     return -1;}
 }
 
+static int checkabort(request_rec *r,fdservlet servlet,fdsocket sock,int started)
+{
+  char infobuf[512];
+  if (r->connection->aborted) {
+    if ((servlet)&&(sock)) {    
+      ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+		    "Connection aborted for %s, %s %s",
+		    r->uri,((started)?("closing in-use"):("recycling")),
+		    fdsocketinfo(sock,infobuf));
+      if (started) servlet_close_socket(servlet,sock);
+      else servlet_recycle_socket(servlet,sock);}
+    else ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,"Connection aborted for %s",r->uri);
+    return 1;}
+  else return 0;
+}
+
 /* The main event handler */
 
 static int fdserv_handler(request_rec *r)
 {
   apr_time_t started=apr_time_now(), connected, requested, computed, responded;
   BUFF *reqdata;
-  fdservlet servlet; fdsocket sock=NULL;
+  fdservlet servlet=NULL; fdsocket sock=NULL;
   char *post_data, errbuf[512], infobuf[512];
   int post_size, bytes_written=0, bytes_transferred=-1;
   char *new_error=NULL, *error=NULL;
@@ -2528,6 +2558,7 @@ static int fdserv_handler(request_rec *r)
 		"Entered fdserv_handler for %s from %s",
 		r->filename,r->unparsed_uri);
 #endif
+  if (r->connection->aborted) return OK;
   servlet=request_servlet(r);
   if (!(servlet)) {
     ap_log_rerror(APLOG_MARK,APLOG_ERR,OK,r,
@@ -2536,6 +2567,9 @@ static int fdserv_handler(request_rec *r)
     if (errno) error=strerror(errno); else error="no servlet";
     errno=0;}
   else sock=servlet_connect(servlet,r);
+
+  if (checkabort(r,servlet,sock,0)) return OK;
+
   if (sock==NULL) {
     ap_log_rerror(APLOG_MARK,APLOG_ERR,HTTP_SERVICE_UNAVAILABLE,r,
 		  "Servlet connect failed to %s for %s",
@@ -2583,6 +2617,7 @@ static int fdserv_handler(request_rec *r)
 			   "Read %d bytes of POST data from client",
 			   bytes_read);
 	ap_reset_timeout(r);
+	if (checkabort(r,servlet,sock,0)) return OK;
 	if (size+bytes_read > limit) {
 	  char *newbuf=apr_palloc(r->pool,limit*2);
 	  if (!(newbuf)) {error="malloc failed"; break;}
@@ -2593,7 +2628,8 @@ static int fdserv_handler(request_rec *r)
     else {post_data=NULL; post_size=0;}}
   else {post_data=NULL; post_size=0;}
 
-  if (error) {
+  if (checkabort(r,servlet,sock,0)) return OK;
+  else if (error) {
     ap_log_rerror(APLOG_MARK,APLOG_WARNING,HTTP_INTERNAL_SERVER_ERROR,r,
 		  "Error (%s) reading post data",error);
     servlet_recycle_socket(servlet,sock);
@@ -2631,6 +2667,7 @@ static int fdserv_handler(request_rec *r)
     buf[3]=((nbytes>>8)&0xFF);
     buf[4]=((nbytes>>0)&0xFF);
     bytes_written=sock_write(r,buf,5,sock);}
+  if (checkabort(r,servlet,sock,1)) return OK;
   if ((using_dtblock)&&(bytes_written<5)) {
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,OK,r,
 		  "Only wrote %ld bytes of block to %s for %s (%s)",
@@ -2657,6 +2694,7 @@ static int fdserv_handler(request_rec *r)
 		       fdsocketinfo(sock,infobuf),
 		       r->unparsed_uri,
 		       r->filename);}
+  if (checkabort(r,servlet,sock,1)) return OK;
   
   requested=apr_time_now();
   
@@ -2666,6 +2704,8 @@ static int fdserv_handler(request_rec *r)
 		"Waiting for response from %s",fdsocketinfo(sock,infobuf));
   
   rv=ap_scan_script_header_err_core(r,errbuf,scan_fgets,(void *)&scanner);
+  
+  if (checkabort(r,servlet,sock,1)) return OK;
   
   if (rv!=OK) {
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,rv,r,
@@ -2680,6 +2720,8 @@ static int fdserv_handler(request_rec *r)
   computed=apr_time_now();
 
   bytes_transferred=copy_servlet_output(sock,r);
+  
+  if (checkabort(r,servlet,sock,1)) return OK;
   
   if (bytes_transferred<0) {
     ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
