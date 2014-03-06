@@ -66,7 +66,7 @@ FD_EXPORT int fd_init_fddbserv(void);
 static int async_mode=1;
 
 /* Logging declarations */
-static FILE *statlog=NULL, *statusout=NULL;
+static FILE *statlog=NULL; int statusout=-1;
 static double overtime=0;
 static int stealsockets=0;
 
@@ -106,6 +106,12 @@ typedef struct FD_WEBCONN {
   struct U8_OUTPUT out;} FD_WEBCONN;
 typedef struct FD_WEBCONN *fd_webconn;
 
+#ifndef DEFAULT_POLL_TIMEOUT
+#define DEFAULT_POLL_TIMEOUT 5000
+#endif
+
+static int poll_timeout=DEFAULT_POLL_TIMEOUT;
+
 static fd_lispenv server_env;
 struct U8_SERVER fdwebserver;
 static int server_running=0;
@@ -120,10 +126,14 @@ static u8_condition fdservWriteError="FDServelt write error";
 #ifndef DEFAULT_STATUS_INTERVAL
 #define DEFAULT_STATUS_INTERVAL 1000000
 #endif
+#ifndef DEFAULT_STATLOG_INTERVAL
+#define DEFAULT_STATLOG_INTERVAL 30000000
+#endif
 
 static u8_string statlogfile, statfile;
-static long long last_status=0;
+static long long last_status=0, last_statlog=0;
 static long status_interval=DEFAULT_STATUS_INTERVAL;
+static long statlog_interval=DEFAULT_STATUS_INTERVAL;
 
 static void close_statlog();
 
@@ -189,7 +199,40 @@ static int statinterval_set(fdtype var,fdtype val,void *data)
       return 0;
     else status_interval=-1;}
   else return fd_reterr
-	 (fd_TypeError,"config_set_statinterval",
+	 (fd_TypeError,"statinterval_set",
+	  u8_strdup(_("fixnum")),val);
+  return 1;
+}
+
+static fdtype statloginterval_get(fdtype var,void *data)
+{
+  if (statlog_interval<0) return FD_FALSE;
+  else return FD_FIX2INT(statlog_interval);
+}
+
+static int statloginterval_set(fdtype var,fdtype val,void *data)
+{
+  if (FD_FIXNUMP(val)) {
+    int intval=FD_FIX2INT(val);
+    if (intval>=0)  statlog_interval=intval*1000;
+    else {
+      return fd_reterr
+	(fd_TypeError,"statloginterval_set",
+	 u8_strdup(_("fixnum")),val);}}
+  else if (FD_FALSEP(val)) statlog_interval=-1;
+  else if (FD_STRINGP(val)) {
+    int flag=fd_boolstring(FD_STRDATA(val),-1);
+    if (flag<0) {
+      u8_log(LOG_WARN,"statloginterval_set","Unknown value: %s",FD_STRDATA(val));
+      return 0;}
+    else if (flag) {
+      if (statlog_interval>0) return 0;
+      statlog_interval=DEFAULT_STATLOG_INTERVAL;}
+    else if (statlog_interval<0)
+      return 0;
+    else statlog_interval=-1;}
+  else return fd_reterr
+	 (fd_TypeError,"config_set_statloginterval",
 	  u8_strdup(_("fixnum")),val);
   return 1;
 }
@@ -200,13 +243,15 @@ static fdtype statinterval_get(fdtype var,void *data)
   else return FD_FIX2INT(status_interval);
 }
 
-#define STATUS_LINE_AGGREGATE "#[%*t][%f] Aggregate %d/%d/%d connections/responses/errors\n"
-#define STATUS_LINE_TIMING "#[%*t] Response: %0.2fus, max=%ldus, run: %0.2fus, max=%ldus\n"
-#define STATUS_LINE_CURRENT "#[%*t] Currently: %d/%d/%d/%d busy/waiting/clients/threads\n"
-#define STATUS_SNAPSHOT \
-  "#[%*t][%f] %d/%d/%d/%d busy/waiting/clients/threads, response: %0.2fus, max=%ldus, run: %0.2fus, max=%ldus"
-#define STATUS_SNAPSHOT_LINE \
-  "#[%*t][%f] %d/%d/%d/%d busy/waiting/clients/threads, response: %0.2fus, max=%ldus, run: %0.2fus, max=%ldus\n"
+#define STATUS_LINE_CURRENT \
+  "[%*t][%f] Currently: %d/%d/%d/%d busy/waiting/clients/threads\n"
+#define STATUS_LINE_AGGREGATE \
+  "[%*t] Aggregate %d/%d/%d connected/requested/errors\n"
+#define STATUS_LINE_TIMING \
+  "[%*t] Response: mean=%0.2fus, max=%ldus, run: mean=%0.2fus, max=%ldus\n"
+#define STATUS_LOG_SNAPSHOT \
+  "[%*t][%f] %d/%d/%d/%d busy/waiting/clients/threads, %d/%d/%d reqs/resps/errs, response: %0.2fus, max=%ldus, run: %0.2fus, max=%ldus"
+#define STATUSLOG_LINE "%*t\t%f\t%d\t%d\t%d\t%d\t%0.2f\t%0.2f\n"
 #define STATUS_LINEXN "[%*t][%f] %s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)\n"
 #define STATUS_LINEX "%s: %s mean=%0.2fus max=%lldus sd=%0.2f (n=%d)"
 
@@ -280,66 +325,82 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 
 static void update_status()
 {
-  FILE *mon=statusout, *log=statlog;
-  struct U8_SERVER_STATS stats;
   double elapsed=u8_elapsed_time();
-  if (((!(mon))&&(statfile))||
+  struct U8_SERVER_STATS stats;
+  FILE *log=statlog; int mon=statusout;
+  if (((mon<0)&&(statfile))||
       ((!(log))&&(statlogfile))) {
     fd_lock_mutex(&log_lock);
-    if (statusout) mon=statusout;
-    else mon=statusout=(u8_fopen_locked(statfile,"w"));
+    if (statusout>=0) mon=statusout;
+    else if (statfile) {
+      mon=statusout=(open(statfile,O_WRONLY|O_CREAT));
+      if (mon>=0) u8_lock_fd(mon,1);}
+    else mon=-1;
     if (statlog) log=statlog;
-    else log=statlog=(u8_fopen_locked(statlogfile,"a"));
+    else if (statlogfile) 
+      log=statlog=(u8_fopen_locked(statlogfile,"a"));
+    else log=NULL;
     fd_unlock_mutex(&log_lock);}
-  if (mon) {
-    int fd=fileno(mon);
-    off_t rv=lseek(fd,0,SEEK_SET);
-    if (rv>=0) rv=ftruncate(fd,0);
+  if (mon>=0) {
+    off_t rv=lseek(mon,0,SEEK_SET);
+    if (rv>=0) rv=ftruncate(mon,0);
     if (rv<0) {
       u8_log(LOG_WARN,"output_status","File truncate failed (%s:%d)",
 	     strerror(errno),errno);
-      errno=0;}}
+      errno=0;}
+    else {
+      rv=lseek(mon,0,SEEK_SET); errno=0;}}
 
   u8_server_statistics(&fdwebserver,&stats);
   
-  if (log_status>0)
-    u8_log(log_status,"FDServlet",STATUS_SNAPSHOT,elapsed,
-	   fdwebserver.n_busy,fdwebserver.n_queued,
-	   fdwebserver.n_clients,fdwebserver.n_threads,
-	   (((double)(stats.tsum))/((double)(stats.tsum))),stats.tmax,
-	   (((double)(stats.xsum))/((double)(stats.xsum))),stats.xmax);
-  if (statlog)
-    u8_fprintf(statlog,STATUS_SNAPSHOT_LINE,elapsed,
+  if ((log!=NULL)||(log_status>0)) {
+    long long now=u8_microtime();
+    if ((statlog_interval>=0)&&(now>(last_statlog+statlog_interval))) {
+      last_statlog=now;
+      if (log_status>0)
+	u8_log(log_status,"FDServlet",STATUS_LOG_SNAPSHOT,elapsed,
 	       fdwebserver.n_busy,fdwebserver.n_queued,
 	       fdwebserver.n_clients,fdwebserver.n_threads,
+	       fdwebserver.n_accepted,fdwebserver.n_trans,fdwebserver.n_errs,
 	       (((double)(stats.tsum))/((double)(stats.tsum))),stats.tmax,
 	       (((double)(stats.xsum))/((double)(stats.xsum))),stats.xmax);
-
-  if (mon) {
+      if (log)
+	u8_fprintf(log,"%*t\t%f\t%d\t%d\t%d\t%d\t%0.2f\t%0.2f\n",elapsed,
+		   fdwebserver.n_busy,fdwebserver.n_queued,
+		   fdwebserver.n_clients,fdwebserver.n_threads,
+		   (((double)(stats.tsum))/((double)(stats.tsum))),
+		   (((double)(stats.xsum))/((double)(stats.xsum))));}}
+      
+  if (mon>=0) {
+    int written=0, len, delta=0;
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
-    u8_printf(&out,STATUS_LINE_AGGREGATE,elapsed,
+    u8_printf(&out,STATUS_LINE_CURRENT,elapsed,
+	      fdwebserver.n_busy,fdwebserver.n_queued,
+	      fdwebserver.n_clients,fdwebserver.n_threads);
+    u8_printf(&out,STATUS_LINE_AGGREGATE,
 	      fdwebserver.n_accepted,fdwebserver.n_trans,fdwebserver.n_errs);
     u8_printf(&out,STATUS_LINE_TIMING,
 	      (((double)(stats.tsum))/((double)(stats.tsum))),stats.tmax,
 	      (((double)(stats.xsum))/((double)(stats.xsum))),stats.xmax);
-    u8_printf(&out,STATUS_LINE_CURRENT,
-	      fdwebserver.n_busy,fdwebserver.n_queued,
-	      fdwebserver.n_clients,fdwebserver.n_threads);
-
     u8_list_clients(&out,&fdwebserver);
-    fprintf(mon,"# Connections:\n%s",out.u8_outbuf);
+    len=out.u8_outptr-out.u8_outbuf;
+    while ((delta=write(mon,out.u8_outbuf+written,len-written))>0)
+      written=written+delta;;
+    fsync(mon);
     u8_free(out.u8_outbuf);}
-  if (mon) fflush(mon);
-  if (log) fflush(log);
 }
 
 static int statlog_server_update(struct U8_SERVER *server){
-  if ((status_interval>=0)&&(u8_microtime()>(last_status+status_interval)))
-    update_status();
+  long long now=u8_microtime();
+  if ((status_interval>=0)&&(now>(last_status+status_interval))) {
+    last_status=now;
+    update_status();}
   return 0;}
 static int statlog_client_update(struct U8_CLIENT *client){
-  if ((status_interval>=0)&&(u8_microtime()>(last_status+status_interval)))
-    update_status();
+  long long now=u8_microtime();
+  if ((status_interval>=0)&&(u8_microtime()>(last_status+status_interval))) {
+    last_status=now;
+    update_status();}
   return 0;}
 
 static void setup_status_file()
@@ -674,10 +735,11 @@ static int webservefn(u8_client ucl)
   else if (client->reading>0)
     /* We shouldn't get here, but just in case.... */
     return 1; 
-  else if ((client->writing>0)&&(u8_client_finished(ucl)))
+  else if ((client->writing>0)&&(u8_client_finished(ucl))) {
     /* All done */
-    return 0;
-  else if (client->writing>0) 
+    if (ucl->status) {u8_free(ucl->status); ucl->status=NULL;}
+    return 0;}
+  else if (client->writing>0)
     /* We shouldn't get here, but just in case.... */
     return 1;
   else {
@@ -744,12 +806,14 @@ static int webservefn(u8_client ucl)
       if (traceweb>0)
 	u8_log(LOG_NOTICE,"FDServlet/webservefn","Client %s (sock=%d) closing",
 	       client->idstring,client->socket);
+      if (ucl->status) {u8_free(ucl->status); ucl->status=NULL;}
       u8_client_close(ucl);
       return -1;}
     else if (!(FD_TABLEP(cgidata))) {
       u8_log(LOG_CRIT,"FDServlet/webservefn",
 	     "Bad fdservlet request on client %s (sock=%d), closing",
 	     client->idstring,client->socket);
+      if (ucl->status) {u8_free(ucl->status); ucl->status=NULL;}
       u8_client_close(ucl);
       return -1;}
     else {}
@@ -762,6 +826,8 @@ static int webservefn(u8_client ucl)
       fdtype referer=fd_get(cgidata,referer_symbol,FD_VOID);
       fdtype remote=fd_get(cgidata,remote_info,FD_VOID);
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
+      if (FD_STRINGP(uri))
+	ucl->status=u8_strdup(FD_STRDATA(uri));
       if ((FD_STRINGP(uri)) &&
 	  (FD_STRINGP(referer)) &&
 	  (FD_STRINGP(remote)))
@@ -784,6 +850,12 @@ static int webservefn(u8_client ucl)
       fd_decref(remote);
       fd_decref(referer);
       fd_decref(uri);}
+    else {
+      fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
+      if (FD_STRINGP(uri))
+	ucl->status=u8_strdup(FD_STRDATA(uri));
+      fd_decref(uri);}
+
     /* This is what we'll execute, be it a procedure or FDXML */
     proc=getcontent(path);}
 
@@ -794,7 +866,7 @@ static int webservefn(u8_client ucl)
   parse_time=u8_elapsed_time();
   if ((reqlog) || (urllog) || (trace_cgidata))
     dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
-  if (!(FD_ABORTP(proc))) 
+  if (!(FD_ABORTP(proc)))
     precheck=run_preflight();
   if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (!((FD_FALSEP(precheck))||
@@ -1014,6 +1086,7 @@ static int webservefn(u8_client ucl)
       return_code=-1;
       fd_decref(errorpage);
       /* And close the client for good measure */
+      if (ucl->status) {u8_free(ucl->status); ucl->status=NULL;}
       u8_client_close(ucl);}}
   if (recovered) {
     U8_OUTPUT httphead, htmlhead; int tracep;
@@ -1213,7 +1286,8 @@ static int webservefn(u8_client ucl)
   fd_decref(cgidata);
   fd_swapcheck();
   /* Task is done */
-  if (return_code<=0) {}
+  if (return_code<=0) {
+    if (ucl->status) {u8_free(ucl->status); ucl->status=NULL;}}
   return return_code;
 }
 
@@ -1597,8 +1671,11 @@ int main(int argc,char **argv)
   fd_register_config("STATLOG",_("File for recording status reports"),
 		     statlog_get,statlog_set,NULL);
   fd_register_config
-    ("STATINTERVAL",_("Milliseconds (roughly) between status reports"),
+    ("STATINTERVAL",_("Milliseconds (roughly) between updates to .status"),
      statinterval_get,statinterval_set,NULL);
+  fd_register_config
+    ("STATLOGINTERVAL",_("Milliseconds (roughly) between logging status information"),
+     statloginterval_get,statloginterval_set,NULL);
   fd_register_config("GRACEFULDEATH",
 		     _("How long (μs) to wait for tasks during shutdown"),
 		     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
@@ -1693,6 +1770,7 @@ static int launch_servlet(u8_string socket_spec)
      U8_SERVER_INIT_CLIENTS,init_clients,
      U8_SERVER_NTHREADS,servlet_threads,
      U8_SERVER_BACKLOG,max_backlog,
+     U8_SERVER_TIMEOUT,poll_timeout,
      U8_SERVER_MAX_QUEUE,max_queue,
      U8_SERVER_MAX_CLIENTS,max_conn,
      U8_SERVER_END_INIT); 
@@ -1704,6 +1782,10 @@ static int launch_servlet(u8_string socket_spec)
 		     _("Whether to have libu8 log each monitored address"),
 		     config_get_u8server_flag,config_set_u8server_flag,
 		     (void *)(U8_SERVER_LOG_LISTEN));
+  fd_register_config("U8POLLTIMEOUT",
+		     _("Timeout for the poll loop (lower bound of status updates)"),
+		     config_get_u8server_flag,config_set_u8server_flag,
+		     (void *)(U8_SERVER_TIMEOUT));
   fd_register_config("U8LOGCONNECT",
 		     _("Whether to have libu8 log each connection"),
 		     config_get_u8server_flag,config_set_u8server_flag,
