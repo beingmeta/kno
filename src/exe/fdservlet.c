@@ -107,7 +107,7 @@ typedef struct FD_WEBCONN {
 typedef struct FD_WEBCONN *fd_webconn;
 
 #ifndef DEFAULT_POLL_TIMEOUT
-#define DEFAULT_POLL_TIMEOUT 5000
+#define DEFAULT_POLL_TIMEOUT 1000
 #endif
 
 static int poll_timeout=DEFAULT_POLL_TIMEOUT;
@@ -127,7 +127,7 @@ static u8_condition fdservWriteError="FDServelt write error";
 #define DEFAULT_STATUS_INTERVAL 1000000
 #endif
 #ifndef DEFAULT_STATLOG_INTERVAL
-#define DEFAULT_STATLOG_INTERVAL 30000000
+#define DEFAULT_STATLOG_INTERVAL 60000000
 #endif
 
 static u8_string statlogfile, statfile;
