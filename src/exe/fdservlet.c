@@ -333,7 +333,7 @@ static void update_status()
     fd_lock_mutex(&log_lock);
     if (statusout>=0) mon=statusout;
     else if (statfile) {
-      mon=statusout=(open(statfile,O_WRONLY|O_CREAT));
+      mon=statusout=(open(statfile,O_WRONLY|O_CREAT,0644));
       if (mon>=0) u8_lock_fd(mon,1);}
     else mon=-1;
     if (statlog) log=statlog;
