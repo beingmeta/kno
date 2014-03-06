@@ -58,6 +58,12 @@
 #define LOGDEBUG APLOG_DEBUG
 #endif
 
+#if DEBUG_SOCKETS
+#define LOGSOCKET APLOG_WARNING
+#else
+#define LOGSOCKET APLOG_NOTICE
+#endif
+
 #define APACHE20 1
 #define APACHE13 0
 
@@ -1466,7 +1472,8 @@ static fdservlet servlet_set_keep_socks(fdservlet s,int keep_socks)
 }
 
 /* Adds a servlet for sockname, setup for */
-static fdservlet add_servlet(struct request_rec *r,const char *sockname,int keep_socks,int max_socks)
+static fdservlet add_servlet(struct request_rec *r,const char *sockname,
+			     int keep_socks,int max_socks)
 {
   int i=0; int lim=n_servlets;
   apr_thread_mutex_lock(servlets_lock);
@@ -1503,8 +1510,9 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,int keep
 		    ((strchr(sockname,'/')!=NULL)||
 		     ((strchr(sockname,':'))==NULL)));
     fdservlet servlet=&(servlets[i]);
-    ap_log_error(APLOG_MARK,APLOG_INFO,OK,r->server,
-		 "Adding new servlet for %s at #%d",sockname,i);
+    ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,r->server,
+		 "Adding new servlet for %s at #%d, keep=%d, max=%d",
+		 sockname,i,keep_socks,max_socks);
     memset(servlet,0,sizeof(struct FDSERVLET));
     servlet->sockname=apr_pstrdup(fdserv_pool,sockname);
     servlet->server=r->server; servlet->servlet_index=i;
@@ -1563,8 +1571,6 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,int keep
     servlet->n_ephemeral=0;
     n_servlets++;
     apr_thread_mutex_unlock(servlets_lock);
-    ap_log_error(APLOG_MARK,APLOG_INFO,OK,r->server,
-		 "Added new servlet for %s at #%d",sockname,i);
     return servlet;}
 }
 
@@ -1612,11 +1618,9 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 		    "Couldn't open socket for %s (errno=%d:%s)",
 		    sockname,errno,strerror(errno));
       return NULL;}
-#if DEBUG_CONNECT
     else ap_log_rerror
 	   (APLOG_MARK,LOGDEBUG,OK,r,
 	    "Opened socket %d to connect to %s",unix_sock,sockname);
-#endif
     connval=connect(unix_sock,(struct sockaddr *)&(s->endpoint.path),
 		    SUN_LEN(&(s->endpoint.path)));
     if ((connval<0)&&(file_socket_existsp(pool,r->server,sockname))) {
@@ -1633,7 +1637,8 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
       rv=spawn_fdservlet(s,r,fdserv_pool);
       if (rv<0) {
 	ap_log_rerror
-	  (APLOG_MARK,APLOG_EMERG,apr_get_os_error(),r,"Couldn't spawn fdservlet @ %s",sockname);
+	  (APLOG_MARK,APLOG_EMERG,apr_get_os_error(),r,
+	   "Couldn't spawn fdservlet @ %s",sockname);
 	close(unix_sock);
 	return NULL;}
       else if (rv)
@@ -1691,12 +1696,10 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 		      "Timeout making connection to %s",s->sockname);
 	apr_socket_close(sock);
 	return NULL;}}
-#if DEBUG_CONNECT
     ap_log_rerror
       (APLOG_MARK,LOGDEBUG,OK,r,"Opening new %s APR socket to %s",
        ((given==NULL)?("ephemeral"):("cached")),
        s->sockname);
-#endif
     result->servlet=s;
     result->socktype=aprsock;
     result->sockname=s->sockname;
@@ -1743,7 +1746,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	  s->n_busy++;
 	  apr_thread_mutex_unlock(s->lock);
 #if DEBUG_SOCKETS
-	  ap_log_rerror(APLOG_MARK,LOGNOTICE,OK,r,"Using cached %s ",
+	  ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,"Using cached %s",
 			fdsocketinfo(&(sockets[i]),infobuf));
 #endif
 	  return &(sockets[i]);}}}
@@ -1751,7 +1754,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
     else i=s->n_socks;
     if (closed>=0) {
       struct FDSOCKET *sockets=s->sockets; fdsocket sock;
-      ap_log_rerror(APLOG_MARK,LOGNOTICE,OK,r,"Reopening cached %s ",
+      ap_log_rerror(APLOG_MARK,LOGSOCKET,OK,r,"Reopening cached %s ",
 		    fdsocketinfo(&(sockets[closed]),infobuf));
       sock=servlet_open(s,&(sockets[closed]),r); s->n_busy++;
       apr_thread_mutex_unlock(s->lock);
@@ -1768,7 +1771,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	s->n_ephemeral++; s->n_busy++;
 	/* Can't allocate any more keepers, so just open a regular socket. */
 #if DEBUG_SOCKETS
-	ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
+	ap_log_rerror(APLOG_MARK,LOGNOTICE,OK,r,
 		      "Using ephemeral (#%d) %s because all %d cached sockets are busy",
 		      s->n_ephemeral,fdsocketinfo(sock,infobuf),s->keep_socks);
 #endif
@@ -1782,21 +1785,28 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	s->n_socks++; s->n_busy++; sock->socket_index=i;
 	apr_thread_mutex_unlock(s->lock);
 #if DEBUG_SOCKETS
-	ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,"Using new ",fdsocketinfo(sock,infobuf));
+	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+		      "New %s",fdsocketinfo(sock,infobuf));
+#else
+	ap_log_rerror(APLOG_MARK,LOGINFO,OK,r,
+		      "New %s",fdsocketinfo(sock,infobuf));
 #endif
 	return sock;}
       else {
 	/* Failed for some reason, open an excess socket */
-	/* A hard max sockets value might be checked here */
-	ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,"Error opening %s",
+	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+		      "Error opening %s, trying ephemeral",
 		      fdsocketinfo(sock,infobuf));
 	s->n_ephemeral++; s->n_busy++;
 	apr_thread_mutex_unlock(s->lock);
 	sock=servlet_open(s,NULL,r);
-#if DEBUG_SOCKETS
-	ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,"Using ephemeral (#%d) %s",
-		      s->n_ephemeral,fdsocketinfo(sock,infobuf));
-#endif
+	if (sock==NULL)
+	  ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+			"Ephemeral open failed (n=%d) for %s",
+			s->n_ephemeral,r->uri);
+	else ap_log_rerror(APLOG_MARK,LOGSOCKET,OK,r,
+			   "Ephemeral (#%d) %s opened for %s",
+			   s->n_ephemeral,fdsocketinfo(sock,infobuf),r->uri);
 	return sock;}}}
 }
 
@@ -1856,7 +1866,7 @@ static int servlet_close_socket(fdservlet servlet,fdsocket sock)
 {
   char infobuf[256];
   if (sock->servlet!=servlet) {
-    ap_log_error(APLOG_MARK,LOGDEBUG,OK,servlet->server,
+    ap_log_error(APLOG_MARK,APLOG_ERR,OK,servlet->server,
 		 "Internal error, recycling closed socket (for %s) to wrong servlet (%s)",
 		 sock->sockname,servlet->sockname);
     return -1;}
@@ -1925,9 +1935,6 @@ static fdservlet request_servlet(request_rec *r)
     return servlet;}
   else {
     servlet=add_servlet(r,sockname,keep_socks,max_socks);
-    ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
-		  "Allocated new servlet entry @ #%d for use with %s",
-		  servlet->servlet_index,servlet->sockname);
     return servlet;}
 }
 
