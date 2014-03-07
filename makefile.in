@@ -803,7 +803,7 @@ staging/framerd-@FDVERSION@.tar.gz: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	make staging/framerd-@FDVERSION@
 	tar -czvf $@ -C staging framerd-@FDVERSION@
-staging/framerd_@FDVERSION@.orig.tar.gz: staging/framerd-@FDVERSION@
+staging/framerd_@FDVERSION@.orig.tar.gz: staging/framerd_@FDVERSION@
 	cd staging; tar -czvf framerd_@FDVERSION@.orig.tar.gz \
 		framerd_@FDVERSION@
 
