@@ -1,6 +1,6 @@
 libfdtype 1
 libfddb 1
-libfddbfile
+libfddbfile 1
 libfdbserv 1
 libfdscheme 1
 libfdschemeio 1
