@@ -150,6 +150,7 @@ static int set_logfile(u8_string logfile,int exitonfail)
   return 1;
 }
 
+/*
 static fdtype config_get_logfile(fdtype var,void *state)
 {
   if (log_filename)
@@ -165,6 +166,7 @@ static int config_set_logfile(fdtype var,fdtype val,void *state)
   else if (set_logfile(FD_STRDATA(val),0)<0) return -1;
   else return 1;
 }
+*/
 
 /* Configuration
    This uses the CONFIG facility to setup the server.  Some
@@ -288,7 +290,7 @@ static fdtype config_get_fullscheme(fdtype var,void MAYBE_UNUSED *data)
     the server's process id, and an nid file indicating the ports on which
     the server is listening. */
 
-static u8_string pid_file=NULL, nid_file=NULL, log_file=NULL;
+static u8_string pid_file=NULL, nid_file=NULL;
 
 static void cleanup_state_files()
 {

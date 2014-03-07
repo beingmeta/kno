@@ -77,7 +77,7 @@ static fdtype markout_prim(fdtype mdstring,fdtype opts)
 
 FD_EXPORT int fd_init_sundown()
 {
-  fdtype sundown_module, md2html_prim;
+  fdtype sundown_module;
   if (sundown_init) return 0;
   /* u8_register_source_file(_FILEINFO); */
   sundown_init=1;

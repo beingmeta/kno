@@ -790,7 +790,7 @@ static int check_yesp(u8_string arg,fdtype strings,int ignorecase)
 
 static fdtype yesp_prim(fdtype arg,fdtype dflt,fdtype yes,fdtype no)
 {
-  u8_string string_arg; int ignorecase=0, retval=0;
+  u8_string string_arg; int ignorecase=0;
   if (FD_STRINGP(arg)) string_arg=FD_STRDATA(arg);
   else if (FD_SYMBOLP(arg)) {
     string_arg=FD_SYMBOL_NAME(arg); ignorecase=1;}

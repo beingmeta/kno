@@ -198,7 +198,6 @@ fdtype imagick2file(fdtype fdwand,fdtype filename)
 fdtype imagick2packet(fdtype fdwand)
 {
   unsigned char *data=NULL; size_t n_bytes;
-  MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
     FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
   MagickWand *wand=wrapper->wand;
@@ -215,8 +214,6 @@ fdtype imagick2packet(fdtype fdwand)
 
 fdtype imagick2imagick(fdtype fdwand)
 {
-  unsigned char *data=NULL; size_t n_bytes;
-  MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
     FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
   struct FD_IMAGICK *fresh=u8_alloc(struct FD_IMAGICK);
@@ -232,17 +229,18 @@ static fdtype format, resolution, size, width, height;
 
 static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
 {
+  /* enum result_type {imbool,imint,imdouble,imsize,imbox,imtrans} rt; */
   struct FD_IMAGICK *wrapper=
     FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
   MagickWand *wand=wrapper->wand;
-  enum result_type {imbool,imint,imdouble,imsize,imbox,imtrans} rt;
   if (FD_EQ(field,format)) {
     const char *fmt=MagickGetImageFormat(wand);
     return fdtype_string((char *)fmt);}
 #if (MagickLibVersion>0x670)
   else if (FD_EQ(field,resolution)) {
     double x=0, y=0;
-    MagickBooleanType rv=MagickGetResolution(wand,&x,&y);
+    /* MagickBooleanType rv= */
+    MagickGetResolution(wand,&x,&y);
     return fd_init_pair(NULL,fd_make_double(x),fd_make_double(y));}
 #endif
   else if (FD_EQ(field,size)) {
@@ -625,6 +623,13 @@ int fd_init_imagick()
   fd_idefn(imagick_module,
 	   fd_make_cprim1x("IMAGICK/ENHANCE",imagick_enhance,1,
 			   fd_imagick_type,FD_VOID));
+  fd_idefn(imagick_module,
+	   fd_make_cprim1x("IMAGICK/KEYS",imagick_getkeys,1,
+			   fd_imagick_type,FD_VOID));
+  fd_idefn(imagick_module,
+	   fd_make_cprim3x("IMAGICK/GET",imagick_get,2,
+                           fd_imagick_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID));
   
   MagickWandGenesis();
   atexit(magickwand_atexit);

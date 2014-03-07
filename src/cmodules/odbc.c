@@ -223,6 +223,7 @@ static void recycle_odbcproc(struct FD_EXTDB_PROC *c)
 
 /* Getting attributes from connections */
 
+#if 0
 static fdtype odbcstringattr(struct FD_ODBC *dbp,int attrid)
 {
   u8_byte _buf[64], *buf=_buf; int ret; SQLSMALLINT len;
@@ -237,7 +238,6 @@ static fdtype odbcstringattr(struct FD_ODBC *dbp,int attrid)
   return FD_ERROR_VALUE;
 }
 
-#if 0
 static fdtype odbcintattr(struct FD_ODBC *dbp,int attrid)
 {
   int ret, attrval=0;

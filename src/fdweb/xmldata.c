@@ -61,7 +61,8 @@ static int listlen(fdtype l)
 {
   if (!(FD_PAIRP(l))) return 0;
   else {
-    int len=0; FD_DOLIST(elt,l) {len++;}
+    int len=0; fdtype scan=l;
+    while (FD_PAIRP(scan)) {scan=FD_CDR(scan); len++;}
     return len;}
 }
 

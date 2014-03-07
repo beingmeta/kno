@@ -29,8 +29,6 @@
 #include <limits.h>
 #include <ctype.h>
 
-static fd_exception NoSuchFile=_("file does not exist");
-
 FD_EXPORT int fd_init_sqlite(void) FD_LIBINIT_FN;
 static struct FD_EXTDB_HANDLER sqlite_handler;
 static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args);

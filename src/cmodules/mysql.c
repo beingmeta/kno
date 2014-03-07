@@ -130,8 +130,8 @@ static my_bool default_reconnect=1;
 
 static int setup_connection(struct FD_MYSQL *dbp)
 {
-  fdtype options=dbp->options;
-  int retval=0; u8_string option=NULL;
+  fdtype options=dbp->options; char *option;
+  int retval=0;
   int timeout=-1, ctimeout=-1, rtimeout=-1, wtimeout=-1;
   if (!(FD_VOIDP(options))) {
     fdtype port=fd_getopt(options,port_symbol,FD_VOID);
@@ -765,11 +765,9 @@ static fdtype mysqlmakeproc
    u8_string stmt,int stmt_len,
    fdtype colinfo,int n,fdtype *ptypes)
 {
-  MYSQL *db=dbp->db;
-  int n_params, n_cols, retval;
+  MYSQL *db=dbp->db; int retval=0;
   struct FD_MYSQL_PROC *dbproc=u8_alloc(struct FD_MYSQL_PROC);
-  unsigned int mysqlerrno=0, lazy_init=0;
-  fdtype *aptypes=NULL;
+  unsigned int lazy_init=0;
   fdtype lazy_opt=fd_getopt(dbp->options,lazy_symbol,FD_VOID);
   if (FD_VOIDP(lazy_opt)) 
     lazy_init=default_lazy_init;
@@ -842,7 +840,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
 {
   /* This assumes that both dbp and dpbroc have been locked.  */
   MYSQL *db=dbp->db;
-  int retval=0, n_cols, n_params, reinit=(dbproc->n_cols<0);
+  int retval=0, n_cols, n_params;
   /* Reinitialize these structures in case there have been schema
      changes. */
   if (dbproc->outbound) {

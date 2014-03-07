@@ -329,7 +329,6 @@ static fdtype use_strftime(char *format,struct U8_XTIME *xt)
 
 static int tzvalueok(fdtype value,int *off,u8_context caller)
 {
-  int secs;
   if (FD_FIXNUMP(value)) {
     int fixval=FD_FIX2INT(value);
     if ((fixval<(48*3600))&&(fixval>(-48*3600))) {
@@ -727,7 +726,7 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
     int gmtoff; if (tzvalueok(value,&gmtoff,"xtime_set/gmtoff")) {
       u8_tmprec prec=xt->u8_prec; 
       time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs; 
-      int tzoff=xt->u8_tzoff, dstoff=xt->u8_dstoff;
+      int dstoff=xt->u8_dstoff;
       u8_init_xtime(xt,tick,prec,nsecs,gmtoff-dstoff,dstoff);
       return 0;}
     else return FD_ERROR_VALUE;}
@@ -1451,7 +1450,10 @@ static fdtype corelimit_get(fdtype symbol,void *vptr)
 {
   struct rlimit limit;
   int rv=getrlimit(RLIMIT_CORE,&limit);
-  return FD_INT2DTYPE(limit.rlim_cur);
+  if (rv<0) {
+    u8_graberr(errno,"corelimit_get",NULL);
+    return FD_ERROR_VALUE;}
+  else return FD_INT2DTYPE(limit.rlim_cur);
 }
 
 static int corelimit_set(fdtype symbol,fdtype value,void *vptr)

@@ -301,7 +301,7 @@ FD_EXPORT int fd_register_config
     /* There have been multiple configuration specifications,
        so run them all backwards. */
     int n=0; fdtype *vals, *write;
-    {FD_DOLIST(cv,current) n++;}
+    {fdtype scan=current; while (FD_PAIRP(scan)) {scan=FD_CDR(scan); n++;}}
     vals=u8_alloc_n(n,fdtype); write=vals;
     {FD_DOLIST(cv,current) *write++=cv;}
     while (n>0) {

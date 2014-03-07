@@ -82,8 +82,6 @@ static int init_clients=64, servlet_threads=8, max_queue=256, max_conn=0;
 /* This is the backlog of connection requests not transactions.
    It is passed as the argument to listen() */
 static int max_backlog=-1;
-/* Whether the server U8SERVER has been initialized */
-static int server_initialized=0;
 
 /* This is how long (μs) to wait for clients to finish when shutting down the
    server.  Note that the server stops listening for new connections right
@@ -260,68 +258,7 @@ static fdtype statinterval_get(fdtype var,void *data)
 		 ((((double)v)/((double)n))*(((double)v)/((double)n))))))
 #define getmean(v,n) (((double)v)/((double)n))
 
-static int short_status=1, log_status=-1;
-
-static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
-{
-  double elapsed=u8_elapsed_time();
-  if (stats->tcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"busy",
-	       getmean(stats->tsum,stats->tcount),
-	       stats->tmax,
-	       stdev(stats->tsum,stats->tsum2,stats->tcount),
-	       stats->tcount);
-    if (log_status>0)
-      u8_log(log_status,"FDServlet",STATUS_LINEX,src,"busy",
-	     getmean(stats->tsum,stats->tcount),
-	     stats->tmax,
-	     stdev(stats->tsum,stats->tsum2,stats->tcount),
-	     stats->tcount);}
-  
-  if (stats->qcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"queued",
-	       getmean(stats->qsum,stats->qcount),stats->qmax,
-	       stdev(stats->qsum,stats->qsum2,stats->qcount),
-	       stats->qcount);
-    if (log_status>0)
-      u8_log(log_status,"FDServlet",STATUS_LINEX,src,"queued",
-	     getmean(stats->qsum,stats->qcount),stats->qmax,
-	     stdev(stats->qsum,stats->qsum2,stats->qcount),
-	     stats->qcount);}
-
-  if (stats->rcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"read",
-	       getmean(stats->rsum,stats->rcount),stats->rmax,
-	       stdev(stats->rsum,stats->rsum2,stats->rcount),
-	       stats->rcount);
-    if (log_status>0)
-      u8_log(log_status,"FDServlet",STATUS_LINEX,src,"read",
-	     getmean(stats->rsum,stats->rcount),stats->rmax,
-	     stdev(stats->rsum,stats->rsum2,stats->rcount),
-	     stats->rcount);}
-  
-  if (stats->wcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"write",
-	       getmean(stats->wsum,stats->wcount),stats->wmax,
-	       stdev(stats->wsum,stats->wsum2,stats->wcount),
-	       stats->wcount);
-    if (log_status>0)
-      u8_log(log_status,"FDServlet",STATUS_LINEX,src,"write",
-	     getmean(stats->wsum,stats->wcount),stats->wmax,
-	     stdev(stats->wsum,stats->wsum2,stats->wcount),
-	     stats->wcount);}
-  
-  if (stats->xcount>0) {
-    u8_fprintf(logto,STATUS_LINEXN,elapsed,src,"run",
-	       getmean(stats->xsum,stats->xcount),stats->xmax,
-	       stdev(stats->xsum,stats->xsum2,stats->xcount),
-	       stats->xcount);
-    if (log_status>0)
-      u8_log(log_status,"FDServlet",STATUS_LINEX,src,"run",
-	     getmean(stats->xsum,stats->xcount),stats->xmax,
-	     stdev(stats->xsum,stats->xsum2,stats->xcount),
-	     stats->xcount);}
-}
+static int log_status=-1;
 
 static double getinterval(double usecs,char **units)
 {
@@ -614,42 +551,6 @@ static fdtype servlet_status()
 	     FD_INT2DTYPE(curstats.xcount));}
 
   return result;
-}
-
-/* Writing the PID file */
-
-static int check_pid_file()
-{
-  char buf[128];
-  u8_string pid_file=fd_runbase_filename(".pid");
-  int fd=open(pid_file,O_WRONLY|O_CREAT|O_EXCL,644), rv;
-  if (fd<0) {
-    struct stat fileinfo;
-    int rv=stat(pid_file,&fileinfo);
-    if (rv<0) {
-      u8_log(LOG_CRIT,"Can't write file",
-	     "Couldn't write file","Couldn't write PID file %s",pid_file);
-      return 0;}
-    else if ((!(ignore_leftovers))&&
-	     (((time(NULL))-(fileinfo.st_mtime))<FD_LEFTOVER_AGE)) {
-      u8_log(LOG_CRIT,"Race Condition",
-	     "Current pidfile (%s) too young to replace",
-	     pid_file);
-      return 0;}
-    else {
-      remove(pid_file);
-      fd=open(pid_file,O_WRONLY|O_CREAT|O_EXCL,644);
-      if (fd<0) {
-	u8_log(LOG_CRIT,"Couldn't write file",
-	       "Couldn't write PID file %s",pid_file);
-	return 0;}}}
-  sprintf(buf,"%d",getpid());
-  if ((u8_writeall(fd,buf,strlen(buf)))<0)
-    u8_log(LOG_CRIT,"Couldn't write file",
-	   "Couldn't write data to PID file %s",pid_file);
-  close(fd);
-  pidfile=pid_file;
-  return 1;
 }
 
 /* Document generation */
@@ -1009,7 +910,7 @@ static int webservefn(u8_client ucl)
     /* First we try to apply the error page if it's defined */
     if (FD_APPLICABLEP(errorpage)) {
       fdtype err_value=fd_init_exception(NULL,ex);
-      fdtype curdata=fd_push_reqinfo(init_cgidata);
+      fd_push_reqinfo(init_cgidata);
       fd_store(init_cgidata,error_symbol,err_value); fd_decref(err_value);
       fd_store(init_cgidata,reqdata_symbol,cgidata); fd_decref(cgidata);
       if (outstream->u8_outptr>outstream->u8_outbuf) {
@@ -1538,13 +1439,12 @@ static int start_servers()
 FD_EXPORT void fd_init_dbfile(void); 
 static int launch_servlet(u8_string socket_spec);
 static int fork_servlet(u8_string socket_spec);
-static u8_string get_socket_spec(u8_string spec);
 
 int main(int argc,char **argv)
 {
   int u8_version=u8_initialize();
   int fd_version; /* Wait to set this until we have a log file */
-  int i=1, file_socket=0;
+  int i=1;
   u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;
   char *logfile=NULL;
 
@@ -1763,20 +1663,6 @@ int main(int argc,char **argv)
     return launch_servlet(socket_spec);
   else return fork_servlet(socket_spec);
 
-}
-
-static u8_string get_socket_spec(u8_string spec)
-{
-  if (strchr(spec,':')) return u8_strdup(spec);
-  else if (strchr(spec,'@')) return u8_strdup(spec);
-  else {
-    u8_string sock_dir=((getenv("SOCKDIR"))?
-			(u8_getenv("SOCKDIR")):
-			(u8_mkpath(FD_RUN_DIR,"fdserv")));
-    u8_string base=u8_basename(spec,NULL);
-    u8_string sock_file=u8_mkpath(sock_dir,base);
-    u8_free(sock_dir); u8_free(base);
-    return sock_file;}
 }
 
 static int launch_servlet(u8_string socket_spec)
