@@ -220,19 +220,22 @@ ALL=testbin exe cmodules @TAGS@
 # Targets
 
 update: buildmode
-	@echo Building `cat buildmode` configuration
 	@make `cat buildmode`
 normal:
-	make testbin exe cmodules etc @TAGS@
+	@echo Building NORMAL configuration
+	@make testbin exe cmodules etc @TAGS@
 debugging:
-	make XCFLAGS="@debugcflags@ $(XCFLAGS)"    \
+	@echo Building DEBUGGING configuration
+	@make XCFLAGS="@debugcflags@ $(XCFLAGS)"    \
 	     XLDFLAGS="@debugldflags@ $(XLDFLAGS)" \
 	     XLIBS="@debuglibs@ $(XLIBS)"          \
 		testbin exe cmodules etc @TAGS@
 optimizing:
-	make XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
+	@echo Building OPTIMIZED configuration
+	@make XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
 nitpicking:
-	make XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
+	@echo Building NITPICKING configuration
+	@make XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
 
 all: testbin exe cmodules etc i18n @TAGS@
 
@@ -240,19 +243,15 @@ all: testbin exe cmodules etc i18n @TAGS@
 
 debug:
 	@if test $(BUILDMODE) != "debugging"; then echo debugging > buildmode; fi
-	@echo Building `cat buildmode` configuration
 	@make `cat buildmode`
 standard:
 	@if test $(BUILDMODE) != "normal"; then echo normal > buildmode; fi
-	@echo Building `cat buildmode` configuration
 	@make `cat buildmode`
 nitpick:
 	@if test $(BUILDMODE) != "nitpicking"; then echo nitpicking > buildmode; fi
-	@echo Building `cat buildmode` configuration
 	@make `cat buildmode`
 fast:
 	@if test $(BUILDMODE) != "optimizing"; then echo optimizing > buildmode; fi
-	@echo Building `cat buildmode` configuration
 	@make `cat buildmode`
 buildmode:
 	@echo normal > buildmode
@@ -503,7 +502,8 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
 		src/cmodules/sundown/sundown.c include/framerd/*.h        \
 		${SRC_HEADERS}
-	etags makefile.in configure.ac include/framerd/config.h.in      \
+	@echo Building TAGS file
+	@etags makefile.in configure.ac include/framerd/config.h.in      \
 	      tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
 	      src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
@@ -512,6 +512,7 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 
 
 SCHEMETAGS: ${SCHEME_MODULES}
+	@echo Building SCHEMETAGS file
 	@rm -f SCHEMETAGS
 	@# We skip module.scm files because they are always links
 	@#  to other files (with more distinctive names)
