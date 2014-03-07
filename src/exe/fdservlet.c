@@ -244,11 +244,11 @@ static fdtype statinterval_get(fdtype var,void *data)
 }
 
 #define STATUS_LINE_CURRENT \
-  "[%*t][%f] Currently: %d/%d/%d/%d busy/waiting/connections/threads\n"
+  "[%*t] %d/%d/%d/%d current busy/waiting/connections/threads\t\t[@%f]\n"
 #define STATUS_LINE_AGGREGATE \
-  "[%*t] Aggregate %d/%d/%d connected/requested/failed\n"
+  "[%*t] %d/%d/%d connected/requested/failed over %0.3f%s uptime\n"
 #define STATUS_LINE_TIMING \
-  "[%*t] Response: mean=%0.2fus, max=%ldus, run: mean=%0.2fus, max=%ldus\n"
+  "[%*t] Average %0.3f%s response (max=%0.3f%s), %0.3f%s run (max=%0.3f%s)\n"
 #define STATUS_LOG_SNAPSHOT \
   "[%*t][%f] %d/%d/%d/%d busy/waiting/connections/threads, %d/%d/%d reqs/resps/errs, response: %0.2fus, max=%ldus, run: %0.2fus, max=%ldus"
 #define STATUSLOG_LINE "%*t\t%f\t%d\t%d\t%d\t%d\t%0.2f\t%0.2f\n"
@@ -323,6 +323,22 @@ static void output_stats(struct U8_SERVER_STATS *stats,FILE *logto,char *src)
 	     stats->xcount);}
 }
 
+static double getinterval(double usecs,char **units)
+{
+  if (usecs>259200000000) {
+    *units="days"; return (usecs/((double)86400000000L));}
+  else if (usecs>4800000000L) {
+    *units="hours"; return (usecs/((double)3600000000L));}
+  else if (usecs>60000000) {
+    *units="min"; return (usecs/((double)60000000));}
+  else if (usecs>1000000) {
+    *units="s"; return (usecs/((double)1000000));}
+  else if (usecs>1000) {
+    *units="ms"; return (usecs/((double)1000));}
+  else {*units="us"; return usecs;}
+}
+
+
 static void update_status()
 {
   double elapsed=u8_elapsed_time();
@@ -373,21 +389,30 @@ static void update_status()
       
   if (mon>=0) {
     int written=0, len, delta=0;
+    double rmean=((stats.tcount)?
+		  (((double)(stats.tsum))/((double)(stats.tcount))):
+		  (0.0));
+    double rmax=(double)(stats.rmax);
+    double xmean=((stats.xcount)?
+		  (((double)(stats.xsum))/((double)(stats.xcount))):
+		  (0.0));
+    double xmax=(double)(stats.xmax);
+    char *rmean_units, *rmax_units, *xmean_units, *xmax_units;
+    double uptime; char *uptime_units;
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
-    u8_printf(&out,STATUS_LINE_CURRENT,elapsed,
+    u8_printf(&out,STATUS_LINE_CURRENT,
 	      fdwebserver.n_busy,fdwebserver.n_queued,
-	      fdwebserver.n_clients,fdwebserver.n_threads);
+	      fdwebserver.n_clients,fdwebserver.n_threads,
+	      elapsed);
+    uptime=getinterval(elapsed,&uptime_units);
     u8_printf(&out,STATUS_LINE_AGGREGATE,
-	      fdwebserver.n_accepted,fdwebserver.n_trans,fdwebserver.n_errs);
+	      fdwebserver.n_accepted,fdwebserver.n_trans,fdwebserver.n_errs,
+	      uptime,uptime_units);
+    rmean=getinterval(rmean,&rmean_units); rmax=getinterval(rmax,&rmax_units);
+    xmean=getinterval(xmean,&xmean_units); xmax=getinterval(xmax,&xmax_units);
     u8_printf(&out,STATUS_LINE_TIMING,
-	      ((stats.tcount)?
-	       (((double)(stats.tsum))/((double)(stats.tcount))):
-	       (0.0)),
-	       stats.tmax,
-	      ((stats.xcount)?
-	       (((double)(stats.xsum))/((double)(stats.xcount))):
-	       (0.0)),
-	      stats.xmax);
+	      rmean,rmean_units,rmax,rmax_units,
+	      xmean,xmean_units,xmax,xmax_units);
     u8_list_clients(&out,&fdwebserver);
     len=out.u8_outptr-out.u8_outbuf;
     while ((delta=write(mon,out.u8_outbuf+written,len-written))>0)
@@ -1300,8 +1325,8 @@ static int webservefn(u8_client ucl)
 static int close_webclient(u8_client ucl)
 {
   fd_webconn client=(fd_webconn)ucl;
-  u8_log(LOG_INFO,"webclient/close","Closing web client %s (0x%lx)",
-	 ucl->idstring,ucl);
+  u8_log(LOG_INFO,"webclient/close","Closing web client %s (0x%lx#%d.%d)",
+	 ucl->idstring,ucl,ucl->clientid,ucl->socket);
   fd_decref(client->cgidata); client->cgidata=FD_VOID;
   fd_dtsclose(&(client->in),2);
   u8_close((u8_stream)&(client->out));
