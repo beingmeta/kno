@@ -805,7 +805,7 @@ staging/framerd-@FDVERSION@.tar.gz: \
 	tar -czvf $@ -C staging framerd-@FDVERSION@
 staging/framerd_@FDVERSION@.orig.tar.gz: staging/framerd-@FDVERSION@
 	cd staging; tar -czvf framerd_@FDVERSION@.orig.tar.gz \
-		framerd-@FDVERSION@
+		framerd_@FDVERSION@
 
 # RPM rules
 
