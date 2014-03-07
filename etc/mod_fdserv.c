@@ -64,6 +64,25 @@
 #define LOGSOCKET APLOG_NOTICE
 #endif
 
+static void log_config(cmd_parms *parms,const char *arg)
+{
+  if (parms->path)
+    ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
+       "Config %s %s(%s)=%s",parms->server->server_hostname,
+       parms->cmd->name,parms->path,arg);
+  else ap_log_error
+      (APLOG_MARK,APLOG_DEBUG,OK,parms->server,
+       "Config %s %s=%s",parms->server->server_hostname,
+       parms->cmd->name,arg);
+}
+
+#if DEBUG_CONFIG
+#define LOG_CONFIG(p,arg) log_config(p,arg)
+#else
+#define LOG_CONFIG(p,arg) 
+#endif
+
 #define APACHE20 1
 #define APACHE13 0
 
@@ -672,6 +691,7 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
 
 static const char *using_dtblock(cmd_parms *parms,void *mconfig,const char *arg)
 {
+  LOG_CONFIG(parms,arg);
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(parms->server->module_config,&fdserv_module);
   if (!(arg))
@@ -686,6 +706,7 @@ static const char *using_dtblock(cmd_parms *parms,void *mconfig,const char *arg)
 
 static const char *servlet_keep(cmd_parms *parms,void *mconfig,const char *arg)
 {
+  LOG_CONFIG(parms,arg);
   if (parms->path) {
     struct FDSERV_DIR_CONFIG *dconfig=mconfig;
     int n_connections=atoi(arg);
@@ -700,6 +721,7 @@ static const char *servlet_keep(cmd_parms *parms,void *mconfig,const char *arg)
 
 static const char *servlet_maxconn(cmd_parms *parms,void *mconfig,const char *arg)
 {
+  LOG_CONFIG(parms,arg);
   if (parms->path) {
     struct FDSERV_DIR_CONFIG *dconfig=mconfig;
     int n_connections=atoi(arg);
@@ -721,6 +743,7 @@ static const char *servlet_executable
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(parms->server->module_config,&fdserv_module);
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
+  LOG_CONFIG(parms,arg);
   if (executable_filep(parms->pool,arg))
     if (parms->path) {
       dconfig->server_executable=arg;
@@ -737,6 +760,7 @@ static const char *servlet_wait(cmd_parms *parms,void *mconfig,const char *arg)
     ap_get_module_config(parms->server->module_config,&fdserv_module);
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
   char *end=NULL; long wait_interval=-1;
+  LOG_CONFIG(parms,arg);
   if (*arg=='\0') {
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,"Bad wait interval '%s'",arg);
     return NULL;}
@@ -758,6 +782,7 @@ static const char *servlet_spawn(cmd_parms *parms,void *mconfig,const char *arg)
     ap_get_module_config(parms->server->module_config,&fdserv_module);
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
   int spawn_wait; char *end;
+  LOG_CONFIG(parms,arg);
   if (strcasecmp(arg,"on")==0) spawn_wait=10;
   else if (strcasecmp(arg,"off")==0) spawn_wait=0;
   else if (*arg=='\0') {
@@ -781,6 +806,7 @@ static const char *servlet_spawn(cmd_parms *parms,void *mconfig,const char *arg)
 static const char *log_sync(cmd_parms *parms,void *mconfig,const char *arg)
 {
   int dosync=((*arg=='1')||(*arg=='y')||(*arg=='Y'));
+  LOG_CONFIG(parms,arg);
   if (parms->path) {
     struct FDSERV_DIR_CONFIG *dconfig=(struct FDSERV_DIR_CONFIG *)mconfig;
     dconfig->log_sync=dosync;
@@ -1754,7 +1780,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
     else i=s->n_socks;
     if (closed>=0) {
       struct FDSOCKET *sockets=s->sockets; fdsocket sock;
-      ap_log_rerror(APLOG_MARK,LOGSOCKET,OK,r,"Reopening cached %s ",
+      ap_log_rerror(APLOG_MARK,LOGSOCKET,OK,r,"Reopening %s",
 		    fdsocketinfo(&(sockets[closed]),infobuf));
       sock=servlet_open(s,&(sockets[closed]),r); s->n_busy++;
       apr_thread_mutex_unlock(s->lock);
@@ -1915,15 +1941,14 @@ static fdservlet request_servlet(request_rec *r)
   fdservlet servlet;
   int keep_socks=sconfig->keep_socks, max_socks=sconfig->max_socks;
   ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
-		"Resolving %s using servlet %s",
-		r->unparsed_uri,sockname);
+		"Resolving %s using servlet %s",r->unparsed_uri,sockname);
   servlet=get_servlet(sockname);
   if ((dconfig)&&(dconfig->keep_socks>keep_socks)) keep_socks=dconfig->keep_socks;
   if ((dconfig)&&(dconfig->max_socks>max_socks)) max_socks=dconfig->max_socks;
   /* Get valid values by using defaults.  Note that zero is a valid
      value for keep socks (no socket cache), but not for max socks.  */
   if (keep_socks<0) keep_socks=DEFAULT_KEEP_SOCKS;
-  if (max_socks<=0) keep_socks=DEFAULT_MAX_SOCKS;
+  if (max_socks<=0) max_socks=DEFAULT_MAX_SOCKS;
   if (servlet) {
 #if DEBUG_FDSERV
     ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
