@@ -1,12 +1,12 @@
 framerd (3.5.1-1) unstable; urgency=low
 
-	* Updated source type
+  * Updated source type
 
  -- Kenneth Benefiel Haase <kh@beingmeta.com>  Tue, 17 Feb 2014 19:45:00 -0400
 
 framerd (3.0.0-1) unstable; urgency=low
-	
-	* Brand new release
-	
+
+  * Brand new release
+
  -- Kenneth Benefiel Haase <kh@beingmeta.com>  Tue, 8 Nov 2010 10:52:00 -0400
 
