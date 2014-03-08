@@ -15,7 +15,8 @@
    gp/exists? gp/exists gp/modified gp/newer
    gp/path gp/mkpath gp/makepath gpath->string
    gp:config gpath/handler
-   gp/urlfetch gp/urlinfo})
+   gp/urlfetch gp/urlinfo
+   gp/copy!})
 (module-export! '{zip/gopen zip/gclose})
 
 ;;; This is a generic path facility (it grew out of the savecontent
@@ -655,3 +656,15 @@
 	    'modified (timestamp) 'length (length content)
 	    'etag (md5 content))))
 (config! 'gpath:handlers (gpath/handler 'samplegfs samplegfs-get samplegfs-save))
+
+;;;; Copying/downloads
+
+(define (gp/copy! from (to #f))
+  (let ((fetched (gp/fetch+ from))
+	(dest (if to
+		  (if (gp/location? to)
+		      (gp/mkpath to (gp/basename from))
+		      (->gpath to))
+		  (gp/mkpath (getcwd) (gp/basename from)))))
+    (gp/save! dest (get fetched 'content) (get fetched 'ctype))))
+
