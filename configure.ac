@@ -38,6 +38,7 @@ elif (test "x${prefix}" == "x/usr/local"); then
 else localstatedir="\${prefix}/var";
 fi
 
+install_modules_target="copy-modules"
 threads_default="yes"
 checkfdtype_default="no"
 shared_default="yes"
@@ -167,6 +168,7 @@ AC_SUBST(admin_group)
 AC_SUBST(admininstall)
 AC_SUBST(fdaemon)
 AC_SUBST(fdaemoninstall)
+AC_SUBST(install_modules_target)
 AC_SUBST(rundir)
 AC_SUBST(logdir)
 AC_SUBST(archflags)
@@ -234,6 +236,22 @@ AC_CHECK_USER(default_daemon,xdaemon fdaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
 
 CFLAGS="$CFLAGS -I$prefix/include"
+
+if test -h $prefix/share/framerd/standard/modules/logger.scm; then
+  devmode_default="yes";
+elif test -f $prefix/share/framerd/standard/modules/logger.scm; then
+  devmode_default="no";
+elif test -f .devmode; then
+  devmode_default="yes";
+elif test `pwd` = /src/framerd; then
+  devmode_default="yes";
+else devmode_default="no";
+fi
+
+AC_ARG_WITH(devmode,--with-devmode Special settings for development machines (e.g. linking module files),,with_devmode=$devmode_default)
+if test "x$with_devmode" = "xyes"; then
+  install_modules_target="link-modules";
+fi
 
 AC_ARG_WITH(optinclude,--with-optinclude Use optional include directory,,with_optinclude="none")
 if test $with_optinclude != "none"; then

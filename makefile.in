@@ -858,7 +858,7 @@ update-repo: dist/debs.done
 
 # Installation targets
 
-install: install-core install-cmodules @setup_target@
+install: install-core install-cmodules @install_modules_target@ @setup_target@
 install-core: confdirs workdirs @INSTALLI18N@          \
 	 install-static install-shared install-headers \
          install-exe install-scripts 
@@ -1038,6 +1038,7 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	   cp -pRf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; done
 	@cp -pRf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
 	@cp -pRf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
+install-modules: @install_modules_target@
 
 statedirs: $(DESTDIR)@rundir@/framerd $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/framerd/bugjar
 $(DESTDIR)/etc/init.d:
