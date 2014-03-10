@@ -33,6 +33,8 @@ FD_EXPORT int fd_init_sqlite(void) FD_LIBINIT_FN;
 static struct FD_EXTDB_HANDLER sqlite_handler;
 static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args);
 
+u8_exception NoSuchFile=_("No such file");
+
 typedef struct FD_SQLITE {
   FD_EXTDB_FIELDS;
 #if FD_THREADS_ENABLED
