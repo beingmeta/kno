@@ -53,10 +53,10 @@
 		(doseq (key (lexsorted (getkeys ptable) downcase))
 		  (printout key
 			    (do-choices (v (get ptable key)) (printout v)))))))
-    (hmac-sha1 (or simpledb-secret secretawskey) desc)))
+    (hmac-sha1 (or sdb-secret secretawskey) desc)))
 (define (sdb/signature0 action timestamp)
   (let ((desc (stringout action (get timestamp 'iso))))
-    (hmac-sha1 (or simpledb-secret secretawskey) desc)))
+    (hmac-sha1 (or sdb-secret secretawskey) desc)))
 
 (define (sdb/uri . params)
   (let ((timestamp (gmtimestamp 'seconds))
@@ -70,7 +70,7 @@
       (unless (test ptable (car p))
 	(store! ptable (car p) (cadr p))))
     (store! ptable "Timestamp" (get timestamp 'iso))
-    (store! ptable "AWSAccessKeyId" (or simpledb-key awskey))
+    (store! ptable "AWSAccessKeyId" (or sdb-key awskey))
     (stringout simpledb-base-uri
       (do-choices (key (getkeys ptable) i)
 	(printout (if (> i 0) "&")
