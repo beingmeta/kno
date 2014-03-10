@@ -16,6 +16,9 @@
 
 (define %loglevel %notice!)
 
+(define-init default-domain #f)
+(varconfig! simpledb:domain default-domain)
+
 (define-init sdb-key #f)
 (define-init sdb-secret #f)
 (varconfig! simpledb:key sdb-key)
@@ -87,6 +90,7 @@
     (%debug "Fetching XML for " uri)
     (let* ((response (urlget uri))
 	   (content (get response '%content)))
+      (%debug "Fetched XML for " uri " was " response)
       (if (test response 'content-type)
 	  (xmlparse content 'data)
 	  (if (packet? content)
@@ -115,7 +119,7 @@
 	      ((has-prefix string "!E") (fail))
 	      ((has-prefix string "!i") (string->number (slice string 2)))
 	      ((has-prefix string "!I") (- (string->number (slice string 2))))
-	      ((has-prefix string "!:") (parse-arg (slice string 2)))
+	      ((has-prefix string "!:") (string->lisp (slice string 2)))
 	      ((has-prefix string "!#") (elts (jsonparse (slice string 2))))
 	      ((has-prefix string "!C") (elts (jsonparse (slice string 2))))
 	      ((has-prefix string "!$")
@@ -209,7 +213,7 @@
 	 (result (get (get (xmlget xml 'getattributesresponse)
 			   'getattributesresult)
 		      'attribute)))
-    (debug%watch result xml)
+    (debug%watch "SDB/FETCH" result xml)
     (if key
 	(if raw
 	    (get (pick result 'name key) 'value)
@@ -286,13 +290,16 @@
 	  (warning "Error accessing SIMPLEDB for " item ": " ex)
 	  (fail)))))
 
-(defambda (sdb/get item slotid (domain default-domain))
+(defambda (sdb/get item slotid (domain (req/get '_simpledb:domain default-domain)))
   "Gets values from an attribute of an item, using/updating a local cache"
   (get (sdb/cached item domain) slotid))
 
-(defambda (sdb/add! item slotid values (domain default-domain))
+(defambda (sdb/add! item slotid values (domain (req/get '_simpledb:domain default-domain)))
   "Adds values to an attribute of an item, updating a local cache"
   (do-choices item
+    (when (pair? item)
+      (set! domain (car item))
+      (set! item (cdr item)))
     (let ((cache (sdb/cached item domain)))
       (do-choices slotid
 	(let ((toadd (difference values (get cache slotid))))
@@ -300,9 +307,12 @@
 	  (add! cache slotid toadd)
 	  (sdb/addvalues domain item slotid toadd))))))
 
-(defambda (sdb/drop! item slotid (values #f) (domain default-domain))
+(defambda (sdb/drop! item slotid (values #f) (domain (req/get '_simpledb:domain default-domain)))
   "Removes values from an attribute of an item, updating a local cache"
   (do-choices item
+    (when (pair? item)
+      (set! domain (car item))
+      (set! item (cdr item)))
     (let ((cache (sdb/cached item domain)))
       (do-choices slotid
 	(let ((todrop (if (and (bound? values)
