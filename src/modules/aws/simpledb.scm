@@ -277,50 +277,79 @@
 
 ;;; Using an item cache
 
-(define sdb-cache (make-hashtable))
+(define-init sdb-cache (make-hashtable))
 (define default-domain "default")
 
-(define (sdb/cached item (domain default-domain))
-  (try (get sdb-cache item)
+(define (sdb/cached? item (domain (req/get '_simpledb default-domain)))
+  (test sdb-cache (vector item domain)))
+
+(define (sdb/cached item (domain (req/get '_simpledb default-domain)))
+  (try (get sdb-cache (vector item domain))
        (onerror
 	(let ((fetched (sdb/fetch domain item)))
-	  (store! sdb-cache item fetched)
+	  (store! sdb-cache (vector item domain) fetched)
 	  fetched)
 	(lambda (ex)
-	  (warning "Error accessing SIMPLEDB for " item ": " ex)
+	  (warning "Error accessing SIMPLEDB " domain
+		   " for " item ": " ex)
 	  (fail)))))
 
-(defambda (sdb/get item slotid (domain (req/get '_simpledb:domain default-domain)))
+(defambda (sdb/get item (slotid #f)
+		   (domain (req/get '_simpledb default-domain)))
   "Gets values from an attribute of an item, using/updating a local cache"
-  (get (sdb/cached item domain) slotid))
+  (if (pair? item)
+      (begin (set! domain (cdr item))
+	(set! item (car item)))
+      (if (and (table? item) (test item 'id) (test item 'domain))
+	  (begin (set! domain (get item 'domain))
+	    (set! id (get item 'id)))))
+  (if slotid
+      (get (sdb/cached item domain) slotid)
+      (sdb/cached item domain)))
 
-(defambda (sdb/add! item slotid values (domain (req/get '_simpledb:domain default-domain)))
+(defambda (sdb/add! item slotid values
+		    (dom (req/get '_simpledb default-domain)))
   "Adds values to an attribute of an item, updating a local cache"
   (do-choices item
-    (when (pair? item)
-      (set! domain (car item))
-      (set! item (cdr item)))
-    (let ((cache (sdb/cached item domain)))
-      (do-choices slotid
-	(let ((toadd (difference values (get cache slotid))))
-	  (message "Adding " toadd " to " (write slotid) " of " item)
-	  (add! cache slotid toadd)
-	  (sdb/addvalues domain item slotid toadd))))))
+    (let ((domain dom))
+      (if (pair? item)
+	  (begin (set! domain (cdr item))
+	    (set! item (car item)))
+	  (if (and (table? item) (test item 'id) (test item 'domain))
+	      (begin (set! domain (get item 'domain))
+		(set! id (get item 'id)))))
+      (if (sdb/cached? item domain)
+	  (let ((cache (try (get sdb-cache (vector item domain))
+			    (sdb/cached item domain))))
+	    (do-choices slotid
+	      (let ((toadd (difference values (get cache slotid))))
+		(loginfo "Adding " toadd " to " (write slotid) " of " item)
+		(add! cache slotid toadd)
+		(sdb/addvalues domain item slotid toadd))))
+	  (sdb/addvalues domain item slotid values)))))
 
-(defambda (sdb/drop! item slotid (values #f) (domain (req/get '_simpledb:domain default-domain)))
+(defambda (sdb/drop! item slotid (values #f)
+		     (dom (req/get '_simpledb default-domain)))
   "Removes values from an attribute of an item, updating a local cache"
   (do-choices item
-    (when (pair? item)
-      (set! domain (car item))
-      (set! item (cdr item)))
-    (let ((cache (sdb/cached item domain)))
-      (do-choices slotid
-	(let ((todrop (if (and (bound? values)
-			       (or (fail? values) values))
-			  (intersection (get cache slotid) values)
-			  (get cache slotid))))
-	  (drop! cache slotid todrop)
-	  (sdb/dropvalues domain item slotid todrop))))))
+    (let ((domain dom))
+      (if (pair? item)
+	  (begin (set! domain (cdr item))
+	    (set! item (car item)))
+	  (if (and (table? item) (test item 'id) (test item 'domain))
+	      (begin (set! domain (get item 'domain))
+		(set! id (get item 'id)))))
+      (if (sdb/cached? item domain)
+	  (let ((cache (try (get sdb-cache (vector item domain))
+			    (sdb/cached item domain))))
+	    (do-choices slotid
+	      (let ((todrop (if (and (bound? values)
+				     (or (fail? values) values))
+				(intersection (get cache slotid) values)
+				(get cache slotid))))
+		(drop! cache slotid todrop)
+		(sdb/dropvalues domain item slotid todrop))))
+	  (sdb/dropvalues domain item slotid values)))))
 
 ;;;; Operations on domains
 
