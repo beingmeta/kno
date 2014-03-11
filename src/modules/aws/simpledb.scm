@@ -7,8 +7,11 @@
 
 (module-export! '{sdb/signature sdb/uri sdb/op sdb/opxml})
 (module-export! '{lisp->sdb sdb->lisp})
-(module-export! '{sdb/put sdb/fetch sdb/addvalues sdb/dropvalues})
-(module-export! '{sdb/cached sdb/get sdb/add! sdb/drop!})
+(module-export! '{sdb/put sdb/fetch
+		  sdb/addvalues sdb/dropvalues sdb/setvalues})
+(module-export! '{sdb/cached? sdb/cached sdb/exists?})
+(module-export! '{sdb/create sdb/probe sdb/defined?
+		  sdb/get sdb/add! sdb/drop! sdb/set!})
 (module-export! '{sdb/domains sdb/domains/new
 		  sdb/domain/info sdb/domain/drop!})
 
@@ -133,15 +136,6 @@
       string))
 (define sdb/tolisp sdb->lisp)
 
-(define (sdb->lisp/table v)
-  (let ((result #[]) (keyval #f))
-    (do-choices (key (getkeys v))
-      (set! keyval (get v key))
-      (if (vector? keyval)
-	  (add! result (sdb->lisp key) (sdb->lisp (elts keyval)))
-	  (add! result (sdb->lisp key) (sdb->lisp keyval))))
-    result))
-
 (defambda (lisp->sdb object (json use-json) (padlen 0))
   (cond ((fail? object) "!E")
 	((ambiguous? object)
@@ -176,15 +170,24 @@
 			   (stringout "!:" (write object))))))))
 (define sdb/fromlisp lisp->sdb)
 
+;;;; Converting tables
+
+(define (sdb->lisp/table v)
+  (let ((result #[]) (keyval #f))
+    (do-choices (key (getkeys v))
+      (set! keyval (get v key))
+      (if (vector? keyval)
+	  (add! result (sdb->lisp key) (sdb->lisp (elts keyval)))
+	  (add! result (sdb->lisp key) (sdb->lisp keyval))))
+    result))
+
 (define (lisp->sdb/table v)
   (let ((result #[]))
     (do-choices (key (getkeys v))
       (store! result (sdb->lisp key) (sdb->lisp (get v key))))
     result))
 
-;;; PUT/GET/ETC
-;;; We convert items and attributes using FramerD's parse-arg/unparse-arg
-;;; We convert values using the tolisp/fromlisp procedures defined above
+;;;; Low level PUT/FETCH/ETC
 
 (define (sdb/put domain item . keyvals)
   (let ((ptable (get-ptable keyvals)))
@@ -243,6 +246,24 @@
 	(%debug "Doing PutAttributes on " ptable)
 	(sdb/op "PutAttributes" ptable)))))
 
+(defambda (sdb/setvalues domain item slotids values)
+  (when (and (exists? slotids) (exists? values))
+    (do-choices item
+      (let ((ptable `#["DomainName" ,domain
+		       "ItemName" ,(unparse-arg item)])
+	    (count 0))
+	(do-choices (key (lisp->sdb slotids))
+	  (do-choices (value (lisp->sdb values))
+	    (store! ptable (stringout "Attribute." count ".Name")
+		    key)
+	    (store! ptable (stringout "Attribute." count ".Value")
+		    value)
+	    (store! ptable (stringout "Attribute." count ".Replace")
+		    "true")
+	    (set! count (1+ count))))
+	(%debug "Doing PutAttributes/replace on " ptable)
+	(sdb/op "PutAttributes" ptable)))))
+
 (defambda (sdb/dropvalues domain item slotids values)
   (when (and (exists? slotids) (exists? values))
     (do-choices item
@@ -259,6 +280,7 @@
 	(%debug "Doing DeleteAttributes on " ptable)
 	(sdb/op "DeleteAttributes" ptable)))))
 
+;;;; Domain Metadata
 
 (define (sdb/domain/info name)
   (let* ((result (just-result (sdb/opxml "DomainMetadata" "DomainName" name)))
@@ -294,6 +316,71 @@
 		   " for " item ": " ex)
 	  (fail)))))
 
+(define (sdb/exists? item (domain (req/get '_simpledb default-domain)))
+  (if (pair? item)
+      (begin (set! domain (cdr item))
+	(set! item (car item)))
+      (if (and (table? item) (test item 'id) (test item 'domain))
+	  (begin (set! domain (get item 'domain))
+	    (set! item (get item 'id)))))
+  (exists? (getkeys (sdb/fetch domain item))))
+
+;;; CREATE
+
+(define (sdb/create item (domain (req/get '_simpledb default-domain)))
+  (if (pair? item)
+      (begin (set! domain (cdr item))
+	(set! item (car item)))
+      (if (and (table? item) (test item 'id) (test item 'domain))
+	  (begin (set! domain (get item 'domain))
+	    (set! item (get item 'id)))))
+  (try (get sdb-cache (vector item domain))
+       (sdb/cache-create item domain)))
+
+(define sdb/cache-create
+  (slambda (item domain)
+    (try (get sdb-cache (vector item domain))
+	 (let ((fetched (sdb/fetch domain item)))
+	   (if (and (exists? fetched)
+		    (test fetched 'id item)
+		    (test fetched 'domain domain))
+	       fetched
+	       (let ((fresh (frame-create #f 'id item 'domain domain)))
+		 (sdb/setvalues domain item 'id item)
+		 (sdb/setvalues domain item 'domain domain)
+		 (store! sdb-cache (vector item domain) fresh)
+		 fresh))))))
+
+(define (sdb/probe item (domain (req/get '_simpledb default-domain)))
+  (if (pair? item)
+      (begin (set! domain (cdr item))
+	(set! item (car item)))
+      (if (and (table? item) (test item 'id) (test item 'domain))
+	  (begin (set! domain (get item 'domain))
+	    (set! item (get item 'id)))))
+  (let ((fetched (try (get sdb-cache (vector item domain))
+		      (sdb/fetch domain item))))
+    (if (and (exists? fetched)
+	     (test fetched 'id item)
+	     (test fetched 'domain domain))
+	fetched
+	(fail))))
+
+(define (sdb/defined? item (domain (req/get '_simpledb default-domain)))
+  (if (pair? item)
+      (begin (set! domain (cdr item))
+	(set! item (car item)))
+      (if (and (table? item) (test item 'id) (test item 'domain))
+	  (begin (set! domain (get item 'domain))
+	    (set! item (get item 'id)))))
+  (or (and (test sdb-cache (vector item domain))
+	   (test (get sdb-cache (vector item domain)) 'id item)
+	   (test (get sdb-cache (vector item domain)) 'domain domain))
+      (and (exists? (sdb/fetch domain item 'id))
+	   (exists? (sdb/fetch domain item 'domain)))))
+
+;;; GET/ADD/DROP/etc
+
 (defambda (sdb/get item (slotid #f)
 		   (domain (req/get '_simpledb default-domain)))
   "Gets values from an attribute of an item, using/updating a local cache"
@@ -302,7 +389,7 @@
 	(set! item (car item)))
       (if (and (table? item) (test item 'id) (test item 'domain))
 	  (begin (set! domain (get item 'domain))
-	    (set! id (get item 'id)))))
+	    (set! item (get item 'id)))))
   (if slotid
       (get (sdb/cached item domain) slotid)
       (sdb/cached item domain)))
@@ -311,45 +398,71 @@
 		    (dom (req/get '_simpledb default-domain)))
   "Adds values to an attribute of an item, updating a local cache"
   (do-choices item
-    (let ((domain dom))
+    (let ((domain dom) (id item))
       (if (pair? item)
 	  (begin (set! domain (cdr item))
-	    (set! item (car item)))
+	    (set! id (car item)))
 	  (if (and (table? item) (test item 'id) (test item 'domain))
 	      (begin (set! domain (get item 'domain))
 		(set! id (get item 'id)))))
-      (if (sdb/cached? item domain)
-	  (let ((cache (try (get sdb-cache (vector item domain))
-			    (sdb/cached item domain))))
+      (if (sdb/cached? id domain)
+	  (let ((cache (try (get sdb-cache (vector id domain))
+			    (sdb/cached id domain))))
 	    (do-choices slotid
 	      (let ((toadd (difference values (get cache slotid))))
 		(loginfo "Adding " toadd " to " (write slotid) " of " item)
 		(add! cache slotid toadd)
-		(sdb/addvalues domain item slotid toadd))))
-	  (sdb/addvalues domain item slotid values)))))
+		(when (slotmap? item) (add! item slotid toadd))
+		(sdb/addvalues domain id slotid toadd))))
+	  (begin (sdb/addvalues domain id slotid values)
+	    (when (slotmap? item) (store! item slotid values)))))))
 
 (defambda (sdb/drop! item slotid (values #f)
 		     (dom (req/get '_simpledb default-domain)))
   "Removes values from an attribute of an item, updating a local cache"
   (do-choices item
-    (let ((domain dom))
+    (let ((domain dom) (id item))
       (if (pair? item)
 	  (begin (set! domain (cdr item))
-	    (set! item (car item)))
+	    (set! id (car item)))
 	  (if (and (table? item) (test item 'id) (test item 'domain))
 	      (begin (set! domain (get item 'domain))
 		(set! id (get item 'id)))))
-      (if (sdb/cached? item domain)
-	  (let ((cache (try (get sdb-cache (vector item domain))
-			    (sdb/cached item domain))))
+      (if (sdb/cached? id domain)
+	  (let ((cache (try (get sdb-cache (vector id domain))
+			    (sdb/cached id domain))))
 	    (do-choices slotid
 	      (let ((todrop (if (and (bound? values)
 				     (or (fail? values) values))
 				(intersection (get cache slotid) values)
 				(get cache slotid))))
 		(drop! cache slotid todrop)
-		(sdb/dropvalues domain item slotid todrop))))
-	  (sdb/dropvalues domain item slotid values)))))
+		(when (slotmap? item) (drop! item slotid todrop))
+		(sdb/dropvalues domain id slotid todrop))))
+	  (begin (sdb/dropvalues domain id slotid values)
+	    (when (slotmap? item) (drop! item slotid values)))))))
+
+(defambda (sdb/set! item slotid values
+		    (dom (req/get '_simpledb default-domain)))
+  "Adds values to an attribute of an item, updating a local cache"
+  (do-choices item
+    (let ((domain dom) (id item))
+      (if (pair? item)
+	  (begin (set! domain (cdr item))
+	    (set! id (car item)))
+	  (if (and (table? item) (test item 'id) (test item 'domain))
+	      (begin (set! domain (get item 'domain))
+		(set! id (get item 'id)))))
+      (if (sdb/cached? id domain)
+	  (let ((cached (try (get sdb-cache (vector id domain))
+			     (sdb/cached id domain))))
+	    (do-choices slotid
+	      (store! cached slotid values)
+	      (when (slotmap? item) (add! item slotid values))
+	      (sdb/setvalues domain id slotid values)))
+	  (begin (sdb/setvalues domain id slotid values)
+	    (when (slotmap? item) (store! item slotid values)))))))
+(define sdb/store! sdb/set!)
 
 ;;;; Operations on domains
 
