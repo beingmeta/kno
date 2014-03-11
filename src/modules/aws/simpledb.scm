@@ -8,7 +8,7 @@
 (module-export! '{sdb/signature sdb/uri sdb/op sdb/opxml})
 (module-export! '{lisp->sdb sdb->lisp})
 (module-export! '{sdb/put sdb/fetch sdb/addvalues sdb/dropvalues})
-(module-export! '{sdb/get sdb/add! sdb/drop!})
+(module-export! '{sdb/cached sdb/get sdb/add! sdb/drop!})
 (module-export! '{sdb/domains sdb/domains/new
 		  sdb/domain/info sdb/domain/drop!})
 
