@@ -94,6 +94,7 @@ INSTALLI18N=""
 WWWUSER="apache"
 apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
+apache_log_dir="/var/log/apache"
 apache_modinfo="/etc/apache2"
 APXS_FLAGS=
 A2EN="none"
@@ -115,6 +116,8 @@ TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$prefix/etc/framerd"
 rundir="${localstatedir}/run"
 logdir="${localstatedir}/log"
+framerd_log_dir="${localstatedir}/log/framerd"
+fdserv_log_dir="${localstatedir}/log/fdserv"
 archflags=""
 with_mysql_default="yes"
 with_crypto_default="yes"
@@ -159,6 +162,7 @@ AC_SUBST(standard_module_dir)
 AC_SUBST(config_dir)
 AC_SUBST(local_config)
 AC_SUBST(shared_config)
+AC_SUBST(apache_log_dir)
 AC_SUBST(apache_modules_dir)
 AC_SUBST(apache_conf_dir)
 AC_SUBST(apache_modinfo)
@@ -171,6 +175,8 @@ AC_SUBST(fdaemoninstall)
 AC_SUBST(install_modules_target)
 AC_SUBST(rundir)
 AC_SUBST(logdir)
+AC_SUBST(framerd_log_dir)
+AC_SUBST(fdserv_log_dir)
 AC_SUBST(archflags)
 AC_SUBST(versionsh)
 AC_SUBST(definefileinfo)
@@ -334,6 +340,44 @@ else
    webuser=$default_webuser
    wwwinstall=""
 fi
+
+if test -d ${apache_conf_dir}/log; then
+   if test -h ${apache_conf_dir}/log; then
+     apache_log_dir=$(readlink ${apache_conf_dir}/log);
+   else apache_log_dir=${apache_conf_dir}/log;
+   fi
+elif test -d ${apache_conf_dir}/logs; then
+   if test -h ${apache_conf_dir}/logs; then
+     apache_log_dir=$(readlink ${apache_conf_dir}/logs);
+   else apache_log_dir=${apache_conf_dir}/logs;
+   fi
+elif test -d ${local_state_dir}/logs/apache; then
+    apache_log_dir=${local_state_dir}/logs/apache;
+elif test -d ${local_state_dir}/logs/apache2; then
+    apache_log_dir=${local_state_dir}/logs/apache2;
+elif test -d ${local_state_dir}/logs/httpd; then
+    apache_log_dir=${local_state_dir}/logs/httpd;
+elif test -d ${local_state_dir}/logs/http; then
+    apache_log_dir=${local_state_dir}/logs/http;
+elif test -d /var/log/apache; then
+    apache_log_dir=/var/log/apache;
+elif test -d /var/logs/apache2; then
+    apache_log_dir=/var/log/apache2;
+elif test -d /var/log/httpd; then
+    apache_log_dir=/var/log/httpd;
+elif test -d /var/log/http; then
+    apache_log_dir=/var/log/http;
+elif test -d /usr/log/apache; then
+    apache_log_dir=/usr/log/apache;
+elif test -d /usr/logs/apache2; then
+     apache_log_dir=/usr/log/apache2;
+elif test -d /usr/log/httpd; then
+    apache_log_dir=/usr/log/httpd;
+elif test -d /usr/log/http; then
+    apache_log_dir=/usr/log/http;
+else echo "Can't find Apache log dir for apache, using ${apache_log_dir}";
+fi;
+
 
 if test ! -z $APXS; then
   apache_conf_dir=`$APXS -q SYSCONFDIR`

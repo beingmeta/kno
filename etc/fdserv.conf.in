@@ -4,5 +4,5 @@
 	FDServletUser @webuser@
 	FDServletGroup @admin_group@
 	FDServletPrefix @rundir@/fdserv
-	FDServletLogPrefix @logdir@/fdserv
+	FDServletLogPrefix @fdserv_log_dir@
 </IfModule>
