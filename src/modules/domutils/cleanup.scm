@@ -19,7 +19,10 @@
    dom/mergenbsp})
 
 (module-export! '{dom/cleanup/mergelines dom/cleanup/unipunct
-		  dom/cleanup/mergelines+unipunct})
+		  dom/cleanup/mergelines+unipunct
+		  dom/cleanup/roundpixels
+		  dom/cleanup/relfontsizes
+		  dom/cleanup/fixfontsizes})
 
 ;;; Fixing punctuation to be prettier
 
@@ -177,7 +180,7 @@
 (define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
 
 (define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f)
-		      (cleanstyles #f))
+		      (cleanattribs #f))
   (logdetail "Cleanup " (dom/eltref node))
   (if (test node '%content)
       (let ((vec (->vector (get node '%content)))
@@ -190,11 +193,15 @@
 	    (strings '())
 	    (merged '()))
 	(when (test node '%xmltag 'font) (fix-font-node node))
-	(when (and cleanstyles (test node 'style))
+	(when (and cleanattribs (test node 'style))
 	  (dom/set! node 'style
 		    (if (eq? cleanstyles #t)
 			(dom/normstyle (get node 'style))
 			(dom/normstyle (get node 'style) cleanstyles)))
+	  (when (empty-string? (get node 'style))
+	    (dom/drop! node 'style)))
+	(when (and cleanattribs (test node 'class))
+	  (dom/set! node 'class (stdspace (get node 'class)))
 	  (when (empty-string? (get node 'style))
 	    (dom/drop! node 'style)))
 	(doseq (child vec)
@@ -203,7 +210,7 @@
 		(else
 		 (set! child
 		       (dom/cleanup! child textfn
-				     (qc dropfn) dropempty (qc cleanstyles)))
+				     (qc dropfn) dropempty (qc cleanattribs)))
 		 (when (and dropempty isblock
 			    (test child '%content)
 			    (or (null? (get child '%content))
@@ -323,7 +330,16 @@
     classdefs))
 
 
-;;; Fix font styles
+;;; Rounding pixel/point values 
+
+(define (round-value string)
+  (round (string->number string)))
+
+(define dom/cleanup/roundpixels
+  `#((bow)
+     (subst #((opt (isdigit+)) (subst "." "") (subst (isdigit+) ""))
+	    ,round-value)
+     {"px" "pt"}))
 
 ;;; Fixing CSS font sizes
 
@@ -344,7 +360,7 @@
 (define (xform-font-size s)
   (try (fix-font-size s) s))
 
-(define dom/cleanup/fixfontsizes
+(define dom/cleanup/relfontsizes
   `(ic #({(spaces) "{"} "font-size:" (spaces*)
 	 (subst {"small" "x-small" "xx-small"
 		 "large" "x-large" "xx-large" "medium"
@@ -352,6 +368,7 @@
 		 #((isdigit+) "." (isdigit+) "px")}
 		,xform-font-size)
 	 (not> ";") ";")))
+(define dom/cleanup/fixfontsizes dom/cleanup/relfontsizes)
 
-(module-export! '{dom/cleanup/fixfontsizes})
+
 
