@@ -19,10 +19,7 @@
    dom/mergenbsp})
 
 (module-export! '{dom/cleanup/mergelines dom/cleanup/unipunct
-		  dom/cleanup/mergelines+unipunct
-		  dom/cleanup/roundpixels
-		  dom/cleanup/relfontsizes
-		  dom/cleanup/fixfontsizes})
+		  dom/cleanup/mergelines+unipunct})
 
 ;;; Fixing punctuation to be prettier
 
@@ -180,8 +177,9 @@
 (define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
 
 (define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f)
-		      (cleanattribs #f))
+		      (classrules #f) (stylerules #f))
   (logdetail "Cleanup " (dom/eltref node))
+  (if (eq? cleanstyles #t) (set! cleanattribs default-style-rules))
   (if (test node '%content)
       (let ((vec (->vector (get node '%content)))
 	    (newfn (and textfn
@@ -193,24 +191,27 @@
 	    (strings '())
 	    (merged '()))
 	(when (test node '%xmltag 'font) (fix-font-node node))
-	(when (and cleanattribs (test node 'style))
+	(when (and classrules (test node 'class))
+	  (dom/set! node 'class
+		    (if (eq? classrules #t)
+			(stdspace (get node 'class))
+			(stdspace (textsubst (get node 'class)
+					     (qc classrules)))))
+	  (when (empty-string? (get node 'style)) (dom/drop! node 'style)))
+	(when (and styleulres (test node 'style))
 	  (dom/set! node 'style
-		    (if (eq? cleanstyles #t)
-			(dom/normstyle (get node 'style))
-			(dom/normstyle (get node 'style) cleanstyles)))
-	  (when (empty-string? (get node 'style))
-	    (dom/drop! node 'style)))
-	(when (and cleanattribs (test node 'class))
-	  (dom/set! node 'class (stdspace (get node 'class)))
-	  (when (empty-string? (get node 'style))
-	    (dom/drop! node 'style)))
+		    (dom/normstyle (get node 'style) (qc stylerules)))
+	  (when (empty-string? (get node 'style)) (dom/drop! node 'style)))
 	(doseq (child vec)
 	  (cond ((string? child)
-		 (unless (= (length child) 0) (set! strings (cons child strings))))
+		 (unless (= (length child) 0)
+		   (set! strings (cons child strings))))
 		(else
 		 (set! child
 		       (dom/cleanup! child textfn
-				     (qc dropfn) dropempty (qc cleanattribs)))
+				     (qc dropfn) dropempty
+				     (qc classrules)
+				     (qc stylerules)))
 		 (when (and dropempty isblock
 			    (test child '%content)
 			    (or (null? (get child '%content))
@@ -309,15 +310,12 @@
 
 ;;; Style cleanup functions
 
-(define default-style-rules css/dropdecimals)
-
-(define (dom/mergestyles!
-	 dom (stylerules default-style-rules)
-	 (classdefs (make-hashtable))
-	 (stylemap (make-hashtable))
-	 (prefix "fd__autostyle"))
+(define (dom/mergestyles! dom 
+			  (classdefs (make-hashtable))
+			  (stylemap (make-hashtable))
+			  (prefix "fd__autostyle"))
   (let ((stylecount (try (get classdefs '%count) 1)))
-    (dom/gather-styles! dom stylemap (qc stylerules))
+    (dom/gather-styles! dom stylemap)
     (doseq (style (rsorted (getkeys stylemap)
 			   (lambda (s) (choice-size (get stylemap s)))))
       (let ((classname (glom prefix stylecount)))
@@ -328,47 +326,3 @@
 	  (dom/drop! node 'style))))
     (store! classdefs '%count stylecount)
     classdefs))
-
-
-;;; Rounding pixel/point values 
-
-(define (round-value string)
-  (round (string->number string)))
-
-(define dom/cleanup/roundpixels
-  `#((bow)
-     (subst #((opt (isdigit+)) (subst "." "") (subst (isdigit+) ""))
-	    ,round-value)
-     {"px" "pt"}))
-
-;;; Fixing CSS font sizes
-
-(define named-sizes
-  #["medium" "1.0em"
-    "large" "1.2em" "x-large" "1.5em" "xx-large" "1.8em"
-    "small" "0.8em" "x-small" "0.6em" "xx-small" "0.45em" ])
-
-(define (fix-font-size s)
-  (try (get named-sizes s)
-       (tryif (has-suffix s "px")
-	 (glom (inexact->string  (/ (string->number (slice s 0 -2)) 16.0) 2)
-	   "em"))
-       (tryif (has-suffix s "pt")
-	 (glom (inexact->string (/ (string->number (slice s 0 -2)) 12.0) 2)
-	   "em"))))
-
-(define (xform-font-size s)
-  (try (fix-font-size s) s))
-
-(define dom/cleanup/relfontsizes
-  `(ic #({(spaces) "{"} "font-size:" (spaces*)
-	 (subst {"small" "x-small" "xx-small"
-		 "large" "x-large" "xx-large" "medium"
-		 #((isdigit+) {"px" "pt"})
-		 #((isdigit+) "." (isdigit+) "px")}
-		,xform-font-size)
-	 (not> ";") ";")))
-(define dom/cleanup/fixfontsizes dom/cleanup/relfontsizes)
-
-
-
