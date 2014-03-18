@@ -579,8 +579,6 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
     fd_add_content(node,fd_extract_string(NULL,s,s+len));
   else {
     u8_byte *start=s, *scan=strchr(s,'&'), *lim=s+len;
-    if (scan>start)
-      fd_add_content(node,fd_extract_string(NULL,start,scan));
     while ((scan)&&(scan<lim)) {
       /* Definitely a character entity */
       if (scan[1]=='#') scan=strchr(scan+1,'&');
