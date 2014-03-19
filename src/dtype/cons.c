@@ -810,7 +810,9 @@ FD_EXPORT fdtype fd_make_exception
 static void recycle_exception(struct FD_CONS *c)
 {
   struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)c;
-  if (exo->ex) u8_free_exception(exo->ex,1);
+  if (exo->ex) {
+    u8_free_exception(exo->ex,1);
+    exo->ex=NULL;}
   u8_free(exo);
 }
 
