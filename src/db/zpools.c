@@ -282,11 +282,11 @@ static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
   struct FD_BYTE_OUTPUT out;
   out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
   if (fd_write_dtype(&out,x)<0) {
-    u8_free(out.ptr);
+    u8_free(out.start);
     return FD_ERROR_VALUE;}
   zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
   if (zlen<0) {
-    u8_free(out.ptr);
+    u8_free(out.start);
     return FD_ERROR_VALUE;}
   size=fd_dtswrite_zint(s,zlen); size=size+zlen;
   if (fd_dtswrite_bytes(s,zbytes,zlen)<0) size=-1;
