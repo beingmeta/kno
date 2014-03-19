@@ -52,6 +52,7 @@
    #({"5" "6" "7" "8" "9"} (subst #("." (isdigit+)) "") "pt")
    #((subst "0.00" "0") {"pt" "px"})})
 (define css/dropdecimals css/roundpixels)
+(config! 'dom:cleanup:rules (cons 'css/roundpixels css/roundpixels))
 
 (define css-rule
   #({(bos) ";"} (spaces*)
@@ -85,3 +86,4 @@
 		 #((isdigit+) "." (isdigit+) "px")}
 		,xform-font-size)
 	 (not> ";") ";")))
+(config! 'dom:cleanup:rules css/relfonts)

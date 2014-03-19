@@ -27,6 +27,19 @@
 (define default-style-rules {})
 (define default-class-rules {})
 
+(define dom-cleanup-rules #[])
+(config-def! 'dom:cleanup:rules
+	     (lambda (var (val))
+	       (if (bound? val)
+		   (if (pair? val)
+		       (store! dom-cleanup-rules (car val) (cdr val))
+		       (if (and (procedure? val) (procedure-name val))
+			   (store! dom-cleanup-rules
+				   (string->symbol (procedure-name val))
+				   val)
+			   (error "Invalid cleanup rule")))
+		   dom-cleanup-rules)))
+
 ;;; Fixing punctuation to be prettier
 
 (define (wrapdash string) (glom "&nbsp;" string " "))
@@ -182,8 +195,7 @@
   '{DIV P SECTION ASIDE DETAIL FIGURE BLOCKQUOTE UL OL HEAD BODY DL})
 (define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
 
-(define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f)
-		      (classrules #f) (stylerules #f))
+(define (cleanup! node textfn dropfn dropempty classrules stylerules)
   (logdetail "Cleanup " (dom/eltref node))
   (if (eq? stylerules #t) (set! stylerules default-style-rules))
   (if (eq? classrules #t) (set! classrules default-class-rules))
@@ -215,10 +227,10 @@
 		   (set! strings (cons child strings))))
 		(else
 		 (set! child
-		       (dom/cleanup! child textfn
-				     (qc dropfn) dropempty
-				     (qc classrules)
-				     (qc stylerules)))
+		       (cleanup! child textfn
+				 (qc dropfn) dropempty
+				 (qc classrules)
+				 (qc stylerules)))
 		 (when (and dropempty isblock
 			    (test child '%content)
 			    (or (null? (get child '%content))
@@ -263,6 +275,16 @@
 	    merged
 	    node))
       node))
+
+(define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f)
+		      (classrules #f) (stylerules #f))
+  (cleanup! node textfn dropfn dropempty
+	    (and classrules
+		 (qc (get dom-cleanup-rules (pick classrules symbol?))
+		     (reject classrules symbol?)))
+	    (and stylerules
+		 (qc (get dom-cleanup-rules (pick stylerules symbol?))
+		     (reject stylerules symbol?)))))
 
 (define (reverser e (result '()))
   ;; This reverses e and also insures that blocks are preceded
