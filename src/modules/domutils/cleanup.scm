@@ -334,6 +334,41 @@
     (store! classdefs '%count stylecount)
     classdefs))
 
+;;; Identifying empty nodes
+
+(define (empty-text? x)
+  (and (string? x) (empty-string? (decode-entities x))))
+
+(define (empty-node? x)
+  (or (and (string? x) (empty-string? (decode-entities x)))
+      (and (not (string? x))
+	   (every? empty-text? (get x '%content)))))
+
+;;;; Merging text (strings) in bodies
+
+(define (merge-text in) (merge-strings #f in '()))
+
+(define (merge-strings cur in out)
+  (if (null? in)
+      (if (empty-string? cur)
+	  (reverse (if cur (cons (fix-whitespace cur) out) out))
+	  (reverse (if cur (cons cur out) out)))
+      (if (string? (car in))
+	  (if cur
+	      (merge-strings (glom cur (car in)) (cdr in) out)
+	      (merge-strings (car in) (cdr in) out))
+	  (if cur
+	      (if (empty-string? cur)
+		  (merge-strings #f (cdr in)
+				 (cons* (car in) (fix-whitespace cur) out))
+		  (merge-strings #f (cdr in) (cons* (car in) cur out)))
+	      (merge-strings #f (cdr in) (cons (car in) out))))))
+
+(define (fix-whitespace s)
+  (if (= (length s) 0) s
+      (if (position #\newline s) "\n"
+	  " ")))
+
 ;;;; Elide wrappers
 
 (define (dom/cleanblocks! arg (settings #f))
