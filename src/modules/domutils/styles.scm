@@ -27,7 +27,7 @@
 	  (set! prop (car rule))))
       ";")))
 
-(define (dom/gather-styles! node (stylemap (make-hashtable)) (normalize #f))
+(define (dom/gather-styles! node (stylemap (make-hashtable)) (normalize #t))
   (when (test node 'style)
     (let ((norm (if normalize
 		    (dom/normstyle (get node 'style)

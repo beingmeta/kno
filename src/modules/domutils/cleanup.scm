@@ -8,7 +8,8 @@
 
 (define-init %loglevel %notice%)
 
-(module-export! '{dom/cleanup! dom/mergestyles! dom/unipunct!})
+(module-export! '{dom/cleanup! dom/mergestyles! dom/unipunct!
+		  dom/cleanblocks! dom/raisespans!})
 
 (module-export!
  '{dom/mergeheads/subst
@@ -20,6 +21,11 @@
 
 (module-export! '{dom/cleanup/mergelines dom/cleanup/unipunct
 		  dom/cleanup/mergelines+unipunct})
+
+;;; Rules
+
+(define default-style-rules {})
+(define default-class-rules {})
 
 ;;; Fixing punctuation to be prettier
 
@@ -179,7 +185,8 @@
 (define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f)
 		      (classrules #f) (stylerules #f))
   (logdetail "Cleanup " (dom/eltref node))
-  (if (eq? cleanstyles #t) (set! cleanattribs default-style-rules))
+  (if (eq? stylerules #t) (set! stylerules default-style-rules))
+  (if (eq? classrules #t) (set! classrules default-class-rules))
   (if (test node '%content)
       (let ((vec (->vector (get node '%content)))
 	    (newfn (and textfn
@@ -198,7 +205,7 @@
 			(stdspace (textsubst (get node 'class)
 					     (qc classrules)))))
 	  (when (empty-string? (get node 'style)) (dom/drop! node 'style)))
-	(when (and styleulres (test node 'style))
+	(when (and stylerules (test node 'style))
 	  (dom/set! node 'style
 		    (dom/normstyle (get node 'style) (qc stylerules)))
 	  (when (empty-string? (get node 'style)) (dom/drop! node 'style)))
@@ -315,7 +322,7 @@
 			  (stylemap (make-hashtable))
 			  (prefix "fd__autostyle"))
   (let ((stylecount (try (get classdefs '%count) 1)))
-    (dom/gather-styles! dom stylemap)
+    (dom/gather-styles! dom stylemap #t)
     (doseq (style (rsorted (getkeys stylemap)
 			   (lambda (s) (choice-size (get stylemap s)))))
       (let ((classname (glom prefix stylecount)))
@@ -326,3 +333,124 @@
 	  (dom/drop! node 'style))))
     (store! classdefs '%count stylecount)
     classdefs))
+
+;;;; Elide wrappers
+
+(define (dom/cleanblocks! arg (settings #f))
+  (if (pair? arg)
+      (->list (apply append (forseq (node (->vector arg))
+			      (cleanblocks node settings))))
+      (if (and (exists? (get arg '%content)) (test arg '%xmltag 'div))
+	  (begin (store! arg '%content
+			 (dom/cleanblocks! (get arg '%content) settings))
+	    arg)
+	  '())))
+
+(define (cleanblocks node (opts #f))
+  (cond ((string? node) (vector node))
+	((or (not (test node '%content)) (null? (get node '%content)))
+	 (vector node))
+	((test node '%xmltag *inline-tags*) (vector node))
+	((test node '%xmltag *terminal-block-tags*)
+	 (promote-single-spans node)
+	 (vector node))
+	((test node '%xmltag *wrapper-tags*)
+	 (promote-single-spans node)
+	 (let* ((content (->vector (get node '%content)))
+		(cleaned (apply append (forseq (node content) (cleanblocks node opts)))))
+	   (store! node '%content (merge-text (->list cleaned)))
+	   (vector node)))
+	(else (let ((content (->vector (get node '%content))))
+		(if (and (every? (lambda (x)
+				   (or (not (string? x)) (empty-string? x)))
+				 content)
+			 (not (test node 'style)) (not (test node 'class)))
+		    (apply append (forseq (node content) (cleanblocks node opts)))
+		    (let ((cleaned (apply append (forseq (node content) (cleanblocks node opts)))))
+		      (store! node '%content (merge-text (->list cleaned)))
+		      (vector node)))))))
+
+(define (promote-single-spans node (rules #f))
+  (let* ((content (get node '%content))
+	 (nodes (if (exists? content) (remove-if empty-text? content) '())))
+    (when (and (= (length nodes) 1) (not (string? (car nodes)))
+	       (test (car nodes) '%xmltag 'span)
+	       (fail? (difference (get (car nodes) '%attribids)
+				  '{style class})))
+      (when (test (car nodes) 'style)
+	(dom/set! node 'cstyle (get (car nodes) 'style))
+	(if (test node 'style)
+	    (dom/set! node 'style
+		      (glom  (get node 'style) " " (get (car nodes) 'style)))
+	    (dom/set! node 'style (get (car nodes) 'style))))
+      (when (test (car nodes) 'class)
+	(dom/set! node 'cclass (get (car nodes) 'class))
+	(when (test node 'class)
+	  (dom/set! node 'class
+		    (stdspace (glom (get node 'class) " "
+				(get (car nodes) 'class))))))
+      (store! node '%content
+	      (apply append
+		     (map (lambda (x)
+			    (if (string? x) (list x)
+				(get (car nodes) '%content)))
+			  (get node '%content)))))))
+
+;;;; Raising spans
+
+;;; If a node consists of just inline elements and empty text,
+;;;  raise the dominant class/style
+
+(define (dom/raisespans! node)
+  (and (exists? (get node '%content))
+       (every? (lambda (child)
+		 (if (string? child)
+		     (empty-string? child)
+		     (dom/inline? child)))
+	       (get node '%content))
+       (raise-spans node)))
+
+(define (raise-spans node)
+  (let* ((content (get node '%content))
+	 (spans (make-hashtable))
+	 (spanscores (make-hashtable))
+	 (len (score-styles content spans spanscores))
+	 (maxval (table-maxval spanscores))
+	 (top (table-max spanscores)))
+    (when (and (exists? content) len (> len 0)
+	       (exists? maxval) (> maxval (/ len 2))
+	       (not (or (fail? top) (ambiguous? top)
+			(equal? top '(#f . #f)))))
+      (when (cdr top)
+	(if (and (test node 'style) (not (empty-string? node 'style)))
+	    (dom/set! node 'style (dom/normstyle (glom (get node 'style) " " (cdr top))))
+	    (dom/set! node 'style (cdr top))))
+      (when (car top)
+	(if (and (test node 'class) (not (empty-string? node 'class)))
+	    (dom/set! node 'class (glom (get node 'class) " " (car top)))
+	    (dom/set! node 'class (car top)))))
+    (store! node '%content
+	    (->list
+	     (apply append
+		    (map (lambda (elt)
+			   (if (string? elt) (vector elt)
+			       (if (test spans top elt)
+				   (->vector (get elt '%content))
+				   (vector elt))))
+			 (->vector (get node '%content))))))))
+
+(define (score-styles content spans scores (len 0))
+  (if (null? content) len
+      (let ((elt (car content)))
+	(if (string? elt)
+	    (if (empty-string? elt)
+		(score-styles (cdr content) spans scores len)
+		#f)
+	    (and (dom/inline? elt)
+		 (let ((width (length (dom/textify elt)))
+		       (key (cons (try (get elt 'class) #f)
+				  (try (get elt 'style) #f))))
+		   (when (test elt '%xmltag 'span)
+		     (hashtable-increment! scores key width)
+		     (add! spans key elt))
+		   (score-styles (cdr content) spans scores (+ len width))))))))

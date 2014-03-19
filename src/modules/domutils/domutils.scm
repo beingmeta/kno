@@ -27,7 +27,9 @@
    dom/count
    dom/split-space dom/split-semi dom/split-comma
    ->selector selector-tag selector-class selector-id
-   *block-text-tags* dom/block? dom/terminal?
+   *block-text-tags* *inline-tags* *table-tags*
+   *wrapper-tags* *terminal-block-tags*
+   dom/block? dom/inline? dom/terminal?
    dom->id id->dom
    dom/parent
    dom/clone})
@@ -39,6 +41,14 @@
      "UL" "DL" "OL"
      "H1" "H2" "H3" "H4" "H5" "H6" "H7"
      "PRE"}))
+(define *table-tags*
+  (string->symbol '{"TABLE" "TBODY" "TR" "TD" "TH"}))
+(define *inline-tags* '{a em strong i b span cite sup sub})
+(define *wrapper-tags* ;; semantic wrapper tags
+  '{blockquote ul ol dl section aside detail})
+(define *terminal-block-tags*
+   '{p li dt dd h1 h2 h3 h4 h5 h6 h7})
+
 (define-init stdschemas
   (for-choices (def '{(sbooks . "http://sbooks.net/")
 		      (sbook . "http://sbooks.net/")
@@ -73,6 +83,9 @@
 
 (define (dom/block? node)
   (overlaps? (get node '%xmltag) *block-text-tags*))
+
+(define (dom/inline? node)
+  (overlaps? (get node '%xmltag) *inline-tags*))
 
 (define (dom/terminal? node)
   (overlaps? (get node '%xmltag) *terminal-block-text-tags*))
@@ -941,13 +954,11 @@
 			 (not (has-prefix x "<!--"))))
 		  (get node '%content)))))
 
-(define inline-tags '{a em strong i b span cite})
-
 (define (dom/structural? node)
   "Returns true if a node only contains other blocks or empty strings"
   (and (test node '%content)
        (every? (lambda (x) (if (string? x) (empty-string? x)
-			       (not (and (test x '%xmltag inline-tags)
+			       (not (and (test x '%xmltag *inline-tags*)
 					 (dom/textual? x)))))
 	       (get node '%content))))
 
