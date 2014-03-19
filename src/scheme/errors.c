@@ -94,10 +94,11 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
     else if (FD_APPLICABLEP(handler)) {
       fdtype err_value=fd_init_exception(NULL,ex);
       fdtype err_result=fd_apply(handler,1,&err_value);
+      fd_exception_object exo=
+	FD_GET_CONS(err_value,fd_error_type,fd_exception_object);
       if (FD_ABORTP(err_result)) {
-	fd_exception_object exo=
-	  FD_GET_CONS(err_value,fd_error_type,fd_exception_object);
-	/* Erase this just in case there's a dangling pointer to it */
+	/* Clear this field so we can decref err_value while leaving
+	   the exception object current. */
 	exo->ex=NULL;
 	u8_restore_exception(ex);
 	fd_decref(handler); fd_decref(value); fd_decref(err_value);
