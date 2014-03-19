@@ -545,7 +545,7 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,INBUF *da
   else if ((fd_test(result,type_symbol,text_types))&&
            (!(fd_test(result,content_encoding_symbol,FD_VOID))))
     if (data->size==0)
-      cval=fd_init_string(NULL,data->size,data->bytes);
+      cval=fd_make_string(NULL,data->size,data->bytes);
     else {
       fdtype chset=fd_get(result,charset_symbol,FD_VOID);
       if (FD_STRINGP(chset)) {
