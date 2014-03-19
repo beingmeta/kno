@@ -609,12 +609,12 @@ static fdtype try_handler(fdtype expr,fd_lispenv env)
     fd_decref(value);
     value=fd_eval(clause,env);
     if (FD_ABORTP(value)) {
-      fd_push_error_context("TRY",clause);
-      fd_push_error_context("TRY",expr);
+      fd_incref(clause); fd_push_error_context("TRY",clause);
+      fd_incref(expr); fd_push_error_context("TRY",expr);
       return value;}
     else if (FD_VOIDP(value)) {
       fd_seterr(fd_VoidArgument,"try_handler",NULL,clause);
-      fd_push_error_context("TRY",expr);
+      fd_incref(expr); fd_push_error_context("TRY",expr);
       return FD_ERROR_VALUE;}
     else if (!(FD_EMPTY_CHOICEP(value))) return value;
     else if (fd_ipeval_status()!=ipe_state) return value;}
@@ -633,7 +633,7 @@ static fdtype ifexists_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"ifexists_handler",NULL,expr);
   else value=fd_eval(value_expr,env);
   if (FD_ABORTP(value)) {
-    fd_push_error_context("ifexists_handler",expr);
+    fd_incref(expr); fd_push_error_context("ifexists_handler",expr);
     return value;}
   if (FD_EMPTY_CHOICEP(value)) return FD_VOID;
   else return value;
