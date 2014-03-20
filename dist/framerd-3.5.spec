@@ -1,6 +1,6 @@
 Name:           framerd
 Version:        3.5.1
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
