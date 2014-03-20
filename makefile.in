@@ -777,7 +777,7 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 rpms: dist/rpms.done
 debian deb debs: dist/debs.done
 
-cleandist: 
+cleandist cleanrpms cleandeb rpmclean debclean: 
 	rm -rf dist/rpms.done dist/rpms.ready dist/debs.done dist/debs.ready
 	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.spec dist/*.dsc
 	find dist -name "*.rpm" | xargs -r rm
@@ -832,7 +832,7 @@ dist/rpms.done: dist/rpms.ready
 	ls -l $(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
 		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm;
 
-update-rpms:
+rpmupdate update-rpms freshrpms: cleanrpms
 	rm -f dist/rpms.done dist/rpms.ready
 	make dist/rpms.done
 dist/rpms.zip: dist/rpms.done
