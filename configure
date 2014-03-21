@@ -2871,11 +2871,11 @@ TESTLIBS=
 TESTLDFLAGS=
 EXELDFLAGS=
 SHARED_LIB_TARGET=shared-libs
-FDVERSION=3.5.1
-VERSION=3.5.1
 FDMAJOR=3
 FDMINOR=5
 FDRELEASE=1
+FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
+VERSION=$FDVERSION
 vshared_suffix=so.$VERSION
 I18N=""
 INSTALLI18N=""
@@ -4470,6 +4470,21 @@ fi
   test -n "$APXS" && break
 done
 test -n "$APXS" || APXS="apxs"
+
+
+$as_echo "#define FD_VERSION \"\$FDVERSION\"" >>confdefs.h
+
+cat >>confdefs.h <<_ACEOF
+#define FD_MAJOR_VERSION $FDMAJOR
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_MINOR_VERSION $FDMINOR
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_RELEASE_VERSION $FDRELEASE
+_ACEOF
 
 
 for ac_prog in "lsb-rpmbuild"

@@ -897,6 +897,9 @@ int main(int argc,char **argv)
     fd_config_set("PORT",sval);
     fd_decref(sval);}
   
+  fd_boot_message();
+  u8_now(&boot_time);
+
   pid_file=fd_runbase_filename(".pid");
   nid_file=fd_runbase_filename(".nid");
   
@@ -1227,7 +1230,7 @@ static int run_server(u8_string server_spec)
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2014, all rights reserved");
   u8_log(LOG_NOTICE,NULL,
 	 "FramerD (%s) fdserver %s running, %d/%d pools/indices, %d ports",
-	 FRAMERD_REV,server_spec,fd_n_pools,
+	 FRAMERD_REVISION,server_spec,fd_n_pools,
 	 fd_n_primary_indices+fd_n_secondary_indices,n_ports);
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
   u8_server_loop(&dtype_server); normal_exit=1;

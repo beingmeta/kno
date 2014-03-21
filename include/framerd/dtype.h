@@ -22,6 +22,7 @@ FD_EXPORT fd_exception fd_NoMethod;
 FD_EXPORT double fd_load_start;
 
 FD_EXPORT int fd_init_dtypelib(void) FD_LIBINIT_FN;
+FD_EXPORT void fd_boot_message(void);
 
 FD_EXPORT fdtype fd_parse_expr(struct U8_INPUT *);
 FD_EXPORT fdtype fd_parser(struct U8_INPUT *);

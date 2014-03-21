@@ -161,7 +161,8 @@ int main(int argc,char **argv)
 #endif
 
   fd_init_schemeio();
-  identify_application(argc,argv,"fdexec");
+  identify_application(argc,argv,argv[0]);
+  fd_boot_message();
   if (wait_for_file) {
     if (u8_file_existsp(wait_for_file))
       u8_log(LOG_NOTICE,FileWait,"Starting now because '%s' exists",wait_for_file);
@@ -174,7 +175,7 @@ int main(int argc,char **argv)
 	  break;}
 	else if ((n<15) ? ((n%4)==0) : ((n%20)==0))
 	  u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",n,wait_for_file);}}}
-  
+
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   while (i<argc)
     if (strchr(argv[i],'=')) {

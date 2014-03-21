@@ -1519,12 +1519,6 @@ int main(int argc,char **argv)
     u8_log(LOG_WARN,ServletStartup,"Couldn't initialize FramerD");
     exit(EXIT_FAILURE);}
 
-  /* We register this module so that we can have pages that use the functions,
-     for instance with an HTTP PROXY that can be used as a dtype server */
-
-  /* Record the startup time for UPTIME and other functions */
-  u8_now(&boot_time);
-
   if (load_config) fd_load_config(load_config);
 
   /* INITIALIZING MODULES */
@@ -1644,6 +1638,9 @@ int main(int argc,char **argv)
 
   fd_setapp(socket_spec,NULL);
 
+  fd_boot_message();
+  u8_now(&boot_time);
+
   if (!(server_id)) {
     u8_uuid tmp=u8_getuuid(NULL);
     server_id=u8_uuidstring(tmp,NULL);}
@@ -1662,7 +1659,6 @@ int main(int argc,char **argv)
   if (getenv("FD_FOREGROUND"))
     return launch_servlet(socket_spec);
   else return fork_servlet(socket_spec);
-
 }
 
 static int launch_servlet(u8_string socket_spec)
@@ -1741,7 +1737,7 @@ static int launch_servlet(u8_string socket_spec)
 
   u8_log(LOG_INFO,NULL,
 	 "FramerD (%s) FDServlet running, %d/%d pools/indices",
-	 FRAMERD_REV,fd_n_pools,
+	 FRAMERD_REVISION,fd_n_pools,
 	 fd_n_primary_indices+fd_n_secondary_indices);
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2014, all rights reserved");
   if (fdwebserver.n_servers>0) u8_server_loop(&fdwebserver);

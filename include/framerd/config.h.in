@@ -11,6 +11,12 @@
 #define FRAMERD_CONFIG_H_INFO "include/framerd/config.h"
 #endif
 
+/* Define the FramerD version (originates in configure.ac) */
+#undef FD_VERSION
+#undef FD_MAJOR_VERSION
+#undef FD_MINOR_VERSION
+#undef FD_RELEASE_VERSION
+
 /* Define if you don't have off_t */
 #undef off_t
 

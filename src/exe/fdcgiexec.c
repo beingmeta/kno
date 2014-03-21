@@ -447,7 +447,7 @@ static int start_fcgi_server(char *socketspec)
 
  u8_log(LOG_NOTICE,NULL,
 	"FramerD (%s) fdcgiexec servlet running, %d/%d pools/indices",
-	FRAMERD_REV,fd_n_pools,
+	FRAMERD_REVISION,fd_n_pools,
 	fd_n_primary_indices+fd_n_secondary_indices);
  u8_message("beingmeta FramerD, (C) beingmeta 2004-2014, all rights reserved");
  each_thread=0; while (each_thread<servlet_threads) {
@@ -718,6 +718,9 @@ int main(int argc,char **argv)
     /* Error here, rather than repeatedly */
     fd_clear_errors(1);
     exit(EXIT_FAILURE);}
+
+  fd_boot_message();
+  u8_now(&boot_time);
 
   init_webcommon_finalize();
 

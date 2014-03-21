@@ -138,7 +138,7 @@ int main(int argc,char **argv)
 		     fd_boolconfig_get,fd_boolconfig_set,
 		     &newlog);
   fd_argv_config(argc,argv); 
-  identify_application(argc,argv,"fdbatch");
+  identify_application(argc,argv,argv[0]);
   if (newlog) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
   pid_file=get_pidfile();
   if (u8_file_existsp(pid_file)) {

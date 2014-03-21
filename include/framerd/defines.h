@@ -14,6 +14,7 @@
 #endif
 
 #include "config.h"
+#include "revision.h"
 
 #define FD_EXPORT extern
 #ifndef FD_INLINE
