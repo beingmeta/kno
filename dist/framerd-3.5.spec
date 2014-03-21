@@ -146,7 +146,7 @@ if grep -q ^fdaemon /etc/passwd;
 fi
 if grep -q ^framerd /etc/group;
     then echo "Group framerd already exists";
-    else groupadd -f -r framerd -c "FramerD admin group";
+    else groupadd -f -r framerd;
 fi
 
 %install
