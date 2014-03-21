@@ -69,7 +69,7 @@ typedef unsigned char uchar;
 
 typedef u8_condition fd_exception;
 
-u8_string fd_revision, framerd_revision;
+FD_EXPORT u8_string fd_revision;
 
 FD_EXPORT int fd_init_iobase(void);
 

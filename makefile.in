@@ -794,14 +794,14 @@ staging/framerd-@FDVERSION@: \
 	            -o staging/framerd-@FDVERSION@.tar HEAD
 	cd staging; tar -xf framerd-@FDVERSION@.tar; rm framerd-@FDVERSION@.tar
 	$(ECHO) "#define FRAMERD_REVISION \""`git describe`"\"" \
-		> staging/framerd-@FDVERSION@/etc/xrevision.h;
+		> staging/framerd-@FDVERSION@/etc/revision.h;
 staging/framerd_@FDVERSION@: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	@git archive --prefix=framerd_@FDVERSION@/ \
 	            -o staging/framerd_@FDVERSION@.tar HEAD
 	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar
 	$(ECHO) "#define FRAMERD_REVISION \""`git describe`"\"" \
-		> staging/framerd_@FDVERSION@/etc/xrevision.h;
+		> staging/framerd_@FDVERSION@/etc/revision.h;
 staging/framerd-@FDVERSION@.tar.gz: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	make staging/framerd-@FDVERSION@

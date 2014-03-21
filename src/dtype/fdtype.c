@@ -20,7 +20,6 @@ double fd_load_start=-1.0;
 fd_exception fd_NoMethod=_("Method not supported");
 
 u8_string fd_revision=FRAMERD_REVISION;
-u8_string framerd_revision=FRAMERD_REVISION;
 
 /* Initialization procedures */
 
@@ -97,7 +96,7 @@ FD_EXPORT void fd_boot_message()
 {
   double startup_time=u8_elapsed_time()-fd_load_start;
   u8_message("%s on %s (C) beingmeta 2004-2014",
-             framerd_revision,u8_revision);
+             fd_revision,u8_revision);
   u8_message("Booted %s in %fs to pid %ld",
              u8_appid(),startup_time,(long)getpid());
 }
