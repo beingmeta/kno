@@ -446,11 +446,11 @@ libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
-dtypetestbin: libs tests/dtype/makefile tests/dtype/.gdbinit src/exe/fdversion.h
+dtypetestbin: libs tests/dtype/makefile tests/dtype/.gdbinit src/exe/xrevision.h
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" -C tests/dtype
-dbtestbin: libs tests/db/makefile tests/db/.gdbinit src/exe/fdversion.h
+dbtestbin: libs tests/db/makefile tests/db/.gdbinit src/exe/xrevision.h
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" -C tests/db
-schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h src/exe/fdversion.h
+schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h src/exe/xrevision.h
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" -C tests/scheme 
 exe: $(EXECUTABLES) exe/.gdbinit
 static-exe: $(STATIC_EXECUTABLES)
@@ -553,7 +553,7 @@ clean: tidy
 	rm -f exe/fdservlet@suffix@ exe/fdserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f exe/fdmanager@suffix@
-	rm -f src/exe/fdversion.h
+	rm -f src/exe/xrevision.h
 	rm -f TAGS
 	cd tests/dtype; make clean
 	cd tests/db; make clean
@@ -565,6 +565,13 @@ distclean: clean
 	rm -f tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
 	rm -f exe/.gdbinit include/framerd/config.h
+
+commit:
+	git commit
+	touch makefile
+pull:
+	git pull
+	touch makefile
 
 # Configuration targets
 
@@ -795,14 +802,14 @@ staging/framerd-@FDVERSION@: \
 	            -o staging/framerd-@FDVERSION@.tar HEAD
 	cd staging; tar -xf framerd-@FDVERSION@.tar; rm framerd-@FDVERSION@.tar
 	$(ECHO) "#define FRAMERD_REVISION \""`git describe`"\"" \
-		> staging/framerd-@FDVERSION@/etc/fdversion.h;
+		> staging/framerd-@FDVERSION@/etc/xrevision.h;
 staging/framerd_@FDVERSION@: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	@git archive --prefix=framerd_@FDVERSION@/ \
 	            -o staging/framerd_@FDVERSION@.tar HEAD
 	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar
 	$(ECHO) "#define FRAMERD_REVISION \""`git describe`"\"" \
-		> staging/framerd_@FDVERSION@/etc/fdversion.h;
+		> staging/framerd_@FDVERSION@/etc/xrevision.h;
 staging/framerd-@FDVERSION@.tar.gz: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	make staging/framerd-@FDVERSION@
@@ -1185,17 +1192,25 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 	elif diff etc/use_revision.h $@>/dev/null; then			\
 	  rm etc/use_revision.h; 					\
 	else 								\
-	  echo "Revision changed"; 					\
+	  echo "Revision changed to " `git describe`;			\
 	  mv $@ etc/old_revision.h; 					\
 	  mv etc/use_revision.h $@; 					\
 	fi
-src/exe/fdversion.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS)
-	@if test -f etc/fdversion.h; 					\
-	then cp etc/fdversion.h src/exe/fdversion.h; 			\
-	else $(ECHO) "#define FRAMERD_REVISION \""`git describe`"\"" 	\
-		> src/exe/fdversion.h; fi
-	@$(MSG) FRAMERD_REVISION `git describe`
-$(EXECUTABLES): src/exe/fdversion.h
+src/exe/xrevision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS)
+	@if test -f etc/xrevision.h; 					\
+	then cp etc/xrevision.h etc/use_xrevision.h; 			\
+	else echo "#define FRAMERD_XREVISION \""`git describe`"\"" 	\
+		> etc/use_xrevision.h; fi
+	@if test ! -f $@; then 						\
+	  mv etc/use_xrevision.h $@; 					\
+	elif diff etc/use_xrevision.h $@>/dev/null; then		\
+	  rm etc/use_xrevision.h; 					\
+	else 								\
+	  echo "Revision changed to" `git describe`;			\
+	  mv $@ etc/old_xrevision.h; 					\
+	  mv etc/use_xrevision.h $@; 					\
+	fi
+$(EXECUTABLES): src/exe/xrevision.h
 
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode
@@ -3334,7 +3349,7 @@ src/exe/fdconsole.o: /usr/local/include/libu8/u8pathfns.h
 src/exe/fdconsole.o: /usr/local/include/libu8/u8filefns.h
 src/exe/fdconsole.o: /usr/local/include/libu8/u8netfns.h
 src/exe/fdconsole.o: /usr/local/include/libu8/u8stdio.h src/exe/main.h
-src/exe/fdconsole.o: src/exe/fdversion.h src/exe/main.c
+src/exe/fdconsole.o: src/exe/xrevision.h src/exe/main.c
 src/exe/fdexec.o: ./include/framerd/fdsource.h ./include/framerd/config.h
 src/exe/fdexec.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/exe/fdexec.o: ./include/framerd/defines.h ./include/framerd/config.h
@@ -3368,7 +3383,7 @@ src/exe/fdexec.o: /usr/local/include/libu8/xfiles.h
 src/exe/fdexec.o: /usr/local/include/libu8/u8pathfns.h
 src/exe/fdexec.o: /usr/local/include/libu8/u8filefns.h
 src/exe/fdexec.o: /usr/local/include/libu8/u8stdio.h src/exe/main.h
-src/exe/fdexec.o: src/exe/fdversion.h src/exe/main.c
+src/exe/fdexec.o: src/exe/xrevision.h src/exe/main.c
 src/exe/fdbatch.o: src/exe/fdexec.c ./include/framerd/fdsource.h
 src/exe/fdbatch.o: ./include/framerd/config.h ./include/framerd/dtype.h
 src/exe/fdbatch.o: ./include/framerd/common.h ./include/framerd/defines.h
@@ -3402,7 +3417,7 @@ src/exe/fdbatch.o: /usr/local/include/libu8/xfiles.h
 src/exe/fdbatch.o: /usr/local/include/libu8/u8pathfns.h
 src/exe/fdbatch.o: /usr/local/include/libu8/u8filefns.h
 src/exe/fdbatch.o: /usr/local/include/libu8/u8stdio.h src/exe/main.h
-src/exe/fdbatch.o: src/exe/fdversion.h src/exe/main.c
+src/exe/fdbatch.o: src/exe/xrevision.h src/exe/main.c
 src/exe/fdservlet.o: ./include/framerd/fdsource.h ./include/framerd/config.h
 src/exe/fdservlet.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/exe/fdservlet.o: ./include/framerd/defines.h ./include/framerd/config.h
@@ -3442,7 +3457,7 @@ src/exe/fdservlet.o: /usr/local/include/libu8/u8netfns.h
 src/exe/fdservlet.o: /usr/local/include/libu8/u8srvfns.h
 src/exe/fdservlet.o: /usr/local/include/libu8/u8rusage.h
 src/exe/fdservlet.o: /usr/local/include/libu8/u8stdio.h src/exe/main.h
-src/exe/fdservlet.o: src/exe/fdversion.h src/exe/main.c src/exe/webcommon.h
+src/exe/fdservlet.o: src/exe/xrevision.h src/exe/main.c src/exe/webcommon.h
 src/exe/fdcgiexec.o: ./include/framerd/fdsource.h ./include/framerd/config.h
 src/exe/fdcgiexec.o: ./include/framerd/dtype.h ./include/framerd/common.h
 src/exe/fdcgiexec.o: ./include/framerd/defines.h ./include/framerd/config.h
@@ -3479,7 +3494,7 @@ src/exe/fdcgiexec.o: /usr/local/include/libu8/u8pathfns.h
 src/exe/fdcgiexec.o: /usr/local/include/libu8/u8filefns.h
 src/exe/fdcgiexec.o: /usr/local/include/libu8/u8netfns.h
 src/exe/fdcgiexec.o: /usr/local/include/libu8/u8rusage.h src/exe/main.h
-src/exe/fdcgiexec.o: /usr/local/include/libu8/u8stdio.h src/exe/fdversion.h
+src/exe/fdcgiexec.o: /usr/local/include/libu8/u8stdio.h src/exe/xrevision.h
 src/exe/fdcgiexec.o: src/exe/main.c src/exe/webcommon.h
 src/exe/fdserver.o: ./include/framerd/fdsource.h ./include/framerd/config.h
 src/exe/fdserver.o: ./include/framerd/dtype.h ./include/framerd/common.h
@@ -3517,7 +3532,7 @@ src/exe/fdserver.o: /usr/local/include/libu8/u8filefns.h
 src/exe/fdserver.o: /usr/local/include/libu8/u8netfns.h
 src/exe/fdserver.o: /usr/local/include/libu8/u8srvfns.h
 src/exe/fdserver.o: /usr/local/include/libu8/u8rusage.h src/exe/main.h
-src/exe/fdserver.o: /usr/local/include/libu8/u8stdio.h src/exe/fdversion.h
+src/exe/fdserver.o: /usr/local/include/libu8/u8stdio.h src/exe/xrevision.h
 src/exe/fdserver.o: src/exe/main.c
 src/cmodules/odbc.o: ./include/framerd/fdsource.h ./include/framerd/config.h
 src/cmodules/odbc.o: ./include/framerd/dtype.h ./include/framerd/common.h
