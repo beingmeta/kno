@@ -399,7 +399,7 @@ $(LIBINSTALLDIR)/%.a: lib/%.a
 
 $(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@: lib/%@suffix@.so
 	@echo Installing $@
-	@unset LD_LIBRARY_PATH; $(SYSINSTALL) -d $(LIBINSTALLDIR)
+	@unset LD_LIBRARY_PATH; $(SYSINSTALL) -d $(@D)
 	@unset LD_LIBRARY_PATH; $(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.so.@FDMAJOR@.@FDMINOR@: \
 	$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
