@@ -797,19 +797,21 @@ dist/rpms.ready: staging/framerd-@FDVERSION@ \
 	    staging/framerd-@FDVERSION@.tar.gz && \
 	touch dist/rpms.ready
 dist/rpms.done: dist/rpms.ready
-	if (test "x$(GPGID)" = "xnone") || (test "x$(GPGID)" = "x"); then \
-	   echo "Enter passphrase for the RPM signing key:"; \
-	   @rpm@ --addsign \
-		$(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
-		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; \
-	   else \
-	     echo "Enter passphrase for the RPM signing key '$(GPGID)':"; \
-	     @rpm@ --addsign --define="_gpg_name $(GPGID)" \
-		$(RPMDIR)/framerd-@FDVERSION@*.src.rpm \
-		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; fi && \
-	createrepo -p -d $(RPMDIR) && \
+	@if (test "x$(GPGID)" = "xnone"); then 			\
+	    touch dist/rpms.done;				\
+	elif (test "x$(GPGID)" = "x"); then 			\
+	   echo "Enter passphrase for the RPM signing key:"; 	\
+	   @rpm@ --addsign 					\
+		$(RPMDIR)/framerd-@FDVERSION@-*.src.rpm 	\
+		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; 	\
+	   else 						\
+	     echo "Enter passphrase for '$(GPGID)':"; 		\
+	     @rpm@ --addsign --define="_gpg_name $(GPGID)" 	\
+		$(RPMDIR)/framerd-@FDVERSION@*.src.rpm 		\
+		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; fi && 	\
+	createrepo -p -d $(RPMDIR) && 				\
 	touch dist/rpms.done;
-	ls -l $(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
+	@ls -l $(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
 		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm;
 
 rpmupdate update-rpms freshrpms: cleanrpms
