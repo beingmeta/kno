@@ -790,11 +790,13 @@ staging/framerd_@FDVERSION@.orig.tar.gz: staging/framerd_@FDVERSION@
 # RPM rules
 
 dist/rpms.ready: staging/framerd-@FDVERSION@ \
-	staging/framerd_@FDVERSION@.orig.tar.gz staging/framerd-@FDVERSION@.tar.gz
-	@@buildrpm@ $(RPMFLAGS)  \
-	   --define="_rpmdir $(RPMDIR)" --define="_srcrpmdir $(RPMDIR)" \
-	   --nodeps -ta \
-	    staging/framerd-@FDVERSION@.tar.gz && \
+	staging/framerd_@FDVERSION@.orig.tar.gz \
+	staging/framerd-@FDVERSION@.tar.gz
+	@buildrpm@ $(RPMFLAGS)  			\
+	   --define="_rpmdir $(RPMDIR)"			\
+	   --define="_srcrpmdir $(RPMDIR)" 		\
+	   --nodeps -ta 				\
+	    staging/framerd-@FDVERSION@.tar.gz && 	\
 	touch dist/rpms.ready
 dist/rpms.done: dist/rpms.ready
 	@if (test "x$(GPGID)" = "xnone"); then 			\
