@@ -199,15 +199,24 @@ STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
 	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a      \
 	lib/libtagger@suffix@.a
 
-SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@ \
-	lib/libfddb@suffix@.@shared_suffix@        \
-        lib/libfddbfile@suffix@.@shared_suffix@    \
-	lib/libfdbserv@suffix@.@shared_suffix@     \
-	lib/libfdscheme@suffix@.@shared_suffix@    \
-	lib/libfdschemeio@suffix@.@shared_suffix@  \
-	lib/libfdweb@suffix@.@shared_suffix@       \
-	lib/libtexttools@suffix@.@shared_suffix@   \
-	lib/libtagger@suffix@.@shared_suffix@
+SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
+	lib/libfddb@suffix@.@shared_suffix@        		\
+        lib/libfddbfile@suffix@.@shared_suffix@    		\
+	lib/libfdbserv@suffix@.@shared_suffix@     		\
+	lib/libfdscheme@suffix@.@shared_suffix@    		\
+	lib/libfdschemeio@suffix@.@shared_suffix@  		\
+	lib/libfdweb@suffix@.@shared_suffix@       		\
+	lib/libtexttools@suffix@.@shared_suffix@   		\
+	lib/libtagger@suffix@.@shared_suffix@.@FDMAJOR@		\
+	lib/libfdtype@suffix@.@shared_suffix@.@FDMAJOR@		\
+	lib/libfddb@suffix@.@shared_suffix@.@FDMAJOR@        	\
+        lib/libfddbfile@suffix@.@shared_suffix@.@FDMAJOR@    	\
+	lib/libfdbserv@suffix@.@shared_suffix@.@FDMAJOR@     	\
+	lib/libfdscheme@suffix@.@shared_suffix@.@FDMAJOR@    	\
+	lib/libfdschemeio@suffix@.@shared_suffix@.@FDMAJOR@  	\
+	lib/libfdweb@suffix@.@shared_suffix@.@FDMAJOR@       	\
+	lib/libtexttools@suffix@.@shared_suffix@.@FDMAJOR@   	\
+	lib/libtagger@suffix@.@shared_suffix@.@FDMAJOR@
 
 SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
 	src/modules/aws/*.scm src/modules/brico/*.scm \
@@ -372,56 +381,53 @@ exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
 lib/%@suffix@.a:
 	@$(MKSTATIC) $@ $^
 	@$(MSG) MKSTATIC $@
-lib/%@suffix@.so.@FDVERSION@:
-	@$(MKSO) -Wl,-soname=$(@F) -o $@ $^ $(LIBS)
-	@$(MSG) MKSO $@
-lib/%@suffix@.so: lib/%.so.@FDVERSION@
-	@ln -sf $(<F) $@
-lib/%@suffix@.@FDVERSION@.dylib:
-	@$(MACLIBTOOL) -install_name $(@F) -o $@ $^
+lib/%@suffix@.so:
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -Llib -o $@ $^ -lu8 $(LIBS)
+	@echo MKSO $@
+lib/%@suffix@.so.@FDMAJOR@: lib/%@suffix@.so
+	@ln -sf $(*F).so $@
+lib/%@suffix@.dylib:
+	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib -o $@ $^
 	@$(MSG) MACLIBTOOL $@
-lib/%@suffix@.dylib: lib/%@suffix@.@FDVERSION@.dylib
-	ln -sf $(<F) $@
+lib/%@suffix@.@FDMAJOR@.dylib: lib/%@suffix@.dylib
+	@ln -sf $(*F).dylib $@
 
 $(LIBINSTALLDIR)/%.a: lib/%.a
 	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	@$(MSG) INSTALL $@
 
-$(LIBINSTALLDIR)/framerd/%@suffix@.so.@FDVERSION@: \
-		lib/framerd/%@suffix@.so.@FDVERSION@
-	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
-	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
-	@$(MSG) INSTALL $@
-$(LIBINSTALLDIR)/framerd/%@suffix@.so: \
-		$(LIBINSTALLDIR)/framerd/%@suffix@.so.@FDVERSION@
-	@$(SUDO) ln -sf $(shell basename $<) $@
+$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@: lib/%@suffix@.so
+	@echo Installing $@
+	@unset LD_LIBRARY_PATH; $(INSTALL) -d $(LIBINSTALLDIR)
+	@unset LD_LIBRARY_PATH; $(INSTALL) $< $@
+$(LIBINSTALLDIR)/%@suffix@.so.@FDMAJOR@.@FDMINOR@: \
+	$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
+	@echo Linking $< to $@
+	@unset LD_LIBRARY_PATH; @SUDO@ln -sf $(shell basename $<) $@
+$(LIBINSTALLDIR)/%@suffix@.so.@FDMAJOR@: \
+	$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
+	@echo Linking $< to $@
+	@unset LD_LIBRARY_PATH; @SUDO@ln -sf $(shell basename $<) $@
+$(LIBINSTALLDIR)/%@suffix@.so: $(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
+	@echo Linking to $@
+	@unset LD_LIBRARY_PATH; @SUDO@ln -sf $(shell basename $<) $@
 
-$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@: lib/%@suffix@.so.@FDVERSION@
-	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
-	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
-	@$(MSG) INSTALL $@
-$(LIBINSTALLDIR)/%@suffix@.so: \
-		$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
-	@$(SUDO) ln -sf $(shell basename $<) $@
-
-$(LIBINSTALLDIR)/framerd/%@suffix@.@FDVERSION@.dylib: \
-    lib/framerd/%@suffix@.@FDVERSION@.dylib $(LIBINSTALLDIR)/framerd
-	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
-	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)/framerd
-	@$(MSG) INSTALL $@
-$(LIBINSTALLDIR)/framerd/%@suffix@.dylib: \
-		$(LIBINSTALLDIR)/framerd/%@suffix@.@FDVERSION@.dylib
-	@$(SUDO) ln -sf $(shell basename $<) $@
-
-$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib: \
-    lib/%@suffix@.@FDVERSION@.dylib $(LIBINSTALLDIR)
-	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
-	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
-	@$(MSG) INSTALL $@
-$(LIBINSTALLDIR)/%@suffix@.dylib: \
-		$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
-	@$(SUDO) ln -sf $(shell basename $<) $@
+$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib: lib/%@suffix@.dylib
+	@echo Installing $@
+	@unset LD_LIBRARY_PATH; $(INSTALL) -d $(LIBINSTALLDIR)
+	@unset LD_LIBRARY_PATH; $(INSTALL) $< $@
+$(LIBINSTALLDIR)/%@suffix@.@FDMAJOR@.@FDMINOR@.dylib: \
+	$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
+	@echo Linking $< to $@
+	@unset LD_LIBRARY_PATH; @SUDO@ln -sf $(shell basename $<) $@
+$(LIBINSTALLDIR)/%@suffix@.@FDMAJOR@.dylib: \
+	$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
+	@echo Linking $< to $@
+	@unset LD_LIBRARY_PATH; @SUDO@ln -sf $(shell basename $<) $@
+$(LIBINSTALLDIR)/%@suffix@.dylib: $(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
+	@echo Linking $< to $@
+	@unset LD_LIBRARY_PATH; @SUDO@ln -sf $(shell basename $<) $@
 
 $(BININSTALLDIR)/%: exe/%
 
@@ -446,11 +452,11 @@ libs: static-libs @SHARED_LIB_TARGET@
 static-libs: $(STATIC_LIBS)
 shared-libs: $(SHARED_LIBS)
 testbin: dtypetestbin dbtestbin schemetestbin etc/usememory
-dtypetestbin: libs tests/dtype/makefile tests/dtype/.gdbinit src/exe/xrevision.h
+dtypetestbin: libs tests/dtype/makefile tests/dtype/.gdbinit
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" -C tests/dtype
-dbtestbin: libs tests/db/makefile tests/db/.gdbinit src/exe/xrevision.h
+dbtestbin: libs tests/db/makefile tests/db/.gdbinit
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" -C tests/db
-schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h src/exe/xrevision.h
+schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" -C tests/scheme 
 exe: $(EXECUTABLES) exe/.gdbinit
 static-exe: $(STATIC_EXECUTABLES)
@@ -545,7 +551,6 @@ clean: tidy
 	rm -f exe/fdservlet@suffix@ exe/fdserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
 	rm -f exe/fdmanager@suffix@
-	rm -f src/exe/xrevision.h
 	rm -f TAGS
 	cd tests/dtype; make clean
 	cd tests/db; make clean
@@ -556,7 +561,7 @@ distclean: clean
 	rm -f tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	rm -f tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
 	rm -f etc/fdgetconfig etc/fdsetconfig etc/framerd-rc.d
-	rm -f exe/.gdbinit include/framerd/config.h
+	rm -f exe/.gdbinit include/framerd/config.h include/framerd/revision.h
 
 commit:
 	git commit
@@ -570,173 +575,145 @@ pull:
 # Library targets
 
 lib/libfdtype@suffix@.a: $(DTYPE_OBJS)
-lib/libfdtype@suffix@.so.@FDVERSION@: $(DTYPE_OBJS)
-lib/libfdtype@suffix@.so: lib/libfdtype.so.@FDVERSION@
-lib/libfdtype@suffix@.@FDVERSION@.dylib: $(DTYPE_OBJS)
-lib/libfdtype@suffix@.dylib: lib/libfdtype@suffix@.@FDVERSION@.dylib
+lib/libfdtype@suffix@.so: $(DTYPE_OBJS)
+lib/libfdtype@suffix@.dylib: $(DTYPE_OBJS)
 
 lib/libfddb@suffix@.a: $(DB_OBJS)
-lib/libfddb@suffix@.so.@FDVERSION@: $(DB_OBJS)
-lib/libfddb@suffix@.so: lib/libfddb@suffix@.so.@FDVERSION@
-lib/libfddb@suffix@.@FDVERSION@.dylib: $(DB_OBJS)  \
-	lib/libfdtype@suffix@.@FDVERSION@.dylib
-lib/libfddb@suffix@.dylib: lib/libfddb@suffix@.@FDVERSION@.dylib
+lib/libfddb@suffix@.so: $(DB_OBJS)
+lib/libfddb@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
 
 lib/libfddbfile@suffix@.a: $(DBFILE_OBJS)
-lib/libfddbfile@suffix@.so.@FDVERSION@: $(DBFILE_OBJS)
-lib/libfddbfile@suffix@.so: lib/libfddbfile@suffix@.so.@FDVERSION@
-lib/libfddbfile@suffix@.@FDVERSION@.dylib: $(DBFILE_OBJS) \
-	lib/libfddb@suffix@.@FDVERSION@.dylib lib/libfdtype@suffix@.@FDVERSION@.dylib
-lib/libfddbfile@suffix@.dylib: lib/libfddbfile@suffix@.@FDVERSION@.dylib
+lib/libfddbfile@suffix@.so: $(DBFILE_OBJS)
+lib/libfddbfile@suffix@.dylib: $(DBFILE_OBJS) \
+	lib/libfddb@suffix@.dylib lib/libfdtype@suffix@.dylib
 
 lib/libfdbserv@suffix@.a: $(FDBSERV_OBJS)
-lib/libfdbserv@suffix@.so.@FDVERSION@: $(FDBSERV_OBJS)
-lib/libfdbserv@suffix@.so: lib/libfdbserv@suffix@.so.@FDVERSION@
-lib/libfdbserv@suffix@.@FDVERSION@.dylib: $(FDBSERV_OBJS) \
-	lib/libfdscheme@suffix@.@FDVERSION@.dylib         \
-	lib/libfddbfile@suffix@.@FDVERSION@.dylib         \
-	lib/libfddb@suffix@.@FDVERSION@.dylib             \
-	lib/libfdtype@suffix@.@FDVERSION@.dylib
+lib/libfdbserv@suffix@.so: $(FDBSERV_OBJS)
+lib/libfdbserv@suffix@.dylib: $(FDBSERV_OBJS) \
+	lib/libfdscheme@suffix@.dylib         \
+	lib/libfddbfile@suffix@.dylib         \
+	lib/libfddb@suffix@.dylib             \
+	lib/libfdtype@suffix@.dylib
 	@$(MACLIBTOOL) -install_name $(@F) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
-lib/libfdbserv@suffix@.dylib: lib/libfdbserv@suffix@.@FDVERSION@.dylib
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
-lib/libfdscheme@suffix@.so.@FDVERSION@: $(SCHEME_OBJS)
-lib/libfdscheme@suffix@.so: lib/libfdscheme@suffix@.so.@FDVERSION@
-lib/libfdscheme@suffix@.@FDVERSION@.dylib: $(SCHEME_OBJS) \
-	lib/libfddb@suffix@.@FDVERSION@.dylib             \
-        lib/libfdtype@suffix@.@FDVERSION@.dylib
-lib/libfdscheme@suffix@.dylib: lib/libfdscheme@suffix@.@FDVERSION@.dylib
+lib/libfdscheme@suffix@.so: $(SCHEME_OBJS)
+lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) \
+	lib/libfddb@suffix@.dylib             \
+        lib/libfdtype@suffix@.dylib
 
 lib/libfdschemeio@suffix@.a: $(SCHEMEIO_OBJS)
-lib/libfdschemeio@suffix@.so.@FDVERSION@: $(SCHEMEIO_OBJS)
-lib/libfdschemeio@suffix@.so: lib/libfdschemeio@suffix@.so.@FDVERSION@
-lib/libfdschemeio@suffix@.@FDVERSION@.dylib: $(SCHEMEIO_OBJS) \
-	lib/libfdscheme@suffix@.@FDVERSION@.dylib             \
-	lib/libfddbfile@suffix@.@FDVERSION@.dylib             \
-	lib/libfddb@suffix@.@FDVERSION@.dylib                 \
-	lib/libfdtype@suffix@.@FDVERSION@.dylib 
-lib/libfdschemeio.dylib: lib/libfdschemeio@suffix@.@FDVERSION@.dylib
+lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS)
+lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) \
+	lib/libfdscheme@suffix@.dylib             \
+	lib/libfddbfile@suffix@.dylib             \
+	lib/libfddb@suffix@.dylib                 \
+	lib/libfdtype@suffix@.dylib 
 
 lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
-lib/libfdweb@suffix@.so.@FDVERSION@: $(FDWEB_OBJS)
-	@$(MKSO) -Wl,-soname=$(@F) -o $@ $^  @curlconfig@ @LIBS@
+lib/libfdweb@suffix@.so: $(FDWEB_OBJS)
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^  @curlconfig@ @LIBS@
 	@$(MSG) MKSO $@
-lib/libfdweb@suffix@.so: lib/libfdweb@suffix@.so.@FDVERSION@
-lib/libfdweb@suffix@.@FDVERSION@.dylib: $(FDWEB_OBJS) \
-	lib/libfdscheme@suffix@.@FDVERSION@.dylib     \
-	lib/libfddbfile@suffix@.@FDVERSION@.dylib     \
-	lib/libfddb@suffix@.@FDVERSION@.dylib         \
-        lib/libfdtype@suffix@.@FDVERSION@.dylib
-	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(FDWEB_OBJS)
+lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
+	lib/libfdscheme@suffix@.dylib     \
+	lib/libfddbfile@suffix@.dylib     \
+	lib/libfddb@suffix@.dylib         \
+        lib/libfdtype@suffix@.dylib
+	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib -o $@ $(FDWEB_OBJS)
 	@$(MSG) MACLIBTOOL $@
-lib/libfdweb@suffix@.dylib: lib/libfdweb@suffix@.@FDVERSION@.dylib
 
 lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
-lib/libtexttools@suffix@.so.@FDVERSION@: $(TEXTTOOLS_OBJS)
-lib/libtexttools@suffix@.so: lib/libtexttools@suffix@.so.@FDVERSION@
-lib/libtexttools@suffix@.@FDVERSION@.dylib: $(TEXTTOOLS_OBJS) \
-	lib/libfdscheme@suffix@.@FDVERSION@.dylib lib/libfddbfile@suffix@.@FDVERSION@.dylib \
-	lib/libfddb@suffix@.@FDVERSION@.dylib lib/libfdtype@suffix@.@FDVERSION@.dylib
-	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(TEXTTOOLS_OBJS)
+lib/libtexttools@suffix@.so: $(TEXTTOOLS_OBJS)
+lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
+	lib/libfdscheme@suffix@.dylib \
+	lib/libfddbfile@suffix@.dylib \
+	lib/libfddb@suffix@.dylib \
+	lib/libfdtype@suffix@.dylib
+	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib -o $@ $(TEXTTOOLS_OBJS)
 	@$(MSG) MACLIBTOOL $@
-lib/libtexttools.dylib: lib/libtexttools@suffix@.@FDVERSION@.dylib
 
 lib/libtagger@suffix@.a: $(TAGGER_OBJS)
-lib/libtagger@suffix@.so.@FDVERSION@: $(TAGGER_OBJS)
-lib/libtagger@suffix@.so: lib/libtagger@suffix@.so.@FDVERSION@
-lib/libtagger@suffix@.@FDVERSION@.dylib: $(TAGGER_OBJS) \
+lib/libtagger@suffix@.so: $(TAGGER_OBJS)
+lib/libtagger@suffix@.dylib: $(TAGGER_OBJS) \
 	lib/libtexttools@suffix@.@FDVERSION@.dylib \
-	lib/libfdscheme@suffix@.@FDVERSION@.dylib lib/libfddbfile@suffix@.@FDVERSION@.dylib \
-	lib/libfddb@suffix@.@FDVERSION@.dylib lib/libfdtype@suffix@.@FDVERSION@.dylib
-	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(TAGGER_OBJS) -ltexttools
+	lib/libfdscheme@suffix@.@FDVERSION@.dylib \
+	lib/libfddbfile@suffix@.@FDVERSION@.dylib \
+	lib/libfddb@suffix@.@FDVERSION@.dylib \
+	lib/libfdtype@suffix@.@FDVERSION@.dylib
+	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib \
+		-o $@ $(TAGGER_OBJS) -ltexttools
 	@$(MSG) MACLIBTOOL $@
-lib/libtagger.dylib: lib/libtagger@suffix@.@FDVERSION@.dylib
 
 src/cmodules/mysql.o: src/cmodules/mysql.c
 	@$(CC) @MYSQL_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(MYSQL)" $@
-lib/framerd/mysql.so.@FDVERSION@: src/cmodules/mysql.o
-	@$(MKSO) -o $@ $<  @MYSQL_LDFLAGS@ @LIBS@
+lib/framerd/mysql.so: src/cmodules/mysql.o
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $< \
+		@MYSQL_LDFLAGS@ @LIBS@
 	@$(MSG) MKSO "(MYSQL)" $@
-lib/framerd/mysql.so: lib/framerd/mysql.so.@FDVERSION@
-lib/framerd/mysql.@FDVERSION@.dylib: src/cmodules/mysql.o
-	@$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
+lib/framerd/mysql.dylib: src/cmodules/mysql.o
+	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib \
+		-o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(MYSQL)" $@
-lib/framerd/mysql.dylib: lib/framerd/mysql.@FDVERSION@.dylib
 
 src/cmodules/imagick.o: src/cmodules/imagick.c
 	@$(CC) @IMAGICK_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(IMAGICK)" $@
-lib/framerd/imagick.so.@FDVERSION@: src/cmodules/imagick.o
-	@$(MKSO) -o $@ $<  @IMAGICK_LDFLAGS@ @LIBS@
+lib/framerd/imagick.so: src/cmodules/imagick.o
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $< \
+		@IMAGICK_LDFLAGS@ @LIBS@
 	@$(MSG) MKSO "(IMAGICK)" $@
-lib/framerd/imagick.so: lib/framerd/imagick.so.@FDVERSION@
-lib/framerd/imagick.@FDVERSION@.dylib: src/cmodules/imagick.o
-	@$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/imagick.o @IMAGICK_LDFLAGS@
+lib/framerd/imagick.dylib: src/cmodules/imagick.o
+	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib \
+		-o $@ src/cmodules/imagick.o @IMAGICK_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(IMAGICK)" $@
-lib/framerd/imagick.dylib: lib/framerd/imagick.@FDVERSION@.dylib
 
 src/cmodules/%.o: src/cmodules/%.c
 	@$(CC) $(CFLAGS) -o $@ -c $<
 	@$(MSG) CC  $@ $<
-lib/framerd/%.so.@FDVERSION@: src/cmodules/%.o
+lib/framerd/%.so: src/cmodules/%.o
 	@$(MKSO) -o $@ $< @LIBS@
 	@$(MSG) MKSO  $@ $<
-lib/framerd/%.@FDVERSION@.dylib: src/cmodules/%.o
-	@$(MACLIBTOOL) -install_name $(@F) -o $@ src/cmodules/crypto.o
+lib/framerd/%.so.@FDMAJOR@: lib/framerd/%.so
+	@ln -sf $(*F).so $@
+lib/framerd/%.dylib: src/cmodules/%.o
+	@$(MACLIBTOOL) -install_name $(@F) -o $@ $<
 	@$(MSG) MACLIBTOOL  $@ $<
+lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
+	@ln -sf $(*F).dylib $@
 
 src/cmodules/crypto.o: src/cmodules/crypto.c
-lib/framerd/crypto.so.@FDVERSION@: src/cmodules/crypto.o
-lib/framerd/crypto.so: lib/framerd/crypto.so.@FDVERSION@
-lib/framerd/crypto.@FDVERSION@.dylib: src/cmodules/crypto.o
-lib/framerd/crypto.dylib: lib/framerd/crypto.@FDVERSION@.dylib
+lib/framerd/crypto.so: src/cmodules/crypto.o
+lib/framerd/crypto.dylib: src/cmodules/crypto.o
 
-lib/framerd/odbc.so.@FDVERSION@: src/cmodules/odbc.o
-lib/framerd/odbc.so: lib/framerd/odbc.so.@FDVERSION@
-lib/framerd/odbc.@FDVERSION@.dylib: src/cmodules/odbc.o
-lib/framerd/odbc.dylib: lib/framerd/odbc.@FDVERSION@.dylib
+lib/framerd/odbc.so: src/cmodules/odbc.o
+lib/framerd/odbc.dylib: src/cmodules/odbc.o
 
-lib/framerd/sqlite.so.@FDVERSION@: src/cmodules/sqlite.o
-lib/framerd/sqlite.so: lib/framerd/sqlite.so.@FDVERSION@
-lib/framerd/sqlite.@FDVERSION@.dylib: src/cmodules/sqlite.o
-lib/framerd/sqlite.dylib: lib/framerd/sqlite.@FDVERSION@.dylib
+lib/framerd/sqlite.so: src/cmodules/sqlite.o
+lib/framerd/sqlite.dylib: src/cmodules/sqlite.o
 
-lib/framerd/qrcode.so.@FDVERSION@: src/cmodules/qrcode.o
-lib/framerd/qrcode.so: lib/framerd/qrcode.so.@FDVERSION@
-lib/framerd/qrcode.@FDVERSION@.dylib: src/cmodules/qrcode.o
-lib/framerd/qrcode.dylib: lib/framerd/qrcode.@FDVERSION@.dylib
+lib/framerd/qrcode.so: src/cmodules/qrcode.o
+lib/framerd/qrcode.dylib: src/cmodules/qrcode.o
 
-lib/framerd/tidy.so.@FDVERSION@: src/cmodules/tidy.o
-lib/framerd/tidy.so: lib/framerd/tidy.so.@FDVERSION@
-lib/framerd/tidy.@FDVERSION@.dylib: src/cmodules/tidy.o
-lib/framerd/tidy.dylib: lib/framerd/tidy.@FDVERSION@.dylib
+lib/framerd/tidy.so: src/cmodules/tidy.o
+lib/framerd/tidy.dylib: src/cmodules/tidy.o
 
-lib/framerd/regex.so.@FDVERSION@: src/cmodules/regex.o
-lib/framerd/regex.so: lib/framerd/regex.so.@FDVERSION@
-lib/framerd/regex.@FDVERSION@.dylib: src/cmodules/regex.o
-lib/framerd/regex.dylib: lib/framerd/regex.@FDVERSION@.dylib
+lib/framerd/regex.so: src/cmodules/regex.o
+lib/framerd/regex.dylib: src/cmodules/regex.o
 
-lib/framerd/zlib.so.@FDVERSION@: src/cmodules/zlib.o
-lib/framerd/zlib.so: lib/framerd/zlib.so.@FDVERSION@
-lib/framerd/zlib.@FDVERSION@.dylib: src/cmodules/zlib.o
-lib/framerd/zlib.dylib: lib/framerd/zlib.@FDVERSION@.dylib
+lib/framerd/zlib.so: src/cmodules/zlib.o
+lib/framerd/zlib.dylib: src/cmodules/zlib.o
 
-lib/framerd/ziptools.so.@FDVERSION@: src/cmodules/ziptools.o
-lib/framerd/ziptools.so: lib/framerd/ziptools.so.@FDVERSION@
-lib/framerd/ziptools.@FDVERSION@.dylib: src/cmodules/ziptools.o
-lib/framerd/ziptools.dylib: lib/framerd/ziptools.@FDVERSION@.dylib
+lib/framerd/ziptools.so: src/cmodules/ziptools.o
+lib/framerd/ziptools.dylib: src/cmodules/ziptools.o
 
-lib/framerd/exif.so.@FDVERSION@: src/cmodules/exif.o
-	@$(MKSO) -Wl,-soname=$(@F) -o $@ $^ $(LIBS) -lexif
+lib/framerd/exif.so: src/cmodules/exif.o
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ $(LIBS) -lexif
 	@$(MSG) MKSO $@
-lib/framerd/exif.so: lib/framerd/exif.so.@FDVERSION@
-lib/framerd/exif.@FDVERSION@.dylib: src/cmodules/exif.o
-	@$(MACLIBTOOL) -install_name $(@F) -lexif -o $@ $^
+lib/framerd/exif.dylib: src/cmodules/exif.o
+	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib -lexif -o $@ $^
 	@$(MSG) MACLIBTOOL $@
-lib/framerd/exif.dylib: lib/framerd/exif.@FDVERSION@.dylib
 
 SUNDOWN_OBJECTS=src/cmodules/sundown/sundown.o \
 	src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
@@ -751,10 +728,10 @@ src/cmodules/sundown/%.o: src/cmodules/sundown/%.c $(SUNDOWN_H_FILES)
 	@$(CC) $(CFLAGS) -I./src/cmodules/sundown/ -o $@ $<
 	@$(MSG) CC "(SUNDOWN)" $@
 
-lib/framerd/sundown.so.@FDVERSION@: $(SUNDOWN_OBJECTS)
+lib/framerd/sundown.so: $(SUNDOWN_OBJECTS)
 	@$(MKSO) -o $@ $(SUNDOWN_OBJECTS) @LIBS@
 	@$(MSG) MKSO  $@ $<
-lib/framerd/sundown.@FDVERSION@.dylib: $(SUNDOWN_OBJECTS)
+lib/framerd/sundown.dylib: $(SUNDOWN_OBJECTS)
 	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(SUNDOWN_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
@@ -889,15 +866,24 @@ install-shared: shared-libs $(LIBINSTALLDIR)
 	make install-@shared_suffix@
 
 # Versioned shared libraries
-install-sov:                                             \
-    $(LIBINSTALLDIR)/libfdtype@suffix@.so.@FDVERSION@      \
-    $(LIBINSTALLDIR)/libfddb@suffix@.so.@FDVERSION@        \
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.so.@FDVERSION@     \
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.so.@FDVERSION@    \
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.so.@FDVERSION@    \
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.so.@FDVERSION@  \
-    $(LIBINSTALLDIR)/libfdweb@suffix@.so.@FDVERSION@       \
-    $(LIBINSTALLDIR)/libtexttools@suffix@.so.@FDVERSION@   \
+install-sov:                                             		\
+    $(LIBINSTALLDIR)/libfdtype@suffix@.so.@FDMAJOR@      		\
+    $(LIBINSTALLDIR)/libfdtype@suffix@.so.@FDVERSION@      		\
+    $(LIBINSTALLDIR)/libfddb@suffix@.so.@FDMAJOR@        		\
+    $(LIBINSTALLDIR)/libfddb@suffix@.so.@FDVERSION@        		\
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.so.@FDMAJOR@     		\
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.so.@FDVERSION@     		\
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.so.@FDMAJOR@    		\
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.so.@FDVERSION@    		\
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.so.@FDMAJOR@    		\
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.so.@FDVERSION@    		\
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.so.@FDMAJOR@  		\
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.so.@FDVERSION@  		\
+    $(LIBINSTALLDIR)/libfdweb@suffix@.so.@FDMAJOR@       		\
+    $(LIBINSTALLDIR)/libfdweb@suffix@.so.@FDVERSION@       		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.so.@FDMAJOR@   		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.so.@FDVERSION@   		\
+    $(LIBINSTALLDIR)/libtagger@suffix@.so.@FDMAJOR@			\
     $(LIBINSTALLDIR)/libtagger@suffix@.so.@FDVERSION@  
 # Unversioned libraries, for development
 install-so: install-sov                                  \
@@ -913,16 +899,16 @@ install-so: install-sov                                  \
 
 # This should probably be done differently for packaging, but that's 'todo'
 # Versioned shared libraries
-install-dylibv:                                                \
-	$(LIBINSTALLDIR)/libtagger@suffix@.@FDVERSION@.dylib     \
-	$(LIBINSTALLDIR)/libfdtype@suffix@.@FDVERSION@.dylib     \
-	$(LIBINSTALLDIR)/libfddb@suffix@.@FDVERSION@.dylib       \
-	$(LIBINSTALLDIR)/libfdbserv@suffix@.@FDVERSION@.dylib    \
-	$(LIBINSTALLDIR)/libfddbfile@suffix@.@FDVERSION@.dylib   \
-	$(LIBINSTALLDIR)/libfdscheme@suffix@.@FDVERSION@.dylib   \
-	$(LIBINSTALLDIR)/libfdschemeio@suffix@.@FDVERSION@.dylib \
-	$(LIBINSTALLDIR)/libfdweb@suffix@.@FDVERSION@.dylib      \
-	$(LIBINSTALLDIR)/libtexttools@suffix@.@FDVERSION@.dylib  \
+install-dylibv:							\
+	$(LIBINSTALLDIR)/libtagger@suffix@.@FDVERSION@.dylib    \
+	$(LIBINSTALLDIR)/libfdtype@suffix@.@FDVERSION@.dylib    \
+	$(LIBINSTALLDIR)/libfddb@suffix@.@FDVERSION@.dylib      \
+	$(LIBINSTALLDIR)/libfdbserv@suffix@.@FDVERSION@.dylib   \
+	$(LIBINSTALLDIR)/libfddbfile@suffix@.@FDVERSION@.dylib  \
+	$(LIBINSTALLDIR)/libfdscheme@suffix@.@FDVERSION@.dylib  \
+	$(LIBINSTALLDIR)/libfdschemeio@suffix@.@FDVERSION@.dylib\
+	$(LIBINSTALLDIR)/libfdweb@suffix@.@FDVERSION@.dylib     \
+	$(LIBINSTALLDIR)/libtexttools@suffix@.@FDVERSION@.dylib \
 	$(LIBINSTALLDIR)/libtagger@suffix@.@FDVERSION@.dylib
 # Unversioned libraries, for development
 install-dylib: install-dylibv                                  \
@@ -1175,34 +1161,23 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 # Tracking revision information
 
 include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
-	@if test -f etc/revision.h; 					\
-	then cp etc/revision.h etc/use_revision.h; 			\
-	else echo "#define FRAMERD_REVISION \""`git describe`"\"" 	\
-		> etc/use_revision.h; fi
+	@if test -f etc/revision.h; then				\
+	    cp etc/revision.h etc/use_revision.h; 			\
+	elif $(GITDESCRIBE) > /dev/null 2>&1; then			\
+	    echo "#define FRAMERD_REVISION \""`@GITDESCRIBE@`"\"" 	\
+		> etc/use_revision.h; 					\
+	else echo "#define FRAMERD_REVISION \"@U8VERSION@-exported\""	\
+		> etc/use_revision.h; 					\
+	fi
 	@if test ! -f $@; then 						\
 	  mv etc/use_revision.h $@; 					\
 	elif diff etc/use_revision.h $@>/dev/null; then			\
 	  rm etc/use_revision.h; 					\
 	else 								\
-	  echo "Revision changed to " `git describe`;			\
+	  echo "Revision changed"; 					\
 	  mv $@ etc/old_revision.h; 					\
 	  mv etc/use_revision.h $@; 					\
 	fi
-src/exe/xrevision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS)
-	@if test -f etc/xrevision.h; 					\
-	then cp etc/xrevision.h etc/use_xrevision.h; 			\
-	else echo "#define FRAMERD_XREVISION \""`git describe`"\"" 	\
-		> etc/use_xrevision.h; fi
-	@if test ! -f $@; then 						\
-	  mv etc/use_xrevision.h $@; 					\
-	elif diff etc/use_xrevision.h $@>/dev/null; then		\
-	  rm etc/use_xrevision.h; 					\
-	else 								\
-	  echo "Revision changed to" `git describe`;			\
-	  mv $@ etc/old_xrevision.h; 					\
-	  mv etc/use_xrevision.h $@; 					\
-	fi
-$(EXECUTABLES): src/exe/xrevision.h
 
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode

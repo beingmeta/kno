@@ -112,6 +112,7 @@ SUDO=""
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 GPGID=${GPGID:-}
+GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$prefix/etc/framerd"
 rundir="${localstatedir}/run"
@@ -202,6 +203,7 @@ AC_SUBST(FDRELEASE)
 AC_SUBST(VERSION)
 AC_SUBST(PROFILING)
 AC_SUBST(MKSTATIC)
+AC_SUBST(GITDESCRIBE)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
@@ -489,6 +491,13 @@ AC_CHECK_PROGS(etags,etags,"na")
 
 if test $etags = "na"; then
    TAGS=""
+fi
+
+AC_CHECK_PROGS(git,"git","na")
+if test $git = "na"; then
+   GITDESCRIBE="false"
+else
+   GITDESCRIBE="$git describe"
 fi
 
 dnl Some system headers and members
