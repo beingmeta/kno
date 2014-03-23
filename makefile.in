@@ -350,7 +350,7 @@ exe/scripts/%: src/scripts/%.scm
 	@$(MSG) MAKESCRIPT $@ $<
 
 exe/%@suffix@: src/exe/%.c
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
 		-o $@ $<                                           \
 		-lfdbserv@suffix@                 	 	   \
 		@xdynamic_scheme_libs@                             \
@@ -379,18 +379,18 @@ exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
 lib/%@suffix@.a:
 	@$(MKSTATIC) $@ $^
 	@$(MSG) MKSTATIC $@
+lib/%@suffix@.so.@FDMAJOR@: lib/%@suffix@.so
+	@ln -sf $(*F).so $@
 lib/%@suffix@.so:
 	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -Llib -o $@ $^ -lu8 $(LIBS)
 	@ln -sf $(@F) $(@D)/$(@F).@U8MAJOR@
 	@echo MKSO $@
-lib/%@suffix@.so.@FDMAJOR@: lib/%@suffix@.so
-	@ln -sf $(*F).so $@
-lib/%@suffix@.dylib:
-	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib -o $@ $^
-	@ln -sf $(@F) $(@D)/$(*F).@FDMAJOR@.dylib
-	@$(MSG) MACLIBTOOL $@
 lib/%@suffix@.@FDMAJOR@.dylib: lib/%@suffix@.dylib
 	@ln -sf $(*F).dylib $@
+lib/%@suffix@.dylib:
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $^
+	@ln -sf $(@F) $(@D)/`basename $(@F) .dylib`.@FDMAJOR@.dylib
+	@$(MSG) MACLIBTOOL $@
 
 $(LIBINSTALLDIR)/%.a: lib/%.a
 	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
@@ -594,7 +594,7 @@ lib/libfdbserv@suffix@.dylib: $(FDBSERV_OBJS) \
 	lib/libfddbfile@suffix@.dylib         \
 	lib/libfddb@suffix@.dylib             \
 	lib/libfdtype@suffix@.dylib
-	@$(MACLIBTOOL) -install_name $(@F) -o $@ $^
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
@@ -620,7 +620,7 @@ lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 	lib/libfddbfile@suffix@.dylib     \
 	lib/libfddb@suffix@.dylib         \
         lib/libfdtype@suffix@.dylib
-	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib -o $@ $(FDWEB_OBJS)
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $(FDWEB_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
 lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
@@ -630,7 +630,7 @@ lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfddbfile@suffix@.dylib \
 	lib/libfddb@suffix@.dylib \
 	lib/libfdtype@suffix@.dylib
-	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib -o $@ $(TEXTTOOLS_OBJS)
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $(TEXTTOOLS_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
 lib/libtagger@suffix@.a: $(TAGGER_OBJS)
@@ -641,7 +641,7 @@ lib/libtagger@suffix@.dylib: $(TAGGER_OBJS) \
 	lib/libfddbfile@suffix@.@FDVERSION@.dylib \
 	lib/libfddb@suffix@.@FDVERSION@.dylib \
 	lib/libfdtype@suffix@.@FDVERSION@.dylib
-	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		-o $@ $(TAGGER_OBJS) -ltexttools
 	@$(MSG) MACLIBTOOL $@
 
@@ -653,7 +653,7 @@ lib/framerd/mysql.so: src/cmodules/mysql.o
 		@MYSQL_LDFLAGS@ @LIBS@
 	@$(MSG) MKSO "(MYSQL)" $@
 lib/framerd/mysql.dylib: src/cmodules/mysql.o
-	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		-o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(MYSQL)" $@
 
@@ -665,7 +665,7 @@ lib/framerd/imagick.so: src/cmodules/imagick.o
 		@IMAGICK_LDFLAGS@ @LIBS@
 	@$(MSG) MKSO "(IMAGICK)" $@
 lib/framerd/imagick.dylib: src/cmodules/imagick.o
-	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		-o $@ src/cmodules/imagick.o @IMAGICK_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(IMAGICK)" $@
 
@@ -678,7 +678,7 @@ lib/framerd/%.so: src/cmodules/%.o
 lib/framerd/%.so.@FDMAJOR@: lib/framerd/%.so
 	@ln -sf $(*F).so $@
 lib/framerd/%.dylib: src/cmodules/%.o
-	@$(MACLIBTOOL) -install_name $(@F) -o $@ $<
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $<
 	@$(MSG) MACLIBTOOL  $@ $<
 lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
 	@ln -sf $(*F).dylib $@
@@ -712,7 +712,7 @@ lib/framerd/exif.so: src/cmodules/exif.o
 	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ $(LIBS) -lexif
 	@$(MSG) MKSO $@
 lib/framerd/exif.dylib: src/cmodules/exif.o
-	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib -lexif -o $@ $^
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -lexif -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
 SUNDOWN_OBJECTS=src/cmodules/sundown/sundown.o \
@@ -732,7 +732,7 @@ lib/framerd/sundown.so: $(SUNDOWN_OBJECTS)
 	@$(MKSO) -o $@ $(SUNDOWN_OBJECTS) @LIBS@
 	@$(MSG) MKSO  $@ $<
 lib/framerd/sundown.dylib: $(SUNDOWN_OBJECTS)
-	@$(MACLIBTOOL) -install_name $(@F) -o $@ $(SUNDOWN_OBJECTS)
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $(SUNDOWN_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
 # Internationalization stuff
@@ -904,7 +904,6 @@ install-so: install-sov                                  \
 # This should probably be done differently for packaging, but that's 'todo'
 # Versioned shared libraries
 install-dylibv:							\
-	$(LIBINSTALLDIR)/libtagger@suffix@.@FDVERSION@.dylib    \
 	$(LIBINSTALLDIR)/libfdtype@suffix@.@FDVERSION@.dylib    \
 	$(LIBINSTALLDIR)/libfddb@suffix@.@FDVERSION@.dylib      \
 	$(LIBINSTALLDIR)/libfdbserv@suffix@.@FDVERSION@.dylib   \
@@ -913,7 +912,17 @@ install-dylibv:							\
 	$(LIBINSTALLDIR)/libfdschemeio@suffix@.@FDVERSION@.dylib\
 	$(LIBINSTALLDIR)/libfdweb@suffix@.@FDVERSION@.dylib     \
 	$(LIBINSTALLDIR)/libtexttools@suffix@.@FDVERSION@.dylib \
-	$(LIBINSTALLDIR)/libtagger@suffix@.@FDVERSION@.dylib
+	$(LIBINSTALLDIR)/libtagger@suffix@.@FDVERSION@.dylib	\
+	$(LIBINSTALLDIR)/libfdtype@suffix@.@FDMAJOR@.dylib    \
+	$(LIBINSTALLDIR)/libfddb@suffix@.@FDMAJOR@.dylib      \
+	$(LIBINSTALLDIR)/libfdbserv@suffix@.@FDMAJOR@.dylib   \
+	$(LIBINSTALLDIR)/libfddbfile@suffix@.@FDMAJOR@.dylib  \
+	$(LIBINSTALLDIR)/libfdscheme@suffix@.@FDMAJOR@.dylib  \
+	$(LIBINSTALLDIR)/libfdschemeio@suffix@.@FDMAJOR@.dylib\
+	$(LIBINSTALLDIR)/libfdweb@suffix@.@FDMAJOR@.dylib     \
+	$(LIBINSTALLDIR)/libtexttools@suffix@.@FDMAJOR@.dylib \
+	$(LIBINSTALLDIR)/libtagger@suffix@.@FDMAJOR@.dylib
+
 # Unversioned libraries, for development
 install-dylib: install-dylibv                                  \
         $(LIBINSTALLDIR)/libfdtype@suffix@.dylib               \

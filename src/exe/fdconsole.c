@@ -257,8 +257,8 @@ static void exit_fdconsole()
 {
   if (!(quiet_console)) {
     if (run_start<0)
-      u8_message("Exiting FramerD (%s) console before we even started!",
-		 FRAMERD_REVISION);
+      u8_message("<%ld> Exiting FramerD (%s) console before we even started!",
+		 (long)getpid(),FRAMERD_REVISION);
     else {
       double wall_time=u8_elapsed_time()-run_start;
       u8_string units="seconds";
@@ -267,8 +267,8 @@ static void exit_fdconsole()
 	units="minutes"; wall_time=wall_time/60;}
       else {
 	units="hours"; wall_time=wall_time/3600;}
-      u8_message("Exiting FramerD (%s) console after %f %s",
-		 FRAMERD_REVISION,wall_time,units);}}
+      u8_message("<%ld> Exiting FramerD (%s) console after %f %s",
+		 (long)getpid(),FRAMERD_REVISION,wall_time,units);}}
   close_consoles();
 }
 
