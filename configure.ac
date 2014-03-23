@@ -88,7 +88,8 @@ FDMINOR=5
 FDRELEASE=4
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
-vshared_suffix=so.$VERSION
+mshared_suffix=so.$FDMAJOR
+vshared_suffix=so.$FDVERSION
 I18N=""
 INSTALLI18N=""
 WWWUSER="apache"
@@ -147,6 +148,7 @@ AC_SUBST(install_file_opts)
 AC_SUBST(install_exe_opts)
 AC_SUBST(shared_suffix)
 AC_SUBST(vshared_suffix)
+AC_SUBST(mshared_suffix)
 AC_SUBST(dynamic_cflag)
 AC_SUBST(curlconfig)
 AC_SUBST(curlo)
@@ -435,7 +437,8 @@ case $host_os in
 #   if test "x$CC" = "xgcc"; then LIBS="$LIBS -lgcc"; fi
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
-   vshared_suffix=$VERSION.dylib
+   vshared_suffix=$FDVERSION.dylib
+   mshared_suffix=$FDMAJOR.dylib
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
    CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
    ifmacosx=""

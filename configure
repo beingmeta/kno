@@ -730,6 +730,7 @@ exifo
 curlo
 curlconfig
 dynamic_cflag
+mshared_suffix
 vshared_suffix
 shared_suffix
 install_exe_opts
@@ -2878,7 +2879,8 @@ FDMINOR=5
 FDRELEASE=4
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
-vshared_suffix=so.$VERSION
+mshared_suffix=so.$FDMAJOR
+vshared_suffix=so.$FDVERSION
 I18N=""
 INSTALLI18N=""
 WWWUSER="apache"
@@ -2959,6 +2961,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -4906,7 +4909,8 @@ case $host_os in
 #   if test "x$CC" = "xgcc"; then LIBS="$LIBS -lgcc"; fi
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
-   vshared_suffix=$VERSION.dylib
+   vshared_suffix=$FDVERSION.dylib
+   mshared_suffix=$FDMAJOR.dylib
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
    CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
    ifmacosx=""

@@ -206,17 +206,15 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdscheme@suffix@.@shared_suffix@    		\
 	lib/libfdschemeio@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
-	lib/libtexttools@suffix@.@shared_suffix@   		\
-	lib/libtagger@suffix@.@shared_suffix@.@FDMAJOR@		\
-	lib/libfdtype@suffix@.@shared_suffix@.@FDMAJOR@		\
-	lib/libfddb@suffix@.@shared_suffix@.@FDMAJOR@        	\
-        lib/libfddbfile@suffix@.@shared_suffix@.@FDMAJOR@    	\
-	lib/libfdbserv@suffix@.@shared_suffix@.@FDMAJOR@     	\
-	lib/libfdscheme@suffix@.@shared_suffix@.@FDMAJOR@    	\
-	lib/libfdschemeio@suffix@.@shared_suffix@.@FDMAJOR@  	\
-	lib/libfdweb@suffix@.@shared_suffix@.@FDMAJOR@       	\
-	lib/libtexttools@suffix@.@shared_suffix@.@FDMAJOR@   	\
-	lib/libtagger@suffix@.@shared_suffix@.@FDMAJOR@
+	lib/libtexttools@suffix@.@shared_suffix@		\
+	lib/libfdtype@suffix@.@mshared_suffix@  		\
+	lib/libfddb@suffix@.@mshared_suffix@        		\
+        lib/libfddbfile@suffix@.@mshared_suffix@    		\
+	lib/libfdbserv@suffix@.@mshared_suffix@     		\
+	lib/libfdscheme@suffix@.@mshared_suffix@    		\
+	lib/libfdschemeio@suffix@.@mshared_suffix@  		\
+	lib/libfdweb@suffix@.@mshared_suffix@       		\
+	lib/libtexttools@suffix@.@mshared_suffix@
 
 SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
 	src/modules/aws/*.scm src/modules/brico/*.scm \
@@ -383,11 +381,13 @@ lib/%@suffix@.a:
 	@$(MSG) MKSTATIC $@
 lib/%@suffix@.so:
 	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -Llib -o $@ $^ -lu8 $(LIBS)
+	@ln -sf $(@F) $(@D)/$(@F).@U8MAJOR@
 	@echo MKSO $@
 lib/%@suffix@.so.@FDMAJOR@: lib/%@suffix@.so
 	@ln -sf $(*F).so $@
 lib/%@suffix@.dylib:
 	@$(MACLIBTOOL) -install_name $(*F).@FDMAJOR@.dylib -o $@ $^
+	@ln -sf $(@F) $(@D)/$(*F).@FDMAJOR@.dylib
 	@$(MSG) MACLIBTOOL $@
 lib/%@suffix@.@FDMAJOR@.dylib: lib/%@suffix@.dylib
 	@ln -sf $(*F).dylib $@
