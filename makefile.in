@@ -991,55 +991,56 @@ install-sundown: $(LIBINSTALLDIR)/framerd/sundown.@shared_suffix@ \
 
 # Setup targets
 
-workdirs: $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/framerd/bugjar $(DESTDIR)@rundir@/framerd 
-confdirs:
+workdirs: $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/framerd/bugjar \
+	$(DESTDIR)@rundir@/framerd 
+confdirs: $(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 	@$(MSG) Setting up configuration directories
-	@$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
 	@if test ! -f $(DESTDIR)@config_dir@/servers; then \
 		$(INSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
-	@if test ! -d $(DESTDIR)@config_dir@/fdservers; then \
-		$(INSTALL) @install_dir_opts@ \
-			$(DESTDIR)@config_dir@/fdservers; fi
-	@if test ! -d $(DESTDIR)@config_dir@/fdservlets; then \
-		$(INSTALL) @install_dir_opts@ \
-			$(DESTDIR)@config_dir@/fdservlets; fi
+
+$(DESTDIR)@config_dir@:
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+$(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@config_dir@
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+$(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@:
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+
+upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 MODULE_DIRS=aws brico facebook misc paypal tests twitter webapi
 SAFE_MODULE_DIRS=domutils knodules textindex 
-link-modules:
+link-modules: $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@ \
+		$(DESTDIR)@module_dir@ $(DESTDIR)@data_dir@
 	@$(MSG) Installing symbolic links for Scheme modules
-	@$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
 	@ln -sf $(BUILD)/etc/*.el @data_dir@
 	@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
 	@ln -sf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
 	@ln -sf $(BUILD)/src/modules/*.js $(DESTDIR)@standard_module_dir@
 	@for x in $(MODULE_DIRS); do \
-	   ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; done
+	   ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; \
+	 done
 	@ln -sf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
 	@for x in $(SAFE_MODULE_DIRS); do \
 	   ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; done
 	@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
 	@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
-              $(DESTDIR)@safe_module_dir@ $(DESTDIR)@config_dir@
+              $(DESTDIR)@safe_module_dir@ $(DESTDIR)@data_dir@
 	@$(ECHO) Copying Scheme modules to install directories
-	@$(SYSINSTALL) @install_dir_opts@ $(CONFDIRS)
-	@cp -pf $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
-	@$(INSTALL) @install_dir_opts@ \
-           $(DESTDIR)@standard_module_dir@ \
-	   $(DESTDIR)@module_dir@ \
-	   $(DESTDIR)@safe_module_dir@
-	@cp -pRf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
-	@cp -pRf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
-	@cp -pRf $(BUILD)/src/modules/*.js $(DESTDIR)@standard_module_dir@
+	@cp -f $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
+	@cp -Rf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
+	@cp -Rf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
+	@cp -Rf $(BUILD)/src/modules/*.js $(DESTDIR)@standard_module_dir@
 	@for x in $(MODULE_DIRS); do \
-	   cp -pRf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; done
-	@cp -pRf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
+	   cp -Rf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; \
+	 done
+	@cp -Rf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
 	@for x in $(SAFE_MODULE_DIRS); do \
-	   cp -pRf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; done
-	@cp -pRf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
-	@cp -pRf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
+	   cp -Rf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; \
+	 done
+	@cp -Rf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
+	@cp -Rf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 install-modules: @install_modules_target@
 
 statedirs: $(DESTDIR)@rundir@/framerd $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/framerd/bugjar
@@ -1087,8 +1088,6 @@ $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing framerd Upstart config
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.conf $(DESTDIR)/etc/init/framerd.conf
-$(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
 $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate $(DESTDIR)/etc/logrotate.d
