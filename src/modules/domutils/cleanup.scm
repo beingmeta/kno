@@ -191,17 +191,6 @@
 ;;;  single strings, calling an optional TEXTFN on each combined
 ;;;  string.  The TEXTFN can normalize whitespace or insert indents.
 
-(define *block-tags*
-  '{DIV P SECTION ASIDE DETAIL FIGURE BLOCKQUOTE UL OL HEAD BODY DL})
-(define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
-
-(define *empty-tags*
-  '{IMG BR HR LINK META BASE INPUT OPTION
-    COMMAND KEYGEN SOURCE
-    FRAME EMBED PARAM AREA BASEFONT COL
-    ISINDEX NEXTID BGSOUND SPACER
-    WBR})
-
 (define (cleanup! node textfn dropfn dropempty classrules stylerules)
   (logdetail "Cleanup " (dom/eltref node))
   (if (test node '%content)
@@ -280,7 +269,7 @@
 	    merged
 	    node))
       ;; Fix empty tags
-      (if (test node '%xmltag *empty-tags*)
+      (if (test node '%xmltag *void-tags*)
 	  node
 	  (begin (store! node '%content '())
 	    node))))
@@ -425,7 +414,10 @@
 	((test node '%xmltag *wrapper-tags*)
 	 (promote-single-spans node)
 	 (let* ((content (->vector (get node '%content)))
-		(cleaned (apply append (forseq (node content) (cleanblocks node opts)))))
+		(cleaned
+		 (apply append
+			(forseq (node content)
+			  (cleanblocks node opts)))))
 	   (store! node '%content (merge-text (->list cleaned)))
 	   (vector node)))
 	(else (let ((content (->vector (get node '%content))))

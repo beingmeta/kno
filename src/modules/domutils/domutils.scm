@@ -27,13 +27,17 @@
    dom/count
    dom/split-space dom/split-semi dom/split-comma
    ->selector selector-tag selector-class selector-id
-   *block-text-tags* *inline-tags* *table-tags*
-   *wrapper-tags* *terminal-block-tags*
+   *block-tags* *block-text-tags* *terminal-block-tags* *table-tags*
+   *wrapper-tags* *inline-tags* *empty-tags* *void-tags*  
    dom/block? dom/inline? dom/terminal?
    dom->id id->dom
    dom/parent
    dom/clone})
 
+;;;; Kinds of HTML tags
+
+(define *block-tags*
+  '{DIV P SECTION ASIDE DETAIL FIGURE BLOCKQUOTE UL OL HEAD BODY DL})
 (define *block-text-tags*
   (string->symbol
    '{"P" "LI" "DT" "DD" "BLOCKQUOTE"
@@ -42,12 +46,37 @@
      "H1" "H2" "H3" "H4" "H5" "H6" "H7"
      "PRE"}))
 (define *table-tags*
-  (string->symbol '{"TABLE" "TBODY" "TR" "TD" "TH"}))
+  (string->symbol '{"TABLE" "TBODY" "TR" "TD" "TH" "COL"}))
 (define *inline-tags* '{a em strong i b span cite sup sub})
 (define *wrapper-tags* ;; semantic wrapper tags
   '{blockquote ul ol dl section aside detail})
 (define *terminal-block-tags*
    '{p li dt dd h1 h2 h3 h4 h5 h6 h7})
+
+(define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
+(define *void-tags*
+  '{AREA BASE BR COL EMBED HR IMG INPUT KEYGEN LINK MENUITEM
+    META PARAM SOURCE TRACK WBR
+    FRAME BASEFONT ISINDEX NEXTID BGSOUND SPACER})
+(define *empty-tags*
+  '{IMG BR HR LINK META BASE INPUT OPTION
+    COMMAND KEYGEN SOURCE
+    FRAME EMBED PARAM AREA BASEFONT COL
+    ISINDEX NEXTID BGSOUND SPACER
+    WBR})
+
+(define (dom/block? node)
+  (overlaps? (get node '%xmltag) *block-text-tags*))
+
+(define (dom/inline? node)
+  (overlaps? (get node '%xmltag) *inline-tags*))
+
+(define (dom/terminal? node)
+  (or (test node '%xmltag *terminal-block-tags*)
+      (and (test node '%xmltag *block-tags*)
+	   (not (some? dom/block? (get node '%content))))))
+
+;;;; Standard XML/XHTML schemas
 
 (define-init stdschemas
   (for-choices (def '{(sbooks . "http://sbooks.net/")
@@ -75,20 +104,6 @@
 			      val))
 		   stdschemas))
 	     "Define standard schemas for DOM META and LINK elements")
-
-(define *terminal-block-text-tags*
-  (string->symbol
-   '{"P" "LI" "DT" "DD"
-     "H1" "H2" "H3" "H4" "H5" "H6" "H7"}))
-
-(define (dom/block? node)
-  (overlaps? (get node '%xmltag) *block-text-tags*))
-
-(define (dom/inline? node)
-  (overlaps? (get node '%xmltag) *inline-tags*))
-
-(define (dom/terminal? node)
-  (overlaps? (get node '%xmltag) *terminal-block-text-tags*))
 
 ;;; Random utilities
 
