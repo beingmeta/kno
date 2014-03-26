@@ -194,7 +194,13 @@
 (define *block-tags*
   '{DIV P SECTION ASIDE DETAIL FIGURE BLOCKQUOTE UL OL HEAD BODY DL})
 (define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
-(define *empty-tags* '{IMG BR HR LINK INPUT})
+
+(define *empty-tags*
+  '{IMG BR HR LINK META BASE INPUT OPTION
+    COMMAND KEYGEN SOURCE
+    FRAME EMBED PARAM AREA BASEFONT COL
+    ISINDEX NEXTID BGSOUND SPACER
+    WBR})
 
 (define (cleanup! node textfn dropfn dropempty classrules stylerules)
   (logdetail "Cleanup " (dom/eltref node))
