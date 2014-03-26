@@ -262,16 +262,16 @@ static int log_status=-1;
 
 static double getinterval(double usecs,char **units)
 {
-  if (usecs>259200000000) {
-    *units="days"; return (usecs/((double)86400000000L));}
-  else if (usecs>4800000000L) {
-    *units="hours"; return (usecs/((double)3600000000L));}
-  else if (usecs>60000000) {
-    *units="min"; return (usecs/((double)60000000));}
-  else if (usecs>1000000) {
-    *units="s"; return (usecs/((double)1000000));}
-  else if (usecs>1000) {
-    *units="ms"; return (usecs/((double)1000));}
+  if (usecs>259200000000.0) {
+    *units="days"; return (usecs/86400000000.0);}
+  else if (usecs>4800000000.0) {
+    *units="hours"; return (usecs/3600000000.0);}
+  else if (usecs>60000000.0) {
+    *units="min"; return (usecs/60000000.0);}
+  else if (usecs>1000000.0) {
+    *units="s"; return (usecs/1000000.0);}
+  else if (usecs>1000.0) {
+    *units="ms"; return (usecs/1000.0);}
   else {*units="us"; return usecs;}
 }
 
