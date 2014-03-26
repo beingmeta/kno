@@ -1,5 +1,5 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2013 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2014 beingmeta, inc.  All rights reserved.
 
 (in-module 'domutils/cleanup)
 
@@ -194,11 +194,10 @@
 (define *block-tags*
   '{DIV P SECTION ASIDE DETAIL FIGURE BLOCKQUOTE UL OL HEAD BODY DL})
 (define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
+(define *empty-tags* '{IMG BR HR LINK INPUT})
 
 (define (cleanup! node textfn dropfn dropempty classrules stylerules)
   (logdetail "Cleanup " (dom/eltref node))
-  (if (eq? stylerules #t) (set! stylerules default-style-rules))
-  (if (eq? classrules #t) (set! classrules default-class-rules))
   (if (test node '%content)
       (let ((vec (->vector (get node '%content)))
 	    (newfn (and textfn
@@ -274,10 +273,16 @@
 		 (fail? (get node '%attribs)))
 	    merged
 	    node))
-      node))
+      ;; Fix empty tags
+      (if (test node '%xmltag *empty-tags*)
+	  node
+	  (begin (store! node '%content '())
+	    node))))
 
 (define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f)
 		      (classrules #f) (stylerules #f))
+  (if (eq? stylerules #t) (set! stylerules default-style-rules))
+  (if (eq? classrules #t) (set! classrules default-class-rules))
   (cleanup! node textfn dropfn dropempty
 	    (and classrules
 		 (qc (get dom-cleanup-rules (pick classrules symbol?))
