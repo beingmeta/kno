@@ -439,8 +439,7 @@ int main(int argc,char **argv)
      _("Max number of sequence/choice elements to display in debug message"),
      fd_intconfig_get,fd_intconfig_set,&debug_maxelts);
   fd_register_config
-    ("QUIET",
-     _("Whether to be minimalist in console interaction"),
+    ("QUIET",_("Whether to minimize console output"),
      fd_boolconfig_get,fd_boolconfig_set,&quiet_console);
   fd_register_config
     ("CONSOLEWIDTH",
@@ -485,14 +484,17 @@ int main(int argc,char **argv)
   console_env=env;
   atexit(exit_fdconsole);
 
-  /* Other initialization for FramerD libraries */
-  u8_default_appid(argv[0]);
+  if (u8_has_suffix(argv[0],"/fdconsole",0))
+    u8_default_appid("fdconsole");
+  else if (u8_has_suffix(argv[0],"/fdsh",0))
+    u8_default_appid("fdsh");
+  else if (u8_has_suffix(argv[0],"/fdshell",0))
+    u8_default_appid("fdshell");
+  else u8_default_appid(argv[0]);
   fd_config_set("OIDDISPLAY",FD_INT2DTYPE(3));
   setlocale(LC_ALL,"");
   that_symbol=fd_intern("THAT");
   histref_symbol=fd_intern("%HISTREF");
-
-  if (!(quiet_console)) fd_boot_message();
 
   /* Process config fields in the arguments,
      storing the first non config field as a source file. */
@@ -501,6 +503,9 @@ int main(int argc,char **argv)
       fd_config_assignment(argv[i++]);
     else if (source_file) i++;
     else source_file=argv[i++];
+
+  if (!(quiet_console)) fd_boot_message();
+
   if (source_file==NULL) {}
   else if (strchr(source_file,'@')) {
     int sock=u8_connect(source_file);
@@ -527,11 +532,21 @@ int main(int argc,char **argv)
 
   fd_idefn((fdtype)env,fd_make_cprim1("BACKTRACE",backtrace_prim,0));
   fd_defalias((fdtype)env,"%","BACKTRACE");
-  
+
   /* Announce preamble, suppressed by quiet_config */
   fd_config_set("BOOTED",fd_time2timestamp(boot_time));
   run_start=u8_elapsed_time();
-  startup_time=run_start-fd_load_start;
+
+  if (!(quiet_console)) {
+    double startup_time=u8_elapsed_time()-fd_load_start;
+    char *units="s";
+    if (startup_time>1) {}
+    else if (startup_time>0.001) {
+      startup_time=startup_time*1000; units="ms";}
+    else {startup_time=startup_time*1000000; units="ms";}
+    u8_message("FramerD (%s) booted in %0.3f%s, %d/%d pools/indices",
+	       FRAMERD_REVISION,startup_time,units,fd_n_pools,
+	       fd_n_primary_indices+fd_n_secondary_indices);}
 
   fd_histinit(0);
   u8_printf(out,EVAL_PROMPT);

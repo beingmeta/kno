@@ -41,7 +41,7 @@
 
 #include "main.c"
 
-static int debug_maxelts=32, debug_maxchars=80;
+static int debug_maxelts=32, debug_maxchars=80, quiet_start=0;
 
 static char *configs[MAX_CONFIGS], *exe_arg=NULL, *file_arg=NULL;
 static int n_configs=0;
@@ -62,10 +62,10 @@ static void identify_application(int argc,char **argv,char *dflt)
 	start=argv[1];
       copy=u8_strdup(start); dot=strchr(copy,'.');
       if (dot) *dot='\0';
-      u8_identify_application(copy);
+      u8_default_appid(copy);
       u8_free(copy);
       return;}
-  u8_identify_application(dflt);
+  u8_default_appid(dflt);
 }
 
 typedef char *charp;
@@ -102,7 +102,8 @@ static fdtype chain_prim(int n,fdtype *args)
     u8_log(LOG_INFO,"CHAIN","Closing pools and indices");
     fd_close_pools();
     fd_close_indices();
-    u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",exe_arg,u8_fromlibc(file_arg),argstring.u8_outbuf);
+    u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",
+	   exe_arg,u8_fromlibc(file_arg),argstring.u8_outbuf);
     u8_free(argstring.u8_outbuf);
     return execvp(exe_arg,cargv);}
 }
@@ -121,18 +122,25 @@ int main(int argc,char **argv)
     return -1;}
   if (exe_arg==NULL) exe_arg=u8_strdup(argv[0]);
   u8_register_source_file(_FILEINFO);
-  fd_register_config("DEBUGMAXCHARS",
-		     _("Max number of chars in strings output with error reports"),
-		     fd_intconfig_get,fd_intconfig_set,
-		     &debug_maxchars);
-  fd_register_config("DEBUGMAXELTS",
-		     _("Max number of elements in vectors/choices/lists output with error reports"),
-		     fd_intconfig_get,fd_intconfig_set,
-		     &debug_maxelts);
-  fd_register_config("FILEWAIT",
-		     _("File to wait to exist before starting"),
-		     fd_sconfig_get,fd_sconfig_set,
-		     &wait_for_file);
+  fd_register_config
+    ("DEBUGMAXCHARS",
+     _("Max number of chars in strings output in error reports"),
+     fd_intconfig_get,fd_intconfig_set,
+     &debug_maxchars);
+  fd_register_config
+    ("DEBUGMAXELTS",
+     _("Max number of sequence/choice elements to display in error reports"),
+     fd_intconfig_get,fd_intconfig_set,
+     &debug_maxelts);
+  fd_register_config
+    ("FILEWAIT",
+     _("File to wait to exist before starting"),
+     fd_sconfig_get,fd_sconfig_set,
+     &wait_for_file);
+  fd_register_config
+    ("QUIET",_("Whether to output startup messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &quiet_start);
   setlocale(LC_ALL,"");
   /* Process command line config arguments */
 #ifndef FDEXEC_INCLUDED
@@ -162,19 +170,24 @@ int main(int argc,char **argv)
 
   fd_init_schemeio();
   identify_application(argc,argv,argv[0]);
-  fd_boot_message();
+  if (!(quiet_start)) fd_boot_message();
   if (wait_for_file) {
     if (u8_file_existsp(wait_for_file))
-      u8_log(LOG_NOTICE,FileWait,"Starting now because '%s' exists",wait_for_file);
+      u8_log(LOG_NOTICE,FileWait,"Starting now because '%s' exists",
+	     wait_for_file);
     else {
-      int n=0;  u8_log(LOG_NOTICE,FileWait,"Waiting for '%s' to exist",wait_for_file);
+      int n=0;
+      u8_log(LOG_NOTICE,FileWait,"Waiting for '%s' to exist",
+	     wait_for_file);
       while (1) {
 	n++; if (n<15) sleep(n); else sleep(15);
 	if (u8_file_existsp(wait_for_file)) {
-	  u8_log(LOG_NOTICE,FileWait,"[%d] Starting now because '%s' exists",n,wait_for_file);
+	  u8_log(LOG_NOTICE,FileWait,"[%d] Starting now because '%s' exists",
+		 n,wait_for_file);
 	  break;}
 	else if ((n<15) ? ((n%4)==0) : ((n%20)==0))
-	  u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",n,wait_for_file);}}}
+	  u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",
+		 n,wait_for_file);}}}
 
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   while (i<argc)
@@ -186,9 +199,11 @@ int main(int argc,char **argv)
     else if (source_file)
       args[n_args++]=fd_parse_arg(argv[i++]);
     else {
+      u8_string arg=u8_fromlibc(argv[i++]);
       file_arg=u8_strdup(argv[i]);
-      source_file=u8_fromlibc(argv[i++]);
-      u8_default_appid(source_file);}
+      source_file=u8_abspath(arg,NULL);
+      u8_default_appid(source_file);
+      u8_free(arg);}
   if (source_file) {
     fdtype interp=fd_lispstring(u8_fromlibc(argv[0]));
     fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
@@ -201,6 +216,18 @@ int main(int argc,char **argv)
     fprintf(stderr,
 	    "Usage: fdexec [conf=val]* source_file (arg | [conf=val])*\n");
     return 1;}
+
+  if (!(quiet_start)) {
+    double startup_time=u8_elapsed_time()-fd_load_start;
+    char *units="s";
+    if (startup_time>1) {}
+    else if (startup_time>0.001) {
+      startup_time=startup_time*1000; units="ms";}
+    else {startup_time=startup_time*1000000; units="ms";}
+    u8_message("FramerD (%s) booted in %0.3f%s, %d/%d pools/indices",
+	       FRAMERD_REVISION,startup_time,units,fd_n_pools,
+	       fd_n_primary_indices+fd_n_secondary_indices);}
+
   if (!(FD_ABORTP(result))) {
     main_proc=fd_symeval(fd_intern("MAIN"),env);
     if (FD_APPLICABLEP(main_proc)) {

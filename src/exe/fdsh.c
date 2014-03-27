@@ -61,6 +61,8 @@ static u8_output outconsole=NULL;
 static u8_output errconsole=NULL;
 static fd_lispenv console_env=NULL;
 
+static int console_width=80, quiet_console=0, show_elts=5;
+
 static int debug_maxelts=32, debug_maxchars=80;
 
 static void close_consoles()
@@ -77,6 +79,133 @@ static void close_consoles()
   if (console_env) {
     fd_recycle_environment(console_env);
     console_env=NULL;}
+}
+
+static int fits_consolep(fdtype elt)
+{
+  struct U8_OUTPUT tmpout; u8_byte buf[1024];
+  U8_INIT_FIXED_OUTPUT(&tmpout,1024,buf);
+  fd_unparse(&tmpout,elt);
+  if (((tmpout.u8_outptr-tmpout.u8_outbuf)>=1024) ||
+      ((tmpout.u8_outptr-tmpout.u8_outbuf)>=console_width))
+    return 0;
+  else return 1;
+}
+
+static void output_element(u8_output out,fdtype elt)
+{
+  if (historicp(elt))
+    if ((console_width==0) || (fits_consolep(elt)))
+      u8_printf(out,"\n  %q ;=##%d",elt,fd_histpush(elt));
+    else {
+      struct U8_OUTPUT tmpout;
+      u8_printf(out,"\n  ;; ##%d=\n  ",fd_histpush(elt),elt);
+      U8_INIT_OUTPUT(&tmpout,512);
+      fd_pprint(&tmpout,elt,"  ",2,2,console_width,1);
+      u8_puts(out,tmpout.u8_outbuf);
+      u8_free(tmpout.u8_outbuf);
+      u8_flush(out);}
+  else u8_printf(out,"\n  %q",elt);
+}
+
+static int list_length(fdtype scan)
+{
+  int len=0;
+  while (1)
+    if (FD_EMPTY_LISTP(scan)) return len;
+    else if (FD_PAIRP(scan)) {
+      scan=FD_CDR(scan); len++;}
+    else return len+1;
+}
+
+static int result_size(fdtype result)
+{
+  if (FD_ATOMICP(result)) return 1;
+  else if (FD_CHOICEP(result))
+    return FD_CHOICE_SIZE(result);
+  else if (FD_VECTORP(result))
+    return FD_VECTOR_LENGTH(result);
+  else if (FD_PAIRP(result))
+    return fd_seq_length(result);
+  else return 1;
+}
+
+static int output_result(u8_output out,fdtype result,int histref,int showall)
+{
+  if (FD_VOIDP(result)) {}
+  else if (((FD_VECTORP(result)) || (FD_PAIRP(result))) &&
+	   (result_size(result)<8) && (fits_consolep(result)))
+    if (histref<0)
+      u8_printf(out,"%q\n",result);
+    else u8_printf(out,"%q  ;; =##%d\n",result,histref);
+  else if ((showall)&&(FD_OIDP(result))) {
+    fdtype v=fd_oid_value(result);
+    if (FD_TABLEP(v)) {
+      U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+      u8_printf(&out,"%q:\n",result);
+      fd_display_table(&out,v,FD_VOID);
+      fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
+      fflush(stdout);}
+    else u8_printf(out,"OID value: %q\n",v);
+    fd_decref(v);}
+  else if (!((FD_CHOICEP(result)) || (FD_VECTORP(result)) ||
+	     (FD_PAIRP(result))))
+    if (histref<0)
+      u8_printf(out,"%Q\n",result);
+    else if (console_width<=0)
+      u8_printf(out,"%q\n;; =##%d\n",result,histref);
+    else {
+      struct U8_OUTPUT tmpout;
+      U8_INIT_OUTPUT(&tmpout,512);
+      fd_pprint(&tmpout,result,"  ",2,2,console_width,1);
+      u8_puts(out,tmpout.u8_outbuf); u8_putc(out,'\n');
+      u8_free(tmpout.u8_outbuf);
+      u8_flush(out);
+      return 1;}
+  else {
+    u8_string start_with=NULL, end_with=NULL;
+    int count=0, max_elts, n_elts=0;
+    if (FD_CHOICEP(result)) {
+      start_with="{"; end_with="}"; n_elts=FD_CHOICE_SIZE(result);}
+    else if (FD_VECTORP(result)) {
+      start_with="#("; end_with=")"; n_elts=FD_VECTOR_LENGTH(result);}
+    else if (FD_PAIRP(result)) {
+      start_with="("; end_with=")"; n_elts=list_length(result);}
+    else {}
+    if ((showall==0) && ((show_elts>0) && (n_elts>(show_elts*2))))
+      max_elts=show_elts;
+    else max_elts=n_elts;
+    if (max_elts<n_elts)
+      u8_printf(out,_("%s ;; ##%d= (%d/%d items)"),
+		start_with,histref,max_elts,n_elts);
+    else u8_printf(out,_("%s ;; ##%d= (%d items)"),start_with,histref,n_elts);
+    if (FD_CHOICEP(result)) {
+      FD_DO_CHOICES(elt,result) {
+	if ((max_elts>0) && (count<max_elts)) {
+	  output_element(out,elt); count++;}
+	else {FD_STOP_DO_CHOICES; break;}}}
+    else if (FD_VECTORP(result)) {
+      fdtype *elts=FD_VECTOR_DATA(result);
+      while (count<max_elts) {
+	output_element(out,elts[count]); count++;}}
+    else if (FD_PAIRP(result)) {
+      fdtype scan=result;
+      while (count<max_elts) 
+	if (FD_PAIRP(scan)) {
+	  output_element(out,FD_CAR(scan));
+	  count++; scan=FD_CDR(scan);}
+	else {
+	  u8_printf(out,"\n  . ;; improper list");
+	  output_element(out,scan);
+	  count++; scan=FD_VOID;
+	  break;}}
+    else {}
+    if (max_elts<n_elts) {
+      u8_printf(out,"\n  ;; ....... %d more items .......",n_elts-max_elts);
+      u8_printf(out,"\n%s ;; ==##%d (%d/%d items)\n",end_with,histref,max_elts,
+		n_elts);}
+    else u8_printf(out,"\n%s ;; ==##%d (%d items)\n",end_with,histref,n_elts);}
+  return 0;
 }
 
 #if 0
@@ -114,8 +243,6 @@ static u8_string stats_message=
 static u8_string stats_message_w_history=
    _(";; ##%d computed in %f seconds, %d/%d object/index loads\n");
 
-static double startup_time=-1.0;
-
 static int el_skip_whitespace(EditLine *e)
 {
   char ch='\0'; int retval;
@@ -143,7 +270,6 @@ int main(int argc,char **argv)
   time_t boot_time=time(NULL);
   fd_lispenv env=fd_working_environment();
   fdtype expr=FD_VOID, result=FD_VOID, lastval=FD_VOID, that_symbol, histref_symbol;
-  fdtype quiet_config=FD_VOID;
   EditLine *console=el_init("fdshell",stdin,stdout,stderr);
   History *consolehistory=history_init();
   u8_encoding enc=u8_get_default_encoding();
@@ -179,22 +305,35 @@ int main(int argc,char **argv)
      the module to be linked in. */
   fd_init_fdscheme();
 
-  fd_register_config("SHOWTIME",_("Threshold for displaying execution time"),
-		     fd_dblconfig_get,fd_dblconfig_set,
-		     &showtime_threshold);
-  fd_register_config("DEBUGMAXCHARS",_("Max number of string characters to display in debug message"),
-		     fd_intconfig_get,fd_intconfig_set,
-		     &debug_maxchars);
-  fd_register_config("DEBUGMAXELTS",_("Max number of list/vector/choice elements to display in debug message"),
-		     fd_intconfig_get,fd_intconfig_set,
-		     &debug_maxelts);
+  fd_register_config
+    ("SHOWTIME",_("Threshold for displaying execution time"),
+     fd_dblconfig_get,fd_dblconfig_set,
+     &showtime_threshold);
+  fd_register_config
+    ("DEBUGMAXCHARS",
+     _("Max number of string chars to display in debug message"),
+     fd_intconfig_get,fd_intconfig_set,
+     &debug_maxchars);
+  fd_register_config
+    ("DEBUGMAXELTS",
+     _("Max number of sequence/choice elements to display in debug message"),
+     fd_intconfig_get,fd_intconfig_set,
+     &debug_maxelts);
   fd_config_set("BOOTED",fd_time2timestamp(boot_time));
   inconsole=in;
   outconsole=out;
   errconsole=err;
   console_env=env;
   atexit(close_consoles);
-  u8_identify_application(argv[0]);
+
+  if (u8_has_suffix(argv[0],"/fdconsole",0))
+    u8_default_appid("fdconsole");
+  else if (u8_has_suffix(argv[0],"/fdsh",0))
+    u8_default_appid("fdsh");
+  else if (u8_has_suffix(argv[0],"/fdshell",0))
+    u8_default_appid("fdshell");
+  else u8_default_appid(argv[0]);
+
   fd_config_set("OIDDISPLAY",FD_INT2DTYPE(3));
   setlocale(LC_ALL,"");
   that_symbol=fd_intern("THAT");
@@ -204,12 +343,16 @@ int main(int argc,char **argv)
       fd_config_assignment(argv[i++]);
     else if (source_file) i++;
     else source_file=argv[i++];
+
+  if (!(quiet_console)) fd_boot_message();
+
   if (source_file==NULL) {}
   else if (strchr(source_file,'@')) {
     int sock=u8_connect(source_file);
     struct FD_DTYPE_STREAM *newstream;
     if (sock<0) {
-      u8_log(LOG_WARN,"Connection failed","Couldn't open connection to %s",source_file);
+      u8_log(LOG_WARN,"Connection failed","Couldn't open connection to %s",
+	     source_file);
       exit(-1);}
     newstream=u8_alloc(struct FD_DTYPE_STREAM);
     fd_init_dtype_stream(newstream,sock,65536);
@@ -223,14 +366,17 @@ int main(int argc,char **argv)
   {
     fdtype interpval=fd_lispstring(u8_fromlibc(argv[0]));
     fd_config_set("INTERPRETER",interpval); fd_decref(interpval);}
-  quiet_config=fd_config_get("QUIET");
   fd_histinit(0);
-  startup_time=u8_elapsed_time()-fd_load_start;
-  if (FD_VOIDP(quiet_config))  {
-    u8_message("FramerD (%s) booted in %f seconds, %d/%d pools/indices",
-	       FRAMERD_REVISION,startup_time,fd_n_pools,
+  if (!(quiet_console)) {
+    double startup_time=u8_elapsed_time()-fd_load_start;
+    char *units="s";
+    if (startup_time>1) {}
+    else if (startup_time>0.001) {
+      startup_time=startup_time*1000; units="ms";}
+    else {startup_time=startup_time*1000000; units="ms";}
+    u8_message("FramerD (%s) booted in %0.3f%s, %d/%d pools/indices",
+	       FRAMERD_REVISION,startup_time,units,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);
-    u8_message("beingmeta FramerD, (C) beingmeta 2004-2014, all rights reserved");
     fd_decref(quiet_config);}
   el_set(console,EL_PROMPT,promptfn);
   el_set(console,EL_EDITOR,"emacs");

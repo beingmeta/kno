@@ -94,15 +94,8 @@ FD_EXPORT void fd_init_pptrs_c(void);
 
 FD_EXPORT void fd_boot_message()
 {
-  double startup_time=u8_elapsed_time()-fd_load_start;
-  char *units="s";
-  if (startup_time>1) {}
-  else if (startup_time>0.001) {
-    startup_time=startup_time*1000; units="ms";}
-  else {startup_time=startup_time*1000000; units="ms";}
-  u8_message("<%ld> %s/%s/%s", /* " in %0.1f%s" ,startup_time,units */
-             (long)getpid(),u8_appid(),fd_revision,u8_revision);
   u8_message("Copyright (C) beingmeta 2004-2014, all rights reserved");
+  u8_message("(%ld:%s) %s %s",getpid(),u8_appid(),fd_revision,u8_revision);
 }
 
 FD_EXPORT int fd_init_dtypelib()
