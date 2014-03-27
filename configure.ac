@@ -235,7 +235,7 @@ AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_CHECK_PROG(ECHO,echo,,/bin/echo)
 AC_CHECK_PROG(VALGRIND,valgrind)
-AC_CHECK_PROGS(APXS,apxs2 apxs /usr/sbin/apxs2 /usr/sbin/apxs /usr/sbin/apxs /usr/bin/apxs,apxs)
+AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs apxs2 apxs,apxs)
 
 AC_DEFINE_UNQUOTED(FD_VERSION,"$FDVERSION")
 AC_DEFINE_UNQUOTED(FD_MAJOR_VERSION,$FDMAJOR)
