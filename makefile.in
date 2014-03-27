@@ -804,11 +804,13 @@ dist/rpms.done: dist/rpms.ready
 	elif (test "x$(GPGID)" = "x"); then 			\
 	   echo "Enter passphrase for the RPM signing key:"; 	\
 	   @rpm@ --addsign 					\
+		--define="__gpg_sign_cmd %__gpg --force-v3-sigs"\
 		$(RPMDIR)/framerd-@FDVERSION@-*.src.rpm 	\
 		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; 	\
 	   else 						\
 	     echo "Enter passphrase for '$(GPGID)':"; 		\
 	     @rpm@ --addsign --define="_gpg_name $(GPGID)" 	\
+		--define="__gpg_sign_cmd %__gpg --force-v3-sigs"\
 		$(RPMDIR)/framerd-@FDVERSION@*.src.rpm 		\
 		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; fi && 	\
 	createrepo -p -d $(RPMDIR) && 				\
