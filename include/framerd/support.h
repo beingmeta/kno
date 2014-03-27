@@ -12,6 +12,7 @@
 #endif
 
 FD_EXPORT fd_exception fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
+FD_EXPORT fd_exception fd_ReadOnlyConfig;
 
 #define FD_CONFIG_ALREADY_MODIFIED 1
 
@@ -32,6 +33,8 @@ FD_EXPORT fdtype fd_config_get(u8_string var);
 FD_EXPORT int fd_config_set(u8_string var,fdtype val);
 FD_EXPORT int fd_config_default(u8_string var,fdtype val);
 FD_EXPORT int fd_config_set_consed(u8_string var,fdtype val);
+
+FD_EXPORT int fd_readonly_config_set(fdtype ignored,fdtype v,void *p);
 
 FD_EXPORT int fd_lconfig_push(fdtype ignored,fdtype v,void *lispp);
 FD_EXPORT int fd_lconfig_add(fdtype ignored,fdtype v,void *lispp);

@@ -19,7 +19,15 @@ double fd_load_start=-1.0;
 
 fd_exception fd_NoMethod=_("Method not supported");
 
+u8_string fd_version=FD_VERSION;
 u8_string fd_revision=FRAMERD_REVISION;
+int fd_major_version=FD_MAJOR_VERSION;
+int fd_minor_version=FD_MINOR_VERSION;
+int fd_release_version=FD_RELEASE_VERSION;
+
+FD_EXPORT u8_string fd_getversion(){return FD_VERSION;}
+FD_EXPORT u8_string fd_getrevision(){return FRAMERD_REVISION;}
+FD_EXPORT int fd_getmajorversion(){return FD_MAJOR_VERSION;}
 
 /* Initialization procedures */
 
@@ -95,7 +103,8 @@ FD_EXPORT void fd_init_pptrs_c(void);
 FD_EXPORT void fd_boot_message()
 {
   u8_message("Copyright (C) beingmeta 2004-2014, all rights reserved");
-  u8_message("(%ld:%s) %s %s",getpid(),u8_appid(),fd_revision,u8_revision);
+  u8_message("(%ld:%s) %s %s",getpid(),u8_appid(),
+             fd_getrevision(),u8_getrevision());
 }
 
 FD_EXPORT int fd_init_dtypelib()

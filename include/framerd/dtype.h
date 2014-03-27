@@ -21,6 +21,27 @@ FD_EXPORT fd_exception fd_NoMethod;
 
 FD_EXPORT double fd_load_start;
 
+FD_EXPORT int fd_major_version, fd_minor_version, fd_release_version;
+FD_EXPORT u8_string fd_version, fd_revision;
+
+U8_EXPORT
+/** Returns the current FramerD revision string (derived from the GIT branch)
+    @returns a utf8 string
+**/
+u8_string fd_getrevision(void);
+
+U8_EXPORT
+/** Returns the current FramerD version string (major.minor.release)
+    @returns a utf8 string
+**/
+u8_string fd_getversion(void);
+
+U8_EXPORT
+/** Returns the current FramerD major version number
+    @returns an int
+**/
+int fd_getmajorversion(void);
+
 FD_EXPORT int fd_init_dtypelib(void) FD_LIBINIT_FN;
 FD_EXPORT void fd_boot_message(void);
 

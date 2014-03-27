@@ -544,8 +544,8 @@ int main(int argc,char **argv)
     else if (startup_time>0.001) {
       startup_time=startup_time*1000; units="ms";}
     else {startup_time=startup_time*1000000; units="ms";}
-    u8_message("FramerD (%s) booted in %0.3f%s, %d/%d pools/indices",
-	       FRAMERD_REVISION,startup_time,units,fd_n_pools,
+    u8_message("FramerD %s booted in %0.3f%s, %d/%d pools/indices",
+	       u8_appid(),startup_time,units,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);}
 
   fd_histinit(0);

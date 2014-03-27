@@ -4479,7 +4479,9 @@ done
 test -n "$APXS" || APXS="apxs"
 
 
-$as_echo "#define FD_VERSION \"\$FDVERSION\"" >>confdefs.h
+cat >>confdefs.h <<_ACEOF
+#define FD_VERSION "$FDVERSION"
+_ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define FD_MAJOR_VERSION $FDMAJOR

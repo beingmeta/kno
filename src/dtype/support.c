@@ -55,6 +55,7 @@ fd_exception fd_UnknownError=_("Unknown error condition");
 fd_exception fd_ConfigError=_("Configuration error");
 fd_exception fd_OutOfMemory=_("Memory apparently exhausted");
 fd_exception fd_ExitException=_("Unhandled exception at exit");
+fd_exception fd_ReadOnlyConfig=_("Read-only config setting");
 
 static u8_string logdir=NULL, datadir=NULL;
 
@@ -88,7 +89,7 @@ static fdtype config_intern(u8_string start)
     u8_close((u8_stream)&nameout);
     return symbol;}
   else return fd_make_symbol
-	 (nameout.u8_outbuf,nameout.u8_outptr-nameout.u8_outbuf);
+         (nameout.u8_outbuf,nameout.u8_outptr-nameout.u8_outbuf);
 }
 
 FD_EXPORT
@@ -183,9 +184,9 @@ static fdtype file_config_lookup(fdtype symbol,void *pathdata)
     else {
       /* Zap any trailing newlines */
       if ((n_bytes>1) && (content[n_bytes-1]=='\n'))
-	content[n_bytes-1]='\0';
+        content[n_bytes-1]='\0';
       if ((n_bytes>2) && (content[n_bytes-2]=='\r'))
-	content[n_bytes-2]='\0';
+        content[n_bytes-2]='\0';
       result=fd_parse_arg(content);}
     u8_free(filename);
     u8_free(content);
@@ -272,10 +273,10 @@ FD_EXPORT int fd_register_config
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
       if (doc) {
-	/* We don't override a real doc with a NULL doc.
-	   Possibly not the right thing. */
-	if (scan->doc) u8_free(scan->doc);
-	scan->doc=u8_strdup(doc);}
+        /* We don't override a real doc with a NULL doc.
+           Possibly not the right thing. */
+        if (scan->doc) u8_free(scan->doc);
+        scan->doc=u8_strdup(doc);}
       scan->config_get_method=getfn;
       scan->config_set_method=setfn;
       scan->data=data;
@@ -375,29 +376,41 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
       u8_ungetc(in,c);
       entry=fd_parser(in);
       if ((FD_PAIRP(entry)) &&
-	  (FD_SYMBOLP(FD_CAR(entry))) &&
-	  (FD_PAIRP(FD_CDR(entry)))) {
-	if (fd_config_set(FD_SYMBOL_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
-	  fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
-	  return -1;}
-	fd_decref(entry); n++;}
+          (FD_SYMBOLP(FD_CAR(entry))) &&
+          (FD_PAIRP(FD_CDR(entry)))) {
+        if (fd_config_set(FD_SYMBOL_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
+          fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+          return -1;}
+        fd_decref(entry); n++;}
       else if (FD_ABORTP(entry))
-	return fd_interr(entry);
+        return fd_interr(entry);
       else {
-	fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
-	return -1;}}
+        fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+        return -1;}}
     else if ((u8_isspace(c)) || (u8_isctrl(c)))  {}
     else {
       u8_ungetc(in,c);
       buf=u8_gets(in);
       if (fd_config_assignment(buf)<0) 
-	return fd_reterr(fd_ConfigError,"fd_read_config",buf,FD_VOID);
+        return fd_reterr(fd_ConfigError,"fd_read_config",buf,FD_VOID);
       else n++;
       u8_free(buf);}
   return n;
 }
 
 /* Utility configuration functions */
+
+/* This set method just returns an error */
+FD_EXPORT int fd_readonly_config_set(fdtype ignored,fdtype v,void *vptr)
+{
+  if (FD_SYMBOLP(v))
+    return fd_reterr(fd_ReadOnlyConfig,"fd_config_set",
+                     FD_SYMBOL_NAME(v),FD_VOID);
+  else if (FD_STRINGP(v))
+    return fd_reterr(fd_ReadOnlyConfig,"fd_config_set",
+                     FD_STRDATA(v),FD_VOID);
+  else return fd_reterr(fd_ReadOnlyConfig,"fd_config_set",NULL,FD_VOID);
+}
 
 /* For configuration variables which get/set dtype value. */
 FD_EXPORT fdtype fd_lconfig_get(fdtype ignored,void *lispp)
@@ -454,7 +467,7 @@ FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *vptr)
     *ptr=FD_FIX2INT(v);
     return 1;}
   else return
-	 fd_reterr(fd_TypeError,"fd_intconfig_set",u8_strdup(_("fixnum")),v);
+         fd_reterr(fd_TypeError,"fd_intconfig_set",u8_strdup(_("fixnum")),v);
 }
 
 /* Double config methods */
@@ -476,7 +489,7 @@ FD_EXPORT int fd_dblconfig_set(fdtype var,fdtype v,void *vptr)
     double dblval=(double)intval;
     *ptr=dblval;}
   else return fd_reterr(fd_TypeError,"fd_dblconfig_set",
-			FD_SYMBOL_NAME(var),v);
+                        FD_SYMBOL_NAME(var),v);
   return 1;
 }
 
@@ -506,7 +519,7 @@ FD_EXPORT int fd_boolconfig_set(fdtype var,fdtype v,void *vptr)
     *ptr=1; return 1;}
   else if (FD_STRINGP(v)) {
     fd_seterr(fd_TypeError,"fd_boolconfig_set",
-	      u8_strdup(FD_XSYMBOL_NAME(var)),fd_incref(v));
+              u8_strdup(FD_XSYMBOL_NAME(var)),fd_incref(v));
     return -1;}
   else {*ptr=1; return 1;}
 }
@@ -655,7 +668,7 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
     FD_DO_CHOICES(opt,opts) {
       fdtype value=fd_getopt(opt,key,FD_VOID);
       if (!(FD_VOIDP(value))) {
-	FD_STOP_DO_CHOICES; return value;}}
+        FD_STOP_DO_CHOICES; return value;}}
     return fd_incref(dflt);}
   else if (FD_QCHOICEP(opts)) 
     return fd_getopt(FD_XQCHOICE(opts)->choice,key,dflt);
@@ -663,18 +676,18 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
     if (FD_PAIRP(opts)) {
       fdtype car=FD_CAR(opts);
       if (FD_SYMBOLP(car)) {
-	if (FD_EQ(key,car)) return FD_TRUE;}
+        if (FD_EQ(key,car)) return FD_TRUE;}
       else if (FD_PAIRP(car)) {
-	if (FD_EQ(FD_CAR(car),key))
-	  return fd_incref(FD_CDR(car));
-	else {
-	  fdtype value=fd_getopt(car,key,FD_VOID);
-	  if (!(FD_VOIDP(value))) return value;}}
+        if (FD_EQ(FD_CAR(car),key))
+          return fd_incref(FD_CDR(car));
+        else {
+          fdtype value=fd_getopt(car,key,FD_VOID);
+          if (!(FD_VOIDP(value))) return value;}}
       else if (FD_TABLEP(car)) {
-	fdtype value=fd_get(car,key,FD_VOID);
-	if (!(FD_VOIDP(value))) return value;}
+        fdtype value=fd_get(car,key,FD_VOID);
+        if (!(FD_VOIDP(value))) return value;}
       else {
-	u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
+        u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
       opts=FD_CDR(opts);}
     else if (FD_SYMBOLP(opts)) 
       if (FD_EQ(key,opts)) return FD_TRUE;
@@ -694,18 +707,18 @@ static int boolopt(fdtype opts,fdtype key)
     if (FD_PAIRP(opts)) {
       fdtype car=FD_CAR(opts);
       if (FD_SYMBOLP(car)) {
-	if (FD_EQ(key,car)) return 1;}
+        if (FD_EQ(key,car)) return 1;}
       else if (FD_PAIRP(car)) {
-	if (FD_EQ(FD_CAR(car),key)) {
-	  if (FD_FALSEP(FD_CDR(car))) return 0;
-	  else return 1;}}
+        if (FD_EQ(FD_CAR(car),key)) {
+          if (FD_FALSEP(FD_CDR(car))) return 0;
+          else return 1;}}
       else if (FD_TABLEP(car)) {
-	fdtype value=fd_get(car,key,FD_VOID);
-	if (FD_FALSEP(value)) return 0;
-	else if (!(FD_VOIDP(value))) {
-	  fd_decref(value); return 1;}}
+        fdtype value=fd_get(car,key,FD_VOID);
+        if (FD_FALSEP(value)) return 0;
+        else if (!(FD_VOIDP(value))) {
+          fd_decref(value); return 1;}}
       else {
-	u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
+        u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
       opts=FD_CDR(opts);}
     else if (FD_SYMBOLP(opts)) 
       if (FD_EQ(key,opts)) return 1;
@@ -728,7 +741,7 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
   else if ((FD_CHOICEP(opts)) || (FD_ACHOICEP(opts))) {
     FD_DO_CHOICES(opt,opts)
       if (fd_testopt(opt,key,val)) {
-	FD_STOP_DO_CHOICES; return 1;}
+        FD_STOP_DO_CHOICES; return 1;}
     return 0;}
   else if (FD_VOIDP(val))
     return boolopt(opts,key);
@@ -737,33 +750,33 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
   else if (FD_EMPTY_CHOICEP(opts))
     return 0;
   else while (!(FD_VOIDP(opts)))
-	 if (FD_PAIRP(opts)) {
-	   fdtype car=FD_CAR(opts);
-	   if (FD_SYMBOLP(car)) {
-	     if ((FD_EQ(key,car)) && (FD_TRUEP(val)))
-	       return 1;}
-	   else if (FD_PAIRP(car)) {
-	     if (FD_EQ(FD_CAR(car),key)) {
-	       if (FD_EQUAL(val,FD_CDR(car)))
-		 return 1;
-	       else return 0;}}
-	   else if (FD_TABLEP(car)) {
-	     int tv=fd_test(car,key,val);
-	     if (tv) return tv;}
-	   else {
-	     u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
-	   opts=FD_CDR(opts);}
-	 else if (FD_SYMBOLP(opts)) 
-	   if (FD_EQ(key,opts))
-	     if (FD_TRUEP(val)) return 1;
-	     else return 0;
-	   else return 0;
-	 else if (FD_TABLEP(opts))
-	   return fd_test(opts,key,val);
-	 else if (FD_EMPTY_LISTP(opts)) return 0;
-	 else {
-	   u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
-	   return 0;}
+         if (FD_PAIRP(opts)) {
+           fdtype car=FD_CAR(opts);
+           if (FD_SYMBOLP(car)) {
+             if ((FD_EQ(key,car)) && (FD_TRUEP(val)))
+               return 1;}
+           else if (FD_PAIRP(car)) {
+             if (FD_EQ(FD_CAR(car),key)) {
+               if (FD_EQUAL(val,FD_CDR(car)))
+                 return 1;
+               else return 0;}}
+           else if (FD_TABLEP(car)) {
+             int tv=fd_test(car,key,val);
+             if (tv) return tv;}
+           else {
+             u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
+           opts=FD_CDR(opts);}
+         else if (FD_SYMBOLP(opts)) 
+           if (FD_EQ(key,opts))
+             if (FD_TRUEP(val)) return 1;
+             else return 0;
+           else return 0;
+         else if (FD_TABLEP(opts))
+           return fd_test(opts,key,val);
+         else if (FD_EMPTY_LISTP(opts)) return 0;
+         else {
+           u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
+           return 0;}
   return 0;
 }
 
@@ -796,7 +809,7 @@ FD_EXPORT int fd_poperr
     current->u8x_details=NULL;}
   if (irritant) {
     if ((current->u8x_xdata) &&
-	(current->u8x_free_xdata==fd_free_exception_xdata)) {
+        (current->u8x_free_xdata==fd_free_exception_xdata)) {
       /* Likewise for the irritant */
       *irritant=(fdtype)(current->u8x_xdata);
       current->u8x_xdata=NULL;
@@ -878,27 +891,27 @@ fdtype fd_exception_backtrace(u8_exception ex)
     u8_context cx=ex->u8x_context;
     fdtype x=fd_exception_xdata(ex);
     if ((c!=cond)||
-	((d)&&(d!=details))||
-	((cx)&&(cx!=cxt))) {
+        ((d)&&(d!=details))||
+        ((cx)&&(cx!=cxt))) {
       u8_string sum=
-	(((d)&&cx)?(u8_mkstring("%s (%s) %s",c,cx,d)):
-	 (d)?(u8_mkstring("%s: %s",c,d)):
-	 (cx)?(u8_mkstring("%s (%s)",c,cx)):
-	 ((u8_string)u8_strdup(c)));
+        (((d)&&cx)?(u8_mkstring("%s (%s) %s",c,cx,d)):
+         (d)?(u8_mkstring("%s: %s",c,d)):
+         (cx)?(u8_mkstring("%s (%s)",c,cx)):
+         ((u8_string)u8_strdup(c)));
       result=fd_init_pair(NULL,fd_make_string(NULL,-1,sum),result);
       u8_free(sum);}
     if (!((FD_NULLP(x))||(FD_VOIDP(x)))) {
       if (FD_VECTORP(x)) {
-	int len=FD_VECTOR_LENGTH(x);
-	fdtype applyvec=fd_init_vector(NULL,len+1,NULL);
-	int i=0; while (i<len) {
-	  fdtype elt=FD_VECTOR_REF(x,i); fd_incref(elt);
-	  FD_VECTOR_SET(applyvec,i+1,elt);
-	  i++;}
-	FD_VECTOR_SET(applyvec,0,fd_intern("=>"));
-	result=fd_init_pair(NULL,applyvec,result);}
+        int len=FD_VECTOR_LENGTH(x);
+        fdtype applyvec=fd_init_vector(NULL,len+1,NULL);
+        int i=0; while (i<len) {
+          fdtype elt=FD_VECTOR_REF(x,i); fd_incref(elt);
+          FD_VECTOR_SET(applyvec,i+1,elt);
+          i++;}
+        FD_VECTOR_SET(applyvec,0,fd_intern("=>"));
+        result=fd_init_pair(NULL,applyvec,result);}
       else {
-	fd_incref(x); result=fd_init_pair(NULL,x,result);}}
+        fd_incref(x); result=fd_init_pair(NULL,x,result);}}
     ex=ex->u8x_prev;}
   return result;
 }
@@ -922,7 +935,7 @@ void sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
     else {
       fdtype bgirritant=fd_exception_xdata(bg);
       if (!(FD_EQUAL(irritant,bgirritant)))
-	u8_printf(out," -- %q",irritant);}}
+        u8_printf(out," -- %q",irritant);}}
 }
 
 FD_EXPORT
@@ -1169,7 +1182,7 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
     fd_incref(newinfo);
   else {
     u8_log(LOG_CRIT,fd_TypeError,
-	   "USE_REQINFO arg isn't slotmap or table: %q",newinfo);
+           "USE_REQINFO arg isn't slotmap or table: %q",newinfo);
     fd_slotmap sm; newinfo=fd_empty_slotmap();
     sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
     u8_write_lock(&(sm->rwlock)); sm->uselock=0;}
@@ -1209,7 +1222,7 @@ FD_EXPORT fdtype fd_push_reqinfo(fdtype newinfo)
     fd_incref(newinfo);
   else {
     u8_log(LOG_CRIT,fd_TypeError,
-	   "PUSH_REQINFO arg isn't slotmap or table: %q",newinfo);
+           "PUSH_REQINFO arg isn't slotmap or table: %q",newinfo);
     newinfo=fd_empty_slotmap();}
   if (FD_SLOTMAPP(newinfo)) {
     fd_slotmap sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
@@ -1398,10 +1411,10 @@ static int config_setgroup(fdtype var,fdtype val,void *data)
     if (retval>=0) {
       retval=setgid(g.gr_gid);
       if (retval<0) {
-	u8_log(LOG_CRIT,"setgroup failed","setgid(%d): %s",
-	       g.gr_gid,strerror(errno));
-	errno=0;
-	return 0;}
+        u8_log(LOG_CRIT,"setgroup failed","setgid(%d): %s",
+               g.gr_gid,strerror(errno));
+        errno=0;
+        return 0;}
       else return 1;}
     else {
       u8_log(LOG_CRIT,"setgroup failed","getgrnam_r: %s",strerror(errno));
@@ -1434,20 +1447,20 @@ static int loglevelconfig_set(fdtype var,fdtype val,void *data)
     else level_name=FD_SYMBOL_NAME(val);
     while (*scan)
       if (strcasecmp(*scan,level_name)==0) {
-	loglevel=scan-u8_loglevels; break;}
+        loglevel=scan-u8_loglevels; break;}
       else scan++;
     if (loglevel>=0) {
       int *valp=(int *)data; *valp=loglevel;
       return 1;}
     else {
       fd_seterr(fd_TypeError,"config_setloglevel",
-		u8_strdup(FD_XSYMBOL_NAME(var)),
-		fd_incref(val));
+                u8_strdup(FD_XSYMBOL_NAME(var)),
+                fd_incref(val));
       return -1;}}
   else {
     fd_seterr(fd_TypeError,"config_setloglevel",
-	      u8_strdup(FD_XSYMBOL_NAME(var)),
-	      fd_incref(val));
+              u8_strdup(FD_XSYMBOL_NAME(var)),
+              fd_incref(val));
     return -1;}
 }
 
@@ -1605,6 +1618,33 @@ FD_EXPORT void fd_doexit(fdtype arg)
 
 static void doexit_atexit(){fd_doexit(FD_FALSE);}
 
+/* Version info */
+
+static fdtype fdversion_config_get(fdtype var,void *data)
+{
+  return fdtype_string(FD_VERSION);
+}
+static fdtype fdrevision_config_get(fdtype var,void *data)
+{
+  return fdtype_string(FRAMERD_REVISION);
+}
+static fdtype fdmajor_config_get(fdtype var,void *data)
+{
+  return FD_INT2DTYPE(FD_MAJOR_VERSION);
+}
+static fdtype u8version_config_get(fdtype var,void *data)
+{
+  return fdtype_string(u8_getversion());
+}
+static fdtype u8revision_config_get(fdtype var,void *data)
+{
+  return fdtype_string(u8_getrevision());
+}
+static fdtype u8major_config_get(fdtype var,void *data)
+{
+  return FD_INT2DTYPE(u8_getmajorversion());
+}
+
 /* Initialization */
 
 static int boot_config()
@@ -1705,6 +1745,25 @@ void fd_init_support_c()
      &u8_log_show_elapsed);
 
   fd_register_config
+    ("FDVERSION",_("Get the FramerD version string"),
+     fdversion_config_get,fd_readonly_config_set,NULL);
+  fd_register_config
+    ("FDREVISION",_("Get the FramerD revision identifier"),
+     fdrevision_config_get,fd_readonly_config_set,NULL);
+  fd_register_config
+    ("FDMAJOR",_("Get the FramerD major version number"),
+     fdmajor_config_get,fd_readonly_config_set,NULL);
+  fd_register_config
+    ("U8VERSION",_("Get the libu8 version string"),
+     u8version_config_get,fd_readonly_config_set,NULL);
+  fd_register_config
+    ("U8REVISION",_("Get the libu8 revision identifier"),
+     u8revision_config_get,fd_readonly_config_set,NULL);
+  fd_register_config
+    ("U8MAJOR",_("Get the libu8 major version number"),
+     u8major_config_get,fd_readonly_config_set,NULL);
+
+  fd_register_config
     ("DISPLAYMAXCHARS",_("Max number of chars to show in strings"),
      fd_intconfig_get,fd_intconfig_set,
      &fd_unparse_maxchars);
@@ -1715,50 +1774,50 @@ void fd_init_support_c()
      &fd_unparse_maxelts);
   
   fd_register_config("RUNBASE",_("Path prefix for program state files"),
-		     config_getrunbase,config_setrunbase,NULL);
+                     config_getrunbase,config_setrunbase,NULL);
 
   fd_register_config("GROUP",_("Set current group"),
-		     config_getgroup,config_setgroup,NULL);
+                     config_getgroup,config_setgroup,NULL);
 
 #if HAVE_SYS_RESOURCE_H
 #ifdef RLIMIT_CPU
   fd_register_config("MAXCPU",_("Max CPU execution time limit"),
-		     fd_config_rlimit_get,fd_config_rlimit_set,
-		     (void *)&MAXCPU);
+                     fd_config_rlimit_get,fd_config_rlimit_set,
+                     (void *)&MAXCPU);
 #endif
 #ifdef RLIMIT_RSS
   fd_register_config("MAXRSS",_("Max resident set (RSS) size"),
-		     fd_config_rlimit_get,fd_config_rlimit_set,
-		     (void *)&MAXRSS);
+                     fd_config_rlimit_get,fd_config_rlimit_set,
+                     (void *)&MAXRSS);
 #endif
 #ifdef RLIMIT_CORE
   fd_register_config("MAXCORE",_("Max core dump size"),
-		     fd_config_rlimit_get,fd_config_rlimit_set,
-		     (void *)&MAXCORE);
+                     fd_config_rlimit_get,fd_config_rlimit_set,
+                     (void *)&MAXCORE);
 #endif
 #ifdef RLIMIT_NPROC
   fd_register_config("MAXNPROC",_("Max number of subprocesses"),
-		     fd_config_rlimit_get,fd_config_rlimit_set,
-		     (void *)&MAXNPROC);
+                     fd_config_rlimit_get,fd_config_rlimit_set,
+                     (void *)&MAXNPROC);
 #endif
 #ifdef RLIMIT_NOFILE
   fd_register_config("MAXFILES",_("Max number of open file descriptors"),
-		     fd_config_rlimit_get,fd_config_rlimit_set,
-		     (void *)&MAXFILES);
+                     fd_config_rlimit_get,fd_config_rlimit_set,
+                     (void *)&MAXFILES);
 #endif
 #ifdef RLIMIT_STACK
   fd_register_config("MAXSTACK",_("Max stack depth"),
-		     fd_config_rlimit_get,fd_config_rlimit_set,
-		     (void *)&MAXSTACK);
+                     fd_config_rlimit_get,fd_config_rlimit_set,
+                     (void *)&MAXSTACK);
 #endif
 
 #endif
 
 #if 0
   fd_register_config("GOOGLEPROFILE",
-		     _("File to store profile output from Google perftools"),
-		     get_google_profile,set_google_profile,
-		     NULL);
+                     _("File to store profile output from Google perftools"),
+                     get_google_profile,set_google_profile,
+                     NULL);
 #endif
 
   if (!(logdir)) logdir=u8_strdup(FD_LOG_DIR);
@@ -1784,13 +1843,9 @@ void fd_init_support_c()
      &u8_log_show_procinfo);
 
   fd_register_config("ATEXIT",_("Procedures to call on exit"),
-		     config_atexit_get,config_atexit_set,NULL);
-  
-
+                     config_atexit_get,config_atexit_set,NULL);
 
 }
-
-
 
 /* Emacs local variables
    ;;;  Local variables: ***
