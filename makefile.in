@@ -384,7 +384,7 @@ lib/%@suffix@.so.@FDMAJOR@: lib/%@suffix@.so
 	@ln -sf $(*F).so $@
 lib/%@suffix@.so:
 	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -Llib -o $@ $^ -lu8 $(LIBS)
-	@ln -sf $(@F) $(@D)/$(@F).@U8MAJOR@
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@echo MKSO $@
 lib/%@suffix@.@FDMAJOR@.dylib: lib/%@suffix@.dylib
 	@ln -sf $(*F).dylib $@
