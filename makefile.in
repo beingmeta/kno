@@ -1003,7 +1003,8 @@ $(DESTDIR)@config_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@config_dir@
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-$(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@:
+$(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@
+$(DESTDIR)@module_dir@ $(DESTDIR)@data_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
