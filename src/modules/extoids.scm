@@ -171,7 +171,9 @@
 		     (normalize #f)
 		     (cache usecache))
   (let ((index (cons-extindex (stringout slotid) (get-getter normalize) #f
-			      (extdb/proc db query (cons #[%merge #t] sqlmap)
+			      (extdb/proc db query
+					  (if (getopt sqlmap '%merge) sqlmap
+					      (cons #[%merge #t] sqlmap))
 					  (pool-base pool)) cache)))
     (store! get-indices (cons pool slotid) index)
     (use-adjunct index slotid pool)))
