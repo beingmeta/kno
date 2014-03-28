@@ -813,7 +813,7 @@ dist/rpms.done: dist/rpms.ready
 		--define="__gpg_sign_cmd $(RPMGPG)"		\
 		$(RPMDIR)/framerd-@FDVERSION@*.src.rpm 		\
 		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm; fi && 	\
-	createrepo -p -d $(RPMDIR) && 				\
+	@CREATEREPO@ -p -d $(RPMDIR) && 			\
 	touch dist/rpms.done;
 	@ls -l $(RPMDIR)/framerd-@FDVERSION@-*.src.rpm \
 		$(RPMDIR)/*/framerd*-@FDVERSION@-*.rpm;
