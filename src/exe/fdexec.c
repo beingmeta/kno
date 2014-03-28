@@ -199,11 +199,12 @@ int main(int argc,char **argv)
     else if (source_file)
       args[n_args++]=fd_parse_arg(argv[i++]);
     else {
-      u8_string arg=u8_fromlibc(argv[i++]);
+      u8_string arg=u8_fromlibc(argv[i]);
       file_arg=u8_strdup(argv[i]);
       source_file=u8_abspath(arg,NULL);
       u8_default_appid(source_file);
-      u8_free(arg);}
+      u8_free(arg);
+      i++;}
   if (source_file) {
     fdtype interp=fd_lispstring(u8_fromlibc(argv[0]));
     fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
