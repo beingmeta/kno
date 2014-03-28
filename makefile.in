@@ -14,7 +14,6 @@ EXELDFLAGS = @EXELDFLAGS@
 XLIBS=
 LIBS=$(XLIBS) @LIBS@
 
-
 DESTDIR		=
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
@@ -1035,19 +1034,24 @@ link-modules: $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@ \
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@data_dir@
 	@$(ECHO) Copying Scheme modules to install directories
-	@cp -f $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
-	@cp -Rf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
-	@cp -Rf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
-	@cp -Rf $(BUILD)/src/modules/*.js $(DESTDIR)@standard_module_dir@
+	@@SUDO@cp -f $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
+	@@SUDO@cp -Rf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
+	@@SUDO@cp -Rf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
+	@@SUDO@cp -Rf $(BUILD)/src/modules/*.js $(DESTDIR)@standard_module_dir@
 	@for x in $(MODULE_DIRS); do \
-	   cp -Rf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; \
+	   @SUDO@ cp -Rf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; \
 	 done
-	@cp -Rf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
+	@@SUDO@cp -Rf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
 	@for x in $(SAFE_MODULE_DIRS); do \
-	   cp -Rf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; \
+	   @SUDO@cp -Rf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; \
 	 done
-	@cp -Rf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
-	@cp -Rf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
+	@@SUDO@cp -Rf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
+	@@SUDO@cp -Rf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
+	@@SUDO@ chgrp -R @admin_group@ $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@ \
+		$(DESTDIR)@standard_module_dir@ $(DESTDIR)@data_dir@
+	@@SUDO@ chmod -R g+rwX $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@ \
+		$(DESTDIR)@standard_module_dir@ $(DESTDIR)@data_dir@
+
 install-modules: @install_modules_target@
 
 statedirs: $(DESTDIR)@rundir@/framerd $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/framerd/bugjar
