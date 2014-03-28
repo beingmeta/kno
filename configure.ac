@@ -88,6 +88,8 @@ FDMINOR=5
 FDRELEASE=4
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
+RPMVERSION=7
+DEBVERSION=3
 mshared_suffix=so.$FDMAJOR
 vshared_suffix=so.$FDVERSION
 I18N=""
@@ -202,6 +204,8 @@ AC_SUBST(FDVERSION)
 AC_SUBST(FDMAJOR)
 AC_SUBST(FDMINOR)
 AC_SUBST(FDRELEASE)
+AC_SUBST(RPMVERSION)
+AC_SUBST(DEBVERSION)
 AC_SUBST(VERSION)
 AC_SUBST(PROFILING)
 AC_SUBST(MKSTATIC)
@@ -1171,7 +1175,7 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile
 	  etc/OSXStartupItem/FramerD etc/logrotate
 	  etc/fdserver.conf etc/fdservlet.conf etc/framerd.conf
 	  etc/fdserv.conf etc/fdserv.load
-	  etc/install-script)
+	  etc/install-script dist/framerd-3.5.spec)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
 chmod a+x etc/fdconfig

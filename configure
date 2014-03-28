@@ -678,6 +678,8 @@ GITDESCRIBE
 MKSTATIC
 PROFILING
 VERSION
+DEBVERSION
+RPMVERSION
 FDRELEASE
 FDMINOR
 FDMAJOR
@@ -2879,6 +2881,8 @@ FDMINOR=5
 FDRELEASE=4
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
+RPMVERSION=7
+DEBVERSION=3
 mshared_suffix=so.$FDMAJOR
 vshared_suffix=so.$FDVERSION
 I18N=""
@@ -2961,6 +2965,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 
@@ -9656,7 +9662,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d etc/OSXStartupItem/FramerD etc/logrotate etc/fdserver.conf etc/fdservlet.conf etc/framerd.conf etc/fdserv.conf etc/fdserv.load etc/install-script"
+ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d etc/OSXStartupItem/FramerD etc/logrotate etc/fdserver.conf etc/fdservlet.conf etc/framerd.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.5.spec"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -10372,6 +10378,7 @@ do
     "etc/fdserv.conf") CONFIG_FILES="$CONFIG_FILES etc/fdserv.conf" ;;
     "etc/fdserv.load") CONFIG_FILES="$CONFIG_FILES etc/fdserv.load" ;;
     "etc/install-script") CONFIG_FILES="$CONFIG_FILES etc/install-script" ;;
+    "dist/framerd-3.5.spec") CONFIG_FILES="$CONFIG_FILES dist/framerd-3.5.spec" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
