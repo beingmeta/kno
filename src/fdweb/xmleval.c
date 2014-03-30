@@ -298,7 +298,8 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
       else if (FD_ABORTP(content)) {
 	fd_decref(markup); return content;}
       else if ((FD_VOIDP(content)) ||
-	       (FD_EMPTY_LISTP(content))) {
+               (FD_EMPTY_CHOICEP(content)) ||
+               (FD_FALSEP(content))) {
 	if (FD_STRINGP(markup))
 	  u8_printf(out,"<%s/>",FD_STRDATA(markup));
 	fd_decref(markup);
@@ -321,6 +322,9 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
 	    fd_decref(result);}
 	  else fd_dtype2xml(out,result,env);
 	  fd_decref(result);}}
+      else if (FD_STRINGP(content)) {
+        u8_putn(out,FD_STRDATA(content),FD_STRLEN(content));}
+      else {}
       if (FD_STRINGP(markup)) {
 	u8_string mstring=FD_STRDATA(markup);
 	u8_string atspace=strchr(mstring,' ');
@@ -906,7 +910,8 @@ fdtype fd_open_xml(fdtype xml,fd_lispenv env)
     if (FD_ABORTP(markup)) return markup;
     else if (FD_STRINGP(markup)) {
       if ((!(fd_test(xml,content_slotid,FD_VOID)))||
-	  (fd_test(xml,content_slotid,FD_EMPTY_CHOICE)))
+	  (fd_test(xml,content_slotid,FD_EMPTY_CHOICE))||
+          (fd_test(xml,content_slotid,FD_FALSE)))
 	u8_printf(out,"<%s/>",FD_STRDATA(markup));
       else u8_printf(out,"<%s>",FD_STRDATA(markup));}
     fd_decref(markup);
