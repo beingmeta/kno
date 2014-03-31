@@ -52,8 +52,8 @@
   (string-subst (string-subst string "\r\n" "\n")
 		"\r" "\n"))
 
-(define (needsync? savepath absref)
-  (let ((current (gp/modified savepath))
+(define (needsync? savepath absref (basetime #f))
+  (let ((current (or basetime (gp/modified savepath)))
 	(remote  (gp/modified absref)))
     (or (not current) (not remote) (time>? current remote))))
 
@@ -64,10 +64,12 @@
   (default! urlmap (getopt options 'urlmap))
   (default! checksync
     (getopt options 'checksync
-	    (not (getopt options 'updateall (config 'updateall)))))
+	    (getopt options 'basetime
+		    (not (getopt options 'updateall (config 'updateall))))))
   (default! exists (gp/exists? savepath))
   (logdebug |LOCALIZE/sync| "Syncing " ref " with " savepath " from " absref)
-  (cond ((and checksync exists (needsync? savepath absref))
+  (cond ((and checksync exists
+	      (not (needsync? savepath absref (getopt options 'basetime))))
 	 (logdebug "Content " ref " is up to date in " (gp->s savepath)
 		   " from " (gp->s absref))
 	 #t)
@@ -111,11 +113,18 @@
   (default! ctype (getopt options 'mimetype (path->mimetype (gp/basename ref))))
   (default! xform (getopt options 'xform #f))
   (when (position #\% ref) (set! ref (uridecode ref)))
-  (logdebug |LOCALIZE/ref| ref "\n\tfrom " base "\n\tto " saveto "\n\tfor " read)
   (try ;; relative references are untouched
    (tryif (or (empty-string? ref) (has-prefix ref "#")
-	      (has-prefix ref {"javascript:" "chrome-extension:"}))
+	      (has-prefix ref {"javascript:" "chrome-extension:"})
+	      (and (string-starts-with? ref #((isalpha+) ":"))
+		   (not (has-prefix ref {"http:" "https:" "ftp:"}))))
+     ;; (begin (logdebug |LOCALIZE/ref| "Ignoring " ref) )
      ref)
+   (tryif (test urlmap ref)
+     (begin (logdebug |LOCALIZE/ref| "Cached " ref " ==> " (get urlmap ref))
+       (get urlmap ref)))
+   ;; Check the cache
+   (get urlmap ref)
    ;; If it's got a fragment identifer, make a localref without the
    ;;  fragment and put the fragment back.  We don't bother checking
    ;; fragment ID uniqueness, though we probably should.
@@ -125,8 +134,11 @@
 	 (let* ((hashpos (position #\# ref))
 		(baseuri (subseq ref 0 hashpos))
 		(hashid (subseq ref hashpos))
-		(lref (localref baseuri urlmap base saveto read options))
+		(lref (try (get urlmap baseuri)
+			   (localref baseuri urlmap base saveto read options)))
 		(useref hashid))
+	   (logdebug |LOCALIZE/ref| ref
+		     "\n\tfrom " base "\n\tto " saveto "\n\tfor " read)
 	   (if (has-prefix lref "#")
 	       (begin
 		 ;; To be correct, we'll need to clean up these
@@ -146,6 +158,9 @@
 	       ;; isn't amalgamated into the same namespace, so we
 	       ;; leave the ref as it is
 	       ref))))
+   (begin (logdebug |LOCALIZE/ref| ref
+		    "\n\tfrom " base "\n\tto " saveto "\n\tfor " read)
+     (fail))
    ;; if we're gluing a bunch of files together (amalgamating them),
    ;;  the ref will just be moved to the current file by stripping
    ;;  off the URL part
@@ -188,7 +203,7 @@
 	   ;;  same table)
 	   (store! urlmap absref lref)
 	   (when (string? absref) (store! urlmap lref absref))
-	   (logdebug |LOCALIZE/ref| "LOCALREF " ref "==>" lref
+	   (logdebug |LOCALIZE/ref| "LOCALREF " ref " ==> " lref
 		     ",\n\tsynced from " base "\n\tto " saveto)
 	   lref)
 	 (begin 
@@ -213,83 +228,78 @@
 	   (if (singleton? saveto) (write (gp->s saveto))
 	       (do-choices saveto
 		 (printout "\n\t\t" (write (gp->s saveto))))))
-  (debug%watch "DOM/LOCALIZE!" base saveto read options doanchors)
-  (let ((head (dom/find dom "HEAD" #f)) (files {}))
+  (debug%watch "DOM/LOCALIZE!" base saveto read doanchors)
+  (let ((head (dom/find dom "HEAD" #f)))
     (dolist (node (dom/find->list dom "[src]"))
-      (logdebug "Localizing " (dom/sig node)
-		"\n\tfrom " base "\n\tto " saveto
-		"\n\t" node)
-      (let ((ref (localref (get node 'src) urlmap
-			   base (qc saveto) read options)))
-	(loginfo "Localized " (write (get node 'src))
-		 " to " (write ref) " for " (dom/sig node #t))
+      (loginfo "Localizing " (dom/sig node)
+	       "\n\tfrom " base "\n\tto " saveto)
+      (let ((ref (try (get urlmap (get node 'src))
+		      (begin
+			(loginfo "Localizing " (write (get node 'src))
+				 " for " (dom/sig node #t))
+			(localref (get node 'src) urlmap
+				  base (qc saveto) read options)))))
 	(when (and (exists? ref) ref)
-	  (dom/set! node 'src ref)
-	  (set+! files ref))))
+	  (logdebug "Localized " (write (get node 'src))
+		    " to " (write ref) " for " (dom/sig node #t))
+	  (dom/set! node 'src ref))))
     ;; Convert url() references in stylesheets
     (do-choices (node (pick (pick (dom/find head "link") 'rel "stylesheet")
 			    'href))
-      (logdebug "Localizing stylesheet " (get node 'href)
-		"\n\tfrom " base "\n\tto " saveto
-		"\n\t" node)
       (let* ((ctype (try (get node 'type) "text"))
 	     (href (get node 'href))
-	     (xformurlmap (make-hashtable))
-	     (xformurlfn
-	      (lambda (url)
-		(localref url xformurlmap
-			  (if (position #\/ href)
+	     (ref (get urlmap href)))
+	(when (or (fail? ref) (not ref))
+	  (loginfo "Localizing stylesheet " (get node 'href)
+		   "\n\tfrom " base "\n\tto " saveto)
+	  (let* ((usebase (if (position #\/ href)
 			      (gp/mkpath base (dirname href))
-			      base)
-			  (qc saveto) (mkpath ".." read)
-			  options)))
-	     (xformrule
-	      `(IC (GREEDY #("url" (spaces*)
-			     {#("(" (spaces*)
-				(subst (not> ")") ,xformurlfn)
-				(spaces*) ")")
-			      #("('" (spaces*)
-				(subst (not> "')") ,xformurlfn)
-				(spaces*) "')")
-			      #("(\"" (spaces*)
-				(subst (not> "\")") ,xformurlfn)
-				(spaces*) "\")")}))))
-	     (xformcss (lambda (css)
-			 (if (string? css)
-			     (if (textsearch '(IC #("url" (spaces*) "(")) css)
-				 (textsubst (fix-crlfs css) xformrule)
-				 (fix-crlfs css))
-			     css)))
-	     (ref (localref (get node 'href)
-			    urlmap base (qc saveto) read
-			    (if (exists has-prefix (get node 'type) "text/css")
-				(cons `#[mimetype
-					 ,(try (get node 'type) "text/css")
-					 xform ,xformcss]
+			      base))
+		 (xformcss (lambda (css)
+			     (if (string? css)
+				 (if (textsearch '(IC #("url" (spaces*) "(")) css)
+				     (convert-url-refs
+				      (fix-crlfs css) urlmap usebase
+				      (qc saveto) read
 				      options)
-				options))))
-	(loginfo "Localized " (write href) " to " (write ref)
-		 " for " (dom/sig node #t))
-	(when (and (exists? ref) ref)
-	  (dom/set! node 'href ref)
-	  (set+! files ref))))
+				     (fix-crlfs css))
+				 css)))
+		 (options (if (exists has-prefix (get node 'type) "text/css")
+			      (cons `#[mimetype
+				       ,(try (get node 'type) "text/css")
+				       basetime ,(getopt options 'consed)
+				       xform ,xformcss]
+				    options)
+			      options)))
+	    (set! ref (localref (get node 'href) urlmap base
+				(qc saveto) read options))
+	    (loginfo "Localized stylesheet " (write href) " to " (write ref)
+		     " for " (dom/sig node #t))))
+	  (when (and (exists? ref) ref)
+	    (dom/set! node 'href ref))))
     (dolist (node (dom/find->list dom "[href]"))
-      (when (or (test node '%xmltag 'a)
-		(test node 'rel {dolinks "stylesheet" "knodule"}))
+      (when (or (and doanchors (test node '%xmltag 'a))
+		(test node 'rel {dolinks "knodule"}))
 	(logdebug "Localizing " (get node 'href) "\n\tfrom " base
-		  "\n\tto " saveto "\n\tfor " node)
+		  "\n\tto " saveto)
 	(let* ((href (get node 'href))
+	       (hashpos (position #\# href))
 	       (ref (and (not (string-starts-with?
 			       href #((isalpha) (isalpha) (isalpha+) ":")))
 			 (or (not doanchors) (textsearch doanchors href))
-			 (localref href urlmap base (qc saveto) read options))))
+			 (if (and hashpos
+				  (test urlmap (slice href 0 hashpos)))
+			     (glom (get urlmap (slice href 0 hashpos))
+			       (slice href hashpos))
+			     (localref href urlmap base (qc saveto)
+				       read options)))))
 	  (loginfo "Localized " (write href) " to " (write ref)
 		   " for " (dom/sig node #t))
 	  (when (and (exists? ref) ref)
-	    (dom/set! node 'href ref)
-	    (set+! files ref)))))
+	    (dom/set! node 'href ref)))))
     (dolist (node (dom/find->list dom "[href]"))
-      (unless (test node 'rel {dolinks "x-resource" "stylesheet" "knodule"})
+      (unless (or (test node 'rel {dolinks "x-resource" "stylesheet" "knodule"})
+		  (test node '%xmltag 'a))
 	(let* ((href (get node 'href))
 	       (hashpos (position #\# href)))
 	  (cond ((test urlmap href)
@@ -300,19 +310,41 @@
 		 (dom/set! node 'href
 			   (localref href urlmap base (qc saveto)
 				     read options)))))))
-    (let ((xresources '()))
+    (let ((xresources '()) (files {}))
       (do-choices (resource (pick (pickstrings (get urlmap (getkeys urlmap)))
-				  has-prefix (choice read (glom "../" read))))
+				  has-prefix read))
+	(set+! files resource)
 	(set! xresources
 	      (cons* `#[%XMLTAG LINK %ATTRIBIDS {REL HREF}
 			REL "x-resource"
-			HREF ,(if (has-prefix resource "../")
-				  (slice resource 3)
-				  resource)]
+			HREF ,resource]
 		     "\n"
 		     xresources)))
+      (if (pair? options)
+	  (add! (car options) 'xresources files)
+	  (add options (car options) 'xresources files))
+      (add! dom 'xresources files)
       (store! head '%content
 	      (append (get head '%content) xresources)))))
+
+(define (convert-url-refs text urlmap base saveto read options)
+  (let* ((xformurlfn
+	  (lambda (url)
+	    (let* ((useurl
+		    (if (or (and (has-prefix url "'") (has-suffix url "'"))
+			    (and (has-prefix url "\"") (has-suffix url "\"")))
+			(slice url 1 -1)
+			url))
+		   (lref (localref useurl urlmap base saveto read options))
+		   (useref (if (has-prefix lref (glom read "/"))
+			       (slice lref (length (glom read "/")))
+			       lref)))
+	      (if (equal? url useurl) useref
+		  (glom "'" useref "'")))))
+	 (xformrule
+	  `(IC (GREEDY #("url" (spaces*)
+			 #("(" (subst (not> ")") ,xformurlfn) ")"))))))
+    (textsubst text xformrule)))
 
 ;;;; Manifests
 
