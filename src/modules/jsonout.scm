@@ -5,7 +5,7 @@
 (define json-lisp-prefix ":")
 
 (defambda (jsonelt value (prefix #f) (initial #f))
-  (printout (unless initial ",") (if prefix prefix)
+  (printout (if (not initial) ",") (if prefix prefix)
     (unless (singleton? value) (printout "["))
     (if (singleton? value)
 	(jsonout value #f)
