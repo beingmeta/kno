@@ -133,7 +133,8 @@ FD_EXPORT fdtype fd_load_source
       result=fd_eval(expr,env);
       if (FD_ABORTP(result)) {
         if (FD_TROUBLEP(result)) {
-          u8_log(LOG_ERR,(u8_condition)u8_current_exception,
+          u8_exception ex=u8_current_exception;
+          u8_log(LOG_ERR,ex->u8x_cond,
                  "Error in %s while evaluating %q",sourcebase,expr);
           record_error_source(sourceid);}
         restore_sourcebase(outer_sourcebase);
