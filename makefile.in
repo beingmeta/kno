@@ -1197,7 +1197,7 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 	elif diff etc/use_revision.h $@>/dev/null; then			\
 	  rm etc/use_revision.h; 					\
 	else 								\
-	  echo "Revision changed"; 					\
+	  echo "Revision changed to "`cat etc/use_revision.h`; 		\
 	  mv $@ etc/old_revision.h; 					\
 	  mv etc/use_revision.h $@; 					\
 	fi
