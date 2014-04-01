@@ -9,7 +9,7 @@ URL:            http://www.beingmeta.com/
 Source0:        framerd-3.5.4.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  libu8-devel curl-devel mysql-devel libtidy-devel
+BuildRequires:  libu8-devel curl-devel mysql-devel libexif-devel libtidy-devel
 Requires:       libu8 >= 2.2.0 curl >= 7.15.1
 
 %description
@@ -102,14 +102,14 @@ The %{name}-zlib package implements external bindings for libz compression and d
 #The %{name}-ziptools package provides manipulation for zip-encoded files through 
 #external bindings for the libzip library.
 
-#%package        exif
-#Summary:        FramerD module for getting image metadata
-#Group:          Development/Libraries
-#BuildRequires:  libexif-devel
-#Requires:       libexif %{name} = %{version}-%{release}
+%package        exif
+Summary:        FramerD module for getting image metadata
+Group:          Development/Libraries
+BuildRequires:  libexif-devel
+Requires:       libexif %{name} = %{version}-%{release}
 
-#%description    exif
-#The %{name}-exif package provides access to image EXIF data
+%description    exif
+The %{name}-exif package provides access to image EXIF data
 
 #%package        odbc
 #Summary:        Module for using Odbc from FramerD
@@ -134,7 +134,7 @@ The %{name}-tidy package implements external bindings to libtidy
 %setup -q
 
 %build
-%configure --prefix=/usr --libdir=%{_libdir} --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-ziptools --without-qrcode --without-imagick --without-sudo --with-bootsystem=sysv
+%configure --prefix=/usr --libdir=%{_libdir} --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-ziptools --without-qrcode --without-exif --without-imagick --without-sudo --with-bootsystem=sysv
 #make %{?_smp_mflags}
 make
 make mod_fdserv
@@ -292,10 +292,10 @@ rm -rf $RPM_BUILD_ROOT
 #%doc
 #%{_libdir}/framerd/ziptools.so*
  
-#%files exif
-#%defattr(-,root,root,-)
-#%doc
-#%{_libdir}/framerd/exif.so*
+%files exif
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/framerd/exif.so*
 
 #%files odbc
 #%defattr(-,root,root,-)
