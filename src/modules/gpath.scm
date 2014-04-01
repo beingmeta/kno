@@ -103,7 +103,7 @@
   (do-choices dest
     (let ((ctype (or ctype (guess-mimetype (get-namestring dest) content)))
 	  (charset (or charset (get-charset ctype))))
-      (loginfo "Saving " (length content)
+      (loginfo GP/SAVE! "Saving " (length content)
 	       (if (string? content) " characters of "
 		   (if (packet? content) " bytes of "))
 	       (if (and (exists? ctype) ctype)
@@ -146,7 +146,7 @@
 	     ((gpath-handler-save (get gpath-handlers (compound-tag (car dest))))
 	      (car dest) (cdr dest) content ctype charset))
 	    (else (error "Bad GP/SAVE call")))
-      (loginfo "Saved " (length content)
+      (loginfo GP/SAVE! "Saved " (length content)
 	       (if (string? content) " characters of "
 		   (if (packet? content) " bytes of "))
 	       (if (and (exists? ctype) ctype)

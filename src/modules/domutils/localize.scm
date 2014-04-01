@@ -68,9 +68,13 @@
 		    (not (getopt options 'updateall (config 'updateall))))))
   (default! exists (gp/exists? savepath))
   (logdebug |LOCALIZE/sync| "Syncing " ref " with " savepath " from " absref)
-  (cond ((and checksync exists
+  (cond ((equal? (gp->s savepath) (gp->s absref))
+	 (logwarn |DOMUTILS/LOCALIZE/sync!| "Identical paths: " savepath absref)
+	 #t)
+	((and checksync exists
 	      (not (needsync? savepath absref (getopt options 'basetime))))
-	 (logdebug "Content " ref " is up to date in " (gp->s savepath)
+	 (logdebug |DOMUTILS/LOCALIZE/sync!|
+		   "Content " ref " is up to date in " (gp->s savepath)
 		   " from " (gp->s absref))
 	 #t)
 	(else
@@ -233,15 +237,19 @@
     (dolist (node (dom/find->list dom "[src]"))
       (loginfo "Localizing " (dom/sig node)
 	       "\n\tfrom " base "\n\tto " saveto)
-      (let ((ref (try (get urlmap (get node 'src))
-		      (begin
-			(loginfo "Localizing " (write (get node 'src))
-				 " for " (dom/sig node #t))
-			(localref (get node 'src) urlmap
-				  base (qc saveto) read options)))))
+      (let* ((cached (get urlmap (get node 'src)))
+	     (ref (try cached
+		       (begin
+			 (logdebug "Localizing " (write (get node 'src))
+				   " for " (dom/sig node #t))
+			 (localref (get node 'src) urlmap
+				   base (qc saveto) read options)))))
 	(when (and (exists? ref) ref)
-	  (logdebug "Localized " (write (get node 'src))
-		    " to " (write ref) " for " (dom/sig node #t))
+	  (if (exists? cached)
+	      (loginfo "Localized (cached) " (write (get node 'src))
+		       " to " (write ref) " for " (dom/sig node #t))
+	      (loginfo "Localized " (write (get node 'src))
+		       " to " (write ref) " for " (dom/sig node #t)))
 	  (dom/set! node 'src ref))))
     ;; Convert url() references in stylesheets
     (do-choices (node (pick (pick (dom/find head "link") 'rel "stylesheet")
@@ -274,8 +282,8 @@
 				(qc saveto) read options))
 	    (loginfo "Localized stylesheet " (write href) " to " (write ref)
 		     " for " (dom/sig node #t))))
-	  (when (and (exists? ref) ref)
-	    (dom/set! node 'href ref))))
+	(when (and (exists? ref) ref)
+	  (dom/set! node 'href ref))))
     (dolist (node (dom/find->list dom "[href]"))
       (when (or (and doanchors (test node '%xmltag 'a))
 		(test node 'rel {dolinks "knodule"}))
