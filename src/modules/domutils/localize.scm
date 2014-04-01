@@ -265,9 +265,8 @@
 				     (fix-crlfs css))
 				 css)))
 		 (options (if (exists has-prefix (get node 'type) "text/css")
-			      (cons `#[mimetype
-				       ,(try (get node 'type) "text/css")
-				       basetime ,(getopt options 'consed)
+			      (cons `#[basetime ,(getopt options 'consed)
+				       ;; mimetype ,(try (get node 'type) "text/css")
 				       xform ,xformcss]
 				    options)
 			      options)))
