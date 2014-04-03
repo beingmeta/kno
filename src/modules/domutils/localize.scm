@@ -329,7 +329,7 @@
 		     xresources)))
       (if (pair? options)
 	  (add! (car options) 'xresources files)
-	  (add options (car options) 'xresources files))
+	  (add! options 'xresources files))
       (add! dom 'xresources files)
       (store! head '%content
 	      (append (get head '%content) xresources)))))
