@@ -6,8 +6,6 @@
 ;;; This provides various XHTML widgets which use stylesheets and
 ;;;  javascript provided by fdweb.css and fdweb.js respectively.
 
-(define version "$Id$")
-
 (use-module 'fdweb)
 (use-module 'xhtml)
 
@@ -46,6 +44,12 @@
 	     args)))
 
 (module-export! 'siteurl)
+
+;;;; Favicons
+
+(define (xhtml/favicon (icon "/favicon.ico"))
+  (htmlheader (xmlelt "link" 'rel "shortcut icon" 'href icon)))
+(module-export! 'xhtml/favicon)
 
 
 ;;;; Action anchors
