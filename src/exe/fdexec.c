@@ -54,7 +54,7 @@ static void identify_application(int argc,char **argv,char *dflt)
   while (i<argc)
     if (strchr(argv[i],'=')) i++;
     else {
-      char *start=strchr(argv[i],'/'), *copy, *dot;
+      char *start=strchr(argv[i],'/'), *copy, *dot, *slash;
       if (start==NULL) start=strchr(argv[i],'\\');
       if (start==NULL) start=argv[1];
       if (((*start)=='/') || ((*start)=='\\')) start++;
@@ -62,7 +62,9 @@ static void identify_application(int argc,char **argv,char *dflt)
 	start=argv[1];
       copy=u8_strdup(start); dot=strchr(copy,'.');
       if (dot) *dot='\0';
-      u8_default_appid(copy);
+      slash=strrchr(copy,'/');
+      if ((slash)&&(slash[1])) u8_default_appid(slash+1);
+      else u8_default_appid(copy);
       u8_free(copy);
       return;}
   u8_default_appid(dflt);
@@ -199,11 +201,12 @@ int main(int argc,char **argv)
     else if (source_file)
       args[n_args++]=fd_parse_arg(argv[i++]);
     else {
-      u8_string arg=u8_fromlibc(argv[i]);
+      u8_string arg=u8_fromlibc(argv[i]), basename;
       file_arg=u8_strdup(argv[i]);
       source_file=u8_abspath(arg,NULL);
-      u8_default_appid(source_file);
-      u8_free(arg);
+      basename=u8_basename(source_file,NULL);
+      u8_default_appid(basename);
+      u8_free(arg); u8_free(basename);
       i++;}
   if (source_file) {
     fdtype interp=fd_lispstring(u8_fromlibc(argv[0]));
