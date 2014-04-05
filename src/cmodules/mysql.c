@@ -143,7 +143,7 @@ static int setup_connection(struct FD_MYSQL *dbp)
     fdtype toval=fd_getopt(options,timeout_symbol,FD_VOID);
     fdtype ctoval=fd_getopt(options,connect_timeout_symbol,FD_VOID);
     fdtype rtoval=fd_getopt(options,read_timeout_symbol,FD_VOID);
-    fdtype wtoval=fd_getopt(options,write_timeout_symbol,FD_VOID);    
+    fdtype wtoval=fd_getopt(options,write_timeout_symbol,FD_VOID);
     dbp->portno=((FD_VOIDP(port)) ? (0) : (fd_getint(port)));
     if (FD_FIXNUMP(toval)) timeout=FD_FIX2INT(toval);
     if (FD_FIXNUMP(ctoval)) ctimeout=FD_FIX2INT(ctoval);
@@ -265,7 +265,7 @@ static int open_connection(struct FD_MYSQL *dbp)
     int i=0, n=dbp->n_procs;
     struct FD_MYSQL_PROC **procs=(FD_MYSQL_PROC **)dbp->procs;
     while (i<n) procs[i++]->need_init=1;
-    u8_mutex_unlock(&(dbp->proclock)); 
+    u8_mutex_unlock(&(dbp->proclock));
     u8_mutex_unlock(&mysql_connect_lock);
     return 1;}
 }
@@ -302,7 +302,7 @@ static void recycle_mysqldb(struct FD_EXTDB *c)
 static fdtype refresh_mysqldb(fdtype c,fdtype flags)
 {
   struct FD_MYSQL *dbp=(struct FD_MYSQL *)c;
-  
+
   int retval=mysql_refresh(dbp->db,
                            REFRESH_GRANT|REFRESH_TABLES|REFRESH_HOSTS|
                            REFRESH_STATUS|REFRESH_THREADS);
@@ -386,13 +386,13 @@ static void outbound_setup(MYSQL_BIND *outval)
     outval->buffer_length=sizeof(unsigned long);
     outval->length=NULL;
     break;
-  case MYSQL_TYPE_LONGLONG: 
+  case MYSQL_TYPE_LONGLONG:
     outval->buffer_type=MYSQL_TYPE_LONGLONG;
     outval->buffer=u8_malloc(sizeof(unsigned long long));
     outval->buffer_length=sizeof(unsigned long long);
     outval->length=NULL;
     break;
-  case MYSQL_TYPE_FLOAT:  case MYSQL_TYPE_DOUBLE: 
+  case MYSQL_TYPE_FLOAT:  case MYSQL_TYPE_DOUBLE:
     outval->buffer_type=MYSQL_TYPE_DOUBLE;
     outval->buffer=u8_malloc(sizeof(double));
     outval->buffer_length=sizeof(double);
@@ -522,7 +522,7 @@ static fdtype get_stmt_values
     colmaps[i]=fd_getopt(colinfo,colnames[i],FD_VOID); i++;}
   while ((retval==0) || (retval==MYSQL_DATA_TRUNCATED)) {
     /* For each iteration, we have a good value from the database,
-       so we don't need to worry about lost connections for this 
+       so we don't need to worry about lost connections for this
        loop, but we do need to worry about them afterwards. */
     fdtype result=FD_EMPTY_CHOICE;
     struct FD_KEYVAL *kv=u8_alloc_n(n_cols,struct FD_KEYVAL);
@@ -723,8 +723,8 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,
   if (retval==RETVAL_OK) u8_mutex_unlock(&(dbp->lock));
   if (retval==RETVAL_OK) {
     if (n_cols==0) results=FD_VOID;
-    else results=get_stmt_values(stmt,colinfo,n_cols,colnames,outbound,isnullbuf);}
-
+    else results=get_stmt_values(stmt,colinfo,n_cols,colnames,
+                                 outbound,isnullbuf);}
   /* Clean up */
   i=0; while (i<n_cols) {
     if (outbound[i].buffer) u8_free(outbound[i].buffer); i++;}
@@ -733,7 +733,7 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,
   if (isnullbuf) u8_free(isnullbuf);
   fd_decref(colinfo);
   mysql_stmt_close(stmt);
-  
+
   if (retval) {
     mysqlerrno=mysql_stmt_errno(stmt);
     if ((reconn>0)&&(NEED_RESTART(mysqlerrno))) {
@@ -769,13 +769,13 @@ static fdtype mysqlmakeproc
   struct FD_MYSQL_PROC *dbproc=u8_alloc(struct FD_MYSQL_PROC);
   unsigned int lazy_init=0;
   fdtype lazy_opt=fd_getopt(dbp->options,lazy_symbol,FD_VOID);
-  if (FD_VOIDP(lazy_opt)) 
+  if (FD_VOIDP(lazy_opt))
     lazy_init=default_lazy_init;
   else if (FD_TRUEP(lazy_opt))
     lazy_init=1;
   else lazy_init=0;
   fd_decref(lazy_opt);
-  
+
   memset(dbproc,0,sizeof(struct FD_MYSQL_PROC));
 
   FD_INIT_FRESH_CONS(dbproc,fd_extdb_proc_type);
@@ -787,13 +787,13 @@ static fdtype mysqlmakeproc
   dbproc->qtext=_memdup(stmt,stmt_len+1); /* include space for NUL */
   colinfo=dbproc->colinfo=merge_colinfo(dbp,colinfo);
   u8_mutex_init(&(dbproc->lock));
-  
+
   /* Set up MYSQL specific fields */
   dbproc->mysqldb=db;
   dbproc->fdbptr=dbp;
   dbproc->stmt_string=u8_strdup(stmt);
   dbproc->stmt_len=stmt_len;
-  
+
   /* Set up fields for the function object itself */
   dbproc->filename=dbproc->spec; dbproc->name=dbproc->qtext;
   dbproc->ndprim=0; dbproc->xprim=1; dbproc->arity=-1;
@@ -802,7 +802,7 @@ static fdtype mysqlmakeproc
 
   /* Register the procedure on the database's list */
   fd_register_extdb_proc((struct FD_EXTDB_PROC *)dbproc);
-  
+
   /* This indicates that the procedure hasn't been initialized */
   dbproc->n_cols=-1;
 
@@ -841,6 +841,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
   /* This assumes that both dbp and dpbroc have been locked.  */
   MYSQL *db=dbp->db;
   int retval=0, n_cols, n_params;
+  u8_condition error_phase="init_mysqlproc";
   /* Reinitialize these structures in case there have been schema
      changes. */
   if (dbproc->outbound) {
@@ -851,20 +852,25 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
     u8_free(dbproc->isnull); dbproc->isnull=NULL;}
   if (dbproc->bindbuf) {
     u8_free(dbproc->bindbuf); dbproc->bindbuf=NULL;}
-  
+
   /* Close any existing statement */
-  if (dbproc->stmt) 
-    retval=mysql_stmt_close(dbproc->stmt);
+  if (dbproc->stmt) {
+    error_phase="init_mysqlproc/close_existing";
+    retval=mysql_stmt_close(dbproc->stmt);}
   else dbproc->stmt=NULL;
 
   if (!(retval)) {
+    error_phase="init_mysqlproc/stmt_init";
     dbproc->stmt=mysql_stmt_init(db);
-    if (dbproc->stmt)
+    if (dbproc->stmt) {
+      error_phase="init_mysqlproc/stmt_prepare";
       retval=mysql_stmt_prepare
-        (dbproc->stmt,dbproc->stmt_string,dbproc->stmt_len);}
-  
+        (dbproc->stmt,dbproc->stmt_string,dbproc->stmt_len);}}
+
   if (retval) {
     int mysqlerrno=mysql_stmt_errno(dbproc->stmt);
+    const char *errmsg=mysql_stmt_error(dbproc->stmt);
+    u8_log(LOG_WARN,error_phase,"%s: %s",dbproc->stmt_string,errmsg);
     if (NEED_RESTART(mysqlerrno)) {
       struct FD_MYSQL *dbp=dbproc->fdbptr;
       /* u8_mutex_lock(&(dbp->lock));*/
@@ -877,13 +883,13 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
       u8_seterr(MySQL_Error,"init_mysqlproc/prepare",u8_strdup(errmsg));
       mysql_stmt_close(dbproc->stmt); dbproc->stmt=NULL;
       return -1;}
-  
+
   n_cols=init_stmt_results(dbproc->stmt,
                            &(dbproc->outbound),
                            &(dbproc->colnames),
                            &(dbproc->isnull));
+  if (n_cols<0) return -1;
   n_params=mysql_stmt_param_count(dbproc->stmt);
-
   if (n_params==dbproc->n_params) {}
   else {
     fdtype *init_ptypes=dbproc->paramtypes, *ptypes=u8_alloc_n(n_params,fdtype);
@@ -909,11 +915,11 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
            "The number of columns for query '%s' on %s (%s) has changed",
            dbproc->qtext,dbp->spec,dbp->info);}
   dbproc->n_cols=n_cols;
-  
+
   /* Check that the number of parameters has not changed
      (this might happen if there were schema changes) */
   dbproc->min_arity=n_params;
-  
+
   if (n_params) {
     dbproc->inbound=u8_alloc_n(n_params,MYSQL_BIND);
     memset(dbproc->inbound,0,sizeof(MYSQL_BIND)*n_params);
@@ -921,16 +927,21 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
     memset(dbproc->bindbuf,0,sizeof(union BINDBUF)*n_params);}
 
   dbproc->need_init=0;
-  
+
   return 1;
 }
 
 static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
 {
   struct FD_MYSQL_PROC *dbp=(struct FD_MYSQL_PROC *)c;
-  int i, lim;
+  int i, lim, rv;
   fd_release_extdb_proc(c);
-  if (dbp->stmt) mysql_stmt_close(dbp->stmt);
+  if (dbp->stmt) {
+    if (rv=mysql_stmt_close(dbp->stmt)) {
+      int mysqlerrno=mysql_stmt_errno(dbp->stmt);
+      const char *errmsg=mysql_stmt_error(dbp->stmt);
+      u8_log(LOG_WARN,MySQL_Error,"Error (%d:%d) closing statement %s: %s",
+             rv,mysqlerrno,dbp->stmt_string,errmsg);}}
   fd_decref(dbp->colinfo);
 
   if (dbp->bindbuf) u8_free(dbp->bindbuf);
@@ -942,28 +953,29 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
       if (dbp->outbound[i].buffer) u8_free(dbp->outbound[i].buffer);
       i++;}
     u8_free(dbp->outbound);}
-    
+
   if (dbp->paramtypes) {
     i=0; lim=dbp->n_params; while (i< lim) {
       fd_decref(dbp->paramtypes[i]); i++;}
     u8_free(dbp->paramtypes);}
-  
+
   u8_free(dbp->spec); u8_free(dbp->qtext);
-  
+
   u8_mutex_destroy(&(dbp->lock));
-  
+
   fd_decref(dbp->db);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 /* Actually calling a MYSQL proc */
 
-static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int reconn);
+static fdtype applymysqlproc(struct FD_FUNCTION *,int,fdtype *,int);
 
 static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args){
   return applymysqlproc(fn,n,args,1);}
 
-static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int reconn)
+static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
+                             int reconn)
 {
   struct FD_MYSQL_PROC *dbproc=(struct FD_MYSQL_PROC *)fn;
   struct FD_MYSQL *dbp=
@@ -974,7 +986,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
   int retry=0, reterr=0;
 
   MYSQL_TIME *mstimes[4]; int n_mstimes=0;
-  
+
   /* Argbuf stores objects we consed in the process of
      converting application objects to SQLish values. */
   fdtype *ptypes=dbproc->paramtypes;
@@ -989,7 +1001,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
   volatile unsigned int mysqlerrno;
   const char *mysqlerrmsg=NULL;
   fdtype _argbuf[4], *argbuf=_argbuf;
-  
+
   u8_mutex_lock(&(dbproc->lock)); proclock=1;
 
   /* Initialize it if it needs it */
@@ -1161,7 +1173,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
       if (proclock)  {u8_mutex_unlock(&(dbproc->lock)); proclock=0;}
       return FD_ERROR_VALUE;}
     i++;}
-  
+
   if (dbproc->need_init) {
     /* If there's been a restart while we were binding, act as though
        we've failed and retry the connection at the end. */
@@ -1169,7 +1181,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
   else {
     /* Otherwise, tell MYSQL that the parameters are ready. */
     retval=bretval=mysql_stmt_bind_param(dbproc->stmt,inbound);}
-  
+
   if (retval==RETVAL_OK) {
     /* Lock the connection itself before executing */
     u8_mutex_lock(&(dbproc->fdbptr->lock)); dblock=1;
@@ -1179,11 +1191,11 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
          no longer have to worry about restarts. */
       retval=-1; retry=1;}
     else retval=eretval=mysql_stmt_execute(dbproc->stmt);}
-  
+
   /* Read all the values at once */
-  if (retval==RETVAL_OK) 
+  if (retval==RETVAL_OK)
     retval=sretval=mysql_stmt_store_result(dbproc->stmt);
-  
+
   if (retval==RETVAL_OK) {
     /* If everything went fine, we release the database lock now. */
     if (dblock) {u8_mutex_unlock(&(dbp->lock)); dblock=0;}}
@@ -1200,7 +1212,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
       /* We could possibly do something with this */
       int MAYBE_UNUSED rows=mysql_stmt_affected_rows(dbproc->stmt);
       values=FD_VOID;}}
-      
+
   if (retval!=RETVAL_OK) {
     /* Log any errors (even ones we're going to handle) */
     mysqlerrno=mysql_stmt_errno(dbproc->stmt);
@@ -1219,12 +1231,12 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,int recon
       retry=1;
   else retry=0;
   if ((retval)&&(!(retry))) reterr=1;
-  
+
   /* Clean up */
   i=0; while (i<n_mstimes) {u8_free(mstimes[i]); i++;}
   i=0; while (i<n_params) {fd_decref(argbuf[i]); i++;}
   if (argbuf!=_argbuf) u8_free(argbuf);
-  
+
   if (reterr) {
     if (dblock) {u8_mutex_unlock(&(dbp->lock)); dblock=0;}
     if (proclock) {u8_mutex_unlock(&(dbproc->lock)); proclock=0;}
@@ -1287,8 +1299,6 @@ FD_EXPORT int fd_init_mysql()
 
   module=fd_new_module("MYSQL",0);
 
-  /* u8_log(LOG_WARN,"mysql_init","Using this here experimental MYSQL module"); */
-
 #if FD_THREADS_ENABLED
   u8_mutex_init(&mysql_connect_lock);
 #endif
@@ -1332,17 +1342,19 @@ FD_EXPORT int fd_init_mysql()
   read_timeout_symbol=fd_intern("READ-TIMEOUT");
   write_timeout_symbol=fd_intern("WRITE-TIMEOUT");
   lazy_symbol=fd_intern("LAZYPROCS");
-  
+
   fd_finish_module(module);
 
-  fd_register_config("MYSQL:RECONNECT",
-                     "whether MYSQL should try to auto-reconnect",
-                     fd_boolconfig_get,fd_boolconfig_set,
-                     &default_reconnect);
-  fd_register_config("MYSQL:LAZYPROCS",
-                     "whether MYSQL should delay initializing dbprocs (statements)",
-                     fd_boolconfig_get,fd_boolconfig_set,
-                     &default_lazy_init);
+  fd_register_config
+    ("MYSQL:RECONNECT",
+     "whether MYSQL should try to auto-reconnect",
+     fd_boolconfig_get,fd_boolconfig_set,
+     &default_reconnect);
+  fd_register_config
+    ("MYSQL:LAZYPROCS",
+     "whether MYSQL should delay initializing dbprocs (statements)",
+     fd_boolconfig_get,fd_boolconfig_set,
+     &default_lazy_init);
 
   u8_register_source_file(_FILEINFO);
 
