@@ -35,7 +35,8 @@ static fdtype get_method, post_method, browseinfo_symbol, redirect_field;
 static fdtype query_string, query_elts, query, http_cookie, http_referrer;
 static fdtype http_headers, html_headers, cookiedata_symbol;
 static fdtype cookies_symbol, incookies_symbol, bad_cookie, text_symbol;
-static fdtype doctype_slotid, xmlpi_slotid, html_attribs_slotid, body_attribs_slotid;
+static fdtype doctype_slotid, xmlpi_slotid, html_attribs_slotid;
+static fdtype body_attribs_slotid, body_classes_slotid, class_symbol;
 static fdtype content_slotid, content_type, cgi_content_type;
 static fdtype remote_user_symbol, remote_host_symbol, remote_addr_symbol;
 static fdtype remote_info_symbol, remote_agent_symbol, remote_ident_symbol;
@@ -712,6 +713,44 @@ static void output_headers(U8_OUTPUT *out,fdtype headers)
     u8_putn(out,"\n",1);}
 }
 
+static fdtype update_body_attribs(fdtype body_attribs,fdtype body_classes)
+{
+  if (!(FD_PAIRP(body_classes))) return body_attribs;
+  else if (FD_PAIRP(body_attribs)) {
+    fdtype scan=body_attribs, scan_classes=body_classes;
+    struct U8_OUTPUT classout; fdtype class_cons=FD_VOID;
+    u8_byte _classbuf[256]; int i=0;
+    while (FD_PAIRP(scan)) {
+      fdtype car=FD_CAR(scan);
+      if ((car==class_symbol)||
+          ((FD_STRINGP(car))&&
+           (strcasecmp(FD_STRDATA(car),"class")))) {
+        class_cons=FD_CDR(scan); break;}
+      else scan=FD_CDR(scan);}
+    if (FD_VOIDP(class_cons)) {
+      class_cons=fd_init_pair(NULL,FD_FALSE,body_attribs);
+      body_attribs=fd_init_pair(NULL,class_symbol,class_cons);}
+    U8_INIT_OUTPUT_BUF(&classout,sizeof(_classbuf),_classbuf);
+    if (FD_STRINGP(FD_CAR(class_cons))) {
+      u8_puts(&classout,FD_STRDATA(FD_CAR(class_cons)));
+      u8_puts(&classout," ");}
+    while (FD_PAIRP(body_classes)) {
+      fdtype car=FD_CAR(body_classes);
+      if (!(FD_STRINGP(car))) {}
+      else {
+        if (i) u8_puts(&classout," "); i++;
+        u8_puts(&classout,FD_STRDATA(car));}
+      body_classes=FD_CDR(body_classes);}
+    {fdtype old=FD_CAR(class_cons);
+      FD_RPLACA(class_cons,fd_make_string
+                (NULL,classout.u8_outptr-classout.u8_outbuf,
+                 classout.u8_outbuf));
+      fd_decref(old);
+      u8_close((u8_stream)&classout);}
+    return body_attribs;}
+  else return body_attribs;
+}
+
 FD_EXPORT
 int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
 {
@@ -719,6 +758,7 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
   fdtype xmlpi=fd_get(cgidata,xmlpi_slotid,FD_VOID);
   fdtype html_attribs=fd_get(cgidata,html_attribs_slotid,FD_VOID);
   fdtype body_attribs=fd_get(cgidata,body_attribs_slotid,FD_VOID);
+  fdtype body_classes=fd_get(cgidata,body_classes_slotid,FD_VOID);
   fdtype headers=fd_get(cgidata,html_headers,FD_VOID);
   if (FD_VOIDP(doctype)) u8_puts(out,DEFAULT_DOCTYPE);
   else if (FD_STRINGP(doctype))
@@ -731,18 +771,22 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
   if (FD_VOIDP(html_attribs))
     u8_puts(out,"\n<html>\n<head>\n");
   else {
-    fd_open_markup(out,"html",body_attribs,0);
+    fd_open_markup(out,"html",html_attribs,0);
     u8_puts(out,"\n<head>\n");}
   if (!(FD_VOIDP(headers))) {
     output_headers(out,headers);
     fd_decref(headers);}
   u8_puts(out,"</head>\n");
+  if (FD_PAIRP(body_classes))
+    body_attribs=update_body_attribs(body_attribs,body_classes);
   if (FD_FALSEP(body_attribs)) {}
   else if (FD_VOIDP(body_attribs)) u8_puts(out,"<body>");
   else {
     fd_open_markup(out,"body",body_attribs,0);}
   fd_decref(doctype); fd_decref(xmlpi);
-  fd_decref(html_attribs); fd_decref(body_attribs);
+  fd_decref(html_attribs);
+  fd_decref(body_attribs);
+  fd_decref(body_classes);
   return 1;
 }
 
@@ -775,6 +819,12 @@ static fdtype set_body_attribs(int n,fdtype *args)
       fd_req_push(body_attribs_slotid,args[i]);
       i--;}
     return FD_VOID;}
+}
+
+static fdtype add_body_class(fdtype classname)
+{
+  fd_req_push(body_classes_slotid,classname);
+  return FD_VOID;
 }
 
 /* CGI Exec */
@@ -979,6 +1029,8 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_cprim6("SET-COOKIE!",setcookie,2));
   fd_idefn(module,fd_make_cprim4("CLEAR-COOKIE!",clearcookie,1));  
   fd_idefn(module,fd_make_cprimn("BODY!",set_body_attribs,1));
+  fd_idefn(module,fd_make_cprim1x("BODYCLASS!",add_body_class,1,
+                                  fd_string_type,FD_VOID));
 
   fd_defspecial(module,"WITH/REQUEST/OUT",withreqout_handler);
   fd_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
@@ -1049,6 +1101,8 @@ FD_EXPORT void fd_init_cgiexec_c()
   xmlpi_slotid=fd_intern("XMLPI");
   html_attribs_slotid=fd_intern("%HTML");
   body_attribs_slotid=fd_intern("%BODY");
+  body_classes_slotid=fd_intern("%BODYCLASSES");
+  class_symbol=fd_intern("CLASS");
 
   post_data_slotid=fd_intern("POST_DATA");
   form_data_string=fdtype_string("multipart/form-data");
