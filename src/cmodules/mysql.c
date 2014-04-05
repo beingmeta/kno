@@ -940,7 +940,7 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
   int i, lim, rv;
   fd_release_extdb_proc(c);
   if (dbp->stmt) {
-    if (rv=mysql_stmt_close(dbp->stmt)) {
+    if ((rv=mysql_stmt_close(dbp->stmt))) {
       int mysqlerrno=mysql_stmt_errno(dbp->stmt);
       const char *errmsg=mysql_stmt_error(dbp->stmt);
       u8_log(LOG_WARN,MySQL_Error,"Error (%d:%d) closing statement %s: %s",
