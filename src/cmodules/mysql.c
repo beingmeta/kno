@@ -43,6 +43,9 @@ u8_condition UnusedType=_("MYSQL unused parameter type");
 #define NEED_RESTART(err)                               \
   ((err==CR_SERVER_GONE_ERROR) ||                       \
    (err==CR_SERVER_LOST))
+#define NEED_RESET(err)                                 \
+  ((err==CR_COMMANDS_OUT_OF_SYNC) ||                    \
+   (err==CR_NO_PREPARE_STMT))
 #define RETVAL_OK 0
 
 #if FD_THREADS_ENABLED
@@ -1229,6 +1232,8 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
   /* Figure out if we're going to retry */
   if ((reconn>0)&&((retry)||(NEED_RESTART(mysqlerrno))))
       retry=1;
+  else if ((reconn>0)&&(NEED_RESET(mysqlerrno))) {
+    dbproc->need_init=1; retry=1;}
   else retry=0;
   if ((retval)&&(!(retry))) reterr=1;
 
