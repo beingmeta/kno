@@ -915,6 +915,7 @@ static int cgiexecstep(void *data)
   return 1;
 }
 
+#if FD_IPEVAL_ENABLED
 static int use_ipeval(fdtype proc,fdtype cgidata)
 {
   int retval=-1;
@@ -931,20 +932,28 @@ static int use_ipeval(fdtype proc,fdtype cgidata)
   fd_decref(val); 
   return retval;
 }
+#endif
 
 FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 {
   if (FD_PTR_TYPEP(proc,fd_sproc_type)) {
-    fdtype value=FD_VOID; int ipeval=use_ipeval(proc,cgidata); 
+    fdtype value=FD_VOID;
+#if FD_IPEVAL_ENABLED
+    int ipeval=use_ipeval(proc,cgidata);
+#else
+    int ipeval=0;
+#endif
     if (!(ipeval)) {
       value=fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
 			    (fdtype (*)(void *,fdtype))cgigetvar);
       value=fd_finish_call(value);}
+#if FD_IPEVAL_ENABLED
     else {
       struct U8_OUTPUT *out=u8_current_output;
       struct CGICALL call={proc,cgidata,out,-1,FD_VOID};
       fd_ipeval_call(cgiexecstep,(void *)&call);
       value=call.result;}
+#endif
     return value;}
   else return fd_apply(proc,0,NULL);
 }

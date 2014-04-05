@@ -475,6 +475,7 @@ FD_EXPORT void fd_init_xtables_c(void);
 FD_EXPORT void fd_init_apply_c(void);
 FD_EXPORT void fd_init_dtproc_c(void);
 FD_EXPORT void fd_init_frames_c(void);
+FD_EXPORT void fd_init_cachecall_c(void);
 FD_EXPORT void fd_init_ipeval_c(void);
 FD_EXPORT void fd_init_methods_c(void);
 
@@ -498,7 +499,10 @@ FD_EXPORT int fd_init_db()
   fd_init_apply_c();
   fd_init_dtproc_c();
   fd_init_frames_c();
+  fd_init_cachecall_c();
+#if FD_IPEVAL_ENABLED
   fd_init_ipeval_c();
+#endif
   fd_init_methods_c();
   id_symbol=fd_intern("%ID");
   fd_set_oid_parser(better_parse_oid);

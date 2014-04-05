@@ -954,6 +954,7 @@ static fdtype xapply_prim(fdtype proc,fdtype obj)
 
 /* IPEVAL binding */
 
+#if FD_IPEVAL_ENABLED
 struct IPEVAL_BINDSTRUCT {
   int n_bindings; fdtype *vals;
   fdtype valexprs; fd_lispenv env;};
@@ -1064,6 +1065,8 @@ static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
     return result;}
 }
 
+#endif
+
 /* Initialization */
 
 FD_EXPORT void fd_init_binders_c()
@@ -1114,8 +1117,10 @@ FD_EXPORT void fd_init_binders_c()
   fd_defspecial(fd_scheme_module,"DEFAULT!",set_default_handler);
   fd_defspecial(fd_scheme_module,"BIND-DEFAULT!",bind_default_handler);
 
+#if FD_IPEVAL_ENABLED
   fd_defspecial(fd_scheme_module,"LETQ",letq_handler);
   fd_defspecial(fd_scheme_module,"LETQ*",letqstar_handler);
+#endif
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x
 	   ("XAPPLY",xapply_prim,2,fd_sproc_type,FD_VOID,-1,FD_VOID));

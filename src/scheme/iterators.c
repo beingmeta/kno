@@ -437,6 +437,7 @@ static fdtype comment_handler(fdtype comment_expr,fd_lispenv env)
 
 /* IPEVAL */
 
+#if FD_IPEVAL_ENABLED
 struct IPEVAL_STRUCT { fdtype expr, value; fd_lispenv env;};
 
 static int ipeval_step(struct IPEVAL_STRUCT *s)
@@ -484,6 +485,7 @@ static fdtype track_ipeval_handler(fdtype expr,fd_lispenv env)
 			 fd_init_double(NULL,total_time),
 			 fd_init_vector(NULL,n_cycles,vec));
 }
+#endif
 
 /* Initialize functions */
 
@@ -506,9 +508,11 @@ FD_EXPORT void fd_init_iterators_c()
   fd_defspecial(fd_scheme_module,"COMMENT",comment_handler);
   fd_defalias(fd_scheme_module,"*******","COMMENT");
 
+#if FD_IPEVAL_ENABLED
   fd_defspecial(fd_scheme_module,"IPEVAL",ipeval_handler);
   fd_defspecial(fd_scheme_module,"TIPEVAL",trace_ipeval_handler);
   fd_defspecial(fd_scheme_module,"TRACK-IPEVAL",track_ipeval_handler);
+#endif
 
 }
 

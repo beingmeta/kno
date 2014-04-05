@@ -203,6 +203,9 @@
 #undef FD_HTMLDUMP_ENABLED
 
 /* Define if you are using a global lock and vars for IPEVAL.  */
+#undef FD_IPEVAL_ENABLED
+
+/* Define if you are using a global lock and vars for IPEVAL.  */
 #undef FD_GLOBAL_IPEVAL
 
 /* Define if fdweb is linking with curl */

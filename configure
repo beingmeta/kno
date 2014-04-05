@@ -729,6 +729,7 @@ xdynamic_scheme_libs
 xstatic_scheme_libs
 xstatic_exe_libs
 suffix
+ipevalo
 exifo
 curlo
 curlconfig
@@ -838,6 +839,7 @@ enable_fdweb
 enable_texttools
 enable_htmldump
 with_tls
+enable_ipeval
 with_global_ipeval
 with_curl
 with_exif
@@ -1481,6 +1483,7 @@ Optional Features:
 --en/disable-fdweb compiled-in fdweb
 --en/disable-texttools compiled-in texttools
 --en/disable-htmldump write HTML backtraces
+--endisable-ipeval Enable IPEVAL
 --en/disable-rpath usage
 
 Optional Packages:
@@ -2839,11 +2842,13 @@ shared_default="yes"
 shared_suffix="so"
 tls_default="no"
 global_ipeval_default="no"
+enable_ipeval_default="no"
 enable_fdweb_default="no"
 enable_texttools_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
+ipevalo=""
 webuser=""
 wwwinstall=""
 admin_group=""
@@ -2966,6 +2971,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -9361,6 +9367,22 @@ else
 
 fi
 
+# Check whether --enable-ipeval was given.
+if test "${enable_ipeval+set}" = set; then :
+  enableval=$enable_ipeval;
+else
+  enable_ipeval=$enable_ipeval_default
+fi
+
+if test $enable_ipeval = "yes"; then
+  ipevalo=src/db/ipeval.o
+  $as_echo "#define FD_IPEVAL_ENABLED 1" >>confdefs.h
+
+else
+  $as_echo "#define FD_IPEVAL_ENABLED 0" >>confdefs.h
+
+fi
+
 
 # Check whether --with-global_ipeval was given.
 if test "${with_global_ipeval+set}" = set; then :
@@ -11006,3 +11028,13 @@ fi
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
 chmod a+x etc/fdconfig
+
+if test "x$enable_ipeval" == "xyes"; then
+   echo "+++ You've configured FramerD to use iterated partial evaluation";
+   echo "+++ Use of the resulting software may be restricted by patent law. ";
+   echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";
+   echo "+++ Thanks for using FramerD!";
+else
+   echo "+++ Thanks for using FramerD!";
+fi
+

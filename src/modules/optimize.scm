@@ -572,8 +572,11 @@
 
 ;;; Declare them
 
-(add! special-form-tighteners (choice let letq) tighten-let)
-(add! special-form-tighteners (choice let* letq*) tighten-let*)
+(add! special-form-tighteners let tighten-let)
+(add! special-form-tighteners let* tighten-let*)
+(when (bound? letq)
+  (add! special-form-tighteners letq tighten-let)
+  (add! special-form-tighteners letq* tighten-let*))
 (add! special-form-tighteners (choice lambda ambda slambda)
       tighten-lambda)
 (add! special-form-tighteners (choice set! set+! default! define)
@@ -587,9 +590,13 @@
       tighten-do2expression)
 
 (add! special-form-tighteners
-      (choice begin prog1 until while ipeval
-	      tipeval try if tryif when unless and or)
+      (choice begin prog1 until while
+	      try if tryif when unless and or)
       tighten-block)
+(when (bound? ipeval)
+  (add! special-form-tighteners
+	(choice ipeval tipeval)
+	tighten-block))
 (add! special-form-tighteners case tighten-case)
 (add! special-form-tighteners cond tighten-cond)
 (add! special-form-tighteners do-subsets tighten-dosubsets)

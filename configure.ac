@@ -45,11 +45,13 @@ shared_default="yes"
 shared_suffix="so"
 tls_default="no"
 global_ipeval_default="no"
+enable_ipeval_default="no"
 enable_fdweb_default="no"
 enable_texttools_default="no"
 install_dir_opts="-d -m 0775"
 install_file_opts="-m 0664"
 install_exe_opts="-m 0775"
+ipevalo=""
 webuser=""
 wwwinstall=""
 admin_group=""
@@ -155,6 +157,7 @@ AC_SUBST(dynamic_cflag)
 AC_SUBST(curlconfig)
 AC_SUBST(curlo)
 AC_SUBST(exifo)
+AC_SUBST(ipevalo)
 AC_SUBST(suffix)
 AC_SUBST(xstatic_exe_libs)
 AC_SUBST(xstatic_scheme_libs)
@@ -1116,6 +1119,15 @@ else
   AC_DEFINE(FD_FORCE_TLS,0)
 fi
 
+dnl This enables the ipeval implementation within FramerD
+AC_ARG_ENABLE(ipeval,--en[dis]able-ipeval Enable IPEVAL,,enable_ipeval=$enable_ipeval_default)
+if test $enable_ipeval = "yes"; then
+  ipevalo=src/db/ipeval.o
+  AC_DEFINE(FD_IPEVAL_ENABLED,1)
+else
+  AC_DEFINE(FD_IPEVAL_ENABLED,0)
+fi
+
 dnl This forces the use of a global lock for ipeval, which can reduce
 dnl  parallellism  but may help track down subtle bugs
 AC_ARG_WITH(global_ipeval,--with[out]-global-ipeval Use global lock and variables for ipeval,,with_global_ipeval=$global_ipeval_default)
@@ -1180,3 +1192,13 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
 chmod a+x etc/fdconfig
+
+if test "x$enable_ipeval" == "xyes"; then
+   echo "+++ You've configured FramerD to use iterated partial evaluation";
+   echo "+++ Use of the resulting software may be restricted by patent law. ";
+   echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";
+   echo "+++ Thanks for using FramerD!";
+else
+   echo "+++ Thanks for using FramerD!";
+fi
+

@@ -75,6 +75,7 @@ FD_EXPORT void fd_fast_swapout_all(void);
 
 /* IPEVAL stuff */
 
+#if FD_IPEVAL_ENABLED
 #if (FD_GLOBAL_IPEVAL)
 FD_EXPORT fd_wideint fd_ipeval_state;
 #elif (FD_USE__THREAD)
@@ -160,6 +161,14 @@ typedef int (*fd_ipevalfn)(void *);
 FD_EXPORT int fd_trace_ipeval;
 #if FD_THREADS_ENABLED
 FD_EXPORT u8_mutex fd_ipeval_lock;
+#endif
+
+#else /* FD_IPEVAL_ENABLED */
+#define fd_trace_ipeval (0)
+#define fd_ipeval_delay(n) (0)
+#define fd_ipeval_status() (0)
+#define fd_ipeval_failp() (0)
+#define fd_set_ipeval_state(s)
 #endif
 
 /* Cache calls */
