@@ -207,6 +207,7 @@
 	 (has-suffix (cdr path) "/"))
 	((and (s3loc? path) (string? (s3loc-path path)))
 	 (has-suffix (s3loc-path path) "/"))
+	((zipfile? path) #t)
 	(else #f)))
 
 (define (gp/location path)
@@ -636,7 +637,8 @@
 
 ;;;; Example configuration
 
-(defrecord samplegfs (name #f) (data (make-hashtable)) (metadata (make-hashtable)))
+(defrecord samplegfs (name #f)
+  (data (make-hashtable)) (metadata (make-hashtable)))
 (define (samplegfs-get gfs path (info))
   (if (bound? info)
       (let ((metadata (get (samplegfs-metadata gfs) path)))
@@ -655,7 +657,8 @@
 	    'charset (tryif charset (if (string? charset) charset "utf-8"))
 	    'modified (timestamp) 'length (length content)
 	    'etag (md5 content))))
-(config! 'gpath:handlers (gpath/handler 'samplegfs samplegfs-get samplegfs-save))
+(config! 'gpath:handlers
+	 (gpath/handler 'samplegfs samplegfs-get samplegfs-save))
 
 ;;;; Copying/downloads
 
