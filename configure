@@ -636,6 +636,7 @@ CREATEREPO
 APXS
 VALGRIND
 ECHO
+binenv
 RANLIB
 INSTALL_DATA
 INSTALL_SCRIPT
@@ -782,6 +783,7 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+with_execwrapper
 with_devmode
 with_optinclude
 with_bootsystem
@@ -1489,6 +1491,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+--with-execwrapper program to use when calling exec()
 --with-devmode Special settings for development machines (e.g. linking module files)
 --with-optinclude Use optional include directory
 --with-bootsytem Setup boot method
@@ -4373,6 +4376,46 @@ else
   RANLIB="$ac_cv_prog_RANLIB"
 fi
 
+# Extract the first word of "env", so it can be a program name with args.
+set dummy env; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_binenv+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $binenv in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_binenv="$binenv" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_binenv="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+binenv=$ac_cv_path_binenv
+if test -n "$binenv"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $binenv" >&5
+$as_echo "$binenv" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
 # Extract the first word of "echo", so it can be a program name with args.
 set dummy echo; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -4691,6 +4734,23 @@ $as_echo_n "checking for user default_webuser... " >&6; }
   default_webuser=$found_user;
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
 $as_echo "$found_user" >&6; }
+
+echo binenv is $binenv
+
+# Check whether --with-execwrapper was given.
+if test "${with_execwrapper+set}" = set; then :
+  withval=$with_execwrapper;
+else
+  with_execwrapper=$binenv
+fi
+
+echo with_execwrapper is $with_execwrapper
+if test "x$with_execwrapper" != "x"; then
+  cat >>confdefs.h <<_ACEOF
+#define FD_EXEC_WRAPPER "$with_execwrapper"
+_ACEOF
+
+fi
 
 CFLAGS="$CFLAGS -I$prefix/include"
 

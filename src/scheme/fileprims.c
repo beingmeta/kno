@@ -43,6 +43,8 @@
 #include <sys/wait.h>
 #endif
 
+#include <ctype.h>
+
 static U8_XINPUT u8stdin;
 static U8_XOUTPUT u8stdout;
 static U8_XOUTPUT u8stderr;
@@ -301,90 +303,149 @@ static fdtype exit_prim(fdtype arg)
 #define FD_DO_WAIT 4
 #define FD_DO_LOOKUP 8
 
-static fdtype exec_helper(int flags,int n,fdtype *args)
+static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
 {
   if (!(FD_STRINGP(args[0])))
-    return fd_type_error("pathname","fdexec_prim",args[0]);
+    return fd_type_error("pathname",caller,args[0]);
+  else if ((!(flags&(FD_DO_LOOKUP|FD_IS_SCHEME)))&&
+           (!(u8_file_existsp(FD_STRDATA(args[0])))))
+    return fd_type_error("real file",caller,args[0]);
   else {
-    char **argv=u8_alloc_n(n+2,char *), *filename=u8_tolibc(FD_STRDATA(args[0]));
-    int i=1, argc=0; pid_t pid;
-    if (flags&FD_IS_SCHEME) argv[argc++]=u8_strdup(FD_EXEC);
-    argv[argc++]=filename;
-    while (i<n)
-      if (FD_STRINGP(args[i]))
-	argv[argc++]=u8_tolibc(FD_STRDATA(args[i++]));
-      else {
-	u8_string as_string=fd_dtype2string(args[i++]);
-	char *as_libc_string=u8_tolibc(as_string);
-	argv[argc++]=as_libc_string; u8_free(as_string);}
-    argv[argc++]=NULL;
-    if (flags&FD_DO_FORK) 
-      if ((pid=(fork()))) {
-	i=0; while (i<argc) if (argv[i]) u8_free(argv[i++]); else i++;
-	u8_free(argv);
-#if HAVE_WAITPID
-	if (flags&FD_DO_WAIT) {
-	  unsigned int retval=-1;
-	  waitpid(pid,&retval,0);
-	  return FD_INT2DTYPE(retval);}
+    char **argv, *arg1=FD_STRDATA(args[0]), *filename=NULL, *argcopy=NULL;
+    int i=1, argc=0, max_argc=n+2, retval=0; pid_t pid;
+    if (strchr(arg1,' ')) {
+      char *scan=arg1; while (scan) {
+        char *brk=strchr(scan,' ');
+        if (brk) {max_argc++; scan=brk+1;}
+        else break;}}
+    else {}
+    if ((n>1)&&(FD_SLOTMAPP(args[1]))) {
+      fdtype keys=fd_getkeys(args[1]);
+      max_argc=max_argc+FD_CHOICE_SIZE(keys);}
+    argv=u8_alloc_n(max_argc,char *);
+    if (flags&FD_IS_SCHEME) {
+      argv[argc++]=filename=u8_strdup(FD_EXEC);
+      argv[argc++]=u8_tolibc(arg1);}
+    else if (strchr(arg1,' ')) {
+#ifndef FD_EXEC_WRAPPER
+      u8_free(argv);
+      return fd_err(_("No exec wrapper to handle env args"),
+                    caller,NULL,args[0]);
+#else
+      char *argcopy=u8_tolibc(arg1), *start=argcopy, *scan=strchr(start,' ');
+      argv[argc++]=filename=u8_strdup(FD_EXEC_WRAPPER);
+      while (scan) {
+        *scan='\0'; argv[argc++]=start;
+        start=scan+1; while (isspace(*start)) start++;
+        scan=strchr(start,' ');}
+      argv[argc++]=u8_tolibc(start);
 #endif
-	return FD_INT2DTYPE(pid);}
-      else if (flags&FD_IS_SCHEME)
-	execvp(FD_EXEC,argv);
-      else if (flags&FD_DO_LOOKUP)
-	execvp(filename,argv);
-      else execvp(filename,argv);
-    else if (flags&FD_IS_SCHEME)
-      execvp(FD_EXEC,argv);
+    }
+    else {
+#ifdef FD_EXEC_WRAPPER
+      argv[argc++]=filename=u8_strdup(FD_EXEC_WRAPPER);
+#endif
+      if (filename)
+        argv[argc++]=u8_tolibc(arg1);
+      else argv[argc++]=filename=u8_tolibc(arg1);}
+    if ((n>1)&&(FD_SLOTMAPP(args[1]))) {
+      fdtype params=args[1];
+      fdtype keys=fd_getkeys(args[1]);
+      FD_DO_CHOICES(key,keys) {
+        if ((FD_SYMBOLP(key))||(FD_STRINGP(key))) {
+          fdtype value=fd_get(params,key,FD_VOID);
+          if (!(FD_VOIDP(value))) {
+            struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
+            if (FD_SYMBOLP(key)) u8_puts(&out,FD_SYMBOL_NAME(key));
+            else u8_puts(&out,FD_STRDATA(key));
+            u8_putc(&out,'=');
+            if (FD_STRINGP(value)) u8_puts(&out,FD_STRDATA(value));
+            else fd_unparse(&out,value);
+            argv[argc++]=out.u8_outbuf;
+            fd_decref(value);}}}
+        i++;}
+    while (i<n) {
+      if (FD_STRINGP(args[i]))
+        argv[argc++]=u8_tolibc(FD_STRDATA(args[i++]));
+      else {
+        u8_string as_string=fd_dtype2string(args[i++]);
+        char *as_libc_string=u8_tolibc(as_string);
+        argv[argc++]=as_libc_string; u8_free(as_string);}}
+    argv[argc++]=NULL;
+    if ((flags&FD_DO_FORK)&&((pid=(fork())))) {
+      i=0; while (i<argc) if (argv[i]) u8_free(argv[i++]); else i++;
+      u8_free(argv);
+#if HAVE_WAITPID
+      if (flags&FD_DO_WAIT) {
+        unsigned int retval=-1;
+        waitpid(pid,&retval,0);
+        return FD_INT2DTYPE(retval);}
+#endif
+      return FD_INT2DTYPE(pid);}
+    if (flags&FD_IS_SCHEME)
+      retval=execvp(FD_EXEC,argv);
     else if (flags&FD_DO_LOOKUP)
-      execvp(filename,argv);
-    else execvp(filename,argv);
-    return FD_ERROR_VALUE;}
+      retval=execvp(filename,argv);
+    else retval=execvp(filename,argv);
+    u8_log(LOG_CRIT,caller,"Fork exec failed (%d/%d:%s) with %s %s (%d)",
+           retval,errno,strerror(errno),
+           filename,argv[0],argc);
+    /* We call abort in this case because we've forked but couldn't
+       exec and we don't want this FramerD executable to exit normally. */
+    if (flags&FD_DO_FORK) {
+      u8_graberr(-1,caller,filename);
+      return FD_ERROR_VALUE;}
+    else {
+      fd_clear_errors(1);
+      abort();}}
 }
 
 static fdtype exec_prim(int n,fdtype *args)
 {
-  return exec_helper(0,n,args);
+  return exec_helper("exec_prim",0,n,args);
 }
 
-static fdtype execlookup_prim(int n,fdtype *args)
+static fdtype execpath_prim(int n,fdtype *args)
 {
-  return exec_helper(FD_DO_LOOKUP,n,args);
+  return exec_helper("execpath_prim",FD_DO_LOOKUP,n,args);
 }
 
 static fdtype fdexec_prim(int n,fdtype *args)
 {
-  return exec_helper(FD_IS_SCHEME,n,args);
+  return exec_helper("fdexec_prim",FD_IS_SCHEME,n,args);
 }
 
 static fdtype fork_prim(int n,fdtype *args)
 {
-  return exec_helper(FD_DO_FORK,n,args);
+  return exec_helper("fork_prim",FD_DO_FORK,n,args);
 }
 
-static fdtype forklookup_prim(int n,fdtype *args)
+static fdtype forkpath_prim(int n,fdtype *args)
 {
-  return exec_helper(FD_DO_FORK|FD_DO_LOOKUP,n,args);
+  return exec_helper("forkpath_prim",(FD_DO_FORK|FD_DO_LOOKUP),n,args);
 }
 
 static fdtype forkwait_prim(int n,fdtype *args)
 {
-  return exec_helper((FD_DO_FORK|FD_DO_WAIT),n,args);
+  return exec_helper("forkwait_prim",(FD_DO_FORK|FD_DO_WAIT),n,args);
 }
 
 static fdtype forklookupwait_prim(int n,fdtype *args)
 {
-  return exec_helper((FD_DO_FORK|FD_DO_LOOKUP|FD_DO_WAIT),n,args);
+  return exec_helper("forklookupwait_prim",
+                     (FD_DO_FORK|FD_DO_LOOKUP|FD_DO_WAIT),n,args);
 }
 
 static fdtype fdforkwait_prim(int n,fdtype *args)
 {
-  return exec_helper((FD_IS_SCHEME|FD_DO_FORK|FD_DO_WAIT),n,args);
+  return exec_helper("fdforkwait_prim",
+                     (FD_IS_SCHEME|FD_DO_FORK|FD_DO_WAIT),
+                     n,args);
 }
 
 static fdtype fdfork_prim(int n,fdtype *args)
 {
-  return exec_helper((FD_IS_SCHEME|FD_DO_FORK),n,args);
+  return exec_helper("fdfork_prim",(FD_IS_SCHEME|FD_DO_FORK),n,args);
 }
 
 /* Opening TCP sockets */
@@ -2036,9 +2097,9 @@ FD_EXPORT void fd_init_fileio_c()
 
   fd_idefn(fileio_module,fd_make_cprim1("EXIT",exit_prim,0));
   fd_idefn(fileio_module,fd_make_cprimn("EXEC",exec_prim,1));
-  fd_idefn(fileio_module,fd_make_cprimn("EXECLOOKUP",execlookup_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("EXEC/PATH",execpath_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FORK",fork_prim,1));
-  fd_idefn(fileio_module,fd_make_cprimn("FORKLOOKUP",forklookup_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FORK/PATH",forkpath_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDEXEC",fdexec_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDFORK",fdfork_prim,1));
 #if HAVE_WAITPID

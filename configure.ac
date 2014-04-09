@@ -240,6 +240,7 @@ AC_PROG_CC([cc gcc])
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_INSTALL
 AC_PROG_RANLIB
+AC_PATH_PROG(binenv,env)
 AC_CHECK_PROG(ECHO,echo,,/bin/echo)
 AC_CHECK_PROG(VALGRIND,valgrind)
 AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs apxs2 apxs)
@@ -257,6 +258,13 @@ AC_CHECK_GROUP(default_admin_group,framerd adm admin)
 AC_CHECK_USER(default_fdaemon,fdaemon daemon nobody)
 AC_CHECK_USER(default_daemon,xdaemon fdaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
+
+echo binenv is $binenv
+AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)
+echo with_execwrapper is $with_execwrapper
+if test "x$with_execwrapper" != "x"; then
+  AC_DEFINE_UNQUOTED(FD_EXEC_WRAPPER,"$with_execwrapper")
+fi
 
 CFLAGS="$CFLAGS -I$prefix/include"
 

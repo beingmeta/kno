@@ -346,4 +346,7 @@
 /* Whether to assume async support in servers (by default) */
 #undef FD_DEFAULT_ASYNC
 
+/* The name of the program for wrapping exec calls (usually /bin/env) */
+#undef FD_EXEC_WRAPPER
+
 #endif
