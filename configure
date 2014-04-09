@@ -4735,7 +4735,6 @@ $as_echo_n "checking for user default_webuser... " >&6; }
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
 $as_echo "$found_user" >&6; }
 
-echo binenv is $binenv
 
 # Check whether --with-execwrapper was given.
 if test "${with_execwrapper+set}" = set; then :
@@ -4744,7 +4743,6 @@ else
   with_execwrapper=$binenv
 fi
 
-echo with_execwrapper is $with_execwrapper
 if test "x$with_execwrapper" != "x"; then
   cat >>confdefs.h <<_ACEOF
 #define FD_EXEC_WRAPPER "$with_execwrapper"
