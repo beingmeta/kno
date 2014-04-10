@@ -221,10 +221,11 @@
 	  (upcase {".png" ".gif" ".jpg" ".jpeg" ".svg"})))
 
 (define (dom/localize! dom base saveto read (options #f)
-		       (urlmap) (doanchors) (dolinks))
+		       (urlmap) (doanchors) (dolinks) (cssrules))
   (default! urlmap (getopt options 'urlmap (make-hashtable)))
   (default! doanchors (getopt options 'doanchors #f))
   (default! dolinks (getopt options 'synclinks {}))
+  (default! cssrules (getopt options 'cssrules {}))
   (loginfo "Localizing references for "
 	   (try (gpath->string (get dom 'source)) "source")
 	   "\n\tfrom " (write (gp->s base))
@@ -259,18 +260,25 @@
 	     (ref (get urlmap href)))
 	(when (or (fail? ref) (not ref))
 	  (loginfo "Localizing stylesheet " (get node 'href)
-		   "\n\tfrom " base "\n\tto " saveto)
+		   "\n\tfrom " base "\n\tto " saveto
+		   (when (exists? cssrules)
+		     (printout "\n\twith CSS rules " cssrules)))
 	  (let* ((usebase (if (position #\/ href)
 			      (gp/mkpath base (dirname href))
 			      base))
+		 (fix-csstext
+		  (if (exists? cssrules)
+		      (lambda (csstext)
+			(textsubst (fix-crlfs csstext) (qc cssrules)))
+		      fix-crlfs))
 		 (xformcss (lambda (css)
 			     (if (string? css)
 				 (if (textsearch '(IC #("url" (spaces*) "(")) css)
 				     (convert-url-refs
-				      (fix-crlfs css) urlmap usebase
+				      (fix-csstext css) urlmap usebase
 				      (qc saveto) read
 				      options)
-				     (fix-crlfs css))
+				     (fix-csstext css))
 				 css)))
 		 (options (if (exists has-prefix (get node 'type) "text/css")
 			      (cons `#[basetime ,(getopt options 'consed)
