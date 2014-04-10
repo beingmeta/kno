@@ -259,9 +259,7 @@ AC_CHECK_USER(default_fdaemon,fdaemon daemon nobody)
 AC_CHECK_USER(default_daemon,xdaemon fdaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
 
-echo binenv is $binenv
 AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)
-echo with_execwrapper is $with_execwrapper
 if test "x$with_execwrapper" != "x"; then
   AC_DEFINE_UNQUOTED(FD_EXEC_WRAPPER,"$with_execwrapper")
 fi
