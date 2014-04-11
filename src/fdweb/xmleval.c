@@ -63,6 +63,39 @@ FD_INLINE_FCN void entify(u8_output out,u8_string value,int len)
     else u8_putc(out,c);}
 }
 
+static void attrib_entify_x(u8_output out,u8_string value,u8_string escape)
+{
+  u8_byte *scan=value; int c;
+  if (!(escape)) escape="'<>&\"";
+  while ((c=u8_sgetc(&scan))>=0)
+    if (strchr(escape,c)) /* (strchr("'<>&\"!@$%(){}[]",c)) */
+      /* For now, we're not escaping +/-, even though some sources suggest
+	 it would be a good idea. */
+      switch(c) {
+      case '\'': u8_puts(out,"&#39;"); break;
+      case '\"': u8_puts(out,"&#34;"); break;
+      case '<': u8_puts(out,"&#60;"); break;
+      case '>': u8_puts(out,"&#62;"); break;
+      case '&': u8_puts(out,"&#38;"); break;
+	/*
+	  case '(': u8_puts(out,"&#40;"); break;
+	  case ')': u8_puts(out,"&#41;"); break;
+	  case '[': u8_puts(out,"&#91;"); break;
+	  case ']': u8_puts(out,"&#93;"); break;
+	  case '{': u8_puts(out,"&#123;"); break;
+	  case '}': u8_puts(out,"&#125;"); break;
+	  case '@': u8_puts(out,"&#64;"); break;
+	  case '!': u8_puts(out,"&#33;"); break;
+	  case '$': u8_puts(out,"&#36;"); break;
+	  case '%': u8_puts(out,"&#37;"); break;
+	  case '-': u8_puts(out,"&#45;"); break;
+	  case '+': u8_puts(out,"&#43;"); break;
+	*/
+      }
+	/* u8_printf(out,"&#%d;",c); */
+    else u8_putc(out,c);
+}
+
 /* Accessing xml attributes and elements. */
 
 FD_EXPORT
@@ -114,19 +147,28 @@ static int output_attribval(u8_output out,fdtype val,fd_lispenv env,int colon)
     fdtype value=fd_xmleval(NULL,val,env); u8_string as_string;
     if (FD_ABORTP(value)) return fd_interr(value);
     else as_string=fd_dtype2string(value);
+    u8_putc(out,'"');
     if (!(FD_STRINGP(value))) u8_putc(out,':');
     fd_attrib_entify(out,as_string);
+    u8_putc(out,'"');
     fd_decref(value); u8_free(as_string);
     return 0;}
   else if (FD_STRINGP(val)) {
+    u8_putc(out,'"');
     fd_attrib_entify(out,FD_STRDATA(val));
+    u8_putc(out,'"');
     return 1;}
-  else if (FD_OIDP(val)) { return 1;}
+  else if (FD_OIDP(val)) {
+    FD_OID addr=FD_OID_ADDR(val);
+    u8_printf(out,"\"@%x/%x\"",FD_OID_HI(addr),FD_OID_LO(addr));
+    return 1;}
   else {
     u8_string as_string=fd_dtype2string(val);
+    u8_putc(out,'"');
     if (!((FD_FIXNUMP(val)) || (FD_FLONUMP(val)) || (FD_BIGINTP(val))))
       u8_putc(out,':');
     fd_attrib_entify(out,as_string);
+    u8_putc(out,'"');
     u8_free(as_string);
     return 1;}
 }
@@ -200,7 +242,7 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	  if (FD_STRINGP(value))
 	    fd_attrib_entify(&out,FD_STRDATA(value));
 	  else if (FD_FIXNUMP(value))
-	    u8_printf(&out,"%d",FD_FIX2INT(value));
+	    u8_printf(&out,"\"%d\"",FD_FIX2INT(value));
 	  else if (cache_result)
 	    cache_result=output_attribval(&out,value,env,1);
 	  else output_attribval(&out,value,env,1);
@@ -228,15 +270,19 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	u8_putc(&out,' ');
 	output_markup_sym(&out,attribid);
 	u8_putc(&out,'=');
-	if (FD_STRINGP(value))
+	if (FD_STRINGP(value)) {
 	  if (strchr(FD_STRDATA(value),'"')) {
 	    u8_putc(&out,'\'');
-	    fd_attrib_entify(&out,FD_STRDATA(value));
+	    attrib_entify_x(&out,FD_STRDATA(value),"'<>&");
 	    u8_putc(&out,'\'');}
-	  else {
-	    u8_putc(&out,'"');
-	    fd_attrib_entify(&out,FD_STRDATA(value));
+          else if (strchr(FD_STRDATA(value),'\'')) {
+            u8_putc(&out,'"');
+	    attrib_entify_x(&out,FD_STRDATA(value),"<>\"&");
 	    u8_putc(&out,'"');}
+          else {
+            u8_putc(&out,'"');
+            attrib_entify_x(&out,FD_STRDATA(value),NULL);
+            u8_putc(&out,'"');}}
 	else if (FD_FIXNUMP(value))
 	  u8_printf(&out,"\"%d\"",FD_FIX2INT(value));
 	else if (cache_result)
