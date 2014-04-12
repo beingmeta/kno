@@ -2078,32 +2078,6 @@ static int buf_write_symbol(char *string,BUFF *b)
   return len+5;
 }
 
-static int write_table_as_slotmap
-  (request_rec *r,apr_table_t *t,BUFF *b,int post_size,char *post_data)
-{
-  const apr_array_header_t *ah=apr_table_elts(t); int n_elts=ah->nelts;
-  apr_table_entry_t *scan=(apr_table_entry_t *) ah->elts, *limit=scan+n_elts;
-  ssize_t n_bytes=6, delta=0;
-  if (ap_bneeds(b,6)<0) return -1; 
-  ap_bputc(0x42,b); ap_bputc(0xC1,b);
-  if (post_size) buf_write_4bytes(n_elts*2+2,b);
-  else buf_write_4bytes(n_elts*2,b);
-  while (scan < limit) {
-    if ((delta=buf_write_symbol(scan->key,b))<0) return -1;
-    n_bytes=n_bytes+delta;
-    if ((delta=buf_write_string(scan->val,b))<0) return -1;
-    n_bytes=n_bytes+delta;
-    scan++;}
-  if (post_size) {
-    if ((delta=buf_write_symbol("POST_DATA",b))<0) return -1;
-    n_bytes=n_bytes+delta;
-    if (ap_bneeds(b,post_size+5)<0) return -1; 
-    ap_bputc(0x05,b); buf_write_4bytes(post_size,b);
-    ap_bwrite(b,post_data,post_size);
-    n_bytes=n_bytes+post_size+5;}
-  return n_bytes;
-}
-
 static int write_cgidata
   (request_rec *r,BUFF *b,
    apr_table_t *t,const char **sparams,const char **dparams,
@@ -2138,6 +2112,10 @@ static int write_cgidata
   if (post_size) buf_write_4bytes((n_elts*2)+(n_params*2)+2,b);
   else buf_write_4bytes((n_elts*2)+(n_params*2),b);
   while (scan < limit) {
+#if DEBUG_CGIDATA
+    ap_log_error
+      (APLOG_MARK,LOGDEBUG,OK,r->server,"CGIDATA %s=%s",scan->key,scan->val);
+#endif
     if ((delta=buf_write_symbol(scan->key,b))<0) return -1;
     n_bytes=n_bytes+delta;
     if ((delta=buf_write_string(scan->val,b))<0) return -1;
