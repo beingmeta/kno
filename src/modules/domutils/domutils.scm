@@ -66,13 +66,16 @@
     WBR})
 
 (define (dom/block? node)
-  (overlaps? (get node '%xmltag) *block-text-tags*))
+  (and (table? node) (not (pair? node))
+       (overlaps? (get node '%xmltag) *block-text-tags*)))
 
 (define (dom/inline? node)
-  (overlaps? (get node '%xmltag) *inline-tags*))
+  (and (table? node) (not (pair? node))
+       (overlaps? (get node '%xmltag) *inline-tags*)))
 
 (define (dom/terminal? node)
-  (or (test node '%xmltag *terminal-block-tags*)
+  (or (string? node) (not (table? node))
+      (test node '%xmltag *terminal-block-tags*)
       (and (test node '%xmltag *block-tags*)
 	   (not (some? dom/block? (get node '%content))))))
 
