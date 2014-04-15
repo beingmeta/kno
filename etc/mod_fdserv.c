@@ -197,7 +197,7 @@ static apr_thread_mutex_t *servlets_lock;
 
 static int use_dtblock=USEDTBLOCK;
 
-char *version_num="2.4.1";
+char *version_num="2.4.5";
 char version_info[256];
 
 static void init_version_info()
