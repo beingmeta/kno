@@ -804,8 +804,9 @@ static fdtype textract(fdtype pattern,fdtype string,
   return results;
 }
 
-static fdtype textgather(fdtype pattern,fdtype string,
-			  fdtype offset,fdtype limit)
+static fdtype textgather_base(fdtype pattern,fdtype string,
+                              fdtype offset,fdtype limit,
+                              int star)
 {
   fdtype results=FD_EMPTY_CHOICE;
   u8_string data=FD_STRDATA(string);
@@ -819,22 +820,46 @@ static fdtype textgather(fdtype pattern,fdtype string,
       fdtype substring, match_result=
 	fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
       int end=-1;
-      {FD_DO_CHOICES(match,match_result) {
-	int point=fd_getint(match); if (point>end) end=point;}}
-      fd_decref(match_result);
-      if (end<0) return results;
-      else if (end>start) {
-	substring=fd_extract_string(NULL,data+start,data+end);
-	FD_ADD_TO_CHOICE(results,substring);
-	start=fd_text_search(pattern,NULL,data,end,lim,0);}
-      else if (end==lim)
-	return results;
+      if (star) {
+        FD_DO_CHOICES(match,match_result) {
+          int point=fd_getint(match);
+          if (point<=start) continue;
+          substring=fd_extract_string(NULL,data+start,data+point);
+          FD_ADD_TO_CHOICE(results,substring);
+          substring=FD_VOID;
+          if (end<0) end=point;
+          else if (point<end) end=point;}}
+      else {
+        FD_DO_CHOICES(match,match_result) {
+          int point=fd_getint(match);
+          if (point>end) end=point;}
+        fd_decref(match_result);
+        if (end<0) return results;
+        else if (end>start) {
+          substring=fd_extract_string(NULL,data+start,data+end);
+          FD_ADD_TO_CHOICE(results,substring);
+          start=fd_text_search(pattern,NULL,data,end,lim,0);}
+        else {}}
+      if (end==lim)
+        return results;
       else start=fd_text_search
-	     (pattern,NULL,data,forward_char(data,end),lim,0);}
+             (pattern,NULL,data,forward_char(data,end),lim,0);}
     if (start==-2) {
       fd_decref(results);
       return FD_ERROR_VALUE;}
     else return results;}
+}
+
+static fdtype textgather(fdtype pattern,fdtype string,
+                         fdtype offset,fdtype limit)
+{
+  return textgather_base(pattern,string,offset,limit,0);
+}
+
+static fdtype textgather_star(fdtype pattern,fdtype string,
+                              fdtype offset,fdtype limit)
+{
+  return textgather_base(pattern,string,offset,limit,1);
 }
 
 static fdtype textgather2list(fdtype pattern,fdtype string,
@@ -2324,6 +2349,11 @@ void fd_init_texttools()
 			   fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_cprim4x("GATHER",textgather,2,
+			   -1,FD_VOID,fd_string_type,FD_VOID,
+			   fd_fixnum_type,FD_INT2DTYPE(0),
+			   fd_fixnum_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim4x("GATHER*",textgather_star,2,
 			   -1,FD_VOID,fd_string_type,FD_VOID,
 			   fd_fixnum_type,FD_INT2DTYPE(0),
 			   fd_fixnum_type,FD_VOID));
