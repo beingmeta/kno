@@ -356,8 +356,10 @@ static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
           fdtype value=fd_get(params,key,FD_VOID);
           if (!(FD_VOIDP(value))) {
             struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
-            if (FD_SYMBOLP(key)) u8_puts(&out,FD_SYMBOL_NAME(key));
-            else u8_puts(&out,FD_STRDATA(key));
+            u8_string stringval=NULL;
+            if (FD_SYMBOLP(key)) stringval=FD_SYMBOL_NAME(key);
+            else stringval=FD_STRDATA(key);
+            if (stringval) u8_puts(&out,stringval);
             u8_putc(&out,'=');
             if (FD_STRINGP(value)) u8_puts(&out,FD_STRDATA(value));
             else fd_unparse(&out,value);
