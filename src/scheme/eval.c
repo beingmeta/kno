@@ -621,7 +621,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 	towatch=FD_CAR(FD_CDR(scan)); scan=FD_CDR(FD_CDR(scan));
 	wval=((FD_SYMBOLP(towatch))?(fd_symeval(towatch,env)):
 	      (fd_eval(towatch,env)));
-	if (oneout) u8_printf(&out,"; %s=%q",FD_STRDATA(label),wval);
+	if (oneout) u8_printf(&out,"// %s=%q",FD_STRDATA(label),wval);
 	else {
 	  u8_printf(&out,"%s=%q",FD_STRDATA(label),wval);
 	  oneout=1;}
@@ -631,7 +631,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 	wval=((FD_SYMBOLP(towatch))?(fd_symeval(towatch,env)):
 	      (fd_eval(towatch,env)));
 	scan=FD_CDR(scan);
-	if (oneout) u8_printf(&out,"; %q=%q",towatch,wval);
+	if (oneout) u8_printf(&out,"// %q=%q",towatch,wval);
 	else {
 	  u8_printf(&out,"%q=%q",towatch,wval);
 	  oneout=1;}
