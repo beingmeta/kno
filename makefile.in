@@ -1000,7 +1000,7 @@ confdirs: $(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@confi
 		$(DESTDIR)@config_dir@/config
 	@$(MSG) Setting up configuration directories
 	@if test ! -f $(DESTDIR)@config_dir@/servers; then \
-		$(INSTALL) @install_file_opts@ /dev/null \
+		$(SYSINSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
 $(DESTDIR)@config_dir@:
@@ -1020,18 +1020,18 @@ SAFE_MODULE_DIRS=domutils knodules textindex
 link-modules: $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@ \
 		$(DESTDIR)@module_dir@ $(DESTDIR)@data_dir@
 	@$(MSG) Installing symbolic links for Scheme modules
-	@ln -sf $(BUILD)/etc/*.el @data_dir@
-	@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
-	@ln -sf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
-	@ln -sf $(BUILD)/src/modules/*.js $(DESTDIR)@standard_module_dir@
+	@@SUDO@ln -sf $(BUILD)/etc/*.el @data_dir@
+	@@SUDO@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
+	@@SUDO@ln -sf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
+	@@SUDO@ln -sf $(BUILD)/src/modules/*.js $(DESTDIR)@standard_module_dir@
 	@for x in $(MODULE_DIRS); do \
-	   ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; \
+	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; \
 	 done
-	@ln -sf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
+	@@SUDO@ln -sf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
 	@for x in $(SAFE_MODULE_DIRS); do \
-	   ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; done
-	@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
-	@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
+	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; done
+	@@SUDO@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
+	@@SUDO@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@data_dir@
 	@$(ECHO) Copying Scheme modules to install directories
@@ -1126,7 +1126,10 @@ setup-none:
 # Build setups
 
 debian-build-setup:
-	sudo apt-get install -m libcurl4-openssl-dev sqlite3 libmysqlclient-dev libexif-dev libtidy-dev libzip-dev libqrencode-dev apache2-dev libedit-dev
+	sudo apt-get install -m libcurl4-openssl-dev sqlite3 \
+		libmysqlclient-dev libexif-dev libtidy-dev \
+		libzip-dev libqrencode-dev apache2-dev libedit-dev \
+		dh-make devscripts dpkg-dev
 rpm-build-setup:
 	sudo rpm -Uvh libedit-devel
 
