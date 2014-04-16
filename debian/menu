@@ -1,2 +1,0 @@
-?package(framerd):needs=text section=Apps/Shells\
-  title="framerd" command="/usr/bin/fdconsole"

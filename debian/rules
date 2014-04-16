@@ -1,91 +1,12 @@
 #!/usr/bin/make -f
-# Sample debian/rules that uses debhelper.
-# This file is public domain software, originally written by Joey Hess. 
+# -*- makefile -*-
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-export DEB_HOST_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
-export DEB_BUILD_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
-export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+# This has to be exported to make some magic below work.
+export DH_OPTIONS
 
-PREFIX = /usr
-MANDIR = $(PREFIX)/share/man
 
-DESTDIR := $(shell pwd)/debian/framerd
-
-INSTALL = install --preserve-timestamps
-
-CONF_FLAGS = --without-sudo \
-	--build=$(DEB_BUILD_GNU_TYPE) --host=$(DEB_HOST_GNU_TYPE) \
-	--libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH) \
-	--prefix=$(PREFIX)  \
-	--mandir=$(MANDIR)
-
-#configure: configure.in
-#	autoconf
-
-configure: configure-stamp
-configure-stamp:
-	dh_testdir
-	./configure $(CONF_FLAGS)
-	touch configure-stamp
-
-build: configure-stamp build-stamp
-build-stamp:
-	dh_testdir
-	$(MAKE) XCFLAGS="-g0"
-	touch build-stamp
-
-clean:
-	dh_testdir
-	dh_testroot
-	rm -f build-stamp configure-stamp
-	if [ -f makefile ]; then $(MAKE) distclean; fi
-	dh_clean
-
-install: build
-	dh_testdir
-	dh_testroot
-	dh_clean -k
-	dh_installdirs
-	$(MAKE) DESTDIR=$(DESTDIR) XMODE=0755 FMODE=0644 install
-	$(MAKE) DESTDIR=$(DESTDIR) XMODE=0755 FMODE=0644 setup-linux
-	cp etc/fdconsole.el $(DESTDIR)/etc/emacs/site-start.d/50fdconsole.el
-
-# Build architecture-independent files here.
-binary-indep: build install
-# We have nothing to do by default.
-
-# Build architecture-dependent files here.
-binary-arch: build install
-#	dh_testversion
-	dh_testdir
-	dh_testroot
-#	dh_installdebconf	
-	dh_installdocs
-	dh_installexamples
-	dh_installmenu
-	dh_installemacsen
-#	dh_installpam
-#	dh_installmime
-	dh_installinit
-	dh_installcron
-	dh_installman
-	dh_installinfo
-#	dh_undocumented
-	dh_installchangelogs
-	dh_link
-	dh_installdeb
-	dh_strip
-	dh_compress
-	dh_fixperms
-#	dh_perl
-	dh_makeshlibs
-	dh_shlibdeps -- --ignore-missing-info
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb
-
-binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install
+%:
+	dh $@  --with autotools-dev

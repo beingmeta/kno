@@ -1,19 +1,5 @@
-framerd (3.5.5-1) testing; urgency=low
+framerd (3.5.5-1) unstable; urgency=low
 
-  * Moved to testing distribution, many general fixes and enhancements,
-  updated to upstream 3.5.5
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
 
- -- Kenneth Benefiel Haase <kh@beingmeta.com>  Tue, 17 Feb 2014 19:45:00 -0400
-
-framerd (3.5.1-1) unstable; urgency=low
-
-  * Updated source type
-
- -- Kenneth Benefiel Haase <kh@beingmeta.com>  Tue, 17 Feb 2014 19:45:00 -0400
-
-framerd (3.0.0-1) unstable; urgency=low
-
-  * Brand new release
-
- -- Kenneth Benefiel Haase <kh@beingmeta.com>  Tue, 8 Nov 2010 10:52:00 -0400
-
+ -- Ken Haase <haase@Venus>  Wed, 16 Apr 2014 17:00:10 -0400
