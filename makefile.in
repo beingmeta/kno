@@ -837,7 +837,7 @@ dist/debs.done: staging/framerd_@FDVERSION@.orig.tar.gz
 	(cd staging; mv framerd_@FDVERSION@*.deb framerd_@FDVERSION@*.dsc \
 			framerd_@FDVERSION@*.changes \
 			../dist) && \
-	touch dist/debs.done; rm -rf staging/framerd_@FDVERSION@*;
+	touch dist/debs.done;
 update-repo: dist/debs.done
 	deb-s3 upload --bucket=repo.beingmeta.com \
 		      --component=$(COMPONENT) \
