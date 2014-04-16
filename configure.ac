@@ -67,7 +67,6 @@ exifo=""
 doi18n="no"
 rpmflags=""
 rmpdir="dist"
-gpgid=
 exif_default="no"
 dynamic_cflag="-rdynamic"
 xstatic_exe_libs=""
@@ -303,10 +302,6 @@ if test $with_bootsystem != "none"; then
 fi
 
 LDFLAGS="$LDFLAGS -L$prefix/lib"
-
-if test "x${GPGID}" != "x"; then
-   gpgid=${GPGID};
-fi
 
 AC_ARG_WITH(optlib,--with-optlib Use optional library directory,,with_optlib="none")
 if test $with_optlib != "none"; then
