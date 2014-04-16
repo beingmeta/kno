@@ -75,6 +75,7 @@ static int dtype_backtrace=0;
 static int text_backtrace=0;
 static int show_backtrace=0;
 static int save_backtrace=1;
+static int dotload=1;
 
 static u8_exception last_exception=NULL;
 
@@ -476,6 +477,9 @@ int main(int argc,char **argv)
   fd_register_config
     ("SHOWBACKTRACE",_("Whether to always output backtraces to stderr"),
      fd_boolconfig_get,fd_boolconfig_set,&show_backtrace);
+  fd_register_config
+    ("DOTLOAD",_("Whether load .fdconsole or other dot files"),
+     fd_boolconfig_get,fd_boolconfig_set,&dotload);
 
   /* Initialize console streams */
   inconsole=in;
@@ -543,11 +547,63 @@ int main(int argc,char **argv)
     if (startup_time>1) {}
     else if (startup_time>0.001) {
       startup_time=startup_time*1000; units="ms";}
-    else {startup_time=startup_time*1000000; units="ms";}
+    else {startup_time=startup_time*1000000; units="us";}
     u8_message("FramerD %s booted in %0.3f%s, %d/%d pools/indices",
 	       u8_appid(),startup_time,units,fd_n_pools,
 	       fd_n_primary_indices+fd_n_secondary_indices);}
-
+  if (dotload) {
+    int retval=0; fdtype loadval=FD_VOID;
+    u8_string config_path=NULL, load_path=NULL; char *units="s";
+    double start_dotload=u8_elapsed_time(), load_time=0.0;
+    struct U8_OUTPUT msgout; u8_byte buf[128];
+    U8_INIT_OUTPUT_BUF(&msgout,sizeof(buf),buf);
+    if (u8_file_existsp(".fdconfig"))
+      config_path=u8_abspath(".fdconfig",NULL);
+    else if (u8_file_existsp("~/.fdconfig"))
+      config_path=u8_abspath("~/.fdconfig",NULL);
+    else {}
+    if (u8_file_existsp(".fdconsole"))
+      load_path=u8_abspath(".fdconsole",NULL);
+    else if (u8_file_existsp("~/.fdconsole"))
+      load_path=u8_abspath("~/.fdconsole",NULL);
+    else {}
+    if ((load_path)&&(config_path))
+      u8_message("Loading CONFIG(%s) INIT(%s)",load_path,config_path);
+    else if (config_path)
+      u8_message("Loading CONFIG(%s)",config_path);
+    else if (load_path)
+      u8_message("Loading INIT(%s)",load_path);
+    else {}
+    if (config_path) retval=fd_load_config(config_path);
+    if (retval<0) {
+      u8_message("Error loading config %s",config_path);
+      fd_clear_errors(1);}
+    else if (load_path) 
+      loadval=fd_load_source(load_path,env,NULL);
+    else {}
+    if (FD_ABORTP(loadval)) {
+      u8_message("Error loading init file %s",load_path);
+      fd_clear_errors(1);}
+    else if (retval<0) {}
+    else {
+      load_time=u8_elapsed_time()-start_dotload;
+      if (load_time>1)
+	u8_printf(&msgout,"(%0.3fs)",load_time);
+      else if (load_time>0.001)
+	u8_printf(&msgout,"(%0.3fms)",(load_time*1000));
+      else u8_printf(&msgout,"(%0.1fus)",(load_time*1000000));
+      if ((config_path)&&(load_path))
+	u8_printf(&msgout," CONFIG(%s) INIT(%s)",config_path,load_path);
+      else if (config_path)
+	u8_printf(&msgout," CONFIG(%s)",config_path);
+      else if (load_path)
+	u8_printf(&msgout," INIT(%s)",load_path);
+      else {}
+      if ((load_path!=NULL)||(config_path!=NULL))
+	u8_message("%s",msgout.u8_outbuf);}
+    if (config_path) u8_free(config_path);
+    if (load_path) u8_free(load_path);
+    u8_close((struct U8_STREAM *)&msgout);}
   fd_histinit(0);
   u8_printf(out,EVAL_PROMPT);
   u8_flush(out);
