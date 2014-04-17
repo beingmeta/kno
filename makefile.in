@@ -652,6 +652,7 @@ src/cmodules/mysql.o: src/cmodules/mysql.c
 lib/framerd/mysql.so: src/cmodules/mysql.o
 	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $< \
 		@MYSQL_LDFLAGS@ @LIBS@
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MYSQL)" $@
 lib/framerd/mysql.dylib: src/cmodules/mysql.o
 	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
@@ -664,20 +665,40 @@ src/cmodules/imagick.o: src/cmodules/imagick.c
 lib/framerd/imagick.so: src/cmodules/imagick.o
 	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $< \
 		@IMAGICK_LDFLAGS@ @LIBS@
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(IMAGICK)" $@
 lib/framerd/imagick.dylib: src/cmodules/imagick.o
 	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		-o $@ src/cmodules/imagick.o @IMAGICK_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(IMAGICK)" $@
 
+src/cmodules/ziptools.o: src/cmodules/ziptools.c
+	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
+	@$(MSG) CC "(ZIPTOOLS)"  $@ $<
+lib/framerd/ziptools.so: src/cmodules/ziptools.o
+	@$(MKSO) @LIBZIP_LDFLAGS@ -o $@ $< @LIBS@
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO "(ZIPTOOLS)"  $@ $<
+lib/framerd/ziptools.dylib: src/cmodules/ziptools.o
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		-o $@ $< @ZIPTOOLS_LDFLAGS@
+	@$(MSG) MACLIBTOOL "(ZIPTOOLS)" $@
+
+lib/framerd/exif.so: src/cmodules/exif.o
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ $(LIBS) -lexif
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO $@
+lib/framerd/exif.dylib: src/cmodules/exif.o
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -lexif -o $@ $^
+	@$(MSG) MACLIBTOOL $@
+
 src/cmodules/%.o: src/cmodules/%.c
 	@$(CC) $(CFLAGS) -o $@ -c $<
 	@$(MSG) CC  $@ $<
 lib/framerd/%.so: src/cmodules/%.o
 	@$(MKSO) -o $@ $< @LIBS@
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
-lib/framerd/%.so.@FDMAJOR@: lib/framerd/%.so
-	@ln -sf $(*F).so $@
 lib/framerd/%.dylib: src/cmodules/%.o
 	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $<
 	@$(MSG) MACLIBTOOL  $@ $<
@@ -706,16 +727,6 @@ lib/framerd/regex.dylib: src/cmodules/regex.o
 lib/framerd/zlib.so: src/cmodules/zlib.o
 lib/framerd/zlib.dylib: src/cmodules/zlib.o
 
-lib/framerd/ziptools.so: src/cmodules/ziptools.o
-lib/framerd/ziptools.dylib: src/cmodules/ziptools.o
-
-lib/framerd/exif.so: src/cmodules/exif.o
-	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ $(LIBS) -lexif
-	@$(MSG) MKSO $@
-lib/framerd/exif.dylib: src/cmodules/exif.o
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -lexif -o $@ $^
-	@$(MSG) MACLIBTOOL $@
-
 SUNDOWN_OBJECTS=src/cmodules/sundown/sundown.o \
 	src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
 	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
@@ -732,6 +743,7 @@ src/cmodules/sundown/%.o: src/cmodules/sundown/%.c $(SUNDOWN_H_FILES)
 lib/framerd/sundown.so: $(SUNDOWN_OBJECTS)
 	@$(MKSO) -o $@ $(SUNDOWN_OBJECTS) @LIBS@
 	@$(MSG) MKSO  $@ $<
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 lib/framerd/sundown.dylib: $(SUNDOWN_OBJECTS)
 	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $(SUNDOWN_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<

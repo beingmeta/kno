@@ -667,6 +667,8 @@ USEDTBLOCK
 DEFAULTISASYNC
 IMAGICK_LDFLAGS
 IMAGICK_CFLAGS
+LIBZIP_LDFLAGS
+LIBZIP_CFLAGS
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
 INSTALLCMODULES
@@ -2924,6 +2926,7 @@ logdir="${localstatedir}/log"
 framerd_log_dir="${localstatedir}/log/framerd"
 fdserv_log_dir="${localstatedir}/log/fdserv"
 archflags=""
+with_ziptools_default="yes"
 with_mysql_default="yes"
 with_crypto_default="yes"
 with_imagick_default="no"
@@ -2934,6 +2937,8 @@ MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 IMAGICK_CFLAGS=
 IMAGICK_LDFLAGS=
+LIBZIP_CFLAGS=
+LIBZIP_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
 MSG=echo
@@ -2973,6 +2978,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 
@@ -7686,12 +7693,20 @@ fi
 
 if test $pkg_config != "na"; then
    if $pkg_config --exists MagickWand; then
+      IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags`
+      IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs`
       with_imagick_default=yes;
    else
        with_imagick_default=no;
    fi
+   if $pkg_config --exists libzip; then
+      LIBZIP_CFLAGS=`$pkg_config libzip --cflags`
+      LIBZIP_LDFLAGS=`$pkg_config libzip --libs`
+      with_ziptools_default=yes;
+   else
+      with_ziptools_default=no;
+   fi
 fi
-
 
 
 # Check whether --with-mysql was given.
@@ -8122,16 +8137,20 @@ if (test "x$have_libz" = "xyes"); then
 fi
 
 
+
 # Check whether --with-ziptools was given.
 if test "${with_ziptools+set}" = set; then :
   withval=$with_ziptools;
 else
-  with_ziptools="yes"
+  with_ziptools=$with_ziptools_default
 fi
 
 
 if test "x$with_ziptools" == "xyes"; then
-ac_fn_c_check_header_mongrel "$LINENO" "zip.h" "ac_cv_header_zip_h" "$ac_includes_default"
+  CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
+  CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
+  LDFLAGS="${CFLAGS} ${LIBZIP_LDFLAGS}"
+  ac_fn_c_check_header_mongrel "$LINENO" "zip.h" "ac_cv_header_zip_h" "$ac_includes_default"
 if test "x$ac_cv_header_zip_h" = xyes; then :
   have_zip_h="yes"
 else
@@ -8139,8 +8158,8 @@ else
 fi
 
 
-if (test "x$have_zip_h" = "xyes"); then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
+  if (test "x$have_zip_h" = "xyes"); then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
 $as_echo_n "checking for zip_add in -lzip... " >&6; }
 if ${ac_cv_lib_zip_zip_add+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -8185,7 +8204,7 @@ _ACEOF
 
 fi
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
 $as_echo_n "checking for zip_add in -lzip... " >&6; }
 if ${ac_cv_lib_zip_zip_add+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -8227,7 +8246,7 @@ else
   have_libzip="no"
 fi
 
-  for ac_func in zip_set_file_compression zip_set_file_comment zip_set_file_extra
+    for ac_func in zip_set_file_compression zip_set_file_comment zip_set_file_extra
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -8239,11 +8258,11 @@ _ACEOF
 fi
 done
 
-fi
-if (test "x$have_zip_h" = "xyes") && (test "x$have_libzip" = "xyes"); then
-  CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
-fi
+  fi
+  if (test "x$have_zip_h" = "xyes") && (test "x$have_libzip" = "xyes"); then
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
+  fi
 fi
 
 
@@ -8386,8 +8405,6 @@ else
 fi
 
 if test x$with_imagick = "xyes"; then
-  IMAGICK_CFLAGS=`pkg-config --cflags --libs MagickWand`
-  IMAGICK_LDFLAGS=`pkg-config --libs MagickWand`
   CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
