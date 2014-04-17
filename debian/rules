@@ -10,3 +10,6 @@ export DH_OPTIONS
 
 %:
 	dh $@  --with autotools-dev
+
+override_dh_auto_configure:
+	dh_auto_configure -- --without-sudo --with-perftools --with-bootsystem=upstart
