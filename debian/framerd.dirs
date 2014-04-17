@@ -1,0 +1,10 @@
+usr/share
+usr/share/framerd
+usr/share/framerd/standard_modules
+usr/share/framerd/scheme_modules
+usr/etc
+usr/etc/framerd
+usr/etc/framerd/config
+usr/etc/framerd/daemons
+usr/etc/framerd/servlets
+
