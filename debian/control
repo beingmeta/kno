@@ -4,17 +4,27 @@ Priority: optional
 Maintainer: Ken Haase <haase@Venus>
 Build-Depends: debhelper (>= 8.0.0), autotools-dev
 Standards-Version: 3.9.4
-Homepage: <insert the upstream URL, if relevant>
+Homepage: http://www.framerd.org/
 #Vcs-Git: git://git.debian.org/collab-maint/framerd.git
 #Vcs-Browser: http://git.debian.org/?p=collab-maint/framerd.git;a=summary
 
 Package: framerd
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: <insert up to 60 chars description>
- <insert long description, indented with spaces>
+Description: Scalable knowledge base development and application platform
+ FramerD provides a robust and scalable object database especially
+ designed and optimized for pointer-intensive semi-structured data with
+ complex or evolving data models.  FramerD includes full support for
+ Unicode in both data and programs together with powerful tools for
+ text processing and linguistic analysis.
+ FramerD natively supports reading and and generation of XML, HTML, and
+ MIME data.  Web services support has long included built-in support
+ for processing CGI requests both directly and with fastcgi.  With
+ version 2.4, FramerD comes with mod_fdserv, a lightweight extension to
+ the Apache webserver for transparently managing persistent
+ multi-threaded servlets responding to CGI requests.
 
 Package: framerd-doc
 Architecture: all
 Description: documentation for framerd
- <insert long description, indented with spaces>
+
