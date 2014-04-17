@@ -124,6 +124,7 @@ logdir="${localstatedir}/log"
 framerd_log_dir="${localstatedir}/log/framerd"
 fdserv_log_dir="${localstatedir}/log/fdserv"
 archflags=""
+with_ziptools_default="yes"
 with_mysql_default="yes"
 with_crypto_default="yes"
 with_imagick_default="no"
@@ -134,6 +135,8 @@ MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 IMAGICK_CFLAGS=
 IMAGICK_LDFLAGS=
+LIBZIP_CFLAGS=
+LIBZIP_LDFLAGS=
 DEFAULTISASYNC=0
 USEDTBLOCK=0
 MSG=echo
@@ -221,6 +224,8 @@ AC_SUBST(BOOTSETUP)
 AC_SUBST(INSTALLCMODULES)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
+AC_SUBST(LIBZIP_CFLAGS)
+AC_SUBST(LIBZIP_LDFLAGS)
 AC_SUBST(IMAGICK_CFLAGS)
 AC_SUBST(IMAGICK_LDFLAGS)
 AC_SUBST(DEFAULTISASYNC)
@@ -748,12 +753,20 @@ fi
 
 if test $pkg_config != "na"; then
    if $pkg_config --exists MagickWand; then
+      IMAGICK_CFLAGS=`$pkg_config MagickWand --cflags` 
+      IMAGICK_LDFLAGS=`$pkg_config MagickWand --libs` 
       with_imagick_default=yes;
    else
        with_imagick_default=no;
    fi
+   if $pkg_config --exists libzip; then
+      LIBZIP_CFLAGS=`$pkg_config libzip --cflags` 
+      LIBZIP_LDFLAGS=`$pkg_config libzip --libs` 
+      with_ziptools_default=yes;
+   else
+      with_ziptools_default=no;
+   fi
 fi
-
 
 AC_ARG_WITH(mysql,--with[out]-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
 
@@ -825,19 +838,23 @@ if (test "x$have_libz" = "xyes"); then
   INSTALLCMODULES="install-zlib ${INSTALLCMODULES}"
 fi
 
-AC_ARG_WITH(ziptools,--with-ziptools Build and install ziptools,,with_ziptools="yes")
+
+AC_ARG_WITH(ziptools,--with-ziptools Build and install ziptools,,with_ziptools=$with_ziptools_default)
 
 if test "x$with_ziptools" == "xyes"; then
-AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
-if (test "x$have_zip_h" = "xyes"); then
-  AC_CHECK_LIB(zip,zip_add)
-  AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
-  AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
-fi
-if (test "x$have_zip_h" = "xyes") && (test "x$have_libzip" = "xyes"); then
-  CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
-fi
+  CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
+  CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
+  LDFLAGS="${CFLAGS} ${LIBZIP_LDFLAGS}"
+  AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
+  if (test "x$have_zip_h" = "xyes"); then
+    AC_CHECK_LIB(zip,zip_add)
+    AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
+    AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
+  fi
+  if (test "x$have_zip_h" = "xyes") && (test "x$have_libzip" = "xyes"); then
+    CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
+    INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
+  fi
 fi
 
 AC_ARG_WITH(tidy,--with-tidy Build and install tidy library,,with_tidy="yes")
@@ -865,8 +882,6 @@ fi
 
 AC_ARG_WITH(imagick,--with-imagick Build and install imagemagick library,,with_imagick=$with_imagick_default)
 if test x$with_imagick = "xyes"; then
-  IMAGICK_CFLAGS=`pkg-config --cflags --libs MagickWand`
-  IMAGICK_LDFLAGS=`pkg-config --libs MagickWand`
   CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
 fi
