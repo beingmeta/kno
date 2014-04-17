@@ -24,6 +24,38 @@ Description: Scalable knowledge base development and application platform
  the Apache webserver for transparently managing persistent
  multi-threaded servlets responding to CGI requests.
 
+Package: framerd-apache
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: The mod_fdserv module for FramerD servlets under Apache
+
+Package: framerd-mysql
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: MYSQL bindings for FramerD
+
+Package: framerd-sqlite
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: SQLite bindings for FramerD
+
+Package: framerd-imagetools
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Image tools for FramerD
+  Bindings to various image libraries modules for FramerD,
+  including ImageMagick, QRCode generation, and EXIF extraction.
+
+Package: framerd-markdown
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Markdown conversion (bindings) for FramerD
+
+Package: framerd-tidy
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: HTML Tidy (bindings) for FramerD
+
 Package: framerd-doc
 Architecture: all
 Description: documentation for framerd

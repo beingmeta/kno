@@ -1,0 +1,15 @@
+usr/lib/libfdtype.so.3
+usr/lib/libfddb.so.3
+usr/lib/libfddb.so.3
+usr/lib/libfddbfile.so.3
+usr/lib/libfdbserv.so.3
+usr/lib/libfdscheme.so.3
+usr/lib/libfdschemeio.so.3
+usr/lib/libfdweb.so.3
+usr/lib/libtexttools.so.3
+usr/lib/libtagger.so.3
+usr/lib/framerd/regex.so.3
+usr/lib/framerd/crypto.so.3
+usr/lib/framerd/ziptools.so.3
+usr/lib/framerd/zlib.so.3
+
