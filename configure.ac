@@ -281,8 +281,8 @@ elif test `pwd` = /src/framerd; then
 else devmode_default="no";
 fi
 
-AC_ARG_WITH(devmode,--with-devmode Special settings for development machines (e.g. linking module files),,with_devmode=$devmode_default)
-if test "x$with_devmode" = "xyes"; then
+AC_ARG_ENABLE(devmode,--en[dis]able-devmode Special settings for development machines (e.g. linking module files),,enable_devmode=$devmode_default)
+if test "$enable_devmode" = "xyes"; then
   install_modules_target="link-modules";
 fi
 
