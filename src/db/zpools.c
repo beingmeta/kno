@@ -270,11 +270,6 @@ static fdtype zread_dtype(struct FD_DTYPE_STREAM *s)
   return result;
 }
 
-FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s)
-{
-  return zread_dtype(s);
-}
-
 /* This reads a non frame value with compression. */
 static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 {
@@ -292,11 +287,6 @@ static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
   if (fd_dtswrite_bytes(s,zbytes,zlen)<0) size=-1;
   u8_free(zbytes); u8_free(out.start);
   return size;
-}
-
-FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
-{
-  return zwrite_dtype(s,x);
 }
 
 /* This reads a non frame value with compression. */
@@ -325,11 +315,6 @@ static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
   u8_free(zbytes); u8_free(out.start);
   if (retval<0) return retval;
   else return size;
-}
-
-FD_EXPORT int fd_zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
-{
-  return zwrite_dtypes(s,x);
 }
 
 /* This reads an OID value.

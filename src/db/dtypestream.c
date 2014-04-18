@@ -22,6 +22,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <zlib.h>
+
+#define FD_DEFAULT_ZLEVEL 9
 
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
@@ -690,6 +693,147 @@ FD_EXPORT int fd_dtswrite_ints(fd_dtype_stream s,int len,unsigned int *words)
       fd_dtswrite_4bytes(s,word);}
     return len*4;}
 }
+
+/* Writing compressed DTYPEs */
+
+/* Reading compressed oid values */
+
+static unsigned char *do_uncompress
+  (unsigned char *bytes,size_t n_bytes,ssize_t *dbytes)
+{
+  int error;
+  uLongf x_lim=4*n_bytes, x_bytes=x_lim;
+  Bytef *fdata=(Bytef *)bytes, *xdata=u8_malloc(x_bytes);
+  while ((error=uncompress(xdata,&x_bytes,fdata,n_bytes)) < Z_OK)
+    if (error == Z_MEM_ERROR) {
+      u8_free(xdata);
+      fd_seterr1("ZLIB Out of Memory");
+      return NULL;}
+    else if (error == Z_BUF_ERROR) {
+      xdata=u8_realloc(xdata,x_lim*2); x_bytes=x_lim=x_lim*2;}
+    else if (error == Z_DATA_ERROR) {
+      u8_free(xdata);
+      fd_seterr1("ZLIB Data error");
+      return NULL;}
+    else {
+      u8_free(xdata);
+      fd_seterr1("Bad ZLIB return code");
+      return NULL;}
+  *dbytes=x_bytes;
+  return xdata;
+}
+
+static unsigned char *do_compress(unsigned char *bytes,size_t n_bytes,
+				  ssize_t *zbytes)
+{
+  int error; Bytef *zdata;
+  uLongf zlen, zlim;
+  zlen=zlim=2*n_bytes; zdata=u8_malloc(zlen);
+  while ((error=compress2(zdata,&zlen,bytes,n_bytes,FD_DEFAULT_ZLEVEL)) < Z_OK)
+    if (error == Z_MEM_ERROR) {
+      u8_free(zdata);
+      fd_seterr1("ZLIB Out of Memory");
+      return NULL;}
+    else if (error == Z_BUF_ERROR) {
+      zdata=u8_realloc(zdata,zlim*2); zlen=zlim=zlim*2;}
+    else if (error == Z_DATA_ERROR) {
+      u8_free(zdata); 
+      fd_seterr1("ZLIB Data error");
+      return NULL;}
+    else {
+      u8_free(zdata);
+      fd_seterr1("Bad ZLIB return code");
+      return NULL;}
+  *zbytes=zlen;
+  return zdata;
+}
+
+/* This reads a non frame value with compression. */
+static fdtype zread_dtype(struct FD_DTYPE_STREAM *s)
+{
+  fdtype result;
+  struct FD_BYTE_INPUT in;
+  ssize_t n_bytes=fd_dtsread_zint(s), dbytes;
+  unsigned char *bytes;
+  int retval=-1;
+  bytes=u8_malloc(n_bytes);
+  retval=fd_dtsread_bytes(s,bytes,n_bytes);
+  if (retval<n_bytes) {
+    u8_free(bytes);
+    return FD_ERROR_VALUE;}
+  in.ptr=in.start=do_uncompress(bytes,n_bytes,&dbytes);
+  if (in.start==NULL) {
+    u8_free(bytes);
+    return FD_ERROR_VALUE;}
+  in.end=in.start+dbytes; in.fillfn=NULL;
+  result=fd_read_dtype(&in);
+  u8_free(bytes); u8_free(in.start);
+  return result;
+}
+
+FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s)
+{
+  return zread_dtype(s);
+}
+
+/* This reads a non frame value with compression. */
+static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
+{
+  unsigned char *zbytes; ssize_t zlen=-1, size;
+  struct FD_BYTE_OUTPUT out;
+  out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
+  if (fd_write_dtype(&out,x)<0) {
+    u8_free(out.start);
+    return FD_ERROR_VALUE;}
+  zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
+  if (zlen<0) {
+    u8_free(out.start);
+    return FD_ERROR_VALUE;}
+  size=fd_dtswrite_zint(s,zlen); size=size+zlen;
+  if (fd_dtswrite_bytes(s,zbytes,zlen)<0) size=-1;
+  u8_free(zbytes); u8_free(out.start);
+  return size;
+}
+
+FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
+{
+  return zwrite_dtype(s,x);
+}
+
+/* This reads a non frame value with compression. */
+static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
+{
+  unsigned char *zbytes=NULL; ssize_t zlen=-1, size; int retval=0;
+  struct FD_BYTE_OUTPUT out;
+  out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
+  if (FD_CHOICEP(x)) {
+    FD_DO_CHOICES(v,x) {
+      retval=fd_write_dtype(&out,v);
+      if (retval<0) {FD_STOP_DO_CHOICES; break;}}}
+  else if (FD_VECTORP(x)) {
+    int i=0, len=FD_VECTOR_LENGTH(x); fdtype *data=FD_VECTOR_DATA(x);
+    while (i<len) {
+      retval=fd_write_dtype(&out,data[i]); i++;
+      if (retval<0) break;}}
+  else retval=fd_write_dtype(&out,x);
+  if (retval>=0) 
+    zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
+  if ((retval<0)||(zlen<0)) {
+    if (zbytes) u8_free(zbytes); u8_free(out.start);
+    return -1;}
+  size=fd_dtswrite_zint(s,zlen); size=size+zlen;
+  retval=fd_dtswrite_bytes(s,zbytes,zlen);
+  u8_free(zbytes); u8_free(out.start);
+  if (retval<0) return retval;
+  else return size;
+}
+
+FD_EXPORT int fd_zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
+{
+  return zwrite_dtypes(s,x);
+}
+
+/* Initialization of file */
 
 FD_EXPORT void fd_init_dtypestream_c()
 {
