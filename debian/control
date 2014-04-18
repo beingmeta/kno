@@ -29,10 +29,6 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Binaries for FramerD release
 
-Package: framerd-modules
-Architecture: any
-Depends: framerd-bin (> ${binary:Version})
-
 Package: framerd-apache
 Architecture: any
 Depends: framerd-bin (= ${binary:Version})
@@ -68,4 +64,24 @@ Description: HTML Tidy (bindings) for FramerD
 Package: framerd-doc
 Architecture: all
 Description: documentation for framerd
+
+Package: framerd-modules
+Architecture: all
+Depends: framerd-bin (> ${binary:Version})
+
+Package: framerd-gnosys
+Architecture: all
+Depends: framerd-bin
+Description: A document/media search and analysis toolkit in FramerD
+
+Package: framerd-morph
+Architecture: all
+Depends: framerd-bin
+Description: Multi-language morphological analysis for FramerD
+
+Package: framerd-chopper
+Architecture: all
+Depends: framerd-bin
+Description: Natural language processing development environment
+
 
