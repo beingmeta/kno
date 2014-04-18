@@ -56,7 +56,7 @@ Description: Image tools for FramerD
   Bindings to various image libraries modules for FramerD,
   including ImageMagick, QRCode generation, and EXIF extraction.
 
-Package: framerd-markdown
+Package: framerd-sundown
 Architecture: any
 Depends: framerd-core (= ${binary:Version})
 Description: Markdown conversion (bindings) for FramerD
