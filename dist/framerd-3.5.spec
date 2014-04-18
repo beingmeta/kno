@@ -1,6 +1,6 @@
 Name:           framerd
 Version:        3.5.5
-Release:        9%{?dist}
+Release:        10%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -134,7 +134,7 @@ The %{name}-tidy package implements external bindings to libtidy
 %setup -q
 
 %build
-%configure --prefix=/usr --libdir=%{_libdir} --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-ziptools --without-qrcode --without-exif --without-imagick --without-sudo --with-bootsystem=sysv
+%configure --prefix=/usr --libdir=%{_libdir} --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-ziptools --without-qrcode --without-exif --without-imagick --without-sudo --with-bootsystem=sysv --with-devmode=no
 #make %{?_smp_mflags}
 make
 make mod_fdserv
