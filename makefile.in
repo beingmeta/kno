@@ -1060,7 +1060,13 @@ $(DESTDIR)@module_dir@ $(DESTDIR)@data_dir@:
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 MODULE_DIRS=aws brico facebook misc paypal tests twitter webapi
-SAFE_MODULE_DIRS=domutils knodules textindex 
+SAFE_MODULE_DIRS=domutils knodules textindex
+BEINGMETA_MODULE_DIRS= \
+	morph morph/data chopper chopper/english \
+	gnosys gnosys/utils gnosys/analyzers/text \
+	gnosys/bookmarks gnosys/funnel gnosys/metakeys \
+	gnosys/cgi gnosys/gnoweb gnosys/metakeys/cgi \
+	gnosys/webapp
 link-modules: $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@ \
 		$(DESTDIR)@module_dir@ $(DESTDIR)@data_dir@
 	@$(MSG) Installing symbolic links for Scheme modules
@@ -1079,23 +1085,25 @@ link-modules: $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@ \
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@data_dir@
 	@$(ECHO) Copying Scheme modules to install directories
-	@@SUDO@cp -f $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
-	@@SUDO@cp -Rf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
-	@@SUDO@cp -Rf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
-	@@SUDO@cp -Rf $(BUILD)/src/modules/*.js $(DESTDIR)@standard_module_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.js $(DESTDIR)@standard_module_dir@
 	@for x in $(MODULE_DIRS); do \
-	   @SUDO@ cp -Rf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; \
+	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@standard_module_dir@/$$x; \
+	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$$x/* $(DESTDIR)@standard_module_dir@/$$x; \
 	 done
-	@@SUDO@cp -f $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
 	@for x in $(SAFE_MODULE_DIRS); do \
-	   @SUDO@cp -Rf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; \
+	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_module_dir@/$$x; \
+	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$$x/* $(DESTDIR)@safe_module_dir@/$$x; \
 	 done
-	@@SUDO@cp -Rf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
-	@@SUDO@cp -Rf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
-	@@SUDO@ chgrp -R @admin_group@ $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@ \
-		$(DESTDIR)@standard_module_dir@ $(DESTDIR)@data_dir@
-	@@SUDO@ chmod -R g+rwX $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@ \
-		$(DESTDIR)@standard_module_dir@ $(DESTDIR)@data_dir@
+	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@standard_module_dir@/xhtml
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/* $(DESTDIR)@standard_module_dir@/xhtml
+	@for x in $(BEINGMETA_MODULE_DIRS); do \
+	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@module_dir@/$$x; \
+	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/beingmeta/$$x/*.* $(DESTDIR)@module_dir@/$$x; \
+	 done
 
 install-modules: @install_modules_target@
 
