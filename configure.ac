@@ -613,8 +613,11 @@ if test $libc_dlopen != "yes"; then
    AC_CHECK_LIB(dl,dlopen)
 fi
 
+AC_ARG_ENABLE(maintainer-mode,--en[dis]able-maintainer-mode doesn't do anything)
+AC_ARG_ENABLE(dependency-tracking,--en[dis]able-dependency-tracking doesn't do anything)
+
 dnl Build the shared libraries.  
-AC_ARG_ENABLE(shared,--en[able]-shared Build with/without shared libraries,,enable_shared=$shared_default)
+AC_ARG_ENABLE(shared,--en[dis]able-shared Build with/without shared libraries,,enable_shared=$shared_default)
 if test $enable_shared = "yes"; then
   CFLAGS="-fPIC $CFLAGS"
   SHARED_LIB_TARGET=shared-libs
@@ -625,7 +628,7 @@ else
 fi
 
 dnl Enable async I/O features
-AC_ARG_ENABLE(async,--en[able]-async Enable async I/O features)
+AC_ARG_ENABLE(async,--en[dis]able-async Enable async I/O features)
 
 if test "x$enable_async" = "xyes"; then
   DEFAULTISASYNC=1
@@ -636,7 +639,7 @@ else
 fi
 
 dnl Enable dtblock for improved performance
-AC_ARG_ENABLE(dtblock,--en[able]-dtblock DTBlock dtype for net I/O,,enable_dtblock=$use_dtblock_default)
+AC_ARG_ENABLE(dtblock,--en[dis]able-dtblock DTBlock dtype for net I/O,,enable_dtblock=$use_dtblock_default)
 
 if test "x$enable_dtblock" = "xyes"; then
   USEDTBLOCK=1
@@ -668,7 +671,7 @@ fi
 AX_PTHREAD
 AX_PTHREAD(threads_default="yes",threads_default="no")
 
-AC_ARG_ENABLE(checkptrs,--en/disable-checkfdtype Enable compile-time checking for fdtype pointers,,enable_checkfdtype=$checkfdtype_default)
+AC_ARG_ENABLE(checkptrs,--en[dis]able-checkfdtype Enable compile-time checking for fdtype pointers,,enable_checkfdtype=$checkfdtype_default)
 if test "x$enable_checkfdtype" = "xyes"; then
   AC_DEFINE(FD_DEFAULT_CHECKFDTYPE,1)
 else
@@ -678,7 +681,7 @@ fi
 dnl If possible, compile for multi-threaded execution.  This both makes
 dnl  the library threadsafe and enables Scheme primitives for spawning threads
 dnl  and parallel execution
-AC_ARG_ENABLE(threads,--en/disable-threads Enable multi-threading,,enable_threads=$threads_default)
+AC_ARG_ENABLE(threads,--en[dis]able-threads Enable multi-threading,,enable_threads=$threads_default)
 if test $enable_threads = "yes"; then
    AC_CHECK_HEADERS(pthread.h)
    REENTRANT=-D_REENTRANT	
@@ -693,7 +696,7 @@ dnl Specify the prefetch window for memory-mapped databases; when
 dnl  accessing a series of blocks, this indicates the number of blocks
 dnl  to prefetch ahead.  This assumes that the built-in memory prefetching
 dnl  extends to memory-mapped data on disk.
-AC_ARG_ENABLE(mmap_prefetch,--en/disable-mmap-prefetch Enable prefetching on access to memory mapped databases,,enable_mmap_prefetch="no")
+AC_ARG_ENABLE(mmap_prefetch,--en[dis]able-mmap-prefetch Enable prefetching on access to memory mapped databases,,enable_mmap_prefetch="no")
 if test $enable_mmap_prefetch = "no"; then
   AC_DEFINE(FD_MMAP_PREFETCH_WINDOW,0)
 elif test $enable_mmap_prefetch = "yes"; then
@@ -936,7 +939,7 @@ AC_CHECK_FUNCS(uuid_generate_time)
 dnl Compile for access to large files, essentially defining off_t as 64 bits.
 dnl  Note that the basic FramerD/fdb data files are still limited to 4GB, but
 dnl  this lets you use all 4GB.
-AC_ARG_ENABLE(largefiles,--en/disable-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
+AC_ARG_ENABLE(largefiles,--en[dis]able-largefiles Enable use of large (> 2GB) file support,,enable_largefiles=yes)
 if test $enable_largefiles = "yes"; then
   AC_DEFINE(FD_LARGEFILES_ENABLED,1)
 else
@@ -982,16 +985,15 @@ fi
 dnl This is used to disable the simplest automatic database prefetches.
 dnl This is almost only used to configure for benchmarking prefetch mechanisms
 dnl against the base case of no prefetches at all.
-AC_ARG_ENABLE(prefetching,--en/disable-prefetching make frame operations prefetch when they can,,enable_prefetching="yes")
+AC_ARG_ENABLE(prefetching,--en[dis]able-prefetching make frame operations prefetch when they can,,enable_prefetching="yes")
 if test $enable_prefetching = "yes"; then
   AC_DEFINE(FD_PREFETCHING_ENABLED,1)
 else
   AC_DEFINE(FD_PREFETCHING_ENABLED,0)
 fi
 
-dnl This builds in Scheme level profiling for the interpreter.  When not used,
-dnl  the cost is negligible.
-AC_ARG_ENABLE(calltrack,--en/disable-calltrack enable internal scheme profiling,,enable_calltrack="yes")
+dnl This builds in Scheme level profiling for the interpreter.
+AC_ARG_ENABLE(calltrack,--en[dis]able-calltrack enable internal scheme profiling,,enable_calltrack="yes")
 if test $enable_calltrack = "yes"; then
   AC_DEFINE(FD_CALLTRACK_ENABLED,1)
 else
@@ -999,7 +1001,7 @@ else
 fi
 
 dnl This builds in file config lookups
-AC_ARG_ENABLE(fileconfig,--en/disable-fileconfig enable file-based configuration,,enable_fileconfig="yes")
+AC_ARG_ENABLE(fileconfig,--en[dis]able-fileconfig enable file-based configuration,,enable_fileconfig="yes")
 if test $enable_calltrack = "yes"; then
   AC_DEFINE(FD_FILECONFIG_ENABLED,1)
 else
@@ -1009,7 +1011,7 @@ fi
 dnl This makes all executables have stdio-based schemeio builtin.  Disabling
 dnl  this might make sense for handheld and some embedded contexts,  but
 dnl  you'll probably need to replace some things
-AC_ARG_ENABLE(schemeio,--en/disable-schemeio compiled-in schemeio,,enable_schemeio="yes")
+AC_ARG_ENABLE(schemeio,--en[dis]able-schemeio compiled-in schemeio,,enable_schemeio="yes")
 if test $enable_schemeio = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; fd_init_schemeio()"
   xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdschemeio${suffix}"
@@ -1019,7 +1021,7 @@ fi
 
 dnl This integrates the fdweb module into executables by default; otherwise
 dnl  it is built and installed as a plugin library
-AC_ARG_ENABLE(fdweb,--en/disable-fdweb compiled-in fdweb,,enable_fdweb=$enable_fdweb_default)
+AC_ARG_ENABLE(fdweb,--en[dis]able-fdweb compiled-in fdweb,,enable_fdweb=$enable_fdweb_default)
 if test $enable_fdweb = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; fd_init_fdweb()"
   xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
@@ -1029,7 +1031,7 @@ fi
 
 dnl This integrates the texttools module into executables by default; otherwise
 dnl  it is built and installed as a plugin library
-AC_ARG_ENABLE(texttools,--en/disable-texttools compiled-in texttools,,enable_texttools=$enable_texttools_default)
+AC_ARG_ENABLE(texttools,--en[dis]able-texttools compiled-in texttools,,enable_texttools=$enable_texttools_default)
 if test $enable_texttools = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; fd_init_texttools()"
   xdynamic_scheme_libs="-ltexttools $xdynamic_scheme_libs"
@@ -1039,7 +1041,7 @@ fi
 
 dnl This integrates the fdweb module into executables by default; otherwise
 dnl  it is built and installed as a plugin library
-AC_ARG_ENABLE(htmldump,--en/disable-htmldump write HTML backtraces,,enable_htmldump="yes")
+AC_ARG_ENABLE(htmldump,--en[dis]able-htmldump write HTML backtraces,,enable_htmldump="yes")
 if test $enable_htmldump = "yes"; then
   scheme_builtins_init="$scheme_builtins_init; fd_init_fdweb()"
   xdynamic_scheme_libs="$xdynamic_scheme_libs -lfdweb${suffix}"
@@ -1190,7 +1192,7 @@ if (test "x$with_qrcode" = "xyes") && (test "x$have_png_h" = "xyes") && (test "x
 fi
 
 dnl Enables/disables linking with RPATH
-AC_ARG_ENABLE(rpath,--en/disable-rpath usage)
+AC_ARG_ENABLE(rpath,--en[dis]able-rpath usage)
 if test "x$enable_rpath" != "xno" && test "$prefix" != "/usr" && test "$prefix" != "/usr/local"; then
   EXELDFLAGS="$EXELDFLAGS -Wl,-rpath,\$(LIBINSTALLDIR)"
 fi

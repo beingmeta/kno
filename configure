@@ -811,6 +811,8 @@ with_module_path
 with_safe_module_path
 with_dload_path
 with_boot_config
+enable_maintainer_mode
+enable_dependency_tracking
 enable_shared
 enable_async
 enable_dtblock
@@ -1473,22 +1475,24 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
---enable-shared Build with/without shared libraries
---enable-async Enable async I/O features
---enable-dtblock DTBlock dtype for net I/O
---en/disable-checkfdtype Enable compile-time checking for fdtype pointers
---en/disable-threads Enable multi-threading
---en/disable-mmap-prefetch Enable prefetching on access to memory mapped databases
---en/disable-largefiles Enable use of large (> 2GB) file support
---en/disable-prefetching make frame operations prefetch when they can
---en/disable-calltrack enable internal scheme profiling
---en/disable-fileconfig enable file-based configuration
---en/disable-schemeio compiled-in schemeio
---en/disable-fdweb compiled-in fdweb
---en/disable-texttools compiled-in texttools
---en/disable-htmldump write HTML backtraces
+--endisable-maintainer-mode doesn't do anything
+--endisable-dependency-tracking doesn't do anything
+--endisable-shared Build with/without shared libraries
+--endisable-async Enable async I/O features
+--endisable-dtblock DTBlock dtype for net I/O
+--endisable-checkfdtype Enable compile-time checking for fdtype pointers
+--endisable-threads Enable multi-threading
+--endisable-mmap-prefetch Enable prefetching on access to memory mapped databases
+--endisable-largefiles Enable use of large (> 2GB) file support
+--endisable-prefetching make frame operations prefetch when they can
+--endisable-calltrack enable internal scheme profiling
+--endisable-fileconfig enable file-based configuration
+--endisable-schemeio compiled-in schemeio
+--endisable-fdweb compiled-in fdweb
+--endisable-texttools compiled-in texttools
+--endisable-htmldump write HTML backtraces
 --endisable-ipeval Enable IPEVAL
---en/disable-rpath usage
+--endisable-rpath usage
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -6417,6 +6421,17 @@ _ACEOF
 fi
 
 fi
+
+# Check whether --enable-maintainer-mode was given.
+if test "${enable_maintainer_mode+set}" = set; then :
+  enableval=$enable_maintainer_mode;
+fi
+
+# Check whether --enable-dependency-tracking was given.
+if test "${enable_dependency_tracking+set}" = set; then :
+  enableval=$enable_dependency_tracking;
+fi
+
 
 # Check whether --enable-shared was given.
 if test "${enable_shared+set}" = set; then :
