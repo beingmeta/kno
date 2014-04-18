@@ -5,16 +5,12 @@ usr/lib/libfddb.so
 usr/lib/libfddbfile.a
 usr/lib/libfddbfile.so
 usr/lib/libfdbserv.a
-usr/lib/libfdbserv.so
 usr/lib/libfdscheme.a
 usr/lib/libfdscheme.so
 usr/lib/libfdschemeio.a
 usr/lib/libfdschemeio.so
 usr/lib/libfdweb.a
-usr/lib/libfdweb.so
 usr/lib/libtexttools.a
-usr/lib/libtexttools.so
 usr/lib/libtagger.a
-usr/lib/libtagger.so
 usr/include/framerd/*.h
 usr/bin/fdconfig
