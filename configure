@@ -786,7 +786,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 with_execwrapper
-with_devmode
+enable_devmode
 with_optinclude
 with_bootsystem
 with_optlib
@@ -1475,6 +1475,7 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+--endisable-devmode Special settings for development machines (e.g. linking module files)
 --endisable-maintainer-mode doesn't do anything
 --endisable-dependency-tracking doesn't do anything
 --endisable-shared Build with/without shared libraries
@@ -1498,7 +1499,6 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
 --with-execwrapper program to use when calling exec()
---with-devmode Special settings for development machines (e.g. linking module files)
 --with-optinclude Use optional include directory
 --with-bootsytem Setup boot method
 --with-optlib Use optional library directory
@@ -4773,15 +4773,14 @@ elif test `pwd` = /src/framerd; then
 else devmode_default="no";
 fi
 
-
-# Check whether --with-devmode was given.
-if test "${with_devmode+set}" = set; then :
-  withval=$with_devmode;
+# Check whether --enable-devmode was given.
+if test "${enable_devmode+set}" = set; then :
+  enableval=$enable_devmode;
 else
-  with_devmode=$devmode_default
+  enable_devmode=$devmode_default
 fi
 
-if test "x$with_devmode" = "xyes"; then
+if test "$enable_devmode" != "xno"; then
   install_modules_target="link-modules";
 fi
 
