@@ -1,7 +1,7 @@
 Source: framerd
 Section: unknown
 Priority: optional
-Maintainer: Ken Haase <kh@beingmeta.com>
+Maintainer: Kenneth Benfiel Haase <kh@beingmeta.com>
 Build-Depends: debhelper (>= 8.0.0), autotools-dev
 Standards-Version: 3.9.4
 Homepage: http://www.framerd.org/
@@ -31,7 +31,7 @@ Description: Binaries for FramerD release
 
 Package: framerd-modules
 Architecture: all
-Depends: framerd-bin (> ${binary:Version})
+Depends: framerd-bin (>= ${binary:Version})
 Description: Standard scheme modules for FramerD
 
 Package: framerd-apache
