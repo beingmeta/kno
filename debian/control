@@ -29,6 +29,11 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Binaries for FramerD release
 
+Package: framerd-modules
+Architecture: all
+Depends: framerd-bin (> ${binary:Version})
+Description: Standard scheme modules for FramerD
+
 Package: framerd-apache
 Architecture: any
 Depends: framerd-bin (= ${binary:Version})
@@ -64,10 +69,6 @@ Description: HTML Tidy (bindings) for FramerD
 Package: framerd-doc
 Architecture: all
 Description: documentation for framerd
-
-Package: framerd-modules
-Architecture: all
-Depends: framerd-bin (> ${binary:Version})
 
 Package: framerd-gnosys
 Architecture: all
