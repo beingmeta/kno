@@ -25,8 +25,4 @@ usr/bin/pack-index
 usr/bin/pack-pool
 usr/bin/fdgetconfig
 usr/bin/fdsetconfig
-usr/share/framerd/standard_modules/*.scm
-usr/share/framerd/standard_modules/safe/*.scm
-usr/share/framerd/standard_modules/*/*.scm
-usr/share/framerd/standard_modules/safe/*/*.scm
 usr/etc/framerd/servers
