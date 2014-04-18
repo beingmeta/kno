@@ -13,5 +13,5 @@ export DH_OPTIONS
 
 override_dh_auto_configure:
 	dh_auto_configure -- --libdir=$(DESTDIR)/usr/lib \
-		--without-sudo --with-perftools --disable-devmode=no \
+		--without-sudo --with-perftools --disable-devmode \
 		--with-bootsystem=upstart
