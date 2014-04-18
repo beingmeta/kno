@@ -1,1 +1,1 @@
-../
+../hashstats.scm

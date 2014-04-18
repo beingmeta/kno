@@ -1,1 +1,1 @@
-../
+../ezrecords.scm

@@ -1,1 +1,1 @@
-../
+../tighten.scm

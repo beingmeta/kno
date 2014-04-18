@@ -1,1 +1,1 @@
-../
+../samplefns.scm

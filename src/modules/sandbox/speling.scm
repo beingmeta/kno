@@ -1,1 +1,1 @@
-../
+../speling.scm

@@ -1,1 +1,1 @@
-../
+../tinygis.scm

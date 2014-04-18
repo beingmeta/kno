@@ -1,1 +1,1 @@
-../
+../varconfig.scm

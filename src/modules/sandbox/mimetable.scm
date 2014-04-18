@@ -1,1 +1,1 @@
-../
+../mimetable.scm
