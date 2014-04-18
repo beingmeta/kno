@@ -2,4 +2,4 @@ framerd (3.5.5-1) unstable; urgency=low
 
   * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
 
- -- Ken Haase <haase@Venus>  Wed, 16 Apr 2014 17:00:10 -0400
+ -- Ken Haase <kh@beingmeta.com>  Wed, 16 Apr 2014 17:00:10 -0400

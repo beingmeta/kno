@@ -1,7 +1,5 @@
-usr/share/framerd/scheme_modules/gnosys/*.scm
-usr/share/framerd/scheme_modules/gnosys/arc-weights
-usr/share/framerd/scheme_modules/gnosys/set-arc-weights
-usr/share/framerd/scheme_modules/gnosys/english/*.scm
-usr/share/framerd/scheme_modules/gnosys/english/*.data
-usr/share/framerd/scheme_modules/gnosys/english/*.dtype
-usr/share/framerd/scheme_modules/gnosys/english/*.table
+usr/share/framerd/scheme_modules/chopper/*.scm
+usr/share/framerd/scheme_modules/chopper/english/*.scm
+usr/share/framerd/scheme_modules/chopper/english/*.data
+usr/share/framerd/scheme_modules/chopper/english/*.dtype
+usr/share/framerd/scheme_modules/chopper/english/*.table
