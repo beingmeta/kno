@@ -873,8 +873,8 @@ dist/rpms.zip: dist/rpms.done
 dist/debs.done: staging/framerd_@FDVERSION@.orig.tar.gz
 	(cd staging/framerd_@FDVERSION@; \
 	 dpkg-buildpackage -k$(GPGID) -F -rfakeroot) && \
-	(cd staging; cp framerd_@FDVERSION@*.gz ../dist) && \
-	(cd staging; mv framerd_@FDVERSION@*.deb framerd_@FDVERSION@*.dsc \
+	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
+	(cd staging; mv framerd*_@FDVERSION@*.deb framerd_@FDVERSION@*.dsc \
 			framerd_@FDVERSION@*.changes \
 			../dist) && \
 	touch dist/debs.done;
