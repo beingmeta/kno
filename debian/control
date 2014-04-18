@@ -33,8 +33,6 @@ Package: framerd-modules
 Architecture: any
 Depends: framerd-bin (> ${binary:Version})
 
-Description: Binaries for FramerD release
-
 Package: framerd-apache
 Architecture: any
 Depends: framerd-bin (= ${binary:Version})

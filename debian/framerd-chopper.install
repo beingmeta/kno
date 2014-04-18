@@ -1,0 +1,7 @@
+usr/share/framerd/scheme_modules/gnosys/*.scm
+usr/share/framerd/scheme_modules/gnosys/arc-weights
+usr/share/framerd/scheme_modules/gnosys/set-arc-weights
+usr/share/framerd/scheme_modules/gnosys/english/*.scm
+usr/share/framerd/scheme_modules/gnosys/english/*.data
+usr/share/framerd/scheme_modules/gnosys/english/*.dtype
+usr/share/framerd/scheme_modules/gnosys/english/*.table
