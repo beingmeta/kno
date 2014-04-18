@@ -208,6 +208,7 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdschemeio@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
 	lib/libtexttools@suffix@.@shared_suffix@		\
+	lib/libtagger@suffix@.@shared_suffix@			\
 	lib/libfdtype@suffix@.@mshared_suffix@  		\
 	lib/libfddb@suffix@.@mshared_suffix@        		\
         lib/libfddbfile@suffix@.@mshared_suffix@    		\
@@ -215,7 +216,8 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdscheme@suffix@.@mshared_suffix@    		\
 	lib/libfdschemeio@suffix@.@mshared_suffix@  		\
 	lib/libfdweb@suffix@.@mshared_suffix@       		\
-	lib/libtexttools@suffix@.@mshared_suffix@
+	lib/libtexttools@suffix@.@mshared_suffix@		\
+	lib/libtagger@suffix@.@mshared_suffix@
 
 SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
 	src/modules/aws/*.scm src/modules/brico/*.scm \
@@ -360,22 +362,24 @@ exe/%@suffix@: src/exe/%.c
 	        -lu8stdio $(LIBS)
 	@$(MSG) MKEXE $@ $<
 
-# Custom rules for making include files with CSS headers
-src/fdweb/xmloutput.o: src/fdweb/backtrace_css.h
-src/fdweb/backtrace_css.h: src/fdweb/backtrace.css etc/text2include
-	./etc/text2include FD_BACKTRACE_CSS $< $@
+src/cmodules/%.o: src/cmodules/%.c
+	@$(CC) $(CFLAGS) -o $@ -c $<
+	@$(MSG) CC  $@ $<
+lib/framerd/%.so: src/cmodules/%.o
+	@$(MKSO) -o $@ $< @LIBS@ -lfdtype -lfddb -lfdscheme
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO  $@ $<
+lib/framerd/%.dylib: src/cmodules/%.o
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $<
+	@$(MSG) MACLIBTOOL  $@ $<
+lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
+	@ln -sf $(*F).dylib $@
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
 static/%@suffix@: src/exe/%.c $(STATIC_LIBS)
 	@$(CC) $(EXECFLAGS) -o $@ $^ -lu8stdio -lu8syslog $(LIBS)
 	@$(MSG) MKEXE_STATIC $@
-
-exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
-	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdservlet@suffix@: \
-	$(STATIC_LIBS) $(SHARED_LIBS)
-exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
 
 lib/%@suffix@.a:
 	@$(MKSTATIC) $@ $^
@@ -436,6 +440,12 @@ $(BININSTALLDIR)/%: src/scripts/%.scm
 	@$(MSG) Installing script $@
 	@etc/install-script $<
 
+exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
+	$(STATIC_LIBS) $(SHARED_LIBS)
+exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdservlet@suffix@: \
+	$(STATIC_LIBS) $(SHARED_LIBS)
+exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
+
 # Custom rules for building fdmanager which doesn't actually use the
 # FramerD libraries
 exe/fdmanager@suffix@: src/exe/fdmanager.c
@@ -443,6 +453,11 @@ exe/fdmanager@suffix@: src/exe/fdmanager.c
 		-o $@ $<                                           \
 		$(LIBS) -lu8stdio -lfdtype
 	@$(MSG) MKEXE $@
+
+# Custom rules for making include files with CSS headers
+src/fdweb/xmloutput.o: src/fdweb/backtrace_css.h
+src/fdweb/backtrace_css.h: src/fdweb/backtrace.css etc/text2include
+	./etc/text2include FD_BACKTRACE_CSS $< $@
 
 # This can be helpful for some debugging 
 etc/usememory: etc/usememory.c
@@ -581,15 +596,24 @@ lib/libfdtype@suffix@.dylib: $(DTYPE_OBJS)
 
 lib/libfddb@suffix@.a: $(DB_OBJS)
 lib/libfddb@suffix@.so: $(DB_OBJS)
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ @LIBS@ -L../lib -lfdtype
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO $@
 lib/libfddb@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
 
 lib/libfddbfile@suffix@.a: $(DBFILE_OBJS)
 lib/libfddbfile@suffix@.so: $(DBFILE_OBJS)
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ @LIBS@ -L../lib -lfdtype -lfddb
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO $@
 lib/libfddbfile@suffix@.dylib: $(DBFILE_OBJS) \
 	lib/libfddb@suffix@.dylib lib/libfdtype@suffix@.dylib
 
 lib/libfdbserv@suffix@.a: $(FDBSERV_OBJS)
 lib/libfdbserv@suffix@.so: $(FDBSERV_OBJS)
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ @LIBS@ -L../lib -lfdtype -lfddb
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO $@
 lib/libfdbserv@suffix@.dylib: $(FDBSERV_OBJS) \
 	lib/libfdscheme@suffix@.dylib         \
 	lib/libfddbfile@suffix@.dylib         \
@@ -600,12 +624,18 @@ lib/libfdbserv@suffix@.dylib: $(FDBSERV_OBJS) \
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
 lib/libfdscheme@suffix@.so: $(SCHEME_OBJS)
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ @LIBS@ -L../lib -lfdtype -lfddb
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO $@
 lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) \
 	lib/libfddb@suffix@.dylib             \
         lib/libfdtype@suffix@.dylib
 
 lib/libfdschemeio@suffix@.a: $(SCHEMEIO_OBJS)
 lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS)
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ @LIBS@ -L../lib -lfdtype -lfddb -lfddbfile -lfdscheme
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO $@
 lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) \
 	lib/libfdscheme@suffix@.dylib             \
 	lib/libfddbfile@suffix@.dylib             \
@@ -614,7 +644,9 @@ lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) \
 
 lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
 lib/libfdweb@suffix@.so: $(FDWEB_OBJS)
-	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^  @curlconfig@ @LIBS@
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^  @curlconfig@ @LIBS@ \
+		-lfdtype -lfddb -lfddbfile -lfdscheme -lfdschemeio
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO $@
 lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 	lib/libfdscheme@suffix@.dylib     \
@@ -626,6 +658,9 @@ lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 
 lib/libtexttools@suffix@.a: $(TEXTTOOLS_OBJS)
 lib/libtexttools@suffix@.so: $(TEXTTOOLS_OBJS)
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^  @curlconfig@ @LIBS@ -lfdtype -lfddb -lfdscheme
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO $@
 lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfdscheme@suffix@.dylib \
 	lib/libfddbfile@suffix@.dylib \
@@ -636,6 +671,9 @@ lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 
 lib/libtagger@suffix@.a: $(TAGGER_OBJS)
 lib/libtagger@suffix@.so: $(TAGGER_OBJS)
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ @LIBS@ -lfdtype -lfddb -lfdscheme -ltexttools
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO $@
 lib/libtagger@suffix@.dylib: $(TAGGER_OBJS) \
 	lib/libtexttools@suffix@.@FDVERSION@.dylib \
 	lib/libfdscheme@suffix@.@FDVERSION@.dylib \
@@ -651,7 +689,7 @@ src/cmodules/mysql.o: src/cmodules/mysql.c
 	@$(MSG) CC "(MYSQL)" $@
 lib/framerd/mysql.so: src/cmodules/mysql.o
 	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $< \
-		@MYSQL_LDFLAGS@ @LIBS@
+		@MYSQL_LDFLAGS@ @LIBS@  -lfdtype -lfddb -lfdscheme
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MYSQL)" $@
 lib/framerd/mysql.dylib: src/cmodules/mysql.o
@@ -664,7 +702,7 @@ src/cmodules/imagick.o: src/cmodules/imagick.c
 	@$(MSG) CC "(IMAGICK)" $@
 lib/framerd/imagick.so: src/cmodules/imagick.o
 	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $< \
-		@IMAGICK_LDFLAGS@ @LIBS@
+		@IMAGICK_LDFLAGS@ @LIBS@ -lfdtype -lfddb -lfdscheme
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(IMAGICK)" $@
 lib/framerd/imagick.dylib: src/cmodules/imagick.o
@@ -676,7 +714,7 @@ src/cmodules/ziptools.o: src/cmodules/ziptools.c
 	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
 	@$(MSG) CC "(ZIPTOOLS)"  $@ $<
 lib/framerd/ziptools.so: src/cmodules/ziptools.o
-	@$(MKSO) @LIBZIP_LDFLAGS@ -o $@ $< @LIBS@
+	@$(MKSO) @LIBZIP_LDFLAGS@ -o $@ $< @LIBS@ -lfdtype -lfddb -lfdscheme
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(ZIPTOOLS)"  $@ $<
 lib/framerd/ziptools.dylib: src/cmodules/ziptools.o
@@ -685,25 +723,12 @@ lib/framerd/ziptools.dylib: src/cmodules/ziptools.o
 	@$(MSG) MACLIBTOOL "(ZIPTOOLS)" $@
 
 lib/framerd/exif.so: src/cmodules/exif.o
-	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ $(LIBS) -lexif
+	@$(MKSO) -Wl,-soname=$(@F).@FDMAJOR@ -o $@ $^ $(LIBS) -lexif -lfdtype -lfddb -lfdscheme
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO $@
 lib/framerd/exif.dylib: src/cmodules/exif.o
 	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -lexif -o $@ $^
 	@$(MSG) MACLIBTOOL $@
-
-src/cmodules/%.o: src/cmodules/%.c
-	@$(CC) $(CFLAGS) -o $@ -c $<
-	@$(MSG) CC  $@ $<
-lib/framerd/%.so: src/cmodules/%.o
-	@$(MKSO) -o $@ $< @LIBS@
-	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
-	@$(MSG) MKSO  $@ $<
-lib/framerd/%.dylib: src/cmodules/%.o
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $<
-	@$(MSG) MACLIBTOOL  $@ $<
-lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
-	@ln -sf $(*F).dylib $@
 
 src/cmodules/crypto.o: src/cmodules/crypto.c
 lib/framerd/crypto.so: src/cmodules/crypto.o
