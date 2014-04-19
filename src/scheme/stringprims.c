@@ -294,7 +294,7 @@ static u8_string skip_space(u8_string s)
   return last;
 }
 
-static fdtype string_stdcaps(fdtype string)
+static fdtype string_stdcap(fdtype string)
 {
   if (FD_STRINGP(string)) {
     u8_string str=FD_STRDATA(string), scan=str;
@@ -336,7 +336,7 @@ static fdtype string_stdcaps(fdtype string)
             u8_putc(&out,u8_toupper(fc));
             u8_putn(&out,w1,prev-w1);}}}
       return fd_stream2string(&out);}}
-  else return fd_type_error(_("string"),"string_stdcaps",string);
+  else return fd_type_error(_("string"),"string_stdcap",string);
 }
 
 static fdtype string_downcase1(fdtype string)
@@ -1206,7 +1206,7 @@ FD_EXPORT void fd_init_strings_c()
 	   fd_make_cprim2x("STDSPACE",string_stdspace,1,
 			   fd_string_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("STDCAPS",string_stdcaps,1,fd_string_type,FD_VOID));
+	   fd_make_cprim1x("STDCAP",string_stdcap,1,fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("STDSTRING",string_stdstring,1,
 			   fd_string_type,FD_VOID));
