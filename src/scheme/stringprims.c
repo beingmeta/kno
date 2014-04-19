@@ -301,7 +301,8 @@ static fdtype string_stdcaps(fdtype string)
     int fc=u8_sgetc(&scan), c=fc, n_caps=0, nospace=1, at_break=1;
     while (c>=0) {
       if ((at_break)&&(u8_isupper(c))) n_caps++;
-      if (u8_isspace(c)) {nospace=0; at_break=1;}
+      if ((u8_isspace(c))||(u8_ispunct(c))) {
+        nospace=0; at_break=1;}
       else at_break=0;
       c=u8_sgetc(&scan);}
     if (nospace) {
@@ -310,30 +311,32 @@ static fdtype string_stdcaps(fdtype string)
         return fd_incref(string);
       else return fd_incref(string);}
     else {
-      struct U8_OUTPUT out; int weird_caps=0, n_words=0;
-      u8_string w_start=skip_space(str), scan=w_start, w_end=NULL;
+      struct U8_OUTPUT out;
+      u8_string scan=str, prev=str;
       U8_INIT_OUTPUT(&out,FD_STRLEN(string));
-      fc=u8_sgetc(&scan); c=u8_sgetc(&scan);
-      while (w_start) {
-        if ((c<0)||(u8_isspace(c))) {
-          if ((n_words)&&(w_end>w_start)) u8_putc(&out,' ');
-          if (w_end<=w_start) {}
-          else if ((n_caps==0)||(weird_caps)||(u8_isupper(fc)))
-            u8_putn(&out,w_start,w_end-w_start);
+      c=u8_sgetc(&scan);
+      while (c>=0) {
+        if (u8_ispunct(c)) {
+          u8_putc(&out,c); prev=scan; c=u8_sgetc(&scan);}
+        else if (u8_isspace(c)) {
+          while (u8_isspace(c)) {
+            prev=scan; c=u8_sgetc(&scan);}
+          if ((*scan)&&(out.u8_outptr>out.u8_outbuf))
+            u8_putc(&out,' ');}
+        else {
+          u8_string w_start=prev, w1=scan;
+          int fc=c, weird_caps=0;
+          prev=scan; c=u8_sgetc(&scan);
+          while (!((c<0)||(u8_isspace(c))||(u8_ispunct(c)))) {
+            if (u8_isupper(c)) weird_caps=1;
+            prev=scan; c=u8_sgetc(&scan);}
+          if ((weird_caps)||(u8_isupper(fc)))
+            u8_putn(&out,w_start,prev-w_start);
           else {
             u8_putc(&out,u8_toupper(fc));
-            scan=w_start; u8_sgetc(&scan);
-            u8_putn(&out,scan,w_end-scan);}
-          if (c<0) {w_start=NULL; break;}
-          scan=w_start=skip_space(w_end);
-          fc=u8_sgetc(&scan); w_end=scan;
-          weird_caps=0;
-          n_words++;}
-        else if (u8_isupper(c)) weird_caps=1;
-        else {}
-        w_end=scan; c=u8_sgetc(&scan);}
+            u8_putn(&out,w1,prev-w1);}}}
       return fd_stream2string(&out);}}
-  else return fd_type_error(_("string or character"),"capitalize1",string);
+  else return fd_type_error(_("string"),"string_stdcaps",string);
 }
 
 static fdtype string_downcase1(fdtype string)

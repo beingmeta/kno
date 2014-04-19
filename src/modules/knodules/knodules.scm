@@ -200,6 +200,7 @@
 (varconfig! knodule default-knodule ->knodule)
 
 (define (kno/dterm term (knodule default-knodule))
+  (%watch "KNO/DTERM" term knodule)
   (try (get (knodule-dterms knodule) term)
        (new-dterm term knodule)))
 (define (new-dterm term knodule)
@@ -208,6 +209,7 @@
 	     'dterm term 'dterms term
 	     (knodule-language knodule) term
 	     '%id term)))
+    (debug%watch "NEW-DTERM" term knodule)
     (store! (knodule-dterms knodule) term f)
     (hashset-add! (knodule-alldterms knodule) f)
     (index-frame knodule:index f '{dterm dterms knodule})
@@ -217,6 +219,7 @@
     f))
 
 (define (kno/dref term (knodule default-knodule) (create #t))
+  (%watch "KNO/DREF" term knodule create)
   (try (get (knodule-dterms knodule) term)
        (tryif create (kno/dterm term knodule))))
 
