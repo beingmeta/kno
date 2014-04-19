@@ -287,7 +287,56 @@ static fdtype capitalize1(fdtype string)
   else return fd_type_error(_("string or character"),"capitalize1",string);
 }
 
-static fdtype downcase1(fdtype string)
+static u8_string skip_space(u8_string s)
+{
+  u8_string last=s, scan=s; int c=u8_sgetc(&scan);
+  while (u8_isspace(c)) {last=scan; c=u8_sgetc(&scan);}
+  return last;
+}
+
+static fdtype string_stdcaps(fdtype string)
+{
+  if (FD_STRINGP(string)) {
+    u8_string str=FD_STRDATA(string), scan=str;
+    int fc=u8_sgetc(&scan), c=fc, n_caps=0, nospace=1, at_break=1;
+    while (c>=0) {
+      if ((at_break)&&(u8_isupper(c))) n_caps++;
+      if (u8_isspace(c)) {nospace=0; at_break=1;}
+      else at_break=0;
+      c=u8_sgetc(&scan);}
+    if (nospace) {
+      if (n_caps==0) return fd_incref(string);
+      else if ((n_caps==1)&&(u8_isupper(fc)))
+        return fd_incref(string);
+      else return fd_incref(string);}
+    else {
+      struct U8_OUTPUT out; int weird_caps=0, n_words=0;
+      u8_string w_start=skip_space(str), scan=w_start, w_end=NULL;
+      U8_INIT_OUTPUT(&out,FD_STRLEN(string));
+      fc=u8_sgetc(&scan); c=u8_sgetc(&scan);
+      while (w_start) {
+        if ((c<0)||(u8_isspace(c))) {
+          if ((n_words)&&(w_end>w_start)) u8_putc(&out,' ');
+          if (w_end<=w_start) {}
+          else if ((n_caps==0)||(weird_caps)||(u8_isupper(fc)))
+            u8_putn(&out,w_start,w_end-w_start);
+          else {
+            u8_putc(&out,u8_toupper(fc));
+            scan=w_start; u8_sgetc(&scan);
+            u8_putn(&out,scan,w_end-scan);}
+          if (c<0) {w_start=NULL; break;}
+          scan=w_start=skip_space(w_end);
+          fc=u8_sgetc(&scan); w_end=scan;
+          weird_caps=0;
+          n_words++;}
+        else if (u8_isupper(c)) weird_caps=1;
+        else {}
+        w_end=scan; c=u8_sgetc(&scan);}
+      return fd_stream2string(&out);}}
+  else return fd_type_error(_("string or character"),"capitalize1",string);
+}
+
+static fdtype string_downcase1(fdtype string)
 {
   if (FD_STRINGP(string)) {
     u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan);
@@ -1137,7 +1186,7 @@ FD_EXPORT void fd_init_strings_c()
 	    fd_fixnum_type,FD_INT2DTYPE(-1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE",capitalize,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE1",capitalize1,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",downcase1,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",string_downcase1,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("EMPTY-STRING?",
@@ -1153,6 +1202,8 @@ FD_EXPORT void fd_init_strings_c()
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("STDSPACE",string_stdspace,1,
 			   fd_string_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1x("STDCAPS",string_stdcaps,1,fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("STDSTRING",string_stdstring,1,
 			   fd_string_type,FD_VOID));
