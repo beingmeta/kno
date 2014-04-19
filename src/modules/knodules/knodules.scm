@@ -200,9 +200,9 @@
 (varconfig! knodule default-knodule ->knodule)
 
 (define (kno/dterm term (knodule default-knodule))
-  (%watch "KNO/DTERM" term knodule)
-  (try (get (knodule-dterms knodule) term)
-       (new-dterm term knodule)))
+  (detail%watch "KNO/DTERM" term knodule)
+  (try (get (knodule-dterms knodule) (stdcap term))
+       (new-dterm (stdcap term) knodule)))
 (define (new-dterm term knodule)
   (let ((f (frame-create (or (knodule-pool knodule) knodule:pool)
 	     'knodule (knodule-oid knodule)
@@ -219,23 +219,27 @@
     f))
 
 (define (kno/dref term (knodule default-knodule) (create #t))
-  (%watch "KNO/DREF" term knodule create)
-  (try (get (knodule-dterms knodule) term)
+  (detail%watch "KNO/DREF" term knodule create)
+  (try (get (knodule-dterms knodule) (stdcap term))
        (tryif create (kno/dterm term knodule))))
 
 (define (kno/probe term (knodule default-knodule))
-  (get (knodule-dterms knodule) term))
+  (get (knodule-dterms knodule) (stdcap term)))
 
 (define (kno/ref term (knodule default-knodule) (lang) (tryhard #f))
   (default! lang (knodule-language knodule))
   (try (find-frames (knodule-index knodule) lang term)
        (tryif tryhard
-	      (find-frames (knodule-index knodule)
-		lang (choice (metaphone term #t)
-			     (string->packet (disemvowel term)))))))
+	 (find-frames (knodule-index knodule) lang (stdcap term))
+	 (find-frames (knodule-index knodule)
+	   lang (choice (metaphone term #t)
+			(string->packet (disemvowel term))
+			(downcase term)
+			(capitalize term))))))
 
 (define (kno/set-dterm! dtf dterm (keepold #t))
   (let ((knodule (->knodule (get dtf 'knodule))))
+    (set! dterm (stdcap dterm))
     (if keepold
 	(add! dtf 'dterms (get dtf 'dterm))
 	(drop! (knodule-dterms knodule) (get dtf 'dterm) dtf))
