@@ -87,9 +87,9 @@
 		     (drule-subject drule)))
 	      (else (add! (if idmap (get idmap elected) elected)
 			  tagslot (drule-subject drule))
-		    (add! index (cons slotid (drule-subject drule))
+		    (add! index (cons tagslot (drule-subject drule))
 			  elected)
-		    (add! index (cons 'has slotid) elected)))))))
+		    (add! index (cons 'has tagslot) elected)))))))
 
 (define (kno/apply-drules! knodule index (idmap #f) (slotid 'concepts))
   (let* ((words (get (getkeys index) '{words roots refs}))
@@ -98,8 +98,11 @@
       (kno/apply-drule! drule index idmap slotid))))
 
 (define (kno/disambiguate! index knodule settings)
-  (let* ((wordslots (try (get settings 'wordslots) '{words roots terms refs}))
-	 (tagslots (try (get settings 'tagslots) '{tags concept}))
+  (let* ((wordslots (getopt settings 'wordslots '{words roots terms refs}))
+	 (tagslots (getopt settings 'tagslots '{tags concept}))
+	 (tagslot (getopt settings 'tagslot
+			  (if (overlaps? tagslots 'tags) 'tags
+			      (pick-one tagslots))))
 	 (idmap (try (get settings 'idmap) #f))
 	 (saveto (try (get settings 'saveto) (make-hashtable)))
 	 (words (get (getkeys index) wordslots))
@@ -110,8 +113,10 @@
 	 (knownterms (get (getkeys knoindex) language))
 	 (possible (intersection unknown knownterms))
 	 (newterms {}))
+    (set+! tagslots tagslot) ;; just in case
     (do-choices (drule drules)
-      (kno/apply-drule! drule index idmap slotid))
+      (kno/apply-drule! drule index idmap (qc tagslots)
+			(qc wordslots) (qc tagslots)))
     (do-choices possible
       (let* ((dterms (find-frames knoindex language possible))
 	     (dterm (singleton dterms))

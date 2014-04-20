@@ -81,18 +81,19 @@
 ;;  #N is a threshold, indicating that N terms must be matched
 (define (plaintext->drule string subject knodule language)
   (let* ((dclauses (map trim-spaces (escaped-segment string #\~)))
+	 (dtermtable (knodule-dterms knodule))
 	 (cues {}) (context+ {}) (context- {})
 	 (threshold 1))
     (doseq (dclause (remove "" dclauses) i)
       (cond ((eqv? (first dclause) #\+)
 	     (set+! cues
-		    (try (get knodule-dterms (subseq dclause 1))
+		    (try (get dtermtable (stdcap (subseq dclause 1)))
 			 (subseq dclause 1))))
 	    ((eqv? (first dclause) #\-)
 	     (set+! context-
 		    (if (eqv? (second dclause) #\=)
 			(kno/dref (subseq dclause 2) knodule)
-			(try (get knodule-dterms (subseq dclause 1))
+			(try (get dtermtable (stdcap (subseq dclause 1)))
 			     (subseq dclause 1)))))
 	    ((eqv? (first dclause) #\=)
 	     (set+! context+ (kno/dref (subseq dclause 1) knodule)))
@@ -101,7 +102,7 @@
 		 (set! threshold #f)
 		 (set! threshold (string->lisp (subseq dclause 1)))))
 	    (else (set+! context+
-			 (try (get knodule-dterms (subseq dclause 1))
+			 (try (get dtermtable (stdcap (subseq dclause 1)))
 			      (subseq dclause 1))))))
     (kno/drule subject language cues context+ context- threshold
 	       knodule)))
