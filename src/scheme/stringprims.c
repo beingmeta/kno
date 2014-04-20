@@ -300,16 +300,15 @@ static fdtype string_stdcap(fdtype string)
     u8_string str=FD_STRDATA(string), scan=str;
     int fc=u8_sgetc(&scan), c=fc, n_caps=0, nospace=1, at_break=1;
     while (c>=0) {
-      if ((at_break)&&(u8_isupper(c))) n_caps++;
-      if ((u8_isspace(c))||(u8_ispunct(c))) {
-        nospace=0; at_break=1;}
+      if ((at_break)&&(u8_isupper(c))) {
+        c=u8_sgetc(&scan);
+        if (!(u8_isupper(c))) n_caps++;}
+      if (u8_isspace(c)) {nospace=0; at_break=1;}
+      else if (u8_ispunct(c)) at_break=1;
       else at_break=0;
       c=u8_sgetc(&scan);}
-    if (nospace) {
-      if (n_caps==0) return fd_incref(string);
-      else if ((n_caps==1)&&(u8_isupper(fc)))
-        return fd_incref(string);
-      else return fd_incref(string);}
+    if (nospace) return fd_incref(string);
+    else if (n_caps==0) return fd_incref(string);
     else {
       struct U8_OUTPUT out;
       u8_string scan=str, prev=str;
