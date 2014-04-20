@@ -337,6 +337,15 @@ is the other number")
 	   stdspace
 	   "\t\tThe story began in a little town by the name of of\n\tSan Diego")
 
+;;; STDCAP testing
+
+(applytest "find my phone" stdcap "find my phone")
+(applytest "Find My Phone" stdcap "Find my phone")
+(applytest "Find My Phone" stdcap "Find my Phone")
+(applytest "Find My Phone" stdcap "find my Phone")
+(applytest "find my iPhone" stdcap "find my iPhone")
+(applytest "Find My iPhone" stdcap "Find my iPhone")
+
 ;;;; Mime parsing
 
 ; (define msg (read-mime msg-text))

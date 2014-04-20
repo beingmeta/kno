@@ -87,9 +87,9 @@ testclean:
 	rm -f *.log *.err *.done *.finished *.pid *.died
 	rm -f temp.* utf8-temp.* testdb* memoization.index test.dtype
 	rm -f logfile thirty2fifty thirtythree 
-alltests: dtypetests tabletests indextests hashindextests dbtests
+alltests: schemetests tabletests indextests hashindextests dbtests
 	@echo "*** Done with alltests"
-dtypetests:
+schemetests:
 	@echo "*** Running scheme tests to exercise the data/eval layer"
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) r4rs.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) exceptions.scm
@@ -97,11 +97,11 @@ dtypetests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) seqtest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) picktest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cachecall.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) misctest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) texttest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) timefns.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) threadtest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) i18n.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) misctest.scm
 	@echo "*** Completed scheme tests to exercise the data/eval layer"
 
 tabletests:
@@ -209,7 +209,7 @@ dbhash32tests:
 	make FD_HASHINDEX="(COMPRESS B32)" dbtests
 	@echo "*** Completed scheme tests to exercise hashindices with B32 reprepresentation "***""
 memtests: @memtest_prefix@memtests
-memdtypetests: @memtest_prefix@memdtypetests
+memschemetests: @memtest_prefix@memschemetests
 memtabletests: @memtest_prefix@memtabletests
 memindextests: @memtest_prefix@memindextests
 memhashindextests: @memtest_prefix@memhashindextests
@@ -221,9 +221,9 @@ vg_memtests:
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 alltests
 	@echo "*** Finished running alltests with valgrind memory debugging"
 
-vg_memdtypetests:
+vg_memschemetests:
 	@echo "*** Running tests on data/eval layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dtypetests
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 schemetests
 	@echo "*** Finished running tests on data/eval layers with valgrind memory debugging"
 
 vg_memtabletests:
@@ -256,9 +256,9 @@ gp_memtests:
 	make TESTSIZE=$(TESTSIZE)/4 alltests
 	@echo "*** Finished running alltests with memory debugging"
 
-gp_memdtypetests:
+gp_memschemetests:
 	@echo "*** Running tests on data/eval layers with memory debugging"
-	make TESTSIZE=$(TESTSIZE)/4 dtypetests
+	make TESTSIZE=$(TESTSIZE)/4 schemetests
 	@echo "*** Finished running tests on data/eval layers with memory debugging"
 
 gp_memtabletests:
@@ -287,7 +287,7 @@ gp_memdbhashtests:
 	@echo "*** Finished running tests on database layers with memory debugging"
 
 heaptests: @heaptest_prefix@heaptests
-heapdtypetests: @heaptest_prefix@heapdtypetests
+heapschemetests: @heaptest_prefix@heapschemetests
 heaptabletests: @heaptest_prefix@heaptabletests
 heapdbtests: @heaptest_prefix@heapdbtests
 
@@ -296,9 +296,9 @@ vg_heaptests:
 	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 alltests
 	@echo "*** Finished running alltests with valgrind heap debugging"
 
-vg_heapdtypetests:
+vg_heapschemetests:
 	@echo "*** Running tests on data/eval layers with valgrind heap debugging"
-	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 dtypetests
+	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 schemetests
 	@echo "*** Finished running tests on data/eval layers with valgrind heap debugging"
 
 vg_heaptabletests:
@@ -316,9 +316,9 @@ gp_heaptests:
 	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 alltests
 	@echo "*** Finished running alltests with gperftools memory debugging"
 
-gp_heapdtypetests:
+gp_heapschemetests:
 	@echo "*** Running tests on data/eval layers with gperftools memory debugging"
-	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 dtypetests
+	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 schemetests
 	@echo "*** Finished running tests on data/eval layers with gperftools memory debugging"
 
 gp_heaptabletests:
