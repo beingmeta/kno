@@ -969,7 +969,10 @@ FD_EXPORT fdtype fd_step_call(fdtype c)
 {
   struct FD_TAIL_CALL *tc=
     FD_GET_CONS(c,fd_tail_call_type,struct FD_TAIL_CALL *);
-  fdtype result=fd_apply(tc->head,tc->n_elts-1,(&(tc->head))+1);
+  fdtype result=
+    ((tc->flags&FD_TAIL_CALL_ND_ARGS)?
+     (fd_apply(tc->head,tc->n_elts-1,(&(tc->head))+1)):
+     (fd_dapply(tc->head,tc->n_elts-1,(&(tc->head))+1)));
   fd_decref(c);
   return result;
 }
