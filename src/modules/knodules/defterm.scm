@@ -32,6 +32,7 @@
     (iadd! dterm 'dterms (pickstrings term))
     (iadd! dterm language (pickstrings term))
     (add! (knodule-dterms knodule) (pickstrings term) dterm)
+    (add! (knodule-dterms knodule) (stdcap (pickstrings term)) dterm)
     (until (null? args)
       (if (string? (car args))
 	  (begin (kno/add! dterm language (car args))
