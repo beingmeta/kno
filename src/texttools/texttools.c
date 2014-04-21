@@ -816,34 +816,23 @@ static fdtype textgather_base(fdtype pattern,fdtype string,
     return fd_err(fd_RangeError,"textgather",NULL,FD_VOID);
   else {
     int start=fd_text_search(pattern,NULL,data,off,lim,0);
-    while (start>=0) {
+    while ((start>=0)&&(start<lim)) {
       fdtype substring, match_result=
 	fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
-      int end=-1;
-      if (star) {
-        FD_DO_CHOICES(match,match_result) {
-          int point=fd_getint(match);
-          if (point<=start) continue;
-          substring=fd_extract_string(NULL,data+start,data+point);
-          FD_ADD_TO_CHOICE(results,substring);
-          substring=FD_VOID;
-          if (end<0) end=point;
-          else if (point<end) end=point;}}
-      else {
-        FD_DO_CHOICES(match,match_result) {
-          int point=fd_getint(match);
-          if (point>end) end=point;}
-        fd_decref(match_result);
-        if (end<0) return results;
-        else if (end>start) {
-          substring=fd_extract_string(NULL,data+start,data+end);
-          FD_ADD_TO_CHOICE(results,substring);
-          start=fd_text_search(pattern,NULL,data,end,lim,0);}
-        else {}}
-      if (end==lim)
-        return results;
-      else start=fd_text_search
-             (pattern,NULL,data,forward_char(data,end),lim,0);}
+      int maxpoint=-1;
+      {FD_DO_CHOICES(match,match_result) {
+          int pt=fd_getint(match);
+          if (pt>maxpoint) {maxpoint=pt;}}}
+      fd_decref(match_result);
+      if (maxpoint<0) return results;
+      else if (maxpoint>start) {
+        substring=fd_extract_string(NULL,data+start,data+maxpoint);
+        FD_ADD_TO_CHOICE(results,substring);}
+      else {}
+      if (star)
+        start=fd_text_search(pattern,NULL,data,forward_char(data,start),lim,0);
+      else if (maxpoint==lim) return results;
+      else start=fd_text_search(pattern,NULL,data,maxpoint,lim,0);}
     if (start==-2) {
       fd_decref(results);
       return FD_ERROR_VALUE;}
@@ -1118,8 +1107,9 @@ static fdtype textsubst(fdtype string,
 
 /* Gathering and rewriting together */
 
-static fdtype gathersubst(fdtype pattern,fdtype string,
-			  fdtype offset,fdtype limit)
+static fdtype gathersubst_base(fdtype pattern,fdtype string,
+                               fdtype offset,fdtype limit,
+                               int star)
 {
   fdtype results=FD_EMPTY_CHOICE;
   u8_string data=FD_STRDATA(string);
@@ -1129,7 +1119,7 @@ static fdtype gathersubst(fdtype pattern,fdtype string,
     return fd_err(fd_RangeError,"textgather",NULL,FD_VOID);
   else {
     int start=fd_text_search(pattern,NULL,data,off,lim,0);
-    while (start>=0) {
+    while ((start>=0)&&(start<lim)) {
       fdtype result, extract_result=
 	fd_text_extract(pattern,NULL,FD_STRDATA(string),start,lim,0);
       int end=-1; fdtype longest=FD_VOID;
@@ -1146,14 +1136,27 @@ static fdtype gathersubst(fdtype pattern,fdtype string,
 	FD_ADD_TO_CHOICE(results,result);
 	fd_decref(longest);
 	start=fd_text_search(pattern,NULL,data,end,lim,0);}
+      else if (star)
+        start=fd_text_search(pattern,NULL,data,forward_char(data,start),lim,0);
       else if (end==lim)
 	return results;
-      else start=fd_text_search
-	     (pattern,NULL,data,forward_char(data,end),lim,0);}
+      else start=fd_text_search(pattern,NULL,data,forward_char(data,end),lim,0);}
     if (start==-2) {
       fd_decref(results);
       return FD_ERROR_VALUE;}
     else return results;}
+}
+
+static fdtype gathersubst(fdtype pattern,fdtype string,
+			  fdtype offset,fdtype limit)
+{
+  return gathersubst_base(pattern,string,offset,limit,0);
+}
+
+static fdtype gathersubst_star(fdtype pattern,fdtype string,
+                               fdtype offset,fdtype limit)
+{
+  return gathersubst_base(pattern,string,offset,limit,1);
 }
 
 /* Handy filtering functions */
@@ -2359,6 +2362,11 @@ void fd_init_texttools()
 			   fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
 	   fd_make_cprim4x("GATHERSUBST",gathersubst,2,
+			   -1,FD_VOID,fd_string_type,FD_VOID,
+			   fd_fixnum_type,FD_INT2DTYPE(0),
+			   fd_fixnum_type,FD_VOID));
+  fd_idefn(texttools_module,
+	   fd_make_cprim4x("GATHERSUBST*",gathersubst_star,2,
 			   -1,FD_VOID,fd_string_type,FD_VOID,
 			   fd_fixnum_type,FD_INT2DTYPE(0),
 			   fd_fixnum_type,FD_VOID));
