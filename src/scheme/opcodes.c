@@ -84,7 +84,8 @@ static int validate_opcode(fdtype x)
 /* OPCODE dispatching */
 
 enum TAILOP { any_op=0, or_op, and_op, try_op };
-static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,fd_lispenv env);
+static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
+                        u8_context cxt,fd_lispenv env);
 
 static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 {
@@ -130,7 +131,7 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         if (FD_EMPTY_CHOICEP(test))
           return FD_EMPTY_CHOICE;
         else if (FD_FALSEP(test))
-          return eval_tail(expr,2,any_op,env); 
+          return eval_tail(expr,2,any_op,"IFELSE opcode",env); 
         else {
           fdtype consequent_expr=fd_get_arg(expr,1);
           if (FD_VOIDP(consequent_expr))
@@ -149,19 +150,19 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       if (israil) {
         if (FD_EXPECT_TRUE(FD_RAIL_LENGTH(expr)==2))
           return fd_incref(fd_get_arg(expr,1));
-        else return fd_err(fd_SyntaxError,"opcode QUOTE",NULL,expr);}
+        else return fd_err(fd_SyntaxError,"QUOTE opcode",NULL,expr);}
       else if ((FD_PAIRP(body)) && (FD_EMPTY_LISTP(FD_CDR(body))))
         return fd_incref(FD_CAR(body));
-      else return fd_err(fd_SyntaxError,"opcode QUOTE",NULL,expr);}
+      else return fd_err(fd_SyntaxError,"QUOTE opcode",NULL,expr);}
     case FD_BEGIN_OPCODE: 
-      return eval_tail(expr,1,any_op,env);
+      return eval_tail(expr,1,any_op,"BEGIN opcode",env);
     case FD_AND_OPCODE:
-      return eval_tail(expr,1,and_op,env);
+      return eval_tail(expr,1,and_op,"AND opcode",env);
     case FD_OR_OPCODE:
-      return eval_tail(expr,1,or_op,env);
+      return eval_tail(expr,1,or_op,"OR opcode",env);
     case FD_NOT_OPCODE: {
-      fdtype arg1_expr=fd_get_arg(body,1), arg1;
-      if (FD_VOIDP(arg1))
+      fdtype arg1_expr=fd_get_arg(expr,1), arg1;
+      if (FD_VOIDP(arg1_expr))
         return fd_err(fd_SyntaxError,"NOT opcode",NULL,expr);
       else arg1=fd_eval(arg1_expr,env);
       if (FD_VOIDP(arg1))
@@ -191,10 +192,11 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
               symbol,FD_UNBOUND);}
     case FD_COMMENT_OPCODE: return FD_VOID;
     default:
-      return fd_err(_("Invalid opcode"),"opcode eval",NULL,body);}
+      return fd_err(_("Invalid opcode"),"opcode eval",NULL,expr);}
 }
 
-static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,fd_lispenv env)
+static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
+                        u8_context cxt,fd_lispenv env)
 {
   if (FD_RAILP(expr)) {
     int n_elts=FD_RAIL_LENGTH(expr), n_butlast=n_elts-1;
@@ -215,26 +217,28 @@ static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,fd_lispenv env)
       return fd_tail_eval(final_expr,env);
     else return fasteval(final_expr,env);}
   else {
-    fdtype exprs=expr; int i=0;
-    while ((i<start)&&(FD_PAIRP(exprs))) {exprs=FD_CDR(expr); i++;}
-    while (FD_PAIRP(exprs)) {
-      fdtype each=FD_CAR(exprs), next=FD_CDR(exprs);
-      if (FD_PAIRP(exprs)) {
-        fdtype each_value=fd_eval(each,env);
-        if (FD_ABORTP(each_value)) return each_value;
-        else if (op==any_op) fd_decref(each_value);
-        else if ((op==and_op)&&(FD_FALSEP(each_value)))
-          return each_value;
-        else if ((op==or_op)&&(!(FD_FALSEP(each_value))))
-          return each_value;
-        else if ((op==try_op)&&(!(FD_EMPTY_CHOICEP(each_value))))
-          return each_value;
-        else fd_decref(each_value);
-        exprs=FD_CDR(exprs);}
-      else if ((FD_PAIRP(each))||(FD_RAILP(each)))
-        return fd_tail_eval(each,env);
-      else return fasteval(each,env);}
-    return FD_VOID;}
+    fdtype exprs=expr, next=FD_CDR(expr); int i=0;
+    while ((i<start)&&(FD_PAIRP(exprs))) {
+      exprs=next; next=FD_CDR(expr); i++;}
+    while (FD_PAIRP(next)) {
+      fdtype each=FD_CAR(exprs);
+      fdtype each_value=fd_eval(each,env);
+      if (FD_ABORTP(each_value)) return each_value;
+      else if (op==any_op) fd_decref(each_value);
+      else if ((op==and_op)&&(FD_FALSEP(each_value)))
+        return each_value;
+      else if ((op==or_op)&&(!(FD_FALSEP(each_value))))
+        return each_value;
+      else if ((op==try_op)&&(!(FD_EMPTY_CHOICEP(each_value))))
+        return each_value;
+      else fd_decref(each_value);
+      exprs=next; next=FD_CDR(exprs);}
+    if (FD_PAIRP(exprs)) {
+      fdtype final=FD_CAR(exprs);
+      if ((FD_PAIRP(final))||(FD_RAILP(final)))
+        return fd_tail_eval(final,env);
+      else return fasteval(final,env);}
+    else return fd_err(fd_SyntaxError,cxt,NULL,exprs);}
 }
 
 static fdtype pickoids_opcode(fdtype arg1)
