@@ -221,6 +221,7 @@ fd_exception fd_TXInvalidPattern=_("Not a valid TX text pattern");
 fd_ptr_type fd_txclosure_type;
 
 static fdtype subst_symbol, label_symbol, star_symbol, plus_symbol, opt_symbol;
+static fdtype match_env;
 
 #define string_ref(s) ((*(s) < 0x80) ? (*(s)) : (u8_string_ref(s)))
 
@@ -233,6 +234,29 @@ static fdtype hashset_strget(fd_hashset h,u8_string s,u8_byteoff len)
   FD_INIT_STATIC_CONS(&sval,fd_string_type);
   sval.length=len; sval.bytes=s;
   return fd_hashset_get(h,(fdtype)&sval);
+}
+
+static fdtype match_eval(fdtype symbol,fd_lispenv env)
+{
+  fdtype value=((env)?(fd_symeval(symbol,env)):(FD_VOID));
+  if (FD_VOIDP(value))
+    return fd_get(match_env,symbol,FD_VOID);
+  else return value;
+}
+static fdtype match_apply(fdtype method,u8_context cxt,fd_lispenv env,
+                          int n,fdtype *args)
+{
+  if (FD_APPLICABLEP(method))
+    return fd_apply(method,n,args);
+  else if (FD_SYMBOLP(method)) {
+    fdtype methfn=match_eval(method,env), result;
+    if (FD_APPLICABLEP(methfn))
+      result=fd_apply(methfn,n,args);
+    else return fd_err(_("Unknown matcher symbol"),cxt,
+                       FD_SYMBOL_NAME(method),method);
+    fd_decref(methfn);
+    return result;}
+  else return fd_err(_("Invalid Match Method"),cxt,NULL,method);
 }
 
 /** Utility functions **/
@@ -445,17 +469,14 @@ fdtype fd_text_domatch
     if ((FD_CHOICEP(result)) && (flags&(FD_MATCH_BE_GREEDY)))
       return get_longest_match(result);
     else return result;}
-  else if (FD_SYMBOLP(pat))
-    if (env) {
-      fdtype v=fd_symeval(pat,env);
-      if (FD_VOIDP(v))
-	return fd_err(fd_UnboundIdentifier,"fd_text_domatch",
-		      _("unknown match symbol"),pat);
-      else {
-	fdtype result=fd_text_domatch(v,next,env,string,off,lim,flags);
-	fd_decref(v); return result;}}
-    else return fd_err(fd_UnboundIdentifier,"fd_text_domatch",
-		       FD_SYMBOL_NAME(pat),pat);
+  else if (FD_SYMBOLP(pat)) {
+    fdtype v=match_eval(pat,env);
+    if (FD_VOIDP(v))
+      return fd_err(fd_UnboundIdentifier,"fd_text_domatch",
+                    _("unknown match symbol"),pat);
+    else {
+      fdtype result=fd_text_domatch(v,next,env,string,off,lim,flags);
+      fd_decref(v); return result;}}
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return fd_text_matcher(txc->pattern,txc->env,string,off,lim,flags);}
@@ -623,9 +644,12 @@ static fdtype textract
         fd_decref(matches);
 	return answer;}
     else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);}
-  else if (FD_SYMBOLP(pat))
-    if (env) {
-      fdtype v=fd_symeval(pat,env);
+  else if (FD_SYMBOLP(pat)) {
+    fdtype v=match_eval(pat,env);
+    if (FD_VOIDP(v))
+      return fd_err(fd_UnboundIdentifier,"fd_text_matcher",
+                    FD_SYMBOL_NAME(pat),pat);
+    else {
       fdtype lengths=
 	get_longest_match(fd_text_domatch(v,next,env,string,off,lim,flags));
       fdtype answers=FD_EMPTY_CHOICE;
@@ -639,9 +663,7 @@ static fdtype textract
 	  return extraction;}
 	FD_ADD_TO_CHOICE(answers,extraction);}
       fd_decref(lengths); fd_decref(v);
-      return answers;}
-    else return fd_err(fd_UnboundIdentifier,"fd_text_matcher",
-		       FD_SYMBOL_NAME(pat),pat);
+      return answers;}}
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return textract(txc->pattern,next,txc->env,string,off,lim,flags);}
@@ -1100,8 +1122,17 @@ static fdtype label_extract
 	fdtype xtract, addval; fd_incref(data);
 	if (FD_VOIDP(parser))
 	  xtract=fd_make_list(3,FD_CAR(pat),sym,data);
-	else if ((env) && ((FD_SYMBOLP(parser)) || (FD_PAIRP(parser)))) {
+        else if (FD_SYMBOLP(parser)) {
+	  fdtype parser_val=match_eval(parser,env);
+          if ((FD_ABORTP(parser_val))||(FD_VOIDP(parser_val))) {
+            fd_decref(answers); fd_decref(extractions);
+            return parser_val;}
+	  xtract=fd_make_list(4,FD_CAR(pat),sym,data,parser_val);}
+	else if ((env) && (FD_PAIRP(parser))) {
 	  fdtype parser_val=fd_eval(parser,env);
+          if ((FD_ABORTP(parser_val))||(FD_VOIDP(parser_val))) {
+            fd_decref(answers); fd_decref(extractions);
+            return parser_val;}
 	  xtract=fd_make_list(4,FD_CAR(pat),sym,data,parser_val);}
 	else {
           fd_incref(parser);
@@ -1171,9 +1202,10 @@ static fdtype subst_extract
 
 static fdtype expand_subst_args(fdtype args,fd_lispenv env)
 {
-  if (FD_SYMBOLP(args))
-    if (env) return fd_symeval(args,env);
-    else return args;
+  if (FD_SYMBOLP(args)) {
+    fdtype value=match_eval(args,env);
+    if (FD_VOIDP(value)) return fd_incref(args);
+    else return value;}
   else if (!(FD_CONSP(args))) return args;
   else if (FD_PAIRP(args)) {
     fdtype carchoices=expand_subst_args(FD_CAR(args),env);
@@ -3250,7 +3282,7 @@ static fdtype hashset_match
     return fd_err(fd_MatchSyntaxError,"hashset_match",NULL,pat);
   else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_match",pat);
-  else if (FD_VOIDP(xform)) {
+  if (FD_VOIDP(xform)) {
     fd_hashset h=to_hashset(hs);
     fdtype iresults=fd_text_domatch(cpat,next,env,string,off,lim,flags);
     fdtype results=FD_EMPTY_CHOICE;
@@ -3263,8 +3295,9 @@ static fdtype hashset_match
     fdtype iresults=fd_text_domatch(cpat,next,env,string,off,lim,flags);
     fdtype results=FD_EMPTY_CHOICE;
     {FD_DO_CHOICES(possibility,iresults) {
-	fdtype origin=fd_extract_string(NULL,string+off,string+fd_getint(possibility));
-	fdtype xformed=fd_apply(xform,1,&origin);
+	fdtype origin=fd_extract_string
+          (NULL,string+off,string+fd_getint(possibility));
+	fdtype xformed=match_apply(xform,"HASHSET-MATCH",env,1,&origin);
 	if (fd_hashset_get(h,xformed)) {
 	  fd_incref(possibility); FD_ADD_TO_CHOICE(results,possibility);}
 	fd_decref(xformed); fd_decref(origin);}}
@@ -3304,7 +3337,7 @@ static fdtype hashset_not_match
     return fd_err(fd_MatchSyntaxError,"hashset_not_match",NULL,pat);
   else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_not_match",pat);
-  else if (FD_VOIDP(xform)) {
+  if (FD_VOIDP(xform)) {
     fd_hashset h=to_hashset(hs);
     fdtype iresults=fd_text_domatch(cpat,next,env,string,off,lim,flags);
     fdtype results=FD_EMPTY_CHOICE;
@@ -3312,14 +3345,17 @@ static fdtype hashset_not_match
       if (hashset_strget(h,string+off,fd_getint(possibility)-off)) {}
       else {fd_incref(possibility); FD_ADD_TO_CHOICE(results,possibility);}
     return get_longest_match(results);}
-  else  {
+  else {
     fd_hashset h=to_hashset(hs);
     fdtype iresults=fd_text_domatch(cpat,next,env,string,off,lim,flags);
     fdtype results=FD_EMPTY_CHOICE;
     {FD_DO_CHOICES(possibility,iresults) {
-	fdtype origin=fd_extract_string(NULL,string+off,string+fd_getint(possibility));
-	fdtype xformed=fd_apply(xform,1,&origin);
-	if (!(fd_hashset_get(h,xformed))) {
+	fdtype origin=fd_extract_string
+          (NULL,string+off,string+fd_getint(possibility));
+	fdtype xformed=match_apply(xform,"HASHSET-NOT-MATCH",env,1,&origin);
+        if (FD_ABORTP(xformed)) {
+          fd_decref(results); return xformed;}
+        else if ((!(FD_STRINGP(xformed)))||(!(fd_hashset_get(h,xformed)))) {
 	  fd_incref(possibility); FD_ADD_TO_CHOICE(results,possibility);}
 	fd_decref(xformed); fd_decref(origin);}}
     return get_longest_match(results);}
@@ -3576,25 +3612,19 @@ u8_byteoff fd_text_search
     else {
       fd_seterr(fd_MatchSyntaxError,"fd_text_search",NULL,fd_incref(pat));
       return -2;}}
-  else if (FD_SYMBOLP(pat))
-    if (env) {
-      fdtype vpat=fd_symeval(pat,env);
-      if (FD_ABORTP(vpat)) {
-	fd_interr(vpat);
-	return -2;}
-      else if (FD_VOIDP(vpat)) {
-	u8_string name=FD_SYMBOL_NAME(pat);
-	fd_seterr(fd_UnboundIdentifier,"fd_text_search",
-		  u8_strdup(name),fd_incref(pat));
-	return -2;}
-      else {
-	u8_byteoff result=fd_text_search(vpat,env,string,off,lim,flags);
-	fd_decref(vpat); return result;}}
-    else {
+  else if (FD_SYMBOLP(pat)) {
+    fdtype vpat=match_eval(pat,env);
+    if (FD_ABORTP(vpat)) {
+      fd_interr(vpat);
+      return -2;}
+    else if (FD_VOIDP(vpat)) {
       u8_string name=FD_SYMBOL_NAME(pat);
       fd_seterr(fd_UnboundIdentifier,"fd_text_search",
-		u8_strdup(name),fd_incref(pat));
+                u8_strdup(name),fd_incref(pat));
       return -2;}
+    else {
+      u8_byteoff result=fd_text_search(vpat,env,string,off,lim,flags);
+      fd_decref(vpat); return result;}}
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)(pat);
     return fd_text_search(txc->pattern,txc->env,string,off,lim,flags);}
@@ -3644,11 +3674,25 @@ static void recycle_txclosure(FD_CONS *c)
   u8_free(txc);
 }
 
+/* Defining match symbols */
+
+FD_EXPORT int fd_matchdef(fdtype symbol,fdtype value)
+{
+  return fd_store(match_env,symbol,value);
+}
+
+FD_EXPORT fdtype fd_matchget(fdtype symbol,fd_lispenv env)
+{
+  return match_eval(symbol,env);
+}
+
 /** Initialization **/
 
 void fd_init_match_c()
 {
   u8_register_source_file(_FILEINFO);
+
+  match_env=fd_make_hashtable(NULL,1024);
 
   fd_txclosure_type=fd_register_cons_type("txclosure");
   fd_recyclers[fd_txclosure_type]=recycle_txclosure;
@@ -3768,8 +3812,6 @@ void fd_init_match_c()
   plus_symbol=fd_intern("+");
   opt_symbol=fd_intern("OPT");
 }
-
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

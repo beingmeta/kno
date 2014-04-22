@@ -57,8 +57,9 @@ FD_EXPORT u8_byteoff fd_text_search
 FD_EXPORT fdtype fd_tx_closure(fdtype expr,fd_lispenv env);
 
 FD_EXPORT void fd_add_match_operator
-  (u8_string label,
-   tx_matchfn matcher,tx_searchfn searcher,tx_extractfn extract);
+  (u8_string label,tx_matchfn m,tx_searchfn s,tx_extractfn ex);
+FD_EXPORT int fd_matchdef(fdtype symbol,fdtype value);
+FD_EXPORT fdtype fd_matchget(fdtype symbol,fd_lispenv env);
 FD_EXPORT u8_byteoff fd_text_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags);

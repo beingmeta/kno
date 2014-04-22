@@ -889,8 +889,9 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
 }
 
 /* Text rewriting and substitution
-   Rewriting rewrites a string which matches a pattern, substitution rewrites all the
-    substrings matching a pattern. */
+   Rewriting rewrites a string which matches a pattern, substitution
+   rewrites all the substrings matching a pattern.
+*/
 
 static fdtype star_symbol, plus_symbol, label_symbol, subst_symbol, opt_symbol;
 static fdtype rewrite_apply(fdtype fcn,fdtype content,fdtype args);
@@ -2175,6 +2176,16 @@ static fdtype hmac_sha256_prim(fdtype key,fdtype input)
   else return fd_init_packet(NULL,digest_len,digest);
 }
 
+/* Match def */
+
+static fdtype matchdef_prim(fdtype symbol,fdtype value)
+{
+  int retval=fd_matchdef(symbol,value);
+  if (retval<0) return FD_ERROR_VALUE;
+  else if (retval) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 /* Initialization */
 
 static int texttools_init=0;
@@ -2398,6 +2409,11 @@ void fd_init_texttools()
 			   fd_port_type,FD_VOID,
 			   -1,FD_VOID,
 			   -1,FD_VOID));
+
+
+  fd_idefn(texttools_module,
+	   fd_make_cprim2x("MATCHDEF!",matchdef_prim,2,
+			   fd_symbol_type,FD_VOID,-1,FD_VOID));
 
 
   fd_idefn(texttools_module,
