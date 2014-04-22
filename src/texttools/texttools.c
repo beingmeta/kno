@@ -822,7 +822,7 @@ static fdtype textgather_base(fdtype pattern,fdtype string,
       int maxpoint=-1;
       {FD_DO_CHOICES(match,match_result) {
           int pt=fd_getint(match);
-          if ((pt>maxpoint)&&(pt<lim)) {
+          if ((pt>maxpoint)&&(pt<=lim)) {
             maxpoint=pt;}}}
       fd_decref(match_result);
       if (maxpoint<0) return results;
@@ -1127,7 +1127,8 @@ static fdtype gathersubst_base(fdtype pattern,fdtype string,
       int end=-1; fdtype longest=FD_VOID;
       {FD_DO_CHOICES(extraction,extract_result) {
 	  int point=fd_getint(FD_CAR(extraction));
-	  if (point>end) {end=point; longest=FD_CDR(extraction);}}}
+	  if ((point>end)&&(point<=lim)) {
+            end=point; longest=FD_CDR(extraction);}}}
       fd_incref(longest);
       fd_decref(extract_result);
       if (end<0) return results;
