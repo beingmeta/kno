@@ -658,19 +658,27 @@ static fdtype xref_opcode(fdtype x,int i,fdtype tag)
 
 static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 {
-  fdtype body=FD_CDR(expr), arg1_expr, arg1;
+  int israil=(FD_RAILP(expr));
+  fdtype body=((israil)?(FD_VOID):(FD_CDR(expr))), arg1_expr, arg1; 
   if (opcode<FD_UNARY_ND_OPCODES)
     /* These handle the raw expression without evaluation */
     return opcode_special_dispatch(opcode,expr,env);
-  else if (FD_EXPECT_FALSE(!(FD_PAIRP(body))))
-    /* Otherwise, we should have at least one argument,
-       return an error otherwise. */
-    return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);
+  else if (FD_PAIRP(expr)) {
+    if (FD_EXPECT_FALSE(!FD_PAIRP(FD_CDR(expr))))
+      /* Otherwise, we should have at least one argument,
+         return an error otherwise. */
+      return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
+  else if (israil) {
+    if (FD_EXPECT_FALSE(FD_RAIL_LENGTH(expr)==0))
+      /* Otherwise, we should have at least one argument,
+         return an error otherwise. */
+      return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
+  else {}
   /* We have at least one argument to evaluate and we also
      "advance" the body. */
-  arg1_expr=FD_CAR(body);
+  arg1_expr=fd_get_arg(expr,1);
+  if (!(israil)) body=FD_CDR(body);
   arg1=fd_eval(arg1_expr,env);
-  body=FD_CDR(body);
   /* Now, check the result of the first argument expression */
   if (FD_ABORTP(arg1)) return arg1;
   else if (FD_VOIDP(arg1))
@@ -688,13 +696,14 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	     (opcode<FD_BINARY_OPCODES)) &&
 	    (FD_EMPTY_CHOICEP(arg1))))
     return arg1;
-  else if (FD_EMPTY_LISTP(body)) /* Unary call */
+  else if ((israil)?(FD_RAIL_LENGTH(expr)==2):(FD_EMPTY_LISTP(body))) {
+    /* Unary call */
     /* Now we know that there is only one argument, which means you're either
        dispatching without doing ND iteration or with doing it.  */
-    if (opcode<FD_UNARY_OPCODES)
+    if (opcode<FD_UNARY_OPCODES) {
       /* This means you don't have to bother iterating over choices. */
       if (FD_EXPECT_FALSE(FD_ACHOICEP(arg1))) {
-	/* We handle choice normalization here so that the
+	/* We handle choice normalization up front so that the
 	   inner code can be faster. */
 	fdtype simplified=fd_make_simple_choice(arg1);
 	fdtype result=opcode_unary_nd_dispatch(opcode,simplified);
@@ -703,8 +712,8 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       else {
 	fdtype result=opcode_unary_nd_dispatch(opcode,arg1);
 	fd_decref(arg1);
-	return result;}
-    else if (opcode<FD_NUMERIC2_OPCODES)
+	return result;}}
+    else if (opcode<FD_NUMERIC2_OPCODES) {
       /* Otherwise, we iterate over the argument */
       if (FD_EMPTY_CHOICEP(arg1)) return arg1;
       else if (FD_EXPECT_FALSE((FD_CHOICEP(arg1)) || (FD_ACHOICEP(arg1)))) {
@@ -722,23 +731,23 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	/* Or just dispatch directly if we have a singleton */
 	fdtype result=opcode_unary_dispatch(opcode,arg1);
 	fd_decref(arg1);
-	return result;}
+	return result;}}
     else { /* At this point, we must not have enough arguments, since
 	      the opcode is past the unary operation range. */
       fd_decref(arg1);
-      return fd_err(fd_TooFewArgs,"opcode eval",NULL,expr);}
+      return fd_err(fd_TooFewArgs,"opcode eval",NULL,expr);}}
   /* If we get here, we have additional arguments. */
   else if (FD_EXPECT_FALSE(opcode<FD_NUMERIC2_OPCODES)) {
-    /* All unary opcodes live beneath FD_NUMERIC2_OPCODES.
-       We should probably catch this earlier. */
+    /* All unary opcodes are smaller FD_NUMERIC2_OPCODES. */
     fd_decref(arg1);
     return fd_err(fd_TooManyArgs,"opcode eval",NULL,expr);}
   else if ((opcode<FD_NARY_OPCODES) && (FD_EMPTY_CHOICEP(arg1)))
     /* Prune calls */
     return arg1;
-  else if (opcode<FD_NARY_OPCODES) /* Binary opcodes all live beneath FD_NARY_OPCODES */ { 
+  else if (opcode<FD_NARY_OPCODES)
+    /* Binary opcodes all live beneath FD_NARY_OPCODES */ { 
     /* Binary calls start by evaluating the second argument */
-    fdtype arg2=fd_eval(FD_CAR(body),env);
+    fdtype arg2=fd_eval(fd_get_arg(expr,2),env);
     if (FD_ABORTP(arg2)) {
       fd_decref(arg1); return arg2;}
     else if (FD_VOIDP(arg2)) {
@@ -794,6 +803,8 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       if (FD_ABORTP(slotids)) return slotids;
       else if (FD_VOIDP(slotids))
 	return fd_err(fd_SyntaxError,"OPCODE ftest",NULL,expr);
+      else if (FD_EMPTY_CHOICEP(slotids)) {
+        fd_decref(arg1); return FD_EMPTY_CHOICE;}
       else if (FD_VOIDP(values_arg))
 	values=FD_VOID;
       else values=fd_eval(values_arg,env);
@@ -853,9 +864,16 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       fdtype offset_arg=fd_get_arg(expr,2);
       fdtype type_arg=fd_get_arg(expr,3);
       if ((FD_PAIRP(type_arg)) &&
-	  (FD_EQ(FD_CAR(type_arg),quote_symbol)) &&
+	  ((FD_EQ(FD_CAR(type_arg),quote_symbol))||
+           (FD_EQ(FD_CAR(type_arg),FD_QUOTE_OPCODE))) &&
 	  (FD_PAIRP(FD_CDR(type_arg))))
 	type_arg=FD_CAR(FD_CDR(type_arg));
+      else if ((FD_RAILP(type_arg))&&
+               (FD_RAIL_LENGTH(type_arg)>1)&&
+               ((FD_EQ(FD_RAIL_REF(type_arg,0),FD_QUOTE_OPCODE))||
+                (FD_EQ(FD_RAIL_REF(type_arg,0),quote_symbol))))
+        type_arg=fd_get_arg(type_arg,1);
+      else {}
       if (FD_CHOICEP(arg1)) {
 	fdtype results=FD_EMPTY_CHOICE;
 	FD_DO_CHOICES(a1,arg1)
@@ -891,9 +909,6 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     fd_decref(arg1);
     return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
 }
-
-
-
 
 /* Emacs local variables
    ;;;  Local variables: ***
