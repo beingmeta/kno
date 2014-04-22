@@ -388,12 +388,80 @@ static fdtype backtrace_prim(fdtype arg)
   return FD_VOID;
 }
 
+/* Module and loading config */
+
+static fdtype module_list=FD_EMPTY_LIST;
+
+static int module_config_set(fdtype var,fdtype vals,void *d)
+{
+  FD_DO_CHOICES(val,vals) {
+    fdtype modname=((FD_SYMBOLP(val))?(val):
+		    (FD_STRINGP(val))?
+		    (fd_parse(FD_STRDATA(val))):
+		    (FD_VOID));
+    fdtype module=FD_VOID, used;
+    if (FD_VOIDP(modname)) {
+      fd_seterr(fd_TypeError,"module_config_set","module",val);
+      return -1;}
+    else if (!(FD_SYMBOLP(modname))) {
+      fd_seterr(fd_TypeError,"module_config_set","module name",val);
+      fd_decref(modname);
+      return -1;}
+    module=fd_find_module(modname,0,0);
+    if (FD_VOIDP(module)) {
+      fd_seterr(fd_NoSuchModule,"module_config_set",FD_SYMBOL_NAME(modname),val);
+      fd_decref(modname);
+      return -1;}
+    used=fd_use_module(console_env,module);
+    if (FD_ABORTP(used)) {
+      fd_decref(modname); fd_decref(module); fd_decref(used);
+      return -1;}
+    else {
+      module_list=fd_init_pair(NULL,modname,module_list);
+      fd_decref(module); fd_decref(used);
+      return 1;}}
+}
+
+static fdtype module_config_get(fdtype var,void *d)
+{
+  return fd_incref(module_list);
+}
+
+static fdtype loadfile_list=FD_EMPTY_LIST;
+
+static int loadfile_config_set(fdtype var,fdtype vals,void *d)
+{
+  FD_DO_CHOICES(val,vals) {
+    u8_string loadpath; fdtype loadval;
+    if (!(FD_STRINGP(val))) {
+      fd_seterr(fd_TypeError,"loadfile_config_set","filename",val);
+      return -1;}
+    else if (!(strchr(FD_STRDATA(val),':')))
+      loadpath=u8_abspath(FD_STRDATA(val),NULL);
+    else loadpath=u8_strdup(FD_STRDATA(val));
+    loadval=fd_load_source(loadpath,console_env,NULL);
+    if (FD_ABORTP(loadval)) {
+      fd_seterr(_("load error"),"loadfile_config_set",loadpath,val);
+      return -1;}
+    else {
+      loadfile_list=fd_init_pair(NULL,fdtype_string(loadpath),loadfile_list);
+      u8_free(loadpath);
+      return 1;}}
+}
+
+static fdtype loadfile_config_get(fdtype var,void *d)
+{
+  return fd_incref(loadfile_list);
+}
+
+/* Load dot files into the console */
+
 static void dotloader(u8_string file,fd_lispenv env)
 {
-  if (u8_file_existsp(file)) {
+  u8_string abspath=u8_abspath(file,NULL);
+  if (u8_file_existsp(abspath)) {
     char *kind=((env==NULL)?("CONFIG"):("INIT"));
     double started=u8_elapsed_time(), elapsed; int err=0;
-    u8_string abspath=u8_abspath(file,NULL);
     u8_message("%s(%s)",kind,abspath);
     if (env==NULL) {
       int retval=fd_load_config(abspath);
@@ -410,8 +478,8 @@ static void dotloader(u8_string file,fd_lispenv env)
     else if (elapsed<0.1) {}
     else if (elapsed>1)
       u8_message("%0.3fs for %s(%s)",elapsed,kind,abspath);
-    else u8_message("%0.3fms for %s(%s)",(elapsed*1000),kind,abspath);
-    u8_free(abspath);}
+    else u8_message("%0.3fms for %s(%s)",(elapsed*1000),kind,abspath);}
+  u8_free(abspath);
 }
 
 int main(int argc,char **argv)
@@ -515,6 +583,14 @@ int main(int argc,char **argv)
   errconsole=err;
   console_env=env;
   atexit(exit_fdconsole);
+
+  fd_register_config
+    ("MODULES",_("Which modules to load"),
+     module_config_get,module_config_set,&module_list);
+  fd_register_config
+    ("LOADFILE",_("Which files to load"),
+     loadfile_config_get,loadfile_config_set,&loadfile_list);
+
 
   if (u8_has_suffix(argv[0],"/fdconsole",0))
     u8_default_appid("fdconsole");
