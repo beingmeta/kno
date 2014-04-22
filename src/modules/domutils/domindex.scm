@@ -39,6 +39,7 @@
 	(idmap (getopt settings 'idmap)))
     (when (overlaps? indexslots '{dom/index/defaults})
       (set+! indexslots default-dom-slots))
+    (info%watch "DOM/INDEX!" index doc indexslots indexrules analyzers)
     (dom/indexer index doc {} {}
 		 indexslots cacheslots indexrules analyzers idmap
 		 settings doc)))
@@ -74,7 +75,8 @@
 				       (pick eltinfo pair?))
 			       slots)
 			 (pick indexrules hashtable?))))
-	    ;;(%WATCH "DOMINDEXER" indexval indexslots eltinfo slots rules)
+	    (debug%watch "DOM/INDEXER" (dom/sig xml) index xml parent
+			 indexval indexslots slot rules eltinfo)
 	    (when idmap (add! idmap (get xml 'id) xml))
 	    (add! index (cons 'has {(getkeys xml) (get xml '%attribids)}) indexval)
 	    (add! index (cons 'parent parent) indexval)
@@ -103,3 +105,5 @@
 			     indexslots cacheslots
 			     indexrules analyzers idmap
 			     settings doc))))))))
+
+
