@@ -822,17 +822,19 @@ static fdtype textgather_base(fdtype pattern,fdtype string,
       int maxpoint=-1;
       {FD_DO_CHOICES(match,match_result) {
           int pt=fd_getint(match);
-          if (pt>maxpoint) {maxpoint=pt;}}}
+          if ((pt>maxpoint)&&(pt<lim)) {
+            maxpoint=pt;}}}
       fd_decref(match_result);
       if (maxpoint<0) return results;
       else if (maxpoint>start) {
         substring=fd_extract_string(NULL,data+start,data+maxpoint);
         FD_ADD_TO_CHOICE(results,substring);}
-      else {}
       if (star)
         start=fd_text_search(pattern,NULL,data,forward_char(data,start),lim,0);
       else if (maxpoint==lim) return results;
-      else start=fd_text_search(pattern,NULL,data,maxpoint,lim,0);}
+      else if (maxpoint>start)
+        start=fd_text_search(pattern,NULL,data,maxpoint,lim,0);
+      else start=fd_text_search(pattern,NULL,data,forward_char(data,start),lim,0);}
     if (start==-2) {
       fd_decref(results);
       return FD_ERROR_VALUE;}
@@ -1140,6 +1142,8 @@ static fdtype gathersubst_base(fdtype pattern,fdtype string,
         start=fd_text_search(pattern,NULL,data,forward_char(data,start),lim,0);
       else if (end==lim)
 	return results;
+      else if (end>start)
+        start=fd_text_search(pattern,NULL,data,end,lim,0);
       else start=fd_text_search(pattern,NULL,data,forward_char(data,end),lim,0);}
     if (start==-2) {
       fd_decref(results);
