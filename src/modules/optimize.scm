@@ -24,6 +24,10 @@
 (define-init %loglevel %warning%)
 (define-init useopcodes #t)
 (define-init optdowarn #t)
+(define-init optimize:dolex #t)
+(define-init optimize:dorail #f)
+(varconfig! optimize:dolex optimize:dolex)
+(varconfig! optimize:dorail optimize:dorail)
 
 (defslambda (codewarning warning)
   (threadset! 'codewarnings (choice warning (threadget 'codewarnings))))
@@ -322,7 +326,7 @@
 	    (dotighten arg env bound dolex dorail)))
       expr))
 
-(define (optimize-procedure! proc (dolex #t) (dorail #f))
+(define (optimize-procedure! proc (dolex optimize:dolex) (dorail optimize:dorail))
   (let* ((env (procedure-env proc))
 	 (arglist (procedure-args proc))
 	 (body (procedure-body proc))
@@ -344,8 +348,9 @@
 		   (printout "\n\t" warning)))
 	(threadset! 'codewarnings #{})))))
 
-(define (optimize-module! module)
+(define (optimize-module! module (dolex optimize:dolex) (dorail optimize:dorail))
   (logdebug "Optimizing module " module)
+  (when (symbol? module) (set! module (get-module module)))
   (let ((bindings (module-bindings module))
 	(count 0))
     (do-choices (var bindings)
@@ -353,7 +358,7 @@
       (let ((value (get module var)))
 	(when (and (exists? value) (compound-procedure? value))
 	  (set! count (1+ count))
-	  (optimize! value))))
+	  (optimize-procedure! value dolex dorail))))
     (when (exists symbol? (get module '%moduleid))
       (let* ((referenced-modules (get module '%used_modules))
 	     (used-modules
@@ -368,7 +373,7 @@
 		   (do-choices (um unused i) (printout (if (> i 0) ", ") um))))))
     count))
 
-(define (optimize-bindings! bindings)
+(define (optimize-bindings! bindings (dolex optimize:dolex) (dorail optimize:dorail))
   (logdebug "Optimizing bindings " bindings)
   (let ((count 0))
     (do-choices (var (getkeys bindings))
@@ -376,7 +381,7 @@
       (let ((value (get bindings var)))
 	(if (bound? value)
 	    (when (compound-procedure? value)
-	      (set! count (1+ count)) (optimize! value))
+	      (set! count (1+ count)) (optimize-procedure! value dolex dorail))
 	    (warning var " is unbound"))))
     count))
 
