@@ -79,7 +79,7 @@ static fdtype tryif_handler(fdtype expr,fd_lispenv env)
           fd_incref(expr); fd_push_error_context("TRYIF",expr);
           return value;}
         else if (FD_VOIDP(value)) {
-          fd_seterr(fd_VoidArgument,"try_handler",NULL,clause);
+          fd_seterr(fd_VoidArgument,"tryif_handler",NULL,clause);
           fd_incref(expr); fd_push_error_context("TRY",expr);
           return FD_ERROR_VALUE;}
         else if (!(FD_EMPTY_CHOICEP(value)))

@@ -365,11 +365,14 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_NOT_OPCODE        FD_OPCODE(0x04)
 #define FD_FAIL_OPCODE       FD_OPCODE(0x05)
 #define FD_MODREF_OPCODE     FD_OPCODE(0x06)
+#define FD_COMMENT_OPCODE    FD_OPCODE(0x07)
+#define FD_TRY_OPCODE        FD_OPCODE(0x07) /* NYI */
 
 #define FD_IF_OPCODE         FD_OPCODE(0x10)
 #define FD_WHEN_OPCODE       FD_OPCODE(0x11)
 #define FD_UNLESS_OPCODE     FD_OPCODE(0x12)
 #define FD_IFELSE_OPCODE     FD_OPCODE(0x13)
+#define FD_TRYIF_OPCODE      FD_OPCODE(0x14) /* NYI */
 
 #define FD_UNARY_ND_OPCODES  FD_OPCODE(0x20)
 /* Unary primitives which handle their own non-determinism. */
@@ -386,6 +389,7 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_PICKOIDS_OPCODE    FD_OPCODE(0x2A)
 #define FD_PICKSTRINGS_OPCODE FD_OPCODE(0x2B)
 #define FD_PICKONE_OPCODE     FD_OPCODE(0x2C)
+#define FD_IFEXISTS_OPCODE    FD_OPCODE(0x2D)
 
 #define FD_UNARY_OPCODES     FD_OPCODE(0x40)
 /* Unary primitives which don't handle their own non-determinism. */
@@ -439,6 +443,11 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_UNION_OPCODE      FD_OPCODE(0xC4)
 #define FD_INTERSECT_OPCODE  FD_OPCODE(0xC5)
 #define FD_DIFFERENCE_OPCODE FD_OPCODE(0xC6)
+
+#define FD_FEXPR_OPCODES     FD_OPCODE(0xC0)
+#define FD_LET_OPCODE        FD_OPCODE(0xC0)
+#define FD_LETSTAR_OPCODE    FD_OPCODE(0xC1)
+#define FD_COND_OPCODE       FD_OPCODE(0xC2)
 
 #endif /* FRAMERD_EVAL_H */
 

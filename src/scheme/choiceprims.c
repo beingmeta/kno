@@ -604,7 +604,7 @@ static fdtype qchoicex_prim(int n,fdtype *args)
 static fdtype try_handler(fdtype expr,fd_lispenv env)
 {
   fdtype value=FD_EMPTY_CHOICE;
-  FD_DOLIST(clause,FD_CDR(expr)) {
+  FD_DOBODY(clause,expr,1) {
     int ipe_state=fd_ipeval_status();
     fd_decref(value);
     value=fd_eval(clause,env);

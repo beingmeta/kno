@@ -417,7 +417,8 @@ static fdtype begin_handler(fdtype begin_expr,fd_lispenv env)
 
 static fdtype prog1_handler(fdtype prog1_expr,fd_lispenv env)
 {
-  fdtype results=fd_eval(fd_get_arg(prog1_expr,1),env);
+  fdtype arg1=fd_get_arg(prog1_expr,1);
+  fdtype results=fd_eval(arg1,env);
   if (FD_ABORTP(results))
     return results;
   else {

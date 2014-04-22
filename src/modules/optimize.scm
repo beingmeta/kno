@@ -115,6 +115,8 @@
   (def-opcode NOT        0x04)
   (def-opcode FAIL       0x05)
   (def-opcode %MODREF    0x06)
+  (def-opcode COMMENT    0x07)
+
   (def-opcode IF         0x10)
   (def-opcode WHEN       0x11)
   (def-opcode UNLESS     0x12)
@@ -134,6 +136,7 @@
   (def-opcode PICKOIDS    0x2A 1)
   (def-opcode PICKSTRINGS 0x2B 1)
   (def-opcode PICK-ONE    0x2C 1)
+  (def-opcode IFEXISTS    0x2D 1)
 
   (def-opcode 1-         0x40 1)
   (def-opcode -1+        0x40 1)
@@ -171,6 +174,13 @@
   ;; (def-opcode XREF       0xA2 3)
   (def-opcode %GET       0xA3 2)
   (def-opcode %TEST      0xA4 3)
+
+  (def-opcode IDENTICAL?   0xC1)
+  (def-opcode OVERLAPS?    0xC2)
+  (def-opcode CONTAINS?    0xC3)
+  (def-opcode UNION        0xC4)
+  (def-opcode INTERSECTION 0xC6)
+  (def-opcode DIFFERENCE   0xC6)
   )
 
 ;;; The core loop
@@ -195,6 +205,7 @@
 			      (if (or (pair? v) (symbol? v) (ambiguous? v))
 				  (list 'quote (qc v))
 				  v)))
+			   (dorail (->rail `(,%modref ,module ,expr)))
 			   (else `(,%modref ,module ,expr)))
 		     (begin
 		       (when optdowarn
@@ -262,7 +273,9 @@
 				      (cond ((not from) value)
 					    ((test from '%nosubst head) head)
 					    ((test from '%volatile head)
-					     `(,%modref ,from ,head))
+					     (if dorail
+						 (->rail `(,%modref ,from ,head))
+						 `(,%modref ,from ,head)))
 					    (else value))
 				      n-exprs))
 				 (tighten-call (cdr expr) env bound dolex dorail)
@@ -338,10 +351,10 @@
 		 (eq? (cadr initial) '|original|))
       (threadset! 'codewarnings #{})
       (set-procedure-body!
-       proc `((comment |original| ,@body)
-	      ,@(map (lambda (b)
-		       (dotighten b env bound dolex dorail))
-		     body)))
+       proc (->rail `((comment |original| ,@body)
+		      ,@(map (lambda (b)
+			       (dotighten b env bound dolex dorail))
+			     body))))
       (when (exists? (threadget 'codewarnings))
 	(warning "Errors optimizing " proc ": "
 		 (do-choices (warning (threadget 'codewarnings))
@@ -415,6 +428,10 @@
   (cons (map-opcode handler (length (cdr expr)))
 	(map (lambda (x) (dotighten x env bound dolex dorail))
 	     (cdr expr))))
+(define (tighten-block->rail handler expr env bound dolex dorail)
+  (if dorail
+      (->rail (tighten-block handler expr env bound dolex dorail))
+      (tighten-block handler expr env bound dolex dorail)))
 
 (define (tighten-let handler expr env bound dolex dorail)
   (let ((bindexprs (cadr expr)) (body (cddr expr)))
@@ -595,9 +612,8 @@
       tighten-do2expression)
 
 (add! special-form-tighteners
-      (choice begin prog1 until while
-	      try if tryif when unless and or)
-      tighten-block)
+      (choice begin prog1 try tryif when if unless and or until while)
+      tighten-block->rail)
 (when (bound? ipeval)
   (add! special-form-tighteners
 	(choice ipeval tipeval)
