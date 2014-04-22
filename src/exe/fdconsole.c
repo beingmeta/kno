@@ -694,6 +694,7 @@ int main(int argc,char **argv)
 		   ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
       output_result(out,result,histref,is_histref);
+    else if (FD_VOIDP(result)) {}
     else stat_line=output_result(out,result,histref,is_histref);
     if (stat_line) {
       if (histref<0)
