@@ -113,10 +113,12 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           return fd_tail_eval(consequent_expr,env);
         else return fasteval(consequent_expr,env);}
       case FD_WHEN_OPCODE: {
-        FD_DOBODY(tmp,expr,2) {
-          fdtype tmpval=fd_eval(tmp,env);
-          if (FD_ABORTP(tmpval)) return tmpval;
-          fd_decref(tmpval);}
+        if (!(FD_FALSEP(test))) {
+          FD_DOBODY(tmp,expr,2) {
+            fdtype tmpval=fd_eval(tmp,env);
+            if (FD_ABORTP(tmpval)) return tmpval;
+            fd_decref(tmpval);}}
+        fd_decref(test);
         return FD_VOID;}
       case FD_UNLESS_OPCODE: {
         if (FD_FALSEP(test)) {
