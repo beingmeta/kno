@@ -804,7 +804,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       else if (FD_VOIDP(slotids))
 	return fd_err(fd_SyntaxError,"OPCODE ftest",NULL,expr);
       else if (FD_EMPTY_CHOICEP(slotids)) {
-        fd_decref(arg1); return FD_EMPTY_CHOICE;}
+        fd_decref(arg1); return FD_FALSE;}
       else if (FD_VOIDP(values_arg))
 	values=FD_VOID;
       else values=fd_eval(values_arg,env);
