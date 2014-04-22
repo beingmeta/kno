@@ -5,7 +5,7 @@
 
 ;;; This provides various sample functions for testing and benchmarking
 
-(module-export! '{fibr fibi fibflt factr facti slowfib})
+(module-export! '{fibr fibi fibix fibflt factr facti slowfib})
 (module-export! '{ack tak takflt})
 (module-export! 'spectral-norm)
 
@@ -18,6 +18,10 @@
   (if (= i 1) cur (fib-iter (-1+ i) (+ cur prev) cur)))
 (define (fibi n)
   (if (= n 0) 0 (fib-iter n 1 0)))
+
+(define (fibix i (cur 1) (prev 0))
+  (if (> i 1) (fibix (-1+ i) (+ cur prev) cur)
+      (if (= i 1) cur 0)))
 
 (define (fibflt n)
   (cond ((< n 2.0) 1.0)
