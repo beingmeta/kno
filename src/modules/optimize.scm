@@ -179,7 +179,7 @@
   (def-opcode OVERLAPS?    0xC2)
   (def-opcode CONTAINS?    0xC3)
   (def-opcode UNION        0xC4)
-  (def-opcode INTERSECTION 0xC6)
+  (def-opcode INTERSECTION 0xC5)
   (def-opcode DIFFERENCE   0xC6)
   )
 
