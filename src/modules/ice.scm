@@ -187,8 +187,8 @@
   (if (hashset? x)
       (let ((copy (make-hashset)))
 	(do-choices (elt (hashset-elts x))
-	  (hashset-add! elt (dump elt pool mapping output
-				  drules srules state (1+ depth))))
+	  (hashset-add! copy (dump elt pool mapping output
+				   drules srules state (1+ depth))))
 	copy)
       (let ((copy (if (hashtable? x) (make-hashtable) (frame-create #f))))
 	(do-choices (key (getkeys x))
