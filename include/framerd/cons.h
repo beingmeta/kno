@@ -108,7 +108,7 @@ static MAYBE_UNUSED void *fd_ptr2cons(fdtype x,int tc)
 }
 
 #define type2name(tc) \
-   ((tc<0)?((u8_string)"oddtype"):(fd_type_names[(unsigned int)tc]))
+   ((tc<0)?((u8_string)"oddtype"):(fd_type_names[(short)tc]))
 
 #define FD_PTR2CONS(x,typecode,typecast)                                \
   ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) ?                   \
