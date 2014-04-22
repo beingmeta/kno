@@ -78,12 +78,14 @@
 (define (xform-font-size s)
   (try (fix-font-size s) s))
 
+(matchdef! 'xform-font-size xform-font-size)
+
 (define css/relfonts
   `(ic #({(spaces) "{"} "font-size:" (spaces*)
 	 (subst {"small" "x-small" "xx-small"
 		 "large" "x-large" "xx-large" "medium"
 		 #((isdigit+) {"px" "pt"})
 		 #((isdigit+) "." (isdigit+) "px")}
-		,xform-font-size)
+		xform-font-size)
 	 (not> ";") ";")))
 (config! 'dom:cleanup:rules css/relfonts)
