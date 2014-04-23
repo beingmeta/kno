@@ -112,6 +112,8 @@ static u8_string stats_message=
   _(";; Done in %f seconds, with %d/%d object/index loads\n");
 static u8_string stats_message_w_history=
    _(";; ##%d computed in %f seconds, %d/%d object/index loads\n");
+static u8_string stats_message_w_history_and_sym=
+   _(";; ##%d (%ls) computed in %f seconds, %d/%d object/index loads\n");
 
 static double startup_time=-1.0;
 static double run_start=-1.0;
@@ -167,14 +169,41 @@ static int result_size(fdtype result)
   else return 1;
 }
 
-static int output_result(u8_output out,fdtype result,int histref,int showall)
+static char *letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static int random_symbol_tries=7;
+static fdtype random_symbol()
+{
+  int tries=0;
+  int l1=(random())%26, l2=(random())%26, l3=(random())%26;
+  fdtype symbol;
+  while (tries<random_symbol_tries) {
+    char buf[4]; 
+    int l1=(random())%26, l2=(random())%26, l3=(random())%26;
+    buf[0]=letters[l1]; buf[1]=letters[l2]; buf[2]=letters[l3]; buf[3]='\0';
+    if (fd_probe_symbol(buf,3))
+      return fd_intern(buf);
+    else tries++;}
+  return FD_VOID;
+}
+
+static fdtype bind_random_symbol(fdtype result,fd_lispenv env)
+{
+  fdtype symbol=random_symbol();
+  if (!(FD_VOIDP(symbol))) {
+    fd_bind_value(symbol,result,env);
+    return symbol;}
+  else return FD_VOID;
+}
+
+static int output_result(u8_output out,fdtype result,
+			 int histref,int showall)
 {
   if (FD_VOIDP(result)) {}
   else if (((FD_VECTORP(result)) || (FD_PAIRP(result))) &&
-	   (result_size(result)<8) && (fits_consolep(result)))
+	   (result_size(result)<8) && (fits_consolep(result))) {
     if (histref<0)
       u8_printf(out,"%q\n",result);
-    else u8_printf(out,"%q  ;; =##%d\n",result,histref);
+    else u8_printf(out,"%q  ;; =##%d\n",result,histref);}
   else if ((showall)&&(FD_OIDP(result))) {
     fdtype v=fd_oid_value(result);
     if (FD_TABLEP(v)) {
@@ -719,10 +748,11 @@ int main(int argc,char **argv)
     finish_time=u8_elapsed_time();
     finish_ocache=fd_object_cache_load();
     finish_icache=fd_index_cache_load();
-    if (!((FD_CHECK_PTR(result)==0) || (is_histref) ||
-	  (FD_VOIDP(result)) || (FD_EMPTY_CHOICEP(result)) ||
-	  (FD_TRUEP(result)) || (FD_FALSEP(result)) ||
-	  (FD_ABORTP(result)) || (FD_FIXNUMP(result)))) {
+    if ((FD_PAIRP(expr))&&
+	(!((FD_CHECK_PTR(result)==0) || (is_histref) ||
+	   (FD_VOIDP(result)) || (FD_EMPTY_CHOICEP(result)) ||
+	   (FD_TRUEP(result)) || (FD_FALSEP(result)) ||
+	   (FD_ABORTP(result)) || (FD_FIXNUMP(result))))) {
       int ref=fd_histpush(result);
       if (ref>=0) histref=ref;}
     if (FD_ABORTP(result)) stat_line=0;
@@ -778,10 +808,18 @@ int main(int argc,char **argv)
 		   (finish_time-start_time),
 		   finish_ocache-start_ocache,
 		   finish_icache-start_icache);
-      else u8_printf(out,stats_message_w_history,
-		     histref,(finish_time-start_time),
-		     finish_ocache-start_ocache,
-		     finish_icache-start_icache);}
+      else {
+	fdtype sym=bind_random_symbol(result,env);
+	if (FD_VOIDP(sym))
+	  u8_printf(out,stats_message_w_history,
+		    histref,(finish_time-start_time),
+		    finish_ocache-start_ocache,
+		    finish_icache-start_icache);
+	else u8_printf(out,stats_message_w_history_and_sym,
+		       histref,FD_SYMBOL_NAME(sym),
+		       (finish_time-start_time),
+		       finish_ocache-start_ocache,
+		       finish_icache-start_icache);}}
     fd_clear_errors(1);
     fd_decref(lastval);
     lastval=result; result=FD_VOID;
