@@ -242,9 +242,13 @@ static int output_result(u8_output out,fdtype result,
     if ((showall==0) && ((show_elts>0) && (n_elts>(show_elts*2))))
       max_elts=show_elts;
     else max_elts=n_elts;
-    if (max_elts<n_elts)
-      u8_printf(out,_("%s ;; ##%d= (%d/%d items)"),
-		start_with,histref,max_elts,n_elts);
+    if (max_elts<n_elts) {
+      if (histref<0)
+	u8_printf(out,_("%s ;; (%d/%d items)"),start_with,max_elts,n_elts);
+      else u8_printf(out,_("%s ;; ##%d= (%d/%d items)"),
+		     start_with,histref,max_elts,n_elts);}
+    else if (histref<0)
+      u8_printf(out,_("%s ;; (%d items)"),start_with,n_elts);
     else u8_printf(out,_("%s ;; ##%d= (%d items)"),start_with,histref,n_elts);
     if (FD_CHOICEP(result)) {
       FD_DO_CHOICES(elt,result) {
@@ -269,7 +273,12 @@ static int output_result(u8_output out,fdtype result,
     else {}
     if (max_elts<n_elts) {
       u8_printf(out,"\n  ;; ....... %d more items .......",n_elts-max_elts);
-      u8_printf(out,"\n%s ;; ==##%d (%d/%d items)\n",end_with,histref,max_elts,n_elts);}
+      if (histref<0)
+	u8_printf(out,"\n%s ;; (%d/%d items)\n",end_with,max_elts,n_elts);
+      else u8_printf(out,"\n%s ;; ==##%d (%d/%d items)\n",
+		     end_with,histref,max_elts,n_elts);}
+    else if (histref<0)
+      u8_printf(out,"\n%s ;; (%d items)\n",end_with,n_elts);
     else u8_printf(out,"\n%s ;; ==##%d (%d items)\n",end_with,histref,n_elts);}
   return 0;
 }
