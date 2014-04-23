@@ -16,7 +16,8 @@
 		  s3loc/content s3loc/put s3loc/copy! s3loc/link!})
 (module-export! '{s3/get s3/get+ s3/head s3/ctype s3/exists?
 		  s3/modified s3/etag  s3/info
-		  s3/bucket? s3/copy! s3/link! s3/put})
+		  s3/bucket? s3/copy! s3/link! s3/put
+		  s3/download!})
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %notify%)
@@ -74,15 +75,21 @@
 
 ;;; Representing S3 locations
 
-(defrecord s3loc bucket path)
+(define (s3loc-string loc)
+  (stringout "#%(S3LOC " (write (s3loc-bucket loc)) " " (write (s3loc-path loc))
+    (if (exists? (s3loc-opts loc)) (printout " " (write (s3loc-opts loc))))
+    ")"))
 
-(define (make-s3loc bucket path)
+(defrecord (s3loc . #[stringfn s3loc-string])
+  bucket path (opts {}))
+
+(define (make-s3loc bucket path (opts #f))
   (if (and (string? bucket) (not (position #\/ bucket)))
       (if (not path) (cons-s3loc bucket "")
 	  (if (string? path)
 	      (if (has-prefix path "/")
-		  (cons-s3loc bucket path)
-		  (cons-s3loc bucket (glom "/" path)))
+		  (cons-s3loc bucket path (or opts #{}))
+		  (cons-s3loc bucket (glom "/" path) (or opts #{})))
 	      (error badpath make-s3loc path)))
       (error badbucket make-s3loc bucket)))
 
@@ -120,9 +127,11 @@
 (define (s3/mkpath loc path . more)
   (when (string? loc) (set! loc (->s3loc loc)))
   (if (null? more)
-      (make-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path))
+      (make-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path)
+		  (qc (s3loc-opts loc)))
       (apply s3/mkpath
-	     (make-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path))
+	     (make-s3loc (s3loc-bucket loc) (mkpath (s3loc-path loc) path)
+			 (qc (s3loc-opts loc)))
 	     more)))
 
 (define (s3loc->string s3)
@@ -309,31 +318,35 @@
 		       (if (number? (car args))
 			   (timestamp+ (car args))
 			   (car args))
-		       (* 48 3600))))
+		       (* 48 3600))
+		   "GET" (try (get (s3loc-opts s3loc) 'headers) '())))
       (apply signeduri arg args)))
 
 ;;; Operations
 
-(define (s3/write! loc content (ctype) (headers '()) (err s3errs))
+(define (s3/write! loc content (ctype) (headers) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! ctype
     (path->mimetype (s3loc-path loc)
 		    (if (packet? content) "application" "text")))
+  (default! headers (try (get (s3loc-opts loc) 'headers) '()))
   (debug%watch
       (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc)
 	err content ctype headers)
     loc ctype headers))
 
-(define (s3/delete! loc (headers '()) (err s3errs))
+(define (s3/delete! loc (headers) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   ;; '(("x-amx-acl" . "public-read"))
+  (default! headers (try (get (s3loc-opts loc) 'headers) '()))
   (debug%watch (s3/op "DELETE"
 		   (s3loc-bucket loc)
 		   (s3loc-path loc) err "" #f headers) loc))
 
-(define (s3/bucket? loc)
+(define (s3/bucket? loc (headers))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let ((req (s3/op "HEAD" (s3loc-bucket loc) "" #f "")))
+  (default! headers (try (get (s3loc-opts loc) 'headers) '()))
+  (let ((req (s3/op "HEAD" (s3loc-bucket loc) "" #f "" #f headers)))
     (response/ok? req)))
 
 (module-export! '{s3/bucket? s3/write! s3/delete!})
@@ -359,17 +372,21 @@
 
 ;;; Basic S3LOC network methods
 
-(define (s3loc/get loc (headers '()) (err s3errs))
+(define (s3loc/get loc (headers) (err))
   (when (string? loc) (set! loc (->s3loc loc)))
+  (default! headers (try (get (s3loc-opts loc) 'headers) '()))
+  (default! err (try (get (s3loc-opts loc) 's3errs) s3errs))
   (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err "" "text" headers))
 
-(define (s3loc/head loc)
+(define (s3loc/head loc (headers))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f ""))
+  (default! headers (try (get (s3loc-opts loc) 'headers) '()))
+  (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f "" "" headers))
 (define s3/head s3loc/head)
 
-(define (s3loc/get+ loc (text #t) (headers '()) (err s3errs))
+(define (s3loc/get+ loc (text #t) (headers) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
+  (default! headers (try (get (s3loc-opts loc) 'headers) '()))
   (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
 		err "" "text" headers))
 	 (status (get req 'response)))
@@ -398,9 +415,11 @@
     (response/ok? req)))
 (define s3/exists? s3loc/exists?)
 
-(define (s3loc/etag loc (compute #f))
+(define (s3loc/etag loc (compute #f) (headers))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let ((req (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f "")))
+  (default! headers (try (get (s3loc-opts loc) 'headers) '()))
+  (let ((req (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc)
+	       #f "" "" headers)))
     (and (response/ok? req)
 	 (try (get req 'etag) (and compute (md5 (s3loc/content loc)))))))
 (define s3/etag s3loc/etag)
@@ -410,9 +429,11 @@
   (get (s3loc/head loc) 'content-type))
 (define s3/ctype s3loc/ctype)
 
-(define (s3loc/info loc)
+(define (s3loc/info loc (headers))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let ((req (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f "")))
+  (default! headers (try (get (s3loc-opts loc) 'headers) '()))
+  (let ((req (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc)
+	       #f "" "" headers)))
     (and (response/ok? req)
 	 `#[path ,(s3loc/s3uri loc)
 	    ctype ,(try (get req 'content-type)
@@ -425,19 +446,22 @@
 
 ;;; Basic S3 network write methods
 
-(define (s3loc/put loc content (ctype) (headers '()) (err s3errs))
+(define (s3loc/put loc content (ctype) (headers) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! ctype
     (path->mimetype (s3loc-path loc)
 		    (if (packet? content) "application" "text")))
+  (default! headers (try (get (s3loc-opts loc) 'headers) '()))
   (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err
     content ctype headers))
 (define s3/put s3loc/put)
 
-(define (s3loc/copy! src loc (err s3errs))
+(define (s3loc/copy! src loc (err s3errs) (inheaders) (outheaders))
   (when (string? loc) (set! loc (->s3loc loc)))
   (when (string? src) (set! src (->s3loc src)))
-  (let* ((head (s3loc/head src))
+  (default! inheaders (try (get (s3loc-opts src) 'headers) '()))
+  (default! outheaders (try (get (s3loc-opts loc) 'headers) '()))
+  (let* ((head (s3loc/head src inheaders))
 	 (ctype (try (get head 'content-type)
 		     (path->mimetype
 		      (s3loc-path loc)
@@ -445,7 +469,9 @@
     (loginfo |S3/copy| "Copying " src " to " loc)
     (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err "" ctype
 	   `(("x-amz-copy-source" .
-	      ,(stringout "/" (s3loc-bucket src) (s3loc-path src)))))))
+	      ,(stringout "/" (s3loc-bucket src) (s3loc-path src)))
+	     ,@inheaders
+	     ,@outheaders))))
 (define s3/copy! s3loc/copy!)
 
 (define (s3loc/link! src loc (err s3errs))
@@ -470,8 +496,9 @@
 
 ;;; Working with S3 'dirs'
 
-(define (s3/list loc (headers '()) (err s3errs))
+(define (s3/list loc (headers) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
+  (default! headers (try (get (s3loc-opts loc) 'headers) '()))
   (let* ((req (s3/op "GET" (s3loc-bucket loc) "/" 
 		err "" "text" headers
 		"delimiter" "/"
@@ -565,6 +592,29 @@
 	     (and err (irritant req S3FAILURE S3LOC/CONTENT
 				(s3loc->string loc)))))))
 (define s3/get s3loc/content)
+
+;;;; Downloads
+
+(define (s3/download! src (dest (getcwd)))
+  (%watch "S3/DOWNLOAD!" src dest)
+  (when (string? src) (set! src (->s3loc src)))
+  (when (not dest)
+    (set! dest (tempdir))
+    (message "Writing files to " dest))
+  (if (and (has-suffix (s3loc-path src) "/") (file-exists? dest)
+	   (not (file-directory? dest)))
+      (error "Destination is not a directory" dest)
+      (mkdirs (if (has-suffix dest "/") dest (glom dest "/"))))
+  (when (s3/exists? src)
+    (message "Downloading " src " to "
+	     (mkpath dest (basename (s3loc-path src))))
+    (write-file (mkpath dest (basename (s3loc-path src))) (s3/get src)))
+  (do-choices (down (s3/list src))
+    (if (has-suffix (s3loc-path down) "/")
+	(s3/download! down (mkpath dest (basename (slice (s3loc-path down) 0 -1))))
+	(message "Downloading " down " to "
+		 (mkpath dest (basename (s3loc-path down))))
+	(write-file (mkpath dest (basename (s3loc-path down))) (s3/get down)))))
 
 ;;; Some test code
 
