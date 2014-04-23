@@ -177,10 +177,11 @@ static fdtype random_symbol()
   int l1=(random())%26, l2=(random())%26, l3=(random())%26;
   fdtype symbol;
   while (tries<random_symbol_tries) {
-    char buf[4]; 
+    char buf[4]; fdtype sym; 
     int l1=(random())%26, l2=(random())%26, l3=(random())%26;
     buf[0]=letters[l1]; buf[1]=letters[l2]; buf[2]=letters[l3]; buf[3]='\0';
-    if (fd_probe_symbol(buf,3))
+    sym=fd_probe_symbol(buf,3);
+    if (FD_VOIDP(sym))
       return fd_intern(buf);
     else tries++;}
   return FD_VOID;
@@ -801,7 +802,11 @@ int main(int argc,char **argv)
     else if (stat_line)
       output_result(out,result,histref,is_histref);
     else if (FD_VOIDP(result)) {}
-    else stat_line=output_result(out,result,histref,is_histref);
+    else if (histref<0) 
+      stat_line=output_result(out,result,histref,is_histref);
+    else {
+      output_result(out,result,histref,is_histref);
+      stat_line=1;}
     if (stat_line) {
       if (histref<0)
 	u8_printf (out,stats_message,
