@@ -415,13 +415,14 @@ static fdtype string_basestring(fdtype string)
   else return fd_type_error("string","string_basestring",string);
 }
 
-static fdtype string_firstword(fdtype string)
+static fdtype string_startword(fdtype string)
 {
   u8_string scan=FD_STRDATA(string), start=scan, last=scan;
   int c=u8_sgetc(&scan);
   if (u8_isspace(c)) {
     start=scan;
-    while ((c>0)&&(u8_isspace(c))) c=u8_sgetc(&scan);}
+    while ((c>0)&&(u8_isspace(c))) c=u8_sgetc(&scan);
+    last=scan;}
   while (c>=0) {
     if (u8_isspace(c))
       return fd_extract_string(NULL,start,last);
@@ -1228,7 +1229,7 @@ FD_EXPORT void fd_init_strings_c()
 	   fd_make_cprim1x("BASESTRING",string_basestring,1,
 			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("FIRSTWORD",string_firstword,1,
+	   fd_make_cprim1x("STARTWORD",string_startword,1,
 			   fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1x("TRIGRAMS",string_trigrams,1,
