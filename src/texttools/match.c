@@ -3324,7 +3324,7 @@ static u8_byteoff hashset_search
     return try;}
 }
   
-/* HASHET-NOT */
+/* HASHSET-NOT */
 
 static fdtype hashset_not_match
   (fdtype pat,fdtype next,fd_lispenv env,
