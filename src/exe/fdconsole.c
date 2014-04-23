@@ -524,7 +524,7 @@ int main(int argc,char **argv)
   /* This is the environment the console will start in */
   fd_lispenv env=fd_working_environment();
 
-  if ((getenv("UNDERGDB"))||(getenv("FD_DONTLOAD"))) dotload=0;
+  if ((getenv("UNDERGDB"))||(getenv("FD_DONTDOTLOAD"))) dotload=0;
 
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
