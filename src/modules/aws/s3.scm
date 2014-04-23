@@ -76,12 +76,21 @@
 ;;; Representing S3 locations
 
 (define (s3loc-string loc)
-  (stringout "#%(S3LOC " (write (s3loc-bucket loc)) " " (write (s3loc-path loc))
-    (if (exists? (s3loc-opts loc)) (printout " " (write (s3loc-opts loc))))
+  (stringout "#%(S3LOC " (write (s3loc-bucket loc))
+    (if (> (record-length loc) 1) (printout " " (write (s3loc-path loc))))
+    (if (and (> (record-length loc) 2) (exists? (s3loc-opts loc)))
+	(printout " " (write (s3loc-opts loc))))
     ")"))
 
 (defrecord (s3loc . #[stringfn s3loc-string])
   bucket path (opts {}))
+(define s3loc/bucket s3loc-bucket)
+(define s3loc/path s3loc-path)
+(define (s3loc/opts loc)
+  (if (s3loc? loc)
+      (tryif (> (compound-length loc) 2)
+	(s3loc-opts loc))
+      (irritant loc "Not an S3LOC")))
 
 (define (make-s3loc bucket path (opts #f))
   (if (and (string? bucket) (not (position #\/ bucket)))
