@@ -1138,9 +1138,8 @@ static fdtype gathersubst_base(fdtype pattern,fdtype string,
 	dorewrite(&tmpout,longest);
 	result=fd_stream2string(&tmpout);
 	FD_ADD_TO_CHOICE(results,result);
-	fd_decref(longest);
-	start=fd_text_search(pattern,NULL,data,end,lim,0);}
-      else if (star)
+	fd_decref(longest);}
+      if (star)
         start=fd_text_search(pattern,NULL,data,forward_char(data,start),lim,0);
       else if (end==lim)
 	return results;
