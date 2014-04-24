@@ -1333,12 +1333,29 @@ static int search_pref
 
 /* Word match */
 
+#define apostrophep(x) ((x == '\'')||(x==0x2019))
+#define dashp(x) ((x == '-')||(x == '_')||(x==0xAD)||(x==0x2010)||(x==0x2011)||(x=='/')||(x==0x2044))
+
 static int word_startp(u8_string string,u8_byteoff off)
 {
-  u8_unichar ch=get_previous_char(string,off);
-  if (ch < 0) return 1;
-  else if ((u8_isspace(ch)) || (u8_ispunct(ch))) return 1;
-  else return 0;
+  if (off==0) return 1;
+  else {
+    int new_off=backward_char(string,off);
+    u8_string scan=string+new_off;
+    u8_unichar ch=u8_sgetc(&scan);
+    if (ch < 0) return 1;
+    else if (u8_isspace(ch)) return 1;
+    else if (u8_ispunct(ch)) {
+      if ((apostrophep(ch))||(dashp(ch))) {
+        if (new_off==0) return 1;
+        else {
+          new_off=backward_char(string,new_off);
+          scan=string+new_off;}
+        ch=u8_sgetc(&scan);
+        if ((u8_isspace(ch))||(u8_ispunct(ch))) return 1;
+        else return 0;}
+      else return 1;}
+    else return 0;}
 }
 
 static fdtype word_match
@@ -3089,9 +3106,6 @@ static u8_byteoff htmlid_search
 }
 
 /* Word matching */
-
-#define apostrophep(x) ((x == '\'')||(x==0x2019))
-#define dashp(x) ((x == '-')||(x == '_')||(x==0xAD)||(x==0x2010)||(x==0x2011)||(x=='/')||(x==0x2044))
 
 static fdtype aword_match
   (fdtype pat,fdtype next,fd_lispenv env,
