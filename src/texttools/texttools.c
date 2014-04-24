@@ -351,7 +351,7 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
   else if (maxspan<=0)
     return fd_type_error(_("natural number"),"vector2frags",window);
   if (with_affixes) { int span=maxspan; while (span>=minspan) {
-      /* Compute prefix fragments */
+      /* Compute prefix fragments of length=span */
       fdtype frag=FD_EMPTY_LIST;
       int i=span-1; while ((i>=0) && (i<n)) {
 	fdtype elt=data[i]; fd_incref(elt);
@@ -378,7 +378,7 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
        our list-reuse trick. */
     fd_decref(frag);}
   { /* Now compute internal spans */
-    int end=n-1; while (end>0) {
+    int end=n-1; while (end>=0) {
       fdtype frag=FD_EMPTY_LIST;
       int i=end; int lim=end-maxspan;
       if (lim<0) lim=-1; while (i>lim) {
