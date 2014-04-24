@@ -18,7 +18,7 @@
    kno/slotid kno/slotids kno/slotnames kno/relcodes
    knodule-name knodule-opts knodule-language
    knodule-oid knodule-pool knodule-index
-   knodule-alldterms knodule-dterms knodule-drules
+   knodule-alldterms knodule-allterms knodule-dterms knodule-drules
    knodule-prime
    default-knodule knodules kno/set-dterm!
    knodule:pool knodule:index knodule:indices
@@ -126,6 +126,8 @@
   ;; Phrasemaps to help in pulling phrases out of documents
   ;;  This is a hashtable mapping (LANGID . word) to a phrase vector
   (phrasemaps (make-hashtable))
+  ;; All terms/hooks, etc
+  (allterms (make-hashtable))
   ;; All dterms in this knodule (a hashset)
   (alldterms (make-hashset))
   ;; Rules for disambiguating words into dterms
@@ -590,7 +592,8 @@
 	    (phrasemap (try (get (knodule-phrasemaps knodule) slotid)
 			    (new-phrasemap knodule slotid))))
 	(add! phrasemap (elts wordv) wordv)
-	(add! phrasemap (list (first wordv)) wordv)))))
+	(add! phrasemap (list (first wordv)) wordv)))
+    (add! (knodule-allterms knodule) value frame)))
 
 (defambda (drop-phrase! frame slotid value (mirror))
   (let* ((knodule (get knodules (get frame 'knodule)))
@@ -603,7 +606,8 @@
     ;;  it should only be used heuristically
     (drop! (knodule-index knodule)
 	   (cons slotid (difference exdrop excur))
-	   frame)))
+	   frame)
+    (drop! (knodule-allterms knodule) value frame)))
 
 (kno/onadd! langids add-phrase!)
 (kno/ondrop! langids drop-phrase!)
