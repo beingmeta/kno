@@ -3128,7 +3128,8 @@ static u8_byteoff aword_search
   while (scan < limit) {
     u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
     if ((good_start) && (u8_isalpha(ch))) return prev-string;
-    if (u8_isspace(ch)) good_start=1; else good_start=0;}
+    if ((u8_isspace(ch))||((u8_ispunct(ch))&&(strchr("-./_",ch)==NULL)))
+      good_start=1; else good_start=0;}
   return -1;
 }
 
@@ -3158,7 +3159,8 @@ static u8_byteoff lword_search
   while (scan < limit) {
     u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
     if ((good_start) && (u8_islower(ch))) return prev-string;
-    if (u8_isspace(ch)) good_start=1; else good_start=0;}
+    if ((u8_isspace(ch))||((u8_ispunct(ch))&&(strchr("-./_",ch)==NULL)))
+      good_start=1; else good_start=0;}
   return -1;
 }
 
@@ -3205,7 +3207,8 @@ static u8_byteoff capword_search
   while (scan < limit) {
     u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
     if ((good_start) && (u8_isupper(ch))) return prev-string;
-    if (u8_isspace(ch)) good_start=1; else good_start=0;}
+    if ((u8_isspace(ch))||((u8_ispunct(ch))&&(strchr("-./_",ch)==NULL)))
+        good_start=1; else good_start=0;}
   return -1;
 }
 
