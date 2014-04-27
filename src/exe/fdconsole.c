@@ -433,7 +433,7 @@ static fdtype module_list=FD_EMPTY_LIST;
 
 static int module_config_set(fdtype var,fdtype vals,void *d)
 {
-  FD_DO_CHOICES(val,vals) {
+  int loads=0; FD_DO_CHOICES(val,vals) {
     fdtype modname=((FD_SYMBOLP(val))?(val):
 		    (FD_STRINGP(val))?
 		    (fd_parse(FD_STRDATA(val))):
@@ -458,7 +458,8 @@ static int module_config_set(fdtype var,fdtype vals,void *d)
     else {
       module_list=fd_init_pair(NULL,modname,module_list);
       fd_decref(module); fd_decref(used);
-      return 1;}}
+      loads++;}}
+  return loads;
 }
 
 static fdtype module_config_get(fdtype var,void *d)
@@ -470,7 +471,7 @@ static fdtype loadfile_list=FD_EMPTY_LIST;
 
 static int loadfile_config_set(fdtype var,fdtype vals,void *d)
 {
-  FD_DO_CHOICES(val,vals) {
+  int loads=0; FD_DO_CHOICES(val,vals) {
     u8_string loadpath; fdtype loadval;
     if (!(FD_STRINGP(val))) {
       fd_seterr(fd_TypeError,"loadfile_config_set","filename",val);
@@ -485,7 +486,8 @@ static int loadfile_config_set(fdtype var,fdtype vals,void *d)
     else {
       loadfile_list=fd_init_pair(NULL,fdtype_string(loadpath),loadfile_list);
       u8_free(loadpath);
-      return 1;}}
+      loads++;}}
+  return loads;
 }
 
 static fdtype loadfile_config_get(fdtype var,void *d)
