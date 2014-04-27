@@ -14,6 +14,7 @@
  '{kno/read-plaintext
    kno/write-plaintext
    kno/plaintext kno/plaintext/escape
+   kno/plaintext/entries
    knodule->string
    knodule->file file->knodule
    string->knodule})
@@ -51,7 +52,7 @@
     pos))
 
 (define (unescape-string string)
-  (string-subst* string "\\;" ";" "\\|" "|" "\\\\" "\\"))
+  (string-subst* (decode-entities string) "\\;" ";" "\\|" "|" "\\\\" "\\"))
 
 (define escaped-segment splitsep)
 (define escaped-find findsep)
@@ -264,6 +265,36 @@
 		       'type 'primary))
 	    (else (error "Invalid knodule entry" entry)))))
 
+(define (kno/plaintext/entries string)
+  (let* ((sliced (textslice string '(GREEDY {"\n" ";" ";\n"}) #t))
+	 (entry (car sliced))
+	 (scan (cdr sliced))
+	 (merged '()))
+    (until (null? scan)
+      (cond ((has-suffix entry "\\;")
+	     (set! entry (string-append entry (car scan)))
+	     (set! scan (cdr scan)))
+	    ((has-suffix entry "\\\n")
+	     (set! entry (string-append (slice entry -2) (elt entry -1) (car scan)))
+	     (set! scan (cdr scan)))
+	    ((has-suffix entry ";\n")
+	     (set! merged (cons (slice entry 0 -2) merged))
+	     (set! entry (car scan))
+	     (set! scan (cdr scan)))
+	    ((and (has-suffix entry ";")
+		  (string-ends-with?
+		   entry #("&" {#((isalpha) (isalnum+)) #("#" (isdigit+)) #("#x" (isxdigit+))}
+			   ";" (eos))))
+	     (set! entry (string-append entry (car scan)))
+	     (set! scan (cdr scan)))
+	    ((empty-string? entry)
+	     (set! scan (cdr scan)))
+	    (else
+	     (set! merged (cons (slice entry 0 -1) merged))
+	     (set! entry (car scan))
+	     (set! scan (cdr scan)))))
+    (reverse (cons entry merged))))
+
 (define (kno/read-plaintext text (knodule default-knodule))
   (map (lambda (x)
 	 (if (eq? (first x) #\*)
@@ -273,7 +304,7 @@
 	     (if (char-punctuation? (first x))
 		 x
 		 (handle-subject-entry x knodule))))
-       (remove "" (map trim-spaces (escaped-segment text #\;)))))
+       (remove "" (map trim-spaces (kno/plaintext/entries text)))))
 (define (kno/plaintext text (knodule default-knodule))
   "Parses a single plaintext subject entry and returns the subject"
   (handle-subject-entry (trim-spaces text) knodule))
