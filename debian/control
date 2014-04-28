@@ -2,11 +2,9 @@ Source: framerd
 Section: unknown
 Priority: optional
 Maintainer: Kenneth Benfiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, sqlite3, apache2-threaded-dev, libmysqlclient-dev, libcurl4-openssl-dev,libexif-dev,libtidy-dev,libzip-dev,libqrencode-dev
 Standards-Version: 3.9.4
 Homepage: http://www.framerd.org/
-#Vcs-Git: git://git.debian.org/collab-maint/framerd.git
-#Vcs-Browser: http://git.debian.org/?p=collab-maint/framerd.git;a=summary
 
 Package: framerd
 Architecture: any
@@ -34,9 +32,9 @@ Architecture: all
 Depends: framerd-core (>= ${binary:Version})
 Description: Standard scheme modules for FramerD
 
-Package: framerd-apache
+Package: libapache2-mod-fdserv
 Architecture: any
-Depends: framerd-core (= ${binary:Version})
+Depends: framerd-core (= ${binary:Version}) apache2-mpm
 Description: The mod_fdserv module for FramerD servlets under Apache
 
 Package: framerd-mysql
