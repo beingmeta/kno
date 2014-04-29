@@ -288,6 +288,7 @@
 	     (set! entry (string-append entry (car scan)))
 	     (set! scan (cdr scan)))
 	    ((empty-string? entry)
+	     (set! entry (car scan))
 	     (set! scan (cdr scan)))
 	    (else
 	     (set! merged (cons (slice entry 0 -1) merged))
