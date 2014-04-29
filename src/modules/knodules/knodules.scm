@@ -403,7 +403,7 @@
 
 (defambda (kno/string-indices value (phonetic #f))
   (let* ((values (stdspace value))
-	 (expvalues (choice values (basestring values)))
+	 (expvalues (choice values (basestring values) ))
 	 (normvalues (capitalize (pick expvalues somecap?)))
 	 (indexvals (choice expvalues normvalues (dedash normvalues)))
 	 (metavals (tryif phonetic
@@ -581,11 +581,10 @@
 ;;; Natural language terms
 
 (defambda (add-phrase! frame slotid value)
-  (let ((knodule (get knodules (get frame 'knodule))))
+  (let* ((knodule (get knodules (get frame 'knodule)))
+	 (index (knodule-index knodule)))
     ;; Index expanded vales (including metaphone hashes)
-    (add! (knodule-index knodule)
-	  (cons slotid (kno/string-indices value))
-	  frame)
+    (add! index (cons slotid (kno/string-indices value)) frame)
     ;; Update the phrasemap
     (when (compound? value)
       (let ((wordv (words->vector value))
