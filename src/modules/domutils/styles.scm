@@ -12,11 +12,9 @@
 (define %loglevel %notice%)
 
 (define (dom/normstyle string (rules #f))
-  (let* ((prepped (if rules
-		      (textsubst (decode-entities string) (qc rules))
-		      (decode-entities string)))
+  (let* ((prepped (if rules (textsubst string (qc rules)) string))
 	 (ruleset (for-choices (r (text->frames css-rule prepped))
-		    (cons (get r 'prop) (trim-spaces (get r 'val)))))
+		    (cons (stdspace (get r 'prop)) (stdspace (get r 'val)))))
 	 (rules (rsorted ruleset car))
 	 (prop #f))
     (stringout
