@@ -77,8 +77,8 @@
 
 (define (s3loc-string loc)
   (stringout "#%(S3LOC " (write (s3loc-bucket loc))
-    (if (> (record-length loc) 1) (printout " " (write (s3loc-path loc))))
-    (if (and (> (record-length loc) 2) (exists? (s3loc-opts loc)))
+    (if (> (compound-length loc) 1) (printout " " (write (s3loc-path loc))))
+    (if (and (> (compound-length loc) 2) (exists? (s3loc-opts loc)))
 	(printout " " (write (s3loc-opts loc))))
     ")"))
 
