@@ -220,8 +220,8 @@ static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
     else return fasteval(final_expr,env);}
   else {
     fdtype exprs=expr, next=FD_CDR(expr); int i=0;
-    while ((i<start)&&(FD_PAIRP(exprs))) {
-      exprs=next; next=FD_CDR(expr); i++;}
+    while ((i<start)&&(FD_PAIRP(next))) {
+      exprs=next; next=FD_CDR(exprs); i++;}
     while (FD_PAIRP(next)) {
       fdtype each=FD_CAR(exprs);
       fdtype each_value=fd_eval(each,env);
