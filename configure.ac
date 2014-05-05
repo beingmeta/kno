@@ -34,7 +34,7 @@ AC_MSG_CHECKING([for group $1])
 if (test "x${prefix}" == "x/usr"); then
    localstatedir="/var";
 elif (test "x${prefix}" == "x/usr/local"); then
-   localstatedir="/var/local";
+   localstatedir="/var";
 else localstatedir="\${prefix}/var";
 fi
 
