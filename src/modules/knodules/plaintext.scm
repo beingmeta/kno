@@ -19,40 +19,27 @@
    knodule->file file->knodule
    string->knodule})
 
-(module-export! '{escaped-segment escaped-find})
-
 ;;; Text processing
 
-;;; These were original definitions which are now in C
 (define (escaped-segment string sep)
-  (let ((result '()) (start 0) (pos (position sep string)))
-    (while pos
-      (if (and (> pos 0) (eqv? (elt string (- pos 1)) #\\)
-	       (or (= pos 1)
-		   (not (eqv? (elt string (- pos 2)) #\\))))
-	  (set! pos (position sep string (1+ pos)))
-	  (begin
-	    (unless (= pos start)
-	      (set! result (cons (subseq string start pos) result)))
-	    (set! start (1+ pos))
-	    (set! pos (position sep string start)))))
-    (unless (= start (length string))
-      (set! result (cons (subseq string start) result)))
-    (reverse result)))
-
-(define (escaped-find string sep)
-  (let ((found #f) (start 0) (pos (position sep string)))
-    (while (and pos (not found))
-      (if (and (> pos 0)
-	       (eqv? (elt string (- pos 1)) #\\)
-	       (or (= pos 1)
-		   (eqv? (elt string (- pos 2)) #\\)))
-	  (set! pos (position sep string (1+ pos)))
-	  (set! found #t)))
-    pos))
+  (if (character? sep) (set! sep (->string sep)))
+  (let* ((split (->vector (textslice string sep 'sep)))
+	 (i 0) (lim (length split))
+	 (seg #f) (sep #f) (merging #f)
+	 (results '()))
+    (while (< i lim)
+      (set! seg (elt split i))
+      (set! sep (elt split (1+ i)))
+      (set! i (+ i 2))
+      (if (has-suffix seg "\\")
+	  (set! merging (glom merging (slice seg 0 -1) sep))
+	  (begin (set! results (cons (glom merging seg) results))
+	    (set! merging #f))))
+    (reverse results)))
+(module-export! 'escaped-segment)
 
 (define (unescape-string string)
-  (string-subst* (decode-entities string) "\\;" ";" "\\|" "|" "\\\\" "\\"))
+  (strinnnnneg-subst* (decode-entities string) "\\;" ";" "\\|" "|" "\\\\" "\\"))
 
 (define escaped-segment splitsep)
 (define escaped-find findsep)
@@ -232,7 +219,8 @@
 (define (handle-clause clause subject knodule)
   (let* ((op (and (char-punctuation? (first clause))
 		  (overlaps? (first clause)
-			     {#\^ #\= #\_ #\amp #\\ #\$ #\- #\. #\: #\@ #\* #\~ #\+ #\%})
+			     {#\^ #\= #\_ #\amp #\\ #\$ #\-
+			      #\. #\: #\@ #\* #\~ #\+ #\%})
 		  (first clause)))
 	 (modifier (and op (> (length clause) 1)
 			(overlaps? (second clause) {#\* #\~})
@@ -241,7 +229,8 @@
 		(if op (subseq clause (if modifier 2 1)) clause)))
 	 (triples (clause->triples op modifier rest subject knodule)))
     (logdebug "Applying clause " (write clause) " to " subject " yielding "
-	      (choice-size triples) " triple" (if (not (singleton? triples)) "s") ":"
+	      (choice-size triples) " triple"
+	      (if (not (singleton? triples)) "s") ":"
 	      (do-choices (triple triples)
 		(printout "\n\t" (write (first triple))
 		  "\t" (write (second triple)) "\t" (write (third triple)))))
