@@ -731,7 +731,8 @@
 				  (and sel (not (dom/match child sel))))
 			(set! sum (dom/count child sel sum))))
 		    (1+ sum))
-		  (1+ sum))))))
+		  (1+ sum))
+	      sum))))
 
 ;;; Stripping out some elements
 
