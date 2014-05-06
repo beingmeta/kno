@@ -15,7 +15,36 @@
 (define-init workdir #f)
 (varconfig! workdir workdir)
 
+(define-init statefile "/tmp/checkurl.state")
+(define-init troubles (make-hashtable))
+(define (config-state var (val))
+  (cond ((not (bound? val)) troubles)
+	((and (string? statefile) (file-exists? statefile))
+	 (set! statefile statefile)
+	 (set! troubles (file->dtype statefile)))
+	((string? statefile)
+	 (set! statefile statefile)
+	 (set! troubles (make-hashtable))
+	 (dtype->file troubles statefile))
+	((and (pair? val) (table? (car val)) (string? (cdr val)))
+	 (set! statefile (cdr statefile))
+	 (set! troubles (car val))
+	 (dtype->file troubles statefile))
+	((and (pair? val) (string? (car val)) (table? (cdr val)))
+	 (set! statefile (car statefile))
+	 (set! troubles (cdr val))
+	 (dtype->file troubles statefile))
+	((table? val)
+	 (set! statefile #f)
+	 (set! troubles val))
+	(else (error "Bad value for CHECKURL:STATE"))))
+(config-def! 'checkurl:state config-state)
+
 (define (default-cookiejar)
+  (when (and workdir (not (file-directory? workdir)))
+    (unless (file-directory? (dirname workdir))
+      (mkdirs (dirname workdir)))
+    (unless (file-directory? workdir) (mkdir workdir)))
   (unless workdir (set! workdir (tempdir)))
   (set! cookiejar (mkpath workdir "cookies"))
   cookiejar)
@@ -34,7 +63,10 @@
 (varconfig! checkurl:from email-from)
 
 (define maxtime 60)
-(varconfig! testurl:maxtime maxtime)
+(varconfig! checkurl:maxtime maxtime)
+
+(define nagtime (* 60 30))
+(varconfig! checkurl:nagtime nagtime)
 
 (define (getopts (opts #f))
   (if opts
@@ -50,15 +82,39 @@
       `#[cookiejar ,(or cookiejar (default-cookiejar))
 	 maxtime ,maxtime]))
 
-(define (report-trouble testid url req testfn)
+(define (testok testid url req testfn (opts #f))
+  (when (and troubles (test troubles test))
+    (drop! troubles test)
+    (when statefile (dtype->file troubles statefile))
+    (report-resolution testid url req testfn opts))
+  #t)
+
+(define (report-trouble testid url req testfn (opts #f))
   (logwarn (stringout testid) " accessing " url ":\n\t" (pprint req))
-  (when email
-    (ses/call `#[to ,email from ,email-from
-		 subject ,(stringout "Failed " testid " @ " url)
-		 text ,(stringout (pprint req))]))
-  (when sms
-    (twilio/send (stringout "Failed " testid " @ " url) sms))
-  #f)
+  (when (and (test troubles testid)
+	     (> (difftime (get troubles testid)) nagtime))
+    (when email
+      (ses/call `#[to ,email from ,email-from
+		   subject ,(stringout "Failed " testid " @ " url)
+		   text ,(stringout (pprint req))]))
+    (when sms
+      (twilio/send (stringout "Failed " testid " @ " url) sms))
+    (when troubles (store! troubles testid (timestamp 'seconds)))
+    (when statefile (dtype->file troubles statefile))
+    #f))
+
+(define (report-resolution testid url req testfn (opts #f))
+  (when (test troubles testid)
+    (logwarn (stringout testid) " resolved for " url ":\n\t" (pprint req))
+    (drop! troubles testid)
+    (when statefile (dtype->file troubles statefile))
+    (when email
+      (ses/call `#[to ,email from ,email-from
+		   subject ,(stringout "Success on " testid " @ " url)
+		   text ,(stringout (pprint req))]))
+    (when sms
+      (twilio/send (stringout "Success on " testid " @ " url) sms))
+    #t))
 
 (define (test-response req expect)
   (cond ((number? expect) (test req 'response expect))
@@ -102,13 +158,16 @@
 
 (define (checkurl-inner testid url (opts #f) (testfn #f))
   (set! opts (getopts opts))
-  (let ((req (onerror (if (and (table? testfn) (test testfn '{location response}))
+  (let ((req (onerror (if (and (table? testfn)
+			       (test testfn '{location response}))
 			  (urlget url opts)
 			  (urlget+ url opts))
-	       (lambda (ex) (report-trouble testid url ex #f)))))
+	       (lambda (ex) (report-trouble testid url ex #f opts)))))
     (cond ((not req) #f)
 	  ((and testfn (applicable? testfn))
-	   (or (testfn req) (report-trouble testid url req testfn) #t))
+	   (if (testfn req)
+	       (testok testid url req testfn opts)
+	       (report-trouble testid url req testfn opts)))
 	  ((and testfn (slotmap? testfn))
 	   (and
 	    (or (not (test testfn 'response))
@@ -116,24 +175,30 @@
 		(report-trouble testid url req
 				`#[test response
 				   expect ,(get testfn 'response)
-				   got ,(get req 'response)]))
+				   got ,(get req 'response)]
+				opts))
 	    (or (not (test testfn 'location))
 		(test-location req (get testfn 'location))
 		(report-trouble testid url req
 				`#[test location
 				   expect ,(get testfn 'location)
-				   got ,(get req 'location)]))
+				   got ,(get req 'location)]
+				opts))
 	    (or (not (test testfn 'content))
 		(test-content req (get testfn 'content))
 		(report-trouble testid url req
 				`#[test content
 				   expect ,(get testfn 'content)
-				   got ,(get req '%content)]))))
+				   got ,(get req '%content)]
+				opts))
+	    (testok testid url req testfn opts)))
 	  ((number? testfn)
-	   (or (identical? testfn (get req 'response))
-	       (report-trouble testid url req testfn)))
-	  ((and (test req 'response) (>= 399 (get req 'response) 200)) #t)
-	  (else (report-trouble testid url req testfn)))))
+	   (if (identical? testfn (get req 'response))
+	       (testok testid url req testfn opts)
+	       (report-trouble testid url req testfn opts)))
+	  ((and (test req 'response) (>= 399 (get req 'response) 200))
+	   (testok testid url req testfn opts))
+	  (else (report-trouble testid url req testfn opts)))))
 
 (define (checkurl testid url (opts (getopts)) (testfn #f))
   (let ((result (checkurl-inner testid url opts testfn)))
@@ -143,6 +208,3 @@
 	    (lognotice "Successful test " testid " @ " url))
 	(logwarn "Failed test " testid " @ " url))
     result))
-
-
-
