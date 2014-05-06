@@ -89,8 +89,11 @@
     (report-resolution testid url req testfn opts))
   #t)
 
-(define (report-trouble testid url req testfn (opts #f))
-  (logwarn (stringout testid) " accessing " url ":\n\t" (pprint req))
+(define (report-trouble testid url req ex testfn (opts #f))
+  (if req
+      (logwarn (stringout testid) " accessing " url ":\n\t"
+	       (pprint req))
+      (logwarn (stringout testid) " accessing " url ":\n\t" ex))
   (when (and (test troubles testid)
 	     (> (difftime (get troubles testid)) nagtime))
     (when email
@@ -100,8 +103,8 @@
     (when sms
       (twilio/send (stringout "Failed " testid " @ " url) sms))
     (when troubles (store! troubles testid (timestamp 'seconds)))
-    (when statefile (dtype->file troubles statefile))
-    #f))
+    (when statefile (dtype->file troubles statefile)))
+  #f)
 
 (define (report-resolution testid url req testfn (opts #f))
   (when (test troubles testid)
@@ -113,8 +116,8 @@
 		   subject ,(stringout "Success on " testid " @ " url)
 		   text ,(stringout (pprint req))]))
     (when sms
-      (twilio/send (stringout "Success on " testid " @ " url) sms))
-    #t))
+      (twilio/send (stringout "Success on " testid " @ " url) sms)))
+  #t)
 
 (define (test-response req expect)
   (cond ((number? expect) (test req 'response expect))
@@ -162,12 +165,12 @@
 			       (test testfn '{location response}))
 			  (urlget url opts)
 			  (urlget+ url opts))
-	       (lambda (ex) (report-trouble testid url ex #f opts)))))
+	       (lambda (ex) (report-trouble testid url #f ex testfn opts)))))
     (cond ((not req) #f)
 	  ((and testfn (applicable? testfn))
 	   (if (testfn req)
 	       (testok testid url req testfn opts)
-	       (report-trouble testid url req testfn opts)))
+	       (report-trouble testid url req #f testfn opts)))
 	  ((and testfn (slotmap? testfn))
 	   (and
 	    (or (not (test testfn 'response))
@@ -176,29 +179,32 @@
 				`#[test response
 				   expect ,(get testfn 'response)
 				   got ,(get req 'response)]
-				opts))
+				testfn opts))
 	    (or (not (test testfn 'location))
 		(test-location req (get testfn 'location))
 		(report-trouble testid url req
 				`#[test location
 				   expect ,(get testfn 'location)
 				   got ,(get req 'location)]
-				opts))
+				testfn opts))
 	    (or (not (test testfn 'content))
 		(test-content req (get testfn 'content))
 		(report-trouble testid url req
 				`#[test content
 				   expect ,(get testfn 'content)
 				   got ,(get req '%content)]
-				opts))
+				testfn opts))
 	    (testok testid url req testfn opts)))
 	  ((number? testfn)
 	   (if (identical? testfn (get req 'response))
 	       (testok testid url req testfn opts)
-	       (report-trouble testid url req testfn opts)))
+	       (report-trouble testid url req
+			       `#[test response expect ,testfn
+				  got ,(get req 'response)]
+			       testfn opts)))
 	  ((and (test req 'response) (>= 399 (get req 'response) 200))
 	   (testok testid url req testfn opts))
-	  (else (report-trouble testid url req testfn opts)))))
+	  (else (report-trouble testid url req #f testfn opts)))))
 
 (define (checkurl testid url (opts (getopts)) (testfn #f))
   (let ((result (checkurl-inner testid url opts testfn)))
