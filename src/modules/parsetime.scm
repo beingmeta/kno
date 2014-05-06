@@ -188,4 +188,26 @@
 (define (parsegmtime string (base #f) (us us-format-default))
   (parsetime string (or base (gmtimestamp)) us))
 
+;;;; Time delta functions
 
+(define (+minutes n (base (timestamp 'seconds)))
+  (timestamp+ base (* n 60)))
+(define (-minutes n (base (timestamp 'seconds)))
+  (timestamp+ base (* n -60)))
+(define (+hours n (base (timestamp 'seconds)))
+  (timestamp+ base (* n 3600)))
+(define (-hours n (base (timestamp 'seconds)))
+  (timestamp+ base (* n -3600)))
+(define (+days n (base (timestamp 'seconds)))
+  (timestamp+ base (* n 3600 24)))
+(define (-days n (base (timestamp 'seconds)))
+  (timestamp+ base (* n -3600 24)))
+(define (+weeks n (base (timestamp 'seconds)))
+  (timestamp+ base (* n 3600 24 7)))
+(define (-weeks n (base (timestamp 'seconds)))
+  (timestamp+ base (* n -3600 24 7)))
+
+(module-export! '{+minutes -minutes
+		  +hours -hours
+		  +days -days
+		  +weeks -weeks})
