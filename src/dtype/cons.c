@@ -1255,7 +1255,7 @@ static int uuid_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
   int size=0;
   struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *); 
   fd_write_byte(out,dt_compound);
-  size=size+fd_write_dtype(out,uuid_symbol);
+  size=size+1+fd_write_dtype(out,uuid_symbol);
   fd_write_byte(out,dt_packet); fd_write_4bytes(out,16); size=size+5;
   fd_write_bytes(out,uuid->uuid,16); size=size+16;
   return size;
