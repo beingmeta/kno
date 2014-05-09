@@ -68,11 +68,13 @@
 			 'received (gmtimestamp)))
 	     (content (getopt result '%content))
 	     (fields (tryif content (text->frames extract content))))
-	(if (fail? fields) (debug%watch content) (debug%watch fields))
-	(do-choices (field fields)
-	  (do-choices (key (getkeys field))
-	    (add! combined key (get field key))))
-	(if (exists? fields) combined (fail)))
+	(if (or (fail? fields) (fail? (get fields 'msgid)))
+	    (begin (debug%watch content fields) #f)
+	    (begin (debug%watch fields)
+	      (do-choices (field fields)
+		(do-choices (key (getkeys field))
+		  (add! combined key (get field key))))
+	       combined)))
       (irritant result |Bad SQS response| SQS/GET
 		"Received from " (get result 'effective-url))))
 
@@ -103,8 +105,10 @@
   (when prefix (set! args `#["Action" "ListQueues" "QueueNamePrefix" ,prefix]))
   (handle-sqs-response (aws4/get (get-queue-opts #f opts) sqs-endpoint args)))
 
-(define (sqs/info queue (args #["Action" "GetQueueAttributes" "AttributeName.1" "All"]))
-  (handle-sqs-response (aws4/get (get-queue-opts) queue args)
+(define (sqs/info queue
+		  (args #["Action" "GetQueueAttributes" "AttributeName.1" "All"])
+		  (opts #[]))
+  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args)
 		       (qc sqs-info-fields)))
 
 (define (sqs/delete message)
