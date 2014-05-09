@@ -30,7 +30,7 @@
    *block-tags* *block-text-tags* *terminal-block-tags* *table-tags*
    *wrapper-tags* *inline-tags* *empty-tags* *void-tags*  
    dom/block? dom/inline? dom/terminal?
-   dom->id id->dom
+   dom->id id->dom dom->xmlids
    dom/parent
    dom/clone})
 
@@ -1147,4 +1147,29 @@
       (try (get elt 'oid) (get elt 'id))))
 (define (id->dom id index)
   (if (oid? id) id (find-frames index 'id id)))
+
+(defambda (dom->xmlids obj (pools #f))
+  (cond ((choice? obj) (for-choices (e obj) (dom->xmlids e pools)))
+	((or (symbol? obj) (number? obj) (string? obj) (packet? obj)) obj)
+	((oid? obj)
+	 (tryif (or (not pools) (overlaps? (get-pool obj) pools))
+	   (get obj 'id)))
+	((and (table? obj) (test obj '%xmltag)) (get obj 'id))
+	((pair? obj)
+	 (cons (dom->xmlids (car obj) pools)
+	       (dom->xmlids (cdr obj) pools)))
+	((vector? obj) (forseq (elt obj) (dom->xmlids elt pools)))
+	((hashset? obj)
+	 (choice->hashset
+	  (for-choices (e (hashset-elts obj)) (dom->xmlids e pools))))
+	((or (hashtable? obj) (slotmap? obj) (schemap? obj))
+	 (let ((keys (getkeys obj))
+	       (table (if (hashtable? obj) (make-hashtable)
+			  (frame-create #f))))
+	   (do-choices (key keys)
+	     (store! table (dom->xmlids key)
+		     (dom->xmlids (get obj key) pools)))
+	   table))
+	(else obj)))
+
 
