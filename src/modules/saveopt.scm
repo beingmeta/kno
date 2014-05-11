@@ -10,7 +10,9 @@
 (define (_saveopt settings opt thunk)
   (try (getopt settings opt {})
        (let ((v (thunk)))
-	 (store! (car settings) opt v)
+	 (if (pair? settings)
+	     (store! (car settings) opt v)
+	     (store! settings opt v))
 	 v)))
 (define saveopt
   (macro expr
