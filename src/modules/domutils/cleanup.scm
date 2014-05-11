@@ -17,7 +17,8 @@
    dom/mergebreaks/subst
    dom/mergebreaks
    dom/mergenbsp/subst
-   dom/mergenbsp})
+   dom/mergenbsp
+   dom/mergespans!})
 
 (module-export! '{dom/cleanup/mergelines dom/cleanup/unipunct
 		  dom/cleanup/mergelines+unipunct})
@@ -391,6 +392,60 @@
       (if (position #\newline s) "\n"
 	  " ")))
 
+;;;; Merging spans
+
+(define (mergespans content)
+  (let ((merged '())
+	(open #f) (children '())
+	(openclass {}) (openstyle {})
+	(opentitle {}) (openattribs {}))
+    (doseq (node content)
+      (if (string? node)
+	  (if (empty-string? node)
+	      (if open
+		  (set! children (cons node children))
+		  (set! merged (cons node merged)))
+	      (begin (when open
+		       (store! open '%content (reverse children))
+		       (set! merged (cons open merged))
+		       (set! open #f) (set! children '())
+		       (set! openclass {}) (set! openstyle {})
+		       (set! openattribs {}) (set! opentitle {}))
+		(set! merged (cons node merged))))
+	  (if (and open (test node '%xmltag 'span)
+		   (identical? openclass (get node 'class))
+		   (identical? openstyle (get node 'style))
+		   (identical? opentitle (get node 'title))
+		   (identical? openattribs (get node '%attribids)))
+	      (set! children (append (reverse (get node '%content))
+				     children))
+	      (begin (when open
+		       (store! open '%content (reverse children))
+		       (set! merged (cons open merged))
+		       (set! open #f) (set! children '())
+		       (set! openclass {}) (set! openstyle {})
+		       (set! openattribs {}) (set! opentitle {}))
+		(if (test node '%xmltag 'span)
+		    (begin (set! open node)
+		      (set! openclass (get open 'class))
+		      (set! openstyle (get open 'style))
+		      (set! opentitle (get open 'title))
+		      (set! openattribs (get open '%attribids))
+		      (set! children (reverse (get node '%content))))
+		    (set! merged (cons node merged)))))))
+    (when open
+      (store! open '%content (reverse children))
+      (set! merged (cons open merged)))
+    (reverse merged)))
+
+(define (dom/mergespans! root (content))
+  (set! content (get root '%content))
+  (when (and (exists? content) (pair? content))
+    (set! content (mergespans content))
+    (store! root '%content content)
+    (dolist (elt content)
+      (unless (string? elt) (dom/mergespans! elt)))))
+
 ;;;; Elide wrappers
 
 (define (dom/cleanblocks! arg (settings #f))
@@ -426,7 +481,8 @@
 				 content)
 			 (not (test node 'style)) (not (test node 'class)))
 		    (apply append (forseq (node content) (cleanblocks node opts)))
-		    (let ((cleaned (apply append (forseq (node content) (cleanblocks node opts)))))
+		    (let ((cleaned (apply append (forseq (node content)
+						   (cleanblocks node opts)))))
 		      (store! node '%content (merge-text (->list cleaned)))
 		      (vector node)))))))
 
