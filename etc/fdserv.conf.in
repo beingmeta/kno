@@ -1,3 +1,4 @@
+LoadModule fdserv_module      @apache_modules_dir@/mod_fdserv.so
 <IfModule mod_fdserv.c>
         AddHandler fdservlet .fdcgi .fdxml
 	FDServletExecutable @prefix@/bin/fdservlet

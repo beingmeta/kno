@@ -316,6 +316,8 @@ etc/OSXStartupItem/FramerD: etc/OSXStartupItem/FramerD.in ./configure
 	./configure
 etc/fdserv.conf: etc/fdserv.conf.in ./configure
 	./configure
+etc/fdserv.uniconf: etc/fdserv.uniconf.in ./configure
+	./configure
 etc/fdserv.load: etc/fdserv.load.in ./configure
 	./configure
 etc/logrotate: etc/logrotate.in ./configure
@@ -1205,7 +1207,7 @@ mod_fdserv: etc/mod_fdserv.so
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c etc/mod_fdserv.c
 install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@fdserv_log_dir@
-	@cd etc; $(SYSINSTALL) @install_file_opts@ fdserv.conf fdserv.load \
+	@cd etc; $(SYSINSTALL) @install_file_opts@ fdserv.conf \
 			$(DESTDIR)@apache_modinfo@;
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/fdserv;
