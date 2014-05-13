@@ -1240,9 +1240,8 @@ static int reuse_webclient(u8_client ucl)
   fdtype cgidata=client->cgidata;
   int refcount=((FD_CONSP(cgidata))?
 		(FD_CONS_REFCOUNT((fd_cons)cgidata)):(0));
-  u8_log(LOG_INFO,"webclient/reuse",
-	 "Reusing web client %s (0x%lx) refs(cgidata)=%d",
-	 ucl->idstring,ucl,refcount);
+  u8_log(LOG_INFO,"webclient/reuse","Reusing web client %s (0x%lx)",
+	 ucl->idstring,ucl);
   fd_decref(cgidata); client->cgidata=FD_VOID;
   return 1;
 }
