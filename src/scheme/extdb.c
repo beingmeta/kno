@@ -215,6 +215,33 @@ static fdtype extdb_makeproc(int n,fdtype *args)
   else return FD_VOID;
 }
 
+static fdtype extdb_proc_plus(int n,fdtype *args)
+{
+  fdtype arg1=args[0], result=FD_VOID;
+  struct FD_EXTDB_PROC *extdbproc=
+    FD_GET_CONS(arg1,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
+  fdtype extdbptr=extdbproc->db;
+  struct FD_EXTDB *extdb=
+    FD_GET_CONS(extdbptr,fd_extdb_type,struct FD_EXTDB *);
+  u8_string base_qtext=extdbproc->qtext, new_qtext=
+    u8_string_append(base_qtext," ",FD_STRDATA(args[1]),NULL);
+  fdtype colinfo=extdbproc->colinfo;
+  int n_base_params=extdbproc->n_params, n_params=(n-2)+n_base_params;
+  fdtype *params=((n_params)?(u8_alloc_n(n_params,fdtype)):(NULL));
+  fdtype *base_params=extdbproc->paramtypes, param_count=0;
+  int i=n-1; while (i>=2) {
+    fdtype param=args[i--]; fd_incref(param);
+    params[param_count++]=param;}
+  i=n_base_params-1; while (i>=0) {
+    fdtype param=base_params[i--]; fd_incref(param);
+    params[param_count++]=param;}
+  fd_incref(colinfo);
+  result=extdb->dbhandler->makeproc
+    (extdb,new_qtext,strlen(new_qtext),colinfo,param_count,params);
+  u8_free(new_qtext);
+  return result;
+}
+
 /* Accessors */
 
 static fdtype extdb_proc_query(fdtype extdb)
@@ -294,6 +321,7 @@ FD_EXPORT void fd_init_extdbi_c()
 			   fd_string_type,FD_VOID,
 			   -1,FD_VOID));
   fd_idefn(extdb_module,fd_make_cprimn("EXTDB/PROC",extdb_makeproc,2));
+  fd_idefn(extdb_module,fd_make_cprimn("EXTDB/PROC+",extdb_proc_plus,2));
 
   fd_idefn(extdb_module,fd_make_cprim1x
 	   ("EXTDB/PROC/QUERY",extdb_proc_query,1,fd_extdb_proc_type));
