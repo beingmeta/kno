@@ -1,4 +1,4 @@
-;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
+;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2014 beingmeta, inc.  All rights reserved.
 
 (in-module 'domutils)
@@ -11,15 +11,16 @@
 
 (module-export!
  '{
-   dom/textify
+   dom/textify dom/find
    dom/textual? dom/structural?
    dom/hasclass? dom/addclass! dom/dropclass!
-   dom/oidify dom/oidmap dom/sig dom/nodeid dom/eltref
+   dom/oidify dom/oidmap dom/sig dom/nodeid dom/eltref dom/updateid!
    dom/get dom/set-tag! dom/set! dom/add! dom/drop!
    dom/append! dom/prepend!
    dom/remove-child! dom/remove!
    dom/replace-child! dom/replace!
-   dom/selector dom/match dom/lookup dom/find dom/find->list
+   dom/selector dom/match dom/lookup
+   dom/select dom/select->list dom/find->list
    dom/getrules dom/add-rule!
    dom/search dom/search/first dom/strip! dom/map dom/map! dom/combine!
    dom/findmeta dom/getmeta dom/findlinks dom/getlinks
@@ -225,7 +226,8 @@
 		(store! node (string->lisp (attrib-name aname)) val))
 	      (add! node '%attribs
 		    (vector (elt attribs 0) (elt attribs 1) stringval)))
-	    (add! node '%attribs (vector aname #f stringval))))))
+	    (add! node '%attribs (vector aname #f stringval)))))
+  (when (oid? node) (store! node '%id (dom/sig node #t #f))))
 
 (define (dom/drop! node attrib (value) (sep #f) (index #f))
   (drop! node '%markup)
@@ -278,7 +280,8 @@
 	  (dom/set! node 'class
 		    (stringout (doseq (class classes) (printout class " "))
 		      (printout classname)))))
-      (dom/set! node 'class classname)))
+      (dom/set! node 'class classname))
+  (when (oid? node) (store! node '%id (dom/sig node #t #f))))
 (define (dom/dropclass! node classname)
   (when (test node 'class)
     (let ((classes (segment (get node 'class) " ")))
@@ -288,7 +291,8 @@
 	    (dom/set! node 'class
 		      (stringout
 			(doseq (class (remove classname classes) i)
-			  (printout (if (> i 0) " ") class)))))))))
+			  (printout (if (> i 0) " ") class)))))))
+    (when (oid? node) (store! node '%id (dom/sig node #t #f)))))
 
 (define (->domstring value)
   (cond ((string? value) value)
@@ -629,30 +633,39 @@
 
 ;;; Searching
 
-(defambda (dom/find under sel (findall #t))
+(defambda (dom/find under sel . args)
+  (if (null? args) (dom/select under sel)
+      (if (and (pair? args) (identical? (car args) #f))
+	  (dom/select under sel #f)
+	  (if (test under 'index)
+	      (apply find-frames (get under 'index) (cons sel args))
+	      (begin (logwarn "No index for " under)
+		(fail))))))
+
+(defambda (dom/select under sel (findall #t))
   "Finds all nodes matching SEL under UNDER, if FINDALL is true, \
    look under matching nodes for other matching nodes."
   (when (exists? (pickstrings sel)) (set! sel (->selector sel)))
   (cond ((string? under) (fail))
 	((ambiguous? under)
-	 (for-choices under (dom/find under sel)))
+	 (for-choices under (dom/select under sel)))
 	((exists?  (get under 'index))
 	 (for-choices (index (get under 'index)) (dom-index-find index sel)))
 	((exists? (get (get under '%doc) 'index))
 	 (let ((index (try (get under 'index) (get (get under '%doc) 'index))))
 	   (for-choices index (dom-index-find index sel under))))
 	((pair? under)
-	 (for-choices (elt (elts under)) (dom/find elt sel findall)))
+	 (for-choices (elt (elts under)) (dom/select elt sel findall)))
 	((and (table? under) (dom/match under sel))
 	 (choice under (tryif findall
 			 (for-choices (elt (elts (get under '%content)))
-			   (dom/find elt sel findall)))))
+			   (dom/select elt sel findall)))))
 	((table? under)
 	 (for-choices (elt (elts (get under '%content)))
-	   (dom/find elt sel findall)))
+	   (dom/select elt sel findall)))
 	(else (fail))))
 
-(defambda (dom/find->list under sel (findall #t))
+(defambda (dom/select->list under sel (findall #t))
   "Finds all nodes matching SEL under UNDER, if FINDALL is true, \
    look under matching nodes for other matching nodes."
   (unless (exists? (pickstrings sel)) (set! sel (->selector sel)))
@@ -660,12 +673,12 @@
 	((ambiguous? under)
 	 (let ((nodes '()))
 	   (do-choices under
-	     (set! nodes (append nodes (dom/find->list under sel))))
+	     (set! nodes (append nodes (dom/select->list under sel))))
 	   nodes))
 	((pair? under)
 	 (let ((nodes '()))
 	   (dolist (under under)
-	     (set! nodes (append nodes (dom/find->list under  sel))))
+	     (set! nodes (append nodes (dom/select->list under  sel))))
 	   nodes))
 	((and (table? under) (dom/match under sel))
 	 (list under))
@@ -674,9 +687,10 @@
 	      (pair? (get under '%content)))
 	 (let ((nodes '()))
 	   (dolist (under (get under '%content))
-	     (set! nodes (append nodes (dom/find->list under sel))))
+	     (set! nodes (append nodes (dom/select->list under sel))))
 	   nodes))
 	(else '())))
+(define dom/find->list dom/select->list)
 
 ;;; Text searching
 
@@ -768,7 +782,7 @@
 (define (dom/gethead doc)
   (try (get doc 'head)
        (tryif (test doc '%xmltag 'head) doc)
-       (let ((found (dom/find doc "HEAD")))
+       (let ((found (dom/select doc "HEAD")))
 	 (when (exists? found)
 	   (store! doc 'head found))
 	 found)))
@@ -778,7 +792,7 @@
       (begin
 	(when (exists? (get doc '%xschemas))
 	  (add! doc '%schemas (get doc '%xschemas)))
-	(do-choices (link (dom/find doc "LINK"))
+	(do-choices (link (dom/select doc "LINK"))
 	  (when (has-prefix (get link 'rel) "schema.")
 	    (let* ((rel (get link 'rel))
 		   (href (get link 'href))
@@ -804,7 +818,7 @@
 
 (define (dom/findmeta doc field (xform) (dflt))
   (let* ((head (dom/gethead doc))
-	 (meta (dom/find head "META"))
+	 (meta (dom/select head "META"))
 	 (names
 	  (if (symbol? field)
 	      (getnames doc (symbol->string field))
@@ -827,7 +841,7 @@
 
 (define (dom/findlinks doc field)
   (let* ((head (dom/gethead doc))
-	 (links (dom/find head "LINK"))
+	 (links (dom/select head "LINK"))
 	 (names
 	  (if (symbol? field)
 	      (getnames doc (symbol->string field))
@@ -922,7 +936,7 @@
 
 (define (dom/combine! target elements (extract "BODY"))
   (dolist (elt elements)
-    (dom/append! target (dom/find->list elt extract))))
+    (dom/append! target (dom/select->list elt extract))))
 
 ;;; Textify
 
@@ -1132,6 +1146,8 @@
       (printout (hashref elt)))))
 (define (dom/nodeid elt (attribs #t) (showptr #f))
   (dom/sig elt attribs showptr))
+(define (dom/updateid! elt (attribs #t) (showptr #f))
+  (store! elt '%id (dom/sig elt attribs showptr)))
 
 (define (dom/eltref elt)
   (if (oid? elt)

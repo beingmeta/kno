@@ -332,7 +332,7 @@
 			(if (and (exists? content) (string? content))
 			    (cons href (css/parse content media))
 			    (list href))))))
-	   (dom/find->list dom "style,link"))))
+	   (dom/select->list dom "style,link"))))
 (define (dom/getcss dom source)
   (try (get dom 'css)
        (let ((computed (getcss dom source 0)))
