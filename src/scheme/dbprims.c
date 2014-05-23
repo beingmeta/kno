@@ -2601,9 +2601,8 @@ FD_EXPORT void fd_init_dbfns_c()
 	   fd_make_cprim1x("EXTINDEX-STATE",extindex_state,1,
 			   -1,FD_VOID));
 
-
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("??",fd_bgfinder,2)));
+           fd_make_ndprim(fd_make_cprimn("??",find_frames_lexpr,2)));
   fd_idefn(fd_xscheme_module,
 	   fd_make_ndprim(fd_make_cprimn("FIND-FRAMES",find_frames_lexpr,3)));
   fd_idefn(fd_xscheme_module,
