@@ -421,7 +421,7 @@
 
 ;;; Currently, we're ignoring attribs (just like the Javascript version)
 
-(defrecord selector tag (class #f) (id #f) (attribs {}))
+(defrecord selector tag (class #f) (id #f) (attribs {}) (context '()))
 
 (define xmlid #((isalpha) (opt (isalnum+)) (* #("_" (opt (isalnum+))))))
 
@@ -451,11 +451,20 @@
 	  (for-choices (spec (if (position #\, spec)
 				 (elts (segment spec ","))
 				 spec))
-	    (let ((match (text->frames selector-pattern spec)))
-	      (cons-selector (try (get match 'tagname) #f)
-			     (try (difference (get match 'classname) "*") #f)
-			     (try (get match 'idname) #f)
-			     (combine-attribs (pick match 'name)))))
+	    (let ((cascade (reverse (map stdspace (segment spec " ")))))
+	      (if (null? (cdr cascade))
+		  (let ((match (text->frames selector-pattern (car cascade))))
+		    (cons-selector (try (get match 'tagname) #f)
+				   (try (difference (get match 'classname) "*") #f)
+				   (try (get match 'idname) #f)
+				   (combine-attribs (pick match 'name))
+				   '()))
+		  (let ((match (text->frames selector-pattern (car cascade))))
+		    (cons-selector (try (get match 'tagname) #f)
+				   (try (difference (get match 'classname) "*") #f)
+				   (try (get match 'idname) #f)
+				   (combine-attribs (pick match 'name))
+				   (selector-parse-context (cdr cascade)))))))
 	  (if (table? spec)
 	      ;; Assume this is an XML node
 	      (cons-selector (try (get spec '%xmltag) #f)
@@ -463,6 +472,20 @@
 			     (try (get spec 'id) #f))
 	      (fail)))))
 (define ->selector dom/selector)
+
+(define (selector-parse-context cascade)
+  (let ((context '()))
+    (dolist (cx cascade)
+      (if (equal? cx ">")
+	  (set! context (cons cx context))
+	  (let ((match (text->frames selector-pattern cx)))
+	    (set! context
+		  (cons (cons-selector (try (get match 'tagname) #f)
+				       (try (difference (get match 'classname) "*") #f)
+				       (try (get match 'idname) #f)
+				       (combine-attribs (pick match 'name)))
+			context)))))
+    (reverse context)))
 
 (define (dom/lookup table sel (dflt))
   (if (selector? sel)
@@ -550,13 +573,36 @@
 			      (test elt (car attrib) (cdr attrib))
 			      (textsearch (cdr attrib) (get elt (car attrib)))))
 		attrib))))))
+(define (selmatch elt sel)
+  (and (basematch elt sel)
+       (or (null? (selector-context sel))
+	   (match-context elt (selector-context sel)))))
+(define (match-context elt context (stack #f))
+  (or (null? context)
+      (if (equal? (car context) ">")
+	  (if stack
+	      (and (pair? stack)
+		   (exists basematch (car stack) (cadr context))
+		   (match-context (car stack)  (cddr context) (cdr stack)))
+	      (and (exists basematch (get elt '%parent) (cadr context))
+		   (match-context (get elt '%parent) (cddr context))))
+	  (if stack
+	      (let ((scan stack))
+		(while (and (pair? scan) (not (basematch (car scan) (car context))))
+		  (set! scan (cdr scan)))
+		(and (pair? scan) (match-context (car scan) (cdr context) (cdr scan))))
+	      (let ((scan (get elt '%parent)))
+		(while (and (exists? scan) (not (basematch scan (car context))))
+		  (set! scan (get scan '%parent)))
+		(and (exists? scan)
+		     (match-context scan (cdr context))))))))
 
 (defambda (dom/match elt sel)
   (for-choices elt
     (if (string? elt) #f
 	(if (exists? (reject sel selector?))
 	    (dom/match elt (->selector sel))
-	    (try (try-choices sel (or (basematch elt sel) {}))
+	    (try (try-choices sel (or (selmatch elt sel) {}))
 		 #f)))))
 
 ;;; Finding using the index
