@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* mongodb.c
-   This implements FramerD bindings to odbc.
+   This implements FramerD bindings to mongodb.
    Copyright (C) 2007-2013 beingmeta, inc.
 */
 
@@ -18,8 +18,6 @@
 #include "framerd/sequences.h"
 #include "framerd/texttools.h"
 
-#include "framerd/extdb.h"
-
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
 #include <libu8/u8crypto.h>
@@ -29,7 +27,7 @@
 
 static int mongodb_initialized=0;
 
-FD_EXPORT int fd_init_odbc()
+FD_EXPORT int fd_init_mongodb()
 {
   fdtype module;
   if (mongodb_initialized) return 0;
