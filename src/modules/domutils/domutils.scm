@@ -613,7 +613,7 @@
 	   (intersection (dom-index-find index sel)
 			 (find-frames index 'parents under))))
 	((ambiguous? sel) (for-choices sel (dom-index-find index sel)))
-	((exists? (selector-attribs sel))
+	((or (exists? (selector-attribs sel)) (not (null? (selector-context sel))))
 	 (filter-choices (cand (dom-find-core index sel))
 	   (dom/match cand sel)))
 	(else (dom-find-core index sel))))
