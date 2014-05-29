@@ -9,7 +9,8 @@
 (define-init %loglevel %notice%)
 
 (module-export! '{dom/cleanup! dom/mergestyles! dom/unipunct!
-		  dom/cleanblocks! dom/raisespans!})
+		  dom/cleanblocks! dom/raisespans!
+		  dom/smartquote!})
 
 (module-export!
  '{dom/mergeheads/subst
@@ -82,6 +83,30 @@
 				 (map dom/unipunct! (get arg '%content)))
 		    arg)
 		  arg)))))
+
+;;; Smart quotes
+
+(define (dom/smartquote! node (state #f))
+  (if (string? node)
+      (let* ((scan 0) (qpos (position #\" node scan)))
+	(while qpos
+	  (printout (slice node scan qpos)
+	    (if state "\&rdquo;" "\&ldquo;"))
+	  (set! state (not state))
+	  (set! scan (1+ qpos))
+	  (set! qpos (position #\" node scan)))
+	(printout (subseq node scan)))
+      (when (and (test node '%content) (exists? (get node '%content))
+		 (pair? (get node '%content)))
+	(store! node '%content
+		(->list (forseq (elt (->vector (get node '%content)))
+			  (if (and (string? elt) (position #\" elt))
+			      (stringout
+				(set! state (dom/smartquote! elt state)))
+			      (if (string? elt) elt
+				  (begin (set! state (dom/smartquote! elt state))
+				    elt))))))))
+  state)
 
 ;;; Merging heads
 
