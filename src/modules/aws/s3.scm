@@ -18,6 +18,9 @@
 		  s3/modified s3/etag  s3/info
 		  s3/bucket? s3/copy! s3/link! s3/put
 		  s3/download!})
+(module-export!
+ '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath
+   s3loc->string})
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %notify%)
@@ -145,10 +148,6 @@
 
 (define (s3loc->string s3)
   (stringout "s3://" (s3loc-bucket s3) (s3loc-path s3)))
-
-(module-export!
- '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath
-   s3loc->string})
 
 ;;; Computing signatures for S3 calls
 
