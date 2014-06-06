@@ -4780,7 +4780,7 @@ else
   enable_devmode=$devmode_default
 fi
 
-if test "$enable_devmode" != "xno"; then
+if test "x$enable_devmode" != "xno"; then
   install_modules_target="link-modules";
 fi
 
