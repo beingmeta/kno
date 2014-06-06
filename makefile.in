@@ -834,6 +834,10 @@ staging/framerd-@FDVERSION@.tar.gz: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	make staging/framerd-@FDVERSION@
 	tar -czvf $@ -C staging framerd-@FDVERSION@
+staging/framerd_@FDVERSION@.orig.tar.gz: \
+	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
+	make staging/framerd_@FDVERSION@
+	tar -czvf $@ -C staging framerd_@FDVERSION@
 
 # RPM rules
 
