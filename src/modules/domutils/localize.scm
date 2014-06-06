@@ -93,8 +93,13 @@
 		  (logwarn |LOCALIZE/sync|
 			   "Couldn't read content from " (gp->s absref)
 			   " for " ref))
-		 (xform (gp/save! savepath (xform (get fetched 'content)) ctype))
-		 (else (gp/save! savepath (get fetched 'content) ctype)))
+		 (else (onerror (gp/save! savepath
+				  (if xform (xform (get fetched 'content))
+				      (get fetched 'content))
+				  ctype)
+			 (lambda (ex)
+			   (logwarn |LOCALIZE/sync/save| "Couldn't update content for " ref
+				    " from " (gp->s absref) ", using current " (gp->s savepath))))))
 	   (when (and fetched (test fetched 'content)
 		      (or (string? (get fetched 'content))
 			  (packet? (get fetched 'content))))
