@@ -9,7 +9,7 @@
 
 (module-export! '{sig/make sig/check sig/check/})
 
-(define-init %loglevel %info%)
+(define-init %loglevel %notice%)
 (varconfig! sbooks:signature:loglevel %loglevel)
 
 (defambda (makesigtext . args)
