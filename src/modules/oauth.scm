@@ -352,7 +352,7 @@
        "client_id" (getckey spec)
        "redirect_uri" (getcallback spec)
        "scope"
-       (tryif (or scope (getopt spec 'scope))
+       (tryif (choice (tryif scope scope) (getopt spec 'scope))
 	 (stringout (do-choices (scope (or scope (getopt spec 'scope)) i)
 		      (printout (if (> i 0) " ") scope))))
        "state" (getopt spec 'state (uuid->string (getuuid)))
@@ -784,7 +784,7 @@
 (define (oauth (code #f) (state #f)
 	       (oauth_realm #f) (oauth_token #f) (oauth_verifier #f)
 	       (scope #f))
-  (debug%watch "OAUTH" oauth_realm code oauth_token oauth_verifier getuser)
+  (debug%watch "OAUTH" oauth_realm code oauth_token oauth_verifier scope getuser)
   (if oauth_verifier ;; 1.0
       (let* ((auth-state (oauth/pending oauth_token))
 	     (verified (oauth/verify auth-state oauth_verifier)))
@@ -820,7 +820,7 @@
 			    (cons `#[state ,(uuid->string (getuuid))
 				     callback ,(getcallback spec)]
 				  spec)))
-		 (redirect (oauth/authurl state)))
+		 (redirect (oauth/authurl state scope)))
 	    (debug%watch "OAUTH/redirect" redirect state)
 	    (oauth/pending! (getopt state 'oauth_token (getopt state 'state))
 			    state)
