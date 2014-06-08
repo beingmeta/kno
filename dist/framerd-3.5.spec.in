@@ -134,7 +134,7 @@ The %{name}-tidy package implements external bindings to libtidy
 %setup -q
 
 %build
-%configure --prefix=/usr --libdir=%{_libdir} --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-ziptools --without-qrcode --without-exif --without-imagick --without-sudo --with-bootsystem=sysv
+%configure --prefix=/usr --libdir=%{_libdir} --with-admin-group=none --with-fdaemon=none --with-webuser=none --without-fastcgi --with-apacheinfo=%{_sysconfdir}/httpd/conf.d/ --with-apachelib=%{_libdir}/httpd/modules --without-odbc --without-ziptools --without-qrcode --without-exif --without-imagick --without-sudo --with-bootsystem=sysv --disable-devmode
 #make %{?_smp_mflags}
 make
 make mod_fdserv
@@ -189,8 +189,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/tests/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/misc/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/xhtml/*.scm
-%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/xhtml/*.css
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/xhtml/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/xhtml/*.css
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/domutils/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/safe/knodules/*.table

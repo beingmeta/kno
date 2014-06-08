@@ -35,6 +35,9 @@
 (define s3errs #t)
 (varconfig! s3errs s3errs config:boolean)
 
+(define s3retry #f)
+(varconfig! s3retry s3retry)
+
 (define default-usepath #t)
 (varconfig! s3pathstyle default-usepath)
 
@@ -246,13 +249,23 @@
   (let* ((s3result (s3op op bucket path content ctype headers args))
 	 (content (get s3result '%content))
 	 (status (get s3result 'response)))
+    (when (and (not (>= status 500))
+	       (if (exists? (threadget 's3retry))
+		   (threadget 's3retry)
+		   s3retry))
+      (if (number? (threadget 's3retry s3retry))
+	  (sleep (number? (threadget 's3retry s3retry)))
+	  (sleep 1))
+      (set! s3result (s3op op bucket path content ctype headers args))
+      (set! content (get s3result '%content))
+      (set! status (get s3result 'response)))
     (unless (>= 299 status 200)
       (onerror
 	  (store! s3result '%content (xmlparse content))
 	(lambda (ex) #f)))
     (if (>= 299 status 200)
 	(detail%watch s3result)
-	(cond ((and (not err) (equal? op "HEAD") (overlaps? status {404 410}))
+	(cond ((equal? op "HEAD")
 	       ;; Don't generate warnings for HEAD probes
 	       s3result)
 	      ((and (not err) (= status 404))

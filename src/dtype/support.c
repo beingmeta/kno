@@ -17,6 +17,7 @@
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
+#include <libu8/u8logging.h>
 
 #if 0
 typedef int bool;
@@ -1663,6 +1664,115 @@ static int boot_config()
   return count;
 }
 
+/* Log functions */
+
+static fdtype framerd_logfns=FD_EMPTY_CHOICE;
+static fdtype framerd_logfn=FD_VOID;
+static int using_fd_logger=0;
+#if FD_THREADS_ENABLED
+static u8_mutex log_lock;
+#endif
+
+U8_EXPORT int u8_default_logger(int loglevel,u8_condition c,u8_string message);
+
+static int default_log_error(void);
+
+static int fd_logger(int loglevel,u8_condition c,u8_string message)
+{
+  fdtype ll=FD_INT2DTYPE(loglevel);
+  fdtype csym=fd_intern((u8_string)c);
+  fdtype mstring=fd_make_string(NULL,-1,message);
+  fdtype args[3]={ll,csym,mstring};
+  fdtype logfns=fd_make_simple_choice(framerd_logfns);
+  if (FD_VOIDP(framerd_logfn)) u8_default_logger(loglevel,c,message);
+  else {
+    fdtype logfn=fd_incref(framerd_logfn);
+    fdtype v=fd_apply(logfn,3,args);
+    if (FD_ABORTP(v)) {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
+      u8_default_logger(loglevel,c,message);
+      u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
+      default_log_error();
+      framerd_logfn=FD_VOID;
+      fd_decref(logfn); fd_decref(logfn);}
+    fd_decref(v);}
+  FD_DO_CHOICES(logfn,framerd_logfns) {
+    fdtype v=fd_apply(logfn,3,args);
+    if (FD_ABORTP(v)) {
+      u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
+      default_log_error();}
+    fd_decref(v);}
+  fd_decref(mstring); fd_decref(ll); fd_decref(logfns);
+  return 1;
+}
+
+static int default_log_error()
+{
+  u8_exception ex=u8_erreify(), scan=ex; int n_errs=0;
+  while (scan) {
+    u8_string sum=fd_errstring(scan);
+    u8_logger(LOG_ERR,scan->u8x_cond,sum);
+    u8_free(sum);
+    scan=scan->u8x_prev;
+    n_errs++;}
+  return n_errs;
+}
+
+static void use_fd_logger()
+{
+  if (using_fd_logger) return;
+  else {
+    u8_lock_mutex(&log_lock);
+    u8_set_logfn(fd_logger);
+    using_fd_logger=1;
+    u8_unlock_mutex(&log_lock);}
+}
+
+static fdtype config_get_logfn(fdtype var,void *data)
+{
+  if (FD_VOIDP(framerd_logfn)) return FD_FALSE;
+  else return fd_incref(framerd_logfn);
+}
+
+static int config_set_logfn(fdtype var,fdtype val,void *data)
+{
+  if (FD_VOIDP(framerd_logfn)) {
+    framerd_logfn=val;
+    fd_incref(val);
+    use_fd_logger();
+    return 1;}
+  else if (framerd_logfn==val)
+    return 0;
+  else {
+    fdtype oldfn=framerd_logfn;
+    framerd_logfn=val;
+    fd_incref(val);
+    fd_decref(oldfn);
+    return 1;}
+}
+
+static fdtype config_get_logfns(fdtype var,void *data)
+{
+  return fd_incref(framerd_logfns);
+}
+
+static int config_add_logfn(fdtype var,fdtype val,void *data)
+{
+  fdtype arity=-1;
+  if (FD_FUNCTIONP(val)) arity=FD_FUNCTION_ARITY(val);
+  if (arity!=3) {
+    fd_seterr(fd_TypeError,"config_add_logfn",u8_strdup("log function"),val);
+    return -1;}
+  use_fd_logger(); fd_incref(val);
+  u8_lock_mutex(&log_lock);
+  FD_ADD_TO_CHOICE(framerd_logfns,val);
+  framerd_logfns=fd_simplify_choice(framerd_logfns);
+  u8_unlock_mutex(&log_lock);
+  return 1;
+}
+
+/* Initialization */
+
 void fd_init_support_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -1683,6 +1793,7 @@ void fd_init_support_c()
   fd_init_mutex(&config_lookup_lock);
   fd_init_mutex(&config_register_lock);
   fd_init_mutex(&atexit_handlers_lock);
+  fd_init_mutex(&log_lock);
 #endif
 
   fd_register_config_lookup(getenv_config_lookup,NULL);
@@ -1844,6 +1955,13 @@ void fd_init_support_c()
 
   fd_register_config("ATEXIT",_("Procedures to call on exit"),
                      config_atexit_get,config_atexit_set,NULL);
+
+  fd_register_config
+    ("LOGFN",_("the default log function"),
+     config_get_logfn,config_set_logfn,NULL);
+  fd_register_config
+    ("LOGFNS",_("additional log functions"),
+     config_get_logfns,config_add_logfn,NULL);
 
 }
 

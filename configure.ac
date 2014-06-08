@@ -86,7 +86,7 @@ EXELDFLAGS=
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=3
 FDMINOR=5
-FDRELEASE=6
+FDRELEASE=7
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
 RPMVERSION=9
@@ -282,7 +282,7 @@ else devmode_default="no";
 fi
 
 AC_ARG_ENABLE(devmode,--en[dis]able-devmode Special settings for development machines (e.g. linking module files),,enable_devmode=$devmode_default)
-if test "$enable_devmode" != "xno"; then
+if test "x$enable_devmode" != "xno"; then
   install_modules_target="link-modules";
 fi
 
