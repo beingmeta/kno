@@ -729,7 +729,7 @@ lib/framerd/ziptools.so: src/cmodules/ziptools.o ${MODULE_SO}
 	@$(MSG) MKSO "(ZIPTOOLS)"  $@ $<
 lib/framerd/ziptools.dylib: src/cmodules/ziptools.o
 	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
-		-o $@ $< @ZIPTOOLS_LDFLAGS@
+		-o $@ $<
 	@$(MSG) MACLIBTOOL "(ZIPTOOLS)" $@
 
 lib/framerd/exif.so: src/cmodules/exif.o ${MODULE_SO}
