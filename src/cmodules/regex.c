@@ -55,6 +55,12 @@ static fdtype make_regex(fdtype pat,fdtype nocase,fdtype matchnl)
     return FDTYPE_CONS(ptr);}
 }
 
+static fdtype regexp_prim(fdtype x)
+{
+  if (FD_PRIM_TYPEP(x,fd_regex_type)) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static void recycle_regex(struct FD_CONS *c)
 {
   struct FD_REGEX *rx=(struct FD_REGEX *)c;
@@ -164,6 +170,8 @@ FD_EXPORT int fd_init_regex()
   fd_idefn(regex_module,
 	   fd_make_cprim3x("REGEX",make_regex,1,
 			   fd_string_type,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
+  fd_idefn(regex_module,fd_make_cprim1("REGEX?",regexp_prim,1));
+
   fd_idefn(regex_module,
 	   fd_make_cprim2x("REGEX/SEARCH",regex_search,2,
 			   fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
