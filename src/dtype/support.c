@@ -1680,7 +1680,7 @@ static int default_log_error(void);
 static int fd_logger(int loglevel,u8_condition c,u8_string message)
 {
   fdtype ll=FD_INT2DTYPE(loglevel);
-  fdtype csym=fd_intern((u8_string)c);
+  fdtype csym=((c==NULL)?(FD_FALSE):(fd_intern((u8_string)c)));
   fdtype mstring=fd_make_string(NULL,-1,message);
   fdtype args[3]={ll,csym,mstring};
   fdtype logfns=fd_make_simple_choice(framerd_logfns);
