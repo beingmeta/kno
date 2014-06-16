@@ -256,6 +256,12 @@ static fdtype load_source(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(source_expr))
     return fd_err(fd_TooFewExpressions,"LOAD",NULL,expr);
   else source=fd_eval(source_expr,env);
+  if (FD_SYMBOLP(source)) {
+    fdtype config_val=fd_config_get(FD_SYMBOL_NAME(source));
+    if (FD_STRINGP(config_val)) {
+      u8_log(LOG_NOTICE,"Config","Loading %s = %s",FD_SYMBOL_NAME(source),FD_STRDATA(config_val));
+      source=config_val;}
+    else fd_decref(config_val);}
   if (!(FD_STRINGP(source)))
     return fd_type_error("filename","LOAD",source);
   encval=fd_eval(encname_expr,env);
