@@ -492,7 +492,8 @@
 		     (path->mimetype
 		      (s3loc-path loc)
 		      (path->mimetype (s3loc-path src) "text")))))
-    (loginfo |S3/copy| "Copying " (s3loc->string src) " to " (s3loc->string loc))
+    (loginfo |S3/copy| "Copying " (s3loc->string src)
+	     " to " (s3loc->string loc))
     (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err "" ctype
 	   `(("x-amz-copy-source" .
 	      ,(stringout "/" (s3loc-bucket src) (s3loc-path src)))
@@ -611,7 +612,7 @@
 			  (not (has-prefix (basename file) "."))
 			  (not (has-suffix (basename file) "~")))
 		     (has-suffix file strmatch)
-		     (has-prefix file strmatch)
+		     (has-prefix file (reject strmatch has-prefix "."))
 		     (has-prefix (basename file) strmatch)
 		     (exists regex/match rxmatch file)
 		     (exists textmatch patmatch file)
@@ -633,14 +634,14 @@
 		       (loginfo "Updating to " loc
 				" (" (file-size file) " != "
 				(get info 'size)")"))
-	      (%wc s3/write! loc (filedata file) mimetype headers)
+	      (s3/write! loc (filedata file) mimetype headers)
 	      (set+! updated loc))
 	    (let ((data (filedata file)))
 	      (if (equal? (md5 data) (get info 'hash))
 		  (logdebug "Skipping unchanged " loc)
 		  (begin (loginfo "Updating to " loc "\n\t"
 				  "(" (get info 'hash) " != "  (md5 data) ")")
-		    (%wc s3/write! loc data mimetype headers)
+		    (s3/write! loc data mimetype headers)
 		    (set+! updated loc)))))))
     updated))
 (module-export! 's3/push!)
