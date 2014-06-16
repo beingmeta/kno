@@ -60,7 +60,7 @@
 
 ;;; Not yet working
 (define (aws4/post req endpoint (args #[]) (headers #[]) (payload #f)
-		  (curl #[VERBOSE #t]) (date (gmtimestamp)))
+		  (curl #[]) (date (gmtimestamp)))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
