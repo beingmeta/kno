@@ -4,7 +4,8 @@
 (in-module 'aws/s3)
 
 (use-module '{aws fdweb texttools mimetable regex
-	      ezrecords rulesets logger varconfig})
+	      ezrecords rulesets logger varconfig
+	      mttools})
 (define %used_modules '{aws varconfig ezrecords rulesets})
 
 (module-export! '{s3/signature s3/op s3/expected
@@ -576,7 +577,8 @@
 	  size ,(string->number (get elt 'size))
 	  modified ,(timestamp (get elt 'lastmodified))
 	  etag ,(slice (decode-entities (get elt 'etag)) 1 -1)
-	  hash ,(base16->packet (slice (decode-entities (get elt 'etag)) 1 -1))])
+	  hash ,(base16->packet
+		 (slice (decode-entities (get elt 'etag)) 1 -1))])
      (tryif next (s3/list+ loc headers err next)))))
 (module-export! 's3/list+)
 
@@ -591,38 +593,48 @@
 
 ;;; Synchronizing
 
-(define (s3/push! dir s3loc (match #f) (headers))
+(define (s3/push! dir s3loc (match #f) (headers) (forcewrite #f))
   (if (string? s3loc) (set! s3loc (->s3loc s3loc)))
   (default! headers (try (get (s3loc/opts s3loc) 'headers) '()))
-  (let ((s3info (s3/list+ s3loc))
-	(filenames (getfiles dir))
-	(updated {}))
-    (do-choices (file filenames)
-      (when (or (and (not match)
-		     (not (has-prefix file ".")) (not (has-suffix file "~")))
-		(and (regex? match)
-		     (or (exists regex/match match file)
-			 (exists regex/match match (basename file))))
-		(and (or (ambiguous? match) (vector? match) (pair? match))
-		     (textmatch (qc match) file)))
-	(let* ((info (pick s3info 'name (basename file)))
-	       (loc (try (get info 'loc) (s3/mkpath s3loc (basename file))))
-	       (mimetype (path->mimetype file)))
-	  (if (or (fail? info) (not (= (get info 'size) (file-size file))))
-	      (begin (if (fail? info)
-			 (loginfo "Pushing to " loc)
-			 (loginfo "Updating to " loc
-				  " (" (file-size file) " != "
-				  (get info 'size)")"))
-		(s3/write! loc (filedata file) mimetype headers)
-		(set+! updated loc))
-	      (let ((data (filedata file)))
-		(if (equal? (md5 data) (get info 'hash))
-		    (logdebug "Skipping unchanged " loc)
-		    (begin (loginfo "Updating to " loc "\n\t"
-				    "(" (get info 'etag) " != "  (md5 data) ")")
-		      (s3/write! loc data mimetype headers)
-		      (set+! updated loc))))))))
+  (let* ((s3info (s3/list+ s3loc))
+	 (filenames (getfiles dir))
+	 (copynames
+	  (filter-choices (file filenames)
+	    (and (not (has-suffix file "/"))
+		 (or (and (not match)
+			  (not (has-prefix (basename file) "."))
+			  (not (has-suffix file "~")))
+		     (and (string? match) (has-suffix file match))
+		     (and (regex? match)
+			  (or (exists regex/match match file)
+			      (exists regex/match match (basename file))))
+		     (and (ambiguous? match) (fail? (reject match string?))
+			  (has-suffix file match))
+		     (and (or (ambiguous? match) (vector? match) (pair? match))
+			  (textmatch (qc match) file))))))
+	 (updated {}))
+    (logwarn "Checking " (choice-size copynames)
+	     " files from " (choice-size filenames) " in " dir)
+    (do-choices-mt (file copynames (config 's3threads 1))
+      (let* ((info (pick s3info 'name (basename file)))
+	     (loc (try (get info 'loc) (s3/mkpath s3loc (basename file))))
+	     (mimetype (path->mimetype file)))
+	(if (or (fail? info) forcewrite
+		(not (= (get info 'size) (file-size file))))
+	    (begin (if (fail? info)
+		       (loginfo "Pushing to " loc)
+		       (loginfo "Updating to " loc
+				" (" (file-size file) " != "
+				(get info 'size)")"))
+	      (%wc s3/write! loc (filedata file) mimetype headers)
+	      (set+! updated loc))
+	    (let ((data (filedata file)))
+	      (if (equal? (md5 data) (get info 'hash))
+		  (logdebug "Skipping unchanged " loc)
+		  (begin (loginfo "Updating to " loc "\n\t"
+				  "(" (get info 'hash) " != "  (md5 data) ")")
+		    (%wc s3/write! loc data mimetype headers)
+		    (set+! updated loc)))))))
     updated))
 (module-export! 's3/push!)
 
