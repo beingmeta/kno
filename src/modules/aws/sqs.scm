@@ -94,21 +94,25 @@
     (store! args "WaitTimeSeconds" (getopt opts 'wait)))
   (when (getopt opts 'reserve)
     (store! args "VisibilityTimeout" (getopt opts 'reserve)))
-  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args)))
+  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args
+				 #[] #f (getopt opts 'handle #[]))))
 
 (define (sqs/send queue msg (opts #[]) (args `#["Action" "SendMessage"]))
   (store! args "MessageBody" msg)
   (when (getopt opts 'delay) (store! args "DelaySeconds" (getopt opts 'delay)))
-  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args)))
+  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args
+				 #[] #f (getopt opts 'handle #[]))))
 
 (define (sqs/list (prefix #f) (args #["Action" "ListQueues"]) (opts #[]))
   (when prefix (set! args `#["Action" "ListQueues" "QueueNamePrefix" ,prefix]))
-  (handle-sqs-response (aws4/get (get-queue-opts #f opts) sqs-endpoint args)))
+  (handle-sqs-response (aws4/get (get-queue-opts #f opts) sqs-endpoint args
+				 #[] #f (getopt opts 'handle #[]))))
 
 (define (sqs/info queue
 		  (args #["Action" "GetQueueAttributes" "AttributeName.1" "All"])
 		  (opts #[]))
-  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args)
+  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args
+				 #[] #f (getopt opts 'handle #[]))
 		       (qc sqs-info-fields)))
 
 (define (sqs/delete message)

@@ -35,7 +35,9 @@
     (add! req '%params key))
   (do-choices (key (getkeys headers))
     (let ((v (get headers key)))
-      (add! curl 'header (cons key (qc v)))
+      (if (curl-handle? curl)
+	  (curlsetopt! curl 'header (glom key ": " v))
+	  (add! curl 'header (cons key (qc v))))
       (add! req key
 	    (if (and (singleton? v) (string? v)) v
 		(stringout (do-choices v
@@ -45,10 +47,11 @@
   ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
   (set! req  (aws4/prepare req "GET" endpoint (or payload "")))
   ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
-  (add! curl 'header
-	(glom "Authorization: AWS4-HMAC-SHA256 Credential=" (getopt req 'credential) ", "
-	  "SignedHeaders=" (getopt req 'signed-headers) ", "
-	  "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
+  ((if (curl-handle? curl) curlsetopt! add!)
+   curl 'header
+   (glom "Authorization: AWS4-HMAC-SHA256 Credential=" (getopt req 'credential) ", "
+     "SignedHeaders=" (getopt req 'signed-headers) ", "
+     "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
   (info%watch "AWS4/get" endpoint args)
   (cons (urlget (scripturl+ endpoint args) curl)
 	req))
