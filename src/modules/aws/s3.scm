@@ -42,6 +42,8 @@
 (define default-usepath #t)
 (varconfig! s3pathstyle default-usepath)
 
+(define default-ctype "application")
+
 (define-init website-buckets (make-hashset))
 (config-def! 's3websites
 	     (lambda (var (val))
@@ -151,7 +153,8 @@
 
 ;;; Computing signatures for S3 calls
 
-(define (s3/signature op bucket path (date (gmtimestamp)) (headers '())
+(define (s3/signature op bucket path (date (gmtimestamp))
+		      (headers '())
 		      (content-sig "") (content-ctype ""))
   (let* ((date (if (string? date) date
 		   (if (number? date) (number->string date)
@@ -222,13 +225,13 @@
     (add! urlparams 'header (string-append "Authorization: " authorization))
     (add! urlparams 'header (elts headers))
     (when (>= %loglevel %detail%) (add! urlparams 'verbose #t))
-    (loginfo |S3OP| op " " bucket ":" path " "
-	     (when (and content (not (= (length content) 0)))
-	       (glom " ("
-		 (if ctype ctype "content") ", " (length content) 
-		 (if (string? content) " characters)" "bytes)")))
-	     (if (null? headers) " headers=" " headers=\n\t") headers
-	     "\n\turl:\t" url)
+    (logdebug |S3OP| op " " bucket ":" path " "
+	      (when (and content (not (= (length content) 0)))
+		(glom " ("
+		  (if ctype ctype "content") ", " (length content) 
+		  (if (string? content) " characters)" "bytes)")))
+	      (if (null? headers) " headers=" " headers=\n\t") headers
+	      "\n\turl:\t" url)
     (debug%watch "S3OP/sig" url sig authorization)
     (if (equal? op "GET")
 	(urlget url urlparams)
@@ -489,7 +492,7 @@
 		     (path->mimetype
 		      (s3loc-path loc)
 		      (path->mimetype (s3loc-path src) "text")))))
-    (loginfo |S3/copy| "Copying " src " to " loc)
+    (loginfo |S3/copy| "Copying " (s3loc->string src) " to " (s3loc->string loc))
     (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err "" ctype
 	   `(("x-amz-copy-source" .
 	      ,(stringout "/" (s3loc-bucket src) (s3loc-path src)))
@@ -598,20 +601,24 @@
   (default! headers (try (get (s3loc/opts s3loc) 'headers) '()))
   (let* ((s3info (s3/list+ s3loc))
 	 (filenames (getfiles dir))
+	 (strmatch (tryif match (pickstrings match)))
+	 (rxmatch (tryif match (pick match regex?)))
+	 (patmatch (tryif match (pick match {vector? pair?})))
 	 (copynames
 	  (filter-choices (file filenames)
 	    (and (not (has-suffix file "/"))
 		 (or (and (not match)
 			  (not (has-prefix (basename file) "."))
-			  (not (has-suffix file "~")))
-		     (and (string? match) (has-suffix file match))
-		     (and (regex? match)
-			  (or (exists regex/match match file)
-			      (exists regex/match match (basename file))))
-		     (and (ambiguous? match) (fail? (reject match string?))
-			  (has-suffix file match))
-		     (and (or (ambiguous? match) (vector? match) (pair? match))
-			  (textmatch (qc match) file))))))
+			  (not (has-suffix (basename file) "~")))
+		     (has-suffix file strmatch)
+		     (has-prefix file strmatch)
+		     (has-prefix (basename file) strmatch)
+		     (exists regex/match rxmatch file)
+		     (exists textmatch patmatch file)
+		     (and (not (has-prefix (basename file) "."))
+			  (not (has-suffix (basename file) "~"))
+			  (or (exists regex/match rxmatch (basename file))
+			      (exists textmatch patmatch (basename file))))))))
 	 (updated {}))
     (logwarn "Checking " (choice-size copynames)
 	     " files from " (choice-size filenames) " in " dir)
@@ -637,6 +644,14 @@
 		    (set+! updated loc)))))))
     updated))
 (module-export! 's3/push!)
+
+(define (dowrite loc data mimetype headers)
+  (loginfo "Writing " (length data) " "
+	   (if (packet? data) "bytes" "characters")
+	   " of " mimetype " to " (s3loc->string loc)
+	   (unless (null? headers)
+	     (printout "\n\twith " headers)))
+  (s3/write! loc data mimetype headers))
 
 ;;; Rules for converting URLs into S3 locations
 
