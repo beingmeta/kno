@@ -1247,7 +1247,7 @@ static struct U8_OUTPUT *try_reqlog()
 {
   struct U8_OUTPUT *table=(struct U8_OUTPUT *)u8_tld_get(reqlog_key);
   if (table) return table;
-  else return FD_EMPTY_CHOICE;
+  else return NULL;
 }
 static struct U8_OUTPUT *get_reqlog()
 {
@@ -1311,6 +1311,7 @@ FD_EXPORT int fd_reqlogger
   else if (cxt)
     u8_printf(out,"[%l*t] @%s %s",cxt,message);
   else u8_printf(out,"[%l*t] %s",message);
+  return 1;
 }
 
 /* Debugging support functions */
