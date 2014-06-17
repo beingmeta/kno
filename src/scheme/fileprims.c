@@ -73,7 +73,7 @@ static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 
 static u8_output get_output_port(fdtype portarg)
 {
-  if (FD_VOIDP(portarg))
+  if ((FD_VOIDP(portarg))||(portarg==FD_TRUE))
     return u8_current_output;
   else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
     struct FD_PORT *p=
