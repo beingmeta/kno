@@ -87,6 +87,7 @@
 	 (reqdata (try (getopt spec 'reqdata)
 		       (and (req/get 'SCRIPT_FILENAME)
 			    (or (req/get 'reqdata #f) (req/data)))))
+	 (reqlog (req/log))
 	 (head (getopt spec 'head))
 	 (detailsblock #f)
 	 (irritantblock #f)
@@ -94,6 +95,8 @@
     (mkdirs (mkpath fileroot "example"))
     (when reqdata
       (dtype->file reqdata (mkpath fileroot "request.dtype")))
+    (when reqlog
+      (write-file (mkpath fileroot "request.log") reqlog))
     (let ((scan more))
       (while (and (pair? scan)
 		  (or (string? (car scan)) (symbol? (car scan)))
@@ -112,7 +115,8 @@
 	       (error-condition exception)
 	       (when (error-context exception)
 		 (printout " (" (error-context exception) ") "))
-	       (when (and (error-details exception) (< (length (error-details exception)) 40))
+	       (when (and (error-details exception)
+			  (< (length (error-details exception)) 40))
 		 (printout " \&ldquo;" (error-details exception) "\&rdquo;")))
        (htmlheader
 	(xmlblock STYLE ((type "text/css"))
@@ -152,7 +156,8 @@
 	       (->string (error-condition exception)))
 	   (when (error-context exception)
 	     (span ((class "context")) " (" (error-context exception) ") ")))
-	 (if (and (error-details exception) (< (length (error-details exception)) 120))
+	 (if (and (error-details exception)
+		  (< (length (error-details exception)) 120))
 	     (h2* ((class "detail"))
 	       (xmlout " \&ldquo;" (error-details exception) "\&rdquo;"))
 	     (set! detailsblock #t))
@@ -216,6 +221,8 @@
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (mkpath fileroot "backtrace.html")))))
+
+
 
 
 

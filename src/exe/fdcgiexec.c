@@ -245,7 +245,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
       dolog(cgidata,FD_NULL,NULL,parse_time-start_time);}
   u8_getrusage(RUSAGE_SELF,&start_usage);
   u8_set_default_output(out);
-  fd_use_reqinfo(cgidata);
+  fd_use_reqinfo(cgidata); fd_reqlog(1);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
   else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
@@ -333,7 +333,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     if ((reqlog) || (urllog))
       dolog(cgidata,result,out->u8_outbuf,u8_elapsed_time()-start_time);}
   if (threadcache) fd_pop_threadcache(threadcache);
-  fd_use_reqinfo(FD_EMPTY_CHOICE);
+  fd_use_reqinfo(FD_EMPTY_CHOICE); fd_reqlog(-1);
   fd_thread_set(browseinfo_symbol,FD_VOID);
   write_time=u8_elapsed_time();
   u8_getrusage(RUSAGE_SELF,&end_usage);
@@ -491,7 +491,7 @@ static int simplecgi(fdtype path)
     if ((reqlog) || (urllog))
       dolog(cgidata,FD_NULL,NULL,0,parse_time-start_time);}
   u8_getrusage(RUSAGE_SELF,&start_usage);
-  fd_use_reqinfo(cgidata);
+  fd_use_reqinfo(cgidata); fd_reqlog(1);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   u8_set_default_output(&out);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
@@ -578,7 +578,7 @@ static int simplecgi(fdtype path)
   if (retval<0)
     u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
   u8_set_default_output(NULL);
-  fd_use_reqinfo(FD_EMPTY_CHOICE);
+  fd_use_reqinfo(FD_EMPTY_CHOICE); fd_reqlog(-1);
   fd_thread_set(browseinfo_symbol,FD_VOID);
   write_time=u8_elapsed_time();
   u8_getrusage(RUSAGE_SELF,&end_usage);

@@ -18,6 +18,7 @@
 #include "framerd/frames.h"
 #include "framerd/dtypestream.h"
 #include "framerd/dtypeio.h"
+#include "framerd/ports.h"
 
 #include <ctype.h>
 
@@ -192,12 +193,16 @@ fdtype reqdata_prim()
 static fdtype withreq_handler(fdtype expr,fd_lispenv env)
 {
   fdtype body=fd_get_body(expr,1), result=FD_VOID;
-  fd_use_reqinfo(FD_TRUE);
+  fd_use_reqinfo(FD_TRUE); fd_reqlog(1);
   {FD_DOLIST(ex,body) {
-      if (FD_ABORTP(result)) return result;
+      if (FD_ABORTP(result)) {
+        fd_use_reqinfo(FD_EMPTY_CHOICE);
+        fd_reqlog(-1);
+        return result;}
       fd_decref(result);
       result=fd_eval(ex,env);}}
   fd_use_reqinfo(FD_EMPTY_CHOICE);
+  fd_reqlog(-1);
   return result;
 }
 
@@ -205,6 +210,40 @@ static fdtype req_livep_prim()
 {
   if (fd_isreqlive()) return FD_TRUE;
   else return FD_FALSE;
+}
+
+FD_EXPORT fdtype reqgetlog_prim()
+{
+  struct U8_OUTPUT *log=fd_reqlog(0);
+  if (!(log)) return FD_FALSE;
+  else {
+    int len=log->u8_outptr-log->u8_outbuf;
+    if (len==0) return FD_FALSE;
+    else return fd_make_string(NULL,len,log->u8_outbuf);}
+}
+
+FD_EXPORT fdtype reqloglen_prim()
+{
+  struct U8_OUTPUT *log=fd_reqlog(0);
+  if (!(log)) return FD_FALSE;
+  else {
+    int len=log->u8_outptr-log->u8_outbuf;
+    return FD_INT2DTYPE(len);}
+}
+
+FD_EXPORT fdtype reqlog_handler(fdtype expr,fd_lispenv env)
+{
+  struct U8_OUTPUT *reqout=fd_reqlog(1);
+  u8_string cond=NULL, cxt=NULL; int body_off=1;
+  fdtype arg1=fd_get_arg(expr,1), arg2=fd_get_arg(expr,2), body, outval;
+  if (FD_SYMBOLP(arg1)) {
+    if (FD_SYMBOLP(arg2)) {cxt=FD_SYMBOL_NAME(arg2); body_off=3;}
+    else {cond=FD_SYMBOL_NAME(arg1); body_off=2;}}
+  body=fd_get_body(expr,body_off);
+  outval=fd_printout_to(reqout,body,env);
+  if (FD_ABORTP(outval)) {
+    return outval;}
+  else return FD_VOID;
 }
 
 FD_EXPORT void fd_init_reqstate_c()
@@ -222,6 +261,10 @@ FD_EXPORT void fd_init_reqstate_c()
   fd_idefn(module,fd_make_cprim2("REQ/DROP!",reqdrop_prim,1));
   fd_idefn(module,fd_make_cprim2("REQ/PUSH!",reqpush_prim,2));
   fd_idefn(module,fd_make_cprim0("REQ/LIVE?",req_livep_prim,2));
+
+  fd_defspecial(module,"REQLOG",reqlog_handler);
+  fd_idefn(module,fd_make_cprim0("REQ/GETLOG",reqgetlog_prim,0));
+  fd_idefn(module,fd_make_cprim0("REQ/LOGLEN",reqloglen_prim,0));
 
   fd_idefn(module,fd_make_cprim0("REQ/DATA",reqdata_prim,0));
 

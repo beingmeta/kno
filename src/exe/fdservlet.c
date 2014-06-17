@@ -793,7 +793,7 @@ static int webservefn(u8_client ucl)
 
   u8_set_default_output(outstream);
   init_cgidata=fd_deep_copy(cgidata);
-  fd_use_reqinfo(cgidata);
+  fd_use_reqinfo(cgidata); fd_reqlog(1);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   parse_time=u8_elapsed_time();
   if ((reqlog) || (urllog) || (trace_cgidata))
@@ -1012,7 +1012,7 @@ static int webservefn(u8_client ucl)
 	      outstream->u8_outptr-outstream->u8_outbuf,
 	      u8_elapsed_time()-start_time);
       content_len=content_len+(outstream->u8_outptr-outstream->u8_outbuf);
-      /* We do a hanging write in this, hopefully not common case */
+      /* We do a hanging write in this, hoping it's not common case */
       u8_writeall(client->socket,outstream->u8_outbuf,
 		  outstream->u8_outptr-outstream->u8_outbuf);
       return_code=-1;
@@ -1163,6 +1163,7 @@ static int webservefn(u8_client ucl)
   run_postflight();
   if (threadcache) fd_pop_threadcache(threadcache);
   fd_use_reqinfo(FD_EMPTY_CHOICE);
+  fd_reqlog(-1);
   fd_thread_set(browseinfo_symbol,FD_VOID);
   fd_decref(init_cgidata);
   fd_clear_errors(1);

@@ -1237,6 +1237,82 @@ FD_EXPORT fdtype fd_push_reqinfo(fdtype newinfo)
   return curinfo;
 }
 
+/* Req logging */
+
+/* Request objects */
+
+#if FD_USE_TLS
+static u8_tld_key reqlog_key;
+static struct U8_OUTPUT *try_reqlog()
+{
+  struct U8_OUTPUT *table=(struct U8_OUTPUT *)u8_tld_get(reqlog_key);
+  if (table) return table;
+  else return FD_EMPTY_CHOICE;
+}
+static struct U8_OUTPUT *get_reqlog()
+{
+  struct U8_OUTPUT *log=(struct U8_OUTPUT *)u8_tld_get(reqlog_key);
+  if (log) return log;
+  else {
+    struct U8_OUTPUT *newlog=u8_open_output_string(1024);
+    u8_tld_set(reqlog_key,(void *)newlog);
+    return newlog;}
+}
+static void set_reqlog(struct U8_OUTPUT *table)
+{
+  struct U8_OUTPUT *log=(struct U8_OUTPUT *)u8_tld_get(reqlog_key);
+  if (!(log)) u8_close_output(log);
+  u8_tld_set(reqlog_key,(void *)table);
+}
+#else
+#if FD_THREADS_ENABLED
+static struct U8_OUTPUT __thread *reqlog=NULL;
+#else 
+static struct U8_OUTPUT *reqlog=FD_VOID;
+#endif
+static struct U8_OUTPUT *try_reqlog()
+{
+  return reqlog;
+}
+static struct U8_OUTPUT *get_reqlog()
+{
+  if (reqlog) return reqlog;
+  else {
+    struct U8_OUTPUT *newlog=u8_open_output_string(1024);
+    reqlog=newlog;
+    return newlog;}
+}
+static void set_reqlog(struct U8_OUTPUT *stream)
+{
+  if (!(reqlog)) u8_close_output(reqlog);
+  reqlog=stream;
+}
+#endif
+
+
+FD_EXPORT struct U8_OUTPUT *fd_reqlog(int force)
+{
+  if (force<0) {
+    set_reqlog(NULL);
+    return NULL;}
+  else if (force) return get_reqlog();
+  else return try_reqlog();
+}
+
+FD_EXPORT int fd_reqlogger
+  (u8_condition c,u8_context cxt,u8_string message)
+{
+  struct U8_OUTPUT *out=get_reqlog();
+  if (!(out)) return 0;
+  if ((c)&&(cxt))
+    u8_printf(out,"[%l*t] (%s) @%s %s",c,cxt,message);
+  else if (c)
+    u8_printf(out,"[%l*t] (%s) %s",c,message);
+  else if (cxt)
+    u8_printf(out,"[%l*t] @%s %s",cxt,message);
+  else u8_printf(out,"[%l*t] %s",message);
+}
+
 /* Debugging support functions */
 
 FD_EXPORT fd_ptr_type _fd_ptr_type(fdtype x)
@@ -1669,6 +1745,7 @@ static int boot_config()
 static fdtype framerd_logfns=FD_EMPTY_CHOICE;
 static fdtype framerd_logfn=FD_VOID;
 static int using_fd_logger=0;
+static int req_loglevel=-1;
 #if FD_THREADS_ENABLED
 static u8_mutex log_lock;
 #endif
@@ -1681,9 +1758,16 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
 {
   fdtype ll=FD_INT2DTYPE(loglevel);
   fdtype csym=((c==NULL)?(FD_FALSE):(fd_intern((u8_string)c)));
+  struct U8_OUTPUT *reqout=((req_loglevel>=0)?(try_reqlog()):(NULL));
   fdtype mstring=fd_make_string(NULL,-1,message);
   fdtype args[3]={ll,csym,mstring};
   fdtype logfns=fd_make_simple_choice(framerd_logfns);
+  if (reqout) {
+    char timebuf[64];
+    struct U8_XTIME xt; u8_local_xtime(&xt,-1,u8_second,0);
+    if (c)
+      u8_printf(reqout,"[%*lt (%s) %s]\n",c,message);
+    else u8_printf(reqout,"[%*lt %s]\n",message);}
   if (FD_VOIDP(framerd_logfn)) u8_default_logger(loglevel,c,message);
   else {
     fdtype logfn=fd_incref(framerd_logfn);
@@ -1696,14 +1780,16 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
       framerd_logfn=FD_VOID;
       fd_decref(logfn); fd_decref(logfn);}
     fd_decref(v);}
-  FD_DO_CHOICES(logfn,framerd_logfns) {
-    fdtype v=fd_apply(logfn,3,args);
-    if (FD_ABORTP(v)) {
-      u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
-      default_log_error();}
-    fd_decref(v);}
-  fd_decref(mstring); fd_decref(ll); fd_decref(logfns);
-  return 1;
+  if ((reqout)&&(loglevel>req_loglevel)) return 1;
+  else {
+    FD_DO_CHOICES(logfn,framerd_logfns) {
+      fdtype v=fd_apply(logfn,3,args);
+      if (FD_ABORTP(v)) {
+        u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
+        default_log_error();}
+      fd_decref(v);}
+    fd_decref(mstring); fd_decref(ll); fd_decref(logfns);
+    return 1;}
 }
 
 static int default_log_error()
@@ -1723,8 +1809,9 @@ static void use_fd_logger()
   if (using_fd_logger) return;
   else {
     u8_lock_mutex(&log_lock);
-    u8_set_logfn(fd_logger);
-    using_fd_logger=1;
+    if (!(using_fd_logger)) {
+      u8_set_logfn(fd_logger);
+      using_fd_logger=1;}
     u8_unlock_mutex(&log_lock);}
 }
 
@@ -1769,6 +1856,32 @@ static int config_add_logfn(fdtype var,fdtype val,void *data)
   framerd_logfns=fd_simplify_choice(framerd_logfns);
   u8_unlock_mutex(&log_lock);
   return 1;
+}
+
+static fdtype config_get_reqloglevel(fdtype var,void *data)
+{
+  if ((using_fd_logger)&&(req_loglevel>=0))
+    return FD_INT2DTYPE(req_loglevel);
+  else return FD_FALSE;
+}
+
+static int config_set_reqloglevel(fdtype var,fdtype val,void *data)
+{
+  if (FD_FALSEP(val)) {
+    if (req_loglevel>=0) {req_loglevel=-1; return 1;}
+    else return 0;}
+  else if (FD_FIXNUMP(val)) {
+    int level=FD_INT2DTYPE(val);
+    if (level==req_loglevel) return 0;
+    else if (level>=0) use_fd_logger();
+    else {}
+    req_loglevel=level;
+    return 1;}
+  else if (req_loglevel>=0) return 0;
+  else {
+    use_fd_logger();
+    req_loglevel=5;
+    return 1;}
 }
 
 /* Initialization */
@@ -1956,6 +2069,9 @@ void fd_init_support_c()
   fd_register_config("ATEXIT",_("Procedures to call on exit"),
                      config_atexit_get,config_atexit_set,NULL);
 
+  fd_register_config
+    ("REQLOGLEVEL",_("whether to use FramerD per-request logging"),
+     config_get_reqloglevel,config_set_reqloglevel,NULL);
   fd_register_config
     ("LOGFN",_("the default log function"),
      config_get_logfn,config_set_logfn,NULL);

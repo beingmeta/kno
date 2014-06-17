@@ -137,6 +137,9 @@ FD_EXPORT void fd_use_reqinfo(fdtype reqinfo);
 FD_EXPORT fdtype fd_push_reqinfo(fdtype reqinfo);
 FD_EXPORT int fd_isreqlive(void);
 
+FD_EXPORT struct U8_OUTPUT *fd_reqlog(int force);
+FD_EXPORT int fd_reqlogger(u8_condition,u8_context,u8_string);
+
 /* Sets the application identifier and runbase */
 
 FD_EXPORT void fd_setapp(u8_string spec,u8_string dir);
