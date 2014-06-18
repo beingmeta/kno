@@ -1751,24 +1751,41 @@ static int req_loglevel=-1;
 static u8_mutex log_lock;
 #endif
 
+#define MAX_LOGLEVEL 8 
+static char *loglevel_names[]=
+  {"Emergency","Alert","Critical","Error","Warning","Notice",
+   "Debug","Detail","Deluge"};
+
 U8_EXPORT int u8_default_logger(int loglevel,u8_condition c,u8_string message);
 
 static int default_log_error(void);
 
 static int fd_logger(int loglevel,u8_condition c,u8_string message)
 {
+  int local_log=(loglevel<0);
+  int abs_loglevel=((loglevel<0)?(-loglevel):(loglevel));
   fdtype ll=FD_INT2DTYPE(loglevel);
   fdtype csym=((c==NULL)?(FD_FALSE):(fd_intern((u8_string)c)));
-  struct U8_OUTPUT *reqout=((req_loglevel>=0)?(try_reqlog()):(NULL));
+  struct U8_OUTPUT *reqout=((req_loglevel>=loglevel)?(try_reqlog()):(NULL));
   fdtype mstring=fd_make_string(NULL,-1,message);
   fdtype args[3]={ll,csym,mstring};
   fdtype logfns=fd_make_simple_choice(framerd_logfns);
+  char *level=((abs_loglevel>MAX_LOGLEVEL)?(NULL):
+               (loglevel_names[abs_loglevel]));
+  double elapsed=u8_elapsed_time();
   if (reqout) {
-    char timebuf[64];
-    struct U8_XTIME xt; u8_local_xtime(&xt,-1,u8_second,0);
-    if (c)
-      u8_printf(reqout,"[%*lt (%s) %s]\n",c,message);
-    else u8_printf(reqout,"[%*lt %s]\n",message);}
+    struct U8_XTIME xt;
+    u8_local_xtime(&xt,-1,u8_nanosecond,0);
+    if (local_log)
+      u8_printf(reqout,"<logentry level='%d' scope='local'>",
+                abs_loglevel);
+    else u8_printf(reqout,"<logentry level='%d'>",abs_loglevel);
+    if (level) u8_printf(reqout,"\n\t<level>%s</level>",level);
+    u8_printf(reqout,"\n\t<datetime tick='%ld' nsecs='%d'>%Xlt</datetime>",
+              xt.u8_tick,xt.u8_nsecs,&xt);
+    if (c) u8_printf(reqout,"\n\t<condition>%s</condition>",c);
+    u8_printf(reqout,"\n\t<message>\n%s\n\t</message>",message);
+    u8_printf(reqout,"\n</logentry>\n");}
   if (FD_VOIDP(framerd_logfn)) u8_default_logger(loglevel,c,message);
   else {
     fdtype logfn=fd_incref(framerd_logfn);
@@ -1781,16 +1798,15 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
       framerd_logfn=FD_VOID;
       fd_decref(logfn); fd_decref(logfn);}
     fd_decref(v);}
-  if ((reqout)&&(loglevel>req_loglevel)) return 1;
-  else {
+  {
     FD_DO_CHOICES(logfn,framerd_logfns) {
       fdtype v=fd_apply(logfn,3,args);
       if (FD_ABORTP(v)) {
         u8_default_logger(LOG_CRIT,"Log Error","FramerD log call failed");
         default_log_error();}
-      fd_decref(v);}
-    fd_decref(mstring); fd_decref(ll); fd_decref(logfns);
-    return 1;}
+      fd_decref(v);}}
+  fd_decref(mstring); fd_decref(ll); fd_decref(logfns);
+  return 1;
 }
 
 static int default_log_error()
@@ -1940,11 +1956,13 @@ void fd_init_support_c()
      fd_intconfig_get,loglevelconfig_set,
      &u8_loglevel);
   fd_register_config
-    ("STDOUTLEVEL",_("Required priority for messages to be displayed on stdout"),
+    ("STDOUTLEVEL",
+     _("Required priority for messages to be displayed on stdout"),
      fd_intconfig_get,loglevelconfig_set,
      &u8_stdout_loglevel);
   fd_register_config
-    ("STDERRLEVEL",_("Required priority for messages to be displayed on stderr"),
+    ("STDERRLEVEL",
+     _("Required priority for messages to be displayed on stderr"),
      fd_intconfig_get,loglevelconfig_set,
      &u8_stderr_loglevel);
   /* Default logindent for FramerD */
@@ -2047,7 +2065,7 @@ void fd_init_support_c()
 
   if (!(logdir)) logdir=u8_strdup(FD_LOG_DIR);
   fd_register_config
-    ("LOGDIR",_("Root directory for logging directories"),
+    ("LOGDIR",_("Root FramerD logging directories"),
      fd_sconfig_get,fd_sconfig_set,&logdir);
   if (!(datadir)) datadir=u8_strdup(FD_DATA_DIR);
 

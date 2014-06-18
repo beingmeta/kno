@@ -233,14 +233,34 @@ FD_EXPORT fdtype reqloglen_prim()
 
 FD_EXPORT fdtype reqlog_handler(fdtype expr,fd_lispenv env)
 {
+  struct U8_XTIME xt;
   struct U8_OUTPUT *reqout=fd_reqlog(1);
-  u8_string cond=NULL, cxt=NULL; int body_off=1;
-  fdtype arg1=fd_get_arg(expr,1), arg2=fd_get_arg(expr,2), body, outval;
+  u8_string cond=NULL, cxt=NULL; int body_off=1, level=-1;
+  fdtype arg1=fd_get_arg(expr,1), arg2=fd_get_arg(expr,2);
+  fdtype arg3=fd_get_arg(expr,3), body, outval;
+  if (FD_FIXNUMP(arg1)) {
+    level=FD_FIX2INT(arg1); body_off++;
+    arg1=arg2; arg2=arg3; arg3=FD_VOID;}
   if (FD_SYMBOLP(arg1)) {
-    if (FD_SYMBOLP(arg2)) {cxt=FD_SYMBOL_NAME(arg2); body_off=3;}
-    else {cond=FD_SYMBOL_NAME(arg1); body_off=2;}}
+    cond=FD_SYMBOL_NAME(arg1); body_off++;
+    arg1=arg2; arg2=arg3; arg3=FD_VOID;}
+  if (FD_SYMBOLP(arg1)) {
+    cxt=FD_SYMBOL_NAME(arg2); body_off++;}
+  u8_local_xtime(&xt,-1,u8_nanosecond,0);
+  if (level>=0)
+    u8_printf(reqout,"<logentry level='%d' scope='request'>",level);
+  else u8_printf(reqout,"<logentry scope='request'>");
+  if (level>=0) u8_printf(reqout,"\n\t<level>%d</level>",level);
+  u8_printf(reqout,"\n\t<datetime tick='%ld' nsecs='%d'>%lXt</datetime>",
+            xt.u8_tick,xt.u8_nsecs,&xt);
+  if (cond) u8_printf(reqout,"\n\t<condition>%s</condition>",cond);
+  if (cxt) u8_printf(reqout,"\n\t<context>%s</context>",cxt);
+  u8_printf(reqout,"\n\t<message>\n");
   body=fd_get_body(expr,body_off);
   outval=fd_printout_to(reqout,body,env);
+  u8_printf(reqout,"\n\t</message>");
+  u8_printf(reqout,"\n</logentry>\n");
+  fd_decref(body);
   if (FD_ABORTP(outval)) {
     return outval;}
   else return FD_VOID;
