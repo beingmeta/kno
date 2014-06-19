@@ -87,7 +87,7 @@
 	 (reqdata (try (getopt spec 'reqdata)
 		       (and (req/get 'SCRIPT_FILENAME)
 			    (or (req/get 'reqdata #f) (req/data)))))
-	 (reqlog (req/log))
+	 (reqlog (req/getlog))
 	 (head (getopt spec 'head))
 	 (detailsblock #f)
 	 (irritantblock #f)
