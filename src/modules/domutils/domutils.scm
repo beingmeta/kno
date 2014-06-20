@@ -680,13 +680,14 @@
 ;;; Searching
 
 (defambda (dom/find under sel . args)
-  (if (null? args) (dom/select under sel)
-      (if (and (pair? args) (identical? (car args) #f))
-	  (dom/select under sel #f)
-	  (if (test under 'index)
-	      (apply find-frames (get under 'index) (cons sel args))
-	      (begin (logwarn "No index for " under)
-		(fail))))))
+  (if (string? under) (fail)
+      (if (null? args) (dom/select under sel)
+	  (if (and (pair? args) (identical? (car args) #f))
+	      (dom/select under sel #f)
+	      (if (test under 'index)
+		  (apply find-frames (get under 'index) (cons sel args))
+		  (begin (logwarn "No index for " under)
+		    (fail)))))))
 
 (defambda (dom/select under sel (findall #t))
   "Finds all nodes matching SEL under UNDER, if FINDALL is true, \
