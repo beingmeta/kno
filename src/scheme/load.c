@@ -31,6 +31,8 @@ static int trace_load=0, trace_load_eval=0;
 
 static fdtype after_symbol, traceloadeval_symbol, postload_symbol;
 
+static u8_condition UnconfiguredSource="Unconfigured source";
+
 /* Getting sources */
 
 static struct FD_SOURCEFN *sourcefns=NULL;
@@ -261,7 +263,13 @@ static fdtype load_source(fdtype expr,fd_lispenv env)
     if (FD_STRINGP(config_val)) {
       u8_log(LOG_NOTICE,"Config","Loading %s = %s",FD_SYMBOL_NAME(source),FD_STRDATA(config_val));
       source=config_val;}
-    else fd_decref(config_val);}
+    else if (FD_VOIDP(config_val)) {
+      return fd_err(UnconfiguredSource,"load_source",
+                    "this source is not configured",
+                    source_expr);}
+    else return fd_err(UnconfiguredSource,"load_source",
+                       "this source is misconfigured",
+                       config_val);}
   if (!(FD_STRINGP(source)))
     return fd_type_error("filename","LOAD",source);
   encval=fd_eval(encname_expr,env);
