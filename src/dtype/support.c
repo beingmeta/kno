@@ -1064,7 +1064,7 @@ static fdtype get_reqinfo()
   if ((table)&&(FD_TABLEP(table))) return table;
   else {
     fdtype newinfo=fd_empty_slotmap();
-    fd_slotmap sm=FD_GET_CONS(table,fd_slotmap_type,fd_slotmap);
+    fd_slotmap sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
     u8_write_lock(&(sm->rwlock)); sm->uselock=0;
     u8_tld_set(reqinfo_key,(void *)newinfo);
     return newinfo;}
@@ -1916,6 +1916,7 @@ void fd_init_support_c()
 #if FD_USE_TLS
   u8_new_threadkey(&threadtable_key,NULL);
   u8_new_threadkey(&reqinfo_key,NULL);
+  u8_new_threadkey(&reqlog_key,NULL);
 #endif
   configuration_table=fd_make_hashtable(NULL,16);
 
