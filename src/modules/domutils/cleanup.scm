@@ -26,6 +26,9 @@
 
 ;;; Rules
 
+(define fix-bad-style
+  #((isalnum) (subst (spaces) "; ") (lword) ":"))
+
 (define default-style-rules {})
 (define default-class-rules {})
 
@@ -237,9 +240,14 @@
 			(stdspace (textsubst (get node 'class)
 					     (qc classrules)))))
 	  (when (empty-string? (get node 'style)) (dom/drop! node 'style)))
-	(when (and stylerules (test node 'style))
-	  (dom/set! node 'style
-		    (dom/normstyle (get node 'style) (qc stylerules)))
+	(when (test node 'style)
+	  (let* ((style (get node 'style))
+		 (nstyle (textsubst style (qc fix-bad-style))))
+	    (when stylerules
+	      (set! nstyle (dom/normstyle nstyle (qc stylerules))))
+	    (unless (identical? style nstyle)
+	      (logdetail "Converted " (write style) " to " (write nstyle))
+	      (dom/set! node 'style nstyle)))
 	  (when (empty-string? (get node 'style)) (dom/drop! node 'style)))
 	(doseq (child vec)
 	  (cond ((string? child)
@@ -379,6 +387,8 @@
 	(do-choices (node (get stylemap style))
 	  (dom/addclass! node classname)
 	  (dom/drop! node 'style))))
+    (store! dom '%stylemap stylemap)
+    (store! dom '%classdefs classdefs)
     (store! classdefs '%count stylecount)
     classdefs))
 
