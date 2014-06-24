@@ -523,9 +523,9 @@ static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
       if ((expr_len>3)||(FD_APPLICABLEP(fd_get_arg(expr,2)))) {
 	watch=fd_get_body(expr,2);}
       else watch=fd_get_arg(expr,2);}}
-  else if ((expr_len>2)||(FD_APPLICABLEP(head))) {
-    watch=fd_get_body(expr,1);}
-  else watch=head;
+  else if ((expr_len==2)&&(FD_PAIRP(head)))
+    watch=head;
+  else watch=fd_get_body(expr,1);
   n_args=fd_seq_length(watch);
   rail=u8_alloc_n(n_args,fdtype);
   U8_INIT_OUTPUT(&out,1024);
