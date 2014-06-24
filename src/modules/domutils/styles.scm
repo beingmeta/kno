@@ -7,7 +7,8 @@
 (use-module '{reflection fdweb xhtml texttools domutils varconfig logger})
 
 (module-export! '{css/dropdecimals css/roundpixels css/relfonts
-		  dom/normstyle dom/gather-styles!})
+		  dom/normstyle dom/gather-styles!
+		  css/relsizes})
 
 (define %loglevel %notice%)
 
@@ -67,11 +68,15 @@
 (define (fix-font-size s)
   (try (get named-sizes s)
        (tryif (has-suffix s "px")
-	 (glom (inexact->string  (/ (string->number (slice s 0 -2)) 16.0) 2)
-	   "em"))
+	 (if (zero? (string->number (slice s 0 -2)))
+	     "0px"
+	     (glom (inexact->string  (/ (string->number (slice s 0 -2)) 16.0) 1)
+	       "em")))
        (tryif (has-suffix s "pt")
-	 (glom (inexact->string (/ (string->number (slice s 0 -2)) 12.0) 2)
-	   "em"))))
+	 (if (zero? (string->number (slice s 0 -2)))
+	     "0pt"
+	     (glom (inexact->string (/ (string->number (slice s 0 -2)) 12.0) 1)
+	       "em")))))
 
 (define (xform-font-size s)
   (try (fix-font-size s) s))
@@ -83,7 +88,40 @@
 	 (subst {"small" "x-small" "xx-small"
 		 "large" "x-large" "xx-large" "medium"
 		 #((isdigit+) {"px" "pt"})
-		 #((isdigit+) "." (isdigit+) "px")}
+		 #((isdigit+) "." (isdigit+) {"px" "pt"})}
 		xform-font-size)
-	 (not> ";") ";")))
-(config! 'dom:cleanup:rules css/relfonts)
+	 (not> ";") {";" (eos)})))
+(config! 'dom:cleanup:rules (cons 'css/relfonts css/relfonts))
+
+(defambda (css/relsizes (properties {"font-size" "line-height" "text-indent"
+				     "padding-left" "padding-right"
+				     "padding-top" "padding-bottom"
+				     "margin-left" "margin-right"
+				     "margin-top" "margin-bottom"
+				     "margin" "padding"}))
+  `(ic {,(tryif (overlaps? "font-size" properties)
+	   `#({(bos) (spaces) "{"} "font-size:" (spaces*)
+	      (subst {"small" "x-small" "xx-small"
+		      "large" "x-large" "xx-large" "medium"
+		      #((isdigit+) {"px" "pt"})
+		      #((isdigit+) "." (isdigit+) {"px" "pt"})}
+		     ,xform-font-size)
+	      (not> ";") {";" (eos)}))
+	#({(bos) (spaces) "{"}
+	  ,(glom (difference properties {"font-size" "margin" "padding"}) ":")
+	  (spaces*)
+	  (subst {"small" "x-small" "xx-small"
+		  "large" "x-large" "xx-large" "medium"
+		  #((isdigit+) {"px" "pt"})
+		  #((isdigit+) "." (isdigit+) {"px" "pt"})}
+		 ,xform-font-size)
+	  (not> ";") {";" (eos)})
+	,(tryif (overlaps? {"margin" "padding"} properties)
+	   `#({(bos) (spaces) "{"} ,(glom (intersection properties {"margin" "padding"}) ":")
+	      (spaces*)
+	      (subst {#((isdigit+) {"px" "pt"})
+		      #((isdigit+) "." (isdigit+) {"px" "pt"})}
+		     ,xform-font-size)
+	      (spaces*)
+	      (not> ";") {";" (eos)}))}))
+
