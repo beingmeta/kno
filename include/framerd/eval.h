@@ -234,6 +234,8 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
 	return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
     else return x;
+  case fd_slotmap_type:
+    return fd_deep_copy(x);
   case fd_cons_ptr_type:
     if ((FD_PTR_TYPEP(x,fd_pair_type)) ||
 	(FD_PTR_TYPEP(x,fd_rail_type)) ||
@@ -260,13 +262,17 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
 	return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
     else return x;
-  case fd_cons_ptr_type:
-    if ((FD_PTR_TYPEP(x,fd_pair_type))||(FD_PTR_TYPEP(x,fd_rail_type)))
+  case fd_cons_ptr_type: {
+    fd_ptr_type ctype=FD_PTR_TYPE(x);
+    switch (ctype) {
+    case fd_pair_type: case fd_rail_type:
       return fd_tail_eval(x,env);
-    else if ((FD_PTR_TYPEP(x,fd_choice_type)) ||
-	     (FD_PTR_TYPEP(x,fd_achoice_type)))
+    case fd_slotmap_type:
+      return fd_deep_copy(x);
+    case fd_choice_type: case fd_achoice_type:
       return fd_eval(x,env);
-    else return fd_incref(x);
+    default:
+      return fd_incref(x);}}
   default: /* Never reached */
     return x;
   }
