@@ -1941,7 +1941,7 @@ void fd_init_support_c()
     ("UTF8WARN",_("warn on bad UTF-8 sequences"),
      config_getutf8warn,config_setutf8warn,NULL);
   fd_register_config
-    ("UTF8ERR",_("warn on bad UTF-8 sequences"),
+    ("UTF8ERR",_("fail (error) on bad UTF-8 sequences"),
      config_getutf8err,config_setutf8err,NULL);
   fd_register_config
     ("RANDOMSEED",_("random seed used for stochastic operations"),
