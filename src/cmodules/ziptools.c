@@ -268,6 +268,16 @@ static fdtype zipdrop_prim(fdtype zipfile,fdtype filename)
     return FD_TRUE;}
 }
 
+static int istext(u8_byte *buf,int size)
+{
+  u8_byte *scan=buf, *limit=buf+size;
+  while (scan<limit)
+    if ((*scan)>=0x80)
+      return u8_validp(scan);
+    else scan++;
+  return 1;
+}
+
 static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype isbinary)
 {
   struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
@@ -301,7 +311,11 @@ static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype isbinary)
     zip_fclose(zfile);
     u8_unlock_mutex(&(zf->lock));
     buf[zstat.size]='\0';
-    if (FD_TRUEP(isbinary))
+    if (FD_VOIDP(isbinary)) {
+      if (istext(buf,size))
+        return fd_init_string(NULL,size,buf);
+      else return fd_init_packet(NULL,size,buf);}
+    else if (FD_TRUEP(isbinary))
       return fd_init_packet(NULL,size,buf);
     else return fd_init_string(NULL,size,buf);}
   else {
@@ -440,7 +454,7 @@ FD_EXPORT int fd_init_ziptools()
 	   fd_make_cprim3x("ZIP/GET",zipget_prim,2,
 			   fd_zipfile_type,FD_VOID,
 			   fd_string_type,FD_VOID,
-			   -1,FD_FALSE));
+			   -1,FD_VOID));
 
   fd_idefn(ziptools_module,
 	   fd_make_cprim2x("ZIP/EXISTS?",zipexists_prim,2,
