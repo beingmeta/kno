@@ -8,7 +8,7 @@
 (use-module '{fdweb texttools domutils aws/s3
 	      savecontent gpath logger mimetable})
 
-(define-init %loglevel %notice!)
+(define-init %loglevel %notice%)
 ;;(set! %loglevel %info%)
 ;;(set! %loglevel %debug%)
 
@@ -103,10 +103,10 @@
 	   (when (and fetched (test fetched 'content)
 		      (or (string? (get fetched 'content))
 			  (packet? (get fetched 'content))))
-	     (lognotice "Copied " (length (get fetched 'content))
-			" from\n\t" (gp->s absref)
-			"\n  to\t " (gp->s savepath)
-			"\n  for\t" ref)
+	     (loginfo "Copied " (length (get fetched 'content))
+		      " from\n\t" (gp->s absref)
+		      "\n  to\t " (gp->s savepath)
+		      "\n  for\t" ref)
 	     (store! urlmap (list absref) (get fetched 'modified)))
 	   (or fetched exists)))))
 
