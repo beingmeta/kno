@@ -7,7 +7,8 @@
 (define %used_modules '{aws varconfig})
 
 (module-export! '{sqs/get sqs/send sqs/list sqs/info sqs/delete
-		  sqs/extend sqs/req/extend})
+		  sqs/extend sqs/req/extend
+		  sqs/vacuum})
 
 (define-init %loglevel %info!)
 ;;(define %loglevel %debug!)
@@ -137,5 +138,22 @@
 	   (testopt entry 'handle) (testopt entry 'queue)
 	   (sqs/extend `#[handle ,(getopt entry 'handle)
 			  queue ,(getopt entry 'queue)]
-		       (or secs (getopt entry 'extension default-extension)))))))
+		       (or secs (getopt entry 'extension
+					default-extension)))))))
+
+;;; Vacuuming removes all the entries from a queue
+
+(define (sqs/vacuum queue)
+  (let ((item (sqs/get queue)) (count 0))
+    (while item
+      (sqs/delete item)
+      (set! count (1+ count))
+      (set! item (sqs/get queue)))
+    count))
+
+
+
+
+
+
 
