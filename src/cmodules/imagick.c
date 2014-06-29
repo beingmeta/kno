@@ -290,7 +290,21 @@ static FilterTypes getfilter(fdtype arg,u8_string cxt)
     return default_filter;}
 }  
 
-static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg,fdtype filter,fdtype blur)
+static fdtype imagick_format(fdtype fdwand,fdtype format)
+{
+  MagickBooleanType retval;
+  struct FD_IMAGICK *wrapper=
+    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+  MagickWand *wand=wrapper->wand;
+  retval=MagickSetImageFormat(wand,FD_STRDATA(format));
+  if (retval==MagickFalse) {
+    grabmagickerr("imagick_fit",wand);
+    return FD_ERROR_VALUE;}
+  else return fd_incref(fdwand);
+}
+
+static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg,
+                          fdtype filter,fdtype blur)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=
@@ -309,6 +323,27 @@ static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg,fdtype filter,
     (wand,target_width,target_height,
      getfilter(filter,"imagick_fit"),
      ((FD_VOIDP(blur))?(1.0):(FD_FLONUM(blur))));
+  if (retval==MagickFalse) {
+    grabmagickerr("imagick_fit",wand);
+    return FD_ERROR_VALUE;}
+  else return fd_incref(fdwand);
+}
+
+static fdtype imagick_extend(fdtype fdwand,fdtype w_arg,fdtype h_arg,
+                             fdtype x_arg,fdtype y_arg,
+                             fdtype bgcolor)
+{
+  MagickBooleanType retval;
+  struct FD_IMAGICK *wrapper=
+    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+  MagickWand *wand=wrapper->wand;
+  size_t width=FD_FIX2INT(w_arg), height=FD_FIX2INT(h_arg);
+  size_t xoff=FD_FIX2INT(x_arg), yoff=FD_FIX2INT(y_arg);
+  if (FD_STRINGP(bgcolor)) {
+    PixelWand *color=NewPixelWand();
+    PixelSetColor(color,FD_STRDATA(bgcolor));
+    MagickSetImageBackgroundColor(wand,color);}
+  retval=MagickExtentImage(wand,width,height,xoff,yoff);
   if (retval==MagickFalse) {
     grabmagickerr("imagick_fit",wand);
     return FD_ERROR_VALUE;}
@@ -493,7 +528,9 @@ static fdtype imagick_get(fdtype fdwand,fdtype property,fdtype dflt)
     fdtype stringval=fd_make_string(NULL,-1,value);
     MagickRelinquishMemory(value);
     return stringval;}
-  else return fd_incref(dflt);;
+  else if (FD_VOIDP(dflt))
+    return FD_EMPTY_CHOICE;
+  else return fd_incref(dflt);
 }
 
 static fdtype imagick_getkeys(fdtype fdwand)
@@ -572,6 +609,20 @@ int fd_init_imagick()
 			   fd_fixnum_type,FD_VOID,
 			   fd_fixnum_type,FD_VOID,
 			   -1,FD_VOID,fd_double_type,FD_VOID));
+  fd_idefn(imagick_module,
+	   fd_make_cprim2x("IMAGICK/FORMAT",imagick_format,2,
+			   fd_imagick_type,FD_VOID,
+			   fd_string_type,FD_VOID));
+
+  fd_idefn(imagick_module,
+	   fd_make_cprim6x("IMAGICK/EXTEND",imagick_extend,3,
+			   fd_imagick_type,FD_VOID,
+			   fd_fixnum_type,FD_VOID,
+			   fd_fixnum_type,FD_VOID,
+			   fd_fixnum_type,FD_VOID,
+			   fd_fixnum_type,FD_VOID,
+                           -1,FD_VOID));
+
   fd_idefn(imagick_module,
 	   fd_make_cprim3x("IMAGICK/CHARCOAL",imagick_charcoal,3,
 			   fd_imagick_type,FD_VOID,
