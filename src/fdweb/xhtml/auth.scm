@@ -144,7 +144,7 @@
 ;;  If we're doing this over HTTPS (which we should) and the user
 ;;   has specified sticky authorization, we can make this really long
 (define auth-expiration (* 3600 24 14))
-(define auth-refresh (* 60 15))
+(define auth-refresh (* 60 30))
 (define auth-grace (* 60 15))
 (varconfig! auth:expires auth-expiration)
 (varconfig! auth:refresh auth-refresh)
@@ -254,8 +254,11 @@
       (req/get 'https))))
 
 (define (getauthinfo var)
-  (cond ((and auth-secure (req/get 'https #f)) (req/get var))
-	((and auth-secure secret)
+  (cond ((and auth-secure (req/get 'https #f) (req/test var))
+	 (req/get var))
+	;; If we don't have VAR, but we have an encyrypted token, we
+	;; use that
+	((and auth-secure secret (req/test (stringout var "-")))
 	 (packet->string
 	  (decrypt (base64->packet (req/get (stringout var "-"))) secret)))
 	(auth-secure #f)
@@ -349,6 +352,9 @@
 	   (> (authinfo-expires auth) (time))
 	   (begin (logwarn "AUTH TOKEN expired: " auth) #f))
        (if (or (not auth-refresh)
+	       ;; If our authentication is good and we're over HTTPS
+	       ;;  but there isn't an AUTHID, refresh to provide one
+	       (and (req/get 'https #f) (not (req/get authid)))
 	       (> (time) (+ (authinfo-issued auth) auth-refresh)))
 	   (freshauth auth)
 	   auth)))
@@ -425,7 +431,7 @@
 		      (not (token/ok? (authinfo-identity info)
 				      (authinfo-token info)))))
   (req/drop! authid)
-  (logwarn reason " AUTHID=" authid "; INFO=" info)
+  ;; (logwarn reason " AUTHID=" authid "; INFO=" info)
   (if signal (error reason authid info))
   (fail))
 
