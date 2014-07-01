@@ -68,15 +68,15 @@
 		 (set! end (and start (position #\" string (1+ start)))))
 	       (when scan (printout (subseq string scan)))))
 	   string))
-     #((spaces*)
-       {(subst "-" "\&ndash;")
-	(subst "--" "\&mdash;")
-	(subst "..." "\u2026;")}
-       {(spaces) (eos)}))
-    `#({(islower) (ispunct)}
-       {(subst (+ "&mdash;") ,wrapdash)
-	(subst (+ "\&mdash;") ,wrapdash)}))
-   '(+ {"&nbsp" #\u00a0}) "\&nbsp;"))
+     `(GREEDY #((spaces*)
+		{(subst "-" "\&ndash;")
+		 (subst "--" "\&mdash;")
+		 (subst "..." "\u2026;")}
+		{(spaces) (eos)})))
+    `(GREEDY #({(islower) (ispunct)}
+	       {(subst (+ "&mdash;") ,wrapdash)
+		(subst (+ "\&mdash;") ,wrapdash)})))
+   '(GREEDY (+ {"&nbsp" #\u00a0})) "\&nbsp;"))
 (define (dom/unipunct! arg)
   (if (string? arg) (unipunct arg)
       (if (pair? arg) (map dom/unipunct! arg)
