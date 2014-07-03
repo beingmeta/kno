@@ -144,10 +144,12 @@
 		(baseuri (subseq ref 0 hashpos))
 		(hashid (subseq ref hashpos))
 		(lref (try (get urlmap baseuri)
-			   (localref baseuri urlmap base saveto read options)))
+			   (localref baseuri urlmap base
+				     saveto read options)))
 		(useref hashid))
 	   (logdebug |LOCALIZE/ref| ref
 		     "\n\tfrom " base "\n\tto " saveto "\n\tfor " read)
+	   (debug%watch baseuri hashid lref useref)
 	   (if (has-prefix lref "#")
 	       (begin
 		 ;; To be correct, we'll need to clean up these
@@ -202,7 +204,8 @@
        (set! savepath (gp/mkpath saveto name)))
      (store! urlmap ref lref)
      (store! urlmap (vector lref) ref)
-     (when (string? absref) (store! urlmap absref lref))
+     (when (string? absref)
+       (store! urlmap absref lref))
      (debug%watch "LOCALREF" lref ref base absref saveto read
 		  (get urlmap absref))
      (if (sync! ref savepath absref options ctype urlmap)
@@ -211,6 +214,7 @@
 	   ;;  lrefs and absrefs are disjoint, so we can use the
 	   ;;  same table)
 	   (store! urlmap absref lref)
+	   (store! urlmap (vector lref) absref)
 	   (when (string? absref) (store! urlmap lref absref))
 	   (logdebug |LOCALIZE/ref| "LOCALREF " ref " ==> " lref
 		     ",\n\tsynced from " base "\n\tto " saveto)
@@ -239,7 +243,8 @@
 	       (do-choices saveto
 		 (printout "\n\t\t" (write (gp->s saveto))))))
   (debug%watch "DOM/LOCALIZE!" base saveto read doanchors)
-  (let ((head (dom/find dom "HEAD" #f)))
+  (let ((head (dom/find dom "HEAD" #f))
+	(saveslot (getopt options 'saveslot)))
     (dolist (node (dom/select->list dom "[src]"))
       (loginfo "Localizing " (dom/sig node)
 	       "\n\tfrom " base "\n\tto " saveto)
@@ -256,6 +261,7 @@
 		       " to " (write ref) " for " (dom/sig node #t))
 	      (loginfo "Localized " (write (get node 'src))
 		       " to " (write ref) " for " (dom/sig node #t)))
+	  (when saveslot (dom/set! node saveslot (get node 'src)))
 	  (dom/set! node 'src ref))))
     ;; Convert url() references in stylesheets
     (do-choices (node (pick (pick (dom/find head "link") 'rel "stylesheet")
@@ -296,26 +302,34 @@
 	    (loginfo "Localized stylesheet " (write href) " to " (write ref)
 		     " for " (dom/sig node #t))))
 	(when (and (exists? ref) ref)
+	  (when saveslot (dom/set! node saveslot href))
 	  (dom/set! node 'href ref))))
     (dolist (node (dom/select->list dom "[href]"))
-      (when (or (and doanchors (test node '%xmltag 'a))
-		(test node 'rel {dolinks "knodule"}))
+      (when (and (or (and doanchors (test node '%xmltag 'a))
+		     (test node 'rel {dolinks "knodule"}))
+		 (not (string-starts-with?
+		       (get node 'href)
+		       #((isalpha) (isalpha) (isalpha+) ":")))
+		 (or (and doanchors (immediate? doanchors))
+		     (and doanchors
+			  (textsearch doanchors (get node 'href)))))
 	(logdebug "Localizing " (get node 'href) "\n\tfrom " base
 		  "\n\tto " saveto)
 	(let* ((href (get node 'href))
 	       (hashpos (position #\# href))
-	       (ref (and (not (string-starts-with?
-			       href #((isalpha) (isalpha) (isalpha+) ":")))
-			 (or (not doanchors) (textsearch doanchors href))
-			 (if (and hashpos
-				  (test urlmap (slice href 0 hashpos)))
-			     (glom (get urlmap (slice href 0 hashpos))
-			       (slice href hashpos))
-			     (localref href urlmap base (qc saveto)
-				       read options)))))
+	       (baseuri (slice href 0 hashpos))
+	       (rootref (localref baseuri urlmap base (qc saveto)
+				  read options))
+	       (hashid (if hashpos (slice href hashpos) #f))
+	       (ref (if (not hashid) rootref
+			(if (has-prefix rootref "#")
+			    (hashmerge rootref hashid urlmap)
+			    (glom rootref hashid)))))
+	  (debug%watch href baseuri rootref hashid ref)
 	  (loginfo "Localized " (write href) " to " (write ref)
 		   " for " (dom/sig node #t))
 	  (when (and (exists? ref) ref)
+	    (when saveslot (dom/set! node saveslot href))
 	    (dom/set! node 'href ref)))))
     (dolist (node (dom/select->list dom "[href]"))
       (unless (or (test node 'rel {dolinks "x-resource" "stylesheet" "knodule"})
@@ -323,10 +337,13 @@
 	(let* ((href (get node 'href))
 	       (hashpos (position #\# href)))
 	  (cond ((test urlmap href)
+		 (when saveslot (dom/set! node saveslot href))
 		 (dom/set! node 'href (get urlmap href)))
 		((and hashpos (test urlmap (slice href 0 hashpos)))
+		 (when saveslot (dom/set! node saveslot href))
 		 (dom/set! node 'href (slice href hashpos)))
 		((has-suffix href image-suffixes)
+		 (when saveslot (dom/set! node saveslot href))
 		 (dom/set! node 'href
 			   (localref href urlmap base (qc saveto)
 				     read options)))))))
@@ -346,6 +363,14 @@
       (add! dom 'xresources files)
       (store! head '%content
 	      (append (get head '%content) xresources)))))
+
+(define (hashmerge root hash urlmap)
+  (cond ((fail? (get urlmap hash))
+	 (store! urlmap (glom root hash) hash)
+	 hash)
+	((test urlmap (glom root hash) hash)
+	 hash)
+	(else (glom root (slice hash 1)))))
 
 (define (convert-url-refs text urlmap base saveto read options)
   (let* ((xformurlfn
