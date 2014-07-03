@@ -76,7 +76,7 @@
     `(GREEDY #({(islower) (ispunct)}
 	       {(subst (+ "&mdash;") ,wrapdash)
 		(subst (+ "\&mdash;") ,wrapdash)})))
-   '(GREEDY (+ {"&nbsp" #\u00a0})) "\&nbsp;"))
+   '(GREEDY (+ {"&nbsp;" #\u00a0})) "\&nbsp;"))
 (define (dom/unipunct! arg)
   (if (string? arg) (unipunct arg)
       (if (pair? arg) (map dom/unipunct! arg)
