@@ -238,12 +238,17 @@ void fd_restore_sourcebase(u8_string sourcebase)
 FD_EXPORT int fd_load_config(u8_string sourceid)
 {
   struct U8_INPUT stream; int retval;
-  u8_string sourcebase=NULL;
+  u8_string sourcebase=NULL, outer_sourcebase;
   u8_string content=fd_get_source(sourceid,NULL,&sourcebase,NULL);
   if (content==NULL) return FD_ERROR_VALUE;
-  else if (sourcebase) u8_free(sourcebase);
+  else if (sourcebase) {
+    outer_sourcebase=bind_sourcebase(sourcebase);}
+  else outer_sourcebase=NULL;
   U8_INIT_STRING_INPUT((&stream),-1,content);
   retval=fd_read_config(&stream);
+  if (sourcebase) {
+    restore_sourcebase(outer_sourcebase);
+    u8_free(sourcebase);}
   u8_free(content);
   return retval;
 }
