@@ -331,14 +331,30 @@ static fdtype lisp_get_component(fdtype string,fdtype base)
     return fd_lispstring(thepath);}
 }
 
-static fdtype lisp_load_config(fdtype string)
+static fdtype lisp_load_config(fdtype arg)
 {
-  u8_string abspath=u8_abspath(FD_STRDATA(string),NULL);
-  int retval=fd_load_config(abspath);
-  u8_free(abspath);
-  if (retval<0) 
-    return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(retval);
+  if (FD_STRINGP(arg)) {
+    u8_string abspath=u8_abspath(FD_STRDATA(arg),NULL);
+    int retval=fd_load_config(abspath);
+    u8_free(abspath);
+    if (retval<0) 
+      return FD_ERROR_VALUE;
+    else return FD_INT2DTYPE(retval);}
+  else if (FD_SYMBOLP(arg)) {
+    fdtype config_val=fd_config_get(FD_SYMBOL_NAME(arg));
+    if (FD_STRINGP(config_val)) {
+      fdtype result=lisp_load_config(config_val);
+      fd_decref(config_val);
+      return result;}
+    else if (FD_VOIDP(config_val))
+      return fd_err(UnconfiguredSource,"lisp_load_config",
+                    "this source is not configured",
+                    arg);
+    else return fd_err(UnconfiguredSource,"load_source",
+                       "this source is misconfigured",
+                       config_val);}
+  else return fd_type_error
+         ("path or config symbol","lisp_load_config",arg);
 }
 
 /* Config config */
@@ -420,7 +436,7 @@ FD_EXPORT void fd_init_load_c()
  
  fd_idefn(fd_scheme_module,
 	  fd_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
-			  fd_string_type,FD_VOID));
+			  -1,FD_VOID));
  fd_idefn(fd_scheme_module,
 	  fd_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
 			  fd_string_type,FD_VOID,
