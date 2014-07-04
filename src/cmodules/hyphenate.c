@@ -34,7 +34,7 @@ static struct HYPHEN_DICTIONARY {
 static int hyphenate_init=0;
 static u8_mutex hyphen_dict_lock;
 
-static fdtype hyphenate_prim(fdtype string_arg)
+static fdtype hyphenate_word_prim(fdtype string_arg)
 {
   u8_string string=FD_STRDATA(string_arg);
   int len=FD_STRLEN(string_arg);
@@ -49,8 +49,7 @@ static fdtype hyphenate_prim(fdtype string_arg)
   else {
     fdtype result=fd_make_string(NULL,-1,(u8_string)hword);
     u8_free(hyphens); u8_free(hword);
-    return result;}
-}
+    return result;}}
 
 static fdtype hyphen_breaks_prim(fdtype string_arg)
 {
@@ -184,6 +183,51 @@ static fdtype hyphenout_prim(fdtype string_arg,fdtype hyphen_arg)
   return FD_VOID;
 }
 
+static fdtype hyphenate_prim(fdtype string_arg,fdtype hyphen_arg)
+{
+  fdtype result;
+  struct U8_OUTPUT out; U8_OUTPUT *output=&out;
+  u8_string string=FD_STRDATA(string_arg);
+  int len=FD_STRLEN(string_arg);
+  int hyphen_char=FD_CHAR2CODE(hyphen_arg);
+  struct U8_OUTPUT word; u8_byte *scan=string;
+  int c=u8_sgetc(&scan);
+  U8_INIT_OUTPUT(&out,len*2);
+  U8_INIT_OUTPUT(&word,64);
+  while (c>=0) {
+    if (u8_isalnum(c)) {
+      u8_putc(&word,c); c=u8_sgetc(&scan);}
+    else if (u8_isspace(c)) {
+      if (word.u8_outptr!=word.u8_outbuf) {
+        hyphenout_helper
+          (output,word.u8_outbuf,word.u8_outptr-word.u8_outbuf,
+           hyphen_char);
+        word.u8_outptr=word.u8_outbuf; word.u8_outptr[0]='\0';}
+      u8_putc(output,c);
+      c=u8_sgetc(&scan);}
+    else {
+      int nc=u8_sgetc(&scan);
+      if ((nc<0)||(!(u8_isalnum(nc)))) {
+        if (word.u8_outptr!=word.u8_outbuf) {
+          hyphenout_helper
+            (output,word.u8_outbuf,word.u8_outptr-word.u8_outbuf,
+             hyphen_char);
+          word.u8_outptr=word.u8_outbuf; word.u8_outptr[0]='\0';}
+        u8_putc(output,c);
+        if (nc<0) break;
+        u8_putc(output,nc);
+        c=u8_sgetc(&scan);}
+      else {u8_putc(&word,c); u8_putc(&word,nc); c=u8_sgetc(&scan);}}}
+  if (word.u8_outptr!=word.u8_outbuf) {
+    hyphenout_helper
+      (output,word.u8_outbuf,word.u8_outptr-word.u8_outbuf,
+       hyphen_char);}
+  u8_free(word.u8_outbuf);
+  result=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  u8_free(out.u8_outbuf);
+  return result;
+}
+
 FD_EXPORT int fd_init_hyphenate()
 {
   fdtype hyphenate_module;
@@ -204,8 +248,8 @@ FD_EXPORT int fd_init_hyphenate()
   hyphenate_module=fd_new_module("HYPHENATE",(FD_MODULE_SAFE));
 
   fd_idefn(hyphenate_module,
-	   fd_make_cprim1x("HYPHENATE",
-                           hyphenate_prim,1,fd_string_type,FD_VOID));
+	   fd_make_cprim1x("HYPHENATE-WORD",
+                           hyphenate_word_prim,1,fd_string_type,FD_VOID));
   fd_idefn(hyphenate_module,
 	   fd_make_cprim1x("HYPHEN-BREAKS",
                            hyphen_breaks_prim,1,fd_string_type,FD_VOID));
@@ -217,7 +261,12 @@ FD_EXPORT int fd_init_hyphenate()
                            hyphenout_prim,1,
                            fd_string_type,FD_VOID,
                            fd_character_type,FD_CODE2CHAR(0xAD)));
-
+    fd_idefn(hyphenate_module,
+             fd_make_cprim2x("HYPHENATE",
+                             hyphenate_prim,1,
+                             fd_string_type,FD_VOID,
+                             fd_character_type,FD_CODE2CHAR(0xAD)));
+    
   fd_finish_module(hyphenate_module);
   fd_persist_module(hyphenate_module);
 

@@ -52,6 +52,7 @@ fd_exception fd_MismatchedClose=_("Expression open/close mismatch");
 
 int fd_unparse_maxelts=0;
 int fd_unparse_maxchars=0;
+int fd_unparse_hexpacket=0;
 
 int fd_interpret_pointers=1;
 
@@ -204,25 +205,37 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
 {
   struct FD_STRING *s=(struct FD_STRING *)x;
   unsigned char *bytes=s->bytes; int i=0, len=s->length;
-  u8_puts(out,"#\"");
-  if (bytes[0]=='!') {u8_puts(out,"\\!"); i++;}
-  while (i < len) {
-    int byte=bytes[i++]; char buf[16]; 
-    if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
-      u8_putc(out,' '); output_ellipsis(out,len-i,"bytes");
-      return u8_putc(out,'"');}
-    if ((byte>=0x80) || (byte<0x20) ||
-	(byte == '\\') || (byte == '"')) {
-      sprintf(buf,"\\%02x",byte);
+  if (fd_unparse_hexpacket) {
+    u8_puts(out,"#x\"");
+    while (i<len) {
+      int byte=bytes[i++]; char buf[16]; 
+      if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
+        u8_putc(out,' '); output_ellipsis(out,len-i,"bytes");
+        return u8_putc(out,'"');}
+      sprintf(buf,"%02x",byte);
       u8_puts(out,buf);}
-    else {
-      buf[0]=byte; buf[1]='\0';
-      u8_puts(out,buf);}}
-  /* We don't check for an error value until we get here, which means that
-     many of the calls above might have failed, however this shouldn't
-     be a functional problem. */
-  return u8_puts(out,"\"");
+    return u8_puts(out,"\"");}
+  else {
+    u8_puts(out,"#\"");
+    if (bytes[0]=='!') {u8_puts(out,"\\!"); i++;}
+    while (i < len) {
+      int byte=bytes[i++]; char buf[16]; 
+      if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
+        u8_putc(out,' '); output_ellipsis(out,len-i,"bytes");
+        return u8_putc(out,'"');}
+      if ((byte>=0x80) || (byte<0x20) ||
+          (byte == '\\') || (byte == '"')) {
+        sprintf(buf,"\\%02x",byte);
+        u8_puts(out,buf);}
+      else {
+        buf[0]=byte; buf[1]='\0';
+        u8_puts(out,buf);}}
+    /* We don't check for an error value until we get here, which means that
+       many of the calls above might have failed, however this shouldn't
+       be a functional problem. */
+    return u8_puts(out,"\"");}
 }
+
 
 static int unparse_secret(U8_OUTPUT *out,fdtype x)
 {
@@ -756,6 +769,27 @@ static fdtype parse_packet(U8_INPUT *in)
   else return FD_PARSE_ERROR;
 }
 
+static fdtype parse_hex_packet(U8_INPUT *in)
+{
+  char *data=u8_malloc(128);
+  int max=128, len=0, c=u8_getc(in);
+  while (isxdigit(c)) {
+    int nc=u8_getc(in), byte=0; char xbuf[3];
+    if (!(isxdigit(nc))) break;
+    if (len>=max) {
+      data=u8_realloc(data,max+128);
+      max=max+128;}
+    xbuf[0]=c; xbuf[1]=nc; xbuf[2]='\0';
+    byte=strtol(xbuf,NULL,16);
+    data[len++]=byte;
+    c=u8_getc(in);}
+  if (c=='"')
+    return fd_init_packet(NULL,len,data);
+  u8_free(data);
+  if (c<0) return FD_EOX;
+  else return FD_PARSE_ERROR;
+}
+
 static int copy_string(u8_input s,u8_output a)
 {
   int c=u8_getc(s);
@@ -1169,10 +1203,18 @@ fdtype fd_parser(u8_input in)
     case '{': return parse_qchoice(in);
     case '[': return parse_slotmap(in);
     case '*': {
+      int nextc=u8_getc(in); int hex=0; fdtype result;
+      if (nextc=='X') {hex=1; nextc=u8_getc(in);}
+      if (nextc!='"') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
+      if (hex)
+        result=parse_hex_packet(in);
+      else result=parse_packet(in);
+      FD_SET_CONS_TYPE(result,fd_secret_type);
+      return result;}
+    case 'X': {
       int nextc=u8_getc(in); fdtype result;
       if (nextc!='"') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
-      result=parse_packet(in);
-      FD_SET_CONS_TYPE(result,fd_secret_type);
+      result=parse_hex_packet(in);
       return result;}
     case '"': return parse_packet(in);
     case '<':
