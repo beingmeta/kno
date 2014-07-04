@@ -112,6 +112,7 @@ module_load_path=""
 safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
+DATAFILES=""
 SUDO=""
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
@@ -128,6 +129,7 @@ with_ziptools_default="yes"
 with_mysql_default="yes"
 with_crypto_default="yes"
 with_imagick_default="no"
+with_hyphenate_default="no"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
@@ -220,6 +222,7 @@ AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
 AC_SUBST(WWWUSER)
 AC_SUBST(CMODULES)
+AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
 AC_SUBST(INSTALLCMODULES)
 AC_SUBST(MYSQL_CFLAGS)
@@ -921,6 +924,21 @@ elif test $with_perftools = "debug"; then
   AC_CHECK_LIB(profiler,ProfilerStart)
   heaptest_prefix=gp_
   memtest_prefix=gp_
+fi
+
+AC_ARG_WITH(hyphenate,--with-hyphenate Build and install hyphenate bindings,,with_hyphenate="yes")
+if test x$with_hyphenate = "xyes"; then
+  AC_CHECK_HEADERS(hyphen.h)
+  AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2)
+fi
+if test "x$with_hyphenate" = "xyes" &&
+   test "x$ac_cv_header_hyphen_h" = "xyes" &&
+   test "x$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "xyes"; then
+  CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
+  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+else
+  with_hyphenate="no";
 fi
 
 # For OS X

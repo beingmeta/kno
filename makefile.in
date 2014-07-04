@@ -23,6 +23,7 @@ INCINSTALLDIR	= $(DESTDIR)@prefix@/include/framerd
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
+DATAINSTALLDIR	= $(DESTDIR)@datadir@/framerd/data
 APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 CLEAN		= @CLEAN@
 ECHO		= @ECHO@
@@ -127,6 +128,7 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/qrcode.o src/cmodules/regex.o \
 	     src/cmodules/ziptools.o src/cmodules/tidy.o \
 	     src/cmodules/zlib.o src/cmodules/imagick.o \
+	     src/cmodules/hyphenate.o \
 	     ${SUNDOWN_OBJS}
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
@@ -192,7 +194,8 @@ CMODULE_SOURCES=\
 	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
 	src/cmodules/qrcode.c src/cmodules/regex.c                     \
 	src/cmodules/ziptools.c src/cmodules/tidy.c                    \
-	src/cmodules/imagick.c src/cmodules/sundown/sundown.c 
+	src/cmodules/imagick.c src/cmodules/hyphenate.c		       \
+	src/cmodules/sundown/sundown.c 
 
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
         lib/libfdbserv@suffix@.a lib/libfddbfile@suffix@.a     \
@@ -901,7 +904,8 @@ update-repo: dist/debs.done
 
 # Installation targets
 
-install: install-core install-cmodules @install_modules_target@ @setup_target@
+install: install-core install-cmodules install-data \
+	 @install_modules_target@ @setup_target@
 install-core: confdirs workdirs @INSTALLI18N@          \
 	 install-static install-shared install-headers \
          install-exe install-scripts 
@@ -914,6 +918,9 @@ $(LIBINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 $(LIBINSTALLDIR)/framerd:
 	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
+$(DATAINSTALLDIR):
+	@$(SYSINSTALL) @install_dir_opts@ $(DATAINSTALLDIR)
+
 
 install-static: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libfdtype@suffix@.a        \
@@ -927,6 +934,8 @@ install-static: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libtagger@suffix@.a
 install-shared: shared-libs $(LIBINSTALLDIR)
 	make install-@shared_suffix@
+install-data: $(DATAINSTALLDIR)
+	@$(SYSINSTALL) @install_file_opts@ @DATAFILES@ $(DATAINSTALLDIR)
 
 # Versioned shared libraries
 install-sov:                                             		\
@@ -1035,6 +1044,8 @@ install-qrcode: $(LIBINSTALLDIR)/framerd/qrcode.@shared_suffix@ \
 	       $(LIBINSTALLDIR)/framerd/qrcode.@vshared_suffix@
 install-regex: $(LIBINSTALLDIR)/framerd/regex.@shared_suffix@ \
 	       $(LIBINSTALLDIR)/framerd/regex.@vshared_suffix@
+install-hyphenate: $(LIBINSTALLDIR)/framerd/hyphenate.@shared_suffix@ \
+	       $(LIBINSTALLDIR)/framerd/hyphenate.@vshared_suffix@
 install-ziptools: $(LIBINSTALLDIR)/framerd/ziptools.@shared_suffix@ \
 	         $(LIBINSTALLDIR)/framerd/ziptools.@vshared_suffix@
 install-tidy: $(LIBINSTALLDIR)/framerd/tidy.@shared_suffix@ \

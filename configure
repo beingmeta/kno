@@ -673,6 +673,7 @@ MYSQL_LDFLAGS
 MYSQL_CFLAGS
 INSTALLCMODULES
 BOOTSETUP
+DATAFILES
 CMODULES
 WWWUSER
 SUDO
@@ -832,6 +833,7 @@ with_imagick
 with_fileinfo
 with_tcmalloc
 with_perftools
+with_hyphenate
 enable_largefiles
 with_crypto
 with_sundown
@@ -1536,6 +1538,7 @@ Optional Packages:
 --without-fileinfo record fileinfo
 --without-tcmalloc Use the Google malloc library
 --without-google Use the Google perftools
+--with-hyphenate Build and install hyphenate bindings
 --without-crypto Compile the crypto module
 --without-sundown Compile the sundown module
 --with/out-profiling compile to generate profile information
@@ -2918,6 +2921,7 @@ module_load_path=""
 safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
+DATAFILES=""
 SUDO=""
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
@@ -2934,6 +2938,7 @@ with_ziptools_default="yes"
 with_mysql_default="yes"
 with_crypto_default="yes"
 with_imagick_default="no"
+with_hyphenate_default="no"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
@@ -2982,6 +2987,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -8738,6 +8744,83 @@ fi
 
   heaptest_prefix=gp_
   memtest_prefix=gp_
+fi
+
+
+# Check whether --with-hyphenate was given.
+if test "${with_hyphenate+set}" = set; then :
+  withval=$with_hyphenate;
+else
+  with_hyphenate="yes"
+fi
+
+if test x$with_hyphenate = "xyes"; then
+  for ac_header in hyphen.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "hyphen.h" "ac_cv_header_hyphen_h" "$ac_includes_default"
+if test "x$ac_cv_header_hyphen_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_HYPHEN_H 1
+_ACEOF
+
+fi
+
+done
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for hnj_hyphen_hyphenate2 in -lhyphen" >&5
+$as_echo_n "checking for hnj_hyphen_hyphenate2 in -lhyphen... " >&6; }
+if ${ac_cv_lib_hyphen_hnj_hyphen_hyphenate2+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lhyphen  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char hnj_hyphen_hyphenate2 ();
+int
+main ()
+{
+return hnj_hyphen_hyphenate2 ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_hyphen_hnj_hyphen_hyphenate2=yes
+else
+  ac_cv_lib_hyphen_hnj_hyphen_hyphenate2=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" >&5
+$as_echo "$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" >&6; }
+if test "x$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBHYPHEN 1
+_ACEOF
+
+  LIBS="-lhyphen $LIBS"
+
+fi
+
+fi
+if test "x$with_hyphenate" = "xyes" &&
+   test "x$ac_cv_header_hyphen_h" = "xyes" &&
+   test "x$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "xyes"; then
+  CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
+  DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
+else
+  with_hyphenate="no";
 fi
 
 # For OS X
