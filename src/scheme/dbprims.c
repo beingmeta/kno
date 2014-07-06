@@ -830,8 +830,37 @@ static fdtype pool_label(fdtype arg,fdtype use_source)
     return fdtype_string(p->label);
   else if (FD_FALSEP(use_source)) return FD_FALSE;
   else if (p->source)
-    return fdtype_string(p->label);
+    return fdtype_string(p->source);
   else return FD_FALSE;
+}
+
+static fdtype pool_prefix(fdtype arg)
+{
+  fd_pool p=arg2pool(arg);
+  if (p==NULL)
+    return fd_type_error(_("pool spec"),"pool_label",arg);
+  else if (p->prefix)
+    return fdtype_string(p->prefix);
+  else return FD_FALSE;
+}
+
+static fdtype set_pool_prefix(fdtype arg,fdtype prefix_arg)
+{
+  fd_pool p=arg2pool(arg);
+  u8_string prefix=FD_STRDATA(prefix_arg);
+  if (p==NULL)
+    return fd_type_error(_("pool spec"),"set_pool_prefix",arg);
+  else if ((p->prefix)&&(strcmp(p->prefix,prefix)==0))
+    return FD_FALSE;
+  else if (p->prefix) {
+    u8_string copy=u8_strdup(prefix);
+    u8_string cur=p->prefix;
+    p->prefix=copy;
+    return fd_init_string(NULL,-1,cur);}
+  else {
+    u8_string copy=u8_strdup(prefix);
+    p->prefix=copy;
+    return FD_TRUE;}
 }
 
 static fdtype pool_source(fdtype arg)
@@ -2480,6 +2509,10 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim3("POOL-ELTS",pool_elts,1));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2("SET-POOL-NAMEFN!",set_pool_namefn,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-PREFIX",pool_prefix,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("SET-POOL-PREFIX!",set_pool_prefix,2,
+            -1,FD_VOID,fd_string_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim2x("OID-RANGE",oid_range,2,
