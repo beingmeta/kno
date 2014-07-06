@@ -132,54 +132,29 @@
    (tryif (test urlmap ref)
      (begin (logdebug |LOCALIZE/ref| "Cached " ref " ==> " (get urlmap ref))
        (get urlmap ref)))
-   ;; Check the cache
-   (get urlmap ref)
-   ;; If it's got a fragment identifer, make a localref without the
-   ;;  fragment and put the fragment back.  We don't bother checking
-   ;; fragment ID uniqueness, though we probably should.
-   (tryif (position #\# ref)
-     (if (has-prefix (get urlmap ref) "#")
-	 (get urlmap ref)
-	 (let* ((hashpos (position #\# ref))
-		(baseuri (subseq ref 0 hashpos))
-		(hashid (subseq ref hashpos))
-		(lref (try (get urlmap baseuri)
-			   (localref baseuri urlmap base
-				     saveto read options)))
-		(useref hashid))
-	   (logdebug |LOCALIZE/ref| ref
-		     "\n\tfrom " base "\n\tto " saveto "\n\tfor " read)
-	   (debug%watch baseuri hashid lref useref)
-	   (if (has-prefix lref "#")
-	       (begin
-		 ;; To be correct, we'll need to clean up these
-		 ;;  references later, which we can catch by examining
-		 ;;  the urlmap; in particular an urlmap key which
-		 ;;  starts with #hash but isn't the suffix of its
-		 ;;  value indicates a renaming.  We can then get the
-		 ;;  section id and the local reference in order to
-		 ;;  find the node we need to rename.  This is not yet
-		 ;;  implemented.
-		 (when (and (test urlmap useref) (not (test urlmap useref ref)))
-		   (set! useref (glom lref "-" hashid)))
-		 (store! urlmap (vector useref) ref)
-		 (store! urlmap ref useref)
-		 useref)
-	       ;; Not clear what the right to do is when the baseuri
-	       ;; isn't amalgamated into the same namespace, so we
-	       ;; leave the ref as it is
-	       ref))))
    (begin (logdebug |LOCALIZE/ref| ref
 		    "\n\tfrom " base "\n\tto " saveto "\n\tfor " read)
      (fail))
+   (tryif (position #\# ref)
+     (let* ((baseuri (uribase ref))
+	    (hashid (urifrag ref))
+	    (lref (try (get urlmap baseuri)
+		       (if (overlaps? baseuri (getopt options 'amalagamate))
+			   baseuri
+			   (localref baseuri urlmap base
+				     saveto read options)))))
+       (logdebug |LOCALIZE/ref| ref
+		 "\n\tfrom " base "\n\tto " saveto "\n\tfor " read)
+       (debug%watch baseuri hashid lref)
+       (glom lref "#" hashid)))
    ;; if we're gluing a bunch of files together (amalgamating them),
    ;;  the ref will just be moved to the current file by stripping
    ;;  off the URL part
-   (tryif (overlaps? (getopt options 'amalgamate)
-		     (gp/mkpath base ref))
-     (try (get urlmap (gp/mkpath base ref))
-	  (get urlmap ref)
-	  ""))
+   #|
+   (tryif (overlaps? (getopt options 'amalgamate) (gp/mkpath base ref))
+     (get urlmap ref)
+     "")
+   |#
    ;; Check the cache
    (get urlmap ref)
    ;; don't bother localizing these references

@@ -203,8 +203,12 @@
 	   (if (and (not (pair? (third section))) (table? (third section)))
 	       (tableout (third section)
 			 #[skipempty #t class "fdjtdata reqdata"])
-	       (xmlblock "PRE" ()
-		 (pprint (third section)))))
+	       (if (and (string? (third section))
+			(search "</" (third section)))
+		   (xmlblock "div" ((class (downcase (second section))))
+		     (xhtml (third section)))
+		   (xmlblock "PRE" ((class (downcase (second section))))
+		     (pprint (third section))))))
 	 (h2* ((id "RESOURCES")) "Resource data")
 	 (tableout (rusage) #[skipempty #t class "fdjtdata rusage"])
 	 (h2* ((id "BACKTRACE")) "Full backtrace")
@@ -221,6 +225,8 @@
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (mkpath fileroot "backtrace.html")))))
+
+
 
 
 
