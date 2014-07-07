@@ -259,7 +259,7 @@
 				 (qc dropfn) dropempty
 				 (qc classrules)
 				 (qc stylerules)))
-		 (when (and dropempty isblock
+		 (when (and dropempty isblock (not (test child '{id class name}))
 			    (test child '%content)
 			    (or (null? (get child '%content))
 				(every? empty-child? (get child '%content))))
