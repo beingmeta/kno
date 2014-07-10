@@ -264,6 +264,7 @@
 			    (or (null? (get child '%content))
 				(every? empty-child? (get child '%content))))
 		   (set! child #f))
+		 (when (null? child) (set! child #f))
 		 (when (and child dropfn (dropfn child)) (set! child #f))
 		 (when (and child (not (null? strings)))
 		   (set! merged
