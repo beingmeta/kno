@@ -900,7 +900,7 @@ update-repo: dist/debs.done
 	deb-s3 upload --bucket=repo.beingmeta.com \
 		      --component=$(COMPONENT) \
 		      --codename=$(CODENAME) \
-		dist/framerd_@FDVERSION@*.deb
+		dist/framerd*_@FDVERSION@*.deb
 
 # Installation targets
 
