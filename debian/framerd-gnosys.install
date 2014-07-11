@@ -9,7 +9,6 @@ usr/share/framerd/scheme_modules/gnosys/cgi/*
 usr/share/framerd/scheme_modules/gnosys/funnel/*.scm
 usr/share/framerd/scheme_modules/gnosys/gnoweb/*.js
 usr/share/framerd/scheme_modules/gnosys/gnoweb/*.css
-usr/share/framerd/scheme_modules/gnosys/indexer/data/*
 usr/share/framerd/scheme_modules/gnosys/metakeys/*.scm
 usr/share/framerd/scheme_modules/gnosys/metakeys/*.table
 usr/share/framerd/scheme_modules/gnosys/metakeys/*.dtype
