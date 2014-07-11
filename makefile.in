@@ -240,22 +240,22 @@ ALL=testbin exe cmodules @TAGS@
 # Targets
 
 update: buildmode
-	@make `cat buildmode`
+	@+make `cat buildmode`
 normal:
 	@echo Building NORMAL configuration
-	@make testbin exe cmodules etc @TAGS@
+	@+make testbin exe cmodules etc @TAGS@
 debugging:
 	@echo Building DEBUGGING configuration
-	@make XCFLAGS="@debugcflags@ $(XCFLAGS)"    \
+	@+make XCFLAGS="@debugcflags@ $(XCFLAGS)"    \
 	     XLDFLAGS="@debugldflags@ $(XLDFLAGS)" \
 	     XLIBS="@debuglibs@ $(XLIBS)"          \
 		testbin exe cmodules etc @TAGS@
 optimizing:
 	@echo Building OPTIMIZED configuration
-	@make XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
+	@+make XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
 nitpicking:
 	@echo Building NITPICKING configuration
-	@make XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
+	@+make XCFLAGS="-Wall" testbin exe cmodules etc @TAGS@
 
 all: testbin exe cmodules etc i18n @TAGS@
 

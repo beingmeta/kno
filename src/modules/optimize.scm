@@ -50,7 +50,7 @@
 
 (define %volatile '{optdowarn useopcodes %loglevel})
 
-(varconfig! optimize:checkmodules check-module-usage)
+(varconfig! optimize:checkusage check-module-usage)
 
 ;;; Utility functions
 
