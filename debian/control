@@ -22,16 +22,6 @@ Description: Scalable knowledge base development and application platform
  the Apache webserver for transparently managing persistent
  multi-threaded servlets responding to CGI requests.
 
-Package: framerd-core
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Binaries for FramerD release
-
-Package: framerd-modules
-Architecture: all
-Depends: framerd-core (>= ${binary:Version})
-Description: Standard scheme modules for FramerD
-
 Package: libapache2-mod-fdserv
 Architecture: any
 Depends: framerd-core (= ${binary:Version}), apache2-mpm

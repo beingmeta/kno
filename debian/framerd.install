@@ -26,3 +26,7 @@ usr/bin/pack-pool
 usr/bin/fdgetconfig
 usr/bin/fdsetconfig
 usr/etc/framerd/servers
+usr/share/framerd/standard_modules/*.scm
+usr/share/framerd/standard_modules/safe/*.scm
+usr/share/framerd/standard_modules/*/*.scm
+usr/share/framerd/standard_modules/safe/*/*.scm
