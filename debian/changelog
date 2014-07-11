@@ -1,3 +1,9 @@
+framerd (3.5.8-1) testing; urgency=low
+
+  * Updated debian release
+
+ -- Kenneth Benefiel Haase <kh@beingmeta.com>  Wed, 12 Jul 2014 09:55:10 -0400
+
 framerd (3.5.5-1) testing; urgency=low
 
   * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
