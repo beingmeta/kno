@@ -34,7 +34,7 @@ Description: Standard scheme modules for FramerD
 
 Package: libapache2-mod-fdserv
 Architecture: any
-Depends: framerd-core (= ${binary:Version}) apache2-mpm
+Depends: framerd-core (= ${binary:Version}), apache2-mpm
 Description: The mod_fdserv module for FramerD servlets under Apache
 
 Package: framerd-mysql
