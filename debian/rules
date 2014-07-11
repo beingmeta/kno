@@ -17,4 +17,4 @@ override_dh_auto_configure:
 		--with-bootsystem=upstart
 
 override_dh_auto_install:
-	make install install-fdserv
+	make DESTDIR=$(DESTDIR) install install-fdserv
