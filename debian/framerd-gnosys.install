@@ -13,7 +13,6 @@ usr/share/framerd/scheme_modules/gnosys/metakeys/*.scm
 usr/share/framerd/scheme_modules/gnosys/metakeys/*.table
 usr/share/framerd/scheme_modules/gnosys/metakeys/*.dtype
 usr/share/framerd/scheme_modules/gnosys/metakeys/cgi/*.fdcgi
-usr/share/framerd/scheme_modules/gnosys/toolscripts/*
 usr/share/framerd/scheme_modules/gnosys/utils/*.scm
 usr/share/framerd/scheme_modules/gnosys/webapp/*.css
 usr/share/framerd/scheme_modules/gnosys/webapp/*.js

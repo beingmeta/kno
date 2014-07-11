@@ -1089,7 +1089,7 @@ BEINGMETA_MODULE_DIRS= \
 	gnosys gnosys/utils gnosys/analyzers/text \
 	gnosys/bookmarks gnosys/funnel gnosys/metakeys \
 	gnosys/cgi gnosys/gnoweb gnosys/metakeys/cgi \
-	gnosys/webapp gnosys/toolscripts
+	gnosys/webapp
 link-modules: $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@ \
 		$(DESTDIR)@module_dir@ $(DESTDIR)@data_dir@
 	@$(MSG) Installing symbolic links for Scheme modules
