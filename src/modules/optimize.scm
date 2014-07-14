@@ -54,7 +54,7 @@
 
 ;;; Utility functions
 
-(define special-form-tighteners (make-hashtable))
+(define-init special-form-tighteners (make-hashtable))
 
 (define (arglist->vars arglist)
   (if (pair? arglist)
@@ -550,6 +550,41 @@
 		      (dotighten uwclause env bound lexrefs w/rails))
 		    (cddr expr))))
 
+(define (tighten-logmsg handler expr env bound lexrefs w/rails)
+  (if (or (symbol? (cadr expr)) (number? (cadr expr)))
+      (if (or (symbol? (caddr expr)) (number? (caddr expr)))
+	  `(,handler ,(cadr expr)
+		     ,(caddr expr)
+		     ,@(map (lambda (elt)
+			      (dotighten elt env bound lexrefs w/rails))
+			    (cdddr expr)))
+	  `(,handler ,(cadr expr)
+		     ,@(map (lambda (elt)
+			      (dotighten elt env bound lexrefs w/rails))
+			    (cddr expr))))
+      `(,handler ,@(map (lambda (elt)
+			  (dotighten elt env bound lexrefs w/rails))
+			(cdr expr)))))
+
+(define (tighten-logif handler expr env bound lexrefs w/rails)
+  (if (or (symbol? (caddr expr))  (number? (caddr expr)))
+      (if (or (symbol? (cadr (cddr expr))) (number? (cadr (cddr expr))))
+	  `(,handler ,(dotighten (cadr expr) env bound lexrefs w/rails)
+		     ,(caddr expr)
+		     ,(cadr (cddr expr))
+		     ,@(map (lambda (elt)
+			      (dotighten elt env bound lexrefs w/rails))
+			    (cdr (cdddr expr))))
+	  `(,handler ,(dotighten (cadr expr) env bound lexrefs w/rails)
+		     ,(caddr expr)
+		     ,@(map (lambda (elt)
+			      (dotighten elt env bound lexrefs w/rails))
+			    (cdddr expr))))
+      `(,handler ,(dotighten (cadr expr) env bound lexrefs w/rails)
+		 ,@(map (lambda (elt)
+			  (dotighten elt env bound lexrefs w/rails))
+			(cddr expr)))))
+
 ;;; Tightening XHTML expressions
 
 ;; This doesn't handle mixed alist ((x y)) and plist (x y) attribute lists
@@ -643,6 +678,11 @@
       {"ONERROR" "UNWIND-PROTECT" "DYNAMIC-WIND"}
       tighten-block)
 (add! special-form-tighteners {"FILEOUT" "SYSTEM"} tighten-block)
+
+(add! special-form-tighteners logmsg tighten-logmsg)
+(add! special-form-tighteners logif tighten-logif)
+(add! special-form-tighteners logif+ tighten-logif)
+
 ;; Don't optimize these because they look at the symbol that is the head
 ;; of the expression to get their tag name.
 (add! special-form-tighteners {"markupblock" "ANCHOR"} tighten-markup)
