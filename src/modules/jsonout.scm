@@ -78,7 +78,9 @@
 	((oid? value)
 	 (printout "\"" (oid->string value) "\""))
 	((table? value) (jsontable value))
-	(else (printout "\"" json-lisp-prefix (write value) "\""))))
+	(else (printout "\"" json-lisp-prefix
+		(string-subst (lisp->string value) "\"" "\\\"")
+		"\""))))
 
 (module-export! '{jsonout jsonvec jsontable jsonfield jsonfield+ jsonelt})
 
