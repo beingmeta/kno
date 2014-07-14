@@ -982,6 +982,7 @@ int fd_clear_errors(int report)
       u8_free(sum);}
     scan=scan->u8x_prev;
     n_errs++;}
+  u8_free_exception(ex,1);
   return n_errs;
 }
 
@@ -1818,6 +1819,7 @@ static int default_log_error()
     u8_free(sum);
     scan=scan->u8x_prev;
     n_errs++;}
+  u8_free_exception(ex,1);
   return n_errs;
 }
 
