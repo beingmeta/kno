@@ -274,7 +274,9 @@
 	 path)
 	((not (string? path))
 	 (error |TypeError| makepath "Relative path is not a string" path))
-	((and (not require-subpath) (string-starts-with? path #((isalpha+) ":")))
+	((and (not require-subpath)
+	      (has-prefix path {"/" "http:" "s3:" "https:"
+				"HTTP:" "S3:" "HTTPS:"}))
 	 (->gpath path))
 	((s3loc? root) (s3/mkpath root path))
 	((zipfile? root) (cons root path))
