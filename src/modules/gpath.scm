@@ -13,7 +13,7 @@
    gp/has-suffix gp/has-prefix
    gp/fetch gp/fetch+ gp/etag gp/info
    gp/exists? gp/exists gp/modified gp/newer
-   gp/path gp/mkpath gp/makepath gpath->string
+   gp/path gp/mkpath gp/subpath gp/makepath gpath->string
    gp:config gpath/handler
    gp/urlfetch gp/urlinfo
    gp/copy!})
@@ -258,13 +258,15 @@
 	 (stringout "zip:" (zip/filename (car path)) "(" (cdr path) ")"))
 	(else (stringout path))))
 
-(define (makepath root path (mode *default-dirmode*))
+(define (makepath root path (mode *default-dirmode*) (require-subpath #f))
   (when (and (pair? root) (null? (cdr root)))
     (set! root (cons (car root) "")))
   (if (string? root) (set! root (string->root root))
       (if (and (pair? root) (string? (car root)))
 	  (set! root (cons (string->root (car root)) (cdr root)))))
   (cond ((or (not path) (null? path)) root)
+	((and require-subpath (not (string? path)))
+	 (error |TypeError| makepath "Relative path is not a string" path))
 	((or (s3loc? path) (zipfile? path) (hashtable? path) (hashfs? path)
 	     (and (pair? path) (string? (cdr path))
 		  (or (s3loc? (car path)) (zipfile? (car path))
@@ -272,8 +274,7 @@
 	 path)
 	((not (string? path))
 	 (error |TypeError| makepath "Relative path is not a string" path))
-	((or (has-prefix path "/")
-	     (string-starts-with? path #((isalpha+) ":")))
+	((and (not require-subpath) (string-starts-with? path #((isalpha+) ":")))
 	 (->gpath path))
 	((s3loc? root) (s3/mkpath root path))
 	((zipfile? root) (cons root path))
@@ -298,6 +299,13 @@
 		(apply gp/path result (cdr more)))
 	    (apply gp/path result (car more) (cdr more))))))
 (define gp/mkpath gp/path)
+(define (gp/subpath root path . more)
+  (let ((result (makepath (->gpath root) path *default-dirmode* #t)))
+    (if (null? more) result
+	(if (not (car more))
+	    (if (null? (cdr more)) result
+		(apply gp/subpath result (cdr more)))
+	    (apply gp/subpath result (car more) (cdr more))))))
 
 (define (gp/fetch ref (ctype))
   (default! ctype (guess-mimetype (get-namestring ref)))
