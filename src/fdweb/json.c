@@ -304,9 +304,8 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
       n_elts++; c=skip_whitespace(in);}}
   i=0; while (i<n_elts) {
     fd_decref(kv[i].key); fd_decref(kv[i].value); i++;}
-  return fd_err(JSON_Error,"json_table",
-		u8_strdup(in->u8_inbuf+good_pos),
-		FD_VOID);
+  u8_free(kv);
+  return fd_err(JSON_Error,"json_table",in->u8_inbuf+good_pos,FD_VOID);
 }
 
 static fdtype jsonparseprim(fdtype in,fdtype flags_arg,fdtype fieldmap)
