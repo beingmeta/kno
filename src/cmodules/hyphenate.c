@@ -38,83 +38,90 @@ static fdtype hyphenate_word_prim(fdtype string_arg)
 {
   u8_string string=FD_STRDATA(string_arg);
   int len=FD_STRLEN(string_arg);
-  char *hword=u8_malloc(len*2), *hyphens=u8_malloc(len+5);
-  char ** rep=NULL; int * pos=NULL; int * cut=NULL;
-  int retval=hnj_hyphen_hyphenate2(default_dict,string,len,hyphens,
-                                   hword,&rep,&pos,&cut);
-  if (retval) {
-    u8_free(hyphens); u8_free(hword); fd_incref(string_arg);
-    fd_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
-    return FD_ERROR_VALUE;}
+  if (len==0) return fd_incref(string_arg);
   else {
-    fdtype result=fd_make_string(NULL,-1,(u8_string)hword);
-    u8_free(hyphens); u8_free(hword);
-    return result;}}
+    char *hword=u8_malloc(len*2), *hyphens=u8_malloc(len+5);
+    char ** rep=NULL; int * pos=NULL; int * cut=NULL;
+    int retval=hnj_hyphen_hyphenate2(default_dict,string,len,hyphens,
+                                     hword,&rep,&pos,&cut);
+    if (retval) {
+      u8_free(hyphens); u8_free(hword); fd_incref(string_arg);
+      fd_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
+      return FD_ERROR_VALUE;}
+    else {
+      fdtype result=fd_make_string(NULL,-1,(u8_string)hword);
+      u8_free(hyphens); u8_free(hword);
+      return result;}}
+}
 
 static fdtype hyphen_breaks_prim(fdtype string_arg)
 {
   u8_string string=FD_STRDATA(string_arg);
   int len=FD_STRLEN(string_arg);
-  char *hyphens=u8_malloc(len+5);
-  char ** rep=NULL; int * pos=NULL; int * cut=NULL;
-  int retval=hnj_hyphen_hyphenate2(default_dict,string,len,hyphens,
-                                   NULL,&rep,&pos,&cut);
-  if (retval) {
-    u8_free(hyphens); fd_incref(string_arg);
-    fd_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
-    return FD_ERROR_VALUE;}
+  if (len==0) return fd_init_vector(NULL,0,NULL);
   else {
-    struct U8_OUTPUT out;
-    fdtype result=FD_VOID, *elts; u8_byte *scan=string;
-    int i=0, n_breaks=0, seg=0, cpos=0, c=u8_sgetc(&scan); while (i<len) {
-      if (hyphens[i++]&1) n_breaks++;}
-    result=fd_init_vector(NULL,n_breaks+1,NULL);
-    elts=FD_VECTOR_DATA(result);
-    U8_INIT_OUTPUT(&out,32);
-    while (c>=0) {
-      u8_putc(&out,c);
-      if (hyphens[cpos]&1) {
+    char *hyphens=u8_malloc(len+5);
+    char ** rep=NULL; int * pos=NULL; int * cut=NULL;
+    int retval=hnj_hyphen_hyphenate2(default_dict,string,len,hyphens,
+                                     NULL,&rep,&pos,&cut);
+    if (retval) {
+      u8_free(hyphens); fd_incref(string_arg);
+      fd_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
+      return FD_ERROR_VALUE;}
+    else {
+      struct U8_OUTPUT out;
+      fdtype result=FD_VOID, *elts; u8_byte *scan=string;
+      int i=0, n_breaks=0, seg=0, cpos=0, c=u8_sgetc(&scan); while (i<len) {
+        if (hyphens[i++]&1) n_breaks++;}
+      result=fd_init_vector(NULL,n_breaks+1,NULL);
+      elts=FD_VECTOR_DATA(result);
+      U8_INIT_OUTPUT(&out,32);
+      while (c>=0) {
+        u8_putc(&out,c);
+        if (hyphens[cpos]&1) {
+          fdtype s=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,
+                                  out.u8_outbuf);
+          elts[seg++]=s;
+          out.u8_outptr=out.u8_outbuf;}
+        cpos=scan-string;
+        c=u8_sgetc(&scan);}
+      if (out.u8_outptr!=out.u8_outbuf) {
         fdtype s=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,
                                 out.u8_outbuf);
         elts[seg++]=s;
         out.u8_outptr=out.u8_outbuf;}
-      cpos=scan-string;
-      c=u8_sgetc(&scan);}
-    if (out.u8_outptr!=out.u8_outbuf) {
-      fdtype s=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,
-                              out.u8_outbuf);
-      elts[seg++]=s;
-      out.u8_outptr=out.u8_outbuf;}
-    u8_free(out.u8_outbuf);
-    return result;}
+      u8_free(out.u8_outbuf);
+      return result;}}
 }
 
 static fdtype shyphenate_prim(fdtype string_arg)
 {
   u8_string string=FD_STRDATA(string_arg);
   int len=FD_STRLEN(string_arg);
-  char *hyphens=u8_malloc(len+5);
-  char ** rep=NULL; int * pos=NULL; int * cut=NULL;
-  int retval=hnj_hyphen_hyphenate2(default_dict,string,len,hyphens,
-                                   NULL,&rep,&pos,&cut);
-  if (retval) {
-    u8_free(hyphens); fd_incref(string_arg);
-    fd_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
-    return FD_ERROR_VALUE;}
+  if (len==0) return fd_incref(string_arg);
   else {
-    fdtype result=FD_VOID;
-    struct U8_OUTPUT out; u8_byte *scan=string;
-    int cpos=0, c=u8_sgetc(&scan);
-    U8_INIT_OUTPUT(&out,len*3);
-    while (c>=0) {
-      u8_putc(&out,c);
-      if (hyphens[cpos]&1) u8_putc(&out,0xAD);
-      cpos=scan-string;
-      c=u8_sgetc(&scan);}
-    result=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,
-                          out.u8_outbuf);
-    u8_free(out.u8_outbuf);
-    return result;}
+    char *hyphens=u8_malloc(len+5);
+    char ** rep=NULL; int * pos=NULL; int * cut=NULL;
+    int retval=hnj_hyphen_hyphenate2(default_dict,string,len,hyphens,
+                                     NULL,&rep,&pos,&cut);
+    if (retval) {
+      u8_free(hyphens); fd_incref(string_arg);
+      fd_seterr("Hyphenation error","get_hyphen_breaks",NULL,string_arg);
+      return FD_ERROR_VALUE;}
+    else {
+      fdtype result=FD_VOID;
+      struct U8_OUTPUT out; u8_byte *scan=string;
+      int cpos=0, c=u8_sgetc(&scan);
+      U8_INIT_OUTPUT(&out,len*3);
+      while (c>=0) {
+        u8_putc(&out,c);
+        if (hyphens[cpos]&1) u8_putc(&out,0xAD);
+        cpos=scan-string;
+        c=u8_sgetc(&scan);}
+      result=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,
+                            out.u8_outbuf);
+      u8_free(out.u8_outbuf);
+      return result;}}
 }
 
 static int hyphenout_helper(U8_OUTPUT *out,
@@ -149,6 +156,7 @@ static fdtype hyphenout_prim(fdtype string_arg,fdtype hyphen_arg)
   int hyphen_char=FD_CHAR2CODE(hyphen_arg);
   struct U8_OUTPUT word; u8_byte *scan=string;
   int c=u8_sgetc(&scan);
+  if (len==0) return FD_VOID;
   U8_INIT_OUTPUT(&word,64);
   while (c>=0) {
     if (u8_isalnum(c)) {
@@ -192,6 +200,7 @@ static fdtype hyphenate_prim(fdtype string_arg,fdtype hyphen_arg)
   int hyphen_char=FD_CHAR2CODE(hyphen_arg);
   struct U8_OUTPUT word; u8_byte *scan=string;
   int c=u8_sgetc(&scan);
+  if (len==0) return fd_incref(string_arg);
   U8_INIT_OUTPUT(&out,len*2);
   U8_INIT_OUTPUT(&word,64);
   while (c>=0) {
