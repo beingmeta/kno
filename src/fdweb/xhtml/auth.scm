@@ -425,7 +425,7 @@
 		  (authfail "Authorization error" authid authinfo signal)))))
 
 (define (authfail reason authid info signal)
-  (warn%watch "AUTHFAIL" reason authid info)
+  (notice%watch "AUTHFAIL" reason authid info)
   (expire-cookie! authid "AUTHFAIL"
 		  (or (not info)
 		      (not (token/ok? (authinfo-identity info)
