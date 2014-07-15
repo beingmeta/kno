@@ -284,7 +284,8 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
 #endif
   }
   else { /*  if (FD_CONSP(x)) */
-    int ctype=FD_PTR_TYPE(x);
+    int ctype=FD_PRIM_TYPE(x);
+    if (FD_PPTRP(x)) x=fd_pptr_ref(x);
     switch (ctype) {
     case fd_string_type:
       return hash_string_dtype2(x);
@@ -423,7 +424,8 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
 #endif
   }
   else { /*  if (FD_CONSP(x)) */
-    int ctype=FD_PTR_TYPE(x);
+    int ctype=FD_PRIM_TYPE(x);
+    if (FD_PPTRP(x)) x=fd_pptr_ref(x);
     switch (ctype) {
     case fd_string_type:
       return hash_string_dtype2(x);

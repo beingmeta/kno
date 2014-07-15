@@ -1001,12 +1001,14 @@ static unsigned int hash_lisp(fdtype x)
       struct FD_QCHOICE *ch=FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *);
       return hash_lisp(ch->choice);}
     default: {
-      int ctype=FD_PTR_TYPE(x);
+      int ctype=FD_PRIM_TYPE(x);
+      if (FD_PPTRP(x)) x=fd_pptr_ref(x);
       if ((ctype<FD_TYPE_MAX) && (fd_hashfns[ctype]))
 	return fd_hashfns[ctype](x,fd_hash_lisp);
       else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}}
   else {
-    int ctype=FD_PTR_TYPE(x);
+    int ctype=FD_PRIM_TYPE(x);
+    if (FD_PPTRP(x)) x=fd_pptr_ref(x);
     if ((ctype>0) && (ctype<N_TYPE_MULTIPLIERS))
       return hash_mult(x,type_multipliers[ctype]);
     else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}

@@ -514,7 +514,7 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 	int i=0;
 	while (i<n)
 	  if (typeinfo[i]>=0)
-	    if (FD_PTR_TYPEP(args[i],typeinfo[i])) i++;
+	    if (FD_PRIM_TYPEP(args[i],typeinfo[i])) i++;
 	/* Don't signal errors on unspecified (VOID) args. */
 	    else if (FD_VOIDP(args[i])) i++;
 	    else {
@@ -633,7 +633,9 @@ FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
       else if (FD_ATOMICP(args[i])) i++;
       else {
 	fd_ptr_type argtype=FD_PTR_TYPE(args[i]);
-	if ((argtype==fd_choice_type) || (argtype==fd_achoice_type) || (argtype==fd_qchoice_type)) {
+	if ((argtype==fd_choice_type) ||
+            (argtype==fd_achoice_type) ||
+            (argtype==fd_qchoice_type)) {
 	  result=fd_ndapply((fdtype)f,n,args);
 	  return fd_finish_call(result);}
 	else i++;}

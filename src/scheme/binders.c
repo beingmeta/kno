@@ -705,8 +705,8 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       fdtype value=fd_eval(val_expr,env);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(var,value,env)) {
-	if (FD_PTR_TYPEP(value,fd_sproc_type)) {
-	  struct FD_SPROC *s=(fd_sproc)value;
+	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
+	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
 	  if (s->filename==NULL) {
 	    u8_string sourcebase=fd_sourcebase();
 	    if (sourcebase) s->filename=u8_strdup(sourcebase);}}
@@ -724,8 +724,8 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,0);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-	if (FD_PTR_TYPEP(value,fd_sproc_type)) {
-	  struct FD_SPROC *s=(fd_sproc)value;
+	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
+	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
 	  if (s->filename==NULL) {
 	    u8_string sourcebase=fd_sourcebase();
 	    if (sourcebase) s->filename=u8_strdup(sourcebase);}}
@@ -753,8 +753,8 @@ static fdtype defslambda_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,1);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-	if (FD_PTR_TYPEP(value,fd_sproc_type)) {
-	  struct FD_SPROC *s=(fd_sproc)value;
+	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
+	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
 	  if (s->filename==NULL) {
 	    u8_string sourcebase=fd_sourcebase();
 	    if (sourcebase) s->filename=u8_strdup(sourcebase);}}
@@ -783,8 +783,8 @@ static fdtype defambda_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,1,0);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-	if (FD_PTR_TYPEP(value,fd_sproc_type)) {
-	  struct FD_SPROC *s=(fd_sproc)value;
+	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
+	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
 	  if (s->filename==NULL) {
 	    u8_string sourcebase=fd_sourcebase();
 	    if (sourcebase) s->filename=u8_strdup(sourcebase);}}

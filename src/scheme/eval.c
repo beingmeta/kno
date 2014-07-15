@@ -697,6 +697,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       if (headtype==fd_pptr_type) {
 	fdtype realval=fd_pptr_ref(headval);
 	headtype=FD_PTR_TYPE(realval);
+        headval=realval;
 	gchead=0;}
       if (fd_applyfns[headtype]) 
 	result=apply_function(headval,expr,env);
@@ -908,7 +909,7 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
 	argv[arg_count]=fd_incref(fcn->defaults[arg_count]); arg_count++;}
     else while (arg_count<argv_length) argv[arg_count++]=FD_VOID;}
   else {}
-  if ((fd_optimize_tail_calls) && (FD_PTR_TYPEP(fn,fd_sproc_type)))
+  if ((fd_optimize_tail_calls) && (FD_PRIM_TYPEP(fn,fd_sproc_type)))
     result=fd_tail_call(fn,arg_count,argv);
   else if ((nd_prim==0) && (nd_args))
     result=fd_ndapply(fn,arg_count,argv);
@@ -916,7 +917,7 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
     result=fd_dapply(fn,arg_count,argv);}
   if ((FD_ABORTP(result)) &&
       (!(FD_THROWP(result))) &&
-      (!(FD_PTR_TYPEP(fn,fd_sproc_type)))) {
+      (!(FD_PRIM_TYPEP(fn,fd_sproc_type)))) {
     /* If it's not an sproc, we add an entry to the backtrace
        that shows the arguments, since they probably don't show
        up in an environment on the backtrace. */
