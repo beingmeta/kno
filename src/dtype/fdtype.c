@@ -86,6 +86,7 @@ static void init_type_names()
   fd_type_names[fd_uuid_type]=_("UUID");
   fd_type_names[fd_rail_type]=_("rail");
   fd_type_names[fd_secret_type]=_("secret");
+  fd_type_names[fd_sproc_type]=_("SCHEME procedure");
 }
 
 static int fdtype_version=101;

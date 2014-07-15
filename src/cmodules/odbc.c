@@ -312,7 +312,7 @@ static fdtype get_colvalue
     FD_OID base=FD_OID_ADDR(typeinfo);
     long long offset=
       ((FD_FIXNUMP(result)) ? (FD_FIX2INT(result)) :
-       (FD_PTR_TYPEP(result,fd_bigint_type)) ?
+       (FD_BIGINTP(result)) ?
        (fd_bigint_to_long_long((fd_bigint)result)) : (-1));
     if (offset<0) return result;
     else return fd_make_oid(base+offset);}
@@ -467,7 +467,7 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       SQLBindParameter(dbp->stmt,i+1,
 		       SQL_PARAM_INPUT,SQL_C_SLONG,
 		       dbp->sqltypes[i],0,0,&intval,0,NULL);}
-    else if (FD_PRIM_TYPEP(arg,fd_double_type)) {
+    else if (FD_FLONUMP(arg)) {
       double floval=FD_FLONUM(arg);
       SQLBindParameter(dbp->stmt,i+1,
 		       SQL_PARAM_INPUT,SQL_C_DOUBLE,

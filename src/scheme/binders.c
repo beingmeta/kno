@@ -24,7 +24,7 @@ fd_exception fd_BindError=_("Can't bind variable");
 fd_exception fd_BindSyntaxError=_("Bad binding expression");
 fd_exception fd_BadDefineForm=_("Bad procedure defining form");
 
-fd_ptr_type fd_sproc_type, fd_macro_type;
+fd_ptr_type fd_macro_type;
 
 static fdtype lambda_symbol;
 
@@ -705,7 +705,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       fdtype value=fd_eval(val_expr,env);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(var,value,env)) {
-	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
+	if (FD_SPROCP(value)) {
 	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
 	  if (s->filename==NULL) {
 	    u8_string sourcebase=fd_sourcebase();
@@ -724,7 +724,7 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,0);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
+	if (FD_SPROCP(value)) {
 	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
 	  if (s->filename==NULL) {
 	    u8_string sourcebase=fd_sourcebase();
@@ -753,7 +753,7 @@ static fdtype defslambda_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,1);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
+	if (FD_SPROCP(value)) {
 	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
 	  if (s->filename==NULL) {
 	    u8_string sourcebase=fd_sourcebase();
@@ -783,7 +783,7 @@ static fdtype defambda_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,1,0);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-	if (FD_PRIM_TYPEP(value,fd_sproc_type)) {
+	if (FD_SPROCP(value)) {
 	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
 	  if (s->filename==NULL) {
 	    u8_string sourcebase=fd_sourcebase();
@@ -1080,7 +1080,6 @@ FD_EXPORT void fd_init_binders_c()
   fd_init_mutex(&sset_lock);
 #endif
 
-  fd_sproc_type=fd_register_cons_type("scheme procedure");
   fd_macro_type=fd_register_cons_type(_("scheme syntactic macro"));
 
   fd_applyfns[fd_sproc_type]=sproc_applier;

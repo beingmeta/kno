@@ -23,7 +23,7 @@ FD_EXPORT fd_exception fd_ReadOnlyEnv;
 FD_EXPORT fdtype fd_scheme_module, fd_xscheme_module;
 
 FD_EXPORT fd_ptr_type fd_environment_type, fd_specform_type;
-FD_EXPORT fd_ptr_type fd_sproc_type, fd_macro_type;
+FD_EXPORT fd_ptr_type fd_macro_type;
 
 FD_EXPORT fdtype _fd_comment_symbol;
 

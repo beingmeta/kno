@@ -318,7 +318,7 @@ static fdtype jsonparseprim(fdtype in,fdtype flags_arg,fdtype fieldmap)
   else if (FD_FIXNUMP(flags_arg)) 
     flags=FD_FIX2INT(flags_arg);
   else return fd_type_error("int","jsonparseprim",flags_arg);
-  if (FD_PRIM_TYPEP(in,fd_port_type)) {
+  if (FD_PORTP(in)) {
     struct FD_PORT *p=FD_GET_CONS(in,fd_port_type,struct FD_PORT *);
     U8_INPUT *in=p->in;
     return json_parse(in,flags,fieldmap);}

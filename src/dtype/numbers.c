@@ -2240,7 +2240,7 @@ int fd_output_number(u8_output out,fdtype num,int base)
     sprintf(buf,"%f",d->flonum);
     u8_puts(out,buf);
     return 1;}
-  else if (FD_PTR_TYPEP(num,fd_bigint_type)) {
+  else if (FD_BIGINTP(num)) {
     fd_bigint bi=FD_GET_CONS(num,fd_bigint_type,fd_bigint);
     output_bigint(out,bi,base);
     return 1;}
@@ -2850,8 +2850,8 @@ fdtype fd_make_inexact(fdtype x)
     return fd_init_double(NULL,num/den);}
   else if (xt == fd_complex_type) {
     fdtype realpart=FD_REALPART(x), imagpart=FD_IMAGPART(x);
-    if ((FD_PTR_TYPEP(realpart,fd_double_type)) &&
-	(FD_PTR_TYPEP(imagpart,fd_double_type)))
+    if ((FD_FLONUMP(realpart)) &&
+	(FD_FLONUMP(imagpart)))
       return fd_incref(x);
     else return make_complex(fd_make_inexact(realpart),
 			     fd_make_inexact(imagpart));}
@@ -2889,8 +2889,8 @@ fdtype fd_make_exact(fdtype x)
       return simplify_bigint(ival);}}
   else if (xt==fd_complex_type) {
     fdtype realpart=FD_REALPART(x), imagpart=FD_IMAGPART(x);
-    if ((FD_PTR_TYPEP(realpart,fd_double_type)) ||
-	(FD_PTR_TYPEP(imagpart,fd_double_type)))
+    if ((FD_FLONUMP(realpart)) ||
+	(FD_FLONUMP(imagpart)))
       return make_complex(fd_make_exact(realpart),
 			  fd_make_exact(imagpart));
     else return fd_incref(x);}

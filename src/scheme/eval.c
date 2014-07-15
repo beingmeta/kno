@@ -909,7 +909,7 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
 	argv[arg_count]=fd_incref(fcn->defaults[arg_count]); arg_count++;}
     else while (arg_count<argv_length) argv[arg_count++]=FD_VOID;}
   else {}
-  if ((fd_optimize_tail_calls) && (FD_PRIM_TYPEP(fn,fd_sproc_type)))
+  if ((fd_optimize_tail_calls) && (FD_SPROCP(fn)))
     result=fd_tail_call(fn,arg_count,argv);
   else if ((nd_prim==0) && (nd_args))
     result=fd_ndapply(fn,arg_count,argv);
@@ -917,7 +917,7 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
     result=fd_dapply(fn,arg_count,argv);}
   if ((FD_ABORTP(result)) &&
       (!(FD_THROWP(result))) &&
-      (!(FD_PRIM_TYPEP(fn,fd_sproc_type)))) {
+      (!(FD_SPROCP(fn)))) {
     /* If it's not an sproc, we add an entry to the backtrace
        that shows the arguments, since they probably don't show
        up in an environment on the backtrace. */
@@ -1247,7 +1247,7 @@ static fdtype symbol_boundp_prim(fdtype symbol,fdtype envarg)
 {
   if (!(FD_SYMBOLP(symbol)))
     return fd_type_error(_("symbol"),"boundp_prim",symbol);
-  else if (FD_PTR_TYPEP(envarg,fd_environment_type)) {
+  else if (FD_ENVIRONMENTP(envarg)) {
     fd_lispenv env=(fd_lispenv)envarg;
     fdtype val=fd_symeval(symbol,env);
     if (FD_VOIDP(val)) return FD_FALSE;
@@ -1262,7 +1262,7 @@ static fdtype symbol_boundp_prim(fdtype symbol,fdtype envarg)
 
 static fdtype environmentp_prim(fdtype arg)
 {
-  if (FD_PTR_TYPEP(arg,fd_environment_type))
+  if (FD_ENVIRONMENTP(arg))
     return FD_TRUE;
   else return FD_FALSE;
 }

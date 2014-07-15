@@ -473,7 +473,7 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     else if (FD_PRIM_TYPEP(arg,fd_fixnum_type)) {
       int intval=FD_FIX2INT(arg);
       ret=sqlite3_bind_int(dbproc->stmt,i+1,intval);}
-    else if (FD_PRIM_TYPEP(arg,fd_double_type)) {
+    else if (FD_FLONUMP(arg)) {
       double floval=FD_FLONUM(arg);
       ret=sqlite3_bind_double(dbproc->stmt,i+1,floval);}
     else if (FD_PRIM_TYPEP(arg,fd_string_type)) 

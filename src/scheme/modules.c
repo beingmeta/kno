@@ -256,7 +256,7 @@ static fd_lispenv become_module
     fd_seterr(OpaqueModule,"become_module",NULL,module_spec);
     fd_decref(module);
     return NULL;}
-  else if (FD_PTR_TYPEP(module,fd_environment_type)) {
+  else if (FD_ENVIRONMENTP(module)) {
     FD_ENVIRONMENT *menv=
       FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
     if (menv != env) {
@@ -326,7 +326,7 @@ static fdtype within_module(fdtype expr,fd_lispenv env)
 static fd_lispenv make_hybrid_env(fd_lispenv base,fdtype module_spec,int safe)
 {
   fdtype module=
-    ((FD_PTR_TYPEP(module_spec,fd_environment_type)) ?
+    ((FD_ENVIRONMENTP(module_spec)) ?
      (fd_incref(module_spec)) :
      (fd_get_module(module_spec,safe)));
   if (FD_ABORTP(module)) {
@@ -335,7 +335,7 @@ static fd_lispenv make_hybrid_env(fd_lispenv base,fdtype module_spec,int safe)
   else if (FD_HASHTABLEP(module)) {
     fd_seterr(OpaqueModule,"IN-MODULE",NULL,module_spec);
     return NULL;}
-  else if (FD_PTR_TYPEP(module,fd_environment_type)) {
+  else if (FD_ENVIRONMENTP(module)) {
     FD_ENVIRONMENT *menv=
       FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
     fd_lispenv result=fd_make_env(fd_incref(base->bindings),menv);

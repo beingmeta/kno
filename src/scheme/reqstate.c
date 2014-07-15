@@ -91,7 +91,7 @@ static fdtype reqgetvar(fdtype cgidata,fdtype var)
 static fdtype reqcall_prim(fdtype proc)
 {
   fdtype value=FD_VOID;
-  if (FD_PTR_TYPEP(proc,fd_sproc_type)) 
+  if (FD_SPROCP(proc)) 
     value=
       fd_xapply_sproc((fd_sproc)proc,(void *)FD_VOID,
 		      (fdtype (*)(void *,fdtype))reqgetvar);

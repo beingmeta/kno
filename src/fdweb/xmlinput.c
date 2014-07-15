@@ -963,7 +963,7 @@ static fdtype xmlparse_core(fdtype input,int flags)
   struct U8_INPUT *in, _in;
   unsigned int errpos;
   if (flags<0) return FD_ERROR_VALUE;
-  if (FD_PTR_TYPEP(input,fd_port_type)) {
+  if (FD_PORTP(input)) {
     struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
     in=p->in;}
   else if (FD_STRINGP(input)) {
@@ -1008,7 +1008,7 @@ static fdtype fdxmlparse(fdtype input,fdtype sloppy)
   struct FD_XML *retval;
   struct U8_INPUT *in, _in;
   if (flags<0) return FD_ERROR_VALUE;
-  if (FD_PTR_TYPEP(input,fd_port_type)) {
+  if (FD_PORTP(input)) {
     struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
     in=p->in;}
   else if (FD_STRINGP(input)) {

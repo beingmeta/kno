@@ -77,7 +77,7 @@ static u8_output get_output_port(fdtype portarg)
 {
   if ((FD_VOIDP(portarg))||(FD_TRUEP(portarg)))
     return u8_current_output;
-  else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
+  else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
     return p->out;}
@@ -88,7 +88,7 @@ static u8_input get_input_port(fdtype portarg)
 {
   if (FD_VOIDP(portarg))
     return NULL; /* get_default_output(); */
-  else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
+  else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
     return p->in;}
@@ -258,7 +258,7 @@ static fdtype open_input_string(fdtype arg)
 
 static fdtype portid(fdtype port_arg)
 {
-  if (FD_PTR_TYPEP(port_arg,fd_port_type)) {
+  if (FD_PORTP(port_arg)) {
     struct FD_PORT *port=(struct FD_PORT *)port_arg;
     if (port->id) return fdtype_string(port->id);
     else return FD_FALSE;}
@@ -267,7 +267,7 @@ static fdtype portid(fdtype port_arg)
 
 static fdtype portdata(fdtype port_arg)
 {
-  if (FD_PTR_TYPEP(port_arg,fd_port_type)) {
+  if (FD_PORTP(port_arg)) {
     struct FD_PORT *port=(struct FD_PORT *)port_arg;
     if (port->out)
       return fd_extract_string(NULL,port->out->u8_outbuf,port->out->u8_outptr);

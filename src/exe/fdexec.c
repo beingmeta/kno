@@ -259,7 +259,7 @@ int main(int argc,char **argv)
      working_environment contains procedures which are closed in the
      working environment, it will not be GC'd because of those
      circular pointers. */
-  if (FD_PRIM_TYPEP(env->bindings,fd_hashtable_type))
+  if (FD_HASHTABLEP(env->bindings))
     fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
   fd_recycle_environment(env);
   i=0; while (i<n_args) {fd_decref(args[i]); i++;}

@@ -238,7 +238,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
     i=0; while (i < n) {
       double val;
       if (FD_FIXNUMP(args[i])) val=(double)fd_getint(args[i]);
-      else if (FD_PTR_TYPEP(args[i],fd_bigint_type))
+      else if (FD_BIGINTP(args[i]))
 	val=(double)fd_bigint_to_double((fd_bigint)args[i]);
       else val=((struct FD_DOUBLE *)args[i])->flonum;
       floresult=floresult+val;
@@ -293,7 +293,7 @@ static fdtype times_lexpr(int n,fdtype *args)
     i=0; while (i < n) {
       double val;
       if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
-      else if  (FD_PTR_TYPEP(args[i],fd_bigint_type))
+      else if  (FD_BIGINTP(args[i]))
 	val=(double)fd_bigint_to_double((fd_bigint)args[i]);
       else val=((struct FD_DOUBLE *)args[i])->flonum;
       floresult=floresult*val;
@@ -326,7 +326,7 @@ static fdtype minus_lexpr(int n,fdtype *args)
       i=0; while (i < n) {
 	int val=0;
 	if (FD_FIXNUMP(args[i])) val=FD_FIX2INT(args[i]);
-	else if  (FD_PTR_TYPEP(args[i],fd_bigint_type))
+	else if  (FD_BIGINTP(args[i]))
 	  val=(double)fd_bigint_to_double((fd_bigint)args[i]);
 	if (i==0) fixresult=val; else fixresult=fixresult-val;
 	i++;}
@@ -336,7 +336,7 @@ static fdtype minus_lexpr(int n,fdtype *args)
       i=0; while (i < n) {
 	double val;
 	if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
-	else if  (FD_PTR_TYPEP(args[i],fd_bigint_type))
+	else if  (FD_BIGINTP(args[i]))
 	  val=(double)fd_bigint_to_double((fd_bigint)args[i]);
 	else val=((struct FD_DOUBLE *)args[i])->flonum;
 	if (i==0) floresult=val; else floresult=floresult-val;
@@ -354,9 +354,9 @@ static double todouble(fdtype x)
 {
   if (FD_FIXNUMP(x))
     return (double)(FD_FIX2INT(x));
-  else if (FD_PTR_TYPEP(x,fd_bigint_type))
+  else if (FD_BIGINTP(x))
     return (double)fd_bigint_to_double((fd_bigint)x);
-  else if (FD_PTR_TYPEP(x,fd_double_type))
+  else if (FD_FLONUMP(x))
     return (((struct FD_DOUBLE *)x)->flonum);
   else {
     /* This won't really work, but we should catch the error before

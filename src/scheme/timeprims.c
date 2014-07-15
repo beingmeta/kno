@@ -104,7 +104,7 @@ static fdtype timestamp_prim(fdtype arg)
 		   fdt->xtime.u8_tick,fdt->xtime.u8_prec,
 		   fdt->xtime.u8_nsecs);
     return FDTYPE_CONS(tm);}
-  else if (FD_PTR_TYPEP(arg,fd_bigint_type)) {
+  else if (FD_BIGINTP(arg)) {
 #if (SIZEOF_TIME_T == 8)
     time_t tv=(time_t)fd_bigint_to_long_long((fd_bigint)arg);
 #else
@@ -112,7 +112,7 @@ static fdtype timestamp_prim(fdtype arg)
 #endif
     u8_local_xtime(&(tm->xtime),tv,u8_second,-1);
     return FDTYPE_CONS(tm);}
-  else if (FD_PTR_TYPEP(arg,fd_double_type)) {
+  else if (FD_FLONUMP(arg)) {
     double dv=FD_FLONUM(arg);
     double dsecs=floor(dv), dnsecs=(dv-dsecs)*1000000000;
     unsigned int secs=(unsigned int)dsecs, nsecs=(unsigned int)dnsecs;
@@ -164,7 +164,7 @@ static fdtype gmtimestamp_prim(fdtype arg)
   else if (FD_FIXNUMP(arg)) {
     u8_init_xtime(&(tm->xtime),(time_t)(FD_FIX2INT(arg)),u8_second,-1,0,0);
     return FDTYPE_CONS(tm);}
-  else if (FD_PTR_TYPEP(arg,fd_bigint_type)) {
+  else if (FD_BIGINTP(arg)) {
 #if (SIZEOF_TIME_T == 8)
     time_t tv=(time_t)fd_bigint_to_long_long((fd_bigint)arg);
 #else
@@ -172,7 +172,7 @@ static fdtype gmtimestamp_prim(fdtype arg)
 #endif
     u8_init_xtime(&(tm->xtime),tv,u8_second,-1,0,0);
     return FDTYPE_CONS(tm);}
-  else if (FD_PTR_TYPEP(arg,fd_double_type)) {
+  else if (FD_FLONUMP(arg)) {
     double dv=FD_FLONUM(arg);
     double dsecs=floor(dv), dnsecs=(dv-dsecs)*1000000000;
     unsigned int secs=(unsigned int)dsecs, nsecs=(unsigned int)dnsecs;
@@ -1194,9 +1194,9 @@ static fdtype cpusage_prim(fdtype arg)
       fdtype prelapsed=fd_get(arg,clock_symbol,FD_VOID);
       fdtype prestime=fd_get(arg,stime_symbol,FD_VOID);
       fdtype preutime=fd_get(arg,utime_symbol,FD_VOID);
-      if ((FD_PRIM_TYPEP(prelapsed,fd_double_type)) &&
-	  (FD_PRIM_TYPEP(prestime,fd_double_type)) &&
-	  (FD_PRIM_TYPEP(preutime,fd_double_type))) {
+      if ((FD_FLONUMP(prelapsed)) &&
+	  (FD_FLONUMP(prestime)) &&
+	  (FD_FLONUMP(preutime))) {
 	double elapsed=
 	  (u8_elapsed_time()-FD_FLONUM(prelapsed))*1000000.0;
 	double stime=(u8_dbltime(r.ru_stime)-FD_FLONUM(prestime));

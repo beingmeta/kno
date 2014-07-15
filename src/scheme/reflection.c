@@ -28,7 +28,7 @@ static fdtype macrop(fdtype x)
 
 static fdtype compound_procedurep(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_sproc_type)) return FD_TRUE;
+  if (FD_SPROCP(x)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -137,7 +137,7 @@ static fdtype procedure_min_arity(fdtype x)
 
 static fdtype compound_procedure_args(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
+  if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
     return fd_incref(proc->arglist);}
   else return fd_type_error("compound procedure","compound_procedure_args",x);
@@ -145,7 +145,7 @@ static fdtype compound_procedure_args(fdtype x)
 
 static fdtype compound_procedure_env(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
+  if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
     return (fdtype) fd_copy_env(proc->env);}
   else return fd_type_error("compound procedure","compound_procedure_args",x);
@@ -153,7 +153,7 @@ static fdtype compound_procedure_env(fdtype x)
 
 static fdtype compound_procedure_body(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
+  if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
     return fd_incref(proc->body);}
   else return fd_type_error("compound procedure","compound_procedure_args",x);
@@ -161,7 +161,7 @@ static fdtype compound_procedure_body(fdtype x)
 
 static fdtype set_compound_procedure_body(fdtype x,fdtype new_body)
 {
-  if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
+  if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
     fdtype body=proc->body;
     proc->body=fd_incref(new_body);
@@ -210,7 +210,7 @@ static fdtype apropos_prim(fdtype arg)
 
 static fdtype module_bindings(fdtype arg)
 {
-  if (FD_PTR_TYPEP(arg,fd_environment_type)) {
+  if (FD_ENVIRONMENTP(arg)) {
     fd_lispenv envptr=FD_GET_CONS(arg,fd_environment_type,fd_lispenv);
     return fd_getkeys(envptr->bindings);}
   else if (FD_TABLEP(arg))
@@ -228,7 +228,7 @@ static fdtype module_bindings(fdtype arg)
 
 static fdtype modulep(fdtype arg)
 {
-  if ((FD_PTR_TYPEP(arg,fd_environment_type)) ||
+  if ((FD_ENVIRONMENTP(arg)) ||
       (FD_HASHTABLEP(arg)) || (FD_SLOTMAPP(arg)) ||
       (FD_SCHEMAPP(arg)))
     return FD_TRUE;
@@ -237,7 +237,7 @@ static fdtype modulep(fdtype arg)
 
 static fdtype module_exports(fdtype arg)
 {
-  if (FD_PTR_TYPEP(arg,fd_environment_type)) {
+  if (FD_ENVIRONMENTP(arg)) {
     fd_lispenv envptr=FD_GET_CONS(arg,fd_environment_type,fd_lispenv);
     return fd_getkeys(envptr->exports);}
   else if (FD_TABLEP(arg))

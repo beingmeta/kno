@@ -15,6 +15,8 @@
 
 FD_EXPORT fd_ptr_type fd_port_type;
 
+#define FD_PORTP(x) (FD_PRIM_TYPEP((x),fd_port_type))
+
 typedef struct FD_PORT {
   FD_CONS_HEADER;
   u8_string id; u8_input in; u8_output out;} FD_PORT;

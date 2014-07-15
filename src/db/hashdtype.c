@@ -136,7 +136,7 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
     struct FD_QCHOICE *qc=FD_XQCHOICE(x);
     return hash_dtype1(qc->choice);}
   else if (FD_CHARACTERP(x)) return (FD_CHARCODE(x))%(MAGIC_MODULUS);
-  else if (FD_PTR_TYPEP(x,fd_double_type)) {
+  else if (FD_FLONUMP(x)) {
     unsigned int as_int;
     float *f=(float *)(&as_int);
     *f=FD_FLONUM(x);

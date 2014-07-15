@@ -379,7 +379,7 @@ typedef struct FD_HASHTABLE {
   U8_RWLOCK_DECL(rwlock);} FD_HASHTABLE;
 typedef struct FD_HASHTABLE *fd_hashtable;
 
-#define FD_HASHTABLEP(x) (FD_PTR_TYPEP(x,fd_hashtable_type))
+#define FD_HASHTABLEP(x) (FD_PRIM_TYPEP(x,fd_hashtable_type))
 #define FD_XHASHTABLE(x) \
   FD_GET_CONS(x,fd_hashtable_type,struct FD_HASHTABLE *)
 #define FD_HASHTABLE_SLOTS(x) \

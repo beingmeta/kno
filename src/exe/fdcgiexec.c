@@ -248,13 +248,13 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   fd_use_reqinfo(cgidata); fd_reqlog(1);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
-  else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
+  else if (FD_SPROCP(proc)) {
     struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
     threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(proc,cgidata);}
-  else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
+  else if ((FD_PAIRP(proc)) && (FD_SPROCP((FD_CAR(proc))))) {
     struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
@@ -262,7 +262,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
-    fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
+    fd_lispenv base=((FD_ENVIRONMENTP(lenv)) ?
 		     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
 		     (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
@@ -295,8 +295,12 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   if (FD_TROUBLEP(result)) {
     u8_exception ex=u8_erreify();
     u8_condition excond=ex->u8x_cond;
-    u8_context excxt=((ex->u8x_context) ? (ex->u8x_context) : ((u8_context)"somewhere"));
-    u8_context exdetails=((ex->u8x_details) ? (ex->u8x_details) : ((u8_string)"no more details"));
+    u8_context excxt=((ex->u8x_context) ?
+		      (ex->u8x_context) :
+		      ((u8_context)"somewhere"));
+    u8_context exdetails=((ex->u8x_details) ?
+			  (ex->u8x_details) :
+			  ((u8_string)"no more details"));
     fdtype irritant=fd_exception_xdata(ex);
     if (FD_VOIDP(irritant))
       u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
@@ -495,17 +499,17 @@ static int simplecgi(fdtype path)
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   u8_set_default_output(&out);
   if (FD_ABORTP(proc)) result=fd_incref(proc);
-  else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
+  else if (FD_SPROCP(proc)) {
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
     result=fd_cgiexec(proc,cgidata);}
-  else if ((FD_PAIRP(proc)) && (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
+  else if ((FD_PAIRP(proc)) && (FD_SPROCP((FD_CAR(proc))))) {
     if (traceweb>1)
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",path,proc);
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
-    fd_lispenv base=((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
+    fd_lispenv base=((FD_ENVIRONMENTP(lenv)) ?
 		     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
 		     (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);

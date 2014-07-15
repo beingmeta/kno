@@ -1409,7 +1409,7 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
     fdtype rail[2], result;
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */
-    if ((FD_PRIM_TYPEP(pred,fd_sproc_type)) ||
+    if ((FD_SPROCP(pred)) ||
 	(FD_PRIM_TYPEP(pred,fd_function_type))) {
       fd_function fcn=FD_DTYPE2FCN(pred);
       if (fcn->min_arity==1) {

@@ -805,7 +805,7 @@ static int webservefn(u8_client ucl)
 	     (FD_VOIDP(precheck))||
 	     (FD_EMPTY_CHOICEP(precheck))))
     result=precheck;
-  else if (FD_PRIM_TYPEP(proc,fd_sproc_type)) {
+  else if (FD_SPROCP(proc)) {
     struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
@@ -814,7 +814,7 @@ static int webservefn(u8_client ucl)
     threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc))&&
-	   (FD_PRIM_TYPEP((FD_CAR(proc)),fd_sproc_type))) {
+	   (FD_SPROCP((FD_CAR(proc))))) {
     struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
@@ -828,7 +828,7 @@ static int webservefn(u8_client ucl)
     /* This is handling FDXML */
     fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=
-      ((FD_PTR_TYPEP(lenv,fd_environment_type)) ?
+      ((FD_ENVIRONMENTP(lenv)) ?
        (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
        (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);

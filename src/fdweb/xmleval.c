@@ -390,7 +390,7 @@ static fdtype get_xml_handler(fdtype xml,fd_lispenv env)
 {
   fdtype xml_env=fd_symeval(xml_env_symbol,env);
   if (FD_VOIDP(xml_env)) return FD_VOID;
-  if (!(FD_PTR_TYPEP(xml_env,fd_environment_type)))
+  if (!(FD_ENVIRONMENTP(xml_env)))
     return fd_type_error("environment","get_xml_handler",xml_env);
   else {
     fdtype qname=fd_get(xml,qname_slotid,FD_VOID);
@@ -472,7 +472,7 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,fd_lispenv env)
     struct FD_SPECIAL_FORM *sf=
       FD_GET_CONS(fn,fd_specform_type,fd_special_form);
     result=sf->eval(xml,env);}
-  else if (FD_PRIM_TYPEP(fn,fd_sproc_type))
+  else if (FD_SPROCP(fn))
     result=fd_xapply_sproc((struct FD_SPROC *)fn,&cxt,xmlgetarg);
   else {
     fd_decref(bind);

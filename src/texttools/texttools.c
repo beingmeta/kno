@@ -60,7 +60,7 @@ static u8_input get_input_port(fdtype portarg)
 {
   if (FD_VOIDP(portarg))
     return NULL; /* get_default_output(); */
-  else if (FD_PTR_TYPEP(portarg,fd_port_type)) {
+  else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
     return p->in;}

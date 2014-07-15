@@ -149,11 +149,13 @@ typedef enum FD_PTR_TYPE {
   fd_tail_call_type=FD_CONS_TYPECODE(22),
   fd_uuid_type=FD_CONS_TYPECODE(23),
   fd_rail_type=FD_CONS_TYPECODE(24),
-  fd_secret_type=FD_CONS_TYPECODE(25)
+  fd_secret_type=FD_CONS_TYPECODE(25),
+  /* We define this here, early, so it's treated as a constant */
+  fd_sproc_type=FD_CONS_TYPECODE(26)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 26
+#define FD_BUILTIN_CONS_TYPES 27
 #define FD_BUILTIN_IMMEDIATE_TYPES 6
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;

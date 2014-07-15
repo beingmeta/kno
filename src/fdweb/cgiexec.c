@@ -936,7 +936,7 @@ static int use_ipeval(fdtype proc,fdtype cgidata)
 
 FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 {
-  if (FD_PTR_TYPEP(proc,fd_sproc_type)) {
+  if (FD_SPROCP(proc)) {
     fdtype value=FD_VOID;
 #if FD_IPEVAL_ENABLED
     int ipeval=use_ipeval(proc,cgidata);

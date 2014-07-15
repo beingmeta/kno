@@ -115,6 +115,9 @@ FD_EXPORT fdtype fd_make_cprim9x(u8_string name,fd_cprim9 fn,int mina,...);
 /* #define FD_XFUNCTION(x) (FD_GET_CONS(x,fd_function_type,struct FD_FUNCTION *)) */
 #define FD_PRIMITIVEP(x) (FD_PTR_TYPEP(x,fd_function_type))
 
+/* We define SPROC here because it's part of the big pointer type enum */
+#define FD_SPROCP(x) (FD_PRIM_TYPEP((x),fd_sproc_type))
+
 FD_EXPORT fdtype fd_make_ndprim(fdtype prim);
 
 /* Definining functions in tables. */
