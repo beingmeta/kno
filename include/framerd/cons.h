@@ -259,6 +259,9 @@ FD_EXPORT fdtype fdtype_string(u8_string string);
 		   ((stream)->u8_outbuf))):                             \
    (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
 		   ((stream)->u8_outbuf))))
+#define fd_stream_string(stream) \
+   (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
+		   ((stream)->u8_outbuf)))
 
 #define fd_lispstring(s) fd_init_string(NULL,-1,(s))
 #define fd_unistring(s) fd_conv_string(NULL,-1,(s))
