@@ -129,7 +129,8 @@ static fdtype json_atom(U8_INPUT *in,int flags)
   else if ((strcmp(out.u8_outbuf,"false")==0)) result=FD_FALSE;
   else if  ((strcmp(out.u8_outbuf,"null")==0)) result=FD_EMPTY_CHOICE;
   else result=fd_parse(out.u8_outbuf);
-  if (FD_ABORTP(result)) return parse_error(&out,result,flags&FD_JSON_WARNINGS);
+  if (FD_ABORTP(result))
+    result=parse_error(&out,result,flags&FD_JSON_WARNINGS);
   if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
   return result;
 }
@@ -157,8 +158,9 @@ static fdtype json_string(U8_INPUT *in,int flags)
     return fd_stream2string(&out);
   else if ((flags&FD_JSON_COLONIZE)&&(out.u8_outbuf[0]==':')) {
     fdtype result=fd_parse(out.u8_outbuf+1);
-    if (FD_ABORTP(result)) return parse_error(&out,result,flags&FD_JSON_WARNINGS);
-    u8_free(out.u8_outbuf);
+    if (FD_ABORTP(result))
+      result=parse_error(&out,result,flags&FD_JSON_WARNINGS);
+    if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
     return result;}
   else return fd_stream2string(&out);
 }
@@ -181,16 +183,16 @@ static fdtype json_intern(U8_INPUT *in,int flags)
   if (out.u8_outbuf[0]==':') {
     fdtype result=fd_parse(out.u8_outbuf+1);
     if (FD_ABORTP(result))
-      return parse_error(&out,result,flags&FD_JSON_WARNINGS);
-    u8_free(out.u8_outbuf);
+      result=parse_error(&out,result,flags&FD_JSON_WARNINGS);
+    if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
     return result;}
   else {
     fdtype result=((good_symbol)?
 		   (fd_parse(out.u8_outbuf)):
-		   (fd_stream2string(&out)));
+		   (fd_stream_string(&out)));
     if (FD_ABORTP(result))
-      return parse_error(&out,result,flags&FD_JSON_WARNINGS);
-    u8_free(out.u8_outbuf);
+      result=parse_error(&out,result,flags&FD_JSON_WARNINGS);
+    if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
     return result;}
 }
 
