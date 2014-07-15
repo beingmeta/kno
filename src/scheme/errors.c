@@ -93,19 +93,23 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
       return handler;}
     else if (FD_APPLICABLEP(handler)) {
       fdtype err_value=fd_init_exception(NULL,ex);
-      fdtype err_result=fd_apply(handler,1,&err_value);
+      fdtype handler_result=fd_apply(handler,1,&err_value);
       fd_exception_object exo=
 	FD_GET_CONS(err_value,fd_error_type,fd_exception_object);
-      if (FD_ABORTP(err_result)) {
+      if (FD_ABORTP(handler_result)) {
+	u8_exception cur_ex=u8_current_exception;
 	/* Clear this field so we can decref err_value while leaving
 	   the exception object current. */
+	u8_log(LOG_WARN,"Recursive error",
+	       "Error handling error during %q",toeval);
+	fd_log_backtrace(cur_ex);
 	exo->ex=NULL;
 	u8_restore_exception(ex);
 	fd_decref(handler); fd_decref(value); fd_decref(err_value);
-	return err_result;}
+	return handler_result;}
       else {
 	fd_decref(value); fd_decref(handler); fd_decref(err_value);
-	return err_result;}}
+	return handler_result;}}
     else {
       u8_free_exception(ex,1);
       fd_decref(value);
@@ -129,6 +133,20 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
     else {
       fd_decref(value);
       return handler;}}
+}
+
+static fdtype report_errors_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype toeval=fd_get_arg(expr,1);
+  fdtype value=fd_eval(toeval,env);
+  if (FD_THROWP(value))
+    return value;
+  else if (FD_ABORTP(value)) {
+    u8_exception ex=u8_current_exception;
+    fd_log_backtrace(ex);
+    fd_clear_errors(0);
+    return FD_FALSE;}
+  else return value;
 }
 
 static fdtype erreify_handler(fdtype expr,fd_lispenv env)
@@ -337,6 +355,7 @@ FD_EXPORT void fd_init_errors_c()
   fd_defspecial(fd_scheme_module,"ERROR",return_error);
   fd_defspecial(fd_scheme_module,"IRRITANT",return_irritant);
   fd_defspecial(fd_scheme_module,"ONERROR",onerror_handler);
+  fd_defspecial(fd_scheme_module,"REPORT-ERRORS",report_errors_handler);
   fd_defspecial(fd_scheme_module,"ERREIFY",erreify_handler);
 
   fd_idefn(fd_scheme_module,

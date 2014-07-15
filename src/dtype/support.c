@@ -986,6 +986,21 @@ int fd_clear_errors(int report)
   return n_errs;
 }
 
+FD_EXPORT
+int fd_log_backtrace(u8_exception ex)
+{
+  u8_exception scan=ex, last=NULL; int n_errs=0;
+  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
+  if (!(ex)) ex=u8_current_exception;
+  while (scan) {
+    sum_exception(&out,scan,last);
+    u8_log(LOG_ERR,scan->u8x_cond,"%s",out.u8_outbuf);
+    out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+    last=scan; scan=scan->u8x_prev;
+    n_errs++;}
+  return n_errs;
+}
+
 /* Thread Tables */
 
 #if FD_USE_TLS
