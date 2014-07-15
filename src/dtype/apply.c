@@ -481,6 +481,7 @@ static fdtype dcall9(struct FD_FUNCTION *f,
 FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 {
   fd_ptr_type ftype=FD_PRIM_TYPE(fp);
+  if (FD_PPTRP(fp)) fp=fd_pptr_ref(fp);
   if (fd_functionp[ftype]) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
     fdtype argbuf[8], *args;
@@ -514,7 +515,7 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 	int i=0;
 	while (i<n)
 	  if (typeinfo[i]>=0)
-	    if (FD_PRIM_TYPEP(args[i],typeinfo[i])) i++;
+	    if (FD_PTR_TYPEP(args[i],typeinfo[i])) i++;
 	/* Don't signal errors on unspecified (VOID) args. */
 	    else if (FD_VOIDP(args[i])) i++;
 	    else {

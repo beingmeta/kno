@@ -697,7 +697,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       if (headtype==fd_pptr_type) {
 	fdtype realval=fd_pptr_ref(headval);
 	headtype=FD_PTR_TYPE(realval);
-        headval=realval;
+        /* headval=realval; */
 	gchead=0;}
       if (fd_applyfns[headtype]) 
 	result=apply_function(headval,expr,env);
