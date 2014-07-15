@@ -81,7 +81,7 @@
   (if (uuid? spec) (set! spec `#[uuid ,spec]) (set! spec #[]))
   (when (getopt spec 'sections)
     (set! more (append more (getopt spec 'sections))))
-  (let* ((uuid (try (getopt spec 'uuid) (getuuid)))
+  (let* ((uuid (getopt spec 'uuid (getuuid)))
 	 (fileroot (makelogbase uuid fileroot))
 	 (webroot (and webroot (mkpath webroot (getlogbase uuid))))
 	 (reqdata (try (getopt spec 'reqdata)
