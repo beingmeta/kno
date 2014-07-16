@@ -1,14 +1,14 @@
 Source: framerd
-Section: unknown
+Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benfiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, sqlite3, apache2-threaded-dev, libmysqlclient-dev, libcurl4-openssl-dev,libexif-dev,libtidy-dev,libzip-dev,libqrencode-dev
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, sqlite3, apache2-threaded-dev, libmysqlclient-dev, libcurl4-openssl-dev,libexif-dev,libtidy-dev,libzip-dev,libqrencode-dev,libu8-dev
 Standards-Version: 3.9.4
 Homepage: http://www.framerd.org/
 
 Package: framerd
 Architecture: any
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, libu8
 Description: Scalable knowledge base development and application platform
  FramerD provides a robust and scalable object database especially
  designed and optimized for pointer-intensive semi-structured data with
@@ -26,6 +26,11 @@ Package: libapache2-mod-fdserv
 Architecture: any
 Depends: framerd-core (= ${binary:Version}), apache2-mpm
 Description: The mod_fdserv module for FramerD servlets under Apache
+
+Package: framerd-dev
+Architecture: any
+Depends: framerd-core (= ${binary:Version})
+Description: Development files for FramerD
 
 Package: framerd-mysql
 Architecture: any
