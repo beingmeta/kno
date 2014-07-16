@@ -1762,7 +1762,7 @@ static int boot_config()
 static fdtype framerd_logfns=FD_EMPTY_CHOICE;
 static fdtype framerd_logfn=FD_VOID;
 static int using_fd_logger=0;
-static int req_loglevel=-1;
+static int req_loglevel=-1, req_logonly=-1;
 #if FD_THREADS_ENABLED
 static u8_mutex log_lock;
 #endif
@@ -1802,6 +1802,11 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
     if (c) u8_printf(reqout,"\n\t<condition>%s</condition>",c);
     u8_printf(reqout,"\n\t<message>\n%s\n\t</message>",message);
     u8_printf(reqout,"\n</logentry>\n");}
+  if ((reqout!=NULL)&&
+      (req_logonly>=0)&&
+      (abs_loglevel>=LOG_NOTIFY)&&
+      (abs_loglevel>=req_logonly))
+    return;
   if (FD_VOIDP(framerd_logfn)) u8_default_logger(loglevel,c,message);
   else {
     fdtype logfn=fd_incref(framerd_logfn);
@@ -1905,7 +1910,7 @@ static int config_set_reqloglevel(fdtype var,fdtype val,void *data)
     if (req_loglevel>=0) {req_loglevel=-1; return 1;}
     else return 0;}
   else if (FD_FIXNUMP(val)) {
-    int level=FD_INT2DTYPE(val);
+    int level=FD_FIX2INT(val);
     if (level==req_loglevel) return 0;
     else if (level>=0) use_fd_logger();
     else {}
@@ -1915,6 +1920,32 @@ static int config_set_reqloglevel(fdtype var,fdtype val,void *data)
   else {
     use_fd_logger();
     req_loglevel=5;
+    return 1;}
+}
+
+static fdtype config_get_reqlogonly(fdtype var,void *data)
+{
+  if ((using_fd_logger)&&(req_logonly>=0))
+    return FD_INT2DTYPE(req_logonly);
+  else return FD_FALSE;
+}
+
+static int config_set_reqlogonly(fdtype var,fdtype val,void *data)
+{
+  if (FD_FALSEP(val)) {
+    if (req_logonly>=0) {req_logonly=-1; return 1;}
+    else return 0;}
+  else if (FD_FIXNUMP(val)) {
+    int level=FD_FIX2INT(val);
+    if (level==req_logonly) return 0;
+    else if (level>=0) use_fd_logger();
+    else {}
+    req_logonly=level;
+    return 1;}
+  else if (req_logonly>=0) return 0;
+  else {
+    use_fd_logger();
+    req_logonly=5;
     return 1;}
 }
 
@@ -2112,8 +2143,11 @@ void fd_init_support_c()
                      config_atexit_get,config_atexit_set,NULL);
 
   fd_register_config
-    ("REQLOGLEVEL",_("whether to use FramerD per-request logging"),
+    ("REQ:LOGLEVEL",_("whether to use FramerD per-request logging"),
      config_get_reqloglevel,config_set_reqloglevel,NULL);
+  fd_register_config
+    ("REQ:LOGONLY",_("only use per-request logging (when available) for loglevels >= this"),
+     config_get_reqlogonly,config_set_reqlogonly,NULL);
   fd_register_config
     ("LOGFN",_("the default log function"),
      config_get_logfn,config_set_logfn,NULL);
