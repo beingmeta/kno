@@ -503,12 +503,16 @@ static int get_loglevel(fdtype level_arg)
 
 static fdtype log_handler(fdtype expr,fd_lispenv env)
 {
-  fdtype level_arg=fd_get_arg(expr,1);
+  fdtype level_arg=fd_eval(fd_get_arg(expr,1),env);
   fdtype body=fd_get_body(expr,2);
   int level=get_loglevel(level_arg);
   U8_OUTPUT *out=u8_open_output_string(1024);
   U8_OUTPUT *stream=u8_current_output;
   u8_condition condition=NULL;
+  if (FD_THROWP(level_arg)) return level_arg;
+  else if (FD_ABORTP(level_arg)) {
+    fd_clear_errors(1);}
+  else fd_decref(level_arg);
   if ((FD_PAIRP(body))&&(FD_SYMBOLP(FD_CAR(body)))) {
     condition=FD_SYMBOL_NAME(FD_CAR(body));
     body=FD_CDR(body);}
