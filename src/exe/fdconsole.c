@@ -701,6 +701,7 @@ int main(int argc,char **argv)
     dotloader(".fdconfig",NULL);
     dotloader("~/.fdconsole",env);
     dotloader(".fdconsole",env);}
+  else u8_message("Warning: .fdconfig/.fdconsole files are suppressed");
   fd_histinit(0);
   u8_printf(out,EVAL_PROMPT);
   u8_flush(out);
