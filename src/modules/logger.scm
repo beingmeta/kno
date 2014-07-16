@@ -9,8 +9,10 @@
 (module-export!
  '{logger
    getloglevel %loglevel
-   logdetail loginfo lognotice logwarn logdebug
+   logdeluge logdetail loginfo lognotice logwarn logdebug
    logerr logerror logcrit logalert logpanic
+   logdeluge! logdetail! loginfo! lognotice! logwarn! logdebug!
+   logerr! logcrit! logalert! logpanic!
    %debug %detail %deluge})
 (module-export!
  '{%emergency! %emergency% %panic%
@@ -107,17 +109,20 @@
   (macro expr
     `(logif+ (>= %loglevel ,(cadr expr)) ,(cadr expr) ,@(cddr expr))))
 
-(define logerr
-  (macro expr `(logmsg %error% ,@(cdr expr))))
-(define logcrit
-  (macro expr `(logmsg %critical% ,@(cdr expr))))
-(define logalert
-  (macro expr `(logmsg %alert% ,@(cdr expr))))
-(define logpanic
-  (macro expr `(logmsg %panic% ,@(cdr expr))))
+;; These all call the regular log function
+(define logdeluge! (macro expr `(logmsg 7 ,@(cdr expr))))
+(define logdetail! (macro expr `(logmsg 7 ,@(cdr expr))))
+(define logdebug! (macro expr `(logmsg 7 ,@(cdr expr))))
+(define loginfo! (macro expr `(logmsg 6 ,@(cdr expr))))
+(define lognotice! (macro expr `(logmsg 5 ,@(cdr expr))))
+(define logwarn! (macro expr `(logmsg 4 ,@(cdr expr))))
+(define logerr! (macro expr `(logmsg %error% ,@(cdr expr))))
+(define logcrit! (macro expr `(logmsg %critical% ,@(cdr expr))))
+(define logalert! (macro expr `(logmsg %alert% ,@(cdr expr))))
+(define logpanic! (macro expr `(logmsg %panic% ,@(cdr expr))))
 
-(define logerror logerr)
-
+;;; These all check the local %loglevel, except if the priority is
+;;;  worse than an error.
 (define logdeluge
   (macro expr `(logif+ (>= %loglevel ,%deluge%) 7 ,@(cdr expr))))
 (define logdetail
@@ -130,6 +135,17 @@
   (macro expr `(logif+ (>= %loglevel ,%notice%) 5 ,@(cdr expr))))
 (define logwarn
   (macro expr `(logif+ (>= %loglevel ,%warn%) 4 ,@(cdr expr))))
+(define logerr
+  (macro expr `(logmsg %error% ,@(cdr expr))))
+(define logcrit
+  (macro expr `(logmsg %critical% ,@(cdr expr))))
+(define logalert
+  (macro expr `(logmsg %alert% ,@(cdr expr))))
+(define logpanic
+  (macro expr `(logmsg %panic% ,@(cdr expr))))
+(define logerror logerr)
+
+;;; Useful aliases
 (define %debug
   (macro expr `(logif+ (>= %loglevel ,%debug%) 7 ,@(cdr expr))))
 (define %detail
@@ -137,6 +153,7 @@
 (define %deluge
   (macro expr `(logif+ (>= %loglevel ,%deluge%) 7 ,@(cdr expr))))
 
+;;; %loglevel checking watchpoints
 (define deluge%watch
   (macro expr
     `(if (>= %loglevel ,%deluge%)
