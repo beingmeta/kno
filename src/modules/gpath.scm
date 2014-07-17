@@ -508,6 +508,11 @@
 
 (define (gp/modified ref)
   (cond ((s3loc? ref) (s3/modified ref))
+	((and (compound-type? ref) 
+	      (test gpath-handlers (compound-tag ref)))
+	 (get ((gpath-handler-get (get gpath-handlers (compound-tag ref)))
+	       ref "" #t)
+	      'modified))
 	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
 	 (if (bound? zip/modtime)
 	     (zip/modtime (car ref) (cdr ref))
@@ -548,6 +553,10 @@
 
 (define (gp/exists? ref)
   (cond ((s3loc? ref) (s3loc/exists? ref))
+	((and (compound-type? ref) 
+	      (test gpath-handlers (compound-tag ref)))
+	 ((gpath-handler-get (get gpath-handlers (compound-tag ref)))
+	  ref "" #t))
 	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
 	 (zip/exists? (car ref) (cdr ref)))
 	((and (pair? ref) (hashtable? (car ref)) (string? (cdr ref)))
