@@ -156,7 +156,9 @@
       (dropbox/get (dropbox-oauth dropbox) fullpath)))
 
 (define (dropbox-save dropbox path content (ctype) (charset) (fullpath))
-  (default! ctype (path->mimetype path  (if (packet? content) "application" "text")))
+  (default! ctype
+    (path->mimetype
+     path (if (packet? content) "application" "text")))
   (set! fullpath
 	(if (dropbox-root-path dropbox)
 	    (mkpath (dropbox-root-path dropbox) path)
