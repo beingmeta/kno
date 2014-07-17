@@ -162,11 +162,12 @@
 	       (xmlout " \&ldquo;" (error-details exception) "\&rdquo;"))
 	     (set! detailsblock #t))
 	 (let* ((irritant (error-irritant exception))
-		(stringval (and (bound? irritant) (exists? irritant) irritant
+		(stringval (and (bound? irritant)
+				(exists? irritant) irritant
 				(lisp->string (qc irritant)))))
 	   (if (and stringval (< (length stringval) 50))
 	       (h2* ((class "irritant")) stringval)
-	       (set! irritantblock #t)))
+	       (set! irritantblock stringval)))
 	 (when bughead (req/call bughead)))
        (div ((class "navbar"))
 	 (span ((class "buginfo"))
