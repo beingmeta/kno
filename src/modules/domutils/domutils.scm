@@ -26,7 +26,7 @@
    dom/findmeta dom/getmeta dom/findlinks dom/getlinks
    dom/gethead dom/getschemas 
    dom/count
-   dom/split-space dom/split-semi dom/split-comma
+   dom/split-space dom/split-semi dom/split-comma dom/split-semi+comma
    ->selector selector-tag selector-class selector-id
    *block-tags* *block-text-tags* *terminal-block-tags* *table-tags*
    *wrapper-tags* *inline-tags* *empty-tags* *void-tags*  
@@ -116,6 +116,8 @@
   (difference (stdspace (elts (segment string ";"))) ""))
 (define (dom/split-comma string)
   (difference (stdspace (elts (segment string ","))) ""))
+(define (dom/split-semi+comma string)
+  (difference (stdspace (elts (segment string {";" ","}))) ""))
 
 (define (find-parent node under)
   (let ((content (get under '%content)))
