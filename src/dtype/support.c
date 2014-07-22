@@ -1806,7 +1806,7 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
       (req_logonly>=0)&&
       (abs_loglevel>=LOG_NOTIFY)&&
       (abs_loglevel>=req_logonly))
-    return;
+    return 0;
   if (FD_VOIDP(framerd_logfn)) u8_default_logger(loglevel,c,message);
   else {
     fdtype logfn=fd_incref(framerd_logfn);
