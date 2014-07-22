@@ -68,7 +68,7 @@ doi18n="no"
 rpmflags=""
 rmpdir="dist"
 exif_default="no"
-dynamic_cflag="-rdynamic"
+dynamic_cflag=""
 xstatic_exe_libs=""
 xstatic_scheme_libs=""
 xdynamic_scheme_libs=""
@@ -133,6 +133,7 @@ with_hyphenate_default="no"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
+CFLAGS=" -DLIBU8_SOURCE -fno-strict-aliasing "
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 IMAGICK_CFLAGS=
@@ -241,6 +242,36 @@ AC_ARG_VAR(GPGID,"Default GnuPG id for signing packages")
 AC_SUBST(RPMDIR)
 AC_SUBST(RPMFLAGS)
 AC_SUBST(GPGID)
+
+AC_ARG_WITH(asan,--with-asan,,with_asan="no")
+if test "x$with_asan" = "xyes"; then
+   CC=clang
+   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
+   LD=clang
+   LDFLAGS="-g -fsanitize=address $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+fi
+
+AC_ARG_WITH(msan,--with-msan,,with_msan="no")
+if test "x$with_msan" = "xyes"; then
+   CC=clang
+   CFLAGS="-fsanitize=memory -fPIE -pie -g -fno-omit-frame-pointer $CFLAGS"
+   LD=clang
+   LDFLAGS="-g -fsanitize=memory -fPIE -pie -fno-omit-frame-pointer $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+elif test "x$with_msan" = "xfull"; then
+   CC=clang
+   CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -pie -g -fno-omit-frame-pointer $CFLAGS"
+   LD=clang
+   LDFLAGS="-g -fsanitize=memory -fno-omit-frame-pointer -fsanitize-memory-track-origins -fPIE -pie -fno-omit-frame-pointer $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+fi
 
 AC_CANONICAL_HOST
 AC_PROG_CC([cc gcc])
@@ -442,16 +473,13 @@ AC_AIX
 
 gcc_version=`gcc -dumpversion`
 
-case $gcc_version in
-  4*)
-   CFLAGS="-Wno-pointer-sign -Wimplicit -fno-strict-aliasing $CFLAGS"
-  ;;
-esac
+if test "x$CC" == "xcc" -or  "x$CC" == "xgcc"; then
+  dynamic_cflag="-rdynamic"
+fi
 
 case $host_os in
   darwin*)
    MKSTATIC="libtool -static -o "
-#   if test "x$CC" = "xgcc"; then LIBS="$LIBS -lgcc"; fi
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
    vshared_suffix=$FDVERSION.dylib

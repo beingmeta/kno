@@ -281,17 +281,17 @@ showbuildmode showmode showbuild: buildmode
 # configure/autoconf stuff
 
 makefile: makefile.in config.status
-	./config.status
+	if test -x ./config.status; then ./config.status; fi
 ./config.status: configure
-	./config.status --recheck
+	if test -x ./config.status; then ./config.status --recheck; fi
 configure: configure.ac
 	@if test -f .autoautoconf; then \
 	     echo "REBUILDING configure"; autoconf; \
 	else echo "WARNING: configure may be out of date"; fi
 include/framerd/config.h: include/framerd/config.h.in
-	./config.status
+	if test -x ./config.status; then ./config.status; fi
 include/framerd/fdsource.h: include/framerd/fdsource.h.in
-	./config.status
+	if test -x ./config.status; then ./config.status; fi
 
 tests/dtype/makefile: tests/dtype/makefile.in ./configure
 	./configure
