@@ -111,6 +111,9 @@ FD_EXPORT void fd_boot_message()
 FD_EXPORT int fd_init_dtypelib()
 {
   int u8_version;
+#if HAVE_LIBDUMA
+  DUMA_SET_ALIGNMENT(4);
+#endif
   if (fdtype_initialized) return fdtype_initialized;
   fd_load_start=u8_elapsed_time();
   u8_version=u8_initialize();
