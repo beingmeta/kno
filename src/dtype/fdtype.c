@@ -14,6 +14,10 @@
 #include <stdarg.h>
 #include <time.h>
 
+#if ((HAVE_LIBDUMA)&&(HAVE_DUMA_H))
+#include <duma.h>
+#endif
+
 static int fdtype_initialized=0;
 double fd_load_start=-1.0;
 
@@ -111,7 +115,7 @@ FD_EXPORT void fd_boot_message()
 FD_EXPORT int fd_init_dtypelib()
 {
   int u8_version;
-#if HAVE_LIBDUMA
+#if ((HAVE_LIBDUMA)&&(HAVE_DUMA_H))
   DUMA_SET_ALIGNMENT(4);
 #endif
   if (fdtype_initialized) return fdtype_initialized;

@@ -4964,6 +4964,18 @@ _ACEOF
 
 fi
 
+  for ac_header in duma.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "duma.h" "ac_cv_header_duma_h" "$ac_includes_default"
+if test "x$ac_cv_header_duma_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_DUMA_H 1
+_ACEOF
+
+fi
+
+done
+
   TESTENV="DUMA_ALIGNMENT=4 $TESTENV";
   custom_malloc="DUMA";
 fi

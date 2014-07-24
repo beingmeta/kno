@@ -346,6 +346,7 @@ elif test "x$with_duma" != "xno" && test "x$DUMA" = "xnone"; then
   with_duma="no";
 elif test "x$with_duma" != "xno"; then
   AC_CHECK_LIB(duma,malloc)
+  AC_CHECK_HEADERS(duma.h)
   TESTENV="DUMA_ALIGNMENT=4 $TESTENV";
   custom_malloc="DUMA";
 fi
