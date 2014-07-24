@@ -223,7 +223,7 @@
 /* Define if fdweb is linking with curl */
 #undef FD_WITH_EXIF
 
-/* Define if you have the CURL header file */
+/* Define if you have the EXIF header file */
 #undef HAVE_LIBEXIF_EXIF_DATA_H
 
 /* The root data directory */
@@ -294,6 +294,9 @@
 
 /* Whether we've got the sqlite3_errstr function (introduced 2012) */
 #undef HAVE_SQLITE3_ERRSTR
+
+/* Whether we're linking agains the duma malloc debugging library */
+#undef HAVE_LIBDUMA
 
 /* Whether we're using the Google profiler library */
 #undef WITH_GOOGLE_PROFILER

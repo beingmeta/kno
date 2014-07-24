@@ -80,6 +80,7 @@ daemon_identity_default="daemon"
 setup_target="setup-unix"
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
+TESTENV=
 TESTLIBS=
 TESTLDFLAGS=
 EXELDFLAGS=
@@ -146,8 +147,10 @@ MSG=echo
 debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
-memtest_prefix=vg_
-heaptest_prefix=vg_
+memtest_prefix=builtin_
+heaptest_prefix=builtin_
+use_duma_lib="no"
+custom_malloc=""
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/framerd/fdsource.h include/framerd/config.h)
@@ -205,6 +208,7 @@ AC_SUBST(DREENTRANT)
 AC_SUBST(SHARED_LIB_TARGET)
 AC_SUBST(SHARED_LIB)
 AC_SUBST(SHARED_LIBV)
+AC_SUBST(TESTENV)
 AC_SUBST(TESTLDFLAGS)
 AC_SUBST(TESTLIBS)
 AC_SUBST(EXELDFLAGS)
@@ -243,7 +247,19 @@ AC_SUBST(RPMDIR)
 AC_SUBST(RPMFLAGS)
 AC_SUBST(GPGID)
 
-AC_ARG_WITH(asan,--with-asan,,with_asan="no")
+AC_PATH_PROG(binenv,env)
+AC_CHECK_PROG(ECHO,echo,,/bin/echo)
+AC_PATH_PROG(VALGRIND,valgrind,none)
+AC_PATH_PROG(DUMA,duma,none)
+AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs apxs2 apxs)
+AC_CHECK_PROG(CREATEREPO,createrepo,,echo No createrepo for )
+
+if test "x$VALGRIND" != "xnone"; then
+  memtest_prefix=vg_
+  heaptest_prefix=vg_
+fi
+
+AC_ARG_WITH(asan,--with-asan with address sanitizier,,with_asan="no")
 if test "x$with_asan" = "xyes"; then
    CC=clang
    CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
@@ -252,9 +268,12 @@ if test "x$with_asan" = "xyes"; then
    build_static=""
    test_static=""
    install_static=""
+   custom_malloc="asan"
+   memtest_prefix=builtin_
+   heaptest_prefix=builtin_
 fi
 
-AC_ARG_WITH(msan,--with-msan,,with_msan="no")
+AC_ARG_WITH(msan,--with-msan With memory sanitizer,,with_msan="no")
 if test "x$with_msan" = "xyes"; then
    CC=clang
    CFLAGS="-fsanitize=memory -fPIE -pie -g -fno-omit-frame-pointer $CFLAGS"
@@ -263,6 +282,7 @@ if test "x$with_msan" = "xyes"; then
    build_static=""
    test_static=""
    install_static=""
+   custom_malloc="msan"
 elif test "x$with_msan" = "xfull"; then
    CC=clang
    CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -pie -g -fno-omit-frame-pointer $CFLAGS"
@@ -271,18 +291,16 @@ elif test "x$with_msan" = "xfull"; then
    build_static=""
    test_static=""
    install_static=""
+   custom_malloc="msan-full"
 fi
+
+AC_ARG_WITH(duma,--with-duma Build with Detect Unintended Memory Access,with_duma=$withval,with_duma="no")
 
 AC_CANONICAL_HOST
 AC_PROG_CC([cc gcc])
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_INSTALL
 AC_PROG_RANLIB
-AC_PATH_PROG(binenv,env)
-AC_CHECK_PROG(ECHO,echo,,/bin/echo)
-AC_CHECK_PROG(VALGRIND,valgrind)
-AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs apxs2 apxs)
-AC_CHECK_PROG(CREATEREPO,createrepo,,echo No createrepo for )
 
 AC_DEFINE_UNQUOTED(FD_VERSION,"$FDVERSION")
 AC_DEFINE_UNQUOTED(FD_MAJOR_VERSION,$FDMAJOR)
@@ -318,6 +336,18 @@ fi
 AC_ARG_ENABLE(devmode,--en[dis]able-devmode Special settings for development machines (e.g. linking module files),,enable_devmode=$devmode_default)
 if test "x$enable_devmode" != "xno"; then
   install_modules_target="link-modules";
+fi
+
+if test "x$with_duma" != "xno" && test "x$custom_malloc" != "x"; then
+  echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
+  with_duma="no";
+elif test "x$with_duma" != "xno" && test "x$DUMA" = "xnone"; then
+  echo "No DUMA executable";
+  with_duma="no";
+elif test "x$with_duma" != "xno"; then
+  AC_CHECK_LIB(duma,malloc)
+  TESTENV="DUMA_ALIGNMENT=4 $TESTENV";
+  custom_malloc="DUMA";
 fi
 
 AC_ARG_WITH(optinclude,--with-optinclude Use optional include directory,,with_optinclude="none")
@@ -473,7 +503,7 @@ AC_AIX
 
 gcc_version=`gcc -dumpversion`
 
-if test "x$CC" == "xcc" -or  "x$CC" == "xgcc"; then
+if test "x$CC" == "xcc" || test  "x$CC" == "xgcc"; then
   dynamic_cflag="-rdynamic"
 fi
 
@@ -519,17 +549,17 @@ AC_CHECK_SIZEOF(off_t,4)
 AC_CHECK_SIZEOF(size_t,4)
 AC_CHECK_TYPES(uchar)
 
-# Check whether to use an architecture specific
+# Check whether to use an architecture specific library directory
 if test "x${libdir}" != "x\${exec_prefix}/lib"; then
-  echo using explicit libdir ${libdir};
+  echo Checking libdir, using explicit libdir ${libdir};
 elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
   libdir=${prefix}/lib32;
-  echo using libdir ${libdir};
+  echo Checking libdir, using 32-bit libdir ${libdir};
 elif test ${ac_cv_sizeof_long} -eq 8 && test -d ${prefix}/lib64; then
   libdir=${prefix}/lib64;
-  echo using libdir ${libdir};
+  echo Checking libdir, using 64-bit libdir ${libdir};
 else
-  echo using default libdir ${libdir};
+  echo Checking libdir, using default libdir ${libdir};
 fi
 
 AC_HEADER_STDC
@@ -929,18 +959,29 @@ fi
 dnl When available, use the thread-optimized tcmalloc functions from
 dnl   Google perftools
 AC_ARG_WITH(tcmalloc,--with[out]-tcmalloc Use the Google malloc library,,with_tcmalloc="no")
+if test "x$with_tcmalloc" != "xno" && test "x$custom_malloc" != "x"; then
+  echo "Sorry, tcmalloc is inconsistent with custom malloc $custom_malloc";
+  exit;
+fi
 if test $with_tcmalloc = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
 #  debuglibs="${debuglibs} -ltcmalloc_debug"
-  memtest_prefix=gp_
-  heaptest_prefix=gp_
+  memtest_prefix=builtin_
+  heaptest_prefix=builtin_
+  heaptestenv="RUNENV=HEAPCHECK=normal" 
 elif test $with_tcmalloc = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
-  heaptest_prefix=gp_
-  memtest_prefix=gp_
+  heaptest_prefix=builtin_
+  memtest_prefix=builtin_
+  heaptestenv="RUNENV=HEAPCHECK=normal" 
 fi
 
 AC_ARG_WITH(perftools,--with[out]-google Use the Google perftools,,with_perftools="no")
+if test "x$with_perftools" != "xno" && test "x$custom_malloc" != "x"; then
+  echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
+  exit;
+fi
+
 if test $with_perftools = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)

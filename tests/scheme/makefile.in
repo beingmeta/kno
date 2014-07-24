@@ -33,10 +33,11 @@ INSTALL		= @INSTALL@
 VALGRIND	= INVALGRIND=yes valgrind --tool=memcheck --num-callers=9
 VALGRINDHEAP	= INVALGRIND=yes valgrind --tool=memcheck --leak-check=yes --num-callers=9
 TESTPROG	= 
+TESTENV		= @TESTENV@
 RUNENV		= 
 TESTSIZE	= 64
 TESTCONFIG	= 
-RUNTEST		= $(RUNENV)$(TESTPROG)
+RUNTEST		= $(TESTENV) $(RUNENV)$(TESTPROG)
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
 
 TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdservlet fdcgiexec # fdsh
@@ -75,7 +76,7 @@ $(TESTBIN): $(EXTRA_LIBS) \
 	    ../../lib/libfddb@suffix@.a ../../lib/libfdtype@suffix@.a
 
 %: %.c $(EXTRA_LIBS) $(CORE_LIBS)
-	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(EXTRA_LIBS) $(CORE_LIBS) $(LIBS) -lu8stdio
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(EXTRA_LIBS) $(CORE_LIBS) $(LIBS) -lu8stdio
 	@echo MKTEST_STATIC $@
 fdservlet: ../../src/exe/webcommon.h
 fdcgiexec: ../../src/exe/webcommon.h
@@ -251,39 +252,39 @@ vg_memdbhashtests:
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbhashtests
 	@echo "*** Finished running tests on database layers with valgrind memory debugging"
 
-gp_memtests:
+builtin_memtests:
 	@echo "*** Running alltests with memory debugging"
-	make TESTSIZE=$(TESTSIZE)/4 alltests
+	make @memtestenv@ TESTSIZE=$(TESTSIZE)/4 alltests
 	@echo "*** Finished running alltests with memory debugging"
 
-gp_memschemetests:
+builtin_memschemetests:
 	@echo "*** Running tests on data/eval layers with memory debugging"
-	make TESTSIZE=$(TESTSIZE)/4 schemetests
+	make @memtestenv@ TESTSIZE=$(TESTSIZE)/4 schemetests
 	@echo "*** Finished running tests on data/eval layers with memory debugging"
 
-gp_memtabletests:
+builtin_memtabletests:
 	@echo "*** Running tests on table/index layers with memory debugging"
-	make TESTSIZE=$(TESTSIZE)/4 tabletests
+	make @memtestenv@ TESTSIZE=$(TESTSIZE)/4 tabletests
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
-gp_memindextests:
+builtin_memindextests:
 	@echo "*** Running tests on table/index layers with memory debugging"
-	make TESTSIZE=$(TESTSIZE)/4 indextests
+	make @memtestenv@ TESTSIZE=$(TESTSIZE)/4 indextests
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
-gp_memhashindextests:
+builtin_memhashindextests:
 	@echo "*** Running tests on table/index layers with memory debugging"
-	make TESTSIZE=$(TESTSIZE)/4 hashindextests
+	make @memtestenv@ TESTSIZE=$(TESTSIZE)/4 hashindextests
 	@echo "*** Finished running tests on table/index layers with memory debugging"
 
-gp_memdbtests:
+builtin_memdbtests:
 	@echo "*** Running tests on database layers with memory debugging"
-	make TESTSIZE=$(TESTSIZE)/4 dbtests dbhashtests
+	make @memtestenv@ TESTSIZE=$(TESTSIZE)/4 dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with memory debugging"
 
-gp_memdbhashtests:
+builtin_memdbhashtests:
 	@echo "*** Running tests on database layers with memory debugging"
-	make TESTSIZE=$(TESTSIZE)/4 dbhashtests
+	make @memtestenv@ TESTSIZE=$(TESTSIZE)/4 dbhashtests
 	@echo "*** Finished running tests on database layers with memory debugging"
 
 heaptests: @heaptest_prefix@heaptests
@@ -311,24 +312,24 @@ vg_heapdbtests:
 	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with valgrind heap debugging"
 
-gp_heaptests:
+builtin_heaptests:
 	@echo "*** Running alltests with gperftools memory debugging"
-	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 alltests
+	make @heaptestenv@ TESTSIZE=$(TESTSIZE)/8 alltests
 	@echo "*** Finished running alltests with gperftools memory debugging"
 
-gp_heapschemetests:
+builtin_heapschemetests:
 	@echo "*** Running tests on data/eval layers with gperftools memory debugging"
-	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 schemetests
+	make @heaptestenv@ TESTSIZE=$(TESTSIZE)/8 schemetests
 	@echo "*** Finished running tests on data/eval layers with gperftools memory debugging"
 
-gp_heaptabletests:
+builtin_heaptabletests:
 	@echo "*** Running tests on table/index layers with gperftools memory debugging"
-	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 tabletests
+	make @heaptestenv@ TESTSIZE=$(TESTSIZE)/8 tabletests
 	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
 
-gp_heapdbtests:
+builtin_heapdbtests:
 	@echo "*** Running tests on database layers with gperftools memory debugging"
-	make "RUNENV=HEAPCHECK=normal" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
+	make @heaptestenv@ TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with gperftools memory debugging"
 
 randomtests:
