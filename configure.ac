@@ -251,6 +251,7 @@ AC_PATH_PROG(binenv,env)
 AC_CHECK_PROG(ECHO,echo,,/bin/echo)
 AC_PATH_PROG(VALGRIND,valgrind,none)
 AC_PATH_PROG(DUMA,duma,none)
+AC_PATH_PROG(CLANG,clang,none)
 AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs apxs2 apxs)
 AC_CHECK_PROG(CREATEREPO,createrepo,,echo No createrepo for )
 
@@ -259,11 +260,14 @@ if test "x$VALGRIND" != "xnone"; then
   heaptest_prefix=vg_
 fi
 
-AC_ARG_WITH(asan,--with-asan with address sanitizier,,with_asan="no")
-if test "x$with_asan" = "xyes"; then
-   CC=clang
+AC_ARG_WITH(sanitize,--with-sanitize[=address*|memory|thread],with_sanitize=$withval,with_sanitize="none")
+
+if test "x$with_sanitize" = "xnone"; then
+   echo "Configuring normal (no sanitization) build";
+elif test "x$with_sanitize" = "xaddress" ||
+     test "x$with_sanitize" = "x" ||
+     test "x$with_sanitize" = "xyes"; then
    CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
-   LD=clang
    LDFLAGS="-g -fsanitize=address $LDFLAGS"
    build_static=""
    test_static=""
@@ -271,28 +275,43 @@ if test "x$with_asan" = "xyes"; then
    custom_malloc="asan"
    memtest_prefix=builtin_
    heaptest_prefix=builtin_
-fi
-
-AC_ARG_WITH(msan,--with-msan With memory sanitizer,,with_msan="no")
-if test "x$with_msan" = "xyes"; then
-   CC=clang
-   CFLAGS="-fsanitize=memory -fPIE -pie -g -fno-omit-frame-pointer $CFLAGS"
-   LD=clang
+   TESTENV="MEMCHECKING=yes $TESTENV";
+elif test "x$CLANG" = "xnone"; then
+  echo "No clang for sanitizing $with_sanitize";
+  exit;
+elif test "x$with_sanitize" = "xmemory"; then
+   CC=$CLANG
+   CFLAGS="-fsanitize=memory -fPIE -g -fno-omit-frame-pointer $CFLAGS"
+   LD=$CLANG
    LDFLAGS="-g -fsanitize=memory -fPIE -pie -fno-omit-frame-pointer $LDFLAGS"
    build_static=""
    test_static=""
    install_static=""
    custom_malloc="msan"
-elif test "x$with_msan" = "xfull"; then
-   CC=clang
-   CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -pie -g -fno-omit-frame-pointer $CFLAGS"
-   LD=clang
+   TESTENV="MEMCHECKING=yes $TESTENV";
+elif test "x$with_sanitize" = "xleak"; then
+   CC=$CLANG
+   CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -g -fno-omit-frame-pointer $CFLAGS"
+   LD=$CLANG
    LDFLAGS="-g -fsanitize=memory -fno-omit-frame-pointer -fsanitize-memory-track-origins -fPIE -pie -fno-omit-frame-pointer $LDFLAGS"
    build_static=""
    test_static=""
    install_static=""
    custom_malloc="msan-full"
+   TESTENV="MEMCHECKING=yes $TESTENV"
+elif test "x$with_sanitize" = "xthread"; then
+   CC=$CLANG
+   CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
+   LD=$CLANG
+   LDFLAGS="-g -fsanitize=thread -fno-omit-frame-pointer $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="msan"
+   TESTENV="MEMCHECKING=yes $TESTENV"
 fi
+
+AC_DEFINE_UNQUOTED(FD_SANITIZE,"$with_sanitize")
 
 AC_ARG_WITH(duma,--with-duma Build with Detect Unintended Memory Access,with_duma=$withval,with_duma="no")
 

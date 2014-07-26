@@ -30,8 +30,8 @@ LIBINSTALLDIR	= $(DESTDIR)@libdir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
 #RUNENV		= LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib 
-VALGRIND	= INVALGRIND=yes valgrind --tool=memcheck --num-callers=9
-VALGRINDHEAP	= INVALGRIND=yes valgrind --tool=memcheck --leak-check=yes --num-callers=9
+VALGRIND	= INVALGRIND=yes MEMCHECKING=yes valgrind --tool=memcheck --num-callers=9
+VALGRINDHEAP	= INVALGRIND=yes MEMCHECKING=yes valgrind --tool=memcheck --leak-check=yes --num-callers=9
 TESTPROG	= 
 TESTENV		= @TESTENV@
 RUNENV		= 

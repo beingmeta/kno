@@ -355,4 +355,7 @@
 /* The name of the program for wrapping exec calls (usually /bin/env) */
 #undef FD_EXEC_WRAPPER
 
+/* What kind of sanitization (if any) is being applied */
+#undef FD_SANITIZE
+
 #endif
