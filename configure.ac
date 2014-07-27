@@ -252,6 +252,8 @@ AC_PATH_PROG(DUMA,duma,none)
 AC_PATH_PROG(CLANG,clang,none)
 AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr/bin/apxs /usr/sbin/apxs2 /usr/sbin/apxs apxs2 apxs)
 AC_CHECK_PROG(CREATEREPO,createrepo,,echo No createrepo for )
+AC_CHECK_PROGS(LLVM_SYMBOLIZER,llvm-symbolizer-3.5,llvm-symbolizer-3.4)
+AC_PATH_PROG(LLVM_SYMBOLIZER_PATH,$LLVM_SYMBOLIZER)
 
 if test "x$VALGRIND" != "xnone"; then
   memtest_prefix=vg_
@@ -273,30 +275,30 @@ elif test "x$with_sanitize" = "xaddress" ||
    custom_malloc="asan"
    memtest_prefix=builtin_
    heaptest_prefix=builtin_
-   TESTENV="MEMCHECKING=yes $TESTENV";
+   TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
+elif test "x$with_sanitize" = "xleak"; then
+   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
+   LDFLAGS="-g -fsanitize=address $LDFLAGS"
+   build_static=""
+   test_static=""
+   install_static=""
+   custom_malloc="asan"
+   memtest_prefix=builtin_
+   heaptest_prefix=builtin_
+   TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $TESTENV";
 elif test "x$CLANG" = "xnone"; then
   echo "No clang for sanitizing $with_sanitize";
   exit;
 elif test "x$with_sanitize" = "xmemory"; then
    CC=$CLANG
-   CFLAGS="-fsanitize=memory -fPIE -g -fno-omit-frame-pointer $CFLAGS"
-   LD=$CLANG
-   LDFLAGS="-g -fsanitize=memory -fPIE -pie -fno-omit-frame-pointer $LDFLAGS"
-   build_static=""
-   test_static=""
-   install_static=""
-   custom_malloc="msan"
-   TESTENV="MEMCHECKING=yes $TESTENV";
-elif test "x$with_sanitize" = "xleak"; then
-   CC=$CLANG
    CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -g -fno-omit-frame-pointer $CFLAGS"
    LD=$CLANG
-   LDFLAGS="-g -fsanitize=memory -fno-omit-frame-pointer -fsanitize-memory-track-origins -fPIE -pie -fno-omit-frame-pointer $LDFLAGS"
+   LDFLAGS="-g -fsanitize=memory -fsanitize-memory-track-origins -pie -fno-omit-frame-pointer $LDFLAGS"
    build_static=""
    test_static=""
    install_static=""
    custom_malloc="msan-full"
-   TESTENV="MEMCHECKING=yes $TESTENV"
+   TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
 elif test "x$with_sanitize" = "xthread"; then
    CC=$CLANG
    CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
@@ -306,7 +308,7 @@ elif test "x$with_sanitize" = "xthread"; then
    test_static=""
    install_static=""
    custom_malloc="msan"
-   TESTENV="MEMCHECKING=yes $TESTENV"
+   TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
 fi
 
 AC_DEFINE_UNQUOTED(FD_SANITIZE,"$with_sanitize")
