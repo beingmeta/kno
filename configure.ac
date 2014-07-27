@@ -2,8 +2,6 @@ AC_PREREQ(2.50)
 AC_INIT(include/framerd/dtype.h)
 AC_PREFIX_PROGRAM(autoconf)
 
-m4_include([etc/ax_pthread.m4])
-
 AC_DEFUN([AC_CHECK_USER],[
 AC_MSG_CHECKING([for user $1])
   found_user="none";
@@ -320,6 +318,8 @@ AC_PROG_CC([cc gcc])
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_INSTALL
 AC_PROG_RANLIB
+
+m4_include([etc/ax_pthread.m4])
 
 AC_DEFINE_UNQUOTED(FD_VERSION,"$FDVERSION")
 AC_DEFINE_UNQUOTED(FD_MAJOR_VERSION,$FDMAJOR)
@@ -928,7 +928,7 @@ AC_ARG_WITH(ziptools,--with-ziptools Build and install ziptools,,with_ziptools=$
 if test "x$with_ziptools" == "xyes"; then
   CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
   CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
-  LDFLAGS="${CFLAGS} ${LIBZIP_LDFLAGS}"
+  LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
   AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
   if (test "x$have_zip_h" = "xyes"); then
     AC_CHECK_LIB(zip,zip_add)
@@ -1301,7 +1301,7 @@ fi
 dnl Enables/disables linking with RPATH
 AC_ARG_ENABLE(rpath,--en[dis]able-rpath usage)
 if test "x$enable_rpath" != "xno" && test "$prefix" != "/usr" && test "$prefix" != "/usr/local"; then
-  EXELDFLAGS="$EXELDFLAGS -Wl,-rpath,\$(LIBINSTALLDIR)"
+  EXELDFLAGS="${EXELDFLAGS} -Wl,-rpath,\$(LIBINSTALLDIR)"
 fi
 
 AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
