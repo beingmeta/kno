@@ -104,11 +104,16 @@ define inchoicep
 end
 
 set breakpoint pending on
+set disable-randomization off
+set overload-resolution off
 
 break u8_new_exception
 break _fd_debug
 break _u8_dbg
 break u8_raise
+break __msan_warning
+break __msan_warning_noreturn
+break __asan_report_error
 #break abort
 #break exit
 
