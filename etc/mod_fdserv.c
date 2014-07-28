@@ -1150,8 +1150,10 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   /* Executable, socket name, NULL, LOG_FILE env, NULL */
   const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
   struct stat stat_data; int rv, n_configs=0, retval=0;
-  const char *lockname=apr_pstrcat(p,sockname,".launch",NULL);
-  
+  const char *lockname=apr_pstrcat(p,sockname,".spawn",NULL);
+  apr_file_t *lockfile;
+  int unlock=0;
+
   server_rec *server=r->server;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(r->server->module_config,&fdserv_module);
@@ -1178,7 +1180,8 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   if (servlet_wait<0) servlet_wait=dconfig->servlet_spawn;
   if (servlet_wait<0) servlet_wait=dconfig->servlet_wait;
   if (servlet_wait<0) servlet_wait=sconfig->servlet_wait;
-  if ((servlet_wait<0)&&((strchr(sockname,'@')!=NULL)||(strchr(sockname,':')!=NULL)))
+  if ((servlet_wait<0)&&
+      ((strchr(sockname,'@')!=NULL)||(strchr(sockname,':')!=NULL)))
     servlet_wait=0;
   else if (servlet_wait<0)
     servlet_wait=DEFAULT_SERVLET_WAIT;
@@ -1187,28 +1190,43 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   apr_uid_current(&uid,&gid,p);
 
   if (servlet_wait) {
-    apr_file_t *lockfile;
     apr_status_t lock_status=
       apr_file_open(&lockfile,lockname,
-		    APR_FOPEN_WRITE|APR_FOPEN_CREATE|APR_FOPEN_EXCL,
-		    0666,p);
+		    APR_FOPEN_READ|APR_FOPEN_WRITE|APR_FOPEN_CREATE,
+		    APR_FPROT_OS_DEFAULT,
+		    p);
     if (lock_status!=OK) {
       char errbuf[512];
-      ap_log_error(APLOG_MARK,APLOG_CRIT,lock_status,server,
-		   "Failed to open lock file %s with status %d (%s) for %s uid=%d gid=%d",
-		   lockname,lock_status,apr_strerror(lock_status,errbuf,512),
-		   r->unparsed_uri,uid,gid);
-      s->spawning=apr_time_now();}
-    else apr_file_close(lockfile);}
-
-  if (servlet_wait==0) {
+      ap_log_error
+	(APLOG_MARK,APLOG_CRIT,lock_status,server,
+	 "Failed to open lock file %s with status %d (%s) for %s uid=%d gid=%d",
+	 lockname,lock_status,apr_strerror(lock_status,errbuf,512),
+	 r->unparsed_uri,uid,gid);}
+    else {
+      lock_status=apr_file_lock
+	(lockfile,APR_FLOCK_EXCLUSIVE|APR_FLOCK_NONBLOCK);
+      if (lock_status!=OK) {
+	char errbuf[512];
+	ap_log_error
+	  (APLOG_MARK,APLOG_CRIT,lock_status,server,
+	   "Failed get spawn lock %s with status %d (%s) for %s uid=%d gid=%d",
+	   lockname,lock_status,apr_strerror(lock_status,errbuf,512),
+	   r->unparsed_uri,uid,gid);
+	s->spawning=apr_time_now();}
+      else {
+	unlock=1;
+	ap_log_error
+	  (APLOG_MARK,APLOG_WARNING,lock_status,server,
+	   "Got spawn lock %s for %s uid=%d gid=%d",
+	   lockname,r->unparsed_uri,uid,gid);}}}
+  else {
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
 		 "Waiting on external socket %s for %s, uid=%d, gid=%d",
 		 sockname,r->unparsed_uri,uid,gid);
     return 0;}
   
   if (log_file==NULL) log_file=get_log_file(r,sockname);
-    
+  
   if (s->spawning) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
 		 "Waiting on spawned socket %s for %s, uid=%d, gid=%d",
@@ -1225,12 +1243,13 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
 		 "Can't write socket file '%s' (%s) for %s, uid=%d, gid=%d",
 		 sockname,exename,r->unparsed_uri,uid,gid);
+    if (unlock) apr_file_unlock(lockfile);
     return -1;}
   if ((log_file) && (!(file_writablep(p,server,log_file)))) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
 		 "Logfile %s isn't writable for processing %s",
 		 log_file,r->unparsed_uri);
-    apr_file_remove(lockname,p);
+    if (unlock) apr_file_unlock(lockfile);
     return -1;}
     
   if (log_file)
@@ -1407,6 +1426,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 		      sockname,sleep_count,servlet_wait,
 		      errno,strerror(errno));
 	errno=0;
+	if (unlock) apr_file_unlock(lockfile);
 	apr_file_remove(lockname,p);
 	return -1;}
       if (((sleep_count+1)%4)==0) {
@@ -1418,8 +1438,10 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
       else sleep(1);
       sleep_count++;}
     s->spawned=apr_time_now();
-    apr_file_remove(lockname,p);
     s->spawning=0;}
+
+  if (unlock) apr_file_unlock(lockfile);
+  apr_file_remove(lockname,p);
 
   if (rv>=0) return 1;
   else return retval;
