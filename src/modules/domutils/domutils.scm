@@ -19,7 +19,7 @@
    dom/append! dom/prepend!
    dom/remove-child! dom/remove!
    dom/replace-child! dom/replace!
-   dom/selector dom/match dom/lookup
+   dom/selector dom/match dom/lookup dom/selector? dom/selector->string
    dom/select dom/select->list dom/find->list
    dom/getrules dom/add-rule!
    dom/search dom/search/first dom/strip! dom/map dom/map! dom/combine!
@@ -421,11 +421,21 @@
 
 ;;; Selector functions
 
-;;; Currently, we're ignoring attribs (just like the Javascript version)
-
 (defrecord selector tag (class #f) (id #f) (attribs {}) (context '()))
 
 (define xmlid #((isalpha) (opt (isalnum+)) (* #("_" (opt (isalnum+))))))
+
+(define (dom/selector? x) (selector? x))
+(define (dom/selector->string sel)
+  (stringout (if (selector-tag sel) (selector-tag sel))
+    (if (selector-id sel) (printout "#" (selector-id sel)))
+    (when (selector-class sel)
+      (do-choices (cl (selector-class sel)) (printout "." cl)))
+    (when (selector-attribs sel)
+      (do-choices (a (selector-attribs sel))
+	(if (null? (cdr a))
+	    (printout "[" (car a) "]")
+	    (printout "[" (car a) "=" (cdr a) "]"))))))
 
 (define selector-pattern
   `{#("." (label classname ,xmlid))
