@@ -34,7 +34,7 @@ static fdtype server_port, remote_port, request_method, status_field;
 static fdtype get_method, post_method, browseinfo_symbol, redirect_field;
 static fdtype query_string, query_elts, query, http_cookie, http_referrer;
 static fdtype http_headers, html_headers, cookiedata_symbol;
-static fdtype cookies_symbol, incookies_symbol, bad_cookie, text_symbol;
+static fdtype outcookies_symbol, incookies_symbol, bad_cookie, text_symbol;
 static fdtype doctype_slotid, xmlpi_slotid, html_attribs_slotid;
 static fdtype body_attribs_slotid, body_classes_slotid, class_symbol;
 static fdtype content_slotid, content_type, cgi_content_type;
@@ -311,18 +311,18 @@ static void setcookiedata(fdtype cookiedata,fdtype cgidata)
   /* This replaces any existing cookie data which matches cookiedata */
   fdtype cookies=
     ((FD_TABLEP(cgidata))?
-     (fd_get(cgidata,cookies_symbol,FD_EMPTY_CHOICE)):
-     (fd_req_get(cookies_symbol,FD_EMPTY_CHOICE)));
+     (fd_get(cgidata,outcookies_symbol,FD_EMPTY_CHOICE)):
+     (fd_req_get(outcookies_symbol,FD_EMPTY_CHOICE)));
   fdtype cookievar=FD_VECTOR_REF(cookiedata,0);
   FD_DO_CHOICES(cookie,cookies) {
     if (FD_EQ(FD_VECTOR_REF(cookie,0),cookievar)) {
       if (FD_TABLEP(cgidata))
-	fd_drop(cgidata,cookies_symbol,cookie);
-      else fd_req_drop(cookies_symbol,cookie);}}
+	fd_drop(cgidata,outcookies_symbol,cookie);
+      else fd_req_drop(outcookies_symbol,cookie);}}
   fd_decref(cookies);
   if ((cgidata)&&(FD_TABLEP(cgidata)))
-    fd_add(cgidata,cookies_symbol,cookiedata);
-  else fd_req_add(cookies_symbol,cookiedata);
+    fd_add(cgidata,outcookies_symbol,cookiedata);
+  else fd_req_add(outcookies_symbol,cookiedata);
 }
 
 static void convert_cookie_arg(fd_slotmap c)
@@ -331,34 +331,38 @@ static void convert_cookie_arg(fd_slotmap c)
   if (!(FD_STRINGP(qval))) {fd_decref(qval); return;}
   else {
     fdtype slotid=FD_VOID, name=FD_VOID, value=FD_VOID;
-    int len=FD_STRLEN(qval); int isascii=1;
+    int len=FD_STRLEN(qval); int isascii=1, badcookie=0;
     u8_byte *scan=FD_STRDATA(qval), *end=scan+len;
     char *buf=u8_malloc(len), *write=buf;
     while (scan<end)
       if ((FD_VOIDP(slotid)) && (*scan=='=')) {
-	/* These are cookies which may overlap HTTP state information */
+        /* There's an assignment going on. */
 	*write++='\0';
 	name=fdtype_string(buf);
-	if (strncmp(buf,"HTTP",4)==0) slotid=bad_cookie;
-	else if (isascii) slotid=fd_parse(buf);
+	if ((buf[0]=='_')||(strncmp(buf,"HTTP",4)==0)) badcookie=1;
+        else badcookie=0;
+        if (isascii) slotid=fd_parse(buf);
 	else {
 	  u8_string s=u8_valid_copy(buf);
 	  slotid=fd_parse(s);
           u8_free(s);}
-	if (slotid==bad_cookie)
-	  write[-1]='=';
-	else {write=buf; isascii=1;}
+        write=buf; isascii=1;
 	scan++;}
       else if (*scan==';') {
 	*write++='\0';
-	if (FD_VOIDP(slotid)) value=buf2string(buf,isascii);
-	else value=buf2lisp(buf,isascii);
+	if (FD_VOIDP(slotid))
+          /* If there isn't a slot/symbol/etc, just store a string */
+          value=buf2string(buf,isascii);
+	else /* Otherwise, parse to LISP */
+          value=buf2lisp(buf,isascii);
 	if (FD_VOIDP(slotid))
 	  u8_log(LOG_WARN,_("malformed cookie"),"strange cookie syntax: \"%s\"",
-		  FD_STRDATA(qval));
+                 FD_STRDATA(qval));
 	else {
 	  fdtype cookiedata=fd_make_nvector(2,name,fd_incref(value));
-	  fd_slotmap_add(c,slotid,value);
+	  if (badcookie)
+            fd_slotmap_add(c,bad_cookie,cookiedata);
+          else fd_slotmap_add(c,slotid,value);
 	  fd_slotmap_add(c,cookiedata_symbol,cookiedata);
 	  setcookiedata(cookiedata,(fdtype)c);
 	  name=FD_VOID;
@@ -378,8 +382,9 @@ static void convert_cookie_arg(fd_slotmap c)
 	  *write++=c;}
       else if (*scan == '+') {*write++=' '; scan++;}
       else if (*scan == ' ') scan++;
-      else if (*scan<0x80) *write++=*scan++;
-      else {*write++=*scan++; isascii=0;}
+      else {
+        if (*scan<0x80) isascii=0;
+        *write++=*scan++; }
     if (write>buf) {
       *write++='\0';
       if (FD_VOIDP(slotid)) value=buf2string(buf,isascii);
@@ -389,14 +394,16 @@ static void convert_cookie_arg(fd_slotmap c)
 		FD_STRDATA(qval));
       else {
 	fdtype cookiedata=fd_make_nvector(2,name,fd_incref(value));
-	fd_slotmap_add(c,slotid,value);
-	fd_slotmap_add(c,cookiedata_symbol,cookiedata);
+        if (badcookie)
+          fd_slotmap_add(c,bad_cookie,cookiedata);
+        else fd_slotmap_add(c,slotid,value);
+        fd_slotmap_add(c,cookiedata_symbol,cookiedata);
 	setcookiedata(cookiedata,(fdtype)c);
 	fd_decref(cookiedata);}
       fd_decref(value); value=FD_VOID; slotid=FD_VOID;
       write=buf; isascii=1; scan++;}
-    fd_slotmap_store(c,incookies_symbol,qval);
-    fd_slotmap_store(c,cookies_symbol,FD_EMPTY_CHOICE);
+    fd_slotmap_add(c,incookies_symbol,qval);
+    fd_slotmap_store(c,outcookies_symbol,FD_EMPTY_CHOICE);
     fd_decref(qval);
     u8_free(buf);}
 }
@@ -678,7 +685,7 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   fdtype status=fd_get(cgidata,status_field,FD_VOID);
   fdtype headers=fd_get(cgidata,http_headers,FD_EMPTY_CHOICE);
   fdtype redirect=fd_get(cgidata,redirect_field,FD_VOID);
-  fdtype cookies=fd_get(cgidata,cookies_symbol,FD_EMPTY_CHOICE);
+  fdtype cookies=fd_get(cgidata,outcookies_symbol,FD_EMPTY_CHOICE);
   if ((FD_STRINGP(redirect))&&(FD_VOIDP(status))) {
     status=FD_INT2DTYPE(303);}
   if (FD_FIXNUMP(status))
@@ -1081,10 +1088,10 @@ FD_EXPORT void fd_init_cgiexec_c()
   http_referrer=fd_intern("HTTP_REFERRER");
   
   http_cookie=fd_intern("HTTP_COOKIE");
-  cookies_symbol=fd_intern("COOKIES");
-  incookies_symbol=fd_intern("COOKIES%IN");
-  bad_cookie=fd_intern("BADCOOKIES");
-  cookiedata_symbol=fd_intern("COOKIEDATA");
+  outcookies_symbol=fd_intern("_COOKIES%OUT");
+  incookies_symbol=fd_intern("_COOKIES%IN");
+  bad_cookie=fd_intern("_BADCOOKIES");
+  cookiedata_symbol=fd_intern("_COOKIEDATA");
 
   server_port=fd_intern("SERVER_PORT");
   remote_port=fd_intern("REMOTE_PORT");
