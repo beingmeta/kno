@@ -22,20 +22,20 @@ pre-start script
    chmod g+rwx @rundir@/framerd @logdir@/framerd
 
    for ctl in $(find @config_dir@/daemons/ -name "*.fdz" -mindepth 1 -maxdepth 1);
-     do if (readlink ${ctl}>/dev/null);
-        then start fdserver CTL=`readlink ${ctl}`;
-        else start fdserver CTL=${ctl}; fi;
-     done;
+     do start fdserver CTL=`basename $ctl`; done;
+   # Start the local (UNIX/FILE domain) servlets
    for sock in $(find @config_dir@/servlets/ -name "*.sock" -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
         then start fdservlet SOCKET=`basename ${sock}` CONFIG=`readlink ${sock}`;
         else start fdservlet SOCKET=`basename ${sock}` CONFIG=${sock}; fi;
      done;
+   # Start the port@host network servlets
    for sock in $(find @config_dir@/servlets/ -name "*@*" -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
         then start fdservlet SOCKET=`basename ${sock}` CONFIG=`readlink ${sock}`;
         else start fdservlet SOCKET=`basename ${sock}` CONFIG=${sock}; fi;
      done;
+   # Start the host:port network servlets
    for sock in $(find @config_dir@/servlets/ -name "*:*" -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
         then start fdservlet SOCKET=`basename ${sock}` CONFIG=`readlink ${sock}`;

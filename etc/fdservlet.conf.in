@@ -3,6 +3,7 @@ author "Ken Haase"
 description "FramerD servlet"
 expect daemon
 console none
+chdir @config_dir@/servlets
 respawn
 
 limit nofile 20000 20000
