@@ -1,7 +1,6 @@
 instance $CTL
 author "Ken Haase"
 description "FramerD DType server"
-chdir @config_dir@/daemons
 expect daemon
 console none
 respawn
@@ -13,7 +12,7 @@ kill timeout 90 # wait 90s between SIGTERM and SIGKILL.
 env LOGDIR=@logdir@/framerd
 setuid @fdaemon@
 setgid @admin_group@
-exec @prefix@/bin/fdserver `readlink ${CTL}||echo ${CTL}` STATEDIR=@rundir@/framerd
+exec @prefix@/bin/fdserver ${CTL} STATEDIR=@rundir@/framerd
 
 
 
