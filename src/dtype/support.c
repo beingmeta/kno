@@ -1769,7 +1769,7 @@ static u8_mutex log_lock;
 
 #define MAX_LOGLEVEL 8 
 static char *loglevel_names[]=
-  {"Emergency","Alert","Critical","Error","Warning","Notice",
+  {"Emergency","Alert","Critical","Error","Warning","Notice","Info",
    "Debug","Detail","Deluge"};
 
 U8_EXPORT int u8_default_logger(int loglevel,u8_condition c,u8_string message);
