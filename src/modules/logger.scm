@@ -110,8 +110,8 @@
     `(logif+ (>= %loglevel ,(cadr expr)) ,(cadr expr) ,@(cddr expr))))
 
 ;; These all call the regular log function
-(define logdeluge! (macro expr `(logmsg 7 ,@(cdr expr))))
-(define logdetail! (macro expr `(logmsg 7 ,@(cdr expr))))
+(define logdeluge! (macro expr `(logmsg 9 ,@(cdr expr))))
+(define logdetail! (macro expr `(logmsg 8 ,@(cdr expr))))
 (define logdebug! (macro expr `(logmsg 7 ,@(cdr expr))))
 (define loginfo! (macro expr `(logmsg 6 ,@(cdr expr))))
 (define lognotice! (macro expr `(logmsg 5 ,@(cdr expr))))
@@ -124,9 +124,9 @@
 ;;; These all check the local %loglevel, except if the priority is
 ;;;  worse than an error.
 (define logdeluge
-  (macro expr `(logif+ (>= %loglevel ,%deluge%) 7 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%deluge%) 9 ,@(cdr expr))))
 (define logdetail
-  (macro expr `(logif+ (>= %loglevel ,%detail%) 7 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%detail%) 8 ,@(cdr expr))))
 (define logdebug
   (macro expr `(logif+ (>= %loglevel ,%debug%) 7 ,@(cdr expr))))
 (define loginfo
@@ -149,9 +149,9 @@
 (define %debug
   (macro expr `(logif+ (>= %loglevel ,%debug%) 7 ,@(cdr expr))))
 (define %detail
-  (macro expr `(logif+ (>= %loglevel ,%detail%) 7 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%detail%) 8 ,@(cdr expr))))
 (define %deluge
-  (macro expr `(logif+ (>= %loglevel ,%deluge%) 7 ,@(cdr expr))))
+  (macro expr `(logif+ (>= %loglevel ,%deluge%) 9 ,@(cdr expr))))
 
 ;;; %loglevel checking watchpoints
 (define deluge%watch
