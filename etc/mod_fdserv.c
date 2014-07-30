@@ -666,9 +666,10 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
   struct FDSERV_DIR_CONFIG *dconfig=mconfig;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(parms->server->module_config,&fdserv_module);
+  struct server_rec *srv=parms->server;
   const char *fullpath=NULL, *spec=NULL;
 
-  if (arg[0]=='/') spec=arg;
+  if (arg[0]=='/') spec=fullpath=arg;
   else if ((strchr(arg,'@'))||(strchr(arg,':'))) spec=arg;
   else if (dconfig->socket_prefix)
     spec=fullpath=apr_pstrcat(parms->pool,dconfig->socket_prefix,arg,NULL);
@@ -679,11 +680,19 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
   dconfig->socket_spec=spec;
   
   if (!(fullpath))
-    ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,"Socket spec=%s",spec);
+    ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
+		 "For host '%s' from %s, fdserv socket=%s",
+		 srv->server_hostname,srv->defn_name,
+		 spec);
   else if (!(file_writablep(parms->pool,parms->server,fullpath)))
-    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,"Socket file %s=%s is unwritable",
-       arg,fullpath);
-  else ap_log_error(APLOG_MARK,LOGDEBUG,OK,parms->server,"Socket file %s=%s",arg,fullpath);
+    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,
+		 "For host '%s' from %s, fdserv socket %s=%s is unwritable",
+		 srv->server_hostname,srv->defn_name,
+		 arg,fullpath);
+  else ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
+		    "For host '%s' from %s, fdserv socket %s=%s",
+		    srv->server_hostname,srv->defn_name,
+		    arg,fullpath);
   return NULL;
 }
 
@@ -971,7 +980,7 @@ static const char *socket_prefix(cmd_parms *parms,void *mconfig,const char *arg)
     ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
 		 "Socket Prefix set to %s for path %s",
 		 fullpath,parms->path);
-  else ap_log_error(APLOG_MARK,LOGDEBUG,OK,parms->server,
+  else ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
 		    "Socket Prefix set to %s for server %s",
 		    fullpath,parms->server->server_hostname);
   
@@ -1001,7 +1010,7 @@ static const char *log_prefix(cmd_parms *parms,void *mconfig,const char *arg)
     ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
 		 "Log Prefix set to %s for path %s",
 		 fullpath,parms->path);
-  else ap_log_error(APLOG_MARK,LOGDEBUG,OK,parms->server,
+  else ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
 		    "Log Prefix set to %s for server %s",
 		    fullpath,parms->server->server_hostname);
 
@@ -1233,7 +1242,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 		 sockname,r->unparsed_uri,uid,gid);
     return spawn_wait(s,r);}
   else {
-    ap_log_error(APLOG_MARK,APLOG_DEBUG,OK,server,
+    ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
 		 "Spawning %s %s for %s, uid=%d, gid=%d",
 		 exename,sockname,r->unparsed_uri,uid,gid);
     s->spawning=apr_time_now();
@@ -1690,9 +1699,9 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 	close(unix_sock);
 	return NULL;}
       else if (rv)
-	ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
+	ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
 		      "Spawn succeeded, waiting to connect to %s",sockname);
-      else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
+      else ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
 			 "Waiting to connect to %s",sockname);}
     if ((connval<0)&&(file_socket_existsp(pool,r->server,sockname))) {
       int wait=get_servlet_wait(r), count=0;
