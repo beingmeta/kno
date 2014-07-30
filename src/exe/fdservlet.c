@@ -922,7 +922,9 @@ static int webservefn(u8_client ucl)
 	/* Save the output to date on the request */
 	fd_store(init_cgidata,output_symbol,output);
 	fd_decref(output);}
-      cgidata=init_cgidata;
+      fd_decref(cgidata);
+      cgidata=fd_deep_copy(init_cgidata);
+      fd_use_reqinfo(cgidata); 
       /* Reset the output stream */
       outstream->u8_outptr=outstream->u8_outbuf;
       /* Apply the error page object */
@@ -1165,7 +1167,7 @@ static int webservefn(u8_client ucl)
   fd_use_reqinfo(FD_EMPTY_CHOICE);
   fd_reqlog(-1);
   fd_thread_set(browseinfo_symbol,FD_VOID);
-  fd_decref(init_cgidata);
+  fd_decref(init_cgidata); init_cgidata=FD_VOID;
   fd_clear_errors(1);
   write_time=u8_elapsed_time();
   getloadavg(end_load,3);
