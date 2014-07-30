@@ -852,10 +852,17 @@ static fdtype cgigetvar(fdtype cgidata,fdtype var)
     if (*data=='\0') return val;
     else if (strchr("@{#(",data[0])) {
       fdtype parsed=fd_parse_arg(data);
-      fd_decref(val); return parsed;}
+      if (FD_ABORTP(parsed)) {
+        fd_decref(parsed); fd_clear_errors(0);
+        return val;}
+      else {
+        fd_decref(val); return parsed;}}
     else if (isdigit(data[0])) {
       fdtype parsed=fd_parse_arg(data);
-      if (FD_NUMBERP(parsed)) {
+      if (FD_ABORTP(parsed)) {
+        fd_decref(parsed); fd_clear_errors(0);
+        return val;}
+      else if (FD_NUMBERP(parsed)) {
 	fd_decref(val); return parsed;}
       else {
 	fd_decref(parsed); return val;}}
