@@ -71,15 +71,15 @@
 	  (cons (car lst) (remove-duplicates (cdr lst))))))
 
 (define (get-preferred-languages)
-  (try (if (exists? (cgiget 'accepted-languages))
+  (try (if (exists? (req/get 'accepted-languages))
 	   ;; If the have one or zero languages accepted,
 	   ;; add in the defaults just for flash value
-	   (let* ((ordered-prefs (sorted (elts (cgiget 'accepted-languages))
+	   (let* ((ordered-prefs (sorted (elts (req/get 'accepted-languages))
 					 cdr))
 		  (langs (remove-duplicates
 			  (map lookup-langid
 			       (map car (->list (reverse ordered-prefs)))))))
-	     (if (< (length (cgiget 'accepted-languages)) 3)
+	     (if (< (length (req/get 'accepted-languages)) 3)
 		 (append langs
 			 (choice->list (difference (elts default-languages)
 						   (elts langs))))
@@ -91,15 +91,15 @@
   (first (get-preferred-languages)))
 
 (define (get-languages (var 'languages))
-  (try (cgiget var) (elts (get-preferred-languages))))
+  (try (req/get var) (elts (get-preferred-languages))))
 (define getlanguages get-languages)
 (define (get-language (var 'language))
-  (if (cgitest (intern (stringout "X_" var)))
-      (let ((lang (cgiget (intern (stringout "X_" var)))))
+  (if (req/test (intern (stringout "X_" var)))
+      (let ((lang (req/get (intern (stringout "X_" var)))))
 	(message "Switching language to " lang)
-	(cgiset! var lang)
+	(req/set! var lang)
 	lang)
-      (try (cgiget var)
+      (try (req/get var)
 	   (first (get-preferred-languages)))))
 (define getlanguage get-language)
 
@@ -110,7 +110,7 @@
 ;; (define (get-browse-language f)
 ;;   (let* ((var 'language)
 ;; 	 (preferred (get-preferred-languages))
-;; 	 (languages (try (cgiget var #t) (car preferred))))
+;; 	 (languages (try (req/get var #t) (car preferred))))
 ;;     languages))
 
 
@@ -123,9 +123,9 @@
   (let* ((var (if (symbol? name) name (string->lisp name)))
 	 (language (get-language var))
 	 (languages (get-languages)))
-    (cgiset! var language)
+    (req/set! var language)
     (unless (overlaps? language languages)
-      (cgiset! 'languages (choice language languages)))
+      (req/set! 'languages (choice language languages)))
     (xmlout
       (span (class "langbox_title") (if title (xmleval title %env)))
       (span (class (if (> (choice-size languages) 3) "langbox" "langbox_rigid"))
@@ -157,8 +157,8 @@
 	 name (onchange #f) (action #f) (selectbox #t) (multiple #t))
   (let* ((var (if (string? name) (string->symbol name) name))
 	 (preferred (get-preferred-languages))
-	 (languages (try (cgiget var) (car preferred))))
-    (if (and (fail? (cgiget var)) (= (length preferred) 1) (not selectbox))
+	 (languages (try (req/get var) (car preferred))))
+    (if (and (fail? (req/get var)) (= (length preferred) 1) (not selectbox))
 	(xmlout)
       (span (class (if (> (choice-size languages) 3) "langbox" "langbox_rigid"))
 	(dolist (lang preferred)
@@ -189,7 +189,7 @@
 			(if (sequence? languagesarg) languagesarg
 			    (sorted languagesarg get-language-name))
 			(get-preferred-languages)))
-	 (language (try (cgiget var) (first languages))))
+	 (language (try (req/get var) (first languages))))
     ;; (xmlout "larg=" languagesarg "; languages=" languages "; language=" language)
     (xmlblock SELECT ((name "LANGUAGE")
 		      (class "langbox")
@@ -222,7 +222,7 @@
 			(if (sequence? languagesarg) languagesarg
 			    (sorted languagesarg))
 		      (get-preferred-languages)))
-	 (language (try (cgiget var) (car languages))))
+	 (language (try (req/get var) (car languages))))
     (xmlblock SELECT ((name id) (size 5)
 		      (class "langbox")
 		      (onchange (if onchange onchange))
@@ -410,7 +410,7 @@
 
 (define (get-label-fcn)
   (try (threadget 'conceptlabel)
-       (cgiget 'conceptlabel)
+       (req/get 'conceptlabel)
        concept-label-fcn))
 
 (define (title-gloss?)
@@ -433,13 +433,13 @@
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
 		       (pick-one ((get-label-fcn) oid language)))))
-	 (selected (default selected (and var (cgitest var tag)))))
+	 (selected (default selected (and var (req/test var tag)))))
     (span ((class "concept")
 	   (oid (if oid oid))
 	   (gloss (ifexists gloss))
 	   (dterm (ifexists (pick-one dterm)))
 	   (resolved (if oid "yes"))
-	   (title (if (not (cgiget 'notitle (not title-gloss)))
+	   (title (if (not (req/get 'notitle (not title-gloss)))
 		      (ifexists gloss)))
 	   (tag tag)
 	   (text text))
@@ -459,18 +459,18 @@
 	 (text (if (pair? tag) (car tag)
 		   (if (string? tag) tag
 		       (pick-one ((get-label-fcn) oid language)))))
-	 (selected (default selected (and var (cgitest var tag)))))
+	 (selected (default selected (and var (req/test var tag)))))
     (anchor* (or url oid)
 	((class "concept")
 	 (oid (if oid oid))
 	 (dterm (ifexists (pick-one dterm)))
 	 (gloss (ifexists gloss))
-	 (title (if (not (cgiget 'notitle (not title-gloss)))
+	 (title (if (not (req/get 'notitle (not title-gloss)))
 		    (ifexists gloss)))
 	 (target (if target
 		     (if (string? target) target
-			 (if (and (cgitest 'browsetarget) (cgiget 'browsetarget))
-			     (cgiget 'browsetarget)))))
+			 (if (and (req/test 'browsetarget) (req/get 'browsetarget))
+			     (req/get 'browsetarget)))))
 	 (text text))
       (when var
 	(if selected

@@ -18,7 +18,7 @@
 		 "https://"
 		 "http://")
     (req/get 'SERVER_NAME)
-    (when (cgitest 'SERVER_PORT)
+    (when (req/test 'SERVER_PORT)
       (unless (or (and (= (req/get 'SERVER_PORT) 80)
 		       (not (req/test 'https "on")))
 		  (= (req/get 'SERVER_PORT) 443))
@@ -110,21 +110,21 @@
 (define (tabbutton text image content
 		   (selectvar 'livetab) (defaultselect #f)
 		   (title #f))
-  (if (and selectvar (cgitest selectvar))
-      (when (cgitest selectvar content)
+  (if (and selectvar (req/test selectvar))
+      (when (req/test selectvar content)
 	(input id (stringout selectvar "_INPUT") 
 	       type "HIDDEN" name (symbol->string selectvar)
 	       value content))
       (when defaultselect
 	(when selectvar
-	  (cgiset! selectvar content)
+	  (req/set! selectvar content)
 	  (input id (stringout selectvar "_INPUT") 
 		 type "HIDDEN" name (symbol->string selectvar)
 		 value content))))
   (span ((class "tab")
 	 (selectvar (if selectvar (symbol->string selectvar)))
 	 (title (if title title))
-	 (shown (if (if selectvar (cgitest selectvar content)
+	 (shown (if (if selectvar (req/test selectvar content)
 			defaultselect)
 		    "yes"))
 	 (contentid content))
@@ -168,23 +168,23 @@
 (define (hotcheck/radio var val (text #f) (title #f))
   (span ((class "hotcheck") (title (if title title))
 	 (onclick "_fdb_hotcheck_click(event);")
-	 (style (if (cgitest var val) "font-weight: bold;")))
+	 (style (if (req/test var val) "font-weight: bold;")))
     (span ((class "left")) (or text val))
     (input TYPE "radio"
 	   NAME (if (symbol? var) var (stringout var))
 	   VALUE val
-	   ("CHECKED" (cgitest var val)))
+	   ("CHECKED" (req/test var val)))
     (span ((class "right")) (or text val))))
 
 (define (hotcheck var val (text #f) (title #f))
   (span ((class "hotcheck") (title (if title title))
 	 (onclick "_fdb_hotcheck_click(event);")
-	 (style (if (cgitest var val) "font-weight: bold;")))
+	 (style (if (req/test var val) "font-weight: bold;")))
     (span ((class "left")) (or text val))
     (input TYPE "checkbox"
 	   NAME (if (symbol? var) var (stringout var))
 	   VALUE val
-	   ("CHECKED" (cgitest var val)))
+	   ("CHECKED" (req/test var val)))
     (span ((class "right")) (or text val))))
 
 (module-export! '{hotcheck hotcheck/radio})
@@ -193,8 +193,10 @@
 ;;;; Checkspans (like hotchecks but with a different name)
 
 (define (checkspan/radio var val (text #f) (title #f) (checked) (handler #f))
-  (default! checked (cgitest var val))
-  (span ((class "checkspan") (title (if title title))
+  (default! checked (req/test var val))
+  (span ((class (if checked "checkspan ischecked"
+		    "checkspan"))
+	 (title (if title title))
 	 (onclick (if handler
 		      (if (string? handler) handler
 			  "fdjtCheckSpan_onclick(event);")))
@@ -203,12 +205,13 @@
     (input TYPE "radio"
 	   NAME (if (symbol? var) var (stringout var))
 	   VALUE val
-	   ("CHECKED" checked))
+	   ("CHECKED" (if checked "CHECKED")))
     (span ((class "right")) (or text val))))
 
 (define (checkspan var val (text #f) (title #f) (checked) (handler #f))
-  (default! checked (cgitest var val))
-  (span ((class "checkspan") (title (if title title))
+  (default! checked (req/test var val))
+  (span ((class (if checked "checkspan ischecked" "checkspan"))
+	 (title (if title title))
 	 (onclick (if handler
 		      (if (string? handler) handler
 			  "fdjtCheckSpan_onclick(event);")))
@@ -217,7 +220,7 @@
     (input TYPE "checkbox"
 	   NAME (if (symbol? var) var (stringout var))
 	   VALUE val
-	   ("CHECKED" checked))
+	   ("CHECKED" (if checked "CHECKED")))
     (span ((class "right")) (or text val))))
 
 (module-export! '{checkspan checkspan/radio})

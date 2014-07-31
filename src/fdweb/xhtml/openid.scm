@@ -165,7 +165,7 @@
     result))
 
 (define (openidauthvalidate)
-  (tryif (cgitest 'openid.mode "id_res")
+  (tryif (req/test 'openid.mode "id_res")
     (and (req/call validate) (openid-return))))
 
 (config! 'auth:validate (cons 'openid openidauthvalidate))

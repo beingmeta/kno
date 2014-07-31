@@ -16,7 +16,7 @@
 
 (defambda (output-tags tags (var #f) (checked #f))
   (let ((tags (->tag tags))
-	(checked (and var (or checked (cgiget var {}))))
+	(checked (and var (or checked (req/get var {}))))
 	(oidmap (make-hashtable))
 	(terms {}))
     (do-choices (tag tags)
