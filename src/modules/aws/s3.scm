@@ -590,10 +590,30 @@
 
 (define (s3/axe! loc (headers '()) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let ((paths (s3/list loc err)))
-    (do-choices (path (s3/list loc err))
-      (s3/delete! path headers))))
+  (let ((paths (s3/list loc '() err)))
+    (do-choices (path paths)
+      (if (has-suffix (s3loc-path path) "/")
+	  (s3/axe! path headers)
+	  (s3/delete! path headers)))))
 (module-export! 's3/axe!)
+
+;;; Recursive copying
+
+(define (get-tail-dir string)
+  (slice (gather #("/" (not> "/") "/" (eos)) string) 1))
+
+(define (s3/copy*! from to (headers '()) (err s3errs))
+  (when (string? from) (set! from (->s3loc from)))
+  (when (string? to) (set! to (->s3loc to)))
+  (let ((paths (s3/list from)))
+    (do-choices (path paths)
+      (if (has-suffix (s3loc-path path) "/")
+	  (s3/copy*! path
+		     (s3/mkpath to (get-tail-dir (s3loc-path path)))
+		     headers)
+	  (s3/copy! path (s3/mkpath to (basename (s3loc-path path)))
+		    headers)))))
+(module-export! '{s3/axe! s3/copy*!})
 
 ;;; Synchronizing
 
