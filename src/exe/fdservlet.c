@@ -442,13 +442,18 @@ static int write_pid_file()
     time_t ctime=fileinfo.st_ctime;
     time_t mtime=fileinfo.st_mtime;
     uid_t uid=fileinfo.st_uid;
-    char cbuf[64], mbuf[64];
-    u8_log(LOG_WARN,
-	   "Existing PID file %s created %s, last modified %s, owned by %d",
-	   ctime_r(&ctime,cbuf),ctime_r(&mtime,mbuf),
-	   uid);}
+    u8_string uname=u8_username(uid);
+    u8_log(LOG_WARN,"Leftover PID file",
+	   "File %s created %t, modified %t, owned by %s (%d)",
+	   abspath,ctime,mtime,uname,uid);
+    if (uname) u8_free(uname);}
+#ifdef O_DIRECT
   pid_fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC|O_DIRECT,
 	      S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+#else
+  pid_fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC,
+	      S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+#endif  
   if (pid_fd<0) {
     if (stat_err) u8_graberr(stat_err,"write_pid_file",u8_strdup(pid_file));
     u8_graberr(errno,"write_pid_file",u8_strdup(pid_file));
