@@ -447,13 +447,8 @@ static int write_pid_file()
 	   "File %s created %t, modified %t, owned by %s (%d)",
 	   abspath,ctime,mtime,uname,uid);
     if (uname) u8_free(uname);}
-#ifdef O_DIRECT
-  pid_fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC|O_DIRECT,
-	      S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
-#else
   pid_fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC,
 	      S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
-#endif  
   if (pid_fd<0) {
     if (stat_err) u8_graberr(stat_err,"write_pid_file",u8_strdup(pid_file));
     u8_graberr(errno,"write_pid_file",u8_strdup(pid_file));
