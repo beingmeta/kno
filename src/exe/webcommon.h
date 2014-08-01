@@ -31,6 +31,7 @@ static struct U8_XTIME boot_time;
 /* Files that may be used */
 static char *portfile=NULL;
 static char *pidfile=NULL;
+static int pid_fd=-1;
 
 #define FD_REQERRS 1 /* records only transactions which return errors */
 #define FD_ALLREQS 2 /* records all requests */
@@ -641,7 +642,8 @@ static void webcommon_shutdown(u8_condition why)
   if (portfile)
     if (remove(portfile)>=0) {
       u8_free(portfile); portfile=NULL;}
-  if (pidfile) u8_removefile(pidfile);
+  if (pidfile) {
+    u8_removefile(pidfile);}
   pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
   if (exitfile) {

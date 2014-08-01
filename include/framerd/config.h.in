@@ -61,6 +61,9 @@
 #undef TM_IN_SYS_TIME
 
 /* Define if you have <resource.h> declares struct tm.  */
+#undef HAVE_SYS_FILE_H
+
+/* Define if you have <resource.h> declares struct tm.  */
 #undef HAVE_SYS_RESOURCE_H
 
 /* Define if you have <sys/resource.h> declares struct tm.  */
@@ -117,6 +120,12 @@
 
 /* Define if you have the flock function.  */
 #undef HAVE_FLOCK
+
+/* Define if you have the flock function.  */
+#undef HAVE_LOCKF
+
+/* Define if you have the flock function.  */
+#undef HAVE_FCNTL
 
 /* Define if you have the flock function.  */
 #undef HAVE_MMAP

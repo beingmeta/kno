@@ -602,8 +602,9 @@ fi
 
 dnl Some system headers and members
 
+AC_CHECK_HEADERS(fcntl.h sys/resource.h)
 AC_CHECK_HEADERS(resource.h sys/resource.h)
-AC_CHECK_HEADERS(sys/types.h sys/wait.h sys/stat.h)
+AC_CHECK_HEADERS(sys/types.h sys/wait.h sys/stat.h sys/file.h)
 
 AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],
 	         [#include <sys/resource.h>])
@@ -676,7 +677,7 @@ fi
 AC_CHECK_FUNCS(sigprocmask)
 AC_CHECK_FUNCS(sigsetmask)
 AC_CHECK_FUNCS(strdup strndup)
-AC_CHECK_FUNCS(flock)
+AC_CHECK_FUNCS(flock lockf fcntl)
 AC_CHECK_FUNCS(sleep)
 AC_CHECK_FUNCS(nanosleep)
 AC_CHECK_FUNCS(fseeko)

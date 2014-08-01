@@ -36,10 +36,21 @@
 #if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
-#include <fcntl.h>
 #include <time.h>
 #include <signal.h>
 #include <math.h>
+
+#if HAVE_FLOCK
+#if HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
+#elif HAVE_LOCKF
+#include <unistd.h>
+#elif ((HAVE_FCNTL)&&(HAVE_FCNTL_H))
+#include <unistd.h>
+#include <fcntl.h>
+#endif
+
 
 #include "main.h"
 
@@ -378,11 +389,37 @@ static void setup_status_file()
     statfile=filename;}
 }
 
+static int lock_fd(int fd,int lock,int block)
+{
+  int lv=0;
+#if ((HAVE_FLOCK)&&(HAVE_SYS_FILE_H))
+  lv=flock(fd,((lock)?(LOCK_EX):(LOCK_UN))|((block)?(0):(LOCK_NB)));
+#elif HAVE_LOCKF
+  lv=lockf(fd,((lock)?(F_LOCK):(F_ULOCK))|((block)?(0):(F_TEST)),1);
+else if HAVE_FCNTL
+  struct flock lockinfo={F_WRLCK,SEEK_SET,0,1};
+  if (lock) lockinfo.l_type=F_WRLCK; sle lockinfo.l_type=F_UNLCK;
+  lv=fcntl(fd,((block)?(F_SETLKW):(F_SETLK)),&lockinfo);
+#endif
+  return lv;
+}
+
 static void cleanup_pid_file()
 {
   u8_string exit_filename=fd_runbase_filename(".exit");
   FILE *exitfile=u8_fopen(exit_filename,"w");
-  if (pid_file) u8_removefile(pid_file);
+  if (pid_file) {
+    if (pid_fd>=0) {
+      int lv=lock_fd(pid_fd,0,0);
+      if (lv<0) {
+	u8_log(LOG_CRIT,"Waiting to release lock on PID file %s",pid_file);
+	errno=0; lv=lock_fd(pid_fd,0,1);}
+      if (lv<0) {
+	u8_graberr(errno,"cleanup_pid_file",u8_strdup(pid_file));
+	fd_clear_errors(1);}
+      close(pid_fd);
+      pid_fd=-1;}
+    u8_removefile(pid_file);}
   if (exitfile) {
     struct U8_XTIME xt; struct U8_OUTPUT out;
     char timebuf[64]; double elapsed=u8_elapsed_time();
@@ -393,17 +430,45 @@ static void cleanup_pid_file()
   u8_free(exit_filename);
 }
 
-static void write_pid_file()
+static int write_pid_file()
 {
-  FILE *f=u8_fopen(pid_file,"w"); if (f) {
-    fprintf(f,"%d\n",getpid());
-    fclose(f);}
+  char *abspath=u8_abspath(pid_file,NULL);
+  u8_byte buf[512]; 
+  struct stat fileinfo;
+  int lv, sv=stat(abspath,&fileinfo), stat_err=0, exists=0;
+  if (sv<0) {stat_err=errno; errno=0;}
   else {
-    u8_log(LOG_WARN,u8_strerror(errno),
-	   "Couldn't write PID %d to '%s'",
-	   getpid(),pid_file);
-    errno=0;}
-  atexit(cleanup_pid_file);
+    exists=1;
+    time_t ctime=fileinfo.st_ctime;
+    time_t mtime=fileinfo.st_mtime;
+    uid_t uid=fileinfo.st_uid;
+    char cbuf[64], mbuf[64];
+    u8_log(LOG_WARN,
+	   "Existing PID file %s created %s, last modified %s, owned by %d",
+	   ctime_r(&ctime,cbuf),ctime_r(&mtime,mbuf),
+	   uid);}
+  pid_fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC|O_DIRECT,
+	      S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+  if (pid_fd<0) {
+    if (stat_err) u8_graberr(stat_err,"write_pid_file",u8_strdup(pid_file));
+    u8_graberr(errno,"write_pid_file",u8_strdup(pid_file));
+    return -1;}
+  lv=lock_fd(pid_fd,1,0);
+  if (lv<0) {
+    u8_log(LOG_CRIT,"write_pid_file","Can't get lock on PID file %s",
+	   pid_file);
+    u8_graberr(errno,"write_pid_file",u8_strdup(pid_file));
+    close(pid_fd);
+    return -1;}
+  else {
+    if (exists)
+      u8_log(LOGWARN,"write_pid_file","Bogarted existing PID file %s",abspath);
+    sprintf(buf,"%d\n",getpid());
+    write(pid_fd,buf,strlen(buf));
+    atexit(cleanup_pid_file);
+    /* It's now okay to steal sockets and other files */
+    stealsockets=1;
+    return pid_fd;}
 }
 
 static void close_statlog()
@@ -1275,7 +1340,8 @@ static void shutdown_server(u8_condition reason)
   if (pidfile) {
     int retval=u8_removefile(pidfile);
     if (retval<0) 
-      u8_log(LOG_WARN,"FDServlet/shutdown","Couldn't remove pid file %s",pidfile);
+      u8_log(LOG_WARN,
+	     "FDServlet/shutdown","Couldn't remove pid file %s",pidfile);
     u8_free(pidfile);}
   pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
@@ -1632,12 +1698,6 @@ int main(int argc,char **argv)
       fd_config_assignment(argv[i++]);}
     else i++;
 
-  if ((strchr(socket_spec,'/'))&&
-      (u8_file_existsp(socket_spec))&&
-      (!((stealsockets)||(getenv("FD_STEALSOCKETS"))))) {
-    u8_log(LOG_CRIT,"Socket exists","Socket file %s already exists!",socket_spec);
-    exit(1);}
-
   fd_setapp(socket_spec,NULL);
 
   fd_boot_message();
@@ -1665,8 +1725,20 @@ int main(int argc,char **argv)
 
 static int launch_servlet(u8_string socket_spec)
 {
-  write_pid_file();
-  setup_status_file();
+  int rv=write_pid_file();
+  if (rv<0)  {
+    /* Error here, rather than repeatedly */
+    fd_clear_errors(1);
+    exit(EXIT_FAILURE);}
+  else setup_status_file();
+
+  if ((strchr(socket_spec,'/'))&&
+      (u8_file_existsp(socket_spec))&&
+      (!((stealsockets)||(getenv("FD_STEALSOCKETS"))))) {
+    u8_log(LOG_CRIT,"Socket exists","Socket file %s already exists!",
+	   socket_spec);
+    exit(1);}
+
   u8_log(LOG_DEBUG,ServletStartup,"Updating preloads");
   /* Initial handling of preloads */
   if (update_preloads()<0) {
@@ -1674,6 +1746,8 @@ static int launch_servlet(u8_string socket_spec)
     fd_clear_errors(1);
     exit(EXIT_FAILURE);}
   
+
+
   memset(&fdwebserver,0,sizeof(fdwebserver));
   
   u8_init_server
