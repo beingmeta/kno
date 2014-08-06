@@ -345,11 +345,12 @@
 
 ;;; Operations
 
-(define (s3/write! loc content (ctype) (headers) (err s3errs))
+(define (s3/write! loc content (ctype #f) (headers) (err s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (default! ctype
-    (path->mimetype (s3loc-path loc)
-		    (if (packet? content) "application" "text")))
+  (unless ctype
+    (set! ctype
+	  (path->mimetype (s3loc-path loc)
+			  (if (packet? content) "application" "text"))))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
   (debug%watch
       (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc)
