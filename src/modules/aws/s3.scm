@@ -588,13 +588,14 @@
 
 ;;; Recursive deletion
 
-(define (s3/axe! loc (headers '()) (err s3errs))
+(define (s3/axe! loc (headers '()) (err s3errs) (pause (config 's3:pause #f)))
   (when (string? loc) (set! loc (->s3loc loc)))
   (let ((paths (s3/list loc '() err)))
     (do-choices (path paths)
       (if (has-suffix (s3loc-path path) "/")
 	  (s3/axe! path headers)
-	  (s3/delete! path headers)))))
+	  (begin (s3/delete! path headers)
+	    (when pause (sleep pause)))))))
 (module-export! 's3/axe!)
 
 ;;; Recursive copying
@@ -602,7 +603,7 @@
 (define (get-tail-dir string)
   (slice (gather #("/" (not> "/") "/" (eos)) string) 1))
 
-(define (s3/copy*! from to (headers '()) (err s3errs))
+(define (s3/copy*! from to (headers '()) (err s3errs) (pause (config 's3:pause #f)))
   (when (string? from) (set! from (->s3loc from)))
   (when (string? to) (set! to (->s3loc to)))
   (let ((paths (s3/list from)))
@@ -611,13 +612,14 @@
 	  (s3/copy*! path
 		     (s3/mkpath to (get-tail-dir (s3loc-path path)))
 		     headers)
-	  (s3/copy! path (s3/mkpath to (basename (s3loc-path path)))
-		    headers)))))
+	  (begin (s3/copy! path (s3/mkpath to (basename (s3loc-path path)))
+			   headers)
+	    (when pause (sleep pause)))))))
 (module-export! '{s3/axe! s3/copy*!})
 
 ;;; Synchronizing
 
-(define (s3/push! dir s3loc (match #f) (headers) (forcewrite #f))
+(define (s3/push! dir s3loc (match #f) (headers) (forcewrite #f) (pause (config 's3:pause #f)))
   (if (string? s3loc) (set! s3loc (->s3loc s3loc)))
   (default! headers (try (get (s3loc/opts s3loc) 'headers) '()))
   (let* ((s3info (s3/list+ s3loc))
@@ -656,14 +658,16 @@
 				" (" (file-size file) " != "
 				(get info 'size)")"))
 	      (s3/write! loc (filedata file) mimetype headers)
-	      (set+! updated loc))
+	      (set+! updated loc)
+	      (when pause (sleep pause)))
 	    (let ((data (filedata file)))
 	      (if (equal? (md5 data) (get info 'hash))
 		  (logdebug "Skipping unchanged " loc)
 		  (begin (loginfo "Updating to " loc "\n\t"
 				  "(" (get info 'hash) " != "  (md5 data) ")")
 		    (s3/write! loc data mimetype headers)
-		    (set+! updated loc)))))))
+		    (set+! updated loc)
+		    (when pause (sleep pause))))))))
     updated))
 (module-export! 's3/push!)
 
