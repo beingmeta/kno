@@ -10,12 +10,16 @@
 
 (define-init %loglevel %notice%)
 
+(define (hyphenate-string string)
+  (string-subst (hyphenate (decode-entities string))
+		"­­" "­"))
+
 (define (dom/hyphenate! node)
-  (if (string? node) (hyphenate (decode-entities node))
+  (if (string? node) (hyphenate-string node)
       (if (test node '%content)
 	  (if (string? (get node '%content))
 	      (begin (store! node '%content
-			     (hyphenate (decode-entities (get node '%content))))
+			     (hyphenate-string (get node '%content)))
 		node)
 	      (if (pair? (get node '%content))
 		  (begin (store! node '%content
