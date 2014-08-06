@@ -166,7 +166,7 @@ static u8_string readbuf
   u8_byte *buf=*bufp; int bufsiz=*bufsizp;
   u8_string data=u8_gets_x(buf,bufsiz,in,eos,sizep);
   if (data==NULL) {
-    int new_size=bufsiz, need_size=*sizep; u8_byte *newbuf;
+    int new_size=bufsiz, need_size=*sizep+1; u8_byte *newbuf;
     while (new_size<need_size)
       if (new_size<=16384) new_size=new_size*2;
       else new_size=new_size+16384;
