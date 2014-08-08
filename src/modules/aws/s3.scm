@@ -19,6 +19,7 @@
 		  s3/modified s3/etag  s3/info
 		  s3/bucket? s3/copy! s3/link! s3/put
 		  s3/download!})
+(module-export! '{s3/getpolicy s3/setpolicy!})
 (module-export!
  '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath
    s3loc->string})
@@ -33,7 +34,7 @@
 (define s3scheme "https://")
 (varconfig! s3scheme s3scheme)
 
-(define s3errs #t)
+(define-init s3errs #t)
 (varconfig! s3errs s3errs config:boolean)
 
 (define s3retry #f)
@@ -41,6 +42,8 @@
 
 (define default-usepath #t)
 (varconfig! s3pathstyle default-usepath)
+
+(define-init s3opts #[])
 
 (define default-ctype "application")
 
@@ -199,18 +202,23 @@
 
 ;;; Making S3 calls
 
-(define (s3op op bucket path (content #f) (ctype) (headers '()) args)
+(define (s3op op bucket path (content #f) (ctype) (headers '()) (opts #[]) args)
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
   (let* ((date (gmtimestamp))
 	 ;; Encode everything, then restore delimiters
 	 (path (string-subst (uriencode path) "%2F" "/"))
 	 (contentMD5 (and content (packet->base64 (md5 content))))
-	 (sig (s3/signature op bucket path date  headers
+	 (sig (s3/signature op bucket
+			    (glom 
+			      path (and path (empty-string? path) "/")
+			      (and args (pair? args) (null? (cdr args)) "?")
+			      (and args (pair? args) (null? (cdr args)) (car args)))
+			    date headers
 			    (or contentMD5 "") (or ctype "")))
 	 (authorization (string-append "AWS " awskey ":" (packet->base64 sig)))
 	 (baseurl
-	  (if default-usepath
+	  (if (getopt opts 'usepath default-usepath)
 	      (glom s3scheme s3root "/" bucket path)
 	      (glom s3scheme bucket (if (empty-string? bucket) "" ".") s3root path)))
 	 (url (if (null? args) baseurl (apply scripturl baseurl args)))
@@ -218,6 +226,10 @@
 	 (urlparams (frame-create #f 'header "Expect:")))
     (when (and content (overlaps? op {"GET" "HEAD"}))
       (add! urlparams 'content-type ctype))
+    (when (and (position #\. bucket)
+	       (not (getopt opts 'usepath default-usepath)))
+      (add! urlparams 'verifypeer #f)
+      (add! urlparams 'verifyhost #f))
     (when (equal? op "DELETE") (store! urlparams 'method 'DELETE))
     (add! urlparams 'header (string-append "Date: " (get date 'rfc822)))
     (when contentMD5
@@ -242,21 +254,23 @@
 		(if (equal? op "PUT")
 		    (urlput url (or content "") ctype urlparams)
 		    (urlget url urlparams)))))))
-(define (s3/op op bucket path (err s3errs)
-	       (content #f) (ctype) (headers '()) . args)
+(define (s3/op op bucket path (opts s3opts) (content #f) (ctype) (headers '()) . args)
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
-  (let* ((s3result (s3op op bucket path content ctype headers args))
+  (unless (table? opts) (set! opts `#[errs, opts]))
+  (let* ((err (getopt opts 'errs))
+	 (s3result (s3op op bucket path content ctype headers opts args))
 	 (content (get s3result '%content))
 	 (status (get s3result 'response)))
+    (when (has-prefix bucket {"." "/"}) (set! bucket (slice bucket 1)))
     (when (and (not (>= status 500))
 	       (if (exists? (threadget 's3retry))
 		   (threadget 's3retry)
-		   s3retry))
+		   (getopt opts 'retry s3retry)))
       (if (number? (try (threadget 's3retry) s3retry))
 	  (sleep (number? (try (threadget 's3retry) s3retry)))
 	  (sleep 1))
-      (set! s3result (s3op op bucket path content ctype headers args))
+      (set! s3result (s3op op bucket path content ctype headers opts args))
       (set! content (get s3result '%content))
       (set! status (get s3result 'response)))
     (unless (>= 299 status 200)
@@ -296,13 +310,17 @@
 
 ;;; Getting S3 URIs for the API
 
-(define (s3/uri bucket path (scheme s3scheme) (usepath default-usepath))
+(define (s3/uri bucket path (scheme s3scheme) (usepath))
   (when (not scheme) (set! scheme s3scheme))
+  (default! usepath (if (equal? scheme "http://") #t default-usepath))
   (if usepath
       (stringout scheme s3root "/" bucket path)
-      (if (and (hashset-get website-buckets bucket) (equal? scheme "http://"))
+      (if (and (hashset-get website-buckets bucket)
+	       (equal? scheme "http://"))
 	  (stringout scheme bucket path)
-	  (stringout scheme bucket "." s3root path))))
+	  (if (equal? scheme "https://")
+	      (stringout scheme "s3.amazon.aws.com/" bucket "/" s3root path)
+	      (stringout scheme bucket "." s3root path)))))
 (define (s3/pathuri bucket path (scheme s3scheme))
   (s3/uri bucket path scheme #t))
 (define (s3/hosturi bucket path (scheme s3scheme))
@@ -345,7 +363,7 @@
 
 ;;; Operations
 
-(define (s3/write! loc content (ctype #f) (headers) (err s3errs))
+(define (s3/write! loc content (ctype #f) (headers) (opts s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   (unless ctype
     (set! ctype
@@ -354,16 +372,16 @@
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
   (debug%watch
       (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc)
-	err content ctype headers)
+	opts content ctype headers)
     loc ctype headers))
 
-(define (s3/delete! loc (headers) (err s3errs))
+(define (s3/delete! loc (headers) (opts s3errs))
   (when (string? loc) (set! loc (->s3loc loc)))
   ;; '(("x-amx-acl" . "public-read"))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
   (debug%watch (s3/op "DELETE"
 		   (s3loc-bucket loc)
-		   (s3loc-path loc) err "" #f headers) loc))
+		   (s3loc-path loc) opts "" #f headers) loc))
 
 (define (s3/bucket? loc (headers))
   (when (string? loc) (set! loc (->s3loc loc)))
@@ -394,23 +412,33 @@
 
 ;;; Basic S3LOC network methods
 
-(define (s3loc/get loc (headers) (err))
+(define (s3loc/get loc (headers) (opts))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (default! err (try (get (s3loc/opts loc) 's3errs) s3errs))
-  (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) err "" "text" headers))
+  (default! opts
+    (if (exists? (get (s3loc/opts loc) 'errs))
+	#[errs #t]
+	s3opts))
+  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) opts "" "text" headers))
 
 (define (s3loc/head loc (headers))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f "" "" headers))
+  (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #[errs #f] "" "" headers))
 (define s3/head s3loc/head)
 
-(define (s3loc/get+ loc (text #t) (headers) (err s3errs))
+(define (s3loc/get+ loc (text #t) (headers) (opts s3opts))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
+  (default! opts
+    (if (exists? (get (s3loc/opts loc) 'err))
+	#[errs #t]
+	s3opts))
+  (when (not (table? opts)) (set! opts `#[errs ,opts]))
   (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
-		err "" "text" headers))
+		opts "" "text" headers))
+	 (err (getopt opts 'errs s3errs))
 	 (status (get req 'response)))
     (if (and status (>= 299 status 200))
 	`#[content ,(get req '%content)
@@ -473,21 +501,39 @@
 
 ;;; Basic S3 network write methods
 
-(define (s3loc/put loc content (ctype) (headers) (err s3errs))
+(define (s3loc/put loc content (ctype) (headers) (opts s3opts))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! ctype
     (path->mimetype (s3loc-path loc)
 		    (if (packet? content) "application" "text")))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err
+  (default! opts
+    (if (exists? (get (s3loc/opts loc) 'err))
+	#[errs #t]
+	s3opts))
+  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (when (testopt opts 'headers)
+    (set! headers (append (getopt opts 'headers) headers)))
+  (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) opts
     content ctype headers))
 (define s3/put s3loc/put)
 
-(define (s3loc/copy! src loc (err s3errs) (inheaders) (outheaders))
+(define (s3loc/copy! src loc (opts s3opts) (inheaders) (outheaders))
   (when (string? loc) (set! loc (->s3loc loc)))
   (when (string? src) (set! src (->s3loc src)))
   (default! inheaders (try (get (s3loc/opts src) 'headers) '()))
   (default! outheaders (try (get (s3loc/opts loc) 'headers) '()))
+  (default! opts
+    (if (exists? (get (s3loc/opts loc) 'err))
+	#[errs #t]
+	s3opts))
+  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+
+  (when (testopt opts 'inheaders)
+    (set! inheaders (append (getopt opts 'inheaders) inheaders)))
+  (when (testopt opts 'outheaders)
+    (set! outheaders (append (getopt opts 'outheaders) outheaders)))
+
   (let* ((head (s3loc/head src inheaders))
 	 (ctype (try (get head 'content-type)
 		     (path->mimetype
@@ -495,17 +541,18 @@
 		      (path->mimetype (s3loc-path src) "text")))))
     (loginfo |S3/copy| "Copying " (s3loc->string src)
 	     " to " (s3loc->string loc))
-    (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err "" ctype
+    (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) opts "" ctype
 	   `(("x-amz-copy-source" .
 	      ,(stringout "/" (s3loc-bucket src) (s3loc-path src)))
 	     ,@inheaders
 	     ,@outheaders))))
 (define s3/copy! s3loc/copy!)
 
-(define (s3loc/link! src loc (err s3errs))
+(define (s3loc/link! src loc (opts s3opts))
   (when (string? loc) (set! loc (->s3loc loc)))
   (when (and (string? src) (not (has-prefix src {"http:" "https:" "ftp:"})))
     (set! src (->s3loc src)))
+  (when (not (table? opts)) (set! opts `#[errs ,opts]))
   (let* ((head (tryif (s3loc? src) (s3loc/head src)))
 	 (ctype (try (get head 'content-type)
 		     (path->mimetype
@@ -515,7 +562,7 @@
 			   (uripath src))
 		       "text")))))
     (loginfo |S3/link| "Linking (via redirect) " src " to " loc)
-    (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) err "" ctype
+    (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) opts "" ctype
 	   `(("x-amz-website-redirect-location" .
 	      ,(if (s3loc? src)
 		   (stringout "/" (s3loc-bucket src) (s3loc-path src))
@@ -524,10 +571,10 @@
 
 ;;; Listing loc
 
-(define (list-chunk loc headers err (delimiter "/") (next #f))
+(define (list-chunk loc headers opts (delimiter "/") (next #f))
   (if (and next delimiter)
       (s3/op "GET" (s3loc-bucket loc) "/" 
-	err "" "text" headers
+	opts "" "text" headers
 	"delimiter" delimiter
 	"prefix" (if (has-prefix (s3loc-path loc) "/")
 		     (slice (s3loc-path loc) 1)
@@ -535,30 +582,33 @@
 	"marker" next)
       (if next
 	  (s3/op "GET" (s3loc-bucket loc) "/" 
-	    err "" "text" headers
+	    opts "" "text" headers
 	    "prefix" (if (has-prefix (s3loc-path loc) "/")
 			 (slice (s3loc-path loc) 1)
 			 (s3loc-path loc))
 	    "marker" next)
 	  (if delimiter
 	      (s3/op "GET" (s3loc-bucket loc) "/" 
-		err "" "text" headers
+		opts "" "text" headers
 		"delimiter" delimiter
 		"prefix" (if (has-prefix (s3loc-path loc) "/")
 			     (slice (s3loc-path loc) 1)
 			     (s3loc-path loc)))
 	      (s3/op "GET" (s3loc-bucket loc) "/" 
-		err "" "text" headers
+		opts "" "text" headers
 		"prefix" (if (has-prefix (s3loc-path loc) "/")
 			     (slice (s3loc-path loc) 1)
 			     (s3loc-path loc)))))))
 
 ;;; Working with S3 'dirs'
 
-(define (s3/list loc (headers) (err s3errs) (next #f))
+(define (s3/list loc (headers) (opts s3opts) (next #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (let* ((req (list-chunk loc headers err "/" next))
+  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (when (testopt opts 'headers)
+    (set! headers (append headers (getopt opts 'headers))))
+  (let* ((req (list-chunk loc headers opts "/" next))
 	 (content (reject (elts (xmlparse (get req '%content) 'data)) string?))
 	 (next (try (get content 'nextmarker) #f)))
     (choice
@@ -566,13 +616,16 @@
        (make-s3loc (s3loc-bucket loc) path))
      (for-choices (path (get (get content 'contents) 'key))
        (make-s3loc (s3loc-bucket loc) path))
-     (tryif next (s3/list loc headers err next)))))
+     (tryif next (s3/list loc headers opts next)))))
 (module-export! 's3/list)
 
-(define (s3/list+ loc (headers) (err s3errs) (next #f))
+(define (s3/list+ loc (headers) (opts s3opts) (next #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (let* ((req (list-chunk loc headers err "/" next))
+  (when (testopt opts 'headers)
+    (set! headers (append headers (getopt opts 'headers))))
+  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (let* ((req (list-chunk loc headers opts "/" next))
 	 (content (reject (elts (xmlparse (get req '%content) 'data)) string?))
 	 (next (try (get content 'nextmarker) #f)))
     (choice
@@ -584,14 +637,17 @@
 	  etag ,(slice (decode-entities (get elt 'etag)) 1 -1)
 	  hash ,(base16->packet
 		 (slice (decode-entities (get elt 'etag)) 1 -1))])
-     (tryif next (s3/list+ loc headers err next)))))
+     (tryif next (s3/list+ loc headers opts next)))))
 (module-export! 's3/list+)
 
 ;;; Recursive deletion
 
-(define (s3/axe! loc (headers '()) (err s3errs) (pause (config 's3:pause #f)))
+(define (s3/axe! loc (headers '()) (opts s3opts) (pause (config 's3:pause #f)))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let ((paths (s3/list loc '() err)))
+  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (when (testopt opts 'headers)
+    (set! headers (append headers (getopt opts 'headers))))
+  (let ((paths (s3/list loc '() opts)))
     (do-choices (path paths)
       (if (has-suffix (s3loc-path path) "/")
 	  (s3/axe! path headers)
@@ -604,17 +660,21 @@
 (define (get-tail-dir string)
   (slice (gather #("/" (not> "/") "/" (eos)) string) 1))
 
-(define (s3/copy*! from to (headers '()) (err s3errs) (pause (config 's3:pause #f)))
+(define (s3/copy*! from to (headers '()) (opts s3opts) (pause (config 's3:pause #f)))
   (when (string? from) (set! from (->s3loc from)))
   (when (string? to) (set! to (->s3loc to)))
+  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (when (testopt opts 'headers)
+    (set! headers (append headers (getopt opts 'headers))))
+
   (let ((paths (s3/list from)))
     (do-choices (path paths)
       (if (has-suffix (s3loc-path path) "/")
 	  (s3/copy*! path
 		     (s3/mkpath to (get-tail-dir (s3loc-path path)))
-		     headers)
+		     headers opts)
 	  (begin (s3/copy! path (s3/mkpath to (basename (s3loc-path path)))
-			   headers)
+			   headers opts)
 	    (when pause (sleep pause)))))))
 (module-export! '{s3/axe! s3/copy*!})
 
@@ -722,16 +782,17 @@
 	      (tryif (exists? (textmatcher (cadr rule) (s3loc-path loc)))
 		(textsubst (s3loc-path loc) (cadr rule))))))))
 
-(define (s3loc/content loc (text #t) (headers '()) (err s3errs))
+(define (s3loc/content loc (text #t) (headers '()) (opts s3opts))
   (when (string? loc) (set! loc (->s3loc loc)))
   (try (if text (filestring (s3loc/filename loc))
 	   (filedata (s3loc/filename loc)))
        (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
-		     err "" "text" headers ))
+		     opts "" "text" headers ))
 	      (status (get req 'response)))
 	 (if (and status (>= 299 status 200))
 	     (get req '%content)
-	     (and err (irritant req S3FAILURE S3LOC/CONTENT
+	     (and (if (table? opts) (getopt opts 'errs) opts)
+		  (irritant req S3FAILURE S3LOC/CONTENT
 				(s3loc->string loc)))))))
 (define s3/get s3loc/content)
 
@@ -757,6 +818,19 @@
 	(message "Downloading " down " to "
 		 (mkpath dest (basename (s3loc-path down))))
 	(write-file (mkpath dest (basename (s3loc-path down))) (s3/get down)))))
+
+;;; Manipulating policies
+
+(define (s3/getpolicy bucket)
+  (when (and (string? bucket) (has-prefix bucket "s3:"))
+    (set! bucket (->s3loc bucket)))
+  (let ((bucketname (if (string? bucket) bucket (s3loc-bucket bucket))))
+    (s3/op "GET" bucketname "/" #[errs #f usepath #f] #f #f '() "policy")))
+(define (s3/setpolicy! bucket string)
+  (when (and (string? bucket) (has-prefix bucket "s3:"))
+    (set! bucket (->s3loc bucket)))
+  (let ((bucketname (if (string? bucket) bucket (s3loc-bucket bucket))))
+    (s3/op "PUT" bucketname "/" #[errs #f usepath #f] string #f '() "policy")))
 
 ;;; Some test code
 
