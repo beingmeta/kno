@@ -19,7 +19,7 @@
 		  s3/modified s3/etag  s3/info
 		  s3/bucket? s3/copy! s3/link! s3/put
 		  s3/download!})
-(module-export! '{s3/getpolicy s3/setpolicy!})
+(module-export! '{s3/getpolicy s3/setpolicy! s3/addpolicy!})
 (module-export!
  '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath
    s3loc->string})
@@ -821,6 +821,13 @@
 
 ;;; Manipulating policies
 
+(define policy-template (filestring (get-component "s3policy.template")))
+
+(define (generate-policy template bucket (account awsaccount)
+			 (id (uuid->string (getuuid))))
+  (string-subst* tempate "%bucket%" bucket "%id%" id "%account%" account))
+
+
 (define (s3/getpolicy bucket)
   (when (and (string? bucket) (has-prefix bucket "s3:"))
     (set! bucket (->s3loc bucket)))
@@ -831,6 +838,17 @@
     (set! bucket (->s3loc bucket)))
   (let ((bucketname (if (string? bucket) bucket (s3loc-bucket bucket))))
     (s3/op "PUT" bucketname "/" #[errs #f usepath #f] string #f '() "policy")))
+
+(define (s3/addpoli cy! bucket spec (init-policy policy-template))
+  (let* ((policy (s3/getpolicy bucket))
+	 (end (and (string? policy) (search "/* End */" policy))))
+    (unless (string? policy)
+      (set! policy (generate-policy init-policy "%bucket%" bucket)))
+    (if end
+	(let ((newpolicy (string-subst policy "/* End */"
+				       (glom ",\n" policy "/* End */"))))
+	  (s3/setpolicy! bucket newpolicy))
+	(error "Can't find End marker in policy"))))
 
 ;;; Some test code
 
