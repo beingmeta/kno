@@ -122,7 +122,7 @@
   (default! ctype (getopt options 'mimetype (path->mimetype (gp/basename ref))))
   (default! xform (getopt options 'xform #f))
   (when (position #\% ref) (set! ref (uridecode ref)))
-  (try ;; relative references are untouched
+  (try ;; non http/ftp references are untouched
    (tryif (or (empty-string? ref) (has-prefix ref "#")
 	      (has-prefix ref {"javascript:" "chrome-extension:"})
 	      (and (string-starts-with? ref #((isalpha+) ":"))
@@ -147,14 +147,6 @@
 		 "\n\tfrom " base "\n\tto " saveto "\n\tfor " read)
        (debug%watch baseuri hashid lref)
        (glom lref "#" hashid)))
-   ;; if we're gluing a bunch of files together (amalgamating them),
-   ;;  the ref will just be moved to the current file by stripping
-   ;;  off the URL part
-   #|
-   (tryif (overlaps? (getopt options 'amalgamate) (gp/mkpath base ref))
-     (get urlmap ref)
-     "")
-   |#
    ;; Check the cache
    (get urlmap ref)
    ;; don't bother localizing these references
@@ -220,8 +212,9 @@
   (debug%watch "DOM/LOCALIZE!" base saveto read doanchors)
   (let ((head (dom/find dom "HEAD" #f))
 	(saveslot (getopt options 'saveslot)))
+    (loginfo |Localize| "Localizing [src] elements")
     (dolist (node (dom/select->list dom "[src]"))
-      (loginfo "Localizing " (dom/sig node)
+      (loginfo |Localize| "Localizing " (dom/sig node)
 	       "\n\tfrom " base "\n\tto " saveto)
       (let* ((cached (get urlmap (get node 'src)))
 	     (ref (try cached
@@ -232,20 +225,24 @@
 				   base (qc saveto) read options)))))
 	(when (and (exists? ref) ref)
 	  (if (exists? cached)
-	      (loginfo "Localized (cached) " (write (get node 'src))
+	      (loginfo |Localize|
+		       "Localized (cached) " (write (get node 'src))
 		       " to " (write ref) " for " (dom/sig node #t))
-	      (loginfo "Localized " (write (get node 'src))
+	      (loginfo |Localize|
+		       "Localized " (write (get node 'src))
 		       " to " (write ref) " for " (dom/sig node #t)))
 	  (when saveslot (dom/set! node saveslot (get node 'src)))
 	  (dom/set! node 'src ref))))
     ;; Convert url() references in stylesheets
+    (loginfo |Localize| "Localizing stylesheet links")
     (do-choices (node (pick (pick (dom/find head "link") 'rel "stylesheet")
 			    'href))
       (let* ((ctype (try (get node 'type) "text"))
 	     (href (get node 'href))
 	     (ref (get urlmap href)))
 	(when (or (fail? ref) (not ref))
-	  (loginfo "Localizing stylesheet " (get node 'href)
+	  (loginfo |Localize|
+		   "Localizing stylesheet " (get node 'href)
 		   "\n\tfrom " base "\n\tto " saveto
 		   (when (exists? cssrules)
 		     (printout "\n\twith CSS rules " cssrules)))
@@ -274,11 +271,13 @@
 			      options)))
 	    (set! ref (localref (get node 'href) urlmap base
 				(qc saveto) read options))
-	    (loginfo "Localized stylesheet " (write href) " to " (write ref)
+	    (loginfo |Localize|
+		     "Localized stylesheet " (write href) " to " (write ref)
 		     " for " (dom/sig node #t))))
 	(when (and (exists? ref) ref)
 	  (when saveslot (dom/set! node saveslot href))
 	  (dom/set! node 'href ref))))
+    (loginfo |Localize| "Localizing anchorish [href] elements")
     (dolist (node (dom/select->list dom "[href]"))
       (when (and (or (and doanchors (test node '%xmltag 'a))
 		     (test node 'rel {dolinks "knodule"}))
@@ -288,7 +287,8 @@
 		 (or (and doanchors (immediate? doanchors))
 		     (and doanchors
 			  (textsearch doanchors (get node 'href)))))
-	(logdebug "Localizing " (get node 'href) "\n\tfrom " base
+	(logdebug |Localize|
+		  "Localizing " (get node 'href) "\n\tfrom " base
 		  "\n\tto " saveto)
 	(let* ((href (get node 'href))
 	       (hashpos (position #\# href))
@@ -301,11 +301,13 @@
 			    (hashmerge rootref hashid urlmap)
 			    (glom rootref hashid)))))
 	  (debug%watch href baseuri rootref hashid ref)
-	  (loginfo "Localized " (write href) " to " (write ref)
+	  (loginfo |Localize|
+		   "Localized " (write href) " to " (write ref)
 		   " for " (dom/sig node #t))
 	  (when (and (exists? ref) ref)
 	    (when saveslot (dom/set! node saveslot href))
 	    (dom/set! node 'href ref)))))
+    (loginfo |Localize| "Localizing other [href] elements")
     (dolist (node (dom/select->list dom "[href]"))
       (unless (or (test node 'rel {dolinks "x-resource" "stylesheet" "knodule"})
 		  (test node '%xmltag 'a))
@@ -313,13 +315,13 @@
 	       (hashpos (position #\# href)))
 	  (cond ((test urlmap href)
 		 (when saveslot (dom/set! node saveslot href))
-		 (dom/set! node 'href (get urlmap href)))
+		 (%wc dom/set! node 'href (get urlmap href)))
 		((and hashpos (test urlmap (slice href 0 hashpos)))
 		 (when saveslot (dom/set! node saveslot href))
-		 (dom/set! node 'href (slice href hashpos)))
+		 (%wc dom/set! node 'href (slice href hashpos)))
 		((has-suffix href image-suffixes)
 		 (when saveslot (dom/set! node saveslot href))
-		 (dom/set! node 'href
+		 (%wc dom/set! node 'href
 			   (localref href urlmap base (qc saveto)
 				     read options)))))))
     (let ((xresources '()) (files {}))
