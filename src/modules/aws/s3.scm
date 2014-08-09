@@ -284,9 +284,12 @@
 	       ;; Don't generate warnings for HEAD probes
 	       s3result)
 	      ((and (not err) (= status 404))
-	       (logwarn |S3/NotFound| S3/OP s3result)
+	       (unless (testopt opts 'ignore 404)
+		 (logwarn |S3/NotFound| S3/OP s3result))
 	       s3result)
 	      ((and (not err) (= status 403))
+	       (unless (testopt opts 'ignore 403)
+		 (logwarn |S3/NotFound| S3/OP s3result))
 	       (logwarn |S3/Forbidden| S3/OP s3result)
 	       s3result)
 	      ((not err)
@@ -332,14 +335,16 @@
 (define (signeduri bucket path (scheme s3scheme)
 		   (expires (* 17 3600))
 		   (op "GET") (headers '())
-		   (usepath #t))
+		   (usepath))
   (unless (has-prefix path "/") (set! path (glom "/" path)))
+  (default! usepath (position #\. bucket))
+  (%watch "SIGNEDURI" opt bucket path scheme expires headers usepath)
   (let* ((exptick (if (number? expires)
 		      (if (> expires (time)) expires
 			  (+ (time) expires))
 		      (get expires 'tick)))
 	 (sig (s3/signature "GET" bucket path exptick headers)))
-    (if (or usepath (equal? scheme "https://"))
+    (if usepath ;; (or  (equal? scheme "https://"))
 	(string-append
 	 scheme s3root "/" bucket path
 	 "?" "AWSAccessKeyId=" awskey "&"
@@ -359,7 +364,8 @@
 			   (timestamp+ (car args))
 			   (car args))
 		       (* 48 3600))
-		   "GET" (try (get (s3loc/opts s3loc) 'headers) '())))
+		   "GET" (try (get (s3loc/opts s3loc) 'headers) '())
+		   (position #\. (s3loc-bucket s3loc))))
       (apply signeduri arg args)))
 
 ;;; Operations
@@ -826,41 +832,56 @@
 (define end-marker "/* End Policy Statements */")
 (define s3/policy/endmarker end-marker)
 
-(define (generate-policy template bucket (account awsaccount)
+(define (generate-policy template loc (account awsaccount)
 			 (id (uuid->string (getuuid))))
-  (string-subst* tempate "%bucket%" bucket "%id%" id "%account%" account))
+  (when (and (string? loc) (has-prefix loc "s3:"))
+    (set! loc (->s3loc loc)))
+  (string-subst* template
+    "%bucket%" (if (string? loc) loc (s3loc-bucket loc))
+    "%path%" (if (s3loc? loc) (s3loc-path loc) "/")
+    "%id%" id "%account%" account))
 
 
 (define (s3/getpolicy bucket)
   (when (and (string? bucket) (has-prefix bucket "s3:"))
     (set! bucket (->s3loc bucket)))
-  (let ((bucketname (if (string? bucket) bucket (s3loc-bucket bucket))))
-    (s3/op "GET" bucketname "/" #[errs #f usepath #f] #f #f '() "policy")))
+  (let* ((bucketname (if (string? bucket) bucket (s3loc-bucket bucket)))
+	 (fetched (s3/op "GET" bucketname "/"
+		    #[errs #f ignore 404 usepath #f] #f #f '()
+		    "policy")))
+    (and (test fetched 'response 200)
+	 (get fetched '%content))))
 (define (s3/setpolicy! bucket string)
+  (%watch "S3/SETPOLICY!" bucket string)
   (when (and (string? bucket) (has-prefix bucket "s3:"))
     (set! bucket (->s3loc bucket)))
   (let ((bucketname (if (string? bucket) bucket (s3loc-bucket bucket))))
-    (s3/op "PUT" bucketname "/" #[errs #f usepath #f] string #f '() "policy")))
+    (s3/op "PUT" bucketname "/" #[errs #t usepath #f]
+	   string "text" '() "policy")))
 
-(define (s3/addpolicy! loc add (init-policy policy-template))
+(define (s3/addpolicy! loc add (init-policy policy-template) (opts s3opts))
   (let* ((bucket (s3loc-bucket loc))
 	 (path (s3loc-path loc))
-	 (policy (s3/getpolicy bucket))
-	 (end (and (string? policy)
-		   (search "/* Statements End */" policy))))
+	 (policy (s3/getpolicy bucket)))
     (unless (string? policy)
-      (set! policy (generate-policy init-policy "%bucket%" bucket)))
-    (if end
-	(let ((statement
-	       (string-subst* add
-		 "%bucket%" bucket "%path%" path
-		 "%id%" (uuid->string (getuuid))
-		 "%isotime%" (get (gmtimestamp 'seconds) 'iso)
-		 "%account%" awsaccount))
-	      (newpolicy (string-subst policy end-marker
-				       (glom ",\n" statement end-marker))))
-	  (s3/setpolicy! bucket newpolicy))
-	(error "Can't find end marker in policy"))))
+      (set! policy (generate-policy (or init-policy policy-template) loc)))
+    (when (has-prefix path "/") (set! path (slice path 1)))
+    (when (has-suffix path "/") (set! path (slice path 0 -1)))
+    (let* ((statement
+	    (string-subst* add
+	      "%bucket%" bucket "%path%" path
+	      "%id%" (uuid->string (getuuid))
+	      "%isotime%" (get (gmtimestamp 'seconds) 'iso)
+	      "%account%" awsaccount))
+	   (insert (get-policy-insert-point policy))
+	   (newpolicy (glom (slice policy 0 insert)
+			statement "," (slice policy insert))))
+      (s3/setpolicy! bucket newpolicy))))
+
+(define (get-policy-insert-point policy)
+  (let* ((start (textsearch #("\"Statement\":" (spaces*) "[") policy))
+	 (end (and start (position #\[ policy start))))
+    (and end (1+ end))))
 
 ;;; Some test code
 
