@@ -19,7 +19,8 @@
 		  s3/modified s3/etag  s3/info
 		  s3/bucket? s3/copy! s3/link! s3/put
 		  s3/download!})
-(module-export! '{s3/getpolicy s3/setpolicy! s3/addpolicy!})
+(module-export! '{s3/getpolicy s3/setpolicy! s3/addpolicy!
+		  s3/policy/endmarker})
 (module-export!
  '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath
    s3loc->string})
@@ -822,6 +823,8 @@
 ;;; Manipulating policies
 
 (define policy-template (filestring (get-component "s3policy.template")))
+(define end-marker "/* End Policy Statements */")
+(define s3/policy/endmarker end-marker)
 
 (define (generate-policy template bucket (account awsaccount)
 			 (id (uuid->string (getuuid))))
@@ -839,16 +842,25 @@
   (let ((bucketname (if (string? bucket) bucket (s3loc-bucket bucket))))
     (s3/op "PUT" bucketname "/" #[errs #f usepath #f] string #f '() "policy")))
 
-(define (s3/addpoli cy! bucket spec (init-policy policy-template))
-  (let* ((policy (s3/getpolicy bucket))
-	 (end (and (string? policy) (search "/* End */" policy))))
+(define (s3/addpolicy! loc add (init-policy policy-template))
+  (let* ((bucket (s3loc-bucket loc))
+	 (path (s3loc-path loc))
+	 (policy (s3/getpolicy bucket))
+	 (end (and (string? policy)
+		   (search "/* Statements End */" policy))))
     (unless (string? policy)
       (set! policy (generate-policy init-policy "%bucket%" bucket)))
     (if end
-	(let ((newpolicy (string-subst policy "/* End */"
-				       (glom ",\n" policy "/* End */"))))
+	(let ((statement
+	       (string-subst* add
+		 "%bucket%" bucket "%path%" path
+		 "%id%" (uuid->string (getuuid))
+		 "%isotime%" (get (gmtimestamp 'seconds) 'iso)
+		 "%account%" awsaccount))
+	      (newpolicy (string-subst policy end-marker
+				       (glom ",\n" statement end-marker))))
 	  (s3/setpolicy! bucket newpolicy))
-	(error "Can't find End marker in policy"))))
+	(error "Can't find end marker in policy"))))
 
 ;;; Some test code
 
