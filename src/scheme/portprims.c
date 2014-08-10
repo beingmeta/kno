@@ -634,9 +634,13 @@ static fdtype getchar_prim(fdtype port)
   else return fd_type_error(_("input port"),"getchar_prim",port);
 }
 
-static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg)
+static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg,
+                           fdtype eof_marker)
 {
   U8_INPUT *in=get_input_port(port);
+  if (FD_VOIDP(eof_marker)) eof_marker=FD_EMPTY_CHOICE;
+  else if (FD_TRUEP(eof_marker)) eof_marker=FD_EOF;
+  else {}
   if (in) {
     u8_string data, eos; int lim, size=0;
     if (in==NULL)
@@ -665,7 +669,7 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg)
       if (errno==EAGAIN)
 	return FD_EOF;
       else return FD_ERROR_VALUE;
-    else return FD_EMPTY_CHOICE;}
+    else return fd_incref(eof_marker);}
   else return fd_type_error(_("input port"),"getline_prim",port);
 }
 
@@ -1498,7 +1502,7 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("PUTCHAR",putchar_prim,1));
   fd_defalias(fd_scheme_module,"WRITE-CHAR","PUTCHAR");
   fd_idefn(fd_scheme_module,fd_make_cprim1("GETCHAR",getchar_prim,0));
-  fd_idefn(fd_scheme_module,fd_make_cprim3("GETLINE",getline_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim4("GETLINE",getline_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("READ",read_prim,0));
 
   fd_idefn(fd_scheme_module,
