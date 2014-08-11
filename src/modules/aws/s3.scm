@@ -828,9 +828,7 @@
 
 ;;; Manipulating policies
 
-(define policy-template (filestring (get-component "s3policy.template")))
-(define end-marker "/* End Policy Statements */")
-(define s3/policy/endmarker end-marker)
+(define policy-template (filestring (get-component "s3policy.json")))
 
 (define (generate-policy template loc (account awsaccount)
 			 (id (uuid->string (getuuid))))
@@ -840,7 +838,6 @@
     "%bucket%" (if (string? loc) loc (s3loc-bucket loc))
     "%path%" (if (s3loc? loc) (s3loc-path loc) "/")
     "%id%" id "%account%" account))
-
 
 (define (s3/getpolicy bucket)
   (when (and (string? bucket) (has-prefix bucket "s3:"))
