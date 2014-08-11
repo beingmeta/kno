@@ -426,7 +426,8 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
   else if (FD_STRINGP(x)) {
     u8_string pstring=FD_STRDATA(x);
     u8_puts(out,"\"");
-    if ((flags)&&(pstring[0]==':')) u8_putc(out,'\\');
+    if (((flags)&(FD_JSON_COLONIZE))&&(pstring[0]==':')) {
+      u8_putc(out,'\\'); u8_putc(out,'\\');}
     json_escape(out,pstring);
     u8_puts(out,"\"");}
   else if ((FD_BIGINTP(x))||(FD_FLONUMP(x)))

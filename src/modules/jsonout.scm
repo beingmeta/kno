@@ -70,7 +70,7 @@
 		   "]"))
 	((fail? value) (if onfail (printout onfail)))
 	((number? value) (printout value))
-	((string? value) (jsonoutput value))
+	((string? value) (jsonoutput value 0))
 	((vector? value) (jsonvec value))
 	((eq? value #t) (printout "true"))
 	((eq? value #f) (printout "false"))
