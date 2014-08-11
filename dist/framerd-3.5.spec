@@ -173,12 +173,15 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,fdaemon,adm) /var/log/framerd
 %attr(-,fdaemon,adm) %{_prefix}/etc/framerd/servers
 %attr(-,fdaemon,adm) %{_prefix}/etc/framerd/config
+%attr(-,fdaemon,adm) %{_datadir}/framerd/data
+%attr(-,fdaemon,adm) %{_datadir}/framerd/data/README
 %attr(-,fdaemon,adm) %{_datadir}/framerd/fdconsole.el
 %attr(-,fdaemon,adm) %{_datadir}/framerd/scheme_modules
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.js
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/*.css
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/aws/*.scm
+%attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/aws/*.json
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.scm
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.table
 %attr(-,fdaemon,adm) %{_datadir}/framerd/standard_modules/brico/*.dtype
