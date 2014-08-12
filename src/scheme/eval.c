@@ -621,7 +621,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 	towatch=FD_CAR(FD_CDR(scan)); scan=FD_CDR(FD_CDR(scan));
 	wval=((FD_SYMBOLP(towatch))?(fd_symeval(towatch,env)):
 	      (fd_eval(towatch,env)));
-	if (oneout) u8_printf(&out,"// %s=%q",FD_STRDATA(label),wval);
+	if (oneout) u8_printf(&out," // %s=%q",FD_STRDATA(label),wval);
 	else {
 	  u8_printf(&out,"%s=%q",FD_STRDATA(label),wval);
 	  oneout=1;}
@@ -631,7 +631,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
 	wval=((FD_SYMBOLP(towatch))?(fd_symeval(towatch,env)):
 	      (fd_eval(towatch,env)));
 	scan=FD_CDR(scan);
-	if (oneout) u8_printf(&out,"// %q=%q",towatch,wval);
+	if (oneout) u8_printf(&out," // %q=%q",towatch,wval);
 	else {
 	  u8_printf(&out,"%q=%q",towatch,wval);
 	  oneout=1;}
@@ -1269,7 +1269,8 @@ static fdtype environmentp_prim(fdtype arg)
 
 /* Withenv forms */
 
-static fdtype withenv(fdtype expr,fd_lispenv env,fd_lispenv consed_env,u8_context cxt)
+static fdtype withenv(fdtype expr,fd_lispenv env,
+                      fd_lispenv consed_env,u8_context cxt)
 {
   fdtype bindings=fd_get_arg(expr,1);
   if (FD_VOIDP(bindings))
@@ -1281,13 +1282,10 @@ static fdtype withenv(fdtype expr,fd_lispenv env,fd_lispenv consed_env,u8_contex
           (FD_PAIRP(FD_CDR(varval)))&&
           (FD_EMPTY_LISTP(FD_CDR(FD_CDR(varval))))) {
         fdtype var=FD_CAR(varval), val=fd_eval(FD_CADR(varval),env);
-        if (FD_ABORTP(val)) {
-          fd_recycle_environment(consed_env);
-          return FD_ERROR_VALUE;}
-        fd_bind_value(var,val,consed_env);}
-      else {
-        fd_recycle_environment(consed_env);
-        return fd_err(fd_SyntaxError,cxt,NULL,expr);}}}
+        if (FD_ABORTP(val)) return FD_ERROR_VALUE;
+        fd_bind_value(var,val,consed_env);
+        fd_decref(val);}
+      else return fd_err(fd_SyntaxError,cxt,NULL,expr);}}
   else if (FD_TABLEP(bindings)) {
     fdtype keys=fd_getkeys(bindings);
     FD_DO_CHOICES(key,keys) {
@@ -1305,21 +1303,27 @@ static fdtype withenv(fdtype expr,fd_lispenv env,fd_lispenv consed_env,u8_contex
   /* Execute the body */ {
     fdtype result=FD_VOID;
     FD_DOBODY(elt,expr,2) {
-      fd_decref(result); result=fd_eval(elt,consed_env);}
-    fd_decref((fdtype)consed_env);
+      fd_decref(result);
+      result=fd_eval(elt,consed_env);
+      if (FD_ABORTP(result)) {
+        return result;}}
     return result;}
 }
 
 static fdtype withenv_handler(fdtype expr,fd_lispenv env)
 {
   fd_lispenv consed_env=fd_working_environment();
-  return withenv(expr,env,consed_env,"WITHENV");
+  fdtype result=withenv(expr,env,consed_env,"WITHENV");
+  fd_recycle_environment(consed_env);
+  return result;
 }
 
 static fdtype withenv_safe_handler(fdtype expr,fd_lispenv env)
 {
   fd_lispenv consed_env=fd_safe_working_environment();
-  return withenv(expr,env,consed_env,"WITHENV/SAFE");
+  fdtype result=withenv(expr,env,consed_env,"WITHENV/SAFE");
+  fd_recycle_environment(consed_env);
+  return result;
 }
 
 /* Eval/apply related primitives */
