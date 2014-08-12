@@ -145,6 +145,8 @@ MSG=echo
 debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
+memtest_env=""
+heaptest_env=""
 memtest_prefix=builtin_
 heaptest_prefix=builtin_
 use_duma_lib="no"
@@ -199,7 +201,9 @@ AC_SUBST(debugcflags)
 AC_SUBST(debugldflags)
 AC_SUBST(debuglibs)
 AC_SUBST(memtest_prefix)
+AC_SUBST(memtest_env)
 AC_SUBST(heaptest_prefix)
+AC_SUBST(heaptest_env)
 
 AC_SUBST(TAGS)
 AC_SUBST(DREENTRANT)
@@ -991,12 +995,14 @@ if test $with_tcmalloc = "yes"; then
 #  debuglibs="${debuglibs} -ltcmalloc_debug"
   memtest_prefix=builtin_
   heaptest_prefix=builtin_
-  heaptestenv="RUNENV=HEAPCHECK=normal" 
+  heaptest_env="RUNENV=HEAPCHECK=normal" 
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
 elif test $with_tcmalloc = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
-  heaptestenv="RUNENV=HEAPCHECK=normal" 
+  heaptest_env="RUNENV=HEAPCHECK=normal" 
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
 fi
 
 AC_ARG_WITH(perftools,--with[out]-google Use the Google perftools,,with_perftools="no")
@@ -1009,13 +1015,17 @@ if test $with_perftools = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)
 #  debuglibs="${debuglibs} -ltcmalloc_debug"
-  memtest_prefix=gp_
-  heaptest_prefix=gp_
+  memtest_prefix=builtin_
+  heaptest_prefix=builtin_
+  heaptest_env="RUNENV=HEAPCHECK=normal" 
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
 elif test $with_perftools = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)
-  heaptest_prefix=gp_
-  memtest_prefix=gp_
+  heaptest_prefix=builtin_
+  memtest_prefix=builtin_
+  heaptest_env="RUNENV=HEAPCHECK=normal" 
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
 fi
 
 AC_ARG_WITH(hyphenate,--with-hyphenate Build and install hyphenate bindings,,with_hyphenate="yes")

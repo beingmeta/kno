@@ -702,7 +702,9 @@ SHARED_LIB
 SHARED_LIB_TARGET
 DREENTRANT
 TAGS
+heaptest_env
 heaptest_prefix
+memtest_env
 memtest_prefix
 debuglibs
 debugldflags
@@ -2858,6 +2860,8 @@ MSG=echo
 debugcflags=" -O0 -g3 -ggdb3 -fno-inline -fno-omit-frame-pointer "
 debugldflags=""
 debuglibs=""
+memtest_env=""
+heaptest_env=""
 memtest_prefix=builtin_
 heaptest_prefix=builtin_
 use_duma_lib="no"
@@ -2893,6 +2897,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 
@@ -8949,7 +8955,8 @@ fi
 #  debuglibs="${debuglibs} -ltcmalloc_debug"
   memtest_prefix=builtin_
   heaptest_prefix=builtin_
-  heaptestenv="RUNENV=HEAPCHECK=normal"
+  heaptest_env="RUNENV=HEAPCHECK=normal"
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
 elif test $with_tcmalloc = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
@@ -8998,7 +9005,8 @@ fi
 
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
-  heaptestenv="RUNENV=HEAPCHECK=normal"
+  heaptest_env="RUNENV=HEAPCHECK=normal"
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
 fi
 
 
@@ -9106,8 +9114,10 @@ _ACEOF
 fi
 
 #  debuglibs="${debuglibs} -ltcmalloc_debug"
-  memtest_prefix=gp_
-  heaptest_prefix=gp_
+  memtest_prefix=builtin_
+  heaptest_prefix=builtin_
+  heaptest_env="RUNENV=HEAPCHECK=normal"
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
 elif test $with_perftools = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
@@ -9199,8 +9209,10 @@ _ACEOF
 
 fi
 
-  heaptest_prefix=gp_
-  memtest_prefix=gp_
+  heaptest_prefix=builtin_
+  memtest_prefix=builtin_
+  heaptest_env="RUNENV=HEAPCHECK=normal"
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
 fi
 
 
