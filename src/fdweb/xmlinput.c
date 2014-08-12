@@ -163,9 +163,12 @@ static int block_elementp(u8_string name)
 static u8_string readbuf
   (U8_INPUT *in,u8_byte **bufp,int *bufsizp,int *sizep,char *eos)
 {
-  u8_byte *buf=*bufp; int bufsiz=*bufsizp;
-  u8_string data=u8_gets_x(buf,bufsiz,in,eos,sizep);
-  if (data==NULL) {
+  u8_byte *buf=*bufp; int bufsiz=*bufsizp, sz;
+  u8_string data=u8_gets_x(buf,bufsiz,in,eos,&sz);
+  if (sizep) *sizep=sz;
+  if ((data==NULL)&&(sz==0)) return NULL;
+  else if ((data==NULL)&&(sz<0)) return NULL;
+  else if (data==NULL) {
     int new_size=bufsiz, need_size=*sizep+1; u8_byte *newbuf;
     while (new_size<need_size)
       if (new_size<=16384) new_size=new_size*2;
@@ -818,15 +821,20 @@ void *fd_walk_xml(U8_INPUT *in,
 		  FD_XML *node)
 {
   int bufsize=1024, size=bufsize;
-  u8_byte *buf=u8_malloc(1024);
+  u8_byte *buf=u8_malloc(1024), *rbuf;
   while (1) {
     fd_xmlelt_type type;
-    if (readbuf(in,&buf,&bufsize,&size,"<")==NULL) {
+    if ((rbuf=readbuf(in,&buf,&bufsize,&size,"<"))==NULL) {
       if (contentfn)
-	contentfn(node,in->u8_inptr,in->u8_inlim-in->u8_inptr);
+        contentfn(node,in->u8_inptr,in->u8_inlim-in->u8_inptr);
       break;}
-    else if (contentfn) contentfn(node,buf,size);
-    if (readbuf(in,&buf,&bufsize,&size,">")==NULL) {
+    else if (size<0) {
+      fd_seterr3(fd_XMLParseError,"end of input",xmlsnip(in->u8_inptr));
+      u8_free(buf);
+      return NULL;}
+    else if ((size>0)&&(contentfn)) contentfn(node,buf,size);
+    else {}
+    if ((rbuf=readbuf(in,&buf,&bufsize,&size,">"))==NULL) {
       fd_seterr3(fd_XMLParseError,"end of input",xmlsnip(in->u8_inptr));
       u8_free(buf);
       return NULL;}
@@ -880,10 +888,14 @@ void *fd_walk_xml(U8_INPUT *in,
       else strncpy(combined+1+size,">",2);
       if (contentfn) contentfn(node,combined,combined_len);
       u8_free(combined); if (more_data) u8_free(remainder);}
-    else if (type == xmldoctype)
+    else if (type == xmldoctype) {
       if (strchr(buf,'<')) {}
       else if (pifn) node=pifn(in,node,buf,size);
-      else {}
+      else if (contentfn) {
+	u8_string reconstituted=
+	  u8_string_append("<",buf,">",NULL);
+	contentfn(node,reconstituted,size+2);
+	u8_free(reconstituted);}}
     else {
       u8_byte *scan=buf, *_elts[32], **elts=_elts;
       int n_elts;
