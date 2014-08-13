@@ -338,7 +338,7 @@
 		   (usepath))
   (unless (has-prefix path "/") (set! path (glom "/" path)))
   (default! usepath (position #\. bucket))
-  (%watch "SIGNEDURI" opt bucket path scheme expires headers usepath)
+  (info%watch "SIGNEDURI" opt bucket path scheme expires headers usepath)
   (let* ((exptick (if (number? expires)
 		      (if (> expires (time)) expires
 			  (+ (time) expires))
@@ -525,13 +525,15 @@
     content ctype headers))
 (define s3/put s3loc/put)
 
-(define (s3loc/copy! src loc (opts s3opts) (inheaders) (outheaders))
-  (when (string? loc) (set! loc (->s3loc loc)))
-  (when (string? src) (set! src (->s3loc src)))
-  (default! inheaders (try (get (s3loc/opts src) 'headers) '()))
-  (default! outheaders (try (get (s3loc/opts loc) 'headers) '()))
+(define (s3loc/copy! from to (opts s3opts) (inheaders #f) (outheaders #f))
+  (when (string? to) (set! to (->s3loc to)))
+  (when (string? from) (set! from (->s3loc from)))
+  (unless inheaders
+    (set! inheaders (try (get (s3loc/opts from) 'headers)) '()))
+  (unless outheaders
+    (set! outheaders (try (get (s3loc/opts to) 'headers)) '()))
   (default! opts
-    (if (exists? (get (s3loc/opts loc) 'err))
+    (if (exists? (get (s3loc/opts to) 'err))
 	#[errs #t]
 	s3opts))
   (when (not (table? opts)) (set! opts `#[errs ,opts]))
@@ -541,16 +543,16 @@
   (when (testopt opts 'outheaders)
     (set! outheaders (append (getopt opts 'outheaders) outheaders)))
 
-  (let* ((head (s3loc/head src inheaders))
+  (let* ((head (s3loc/head from inheaders))
 	 (ctype (try (get head 'content-type)
 		     (path->mimetype
-		      (s3loc-path loc)
-		      (path->mimetype (s3loc-path src) "text")))))
-    (loginfo |S3/copy| "Copying " (s3loc->string src)
-	     " to " (s3loc->string loc))
-    (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) opts "" ctype
+		      (s3loc-path to)
+		      (path->mimetype (s3loc-path from) "text")))))
+    (loginfo |S3/copy| "Copying " (s3loc->string from)
+	     " to " (s3loc->string to))
+    (s3/op "PUT" (s3loc-bucket to) (s3loc-path to) opts "" ctype
 	   `(("x-amz-copy-source" .
-	      ,(stringout "/" (s3loc-bucket src) (s3loc-path src)))
+	      ,(stringout "/" (s3loc-bucket from) (s3loc-path from)))
 	     ,@inheaders
 	     ,@outheaders))))
 (define s3/copy! s3loc/copy!)
@@ -667,21 +669,40 @@
 (define (get-tail-dir string)
   (slice (gather #("/" (not> "/") "/" (eos)) string) 1))
 
-(define (s3/copy*! from to (headers '()) (opts s3opts) (pause (config 's3:pause #f)))
+(define (s3/copy*! from to (opts s3opts)
+		   (inheaders #f) (outheaders #f) 
+		   (pause (config 's3:pause #f))
+		   (listheaders '()))
   (when (string? from) (set! from (->s3loc from)))
   (when (string? to) (set! to (->s3loc to)))
   (when (not (table? opts)) (set! opts `#[errs ,opts]))
-  (when (testopt opts 'headers)
-    (set! headers (append headers (getopt opts 'headers))))
+  (unless inheaders
+    (set! inheaders (try (get (s3loc/opts from) 'headers)
+			 '())))
+  (unless outheaders
+    (set! outheaders (try (get (s3loc/opts to) 'headers)
+			  '())))
+  (unless listheaders
+    (set! listheaders (try (get (s3loc/opts from) 'headers)
+			   '())))
+  
+  (when (testopt opts 'inheaders)
+    (set! listheaders (append listheaders (getopt opts 'inheaders))))
+  (when (testopt opts 'listheaders)
+    (set! listheaders (append listheaders (getopt opts 'listheaders))))
 
-  (let ((paths (s3/list from)))
+  (loginfo |S3/copy*| "Copying tree " (s3loc->string from)
+	   " to " (s3loc->string to))
+  
+  (let ((paths (s3/list from listheaders)))
+    (loginfo |S3/copy*| "Copying elements from " (s3loc->string from) ": " (s3loc->string paths))
     (do-choices (path paths)
       (if (has-suffix (s3loc-path path) "/")
 	  (s3/copy*! path
 		     (s3/mkpath to (get-tail-dir (s3loc-path path)))
-		     headers opts)
+		     opts inheaders outheaders)
 	  (begin (s3/copy! path (s3/mkpath to (basename (s3loc-path path)))
-			   headers opts)
+		      opts inheaders outheaders)
 	    (when pause (sleep pause)))))))
 (module-export! '{s3/axe! s3/copy*!})
 
@@ -849,7 +870,7 @@
     (and (test fetched 'response 200)
 	 (get fetched '%content))))
 (define (s3/setpolicy! bucket string)
-  (%watch "S3/SETPOLICY!" bucket string)
+  (notice%watch "S3/SETPOLICY!" bucket string)
   (when (and (string? bucket) (has-prefix bucket "s3:"))
     (set! bucket (->s3loc bucket)))
   (let ((bucketname (if (string? bucket) bucket (s3loc-bucket bucket))))
