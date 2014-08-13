@@ -1853,7 +1853,10 @@ static fdtype xmlclose_prim(fdtype arg)
 {
   if (!(FD_TABLEP(arg)))
     return fd_type_error("XML node","xmlclose_prim",arg);
-  else return fd_close_xml(arg);
+  else {
+    fdtype tag=fd_close_xml(arg);
+    fd_decref(tag);
+    return FD_VOID;}
 }
 
 /* Javascript output */
