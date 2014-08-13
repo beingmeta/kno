@@ -163,13 +163,13 @@ static int block_elementp(u8_string name)
 static u8_string readbuf
   (U8_INPUT *in,u8_byte **bufp,int *bufsizp,int *sizep,char *eos)
 {
-  u8_byte *buf=*bufp; int bufsiz=*bufsizp, sz;
+  u8_byte *buf=*bufp; int bufsiz=*bufsizp, sz=0;
   u8_string data=u8_gets_x(buf,bufsiz,in,eos,&sz);
   if (sizep) *sizep=sz;
   if ((data==NULL)&&(sz==0)) return NULL;
   else if ((data==NULL)&&(sz<0)) return NULL;
   else if (data==NULL) {
-    int new_size=bufsiz, need_size=*sizep+1; u8_byte *newbuf;
+    int new_size=bufsiz, need_size=sz+1; u8_byte *newbuf;
     while (new_size<need_size)
       if (new_size<=16384) new_size=new_size*2;
       else new_size=new_size+16384;
