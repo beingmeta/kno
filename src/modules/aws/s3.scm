@@ -622,11 +622,13 @@
     (set! headers (append headers (getopt opts 'headers))))
   (let* ((req (list-chunk loc headers opts "/" next))
 	 (content (reject (elts (xmlparse (get req '%content) 'data)) string?))
+	 (keys (get (get content 'contents) 'key))
+	 (selfpath (slice (s3loc-path loc) 1))
 	 (next (try (get content 'nextmarker) #f)))
     (choice
      (for-choices (path (get (get content 'commonprefixes) 'prefix))
        (make-s3loc (s3loc-bucket loc) path))
-     (for-choices (path (get (get content 'contents) 'key))
+     (for-choices (path (difference keys selfpath))
        (make-s3loc (s3loc-bucket loc) path))
      (tryif next (s3/list loc headers opts next)))))
 (module-export! 's3/list)
@@ -697,8 +699,9 @@
   (loginfo |S3/copy*| "Copying tree " (s3loc->string from)
 	   " to " (s3loc->string to))
   
-  (let ((paths (s3/list from listheaders)))
-    (loginfo |S3/copy*| "Copying elements from " (s3loc->string from) ": " (s3loc->string paths))
+  (let ((paths (difference (s3/list from listheaders) from)))
+    (loginfo |S3/copy*| "Copying " (choice-size paths) " items from " (s3loc->string from) ": "
+	     (s3loc->string paths))
     (do-choices (path paths)
       (if (has-suffix (s3loc-path path) "/")
 	  (s3/copy*! path
