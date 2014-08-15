@@ -82,6 +82,8 @@
 (define s3/guessmimetype path->mimetype)
 (module-export! 's3/guessmimetype)
 
+(define (encode-path path) (string-subst (uriencode path) "%2F" "/"))
+
 ;;; Representing S3 locations
 
 (define (s3loc-string loc)
@@ -208,7 +210,7 @@
     (path->mimetype path (if (packet? content) "application" "text")))
   (let* ((date (gmtimestamp))
 	 ;; Encode everything, then restore delimiters
-	 (path (string-subst (uriencode path) "%2F" "/"))
+	 (path (encode-path path))
 	 (contentMD5 (and content (packet->base64 (md5 content))))
 	 (sig (s3/signature op bucket
 			    (glom 
@@ -529,9 +531,9 @@
   (when (string? to) (set! to (->s3loc to)))
   (when (string? from) (set! from (->s3loc from)))
   (unless inheaders
-    (set! inheaders (try (get (s3loc/opts from) 'headers)) '()))
+    (set! inheaders (try (get (s3loc/opts from) 'headers) '())))
   (unless outheaders
-    (set! outheaders (try (get (s3loc/opts to) 'headers)) '()))
+    (set! outheaders (try (get (s3loc/opts to) 'headers) '())))
   (default! opts
     (if (exists? (get (s3loc/opts to) 'err))
 	#[errs #t]
@@ -552,7 +554,8 @@
 	     " to " (s3loc->string to))
     (s3/op "PUT" (s3loc-bucket to) (s3loc-path to) opts "" ctype
 	   `(("x-amz-copy-source" .
-	      ,(stringout "/" (s3loc-bucket from) (s3loc-path from)))
+	      ,(stringout "/" (s3loc-bucket from) 
+		 (encode-path (s3loc-path from))))
 	     ,@inheaders
 	     ,@outheaders))))
 (define s3/copy! s3loc/copy!)
