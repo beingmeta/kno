@@ -1192,13 +1192,14 @@
       (printout "." (string-subst (get elt 'class) " " ".")))
     (when (test elt 'id) (printout "#" (get elt 'id)))
     (when (test elt 'name) (printout "[NAME=" (get elt 'name) "]"))
+    (when (test elt 'rel) (printout "[REL=" (get elt 'rel) "]"))
     (when attribs
       (if (and (singleton? (get elt '%attribids))
 	       (vector? (get elt '%attribids)))
 	  (doseq (attrib (get elt '%attribids))
-	    (unless (overlaps? attrib '{name class id})
+	    (unless (overlaps? attrib '{name rel class id})
 	      (printout "[" attrib "]")))
-	  (do-choices (attrib (difference (get elt '%attribids) '{name class id}))
+	  (do-choices (attrib (difference (get elt '%attribids) '{name class rel id}))
 	    (printout "[" attrib "]"))))
     (when (and showptr
 	       (or (overlaps? showptr '{force always})
