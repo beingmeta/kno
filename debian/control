@@ -24,39 +24,39 @@ Description: Scalable knowledge base development and application platform
 
 Package: libapache2-mod-fdserv
 Architecture: any
-Depends: framerd-core (= ${binary:Version}), apache2-mpm
+Depends: framerd (= ${binary:Version}), apache2-mpm
 Description: The mod_fdserv module for FramerD servlets under Apache
 
 Package: framerd-dev
 Architecture: any
-Depends: framerd-core (= ${binary:Version})
+Depends: framerd (= ${binary:Version})
 Description: Development files for FramerD
 
 Package: framerd-mysql
 Architecture: any
-Depends: framerd-core (= ${binary:Version})
+Depends: framerd (= ${binary:Version})
 Description: MYSQL bindings for FramerD
 
 Package: framerd-sqlite
 Architecture: any
-Depends: framerd-core (= ${binary:Version})
+Depends: framerd (= ${binary:Version})
 Description: SQLite bindings for FramerD
 
 Package: framerd-imagetools
 Architecture: any
-Depends: framerd-core (= ${binary:Version})
+Depends: framerd (= ${binary:Version})
 Description: Image tools for FramerD
   Bindings to various image libraries modules for FramerD,
   including ImageMagick, QRCode generation, and EXIF extraction.
 
 Package: framerd-sundown
 Architecture: any
-Depends: framerd-core (= ${binary:Version})
+Depends: framerd (= ${binary:Version})
 Description: Markdown conversion (bindings) for FramerD
 
 Package: framerd-tidy
 Architecture: any
-Depends: framerd-core (= ${binary:Version})
+Depends: framerd (= ${binary:Version})
 Description: HTML Tidy (bindings) for FramerD
 
 Package: framerd-doc
@@ -65,17 +65,17 @@ Description: documentation for framerd
 
 Package: framerd-gnosys
 Architecture: all
-Depends: framerd-core
+Depends: framerd
 Description: A document/media search and analysis toolkit in FramerD
 
 Package: framerd-morph
 Architecture: all
-Depends: framerd-core
+Depends: framerd
 Description: Multi-language morphological analysis for FramerD
 
 Package: framerd-chopper
 Architecture: all
-Depends: framerd-core
+Depends: framerd
 Description: Natural language processing development environment
 
 

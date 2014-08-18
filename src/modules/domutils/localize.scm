@@ -315,13 +315,13 @@
 	       (hashpos (position #\# href)))
 	  (cond ((test urlmap href)
 		 (when saveslot (dom/set! node saveslot href))
-		 (%wc dom/set! node 'href (get urlmap href)))
+		 (dom/set! node 'href (get urlmap href)))
 		((and hashpos (test urlmap (slice href 0 hashpos)))
 		 (when saveslot (dom/set! node saveslot href))
-		 (%wc dom/set! node 'href (slice href hashpos)))
+		 (dom/set! node 'href (slice href hashpos)))
 		((has-suffix href image-suffixes)
 		 (when saveslot (dom/set! node saveslot href))
-		 (%wc dom/set! node 'href
+		 (dom/set! node 'href
 			   (localref href urlmap base (qc saveto)
 				     read options)))))))
     (let ((xresources '()) (files {}))
