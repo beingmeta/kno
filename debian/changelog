@@ -1,3 +1,8 @@
+framerd (3.5.9-1) testing; urgency=low
+
+  * Updated debian release
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 17 Aug 2014 11:06:52 -0700
 framerd (3.5.8-1) testing; urgency=low
 
   * Updated debian release
