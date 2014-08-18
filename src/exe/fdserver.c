@@ -1115,7 +1115,7 @@ static int sustain_server(pid_t grandchild,
   dependent=grandchild;
   /* Setup atexit and signal handlers to kill our dependent when we're
      gone. */
-  u8_log(LOG_WARN,"FDServer/sustain %s pid=%d",server_spec,grandchild);
+  u8_log(LOG_WARN,"FDServer/sustain","Monitoring %s pid=%d",server_spec,grandchild);
   atexit(kill_dependent_onexit);
 #ifdef SIGTERM
   signal(SIGTERM,kill_dependent_onsignal);
