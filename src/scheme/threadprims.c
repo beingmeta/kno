@@ -76,9 +76,17 @@ FD_EXPORT void recycle_thread_struct(struct FD_CONS *c)
 
 static fdtype make_condvar()
 {
+  int rv=0;
   struct FD_CONSED_CONDVAR *cv=u8_alloc(struct FD_CONSED_CONDVAR);
-  FD_INIT_CONS(cv,fd_condvar_type);
-  fd_init_mutex(&(cv->lock)); u8_init_condvar(&(cv->cvar));
+  FD_INIT_FRESH_CONS(cv,fd_condvar_type);
+  rv=fd_init_mutex(&(cv->lock)); 
+  if (rv) {
+    u8_graberr(-1,"make_condvar",NULL); 
+    return FD_ERROR_VALUE;}
+  else rv=u8_init_condvar(&(cv->cvar));
+  if (rv) {
+    u8_graberr(-1,"make_condvar",NULL); 
+    return FD_ERROR_VALUE;}
   return FDTYPE_CONS(cv);
 }
 
@@ -87,15 +95,16 @@ static fdtype make_condvar()
    interval in seconds. */
 static fdtype condvar_wait(fdtype cvar,fdtype timeout)
 {
+  int rv=0;
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
   if (FD_VOIDP(timeout))
-    if (fd_condvar_wait(&(cv->cvar),&(cv->lock))==0)
+    if ((rv=fd_condvar_wait(&(cv->cvar),&(cv->lock)))==0)
       return FD_TRUE;
     else {
       return fd_type_error(_("valid condvar"),"condvar_wait",cvar);}
   else {
-    struct timespec tm; int retval;
+    struct timespec tm;
     if ((FD_FIXNUMP(timeout)) && (FD_FIX2INT(timeout)>=0)) {
       int ival=FD_FIX2INT(timeout);
       tm.tv_sec=time(NULL)+ival; tm.tv_nsec=0;}
@@ -110,10 +119,10 @@ static fdtype condvar_wait(fdtype cvar,fdtype timeout)
       else return fd_type_error(_("time interval"),"condvar_wait",timeout);}
 #endif
     else return fd_type_error(_("time interval"),"condvar_wait",timeout);
-    retval=u8_condvar_timedwait(&(cv->cvar),&(cv->lock),&tm);
-    if (retval==0)
+    rv=u8_condvar_timedwait(&(cv->cvar),&(cv->lock),&tm);
+    if (rv==0)
       return FD_TRUE;
-    else if (retval==ETIMEDOUT)
+    else if (rv==ETIMEDOUT)
       return FD_FALSE;
     return fd_type_error(_("valid condvar"),"condvar_wait",cvar);}
 }
