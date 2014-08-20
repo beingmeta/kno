@@ -104,7 +104,7 @@ define inchoicep
 end
 
 set breakpoint pending on
-set disable-randomization off
+#set disable-randomization off
 set overload-resolution off
 
 break u8_new_exception
