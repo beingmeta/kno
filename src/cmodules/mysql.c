@@ -26,6 +26,7 @@
 
 #include <mysql/mysql.h>
 #include <mysql/errmsg.h>
+#include <mysql/mysqld_error.h>
 
 extern my_bool my_init(void);
 
@@ -45,7 +46,9 @@ u8_condition UnusedType=_("MYSQL unused parameter type");
    (err==CR_SERVER_LOST))
 #define NEED_RESET(err)                                 \
   ((err==CR_COMMANDS_OUT_OF_SYNC) ||                    \
-   (err==CR_NO_PREPARE_STMT))
+   (err==CR_NO_PREPARE_STMT)||                          \
+   (err==ER_UNKNOWN_STMT_HANDLER)||                     \
+   (err==ER_NEED_REPREPARE))
 #define RETVAL_OK 0
 
 #if FD_THREADS_ENABLED
