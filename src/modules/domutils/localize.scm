@@ -81,12 +81,16 @@
 	 (let ((fetched
 		(onerror (gp/fetch+ absref)
 		  (lambda (ex)
-		    (logwarn |LOCALIZE/sync| "Error fetching " absref ":\n\t" ex)
+		    (logwarn |LOCALIZE/sync|
+			     "Error fetching " absref ":\n\t" ex)
+		    (clear-errors!)
 		    #f)))
 	       (xform (getopt options 'xform)))
 	   (cond ((and exists (not fetched))
-		  (logwarn |LOCALIZE/sync| "Couldn't update content for " ref
-			   " from " (gp->s absref) ", using current " (gp->s savepath)))
+		  (logwarn |LOCALIZE/sync|
+			   "Couldn't update content for " ref
+			   " from " (gp->s absref) ", "
+			   "using current " (gp->s savepath)))
 		 ((or (not fetched)
 		      (fail? (get fetched 'content))
 		      (not (get fetched 'content)))
@@ -98,8 +102,10 @@
 				      (get fetched 'content))
 				  ctype)
 			 (lambda (ex)
-			   (logwarn |LOCALIZE/sync/save| "Couldn't update content for " ref
-				    " from " (gp->s absref) ", using current " (gp->s savepath))))))
+			   (logwarn |LOCALIZE/sync/save|
+				    "Couldn't update content for " ref
+				    " from " (gp->s absref) ", "
+				    "using current " (gp->s savepath))))))
 	   (when (and fetched (test fetched 'content)
 		      (or (string? (get fetched 'content))
 			  (packet? (get fetched 'content))))
