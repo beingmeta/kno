@@ -710,6 +710,7 @@ static int webservefn(u8_client ucl)
   fdtype content=FD_VOID, retfile=FD_VOID;
   fd_lispenv base_env=NULL;
   fd_webconn client=(fd_webconn)ucl;
+  u8_server server=client->server;
   int write_headers=1, close_html=0;
   double start_time, setup_time, parse_time, exec_time, write_time;
   struct FD_THREAD_CACHE *threadcache=NULL;
@@ -1147,6 +1148,11 @@ static int webservefn(u8_client ucl)
 	  while ((to_read>0)&&
 		 ((bytes_read=fread(write,sizeof(uchar),to_read,f))>0)) {
 	    to_read=to_read-bytes_read;}
+	  if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
+	      ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
+	    u8_log(LOG_WARN,"Buffering/file",
+		   "Queued %d+%d=%d bytes of 0x%lx for output",
+		   http_len,to_read,total_len,(unsigned long)filebuf);
 	  client->buf=filebuf; client->off=0;
 	  client->len=client->buflen=total_len;
 	  client->writing=u8_microtime(); client->reading=-1;
@@ -1177,7 +1183,12 @@ static int webservefn(u8_client ucl)
 	memcpy(outbuf+http_len,FD_STRDATA(content),content_len);
 	outbuf[bundle_len]='\0';
 	client->buf=outbuf; client->len=client->buflen=bundle_len;
-	client->writing=u8_microtime(); client->reading=-1;
+	client->writing=u8_microtime(); client->reading=-1; client->off=0;
+	if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
+	    ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
+	  u8_log(LOG_WARN,"Buffering/text",
+		 "Queued %d+%d=%d bytes of 0x%lx for output",
+		 http_len,content_len,bundle_len,(unsigned long)outbuf);
 	/* Let the server loop free the buffer when done */
 	client->ownsbuf=1; buffered=1; return_code=1;}
       else  {
@@ -1195,6 +1206,11 @@ static int webservefn(u8_client ucl)
       if (outbuf) {
 	memcpy(outbuf,httphead.u8_outbuf,http_len);
 	memcpy(outbuf+http_len,FD_PACKET_DATA(content),content_len);
+	if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
+	    ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
+	  u8_log(LOG_WARN,"Buffering/packet",
+		 "Queued %d+%d=%d bytes of 0x%lx for output",
+		 http_len,content_len,bundle_len,(unsigned long)outbuf);
 	client->buf=outbuf; client->len=client->buflen=bundle_len;
 	client->writing=u8_microtime(); client->reading=-1;
 	/* Let the server loop free the buffer when done */
