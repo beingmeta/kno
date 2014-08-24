@@ -74,7 +74,7 @@ FD_EXPORT int fd_init_fddbserv(void);
 
 /* This lets the u8_server loop do I/O buffering to keep threads from
    waiting on I/O. */
-static int async_mode=0;
+static int async_mode=1;
 
 /* Logging declarations */
 static FILE *statlog=NULL; int statusout=-1;
@@ -1795,11 +1795,11 @@ static int launch_servlet(u8_string socket_spec)
      (void *)(U8_SERVER_LOG_TRANSFER));
 #endif
 #ifdef U8_SERVER_ASYNC
+  if (async_mode) fdwebserver.flags=fdwebserver.flags|U8_SERVER_ASYNC;
   fd_register_config("U8ASYNC",
 		     _("Whether to support thread-asynchronous transactions"),
 		     config_get_u8server_flag,config_set_u8server_flag,
 		     (void *)(U8_SERVER_ASYNC));
-  if (async_mode) fdwebserver.flags=fdwebserver.flags|U8_SERVER_ASYNC;
 #endif
   
   /* Now that we're running, shutdowns occur normally. */
