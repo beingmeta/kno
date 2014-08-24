@@ -74,7 +74,7 @@ FD_EXPORT int fd_init_fddbserv(void);
 
 /* This lets the u8_server loop do I/O buffering to keep threads from
    waiting on I/O. */
-static int async_mode=1;
+static int async_mode=0;
 
 /* Logging declarations */
 static FILE *statlog=NULL; int statusout=-1;
