@@ -642,7 +642,7 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
   INBUF data; OUTBUF rdbuf; CURLcode retval; 
   fdtype result=FD_VOID;
   struct FD_CURL_HANDLE *h=NULL;
-  if (!((FD_STRINGP(content))||(FD_PACKETP(content)))) 
+  if (!((FD_STRINGP(content))||(FD_PACKETP(content))||(FD_FALSEP(content)))) 
     return fd_type_error("string or packet","urlput",content);
   else conn=curl_arg(curl,"urlput");
   if (FD_ABORTP(conn)) return conn;
@@ -660,7 +660,10 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
   curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));
   curl_easy_setopt(h->handle,CURLOPT_WRITEDATA,&data);
   curl_easy_setopt(h->handle,CURLOPT_WRITEHEADER,&result);
-  curl_easy_setopt(h->handle,CURLOPT_UPLOAD,1);
+  if ((FD_STRINGP(content))||(FD_PACKETP(content))) {
+    curl_easy_setopt(h->handle,CURLOPT_UPLOAD,1);
+    curl_easy_setopt(h->handle,CURLOPT_READFUNCTION,copy_upload_data);
+    curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);}
   if (FD_STRINGP(content)) {
     size_t length=FD_STRLEN(content);
     rdbuf.scan=FD_STRDATA(content);
@@ -672,8 +675,6 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
     rdbuf.end=FD_PACKET_DATA(content)+length;
     curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,length);}
   else {}
-  curl_easy_setopt(h->handle,CURLOPT_READFUNCTION,copy_upload_data);
-  curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
