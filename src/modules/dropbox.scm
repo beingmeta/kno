@@ -51,8 +51,11 @@
 		     (oauth/call oauth 'GET endpoint '() #f #t)))
 	 (status (get result 'response)))
     (if (>= 299 status 200) (get result '%content)
-	(irritant result CALLFAILED DROPBOX/GET
-		  path " with " oauth))))
+	(if (= status 404)
+	    (begin (lognotice |Dropbox404| "Dropbox call returned 404" result)
+	      (fail))
+	    (irritant result CALLFAILED DROPBOX/GET
+		      path " with " oauth)))))
 (define (dropbox/get+ oauth path (revision #f) (err #f))
   (let* ((endpoint (glom "https://api-content.dropbox.com/1/files/"
 		     (getopt oauth 'root
@@ -110,9 +113,10 @@
 				    (get parsed 'size))
 		       'bytes))
 	  parsed)
-	(and (or error (not (<= 400 status 500)))
-	     (irritant result CALLFAILED DROPBOX/INFO
-		       path " with " oauth)))))
+	(if (= status 404) #f
+	    (and (or error (not (<= 400 status 500)))
+		 (irritant result CALLFAILED DROPBOX/INFO
+			   path " with " oauth))))))
 
 (define (dropbox/list oauth path (revision #f))
   (let* ((endpoint (glom "https://api.dropbox.com/1/metadata/"
