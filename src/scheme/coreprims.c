@@ -104,9 +104,13 @@ static fdtype lisp_zerop(fdtype x)
     if (FD_FIX2INT(x)==0) return FD_TRUE; else return FD_FALSE;
   else if (FD_FLONUMP(x))
     if (FD_FLONUM(x)==0.0) return FD_TRUE; else return FD_FALSE;
-  else if (fd_numcompare(x,FD_INT2DTYPE(0))==0)
-    return FD_TRUE;
-  else return FD_FALSE;
+  else if (!(FD_NUMBERP(x)))
+    return FD_FALSE;
+  else {
+    int cmp=fd_numcompare(x,FD_INT2DTYPE(0));
+    if (cmp==0) return FD_TRUE;
+    else if (cmp>1) return FD_ERROR_VALUE;
+    else return FD_FALSE;}
 }
 
 static fdtype do_compare(int n,fdtype *v,int testspec[3])
