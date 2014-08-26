@@ -12,6 +12,8 @@
 		  dropbox/list dropbox/info dropbox/put!
 		  dropbox/gpath})
 
+(define %loglevel %warning%)
+
 (defrecord dropbox oauth (root-path #f))
 
 (define-init dropbox-root "sandbox")
@@ -81,7 +83,7 @@
 	      'modified (get result 'modified)
 	      'etag (get result 'etag)))
 	(if (= status 404)
-	    (begin (logwarn |Dropbox404| "Dropbox call returned 404" result)
+	    (begin (lognotice |Dropbox404| "Dropbox call returned 404" result)
 	      (fail))
 	    (irritant result CALLFAILED DROPBOX/GET+
 		      path " with " oauth)))))
