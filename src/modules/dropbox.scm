@@ -4,7 +4,9 @@
 ;;; Core file for accessing Dropbox
 (in-module 'dropbox)
 
-(use-module '{fdweb xhtml signature oauth gpath texttools mimetable ezrecords})
+(use-module '{fdweb xhtml signature oauth
+	      gpath texttools mimetable ezrecords
+	      logger})
 
 (module-export! '{dropbox/get dropbox/get/req dropbox/get+
 		  dropbox/list dropbox/info dropbox/put!
@@ -49,7 +51,7 @@
     (if (>= 299 status 200) (get result '%content)
 	(irritant result CALLFAILED DROPBOX/GET
 		  path " with " oauth))))
-(define (dropbox/get+ oauth path (revision #f))
+(define (dropbox/get+ oauth path (revision #f) (err #f))
   (let* ((endpoint (glom "https://api-content.dropbox.com/1/files/"
 		     (getopt oauth 'root
 			     (if (testopt oauth 'live)
@@ -78,8 +80,11 @@
 	      'ctype (get result 'content-type)
 	      'modified (get result 'modified)
 	      'etag (get result 'etag)))
-	(irritant result CALLFAILED DROPBOX/GET+
-		  path " with " oauth))))
+	(if (= status 404)
+	    (begin (logwarn |Dropbox404| "Dropbox call returned 404" result)
+	      (fail))
+	    (irritant result CALLFAILED DROPBOX/GET+
+		      path " with " oauth)))))
 
 (define (dropbox/info oauth path (revision #f) (error #f))
   (let* ((endpoint (glom "https://api.dropbox.com/1/metadata/"
