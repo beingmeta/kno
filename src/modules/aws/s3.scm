@@ -257,7 +257,8 @@
 		(if (equal? op "PUT")
 		    (urlput url (or content "") ctype urlparams)
 		    (urlget url urlparams)))))))
-(define (s3/op op bucket path (opts s3opts) (content #f) (ctype) (headers '()) . args)
+(define (s3/op op bucket path (opts s3opts)
+	       (content #f) (ctype) (headers '()) . args)
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
   (unless (table? opts) (set! opts `#[errs, opts]))
@@ -287,26 +288,54 @@
 	       s3result)
 	      ((and (not err) (= status 404))
 	       (unless (testopt opts 'ignore 404)
-		 (logwarn |S3/NotFound| S3/OP s3result))
+		 (logwarn |S3/NotFound|
+			  op " " (glom "s3://" bucket "/" path)
+			  (if (or (not opts) (empty? (getkeys opts)))
+			      " (no opts)"
+			      (printout "\n\t" (pprint opts)))
+			  "\n\t" (pprint s3result)))
 	       s3result)
 	      ((and (not err) (= status 403))
 	       (unless (testopt opts 'ignore 403)
-		 (logwarn |S3/NotFound| S3/OP s3result))
-	       (logwarn |S3/Forbidden| S3/OP s3result)
+		 (logwarn |S3/NotFound|
+			  op " " (glom "s3://" bucket "/" path)
+			  (if (or (not opts) (empty? (getkeys opts)))
+			      " (no opts)"
+			      (printout "\n\t" (pprint opts)))
+			  "\n\t" (pprint s3result)))
+	       (logwarn |S3/Forbidden|
+			op " " (glom "s3://" bucket "/" path)
+			(if (or (not opts) (empty? (getkeys opts)))
+			    " (no opts)"
+			    (printout "\n\t" (pprint opts)))
+			"\n\t" (pprint s3result))
 	       s3result)
 	      ((not err)
-	       (logwarn |S3/Failure| S3/OP
-			(try (get s3result 'header) "HTTP return failed")
-			":\n\t" s3result)
+	       (logwarn |S3/Failure|
+			op " " (glom "s3://" bucket "/" path) " "
+			(try (get s3result 'header) "")
+			(if (or (not opts) (empty? (getkeys opts)))
+			    " (no opts)"
+			    (printout "\n\t" (pprint opts)))
+			"\n\t" (pprint s3result))
 	       s3result)
 	      ((and err (= status 404))
 	       (irritant s3result |S3/NotFound| S3/OP
-			 "s3://" bucket path))
+			 op " " "s3://" bucket "/" path
+			 (if (or (not opts) (empty? (getkeys opts)))
+			     " no opts"
+			     (printout "\n\t" (pprint opts)))))
 	      ((and err (= status 403))
 	       (irritant s3result |S3/Forbidden| S3/OP
-			 "s3://" bucket path))
+			 op " " "s3://" bucket "/" path
+			 (if (or (not opts) (empty? (getkeys opts)))
+			     " (no opts)"
+			     (printout "\n\t" (pprint opts)))))
 	      (else (irritant s3result |S3/Failure| S3/OP
-			      "s3://" bucket path))))))
+			      op " " "s3://" bucket "/" path
+			      (if (or (not opts) (empty? (getkeys opts)))
+				  " (no opts)"
+				  (printout "\n\t" (pprint opts)))))))))
 
 (define (s3/expected response)
   (->string (map (lambda (x) (integer->char (string->number x 16)))
@@ -739,7 +768,8 @@
 			  (or (exists regex/match rxmatch (basename file))
 			      (exists textmatch patmatch (basename file))))))))
 	 (updated {}))
-    (logwarn "Checking " (choice-size copynames)
+    (logwarn |S3/push|
+	     "Checking " (choice-size copynames)
 	     " files from " (choice-size filenames) " in " dir)
     (do-choices-mt (file copynames (config 's3threads 1))
       (let* ((info (pick s3info 'name (basename file)))
@@ -748,8 +778,8 @@
 	(if (or (fail? info) forcewrite
 		(not (= (get info 'size) (file-size file))))
 	    (begin (if (fail? info)
-		       (loginfo "Pushing to " loc)
-		       (loginfo "Updating to " loc
+		       (loginfo |S3/push| "Pushing to " loc)
+		       (loginfo |S3/push| "Updating to " loc
 				" (" (file-size file) " != "
 				(get info 'size)")"))
 	      (s3/write! loc (filedata file) mimetype headers)
@@ -758,7 +788,7 @@
 	    (let ((data (filedata file)))
 	      (if (equal? (md5 data) (get info 'hash))
 		  (logdebug "Skipping unchanged " loc)
-		  (begin (loginfo "Updating to " loc "\n\t"
+		  (begin (loginfo |S3/push| "Updating to " loc "\n\t"
 				  "(" (get info 'hash) " != "  (md5 data) ")")
 		    (s3/write! loc data mimetype headers)
 		    (set+! updated loc)
@@ -767,11 +797,11 @@
 (module-export! 's3/push!)
 
 (define (dowrite loc data mimetype headers)
-  (loginfo "Writing " (length data) " "
-	   (if (packet? data) "bytes" "characters")
-	   " of " mimetype " to " (s3loc->string loc)
-	   (unless (null? headers)
-	     (printout "\n\twith " headers)))
+  (logdebug |S3/writing| "Writing " (length data) " "
+	    (if (packet? data) "bytes" "characters")
+	    " of " mimetype " to " (s3loc->string loc)
+	    (unless (null? headers)
+	      (printout "\n\twith " headers)))
   (s3/write! loc data mimetype headers))
 
 ;;; Rules for converting URLs into S3 locations
