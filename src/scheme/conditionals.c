@@ -198,7 +198,8 @@ static fdtype or_handler(fdtype expr,fd_lispenv env)
   FD_DOLIST(clause,FD_CDR(expr)) {
     fd_decref(value);
     value=fd_eval(clause,env);
-    if (!(FD_FALSEP(value))) return value;}
+    if (FD_ABORTP(value)) return value;
+    else if (!(FD_FALSEP(value))) return value;}
   return value;
 }
 
