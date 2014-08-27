@@ -203,11 +203,11 @@
 	  (upcase {".png" ".gif" ".jpg" ".jpeg" ".svg"})))
 
 (define (dom/localize! dom base saveto read (options #f)
-		       (urlmap) (doanchors) (dolinks) (cssrules))
+		       (urlmap) (doanchors) (dolinks) (stylerules))
   (default! urlmap (getopt options 'urlmap (make-hashtable)))
   (default! doanchors (getopt options 'doanchors #f))
   (default! dolinks (getopt options 'synclinks {}))
-  (default! cssrules (getopt options 'cssrules {}))
+  (default! stylerules (getopt options 'stylerules {}))
   (loginfo "Localizing references for "
 	   (try (gpath->string (get dom 'source)) "source")
 	   "\n\tfrom " (write (gp->s base))
@@ -250,15 +250,15 @@
 	  (loginfo |Localize|
 		   "Localizing stylesheet " (get node 'href)
 		   "\n\tfrom " base "\n\tto " saveto
-		   (when (exists? cssrules)
-		     (printout "\n\twith CSS rules " cssrules)))
+		   (when (exists? stylerules)
+		     (printout "\n\twith CSS rules " stylerules)))
 	  (let* ((usebase (if (position #\/ href)
 			      (gp/mkpath base (dirname href))
 			      base))
 		 (fix-csstext
-		  (if (exists? cssrules)
+		  (if (exists? stylerules)
 		      (lambda (csstext)
-			(textsubst (fix-crlfs csstext) (qc cssrules)))
+			(textsubst (fix-crlfs csstext) (qc stylerules)))
 		      fix-crlfs))
 		 (xformcss (lambda (css)
 			     (if (string? css)
