@@ -4,7 +4,7 @@
 (in-module 'bugjar)
 
 (use-module '{fdweb xhtml texttools xhtml/tableout})
-(use-module '{varconfig stringfmts getcontent logger})
+(use-module '{varconfig stringfmts getcontent gpath logger})
 (define %used_modules '{varconfig})
 
 (module-export! 'bugjar!)
@@ -17,7 +17,7 @@
 
 ;;; Configurable
 
-(define-init fileroot
+(define-init saveroot
   (if (config 'logdir)
       (glom (mkpath (mkpath (config 'logdir) "framerd")
 		    "bugjar") "/")
@@ -29,12 +29,12 @@
        (has-prefix string {"http:" "https:" "ftp:" "s3:"})))
 
 (define (bugjar-config var (val))
-  (cond ((not (bound? val)) (cons fileroot webroot))
+  (cond ((not (bound? val)) (cons saveroot webroot))
 	((not val)
-	 (set! fileroot #f)
+	 (set! saveroot #f)
 	 (set! webroot #f))
 	((and (pair? val) (string? (car val)) (urish? (cdr val)))
-	 (set! fileroot (car val))
+	 (set! saveroot (car val))
 	 (set! webroot (cdr val)))
 	((not (string? val))
 	 (error BADLOGROOT BUGJAR-CONFIG
@@ -43,11 +43,11 @@
 	 (let ((split (segment val " ")))
 	   (if (urish? (first split))
 	       (begin (set! webroot (first split))
-		 (set! fileroot (second split)))
+		 (set! saveroot (second split)))
 	       (begin (set! webroot (second split))
-		 (set! fileroot (first split))))))
+		 (set! saveroot (first split))))))
 	((urish? val) (set! webroot val))
-	(else (set! fileroot val))))
+	(else (set! saveroot val))))
 (config-def! 'bugjar bugjar-config)
 
 (define bughead #f)
@@ -60,14 +60,15 @@
 		  "D" (padnum (get date 'date) 2)))
 	 (dir (mkpath daily (stringout "BJ" (uuid->string uuid)))))
     dir))
-(define (makelogbase uuid (root fileroot))
-
-  (if (or (file-directory? root)
+(define (makelogbase uuid (root saveroot))
+  (if (or (not (string? root)) (has-prefix root "s3:")
+	  (file-directory? root)
 	  (file-directory? (dirname root)))
       (let* ((date (uuid-time uuid))
-	     (yname (mkpath root (glom "Y0" (get date 'year))))
-	     (mname (mkpath yname (glom "M" (padnum (1+ (get date 'month)) 2))))
-	     (dname (mkpath mname (glom "D" (padnum (get date 'date) 2))))
+	     (root (->gpath root))
+	     (yname (gp/mkpath root (glom "Y0" (get date 'year))))
+	     (mname (gp/mkpath yname (glom "M" (padnum (1+ (get date 'month)) 2))))
+	     (dname (gp/mkpath mname (glom "D" (padnum (get date 'date) 2))))
 	     (dir (mkpath dname (stringout "BJ" (uuid->string uuid)))))
 	(unless (file-directory? root) (mkdir root #o777))
 	(unless (file-directory? yname) (mkdir yname #o777))
@@ -82,7 +83,7 @@
   (when (getopt spec 'sections)
     (set! more (append more (getopt spec 'sections))))
   (let* ((uuid (getopt spec 'uuid (getuuid)))
-	 (fileroot (makelogbase uuid fileroot))
+	 (saveroo (tmakelogbase uuid saveroot))
 	 (webroot (and webroot (mkpath webroot (getlogbase uuid))))
 	 (reqdata (try (getopt spec 'reqdata)
 		       (and (req/get 'SCRIPT_FILENAME)
@@ -92,24 +93,24 @@
 	 (detailsblock #f)
 	 (irritantblock #f)
 	 (sections '()))
-    (mkdirs (mkpath fileroot "example"))
+    (mkdirs (mkpath saveroot "example"))
     (when reqdata
-      (dtype->file reqdata (mkpath fileroot "request.dtype")))
+      (dtype->file reqdata (mkpath saveroot "request.dtype")))
     (when reqlog
-      (write-file (mkpath fileroot "request.log") reqlog))
+      (write-file (mkpath saveroot "request.log") reqlog))
     (let ((scan more))
       (while (and (pair? scan)
 		  (or (string? (car scan)) (symbol? (car scan)))
 		  (pair? (cdr scan)))
 	(let ((data (cadr scan))
-	      (filename  (mkpath fileroot (->string (car scan)))))
+	      (filename  (mkpath saveroot (->string (car scan)))))
 	  (if (or (string? data) (packet? data))
 	      (write-file filename data)
 	      (dtype->file data filename)))
 	(set! scan (cddr scan)))
       (when (pair? scan)
-	(dtype->file (mkpath fileroot "more.dtype") (car more))))
-    (fileout (mkpath fileroot "backtrace.html")
+	(dtype->file (mkpath saveroot "more.dtype") (car more))))
+    (fileout (mkpath saveroot "backtrace.html")
       (with/request/out
        (title! "Error " (uuid->string uuid) ": "
 	       (error-condition exception)
@@ -225,7 +226,7 @@
 	     (xmlout (stringout (pprint (error-irritant exception)))))))))
     (if webroot
 	(mkpath webroot "backtrace.html")
-	(glom "file://" (mkpath fileroot "backtrace.html")))))
+	(glom "file://" (mkpath saveroot "backtrace.html")))))
 
 
 
