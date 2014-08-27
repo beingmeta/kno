@@ -16,6 +16,7 @@
    gp/path gp/mkpath gp/subpath gp/makepath gpath->string
    gp:config gpath/handler
    gp/urlfetch gp/urlinfo
+   dtype->gpath
    gp/copy!})
 (module-export! '{zip/gopen zip/gclose})
 
@@ -719,4 +720,12 @@
 		      (->gpath to))
 		  (gp/mkpath (getcwd) (gp/basename from)))))
     (gp/save! dest (get fetched 'content) (get fetched 'ctype))))
+
+;;;; Writing dtypes to gpaths
+
+(defambda (dtype->gpath dtype gpath)
+  (do-choices gpath
+    (let ((gp (if (string? gpath) (->gpath gpath) gpath)))
+      (gp/save! gp (dtype->packet (qc dtype)) "application/dtype"))))
+
 
