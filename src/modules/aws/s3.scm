@@ -23,7 +23,7 @@
 		  s3/policy/endmarker})
 (module-export!
  '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath
-   s3loc->string})
+   s3loc->string s3ish?})
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %notify%)
@@ -113,36 +113,55 @@
 	      (error badpath make-s3loc path)))
       (error badbucket make-s3loc bucket)))
 
+(define s3uripat
+  '(GREEDY {#("http" {"s:" ":"} "//"
+	      (label bucket (not> ".s3.amazonaws.com/"))
+	      ".s3.amazonaws.com/"
+	      (label path (rest)))
+   
+	    #("http" {"s:" ":"} "//s3.amazonaws.com/"
+	      (label bucket (not> "/")) "/"
+	      (label path (rest)))}))
 (define (->s3loc input)
-  (if (s3loc? input) input
-      (if (string? input)
-	  (if (has-prefix input "s3:")
-	      (->s3loc (subseq input 3))
-	      (if (has-prefix input "//")
-		  (let ((slash (position #\/ input 2)))
-		    (if slash
-			(make-s3loc (subseq input 2 slash)
-				    (subseq input (1+ slash)))
-			(make-s3loc (subseq input 2) "")))
-		  (let ((colon (position #\: input))
-			(slash (position #\/ input)))
-		    (if (and colon slash)
-			(if (< colon slash)
-			    (make-s3loc (subseq input 0 colon)
-					(if (= slash (1+ colon))
-					    (subseq input (+ colon 2))
-					    (subseq input (1+ colon))))
-			    (make-s3loc (subseq input 0 slash)
-					(subseq input (1+ slash))))
-			(if slash
-			    (make-s3loc (subseq input 0 slash)
-					(subseq input (1+ slash)))
-			    (if colon
-				(make-s3loc (subseq input 0 colon)
-					    (subseq input (1+ colon)))
-				(make-s3loc input "")))))))
-	  (error "Can't convert to s3loc" input))))
+  (cond ((s3loc? input) input)
+	((not (string? input))
+	 (error "Can't convert to s3loc" input))
+	((has-prefix input "s3:") (->s3loc (subseq input 3)))
+	((has-prefix input "//")
+	 (let ((slash (position #\/ input 2)))
+	   (if slash
+	       (make-s3loc (subseq input 2 slash)
+			   (subseq input (1+ slash)))
+	       (make-s3loc (subseq input 2) ""))))
+	 ((textmatch s3uripat input)
+	  (let ((info (text->frame s3uripat input)))
+	    (try (make-s3loc (get info 'bucket) (get info 'path))
+		 (error "Can't convert to s3loc" input))))
+	 (else (let ((colon (position #\: input))
+		     (slash (position #\/ input)))
+		 (if (and colon slash)
+		     (if (< colon slash)
+			 (make-s3loc (subseq input 0 colon)
+				     (if (= slash (1+ colon))
+					 (subseq input (+ colon 2))
+					 (subseq input (1+ colon))))
+			 (make-s3loc (subseq input 0 slash)
+				     (subseq input (1+ slash))))
+		     (if slash
+			 (make-s3loc (subseq input 0 slash)
+				     (subseq input (1+ slash)))
+			 (if colon
+			     (make-s3loc (subseq input 0 colon)
+					 (subseq input (1+ colon)))
+			     (make-s3loc input ""))))))))
+
 (define s3/loc ->s3loc)
+(define (s3ish? loc)
+  (if (string? loc)
+      (or (has-prefix loc "s3:")
+	  (textmatch s3uripat loc))
+      (s3loc? loc)))
+
 
 (define (s3/mkpath loc path . more)
   (when (string? loc) (set! loc (->s3loc loc)))
