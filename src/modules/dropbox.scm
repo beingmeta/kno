@@ -176,11 +176,25 @@
 	    path))
   (dropbox/put! (dropbox-oauth dropbox) fullpath content ctype))
 
+(define (dropbox-pathstring dropbox path)
+  (let ((oauth (dropbox-oauth dropbox))
+	(root (dropbox-root-path dropbox)))
+    (glom "dropbox://"
+      (getopt oauth 'email) ":" (getopt oauth 'remoteid)
+      "/" (if (and path root) (mkpath root path)
+	      (or root path)))))
+
 (define (dropbox/gpath spec (path))
   (default! path (getopt spec 'rootpath))
   (cons-dropbox spec path))
 
-(config! 'gpath:handlers (gpath/handler 'dropbox dropbox-get dropbox-save))
+(config! 'gpath:handlers
+	 (gpath/handler 'dropbox
+			(lambda args (apply dropbox-get args))
+			(lambda args (apply dropbox-save args))
+			(lambda (root path) (dropbox-pathstring root path))))
+
+
 
 
 

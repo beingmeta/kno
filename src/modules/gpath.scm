@@ -43,7 +43,8 @@
 
 (defrecord memfile mimetype content modified (hash #f))
 
-(defrecord gpath-handler name get (save #f))
+(defrecord gpath-handler name get (save #f)
+  (tostring #f) (fromstring #f) (prefixes {}))
 (define gpath/handler cons-gpath-handler)
 
 (define-init gpath-handlers (make-hashtable))
@@ -250,6 +251,16 @@
 	 (stringout "hashtable:" (cdr path)
 	   "(0x" (number->string (hashptr (car path)) 16) ")"))
 	((and (pair? path) (hashfs? (car path)) (string? (cdr path)))
+	 (hashfs/string (car path) (cdr path)))
+	((and (compound-type? path) (test gpath-handlers (compound-tag path)))
+	 ((gpath-handler-tostring (get gpath-handlers (compound-tag path)))
+	  path #f))
+	((and (pair? path) (string? (cdr path)) (compound-type? (car path))
+	      (test gpath-handlers (compound-tag (car path))))
+	 ((gpath-handler-tostring (get gpath-handlers (compound-tag (car path))))
+	  (car path) (cdr path)))
+	((and (pair? path) (compound-type? (car path) 'hashfs)
+	      (string? (cdr path)))
 	 (hashfs/string (car path) (cdr path)))
 	((s3loc? path) (s3loc->string path))
 	((and (pair? path) (s3loc? (car path)))
