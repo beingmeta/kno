@@ -35,6 +35,8 @@
    dom/parent
    dom/clone})
 
+(module-export! '{dompool/get dompool/done dompool/call})
+
 ;;;; Kinds of HTML tags
 
 (define *block-tags*
@@ -1155,12 +1157,47 @@
 	       node)
 	  node)))
 
-(define (dom/oidify node (pool dompool) (inplace #t) (doc #f) (parent #f) )
+(define (dom/oidify node (pool (try (threadget 'dompool) dompool))
+		    (inplace #t) (doc #f) (parent #f) )
   (if (eq? pool #t) (set! pool dompool))
   (if (not pool) node
       (if inplace
 	  (oidify/inplace node pool doc parent)
 	  (oidify/copy node pool doc parent))))
+
+;;; DOMPOOL functions
+
+(define-init dompool-base @d03/0)
+(define-init dompool-count 0)
+(define-init all-dompools {})
+(define-init dompools {})
+
+(defslambda (dompool/get (cap (* 1024 256)))
+  (try (let ((picked (pick-one (pick dompools pool-capacity cap))))
+	 (tryif (exists? picked)
+	   (prog1 picked (set! dompools (difference dompools picked)))))
+       (let ((pool (make-mempool (glom "dompool" (1+ dompool-count))
+				 dompool-base cap)))
+	 (set+! all-dompools pool)
+	 (set! dompool-base (oid-plus dompool-base cap))
+	 (set! dompool-count (1+ dompool-count))
+	 pool)))
+
+(defslambda (dompool/done pool)
+  (if (overlaps? pool all-dompools)
+      (begin
+	(reset-mempool pool)
+	(set+! dompools pool))
+      (irritant pool |UnallocatedDOMPool|)))
+
+(define (dompool/call fun)
+  (let ((dompool #f))
+    (dynamic-wind
+	(lambda () (set! dp (dompool/get)))
+	(lambda () (fun dp))
+	(lambda () (dompool/done dp)))))
+
+;;; Over OIDs
 
 ;; This returns a hashtable containing the OID value mappings for an
 ;;  OIDified DOM tree.  As a bit of a kludge, as long as this is
