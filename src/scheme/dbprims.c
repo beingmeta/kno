@@ -2588,6 +2588,8 @@ FD_EXPORT void fd_init_dbfns_c()
 			   -1,FD_FALSE));
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
+  fd_idefn(fd_scheme_module,
+	   fd_make_cprim1("RESET-MEMPOOL",reset_mempool,1));
 
   fd_idefn(fd_scheme_module,
 	   fd_make_cprim8x("MAKE-EXTPOOL",make_extpool,4,
