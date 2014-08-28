@@ -223,8 +223,8 @@
 (define (cleanup! node textfn dropfn dropempty classrules stylerules)
   (logdetail "Cleanup " (dom/eltref node))
   (if (test node '%content)
-      (unless (test node '%xmltag 'script)
-	(cleanup-content node textfn dropfn dropempty classrules stylerules))
+      (if (test node '%xmltag 'script) node
+	  (cleanup-content node textfn dropfn dropempty classrules stylerules))
       ;; Fix empty tags
       (if (test node '%xmltag *void-tags*)
 	  node
@@ -268,7 +268,8 @@
 			     (qc dropfn) dropempty
 			     (qc classrules)
 			     (qc stylerules)))
-	     (when (and dropempty isblock (not (test child '{id class name}))
+	     (when (and dropempty isblock
+			(not (test child '{id class name}))
 			(test child '%content)
 			(or (null? (get child '%content))
 			    (every? empty-child? (get child '%content))))
