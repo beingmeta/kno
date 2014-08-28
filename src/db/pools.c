@@ -1457,19 +1457,23 @@ static fdtype mempool_alloc(fd_pool p,int n)
 {
   struct FD_MEMPOOL *mp=(fd_mempool)p;
   if ((mp->load+n)>=mp->capacity)
-    return fd_err(fd_ExhaustedPool,"file_pool_alloc",mp->cid,FD_VOID);
+    return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->cid,FD_VOID);
   else {
     fdtype results=FD_EMPTY_CHOICE;
     int i=0; 
     u8_lock_mutex(&(mp->lock));
-    FD_OID base=FD_OID_PLUS(mp->base,mp->load);
-    while (i<n) {
-      FD_OID each=FD_OID_PLUS(base,i);
-      FD_ADD_TO_CHOICE(results,fd_make_oid(each));
-      i++;}
-    mp->load=mp->load+n; mp->n_locks=mp->n_locks+n;
-    u8_unlock_mutex(&(mp->lock));
-    return fd_simplify_choice(results);}
+    if ((mp->load+n)>=mp->capacity) {
+      u8_unlock_mutex(&(mp->lock));
+      return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->cid,FD_VOID);}
+    else {
+      FD_OID base=FD_OID_PLUS(mp->base,mp->load);
+      while (i<n) {
+        FD_OID each=FD_OID_PLUS(base,i);
+        FD_ADD_TO_CHOICE(results,fd_make_oid(each));
+        i++;}
+      mp->load=mp->load+n; mp->n_locks=mp->n_locks+n;
+      u8_unlock_mutex(&(mp->lock));
+      return fd_simplify_choice(results);}}
 }
 
 static fdtype mempool_fetch(fd_pool p,fdtype oid)
@@ -1573,6 +1577,21 @@ FD_EXPORT int fd_clean_mempool(fd_pool p)
     fd_remove_deadwood(&(p->cache));
     fd_devoid_hashtable(&(p->cache));
     return p->cache.n_keys+p->locks.n_keys;}
+}
+
+FD_EXPORT int fd_reset_mempool(fd_pool p)
+{
+  if (p->handler!=&mempool_handler) 
+    return fd_reterr
+      (fd_TypeError,"fd_clean_mempool",
+       _("mempool"),fd_pool2lisp(p));
+  else {
+    struct FD_MEMPOOL *mp=(struct FD_MEMPOOL *)p;
+    fd_lock_mutex(&(mp->lock));
+    fd_reset_hashtable(&(p->locks),-1,1);
+    fd_reset_hashtable(&(p->cache),-1,1);
+    mp->load=0;
+    return 0;}
 }
 
 /* Fetch pools */

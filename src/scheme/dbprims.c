@@ -447,6 +447,13 @@ static fdtype clean_mempool(fdtype pool_arg)
   else return FD_INT2DTYPE(retval);
 }
 
+static fdtype reset_mempool(fdtype pool_arg)
+{
+  int retval=fd_reset_mempool(fd_lisp2pool(pool_arg));
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_INT2DTYPE(retval);
+}
+
 static fdtype make_extpool(fdtype label,fdtype base,fdtype cap,
 			   fdtype fetchfn,fdtype savefn,fdtype lockfn,
 			   fdtype state,fdtype cache)

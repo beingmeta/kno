@@ -400,6 +400,8 @@ FD_EXPORT fd_pool fd_make_mempool
    unsigned int noswap);
 /* Removes deadwood */
 FD_EXPORT int fd_clean_mempool(fd_pool p);
+/* Clears all the locks, caches, and load for a mempool. */
+FD_EXPORT int fd_reset_mempool(fd_pool p);
 
 /* File pool opener */
 
