@@ -259,13 +259,13 @@
     (add! urlparams 'header (string-append "Authorization: " authorization))
     (add! urlparams 'header (elts headers))
     (when (>= %loglevel %detail%) (add! urlparams 'verbose #t))
-    (logdebug |S3OP| op " " bucket ":" path " "
-	      (when (and content (not (= (length content) 0)))
-		(glom " ("
-		  (if ctype ctype "content") ", " (length content) 
-		  (if (string? content) " characters)" "bytes)")))
-	      (if (null? headers) " headers=" " headers=\n\t") headers
-	      "\n\turl:\t" url)
+    (loginfo |S3OP| op " " bucket ":" path " "
+	     (when (and content (not (= (length content) 0)))
+	       (glom " ("
+		 (if ctype ctype "content") ", " (length content) 
+		 (if (string? content) " characters)" " bytes)")))
+	     (if (null? headers) " headers=" " headers=\n\t") headers
+	     "\n\turl:\t" url)
     (debug%watch "S3OP/sig" url sig authorization)
     (if (equal? op "GET")
 	(urlget url urlparams)
@@ -296,6 +296,11 @@
       (set! s3result (s3op op bucket path content ctype headers opts args))
       (set! content (get s3result '%content))
       (set! status (get s3result 'response)))
+    (when (and (>= 299 status 200) (equal? op "GET") (exists? content))
+      (loginfo |S3OP/result| "GET s3://" bucket "/" path
+	       "\n\treturned " (length content)
+	       (if (string? content) " characters of " " bytes of ")
+	       (try (get s3result 'content-type) "stuff")))
     (unless (>= 299 status 200)
       (onerror
 	  (store! s3result '%content (xmlparse content))
