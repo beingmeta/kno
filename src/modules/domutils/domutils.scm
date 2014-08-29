@@ -1193,9 +1193,9 @@
 (define (dompool/call fun)
   (let ((dompool #f))
     (dynamic-wind
-	(lambda () (set! dp (dompool/get)))
-	(lambda () (fun dp))
-	(lambda () (dompool/done dp)))))
+	(lambda () (set! dompool (dompool/get)))
+	(lambda () (fun dompool))
+	(lambda () (dompool/done dompool)))))
 
 ;;; Over OIDs
 
