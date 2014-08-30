@@ -678,7 +678,7 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
   retval=curl_easy_perform(h->handle);
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
-    fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
+    fdtype errval=fd_err(CurlError,"urlput",getcurlerror(buf,retval),url);
     fd_decref(result); u8_free(data.bytes);
     return errval;}
   else handlefetchresult(h,result,&data);
