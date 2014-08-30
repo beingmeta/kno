@@ -3,7 +3,7 @@
 
 (in-module 'aws/sqs)
 
-(use-module '{aws aws/aws4 texttools logger varconfig})
+(use-module '{aws aws/v4 texttools logger varconfig})
 (define %used_modules '{aws varconfig})
 
 (module-export! '{sqs/get sqs/send sqs/list sqs/info sqs/delete
@@ -95,32 +95,32 @@
     (store! args "WaitTimeSeconds" (getopt opts 'wait)))
   (when (getopt opts 'reserve)
     (store! args "VisibilityTimeout" (getopt opts 'reserve)))
-  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args)))
+  (handle-sqs-response (aws/v4/get (get-queue-opts queue opts) queue args)))
 
 (define (sqs/send queue msg (opts #[]) (args `#["Action" "SendMessage"]))
   (store! args "MessageBody" msg)
   (when (getopt opts 'delay) (store! args "DelaySeconds" (getopt opts 'delay)))
-  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args)))
+  (handle-sqs-response (aws/v4/get (get-queue-opts queue opts) queue args)))
 
 (define (sqs/list (prefix #f) (args #["Action" "ListQueues"]) (opts #[]))
   (when prefix (set! args `#["Action" "ListQueues" "QueueNamePrefix" ,prefix]))
-  (handle-sqs-response (aws4/get (get-queue-opts #f opts) sqs-endpoint args)))
+  (handle-sqs-response (aws/v4/get (get-queue-opts #f opts) sqs-endpoint args)))
 
 (define (sqs/info queue
 		  (args #["Action" "GetQueueAttributes" "AttributeName.1" "All"])
 		  (opts #[]))
-  (handle-sqs-response (aws4/get (get-queue-opts queue opts) queue args)
+  (handle-sqs-response (aws/v4/get (get-queue-opts queue opts) queue args)
 		       (qc sqs-info-fields)))
 
 (define (sqs/delete message)
   (handle-sqs-response
-   (aws4/get (get-queue-opts (get message 'queue))
+   (aws/v4/get (get-queue-opts (get message 'queue))
 	     (get message 'queue)
 	     `#["Action" "DeleteMessage" "ReceiptHandle" ,(get message 'handle)])))
 
 (define (sqs/extend message secs)
   (handle-sqs-response
-   (aws4/get (get-queue-opts (get message 'queue))
+   (aws/v4/get (get-queue-opts (get message 'queue))
 	     (get message 'queue)
 	     `#["Action" "ChangeMessageVisibility"
 		"ReceiptHandle" ,(get message 'handle)

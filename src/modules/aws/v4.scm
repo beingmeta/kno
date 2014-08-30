@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2014 beingmeta, inc.  All rights reserved.
 
-(in-module 'aws/aws4)
+(in-module 'aws/v4)
 
 (use-module '{aws fdweb texttools logger varconfig})
 (define %used_modules '{aws varconfig})
@@ -9,7 +9,7 @@
 (define-init %loglevel %notify%)
 ;;(define %loglevel %debug!)
 
-(module-export! '{aws4/prepare aws4/get}) ;; aws4/post
+(module-export! '{aws/v4/prepare aws/v4/get}) ;; aws/v4/post
 (module-export! '{derive-key})
 
 (define default-region "us-east-1")
@@ -23,7 +23,7 @@
 
 ;;; Doing a GET with AWS4 authentication
 
-(define (aws4/get req endpoint (args #[]) (headers #[]) (payload #f)
+(define (aws/v4/get req endpoint (args #[]) (headers #[]) (payload #f)
 		  (curl #[]) (date (gmtimestamp)))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
@@ -45,21 +45,21 @@
 				 (printout v)))))))
       (add! req '%headers key))
   ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
-  (set! req  (aws4/prepare req "GET" endpoint (or payload "")))
+  (set! req  (aws/v4/prepare req "GET" endpoint (or payload "")))
   ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
   ((if (curl-handle? curl) curlsetopt! add!)
    curl 'header
    (glom "Authorization: AWS4-HMAC-SHA256 Credential=" (getopt req 'credential) ", "
      "SignedHeaders=" (getopt req 'signed-headers) ", "
      "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
-  (info%watch "AWS4/get" endpoint args)
+  (info%watch "AWS/V4/get" endpoint args)
   (cons (urlget (scripturl+ endpoint args) curl)
 	req))
 
 ;;; Doing a post with AWS authentication
 
 ;;; Not yet working
-(define (aws4/post req endpoint (args #[]) (headers #[]) (payload #f)
+(define (aws/v4/post req endpoint (args #[]) (headers #[]) (payload #f)
 		  (curl #[]) (date (gmtimestamp)))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
@@ -80,7 +80,7 @@
 				 (printout v)))))))
       (add! req '%headers key))
   ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
-  (set! req  (aws4/prepare req "POST" endpoint (or payload "")))
+  (set! req  (aws/v4/prepare req "POST" endpoint (or payload "")))
   ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
   (add! curl 'header
 	(glom "Authorization: AWS4-HMAC-SHA256 Credential=" (getopt req 'credential) ", "
@@ -90,7 +90,7 @@
 
 ;;; GENERATING KEYS, ETC
 
-(define (aws4/prepare req method uri payload)
+(define (aws/v4/prepare req method uri payload)
   (let* ((cq (canonical-query-string req))
 	 (chinfo (canonical-headers req))
 	 (ch (car chinfo)) (sh (cdr chinfo))
