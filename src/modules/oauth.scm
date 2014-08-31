@@ -90,6 +90,17 @@
        REALM GOOGLE
        ACCESS_TOKEN HTTP
        NAME "Google"]
+     GDRIVE
+     #[AUTHORIZE "https://accounts.google.com/o/oauth2/auth"
+       ACCESS "https://accounts.google.com/o/oauth2/token"
+       AUTH_ARGS #["access_type" "offline"]
+       KEY GOOGLE:KEY SECRET GOOGLE:SECRET
+       SCOPE "openid email profile https://www.googleapis.com/auth/drive.file"
+       SCOPE "openid email profile"
+       VERSION "2.0"
+       REALM GOOGLE
+       ACCESS_TOKEN HTTP
+       NAME "Google"]
      GPLUS
      #[AUTHORIZE "https://accounts.google.com/o/oauth2/auth"
        ACCESS "https://accounts.google.com/o/oauth2/token"
