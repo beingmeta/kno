@@ -275,7 +275,7 @@
     params))
 
 (define (s3/op op bucket path (opts s3opts)
-	       (content #f) (ctype) (headers '()) . args)
+	       (content "") (ctype) (headers '()) . args)
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
   (unless (table? opts) (set! opts `#[errs ,opts]))
@@ -386,36 +386,13 @@
   (unless (has-prefix path "/") (set! path (glom "/" path)))
   (default! usepath (position #\. bucket))
   (info%watch "SIGNEDURI" opt bucket path scheme expires headers usepath)
-  (let* ((exptick (if (number? expires)
-		      (if (> expires (time)) expires
-			  (+ (time) expires))
-		      (get expires 'tick)))
-	 (sig (s3/signature "GET" bucket path exptick headers)))
-    (if usepath ;; (or  (equal? scheme "https://"))
-	(string-append
-	 scheme s3root "/" bucket path
-	 "?" "AWSAccessKeyId=" awskey "&"
-	 "Expires=" (number->string exptick) "&"
-	 "Signature=" (uriencode (packet->base64 sig)))
-	(string-append
-	 scheme bucket (if (empty-string? bucket) "" ".") s3root path
-	 "?" "AWSAccessKeyId=" awskey "&"
-	 "Expires=" (number->string exptick) "&"
-	 "Signature=" (uriencode (packet->base64 sig))))))
-(define (signeduri bucket path (scheme s3scheme)
-		   (expires (* 17 3600))
-		   (op "GET") (headers '())
-		   (usepath))
-  (unless (has-prefix path "/") (set! path (glom "/" path)))
-  (default! usepath (position #\. bucket))
-  (info%watch "SIGNEDURI" opt bucket path scheme expires headers usepath)
   (let* ((endpoint (glom scheme s3root "/" bucket path))
 	 (seconds (if (number? expires)
 		      (if (> expires (time)) 
 			  (- expires (time))
 			  expires)
 		      (if (timestamp? expires)
-			  (difftime expires)
+			  (- (difftime expires))
 			  (* 17 3600))))
 	 (req (aws/v4/prepare 
 	       `#[%params {"X-Amz-Credential" 
@@ -424,7 +401,7 @@
 			   "X-Amz-Expires"
 			   "X-Amz-Date"}
 		  %headers host
-		  "X-Amz-Expires" ,seconds]
+		  "X-Amz-Expires" ,(max (inexact->exact (floor seconds)) 0)]
 	       op endpoint #f #f)))
     (scripturl endpoint
 	"X-Amz-Credential" (get req "X-Amz-Credential") 

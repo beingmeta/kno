@@ -145,7 +145,7 @@
 	   (ch (canonical-headers req))
 	   (sh (signed-headers req))
 	   (creq (stringout method "\n"
-		   "/" (uripath uri) "\n"
+		   "/" (encode-path (uripath uri)) "\n"
 		   cq "\n" ch "\n" sh "\n"
 		   (if payload
 		       (downcase (packet->base16 (sha256 payload)))
@@ -156,9 +156,9 @@
 	   (awskey (getopt req 'key awskey))
 	   (signature (hmac-sha256 signing-key string-to-sign)))
       (loginfo "AWS/V4/PREPARE" method " " uri 
-	       "\n  credential=" (write credential)
-	       "\n  crequest=" (write creq)
-	       "\n  signing=" (write string-to-sign))
+	       "\n  creds=" (write credential)
+	       "\n  req=" (write creq)
+	       "\n  sts=" (write string-to-sign))
       (store! req 'key awskey)
       (store! req 'signature signature)
       (store! req 'region region)
@@ -183,6 +183,9 @@
 			     region)
 		service)
    "aws4_request"))
+
+(define (encode-path string)
+  (string-subst (uriencode string) "%2F" "/"))
 
 (define (get-string-to-sign date region service creq)
   (stringout "AWS4-HMAC-SHA256\n"
