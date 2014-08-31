@@ -3,7 +3,7 @@
 
 (in-module 'aws/s3)
 
-(use-module '{aws fdweb texttools mimetable regex
+(use-module '{aws aws/v4 fdweb texttools mimetable regex
 	      ezrecords rulesets logger varconfig
 	      mttools})
 (define %used_modules '{aws varconfig ezrecords rulesets})
@@ -26,7 +26,7 @@
    s3loc->string s3ish?})
 (module-export! '{s3/bytecodes->string})
 
-(define-init %loglevel %notify%)
+(define-init %loglevel %warn%)
 ;;(set! %loglevel %debug%)
 
 (define s3root "s3.amazonaws.com")
@@ -224,63 +224,61 @@
 
 ;;; Making S3 calls
 
-(define (s3op op bucket path (content #f) (ctype) (headers '()) (opts #[]) args)
+(define (s3op op bucket path (content #f) (ctype) 
+	      (headerlist '()) (opts #[]) args)
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
   (let* ((date (gmtimestamp))
-	 ;; Encode everything, then restore delimiters
-	 (path (encode-path path))
-	 (contentMD5 (and content (packet->base64 (md5 content))))
-	 (sig (s3/signature op bucket
-			    (glom 
-			      path (and path (empty-string? path) "/")
-			      (and args (pair? args) (null? (cdr args)) "?")
-			      (and args (pair? args) (null? (cdr args)) (car args)))
-			    date headers
-			    (or contentMD5 "") (or ctype "")))
-	 (authorization (string-append "AWS " awskey ":" (packet->base64 sig)))
-	 (baseurl
-	  (if (getopt opts 'usepath default-usepath)
-	      (glom s3scheme s3root "/" bucket path)
-	      (glom s3scheme bucket (if (empty-string? bucket) "" ".") s3root path)))
-	 (url (if (null? args) baseurl (apply scripturl baseurl args)))
-	 ;; Hide the expect field going to S3
-	 (urlparams (frame-create #f 'header "Expect:")))
+	 (endpoint (glom s3scheme s3root "/" bucket path))
+	 (urlparams (frame-create #f 'header "Expect:"))
+	 (headers (headerlist->headers headerlist))
+	 (params (args->params args)))
     (when (and content (overlaps? op {"GET" "HEAD"}))
       (add! urlparams 'content-type ctype))
-    (when (and (position #\. bucket)
-	       (not (getopt opts 'usepath default-usepath)))
-      (add! urlparams 'verifypeer #f)
-      (add! urlparams 'verifyhost #f))
-    (when (equal? op "DELETE") (store! urlparams 'method 'DELETE))
-    (add! urlparams 'header (string-append "Date: " (get date 'rfc822)))
-    (when contentMD5
-      (add! urlparams 'header (string-append "Content-MD5: " contentMD5)))
-    (add! urlparams 'header (string-append "Authorization: " authorization))
-    (add! urlparams 'header (elts headers))
+    (store! urlparams 'method (string->symbol op))
     (when (>= %loglevel %detail%) (add! urlparams 'verbose #t))
     (loginfo |S3OP| op " " bucket ":" path " "
 	     (when (and content (not (= (length content) 0)))
 	       (glom " ("
 		 (if ctype ctype "content") ", " (length content) 
 		 (if (string? content) " characters)" " bytes)")))
-	     (if (null? headers) " headers=" " headers=\n\t") headers
-	     "\n\turl:\t" url)
-    (debug%watch "S3OP/sig" url sig authorization)
-    (if (equal? op "GET")
-	(urlget url urlparams)
-	(if (equal? op "HEAD")
-	    (urlhead url urlparams)
-	    (if (equal? op "POST")
-		(urlpost url urlparams (or content ""))
-		(if (equal? op "PUT")
-		    (urlput url (or content "") ctype urlparams)
-		    (urlget url urlparams)))))))
+	     (if (null? headers) " headers=" " headers=\n\t")
+	     (if (null? params) " params=" " params=\n\t") params
+	     "\n\tendpoint:\t" endpoint)
+    (car (aws/v4/op (frame-create #f) op endpoint params headers
+		    content ctype urlparams date))))
+
+(define (headerlist->headers headerlist)
+  (let ((headers (frame-create #f)))
+    (dolist (header headerlist)
+      (if (and (string? header) (position #\: header))
+	  (store! headers (slice header 0 (position #\: header))
+		  (trim-spaces (slice header (1+ (position #\: header)))))
+	  (if (table? header)
+	      (do-choices (key (getkeys header))
+		(store! headers key (get header key)))
+	      (irritant header "Bad HTTP header"))))
+    headers))
+
+(define (args->params args)
+  (let ((params (frame-create #f))
+	(scan args))
+    (while (and (pair? scan) (pair? (cdr scan)))
+      (cond ((or (string? (car scan)) (string? (cdr scan)))
+	     (store! params (car scan) (stringout (cadr scan)))
+	     (set! scan (cddr scan)))
+	    ((table? (car scan))
+	     (do-choices (key (getkeys (car scan)))
+	       (store! params key (stringout (get (car scan) key))))
+	     (set! scan (cdr scan)))
+	    (else (set! scan (cdr scan)))))
+    params))
+
 (define (s3/op op bucket path (opts s3opts)
 	       (content #f) (ctype) (headers '()) . args)
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
-  (unless (table? opts) (set! opts `#[errs, opts]))
+  (unless (table? opts) (set! opts `#[errs ,opts]))
   (let* ((err (getopt opts 'errs))
 	 (s3result (s3op op bucket path content ctype headers opts args))
 	 (content (get s3result '%content))
@@ -312,27 +310,21 @@
 	       s3result)
 	      ((and (not err) (= status 404))
 	       (unless (testopt opts 'ignore 404)
-		 (logwarn |S3/NotFound|
-			  op " " (glom "s3://" bucket "/" path)
-			  (if (or (not opts) (empty? (getkeys opts)))
-			      " (no opts)"
-			      (printout "\n\t" (pprint opts)))
-			  "\n\t" (pprint s3result)))
+		 (lognotice |S3/NotFound|
+			    op " " (glom "s3://" bucket "/" path)
+			    (if (or (not opts) (empty? (getkeys opts)))
+				" (no opts)"
+				(printout "\n\t" (pprint opts)))
+			    "\n\t" (pprint s3result)))
 	       s3result)
 	      ((and (not err) (= status 403))
 	       (unless (testopt opts 'ignore 403)
-		 (logwarn |S3/NotFound|
+		 (logwarn |S3/Forbidden|
 			  op " " (glom "s3://" bucket "/" path)
 			  (if (or (not opts) (empty? (getkeys opts)))
 			      " (no opts)"
 			      (printout "\n\t" (pprint opts)))
 			  "\n\t" (pprint s3result)))
-	       (logwarn |S3/Forbidden|
-			op " " (glom "s3://" bucket "/" path)
-			(if (or (not opts) (empty? (getkeys opts)))
-			    " (no opts)"
-			    (printout "\n\t" (pprint opts)))
-			"\n\t" (pprint s3result))
 	       s3result)
 	      ((not err)
 	       (logwarn |S3/Failure|
@@ -410,6 +402,38 @@
 	 "?" "AWSAccessKeyId=" awskey "&"
 	 "Expires=" (number->string exptick) "&"
 	 "Signature=" (uriencode (packet->base64 sig))))))
+(define (signeduri bucket path (scheme s3scheme)
+		   (expires (* 17 3600))
+		   (op "GET") (headers '())
+		   (usepath))
+  (unless (has-prefix path "/") (set! path (glom "/" path)))
+  (default! usepath (position #\. bucket))
+  (info%watch "SIGNEDURI" opt bucket path scheme expires headers usepath)
+  (let* ((endpoint (glom scheme s3root "/" bucket path))
+	 (seconds (if (number? expires)
+		      (if (> expires (time)) 
+			  (- expires (time))
+			  expires)
+		      (if (timestamp? expires)
+			  (difftime expires)
+			  (* 17 3600))))
+	 (req (aws/v4/prepare 
+	       `#[%params {"X-Amz-Credential" 
+			   "X-Amz-SignedHeaders"
+			   "X-Amz-Algorithm"
+			   "X-Amz-Expires"
+			   "X-Amz-Date"}
+		  %headers host
+		  "X-Amz-Expires" ,seconds]
+	       op endpoint #f #f)))
+    (scripturl endpoint
+	"X-Amz-Credential" (get req "X-Amz-Credential") 
+	"X-Amz-SignedHeaders" (get req "X-Amz-SignedHeaders")
+	"X-Amz-Algorithm" (get req "X-Amz-Algorithm")
+	"X-Amz-Expires" (get req "X-Amz-Expires")
+	"X-Amz-Date" (get req "X-Amz-Date")
+	"X-Amz-Signature" 
+	(downcase (packet->base16 (get req 'signature))))))
 (define (s3/signeduri arg . args)
   (if (or (null? args) (number? (car args)) (timestamp? (car args)))
       (let ((s3loc (->s3loc arg)))
@@ -441,9 +465,8 @@
   (when (string? loc) (set! loc (->s3loc loc)))
   ;; '(("x-amx-acl" . "public-read"))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (debug%watch (s3/op "DELETE"
-		   (s3loc-bucket loc)
-		   (s3loc-path loc) opts "" #f headers) loc))
+  (s3/op "DELETE" (s3loc-bucket loc)
+	 (s3loc-path loc) opts "" #f headers))
 
 (define (s3/bucket? loc (headers))
   (when (string? loc) (set! loc (->s3loc loc)))

@@ -9,7 +9,7 @@
 (define-init %loglevel %notify%)
 ;;(define %loglevel %debug!)
 
-(module-export! '{aws/v4/prepare aws/v4/get}) ;; aws/v4/post
+(module-export! '{aws/v4/prepare aws/v4/get aws/v4/op}) ;; aws/v4/post
 (module-export! '{derive-key})
 
 (define default-region "us-east-1")
@@ -47,6 +47,12 @@
   ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
   (set! req  (aws/v4/prepare req "GET" endpoint (or payload "")))
   ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
+  (when payload
+    ((if (curl-handle? curl) curlsetopt! add!)
+     curl 'header
+     (glom "x-amz-content-sha256: "
+       (if payload (downcase (packet->base16 (sha256 payload)))
+	   "UNSIGNED-PAYLOAD"))))
   ((if (curl-handle? curl) curlsetopt! add!)
    curl 'header
    (glom "Authorization: AWS4-HMAC-SHA256 Credential=" (getopt req 'credential) ", "
@@ -56,53 +62,66 @@
   (cons (urlget (scripturl+ endpoint args) curl)
 	req))
 
-;;; Doing a post with AWS authentication
-
-;;; Not yet working
-(define (aws/v4/post req endpoint (args #[]) (headers #[]) (payload #f)
-		  (curl #[]) (date (gmtimestamp)))
+(define (aws/v4/op req op endpoint (args #[]) (headers #[]) 
+		   (payload #f) (ptype #f)
+		   (curl #[]) (date (gmtimestamp)))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
-  (add! headers 'content-type "application/x-www-form-urlencoded; charset=utf8")
-  (add! args "AWSAccessKeyId" (getopt req 'key awskey))
+  (add! args "AWSAccessKeyId" (getopt req 'awskey awskey))
   (add! args "Timestamp" (get date 'isobasic))
   (do-choices (key (getkeys args))
     (add! req key (get args key))
     (add! req '%params key))
   (do-choices (key (getkeys headers))
     (let ((v (get headers key)))
-      (add! curl 'header (cons key (qc v)))
+      (if (curl-handle? curl)
+	  (curlsetopt! curl 'header (glom key ": " v))
+	  (add! curl 'header (cons key (qc v))))
       (add! req key
 	    (if (and (singleton? v) (string? v)) v
 		(stringout (do-choices v
 			     (if (timestamp? v) (get v 'isobasic)
 				 (printout v)))))))
-      (add! req '%headers key))
-  ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
-  (set! req  (aws/v4/prepare req "POST" endpoint (or payload "")))
+    (add! req '%headers key))
   ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
-  (add! curl 'header
-	(glom "Authorization: AWS4-HMAC-SHA256 Credential=" (getopt req 'credential) ", "
-	  "SignedHeaders=" (getopt req 'signed-headers) ", "
-	  "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
-  (cons (urlpost endpoint (curlopen curl) args) req))
+  ((if (curl-handle? curl) curlsetopt! add!) curl 'method (string->symbol op))
+  ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
+  (set! req  (aws/v4/prepare req op endpoint payload ptype))
+  (when payload
+    ((if (curl-handle? curl) curlsetopt! add!)
+     curl 'header
+     (glom "x-amz-content-sha256: "
+       (if payload (downcase (packet->base16 (sha256 payload)))
+	   "UNSIGNED-PAYLOAD"))))
+  ((if (curl-handle? curl) curlsetopt! add!)
+   curl 'header
+   (glom "Authorization: AWS4-HMAC-SHA256 Credential="
+     (getopt req 'credential) ", "
+     "SignedHeaders=" (getopt req 'signed-headers) ", "
+     "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
+  (info%watch "AWS/V4/op" endpoint args)
+  (let ((url (scripturl+ endpoint args)))
+    (cons (if (equal? op "GET")
+	      (urlget url curl)
+	      (if (equal? op "HEAD")
+		  (urlhead url curl)
+		  (if (equal? op "POST")
+		      (urlpost url curl (or payload ""))
+		      (if (equal? op "PUT")
+			  (urlput url (or payload "") ptype curl)
+			  (urlget url curl)))))
+	  req)))
 
 ;;; GENERATING KEYS, ETC
 
-(define (aws/v4/prepare req method uri payload)
-  (let* ((cq (canonical-query-string req))
-	 (chinfo (canonical-headers req))
-	 (ch (car chinfo)) (sh (cdr chinfo))
-	 (host (getopt req 'host (urihost uri)))
+(define (aws/v4/prepare req method uri (payload #f) (ptype #f))
+  (logdebug "AWS/V4/PREPARE" method " " uri "\n  " (pprint req))
+  (let* ((host (getopt req 'host (urihost uri)))
 	 (date (gmtimestamp
 		(getopt req '%date
 			(getopt req 'date
 				(gmtimestamp 'seconds)))))
-	 (creq (stringout method "\n"
-		 "/" (uripath uri) "\n"
-		 cq "\n" ch "\n" sh "\n"
-		 (downcase (packet->base16 (sha256 payload)))))
 	 (region (try (getopt req '%region {})
 		      (getopt req 'region {})
 		      (pick aws-regions search host)
@@ -111,29 +130,56 @@
 		       (getopt req 'service {})
 		       (slice host 0 (position #\. host))
 		       default-service))
-	 (string (get-string-to-sign date region service creq))
-	 (signing-key (derive-key (getopt req '%secret (getopt req 'secret secretawskey))
-				  date region service))
-	 (awskey (getopt req 'key awskey))
-	 (signature (hmac-sha256 signing-key string)))
-    (cons (frame-create #f
-	    'key awskey 'signature signature
-	    'region region 'service service 'date date
-	    'credential (glom awskey "/" (get date 'isobasicdate) "/"
-			  region "/" service "/aws4_request")
-	    'date date 'host host
-	    'signed-headers sh
-	    ;; Debugging info
-	    'creq (tryif debug creq)
-	    'sigkey (tryif debug signing-key)
-	    'string-to-sign (tryif debug string))
-	  req)))
+	 (credential (glom awskey "/" (get date 'isobasicdate) "/"
+		       region "/" service "/aws4_request")))
+    (unless (test req 'host) (store! req 'host host))
+    (when (test req '%params "X-Amz-Algorithm")
+      (store! req "X-Amz-Algorithm" "AWS4-HMAC-SHA256"))
+    (when (test req '%params "X-Amz-Date")
+      (store! req "X-Amz-Date" (get date 'isobasic)))
+    (when (test req '%params "X-Amz-Credential")
+      (store! req "X-Amz-Credential" credential))
+    (when (test req '%params "X-Amz-SignedHeaders")
+      (store! req "X-Amz-SignedHeaders" (signed-headers req)))
+    (let* ((cq (canonical-query-string req))
+	   (ch (canonical-headers req))
+	   (sh (signed-headers req))
+	   (creq (stringout method "\n"
+		   "/" (uripath uri) "\n"
+		   cq "\n" ch "\n" sh "\n"
+		   (if payload
+		       (downcase (packet->base16 (sha256 payload)))
+		       "UNSIGNED-PAYLOAD")))
+	   (string-to-sign (get-string-to-sign date region service creq))
+	   (secret (getopt req 'secret secretawskey))
+	   (signing-key (derive-key secret date region service))
+	   (awskey (getopt req 'key awskey))
+	   (signature (hmac-sha256 signing-key string-to-sign)))
+      (loginfo "AWS/V4/PREPARE" method " " uri 
+	       "\n  credential=" (write credential)
+	       "\n  crequest=" (write creq)
+	       "\n  signing=" (write string-to-sign))
+      (store! req 'key awskey)
+      (store! req 'signature signature)
+      (store! req 'region region)
+      (store! req 'service service)
+      (store! req 'date date)
+      (store! req 'credential credential)
+      (store! req 'date date)
+      (store! req 'host host)
+      (store! req 'signed-headers sh)
+      (when debug 
+	(store! req 'creq creq)
+	(store! req 'sigkey signing-key)
+	(store! req 'string-to-sign string-to-sign))
+      req)))
 
 ;;; Support functions
 
 (define (derive-key secret date region service)
   (hmac-sha256
-   (hmac-sha256 (hmac-sha256 (hmac-sha256 (glom "AWS4" secret) (get date 'isobasicdate))
+   (hmac-sha256 (hmac-sha256 (hmac-sha256 (glom "AWS4" secret) 
+					  (get date 'isobasicdate))
 			     region)
 		service)
    "aws4_request"))
@@ -147,8 +193,8 @@
 ;;; Canonical query
 
 (define (canonical-query-string args (params))
-  (default! params (try (getopt args '%params {})  (getopt args 'params {})
-			(getkeys args)))
+  (default! params
+    (getopt args '%params (getopt args 'params (getkeys args))))
   (let* ((pairs (for-choices (key params)
 		  (cons (uriencode key)
 			(for-choices (v (get args key))
@@ -174,9 +220,8 @@
   (trim-spaces (textsubst value trim-rule)))
   
 (define (canonical-headers args (headers))
-  (default! headers (try (getopt args '%headers {})
-			 (getopt args 'headers {})
-			 (getkeys args)))
+  (default! headers 
+    (getopt args '%headers (getopt args 'headers (getkeys args))))
   (let* ((pairs (for-choices (key headers)
 		  (let ((v (get args key)))
 		    (cons (trim-spaces (downcase key))
@@ -186,14 +231,26 @@
 			       (if (timestamp? v) (get v 'isobasic)
 				   (stringout v))))))))
 	 (hkeys (sorted (car pairs))))
-    (cons (stringout
-	    (doseq (h hkeys i)
-	      (let ((v (get pairs h)))
-		(if (ambiguous? v)
-		    (printout h ":"
-		      (doseq (ev (sorted v) i)
-			(printout (if (> i 0) ",") ev)))
-		    (printout h ":" v "\n")))))
-	  (stringout
-	    (doseq (h hkeys i)
-	      (printout (if (> i 0) ";") h))))))
+    (stringout
+      (doseq (h hkeys i)
+	(let ((v (get pairs h)))
+	  (if (ambiguous? v)
+	      (printout h ":"
+		(doseq (ev (sorted v) i)
+		  (printout (if (> i 0) ",") ev)))
+	      (printout h ":" v "\n")))))))
+
+(define (signed-headers args (headers))
+  (default! headers 
+    (getopt args '%headers (getopt args 'headers (getkeys args))))
+  (let* ((keynames (trim-spaces (downcase headers)))
+	 (hkeys (sorted keynames)))
+    (stringout
+      (doseq (h hkeys i)
+	(printout (if (> i 0) ";") h)))))
+
+
+
+
+
+
