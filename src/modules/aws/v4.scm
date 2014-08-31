@@ -100,7 +100,7 @@
      (getopt req 'credential) ", "
      "SignedHeaders=" (getopt req 'signed-headers) ", "
      "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
-  (info%watch "AWS/V4/op" endpoint args)
+  (loginfo |AWS/V4/op| op " " endpoint "\n  params: " args "\n  headers: " headers)
   (let ((url (scripturl+ endpoint args)))
     (cons (if (equal? op "GET")
 	      (urlget url curl)
@@ -116,7 +116,7 @@
 ;;; GENERATING KEYS, ETC
 
 (define (aws/v4/prepare req method uri (payload #f) (ptype #f))
-  (logdebug "AWS/V4/PREPARE" method " " uri "\n  " (pprint req))
+  (logdebug AWS/V4/PREPARE method " " uri "\n  " (pprint req))
   (let* ((host (getopt req 'host (urihost uri)))
 	 (date (gmtimestamp
 		(getopt req '%date
@@ -155,7 +155,7 @@
 	   (signing-key (derive-key secret date region service))
 	   (awskey (getopt req 'key awskey))
 	   (signature (hmac-sha256 signing-key string-to-sign)))
-      (loginfo "AWS/V4/PREPARE" method " " uri 
+      (loginfo AWS/V4/PREPARE method " " uri 
 	       "\n  creds=" (write credential)
 	       "\n  req=" (write creq)
 	       "\n  sts=" (write string-to-sign))
