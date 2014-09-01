@@ -96,7 +96,6 @@
        AUTH_ARGS #["access_type" "offline"]
        KEY GOOGLE:KEY SECRET GOOGLE:SECRET
        SCOPE "openid email profile https://www.googleapis.com/auth/drive.file"
-       SCOPE "openid email profile"
        VERSION "2.0"
        REALM GOOGLE
        ACCESS_TOKEN HTTP
@@ -480,8 +479,13 @@
 
 ;;; Actually calling the API
 
-(define (oauth/call10 spec method endpoint args body raw ckey csecret)
-  (debug%watch "OAUTH/CALL1.0" method endpoint args)
+(define (oauth/call10 spec method endpoint args body ctype raw ckey csecret)
+  (default! ctype
+    (and body
+	 (if (pair? body) (cdr body)
+	     (getopt spec 'ctype
+		     (if (packet? body) "application" "text")))))
+  (debug%watch "OAUTH/CALL1.0" method endpoint args ctype)
   (unless (getopt spec 'token)
     (irritant spec OAUTH:NOTOKEN OAUTH/CALL
 	      "No OAUTH token for OAuth1.0 call"))
@@ -529,8 +533,6 @@
 	    "oauth_token=\"" (getopt spec 'token) "\", "
 	    "oauth_version=\"" (getopt spec 'version "1.0") "\""))
 	 (content (if (pair? body) (car body) body))
-	 (ctype (if (pair? body) (cdr body)
-		    (getopt spec 'ctype (if (packet? content) "application" "text"))))
 	 (handle (curlopen 'header "Expect: "
 			   'header auth-header
 			   'method method))
@@ -567,29 +569,35 @@
 		      "Failed to " method " at " endpoint
 		      " with " args "\n\t" spec)))))
 
-(define (oauth/call20 spec method endpoint args body raw ckey csecret (expires))
+(define (oauth/call20 spec method endpoint args
+		      (body #f) (ctype) (raw) (ckey) (csecret) (expires))
   (debug%watch "OAUTH/CALL2.0" method endpoint args ckey csecret)
   (unless (getopt spec 'token)
     (irritant spec OAUTH:NOTOKEN OAUTH/CALL
 	      "No OAUTH token for OAuth2 call"))
   (default! expires (getopt spec 'expires))
+  (default! ctype
+    (and body
+	 (if (pair? body) (cdr body)
+	     (getopt spec 'ctype
+		     (if (packet? body) "application" "text")))))
   (when (and expires (time-earlier? expires)) (oauth/refresh! spec))
   (let* ((endpoint (or endpoint
 		       (getopt args 'endpoint
-			       (getopt spec 'endpoint
-				       default-endpoint))))
+			       (getopt spec 'endpoint default-endpoint))))
 	 (httpauth (testopt spec 'access_token 'http))
 	 (auth-header
 	  (if httpauth
 	      (glom "Authorization: Bearer " (getopt spec 'token))
 	      ""))
 	 (content (if (pair? body) (car body) body))
-	 (ctype (if (pair? body) (cdr body)
-		    (getopt spec 'ctype (if (packet? content) "application" "text"))))
-	 (useurl (if (or (eq? method 'get) (eq? method 'put) (and (eq? method 'post) body))
+	 (useurl (if (or (eq? method 'get) (eq? method 'put)
+			 (and (eq? method 'post) body))
 		     (if httpauth
 			 (if (or (not args) (null? args)) endpoint
-			     (apply scripturl endpoint args))
+			     (if (pair? args)
+				 (apply scripturl endpoint args)
+				 (apply scripturl+ endpoint (list args))))
 			 (if (pair? args)
 			     (apply scripturl endpoint
 				    (getopt spec 'access_token "access_token")
@@ -599,10 +607,11 @@
 				 (scripturl endpoint
 				     (getopt spec 'access_token "access_token")
 				   (getopt spec 'token))
-				 (apply scripturl endpoint args))))
+				 (apply scripturl+ endpoint (list args)))))
 		     endpoint))
 	 (handle (if httpauth
-		     (curlopen 'header "Expect: " 'header auth-header 'method method)
+		     (curlopen 'header "Expect: " 'header auth-header
+			       'method method)
 		     (curlopen 'header "Expect: " 'method method)))
 	 (req (if (eq? method 'GET) (urlget useurl handle)
 		  (if (eq? method 'HEAD) (urlget useurl handle)
@@ -695,23 +704,35 @@
 
 ;;; Generic call function
 
-(define (oauth/call spec method endpoint (args '()) (body #f) (raw) (ckey) (csecret))
+(define (oauth/call spec method endpoint (args '())
+		    (body #f) (ctype) (raw) (ckey) (csecret))
   (set! spec (oauth/spec spec))
+  (default! ctype
+    (and body
+	 (if (pair? body) (cdr body)
+	     (getopt spec 'ctype
+		     (if (packet? body) "application" "text")))))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
   (default! raw (getopt spec 'noparse))
   (if (testopt spec 'version "1.0")
-      (oauth/call10 spec method endpoint args body raw ckey csecret)
-      (oauth/call20 spec method endpoint args body raw ckey csecret)))
+      (oauth/call10 spec method endpoint args body ctype raw ckey csecret)
+      (oauth/call20 spec method endpoint args body ctype raw ckey csecret)))
 (define (oauth/call* spec method endpoint . args)
   (oauth/call spec method endpoint args))
-(define (oauth/call/req spec method endpoint (args '()) (body #f) (ckey) (csecret))
+(define (oauth/call/req spec method endpoint
+			(args '()) (body #f) (ctype) (ckey) (csecret))
   (set! spec (oauth/spec spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
+  (default! ctype
+    (and body
+	 (if (pair? body) (cdr body)
+	     (getopt spec 'ctype
+		     (if (packet? body) "application" "text")))))
   (if (testopt spec 'version "1.0")
-      (oauth/call10 spec method endpoint args body #t ckey csecret)
-      (oauth/call20 spec method endpoint args body #t ckey csecret)))
+      (oauth/call10 spec method endpoint args body ctype #t ckey csecret)
+      (oauth/call20 spec method endpoint args body ctype #t ckey csecret)))
 
 ;;; This is helpful for debugging OAUTH1
 
