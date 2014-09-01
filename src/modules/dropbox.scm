@@ -28,29 +28,15 @@
 	       (begin (logwarn "Fixing invalid dropbox-root " dropbox-root)
 		 (set! dropbox-root "sandbox")))))))
 
-(define (strip-suffix string suffix)
-  (if (has-suffix string suffix)
-      (slice string 0 (- (length string) (length suffix)))
-      string))
 (define (add-suffix string suffix)
   (if (has-suffix string suffix) string (glom string suffix)))
-(define (add-prefix string prefix)
-  (if (has-prefix string prefix) string (glom prefix string)))
 
-(define (strip-root root)
-  (and root
-       (add-suffix
-	(if (has-prefix root "/Apps/")
-	    (textsubst root #((bos) "/Apps/" (not> "/") "/") "")
-	    root)
-	"/")))
-
-(define (db/url base oauth path)
+(define (db/url base oauth path (root))
   (glom base
-    (if (testopt oauth 'live)
-	(if (getopt oauth 'live #f) "dropbox" "sandbox")
-	dropbox-root)
-    ;; (strip-root (getopt oauth 'root))
+    (getopt oauth 'root
+	    (if (testopt oauth 'live)
+		(if (getopt oauth 'live #f) "dropbox" "sandbox")
+		dropbox-root))
     (if (has-prefix path "/") #f "/")
     path))
 
