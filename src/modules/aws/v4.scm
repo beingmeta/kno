@@ -128,6 +128,7 @@
 		      default-region))
 	 (service (try (getopt req '%service {})
 		       (getopt req 'service {})
+		       (get (text->frames service-pat host) 'service)
 		       (slice host 0 (position #\. host))
 		       default-service))
 	 (credential (glom awskey "/" (get date 'isobasicdate) "/"
@@ -173,6 +174,9 @@
 	(store! req 'sigkey signing-key)
 	(store! req 'string-to-sign string-to-sign))
       req)))
+
+(define service-pat
+  #("." (label service (not> ".amazonaws.com")) ".amazonaws.com" (eos)))
 
 ;;; Support functions
 
@@ -251,9 +255,3 @@
     (stringout
       (doseq (h hkeys i)
 	(printout (if (> i 0) ";") h)))))
-
-
-
-
-
-

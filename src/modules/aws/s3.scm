@@ -386,7 +386,9 @@
   (unless (has-prefix path "/") (set! path (glom "/" path)))
   (default! usepath (position #\. bucket))
   (info%watch "SIGNEDURI" opt bucket path scheme expires headers usepath)
-  (let* ((endpoint (glom scheme s3root "/" bucket path))
+  (let* ((endpoint (if usepath
+		       (glom scheme s3root "/" bucket path)
+		       (glom scheme bucket "." s3root path)))
 	 (seconds (if (number? expires)
 		      (if (> expires (time)) 
 			  (- expires (time))
@@ -967,4 +969,3 @@
  (s3/op "GET" "data.beingmeta.com" "/brico/brico.db" #t "")
  (s3/op "PUT" "public.sbooks.net" "/uspto/6285999" content #t "text/html"
 	(list "x-amz-acl: public-read")))
-
