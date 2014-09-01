@@ -10,7 +10,8 @@
 
 (module-export! '{dropbox/get dropbox/get/req dropbox/get+
 		  dropbox/list dropbox/info dropbox/put!
-		  dropbox/gpath})
+		  dropbox/gpath
+		  dropbox-oauth})
 
 (define %loglevel %warning%)
 
@@ -27,28 +28,44 @@
 	       (begin (logwarn "Fixing invalid dropbox-root " dropbox-root)
 		 (set! dropbox-root "sandbox")))))))
 
+(define (strip-suffix string suffix)
+  (if (has-suffix string suffix)
+      (slice string 0 (- (length string) (length suffix)))
+      string))
+(define (add-suffix string suffix)
+  (if (has-suffix string suffix) string (glom string suffix)))
+(define (add-prefix string prefix)
+  (if (has-prefix string prefix) string (glom prefix string)))
+
+(define (strip-root root)
+  (and root
+       (add-suffix
+	(if (has-prefix root "/Apps/")
+	    (textsubst root #((bos) "/Apps/" (not> "/") "/") "")
+	    root)
+	"/")))
+
+(define (db/url base oauth path)
+  (glom base
+    (if (testopt oauth 'live)
+	(if (getopt oauth 'live #f) "dropbox" "sandbox")
+	dropbox-root)
+    ;; (strip-root (getopt oauth 'root))
+    (if (has-prefix path "/") #f "/")
+    path))
+
 (define (dropbox/get/req oauth path (revision #f))
-  (let* ((endpoint (glom "https://api-content.dropbox.com/1/files/"
-		     (getopt oauth 'root
-			     (if (testopt oauth 'live)
-				 (if (getopt oauth 'live #f) "dropbox" "sandbox")
-				 dropbox-root))
-		     (if (has-prefix path "/") #f "/")
-		     path)))
+  (let ((endpoint (db/url "https://api-content.dropbox.com/1/files/"
+			  oauth path)))
     (if revision
-	(oauth/call oauth 'GET endpoint `(rev ,revision) #f #t)
-	(oauth/call oauth 'GET endpoint '() #f #t))))
+	(oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
+	(%wc oauth/call oauth 'GET endpoint '() #f #f #t))))
 (define (dropbox/get oauth path (revision #f))
-  (let* ((endpoint (glom "https://api-content.dropbox.com/1/files/"
-		     (getopt oauth 'root
-			     (if (testopt oauth 'live)
-				 (if (getopt oauth 'live #f) "dropbox" "sandbox")
-				 dropbox-root))
-		     (if (has-prefix path "/") #f "/")
-		     path))
+  (let* ((endpoint (db/url "https://api-content.dropbox.com/1/files/"
+			   oauth path))
 	 (result (if revision
-		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #t)
-		     (oauth/call oauth 'GET endpoint '() #f #t)))
+		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
+		     (oauth/call oauth 'GET endpoint '() #f #f #t)))
 	 (status (get result 'response)))
     (if (>= 299 status 200) (get result '%content)
 	(if (= status 404)
@@ -57,16 +74,11 @@
 	    (irritant result CALLFAILED DROPBOX/GET
 		      path " with " oauth)))))
 (define (dropbox/get+ oauth path (revision #f) (err #f))
-  (let* ((endpoint (glom "https://api-content.dropbox.com/1/files/"
-		     (getopt oauth 'root
-			     (if (testopt oauth 'live)
-				 (if (getopt oauth 'live #f) "dropbox" "sandbox")
-				 dropbox-root))
-		     (if (has-prefix path "/") #f "/")
-		     path))
+  (let* ((endpoint (db/url "https://api-content.dropbox.com/1/files/"
+			   oauth path))
 	 (result (if revision
-		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #t)
-		     (oauth/call oauth 'GET endpoint '() #f #t)))
+		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
+		     (oauth/call oauth 'GET endpoint '() #f #f #t)))
 	 (status (get result 'response))
 	 (metadata (jsonparse (get result 'x-dropbox-metadata))))
     (if (>= 299 status 200)
@@ -76,8 +88,9 @@
 	      (store! metadata 'modified (timestamp (get metadata 'modified)))
 	      (store! metadata 'length (string->number (get metadata 'size)))
 	      (store! metadata 'length
-		      (get (text->frame #((label bytes (isdigit+) #t) (spaces) "bytes")
-					(get metadata 'size))
+		      (get (text->frame
+			    #((label bytes (isdigit+) #t) (spaces) "bytes")
+			    (get metadata 'size))
 			   'bytes))
 	      metadata)
 	    (frame-create #f
@@ -92,16 +105,11 @@
 		      path " with " oauth)))))
 
 (define (dropbox/info oauth path (revision #f) (error #f))
-  (let* ((endpoint (glom "https://api.dropbox.com/1/metadata/"
-		     (getopt oauth 'root
-			     (if (testopt oauth 'live)
-				 (if (getopt oauth 'live #f) "dropbox" "sandbox")
-				 dropbox-root))
-		     (if (has-prefix path "/") #f "/")
-		     path))
+  (let* ((endpoint (db/url "https://api.dropbox.com/1/metadata/"
+			   oauth path))
 	 (result (if revision
-		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #t)
-		     (oauth/call oauth 'GET endpoint '() #f #t)))
+		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
+		     (oauth/call oauth 'GET endpoint '() #f #f #t)))
 	 (status (get result 'response))
 	 (metadata (jsonparse (get result 'x-dropbox-metadata))))
     (if (>= 299 status 200)
@@ -119,16 +127,12 @@
 			   path " with " oauth))))))
 
 (define (dropbox/list oauth path (revision #f))
-  (let* ((endpoint (glom "https://api.dropbox.com/1/metadata/"
-		     (getopt oauth 'root
-			     (if (testopt oauth 'live)
-				 (if (getopt oauth 'live #f) "dropbox" "sandbox")
-				 dropbox-root))
-		     (if (has-prefix path "/") #f "/")
-		     path))
+  (let* ((endpoint (db/url "https://api.dropbox.com/1/metadata/"
+			   oauth path))
 	 (result (if revision
-		     (oauth/call oauth 'GET endpoint `("list" "true" rev ,revision) #f #t)
-		     (oauth/call oauth 'GET endpoint '("list" "true") #f #t)))
+		     (oauth/call oauth 'GET endpoint
+				 `("list" "true" rev ,revision) #f #f #t)
+		     (oauth/call oauth 'GET endpoint '("list" "true") #f #f #t)))
 	 (status (get result 'response))
 	 (metadata (jsonparse (get result 'x-dropbox-metadata))))
 
@@ -143,28 +147,19 @@
 	  (path->mimetype
 	   path (if (packet? content) "application" "text"))))
   (let* ((endpoint
-	  (scripturl
-	      (glom "https://api-content.dropbox.com/1/files_put/"
-		(getopt oauth 'root
-			(if (testopt oauth 'live)
-			    (if (getopt oauth 'live #f) "dropbox" "sandbox")
-			    dropbox-root))
-		"/" path)))
+	  (db/url "https://api-content.dropbox.com/1/files_put/"
+		  oauth path))
 	 (result (oauth/call oauth 'put endpoint '() content ctype)))
     result))
 
 ;;;; GPATH handling
 
-(define (dropbox-get dropbox path (info) (fullpath))
-  (set! fullpath
-	(if (dropbox-root-path dropbox)
-	    (mkpath (dropbox-root-path dropbox) path)
-	    path))
+(define (dropbox-get dropbox path (info))
   (if (bound? info)
       (if info
-	  (dropbox/get+ (dropbox-oauth dropbox) fullpath)
-	  (dropbox/info (dropbox-oauth dropbox) fullpath))
-      (dropbox/get (dropbox-oauth dropbox) fullpath)))
+	  (dropbox/get+ (dropbox-oauth dropbox) path)
+	  (dropbox/info (dropbox-oauth dropbox) path))
+      (dropbox/get (dropbox-oauth dropbox) path)))
 
 (define (dropbox-save dropbox path content (ctype) (charset) (fullpath))
   (default! ctype
