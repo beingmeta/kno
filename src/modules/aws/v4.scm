@@ -20,6 +20,8 @@
 (define aws-regions
   {"us-east-1" "us-west-1" "us-west-2" "eu-west-1" "ap-southeast-1"
    "ap-southeast-2" "ap-northeast-1" "sa-east-1"})
+(define aws-services
+  {"sqs" "ses" "s3" "sns" "simpledb" "dynamodb" "ec2"})
 
 ;;; Doing a GET with AWS4 authentication
 
@@ -129,7 +131,6 @@
 	 (service (try (getopt req '%service {})
 		       (getopt req 'service {})
 		       (get (text->frames service-pat host) 'service)
-		       (slice host 0 (position #\. host))
 		       default-service))
 	 (credential (glom awskey "/" (get date 'isobasicdate) "/"
 		       region "/" service "/aws4_request")))
@@ -176,7 +177,13 @@
       req)))
 
 (define service-pat
-  #("." (label service (not> ".amazonaws.com")) ".amazonaws.com" (eos)))
+  `(PREF
+    #({(bos) "."}
+      (label service (and (not> ".amazonaws.com") ,aws-services))
+      ".amazonaws.com" (eos))
+    #({(bos) "."}
+      (label service ,aws-services)
+      ".")))
 
 ;;; Support functions
 
