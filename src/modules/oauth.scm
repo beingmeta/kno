@@ -633,7 +633,8 @@
 		(begin
 		  (debug%watch 'OAUTH/ERROR "RESPONSE" response req)
 		  (oauth/refresh! spec)
-		  (oauth/call20 spec method endpoint args body raw ckey csecret))
+		  (oauth/call20 spec method endpoint args
+				body ctype raw ckey csecret))
 		(irritant req OAUTH:REQFAIL OAUTH/CALL20
 			  method " at " endpoint " with " args
 			  "\n\t" spec))))))
