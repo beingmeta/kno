@@ -137,6 +137,7 @@
 	  (let ((info (text->frame s3uripat input)))
 	    (try (make-s3loc (get info 'bucket) (get info 'path))
 		 (error "Can't convert to s3loc" input))))
+	 ((has-prefix input {"http:" "https:" "ftp:"}) (fail))
 	 (else (let ((colon (position #\: input))
 		     (slash (position #\/ input)))
 		 (if (and colon slash)
@@ -414,7 +415,9 @@
 	"X-Amz-Signature" 
 	(downcase (packet->base16 (get req 'signature))))))
 (define (s3/signeduri arg . args)
-  (if (or (null? args) (number? (car args)) (timestamp? (car args)))
+  (if (or (null? args) (s3loc? arg)
+	  (and (string? arg) (has-prefix arg {"s3:" "http:" "https:"}))
+	  (number? (car args)) (timestamp? (car args)))
       (let ((s3loc (->s3loc arg)))
 	(signeduri (s3loc-bucket s3loc) (s3loc-path s3loc) "https://"
 		   (if (pair? args)
