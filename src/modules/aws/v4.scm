@@ -47,7 +47,7 @@
 				 (printout v)))))))
       (add! req '%headers key))
   ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
-  (set! req  (aws/v4/prepare req "GET" endpoint (or payload "")))
+  (set! req (aws/v4/prepare req "GET" endpoint (or payload "")))
   ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
   (when payload
     ((if (curl-handle? curl) curlsetopt! add!)
@@ -102,7 +102,13 @@
      (getopt req 'credential) ", "
      "SignedHeaders=" (getopt req 'signed-headers) ", "
      "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
-  (loginfo |AWS/V4/op| op " " endpoint "\n  params: " args "\n  headers: " headers)
+  (loginfo |AWS/V4/op| op " " endpoint
+	   "\n  params: " args "\n  headers: " headers "\n  "
+	   (if payload
+	       (printout (length payload)
+		 (if (packet? payload) " bytes" " characters")
+		 " of " (or ptype "stuff"))
+	       "no payload"))
   (let ((url (scripturl+ endpoint args)))
     (cons (if (equal? op "GET")
 	      (urlget url curl)
@@ -158,6 +164,11 @@
 	   (awskey (getopt req 'key awskey))
 	   (signature (hmac-sha256 signing-key string-to-sign)))
       (loginfo AWS/V4/PREPARE method " " uri 
+	       (if payload
+		   (printout "\n  " (length payload)
+		     " " (if (packet? payload) "bytes " "characters ")
+		     " of " (or ptype "stuff"))
+		   "\n  no payload")
 	       "\n  creds=" (write credential)
 	       "\n  req=" (write creq)
 	       "\n  sts=" (write string-to-sign))
