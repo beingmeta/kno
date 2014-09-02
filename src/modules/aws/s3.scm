@@ -3,7 +3,7 @@
 
 (in-module 'aws/s3)
 
-(use-module '{aws aws/v4 fdweb texttools mimetable regex
+(use-module '{aws aws/v4 fdweb texttools mimetable regex logctl
 	      ezrecords rulesets logger varconfig
 	      mttools})
 (define %used_modules '{aws varconfig ezrecords rulesets})
@@ -27,7 +27,9 @@
 (module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %warn%)
-;;(set! %loglevel %debug%)
+;;(set! %loglevel %info%)
+;;(logctl! 'aws/v4 %info%)
+;;(logctl! 'gpath %info%)
 
 (define s3root "s3.amazonaws.com")
 (varconfig! s3root s3root)
@@ -438,6 +440,7 @@
 	  (path->mimetype (s3loc-path loc)
 			  (if (packet? content) "application" "text"))))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
+  (when (not content) (error |NoContent| "No content to S3/WRITE"))
   (debug%watch
       (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc)
 	opts content ctype headers)
@@ -581,6 +584,7 @@
   (when (not (table? opts)) (set! opts `#[errs ,opts]))
   (when (testopt opts 'headers)
     (set! headers (append (getopt opts 'headers) headers)))
+  (when (not content) (error |NoContent| "No content to S3LOC/PUT"))
   (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) opts
     content ctype headers))
 (define s3/put s3loc/put)
