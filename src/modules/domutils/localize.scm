@@ -67,7 +67,7 @@
 	    (getopt options 'basetime
 		    (not (getopt options 'updateall (config 'updateall))))))
   (default! exists (gp/exists? savepath))
-  (logdebug |LOCALIZE/sync| "Syncing " ref " with " savepath " from " absref)
+  (logdebug |LOCALIZE/sync| "Syncing " ref " with " (gp->s savepath) " from " (gp->s absref))
   (cond ((equal? (gp->s savepath) (gp->s absref))
 	 (logwarn |DOMUTILS/LOCALIZE/sync!| "Identical paths: " savepath absref)
 	 #t)
@@ -78,14 +78,16 @@
 		   " from " (gp->s absref))
 	 #t)
 	(else
-	 (let ((fetched
-		(onerror (gp/fetch+ absref)
-		  (lambda (ex)
-		    (logwarn |LOCALIZE/sync|
-			     "Error fetching " absref ":\n\t" ex)
-		    (clear-errors!)
-		    #f)))
-	       (xform (getopt options 'xform)))
+	 (let* ((fetched
+		 (onerror (gp/fetch+ absref)
+		   (lambda (ex)
+		     (logwarn |LOCALIZE/sync|
+			      "Error fetching " absref ":\n\t" ex)
+		     (clear-errors!)
+		     #f)))
+		(ftype (and fetched (get fetched 'ctype)))
+		(content (and fetched (get fetched 'content)))
+		(xform (getopt options 'xform)))
 	   (cond ((and exists (not fetched))
 		  (logwarn |LOCALIZE/sync|
 			   "Couldn't update content for " ref
@@ -100,16 +102,17 @@
 		 (else (onerror (gp/save! savepath
 				  (if xform (xform (get fetched 'content))
 				      (get fetched 'content))
-				  ctype)
+				  ftype)
 			 (lambda (ex)
 			   (logwarn |LOCALIZE/sync/save|
 				    "Couldn't update content for " ref
 				    " from " (gp->s absref) ", "
 				    "using current " (gp->s savepath))))))
 	   (when (and fetched (test fetched 'content)
-		      (or (string? (get fetched 'content))
-			  (packet? (get fetched 'content))))
-	     (loginfo "Copied " (length (get fetched 'content))
+		      (or (string? content) (packet? content)))
+	     (loginfo "Copied " (length content) " "
+		      (if (packet? content) "bytes" "characters")
+		      " of " (or ftype "stuff")
 		      " from\n\t" (gp->s absref)
 		      "\n  to\t " (gp->s savepath)
 		      "\n  for\t" ref)
