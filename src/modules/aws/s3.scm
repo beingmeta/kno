@@ -314,7 +314,8 @@
 	      ((and (not err) (= status 404))
 	       (unless (testopt opts 'ignore 404)
 		 (lognotice |S3/NotFound|
-			    op " " (glom "s3://" bucket "/" path)
+			    op " " (glom "s3://" bucket
+				     (and (not (has-prefix path "/")) "/") path)
 			    (if (or (not opts) (empty? (getkeys opts)))
 				" (no opts)"
 				(printout "\n\t" (pprint opts)))
@@ -331,7 +332,9 @@
 	       s3result)
 	      ((not err)
 	       (logwarn |S3/Failure|
-			op " " (glom "s3://" bucket "/" path) " "
+			op " " (glom "s3://" bucket
+				 (and (not (has-prefix path "/")) "/")
+				 path) " "
 			(try (get s3result 'header) "")
 			(if (or (not opts) (empty? (getkeys opts)))
 			    " (no opts)"
@@ -340,18 +343,22 @@
 	       s3result)
 	      ((and err (= status 404))
 	       (irritant s3result |S3/NotFound| S3/OP
-			 op " " "s3://" bucket "/" path
+			 op " " "s3://" bucket
+			 (and (not (has-prefix path "/")) "/") path
 			 (if (or (not opts) (empty? (getkeys opts)))
 			     " no opts"
 			     (printout "\n\t" (pprint opts)))))
 	      ((and err (= status 403))
 	       (irritant s3result |S3/Forbidden| S3/OP
-			 op " " "s3://" bucket "/" path
+			 op " " "s3://" bucket
+			 (and (not (has-prefix path "/")) "/") path
 			 (if (or (not opts) (empty? (getkeys opts)))
 			     " (no opts)"
 			     (printout "\n\t" (pprint opts)))))
 	      (else (irritant s3result |S3/Failure| S3/OP
-			      op " " "s3://" bucket "/" path
+			      op " " "s3://" bucket
+			      (and (not (has-prefix path "/")) "/")
+			      path
 			      (if (or (not opts) (empty? (getkeys opts)))
 				  " (no opts)"
 				  (printout "\n\t" (pprint opts)))))))))
@@ -944,7 +951,7 @@
     (set! bucket (->s3loc bucket)))
   (let ((bucketname (if (string? bucket) bucket (s3loc-bucket bucket))))
     (s3/op "PUT" bucketname "/" #[errs #t usepath #f]
-	   string "text" '() "policy")))
+	   string "application/json" '() "policy")))
 
 (define (s3/addpolicy! loc add (init-policy policy-template) (opts s3opts))
   (let* ((bucket (s3loc-bucket loc))
