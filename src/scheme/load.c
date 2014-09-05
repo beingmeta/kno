@@ -143,6 +143,7 @@ FD_EXPORT fdtype fd_load_source
 	u8_free(sourcebase);
 	u8_free(content);
 	fd_decref(last_expr); last_expr=FD_VOID;
+        fd_decref(expr);
 	return result;}
       else if ((trace_load_eval) ||
 	       (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE))) {
