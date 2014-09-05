@@ -2741,10 +2741,10 @@ static int fdserv_handler(request_rec *r)
   
   if (checkabort(r,servlet,sock,1)) return OK;
   
-  if (rv!=OK) {
+  if (rv==HTTP_INTERNAL_SERVER_ERROR) {
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,rv,r,
-		  "Error (%s) reading header from %s",
-		  errbuf,fdsocketinfo(sock,infobuf));
+		  "Error (%s) status=%d reading header from %s",
+		  errbuf,r->status,fdsocketinfo(sock,infobuf));
     servlet_close_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
   else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
