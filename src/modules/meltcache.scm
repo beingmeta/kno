@@ -9,6 +9,17 @@
 ;;;  fast changing values decay more quickly and slower changing values
 ;;;  decay more slowly.
 
+;;; Basic design:
+;;;  A meltcache is an index or hashtable 
+;;;     which stores *meltenries* as values and 
+;;;     whose keys are function call signatures
+;;;  A meltentry has a value, a creation timestamp, an expiration timestamp
+;;;   and an indication of whether the value is an error value
+;;;  A function call signature is a cons of a procedure and arguments
+;;;  Whenever a result is saved, a *lifetime* is determined.  The
+;;;   expiration time is _lifetime_ seconds from when the result was first
+;;;   saved.
+
 (define-init %loglevel 4)
 (define-init trace-values #f)
 
@@ -204,7 +215,8 @@
 		    (applicable? (car val))
 		    (and (pair? (car val))
 			 (overlaps? (cdr (car val)) '{fail error})
-			 (or (symbol? (car (car val))) (applicable? (car (car val))))))
+			 (or (symbol? (car (car val)))
+			     (applicable? (car (car val))))))
 		(fixnum? (cdr val)))
 	   (lognotice "Setting meltcache threshold for " (car val)
 		      " to " (cdr val) " seconds")
@@ -214,7 +226,8 @@
 		    (applicable? (car val))
 		    (and (pair? (car val))
 			 (overlaps? (cdr (car val)) '{fail error})
-			 (or (symbol? (car (car val))) (applicable? (car (car val))))))
+			 (or (symbol? (car (car val)))
+			     (applicable? (car (car val))))))
 		(applicable? (cdr val)))
 	   (lognotice "Setting meltcache threshold function for " (car val)
 		      " to " (cdr  val))
