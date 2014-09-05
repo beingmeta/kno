@@ -114,7 +114,7 @@ static fdtype make_compound(int n,fdtype *args)
   struct FD_COMPOUND *compound=
     u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
   int i=1; fdtype *write=&(compound->elt0);
-  FD_INIT_CONS(compound,fd_compound_type);
+  FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->tag=fd_incref(args[0]);
   compound->n_elts=n-1; compound->mutable=0; compound->opaque=0;
   while (i<n) {
@@ -127,7 +127,7 @@ static fdtype make_opaque_compound(int n,fdtype *args)
   struct FD_COMPOUND *compound=
     u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
   int i=1; fdtype *write=&(compound->elt0);
-  FD_INIT_CONS(compound,fd_compound_type);
+  FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->tag=fd_incref(args[0]);
   compound->n_elts=n-1; compound->mutable=0;
   compound->opaque=1;
@@ -141,7 +141,7 @@ static fdtype make_mutable_compound(int n,fdtype *args)
   struct FD_COMPOUND *compound=
     u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
   int i=1; fdtype *write=&(compound->elt0);
-  FD_INIT_CONS(compound,fd_compound_type);
+  FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->tag=fd_incref(args[0]); compound->n_elts=n-1; compound->mutable=1;
   fd_init_mutex(&(compound->lock));
   while (i<n) {
@@ -154,7 +154,7 @@ static fdtype make_opaque_mutable_compound(int n,fdtype *args)
   struct FD_COMPOUND *compound=
     u8_malloc(sizeof(struct FD_COMPOUND)+((n-2)*sizeof(fdtype)));
   int i=1; fdtype *write=&(compound->elt0);
-  FD_INIT_CONS(compound,fd_compound_type);
+  FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->tag=fd_incref(args[0]);
   compound->n_elts=n-1; compound->mutable=1;
   compound->opaque=1;
@@ -170,7 +170,7 @@ static fdtype vector2compound(fdtype vector,fdtype tag,fdtype mutable,fdtype opa
   struct FD_COMPOUND *compound=
     u8_malloc(sizeof(struct FD_COMPOUND)+((n-1)*sizeof(fdtype)));
   fdtype *write=&(compound->elt0);
-  FD_INIT_CONS(compound,fd_compound_type);
+  FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->tag=fd_incref(tag); compound->n_elts=n;
   if (FD_FALSEP(mutable)) compound->mutable=0;
   else {
