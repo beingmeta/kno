@@ -315,7 +315,8 @@
 	       (unless (testopt opts 'ignore 404)
 		 (lognotice |S3/NotFound|
 			    op " " (glom "s3://" bucket
-				     (and (not (has-prefix path "/")) "/") path)
+				     (if (has-prefix path "/") "" "/")
+				     path)
 			    (if (or (not opts) (empty? (getkeys opts)))
 				" (no opts)"
 				(printout "\n\t" (pprint opts)))
@@ -333,7 +334,7 @@
 	      ((not err)
 	       (logwarn |S3/Failure|
 			op " " (glom "s3://" bucket
-				 (and (not (has-prefix path "/")) "/")
+				 (if (has-prefix path "/") "" "/")
 				 path) " "
 			(try (get s3result 'header) "")
 			(if (or (not opts) (empty? (getkeys opts)))
@@ -344,20 +345,20 @@
 	      ((and err (= status 404))
 	       (irritant s3result |S3/NotFound| S3/OP
 			 op " " "s3://" bucket
-			 (and (not (has-prefix path "/")) "/") path
+			 (if (has-prefix path "/") "" "/") path
 			 (if (or (not opts) (empty? (getkeys opts)))
 			     " no opts"
 			     (printout "\n\t" (pprint opts)))))
 	      ((and err (= status 403))
 	       (irritant s3result |S3/Forbidden| S3/OP
 			 op " " "s3://" bucket
-			 (and (not (has-prefix path "/")) "/") path
+			 (if (has-prefix path "/") "" "/") path
 			 (if (or (not opts) (empty? (getkeys opts)))
 			     " (no opts)"
 			     (printout "\n\t" (pprint opts)))))
 	      (else (irritant s3result |S3/Failure| S3/OP
 			      op " " "s3://" bucket
-			      (and (not (has-prefix path "/")) "/")
+			      (if (has-prefix path "/") "" "/")
 			      path
 			      (if (or (not opts) (empty? (getkeys opts)))
 				  " (no opts)"
