@@ -145,6 +145,7 @@ static int hyphenout_helper(U8_OUTPUT *out,
         u8_putc(out,hyphen_char); n_hyphens++;}
       cpos=scan-string;
       c=u8_sgetc(&scan);}
+    u8_free(hyphens);
     return n_hyphens;}
 }
 
