@@ -4,7 +4,7 @@
 (in-module 'aws/s3)
 
 (use-module '{aws aws/v4 fdweb texttools mimetable regex logctl
-	      ezrecords rulesets logger varconfig
+	      ezrecords rulesets logger varconfig meltcache
 	      mttools})
 (define %used_modules '{aws varconfig ezrecords rulesets})
 
@@ -30,6 +30,8 @@
 ;;(set! %loglevel %info%)
 ;;(logctl! 'aws/v4 %info%)
 ;;(logctl! 'gpath %info%)
+
+(define headcache #f)
 
 (define s3root "s3.amazonaws.com")
 (varconfig! s3root s3root)
@@ -498,13 +500,41 @@
 	#[errs #t]
 	s3opts))
   (when (not (table? opts)) (set! opts `#[errs ,opts]))
-  (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) opts "" "text" headers))
+  (if headcache
+      (let ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
+		   opts "" "text" headers)))
+	(when headcache
+	  (let ((copy (deep-copy req)))
+	    (drop! copy '%content)
+	    (meltcache/store headcache copy s3head (list loc headers))))
+	req)
+    (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc) opts "" "text" headers)))
 
 (define (s3loc/head loc (headers))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #[errs #f] "" "" headers))
+  (if headcache
+      (meltcache/get headcache s3head loc headers)
+      (s3head loc headers)))
 (define s3/head s3loc/head)
+
+(define (s3head loc headers)
+  (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #[errs #f] "" ""
+	 headers))
+(config! 'meltpoint (cons 's3head 300))
+
+(config-def! 's3:headcache
+	     (lambda (var (val))
+	       (cond ((not (bound? val)) headcache)
+		     ((integer? val)
+		      (config! 'meltpoint (cons 's3head val))
+		      (unless (hashtable? headcache)
+			(set! headcache (make-hashtable))))
+		     ((hashtable? val) (set! headcache val))
+		     ((string? val)
+		      (error "Meltcache reloads not yet supported"))
+		     (else
+		      (set! headcache (make-hashtable))))))
 
 (define (s3loc/get+ loc (text #t) (headers) (opts s3opts))
   (when (string? loc) (set! loc (->s3loc loc)))
@@ -518,6 +548,10 @@
 		opts "" "text" headers))
 	 (err (getopt opts 'errs s3errs))
 	 (status (get req 'response)))
+    (when headcache
+      (let ((copy (deep-copy req)))
+	(drop! copy '%content)
+	(meltcache/store headcache copy s3head (list loc headers))))
     (if (and status (>= 299 status 200))
 	`#[content ,(get req '%content)
 	   ctype ,(try (get req 'content-type)
@@ -532,22 +566,24 @@
 
 ;;; Basic S3 network metadata methods
 
-(define (s3loc/modified loc)
-  (let ((info (s3loc/head loc)))
+(define (s3loc/modified loc (headers))
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (default! headers (try (get (s3loc/opts loc) 'headers) '()))
+  (let ((info (s3loc/head loc headers)))
     (try (get info 'last-modified) #f)))
 (define s3/modified s3loc/modified)
 
-(define (s3loc/exists? loc)
+(define (s3loc/exists? loc (headers))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (let ((req (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc) #f "")))
-    (response/ok? req)))
+  (default! headers (try (get (s3loc/opts loc) 'headers) '()))
+  (let ((info (s3loc/head loc headers)))
+    (response/ok? info)))
 (define s3/exists? s3loc/exists?)
 
 (define (s3loc/etag loc (compute #f) (headers))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (let ((req (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc)
-	       #f "" "" headers)))
+  (let ((req (s3loc/head loc headers)))
     (and (response/ok? req)
 	 (try (get req 'etag) (and compute (md5 (s3loc/content loc)))))))
 (define s3/etag s3loc/etag)
@@ -560,8 +596,7 @@
 (define (s3loc/info loc (headers) (text #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (let ((req (s3/op "HEAD" (s3loc-bucket loc) (s3loc-path loc)
-	       #f "" "" headers)))
+  (let ((req (s3/head loc headers)))
     (and (response/ok? req)
 	 (frame-create #f
 	   'path (s3loc/s3uri loc)
