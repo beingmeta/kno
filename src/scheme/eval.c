@@ -1748,6 +1748,8 @@ static fdtype dbg_prim(fdtype x,fdtype msg)
   if (FD_VOIDP(msg))
     u8_message("Debug %q",x);
   else if (FD_FALSEP(msg)) {}
+  else if (FD_VOIDP(x))
+    u8_message("Debug called");
   else u8_message("Debug (%q) %q",msg,x);
   return _fd_dbg(x);
 }
