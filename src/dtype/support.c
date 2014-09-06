@@ -260,11 +260,11 @@ FD_EXPORT int fd_config_set_consed(u8_string var,fdtype val)
 
 /* Registering new configuration values */
 
-FD_EXPORT int fd_register_config
+FD_EXPORT int fd_register_config_x
   (u8_string var,u8_string doc,
    fdtype (*getfn)(fdtype,void *),
    int (*setfn)(fdtype,fdtype,void *),
-   void *data)
+   void *data,int (*reuse)(struct FD_CONFIG_HANDLER *scan))
 {
   fdtype symbol=config_intern(var), current=config_get(var);
   int retval=0;
@@ -273,6 +273,7 @@ FD_EXPORT int fd_register_config
   scan=config_handlers;
   while (scan)
     if (FD_EQ(scan->var,symbol)) {
+      if (reuse) reuse(scan);
       if (doc) {
         /* We don't override a real doc with a NULL doc.
            Possibly not the right thing. */
@@ -317,6 +318,15 @@ FD_EXPORT int fd_register_config
   else retval=setfn(symbol,current,data);
   fd_decref(current);
   return retval;
+}
+
+FD_EXPORT int fd_register_config
+  (u8_string var,u8_string doc,
+   fdtype (*getfn)(fdtype,void *),
+   int (*setfn)(fdtype,fdtype,void *),
+   void *data)
+{
+  return fd_register_config_x(var,doc,getfn,setfn,data,NULL);
 }
 
 /* Lots of different ways to specify configuration */
@@ -376,19 +386,20 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
       fdtype entry;
       u8_ungetc(in,c);
       entry=fd_parser(in);
-      if ((FD_PAIRP(entry)) &&
-          (FD_SYMBOLP(FD_CAR(entry))) &&
-          (FD_PAIRP(FD_CDR(entry)))) {
+      if (FD_ABORTP(entry))
+        return fd_interr(entry);
+      else if ((FD_PAIRP(entry)) &&
+               (FD_SYMBOLP(FD_CAR(entry))) &&
+               (FD_PAIRP(FD_CDR(entry)))) {
         if (fd_config_set(FD_SYMBOL_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
           fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
           return -1;}
-        fd_decref(entry); n++;}
-      else if (FD_ABORTP(entry))
-        return fd_interr(entry);
+        fd_decref(entry);
+        n++;}
       else {
         fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
         return -1;}}
-    else if ((u8_isspace(c)) || (u8_isctrl(c)))  {}
+    else if ((u8_isspace(c)) || (u8_isctrl(c))) {}
     else {
       u8_ungetc(in,c);
       buf=u8_gets(in);
