@@ -103,7 +103,9 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
       loadstamp=fd_get(module,loadstamp_symbol,FD_VOID);}
     clearloadlock(spec);
     if (FD_ABORTP(loadstamp)) return loadstamp;
-    else return module;}
+    else {
+      fd_decref(loadstamp);
+      return module;}}
   else {
     struct MODULE_LOADER *scan=module_loaders;
     if ((FD_SYMBOLP(spec)) || (FD_STRINGP(spec))) {}
@@ -144,6 +146,7 @@ int fd_finish_module(fdtype module)
        so the loadlock would have been cleared. */
     else if (cur_timestamp) {}
     else clearloadlock(moduleid);
+    fd_decref(moduleid);
     fd_decref(cur_timestamp);
     return 1;}
   else {
@@ -251,6 +254,7 @@ static fd_lispenv become_module
     fd_incref(module);}
   if ((!(create))&&(FD_VOIDP(module))) {
     fd_seterr(fd_NoSuchModule,"become_module",NULL,module_spec);
+    fd_decref(module);
     return NULL;}
   else if (FD_HASHTABLEP(module)) {
     fd_seterr(OpaqueModule,"become_module",NULL,module_spec);
@@ -270,7 +274,7 @@ static fd_lispenv become_module
     fd_store(env->exports,moduleid_symbol,module_spec);
     fd_register_module(FD_SYMBOL_NAME(module_spec),(fdtype)env,
 		       ((safe) ? (FD_MODULE_SAFE) : (0)));}
-  fd_decref(module);
+  fd_decref(module); fd_decref(module_spec);
   return env;
 }
 static fdtype safe_in_module(fdtype expr,fd_lispenv env)
@@ -400,6 +404,7 @@ static fd_hashtable get_exports(fd_lispenv env)
   fd_lock_mutex(&exports_lock);
   if (FD_HASHTABLEP(env->exports)) {
     fd_unlock_mutex(&exports_lock);
+    fd_decref(moduleid);
     return (fd_hashtable) env->exports;}
   exports=(fd_hashtable)(env->exports=fd_make_hashtable(NULL,16));
   if (!(FD_VOIDP(moduleid)))
