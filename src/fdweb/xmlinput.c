@@ -76,7 +76,7 @@ FD_EXPORT fdtype fd_convert_entities(u8_string arg,u8_string lim)
 	u8_putc(&out,code); scan=end;
 	c=u8_sgetc(&scan);}}
     else {u8_putc(&out,c); c=u8_sgetc(&scan);}
-  return fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  return fd_stream2string(&out);
 }
 
 static fdtype raw_name_symbol;
