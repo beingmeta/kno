@@ -774,7 +774,8 @@
   (search-helper under '() pattern #f))
 
 (define (dom/search/first under pattern (test #f) (return 'node))
-  (unless (overlaps? return '{string node path}) (error "Invalid return specifier"))
+  (unless (overlaps? return '{string node path})
+    (error "Invalid return specifier"))
   (call/cc (lambda (exitor)
 	     (search-helper under pattern '()
 			    (lambda (string node path)
