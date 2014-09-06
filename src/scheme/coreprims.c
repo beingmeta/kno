@@ -566,16 +566,24 @@ static int lconfig_set(fdtype var,fdtype val,void *data)
   else return 0;
 }
 
+static reuse_lconfig(struct FD_CONFIG_HANDLER *e);
 static fdtype config_def(fdtype var,fdtype handler,fdtype docstring)
 {
   int retval=
-    fd_register_config(FD_SYMBOL_NAME(var),
-		       ((FD_VOIDP(docstring)) ? (NULL) : (FD_STRDATA(docstring))),
-		       lconfig_get,lconfig_set,(void *) handler);
+    fd_register_config_x(FD_SYMBOL_NAME(var),
+                         ((FD_VOIDP(docstring)) ? (NULL) :
+                          (FD_STRDATA(docstring))),
+                         lconfig_get,lconfig_set,(void *) handler,
+                         reuse_lconfig);
   if (retval<0) return FD_ERROR_VALUE;
   fd_incref(handler);
   return FD_VOID;
 }
+static reuse_lconfig(struct FD_CONFIG_HANDLER *e){
+  if (e->data) {
+    fd_decref((fdtype)(e->data));
+    return 1;}
+  else return 0;}
 
 static fdtype thread_get(fdtype var)
 {
