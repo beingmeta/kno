@@ -755,7 +755,9 @@ static fdtype parse_packet(U8_INPUT *in)
 	continue;}
       obuf[1]=c=u8_getc(in);
       obuf[2]='\0';
-      if (c<0) return FD_EOX;
+      if (c<0) {
+        u8_free(data);
+        return FD_EOX;}
       else if ((isxdigit(obuf[0])) && (isxdigit(obuf[1]))) {
 	c=strtol(obuf,NULL,16);
 	if (c<256) data[len++]=c; else break;}
@@ -763,10 +765,11 @@ static fdtype parse_packet(U8_INPUT *in)
     else data[len++]=c;
     c=u8_getc(in);}
   if (c=='"')
-    return fd_init_packet(NULL,len,data);
-  u8_free(data);
-  if (c<0) return FD_EOX;
-  else return FD_PARSE_ERROR;
+    return fd_bytes2packet(NULL,len,data);
+  else {
+    u8_free(data);
+    if (c<0) return FD_EOX;
+    else return FD_PARSE_ERROR;}
 }
 
 static fdtype parse_hex_packet(U8_INPUT *in)
@@ -784,7 +787,7 @@ static fdtype parse_hex_packet(U8_INPUT *in)
     data[len++]=byte;
     c=u8_getc(in);}
   if (c=='"')
-    return fd_init_packet(NULL,len,data);
+    return fd_bytes2packet(NULL,len,data);
   u8_free(data);
   if (c<0) return FD_EOX;
   else return FD_PARSE_ERROR;
