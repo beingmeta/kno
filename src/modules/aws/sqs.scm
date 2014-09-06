@@ -8,7 +8,7 @@
 
 (module-export! '{sqs/get sqs/send sqs/list sqs/info sqs/delete
 		  sqs/extend sqs/req/extend
-		  sqs/vacuum})
+		  sqs/getn sqs/vacuum})
 
 (define-init %loglevel %info!)
 ;;(define %loglevel %debug!)
@@ -140,6 +140,19 @@
 			  queue ,(getopt entry 'queue)]
 		       (or secs (getopt entry 'extension
 					default-extension)))))))
+
+;;; GETN returns multiple items from a queue (#f means all)
+
+(define (sqs/getn queue (n #f))
+  (let ((item (sqs/get queue)) (count 0) (result {})
+	(seen (make-hashset)))
+    (until (or (not item) (and n (>= count n)))
+      (unless (get seen (get item 'msgid))
+	(hashset-add! seen (get item 'msgid))
+	(set+! result item))
+      (set! count (1+ count))
+      (set! item (sqs/get queue)))
+    result))
 
 ;;; Vacuuming removes all the entries from a queue
 
