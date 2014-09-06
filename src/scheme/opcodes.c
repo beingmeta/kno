@@ -895,8 +895,10 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	    return result;}
 	fd_decref(arg1);
 	return results;}
-      else if (FD_COMPOUNDP(arg1))
-	return xref_opcode(arg1,FD_FIX2INT(offset_arg),type_arg);
+      else if (FD_COMPOUNDP(arg1)) {
+	fdtype result=xref_opcode(arg1,FD_FIX2INT(offset_arg),type_arg);
+        fd_decref(arg1);
+        return result;}
       else {
 	fdtype result=fd_err(fd_TypeError,"xref",
 			     ((FD_VOIDP(type_arg)) ?
