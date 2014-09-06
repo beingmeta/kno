@@ -211,10 +211,11 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
 {
   struct FD_CONS *cons=(struct FD_CONS *)obj;
   int refcount=FD_CONS_REFCOUNT(cons), constype=FD_CONS_TYPE(cons);
-  if (refcount==1)
+  if (1) /* (refcount==1) */
     switch (constype) {
     case fd_pair_type:
-      return count_envrefs(FD_CAR(obj),env,depth)+count_envrefs(FD_CDR(obj),env,depth);
+      return count_envrefs(FD_CAR(obj),env,depth)+
+        count_envrefs(FD_CDR(obj),env,depth);
     case fd_vector_type: {
       int envcount=0;
       int i=0, len=FD_VECTOR_LENGTH(obj); fdtype *elts=FD_VECTOR_DATA(obj);
@@ -234,6 +235,34 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       while (i<len) {
 	envcount=envcount+count_envrefs(kv[i].value,env,depth-1); i++;}
       return envcount;}
+    case fd_choice_type: {
+      struct FD_CHOICE *ch=(struct FD_CHOICE *)obj;
+      const fdtype *data=FD_XCHOICE_DATA(ch);
+      int i=0, len=FD_XCHOICE_SIZE(ch), envcount=0;
+      while (i<len) {
+        fdtype e=data[i++]; 
+        if ((FD_CONSP(e))) {
+          int etype=FD_CONS_TYPE(((struct FD_CONS *)e));
+          if (!((etype==fd_string_type)||(etype==fd_packet_type)||
+                (etype==fd_bigint_type)||(etype==fd_double_type)||
+                (etype==fd_complex_type)||(etype==fd_rational_type)||
+                (etype==fd_timestamp_type)||(etype==fd_uuid_type)))
+            envcount=envcount+count_envrefs(e,env,depth-1);}}
+      return envcount;}
+    case fd_achoice_type: {
+      int envcount=0;
+      struct FD_ACHOICE *ach=(struct FD_ACHOICE *)obj;
+      fdtype *data=ach->data, *end=ach->write;
+      while (data<end) {
+        fdtype e=*data++; 
+        if ((FD_CONSP(e))) {
+          int etype=FD_CONS_TYPE(((struct FD_CONS *)e));
+          if (!((etype==fd_string_type)||(etype==fd_packet_type)||
+                (etype==fd_bigint_type)||(etype==fd_double_type)||
+                (etype==fd_complex_type)||(etype==fd_rational_type)||
+                (etype==fd_timestamp_type)||(etype==fd_uuid_type)))
+            envcount=envcount+count_envrefs(e,env,depth-1);}}
+      return envcount;}
     case fd_hashtable_type: {
       int envcount=0;
       struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)obj;
@@ -246,24 +275,32 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
 	  int j=0, n_keyvals=hashentry->n_keyvals;
 	  struct FD_KEYVAL *keyvals=&(hashentry->keyval0);
 	  while (j<n_keyvals) {
-	    envcount=envcount+count_envrefs(keyvals[j].value,env,depth-1); j++;}}
+	    envcount=envcount+count_envrefs(keyvals[j].value,env,depth-1);
+            j++;}}
 	else i++;
       fd_rw_unlock_struct(ht);
       return envcount;}
     default:
       if (constype==fd_environment_type) {
 	fd_lispenv scan=FD_STRIP_CONS(obj,fd_environment_type,fd_lispenv);
-	if (scan==env) return 1; else scan=scan->copy;
-	while ((scan) && (scan=scan->copy)) {
-	  if (scan==env) return 1;
-	  else if (FD_CONS_REFCOUNT(scan)==1)
-	    scan=scan->parent;
-	  else break;}
-	return 0;}
-      else if (constype==fd_sproc_type)
-	if ((FD_STRIP_CONS(obj,fd_sproc_type,struct FD_SPROC *))->env == env)
-	  return 1;
-	else return 0;
+        while (scan)
+          if ((scan==env)||(scan->copy==env))
+            return 1;
+          else scan=scan->parent;
+        return 0;}
+      else if (constype==fd_macro_type) {
+        struct FD_MACRO *m=FD_STRIP_CONS(cons,fd_macro_type,struct FD_MACRO *);
+        if ((m)&&(FD_PRIM_TYPEP((m->transformer),fd_sproc_type))) 
+          return count_cons_envrefs(m->transformer,env,depth);
+        else return 0;}
+      else if (constype==fd_sproc_type) {
+        struct FD_SPROC *sp=FD_STRIP_CONS(obj,fd_sproc_type,struct FD_SPROC *);
+        struct FD_ENVIRONMENT *scan=sp->env;
+        while (scan) {
+          if ((scan==env)||(scan->copy==env))
+            return 1;
+          else scan=scan->parent;}
+        return 0;}
       else return 0;}
   else return 0;
 }
@@ -1409,7 +1446,8 @@ static int unparse_environment(u8_output out,fdtype x)
   struct FD_ENVIRONMENT *env=
     FD_GET_CONS(x,fd_environment_type,struct FD_ENVIRONMENT *);
   if (FD_HASHTABLEP(env->bindings)) {
-    fdtype ids=fd_get(env->bindings,moduleid_symbol,FD_EMPTY_CHOICE), mid=FD_VOID;
+    fdtype ids=fd_get(env->bindings,moduleid_symbol,FD_EMPTY_CHOICE);
+    fdtype mid=FD_VOID;
     FD_DO_CHOICES(id,ids) {
       if (FD_SYMBOLP(id)) mid=id;}
     if (FD_SYMBOLP(mid))
