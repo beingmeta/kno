@@ -63,6 +63,11 @@ FD_EXPORT int fd_register_config
    fdtype (*getfn)(fdtype,void *),
    int (*setfn)(fdtype,fdtype,void *),
    void *data);
+FD_EXPORT int fd_register_config_x
+(u8_string var,u8_string doc,
+   fdtype (*getfn)(fdtype,void *),
+   int (*setfn)(fdtype,fdtype,void *),
+   void *data,int (*reuse)(struct FD_CONFIG_HANDLER *scan));
 
 
 FD_EXPORT void fd_config_lock(int lock);
