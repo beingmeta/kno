@@ -1211,6 +1211,12 @@ static void recycle_raw_index(struct FD_CONS *c)
     fd_decref(ei->fetchfn);
     fd_decref(ei->commitfn);
     fd_decref(ei->state);}
+  fd_recycle_hashtable(&(ix->cache));
+  fd_recycle_hashtable(&(ix->adds));
+  fd_recycle_hashtable(&(ix->edits));
+  u8_free(ix->cid);
+  u8_free(ix->source);
+  u8_free(ix);
 }
 
 /* Initialize */
