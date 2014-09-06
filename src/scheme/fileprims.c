@@ -761,12 +761,12 @@ static u8_string tempdir_core(fdtype template_arg,int keep)
   /* Unlike mkdtemp, u8_tempdir doesn't overwrite its argument */
   tempname=u8_tempdir(template);
   if (tempname) {
-    fdtype result=fd_make_string(NULL,-1,tempname);
-    if (consed) u8_free(consed);
     if (!(keep)) {
+      fdtype result=fd_make_string(NULL,-1,tempname);
       fd_lock_mutex(&tempdirs_lock);
       FD_ADD_TO_CHOICE(tempdirs,result);
       fd_unlock_mutex(&tempdirs_lock);}
+    if (consed) u8_free(consed);
     return tempname;}
   else {
     u8_condition cond=u8_strerror(errno); errno=0;
@@ -789,9 +789,10 @@ static void remove_tempdirs()
     fdtype to_remove=fd_difference(tempdirs,keeptemp);
     FD_DO_CHOICES(tmpfile,to_remove) {
       if (FD_STRINGP(tmpfile)) {
-	u8_log(LOG_DEBUG,"TEMPFILES","Removing directory %s",FD_STRDATA(tmpfile));
+	u8_log(LOG_DEBUG,"TEMPFILES","Removing directory %s",
+               FD_STRDATA(tmpfile));
 	u8_rmtree(FD_STRDATA(tmpfile));}}
-    fd_decref(tempdirs); fd_decref(keeptemp);
+    fd_decref(tempdirs); fd_decref(keeptemp); fd_decref(to_remove);
     tempdirs=FD_EMPTY_CHOICE; keeptemp=FD_EMPTY_CHOICE;
     u8_unlock_mutex(&tempdirs_lock);}
 }
