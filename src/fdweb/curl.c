@@ -562,6 +562,7 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,INBUF *da
       else if (strstr(data->bytes,"\r\n"))
         cval=fd_lispstring(u8_convert_crlfs(data->bytes));
       else cval=fd_lispstring(u8_valid_copy(data->bytes));
+      fd_decref(chset);
       u8_free(data->bytes);}
   else {
     cval=fd_make_packet(NULL,data->size,data->bytes);

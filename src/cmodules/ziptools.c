@@ -76,6 +76,7 @@ static void recycle_zipfile(struct FD_CONS *c)
   if (!(zf->closed)) zip_close(zf->zip);
   zf->closed=1;
   u8_destroy_mutex(&(zf->lock));
+  u8_free(zf->filename);
   u8_free(zf);
 }
 
