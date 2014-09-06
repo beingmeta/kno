@@ -882,7 +882,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
       error_phase="init_mysqlproc/stmt_prepare";
       retval=mysql_stmt_prepare
         (dbproc->stmt,dbproc->stmt_string,dbproc->stmt_len);}}
-    
+
   if (retval) {
     int mysqlerrno=mysql_stmt_errno(dbproc->stmt);
     const char *errmsg=mysql_stmt_error(dbproc->stmt);
@@ -904,7 +904,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
                            &(dbproc->outbound),
                            &(dbproc->colnames),
                            &(dbproc->isnull));
-  
+
   if (n_cols<0) return -1;
 
   n_params=mysql_stmt_param_count(dbproc->stmt);
@@ -978,7 +978,9 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
       fd_decref(dbp->paramtypes[i]); i++;}
     u8_free(dbp->paramtypes);}
 
-  u8_free(dbp->spec); u8_free(dbp->qtext);
+  u8_free(dbp->spec);
+  u8_free(dbp->qtext);
+  u8_free(dbp->stmt_string);
 
   u8_mutex_destroy(&(dbp->lock));
 
@@ -1033,7 +1035,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
   inbound=dbproc->inbound;
   bindbuf=dbproc->bindbuf;
   ptypes=dbproc->paramtypes;
-  
+
   if (n_params>4) argbuf=u8_alloc_n(n_params,fdtype);
 
   /* Initialize the input parameters from the arguments.
