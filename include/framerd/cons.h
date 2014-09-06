@@ -249,19 +249,20 @@ FD_EXPORT fdtype fd_init_string
   (struct FD_STRING *ptr,int slen,u8_string string);
 FD_EXPORT fdtype fd_make_string
   (struct FD_STRING *ptr,int slen,u8_string string);
+FD_EXPORT fdtype fd_block_string(int slen,u8_string string);
 FD_EXPORT fdtype fd_conv_string
   (struct FD_STRING *ptr,int slen,u8_string string);
 FD_EXPORT fdtype fdtype_string(u8_string string);
 
 #define fd_stream2string(stream) \
   ((((stream)->u8_streaminfo)&(U8_STREAM_OWNS_BUF))?                    \
-   (fd_conv_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
+   (fd_block_string((((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
 		   ((stream)->u8_outbuf))):                             \
    (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
 		   ((stream)->u8_outbuf))))
 #define fd_stream_string(stream) \
-   (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
-		   ((stream)->u8_outbuf)))
+  (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
+		  ((stream)->u8_outbuf)))
 
 #define fd_lispstring(s) fd_init_string(NULL,-1,(s))
 #define fd_unistring(s) fd_conv_string(NULL,-1,(s))
@@ -282,6 +283,8 @@ FD_EXPORT fdtype fdtype_string(u8_string string);
 FD_EXPORT fdtype fd_init_packet
   (struct FD_STRING *ptr,int len,unsigned char *data);
 FD_EXPORT fdtype fd_make_packet
+  (struct FD_STRING *ptr,int len,unsigned char *data);
+FD_EXPORT fdtype fd_bytes2packet
   (struct FD_STRING *ptr,int len,unsigned char *data);
 
 #define FD_XPACKET(x) (FD_GET_CONS(x,fd_packet_type,struct FD_STRING *))
