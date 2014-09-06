@@ -194,7 +194,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
 	    return val;}}}
       if (!(FD_EMPTY_CHOICEP(val))) {
 	FD_STOP_DO_CHOICES;
-	fd_decref(choices);
+	fd_decref(choices); fd_decref(*vloc); *vloc=FD_VOID;
 	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
 	return val;}
       fd_decref(*vloc); *vloc=FD_VOID;
