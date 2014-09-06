@@ -104,7 +104,7 @@ void fd_recycle_cons(fd_cons c)
 	  u8_raise(fd_FreeingNonHeapCons,"fd_decref",NULL);}}
     fd_decref(cdr);
     break;}
-  case fd_string_type: case fd_packet_type: {
+  case fd_string_type: case fd_packet_type: case fd_secret_type: {
     struct FD_STRING *s=(struct FD_STRING *)c;
     if ((s->bytes)&&(s->freedata)) u8_free(s->bytes);
     if (mallocd) u8_free(s);
@@ -462,8 +462,31 @@ fdtype fd_make_string(struct FD_STRING *ptr,int len,u8_string string)
 }
 
 FD_EXPORT
+/* fd_block_string:
+    Arguments: a length, and a pointer to a byte vector
+    Returns: a lisp string
+  This returns a uniconsed lisp string object from a string,
+    copying and freeing the string data
+*/ 
+fdtype fd_block_string(int len,u8_string string)
+{
+  int length=((len>=0)?(len):(strlen(string)));
+  u8_byte *bytes=NULL; int freedata=1;
+  struct FD_STRING *ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
+  bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+  if (string) memcpy(bytes,string,length);
+  else memset(bytes,'?',length);
+  bytes[length]='\0';
+  FD_INIT_CONS(ptr,fd_string_type);
+  ptr->length=length; ptr->bytes=bytes; ptr->freedata=0;
+  if (string) u8_free(string);
+  return FDTYPE_CONS(ptr);
+}
+
+FD_EXPORT
 /* fd_conv_string:
-    Arguments: A pointer to an FD_STRING struct, a length, and a pointer to a byte vector
+    Arguments: A pointer to an FD_STRING struct, a length, and a
+      pointer to a byte vector
     Returns: a lisp string
   This returns a lisp string object from a string, copying and freeing the string
   If the structure pointer is NULL, the lisp string is uniconsed, so that
@@ -646,6 +669,26 @@ FD_EXPORT fdtype fd_make_packet
   else bytes=data;
   FD_INIT_CONS(ptr,fd_packet_type);
   ptr->length=len; ptr->bytes=bytes; ptr->freedata=freedata;
+  return FDTYPE_CONS(ptr);
+}
+
+FD_EXPORT fdtype fd_bytes2packet
+  (struct FD_STRING *ptr,int len,unsigned char *data)
+{
+  u8_byte *bytes=NULL; int freedata=1;
+  if (ptr == NULL) {
+    ptr=u8_malloc(sizeof(struct FD_STRING)+len+1);
+    bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    if (data) memcpy(bytes,data,len);
+    else memset(bytes,0,len);
+    freedata=0;}
+  else {
+    bytes=u8_malloc(len);
+    if (data==NULL) memset(bytes,0,len);
+    else memcpy(bytes,data,len);}
+  FD_INIT_CONS(ptr,fd_packet_type);
+  ptr->length=len; ptr->bytes=bytes; ptr->freedata=freedata;
+  if (data) u8_free(data);
   return FDTYPE_CONS(ptr);
 }
 
