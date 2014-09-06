@@ -21,6 +21,9 @@ define refcount
   printf "object refcount=%d\n",((((struct FD_CONS *)$arg0)->consbits)>>7)
   end
 end
+define xrefcount
+  printf "cons refcount=%d\n",((((struct FD_CONS *)$arg0)->consbits)>>7)
+end
 define showstruct 
   print *((struct $arg1 *)($arg0))
 end
