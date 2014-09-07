@@ -53,6 +53,21 @@ static fdtype deepcopy(fdtype x)
   return fd_deep_copy(x);
 }
 
+static fdtype get_refcount(fdtype x,fdtype delta)
+{
+  if (FD_CONSP(x)) {
+    struct FD_CONS *cons=(struct FD_CONS *)x;
+    int refcount=FD_CONS_REFCOUNT(cons);
+    int d=FD_FIX2INT(delta);
+    if (d<0) d=-d;
+    if (refcount<1) 
+      return fd_reterr("Bad REFCOUNT","get_refcount",
+                       u8_mkstring("%lx",(unsigned long)x),
+                       FD_VOID);
+    else return FD_INT2DTYPE((refcount-(d+1)));}
+  else return FD_FALSE;
+}
+
 static fdtype eqp(fdtype x,fdtype y)
 {
   if (x==y) return FD_TRUE;
@@ -639,6 +654,9 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("COMPARE",comparefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("FASTCOMPARE",fastcomparefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DEEP-COPY",deepcopy,1));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim2x("REFCOUNT",get_refcount,1,-1,FD_VOID,
+                                          fd_fixnum_type,FD_INT2DTYPE(-1))));
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("<",lt,2));
   fd_idefn(fd_scheme_module,fd_make_cprimn("<=",lte,2));
