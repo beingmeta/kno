@@ -192,37 +192,39 @@
 	 (unq (tryif (position #\: aname)
 		(slice aname (1+ (position #\: aname)))))
 	 (allattribs (get node '%attribs))
-	 (attribs (try (pick allattribs first aname)
-		       (pick allattribs second aname)
-		       (pick allattribs lowername aname)
-		       (pick allattribs unqname (try unq aname))
-		       (pick allattribs lunqname (downcase (try unq aname)))))
-	 (ids (get node '%attribids))
-	 (stringval (if (and (not fdxml) (string? val)) val
-			(->domstring val)))
-	 (qattrib (string->lisp (first (singleton attribs)))))
-    (when index
-      (drop! index (cons (choice attrib slotid qattrib) (get node attrib)) node)
-      (add! index (cons (choice attrib slotid qattrib) val) node))
-    (when (ambiguous? attribs)
-      (error "AmbiguousDOMAttribute"
-	     "DOM/SET of ambiguous attribute " attrib
-	     attribs))
-    (store! node slotid val)
-    (if (exists? ids)
-	(unless (overlaps? ids (choice qattrib slotid))
-	  (if (and (singleton? ids) (or (vector? ids) (pair? ids)))
-	      (if (not (exists position (choice qattrib slotid) ids))
-		  (if (vector? ids)
-		      (store! node '%attribids `#(,(try qattrib slotid) ,@ids))
-		      (store! node '%attribids `(,(try qattrib slotid) ,@ids))))
-	      (add! node '%attribids (try qattrib slotid)))
-	  (when index
-	    (add! index (cons '%attribids (try qattrib slotid)) node)))
-	(add! node '%attribids slotid))
-    (when (or (exists? allattribs) (string? attrib) (exists? unq))
-      (if (exists? attribs)
-	    (begin (drop! node '%attribs attribs)
+	 (delta (if (ambiguous? allattribs) 1 2)))
+    (let* ((attribs (try (pick allattribs first aname)
+			 (pick allattribs second aname)
+			 (pick allattribs lowername aname)
+			 (pick allattribs unqname (try unq aname))
+			 (pick allattribs lunqname (downcase (try unq aname)))))
+	   (ids (get node '%attribids))
+	   (stringval (if (and (not fdxml) (string? val)) val
+			  (->domstring val)))
+	   (qattrib (string->lisp (first (singleton attribs)))))
+      (when index
+	(drop! index (cons (choice attrib slotid qattrib) (get node attrib)) node)
+	(add! index (cons (choice attrib slotid qattrib) val) node))
+      (when (ambiguous? attribs)
+	(error "AmbiguousDOMAttribute"
+	       "DOM/SET of ambiguous attribute " attrib
+	       attribs))
+      (store! node slotid val)
+      (if (exists? ids)
+	  (unless (overlaps? ids (choice qattrib slotid))
+	    (if (and (singleton? ids) (or (vector? ids) (pair? ids)))
+		(if (not (exists position (choice qattrib slotid) ids))
+		    (if (vector? ids)
+			(store! node '%attribids `#(,(try qattrib slotid) ,@ids))
+			(store! node '%attribids `(,(try qattrib slotid) ,@ids))))
+		(add! node '%attribids (try qattrib slotid)))
+	    (when index
+	      (add! index (cons '%attribids (try qattrib slotid)) node)))
+	  (add! node '%attribids slotid))
+      (when (or (exists? allattribs) (string? attrib) (exists? unq))
+	(if (exists? attribs)
+	    (begin
+	      (drop! node '%attribs attribs)
 	      (add! node '%attribs
 		    (vector (elt attribs 0) (elt attribs 1) stringval))
 	      (store! node (choice (string->lisp aname) slotid qattrib) val)
@@ -230,7 +232,7 @@
 		(store! node (string->lisp (attrib-name aname)) val))
 	      (add! node '%attribs
 		    (vector (elt attribs 0) (elt attribs 1) stringval)))
-	    (add! node '%attribs (vector aname #f stringval)))))
+	    (add! node '%attribs (vector aname #f stringval))))))
   (when (oid? node) (store! node '%id (dom/sig node #t #f))))
 
 (define (dom/drop! node attrib (value) (sep #f) (index #f))
