@@ -569,17 +569,19 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
 {
   if (strncmp(s,"<!--",4)==0) {
     fdtype cnode=fd_empty_slotmap();
+    fdtype comment_string=fd_extract_string(NULL,s+4,s+(len-3));
+    fdtype comment_content=fd_init_pair(NULL,comment_string,FD_EMPTY_LIST);
     fd_store(cnode,name_symbol,comment_symbol);
-    fd_store(cnode,content_symbol,
-	     fd_init_pair(NULL,fd_extract_string(NULL,s+4,s+(len-3)),
-			  FD_EMPTY_LIST));
+    fd_store(cnode,content_symbol,comment_content);
+    fd_decref(comment_content);
     add_content(node,cnode);}
   else if (strncmp(s,"<![CDATA[",9)==0) {
     fdtype cnode=fd_empty_slotmap();
+    fdtype cdata_string=fd_extract_string(NULL,s+9,s+(len-3));
+    fdtype cdata_content=fd_init_pair(NULL,cdata_string,FD_EMPTY_LIST);
     fd_store(cnode,name_symbol,cdata_symbol);
-    fd_store(cnode,content_symbol,
-	     fd_init_pair(NULL,fd_extract_string(NULL,s+9,s+(len-3)),
-			  FD_EMPTY_LIST));
+    fd_store(cnode,content_symbol,cdata_content);
+    fd_decref(cdata_content);
     add_content(node,cnode);}
   else add_content(node,fdtype_string(s));
 }
@@ -684,7 +686,8 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
     fd_add(xml->attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
       fd_make_nvector(3,fdtype_string(name),make_qid(attrib_name,namespace),
-		      fd_incref(slotval));}
+		      slotval);
+    fd_incref(slotval);}
   else attrib_entry=
 	 fd_make_nvector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
   fd_add(xml->attribs,attribids,slotid);
@@ -1042,6 +1045,49 @@ static fdtype fdxmlparse(fdtype input,fdtype sloppy)
   else return FD_ERROR_VALUE;
 }
 
+static int checkdom_helper(fdtype node){
+  if (FD_STRINGP(node)) return 1;
+  else {
+    fdtype content=fd_get(node,content_symbol,FD_VOID);
+    if (FD_PAIRP(content)) {
+      int ok=1; FD_DOLIST(elt,content) {
+        if (!(FD_STRINGP(elt))) {
+          fdtype attribs=fd_get(elt,attribs_symbol,FD_VOID);
+          if (FD_VECTORP(attribs)) {
+            struct FD_VECTOR *v=(struct FD_VECTOR *)attribs;
+            int count=FD_CONS_REFCOUNT(v);
+            if (count>2) {
+              u8_log(LOGWARN,"Heavy attrib",
+                     "Found an attrib object with %d references: %q",
+                     count,attribs);
+              ok=0;}}
+          else if (FD_CHOICEP(attribs)) {
+            FD_DO_CHOICES(a,attribs) {
+              if (FD_VECTORP(a)) {
+                struct FD_VECTOR *v=(struct FD_VECTOR *)attribs;
+                int count=FD_CONS_REFCOUNT(v);
+                if (count>1) {
+                  u8_log(LOGWARN,"Heavy attrib",
+                         "Found an attrib object with %d references: %q",
+                         count,a);
+                  ok=0;}}}}
+          else {}
+          fd_decref(attribs);}}
+      fd_decref(content);
+      return ok;}
+    else {
+      fd_decref(content);
+      return 1;}}}
+
+static fdtype checkdom(fdtype dom)
+{
+  int ok=checkdom_helper(dom);
+  if (ok) u8_log(LOGWARN,"DOMCHECK","DOM is okay");
+  else u8_log(LOGWARN,"DOMCHECK","DOM is messed up");
+  fd_incref(dom);
+  return dom;
+}
+
 /* Initialization functions */
 
 FD_EXPORT void fd_init_xmlinput_c()
@@ -1053,6 +1099,8 @@ FD_EXPORT void fd_init_xmlinput_c()
     fd_make_ndprim(fd_make_cprim2("FDXML/PARSE",fdxmlparse,1));
   fd_defn(full_module,xmlparse_prim); fd_idefn(safe_module,xmlparse_prim);
   fd_defn(full_module,fdxmlparse_prim); fd_idefn(safe_module,fdxmlparse_prim);
+  fd_idefn(full_module,fd_make_cprim1("CHECKDOM",checkdom,1));
+  fd_idefn(safe_module,fd_make_cprim1("CHECKDOM",checkdom,1));
 
   attribs_symbol=fd_intern("%ATTRIBS");
   content_symbol=fd_intern("%CONTENT");
