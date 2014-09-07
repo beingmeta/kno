@@ -1045,7 +1045,8 @@ static fdtype fdxmlparse(fdtype input,fdtype sloppy)
   else return FD_ERROR_VALUE;
 }
 
-static int checkdom_helper(fdtype node){
+static int checkdom_helper(fdtype node)
+{
   if (FD_STRINGP(node)) return 1;
   else {
     fdtype content=fd_get(node,content_symbol,FD_VOID);
@@ -1064,7 +1065,7 @@ static int checkdom_helper(fdtype node){
           else if (FD_CHOICEP(attribs)) {
             FD_DO_CHOICES(a,attribs) {
               if (FD_VECTORP(a)) {
-                struct FD_VECTOR *v=(struct FD_VECTOR *)attribs;
+                struct FD_VECTOR *v=(struct FD_VECTOR *)a;
                 int count=FD_CONS_REFCOUNT(v);
                 if (count>1) {
                   u8_log(LOGWARN,"Heavy attrib",
@@ -1077,13 +1078,14 @@ static int checkdom_helper(fdtype node){
       return ok;}
     else {
       fd_decref(content);
-      return 1;}}}
+      return 1;}}
+}
 
 static fdtype checkdom(fdtype dom)
 {
   int ok=checkdom_helper(dom);
-  if (ok) u8_log(LOGWARN,"DOMCHECK","DOM is okay");
-  else u8_log(LOGWARN,"DOMCHECK","DOM is messed up");
+  if (ok) u8_log(LOGWARN,"CHECKDOM","DOM is okay");
+  else u8_log(LOGWARN,"CHECKDOM","DOM is messed up");
   fd_incref(dom);
   return dom;
 }
