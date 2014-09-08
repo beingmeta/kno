@@ -656,7 +656,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("DEEP-COPY",deepcopy,1));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2x("REFCOUNT",get_refcount,1,-1,FD_VOID,
-                                          fd_fixnum_type,FD_INT2DTYPE(-1))));
+                                          fd_fixnum_type,FD_INT2DTYPE(0))));
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("<",lt,2));
   fd_idefn(fd_scheme_module,fd_make_cprimn("<=",lte,2));
