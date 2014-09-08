@@ -1949,7 +1949,9 @@ FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 /* VOIDs all values which only have one incoming pointer (from the table
    itself).  This is helpful in conjunction with fd_devoid_hashtable, which
    will then reduce the table to remove such entries. */
-FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr)
+FD_EXPORT int fd_remove_deadwood_x(struct FD_HASHTABLE *ptr,
+                                   int (*testfn)(fdtype,fdtype,void *),
+                                   void *testdata)
 {
   struct FD_HASHENTRY **scan, **lim;
   int n_slots=ptr->n_slots, n_keys=ptr->n_keys; int unlock=0;
@@ -1963,20 +1965,29 @@ FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr)
       if (*scan) {
 	struct FD_HASHENTRY *e=*scan++; int n_keyvals=e->n_keyvals;
 	struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
-	while (kvscan<kvlimit) {
-	  fdtype val=kvscan->value;
-	  if (FD_CONSP(val)) {
-	    struct FD_CONS *cval=(struct FD_CONS *)val;
-	    if (FD_CONS_REFCOUNT(cval)==1) {
-	      n_cleared++; kvscan->value=FD_VOID; fd_decref(val);}}
-	  /* ??? In the future, this should probably scan CHOICES
-	     to remove deadwood as well.  */
-	  kvscan++;}}
+        if ((testfn)&&(testfn(kvscan->key,FD_VOID,testdata))) {}
+        else while (kvscan<kvlimit) {
+            fdtype val=kvscan->value;
+            if (FD_CONSP(val)) {
+              struct FD_CONS *cval=(struct FD_CONS *)val;
+              if (FD_ACHOICEP(val)) 
+                cval=(struct FD_CONS *)
+                  (val=kvscan->value=fd_simplify_choice(val));
+              if (FD_CONS_REFCOUNT(cval)==1) {
+                n_cleared++; kvscan->value=FD_VOID; fd_decref(val);}}
+            /* ??? In the future, this should probably scan CHOICES
+               to remove deadwood as well.  */
+            kvscan++;}}
       else scan++;}
     if (n_cleared) n_cleared=0; else break;}
   if (unlock) fd_rw_unlock_struct(ptr);
   return n_slots;
 }
+FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr)
+{
+  return fd_remove_deadwood_x(ptr,NULL,NULL);
+}
+
 
 FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
 {
