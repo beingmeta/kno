@@ -581,7 +581,7 @@ static int lconfig_set(fdtype var,fdtype val,void *data)
   else return 0;
 }
 
-static reuse_lconfig(struct FD_CONFIG_HANDLER *e);
+static int reuse_lconfig(struct FD_CONFIG_HANDLER *e);
 static fdtype config_def(fdtype var,fdtype handler,fdtype docstring)
 {
   int retval=
@@ -594,7 +594,7 @@ static fdtype config_def(fdtype var,fdtype handler,fdtype docstring)
   fd_incref(handler);
   return FD_VOID;
 }
-static reuse_lconfig(struct FD_CONFIG_HANDLER *e){
+static int reuse_lconfig(struct FD_CONFIG_HANDLER *e){
   if (e->data) {
     fd_decref((fdtype)(e->data));
     return 1;}
