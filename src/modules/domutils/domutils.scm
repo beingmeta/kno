@@ -201,7 +201,8 @@
 	   (ids (get node '%attribids))
 	   (stringval (if (and (not fdxml) (string? val)) val
 			  (->domstring val)))
-	   (qattrib (string->lisp (first (singleton attribs)))))
+	   (qattrib (string->lisp (first (singleton attribs))))
+	   (newattrib (vector (elt attribs 0) (elt attribs 1) stringval)))
       (when index
 	(drop! index (cons (choice attrib slotid qattrib) (get node attrib)) node)
 	(add! index (cons (choice attrib slotid qattrib) val) node))
@@ -224,15 +225,11 @@
       (when (or (exists? allattribs) (string? attrib) (exists? unq))
 	(if (exists? attribs)
 	    (begin
-	      (drop! node '%attribs attribs)
-	      (add! node '%attribs
-		    (vector (elt attribs 0) (elt attribs 1) stringval))
-	      (store! node (choice (string->lisp aname) slotid qattrib) val)
-	      (when (attrib-name aname)
-		(store! node (string->lisp (attrib-name aname)) val))
-	      (add! node '%attribs
-		    (vector (elt attribs 0) (elt attribs 1) stringval)))
-	    (add! node '%attribs (vector aname #f stringval))))))
+	      (add! node '%attribs (difference newattrib attribs))
+	      (drop! node '%attribs (difference attribs newattrib)))
+	    (add! node '%attribs (vector aname #f stringval)))))
+    (drop! node '%markup))
+  (store! node '%attribs (simplify (get node '%attribs)))
   (when (oid? node) (store! node '%id (dom/sig node #t #f))))
 
 (define (dom/drop! node attrib (value) (sep #f) (index #f))
@@ -1291,3 +1288,36 @@
 	(else obj)))
 
 
+;;;; Debugging
+
+(define (show-attribs node (cxt #f) (attribs) (delta))
+  (comment
+   (default! attribs (get node '%attribs))
+   (set! delta (if (ambiguous? attribs) 1 3))
+   (lineout "[" (elapsed-time) "]" ;;  logwarn |DumpAttribs|
+     (when cxt (printout cxt " "))
+     (choice-size attribs)
+     " attribs for " (dom/sig node)
+     (when (test node 'id) (printout " #!x" (number->string (hashptr node) 16))))
+   (do-choices (a attribs)
+     (lineout "[" (elapsed-time) "]" ;; logwarn |Attrib|
+       (when cxt (printout cxt " "))
+       (refcount a delta) " refs to " a
+       " #!x" (number->string (hashptr a)))))
+   node)
+(define (show-all-attribs node (cxt #f))
+  (if (pair? node)
+      (dolist (elt node)
+	(unless (string? elt) (show-all-attribs elt cxt)))
+      (begin (show-attribs node cxt)
+	(when (exists? (get node '%content))
+	  (dolist (child (get node '%content))
+	    (unless (string? child) (show-all-attribs child cxt))))))
+  node)
+(define (dump-attribs node (cxt #f))
+  (show-all-attribs node cxt)
+  node)
+(define (dump-node-attribs node (cxt #f))
+  (show-attribs node cxt)
+  node)
+(module-export! '{dump-attribs dump-node-attribs})
