@@ -606,22 +606,23 @@ static int slotify_nodep(FD_XML *node)
   else return 0;
 }
 
+static void cleanup_attribs(fdtype table);
+
 FD_EXPORT
 FD_XML *fd_default_popfn(FD_XML *node)
 {
-  if (FD_PAIRP(node->head)) {
-    if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
-    fd_add(node->attribs,content_symbol,node->head);}
+  if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
+  if (FD_PAIRP(node->head)) 
+    fd_add(node->attribs,content_symbol,node->head);
+  cleanup_attribs(node->attribs);
   if (((node->bits&FD_XML_NOCONTENTS)==0) ||
       (node->parent==NULL) ||
       (node->parent->parent==NULL)) {
-    if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
     if (node->parent!=NULL) {
       add_content(node->parent,node->attribs);
       node->attribs=FD_EMPTY_CHOICE;}}
   if ((node->bits&FD_XML_SLOTIFY) && (slotify_nodep(node))) {
     fdtype slotid;
-    if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
     if (FD_EMPTY_CHOICEP(node->parent->attribs))
       init_node_attribs(node->parent);
     slotid=fd_get(node->attribs,name_symbol,FD_EMPTY_CHOICE);
@@ -634,6 +635,24 @@ FD_XML *fd_default_popfn(FD_XML *node)
       fd_add(node->parent->attribs,slotid,FD_CAR(node->head));
     else fd_add(node->parent->attribs,slotid,node->attribs);}
   return node->parent;
+}
+
+static void cleanup_attribs(fdtype table)
+{
+  if (FD_SLOTMAPP(table)) {
+    struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)table;
+    struct FD_KEYVAL *scan, *limit; int unlock=0, size;
+    if (sm->uselock) { fd_read_lock(&sm->rwlock); unlock=1;}
+    size=FD_XSLOTMAP_SIZE(sm); scan=sm->keyvals; limit=scan+size;
+    if (size==0) {
+      if (unlock) fd_rw_unlock(&sm->rwlock);
+      return;}
+    while (scan < limit) {
+      fdtype val=scan->value;
+      if (FD_ACHOICEP(val)) 
+        scan->value=fd_simplify_choice(val);
+      scan++;}
+    if (unlock) fd_rw_unlock(&sm->rwlock);}
 }
 
 FD_EXPORT
