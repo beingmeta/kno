@@ -808,7 +808,9 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       else if (FD_VOIDP(values_arg))
 	values=FD_VOID;
       else values=fd_eval(values_arg,env);
-      if (FD_ABORTP(values)) return values;
+      if (FD_ABORTP(values)) {
+        fd_decref(arg1); fd_decref(slotids);
+        return values;}
       if (opcode==FD_TEST_OPCODE)
 	result=fd_ftest(arg1,slotids,values);
       else if (fd_test(arg1,slotids,values))
@@ -880,6 +882,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	  if (FD_COMPOUNDP(a1)) {
 	    fdtype result=xref_opcode(a1,FD_FIX2INT(offset_arg),type_arg);
 	    if (FD_ABORTP(result)) {
+              fd_decref(arg1);
 	      fd_decref(results);
 	      return result;}
 	    else {FD_ADD_TO_CHOICE(results,result);}}
