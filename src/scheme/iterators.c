@@ -228,6 +228,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
   else if (FD_EMPTY_CHOICEP(seq)) return FD_EMPTY_CHOICE;
+  else if (FD_EMPTY_LISTP(seq)) return seq;
   else if (!(FD_SEQUENCEP(seq)))
     return fd_type_error("sequence","forseq_handler",seq);
   else lim=fd_seq_length(seq);
