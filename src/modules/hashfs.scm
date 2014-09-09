@@ -56,8 +56,8 @@
 (define (hashfs/info hashfs path)
   (unless (has-prefix path "/") (set! path (glom "/" path)))
   `#[path ,(hashfs/string hashfs path)
-     ctype ,(get (get (hashfs/files hashfs) path) 'ctype)
-     modified ,(get (get (hashfs/files hashfs) path) 'ctype)])
+     ctype ,(get (get (hashfs-files hashfs) path) 'ctype)
+     modified ,(get (get (hashfs-files hashfs) path) 'ctype)])
 
 (define (hashfs/commit! hashfs)
   (if (hashfs-source hashfs)
