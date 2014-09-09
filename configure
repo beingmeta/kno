@@ -2799,12 +2799,12 @@ TESTLDFLAGS=
 EXELDFLAGS=
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=3
-FDMINOR=5
-FDRELEASE=9
+FDMINOR=6
+FDRELEASE=0
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
-RPMVERSION=11
-DEBVERSION=5
+RPMVERSION=1
+DEBVERSION=1
 mshared_suffix=so.$FDMAJOR
 vshared_suffix=so.$FDVERSION
 I18N=""
@@ -3385,10 +3385,10 @@ elif test "x$with_sanitize" = "xaddress" ||
    custom_malloc="asan"
    memtest_prefix=builtin_
    heaptest_prefix=builtin_
-   TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
+   TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=yes $TESTENV";
 elif test "x$with_sanitize" = "xleak"; then
-   CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
-   LDFLAGS="-g -fsanitize=address $LDFLAGS"
+   CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
+   LDFLAGS="-g -fsanitize=leak $LDFLAGS"
    build_static=""
    test_static=""
    install_static=""
