@@ -19,7 +19,11 @@ define refcount
   print "not a cons" 
   else
   printf "object refcount=%d\n",((((struct FD_CONS *)$arg0)->consbits)>>7)
+  print ((struct FD_CONS *)($arg0))
   end
+end
+define watchcons
+  watch ((struct FD_CONS *)($arg0))->consbits
 end
 define xrefcount
   printf "cons refcount=%d\n",((((struct FD_CONS *)$arg0)->consbits)>>7)
