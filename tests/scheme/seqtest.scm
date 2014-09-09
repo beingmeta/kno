@@ -1,4 +1,4 @@
-;;; -*- Mode: scheme; text-encoding: latin-1; -*-
+;;; -*- Mode: scheme; text-encoding: utf-8; -*-
 
 (load-component "common.scm")
 
@@ -7,7 +7,7 @@
 (applytest  "" subseq "123" 1 1)
 
 (applytest  #\e elt "meme" 3)
-(applytest  #\� elt "m�me" 1)
+(applytest  #\é elt "méme" 1)
 
 (define s1 "francais")
 
@@ -86,10 +86,155 @@
 (applytest '() subseq '() 0 0)
 
 (applytest 3 search '(d e f) '(a b c d e f g h i j))
-(applytest 27 search '".." "http://foo.bar.mit.edu/foo/../bar")
 (applytest 3 search '#(d e f) '#(a b c d e f g h i j))
+(applytest 3 search '(d e f) '#(a b c d e f g h i j))
+(applytest 3 search '#(d e f) '(a b c d e f g h i j))
+(applytest 5 search '("d" "e" "f") '("a" "b" "c" 3 #f "d" "e" "f" "g" "h" "i" "j"))
+(applytest 5 search '#("d" "e" "f") '#("a" "b" "c" #f 3 "d" "e" "f" "g" "h" "i" "j"))
+(applytest 5 search '("d" "e" "f") '#("a" "b" #t 9 "c" "d" "e" "f" "g" "h" "i" "j"))
+(applytest 5 search '#("d" "e" "f") '("a" "b" #f 8 "c" "d" "e" "f" "g" "h" "i" "j"))
+(applytest #f search '("b" "c" "d") '("a" "b" "c" 3 #f "d" "e" "f" "g" "h" "i" "j"))
+(applytest #f search '#("b" "c" "d") '#("a" "b" "c" #f 3 "d" "e" "f" "g" "h" "i" "j"))
+(applytest #f search '("b" "c" "d") '#("a" "b" #t 9 "c" "d" "e" "f" "g" "h" "i" "j"))
+(applytest #f search '#("b" "c" "d") '("a" "b" #f 8 "c" "d" "e" "f" "g" "h" "i" "j"))
+(applytest 27 search '".." "http://foo.bar.mit.edu/foo/../bar")
 (applytest 29 search '".." "http://foo.\u0135bar.mit\u0139.edu/foo/../bar")
 (applytest 6 search #"\00\00\00\05" #"foobar\00\00\00\05baz")
+
+(define mixed-list
+  '("b\u00c0ar"
+    #[foo 3 bar 8] 
+    "alpha"  
+    "real\vlylongst\aring\nreallylong\nstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstrin\fgreal\rlylon\bgstri\tngreallylongstring"
+    #"reallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstring"
+    #"ab\03cd\04qnno\ffkk\cd"
+    #t #f #\a () 9739 -3 3.1415 -2.7127
+    715919103 -715919103 2415919103 -2415919103 12345678987654321 -12345678987654321
+    #"abc def gh\aa jkl"
+    #\u45ab {} {A |aBc| "b" C 3} {} {C A 3 "b"} {"A"}
+    #((test) "te \" \" st" "" test #() b c)))
+(define mixed-vector
+  '#("b\u00c0ar"
+     #[foo 3 bar 8] 
+     "alpha" 
+     "real\vlylongst\aring\nreallylong\nstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstrin\fgreal\rlylon\bgstri\tngreallylongstring"
+     #"reallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstring"
+     #"ab\03cd\04qnno\ffkk\cd"
+     #t #f #\a () 9739 -3 3.1415 -2.7127
+     715919103 -715919103 2415919103 -2415919103 12345678987654321 -12345678987654321
+     #"abc def gh\aa jkl"
+     #\u45ab {} {A |aBc| "b" C 3} {} {C A 3 "b"} {"A"}
+     #((test) "te \" \" st" "" test #() b c)))
+
+(applytest mixed-list deep-copy mixed-list)
+(applytest mixed-vector ->vector mixed-list)
+(applytest mixed-list ->list mixed-vector)
+
+(define numsum 9742.000000)
+(evaltest numsum
+	  (let ((sum 0))
+	    (dolist (elt mixed-list)
+	      (if (singleton? elt)
+		  (if (number? elt) (set! sum (+ sum elt)))
+		  (do-choices (e elt)
+		    (if (number? e) (set! sum (+ sum e))))))
+	    sum))
+(evaltest numsum
+	  (let ((sum 0))
+	    (doseq (elt mixed-list)
+	      (if (= (choice-size elt) 1)
+		  (if (number? elt) (set! sum (+ sum elt)))
+		  (do-choices (e elt)
+		    (if (number? e) (set! sum (+ sum e))))))
+	    sum))
+(evaltest numsum
+	  (let ((sum 0))
+	    (doseq (elt mixed-vector)
+	      (unless (fail? elt)
+		(if (ambiguous? elt)
+		    (do-choices (e elt)
+		      (if (number? e) (set! sum (+ sum e))))
+		    (if (number? elt) (set! sum (+ sum elt))))))
+	    sum))
+(define stringsum
+  "bÀar—alpha—real\vlylongst\aring\nreallylong\nstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstrin\fgreal\rlylon\010gstri\tngreallylongstring—b—b—A")
+
+(evaltest stringsum
+	  (let ((string ""))
+	    (dolist (elt mixed-list i)
+	      (if (ambiguous? elt)
+		  (do-choices elt
+		    (when (string? elt)
+		      (set! string (glom string (and (> i 0) "\&mdash;") elt))))
+		  (when (and (exists? elt) (string? elt))
+		    (set! string (glom string (and (> i 0) "\&mdash;") elt)))))
+	    string))
+(evaltest stringsum
+	  (let ((string ""))
+	    (dolist (elt mixed-list)
+	      (unless (fail? elt)
+		(do-choices elt
+		  (when (string? elt)
+		    (set! string (if (empty-string? string) elt
+				     (glom string "\&mdash;" elt)))))))
+	    string))
+(evaltest stringsum
+	  (let ((string ""))
+	    (doseq (elt mixed-list)
+	      (when (exists? elt)
+		(if (ambiguous? elt)
+		    (do-choices elt
+		      (when (string? elt)
+			(set! string (glom string (and (not (empty-string? string)) "\&mdash;")
+				       elt))))
+		    (when (string? elt)
+		      (set! string (glom string (and (not (empty-string? string)) "\&mdash;")
+				     elt))))))
+	    string))
+(evaltest stringsum
+	  (let ((string ""))
+	    (doseq (elt mixed-vector)
+	      (unless (fail? elt)
+		(do-choices elt
+		  (when (string? elt)
+		    (set! string (if (empty-string? string) elt
+				     (glom string "\&mdash;" elt)))))))
+	    string))
+(evaltest stringsum
+	  (let ((string ""))
+	    (doseq (elt (->vector mixed-list))
+	      (when (exists? elt)
+		(if (ambiguous? elt)
+		    (do-choices elt
+		      (when (string? elt)
+			(set! string (glom string (and (not (empty-string? string)) "\&mdash;")
+				       elt))))
+		    (when (string? elt)
+		      (set! string (glom string (and (not (empty-string? string)) "\&mdash;")
+				     elt))))))
+	    string))
+(evaltest stringsum
+	  (let ((string ""))
+	    (doseq (elt (->vector mixed-vector))
+	      (when (exists? elt)
+		(if (ambiguous? elt)
+		    (do-choices elt
+		      (when (string? elt)
+			(set! string (glom string (and (not (empty-string? string)) "\&mdash;")
+				       elt))))
+		    (when (string? elt)
+		      (set! string (glom string (and (not (empty-string? string)) "\&mdash;")
+				     elt))))))
+	    string))
+(evaltest stringsum
+	  (let ((string ""))
+	    (doseq (elt (->vector mixed-list))
+	      (unless (fail? elt)
+		(do-choices elt
+		  (when (string? elt)
+		    (set! string (if (empty-string? string) elt
+				     (glom string "\&mdash;" elt)))))))
+	    string))
 
 ;;; Reduce tests
 
