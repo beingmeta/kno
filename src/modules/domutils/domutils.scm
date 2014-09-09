@@ -318,7 +318,7 @@
 
 (define (dom/remove-child! node elt (recur #t))
   (drop! node '%markup)
-  (and (table? node) (test node '%content)
+  (and (table? node) (not (xmlempty? node))
        (let* ((content (get node '%content))
 	      (newcontent (remove elt content)))
 	 (cond ((equal? content newcontent)
@@ -330,7 +330,7 @@
 		     #t)))))
 (define (dom/replace-child! node cur new (recur #t))
   (drop! node '%markup)
-  (and (table? node) (test node '%content)
+  (and (table? node) (not (xmlempty? node))
        (let* ((content (get node '%content))
 	      (newcontent
 	       (->list (forseq (celt (->vector content))
@@ -355,7 +355,8 @@
 (define (dom/replace! cur new (parent))
   (default! parent (get cur '%parent))
   (set! parent (dom/parent cur (try parent #f)))
-  (when (and (exists? parent) (table? parent) (test parent '%content))
+  (when (and (exists? parent) (table? parent)
+	     (not (xmlempty? parent)))
     (drop! parent '%markup)
     (let* ((content (get parent '%content))
 	   (newcontent
@@ -739,9 +740,7 @@
 	   nodes))
 	((and (table? under) (dom/match under sel))
 	 (list under))
-	((and (table? under) (test under '%content)
-	      (exists? (get under '%content))
-	      (pair? (get under '%content)))
+	((and (table? under) (not (xmlempty? under)))
 	 (let ((nodes '()))
 	   (dolist (under (get under '%content))
 	     (set! nodes (append nodes (dom/select->list under sel))))
@@ -796,7 +795,7 @@
 		     (set! sum (dom/count child sel sum))))
 	    sum)
 	  (if (table? under)
-	      (if (exists? (get under '%content))
+	      (if (not (xmlempty? under))
 		  (begin
 		    (doseq (child (->vector (get under '%content)))
 		      (unless (or (string? child)
@@ -927,22 +926,25 @@
   (if (pair? node)
       (doseq (elt (->vector node)) (map0 elt fn))
       (begin (fn node)
-	(doseq (elt (->vector (try (get node '%content) '())))
-	  (when (table? elt) (map0 elt fn))))))
+	(when (and (table? node) (not (xmlempty? node)))
+	  (doseq (elt (->vector (try (get node '%content) '())))
+	    (when (table? elt) (map0 elt fn)))))))
 
 (define (map1 node fn arg)
   (if (pair? node)
       (doseq (elt (->vector node)) (map1 elt fn (qc arg)))
       (begin (fn node)
-	(dolist (elt (try (get node '%content) '()))
-	  (when (table? elt) (map1 elt fn (qc arg)))))))
+	(when (and (table? node) (not (xmlempty? node)))
+	  (dolist (elt (try (get node '%content) '()))
+	    (when (table? elt) (map1 elt fn (qc arg))))))))
 
 (define (mapn node fn args)
   (if (pair? node)
       (doseq (elt node) (mapn elt fn args))
       (begin (apply fn node args)
-	(doseq (elt (->vector (try (get node '%content) '())))
-	  (when (table? elt) (mapn elt fn args))))))
+	(when (and (table? node) (not (xmlempty? node)))
+	  (doseq (elt (->vector (try (get node '%content) '())))
+	    (when (table? elt) (mapn elt fn args)))))))
 
 (defambda (dom/map node fn (arg) . args)
   (do-choices node
@@ -959,13 +961,15 @@
 	 (apply append
 		(forseq (elt (->vector node))
 		  (if (string? elt) (vector elt) (map0! elt fn)))))
-	(else (let* ((content (->vector (try (get node '%content) '())))
-		     (new (apply append
-				 (forseq (elt content)
-				   (if (string? elt) (vector elt)
-				       (->vector (map0! elt fn)))))))
-		(store! node '%content (->list new))
-		(fn node)))))
+	((not (xmlempty? node))
+	 (let* ((content (->vector (get node '%content)))
+		(new (apply append
+			    (forseq (elt content)
+			      (if (string? elt) (vector elt)
+				  (->vector (map0! elt fn)))))))
+	   (store! node '%content (->list new))
+	   (fn node)))
+	(else '())))
 
 (define (mapn! node fn args)
   (cond ((string? node) node)
@@ -975,13 +979,15 @@
 		(forseq (elt (->vector node))
 		  (if (string? elt) (vector elt)
 		      (->vector (mapn! elt fn args))))))
-	(else (let* ((content (->vector (try (get node '%content) '())))
-		     (new (apply append
-				 (forseq (elt content)
-				   (if (string? elt) (vector elt)
-				       (->vector (mapn! elt fn args)))))))
-		(store! node '%content (->list new))
-		(apply fn node args)))))
+	((not (xmlempty? node))
+	 (let* ((content (->vector (get node '%content)))
+		(new (apply append
+			    (forseq (elt content)
+			      (if (string? elt) (vector elt)
+				  (->vector (mapn! elt fn args)))))))
+	   (store! node '%content (->list new))
+	   (apply fn node args)))
+	(else '())))
 
 (defambda (dom/map! node fn . args)
   (do-choices node
@@ -1095,7 +1101,7 @@
 	     (store! oid '%oid oid)
 	     (store! node '%oid oid)
 	     (when doc (store! oid '%doc doc))
-	     (when (test node '%content)
+	     (when (not (xmlempty? node))
 	       (store! oid '%content
 		       (->list
 			(forseq (elt (->vector (get node '%content)))
