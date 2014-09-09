@@ -23,6 +23,31 @@
 (define aws-services
   {"sqs" "ses" "s3" "sns" "simpledb" "dynamodb" "ec2"})
 
+;;; Support functions
+
+(define (derive-key secret date region service)
+  (hmac-sha256
+   (hmac-sha256 (hmac-sha256 (hmac-sha256 (glom "AWS4" secret) 
+					  (get date 'isobasicdate))
+			     region)
+		service)
+   "aws4_request"))
+
+(define (encode-path string)
+  (string-subst (uriencode string) "%2F" "/"))
+(define (encode-uri string)
+  (textsubst string
+	     `#({"http://" "https://"}
+		(not> "/")
+		(subst (not> {"#" "?"}) ,encode-path)
+		(rest))))
+
+(define (get-string-to-sign date region service creq)
+  (stringout "AWS4-HMAC-SHA256\n"
+    (get date 'isobasic) "\n"
+    (get date 'isobasicdate) "/" region "/" service "/aws4_request\n"
+    (downcase (packet->base16 (sha256 creq)))))
+
 ;;; Doing a GET with AWS4 authentication
 
 (define (aws/v4/get req endpoint (args #[]) (headers #[]) (payload #f)
@@ -32,6 +57,8 @@
   (add! headers 'host (urihost endpoint))
   (add! args "AWSAccessKeyId" (getopt req 'key awskey))
   (add! args "Timestamp" (get date 'isobasic))
+  (unless (position #\% endpoint)
+    (set! endpoint (encode-uri endpoint)))
   (do-choices (key (getkeys args))
     (add! req key (get args key))
     (add! req '%params key))
@@ -109,7 +136,9 @@
 		 (if (packet? payload) " bytes" " characters")
 		 " of " (or ptype "stuff"))
 	       "no payload"))
-  (let ((url (scripturl+ endpoint args)))
+  (let* ((escaped (if (position #\% endpoint) endpoint
+		      (encode-uri endpoint)))
+	 (url (scripturl+ escaped args)))
     (cons (if (equal? op "GET")
 	      (urlget url curl)
 	      (if (equal? op "HEAD")
@@ -195,25 +224,6 @@
     #({(bos) "."}
       (label service ,aws-services)
       ".")))
-
-;;; Support functions
-
-(define (derive-key secret date region service)
-  (hmac-sha256
-   (hmac-sha256 (hmac-sha256 (hmac-sha256 (glom "AWS4" secret) 
-					  (get date 'isobasicdate))
-			     region)
-		service)
-   "aws4_request"))
-
-(define (encode-path string)
-  (string-subst (uriencode string) "%2F" "/"))
-
-(define (get-string-to-sign date region service creq)
-  (stringout "AWS4-HMAC-SHA256\n"
-    (get date 'isobasic) "\n"
-    (get date 'isobasicdate) "/" region "/" service "/aws4_request\n"
-    (downcase (packet->base16 (sha256 creq)))))
 
 ;;; Canonical query
 
