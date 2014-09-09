@@ -134,6 +134,17 @@
        REALM PAYPAL
        ACCESS_TOKEN HTTP
        NAME "Paypal"]
+     PAYPALTEST
+     #[AUTHORIZE
+       "https://www.sandbox.paypal.com/webapps/auth/protocol/openidconnect/v1/authorize"
+       ACCESS
+       "https://api.sandbox.paypal.com/v1/identity/openidconnect/tokenservice"
+       KEY PP:TESTKEY SECRET PP:TESTSECRET
+       SCOPE "openid profile email"
+       VERSION "2.0"
+       REALM PAYPAL
+       ACCESS_TOKEN HTTP
+       NAME "Paypal Test"]
      DWOLLA
      #[AUTHORIZE "https://www.dwolla.com/oauth/v2/authenticate"
        ACCESS "https://www.dwolla.com/oauth/v2/token"
