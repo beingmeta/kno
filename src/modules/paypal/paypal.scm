@@ -11,6 +11,7 @@
 
 (define pp:live #f)
 (define pp:business "anonymous@company.com")
+(define pp:testbusiness "anonymous@company.com")
 (define pp:appid "APP-80W284485P519543T")
 (define pp:user "store_1288290819_biz_api1.beingmeta.com")
 (define pp:pass "1288290827")
@@ -24,6 +25,7 @@
 
 (varconfig! pp:live pp:live)
 (varconfig! pp:business pp:business)
+(varconfig! pp:testbusiness pp:testbusiness)
 (varconfig! pp:id ppid)
 (varconfig! pp:options default-options)
 (varconfig! pp:button default-button)
@@ -45,15 +47,19 @@
 	(input TYPE "HIDDEN" NAME "invoice" VALUE (getopt options 'invoice))
 	(input TYPE "HIDDEN" NAME "invoice" VALUE (uuid->string (getuuid))))
     (when (getopt options 'amount)
-      (input TYPE "HIDDEN" NAME "amount" VALUE (format-amount (getopt options 'amount))))
+      (input TYPE "HIDDEN" NAME "amount"
+	     VALUE (format-amount (getopt options 'amount))))
     (input TYPE "HIDDEN" NAME "business"
-	   VALUE (getopt options 'business pp:business))
+	   VALUE (getopt options 'business
+			 (if pp:live pp:business pp:testbusiness)))
     (when (getopt options 'item_number)
       (input TYPE "HIDDEN" NAME "item_number"
 	     VALUE (getopt options 'item_number)))
-    (input TYPE "HIDDEN" NAME "charset" VALUE (getopt options 'charset "utf-8"))
+    (input TYPE "HIDDEN" NAME "charset"
+	   VALUE (getopt options 'charset "utf-8"))
     (when (getopt options 'return)
-      (input TYPE "HIDDEN" NAME "return" VALUE (getopt options 'return)))
+      (input TYPE "HIDDEN" NAME "return"
+	     VALUE (getopt options 'return)))
     (when (getopt options 'item_name)
       (input TYPE "HIDDEN" NAME "item_name" VALUE (getopt options 'item_name)))
     (when (getopt options 'notify_url)
@@ -64,18 +70,22 @@
     (when (getopt options 'no_note)
       (input TYPE "HIDDEN" NAME "no_note" VALUE (getopt options 'no_note)))
     (when (getopt options 'no_shipping)
-      (input TYPE "HIDDEN" NAME "no_shipping" VALUE (getopt options 'no_shipping)))
+      (input TYPE "HIDDEN" NAME "no_shipping"
+	     VALUE (getopt options 'no_shipping)))
     (when (getopt options 'cbt)
       (input TYPE "HIDDEN" NAME "cbt" VALUE (getopt options 'cbt)))
     (when (getopt options 'page_style)
-      (input TYPE "HIDDEN" NAME "page_style" VALUE (getopt options 'page_style)))
+      (input TYPE "HIDDEN" NAME "page_style"
+	     VALUE (getopt options 'page_style)))
     (when (getopt options 'image_url)
-      (input TYPE "HIDDEN" NAME "image_url" VALUE (getopt options 'image_url)))
+      (input TYPE "HIDDEN" NAME "image_url"
+	     VALUE (getopt options 'image_url)))
     (when (getopt options 'cpp_header_image)
       (input TYPE "HIDDEN" NAME "cpp_header_image"
 	     VALUE (getopt options 'cpp_header_image))))
   (when (getopt options 'paykey #f)
-    (input TYPE "HIDDEN" NAME "payKey" VALUE (getopt options 'paykey #f))))
+    (input TYPE "HIDDEN" NAME "payKey"
+	   VALUE (getopt options 'paykey #f))))
 
 (define (buttonout text)
   (if (has-prefix text "https://www.paypal.com/")
