@@ -9,11 +9,11 @@
 (module-export!
  '{logger
    getloglevel %loglevel
-   logdeluge logdetail loginfo lognotice logwarn logdebug
-   logerr logerror logcrit logalert logpanic
-   logdeluge! logdetail! loginfo! lognotice! logwarn! logdebug!
-   logerr! logcrit! logalert! logpanic!
-   %debug %detail %deluge})
+   logwsamp logdeluge logdetail logdebug loginfo
+   lognotice logwarn logerr logerror logcrit logalert logpanic
+   logswamp! logdeluge! logdetail! logdebug! loginfo!
+   lognotice! logwarn! logerr! logcrit! logalert! logpanic!
+   %debug %detail %deluge %swamp})
 (module-export!
  '{%emergency! %emergency% %panic%
    %alert! %alert%
@@ -22,17 +22,18 @@
    %warning! %warn! %warning% %warn%
    %notice% %notice! %notify% %notify! %note% %note!
    %information% %information! %status% %status! %info% %info!
-   %debug! %debug%
+   %debug% %debug! 
    %detail% %detail! %details%
-   %deluge% %deluge!})
-(module-export! '{deluge%call detail%call debug%call
+   %deluge% %deluge! %swamp% %swamp!})
+(module-export! '{swamp%call deluge%call detail%call debug%call
 		  info%call notice%call warn%call})
-(module-export! '{logdeluge? logdetail? logdebug?
+(module-export! '{logswamp? logdeluge? logdetail? logdebug?
 		  loginfo? lognotice? logwarn?
 		  logerr? logcrit? logalert? logpanic?})
 
 (module-export!
- '{detail%watch debug%watch info%watch notice%watch warn%watch})
+ '{swamp%watch deluge%watch detail%watch debug%watch
+   info%watch notice%watch warn%watch})
 
 (define %nosubst '%loglevel)
 
@@ -70,11 +71,13 @@
 (define %details% 8)
 (define %deluge% 9)
 (define %deluge! 9)
+(define %swamp% 9)
+(define %swamp! 9)
 
 (define %loglevel 4)
 
 (define loglevel-init-map
-  '{(DELUGE . 9) (VERYDETAILED 9)
+  '{(SWAMP . 9) (DELUGE . 9) (VERYDETAILED 9)
     (DETAIL . 8) (DETAILS . 8) (DETAILED . 8)
     (DEBUG . 7) (DBG . 7)
     (INFO . 6) (STATUS . 6) (INFORMATION . 6)
@@ -110,6 +113,7 @@
     `(logif+ (>= %loglevel ,(cadr expr)) ,(cadr expr) ,@(cddr expr))))
 
 ;; These all call the regular log function
+(define logswamp! (macro expr `(logmsg 9 ,@(cdr expr))))
 (define logdeluge! (macro expr `(logmsg 9 ,@(cdr expr))))
 (define logdetail! (macro expr `(logmsg 8 ,@(cdr expr))))
 (define logdebug! (macro expr `(logmsg 7 ,@(cdr expr))))
@@ -123,6 +127,8 @@
 
 ;;; These all check the local %loglevel, except if the priority is
 ;;;  worse than an error.
+(define logswamp
+  (macro expr `(logif+ (>= %loglevel ,%swamp%) 9 ,@(cdr expr))))
 (define logdeluge
   (macro expr `(logif+ (>= %loglevel ,%deluge%) 9 ,@(cdr expr))))
 (define logdetail
@@ -152,8 +158,15 @@
   (macro expr `(logif+ (>= %loglevel ,%detail%) 8 ,@(cdr expr))))
 (define %deluge
   (macro expr `(logif+ (>= %loglevel ,%deluge%) 9 ,@(cdr expr))))
+(define %swamp
+  (macro expr `(logif+ (>= %loglevel ,%swamp%) 9 ,@(cdr expr))))
 
 ;;; %loglevel checking watchpoints
+(define swamp%watch
+  (macro expr
+    `(if (>= %loglevel ,%swamp%)
+	 (,%watch ,@(cdr expr))
+	 ,(cadr expr))))
 (define deluge%watch
   (macro expr
     `(if (>= %loglevel ,%deluge%)
@@ -185,6 +198,13 @@
 	 (,%watch ,@(cdr expr))
 	 ,(cadr expr))))
 
+(define swamp%call
+  (macro expr
+    `(if (>= %loglevel ,%swamp%)
+	 (,%watchcall ,@(cdr expr))
+	 (if (string? (cadr expr))
+	     `(,@(cddr expr))
+	     `(,@(cdr expr))))))
 (define deluge%call
   (macro expr
     `(if (>= %loglevel ,%deluge%)
@@ -230,6 +250,8 @@
 
 ;;; Local loglevel predicates
 
+(define logswamp?
+  (macro expr `(>= %loglevel ,%swamp%)))
 (define logdeluge?
   (macro expr `(>= %loglevel ,%deluge%)))
 (define logdetail?
