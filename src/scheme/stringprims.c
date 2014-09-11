@@ -189,14 +189,13 @@ static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg)
   else if (FD_STRLEN(string)==0) return FD_TRUE;
   else {
     u8_byte *scan=FD_STRDATA(string), *lim=scan+FD_STRLEN(string);
-    int c=u8_sgetc(&scan);
-    if ((count_vspace)&&((c=='\n')||(c=='\r')))
-      return FD_FALSE;
-    else if (!(u8_isspace(c))) return FD_FALSE;
-    while ((c>=0) && (scan<lim))
-      if (u8_isspace(c))
-	c=u8_sgetc(&scan);
-      else return FD_FALSE;
+    while (scan<lim) {
+      int c=u8_sgetc(&scan);
+      if ((count_vspace)&&
+          ((c=='\n')||(c=='\r')||(c=='\f')||(c=='\v')))
+        return FD_FALSE;
+      else if (!(u8_isspace(c))) return FD_FALSE;
+      else {}}
     return FD_TRUE;}
 }
 
