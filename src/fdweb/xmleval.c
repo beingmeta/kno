@@ -193,7 +193,8 @@ static int output_markup_sym(u8_output out,fdtype sym)
 static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 {
   U8_OUTPUT out; int cache_result=fd_cache_markup;
-  fdtype cached; fdtype xmlns=fd_get(xml,xmlns_symbol,FD_VOID);
+  fdtype cached, attribs=FD_EMPTY_CHOICE, attribids=FD_EMPTY_CHOICE;;
+  fdtype xmlns=fd_get(xml,xmlns_symbol,FD_VOID);
   if (fd_cache_markup) {
     cached=fd_get(xml,raw_markup,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
@@ -226,8 +227,10 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	       (FD_STRINGP(FD_CDR(nspec)))) {
 	u8_printf(&out," xmlns:%s=\"%s\"",FD_STRDATA(FD_CAR(nspec)),FD_STRDATA(FD_CDR(nspec)));}
       else {}}}
-  if (fd_test(xml,attribs_slotid,FD_VOID)) {
-    fdtype attribs=fd_get(xml,attribs_slotid,FD_EMPTY_CHOICE);
+  attribs=fd_get(xml,attribs_slotid,FD_EMPTY_CHOICE);
+  if (FD_EMPTY_CHOICEP(attribs))
+    attribids=fd_get(xml,attribids_slotid,FD_EMPTY_CHOICE);
+  if (!(FD_EMPTY_CHOICEP(attribs))) {
     FD_DO_CHOICES(attrib,attribs) {
       if (!((FD_VECTORP(attrib))&&
 	    (FD_VECTOR_LENGTH(attrib)>=2)&&
@@ -248,8 +251,7 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
 	  else output_attribval(&out,value,env,1);
 	  u8_putc(&out,'"');}}}
     fd_decref(attribs);}
-  else if (fd_test(xml,attribids_slotid,FD_VOID)) {
-    fdtype attribids=fd_get(xml,attribids_slotid,FD_EMPTY_CHOICE);
+  else if (!(FD_EMPTY_CHOICEP(attribids))) {
     int i=0, n; fdtype *data, buf[1];
     fdtype to_free=FD_VOID;
     if (FD_VECTORP(attribids)) {
