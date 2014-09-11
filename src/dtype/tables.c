@@ -266,15 +266,16 @@ FD_EXPORT int fd_slotmap_drop(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
   result=fd_sortvec_get(key,sm->keyvals,size);
   if (result) {
     fdtype newval=((FD_VOIDP(value)) ? (FD_EMPTY_CHOICE) :
-		   (fd_difference(result->value,value)));
-    if (newval == result->value) {fd_decref(newval);}
+                   (fd_difference(result->value,value)));
+    if ((newval == result->value)&&(!(FD_EMPTY_CHOICEP(newval)))) {
+      fd_decref(newval);}
     else {
       FD_XSLOTMAP_MARK_MODIFIED(sm);
       if (FD_EMPTY_CHOICEP(newval)) {
-	int entries_to_move=(size-(result-sm->keyvals))-1;
-	fd_decref(result->key);
-	memmove(result,result+1,entries_to_move*sizeof(struct FD_KEYVAL));
-	FD_XSLOTMAP_SET_SIZE(sm,size-1);}
+        int entries_to_move=(size-(result-sm->keyvals))-1;
+        fd_decref(result->key);
+        memmove(result,result+1,entries_to_move*sizeof(struct FD_KEYVAL));
+        FD_XSLOTMAP_SET_SIZE(sm,size-1);}
       else {
 	fd_decref(result->value); result->value=newval;}}}
   if (unlock) fd_rw_unlock(&sm->rwlock);
