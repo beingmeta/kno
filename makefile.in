@@ -1226,6 +1226,8 @@ install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@fdserv_log_dir@
 	@cd etc; $(SYSINSTALL) @install_file_opts@ fdserv.conf \
 			$(DESTDIR)@apache_modinfo@;
+	@cd etc; $(SYSINSTALL) @install_file_opts@ fdserv.load \
+			$(DESTDIR)@apache_modinfo@;
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/fdserv;
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
