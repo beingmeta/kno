@@ -1,2 +1,2 @@
 #!/bin/bash
-GPPROF_PATH=/usr/bin/google-pprof HEAPCHECK=normal exec $*
+PPROF_PATH=/usr/bin/google-pprof HEAPCHECK=normal exec $*
