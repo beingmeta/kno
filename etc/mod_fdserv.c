@@ -1052,8 +1052,9 @@ static const char *log_file(cmd_parms *parms,void *mconfig,const char *arg)
 
 static const command_rec fdserv_cmds[] =
 {
-  AP_INIT_TAKE1("FDServletDTBlock", using_dtblock, NULL, OR_ALL,
-		"whether to use the DTBlock DType representation to send requests"),
+  AP_INIT_TAKE1
+  ("FDServletDTBlock", using_dtblock, NULL, OR_ALL,
+   "whether to use the DTBlock DType representation to send requests"),
   AP_INIT_TAKE1("FDServletKeep", servlet_keep, NULL, OR_ALL,
 		"how many connections to the servlet to keep open"),
 
@@ -1208,7 +1209,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
       char errbuf[512];
       ap_log_error
 	(APLOG_MARK,APLOG_CRIT,lock_status,server,
-	 "Failed to open lock file %s with status %d (%s) for %s uid=%d gid=%d",
+	 "Failed to lock file %s with status %d (%s) for %s uid=%d gid=%d",
 	 lockname,lock_status,apr_strerror(lock_status,errbuf,512),
 	 r->unparsed_uri,uid,gid);}
     else {
@@ -1218,7 +1219,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 	char errbuf[512];
 	ap_log_error
 	  (APLOG_MARK,APLOG_CRIT,lock_status,server,
-	   "Failed get spawn lock %s with status %d (%s) for %s uid=%d gid=%d",
+	   "Failed spawn lock %s with status %d (%s) for %s uid=%d gid=%d",
 	   lockname,lock_status,apr_strerror(lock_status,errbuf,512),
 	   r->unparsed_uri,uid,gid);
 	s->spawning=apr_time_now();}
@@ -1317,7 +1318,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 		   n_configs,log_file);}
     else {
       char *env_entry=apr_psprintf(p,"LOGFILE=%s",log_file);
-      envp=write_argv; 
+      envp=write_argv;
       *write_argv++=(char *)env_entry;
       n_configs++;}}
   if (log_sync) {
@@ -1361,7 +1362,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 	ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
 		     "Passing path ENV %s to %s for %s",
 		     *scan_env,exename,sockname);
-	if (!(envp)) envp=write_argv;	   
+	if (!(envp)) envp=write_argv;
 	*write_argv++=(char *)(*scan_env);}
       scan_env++;
       n_configs++;}}
@@ -1417,10 +1418,11 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
        so another process is creating the socket.  So we still wait. */
     retval=-1;}
   else if (log_file)
-    ap_log_error(APLOG_MARK,APLOG_NOTICE,rv,server,
-		 "Spawned %s @%s (logfile=%s) for %s [rv=%d,pid=%d,uid=%d,uid=%d]",
-		 exename,sockname,log_file,r->unparsed_uri,rv,
-		 proc.pid,uid,gid);
+    ap_log_error
+      (APLOG_MARK,APLOG_NOTICE,rv,server,
+       "Spawned %s @%s (logfile=%s) for %s [rv=%d,pid=%d,uid=%d,uid=%d]",
+       exename,sockname,log_file,r->unparsed_uri,rv,
+       proc.pid,uid,gid);
   else ap_log_error(APLOG_MARK,APLOG_NOTICE,rv,server,
 		    "Spawned %s @%s (nolog) for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
 		    exename,sockname,r->unparsed_uri,rv,proc.pid,uid,gid);
@@ -1551,7 +1553,8 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,
     int new_max=max_servlets+FDSERV_INIT_SERVLETS;
     struct FDSERVLET *newvec=(struct FDSERVLET *)
       prealloc(fdserv_pool,(char *)servlets,
-	       sizeof(struct FDSERVLET)*new_max,sizeof(struct FDSERVLET)*old_max);
+	       sizeof(struct FDSERVLET)*new_max,
+	       sizeof(struct FDSERVLET)*old_max);
     if (newvec) {
       servlets=newvec; max_servlets=new_max;}
     else {
@@ -1604,7 +1607,8 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,
 	apr_thread_mutex_unlock(servlets_lock);
 	return NULL;}
       retval=apr_sockaddr_info_get
-	(&(servlet->endpoint.addr),hostname,APR_UNSPEC,(short)portno,0,fdserv_pool);
+	(&(servlet->endpoint.addr),hostname,
+	 APR_UNSPEC,(short)portno,0,fdserv_pool);
       if (retval!=APR_SUCCESS) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_WARNING,OK,r,
@@ -1618,7 +1622,8 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,
 	  (APLOG_MARK,APLOG_INFO,OK,r,
 	   "Got info for port %d at %s, addr=%s, port=%d",
 	   portno,hostname,rname,addr->port);}}
-    apr_thread_mutex_create(&(servlet->lock),APR_THREAD_MUTEX_DEFAULT,fdserv_pool);
+    apr_thread_mutex_create(&(servlet->lock),
+			    APR_THREAD_MUTEX_DEFAULT,fdserv_pool);
     servlet->max_socks=max_socks;
     if (keep_socks>=0) {
       servlet_set_keep_socks(servlet,keep_socks);}
@@ -1633,12 +1638,11 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,
 
 /* Getting (and opening) sockets */
 
-static char *fdsocketinfo(fdsocket s,char *buf,apr_pool_t *p)
+static char *fdsocketinfo(fdsocket s,char *buf)
 {
   char sockid[256];
-  if (!(s)) 
-    return apr_pstrdup(p,"badsocketarg");
-  if (!(buf)) buf=apr_pcalloc(p,256);
+  if (!(s)) return "nullsocketarg";
+  else if (!(buf)) return "fdsocketinfo:nullbufarg";
   if (s->socket_index>=0)
     sprintf(sockid,"%s(#%d/%d)",
 	    s->sockname,s->socket_index,s->servlet->n_socks);
@@ -1655,7 +1659,8 @@ static char *fdsocketinfo(fdsocket s,char *buf,apr_pool_t *p)
 
 static int get_servlet_wait(request_rec *r);
 
-/* Opens a servlet socket, either a cached one (if given != NULL) or a new one (malloc) */
+/* Opens a servlet socket, either a cached one (if given != NULL) or a
+   new one (malloc) */
 static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 {
   struct FDSOCKET *result; apr_pool_t *pool; int one=1, dospawn=-1, wait=-1;
@@ -1715,7 +1720,8 @@ static fdsocket servlet_open(fdservlet s,struct FDSOCKET *given,request_rec *r)
 			SUN_LEN(&(s->endpoint.path)));}}
     if (connval<0) {
       ap_log_rerror
-	(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r,"Couldn't connect to %s (errno=%d:%s)",
+	(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r,
+	 "Couldn't connect to %s (errno=%d:%s)",
 	 sockname,errno,strerror(errno));
       errno=0;
       close(unix_sock);
@@ -1808,7 +1814,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	  apr_thread_mutex_unlock(s->lock);
 #if DEBUG_SOCKETS
 	  ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,"Using cached %s",
-			fdsocketinfo(&(sockets[i]),infobuf,r->pool));
+			fdsocketinfo(&(sockets[i]),infobuf));
 #endif
 	  return &(sockets[i]);}}}
     /* Go to the end of the queue of busy sockets */
@@ -1816,7 +1822,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
     if (closed>=0) {
       struct FDSOCKET *sockets=s->sockets; fdsocket sock;
       ap_log_rerror(APLOG_MARK,LOGSOCKET,OK,r,"Reopening %s",
-		    fdsocketinfo(&(sockets[closed]),infobuf,r->pool));
+		    fdsocketinfo(&(sockets[closed]),infobuf));
       sock=servlet_open(s,&(sockets[closed]),r); s->n_busy++;
       apr_thread_mutex_unlock(s->lock);
       return sock;}
@@ -1836,7 +1842,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	  (APLOG_MARK,LOGNOTICE,OK,r,
 	   "Using ephemeral (#%d) %s because all %d cached sockets are busy",
 	   s->n_ephemeral,
-	   fdsocketinfo(sock,infobuf,r->pool),
+	   fdsocketinfo(sock,infobuf),
 	   s->keep_socks);
 #endif
 	apr_thread_mutex_unlock(s->lock);
@@ -1850,17 +1856,17 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	apr_thread_mutex_unlock(s->lock);
 #if DEBUG_SOCKETS
 	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
-		      "New %s",fdsocketinfo(sock,infobuf,r->pool));
+		      "New %s",fdsocketinfo(sock,infobuf));
 #else
 	ap_log_rerror(APLOG_MARK,LOGINFO,OK,r,
-		      "New %s",fdsocketinfo(sock,infobuf,r->pool));
+		      "New %s",fdsocketinfo(sock,infobuf));
 #endif
 	return sock;}
       else {
 	/* Failed for some reason, open an excess socket */
 	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
 		      "Error opening %s, trying ephemeral",
-		      fdsocketinfo(sock,infobuf,r->pool));
+		      fdsocketinfo(sock,infobuf));
 	s->n_ephemeral++; s->n_busy++;
 	apr_thread_mutex_unlock(s->lock);
 	sock=servlet_open(s,NULL,r);
@@ -1871,7 +1877,7 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	else ap_log_rerror(APLOG_MARK,LOGSOCKET,OK,r,
 			   "Ephemeral (#%d) %s opened for %s",
 			   s->n_ephemeral,
-			   fdsocketinfo(sock,infobuf,r->pool),
+			   fdsocketinfo(sock,infobuf),
 			   r->uri);
 	return sock;}}}
 }
@@ -1902,7 +1908,7 @@ static int servlet_recycle_socket(fdservlet servlet,fdsocket sock)
 #if DEBUG_SOCKETS
     ap_log_error(APLOG_MARK,LOGDEBUG,OK,servlet->server,
 		 "Closing %s, %d ephemeral, %d busy",
-		 fdsocketinfo(sock,infobuf,servlet->server->pool),
+		 fdsocketinfo(sock,infobuf),
 		 ephemeral,busy);
 #endif
     if (sock->socktype==aprsock) apr_socket_close(sock->conn.apr);
@@ -1938,13 +1944,13 @@ static int servlet_close_socket(fdservlet servlet,fdsocket sock)
   if (sock->servlet!=servlet) {
     ap_log_error
       (APLOG_MARK,APLOG_ERR,OK,servlet->server,
-       "Internal error, recycling closed socket (for %s) to wrong servlet (%s)",
+       "Internal error, closed socket (for %s) recycled to wrong servlet (%s)",
        sock->sockname,servlet->sockname);
     return -1;}
   apr_thread_mutex_lock(servlet->lock);
 #if DEBUG_SOCKETS
   ap_log_error(APLOG_MARK,LOGDEBUG,OK,servlet->server,
-	       "Closing %s",fdsocketinfo(sock,infobuf,servlet->server->pool));
+	       "Closing %s",fdsocketinfo(sock,infobuf));
 #endif
   if ((sock->socket_index>=0)&&
       (sock!=(&(servlet->sockets[sock->socket_index])))) {
@@ -1958,14 +1964,14 @@ static int servlet_close_socket(fdservlet servlet,fdsocket sock)
     if (rv<0)
       ap_log_error(APLOG_MARK,LOGDEBUG,rv,servlet->server,
 		   "Error (%s) closing %s",strerror(errno),
-		   fdsocketinfo(sock,infobuf,servlet->server->pool));
+		   fdsocketinfo(sock,infobuf));
     sock->conn.fd=-1; errno=0;}
   else if (sock->socktype==aprsock) {
     apr_status_t rv=apr_socket_close(sock->conn.apr);
     if (rv!=OK) 
       ap_log_error(APLOG_MARK,LOGDEBUG,rv,servlet->server,
 		   "Error (%s) closing %s",strerror(errno),
-		   fdsocketinfo(sock,infobuf,servlet->server->pool));
+		   fdsocketinfo(sock,infobuf));
     sock->conn.apr=NULL;}
   else {}
   sock->closed=1;
@@ -2280,7 +2286,7 @@ static int sock_write(request_rec *r,
   ap_log_rerror
     (APLOG_MARK,LOGDEBUG,OK,r,
      "Writing %ld bytes to %s for %s (%s)",
-     n_bytes,fdsocketinfo(sockval,infobuf,r->pool),
+     n_bytes,fdsocketinfo(sockval,infobuf),
      r->unparsed_uri,r->filename);
 #endif
 
@@ -2299,7 +2305,7 @@ static int sock_write(request_rec *r,
 	ap_log_rerror
 	  (APLOG_MARK,LOGDEBUG,OK,r,
 	   "Error (%s) from %s after %ld=%ld-%ld bytes for %s (%s)",
-	   errbuf,fdsocketinfo(sockval,infobuf,r->pool),
+	   errbuf,fdsocketinfo(sockval,infobuf),
 	   (long int)bytes_written,
 	   (long int)n_bytes,
 	   (long int)bytes_to_write,
@@ -2311,7 +2317,7 @@ static int sock_write(request_rec *r,
 	  (APLOG_MARK,LOGDEBUG,OK,r,
 	   "Zero blocks after %ld/%ld on %s for %s (%s)",
 	   ((long int)bytes_written),((long int)n_bytes),
-	   fdsocketinfo(sockval,infobuf,r->pool),
+	   fdsocketinfo(sockval,infobuf),
 	   r->unparsed_uri,r->filename);
 	if (bytes_written<n_bytes) return -1;
 	else break;}
@@ -2323,7 +2329,7 @@ static int sock_write(request_rec *r,
 	  (APLOG_MARK,LOGDEBUG,OK,
 	   r->server,"Wrote %ld more bytes (%ld/%ld) to %s for %s (%s)",
 	   block_size,bytes_written,n_bytes,
-	   fdsocketinfo(sockval,infobuf,r->pool),
+	   fdsocketinfo(sockval,infobuf),
 	   r->unparsed_uri,r->filename);
 #endif
 	block_size=bytes_to_write;}}
@@ -2335,7 +2341,7 @@ static int sock_write(request_rec *r,
     ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,r->server,
        "Writing %ld bytes to %s for %s (%s)",
-       bytes_to_write,fdsocketinfo(sockval,infobuf,r->pool),
+       bytes_to_write,fdsocketinfo(sockval,infobuf),
        r->unparsed_uri,r->filename);
 #endif
     while (bytes_written < n_bytes) {
@@ -2351,7 +2357,7 @@ static int sock_write(request_rec *r,
 	      ap_log_rerror
 		(APLOG_MARK,APLOG_WARNING,OK,r,
 		 "Reopened %s, continuing output (%ld/%ld so far) for %s (%s)",
-		 fdsocketinfo(sockval,infobuf,r->pool),
+		 fdsocketinfo(sockval,infobuf),
 		 bytes_written,n_bytes,
 		 r->unparsed_uri,r->filename);
 	    else {
@@ -2360,7 +2366,7 @@ static int sock_write(request_rec *r,
 	      ap_log_rerror
 		(APLOG_MARK,APLOG_WARNING,OK,r,
 		 "Reopened %s, resetting output of %ld bytes for %s (%s)",
-		 fdsocketinfo(sockval,infobuf,r->pool),
+		 fdsocketinfo(sockval,infobuf),
 		 n_bytes,r->unparsed_uri,r->filename);
 	      sock=new_sock;}
 	    continue;}
@@ -2368,7 +2374,7 @@ static int sock_write(request_rec *r,
 	    ap_log_rerror
 	      (APLOG_MARK,APLOG_ERR,OK,r,
 	       "Couldn't reopen %s: (%d:%s) (%d:%s) for %s (%s)",
-	       fdsocketinfo(sockval,infobuf,r->pool),
+	       fdsocketinfo(sockval,infobuf),
 	       olderr,strerror(olderr),errno,strerror(errno),
 	       r->unparsed_uri,r->filename);
 	    bytes_written=0;}
@@ -2378,7 +2384,7 @@ static int sock_write(request_rec *r,
 	    (APLOG_MARK,LOGDEBUG,OK,r,
 	     "Error %d (%s) on %s after %ld/%ld bytes for %s (%s)",
 	     errno,strerror(errno),
-	     fdsocketinfo(sockval,infobuf,r->pool),
+	     fdsocketinfo(sockval,infobuf),
 	     bytes_written,n_bytes,
 	     r->unparsed_uri,r->filename);
 	  if (bytes_written<n_bytes) return -1;
@@ -2387,7 +2393,7 @@ static int sock_write(request_rec *r,
 	ap_log_rerror
 	  (APLOG_MARK,LOGDEBUG,OK,r,
 	   "Zero blocks written to %s after %ld/%ld for %s (%s)",
-	   fdsocketinfo(sockval,infobuf,r->pool),
+	   fdsocketinfo(sockval,infobuf),
 	   (long int)bytes_written,n_bytes,
 	   r->unparsed_uri,r->filename);
 	if (bytes_written<n_bytes) return -(bytes_written+1);
@@ -2396,7 +2402,7 @@ static int sock_write(request_rec *r,
 #if DEBUG_TRANSPORT
 	ap_log_rerror
 	  (APLOG_MARK,LOGDEBUG,OK,r,"Wrote %ld bytes to %s for %s (%s)",
-	   (long int)block_size,fdsocketinfo(sockval,infobuf,r->pool),
+	   (long int)block_size,fdsocketinfo(sockval,infobuf),
 	   r->unparsed_uri,r->filename);
 #endif
 	bytes_written=bytes_written+block_size;}}
@@ -2404,13 +2410,13 @@ static int sock_write(request_rec *r,
       ap_log_rerror(APLOG_MARK,(APLOG_CRIT),
 		    OK,r,"Wrote %ld/%ld bytes to %s for %s (%s)",
 		    ((long int)bytes_written),n_bytes,
-		    fdsocketinfo(sockval,infobuf,r->pool),
+		    fdsocketinfo(sockval,infobuf),
 		    r->unparsed_uri,r->filename);
 #if DEBUG_TRANSPORT
     ap_log_rerror(APLOG_MARK,APLOG_DEBUG,
 		  OK,r,"Wrote %ld/%ld bytes to %s for %s (%s)",
 		  ((long int)bytes_written),n_bytes,
-		  fdsocketinfo(sockval,infobuf,r->pool),
+		  fdsocketinfo(sockval,infobuf),
 		  r->unparsed_uri,r->filename);
 #endif
     return bytes_written;}
@@ -2432,13 +2438,13 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
     ap_log_rerror
       (APLOG_MARK,LOGDEBUG,OK,r,
        "Returning some number of content bytes from %s for %s (%s)",
-       fdsocketinfo(sockval,infobuf,r->pool),
+       fdsocketinfo(sockval,infobuf),
        r->unparsed_uri,r->filename);
 #if DEBUG_TRANSPORT
   else ap_log_rerror
 	 (APLOG_MARK,LOGDEBUG,OK,r,
 	  "Returning %ld content bytes from %s for %s (%s)",
-	  content_length,fdsocketinfo(sockval,infobuf,r->pool),
+	  content_length,fdsocketinfo(sockval,infobuf),
 	  r->unparsed_uri,r->filename);
 #endif
   if (sockval->socktype==aprsock) {
@@ -2452,11 +2458,12 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
 	return -1;}
       else rv=apr_socket_recv(sock,buf,&delta);
       if (rv!=OK) {
-	ap_log_rerror(APLOG_MARK,LOGDEBUG,rv,r,
-		      "Stopped after reading %ld/%ld bytes from %s for %s (%s)",
-		      (long int)bytes_read,content_length,
-		      fdsocketinfo(sockval,infobuf,r->pool),
-		      r->unparsed_uri,r->filename);
+	ap_log_rerror
+	  (APLOG_MARK,LOGDEBUG,rv,r,
+	   "Stopped after reading %ld/%ld bytes from %s for %s (%s)",
+	   (long int)bytes_read,content_length,
+	   fdsocketinfo(sockval,infobuf),
+	   r->unparsed_uri,r->filename);
 	error=1;
 	break;}
       else if (delta>0) {
@@ -2471,22 +2478,23 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       if (written<=0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,OK,r,
-	   "Write error after transferring %ld=>%ld/%ld bytes from %s for %s (%s)",
+	   "Write error after %ld=>%ld/%ld bytes from %s for %s (%s)",
 	   (long int)bytes_read,(long int)bytes_written,content_length,
-	   fdsocketinfo(sockval,infobuf,r->pool),
+	   fdsocketinfo(sockval,infobuf),
 	   r->unparsed_uri,r->filename);
 	errno=0; error=1; break;}}
     if (error) return -(bytes_read+1);
     rv=ap_rflush(r);
     if (r->connection->aborted) {
-      ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,"Connection aborted for %s",r->uri);
+      ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+		    "Connection aborted for %s",r->uri);
       return -1;}
     if (rv!=OK) {
       ap_log_rerror
 	(APLOG_MARK,APLOG_ERR,rv,r,
-	 "Flush error after transferring %ld/%ld/%ld content bytes from %s for %s (%s)",
+	 "Flush error after %ld/%ld/%ld content bytes from %s for %s (%s)",
 	 (long int)bytes_read,(long int)bytes_written,content_length,
-	 fdsocketinfo(sockval,infobuf,r->pool),
+	 fdsocketinfo(sockval,infobuf),
 	 r->unparsed_uri,r->filename);
       return -(bytes_read+1);}
 #if DEBUG_TRANSPORT
@@ -2494,7 +2502,7 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       (APLOG_MARK,APLOG_INFO,OK,r,
        "Transferred %ld/%ld content bytes from %s for %s (%s)",
        (long int)bytes_read,content_length,
-       fdsocketinfo(sockval,infobuf,r->pool),
+       fdsocketinfo(sockval,infobuf),
        r->unparsed_uri,r->filename);
 #endif
     return bytes_read;}
@@ -2503,7 +2511,8 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
     while ((content_length<0)||(bytes_read<content_length)) {
       ssize_t delta=read(sock,buf,4096), written=-1;
       if (r->connection->aborted) {
-	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,"Connection aborted for %s",r->uri);
+	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+		      "Connection aborted for %s",r->uri);
 	return -1;}
       if (delta>0) {
 	int chunk=ap_rwrite(buf,delta,r); written=0;
@@ -2520,18 +2529,18 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
       else {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,OK,r,
-	   "Read error (%d:%s) after transferring %ld=>%ld/%ld bytes from %s for %s (%s)",
+	   "Read error (%d:%s) after %ld=>%ld/%ld bytes from %s for %s (%s)",
 	   errno,strerror(errno),
 	   (long int)bytes_read,(long int)bytes_written,content_length,
-	   fdsocketinfo(sockval,infobuf,r->pool),
+	   fdsocketinfo(sockval,infobuf),
 	   r->unparsed_uri,r->filename);
 	errno=0; error=1; break;}
       if (written<0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_ERR,OK,r,
-	   "Write error after transferring %ld=>%ld/%ld bytes from %s for %s (%s)",
+	   "Write error after %ld=>%ld/%ld bytes from %s for %s (%s)",
 	   (long int)bytes_read,(long int)bytes_written,content_length,
-	   fdsocketinfo(sockval,infobuf,r->pool),
+	   fdsocketinfo(sockval,infobuf),
 	   r->unparsed_uri,r->filename);
 	errno=0; error=1; break;}
       else bytes_written=bytes_written+written;}
@@ -2545,17 +2554,19 @@ static int copy_servlet_output(fdsocket sockval,request_rec *r)
 	(APLOG_MARK,APLOG_ERR,rv,r,
 	 "Error after transferring %ld/%ld bytes from %s for %s (%s)",
 	 (long int)bytes_read,content_length,
-	 fdsocketinfo(sockval,infobuf,r->pool),
+	 fdsocketinfo(sockval,infobuf),
 	 r->unparsed_uri,r->filename);
       return -(bytes_read+1);}
     else return bytes_read;}
   else {
     ap_log_error
-      (APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r->server,"Bad fdsocket passed");
+      (APLOG_MARK,APLOG_CRIT,apr_get_os_error(),r->server,
+       "Bad fdsocket passed");
     return -1;}
 }
 
-static int checkabort(request_rec *r,fdservlet servlet,fdsocket sock,int started)
+static int checkabort(request_rec *r,fdservlet servlet,fdsocket sock,
+		      int started)
 {
   char infobuf[512];
   if (r->connection->aborted) {
@@ -2563,10 +2574,11 @@ static int checkabort(request_rec *r,fdservlet servlet,fdsocket sock,int started
       ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
 		    "Connection aborted for %s, %s %s",
 		    r->uri,((started)?("closing in-use"):("recycling")),
-		    fdsocketinfo(sock,infobuf,r->pool));
+		    fdsocketinfo(sock,infobuf));
       if (started) servlet_close_socket(servlet,sock);
       else servlet_recycle_socket(servlet,sock);}
-    else ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,"Connection aborted for %s",r->uri);
+    else ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
+		       "Connection aborted for %s",r->uri);
     return 1;}
   else return 0;
 }
@@ -2638,7 +2650,7 @@ static int fdserv_handler(request_rec *r)
     ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
 		  "Handling %s with %s through %s, %d busy",
 		  r->unparsed_uri,r->filename,
-		  fdsocketinfo(sock,infobuf,r->pool),
+		  fdsocketinfo(sock,infobuf),
 		  servlet->n_busy);}
   reqdata=ap_bcreate(r->pool,0);
   if (!(reqdata)) {
@@ -2704,7 +2716,7 @@ static int fdserv_handler(request_rec *r)
   ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		"Writing %ld bytes of request to %s for %s (%s)",
 		(long int)(reqdata->ptr-reqdata->buf),
-		fdsocketinfo(sock,infobuf,r->pool),
+		fdsocketinfo(sock,infobuf),
 		r->unparsed_uri,r->filename);
 #endif
   
@@ -2722,7 +2734,7 @@ static int fdserv_handler(request_rec *r)
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,OK,r,
 		  "Only wrote %ld bytes of block to %s for %s (%s)",
 		  (long int)bytes_written,
-		  fdsocketinfo(sock,infobuf,r->pool),
+		  fdsocketinfo(sock,infobuf),
 		  r->unparsed_uri,r->filename);
     servlet_close_socket(servlet,sock);
     if (bytes_written==0)
@@ -2734,7 +2746,7 @@ static int fdserv_handler(request_rec *r)
       ap_log_rerror(APLOG_MARK,APLOG_CRIT,OK,r,
 		    "Only wrote %ld bytes of request to %s for %s (%s)",
 		    (long int)bytes_written,
-		    fdsocketinfo(sock,infobuf,r->pool),
+		    fdsocketinfo(sock,infobuf),
 		    r->unparsed_uri,r->filename);
       servlet_close_socket(servlet,sock);
       if (bytes_written==0)
@@ -2743,7 +2755,7 @@ static int fdserv_handler(request_rec *r)
     else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		       "Wrote %ld bytes of request data to %s for %s (%s)",
 		       ((long int)(reqdata->ptr-reqdata->buf)),
-		       fdsocketinfo(sock,infobuf,r->pool),
+		       fdsocketinfo(sock,infobuf),
 		       r->unparsed_uri,
 		       r->filename);}
   if (checkabort(r,servlet,sock,1)) return OK;
@@ -2754,7 +2766,7 @@ static int fdserv_handler(request_rec *r)
   
   ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		"Waiting for response from %s",
-		fdsocketinfo(sock,infobuf,r->pool));
+		fdsocketinfo(sock,infobuf));
   
   rv=ap_scan_script_header_err_core(r,errbuf,scan_fgets,(void *)&scanner);
   
@@ -2763,12 +2775,12 @@ static int fdserv_handler(request_rec *r)
   if (rv==HTTP_INTERNAL_SERVER_ERROR) {
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,rv,r,
 		  "Error (%s) status=%d reading header from %s",
-		  errbuf,r->status,fdsocketinfo(sock,infobuf,r->pool));
+		  errbuf,r->status,fdsocketinfo(sock,infobuf));
     servlet_close_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
   else ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		     "Read header from %s, transferring content",
-		     fdsocketinfo(sock,infobuf,r->pool));
+		     fdsocketinfo(sock,infobuf));
   
   computed=apr_time_now();
 
@@ -2779,7 +2791,7 @@ static int fdserv_handler(request_rec *r)
   if (bytes_transferred<0) {
     ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
 		  "Error returning content to client from %s",
-		  fdsocketinfo(sock,infobuf,r->pool));
+		  fdsocketinfo(sock,infobuf));
     servlet_close_socket(servlet,sock);
     if (bytes_transferred==-1)
       return HTTP_INTERNAL_SERVER_ERROR;}
@@ -2788,7 +2800,7 @@ static int fdserv_handler(request_rec *r)
   
   ap_log_rerror
     (APLOG_MARK,((bytes_transferred<0)?(APLOG_ERR):(APLOG_INFO)),OK,r,
-     "%s returning %d bytes of content for %s (%s) in %ldus=%ld+%ld+%ld+%ld, %d busy",
+     "%s returning %d bytes for %s (%s) in %ldus=%ld+%ld+%ld+%ld, %d busy",
      ((bytes_transferred<0)?("Error"):("Done")),
      ((bytes_transferred<0)?(-bytes_transferred):(bytes_transferred)),
      r->unparsed_uri,r->filename,
@@ -2810,7 +2822,9 @@ static int fdserv_handler(request_rec *r)
   return OK;
 }
 
-static int fdserv_post_config(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp,
+static int fdserv_post_config(apr_pool_t *p,
+			      apr_pool_t *plog,
+			      apr_pool_t *ptemp,
 			      server_rec *s)
 {
   struct FDSERV_SERVER_CONFIG *sconfig=
