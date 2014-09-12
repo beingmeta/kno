@@ -1077,7 +1077,7 @@ static fdtype loadavgs_prim()
 
 static fdtype data_symbol, stack_symbol, shared_symbol, resident_symbol;
 static fdtype utime_symbol, stime_symbol, cpusage_symbol, clock_symbol;
-static fdtype load_symbol, loadavg_symbol;
+static fdtype load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
 
 static fdtype rusage_prim(fdtype field)
 {
@@ -1087,10 +1087,13 @@ static fdtype rusage_prim(fdtype field)
     return FD_ERROR_VALUE;
   else if (FD_VOIDP(field)) {
     fdtype result=fd_empty_slotmap();
+    pid_t pid=getpid(), ppid=getppid();
     fd_add(result,data_symbol,FD_INT2DTYPE(r.ru_idrss));
     fd_add(result,stack_symbol,FD_INT2DTYPE(r.ru_isrss));
     fd_add(result,shared_symbol,FD_INT2DTYPE(r.ru_ixrss));
     fd_add(result,resident_symbol,FD_INT2DTYPE(r.ru_maxrss));
+    fd_add(result,pid_symbol,FD_INT2DTYPE(pid));
+    fd_add(result,ppid_symbol,FD_INT2DTYPE(ppid));
     {
       double loadavg[3]; int nsamples=getloadavg(loadavg,3); 
       if (nsamples>0) {
@@ -1099,9 +1102,11 @@ static fdtype rusage_prim(fdtype field)
 	if (nsamples==1) 
 	  lvec=fd_make_nvector(1,fd_make_double(loadavg[0]));
 	else if (nsamples==2)
-	  lvec=fd_make_nvector(2,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]));    
+	  lvec=fd_make_nvector(2,fd_make_double(loadavg[0]),
+                               fd_make_double(loadavg[1]));    
 	else lvec=fd_make_nvector
-	       (3,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]),
+	       (3,fd_make_double(loadavg[0]),
+                fd_make_double(loadavg[1]),
 		fd_make_double(loadavg[2]));
 	if (!(FD_VOIDP(lvec))) fd_store(result,loadavg_symbol,lvec);
 	fd_decref(lval); fd_decref(lvec);}}
@@ -1151,8 +1156,23 @@ static fdtype rusage_prim(fdtype field)
       else return fd_make_nvector
 	     (3,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]),
 	      fd_make_double(loadavg[2]));}
+    else if (FD_EQ(field,pid_symbol))
+      return FD_INT2DTYPE((unsigned long)(getpid()));
+    else if (FD_EQ(field,ppid_symbol))
+      return FD_INT2DTYPE((unsigned long)(getppid()));
     else return FD_EMPTY_CHOICE;}
   else return FD_EMPTY_CHOICE;
+}
+
+static fdtype getpid_prim()
+{
+  pid_t pid=getpid();
+  return FD_INT2DTYPE(((unsigned long)pid));
+}
+static fdtype getppid_prim()
+{
+  pid_t pid=getppid();
+  return FD_INT2DTYPE(((unsigned long)pid));
 }
 
 static fdtype memusage_prim()
@@ -1610,6 +1630,8 @@ FD_EXPORT void fd_init_timeprims_c()
   stime_symbol=fd_intern("STIME");
   clock_symbol=fd_intern("CLOCK");
   cpusage_symbol=fd_intern("CPUSAGE");
+  pid_symbol=fd_intern("PID");
+  ppid_symbol=fd_intern("PPID");
 
   load_symbol=fd_intern("LOAD");
   loadavg_symbol=fd_intern("LOADAVG");
@@ -1668,6 +1690,9 @@ FD_EXPORT void fd_init_timeprims_c()
   
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETLOAD",loadavg_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("LOADAVG",loadavgs_prim,0));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim0("GETPID",getpid_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("GETPPID",getppid_prim,0));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));

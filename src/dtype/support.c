@@ -1368,6 +1368,18 @@ static int config_setappid(fdtype var,fdtype val,void *data)
   else return -1;
 }
 
+static fdtype config_getpid(fdtype var,void *data)
+{
+  pid_t pid=getpid();
+  return FD_INT2DTYPE(((unsigned long)pid));
+}
+
+static fdtype config_getppid(fdtype var,void *data)
+{
+  pid_t pid=getppid();
+  return FD_INT2DTYPE(((unsigned long)pid));
+}
+
 static fdtype config_getsessionid(fdtype var,void *data)
 {
   return fdtype_string(u8_sessionid());
@@ -1996,6 +2008,12 @@ void fd_init_support_c()
   fd_register_config
     ("SESSIONID",_("unique session identifier"),
      config_getsessionid,config_setsessionid,NULL);
+  fd_register_config
+    ("PID",_("system process ID (read-only)"),
+     config_getpid,NULL,NULL);
+  fd_register_config
+    ("PPID",_("parent's process ID (read-only)"),
+     config_getppid,NULL,NULL);
   fd_register_config
     ("UTF8WARN",_("warn on bad UTF-8 sequences"),
      config_getutf8warn,config_setutf8warn,NULL);
