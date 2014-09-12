@@ -505,10 +505,14 @@ static fdtype match_sequence
       fdtype npos=
 	fd_text_domatch(epat,npat,env,string,fd_getint(pos),lim,flags);
       if (FD_ABORTP(npos)) {
-	fd_decref(next); return npos;}
+	fd_decref(next);
+        FD_STOP_DO_CHOICES;
+        return npos;}
       FD_ADD_TO_CHOICE(next,npos);}
-    if (FD_EMPTY_CHOICEP(next)) {fd_decref(state); return FD_EMPTY_CHOICE;}
-    else {fd_decref(state); state=next; i++;}}
+    fd_decref(state);
+    if (FD_EMPTY_CHOICEP(next)) 
+      return FD_EMPTY_CHOICE;
+    else {state=next; i++;}}
   return state;
 }
 
@@ -588,7 +592,7 @@ static fdtype textract
     fdtype answers=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(epat,pat) {
       fdtype extractions=textract(epat,next,env,string,off,lim,flags);
-      FD_DO_CHOICES(extraction,extractions)
+      FD_DO_CHOICES(extraction,extractions) {
 	if (FD_ABORTP(extraction)) {
 	  fd_decref(answers); answers=fd_incref(extraction);
 	  FD_STOP_DO_CHOICES;
@@ -600,7 +604,7 @@ static fdtype textract
 	  fd_decref(answers);
 	  answers=fd_err(fd_InternalMatchError,"textract",NULL,extraction);
 	  FD_STOP_DO_CHOICES;
-	  break;}
+	  break;}}
       if (FD_ABORTP(answers)) {
 	fd_decref(extractions);
 	return answers;}
@@ -1125,12 +1129,14 @@ static fdtype label_extract
         else if (FD_SYMBOLP(parser)) {
 	  fdtype parser_val=match_eval(parser,env);
           if ((FD_ABORTP(parser_val))||(FD_VOIDP(parser_val))) {
+            FD_STOP_DO_CHOICES;
             fd_decref(answers); fd_decref(extractions);
             return parser_val;}
 	  xtract=fd_make_list(4,FD_CAR(pat),sym,data,parser_val);}
 	else if ((env) && (FD_PAIRP(parser))) {
 	  fdtype parser_val=fd_eval(parser,env);
           if ((FD_ABORTP(parser_val))||(FD_VOIDP(parser_val))) {
+            FD_STOP_DO_CHOICES;
             fd_decref(answers); fd_decref(extractions);
             return parser_val;}
 	  xtract=fd_make_list(4,FD_CAR(pat),sym,data,parser_val);}
@@ -1268,7 +1274,8 @@ static fdtype match_pref
 	      FD_STOP_DO_CHOICES;
 	      break;}
 	  if (FD_ABORTP(answer)) {
-	    FD_STOP_DO_CHOICES; return answer;}
+	    FD_STOP_DO_CHOICES;
+            return answer;}
 	  else fd_decref(answer);}
 	else {
 	  fd_decref(answer);
@@ -1294,7 +1301,7 @@ static fdtype extract_pref
     fdtype extractions=textract(epat,next,env,string,off,lim,flags);
     if (FD_ABORTP(extractions)) return extractions;
     else {
-      FD_DO_CHOICES(extraction,extractions)
+      FD_DO_CHOICES(extraction,extractions) {
 	if (FD_ABORTP(extraction)) {
 	  fd_decref(answers); answers=fd_incref(extraction);
 	  break;}
@@ -1304,7 +1311,7 @@ static fdtype extract_pref
 	else {
 	  fd_decref(answers);
 	  answers=fd_err(fd_InternalMatchError,"textract",NULL,extraction);
-	  break;}
+	  break;}}
       if (FD_ABORTP(answers)) {
 	fd_decref(extractions);
 	return answers;}}
@@ -3305,7 +3312,8 @@ static fdtype hashset_match
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(possibility,iresults)
       if (hashset_strget(h,string+off,fd_getint(possibility)-off)) {
-	fd_incref(possibility); FD_ADD_TO_CHOICE(results,possibility);}
+	fd_incref(possibility);
+        FD_ADD_TO_CHOICE(results,possibility);}
     return get_longest_match(results);}
   else {
     fd_hashset h=to_hashset(hs);
@@ -3371,7 +3379,9 @@ static fdtype hashset_not_match
           (NULL,string+off,string+fd_getint(possibility));
 	fdtype xformed=match_apply(xform,"HASHSET-NOT-MATCH",env,1,&origin);
         if (FD_ABORTP(xformed)) {
-          fd_decref(results); return xformed;}
+          FD_STOP_DO_CHOICES;
+          fd_decref(results);
+          return xformed;}
         else if ((!(FD_STRINGP(xformed)))||(!(fd_hashset_get(h,xformed)))) {
 	  fd_incref(possibility); FD_ADD_TO_CHOICE(results,possibility);}
 	fd_decref(xformed); fd_decref(origin);}}

@@ -399,6 +399,7 @@ static void set_elt_name(FD_XML *xml,u8_string name)
     fd_decref(qname); fd_decref(namespace);}
   fd_add(xml->attribs,name_symbol,lispname);
   fd_add(xml->attribs,qname_symbol,qlispname);
+  fd_decref(qlispname);
   fd_decref(lispname);
 }
 
