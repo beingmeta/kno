@@ -114,6 +114,7 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
                 (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
                  (async)?(" (async) "):("")),
                 cpool->u8cp_id,conn,result);}
+  fd_dtsclose(&stream,0);
   u8_return_connection(cpool,conn);
   return result;
 }

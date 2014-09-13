@@ -39,6 +39,7 @@ static int server_supportsp(struct FD_NETWORK_POOL *np,fdtype operation)
   fdtype request=
     fd_init_pair(NULL,boundp,fd_init_pair(NULL,operation,FD_EMPTY_LIST));
   fdtype response=fd_dteval(np->connpool,request);
+  fd_decref(request);
   if (FD_FALSEP(response)) return 0;
   else {fd_decref(response); return 1;}
 }
@@ -74,10 +75,11 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   /* u8_log(LOG_WARN,"GETPOOLDATA","Making request (on #%d) for %q",c,request); */
   if (fd_dtswrite_dtype(stream,request)<0) {
     fd_dtsclose(stream,1);
+    fd_decref(request);
     return FD_ERROR_VALUE;}
+  fd_decref(request);
   result=fd_dtsread_dtype(stream);
   /* u8_log(LOG_WARN,"GETPOOLDATA","Got result (on #%d)",c,request); */
-  fd_decref(request);
   fd_dtsclose(stream,1);
   return result;
 }
@@ -98,8 +100,11 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
 		     fd_dbconn_cap_default,fd_dbconn_init_default);
   if (((np)->connpool)==NULL) {
     u8_free(np); u8_free(cid);
+    fd_decref(pooldata);
     return NULL;}
-  else pooldata=fd_dtcall(np->connpool,2,pool_data_symbol,client_id);
+  else {
+    fd_decref(pooldata);
+    pooldata=fd_dtcall(np->connpool,2,pool_data_symbol,client_id);}
   if (FD_ABORTP(pooldata)) {
     u8_free(np); u8_free(cid); u8_free(xid);
     return NULL;}
@@ -107,9 +112,11 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
   else if ((FD_CHOICEP(pooldata)) || (FD_VECTORP(pooldata))) {
     const fdtype *scan, *limit; int n_pools=0;
     if (FD_CHOICEP(pooldata)) {
-      scan=FD_CHOICE_DATA(pooldata); limit=scan+FD_CHOICE_SIZE(pooldata);}
+      scan=FD_CHOICE_DATA(pooldata);
+      limit=scan+FD_CHOICE_SIZE(pooldata);}
     else {
-      scan=FD_VECTOR_DATA(pooldata); limit=scan+FD_VECTOR_LENGTH(pooldata);}
+      scan=FD_VECTOR_DATA(pooldata);
+      limit=scan+FD_VECTOR_LENGTH(pooldata);}
     while (scan<limit) {
       struct FD_NETWORK_POOL *p; fdtype pd=*scan++;
       if (n_pools==0) p=np;
