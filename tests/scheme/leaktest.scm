@@ -1,0 +1,15 @@
+(define dpool (make-mempool "dpool" @18/0 (* 1024 1024)))
+(config! 'dompool dpool)
+(load "/srv/sbooks/ops/daemons/upcoder.fdz")
+;;(config! 'maxcore 1000000000)
+(define t (tasks/find 'upcode @d0c5/6ad))
+(use-module '{sbooks/dom/parse sbooks/import/epub sbooks/import/read domutils})
+;;(sbooks/dotask t)
+;;(define x (sbooks/readepub (zip/gopen (get t 'input))))
+(void (sbooks/readepub (zip/open (get-component "small.epub"))))
+;;(void (dom/oidify (sbooks/parse-file (get-component "source.html")) dpool #f))
+;;(void (sbooks/read-file (get-component "source.html")))
+(reset-mempool dpool)
+;;(define content (sbooks/readepub (->gpath (get t 'input))))
+
+
