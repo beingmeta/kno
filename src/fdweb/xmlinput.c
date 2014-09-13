@@ -50,10 +50,10 @@ static u8_string deentify(u8_string arg,u8_string lim)
     if (c=='&') {
       u8_byte *end=NULL; int code=u8_parse_entity(scan,&end);
       if (code<=0) {
-	u8_putc(&out,c); c=u8_sgetc(&scan);}
+        u8_putc(&out,c); c=u8_sgetc(&scan);}
       else {
-	u8_putc(&out,code); scan=end;
-	c=u8_sgetc(&scan);}}
+        u8_putc(&out,code); scan=end;
+        c=u8_sgetc(&scan);}}
     else {u8_putc(&out,c); c=u8_sgetc(&scan);}
   return out.u8_outbuf;
 }
@@ -71,10 +71,10 @@ FD_EXPORT fdtype fd_convert_entities(u8_string arg,u8_string lim)
     if (c=='&') {
       u8_byte *end=NULL; int code=u8_parse_entity(scan,&end);
       if (code<=0) {
-	u8_putc(&out,c); c=u8_sgetc(&scan);}
+        u8_putc(&out,c); c=u8_sgetc(&scan);}
       else {
-	u8_putc(&out,code); scan=end;
-	c=u8_sgetc(&scan);}}
+        u8_putc(&out,code); scan=end;
+        c=u8_sgetc(&scan);}}
     else {u8_putc(&out,c); c=u8_sgetc(&scan);}
   return fd_stream2string(&out);
 }
@@ -111,7 +111,7 @@ static int check_pair(u8_string outer,u8_string inner,struct CLOSERULES *rules)
 {
   while (rules->inner)
     if ((strcasecmp(inner,rules->inner)==0)&&
-	(strcasecmp(outer,rules->outer)==0))
+        (strcasecmp(outer,rules->outer)==0))
       return 1;
     else rules++;
   return 0;
@@ -126,10 +126,10 @@ static int egetc(u8_string *s)
     if (**s=='&')
       if (strncmp(*s,"&nbsp;",6)==0) {*s=*s+6; return ' ';}
       else {
-	u8_byte *end=NULL; int code=u8_parse_entity((*s)+1,&end);
-	if (code>0) {
-	  *s=end; return code;}
-	else {(*s)++; return '&';}}
+        u8_byte *end=NULL; int code=u8_parse_entity((*s)+1,&end);
+        if (code>0) {
+          *s=end; return code;}
+        else {(*s)++; return '&';}}
     else {
       int c=**s; (*s)++; return c;}
   else return u8_sgetc(s);
@@ -182,9 +182,9 @@ static u8_string readbuf
 
 FD_EXPORT
 void *fd_walk_markup(U8_INPUT *in,
-		     void *(*contentfn)(void *,u8_string),
-		     void *(*markupfn)(void *,u8_string),
-		     void *data)
+                     void *(*contentfn)(void *,u8_string),
+                     void *(*markupfn)(void *,u8_string),
+                     void *data)
 {
   u8_byte *buf=u8_malloc(1024); int bufsiz=1024, size=bufsiz;
   while (1) {
@@ -292,7 +292,7 @@ static u8_string ns_get(FD_XML *xml,u8_string s,u8_string *nsp)
   if (colon==NULL) {
     FD_XML *scan=xml; while (scan)
       if (scan->namespace) {
-	*nsp=scan->namespace; return s;}
+        *nsp=scan->namespace; return s;}
       else scan=scan->parent;
     *nsp=NULL;
     return s;}
@@ -300,14 +300,14 @@ static u8_string ns_get(FD_XML *xml,u8_string s,u8_string *nsp)
     int prefix_len=(colon-s)+1;
     FD_XML *scan=xml; while (scan)
       if (scan->nsmap) {
-	int i=0, len=scan->size;
-	u8_string *nsmap=scan->nsmap;
-	while (i<len)
-	  if (strncmp(s,nsmap[i],prefix_len)==0) {
-	    *nsp=nsmap[i]+prefix_len;
-	    return colon+1;}
-	  else i++;
-	scan=scan->parent;}
+        int i=0, len=scan->size;
+        u8_string *nsmap=scan->nsmap;
+        while (i<len)
+          if (strncmp(s,nsmap[i],prefix_len)==0) {
+            *nsp=nsmap[i]+prefix_len;
+            return colon+1;}
+          else i++;
+        scan=scan->parent;}
       else scan=scan->parent;
     *nsp=NULL;
     return s;}
@@ -332,8 +332,8 @@ static int process_nsattrib(FD_XML *xml,u8_string name,u8_string val)
       return 1;}
     else if ((nsprefix=(strchr(name,':')))) {
       fdtype entry=
-	fd_init_pair(NULL,fdtype_string(nsprefix+1),
-		     fdtype_string(val));
+        fd_init_pair(NULL,fdtype_string(nsprefix+1),
+                     fdtype_string(val));
       ns_add(xml,nsprefix+1,val);
       fd_add(xml->attribs,xmlns_symbol,entry);
       fd_decref(entry);
@@ -363,15 +363,15 @@ static void add_content(struct FD_XML *node,fdtype item)
   if ((FD_STRINGP(item)) &&
       (((FD_STRING_LENGTH(item))==0) ||
        ((node->bits&FD_XML_CRUSHSPACE)&&
-	(allspacep(FD_STRDATA(item)))))) {
+        (allspacep(FD_STRDATA(item)))))) {
     fd_decref(item);
     return;}
   else {
     fdtype entry;
     if (FD_STRINGP(item)) {
       int parse_entities=
-	(((node->bits)&(FD_XML_DECODE_ENTITIES)) &&
-	 (strchr(FD_STRDATA(item),'&')!=NULL));
+        (((node->bits)&(FD_XML_DECODE_ENTITIES)) &&
+         (strchr(FD_STRDATA(item),'&')!=NULL));
       entry=item2list(item,parse_entities);}
     else entry=fd_make_list(1,item);
     if (node->tail==NULL) {
@@ -407,7 +407,7 @@ static void set_elt_name(FD_XML *xml,u8_string name)
 
 FD_EXPORT
 int fd_parse_element(u8_byte **scanner,u8_byte *end,
-		     u8_byte **elts,int max_elts,int sloppy)
+                     u8_byte **elts,int max_elts,int sloppy)
 {
   int n_elts=0;
   u8_byte *scan=*scanner, *elt_start=scan;
@@ -423,65 +423,65 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
        * breaks */
       while ((scan<end) && (isspace(*scan))) scan++;
       if (*scan=='=') {
-	scan++;
-	while ((scan<end) && (isspace(*scan))) scan++;
-	continue;}
+        scan++;
+        while ((scan<end) && (isspace(*scan))) scan++;
+        continue;}
       else {
-	*item_end='\0'; elts[n_elts++]=elt_start;
-	if (n_elts>=max_elts) {
-	  *scanner=scan; return n_elts;}
-	elt_start=scan;}}
+        *item_end='\0'; elts[n_elts++]=elt_start;
+        if (n_elts>=max_elts) {
+          *scanner=scan; return n_elts;}
+        elt_start=scan;}}
     else if (*scan=='\'') {
       /* Scan a single quoted value, waiting for an unprotected
-	 single quote */
+         single quote */
       u8_byte *aend=strchr(scan+1,'\'');
       /* Scan, ignoring escaped single quotes */
       while ((aend)&&(aend<end))
-	if (aend[-1]=='\\') aend=strchr(aend+1,'\'');
-	else break;
+        if (aend[-1]=='\\') aend=strchr(aend+1,'\'');
+        else break;
       if ((aend)&&(aend<end)) scan=aend+1; /* got one */
       else if (sloppy) {
-	/* Not closed, but sloppy is okay, so we just go up to the
-	   first space after the opening quote.  We could be more
-	   clever (looking for xxx=, for exampe) but let's not.  */
-	u8_byte *lookahead=scan;
-	int c=u8_sgetc(&lookahead);
-	while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
-	  scan=lookahead; c=u8_sgetc(&lookahead);}}
+        /* Not closed, but sloppy is okay, so we just go up to the
+           first space after the opening quote.  We could be more
+           clever (looking for xxx=, for exampe) but let's not.  */
+        u8_byte *lookahead=scan;
+        int c=u8_sgetc(&lookahead);
+        while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
+          scan=lookahead; c=u8_sgetc(&lookahead);}}
       else {
-	fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
-		   xmlsnip(*scanner));
-	return -1;}}
+        fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
+                   xmlsnip(*scanner));
+        return -1;}}
     else if (*scan=='"') {
       /* This is the exact same logic as above, but scanning for
-	 a double quote rather than a single quote. */
+         a double quote rather than a single quote. */
       u8_byte *aend=strchr(scan+1,'"');
       /* Scan, ignoring escaped single quotes */
       while ((aend)&&(aend<end))
-	if (aend[-1]=='\\') end=strchr(aend+1,'"');
-	else break;
+        if (aend[-1]=='\\') end=strchr(aend+1,'"');
+        else break;
       if ((aend)&&(aend<end)) scan=aend+1; /* got one */
       else if (sloppy) {
-	/* Not closed, but sloppy is okay, so we just go up to the
-	   first space after the opening quote.  We could be more
-	   clever (looking for xxx=, for exampe) but let's not.  */
-	u8_byte *lookahead=scan;
-	int c=u8_sgetc(&lookahead);
-	if (lookahead==end) scan=lookahead;
-	else while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
-	    scan=lookahead; c=u8_sgetc(&lookahead);}}
+        /* Not closed, but sloppy is okay, so we just go up to the
+           first space after the opening quote.  We could be more
+           clever (looking for xxx=, for exampe) but let's not.  */
+        u8_byte *lookahead=scan;
+        int c=u8_sgetc(&lookahead);
+        if (lookahead==end) scan=lookahead;
+        else while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
+            scan=lookahead; c=u8_sgetc(&lookahead);}}
       else {
-	fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
-		   xmlsnip(*scanner));
-	return -1;}}
+        fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
+                   xmlsnip(*scanner));
+        return -1;}}
     else if (*scan=='=') {
       /* Skip whitespace after an = sign */
       u8_byte *start=++scan; u8_byte *next=start;
       int c=u8_sgetc(&next);
       while ((c>0)&&(u8_isspace(c))&&(scan<end)) {
-	scan=next; c=u8_sgetc(&next);}
+        scan=next; c=u8_sgetc(&next);}
       /* If you ran over (no value for =), just take the
-	 string up to the = */
+         string up to the = */
       if (scan>=end) scan=start;}
     else if (*scan=='\0') scan++;
     else u8_sgetc(&scan);
@@ -516,10 +516,10 @@ fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int html)
     else elt_type=xmldoctype;
   else if (buf[len-1]=='/') elt_type=xmlempty;
   else if ((html) &&
-	   ((tagmatchp(buf,"img")) || (tagmatchp(buf,"base")) ||
-	    (tagmatchp(buf,"br")) || (tagmatchp(buf,"hr")) ||
-	    (tagmatchp(buf,"meta")) || (tagmatchp(buf,"link")) ||
-	    (tagmatchp(buf,"input")) || (tagmatchp(buf,"textarea")))) {
+           ((tagmatchp(buf,"img")) || (tagmatchp(buf,"base")) ||
+            (tagmatchp(buf,"br")) || (tagmatchp(buf,"hr")) ||
+            (tagmatchp(buf,"meta")) || (tagmatchp(buf,"link")) ||
+            (tagmatchp(buf,"input")) || (tagmatchp(buf,"textarea")))) {
     elt_type=xmlempty; }
   else if (!(isalpha(*start))) return -1;
   else elt_type=xmlopen;
@@ -531,7 +531,7 @@ fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int html)
 /* Attribute processing */
 
 static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
-			    FD_XML *xml,u8_string *items,int n)
+                            FD_XML *xml,u8_string *items,int n)
 {
   int i=0; while (i< n) {
     u8_string item=items[i++]; int quote=-1;
@@ -544,14 +544,14 @@ static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
       c=u8_sgetc(&scan);
       /* Skip whitespace */
       while ((c>=0)&&((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c)))) {
-	valstart=scan; c=u8_sgetc(&scan);}
+        valstart=scan; c=u8_sgetc(&scan);}
       /* We don't have to worry about where the item ends
-	 (that was handled by parse_element) but we do need to
-	 strip off any quotes. */
+         (that was handled by parse_element) but we do need to
+         strip off any quotes. */
       if (*valstart=='"') {
-	valstart++; quote='"'; if (*valend=='"') *valend='\0';}
+        valstart++; quote='"'; if (*valend=='"') *valend='\0';}
       else if (*valstart=='\'') {
-	valstart++; quote='\''; if (*valend=='\'') *valend='\0';}
+        valstart++; quote='\''; if (*valend=='\'') *valend='\0';}
       else {}
       /* if (strchr(valstart,'&')) val=deentify(valstart,NULL); else */
       val=valstart;
@@ -631,8 +631,8 @@ FD_XML *fd_default_popfn(FD_XML *node)
       add_content(node->parent,fd_incref(node->attribs));
     node->parent->bits=node->parent->bits|FD_XML_HASDATA;
     if ((FD_PAIRP(node->head)) &&
-	(!((node->bits)&FD_XML_HASDATA)) &&
-	(!(FD_PAIRP(FD_CDR(node->head)))))
+        (!((node->bits)&FD_XML_HASDATA)) &&
+        (!(FD_PAIRP(FD_CDR(node->head)))))
       fd_add(node->parent->attribs,slotid,FD_CAR(node->head));
     else fd_add(node->parent->attribs,slotid,node->attribs);}
   return node->parent;
@@ -681,7 +681,7 @@ static fdtype parse_attribname(u8_string string)
   if ((FD_SYMBOLP(parsed))||(FD_OIDP(parsed))) return parsed;
   else {
     u8_log(LOG_WARNING,"BadAttribName",
-	   "Trouble parsing attribute name %s",string);
+           "Trouble parsing attribute name %s",string);
     return fdtype_string(string);}
 }
 
@@ -693,11 +693,11 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
   u8_string namespace, attrib_name=ns_get(xml,name,&namespace);
   fdtype slotid=parse_attribname(name);
   fdtype slotval=((val)?
-		  (((val[0]=='\0')||(val[0]=='#')) ?
-		   (fdtype_string(val)) :
-		   (quote<0) ? (fd_lispify(val)) :
-		   (fd_convert_entities(val,NULL))) :
-		  (FD_FALSE));
+                  (((val[0]=='\0')||(val[0]=='#')) ?
+                   (fdtype_string(val)) :
+                   (quote<0) ? (fd_lispify(val)) :
+                   (fd_convert_entities(val,NULL))) :
+                  (FD_FALSE));
   fdtype attrib_entry=FD_VOID;
   if (FD_EMPTY_CHOICEP(xml->attribs)) init_node_attribs(xml);
   xml->bits=xml->bits|FD_XML_HASDATA;
@@ -706,31 +706,30 @@ int fd_default_attribfn(FD_XML *xml,u8_string name,u8_string val,int quote)
     fd_add(xml->attribs,parse_attribname(attrib_name),slotval);
     attrib_entry=
       fd_make_nvector(3,fdtype_string(name),make_qid(attrib_name,namespace),
-		      slotval);
-    fd_incref(slotval);}
+                      slotval);}
   else attrib_entry=
-	 fd_make_nvector(3,fdtype_string(name),FD_FALSE,fd_incref(slotval));
+         fd_make_nvector(3,fdtype_string(name),FD_FALSE,slotval);
   fd_add(xml->attribs,attribids,slotid);
   fd_add(xml->attribs,attribs_symbol,attrib_entry);
-  fd_decref(attrib_entry); fd_decref(slotval);
+  fd_decref(attrib_entry);
   return 1;
 }
 
 /* This attribute function always stores strings and never parses the args. */
 
 static FD_XML *autoclose(FD_XML *node,u8_string name,
-			 FD_XML *(*popfn)(FD_XML *))
+                         FD_XML *(*popfn)(FD_XML *))
 {
   FD_XML *scan=node->parent; while (scan)
     if (strcmp(scan->eltname,name)==0) {
       FD_XML *freescan=node, *retval, *next;
       while (freescan) {
-	if (freescan==scan) break;
-	if ((retval=popfn(freescan))!=freescan->parent)
-	  return retval;
-	next=freescan->parent;
-	free_node(freescan,1);
-	freescan=next;}
+        if (freescan==scan) break;
+        if ((retval=popfn(freescan))!=freescan->parent)
+          return retval;
+        next=freescan->parent;
+        free_node(freescan,1);
+        freescan=next;}
       return scan;}
     else scan=scan->parent;
   return scan;
@@ -741,10 +740,10 @@ static FD_XML *autoclose(FD_XML *node,u8_string name,
 static
 /* This is the inner step of the XML parsing loop. */
 FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
-		u8_string *elts,int n_elts,
-		int (*attribfn)(FD_XML *,u8_string,u8_string,int),
-		FD_XML *(*pushfn)(FD_XML *,fd_xmlelt_type,u8_string *,int),
-		FD_XML *(*popfn)(FD_XML *))
+                u8_string *elts,int n_elts,
+                int (*attribfn)(FD_XML *,u8_string,u8_string,int),
+                FD_XML *(*pushfn)(FD_XML *,fd_xmlelt_type,u8_string *,int),
+                FD_XML *(*popfn)(FD_XML *))
 {
   switch (type) {
   case xmlempty:
@@ -752,11 +751,11 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       struct FD_XML *newnode=pushfn(node,type,elts,n_elts);
       if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
       if (newnode != node) {
-	struct FD_XML *retnode;
-	retnode=popfn(newnode);
-	if (retnode!=newnode) 
-	  free_node(newnode,1);
-	return retnode;}
+        struct FD_XML *retnode;
+        retnode=popfn(newnode);
+        if (retnode!=newnode) 
+          free_node(newnode,1);
+        return retnode;}
       else {}
       return node;}
     else {
@@ -770,18 +769,18 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       return retnode;}
   case xmlclose:
     if ((((node->bits)&(FD_XML_FOLDCASE)) ?
-	 (strcasecmp(node->eltname,elts[0])) :
-	 (strcmp(node->eltname,elts[0])))
-	==0) {
+         (strcasecmp(node->eltname,elts[0])) :
+         (strcmp(node->eltname,elts[0])))
+        ==0) {
       struct FD_XML *retnode;
       if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
       if ((FD_EMPTY_LISTP(node->head)) &&
-	  (!(node->bits&FD_XML_NOEMPTY))) 
-	node->head=fd_init_pair(NULL,fd_init_string(NULL,0,NULL),
-				FD_EMPTY_LIST);
+          (!(node->bits&FD_XML_NOEMPTY))) 
+        node->head=fd_init_pair(NULL,fd_init_string(NULL,0,NULL),
+                                FD_EMPTY_LIST);
       retnode=popfn(node);
       if (retnode!=node)
-	free_node(node,1);
+        free_node(node,1);
       return retnode;}
     else if ((node->bits&FD_XML_EMPTY_CLOSE) && (elts[0][0]=='\0')) {
       struct FD_XML *retnode;
@@ -789,25 +788,25 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       fd_add(node->attribs,raw_name_symbol,fdtype_string(node->eltname));
       retnode=popfn(node);
       if (retnode!=node) 
-	free_node(node,1);
+        free_node(node,1);
       return retnode;}
     else {
       if (node->bits&FD_XML_AUTOCLOSE) {
-	FD_XML *closenode=NULL;
-	if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
-	fd_add(node->attribs,raw_name_symbol,fdtype_string(node->eltname));
-	closenode=autoclose(node,elts[0],popfn);
-	if (closenode) {
-	  struct FD_XML *retnode;
-	  retnode=popfn(closenode);	  
-	  if (retnode!=closenode)
-	    free_node(closenode,1);
-	  return retnode;}}
+        FD_XML *closenode=NULL;
+        if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
+        fd_add(node->attribs,raw_name_symbol,fdtype_string(node->eltname));
+        closenode=autoclose(node,elts[0],popfn);
+        if (closenode) {
+          struct FD_XML *retnode;
+          retnode=popfn(closenode);       
+          if (retnode!=closenode)
+            free_node(closenode,1);
+          return retnode;}}
       if ((node->bits)&(FD_XML_BADCLOSE))
-	return node;
+        return node;
       else fd_seterr(fd_XMLParseError,"inconsistent close tag",
-		     u8_mkstring("</%s> closes <%s>",elts[0],node->eltname),
-		     FD_VOID);
+                     u8_mkstring("</%s> closes <%s>",elts[0],node->eltname),
+                     FD_VOID);
       return NULL;}
   case xmlopen:
     if (pushfn) return pushfn(node,type,elts,n_elts);
@@ -815,17 +814,17 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       FD_XML *newnode=u8_alloc(struct FD_XML);
       u8_string name=u8_strdup(elts[0]);
       if ((node->bits&FD_XML_ISHTML) &&
-	  (check_pair(node->eltname,elts[0],html_autoclose))) {
-	FD_XML *popped=popfn(node);
-	if (popped!=node)
-	  free_node(node,1);
-	node=popped;}
+          (check_pair(node->eltname,elts[0],html_autoclose))) {
+        FD_XML *popped=popfn(node);
+        if (popped!=node)
+          free_node(node,1);
+        node=popped;}
       else if (((node->bits)&(FD_XML_INPARA))&&
-	       (block_elementp(elts[0]))) {
-	while ((node) && ((node->bits)&(FD_XML_INPARA))) {
-	  FD_XML *popped=popfn(node);
-	  if (popped!=node) free_node(node,1);
-	  node=popped;}}
+               (block_elementp(elts[0]))) {
+        while ((node) && ((node->bits)&(FD_XML_INPARA))) {
+          FD_XML *popped=popfn(node);
+          if (popped!=node) free_node(node,1);
+          node=popped;}}
       init_node(newnode,node,name);
       process_attribs(attribfn,newnode,elts+1,n_elts-1);
       init_node_attribs(newnode);
@@ -836,12 +835,12 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
 
 FD_EXPORT
 void *fd_walk_xml(U8_INPUT *in,
-		  void (*contentfn)(FD_XML *,u8_string,int),
-		  FD_XML *(*pifn)(U8_INPUT *,FD_XML *,u8_string,int),
-		  int (*attribfn)(FD_XML *,u8_string,u8_string,int),
-		  FD_XML *(*pushfn)(FD_XML *,fd_xmlelt_type,u8_string *,int),
-		  FD_XML *(*popfn)(FD_XML *),
-		  FD_XML *node)
+                  void (*contentfn)(FD_XML *,u8_string,int),
+                  FD_XML *(*pifn)(U8_INPUT *,FD_XML *,u8_string,int),
+                  int (*attribfn)(FD_XML *,u8_string,u8_string,int),
+                  FD_XML *(*pushfn)(FD_XML *,fd_xmlelt_type,u8_string *,int),
+                  FD_XML *(*popfn)(FD_XML *),
+                  FD_XML *node)
 {
   int bufsize=1024, size=bufsize;
   u8_byte *buf=u8_malloc(1024), *rbuf;
@@ -865,49 +864,49 @@ void *fd_walk_xml(U8_INPUT *in,
     if (type == xmlpi) {
       FD_XML *result;
       if (pifn) {
-	if ((result=pifn(in,node,buf,size))==NULL)
-	  return NULL;}
+        if ((result=pifn(in,node,buf,size))==NULL)
+          return NULL;}
       else result=NULL;
       if (result) node=result;
       else if (contentfn) {
-	u8_string reconstituted=
-	  u8_string_append("<",buf,">",NULL);
-	contentfn(node,reconstituted,size+2);
-	u8_free(reconstituted);}}
+        u8_string reconstituted=
+          u8_string_append("<",buf,">",NULL);
+        contentfn(node,reconstituted,size+2);
+        u8_free(reconstituted);}}
     else if (type == xmlcomment) {
       u8_byte *remainder=NULL, *combined;
       int combined_len, more_data=0;
       if (strcmp((buf+size-2),"--")) 
-	/* If the markup end isn't --, we still need to find the
-	   content end (plus more content) */
-	remainder=u8_gets_x(NULL,0,in,"-->",&more_data);
+        /* If the markup end isn't --, we still need to find the
+           content end (plus more content) */
+        remainder=u8_gets_x(NULL,0,in,"-->",&more_data);
       if (more_data)
-	combined_len=size+more_data+4;
+        combined_len=size+more_data+4;
       else combined_len=size+2;
       combined=u8_malloc(combined_len+1);
       strncpy(combined,"<",1);
       strncpy(combined+1,buf,size);
       if (more_data) {
-	strncpy(combined+1+size,remainder,more_data);
-	strncpy(combined+1+size+more_data,"-->",4);}
+        strncpy(combined+1+size,remainder,more_data);
+        strncpy(combined+1+size+more_data,"-->",4);}
       else strncpy(combined+1+size,">",2);
       if (contentfn)
-	contentfn(node,combined,combined_len);
+        contentfn(node,combined,combined_len);
       u8_free(combined);
       if (more_data) u8_free(remainder);}
     else if (type == xmlcdata) {
       u8_byte *remainder=NULL, *combined;
       int more_data=0, combined_len;
       if (strcmp((buf+size-2),"]]")) 
-	remainder=u8_gets_x(NULL,0,in,"]]>",&more_data);
+        remainder=u8_gets_x(NULL,0,in,"]]>",&more_data);
       if (more_data) combined_len=size+more_data+4;
       else combined_len=size+2;
       combined=u8_malloc(combined_len+1);
       strncpy(combined,"<",1);
       strncpy(combined+1,buf,size);
       if (more_data) {
-	strncpy(combined+1+size,remainder,more_data);
-	strncpy(combined+1+size+more_data,"]]>",4);}
+        strncpy(combined+1+size,remainder,more_data);
+        strncpy(combined+1+size+more_data,"]]>",4);}
       else strncpy(combined+1+size,">",2);
       if (contentfn) contentfn(node,combined,combined_len);
       u8_free(combined); if (more_data) u8_free(remainder);}
@@ -915,21 +914,21 @@ void *fd_walk_xml(U8_INPUT *in,
       if (strchr(buf,'<')) {}
       else if (pifn) node=pifn(in,node,buf,size);
       else if (contentfn) {
-	u8_string reconstituted=
-	  u8_string_append("<",buf,">",NULL);
-	contentfn(node,reconstituted,size+2);
-	u8_free(reconstituted);}}
+        u8_string reconstituted=
+          u8_string_append("<",buf,">",NULL);
+        contentfn(node,reconstituted,size+2);
+        u8_free(reconstituted);}}
     else {
       u8_byte *scan=buf, *_elts[32], **elts=_elts;
       int n_elts;
       if ((type == xmlempty)&&(buf[size-1]=='/')) {
-	buf[size-1]='\0'; size--;} 
+        buf[size-1]='\0'; size--;} 
      n_elts=fd_parse_element
-	(&scan,buf+size,elts,32,((node->bits)&(FD_XML_BADATTRIB)));
+        (&scan,buf+size,elts,32,((node->bits)&(FD_XML_BADATTRIB)));
       if (n_elts<0) {
-	fd_seterr3(fd_XMLParseError,"xmlstep",xmlsnip(scan));
-	u8_free(buf);
-	return NULL;}
+        fd_seterr3(fd_XMLParseError,"xmlstep",xmlsnip(scan));
+        u8_free(buf);
+        return NULL;}
       node=xmlstep(node,type,elts,n_elts,attribfn,pushfn,popfn);}
     if (node==NULL) break;}
   while ((node)&&((node->bits)&(FD_XML_AUTOCLOSE))) {
@@ -1010,8 +1009,8 @@ static fdtype xmlparse_core(fdtype input,int flags)
   else return fd_type_error(_("string or port"),"xmlparse",input);
   init_node(&object,NULL,u8_strdup("top")); object.bits=flags;
   retval=fd_walk_xml(in,fd_default_contentfn,NULL,NULL,NULL,
-		     fd_default_popfn,
-		     &object);
+                     fd_default_popfn,
+                     &object);
   if (retval) {
     fdtype result=fd_incref(object.head);
     free_node(&object,0);
