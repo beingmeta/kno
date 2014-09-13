@@ -268,12 +268,16 @@ FD_EXPORT int fd_slotmap_drop(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
     fdtype newval=((FD_VOIDP(value)) ? (FD_EMPTY_CHOICE) :
                    (fd_difference(result->value,value)));
     if ((newval == result->value)&&(!(FD_EMPTY_CHOICEP(newval)))) {
+      /* This is the case where, for example, value isn't on the slot.
+         But we incref'd newvalue/result->value, so we decref it.
+         However, if the slot is already empty (for whatever reason),
+         dropping the slot actually removes it from the slotmap. */
       fd_decref(newval);}
     else {
       FD_XSLOTMAP_MARK_MODIFIED(sm);
       if (FD_EMPTY_CHOICEP(newval)) {
         int entries_to_move=(size-(result-sm->keyvals))-1;
-        fd_decref(result->key);
+        fd_decref(result->key); fd_decref(result->value);
         memmove(result,result+1,entries_to_move*sizeof(struct FD_KEYVAL));
         FD_XSLOTMAP_SET_SIZE(sm,size-1);}
       else {
