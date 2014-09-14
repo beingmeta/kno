@@ -324,19 +324,25 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
   else if (FD_TABLEP(xml))
     if (fd_test(xml,elt_name,comment_symbol)) {
       fdtype content=fd_get(xml,content_slotid,FD_VOID);
-      if (!(FD_PAIRP(content))) return FD_FALSE;
+      if (!(FD_PAIRP(content))) {
+        fd_decref(content);
+        return FD_FALSE;}
       u8_puts(out,"<!--");
       FD_DOLIST(elt,content) {
 	if (FD_STRINGP(elt)) entify(out,FD_STRDATA(elt),FD_STRLEN(elt));}
       u8_puts(out,"-->");
+      fd_decref(content);
       return FD_VOID;}
     else if (fd_test(xml,elt_name,cdata_symbol)) {
       fdtype content=fd_get(xml,content_slotid,FD_VOID);
-      if (!(FD_PAIRP(content))) return FD_FALSE;
+      if (!(FD_PAIRP(content))) {
+        fd_decref(content);
+        return FD_FALSE;}
       u8_puts(out,"<![CDATA[");
       FD_DOLIST(elt,content) {
-	if (FD_STRINGP(elt)) u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));}
+        if (FD_STRINGP(elt)) u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));}
       u8_puts(out,"]]>");
+      fd_decref(content);
       return FD_VOID;}
     else {
       fdtype markup=get_markup_string(xml,env);
