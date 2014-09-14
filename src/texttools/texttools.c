@@ -38,10 +38,10 @@ static int egetc(u8_string *s)
     if (**s=='&')
       if (strncmp(*s,"&nbsp;",6)==0) {*s=*s+6; return ' ';}
       else {
-	u8_byte *end=NULL; int code=u8_parse_entity((*s)+1,&end);
-	if (code>0) {
-	  *s=end; return code;}
-	else {(*s)++; return '&';}}
+        u8_byte *end=NULL; int code=u8_parse_entity((*s)+1,&end);
+        if (code>0) {
+          *s=end; return code;}
+        else {(*s)++; return '&';}}
     else {
       int c=**s; (*s)++; return c;}
   else return u8_sgetc(s);
@@ -124,10 +124,10 @@ static fdtype dosegment(u8_string string,fdtype separators)
     u8_byte *brk=NULL;
     FD_DO_CHOICES(sep,separators)
       if (FD_STRINGP(sep)) {
-	u8_byte *try=strstr(scan,FD_STRDATA(sep));
-	if (try==NULL) {}
-	else if ((brk==NULL) || (try<brk)) {
-	  sepstring=sep; brk=try;}}
+        u8_byte *try=strstr(scan,FD_STRDATA(sep));
+        if (try==NULL) {}
+        else if ((brk==NULL) || (try<brk)) {
+          sepstring=sep; brk=try;}}
       else return fd_type_error(_("string"),"dosegment",sep);
     if (brk==NULL) {
       pair=fd_init_pair(NULL,fdtype_string(scan),FD_EMPTY_LIST);
@@ -148,7 +148,7 @@ static fdtype segment_prim(fdtype inputs,fdtype separators)
     FD_DO_CHOICES(input,inputs) {
       fdtype result=segment_prim(input,separators);
       if (FD_ABORTP(result)) {
-	fd_decref(results); return result;}
+        fd_decref(results); return result;}
       FD_ADD_TO_CHOICE(results,result);}
     return results;}
   else if (FD_STRINGP(inputs)) 
@@ -174,8 +174,8 @@ static fdtype encode_entities_prim(fdtype input,fdtype also_encode)
   struct U8_OUTPUT out;
   u8_string scan=FD_STRDATA(input);
   unsigned char *also=((FD_STRINGP(also_encode))?(FD_STRDATA(also_encode)):
-		       (FD_FALSEP(also_encode))?(NULL):
-		       ((unsigned char *)"<&>"));
+                       (FD_FALSEP(also_encode))?(NULL):
+                       ((unsigned char *)"<&>"));
   int c=u8_sgetc(&scan);
   U8_INIT_OUTPUT(&out,FD_STRLEN(input));
   while (c>=0) {
@@ -228,8 +228,8 @@ static u8_string skip_word(u8_string start)
     while (c>0) {
       if (spacecharp(c)) break;
       else if (punctcharp(c)) {
-	int nc=egetc(&scan); 
-	if (!(wordcharp(nc))) return last;}
+        int nc=egetc(&scan); 
+        if (!(wordcharp(nc))) return last;}
       else {}
       last=scan; c=egetc(&scan);}
     return last;}
@@ -285,16 +285,16 @@ static fdtype words2vector(u8_string string,int keep_punct)
       last=scan; scan=skip_span(last,&spantype);}
     else if (((spantype==punctspan) && (keep_punct))||(spantype==wordspan)) {
       if (n>=max) {
-	if (wordsv==_buf) {
-	  fdtype *newv=u8_alloc_n(max*2,fdtype);
-	  memcpy(newv,wordsv,sizeof(fdtype)*n);
-	  wordsv=newv; max=max*2;}
-	else {
-	  int newmax=((n>=1024) ? (n+1024) : (n*2));
-	  wordsv=u8_realloc_n(wordsv,newmax,fdtype);
-	  max=newmax;}}
+        if (wordsv==_buf) {
+          fdtype *newv=u8_alloc_n(max*2,fdtype);
+          memcpy(newv,wordsv,sizeof(fdtype)*n);
+          wordsv=newv; max=max*2;}
+        else {
+          int newmax=((n>=1024) ? (n+1024) : (n*2));
+          wordsv=u8_realloc_n(wordsv,newmax,fdtype);
+          max=newmax;}}
       wordsv[n++]=((scan) ? (fd_extract_string(NULL,last,scan)) :
-		   (fdtype_string(last)));
+                   (fdtype_string(last)));
       if (scan==NULL) break;
       last=scan; scan=skip_span(last,&spantype);}
     else {
@@ -335,8 +335,8 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
   int with_affixes=(!(FD_FALSEP(with_affix)));
   if (FD_FIXNUMP(window)) maxspan=FD_FIX2INT(window);
   else if ((FD_PAIRP(window))&&
-	   (FD_FIXNUMP(FD_CAR(window)))&&
-	   (FD_FIXNUMP(FD_CDR(window)))) {
+           (FD_FIXNUMP(FD_CAR(window)))&&
+           (FD_FIXNUMP(FD_CDR(window)))) {
     minspan=FD_FIX2INT(FD_CAR(window));
     maxspan=FD_FIX2INT(FD_CDR(window));}
   else if ((FD_VOIDP(window))||(FD_FALSEP(window)))
@@ -354,9 +354,9 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
       /* Compute prefix fragments of length=span */
       fdtype frag=FD_EMPTY_LIST;
       int i=span-1; while ((i>=0) && (i<n)) {
-	fdtype elt=data[i]; fd_incref(elt);
-	frag=fd_init_pair(NULL,elt,frag);
-	i--;}
+        fdtype elt=data[i]; fd_incref(elt);
+        frag=fd_init_pair(NULL,elt,frag);
+        i--;}
       frag=fd_init_pair(NULL,FD_FALSE,frag);
       FD_ADD_TO_CHOICE(results,frag);
       span--;}}
@@ -370,7 +370,7 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
       fdtype elt=data[i]; fd_incref(elt);
       frag=fd_init_pair(NULL,elt,frag);
       /* We incref it because we're going to point to it from both the
-	 result and from the next longer frag */
+         result and from the next longer frag */
       fd_incref(frag);
       FD_ADD_TO_CHOICE(results,frag);
       i--;}
@@ -382,12 +382,12 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
       fdtype frag=FD_EMPTY_LIST;
       int i=end; int lim=end-maxspan;
       if (lim<0) lim=-1; while (i>lim) {
-	fdtype elt=data[i]; fd_incref(elt);
-	frag=fd_init_pair(NULL,elt,frag);
-	if ((1+(end-i))>=minspan) {
-	  fd_incref(frag);
-	  FD_ADD_TO_CHOICE(results,frag);}
-	i--;}
+        fdtype elt=data[i]; fd_incref(elt);
+        frag=fd_init_pair(NULL,elt,frag);
+        if ((1+(end-i))>=minspan) {
+          fd_incref(frag);
+          FD_ADD_TO_CHOICE(results,frag);}
+        i--;}
       fd_decref(frag);
       end--;}}
 
@@ -424,15 +424,15 @@ static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
       end=FD_FIX2INT(end_arg);
       if (end<0) end=len+end;
       if ((end<0) || (end>len)) {
-	char buf[32]; sprintf(buf,"%d",FD_FIX2INT(end_arg));
-	return fd_err(fd_RangeError,"seq2phrase_prim",buf,arg);}}
+        char buf[32]; sprintf(buf,"%d",FD_FIX2INT(end_arg));
+        return fd_err(fd_RangeError,"seq2phrase_prim",buf,arg);}}
     while (start<end) {
       fdtype word=fd_seq_elt(arg,start);
       if (FD_CHOICEP(word)) {
-	fdtype result=
-	  seq2phrase_ndhelper(out.u8_outbuf,arg,start,end,dospace);
-	fd_decref(word); u8_free(out.u8_outbuf);
-	return fd_simplify_choice(result);}
+        fdtype result=
+          seq2phrase_ndhelper(out.u8_outbuf,arg,start,end,dospace);
+        fd_decref(word); u8_free(out.u8_outbuf);
+        return fd_simplify_choice(result);}
       if (dospace) {u8_putc(&out,' ');} else dospace=1;
       if (FD_STRINGP(word)) u8_puts(&out,FD_STRING_DATA(word));
       else u8_printf(&out,"%q",word);
@@ -451,18 +451,18 @@ static fdtype seq2phrase_ndhelper
     FD_DO_CHOICES(s,elt) {
       fdtype result;
       if (!(FD_STRINGP(s))) {
-	fd_decref(elt); fd_decref(results);
-	u8_free(out.u8_outbuf);
-	return fd_type_error(_("string"),"seq2phrase_ndhelper",s);}
+        fd_decref(elt); fd_decref(results);
+        u8_free(out.u8_outbuf);
+        return fd_type_error(_("string"),"seq2phrase_ndhelper",s);}
       out.u8_outptr=out.u8_outbuf;
       u8_puts(&out,base);
       if (dospace) u8_putc(&out,' ');
       u8_puts(&out,FD_STRDATA(s));
       result=seq2phrase_ndhelper(out.u8_outbuf,seq,start+1,end,1);
       if (FD_ABORTP(result)) {
-	fd_decref(elt); fd_decref(results);
-	u8_free(out.u8_outbuf);
-	return result;}
+        fd_decref(elt); fd_decref(results);
+        u8_free(out.u8_outbuf);
+        return result;}
       FD_ADD_TO_CHOICE(results,result);}
     fd_decref(elt);
     u8_free(out.u8_outbuf);
@@ -528,17 +528,17 @@ static fdtype ismarkup_percentage(fdtype string)
     int content=0, markup=0, c=egetc(&scan);
     while (c>0)
       if (c=='<') {
-	if (strncmp(scan,"!--",3)==0) {
-	  u8_string end=strstr(scan,"-->");
-	  if (end) scan=end+3; else break;}
-	else while ((c>0) && (c!='>')) {
-	  markup++; c=egetc(&scan);}
-	if (c>0) {markup++; c=egetc(&scan);}
-	else break;}
+        if (strncmp(scan,"!--",3)==0) {
+          u8_string end=strstr(scan,"-->");
+          if (end) scan=end+3; else break;}
+        else while ((c>0) && (c!='>')) {
+          markup++; c=egetc(&scan);}
+        if (c>0) {markup++; c=egetc(&scan);}
+        else break;}
       else if (u8_isspace(c)) {
-	/* Count only one character of whitespace */
-	content++; c=egetc(&scan);
-	while ((c>0) && (u8_isspace(c))) c=egetc(&scan);}
+        /* Count only one character of whitespace */
+        content++; c=egetc(&scan);
+        while ((c>0) && (u8_isspace(c))) c=egetc(&scan);}
       else {content++; c=egetc(&scan);}
     if ((content+markup==0)) return 0;
     else return FD_INT2DTYPE((markup*100)/(content+markup));}
@@ -581,14 +581,14 @@ static fdtype disemvowel(fdtype string,fdtype vowels)
     int bc=u8_base_char(c);
     if (bc<0x80) {
       if (strchr(vowelset,bc)==NULL)
-	u8_putc(&out,c);}
+        u8_putc(&out,c);}
     else if (all_ascii) {}
     else {
       char buf[16]; U8_OUTPUT tmp;
       U8_INIT_FIXED_OUTPUT(&tmp,16,buf);
       u8_putc(&tmp,bc);
       if (strstr(vowelset,buf)==NULL)
-	u8_putc(&out,c);}
+        u8_putc(&out,c);}
     c=u8_getc(&in);}
   return fd_stream2string(&out);
 }
@@ -617,19 +617,19 @@ static fdtype strip_markup(fdtype string,fdtype insert_space_arg)
   if (*start) {
       U8_OUTPUT out; U8_INIT_OUTPUT(&out,FD_STRLEN(string));
       while ((c=egetc(&scan))>0)
-	if (c=='<') 
-	  if (strncmp(scan,"!--",3)==0) {
-	    u8_string end=strstr(scan,"-->");
-	    if (end) scan=end+3; else break;}
-	  else if (strncmp(scan,"<[CDATA[",8)==0) {
-	    u8_string end=strstr(scan,"-->");
-	    if (end) scan=end+3; else break;}
-	  else {
-	    while ((c>0) && (c!='>')) c=egetc(&scan);
-	    if (c<=0) break;
-	    else start=last=scan;
-	    if (insert_space) u8_putc(&out,' ');}
-	else u8_putc(&out,c);
+        if (c=='<') 
+          if (strncmp(scan,"!--",3)==0) {
+            u8_string end=strstr(scan,"-->");
+            if (end) scan=end+3; else break;}
+          else if (strncmp(scan,"<[CDATA[",8)==0) {
+            u8_string end=strstr(scan,"-->");
+            if (end) scan=end+3; else break;}
+          else {
+            while ((c>0) && (c!='>')) c=egetc(&scan);
+            if (c<=0) break;
+            else start=last=scan;
+            if (insert_space) u8_putc(&out,' ');}
+        else u8_putc(&out,c);
       u8_putn(&out,start,last-start);
       return fd_stream2string(&out);}
   else return fd_incref(string);
@@ -664,7 +664,7 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
     /* If you're at the end, set the field to a default. */
     if (scan==start)
       if (FD_FALSEP(parsefn))
-	fields[field++]=fd_init_string(NULL,0,NULL);
+        fields[field++]=fd_init_string(NULL,0,NULL);
       else fields[field++]=FD_FALSE;
     /* If the parse function is false, make a string. */
     else if (FD_FALSEP(parsefn))
@@ -675,9 +675,9 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
       strncpy(buf,start,scan-start); buf[scan-start]='\0';
       value=fd_parse_arg(buf);
       if (FD_ABORTP(value)) {
-	int k=0; while (k<field) {fd_decref(fields[k]); k++;}
-	u8_free(fields); u8_free(buf);
-	return value;}
+        int k=0; while (k<field) {fd_decref(fields[k]); k++;}
+        u8_free(fields); u8_free(buf);
+        return value;}
       else fields[field++]=value;}
     /* If the parse function is applicable, make a string
        and apply the parse function. */
@@ -686,17 +686,17 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
       fdtype value=fd_apply(parse,1,&stringval);
       if (field<parselen) fd_decref(parsefn);
       if (FD_ABORTP(value)) {
-	int k=0; while (k<field) {fd_decref(fields[k]); k++;}
-	u8_free(fields); u8_free(buf); fd_decref(stringval);
-	return value;}
+        int k=0; while (k<field) {fd_decref(fields[k]); k++;}
+        u8_free(fields); u8_free(buf); fd_decref(stringval);
+        return value;}
       else {
-	fd_decref(stringval);
-	fields[field++]=value;}}
+        fd_decref(stringval);
+        fields[field++]=value;}}
     else {
       int k=0; while (k<field) {fd_decref(fields[k]); k++;}
       u8_free(fields); u8_free(buf);
       return fd_type_error(_("column parse function"),
-			   "columnize_prim",parsefn);}}
+                           "columnize_prim",parsefn);}}
   if (FD_FALSEP(parse))
     while (field<n_fields) fields[field++]=fd_init_string(NULL,0,NULL);
   else while (field<n_fields) fields[field++]=FD_FALSE;
@@ -735,7 +735,7 @@ static void convert_offsets
 }
 
 static fdtype textmatcher(fdtype pattern,fdtype string,
-			   fdtype offset,fdtype limit)
+                           fdtype offset,fdtype limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -749,7 +749,7 @@ static fdtype textmatcher(fdtype pattern,fdtype string,
 }
 
 static fdtype textmatch(fdtype pattern,fdtype string,
-			 fdtype offset,fdtype limit)
+                         fdtype offset,fdtype limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -764,7 +764,7 @@ static fdtype textmatch(fdtype pattern,fdtype string,
 }
 
 static fdtype textsearch(fdtype pattern,fdtype string,
-			  fdtype offset,fdtype limit)
+                          fdtype offset,fdtype limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -779,7 +779,7 @@ static fdtype textsearch(fdtype pattern,fdtype string,
 }
 
 static fdtype textract(fdtype pattern,fdtype string,
-		       fdtype offset,fdtype limit)
+                       fdtype offset,fdtype limit)
 {
   fdtype results=FD_EMPTY_CHOICE;
   int off, lim;
@@ -791,14 +791,14 @@ static fdtype textract(fdtype pattern,fdtype string,
       (pattern,NULL,FD_STRDATA(string),off,lim,0);
     FD_DO_CHOICES(extraction,extract_results) 
       if (FD_ABORTP(extraction)) {
-	fd_decref(results); fd_incref(extraction);
-	fd_decref(extract_results);
-	return extraction;}
+        fd_decref(results); fd_incref(extraction);
+        fd_decref(extract_results);
+        return extraction;}
       else if (FD_PAIRP(extraction))
-	if (fd_getint(FD_CAR(extraction))==lim) {
-	  fdtype extract=fd_incref(FD_CDR(extraction));
-	  FD_ADD_TO_CHOICE(results,extract);}
-	else {}
+        if (fd_getint(FD_CAR(extraction))==lim) {
+          fdtype extract=fd_incref(FD_CDR(extraction));
+          FD_ADD_TO_CHOICE(results,extract);}
+        else {}
       else {}
     fd_decref(extract_results);}
   return results;
@@ -818,7 +818,7 @@ static fdtype textgather_base(fdtype pattern,fdtype string,
     int start=fd_text_search(pattern,NULL,data,off,lim,0);
     while ((start>=0)&&(start<lim)) {
       fdtype substring, match_result=
-	fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
+        fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
       int maxpoint=-1;
       {FD_DO_CHOICES(match,match_result) {
           int pt=fd_getint(match);
@@ -854,7 +854,7 @@ static fdtype textgather_star(fdtype pattern,fdtype string,
 }
 
 static fdtype textgather2list(fdtype pattern,fdtype string,
-			       fdtype offset,fdtype limit)
+                               fdtype offset,fdtype limit)
 {
   fdtype head=FD_EMPTY_LIST, *tail=&head;
   u8_string data=FD_STRDATA(string);
@@ -866,22 +866,22 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
     int start=fd_text_search(pattern,NULL,data,off,lim,0);
     while (start>=0) {
       fdtype match_result=
-	fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
+        fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
       int end=-1;
       {FD_DO_CHOICES(match,match_result) {
-	int point=fd_getint(match); if (point>end) end=point;}}
+        int point=fd_getint(match); if (point>end) end=point;}}
       fd_decref(match_result);
       if (end<0) return head;
       else if (end>start) {
-	fdtype newpair=
-	  fd_init_pair(NULL,fd_extract_string(NULL,data+start,data+end),
-		       FD_EMPTY_LIST);
-	*tail=newpair; tail=&(FD_CDR(newpair));
-	start=fd_text_search(pattern,NULL,data,end,lim,0);}
+        fdtype newpair=
+          fd_init_pair(NULL,fd_extract_string(NULL,data+start,data+end),
+                       FD_EMPTY_LIST);
+        *tail=newpair; tail=&(FD_CDR(newpair));
+        start=fd_text_search(pattern,NULL,data,end,lim,0);}
       else if (end==lim)
-	return head;
+        return head;
       else start=fd_text_search
-	     (pattern,NULL,data,forward_char(data,end),lim,0);}
+             (pattern,NULL,data,forward_char(data,end),lim,0);}
     if (start==-2) {
       fd_decref(head);
       return FD_ERROR_VALUE;}
@@ -911,14 +911,14 @@ static int dorewrite(u8_output out,fdtype xtract)
       fdtype elts=FD_CDR(xtract);
       if (FD_EMPTY_LISTP(elts)) {}
       else {
-	FD_DOLIST(elt,elts) {
-	  int retval=dorewrite(out,elt);
-	  if (retval<0) return retval;}}}
+        FD_DOLIST(elt,elts) {
+          int retval=dorewrite(out,elt);
+          if (retval<0) return retval;}}}
     else if (sym==label_symbol) {
       fdtype content=fd_get_arg(xtract,2);
       if (FD_VOIDP(content)) {
-	fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
-	return -1;}
+        fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
+        return -1;}
       else if (dorewrite(out,content)<0) return -1;}
     else if (sym==subst_symbol) {
       fdtype args=FD_CDR(FD_CDR(xtract)), content, head, params;
@@ -926,39 +926,39 @@ static int dorewrite(u8_output out,fdtype xtract)
       if (FD_EMPTY_LISTP(args)) return 1;
       content=FD_CAR(FD_CDR(xtract)); head=FD_CAR(args); params=FD_CDR(args);
       if (FD_SYMBOLP(head)) {
-	fdtype probe=fd_get(texttools_module,head,FD_VOID);
-	if (FD_VOIDP(probe)) probe=fd_get(fd_scheme_module,head,FD_VOID);
-	if (FD_VOIDP(probe)) {
-	  fd_seterr(_("Unknown subst function"),"dorewrite",NULL,head);
-	  return -1;}
-	head=probe; free_head=1;}
+        fdtype probe=fd_get(texttools_module,head,FD_VOID);
+        if (FD_VOIDP(probe)) probe=fd_get(fd_scheme_module,head,FD_VOID);
+        if (FD_VOIDP(probe)) {
+          fd_seterr(_("Unknown subst function"),"dorewrite",NULL,head);
+          return -1;}
+        head=probe; free_head=1;}
       if ((FD_STRINGP(head))&&(FD_EMPTY_LISTP(params))) {
-	u8_putn(out,FD_STRDATA(head),FD_STRLEN(head));
-	if (free_head) fd_decref(head);}
+        u8_putn(out,FD_STRDATA(head),FD_STRLEN(head));
+        if (free_head) fd_decref(head);}
       else if (FD_APPLICABLEP(head)) {
-	fdtype xformed=rewrite_apply(head,content,params);
-	if (FD_ABORTP(xformed)) {
-	  if (free_head) fd_decref(head);
-	  return -1;}
-	u8_putn(out,FD_STRDATA(xformed),FD_STRLEN(xformed));
-	fd_decref(xformed);
-	return 1;}
+        fdtype xformed=rewrite_apply(head,content,params);
+        if (FD_ABORTP(xformed)) {
+          if (free_head) fd_decref(head);
+          return -1;}
+        u8_putn(out,FD_STRDATA(xformed),FD_STRLEN(xformed));
+        fd_decref(xformed);
+        return 1;}
       else {
-	FD_DOLIST(elt,args)
-	  if (FD_STRINGP(elt))
-	    u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));
-	  else if (FD_TRUEP(elt))
-	    u8_putn(out,FD_STRDATA(content),FD_STRLEN(content));
-	  else if (FD_APPLICABLEP(elt)) {
-	    fdtype xformed=rewrite_apply(elt,content,FD_EMPTY_LIST);
-	    if (FD_ABORTP(xformed)) {
-	      if (free_head) fd_decref(head);
-	      return -1;}
-	    u8_putn(out,FD_STRDATA(xformed),FD_STRLEN(xformed));
-	    fd_decref(xformed);}
-	  else {}
-	if (free_head) fd_decref(head);
-	return 1;}}
+        FD_DOLIST(elt,args)
+          if (FD_STRINGP(elt))
+            u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));
+          else if (FD_TRUEP(elt))
+            u8_putn(out,FD_STRDATA(content),FD_STRLEN(content));
+          else if (FD_APPLICABLEP(elt)) {
+            fdtype xformed=rewrite_apply(elt,content,FD_EMPTY_LIST);
+            if (FD_ABORTP(xformed)) {
+              if (free_head) fd_decref(head);
+              return -1;}
+            u8_putn(out,FD_STRDATA(xformed),FD_STRLEN(xformed));
+            fd_decref(xformed);}
+          else {}
+        if (free_head) fd_decref(head);
+        return 1;}}
     else {
       fd_seterr(fd_BadExtractData,"dorewrite",NULL,xtract);
       return -1;}}
@@ -982,7 +982,7 @@ static fdtype rewrite_apply(fdtype fcn,fdtype content,fdtype args)
 }
 
 static fdtype textrewrite(fdtype pattern,fdtype string,
-			   fdtype offset,fdtype limit)
+                           fdtype offset,fdtype limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -997,21 +997,21 @@ static fdtype textrewrite(fdtype pattern,fdtype string,
     else {
       fdtype subst_results=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(extraction,extract_results)
-	if ((fd_getint(FD_CAR(extraction)))==lim) {
-	  struct U8_OUTPUT out; fdtype stringval;
-	  U8_INIT_OUTPUT(&out,(lim-off)*2);
-	  if (dorewrite(&out,FD_CDR(extraction))<0) {
-	    fd_decref(subst_results); fd_decref(extract_results);
-	    u8_free(out.u8_outbuf); return FD_ERROR_VALUE;}
-	  stringval=fd_stream2string(&out);
-	  FD_ADD_TO_CHOICE(subst_results,stringval);}
+        if ((fd_getint(FD_CAR(extraction)))==lim) {
+          struct U8_OUTPUT out; fdtype stringval;
+          U8_INIT_OUTPUT(&out,(lim-off)*2);
+          if (dorewrite(&out,FD_CDR(extraction))<0) {
+            fd_decref(subst_results); fd_decref(extract_results);
+            u8_free(out.u8_outbuf); return FD_ERROR_VALUE;}
+          stringval=fd_stream2string(&out);
+          FD_ADD_TO_CHOICE(subst_results,stringval);}
       fd_decref(extract_results);
       return subst_results;}}
 }
 
 static fdtype textsubst(fdtype string,
-			fdtype pattern,fdtype replace,
-			fdtype offset,fdtype limit)
+                        fdtype pattern,fdtype replace,
+                        fdtype offset,fdtype limit)
 {
   u8_byteoff off, lim;
   u8_string data=FD_STRDATA(string);
@@ -1025,82 +1025,82 @@ static fdtype textsubst(fdtype string,
     if (start>=0) {
       U8_OUTPUT out; U8_INIT_OUTPUT(&out,2*(lim-off));
       while (start>=0) {
-	fdtype match_result=
-	  fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
-	int end=-1;
-	{FD_DO_CHOICES(match,match_result) {
-	  int point=fd_getint(match); if (point>end) end=point;}}
-	fd_decref(match_result);
-	if (end<0) {
-	  u8_puts(&out,data+last);
-	  return fd_stream2string(&out);}
-	else if (end>start) {
-	  u8_putn(&out,data+last,start-last);
-	  if (FD_STRINGP(replace))
-	    u8_puts(&out,FD_STRDATA(replace));
-	  else {
-	    u8_string stringdata=FD_STRDATA(string);
-	    fdtype lisp_lim=FD_INT2DTYPE(u8_charoffset(stringdata,lim));
-	    fdtype replace_pat, xtract;
-	    if (FD_VOIDP(replace)) replace_pat=pattern;
-	    else replace_pat=replace;
-	    xtract=fd_text_extract(replace_pat,NULL,stringdata,start,lim,0);
-	    if (FD_ABORTP(xtract)) {
-	      u8_free(out.u8_outbuf);
-	      return xtract;}
-	    else if (FD_EMPTY_CHOICEP(xtract)) {
-	      /* This is the incorrect case where the matcher works
-		 but extraction does not.  We simply report an error. */
-	      u8_byte buf[256];
-	      int showlen=(((end-start)<256)?(end-start):(255));
-	      strncpy(buf,data+start,showlen); buf[showlen]='\0';
-	      u8_log(LOG_WARN,fd_BadExtractData,
-		     "Pattern %q matched '%s' but couldn't extract",
-		     pattern,buf);
-	      u8_putn(&out,data+start,end-start);}
-	    else if ((FD_CHOICEP(xtract)) || (FD_ACHOICEP(xtract))) {
-	      fdtype results=FD_EMPTY_CHOICE;
-	      FD_DO_CHOICES(xt,xtract) {
-		u8_byteoff newstart=fd_getint(FD_CAR(xt));
-		if (newstart==lim) {
-		  fdtype stringval;
-		  struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
-		  u8_puts(&tmpout,out.u8_outbuf);
-		  if (dorewrite(&tmpout,FD_CDR(xt))<0) {
-		    u8_free(tmpout.u8_outbuf); u8_free(out.u8_outbuf);
-		    fd_decref(results); results=FD_ERROR_VALUE;
-		    FD_STOP_DO_CHOICES; break;}
-		  stringval=fd_stream2string(&tmpout);
-		  FD_ADD_TO_CHOICE(results,stringval);}
-		else {
-		  u8_charoff new_char_off=u8_charoffset(stringdata,newstart);
-		  fdtype remainder=textsubst
-		    (string,pattern,replace,
-		     FD_INT2DTYPE(new_char_off),lisp_lim);
-		  FD_DO_CHOICES(rem,remainder) {
-		    fdtype stringval;
-		    struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
-		    u8_puts(&tmpout,out.u8_outbuf);
-		    if (dorewrite(&tmpout,FD_CDR(xt))<0) {
-		      u8_free(tmpout.u8_outbuf); u8_free(out.u8_outbuf);
-		      fd_decref(results); results=FD_ERROR_VALUE;
-		      FD_STOP_DO_CHOICES; break;}
-		    u8_puts(&tmpout,FD_STRDATA(rem));
-		    stringval=fd_stream2string(&tmpout);
-		    FD_ADD_TO_CHOICE(results,stringval);}
-		  fd_decref(remainder);}}
-	      u8_free(out.u8_outbuf);
-	      fd_decref(xtract);
-	      return results;}
-	    else {
-	      if (dorewrite(&out,FD_CDR(xtract))<0) {
-		u8_free(out.u8_outbuf); fd_decref(xtract);
-		return FD_ERROR_VALUE;}
-	      fd_decref(xtract);}}
-	  last=end; start=fd_text_search(pattern,NULL,data,last,lim,0);}
-	else if (end==lim) break;
-	else start=fd_text_search
-	       (pattern,NULL,data,forward_char(data,end),lim,0);}
+        fdtype match_result=
+          fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
+        int end=-1;
+        {FD_DO_CHOICES(match,match_result) {
+          int point=fd_getint(match); if (point>end) end=point;}}
+        fd_decref(match_result);
+        if (end<0) {
+          u8_puts(&out,data+last);
+          return fd_stream2string(&out);}
+        else if (end>start) {
+          u8_putn(&out,data+last,start-last);
+          if (FD_STRINGP(replace))
+            u8_puts(&out,FD_STRDATA(replace));
+          else {
+            u8_string stringdata=FD_STRDATA(string);
+            fdtype lisp_lim=FD_INT2DTYPE(u8_charoffset(stringdata,lim));
+            fdtype replace_pat, xtract;
+            if (FD_VOIDP(replace)) replace_pat=pattern;
+            else replace_pat=replace;
+            xtract=fd_text_extract(replace_pat,NULL,stringdata,start,lim,0);
+            if (FD_ABORTP(xtract)) {
+              u8_free(out.u8_outbuf);
+              return xtract;}
+            else if (FD_EMPTY_CHOICEP(xtract)) {
+              /* This is the incorrect case where the matcher works
+                 but extraction does not.  We simply report an error. */
+              u8_byte buf[256];
+              int showlen=(((end-start)<256)?(end-start):(255));
+              strncpy(buf,data+start,showlen); buf[showlen]='\0';
+              u8_log(LOG_WARN,fd_BadExtractData,
+                     "Pattern %q matched '%s' but couldn't extract",
+                     pattern,buf);
+              u8_putn(&out,data+start,end-start);}
+            else if ((FD_CHOICEP(xtract)) || (FD_ACHOICEP(xtract))) {
+              fdtype results=FD_EMPTY_CHOICE;
+              FD_DO_CHOICES(xt,xtract) {
+                u8_byteoff newstart=fd_getint(FD_CAR(xt));
+                if (newstart==lim) {
+                  fdtype stringval;
+                  struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
+                  u8_puts(&tmpout,out.u8_outbuf);
+                  if (dorewrite(&tmpout,FD_CDR(xt))<0) {
+                    u8_free(tmpout.u8_outbuf); u8_free(out.u8_outbuf);
+                    fd_decref(results); results=FD_ERROR_VALUE;
+                    FD_STOP_DO_CHOICES; break;}
+                  stringval=fd_stream2string(&tmpout);
+                  FD_ADD_TO_CHOICE(results,stringval);}
+                else {
+                  u8_charoff new_char_off=u8_charoffset(stringdata,newstart);
+                  fdtype remainder=textsubst
+                    (string,pattern,replace,
+                     FD_INT2DTYPE(new_char_off),lisp_lim);
+                  FD_DO_CHOICES(rem,remainder) {
+                    fdtype stringval;
+                    struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
+                    u8_puts(&tmpout,out.u8_outbuf);
+                    if (dorewrite(&tmpout,FD_CDR(xt))<0) {
+                      u8_free(tmpout.u8_outbuf); u8_free(out.u8_outbuf);
+                      fd_decref(results); results=FD_ERROR_VALUE;
+                      FD_STOP_DO_CHOICES; break;}
+                    u8_puts(&tmpout,FD_STRDATA(rem));
+                    stringval=fd_stream2string(&tmpout);
+                    FD_ADD_TO_CHOICE(results,stringval);}
+                  fd_decref(remainder);}}
+              u8_free(out.u8_outbuf);
+              fd_decref(xtract);
+              return results;}
+            else {
+              if (dorewrite(&out,FD_CDR(xtract))<0) {
+                u8_free(out.u8_outbuf); fd_decref(xtract);
+                return FD_ERROR_VALUE;}
+              fd_decref(xtract);}}
+          last=end; start=fd_text_search(pattern,NULL,data,last,lim,0);}
+        else if (end==lim) break;
+        else start=fd_text_search
+               (pattern,NULL,data,forward_char(data,end),lim,0);}
       u8_puts(&out,data+last);
       return fd_stream2string(&out);}
     else if (start==-2) 
@@ -1124,25 +1124,25 @@ static fdtype gathersubst_base(fdtype pattern,fdtype string,
     int start=fd_text_search(pattern,NULL,data,off,lim,0);
     while ((start>=0)&&(start<lim)) {
       fdtype result, extract_result=
-	fd_text_extract(pattern,NULL,FD_STRDATA(string),start,lim,0);
+        fd_text_extract(pattern,NULL,FD_STRDATA(string),start,lim,0);
       int end=-1; fdtype longest=FD_VOID;
       {FD_DO_CHOICES(extraction,extract_result) {
-	  int point=fd_getint(FD_CAR(extraction));
-	  if ((point>end)&&(point<=lim)) {
+          int point=fd_getint(FD_CAR(extraction));
+          if ((point>end)&&(point<=lim)) {
             end=point; longest=FD_CDR(extraction);}}}
       fd_incref(longest);
       fd_decref(extract_result);
       if (end<0) return results;
       else if (end>start) {
-	struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,24);
-	dorewrite(&tmpout,longest);
-	result=fd_stream2string(&tmpout);
-	FD_ADD_TO_CHOICE(results,result);
-	fd_decref(longest);}
+        struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,24);
+        dorewrite(&tmpout,longest);
+        result=fd_stream2string(&tmpout);
+        FD_ADD_TO_CHOICE(results,result);
+        fd_decref(longest);}
       if (star)
         start=fd_text_search(pattern,NULL,data,forward_char(data,start),lim,0);
       else if (end==lim)
-	return results;
+        return results;
       else if (end>start)
         start=fd_text_search(pattern,NULL,data,end,lim,0);
       else start=fd_text_search(pattern,NULL,data,forward_char(data,end),lim,0);}
@@ -1153,7 +1153,7 @@ static fdtype gathersubst_base(fdtype pattern,fdtype string,
 }
 
 static fdtype gathersubst(fdtype pattern,fdtype string,
-			  fdtype offset,fdtype limit)
+                          fdtype offset,fdtype limit)
 {
   return gathersubst_base(pattern,string,offset,limit,0);
 }
@@ -1172,7 +1172,7 @@ static fdtype textfilter(fdtype strings,fdtype pattern)
   FD_DO_CHOICES(string,strings)
     if (FD_STRINGP(string))
       if (fd_text_match(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0)) {
-	string=fd_incref(string);
+        string=fd_incref(string);
         FD_ADD_TO_CHOICE(results,string);}
       else {}
     else {
@@ -1197,7 +1197,7 @@ static int getnonstring(fdtype choice)
 }
 
 static fdtype string_matches(fdtype string,fdtype pattern,
-			     fdtype start_arg,fdtype end_arg)
+                             fdtype start_arg,fdtype end_arg)
 {
   int off, lim, retval;
   fdtype notstring;
@@ -1205,21 +1205,21 @@ static fdtype string_matches(fdtype string,fdtype pattern,
   if ((FD_EMPTY_CHOICEP(pattern))||(FD_EMPTY_CHOICEP(string)))
     return FD_FALSE;
   notstring=((FD_STRINGP(string))?(FD_VOID):
-	     (FD_AMBIGP(string))?(getnonstring(string)):
-	     (string));
+             (FD_AMBIGP(string))?(getnonstring(string)):
+             (string));
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   else if (FD_AMBIGP(string)) {
     FD_DO_CHOICES(s,string) {
       convert_offsets(s,start_arg,end_arg,&off,&lim);
       if ((off<0) || (lim<0)) {
-	FD_STOP_DO_CHOICES;
-	return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
+        FD_STOP_DO_CHOICES;
+        return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
       else retval=fd_text_match(pattern,NULL,FD_STRDATA(s),off,lim,0);
       if (retval!=0) {
-	FD_STOP_DO_CHOICES;
-	if (retval<0) return FD_ERROR_VALUE;
-	else return FD_TRUE;}}
+        FD_STOP_DO_CHOICES;
+        if (retval<0) return FD_ERROR_VALUE;
+        else return FD_TRUE;}}
     return FD_FALSE;}
   else {
     convert_offsets(string,start_arg,end_arg,&off,&lim);
@@ -1232,31 +1232,31 @@ static fdtype string_matches(fdtype string,fdtype pattern,
 }
 
 static fdtype string_contains(fdtype string,fdtype pattern,
-			      fdtype start_arg,fdtype end_arg)
+                              fdtype start_arg,fdtype end_arg)
 {
   int off, lim, retval; fdtype notstring;
   if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->choice;
   if ((FD_EMPTY_CHOICEP(pattern))||(FD_EMPTY_CHOICEP(string)))
     return FD_FALSE;
   notstring=((FD_STRINGP(string))?(FD_VOID):
-	     (FD_AMBIGP(string))?(getnonstring(string)):
-	     (string));
+             (FD_AMBIGP(string))?(getnonstring(string)):
+             (string));
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   else if (FD_AMBIGP(string)) {
     FD_DO_CHOICES(s,string) {
       convert_offsets(s,start_arg,end_arg,&off,&lim);
       if ((off<0) || (lim<0)) {
-	FD_STOP_DO_CHOICES;
-	return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
+        FD_STOP_DO_CHOICES;
+        return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
       else retval=fd_text_search(pattern,NULL,FD_STRDATA(s),off,lim,0);
       if (retval==-1) {}
       else if (retval<0) {
-	FD_STOP_DO_CHOICES;
-	return FD_ERROR_VALUE;}
+        FD_STOP_DO_CHOICES;
+        return FD_ERROR_VALUE;}
       else {
-	FD_STOP_DO_CHOICES;
-	return FD_TRUE;}}
+        FD_STOP_DO_CHOICES;
+        return FD_TRUE;}}
     return FD_FALSE;}
   else {
     convert_offsets(string,start_arg,end_arg,&off,&lim);
@@ -1269,7 +1269,7 @@ static fdtype string_contains(fdtype string,fdtype pattern,
 }
 
 static fdtype string_starts_with(fdtype string,fdtype pattern,
-				 fdtype start_arg,fdtype end_arg)
+                                 fdtype start_arg,fdtype end_arg)
 {
   int off, lim;
   fdtype match_result, notstring;
@@ -1277,22 +1277,22 @@ static fdtype string_starts_with(fdtype string,fdtype pattern,
   if ((FD_EMPTY_CHOICEP(pattern))||(FD_EMPTY_CHOICEP(string)))
     return FD_FALSE;
   notstring=((FD_STRINGP(string))?(FD_VOID):
-	     (FD_AMBIGP(string))?(getnonstring(string)):
-	     (string));
+             (FD_AMBIGP(string))?(getnonstring(string)):
+             (string));
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   else if (FD_AMBIGP(string)) {
     FD_DO_CHOICES(s,string) {
       convert_offsets(s,start_arg,end_arg,&off,&lim);
       if ((off<0) || (lim<0)) {
-	FD_STOP_DO_CHOICES;
-	return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
+        FD_STOP_DO_CHOICES;
+        return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
       match_result=fd_text_matcher(pattern,NULL,FD_STRDATA(s),off,lim,0);
       if (FD_ABORTP(match_result)) {
-	FD_STOP_DO_CHOICES; return FD_ERROR_VALUE;}
+        FD_STOP_DO_CHOICES; return FD_ERROR_VALUE;}
       else if (FD_EMPTY_CHOICEP(match_result)) {}
       else {
-	FD_STOP_DO_CHOICES; return FD_TRUE;}}
+        FD_STOP_DO_CHOICES; return FD_TRUE;}}
     return FD_FALSE;}
   else {
     convert_offsets(string,start_arg,end_arg,&off,&lim);
@@ -1308,7 +1308,7 @@ static fdtype string_starts_with(fdtype string,fdtype pattern,
 }
 
 static fdtype string_ends_with_test(fdtype string,fdtype pattern,
-				    int off,int lim)
+                                    int off,int lim)
 {
   u8_string data=FD_STRDATA(string); int start;
   fdtype end=FD_INT2DTYPE(lim);
@@ -1323,10 +1323,10 @@ static fdtype string_ends_with_test(fdtype string,fdtype pattern,
     else if (matches==end) return 1;
     else {
       FD_DO_CHOICES(match,matches)
-	if (match==end) {
-	  fd_decref(matches);
-	  FD_STOP_DO_CHOICES;
-	  return 1;}}
+        if (match==end) {
+          fd_decref(matches);
+          FD_STOP_DO_CHOICES;
+          return 1;}}
     fd_decref(matches);
     start=fd_text_search(pattern,NULL,data,start+1,lim,0);
     if (start<-1) return -1;}
@@ -1334,14 +1334,14 @@ static fdtype string_ends_with_test(fdtype string,fdtype pattern,
 }
 
 static fdtype string_ends_with(fdtype string,fdtype pattern,
-			       fdtype start_arg,fdtype end_arg)
+                               fdtype start_arg,fdtype end_arg)
 {
   int off, lim, retval;
   fdtype notstring;
   if (FD_EMPTY_CHOICEP(string)) return FD_FALSE;
   notstring=((FD_STRINGP(string))?(FD_VOID):
-	     (FD_AMBIGP(string))?(getnonstring(string)):
-	     (string));
+             (FD_AMBIGP(string))?(getnonstring(string)):
+             (string));
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","string_matches",notstring);
   convert_offsets(string,start_arg,end_arg,&off,&lim);
@@ -1351,12 +1351,12 @@ static fdtype string_ends_with(fdtype string,fdtype pattern,
     FD_DO_CHOICES(s,string) {
       convert_offsets(s,start_arg,end_arg,&off,&lim);
       if ((off<0) || (lim<0)) {
-	FD_STOP_DO_CHOICES;
-	return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
+        FD_STOP_DO_CHOICES;
+        return fd_err(fd_RangeError,"textmatcher",NULL,FD_VOID);}
       retval=string_ends_with_test(s,pattern,off,lim);
       if (retval<0) return FD_ERROR_VALUE;
       else if (retval) {
-	FD_STOP_DO_CHOICES; return FD_TRUE;}
+        FD_STOP_DO_CHOICES; return FD_TRUE;}
       else {}}
     return FD_FALSE;}
   else {
@@ -1386,51 +1386,51 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
       fdtype elts=FD_CDR(xtract);
       if (FD_EMPTY_LISTP(elts)) {}
       else {
-	FD_DOLIST(elt,elts) {
-	  int retval=framify(f,out,elt);
-	  if (retval<0) return retval;}}}
+        FD_DOLIST(elt,elts) {
+          int retval=framify(f,out,elt);
+          if (retval<0) return retval;}}}
     else if (sym==label_symbol) {
       fdtype slotid=fd_get_arg(xtract,1);
       fdtype content=fd_get_arg(xtract,2);
       if (FD_VOIDP(content)) {
-	fd_seterr(fd_BadExtractData,"framify",NULL,xtract);
-	return -1;}
+        fd_seterr(fd_BadExtractData,"framify",NULL,xtract);
+        return -1;}
       else if (!((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))) {
-	fd_seterr(fd_BadExtractData,"framify",NULL,xtract);
-	return -1;}
+        fd_seterr(fd_BadExtractData,"framify",NULL,xtract);
+        return -1;}
       else {
-	fdtype parser=fd_get_arg(xtract,3);
-	struct U8_OUTPUT _out; int retval;
-	U8_INIT_OUTPUT(&_out,32);
-	retval=framify(f,&_out,content);
-	if (retval<0) return -1;
-	else if (out)
-	  u8_putn(out,_out.u8_outbuf,_out.u8_outptr-_out.u8_outbuf);
-	if (FD_VOIDP(parser)) {
-	  fdtype stringval=fd_stream2string(&_out);
-	  fd_add(f,slotid,stringval);
-	  fd_decref(stringval);}
-	else if (FD_APPLICABLEP(parser)) {
-	  fdtype stringval=fd_stream2string(&_out);
-	  fdtype parsed_val=fd_finish_call(fd_dapply(parser,1,&stringval));
-	  if (!(FD_ABORTP(parsed_val))) fd_add(f,slotid,parsed_val);
-	  fd_decref(parsed_val);
-	  fd_decref(stringval);
-	  if (FD_ABORTP(parsed_val)) return -1;}
-	else if (FD_TRUEP(parser)) {
-	  fdtype parsed_val=fd_parse(_out.u8_outbuf);
-	  fd_add(f,slotid,parsed_val);
-	  fd_decref(parsed_val); u8_free(_out.u8_outbuf);}
-	else {
-	  fdtype stringval=fd_stream2string(&_out);
-	  fd_add(f,slotid,stringval);
-	  fd_decref(stringval);}
-	return 1;}}
+        fdtype parser=fd_get_arg(xtract,3);
+        struct U8_OUTPUT _out; int retval;
+        U8_INIT_OUTPUT(&_out,32);
+        retval=framify(f,&_out,content);
+        if (retval<0) return -1;
+        else if (out)
+          u8_putn(out,_out.u8_outbuf,_out.u8_outptr-_out.u8_outbuf);
+        if (FD_VOIDP(parser)) {
+          fdtype stringval=fd_stream2string(&_out);
+          fd_add(f,slotid,stringval);
+          fd_decref(stringval);}
+        else if (FD_APPLICABLEP(parser)) {
+          fdtype stringval=fd_stream2string(&_out);
+          fdtype parsed_val=fd_finish_call(fd_dapply(parser,1,&stringval));
+          if (!(FD_ABORTP(parsed_val))) fd_add(f,slotid,parsed_val);
+          fd_decref(parsed_val);
+          fd_decref(stringval);
+          if (FD_ABORTP(parsed_val)) return -1;}
+        else if (FD_TRUEP(parser)) {
+          fdtype parsed_val=fd_parse(_out.u8_outbuf);
+          fd_add(f,slotid,parsed_val);
+          fd_decref(parsed_val); u8_free(_out.u8_outbuf);}
+        else {
+          fdtype stringval=fd_stream2string(&_out);
+          fd_add(f,slotid,stringval);
+          fd_decref(stringval);}
+        return 1;}}
     else if (sym==subst_symbol) {
       fdtype content=fd_get_arg(xtract,2);
       if (FD_VOIDP(content)) {
-	fd_seterr(fd_BadExtractData,"framify",NULL,xtract);
-	return -1;}
+        fd_seterr(fd_BadExtractData,"framify",NULL,xtract);
+        return -1;}
       else if (framify(f,out,content)<0) return -1;}
     else {
       fd_seterr(fd_BadExtractData,"framify",NULL,xtract);
@@ -1442,7 +1442,7 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
 }
 
 static fdtype text2frame(fdtype pattern,fdtype string,
-			  fdtype offset,fdtype limit)
+                          fdtype offset,fdtype limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -1455,18 +1455,18 @@ static fdtype text2frame(fdtype pattern,fdtype string,
     else {
       fdtype frame_results=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(extraction,extract_results) {
-	if (fd_getint(FD_CAR(extraction))==lim) {
-	  fdtype frame=fd_empty_slotmap();
-	  if (framify(frame,NULL,FD_CDR(extraction))<0) {
-	    fd_decref(frame_results); fd_decref(extract_results);
-	    return FD_ERROR_VALUE;}
-	  FD_ADD_TO_CHOICE(frame_results,frame);}}
+        if (fd_getint(FD_CAR(extraction))==lim) {
+          fdtype frame=fd_empty_slotmap();
+          if (framify(frame,NULL,FD_CDR(extraction))<0) {
+            fd_decref(frame_results); fd_decref(extract_results);
+            return FD_ERROR_VALUE;}
+          FD_ADD_TO_CHOICE(frame_results,frame);}}
       fd_decref(extract_results);
       return frame_results;}}
 }
 
 static fdtype text2frames(fdtype pattern,fdtype string,
-			   fdtype offset,fdtype limit)
+                           fdtype offset,fdtype limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -1478,38 +1478,38 @@ static fdtype text2frames(fdtype pattern,fdtype string,
     int start=fd_text_search(pattern,NULL,data,off,lim,0);
     while (start>=0) {
       fdtype extractions=fd_text_extract
-	(pattern,NULL,FD_STRDATA(string),start,lim,0);
+        (pattern,NULL,FD_STRDATA(string),start,lim,0);
       fdtype longest=FD_EMPTY_CHOICE;
       int max=-1;
       if ((FD_CHOICEP(extractions)) || (FD_ACHOICEP(extractions))) {
-	FD_DO_CHOICES(extraction,extractions) {
-	  int xlen=fd_getint(FD_CAR(extraction));
-	  if (xlen==max) {
-	    fdtype cdr=FD_CDR(extraction);
-	    fd_incref(cdr); FD_ADD_TO_CHOICE(longest,cdr);}
-	  else if (xlen>max) {
-	    fd_decref(longest); longest=fd_incref(FD_CDR(extraction));
-	    max=xlen;}
-	  else {}}}
+        FD_DO_CHOICES(extraction,extractions) {
+          int xlen=fd_getint(FD_CAR(extraction));
+          if (xlen==max) {
+            fdtype cdr=FD_CDR(extraction);
+            fd_incref(cdr); FD_ADD_TO_CHOICE(longest,cdr);}
+          else if (xlen>max) {
+            fd_decref(longest); longest=fd_incref(FD_CDR(extraction));
+            max=xlen;}
+          else {}}}
       else if (FD_EMPTY_CHOICEP(extractions)) {}
       else {
-	max=fd_getint(FD_CAR(extractions));
-	longest=fd_incref(FD_CDR(extractions));}
+        max=fd_getint(FD_CAR(extractions));
+        longest=fd_incref(FD_CDR(extractions));}
       /* Should we signal an internal error here if longest is empty, 
-	 since search stopped at start, but we don't have a match? */
+         since search stopped at start, but we don't have a match? */
       {
-	FD_DO_CHOICES(extraction,longest) {
-	  fdtype f=fd_empty_slotmap();
-	  framify(f,NULL,extraction);
-	  FD_ADD_TO_CHOICE(results,f);}}
+        FD_DO_CHOICES(extraction,longest) {
+          fdtype f=fd_empty_slotmap();
+          framify(f,NULL,extraction);
+          FD_ADD_TO_CHOICE(results,f);}}
       fd_decref(longest);
       fd_decref(extractions);
       if (max>start)
-	start=fd_text_search(pattern,NULL,data,max,lim,0);
+        start=fd_text_search(pattern,NULL,data,max,lim,0);
       else if (max==lim)
-	return results;
+        return results;
       else start=fd_text_search
-	     (pattern,NULL,data,forward_char(data,max),lim,0);}
+             (pattern,NULL,data,forward_char(data,max),lim,0);}
     if (start==-2) {
       fd_decref(results);
       return FD_ERROR_VALUE;}
@@ -1536,7 +1536,7 @@ static int interpret_keep_arg(fdtype keep_arg)
 }
 
 static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
-			fdtype offset,fdtype limit)
+                        fdtype offset,fdtype limit)
 {
   int start, len;
   convert_offsets(string,offset,limit,&start,&len);
@@ -1556,49 +1556,49 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
     int scan=fd_text_search(sep,NULL,data,start,len,0);
     while ((scan>=0) && (scan<len)) {
       fdtype match_result=
-	fd_text_matcher(sep,NULL,data,scan,len,0);
+        fd_text_matcher(sep,NULL,data,scan,len,0);
       fdtype sepstring=FD_VOID, substring=FD_VOID, newpair;
       int end=-1;
       /* Figure out how long the sep is, taking the longest result. */
       {FD_DO_CHOICES(match,match_result) {
-	  int point=fd_getint(match); if (point>end) end=point;}}
+          int point=fd_getint(match); if (point>end) end=point;}}
       fd_decref(match_result);
       /* Here's what it should look like: 
-	 [start] ... [scan] ... [end]
-	 where [start] was the beginning of the current scan,
-	 [scan] is where the separator starts and [end] is where the
-	 separator ends */
+         [start] ... [scan] ... [end]
+         where [start] was the beginning of the current scan,
+         [scan] is where the separator starts and [end] is where the
+         separator ends */
       /* If you're attaching separator as prefixes (keep<0),
-	 extract the string from start to end, otherwise,
-	 just attach start to scan. */
+         extract the string from start to end, otherwise,
+         just attach start to scan. */
       if (end>start)
-	if (keep<=0)
-	  substring=fd_extract_string(NULL,data+start,data+scan);
-	else if (keep==2) {
-	  sepstring=fd_extract_string(NULL,data+scan,data+end);
-	  substring=fd_extract_string(NULL,data+start,data+scan);}
-	else substring=fd_extract_string(NULL,data+start,data+end);
+        if (keep<=0)
+          substring=fd_extract_string(NULL,data+start,data+scan);
+        else if (keep==2) {
+          sepstring=fd_extract_string(NULL,data+scan,data+end);
+          substring=fd_extract_string(NULL,data+start,data+scan);}
+        else substring=fd_extract_string(NULL,data+start,data+end);
       else {}
       /* Advance to the next separator.  Use a start from the current
-	 separator if you're attaching separators as suffixes (keep<0), and
-	 a start from just past the separator if you're dropping
-	 separators or attaching them forward (keep>=0). */
+         separator if you're attaching separators as suffixes (keep<0), and
+         a start from just past the separator if you're dropping
+         separators or attaching them forward (keep>=0). */
       if (keep<0) start=scan; else start=end;
       if ((end<0) || (scan==end))
-	/* If the 'separator' is the empty string, start your
-	   search from one character past the current end.  This
-	   keeps match/search weirdness from leading to infinite
-	   loops. */
-	scan=fd_text_search(sep,NULL,data,end+1,len,0);
+        /* If the 'separator' is the empty string, start your
+           search from one character past the current end.  This
+           keeps match/search weirdness from leading to infinite
+           loops. */
+        scan=fd_text_search(sep,NULL,data,end+1,len,0);
       else scan=fd_text_search(sep,NULL,data,end,len,0);
       /* Push it onto the list. */
       if (!(FD_VOIDP(substring))) {
-	newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);
-	*tail=newpair; tail=&(FD_CDR(newpair));}
+        newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);
+        *tail=newpair; tail=&(FD_CDR(newpair));}
       /* Push the separator if you're keeping it */
       if (!(FD_VOIDP(sepstring))) {
-	newpair=fd_init_pair(NULL,sepstring,FD_EMPTY_LIST);
-	*tail=newpair; tail=&(FD_CDR(newpair));}}
+        newpair=fd_init_pair(NULL,sepstring,FD_EMPTY_LIST);
+        *tail=newpair; tail=&(FD_CDR(newpair));}}
     /* scan==-2 indicates a real error, not just a failed search. */
     if (scan==-2) {
       fd_decref(slices);
@@ -1631,10 +1631,10 @@ static fdtype has_word_suffix(fdtype string,fdtype suffix,fdtype strictarg)
     u8_string string_data=FD_STRING_DATA(string);
     u8_string suffix_data=FD_STRING_DATA(suffix);
     if ((strncmp(string_data+(string_len-suffix_len),
-		 suffix_data,
-		 suffix_len) == 0) &&
-	(string_data[(string_len-suffix_len)-1]==' '))
-	return FD_TRUE;
+                 suffix_data,
+                 suffix_len) == 0) &&
+        (string_data[(string_len-suffix_len)-1]==' '))
+        return FD_TRUE;
     else return FD_FALSE;}
 }
 
@@ -1653,7 +1653,7 @@ static fdtype has_word_prefix(fdtype string,fdtype prefix,fdtype strictarg)
     else return FD_FALSE;
   else {
     if ((strncmp(string_data,prefix_data,prefix_len) == 0)  &&
-	(string_data[prefix_len]==' '))
+        (string_data[prefix_len]==' '))
       return FD_TRUE;
     else return FD_FALSE;}
 }
@@ -1683,8 +1683,8 @@ static int has_suffix(fdtype string,fdtype suffix)
   int slen=FD_STRLEN(string), sufflen=FD_STRLEN(suffix);
   if (slen<sufflen) return 0;
   else if (strncmp(FD_STRDATA(string)+(slen-sufflen),
-		   FD_STRDATA(suffix),
-		   sufflen)==0)
+                   FD_STRDATA(suffix),
+                   sufflen)==0)
     return 1;
   else return 0;
 }
@@ -1704,13 +1704,13 @@ static fdtype check_string(fdtype string,fdtype lexicon)
     else {
       fdtype subvalue=fd_get(value,key,FD_EMPTY_CHOICE);
       if ((FD_EMPTY_CHOICEP(subvalue)) ||
-	  (FD_VOIDP(subvalue)) ||
-	  (FD_FALSEP(subvalue))) {
-	fd_decref(value);
-	return FD_EMPTY_CHOICE;}
+          (FD_VOIDP(subvalue)) ||
+          (FD_FALSEP(subvalue))) {
+        fd_decref(value);
+        return FD_EMPTY_CHOICE;}
       else {
-	fd_decref(value); fd_decref(subvalue);
-	return string;}}}
+        fd_decref(value); fd_decref(subvalue);
+        return string;}}}
   else if (FD_APPLICABLEP(lexicon)) {
     fdtype result=fd_finish_call(fd_dapply(lexicon,1,&string));
     if (FD_ABORTP(result)) return FD_ERROR_VALUE;
@@ -1746,27 +1746,27 @@ static fdtype apply_suffixrule
       fdtype xform=fd_apply(replacement,1,&string);
       if (FD_ABORTP(xform)) return xform;
       else if (FD_STRINGP(xform)) {
-	fdtype checked=check_string(xform,lexicon);
-	if (FD_STRINGP(checked)) return checked;
-	else {
-	  fd_decref(xform); return checked;}}
+        fdtype checked=check_string(xform,lexicon);
+        if (FD_STRINGP(checked)) return checked;
+        else {
+          fd_decref(xform); return checked;}}
       else {fd_decref(xform); return FD_EMPTY_CHOICE;}}
     else if (FD_VECTORP(replacement)) {
       fdtype rewrites=textrewrite(replacement,string,FD_INT2DTYPE(0),FD_VOID);
       if (FD_TRUEP(lexicon)) return rewrites;
       else if (FD_CHOICEP(rewrites)) {
-	fdtype accepted=FD_EMPTY_CHOICE;
-	FD_DO_CHOICES(rewrite,rewrites) {
-	  if (FD_STRINGP(rewrite)) {
-	    fdtype checked=check_string(rewrite,lexicon);
-	    if (FD_ABORTP(checked)) {
-	      fd_decref(rewrites); return checked;}
-	    fd_incref(checked);
+        fdtype accepted=FD_EMPTY_CHOICE;
+        FD_DO_CHOICES(rewrite,rewrites) {
+          if (FD_STRINGP(rewrite)) {
+            fdtype checked=check_string(rewrite,lexicon);
+            if (FD_ABORTP(checked)) {
+              fd_decref(rewrites); return checked;}
+            fd_incref(checked);
             FD_ADD_TO_CHOICE(accepted,checked);}}
-	fd_decref(rewrites);
-	return accepted;}
+        fd_decref(rewrites);
+        return accepted;}
       else if (FD_STRINGP(rewrites))
-	return check_string(rewrites,lexicon);
+        return check_string(rewrites,lexicon);
       else { fd_decref(rewrites); return FD_EMPTY_CHOICE;}}
     else return FD_EMPTY_CHOICE;
   else return FD_EMPTY_CHOICE;
@@ -1782,9 +1782,9 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
       return candidates;
     else {
       FD_DO_CHOICES(candidate,candidates)
-	if (check_string(candidate,lexicon)) {
-	  fd_incref(candidate);
-	  FD_ADD_TO_CHOICE(results,candidate);}
+        if (check_string(candidate,lexicon)) {
+          fd_incref(candidate);
+          FD_ADD_TO_CHOICE(results,candidate);}
       fd_decref(candidates);
       if (!(FD_EMPTY_CHOICEP(results))) return results;}}
   else if (FD_EMPTY_LISTP(rule))
@@ -1797,16 +1797,16 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(suff,suffixes)
       if (FD_STRINGP(suff)) {
-	FD_DO_CHOICES(repl,replacement)
-	  if ((FD_STRINGP(repl)) || (FD_VECTORP(repl)) ||
-	      (FD_APPLICABLEP(repl))) {
-	    fdtype result=apply_suffixrule(string,suff,repl,lexicon);
-	    if (FD_ABORTP(result)) {
-	      fd_decref(results); return result;}
-	    else {FD_ADD_TO_CHOICE(results,result);}}
-	  else {
-	    fd_decref(results);
-	    return fd_err(fd_BadMorphRule,"morphrule",NULL,rule);}}
+        FD_DO_CHOICES(repl,replacement)
+          if ((FD_STRINGP(repl)) || (FD_VECTORP(repl)) ||
+              (FD_APPLICABLEP(repl))) {
+            fdtype result=apply_suffixrule(string,suff,repl,lexicon);
+            if (FD_ABORTP(result)) {
+              fd_decref(results); return result;}
+            else {FD_ADD_TO_CHOICE(results,result);}}
+          else {
+            fd_decref(results);
+            return fd_err(fd_BadMorphRule,"morphrule",NULL,rule);}}
       else return fd_err(fd_BadMorphRule,"morphrule",NULL,rule);
     return results;}
   else if (FD_CHOICEP(rule)) {
@@ -1878,8 +1878,8 @@ static fdtype is_suffix_prim(fdtype suffix,fdtype string)
     u8_string string_data=FD_STRING_DATA(string);
     u8_string suffix_data=FD_STRING_DATA(suffix);
     if (strncmp(string_data+(string_len-suffix_len),
-		suffix_data,
-		suffix_len) == 0)
+                suffix_data,
+                suffix_len) == 0)
       return FD_TRUE;
     else return FD_FALSE;}
 }
@@ -1898,9 +1898,9 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
   int buflen=in->u8_inlim-in->u8_inptr, eof=0;
   int start=fd_text_search(pat,NULL,in->u8_inptr,0,buflen,FD_MATCH_BE_GREEDY);
   fdtype ends=((start>=0)?
-	       (fd_text_matcher
-		(pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):
-	       (FD_EMPTY_CHOICE));
+               (fd_text_matcher
+                (pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):
+               (FD_EMPTY_CHOICE));
   int end=getlongmatch(ends);
   fd_decref(ends);
   if ((start>=0)&&(end>start)&&
@@ -1917,13 +1917,13 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
       if (delta==0) {eof=1; break;}
       buflen=in->u8_inlim-in->u8_inptr;
       if (start<0)
-	start=fd_text_search
-	  (pat,NULL,in->u8_inptr,0,buflen,FD_MATCH_BE_GREEDY);
+        start=fd_text_search
+          (pat,NULL,in->u8_inptr,0,buflen,FD_MATCH_BE_GREEDY);
       if (start<0) continue;
       ends=((start>=0)?
-	    (fd_text_matcher
-	     (pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):
-	    (FD_EMPTY_CHOICE));
+            (fd_text_matcher
+             (pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):
+            (FD_EMPTY_CHOICE));
       new_end=getlongmatch(ends);
       if ((lim>0)&&(new_end>lim)) eof=1;
       else end=new_end;
@@ -1938,8 +1938,8 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
 /* Character-based escaped segmentation */
 
 static fdtype findsep_prim(fdtype string,fdtype sep,
-			   fdtype offset,fdtype limit,
-			   fdtype esc)
+                           fdtype offset,fdtype limit,
+                           fdtype esc)
 {
   int off, lim;
   int c=FD_CHARCODE(sep), e=FD_CHARCODE(esc);
@@ -1955,16 +1955,16 @@ static fdtype findsep_prim(fdtype string,fdtype sep,
     u8_byte *scan=start, *pos=strchr(scan,c);
     while ((pos) && (scan<limit)) {
       if (pos==start)
-	return FD_INT2DTYPE(u8_charoffset(str,(pos-str)));
+        return FD_INT2DTYPE(u8_charoffset(str,(pos-str)));
       else if (*(pos-1)==e) {
-	pos++; u8_sgetc(&pos); scan=pos; pos=strchr(scan,c);}
+        pos++; u8_sgetc(&pos); scan=pos; pos=strchr(scan,c);}
       else return FD_INT2DTYPE(u8_charoffset(str,(pos-str)));}
     return FD_FALSE;}
 }
 
 static fdtype splitsep_prim(fdtype string,fdtype sep,
-			    fdtype offset,fdtype limit,
-			    fdtype esc)
+                            fdtype offset,fdtype limit,
+                            fdtype esc)
 {
   int off, lim;
   int c=FD_CHARCODE(sep), e=FD_CHARCODE(esc);
@@ -1981,18 +1981,18 @@ static fdtype splitsep_prim(fdtype string,fdtype sep,
     u8_byte *scan=start, *pos=strchr(scan,c);
     if (pos)
       while ((scan) && (scan<limit)) {
-	if ((pos) && (pos>start) && (*(pos-1)==e)) {
-	  pos=strchr(pos+1,c);}
-	else if (pos==scan) {
-	  scan=pos+1; pos=strchr(scan,c);}
-	else  {
-	  fdtype seg=fd_extract_string(NULL,scan,pos);
-	  fdtype elt=fd_init_pair(NULL,seg,FD_EMPTY_LIST);
-	  if (FD_VOIDP(head)) head=pair=elt;
-	  else {
-	    FD_RPLACD(pair,elt); pair=elt;}
-	  if (pos) {scan=pos+1; pos=strchr(scan,c);}
-	  else scan=NULL;}}
+        if ((pos) && (pos>start) && (*(pos-1)==e)) {
+          pos=strchr(pos+1,c);}
+        else if (pos==scan) {
+          scan=pos+1; pos=strchr(scan,c);}
+        else  {
+          fdtype seg=fd_extract_string(NULL,scan,pos);
+          fdtype elt=fd_init_pair(NULL,seg,FD_EMPTY_LIST);
+          if (FD_VOIDP(head)) head=pair=elt;
+          else {
+            FD_RPLACD(pair,elt); pair=elt;}
+          if (pos) {scan=pos+1; pos=strchr(scan,c);}
+          else scan=NULL;}}
     else head=fd_init_pair(NULL,fd_incref(string),FD_EMPTY_LIST);
     return head;}
 }
@@ -2001,7 +2001,7 @@ static char *stdlib_escapes="ntrfab\\";
 static char *stdlib_unescaped="\n\t\r\f\a\b\\";
 
 static fdtype unslashify_prim(fdtype string,fdtype offset,fdtype limit_arg,
-			      fdtype dostd)
+                              fdtype dostd)
 {
   int off, lim; 
   u8_string sdata=FD_STRDATA(string), start, limit, split1;
@@ -2016,16 +2016,16 @@ static fdtype unslashify_prim(fdtype string,fdtype offset,fdtype limit_arg,
     while (scan) {
       u8_byte *split=strchr(scan,'\\');
       if ((!split) || (split>=limit)) {
-	u8_putn(&out,scan,limit-scan); break;}
+        u8_putn(&out,scan,limit-scan); break;}
       else {
-	int nc;
-	u8_putn(&out,scan,split-scan); scan=split+1;
-	nc=u8_sgetc(&scan);
-	if ((handle_stdlib) && (nc<0x80) && (isalpha(nc))) {
-	  char *cpos=strchr(stdlib_escapes,nc);
-	  if (cpos==NULL) {}
-	  else nc=stdlib_unescaped[cpos-stdlib_escapes];}
-	u8_putc(&out,nc);}}
+        int nc;
+        u8_putn(&out,scan,split-scan); scan=split+1;
+        nc=u8_sgetc(&scan);
+        if ((handle_stdlib) && (nc<0x80) && (isalpha(nc))) {
+          char *cpos=strchr(stdlib_escapes,nc);
+          if (cpos==NULL) {}
+          else nc=stdlib_unescaped[cpos-stdlib_escapes];}
+        u8_putc(&out,nc);}}
     return fd_stream2string(&out);}
   else if ((off==0) && (lim==FD_STRLEN(string)))
     return fd_incref(string);
@@ -2204,250 +2204,250 @@ void fd_init_texttools()
   fd_idefn(texttools_module,fd_make_cprim2("HMAC-SHA1",hmac_sha1_prim,2));
   fd_idefn(texttools_module,fd_make_cprim2("HMAC-SHA256",hmac_sha256_prim,2));
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("SOUNDEX",soundex_prim,1,
-			   fd_string_type,FD_VOID,
-			   -1,FD_FALSE));
+           fd_make_cprim2x("SOUNDEX",soundex_prim,1,
+                           fd_string_type,FD_VOID,
+                           -1,FD_FALSE));
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("METAPHONE",metaphone_prim,1,
-			   fd_string_type,FD_VOID,
-			   -1,FD_FALSE));
+           fd_make_cprim2x("METAPHONE",metaphone_prim,1,
+                           fd_string_type,FD_VOID,
+                           -1,FD_FALSE));
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("METAPHONE+",metaphone_plus_prim,1,
-			   fd_string_type,FD_VOID,
-			   -1,FD_FALSE));
+           fd_make_cprim2x("METAPHONE+",metaphone_plus_prim,1,
+                           fd_string_type,FD_VOID,
+                           -1,FD_FALSE));
   
   fd_idefn(texttools_module,fd_make_cprim1x("PORTER-STEM",stem_prim,1,
-					    fd_string_type,FD_VOID));
+                                            fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("DISEMVOWEL",disemvowel,1,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("DISEMVOWEL",disemvowel,1,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim1x("DEPUNCT",depunct,1,fd_string_type,FD_VOID));
+           fd_make_cprim1x("DEPUNCT",depunct,1,fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_ndprim(fd_make_cprim2("SEGMENT",segment_prim,1)));
+           fd_make_ndprim(fd_make_cprim2("SEGMENT",segment_prim,1)));
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("GETWORDS",getwords_prim,1,
-			   fd_string_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("GETWORDS",getwords_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("WORDS->VECTOR",getwordsv_prim,1,
-			   fd_string_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("WORDS->VECTOR",getwordsv_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim1("LIST->PHRASE",list2phrase_prim,1));
+           fd_make_cprim1("LIST->PHRASE",list2phrase_prim,1));
   fd_idefn(texttools_module,
-	   fd_make_cprim3x("SEQ->PHRASE",seq2phrase_prim,1,
-			   -1,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim3x("SEQ->PHRASE",seq2phrase_prim,1,
+                           -1,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim3x("VECTOR->FRAGS",vector2frags_prim,1,
-			   fd_vector_type,FD_VOID,
-			   -1,FD_INT2DTYPE(2),
-			   -1,FD_TRUE));
+           fd_make_cprim3x("VECTOR->FRAGS",vector2frags_prim,1,
+                           fd_vector_type,FD_VOID,
+                           -1,FD_INT2DTYPE(2),
+                           -1,FD_TRUE));
   fd_idefn(texttools_module,
-	   fd_make_cprim1x("DECODE-ENTITIES",decode_entities_prim,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("DECODE-ENTITIES",decode_entities_prim,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("ENCODE-ENTITIES",encode_entities_prim,1,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("ENCODE-ENTITIES",encode_entities_prim,1,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim3x("COLUMNIZE",columnize_prim,2,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID,
-			   -1,FD_FALSE));
+           fd_make_cprim3x("COLUMNIZE",columnize_prim,2,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID,
+                           -1,FD_FALSE));
   
   fd_idefn(texttools_module,
-	   fd_make_cprim3x("HAS-WORD-SUFFIX?",has_word_suffix,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim3x("HAS-WORD-SUFFIX?",has_word_suffix,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim3x("HAS-WORD-PREFIX?",has_word_prefix,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim3x("HAS-WORD-PREFIX?",has_word_prefix,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("FIRSTWORD",firstword_prim,1,
-			   fd_string_type,FD_VOID,
-			   -1,FD_TRUE));
+           fd_make_cprim2x("FIRSTWORD",firstword_prim,1,
+                           fd_string_type,FD_VOID,
+                           -1,FD_TRUE));
 
   fd_idefn(texttools_module,
-	   fd_make_cprim1x("ISSPACE%",isspace_percentage,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("ISSPACE%",isspace_percentage,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim1x("ISALPHA%",isalpha_percentage,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("ISALPHA%",isalpha_percentage,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim1x("ISALPHALEN",isalphalen,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("ISALPHALEN",isalphalen,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim1x("MARKUP%",ismarkup_percentage,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("MARKUP%",ismarkup_percentage,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim1x("COUNT-WORDS",count_words,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("COUNT-WORDS",count_words,1,
+                           fd_string_type,FD_VOID));
 
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("STRIP-MARKUP",strip_markup,1,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim2x("STRIP-MARKUP",strip_markup,1,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("TEXTMATCHER",textmatcher,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("TEXTMATCHER",textmatcher,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("TEXTMATCH",textmatch,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("TEXTMATCH",textmatch,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("TEXTSEARCH",textsearch,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("TEXTSEARCH",textsearch,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("TEXTRACT",textract,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("TEXTRACT",textract,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("TEXTREWRITE",textrewrite,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("TEXTREWRITE",textrewrite,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_ndprim(fd_make_cprim2("TEXTFILTER",textfilter,2)));
+           fd_make_ndprim(fd_make_cprim2("TEXTFILTER",textfilter,2)));
   fd_idefn(texttools_module,
-	   fd_make_ndprim
-	   (fd_make_cprim4x
-	    ("STRING-MATCHES?",string_matches,2,
-	     -1,FD_VOID,-1,FD_VOID,
-	     fd_fixnum_type,FD_INT2DTYPE(0),
-	     fd_fixnum_type,FD_VOID)));
+           fd_make_ndprim
+           (fd_make_cprim4x
+            ("STRING-MATCHES?",string_matches,2,
+             -1,FD_VOID,-1,FD_VOID,
+             fd_fixnum_type,FD_INT2DTYPE(0),
+             fd_fixnum_type,FD_VOID)));
   fd_idefn(texttools_module,
-	   fd_make_ndprim
-	   (fd_make_cprim4x
-	    ("STRING-CONTAINS?",string_contains,2,
-	     -1,FD_VOID,-1,FD_VOID,
-	     fd_fixnum_type,FD_INT2DTYPE(0),
-	     fd_fixnum_type,FD_VOID)));
+           fd_make_ndprim
+           (fd_make_cprim4x
+            ("STRING-CONTAINS?",string_contains,2,
+             -1,FD_VOID,-1,FD_VOID,
+             fd_fixnum_type,FD_INT2DTYPE(0),
+             fd_fixnum_type,FD_VOID)));
   fd_idefn(texttools_module,
-	   fd_make_ndprim
-	   (fd_make_cprim4x
-	    ("STRING-STARTS-WITH?",string_starts_with,2,
-	     -1,FD_VOID,-1,FD_VOID,
-	     fd_fixnum_type,FD_INT2DTYPE(0),
-	     fd_fixnum_type,FD_VOID)));
+           fd_make_ndprim
+           (fd_make_cprim4x
+            ("STRING-STARTS-WITH?",string_starts_with,2,
+             -1,FD_VOID,-1,FD_VOID,
+             fd_fixnum_type,FD_INT2DTYPE(0),
+             fd_fixnum_type,FD_VOID)));
   fd_idefn(texttools_module,
-	   fd_make_ndprim
-	   (fd_make_cprim4x
-	    ("STRING-ENDS-WITH?",string_ends_with,2,
-	     -1,FD_VOID,-1,FD_VOID,
-	     fd_fixnum_type,FD_INT2DTYPE(0),
-	     fd_fixnum_type,FD_VOID)));
+           fd_make_ndprim
+           (fd_make_cprim4x
+            ("STRING-ENDS-WITH?",string_ends_with,2,
+             -1,FD_VOID,-1,FD_VOID,
+             fd_fixnum_type,FD_INT2DTYPE(0),
+             fd_fixnum_type,FD_VOID)));
   
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("TEXT->FRAME",text2frame,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("TEXT->FRAME",text2frame,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("TEXT->FRAMES",text2frames,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("TEXT->FRAMES",text2frames,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
 
   fd_idefn(texttools_module,
-	   fd_make_cprim5x("TEXTSUBST",textsubst,2,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim5x("TEXTSUBST",textsubst,2,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("GATHER",textgather,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("GATHER",textgather,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("GATHER*",textgather_star,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("GATHER*",textgather_star,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("GATHERSUBST",gathersubst,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("GATHERSUBST",gathersubst,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("GATHERSUBST*",gathersubst_star,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("GATHERSUBST*",gathersubst_star,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
 
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("GATHER->LIST",textgather2list,2,
-			   -1,FD_VOID,fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim4x("GATHER->LIST",textgather2list,2,
+                           -1,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
   fd_defalias(texttools_module,"GATHER->SEQ","GATHER->LIST");
 
   fd_idefn(texttools_module,
-	   fd_make_cprim5x("TEXTSLICE",textslice,2,
-			   fd_string_type,FD_VOID,-1,FD_VOID,
-			   -1,FD_TRUE,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim5x("TEXTSLICE",textslice,2,
+                           fd_string_type,FD_VOID,-1,FD_VOID,
+                           -1,FD_TRUE,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_VOID));
 
   fd_defspecial(texttools_module,"TEXTCLOSURE",textclosure_handler);
   fd_idefn(texttools_module,fd_make_cprim1("TEXTCLOSURE?",textclosurep,1));
 
   fd_idefn(texttools_module,
-	   fd_make_cprim3x("READ-MATCH",read_match,2,
-			   fd_port_type,FD_VOID,
-			   -1,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim3x("READ-MATCH",read_match,2,
+                           fd_port_type,FD_VOID,
+                           -1,FD_VOID,
+                           -1,FD_VOID));
 
 
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("MATCHDEF!",matchdef_prim,2,
-			   fd_symbol_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("MATCHDEF!",matchdef_prim,2,
+                           fd_symbol_type,FD_VOID,-1,FD_VOID));
 
 
   fd_idefn(texttools_module,
-	   fd_make_cprim3x("MORPHRULE",morphrule,2,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID,
-			   -1,FD_TRUE));
+           fd_make_cprim3x("MORPHRULE",morphrule,2,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID,
+                           -1,FD_TRUE));
 
   /* Escaped separator parsing */
   fd_idefn(texttools_module,
-	   fd_make_cprim5x("FINDSEP",findsep_prim,2,
-			   fd_string_type,FD_VOID,
-			   fd_character_type,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID,
-			   fd_character_type,FD_CODE2CHAR('\\')));
+           fd_make_cprim5x("FINDSEP",findsep_prim,2,
+                           fd_string_type,FD_VOID,
+                           fd_character_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID,
+                           fd_character_type,FD_CODE2CHAR('\\')));
   fd_idefn(texttools_module,
-	   fd_make_cprim5x("SPLITSEP",splitsep_prim,2,
-			   fd_string_type,FD_VOID,
-			   fd_character_type,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID,
-			   fd_character_type,FD_CODE2CHAR('\\')));
+           fd_make_cprim5x("SPLITSEP",splitsep_prim,2,
+                           fd_string_type,FD_VOID,
+                           fd_character_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID,
+                           fd_character_type,FD_CODE2CHAR('\\')));
   fd_idefn(texttools_module,
-	   fd_make_cprim4x("UNSLASHIFY",unslashify_prim,1,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID,
-			   -1,FD_FALSE));
+           fd_make_cprim4x("UNSLASHIFY",unslashify_prim,1,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID,
+                           -1,FD_FALSE));
 
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("IS-PREFIX?",is_prefix_prim,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("IS-PREFIX?",is_prefix_prim,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-	   fd_make_cprim2x("IS-SUFFIX?",is_suffix_prim,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("IS-SUFFIX?",is_suffix_prim,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
 
 
   star_symbol=fd_intern("*");
