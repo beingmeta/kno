@@ -42,10 +42,10 @@ static fdtype parse_control_spec
       return fd_err(fd_TooFewExpressions,NULL,NULL,control_expr);
     else if (!(FD_SYMBOLP(var)))
       return fd_err(fd_SyntaxError,
-		    _("identifier is not a symbol"),NULL,control_expr);
+                    _("identifier is not a symbol"),NULL,control_expr);
     else if (!((FD_VOIDP(ivar)) || (FD_SYMBOLP(ivar))))
       return fd_err(fd_SyntaxError,
-		    _("identifier is not a symbol"),NULL,control_expr);
+                    _("identifier is not a symbol"),NULL,control_expr);
     val=fasteval(val_expr,env);
     if (FD_ABORTP(val)) {
       *value=val;
@@ -104,29 +104,29 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
     int i=0; FD_DO_CHOICES(elt,choices) {
       fd_incref(elt);
       if (envstruct.copy) {
-	fd_set_value(var,elt,envstruct.copy);
-	if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+        fd_set_value(var,elt,envstruct.copy);
+        if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
       else {
-	*vloc=elt;
-	if (iloc) *iloc=FD_INT2DTYPE(i);}
+        *vloc=elt;
+        if (iloc) *iloc=FD_INT2DTYPE(i);}
       {FD_DOBODY(step,expr,2) {
-	fdtype val=fasteval(step,&envstruct);
-	if (FD_THROWP(val)) {
-	  fd_decref(choices);
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  return val;}
-	else if (FD_ABORTP(val)) {
-	  fdtype env;
-	  if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
-	  else env=retenv1(var,elt);
-	  fd_decref(choices);
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_push_error_context(":DO-CHOICES",env);
-	  return val;}
-	fd_decref(val);}}
+        fdtype val=fasteval(step,&envstruct);
+        if (FD_THROWP(val)) {
+          fd_decref(choices);
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          return val;}
+        else if (FD_ABORTP(val)) {
+          fdtype env;
+          if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
+          else env=retenv1(var,elt);
+          fd_decref(choices);
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          fd_push_error_context(":DO-CHOICES",env);
+          return val;}
+        fd_decref(val);}}
       if (envstruct.copy) {
-	fd_recycle_environment(envstruct.copy);
-	envstruct.copy=NULL;}
+        fd_recycle_environment(envstruct.copy);
+        envstruct.copy=NULL;}
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
@@ -172,31 +172,31 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
     int i=0; FD_DO_CHOICES(elt,choices) {
       fdtype val=FD_VOID;
       if (envstruct.copy) {
-	fd_set_value(var,elt,envstruct.copy);
-	if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+        fd_set_value(var,elt,envstruct.copy);
+        if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
       else {
-	*vloc=elt; fd_incref(elt);
-	if (iloc) *iloc=FD_INT2DTYPE(i);}
+        *vloc=elt; fd_incref(elt);
+        if (iloc) *iloc=FD_INT2DTYPE(i);}
       {FD_DOBODY(subexpr,expr,2) {
-	  fd_decref(val);
-	  val=fasteval(subexpr,&envstruct);
-	  if (FD_THROWP(val)) {
-	    fd_decref(choices);
-	    if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	    return val;}
-	  else if (FD_ABORTP(val)) {
-	    fdtype env;
-	    if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
-	    else env=retenv1(var,elt);
-	    fd_decref(choices);
-	    if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	    fd_push_error_context(":TRY-CHOICES",env);
-	    return val;}}}
+          fd_decref(val);
+          val=fasteval(subexpr,&envstruct);
+          if (FD_THROWP(val)) {
+            fd_decref(choices);
+            if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+            return val;}
+          else if (FD_ABORTP(val)) {
+            fdtype env;
+            if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
+            else env=retenv1(var,elt);
+            fd_decref(choices);
+            if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+            fd_push_error_context(":TRY-CHOICES",env);
+            return val;}}}
       if (!(FD_EMPTY_CHOICEP(val))) {
-	FD_STOP_DO_CHOICES;
-	fd_decref(choices); fd_decref(*vloc); *vloc=FD_VOID;
-	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	return val;}
+        FD_STOP_DO_CHOICES;
+        fd_decref(choices); fd_decref(*vloc); *vloc=FD_VOID;
+        if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+        return val;}
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
@@ -242,32 +242,34 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
     int i=0; FD_DO_CHOICES(elt,choices) {
       fdtype val=FD_VOID;
       if (envstruct.copy) {
-	fd_set_value(var,elt,envstruct.copy);
-	if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+        fd_set_value(var,elt,envstruct.copy);
+        if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
       else {
-	*vloc=elt; fd_incref(elt);
-	if (iloc) *iloc=FD_INT2DTYPE(i);}
+        *vloc=elt; fd_incref(elt);
+        if (iloc) *iloc=FD_INT2DTYPE(i);}
       {FD_DOBODY(subexpr,expr,2) {
-	fd_decref(val);
-	val=fasteval(subexpr,&envstruct);
-	if (FD_THROWP(val)) {
-	  fd_decref(choices);
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_decref(results);
-	  return val;}
-	else if (FD_ABORTP(val)) {
-	  fdtype env;
-	  if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
-	  else env=retenv1(var,elt);
-	  fd_decref(choices);
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_push_error_context(":FOR-CHOICES",env);
-	  fd_decref(results);
-	  return val;}}}
+        fd_decref(val);
+        val=fasteval(subexpr,&envstruct);
+        if (FD_THROWP(val)) {
+          fd_decref(choices);
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          fd_decref(results);
+          FD_STOP_DO_CHOICES;
+          return val;}
+        else if (FD_ABORTP(val)) {
+          fdtype env;
+          if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
+          else env=retenv1(var,elt);
+          fd_decref(choices);
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          fd_push_error_context(":FOR-CHOICES",env);
+          fd_decref(results);
+          FD_STOP_DO_CHOICES;
+          return val;}}}
       FD_ADD_TO_CHOICE(results,val);
       if (envstruct.copy) {
-	fd_recycle_environment(envstruct.copy);
-	envstruct.copy=NULL;}
+        fd_recycle_environment(envstruct.copy);
+        envstruct.copy=NULL;}
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
@@ -314,32 +316,32 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
     int i=0; FD_DO_CHOICES(elt,choices) {
       fdtype val=FD_VOID;
       if (envstruct.copy) {
-	fd_set_value(var,elt,envstruct.copy);
-	if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+        fd_set_value(var,elt,envstruct.copy);
+        if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
       else {
-	*vloc=elt; fd_incref(elt);
-	if (iloc) *iloc=FD_INT2DTYPE(i);}
+        *vloc=elt; fd_incref(elt);
+        if (iloc) *iloc=FD_INT2DTYPE(i);}
       val=fasteval(test_expr,&envstruct);
       if (FD_THROWP(val)) {
-	fd_decref(choices);
-	fd_decref(results);
-	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	return val;}
+        fd_decref(choices);
+        fd_decref(results);
+        if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+        return val;}
       else if (FD_ABORTP(val)) {
-	fdtype env;
-	if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
-	else env=retenv1(var,elt);
-	fd_decref(choices);
-	if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	fd_push_error_context(":FILTER-CHOICES",env);
-	return val;}
+        fdtype env;
+        if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
+        else env=retenv1(var,elt);
+        fd_decref(choices);
+        if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+        fd_push_error_context(":FILTER-CHOICES",env);
+        return val;}
       else if (FD_FALSEP(val)) {}
       else {
-	fd_decref(val); fd_incref(elt);
-	FD_ADD_TO_CHOICE(results,elt);}
+        fd_decref(val); fd_incref(elt);
+        FD_ADD_TO_CHOICE(results,elt);}
       if (envstruct.copy) {
-	fd_recycle_environment(envstruct.copy);
-	envstruct.copy=NULL;}
+        fd_recycle_environment(envstruct.copy);
+        envstruct.copy=NULL;}
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     *vloc=FD_VOID;
@@ -363,9 +365,9 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
   fdtype control_spec=fd_get_arg(expr,1);
   fdtype bsize; int blocksize;
   if (!((FD_PAIRP(control_spec)) &&
-	(FD_SYMBOLP(FD_CAR(control_spec))) &&
-	(FD_PAIRP(FD_CDR(control_spec))) &&
-	(FD_PAIRP(FD_CDR(FD_CDR(control_spec))))))
+        (FD_SYMBOLP(FD_CAR(control_spec))) &&
+        (FD_PAIRP(FD_CDR(control_spec))) &&
+        (FD_PAIRP(FD_CDR(FD_CDR(control_spec))))))
     return fd_err(fd_SyntaxError,"dosubsets_handler",NULL,FD_VOID);
   var=FD_CAR(control_spec);
   count_var=fd_get_arg(control_spec,3);
@@ -399,68 +401,68 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
   else {
     int i=0, n=FD_CHOICE_SIZE(choices), n_blocks=1+n/blocksize;
     int all_atomicp=((FD_CHOICEP(choices)) ?
-		     (FD_ATOMIC_CHOICEP(choices)) : (0));
+                     (FD_ATOMIC_CHOICEP(choices)) : (0));
     const fdtype *data=
       ((FD_CHOICEP(choices))?(FD_CHOICE_DATA(choices)):(NULL)); 
     if ((n%blocksize)==0) n_blocks--;
     while (i<n_blocks) {
       fdtype v; int free_v=0;
       if ((FD_CHOICEP(choices)) && (n_blocks>1)) {
-	const fdtype *read=&(data[i*blocksize]), *limit=read+blocksize; 
-	struct FD_CHOICE *subset=fd_alloc_choice(blocksize); int atomicp=1;
-	fdtype *write=((fdtype *)(FD_XCHOICE_DATA(subset)));
-	if (limit>(data+n)) limit=data+n;
-	if (all_atomicp) 
-	  while (read<limit) *write++=*read++;
-	else while (read<limit) {
-	  fdtype v=*read++;
-	  if ((atomicp) && (FD_CONSP(v))) atomicp=0;
-	  *write++=v;}
-	{FD_INIT_XCHOICE(subset,write-FD_XCHOICE_DATA(subset),atomicp);}
-	v=(fdtype)subset; free_v=1;}
+        const fdtype *read=&(data[i*blocksize]), *limit=read+blocksize; 
+        struct FD_CHOICE *subset=fd_alloc_choice(blocksize); int atomicp=1;
+        fdtype *write=((fdtype *)(FD_XCHOICE_DATA(subset)));
+        if (limit>(data+n)) limit=data+n;
+        if (all_atomicp) 
+          while (read<limit) *write++=*read++;
+        else while (read<limit) {
+          fdtype v=*read++;
+          if ((atomicp) && (FD_CONSP(v))) atomicp=0;
+          *write++=v;}
+        {FD_INIT_XCHOICE(subset,write-FD_XCHOICE_DATA(subset),atomicp);}
+        v=(fdtype)subset; free_v=1;}
       else v=choices;
       if (envstruct.copy) {
-	fd_set_value(var,v,envstruct.copy);
-	if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+        fd_set_value(var,v,envstruct.copy);
+        if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
       else {*vloc=v; if (iloc) *iloc=FD_INT2DTYPE(i);}
       {FD_DOBODY(subexpr,expr,2) {
-	fdtype val=fasteval(subexpr,&envstruct);
-	if (FD_THROWP(val)) {
-	  fd_decref(choices);
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  if (free_v) fd_decref(v);}
-	else if (FD_ABORTP(val)) {
-	  fdtype env;
-	  if (iloc) env=retenv2(var,v,count_var,FD_INT2DTYPE(i));
-	  else env=retenv1(var,v);
-	  fd_decref(choices);
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  if (free_v) fd_decref(v);
-	  fd_push_error_context(":DO-SUBSETS",env);
-	  return val;}
-	fd_decref(val);}}
+        fdtype val=fasteval(subexpr,&envstruct);
+        if (FD_THROWP(val)) {
+          fd_decref(choices);
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          if (free_v) fd_decref(v);}
+        else if (FD_ABORTP(val)) {
+          fdtype env;
+          if (iloc) env=retenv2(var,v,count_var,FD_INT2DTYPE(i));
+          else env=retenv1(var,v);
+          fd_decref(choices);
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          if (free_v) fd_decref(v);
+          fd_push_error_context(":DO-SUBSETS",env);
+          return val;}
+        fd_decref(val);}}
       if (envstruct.copy) {
-	fd_recycle_environment(envstruct.copy);
-	envstruct.copy=NULL;}
+        fd_recycle_environment(envstruct.copy);
+        envstruct.copy=NULL;}
       if (free_v) {
-	struct FD_CHOICE *subset=(struct FD_CHOICE *)v;
-	/* If our temporary choice ended up being stored somewhere, we
-	   need to incref its elements, which we didn't do earlier.
-	   This solution will leak in some (hopefully) rare
-	   multi-threaded cases where a separate thread grabs this
-	   value before this test but relinquishes it before it's
-	   done.  In that case, some elements may be incref'd though
-	   there is no longer a valid pointer to them.  We could
-	   shorten that window further by checking
-	   FD_CONS_REFCOUNT(subset) before each incref below, but
-	   that's probably overkill. */
-	if (FD_CONS_REFCOUNT(subset)>1) {
-	  if (!(FD_XCHOICE_ATOMICP(subset))) {
-	    const fdtype *scan=FD_XCHOICE_DATA(subset),
-	      *limit=scan+FD_XCHOICE_SIZE(subset);
-	    while (scan<limit) {fdtype v=*scan++; fd_incref(v);}}
-	  fd_decref(v);}
-	else u8_free((struct FD_CHOICE *)v);}
+        struct FD_CHOICE *subset=(struct FD_CHOICE *)v;
+        /* If our temporary choice ended up being stored somewhere, we
+           need to incref its elements, which we didn't do earlier.
+           This solution will leak in some (hopefully) rare
+           multi-threaded cases where a separate thread grabs this
+           value before this test but relinquishes it before it's
+           done.  In that case, some elements may be incref'd though
+           there is no longer a valid pointer to them.  We could
+           shorten that window further by checking
+           FD_CONS_REFCOUNT(subset) before each incref below, but
+           that's probably overkill. */
+        if (FD_CONS_REFCOUNT(subset)>1) {
+          if (!(FD_XCHOICE_ATOMICP(subset))) {
+            const fdtype *scan=FD_XCHOICE_DATA(subset),
+              *limit=scan+FD_XCHOICE_SIZE(subset);
+            while (scan<limit) {fdtype v=*scan++; fd_incref(v);}}
+          fd_decref(v);}
+        else u8_free((struct FD_CHOICE *)v);}
       i++;}}
   fd_decref(choices);
   fd_destroy_rwlock(&(bindings.rwlock));
@@ -499,7 +501,7 @@ static fdtype getmagnitude(fdtype val,fdtype magfn)
       return fd_get(magfn,val,FD_EMPTY_CHOICE);
     default:
       if (FD_APPLICABLEP(magfn))
-	return fd_finish_call(fd_dapply(magfn,1,&val));
+        return fd_finish_call(fd_dapply(magfn,1,&val));
       else return fd_get(val,magfn,FD_EMPTY_CHOICE);}}
 }
 
@@ -512,20 +514,20 @@ static fdtype smallest_handler(fdtype elts,fdtype magnitude)
     else if (FD_VOIDP(top_score))
       if (FD_EMPTY_CHOICEP(score)) {}
       else {
-	top=fd_incref(elt);
-	top_score=score;}
+        top=fd_incref(elt);
+        top_score=score;}
     else if (FD_EMPTY_CHOICEP(score)) {}
     else {
       int comparison=compare_lisp(score,top_score);
       if (comparison>0) {}
       else if (comparison == 0) {
-	fd_incref(elt);
-	FD_ADD_TO_CHOICE(top,elt);
-	fd_decref(score);}
+        fd_incref(elt);
+        FD_ADD_TO_CHOICE(top,elt);
+        fd_decref(score);}
       else {
-	fd_decref(top);
-	top=fd_incref(elt);
-	top_score=score;}}}
+        fd_decref(top);
+        top=fd_incref(elt);
+        top_score=score;}}}
   fd_decref(top_score);
   return top;
 }
@@ -539,20 +541,20 @@ static fdtype largest_handler(fdtype elts,fdtype magnitude)
     else if (FD_VOIDP(top_score))
       if (FD_EMPTY_CHOICEP(score)) {}
       else {
-	top=fd_incref(elt);
-	top_score=score;}
+        top=fd_incref(elt);
+        top_score=score;}
     else if (FD_EMPTY_CHOICEP(score)) {}
     else {
       int comparison=compare_lisp(score,top_score);
       if (comparison<0) {}
       else if (comparison == 0) {
-	fd_incref(elt);
-	FD_ADD_TO_CHOICE(top,elt);
-	fd_decref(score);}
+        fd_incref(elt);
+        FD_ADD_TO_CHOICE(top,elt);
+        fd_decref(score);}
       else {
-	fd_decref(top);
-	top=fd_incref(elt);
-	top_score=score;}}}
+        fd_decref(top);
+        top=fd_incref(elt);
+        top_score=score;}}}
   fd_decref(top_score);
   return top;
 }
@@ -737,8 +739,8 @@ static fdtype exists_lexpr(int n,fdtype *nd_args)
        int retval=test_exists(f,0,n-1,nd_args+1,d_args);
        if (retval<0) return FD_ERROR_VALUE;
        else if (retval) {
-	 u8_free(d_args);
-	 return FD_TRUE;}}
+         u8_free(d_args);
+         return FD_TRUE;}}
      else {
        u8_free(d_args);
        return fd_type_error(_("function"),"exists_lexpr",nd_args[0]);}
@@ -794,8 +796,8 @@ static fdtype forall_lexpr(int n,fdtype *nd_args)
        int retval=test_forall(f,0,n-1,nd_args+1,d_args);
        if (retval<0) return FD_ERROR_VALUE;
        else if (retval) {
-	 u8_free(d_args);
-	 return FD_TRUE;}}
+         u8_free(d_args);
+         return FD_TRUE;}}
      else {
        u8_free(d_args);
        return fd_type_error(_("function"),"exists_lexpr",nd_args[0]);}
@@ -892,31 +894,31 @@ static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start,fdtype part)
     FD_DO_CHOICES(each,choice) {
       fdtype items=get_part(each,part);
       if (FD_ABORTP(items)) {
-	FD_STOP_DO_CHOICES;
-	fd_decref(state);
-	return items;}
+        FD_STOP_DO_CHOICES;
+        fd_decref(state);
+        return items;}
       else if (FD_VOIDP(state)) state=fd_incref(items);
       else if (FD_EMPTY_CHOICEP(items)) {}
       else if (FD_CHOICEP(items)) {
-	FD_DO_CHOICES(item,items) {
-	  fdtype rail[2], next_state;
-	  rail[0]=item; rail[1]=state;
-	  next_state=fd_apply(fn,2,rail);
-	  if (FD_ABORTP(next_state)) {
-	    fd_decref(state); fd_decref(items);
-	    FD_STOP_DO_CHOICES;
-	    return next_state;}
-	  fd_decref(state); state=next_state;}}
+        FD_DO_CHOICES(item,items) {
+          fdtype rail[2], next_state;
+          rail[0]=item; rail[1]=state;
+          next_state=fd_apply(fn,2,rail);
+          if (FD_ABORTP(next_state)) {
+            fd_decref(state); fd_decref(items);
+            FD_STOP_DO_CHOICES;
+            return next_state;}
+          fd_decref(state); state=next_state;}}
       else {
-	fdtype item=items;
-	fdtype rail[2], next_state;
-	rail[0]=item; rail[1]=state;
-	next_state=fd_apply(fn,2,rail);
-	if (FD_ABORTP(next_state)) {
-	  fd_decref(state); fd_decref(items);
-	  FD_STOP_DO_CHOICES;
-	  return next_state;}
-	fd_decref(state); state=next_state;}
+        fdtype item=items;
+        fdtype rail[2], next_state;
+        rail[0]=item; rail[1]=state;
+        next_state=fd_apply(fn,2,rail);
+        if (FD_ABORTP(next_state)) {
+          fd_decref(state); fd_decref(items);
+          FD_STOP_DO_CHOICES;
+          return next_state;}
+        fd_decref(state); state=next_state;}
       fd_decref(items);}
     return state;}
   else if (!(FD_APPLICABLEP(fn)))
@@ -943,8 +945,8 @@ static fdtype xreduce_choice
     FD_DO_CHOICES(rfn,reducefn) {
       fdtype v=xreduce_choice(choice,rfn,mapfn,start);
       if (FD_ABORTP(v)) {
-	fd_decref(result); FD_STOP_DO_CHOICES;
-	return result;}
+        fd_decref(result); FD_STOP_DO_CHOICES;
+        return result;}
       else {FD_ADD_TO_CHOICE(result,v);}}
     return result;}
   else if (FD_CHOICEP(mapfn)) {
@@ -952,26 +954,26 @@ static fdtype xreduce_choice
     FD_DO_CHOICES(mfn,mapfn) {
       fdtype v=xreduce_choice(choice,reducefn,mfn,start);
       if (FD_ABORTP(v)) {
-	fd_decref(result); FD_STOP_DO_CHOICES;
-	return result;}
+        fd_decref(result); FD_STOP_DO_CHOICES;
+        return result;}
       else {FD_ADD_TO_CHOICE(result,v);}}
     return result;}
   else if (FD_APPLICABLEP(reducefn)) {
     fdtype state=((FD_VOIDP(start))?(start):(apply_map(mapfn,start)));
     FD_DO_CHOICES(item,choice) 
       if (FD_ABORTP(state)) {
-	FD_STOP_DO_CHOICES;
-	return state;}
+        FD_STOP_DO_CHOICES;
+        return state;}
       else if (FD_VOIDP(state))
-	state=apply_map(mapfn,item);
+        state=apply_map(mapfn,item);
       else {
-	fdtype item_val=apply_map(mapfn,item);
-	if (!((FD_VOIDP(item_val)) || (FD_EMPTY_CHOICEP(item_val)))) {
-	  fdtype rail[2], next_state;
-	  rail[0]=item_val; rail[1]=state;
-	  next_state=fd_apply(reducefn,2,rail);
-	  fd_decref(item_val); fd_decref(state);
-	  state=next_state;}}
+        fdtype item_val=apply_map(mapfn,item);
+        if (!((FD_VOIDP(item_val)) || (FD_EMPTY_CHOICEP(item_val)))) {
+          fdtype rail[2], next_state;
+          rail[0]=item_val; rail[1]=state;
+          next_state=fd_apply(reducefn,2,rail);
+          fd_decref(item_val); fd_decref(state);
+          state=next_state;}}
     return state;}
   else return fd_type_error(_("function"),"xreduce_choice",reducefn);
 }
@@ -1009,8 +1011,8 @@ static fdtype samplen(fdtype x,fdtype count)
       const fdtype *data=FD_CHOICE_DATA(normal);
       int j=0; fd_init_hashset(&h,n*3,FD_STACK_CONS);
       while (j<howmany) {
-	int i=u8_random(n);
-	if (fd_hashset_mod(&h,data[i],1)) j++;}
+        int i=u8_random(n);
+        if (fd_hashset_mod(&h,data[i],1)) j++;}
       fd_decref(normal);
       return fd_hashset_elts(&h,1);}
     else return FD_EMPTY_CHOICE;}
@@ -1030,23 +1032,23 @@ static fdtype pickn(fdtype x,fdtype count,fdtype offset)
     else start=u8_random(n-howmany);
     if (n) {
       struct FD_CHOICE *base=
-	(FD_GET_CONS(normal,fd_choice_type,struct FD_CHOICE *));
+        (FD_GET_CONS(normal,fd_choice_type,struct FD_CHOICE *));
       struct FD_CHOICE *result=fd_alloc_choice(howmany);
       const fdtype *read=FD_XCHOICE_DATA(base)+start;
       fdtype *write=(fdtype *)FD_XCHOICE_DATA(result);
       if (FD_XCHOICE_ATOMICP(base)) {
-	memcpy(write,read,sizeof(fdtype)*howmany);
-	fd_decref(normal);
-	return fd_init_choice(result,howmany,NULL,FD_CHOICE_ISATOMIC);}
+        memcpy(write,read,sizeof(fdtype)*howmany);
+        fd_decref(normal);
+        return fd_init_choice(result,howmany,NULL,FD_CHOICE_ISATOMIC);}
       else {
-	int atomicp=1; const fdtype *readlim=read+howmany;
-	while (read<readlim) {
-	  fdtype v=*read++;
-	  if (FD_ATOMICP(v)) *write++=v;
-	  else {atomicp=0; fd_incref(v); *write++=v;}}
-	fd_decref(normal);
-	return fd_init_choice(result,howmany,NULL,
-			      ((atomicp)?(FD_CHOICE_ISATOMIC):(0)));}}
+        int atomicp=1; const fdtype *readlim=read+howmany;
+        while (read<readlim) {
+          fdtype v=*read++;
+          if (FD_ATOMICP(v)) *write++=v;
+          else {atomicp=0; fd_incref(v); *write++=v;}}
+        fd_decref(normal);
+        return fd_init_choice(result,howmany,NULL,
+                              ((atomicp)?(FD_CHOICE_ISATOMIC):(0)));}}
     else return FD_EMPTY_CHOICE;}
   else return fd_type_error("integer","topn",count);
 }
@@ -1062,9 +1064,9 @@ static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse,int lexsort)
     FD_DO_CHOICES(elt,choices) {
       fdtype value=_fd_apply_keyfn(elt,keyfn);
       if (FD_ABORTP(value)) {
-	int j=0; while (j<i) {fd_decref(sentries[j].value); j++;}
-	u8_free(sentries); u8_free(vecdata);
-	return value;}
+        int j=0; while (j<i) {fd_decref(sentries[j].value); j++;}
+        u8_free(sentries); u8_free(vecdata);
+        return value;}
       sentries[i].value=elt;
       sentries[i].key=value;
       i++;}
@@ -1134,12 +1136,12 @@ static fdtype pick_gt_prim(fdtype items,fdtype num,fdtype checktype)
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(item,items)
       if (FD_NUMBERP(item))
-	if (fd_numcompare(item,lower_bound)>0) {
-	  fd_incref(item);
-	  FD_ADD_TO_CHOICE(results,item);}
-	else {}
+        if (fd_numcompare(item,lower_bound)>0) {
+          fd_incref(item);
+          FD_ADD_TO_CHOICE(results,item);}
+        else {}
       else if (checktype==FD_TRUE)
-	return fd_type_error("number","pick_gt_prim",item);
+        return fd_type_error("number","pick_gt_prim",item);
       else {}
     return results;
   }
@@ -1203,7 +1205,7 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_defspecial(fd_scheme_module,"DO-SUBSETS",dosubsets_handler);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("CHOICE",choice_prim,0)));
+           fd_make_ndprim(fd_make_cprimn("CHOICE",choice_prim,0)));
   fd_idefn(fd_scheme_module,fd_make_cprim0("FAIL",fail_prim,0));
   {
     fdtype qc_prim=
@@ -1220,17 +1222,17 @@ FD_EXPORT void fd_init_choicefns_c()
   }
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("INTERSECTION",intersection_lexpr,1)));
+           fd_make_ndprim(fd_make_cprimn("INTERSECTION",intersection_lexpr,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("UNION",union_lexpr,1)));
+           fd_make_ndprim(fd_make_cprimn("UNION",union_lexpr,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("DIFFERENCE",difference_lexpr,1)));
+           fd_make_ndprim(fd_make_cprimn("DIFFERENCE",difference_lexpr,1)));
 
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("SMALLEST",smallest_handler,1)));
+           fd_make_ndprim(fd_make_cprim2("SMALLEST",smallest_handler,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("LARGEST",largest_handler,1)));
+           fd_make_ndprim(fd_make_cprim2("LARGEST",largest_handler,1)));
 
   fd_defspecial(fd_scheme_module,"TRY",try_handler);
 
@@ -1244,18 +1246,18 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_defspecial(fd_scheme_module,"IFEXISTS",ifexists_handler);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("SATISFIED?",satisfiedp,1)));
+           fd_make_ndprim(fd_make_cprim1("SATISFIED?",satisfiedp,1)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("EXISTS?",existsp,1)));
+           fd_make_ndprim(fd_make_cprim1("EXISTS?",existsp,1)));
   
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("CHOICE-SIZE",choicesize_prim,1)));
+           fd_make_ndprim(fd_make_cprim1("CHOICE-SIZE",choicesize_prim,1)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("EXISTS",exists_lexpr,1)));
+           fd_make_ndprim(fd_make_cprimn("EXISTS",exists_lexpr,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("FORALL",forall_lexpr,1)));
+           fd_make_ndprim(fd_make_cprimn("FORALL",forall_lexpr,1)));
   fd_defspecial(fd_scheme_module,"WHENEXISTS",whenexists_handler);
 
   {
@@ -1267,57 +1269,57 @@ FD_EXPORT void fd_init_choicefns_c()
   fd_defspecial(fd_scheme_module,"QCHOICE?",qchoicep_handler);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("AMBIGUOUS?",ambiguousp,1)));
+           fd_make_ndprim(fd_make_cprim1("AMBIGUOUS?",ambiguousp,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("SINGLETON",singleton,1)));
+           fd_make_ndprim(fd_make_cprim1("SINGLETON",singleton,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2x("CHOICE-MAX",choice_max,2,
-					  -1,FD_VOID,fd_fixnum_type,FD_VOID)));
+           fd_make_ndprim(fd_make_cprim2x("CHOICE-MAX",choice_max,2,
+                                          -1,FD_VOID,fd_fixnum_type,FD_VOID)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("SIMPLIFY",simplify,1)));
+           fd_make_ndprim(fd_make_cprim1("SIMPLIFY",simplify,1)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("CHOICE->VECTOR",choice2vector,1)));
+           fd_make_ndprim(fd_make_cprim1("CHOICE->VECTOR",choice2vector,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("CHOICE->LIST",choice2list,1)));
+           fd_make_ndprim(fd_make_cprim1("CHOICE->LIST",choice2list,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim4("REDUCE-CHOICE",reduce_choice,2)));
+           fd_make_ndprim(fd_make_cprim4("REDUCE-CHOICE",reduce_choice,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim4("XREDUCE",xreduce_choice,3)));
+           fd_make_ndprim(fd_make_cprim4("XREDUCE",xreduce_choice,3)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("PICK-ONE",pickone,1)));
+           fd_make_ndprim(fd_make_cprim1("PICK-ONE",pickone,1)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("SORTED",sorted_prim,1)));
+           fd_make_ndprim(fd_make_cprim2("SORTED",sorted_prim,1)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("LEXSORTED",lexsorted_prim,1)));
+           fd_make_ndprim(fd_make_cprim2("LEXSORTED",lexsorted_prim,1)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("RSORTED",rsorted_prim,1)));
+           fd_make_ndprim(fd_make_cprim2("RSORTED",rsorted_prim,1)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3x("PICK>",pick_gt_prim,1,
-					  -1,FD_VOID,
-					  -1,FD_INT2DTYPE(0),
-					  -1,FD_FALSE)));
+           fd_make_ndprim(fd_make_cprim3x("PICK>",pick_gt_prim,1,
+                                          -1,FD_VOID,
+                                          -1,FD_INT2DTYPE(0),
+                                          -1,FD_FALSE)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("PICKOIDS",pick_oids_prim,1)));
+           fd_make_ndprim(fd_make_cprim1("PICKOIDS",pick_oids_prim,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("PICKNUMS",pick_nums_prim,1)));
+           fd_make_ndprim(fd_make_cprim1("PICKNUMS",pick_nums_prim,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("PICKSTRINGS",pick_strings_prim,1)));
+           fd_make_ndprim(fd_make_cprim1("PICKSTRINGS",pick_strings_prim,1)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2("GETRANGE",getrange_prim,1));
+           fd_make_cprim2("GETRANGE",getrange_prim,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("SAMPLE-N",samplen,2)));
+           fd_make_ndprim(fd_make_cprim2("SAMPLE-N",samplen,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3x("PICK-N",pickn,2,
-					  -1,FD_VOID,fd_fixnum_type,FD_VOID,
-					  fd_fixnum_type,FD_VOID)));
+           fd_make_ndprim(fd_make_cprim3x("PICK-N",pickn,2,
+                                          -1,FD_VOID,fd_fixnum_type,FD_VOID,
+                                          fd_fixnum_type,FD_VOID)));
 }
 
 /* Emacs local variables
