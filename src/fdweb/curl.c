@@ -268,7 +268,7 @@ static int curl_add_headers(fd_curl_handle ch,fdtype val)
       u8_free(hdr);}
     else if (FD_SLOTMAPP(v)) {
       fdtype keys=fd_getkeys(v);
-      FD_DO_CHOICES(key,keys)
+      FD_DO_CHOICES(key,keys) {
 	if ((retval>=0)&&((FD_STRINGP(key))||(FD_SYMBOLP(key)))) {
 	  fdtype kval=fd_get(v,key,FD_EMPTY_CHOICE); u8_string hdr=NULL;
 	  if (FD_SYMBOLP(key)) {
@@ -280,7 +280,7 @@ static int curl_add_headers(fd_curl_handle ch,fdtype val)
 	  else hdr=u8_mkstring("%s: %q",FD_STRDATA(key),kval);
 	  retval=curl_add_header(ch,hdr,NULL);
 	  u8_free(hdr);
-	  fd_decref(kval);}
+          fd_decref(kval);}}
       fd_decref(keys);}
     else {}
   return retval;
@@ -544,8 +544,8 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,INBUF *da
   if (data->size<0) cval=FD_EMPTY_CHOICE;
   else if ((fd_test(result,type_symbol,text_types))&&
            (!(fd_test(result,content_encoding_symbol,FD_VOID))))
-    if (data->size==0)
-      cval=fd_make_string(NULL,data->size,data->bytes);
+    if (data->size==0) 
+      cval=fd_block_string(data->size,data->bytes);
     else {
       fdtype chset=fd_get(result,charset_symbol,FD_VOID);
       if (FD_STRINGP(chset)) {
@@ -555,15 +555,15 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,INBUF *da
           unsigned char *scan=data->bytes;
           U8_INIT_OUTPUT(&out,data->size);
           u8_convert(enc,1,&out,&scan,data->bytes+data->size);
-          cval=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
-        else if (strstr(data->bytes,"\r\n"))
+          cval=fd_block_string(out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+        else if (strstr(data->bytes,"\r\n")) 
           cval=fd_lispstring(u8_convert_crlfs(data->bytes));
         else cval=fd_lispstring(u8_valid_copy(data->bytes));}
-      else if (strstr(data->bytes,"\r\n"))
+      else if (strstr(data->bytes,"\r\n")) 
         cval=fd_lispstring(u8_convert_crlfs(data->bytes));
       else cval=fd_lispstring(u8_valid_copy(data->bytes));
-      fd_decref(chset);
-      u8_free(data->bytes);}
+      u8_free(data->bytes);
+      fd_decref(chset);}
   else {
     cval=fd_make_packet(NULL,data->size,data->bytes);
     u8_free(data->bytes);}
