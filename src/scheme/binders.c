@@ -93,7 +93,7 @@ static fdtype set_default_handler(fdtype expr,fd_lispenv env)
       fdtype value=fd_eval(value_expr,env);
       if (FD_ABORTP(value)) return value;
       if (fd_set_value(symbol,value,env)==0)
-	fd_bind_value(symbol,value,env);
+        fd_bind_value(symbol,value,env);
       fd_decref(value);
       return FD_VOID;}
     else {
@@ -235,9 +235,9 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
       fdtype val_expr=fd_get_arg(bindexpr,1);
       fdtype value=fasteval(val_expr,env);
       if (FD_ABORTP(value)) 
-	return return_error_env(value,":LET",inner_env);
+        return return_error_env(value,":LET",inner_env);
       else {
-	vars[i]=var; vals[i]=value; i++;}}}
+        vars[i]=var; vals[i]=value; i++;}}}
     result=eval_body(":LET",expr,2,inner_env);
     free_environment(inner_env);
     return result;}
@@ -272,12 +272,12 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
       fdtype val_expr=fd_get_arg(bindexpr,1);
       fdtype value=fasteval(val_expr,inner_env);
       if (FD_ABORTP(value)) 
-	return return_error_env(value,":LET*",inner_env);
+        return return_error_env(value,":LET*",inner_env);
       else if (inner_env->copy) {
-	fd_bind_value(var,value,inner_env->copy);
-	fd_decref(value);}
+        fd_bind_value(var,value,inner_env->copy);
+        fd_decref(value);}
       else {
-	vars[i]=var; vals[i]=value;}
+        vars[i]=var; vals[i]=value;}
       i++;}}
     result=eval_body(":LET*",expr,2,inner_env);
     free_environment(inner_env);
@@ -319,13 +319,13 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       fdtype update_expr=fd_get_arg(bindexpr,2);
       fdtype value=fd_eval(value_expr,env);
       if (FD_ABORTP(value)) {
-	/* When there's an error here, there's no need to bind. */
-	free_environment(inner_env);
-	if (n>16) {u8_free(tmp); u8_free(updaters);}
-	return value;}
+        /* When there's an error here, there's no need to bind. */
+        free_environment(inner_env);
+        if (n>16) {u8_free(tmp); u8_free(updaters);}
+        return value;}
       else {
-	vars[i]=var; vals[i]=value; updaters[i]=update_expr;
-	i++;}}}
+        vars[i]=var; vals[i]=value; updaters[i]=update_expr;
+        i++;}}}
     /* First test */
     testval=fd_eval(testexpr,inner_env);
     if (FD_ABORTP(testval)) {
@@ -336,43 +336,43 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       int i=0;
       /* Execute the body */
       FD_DOBODY(bodyexpr,expr,3) {
-	fdtype result=fasteval(bodyexpr,inner_env);
-	if (FD_ABORTP(result)) {
-	  if (n>16) {u8_free(tmp); u8_free(updaters);}
-	  return return_error_env(result,":DO",inner_env);}
-	else fd_decref(result);}
+        fdtype result=fasteval(bodyexpr,inner_env);
+        if (FD_ABORTP(result)) {
+          if (n>16) {u8_free(tmp); u8_free(updaters);}
+          return return_error_env(result,":DO",inner_env);}
+        else fd_decref(result);}
       /* Do an update, storing new values in tmp[] to be consistent. */
       while (i < n) {
-	if (!(FD_VOIDP(updaters[i])))
-	  tmp[i]=fd_eval(updaters[i],inner_env);
-	else tmp[i]=fd_incref(vals[i]);
-	if (FD_ABORTP(tmp[i])) {
-	  /* GC the updated values you've generated so far.
-	     Note that tmp[i] (the exception) is not freed. */
-	  int j=0; while (j<i) {fd_decref(tmp[j]); j++;}
-	  /* Free the temporary arrays if neccessary */
-	  if (n>16) {u8_free(tmp); u8_free(updaters);}
-	  /* Return the error result, adding the expr and environment. */
-	  return return_error_env(tmp[i],":DO",inner_env);}
-	else i++;}
+        if (!(FD_VOIDP(updaters[i])))
+          tmp[i]=fd_eval(updaters[i],inner_env);
+        else tmp[i]=fd_incref(vals[i]);
+        if (FD_ABORTP(tmp[i])) {
+          /* GC the updated values you've generated so far.
+             Note that tmp[i] (the exception) is not freed. */
+          int j=0; while (j<i) {fd_decref(tmp[j]); j++;}
+          /* Free the temporary arrays if neccessary */
+          if (n>16) {u8_free(tmp); u8_free(updaters);}
+          /* Return the error result, adding the expr and environment. */
+          return return_error_env(tmp[i],":DO",inner_env);}
+        else i++;}
       /* Now, free the current values and replace them with the values
-	 from tmp[]. */
+         from tmp[]. */
       i=0; while (i < n) {
-	fdtype val=vals[i];
-	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
-	  fd_decref(val);}
-	vals[i]=tmp[i];
-	i++;}
+        fdtype val=vals[i];
+        if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+          fd_decref(val);}
+        vals[i]=tmp[i];
+        i++;}
       /* Free the testval and evaluate it again. */
       fd_decref(testval);
       if (envstruct.copy) {
-	fd_recycle_environment(envstruct.copy);
-	envstruct.copy=NULL;}
+        fd_recycle_environment(envstruct.copy);
+        envstruct.copy=NULL;}
       testval=fd_eval(testexpr,inner_env);
       if (FD_ABORTP(testval)) {
-	/* If necessary, free the temporary arrays. */
-	if (n>16) {u8_free(tmp); u8_free(updaters);}
-	return return_error_env(testval,":DO",inner_env);}}
+        /* If necessary, free the temporary arrays. */
+        if (n>16) {u8_free(tmp); u8_free(updaters);}
+        return return_error_env(testval,":DO",inner_env);}}
     /* Now we're done, so we set result to testval. */
     result=testval;
     if (FD_PAIRP(FD_CDR(exitexprs))) {
@@ -411,11 +411,11 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   if (fn->arity>0) {
     if (n==fn->n_vars) {
       int i=0; while (i<n) {
-	fdtype val=args[i];
-	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
-	  vals[i]=fd_incref(val);
-	else vals[i]=val;
-	i++;}}
+        fdtype val=args[i];
+        if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+          vals[i]=fd_incref(val);
+        else vals[i]=val;
+        i++;}}
     else if (n<fn->min_arity) 
       return fd_err(fd_TooFewArgs,fn->name,NULL,FD_VOID);
     else if (n>fn->arity) 
@@ -424,33 +424,33 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       /* This code handles argument defaults for sprocs */
       int i=0;
       if (FD_PAIRP(fn->arglist)) {
-	FD_DOLIST(arg,fn->arglist)
-	  if (i<n) {
-	    fdtype val=args[i];
-	    if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
-	      vals[i]=fd_incref(val);
-	    else vals[i]=val;
-	    i++;}
-	  else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
-	    /* This code handles argument defaults for sprocs */
-	    fdtype default_expr=FD_CADR(arg);
-	    fdtype default_value=fd_eval(default_expr,fn->env);
-	    vals[i]=default_value; i++;}
-	  else vals[i++]=FD_VOID;}
+        FD_DOLIST(arg,fn->arglist)
+          if (i<n) {
+            fdtype val=args[i];
+            if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+              vals[i]=fd_incref(val);
+            else vals[i]=val;
+            i++;}
+          else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
+            /* This code handles argument defaults for sprocs */
+            fdtype default_expr=FD_CADR(arg);
+            fdtype default_value=fd_eval(default_expr,fn->env);
+            vals[i]=default_value; i++;}
+          else vals[i++]=FD_VOID;}
       else if (FD_RAILP(fn->arglist)) {
-	struct FD_VECTOR *v=FD_GET_CONS(fn->arglist,fd_rail_type,fd_vector);
-	int len=v->length; fdtype *dflts=v->data;
-	if (i<n) {
-	  fdtype val=args[i];
-	  if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
-	    vals[i]=fd_incref(val);
-	  else vals[i]=val;
-	  i++;}
-	else if (i>=len) vals[i++]=FD_VOID;
-	else {
-	  fdtype default_expr=dflts[i];
-	  fdtype default_value=fd_eval(default_expr,fn->env);
-	  vals[i]=default_value; i++;}}
+        struct FD_VECTOR *v=FD_GET_CONS(fn->arglist,fd_rail_type,fd_vector);
+        int len=v->length; fdtype *dflts=v->data;
+        if (i<n) {
+          fdtype val=args[i];
+          if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+            vals[i]=fd_incref(val);
+          else vals[i]=val;
+          i++;}
+        else if (i>=len) vals[i++]=FD_VOID;
+        else {
+          fdtype default_expr=dflts[i];
+          fdtype default_value=fd_eval(default_expr,fn->env);
+          vals[i]=default_value; i++;}}
       else {}
       assert(i==fn->n_vars);}}
   else if (fn->arity==0) {}
@@ -458,16 +458,16 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     int i=0, j=n-1;
     {FD_DOLIST(arg,fn->arglist)
        if (i<n) {
-	 fdtype val=args[i];
-	  if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
-	    vals[i]=fd_incref(val);
-	  else vals[i]=val;
-	  i++;}
+         fdtype val=args[i];
+          if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+            vals[i]=fd_incref(val);
+          else vals[i]=val;
+          i++;}
        else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
-	 /* This code handles argument defaults for sprocs */
-	 fdtype default_expr=FD_CADR(arg);
-	 fdtype default_value=fd_eval(default_expr,fn->env);
-	 vals[i]=default_value; i++;}
+         /* This code handles argument defaults for sprocs */
+         fdtype default_expr=FD_CADR(arg);
+         fdtype default_value=fd_eval(default_expr,fn->env);
+         vals[i]=default_value; i++;}
        else {vals[i]=FD_VOID; i++;}}
     while (j >= i) {
       lexpr_arg=fd_init_pair(NULL,fd_incref(args[j]),lexpr_arg);
@@ -502,8 +502,8 @@ static fdtype sproc_applier(fdtype f,int n,fdtype *args)
 }
 
 static fdtype make_sproc(u8_string name,
-			  fdtype arglist,fdtype body,fd_lispenv env,
-			  int nd,int sync)
+                          fdtype arglist,fdtype body,fd_lispenv env,
+                          int nd,int sync)
 {
   int i=0, n_vars=0, min_args=0;
   fdtype scan=arglist;
@@ -542,8 +542,8 @@ static fdtype make_sproc(u8_string name,
 }
 
 FD_EXPORT fdtype fd_make_sproc(u8_string name,
-			       fdtype arglist,fdtype body,fd_lispenv env,
-			       int nd,int sync)
+                               fdtype arglist,fdtype body,fd_lispenv env,
+                               int nd,int sync)
 {
   return make_sproc(name,arglist,body,env,nd,sync);
 }
@@ -572,14 +572,14 @@ static int unparse_sproc(u8_output out,fdtype x)
   if (sproc->name)
     if (sproc->filename)
       u8_printf(out,"#<PROC %s %q \"%s\" #!%x>",
-		sproc->name,sproc->arglist,sproc->filename,(unsigned long)sproc);
+                sproc->name,sproc->arglist,sproc->filename,(unsigned long)sproc);
     else u8_printf(out,"#<PROC %s %q #!%x>",
-		   sproc->name,sproc->arglist,(unsigned long)sproc);
+                   sproc->name,sproc->arglist,(unsigned long)sproc);
   else if (sproc->filename)
     u8_printf(out,"#<LAMBDA %q \"%s\" #!%x>",
-	      sproc->arglist,sproc->filename,(unsigned long)sproc);
+              sproc->arglist,sproc->filename,(unsigned long)sproc);
   else u8_printf(out,"#<LAMBDA %q #!%x>",
-		 sproc->arglist,(unsigned long)sproc);
+                 sproc->arglist,(unsigned long)sproc);
   return 1;
 }
 
@@ -605,7 +605,7 @@ static fdtype macro_handler(fdtype expr,fd_lispenv env)
     fdtype name=FD_CADR(expr), body=FD_CDR(FD_CDR(expr));
     fdtype lambda_form=
       fd_init_pair(NULL,lambda_symbol,
-		   fd_init_pair(NULL,fd_make_list(1,name),fd_incref(body)));
+                   fd_init_pair(NULL,fd_make_list(1,name),fd_incref(body)));
     fdtype transformer=fd_eval(lambda_form,env);
     fdtype macro=fd_make_macro(FD_SYMBOL_NAME(name),transformer);
     fd_decref(lambda_form); fd_decref(transformer);
@@ -626,7 +626,7 @@ static int unparse_macro(u8_output out,fdtype x)
   struct FD_MACRO *mproc=FD_GET_CONS(x,fd_macro_type,struct FD_MACRO *);
   if (mproc->name) 
     u8_printf(out,"#<MACRO %s #!%x>",
-	      mproc->name,(unsigned long)mproc);
+              mproc->name,(unsigned long)mproc);
   else u8_printf(out,"#<MACRO #!%x>",(unsigned long)mproc);
   return 1;
 }
@@ -705,16 +705,16 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       fdtype value=fd_eval(val_expr,env);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(var,value,env)) {
-	if (FD_SPROCP(value)) {
-	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
-	  if (s->filename==NULL) {
-	    u8_string sourcebase=fd_sourcebase();
-	    if (sourcebase) s->filename=u8_strdup(sourcebase);}}
-	fd_decref(value);
-	return FD_VOID;}
+        if (FD_SPROCP(value)) {
+          struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
+          if (s->filename==NULL) {
+            u8_string sourcebase=fd_sourcebase();
+            if (sourcebase) s->filename=u8_strdup(sourcebase);}}
+        fd_decref(value);
+        return FD_VOID;}
       else {
-	fd_decref(value);
-	return fd_err(fd_BindError,"DEFINE",FD_SYMBOL_NAME(var),var);}}}
+        fd_decref(value);
+        return fd_err(fd_BindError,"DEFINE",FD_SYMBOL_NAME(var),var);}}}
   else if (FD_PAIRP(var)) {
     fdtype fn_name=FD_CAR(var), args=FD_CDR(var);
     fdtype body=fd_get_body(expr,2);
@@ -724,16 +724,16 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,0);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-	if (FD_SPROCP(value)) {
-	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
-	  if (s->filename==NULL) {
-	    u8_string sourcebase=fd_sourcebase();
-	    if (sourcebase) s->filename=u8_strdup(sourcebase);}}
-	fd_decref(value);
-	return FD_VOID;}
+        if (FD_SPROCP(value)) {
+          struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
+          if (s->filename==NULL) {
+            u8_string sourcebase=fd_sourcebase();
+            if (sourcebase) s->filename=u8_strdup(sourcebase);}}
+        fd_decref(value);
+        return FD_VOID;}
       else {
-	fd_decref(value);
-	return fd_err(fd_BindError,"DEFINE",FD_SYMBOL_NAME(fn_name),var);}}}
+        fd_decref(value);
+        return fd_err(fd_BindError,"DEFINE",FD_SYMBOL_NAME(fn_name),var);}}}
   else return fd_err(fd_NotAnIdentifier,"DEFINE",NULL,var);
 }
 
@@ -753,17 +753,17 @@ static fdtype defslambda_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,1);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-	if (FD_SPROCP(value)) {
-	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
-	  if (s->filename==NULL) {
-	    u8_string sourcebase=fd_sourcebase();
-	    if (sourcebase) s->filename=u8_strdup(sourcebase);}}
-	fd_decref(value);
-	return FD_VOID;}
+        if (FD_SPROCP(value)) {
+          struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
+          if (s->filename==NULL) {
+            u8_string sourcebase=fd_sourcebase();
+            if (sourcebase) s->filename=u8_strdup(sourcebase);}}
+        fd_decref(value);
+        return FD_VOID;}
       else {
-	fd_decref(value);
-	return fd_err(fd_BindError,"DEFINE-SYNCHRONIZED",
-		      FD_SYMBOL_NAME(var),var);}}}
+        fd_decref(value);
+        return fd_err(fd_BindError,"DEFINE-SYNCHRONIZED",
+                      FD_SYMBOL_NAME(var),var);}}}
   else return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,var);
 }
 
@@ -783,16 +783,16 @@ static fdtype defambda_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,1,0);
       if (FD_ABORTP(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-	if (FD_SPROCP(value)) {
-	  struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
-	  if (s->filename==NULL) {
-	    u8_string sourcebase=fd_sourcebase();
-	    if (sourcebase) s->filename=u8_strdup(sourcebase);}}
-	fd_decref(value);
-	return FD_VOID;}
+        if (FD_SPROCP(value)) {
+          struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
+          if (s->filename==NULL) {
+            u8_string sourcebase=fd_sourcebase();
+            if (sourcebase) s->filename=u8_strdup(sourcebase);}}
+        fd_decref(value);
+        return FD_VOID;}
       else {
-	fd_decref(value);
-	return fd_err(fd_BindError,"DEFINE-AMB",FD_SYMBOL_NAME(fn_name),var);}}}
+        fd_decref(value);
+        return fd_err(fd_BindError,"DEFINE-AMB",FD_SYMBOL_NAME(fn_name),var);}}}
   else return fd_err(fd_NotAnIdentifier,"DEFINE-AMB",NULL,var);
 }
 
@@ -811,7 +811,7 @@ static fdtype define_local_handler(fdtype expr,fd_lispenv env)
     if (FD_ABORTP(inherited)) return inherited;
     else if (FD_VOIDP(inherited))
       return fd_err(fd_UnboundIdentifier,"DEFINE-LOCAL",
-		    FD_SYMBOL_NAME(var),var);
+                    FD_SYMBOL_NAME(var),var);
     else if (fd_bind_value(var,inherited,env)) {
       fd_decref(inherited);
       return FD_VOID;}
@@ -844,8 +844,8 @@ static fdtype define_init_handler(fdtype expr,fd_lispenv env)
       if (FD_ABORTP(init_value)) return init_value;
       else bound=fd_bind_value(var,init_value,env);
       if (bound>0) {
-	fd_decref(init_value);
-	return FD_VOID;}
+        fd_decref(init_value);
+        return FD_VOID;}
       else if (bound<0) return FD_ERROR_VALUE;
       else return fd_err(fd_BindError,"DEFINE-INIT",FD_SYMBOL_NAME(var),var);}}
   else return fd_err(fd_NotAnIdentifier,"DEFINE_INIT",NULL,var);
@@ -891,14 +891,14 @@ fdtype fd_xapply_sproc
     argval=getval(data,argname);
     if (FD_ABORTP(argval)) {
       int j=0; while (j<i) {
-	fdtype val=vals[j++];
-	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
-	  fd_decref(val);}
+        fdtype val=vals[j++];
+        if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+          fd_decref(val);}
       if (vals!=_vals) u8_free(vals);
       return argval;}
     else if ((FD_VOIDP(argval)) &&
-	     (FD_PAIRP(argspec)) &&
-	     (FD_PAIRP(FD_CDR(argspec)))) {
+             (FD_PAIRP(argspec)) &&
+             (FD_PAIRP(FD_CDR(argspec)))) {
       fdtype default_expr=FD_CADR(argspec);
       fdtype default_value=fd_eval(default_expr,fn->env);
       vals[i++]=default_value;}
@@ -912,9 +912,9 @@ fdtype fd_xapply_sproc
     if (FD_VOIDP(argval)) argval=getval(data,tail_symbol);
     if (FD_ABORTP(argval)) {
       int j=0; while (j<i) {
-	fdtype val=vals[j++];
-	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
-	  fd_decref(val);}}
+        fdtype val=vals[j++];
+        if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+          fd_decref(val);}}
       if (vals!=_vals) u8_free(vals);
       return argval;}
     else vals[i++]=argval;}
@@ -932,7 +932,7 @@ fdtype fd_xapply_sproc
     int j=0; while (j<i) {
       fdtype val=vals[j++];
       if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
-	fd_decref(val);}}
+        fd_decref(val);}}
     if (vals!=_vals) u8_free(vals);}
   fd_destroy_rwlock(&(bindings.rwlock));
   return result;
@@ -1032,7 +1032,7 @@ static fdtype letq_handler(fdtype expr,fd_lispenv env)
       fd_decref(result);
       result=fasteval(bodyexpr,inner_env);
       if (FD_ABORTP(result))
-	return return_error_env(result,":LETQ",inner_env);}}
+        return return_error_env(result,":LETQ",inner_env);}}
     free_environment(inner_env);
     return result;}
 }
@@ -1060,7 +1060,7 @@ static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
       fd_decref(result);
       result=fasteval(bodyexpr,inner_env);
       if (FD_ABORTP(result)) {
-	return return_error_env(result,":LETQ*",inner_env);}}}
+        return return_error_env(result,":LETQ*",inner_env);}}}
     if (inner_env->copy) free_environment(inner_env->copy);
     return result;}
 }
@@ -1122,7 +1122,7 @@ FD_EXPORT void fd_init_binders_c()
 #endif
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x
-	   ("XAPPLY",xapply_prim,2,fd_sproc_type,FD_VOID,-1,FD_VOID));
+           ("XAPPLY",xapply_prim,2,fd_sproc_type,FD_VOID,-1,FD_VOID));
 }
 
 /* Emacs local variables
