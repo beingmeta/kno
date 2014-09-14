@@ -372,10 +372,10 @@ fdtype fd_unparse_xml(u8_output out,fdtype xml,fd_lispenv env)
 	    return result;}
 	  else if ((FD_TABLEP(result)) &&
 		   (fd_test(result,raw_name_slotid,FD_VOID))) {
-	    fd_unparse_xml(out,result,env);
-	    fd_decref(result);}
-	  else fd_dtype2xml(out,result,env);
-	  fd_decref(result);}}
+            fdtype tmp=fd_unparse_xml(out,result,env);
+            fd_decref(tmp);}
+          else fd_dtype2xml(out,result,env);
+          fd_decref(result);}}
       else if (FD_STRINGP(content)) {
         u8_putn(out,FD_STRDATA(content),FD_STRLEN(content));}
       else {}
@@ -407,9 +407,12 @@ static fdtype get_xml_handler(fdtype xml,fd_lispenv env)
     if (FD_STRINGP(qname)) {
       fdtype symbol=fd_probe_symbol(FD_STRDATA(qname),FD_STRLEN(qname));
       if (FD_SYMBOLP(symbol)) value=fd_symeval(symbol,(fd_lispenv)xml_env);}
-    if (!(FD_VOIDP(value))) return value;
-    else if (FD_SYMBOLP(name)) return fd_symeval(name,(fd_lispenv)xml_env);
-    else return FD_VOID;}
+    if (!(FD_VOIDP(value))) {}
+    else if (FD_SYMBOLP(name)) 
+      value=fd_symeval(name,(fd_lispenv)xml_env);
+    else {}
+    fd_decref(xml_env);
+    return value;}
 }
 
 struct XMLAPPLY { fdtype xml; fd_lispenv env;};
