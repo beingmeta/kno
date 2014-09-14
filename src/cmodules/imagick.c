@@ -342,7 +342,8 @@ static fdtype imagick_extend(fdtype fdwand,fdtype w_arg,fdtype h_arg,
   if (FD_STRINGP(bgcolor)) {
     PixelWand *color=NewPixelWand();
     PixelSetColor(color,FD_STRDATA(bgcolor));
-    MagickSetImageBackgroundColor(wand,color);}
+    MagickSetImageBackgroundColor(wand,color);
+    DestroyPixelWand(color);}
   retval=MagickExtentImage(wand,width,height,xoff,yoff);
   if (retval==MagickFalse) {
     grabmagickerr("imagick_fit",wand);
@@ -522,7 +523,7 @@ static fdtype imagick_get(fdtype fdwand,fdtype property,fdtype dflt)
     FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
   MagickWand *wand=wrapper->wand;
   char *pname=((FD_SYMBOLP(property))?(FD_SYMBOL_NAME(property)):
-	       (FD_STRINGP(property))?(FD_STRDATA(property)):(NULL));
+               (FD_STRINGP(property))?(FD_STRDATA(property)):(NULL));
   char *value=MagickGetImageProperty(wand,pname);
   if (value) {
     fdtype stringval=fd_make_string(NULL,-1,value);
@@ -586,99 +587,99 @@ int fd_init_imagick()
   fd_tablefns[fd_imagick_type]->keys=NULL;
 
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("FILE->IMAGICK",file2imagick,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("FILE->IMAGICK",file2imagick,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("PACKET->IMAGICK",packet2imagick,1,
-			   fd_packet_type,FD_VOID));
+           fd_make_cprim1x("PACKET->IMAGICK",packet2imagick,1,
+                           fd_packet_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim2x("IMAGICK->FILE",imagick2file,1,
-			   fd_imagick_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("IMAGICK->FILE",imagick2file,1,
+                           fd_imagick_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("IMAGICK->PACKET",imagick2packet,1,
-			   fd_imagick_type,FD_VOID));
+           fd_make_cprim1x("IMAGICK->PACKET",imagick2packet,1,
+                           fd_imagick_type,FD_VOID));
 
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("IMAGICK/CLONE",imagick2imagick,1,
-			   fd_imagick_type,FD_VOID));
+           fd_make_cprim1x("IMAGICK/CLONE",imagick2imagick,1,
+                           fd_imagick_type,FD_VOID));
 
   fd_idefn(imagick_module,
-	   fd_make_cprim5x("IMAGICK/FIT",imagick_fit,3,
-			   fd_imagick_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   -1,FD_VOID,fd_double_type,FD_VOID));
+           fd_make_cprim5x("IMAGICK/FIT",imagick_fit,3,
+                           fd_imagick_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           -1,FD_VOID,fd_double_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim2x("IMAGICK/FORMAT",imagick_format,2,
-			   fd_imagick_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("IMAGICK/FORMAT",imagick_format,2,
+                           fd_imagick_type,FD_VOID,
+                           fd_string_type,FD_VOID));
 
   fd_idefn(imagick_module,
-	   fd_make_cprim6x("IMAGICK/EXTEND",imagick_extend,3,
-			   fd_imagick_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
+           fd_make_cprim6x("IMAGICK/EXTEND",imagick_extend,3,
+                           fd_imagick_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
                            -1,FD_VOID));
 
   fd_idefn(imagick_module,
-	   fd_make_cprim3x("IMAGICK/CHARCOAL",imagick_charcoal,3,
-			   fd_imagick_type,FD_VOID,
-			   fd_double_type,FD_VOID,
-			   fd_double_type,FD_VOID));
+           fd_make_cprim3x("IMAGICK/CHARCOAL",imagick_charcoal,3,
+                           fd_imagick_type,FD_VOID,
+                           fd_double_type,FD_VOID,
+                           fd_double_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim3x("IMAGICK/EMBOSS",imagick_emboss,3,
-			   fd_imagick_type,FD_VOID,
-			   fd_double_type,FD_VOID,
-			   fd_double_type,FD_VOID));
+           fd_make_cprim3x("IMAGICK/EMBOSS",imagick_emboss,3,
+                           fd_imagick_type,FD_VOID,
+                           fd_double_type,FD_VOID,
+                           fd_double_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim3x("IMAGICK/BLUR",imagick_blur,3,
-			   fd_imagick_type,FD_VOID,
-			   fd_double_type,FD_VOID,
-			   fd_double_type,FD_VOID));
+           fd_make_cprim3x("IMAGICK/BLUR",imagick_blur,3,
+                           fd_imagick_type,FD_VOID,
+                           fd_double_type,FD_VOID,
+                           fd_double_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim2x("IMAGICK/EDGE",imagick_edge,2,
-			   fd_imagick_type,FD_VOID,
-			   fd_double_type,FD_VOID));
+           fd_make_cprim2x("IMAGICK/EDGE",imagick_edge,2,
+                           fd_imagick_type,FD_VOID,
+                           fd_double_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim5x("IMAGICK/CROP",imagick_crop,3,
-			   fd_imagick_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(0),
-			   fd_fixnum_type,FD_INT2DTYPE(0)));
+           fd_make_cprim5x("IMAGICK/CROP",imagick_crop,3,
+                           fd_imagick_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT2DTYPE(0)));
   fd_idefn(imagick_module,
-	   fd_make_cprim2x("IMAGICK/DESKEW",imagick_deskew,2,
-			   fd_imagick_type,FD_VOID,
-			   fd_double_type,FD_VOID));
+           fd_make_cprim2x("IMAGICK/DESKEW",imagick_deskew,2,
+                           fd_imagick_type,FD_VOID,
+                           fd_double_type,FD_VOID));
 
   fd_idefn(imagick_module,
-	   fd_make_cprim2x("IMAGICK/DISPLAY",imagick_display,1,
-			   fd_imagick_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("IMAGICK/DISPLAY",imagick_display,1,
+                           fd_imagick_type,FD_VOID,
+                           fd_string_type,FD_VOID));
 
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("IMAGICK/FLIP",imagick_flip,1,
-			   fd_imagick_type,FD_VOID));
+           fd_make_cprim1x("IMAGICK/FLIP",imagick_flip,1,
+                           fd_imagick_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("IMAGICK/FLOP",imagick_flop,1,
-			   fd_imagick_type,FD_VOID));
+           fd_make_cprim1x("IMAGICK/FLOP",imagick_flop,1,
+                           fd_imagick_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("IMAGICK/EQUALIZE",imagick_equalize,1,
-			   fd_imagick_type,FD_VOID));
+           fd_make_cprim1x("IMAGICK/EQUALIZE",imagick_equalize,1,
+                           fd_imagick_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("IMAGICK/DESPECKLE",imagick_despeckle,1,
-			   fd_imagick_type,FD_VOID));
+           fd_make_cprim1x("IMAGICK/DESPECKLE",imagick_despeckle,1,
+                           fd_imagick_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("IMAGICK/ENHANCE",imagick_enhance,1,
-			   fd_imagick_type,FD_VOID));
+           fd_make_cprim1x("IMAGICK/ENHANCE",imagick_enhance,1,
+                           fd_imagick_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim1x("IMAGICK/KEYS",imagick_getkeys,1,
-			   fd_imagick_type,FD_VOID));
+           fd_make_cprim1x("IMAGICK/KEYS",imagick_getkeys,1,
+                           fd_imagick_type,FD_VOID));
   fd_idefn(imagick_module,
-	   fd_make_cprim3x("IMAGICK/GET",imagick_get,2,
+           fd_make_cprim3x("IMAGICK/GET",imagick_get,2,
                            fd_imagick_type,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID));
   
