@@ -1,0 +1,5 @@
+#!/bin/bash
+HEAP_CHECK_IDENTIFY_LEAKS=yes \
+PPROF_PATH=/usr/bin/google-pprof \
+HEAPCHECK=normal FD_MAXCORE=unlimited \
+    exec $*
