@@ -1285,11 +1285,12 @@ static struct U8_OUTPUT *get_reqlog()
     u8_tld_set(reqlog_key,(void *)newlog);
     return newlog;}
 }
-static void set_reqlog(struct U8_OUTPUT *table)
+static void set_reqlog(struct U8_OUTPUT *stream)
 {
   struct U8_OUTPUT *log=(struct U8_OUTPUT *)u8_tld_get(reqlog_key);
-  if (!(log)) u8_close_output(log);
-  u8_tld_set(reqlog_key,(void *)table);
+  if (stream==log) return;
+  else if (log) u8_close_output(log);
+  u8_tld_set(reqlog_key,(void *)stream);
 }
 #else
 #if FD_THREADS_ENABLED
@@ -1311,8 +1312,10 @@ static struct U8_OUTPUT *get_reqlog()
 }
 static void set_reqlog(struct U8_OUTPUT *stream)
 {
-  if (!(reqlog)) u8_close_output(reqlog);
-  reqlog=stream;
+  if (reqlog==stream) return;
+  else {
+    if (reqlog) u8_close_output(reqlog);
+    reqlog=stream;}
 }
 #endif
 
