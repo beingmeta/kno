@@ -313,7 +313,7 @@ FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm)
 {
   struct FD_KEYVAL *scan, *limit; int unlock=0;
   struct FD_CHOICE *result;
-  fdtype *write; int size;
+  fdtype *write; int size, atomic=1;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
   if (sm->uselock) { fd_read_lock(&sm->rwlock); unlock=1;}
   size=FD_XSLOTMAP_SIZE(sm); scan=sm->keyvals; limit=scan+size;
@@ -328,11 +328,15 @@ FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm)
   result=fd_alloc_choice(size);
   write=(fdtype *)FD_XCHOICE_DATA(result);
   while (scan < limit) {
-    fdtype key=(scan++)->key; fd_incref(key);
+    fdtype key=(scan++)->key;
+    if (FD_CONSP(key)) {fd_incref(key); atomic=0;}
     *write++=key;}
   if (unlock) fd_rw_unlock(&sm->rwlock);
   /* Note that we can assume that the choice is sorted because the keys are. */
-  return fd_init_choice(result,size,NULL,FD_CHOICE_ISATOMIC|FD_CHOICE_REALLOC);
+  return fd_init_choice(result,size,NULL,
+                        ((FD_CHOICE_REALLOC)|
+                         ((atomic)?(FD_CHOICE_ISATOMIC):
+                          (FD_CHOICE_ISCONSES))));
 }
 
 FD_EXPORT fdtype fd_slotmap_max
@@ -768,7 +772,8 @@ FD_EXPORT fdtype fd_schemap_keys(struct FD_SCHEMAP *sm)
       memcpy((fdtype *)FD_XCHOICE_DATA(ch),sm->schema,sizeof(fdtype)*size);
       if ((sm->flags)&FD_SCHEMAP_SORTED)
 	return fd_init_choice(ch,size,sm->schema,0);
-      else return fd_init_choice(ch,size,sm->schema,FD_CHOICE_DOSORT);}}
+      else return fd_init_choice(ch,size,sm->schema,
+                                 FD_CHOICE_INCREF|FD_CHOICE_DOSORT);}}
 }
 
 static void recycle_schemap(struct FD_CONS *c)
