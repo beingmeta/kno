@@ -1300,6 +1300,11 @@ static double stime_sensor()
     return 0.0;
   else return r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0;
 }
+static long memusage_sensor()
+{
+  unsigned long usage=u8_memusage();
+  return (long)usage;
+}
 #if HAVE_STRUCT_RUSAGE_RU_INBLOCK
 static long inblock_sensor()
 {
@@ -1509,7 +1514,7 @@ static int corelimit_set(fdtype symbol,fdtype value,void *vptr)
 /* Google profiling tools */
 
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
-static fdtype gheap_profiler(fdtype arg)
+static fdtype gprof_heap_profile(fdtype arg)
 {
   int running=IsHeapProfilerRunning();
   if (FD_FALSEP(arg)) {
@@ -1526,7 +1531,14 @@ static fdtype gheap_profiler(fdtype arg)
     return FD_TRUE;}
 }
 
-static fdtype gheap_profiler_dump(fdtype arg)
+static fdtype gprof_profiling_heap(fdtype arg)
+{
+  if (IsHeapProfilerRunning())
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype gprof_dump_heap(fdtype arg)
 {
   int running=IsHeapProfilerRunning();
   if (running) {
@@ -1537,14 +1549,14 @@ static fdtype gheap_profiler_dump(fdtype arg)
 #endif
 
 #if HAVE_GPERFTOOLS_PROFILER_H
-static fdtype gperf_profiler(fdtype arg)
+static fdtype gprof_startstop(fdtype arg)
 {
   if (FD_STRINGP(arg))
     ProfilerStart(FD_STRDATA(arg));
   else ProfilerStop();
   return FD_VOID;
 }
-static fdtype gperf_profiler_flush(fdtype arg)
+static fdtype gprof_flush(fdtype arg)
 {
   ProfilerFlush();
   return FD_VOID;
@@ -1761,16 +1773,18 @@ FD_EXPORT void fd_init_timeprims_c()
 
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPERF/HEAP/PROFILE",gheap_profiler,0));
+           fd_make_cprim1("GPROF/HEAP/PROFILE!",gprof_heap_profile,0));
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPERF/HEAP/DUMP",gheap_profiler_dump,1));
+           fd_make_cprim0("GPROF/HEAP?",gprof_profiling_heap,0));
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim1("GPROF/DUMPHEAP",gprof_dump_heap,1));
 #endif
 
 #if HAVE_GPERFTOOLS_PROFILER_H
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPERF/PROFILE",gperf_profiler,0));
+           fd_make_cprim1("GPROF/PROFILE!",gprof_startstop,0));
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPREF/FLUSH",gperf_profiler_flush,1));
+           fd_make_cprim1("GPROF/FLUSH",gprof_flush,1));
 #endif
 
 
@@ -1784,7 +1798,7 @@ FD_EXPORT void fd_init_timeprims_c()
     cts->enabled=0; cts->dblfcn=stime_sensor;}
   {
     fd_calltrack_sensor cts=fd_get_calltrack_sensor("MEMUSAGE",1);
-    cts->enabled=0; cts->intfcn=(long (*)(void))u8_memusage;}
+    cts->enabled=0; cts->intfcn=memusage_sensor;}
 #if HAVE_STRUCT_RUSAGE_RU_INBLOCK
   {
     fd_calltrack_sensor cts=fd_get_calltrack_sensor("INBLOCK",1);
