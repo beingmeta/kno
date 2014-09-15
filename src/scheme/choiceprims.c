@@ -525,7 +525,7 @@ static fdtype smallest_handler(fdtype elts,fdtype magnitude)
         FD_ADD_TO_CHOICE(top,elt);
         fd_decref(score);}
       else {
-        fd_decref(top);
+        fd_decref(top); fd_decref(top_score);
         top=fd_incref(elt);
         top_score=score;}}}
   fd_decref(top_score);
@@ -552,7 +552,7 @@ static fdtype largest_handler(fdtype elts,fdtype magnitude)
         FD_ADD_TO_CHOICE(top,elt);
         fd_decref(score);}
       else {
-        fd_decref(top);
+        fd_decref(top); fd_decref(top_score);
         top=fd_incref(elt);
         top_score=score;}}}
   fd_decref(top_score);
