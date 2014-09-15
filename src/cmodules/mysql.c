@@ -674,7 +674,7 @@ static int init_stmt_results
     U8_INIT_OUTPUT_BUF(&out,128,namebuf);
     if (fields==NULL) {
       const char *errmsg=mysql_stmt_error(stmt);
-      u8_free(colnames); u8_free(outbound);
+      u8_free(colnames); u8_free(outbound); u8_free(nullbuf);
       if (metadata) mysql_free_result(metadata);
       u8_seterr(MySQL_Error,"init_stmt_results",u8_strdup(errmsg));
       return -1;}
@@ -705,7 +705,7 @@ static int init_stmt_results
     mysql_free_result(metadata); /* Hope this frees FIELDS */
     return n_cols;}
   else {
-    *outboundptr=NULL; *colnamesptr=NULL;
+    *outboundptr=NULL; *colnamesptr=NULL;  *isnullbuf=NULL;
     return n_cols;}
 }
 
@@ -967,6 +967,7 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
   if (dbp->bindbuf) u8_free(dbp->bindbuf);
   if (dbp->isnull) u8_free(dbp->isnull);
   if (dbp->inbound) u8_free(dbp->inbound);
+  if (dbp->colnames) u8_free(dbp->colnames);
 
   if (dbp->outbound) {
     i=0; lim=dbp->n_cols; while (i<lim) {
