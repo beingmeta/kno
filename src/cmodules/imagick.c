@@ -408,7 +408,9 @@ static fdtype imagick_edge(fdtype fdwand,fdtype radius)
 }
 
 
-static fdtype imagick_crop(fdtype fdwand,fdtype width,fdtype height,fdtype xoff,fdtype yoff)
+static fdtype imagick_crop(fdtype fdwand,
+                           fdtype width,fdtype height,
+                           fdtype xoff,fdtype yoff)
 {
   MagickBooleanType retval;
   struct FD_IMAGICK *wrapper=

@@ -1167,7 +1167,8 @@ static fdtype zipfile2dtype(fdtype filename)
     fd_dtsclose(in,FD_DTSCLOSE_FULL);
     return object;}
   else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
-    struct FD_DTSTREAM *in=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+    struct FD_DTSTREAM *in=
+      FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
     fdtype object=fd_zread_dtype(in->dt_stream);
     if (object == FD_EOD) return FD_EOF;
     else return object;}
