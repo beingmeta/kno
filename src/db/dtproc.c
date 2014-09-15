@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -68,9 +68,9 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   if (conn<0) return FD_ERROR_VALUE;
   fd_init_dtype_stream(&stream,conn,8192);
   while (i>=0) {
-    if ((FD_SYMBOLP(args[i])) || (FD_PAIRP(args[i]))) 
+    if ((FD_SYMBOLP(args[i])) || (FD_PAIRP(args[i])))
       expr=fd_init_pair(NULL,fd_make_list(2,quote_symbol,fd_incref(args[i])),
-			expr);
+                        expr);
     else expr=fd_init_pair(NULL,fd_incref(args[i]),expr);
     i--;}
   expr=fd_init_pair(NULL,dtp->fcnsym,expr);
@@ -85,8 +85,8 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   if (FD_EQ(result,FD_EOD)) {
     fd_clear_errors(1);
     if (((conn=u8_reconnect(cpool,conn))<0) ||
-	(fd_dtswrite_dtype(&stream,expr)<0) ||
-	(fd_dtsflush(&stream)<0)) {
+        (fd_dtswrite_dtype(&stream,expr)<0) ||
+        (fd_dtsflush(&stream)<0)) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}
     else result=fd_dtsread_dtype(&stream);
@@ -101,7 +101,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
 FD_EXPORT void fd_init_dtproc_c()
 {
   quote_symbol=fd_intern("QUOTE");
-  
+
   u8_register_source_file(_FILEINFO);
   u8_register_source_file(FRAMERD_DTPROC_H_INFO);
 

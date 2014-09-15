@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -27,9 +27,9 @@ static u8_mutex base_oid_lock;
 
 static int get_base_oid_index(FD_OID base)
 {
-  int i=0, len=fd_n_base_oids; 
+  int i=0, len=fd_n_base_oids;
   while (i < len)
-    if (FD_OID_COMPARE(base,fd_base_oids[i]) == 0) 
+    if (FD_OID_COMPARE(base,fd_base_oids[i]) == 0)
       return i;
     else i++;
   return -1;
@@ -52,7 +52,7 @@ static int add_base_oid_index(FD_OID base)
 
 FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add)
 {
-  FD_OID base=addr; 
+  FD_OID base=addr;
   FD_SET_OID_LO(base,((FD_OID_LO(base))&0xFFF00000U));
   if (add) {
     int retval=add_base_oid_index(base);
@@ -64,7 +64,7 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add)
 FD_EXPORT fdtype fd_make_oid(FD_OID addr)
 {
   FD_OID base=addr;
-  int boi=0; 
+  int boi=0;
   unsigned int offset=FD_OID_LO(addr)&0xFFFFFU;
   FD_SET_OID_LO(base,(FD_OID_LO(base)&0xFFF00000U));
   boi=add_base_oid_index(base);

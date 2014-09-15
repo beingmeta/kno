@@ -1215,7 +1215,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
     else retval=eretval=mysql_stmt_execute(dbproc->stmt);}
 
   /* Read all the values at once */
-  if (retval==RETVAL_OK) 
+  if (retval==RETVAL_OK)
     retval=sretval=mysql_stmt_store_result(dbproc->stmt);
 
   if (retval==RETVAL_OK) {

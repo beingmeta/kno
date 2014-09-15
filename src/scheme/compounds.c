@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -69,19 +69,19 @@ static fdtype compound_set(fdtype x,fdtype offset,fdtype value,fdtype tag)
   else if (FD_CHOICEP(x)) {
     FD_DO_CHOICES(eachx,x)
       if (FD_COMPOUNDP(eachx)) {
-	fdtype result=compound_set(eachx,offset,value,tag);
-	if (FD_ABORTP(result)) {
-	  FD_STOP_DO_CHOICES;
-	  return result;}
-	else fd_decref(result);}
+        fdtype result=compound_set(eachx,offset,value,tag);
+        if (FD_ABORTP(result)) {
+          FD_STOP_DO_CHOICES;
+          return result;}
+        else fd_decref(result);}
       else return fd_type_error("compound","compound_set",eachx);
     return FD_VOID;}
   else {
     struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
     int off=FD_FIX2INT(offset), len=compound->n_elts;
     if ((compound->mutable) &&
-	((compound->tag==tag) || (FD_VOIDP(tag))) &&
-	(off<len)) {
+        ((compound->tag==tag) || (FD_VOIDP(tag))) &&
+        (off<len)) {
       fdtype *valuep=((&(compound->elt0))+off), old_value;
       fd_lock_struct(compound);
       old_value=*valuep;
@@ -256,9 +256,9 @@ static int stringify_compound(u8_output out,fdtype compound,fd_compound_entry e)
       fdtype result=fd_apply(method,1,&compound);
       fd_decref(method);
       if (FD_STRINGP(result)) {
-	u8_putn(out,FD_STRDATA(result),FD_STRLEN(result));
-	fd_decref(result);
-	return 1;}
+        u8_putn(out,FD_STRDATA(result),FD_STRLEN(result));
+        fd_decref(result);
+        return 1;}
       else {fd_decref(result); return 0;}}}
   else return 0;
 }
@@ -317,53 +317,53 @@ FD_EXPORT void fd_init_compounds_c()
   tag_symbol=fd_intern("TAG");
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2("COMPOUND-TYPE?",compoundp,1));
+           fd_make_cprim2("COMPOUND-TYPE?",compoundp,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("COMPOUND-TAG",compound_tag,1,
-			   fd_compound_type,FD_VOID));
+           fd_make_cprim1x("COMPOUND-TAG",compound_tag,1,
+                           fd_compound_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("COMPOUND-LENGTH",compound_length,1,
-			   fd_compound_type,FD_VOID));
+           fd_make_cprim1x("COMPOUND-LENGTH",compound_length,1,
+                           fd_compound_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("COMPOUND-REF",compound_ref,2,
-			   fd_compound_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+           fd_make_cprim3x("COMPOUND-REF",compound_ref,2,
+                           fd_compound_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim
-	   (fd_make_cprim4x("COMPOUND-SET!",compound_set,3,
-			    -1,FD_VOID,-1,FD_VOID,
-			    -1,FD_VOID,-1,FD_VOID)));
+           fd_make_ndprim
+           (fd_make_cprim4x("COMPOUND-SET!",compound_set,3,
+                            -1,FD_VOID,-1,FD_VOID,
+                            -1,FD_VOID,-1,FD_VOID)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("MAKE-COMPOUND",make_compound,1)));
+           fd_make_ndprim(fd_make_cprimn("MAKE-COMPOUND",make_compound,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("MAKE-MUTABLE-COMPOUND",make_mutable_compound,1)));
+           fd_make_ndprim(fd_make_cprimn("MAKE-MUTABLE-COMPOUND",make_mutable_compound,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-COMPOUND",make_opaque_compound,1)));
+           fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-COMPOUND",make_opaque_compound,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-MUTABLE-COMPOUND",make_opaque_mutable_compound,1)));
+           fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-MUTABLE-COMPOUND",make_opaque_mutable_compound,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim4x("VECTOR->COMPOUND",vector2compound,2,
-			   fd_vector_type,FD_VOID,-1,FD_VOID,
-			   -1,FD_FALSE,-1,FD_FALSE));
+           fd_make_cprim4x("VECTOR->COMPOUND",vector2compound,2,
+                           fd_vector_type,FD_VOID,-1,FD_VOID,
+                           -1,FD_FALSE,-1,FD_FALSE));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("COMPOUND-METATDATA",compound_metadata_prim,1,
-			   fd_compound_type,FD_VOID,
-			   fd_symbol_type,FD_VOID));
+           fd_make_cprim2x("COMPOUND-METATDATA",compound_metadata_prim,1,
+                           fd_compound_type,FD_VOID,
+                           fd_symbol_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("COMPOUND-CORELEN",compound_corelen_prim,1,
-			   -1,FD_VOID));
+           fd_make_cprim1x("COMPOUND-CORELEN",compound_corelen_prim,1,
+                           -1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("COMPOUND-SET-CORELEN!",
-			   compound_set_corelen_prim,2,
-			   -1,FD_VOID,fd_fixnum_type,FD_VOID));
+           fd_make_cprim2x("COMPOUND-SET-CORELEN!",
+                           compound_set_corelen_prim,2,
+                           -1,FD_VOID,fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("COMPOUND-SET-CONSFN!",
-			   compound_set_consfn_prim,2,
-			   -1,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("COMPOUND-SET-CONSFN!",
+                           compound_set_consfn_prim,2,
+                           -1,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("COMPOUND-SET-STRINGFN!",
-			   compound_set_stringfn_prim,2,
-			   -1,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("COMPOUND-SET-STRINGFN!",
+                           compound_set_stringfn_prim,2,
+                           -1,FD_VOID,-1,FD_VOID));
 }
 
 

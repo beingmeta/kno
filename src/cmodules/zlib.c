@@ -1,11 +1,11 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2007-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
-#ifndef _FILEINFO 
+#ifndef _FILEINFO
 #define _FILEINFO __FILE__
 #endif
 
@@ -53,7 +53,7 @@ static fdtype zlib_compress_prim(fdtype input_arg,fdtype level_arg)
       return fd_err(u8_MallocFailed,"zip_prim",NULL,FD_VOID);}
     u8_free(output); output=newbuf; output_len=input_len*2;
     retval=compress2(output,&output_len,input,input_len,9);}
-  if (retval>=Z_OK) 
+  if (retval>=Z_OK)
     return fd_init_packet(NULL,output_len,output);
   else {
     u8_condition ex;
@@ -81,11 +81,11 @@ static fdtype zlib_uncompress_prim(fdtype input_arg,fdtype text,fdtype init_fact
     if (retval == Z_BUF_ERROR) {
       Bytef *newbuf=u8_malloc(buf_len*2);
       if (!(newbuf)) {
-	u8_free(output);
-	return fd_err(u8_MallocFailed,"unzip_prim",NULL,FD_VOID);}
+        u8_free(output);
+        return fd_err(u8_MallocFailed,"unzip_prim",NULL,FD_VOID);}
       else {
-	u8_free(output); output=newbuf;
-	buf_len=buf_len*2; output_len=buf_len;}}
+        u8_free(output); output=newbuf;
+        buf_len=buf_len*2; output_len=buf_len;}}
     else if (retval==Z_MEM_ERROR) {
       u8_free(output);
       return fd_err(zlibOutOfMemory,"unzip_prim",NULL,FD_VOID);}
@@ -101,13 +101,13 @@ static fdtype zlib_uncompress_prim(fdtype input_arg,fdtype text,fdtype init_fact
     if (u8_validate(output,output_len)==output_len) {
       if (buf_len>(output_len+1)) output[output_len]='\0';
       else {
-	unsigned char *wnull=u8_realloc(output,output_len+1);
-	if (!(wnull)) {
-	  u8_free(output);
-	  return fd_err(u8_MallocFailed,"unzip_prim",NULL,FD_VOID);}
-	else {
-	  if (wnull!=output) u8_free(output);
-	  wnull[output_len]='\0'; output=wnull;}}
+        unsigned char *wnull=u8_realloc(output,output_len+1);
+        if (!(wnull)) {
+          u8_free(output);
+          return fd_err(u8_MallocFailed,"unzip_prim",NULL,FD_VOID);}
+        else {
+          if (wnull!=output) u8_free(output);
+          wnull[output_len]='\0'; output=wnull;}}
       return fd_init_string(NULL,output_len,output);}
     else return fd_init_packet(NULL,output_len,output);}
   else if (FD_STRINGP(text)) {
@@ -121,11 +121,11 @@ static fdtype zlib_uncompress_prim(fdtype input_arg,fdtype text,fdtype init_fact
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,output_len);
       retval=u8_convert(enc,0,&out,&scan,limit);
       if (retval<0) {
-	u8_free(output); u8_free(out.u8_outbuf);
-	return fd_err("malencoded text","unzip_prim",NULL,FD_VOID);}
+        u8_free(output); u8_free(out.u8_outbuf);
+        return fd_err("malencoded text","unzip_prim",NULL,FD_VOID);}
       else {
-	u8_free(output);
-	return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}}}
+        u8_free(output);
+        return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}}}
   else return fd_type_error("text encoding/#t/#f","unzip_prim",text);
 }
 
@@ -142,13 +142,13 @@ FD_EXPORT int fd_init_zlib()
 
   zlib_init=1;
   zlib_module=fd_new_module("ZLIB",(FD_MODULE_SAFE));
-  
-  fd_idefn(zlib_module,
-	   fd_make_cprim2("ZLIB/COMPRESS",zlib_compress_prim,1));
 
   fd_idefn(zlib_module,
-	   fd_make_cprim3x("ZLIB/UNCOMPRESS",zlib_uncompress_prim,1,
-			   fd_packet_type,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
+           fd_make_cprim2("ZLIB/COMPRESS",zlib_compress_prim,1));
+
+  fd_idefn(zlib_module,
+           fd_make_cprim3x("ZLIB/UNCOMPRESS",zlib_uncompress_prim,1,
+                           fd_packet_type,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
 
   fd_finish_module(zlib_module);
   fd_persist_module(zlib_module);

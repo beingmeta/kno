@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -110,7 +110,7 @@ static fdtype config_get(u8_string var)
 {
   fdtype symbol=config_intern(var);
   fdtype probe=fd_get(configuration_table,symbol,FD_VOID);
-  /* This lookups configuration information using various methods */ 
+  /* This lookups configuration information using various methods */
   if (FD_VOIDP(probe)) {
     fdtype value=FD_VOID;
     struct FD_CONFIG_LOOKUPS *scan=config_lookupfns;
@@ -124,7 +124,7 @@ static fdtype config_get(u8_string var)
 
 static fdtype getenv_config_lookup(fdtype symbol,void *ignored)
 {
-  U8_OUTPUT out; 
+  U8_OUTPUT out;
   char *getenv_result, *u8result; fdtype result;
   U8_INIT_OUTPUT(&out,32);
   u8_printf(&out,"FD_%s",FD_SYMBOL_NAME(symbol));
@@ -289,7 +289,7 @@ FD_EXPORT int fd_register_config_x
     scan=u8_alloc(struct FD_CONFIG_HANDLER);
     scan->var=symbol;
     if (doc) scan->doc=u8_strdup(doc); else scan->doc=NULL;
-    scan->flags=0; 
+    scan->flags=0;
     scan->config_get_method=getfn;
     scan->config_set_method=setfn;
     scan->data=data;
@@ -403,7 +403,7 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
     else {
       u8_ungetc(in,c);
       buf=u8_gets(in);
-      if (fd_config_assignment(buf)<0) 
+      if (fd_config_assignment(buf)<0)
         return fd_reterr(fd_ConfigError,"fd_read_config",buf,FD_VOID);
       else n++;
       u8_free(buf);}
@@ -682,7 +682,7 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
       if (!(FD_VOIDP(value))) {
         FD_STOP_DO_CHOICES; return value;}}
     return fd_incref(dflt);}
-  else if (FD_QCHOICEP(opts)) 
+  else if (FD_QCHOICEP(opts))
     return fd_getopt(FD_XQCHOICE(opts)->choice,key,dflt);
   else while (!(FD_VOIDP(opts)))
     if (FD_PAIRP(opts)) {
@@ -701,7 +701,7 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
       else {
         u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
       opts=FD_CDR(opts);}
-    else if (FD_SYMBOLP(opts)) 
+    else if (FD_SYMBOLP(opts))
       if (FD_EQ(key,opts)) return FD_TRUE;
       else return fd_incref(dflt);
     else if (FD_TABLEP(opts))
@@ -732,7 +732,7 @@ static int boolopt(fdtype opts,fdtype key)
       else {
         u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
       opts=FD_CDR(opts);}
-    else if (FD_SYMBOLP(opts)) 
+    else if (FD_SYMBOLP(opts))
       if (FD_EQ(key,opts)) return 1;
       else return 0;
     else if (FD_TABLEP(opts)) {
@@ -757,7 +757,7 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
     return 0;}
   else if (FD_VOIDP(val))
     return boolopt(opts,key);
-  else if (FD_QCHOICEP(opts)) 
+  else if (FD_QCHOICEP(opts))
     return fd_testopt(FD_XQCHOICE(opts)->choice,key,val);
   else if (FD_EMPTY_CHOICEP(opts))
     return 0;
@@ -778,7 +778,7 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
            else {
              u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
            opts=FD_CDR(opts);}
-         else if (FD_SYMBOLP(opts)) 
+         else if (FD_SYMBOLP(opts))
            if (FD_EQ(key,opts))
              if (FD_TRUEP(val)) return 1;
              else return 0;
@@ -834,7 +834,7 @@ FD_EXPORT int fd_poperr
 FD_EXPORT fdtype fd_exception_xdata(u8_exception ex)
 {
   if ((ex->u8x_xdata) &&
-      (ex->u8x_free_xdata==fd_free_exception_xdata)) 
+      (ex->u8x_free_xdata==fd_free_exception_xdata))
     return (fdtype)(ex->u8x_xdata);
   else return FD_VOID;
 }
@@ -969,14 +969,14 @@ FD_EXPORT u8_string fd_errstring(u8_exception ex)
   return out.u8_outbuf;
 }
 
-FD_EXPORT fd_exception fd_retcode_to_exception(fdtype err) 
+FD_EXPORT fd_exception fd_retcode_to_exception(fdtype err)
 {
   switch (err) {
-  case FD_EOF: case FD_EOD: return fd_UnexpectedEOD; 
-  case FD_PARSE_ERROR: case FD_EOX: return fd_ParseError; 
+  case FD_EOF: case FD_EOD: return fd_UnexpectedEOD;
+  case FD_PARSE_ERROR: case FD_EOX: return fd_ParseError;
   case FD_TYPE_ERROR: return fd_TypeError;
   case FD_RANGE_ERROR: return fd_RangeError;
-  case FD_OOM: return fd_OutOfMemory; 
+  case FD_OOM: return fd_OutOfMemory;
   case FD_DTYPE_ERROR: return fd_DTypeError;
   default: return fd_UnknownError;
   }
@@ -1103,7 +1103,7 @@ static void set_reqinfo(fdtype table)
 #else
 #if FD_THREADS_ENABLED
 static fdtype __thread reqinfo=FD_VOID;
-#else 
+#else
 static fdtype reqinfo=FD_VOID;
 #endif
 static fdtype try_reqinfo()
@@ -1295,7 +1295,7 @@ static void set_reqlog(struct U8_OUTPUT *stream)
 #else
 #if FD_THREADS_ENABLED
 static struct U8_OUTPUT __thread *reqlog=NULL;
-#else 
+#else
 static struct U8_OUTPUT *reqlog=FD_VOID;
 #endif
 static struct U8_OUTPUT *try_reqlog()
@@ -1643,7 +1643,7 @@ FD_EXPORT void fd_setapp(u8_string spec,u8_string statedir)
     u8_string appid=((atpos)?(u8_slice(spec,atpos)):
                      ((u8_string)(u8_strdup(spec))));
     u8_identify_application(appid);
-    if (statedir) 
+    if (statedir)
       runbase=u8_mkpath(statedir,appid);
     else {
       u8_string wd=u8_getcwd();
@@ -1726,7 +1726,7 @@ FD_EXPORT void fd_doexit(fdtype arg)
   while (scan) {
     fdtype handler=scan->handler, result=FD_VOID;
     u8_log(LOG_INFO,"fd_doexit","Running FramerD exit handler %q",handler);
-    if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler))) 
+    if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler)))
       result=fd_apply(handler,1,&arg);
     else result=fd_apply(handler,0,NULL);
     if (FD_ABORTP(result)) {
@@ -1793,7 +1793,7 @@ static int req_loglevel=-1, req_logonly=-1;
 static u8_mutex log_lock;
 #endif
 
-#define MAX_LOGLEVEL 8 
+#define MAX_LOGLEVEL 8
 static char *loglevel_names[]=
   {"Emergency","Alert","Critical","Error","Warning","Notice","Info",
    "Debug","Detail","Deluge"};
@@ -2031,7 +2031,7 @@ void fd_init_support_c()
      _("Threshold at which to use an external hashset for merging"),
      fd_intconfig_get,fd_intconfig_set,
      &fd_mergesort_threshold);
-  
+
   fd_register_config
     ("LOGLEVEL",_("Required priority for messages to be displayed"),
      fd_intconfig_get,loglevelconfig_set,
@@ -2101,7 +2101,7 @@ void fd_init_support_c()
      _("Whether to dump packets as all hex data"),
      fd_boolconfig_get,fd_boolconfig_set,
      &fd_unparse_hexpacket);
-  
+
   fd_register_config("RUNBASE",_("Path prefix for program state files"),
                      config_getrunbase,config_setrunbase,NULL);
 

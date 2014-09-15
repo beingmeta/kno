@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -53,14 +53,14 @@ static u8_string breakup_path(fdtype f,u8_string start)
     else if ((c<0) || (c=='?') || (c=='#') || (c=='/') || (c==';')) {
       fdtype eltstring=fd_extract_string(NULL,eltout.u8_outbuf,eltout.u8_outptr);
       if (c=='/') {
-	fdtype eltpair=fd_init_pair(NULL,eltstring,FD_EMPTY_LIST);
-	*tail=eltpair; tail=&(FD_CDR(eltpair));
-	c=u8_sgetc(&scan); eltout.u8_outptr=eltout.u8_outbuf; continue;}
+        fdtype eltpair=fd_init_pair(NULL,eltstring,FD_EMPTY_LIST);
+        *tail=eltpair; tail=&(FD_CDR(eltpair));
+        c=u8_sgetc(&scan); eltout.u8_outptr=eltout.u8_outbuf; continue;}
       else {
-	fd_add(f,name_symbol,eltstring); fd_decref(eltstring);}
+        fd_add(f,name_symbol,eltstring); fd_decref(eltstring);}
       fd_add(f,path_symbol,path);
       fd_decref(path);
-      u8_close((u8_stream)&eltout); 
+      u8_close((u8_stream)&eltout);
       if (c<0) return scan; else return scan-1;}
     else {
       u8_putc(&eltout,c);
@@ -115,8 +115,8 @@ static int uri_merge(fdtype uri,fdtype base)
       u8_string path_end;
       U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
       {FD_DOLIST(elt,base_path)
-	 if (FD_STRINGP(elt))
-	   u8_printf(&out,"%s/",FD_STRDATA(elt));}
+         if (FD_STRINGP(elt))
+           u8_printf(&out,"%s/",FD_STRDATA(elt));}
       u8_puts(&out,FD_STRDATA(pathstring));
       path_end=breakup_path(uri,out.u8_outbuf);
       handle_path_end(uri,out.u8_outbuf,path_end);
@@ -175,7 +175,7 @@ fdtype fd_parse_uri(u8_string uri,fdtype base)
       fd_add(f,portno_symbol,FD_INT2DTYPE(portno));}
     else fd_add(f,portno_symbol,FD_INT2DTYPE(default_portno));
     if (slash) start=slash+1; else start=NULL;}
-  if (start==NULL) 
+  if (start==NULL)
     return f;
   else if ((start==uri) && (FD_TABLEP(base))) {
     assign_substring(f,pathstring_symbol,start,NULL);
@@ -205,16 +205,16 @@ static fdtype mergeuris(fdtype uri,fdtype base)
 }
 
 static void uri_output(u8_output out,u8_string s,int len,int upper,
-		       char *escape)
+                       char *escape)
 {
   u8_string lim=((len<0)?(NULL):(s+len));
   while ((lim)?(s<lim):(*s))
     if (((*s)>=0x80)||(isspace(*s))||
-	(*s=='+')||(*s=='%')||(*s=='=')||
-	(*s=='&')||(*s=='#')||(*s==';')||
-	((escape==NULL)?
-	 (!((isalnum(*s))||(strchr("-_.~",*s)!=NULL))):
-	 ((strchr(escape,*s))!=NULL))) {
+        (*s=='+')||(*s=='%')||(*s=='=')||
+        (*s=='&')||(*s=='#')||(*s==';')||
+        ((escape==NULL)?
+         (!((isalnum(*s))||(strchr("-_.~",*s)!=NULL))):
+         ((strchr(escape,*s))!=NULL))) {
       char buf[8];
       if (upper) sprintf(buf,"%%%02X",*s);
       else sprintf(buf,"%%%02x",*s);
@@ -253,39 +253,39 @@ static fdtype unparseuri(fdtype uri,fdtype noencode)
     else u8_puts(&out,"http:");
     if (FD_STRINGP(hostname)) {
       if (FD_STRINGP(userinfo))
-	u8_printf(&out,"//%s@%s",FD_STRDATA(userinfo),FD_STRDATA(hostname));
+        u8_printf(&out,"//%s@%s",FD_STRDATA(userinfo),FD_STRDATA(hostname));
       else u8_printf(&out,"//%s",FD_STRDATA(hostname));
       if (FD_FIXNUMP(port))
-	if (((FD_FIX2INT(port))==80) &&
-	    ((!(FD_STRINGP(scheme))) ||
-	     (strcmp(FD_STRING_DATA(scheme),"http")==0)))
-	  u8_printf(&out,"/");
-	else u8_printf(&out,":%d/",FD_FIX2INT(port));
+        if (((FD_FIX2INT(port))==80) &&
+            ((!(FD_STRINGP(scheme))) ||
+             (strcmp(FD_STRING_DATA(scheme),"http")==0)))
+          u8_printf(&out,"/");
+        else u8_printf(&out,":%d/",FD_FIX2INT(port));
       else u8_printf(&out,"/");}
     if (FD_PAIRP(path)) {
       FD_DOLIST(elt,path) {
-	if (FD_STRINGP(elt)) {
-	  if (escapes)
-	    uri_output(&out,FD_STRDATA(elt),FD_STRLEN(elt),upper,escapes);
-	  else u8_puts(&out,FD_STRDATA(elt));
-	  u8_putc(&out,'/');}}}
+        if (FD_STRINGP(elt)) {
+          if (escapes)
+            uri_output(&out,FD_STRDATA(elt),FD_STRLEN(elt),upper,escapes);
+          else u8_puts(&out,FD_STRDATA(elt));
+          u8_putc(&out,'/');}}}
     else if (FD_STRINGP(pathstring))
       u8_puts(&out,FD_STRDATA(pathstring));
     else {}
     if (FD_STRINGP(name))
       if (escapes)
-	uri_output(&out,FD_STRDATA(name),FD_STRLEN(name),upper,escapes);
+        uri_output(&out,FD_STRDATA(name),FD_STRLEN(name),upper,escapes);
       else u8_puts(&out,FD_STRDATA(name));
     else {}
     if (FD_STRINGP(query)) {
       u8_putc(&out,'?');
       if (escapes)
-	uri_output(&out,FD_STRDATA(query),FD_STRLEN(query),upper,escapes);
+        uri_output(&out,FD_STRDATA(query),FD_STRLEN(query),upper,escapes);
       else u8_puts(&out,FD_STRDATA(query));}
     if (FD_STRINGP(fragment)) {
       u8_putc(&out,'#');
       if (escapes)
-	uri_output(&out,FD_STRDATA(fragment),FD_STRLEN(fragment),upper,escapes);
+        uri_output(&out,FD_STRDATA(fragment),FD_STRLEN(fragment),upper,escapes);
       else u8_puts(&out,FD_STRDATA(fragment));}
     fd_decref(scheme);
     fd_decref(userinfo); fd_decref(hostname); fd_decref(port);
@@ -312,7 +312,7 @@ static fdtype urihost_prim(fdtype uri_arg)
     u8_byte *host_end=strstr(host_start+2,"/");
     u8_byte *port_end=strstr(host_start+2,":");
     u8_byte *end=(((port_end) && (host_end) && (port_end<host_end)) ?
-		  (port_end):(host_end));
+                  (port_end):(host_end));
     if (end) return fd_extract_string(NULL,host_start+2,host_end);
     else return FD_EMPTY_CHOICE;}
 }
@@ -378,7 +378,7 @@ static fdtype uripath_prim(fdtype uri_arg)
 }
 
 FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int len,int upper,
-			     char *escape)
+                             char *escape)
 {
   uri_output(out,uri,len,upper,escape);
 }
@@ -397,15 +397,15 @@ static fdtype mkuripath_prim(fdtype dirname,fdtype name)
     config_val=fd_config_get(FD_SYMBOL_NAME(dirname));
     if (FD_STRINGP(config_val)) dir=FD_STRDATA(config_val);
     else {
-      fd_decref(config_val); 
+      fd_decref(config_val);
       return fd_type_error(_("string CONFIG var"),"mkuripath_prim",dirname);}}
   else return fd_type_error
-	 (_("string or string CONFIG var"),"mkuripath_prim",dirname);
+         (_("string or string CONFIG var"),"mkuripath_prim",dirname);
   if (*namestring=='/') {
     int host_len;
     u8_byte *host_start=strchr(dir,'/');
     u8_byte *host_end=((host_start==NULL)?(host_start):
-		       ((u8_byte*)strchr(host_start+2,'/')));
+                       ((u8_byte*)strchr(host_start+2,'/')));
     /* Check that the URL host isn't insanely long. */
     if ((host_end-dir)>127) host_end=NULL;
     else host_len=host_end-dir;
@@ -429,7 +429,7 @@ static fdtype datauri_prim(fdtype data,fdtype ctype_arg)
   u8_string ctype=((FD_STRINGP(ctype_arg))?(FD_STRDATA(ctype_arg)):((u8_string)NULL));
   u8_string base64; int data_len, uri_len;
   fdtype result; struct FD_STRING *string; u8_byte *write;
-  if (FD_STRINGP(data)) 
+  if (FD_STRINGP(data))
     base64=u8_write_base64(FD_STRDATA(data),FD_STRLEN(data),&data_len);
   else if (FD_PACKETP(data))
     base64=u8_write_base64(FD_PACKET_DATA(data),FD_PACKET_LENGTH(data),&data_len);
@@ -439,9 +439,9 @@ static fdtype datauri_prim(fdtype data,fdtype ctype_arg)
   result=fd_make_string(NULL,uri_len,NULL);
   string=FD_GET_CONS(result,fd_string_type,struct FD_STRING *);
   write=FD_STRDATA(result);
-  if ((ctype)&&(FD_STRINGP(data))) 
+  if ((ctype)&&(FD_STRINGP(data)))
     sprintf(write,"data:%s;charset=UTF-8;base64,",ctype);
-  else if (ctype) 
+  else if (ctype)
     sprintf(write,"data:%s;base64,",ctype);
   else if (FD_STRINGP(data))
     sprintf(write,"data:text/plain;charset=UTF-8;base64,");
@@ -468,29 +468,29 @@ FD_EXPORT void fd_init_urifns_c()
   fragment_symbol=fd_intern("FRAGMENT");
 
   fd_idefn(module,fd_make_cprim2x("PARSEURI",parseuri,1,
-				  fd_string_type,FD_VOID,
-				  -1,FD_VOID));
+                                  fd_string_type,FD_VOID,
+                                  -1,FD_VOID));
   fd_idefn(module,fd_make_cprim2("MERGEURIS",mergeuris,2));
   fd_idefn(module,fd_make_cprim2("UNPARSEURI",unparseuri,1));
 
   fd_idefn(module,fd_make_cprim1x("URISCHEME",urischeme_prim,1,
-				  fd_string_type,FD_VOID));
+                                  fd_string_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("URIHOST",urihost_prim,1,
-				  fd_string_type,FD_VOID));
+                                  fd_string_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("URIFRAG",urifrag_prim,1,
-				  fd_string_type,FD_VOID));
+                                  fd_string_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("URIQUERY",uriquery_prim,1,
-				  fd_string_type,FD_VOID));
+                                  fd_string_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("URIBASE",uribase_prim,1,
-				  fd_string_type,FD_VOID));
+                                  fd_string_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("URIPATH",uripath_prim,1,
-				  fd_string_type,FD_VOID));
+                                  fd_string_type,FD_VOID));
 
   fd_idefn(module,fd_make_cprim2x("MKURIPATH",mkuripath_prim,2,
-				  -1,FD_VOID,fd_string_type,FD_VOID));
+                                  -1,FD_VOID,fd_string_type,FD_VOID));
 
   fd_idefn(module,fd_make_cprim2x("DATAURI",datauri_prim,1,
-				  -1,FD_VOID,fd_string_type,FD_VOID));
+                                  -1,FD_VOID,fd_string_type,FD_VOID));
 
   u8_register_source_file(_FILEINFO);
 }

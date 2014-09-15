@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -20,7 +20,7 @@
 
 #include <stdarg.h>
 
-/* 
+/*
    Thoughts on odd pools.
      The most general kind of pool has applicable lisp object
       for all the pool handler functions;
@@ -40,13 +40,13 @@ static struct FD_POOL_HANDLER gpool_handler;
 
 FD_EXPORT
 fd_pool fd_make_gpool(FD_OID base,int cap,u8_string id,
-		      fdtype fetchfn,fdtype loadfn,
-		      fdtype allocfn,fdtype savefn,
-		      fdtype lockfn,fdtype state)
+                      fdtype fetchfn,fdtype loadfn,
+                      fdtype allocfn,fdtype savefn,
+                      fdtype lockfn,fdtype state)
 {
   struct FD_GPOOL *gp=u8_alloc(struct FD_GPOOL);
   fdtype loadval=fd_apply(loadfn,0,NULL); unsigned int load;
-  if (!(FD_FIXNUMP(loadval))) 
+  if (!(FD_FIXNUMP(loadval)))
     return fd_type_error("fd_make_gpool","pool load (fixnum)",loadval);
   else load=FD_FIX2INT(loadval);
   fd_init_pool((fd_pool)gp,base,cap,&gpool_handler,id,id);
@@ -59,7 +59,7 @@ fd_pool fd_make_gpool(FD_OID base,int cap,u8_string id,
   gp->lockfn=lockfn; gp->state=state;
   return gp;
 }
-		      
+
 static int gpool_load(fd_pool p)
 {
   struct FD_GPOOL *np=(struct FD_GPOOL *)p;
@@ -98,7 +98,7 @@ static fdtype *gpool_fetchn(fd_pool p,int n,fdtype *oids)
     return results;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-	      u8_strdup(np->cid),fd_incref(value));
+              u8_strdup(np->cid),fd_incref(value));
     return NULL;}
 }
 
@@ -108,7 +108,7 @@ static int gpool_lock(fd_pool p,fdtype oid)
   fdtype value;
   value=fd_dtcall(np->connpool,3,lock_oid_symbol,oid,client_id);
   if (FD_VOIDP(value)) return 0;
-  else if (FD_ABORTP(value)) 
+  else if (FD_ABORTP(value))
     return fd_interr(value);
   else {
     fd_hashtable_store(&(p->cache),oid,value);

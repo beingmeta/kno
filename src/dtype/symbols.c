@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -74,13 +74,13 @@ static void grow_symbol_tables()
     i=0; while (i < lim)
       if (old_entries[i] == NULL) i++;
       else {
-	struct FD_SYMBOL_ENTRY *entry=old_entries[i];
-	int probe=
-	  mult_hash_string(entry->name.bytes,entry->name.length)%new_size;
-	while (FD_EXPECT_TRUE(new_entries[probe]!=NULL))
-	  if (probe >= new_size) probe=0; else probe=(probe+1)%new_size;
-	new_entries[probe]=entry;
-	i++;}
+        struct FD_SYMBOL_ENTRY *entry=old_entries[i];
+        int probe=
+          mult_hash_string(entry->name.bytes,entry->name.length)%new_size;
+        while (FD_EXPECT_TRUE(new_entries[probe]!=NULL))
+          if (probe >= new_size) probe=0; else probe=(probe+1)%new_size;
+        new_entries[probe]=entry;
+        i++;}
     u8_free(old_entries);
     fd_symbol_table.entries=new_entries; fd_symbol_table.size=new_size;}
   {
@@ -107,7 +107,7 @@ fdtype fd_make_symbol(u8_string bytes,int len)
   while (FD_EXPECT_TRUE(entries[probe]!=NULL)) {
     if (FD_EXPECT_TRUE(len == (entries[probe])->name.length))
       if (FD_EXPECT_TRUE(strncmp(bytes,(entries[probe])->name.bytes,len) == 0))
-	break;
+        break;
     probe++; if (probe>=size) probe=0;}
   if (entries[probe]) {
     int id=entries[probe]->serial;
@@ -180,28 +180,28 @@ void fd_init_symbols_c()
 }
 
 #if 0
-FD_EXPORT 
+FD_EXPORT
 static int n_refs=0, n_probes=0;
 void fd_list_symbol_table()
 {
   int i=0, size=fd_symbol_table.size;
   struct FD_SYMBOL_ENTRY **entries=fd_symbol_table.entries;
   fprintf(stderr,"%d symbols, %d max symbols\n",
-	  fd_n_symbols,fd_max_symbols);
+          fd_n_symbols,fd_max_symbols);
   fprintf(stderr,"%d refs, %d probes\n",n_refs,n_probes);
-  while (i < size) 
+  while (i < size)
     if (entries[i]) {
       u8_string string=entries[i]->name.bytes;
       int len=entries[i]->name.length, chain=0;
       int hash=mult_hash_string(string,len);
       int probe=hash%size;
       fprintf(stderr,"%s\t%d\t%d\t%d",
-	      string,len,hash,probe);
+              string,len,hash,probe);
       while (entries[probe]) {
-	if (strcmp(entries[probe]->name.bytes,string)==0) break;
-	else fprintf(stderr,"\t%s",entries[probe]->name.bytes);
-	chain++;
-	if (probe == (size-1)) probe=0; else probe++;}
+        if (strcmp(entries[probe]->name.bytes,string)==0) break;
+        else fprintf(stderr,"\t%s",entries[probe]->name.bytes);
+        chain++;
+        if (probe == (size-1)) probe=0; else probe++;}
       fprintf(stderr,"\t%d\n",chain);
       i++;}
     else i++;

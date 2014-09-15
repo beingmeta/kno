@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -69,7 +69,7 @@ static fdtype tryif_handler(fdtype expr,fd_lispenv env)
     fd_incref(expr); fd_push_error_context("tryif_handler",expr);
     return test_result;}
   else if (FD_FALSEP(test_result))
-    return FD_EMPTY_CHOICE; 
+    return FD_EMPTY_CHOICE;
   else {
     fdtype value=FD_VOID; fd_decref(test_result);
     {FD_DOBODY(clause,expr,2) {
@@ -107,25 +107,25 @@ static fdtype cond_handler(fdtype expr,fd_lispenv env)
     else if (FD_FALSEP(test_val)) {}
     else {
       fdtype applyp=((FD_PAIRP(FD_CDR(clause))) &&
-		      (FD_EQ(FD_CAR(FD_CDR(clause)),apply_marker)));
+                      (FD_EQ(FD_CAR(FD_CDR(clause)),apply_marker)));
       if (applyp)
-	if (FD_PAIRP(FD_CDR(FD_CDR(clause)))) {
-	  fdtype fnexpr=FD_CAR(FD_CDR(FD_CDR(clause)));
-	  fdtype fn=fd_eval(fnexpr,env);
-	  if (FD_ABORTP(fn)) {
-	    fd_decref(test_val);
-	    return fn;}
-	  else if (FD_APPLICABLEP(fn)) {
-	    fdtype retval=fd_apply(fn,1,&test_val);
-	    fd_decref(test_val); fd_decref(fn);
-	    return retval;}
-	  else {
-	    fd_decref(test_val);
-	    return fd_type_error("function","cond_handler",fn);}}
-	else return fd_err(fd_SyntaxError,"cond_handler","apply syntax",expr);
+        if (FD_PAIRP(FD_CDR(FD_CDR(clause)))) {
+          fdtype fnexpr=FD_CAR(FD_CDR(FD_CDR(clause)));
+          fdtype fn=fd_eval(fnexpr,env);
+          if (FD_ABORTP(fn)) {
+            fd_decref(test_val);
+            return fn;}
+          else if (FD_APPLICABLEP(fn)) {
+            fdtype retval=fd_apply(fn,1,&test_val);
+            fd_decref(test_val); fd_decref(fn);
+            return retval;}
+          else {
+            fd_decref(test_val);
+            return fd_type_error("function","cond_handler",fn);}}
+        else return fd_err(fd_SyntaxError,"cond_handler","apply syntax",expr);
       else {
-	fd_decref(test_val);
-	return eval_body("COND",clause,1,env);}}}
+        fd_decref(test_val);
+        return eval_body("COND",clause,1,env);}}}
   return FD_VOID;
 }
 
@@ -139,15 +139,15 @@ static fdtype case_handler(fdtype expr,fd_lispenv env)
   else {
     FD_DOLIST(clause,FD_CDR(FD_CDR(expr)))
       if (FD_PAIRP(clause))
-	if (FD_PAIRP(FD_CAR(clause))) {
-	  fdtype keys=FD_CAR(clause);
-	  FD_DOLIST(key,keys)
-	    if (FD_EQ(keyval,key))
-	      return eval_body("CASE",clause,1,env);}
-	else if (FD_EQ(FD_CAR(clause),else_symbol)) {
-	  fd_decref(keyval);
-	  return fd_eval_exprs(FD_CDR(clause),env);}
-	else return fd_err(fd_SyntaxError,"case_handler",NULL,clause);
+        if (FD_PAIRP(FD_CAR(clause))) {
+          fdtype keys=FD_CAR(clause);
+          FD_DOLIST(key,keys)
+            if (FD_EQ(keyval,key))
+              return eval_body("CASE",clause,1,env);}
+        else if (FD_EQ(FD_CAR(clause),else_symbol)) {
+          fd_decref(keyval);
+          return fd_eval_exprs(FD_CDR(clause),env);}
+        else return fd_err(fd_SyntaxError,"case_handler",NULL,clause);
       else return fd_err(fd_SyntaxError,"case_handler",NULL,clause);
     return FD_VOID;}
 }

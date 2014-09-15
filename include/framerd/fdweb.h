@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2005-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -28,14 +28,14 @@ FD_EXPORT fd_exception fd_XMLParseError;
 #define FD_XML_CRUSHSPACE    ((FD_XML_KEEP_RAW)<<1)
 #define FD_XML_SLOTIFY       ((FD_XML_CRUSHSPACE)<<1)
 #define FD_XML_NOCONTENTS    ((FD_XML_SLOTIFY)<<1)
-#define FD_XML_NSFREE        ((FD_XML_NOCONTENTS)<<1)  /* With respect to John Wayne... */ 
+#define FD_XML_NSFREE        ((FD_XML_NOCONTENTS)<<1)  /* With respect to John Wayne... */
 #define FD_XML_NOEMPTY       ((FD_XML_NSFREE)<<1)
 /* Whether to decode entities in content */
 #define FD_XML_DECODE_ENTITIES ((FD_XML_NOEMPTY)<<1)
 /* The entries below here are internal state used by the XML parser,
    as opposed to general parsing options */
 /* Whether the node has anything special (attributes or content) */
-#define FD_XML_HASDATA       ((FD_XML_DECODE_ENTITIES)<<1) 
+#define FD_XML_HASDATA       ((FD_XML_DECODE_ENTITIES)<<1)
 /* Whether to handle HTML empty elements like HR, BR, META, LINK, etc. */
 #define FD_XML_ISHTML        ((FD_XML_HASDATA)<<1)
 /* Whether we're in an HTML paragraph */
@@ -50,7 +50,7 @@ FD_EXPORT fd_exception fd_XMLParseError;
 
 #define FD_SLOPPY_XML \
   ((FD_XML_AUTOCLOSE)|(FD_XML_EMPTY_CLOSE)|\
-   (FD_XML_CLOSE_REPEATS)|(FD_XML_FOLDCASE)|(FD_XML_BADCLOSE)|	\
+   (FD_XML_CLOSE_REPEATS)|(FD_XML_FOLDCASE)|(FD_XML_BADCLOSE)|  \
    (FD_XML_ISHTML)|(FD_XML_BADATTRIB))
 #define FD_DATA_XML \
   ((FD_XML_CRUSHSPACE)|(FD_XML_SLOTIFY)|(FD_XML_NOCONTENTS)|(FD_XML_NSFREE)|(FD_XML_NOEMPTY))

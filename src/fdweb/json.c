@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -70,16 +70,16 @@ static fdtype convert_value(fdtype fn,fdtype val,int free,int warn)
       fdtype *elts=FD_VECTOR_DATA(val);
       int i=0, lim=FD_VECTOR_LENGTH(val);
       while (i<lim) {
-	fdtype cval=convert_value(eltfn,elts[i],0,warn);
-	if (FD_ABORTP(cval)) {
-	  fd_clear_errors(warn); fd_incref(elts[i]);
-	  FD_ADD_TO_CHOICE(results,elts[i]);}
-	else if (FD_VOIDP(cval)) {
+        fdtype cval=convert_value(eltfn,elts[i],0,warn);
+        if (FD_ABORTP(cval)) {
+          fd_clear_errors(warn); fd_incref(elts[i]);
+          FD_ADD_TO_CHOICE(results,elts[i]);}
+        else if (FD_VOIDP(cval)) {
           fd_incref(elts[i]);
-	  FD_ADD_TO_CHOICE(results,elts[i]);}
-	else {
-	  FD_ADD_TO_CHOICE(results,cval);}
-	i++;}
+          FD_ADD_TO_CHOICE(results,elts[i]);}
+        else {
+          FD_ADD_TO_CHOICE(results,cval);}
+        i++;}
       fd_decref(val);
       return results;}
     else return convert_value(eltfn,val,1,warn);}
@@ -188,8 +188,8 @@ static fdtype json_intern(U8_INPUT *in,int flags)
     return result;}
   else {
     fdtype result=((good_symbol)?
-		   (fd_parse(out.u8_outbuf)):
-		   (fd_stream_string(&out)));
+                   (fd_parse(out.u8_outbuf)):
+                   (fd_stream_string(&out)));
     if (FD_ABORTP(result))
       result=parse_error(&out,result,flags&FD_JSON_WARNINGS);
     if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
@@ -200,7 +200,7 @@ static fdtype json_key(U8_INPUT *in,int flags,fdtype fieldmap)
 {
   int c=skip_whitespace(in);
   if (c=='"')
-    if (flags&FD_JSON_SYMBOLIZE) 
+    if (flags&FD_JSON_SYMBOLIZE)
       return json_intern(in,flags);
     else if (FD_VOIDP(fieldmap))
       return json_string(in,flags);
@@ -209,8 +209,8 @@ static fdtype json_key(U8_INPUT *in,int flags,fdtype fieldmap)
       fdtype mapped=fd_get(fieldmap,stringkey,FD_VOID);
       if (FD_VOIDP(mapped)) return stringkey;
       else {
-	fd_decref(stringkey);
-	return mapped;}}
+        fd_decref(stringkey);
+        return mapped;}}
   else if (((c=='{')||(c=='['))&&(!(flags&FD_JSON_ANYKEY))) {
     fd_seterr("Invalid JSON key","json_key",NULL,FD_VOID);
     return FD_PARSE_ERROR;}
@@ -235,7 +235,7 @@ static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap)
 {
   int n_elts=0, max_elts=16, c, i;
   unsigned int good_pos=in->u8_inptr-in->u8_inbuf;
-  fdtype *elts; 
+  fdtype *elts;
   if (u8_getc(in)!='[') return FD_ERROR_VALUE;
   else elts=u8_alloc_n(16,fdtype);
   c=skip_whitespace(in);
@@ -249,19 +249,19 @@ static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap)
     else {
       fdtype elt;
       if (n_elts==max_elts)  {
-	int new_max=max_elts*2;
-	fdtype *newelts=u8_realloc(elts,sizeof(fdtype)*new_max);
-	if (newelts) {elts=newelts; max_elts=new_max;}
-	else {
-	  u8_seterr(fd_MallocFailed,"json_vector",NULL);
-	  break;}}
+        int new_max=max_elts*2;
+        fdtype *newelts=u8_realloc(elts,sizeof(fdtype)*new_max);
+        if (newelts) {elts=newelts; max_elts=new_max;}
+        else {
+          u8_seterr(fd_MallocFailed,"json_vector",NULL);
+          break;}}
       elts[n_elts++]=elt=json_parse(in,flags,fieldmap);
       if (FD_ABORTP(elt)) break;
       c=skip_whitespace(in);}}
   i=0; while (i<n_elts) {fd_decref(elts[i]); i++;}
   return fd_err(JSON_Error,"json_vector",
-		u8_strdup(in->u8_inbuf+good_pos),
-		FD_VOID);
+                u8_strdup(in->u8_inbuf+good_pos),
+                FD_VOID);
 }
 
 static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
@@ -281,27 +281,27 @@ static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
       c=u8_getc(in); c=skip_whitespace(in);}
     else {
       if (n_elts==max_elts)  {
-	int new_max=max_elts*2;
-	struct FD_KEYVAL *newelts=
-	  u8_realloc(kv,sizeof(struct FD_KEYVAL)*new_max);
-	if (newelts) {kv=newelts; max_elts=new_max;}
-	else {
-	  u8_seterr(fd_MallocFailed,"json_table",NULL);
-	  break;}}
+        int new_max=max_elts*2;
+        struct FD_KEYVAL *newelts=
+          u8_realloc(kv,sizeof(struct FD_KEYVAL)*new_max);
+        if (newelts) {kv=newelts; max_elts=new_max;}
+        else {
+          u8_seterr(fd_MallocFailed,"json_table",NULL);
+          break;}}
       kv[n_elts].key=json_key(in,flags,fieldmap);
       if (FD_ABORTP(kv[n_elts].key)) break;
       c=skip_whitespace(in);
       if (c==':') c=u8_getc(in);
       else return FD_EOD;
       if ((FD_VOIDP(fieldmap))||(FD_CONSP(kv[n_elts].key)))
-	kv[n_elts].value=json_parse(in,flags,fieldmap);
+        kv[n_elts].value=json_parse(in,flags,fieldmap);
       else {
-	fdtype handler=fd_get(fieldmap,kv[n_elts].key,FD_VOID);
-	if (FD_VOIDP(handler))
-	  kv[n_elts].value=json_parse(in,flags,fieldmap);
-	else
-	  kv[n_elts].value=convert_value(handler,json_parse(in,flags,fieldmap),
-					 1,(flags&FD_JSON_WARNINGS));}
+        fdtype handler=fd_get(fieldmap,kv[n_elts].key,FD_VOID);
+        if (FD_VOIDP(handler))
+          kv[n_elts].value=json_parse(in,flags,fieldmap);
+        else
+          kv[n_elts].value=convert_value(handler,json_parse(in,flags,fieldmap),
+                                         1,(flags&FD_JSON_WARNINGS));}
       if (FD_ABORTP(kv[n_elts].value)) break;
       n_elts++; c=skip_whitespace(in);}}
   i=0; while (i<n_elts) {
@@ -315,7 +315,7 @@ static fdtype jsonparseprim(fdtype in,fdtype flags_arg,fdtype fieldmap)
   int flags=0;
   if (FD_FALSEP(flags_arg)) {}
   else if (FD_TRUEP(flags_arg)) flags=FD_JSON_COLONIZE;
-  else if (FD_FIXNUMP(flags_arg)) 
+  else if (FD_FIXNUMP(flags_arg))
     flags=FD_FIX2INT(flags_arg);
   else return fd_type_error("int","jsonparseprim",flags_arg);
   if (FD_PORTP(in)) {
@@ -351,15 +351,15 @@ static void json_escape(u8_output out,u8_string s)
       case '\r': u8_putc(out,'r'); break;
       case '\t': u8_putc(out,'t'); break;
       default:
-	if (c>=128) {
-	  long uc=u8_sgetc(&scan);
-	  sprintf(buf,"u%04x",(unsigned int)uc);
-	  u8_puts(out,buf);
-	  start=scan; continue;}
-	else {
-	  sprintf(buf,"u%04x",c);
-	  u8_puts(out,buf);
-	  break;}}
+        if (c>=128) {
+          long uc=u8_sgetc(&scan);
+          sprintf(buf,"u%04x",(unsigned int)uc);
+          u8_puts(out,buf);
+          start=scan; continue;}
+        else {
+          sprintf(buf,"u%04x",c);
+          u8_puts(out,buf);
+          break;}}
       scan++; start=scan;}
     else scan++;}
   if (scan>start) u8_putn(out,start,scan-start);
@@ -389,10 +389,10 @@ static int json_slotval(u8_output out,fdtype key,fdtype value,int flags,fdtype s
     fdtype slotname=((FD_VOIDP(slotfn))?(FD_VOID):(fd_apply(slotfn,1,&key)));
     if (FD_VOIDP(slotname))
       if ((FD_SYMBOLP(key))&&(flags&FD_JSON_SYMBOLIZE)) {
-	u8_string pname=FD_SYMBOL_NAME(key);
-	if (!(flags&FD_JSON_IDKEY)) u8_putc(out,'"');
-	json_lower(out,pname);
-	if (!(flags&FD_JSON_IDKEY)) u8_putc(out,'"');}
+        u8_string pname=FD_SYMBOL_NAME(key);
+        if (!(flags&FD_JSON_IDKEY)) u8_putc(out,'"');
+        json_lower(out,pname);
+        if (!(flags&FD_JSON_IDKEY)) u8_putc(out,'"');}
       else json_unparse(out,key,flags,oidfn,slotfn,miscfn);
     else if (FD_STRINGP(slotname)) {
       u8_putc(out,'"');
@@ -414,7 +414,7 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
     if (FD_VOIDP(oidval)) {
       FD_OID addr=FD_OID_ADDR(x);
       if (flags)
-	u8_printf(out,"\":@%x/%x\"",FD_OID_HI(addr),FD_OID_LO(addr));
+        u8_printf(out,"\":@%x/%x\"",FD_OID_HI(addr),FD_OID_LO(addr));
       else u8_printf(out,"\"@%x/%x\"",FD_OID_HI(addr),FD_OID_LO(addr));}
     else json_unparse(out,oidval,flags,slotfn,oidfn,miscfn);
     fd_decref(oidval);}
@@ -436,9 +436,9 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
     int i=0; int lim=FD_VECTOR_LENGTH(x);
     if (lim==0) u8_putc(out,'[');
     else while (i<lim) {
-	if (i>0) u8_putc(out,','); else u8_putc(out,'[');
-	json_unparse(out,FD_VECTOR_REF(x,i),flags,slotfn,oidfn,miscfn);
-	i++;}
+        if (i>0) u8_putc(out,','); else u8_putc(out,'[');
+        json_unparse(out,FD_VECTOR_REF(x,i),flags,slotfn,oidfn,miscfn);
+        i++;}
     u8_putc(out,']');}
   else if ((FD_CHOICEP(x))||(FD_ACHOICEP(x))) {
     int elt_count=0; FD_DO_CHOICES(e,x) {
@@ -453,13 +453,13 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
     if (flags&FD_JSON_TICKS)
       if (tm->xtime.u8_tick<0)  u8_puts(out,"-1"); /* Invalid time */
       else if (flags&FD_JSON_TICKLETS) {
-	double dtick=((unsigned long long)tm->xtime.u8_tick)+
-	  (tm->xtime.u8_nsecs)*0.000000001;
-	u8_printf(out,"%f",dtick);}
+        double dtick=((unsigned long long)tm->xtime.u8_tick)+
+          (tm->xtime.u8_nsecs)*0.000000001;
+        u8_printf(out,"%f",dtick);}
       else {
-	unsigned long long llval=(unsigned long long)(tm->xtime.u8_tick);
-	u8_printf(out,"%llu",llval);}
-    else if (flags&FD_JSON_COLONIZE) 
+        unsigned long long llval=(unsigned long long)(tm->xtime.u8_tick);
+        u8_printf(out,"%llu",llval);}
+    else if (flags&FD_JSON_COLONIZE)
       u8_printf(out,"\":#T%iSXGt\"",&(tm->xtime));
     else if (tm->xtime.u8_tick<0)  u8_puts(out,"\"invalid time\""); /* Invalid time */
     else u8_printf(out,"\"%iSXGt\"",&(tm->xtime));}
@@ -474,12 +474,12 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
     if (FD_EMPTY_CHOICEP(keys)) u8_puts(out,"{}");
     else {
       int elt_count=0; FD_DO_CHOICES(key,keys) {
-	fdtype value=fd_get(x,key,FD_VOID);
-	if (!(FD_VOIDP(value))) {
-	  if (elt_count>0) u8_putc(out,',');
-	  else u8_puts(out,"{");
-	  if (json_slotval(out,key,value,flags,slotfn,oidfn,miscfn)) elt_count++;
-	  fd_decref(value);}}
+        fdtype value=fd_get(x,key,FD_VOID);
+        if (!(FD_VOIDP(value))) {
+          if (elt_count>0) u8_putc(out,',');
+          else u8_puts(out,"{");
+          if (json_slotval(out,key,value,flags,slotfn,oidfn,miscfn)) elt_count++;
+          fd_decref(value);}}
       u8_puts(out,"}");}}
   else if (FD_EMPTY_CHOICEP(x)) u8_puts(out,"[]");
   else if (FD_TRUEP(x)) u8_puts(out,"true");
@@ -498,7 +498,7 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
 }
 
 static fdtype jsonoutput(fdtype x,fdtype flags_arg,
-			 fdtype slotfn,fdtype oidfn,fdtype miscfn)
+                         fdtype slotfn,fdtype oidfn,fdtype miscfn)
 {
   u8_output out=u8_current_output;
   int flags=
@@ -514,7 +514,7 @@ static fdtype jsonoutput(fdtype x,fdtype flags_arg,
 
 static fdtype jsonstring(fdtype x,fdtype flags_arg,fdtype slotfn,fdtype oidfn,fdtype miscfn)
 {
-  struct U8_OUTPUT tmpout; 
+  struct U8_OUTPUT tmpout;
   int flags=
     ((FD_FALSEP(flags_arg))?(0):
      (FD_TRUEP(flags_arg)) ? (FD_JSON_DEFAULTS) :
@@ -534,21 +534,21 @@ FD_EXPORT void fd_init_json_c()
   fdtype unsafe_module=fd_new_module("FDWEB",0);
 
   fd_idefn(module,fd_make_cprim3x
-	   ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),-1,FD_VOID));
+           ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),-1,FD_VOID));
   fd_idefn(unsafe_module,fd_make_cprim3x
-	   ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),-1,FD_VOID));
+           ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),-1,FD_VOID));
   fd_idefn(module,fd_make_cprim5x("->JSON",jsonstring,1,
-				  -1,FD_VOID,-1,FD_TRUE,
-				  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+                                  -1,FD_VOID,-1,FD_TRUE,
+                                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(unsafe_module,fd_make_cprim5x("->JSON",jsonstring,1,
-					 -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
-					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+                                         -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
+                                         -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim5x("JSONOUTPUT",jsonoutput,1,
-				  -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
-				  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+                                  -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
+                                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(unsafe_module,fd_make_cprim5x("JSONOUTPUT",jsonoutput,1,
-					 -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
-					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+                                         -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
+                                         -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
 
   u8_register_source_file(_FILEINFO);
 }

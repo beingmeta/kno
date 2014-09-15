@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2007-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -47,8 +47,8 @@ static fdtype znumerr(u8_context cxt,int zerrno,u8_string path)
   u8_byte buf[1024];
   zip_error_to_str(buf,1024,errno,zerrno);
   return fd_err(ZipFileError,cxt,
-		u8_mkstring("(%s) %s",path,buf),
-		FD_VOID);
+                u8_mkstring("(%s) %s",path,buf),
+                FD_VOID);
 }
 
 static fdtype ziperr(u8_context cxt,fd_zipfile zf,fdtype irritant)
@@ -60,7 +60,7 @@ static fdtype ziperr(u8_context cxt,fd_zipfile zf,fdtype irritant)
 }
 
 static fdtype zfilerr(u8_context cxt,fd_zipfile zf,struct zip_file *zfile,
-		      fdtype irritant)
+                      fdtype irritant)
 {
   u8_string details=
     u8_mkstring("(%s) %s",zf->filename,zip_file_strerror(zfile));
@@ -84,7 +84,7 @@ static int unparse_zipfile(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_ZIPFILE *zf=(struct FD_ZIPFILE *)x;
   u8_printf(out,"#<ZIPFILE '%s'%s>",
-	    zf->filename,((zf->closed)?(" closed"):""));
+            zf->filename,((zf->closed)?(" closed"):""));
   return 1;
 }
 
@@ -180,7 +180,7 @@ static long long int zipadd
 }
 
 static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
-			  fdtype comment,fdtype compress)
+                          fdtype comment,fdtype compress)
 {
   struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
   unsigned char *data=NULL; size_t datalen=0;
@@ -211,25 +211,25 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
 #if (HAVE_ZIP_SET_FILE_COMMENT)
   if (!(FD_FALSEP(comment))) {
     int retval=-1;
-    if (FD_STRINGP(comment)) 
+    if (FD_STRINGP(comment))
       retval=zip_set_file_comment
-	(zf->zip,index,FD_STRDATA(comment),FD_STRLEN(comment));
+        (zf->zip,index,FD_STRDATA(comment),FD_STRLEN(comment));
     else if (FD_PACKETP(comment))
       retval=zip_set_file_comment
-	(zf->zip,index,FD_PACKET_DATA(comment),
-	 FD_PACKET_LENGTH(comment));
+        (zf->zip,index,FD_PACKET_DATA(comment),
+         FD_PACKET_LENGTH(comment));
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       fd_unparse(&out,comment);
       retval=zip_set_file_comment(zf->zip,index,out.u8_outbuf,
-				  out.u8_outptr-out.u8_outbuf);}
+                                  out.u8_outptr-out.u8_outbuf);}
     if (retval<0) {
       u8_unlock_mutex(&(zf->lock));
       return ziperr("zipadd/comment",zf,(fdtype)zf);}}
 #else
-  if (!(FD_FALSEP(comment))) { 
+  if (!(FD_FALSEP(comment))) {
     u8_log(LOG_WARNING,"zipadd/comment",
-	   "available libzip doesn't support comment fields");}
+           "available libzip doesn't support comment fields");}
 #endif
 #if (HAVE_ZIP_SET_FILE_COMPRESSION)
   if (FD_FALSEP(compress)) {
@@ -385,9 +385,9 @@ static fdtype zipgetfiles_prim(fdtype zipfile)
       u8_string name=(u8_string)zip_get_name(zf->zip,i,0);
       if (!(name)) i++;
       else {
-	fdtype lname=fdtype_string(name);
-	FD_ADD_TO_CHOICE(files,lname);
-	i++;}}
+        fdtype lname=fdtype_string(name);
+        FD_ADD_TO_CHOICE(files,lname);
+        i++;}}
     u8_unlock_mutex(&(zf->lock));
     return files;}
 }
@@ -420,64 +420,64 @@ FD_EXPORT int fd_init_ziptools()
 
   ziptools_init=1;
   ziptools_module=fd_new_module("ZIPTOOLS",(FD_MODULE_SAFE));
-  
+
   fd_zipfile_type=fd_register_cons_type("ZIPFILE");
-  
+
   fd_unparsers[fd_zipfile_type]=unparse_zipfile;
   fd_recyclers[fd_zipfile_type]=recycle_zipfile;
 
   fd_idefn(ziptools_module,
-	   fd_make_cprim1("ZIPFILE?",iszipfile_prim,1));
+           fd_make_cprim1("ZIPFILE?",iszipfile_prim,1));
 
   fd_idefn(ziptools_module,
-	   fd_make_cprim2x("ZIP/OPEN",zipopen_prim,1,
-			   fd_string_type,FD_VOID,-1,FD_FALSE));
+           fd_make_cprim2x("ZIP/OPEN",zipopen_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(ziptools_module,
-	   fd_make_cprim1x("ZIP/MAKE",zipmake_prim,1,fd_string_type,FD_VOID));
+           fd_make_cprim1x("ZIP/MAKE",zipmake_prim,1,fd_string_type,FD_VOID));
 
   fd_idefn(ziptools_module,
-	   fd_make_cprim1x
-	   ("ZIP/CLOSE",close_zipfile,1,fd_zipfile_type,FD_VOID));
+           fd_make_cprim1x
+           ("ZIP/CLOSE",close_zipfile,1,fd_zipfile_type,FD_VOID));
 
   fd_idefn(ziptools_module,
-	   fd_make_cprim5x("ZIP/ADD!",zipadd_prim,3,
-			   fd_zipfile_type,FD_VOID,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID,
-			   -1,FD_FALSE,
-			   -1,FD_TRUE));
+           fd_make_cprim5x("ZIP/ADD!",zipadd_prim,3,
+                           fd_zipfile_type,FD_VOID,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID,
+                           -1,FD_FALSE,
+                           -1,FD_TRUE));
 
   fd_idefn(ziptools_module,
-	   fd_make_cprim2x("ZIP/DROP!",zipdrop_prim,2,
-			   fd_zipfile_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("ZIP/DROP!",zipdrop_prim,2,
+                           fd_zipfile_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(ziptools_module,
-	   fd_make_cprim3x("ZIP/GET",zipget_prim,2,
-			   fd_zipfile_type,FD_VOID,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim3x("ZIP/GET",zipget_prim,2,
+                           fd_zipfile_type,FD_VOID,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID));
 
   fd_idefn(ziptools_module,
-	   fd_make_cprim2x("ZIP/EXISTS?",zipexists_prim,2,
-			   fd_zipfile_type,FD_VOID,
-			   fd_string_type,FD_VOID));
-  
-  fd_idefn(ziptools_module,
-	   fd_make_cprim2x("ZIP/MODTIME",zipmodtime_prim,2,
-			   fd_zipfile_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("ZIP/EXISTS?",zipexists_prim,2,
+                           fd_zipfile_type,FD_VOID,
+                           fd_string_type,FD_VOID));
 
   fd_idefn(ziptools_module,
-	   fd_make_cprim1x("ZIP/GETFILES",zipgetfiles_prim,1,
-			   fd_zipfile_type,FD_VOID));
+           fd_make_cprim2x("ZIP/MODTIME",zipmodtime_prim,2,
+                           fd_zipfile_type,FD_VOID,
+                           fd_string_type,FD_VOID));
+
+  fd_idefn(ziptools_module,
+           fd_make_cprim1x("ZIP/GETFILES",zipgetfiles_prim,1,
+                           fd_zipfile_type,FD_VOID));
 
   fd_idefn(ziptools_module,
     fd_make_cprim0("ZIP/FEATURES",zipfeatures_prim,0));
 
   fd_idefn(ziptools_module,
-	   fd_make_cprim1x("ZIP/FILENAME",zipfilename_prim,1,
-			   fd_zipfile_type,FD_VOID));
-  
+           fd_make_cprim1x("ZIP/FILENAME",zipfilename_prim,1,
+                           fd_zipfile_type,FD_VOID));
+
   fd_finish_module(ziptools_module);
   fd_persist_module(ziptools_module);
 

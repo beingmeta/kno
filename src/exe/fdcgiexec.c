@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -82,10 +82,10 @@ static void write_pid_file(char *sockname)
 
 static void shutdown_server(u8_condition reason)
 {
-  if (reason) 
+  if (reason)
     u8_log(LOG_WARN,reason,
-	   "Shutting down, removing socket %s and pidfile %s",
-	   portfile,pidfile);
+           "Shutting down, removing socket %s and pidfile %s",
+           portfile,pidfile);
   webcommon_shutdown(reason);
   exit(0);
 }
@@ -101,13 +101,13 @@ static fdtype reqsetup()
   if (fd_update_file_modules(0)<0) {
     u8_condition c; u8_context cxt; u8_string details=NULL;
     fdtype irritant;
-    if (fd_poperr(&c,&cxt,&details,&irritant)) 
+    if (fd_poperr(&c,&cxt,&details,&irritant))
       result=fd_err(c,cxt,details,irritant);
     if (details) u8_free(details); fd_decref(irritant);}
   else if (update_preloads()<0) {
     u8_condition c; u8_context cxt; u8_string details=NULL;
     fdtype irritant;
-    if (fd_poperr(&c,&cxt,&details,&irritant)) 
+    if (fd_poperr(&c,&cxt,&details,&irritant))
       result=fd_err(c,cxt,details,irritant);
     if (details) u8_free(details); fd_decref(irritant);}
   return result;
@@ -235,8 +235,8 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     path=fd_get(cgidata,script_filename,FD_VOID);
     if (traceweb>0) {
       uri=fd_get(cgidata,uri_symbol,FD_VOID);
-      if (FD_STRINGP(uri)) 
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
+      if (FD_STRINGP(uri))
+        u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
       fd_decref(uri);}
     proc=getcontent(path);
     fd_parse_cgidata(cgidata);
@@ -263,8 +263,8 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_ENVIRONMENTP(lenv)) ?
-		     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
-		     (NULL));
+                     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
+                     (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
     threadcache=checkthreadcache(base);
@@ -274,9 +274,9 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     if (FD_VOIDP(setup_proc)) {}
     else if (FD_CHOICEP(setup_proc)) {
       FD_DO_CHOICES(proc,setup_proc)
-	if (FD_APPLICABLEP(proc)) {
-	  fdtype v=fd_apply(proc,0,NULL);
-	  fd_decref(v);}}
+        if (FD_APPLICABLEP(proc)) {
+          fdtype v=fd_apply(proc,0,NULL);
+          fd_decref(v);}}
     else if (FD_APPLICABLEP(setup_proc)) {
       fdtype v=fd_apply(setup_proc,0,NULL);
       fd_decref(v);}
@@ -285,9 +285,9 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     fd_output_xml_preface(out,cgidata);
     if (FD_PAIRP(FD_CAR(proc))) {
       FD_DOLIST(expr,FD_CAR(proc)) {
-	fd_decref(result);
-	result=fd_xmleval(out,expr,runenv);
-	if (FD_ABORTP(result)) break;}}
+        fd_decref(result);
+        result=fd_xmleval(out,expr,runenv);
+        if (FD_ABORTP(result)) break;}}
     else result=fd_xmleval(out,FD_CAR(proc),runenv);
     fd_decref((fdtype)runenv);}
   exec_time=u8_elapsed_time();
@@ -296,17 +296,17 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     u8_exception ex=u8_erreify();
     u8_condition excond=ex->u8x_cond;
     u8_context excxt=((ex->u8x_context) ?
-		      (ex->u8x_context) :
-		      ((u8_context)"somewhere"));
+                      (ex->u8x_context) :
+                      ((u8_context)"somewhere"));
     u8_context exdetails=((ex->u8x_details) ?
-			  (ex->u8x_details) :
-			  ((u8_string)"no more details"));
+                          (ex->u8x_details) :
+                          ((u8_string)"no more details"));
     fdtype irritant=fd_exception_xdata(ex);
     if (FD_VOIDP(irritant))
       u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
-	     excond,FD_STRDATA(path),excxt,exdetails);
+             excond,FD_STRDATA(path),excxt,exdetails);
     else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
-		excond,FD_STRDATA(path),excxt,exdetails,irritant);
+                excond,FD_STRDATA(path),excxt,exdetails,irritant);
     FCGX_PutS("Content-type: text/html; charset=utf-8\r\n\r\n",req->out);
     fd_xhtmlerrorpage(out,ex);
     u8_free_exception(ex,1);
@@ -326,8 +326,8 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     tmp.u8_outptr=tmp.u8_outbuf;
     if (FD_VOIDP(content)) {
       if (write_headers) {
-	write_headers=fd_output_xhtml_preface(&tmp,cgidata);
-	FCGX_PutStr(tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf,req->out);}
+        write_headers=fd_output_xhtml_preface(&tmp,cgidata);
+        FCGX_PutStr(tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf,req->out);}
       retval=FCGX_PutStr(out->u8_outbuf,out->u8_outptr-out->u8_outbuf,req->out);
       if (write_headers) FCGX_PutS("</body>\n</html>\n",req->out);}
     else {
@@ -345,22 +345,22 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     fdtype query=fd_get(cgidata,query_string,FD_VOID);
     if (FD_VOIDP(query))
       u8_log(LOG_NOTICE,"DONE","Handled %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
-	     path,write_time-start_time,
-	     setup_time-start_time,
-	     parse_time-setup_time,
-	     exec_time-parse_time,
-	     write_time-exec_time,
-	     (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
-	     (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
+             path,write_time-start_time,
+             setup_time-start_time,
+             parse_time-setup_time,
+             exec_time-parse_time,
+             write_time-exec_time,
+             (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
+             (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
     else u8_log(LOG_NOTICE,"DONE","Handled %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
-		path,query,
-		write_time-start_time,
-		setup_time-start_time,
-		parse_time-setup_time,
-		exec_time-parse_time,
-		write_time-exec_time,
-		(u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
-		(u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
+                path,query,
+                write_time-start_time,
+                setup_time-start_time,
+                parse_time-setup_time,
+                exec_time-parse_time,
+                write_time-exec_time,
+                (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
+                (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
     /* If we're calling traceweb, keep the log files up to date also. */
     fd_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
@@ -415,11 +415,11 @@ static int start_fcgi_server(char *socketspec)
     u8_log(LOG_NOTICE,Startup,"Opening fastcgi socket '%s'",socketspec);
     if (*socketspec!=':')
       if (u8_file_existsp(socketspec)) {
-	u8_log(LOG_NOTICE,Startup,"Removing existing fastcgi socket '%s'",socketspec);	
-	remove(socketspec);}
+        u8_log(LOG_NOTICE,Startup,"Removing existing fastcgi socket '%s'",socketspec);
+        remove(socketspec);}
     fcgi_socket=FCGX_OpenSocket(socketspec,max_backlog);
     if ((*socketspec!=':') && (getenv("UNDERGDB")))
-      u8_log(LOG_CRIT,Startup,"Setting fastcgi socket '%s' to be world-writable",socketspec);	
+      u8_log(LOG_CRIT,Startup,"Setting fastcgi socket '%s' to be world-writable",socketspec);
       chmod(socketspec,0777);}
   else {
     char *socknov=getenv("FCGI_LISTENSOCK_FILENO");
@@ -429,16 +429,16 @@ static int start_fcgi_server(char *socketspec)
     else {
       fcgi_socket=0;
       u8_log(LOG_NOTICE,Startup,"Listening on default fileno 0");}}
-  
+
   u8_log(LOG_DEBUG,Startup,"Creating/Starting threads");
 
   threads=u8_alloc_n(servlet_threads,pthread_t);
   each_thread=0; while (each_thread<servlet_threads) {
     pthread_create(&(threads[each_thread]),
-		   pthread_attr_default,
-		   fcgitop,(void *)((fd_ptrbits)(fcgi_socket)));
+                   pthread_attr_default,
+                   fcgitop,(void *)((fd_ptrbits)(fcgi_socket)));
     each_thread++;}
-  
+
   u8_log(LOG_DEBUG,Startup,"Threads started");
 
   init_webcommon_finalize();
@@ -450,15 +450,15 @@ static int start_fcgi_server(char *socketspec)
    portfile=u8_strdup(socketspec);}
 
  u8_log(LOG_NOTICE,NULL,
-	"FramerD (%s) fdcgiexec servlet running, %d/%d pools/indices",
-	FRAMERD_REVISION,fd_n_pools,
-	fd_n_primary_indices+fd_n_secondary_indices);
+        "FramerD (%s) fdcgiexec servlet running, %d/%d pools/indices",
+        FRAMERD_REVISION,fd_n_pools,
+        fd_n_primary_indices+fd_n_secondary_indices);
  u8_message("beingmeta FramerD, (C) beingmeta 2004-2014, all rights reserved");
  each_thread=0; while (each_thread<servlet_threads) {
    void *threadval;
    int retval=pthread_join(threads[each_thread],(void **)&threadval);
    each_thread++;}
- 
+
  if (pidfile) {
    u8_removefile(pidfile);
    u8_free(pidfile);
@@ -486,8 +486,8 @@ static int simplecgi(fdtype path)
     if (docroot) webcommon_adjust_docroot(cgidata,docroot);
     if (traceweb>0) {
       uri=fd_get(cgidata,uri_symbol,FD_VOID);
-      if (FD_STRINGP(uri)) 
-	u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
+      if (FD_STRINGP(uri))
+        u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
       fd_decref(uri);}
     proc=getcontent(path);
     fd_parse_cgidata(cgidata);
@@ -510,8 +510,8 @@ static int simplecgi(fdtype path)
   else if (FD_PAIRP(proc)) {
     fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_ENVIRONMENTP(lenv)) ?
-		     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
-		     (NULL));
+                     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
+                     (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
     if (traceweb>1)
@@ -520,9 +520,9 @@ static int simplecgi(fdtype path)
     if (FD_VOIDP(setup_proc)) {}
     else if (FD_CHOICEP(setup_proc)) {
       FD_DO_CHOICES(proc,setup_proc)
-	if (FD_APPLICABLEP(proc)) {
-	  fdtype v=fd_apply(proc,0,NULL);
-	  fd_decref(v);}}
+        if (FD_APPLICABLEP(proc)) {
+          fdtype v=fd_apply(proc,0,NULL);
+          fd_decref(v);}}
     else if (FD_APPLICABLEP(setup_proc)) {
       fdtype v=fd_apply(setup_proc,0,NULL);
       fd_decref(v);}
@@ -531,9 +531,9 @@ static int simplecgi(fdtype path)
     fd_output_xml_preface(&out,cgidata);
     if (FD_PAIRP(FD_CAR(proc))) {
       FD_DOLIST(expr,FD_CAR(proc)) {
-	fd_decref(result);
-	result=fd_xmleval(&out,expr,runenv);
-	if (FD_ABORTP(result)) break;}}
+        fd_decref(result);
+        result=fd_xmleval(&out,expr,runenv);
+        if (FD_ABORTP(result)) break;}}
     else result=fd_xmleval(&out,FD_CAR(proc),runenv);
     fd_decref((fdtype)runenv);}
   exec_time=u8_elapsed_time();
@@ -541,16 +541,16 @@ static int simplecgi(fdtype path)
     u8_exception ex=u8_erreify();
     u8_condition excond=ex->u8x_cond;
     u8_context excxt=((ex->u8x_context) ?
-		      (ex->u8x_context) :
-		      ((u8_context)"somewhere"));
+                      (ex->u8x_context) :
+                      ((u8_context)"somewhere"));
     u8_context exdetails=
       ((ex->u8x_details) ? (ex->u8x_details) : ((u8_string)"no more details"));
     fdtype irritant=fd_exception_xdata(ex);
     if (FD_VOIDP(irritant))
       u8_log(LOG_INFO,excond,"Unexpected error \"%m \"for %s:@%s (%s)",
-	     excond,FD_STRDATA(path),excxt,exdetails);
+             excond,FD_STRDATA(path),excxt,exdetails);
     else u8_log(LOG_INFO,excond,"Unexpected error \"%m\" for %s:%s (%s) %q",
-		excond,FD_STRDATA(path),excxt,exdetails,irritant);
+                excond,FD_STRDATA(path),excxt,exdetails,irritant);
     fputs("Content-type: text/html; charset=utf-8\r\n\r\n",stdout);
     fd_xhtmlerrorpage(&out,ex);
     retval=fwrite(out.u8_outbuf,1,out.u8_outptr-out.u8_outbuf,stdout);
@@ -568,16 +568,16 @@ static int simplecgi(fdtype path)
     tmp.u8_outptr=tmp.u8_outbuf;
     if (FD_VOIDP(content)) {
       if (write_headers) {
-	write_headers=fd_output_xhtml_preface(&tmp,cgidata);
-	retval=fwrite(tmp.u8_outbuf,1,tmp.u8_outptr-tmp.u8_outbuf,stdout);
-	retval=fwrite(out.u8_outbuf,1,out.u8_outptr-out.u8_outbuf,stdout);}
+        write_headers=fd_output_xhtml_preface(&tmp,cgidata);
+        retval=fwrite(tmp.u8_outbuf,1,tmp.u8_outptr-tmp.u8_outbuf,stdout);
+        retval=fwrite(out.u8_outbuf,1,out.u8_outptr-out.u8_outbuf,stdout);}
       if (write_headers) fputs("</body>\n</html>\n",stdout);}
     else {
       if (FD_STRINGP(content)) {
-	retval=fwrite(FD_STRDATA(content),1,FD_STRLEN(content),stdout);}
+        retval=fwrite(FD_STRDATA(content),1,FD_STRLEN(content),stdout);}
       else if (FD_PACKETP(content))
-	retval=fwrite(FD_PACKET_DATA(content),1,FD_PACKET_LENGTH(content),
-		      stdout);}
+        retval=fwrite(FD_PACKET_DATA(content),1,FD_PACKET_LENGTH(content),
+                      stdout);}
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);}
   if (retval<0)
     u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
@@ -590,22 +590,22 @@ static int simplecgi(fdtype path)
     fdtype query=fd_get(cgidata,query_string,FD_VOID);
     if (FD_VOIDP(query))
       u8_log(LOG_NOTICE,"DONE","Handled %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
-	     path,write_time-start_time,
-	     setup_time-start_time,
-	     parse_time-setup_time,
-	     exec_time-parse_time,
-	     write_time-exec_time,
-	     (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
-	     (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
+             path,write_time-start_time,
+             setup_time-start_time,
+             parse_time-setup_time,
+             exec_time-parse_time,
+             write_time-exec_time,
+             (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
+             (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
     else u8_log(LOG_NOTICE,"DONE","Handled %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms.",
-		path,query,
-		write_time-start_time,
-		setup_time-start_time,
-		parse_time-setup_time,
-		exec_time-parse_time,
-		write_time-exec_time,
-		(u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
-		(u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
+                path,query,
+                write_time-start_time,
+                setup_time-start_time,
+                parse_time-setup_time,
+                exec_time-parse_time,
+                write_time-exec_time,
+                (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
+                (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0);
     /* If we're calling traceweb, keep the log files up to date also. */
     fd_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
@@ -619,7 +619,7 @@ static int simplecgi(fdtype path)
 
 /* The main() event */
 
-FD_EXPORT void fd_init_dbfile(void); 
+FD_EXPORT void fd_init_dbfile(void);
 
 int main(int argc,char **argv)
 {
@@ -648,7 +648,7 @@ int main(int argc,char **argv)
     dup2(log_fd,2);}
 
   fd_version=fd_init_fdscheme();
-  
+
   if (fd_version<0) {
     u8_log(LOG_WARN,Startup,"Couldn't initialize FramerD");
     exit(1);}
@@ -682,11 +682,11 @@ int main(int argc,char **argv)
 #endif
 
   fd_init_fdweb();
-  fd_init_dbfile(); 
+  fd_init_dbfile();
 
   init_webcommon_data();
   init_webcommon_symbols();
-  
+
   if (server_env==NULL)
     server_env=fd_working_environment();
   fd_idefn((fdtype)server_env,fd_make_cprim0("BOOT-TIME",get_boot_time,0));
@@ -694,12 +694,12 @@ int main(int argc,char **argv)
 
   init_webcommon_configs();
   fd_register_config("BACKLOG",
-		     _("Number of pending connection requests allowed"),
-		     fd_intconfig_get,fd_intconfig_set,&max_backlog);
+                     _("Number of pending connection requests allowed"),
+                     fd_intconfig_get,fd_intconfig_set,&max_backlog);
   fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
-		     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
+                     fd_intconfig_get,fd_intconfig_set,&servlet_threads);
   fd_register_config("CGISOCK",_("The socket file used by this server for use with external versions"),
-		     fd_sconfig_get,fd_sconfig_set,&socketspec);
+                     fd_sconfig_get,fd_sconfig_set,&socketspec);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&log_lock);
@@ -741,4 +741,3 @@ int main(int argc,char **argv)
 #endif
   return 0;
 }
-

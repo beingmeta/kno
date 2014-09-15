@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -221,7 +221,7 @@ static fdtype downcase(fdtype string)
       int lc=u8_tolower(c); u8_putc(&out,lc);}
     return fd_stream2string(&out);}
   else return fd_type_error(_("string, symbol, or character"),"downcase",string);
-    
+
 }
 static fdtype char_downcase(fdtype ch)
 {
@@ -622,7 +622,7 @@ static fdtype string_prim(int n,fdtype *args)
 static fdtype makestring(fdtype len,fdtype character)
 {
   struct U8_OUTPUT out;
-  if (fd_getint(len)==0) 
+  if (fd_getint(len)==0)
     return fd_init_string(NULL,0,NULL);
   else {
     int i=0, n=fd_getint(len), ch=FD_CHAR2CODE(character);
@@ -834,7 +834,7 @@ static int check_yesp(u8_string arg,fdtype strings,int ignorecase)
     return strmatch(arg,strings,ignorecase);
   else if (FD_VECTORP(strings)) {
     fdtype *v=FD_VECTOR_DATA(strings);
-    int i=0, lim=FD_VECTOR_LENGTH(strings); 
+    int i=0, lim=FD_VECTOR_LENGTH(strings);
     while (i<lim) {
       fdtype s=FD_VECTOR_REF(v,i); i++;
       if (strmatch(arg,s,ignorecase))
@@ -861,7 +861,7 @@ static fdtype yesp_prim(fdtype arg,fdtype dflt,fdtype yes,fdtype no)
   else if (FD_SYMBOLP(arg)) {
     string_arg=FD_SYMBOL_NAME(arg); ignorecase=1;}
   else return fd_type_error("string or symbol","yesp_prim",arg);
-  if ((!(FD_VOIDP(yes)))&&(check_yesp(string_arg,yes,ignorecase))) 
+  if ((!(FD_VOIDP(yes)))&&(check_yesp(string_arg,yes,ignorecase)))
     return FD_TRUE;
   else if ((!(FD_VOIDP(no)))&&(check_yesp(string_arg,no,ignorecase)))
     return FD_FALSE;
@@ -982,7 +982,7 @@ static fdtype string_subst_star(int n,fdtype *args)
   fdtype base=args[0]; int i=1;
   if ((n%2)==0)
     return fd_err(fd_SyntaxError,"string_subst_star",NULL,FD_VOID);
-  else while (i<n) 
+  else while (i<n)
     if (FD_EXPECT_FALSE(!(FD_STRINGP(args[i]))))
       return fd_type_error(_("string"),"string_subst_star",args[i]);
     else i++;
@@ -1128,7 +1128,7 @@ static fdtype textif_handler(fdtype expr,fd_lispenv env)
           else fd_unparse(&out,text);
           fd_decref(text); text=FD_VOID;}}
       else {
-        int i=0; while (i<len) { 
+        int i=0; while (i<len) {
           fdtype text_expr=fd_get_arg(body,i++);
           fdtype text=fd_eval(text_expr,env);
           if (FD_ABORTP(text))
@@ -1287,7 +1287,7 @@ FD_EXPORT void fd_init_strings_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BIGRAMS",string_bigrams,1,
                            fd_string_type,FD_VOID));
-  
+
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("CHAR->INTEGER",char2integer,1,
                            fd_character_type,FD_VOID));
@@ -1352,7 +1352,7 @@ FD_EXPORT void fd_init_strings_c()
            fd_make_cprimn("STRING-SUBST*",string_subst_star,3));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("TRIM-SPACES",trim_spaces,1,fd_string_type,FD_VOID));
-  
+
   fd_idefn(fd_scheme_module,fd_make_cprimn("GLOM",glom_lexpr,1));
   fd_defspecial(fd_scheme_module,"TEXTIF",textif_handler);
 

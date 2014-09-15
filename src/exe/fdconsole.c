@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -177,7 +177,7 @@ static fdtype random_symbol()
   int l1=(random())%26, l2=(random())%26, l3=(random())%26;
   fdtype symbol;
   while (tries<random_symbol_tries) {
-    char buf[4]; fdtype sym; 
+    char buf[4]; fdtype sym;
     int l1=(random())%26, l2=(random())%26, l3=(random())%26;
     buf[0]=letters[l1]; buf[1]=letters[l2]; buf[2]=letters[l3]; buf[3]='\0';
     sym=fd_probe_symbol(buf,3);
@@ -197,11 +197,11 @@ static fdtype bind_random_symbol(fdtype result,fd_lispenv env)
 }
 
 static int output_result(u8_output out,fdtype result,
-			 int histref,int showall)
+                         int histref,int showall)
 {
   if (FD_VOIDP(result)) {}
   else if (((FD_VECTORP(result)) || (FD_PAIRP(result))) &&
-	   (result_size(result)<8) && (fits_consolep(result))) {
+           (result_size(result)<8) && (fits_consolep(result))) {
     if (histref<0)
       u8_printf(out,"%q\n",result);
     else u8_printf(out,"%q  ;; =##%d\n",result,histref);}
@@ -216,7 +216,7 @@ static int output_result(u8_output out,fdtype result,
     else u8_printf(out,"OID value: %q\n",v);
     fd_decref(v);}
   else if (!((FD_CHOICEP(result)) || (FD_VECTORP(result)) ||
-	     (FD_PAIRP(result))))
+             (FD_PAIRP(result))))
     if (histref<0)
       u8_printf(out,"%Q\n",result);
     else if (console_width<=0)
@@ -244,39 +244,39 @@ static int output_result(u8_output out,fdtype result,
     else max_elts=n_elts;
     if (max_elts<n_elts) {
       if (histref<0)
-	u8_printf(out,_("%s ;; (%d/%d items)"),start_with,max_elts,n_elts);
+        u8_printf(out,_("%s ;; (%d/%d items)"),start_with,max_elts,n_elts);
       else u8_printf(out,_("%s ;; ##%d= (%d/%d items)"),
-		     start_with,histref,max_elts,n_elts);}
+                     start_with,histref,max_elts,n_elts);}
     else if (histref<0)
       u8_printf(out,_("%s ;; (%d items)"),start_with,n_elts);
     else u8_printf(out,_("%s ;; ##%d= (%d items)"),start_with,histref,n_elts);
     if (FD_CHOICEP(result)) {
       FD_DO_CHOICES(elt,result) {
-	if ((max_elts>0) && (count<max_elts)) {
-	  output_element(out,elt); count++;}
-	else {FD_STOP_DO_CHOICES; break;}}}
+        if ((max_elts>0) && (count<max_elts)) {
+          output_element(out,elt); count++;}
+        else {FD_STOP_DO_CHOICES; break;}}}
     else if (FD_VECTORP(result)) {
       fdtype *elts=FD_VECTOR_DATA(result);
       while (count<max_elts) {
-	output_element(out,elts[count]); count++;}}
+        output_element(out,elts[count]); count++;}}
     else if (FD_PAIRP(result)) {
       fdtype scan=result;
-      while (count<max_elts) 
-	if (FD_PAIRP(scan)) {
-	  output_element(out,FD_CAR(scan));
-	  count++; scan=FD_CDR(scan);}
-	else {
-	  u8_printf(out,"\n  . ;; improper list");
-	  output_element(out,scan);
-	  count++; scan=FD_VOID;
-	  break;}}
+      while (count<max_elts)
+        if (FD_PAIRP(scan)) {
+          output_element(out,FD_CAR(scan));
+          count++; scan=FD_CDR(scan);}
+        else {
+          u8_printf(out,"\n  . ;; improper list");
+          output_element(out,scan);
+          count++; scan=FD_VOID;
+          break;}}
     else {}
     if (max_elts<n_elts) {
       u8_printf(out,"\n  ;; ....... %d more items .......",n_elts-max_elts);
       if (histref<0)
-	u8_printf(out,"\n%s ;; (%d/%d items)\n",end_with,max_elts,n_elts);
+        u8_printf(out,"\n%s ;; (%d/%d items)\n",end_with,max_elts,n_elts);
       else u8_printf(out,"\n%s ;; ==##%d (%d/%d items)\n",
-		     end_with,histref,max_elts,n_elts);}
+                     end_with,histref,max_elts,n_elts);}
     else if (histref<0)
       u8_printf(out,"\n%s ;; (%d items)\n",end_with,n_elts);
     else u8_printf(out,"\n%s ;; ==##%d (%d items)\n",end_with,histref,n_elts);}
@@ -298,17 +298,17 @@ static void exit_fdconsole()
   if (!(quiet_console)) {
     if (run_start<0)
       u8_message("<%ld> Exiting FramerD (%s) console before we even started!",
-		 (long)getpid(),FRAMERD_REVISION);
+                 (long)getpid(),FRAMERD_REVISION);
     else {
       double wall_time=u8_elapsed_time()-run_start;
       u8_string units="seconds";
       if (wall_time<120) {}
       else if (wall_time<7200) {
-	units="minutes"; wall_time=wall_time/60;}
+        units="minutes"; wall_time=wall_time/60;}
       else {
-	units="hours"; wall_time=wall_time/3600;}
+        units="hours"; wall_time=wall_time/3600;}
       u8_message("<%ld> Exiting FramerD (%s) console after %f %s",
-		 (long)getpid(),FRAMERD_REVISION,wall_time,units);}}
+                 (long)getpid(),FRAMERD_REVISION,wall_time,units);}}
   close_consoles();
 }
 
@@ -317,7 +317,7 @@ static fdtype that_symbol, histref_symbol;
 #if HAVE_CHMOD
 #define changemode(f,m) chmod(f,m)
 #else
-#define changemode(f,m) 
+#define changemode(f,m)
 #endif
 
 static void dump_backtrace(u8_exception ex,u8_string dumpfile)
@@ -341,15 +341,15 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
       changemode(btfile,0444);
       u8_free(btfile);}
     if ((text_backtrace)||
-	(!((dtype_backtrace)||(lisp_backtrace)||
-	   ((html_backtrace)&&(FD_HTMLDUMP_ENABLED))))) {
+        (!((dtype_backtrace)||(lisp_backtrace)||
+           ((html_backtrace)&&(FD_HTMLDUMP_ENABLED))))) {
       u8_string btfile=u8_mkpath(abspath,"backtrace.text");
       dump_backtrace(ex,btfile);
       changemode(btfile,0444);
       u8_free(btfile);}}
   else if ((u8_has_suffix(dumpfile,".scm",1))||
-	   (u8_has_suffix(dumpfile,".lisp",1))||
-	   (u8_has_suffix(dumpfile,".lispdata",1))) {
+           (u8_has_suffix(dumpfile,".lisp",1))||
+           (u8_has_suffix(dumpfile,".lispdata",1))) {
     u8_output outfile=(u8_output)u8_open_output_file(abspath,NULL,O_RDWR|O_CREAT,0600);
     fdtype backtrace=fd_exception_backtrace(ex);
     fd_pprint(outfile,backtrace,NULL,0,0,120,1);
@@ -363,7 +363,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
     fd_xhtmldebugpage(outfile,ex);
     u8_close((u8_stream)outfile);
     changemode(abspath,0444);
-    if ((bugdumps)&&(bugurlbase)&&(u8_has_prefix(abspath,bugdumps,0))) 
+    if ((bugdumps)&&(bugurlbase)&&(u8_has_prefix(abspath,bugdumps,0)))
       bugurl=u8_mkpath(bugurlbase,abspath+strlen(bugdumps));
     else bugurl=u8_string_append("file://",abspath,NULL);
     u8_log(LOG_ERROR,ex->u8x_cond,"HTML backtrace written to %s",bugurl);
@@ -372,8 +372,8 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
       u8_printf(&cmd,"%s %s",bugbrowse,bugurl);
       retval=system(cmd.u8_outbuf);
       if (retval!=0)
-	u8_log(LOG_WARN,"There was an error browsing the backtrace with '%s'",
-	       cmd.u8_outbuf);
+        u8_log(LOG_WARN,"There was an error browsing the backtrace with '%s'",
+               cmd.u8_outbuf);
       u8_free(cmd.u8_outbuf);}
     if (bugurl) u8_free(bugurl);}
 #else
@@ -387,14 +387,14 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
     out=fd_dtsopen(temp_name,FD_DTSTREAM_CREATE);
     if (out==NULL) {
       u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
-	     temp_name,abspath);
+             temp_name,abspath);
       u8_free(temp_name);}
     else bytes=fd_dtswrite_dtype(out,backtrace);
     if (bytes<0) {
       fd_dtsclose(out,FD_DTSCLOSE_FULL);
       u8_free(temp_name);
       u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
-	     temp_name,abspath);}
+             temp_name,abspath);}
     else {
       fd_dtsclose(out,FD_DTSCLOSE_FULL);
       u8_movefile(temp_name,abspath);
@@ -418,7 +418,7 @@ static fdtype backtrace_prim(fdtype arg)
     return FD_VOID;}
   if (FD_VOIDP(arg))
     dump_backtrace(last_exception,NULL);
-  else if (FD_STRINGP(arg)) 
+  else if (FD_STRINGP(arg))
     dump_backtrace(last_exception,FD_STRDATA(arg));
   else if (FD_TRUEP(arg))
     return fd_exception_backtrace(last_exception);
@@ -435,9 +435,9 @@ static int module_config_set(fdtype var,fdtype vals,void *d)
 {
   int loads=0; FD_DO_CHOICES(val,vals) {
     fdtype modname=((FD_SYMBOLP(val))?(val):
-		    (FD_STRINGP(val))?
-		    (fd_parse(FD_STRDATA(val))):
-		    (FD_VOID));
+                    (FD_STRINGP(val))?
+                    (fd_parse(FD_STRDATA(val))):
+                    (FD_VOID));
     fdtype module=FD_VOID, used;
     if (FD_VOIDP(modname)) {
       fd_seterr(fd_TypeError,"module_config_set","module",val);
@@ -567,7 +567,7 @@ int main(int argc,char **argv)
 
   /* Register configuration parameters */
   fd_register_config("SHOWTIME",_("Threshold for displaying execution time"),
-		     fd_dblconfig_get,fd_dblconfig_set,&showtime_threshold);
+                     fd_dblconfig_get,fd_dblconfig_set,&showtime_threshold);
   fd_register_config
     ("DEBUGMAXCHARS",
      _("Max number of string characters to display in debug message"),
@@ -648,7 +648,7 @@ int main(int argc,char **argv)
   /* Process config fields in the arguments,
      storing the first non config field as a source file. */
   while (i<argc)
-    if (strchr(argv[i],'=')) 
+    if (strchr(argv[i],'='))
       fd_config_assignment(argv[i++]);
     else if (source_file) i++;
     else source_file=argv[i++];
@@ -661,7 +661,7 @@ int main(int argc,char **argv)
     struct FD_DTYPE_STREAM *newstream;
     if (sock<0) {
       u8_log(LOG_WARN,"Connection failed","Couldn't open connection to %s",
-	     source_file);
+             source_file);
       exit(-1);}
     newstream=u8_alloc(struct FD_DTYPE_STREAM);
     fd_init_dtype_stream(newstream,sock,65536);
@@ -694,8 +694,8 @@ int main(int argc,char **argv)
       startup_time=startup_time*1000; units="ms";}
     else {startup_time=startup_time*1000000; units="us";}
     u8_message("FramerD %s booted in %0.3f%s, %d/%d pools/indices",
-	       u8_appid(),startup_time,units,fd_n_pools,
-	       fd_n_primary_indices+fd_n_secondary_indices);}
+               u8_appid(),startup_time,units,fd_n_pools,
+               fd_n_primary_indices+fd_n_secondary_indices);}
   if (dotload) {
     dotloader("~/.fdconfig",NULL);
     dotloader(".fdconfig",NULL);
@@ -715,8 +715,8 @@ int main(int argc,char **argv)
     if (c == '=') {
       fdtype sym=fd_parser((u8_input)in);
       if (FD_SYMBOLP(sym)) {
-	fd_bind_value(sym,lastval,env);
-	u8_printf(out,_(";; Assigned %s\n"),FD_SYMBOL_NAME(sym));}
+        fd_bind_value(sym,lastval,env);
+        u8_printf(out,_(";; Assigned %s\n"),FD_SYMBOL_NAME(sym));}
       else u8_printf(out,_(";; Bad assignment expression\n"));
       u8_printf(out,EVAL_PROMPT);
       u8_flush(out);
@@ -727,18 +727,18 @@ int main(int argc,char **argv)
       fd_decref(result); break;}
     /* Clear the buffer (should do more?) */
     if (((FD_PAIRP(expr)) && ((FD_EQ(FD_CAR(expr),histref_symbol)))) ||
-	(FD_EQ(expr,that_symbol))) {
+        (FD_EQ(expr,that_symbol))) {
       if (!(FD_EQ(expr,that_symbol)))
-	is_histref=1;
-	histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
+        is_histref=1;
+        histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
     if (FD_OIDP(expr)) {
       fdtype v=fd_oid_value(expr);
       if (FD_TABLEP(v)) {
-	U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
-	u8_printf(&out,"%q:\n",expr);
-	fd_display_table(&out,v,FD_VOID);
-	fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
-	fflush(stdout);}
+        U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+        u8_printf(&out,"%q:\n",expr);
+        fd_display_table(&out,v,FD_VOID);
+        fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
+        fflush(stdout);}
       else u8_printf(out,"OID value: %q\n",v);
       fd_decref(v);
       u8_printf(out,EVAL_PROMPT);
@@ -748,31 +748,31 @@ int main(int argc,char **argv)
     if (FD_ABORTP(expr)) {
       result=fd_incref(expr);
       u8_printf(out,";; Flushing input, parse error @%d\n",
-		in->u8_inptr-in->u8_inbuf);
+                in->u8_inptr-in->u8_inbuf);
       u8_flush_input((u8_input)in);
       u8_flush((u8_output)out);}
     else {
       if (eval_server) {
-	fd_dtswrite_dtype(eval_server,expr);
-	fd_dtsflush(eval_server);
-	result=fd_dtsread_dtype(eval_server);}
+        fd_dtswrite_dtype(eval_server,expr);
+        fd_dtsflush(eval_server);
+        result=fd_dtsread_dtype(eval_server);}
       else result=fd_eval(expr,env);}
     if (FD_ACHOICEP(result)) result=fd_simplify_choice(result);
     finish_time=u8_elapsed_time();
     finish_ocache=fd_object_cache_load();
     finish_icache=fd_index_cache_load();
     if ((FD_PAIRP(expr))&&
-	(!((FD_CHECK_PTR(result)==0) || (is_histref) ||
-	   (FD_VOIDP(result)) || (FD_EMPTY_CHOICEP(result)) ||
-	   (FD_TRUEP(result)) || (FD_FALSEP(result)) ||
-	   (FD_ABORTP(result)) || (FD_FIXNUMP(result))))) {
+        (!((FD_CHECK_PTR(result)==0) || (is_histref) ||
+           (FD_VOIDP(result)) || (FD_EMPTY_CHOICEP(result)) ||
+           (FD_TRUEP(result)) || (FD_FALSEP(result)) ||
+           (FD_ABORTP(result)) || (FD_FIXNUMP(result))))) {
       int ref=fd_histpush(result);
       if (ref>=0) histref=ref;}
     if (FD_ABORTP(result)) stat_line=0;
     else if ((showtime_threshold>=0.0) &&
-	     (((finish_time-start_time)>showtime_threshold) ||
-	      (finish_ocache!=start_ocache) ||
-	      (finish_icache!=start_icache)))
+             (((finish_time-start_time)>showtime_threshold) ||
+              (finish_ocache!=start_ocache) ||
+              (finish_icache!=start_icache)))
       stat_line=1;
     fd_decref(expr); expr=FD_VOID;
     if (FD_CHECK_PTR(result)==0) {
@@ -780,69 +780,69 @@ int main(int argc,char **argv)
     else if (FD_TROUBLEP(result)) {
       u8_exception ex=u8_erreify(), root=ex;
       if (ex) {
-	{U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
-	  int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
-	  while (root->u8x_prev) root=root->u8x_prev;
-	  fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
-	  fd_print_exception(&out,root);
-	  fd_summarize_backtrace(&out,ex);
-	  u8_printf(&out,"\n");
-	  fputs(out.u8_outbuf,stderr);
-	  out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
-	  if (show_backtrace) {
-	    fd_print_backtrace(&out,ex,80);
-	    fputs(out.u8_outbuf,stderr);}
-	  fd_unparse_maxelts=old_maxelts;
-	  fd_unparse_maxchars=old_maxchars;
-	  u8_free(out.u8_outbuf);}
-	if (save_backtrace) {
-	  fdtype bt=fd_exception_backtrace(ex);
-	  u8_fprintf(stderr,";; Saved backtrace into ##%d\n",fd_histpush(bt));
-	  fd_decref(bt);}
-	if (fd_dump_backtrace) {
-	  U8_OUTPUT btout; U8_INIT_OUTPUT(&btout,4096);
-	  fd_print_backtrace(&btout,ex,120);
-	  fd_dump_backtrace(btout.u8_outbuf);
-	  u8_free(btout.u8_outbuf);}
-	if (bugdumps) {
-	  u8_string dumpdir=u8_tempdir(bugdumps);
-	  dump_backtrace(ex,dumpdir);}
-	if (last_exception) u8_free_exception(last_exception,1);
-	last_exception=ex;}
+        {U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+          int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
+          while (root->u8x_prev) root=root->u8x_prev;
+          fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
+          fd_print_exception(&out,root);
+          fd_summarize_backtrace(&out,ex);
+          u8_printf(&out,"\n");
+          fputs(out.u8_outbuf,stderr);
+          out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+          if (show_backtrace) {
+            fd_print_backtrace(&out,ex,80);
+            fputs(out.u8_outbuf,stderr);}
+          fd_unparse_maxelts=old_maxelts;
+          fd_unparse_maxchars=old_maxchars;
+          u8_free(out.u8_outbuf);}
+        if (save_backtrace) {
+          fdtype bt=fd_exception_backtrace(ex);
+          u8_fprintf(stderr,";; Saved backtrace into ##%d\n",fd_histpush(bt));
+          fd_decref(bt);}
+        if (fd_dump_backtrace) {
+          U8_OUTPUT btout; U8_INIT_OUTPUT(&btout,4096);
+          fd_print_backtrace(&btout,ex,120);
+          fd_dump_backtrace(btout.u8_outbuf);
+          u8_free(btout.u8_outbuf);}
+        if (bugdumps) {
+          u8_string dumpdir=u8_tempdir(bugdumps);
+          dump_backtrace(ex,dumpdir);}
+        if (last_exception) u8_free_exception(last_exception,1);
+        last_exception=ex;}
       else fprintf(stderr,
-		   ";;; The expression generated a mysterious error!!!!\n");}
+                   ";;; The expression generated a mysterious error!!!!\n");}
     else if (stat_line)
       output_result(out,result,histref,is_histref);
     else if (FD_VOIDP(result)) {}
-    else if (histref<0) 
+    else if (histref<0)
       stat_line=output_result(out,result,histref,is_histref);
     else {
       output_result(out,result,histref,is_histref);
       stat_line=1;}
     if (stat_line) {
       if (histref<0)
-	u8_printf (out,stats_message,
-		   (finish_time-start_time),
-		   finish_ocache-start_ocache,
-		   finish_icache-start_icache);
+        u8_printf (out,stats_message,
+                   (finish_time-start_time),
+                   finish_ocache-start_ocache,
+                   finish_icache-start_icache);
       else {
-	fdtype sym=bind_random_symbol(result,env);
-	if (FD_VOIDP(sym))
-	  u8_printf(out,stats_message_w_history,
-		    histref,(finish_time-start_time),
-		    finish_ocache-start_ocache,
-		    finish_icache-start_icache);
-	else u8_printf(out,stats_message_w_history_and_sym,
-		       histref,FD_SYMBOL_NAME(sym),
-		       (finish_time-start_time),
-		       finish_ocache-start_ocache,
-		       finish_icache-start_icache);}}
+        fdtype sym=bind_random_symbol(result,env);
+        if (FD_VOIDP(sym))
+          u8_printf(out,stats_message_w_history,
+                    histref,(finish_time-start_time),
+                    finish_ocache-start_ocache,
+                    finish_icache-start_icache);
+        else u8_printf(out,stats_message_w_history_and_sym,
+                       histref,FD_SYMBOL_NAME(sym),
+                       (finish_time-start_time),
+                       finish_ocache-start_ocache,
+                       finish_icache-start_icache);}}
     fd_clear_errors(1);
     fd_decref(lastval);
     lastval=result; result=FD_VOID;
     if ((FD_CHECK_PTR(lastval)) &&
-	(!(FD_ABORTP(lastval))) &&
-	(!(FDTYPE_CONSTANTP(lastval))))
+        (!(FD_ABORTP(lastval))) &&
+        (!(FDTYPE_CONSTANTP(lastval))))
       fd_bind_value(that_symbol,lastval,env);
     u8_printf(out,EVAL_PROMPT);
     u8_flush(out);}
@@ -863,4 +863,3 @@ int main(int argc,char **argv)
   exit(0);
   return 0;
 }
-

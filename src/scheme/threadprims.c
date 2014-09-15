@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -49,13 +49,13 @@ static int unparse_thread_struct(u8_output out,fdtype x)
     FD_GET_CONS(x,fd_thread_type,struct FD_THREAD_STRUCT *);
   if (th->flags&FD_EVAL_THREAD)
     u8_printf(out,"#<THREAD 0x%x%s eval %q>",
-	      (unsigned long)(th->tid),
-	      ((th->flags&FD_THREAD_DONE) ? (" done") : ("")),
-	      th->evaldata.expr);
+              (unsigned long)(th->tid),
+              ((th->flags&FD_THREAD_DONE) ? (" done") : ("")),
+              th->evaldata.expr);
   else u8_printf(out,"#<THREAD 0x%x%s apply %q>",
-		 (unsigned long)(th->tid),
-		 ((th->flags&FD_THREAD_DONE) ? (" done") : ("")),
-		 th->applydata.fn);
+                 (unsigned long)(th->tid),
+                 ((th->flags&FD_THREAD_DONE) ? (" done") : ("")),
+                 th->applydata.fn);
   return 1;
 }
 
@@ -79,13 +79,13 @@ static fdtype make_condvar()
   int rv=0;
   struct FD_CONSED_CONDVAR *cv=u8_alloc(struct FD_CONSED_CONDVAR);
   FD_INIT_FRESH_CONS(cv,fd_condvar_type);
-  rv=fd_init_mutex(&(cv->lock)); 
+  rv=fd_init_mutex(&(cv->lock));
   if (rv) {
-    u8_graberr(-1,"make_condvar",NULL); 
+    u8_graberr(-1,"make_condvar",NULL);
     return FD_ERROR_VALUE;}
   else rv=u8_init_condvar(&(cv->cvar));
   if (rv) {
-    u8_graberr(-1,"make_condvar",NULL); 
+    u8_graberr(-1,"make_condvar",NULL);
     return FD_ERROR_VALUE;}
   return FDTYPE_CONS(cv);
 }
@@ -109,13 +109,13 @@ static fdtype condvar_wait(fdtype cvar,fdtype timeout)
       int ival=FD_FIX2INT(timeout);
       tm.tv_sec=time(NULL)+ival; tm.tv_nsec=0;}
 #if 0 /* Define this later.  This allows sub-second waits but
-	 is a little bit tricky. */
+         is a little bit tricky. */
     else if (FD_FLONUMP(timeout)) {
       double flo=FD_FLONUM(cvar);
       if (flo>=0) {
-	int secs=floor(flo)/1000000;
-	int nsecs=(flo-(secs*1000000))*1000.0;
-	tm.tv_sec=secs; tm.tv_nsec=nsecs;}
+        int secs=floor(flo)/1000000;
+        int nsecs=(flo-(secs*1000000))*1000.0;
+        tm.tv_sec=secs; tm.tv_nsec=nsecs;}
       else return fd_type_error(_("time interval"),"condvar_wait",timeout);}
 #endif
     else return fd_type_error(_("time interval"),"condvar_wait",timeout);
@@ -134,7 +134,7 @@ static fdtype condvar_signal(fdtype cvar,fdtype broadcast)
 {
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-  if (FD_TRUEP(broadcast)) 
+  if (FD_TRUEP(broadcast))
     if (u8_condvar_broadcast(&(cv->cvar))==0)
       return FD_TRUE;
     else return fd_type_error(_("valid condvar"),"condvar_signal",cvar);
@@ -250,12 +250,12 @@ static void *thread_call(void *data)
   /* Run any thread init functions */
   u8_threadcheck();
 
-  if (tstruct->flags&FD_EVAL_THREAD) 
+  if (tstruct->flags&FD_EVAL_THREAD)
     result=fd_eval(tstruct->evaldata.expr,tstruct->evaldata.env);
-  else 
+  else
     result=fd_dapply(tstruct->applydata.fn,
-		     tstruct->applydata.n_args,
-		     tstruct->applydata.args);
+                     tstruct->applydata.n_args,
+                     tstruct->applydata.args);
   result=fd_finish_call(result);
   u8_threadexit();
   if (FD_ABORTP(result)) {
@@ -263,18 +263,18 @@ static void *thread_call(void *data)
     u8_string errstring=fd_errstring(ex);
     if (tstruct->flags&FD_EVAL_THREAD)
       u8_log(LOG_WARN,ThreadReturnError,
-	     "%q ==> %s",tstruct->evaldata.expr,errstring);
+             "%q ==> %s",tstruct->evaldata.expr,errstring);
     else u8_log(LOG_WARN,ThreadReturnError,"%q ==> %s",
-		tstruct->applydata.fn,errstring);
+                tstruct->applydata.fn,errstring);
     u8_free(errstring);
     if (fd_threaderror_backtrace) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,16384);
       fd_summarize_backtrace(&out,ex);
       u8_log(LOG_WARN,ThreadBacktrace,"%s",out.u8_outbuf);
       if (fd_dump_backtrace) {
-	out.u8_outptr=out.u8_outbuf;
-	fd_print_backtrace(&out,ex,120);
-	fd_dump_backtrace(out.u8_outbuf);}
+        out.u8_outptr=out.u8_outbuf;
+        fd_print_backtrace(&out,ex,120);
+        fd_dump_backtrace(out.u8_outbuf);}
       u8_free(out.u8_outbuf);}
     if (tstruct->resultptr)
       *(tstruct->resultptr)=fd_init_exception(NULL,ex);
@@ -298,11 +298,11 @@ fd_thread_struct fd_thread_call
     tstruct->result=FD_NULL; tstruct->resultptr=&(tstruct->result);}
   tstruct->flags=0;
   tstruct->applydata.fn=fd_incref(fn);
-  tstruct->applydata.n_args=n; tstruct->applydata.args=rail; 
+  tstruct->applydata.n_args=n; tstruct->applydata.args=rail;
   /* We need to do this first, before the thread exits and recycles itself! */
   fd_incref((fdtype)tstruct);
   pthread_create(&(tstruct->tid),pthread_attr_default,
-		 thread_call,(void *)tstruct);
+                 thread_call,(void *)tstruct);
   return tstruct;
 }
 
@@ -321,7 +321,7 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
   /* We need to do this first, before the thread exits and recycles itself! */
   fd_incref((fdtype)tstruct);
   pthread_create(&(tstruct->tid),pthread_attr_default,
-		 thread_call,(void *)tstruct);
+                 thread_call,(void *)tstruct);
   return tstruct;
 }
 
@@ -361,11 +361,11 @@ static fdtype threadjoin_prim(fdtype threads)
     int retval=pthread_join(tstruct->tid,NULL);
     if (retval==0) {
       if ((tstruct->resultptr)==&(tstruct->result))
-	if (!(FD_VOIDP(tstruct->result))) {
-	  fd_incref(tstruct->result);
-	  FD_ADD_TO_CHOICE(results,tstruct->result);}}
+        if (!(FD_VOIDP(tstruct->result))) {
+          fd_incref(tstruct->result);
+          FD_ADD_TO_CHOICE(results,tstruct->result);}}
     else u8_log(LOG_WARN,ThreadReturnError,"Bad return code %d (%s) from %q",
-		 retval,strerror(retval),thread);}}
+                 retval,strerror(retval),thread);}}
   return results;
 }
 
@@ -437,7 +437,7 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("THREAD/YIELD",threadyield_prim,0));
   fd_defalias(fd_scheme_module,"THREADYIELD","THREAD/YIELD");
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("THREAD/JOIN",threadjoin_prim,1)));
+           fd_make_ndprim(fd_make_cprim1("THREAD/JOIN",threadjoin_prim,1)));
   fd_defalias(fd_scheme_module,"THREADJOIN","THREAD/JOIN");
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("MAKE-CONDVAR",make_condvar,0));
@@ -452,7 +452,7 @@ FD_EXPORT void fd_init_threadprims_c()
 
   fd_register_config("DUMPTHREADSTACK",
                      "Whether errors in threads print out full backtraces",
-		     fd_boolconfig_get,fd_boolconfig_set,
+                     fd_boolconfig_get,fd_boolconfig_set,
                      &fd_threaderror_backtrace);
 
   u8_register_source_file(_FILEINFO);

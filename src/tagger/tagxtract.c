@@ -36,7 +36,7 @@ static int eltmatchp(fdtype pat,fdtype word)
   fdtype tag=FD_VECTOR_REF(word,1);
   fdtype root=FD_VECTOR_REF(word,2);
   fdtype term=((FD_STRINGP(root)) ? (root) : (FD_VECTOR_REF(word,0)));
-  FD_DO_CHOICES(pat_elt,pat) 
+  FD_DO_CHOICES(pat_elt,pat)
     if (FD_EQ(pat_elt,compound_symbol)) {
       if (strchr(FD_STRDATA(term),' ')) return 1;}
     else if (FD_SYMBOLP(pat_elt)) {
@@ -45,38 +45,38 @@ static int eltmatchp(fdtype pat,fdtype word)
       if (FDTYPE_EQUAL(pat_elt,tag)) return 1;}
     else if (FD_VECTORP(pat_elt)) {
       if (fd_text_match(pat_elt,NULL,FD_STRDATA(term),
-			0,FD_STRLEN(term),0))
-	return 1;}
+                        0,FD_STRLEN(term),0))
+        return 1;}
   return 0;
 }
-	
+
 static int tagmatch(fdtype pat,fdtype tags)
 {
   if (FD_EMPTY_LISTP(pat)) return 0;
   else if (FD_EMPTY_LISTP(tags)) return 0;
   else if ((FD_PAIRP(pat)) ? (eltmatchp(FD_CAR(pat),FD_CAR(tags))) :
-	   (eltmatchp(pat,FD_CAR(tags))))
+           (eltmatchp(pat,FD_CAR(tags))))
     if (!(FD_PAIRP(pat))) return 1;
     else if (!(FD_PAIRP(FD_CDR(pat)))) return 1;
     else if ((FD_EQ(FD_CAR(FD_CDR(pat)),star_symbol)) ||
-	     (FD_EQ(FD_CAR(FD_CDR(pat)),plus_symbol))) {
+             (FD_EQ(FD_CAR(FD_CDR(pat)),plus_symbol))) {
       fdtype next_pat;
       int matchlen=tagmatch(pat,FD_CDR(tags));
       if (matchlen) return matchlen+1;
       else next_pat=FD_CDR(FD_CDR(pat));
       if (FD_PAIRP(next_pat)) {
-	matchlen=tagmatch(FD_CDR(FD_CDR(pat)),FD_CDR(tags));
-	if (matchlen) return matchlen+1;
-	else return 0;}
+        matchlen=tagmatch(FD_CDR(FD_CDR(pat)),FD_CDR(tags));
+        if (matchlen) return matchlen+1;
+        else return 0;}
       else return 1;}
     else {
       int matchlen=tagmatch(FD_CDR(pat),FD_CDR(tags));
       if (matchlen) return matchlen+1;
       else return 0;}
   else if ((FD_PAIRP(pat)) &&
-	   (FD_PAIRP(FD_CDR(pat))) &&
-	   (FD_PAIRP(FD_CDR(FD_CDR(pat)))) &&
-	   (FD_EQ(FD_CAR(FD_CDR(pat)),star_symbol)))
+           (FD_PAIRP(FD_CDR(pat))) &&
+           (FD_PAIRP(FD_CDR(FD_CDR(pat)))) &&
+           (FD_EQ(FD_CAR(FD_CDR(pat)),star_symbol)))
     return tagmatch(FD_CDR(FD_CDR(pat)),tags);
   else return 0;
 }
@@ -92,14 +92,14 @@ static fdtype make_compound(fdtype tags,int len)
     U8_INIT_OUTPUT(&out,64);
     while (i<len)
       if (FD_PAIRP(tags)) {
-	fdtype word=FD_CAR(tags);
-	fdtype root=FD_VECTOR_REF(word,2);
-	if (!(FD_STRINGP(root))) root=FD_VECTOR_REF(word,0);
-	if (i>0) u8_putc(&out,' ');
-	if (FD_STRINGP(root)) {
-	  u8_putn(&out,FD_STRDATA(root),FD_STRLEN(root));}
-	else output_term(&out,root,0);
-	tags=FD_CDR(tags); i++;}
+        fdtype word=FD_CAR(tags);
+        fdtype root=FD_VECTOR_REF(word,2);
+        if (!(FD_STRINGP(root))) root=FD_VECTOR_REF(word,0);
+        if (i>0) u8_putc(&out,' ');
+        if (FD_STRINGP(root)) {
+          u8_putn(&out,FD_STRDATA(root),FD_STRLEN(root));}
+        else output_term(&out,root,0);
+        tags=FD_CDR(tags); i++;}
       else return fd_err(fd_RangeError,"make_compound",NULL,tags);
     return fd_stream2string(&out);}
 }
@@ -116,7 +116,7 @@ static fdtype find_phrase(fdtype tags,fdtype pat,int *locp,int *lenp)
     if (locp) *locp=loc; if (lenp) *lenp=len;
     return scan;}
   else return FD_EMPTY_CHOICE;
-  
+
 }
 
 static fdtype tag_extract(fdtype tags,fdtype pat)
@@ -133,21 +133,21 @@ static fdtype tag_gather(fdtype tags,fdtype pat)
     if (FD_PAIRP(FD_CAR(tags))) {
       fdtype results=FD_EMPTY_CHOICE;
       FD_DOLIST(elt,tags) {
-	fdtype tmp=tag_gather(elt,pat);
-	FD_ADD_TO_CHOICE(results,tmp);}
+        fdtype tmp=tag_gather(elt,pat);
+        FD_ADD_TO_CHOICE(results,tmp);}
       return results;}
     else {
       fdtype results=FD_EMPTY_CHOICE, scan=tags;
       while (FD_PAIRP(scan)) {
-	int max_len=0;
-	FD_DO_CHOICES(eachpat,pat) {
-	  int len=tagmatch(eachpat,scan);
-	  if (len>max_len) max_len=len;
-	  if (len) {
-	    fdtype compound=make_compound(scan,len);
-	      FD_ADD_TO_CHOICE(results,compound);}}
-	if (max_len==0) scan=FD_CDR(scan);
-	else while (max_len>0) {scan=FD_CDR(scan); max_len--;}}
+        int max_len=0;
+        FD_DO_CHOICES(eachpat,pat) {
+          int len=tagmatch(eachpat,scan);
+          if (len>max_len) max_len=len;
+          if (len) {
+            fdtype compound=make_compound(scan,len);
+              FD_ADD_TO_CHOICE(results,compound);}}
+        if (max_len==0) scan=FD_CDR(scan);
+        else while (max_len>0) {scan=FD_CDR(scan); max_len--;}}
       return results;}
   else return fd_type_error(_("pair"),"tag_gather",tags);
 }
@@ -194,20 +194,20 @@ static fdtype getphrase_prim(fdtype args,fdtype patterns)
     if (FD_EMPTY_LISTP(arg)) {}
     else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CAR(arg)))) {
       FD_DOLIST(sentence,arg) {
-	fdtype gathered=tag_extract(sentence,patterns);
-	if (FD_EMPTY_CHOICEP(gathered)) {}
-	else return gathered;}
+        fdtype gathered=tag_extract(sentence,patterns);
+        if (FD_EMPTY_CHOICEP(gathered)) {}
+        else return gathered;}
       return FD_EMPTY_CHOICE;}
     else if (FD_PAIRP(arg)) {
       return tag_extract(arg,patterns);}
     else if (FD_STRINGP(arg)) {
       fdtype tagging=gettags(FD_STRDATA(arg));
       FD_DOLIST(sentence,tagging) {
-	fdtype gathered=tag_extract(sentence,patterns);
-	if (FD_EMPTY_CHOICEP(gathered)) {}
-	else {
-	  fd_decref(tagging);
-	  return gathered;}}
+        fdtype gathered=tag_extract(sentence,patterns);
+        if (FD_EMPTY_CHOICEP(gathered)) {}
+        else {
+          fd_decref(tagging);
+          return gathered;}}
       fd_decref(tagging);
       return FD_EMPTY_CHOICE;}
     else {
@@ -244,8 +244,8 @@ static fdtype compound2string(fdtype word)
       fdtype scan=word; int insert_space=0;
       U8_INIT_OUTPUT(&out,64);
       while (FD_PAIRP(scan)) {
-	insert_space=output_term(&out,FD_CAR(scan),insert_space);
-	scan=FD_CDR(scan);}
+        insert_space=output_term(&out,FD_CAR(scan),insert_space);
+        scan=FD_CDR(scan);}
       return fd_stream2string(&out);}
     else return fd_incref(FD_CAR(word));
   else return FD_EMPTY_CHOICE;
@@ -274,7 +274,7 @@ static fdtype phrase_root_prim(fdtype term)
       fdtype word=FD_VECTOR_REF(term,0);
       fdtype root=FD_VECTOR_REF(term,2);
       if (FD_VOIDP(root))
-	return compound2string(word);
+        return compound2string(word);
       else return compound2string(root);}
   else if (FD_STRINGP(term)) return fd_incref(term);
   else if (FD_PAIRP(term))
@@ -291,7 +291,7 @@ static fdtype phrase_base_prim(fdtype term)
       fdtype word=FD_VECTOR_REF(term,0);
       fdtype root=FD_VECTOR_REF(term,2);
       if (FD_VOIDP(root))
-	return phrase_base_prim(word);
+        return phrase_base_prim(word);
       else return phrase_base_prim(root);}
   else if (FD_STRINGP(term)) return fd_incref(term);
   else if (FD_PAIRP(term)) {
@@ -311,7 +311,7 @@ static fdtype phrase_modifiers_prim(fdtype term)
       fdtype word=FD_VECTOR_REF(term,0);
       fdtype root=FD_VECTOR_REF(term,2);
       if (FD_VOIDP(root))
-	return phrase_base_prim(word);
+        return phrase_base_prim(word);
       else return phrase_base_prim(root);}
   else if (FD_STRINGP(term)) return fd_incref(term);
   else if (FD_PAIRP(term)) {
@@ -333,7 +333,7 @@ static fdtype phrase_compounds_prim(fdtype term)
       fdtype word=FD_VECTOR_REF(term,0);
       fdtype root=FD_VECTOR_REF(term,2);
       if (FD_VOIDP(root))
-	return phrase_compounds_prim(word);
+        return phrase_compounds_prim(word);
       else return phrase_compounds_prim(root);}
   else if (FD_STRINGP(term)) {
     u8_string data=FD_STRDATA(term);
@@ -343,11 +343,11 @@ static fdtype phrase_compounds_prim(fdtype term)
     if (FD_PAIRP(FD_CDR(term))) {
       fdtype results=compound2string(term);
       fdtype scan=term; while (FD_PAIRP(scan)) {
-	if ((FD_STRINGP(FD_CAR(scan))) &&
-	    (strchr(FD_STRDATA(FD_CAR(scan)),' '))) {
-	  fdtype car=FD_CAR(scan);
-	  fd_incref(car); FD_ADD_TO_CHOICE(results,car);}
-	scan=FD_CDR(scan);}
+        if ((FD_STRINGP(FD_CAR(scan))) &&
+            (strchr(FD_STRDATA(FD_CAR(scan)),' '))) {
+          fdtype car=FD_CAR(scan);
+          fd_incref(car); FD_ADD_TO_CHOICE(results,car);}
+        scan=FD_CDR(scan);}
       return results;}
     else return phrase_compounds_prim(FD_CAR(term));
   else return fd_type_error(_("compound term"),"phrase_string_prim",term);
@@ -383,8 +383,8 @@ static fdtype probe_compounds(fdtype compound)
     int i=0;
     while (i<n) {
       int j=0; while (j<i) {
-	fdtype probe=probe_compound(g->lexicon,terms,j,i);
-	FD_ADD_TO_CHOICE(results,probe); j++;}
+        fdtype probe=probe_compound(g->lexicon,terms,j,i);
+        FD_ADD_TO_CHOICE(results,probe); j++;}
       i++;}
     return results;}
 }
@@ -398,7 +398,7 @@ static fdtype probe_compounds_prim(fdtype term)
       fdtype word=FD_VECTOR_REF(term,0);
       fdtype root=FD_VECTOR_REF(term,2);
       if (FD_VOIDP(root))
-	return probe_compounds_prim(word);
+        return probe_compounds_prim(word);
       else return probe_compounds_prim(root);}
   else if (FD_STRINGP(term)) {
     u8_string data=FD_STRDATA(term);
@@ -426,7 +426,7 @@ static fdtype getterms_prim(fdtype arg,fdtype tags)
     FD_DOLIST(elt,arg) {
       fdtype tmp=getterms_prim(elt,tags);
       if (FD_ABORTP(tmp)) {
-	fd_decref(results); return tmp;}
+        fd_decref(results); return tmp;}
       FD_ADD_TO_CHOICE(results,tmp);}
     return results;}
   else if (FD_STRINGP(arg)) {
@@ -439,7 +439,7 @@ static fdtype getterms_prim(fdtype arg,fdtype tags)
     FD_DO_CHOICES(elt,arg) {
       fdtype tmp=getterms_prim(elt,tags);
       if (FD_ABORTP(tmp)) {
-	fd_decref(results); return tmp;}
+        fd_decref(results); return tmp;}
       FD_ADD_TO_CHOICE(results,tmp);}
     return results;}
   else return FD_EMPTY_CHOICE;
@@ -452,7 +452,7 @@ static fdtype getroots_prim(fdtype arg,fdtype tags)
       return fd_type_error(_("tagged word"),"geterms_prim",arg);
     else if ((FD_VOIDP(tags)) || (fd_overlapp(FD_VECTOR_REF(arg,1),tags)))
       if (FD_VOIDP(FD_VECTOR_REF(arg,2)))
-	return fd_incref(FD_VECTOR_REF(arg,0));
+        return fd_incref(FD_VECTOR_REF(arg,0));
       else return fd_incref(FD_VECTOR_REF(arg,2));
     else return FD_EMPTY_CHOICE;
   else if (FD_PAIRP(arg)) {
@@ -460,7 +460,7 @@ static fdtype getroots_prim(fdtype arg,fdtype tags)
     FD_DOLIST(elt,arg) {
       fdtype tmp=getroots_prim(elt,tags);
       if (FD_ABORTP(tmp)) {
-	fd_decref(results); return tmp;}
+        fd_decref(results); return tmp;}
       FD_ADD_TO_CHOICE(results,tmp);}
     return results;}
   else if (FD_STRINGP(arg)) {
@@ -473,7 +473,7 @@ static fdtype getroots_prim(fdtype arg,fdtype tags)
     FD_DO_CHOICES(elt,arg) {
       fdtype tmp=getroots_prim(elt,tags);
       if (FD_ABORTP(tmp)) {
-	fd_decref(results); return tmp;}
+        fd_decref(results); return tmp;}
       FD_ADD_TO_CHOICE(results,tmp);}
     return results;}
   else return FD_EMPTY_CHOICE;
@@ -492,7 +492,7 @@ static fdtype gettags_prim(fdtype arg,fdtype tags)
     FD_DOLIST(elt,arg) {
       fdtype tmp=gettags_prim(elt,tags);
       if (FD_ABORTP(tmp)) {
-	fd_decref(results); return tmp;}
+        fd_decref(results); return tmp;}
       FD_ADD_TO_CHOICE(results,tmp);}
     return results;}
   else if (FD_STRINGP(arg)) {
@@ -505,7 +505,7 @@ static fdtype gettags_prim(fdtype arg,fdtype tags)
     FD_DO_CHOICES(elt,arg) {
       fdtype tmp=gettags_prim(elt,tags);
       if (FD_ABORTP(tmp)) {
-	fd_decref(results); return tmp;}
+        fd_decref(results); return tmp;}
       FD_ADD_TO_CHOICE(results,tmp);}
     return results;}
   else return FD_EMPTY_CHOICE;
@@ -520,12 +520,12 @@ static fdtype get_ixes(u8_string start,u8_string end,int prefix,int suffix)
   while (c>=0) {
     if (c==' ') {
       if ((prefix) && (last>start)) {
-	if (last>start) {
-	  fdtype xstring=fd_extract_string(NULL,start,last);
-	  FD_ADD_TO_CHOICE(results,xstring);}}
+        if (last>start) {
+          fdtype xstring=fd_extract_string(NULL,start,last);
+          FD_ADD_TO_CHOICE(results,xstring);}}
       if ((suffix) && (scan<end)) {
-	fdtype xstring=fd_extract_string(NULL,scan,end);
-	FD_ADD_TO_CHOICE(results,xstring);}}
+        fdtype xstring=fd_extract_string(NULL,scan,end);
+        FD_ADD_TO_CHOICE(results,xstring);}}
     last=scan; c=u8_sgetc(&scan);}
   return results;
 }
@@ -560,7 +560,7 @@ static fdtype term_spectrum(fdtype term)
     fdtype base=phrase_base_prim(term);
     FD_ADD_TO_CHOICE(spectrum,base);
     if ((FD_STRINGP(base)) &&
-	(strchr(FD_STRDATA(base),' '))) {
+        (strchr(FD_STRDATA(base),' '))) {
       u8_string start=FD_STRDATA(base)+(FD_STRLEN(base))-1, scan=start;
       fdtype spec;
       while (*scan!=' ') scan--; scan++;
@@ -581,29 +581,29 @@ static fdtype getxkeys
       fdtype root=FD_VECTOR_REF(word,2);
       fdtype spectrum=FD_VOID;
       if (fd_overlapp(tag,prefix_tags)) {
-	fdtype pair;
-	if (FD_VOIDP(spectrum)) spectrum=term_spectrum(root);
-	pair=fd_init_pair(NULL,FD_INT2DTYPE(wordpos),fd_incref(spectrum));
-	FD_ADD_TO_CHOICE(prefixes,pair);}
+        fdtype pair;
+        if (FD_VOIDP(spectrum)) spectrum=term_spectrum(root);
+        pair=fd_init_pair(NULL,FD_INT2DTYPE(wordpos),fd_incref(spectrum));
+        FD_ADD_TO_CHOICE(prefixes,pair);}
       if (fd_overlapp(tag,suffix_tags)) {
-	if ((radius<0) || ((headpos>0) && ((wordpos-headpos)<=radius))) {
-	  FD_DO_CHOICES(head,last_head) {
-	    if (FD_VOIDP(spectrum)) spectrum=term_spectrum(root);
-	    {FD_DO_CHOICES(suffix,spectrum) {
-	      fdtype xkey=fd_init_pair(NULL,fd_incref(head),fd_incref(suffix));
-	      FD_ADD_TO_CHOICE(xkeys,xkey);}}}}}
+        if ((radius<0) || ((headpos>0) && ((wordpos-headpos)<=radius))) {
+          FD_DO_CHOICES(head,last_head) {
+            if (FD_VOIDP(spectrum)) spectrum=term_spectrum(root);
+            {FD_DO_CHOICES(suffix,spectrum) {
+              fdtype xkey=fd_init_pair(NULL,fd_incref(head),fd_incref(suffix));
+              FD_ADD_TO_CHOICE(xkeys,xkey);}}}}}
       if (fd_overlapp(tag,head_tags)) {
-	if (FD_VOIDP(spectrum)) spectrum=term_spectrum(root);
-	{FD_DO_CHOICES(head,spectrum) {
-	  FD_DO_CHOICES(prefix_entry,prefixes) {
-	    int pos=fd_getint(FD_CAR(prefix_entry));
-	    fdtype prefixes=FD_CDR(prefix_entry);
-	    if ((radius<0) || ((wordpos-pos)<=radius)) {
-	      FD_DO_CHOICES(prefix,prefixes) {
-		fdtype xkey=fd_init_pair(NULL,fd_incref(prefix),fd_incref(head));
-		FD_ADD_TO_CHOICE(xkeys,xkey);}}}}}
-	fd_decref(prefixes); prefixes=FD_EMPTY_CHOICE;
-	fd_decref(last_head); last_head=spectrum;}
+        if (FD_VOIDP(spectrum)) spectrum=term_spectrum(root);
+        {FD_DO_CHOICES(head,spectrum) {
+          FD_DO_CHOICES(prefix_entry,prefixes) {
+            int pos=fd_getint(FD_CAR(prefix_entry));
+            fdtype prefixes=FD_CDR(prefix_entry);
+            if ((radius<0) || ((wordpos-pos)<=radius)) {
+              FD_DO_CHOICES(prefix,prefixes) {
+                fdtype xkey=fd_init_pair(NULL,fd_incref(prefix),fd_incref(head));
+                FD_ADD_TO_CHOICE(xkeys,xkey);}}}}}
+        fd_decref(prefixes); prefixes=FD_EMPTY_CHOICE;
+        fd_decref(last_head); last_head=spectrum;}
       else fd_decref(spectrum);
       wordpos++;}
     else {
@@ -629,9 +629,9 @@ static fdtype getxkeys_prim
     else {
       fdtype results=FD_EMPTY_CHOICE;
       FD_DOLIST(elt,input) {
-	fdtype tmp=getxkeys_prim(elt,head_tags,prefix_tags,suffix_tags,radius);
-	if (FD_ABORTP(tmp)) {fd_decref(results); return tmp;}
-	FD_ADD_TO_CHOICE(results,tmp);}
+        fdtype tmp=getxkeys_prim(elt,head_tags,prefix_tags,suffix_tags,radius);
+        if (FD_ABORTP(tmp)) {fd_decref(results); return tmp;}
+        FD_ADD_TO_CHOICE(results,tmp);}
       return results;}
   else if (FD_STRINGP(input)) {
     fdtype tagging=gettags(FD_STRDATA(input));
@@ -661,26 +661,26 @@ static fdtype getxlinks
       fdtype tag=FD_VECTOR_REF(term,1);
       fdtype root=FD_VECTOR_REF(term,2);
       if (fd_overlapp(tag,prefix_tags)) {
-	fdtype prefix_entry=
-	  fd_make_nvector(3,FD_INT2DTYPE(wordpos),fd_incref(tag),word2string(root,word));
-	FD_ADD_TO_CHOICE(prefixes,prefix_entry);}
+        fdtype prefix_entry=
+          fd_make_nvector(3,FD_INT2DTYPE(wordpos),fd_incref(tag),word2string(root,word));
+        FD_ADD_TO_CHOICE(prefixes,prefix_entry);}
       if (fd_overlapp(tag,suffix_tags)) {
-	if ((radius<0) || ((headpos>0) && ((wordpos-headpos)<=radius))) {
-	  fdtype xlink=
-	    fd_make_list(3,fd_incref(last_head),fd_incref(tag),word2string(root,word));
-	  FD_ADD_TO_CHOICE(xlinks,xlink);}}
+        if ((radius<0) || ((headpos>0) && ((wordpos-headpos)<=radius))) {
+          fdtype xlink=
+            fd_make_list(3,fd_incref(last_head),fd_incref(tag),word2string(root,word));
+          FD_ADD_TO_CHOICE(xlinks,xlink);}}
       if (fd_overlapp(tag,head_tags)) {
-	FD_DO_CHOICES(prefix_entry,prefixes) {
-	  int pos=fd_getint(FD_VECTOR_REF(prefix_entry,0));
-	  fdtype prefix_tag=FD_VECTOR_REF(prefix_entry,1);
-	  fdtype prefix_root=FD_VECTOR_REF(prefix_entry,2);
-	  if ((radius<0) || ((wordpos-pos)<=radius)) {
-	    fdtype xlink=
-	      fd_make_list(3,word2string(root,word),
-			   fd_incref(prefix_tag),fd_incref(prefix_root));
-	    FD_ADD_TO_CHOICE(xlinks,xlink);}}
-	fd_decref(prefixes); prefixes=FD_EMPTY_CHOICE;
-	fd_decref(last_head); last_head=word2string(root,word);}
+        FD_DO_CHOICES(prefix_entry,prefixes) {
+          int pos=fd_getint(FD_VECTOR_REF(prefix_entry,0));
+          fdtype prefix_tag=FD_VECTOR_REF(prefix_entry,1);
+          fdtype prefix_root=FD_VECTOR_REF(prefix_entry,2);
+          if ((radius<0) || ((wordpos-pos)<=radius)) {
+            fdtype xlink=
+              fd_make_list(3,word2string(root,word),
+                           fd_incref(prefix_tag),fd_incref(prefix_root));
+            FD_ADD_TO_CHOICE(xlinks,xlink);}}
+        fd_decref(prefixes); prefixes=FD_EMPTY_CHOICE;
+        fd_decref(last_head); last_head=word2string(root,word);}
       wordpos++;}
     else {
       fd_decref(xlinks); fd_decref(last_head); fd_decref(prefixes);
@@ -705,9 +705,9 @@ static fdtype getxlinks_prim
     else {
       fdtype results=FD_EMPTY_CHOICE;
       FD_DOLIST(elt,input) {
-	fdtype tmp=getxlinks_prim(elt,head_tags,prefix_tags,suffix_tags,radius);
-	if (FD_ABORTP(tmp)) {fd_decref(results); return tmp;}
-	FD_ADD_TO_CHOICE(results,tmp);}
+        fdtype tmp=getxlinks_prim(elt,head_tags,prefix_tags,suffix_tags,radius);
+        if (FD_ABORTP(tmp)) {fd_decref(results); return tmp;}
+        FD_ADD_TO_CHOICE(results,tmp);}
       return results;}
   else if (FD_STRINGP(input)) {
     fdtype tagging=gettags(FD_STRDATA(input));
@@ -717,7 +717,7 @@ static fdtype getxlinks_prim
   else return FD_EMPTY_CHOICE;
 }
 
-/* fd_init_tagxtract_c: 
+/* fd_init_tagxtract_c:
       Arguments: none
       Returns: nothing
 */
@@ -725,7 +725,7 @@ FD_EXPORT
 void fd_init_tagxtract_c()
 {
   fdtype menv=fd_new_module("TAGGER",(FD_MODULE_SAFE));
-  
+
   u8_register_source_file(_FILEINFO);
 
   compound_symbol=fd_intern("COMPOUND");
@@ -742,28 +742,28 @@ void fd_init_tagxtract_c()
   fd_idefn(menv,fd_make_cprim1("PROBE-COMPOUNDS",probe_compounds_prim,1));
 
   fd_idefn(menv,fd_make_cprim1x("GET-SUFFIXES",get_suffixes_prim,1,
-				fd_string_type,FD_VOID));
+                                fd_string_type,FD_VOID));
   fd_idefn(menv,fd_make_cprim1x("GET-PREFIXES",get_prefixes_prim,1,
-				fd_string_type,FD_VOID));
+                                fd_string_type,FD_VOID));
   fd_idefn(menv,fd_make_cprim1x("GET-IXES",get_ixes_prim,1,
-				fd_string_type,FD_VOID));
+                                fd_string_type,FD_VOID));
 
   fd_idefn(menv,fd_make_ndprim(fd_make_cprim2("GETTERMS",getterms_prim,1)));
   fd_idefn(menv,fd_make_ndprim(fd_make_cprim2("GETROOTS",getroots_prim,1)));
   fd_idefn(menv,fd_make_ndprim(fd_make_cprim2("GETTAGS",gettags_prim,1)));
   fd_idefn(menv,fd_make_ndprim
-	   (fd_make_cprim5x("GETXKEYS",getxkeys_prim,4,
-			    -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
-			    fd_fixnum_type,FD_INT2DTYPE(-1))));
+           (fd_make_cprim5x("GETXKEYS",getxkeys_prim,4,
+                            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+                            fd_fixnum_type,FD_INT2DTYPE(-1))));
   fd_idefn(menv,fd_make_ndprim
-	   (fd_make_cprim5x("GETXLINKS",getxlinks_prim,4,
-			    -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
-			    fd_fixnum_type,FD_INT2DTYPE(-1))));
+           (fd_make_cprim5x("GETXLINKS",getxlinks_prim,4,
+                            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+                            fd_fixnum_type,FD_INT2DTYPE(-1))));
 
   fd_idefn(menv,fd_make_ndprim
-	   (fd_make_cprim2("GETPHRASES",getphrases_prim,2)));
+           (fd_make_cprim2("GETPHRASES",getphrases_prim,2)));
   fd_idefn(menv,fd_make_ndprim
-	   (fd_make_cprim2("GETPHRASE",getphrase_prim,2)));
+           (fd_make_cprim2("GETPHRASE",getphrase_prim,2)));
 
 }
 

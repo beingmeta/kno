@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -30,7 +30,7 @@ static int sundown_init=0;
 static fdtype markdown2html_prim(fdtype mdstring,fdtype opts)
 {
   fdtype result=FD_VOID;
-  
+
   struct sd_callbacks callbacks;
   struct html_renderopt options;
   struct sd_markdown *markdown;
@@ -69,7 +69,7 @@ static fdtype markout_prim(fdtype mdstring,fdtype opts)
   sd_markdown_free(markdown);
 
   u8_putn(out,ob->data,ob->size);
-  
+
   bufrelease(ob);
 
   return FD_VOID;
@@ -84,16 +84,15 @@ FD_EXPORT int fd_init_sundown()
   sundown_module=fd_new_module("SUNDOWN",(FD_MODULE_SAFE));
 
   fd_idefn(sundown_module,
-	   fd_make_cprim2x("MARKDOWN->HTML",markdown2html_prim,1,
-			   fd_string_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("MARKDOWN->HTML",markdown2html_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
   fd_defalias(sundown_module,"MD->HTML","MARKDOWN->HTML");
 
   fd_idefn(sundown_module,
-	   fd_make_cprim2x("MARKOUT",markdown2html_prim,1,
-			   fd_string_type,FD_VOID,-1,FD_VOID));
-  
+           fd_make_cprim2x("MARKOUT",markdown2html_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
+
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
-

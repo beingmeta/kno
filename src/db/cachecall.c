@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -59,7 +59,7 @@ FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
       fdtype *datavec=((n) ? (u8_alloc_n(n,fdtype)) : (NULL));
       fdtype key=fd_init_vector(NULL,n,datavec);
       int i=0; while (i<n) {
-	datavec[i]=fd_incref(args[i]); i++;}
+        datavec[i]=fd_incref(args[i]); i++;}
       fd_hashtable_store(cache,key,result);
       fd_decref(key);}
     fd_decref((fdtype)cache);
@@ -91,7 +91,7 @@ FD_EXPORT fdtype fd_xcachecall
       fdtype *datavec=((n) ? (u8_alloc_n(n,fdtype)) : (NULL));
       fdtype key=fd_init_vector(NULL,n,datavec);
       int i=0; while (i<n) {
-	datavec[i]=fd_incref(args[i]); i++;}
+        datavec[i]=fd_incref(args[i]); i++;}
       fd_hashtable_store(cache,key,result);
       fd_decref(key);}
     return result;}
@@ -113,7 +113,7 @@ FD_EXPORT void fd_clear_callcache(fdtype arg)
       fdtype *datavec=u8_alloc_n(n_args,fdtype);
       fdtype key=fd_init_vector(NULL,n_args,datavec);
       while (i<n_args) {
-	datavec[i]=fd_incref(FD_VECTOR_REF(arg,i+1)); i++;}
+        datavec[i]=fd_incref(FD_VECTOR_REF(arg,i+1)); i++;}
       fd_hashtable_store((fd_hashtable)table,key,FD_VOID);
       fd_decref(key);}}
   else if (fd_hashtable_probe(&fcn_caches,arg))
@@ -215,7 +215,7 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
     vecstruct.length=n+1;
     FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);
     /* Allocate an elements vector if neccessary */
-    if ((n+1)>(TCACHECALL_STACK_ELTS)) 
+    if ((n+1)>(TCACHECALL_STACK_ELTS))
       elts=u8_alloc_n(n+1,fdtype);
     else elts=_elts;
     /* Initialize the elements */
@@ -231,21 +231,21 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
       int state=fd_ipeval_status();
       fdtype result=fd_finish_call(fd_dapply(fcn,n,args));
       if (FD_ABORTP(result)) {
-	if (elts!=_elts) u8_free(elts);
-	return result;}
+        if (elts!=_elts) u8_free(elts);
+        return result;}
       else if (fd_ipeval_status()==state) {
-	if (elts==_elts) {
-	  int i=0, nelts=n+1;
-	  elts=u8_alloc_n(n+1,fdtype);
-	  while (i<nelts) {elts[i]=fd_incref(_elts[i]); i++;}
-	  vec=fd_init_vector(NULL,nelts,elts);}
-	else {
-	  int i=0, nelts=n+1;
-	  while (i<nelts) {fd_incref(elts[i]); i++;}
-	  vec=fd_init_vector(NULL,nelts,elts);}
-	fd_hashtable_store(&(tc->calls),vec,result);
-	fd_decref(vec);
-	return result;}
+        if (elts==_elts) {
+          int i=0, nelts=n+1;
+          elts=u8_alloc_n(n+1,fdtype);
+          while (i<nelts) {elts[i]=fd_incref(_elts[i]); i++;}
+          vec=fd_init_vector(NULL,nelts,elts);}
+        else {
+          int i=0, nelts=n+1;
+          while (i<nelts) {fd_incref(elts[i]); i++;}
+          vec=fd_init_vector(NULL,nelts,elts);}
+        fd_hashtable_store(&(tc->calls),vec,result);
+        fd_decref(vec);
+        return result;}
       else return result;}}
   else if (fd_cachecall_probe(fcn,n,args))
     return fd_cachecall(fcn,n,args);

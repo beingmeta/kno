@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -74,7 +74,7 @@
    FD_PTR_DEBUG_LEVEL controls what kind of pointer checking to do,
     0 = no checking
     1 = check non-null
-    2 = check integrity of immediates 
+    2 = check integrity of immediates
     3 = check integrity of cons pointers
    FD_PTR_DEBUG_DENSITY controls how detailed the debug checking is,
     by enabling macros of the form FD_PTRCHECKn and FD_CHECK_PTRn,
@@ -97,7 +97,7 @@
 #endif
 
 /* This is true (1) for executables built in the tests/ subdirectories.
-   If true, the executables call the various module init functions 
+   If true, the executables call the various module init functions
    (e.g. fd_init_texttools()) directly; when dynamically linked, the
    loader calls them.  This is neccessary because static linking (at
    least on some platforms) doesn't invoke the library initializers
@@ -244,7 +244,7 @@ typedef int fd_size_t;
 #define FD_DO_LIBINIT(fn) ((void)fn)
 #else
 #define FD_LIBINIT_FN
-#define FD_LIBINIT0_FN 
+#define FD_LIBINIT0_FN
 #define FD_DO_LIBINIT(fn) fn()
 #endif
 

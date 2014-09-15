@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -50,7 +50,7 @@ FD_EXPORT void fd_register_pool_opener
   else {
     fd_unlock_mutex(&pool_openers_lock);
     u8_raise("Too many pool openers",
-	     "fd_register_pool_opener",NULL);}
+             "fd_register_pool_opener",NULL);}
 }
 
 static u8_string get_pool_filename(u8_string spec)
@@ -94,10 +94,10 @@ static fd_pool open_file_pool(u8_string filename)
     byte=getc(f); word=word|(byte<<0);
     fclose(f);
     i=0; while (i < n_pool_openers)
-	   if (pool_openers[i].initial_word == word) {
-	     p=pool_openers[i].opener(pool_filename,read_only);
-	     break;}
-	   else i++;
+           if (pool_openers[i].initial_word == word) {
+             p=pool_openers[i].opener(pool_filename,read_only);
+             break;}
+           else i++;
     if (p) {
       u8_free(pool_filename);
       fd_register_pool(p);
@@ -110,7 +110,7 @@ static fd_pool open_file_pool(u8_string filename)
 FD_EXPORT
 fd_pool fd_unregistered_file_pool(u8_string filename)
 {
-  int i=0, byte, word=0; 
+  int i=0, byte, word=0;
   u8_string pool_filename=get_pool_filename(filename);
   FILE *f=fopen(pool_filename,"rb");
   if (f==NULL) {
@@ -154,17 +154,17 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,fd_off_t mdblockpos)
   rev=fd_dtsread_4bytes(ds);
   timehi=fd_dtsread_4bytes(ds);
   timelo=fd_dtsread_4bytes(ds);
-  if (timehi) 
+  if (timehi)
     return fd_err(fd_BadMetaData,"time warp",u8_strdup(ds->id),FD_VOID);
   u8_init_xtime(&_gentime,timelo,u8_second,0,0,0);
   timehi=fd_dtsread_4bytes(ds);
   timelo=fd_dtsread_4bytes(ds);
-  if (timehi) 
+  if (timehi)
     return fd_err(fd_BadMetaData,"time warp",u8_strdup(ds->id),FD_VOID);
   u8_init_xtime(&_packtime,timelo,u8_second,0,0,0);
   timehi=fd_dtsread_4bytes(ds);
   timelo=fd_dtsread_4bytes(ds);
-  if (timehi) 
+  if (timehi)
     return fd_err(fd_BadMetaData,"time warp",u8_strdup(ds->id),FD_VOID);
   u8_init_xtime(&_modtime,timelo,u8_second,0,0,0);
   mdpos=fd_dtsread_4bytes(ds);
@@ -254,7 +254,7 @@ fdtype fd_write_pool_metadata(fd_dtype_stream ds,fdtype metadata)
 FD_EXPORT
 fdtype fd_write_index_metadata(fd_dtype_stream ds,fdtype metadata)
 {
-  fd_off_t md_pos; 
+  fd_off_t md_pos;
   fd_off_t ret=fd_setpos(ds,4);
   if (ret<0) return FD_ERROR_VALUE;
   else md_pos=4*fd_dtsread_4bytes(ds)+8;
@@ -367,8 +367,8 @@ FD_EXPORT void fd_register_index_opener
   else {
     fd_unlock_mutex(&index_openers_lock);
     u8_raise("Too many index openers",
-	     "fd_register_index_opener",
-	     NULL);}
+             "fd_register_index_opener",
+             NULL);}
 }
 
 static u8_string get_index_filename(u8_string spec)
@@ -411,14 +411,14 @@ static fd_index open_file_index(u8_string filename,int consed)
     fclose(f);
     i=0; while (i < n_index_openers)
       if (((index_openers[i].initial_word&0xFF)==0) ?
-	  (index_openers[i].initial_word == (word&0xFFFFFF00)) :
-	  (index_openers[i].initial_word == word)) {
-	ix=index_openers[i].opener(index_filename,read_only,consed);
-	break;}
+          (index_openers[i].initial_word == (word&0xFFFFFF00)) :
+          (index_openers[i].initial_word == word)) {
+        ix=index_openers[i].opener(index_filename,read_only,consed);
+        break;}
       else i++;
     if (ix) {
       if (ix->cid) {
-	u8_free(ix->cid); ix->cid=NULL;}
+        u8_free(ix->cid); ix->cid=NULL;}
       ix->cid=index_filename;
       ix->xid=u8_realpath(index_filename,NULL);
       fd_register_index(ix);
@@ -498,7 +498,7 @@ FD_EXPORT int fd_init_dbfile()
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&pool_openers_lock);
-  fd_init_mutex(&index_openers_lock);  
+  fd_init_mutex(&index_openers_lock);
 #endif
 
   fd_init_hashdtype_c();
@@ -521,7 +521,7 @@ FD_EXPORT int fd_init_dbfile()
   fd_register_index_opener(0x42c20400,open_memindex,NULL,NULL);
 
   fd_register_config("ACIDFILES","Maintain acidity of individual file pools and indices",
-		     fd_boolconfig_get,fd_boolconfig_set,&fd_acid_files);
+                     fd_boolconfig_get,fd_boolconfig_set,&fd_acid_files);
 
 
   return fddbfile_initialized;

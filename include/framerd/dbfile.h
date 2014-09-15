@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -112,8 +112,8 @@ typedef struct FD_OIDPOOL *fd_oidpool;
 FD_EXPORT fdtype fd_read_pool_metadata(struct FD_DTYPE_STREAM *ds);
 FD_EXPORT fdtype fd_write_pool_metadata(fd_dtype_stream,fdtype);
 FD_EXPORT int fd_make_file_pool(u8_string,unsigned int,
-				FD_OID,unsigned int,unsigned int,
-				fdtype);
+                                FD_OID,unsigned int,unsigned int,
+                                fdtype);
 
 FD_EXPORT fd_pool fd_unregistered_file_pool(u8_string filename);
 
@@ -208,23 +208,23 @@ typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
 typedef struct FD_HASH_INDEX {
   FD_INDEX_FIELDS;
   U8_MUTEX_DECL(lock);
-  
+
   /* flags controls hash functions, compression, etc.
      hxcustom is a placeholder for a value to customize
      the hash function. */
   unsigned int hxflags, hxcustom, n_keys;
   fd_offset_type offtype;
-  
+
   /* This is used to store compressed keys and values. */
   int n_slotids, new_slotids; fdtype *slotids;
   struct FD_SLOTID_LOOKUP *slotid_lookup;
   int n_baseoids, new_baseoids;
   unsigned int *baseoid_ids;
   short *ids2baseoids;
-  
+
   /* Pointers into keyblocks for the hashtable */
   unsigned int *offdata; int n_buckets;
-  
+
   /* The stream accessing the file.  This is only used
      for modification if the file is memmaped. */
   struct FD_DTYPE_STREAM stream;
@@ -244,4 +244,3 @@ FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix);
 FD_EXPORT fdtype fd_hash_index_stats(struct FD_HASH_INDEX *ix);
 
 #endif /* #ifndef FRAMERD_DBFILE_H */
-

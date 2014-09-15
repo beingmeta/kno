@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -179,13 +179,13 @@ static fdtype macroexpand(fdtype expander,fdtype expr)
       struct FD_MACRO *macrofn=(struct FD_MACRO *)fd_pptr_ref(expander);
       fd_ptr_type xformer_type=FD_PTR_TYPE(macrofn->transformer);
       if (fd_applyfns[xformer_type]) {
-	/* These are special forms which do all the evaluating themselves */
-	fdtype new_expr=
-	  (fd_applyfns[xformer_type])(fd_pptr_ref(macrofn->transformer),1,&expr);
-	new_expr=fd_finish_call(new_expr);
-	if (FD_ABORTP(new_expr))
-	  return fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
-	else return new_expr;}
+        /* These are special forms which do all the evaluating themselves */
+        fdtype new_expr=
+          (fd_applyfns[xformer_type])(fd_pptr_ref(macrofn->transformer),1,&expr);
+        new_expr=fd_finish_call(new_expr);
+        if (FD_ABORTP(new_expr))
+          return fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
+        else return new_expr;}
       else return fd_err(fd_InvalidMacro,NULL,macrofn->name,expr);}
     else return fd_type_error("macro","macroexpand",expander);}
   else return fd_incref(expr);
@@ -284,13 +284,13 @@ static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
     if (env->copy) env=env->copy;
     while (env) {
       if (fd_test(env->bindings,symbol,FD_VOID)) {
-	fdtype bindings=env->bindings;
-	if ((FD_CONSP(bindings)) &&
-	    (FD_MALLOCD_CONSP((fd_cons)bindings)))
-	  return fd_incref(env->bindings);
-	else {
-	  fd_decref(env_arg);
-	  return FD_FALSE;}}
+        fdtype bindings=env->bindings;
+        if ((FD_CONSP(bindings)) &&
+            (FD_MALLOCD_CONSP((fd_cons)bindings)))
+          return fd_incref(env->bindings);
+        else {
+          fd_decref(env_arg);
+          return FD_FALSE;}}
       env=env->parent;
       if ((env) && (env->copy)) env=env->copy;}
     fd_decref(env_arg);
@@ -315,8 +315,8 @@ static fdtype getmodules_handler(fdtype expr,fd_lispenv call_env)
     if (fd_test(env->bindings,moduleid_symbol,FD_VOID)) {
       fdtype ids=fd_get(env->bindings,moduleid_symbol,FD_VOID);
       if ((FD_CHOICEP(ids))||(FD_ACHOICEP(ids))) {
-	FD_DO_CHOICES(id,ids) {
-	  if (FD_SYMBOLP(id)) {FD_ADD_TO_CHOICE(modules,id);}}}
+        FD_DO_CHOICES(id,ids) {
+          if (FD_SYMBOLP(id)) {FD_ADD_TO_CHOICE(modules,id);}}}
       else if (FD_SYMBOLP(ids)) {FD_ADD_TO_CHOICE(modules,ids);}
       else {}}
     env=env->parent;
@@ -334,7 +334,7 @@ FD_EXPORT void fd_init_reflection_c()
   fdtype apropos_cprim=fd_make_cprim1("APROPOS",apropos_prim,1);
   fd_idefn(module,apropos_cprim);
   fd_defn(fd_scheme_module,apropos_cprim);
-  
+
   moduleid_symbol=fd_intern("%MODULEID");
 
   fd_idefn(module,fd_make_cprim1("MACRO?",macrop,1));
@@ -355,8 +355,8 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("PROCEDURE-BODY",compound_procedure_body,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-ENV",compound_procedure_env,1));
   fd_idefn(module,
-	   fd_make_cprim2("SET-PROCEDURE-BODY!",
-			  set_compound_procedure_body,1));
+           fd_make_cprim2("SET-PROCEDURE-BODY!",
+                          set_compound_procedure_body,1));
   fd_idefn(module,fd_make_cprim2("MACROEXPAND",macroexpand,2));
 
 #if 0
@@ -379,4 +379,3 @@ FD_EXPORT void fd_init_reflection_c()
   fd_finish_module(module);
   fd_persist_module(module);
 }
-

@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -28,7 +28,7 @@ static fdtype reqgetvar(fdtype cgidata,fdtype var)
     ((FD_SYMBOLP(var))&&((FD_SYMBOL_NAME(var))[0]=='%'));
   fdtype name=((noparse)?(fd_intern(FD_SYMBOL_NAME(var)+1)):(var));
   fdtype val=((FD_TABLEP(cgidata))?(fd_get(cgidata,name,FD_VOID)):
-	      (fd_req_get(name,FD_VOID)));
+              (fd_req_get(name,FD_VOID)));
   if (FD_VOIDP(val)) return val;
   else if ((noparse)&&(FD_STRINGP(val))) return val;
   else if (FD_STRINGP(val)) {
@@ -40,19 +40,19 @@ static fdtype reqgetvar(fdtype cgidata,fdtype var)
     else if (isdigit(data[0])) {
       fdtype parsed=fd_parse_arg(data);
       if (FD_NUMBERP(parsed)) {
-	fd_decref(val); return parsed;}
+        fd_decref(val); return parsed;}
       else {
-	fd_decref(parsed); return val;}}
-    else if (*data == ':') 
+        fd_decref(parsed); return val;}}
+    else if (*data == ':')
       if (data[1]=='\0')
-	return fdtype_string(data);
+        return fdtype_string(data);
       else {
-	fdtype arg=fd_parse(data+1);
-	if (FD_ABORTP(arg)) {
-	  u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
-	  fd_clear_errors(1);
-	  return fdtype_string(data);}
-	else return arg;}
+        fdtype arg=fd_parse(data+1);
+        if (FD_ABORTP(arg)) {
+          u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
+          fd_clear_errors(1);
+          return fdtype_string(data);}
+        else return arg;}
     else if (*data == '\\') {
       fdtype shorter=fdtype_string(data+1);
       fd_decref(val);
@@ -62,25 +62,25 @@ static fdtype reqgetvar(fdtype cgidata,fdtype var)
     fdtype result=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(v,val) {
       if (!(FD_STRINGP(v))) {
-	fd_incref(v); FD_ADD_TO_CHOICE(result,v);}
+        fd_incref(v); FD_ADD_TO_CHOICE(result,v);}
       else {
-	u8_string data=FD_STRDATA(v); fdtype parsed=v;
-	if (*data=='\\') parsed=fdtype_string(data+1);
-	else if ((*data==':')&&(data[1]=='\0')) {fd_incref(parsed);}
-	else if (*data==':') 
-	  parsed=fd_parse(data+1);
-	else if ((isdigit(*data))||(*data=='+')||(*data=='-')||(*data=='.')) {
-	  parsed=fd_parse_arg(data);
-	  if (!(FD_NUMBERP(parsed))) {
-	    fd_decref(parsed); parsed=v; fd_incref(parsed);}}
-	else if (strchr("@{#(",data[0]))
-	  parsed=fd_parse_arg(data);
-	else fd_incref(parsed);
-	if (FD_ABORTP(parsed)) {
-	  u8_log(LOG_WARN,fd_ParseArgError,"Bad LISP arg '%s'",data);
-	  fd_clear_errors(1);
-	  parsed=v; fd_incref(v);}
-	FD_ADD_TO_CHOICE(result,parsed);}}
+        u8_string data=FD_STRDATA(v); fdtype parsed=v;
+        if (*data=='\\') parsed=fdtype_string(data+1);
+        else if ((*data==':')&&(data[1]=='\0')) {fd_incref(parsed);}
+        else if (*data==':')
+          parsed=fd_parse(data+1);
+        else if ((isdigit(*data))||(*data=='+')||(*data=='-')||(*data=='.')) {
+          parsed=fd_parse_arg(data);
+          if (!(FD_NUMBERP(parsed))) {
+            fd_decref(parsed); parsed=v; fd_incref(parsed);}}
+        else if (strchr("@{#(",data[0]))
+          parsed=fd_parse_arg(data);
+        else fd_incref(parsed);
+        if (FD_ABORTP(parsed)) {
+          u8_log(LOG_WARN,fd_ParseArgError,"Bad LISP arg '%s'",data);
+          fd_clear_errors(1);
+          parsed=v; fd_incref(v);}
+        FD_ADD_TO_CHOICE(result,parsed);}}
     fd_decref(val);
     return result;}
   else return val;
@@ -91,10 +91,10 @@ static fdtype reqgetvar(fdtype cgidata,fdtype var)
 static fdtype reqcall_prim(fdtype proc)
 {
   fdtype value=FD_VOID;
-  if (FD_SPROCP(proc)) 
+  if (FD_SPROCP(proc))
     value=
       fd_xapply_sproc((fd_sproc)proc,(void *)FD_VOID,
-		      (fdtype (*)(void *,fdtype))reqgetvar);
+                      (fdtype (*)(void *,fdtype))reqgetvar);
   else if (FD_APPLICABLEP(proc))
     value=fd_apply(proc,0,NULL);
   else value=fd_type_error("applicable","cgicall",proc);
@@ -128,8 +128,8 @@ static fdtype reqval_prim(fdtype var,fdtype dflt)
     fdtype result=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(v,val)
       if (FD_STRINGP(v)) {
-	fdtype parsed=fd_parse_arg(FD_STRDATA(v));
-	FD_ADD_TO_CHOICE(result,parsed);}
+        fdtype parsed=fd_parse_arg(FD_STRDATA(v));
+        FD_ADD_TO_CHOICE(result,parsed);}
       else {fd_incref(v); FD_ADD_TO_CHOICE(result,v);}
     fd_decref(val);
     return result;}
@@ -180,8 +180,8 @@ static fdtype reqpush_prim(fdtype vars,fdtype values)
   {FD_DO_CHOICES(var,vars) {
       fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
       FD_DO_CHOICES(value,values) {
-	/* fd_req_push is weird because it doesn't incref its arg */
-	fd_incref(value); fd_req_push(name,value);}}}
+        /* fd_req_push is weird because it doesn't incref its arg */
+        fd_incref(value); fd_req_push(name,value);}}}
   return FD_VOID;
 }
 

@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -36,7 +36,7 @@ FD_EXPORT u8_context fd_eval_context;
 FD_EXPORT void (*fd_dump_backtrace)(u8_string bt);
 
 #define FD_NEED_EVALP(x) ((FD_SYMBOLP(x)) || (FD_LEXREFP(x)) || \
-			  (FD_PAIRP(x)) || (FD_RAILP(x)))
+                          (FD_PAIRP(x)) || (FD_RAILP(x)))
 
 /* Constants */
 
@@ -123,7 +123,7 @@ FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int));
 
 typedef struct FD_SPROC {
   FD_FUNCTION_FIELDS;
-  short n_vars, synchronized; 
+  short n_vars, synchronized;
   fdtype *schema, arglist, body;
   fd_lispenv env;
   U8_MUTEX_DECL(lock);
@@ -135,8 +135,8 @@ FD_EXPORT fdtype fd_xapply_sproc
   (struct FD_SPROC *fn,void *data,fdtype (*getval)(void *,fdtype));
 
 FD_EXPORT fdtype fd_make_sproc(u8_string name,
-			       fdtype arglist,fdtype body,fd_lispenv env,
-			       int nd,int sync);
+                               fdtype arglist,fdtype body,fd_lispenv env,
+                               int nd,int sync);
 
 /* Loading files and config data */
 
@@ -194,7 +194,7 @@ FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
   if (env->copy) env=env->copy;
   if (FD_EXPECT_TRUE(env!=NULL)) {
     fdtype bindings=env->bindings;
-    if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) { 
+    if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
       struct FD_SCHEMAP *s=(struct FD_SCHEMAP *)bindings;
       return fd_incref(s->values[across]);}}
   return fd_err("Bad lexical reference","fd_lexref",NULL,FD_VOID);
@@ -231,16 +231,16 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
     else if (FD_SYMBOLP(x)) {
       fdtype val=fd_symeval(x,env);
       if (FD_EXPECT_FALSE(FD_VOIDP(val)))
-	return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
+        return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
     else return x;
   case fd_slotmap_type:
     return fd_deep_copy(x);
   case fd_cons_ptr_type:
     if ((FD_PTR_TYPEP(x,fd_pair_type)) ||
-	(FD_PTR_TYPEP(x,fd_rail_type)) ||
-	(FD_PTR_TYPEP(x,fd_choice_type)) ||
-	(FD_PTR_TYPEP(x,fd_achoice_type)))
+        (FD_PTR_TYPEP(x,fd_rail_type)) ||
+        (FD_PTR_TYPEP(x,fd_choice_type)) ||
+        (FD_PTR_TYPEP(x,fd_achoice_type)))
       return fd_eval(x,env);
     else return fd_incref(x);
   default: /* Never reached */
@@ -259,7 +259,7 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
     else if (FD_SYMBOLP(x)) {
       fdtype val=fd_symeval(x,env);
       if (FD_EXPECT_FALSE(FD_VOIDP(val)))
-	return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
+        return fd_err(fd_UnboundIdentifier,"fd_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
     else return x;
   case fd_cons_ptr_type: {
@@ -283,7 +283,7 @@ FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
   if (FD_RAILP(expr)) return FD_RAIL_REF(expr,i);
   while (FD_PAIRP(expr))
     if ((FD_PAIRP(FD_CAR(expr))) &&
-	(FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
+        (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
       expr=FD_CDR(expr);
     else if (i == 0) return FD_CAR(expr);
     else {expr=FD_CDR(expr); i--;}
@@ -298,7 +298,7 @@ FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
   while (FD_PAIRP(expr))
     if (i == 0) break;
     else if ((FD_PAIRP(FD_CAR(expr))) &&
-	     (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
+             (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
       expr=FD_CDR(expr);
     else {expr=FD_CDR(expr); i--;}
   return expr;
@@ -314,9 +314,9 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lispenv);
 
 /* Body iteration */
 
-#define FD_DOBODY(x,list,start)			\
+#define FD_DOBODY(x,list,start)                 \
   fdtype x, _tmp=list, *raildata=NULL;          \
-  int ispair=0, off=start, lim=0;	        \
+  int ispair=0, off=start, lim=0;               \
   if (FD_PAIRP(_tmp)) {                         \
     ispair=1; _tmp=fd_get_body(_tmp,off);}      \
   else if (FD_RAILP(_tmp)) {                    \
@@ -324,8 +324,8 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lispenv);
      raildata=FD_RAIL_DATA(_tmp);}              \
    while ((ispair)?                             \
           ((FD_PAIRP(_tmp)) ?                   \
-	   (x=FD_CAR(_tmp),_tmp=FD_CDR(_tmp),1) : 0): \
-	  ((off<lim)?(x=raildata[off++],1):0))
+           (x=FD_CAR(_tmp),_tmp=FD_CDR(_tmp),1) : 0): \
+          ((off<lim)?(x=raildata[off++],1):0))
 
 /* Simple continuations */
 
@@ -456,4 +456,3 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_COND_OPCODE       FD_OPCODE(0xC2)
 
 #endif /* FRAMERD_EVAL_H */
-

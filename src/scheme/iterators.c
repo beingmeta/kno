@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -50,12 +50,12 @@ static fdtype while_handler(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"WHILE",NULL,expr);
   else while ((FD_VOIDP(result)) &&
-	      (testeval(test_expr,env,&result))) {
+              (testeval(test_expr,env,&result))) {
       FD_DOBODY(iter_expr,expr,2) {
-	fdtype val=fasteval(iter_expr,env);
-	if (FD_ABORTP(val))
-	  return val;
-	fd_decref(val);}}
+        fdtype val=fasteval(iter_expr,env);
+        if (FD_ABORTP(val))
+          return val;
+        fd_decref(val);}}
   if (FD_ABORTP(result))
     return result;
   else return FD_VOID;
@@ -68,11 +68,11 @@ static fdtype until_handler(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"UNTIL",NULL,expr);
   else while ((FD_VOIDP(result)) &&
-	      (!(testeval(test_expr,env,&result)))) {
+              (!(testeval(test_expr,env,&result)))) {
       FD_DOBODY(iter_expr,expr,2) {
-	fdtype val=fasteval(iter_expr,env);
-	if (FD_ABORTP(val)) return val;
-	else fd_decref(val);}}
+        fdtype val=fasteval(iter_expr,env);
+        if (FD_ABORTP(val)) return val;
+        else fd_decref(val);}}
   if (FD_ABORTP(result))
     return result;
   else return FD_VOID;
@@ -95,10 +95,10 @@ static fdtype parse_control_spec
       return fd_err(fd_TooFewExpressions,"DO...",NULL,control_expr);
     else if (!(FD_SYMBOLP(var)))
       return fd_err(fd_SyntaxError,
-		    _("identifier is not a symbol"),NULL,control_expr);
+                    _("identifier is not a symbol"),NULL,control_expr);
     else if (!((FD_VOIDP(ivar)) || (FD_SYMBOLP(ivar))))
       return fd_err(fd_SyntaxError,
-		    _("identifier is not a symbol"),NULL,control_expr);
+                    _("identifier is not a symbol"),NULL,control_expr);
     val=fasteval(val_expr,env);
     if (FD_ABORTP(val)) return val;
     *value=val; if (count_var) *count_var=ivar;
@@ -123,26 +123,26 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
   bindings.flags=(FD_SCHEMAP_SORTED|FD_SCHEMAP_STACK_SCHEMA);
   bindings.schema=vars; bindings.values=vals; bindings.size=1;
   fd_init_rwlock(&(bindings.rwlock));
-  envstruct.parent=env;  
+  envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
   vars[0]=var; vals[0]=FD_INT2DTYPE(0);
   while (i < limit) {
     vals[0]=FD_INT2DTYPE(i);
     {FD_DOBODY(subexpr,expr,2) {
-	fdtype val=fasteval(subexpr,&envstruct);
-	if (FD_THROWP(val)) {
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_decref(vals[0]);
-	  fd_destroy_rwlock(&(bindings.rwlock));
-	  return val;}
-	else if (FD_ABORTP(val)) {
-	  fd_push_error_context(":DOTIMES",iterenv1(limit_val,var,FD_INT2DTYPE(i)));
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_decref(vals[0]);
-	  fd_destroy_rwlock(&(bindings.rwlock));
-	  return val;}
-	fd_decref(val);}}
+        fdtype val=fasteval(subexpr,&envstruct);
+        if (FD_THROWP(val)) {
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          fd_decref(vals[0]);
+          fd_destroy_rwlock(&(bindings.rwlock));
+          return val;}
+        else if (FD_ABORTP(val)) {
+          fd_push_error_context(":DOTIMES",iterenv1(limit_val,var,FD_INT2DTYPE(i)));
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          fd_decref(vals[0]);
+          fd_destroy_rwlock(&(bindings.rwlock));
+          return val;}
+        fd_decref(val);}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
       envstruct.copy=NULL;}
@@ -177,34 +177,34 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals; bindings.size=1;
   fd_init_rwlock(&(bindings.rwlock));
-  envstruct.parent=env;  
+  envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
-    bindings.size=2; iterval=&(vals[1]);} 
+    bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
     fdtype elt=fd_seq_elt(seq,i);
     vals[0]=elt;
     if (iterval) *iterval=FD_INT2DTYPE(i);
     {FD_DOBODY(subexpr,expr,2) {
-	fdtype val=fasteval(subexpr,&envstruct);
-	if (FD_THROWP(val)) {
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_decref(vals[0]); fd_decref(seq);
-	  fd_destroy_rwlock(&(bindings.rwlock));
-	  return val;}
-	else if (FD_ABORTP(val)) {
-	  fdtype errbind;
-	  if (iterval) errbind=iterenv1(seq,var,elt);
-	  else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_decref(vals[0]); fd_decref(seq);
-	  fd_destroy_rwlock(&(bindings.rwlock));
-	  fd_push_error_context(":DOSEQ",errbind);
-	  return val;}
-	fd_decref(val);}}
+        fdtype val=fasteval(subexpr,&envstruct);
+        if (FD_THROWP(val)) {
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          fd_decref(vals[0]); fd_decref(seq);
+          fd_destroy_rwlock(&(bindings.rwlock));
+          return val;}
+        else if (FD_ABORTP(val)) {
+          fdtype errbind;
+          if (iterval) errbind=iterenv1(seq,var,elt);
+          else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          fd_decref(vals[0]); fd_decref(seq);
+          fd_destroy_rwlock(&(bindings.rwlock));
+          fd_push_error_context(":DOSEQ",errbind);
+          return val;}
+        fd_decref(val);}}
     /* Every iteration is a new environment */
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
@@ -239,34 +239,34 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals; bindings.size=1;
   fd_init_rwlock(&(bindings.rwlock));
-  envstruct.parent=env;  
+  envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
-    bindings.size=2; iterval=&(vals[1]);} 
+    bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
     fdtype elt=fd_seq_elt(seq,i), val=FD_VOID;
     vals[0]=elt;
     if (iterval) *iterval=FD_INT2DTYPE(i);
     {FD_DOBODY(subexpr,expr,2) {
-	fd_decref(val);
-	val=fasteval(subexpr,&envstruct);
-	if (FD_THROWP(val)) {
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_destroy_rwlock(&(bindings.rwlock));
-	  fd_decref(vals[0]); fd_decref(seq);
-	  return val;}
-	else if (FD_ABORTP(val)) {
-	  fdtype errbind;
-	  if (iterval) errbind=iterenv1(seq,var,elt);
-	  else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
-	  fd_destroy_rwlock(&(bindings.rwlock));
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_decref(vals[0]); fd_decref(seq);
-	  fd_push_error_context(":FORSEQ",errbind);
-	  return val;}}}
+        fd_decref(val);
+        val=fasteval(subexpr,&envstruct);
+        if (FD_THROWP(val)) {
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          fd_destroy_rwlock(&(bindings.rwlock));
+          fd_decref(vals[0]); fd_decref(seq);
+          return val;}
+        else if (FD_ABORTP(val)) {
+          fdtype errbind;
+          if (iterval) errbind=iterenv1(seq,var,elt);
+          else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
+          fd_destroy_rwlock(&(bindings.rwlock));
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          fd_decref(vals[0]); fd_decref(seq);
+          fd_push_error_context(":FORSEQ",errbind);
+          return val;}}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
       envstruct.copy=NULL;}
@@ -305,39 +305,39 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals; bindings.size=1;
   fd_init_rwlock(&(bindings.rwlock));
-  envstruct.parent=env;  
+  envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
-    bindings.size=2; iterval=&(vals[1]);} 
+    bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
     fdtype elt=fd_seq_elt(seq,i);
     if (envstruct.copy) {
       fd_set_value(var,elt,envstruct.copy);
       if (iterval)
-	fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+        fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
     else {
       vals[0]=elt;
       if (iterval) *iterval=FD_INT2DTYPE(i);}
     {FD_DOBODY(subexpr,expr,2) {
-	fd_decref(val);
-	val=fasteval(subexpr,&envstruct);
-	if (FD_THROWP(val)) {
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_destroy_rwlock(&(bindings.rwlock));
-	  fd_decref(elt); fd_decref(seq);
-	  return val;}
-	else if (FD_ABORTP(val)) {
-	  fdtype errbind;
-	  if (iterval) errbind=iterenv1(seq,var,elt);
-	  else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
-	  fd_destroy_rwlock(&(bindings.rwlock));
-	  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	  fd_decref(elt); fd_decref(seq);
-	  fd_push_error_context(":TRYSEQ",errbind);
-	  return val;}}}
+        fd_decref(val);
+        val=fasteval(subexpr,&envstruct);
+        if (FD_THROWP(val)) {
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          fd_destroy_rwlock(&(bindings.rwlock));
+          fd_decref(elt); fd_decref(seq);
+          return val;}
+        else if (FD_ABORTP(val)) {
+          fdtype errbind;
+          if (iterval) errbind=iterenv1(seq,var,elt);
+          else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
+          fd_destroy_rwlock(&(bindings.rwlock));
+          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          fd_decref(elt); fd_decref(seq);
+          fd_push_error_context(":TRYSEQ",errbind);
+          return val;}}}
     if (envstruct.copy) {
       fd_recycle_environment(envstruct.copy);
       envstruct.copy=NULL;}
@@ -366,7 +366,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   if (FD_VOIDP(count_var)) {
-    bindings.size=1; 
+    bindings.size=1;
     vars[0]=var; vals[0]=FD_VOID;
     vloc=&(vals[0]);}
   else {
@@ -376,31 +376,31 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
   fd_init_rwlock(&(bindings.rwlock));
-  envstruct.parent=env;  
+  envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
   {int i=0; FD_DOLIST(elt,list) {
       *vloc=elt; fd_incref(elt); if (iloc) *iloc=FD_INT2DTYPE(i);
       {FD_DOBODY(subexpr,expr,2) {
-	  fdtype val=fasteval(subexpr,&envstruct);
-	  if (FD_THROWP(val)) {
-	    if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	    fd_decref(list); fd_decref(*vloc);
-	    fd_destroy_rwlock(&(bindings.rwlock));
-	    return val;}
-	  else if (FD_ABORTP(val)) {
-	    fdtype errenv;
-	    if (iloc) errenv=iterenv2(list,var,elt,count_var,FD_INT2DTYPE(i));
-	    else errenv=iterenv1(list,var,elt);
-	    if (envstruct.copy) fd_recycle_environment(envstruct.copy);
-	    fd_decref(list); fd_decref(*vloc);
-	    fd_destroy_rwlock(&(bindings.rwlock));
-	    fd_push_error_context(":DOLIST",errenv);
-	    return val;}
-	  fd_decref(val);}}
+          fdtype val=fasteval(subexpr,&envstruct);
+          if (FD_THROWP(val)) {
+            if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+            fd_decref(list); fd_decref(*vloc);
+            fd_destroy_rwlock(&(bindings.rwlock));
+            return val;}
+          else if (FD_ABORTP(val)) {
+            fdtype errenv;
+            if (iloc) errenv=iterenv2(list,var,elt,count_var,FD_INT2DTYPE(i));
+            else errenv=iterenv1(list,var,elt);
+            if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+            fd_decref(list); fd_decref(*vloc);
+            fd_destroy_rwlock(&(bindings.rwlock));
+            fd_push_error_context(":DOLIST",errenv);
+            return val;}
+          fd_decref(val);}}
       if (envstruct.copy) {
-	fd_recycle_environment(envstruct.copy);
-	envstruct.copy=NULL;}
+        fd_recycle_environment(envstruct.copy);
+        envstruct.copy=NULL;}
       fd_decref(*vloc);
       i++;}}
   fd_destroy_rwlock(&(bindings.rwlock));
@@ -426,8 +426,8 @@ static fdtype prog1_handler(fdtype prog1_expr,fd_lispenv env)
     FD_DOBODY(subexpr,prog1_expr,2) {
       fdtype tmp=fd_eval(subexpr,env);
       if (FD_ABORTP(tmp)) {
-	fd_decref(results);
-	return tmp;}
+        fd_decref(results);
+        return tmp;}
       fd_decref(tmp);}
     return results;}
 }
@@ -481,11 +481,11 @@ static fdtype track_ipeval_handler(fdtype expr,fd_lispenv env)
     struct FD_IPEVAL_RECORD *record=&(records[i]);
     vec[i++]=
       fd_make_nvector(3,FD_INT2DTYPE(record->delays),
-		      fd_init_double(NULL,record->exec_time),
-		      fd_init_double(NULL,record->fetch_time));}
+                      fd_init_double(NULL,record->exec_time),
+                      fd_init_double(NULL,record->fetch_time));}
   return fd_make_nvector(3,tmp.value,
-			 fd_init_double(NULL,total_time),
-			 fd_init_vector(NULL,n_cycles,vec));
+                         fd_init_double(NULL,total_time),
+                         fd_init_vector(NULL,n_cycles,vec));
 }
 #endif
 

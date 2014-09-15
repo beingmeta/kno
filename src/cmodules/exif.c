@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -42,9 +42,9 @@ static fdtype exif2lisp(ExifEntry *exentry)
     unsigned char *exifdata=exentry->data;
     if (exentry->format==EXIF_FORMAT_SBYTE)
       while (i < n) {
-	char ival=exifdata[i];
-	lispdata[i]=FD_SHORT2DTYPE(ival);
-	i++;}
+        char ival=exifdata[i];
+        lispdata[i]=FD_SHORT2DTYPE(ival);
+        i++;}
     else while (i < n) {
       unsigned char ival=exifdata[i];
       lispdata[i]=FD_USHORT2DTYPE(ival);
@@ -61,9 +61,9 @@ static fdtype exif2lisp(ExifEntry *exentry)
     unsigned char *exifdata=exentry->data;
     if (exentry->format==EXIF_FORMAT_SSHORT)
       while (i < n) {
-	short ival=exif_get_short(exifdata+(i*item_size),o);
-	lispdata[i]=FD_SHORT2DTYPE(ival);
-	i++;}
+        short ival=exif_get_short(exifdata+(i*item_size),o);
+        lispdata[i]=FD_SHORT2DTYPE(ival);
+        i++;}
     else while (i < n) {
       unsigned short ival=exif_get_short(exifdata+(i*item_size),o);
       lispdata[i]=FD_USHORT2DTYPE(ival);
@@ -80,9 +80,9 @@ static fdtype exif2lisp(ExifEntry *exentry)
     unsigned char *exifdata=exentry->data;
     if (exentry->format==EXIF_FORMAT_SLONG)
       while (i < n) {
-	long int ival=exif_get_long(exifdata+(i*item_size),o);
-	lispdata[i]=FD_INT2DTYPE(ival);
-	i++;}
+        long int ival=exif_get_long(exifdata+(i*item_size),o);
+        lispdata[i]=FD_INT2DTYPE(ival);
+        i++;}
     else while (i < n) {
       unsigned long int ival=exif_get_long(exifdata+(i*item_size),o);
       lispdata[i]=FD_INT2DTYPE(ival);
@@ -99,15 +99,15 @@ static fdtype exif2lisp(ExifEntry *exentry)
     unsigned char *exifdata=exentry->data;
     if (exentry->format==EXIF_FORMAT_SRATIONAL)
       while (i < n) {
-	ExifSRational v=exif_get_srational(exifdata+(i*item_size),o);
-	double ratio=((double)(v.numerator))/((double)(v.denominator));
-	lispdata[i]=fd_init_double(NULL,ratio);
-	i++;}
+        ExifSRational v=exif_get_srational(exifdata+(i*item_size),o);
+        double ratio=((double)(v.numerator))/((double)(v.denominator));
+        lispdata[i]=fd_init_double(NULL,ratio);
+        i++;}
     else while (i < n) {
       ExifRational v=exif_get_rational(exifdata+(i*item_size),o);
-	double ratio=((double)(v.numerator))/((double)(v.denominator));
-	lispdata[i]=fd_init_double(NULL,ratio);
-	i++;}
+        double ratio=((double)(v.numerator))/((double)(v.denominator));
+        lispdata[i]=fd_init_double(NULL,ratio);
+        i++;}
     if (n==1) {
       fdtype retval=lispdata[0]; int i=1;
       while (i<n) {fd_decref(lispdata[i]); i++;}
@@ -239,8 +239,8 @@ static struct TAGINFO {
 
 static fdtype exif_get(fdtype x,fdtype prop)
 {
-  ExifData *exdata; 
-  if (FD_PACKETP(x)) 
+  ExifData *exdata;
+  if (FD_PACKETP(x))
     exdata=exif_data_new_from_data(FD_PACKET_DATA(x),FD_PACKET_LENGTH(x));
   else if (FD_STRINGP(x)) {
     int n_bytes;
@@ -251,13 +251,13 @@ static fdtype exif_get(fdtype x,fdtype prop)
   if (FD_VOIDP(prop)) {
     fdtype slotmap=fd_empty_slotmap();
     struct TAGINFO *scan=taginfo;
-    
+
     while (scan->tagname) {
       ExifEntry *exentry=exif_data_get_entry(exdata,scan->tagid);
       if (exentry) {
-	fdtype val=exif2lisp(exentry);
-	fd_add(slotmap,scan->tagsym,val);
-	fd_decref(val);}
+        fdtype val=exif2lisp(exentry);
+        fd_add(slotmap,scan->tagsym,val);
+        fd_decref(val);}
       scan++;}
     return slotmap;}
   else {

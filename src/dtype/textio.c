@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 
    This file implements the core parser and printer (unparser) functionality.
@@ -71,7 +71,7 @@ static int skip_whitespace(u8_input s)
       while ((c>=0) && (c != '\n')) c=u8_getc(s);
       if (c<0) return -1;}
     else if ((c=='#') && (u8_probec(s)=='|')) {
-      int bar=0; c=u8_getc(s); 
+      int bar=0; c=u8_getc(s);
       while ((c=u8_getc(s))>=0)
         if (c=='|') bar=1;
         else if ((bar) && (c=='#')) break;
@@ -96,7 +96,7 @@ static u8_string const_names[]={
   "#baddtype","#badparse","#oom","#typeerror","#rangeerror",
   "#error","#badptr","#throw","#exception_tag","#unbound","#neverseen",
   "#lockholder","#dflt",NULL};
-  
+
 static u8_string character_constant_names[]={
   "SPACE","NEWLINE","RETURN",
   "TAB","VTAB","VERTICALTAB",
@@ -124,7 +124,7 @@ static int emit_symbol_name(U8_OUTPUT *out,u8_string name)
 {
   u8_byte *scan=name;
   int c=u8_sgetc(&scan), needs_protection=0;
-  while (c>=0) 
+  while (c>=0)
     if ((atombreakp(c)) ||
         ((u8_islower(c)) && ((u8_toupper(c))!=c))) {
       needs_protection=1; break;}
@@ -133,7 +133,7 @@ static int emit_symbol_name(U8_OUTPUT *out,u8_string name)
   else {
     u8_byte *start=name, *scan=start;
     u8_putc(out,'|');
-    while (*scan) 
+    while (*scan)
       if ((*scan == '\\') || (*scan == '|')) {
         u8_putn(out,start,scan-start);
         u8_putc(out,'\\'); u8_putc(out,*scan);
@@ -208,7 +208,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
   if (fd_unparse_hexpacket) {
     u8_puts(out,"#x\"");
     while (i<len) {
-      int byte=bytes[i++]; char buf[16]; 
+      int byte=bytes[i++]; char buf[16];
       if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
         u8_putc(out,' '); output_ellipsis(out,len-i,"bytes");
         return u8_putc(out,'"');}
@@ -219,7 +219,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
     u8_puts(out,"#\"");
     if (bytes[0]=='!') {u8_puts(out,"\\!"); i++;}
     while (i < len) {
-      int byte=bytes[i++]; char buf[16]; 
+      int byte=bytes[i++]; char buf[16];
       if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
         u8_putc(out,' '); output_ellipsis(out,len-i,"bytes");
         return u8_putc(out,'"');}
@@ -381,7 +381,7 @@ int fd_unparse(u8_output out,fdtype x)
     fd_ptr_type ct=FD_CONS_TYPE(cons);
     if ((FD_VALID_TYPEP(ct)) && (fd_unparsers[ct]) && (fd_unparsers[ct](out,x)))
       return 1;
-    else if (fd_unparse_error) 
+    else if (fd_unparse_error)
       return fd_unparse_error(out,x,_("no handler"));
     else {
       char buf[128]; int retval;
@@ -426,7 +426,7 @@ static int parse_unicode_escape(u8_string arg)
     else {
       fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",u8_strdup(s));
       return -1;}
-  else if (s[0] == 'U') 
+  else if (s[0] == 'U')
     if ((strlen(s)==9) &&
         (isxdigit(s[1])) && (isxdigit(s[2])) &&
         (isxdigit(s[3])) && (isxdigit(s[4])) &&
@@ -554,7 +554,7 @@ fdtype fd_parse_atom(u8_string start,int len)
   else if ((start[0]=='#')&&(start[1]=='!')&&(isxdigit(start[2]))) {
     if (fd_interpret_pointers) {
       unsigned long pval;
-      if (sscanf(start+2,"%lx",&pval)!=1) 
+      if (sscanf(start+2,"%lx",&pval)!=1)
         return fd_err
           (fd_BadPointerRef,"fd_parse_atom",u8_strdup(start),FD_VOID);
       else if (FD_CHECK_PTR(pval))
@@ -611,7 +611,7 @@ static fdtype parse_character(U8_INPUT *in)
   if (n_chars==1) {
     u8_byte *scan=buf; int c=u8_sgetc(&scan);
     return FD_CODE2CHAR(c);}
-  else if ((tmpbuf.u8_outbuf[0]=='u') || (tmpbuf.u8_outbuf[0]=='U')) 
+  else if ((tmpbuf.u8_outbuf[0]=='u') || (tmpbuf.u8_outbuf[0]=='U'))
     c=parse_unicode_escape(tmpbuf.u8_outbuf);
   else c=-1;
   if (c>=0) return FD_CODE2CHAR(c);
@@ -673,7 +673,7 @@ static int copy_string(u8_input s,u8_output a);
 
 /* This is the function called from the main parser loop. */
 static fdtype parse_oid(U8_INPUT *in)
-{ 
+{
   struct U8_OUTPUT tmpbuf; char buf[128]; int c; fdtype result;
   U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
   /* First, copy the data into a buffer.
@@ -830,7 +830,7 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
     if (FD_ABORTP(elt)) {
       int i=0; while (i < n_elts) {
         fd_decref(elts[i]); i++;}
-      u8_free(elts); 
+      u8_free(elts);
       if (elt == FD_EOX) *size=-1;
       else if (elt == FD_PARSE_ERROR) *size=-2;
       else *size=-3;
@@ -850,7 +850,7 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
     ch=u8_getc(in); /* Skip the end char */
     if (n_elts) return elts;
     else {
-      u8_free(elts); 
+      u8_free(elts);
       return NULL;}}
   else {
     int i=0; while (i < n_elts) {fd_decref(elts[i]); i++;}
@@ -994,7 +994,7 @@ static fdtype parse_vector(U8_INPUT *in)
 {
   int n_elts=-2;
   fdtype *elts=parse_vec(in,')',&n_elts);
-  if (n_elts>=0) 
+  if (n_elts>=0)
     return fd_init_vector(u8_alloc(struct FD_VECTOR),n_elts,elts);
   else return FD_PARSE_ERROR;
 }
@@ -1003,7 +1003,7 @@ static fdtype parse_rail(U8_INPUT *in)
 {
   int n_elts=-2;
   fdtype *elts=parse_vec(in,')',&n_elts);
-  if (n_elts>=0) 
+  if (n_elts>=0)
     return fd_init_rail(u8_alloc(struct FD_VECTOR),n_elts,elts);
   else return FD_PARSE_ERROR;
 }
@@ -1026,7 +1026,7 @@ static fdtype parse_choice(U8_INPUT *in)
   int ch=skip_whitespace(in);
   if (ch == '}') {
     u8_getc(in); return FD_EMPTY_CHOICE;}
-  else if (ch < 0) 
+  else if (ch < 0)
     if (ch==-1) return FD_EOX; else return FD_PARSE_ERROR;
   else {
     int n_elts=-2; fdtype *elts=parse_vec(in,'}',&n_elts);
@@ -1155,10 +1155,10 @@ fdtype fd_parser(u8_input in)
                   FD_CODE2CHAR(inchar));}
   case '"': return parse_string(in);
   case '@': return parse_oid(in);
-  case '(': 
+  case '(':
     /* Skip the open paren and parse the list */
     u8_getc(in); return parse_list(in);
-  case '[': 
+  case '[':
     /* Skip the open paren and parse the list */
     u8_getc(in); return parse_bracket_list(in);
   case '{':
@@ -1187,7 +1187,7 @@ fdtype fd_parser(u8_input in)
     else return fd_make_list(2,unquote_symbol,content);}
   case '|': { /* Escaped symbol */
     struct U8_OUTPUT tmpbuf; char buf[128];
-    fdtype result; MAYBE_UNUSED int c; 
+    fdtype result; MAYBE_UNUSED int c;
     U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
     c=copy_atom(in,&tmpbuf);
     result=fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
@@ -1254,7 +1254,7 @@ static fdtype parse_atom(u8_input in,int ch1,int ch2)
   /* Parse an atom, i.e. a printed representation which doesn't
      contain any special spaces or other special characters */
   struct U8_OUTPUT tmpbuf; char buf[128];
-  fdtype result; MAYBE_UNUSED int c; 
+  fdtype result; MAYBE_UNUSED int c;
   U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
   if (ch1>=0) u8_putc(&tmpbuf,ch1);
   if (ch2>=0) u8_putc(&tmpbuf,ch2);
@@ -1266,7 +1266,7 @@ static fdtype parse_atom(u8_input in,int ch1,int ch2)
   if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
   return result;
 }
-  
+
 FD_EXPORT
 /* fd_parse_expr:
      Arguments: a U8 input stream

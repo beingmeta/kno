@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -61,37 +61,37 @@ static fdtype better_parse_oid(u8_string start,int len)
       fd_decref(key);
       if (FD_OIDP(item)) return item;
       else if (FD_CHOICEP(item)) {
-	fd_decref(item);
-	return fd_err(fd_AmbiguousObjectName,"better_parse_oid",NULL,name);}
+        fd_decref(item);
+        return fd_err(fd_AmbiguousObjectName,"better_parse_oid",NULL,name);}
       else if (!((FD_EMPTY_CHOICEP(item))||(FD_FALSEP(item)))) {
-	fd_decref(item);
-	return fd_type_error("oid","better_parse_oid",item);}}
+        fd_decref(item);
+        return fd_type_error("oid","better_parse_oid",item);}}
     else {}
     if (lookupfns!=FD_EMPTY_LIST) {
       FD_DOLIST(method,lookupfns) {
-	if ((FD_SYMBOLP(method))||(FD_OIDP(method))) {
-	  fdtype key=fd_init_pair(NULL,method,fd_incref(name));
-	  fdtype item=fd_index_get((fd_index)fd_background,key);
-	  fd_decref(key);
-	  if (FD_OIDP(item)) return item;
-	  else if (!((FD_EMPTY_CHOICEP(item))||
-		     (FD_FALSEP(item))||
-		     (FD_VOIDP(item)))) continue;
-	  else return fd_type_error("oid","better_parse_oid",item);}
-	else if (FD_APPLICABLEP(method)) {
-	  fdtype item=fd_apply(method,1,&name);
-	  if (FD_ABORTP(item)) return item;
-	  else if (FD_OIDP(item)) return item;
-	  else if ((FD_EMPTY_CHOICEP(item))||
-		   (FD_FALSEP(item))||
-		   (FD_VOIDP(item))) continue;
-	  else return fd_type_error("oid","better_parse_oid",item);}
-	else return fd_type_error("lookup method","better_parse_oid",method);}
+        if ((FD_SYMBOLP(method))||(FD_OIDP(method))) {
+          fdtype key=fd_init_pair(NULL,method,fd_incref(name));
+          fdtype item=fd_index_get((fd_index)fd_background,key);
+          fd_decref(key);
+          if (FD_OIDP(item)) return item;
+          else if (!((FD_EMPTY_CHOICEP(item))||
+                     (FD_FALSEP(item))||
+                     (FD_VOIDP(item)))) continue;
+          else return fd_type_error("oid","better_parse_oid",item);}
+        else if (FD_APPLICABLEP(method)) {
+          fdtype item=fd_apply(method,1,&name);
+          if (FD_ABORTP(item)) return item;
+          else if (FD_OIDP(item)) return item;
+          else if ((FD_EMPTY_CHOICEP(item))||
+                   (FD_FALSEP(item))||
+                   (FD_VOIDP(item))) continue;
+          else return fd_type_error("oid","better_parse_oid",item);}
+        else return fd_type_error("lookup method","better_parse_oid",method);}
       return fd_err(fd_UnknownObjectName,"better_parse_oid",NULL,name);}
     else {
       return fd_err(fd_UnknownObjectName,"better_parse_oid",NULL,name);}}
   else if (((strchr(start,'/')))&&
-	   (((u8_string)strchr(start,'/'))<(start+len))) {
+           (((u8_string)strchr(start,'/'))<(start+len))) {
     FD_OID base=FD_NULL_OID_INIT, result=FD_NULL_OID_INIT;
     unsigned int delta;
     u8_byte prefix[64], suffix[64], *copy_start, *copy_end;
@@ -126,17 +126,17 @@ static fdtype default_get_oid_name(fd_pool p,fdtype oid)
   else {
     fdtype ov=fd_oid_value(oid);
     if (((FD_OIDP(p->oidnamefn)) || (FD_SYMBOLP(p->oidnamefn))) &&
-	(!(FD_CHOICEP(ov))) && (FD_TABLEP(ov))) {
+        (!(FD_CHOICEP(ov))) && (FD_TABLEP(ov))) {
       fdtype probe=fd_frame_get(oid,p->oidnamefn);
       if (FD_EMPTY_CHOICEP(probe)) {}
       else if (FD_ABORTP(probe)) {fd_decref(probe);}
       else {fd_decref(ov); return probe;}}
     if ((!(FD_CHOICEP(ov))) && (FD_TABLEP(ov))) {
       FD_DOLIST(slotid,oid_name_slotids) {
-	fdtype probe=fd_frame_get(oid,slotid);
-	if (FD_EMPTY_CHOICEP(probe)) {}
-	else if (FD_ABORTP(probe)) {fd_decref(probe);}
-	else {fd_decref(ov); return probe;}}
+        fdtype probe=fd_frame_get(oid,slotid);
+        if (FD_EMPTY_CHOICEP(probe)) {}
+        else if (FD_ABORTP(probe)) {fd_decref(probe);}
+        else {fd_decref(ov); return probe;}}
       fd_decref(ov);
       return FD_VOID;}
     else {fd_decref(ov); return FD_VOID;}}
@@ -147,15 +147,15 @@ fdtype (*fd_get_oid_name)(fd_pool p,fdtype oid)=default_get_oid_name;
 static int print_oid_name(u8_output out,fdtype name,int top)
 {
   if ((FD_VOIDP(name)) || (FD_EMPTY_CHOICEP(name))) return 0;
-  else if (FD_EMPTY_LISTP(name)) 
+  else if (FD_EMPTY_LISTP(name))
     return u8_puts(out,"()");
   else if (FD_OIDP(name)) {
     FD_OID addr=FD_OID_ADDR(name);
     unsigned int hi=FD_OID_HI(addr), lo=FD_OID_LO(addr);
     return u8_printf(out,"@%x/%x",hi,lo);}
   else if ((FD_SYMBOLP(name)) ||
-	   (FD_NUMBERP(name)) ||
-	   (FDTYPE_CONSTANTP(name)))
+           (FD_NUMBERP(name)) ||
+           (FDTYPE_CONSTANTP(name)))
     if (top) {
       int retval=-1;
       u8_puts(out,"{"); retval=fd_unparse(out,name);
@@ -163,13 +163,13 @@ static int print_oid_name(u8_output out,fdtype name,int top)
       else retval=u8_puts(out,"}");
       return retval;}
     else return fd_unparse(out,name);
-  else if (FD_STRINGP(name)) 
+  else if (FD_STRINGP(name))
     return fd_unparse(out,name);
   else if ((FD_CHOICEP(name)) || (FD_ACHOICEP(name))) {
     int i=0; u8_putc(out,'{'); {
       FD_DO_CHOICES(item,name) {
-	if (i++>0) u8_putc(out,' ');
-	if (print_oid_name(out,item,0)<0) return -1;}}
+        if (i++>0) u8_putc(out,' ');
+        if (print_oid_name(out,item,0)<0) return -1;}}
     return u8_putc(out,'}');}
   else if (FD_PAIRP(name)) {
     fdtype scan=name; u8_putc(out,'(');
@@ -191,7 +191,7 @@ static int print_oid_name(u8_output out,fdtype name,int top)
     while (i< len) {
       if (i>0) u8_putc(out,' ');
       if (print_oid_name(out,FD_VECTOR_REF(name,i),0)<0)
-	return -1;
+        return -1;
       i++;}
     return u8_puts(out,")");}
   else return 0;
@@ -220,8 +220,8 @@ static int better_unparse_oid(u8_output out,fdtype x)
     if (p == NULL) return 1;
     else if (fd_oid_display_level<2) return 1;
     else if ((fd_oid_display_level<3) &&
-	     (!(fd_hashtable_probe_novoid(&(p->cache),x))) &&
-	     (!(fd_hashtable_probe_novoid(&(p->locks),x))))
+             (!(fd_hashtable_probe_novoid(&(p->cache),x))) &&
+             (!(fd_hashtable_probe_novoid(&(p->locks),x))))
       return 1;
     else {
       fdtype name=fd_get_oid_name(p,x);
@@ -278,7 +278,7 @@ static int config_use_pool(fdtype var,fdtype spec,void *data)
     if (fd_use_pool(FD_STRDATA(spec))) return 1;
     else return -1;
   else return fd_reterr(fd_TypeError,"config_use_pool",
-			u8_strdup(_("pool spec")),FD_VOID);
+                        u8_strdup(_("pool spec")),FD_VOID);
 }
 
 /* Config methods */
@@ -372,8 +372,8 @@ static void fast_reset_hashtable
       (todo->to_free,(todo->max_to_free)*2,struct HASHVEC_TO_FREE);
     todo->max_to_free=(todo->max_to_free)*2;}
   fd_fast_reset_hashtable(h,n_slots_arg,1,
-			  &(todo->to_free[i].slots),
-			  &(todo->to_free[i].n_slots));
+                          &(todo->to_free[i].slots),
+                          &(todo->to_free[i].n_slots));
   todo->n_to_free=i+1;
 }
 
@@ -442,14 +442,14 @@ FD_EXPORT int fd_swapcheck()
   fd_lock_mutex(&fd_swapcheck_lock);
   if (usage>(membase+memgap)) {
     u8_log(LOG_NOTICE,SwapCheck,"Swapping because %ld>%ld+%ld",
-	   usage,membase,memgap);
+           usage,membase,memgap);
     fd_clear_slotcaches();
     fd_clear_callcache(FD_VOID);
     fd_swapout_all();
     membase=u8_memusage();
     u8_log(LOG_NOTICE,SwapCheck,
-	   "Swapped out, next swap at=%ld, swap at %d=%d+%d",
-	   membase+memgap,membase,memgap);
+           "Swapped out, next swap at=%ld, swap at %d=%d+%d",
+           membase+memgap,membase,memgap);
     fd_unlock_mutex(&fd_swapcheck_lock);}
   else {
     fd_unlock_mutex(&fd_swapcheck_lock);}
@@ -516,37 +516,37 @@ FD_EXPORT int fd_init_db()
   u8_threadcheck();
 
   fd_register_config("CACHELEVEL",_("Sets a level of time/memory tradeoff [0-3], default 1"),
-		     get_default_cache_level,
-		     set_default_cache_level,
-		     NULL);
+                     get_default_cache_level,
+                     set_default_cache_level,
+                     NULL);
   fd_register_config("OIDDISPLAY",_("Default oid display level [0-3]"),
-		     get_oid_display_level,
-		     set_oid_display_level,
-		     NULL);
+                     get_oid_display_level,
+                     set_oid_display_level,
+                     NULL);
   fd_register_config("FDDBLOGLEVEL",_("Default log level for database messages"),
-		     fd_intconfig_get,fd_intconfig_set,&fddb_loglevel);
+                     fd_intconfig_get,fd_intconfig_set,&fddb_loglevel);
 
   fd_register_config("PREFETCH",_("Whether to prefetch for large operations"),
-		     get_prefetch,
-		     set_prefetch,
-		     NULL);
+                     get_prefetch,
+                     set_prefetch,
+                     NULL);
   fd_register_config("POOLS",_("pools used for OID resolution"),
-		     config_get_pools,config_use_pool,NULL);
+                     config_get_pools,config_use_pool,NULL);
   fd_register_config("INDICES",_("indices opened"),
-		     config_get_indices,config_open_index,NULL);
+                     config_get_indices,config_open_index,NULL);
   fd_register_config("BACKGROUND",_("indices in the default search background"),
-		     config_get_background,config_use_index,NULL);
+                     config_get_background,config_use_index,NULL);
 
   fd_register_config("DBCONNRESERVE",_("Number of connections (default) to keep for each DB server"),
-		     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_reserve_default);
+                     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_reserve_default);
   fd_register_config("DBCONNCAP",_("Max number of connections (default) for each DB server"),
-		     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_cap_default);
+                     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_cap_default);
   fd_register_config("DBCONNINIT",_("Number of connections (default) to initially create for each DB server"),
-		     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_init_default);
+                     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_init_default);
 
   fd_register_config("LOOKUPOID",
-		     _("Functions and slotids for lookup up objects by name (@?name)"),
-		     fd_lconfig_get,fd_lconfig_push,&lookupfns);
+                     _("Functions and slotids for lookup up objects by name (@?name)"),
+                     fd_lconfig_get,fd_lconfig_push,&lookupfns);
 
   return fddb_initialized;
 }

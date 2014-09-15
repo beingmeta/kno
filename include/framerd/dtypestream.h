@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -119,7 +119,7 @@ FD_EXPORT int _fd_dtswrite_zint8(struct FD_DTYPE_STREAM *stream,fd_8bytes b);
 FD_FASTOP int fd_dtsread_byte(fd_dtype_stream s)
 {
   fd_dts_start_read(s);
-  if (fd_needs_bytes((fd_byte_input)s,1)) 
+  if (fd_needs_bytes((fd_byte_input)s,1))
     return (*(s->ptr++));
   else return -1;
 }
@@ -149,7 +149,7 @@ FD_FASTOP fd_8bytes fd_dtsread_8bytes(fd_dtype_stream s)
 }
 
 FD_FASTOP int fd_dtsread_bytes
-  (fd_dtype_stream s,unsigned char *bytes,int len) 
+  (fd_dtype_stream s,unsigned char *bytes,int len)
 {
   fd_dts_start_read(s);
   /* This is special because we don't use the intermediate buffer
@@ -169,8 +169,8 @@ FD_FASTOP int fd_dtsread_bytes
     while (n_read<n_to_read) {
       int delta=read(s->fd,start,n_to_read);
       if (delta<0)
-	if (errno==EAGAIN) {}
-	else return delta;
+        if (errno==EAGAIN) {}
+        else return delta;
       else {n_read=n_read+delta; start=start+delta;}}
     s->filepos=s->filepos+n_buffered+n_read;
     return len;}
@@ -258,8 +258,8 @@ FD_FASTOP int fd_dtswrite_bytes
     while (bytes_written < n) {
       int delta=write(s->fd,bytes,n);
       if (delta<0)
-	if (errno==EAGAIN) errno=0;
-	else return delta;
+        if (errno==EAGAIN) errno=0;
+        else return delta;
       else bytes_written=bytes_written+delta;}
     s->filepos=s->filepos+bytes_written;}
 #endif
@@ -270,7 +270,7 @@ FD_FASTOP int fd_dtswrite_bytes
 static MAYBE_UNUSED int fd_dtswrite_zint(fd_dtype_stream s,unsigned int n)
 {
   if ((n < (1<<7))) {
-    return fd_dtswrite_byte(s,n);}    
+    return fd_dtswrite_byte(s,n);}
   else if ((n < (1<<14))) {
     if (fd_dtswrite_byte(s,((0x80)|(n>>7)))<0) return -1;
     if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
@@ -297,7 +297,7 @@ static MAYBE_UNUSED int fd_dtswrite_zint(fd_dtype_stream s,unsigned int n)
 static MAYBE_UNUSED int fd_dtswrite_zint8(fd_dtype_stream s,fd_8bytes n)
 {
   if (n < (((fd_8bytes)1)<<7)) {
-    return fd_dtswrite_byte(s,n);}    
+    return fd_dtswrite_byte(s,n);}
   else if (n < (((fd_8bytes)1)<<14)) {
     if (fd_dtswrite_byte(s,((0x80)|(n>>7)))<0) return -1;
     if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
@@ -361,14 +361,14 @@ static MAYBE_UNUSED int fd_dtswrite_zint8(fd_dtype_stream s,fd_8bytes n)
 }
 #else /* FD_INLINE_DTYPEIO */
 #define fd_dtsread_byte   _fd_dtsread_byte
-#define fd_dtsread_4bytes _fd_dtsread_4bytes 
-#define fd_dtsread_bytes  _fd_dtsread_bytes 
-#define fd_dtsread_zint  _fd_dtsread_zint 
+#define fd_dtsread_4bytes _fd_dtsread_4bytes
+#define fd_dtsread_bytes  _fd_dtsread_bytes
+#define fd_dtsread_zint  _fd_dtsread_zint
 
-#define fd_dtswrite_byte   _fd_dtswrite_byte 
-#define fd_dtswrite_4bytes _fd_dtswrite_4bytes 
-#define fd_dtswrite_bytes  _fd_dtswrite_bytes 
-#define fd_dtswrite_zint  _fd_dtswrite_zint 
+#define fd_dtswrite_byte   _fd_dtswrite_byte
+#define fd_dtswrite_4bytes _fd_dtswrite_4bytes
+#define fd_dtswrite_bytes  _fd_dtswrite_bytes
+#define fd_dtswrite_zint  _fd_dtswrite_zint
 
 #endif  /* FD_INLINE_DTYPEIO */
 #endif /* FD_DTYPESTREAM_H */

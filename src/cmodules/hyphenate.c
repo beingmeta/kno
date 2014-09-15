@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2012-2014 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -258,16 +258,16 @@ FD_EXPORT int fd_init_hyphenate()
   hyphenate_module=fd_new_module("HYPHENATE",(FD_MODULE_SAFE));
 
   fd_idefn(hyphenate_module,
-	   fd_make_cprim1x("HYPHENATE-WORD",
+           fd_make_cprim1x("HYPHENATE-WORD",
                            hyphenate_word_prim,1,fd_string_type,FD_VOID));
   fd_idefn(hyphenate_module,
-	   fd_make_cprim1x("HYPHEN-BREAKS",
+           fd_make_cprim1x("HYPHEN-BREAKS",
                            hyphen_breaks_prim,1,fd_string_type,FD_VOID));
   fd_idefn(hyphenate_module,
-	   fd_make_cprim1x("SHYPHENATE",
+           fd_make_cprim1x("SHYPHENATE",
                            shyphenate_prim,1,fd_string_type,FD_VOID));
   fd_idefn(hyphenate_module,
-	   fd_make_cprim2x("HYPHENOUT",
+           fd_make_cprim2x("HYPHENOUT",
                            hyphenout_prim,1,
                            fd_string_type,FD_VOID,
                            fd_character_type,FD_CODE2CHAR(0xAD)));
@@ -276,7 +276,7 @@ FD_EXPORT int fd_init_hyphenate()
                              hyphenate_prim,1,
                              fd_string_type,FD_VOID,
                              fd_character_type,FD_CODE2CHAR(0xAD)));
-    
+
   fd_finish_module(hyphenate_module);
   fd_persist_module(hyphenate_module);
 

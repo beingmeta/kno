@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -26,7 +26,7 @@ static fdtype return_error(fdtype expr,fd_lispenv env)
   fdtype arg1=fd_get_arg(expr,1);
   fdtype arg2=fd_get_arg(expr,2);
   fdtype printout_body;
-  
+
   if ((FD_SYMBOLP(arg1)) && (FD_SYMBOLP(arg2))) {
     ex=(fd_exception)(FD_SYMBOL_NAME(arg1));
     cxt=(u8_context)(FD_SYMBOL_NAME(arg2));
@@ -54,7 +54,7 @@ static fdtype return_irritant(fdtype expr,fd_lispenv env)
   fdtype arg1=fd_get_arg(expr,2);
   fdtype arg2=fd_get_arg(expr,3);
   fdtype printout_body;
-  
+
   if (FD_VOIDP(irritant))
     return fd_err(fd_SyntaxError,"return_irritant","no irritant",expr);
   else if ((FD_SYMBOLP(arg1)) && (FD_SYMBOLP(arg2))) {
@@ -95,21 +95,21 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
       fdtype err_value=fd_init_exception(NULL,ex);
       fdtype handler_result=fd_apply(handler,1,&err_value);
       fd_exception_object exo=
-	FD_GET_CONS(err_value,fd_error_type,fd_exception_object);
+        FD_GET_CONS(err_value,fd_error_type,fd_exception_object);
       if (FD_ABORTP(handler_result)) {
-	u8_exception cur_ex=u8_current_exception;
-	/* Clear this field so we can decref err_value while leaving
-	   the exception object current. */
-	u8_log(LOG_WARN,"Recursive error",
-	       "Error handling error during %q",toeval);
-	fd_log_backtrace(cur_ex);
-	exo->ex=NULL;
-	u8_restore_exception(ex);
-	fd_decref(handler); fd_decref(value); fd_decref(err_value);
-	return handler_result;}
+        u8_exception cur_ex=u8_current_exception;
+        /* Clear this field so we can decref err_value while leaving
+           the exception object current. */
+        u8_log(LOG_WARN,"Recursive error",
+               "Error handling error during %q",toeval);
+        fd_log_backtrace(cur_ex);
+        exo->ex=NULL;
+        u8_restore_exception(ex);
+        fd_decref(handler); fd_decref(value); fd_decref(err_value);
+        return handler_result;}
       else {
-	fd_decref(value); fd_decref(handler); fd_decref(err_value);
-	return handler_result;}}
+        fd_decref(value); fd_decref(handler); fd_decref(err_value);
+        return handler_result;}}
     else {
       u8_free_exception(ex,1);
       fd_decref(value);
@@ -118,18 +118,18 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
     return value;
   else {
     fdtype handler=fd_eval(default_handler,env);
-    if (FD_ABORTP(handler)) 
+    if (FD_ABORTP(handler))
       return handler;
     else if (FD_APPLICABLEP(handler)) {
       if (FD_VOIDP(value)) {
-	fdtype result=fd_finish_call(fd_dapply(handler,0,&value));
-	fd_decref(handler);
-	return result;}
+        fdtype result=fd_finish_call(fd_dapply(handler,0,&value));
+        fd_decref(handler);
+        return result;}
       else {
-	fdtype result=fd_finish_call(fd_dapply(handler,1,&value));
-	fd_decref(handler);
-	fd_decref(value);
-	return result;}}
+        fdtype result=fd_finish_call(fd_dapply(handler,1,&value));
+        fd_decref(handler);
+        fd_decref(value);
+        return result;}}
     else {
       fd_decref(value);
       return handler;}}
@@ -225,11 +225,11 @@ static fdtype error_irritant(fdtype x,fdtype top_arg)
   if (top) {
     while (ex) {
       if (ex->u8x_xdata) {
-	found=fd_exception_xdata(ex); break;}
+        found=fd_exception_xdata(ex); break;}
       else ex=ex->u8x_prev;}}
   else while (ex) {
       if  (ex->u8x_xdata)
-	found=fd_exception_xdata(ex);
+        found=fd_exception_xdata(ex);
       ex=ex->u8x_prev;}
   if (FD_VOIDP(found)) return FD_VOID;
   else return fd_incref(found);
@@ -245,11 +245,11 @@ static fdtype error_has_irritant(fdtype x,fdtype top_arg)
   if (top) {
     while (ex) {
       if (ex->u8x_xdata) {
-	found=fd_exception_xdata(ex); break;}
+        found=fd_exception_xdata(ex); break;}
       else ex=ex->u8x_prev;}}
   else while (ex) {
       if  (ex->u8x_xdata)
-	found=fd_exception_xdata(ex);
+        found=fd_exception_xdata(ex);
       ex=ex->u8x_prev;}
   if (FD_VOIDP(found)) return FD_FALSE;
   else return FD_TRUE;
@@ -310,17 +310,17 @@ static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
     else {
       fdtype windval=fd_apply(wind,0,NULL);
       if (FD_ABORTP(windval)) {
-	fd_decref(wind); fd_decref(doit); fd_decref(unwind);
-	return windval;}
+        fd_decref(wind); fd_decref(doit); fd_decref(unwind);
+        return windval;}
       else {
-	fdtype retval=fd_apply(doit,0,NULL);
-	fdtype unwindval=fd_apply(unwind,0,NULL);
-	fd_decref(windval);
-	fd_decref(wind); fd_decref(doit); fd_decref(unwind);
-	if (FD_ABORTP(unwindval))
-	  u8_log(LOG_WARN,UnwindError,"DYNAMIC-WIND: %q",unwindval);
-	fd_decref(unwindval);
-	return retval;}}}
+        fdtype retval=fd_apply(doit,0,NULL);
+        fdtype unwindval=fd_apply(unwind,0,NULL);
+        fd_decref(windval);
+        fd_decref(wind); fd_decref(doit); fd_decref(unwind);
+        if (FD_ABORTP(unwindval))
+          u8_log(LOG_WARN,UnwindError,"DYNAMIC-WIND: %q",unwindval);
+        fd_decref(unwindval);
+        return retval;}}}
 }
 
 static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
@@ -330,11 +330,11 @@ static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
   {FD_DOBODY(expr,uwp,2) {
       fdtype uw_result=fd_eval(expr,env);
       if (FD_ABORTP(uw_result))
-	if (FD_ABORTP(result)) {
-	  fd_interr(result); fd_interr(uw_result);
-	  return FD_ERROR_VALUE;}
-	else {
-	  fd_decref(result); result=uw_result; break;}
+        if (FD_ABORTP(result)) {
+          fd_interr(result); fd_interr(uw_result);
+          return FD_ERROR_VALUE;}
+        else {
+          fd_decref(result); result=uw_result; break;}
       else fd_decref(uw_result);}}
   return result;
 }
@@ -351,7 +351,7 @@ static fdtype clear_errors()
 FD_EXPORT void fd_init_errors_c()
 {
   u8_register_source_file(_FILEINFO);
-  
+
   fd_defspecial(fd_scheme_module,"ERROR",return_error);
   fd_defspecial(fd_scheme_module,"IRRITANT",return_irritant);
   fd_defspecial(fd_scheme_module,"ONERROR",onerror_handler);
@@ -359,31 +359,31 @@ FD_EXPORT void fd_init_errors_c()
   fd_defspecial(fd_scheme_module,"ERREIFY",erreify_handler);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("ERROR-CONDITION",error_condition,1,
-			   fd_error_type,FD_VOID,-1,FD_FALSE));
+           fd_make_cprim2x("ERROR-CONDITION",error_condition,1,
+                           fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("ERROR-CONTEXT",error_context,1,
-			   fd_error_type,FD_VOID,-1,FD_FALSE));
+           fd_make_cprim2x("ERROR-CONTEXT",error_context,1,
+                           fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("ERROR-DETAILS",error_details,1,
-			   fd_error_type,FD_VOID,-1,FD_FALSE));
+           fd_make_cprim2x("ERROR-DETAILS",error_details,1,
+                           fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("ERROR-IRRITANT",error_irritant,1,
-			   fd_error_type,FD_VOID,-1,FD_FALSE));
+           fd_make_cprim2x("ERROR-IRRITANT",error_irritant,1,
+                           fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("ERROR-IRRITANT?",error_has_irritant,1,
-			   fd_error_type,FD_VOID,-1,FD_FALSE));
+           fd_make_cprim2x("ERROR-IRRITANT?",error_has_irritant,1,
+                           fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ERROR-XDATA",error_xdata,1,
-			   fd_error_type,FD_VOID));
+           fd_make_cprim1x("ERROR-XDATA",error_xdata,1,
+                           fd_error_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ERROR-BACKTRACE",error_backtrace,1,
-			   fd_error_type,FD_VOID));
+           fd_make_cprim1x("ERROR-BACKTRACE",error_backtrace,1,
+                           fd_error_type,FD_VOID));
 
   fd_defspecial(fd_scheme_module,"DYNAMIC-WIND",dynamic_wind_handler);
   fd_defspecial(fd_scheme_module,"UNWIND-PROTECT",unwind_protect_handler);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim0("CLEAR-ERRORS!",clear_errors,0));
+           fd_make_cprim0("CLEAR-ERRORS!",clear_errors,0));
 
 }

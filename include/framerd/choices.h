@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -139,7 +139,7 @@ typedef struct FD_CHOICE *fd_choice;
 
 #define fd_alloc_choice(n) \
   (assert(n>0),u8_malloc(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
-#define fd_realloc_choice(ch,n)						\
+#define fd_realloc_choice(ch,n)                                         \
   (assert(n>0),u8_realloc((ch),sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
 
 /* Flags to pass to fd_init_choice (and fd_make_choice) */
@@ -172,7 +172,7 @@ typedef struct FD_ACHOICE {
   unsigned int size, n_nested;
   unsigned muddled:1, mallocd:1, atomicp:1, uselock:1;
   fdtype *data, *write, *limit;
-  fdtype normalized; struct FD_CHOICE *nch; 
+  fdtype normalized; struct FD_CHOICE *nch;
 #if U8_THREADS_ENABLED
   u8_mutex lock;
 #endif
@@ -267,8 +267,8 @@ static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
     if (old_size<0x10000) new_size=old_size*2;
     else new_size=old_size+0x20000;
     nch=u8_realloc(ch->nch,
-		   sizeof(struct FD_CHOICE)+
-		   (sizeof(fdtype)*(new_size-1)));
+                   sizeof(struct FD_CHOICE)+
+                   (sizeof(fdtype)*(new_size-1)));
     ch->nch=nch;
     ch->data=((fdtype *)FD_XCHOICE_DATA(nch));
     ch->write=ch->data+write_off;
@@ -293,7 +293,7 @@ static fdtype _add_to_choice(fdtype current,fdtype new)
   else if (FD_EMPTY_CHOICEP(current))
     if (FD_ACHOICEP(new))
       if ((FD_CONS_REFCOUNT(((struct FD_CONS *)new)))>1)
-	return fd_simplify_choice(new);
+        return fd_simplify_choice(new);
       else return new;
     else return new;
   else if (current==new) {
@@ -326,7 +326,7 @@ static MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
 #else
 #define FD_ADD_TO_CHOICE(x,v)                    \
    if (FD_DEBUG_BADPTRP(v))                      \
-     _fd_bad_pointer(v,(u8_context)"FD_ADD_TO_CHOICE");	\
+     _fd_bad_pointer(v,(u8_context)"FD_ADD_TO_CHOICE"); \
    else x=_fd_add_to_choice(x,v)
 #endif
 

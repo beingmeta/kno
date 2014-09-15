@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -24,7 +24,7 @@ int main(int argc,char **argv)
 {
   int fd_version=fd_init_dbfile();
   fd_pool p=((fd_version>0)?(fd_use_pool(argv[1])):(NULL));
-  fdtype oids=FD_EMPTY_CHOICE; 
+  fdtype oids=FD_EMPTY_CHOICE;
   int i=2;
   if (p==NULL) {
     fprintf(stderr,_("Can't open pool %s\n"),argv[1]);
@@ -34,7 +34,7 @@ int main(int argc,char **argv)
     FD_ADD_TO_CHOICE(oids,oid); i++;}
   if (argc>2) fd_pool_prefetch(p,oids);
   {FD_DO_CHOICES(oid,oids) {
-      fdtype value=fd_oid_value(oid); 
+      fdtype value=fd_oid_value(oid);
       u8_fprintf(stderr,_("Value of %q is %q\n"),oid,value);
       fd_decref(value);}}
   fd_decref(oids);

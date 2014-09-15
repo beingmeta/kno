@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -66,8 +66,8 @@ static fdtype smtp_function(fdtype dest,fdtype headers,fdtype content,fdtype cty
   else get_mailinfo(mailinfo,&mailhost,&maildomain,&mailfrom);
   if (mailfrom==NULL) mailfrom="framerd";
   retval=u8_smtp(mailhost,maildomain,mailfrom,FD_STRDATA(dest),
-		 ((FD_STRINGP(ctype))?(FD_STRDATA(ctype)):(NULL)),
-		 n_headers,&mh,FD_STRDATA(content),FD_STRLEN(content));
+                 ((FD_STRINGP(ctype))?(FD_STRDATA(ctype)):(NULL)),
+                 n_headers,&mh,FD_STRDATA(content),FD_STRLEN(content));
   while (n_to_free>0) {u8_free(to_free[--n_to_free]);}
   u8_free(mh); u8_free(to_free);
   if (retval<0)
@@ -80,7 +80,7 @@ static fdtype mailout_handler(fdtype expr,fd_lispenv env)
   u8_byte *mailhost=mailhost_dflt, *maildomain=maildomain_dflt, *mailfrom=mailfrom_dflt;
   fdtype dest_arg=fd_get_arg(expr,1), headers_arg=fd_get_arg(expr,2), body=fd_get_body(expr,3);
   fdtype dest, headers, header_fields, result;
-  int retval, i=0, n_headers, n_to_free=0; 
+  int retval, i=0, n_headers, n_to_free=0;
   struct U8_MAILHEADER *mh;
   struct U8_OUTPUT out;
   u8_string *to_free;
@@ -106,15 +106,15 @@ static fdtype mailout_handler(fdtype expr,fd_lispenv env)
       else mh[i].label=NULL;
       if (FD_STRINGP(value)) mh[i].value=FD_STRDATA(value);
       else {
-	u8_string data=fd_dtype2string(value);
-	to_free[n_to_free++]=data;
-	mh[i].value=data;}
+        u8_string data=fd_dtype2string(value);
+        to_free[n_to_free++]=data;
+        mh[i].value=data;}
       i++;}}
   U8_INIT_OUTPUT(&out,1024);
   result=fd_printout_to(&out,body,env);
   retval=u8_smtp(mailhost,maildomain,mailfrom,
-		 FD_STRDATA(dest),NULL,n_headers,&mh,
-		 out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+                 FD_STRDATA(dest),NULL,n_headers,&mh,
+                 out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
   while (n_to_free>0) {u8_free(to_free[--n_to_free]);}
   u8_free(mh); u8_free(to_free); u8_free(out.u8_outbuf);
   fd_decref(header_fields); fd_decref(headers);
@@ -135,12 +135,12 @@ void fd_init_email_c()
   fd_defspecial(unsafe_module,"MAILOUT",mailout_handler);
 
   fd_register_config("MAILHOST",_("SMTP host"),
-		     fd_sconfig_get,fd_sconfig_set,&mailhost_dflt);
+                     fd_sconfig_get,fd_sconfig_set,&mailhost_dflt);
   fd_register_config("MAILDOMAIN",_("SMTP default domain"),
-		     fd_sconfig_get,fd_sconfig_set,&maildomain_dflt);
+                     fd_sconfig_get,fd_sconfig_set,&maildomain_dflt);
   fd_register_config("MAILFROM",_("SMTP default from"),
-		     fd_sconfig_get,fd_sconfig_set,&mailfrom_dflt);
-  
+                     fd_sconfig_get,fd_sconfig_set,&mailfrom_dflt);
+
   u8_register_source_file(_FILEINFO);
 }
 

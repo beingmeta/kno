@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2005-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -27,13 +27,13 @@ typedef unsigned int fd_matchflags;
 
 typedef fdtype
   (*tx_matchfn)(fdtype pat,fdtype next,fd_lispenv env,u8_byte *string,
-		u8_byteoff off,u8_byteoff lim,int flags);
+                u8_byteoff off,u8_byteoff lim,int flags);
 typedef u8_byteoff
   (*tx_searchfn)(fdtype pat,fd_lispenv env,u8_byte *string,
-		 u8_byteoff off,u8_byteoff lim,int flags);
+                 u8_byteoff off,u8_byteoff lim,int flags);
 typedef fdtype
   (*tx_extractfn)(fdtype pat,fdtype next,fd_lispenv env,u8_byte *string,
-		  u8_byteoff off,u8_byteoff lim,int flags);
+                  u8_byteoff off,u8_byteoff lim,int flags);
 
 FD_EXPORT int fd_text_match
   (fdtype pat,fd_lispenv env,

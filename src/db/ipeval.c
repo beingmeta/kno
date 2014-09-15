@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -122,10 +122,10 @@ FD_EXPORT int fd_ipeval_call(int (*fcn)(void *),void *data)
 #if FD_TRACE_IPEVAL
   if (fd_trace_ipeval) {
     u8_log(LOG_DEBUG,ipeval_exec,"IPEVAL iteration #%d completed in %lf",
-	   ipeval_count,time_since(point));
+           ipeval_count,time_since(point));
     u8_log(LOG_DEBUG,ipeval_done,
-	   "IPEVAL finished with %d iterations in %lf seconds",
-	   ipeval_count,time_since(start));}
+           "IPEVAL finished with %d iterations in %lf seconds",
+           ipeval_count,time_since(start));}
 #endif
 #if FD_GLOBAL_IPEVAL
   fd_unlock_mutex(&global_ipeval_lock);
@@ -135,8 +135,8 @@ FD_EXPORT int fd_ipeval_call(int (*fcn)(void *),void *data)
 }
 
 FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
-				     struct FD_IPEVAL_RECORD **history,
-				     int *n_cycles,double *total_time)
+                                     struct FD_IPEVAL_RECORD **history,
+                                     int *n_cycles,double *total_time)
 {
   int state, saved_state, ipeval_count=1, n_records=16, delays, retval=0, gave_up=0;
   /* This will be NULL if a thread cache is already in force. */
@@ -204,10 +204,10 @@ FD_EXPORT int fd_tracked_ipeval_call(int (*fcn)(void *),void *data,
 #if FD_TRACE_IPEVAL
   if (fd_trace_ipeval) {
     u8_log(LOG_INFO,ipeval_exec,"IPEVAL iteration #%d completed in %lf",
-	   ipeval_count,time_since(point));
+           ipeval_count,time_since(point));
     u8_log(LOG_INFO,ipeval_done,
-	   "IPEVAL finished with %d iterations in %lf seconds",
-	   ipeval_count,time_since(start));}
+           "IPEVAL finished with %d iterations in %lf seconds",
+           ipeval_count,time_since(start));}
 #endif
 #if FD_GLOBAL_IPEVAL
   fd_unlock_mutex(&global_ipeval_lock);
@@ -222,7 +222,7 @@ FD_EXPORT void fd_init_ipeval_c()
 {
   u8_register_source_file(_FILEINFO);
   fd_register_config("TRACEIPEVAL",_("Trace ipeval execution"),
-		     fd_boolconfig_get,fd_boolconfig_set,&fd_trace_ipeval);
+                     fd_boolconfig_get,fd_boolconfig_set,&fd_trace_ipeval);
 #if FD_GLOBAL_IPEVAL
   fd_init_mutex(&global_ipeval_lock);
 #endif

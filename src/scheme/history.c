@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -35,7 +35,7 @@ static fdtype history_symbol;
 */
 
 int unpack_history(fdtype history,int *top,int *len,fdtype **data,
-		   fd_hashtable *table)
+                   fd_hashtable *table)
 {
   if ((!(FD_VECTORP(history))) ||
       (!(FD_VECTOR_LENGTH(history)==3)) ||
@@ -59,7 +59,7 @@ FD_EXPORT fdtype fd_history_ref(fdtype history,int ref)
   if (ref<0) ref=top+ref;
   if (ref>=top)
     return fd_err(fd_RangeError,"fd_history_ref",
-		  _("invalid history reference"),FD_INT2DTYPE(ref));
+                  _("invalid history reference"),FD_INT2DTYPE(ref));
   else if (ref<(top-len))
     return fd_hashtable_get(h,FD_INT2DTYPE(ref),FD_VOID);
   else return fd_incref(data[ref%len]);
@@ -72,7 +72,7 @@ FD_EXPORT int fd_history_set(fdtype history,int ref,fdtype value)
     return fd_type_error(_("history"),"fd_history_set",history);
   if (ref>=top)
     return fd_reterr(fd_RangeError,"fd_history_set",
-		     _("invalid history reference"),history);
+                     _("invalid history reference"),history);
   else if (ref<(top-len))
     return fd_hashtable_op(h,fd_table_replace,FD_INT2DTYPE(ref),FD_VOID);
   else {
@@ -100,17 +100,17 @@ FD_EXPORT int fd_history_find(fdtype history,fdtype value,int equal)
   else {
     int i=0; while (i<len)
       if ((FD_EQ(value,data[i])) ||
-	  ((equal) && (FDTYPE_EQUAL(value,data[i]))))
-	break;
+          ((equal) && (FDTYPE_EQUAL(value,data[i]))))
+        break;
       else i++;
     if (i<len) return i;
     else {
       fdtype keys=fd_getkeys((fdtype)h);
       FD_DO_CHOICES(key,keys) {
-	fdtype v=fd_hashtable_get(h,key,FD_VOID);
-	if ((FD_EQ(v,value)) || ((equal) && (FDTYPE_EQUAL(v,value)))) {
-	  fd_decref(keys);
-	  return key;}}
+        fdtype v=fd_hashtable_get(h,key,FD_VOID);
+        if ((FD_EQ(v,value)) || ((equal) && (FDTYPE_EQUAL(v,value)))) {
+          fd_decref(keys);
+          return key;}}
       fd_decref(keys);
       return -1;}}
 }
@@ -195,8 +195,8 @@ FD_EXPORT void fd_histinit(int size)
       size=128;}}
   if (FD_VOIDP(history)) {
     history=fd_make_nvector(3,FD_INT2DTYPE(0),
-			    fd_init_vector(NULL,size,NULL),
-			    fd_make_hashtable(NULL,17));
+                            fd_init_vector(NULL,size,NULL),
+                            fd_make_hashtable(NULL,17));
     fd_thread_set(history_symbol,history);}
   else {
     fdtype newvec=fd_init_vector(NULL,size,NULL);
@@ -226,7 +226,7 @@ static fdtype histref_prim(arg)
 {
   if (!(FD_FIXNUMP(arg)))
     return fd_err(fd_SyntaxError,"histref_prim",
-		  _("Invalid history references"),arg);
+                  _("Invalid history references"),arg);
   else {
     fdtype val=fd_histref(FD_FIX2INT(arg));
     if (FD_ABORTP(val)) return val;
@@ -258,12 +258,12 @@ static fdtype histclear_prim(fdtype arg)
     else {
       int loc=fd_histfind(arg);
       if (loc<0) {
-	u8_log(LOG_WARN,_("History error"),"Couldn't find item in history: %q",arg);
-	return FD_FALSE;}
+        u8_log(LOG_WARN,_("History error"),"Couldn't find item in history: %q",arg);
+        return FD_FALSE;}
       else {
-	fdtype history=fd_thread_get(history_symbol);
-	fd_history_set(history,loc,FD_VOID);
-	return FD_TRUE;}}}
+        fdtype history=fd_thread_get(history_symbol);
+        fd_history_set(history,loc,FD_VOID);
+        return FD_TRUE;}}}
 }
 
 static int scheme_history_initialized=0;
@@ -280,7 +280,7 @@ FD_EXPORT void fd_init_history_c()
   fd_idefn(history_module,fd_make_cprim1("%HISTREF",histref_prim,1));
   fd_idefn(history_module,fd_make_cprim0("%HISTORY",history_prim,0));
   fd_idefn(history_module,fd_make_cprim1("%HISTCLEAR",histclear_prim,0));
-  
+
   history_symbol=fd_intern("%HISTORY");
 
   fd_finish_module(history_module);

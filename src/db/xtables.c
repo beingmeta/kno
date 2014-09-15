@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -80,11 +80,11 @@ FD_EXPORT int fd_set_adjunct(fd_pool p,fdtype slotid,fdtype adjtable)
     if (n>=max) {
       int new_max=((max) ? (max*2) : (8));
       struct FD_ADJUNCT *newadj=
-	u8_realloc(adjuncts,sizeof(struct FD_ADJUNCT)*new_max);
+        u8_realloc(adjuncts,sizeof(struct FD_ADJUNCT)*new_max);
       if (p) {
-	adjuncts=p->adjuncts=newadj; p->max_adjuncts=new_max;}
+        adjuncts=p->adjuncts=newadj; p->max_adjuncts=new_max;}
       else {
-	adjuncts=global_adjuncts=newadj; max_global_adjuncts=new_max;}}
+        adjuncts=global_adjuncts=newadj; max_global_adjuncts=new_max;}}
     adjuncts[n].pool=p; adjuncts[n].slotid=slotid;
     adjuncts[n].table=adjtable; fd_incref(adjtable);
     adj=&(adjuncts[n]);
@@ -147,7 +147,7 @@ FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
     if (fd_ignore_anonymous_oids) {
       fd_adjunct adj=get_adjunct(p,slotid);
       if (adj)
-	return adjunct_fetch(adj,f,dflt);
+        return adjunct_fetch(adj,f,dflt);
       else return fd_incref(dflt);}
     else return fd_err(fd_AnonymousOID,NULL,NULL,f);
   else {
@@ -184,7 +184,7 @@ FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
     else return anonymous_oiderr("fd_oid_add",f);}
   else {
     fdtype smap; int retval;
-    fd_adjunct adj=get_adjunct(p,slotid); 
+    fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_add(adj,f,value);
     else smap=fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
@@ -208,14 +208,14 @@ FD_EXPORT int fd_oid_store(fdtype f,fdtype slotid,fdtype value)
     else return anonymous_oiderr("fd_oid_store",f);}
   else {
     fdtype smap; int retval;
-    fd_adjunct adj=get_adjunct(p,slotid); 
+    fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_store(adj,f,value);
     else smap=fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
       return fd_interr(smap);
     else if (FD_SLOTMAPP(smap))
       if (FD_EMPTY_CHOICEP(value))
-	retval=fd_slotmap_delete(FD_XSLOTMAP(smap),slotid);
+        retval=fd_slotmap_delete(FD_XSLOTMAP(smap),slotid);
       else retval=fd_slotmap_store(FD_XSLOTMAP(smap),slotid,value);
     else if (FD_SCHEMAPP(smap))
       retval=fd_schemap_store(FD_XSCHEMAP(smap),slotid,value);
@@ -234,7 +234,7 @@ FD_EXPORT int fd_oid_delete(fdtype f,fdtype slotid)
     else return anonymous_oiderr("fd_oid_delete",f);}
   else {
     fdtype smap; int retval;
-    fd_adjunct adj=get_adjunct(p,slotid); 
+    fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_store(adj,f,FD_EMPTY_CHOICE);
     else smap=fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
@@ -258,7 +258,7 @@ FD_EXPORT int fd_oid_drop(fdtype f,fdtype slotid,fdtype value)
     else return anonymous_oiderr("fd_oid_drop",f);}
   else {
     fdtype smap; int retval;
-    fd_adjunct adj=get_adjunct(p,slotid); 
+    fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_drop(adj,f,value);
     else smap=fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
@@ -291,7 +291,7 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
     else smap=fd_fetch_oid(p,f);
-    if (FD_ABORTP(smap)) 
+    if (FD_ABORTP(smap))
       retval=fd_interr(smap);
     else if (FD_SLOTMAPP(smap))
       retval=fd_slotmap_test((fd_slotmap)smap,slotid,value);
@@ -395,29 +395,29 @@ FD_EXPORT fdtype fd_getpath(fdtype start,int n,fdtype *path,int infer,int accumu
     FD_DO_CHOICES(s,scan) {
       fdtype newval;
       if ((FD_OIDP(pred))||(FD_SYMBOLP(pred)))
-	if (infer) newval=fd_frame_get(s,pred);
-	else newval=fd_get(scan,pred,FD_EMPTY_CHOICE);
+        if (infer) newval=fd_frame_get(s,pred);
+        else newval=fd_get(scan,pred,FD_EMPTY_CHOICE);
       else if (FD_TABLEP(pred))
-	newval=fd_get(pred,s,FD_EMPTY_CHOICE);
+        newval=fd_get(pred,s,FD_EMPTY_CHOICE);
       else if (FD_HASHSETP(pred))
-	if (fd_hashset_get((fd_hashset)pred,s)) newval=s;
-	else newval=FD_EMPTY_CHOICE;
+        if (fd_hashset_get((fd_hashset)pred,s)) newval=s;
+        else newval=FD_EMPTY_CHOICE;
       else if (FD_APPLICABLEP(pred))
-	newval=fd_apply(pred,1,&s);
+        newval=fd_apply(pred,1,&s);
       else if ((FD_PAIRP(pred))&&(FD_APPLICABLEP(FD_CAR(pred)))) {
-	fdtype fcn=FD_CAR(pred);
-	fdtype args=FD_CDR(pred), argv[7]; int j=1;
-	argv[0]=s;
-	if (FD_PAIRP(args))
-	  while (FD_PAIRP(args)) {
-	    argv[j++]=FD_CAR(args); args=FD_CDR(args);}
-	else argv[j++]=args;
-	if (j>7) newval=fd_err(fd_RangeError,"fd_getpath","too many elements in compound path",FD_VOID);
-	else newval=fd_apply(j,fcn,argv);}
+        fdtype fcn=FD_CAR(pred);
+        fdtype args=FD_CDR(pred), argv[7]; int j=1;
+        argv[0]=s;
+        if (FD_PAIRP(args))
+          while (FD_PAIRP(args)) {
+            argv[j++]=FD_CAR(args); args=FD_CDR(args);}
+        else argv[j++]=args;
+        if (j>7) newval=fd_err(fd_RangeError,"fd_getpath","too many elements in compound path",FD_VOID);
+        else newval=fd_apply(j,fcn,argv);}
       else newval=fd_err(fd_TypeError,"fd_getpath","invalid path element",FD_VOID);
       if (FD_ABORTP(newval)) {
-	fd_decref(scan); fd_decref(newscan);
-	return newval;}
+        fd_decref(scan); fd_decref(newscan);
+        return newval;}
       else {FD_ADD_TO_CHOICE(newscan,newval);}}
     if (i>0) {
       if (accumulate) {FD_ADD_TO_CHOICE(results,scan);}

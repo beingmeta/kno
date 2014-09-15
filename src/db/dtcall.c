@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -49,7 +49,7 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
   struct FD_DTYPE_STREAM stream;
   u8_socket conn=u8_get_connection(cpool);
   if (conn<0) return FD_ERROR_VALUE;
-  if (log_eval_request) 
+  if (log_eval_request)
     u8_log(LOG_DEBUG,"DTEVAL","On %s%s#%d: %q",
            (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
             (async)?(" (async) "):("")),
@@ -96,8 +96,8 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
   if (FD_EQ(result,FD_EOD)) {
     fd_clear_errors(1);
     if (((conn=u8_reconnect(cpool,conn))<0) ||
-	(fd_dtswrite_dtype(&stream,expr)<0) ||
-	(fd_dtsflush(&stream)<0)) {
+        (fd_dtswrite_dtype(&stream,expr)<0) ||
+        (fd_dtsflush(&stream)<0)) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}
     else result=fd_dtsread_dtype(&stream);
@@ -146,12 +146,12 @@ FD_FASTOP fdtype quote_lisp(fdtype x,int dorefs,int doeval)
   else return x;
 }
 static fdtype dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
-		      fdtype *args)
+                      fdtype *args)
 {
   fdtype request=FD_EMPTY_LIST, result=FD_VOID;
   n--; while (n>0) {
     request=fd_init_pair(NULL,quote_lisp(args[n],dorefs,((doeval)&(1<<n))),
-			 request);
+                         request);
     n--;}
   if (dorefs) fd_incref(args[0]);
   request=fd_init_pair(NULL,args[0],request);
@@ -224,8 +224,8 @@ FD_EXPORT void fd_init_dtcall_c()
 {
   quote_symbol=fd_intern("QUOTE");
   fd_register_config("ASYNC",
-		     _("Assume asynchronous DType servers"),
-		     fd_boolconfig_get,fd_boolconfig_set,&default_async);
+                     _("Assume asynchronous DType servers"),
+                     fd_boolconfig_get,fd_boolconfig_set,&default_async);
   u8_register_source_file(_FILEINFO);
 }
 

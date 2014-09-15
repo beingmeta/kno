@@ -288,7 +288,7 @@ static FilterTypes getfilter(fdtype arg,u8_string cxt)
   else {
     u8_log(LOG_WARN,cxt,"Bad filter arg %q",arg);
     return default_filter;}
-}  
+}
 
 static fdtype imagick_format(fdtype fdwand,fdtype format)
 {
@@ -558,7 +558,7 @@ static void init_symbols()
 {
   format=fd_intern("FORMAT");
   resolution=fd_intern("RESOLUTION");
-  
+
   size=fd_intern("SIZE");
   width=fd_intern("WIDTH");
   height=fd_intern("HEIGHT");
@@ -682,7 +682,7 @@ int fd_init_imagick()
            fd_make_cprim3x("IMAGICK/GET",imagick_get,2,
                            fd_imagick_type,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID));
-  
+
   MagickWandGenesis();
   atexit(magickwand_atexit);
 

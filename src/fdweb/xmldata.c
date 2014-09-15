@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -76,7 +76,7 @@ static fdtype xmlget_sorted(fdtype doc,fdtype attrib_id)
     int len=listlen(results), i=len-1;
     fdtype vec=fd_make_vector(len,NULL), scan=results;
     while ((i>=0)&&(FD_PAIRP(scan))) {
-      fdtype car=FD_CAR(scan); 
+      fdtype car=FD_CAR(scan);
       FD_VECTOR_SET(vec,i,car); fd_incref(car);
       scan=FD_CDR(scan); i--;}
     fd_decref(results);
@@ -106,10 +106,10 @@ static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
       fdtype content=xmlcontents(docelt,attrib_id);
       FD_ADD_TO_CHOICE(contents,content);}
     return contents;}
-  else if (FD_VOIDP(attrib_id)) 
+  else if (FD_VOIDP(attrib_id))
     if (FD_EMPTY_LISTP(doc)) return doc;
     else if ((FD_PAIRP(doc)) || (FD_STRINGP(doc))) return fd_incref(doc);
-    else if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc))) 
+    else if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc)))
       return fd_get(doc,content_slotid,FD_EMPTY_LIST);
     else return fd_type_error("XML node","xmlcontents",doc);
   else if (FD_PAIRP(doc)) {
@@ -117,7 +117,7 @@ static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
     FD_DOLIST(docelt,doc) {
       fdtype contents=xmlcontents(docelt,attrib_id);
       if (!(FD_EMPTY_LISTP(contents))) {
-	FD_ADD_TO_CHOICE(results,contents);}}
+        FD_ADD_TO_CHOICE(results,contents);}}
     return results;}
   else {
     fdtype value=fd_get(doc,attrib_id,FD_EMPTY_LIST);
@@ -135,7 +135,7 @@ static fdtype xmlemptyp(fdtype elt,fdtype attribid)
   else {
     fdtype content=fd_get(elt,attribid,FD_EMPTY_LIST);
     if ((FD_EMPTY_LISTP(content)) ||
-	(FD_EMPTY_CHOICEP(content)))
+        (FD_EMPTY_CHOICEP(content)))
       return FD_TRUE;
     else {
       fd_decref(content);
@@ -157,11 +157,11 @@ static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
     else if (FD_PAIRP(doc)) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
       {FD_DOLIST(docelt,doc)
-	 if (FD_STRINGP(docelt))
-	   u8_putn(&out,FD_STRDATA(docelt),FD_STRLEN(docelt));
-	 else if ((FD_OIDP(docelt)) || (FD_SLOTMAPP(docelt)))
-	   fd_unparse_xml(&out,docelt,NULL);
-	 else fd_unparse(&out,docelt);}
+         if (FD_STRINGP(docelt))
+           u8_putn(&out,FD_STRDATA(docelt),FD_STRLEN(docelt));
+         else if ((FD_OIDP(docelt)) || (FD_SLOTMAPP(docelt)))
+           fd_unparse_xml(&out,docelt,NULL);
+         else fd_unparse(&out,docelt);}
       return fd_stream2string(&out);}
     else if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc))) {
       fdtype content=fd_get(doc,content_slotid,FD_EMPTY_LIST);
@@ -174,7 +174,7 @@ static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
     FD_DOLIST(docelt,doc) {
       fdtype contents=xmlcontent(docelt,attrib_id);
       if (!(FD_EMPTY_LISTP(contents))) {
-	FD_ADD_TO_CHOICE(results,contents);}}
+        FD_ADD_TO_CHOICE(results,contents);}}
     return results;}
   else {
     fdtype value=fd_get(doc,attrib_id,FD_EMPTY_LIST);

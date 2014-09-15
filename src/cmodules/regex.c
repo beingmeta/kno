@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2007-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -73,10 +73,10 @@ static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_REGEX *rx=(struct FD_REGEX *)x;
   u8_printf(out,"#<REGEX /%s/%s%s%s%s>",rx->src,
-	    (((rx->flags)&REG_EXTENDED)?"e":""),
-	    (((rx->flags)&REG_ICASE)?"c":""),
-	    (((rx->flags)&REG_ICASE)?"l":""),
-	    (((rx->flags)&REG_NOSUB)?"s":""));
+            (((rx->flags)&REG_EXTENDED)?"e":""),
+            (((rx->flags)&REG_ICASE)?"c":""),
+            (((rx->flags)&REG_ICASE)?"l":""),
+            (((rx->flags)&REG_NOSUB)?"s":""));
   return 1;
 }
 
@@ -110,20 +110,20 @@ static fdtype regex_searchop(enum SEARCHOP op,fdtype pat,fdtype string)
     case rx_search: return getcharoff(s,results[0].rm_so);;
     case rx_exactmatch:
       if ((results[0].rm_so==0)&&(results[0].rm_eo==len))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;
     case rx_matchlen:
       if (results[0].rm_so==0)
-	return getcharoff(s,results[0].rm_eo);
+        return getcharoff(s,results[0].rm_eo);
       else return FD_FALSE;
     case rx_matchstring:
       return fd_extract_string
-	(NULL,FD_STRDATA(string)+results[0].rm_so,
-	 FD_STRDATA(string)+results[0].rm_eo);
+        (NULL,FD_STRDATA(string)+results[0].rm_so,
+         FD_STRDATA(string)+results[0].rm_eo);
     case rx_matchpair:
       return fd_init_pair
-	(NULL,getcharoff(s,results[0].rm_so),
-	 getcharoff(s,results[0].rm_eo));
+        (NULL,getcharoff(s,results[0].rm_so),
+         getcharoff(s,results[0].rm_eo));
     default: return FD_FALSE;}
 }
 
@@ -161,32 +161,32 @@ FD_EXPORT int fd_init_regex()
 
   regex_init=1;
   regex_module=fd_new_module("REGEX",(FD_MODULE_SAFE));
-  
+
   fd_regex_type=fd_register_cons_type("REGEX");
-  
+
   fd_unparsers[fd_regex_type]=unparse_regex;
   fd_recyclers[fd_regex_type]=recycle_regex;
 
   fd_idefn(regex_module,
-	   fd_make_cprim3x("REGEX",make_regex,1,
-			   fd_string_type,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
+           fd_make_cprim3x("REGEX",make_regex,1,
+                           fd_string_type,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
   fd_idefn(regex_module,fd_make_cprim1("REGEX?",regexp_prim,1));
 
   fd_idefn(regex_module,
-	   fd_make_cprim2x("REGEX/SEARCH",regex_search,2,
-			   fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
+           fd_make_cprim2x("REGEX/SEARCH",regex_search,2,
+                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
   fd_idefn(regex_module,
-	   fd_make_cprim2x("REGEX/MATCH",regex_exactmatch,2,
-			   fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
+           fd_make_cprim2x("REGEX/MATCH",regex_exactmatch,2,
+                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
   fd_idefn(regex_module,
-	   fd_make_cprim2x("REGEX/MATCHLEN",regex_matchlen,2,
-			   fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
+           fd_make_cprim2x("REGEX/MATCHLEN",regex_matchlen,2,
+                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
   fd_idefn(regex_module,
-	   fd_make_cprim2x("REGEX/MATCHSTRING",regex_matchstring,2,
-			   fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
+           fd_make_cprim2x("REGEX/MATCHSTRING",regex_matchstring,2,
+                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
   fd_idefn(regex_module,
-	   fd_make_cprim2x("REGEX/MATCHPAIR",regex_matchpair,2,
-			   fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
+           fd_make_cprim2x("REGEX/MATCHPAIR",regex_matchpair,2,
+                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
 
   fd_finish_module(regex_module);
   fd_persist_module(regex_module);

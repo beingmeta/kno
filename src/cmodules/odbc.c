@@ -94,7 +94,7 @@ FD_EXPORT fdtype fd_odbc_connect(fdtype spec,fdtype colinfo,int interactive)
   if (SQL_SUCCEEDED(ret)) {
     howfar++;
     SQLSetEnvAttr(dbp->env, SQL_ATTR_ODBC_VERSION,
-		  (void *) SQL_OV_ODBC3, 0);
+                  (void *) SQL_OV_ODBC3, 0);
     ret=SQLAllocHandle(SQL_HANDLE_DBC,dbp->env,&(dbp->conn));
     dbp->spec=u8_strdup(FD_STRDATA(spec)); dbp->options=FD_VOID;
     dbp->info=u8_malloc(512); strcpy(dbp->info,"uninitialized");
@@ -103,20 +103,20 @@ FD_EXPORT fdtype fd_odbc_connect(fdtype spec,fdtype colinfo,int interactive)
     if (SQL_SUCCEEDED(ret)) {
       howfar++;
       ret=SQLDriverConnect(dbp->conn,sqldialog,
-			   FD_STRDATA(spec),FD_STRLEN(spec),
-			   dbp->info,512,NULL,
-			   ((interactive==0) ? (SQL_DRIVER_NOPROMPT) :
-			    (interactive==1) ? (SQL_DRIVER_COMPLETE_REQUIRED) :
-			    (SQL_DRIVER_PROMPT)));
+                           FD_STRDATA(spec),FD_STRLEN(spec),
+                           dbp->info,512,NULL,
+                           ((interactive==0) ? (SQL_DRIVER_NOPROMPT) :
+                            (interactive==1) ? (SQL_DRIVER_COMPLETE_REQUIRED) :
+                            (SQL_DRIVER_PROMPT)));
       if (SQL_SUCCEEDED(ret)) {
-	dbp->colinfo=colinfo; fd_incref(colinfo);
-	return FDTYPE_CONS(dbp);}}}
+        dbp->colinfo=colinfo; fd_incref(colinfo);
+        return FDTYPE_CONS(dbp);}}}
   if (howfar>1)
     u8_seterr(ODBCError,"fd_odbc_connect",
-	      odbc_errstring(dbp->conn,SQL_HANDLE_DBC));
+              odbc_errstring(dbp->conn,SQL_HANDLE_DBC));
   else if (howfar)
     u8_seterr(ODBCError,"fd_odbc_connect",
-	      odbc_errstring(dbp->env,SQL_HANDLE_ENV));
+              odbc_errstring(dbp->env,SQL_HANDLE_ENV));
   if (howfar>1) {
     SQLFreeHandle(SQL_HANDLE_DBC,dbp->conn);
     u8_free(dbp->info); u8_free(dbp->spec);}
@@ -282,8 +282,8 @@ static fdtype get_colvalue
     int ret=SQLGetData(stmt,i+1,SQL_C_CHAR,data,colsize+1,&clen);
     if (SQL_SUCCEEDED(ret)) {
       if (clen*2<colsize) {
-	result=fdtype_string(data);
-	u8_free(data);}
+        result=fdtype_string(data);
+        u8_free(data);}
       else result=fd_lispstring(data);
       break;}
     else return stmt_error(stmt,"get_colvalue",0);}
@@ -347,7 +347,7 @@ static fdtype get_stmt_results
   fdtype mergefn=fd_getopt(typeinfo,merge_symbol,FD_VOID);
   fdtype *colnames, *colinfo; SQLSMALLINT *coltypes; SQLULEN *colsizes;
   if (!((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) ||
-	(FD_FALSEP(mergefn)) || (FD_APPLICABLEP(mergefn))))
+        (FD_FALSEP(mergefn)) || (FD_APPLICABLEP(mergefn))))
     return fd_type_error("%MERGE","sqlite_values",mergefn);
   ret=SQLNumResultCols(stmt, &n_cols);
   if (!(SQL_SUCCEEDED(ret))) return stmt_error(stmt,cxt,free_stmt);
@@ -369,17 +369,17 @@ static fdtype get_stmt_results
     SQLSMALLINT sqldigits, namelen;
     SQLSMALLINT nullok;
     ret=SQLDescribeCol(stmt,i+1,
-		       name,sizeof(name),&namelen,
-		       &sqltype,&colsize,&sqldigits,&nullok);
+                       name,sizeof(name),&namelen,
+                       &sqltype,&colsize,&sqldigits,&nullok);
     if (!(SQL_SUCCEEDED(ret))) {
       if (!(FD_VOIDP(typeinfo))) {
-	int j=0; while (j<i) {fd_decref(colinfo[j]); j++;}}
+        int j=0; while (j<i) {fd_decref(colinfo[j]); j++;}}
       u8_free(colnames); u8_free(colinfo);
       u8_free(coltypes); u8_free(colsizes);
       return stmt_error(stmt,cxt,free_stmt);}
     colnames[i]=intern_upcase(&out,name);
     colinfo[i]=((FD_VOIDP(typeinfo)) ? (FD_VOID) :
-		(fd_get(typeinfo,colnames[i],FD_VOID)));
+                (fd_get(typeinfo,colnames[i],FD_VOID)));
     coltypes[i]=sqltype;
     colsizes[i]=colsize;
     i++;}
@@ -387,36 +387,36 @@ static fdtype get_stmt_results
     while (SQL_SUCCEEDED(ret=SQLFetch(stmt))) {
       fdtype value=get_colvalue(stmt,0,coltypes[0],colsizes[0],colinfo[0]);
       if (FD_ABORTP(value)) {
-	if (!(FD_VOIDP(typeinfo))) {
-	  int j=0; while (j<i) {fd_decref(colinfo[j]); j++;}}
-	u8_free(colnames); u8_free(colinfo);
-	u8_free(coltypes); u8_free(colsizes);
-	if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
-	fd_decref(results);
-	return FD_ERROR_VALUE;}
+        if (!(FD_VOIDP(typeinfo))) {
+          int j=0; while (j<i) {fd_decref(colinfo[j]); j++;}}
+        u8_free(colnames); u8_free(colinfo);
+        u8_free(coltypes); u8_free(colsizes);
+        if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
+        fd_decref(results);
+        return FD_ERROR_VALUE;}
       else {FD_ADD_TO_CHOICE(results,value);}}
   else while (SQL_SUCCEEDED(ret=SQLFetch(stmt))) {
       fdtype slotmap;
       struct FD_KEYVAL *kv=u8_alloc_n(n_cols,struct FD_KEYVAL);
       i=0; while (i<n_cols) {
-	fdtype value=get_colvalue(stmt,i,coltypes[i],colsizes[i],colinfo[i]);
-	if (FD_ABORTP(value)) {
-	  if (!(FD_VOIDP(typeinfo))) {
-	    int j=0; while (j<i) {fd_decref(colinfo[j]); j++;}}
-	  u8_free(colnames); u8_free(colinfo);
-	  u8_free(coltypes); u8_free(colsizes);
-	  if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
-	  fd_decref(results);
-	  return FD_ERROR_VALUE;}
-	kv[i].key=colnames[i];
-	kv[i].value=value;
-	i++;}
-      if ((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) || (FD_FALSEP(mergefn))) 
-	slotmap=fd_init_slotmap(NULL,n_cols,kv);
+        fdtype value=get_colvalue(stmt,i,coltypes[i],colsizes[i],colinfo[i]);
+        if (FD_ABORTP(value)) {
+          if (!(FD_VOIDP(typeinfo))) {
+            int j=0; while (j<i) {fd_decref(colinfo[j]); j++;}}
+          u8_free(colnames); u8_free(colinfo);
+          u8_free(coltypes); u8_free(colsizes);
+          if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
+          fd_decref(results);
+          return FD_ERROR_VALUE;}
+        kv[i].key=colnames[i];
+        kv[i].value=value;
+        i++;}
+      if ((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) || (FD_FALSEP(mergefn)))
+        slotmap=fd_init_slotmap(NULL,n_cols,kv);
       else {
-	fdtype tmp_slotmap=fd_init_slotmap(NULL,n_cols,kv);
-	slotmap=fd_apply(mergefn,1,&tmp_slotmap);
-	fd_decref(tmp_slotmap);}
+        fdtype tmp_slotmap=fd_init_slotmap(NULL,n_cols,kv);
+        slotmap=fd_apply(mergefn,1,&tmp_slotmap);
+        fd_decref(tmp_slotmap);}
       FD_ADD_TO_CHOICE(results,slotmap);}
   if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
   if (!(FD_VOIDP(typeinfo))) {
@@ -457,39 +457,39 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     fdtype arg=args[i]; int dofree=0;
     if (!(FD_VOIDP(dbp->paramtypes[i])))
       if (FD_APPLICABLEP(dbp->paramtypes[i])) {
-	arg=fd_apply(dbp->paramtypes[i],1,&arg);
-	if (FD_ABORTP(arg)) {
-	  u8_unlock_mutex(&(dbp->lock));
-	  return arg;}
-	else dofree=1;}
+        arg=fd_apply(dbp->paramtypes[i],1,&arg);
+        if (FD_ABORTP(arg)) {
+          u8_unlock_mutex(&(dbp->lock));
+          return arg;}
+        else dofree=1;}
     if (FD_PRIM_TYPEP(arg,fd_fixnum_type)) {
       int intval=FD_FIX2INT(arg);
       SQLBindParameter(dbp->stmt,i+1,
-		       SQL_PARAM_INPUT,SQL_C_SLONG,
-		       dbp->sqltypes[i],0,0,&intval,0,NULL);}
+                       SQL_PARAM_INPUT,SQL_C_SLONG,
+                       dbp->sqltypes[i],0,0,&intval,0,NULL);}
     else if (FD_FLONUMP(arg)) {
       double floval=FD_FLONUM(arg);
       SQLBindParameter(dbp->stmt,i+1,
-		       SQL_PARAM_INPUT,SQL_C_DOUBLE,
-		       dbp->sqltypes[i],0,0,&floval,0,NULL);}
+                       SQL_PARAM_INPUT,SQL_C_DOUBLE,
+                       dbp->sqltypes[i],0,0,&floval,0,NULL);}
     else if (FD_PRIM_TYPEP(arg,fd_string_type)) {
       SQLBindParameter(dbp->stmt,i+1,
-		       SQL_PARAM_INPUT,SQL_C_CHAR,
-		       dbp->sqltypes[i],0,0,
-		       FD_STRDATA(arg),FD_STRLEN(arg),NULL);}
+                       SQL_PARAM_INPUT,SQL_C_CHAR,
+                       dbp->sqltypes[i],0,0,
+                       FD_STRDATA(arg),FD_STRLEN(arg),NULL);}
     else if (FD_OIDP(arg)) {
       if (FD_OIDP(dbp->paramtypes[i])) {
-	FD_OID addr=FD_OID_ADDR(arg);
-	FD_OID base=FD_OID_ADDR(dbp->paramtypes[i]);
-	unsigned long offset=FD_OID_DIFFERENCE(addr,base);
-	SQLBindParameter(dbp->stmt,i+1,
-			 SQL_PARAM_INPUT,SQL_C_ULONG,
-			 dbp->sqltypes[i],0,0,&offset,0,NULL);}
+        FD_OID addr=FD_OID_ADDR(arg);
+        FD_OID base=FD_OID_ADDR(dbp->paramtypes[i]);
+        unsigned long offset=FD_OID_DIFFERENCE(addr,base);
+        SQLBindParameter(dbp->stmt,i+1,
+                         SQL_PARAM_INPUT,SQL_C_ULONG,
+                         dbp->sqltypes[i],0,0,&offset,0,NULL);}
       else {
-	FD_OID addr=FD_OID_ADDR(arg);
-	SQLBindParameter(dbp->stmt,i+1,
-			 SQL_PARAM_INPUT,SQL_C_UBIGINT,
-			 dbp->sqltypes[i],0,0,&addr,0,NULL);}}
+        FD_OID addr=FD_OID_ADDR(arg);
+        SQLBindParameter(dbp->stmt,i+1,
+                         SQL_PARAM_INPUT,SQL_C_UBIGINT,
+                         dbp->sqltypes[i],0,0,&addr,0,NULL);}}
     if (dofree) fd_decref(arg);
     i++;}
   ret=SQLExecute(dbp->stmt);
@@ -526,13 +526,13 @@ FD_EXPORT int fd_init_odbc()
   odbc_handler.recycle_extdb_proc=recycle_odbcproc;
 
   fd_idefn(module,fd_make_cprim2x("ODBC/OPEN",odbcopen,1,
-				  fd_string_type,FD_VOID,
-				  -1,FD_VOID));
+                                  fd_string_type,FD_VOID,
+                                  -1,FD_VOID));
 
 #if 0
   fd_idefn(module,fd_make_cprim2x
-	   ("ODBC/ATTR",odbcattr,2,
-	    fd_odbc_type,FD_VOID,fd_symbol_type,FD_VOID));
+           ("ODBC/ATTR",odbcattr,2,
+            fd_odbc_type,FD_VOID,fd_symbol_type,FD_VOID));
 #endif
 
   merge_symbol=fd_intern("%MERGE");

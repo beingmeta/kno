@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -32,7 +32,7 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
     if (eix->cache_level<0) {
       eix->cache_level=fd_default_cache_level;
       if (eix->handler->setcache)
-	eix->handler->setcache(eix,fd_default_cache_level);}
+        eix->handler->setcache(eix,fd_default_cache_level);}
     if (fd_hashtable_probe(&(eix->cache),key))
       value=fd_hashtable_get(&(eix->cache),key,FD_EMPTY_CHOICE);
     else if ((eix->adds.n_keys) || (eix->edits.n_keys))
@@ -73,7 +73,7 @@ static int compound_prefetch(fd_index ix,fdtype keys)
     u8_free(values);
     i++;}
   fd_unlock_struct(cix);
-  i=0; while (i<n_fetches) 
+  i=0; while (i<n_fetches)
     if (FD_ACHOICEP(valuev[i])) {
       valuev[i]=fd_simplify_choice(valuev[i]); i++;}
     else i++;
@@ -100,7 +100,7 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
       posmap[n_fetches]=off;
       n_fetches++;}
     else valuev[scan-keys]=
-	   fd_hashtable_get(&(cix->cache),key,FD_EMPTY_CHOICE);}
+           fd_hashtable_get(&(cix->cache),key,FD_EMPTY_CHOICE);}
   if (n_fetches==0) {
     u8_free(keyv); u8_free(posmap);
     return valuev;}
@@ -119,7 +119,7 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
     u8_free(values);
     i++;}
   fd_unlock_struct(cix);
-  i=0; while (i<n_fetches) 
+  i=0; while (i<n_fetches)
     if (FD_ACHOICEP(valuev[i])) {
       valuev[i]=fd_simplify_choice(valuev[i]); i++;}
     else i++;
@@ -196,7 +196,7 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
     int i=0, n=cix->n_indices;
     while (i < n)
       if (cix->indices[i] == add) {
-	fd_unlock_struct(cix); return 0;}
+        fd_unlock_struct(cix); return 0;}
       else i++;
     if (cix->indices)
       cix->indices=u8_realloc_n(cix->indices,cix->n_indices+1,fd_index);
@@ -206,10 +206,10 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
       fdtype alix=(fdtype)add; fd_incref(alix);}
     if ((cix->cid) || (cix->source)) {
       if ((cix->cid)==(cix->source)) {
-	u8_free(cix->cid); cix->cid=cix->source=NULL;}
+        u8_free(cix->cid); cix->cid=cix->source=NULL;}
       else {
-	if (cix->cid) {u8_free(cix->cid); cix->cid=NULL;}
-	if (cix->source) {u8_free(cix->source); cix->source=NULL;}}}
+        if (cix->cid) {u8_free(cix->cid); cix->cid=NULL;}
+        if (cix->source) {u8_free(cix->source); cix->source=NULL;}}}
     cix->cid=cix->source=get_compound_id(cix->n_indices,cix->indices);
     fd_reset_hashtable(&(cix->cache),-1,1);
     return 1;}

@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -26,7 +26,7 @@ static struct FD_HASHTABLE method_table; fdtype fd_method_table;
 /* Walk proc */
 
 static int keep_walking(struct FD_HASHSET *seen,fdtype node,fdtype slotids,
-			fd_tree_walkfn walk,void *data)
+                        fd_tree_walkfn walk,void *data)
 {
   if (fd_hashset_get(seen,node)) return 1;
   else {
@@ -34,19 +34,19 @@ static int keep_walking(struct FD_HASHSET *seen,fdtype node,fdtype slotids,
     fd_hashset_mod(seen,node,1);
     if ((walk==NULL) || ((retval=walk(node,data))>0)) {
       FD_DO_CHOICES(slotid,slotids) {
-	fdtype values=fd_frame_get(node,slotid);
-	if (FD_ABORTP(values))
-	  return fd_interr(values);
-	else {
-	  int retval=0;
-	  FD_DO_CHOICES(v,values)
-	    if (!(FD_OIDP(v))) {}
-	    else if (fd_hashset_get(seen,v)) {}
-	    else if ((retval=keep_walking(seen,v,slotids,walk,data))>0) {}
-	    else {
-	      fd_decref(values);
-	      return retval;}
-	  fd_decref(values);}}
+        fdtype values=fd_frame_get(node,slotid);
+        if (FD_ABORTP(values))
+          return fd_interr(values);
+        else {
+          int retval=0;
+          FD_DO_CHOICES(v,values)
+            if (!(FD_OIDP(v))) {}
+            else if (fd_hashset_get(seen,v)) {}
+            else if ((retval=keep_walking(seen,v,slotids,walk,data))>0) {}
+            else {
+              fd_decref(values);
+              return retval;}
+          fd_decref(values);}}
       return 1;}
     else return retval;}
 }
@@ -56,7 +56,7 @@ fd_walk_tree(fdtype roots,fdtype slotids,fd_tree_walkfn walk,void *data)
 {
   struct FD_HASHSET ht; int retval=0;
   ht.consbits=0; fd_init_hashset(&ht,1024,FD_STACK_CONS);
-  {FD_DO_CHOICES(root,roots) 
+  {FD_DO_CHOICES(root,roots)
      if ((retval=keep_walking(&ht,root,slotids,walk,data))<=0) {
        fd_recycle_hashset(&ht);
        return retval;}}
@@ -66,9 +66,9 @@ fd_walk_tree(fdtype roots,fdtype slotids,fd_tree_walkfn walk,void *data)
 
 FD_EXPORT int
 fd_collect_tree(struct FD_HASHSET *h,
-		fdtype roots,fdtype slotids)
+                fdtype roots,fdtype slotids)
 {
-  FD_DO_CHOICES(root,roots) 
+  FD_DO_CHOICES(root,roots)
     if (keep_walking(h,root,slotids,NULL,NULL)<0)
       return -1;
   return 1;
@@ -85,9 +85,9 @@ FD_EXPORT fdtype fd_get_basis(fdtype collection,fdtype lattice)
     FD_DO_CHOICES(slotid,lattice) {
       fdtype v=fd_frame_get(node,slotid);
       if (FD_ABORTP(v)) {
-	fd_decref(root);
-	fd_recycle_hashset(&ht);
-	return v;}
+        fd_decref(root);
+        fd_recycle_hashset(&ht);
+        return v;}
       else {FD_ADD_TO_CHOICE(root,v);}}}}
   fd_collect_tree(&ht,root,lattice);
   {FD_DO_CHOICES(node,collection)
@@ -122,7 +122,7 @@ static int inherit_values_fn(fdtype node,void *data)
   fdtype values=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(slotid,ivs->slotids) {
     fdtype v=((FD_OIDP(node)) ? (fd_oid_get(node,slotid,FD_EMPTY_CHOICE)) :
-	       (fd_get(node,slotid,FD_EMPTY_CHOICE)));
+               (fd_get(node,slotid,FD_EMPTY_CHOICE)));
     if (FD_ABORTP(v)) {
       fd_decref(values);
       return fd_interr(v);}
@@ -203,7 +203,7 @@ int fd_inherits_valuep
     return -1;
   else return ivps.result;
 }
-  
+
 FD_EXPORT
 /* fd_inherits_valuep:
      Arguments: a frame, two slotids, and a value
@@ -266,14 +266,14 @@ static fdtype multi_get_method(fdtype root,fdtype mslotid)
     fdtype answer=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(slotid,slotids)
       if (FD_PAIRP(slotid)) {
-	fdtype v=fd_oid_get(root,FD_CAR(slotid),FD_EMPTY_CHOICE);
-	FD_ADD_TO_CHOICE(answer,v);}
+        fdtype v=fd_oid_get(root,FD_CAR(slotid),FD_EMPTY_CHOICE);
+        FD_ADD_TO_CHOICE(answer,v);}
       else {
-	fdtype v=
-	  ((slotid==mslotid)?
-	   (fd_oid_get(root,slotid,FD_EMPTY_CHOICE)):
-	   (fd_frame_get(root,slotid)));
-	FD_ADD_TO_CHOICE(answer,v);}
+        fdtype v=
+          ((slotid==mslotid)?
+           (fd_oid_get(root,slotid,FD_EMPTY_CHOICE)):
+           (fd_frame_get(root,slotid)));
+        FD_ADD_TO_CHOICE(answer,v);}
     fd_decref(slotids);
     return answer;}
 }
@@ -286,12 +286,12 @@ static fdtype multi_test_method(fdtype root,fdtype mslotid,fdtype value)
     int answer=0;
     FD_DO_CHOICES(slotid,slotids)
       if (FD_PAIRP(slotid)) {
-	if (fd_test(root,FD_CAR(slotid),value)) {
-	  answer=1; break;}}
+        if (fd_test(root,FD_CAR(slotid),value)) {
+          answer=1; break;}}
       else {
-	if (mslotid==slotid) {
-	  if (fd_oid_test(root,slotid,value)) {answer=1; break;}}
-	else if (fd_frame_test(root,slotid,value)) {answer=1; break;}}
+        if (mslotid==slotid) {
+          if (fd_oid_test(root,slotid,value)) {answer=1; break;}}
+        else if (fd_frame_test(root,slotid,value)) {answer=1; break;}}
     fd_decref(slotids);
     if (answer) return FD_TRUE; else return FD_FALSE;}
 }
@@ -305,12 +305,12 @@ static fdtype multi_add_method(fdtype root,fdtype slotid,fdtype value)
     if (FD_ABORTP(slotids)) return slotids;
     else {
       FD_DO_CHOICES(subslotid,slotids) {
-	fdtype v=fd_frame_get(root,subslotid);
-	if (FD_ABORTP(v)) return v;
-	else if (!(FD_EMPTY_CHOICEP(v)))
-	  if (fd_frame_add(root,subslotid,value)<0)
-	    return FD_ERROR_VALUE;
-	fd_decref(v);}
+        fdtype v=fd_frame_get(root,subslotid);
+        if (FD_ABORTP(v)) return v;
+        else if (!(FD_EMPTY_CHOICEP(v)))
+          if (fd_frame_add(root,subslotid,value)<0)
+            return FD_ERROR_VALUE;
+        fd_decref(v);}
       fd_decref(slotids);}}
   else if (primary_slot==slotid) {
     if (fd_add(root,primary_slot,value)<0) {
@@ -332,18 +332,18 @@ static fdtype multi_drop_method(fdtype root,fdtype slotid,fdtype value)
     if (FD_ABORTP(primary_slot)) return primary_slot;
     else if ((FD_SYMBOLP(primary_slot)) || (FD_OIDP(primary_slot))) {
       if (primary_slot==slotid) {
-	if (fd_drop(root,primary_slot,value)<0) {
-	  fd_decref(primary_slot);
-	  return FD_ERROR_VALUE;}}
+        if (fd_drop(root,primary_slot,value)<0) {
+          fd_decref(primary_slot);
+          return FD_ERROR_VALUE;}}
       else if (fd_frame_drop(root,primary_slot,value)<0) {
-	fd_decref(primary_slot);
-	return FD_ERROR_VALUE;}}
+        fd_decref(primary_slot);
+        return FD_ERROR_VALUE;}}
     {FD_DO_CHOICES(subslotid,slotids) {
       int probe=fd_frame_test(root,subslotid,value);
       if (probe<0) return FD_ERROR_VALUE;
       else if (probe)
-	if (fd_frame_drop(root,subslotid,value)<0)
-	  return FD_ERROR_VALUE;}}
+        if (fd_frame_drop(root,subslotid,value)<0)
+          return FD_ERROR_VALUE;}}
     fd_decref(slotids);
     return FD_VOID;}
 }
@@ -367,15 +367,15 @@ static int kleene_get_helper
     else if (probe) {}
     else {
       if (fd_hashset_mod(ht,frame,1)<0)
-	return -1;
+        return -1;
       else {
-	FD_DO_CHOICES(slotid,slotids) {
-	  fdtype values=getter(frame,slotid);
-	  if (FD_ABORTP(values)) return fd_interr(values);
-	  if (kleene_get_helper(ht,values,slotids)<0) {
-	    fd_decref(values);
-	    return -1;}
-	  else fd_decref(values);}}}}
+        FD_DO_CHOICES(slotid,slotids) {
+          fdtype values=getter(frame,slotid);
+          if (FD_ABORTP(values)) return fd_interr(values);
+          if (kleene_get_helper(ht,values,slotids)<0) {
+            fd_decref(values);
+            return -1;}
+          else fd_decref(values);}}}}
   return 1;
 }
 
@@ -392,7 +392,7 @@ static fdtype kleene_star_get_method(fdtype root,fdtype slotid)
       return FD_ERROR_VALUE;}
     else {
       results=fd_hashset_elts(&hs,1);
-      fd_decref(slotids); 
+      fd_decref(slotids);
       return results;}}
 }
 
@@ -410,7 +410,7 @@ static fdtype kleene_plus_get_method(fdtype root,fdtype slotid)
     else {
       FD_DO_CHOICES(r,root) {fd_hashset_drop(&hs,r);}
       results=fd_hashset_elts(&hs,1);
-      fd_decref(slotids); 
+      fd_decref(slotids);
       return results;}}
 }
 
@@ -485,8 +485,8 @@ static fdtype inverse_test_method(fdtype root,fdtype slotid,fdtype value)
     else {
       int found=0;
       FD_DO_CHOICES(inv_slot,inv_slots) {
-	int testval=fd_frame_test(value,inv_slot,root);
-	if (testval) {found=testval; break;}}
+        int testval=fd_frame_test(value,inv_slot,root);
+        if (testval) {found=testval; break;}}
       fd_decref(inv_slots);
       if (found<0) return FD_ERROR_VALUE;
       else if (found) return (FD_TRUE);
@@ -505,25 +505,25 @@ static fdtype assoc_get_method(fdtype f,fdtype slotid)
     FD_DO_CHOICES(th_slot,through) {
       fdtype entries=fd_frame_get(f,th_slot);
       if (FD_ABORTP(entries)) {
-	fd_decref(answers); fd_decref(through); fd_decref(key);
-	return entries;}
+        fd_decref(answers); fd_decref(through); fd_decref(key);
+        return entries;}
       else {
-	int ambigkey=FD_CHOICEP(key);
-	FD_DO_CHOICES(e,entries)
-	  if (FD_PAIRP(e)) {
-	    fdtype car=FD_CAR(e), cdr=FD_CDR(e);
-	    if (FD_EQ(car,key)) {
-	      fd_incref(cdr);
-	      FD_ADD_TO_CHOICE(answers,cdr);}
-	    else if ((!ambigkey) && (!(FD_CHOICEP(car)))) {
-	      if (FDTYPE_EQUAL(car,key)) {
-		fd_incref(cdr);
-		FD_ADD_TO_CHOICE(answers,cdr);}}
-	    else if (fd_overlapp(car,key)) {
-	      fd_incref(cdr);
-	      FD_ADD_TO_CHOICE(answers,cdr);}
-	    else {}}
-	fd_decref(entries);}}
+        int ambigkey=FD_CHOICEP(key);
+        FD_DO_CHOICES(e,entries)
+          if (FD_PAIRP(e)) {
+            fdtype car=FD_CAR(e), cdr=FD_CDR(e);
+            if (FD_EQ(car,key)) {
+              fd_incref(cdr);
+              FD_ADD_TO_CHOICE(answers,cdr);}
+            else if ((!ambigkey) && (!(FD_CHOICEP(car)))) {
+              if (FDTYPE_EQUAL(car,key)) {
+                fd_incref(cdr);
+                FD_ADD_TO_CHOICE(answers,cdr);}}
+            else if (fd_overlapp(car,key)) {
+              fd_incref(cdr);
+              FD_ADD_TO_CHOICE(answers,cdr);}
+            else {}}
+        fd_decref(entries);}}
     fd_decref(through); fd_decref(key);
     return answers;}
 }
@@ -540,20 +540,20 @@ static fdtype assoc_test_method(fdtype f,fdtype slotid,fdtype values)
     FD_DO_CHOICES(th_slot,through) {
       fdtype entries=fd_frame_get(f,th_slot);
       if (FD_ABORTP(entries)) {
-	fd_decref(answers); fd_decref(through); fd_decref(key);
-	return entries;}
+        fd_decref(answers); fd_decref(through); fd_decref(key);
+        return entries;}
       else {
-	int ambigkey=FD_CHOICEP(key), ambigval=FD_CHOICEP(values);
-	FD_DO_CHOICES(e,entries)
-	  if (FD_PAIRP(e)) {
-	    fdtype car=FD_CAR(e), cdr=FD_CDR(e);
-	    if (((ambigkey|(FD_CHOICEP(car))) ? (fd_overlapp(car,key)) : (FD_EQ(car,key))) &&
-		((FD_VOIDP(values)) ||
-		 ((ambigval|(FD_CHOICEP(cdr))) ? (fd_overlapp(cdr,values)) : (FD_EQUAL(cdr,values))))) {
-	      fd_decref(entries); fd_decref(key); fd_decref(through);
-	      FD_STOP_DO_CHOICES;
-	      return FD_TRUE;}}
-	fd_decref(entries);}}
+        int ambigkey=FD_CHOICEP(key), ambigval=FD_CHOICEP(values);
+        FD_DO_CHOICES(e,entries)
+          if (FD_PAIRP(e)) {
+            fdtype car=FD_CAR(e), cdr=FD_CDR(e);
+            if (((ambigkey|(FD_CHOICEP(car))) ? (fd_overlapp(car,key)) : (FD_EQ(car,key))) &&
+                ((FD_VOIDP(values)) ||
+                 ((ambigval|(FD_CHOICEP(cdr))) ? (fd_overlapp(cdr,values)) : (FD_EQUAL(cdr,values))))) {
+              fd_decref(entries); fd_decref(key); fd_decref(through);
+              FD_STOP_DO_CHOICES;
+              return FD_TRUE;}}
+        fd_decref(entries);}}
     fd_decref(through); fd_decref(key);
     return FD_FALSE;}
 }
@@ -596,12 +596,12 @@ static fdtype car_get_method(fdtype f,fdtype slotid)
   else {
     FD_DO_CHOICES(value,values)
       if (FD_PAIRP(value)) {
-	fdtype car=FD_CAR(value);
-	fd_incref(car);
-	FD_ADD_TO_CHOICE(result,car);}
+        fdtype car=FD_CAR(value);
+        fd_incref(car);
+        FD_ADD_TO_CHOICE(result,car);}
       else {
-	fd_decref(result);
-	return fd_type_error("pair","car_get_method",value);}}
+        fd_decref(result);
+        return fd_type_error("pair","car_get_method",value);}}
   fd_decref(values);
   return result;
 }
@@ -614,12 +614,12 @@ static fdtype paired_get_method(fdtype f,fdtype slotid)
   else {
     FD_DO_CHOICES(value,values)
       if (FD_PAIRP(value)) {
-	fdtype car=FD_CAR(value);
-	fd_incref(car);
-	FD_ADD_TO_CHOICE(result,car);}
+        fdtype car=FD_CAR(value);
+        fd_incref(car);
+        FD_ADD_TO_CHOICE(result,car);}
       else {
-	fd_incref(value);
-	FD_ADD_TO_CHOICE(result,value);}}
+        fd_incref(value);
+        FD_ADD_TO_CHOICE(result,value);}}
   fd_decref(values);
   return result;
 }
@@ -632,7 +632,7 @@ static fdtype paired_test_method(fdtype f,fdtype slotid,fdtype v)
   else {
     FD_DO_CHOICES(value,values) {
       if (FD_PAIRP(value)) {
-	if (FD_EQUAL(FD_CAR(value),v)) {found=1; break;}}
+        if (FD_EQUAL(FD_CAR(value),v)) {found=1; break;}}
       else if (FD_EQUAL(value,v)) {found=1; break;}}
     fd_decref(values);
     if (found) return FD_TRUE;
@@ -651,28 +651,28 @@ static fdtype paired_drop_method(fdtype f,fdtype slotid,fdtype v)
     if (FD_ABORTP(values)) return values;
     else {
       FD_DO_CHOICES(value,values) {
-	if (FD_PAIRP(value)) {
-	  if (FD_EQUAL(FD_CAR(value),v)) {found=1; break;}}
-	else if (FD_EQUAL(value,v)) {found=1; break;}}
+        if (FD_PAIRP(value)) {
+          if (FD_EQUAL(FD_CAR(value),v)) {found=1; break;}}
+        else if (FD_EQUAL(value,v)) {found=1; break;}}
       if (found) {
-	fdtype new_values=FD_EMPTY_CHOICE;
-	FD_DO_CHOICES(value,values) {
-	  if (FD_PAIRP(value)) 
-	    if (FD_EQUAL(FD_CAR(value),v)) {}
-	    else {
-	      fd_incref(value);
-	      FD_ADD_TO_CHOICE(new_values,value);}
-	  else if (FD_EQUAL(value,v)) {}
-	  else {
-	    fd_incref(value);
-	    FD_ADD_TO_CHOICE(new_values,value);}}
-	if (fd_store(f,slotid,new_values)<0) {
-	  fd_decref(values); fd_decref(new_values);
-	  return FD_ERROR_VALUE;}
-	fd_decref(values); fd_decref(new_values);
-	return FD_VOID;}
+        fdtype new_values=FD_EMPTY_CHOICE;
+        FD_DO_CHOICES(value,values) {
+          if (FD_PAIRP(value))
+            if (FD_EQUAL(FD_CAR(value),v)) {}
+            else {
+              fd_incref(value);
+              FD_ADD_TO_CHOICE(new_values,value);}
+          else if (FD_EQUAL(value,v)) {}
+          else {
+            fd_incref(value);
+            FD_ADD_TO_CHOICE(new_values,value);}}
+        if (fd_store(f,slotid,new_values)<0) {
+          fd_decref(values); fd_decref(new_values);
+          return FD_ERROR_VALUE;}
+        fd_decref(values); fd_decref(new_values);
+        return FD_VOID;}
       else {
-	fd_decref(values); return FD_VOID;}}}
+        fd_decref(values); return FD_VOID;}}}
 }
 
 static fdtype implies_slot;
@@ -758,7 +758,7 @@ FD_EXPORT void fd_init_methods_c()
   fd_defn(m,fd_make_cprim3("FD:PAIRED-DROP",paired_drop_method,3));
   fd_defn(m,fd_make_cprim3("FD:ADD",lisp_add,3));
   fd_defn(m,fd_make_cprim3("FD:DROP",lisp_drop,3));
-  
+
   fd_defn(m,fd_make_cprim3("FD:CLEAR-IMPLIES",clear_implies_effect,3));
 
 }

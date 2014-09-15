@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -33,7 +33,7 @@ int fd_init_dbx_pool(u8_string filename,u8_string dbname,FD_OID base,unsigned in
     if (dbname) sprintf(namebuf,"%s_metadata",dbname);
     else strcpy(namebuf,"metadata");
     if (retval=(dbp->open(filename,namebuf,DB_BTREE,DB_CREATE|DB_EXCL,
-			  (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP)))) {
+                          (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP)))) {
       fd_seterr(db_strerror(retval),"fd_init_dbx_pool",filename,FD_VOID);
       return retval;}
     memset(&key,0,sizeof(key)); memset(&value,0,sizeof(value));
@@ -58,7 +58,7 @@ int fd_init_dbx_pool(u8_string filename,u8_string dbname,FD_OID base,unsigned in
     if (dbname) sprintf(namebuf,"%s_pool",dbname);
     else strcpy(namebuf,"pool");
     if (retval=(dbp->open(filename,namebuf,DB_RECNO,DB_CREATE|DB_EXCL,
-			  (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP)))) {
+                          (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP)))) {
       fd_seterr(db_strerror(retval),"fd_init_dbx_pool",filename,FD_VOID);
       return -1;}
     if (retval=(dbp->close(dbp,0))) {
@@ -84,7 +84,7 @@ FD_EXPORT fd_pool fd_open_dbx_pool(u8_string filename,u8_string dbname)
     if (dbname) sprintf(namebuf,"%s_metadata",dbname);
     else strcpy(namebuf,"metadata");
     if (retval=(dbp->open(dbp,rname,namebuf,DB_BTREE,DB_RDONLY,
-			  (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP)))) {
+                          (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP)))) {
       fd_seterr(db_strerror(retval),"fd_open_dbx_pool",filename,FD_VOID);
       u8_free(rname);
       return retval;}
@@ -94,7 +94,7 @@ FD_EXPORT fd_pool fd_open_dbx_pool(u8_string filename,u8_string dbname)
       u8_free(rname);
       return NULL;}
     else {
-      int base_hi, base_lo; 
+      int base_hi, base_lo;
       FD_INIT_BYTE_INPUT(&in,value.data,value.size);
       base_hi=fd_read_4bytes(&in); base_lo=fd_read_4bytes(&in);
       cap=fd_read_4bytes(&in);
@@ -245,13 +245,13 @@ static fdtype *dbx_pool_fetchn(fd_pool p,int n,fdtype *oids)
       fdtype result; struct FD_BYTE_INPUT in;
       recno=schedule[i].offset;
       if (retval=(dbc->c_get(dbc,&key,&value,0))) {
-	fd_seterr(db_strerror(retval),"dbx_pool_fetchn",fp->filename,oids[schedule[i].serial]);
-	u8_unlock_struct(fp);
-	return NULL;}
+        fd_seterr(db_strerror(retval),"dbx_pool_fetchn",fp->filename,oids[schedule[i].serial]);
+        u8_unlock_struct(fp);
+        return NULL;}
       else {
-	FD_INIT_BYTE_INPUT(in,value.data,value.size);
-	result=fd_read_dtype(&in);
-	values[schedule[i].serial]=result;}
+        FD_INIT_BYTE_INPUT(in,value.data,value.size);
+        result=fd_read_dtype(&in);
+        values[schedule[i].serial]=result;}
       i++;}}
   dbc->c_close(dbc);
   u8_unlock_struct(fp);
@@ -283,21 +283,21 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   {int i=0, retval; DBT key, value; db_recno_t recno;
     key.data=&recno; key.size=sizeof(db_recno_t);
     while (i<n) {
-      fdtype result; 
+      fdtype result;
       recno=schedule[i].offset;
       out.ptr=out.start;
       if (fd_write_dtype(&out,values[schedule[i].serial])<0) {
-	u8_unlock_struct(fp);
-	u8_free(schedule);
-	u8_free(values);
-	return NULL;}
+        u8_unlock_struct(fp);
+        u8_free(schedule);
+        u8_free(values);
+        return NULL;}
       value.data=out.start; value.size=out.ptr-out.start;
       if (retval=(dbc->c_put(dbc,&key,&value,0))) {
-	fd_seterr(db_strerror(retval),"dbx_pool_fetchn",fp->filename,oids[schedule[i].serial]);
-	u8_unlock_struct(fp);
-	u8_free(schedule);
-	u8_free(values);
-	return NULL;}
+        fd_seterr(db_strerror(retval),"dbx_pool_fetchn",fp->filename,oids[schedule[i].serial]);
+        u8_unlock_struct(fp);
+        u8_free(schedule);
+        u8_free(values);
+        return NULL;}
       i++;}}
   u8_unlock_struct(fp);
   dbc->c_close(dbc);

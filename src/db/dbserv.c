@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -36,8 +36,8 @@ fd_exception fd_PrivateOID=_("private OID");
 static int served_poolp(fd_pool p)
 {
   int i=0; while (i<n_served_pools)
-	     if (served_pools[i]==p) return 1;
-	     else i++;
+             if (served_pools[i]==p) return 1;
+             else i++;
   return 0;
 }
 
@@ -80,8 +80,8 @@ static struct FD_CHANGELOG *get_subindex_changelog(fd_index ix,int make)
     clog=u8_alloc(struct FD_CHANGELOG);
     if (subindex_changelogs)
       subindex_changelogs=
-	u8_realloc_n(subindex_changelogs,n_subindex_changelogs+1,
-		     struct FD_SUBINDEX_CHANGELOG);
+        u8_realloc_n(subindex_changelogs,n_subindex_changelogs+1,
+                     struct FD_SUBINDEX_CHANGELOG);
     else subindex_changelogs=u8_alloc(struct FD_SUBINDEX_CHANGELOG);
     subindex_changelogs[n_subindex_changelogs].ix=ix; subindex_changelogs[n_subindex_changelogs].clog=clog;
     init_changelog(clog,1024);
@@ -122,19 +122,19 @@ static fdtype get_changes(struct FD_CHANGELOG *clog,int cstamp,int *new_cstamp)
     else if (cstamp > entries[top].moment) result=FD_EMPTY_CHOICE; /* No changes. */
     else {
       fdtype changes=FD_EMPTY_CHOICE;
-      int i=top, point=clog->point; while (i >= 0) 
-	if (cstamp <= entries[i].moment) {
-	  fdtype key=entries[i--].keys;
-	  fd_incref(key); 
-	  FD_ADD_TO_CHOICE(changes,key);}
-	else break;
+      int i=top, point=clog->point; while (i >= 0)
+        if (cstamp <= entries[i].moment) {
+          fdtype key=entries[i--].keys;
+          fd_incref(key);
+          FD_ADD_TO_CHOICE(changes,key);}
+        else break;
       if (cstamp > entries[i].moment) {
-	i=clog->max; while (i >= point)
-	  if (cstamp <= entries[i].moment) {
-	    fdtype key=entries[i--].keys;
-	    fd_incref(key);
-	    FD_ADD_TO_CHOICE(changes,key);}
-	  else break;}
+        i=clog->max; while (i >= point)
+          if (cstamp <= entries[i].moment) {
+            fdtype key=entries[i--].keys;
+            fd_incref(key);
+            FD_ADD_TO_CHOICE(changes,key);}
+          else break;}
       result=changes;}}
   fd_unlock_mutex(&changelog_lock);
   return result;
@@ -154,8 +154,8 @@ static fdtype oid_server_changes(fdtype sid,fdtype xid)
     if (FD_FALSEP(changes))
       return fd_make_list(1,fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)));
     else return fd_init_pair(NULL,
-			     fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)),
-			     changes);}
+                             fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)),
+                             changes);}
 }
 
 static fdtype iserver_changes(fdtype sid,fdtype xid)
@@ -167,8 +167,8 @@ static fdtype iserver_changes(fdtype sid,fdtype xid)
     if (FD_FALSEP(changes))
       return fd_make_list(1,fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)));
     else return fd_init_pair(NULL,
-			     fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)),
-			     changes);}
+                             fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)),
+                             changes);}
 }
 
 static fdtype ixserver_changes(fdtype index,fdtype sid,fdtype xid)
@@ -183,8 +183,8 @@ static fdtype ixserver_changes(fdtype index,fdtype sid,fdtype xid)
     if (FD_FALSEP(changes))
       return fd_make_list(1,fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)));
     else return fd_init_pair(NULL,
-			     fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)),
-			     changes);}
+                             fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)),
+                             changes);}
 }
 
 /** OID Locking **/
@@ -213,7 +213,7 @@ static int lock_oid(fdtype oid,fdtype id)
     if ((fd_pool_lock(p,oid)) == 0) {
       fd_unlock_mutex(&server_locks_lock); return 0;}
     fd_hashtable_store(&server_locks,oid,id); n_locks++;
-    fd_hashtable_add(&server_locks_inv,id,oid); 
+    fd_hashtable_add(&server_locks_inv,id,oid);
     if (locks_file) {
       fd_dtswrite_dtype(locks_file,oid);
       fd_dtswrite_dtype(locks_file,id);
@@ -250,7 +250,7 @@ static int clear_server_lock(fdtype oid,fdtype id)
     int lock_count=FD_CHOICE_SIZE(all_locks);
     fd_decref(holder);
     fd_hashtable_store(&server_locks,oid,FD_EMPTY_CHOICE);
-    if (lock_count == 0) 
+    if (lock_count == 0)
       return fd_err(OIDNotLocked,"lock_oid",fd_strdata(id),oid);
     else if (lock_count == 1)
       fd_hashtable_store(&server_locks_inv,id,FD_EMPTY_CHOICE);
@@ -415,7 +415,7 @@ static fdtype store_oid_proc(fdtype oid,fdtype value)
       fd_set_oid_value(oid,value);
       add_to_changelog(&oid_changelog,oid);
       /* Commit the pool.  Journalling should now happen on a per-pool
-	 rather than a server-wide basis. */
+         rather than a server-wide basis. */
       fd_pool_commit(p,oid,1);
       return FD_TRUE;}
     else i++;
@@ -475,9 +475,9 @@ static fdtype iserver_bulk_add(fdtype vec)
     while (i < limit) {
       if (FD_VOIDP(data[i])) break;
       else {
-	fdtype key=data[i++], value=data[i++];
-	fd_index_add((fd_index)primary_index,key,value);
-	fd_incref(key); FD_ADD_TO_CHOICE(keys,key);}}
+        fdtype key=data[i++], value=data[i++];
+        fd_index_add((fd_index)primary_index,key,value);
+        fd_incref(key); FD_ADD_TO_CHOICE(keys,key);}}
     add_to_changelog(&index_changelog,keys); fd_decref(keys);
     return FD_TRUE;}
   else return FD_VOID;
@@ -494,9 +494,9 @@ static fdtype ixserver_bulk_add(fdtype ixarg,fdtype vec)
     while (i < limit) {
       if (FD_VOIDP(data[i])) break;
       else {
-	fdtype key=data[i++], value=data[i++];
-	fd_index_add(ix,key,value);
-	fd_incref(key); FD_ADD_TO_CHOICE(keys,key);}}
+        fdtype key=data[i++], value=data[i++];
+        fd_index_add(ix,key,value);
+        fd_incref(key); FD_ADD_TO_CHOICE(keys,key);}}
     add_to_changelog(clog,keys); fd_decref(keys);
     return FD_TRUE;}
   else return FD_VOID;
@@ -560,21 +560,21 @@ static fdtype server_fetch_oids(fdtype oidvec)
     if (served_poolp(p)) {
       fdtype *results=u8_alloc_n(n,fdtype);
       if (p->handler->fetchn) {
-	fdtype *fetch=u8_alloc_n(n,fdtype);
-	fd_hashtable cache=&(p->cache), locks=&(p->locks);
-	int i=0; while (i<n)
-		   if ((fd_hashtable_probe_novoid(cache,elts[i])==0) &&
-		       (fd_hashtable_probe_novoid(locks,elts[i])==0))
-		     fetch[fetchn++]=elts[i++];
-		   else i++;
-	p->handler->fetchn(p,fetchn,fetch);
-	i=0; while (i<n) {
-	  results[i]=fd_fetch_oid(p,elts[i]); i++;}
-	return fd_init_vector(NULL,n,results);}
+        fdtype *fetch=u8_alloc_n(n,fdtype);
+        fd_hashtable cache=&(p->cache), locks=&(p->locks);
+        int i=0; while (i<n)
+                   if ((fd_hashtable_probe_novoid(cache,elts[i])==0) &&
+                       (fd_hashtable_probe_novoid(locks,elts[i])==0))
+                     fetch[fetchn++]=elts[i++];
+                   else i++;
+        p->handler->fetchn(p,fetchn,fetch);
+        i=0; while (i<n) {
+          results[i]=fd_fetch_oid(p,elts[i]); i++;}
+        return fd_init_vector(NULL,n,results);}
       else {
-	int i=0; while (i<n) {
-	  results[i]=fd_fetch_oid(p,elts[i]); i++;}
-	return fd_init_vector(NULL,n,results);}}
+        int i=0; while (i<n) {
+          results[i]=fd_fetch_oid(p,elts[i]); i++;}
+        return fd_init_vector(NULL,n,results);}}
     else return fd_err(fd_PrivateOID,"server_oid_value",NULL,elts[0]);
  else return fd_err(fd_AnonymousOID,"server_oid_value",NULL,elts[0]);
 }
@@ -648,17 +648,17 @@ static fdtype ixserver_get(fdtype index,fdtype key)
 }
 static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
 {
-  if ((FD_INDEXP(index))||(FD_PRIM_TYPEP(index,fd_raw_index_type))) 
+  if ((FD_INDEXP(index))||(FD_PRIM_TYPEP(index,fd_raw_index_type)))
     if (FD_VECTORP(keys)) {
       fd_index ix=fd_indexptr(index);
       int i=0, n=FD_VECTOR_LENGTH(keys);
       fdtype *data=FD_VECTOR_DATA(keys),
-	*results=u8_alloc_n(n,fdtype);
+        *results=u8_alloc_n(n,fdtype);
       fdtype aschoice=
-	fd_make_choice(n,data,(FD_CHOICE_DOSORT|FD_CHOICE_INCREF));
+        fd_make_choice(n,data,(FD_CHOICE_DOSORT|FD_CHOICE_INCREF));
       fd_index_prefetch(ix,aschoice);
       while (i<n) {
-	results[i]=fd_index_get(ix,data[i]); i++;}
+        results[i]=fd_index_get(ix,data[i]); i++;}
       fd_decref(aschoice);
       return fd_init_vector(NULL,n,results);}
     else return fd_type_error("vector","ixserver_bulk_get",keys);
@@ -666,10 +666,10 @@ static fdtype ixserver_bulk_get(fdtype index,fdtype keys)
     if (FD_VECTORP(keys)) {
       int i=0, n=FD_VECTOR_LENGTH(keys);
       fdtype *data=FD_VECTOR_DATA(keys),
-	*results=u8_alloc_n(n,fdtype);
+        *results=u8_alloc_n(n,fdtype);
       while (i<n) {
-	results[i]=fd_get(index,data[i],FD_EMPTY_CHOICE);
-	i++;}
+        results[i]=fd_get(index,data[i],FD_EMPTY_CHOICE);
+        i++;}
       return fd_init_vector(NULL,n,results);}
     else return fd_type_error("vector","ixserver_bulk_get",keys);
   else return fd_type_error("index","ixserver_get",FD_VOID);
@@ -705,7 +705,7 @@ static fdtype ixserver_sizes(fdtype index)
     FD_DO_CHOICES(key,keys) {
       fdtype value=fd_get(index,key,FD_EMPTY_CHOICE);
       fdtype keypair=
-	fd_init_pair(NULL,fd_incref(key),FD_INT2DTYPE(FD_CHOICE_SIZE(value)));
+        fd_init_pair(NULL,fd_incref(key),FD_INT2DTYPE(FD_CHOICE_SIZE(value)));
       FD_ADD_TO_CHOICE(results,keypair);
       fd_decref(value);}
     fd_decref(keys);
@@ -783,9 +783,9 @@ static int serve_index(fdtype var,fdtype val,void *data)
       if (retval<0) return retval;}
     return 1;}
   else if (FD_INDEXP(val)) ix=fd_indexptr(val);
-  else if (FD_STRINGP(val)) 
+  else if (FD_STRINGP(val))
     ix=fd_open_index(FD_STRDATA(val));
-  else if (val==FD_TRUE) 
+  else if (val==FD_TRUE)
     if (fd_background) ix=(fd_index)fd_background;
     else {
       u8_log(LOG_WARN,_("No background"),"No current background index");
@@ -843,7 +843,7 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim2("ISERVER-DROP!",iserver_drop,2));
   fd_defn(module,fd_make_cprim1("ISERVER-BULK-ADD!",iserver_bulk_add,1));
   fd_defn(module,fd_make_cprim1x("ISERVER-BULK-GET",iserver_bulk_get,1,
-				 fd_vector_type,FD_VOID));
+                                 fd_vector_type,FD_VOID));
   fd_defn(module,fd_make_cprim1("ISERVER-GET-SIZE",iserver_get_size,1));
   fd_defn(module,fd_make_cprim0("ISERVER-KEYS",iserver_keys,0));
   fd_defn(module,fd_make_cprim0("ISERVER-SIZES",iserver_sizes,0));
@@ -851,21 +851,21 @@ void fd_init_dbserv_c()
   fd_defn(module,fd_make_cprim2("ISERVER-CHANGES",iserver_changes,2));
 
   fd_defn(module,fd_make_cprim2x("IXSERVER-GET",ixserver_get,2,
-				 -1,FD_VOID,-1,FD_VOID));
+                                 -1,FD_VOID,-1,FD_VOID));
   fd_defn(module,fd_make_cprim3("IXSERVER-ADD!",ixserver_add,3));
   fd_defn(module,fd_make_cprim3("IXSERVER-DROP!",ixserver_drop,3));
   fd_defn(module,fd_make_cprim2x("IXSERVER-BULK-GET",ixserver_bulk_get,2,
-				 -1,FD_VOID,
-				 fd_vector_type,FD_VOID));
+                                 -1,FD_VOID,
+                                 fd_vector_type,FD_VOID));
   fd_defn(module,fd_make_cprim2("IXSERVER-BULK-ADD!",ixserver_bulk_add,2));
   fd_defn(module,fd_make_cprim2x("IXSERVER-GET-SIZE",ixserver_get_size,2,
-				 -1,FD_VOID,-1,FD_VOID));
+                                 -1,FD_VOID,-1,FD_VOID));
   fd_defn(module,fd_make_cprim1x("IXSERVER-KEYS",ixserver_keys,1,
-				 -1,FD_VOID));
+                                 -1,FD_VOID));
   fd_defn(module,fd_make_cprim1x("IXSERVER-SIZES",ixserver_sizes,1,
-				 -1,FD_VOID));
+                                 -1,FD_VOID));
   fd_defn(module,fd_make_cprim1x("IXSERVER-WRITABLE?",ixserver_writablep,1,
-				 -1,FD_VOID));
+                                 -1,FD_VOID));
   fd_defn(module,fd_make_cprim3("IXSERVER-CHANGES",ixserver_changes,3));
 
   fd_defn(module,fd_make_cprim0("GET-SYNCSTAMP",get_syncstamp_prim,0));
@@ -878,21 +878,21 @@ void fd_init_dbserv_c()
 
 
   fd_register_config("SERVEPOOLS","OID pools to be served",
-		     get_served_pools,
-		     serve_pool,
-		     NULL);
+                     get_served_pools,
+                     serve_pool,
+                     NULL);
   fd_register_config("PRIMARYPOOL","OID pool where new OIDs are allocated",
-		     get_primary_pool,
-		     serve_primary_pool,
-		     NULL);
+                     get_primary_pool,
+                     serve_primary_pool,
+                     NULL);
   fd_register_config("SERVEINDICES","indices to be served",
-		     get_served_indices,
-		     serve_index,
-		     NULL);
+                     get_served_indices,
+                     serve_index,
+                     NULL);
   fd_register_config("LOCKSFILE","location of the persistent locks file",
-		     config_get_locksfile,
-		     config_set_locksfile,
-		     NULL);
+                     config_get_locksfile,
+                     config_set_locksfile,
+                     NULL);
 
   primary_index=(fd_compound_index)fd_make_compound_index(0,NULL);
 

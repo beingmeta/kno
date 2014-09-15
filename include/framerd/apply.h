@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -42,15 +42,15 @@ typedef fdtype (*fd_xprim2)(fd_function,fdtype,fdtype);
 typedef fdtype (*fd_xprim3)(fd_function,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_xprim4)(fd_function,fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_xprim5)(fd_function,
-			    fdtype,fdtype,fdtype,fdtype,fdtype);
+                            fdtype,fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_xprim6)(fd_function,fdtype,fdtype,
-			    fdtype,fdtype,fdtype,fdtype);
+                            fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_xprim7)(fd_function,fdtype,fdtype,
-			    fdtype,fdtype,fdtype,fdtype,fdtype);
+                            fdtype,fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_xprim8)(fd_function,fdtype,fdtype,
-			    fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
+                            fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_xprim9)(fd_function,fdtype,fdtype,
-			    fdtype,fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
+                            fdtype,fdtype,fdtype,fdtype,fdtype,fdtype,fdtype);
 typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
 
 #define FD_FUNCTION_FIELDS \
@@ -61,12 +61,12 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
   union {                                                               \
     fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                  \
     fd_cprim3 call3; fd_cprim4 call4; fd_cprim5 call5;                  \
-    fd_cprim6 call6; fd_cprim7 call7; fd_cprim8 call8;			\
-    fd_cprim9 call9; fd_cprimn calln;	                                \
+    fd_cprim6 call6; fd_cprim7 call7; fd_cprim8 call8;                  \
+    fd_cprim9 call9; fd_cprimn calln;                                   \
     fd_xprim0 xcall0; fd_xprim1 xcall1; fd_xprim2 xcall2;               \
     fd_xprim3 xcall3; fd_xprim4 xcall4; fd_xprim5 xcall5;               \
     fd_xprim6 xcall6; fd_xprim7 xcall7; fd_xprim8 xcall8;               \
-    fd_xprim9 xcall9; fd_xprimn xcalln;					\
+    fd_xprim9 xcall9; fd_xprimn xcalln;                                 \
     void *fnptr;}                                                       \
   handler
 
@@ -196,4 +196,3 @@ FD_EXPORT void fd_profile_return(u8_string name);
 #endif
 
 #endif /* FRAMERD_APPLY_H */
-

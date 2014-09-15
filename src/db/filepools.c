@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -85,8 +85,8 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
       fd_decref(label);}
     else {
       fd_seterr(fd_BadFilePoolLabel,"open_std_file_pool",
-		u8_strdup("bad label loc"),
-		FD_INT2DTYPE(label_loc));
+                u8_strdup("bad label loc"),
+                FD_INT2DTYPE(label_loc));
       fd_dtsclose(&(pool->stream),1);
       u8_free(rname); u8_free(pool);
       return NULL;}}
@@ -117,8 +117,8 @@ static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
       /* Make sure we're up to date. */
       if (fp->offsets) reload_file_pool_cache(fp,0);
       else {
-	fd_reset_hashtable(&(fp->cache),-1,1);
-	fd_reset_hashtable(&(fp->locks),32,1);}}
+        fd_reset_hashtable(&(fp->cache),-1,1);
+        fd_reset_hashtable(&(fp->locks),32,1);}}
     if (use_mutex) fd_unlock_struct(fp);
     return 1;}
 }
@@ -207,21 +207,21 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
       fdtype oid=oids[i]; FD_OID addr=FD_OID_ADDR(oid);
       unsigned int off=FD_OID_DIFFERENCE(addr,base), file_off;
       if (FD_EXPECT_FALSE(off>=load)) {
-	u8_free(result); u8_free(schedule);
-	fd_unlock_struct(fp);
-	fd_seterr(fd_UnallocatedOID,"file_pool_fetchn",u8_strdup(fp->cid),oid);
-	return NULL;}
+        u8_free(result); u8_free(schedule);
+        fd_unlock_struct(fp);
+        fd_seterr(fd_UnallocatedOID,"file_pool_fetchn",u8_strdup(fp->cid),oid);
+        return NULL;}
       file_off=offget(offsets,off);
       schedule[i].vpos=i;
-      if (file_off==0) 
-	schedule[i].filepos=file_off;
+      if (file_off==0)
+        schedule[i].filepos=file_off;
       else if (FD_EXPECT_FALSE(file_off<min_file_pos)) {
-	/* As above, we have a data pointer into the header.
-	   This should never happen unless a file is corrupted. */
-	u8_free(result); u8_free(schedule);
-	fd_unlock_struct(fp);
-	fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->cid),oid);
-	return NULL;}
+        /* As above, we have a data pointer into the header.
+           This should never happen unless a file is corrupted. */
+        u8_free(result); u8_free(schedule);
+        fd_unlock_struct(fp);
+        fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->cid),oid);
+        return NULL;}
       else schedule[i].filepos=file_off;
       i++;}}
   else {
@@ -230,39 +230,39 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
       unsigned int off=FD_OID_DIFFERENCE(addr,base), file_off;
       schedule[i].vpos=i;
       if (fd_setpos(stream,24+4*off)<0) {
-	u8_free(schedule);
-	u8_free(result);
-	fd_unlock_struct(fp);
-	return NULL;}
+        u8_free(schedule);
+        u8_free(result);
+        fd_unlock_struct(fp);
+        return NULL;}
       file_off=fd_dtsread_4bytes(stream);
       if (FD_EXPECT_FALSE(file_off==0))
-	/* This is okay, just an allocated but unassigned OID. */
-	schedule[i].filepos=file_off;
+        /* This is okay, just an allocated but unassigned OID. */
+        schedule[i].filepos=file_off;
       else if (FD_EXPECT_FALSE(file_off<min_file_pos)) {
-	/* As above, we have a data pointer into the header.
-	   This should never happen unless a file is corrupted. */
-	u8_free(result); u8_free(schedule);
-	fd_unlock_struct(fp);
-	fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->cid),oid);
-	return NULL;}
+        /* As above, we have a data pointer into the header.
+           This should never happen unless a file is corrupted. */
+        u8_free(result); u8_free(schedule);
+        fd_unlock_struct(fp);
+        fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->cid),oid);
+        return NULL;}
       else schedule[i].filepos=file_off;
       i++;}}
   qsort(schedule,n,sizeof(struct POOL_FETCH_SCHEDULE),
-	compare_filepos);
-  i=0; while (i < n) 
+        compare_filepos);
+  i=0; while (i < n)
     if (schedule[i].filepos) {
       if (fd_setpos(stream,schedule[i].filepos)<0) {
-	int j=0; while (j<i) {
-	  fd_decref(result[schedule[j].vpos]); j++;}
-	u8_free(schedule);
-	u8_free(result);
-	fd_unlock_struct(fp);
-	return NULL;}
+        int j=0; while (j<i) {
+          fd_decref(result[schedule[j].vpos]); j++;}
+        u8_free(schedule);
+        u8_free(result);
+        fd_unlock_struct(fp);
+        return NULL;}
       result[schedule[i].vpos]=fd_dtsread_dtype(stream);
       i++;}
     else result[schedule[i++].vpos]=FD_EMPTY_CHOICE;
   u8_free(schedule);
-  fd_unlock_struct(fp);  
+  fd_unlock_struct(fp);
   return result;
 }
 
@@ -289,14 +289,14 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     int delta=fd_dtswrite_dtype(stream,values[i]);
     if (FD_EXPECT_FALSE(oid_off>=load)) {
       fd_seterr(fd_UnallocatedOID,
-		"file_pool_storen",u8_strdup(fp->cid),
-		oids[i]);
+                "file_pool_storen",u8_strdup(fp->cid),
+                oids[i]);
       retcode=-1; break;}
     else if (FD_EXPECT_FALSE(delta<0)) {retcode=-1; break;}
     else if (FD_EXPECT_FALSE(((fd_off_t)(endpos+delta))>pos_limit)) {
       fd_seterr(fd_FileSizeOverflow,
-		"file_pool_storen",u8_strdup(fp->cid),
-		oids[i]);
+                "file_pool_storen",u8_strdup(fp->cid),
+                oids[i]);
       retcode=-1; break;}
     changed_offsets[i]=endpos; endpos=endpos+delta;
     i++;}
@@ -306,8 +306,8 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   else if ((fp->offsets) && ((endpos+((fp->load)*4))>=pos_limit)) {
     /* No space to write the recovery information! */
     fd_seterr(fd_FileSizeOverflow,
-	      "file_pool_storen",u8_strdup(fp->cid),
-	      FD_VOID);
+              "file_pool_storen",u8_strdup(fp->cid),
+              FD_VOID);
     retcode=-1;}
   else if (fp->offsets) {
     int i=0, load=fp->load;
@@ -318,7 +318,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     if (HAVE_MMAP) {
       /* If we're mmapped, the latest values are there. */
       while (i<old_size) {
-	tmp_offsets[i]=offget(old_offsets,i); i++;}
+        tmp_offsets[i]=offget(old_offsets,i); i++;}
       while (i<load) tmp_offsets[i++]=0;}
     else {
       /* Otherwise, we just copy them from the old offsets. */
@@ -343,7 +343,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       FD_OID addr=FD_OID_ADDR(oids[i]);
       unsigned int reloff=FD_OID_DIFFERENCE(addr,base);
       if (fd_setpos(stream,24+4*reloff)<0) {
-	retcode=-1; break;}
+        retcode=-1; break;}
       fd_dtswrite_4bytes(stream,changed_offsets[i]);
       i++;}
     u8_free(changed_offsets);}
@@ -359,13 +359,13 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       fd_off_t end=fd_endpos(stream); int retval;
       fd_setpos(stream,0);
       /* This was overwritten with FD_FILE_POOL_TO_RECOVER by
-	 fd_write_file_pool_recovery_data. */
+         fd_write_file_pool_recovery_data. */
       fd_dtswrite_4bytes(stream,FD_FILE_POOL_MAGIC_NUMBER);
       fd_dtsflush(stream); fsync(stream->fd);
       fd_movepos(stream,-(4*(fp->capacity+1)));
       retval=ftruncate(stream->fd,end-(4*(fp->capacity+1)));
       if (retval<0) {
-	retcode=-1; u8_graberr(errno,"file_pool_storen",fp->cid);}}
+        retcode=-1; u8_graberr(errno,"file_pool_storen",fp->cid);}}
     else fd_dtsflush(stream);
     /* Update the offsets, if you have any */
     if (fp->offsets==NULL) {}
@@ -373,16 +373,16 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       int retval=munmap((fp->offsets)-6,4*old_size+24);
       unsigned int *newmmap;
       if (retval<0) {
-	u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
-	fp->offsets=NULL; errno=0;}
+        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
+        fp->offsets=NULL; errno=0;}
       newmmap=mmap(NULL,(4*fp->load)+24,PROT_READ,
-		   MAP_SHARED|MAP_NORESERVE,stream->fd,0);
+                   MAP_SHARED|MAP_NORESERVE,stream->fd,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-	u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->cid);
-	fp->offsets=NULL; fp->offsets_size=0; errno=0;}
+        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->cid);
+        fp->offsets=NULL; fp->offsets_size=0; errno=0;}
       else {
-	fp->offsets=newmmap+6;
-	fp->offsets_size=fp->load;}
+        fp->offsets=newmmap+6;
+        fp->offsets_size=fp->load;}
       u8_free(tmp_offsets);}
     else {
       u8_free(fp->offsets);
@@ -485,17 +485,17 @@ static void file_pool_setcache(fd_pool p,int level)
       unsigned int *offsets, *newmmap;
       fd_lock_struct(fp);
       if (fp->offsets) {
-	fd_unlock_struct(fp);
-	return;}
+        fd_unlock_struct(fp);
+        return;}
 #if HAVE_MMAP
       newmmap=
-	/* When allocating an offset buffer to read, we only have to make it as
-	   big as the file pools load. */
-	mmap(NULL,(4*fp->load)+24,PROT_READ,
-	     MAP_SHARED|MAP_NORESERVE,s->fd,0);
+        /* When allocating an offset buffer to read, we only have to make it as
+           big as the file pools load. */
+        mmap(NULL,(4*fp->load)+24,PROT_READ,
+             MAP_SHARED|MAP_NORESERVE,s->fd,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-	u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",fp->cid);
-	fp->offsets=NULL; fp->offsets_size=0; errno=0;}
+        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",fp->cid);
+        fp->offsets=NULL; fp->offsets_size=0; errno=0;}
       fp->offsets=offsets=newmmap+6;
       fp->offsets_size=fp->load;
 #else
@@ -515,11 +515,11 @@ static void file_pool_setcache(fd_pool p,int level)
       fd_lock_struct(fp);
 #if HAVE_MMAP
       /* Since we were just reading, the buffer was only as big
-	 as the load, not the capacity. */
+         as the load, not the capacity. */
       retval=munmap((fp->offsets)-6,4*fp->load+24);
       if (retval<0) {
-	u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:munmap %s",fp->cid);
-	fp->offsets=NULL; errno=0;}
+        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:munmap %s",fp->cid);
+        fp->offsets=NULL; errno=0;}
 #else
       u8_free(fp->offsets);
 #endif
@@ -570,7 +570,7 @@ static void file_pool_close(fd_pool p)
       errno=0;}
 #else
     u8_free(fp->offsets);
-#endif 
+#endif
     fp->offsets=NULL; fp->offsets_size=0;
     fp->cache_level=-1;}
   fd_unlock_struct(fp);

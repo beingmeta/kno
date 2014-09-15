@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -234,7 +234,7 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
       fdtype var=fd_get_arg(bindexpr,0);
       fdtype val_expr=fd_get_arg(bindexpr,1);
       fdtype value=fasteval(val_expr,env);
-      if (FD_ABORTP(value)) 
+      if (FD_ABORTP(value))
         return return_error_env(value,":LET",inner_env);
       else {
         vars[i]=var; vals[i]=value; i++;}}}
@@ -271,7 +271,7 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
       fdtype var=fd_get_arg(bindexpr,0);
       fdtype val_expr=fd_get_arg(bindexpr,1);
       fdtype value=fasteval(val_expr,inner_env);
-      if (FD_ABORTP(value)) 
+      if (FD_ABORTP(value))
         return return_error_env(value,":LET*",inner_env);
       else if (inner_env->copy) {
         fd_bind_value(var,value,inner_env->copy);
@@ -416,9 +416,9 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
           vals[i]=fd_incref(val);
         else vals[i]=val;
         i++;}}
-    else if (n<fn->min_arity) 
+    else if (n<fn->min_arity)
       return fd_err(fd_TooFewArgs,fn->name,NULL,FD_VOID);
-    else if (n>fn->arity) 
+    else if (n>fn->arity)
       return fd_err(fd_TooManyArgs,fn->name,NULL,FD_VOID);
     else {
       /* This code handles argument defaults for sprocs */
@@ -479,7 +479,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   result=eval_body(":SPROC",fn->body,0,&envstruct);
   if (fn->synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
-  else if ((FD_ABORTP(result)) && (fn->filename)) 
+  else if ((FD_ABORTP(result)) && (fn->filename))
     u8_current_exception->u8x_details=sproc_id(fn);
   else if ((FD_ABORTP(result)) && (fn->name))
     u8_current_exception->u8x_details=u8_strdup(fn->name);
@@ -520,7 +520,7 @@ static fdtype make_sproc(u8_string name,
     n_vars++; s->n_vars=n_vars; s->arity=-1;}
   s->min_arity=min_args; s->xprim=1; s->ndprim=nd;
   s->handler.fnptr=NULL;
-  s->typeinfo=NULL; 
+  s->typeinfo=NULL;
   if (n_vars)
     s->schema=u8_alloc_n((n_vars+1),fdtype);
   else s->schema=NULL;
@@ -624,7 +624,7 @@ FD_EXPORT void recycle_macro(struct FD_CONS *c)
 static int unparse_macro(u8_output out,fdtype x)
 {
   struct FD_MACRO *mproc=FD_GET_CONS(x,fd_macro_type,struct FD_MACRO *);
-  if (mproc->name) 
+  if (mproc->name)
     u8_printf(out,"#<MACRO %s #!%x>",
               mproc->name,(unsigned long)mproc);
   else u8_printf(out,"#<MACRO #!%x>",(unsigned long)mproc);
@@ -924,7 +924,7 @@ fdtype fd_xapply_sproc
   result=eval_body(":XPROC",fn->body,0,&envstruct);
   if (fn->synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
-  else if ((FD_ABORTP(result)) && (fn->filename)) 
+  else if ((FD_ABORTP(result)) && (fn->filename))
     u8_current_exception->u8x_details=sproc_id(fn);
   /* If we're synchronized, unlock the mutex. */
   if (fn->synchronized) fd_unlock_struct(fn);
@@ -958,10 +958,10 @@ static fdtype xapply_prim(fdtype proc,fdtype obj)
 struct IPEVAL_BINDSTRUCT {
   int n_bindings; fdtype *vals;
   fdtype valexprs; fd_lispenv env;};
-  
+
 static int ipeval_let_step(struct IPEVAL_BINDSTRUCT *bs)
 {
-  int i=0, n=bs->n_bindings; 
+  int i=0, n=bs->n_bindings;
   fdtype *bindings=bs->vals, scan=bs->valexprs;
   fd_lispenv env=bs->env;
   while (i<n) {

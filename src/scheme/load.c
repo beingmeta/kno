@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -115,9 +115,9 @@ FD_EXPORT fdtype fd_load_source
   double start=u8_elapsed_time();
   if (content==NULL) return FD_ERROR_VALUE;
   else outer_sourcebase=bind_sourcebase(sourcebase);
-  if ((trace_load) || (trace_load_eval)) 
+  if ((trace_load) || (trace_load_eval))
     u8_log(LOG_NOTICE,FileLoad,
-	   "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
+           "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
   if ((input[0]=='#') && (input[1]=='!')) input=strchr(input,'\n');
   U8_INIT_STRING_INPUT((&stream),-1,input);
   {
@@ -128,9 +128,9 @@ FD_EXPORT fdtype fd_load_source
     while (!((FD_ABORTP(expr)) || (FD_EOFP(expr)))) {
       fd_decref(result);
       if ((trace_load_eval) ||
-	  (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE))) {
-	u8_log(LOG_NOTICE,LoadEval,"From %s, evaluating %q",sourcebase,expr);
-	start_time=u8_elapsed_time();}
+          (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE))) {
+        u8_log(LOG_NOTICE,LoadEval,"From %s, evaluating %q",sourcebase,expr);
+        start_time=u8_elapsed_time();}
       else start_time=-1.0;
       result=fd_eval(expr,env);
       if (FD_ABORTP(result)) {
@@ -140,16 +140,16 @@ FD_EXPORT fdtype fd_load_source
                  "Error in %s while evaluating %q",sourcebase,expr);
           record_error_source(sourceid);}
         restore_sourcebase(outer_sourcebase);
-	u8_free(sourcebase);
-	u8_free(content);
-	fd_decref(last_expr); last_expr=FD_VOID;
+        u8_free(sourcebase);
+        u8_free(content);
+        fd_decref(last_expr); last_expr=FD_VOID;
         fd_decref(expr);
-	return result;}
+        return result;}
       else if ((trace_load_eval) ||
-	       (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE))) {
-	if (start_time>0)
-	  u8_log(LOG_NOTICE,LoadEval,"Took %fs to evaluate %q",
-		 u8_elapsed_time()-start_time,expr);}
+               (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE))) {
+        if (start_time>0)
+          u8_log(LOG_NOTICE,LoadEval,"Took %fs to evaluate %q",
+                 u8_elapsed_time()-start_time,expr);}
       else {}
       fd_decref(last_expr); last_expr=expr;
       expr=fd_parse_expr(&stream);}
@@ -157,7 +157,7 @@ FD_EXPORT fdtype fd_load_source
       fd_decref(last_expr); last_expr=FD_VOID;}
     else if (FD_TROUBLEP(expr)) {
       fd_seterr(NULL,"fd_parse_expr",u8_strdup("just after"),
-		last_expr);
+                last_expr);
       record_error_source(sourceid);
       fd_decref(result); /* This is the previous result */
       fd_decref(last_expr); last_expr=FD_VOID;
@@ -167,7 +167,7 @@ FD_EXPORT fdtype fd_load_source
       result=expr; fd_incref(expr); expr=FD_VOID;}
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_NOTICE,FileDone,"Loaded %s in %f seconds",
-	     sourcebase,u8_elapsed_time()-start);
+             sourcebase,u8_elapsed_time()-start);
     postload=fd_symeval(postload_symbol,env);
     if ((!(FD_ABORTP(result)))&&(!(FD_VOIDP(postload)))) {
       if ((FD_FALSEP(postload))||(FD_EMPTY_CHOICEP(postload))) {}
@@ -280,9 +280,9 @@ static fdtype load_source(fdtype expr,fd_lispenv env)
     return fd_type_error("filename","LOAD",source);
   encval=fd_eval(encname_expr,env);
   if (FD_VOIDP(encval)) encname="auto";
-  else if (FD_STRINGP(encval)) 
+  else if (FD_STRINGP(encval))
     encname=FD_STRDATA(encval);
-  else if (FD_SYMBOLP(encval)) 
+  else if (FD_SYMBOLP(encval))
     encname=FD_SYMBOL_NAME(encval);
   else encname=NULL;
   while (!(FD_HASHTABLEP(env->bindings))) env=env->parent;
@@ -305,9 +305,9 @@ static fdtype load_component(fdtype expr,fd_lispenv env)
     return fd_type_error("filename","LOAD-COMPONENT",source);
   encval=fd_eval(encname_expr,env);
   if (FD_VOIDP(encval)) encname="auto";
-  else if (FD_STRINGP(encval)) 
+  else if (FD_STRINGP(encval))
     encname=FD_STRDATA(encval);
-  else if (FD_SYMBOLP(encval)) 
+  else if (FD_SYMBOLP(encval))
     encname=FD_SYMBOL_NAME(encval);
   else encname=NULL;
   while (!(FD_HASHTABLEP(env->bindings))) env=env->parent;
@@ -343,7 +343,7 @@ static fdtype lisp_load_config(fdtype arg)
     u8_string abspath=u8_abspath(FD_STRDATA(arg),NULL);
     int retval=fd_load_config(abspath);
     u8_free(abspath);
-    if (retval<0) 
+    if (retval<0)
       return FD_ERROR_VALUE;
     else return FD_INT2DTYPE(retval);}
   else if (FD_SYMBOLP(arg)) {
@@ -391,9 +391,9 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
     fd_lock_mutex(&config_file_lock);
     scan=config_stack; while (scan) {
       if (strcmp(scan->source,pathname)==0) {
-	fd_unlock_mutex(&config_file_lock);
-	u8_free(pathname);
-	return 0;}
+        fd_unlock_mutex(&config_file_lock);
+        u8_free(pathname);
+        return 0;}
       else scan=scan->next;}
     memset(&on_stack,0,sizeof(struct FD_CONFIG_RECORD));
     on_stack.source=pathname;
@@ -436,26 +436,26 @@ FD_EXPORT void fd_init_load_c()
  traceloadeval_symbol=fd_intern("%TRACELOADEVAL");
  postload_symbol=fd_intern("%POSTLOAD");
 
- 
+
  fd_defspecial(fd_xscheme_module,"LOAD",load_source);
  fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component);
- 
+
  fd_idefn(fd_scheme_module,
-	  fd_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
-			  -1,FD_VOID));
+          fd_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
+                          -1,FD_VOID));
  fd_idefn(fd_scheme_module,
-	  fd_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
-			  fd_string_type,FD_VOID,
-			  fd_string_type,FD_VOID));
+          fd_make_cprim2x("GET-COMPONENT",lisp_get_component,1,
+                          fd_string_type,FD_VOID,
+                          fd_string_type,FD_VOID));
  fd_idefn(fd_scheme_module,
-	  fd_make_cprim0("GET-SOURCE",lisp_get_source,0));
- 
+          fd_make_cprim0("GET-SOURCE",lisp_get_source,0));
+
  fd_register_config("CONFIG","Add a CONFIG file or URI to process",
-		    get_config_files,add_config_file,NULL);
+                    get_config_files,add_config_file,NULL);
  fd_register_config("TRACELOAD","Trace file load starts and ends",
-		    fd_boolconfig_get,fd_boolconfig_set,&trace_load);
+                    fd_boolconfig_get,fd_boolconfig_set,&trace_load);
  fd_register_config("TRACELOADEVAL","Trace expressions while loading files",
-		    fd_boolconfig_get,fd_boolconfig_set,&trace_load_eval);
+                    fd_boolconfig_get,fd_boolconfig_set,&trace_load_eval);
 }
 
 

@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -72,18 +72,18 @@ int main(int argc,char **argv)
   inputv=u8_alloc_n(argc,fdtype);
   starttime=get_elapsed();
   while (i < argc)
-    if (strchr(argv[i],'=')) 
+    if (strchr(argv[i],'='))
       fd_config_assignment(argv[i++]);
-    else if (output_file==NULL) 
+    else if (output_file==NULL)
       output_file=argv[i++];
     else {
       fdtype item=read_choice(argv[i]);
       if (FD_ABORTP(item)) {
-	if (!(FD_THROWP(item)))
-	  u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
-	return -1;}
+        if (!(FD_THROWP(item)))
+          u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
+        return -1;}
       u8_fprintf(stderr,"Read %d items from %s\n",
-		 FD_CHOICE_SIZE(item),argv[i]);
+                 FD_CHOICE_SIZE(item),argv[i]);
       inputv[n_inputs++]=item; i++;}
   i=0; while (i < n_inputs) {
     fdtype item=inputv[i++];
@@ -93,9 +93,9 @@ int main(int argc,char **argv)
   donetime=get_elapsed();
   write_dtype_to_file(combined_inputs,"union.dtype");
   fprintf(stderr,
-	  "CHOICE_SIZE(combined_inputs)=%d; read time=%f; run time=%f\n",
-	  fd_choice_size(scombined_inputs),
-	  inputtime-starttime,donetime-inputtime);
+          "CHOICE_SIZE(combined_inputs)=%d; read time=%f; run time=%f\n",
+          fd_choice_size(scombined_inputs),
+          inputtime-starttime,donetime-inputtime);
   if ((output_file[0]=='-') && (output_file[1]=='b')) write_binary=1;
   else f=fopen(output_file,"w");
   if (write_binary)
@@ -112,5 +112,3 @@ int main(int argc,char **argv)
   if (f) fclose(f);
   exit(0);
 }
-
-

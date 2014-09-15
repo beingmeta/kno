@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -68,23 +68,23 @@ int main(int argc,char **argv)
   double starttime, inputtime, donetime;
   FD_DO_LIBINIT(fd_init_dtypelib);
   starttime=get_elapsed();
-  while (i < argc) 
-    if (strchr(argv[i],'=')) 
+  while (i < argc)
+    if (strchr(argv[i],'='))
       fd_config_assignment(argv[i++]);
     else {
       fdtype item=read_choice(argv[i]);
       if (FD_ABORTP(item)) {
-	if (!(FD_THROWP(item)))
-	  u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
-	return -1;}
+        if (!(FD_THROWP(item)))
+          u8_fprintf(stderr,"Trouble reading %s: %q\n",argv[i],item);
+        return -1;}
       u8_fprintf(stderr,"Read %d items from %s\n",FD_CHOICE_SIZE(item),argv[i]);
       args[j++]=item; i++;}
   inputtime=get_elapsed();
   common=fd_intersection(args,j);
   donetime=get_elapsed();
   u8_fprintf(stderr,"CHOICE_SIZE(common)=%d read time=%f; run time=%f\n",
-	     FD_CHOICE_SIZE(common),
-	     inputtime-starttime,donetime-inputtime);
+             FD_CHOICE_SIZE(common),
+             inputtime-starttime,donetime-inputtime);
   write_dtype_to_file(common,"intersection.dtype");
   if ((argv[1][0]=='-') && (argv[1][1]=='b')) write_binary=1;
   else f=fopen(argv[1],"w");

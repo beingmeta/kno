@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -59,7 +59,7 @@ static void identify_application(int argc,char **argv,char *dflt)
       if (start==NULL) start=argv[1];
       if (((*start)=='/') || ((*start)=='\\')) start++;
       if ((*start=='\0') || (argv[i][0]=='/') || (argv[i][0]=='\\'))
-	start=argv[1];
+        start=argv[1];
       copy=u8_strdup(start); dot=strchr(copy,'.');
       if (dot) *dot='\0';
       slash=strrchr(copy,'/');
@@ -80,22 +80,22 @@ static fdtype chain_prim(int n,fdtype *args)
     int i=0, cargc=0;
     /* This stream will contain the chaining message */
     struct U8_OUTPUT argstring;
-    char **cargv=u8_alloc_n(n+n_configs+3,charp); 
+    char **cargv=u8_alloc_n(n+n_configs+3,charp);
     U8_INIT_OUTPUT(&argstring,512);
     cargv[cargc++]=exe_arg;
     cargv[cargc++]=file_arg;
     i=0; while (i<n)
       if (FD_STRINGP(args[i])) {
-	u8_printf(&argstring," %s",FD_STRDATA(args[i]));
-	cargv[cargc]=u8_tolibc(FD_STRDATA(args[i]));
-	i++; cargc++;}
+        u8_printf(&argstring," %s",FD_STRDATA(args[i]));
+        cargv[cargc]=u8_tolibc(FD_STRDATA(args[i]));
+        i++; cargc++;}
       else {
-	u8_string as_string=fd_dtype2string(args[i]);
-	char *libc_string=u8_tolibc(as_string);
-	u8_printf(&argstring," %s",as_string);
-	u8_free(as_string);
-	cargv[cargc]=libc_string;
-	i++; cargc++;}
+        u8_string as_string=fd_dtype2string(args[i]);
+        char *libc_string=u8_tolibc(as_string);
+        u8_printf(&argstring," %s",as_string);
+        u8_free(as_string);
+        cargv[cargc]=libc_string;
+        i++; cargc++;}
     i=0; while (i<n_configs) {
       u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
       cargv[cargc++]=configs[i++];}
@@ -105,7 +105,7 @@ static fdtype chain_prim(int n,fdtype *args)
     fd_close_pools();
     fd_close_indices();
     u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",
-	   exe_arg,u8_fromlibc(file_arg),argstring.u8_outbuf);
+           exe_arg,u8_fromlibc(file_arg),argstring.u8_outbuf);
     u8_free(argstring.u8_outbuf);
     return execvp(exe_arg,cargv);}
 }
@@ -176,20 +176,20 @@ int main(int argc,char **argv)
   if (wait_for_file) {
     if (u8_file_existsp(wait_for_file))
       u8_log(LOG_NOTICE,FileWait,"Starting now because '%s' exists",
-	     wait_for_file);
+             wait_for_file);
     else {
       int n=0;
       u8_log(LOG_NOTICE,FileWait,"Waiting for '%s' to exist",
-	     wait_for_file);
+             wait_for_file);
       while (1) {
-	n++; if (n<15) sleep(n); else sleep(15);
-	if (u8_file_existsp(wait_for_file)) {
-	  u8_log(LOG_NOTICE,FileWait,"[%d] Starting now because '%s' exists",
-		 n,wait_for_file);
-	  break;}
-	else if ((n<15) ? ((n%4)==0) : ((n%20)==0))
-	  u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",
-		 n,wait_for_file);}}}
+        n++; if (n<15) sleep(n); else sleep(15);
+        if (u8_file_existsp(wait_for_file)) {
+          u8_log(LOG_NOTICE,FileWait,"[%d] Starting now because '%s' exists",
+                 n,wait_for_file);
+          break;}
+        else if ((n<15) ? ((n%4)==0) : ((n%20)==0))
+          u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",
+                 n,wait_for_file);}}}
 
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   while (i<argc)
@@ -218,7 +218,7 @@ int main(int argc,char **argv)
     source_file=NULL;}
   else {
     fprintf(stderr,
-	    "Usage: fdexec [conf=val]* source_file (arg | [conf=val])*\n");
+            "Usage: fdexec [conf=val]* source_file (arg | [conf=val])*\n");
     return 1;}
 
   if (!(quiet_start)) {
@@ -229,8 +229,8 @@ int main(int argc,char **argv)
       startup_time=startup_time*1000; units="ms";}
     else {startup_time=startup_time*1000000; units="ms";}
     u8_message("FramerD %s booted in %0.3f%s, %d/%d pools/indices",
-	       u8_appid(),startup_time,units,fd_n_pools,
-	       fd_n_primary_indices+fd_n_secondary_indices);}
+               u8_appid(),startup_time,units,fd_n_pools,
+               fd_n_primary_indices+fd_n_secondary_indices);}
 
   if (!(FD_ABORTP(result))) {
     main_proc=fd_symeval(fd_intern("MAIN"),env);

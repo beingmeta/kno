@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -110,8 +110,8 @@ static void kill_dependent_onsignal(int sig){
   pid_t dep=dependent; dependent=-1;
   if (dep>0)
     u8_log(LOG_WARN,"FDServer/signal",
-	   "FDServer controller %d got signal %d, passing to %d",
-	   getpid(),sig,dep);
+           "FDServer controller %d got signal %d, passing to %d",
+           getpid(),sig,dep);
   if (dep>0) kill(dep,sig);
   if (u8_file_existsp(ppid_file)) {
     u8_removefile(ppid_file);
@@ -137,9 +137,9 @@ static int set_logfile(u8_string logfile,int exitonfail)
     if (exitonfail) exit(1);
     u8_seterr(LogFileError,"set_logfile",u8_strdup(logfile));
     return -1;}
-  else if ((log_filename)&&((strcmp(logfile,log_filename))!=0)) 
+  else if ((log_filename)&&((strcmp(logfile,log_filename))!=0))
     u8_log(LOG_WARN,"Config","Changing log file to %s from %s",
-	   logfile,log_filename);
+           logfile,log_filename);
   else u8_log(LOG_WARN,"Config","Using log file %s",logfile);
   dup2(new_fd,1);
   dup2(new_fd,2);
@@ -181,7 +181,7 @@ static int config_set_logfile(fdtype var,fdtype val,void *state)
     specify "port@host".  This can be especially useful to make sure
     the server is listening on localhost (e.g. port@localhost) which
     is often not aliased to the hostname. */
-   
+
 static int n_ports=0;
 
 static int config_serve_port(fdtype var,fdtype val,void MAYBE_UNUSED *data)
@@ -248,15 +248,15 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
     int bool=fd_boolstring(FD_STRDATA(val),-1);
     if (bool<0) {
       int guess=(((s[0]=='y')||(s[0]=='Y'))?(1):
-		 ((s[0]=='N')||(s[0]=='n'))?(0):
-		 (-1));
+                 ((s[0]=='N')||(s[0]=='n'))?(0):
+                 (-1));
       if (guess<0) {
-	u8_log(LOG_WARN,"SERVERFLAG","Unknown boolean setting %s",s);
-	fd_unlock_mutex(&init_server_lock);
-	return fd_reterr(fd_TypeError,"setserverflag","boolean value",val);}
+        u8_log(LOG_WARN,"SERVERFLAG","Unknown boolean setting %s",s);
+        fd_unlock_mutex(&init_server_lock);
+        return fd_reterr(fd_TypeError,"setserverflag","boolean value",val);}
       else u8_log(LOG_WARN,"SERVERFLAG",
-		  "Unfamiliar boolean setting %s, assuming %s",
-		  s,((guess)?("true"):("false")));
+                  "Unfamiliar boolean setting %s, assuming %s",
+                  s,((guess)?("true"):("false")));
       if (!(guess<0)) bool=guess;}
     if (bool) *flagsp=flags|mask;
     else *flagsp=flags&(~(mask));}
@@ -269,7 +269,7 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
    or only explicitly exported functions.  Note that even if they have
    a full scheme interpreter, they still only have access to "safe" functions,
    and can't access the filesystem, network, etc. */
-   
+
 static int fullscheme=0;
 
 static int config_set_fullscheme(fdtype var,fdtype val,void MAYBE_UNUSED *data)
@@ -319,11 +319,11 @@ typedef struct FD_CLIENT *fd_client;
 
 /* This creates the client structure when called by the server loop. */
 static u8_client simply_accept(u8_server srv,u8_socket sock,
-			       struct sockaddr *addr,size_t len)
+                               struct sockaddr *addr,size_t len)
 {
   fd_client client=(fd_client)
     u8_client_init(NULL,sizeof(FD_CLIENT),
-		   addr,len,sock,srv);
+                   addr,len,sock,srv);
   fd_init_dtype_stream(&(client->stream),sock,4096);
   /* To help debugging, move the client->idstring (libu8)
      into the stream's id (fdb). */
@@ -347,9 +347,9 @@ static int dtypeserver(u8_client ucl)
   fd_dtype_stream stream=&(client->stream);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
   if (auto_reload) fd_update_file_modules(0);
-  if ((client->reading>0)&&(u8_client_finished(ucl))) { 
+  if ((client->reading>0)&&(u8_client_finished(ucl))) {
     expr=fd_dtsread_dtype(stream);}
-  else if ((client->writing>0)&&(u8_client_finished(ucl))) { 
+  else if ((client->writing>0)&&(u8_client_finished(ucl))) {
     /* Reset the stream */
     stream->ptr=stream->start;
     /* Update the stream if we were doing asynchronous I/O */
@@ -368,14 +368,14 @@ static int dtypeserver(u8_client ucl)
       int MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
       int nbytes=fd_dtsread_4bytes(stream);
       if (fd_has_bytes(stream,nbytes))
-	expr=fd_dtsread_dtype(stream);
+        expr=fd_dtsread_dtype(stream);
       else {
-	/* Allocate enough space */
-	fd_needs_space((struct FD_BYTE_OUTPUT *)(stream),nbytes);
-	/* Set up the client for async input */
-	if (u8_client_read(ucl,stream->start,nbytes,stream->end-stream->start))
-	  expr=fd_dtsread_dtype(stream);
-	else return 1;}}
+        /* Allocate enough space */
+        fd_needs_space((struct FD_BYTE_OUTPUT *)(stream),nbytes);
+        /* Set up the client for async input */
+        if (u8_client_read(ucl,stream->start,nbytes,stream->end-stream->start))
+          expr=fd_dtsread_dtype(stream);
+        else return 1;}}
     else expr=fd_dtsread_dtype(stream);}
   else expr=fd_dtsread_dtype(stream);
   fd_reset_threadvars();
@@ -384,71 +384,71 @@ static int dtypeserver(u8_client ucl)
     return 0;}
   else if (FD_ABORTP(expr)) {
     u8_log(LOG_ERR,BadRequest,
-	   "%s[%d]: Received bad request %q",
-	   client->idstring,client->n_trans,expr);
+           "%s[%d]: Received bad request %q",
+           client->idstring,client->n_trans,expr);
     fd_clear_errors(1);
     u8_client_close(ucl);
     return -1;}
   else {
     fdtype value;
     int tracethis=((logtrans) &&
-		   ((client->n_trans==1) ||
-		    (((client->n_trans)%logtrans)==0)));
+                   ((client->n_trans==1) ||
+                    (((client->n_trans)%logtrans)==0)));
     int trans_id=client->n_trans, sock=client->socket;
     double xstart=(u8_elapsed_time()), elapsed=-1.0;
     if (logeval)
       u8_log(LOG_INFO,Incoming,"%s[%d/%d]: > %q",
-	     client->idstring,sock,trans_id,expr);
+             client->idstring,sock,trans_id,expr);
     else if (logtrans)
       u8_log(LOG_INFO,Incoming,
-	     "%s[%d/%d]: Received request for execution",
-	     client->idstring,sock,trans_id);
+             "%s[%d/%d]: Received request for execution",
+             client->idstring,sock,trans_id);
     value=fd_eval(expr,client->env);
     elapsed=u8_elapsed_time()-xstart;
     if (FD_ABORTP(value)) {
       u8_exception ex=u8_erreify(), root=u8_exception_root(ex);
       fdtype irritant=fd_exception_xdata(root);
       if ((logeval) || (logerrs) || (tracethis)) {
-	if ((root->u8x_details) && (!(FD_VOIDP(irritant))))
-	  u8_log(LOG_ERR,Outgoing,
-		 "%s[%d/%d]: %m@%s (%s) %q returned in %fs",
-		 client->idstring,sock,trans_id,
-		 root->u8x_cond,root->u8x_context,
-		 root->u8x_details,irritant,
-		 elapsed);
-	else if (root->u8x_details)
-	  u8_log(LOG_ERR,Outgoing,
-		 "%s[%d/%d]: %m@%s (%s) returned in %fs",
-		 client->idstring,sock,trans_id,
-		 root->u8x_cond,root->u8x_context,root->u8x_details,elapsed);
-      	else if (!(FD_VOIDP(irritant)))
-	  u8_log(LOG_ERR,Outgoing,
-		 "%s[%d/%d]: %m@%s -- %q returned in %fs",
-		 client->idstring,sock,trans_id,
-		 root->u8x_cond,root->u8x_context,irritant,elapsed);
-	else u8_log(LOG_ERR,Outgoing,
-		    "%s[%d/%d]: %m@%s -- %q returned in %fs",
-		    client->idstring,sock,trans_id,
-		    root->u8x_cond,root->u8x_context,elapsed);
-	if (logbacktrace) {
-	  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
-	  out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
-	  fd_print_backtrace(&out,ex,120);
-	  u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
-	  if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
-	    u8_free(out.u8_outbuf);}}
+        if ((root->u8x_details) && (!(FD_VOIDP(irritant))))
+          u8_log(LOG_ERR,Outgoing,
+                 "%s[%d/%d]: %m@%s (%s) %q returned in %fs",
+                 client->idstring,sock,trans_id,
+                 root->u8x_cond,root->u8x_context,
+                 root->u8x_details,irritant,
+                 elapsed);
+        else if (root->u8x_details)
+          u8_log(LOG_ERR,Outgoing,
+                 "%s[%d/%d]: %m@%s (%s) returned in %fs",
+                 client->idstring,sock,trans_id,
+                 root->u8x_cond,root->u8x_context,root->u8x_details,elapsed);
+        else if (!(FD_VOIDP(irritant)))
+          u8_log(LOG_ERR,Outgoing,
+                 "%s[%d/%d]: %m@%s -- %q returned in %fs",
+                 client->idstring,sock,trans_id,
+                 root->u8x_cond,root->u8x_context,irritant,elapsed);
+        else u8_log(LOG_ERR,Outgoing,
+                    "%s[%d/%d]: %m@%s -- %q returned in %fs",
+                    client->idstring,sock,trans_id,
+                    root->u8x_cond,root->u8x_context,elapsed);
+        if (logbacktrace) {
+          struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
+          out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+          fd_print_backtrace(&out,ex,120);
+          u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
+          if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
+            u8_free(out.u8_outbuf);}}
       value=fd_make_exception
-	(ex->u8x_cond,ex->u8x_context,
-	 ((ex->u8x_details) ? (u8_strdup(ex->u8x_details)) : (NULL)),
-	 fd_incref(irritant));
+        (ex->u8x_cond,ex->u8x_context,
+         ((ex->u8x_details) ? (u8_strdup(ex->u8x_details)) : (NULL)),
+         fd_incref(irritant));
       u8_free_exception(ex,1);}
     else if (logeval)
       u8_log(LOG_INFO,Outgoing,
-	     "%s[%d/%d]: < %q in %f",
-	     client->idstring,sock,trans_id,value,elapsed);
+             "%s[%d/%d]: < %q in %f",
+             client->idstring,sock,trans_id,value,elapsed);
     else if (tracethis)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Request executed in %fs",
-	     client->idstring,sock,trans_id,elapsed);
+             client->idstring,sock,trans_id,elapsed);
     client->elapsed=client->elapsed+elapsed;
     /* Currently, fd_dtswrite_dtype writes the whole thing at once,
        so we just use that. */
@@ -460,10 +460,10 @@ static int dtypeserver(u8_client ucl)
       fd_dtswrite_4bytes(stream,0);
       nbytes=fd_dtswrite_dtype(stream,value);
       ptr=stream->ptr; {
-	/* Rewind temporarily to write the length information */
-	stream->ptr=stream->start+1;
-	fd_dtswrite_4bytes(stream,nbytes);
-	stream->ptr=ptr;}}
+        /* Rewind temporarily to write the length information */
+        stream->ptr=stream->start+1;
+        fd_dtswrite_4bytes(stream,nbytes);
+        stream->ptr=ptr;}}
     else fd_dtswrite_dtype(stream,value);
     if (async) {
       u8_client_write(ucl,stream->start,stream->ptr-stream->start,0);
@@ -474,7 +474,7 @@ static int dtypeserver(u8_client ucl)
     time(&(client->lastlive));
     if (tracethis)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Response sent after %fs",
-	     client->idstring,sock,trans_id,u8_elapsed_time()-xstart);
+             client->idstring,sock,trans_id,u8_elapsed_time()-xstart);
     fd_decref(expr); fd_decref(value);
     fd_swapcheck();
     return 0;}
@@ -508,7 +508,7 @@ static int config_use_module(fdtype var,fdtype val,void *data)
 {
   fdtype safe_module=fd_find_module(val,1,1), module=safe_module;
   if (FD_VOIDP(module)) {}
-  else if (FD_HASHTABLEP(module)) 
+  else if (FD_HASHTABLEP(module))
     exposed_environment=
       fd_make_env(fd_incref(module),exposed_environment);
   else if (FD_ENVIRONMENTP(module)) {
@@ -516,12 +516,12 @@ static int config_use_module(fdtype var,fdtype val,void *data)
       FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
     if (FD_HASHTABLEP(env->exports))
       exposed_environment=
-	fd_make_env(fd_incref(env->exports),exposed_environment);}
+        fd_make_env(fd_incref(env->exports),exposed_environment);}
   module=fd_find_module(val,0,1);
   if (FD_EQ(module,safe_module))
     if (FD_VOIDP(module)) return 0;
     else return 1;
-  else if (FD_HASHTABLEP(module)) 
+  else if (FD_HASHTABLEP(module))
     exposed_environment=
       fd_make_env(fd_incref(module),exposed_environment);
   else if (FD_ENVIRONMENTP(module)) {
@@ -529,7 +529,7 @@ static int config_use_module(fdtype var,fdtype val,void *data)
       FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
     if (FD_HASHTABLEP(env->exports))
       exposed_environment=
-	fd_make_env(fd_incref(env->exports),exposed_environment);}
+        fd_make_env(fd_incref(env->exports),exposed_environment);}
   module_list=fd_init_pair(NULL,fd_incref(val),module_list);
   return 1;
 }
@@ -546,7 +546,7 @@ static void shutdown_dtypeserver_onsignal(int sig)
   if (FD_APPLICABLEP(shutdown_proc)) {
     fdtype sigval=FD_INT2DTYPE(sig), value;
     u8_log(LOG_WARNING,ServerShutdown,"Calling shutdown procedure %q",
-	   shutdown_proc);
+           shutdown_proc);
     value=fd_apply(shutdown_proc,1,&sigval);
     fd_decref(value);}
   cleanup_state_files();
@@ -562,7 +562,7 @@ static void shutdown_dtypeserver_onexit()
     fdtype shutval, value;
     if (normal_exit) shutval=FD_FALSE; else shutval=FD_TRUE;
     u8_log(LOG_WARN,ServerShutdown,"Calling shutdown procedure %q",
-	   shutdown_proc);
+           shutdown_proc);
     value=fd_apply(shutdown_proc,1,&shutval);
     fd_decref(value);}
   cleanup_state_files();
@@ -605,118 +605,118 @@ static fdtype get_server_status()
 
   if (stats.tcount>0) {
     fd_store(result,fd_intern("TRANSAVG"),
-	     fd_make_double(((double)stats.tsum)/
-			    (((double)stats.tcount))));
+             fd_make_double(((double)stats.tsum)/
+                            (((double)stats.tcount))));
     fd_store(result,fd_intern("TRANSMAX"),FD_INT2DTYPE(stats.tmax));
     fd_store(result,fd_intern("TRANSCOUNT"),FD_INT2DTYPE(stats.tcount));}
 
   if (stats.qcount>0) {
     fd_store(result,fd_intern("QUEUEAVG"),
-	     fd_make_double(((double)stats.qsum)/
-			    (((double)stats.qcount))));
+             fd_make_double(((double)stats.qsum)/
+                            (((double)stats.qcount))));
     fd_store(result,fd_intern("QUEUEMAX"),FD_INT2DTYPE(stats.qmax));
     fd_store(result,fd_intern("QUEUECOUNT"),FD_INT2DTYPE(stats.qcount));}
 
   if (stats.rcount>0) {
     fd_store(result,fd_intern("READAVG"),
-	     fd_make_double(((double)stats.rsum)/
-			    (((double)stats.rcount))));
+             fd_make_double(((double)stats.rsum)/
+                            (((double)stats.rcount))));
     fd_store(result,fd_intern("READMAX"),FD_INT2DTYPE(stats.rmax));
     fd_store(result,fd_intern("READCOUNT"),FD_INT2DTYPE(stats.rcount));}
-  
+
   if (stats.wcount>0) {
     fd_store(result,fd_intern("WRITEAVG"),
-	     fd_make_double(((double)stats.wsum)/
-			    (((double)stats.wcount))));
+             fd_make_double(((double)stats.wsum)/
+                            (((double)stats.wcount))));
     fd_store(result,fd_intern("WRITEMAX"),FD_INT2DTYPE(stats.wmax));
     fd_store(result,fd_intern("WRITECOUNT"),FD_INT2DTYPE(stats.wcount));}
-  
+
   if (stats.xcount>0) {
     fd_store(result,fd_intern("EXECAVG"),
-	     fd_make_double(((double)stats.xsum)/
-			    (((double)stats.xcount))));
+             fd_make_double(((double)stats.xsum)/
+                            (((double)stats.xcount))));
     fd_store(result,fd_intern("EXECMAX"),FD_INT2DTYPE(stats.xmax));
     fd_store(result,fd_intern("EXECCOUNT"),FD_INT2DTYPE(stats.xcount));}
 
   if (livestats.tcount>0) {
     fd_store(result,fd_intern("LIVE/TRANSAVG"),
-	     fd_make_double(((double)livestats.tsum)/
-			    (((double)livestats.tcount))));
+             fd_make_double(((double)livestats.tsum)/
+                            (((double)livestats.tcount))));
     fd_store(result,fd_intern("LIVE/TRANSMAX"),FD_INT2DTYPE(livestats.tmax));
     fd_store(result,fd_intern("LIVE/TRANSCOUNT"),
-	     FD_INT2DTYPE(livestats.tcount));}
+             FD_INT2DTYPE(livestats.tcount));}
 
   if (livestats.qcount>0) {
     fd_store(result,fd_intern("LIVE/QUEUEAVG"),
-	     fd_make_double(((double)livestats.qsum)/
-			    (((double)livestats.qcount))));
+             fd_make_double(((double)livestats.qsum)/
+                            (((double)livestats.qcount))));
     fd_store(result,fd_intern("LIVE/QUEUEMAX"),FD_INT2DTYPE(livestats.qmax));
     fd_store(result,fd_intern("LIVE/QUEUECOUNT"),
-	     FD_INT2DTYPE(livestats.qcount));}
+             FD_INT2DTYPE(livestats.qcount));}
 
   if (livestats.rcount>0) {
     fd_store(result,fd_intern("LIVE/READAVG"),
-	     fd_make_double(((double)livestats.rsum)/
-			    (((double)livestats.rcount))));
+             fd_make_double(((double)livestats.rsum)/
+                            (((double)livestats.rcount))));
     fd_store(result,fd_intern("LIVE/READMAX"),FD_INT2DTYPE(livestats.rmax));
     fd_store(result,fd_intern("LIVE/READCOUNT"),
-	     FD_INT2DTYPE(livestats.rcount));}
-  
+             FD_INT2DTYPE(livestats.rcount));}
+
   if (livestats.wcount>0) {
     fd_store(result,fd_intern("LIVE/WRITEAVG"),
-	     fd_make_double(((double)livestats.wsum)/
-			    (((double)livestats.wcount))));
+             fd_make_double(((double)livestats.wsum)/
+                            (((double)livestats.wcount))));
     fd_store(result,fd_intern("LIVE/WRITEMAX"),FD_INT2DTYPE(livestats.wmax));
     fd_store(result,fd_intern("LIVE/WRITECOUNT"),
-	     FD_INT2DTYPE(livestats.wcount));}
-  
+             FD_INT2DTYPE(livestats.wcount));}
+
   if (livestats.xcount>0) {
     fd_store(result,fd_intern("LIVE/EXECAVG"),
-	     fd_make_double(((double)livestats.xsum)/
-			    (((double)livestats.xcount))));
+             fd_make_double(((double)livestats.xsum)/
+                            (((double)livestats.xcount))));
     fd_store(result,fd_intern("LIVE/EXECMAX"),FD_INT2DTYPE(livestats.xmax));
     fd_store(result,fd_intern("LIVE/EXECCOUNT"),
-	     FD_INT2DTYPE(livestats.xcount));}
+             FD_INT2DTYPE(livestats.xcount));}
 
     if (curstats.tcount>0) {
     fd_store(result,fd_intern("CUR/TRANSAVG"),
-	     fd_make_double(((double)curstats.tsum)/
-			    (((double)curstats.tcount))));
+             fd_make_double(((double)curstats.tsum)/
+                            (((double)curstats.tcount))));
     fd_store(result,fd_intern("CUR/TRANSMAX"),FD_INT2DTYPE(curstats.tmax));
     fd_store(result,fd_intern("CUR/TRANSCOUNT"),
-	     FD_INT2DTYPE(curstats.tcount));}
+             FD_INT2DTYPE(curstats.tcount));}
 
   if (curstats.qcount>0) {
     fd_store(result,fd_intern("CUR/QUEUEAVG"),
-	     fd_make_double(((double)curstats.qsum)/
-			    (((double)curstats.qcount))));
+             fd_make_double(((double)curstats.qsum)/
+                            (((double)curstats.qcount))));
     fd_store(result,fd_intern("CUR/QUEUEMAX"),FD_INT2DTYPE(curstats.qmax));
     fd_store(result,fd_intern("CUR/QUEUECOUNT"),
-	     FD_INT2DTYPE(curstats.qcount));}
+             FD_INT2DTYPE(curstats.qcount));}
 
   if (curstats.rcount>0) {
     fd_store(result,fd_intern("CUR/READAVG"),
-	     fd_make_double(((double)curstats.rsum)/
-			    (((double)curstats.rcount))));
+             fd_make_double(((double)curstats.rsum)/
+                            (((double)curstats.rcount))));
     fd_store(result,fd_intern("CUR/READMAX"),FD_INT2DTYPE(curstats.rmax));
     fd_store(result,fd_intern("CUR/READCOUNT"),
-	     FD_INT2DTYPE(curstats.rcount));}
-  
+             FD_INT2DTYPE(curstats.rcount));}
+
   if (curstats.wcount>0) {
     fd_store(result,fd_intern("CUR/WRITEAVG"),
-	     fd_make_double(((double)curstats.wsum)/
-			    (((double)curstats.wcount))));
+             fd_make_double(((double)curstats.wsum)/
+                            (((double)curstats.wcount))));
     fd_store(result,fd_intern("CUR/WRITEMAX"),FD_INT2DTYPE(curstats.wmax));
     fd_store(result,fd_intern("CUR/WRITECOUNT"),
-	     FD_INT2DTYPE(curstats.wcount));}
-  
+             FD_INT2DTYPE(curstats.wcount));}
+
   if (curstats.xcount>0) {
     fd_store(result,fd_intern("CUR/EXECAVG"),
-	     fd_make_double(((double)curstats.xsum)/
-			    (((double)curstats.xcount))));
+             fd_make_double(((double)curstats.xsum)/
+                            (((double)curstats.xcount))));
     fd_store(result,fd_intern("CUR/EXECMAX"),FD_INT2DTYPE(curstats.xmax));
     fd_store(result,fd_intern("CUR/EXECCOUNT"),
-	     FD_INT2DTYPE(curstats.xcount));}
+             FD_INT2DTYPE(curstats.xcount));}
 
   return result;
 }
@@ -764,7 +764,7 @@ static void init_server()
      U8_SERVER_MAX_QUEUE,max_queue,
      U8_SERVER_MAX_CLIENTS,max_conn,
      U8_SERVER_FLAGS,server_flags,
-     U8_SERVER_END_INIT); 
+     U8_SERVER_END_INIT);
   fd_unlock_mutex(&init_server_lock);
 }
 
@@ -787,9 +787,9 @@ int main(int argc,char **argv)
      It starts out built on the default safe environment, but loses that if
      fullscheme is zero after configuration and file loading.  fullscheme can be
      set by the FULLSCHEME configuration parameter. */
-  fd_lispenv core_env; 
+  fd_lispenv core_env;
 
-  /* Close and reopen STDIN */ 
+  /* Close and reopen STDIN */
   close(0);  if (open("/dev/null",O_RDONLY) == -1) {
     u8_log(LOG_CRIT,"fdserver","Unable to reopen stdin for daemon");
     exit(1);}
@@ -811,9 +811,9 @@ int main(int argc,char **argv)
 
   if (!(server_spec)) {
     fprintf(stderr,
-	    "Usage: fdserver [conf=val]* (port|control_file) [conf=val]*\n");
+            "Usage: fdserver [conf=val]* (port|control_file) [conf=val]*\n");
     return 1;}
-  else if (u8_file_existsp(server_spec)) 
+  else if (u8_file_existsp(server_spec))
     source_file=server_spec;
   else server_port=server_spec;
 
@@ -836,7 +836,7 @@ int main(int argc,char **argv)
   if (fd_version<0) {
     fprintf(stderr,"Can't initialize FramerD libraries\n");
     return -1;}
-  
+
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
      dynamically loaded.  However, if we are statically linked, or we
@@ -875,11 +875,11 @@ int main(int argc,char **argv)
   if (no_fddb)
     exposed_environment=core_env;
   else exposed_environment=
-	 fd_make_env(fd_incref(fd_fdbserv_module),core_env);
-  
+         fd_make_env(fd_incref(fd_fdbserv_module),core_env);
+
   /* Now process all the configuration arguments */
   while (i<argc)
-    if (strchr(argv[i],'=')) 
+    if (strchr(argv[i],'='))
       fd_config_assignment(argv[i++]);
     else i++;
 
@@ -896,13 +896,13 @@ int main(int argc,char **argv)
     fdtype sval=fdtype_string(server_port);
     fd_config_set("PORT",sval);
     fd_decref(sval);}
-  
+
   fd_boot_message();
   u8_now(&boot_time);
 
   pid_file=fd_runbase_filename(".pid");
   nid_file=fd_runbase_filename(".nid");
-  
+
   if ((getenv("FD_DAEMONIZE"))||(!(getenv("FD_FOREGROUND"))))
     return fork_server(server_spec,core_env);
   else return launch_server(server_spec,core_env);
@@ -912,72 +912,72 @@ int main(int argc,char **argv)
 static void init_configs()
 {
   fd_register_config("BACKLOG",
-		     _("Number of pending connection requests allowed"),
-		     fd_intconfig_get,fd_intconfig_set,&max_backlog);
+                     _("Number of pending connection requests allowed"),
+                     fd_intconfig_get,fd_intconfig_set,&max_backlog);
   fd_register_config("MAXQUEUE",_("Max number of requests to keep queued"),
-		     fd_intconfig_get,fd_intconfig_set,&max_queue);
+                     fd_intconfig_get,fd_intconfig_set,&max_queue);
   fd_register_config("INITCLIENTS",
-		     _("Number of clients to prepare for/grow by"),
-		     fd_intconfig_get,fd_intconfig_set,&init_clients);
+                     _("Number of clients to prepare for/grow by"),
+                     fd_intconfig_get,fd_intconfig_set,&init_clients);
   fd_register_config("REQTHREADS",_("Number of threads in the thread pool"),
-		     fd_intconfig_get,fd_intconfig_set,&n_threads);
+                     fd_intconfig_get,fd_intconfig_set,&n_threads);
   /* This version is deprecated. */
   fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
-		     fd_intconfig_get,fd_intconfig_set,&n_threads);
+                     fd_intconfig_get,fd_intconfig_set,&n_threads);
   fd_register_config("MODULE",_("modules to provide in the server environment"),
-		     config_get_modules,config_use_module,NULL);
-  fd_register_config("FULLSCHEME",_("whether to provide full scheme interpretation to client"), 
-		     config_get_fullscheme,config_set_fullscheme,NULL);
+                     config_get_modules,config_use_module,NULL);
+  fd_register_config("FULLSCHEME",_("whether to provide full scheme interpretation to client"),
+                     config_get_fullscheme,config_set_fullscheme,NULL);
   fd_register_config("LOGEVAL",_("Whether to log each request and response"),
-		     fd_boolconfig_get,fd_boolconfig_set,&logeval);
+                     fd_boolconfig_get,fd_boolconfig_set,&logeval);
   fd_register_config("LOGTRANS",_("Whether to log each transaction"),
-		     fd_intconfig_get,fd_boolconfig_set,&logtrans);
+                     fd_intconfig_get,fd_boolconfig_set,&logtrans);
   fd_register_config("LOGERRS",
-		     _("Whether to log errors returned by the server to clients"),
-		     fd_boolconfig_get,fd_boolconfig_set,&logerrs);
+                     _("Whether to log errors returned by the server to clients"),
+                     fd_boolconfig_get,fd_boolconfig_set,&logerrs);
   fd_register_config("LOGBACKTRACE",
-		     _("Whether to include a detailed backtrace when logging errors"),
-		     fd_boolconfig_get,fd_boolconfig_set,&logbacktrace);
+                     _("Whether to include a detailed backtrace when logging errors"),
+                     fd_boolconfig_get,fd_boolconfig_set,&logbacktrace);
   fd_register_config("U8LOGCONNECT",
-		     _("Whether to have libu8 log each connection"),
-		     config_get_dtype_server_flag,config_set_dtype_server_flag,
-		     (void *)(U8_SERVER_LOG_CONNECT));
+                     _("Whether to have libu8 log each connection"),
+                     config_get_dtype_server_flag,config_set_dtype_server_flag,
+                     (void *)(U8_SERVER_LOG_CONNECT));
   fd_register_config("U8LOGTRANSACT",
-		     _("Whether to have libu8 log each transaction"),
-		     config_get_dtype_server_flag,config_set_dtype_server_flag,
-		     (void *)(U8_SERVER_LOG_TRANSACT));
+                     _("Whether to have libu8 log each transaction"),
+                     config_get_dtype_server_flag,config_set_dtype_server_flag,
+                     (void *)(U8_SERVER_LOG_TRANSACT));
 #ifdef U8_SERVER_LOG_TRANSFER
   fd_register_config("U8LOGTRANSFER",
-		     _("Whether to have libu8 log all data transfers for fine-grained debugging"),
-		     config_get_dtype_server_flag,config_set_dtype_server_flag,
-		     (void *)(U8_SERVER_LOG_TRANSFER));
+                     _("Whether to have libu8 log all data transfers for fine-grained debugging"),
+                     config_get_dtype_server_flag,config_set_dtype_server_flag,
+                     (void *)(U8_SERVER_LOG_TRANSFER));
 #endif
   fd_register_config("U8ASYNC",
-		     _("Whether to support thread-asynchronous transactions"),
-		     config_get_dtype_server_flag,config_set_dtype_server_flag,
-		     (void *)(U8_SERVER_ASYNC));
+                     _("Whether to support thread-asynchronous transactions"),
+                     config_get_dtype_server_flag,config_set_dtype_server_flag,
+                     (void *)(U8_SERVER_ASYNC));
 
   fd_register_config("DEBUGMAXCHARS",
-		     _("Max number of string characters to display in debug message"),
-		     fd_intconfig_get,fd_intconfig_set,
-		     &debug_maxchars);
+                     _("Max number of string characters to display in debug message"),
+                     fd_intconfig_get,fd_intconfig_set,
+                     &debug_maxchars);
   fd_register_config("DEBUGMAXELTS",
-		     _("Max number of list/vector/choice elements to display in debug message"),
-		     fd_intconfig_get,fd_intconfig_set,
-		     &debug_maxelts);
+                     _("Max number of list/vector/choice elements to display in debug message"),
+                     fd_intconfig_get,fd_intconfig_set,
+                     &debug_maxelts);
   fd_register_config("STATEDIR",_("Where to write server pid/nid files"),
-		     fd_sconfig_get,fd_sconfig_set,&state_dir);
+                     fd_sconfig_get,fd_sconfig_set,&state_dir);
   fd_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
-		     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
+                     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
   fd_register_config("GRACEFULDEATH",
-		     _("How long (μs) to wait for tasks during shutdown"),
-		     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
+                     _("How long (μs) to wait for tasks during shutdown"),
+                     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
   fd_register_config("AUTORELOAD",
-		     _("Whether to automatically reload changed files"),
-		     fd_boolconfig_get,fd_boolconfig_set,&auto_reload);
+                     _("Whether to automatically reload changed files"),
+                     fd_boolconfig_get,fd_boolconfig_set,&auto_reload);
   fd_register_config("NOFDDB",
-		     _("Whether to disable exported FramerD DB API"),
-		     fd_boolconfig_get,fd_boolconfig_set,&no_fddb);
+                     _("Whether to disable exported FramerD DB API"),
+                     fd_boolconfig_get,fd_boolconfig_set,&no_fddb);
 }
 
 static fd_lispenv init_core_env()
@@ -995,14 +995,14 @@ static fd_lispenv init_core_env()
   fd_idefn((fdtype)core_env,fd_make_cprim0("UPTIME",get_uptime,0));
   fd_idefn((fdtype)core_env,fd_make_cprim0("ASYNCOK?",asyncok,0));
   fd_idefn((fdtype)core_env,
-	   fd_make_cprim0("SERVER-STATUS",get_server_status,0));
-  
+           fd_make_cprim0("SERVER-STATUS",get_server_status,0));
+
   return core_env;
 }
 
 static int sustain_server(pid_t grandchild,
-			  u8_string server_spec,
-			  fd_lispenv env);
+                          u8_string server_spec,
+                          fd_lispenv env);
 
 static int fork_server(u8_string server_spec,fd_lispenv env)
 {
@@ -1012,12 +1012,12 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
        restart automatically.  */
     if ((child=fork())) {
       if (child<0) {
-	u8_log(LOG_CRIT,"fork_server","Fork failed for %s",server_spec);
-	exit(1);}
+        u8_log(LOG_CRIT,"fork_server","Fork failed for %s",server_spec);
+        exit(1);}
       else {
-	u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
-	       server_spec,child);
-	return sustain_server(child,server_spec,env);}}
+        u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
+               server_spec,child);
+        return sustain_server(child,server_spec,env);}}
     else return launch_server(server_spec,env);}
   else if ((child=fork()))  {
     /* The grandparent waits until the parent exits and then
@@ -1027,7 +1027,7 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
       u8_log(LOG_CRIT,"fork_server","Fork failed for %s\n",server_spec);
       exit(1);}
     else u8_log(LOG_WARN,"fork_server","Initial fork spawned pid %d from %d",
-		child,getpid());
+                child,getpid());
 #if HAVE_WAITPID
     if (waitpid(child,&status,0)<0) {
       u8_log(LOG_CRIT,ServerStartup,"Fork wait failed");
@@ -1043,69 +1043,69 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
        by our grandchild. */
     while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
       if ((count%10)==0)
-	u8_log(LOG_WARN,ServerStartup,"Waiting for PID file %s",pid_file);
+        u8_log(LOG_WARN,ServerStartup,"Waiting for PID file %s",pid_file);
       count--; sleep(1);}
     done=u8_elapsed_time();
-    if (u8_file_existsp(pid_file)) 
+    if (u8_file_existsp(pid_file))
       u8_log(LOG_NOTICE,"fdserver","Server %s launched in %02fs",
-	     server_spec,done-start);
+             server_spec,done-start);
     else u8_log(LOG_CRIT,"fdserver",
-		"Server %s hasn't launched after %02fs",
-		server_spec,done-start);
+                "Server %s hasn't launched after %02fs",
+                server_spec,done-start);
     exit(0);}
   else {
     /* If we get here, we're the parent, and we start by trying to
        become session leader */
     if (setsid()==-1) {
       u8_log(LOG_CRIT,"fork_server",
-	     "Process %d failed to become session leader for %s (%s)",
-	     getpid(),server_spec,strerror(errno));
+             "Process %d failed to become session leader for %s (%s)",
+             getpid(),server_spec,strerror(errno));
       errno=0;
       exit(1);}
     else u8_log(LOG_INFO,"fork_server",
-		"Process %d become session leader for %s",getpid(),server_spec);
+                "Process %d become session leader for %s",getpid(),server_spec);
     /* Now we fork again.  In the normal case, this fork (the grandchild) is
        the actual server.  If we're auto-restarting, this fork is the one which
        does the restarting. */
     if ((grandchild=fork())) {
       if (grandchild<0) {
-	u8_log(LOG_CRIT,"fork_server","Second fork failed for %s",server_spec);
-	exit(1);}
+        u8_log(LOG_CRIT,"fork_server","Second fork failed for %s",server_spec);
+        exit(1);}
       else if (getenv("FD_DAEMONIZE"))
-	u8_log(LOG_NOTICE,"fork_server","Restart monitor for %s has PID %d",
-	       server_spec,grandchild);
+        u8_log(LOG_NOTICE,"fork_server","Restart monitor for %s has PID %d",
+               server_spec,grandchild);
       else u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
-		  server_spec,grandchild);
+                  server_spec,grandchild);
       /* This is the parent, which always exits */
       exit(0);}
     else if (getenv("FD_DAEMONIZE")) {
       pid_t worker;
       if ((worker=fork())) {
-	if (worker<0) 
-	  u8_log(LOG_CRIT,"fork_server","Worker fork failed for %s",server_spec);
-	else {
-	  u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
-		 server_spec,worker);
-	  return sustain_server(worker,server_spec,env);}}
+        if (worker<0)
+          u8_log(LOG_CRIT,"fork_server","Worker fork failed for %s",server_spec);
+        else {
+          u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
+                 server_spec,worker);
+          return sustain_server(worker,server_spec,env);}}
       else return launch_server(server_spec,env);}
     else return launch_server(server_spec,env);}
   exit(0);
 }
 
 static int sustain_server(pid_t grandchild,
-			  u8_string server_spec,fd_lispenv env)
+                          u8_string server_spec,fd_lispenv env)
 {
   u8_string ppid_filename=fd_runbase_filename(".ppid");
-  FILE *f=fopen(ppid_filename,"w"); 
+  FILE *f=fopen(ppid_filename,"w");
   char *restartval=getenv("FD_DAEMONIZE");
-  int status=-1, sleepfor=atoi(restartval); 
+  int status=-1, sleepfor=atoi(restartval);
   if (f) {
     fprintf(f,"%ld\n",(long)getpid());
     fclose(f);
     u8_free(ppid_filename);}
   else {
     u8_log(LOG_WARN,"CantWritePPID","Couldn't write ppid file %s",
-	   ppid_filename);
+           ppid_filename);
     u8_free(ppid_filename);}
   /* Don't try to catch an error here */
   if (sleepfor<0) sleepfor=7;
@@ -1126,22 +1126,22 @@ static int sustain_server(pid_t grandchild,
   while (waitpid(grandchild,&status,0)) {
     if (WIFSIGNALED(status))
       u8_log(LOG_WARN,"FDServer/restart",
-	     "Server %s(%d) terminated on signal %d",
-	     server_spec,grandchild,WTERMSIG(status));
+             "Server %s(%d) terminated on signal %d",
+             server_spec,grandchild,WTERMSIG(status));
     else if (WIFEXITED(status))
       u8_log(LOG_NOTICE,"FDServer/restart",
-	     "Server %s(%d) terminated normally with status %d",
-	     server_spec,grandchild,status);
+             "Server %s(%d) terminated normally with status %d",
+             server_spec,grandchild,status);
     else continue;
     if (dependent<0) {
       u8_log(LOG_WARN,"FDServer/done",
-	     "Terminating restart process for %s",server_spec);
+             "Terminating restart process for %s",server_spec);
       exit(0);}
     sleep(sleepfor);
     if ((grandchild=fork())) {
       u8_log(LOG_NOTICE,"FDServer/restart",
-	     "Server %s restarted with pid %d",
-	     server_spec,grandchild);
+             "Server %s restarted with pid %d",
+             server_spec,grandchild);
       dependent=grandchild;
       continue;}
     else return launch_server(server_spec,env);}
@@ -1175,35 +1175,35 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
       shutdown_proc=fd_symeval(fd_intern("SHUTDOWN"),env);
       fd_decref(result); result=FD_VOID;
       /* If the init file did any exporting, expose those exports to clients.
-	 Otherwise, expose all the definitions in the init file.  Note that the clients
-	 won't be able to get at the unsafe "empowered" environment but that the
-	 procedures defined are closed in that environment. */
+         Otherwise, expose all the definitions in the init file.  Note that the clients
+         won't be able to get at the unsafe "empowered" environment but that the
+         procedures defined are closed in that environment. */
       if (FD_HASHTABLEP(env->exports))
-	server_env=fd_make_env(fd_incref(env->exports),exposed_environment);
+        server_env=fd_make_env(fd_incref(env->exports),exposed_environment);
       else server_env=fd_make_env(fd_incref(env->bindings),exposed_environment);
       if (fullscheme==0) {
-	/* Cripple the core environment if requested */
-	fd_decref((fdtype)(core_env->parent));
-	core_env->parent=NULL;}
+        /* Cripple the core environment if requested */
+        fd_decref((fdtype)(core_env->parent));
+        core_env->parent=NULL;}
       if (FD_VOIDP(startup_proc)) {}
       else {
-	FD_DO_CHOICES(p,startup_proc) {
-	  fdtype result=fd_apply(p,0,NULL);
-	  if (FD_ABORTP(result)) {
-	    u8_exception ex=u8_erreify(), root=ex;
-	    int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
-	    U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
-	    while (root->u8x_prev) root=root->u8x_prev;
-	    fd_unparse_maxchars=debug_maxchars;
-	    fd_unparse_maxelts=debug_maxelts;
-	    fd_print_exception(&out,root);
-	    fd_print_backtrace(&out,ex,80);
-	    fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
-	    fputs(out.u8_outbuf,stderr);
-	    u8_free(out.u8_outbuf);
-	    u8_free_exception(ex,1);
-	    exit(fd_interr(result));}
-	  else fd_decref(result);}}}}
+        FD_DO_CHOICES(p,startup_proc) {
+          fdtype result=fd_apply(p,0,NULL);
+          if (FD_ABORTP(result)) {
+            u8_exception ex=u8_erreify(), root=ex;
+            int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
+            U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+            while (root->u8x_prev) root=root->u8x_prev;
+            fd_unparse_maxchars=debug_maxchars;
+            fd_unparse_maxelts=debug_maxelts;
+            fd_print_exception(&out,root);
+            fd_print_backtrace(&out,ex,80);
+            fd_unparse_maxelts=old_maxelts; fd_unparse_maxchars=old_maxchars;
+            fputs(out.u8_outbuf,stderr);
+            u8_free(out.u8_outbuf);
+            u8_free_exception(ex,1);
+            exit(fd_interr(result));}
+          else fd_decref(result);}}}}
   else server_env=exposed_environment;
 
   return run_server(server_spec);
@@ -1221,7 +1221,7 @@ static int run_server(u8_string server_spec)
   signal(SIGQUIT,shutdown_dtypeserver_onsignal);
 #endif
   fd_register_config("PORT",_("port or port@host to listen on"),
-		     config_get_ports,config_serve_port,NULL);
+                     config_get_ports,config_serve_port,NULL);
   if (n_ports<=0) {
     u8_log(LOG_WARN,NoServers,"No servers configured, exiting...");
     exit(-1);
@@ -1229,9 +1229,9 @@ static int run_server(u8_string server_spec)
   write_state_files();
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2014, all rights reserved");
   u8_log(LOG_NOTICE,NULL,
-	 "FramerD (%s) fdserver %s running, %d/%d pools/indices, %d ports",
-	 FRAMERD_REVISION,server_spec,fd_n_pools,
-	 fd_n_primary_indices+fd_n_secondary_indices,n_ports);
+         "FramerD (%s) fdserver %s running, %d/%d pools/indices, %d ports",
+         FRAMERD_REVISION,server_spec,fd_n_pools,
+         fd_n_primary_indices+fd_n_secondary_indices,n_ports);
   u8_log(LOG_NOTICE,ServerStartup,"Serving on %d sockets",n_ports);
   u8_server_loop(&dtype_server); normal_exit=1;
   u8_log(LOG_NOTICE,ServerShutdown,"Exited server loop");
@@ -1245,27 +1245,26 @@ static void write_state_files()
     fclose(f);}
   else {
     u8_log(LOG_WARN,u8_strerror(errno),
-	   "Couldn't write PID %d to '%s'",
-	   getpid(),pid_file);
+           "Couldn't write PID %d to '%s'",
+           getpid(),pid_file);
     errno=0;}
   /* Write the NID file */
   f=u8_fopen(nid_file,"w"); if (f) {
     if (dtype_server.n_servers) {
       int i=0; while (i<dtype_server.n_servers) {
-	fprintf(f,"%s\n",dtype_server.server_info[i].idstring);
-	i++;}}
+        fprintf(f,"%s\n",dtype_server.server_info[i].idstring);
+        i++;}}
     fclose(f);}
   else {
     u8_log(LOG_WARN,u8_strerror(errno),
-	   "Couldn't write NID info to '%s'",
-	   pid_file);
+           "Couldn't write NID info to '%s'",
+           pid_file);
     if (dtype_server.n_servers) {
       int i=0; while (i<dtype_server.n_servers) {
-	u8_log(LOG_NOTICE,ServerStartup,"%s\n",
-	       dtype_server.server_info[i].idstring);
-	i++;}}
+        u8_log(LOG_NOTICE,ServerStartup,"%s\n",
+               dtype_server.server_info[i].idstring);
+        i++;}}
     else u8_log(LOG_NOTICE,ServerStartup,"temp.socket\n");
     errno=0;}
   atexit(cleanup_state_files);
 }
-

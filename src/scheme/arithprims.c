@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -248,13 +248,13 @@ static fdtype min_prim(int n,fdtype *args)
       i++;}
     if (inexact)
       if (FD_FLONUMP(result))
-	return fd_incref(result);
+        return fd_incref(result);
       else {
-	fdtype err=FD_VOID;
-	double asdouble=todouble(result,&err);
-	if (FD_VOIDP(err))
-	  return fd_init_double(NULL,asdouble);
-	else return err;}
+        fdtype err=FD_VOID;
+        double asdouble=todouble(result,&err);
+        if (FD_VOIDP(err))
+          return fd_init_double(NULL,asdouble);
+        else return err;}
     else return fd_incref(result);}
 }
 
@@ -270,13 +270,13 @@ static fdtype max_prim(int n,fdtype *args)
       i++;}
     if (inexact)
       if (FD_FLONUMP(result))
-	return fd_incref(result);
+        return fd_incref(result);
       else {
-	fdtype err=FD_VOID;
-	double asdouble=todouble(result,&err);
-	if (FD_VOIDP(err))
-	  return fd_init_double(NULL,asdouble);
-	else return err;}
+        fdtype err=FD_VOID;
+        double asdouble=todouble(result,&err);
+        if (FD_VOIDP(err))
+          return fd_init_double(NULL,asdouble);
+        else return err;}
     else return fd_incref(result);}
 }
 
@@ -315,11 +315,11 @@ static fdtype modulo_prim(fdtype x,fdtype b)
     else {
       fdtype rem=fd_remainder(x,b);
       if ((FD_FIXNUMP(rem)) && (FD_FIX2INT(rem)==0))
-	return rem;
+        return rem;
       else {
-	fdtype result=fd_plus(b,rem);
-	fd_decref(rem);
-	return result;}}}
+        fdtype result=fd_plus(b,rem);
+        fd_decref(rem);
+        return result;}}}
 }
 
 static fdtype gcd_prim(fdtype x,fdtype y)
@@ -364,7 +364,7 @@ static fdtype floor_prim(fdtype x)
     fdtype q=fd_quotient(n,d);
     if (fd_numcompare(x,FD_INT2DTYPE(0))<0) {
       fdtype qminus=fd_subtract(q,FD_INT2DTYPE(1));
-      fd_decref(q); 
+      fd_decref(q);
       return qminus;}
     else return q;}
   else return fd_type_error(_("scalar"),"floor_prim",x);
@@ -381,7 +381,7 @@ static fdtype ceiling_prim(fdtype x)
     fdtype q=fd_quotient(n,d);
     if (fd_numcompare(x,FD_INT2DTYPE(0))>0) {
       fdtype qminus=fd_plus(q,FD_INT2DTYPE(1));
-      fd_decref(q); 
+      fd_decref(q);
       return qminus;}
     else return q;}
   else return fd_type_error(_("scalar"),"ceiling_prim",x);
@@ -406,11 +406,11 @@ static fdtype round_prim(fdtype x)
       return q;}
     else if (fd_numcompare(x,FD_INT2DTYPE(0))<0) {
       fdtype qplus=fd_subtract(q,FD_INT2DTYPE(1));
-      fd_decref(q); 
+      fd_decref(q);
       return qplus;}
     else {
       fdtype qminus=fd_plus(q,FD_INT2DTYPE(1));
-      fd_decref(q); 
+      fd_decref(q);
       return qminus;}}
   else return fd_type_error(_("scalar"),"floor_prim",x);
 }
@@ -437,7 +437,7 @@ static fdtype scalerep_prim(fdtype x,fdtype scalearg)
     if (rem==0) return fd_init_pair(NULL,x,scalearg);
     else if (rem*2>scale)
       if (ival>0)
-	return fd_init_pair(NULL,FD_INT2DTYPE((base+1)*scale),scalearg);
+        return fd_init_pair(NULL,FD_INT2DTYPE((base+1)*scale),scalearg);
       else return fd_init_pair(NULL,FD_INT2DTYPE((base-1)*scale),scalearg);
     else return fd_init_pair(NULL,FD_INT2DTYPE(base*scale),scalearg);}
   else if (FD_FLONUMP(x)) {
@@ -473,7 +473,7 @@ static fdtype hashref_prim(fdtype x)
 {
   unsigned long long intval=(unsigned long long)x;
   char buf[64];
-  if ((intval<FD_MAX_FIXNUM)&&(intval>FD_MIN_FIXNUM)) 
+  if ((intval<FD_MAX_FIXNUM)&&(intval>FD_MIN_FIXNUM))
     sprintf(buf,"%d",((int)intval));
   else sprintf(buf,"#!%llx",intval);
   return fd_make_string(NULL,-1,buf);
@@ -646,7 +646,7 @@ FD_EXPORT void fd_init_numeric_c()
   arithdef("TAN",ltan,tan);
   arithdef("LOG",llog,log);
   arithdef("EXP",lexp,exp);
-  
+
   arithdef2("ATAN2",latan2,atan2);
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("MIN",min_prim,1));
@@ -688,8 +688,8 @@ FD_EXPORT void fd_init_numeric_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("SCALEREP",scalerep_prim,2));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x("ILOG",ilog_prim,1,
-					    fd_fixnum_type,FD_VOID,
-					    fd_fixnum_type,FD_INT2DTYPE(2)));
+                                            fd_fixnum_type,FD_VOID,
+                                            fd_fixnum_type,FD_INT2DTYPE(2)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("KNUTH-HASH",knuth_hash,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("WANG-HASH32",wang_hash32,1));
@@ -697,7 +697,7 @@ FD_EXPORT void fd_init_numeric_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLIP32",flip32,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLIP64",flip64,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2x("CITYHASH64",cityhash64,1,
-					    -1,FD_VOID,-1,FD_FALSE));
+                                            -1,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CITYHASH128",cityhash128,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHPTR",hashptr_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHREF",hashref_prim,1));

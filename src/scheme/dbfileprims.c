@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -32,8 +32,8 @@ static fdtype make_file_pool
   else if (!(FD_SLOTMAPP(metadata)))
     return fd_type_error(_("slotmap"),"make_file_pool",metadata);
   retval=fd_make_file_pool(FD_STRDATA(fname),FD_FILE_POOL_MAGIC_NUMBER,
-			   FD_OID_ADDR(base),fd_getint(capacity),
-			   load,metadata);
+                           FD_OID_ADDR(base),fd_getint(capacity),
+                           load,metadata);
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
@@ -51,8 +51,8 @@ static fdtype make_zpool
     return fd_type_error(_("slotmap"),"make_file_pool",metadata);
   retval=
     fd_make_file_pool(FD_STRDATA(fname),FD_ZPOOL_MAGIC_NUMBER,
-		      FD_OID_ADDR(base),fd_getint(capacity),
-		      load,metadata);
+                      FD_OID_ADDR(base),fd_getint(capacity),
+                      load,metadata);
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
@@ -67,9 +67,9 @@ static fdtype label_file_pool(fdtype fname,fdtype label)
     if (endpos>0) {
       int bytes=fd_dtswrite_dtype(stream,label);
       if (bytes>0) {
-	fd_setpos(stream,20);
-	if (fd_write_4bytes(((fd_byte_output)stream),(unsigned int)endpos)>=0) {
-	  retval=1; fd_dtsclose(stream,1);}}}}
+        fd_setpos(stream,20);
+        if (fd_write_4bytes(((fd_byte_output)stream),(unsigned int)endpos)>=0) {
+          retval=1; fd_dtsclose(stream,1);}}}}
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
@@ -82,11 +82,11 @@ static fdtype make_oidpool(int n,fdtype *args)
   fdtype metadata=FD_VOID, load_arg=FD_INT2DTYPE(0);
   if (n>3) load_arg=args[3];
   if (n>4) flags_arg=args[4];
-  if (n>5) schemas=args[5];  
-  if (n>6) metadata=args[6];  
+  if (n>5) schemas=args[5];
+  if (n>6) metadata=args[6];
   if (n>7) label_arg=args[7];
 
-  if (!(FD_OIDP(base_arg))) 
+  if (!(FD_OIDP(base_arg)))
     return fd_type_error(_("OID"),"make_oidpool",base_arg);
   else base=FD_OID_ADDR(base_arg);
 
@@ -98,7 +98,7 @@ static fdtype make_oidpool(int n,fdtype *args)
   else if (FD_FALSEP(label_arg)) label=NULL;
   else if (FD_VOIDP(label_arg)) label=NULL;
   else return fd_type_error(_("string"),"make_oidpool",capacity);
-  
+
   if (!(FD_FIXNUMP(capacity)))
     return fd_type_error(_("fixnum"),"make_oidpool",capacity);
   else cap=FD_FIX2INT(capacity);
@@ -106,11 +106,11 @@ static fdtype make_oidpool(int n,fdtype *args)
   if (!(FD_FIXNUMP(load_arg)))
     return fd_type_error(_("fixnum"),"make_oidpool",load_arg);
   else load=FD_FIX2INT(load_arg);
-  
+
   if (FD_FALSEP(metadata)) metadata=FD_VOID;
 
   /* Check that pool alignment is legal */
-  
+
   {
     FD_OID end=FD_OID_PLUS(base,cap-1);
     unsigned int base_lo=FD_OID_LO(base);
@@ -146,10 +146,10 @@ static fdtype make_oidpool(int n,fdtype *args)
       flags=flags|FD_OIDPOOL_READONLY;}
 
   retval=fd_make_oidpool(filename,label,
-			 base,cap,load,flags,
-			 schemas,metadata,
-			 time(NULL),time(NULL),1);
-  
+                         base,cap,load,flags,
+                         schemas,metadata,
+                         time(NULL),time(NULL),1);
+
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
@@ -158,7 +158,7 @@ static fdtype make_file_index(fdtype fname,fdtype size,fdtype metadata)
 {
   int retval=
     fd_make_file_index(FD_STRDATA(fname),FD_MULT_FILE_INDEX_MAGIC_NUMBER,
-		       fd_getint(size),metadata);
+                       fd_getint(size),metadata);
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
@@ -167,7 +167,7 @@ static fdtype make_legacy_file_index(fdtype fname,fdtype size,fdtype metadata)
 {
   int retval=
     fd_make_file_index(FD_STRDATA(fname),FD_FILE_INDEX_MAGIC_NUMBER,
-		       fd_getint(size),metadata);
+                       fd_getint(size),metadata);
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
@@ -176,7 +176,7 @@ static fdtype make_zindex(fdtype fname,fdtype size,fdtype metadata)
 {
   int retval=
     fd_make_file_index(FD_STRDATA(fname),FD_ZINDEX_MAGIC_NUMBER,
-		       fd_getint(size),metadata);
+                       fd_getint(size),metadata);
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
@@ -204,12 +204,12 @@ static int get_make_hash_index_flags(fdtype flags_arg)
 }
 
 static fdtype make_hash_index(fdtype fname,fdtype size,fdtype slotids,fdtype baseoids,fdtype metadata,
-			      fdtype flags_arg)
+                              fdtype flags_arg)
 {
   int retval=
     fd_make_hash_index(FD_STRDATA(fname),FD_FIX2INT(size),
-		       get_make_hash_index_flags(flags_arg),0,
-		       slotids,baseoids,metadata,-1,-1);
+                       get_make_hash_index_flags(flags_arg),0,
+                       slotids,baseoids,metadata,-1,-1);
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
@@ -231,16 +231,16 @@ static fdtype populate_hash_index
     if ((FD_INDEXP(from))||(FD_PRIM_TYPEP(from,fd_raw_index_type))) {
       fd_index ix=fd_indexptr(from);
       if (ix->handler->fetchkeys!=NULL) {
-	consed_keyvec=ix->handler->fetchkeys(ix,&n_keys);
-	keyvec=consed_keyvec;}
+        consed_keyvec=ix->handler->fetchkeys(ix,&n_keys);
+        keyvec=consed_keyvec;}
       else keys_choice=fd_getkeys(from);}
     else keys_choice=fd_getkeys(from);
     if (!(FD_VOIDP(keys_choice))) {
       if (FD_CHOICEP(keys_choice)) {
-	keyvec=FD_CHOICE_DATA(keys_choice);
-	n_keys=FD_CHOICE_SIZE(keys_choice);}
+        keyvec=FD_CHOICE_DATA(keys_choice);
+        n_keys=FD_CHOICE_SIZE(keys_choice);}
       else {
-	keyvec=&keys; n_keys=1;}}
+        keyvec=&keys; n_keys=1;}}
     else {keyvec=&keys; n_keys=0;}}
   else {
     keyvec=&keys; n_keys=1;}
@@ -396,63 +396,63 @@ FD_EXPORT void fd_init_filedb_c()
   fd_init_dbfile();
   filedb_module=fd_new_module("FILEDB",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
-  
+
   fd_idefn(filedb_module,
-	   fd_make_cprim3x("MAKE-ZINDEX",make_zindex,2,
-			   fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   fd_slotmap_type,FD_VOID));
+           fd_make_cprim3x("MAKE-ZINDEX",make_zindex,2,
+                           fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           fd_slotmap_type,FD_VOID));
   fd_idefn(filedb_module,
-	   fd_make_cprim3x("MAKE-FILE-INDEX",make_file_index,2,
-			   fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   fd_slotmap_type,FD_VOID));
+           fd_make_cprim3x("MAKE-FILE-INDEX",make_file_index,2,
+                           fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           fd_slotmap_type,FD_VOID));
   fd_idefn(filedb_module,
-	   fd_make_cprim3x("MAKE-LEGACY-FILE-INDEX",make_legacy_file_index,2,
-			   fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   fd_slotmap_type,FD_VOID));
+           fd_make_cprim3x("MAKE-LEGACY-FILE-INDEX",make_legacy_file_index,2,
+                           fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           fd_slotmap_type,FD_VOID));
   fd_idefn(filedb_module,
-	   fd_make_cprim5x("MAKE-FILE-POOL",make_file_pool,3,
-			   fd_string_type,FD_VOID,
-			   fd_oid_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID));
+           fd_make_cprim5x("MAKE-FILE-POOL",make_file_pool,3,
+                           fd_string_type,FD_VOID,
+                           fd_oid_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID));
   fd_idefn(filedb_module,
-	   fd_make_cprim5x("MAKE-ZPOOL",make_zpool,3,
-			   fd_string_type,FD_VOID,
-			   fd_oid_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID));
+           fd_make_cprim5x("MAKE-ZPOOL",make_zpool,3,
+                           fd_string_type,FD_VOID,
+                           fd_oid_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID));
 
   fd_idefn(filedb_module,fd_make_cprim1("LOAD-CACHES",load_caches_prim,0));
 
   fd_idefn(filedb_module,
-	   fd_make_cprimn("MAKE-OIDPOOL",make_oidpool,3));
+           fd_make_cprimn("MAKE-OIDPOOL",make_oidpool,3));
 
   fd_idefn(filedb_module,fd_make_cprim2x("LABEL-POOL!",label_file_pool,2,
-					 fd_string_type,FD_VOID,
-					 fd_string_type,FD_VOID));
+                                         fd_string_type,FD_VOID,
+                                         fd_string_type,FD_VOID));
 
   fd_idefn(filedb_module,fd_make_cprim1x("OPEN-FILE-POOL",open_file_pool,1,
-					 fd_string_type,FD_VOID));
+                                         fd_string_type,FD_VOID));
   fd_idefn(filedb_module,
-	   fd_make_ndprim(fd_make_cprim2x("FILE-POOL-PREFETCH!",file_pool_prefetch,2,
-					  fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
+           fd_make_ndprim(fd_make_cprim2x("FILE-POOL-PREFETCH!",file_pool_prefetch,2,
+                                          fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
 
 
   fd_idefn(filedb_module,fd_make_cprim4x("POPULATE-HASH-INDEX",populate_hash_index,2,
-					 -1,FD_VOID,-1,FD_VOID,
-					 fd_fixnum_type,FD_VOID,-1,FD_VOID));
+                                         -1,FD_VOID,-1,FD_VOID,
+                                         fd_fixnum_type,FD_VOID,-1,FD_VOID));
   fd_idefn(filedb_module,fd_make_cprim6x("MAKE-HASH-INDEX",make_hash_index,2,
-					 fd_string_type,FD_VOID,
-					 fd_fixnum_type,FD_VOID,
-					 -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
-					 -1,FD_FALSE));
+                                         fd_string_type,FD_VOID,
+                                         fd_fixnum_type,FD_VOID,
+                                         -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+                                         -1,FD_FALSE));
   fd_idefn(filedb_module,fd_make_cprim3x("HASH-INDEX-BUCKET",hash_index_bucket,2,
-					 -1,FD_VOID,-1,FD_VOID));
+                                         -1,FD_VOID,-1,FD_VOID));
   fd_idefn(filedb_module,
-	   fd_make_cprim1("HASH-INDEX-SLOTIDS",hash_index_slotids,1));
+           fd_make_cprim1("HASH-INDEX-SLOTIDS",hash_index_slotids,1));
   fd_idefn(filedb_module,fd_make_cprim1("HASH-INDEX-STATS",hash_index_stats,1));
 
 

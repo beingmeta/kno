@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -47,7 +47,7 @@ static int server_supportsp(struct FD_NETWORK_POOL *np,fdtype operation)
 static void init_network_pool
   (struct FD_NETWORK_POOL *p,fdtype scan,u8_string spec,u8_string cid)
 {
-  FD_OID addr; unsigned int capacity; u8_string label;  
+  FD_OID addr; unsigned int capacity; u8_string label;
   addr=FD_OID_ADDR(FD_CAR(scan)); scan=FD_CDR(scan);
   capacity=fd_getint(FD_CAR(scan)); scan=FD_CDR(scan);
   fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,spec,cid);
@@ -97,7 +97,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
   np->cid=cid; np->xid=xid;
   np->connpool=
     u8_open_connpool(spec,fd_dbconn_reserve_default,
-		     fd_dbconn_cap_default,fd_dbconn_init_default);
+                     fd_dbconn_cap_default,fd_dbconn_init_default);
   if (((np)->connpool)==NULL) {
     u8_free(np); u8_free(cid);
     fd_decref(pooldata);
@@ -164,7 +164,7 @@ static fdtype *network_pool_fetchn(fd_pool p,int n,fdtype *oids)
     return values;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-	      u8_strdup(np->cid),fd_incref(value));
+              u8_strdup(np->cid),fd_incref(value));
     return NULL;}
 }
 
@@ -174,7 +174,7 @@ static int network_pool_lock(fd_pool p,fdtype oid)
   fdtype value;
   value=fd_dtcall(np->connpool,3,lock_oid_symbol,oid,client_id);
   if (FD_VOIDP(value)) return 0;
-  else if (FD_ABORTP(value)) 
+  else if (FD_ABORTP(value))
     return fd_interr(value);
   else {
     fd_hashtable_store(&(p->cache),oid,value);

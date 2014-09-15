@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -137,12 +137,12 @@ static struct FD_KEYVAL *fd_sortvec_get
     const struct FD_KEYVAL *scan=keyvals, *limit=scan+size;
     if (FD_ATOMICP(key))
       while (scan<limit)
-	if (scan->key==key)
-	  return (struct FD_KEYVAL *)scan;
-	else scan++;
+        if (scan->key==key)
+          return (struct FD_KEYVAL *)scan;
+        else scan++;
     else while (scan<limit)
       if (FDTYPE_EQUAL(scan->key,key))
-	return (struct FD_KEYVAL *) scan;
+        return (struct FD_KEYVAL *) scan;
       else scan++;
     return NULL;}
   else {
@@ -151,12 +151,12 @@ static struct FD_KEYVAL *fd_sortvec_get
       *bottom=keyvals, *limit=bottom+size, *top=limit-1, *middle;
     if (FD_ATOMICP(key))
       while (top>=bottom) {
-	middle=bottom+(top-bottom)/2;
-	if (middle>=limit) break;
-	else if (key==middle->key) {found=1; break;}
-	else if (FD_CONSP(middle->key)) top=middle-1;
-	else if (key<middle->key) top=middle-1;
-	else bottom=middle+1;}
+        middle=bottom+(top-bottom)/2;
+        if (middle>=limit) break;
+        else if (key==middle->key) {found=1; break;}
+        else if (FD_CONSP(middle->key)) top=middle-1;
+        else if (key<middle->key) top=middle-1;
+        else bottom=middle+1;}
     else while (top>=bottom) {
       int comparison;
       middle=bottom+(top-bottom)/2;
@@ -185,7 +185,7 @@ static MAYBE_UNUSED fdtype fd_slotmap_get
   (struct FD_SLOTMAP *sm,fdtype key,fdtype dflt)
 {
   unsigned int unlock=0;
-  struct FD_KEYVAL *result; int size; 
+  struct FD_KEYVAL *result; int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
   if ((FD_XSLOTMAP_USELOCKP(sm))&&
       (!(FD_XSLOTMAP_READONLYP(sm)))) {
@@ -218,7 +218,7 @@ static MAYBE_UNUSED fdtype fd_slotmap_test
     if (FD_VOIDP(val)) cmp=1;
     else if (FD_EQ(val,current)) cmp=1;
     else if ((FD_CHOICEP(val)) || (FD_ACHOICEP(val)) ||
-	     (FD_CHOICEP(current)) || (FD_ACHOICEP(current)))
+             (FD_CHOICEP(current)) || (FD_ACHOICEP(current)))
       cmp=fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp=1;
     else cmp=0;
@@ -302,9 +302,9 @@ static MAYBE_UNUSED int _fd_get_slotno
     while (top>bottom) {
       if (key==*middle) return middle-schema;
       else if (key<*middle) {
-	top=middle-1; middle=bottom+(top-bottom)/2;}
+        top=middle-1; middle=bottom+(top-bottom)/2;}
       else {
-	bottom=middle+1; middle=bottom+(top-bottom)/2;}}
+        bottom=middle+1; middle=bottom+(top-bottom)/2;}}
     if ((middle) && (middle<hard_top) && (key==*middle))
       return middle-schema;
     else return -1;}
@@ -349,7 +349,7 @@ static MAYBE_UNUSED fdtype fd_schemap_test
     if (FD_VOIDP(val)) cmp=1;
     else if (FD_EQ(val,current)) cmp=1;
     else if ((FD_CHOICEP(val)) || (FD_ACHOICEP(val)) ||
-	     (FD_CHOICEP(current)) || (FD_ACHOICEP(current)))
+             (FD_CHOICEP(current)) || (FD_ACHOICEP(current)))
       cmp=fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp=1;
     else cmp=0;
@@ -401,7 +401,7 @@ FD_EXPORT fdtype fd_init_hashtable
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
 FD_EXPORT struct FD_KEYVAL *fd_hashvec_get(fdtype key,struct FD_HASHENTRY **slots,int n_slots);
 FD_EXPORT int fd_fast_reset_hashtable(fd_hashtable ht,int n_slots,int lock,
-				      struct FD_HASHENTRY ***,int *);
+                                      struct FD_HASHENTRY ***,int *);
 FD_EXPORT int fd_remove_deadwood_x(struct FD_HASHTABLE *ptr,
                                    int (*testfn)(fdtype,fdtype,void *),
                                    void *testdata);

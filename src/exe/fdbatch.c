@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2006-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -87,9 +87,9 @@ static void signal_shutdown(int sig)
     if (f) {
       /* Output the current data/time with millisecond precision. */
       u8_fprintf(f,"Process died unexpectedly at %*iMSt with signal %d\n",
-		 sig);
+                 sig);
       u8_fclose(f);}}
-    
+
 }
 #endif
 
@@ -103,22 +103,22 @@ static void wait_for_the_end(pid_t pid)
   waitpid(pid,&status,0);
   while (WIFSTOPPED(status)) {
     u8_log(LOG_CRIT,job_stopped,"%s <%d> has been stopped with the signal %d",
-	   u8_appid(),pid,WSTOPSIG(status));
+           u8_appid(),pid,WSTOPSIG(status));
     waitpid(pid,&status,0);}
   if (WIFEXITED(status))
     u8_log(LOG_CRIT,job_exited,"%s <%d> exited with return value %d",
-	   u8_appid(),pid,WSTOPSIG(status));
+           u8_appid(),pid,WSTOPSIG(status));
   else {
     u8_log(LOG_CRIT,job_terminated,"%s <%d> killed with return value %d",
-	   u8_appid(),pid,WSTOPSIG(status));
+           u8_appid(),pid,WSTOPSIG(status));
     if ((pid_file) && (u8_file_existsp(pid_file)))
       u8_removefile(pid_file);
     if (died_file) {
       FILE *f=u8_fopen(died_file,"w");
       if (f) {
-	u8_fprintf(f,"Process %s <%d> killed at %*iMSt with signal %d\n",
-		   u8_appid(),pid,WTERMSIG(status));
-	u8_fclose(f);}}}
+        u8_fprintf(f,"Process %s <%d> killed at %*iMSt with signal %d\n",
+                   u8_appid(),pid,WTERMSIG(status));
+        u8_fclose(f);}}}
   exit(0);
 }
 
@@ -134,10 +134,10 @@ int main(int argc,char **argv)
   u8_log_show_procinfo=1;
   fd_init_dtypelib();
   fd_register_config("NEWLOG",
-		     _("Whether to append to log files"),
-		     fd_boolconfig_get,fd_boolconfig_set,
-		     &newlog);
-  fd_argv_config(argc,argv); 
+                     _("Whether to append to log files"),
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &newlog);
+  fd_argv_config(argc,argv);
   identify_application(argc,argv,argv[0]);
   if (newlog) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
   pid_file=get_pidfile();
@@ -149,18 +149,18 @@ int main(int argc,char **argv)
     fclose(f);
     if (retval<0) {
       u8_log(LOG_CRIT,"Launch error","Error reading PID file %s (retval=%d)",
-	     pid_file,retval);
+             pid_file,retval);
       exit(1);}
     else if (((pid_t)ival)==pid) {
       u8_log(LOG_NOTICE,"CHAINED",
-	     "Chained fdbatch invocation, pid=%d",ival);
+             "Chained fdbatch invocation, pid=%d",ival);
       chained=1;}
     else {
       u8_log(LOG_CRIT,"Launch scrubbed",
-	     "PID file %s exists, with pid %d != %d",
-	     pid_file,ival,pid);
+             "PID file %s exists, with pid %d != %d",
+             pid_file,ival,pid);
       exit(1);}}
-  
+
   done_file=get_donefile();
   died_file=get_diedfile();
   /* We only redirect stdio going to ttys. */
@@ -217,24 +217,23 @@ int main(int argc,char **argv)
     if (retval>=0) {
       FILE *f=u8_fopen(done_file,"w");
       if (f) {
-	/* Output the current data/time with millisecond precision. */
-	u8_fprintf(f,"Finished %s at %*iMSt, retval=%d",u8_appid(),retval);
-	u8_fclose(f);
-	if (died_file) {
-	  if (u8_file_existsp(died_file))
-	    u8_removefile(died_file);
-	  u8_free(died_file);
-	  died_file=NULL;}}}
+        /* Output the current data/time with millisecond precision. */
+        u8_fprintf(f,"Finished %s at %*iMSt, retval=%d",u8_appid(),retval);
+        u8_fclose(f);
+        if (died_file) {
+          if (u8_file_existsp(died_file))
+            u8_removefile(died_file);
+          u8_free(died_file);
+          died_file=NULL;}}}
     else {
       FILE *f=u8_fopen(died_file,"w");
       if (f) {
-	/* Output the current data/time with millisecond precision. */
-	u8_fprintf(f,"%s died at %*iMSt, retval=%d",u8_appid(),retval);
-	u8_fclose(f);}
+        /* Output the current data/time with millisecond precision. */
+        u8_fprintf(f,"%s died at %*iMSt, retval=%d",u8_appid(),retval);
+        u8_fclose(f);}
       died_file=NULL;}
     exit(retval);
     return retval;}
   exit(0);
   return 0;
 }
-

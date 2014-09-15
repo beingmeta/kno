@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -17,7 +17,7 @@
      to convert integer values to OIDs.  EXTDB procedures also have
      "parameter maps" which are used to process application parameters
      into parameters to be bound to the corresponding statement.
-    
+
     Implementing a given database bridge consists of defining functions for:
      (a) executing a SQL string on the connection;
      (b) creating an EXTDB proc from the connection;
@@ -63,7 +63,7 @@ FD_EXPORT int fd_register_extdb_handler(struct FD_EXTDB_HANDLER *h)
 {
   int i=0, retval=-1;
   u8_lock_mutex(&extdb_handlers_lock);
-  while (i<n_extdbs) 
+  while (i<n_extdbs)
     if (strcasecmp(h->name,extdbhandlers[i]->name)==0)
       if (h==extdbhandlers[i]) {retval=0; break;}
       else {extdbhandlers[i]=h; retval=1; break;}
@@ -87,19 +87,19 @@ FD_EXPORT int fd_register_extdb_proc(struct FD_EXTDB_PROC *proc)
     struct FD_EXTDB_PROC **dbprocs=db->procs;
     while (i<n)
       if ((dbprocs[i])==proc) {
-	u8_unlock_mutex(&(db->proclock));
-	return 0;}
+        u8_unlock_mutex(&(db->proclock));
+        return 0;}
       else i++;
     if (i>=db->max_procs) {
       struct FD_EXTDB_PROC **newprocs=
-	u8_realloc(dbprocs,sizeof(struct FD_EXTDB *)*(db->max_procs+32));
+        u8_realloc(dbprocs,sizeof(struct FD_EXTDB *)*(db->max_procs+32));
       if (newprocs==NULL) {
-	u8_unlock_mutex(&(db->proclock));
-	u8_graberr(-1,"fd_extdb_register_proc",u8_strdup(db->spec));
-	return -1;}
+        u8_unlock_mutex(&(db->proclock));
+        u8_graberr(-1,"fd_extdb_register_proc",u8_strdup(db->spec));
+        return -1;}
       else {
-	db->procs=dbprocs=newprocs;
-	db->max_procs=db->max_procs+32;}}
+        db->procs=dbprocs=newprocs;
+        db->max_procs=db->max_procs+32;}}
     dbprocs[i]=proc; db->n_procs++;}
   u8_unlock_mutex(&(db->proclock));
   return 1;
@@ -110,17 +110,17 @@ FD_EXPORT int fd_release_extdb_proc(struct FD_EXTDB_PROC *proc)
   struct FD_EXTDB *db=FD_GET_CONS(proc->db,fd_extdb_type,struct FD_EXTDB *);
   if (!(db)) {
     u8_seterr(_("EXTDB proc without a database"),"fd_release_extdb_proc",
-	      u8_strdup(proc->qtext));
+              u8_strdup(proc->qtext));
     return -1;}
   u8_lock_mutex(&(db->proclock)); {
     int n=db->n_procs, i=n-1;
     struct FD_EXTDB_PROC **dbprocs=db->procs;
     while (i>=0)
       if ((dbprocs[i])==proc) {
-	memmove(dbprocs+i,dbprocs+i+1,(n-(i+1))*sizeof(struct FD_EXTDB_PROC *));
-	db->n_procs--;
-	u8_unlock_mutex(&(db->proclock));
-	return 1;}
+        memmove(dbprocs+i,dbprocs+i+1,(n-(i+1))*sizeof(struct FD_EXTDB_PROC *));
+        db->n_procs--;
+        u8_unlock_mutex(&(db->proclock));
+        return 1;}
       else i--;}
   u8_unlock_mutex(&(db->proclock));
   u8_log(LOG_CRIT,"extdb_release_proc","Release of unregistered extdb proc");
@@ -147,11 +147,11 @@ static void recycle_extdb_proc(struct FD_CONS *c)
   struct FD_EXTDB_PROC *dbproc=(struct FD_EXTDB_PROC *)c;
   if (dbproc->dbhandler == NULL)
     u8_log(LOG_WARN,_("recycle failed"),"Bad extdb proc");
-  else if (dbproc->dbhandler->recycle_extdb_proc) 
+  else if (dbproc->dbhandler->recycle_extdb_proc)
     dbproc->dbhandler->recycle_extdb_proc(dbproc);
   else u8_log(LOG_WARN,_("recycle failed"),
-	      _("No recycle method for %s database procs"),
-	      dbproc->dbhandler->name);
+              _("No recycle method for %s database procs"),
+              dbproc->dbhandler->name);
 }
 
 static int unparse_extdb_proc(u8_output out,fdtype x)
@@ -188,8 +188,8 @@ static fdtype extdb_exec(fdtype db,fdtype query,fdtype colinfo)
        (check_exec_enabled(extdb->options))))
     return extdb->dbhandler->execute(extdb,query,colinfo);
   else return fd_err(_("Direct SQL execution disabled"),"extdb_exec",
-		     FD_STRDATA(query),db);
-}  
+                     FD_STRDATA(query),db);
+}
 
 static fdtype extdb_makeproc(int n,fdtype *args)
 {
@@ -200,13 +200,13 @@ static fdtype extdb_makeproc(int n,fdtype *args)
     fdtype dbspec=args[0], query=args[1];
     fdtype colinfo=((n>2) ? (args[2]) : (FD_VOID));
     if (extdb==NULL) return FD_ERROR_VALUE;
-    else if (!(FD_STRINGP(query))) 
+    else if (!(FD_STRINGP(query)))
       return fd_type_error("string","extdb_makeproc",query);
     else if ((extdb->dbhandler->makeproc)==NULL)
       return fd_err(NoMakeProc,"extdb_makeproc",NULL,dbspec);
     else return extdb->dbhandler->makeproc
-	   (extdb,FD_STRDATA(query),FD_STRLEN(query),
-	    colinfo,((n>3) ? (n-3) : (0)),((n>3)? (args+3) : (NULL)));}
+           (extdb,FD_STRDATA(query),FD_STRLEN(query),
+            colinfo,((n>3) ? (n-3) : (0)),((n>3)? (args+3) : (NULL)));}
   else if (!(FD_PRIM_TYPEP(args[0],fd_extdb_type)))
     return fd_type_error("extdb","extdb_makeproc",args[0]);
   else if  (!(FD_STRINGP(args[1])))
@@ -316,28 +316,28 @@ FD_EXPORT void fd_init_extdbi_c()
   fd_functionp[fd_extdb_proc_type]=1;
 
   fd_idefn(extdb_module,
-	   fd_make_cprim3x("EXTDB/EXEC",extdb_exec,2,
-			   fd_extdb_type,FD_VOID,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim3x("EXTDB/EXEC",extdb_exec,2,
+                           fd_extdb_type,FD_VOID,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(extdb_module,fd_make_cprimn("EXTDB/PROC",extdb_makeproc,2));
   fd_idefn(extdb_module,fd_make_cprimn("EXTDB/PROC+",extdb_proc_plus,2));
 
   fd_idefn(extdb_module,fd_make_cprim1x
-	   ("EXTDB/PROC/QUERY",extdb_proc_query,1,fd_extdb_proc_type));
+           ("EXTDB/PROC/QUERY",extdb_proc_query,1,fd_extdb_proc_type));
   fd_idefn(extdb_module,fd_make_cprim1x
-	   ("EXTDB/PROC/DB",extdb_proc_db,1,fd_extdb_proc_type));
+           ("EXTDB/PROC/DB",extdb_proc_db,1,fd_extdb_proc_type));
   fd_idefn(extdb_module,fd_make_cprim1x
-	   ("EXTDB/PROC/SPEC",extdb_proc_spec,1,fd_extdb_proc_type));
+           ("EXTDB/PROC/SPEC",extdb_proc_spec,1,fd_extdb_proc_type));
   fd_idefn(extdb_module,fd_make_cprim1x
-	   ("EXTDB/PROC/PARAMS",extdb_proc_params,1,fd_extdb_proc_type));
+           ("EXTDB/PROC/PARAMS",extdb_proc_params,1,fd_extdb_proc_type));
   fd_idefn(extdb_module,fd_make_cprim1x
-	   ("EXTDB/PROC/TYPEMAP",extdb_proc_typemap,1,fd_extdb_proc_type));
+           ("EXTDB/PROC/TYPEMAP",extdb_proc_typemap,1,fd_extdb_proc_type));
 
   fd_register_config("SQLEXEC",
-		     _("whether direct execution of SQL strings is allowed"),
+                     _("whether direct execution of SQL strings is allowed"),
                      fd_boolconfig_get,fd_boolconfig_set,NULL);
-  
+
   fd_finish_module(extdb_module);
   fd_persist_module(extdb_module);
 

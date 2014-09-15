@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -48,8 +48,8 @@ typedef struct FD_KEY_SIZE *fd_key_size;
 typedef struct FD_INDEX_HANDLER {
   u8_string name; int version, length, n_handlers;
   void (*close)(fd_index ix);
-  int (*commit)(fd_index ix);  
-  void (*setcache)(fd_index ix,int level);  
+  int (*commit)(fd_index ix);
+  void (*setcache)(fd_index ix,int level);
   void (*setbuf)(fd_index p,int size);
   fdtype (*fetch)(fd_index ix,fdtype key);
   int (*fetchsize)(fd_index ix,fdtype key);
@@ -210,28 +210,28 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
       FDTC *fdtc=fd_threadcache;
       if (retval<0) return retval;
       if ((FD_WRITETHROUGH_THREADCACHE)&&(fdtc)&&(fdtc->indices.n_keys)) {
-	struct FD_PAIR tempkey;
-	FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-	tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
-	if (fd_hashtable_probe(&fdtc->indices,(fdtype)&tempkey)) {
-	  fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}
+        struct FD_PAIR tempkey;
+        FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
+        tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
+        if (fd_hashtable_probe(&fdtc->indices,(fdtype)&tempkey)) {
+          fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}
       if ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
-	  (fd_background->cache.n_keys))
-	retval=fd_hashtable_op
-	  (&(fd_background->cache),fd_table_replace,key,FD_VOID);
+          (fd_background->cache.n_keys))
+        retval=fd_hashtable_op
+          (&(fd_background->cache),fd_table_replace,key,FD_VOID);
       if ((!(FD_VOIDP(ix->has_slotids))) && (FD_EXPECT_TRUE(FD_PAIRP(key))) &&
-	  (FD_EXPECT_TRUE((FD_OIDP(FD_CAR(key))) ||
-			  (FD_SYMBOLP(FD_CAR(key))))) &&
-	  (FD_EXPECT_FALSE
-	   (!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))))) {
-	fd_decref(ix->has_slotids); ix->has_slotids=FD_VOID;}
+          (FD_EXPECT_TRUE((FD_OIDP(FD_CAR(key))) ||
+                          (FD_SYMBOLP(FD_CAR(key))))) &&
+          (FD_EXPECT_FALSE
+           (!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))))) {
+        fd_decref(ix->has_slotids); ix->has_slotids=FD_VOID;}
       return retval;}
   else return _fd_index_add(ix,key,value);
 }
 FD_FASTOP MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
 {
   if (FD_IMMEDIATEP(x)) {
-    int serial=FD_GET_IMMEDIATE(x,fd_index_type); 
+    int serial=FD_GET_IMMEDIATE(x,fd_index_type);
     if (serial<0) return NULL;
     else if (serial<FD_N_PRIMARY_INDICES)
       return fd_primary_indices[serial];
@@ -243,9 +243,9 @@ FD_FASTOP MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
   else return (fd_index)NULL;
 }
 #else
-#define fd_index_get(ix,key) _fd_index_get(ix,key) 
+#define fd_index_get(ix,key) _fd_index_get(ix,key)
 #define fd_index_add(ix,key,val) _fd_index_add(ix,key,val)
-#define fd_indexptr(ix) _fd_indexptr(ix) 
+#define fd_indexptr(ix) _fd_indexptr(ix)
 #endif
 
 /* Opening file indices */

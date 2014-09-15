@@ -100,7 +100,7 @@ static void close_fdsqliteproc(struct FD_SQLITE_PROC *dbp);
 static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo);
 
 #if HAVE_SQLITE3_CLOSE_V2
-#define closedb	sqlite3_close_v2
+#define closedb sqlite3_close_v2
 #else
 #define closedb sqlite3_close
 #endif
@@ -119,8 +119,8 @@ static fdtype execok_symbol;
 static int open_fdsqlite(struct FD_SQLITE *fdbptr)
 {
   u8_log(LOG_WARN,"open_fdsqlite",
-	 "Opening SQLite database %s info=%s, filename=%s",
-	 fdbptr->spec,fdbptr->info,fdbptr->filename);
+         "Opening SQLite database %s info=%s, filename=%s",
+         fdbptr->spec,fdbptr->info,fdbptr->filename);
   u8_lock_mutex(&(fdbptr->lock));
   if (fdbptr->db) {
     u8_unlock_mutex(&(fdbptr->lock));
@@ -144,12 +144,12 @@ static int open_fdsqlite(struct FD_SQLITE *fdbptr)
     if (fdbptr->n_procs) {
       struct FD_EXTDB_PROC **scan=fdbptr->procs, **limit=scan+fdbptr->n_procs;
       while (scan<limit) {
-	struct FD_EXTDB_PROC *edbp=*scan++;
-	struct FD_SQLITE_PROC *sp=(struct FD_SQLITE_PROC *)edbp;
-	int retval=open_fdsqliteproc(fdbptr,sp);
-	if (retval) 
-	  u8_log(LOG_CRIT,"sqlite_opendb","Error '%s' updating query '%s'",
-		 sqlite3_errmsg(db),sp->qtext);}}
+        struct FD_EXTDB_PROC *edbp=*scan++;
+        struct FD_SQLITE_PROC *sp=(struct FD_SQLITE_PROC *)edbp;
+        int retval=open_fdsqliteproc(fdbptr,sp);
+        if (retval)
+          u8_log(LOG_CRIT,"sqlite_opendb","Error '%s' updating query '%s'",
+                 sqlite3_errmsg(db),sp->qtext);}}
     u8_unlock_mutex(&(fdbptr->lock));
     return 1;}
 }
@@ -170,17 +170,17 @@ static fdtype sqlite_open_prim(fdtype filename,fdtype colinfo,fdtype options)
 
   if (sharedcache)
     u8_log(LOG_WARN,"sqlite_open",
-	   "the sqlite3_open_v2 shared cache option is not available");
+           "the sqlite3_open_v2 shared cache option is not available");
   if (privcache)
     u8_log(LOG_WARN,"sqlite_open",
-	   "the sqlite3_open_v2 private cache option is not available");
+           "the sqlite3_open_v2 private cache option is not available");
   if ((!(readcreate))&&(!(u8_file_existsp(FD_STRDATA(filename))))) {
     u8_seterr(NoSuchFile,"opensqlite",u8_strdup(FD_STRDATA(filename)));
     return FD_ERROR_VALUE;}
-  
+
   if (!(FD_VOIDP(vfs)))
     u8_log(LOG_WARN,"sqlite_open",
-	   "the sqlite3_open_v2 vfs methods are not available");
+           "the sqlite3_open_v2 vfs methods are not available");
 #endif
   if (FD_VOIDP(vfs_spec)) {}
   else if (FD_STRINGP(vfs_spec)) vfs=u8_strdup(FD_STRDATA(vfs_spec));
@@ -220,7 +220,7 @@ static void close_fdsqlite(struct FD_SQLITE *dbp,int lock)
   if (lock) u8_lock_mutex(&(dbp->lock)); {
     sqlite3 *db=dbp->db;
     struct FD_EXTDB_PROC **scan=dbp->procs, **limit=scan+dbp->n_procs;
-    while (scan<limit) 
+    while (scan<limit)
       close_fdsqliteproc((struct FD_SQLITE_PROC *)(*scan++));
     closedb(db);
     dbp->db=NULL;}
@@ -242,7 +242,7 @@ static void recycle_fdsqlite(struct FD_EXTDB *c)
   u8_lock_mutex(&(dbp->lock)); {
     close_fdsqlite(dbp,0);
     if (dbp->info!=dbp->spec) u8_free(dbp->info);
-    u8_free(dbp->spec); 
+    u8_free(dbp->spec);
     fd_decref(dbp->options); fd_decref(dbp->colinfo);
     u8_destroy_mutex(&(dbp->lock));
     if (FD_MALLOCD_CONSP(c)) u8_free(c);}
@@ -324,8 +324,8 @@ static fdtype sqliteexechandler(struct FD_EXTDB *extdb,fdtype string,fdtype coli
     if (!(sdb->db)) {
       u8_unlock_mutex(&(sdb->lock));
       if (extdb->spec!=extdb->info)
-	u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",extdb->spec,extdb->info);
-      else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s",extdb->spec);      
+        u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",extdb->spec,extdb->info);
+      else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s",extdb->spec);
       open_fdsqlite(sdb);
       if (!(sdb->db)) return FD_ERROR_VALUE;}
     return sqliteexec(sdb,string,colinfo);}
@@ -347,8 +347,8 @@ static fdtype sqlitemakeproc
     if (!(dbp->db)) {
       u8_unlock_mutex(&(dbp->lock));
       if (dbp->spec!=dbp->info)
-	u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",dbp->spec,dbp->info);
-      else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s",dbp->spec);      
+        u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",dbp->spec,dbp->info);
+      else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s",dbp->spec);
       open_fdsqlite(dbp);
       if (!(dbp->db)) return FD_ERROR_VALUE;}
     db=dbp->db;}
@@ -390,7 +390,7 @@ static fdtype merge_colinfo(FD_SQLITE *dbp,fdtype colinfo)
   else if (colinfo==dbp->colinfo)
     return fd_incref(colinfo);
   else if ((FD_PAIRP(colinfo))&&
-	   ((FD_CDR(colinfo))==(dbp->colinfo)))
+           ((FD_CDR(colinfo))==(dbp->colinfo)))
     return fd_incref(colinfo);
   else {
     fd_incref(dbp->colinfo); fd_incref(colinfo);
@@ -404,7 +404,7 @@ static fdtype sqlitemakeprochandler
   if (extdb->dbhandler==&sqlite_handler)
     return sqlitemakeproc((fd_sqlite)extdb,sql,sql_len,colinfo,n,ptypes);
   else return fd_type_error
-	 ("SQLITE EXTDB","sqlitemakeprochandler",(fdtype)extdb);
+         ("SQLITE EXTDB","sqlitemakeprochandler",(fdtype)extdb);
 }
 
 static int open_fdsqliteproc(struct FD_SQLITE *fdb,struct FD_SQLITE_PROC *fdp)
@@ -432,7 +432,7 @@ static void recycle_fdsqliteproc(struct FD_EXTDB_PROC *c)
     fd_clear_errors(1);
     return;}
   close_fdsqliteproc(dbp);
-  fd_decref(dbp->colinfo); 
+  fd_decref(dbp->colinfo);
   u8_free(dbp->spec); u8_free(dbp->qtext);
   {int j=0, lim=dbp->n_params;; while (j<lim) {
     fd_decref(dbp->paramtypes[j]); j++;}}
@@ -453,9 +453,9 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
   if (!(fds->db)) {
     if (fds->spec!=fds->info)
       u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s) for '%s'",
-	     fds->spec,fds->info,dbproc->qtext);
+             fds->spec,fds->info,dbproc->qtext);
     else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s for '%s'",
-		fds->spec,dbproc->qtext);      
+                fds->spec,dbproc->qtext);
     open_fdsqlite(fds);
     if (!(fds->db)) return FD_ERROR_VALUE;}
   u8_lock_mutex(&(dbproc->plock));
@@ -463,11 +463,11 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     fdtype arg=args[i]; int dofree=0;
     if (!(FD_VOIDP(dbproc->paramtypes[i])))
       if (FD_APPLICABLEP(dbproc->paramtypes[i])) {
-	arg=fd_apply(dbproc->paramtypes[i],1,&arg);
-	if (FD_ABORTP(arg)) {
-	  u8_unlock_mutex(&(dbproc->plock));
-	  return arg;}
-	else dofree=1;}
+        arg=fd_apply(dbproc->paramtypes[i],1,&arg);
+        if (FD_ABORTP(arg)) {
+          u8_unlock_mutex(&(dbproc->plock));
+          return arg;}
+        else dofree=1;}
     if (FD_EMPTY_CHOICEP(arg)) {
       ret=sqlite3_bind_null(dbproc->stmt,i+1);}
     else if (FD_PRIM_TYPEP(arg,fd_fixnum_type)) {
@@ -476,50 +476,50 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     else if (FD_FLONUMP(arg)) {
       double floval=FD_FLONUM(arg);
       ret=sqlite3_bind_double(dbproc->stmt,i+1,floval);}
-    else if (FD_PRIM_TYPEP(arg,fd_string_type)) 
+    else if (FD_PRIM_TYPEP(arg,fd_string_type))
       ret=sqlite3_bind_text
-	(dbproc->stmt,i+1,FD_STRDATA(arg),FD_STRLEN(arg),SQLITE_TRANSIENT);
-    else if (FD_PRIM_TYPEP(arg,fd_packet_type)) 
+        (dbproc->stmt,i+1,FD_STRDATA(arg),FD_STRLEN(arg),SQLITE_TRANSIENT);
+    else if (FD_PRIM_TYPEP(arg,fd_packet_type))
       ret=sqlite3_bind_blob
-	(dbproc->stmt,i+1,
-	 FD_PACKET_DATA(arg),FD_PACKET_LENGTH(arg),
-	 SQLITE_TRANSIENT);
+        (dbproc->stmt,i+1,
+         FD_PACKET_DATA(arg),FD_PACKET_LENGTH(arg),
+         SQLITE_TRANSIENT);
     else if (FD_OIDP(arg)) {
       if (FD_OIDP(dbproc->paramtypes[i])) {
-	FD_OID addr=FD_OID_ADDR(arg);
-	FD_OID base=FD_OID_ADDR(dbproc->paramtypes[i]);
-	unsigned long offset=FD_OID_DIFFERENCE(addr,base);
-	ret=sqlite3_bind_int(dbproc->stmt,i+1,offset);}
+        FD_OID addr=FD_OID_ADDR(arg);
+        FD_OID base=FD_OID_ADDR(dbproc->paramtypes[i]);
+        unsigned long offset=FD_OID_DIFFERENCE(addr,base);
+        ret=sqlite3_bind_int(dbproc->stmt,i+1,offset);}
       else {
-	FD_OID addr=FD_OID_ADDR(arg);
-	ret=sqlite3_bind_int64(dbproc->stmt,i+1,addr);}}
+        FD_OID addr=FD_OID_ADDR(arg);
+        ret=sqlite3_bind_int64(dbproc->stmt,i+1,addr);}}
     else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
       struct U8_OUTPUT out; u8_byte buf[64]; U8_INIT_FIXED_OUTPUT(&out,64,buf);
       struct FD_TIMESTAMP *tstamp=
-	FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
+        FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
       if ((tstamp->xtime.u8_tzoff)||(tstamp->xtime.u8_dstoff)) {
-	u8_xtime_to_iso8601_x
-	  (&out,&(tstamp->xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
-	u8_puts(&out," localtime");}
+        u8_xtime_to_iso8601_x
+          (&out,&(tstamp->xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
+        u8_puts(&out," localtime");}
       else u8_xtime_to_iso8601_x
-	(&out,&(tstamp->xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
+        (&out,&(tstamp->xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
       ret=sqlite3_bind_text
-	(dbproc->stmt,i+1,
-	 out.u8_outbuf,out.u8_outptr-out.u8_outbuf,
-	 SQLITE_TRANSIENT);}
+        (dbproc->stmt,i+1,
+         out.u8_outbuf,out.u8_outptr-out.u8_outbuf,
+         SQLITE_TRANSIENT);}
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       fd_unparse(&out,arg);
       ret=sqlite3_bind_text
-	(dbproc->stmt,i+1,
-	 out.u8_outbuf,out.u8_outptr-out.u8_outbuf,
-	 SQLITE_TRANSIENT);
+        (dbproc->stmt,i+1,
+         out.u8_outbuf,out.u8_outptr-out.u8_outbuf,
+         SQLITE_TRANSIENT);
       u8_free(out.u8_outbuf);}
     if (dofree) fd_decref(arg);
     if (ret) {
       const char *errmsg=sqlite3_errmsg(dbproc->sqlitedb);
       fd_seterr(SQLiteError,"fdsqlite_call",
-		u8_strdup(errmsg),fd_incref((fdtype)fn));
+                u8_strdup(errmsg),fd_incref((fdtype)fn));
       u8_unlock_mutex(&(dbproc->plock));
       return FD_ERROR_VALUE;}
     i++;}
@@ -531,7 +531,7 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
   if (FD_ABORTP(values)) {
     const char *errmsg=sqlite3_errmsg(dbproc->sqlitedb);
     fd_seterr(SQLiteError,"fdsqlite_call",
-	      u8_strdup(errmsg),fd_incref((fdtype)fn));}
+              u8_strdup(errmsg),fd_incref((fdtype)fn));}
   return values;
 }
 
@@ -550,7 +550,7 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
   int i=0, n_cols=sqlite3_column_count(stmt), retval;
   struct U8_OUTPUT out;
   if (!((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) ||
-	(FD_FALSEP(mergefn)) || (FD_APPLICABLEP(mergefn))))
+        (FD_FALSEP(mergefn)) || (FD_APPLICABLEP(mergefn))))
     return fd_type_error("%MERGE","sqlite_values",mergefn);
   if (n_cols==0) {
     int retval=sqlite3_step(stmt);
@@ -581,62 +581,62 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
     int j=0; while (j<n_cols) {
       int coltype=sqlite3_column_type(stmt,j); fdtype value;
       if (coltype<0) {
-	int k=0; while (k<j) {fd_decref(kv[k].value);  k++;}
-	u8_free(kv);
-	fd_decref(results); u8_free(out.u8_outbuf);
-	return FD_ERROR_VALUE;}
+        int k=0; while (k<j) {fd_decref(kv[k].value);  k++;}
+        u8_free(kv);
+        fd_decref(results); u8_free(out.u8_outbuf);
+        return FD_ERROR_VALUE;}
       kv[j].key=colnames[j];
       switch (coltype) {
       case SQLITE_INTEGER: {
-	long long intval=sqlite3_column_int(stmt,j);
-	const char *decltype=sqlite3_column_decltype(stmt,j);
-	if ((decltype)&&
-	    ((strcasecmp(decltype,"DATETIME")==0)||
-	     (strcasecmp(decltype,"DATE")==0)))
-	  value=fd_time2timestamp((time_t)intval);
-	else value=FD_INT2DTYPE(intval);
-	break;}
+        long long intval=sqlite3_column_int(stmt,j);
+        const char *decltype=sqlite3_column_decltype(stmt,j);
+        if ((decltype)&&
+            ((strcasecmp(decltype,"DATETIME")==0)||
+             (strcasecmp(decltype,"DATE")==0)))
+          value=fd_time2timestamp((time_t)intval);
+        else value=FD_INT2DTYPE(intval);
+        break;}
       case SQLITE_FLOAT:
-	value=fd_init_double(NULL,sqlite3_column_double(stmt,j)); break;
+        value=fd_init_double(NULL,sqlite3_column_double(stmt,j)); break;
       case SQLITE_TEXT: {
-	const char *decltype=sqlite3_column_decltype(stmt,j);
-	const char *textval=sqlite3_column_text(stmt,j);
-	if ((decltype)&&
-	    ((strcasecmp(decltype,"DATETIME")==0)||
-	     (strcasecmp(decltype,"DATE")==0))) {
-	  struct U8_XTIME xt; time_t retval=sqlite_time_to_xtime(textval,&xt);
-	  if (retval<0) retval=u8_rfc822_to_xtime((u8_string)textval,&xt);
-	  if (retval<0) value=fdtype_string((u8_string)textval);
-	  else value=fd_make_timestamp(&xt);}
-	else value=fdtype_string((unsigned char *)textval);
-	break;}
+        const char *decltype=sqlite3_column_decltype(stmt,j);
+        const char *textval=sqlite3_column_text(stmt,j);
+        if ((decltype)&&
+            ((strcasecmp(decltype,"DATETIME")==0)||
+             (strcasecmp(decltype,"DATE")==0))) {
+          struct U8_XTIME xt; time_t retval=sqlite_time_to_xtime(textval,&xt);
+          if (retval<0) retval=u8_rfc822_to_xtime((u8_string)textval,&xt);
+          if (retval<0) value=fdtype_string((u8_string)textval);
+          else value=fd_make_timestamp(&xt);}
+        else value=fdtype_string((unsigned char *)textval);
+        break;}
       case SQLITE_BLOB: {
-	int n_bytes=sqlite3_column_bytes(stmt,j);
-	const unsigned char *blob=sqlite3_column_blob(stmt,j);
-	value=fd_make_packet(NULL,n_bytes,(unsigned char *)blob); break;}
+        int n_bytes=sqlite3_column_bytes(stmt,j);
+        const unsigned char *blob=sqlite3_column_blob(stmt,j);
+        value=fd_make_packet(NULL,n_bytes,(unsigned char *)blob); break;}
       case SQLITE_NULL: default:
-	value=FD_EMPTY_CHOICE; break;}
+        value=FD_EMPTY_CHOICE; break;}
       if (FD_VOIDP(colmaps[j]))
-	kv[j].value=value;
+        kv[j].value=value;
       else if (FD_APPLICABLEP(colmaps[j])) {
-	kv[j].value=fd_apply(colmaps[j],1,&value);
-	fd_decref(value);}
+        kv[j].value=fd_apply(colmaps[j],1,&value);
+        fd_decref(value);}
       else if (FD_OIDP(colmaps[j]))
-	if (FD_STRINGP(value)) {
-	  kv[j].value=fd_parse(FD_STRDATA(value));
-	  fd_decref(value);}
-	else {
-	  FD_OID base=FD_OID_ADDR(colmaps[j]);
-	  int offset=fd_getint(value);
-	  if (offset<0) kv[j].value=value;
-	  else {
-	    kv[j].value=fd_make_oid(base+offset);
-	    fd_decref(value);}}
+        if (FD_STRINGP(value)) {
+          kv[j].value=fd_parse(FD_STRDATA(value));
+          fd_decref(value);}
+        else {
+          FD_OID base=FD_OID_ADDR(colmaps[j]);
+          int offset=fd_getint(value);
+          if (offset<0) kv[j].value=value;
+          else {
+            kv[j].value=fd_make_oid(base+offset);
+            fd_decref(value);}}
       else if (colmaps[j]==FD_TRUE)
-	if (FD_STRINGP(value)) {
-	  kv[j].value=fd_parse(FD_STRDATA(value));
-	  fd_decref(value);}
-	else kv[j].value=value;
+        if (FD_STRINGP(value)) {
+          kv[j].value=fd_parse(FD_STRDATA(value));
+          fd_decref(value);}
+        else kv[j].value=value;
       else kv[j].value=value;
       j++;}
     if ((n_cols==1) && (FD_TRUEP(mergefn))) {
@@ -651,33 +651,33 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
     if (sorted) {
       if (FD_ABORTP(result)) {}
       else if (rn>=rmax) {
-	int new_max=((rmax>=65536)?(rmax+65536):(rmax*2));
-	fdtype *newv=u8_realloc(resultsv,sizeof(fdtype)*new_max);
-	if (newv==NULL) {
-	  int delta=(new_max-rmax)/2;
-	  while ((newv==NULL)&&(delta>=1)) {
-	    new_max=rmax+delta; delta=delta/2;
-	    newv=u8_realloc(resultsv,sizeof(fdtype)*new_max);}
-	  if (!(newv)) {
-	    fd_decref(result);
-	    fd_seterr(fd_OutOfMemory,"sqlite_step",NULL,FD_VOID);
-	    result=FD_ERROR_VALUE;}
-	  else {resultsv=newv; rmax=new_max;}}}
+        int new_max=((rmax>=65536)?(rmax+65536):(rmax*2));
+        fdtype *newv=u8_realloc(resultsv,sizeof(fdtype)*new_max);
+        if (newv==NULL) {
+          int delta=(new_max-rmax)/2;
+          while ((newv==NULL)&&(delta>=1)) {
+            new_max=rmax+delta; delta=delta/2;
+            newv=u8_realloc(resultsv,sizeof(fdtype)*new_max);}
+          if (!(newv)) {
+            fd_decref(result);
+            fd_seterr(fd_OutOfMemory,"sqlite_step",NULL,FD_VOID);
+            result=FD_ERROR_VALUE;}
+          else {resultsv=newv; rmax=new_max;}}}
       resultsv[rn++]=result;}
     else {
       FD_ADD_TO_CHOICE(results,result);}
     if (FD_ABORTP(result)) {
       if (sorted) {
-	int k=0; while (k<rn) {
-	  fdtype v=resultsv[k++]; fd_decref(v);}
-	fd_decref(results);
-	u8_free(resultsv);
-	results=result;
-	break;}
+        int k=0; while (k<rn) {
+          fdtype v=resultsv[k++]; fd_decref(v);}
+        fd_decref(results);
+        u8_free(resultsv);
+        results=result;
+        break;}
       else {
-	fd_decref(results);
-	results=result;
-	break;}}}
+        fd_decref(results);
+        results=result;
+        break;}}}
   if (retval!=SQLITE_DONE) {
 #if HAVE_SQLITE3_ERRSTR
     const char *msg=sqlite3_errstr(retval);
@@ -685,7 +685,7 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
 #endif
     fd_decref(results); if (sorted) {
       int k=0; while (k<rn) {
-	fdtype v=resultsv[k++]; fd_decref(v);}
+        fdtype v=resultsv[k++]; fd_decref(v);}
       fd_decref(results);
       u8_free(resultsv);
       resultsv=NULL;}
@@ -714,22 +714,22 @@ static time_t sqlite_time_to_xtime(const char *s,struct U8_XTIME *xtp)
     /* Assume odd, vaugely human-friendly format that uses space
        rather than T to separate the time */
     n_elts=sscanf(s,"%04u-%02hhu-%02hhu %02hhu:%02hhu:%02hhu.%u",
-		  &xtp->u8_year,&xtp->u8_mon,
-		  &xtp->u8_mday,&xtp->u8_hour,
-		  &xtp->u8_min,&xtp->u8_sec,
-		  &nsecs);
+                  &xtp->u8_year,&xtp->u8_mon,
+                  &xtp->u8_mday,&xtp->u8_hour,
+                  &xtp->u8_min,&xtp->u8_sec,
+                  &nsecs);
   else n_elts=sscanf(s,"%04u-%02hhu-%02hhuT%02hhu:%02hhu:%02hhu.%u",
-		     &xtp->u8_year,&xtp->u8_mon,
-		     &xtp->u8_mday,&xtp->u8_hour,
-		     &xtp->u8_min,&xtp->u8_sec,
-		     &nsecs);
+                     &xtp->u8_year,&xtp->u8_mon,
+                     &xtp->u8_mday,&xtp->u8_hour,
+                     &xtp->u8_min,&xtp->u8_sec,
+                     &nsecs);
   if ((n_elts == 1)&&(len>4)) {
     /* Assume basic format */
     n_elts=sscanf(s,"%04u%02hhu%02hhuT%02hhu%02hhu%02hhu.%u",
-		  &xtp->u8_year,&xtp->u8_mon,
-		  &xtp->u8_mday,&xtp->u8_hour,
-		  &xtp->u8_min,&xtp->u8_sec,
-		  &nsecs);
+                  &xtp->u8_year,&xtp->u8_mon,
+                  &xtp->u8_mday,&xtp->u8_hour,
+                  &xtp->u8_min,&xtp->u8_sec,
+                  &nsecs);
     pos=basicpos;}
   /* Give up if you can't parse anything */
   if (n_elts == 0) return (time_t) -1;
@@ -775,13 +775,13 @@ FD_EXPORT int fd_init_sqlite()
   fd_register_extdb_handler(&sqlite_handler);
 
   fd_defn(module,
-	  fd_make_cprim3x("SQLITE/OPEN",sqlite_open_prim,1,
-			  fd_string_type,FD_VOID,
-			  -1,FD_VOID,-1,FD_VOID));
+          fd_make_cprim3x("SQLITE/OPEN",sqlite_open_prim,1,
+                          fd_string_type,FD_VOID,
+                          -1,FD_VOID,-1,FD_VOID));
   fd_defn(module,fd_make_cprim1x("SQLITE/REOPEN",sqlite_reopen_prim,1,
-				 fd_extdb_type,FD_VOID));
+                                 fd_extdb_type,FD_VOID));
   fd_defn(module,fd_make_cprim1x("SQLITE/CLOSE",sqlite_close_prim,1,
-				 fd_extdb_type,FD_VOID));
+                                 fd_extdb_type,FD_VOID));
   sqlite_init=1;
 
   merge_symbol=fd_intern("%MERGE");
@@ -792,7 +792,7 @@ FD_EXPORT int fd_init_sqlite()
   privatecache_symbol=fd_intern("PRIVATECACHE");
   vfs_symbol=fd_intern("VFS");
   execok_symbol=fd_intern("EXEC/OK");
-  
+
   fd_finish_module(module);
 
   u8_register_source_file(_FILEINFO);

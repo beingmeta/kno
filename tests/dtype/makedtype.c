@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -56,7 +56,7 @@ int main(int argc,char **argv)
   else object=fd_parse(argv[2]);
   write_dtype_to_file(object,f);
   u8_fprintf(stdout,"Dumped the %s %q\n",
-	     fd_type_names[FD_PTR_TYPE(object)],object);
+             fd_type_names[FD_PTR_TYPE(object)],object);
   fd_decref(object); object=FD_VOID;
   fclose(f);
   exit(0);

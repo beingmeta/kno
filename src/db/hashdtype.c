@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -27,7 +27,7 @@ FD_FASTOP unsigned int hash_string_dtype1 (fdtype x)
   char *ptr=FD_STRDATA(x), *limit=ptr+FD_STRLEN(x);
   unsigned int sum=0;
   while (ptr < limit) {
-    sum=(sum<<8)+(*ptr++); 
+    sum=(sum<<8)+(*ptr++);
     sum=sum%(MAGIC_MODULUS);}
   return sum;
 }
@@ -298,22 +298,22 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
     case fd_choice_type: {
       unsigned int sum=0;
       FD_DO_CHOICES(elt,x)
-	sum=(sum+(hash_dtype2(elt))%MAGIC_MODULUS);
+        sum=(sum+(hash_dtype2(elt))%MAGIC_MODULUS);
       return sum;}
     case fd_vector_type: {
       int i=0, size=FD_VECTOR_LENGTH(x); unsigned int prod=1;
       while (i < size) {
-	prod=hash_combine(prod,hash_dtype2(FD_VECTOR_REF(x,i))); i++;}
+        prod=hash_combine(prod,hash_dtype2(FD_VECTOR_REF(x,i))); i++;}
       return prod;}
     case fd_slotmap_type: {
       unsigned int sum=0;
       struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
       struct FD_KEYVAL *scan=sm->keyvals, *limit=scan+FD_XSLOTMAP_SIZE(sm);
       while (scan<limit) {
-	unsigned int prod=
-	  hash_combine(hash_dtype2(scan->key),hash_dtype2(scan->value));
-	sum=(sum+prod)%(MYSTERIOUS_MODULUS);
-	scan++;}
+        unsigned int prod=
+          hash_combine(hash_dtype2(scan->key),hash_dtype2(scan->value));
+        sum=(sum+prod)%(MYSTERIOUS_MODULUS);
+        scan++;}
       return sum;}
     case fd_rational_type: {
       struct FD_PAIR *p=FD_STRIP_CONS(x,fd_rational_type,struct FD_PAIR *);
@@ -323,7 +323,7 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
       return hash_combine(hash_dtype2(p->car),hash_dtype2(p->cdr));}
     default:
       if ((ctype<FD_TYPE_MAX) && (fd_hashfns[ctype]))
-	return fd_hashfns[ctype](x,fd_hash_dtype2);
+        return fd_hashfns[ctype](x,fd_hash_dtype2);
       else return 17;}}
 }
 
@@ -437,22 +437,22 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
     case fd_choice_type: {
       unsigned int sum=0;
       FD_DO_CHOICES(elt,x)
-	sum=(sum+(hash_dtype3(elt))%MIDDLIN_MODULUS);
+        sum=(sum+(hash_dtype3(elt))%MIDDLIN_MODULUS);
       return sum;}
     case fd_vector_type: {
       int i=0, size=FD_VECTOR_LENGTH(x); unsigned int prod=1;
       while (i < size) {
-	prod=hash_combine(prod,hash_dtype3(FD_VECTOR_REF(x,i))); i++;}
+        prod=hash_combine(prod,hash_dtype3(FD_VECTOR_REF(x,i))); i++;}
       return prod;}
     case fd_slotmap_type: {
       unsigned int sum=0;
       struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
       struct FD_KEYVAL *scan=sm->keyvals, *limit=scan+FD_XSLOTMAP_SIZE(sm);
       while (scan<limit) {
-	unsigned int prod=
-	  hash_combine(hash_dtype3(scan->key),hash_dtype3(scan->value));
-	sum=(sum+prod)%(MYSTERIOUS_MODULUS);
-	scan++;}
+        unsigned int prod=
+          hash_combine(hash_dtype3(scan->key),hash_dtype3(scan->value));
+        sum=(sum+prod)%(MYSTERIOUS_MODULUS);
+        scan++;}
       return sum;}
     case fd_rational_type: {
       struct FD_PAIR *p=FD_STRIP_CONS(x,fd_rational_type,struct FD_PAIR *);
@@ -462,7 +462,7 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
       return hash_combine(hash_dtype3(p->car),hash_dtype3(p->cdr));}
     default:
       if ((ctype<FD_TYPE_MAX) && (fd_hashfns[ctype]))
-	return fd_hashfns[ctype](x,fd_hash_dtype3);
+        return fd_hashfns[ctype](x,fd_hash_dtype3);
       else return 17;}}
 }
 

@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -118,7 +118,7 @@ FD_INLINE_FCN void fd_set_ipeval_state(fd_wideint s)
   u8_tld_set(fd_ipeval_state_key,(void *)s);
 }
 #else
-FD_INLINE_FCN fd_wideint fd_ipeval_delay(int n) 
+FD_INLINE_FCN fd_wideint fd_ipeval_delay(int n)
 {
   if (fd_ipeval_state<1) return 0;
   else {

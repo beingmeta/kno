@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -58,7 +58,7 @@ static fdtype hashtablep(fdtype x)
 FD_EXPORT fdtype make_hashset(fdtype arg)
 {
   struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
-  if (FD_VOIDP(arg)) 
+  if (FD_VOIDP(arg))
     fd_init_hashset(h,17,FD_MALLOCD_CONS);
   else fd_init_hashset(h,FD_FIX2INT(arg),FD_MALLOCD_CONS);
   FD_INIT_CONS(h,fd_hashset_type);
@@ -110,7 +110,7 @@ static fdtype lispget(fdtype table,fdtype key,fdtype dflt)
 static fdtype lispgetif(fdtype table,fdtype key,fdtype dflt)
 {
   if (FD_FALSEP(table)) return fd_incref(key);
-  else if (FD_VOIDP(dflt)) 
+  else if (FD_VOIDP(dflt))
     return fd_get(table,key,FD_EMPTY_CHOICE);
   else return fd_get(table,key,dflt);
 }
@@ -125,26 +125,26 @@ static fdtype lisptryget(fdtype table,fdtype key,fdtype dflt)
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(etable,table) {
       FD_DO_CHOICES(ekey,key) {
-	fdtype v=((FD_VOIDP(dflt)) ? (fd_get(etable,ekey,ekey)) :
-		  (fd_get(etable,ekey,dflt)));      
-	FD_ADD_TO_CHOICE(results,v);}}
+        fdtype v=((FD_VOIDP(dflt)) ? (fd_get(etable,ekey,ekey)) :
+                  (fd_get(etable,ekey,dflt)));
+        FD_ADD_TO_CHOICE(results,v);}}
     if (FD_EMPTY_CHOICEP(results))
       if (FD_VOIDP(dflt))
-	return fd_incref(key);
+        return fd_incref(key);
       else return fd_incref(dflt);
     else return results;}
   else if (FD_CHOICEP(key)) {
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(ekey,key) {
       fdtype v=((FD_VOIDP(dflt)) ? (fd_get(table,ekey,ekey)) :
-		(fd_get(table,ekey,dflt)));
+                (fd_get(table,ekey,dflt)));
       FD_ADD_TO_CHOICE(results,v);}
     if (FD_EMPTY_CHOICEP(results))
       if (FD_VOIDP(dflt))
-	return fd_incref(key);
+        return fd_incref(key);
       else return fd_incref(dflt);
     else return results;}
-  else if (FD_VOIDP(dflt)) 
+  else if (FD_VOIDP(dflt))
     return fd_get(table,key,key);
   else return fd_get(table,key,dflt);
 }
@@ -203,8 +203,8 @@ static fdtype lisp_pick_keys(fdtype table,fdtype howmany_arg)
       const fdtype *data=FD_CHOICE_DATA(normal);
       int j=0; fd_init_hashset(&h,n*3,FD_STACK_CONS);
       while (j<howmany) {
-	int i=u8_random(n);
-	if (fd_hashset_mod(&h,data[i],1)) j++;}
+        int i=u8_random(n);
+        if (fd_hashset_mod(&h,data[i],1)) j++;}
       fd_decref(normal);
       return fd_hashset_elts(&h,1);}
     else return FD_EMPTY_CHOICE;}
@@ -228,8 +228,8 @@ static fdtype hashtable_increment(fdtype table,fdtype keys,fdtype increment)
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -253,8 +253,8 @@ static fdtype table_increment(fdtype table,fdtype keys,fdtype increment)
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -265,16 +265,16 @@ static fdtype table_increment(fdtype table,fdtype keys,fdtype increment)
     FD_DO_CHOICES(key,keys) {
       fdtype cur=fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur))
-	fd_store(table,key,increment);
+        fd_store(table,key,increment);
       else if ((FD_FIXNUMP(cur)) && (FD_FIXNUMP(increment))) {
-	int sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
-	fdtype lsum=FD_INT2DTYPE(sum);
-	fd_store(table,key,lsum);
-	fd_decref(lsum);}
+        int sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
+        fdtype lsum=FD_INT2DTYPE(sum);
+        fd_store(table,key,lsum);
+        fd_decref(lsum);}
       else if (FD_NUMBERP(cur)) {
-	fdtype lsum=fd_plus(cur,increment);
-	fd_store(table,key,lsum);
-	fd_decref(lsum); fd_decref(cur);}
+        fdtype lsum=fd_plus(cur,increment);
+        fd_store(table,key,lsum);
+        fd_decref(lsum); fd_decref(cur);}
       else return fd_type_error("number","table_increment",cur);}
     return FD_VOID;}
   else return fd_type_error("table","table_increment",table);
@@ -294,15 +294,15 @@ static fdtype hashtable_increment_existing
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
-				fd_table_increment_if_present,
-				n_elts,elts,increment)<0) {
-	fd_decref(keys); return FD_ERROR_VALUE;}
+                                fd_table_increment_if_present,
+                                n_elts,elts,increment)<0) {
+        fd_decref(keys); return FD_ERROR_VALUE;}
       else {fd_decref(keys); return FD_VOID;}}
     else if (FD_EMPTY_CHOICEP(key))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),
-			     fd_table_increment_if_present,
-			     key,increment)<0)
+                             fd_table_increment_if_present,
+                             key,increment)<0)
       return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("table","hashtable_increment_existing",table);
@@ -323,8 +323,8 @@ static fdtype table_increment_existing
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_increment,n_elts,elts,increment)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -336,14 +336,14 @@ static fdtype table_increment_existing
       fdtype cur=fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur)) {}
       else if ((FD_FIXNUMP(cur)) && (FD_FIXNUMP(increment))) {
-	int sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
-	fdtype lsum=FD_INT2DTYPE(sum);
-	fd_store(table,key,lsum);
-	fd_decref(lsum);}
+        int sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
+        fdtype lsum=FD_INT2DTYPE(sum);
+        fd_store(table,key,lsum);
+        fd_decref(lsum);}
       else if (FD_NUMBERP(cur)) {
-	fdtype lsum=fd_plus(cur,increment);
-	fd_store(table,key,lsum);
-	fd_decref(lsum); fd_decref(cur);}
+        fdtype lsum=fd_plus(cur,increment);
+        fd_store(table,key,lsum);
+        fd_decref(lsum); fd_decref(cur);}
       else return fd_type_error("number","table_increment_existing",cur);}
     return FD_VOID;}
   else return fd_type_error("table","table_increment_existing",table);
@@ -362,15 +362,15 @@ static fdtype hashtable_multiply(fdtype table,fdtype key,fdtype factor)
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
-				fd_table_multiply,
-				n_elts,elts,factor)<0) {
-	fd_decref(keys); return FD_ERROR_VALUE;}
+                                fd_table_multiply,
+                                n_elts,elts,factor)<0) {
+        fd_decref(keys); return FD_ERROR_VALUE;}
       else {fd_decref(keys); return FD_VOID;}}
     else if (FD_EMPTY_CHOICEP(key))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),
-			     fd_table_multiply,
-			     key,factor)<0)
+                             fd_table_multiply,
+                             key,factor)<0)
       return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("table","hashtable_multiply",table);
@@ -390,8 +390,8 @@ static fdtype table_multiply(fdtype table,fdtype keys,fdtype factor)
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_multiply,n_elts,elts,factor)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_multiply,n_elts,elts,factor)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -402,11 +402,11 @@ static fdtype table_multiply(fdtype table,fdtype keys,fdtype factor)
     FD_DO_CHOICES(key,keys) {
       fdtype cur=fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur))
-	fd_store(table,key,factor);
+        fd_store(table,key,factor);
       else if (FD_NUMBERP(cur)) {
-	fdtype lsum=fd_multiply(cur,factor);
-	fd_store(table,key,lsum);
-	fd_decref(lsum); fd_decref(cur);}
+        fdtype lsum=fd_multiply(cur,factor);
+        fd_store(table,key,lsum);
+        fd_decref(lsum); fd_decref(cur);}
       else return fd_type_error("number","table_multiply",cur);}
     return FD_VOID;}
   else return fd_type_error("table","table_multiply",table);
@@ -426,15 +426,15 @@ static fdtype hashtable_multiply_existing
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys(FD_XHASHTABLE(table),
-				fd_table_multiply_if_present,
-				n_elts,elts,factor)<0) {
-	fd_decref(keys); return FD_ERROR_VALUE;}
+                                fd_table_multiply_if_present,
+                                n_elts,elts,factor)<0) {
+        fd_decref(keys); return FD_ERROR_VALUE;}
       else {fd_decref(keys); return FD_VOID;}}
     else if (FD_EMPTY_CHOICEP(key))
       return FD_VOID;
     else if (fd_hashtable_op(FD_XHASHTABLE(table),
-			     fd_table_multiply_if_present,
-			     key,factor)<0)
+                             fd_table_multiply_if_present,
+                             key,factor)<0)
       return FD_ERROR_VALUE;
     else return FD_VOID;
   else return fd_type_error("table","hashtable_multiply_existing",table);
@@ -454,8 +454,8 @@ static fdtype table_multiply_existing(fdtype table,fdtype keys,fdtype factor)
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_multiply_if_present,n_elts,elts,factor)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_multiply_if_present,n_elts,elts,factor)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -467,9 +467,9 @@ static fdtype table_multiply_existing(fdtype table,fdtype keys,fdtype factor)
       fdtype cur=fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur)) {}
       else if (FD_NUMBERP(cur)) {
-	fdtype lsum=fd_multiply(cur,factor);
-	fd_store(table,key,lsum);
-	fd_decref(lsum); fd_decref(cur);}
+        fdtype lsum=fd_multiply(cur,factor);
+        fd_store(table,key,lsum);
+        fd_decref(lsum); fd_decref(cur);}
       else return fd_type_error("number","table_multiply_existing",cur);}
     return FD_VOID;}
   else return fd_type_error("table","table_multiply_existing",table);
@@ -492,8 +492,8 @@ static fdtype table_maximize(fdtype table,fdtype keys,fdtype maxval)
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_maximize,n_elts,elts,maxval)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_maximize,n_elts,elts,maxval)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -504,12 +504,12 @@ static fdtype table_maximize(fdtype table,fdtype keys,fdtype maxval)
     FD_DO_CHOICES(key,keys) {
       fdtype cur=fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur))
-	fd_store(table,key,maxval);
+        fd_store(table,key,maxval);
       else if (FD_NUMBERP(cur)) {
-	if (fd_numcompare(maxval,cur)>0) {
-	  fd_store(table,key,maxval);
-	  fd_decref(cur);}
-	else {fd_decref(cur);}}
+        if (fd_numcompare(maxval,cur)>0) {
+          fd_store(table,key,maxval);
+          fd_decref(cur);}
+        else {fd_decref(cur);}}
       else return fd_type_error("number","table_maximize",cur);}
     return FD_VOID;}
   else return fd_type_error("table","table_maximize",table);
@@ -528,8 +528,8 @@ static fdtype table_maximize_existing(fdtype table,fdtype keys,fdtype maxval)
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_maximize_if_present,n_elts,elts,maxval)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_maximize_if_present,n_elts,elts,maxval)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -541,10 +541,10 @@ static fdtype table_maximize_existing(fdtype table,fdtype keys,fdtype maxval)
       fdtype cur=fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur)) {}
       else if (FD_NUMBERP(cur)) {
-	if (fd_numcompare(maxval,cur)>0) {
-	  fd_store(table,key,maxval);
-	  fd_decref(cur);}
-	else {fd_decref(cur);}}
+        if (fd_numcompare(maxval,cur)>0) {
+          fd_store(table,key,maxval);
+          fd_decref(cur);}
+        else {fd_decref(cur);}}
       else return fd_type_error("number","table_maximize",cur);}
     return FD_VOID;}
   else return fd_type_error("table","table_maximize",table);
@@ -561,8 +561,8 @@ static fdtype hashtable_maximize(fdtype table,fdtype keys,fdtype maxval)
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_maximize,n_elts,elts,maxval)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_maximize,n_elts,elts,maxval)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -583,8 +583,8 @@ static fdtype hashtable_maximize_existing(fdtype table,fdtype keys,fdtype maxval
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_maximize_if_present,n_elts,elts,maxval)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_maximize_if_present,n_elts,elts,maxval)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -611,8 +611,8 @@ static fdtype table_minimize(fdtype table,fdtype keys,fdtype minval)
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_minimize,n_elts,elts,minval)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_minimize,n_elts,elts,minval)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -623,12 +623,12 @@ static fdtype table_minimize(fdtype table,fdtype keys,fdtype minval)
     FD_DO_CHOICES(key,keys) {
       fdtype cur=fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur))
-	fd_store(table,key,minval);
+        fd_store(table,key,minval);
       else if (FD_NUMBERP(cur)) {
-	if (fd_numcompare(minval,cur)<0) {
-	  fd_store(table,key,minval);
-	  fd_decref(cur);}
-	else {fd_decref(cur);}}
+        if (fd_numcompare(minval,cur)<0) {
+          fd_store(table,key,minval);
+          fd_decref(cur);}
+        else {fd_decref(cur);}}
       else return fd_type_error("number","table_minimize",cur);}
     return FD_VOID;}
   else return fd_type_error("table","table_minimize",table);
@@ -647,8 +647,8 @@ static fdtype table_minimize_existing(fdtype table,fdtype keys,fdtype minval)
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_minimize_if_present,n_elts,elts,minval)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_minimize_if_present,n_elts,elts,minval)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -660,10 +660,10 @@ static fdtype table_minimize_existing(fdtype table,fdtype keys,fdtype minval)
       fdtype cur=fd_get(table,key,FD_VOID);
       if (FD_VOIDP(cur)) {}
       else if (FD_NUMBERP(cur)) {
-	if (fd_numcompare(minval,cur)<0) {
-	  fd_store(table,key,minval);
-	  fd_decref(cur);}
-	else {fd_decref(cur);}}
+        if (fd_numcompare(minval,cur)<0) {
+          fd_store(table,key,minval);
+          fd_decref(cur);}
+        else {fd_decref(cur);}}
       else return fd_type_error("number","table_minimize_existing",cur);}
     return FD_VOID;}
   else return fd_type_error("table","table_minimize",table);
@@ -680,8 +680,8 @@ static fdtype hashtable_minimize(fdtype table,fdtype keys,fdtype minval)
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_minimize,n_elts,elts,minval)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_minimize,n_elts,elts,minval)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -703,8 +703,8 @@ static fdtype hashtable_minimize_existing(fdtype table,fdtype keys,fdtype minval
       const fdtype *elts=FD_CHOICE_DATA(keys);
       int n_elts=FD_CHOICE_SIZE(keys);
       if (fd_hashtable_iterkeys
-	  (FD_XHASHTABLE(table),fd_table_minimize_if_present,n_elts,elts,minval)<0) {
-	return FD_ERROR_VALUE;}
+          (FD_XHASHTABLE(table),fd_table_minimize_if_present,n_elts,elts,minval)<0) {
+        return FD_ERROR_VALUE;}
       else return FD_VOID;}
     else if (FD_EMPTY_CHOICEP(keys))
       return FD_VOID;
@@ -746,13 +746,13 @@ static fdtype table_max(fdtype tables,fdtype scope)
   if (FD_EMPTY_CHOICEP(scope)) return scope;
   else {
     fdtype results=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(table,tables) 
+    FD_DO_CHOICES(table,tables)
       if (FD_TABLEP(table)) {
-	fdtype result=fd_table_max(table,scope,NULL);
-	FD_ADD_TO_CHOICE(results,result);}
+        fdtype result=fd_table_max(table,scope,NULL);
+        FD_ADD_TO_CHOICE(results,result);}
       else {
-	fd_decref(results);
-	return fd_type_error(_("table"),"table_max",table);}
+        fd_decref(results);
+        return fd_type_error(_("table"),"table_max",table);}
     return results;}
 }
 
@@ -761,15 +761,15 @@ static fdtype table_maxval(fdtype tables,fdtype scope)
   if (FD_EMPTY_CHOICEP(scope)) return scope;
   else {
     fdtype results=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(table,tables) 
+    FD_DO_CHOICES(table,tables)
       if (FD_TABLEP(table)) {
-	fdtype maxval=FD_EMPTY_CHOICE;
-	fdtype result=fd_table_max(table,scope,&maxval);
-	FD_ADD_TO_CHOICE(results,maxval);
-	fd_decref(result);}
+        fdtype maxval=FD_EMPTY_CHOICE;
+        fdtype result=fd_table_max(table,scope,&maxval);
+        FD_ADD_TO_CHOICE(results,maxval);
+        fd_decref(result);}
       else {
-	fd_decref(results);
-	return fd_type_error(_("table"),"table_maxval",table);}
+        fd_decref(results);
+        return fd_type_error(_("table"),"table_maxval",table);}
     return results;}
 }
 
@@ -778,16 +778,16 @@ static fdtype table_skim(fdtype tables,fdtype maxval,fdtype scope)
   if (FD_EMPTY_CHOICEP(scope)) return scope;
   else {
     fdtype results=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(table,tables) 
+    FD_DO_CHOICES(table,tables)
       if (FD_TABLEP(table)) {
-	fdtype result=fd_table_skim(table,maxval,scope);
-	FD_ADD_TO_CHOICE(results,result);}
+        fdtype result=fd_table_skim(table,maxval,scope);
+        FD_ADD_TO_CHOICE(results,result);}
       else {
-	fd_decref(results);
-	return fd_type_error(_("table"),"table_skim",table);}
+        fd_decref(results);
+        return fd_type_error(_("table"),"table_skim",table);}
     return results;}
 }
-  
+
 /* Mapping into tables */
 
 static fdtype map2table(fdtype keys,fdtype fn,fdtype hashp)
@@ -908,140 +908,140 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim1("HASHTABLE?",hashtablep,1));
 
   fd_idefn(fd_xscheme_module,
-	   fd_make_cprim1x("MAKE-HASHSET",make_hashset,0,
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim1x("MAKE-HASHSET",make_hashset,0,
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("MAKE-HASHTABLE",make_hashtable,0));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("STATIC-HASHTABLE",static_hashtable,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("PICK-HASHTABLE-SIZE",pick_hashtable_size,1,
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim1x("PICK-HASHTABLE-SIZE",pick_hashtable_size,1,
+                           fd_fixnum_type,FD_VOID));
 
 
   fd_idefn(fd_xscheme_module,
-	   fd_make_cprim2x("RESET-HASHTABLE!",reset_hashtable,1,
-			   fd_hashtable_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(-1)));
+           fd_make_cprim2x("RESET-HASHTABLE!",reset_hashtable,1,
+                           fd_hashtable_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(-1)));
   /* Note that GET and TEST are actually DB functions which do inference */
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("%GET",lispget,2)));
+           fd_make_ndprim(fd_make_cprim3("%GET",lispget,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("%TEST",lisptest,2)));
+           fd_make_ndprim(fd_make_cprim3("%TEST",lisptest,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("GETIF",lispgetif,2)));
+           fd_make_ndprim(fd_make_cprim3("GETIF",lispgetif,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("TRYGET",lisptryget,2)));
+           fd_make_ndprim(fd_make_cprim3("TRYGET",lisptryget,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("ADD!",lispadd,3)));
+           fd_make_ndprim(fd_make_cprim3("ADD!",lispadd,3)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("DROP!",lispdrop,2)));
+           fd_make_ndprim(fd_make_cprim3("DROP!",lispdrop,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("STORE!",lispstore,3)));
+           fd_make_ndprim(fd_make_cprim3("STORE!",lispstore,3)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("GETKEYS",fd_getkeys,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2x("PICK-KEYS",lisp_pick_keys,1,
-					    -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(1)));
+                                            -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-SIZE",table_size,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("TABLE-MAX",table_max,1)));
+           fd_make_ndprim(fd_make_cprim2("TABLE-MAX",table_max,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("TABLE-MAXVAL",table_maxval,1)));
+           fd_make_ndprim(fd_make_cprim2("TABLE-MAXVAL",table_maxval,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("TABLE-SKIM",table_skim,2)));
+           fd_make_ndprim(fd_make_cprim3("TABLE-SKIM",table_skim,2)));
 
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("TABLE-INCREMENT!",
-					 table_increment,2)));
+           fd_make_ndprim(fd_make_cprim3("TABLE-INCREMENT!",
+                                         table_increment,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("TABLE-INCREMENT-EXISTING!",
-					 table_increment_existing,2)));
+           fd_make_ndprim(fd_make_cprim3("TABLE-INCREMENT-EXISTING!",
+                                         table_increment_existing,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("TABLE-MULTIPLY!",
-					 table_multiply,2)));
+           fd_make_ndprim(fd_make_cprim3("TABLE-MULTIPLY!",
+                                         table_multiply,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("TABLE-MULTIPLY-EXISTING!",
-					 table_multiply_existing,2)));
+           fd_make_ndprim(fd_make_cprim3("TABLE-MULTIPLY-EXISTING!",
+                                         table_multiply_existing,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("TABLE-MAXIMIZE!",
-					 table_maximize,2)));
+           fd_make_ndprim(fd_make_cprim3("TABLE-MAXIMIZE!",
+                                         table_maximize,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("TABLE-MAXIMIZE-EXISTING!",
-					 table_maximize_existing,2)));
+           fd_make_ndprim(fd_make_cprim3("TABLE-MAXIMIZE-EXISTING!",
+                                         table_maximize_existing,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("TABLE-MINIMIZE!",
-					 table_minimize,2)));
+           fd_make_ndprim(fd_make_cprim3("TABLE-MINIMIZE!",
+                                         table_minimize,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("TABLE-MINIMIZE-EXISTING!",
-					 table_minimize_existing,2)));
+           fd_make_ndprim(fd_make_cprim3("TABLE-MINIMIZE-EXISTING!",
+                                         table_minimize_existing,2)));
 
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASH-LISP",hash_lisp_prim,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-INCREMENT!",
-					 hashtable_increment,2)));
+           fd_make_ndprim(fd_make_cprim3("HASHTABLE-INCREMENT!",
+                                         hashtable_increment,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-INCREMENT-EXISTING!",
-					 hashtable_increment_existing,2)));
+           fd_make_ndprim(fd_make_cprim3("HASHTABLE-INCREMENT-EXISTING!",
+                                         hashtable_increment_existing,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-MULTIPLY!",
-					 hashtable_multiply,2)));
+           fd_make_ndprim(fd_make_cprim3("HASHTABLE-MULTIPLY!",
+                                         hashtable_multiply,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-MULTIPLY-EXISTING!",
-					 hashtable_multiply_existing,2)));
+           fd_make_ndprim(fd_make_cprim3("HASHTABLE-MULTIPLY-EXISTING!",
+                                         hashtable_multiply_existing,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-MAXIMIZE!",
-					 hashtable_maximize,2)));
+           fd_make_ndprim(fd_make_cprim3("HASHTABLE-MAXIMIZE!",
+                                         hashtable_maximize,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-MAXIMIZE-EXISTING!",
-					 hashtable_maximize_existing,2)));
+           fd_make_ndprim(fd_make_cprim3("HASHTABLE-MAXIMIZE-EXISTING!",
+                                         hashtable_maximize_existing,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-MINIMIZE!",
-					 hashtable_minimize,2)));
+           fd_make_ndprim(fd_make_cprim3("HASHTABLE-MINIMIZE!",
+                                         hashtable_minimize,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("HASHTABLE-MINIMIZE-EXISTING!",
-					 hashtable_minimize_existing,2)));
+           fd_make_ndprim(fd_make_cprim3("HASHTABLE-MINIMIZE-EXISTING!",
+                                         hashtable_minimize_existing,2)));
 
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("HASHTABLE-MAX",hashtable_max,1,
-			   fd_hashtable_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("HASHTABLE-MAX",hashtable_max,1,
+                           fd_hashtable_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("HASHTABLE-SKIM",hashtable_skim,1,
-			   fd_hashtable_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+           fd_make_cprim3x("HASHTABLE-SKIM",hashtable_skim,1,
+                           fd_hashtable_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("HASHTABLE-BUCKETS",hashtable_buckets,1,
-			   fd_hashtable_type,FD_VOID));
+           fd_make_cprim1x("HASHTABLE-BUCKETS",hashtable_buckets,1,
+                           fd_hashtable_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("MAP->TABLE",map2table,2)));
+           fd_make_ndprim(fd_make_cprim3("MAP->TABLE",map2table,2)));
 
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim
-	   (fd_make_cprim1("CHOICE->HASHSET",choice2hashset,1)));
+           fd_make_ndprim
+           (fd_make_cprim1("CHOICE->HASHSET",choice2hashset,1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHSET?",hashsetp,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("HASHSET-TEST",hashsettest,2)));
+           fd_make_ndprim(fd_make_cprim2("HASHSET-TEST",hashsettest,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("HASHSET-GET",hashsetget,2,
-			   fd_hashset_type,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim2x("HASHSET-GET",hashsetget,2,
+                           fd_hashset_type,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2x("HASHSET-ADD!",hashsetadd,2,
-					  fd_hashset_type,FD_VOID,
-					  -1,FD_VOID)));
+           fd_make_ndprim(fd_make_cprim2x("HASHSET-ADD!",hashsetadd,2,
+                                          fd_hashset_type,FD_VOID,
+                                          -1,FD_VOID)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("HASHSET-DROP!",hashsetdrop,2,
-			   fd_hashset_type,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim2x("HASHSET-DROP!",hashsetdrop,2,
+                           fd_hashset_type,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2x("HASHSET+",hashsetplus,2,
-					  fd_hashset_type,FD_VOID,
-					  -1,FD_VOID)));
+           fd_make_ndprim(fd_make_cprim2x("HASHSET+",hashsetplus,2,
+                                          fd_hashset_type,FD_VOID,
+                                          -1,FD_VOID)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("HASHSET-ELTS",hashsetelts,1,
-			   fd_hashset_type,FD_VOID));
+           fd_make_cprim1x("HASHSET-ELTS",hashsetelts,1,
+                           fd_hashset_type,FD_VOID));
 
 
 }

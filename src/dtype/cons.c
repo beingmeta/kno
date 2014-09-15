@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -69,7 +69,7 @@ void fd_recycle_cons(fd_cons c)
   int mallocd=(FD_MALLOCD_CONSP(c));
   switch (ctype) {
   case fd_rational_type:
-  case fd_complex_type: 
+  case fd_complex_type:
     if (fd_recyclers[ctype]) {
       fd_recyclers[ctype](c); return;}
   case fd_pair_type: {
@@ -79,29 +79,29 @@ void fd_recycle_cons(fd_cons c)
     fd_decref(p->car);
     if (mallocd) u8_free(p);
     if ((FD_PAIRP(cdr)) &&
-	(FD_CONS_REFCOUNT((fd_pair)cdr)==1))
+        (FD_CONS_REFCOUNT((fd_pair)cdr)==1))
       while ((FD_PAIRP(cdr)) &&
-	     (FD_CONS_REFCOUNT((fd_pair)cdr)==1)) {
-	struct FD_PAIR *x=(struct FD_PAIR *)cdr;
-	FD_LOCK_PTR(x);
+             (FD_CONS_REFCOUNT((fd_pair)cdr)==1)) {
+        struct FD_PAIR *x=(struct FD_PAIR *)cdr;
+        FD_LOCK_PTR(x);
         if (FD_CONSBITS(x)>=0xFFFFFF80) {
-	  FD_UNLOCK_PTR(x);
-	  u8_raise(fd_DoubleGC,"fd_decref",NULL);}
-	else if (FD_CONSBITS(x)>=0x100) {
-	  /* This is a weird case, probably when another thread
-	     popped in and grabbed the CDR between when we
-	     checked the refcount above and when we locked the
-	     pointer. */
-	  x->consbits=x->consbits-0x80;
-	  FD_UNLOCK_PTR(x);}
-	else if (FD_CONSBITS(x)>=0x80) {
-	  x->consbits=(0xFFFFFF80|(x->consbits&0x7F));
-	  FD_UNLOCK_PTR(x);
-	  fd_decref(x->car); cdr=x->cdr;
-	  if (FD_MALLOCD_CONSP(x)) u8_free(x);}
-	else {
-	  FD_UNLOCK_PTR(x);
-	  u8_raise(fd_FreeingNonHeapCons,"fd_decref",NULL);}}
+          FD_UNLOCK_PTR(x);
+          u8_raise(fd_DoubleGC,"fd_decref",NULL);}
+        else if (FD_CONSBITS(x)>=0x100) {
+          /* This is a weird case, probably when another thread
+             popped in and grabbed the CDR between when we
+             checked the refcount above and when we locked the
+             pointer. */
+          x->consbits=x->consbits-0x80;
+          FD_UNLOCK_PTR(x);}
+        else if (FD_CONSBITS(x)>=0x80) {
+          x->consbits=(0xFFFFFF80|(x->consbits&0x7F));
+          FD_UNLOCK_PTR(x);
+          fd_decref(x->car); cdr=x->cdr;
+          if (FD_MALLOCD_CONSP(x)) u8_free(x);}
+        else {
+          FD_UNLOCK_PTR(x);
+          u8_raise(fd_FreeingNonHeapCons,"fd_decref",NULL);}}
     fd_decref(cdr);
     break;}
   case fd_string_type: case fd_packet_type: case fd_secret_type: {
@@ -158,7 +158,7 @@ int fdtype_equal(fdtype x,fdtype y)
     if ((FD_PACKETP(x))&&(FD_PACKETP(y)))
       if ((FD_PACKET_LENGTH(x)) != (FD_PACKET_LENGTH(y))) return 0;
       else if (memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),FD_PACKET_LENGTH(x))==0)
-	return 1;
+        return 1;
       else return 0;
     else return 0;
   else if (FD_PAIRP(x))
@@ -181,7 +181,7 @@ int fdtype_equal(fdtype x,fdtype y)
       int i=0, len=FD_VECTOR_LENGTH(x);
       fdtype *xdata=FD_VECTOR_DATA(x), *ydata=FD_VECTOR_DATA(y);
       while (i < len)
-	if (FDTYPE_EQUAL(xdata[i],ydata[i])) i++; else return 0;
+        if (FDTYPE_EQUAL(xdata[i],ydata[i])) i++; else return 0;
       return 1;}
   else if ((FD_NUMBERP(x)) && (FD_NUMBERP(y)))
     if (fd_numcompare(x,y)==0) return 1;
@@ -220,7 +220,7 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
     fd_ptr_type ytype=FD_PTR_TYPE(y);
     if (FD_NUMBER_TYPEP(xtype))
       if (FD_NUMBER_TYPEP(ytype))
-	return fd_numcompare(x,y);
+        return fd_numcompare(x,y);
       else return -1;
     else if (FD_NUMBER_TYPEP(ytype))
       return 1;
@@ -229,57 +229,57 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
     else if (FD_CONSP(x))
       switch (xtype) {
       case fd_pair_type: {
-	int car_cmp=DOCOMPARE(FD_CAR(x),FD_CAR(y));
-	if (car_cmp == 0) return (DOCOMPARE(FD_CDR(x),FD_CDR(y)));
-	else return car_cmp;}
+        int car_cmp=DOCOMPARE(FD_CAR(x),FD_CAR(y));
+        if (car_cmp == 0) return (DOCOMPARE(FD_CDR(x),FD_CDR(y)));
+        else return car_cmp;}
       case fd_string_type: {
-	int xlen=FD_STRLEN(x), ylen=FD_STRLEN(y);
-	if (quick) {
-	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
-	return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
+        int xlen=FD_STRLEN(x), ylen=FD_STRLEN(y);
+        if (quick) {
+          if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
+        return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
       case fd_packet_type: case fd_secret_type: {
-	int xlen=FD_PACKET_LENGTH(x), ylen=FD_PACKET_LENGTH(y);
-	if (quick) {
-	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
-	return memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),xlen);}
+        int xlen=FD_PACKET_LENGTH(x), ylen=FD_PACKET_LENGTH(y);
+        if (quick) {
+          if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
+        return memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),xlen);}
       case fd_vector_type: case fd_rail_type: {
-	int i=0, xlen=FD_VECTOR_LENGTH(x), ylen=FD_VECTOR_LENGTH(y), lim;
-	fdtype *xdata=FD_VECTOR_DATA(x), *ydata=FD_VECTOR_DATA(y);
-	if (quick) {
-	  if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
-	if (xlen<ylen) lim=xlen; else lim=ylen;
-	while (i < lim) {
-	  int cmp=DOCOMPARE(xdata[i],ydata[i]);
-	  if (cmp) return cmp; else i++;}
-	if (quick)
-	  if (xlen<ylen) return -1;
-	  else if (ylen>xlen) return 1;
-	  else return 0;
-	else return 0;}
+        int i=0, xlen=FD_VECTOR_LENGTH(x), ylen=FD_VECTOR_LENGTH(y), lim;
+        fdtype *xdata=FD_VECTOR_DATA(x), *ydata=FD_VECTOR_DATA(y);
+        if (quick) {
+          if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
+        if (xlen<ylen) lim=xlen; else lim=ylen;
+        while (i < lim) {
+          int cmp=DOCOMPARE(xdata[i],ydata[i]);
+          if (cmp) return cmp; else i++;}
+        if (quick)
+          if (xlen<ylen) return -1;
+          else if (ylen>xlen) return 1;
+          else return 0;
+        else return 0;}
       case fd_choice_type: {
-	struct FD_CHOICE *xc=FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *);
-	struct FD_CHOICE *yc=FD_GET_CONS(y,fd_choice_type,struct FD_CHOICE *);
-	if ((quick) && (xc->size>yc->size)) return 1;
-	else if ((quick) && (xc->size<yc->size)) return -1;
-	else {
-	  int xlen=FD_XCHOICE_SIZE(xc), ylen=FD_XCHOICE_SIZE(yc);
-	  const fdtype *xscan=FD_XCHOICE_DATA(xc);
-	  const fdtype *yscan=FD_XCHOICE_DATA(yc), *xlim=xscan+xlen;
-	  if (ylen<xlen) xlim=xscan+ylen;
-	  while (xscan<xlim) {
-	    int cmp=DOCOMPARE(*xscan,*yscan);
-	    if (cmp) return cmp;
-	    xscan++; yscan++;}
-	  if (xlen<ylen) return -1;
-	  else if (xlen>ylen) return 1;
-	  else return 0;}}
+        struct FD_CHOICE *xc=FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *);
+        struct FD_CHOICE *yc=FD_GET_CONS(y,fd_choice_type,struct FD_CHOICE *);
+        if ((quick) && (xc->size>yc->size)) return 1;
+        else if ((quick) && (xc->size<yc->size)) return -1;
+        else {
+          int xlen=FD_XCHOICE_SIZE(xc), ylen=FD_XCHOICE_SIZE(yc);
+          const fdtype *xscan=FD_XCHOICE_DATA(xc);
+          const fdtype *yscan=FD_XCHOICE_DATA(yc), *xlim=xscan+xlen;
+          if (ylen<xlen) xlim=xscan+ylen;
+          while (xscan<xlim) {
+            int cmp=DOCOMPARE(*xscan,*yscan);
+            if (cmp) return cmp;
+            xscan++; yscan++;}
+          if (xlen<ylen) return -1;
+          else if (xlen>ylen) return 1;
+          else return 0;}}
       default: {
-	fd_ptr_type ctype=FD_CONS_TYPE(FD_CONS_DATA(x));
-	if (fd_comparators[ctype])
-	  return fd_comparators[ctype](x,y,quick);
-	else if (x<y) return -1;
-	else if (x>y) return 1;
-	else return 0;}}
+        fd_ptr_type ctype=FD_CONS_TYPE(FD_CONS_DATA(x));
+        if (fd_comparators[ctype])
+          return fd_comparators[ctype](x,y,quick);
+        else if (x<y) return -1;
+        else if (x>y) return 1;
+        else return 0;}}
     else if (x<y) return -1;
     else return 1;}
 #undef DOCOMPARE
@@ -299,39 +299,39 @@ fdtype fd_copier(fdtype x,int flags)
     case fd_pair_type: {
       fdtype result=FD_EMPTY_LIST, *tail=&result, scan=x;
       while (FD_PRIM_TYPEP(scan,fd_pair_type)) {
-	struct FD_PAIR *p=FD_STRIP_CONS(scan,ctype,struct FD_PAIR *);
-	struct FD_PAIR *newpair=u8_alloc(struct FD_PAIR);
-	fdtype car=p->car;
-	FD_INIT_CONS(newpair,fd_pair_type);
-	if (FD_CONSP(car)) {
-	  struct FD_CONS *c=(struct FD_CONS *)car;
-	  if ((flags&FD_FULL_COPY)||(FD_STACK_CONSP(c)))
-	    newpair->car=fd_copier(car,flags);
-	  else {fd_incref(car); newpair->car=car;}}
-	else {
-	  fd_incref(car); newpair->car=car;}
-	*tail=(fdtype)newpair;
-	tail=&(newpair->cdr);
-	scan=p->cdr;}
+        struct FD_PAIR *p=FD_STRIP_CONS(scan,ctype,struct FD_PAIR *);
+        struct FD_PAIR *newpair=u8_alloc(struct FD_PAIR);
+        fdtype car=p->car;
+        FD_INIT_CONS(newpair,fd_pair_type);
+        if (FD_CONSP(car)) {
+          struct FD_CONS *c=(struct FD_CONS *)car;
+          if ((flags&FD_FULL_COPY)||(FD_STACK_CONSP(c)))
+            newpair->car=fd_copier(car,flags);
+          else {fd_incref(car); newpair->car=car;}}
+        else {
+          fd_incref(car); newpair->car=car;}
+        *tail=(fdtype)newpair;
+        tail=&(newpair->cdr);
+        scan=p->cdr;}
       if (FD_CONSP(scan))
-	*tail=fd_copier(scan,flags);
+        *tail=fd_copier(scan,flags);
       else *tail=scan;
       return result;}
     case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
       fdtype *olddata=v->data; int i=0, len=v->length;
       fdtype result=((ctype==fd_vector_type)?
-		     (fd_init_vector(NULL,len,NULL)):
-		     (fd_init_rail(NULL,len,NULL)));
+                     (fd_init_vector(NULL,len,NULL)):
+                     (fd_init_rail(NULL,len,NULL)));
       fdtype *newdata=FD_VECTOR_ELTS(result);
       while (i<len) {
-	  fdtype v=olddata[i], newv=v;
-	  if (FD_CONSP(v)) {
-	    struct FD_CONS *c=(struct FD_CONS *)newv;
-	    if ((flags&FD_FULL_COPY)||(FD_STACK_CONSP(c)))
-	      newv=fd_copier(newv,flags);
-	    else fd_incref(newv);}
-	  newdata[i++]=newv;}
+          fdtype v=olddata[i], newv=v;
+          if (FD_CONSP(v)) {
+            struct FD_CONS *c=(struct FD_CONS *)newv;
+            if ((flags&FD_FULL_COPY)||(FD_STACK_CONSP(c)))
+              newv=fd_copier(newv,flags);
+            else fd_incref(newv);}
+          newdata[i++]=newv;}
       return result;}
     case fd_string_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
@@ -339,9 +339,9 @@ fdtype fd_copier(fdtype x,int flags)
     case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
       if (ctype==fd_secret_type) {
-	fdtype result=fd_make_packet(NULL,s->length,s->bytes);
-	FD_SET_CONS_TYPE(result,fd_secret_type);
-	return result;}
+        fdtype result=fd_make_packet(NULL,s->length,s->bytes);
+        FD_SET_CONS_TYPE(result,fd_secret_type);
+        return result;}
       else return fd_make_packet(NULL,s->length,s->bytes);}
     case fd_choice_type: {
       int n=FD_CHOICE_SIZE(x);
@@ -349,25 +349,25 @@ fdtype fd_copier(fdtype x,int flags)
       const fdtype *read=FD_CHOICE_DATA(x), *limit=read+n;
       fdtype *write=(fdtype *)&(copy->elt0);
       if (FD_ATOMIC_CHOICEP(x))
-	memcpy(write,read,sizeof(fdtype)*n);
+        memcpy(write,read,sizeof(fdtype)*n);
       else if (flags&FD_FULL_COPY) while (read<limit) {
-	  fdtype v=*read++, c=fd_copier(v,flags); *write++=c;}
+          fdtype v=*read++, c=fd_copier(v,flags); *write++=c;}
       else while (read<limit) {
-	  fdtype v=*read++, newv=v;
-	  if (FD_CONSP(newv)) {
-	    struct FD_CONS *c=(struct FD_CONS *)newv;
-	    if (FD_STACK_CONSP(c))
-	      newv=fd_copier(newv,flags);
-	    else fd_incref(newv);}
-	  *write++=newv;}
+          fdtype v=*read++, newv=v;
+          if (FD_CONSP(newv)) {
+            struct FD_CONS *c=(struct FD_CONS *)newv;
+            if (FD_STACK_CONSP(c))
+              newv=fd_copier(newv,flags);
+            else fd_incref(newv);}
+          *write++=newv;}
       return fd_init_choice(copy,n,NULL,FD_CHOICE_FLAGS(x));}
     default:
       if (fd_copiers[ctype])
-	return (fd_copiers[ctype])(x,flags);
+        return (fd_copiers[ctype])(x,flags);
       else if (!(FD_MALLOCD_CONSP((fd_cons)x)))
         return fd_err(fd_NoMethod,"fd_copier/static",fd_type_names[ctype],FD_VOID);
       else if ((flags)&(FD_STRICT_COPY))
-	return fd_err(fd_NoMethod,"fd_copier",fd_type_names[ctype],x);
+        return fd_err(fd_NoMethod,"fd_copier",fd_type_names[ctype],x);
       else {fd_incref(x); return x;}}}
 }
 fdtype fd_deep_copy(fdtype x)
@@ -397,7 +397,7 @@ FD_EXPORT
     Returns: a lisp string
   This returns a lisp string object from a character string.
   If the structure pointer is NULL, one is mallocd.
-  If the length is negative, it is computed. */ 
+  If the length is negative, it is computed. */
 fdtype fd_init_string(struct FD_STRING *ptr,int slen,u8_string string)
 {
   int len=((slen<0) ? (strlen(string)) : (slen));
@@ -419,7 +419,7 @@ FD_EXPORT
   This returns a lisp string object from a region of a character string.
   If the structure pointer is NULL, one is mallocd.
   This copies the region between the pointers into a string and initializes
-   a lisp string based on the region. */ 
+   a lisp string based on the region. */
 fdtype fd_extract_string(struct FD_STRING *ptr,u8_byte *start,u8_byte *end)
 {
   int length=((end==NULL) ? (strlen(start)) : (end-start));
@@ -441,7 +441,7 @@ FD_EXPORT
     Returns: a lisp string
   This returns a lisp string object from a string, copying the string
   If the structure pointer is NULL, the lisp string is uniconsed, so that
-    the string data is contiguous with the struct. */ 
+    the string data is contiguous with the struct. */
 fdtype fd_make_string(struct FD_STRING *ptr,int len,u8_string string)
 {
   int length=((len>=0)?(len):(strlen(string)));
@@ -467,7 +467,7 @@ FD_EXPORT
     Returns: a lisp string
   This returns a uniconsed lisp string object from a string,
     copying and freeing the string data
-*/ 
+*/
 fdtype fd_block_string(int len,u8_string string)
 {
   int length=((len>=0)?(len):(strlen(string)));
@@ -490,7 +490,7 @@ FD_EXPORT
     Returns: a lisp string
   This returns a lisp string object from a string, copying and freeing the string
   If the structure pointer is NULL, the lisp string is uniconsed, so that
-    the string data is contiguous with the struct. */ 
+    the string data is contiguous with the struct. */
 fdtype fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
 {
   int length=((len>0)?(len):(strlen(string)));
@@ -514,7 +514,7 @@ FD_EXPORT
 /* fdtype_string:
     Arguments: a C string (u8_string)
     Returns: a lisp string
-  */ 
+  */
 fdtype fdtype_string(u8_string string)
 {
   return fd_make_string(NULL,-1,string);
@@ -557,7 +557,7 @@ FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
   if ((ptr == NULL)&&(data==NULL)) {
     int i=0;
     ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
-    /* This might be weird on non byte-addressed architectures */ 
+    /* This might be weird on non byte-addressed architectures */
     elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
     while (i < len) elts[i++]=FD_VOID;
     freedata=0;}
@@ -727,7 +727,7 @@ FD_EXPORT fdtype fd_init_compound
     else return FDTYPE_CONS(p);}
   else return FDTYPE_CONS(p);
 }
- 
+
 FD_EXPORT fdtype fd_init_compound_from_elts
   (struct FD_COMPOUND *p,fdtype tag,u8_byte mutable,short n,fdtype *elts)
 {
@@ -775,10 +775,10 @@ static int compare_compounds(fdtype x,fdtype y,int quick)
   else if (xc->n_elts>yc->n_elts) return 1;
   else {
     int i=0, len=xc->n_elts;
-    fdtype *xdata=&(xc->elt0), *ydata=&(yc->elt0); 
+    fdtype *xdata=&(xc->elt0), *ydata=&(yc->elt0);
     while (i<len)
       if ((cmp=(FD_COMPARE(xdata[i],ydata[i],quick)))==0)
-	i++;
+        i++;
       else return cmp;
     return 0;}
 }
@@ -789,7 +789,7 @@ static int dtype_compound(struct FD_BYTE_OUTPUT *out,fdtype x)
   int n_bytes=1;
   fd_write_byte(out,dt_compound);
   n_bytes=n_bytes+fd_write_dtype(out,xc->tag);
-  if (xc->n_elts==1) 
+  if (xc->n_elts==1)
     n_bytes=n_bytes+fd_write_dtype(out,xc->elt0);
   else {
     int i=0, n=xc->n_elts; fdtype *data=&(xc->elt0);
@@ -810,7 +810,7 @@ static fdtype copy_compound(fdtype x,int flags)
   if (xc->opaque) {
     fd_incref(x); return x;}
   else {
-    int i=0, n=xc->n_elts; 
+    int i=0, n=xc->n_elts;
     struct FD_COMPOUND *nc=u8_malloc(sizeof(FD_COMPOUND)+(n-1)*sizeof(fdtype));
     fdtype *data=&(xc->elt0), *write=&(nc->elt0);
     FD_INIT_CONS(nc,fd_compound_type);
@@ -819,9 +819,9 @@ static fdtype copy_compound(fdtype x,int flags)
     nc->tag=fd_incref(xc->tag); nc->n_elts=xc->n_elts;
     if (flags)
       while (i<n) {
-	*write=fd_copier(data[i],flags); i++; write++;}
+        *write=fd_copier(data[i],flags); i++; write++;}
     else while (i<n) {
-	*write=fd_incref(data[i]); i++; write++;}
+        *write=fd_incref(data[i]); i++; write++;}
     return FDTYPE_CONS(nc);}
 }
 
@@ -915,8 +915,8 @@ static u8_exception copy_exception_helper(u8_exception ex,int flags)
       (ex->u8x_cond,ex->u8x_context,details,
        (void *)fd_copier(irritant,flags),fd_free_exception_xdata);
   else newex=u8_make_exception
-	 (ex->u8x_cond,ex->u8x_context,details,
-	  (void *)fd_incref(irritant),fd_free_exception_xdata);
+         (ex->u8x_cond,ex->u8x_context,details,
+          (void *)fd_incref(irritant),fd_free_exception_xdata);
   newex->u8x_prev=copy_exception_helper(ex->u8x_prev,flags);
   return newex;
 }
@@ -937,9 +937,9 @@ static int unparse_mystery(u8_output out,fdtype x)
   char buf[128];
   if (d->code&0x80)
     sprintf(buf,_("#<MysteryVector 0x%x/0x%x %d elements>"),
-	    d->package,d->code,d->size);
+            d->package,d->code,d->size);
   else sprintf(buf,_("#<MysteryPacket 0x%x/0x%x %d bytes>"),
-	       d->package,d->code,d->size);
+               d->package,d->code,d->size);
   u8_puts(out,buf);
   return 1;
 }
@@ -1006,16 +1006,16 @@ FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype symbol,fdtype *d
   while (scan)
     if (FD_EQ(scan->tag,symbol)) {
       if (datap) {
-	fdtype data=*datap;
-	if (FD_VOIDP(scan->data)) {
-	  fd_incref(data); scan->data=data;}
-	else {
-	  fdtype data=*datap; fd_decref(data);
-	  data=scan->data; fd_incref(data);
-	  *datap=data;}}
+        fdtype data=*datap;
+        if (FD_VOIDP(scan->data)) {
+          fd_incref(data); scan->data=data;}
+        else {
+          fdtype data=*datap; fd_decref(data);
+          data=scan->data; fd_incref(data);
+          *datap=data;}}
       if (corep) {
-	if (scan->core_slots<0) scan->core_slots=*corep;
-	else *corep=scan->core_slots;}
+        if (scan->core_slots<0) scan->core_slots=*corep;
+        else *corep=scan->core_slots;}
       fd_unlock_mutex(&compound_registry_lock);
       return scan;}
     else scan=scan->next;
@@ -1041,9 +1041,9 @@ FD_EXPORT struct FD_COMPOUND_ENTRY *fd_declare_compound(fdtype symbol,fdtype dat
   while (scan)
     if (FD_EQ(scan->tag,symbol)) {
       if (!(FD_VOIDP(data))) {
-	fdtype old_data=scan->data;
-	scan->data=fd_incref(data);
-	fd_decref(old_data);}
+        fdtype old_data=scan->data;
+        scan->data=fd_incref(data);
+        fd_decref(old_data);}
       if (core_slots>0) scan->core_slots=core_slots;
       fd_unlock_mutex(&compound_registry_lock);
       return scan;}
@@ -1296,7 +1296,7 @@ static int compare_uuids(fdtype x,fdtype y,int quick)
 static int uuid_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
 {
   int size=0;
-  struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *); 
+  struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
   fd_write_byte(out,dt_compound);
   size=size+1+fd_write_dtype(out,uuid_symbol);
   fd_write_byte(out,dt_packet); fd_write_4bytes(out,16); size=size+5;
@@ -1320,11 +1320,11 @@ static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_entry MU e)
       memcpy(uuid->uuid,p->bytes,16);
       return FDTYPE_CONS(uuid);}
     else return fd_err("Bad UUID packet","uuid_restore",
-		       "UUID packet has wrong length",
-		       x);}
+                       "UUID packet has wrong length",
+                       x);}
   else return fd_err("Bad UUID rep","uuid_restore",
-		     "UUID serialization isn't a packet",
-		     x);
+                     "UUID serialization isn't a packet",
+                     x);
 }
 
 
@@ -1402,12 +1402,12 @@ void fd_init_cons_c()
 
   fd_compound_descriptor_type=
     fd_init_compound(NULL,FD_VOID,9,
-		     fd_intern("COMPOUNDTYPE"),FD_INT2DTYPE(9),
-		     fd_make_nvector(9,fd_intern("TAG"),fd_intern("LENGTH"),fd_intern("FIELDS"),
-				     fd_intern("INITFN"),fd_intern("FREEFN"),fd_intern("COMPAREFN"),
-				     fd_intern("STRINGFN"),fd_intern("DUMPFN"),fd_intern("RESTOREFN")),
-		     FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
-		     FD_FALSE,FD_FALSE);
+                     fd_intern("COMPOUNDTYPE"),FD_INT2DTYPE(9),
+                     fd_make_nvector(9,fd_intern("TAG"),fd_intern("LENGTH"),fd_intern("FIELDS"),
+                                     fd_intern("INITFN"),fd_intern("FREEFN"),fd_intern("COMPAREFN"),
+                                     fd_intern("STRINGFN"),fd_intern("DUMPFN"),fd_intern("RESTOREFN")),
+                     FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
+                     FD_FALSE,FD_FALSE);
   ((struct FD_COMPOUND *)fd_compound_descriptor_type)->tag=fd_compound_descriptor_type;
   fd_incref(fd_compound_descriptor_type);
 }

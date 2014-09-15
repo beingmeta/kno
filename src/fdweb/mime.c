@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -58,15 +58,15 @@ u8_byte *parse_headers(fdtype s,u8_byte *start,u8_byte *end)
       u8_byte *line_end=strchr(vstart,'\n');
       if (line_end>end) line_end=end;
       if (line_end[-1]=='\r')
-	u8_putn(&hstream,vstart,(line_end-vstart)-1);
+        u8_putn(&hstream,vstart,(line_end-vstart)-1);
       else u8_putn(&hstream,vstart,(line_end-vstart));
       if ((line_end) && ((line_end[1]==' ') || (line_end[1]=='\t'))) vstart=line_end+1;
       else {
-	fdtype slotval=
-	  fd_lispstring(u8_mime_convert
-			 (hstream.u8_outbuf,hstream.u8_outptr));
-	fd_add(s,slotid,slotval); fd_decref(slotval); hstart=line_end+1;
-	break;}}
+        fdtype slotval=
+          fd_lispstring(u8_mime_convert
+                         (hstream.u8_outbuf,hstream.u8_outptr));
+        fd_add(s,slotid,slotval); fd_decref(slotval); hstart=line_end+1;
+        break;}}
     if (*hstart=='\n') return hstart+1;
     else if ((*hstart=='\r') && (hstart[1]=='\n')) return hstart+2;}
   return end;
@@ -110,7 +110,7 @@ fdtype fd_handle_compound_mime_field(fdtype fields,fdtype slotid,fdtype orig_slo
     fdtype major_type=FD_VOID;
     u8_string data=FD_STRDATA(value), start=data, end, scan;
     if (FD_SYMBOLP(orig_slotid)) fd_store(fields,orig_slotid,value);
-    if ((end=(strchr(start,';')))) { 
+    if ((end=(strchr(start,';')))) {
       fdtype segval=fd_extract_string(NULL,start,end);
       fd_store(fields,slotid,segval); fd_decref(segval);}
     if ((scan=strchr(start,'/')) && ((end==NULL) || (scan<end))) {
@@ -127,9 +127,9 @@ static fdtype convert_data(char *start,char *end,fdtype dataenc,
   fdtype result=FD_VOID; char *data; int len;
   /* First do any conversion you need to do. */
   if (FD_STRINGP(dataenc))
-    if (strcasecmp(FD_STRDATA(dataenc),"quoted-printable")==0) 
-      data=u8_read_quoted_printable(start,end,&len); 
-    else if (strcasecmp(FD_STRDATA(dataenc),"base64")==0) 
+    if (strcasecmp(FD_STRDATA(dataenc),"quoted-printable")==0)
+      data=u8_read_quoted_printable(start,end,&len);
+    else if (strcasecmp(FD_STRDATA(dataenc),"base64")==0)
       data=u8_read_base64(start,end,&len);
     else {
       len=end-start; data=u8_malloc(len); memcpy(data,start,len);}
@@ -150,10 +150,10 @@ static fdtype convert_text
   u8_byte *data, *scan, *data_end;
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
   if (FD_STRINGP(dataenc))
-    if (strcasecmp(FD_STRDATA(dataenc),"quoted-printable")==0) 
-      data=u8_read_quoted_printable(start,end,&len); 
-    else if (strcasecmp(FD_STRDATA(dataenc),"base64")==0) 
-      data=u8_read_base64(start,end,&len); 
+    if (strcasecmp(FD_STRDATA(dataenc),"quoted-printable")==0)
+      data=u8_read_quoted_printable(start,end,&len);
+    else if (strcasecmp(FD_STRDATA(dataenc),"base64")==0)
+      data=u8_read_base64(start,end,&len);
     else {
       len=end-start; data=u8_malloc(len); memcpy(data,start,len);}
   else {
@@ -175,17 +175,17 @@ static fdtype convert_content(char *start,char *end,fdtype majtype,fdtype dataen
 }
 
 static char *find_boundary(char *boundary,char *scan,
-			   size_t len,size_t blen,
-			   int at_start)
+                           size_t len,size_t blen,
+                           int at_start)
 {
   char *next;
   if ((at_start)&&(len>(blen-2))&&
       (memcmp(scan,boundary+2,blen-2)==0))
     return scan;
-  else while ((len>blen)&&(next=memchr(scan,'\n',len-blen))) 
-	 if ((next[-1]=='\r')&&(memcmp(next-1,boundary,blen)==0))
-	   return next-1;
-	 else {len=len-((next+1)-scan); scan=(next+1);}
+  else while ((len>blen)&&(next=memchr(scan,'\n',len-blen)))
+         if ((next[-1]=='\r')&&(memcmp(next-1,boundary,blen)==0))
+           return next-1;
+         else {len=len-((next+1)-scan); scan=(next+1);}
   return NULL;
 }
 
@@ -209,28 +209,28 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,char *start,char *end)
   start=scan; scan=find_boundary(boundary,start,end-start,boundary_len,1);
   if (scan==NULL) {
     fd_store(slotmap,preamble_slotid,
-	     convert_content(start,scan,majtype,dataenc,charenc));
+             convert_content(start,scan,majtype,dataenc,charenc));
     fd_store(slotmap,parts_slotid,FD_EMPTY_LIST);}
   else {
     fdtype *point=&parts;
     if (scan>start)
       fd_store(slotmap,preamble_slotid,
-	       convert_content(scan,end,majtype,dataenc,charenc));
+               convert_content(scan,end,majtype,dataenc,charenc));
     start=scan+boundary_len;
     while (start<end) {
-      fdtype new_pair; 
+      fdtype new_pair;
       if (strncmp(start,"--",2)==0) break;
       /* Ignore the opening CRLF of the encapsulation */
       else if ((start[0]=='\r')&&(start[1]=='\n'))
-	start=start+2;
+        start=start+2;
       else if (start[0]=='\n')
-	start=start+1;
+        start=start+1;
       /* Find the end of the encapsluation */
       scan=find_boundary(boundary,start,end-start,boundary_len,0);
       if (scan)
-	new_pair=fd_init_pair(NULL,fd_parse_mime(start,scan),FD_EMPTY_LIST);
+        new_pair=fd_init_pair(NULL,fd_parse_mime(start,scan),FD_EMPTY_LIST);
       else new_pair=
-	     fd_init_pair(NULL,fd_parse_mime(start,end),FD_EMPTY_LIST);
+             fd_init_pair(NULL,fd_parse_mime(start,end),FD_EMPTY_LIST);
       *point=new_pair; point=&(FD_CDR(new_pair));
       if (scan==NULL)  break;
       else start=scan+boundary_len;}
@@ -247,7 +247,7 @@ fdtype fd_parse_mime(char *start,char *end)
     (slotmap,content_type_slotid,FD_VOID);
   fdtype charenc, dataenc;
   fd_handle_compound_mime_field(slotmap,content_disposition_slotid,FD_VOID);
-  if (FD_ABORTP(majtype)) 
+  if (FD_ABORTP(majtype))
     return majtype;
   charenc=fd_get(slotmap,charset_slotid,FD_VOID);
   dataenc=fd_get(slotmap,encoding_slotid,FD_VOID);
@@ -266,10 +266,10 @@ static fdtype parse_mime_data(fdtype arg)
 {
   if (FD_PACKETP(arg))
     return fd_parse_mime(FD_PACKET_DATA(arg),
-			 FD_PACKET_DATA(arg)+FD_PACKET_LENGTH(arg));
+                         FD_PACKET_DATA(arg)+FD_PACKET_LENGTH(arg));
   else if (FD_STRINGP(arg))
     return fd_parse_mime(FD_STRDATA(arg),
-			 FD_STRDATA(arg)+FD_STRLEN(arg));
+                         FD_STRDATA(arg)+FD_STRLEN(arg));
   else return fd_type_error(_("mime data"),"parse_mime_data",arg);
 }
 

@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -36,7 +36,7 @@ int main(int argc,char **argv)
   fd_init_dtype_stream(&ds,socket,1024);
   i=argc-1; while (i>1) expr=fd_make_pair(fd_parse(argv[i--]),expr);
   u8_fprintf(stderr,_("Sending: %q\n"),expr);
-  fd_dtswrite_dtype(&ds,expr); 
+  fd_dtswrite_dtype(&ds,expr);
   result=fd_dtsread_dtype(&ds);
   u8_fprintf(stderr,_("Result is: %q\n"),result);
   fd_decref(expr); fd_decref(result);

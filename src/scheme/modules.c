@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -113,14 +113,14 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
     while (scan) {
       int retval=scan->loader(spec,safe);
       if (retval>0) {
-	module=fd_get_module(spec,safe);
-	if (FD_VOIDP(module)) return fd_err(MissingModule,NULL,NULL,spec);
-	fd_finish_module(module);
-	return module;}
+        module=fd_get_module(spec,safe);
+        if (FD_VOIDP(module)) return fd_err(MissingModule,NULL,NULL,spec);
+        fd_finish_module(module);
+        return module;}
       else if (retval<0) {
-	fd_discard_module(spec,safe);
-	clearloadlock(spec);
-	return FD_ERROR_VALUE;}
+        fd_discard_module(spec,safe);
+        clearloadlock(spec);
+        return FD_ERROR_VALUE;}
       else scan=scan->next;}
     clearloadlock(spec);
     if (err)
@@ -141,7 +141,7 @@ int fd_finish_module(fdtype module)
     fd_decref(timestamp);
     if (FD_VOIDP(moduleid))
       u8_log(LOG_WARN,_("Anonymous module"),
-	     "The module %q doesn't have an id",module);
+             "The module %q doesn't have an id",module);
     /* In this case, the module was already finished,
        so the loadlock would have been cleared. */
     else if (cur_timestamp) {}
@@ -197,22 +197,22 @@ static int load_dynamic_module(fdtype spec,int safe)
       alt_name=u8_mkstring("%ls.%s",pname,FD_DLOAD_SUFFIX);
     FD_DOLIST(elt,dloadpath) {
       if (FD_STRINGP(elt)) {
-	u8_string module_filename=u8_find_file(name,FD_STRDATA(elt),NULL);
-	if ((!(module_filename))&&(alt_name))
-	  module_filename=u8_find_file(alt_name,FD_STRDATA(elt),NULL);
-	if (module_filename) {
-	  void *mod=u8_dynamic_load(module_filename);
-	  u8_threadcheck();
-	  u8_free(module_filename); u8_free(name);
-	  if (alt_name) u8_free(alt_name);
-	  if (mod) return 1; else return -1;}}}
+        u8_string module_filename=u8_find_file(name,FD_STRDATA(elt),NULL);
+        if ((!(module_filename))&&(alt_name))
+          module_filename=u8_find_file(alt_name,FD_STRDATA(elt),NULL);
+        if (module_filename) {
+          void *mod=u8_dynamic_load(module_filename);
+          u8_threadcheck();
+          u8_free(module_filename); u8_free(name);
+          if (alt_name) u8_free(alt_name);
+          if (mod) return 1; else return -1;}}}
     if (alt_name) u8_free(alt_name);
     u8_free(name);
     u8_threadcheck();
     return 0;}
   else if  ((safe==0) &&
-	    (FD_STRINGP(spec)) &&
-	    (u8_file_existsp(FD_STRDATA(spec)))) {
+            (FD_STRINGP(spec)) &&
+            (u8_file_existsp(FD_STRDATA(spec)))) {
     void *mod=u8_dynamic_load(FD_STRDATA(spec));
     u8_threadcheck();
     if (mod) return 1; else return -1;}
@@ -229,12 +229,12 @@ static fdtype dynamic_load_prim(fdtype arg)
   else {
     FD_DOLIST(elt,dloadpath) {
       if (FD_STRINGP(elt)) {
-	u8_string module_name=u8_find_file(name,FD_STRDATA(elt),NULL);
-	if (module_name) {
-	  void *mod=u8_dynamic_load(module_name);
-	  u8_free(module_name);
-	  if (mod) return FD_TRUE;
-	  else return FD_ERROR_VALUE;}}}
+        u8_string module_name=u8_find_file(name,FD_STRDATA(elt),NULL);
+        if (module_name) {
+          void *mod=u8_dynamic_load(module_name);
+          u8_free(module_name);
+          if (mod) return FD_TRUE;
+          else return FD_ERROR_VALUE;}}}
     return FD_FALSE;}
 }
 
@@ -273,7 +273,7 @@ static fd_lispenv become_module
       env->exports=fd_make_hashtable(NULL,0);
     fd_store(env->exports,moduleid_symbol,module_spec);
     fd_register_module(FD_SYMBOL_NAME(module_spec),(fdtype)env,
-		       ((safe) ? (FD_MODULE_SAFE) : (0)));}
+                       ((safe) ? (FD_MODULE_SAFE) : (0)));}
   fd_decref(module); fd_decref(module_spec);
   return env;
 }
@@ -423,8 +423,8 @@ static fdtype module_export(fdtype expr,fd_lispenv env)
   if (FD_ABORTP(symbols)) return symbols;
   {FD_DO_CHOICES(symbol,symbols)
       if (!(FD_SYMBOLP(symbol))) {
-	fd_decref(symbols);
-	return fd_type_error(_("symbol"),"module_export",symbol);}}
+        fd_decref(symbols);
+        return fd_type_error(_("symbol"),"module_export",symbol);}}
   if (FD_HASHTABLEP(env->exports))
     exports=(fd_hashtable)env->exports;
   else exports=get_exports(env);
@@ -448,16 +448,16 @@ static fdtype safe_use_module(fdtype expr,fd_lispenv env)
       fdtype module=fd_find_module(module_name,1,1);
       fd_lispenv oldparent=env->parent;
       if (FD_ABORTP(module))
-	return module;
+        return module;
       else if (FD_VOIDP(module))
-	return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,module_name);
+        return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,module_name);
       else if (FD_HASHTABLEP(module)) {
-	env->parent=fd_make_export_env(module,env->parent);}
+        env->parent=fd_make_export_env(module,env->parent);}
       else {
-	fd_lispenv expenv=
-	  FD_GET_CONS(module,fd_environment_type,fd_environment);
-	fdtype expval=(fdtype)get_exports(expenv);
-	env->parent=fd_make_export_env(expval,env->parent);}
+        fd_lispenv expenv=
+          FD_GET_CONS(module,fd_environment_type,fd_environment);
+        fdtype expval=(fdtype)get_exports(expenv);
+        env->parent=fd_make_export_env(expval,env->parent);}
       fd_decref((fdtype)oldparent);}
     fd_decref(module_names);
     return FD_VOID;}
@@ -472,27 +472,27 @@ static fdtype safe_get_module(fdtype modname)
 static fdtype use_module(fdtype expr,fd_lispenv env)
 {
   fdtype module_names=fd_eval(fd_get_arg(expr,1),env);
-  if (FD_VOIDP(module_names)) 
+  if (FD_VOIDP(module_names))
     return fd_err(fd_TooFewExpressions,"USE-MODULE",NULL,expr);
   else {
     FD_DO_CHOICES(module_name,module_names) {
       fdtype module;
       module=fd_find_module(module_name,0,1);
       if (FD_ABORTP(module))
-	return module;
+        return module;
       else if (FD_VOIDP(module))
-	return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,module_name);
+        return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,module_name);
       else if (FD_HASHTABLEP(module)) {
-	fd_lispenv oldparent=env->parent;
-	env->parent=fd_make_export_env(module,env->parent);
-	fd_decref((fdtype)(oldparent));}
+        fd_lispenv oldparent=env->parent;
+        env->parent=fd_make_export_env(module,env->parent);
+        fd_decref((fdtype)(oldparent));}
       else {
-	fd_lispenv oldparent=env->parent;
-	fd_lispenv expenv=
-	  FD_GET_CONS(module,fd_environment_type,fd_environment);
-	fdtype expval=(fdtype)get_exports(expenv);
-	env->parent=fd_make_export_env(expval,env->parent);
-	fd_decref((fdtype)(oldparent));}
+        fd_lispenv oldparent=env->parent;
+        fd_lispenv expenv=
+          FD_GET_CONS(module,fd_environment_type,fd_environment);
+        fdtype expval=(fdtype)get_exports(expenv);
+        env->parent=fd_make_export_env(expval,env->parent);
+        fd_decref((fdtype)(oldparent));}
       fd_decref(module);}
     fd_decref(module_names);
     return FD_VOID;}
@@ -612,19 +612,19 @@ FD_EXPORT void fd_init_modules_c()
 
   fd_add_module_loader(load_dynamic_module);
   fd_register_config("DLOADPATH",
-		     "Add directories for dynamic compiled modules",
-		     fd_lconfig_get,fd_lconfig_push,&dloadpath);
+                     "Add directories for dynamic compiled modules",
+                     fd_lconfig_get,fd_lconfig_push,&dloadpath);
 
   fd_config_set_consed("DLOADPATH",fd_lispstring(FD_DEFAULT_DLOADPATH));
-  if (u8_getenv("FD_DLOADPATH")) 
+  if (u8_getenv("FD_DLOADPATH"))
     fd_config_set_consed("DLOADPATH",fd_lispstring(u8_getenv("FD_DLOADPATH")));
-  
+
   loadstamp_symbol=fd_intern("%LOADSTAMP");
   moduleid_symbol=fd_intern("%MODULEID");
 
   fd_idefn(fd_xscheme_module,
-	   fd_make_cprim1x("DYNAMIC-LOAD",dynamic_load_prim,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("DYNAMIC-LOAD",dynamic_load_prim,1,
+                           fd_string_type,FD_VOID));
   fd_defalias(fd_xscheme_module,"DLOAD","DYNAMIC-LOAD");
   fd_defalias(fd_xscheme_module,"LOAD-DLL","DYNAMIC-LOAD");
 
@@ -635,7 +635,7 @@ FD_EXPORT void fd_init_modules_c()
   fd_defspecial(fd_scheme_module,"MODULE-EXPORT!",module_export);
   fd_idefn(fd_scheme_module,fd_make_cprim1("GET-MODULE",safe_get_module,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
+           fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
   fd_defalias(fd_scheme_module,"%LS","GET-EXPORTS");
 
   fd_defspecial(fd_xscheme_module,"IN-MODULE",in_module);

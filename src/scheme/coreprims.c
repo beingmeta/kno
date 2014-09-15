@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -60,7 +60,7 @@ static fdtype get_refcount(fdtype x,fdtype delta)
     int refcount=FD_CONS_REFCOUNT(cons);
     int d=FD_FIX2INT(delta);
     if (d<0) d=-d;
-    if (refcount<1) 
+    if (refcount<1)
       return fd_reterr("Bad REFCOUNT","get_refcount",
                        u8_mkstring("%lx",(unsigned long)x),
                        FD_VOID);
@@ -241,7 +241,7 @@ static fdtype typeof_prim(fdtype x)
 static fdtype plus_lexpr(int n,fdtype *args)
 {
   int i=0; int floating=0, generic=0;
-  while (i < n) 
+  while (i < n)
     if (FD_FIXNUMP(args[i])) i++;
     else if (FD_FLONUMP(args[i])) {floating=1; i++;}
     else {generic=1; i++;}
@@ -258,7 +258,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
       double val;
       if (FD_FIXNUMP(args[i])) val=(double)fd_getint(args[i]);
       else if (FD_BIGINTP(args[i]))
-	val=(double)fd_bigint_to_double((fd_bigint)args[i]);
+        val=(double)fd_bigint_to_double((fd_bigint)args[i]);
       else val=((struct FD_DOUBLE *)args[i])->flonum;
       floresult=floresult+val;
       i++;}
@@ -268,7 +268,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
     i=0; while (i < n) {
       fdtype newv=fd_plus(result,args[i]);
       if (FD_ABORTP(newv)) {
-	fd_decref(result); return newv;}
+        fd_decref(result); return newv;}
       fd_decref(result); result=newv; i++;}
     return result;}
 }
@@ -287,7 +287,7 @@ static fdtype minus1(fdtype x)
 static fdtype times_lexpr(int n,fdtype *args)
 {
   int i=0; int floating=0, generic=0;
-  while (i < n) 
+  while (i < n)
     if (FD_FIXNUMP(args[i])) i++;
     else if (FD_FLONUMP(args[i])) {floating=1; i++;}
     else {generic=1; i++;}
@@ -297,14 +297,14 @@ static fdtype times_lexpr(int n,fdtype *args)
       long long mult=fd_getint(args[i]);
       if (mult==0) return FD_INT2DTYPE(0);
       else {
-	int q=((mult>0)?(FD_MAX_FIXNUM/mult):(FD_MIN_FIXNUM/mult));
-	if ((fixresult>0)?(fixresult>q):((-fixresult)>q)) {
-	  fdtype bigresult=fd_multiply(FD_INT2DTYPE(fixresult),args[i]);
-	  i++; while (i<n) {
-	    fdtype bigprod=fd_multiply(bigresult,args[i]);
-	    fd_decref(bigresult); bigresult=bigprod; i++;}
-	  return bigresult;}
-	else fixresult=fixresult*mult;}
+        int q=((mult>0)?(FD_MAX_FIXNUM/mult):(FD_MIN_FIXNUM/mult));
+        if ((fixresult>0)?(fixresult>q):((-fixresult)>q)) {
+          fdtype bigresult=fd_multiply(FD_INT2DTYPE(fixresult),args[i]);
+          i++; while (i<n) {
+            fdtype bigprod=fd_multiply(bigresult,args[i]);
+            fd_decref(bigresult); bigresult=bigprod; i++;}
+          return bigresult;}
+        else fixresult=fixresult*mult;}
       i++;}
     return FD_INT2DTYPE(fixresult);}
   else if (generic == 0) {
@@ -313,7 +313,7 @@ static fdtype times_lexpr(int n,fdtype *args)
       double val;
       if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
       else if  (FD_BIGINTP(args[i]))
-	val=(double)fd_bigint_to_double((fd_bigint)args[i]);
+        val=(double)fd_bigint_to_double((fd_bigint)args[i]);
       else val=((struct FD_DOUBLE *)args[i])->flonum;
       floresult=floresult*val;
       i++;}
@@ -336,36 +336,36 @@ static fdtype minus_lexpr(int n,fdtype *args)
     else return fd_subtract(FD_INT2DTYPE(0),args[0]);
   else {
     int i=0; int floating=0, generic=0;
-    while (i < n) 
+    while (i < n)
       if (FD_FIXNUMP(args[i])) i++;
       else if (FD_FLONUMP(args[i])) {floating=1; i++;}
       else {generic=1; i++;}
     if ((floating==0) && (generic==0)) {
-      int fixresult=0; 
+      int fixresult=0;
       i=0; while (i < n) {
-	int val=0;
-	if (FD_FIXNUMP(args[i])) val=FD_FIX2INT(args[i]);
-	else if  (FD_BIGINTP(args[i]))
-	  val=(double)fd_bigint_to_double((fd_bigint)args[i]);
-	if (i==0) fixresult=val; else fixresult=fixresult-val;
-	i++;}
+        int val=0;
+        if (FD_FIXNUMP(args[i])) val=FD_FIX2INT(args[i]);
+        else if  (FD_BIGINTP(args[i]))
+          val=(double)fd_bigint_to_double((fd_bigint)args[i]);
+        if (i==0) fixresult=val; else fixresult=fixresult-val;
+        i++;}
       return FD_INT2DTYPE(fixresult);}
     else if (generic == 0) {
       double floresult=0.0;
       i=0; while (i < n) {
-	double val;
-	if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
-	else if  (FD_BIGINTP(args[i]))
-	  val=(double)fd_bigint_to_double((fd_bigint)args[i]);
-	else val=((struct FD_DOUBLE *)args[i])->flonum;
-	if (i==0) floresult=val; else floresult=floresult-val;
-	i++;}
+        double val;
+        if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
+        else if  (FD_BIGINTP(args[i]))
+          val=(double)fd_bigint_to_double((fd_bigint)args[i]);
+        else val=((struct FD_DOUBLE *)args[i])->flonum;
+        if (i==0) floresult=val; else floresult=floresult-val;
+        i++;}
       return fd_init_double(NULL,floresult);}
     else {
       fdtype result=fd_incref(args[0]);
       i=1; while (i < n) {
-	fdtype newv=fd_subtract(result,args[i]);
-	fd_decref(result); result=newv; i++;}
+        fdtype newv=fd_subtract(result,args[i]);
+        fd_decref(result); result=newv; i++;}
       return result;}}
 }
 
@@ -397,7 +397,7 @@ static fdtype div_lexpr(int n,fdtype *args)
       double val=FD_FLONUM(args[0]); i=1;
       while (i<n) {val=val/FD_FLONUM(args[i]); i++;}
       return fd_init_double(NULL,val);}
-  else if (n==1) 
+  else if (n==1)
     return fd_divide(FD_INT2DTYPE(1),args[0]);
   else {
     fdtype value=fd_incref(args[0]); i=1;
@@ -574,7 +574,7 @@ static int lconfig_set(fdtype var,fdtype val,void *data)
   fdtype proc=(fdtype)data, args[2], result;
   args[0]=var; args[1]=val;
   result=fd_apply(proc,2,args);
-  if (FD_ABORTP(result)) 
+  if (FD_ABORTP(result))
     return fd_interr(result);
   else if (FD_TRUEP(result)) {
     fd_decref(result); return 1;}
@@ -646,11 +646,11 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("EQV?",eqvp,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("EQUAL?",equalp,2));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("IDENTICAL?",equalp,2)));
+           fd_make_ndprim(fd_make_cprim2("IDENTICAL?",equalp,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("OVERLAPS?",overlapsp,2)));
+           fd_make_ndprim(fd_make_cprim2("OVERLAPS?",overlapsp,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("CONTAINS?",containsp,2)));
+           fd_make_ndprim(fd_make_cprim2("CONTAINS?",containsp,2)));
   fd_idefn(fd_scheme_module,fd_make_cprim2("COMPARE",comparefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("FASTCOMPARE",fastcomparefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DEEP-COPY",deepcopy,1));
@@ -685,9 +685,9 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("TYPEOF",typeof_prim,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("MAKE-OPCODE",make_opcode,1,
-			   fd_fixnum_type,FD_VOID));
-  
+           fd_make_cprim1x("MAKE-OPCODE",make_opcode,1,
+                           fd_fixnum_type,FD_VOID));
+
   fd_idefn(fd_scheme_module,fd_make_cprimn("+",plus_lexpr,-1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("-",minus_lexpr,-1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("*",times_lexpr,-1));
@@ -708,26 +708,26 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("ROUND",round_prim,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("CONFIG",config_get,1)));
+           fd_make_ndprim(fd_make_cprim2("CONFIG",config_get,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("CONFIG!",config_set,2)));
+           fd_make_ndprim(fd_make_cprim2("CONFIG!",config_set,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("CONFIG-DEFAULT!",config_default,2)));
+           fd_make_ndprim(fd_make_cprim2("CONFIG-DEFAULT!",config_default,2)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("CONFIG-DEF!",config_def,2,
-			   fd_symbol_type,FD_VOID,-1,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim3x("CONFIG-DEF!",config_def,2,
+                           fd_symbol_type,FD_VOID,-1,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("THREADGET",thread_get,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("THREADSET!",thread_set,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("THREADADD!",thread_add,2));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INTERN",lisp_intern,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("SYMBOL->STRING",lisp_symbol2string,1,
-			   fd_symbol_type,FD_VOID));
+           fd_make_cprim1x("SYMBOL->STRING",lisp_symbol2string,1,
+                           fd_symbol_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("STRING->SYMBOL",lisp_string2symbol,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("STRING->SYMBOL",lisp_string2symbol,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("STRING->LISP",lisp_string2lisp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PARSE-ARG",lisp_parse_arg,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("UNPARSE-ARG",lisp_unparse_arg,1));

@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -116,7 +116,7 @@ static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY *v);
   if (fd_write_byte(out,b)<0) return -1; else {}
 #define output_4bytes(out,w) \
   if (fd_write_4bytes(out,w)<0) return -1; else {}
-#define output_bytes(out,bytes,n)				\
+#define output_bytes(out,bytes,n)                               \
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
 static int try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
 {
@@ -125,7 +125,7 @@ static int try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
   if (dlen<0)
     return -1;
   else if ((out->flushfn==NULL) &&
-	   ((olen+dlen) != (out->ptr-out->start)))
+           ((olen+dlen) != (out->ptr-out->start)))
     /* If you're writing straight to memory, check dtype size argument */
     u8_log(LOG_WARN,"","inconsistent dtype size");
   *len=*len+dlen;
@@ -171,41 +171,41 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       struct FD_STRING *s=FD_GET_CONS(name,fd_string_type,struct FD_STRING *);
       int len=s->length;
       if (((out->flags)&(FD_DTYPEV2)) && (len<256)) {
-	{output_byte(out,dt_tiny_symbol);}
-	{output_byte(out,len);}
-	{output_bytes(out,s->bytes,len);}
-	return len+2;}
+        {output_byte(out,dt_tiny_symbol);}
+        {output_byte(out,len);}
+        {output_bytes(out,s->bytes,len);}
+        return len+2;}
       else {
-	{output_byte(out,dt_symbol);}
-	{output_4bytes(out,len);}
-	{output_bytes(out,s->bytes,len);}
-	return len+5;}}
+        {output_byte(out,dt_symbol);}
+        {output_4bytes(out,len);}
+        {output_bytes(out,s->bytes,len);}
+        return len+5;}}
     else if (itype == fd_character_type) { /* Output unicode character */
       output_byte(out,dt_character_package);
       if (data<128) {
-	output_byte(out,dt_ascii_char);
-	output_byte(out,1); output_byte(out,data);
-	return 4;}
+        output_byte(out,dt_ascii_char);
+        output_byte(out,1); output_byte(out,data);
+        return 4;}
       else {
-	output_byte(out,dt_unicode_char);
-	if (data<0x100) {
-	  output_byte(out,1);
-	  output_byte(out,data);
-	  return 4;}
-	else if (data<0x10000) {
-	  output_byte(out,2);
-	  output_byte(out,((data>>8)&0xFF));
-	  output_byte(out,(data&0xFF));
-	  return 5;}
-	else if (data<0x1000000) {
-	  output_byte(out,3);
-	  output_byte(out,((data>>16)&0xFF));
-	  output_byte(out,((data>>8)&0xFF));
-	  output_byte(out,(data&0xFF));
-	  return 6;}
-	else {
-	  output_byte(out,3); output_4bytes(out,data);
-	  return 7;}}
+        output_byte(out,dt_unicode_char);
+        if (data<0x100) {
+          output_byte(out,1);
+          output_byte(out,data);
+          return 4;}
+        else if (data<0x10000) {
+          output_byte(out,2);
+          output_byte(out,((data>>8)&0xFF));
+          output_byte(out,(data&0xFF));
+          return 5;}
+        else if (data<0x1000000) {
+          output_byte(out,3);
+          output_byte(out,((data>>16)&0xFF));
+          output_byte(out,((data>>8)&0xFF));
+          output_byte(out,(data&0xFF));
+          return 6;}
+        else {
+          output_byte(out,3); output_4bytes(out,data);
+          return 7;}}
       return 5;}
     else if (itype==fd_constant_type)
       switch (data) {
@@ -213,24 +213,24 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       case 1: output_byte(out,dt_boolean); output_byte(out,0); return 2;
       case 2: output_byte(out,dt_boolean); output_byte(out,1); return 2;
       case 3:
-	if ((out->flags)&(FD_DTYPEV2)) {
-	  output_byte(out,dt_empty_choice);
-	  return 1;}
-	else {
-	  output_byte(out,dt_framerd_package);
-	  output_byte(out,dt_small_choice);
-	  output_byte(out,0);
-	  return 3;}
+        if ((out->flags)&(FD_DTYPEV2)) {
+          output_byte(out,dt_empty_choice);
+          return 1;}
+        else {
+          output_byte(out,dt_framerd_package);
+          output_byte(out,dt_small_choice);
+          output_byte(out,0);
+          return 3;}
       case 4: output_byte(out,dt_empty_list); return 1;
       default:
-	fd_seterr(_("Invalid constant"),NULL,NULL,x);
-	return -1;}
+        fd_seterr(_("Invalid constant"),NULL,NULL,x);
+        return -1;}
     else if ((FD_VALID_TYPEP(itype)) && (fd_dtype_writers[itype]))
       return fd_dtype_writers[itype](out,x);
     else if ((out->flags)&(FD_WRITE_OPAQUE))
       return write_opaque(out,x);
     else if ((fd_dtype_error) &&
-	     (retval=fd_dtype_error(out,x,"no handler"))) 
+             (retval=fd_dtype_error(out,x,"no handler")))
       return retval;
     else {
       fd_seterr(fd_NoMethod,_("Can't write DTYPE"),NULL,x);
@@ -243,15 +243,15 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
     case fd_string_type: {
       struct FD_STRING *s=(struct FD_STRING *) cons; int len=s->length;
       if (((out->flags)&(FD_DTYPEV2)) && (len<256)) {
-	output_byte(out,dt_tiny_string);
-	output_byte(out,len);
-	output_bytes(out,s->bytes,len);
-	return 2+len;}
+        output_byte(out,dt_tiny_string);
+        output_byte(out,len);
+        output_bytes(out,s->bytes,len);
+        return 2+len;}
       else {
-	output_byte(out,dt_string);
-	output_4bytes(out,len);
-	output_bytes(out,s->bytes,len);
-	return 5+len;}}
+        output_byte(out,dt_string);
+        output_4bytes(out,len);
+        output_bytes(out,s->bytes,len);
+        return 5+len;}}
     case fd_packet_type: {
       struct FD_STRING *s=(struct FD_STRING *) cons;
       output_byte(out,dt_packet);
@@ -264,18 +264,18 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       unsigned int len=s->length, sz=0;
       output_byte(out,dt_character_package);
       if (len<256) {
-	output_byte(out,dt_short_secret_packet);
-	output_byte(out,len);
-	sz=3;}
+        output_byte(out,dt_short_secret_packet);
+        output_byte(out,len);
+        sz=3;}
       else {
-	output_byte(out,dt_secret_packet);
-	output_4bytes(out,len);
-	sz=6;}
+        output_byte(out,dt_secret_packet);
+        output_4bytes(out,len);
+        sz=6;}
       output_bytes(out,data,len);
       return sz+len;}
     case fd_pair_type: {
       unsigned int len=1;
-      struct FD_PAIR *p=(struct FD_PAIR *) cons; 
+      struct FD_PAIR *p=(struct FD_PAIR *) cons;
       {output_byte(out,dt_pair);}
       {output_dtype(len,out,p->car);}
       {output_dtype(len,out,p->cdr);}
@@ -284,11 +284,11 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       fdtype car, cdr;
       unsigned int len=1;
       if (ctype == fd_rational_type) {
-	_fd_unpack_rational((fdtype)cons,&car,&cdr);
-	output_byte(out,dt_rational);}
+        _fd_unpack_rational((fdtype)cons,&car,&cdr);
+        output_byte(out,dt_rational);}
       else {
-	_fd_unpack_complex((fdtype)cons,&car,&cdr);
-	output_byte(out,dt_complex);}
+        _fd_unpack_complex((fdtype)cons,&car,&cdr);
+        output_byte(out,dt_complex);}
       output_dtype(len,out,car);
       output_dtype(len,out,cdr);
       return len;}
@@ -298,74 +298,74 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       output_byte(out,dt_vector);
       output_4bytes(out,length);
       while (i < length) {
-	output_dtype(dtype_len,out,v->data[i]); i++;}
+        output_dtype(dtype_len,out,v->data[i]); i++;}
       return dtype_len;}
     case fd_choice_type: {
       struct FD_CHOICE *v=(struct FD_CHOICE *) cons;
       const fdtype *data=FD_XCHOICE_DATA(v);
       int i=0, len=FD_CHOICE_SIZE(x), dtype_len;
       if (len < 256)
-	if ((out->flags)&(FD_DTYPEV2)) {
-	  dtype_len=2;
-	  output_byte(out,dt_tiny_choice);
-	  output_byte(out,len);}
-	else {
-	  dtype_len=3;
-	  output_byte(out,dt_framerd_package);
-	  output_byte(out,dt_small_choice);
-	  output_byte(out,len);}
+        if ((out->flags)&(FD_DTYPEV2)) {
+          dtype_len=2;
+          output_byte(out,dt_tiny_choice);
+          output_byte(out,len);}
+        else {
+          dtype_len=3;
+          output_byte(out,dt_framerd_package);
+          output_byte(out,dt_small_choice);
+          output_byte(out,len);}
       else {
-	dtype_len=6;
-	output_byte(out,dt_framerd_package);
-	output_byte(out,dt_choice);
-	output_4bytes(out,len);}
+        dtype_len=6;
+        output_byte(out,dt_framerd_package);
+        output_byte(out,dt_choice);
+        output_4bytes(out,len);}
       while (i < len) {
-	output_dtype(dtype_len,out,data[i]); i++;}
+        output_dtype(dtype_len,out,data[i]); i++;}
       return dtype_len;}
     case fd_qchoice_type: {
       struct FD_QCHOICE *qv=(struct FD_QCHOICE *) cons;
       output_byte(out,dt_framerd_package);
       if (FD_EMPTY_CHOICEP(qv->choice)) {
-	output_byte(out,dt_small_qchoice);
-	output_byte(out,0);
-	return 3;}
+        output_byte(out,dt_small_qchoice);
+        output_byte(out,0);
+        return 3;}
       else {
-	struct FD_CHOICE *v=(struct FD_CHOICE *) (qv->choice);
-	const fdtype *data=FD_XCHOICE_DATA(v);
-	int i=0, len=FD_XCHOICE_SIZE(v), dtype_len;
-	if (len < 256) {
-	  dtype_len=3;
-	  output_byte(out,dt_small_qchoice);
-	  output_byte(out,len);}
-	else {
-	  dtype_len=6;
-	  output_byte(out,dt_qchoice);
-	  output_4bytes(out,len);}
-	while (i < len) {
-	  output_dtype(dtype_len,out,data[i]); i++;}
-	return dtype_len;}}
-    case fd_hashset_type: 
+        struct FD_CHOICE *v=(struct FD_CHOICE *) (qv->choice);
+        const fdtype *data=FD_XCHOICE_DATA(v);
+        int i=0, len=FD_XCHOICE_SIZE(v), dtype_len;
+        if (len < 256) {
+          dtype_len=3;
+          output_byte(out,dt_small_qchoice);
+          output_byte(out,len);}
+        else {
+          dtype_len=6;
+          output_byte(out,dt_qchoice);
+          output_4bytes(out,len);}
+        while (i < len) {
+          output_dtype(dtype_len,out,data[i]); i++;}
+        return dtype_len;}}
+    case fd_hashset_type:
       return write_hashset(out,(struct FD_HASHSET *) cons);
-    case fd_slotmap_type: 
+    case fd_slotmap_type:
       return write_slotmap(out,(struct FD_SLOTMAP *) cons);
-    case fd_schemap_type: 
+    case fd_schemap_type:
       return write_schemap(out,(struct FD_SCHEMAP *) cons);
-    case fd_hashtable_type: 
+    case fd_hashtable_type:
       return write_hashtable(out,(struct FD_HASHTABLE *) cons);
-    case fd_mystery_type: 
+    case fd_mystery_type:
       return write_mystery(out,(struct FD_MYSTERY *) cons);
     default: {
       fd_ptr_type ctype=FD_CONS_TYPE(cons); int dtype_len;
       if ((FD_VALID_TYPEP(ctype)) && (fd_dtype_writers[ctype]))
-	return fd_dtype_writers[ctype](out,x);
+        return fd_dtype_writers[ctype](out,x);
       else if ((out->flags)&(FD_WRITE_OPAQUE))
-	return write_opaque(out,x);
+        return write_opaque(out,x);
       else if ((fd_dtype_error) &&
-	       (dtype_len=fd_dtype_error(out,x,"no handler"))) 
-	return dtype_len;
+               (dtype_len=fd_dtype_error(out,x,"no handler")))
+        return dtype_len;
       else {
-	fd_seterr(fd_NoMethod,_("Can't write DTYPE"),NULL,x);
-	return -1;}}
+        fd_seterr(fd_NoMethod,_("Can't write DTYPE"),NULL,x);
+        return -1;}}
     }}
   default:
     return -1;
@@ -413,11 +413,11 @@ static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
       output_4bytes(out,len);}
     while (i < kvsize) {
       if ((try_dtype_output(&dtype_len,out,keyvals[i].key)>=0) &&
-	  (try_dtype_output(&dtype_len,out,keyvals[i].value)>=0)) {
-	i++;}
+          (try_dtype_output(&dtype_len,out,keyvals[i].value)>=0)) {
+        i++;}
       else {
-	fd_rw_unlock_struct(v);
-	return -1;}}}
+        fd_rw_unlock_struct(v);
+        return -1;}}}
   fd_rw_unlock_struct(v);
   return dtype_len;
 }
@@ -440,11 +440,11 @@ static int write_schemap(struct FD_BYTE_OUTPUT *out,struct FD_SCHEMAP *v)
       output_4bytes(out,len);}
     while (i < schemasize) {
       if ((try_dtype_output(&dtype_len,out,schema[i])>=0) &&
-	  (try_dtype_output(&dtype_len,out,values[i])>=0))
-	i++;
+          (try_dtype_output(&dtype_len,out,values[i])>=0))
+        i++;
       else {
-	fd_rw_unlock_struct(v);
-	return -1;}}}
+        fd_rw_unlock_struct(v);
+        return -1;}}}
   fd_rw_unlock_struct(v);
   return dtype_len;
 }
@@ -468,16 +468,16 @@ static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
     scan=v->slots; limit=scan+v->n_slots;
     while (scan < limit)
       if (*scan) {
-	struct FD_HASHENTRY *he=*scan++; 
-	struct FD_KEYVAL *kscan=&(he->keyval0), *klimit=kscan+he->n_keyvals;
-	while (kscan < klimit) {
-	  if (try_dtype_output(&dtype_len,out,kscan->key)<0) {
-	    fd_rw_unlock_struct(v);
-	    return -1;}
-	  if (try_dtype_output(&dtype_len,out,kscan->value)<0) {
-	    fd_rw_unlock_struct(v);
-	    return -1;}
-	  kscan++;}}
+        struct FD_HASHENTRY *he=*scan++;
+        struct FD_KEYVAL *kscan=&(he->keyval0), *klimit=kscan+he->n_keyvals;
+        while (kscan < klimit) {
+          if (try_dtype_output(&dtype_len,out,kscan->key)<0) {
+            fd_rw_unlock_struct(v);
+            return -1;}
+          if (try_dtype_output(&dtype_len,out,kscan->value)<0) {
+            fd_rw_unlock_struct(v);
+            return -1;}
+          kscan++;}}
       else scan++;}
   fd_rw_unlock_struct(v);
   return dtype_len;
@@ -502,16 +502,16 @@ static int write_hashset(struct FD_BYTE_OUTPUT *out,struct FD_HASHSET *v)
     scan=v->slots; limit=scan+v->n_slots;
     while (scan < limit)
       if (*scan) {
-	if (try_dtype_output(&dtype_len,out,*scan)<0) {
-	  fd_unlock_struct(v);
-	  return -1;}
-	scan++;}
+        if (try_dtype_output(&dtype_len,out,*scan)<0) {
+          fd_unlock_struct(v);
+          return -1;}
+        scan++;}
       else scan++;}
   fd_unlock_struct(v);
   return dtype_len;
 }
 
-#define newpos(pos,ptr,lim) ((((ptr)+pos) <= lim) ? (pos) : (-1)) 
+#define newpos(pos,ptr,lim) ((((ptr)+pos) <= lim) ? (pos) : (-1))
 
 static int validate_dtype(int pos,unsigned char *ptr,unsigned char *lim)
 {
@@ -531,9 +531,9 @@ static int validate_dtype(int pos,unsigned char *ptr,unsigned char *lim)
       return validate_dtype(newpos(pos+1,ptr,lim),ptr,lim);
     case dt_pair: case dt_compound: case dt_rational: case dt_complex:
       return validate_dtype(validate_dtype(validate_dtype(pos+1,ptr,lim),
-					   ptr,lim),
-			    ptr,lim);
-    case dt_tiny_symbol: case dt_tiny_string: 
+                                           ptr,lim),
+                            ptr,lim);
+    case dt_tiny_symbol: case dt_tiny_string:
       if (ptr+pos+1 >= lim) return -1;
       else return newpos(pos+1+ptr[pos+1],ptr,lim);
     case dt_empty_choice:
@@ -541,40 +541,40 @@ static int validate_dtype(int pos,unsigned char *ptr,unsigned char *lim)
     case dt_tiny_choice:
       if (ptr+pos+1 >= lim) return -1;
       else {
-	int i=0, len=ptr[pos+1];
-	while (i<len) {
-	  int i=0, len=ptr[pos+1], npos=pos+2;
-	  while ((i < len) && (npos > 0)) npos=validate_dtype(npos,ptr,lim);
-	  return npos;}}
+        int i=0, len=ptr[pos+1];
+        while (i<len) {
+          int i=0, len=ptr[pos+1], npos=pos+2;
+          while ((i < len) && (npos > 0)) npos=validate_dtype(npos,ptr,lim);
+          return npos;}}
     case dt_symbol: case dt_packet: case dt_string: case dt_zstring:
       if (ptr+pos+5 >= lim) return -1;
       else {
-	int len=fd_get_4bytes(ptr+pos+1);
-	return newpos(pos+5+len,ptr,lim);}
+        int len=fd_get_4bytes(ptr+pos+1);
+        return newpos(pos+5+len,ptr,lim);}
     case dt_vector:
       if (ptr+pos+5 >= lim) return -1;
       else {
-	int i=0, len=fd_get_4bytes(ptr+pos+1), npos=pos+5;
-	while ((i < len) && (npos > 0)) npos=validate_dtype(npos,ptr,lim);
-	return npos;}
+        int i=0, len=fd_get_4bytes(ptr+pos+1), npos=pos+5;
+        while ((i < len) && (npos > 0)) npos=validate_dtype(npos,ptr,lim);
+        return npos;}
     default:
       if ((code > 0x40) && (ptr+pos+2 < lim)) {
-	int subcode=*(ptr+pos+1), len, npos;
-	if (subcode&0x40)
-	  if (ptr+pos+6 < lim) {
-	    npos=pos+6; len=fd_get_4bytes(ptr+pos+2);}
-	  else return -1;
-	else if (ptr+pos+3 < lim) {
-	  npos=pos+3; len=fd_get_byte(ptr+pos+2);}
-	else return -1;
-	if (subcode&0x80) {
-	  int i=0; while ((i < len) && (npos > 0)) {
-	    npos=validate_dtype(npos,ptr,lim); i++;}
-	  return npos;}
-	else return newpos(npos+len,ptr,lim);}
+        int subcode=*(ptr+pos+1), len, npos;
+        if (subcode&0x40)
+          if (ptr+pos+6 < lim) {
+            npos=pos+6; len=fd_get_4bytes(ptr+pos+2);}
+          else return -1;
+        else if (ptr+pos+3 < lim) {
+          npos=pos+3; len=fd_get_byte(ptr+pos+2);}
+        else return -1;
+        if (subcode&0x80) {
+          int i=0; while ((i < len) && (npos > 0)) {
+            npos=validate_dtype(npos,ptr,lim); i++;}
+          return npos;}
+        else return newpos(npos+len,ptr,lim);}
       else return -1;}}
 }
- 
+
 FD_EXPORT int fd_validate_dtype(struct FD_BYTE_INPUT *in)
 {
   return validate_dtype(0,in->ptr,in->end);
@@ -610,7 +610,7 @@ FD_EXPORT int fd_grow_byte_input(struct FD_BYTE_INPUT *b,size_t len)
 }
 
 static fdtype *read_dtypes(int n,struct FD_BYTE_INPUT *in,
-			   fdtype *why_not,fdtype *into)
+                           fdtype *why_not,fdtype *into)
 {
   if (n==0) return NULL;
   else {
@@ -619,9 +619,9 @@ static fdtype *read_dtypes(int n,struct FD_BYTE_INPUT *in,
       fdtype v=fd_read_dtype(in);
       if (FD_COOLP(v)) vec[i++]=v;
       else {
-	int j=0; while (j<i) {fd_decref(vec[j]); j++;}
-	u8_free(vec); *why_not=v;
-	return NULL;}}
+        int j=0; while (j<i) {fd_decref(vec[j]); j++;}
+        u8_free(vec); *why_not=v;
+        return NULL;}}
     return vec;}
 }
 
@@ -635,14 +635,14 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
     case dt_empty_choice: return FD_EMPTY_CHOICE;
     case dt_boolean:
       if (nobytes(in,1))
-	return fd_return_errcode(FD_EOD);
+        return fd_return_errcode(FD_EOD);
       else if (*(in->ptr++))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;
-    case dt_fixnum: 
+    case dt_fixnum:
       if (havebytes(in,4)) {
-	int intval=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
-	return FD_INT2DTYPE(intval);}
+        int intval=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
+        return FD_INT2DTYPE(intval);}
       else return fd_return_errcode(FD_EOD);
     case dt_flonum: {
       char bytes[4];
@@ -665,29 +665,29 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
     case dt_pair: {
       fdtype head=FD_EMPTY_LIST, *tail=&head;
       while (1) {
-	fdtype car=fd_read_dtype(in);
-	if (FD_ABORTP(car)) {
-	  fd_decref(head); return car;}
-	else {
-	  fdtype new_pair=
-	    fd_init_pair(u8_alloc(struct FD_PAIR),
-			 car,FD_EMPTY_LIST);
-	  int dtcode=fd_read_byte(in);
-	  if (dtcode<0) {
-	    fd_decref(head); fd_decref(new_pair);
-	    fd_seterr1(fd_UnexpectedEOD);
-	    return FD_EOD;}
-	  *tail=new_pair; tail=&(FD_CDR(new_pair));
-	  if (dtcode != dt_pair) {
-	    fdtype cdr;
-	    if (fd_unread_byte(in,dtcode)<0) {
-	      fd_decref(head);
-	      return FD_ERROR_VALUE;}
-	    cdr=fd_read_dtype(in);
-	    if (FD_ABORTP(cdr)) {
-	      fd_decref(head); return cdr;}
-	    *tail=cdr;
-	    return head;}}}}
+        fdtype car=fd_read_dtype(in);
+        if (FD_ABORTP(car)) {
+          fd_decref(head); return car;}
+        else {
+          fdtype new_pair=
+            fd_init_pair(u8_alloc(struct FD_PAIR),
+                         car,FD_EMPTY_LIST);
+          int dtcode=fd_read_byte(in);
+          if (dtcode<0) {
+            fd_decref(head); fd_decref(new_pair);
+            fd_seterr1(fd_UnexpectedEOD);
+            return FD_EOD;}
+          *tail=new_pair; tail=&(FD_CDR(new_pair));
+          if (dtcode != dt_pair) {
+            fdtype cdr;
+            if (fd_unread_byte(in,dtcode)<0) {
+              fd_decref(head);
+              return FD_ERROR_VALUE;}
+            cdr=fd_read_dtype(in);
+            if (FD_ABORTP(cdr)) {
+              fd_decref(head); return cdr;}
+            *tail=cdr;
+            return head;}}}}
     case dt_compound: case dt_rational: case dt_complex: {
       fdtype car=fd_read_dtype(in), cdr;
       if (FD_TROUBLEP(car)) return car;
@@ -695,182 +695,182 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       if (FD_TROUBLEP(cdr)) {fd_decref(car); return cdr;}
       switch (code) {
       case dt_compound: {
-	struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(car);
-	if ((e) && (e->restore)) {
-	  fdtype result=e->restore(car,cdr,e);
-	  fd_decref(cdr);
-	  return result;}
-	else if ((FD_VECTORP(cdr)) && (FD_VECTOR_LENGTH(cdr)<32767)) {
-	  struct FD_VECTOR *vec=(struct FD_VECTOR *)cdr;
-	  short n_elts=(short)(vec->length);
-	  fdtype result=
-	    fd_init_compound_from_elts(NULL,car,0,n_elts,vec->data);
-	  /* Note that the incref'd values are now stored in the compound,
-	     so we don't decref them ourselves. */
-	  u8_free(vec);
-	  return result;}
-	else return fd_init_compound
-	       (u8_alloc(struct FD_COMPOUND),car,1,1,cdr);}
+        struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(car);
+        if ((e) && (e->restore)) {
+          fdtype result=e->restore(car,cdr,e);
+          fd_decref(cdr);
+          return result;}
+        else if ((FD_VECTORP(cdr)) && (FD_VECTOR_LENGTH(cdr)<32767)) {
+          struct FD_VECTOR *vec=(struct FD_VECTOR *)cdr;
+          short n_elts=(short)(vec->length);
+          fdtype result=
+            fd_init_compound_from_elts(NULL,car,0,n_elts,vec->data);
+          /* Note that the incref'd values are now stored in the compound,
+             so we don't decref them ourselves. */
+          u8_free(vec);
+          return result;}
+        else return fd_init_compound
+               (u8_alloc(struct FD_COMPOUND),car,1,1,cdr);}
       case dt_rational:
-	return _fd_make_rational(car,cdr);
+        return _fd_make_rational(car,cdr);
       case dt_complex:
-	return _fd_make_complex(car,cdr);}}
+        return _fd_make_complex(car,cdr);}}
     case dt_packet: case dt_string:
       if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
-	int len=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
-	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
-	else {
-	  fdtype result=FD_VOID;
-	  switch (code) {
-	  case dt_string:
-	    result=fd_make_string(NULL,len,in->ptr); break;
-	  case dt_packet:
-	    result=fd_make_packet(NULL,len,in->ptr); break;}
-	  in->ptr=in->ptr+len;
-	  return result;}}
+        int len=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
+        if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
+        else {
+          fdtype result=FD_VOID;
+          switch (code) {
+          case dt_string:
+            result=fd_make_string(NULL,len,in->ptr); break;
+          case dt_packet:
+            result=fd_make_packet(NULL,len,in->ptr); break;}
+          in->ptr=in->ptr+len;
+          return result;}}
     case dt_tiny_symbol:
       if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
       else {
-	int len=fd_get_byte(in->ptr); in->ptr=in->ptr+1;
-	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
-	else {
-	  u8_byte data[257];
-	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
-	  return fd_make_symbol(data,len);}}
+        int len=fd_get_byte(in->ptr); in->ptr=in->ptr+1;
+        if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
+        else {
+          u8_byte data[257];
+          memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
+          return fd_make_symbol(data,len);}}
     case dt_tiny_string:
       if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
       else {
-	int len=fd_get_byte(in->ptr); in->ptr=in->ptr+1;
-	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
-	else {
-	  fdtype result= fd_make_string(NULL,len,in->ptr);
-	  in->ptr=in->ptr+len;
-	  return result;}}
+        int len=fd_get_byte(in->ptr); in->ptr=in->ptr+1;
+        if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
+        else {
+          fdtype result= fd_make_string(NULL,len,in->ptr);
+          in->ptr=in->ptr+len;
+          return result;}}
     case dt_symbol: case dt_zstring:
       if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
-	int len=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
-	if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
-	else {
-	  unsigned char buf[64], *data;
-	  if (len >= 64) data=u8_malloc(len+1); else data=buf;
-	  memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
-	  if (data != buf) {
-	    fdtype result=fd_make_symbol(data,len);
-	    u8_free(data);
-	    return result;}
-	  else return fd_make_symbol(data,len);}}
+        int len=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
+        if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
+        else {
+          unsigned char buf[64], *data;
+          if (len >= 64) data=u8_malloc(len+1); else data=buf;
+          memcpy(data,in->ptr,len); data[len]='\0'; in->ptr=in->ptr+len;
+          if (data != buf) {
+            fdtype result=fd_make_symbol(data,len);
+            u8_free(data);
+            return result;}
+          else return fd_make_symbol(data,len);}}
     case dt_vector:
       if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
-	int len=fd_read_4bytes(in);
-	if (FD_EXPECT_FALSE(len == 0))
-	  return fd_init_vector(NULL,0,NULL);
-	else {
-	  fdtype why_not=FD_EOD, result=fd_init_vector(NULL,len,NULL);
-	  fdtype *elts=FD_VECTOR_ELTS(result);
-	  fdtype *data=read_dtypes(len,in,&why_not,elts);
-	  if (FD_EXPECT_TRUE((data!=NULL)))
-	    return result;
-	  else return fd_return_errcode(why_not);}}
+        int len=fd_read_4bytes(in);
+        if (FD_EXPECT_FALSE(len == 0))
+          return fd_init_vector(NULL,0,NULL);
+        else {
+          fdtype why_not=FD_EOD, result=fd_init_vector(NULL,len,NULL);
+          fdtype *elts=FD_VECTOR_ELTS(result);
+          fdtype *data=read_dtypes(len,in,&why_not,elts);
+          if (FD_EXPECT_TRUE((data!=NULL)))
+            return result;
+          else return fd_return_errcode(why_not);}}
     case dt_tiny_choice:
       if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
       else {
-	int len=fd_read_byte(in);
-	struct FD_CHOICE *ch=fd_alloc_choice(len);
-	fdtype *write=(fdtype *)FD_XCHOICE_DATA(ch), *limit=write+len;
-	while (write<limit) {
-	  fdtype v=fd_read_dtype(in);
-	  if (FD_ABORTP(v)) {
-	    u8_free(ch);
-	    return v;}
-	  *write++=v;}
-	return fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));}
+        int len=fd_read_byte(in);
+        struct FD_CHOICE *ch=fd_alloc_choice(len);
+        fdtype *write=(fdtype *)FD_XCHOICE_DATA(ch), *limit=write+len;
+        while (write<limit) {
+          fdtype v=fd_read_dtype(in);
+          if (FD_ABORTP(v)) {
+            u8_free(ch);
+            return v;}
+          *write++=v;}
+        return fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));}
 
-    case dt_block: 
+    case dt_block:
       if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
-	int nbytes=fd_read_4bytes(in);
-	if (nobytes(in,nbytes)) return fd_return_errcode(FD_EOD);
-	return fd_read_dtype(in);}
+        int nbytes=fd_read_4bytes(in);
+        if (nobytes(in,nbytes)) return fd_return_errcode(FD_EOD);
+        return fd_read_dtype(in);}
 
     case dt_framerd_package: {
       int code, lenlen, len;
       if (nobytes(in,2)) return fd_return_errcode(FD_EOD);
-      code=*(in->ptr++); lenlen=((code&0x40) ? 4 : 1); 
+      code=*(in->ptr++); lenlen=((code&0x40) ? 4 : 1);
       if (nobytes(in,lenlen)) return fd_return_errcode(FD_EOD);
       else if (lenlen==4) len=fd_read_4bytes(in);
       else len=fd_read_byte(in);
       switch (code) {
       case dt_qchoice: case dt_small_qchoice:
-	if (len==0)
-	  return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),FD_EMPTY_CHOICE);
+        if (len==0)
+          return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),FD_EMPTY_CHOICE);
       case dt_choice: case dt_small_choice:
-	if (len==0) return FD_EMPTY_CHOICE;
-	else {
-	  fdtype result;
-	  struct FD_CHOICE *ch=fd_alloc_choice(len);
-	  fdtype *write=(fdtype *)FD_XCHOICE_DATA(ch), *limit=write+len;
-	  while (write<limit) *write++=fd_read_dtype(in);
-	  result=fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));
-	  if (FD_CHOICEP(result))
-	    if ((code==dt_qchoice) || (code==dt_small_qchoice))
-	      return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),result);
-	    else return result;
-	  else return result;}
+        if (len==0) return FD_EMPTY_CHOICE;
+        else {
+          fdtype result;
+          struct FD_CHOICE *ch=fd_alloc_choice(len);
+          fdtype *write=(fdtype *)FD_XCHOICE_DATA(ch), *limit=write+len;
+          while (write<limit) *write++=fd_read_dtype(in);
+          result=fd_init_choice(ch,len,NULL,(FD_CHOICE_DOSORT|FD_CHOICE_REALLOC));
+          if (FD_CHOICEP(result))
+            if ((code==dt_qchoice) || (code==dt_small_qchoice))
+              return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),result);
+            else return result;
+          else return result;}
       case dt_slotmap: case dt_small_slotmap:
-	if (len==0) 
-	  return fd_empty_slotmap();
-	else {
-	  int n_slots=len/2;
-	  struct FD_KEYVAL *keyvals=u8_alloc_n(n_slots,struct FD_KEYVAL);
-	  struct FD_KEYVAL *write=keyvals, *limit=keyvals+n_slots;
-	  while (write<limit) {
-	    write->key=fd_read_dtype(in);
-	    write->value=fd_read_dtype(in);
-	    write++;}
-	  if (n_slots<7) {
-	    fdtype result=fd_make_slotmap(n_slots,n_slots,keyvals);
-	    u8_free(keyvals);
-	    return result;}
-	  else return fd_init_slotmap(NULL,n_slots,keyvals);}
+        if (len==0)
+          return fd_empty_slotmap();
+        else {
+          int n_slots=len/2;
+          struct FD_KEYVAL *keyvals=u8_alloc_n(n_slots,struct FD_KEYVAL);
+          struct FD_KEYVAL *write=keyvals, *limit=keyvals+n_slots;
+          while (write<limit) {
+            write->key=fd_read_dtype(in);
+            write->value=fd_read_dtype(in);
+            write++;}
+          if (n_slots<7) {
+            fdtype result=fd_make_slotmap(n_slots,n_slots,keyvals);
+            u8_free(keyvals);
+            return result;}
+          else return fd_init_slotmap(NULL,n_slots,keyvals);}
       case dt_hashtable: case dt_small_hashtable:
-	if (len==0) 
-	  return fd_init_hashtable(NULL,0,NULL);
-	else {
-	  fdtype result; int n_slots=len/2, n_read=0;
-	  struct FD_KEYVAL *keyvals=u8_alloc_n(n_slots,struct FD_KEYVAL);
-	  struct FD_KEYVAL *write=keyvals, *scan=keyvals,
-	    *limit=keyvals+n_slots;
-	  while (n_read<n_slots) {
-	    write->key=fd_read_dtype(in);
-	    write->value=fd_read_dtype(in);
-	    n_read++;
-	    if (FD_EMPTY_CHOICEP(write->value)) {
-	      fd_decref(write->key);}
-	    else write++;}
-	  limit=write;
-	  result=fd_init_hashtable(NULL,limit-keyvals,keyvals);
-	  while (scan<limit) {
-	    fd_decref(scan->key); fd_decref(scan->value); scan++;}
-	  u8_free(keyvals);
-	  return result;}
+        if (len==0)
+          return fd_init_hashtable(NULL,0,NULL);
+        else {
+          fdtype result; int n_slots=len/2, n_read=0;
+          struct FD_KEYVAL *keyvals=u8_alloc_n(n_slots,struct FD_KEYVAL);
+          struct FD_KEYVAL *write=keyvals, *scan=keyvals,
+            *limit=keyvals+n_slots;
+          while (n_read<n_slots) {
+            write->key=fd_read_dtype(in);
+            write->value=fd_read_dtype(in);
+            n_read++;
+            if (FD_EMPTY_CHOICEP(write->value)) {
+              fd_decref(write->key);}
+            else write++;}
+          limit=write;
+          result=fd_init_hashtable(NULL,limit-keyvals,keyvals);
+          while (scan<limit) {
+            fd_decref(scan->key); fd_decref(scan->value); scan++;}
+          u8_free(keyvals);
+          return result;}
       case dt_hashset: case dt_small_hashset: {
-	int i=0; struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
-	fd_init_hashset(h,len,FD_MALLOCD_CONS);
-	while (i<len) {
-	  fdtype v=fd_read_dtype(in);
-	  fd_hashset_add_raw(h,v);
-	  i++;}
-	return FDTYPE_CONS(h);}
+        int i=0; struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
+        fd_init_hashset(h,len,FD_MALLOCD_CONS);
+        while (i<len) {
+          fdtype v=fd_read_dtype(in);
+          fd_hashset_add_raw(h,v);
+          i++;}
+        return FDTYPE_CONS(h);}
       default: {
-	int i=0; fdtype *data=u8_alloc_n(len,fdtype);
-	while (i<len) data[i++]=fd_read_dtype(in);
-	return fd_make_mystery_vector(dt_framerd_package,code,len,data);}}}
-    default: 
+        int i=0; fdtype *data=u8_alloc_n(len,fdtype);
+        while (i<len) data[i++]=fd_read_dtype(in);
+        return fd_make_mystery_vector(dt_framerd_package,code,len,data);}}}
+    default:
       if ((code >= 0x40) && (code < 0x80))
-	return read_packaged_dtype(code,in);
+        return read_packaged_dtype(code,in);
       else return FD_DTYPE_ERROR;}}
   else return fd_return_errcode(FD_EOD);
 }
@@ -902,7 +902,7 @@ FD_EXPORT int fd_register_vector_unpacker
   fd_unlock_mutex(&dtype_unpacker_lock);
   return replaced;
 }
-  
+
 FD_EXPORT int fd_register_packet_unpacker
   (unsigned int package,unsigned int code,fd_packet_unpacker f)
 {
@@ -1038,7 +1038,7 @@ FD_EXPORT fdtype fd_make_mystery_vector
   myst->package=package; myst->code=typecode;
   myst->payload.vector=elts; myst->size=len;
   return FDTYPE_CONS(myst);
-}  
+}
 
 static fdtype restore_dtype_exception(fdtype content)
 {
@@ -1061,42 +1061,42 @@ static fdtype restore_dtype_exception(fdtype content)
     if (len>0) {
       fdtype elt0=FD_VECTOR_REF(content,0);
       if (FD_SYMBOLP(elt0)) {
-	exname=FD_SYMBOL_NAME(elt0); new_format=1;}
+        exname=FD_SYMBOL_NAME(elt0); new_format=1;}
       else if (FD_STRINGP(elt0)) { /* Old format */
-	exname=FD_SYMBOL_NAME(elt0); new_format=0;}
+        exname=FD_SYMBOL_NAME(elt0); new_format=0;}
       else {
-	u8_log(LOG_WARN,fd_DTypeError,"Odd exception content: %q",content);
-	new_format=-1;}}
+        u8_log(LOG_WARN,fd_DTypeError,"Odd exception content: %q",content);
+        new_format=-1;}}
     if (new_format<0) {}
-    else if (new_format) 
+    else if (new_format)
       if ((len<3) ||
-	  (!(FD_SYMBOLP(FD_VECTOR_REF(content,0)))) ||
-	  (!((FD_FALSEP(FD_VECTOR_REF(content,1))) ||
-	     (FD_SYMBOLP(FD_VECTOR_REF(content,1))))) ||
-	  (!((FD_FALSEP(FD_VECTOR_REF(content,2))) ||
-	     (FD_STRINGP(FD_VECTOR_REF(content,1))))))
-	u8_log(LOG_WARN,fd_DTypeError,"Odd exception content: %q",content);
+          (!(FD_SYMBOLP(FD_VECTOR_REF(content,0)))) ||
+          (!((FD_FALSEP(FD_VECTOR_REF(content,1))) ||
+             (FD_SYMBOLP(FD_VECTOR_REF(content,1))))) ||
+          (!((FD_FALSEP(FD_VECTOR_REF(content,2))) ||
+             (FD_STRINGP(FD_VECTOR_REF(content,1))))))
+        u8_log(LOG_WARN,fd_DTypeError,"Odd exception content: %q",content);
       else {
-	exname=(u8_condition)(FD_SYMBOL_NAME(FD_VECTOR_REF(content,0)));
-	context=(u8_context)
-	  ((FD_FALSEP(FD_VECTOR_REF(content,1))) ? (NULL) :
-	   (FD_SYMBOL_NAME(FD_VECTOR_REF(content,1))));
-	details=(u8_string)
-	  ((FD_FALSEP(FD_VECTOR_REF(content,2))) ? (NULL) :
-	   (FD_STRDATA(content)));
-	if (len>3) irritant=FD_VECTOR_REF(content,3);}
+        exname=(u8_condition)(FD_SYMBOL_NAME(FD_VECTOR_REF(content,0)));
+        context=(u8_context)
+          ((FD_FALSEP(FD_VECTOR_REF(content,1))) ? (NULL) :
+           (FD_SYMBOL_NAME(FD_VECTOR_REF(content,1))));
+        details=(u8_string)
+          ((FD_FALSEP(FD_VECTOR_REF(content,2))) ? (NULL) :
+           (FD_STRDATA(content)));
+        if (len>3) irritant=FD_VECTOR_REF(content,3);}
     else { /* Old format */
       if ((len>0) && (FD_SYMBOLP(FD_VECTOR_REF(content,0)))) {
-	fdtype sym=fd_intern(FD_STRDATA(FD_VECTOR_REF(content,0)));
-	exname=(u8_condition)FD_SYMBOL_NAME(sym);}
+        fdtype sym=fd_intern(FD_STRDATA(FD_VECTOR_REF(content,0)));
+        exname=(u8_condition)FD_SYMBOL_NAME(sym);}
       else if ((len>0) && (FD_STRINGP(FD_VECTOR_REF(content,0)))) {
-	exname=(u8_condition)FD_SYMBOL_NAME(FD_VECTOR_REF(content,0));}
-      if ((len>1) && (FD_STRINGP(FD_VECTOR_REF(content,1)))) 
-	details=FD_STRDATA(FD_VECTOR_REF(content,1));
+        exname=(u8_condition)FD_SYMBOL_NAME(FD_VECTOR_REF(content,0));}
+      if ((len>1) && (FD_STRINGP(FD_VECTOR_REF(content,1))))
+        details=FD_STRDATA(FD_VECTOR_REF(content,1));
       if (len>2) irritant=FD_VECTOR_REF(content,2);}
     return fd_make_exception(exname,context,details,irritant);}
   else return fd_make_exception
-	 (fd_DTypeError,"restore_dtype_exception",NULL,content);
+         (fd_DTypeError,"restore_dtype_exception",NULL,content);
 }
 
 /* Arith stubs */
@@ -1187,7 +1187,7 @@ FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_BYTE_INPUT *stream)
 }
 
 FD_EXPORT int
-  _fd_read_bytes(unsigned char *bytes,struct FD_BYTE_INPUT *stream,int len) 
+  _fd_read_bytes(unsigned char *bytes,struct FD_BYTE_INPUT *stream,int len)
 {
   if (fd_needs_bytes(stream,len)) {
     memcpy(bytes,stream->ptr,len);
@@ -1215,7 +1215,7 @@ FD_EXPORT void fd_init_dtypeio_c()
   error_symbol=fd_intern("%ERROR");
 
   fd_register_config("USEDTBLOCK",_("Use the DTBLOCK dtype code when appropriate"),
-		     fd_boolconfig_get,fd_boolconfig_set,&fd_use_dtblock);
+                     fd_boolconfig_get,fd_boolconfig_set,&fd_use_dtblock);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&(dtype_unpacker_lock));

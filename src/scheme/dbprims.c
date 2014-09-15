@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -54,14 +54,14 @@ static fdtype xfind_frames_lexpr(int n,fdtype *args)
     if (FD_EMPTY_CHOICEP(args[i+1])) {
       fdtype *slotvals=u8_alloc_n((n),fdtype), results;
       int j=0; i=1; while (i<n)
-	if (FD_EMPTY_CHOICEP(args[i+1])) i=i+2;
-	else {
-	  slotvals[j]=args[i]; j++; i++;
-	  slotvals[j]=args[i]; j++; i++;}
+        if (FD_EMPTY_CHOICEP(args[i+1])) i=i+2;
+        else {
+          slotvals[j]=args[i]; j++; i++;
+          slotvals[j]=args[i]; j++; i++;}
       if (n%2)
-	if (FD_FALSEP(args[0]))
-	  results=fd_bgfinder(j,slotvals);
-	else results=fd_finder(args[0],j,slotvals);
+        if (FD_FALSEP(args[0]))
+          results=fd_bgfinder(j,slotvals);
+        else results=fd_finder(args[0],j,slotvals);
       else results=fd_bgfinder(j,slotvals);
       u8_free(slotvals);
       return results;}
@@ -100,24 +100,24 @@ static fdtype find_frames_prefetch(int n,fdtype *args)
 }
 
 static void hashtable_index_frame(fdtype ix,
-				  fdtype frames,fdtype slotids,
-				  fdtype values)
+                                  fdtype frames,fdtype slotids,
+                                  fdtype values)
 {
   if (FD_VOIDP(values)) {
     FD_DO_CHOICES(frame,frames) {
       FD_DO_CHOICES(slotid,slotids) {
-	fdtype values=((FD_OIDP(frame)) ? (fd_frame_get(frame,slotid)) : (fd_get(frame,slotid,FD_EMPTY_CHOICE)));
-	FD_DO_CHOICES(value,values) {
-	  fdtype key=fd_init_pair(NULL,fd_incref(slotid),fd_incref(value));
-	  fd_add(ix,key,frame);
-	  fd_decref(key);}
-	fd_decref(values);}}}
+        fdtype values=((FD_OIDP(frame)) ? (fd_frame_get(frame,slotid)) : (fd_get(frame,slotid,FD_EMPTY_CHOICE)));
+        FD_DO_CHOICES(value,values) {
+          fdtype key=fd_init_pair(NULL,fd_incref(slotid),fd_incref(value));
+          fd_add(ix,key,frame);
+          fd_decref(key);}
+        fd_decref(values);}}}
   else {
     FD_DO_CHOICES(slotid,slotids) {
       FD_DO_CHOICES(value,values) {
-	fdtype key=fd_init_pair(NULL,fd_incref(slotid),fd_incref(value));
-	fd_add(ix,key,frames);
-	fd_decref(key);}}}
+        fdtype key=fd_init_pair(NULL,fd_incref(slotid),fd_incref(value));
+        fd_add(ix,key,frames);
+        fd_decref(key);}}}
 }
 
 static fdtype index_frame_prim
@@ -126,13 +126,13 @@ static fdtype index_frame_prim
   if (FD_CHOICEP(indices)) {
     FD_DO_CHOICES(index,indices)
       if (FD_HASHTABLEP(index))
-	hashtable_index_frame(index,frames,slotids,values);
+        hashtable_index_frame(index,frames,slotids,values);
       else {
-	fd_index ix=fd_indexptr(index);
+        fd_index ix=fd_indexptr(index);
         if (FD_EXPECT_FALSE(ix==NULL))
           return fd_type_error("index","index_frame_prim",index);
-	else if (fd_index_frame(ix,frames,slotids,values)<0)
-	  return FD_ERROR_VALUE;}}
+        else if (fd_index_frame(ix,frames,slotids,values)<0)
+          return FD_ERROR_VALUE;}}
   else if (FD_HASHTABLEP(indices)) {
     hashtable_index_frame(indices,frames,slotids,values);
     return FD_VOID;}
@@ -162,7 +162,7 @@ static fdtype getpool(fdtype arg)
 {
   fd_pool p=NULL;
   if (FD_POOLP(arg)) return fd_incref(arg);
-  else if (FD_STRINGP(arg)) 
+  else if (FD_STRINGP(arg))
     p=fd_name2pool(FD_STRDATA(arg));
   else if (FD_OIDP(arg)) p=fd_oid2pool(arg);
   if (p) return fd_pool2lisp(p);
@@ -179,7 +179,7 @@ static fdtype set_pool_namefn(fdtype arg,fdtype method)
   else if (FD_STRINGP(arg)) {
     p=fd_name2pool(FD_STRDATA(arg));
     if (!(p)) return fd_err
-		(Unknown_PoolName,"set_pool_namefn",NULL,arg);}
+                (Unknown_PoolName,"set_pool_namefn",NULL,arg);}
   else if (FD_OIDP(arg))
     p=fd_oid2pool(arg);
   else return fd_type_error(_("pool"),"set_pool_namefn",arg);
@@ -217,23 +217,23 @@ static fdtype use_pool(fdtype arg1,fdtype arg2)
     u8_byte *start=copy, *end=strchr(start,';');
     if (end) *end='\0'; while (start) {
       if (strchr(start,'@')) {
-	fdtype temp;
-	if (fd_use_pool(start)==NULL) {
-	  fd_decref(results); u8_free(copy);
-	  return FD_ERROR_VALUE;}
-	else temp=fd_find_pools_by_cid(start);
-	FD_ADD_TO_CHOICE(results,temp);}
+        fdtype temp;
+        if (fd_use_pool(start)==NULL) {
+          fd_decref(results); u8_free(copy);
+          return FD_ERROR_VALUE;}
+        else temp=fd_find_pools_by_cid(start);
+        FD_ADD_TO_CHOICE(results,temp);}
       else {
-	fd_pool p=fd_use_pool(start);
-	if (p==NULL) {
-	  fd_decref(results); u8_free(copy);
-	  return FD_ERROR_VALUE;}
-	else {
-	  fdtype pval=fd_pool2lisp(p);
-	  FD_ADD_TO_CHOICE(results,pval);}}
+        fd_pool p=fd_use_pool(start);
+        if (p==NULL) {
+          fd_decref(results); u8_free(copy);
+          return FD_ERROR_VALUE;}
+        else {
+          fdtype pval=fd_pool2lisp(p);
+          FD_ADD_TO_CHOICE(results,pval);}}
       if ((end) && (end[1])) {
-	start=end+1; end=strchr(start,';');
-	if (end) *end='\0';}
+        start=end+1; end=strchr(start,';');
+        if (end) *end='\0';}
       else start=NULL;}
     u8_free(copy);
     return results;}
@@ -257,23 +257,23 @@ static fdtype use_index(fdtype arg)
   else if (FD_STRINGP(arg))
     if (strchr(FD_STRDATA(arg),';')) {
       /* We explicitly handle ; separated arguments here, so that
-	 we can return the choice of indices. */
+         we can return the choice of indices. */
       fdtype results=FD_EMPTY_CHOICE;
       u8_byte *copy=u8_strdup(FD_STRDATA(arg));
       u8_byte *start=copy, *end=strchr(start,';');
       *end='\0'; while (start) {
-	fd_index ix=fd_use_index(start);
-	if (ix==NULL) {
-	  u8_free(copy);
-	  fd_decref(results);
-	  return FD_ERROR_VALUE;}
-	else {
-	  fdtype ixv=fd_index2lisp(ix);
-	  FD_ADD_TO_CHOICE(results,ixv);}
-	if ((end) && (end[1])) {
-	  start=end+1; end=strchr(start,';');
-	  if (end) *end='\0';}
-	else start=NULL;}
+        fd_index ix=fd_use_index(start);
+        if (ix==NULL) {
+          u8_free(copy);
+          fd_decref(results);
+          return FD_ERROR_VALUE;}
+        else {
+          fdtype ixv=fd_index2lisp(ix);
+          FD_ADD_TO_CHOICE(results,ixv);}
+        if ((end) && (end[1])) {
+          start=end+1; end=strchr(start,';');
+          if (end) *end='\0';}
+        else start=NULL;}
       u8_free(copy);
       return results;}
     else ix=fd_use_index(FD_STRDATA(arg));
@@ -289,23 +289,23 @@ static fdtype open_index(fdtype arg,fdtype consed_arg)
   if (FD_STRINGP(arg))
     if (strchr(FD_STRDATA(arg),';')) {
       /* We explicitly handle ; separated arguments here, so that
-	 we can return the choice of indices. */
+         we can return the choice of indices. */
       fdtype results=FD_EMPTY_CHOICE;
       u8_byte *copy=u8_strdup(FD_STRDATA(arg));
       u8_byte *start=copy, *end=strchr(start,';');
       *end='\0'; while (start) {
-	fd_index ix=fd_open_index_x(start,consed);
-	if (ix==NULL) {
-	  u8_free(copy);
-	  fd_decref(results);
-	  return FD_ERROR_VALUE;}
-	else {
-	  fdtype ixv=fd_index2lisp(ix);
-	  FD_ADD_TO_CHOICE(results,ixv);}
-	if ((end) && (end[1])) {
-	  start=end+1; end=strchr(start,';');
-	  if (end) *end='\0';}
-	else start=NULL;}
+        fd_index ix=fd_open_index_x(start,consed);
+        if (ix==NULL) {
+          u8_free(copy);
+          fd_decref(results);
+          return FD_ERROR_VALUE;}
+        else {
+          fdtype ixv=fd_index2lisp(ix);
+          FD_ADD_TO_CHOICE(results,ixv);}
+        if ((end) && (end[1])) {
+          start=end+1; end=strchr(start,';');
+          if (end) *end='\0';}
+        else start=NULL;}
       u8_free(copy);
       return results;}
     else return fd_index2lisp(fd_open_index_x(FD_STRDATA(arg),consed));
@@ -325,13 +325,13 @@ static fdtype setoidvalue(fdtype o,fdtype v,fdtype nocopy)
   int retval;
   if (FD_TRUEP(nocopy)) {fd_incref(v);}
   else if (FD_SLOTMAPP(v)) {
-    v=fd_deep_copy(v); 
+    v=fd_deep_copy(v);
     FD_SLOTMAP_MARK_MODIFIED(v);}
   else if (FD_SCHEMAPP(v)) {
-    v=fd_deep_copy(v); 
+    v=fd_deep_copy(v);
     FD_SCHEMAP_MARK_MODIFIED(v);}
   else if (FD_HASHTABLEP(v)) {
-    v=fd_deep_copy(v); 
+    v=fd_deep_copy(v);
     FD_HASHTABLE_MARK_MODIFIED(v);}
   else v=fd_incref(v);
   retval=fd_set_oid_value(o,v);
@@ -375,7 +375,7 @@ static fdtype unlockoids(fdtype oids,fdtype commitp)
     return FD_FALSE;}
   else if ((FD_PRIM_TYPEP(oids,fd_pool_type))||(FD_STRINGP(oids))) {
     fd_pool p=((FD_PRIM_TYPEP(oids,fd_pool_type)) ? (fd_lisp2pool(oids)) :
-	       (fd_name2pool(FD_STRDATA(oids))));
+               (fd_name2pool(FD_STRDATA(oids))));
     if (p) {
       int retval=fd_pool_unlock_all(p,force_commit);
       if (retval<0) return FD_ERROR_VALUE;
@@ -399,20 +399,20 @@ static fdtype make_compound_index(int n,fdtype *args)
       else if (FD_INDEXP(source)) ix=fd_indexptr(source);
       else if (FD_PRIM_TYPEP(source,fd_raw_index_type)) ix=fd_indexptr(source);
       else if (FD_SYMBOLP(source)) {
-	fdtype val=fd_config_get(FD_SYMBOL_NAME(source));
-	if (FD_STRINGP(val)) ix=fd_open_index(fd_strdata(val));
-	else if (FD_INDEXP(val)) ix=fd_indexptr(source);
+        fdtype val=fd_config_get(FD_SYMBOL_NAME(source));
+        if (FD_STRINGP(val)) ix=fd_open_index(fd_strdata(val));
+        else if (FD_INDEXP(val)) ix=fd_indexptr(source);
         else if (FD_PRIM_TYPEP(val,fd_raw_index_type)) ix=fd_indexptr(val);}
       else {}
       if (ix) {
-	if (n_sources>=max_sources) {
-	  sources=u8_realloc_n(sources,max_sources+8,fd_index);
-	  max_sources=max_sources+8;}
+        if (n_sources>=max_sources) {
+          sources=u8_realloc_n(sources,max_sources+8,fd_index);
+          max_sources=max_sources+8;}
         if (ix->serialno<0) {fdtype lix=(fdtype)ix; fd_incref(lix);}
-	sources[n_sources++]=ix;}
+        sources[n_sources++]=ix;}
       else {
-	u8_free(sources);
-	return fd_type_error("index","make_compound_index",source);}}
+        u8_free(sources);
+        return fd_type_error("index","make_compound_index",source);}}
     i++;}
   return fd_index2lisp(fd_make_compound_index(n_sources,sources));
 }
@@ -431,7 +431,7 @@ static fdtype add_to_compound_index(fdtype lcx,fdtype aix)
 }
 
 static fdtype make_mempool(fdtype label,fdtype base,fdtype cap,
-			   fdtype load,fdtype noswap)
+                           fdtype load,fdtype noswap)
 {
   fd_pool p=fd_make_mempool
     (FD_STRDATA(label),FD_OID_ADDR(base),FD_FIX2INT(cap),FD_FIX2INT(load),
@@ -455,8 +455,8 @@ static fdtype reset_mempool(fdtype pool_arg)
 }
 
 static fdtype make_extpool(fdtype label,fdtype base,fdtype cap,
-			   fdtype fetchfn,fdtype savefn,fdtype lockfn,
-			   fdtype state,fdtype cache)
+                           fdtype fetchfn,fdtype savefn,fdtype lockfn,
+                           fdtype state,fdtype cache)
 {
   fd_pool p=fd_make_extpool
     (FD_STRDATA(label),FD_OID_ADDR(base),FD_FIX2INT(cap),
@@ -512,7 +512,7 @@ static fdtype extpool_state(fdtype pool)
 /* External indices */
 
 static fdtype make_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
-			    fdtype state,fdtype usecache)
+                            fdtype state,fdtype usecache)
 {
   fd_index ix=fd_make_extindex
     (FD_STRDATA(label),
@@ -525,7 +525,7 @@ static fdtype make_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
 }
 
 static fdtype cons_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
-			    fdtype state,fdtype usecache)
+                            fdtype state,fdtype usecache)
 {
   fd_index ix=fd_make_extindex
     (FD_STRDATA(label),
@@ -565,7 +565,7 @@ static fdtype extindex_decache(fdtype index,fdtype key)
   if (ix->handler==&fd_extindex_handler)
     if (FD_VOIDP(key))
       if (fd_reset_hashtable(&(ix->cache),ix->cache.n_slots,1)<0)
-	return FD_ERROR_VALUE;
+        return FD_ERROR_VALUE;
       else {}
     else if (fd_hashtable_store(&(ix->cache),key,FD_VOID)<0)
       return FD_ERROR_VALUE;
@@ -583,7 +583,7 @@ static fdtype extindex_decache(fdtype index,fdtype key)
     fdtype keys=fd_hashtable_keys(h), drop=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(key,keys) {
       if ((FD_PAIRP(key))&&(FD_CAR(key)==lix)) {
-	fd_incref(key); FD_ADD_TO_CHOICE(drop,key);}}
+        fd_incref(key); FD_ADD_TO_CHOICE(drop,key);}}
     if (!(FD_EMPTY_CHOICEP(drop))) {
       FD_DO_CHOICES(d,drop) fd_hashtable_drop(h,d,FD_VOID);}
     fd_decref(drop); fd_decref(keys);}
@@ -655,26 +655,26 @@ static fdtype swapout_lexpr(int n,fdtype *args)
     if (FD_CHOICEP(arg)) {
       fdtype oids=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(e,arg) {
-	if (FD_OIDP(e)) {FD_ADD_TO_CHOICE(oids,e);}
-	else if (FD_POOLP(e)) 
-	  fd_pool_swapout(fd_lisp2pool(e));
-	else if (FD_INDEXP(e))
-	  fd_index_swapout(fd_indexptr(e));
-	else if (FD_PRIM_TYPEP(e,fd_raw_index_type))
-	  fd_index_swapout(fd_indexptr(e));
-	else if (FD_PTR_TYPEP(arg,fd_raw_pool_type))
-	  fd_pool_swapout((fd_pool)arg);
-	else if (FD_STRINGP(e)) {
-	  fd_pool p=fd_name2pool(FD_STRDATA(e));
-	  if (!(p)) {
-	    fd_decref(oids);
-	    return fd_type_error(_("pool, index, or OIDs"),
-				 "swapout_lexpr",e);}
-	  else fd_pool_swapout(p);}
-	else {
-	  fd_decref(oids);
-	  return fd_type_error(_("pool, index, or OIDs"),
-			       "swapout_lexpr",e);}}
+        if (FD_OIDP(e)) {FD_ADD_TO_CHOICE(oids,e);}
+        else if (FD_POOLP(e))
+          fd_pool_swapout(fd_lisp2pool(e));
+        else if (FD_INDEXP(e))
+          fd_index_swapout(fd_indexptr(e));
+        else if (FD_PRIM_TYPEP(e,fd_raw_index_type))
+          fd_index_swapout(fd_indexptr(e));
+        else if (FD_PTR_TYPEP(arg,fd_raw_pool_type))
+          fd_pool_swapout((fd_pool)arg);
+        else if (FD_STRINGP(e)) {
+          fd_pool p=fd_name2pool(FD_STRDATA(e));
+          if (!(p)) {
+            fd_decref(oids);
+            return fd_type_error(_("pool, index, or OIDs"),
+                                 "swapout_lexpr",e);}
+          else fd_pool_swapout(p);}
+        else {
+          fd_decref(oids);
+          return fd_type_error(_("pool, index, or OIDs"),
+                               "swapout_lexpr",e);}}
       fd_swapout_oids(oids);
       fd_decref(oids);
       return FD_VOID;}
@@ -710,7 +710,7 @@ static fdtype commit_lexpr(int n,fdtype *args)
       retval=fd_index_commit(fd_indexptr(arg));
     else if (FD_PTR_TYPEP(arg,fd_raw_pool_type))
       retval=fd_pool_commit_all((fd_pool)arg,1);
-    else if (FD_OIDP(arg)) 
+    else if (FD_OIDP(arg))
       retval=fd_commit_oids(arg,1);
     else return fd_type_error(_("pool or index"),"commit_lexpr",arg);
     if (retval<0) return FD_ERROR_VALUE;
@@ -796,7 +796,7 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
     if (FD_VOIDP(start)) {}
     else if (FD_FIXNUMP(start))
       if (FD_FIX2INT(start)<0)
-	return fd_type_error(_("pool offset"),"pool_elts",start);
+        return fd_type_error(_("pool offset"),"pool_elts",start);
       else i=FD_FIX2INT(start);
     else if (FD_OIDP(start)) i=FD_OID_DIFFERENCE(FD_OID_ADDR(start),base);
     else return fd_type_error(_("pool offset"),"pool_elts",start);
@@ -804,7 +804,7 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
     else if (FD_FIXNUMP(count)) {
       int count_arg=FD_FIX2INT(count);
       if (count_arg<0)
-	return fd_type_error(_("pool offset"),"pool_elts",count);
+        return fd_type_error(_("pool offset"),"pool_elts",count);
       else if (i+count_arg<lim) lim=i+count_arg;}
     else if (FD_OIDP(start)) {
       int lim_arg=FD_OID_DIFFERENCE(FD_OID_ADDR(count),base);
@@ -812,18 +812,18 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
     else return fd_type_error(_("pool offset"),"pool_elts",count);
     if ((i>0) || ((lim-i)<(FD_OID_BUCKET_SIZE))) {
       while (i<lim) {
-	fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
-	FD_ADD_TO_CHOICE(result,each); i++;}}
+        fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
+        FD_ADD_TO_CHOICE(result,each); i++;}}
     else {
       int k=0, n_buckets=((lim-i)/(FD_OID_BUCKET_SIZE))+1;
       while (k<FD_OID_BUCKET_SIZE) {
-	int j=0; while (j<n_buckets) {
-	  unsigned int off=(j*FD_OID_BUCKET_SIZE)+k;
-	  if (off<lim) {
-	    fdtype each=fd_make_oid(FD_OID_PLUS(base,off));
-	    FD_ADD_TO_CHOICE(result,each);}
-	  j++;}
-	k++;}
+        int j=0; while (j<n_buckets) {
+          unsigned int off=(j*FD_OID_BUCKET_SIZE)+k;
+          if (off<lim) {
+            fdtype each=fd_make_oid(FD_OID_PLUS(base,off));
+            FD_ADD_TO_CHOICE(result,each);}
+          j++;}
+        k++;}
       return result;}
     return result;}
 }
@@ -894,7 +894,7 @@ static fdtype pool_close_prim(fdtype arg)
 
 static fdtype oid_range(fdtype start,fdtype end)
 {
-  int i=0, lim=fd_getint(end); 
+  int i=0, lim=fd_getint(end);
   fdtype result=FD_EMPTY_CHOICE;
   FD_OID base=FD_OID_ADDR(start);
   if (lim<0) return FD_ERROR_VALUE;
@@ -906,7 +906,7 @@ static fdtype oid_range(fdtype start,fdtype end)
 
 static fdtype oid_vector(fdtype start,fdtype end)
 {
-  int i=0, lim=fd_getint(end); 
+  int i=0, lim=fd_getint(end);
   if (lim<0) return FD_ERROR_VALUE;
   else {
     fdtype result=fd_init_vector(NULL,lim,NULL);
@@ -1049,10 +1049,10 @@ static fdtype prefetch_keys(fdtype arg1,fdtype arg2)
   else {
     FD_DO_CHOICES(arg,arg1) {
       if ((FD_INDEXP(arg))||(FD_PRIM_TYPEP(arg,fd_raw_index_type))) {
-	fd_index ix=fd_indexptr(arg);
-	if (fd_index_prefetch(ix,arg2)<0) {
-	  FD_STOP_DO_CHOICES;
-	  return FD_ERROR_VALUE;}}
+        fd_index ix=fd_indexptr(arg);
+        if (fd_index_prefetch(ix,arg2)<0) {
+          FD_STOP_DO_CHOICES;
+          return FD_ERROR_VALUE;}}
       else return fd_type_error(_("index"),"prefetch_keys",arg);}
     return FD_VOID;}
 }
@@ -1087,61 +1087,61 @@ fdtype fd_fget(fdtype frames,fdtype slotids)
   if (!(FD_CHOICEP(frames)))
     if (!(FD_CHOICEP(slotids)))
       if (FD_OIDP(frames))
-	return fd_frame_get(frames,slotids);
+        return fd_frame_get(frames,slotids);
       else return fd_get(frames,slotids,FD_EMPTY_CHOICE);
     else if (FD_OIDP(frames)) {
       fdtype result=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(slotid,slotids) {
-	fdtype value=fd_frame_get(frames,slotid);
-	if (FD_ABORTP(value)) {
-	  fd_decref(result);
-	  return value;}
-	FD_ADD_TO_CHOICE(result,value);}
+        fdtype value=fd_frame_get(frames,slotid);
+        if (FD_ABORTP(value)) {
+          fd_decref(result);
+          return value;}
+        FD_ADD_TO_CHOICE(result,value);}
       return result;}
     else {
       fdtype result=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(slotid,slotids) {
-	fdtype value=fd_get(frames,slotid,FD_EMPTY_CHOICE);
-	if (FD_ABORTP(value)) {
-	  fd_decref(result);
-	  return value;}
-	FD_ADD_TO_CHOICE(result,value);}
+        fdtype value=fd_get(frames,slotid,FD_EMPTY_CHOICE);
+        if (FD_ABORTP(value)) {
+          fd_decref(result);
+          return value;}
+        FD_ADD_TO_CHOICE(result,value);}
       return result;}
   else {
     int all_adjuncts=1;
     if (FD_CHOICEP(slotids)) {
       FD_DO_CHOICES(slotid,slotids) {
-	int adjunctp=0;
-	FD_DO_CHOICES(adjslotid,fd_adjunct_slotids) {
-	  if (FD_EQ(slotid,adjslotid)) {adjunctp=1; break;}}
-	if (adjunctp==0) {all_adjuncts=0; break;}}}
+        int adjunctp=0;
+        FD_DO_CHOICES(adjslotid,fd_adjunct_slotids) {
+          if (FD_EQ(slotid,adjslotid)) {adjunctp=1; break;}}
+        if (adjunctp==0) {all_adjuncts=0; break;}}}
     else {
       int adjunctp=0;
       FD_DO_CHOICES(adjslotid,fd_adjunct_slotids) {
-	if (FD_EQ(slotids,adjslotid)) {adjunctp=1; break;}}
+        if (FD_EQ(slotids,adjslotid)) {adjunctp=1; break;}}
       if (adjunctp==0) all_adjuncts=0;}
     if ((fd_prefetch) && (fd_ipeval_status()==0) &&
-	(FD_CHOICEP(frames)) && (all_adjuncts==0))
+        (FD_CHOICEP(frames)) && (all_adjuncts==0))
       fd_prefetch_oids(frames);
     {
       fdtype results=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(frame,frames)
-	if (FD_OIDP(frame)) {
-	  FD_DO_CHOICES(slotid,slotids) {
-	    fdtype v=fd_frame_get(frame,slotid);
-	    if (FD_ABORTP(v)) {
-	      FD_STOP_DO_CHOICES;
-	      fd_decref(results);
-	      return v;}
-	    else {FD_ADD_TO_CHOICE(results,v);}}}
-	else {
-	  FD_DO_CHOICES(slotid,slotids) {
-	    fdtype v=fd_get(frame,slotid,FD_EMPTY_CHOICE);
-	    if (FD_ABORTP(v)) {
-	      FD_STOP_DO_CHOICES;
-	      fd_decref(results);
-	      return v;}
-	    else {FD_ADD_TO_CHOICE(results,v);}}}
+        if (FD_OIDP(frame)) {
+          FD_DO_CHOICES(slotid,slotids) {
+            fdtype v=fd_frame_get(frame,slotid);
+            if (FD_ABORTP(v)) {
+              FD_STOP_DO_CHOICES;
+              fd_decref(results);
+              return v;}
+            else {FD_ADD_TO_CHOICE(results,v);}}}
+        else {
+          FD_DO_CHOICES(slotid,slotids) {
+            fdtype v=fd_get(frame,slotid,FD_EMPTY_CHOICE);
+            if (FD_ABORTP(v)) {
+              FD_STOP_DO_CHOICES;
+              fd_decref(results);
+              return v;}
+            else {FD_ADD_TO_CHOICE(results,v);}}}
       return fd_simplify_choice(results);}}
 }
 
@@ -1154,9 +1154,9 @@ fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values)
     if (FD_CHOICEP(slotids)) {
       int found=0;
       FD_DO_CHOICES(slotid,slotids)
-	if (fd_test(frames,slotid,values)) {
-	  found=1; FD_STOP_DO_CHOICES; break;}
-	else {}
+        if (fd_test(frames,slotid,values)) {
+          found=1; FD_STOP_DO_CHOICES; break;}
+        else {}
       if (found) return FD_TRUE;
       else return FD_FALSE;}
     else {
@@ -1167,15 +1167,15 @@ fdtype fd_ftest(fdtype frames,fdtype slotids,fdtype values)
   else {
     FD_DO_CHOICES(frame,frames) {
       FD_DO_CHOICES(slotid,slotids) {
-	FD_DO_CHOICES(value,values)
-	  if (FD_OIDP(frame)) {
-	    int result=fd_frame_test(frame,slotid,value);
-	    if (result<0) return FD_ERROR_VALUE;
-	    else if (result) return FD_TRUE;}
-	  else {
-	    int result=fd_test(frame,slotid,value);
-	    if (result<0) return FD_ERROR_VALUE;
-	    else if (result) return FD_TRUE;}}}
+        FD_DO_CHOICES(value,values)
+          if (FD_OIDP(frame)) {
+            int result=fd_frame_test(frame,slotid,value);
+            if (result<0) return FD_ERROR_VALUE;
+            else if (result) return FD_TRUE;}
+          else {
+            int result=fd_test(frame,slotid,value);
+            if (result<0) return FD_ERROR_VALUE;
+            else if (result) return FD_TRUE;}}}
     return FD_FALSE;}
 }
 
@@ -1186,9 +1186,9 @@ fdtype fd_fassert(fdtype frames,fdtype slotids,fdtype values)
   else {
     FD_DO_CHOICES(frame,frames) {
       FD_DO_CHOICES(slotid,slotids) {
-	FD_DO_CHOICES(value,values) {
-	  if (fd_frame_add(frame,slotid,value)<0)
-	    return FD_ERROR_VALUE;}}}
+        FD_DO_CHOICES(value,values) {
+          if (fd_frame_add(frame,slotid,value)<0)
+            return FD_ERROR_VALUE;}}}
     return FD_VOID;}
 }
 FD_EXPORT
@@ -1198,17 +1198,17 @@ fdtype fd_fretract(fdtype frames,fdtype slotids,fdtype values)
   else {
     FD_DO_CHOICES(frame,frames) {
       FD_DO_CHOICES(slotid,slotids) {
-	if (FD_VOIDP(values)) {
-	  fdtype values=fd_frame_get(frame,slotid);
-	  FD_DO_CHOICES(value,values) {
-	    if (fd_frame_drop(frame,slotid,value)<0) {
-	      fd_decref(values);
-	      return FD_ERROR_VALUE;}}
-	  fd_decref(values);}
-	else {
-	  FD_DO_CHOICES(value,values) {
-	    if (fd_frame_drop(frame,slotid,value)<0)
-	      return FD_ERROR_VALUE;}}}}
+        if (FD_VOIDP(values)) {
+          fdtype values=fd_frame_get(frame,slotid);
+          FD_DO_CHOICES(value,values) {
+            if (fd_frame_drop(frame,slotid,value)<0) {
+              fd_decref(values);
+              return FD_ERROR_VALUE;}}
+          fd_decref(values);}
+        else {
+          FD_DO_CHOICES(value,values) {
+            if (fd_frame_drop(frame,slotid,value)<0)
+              return FD_ERROR_VALUE;}}}}
     return FD_VOID;}
 }
 
@@ -1220,48 +1220,48 @@ static fdtype testp(int n,fdtype *args)
   else {
     FD_DO_CHOICES(frame,frames) {
       FD_DO_CHOICES(slotid,slotids) {
-	fdtype values=fd_fget(frame,slotid);
-	FD_DO_CHOICES(testfn,testfns)
-	  if (FD_APPLICABLEP(testfn)) {
-	    fdtype test_result=FD_FALSE;
-	    args[2]=values;
-	    test_result=fd_apply(testfn,n-2,args+2);
-	    args[2]=testfns;
-	    if (FD_ABORTP(test_result)) {
-	      fd_decref(values); return test_result;}
-	    else if (FD_TRUEP(test_result)) {
-	      fd_decref(values); fd_decref(test_result);
-	      return FD_TRUE;}
-	    else {}}
-	  else if ((FD_SYMBOLP(testfn)) || (FD_OIDP(testfn))) {
-	    fdtype test_result;
-	    args[1]=values; args[2]=testfn;
-	    test_result=testp(n-1,args+1);
-	    args[1]=slotids; args[2]=testfns;
-	    if (FD_ABORTP(test_result)) {
-	      fd_decref(values); return test_result;}
-	    else if (FD_TRUEP(test_result)) {
-	      fd_decref(values); return test_result;}
-	    else fd_decref(test_result);}
-	  else if (FD_TABLEP(testfn)) {
-	    FD_DO_CHOICES(value,values) {
-	      fdtype mapsto=fd_get(testfn,value,FD_VOID);
-	      if (FD_ABORTP(mapsto)) {
-		fd_decref(values);
-		return mapsto;}
-	      else if (FD_VOIDP(mapsto)) {}
-	      else if (n>3)
-		if (fd_overlapp(mapsto,args[3])) {
-		  fd_decref(mapsto); fd_decref(values);
-		  return FD_TRUE;}
-		else {fd_decref(mapsto);}
-	      else {
-		fd_decref(mapsto); fd_decref(values);
-		return FD_TRUE;}}}
-	  else {
-	    fd_decref(values);
-	    return fd_type_error(_("value test"),"testp",testfn);}
-	fd_decref(values);}}
+        fdtype values=fd_fget(frame,slotid);
+        FD_DO_CHOICES(testfn,testfns)
+          if (FD_APPLICABLEP(testfn)) {
+            fdtype test_result=FD_FALSE;
+            args[2]=values;
+            test_result=fd_apply(testfn,n-2,args+2);
+            args[2]=testfns;
+            if (FD_ABORTP(test_result)) {
+              fd_decref(values); return test_result;}
+            else if (FD_TRUEP(test_result)) {
+              fd_decref(values); fd_decref(test_result);
+              return FD_TRUE;}
+            else {}}
+          else if ((FD_SYMBOLP(testfn)) || (FD_OIDP(testfn))) {
+            fdtype test_result;
+            args[1]=values; args[2]=testfn;
+            test_result=testp(n-1,args+1);
+            args[1]=slotids; args[2]=testfns;
+            if (FD_ABORTP(test_result)) {
+              fd_decref(values); return test_result;}
+            else if (FD_TRUEP(test_result)) {
+              fd_decref(values); return test_result;}
+            else fd_decref(test_result);}
+          else if (FD_TABLEP(testfn)) {
+            FD_DO_CHOICES(value,values) {
+              fdtype mapsto=fd_get(testfn,value,FD_VOID);
+              if (FD_ABORTP(mapsto)) {
+                fd_decref(values);
+                return mapsto;}
+              else if (FD_VOIDP(mapsto)) {}
+              else if (n>3)
+                if (fd_overlapp(mapsto,args[3])) {
+                  fd_decref(mapsto); fd_decref(values);
+                  return FD_TRUE;}
+                else {fd_decref(mapsto);}
+              else {
+                fd_decref(mapsto); fd_decref(values);
+                return FD_TRUE;}}}
+          else {
+            fd_decref(values);
+            return fd_type_error(_("value test"),"testp",testfn);}
+        fd_decref(values);}}
     return FD_FALSE;}
 }
 
@@ -1295,8 +1295,8 @@ static fdtype cacheget_handler(fdtype expr,fd_lispenv env)
     if (FD_VOIDP(value)) {
       fdtype dflt=fd_eval(default_expr,env);
       if (FD_ABORTP(dflt)) {
-	fd_decref(table); fd_decref(key);
-	return dflt;}
+        fd_decref(table); fd_decref(key);
+        return dflt;}
       fd_store(table,key,dflt);
       return dflt;}
     else return value;}
@@ -1401,8 +1401,8 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
     FD_DO_CHOICES(p,pred) {
       int retval;
       if ((retval=test_selector_relation(f,p,val,datalevel))) {
-	{FD_STOP_DO_CHOICES;}
-	return retval;}}
+        {FD_STOP_DO_CHOICES;}
+        return retval;}}
     return 0;}
   else if ((FD_OIDP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
     if (datalevel)
@@ -1417,21 +1417,21 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */
     if ((FD_SPROCP(pred)) ||
-	(FD_PRIM_TYPEP(pred,fd_function_type))) {
+        (FD_PRIM_TYPEP(pred,fd_function_type))) {
       fd_function fcn=FD_DTYPE2FCN(pred);
       if (fcn->min_arity==1) {
-	fdtype value=fd_apply(pred,1,&f); int retval=-1;
-	if (FD_EMPTY_CHOICEP(value)) return 0;
-	else if (fd_overlapp(value,val)) retval=1;
-	else if (datalevel) retval=0;
-	else if ((FD_HASHTABLEP(val))||(FD_HASHSETP(val))||(FD_APPLICABLEP(val))||
-		 ((FD_PAIRP(val))&&(FD_APPLICABLEP(FD_CAR(val)))))
-	  retval=test_selector_predicate(value,val,datalevel);
-	else retval=0;
-	fd_decref(value);
-	return retval;}
+        fdtype value=fd_apply(pred,1,&f); int retval=-1;
+        if (FD_EMPTY_CHOICEP(value)) return 0;
+        else if (fd_overlapp(value,val)) retval=1;
+        else if (datalevel) retval=0;
+        else if ((FD_HASHTABLEP(val))||(FD_HASHSETP(val))||(FD_APPLICABLEP(val))||
+                 ((FD_PAIRP(val))&&(FD_APPLICABLEP(FD_CAR(val)))))
+          retval=test_selector_predicate(value,val,datalevel);
+        else retval=0;
+        fd_decref(value);
+        return retval;}
       else if (fcn->min_arity==2) {
-	  rail[0]=f; rail[1]=val; result=fd_apply(pred,2,rail);}
+          rail[0]=f; rail[1]=val; result=fd_apply(pred,2,rail);}
       else result=fd_err(fd_TypeError,"test_selector_relation","invalid relation",pred);}
     else result=fd_err(fd_TypeError,"test_selector_relation","invalid relation",pred);
     if (FD_ABORTP(result))
@@ -1461,14 +1461,14 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel
     int retval=0;
     FD_DO_CHOICES(t,test) {
       if ((retval=test_selector_predicate(candidate,t,datalevel))) {
-	{FD_STOP_DO_CHOICES;}
-	return retval;}}
+        {FD_STOP_DO_CHOICES;}
+        return retval;}}
     return retval;}
   else if ((FD_OIDP(candidate)) && ((FD_SYMBOLP(test)) || (FD_OIDP(test))))
     if (datalevel)
       return fd_test(candidate,test,FD_VOID);
     else return fd_frame_test(candidate,test,FD_VOID);
-  else if (FD_PTR_TYPEP(test,fd_hashset_type)) 
+  else if (FD_PTR_TYPEP(test,fd_hashset_type))
     if (fd_hashset_get((fd_hashset)test,candidate))
       return 1;
     else return 0;
@@ -1485,7 +1485,7 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel
     argv[0]=candidate;
     if (FD_PAIRP(args))
       while (FD_PAIRP(args)) {
-	argv[j++]=FD_CAR(args); args=FD_CDR(args);}
+        argv[j++]=FD_CAR(args); args=FD_CDR(args);}
     else argv[j++]=args;
     if (j>7) newval=fd_err(fd_RangeError,"test_selector_relation","too many elements in test condition",FD_VOID);
     else newval=fd_apply(j,fcn,argv);
@@ -1530,7 +1530,7 @@ FD_FASTOP int test_selector_clauses(fdtype candidate,int n,fdtype *args,int data
       else return 0;}
     return 1;}
 }
-  
+
 /* PICK etc */
 
 static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
@@ -1547,15 +1547,15 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
       fdtype candidate=*read++;
       int retval=test_selector_clauses(candidate,n,tests,datalevel);
       if (retval<0) {
-	const fdtype *scan=FD_XCHOICE_DATA(write_choice), *limit=scan+n_results;
-	while (scan<limit) {fdtype v=*scan++; fd_decref(v);}
-	u8_free(write_choice);
-	return FD_ERROR_VALUE;}
+        const fdtype *scan=FD_XCHOICE_DATA(write_choice), *limit=scan+n_results;
+        while (scan<limit) {fdtype v=*scan++; fd_decref(v);}
+        u8_free(write_choice);
+        return FD_ERROR_VALUE;}
       else if (retval) {
-	*write++=candidate; n_results++;
-	if (FD_CONSP(candidate)) {
-	  atomic_results=0;
-	  fd_incref(candidate);}}}
+        *write++=candidate; n_results++;
+        if (FD_CONSP(candidate)) {
+          atomic_results=0;
+          fd_incref(candidate);}}}
     if (n_results==0) {
       u8_free(write_choice);
       return FD_EMPTY_CHOICE;}
@@ -1566,11 +1566,11 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
       return result;}
     else if (n_results*2<n_elts)
       return fd_init_choice
-	(fd_realloc_choice(write_choice,n_results),n_results,NULL,
-	 ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));
+        (fd_realloc_choice(write_choice,n_results),n_results,NULL,
+         ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));
     else return fd_init_choice
-	   (write_choice,n_results,NULL,
-	    ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}
+           (write_choice,n_results,NULL,
+            ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}
   else if (FD_EMPTY_CHOICEP(candidates))
     return FD_EMPTY_CHOICE;
   else if (n==1)
@@ -1583,7 +1583,7 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
     else return fd_incref(candidates);
   else return FD_EMPTY_CHOICE;
 }
-  
+
 static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 {
   if (hs->n_keys==0) {
@@ -1597,15 +1597,15 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
     FD_DO_CHOICES(c,candidates) {
       int hash=fd_hash_lisp(c), probe=hash%n_slots, n_probes=0, found=0;
       while (n_probes<512) {
-	fdtype pv=slots[probe];
-	if (FD_NULLP(pv)) break;
-	else if (FDTYPE_EQUAL(c,pv)) {found=1; break;}
-	else {
-	  probe++; n_probes++;
-	  if (probe>=n_slots) probe=0;}}
+        fdtype pv=slots[probe];
+        if (FD_NULLP(pv)) break;
+        else if (FDTYPE_EQUAL(c,pv)) {found=1; break;}
+        else {
+          probe++; n_probes++;
+          if (probe>=n_slots) probe=0;}}
       if (((found)&&(pick))||((!(found))&&((!pick)))) {
-	if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
-	*write++=c; fd_incref(c);}}
+        if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
+        *write++=c; fd_incref(c);}}
     u8_unlock_mutex(&(hs->lock));
     fd_decref(simple);
     if (write==keep) {
@@ -1614,9 +1614,9 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
       fdtype v=keep[0]; u8_free(keep);
       return v;}
     else return fd_init_choice
-	   (NULL,write-keep,keep,
-	    ((isatomic)?(FD_CHOICE_ISATOMIC):(0))|
-	    (FD_CHOICE_FREEDATA));}
+           (NULL,write-keep,keep,
+            ((isatomic)?(FD_CHOICE_ISATOMIC):(0))|
+            (FD_CHOICE_FREEDATA));}
 }
 #define hashset_pick(c,h) (hashset_filter(c,(fd_hashset)h,1))
 #define hashset_reject(c,h) (hashset_filter(c,(fd_hashset)h,0))
@@ -1633,23 +1633,23 @@ static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
     if (ht->uselock) {fd_read_lock_struct(ht); unlock=1;}
     {struct FD_HASHENTRY **slots=ht->slots; int n_slots=ht->n_slots;
       FD_DO_CHOICES(c,candidates) {
-	struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);
-	fdtype rv=((result)?(result->value):(FD_VOID));
-	if ((FD_VOIDP(rv))||(FD_EMPTY_CHOICEP(rv))) result=NULL;
-	if (((result)&&(pick))||((result==NULL)&&(!(pick)))) {
-	  if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
-	  *write++=c; fd_incref(c);}}
+        struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);
+        fdtype rv=((result)?(result->value):(FD_VOID));
+        if ((FD_VOIDP(rv))||(FD_EMPTY_CHOICEP(rv))) result=NULL;
+        if (((result)&&(pick))||((result==NULL)&&(!(pick)))) {
+          if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
+          *write++=c; fd_incref(c);}}
       if (unlock) fd_rw_unlock(&(ht->rwlock));
       fd_decref(simple);
       if (write==keep) {
-	u8_free(keep); return FD_EMPTY_CHOICE;}
+        u8_free(keep); return FD_EMPTY_CHOICE;}
       else if ((write-keep)==1) {
-	fdtype v=keep[0]; u8_free(keep);
-	return v;}
+        fdtype v=keep[0]; u8_free(keep);
+        return v;}
       else return fd_init_choice
-	     (NULL,write-keep,keep,
-	      ((isatomic)?(FD_CHOICE_ISATOMIC):(0))|
-	      (FD_CHOICE_FREEDATA));}}
+             (NULL,write-keep,keep,
+              ((isatomic)?(FD_CHOICE_ISATOMIC):(0))|
+              (FD_CHOICE_FREEDATA));}}
 }
 #define hashtable_pick(c,h) (hashtable_filter(c,(fd_hashtable)h,1))
 #define hashtable_reject(c,h) (hashtable_filter(c,(fd_hashtable)h,0))
@@ -1663,8 +1663,8 @@ static fdtype pick_lexpr(int n,fdtype *args)
   else if ((n<=4)||(n%2))
     return pick_helper(args[0],n-1,args+1,0);
   else return fd_err
-	 (fd_TooManyArgs,"pick_lexpr",
-	  "PICK requires two or 2n+1 arguments",FD_VOID);
+         (fd_TooManyArgs,"pick_lexpr",
+          "PICK requires two or 2n+1 arguments",FD_VOID);
 }
 
 static fdtype prefer_lexpr(int n,fdtype *args)
@@ -1685,7 +1685,7 @@ static fdtype prefer_lexpr(int n,fdtype *args)
       return fd_incref(args[0]);
     else return results;}
   else return fd_err(fd_TooManyArgs,"prefer_lexpr",
-		     "PICK PREFER two or 2n+1 arguments",FD_VOID);
+                     "PICK PREFER two or 2n+1 arguments",FD_VOID);
 }
 
 static fdtype prim_pick_lexpr(int n,fdtype *args)
@@ -1697,7 +1697,7 @@ static fdtype prim_pick_lexpr(int n,fdtype *args)
   else if ((n<=4)||(n%2))
     return pick_helper(args[0],n-1,args+1,1);
   else return fd_err(fd_TooManyArgs,"prim_pick_lexpr",
-		     "%PICK requires two or 2n+1 arguments",FD_VOID);
+                     "%PICK requires two or 2n+1 arguments",FD_VOID);
 }
 
 static fdtype prim_prefer_lexpr(int n,fdtype *args)
@@ -1708,7 +1708,7 @@ static fdtype prim_prefer_lexpr(int n,fdtype *args)
       return fd_incref(args[0]);
     else return results;}
   else return fd_err(fd_TooManyArgs,"prim_prefer_lexpr",
-		     "%PICK requires two or 2n+1 arguments",FD_VOID);
+                     "%PICK requires two or 2n+1 arguments",FD_VOID);
 }
 
 /* REJECT etc */
@@ -1727,15 +1727,15 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
       fdtype candidate=*read++;
       int retval=test_selector_clauses(candidate,n,tests,datalevel);
       if (retval<0) {
-	const fdtype *scan=FD_XCHOICE_DATA(write_choice), *limit=scan+n_results;
-	while (scan<limit) {fdtype v=*scan++; fd_decref(v);}
-	u8_free(write_choice);
-	return FD_ERROR_VALUE;}
+        const fdtype *scan=FD_XCHOICE_DATA(write_choice), *limit=scan+n_results;
+        while (scan<limit) {fdtype v=*scan++; fd_decref(v);}
+        u8_free(write_choice);
+        return FD_ERROR_VALUE;}
       else if (retval==0) {
-	*write++=candidate; n_results++;
-	if (FD_CONSP(candidate)) {
-	  atomic_results=0;
-	  fd_incref(candidate);}}}
+        *write++=candidate; n_results++;
+        if (FD_CONSP(candidate)) {
+          atomic_results=0;
+          fd_incref(candidate);}}}
     if (n_results==0) {
       u8_free(write_choice);
       return FD_EMPTY_CHOICE;}
@@ -1746,11 +1746,11 @@ static fdtype reject_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
       return result;}
     else if (n_results*2<n_elts)
       return fd_init_choice
-	(fd_realloc_choice(write_choice,n_results),n_results,NULL,
-	 ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));
+        (fd_realloc_choice(write_choice,n_results),n_results,NULL,
+         ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));
     else return fd_init_choice
-	   (write_choice,n_results,NULL,
-	    ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}
+           (write_choice,n_results,NULL,
+            ((atomic_results)?(FD_CHOICE_ISATOMIC):(FD_CHOICE_ISCONSES)));}
   else if (FD_EMPTY_CHOICEP(candidates))
     return FD_EMPTY_CHOICE;
   else if (n==1)
@@ -1770,10 +1770,10 @@ static fdtype reject_lexpr(int n,fdtype *args)
     return hashtable_reject(args[0],args[1]);
   else if ((n==2)&&(FD_HASHSETP(args[1])))
     return hashset_reject(args[0],args[1]);
-  else if ((n<=4)||(n%2)) 
+  else if ((n<=4)||(n%2))
     return reject_helper(args[0],n-1,args+1,0);
   else return fd_err(fd_TooManyArgs,"reject_lexpr",
-		     "REJECT requires two or 2n+1 arguments",FD_VOID);
+                     "REJECT requires two or 2n+1 arguments",FD_VOID);
 }
 
 static fdtype avoid_lexpr(int n,fdtype *args)
@@ -1794,7 +1794,7 @@ static fdtype avoid_lexpr(int n,fdtype *args)
       return fd_incref(args[0]);
     else return values;}
   else return fd_err(fd_TooManyArgs,"avoid_lexpr",
-		     "AVOID requires two or 2n+1 arguments",FD_VOID);
+                     "AVOID requires two or 2n+1 arguments",FD_VOID);
 }
 
 static fdtype prim_reject_lexpr(int n,fdtype *args)
@@ -1803,10 +1803,10 @@ static fdtype prim_reject_lexpr(int n,fdtype *args)
     return hashtable_reject(args[0],args[1]);
   else if ((n==2)&&(FD_HASHSETP(args[1])))
     return hashset_reject(args[0],args[1]);
-  else if ((n<=4)||(n%2)) 
+  else if ((n<=4)||(n%2))
     return reject_helper(args[0],n-1,args+1,1);
   else return fd_err(fd_TooManyArgs,"prim_reject_lexpr",
-		     "%REJECT requires two or 2n+1 arguments",FD_VOID);
+                     "%REJECT requires two or 2n+1 arguments",FD_VOID);
 }
 
 static fdtype prim_avoid_lexpr(int n,fdtype *args)
@@ -1827,7 +1827,7 @@ static fdtype prim_avoid_lexpr(int n,fdtype *args)
       return fd_incref(args[0]);
     else return values;}
   else return fd_err(fd_TooManyArgs,"prim_avoid_lexpr",
-		     "%AVOID requires two or 2n+1 arguments",FD_VOID);
+                     "%AVOID requires two or 2n+1 arguments",FD_VOID);
 }
 
 /* Kleene* operations */
@@ -1885,18 +1885,18 @@ static fdtype frame_create_lexpr(int n,fdtype *args)
   else if (n==2) return fd_new_frame(args[0],args[1],1);
   else if (n%2) {
     if ((FD_SLOTMAPP(args[0]))||(FD_SCHEMAPP(args[0]))||
-	(FD_OIDP(args[0]))) 
+        (FD_OIDP(args[0])))
       result=fd_deep_copy(args[0]);
     else result=fd_new_frame(args[0],FD_VOID,0);}
   else result=fd_new_frame(FD_TRUE,FD_VOID,0);
   if (FD_OIDP(result))
     while (i<n) {
       FD_DO_CHOICES(slotid,args[i])
-	fd_frame_add(result,slotid,args[i+1]);
+        fd_frame_add(result,slotid,args[i+1]);
       i=i+2;}
   else while (i<n) {
       FD_DO_CHOICES(slotid,args[i])
-	fd_add(result,slotid,args[i+1]);
+        fd_add(result,slotid,args[i+1]);
       i=i+2;}
   return result;
 }
@@ -1918,40 +1918,40 @@ static fdtype seq2frame_prim
       fdtype oid, slotmap;
       fd_pool p=arg2pool(poolspec);
       if (p==NULL)
-	return fd_type_error(_("pool spec"),"seq2frame_prim",poolspec);
+        return fd_type_error(_("pool spec"),"seq2frame_prim",poolspec);
       oid=fd_pool_alloc(p,1);
       if (FD_ABORTP(oid)) return oid;
       slotmap=fd_empty_slotmap();
       if (fd_set_oid_value(oid,slotmap)<0) {
-	fd_decref(slotmap);
-	return FD_ERROR_VALUE;}
+        fd_decref(slotmap);
+        return FD_ERROR_VALUE;}
       else {
-	fd_decref(slotmap); frame=oid;}}
+        fd_decref(slotmap); frame=oid;}}
     while ((i<slen) && (i<vlen)) {
       fdtype slotid=fd_seq_elt(schema,i);
       fdtype value=fd_seq_elt(values,i);
       int retval;
       if (FD_OIDP(frame))
-	retval=fd_frame_add(frame,slotid,value);
+        retval=fd_frame_add(frame,slotid,value);
       else retval=fd_add(frame,slotid,value);
       if (retval<0) {
-	fd_decref(slotid); fd_decref(value);
-	if (FD_FALSEP(poolspec)) fd_decref(frame);
-	return FD_ERROR_VALUE;}
+        fd_decref(slotid); fd_decref(value);
+        if (FD_FALSEP(poolspec)) fd_decref(frame);
+        return FD_ERROR_VALUE;}
       fd_decref(slotid); fd_decref(value);
       i++;}
     if (!(FD_VOIDP(dflt)))
       while (i<slen) {
-	fdtype slotid=fd_seq_elt(schema,i);
-	int retval;
-	if (FD_OIDP(frame))
-	  retval=fd_frame_add(frame,slotid,dflt);
-	else retval=fd_add(frame,slotid,dflt);
-	if (retval<0) {
-	  fd_decref(slotid);
-	  if (FD_FALSEP(poolspec)) fd_decref(frame);
-	  return FD_ERROR_VALUE;}
-	fd_decref(slotid); i++;}
+        fdtype slotid=fd_seq_elt(schema,i);
+        int retval;
+        if (FD_OIDP(frame))
+          retval=fd_frame_add(frame,slotid,dflt);
+        else retval=fd_add(frame,slotid,dflt);
+        if (retval<0) {
+          fd_decref(slotid);
+          if (FD_FALSEP(poolspec)) fd_decref(frame);
+          return FD_ERROR_VALUE;}
+        fd_decref(slotid); i++;}
     return frame;}
 }
 
@@ -1978,24 +1978,24 @@ static fdtype modify_frame_lexpr(int n,fdtype *args)
   else {
     FD_DO_CHOICES(frame,args[0]) {
       int i=1; while (i<n) {
-	FD_DO_CHOICES(slotid,args[i])
-	  if (FD_PAIRP(slotid))
-	    if ((FD_PAIRP(FD_CDR(slotid))) &&
-		((FD_OIDP(FD_CAR(slotid))) || (FD_SYMBOLP(FD_CAR(slotid)))) &&
-		(FD_EQ(FD_CADR(slotid),drop_symbol))) 
-	      if (doretract(frame,FD_CAR(slotid),args[i+1])<0) {
-		FD_STOP_DO_CHOICES;
-		return FD_ERROR_VALUE;}
-	      else {}
-	    else {
-	      u8_log(LOG_WARN,fd_TypeError,"frame_modify_lexpr","slotid");}
-	  else if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))
-	    if (doassert(frame,slotid,args[i+1])<0) {
-	      FD_STOP_DO_CHOICES;
-	      return FD_ERROR_VALUE;}
-	    else {}
-	  else u8_log(LOG_WARN,fd_TypeError,"frame_modify_lexpr","slotid");
-	i=i+2;}}
+        FD_DO_CHOICES(slotid,args[i])
+          if (FD_PAIRP(slotid))
+            if ((FD_PAIRP(FD_CDR(slotid))) &&
+                ((FD_OIDP(FD_CAR(slotid))) || (FD_SYMBOLP(FD_CAR(slotid)))) &&
+                (FD_EQ(FD_CADR(slotid),drop_symbol)))
+              if (doretract(frame,FD_CAR(slotid),args[i+1])<0) {
+                FD_STOP_DO_CHOICES;
+                return FD_ERROR_VALUE;}
+              else {}
+            else {
+              u8_log(LOG_WARN,fd_TypeError,"frame_modify_lexpr","slotid");}
+          else if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))
+            if (doassert(frame,slotid,args[i+1])<0) {
+              FD_STOP_DO_CHOICES;
+              return FD_ERROR_VALUE;}
+            else {}
+          else u8_log(LOG_WARN,fd_TypeError,"frame_modify_lexpr","slotid");
+        i=i+2;}}
     return fd_incref(args[0]);}
 }
 
@@ -2035,8 +2035,8 @@ static fdtype oid_offset_prim(fdtype oidarg,fdtype against)
 static fdtype oid_ptrdata_prim(fdtype oid)
 {
   return fd_init_pair(NULL,
-		      FD_INT2DTYPE(FD_OID_BASE_ID(oid)),
-		      FD_INT2DTYPE(FD_OID_BASE_OFFSET(oid)));
+                      FD_INT2DTYPE(FD_OID_BASE_ID(oid)),
+                      FD_INT2DTYPE(FD_OID_BASE_OFFSET(oid)));
 }
 #endif
 
@@ -2064,12 +2064,12 @@ static fdtype make_oid_prim(fdtype high,fdtype low)
       off=FD_FIX2INT(low);
     else if (FD_BIGINTP(low)) {
       if ((off=fd_bigint2uint((struct FD_BIGINT *)low))==0)
-	return fd_type_error("uint32","make_oid_prim",low);}
+        return fd_type_error("uint32","make_oid_prim",low);}
     else return fd_type_error("uint32","make_oid_prim",low);
     oid=FD_OID_PLUS(base,off);
     return fd_make_oid(oid);}
   else {
-    unsigned int hi, lo; 
+    unsigned int hi, lo;
 #if FD_STRUCT_OIDS
     FD_OID addr; memset(&addr,0,sizeof(FD_OID));
 #else
@@ -2078,7 +2078,7 @@ static fdtype make_oid_prim(fdtype high,fdtype low)
     FD_SET_OID_HI(addr,0); FD_SET_OID_LO(addr,0);
     if (FD_FIXNUMP(high))
       if ((FD_FIX2INT(high))<0)
-	return fd_type_error("uint32","make_oid_prim",high);
+        return fd_type_error("uint32","make_oid_prim",high);
       else hi=FD_FIX2INT(high);
     else if (FD_BIGINTP(high)) {
       hi=fd_bigint2uint((struct FD_BIGINT *)high);
@@ -2086,7 +2086,7 @@ static fdtype make_oid_prim(fdtype high,fdtype low)
     else return fd_type_error("uint32","make_oid_prim",high);
     if (FD_FIXNUMP(low))
       if ((FD_FIX2INT(low))<0)
-	return fd_type_error("uint32","make_oid_prim",low);
+        return fd_type_error("uint32","make_oid_prim",low);
       else lo=FD_FIX2INT(low);
     else if (FD_BIGINTP(low)) {
       lo=fd_bigint2uint((struct FD_BIGINT *)low);
@@ -2105,10 +2105,10 @@ static fdtype oid2string_prim(fdtype oid,fdtype name)
   if (FD_VOIDP(name))
     u8_printf(&out,"@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));
   else if ((FD_STRINGP(name)) || (FD_CHOICEP(name)) ||
-	   (FD_PAIRP(name)) || (FD_VECTORP(name)))
+           (FD_PAIRP(name)) || (FD_VECTORP(name)))
     u8_printf(&out,"@%x/%x%q",FD_OID_HI(addr),FD_OID_LO(addr),name);
   else u8_printf(&out,"@%x/%x{%q}",FD_OID_HI(addr),FD_OID_LO(addr),name);
-  
+
   return fd_stream2string(&out);
 }
 
@@ -2135,18 +2135,18 @@ static fdtype sumframe_prim(fdtype frames,fdtype slotids)
     FD_DO_CHOICES(slotid,slotids) {
       fdtype value=fd_get(frame,slotid,FD_EMPTY_CHOICE);
       if (FD_ABORTP(value)) {
-	fd_decref(results); return value;}
+        fd_decref(results); return value;}
       else if (fd_add(slotmap,slotid,value)<0) {
-	fd_decref(results); fd_decref(value);
-	return FD_ERROR_VALUE;}
+        fd_decref(results); fd_decref(value);
+        return FD_ERROR_VALUE;}
       fd_decref(value);}
     if (FD_OIDP(frame)) {
       FD_OID addr=FD_OID_ADDR(frame);
       u8_string s=u8_mkstring("@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));
       fdtype idstring=fd_lispstring(s);
       if (fd_add(slotmap,id_symbol,idstring)<0) {
-	fd_decref(results); fd_decref(idstring);
-	return FD_ERROR_VALUE;}
+        fd_decref(results); fd_decref(idstring);
+        return FD_ERROR_VALUE;}
       else fd_decref(idstring);}
     FD_ADD_TO_CHOICE(results,slotmap);}
   return results;
@@ -2163,8 +2163,8 @@ static fdtype applyfn(fdtype fn,fdtype node)
     FD_DO_CHOICES(f,fn) {
       fdtype v=applyfn(fn,node);
       if (FD_ABORTP(v)) {
-	fd_decref(results);
-	return v;}
+        fd_decref(results);
+        return v;}
       else {FD_ADD_TO_CHOICE(results,v);}}
     return results;}
   else if (FD_APPLICABLEP(fn))
@@ -2175,7 +2175,7 @@ static fdtype applyfn(fdtype fn,fdtype node)
 }
 
 static int walkgraph(fdtype fn,fdtype state,fdtype arcs,
-		      struct FD_HASHSET *seen,fdtype *results)
+                      struct FD_HASHSET *seen,fdtype *results)
 {
   fdtype next_state=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(node,state)
@@ -2191,9 +2191,9 @@ static int walkgraph(fdtype fn,fdtype state,fdtype arcs,
       expand=applyfn(arcs,node);
       if (FD_ABORTP(expand)) return fd_interr(expand);
       else {
-	FD_DO_CHOICES(next,expand)
-	  if (!(fd_hashset_get(seen,next))) {
-	    fd_incref(next); FD_ADD_TO_CHOICE(next_state,next);}}
+        FD_DO_CHOICES(next,expand)
+          if (!(fd_hashset_get(seen,next))) {
+            fd_incref(next); FD_ADD_TO_CHOICE(next_state,next);}}
       fd_decref(expand);}
   fd_decref(state);
   if (!(FD_EMPTY_CHOICEP(next_state)))
@@ -2209,8 +2209,8 @@ static fdtype forgraph(fdtype fcn,fdtype roots,fdtype arcs)
   else if (FD_CHOICEP(arcs)) {
     FD_DO_CHOICES(each,arcs)
       if (!((FD_OIDP(each)) || (FD_SYMBOLP(each)) ||
-	    (FD_APPLICABLEP(each)) || (FD_TABLEP(each))))
-	return fd_type_error("mapfn","mapgraph",each);}
+            (FD_APPLICABLEP(each)) || (FD_TABLEP(each))))
+        return fd_type_error("mapfn","mapgraph",each);}
   else return fd_type_error("mapfn","mapgraph",arcs);
   fd_init_hashset(&hashset,1024,FD_STACK_CONS);
   fd_incref(roots);
@@ -2225,22 +2225,22 @@ static fdtype forgraph(fdtype fcn,fdtype roots,fdtype arcs)
 
 static fdtype mapgraph(fdtype fcn,fdtype roots,fdtype arcs)
 {
-  fdtype results=FD_EMPTY_CHOICE; int retval; struct FD_HASHSET hashset; 
+  fdtype results=FD_EMPTY_CHOICE; int retval; struct FD_HASHSET hashset;
   if ((FD_OIDP(fcn)) || (FD_SYMBOLP(fcn)) ||
       (FD_APPLICABLEP(fcn)) || (FD_TABLEP(fcn))) {}
   else if (FD_CHOICEP(fcn)) {
     FD_DO_CHOICES(each,fcn)
       if (!((FD_OIDP(each)) || (FD_SYMBOLP(each)) ||
-	    (FD_APPLICABLEP(each)) || (FD_TABLEP(each))))
-	return fd_type_error("mapfn","mapgraph",each);}
+            (FD_APPLICABLEP(each)) || (FD_TABLEP(each))))
+        return fd_type_error("mapfn","mapgraph",each);}
   else return fd_type_error("mapfn","mapgraph",fcn);
   if ((FD_OIDP(arcs)) || (FD_SYMBOLP(arcs)) ||
       (FD_APPLICABLEP(arcs)) || (FD_TABLEP(arcs))) {}
   else if (FD_CHOICEP(arcs)) {
     FD_DO_CHOICES(each,arcs)
       if (!((FD_OIDP(each)) || (FD_SYMBOLP(each)) ||
-	    (FD_APPLICABLEP(each)) || (FD_TABLEP(each))))
-	return fd_type_error("mapfn","mapgraph",each);}
+            (FD_APPLICABLEP(each)) || (FD_TABLEP(each))))
+        return fd_type_error("mapfn","mapgraph",each);}
   else return fd_type_error("mapfn","mapgraph",arcs);
   fd_init_hashset(&hashset,1024,FD_STACK_CONS); fd_incref(roots);
   retval=walkgraph(fcn,roots,arcs,&hashset,&results);
@@ -2261,12 +2261,12 @@ static fdtype dbloadedp(fdtype arg1,fdtype arg2)
     if (FD_OIDP(arg1)) {
       fd_pool p=fd_oid2pool(arg1);
       if (fd_hashtable_probe(&(p->locks),arg1)) {
-	fdtype v=fd_hashtable_probe(&(p->locks),arg1);
-	if ((v!=FD_VOID) || (v!=FD_LOCKHOLDER)) {
-	  fd_decref(v); return FD_TRUE;}
-	else return FD_FALSE;}
+        fdtype v=fd_hashtable_probe(&(p->locks),arg1);
+        if ((v!=FD_VOID) || (v!=FD_LOCKHOLDER)) {
+          fd_decref(v); return FD_TRUE;}
+        else return FD_FALSE;}
       else if (fd_hashtable_probe(&(p->cache),arg1))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;}
     else if (fd_hashtable_probe(&(fd_background->cache),arg1))
       return FD_TRUE;
@@ -2282,21 +2282,21 @@ static fdtype dbloadedp(fdtype arg1,fdtype arg2)
     if (FD_OIDP(arg1)) {
       fd_pool p=fd_lisp2pool(arg2);
       if (p==NULL)
-	return fd_type_error("pool","loadedp",arg2);
+        return fd_type_error("pool","loadedp",arg2);
       if (fd_hashtable_probe(&(p->locks),arg1)) {
-	fdtype v=fd_hashtable_probe(&(p->locks),arg1);
-	if ((v!=FD_VOID) || (v!=FD_LOCKHOLDER)) {
-	  fd_decref(v); return FD_TRUE;}
-	else return FD_FALSE;}
+        fdtype v=fd_hashtable_probe(&(p->locks),arg1);
+        if ((v!=FD_VOID) || (v!=FD_LOCKHOLDER)) {
+          fd_decref(v); return FD_TRUE;}
+        else return FD_FALSE;}
       else if (fd_hashtable_probe(&(p->cache),arg1))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;}
     else return FD_FALSE;
   else if ((FD_STRINGP(arg2)) && (FD_OIDP(arg1))) {
     fd_pool p=fd_lisp2pool(arg2); fd_index ix;
-    if (p) 
+    if (p)
       if (fd_hashtable_probe(&(p->cache),arg1))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;
     else ix=fd_indexptr(arg2);
     if (ix==NULL)
@@ -2312,7 +2312,7 @@ static int oidmodifiedp(fd_pool p,fdtype oid)
   if (fd_hashtable_probe(&(p->locks),oid)) {
     fdtype v=fd_hashtable_get(&(p->locks),oid,FD_VOID);
     int modified=1;
-    if ((FD_VOIDP(v)) || (v==FD_LOCKHOLDER)) 
+    if ((FD_VOIDP(v)) || (v==FD_LOCKHOLDER))
       modified=0;
     else if (FD_SLOTMAPP(v))
       if (FD_SLOTMAP_MODIFIEDP(v)) {}
@@ -2333,10 +2333,10 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
     if (FD_OIDP(arg1)) {
       fd_pool p=fd_oid2pool(arg1);
       if (oidmodifiedp(p,arg1))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;}
     else if ((fd_hashtable_probe(&(fd_background->adds),arg1)) ||
-	     (fd_hashtable_probe(&(fd_background->edits),arg1)))
+             (fd_hashtable_probe(&(fd_background->edits),arg1)))
       return FD_TRUE;
     else return FD_FALSE;
   else if ((FD_INDEXP(arg2))||(FD_PRIM_TYPEP(arg2,fd_raw_index_type))) {
@@ -2344,29 +2344,29 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
     if (ix==NULL)
       return fd_type_error("index","loadedp",arg2);
     else if ((fd_hashtable_probe(&(ix->adds),arg1)) ||
-	     (fd_hashtable_probe(&(ix->edits),arg1)))
+             (fd_hashtable_probe(&(ix->edits),arg1)))
       return FD_TRUE;
     else return FD_FALSE;}
   else if (FD_POOLP(arg2))
     if (FD_OIDP(arg1)) {
       fd_pool p=fd_lisp2pool(arg2);
       if (p==NULL)
-	return fd_type_error("pool","loadedp",arg2);
+        return fd_type_error("pool","loadedp",arg2);
       else if (oidmodifiedp(p,arg1))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;}
     else return FD_FALSE;
   else if ((FD_STRINGP(arg2)) && (FD_OIDP(arg1))) {
     fd_pool p=fd_lisp2pool(arg2); fd_index ix;
-    if (p) 
+    if (p)
       if (oidmodifiedp(p,arg1))
-	return FD_TRUE;
+        return FD_TRUE;
       else return FD_FALSE;
     else ix=fd_indexptr(arg2);
     if (ix==NULL)
       return fd_type_error("pool/index","loadedp",arg2);
     else if ((fd_hashtable_probe(&(ix->adds),arg1)) ||
-	     (fd_hashtable_probe(&(ix->edits),arg1)))
+             (fd_hashtable_probe(&(ix->edits),arg1)))
       return FD_TRUE;
     else return FD_FALSE;}
   else return fd_type_error("pool/index","loadedp",arg2);
@@ -2448,17 +2448,17 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("TEST",fd_ftest,2)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprimn("TESTP",testp,3)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("ASSERT!",fd_fassert,3)));
+           fd_make_ndprim(fd_make_cprim3("ASSERT!",fd_fassert,3)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("RETRACT!",fd_fretract,2)));
+           fd_make_ndprim(fd_make_cprim3("RETRACT!",fd_fretract,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("GETSLOTS",fd_getkeys,1)));
+           fd_make_ndprim(fd_make_cprim1("GETSLOTS",fd_getkeys,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("SUMFRAME",sumframe_prim,2)));
+           fd_make_ndprim(fd_make_cprim2("SUMFRAME",sumframe_prim,2)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("GETPATH",getpath_prim,1)));
+           fd_make_ndprim(fd_make_cprimn("GETPATH",getpath_prim,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("GETPATH*",getpathstar_prim,1)));
+           fd_make_ndprim(fd_make_cprimn("GETPATH*",getpathstar_prim,1)));
 
   fd_defspecial(fd_scheme_module,"CACHEGET",cacheget_handler);
 
@@ -2469,12 +2469,12 @@ FD_EXPORT void fd_init_dbfns_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("OV/INDEX-GET",overlay_index_get,2));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3("OV/INDEX-ADD!",overlay_index_add,3));
+           fd_make_cprim3("OV/INDEX-ADD!",overlay_index_add,3));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3("OV/INDEX-DROP!",overlay_index_drop,3));
+           fd_make_cprim3("OV/INDEX-DROP!",overlay_index_drop,3));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3("OV/INDEX-STORE!",overlay_index_store,3));
-  
+           fd_make_cprim3("OV/INDEX-STORE!",overlay_index_store,3));
+
   fd_defspecial(fd_scheme_module,"W/O/OVERLAY",wooverlay_handler);
 
 
@@ -2482,67 +2482,67 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("PATH?",pathp,3)));
   fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim3("INHERIT",inherit_prim,3)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("GET-BASIS",getbasis,2)));
+           fd_make_ndprim(fd_make_cprim2("GET-BASIS",getbasis,2)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("OID-VALUE",oidvalue,1,fd_oid_type,FD_VOID));
+           fd_make_cprim1x("OID-VALUE",oidvalue,1,fd_oid_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("SET-OID-VALUE!",setoidvalue,2,
-			   fd_oid_type,FD_VOID,-1,FD_VOID,
-			   -1,FD_FALSE));
+           fd_make_cprim3x("SET-OID-VALUE!",setoidvalue,2,
+                           fd_oid_type,FD_VOID,-1,FD_VOID,
+                           -1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("LOCK-OID!",lockoid,2,
-			   fd_oid_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("LOCK-OID!",lockoid,2,
+                           fd_oid_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("LOCK-OIDS!",lockoids,1)));
+           fd_make_ndprim(fd_make_cprim1("LOCK-OIDS!",lockoids,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("UNLOCK-OIDS!",unlockoids,0)));
+           fd_make_ndprim(fd_make_cprim2("UNLOCK-OIDS!",unlockoids,0)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL?",poolp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX?",indexp,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2("SET-CACHE-LEVEL!",set_cache_level,2));
+           fd_make_cprim2("SET-CACHE-LEVEL!",set_cache_level,2));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("NAME->POOL",getpool,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("GETPOOL",getpool,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2x("POOL-LABEL",pool_label,1,
-					    -1,FD_VOID,-1,FD_FALSE));
+                                            -1,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-SOURCE",pool_source,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-BASE",pool_base,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-CAPACITY",pool_capacity,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-LOAD",pool_load,1));
   fd_idefn(fd_scheme_module,fd_make_cprim3("POOL-ELTS",pool_elts,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2("SET-POOL-NAMEFN!",set_pool_namefn,2));
+           fd_make_cprim2("SET-POOL-NAMEFN!",set_pool_namefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-PREFIX",pool_prefix,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2x
            ("SET-POOL-PREFIX!",set_pool_prefix,2,
             -1,FD_VOID,fd_string_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("OID-RANGE",oid_range,2,
-			   fd_oid_type,FD_VOID,fd_fixnum_type,FD_VOID));
+           fd_make_cprim2x("OID-RANGE",oid_range,2,
+                           fd_oid_type,FD_VOID,fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("OID-VECTOR",oid_vector,2,
-			   fd_oid_type,FD_VOID,fd_fixnum_type,FD_VOID));
+           fd_make_cprim2x("OID-VECTOR",oid_vector,2,
+                           fd_oid_type,FD_VOID,fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("RANDOM-OID",random_oid,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-VECTOR",pool_vec,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("OID-HI",oidhi,1,fd_oid_type,FD_VOID));
+           fd_make_cprim1x("OID-HI",oidhi,1,fd_oid_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("OID-LO",oidlo,1,fd_oid_type,FD_VOID));
+           fd_make_cprim1x("OID-LO",oidlo,1,fd_oid_type,FD_VOID));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("OID?",oidp,1));
   fd_idefn(fd_xscheme_module,
-	   fd_make_cprim1x("OID-POOL",oidpool,1,fd_oid_type,FD_VOID));
+           fd_make_cprim1x("OID-POOL",oidpool,1,fd_oid_type,FD_VOID));
   fd_idefn(fd_xscheme_module,
-	   fd_make_cprim2x("IN-POOL?",inpoolp,2,
-			   fd_oid_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("IN-POOL?",inpoolp,2,
+                           fd_oid_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_xscheme_module,
-	   fd_make_cprim2x("VALID-OID?",validoidp,1,
-			   fd_oid_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("VALID-OID?",validoidp,1,
+                           fd_oid_type,FD_VOID,-1,FD_VOID));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim2("USE-POOL",use_pool,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("USE-INDEX",use_index,1));
@@ -2550,142 +2550,142 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim1("CACHECOUNT",cachecount,0));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim
-	   (fd_make_cprimn("FRAME-CREATE",frame_create_lexpr,1)));
+           fd_make_ndprim
+           (fd_make_cprimn("FRAME-CREATE",frame_create_lexpr,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn("MODIFY-FRAME",modify_frame_lexpr,3)));
+           fd_make_ndprim(fd_make_cprimn("MODIFY-FRAME",modify_frame_lexpr,3)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim4("SEQ->FRAME",seq2frame_prim,3)));
+           fd_make_ndprim(fd_make_cprim4("SEQ->FRAME",seq2frame_prim,3)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2("ALLOCATE-OIDS",allocate_oids,1));
+           fd_make_cprim2("ALLOCATE-OIDS",allocate_oids,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("OID-PLUS",oid_plus_prim,1,
-			   fd_oid_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(1)));
+           fd_make_cprim2x("OID-PLUS",oid_plus_prim,1,
+                           fd_oid_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("OID-OFFSET",oid_offset_prim,1,
-			   fd_oid_type,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim2x("OID-OFFSET",oid_offset_prim,1,
+                           fd_oid_type,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim2("MAKE-OID",make_oid_prim,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("OID->STRING",oid2string_prim,1,
-			   fd_oid_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("OID->STRING",oid2string_prim,1,
+                           fd_oid_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("OID-ADDR",oidaddr_prim,1,
-			   fd_oid_type,FD_VOID));
+           fd_make_cprim1x("OID-ADDR",oidaddr_prim,1,
+                           fd_oid_type,FD_VOID));
 #ifdef FD_OID_BASE_ID
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("OID-PTRDATA",oid_ptrdata_prim,1,
-			   fd_oid_type,FD_VOID));
+           fd_make_cprim1x("OID-PTRDATA",oid_ptrdata_prim,1,
+                           fd_oid_type,FD_VOID));
 #endif
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim5x("MAKE-MEMPOOL",make_mempool,2,
-			   fd_string_type,FD_VOID,
-			   fd_oid_type,FD_VOID,
-			   fd_fixnum_type,(FD_INT2DTYPE(1024*1024)),
-			   fd_fixnum_type,(FD_INT2DTYPE(0)),
-			   -1,FD_FALSE));
+           fd_make_cprim5x("MAKE-MEMPOOL",make_mempool,2,
+                           fd_string_type,FD_VOID,
+                           fd_oid_type,FD_VOID,
+                           fd_fixnum_type,(FD_INT2DTYPE(1024*1024)),
+                           fd_fixnum_type,(FD_INT2DTYPE(0)),
+                           -1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
+           fd_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1("RESET-MEMPOOL",reset_mempool,1));
+           fd_make_cprim1("RESET-MEMPOOL",reset_mempool,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim8x("MAKE-EXTPOOL",make_extpool,4,
-			   fd_string_type,FD_VOID,
-			   fd_oid_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
-			   -1,FD_TRUE));
+           fd_make_cprim8x("MAKE-EXTPOOL",make_extpool,4,
+                           fd_string_type,FD_VOID,
+                           fd_oid_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+                           -1,FD_TRUE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("EXTPOOL-CACHE!",extpool_setcache,3,
-			   fd_pool_type,FD_VOID,fd_oid_type,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim3x("EXTPOOL-CACHE!",extpool_setcache,3,
+                           fd_pool_type,FD_VOID,fd_oid_type,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXTPOOL-FETCHFN",extpool_fetchfn,1,
-			   fd_pool_type,FD_VOID));
+           fd_make_cprim1x("EXTPOOL-FETCHFN",extpool_fetchfn,1,
+                           fd_pool_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXTPOOL-SAVEFN",extpool_savefn,1,
-			   fd_pool_type,FD_VOID));
+           fd_make_cprim1x("EXTPOOL-SAVEFN",extpool_savefn,1,
+                           fd_pool_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXTPOOL-LOCKFN",extpool_lockfn,1,
-			   fd_pool_type,FD_VOID));
+           fd_make_cprim1x("EXTPOOL-LOCKFN",extpool_lockfn,1,
+                           fd_pool_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXTPOOL-STATE",extpool_state,1,
-			   fd_pool_type,FD_VOID));
+           fd_make_cprim1x("EXTPOOL-STATE",extpool_state,1,
+                           fd_pool_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim5x("MAKE-EXTINDEX",make_extindex,2,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
-			   -1,FD_TRUE));
+           fd_make_cprim5x("MAKE-EXTINDEX",make_extindex,2,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+                           -1,FD_TRUE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim5x("CONS-EXTINDEX",cons_extindex,2,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
-			   -1,FD_TRUE));
+           fd_make_cprim5x("CONS-EXTINDEX",cons_extindex,2,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+                           -1,FD_TRUE));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("EXTINDEX-DECACHE!",extindex_decache,1,
-			   -1,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("EXTINDEX-DECACHE!",extindex_decache,1,
+                           -1,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("EXTINDEX-CACHEADD!",extindex_cacheadd,3,
-			   -1,FD_VOID,-1,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim3x("EXTINDEX-CACHEADD!",extindex_cacheadd,3,
+                           -1,FD_VOID,-1,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXTINDEX-FETCHFN",extindex_fetchfn,1,
-			   -1,FD_VOID));
+           fd_make_cprim1x("EXTINDEX-FETCHFN",extindex_fetchfn,1,
+                           -1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXTINDEX-COMMITFN",extindex_commitfn,1,
-			   -1,FD_VOID));
+           fd_make_cprim1x("EXTINDEX-COMMITFN",extindex_commitfn,1,
+                           -1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("EXTINDEX-STATE",extindex_state,1,
-			   -1,FD_VOID));
+           fd_make_cprim1x("EXTINDEX-STATE",extindex_state,1,
+                           -1,FD_VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("??",find_frames_lexpr,2)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("FIND-FRAMES",find_frames_lexpr,3)));
+           fd_make_ndprim(fd_make_cprimn("FIND-FRAMES",find_frames_lexpr,3)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("XFIND-FRAMES",xfind_frames_lexpr,3)));
+           fd_make_ndprim(fd_make_cprimn("XFIND-FRAMES",xfind_frames_lexpr,3)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprim3
-			  ("PREFETCH-SLOTVALS!",prefetch_slotvals,3)));
+           fd_make_ndprim(fd_make_cprim3
+                          ("PREFETCH-SLOTVALS!",prefetch_slotvals,3)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprimn
-			  ("FIND-FRAMES-PREFETCH!",find_frames_prefetch,2)));
+           fd_make_ndprim(fd_make_cprimn
+                          ("FIND-FRAMES-PREFETCH!",find_frames_prefetch,2)));
 
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("SWAPOUT",swapout_lexpr,0)));
+           fd_make_ndprim(fd_make_cprimn("SWAPOUT",swapout_lexpr,0)));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("COMMIT",commit_lexpr,0));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("POOL-CLOSE",pool_close_prim,1));
   fd_idefn(fd_xscheme_module,
-	   fd_make_cprim1("CLEAR-SLOTCACHE!",clear_slotcache,0));
+           fd_make_cprim1("CLEAR-SLOTCACHE!",clear_slotcache,0));
   fd_idefn(fd_xscheme_module,
-	   fd_make_cprim0("CLEARCACHES",clearcaches,0));
-  
+           fd_make_cprim0("CLEARCACHES",clearcaches,0));
+
   fd_idefn(fd_xscheme_module,fd_make_cprim0("SWAPCHECK",swapcheck_prim,0));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("PREFETCH-OIDS!",prefetch_oids,1)));
+           fd_make_ndprim(fd_make_cprim1("PREFETCH-OIDS!",prefetch_oids,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim2("PREFETCH-KEYS!",prefetch_keys,1)));
+           fd_make_ndprim(fd_make_cprim2("PREFETCH-KEYS!",prefetch_keys,1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim1("FETCHOIDS",fetchoids_prim,1)));
+           fd_make_ndprim(fd_make_cprim1("FETCHOIDS",fetchoids_prim,1)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-OIDS",cached_oids,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CACHED-KEYS",cached_keys,0));
 
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim
-	   (fd_make_cprimn("MAKE-COMPOUND-INDEX",make_compound_index,1)));
+           fd_make_ndprim
+           (fd_make_cprimn("MAKE-COMPOUND-INDEX",make_compound_index,1)));
 
   fd_idefn(fd_xscheme_module,
-	   fd_make_cprim2("ADD-TO-COMPOUND-INDEX!",add_to_compound_index,2));
+           fd_make_cprim2("ADD-TO-COMPOUND-INDEX!",add_to_compound_index,2));
 
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprim4("INDEX-FRAME",index_frame_prim,3)));
+           fd_make_ndprim(fd_make_cprim4("INDEX-FRAME",index_frame_prim,3)));
   fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-SET!",indexset,3));
   fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-ADD!",indexadd,3));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("INDEX-GET",indexget,2));
@@ -2694,31 +2694,31 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SIZES",indexsizes,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SOURCE",indexsource,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("SUGGEST-HASH-SIZE",suggest_hash_size,1,
-					    fd_fixnum_type,FD_VOID));
+                                            fd_fixnum_type,FD_VOID));
   fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-DECACHE",indexdecache,2));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("BGDECACHE",bgdecache,1));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("PICK",pick_lexpr,2)));
+           fd_make_ndprim(fd_make_cprimn("PICK",pick_lexpr,2)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("PREFER",prefer_lexpr,2)));
+           fd_make_ndprim(fd_make_cprimn("PREFER",prefer_lexpr,2)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("REJECT",reject_lexpr,2)));
+           fd_make_ndprim(fd_make_cprimn("REJECT",reject_lexpr,2)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("AVOID",avoid_lexpr,2)));
+           fd_make_ndprim(fd_make_cprimn("AVOID",avoid_lexpr,2)));
 
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("%PICK",prim_pick_lexpr,2)));
+           fd_make_ndprim(fd_make_cprimn("%PICK",prim_pick_lexpr,2)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("%PREFER",prim_prefer_lexpr,2)));
+           fd_make_ndprim(fd_make_cprimn("%PREFER",prim_prefer_lexpr,2)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("%REJECT",prim_reject_lexpr,2)));
+           fd_make_ndprim(fd_make_cprimn("%REJECT",prim_reject_lexpr,2)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprimn("%AVOID",prim_avoid_lexpr,2)));
+           fd_make_ndprim(fd_make_cprimn("%AVOID",prim_avoid_lexpr,2)));
 
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprim3("MAPGRAPH",mapgraph,3)));
+           fd_make_ndprim(fd_make_cprim3("MAPGRAPH",mapgraph,3)));
   fd_idefn(fd_xscheme_module,
-	   fd_make_ndprim(fd_make_cprim3("FORGRAPH",forgraph,3)));
+           fd_make_ndprim(fd_make_cprim3("FORGRAPH",forgraph,3)));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim3("USE-ADJUNCT",use_adjunct,1));
 

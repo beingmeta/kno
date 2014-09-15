@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -34,7 +34,7 @@ fd_exception fd_XMLParseError=_("XML parsing error");
 
 static u8_string xmlsnip(u8_string s)
 {
-  struct U8_OUTPUT out; 
+  struct U8_OUTPUT out;
   U8_INIT_OUTPUT(&out,80);
   int c=u8_sgetc(&s);
   while ((c>0)&&((out.u8_outlim-out.u8_outptr)<8)) {
@@ -190,7 +190,7 @@ void *fd_walk_markup(U8_INPUT *in,
   while (1) {
     if (readbuf(in,&buf,&bufsiz,&size,"<")==NULL) {
       data=contentfn(data,in->u8_inptr); break;}
-    else 
+    else
       data=contentfn(data,buf);
     if (data==NULL) break;
     if (readbuf(in,&buf,&bufsiz,&size,">")==NULL) {
@@ -283,7 +283,7 @@ static void ns_add(FD_XML *xml,u8_string prefix,u8_string url)
     int new_limit=((xml->limit) ? (2*xml->limit) : (4));
     xml->nsmap=u8_realloc_n(xml->nsmap,new_limit,u8_string);
     xml->limit=new_limit;}
-  xml->nsmap[xml->size++]=entry;  
+  xml->nsmap[xml->size++]=entry;
 }
 
 static u8_string ns_get(FD_XML *xml,u8_string s,u8_string *nsp)
@@ -512,7 +512,7 @@ fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int html)
   else if (*start=='?') elt_type=xmlpi;
   else if (*start=='!')
     if (strncmp(start,"!--",3)==0) elt_type=xmlcomment;
-    else if (strncmp(start,"![CDATA[",8)==0) elt_type=xmlcdata;  
+    else if (strncmp(start,"![CDATA[",8)==0) elt_type=xmlcdata;
     else elt_type=xmldoctype;
   else if (buf[len-1]=='/') elt_type=xmlempty;
   else if ((html) &&
@@ -613,7 +613,7 @@ FD_EXPORT
 FD_XML *fd_default_popfn(FD_XML *node)
 {
   if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
-  if (FD_PAIRP(node->head)) 
+  if (FD_PAIRP(node->head))
     fd_add(node->attribs,content_symbol,node->head);
   cleanup_attribs(node->attribs);
   if (((node->bits&FD_XML_NOCONTENTS)==0) ||
@@ -650,7 +650,7 @@ static void cleanup_attribs(fdtype table)
       return;}
     while (scan < limit) {
       fdtype val=scan->value;
-      if (FD_ACHOICEP(val)) 
+      if (FD_ACHOICEP(val))
         scan->value=fd_simplify_choice(val);
       scan++;}
     if (unlock) fd_rw_unlock(&sm->rwlock);}
@@ -753,7 +753,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       if (newnode != node) {
         struct FD_XML *retnode;
         retnode=popfn(newnode);
-        if (retnode!=newnode) 
+        if (retnode!=newnode)
           free_node(newnode,1);
         return retnode;}
       else {}
@@ -775,7 +775,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       struct FD_XML *retnode;
       if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
       if ((FD_EMPTY_LISTP(node->head)) &&
-          (!(node->bits&FD_XML_NOEMPTY))) 
+          (!(node->bits&FD_XML_NOEMPTY)))
         node->head=fd_init_pair(NULL,fd_init_string(NULL,0,NULL),
                                 FD_EMPTY_LIST);
       retnode=popfn(node);
@@ -787,7 +787,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
       fd_add(node->attribs,raw_name_symbol,fdtype_string(node->eltname));
       retnode=popfn(node);
-      if (retnode!=node) 
+      if (retnode!=node)
         free_node(node,1);
       return retnode;}
     else {
@@ -798,7 +798,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
         closenode=autoclose(node,elts[0],popfn);
         if (closenode) {
           struct FD_XML *retnode;
-          retnode=popfn(closenode);       
+          retnode=popfn(closenode);
           if (retnode!=closenode)
             free_node(closenode,1);
           return retnode;}}
@@ -876,7 +876,7 @@ void *fd_walk_xml(U8_INPUT *in,
     else if (type == xmlcomment) {
       u8_byte *remainder=NULL, *combined;
       int combined_len, more_data=0;
-      if (strcmp((buf+size-2),"--")) 
+      if (strcmp((buf+size-2),"--"))
         /* If the markup end isn't --, we still need to find the
            content end (plus more content) */
         remainder=u8_gets_x(NULL,0,in,"-->",&more_data);
@@ -897,7 +897,7 @@ void *fd_walk_xml(U8_INPUT *in,
     else if (type == xmlcdata) {
       u8_byte *remainder=NULL, *combined;
       int more_data=0, combined_len;
-      if (strcmp((buf+size-2),"]]")) 
+      if (strcmp((buf+size-2),"]]"))
         remainder=u8_gets_x(NULL,0,in,"]]>",&more_data);
       if (more_data) combined_len=size+more_data+4;
       else combined_len=size+2;
@@ -922,7 +922,7 @@ void *fd_walk_xml(U8_INPUT *in,
       u8_byte *scan=buf, *_elts[32], **elts=_elts;
       int n_elts;
       if ((type == xmlempty)&&(buf[size-1]=='/')) {
-        buf[size-1]='\0'; size--;} 
+        buf[size-1]='\0'; size--;}
      n_elts=fd_parse_element
         (&scan,buf+size,elts,32,((node->bits)&(FD_XML_BADATTRIB)));
       if (n_elts<0) {
@@ -1088,7 +1088,7 @@ FD_EXPORT void fd_init_xmlinput_c()
   raw_name_symbol=fd_intern("%RAWTAG");
   comment_symbol=fd_intern("%COMMENT");
   cdata_symbol=fd_intern("%CDATA");
-  
+
   attribids=fd_intern("%ATTRIBIDS");
 
   sloppy_symbol=fd_intern("SLOPPY");

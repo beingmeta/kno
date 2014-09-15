@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -32,7 +32,7 @@ enum FDOP {
 typedef struct FD_DEPENDENCY_RECORD {
   fdtype frame, slotid, value;} FD_DEPENDENCY_RECORD;
 typedef struct FD_DEPENDENCY_RECORD *fd_dependency_record;
-  
+
 
 typedef struct FD_FRAMEOP_STACK {
   enum FDOP op;
@@ -93,7 +93,7 @@ FD_EXPORT int fd_bg_prefetch(fdtype keys);
 
 FD_EXPORT int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values);
 
-FD_EXPORT 
+FD_EXPORT
 int fd_index_frame(fd_index ix,fdtype frame,fdtype slotid,fdtype values);
 
 

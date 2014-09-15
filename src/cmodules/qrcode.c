@@ -2,7 +2,7 @@
 
 /* qrencode.c
    This implements FramerD bindings to the libqrencode library.
-  
+
    Copyright (C) 2009-2013 beingmeta, inc.
 */
 
@@ -37,14 +37,14 @@ FD_EXPORT int fd_init_qrcode(void) FD_LIBINIT_FN;
 
 static int geteclevel(fdtype level_arg)
 {
-  if (FD_FIXNUMP(level_arg)) 
+  if (FD_FIXNUMP(level_arg))
     switch (FD_FIX2INT(level_arg)) {
     case 0: return QR_ECLEVEL_L;
     case 1: return QR_ECLEVEL_M;
-    case 2: return QR_ECLEVEL_Q; 
+    case 2: return QR_ECLEVEL_Q;
     case 3: return QR_ECLEVEL_H;
     default: return -1;}
-  else if (FD_SYMBOLP(level_arg)) 
+  else if (FD_SYMBOLP(level_arg))
     if (FD_EQ(level_arg,l_sym)) return QR_ECLEVEL_L;
     else if (FD_EQ(level_arg,m_sym)) return QR_ECLEVEL_M;
     else if (FD_EQ(level_arg,q_sym)) return QR_ECLEVEL_Q;
@@ -101,47 +101,47 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
     FD_INIT_BYTE_OUTPUT(&buf,2048);
     png_set_write_fn(png_ptr,(void *)&buf,packet_write_data,packet_flush_data);
     png_set_IHDR(png_ptr, info_ptr,
-		 fullwidth,fullwidth,1,
-		 PNG_COLOR_TYPE_GRAY,
-		 PNG_INTERLACE_NONE,
-		 PNG_COMPRESSION_TYPE_DEFAULT,
-		 PNG_FILTER_TYPE_DEFAULT);
+                 fullwidth,fullwidth,1,
+                 PNG_COLOR_TYPE_GRAY,
+                 PNG_INTERLACE_NONE,
+                 PNG_COMPRESSION_TYPE_DEFAULT,
+                 PNG_FILTER_TYPE_DEFAULT);
     png_write_info(png_ptr, info_ptr);
 
     /* Write top margin */
     memset(row,0xFF,rowlen);
     {int i=0; while (i<(margin*dotsize)) {
-	png_write_row(png_ptr,row); i++;}}
+        png_write_row(png_ptr,row); i++;}}
 
     /* Write the content */
     {int vscan=0;
       unsigned char *read=qrcode->data;
       while (vscan<qrheight) {
-	char *write=row+((margin*dotsize)/8); /* margin offset */
-	int bitoff=7-((margin*dotsize)%8), dotscan=0;
-	int hscan=0;
-	memset(row,0xFF,(fullwidth+7)/8);
-	while (hscan<qrwidth) {
-	  unsigned char qrdot=*read++;
-	  dotscan=0; while (dotscan<dotsize) {
-	    *write=(*write)^((qrdot&0x01)<<bitoff);
-	    bitoff--; if (bitoff<0) {write++; bitoff=7;}
-	    dotscan++;}
-	  hscan++;}
-	dotscan=0; while (dotscan<dotsize) {
-	  png_write_row(png_ptr, row); dotscan++;}
-	vscan++;}}
-	
+        char *write=row+((margin*dotsize)/8); /* margin offset */
+        int bitoff=7-((margin*dotsize)%8), dotscan=0;
+        int hscan=0;
+        memset(row,0xFF,(fullwidth+7)/8);
+        while (hscan<qrwidth) {
+          unsigned char qrdot=*read++;
+          dotscan=0; while (dotscan<dotsize) {
+            *write=(*write)^((qrdot&0x01)<<bitoff);
+            bitoff--; if (bitoff<0) {write++; bitoff=7;}
+            dotscan++;}
+          hscan++;}
+        dotscan=0; while (dotscan<dotsize) {
+          png_write_row(png_ptr, row); dotscan++;}
+        vscan++;}}
+
     /* Write bottom margin */
     memset(row,0xFF,rowlen);
     {int i=0; while (i<(margin*dotsize)) {
-	png_write_row(png_ptr,row); i++;}}
-    
+        png_write_row(png_ptr,row); i++;}}
+
     png_write_end(png_ptr, NULL);
     png_destroy_write_struct(&png_ptr, &info_ptr);
 
     u8_free(row);
-    
+
     return fd_init_packet(NULL,buf.ptr-buf.start,buf.start);}
 }
 
@@ -183,8 +183,8 @@ FD_EXPORT int fd_init_qrcode()
 
 
   fd_defn(module,
-	  fd_make_cprim2x("QRENCODE",qrencode_prim,1,
-			  fd_string_type,FD_VOID,-1,FD_VOID));
+          fd_make_cprim2x("QRENCODE",qrencode_prim,1,
+                          fd_string_type,FD_VOID,-1,FD_VOID));
   qrencode_init=1;
 
   fd_finish_module(module);

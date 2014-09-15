@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2005-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -50,7 +50,7 @@ typedef struct FD_OFSM_ARC {
 struct FD_OFSM_ENTRY {
   unsigned short n_entries; fd_arc entries;};
 struct FD_OFSM_NODE {
-  fdtype name; struct FD_OFSM_ENTRY arcs[FD_MAX_ARCS]; 
+  fdtype name; struct FD_OFSM_ENTRY arcs[FD_MAX_ARCS];
   fdtype terminal; int index;};
 
 typedef int fd_parse_state;
@@ -68,7 +68,7 @@ struct FD_PARSER_STATS {
 
 typedef struct FD_GRAMMAR {
   u8_string id;
-  int n_nodes, n_arcs; 
+  int n_nodes, n_arcs;
   fdtype grammar, arc_names, common_arcs;
   fd_index lexicon, noun_roots, verb_roots;
   int anything_tag, punctuation_tag, possessive_tag, sentence_end_tag;
@@ -86,7 +86,7 @@ typedef struct FD_PARSE_CONTEXT {
   struct FD_PARSER_STATE *states;
   fd_parse_state queue, last;
   fd_parse_state **cache;
-  int n_states, max_n_states; 
+  int n_states, max_n_states;
   int n_inputs, max_n_inputs;} *fd_parse_context;
 
 FD_EXPORT struct FD_GRAMMAR *fd_open_grammar(u8_string spec);

@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -21,21 +21,21 @@
    consisting of 4,294,967,296 (2^32) OIDs and aligned on 32 bit OID
    boundaries.  For simplicity, individual pools are defined to never
    cross superpool boundaries.
-   
+
    Many implementations of OIDs make an additional distinction of
    distinguished *buckets*.  Buckets are pools of a set size which
    simplify OID lookup and are generally aligned on binary boundaries.
    In all the current implementations which use buckets, a bucket is a
    range of 1,048,576 (2^20) OIDs which may contain or be contained in
    other pools.
-   
+
    The most common usage of the term pool is to describe a "source pool":
    a range of OIDs whose values is provided by a particular resource,
    such as a network server or disk file.  A source pool has a *base*
    (the first OID in the pool), a *load* (the number of OIDs currently
    allocated from the pool), and a *capacity* (as above, the total number
    of possible OIDs in the pool).
-   
+
    As mentioned above, many implementations work by identifying *buckets*
    within the OID address space.  In FDB, for instance, there are 1024
    buckets, each with a capacity of 1,048,576 (2^20) OIDs.  A fixed
@@ -45,7 +45,7 @@
    pools are sized to fit bucket boundaries (e.g. multiples of 2^20
    aligned at 20-bit boundaries), going from OID to pool takes linear
    time.
-   
+
    Generically, a pool is characterized by its base and capacity, a
    consecutively allocated serial number, a cache level, and a set of
    flags.  It is also characterized by four strings:
@@ -59,7 +59,7 @@
     * prefix: the string used to identify OIDs in the pool using
        the string prefix syntax, e.g. @/brico/3b94 indicating
        the OID @1/3b94 when the 'brico' pool's based is @1/0.
-   
+
    In FDB, all pools have three additional tables associated with them:
     * cache: stores values fetched for particular OIDs.
     * locks: stores values being modified for particular OIDs and locked in
@@ -69,7 +69,7 @@
        independent of their OID values.  This can improve performance
        in some cases and also allows description to be *politically*
        distributed.
-   
+
    Finally, each pool has a methods pointer (the ->handler field), which
    provides methods for operating on the pool.  All of these methods take
    a pool (the pool) as their first arguments.  If a method is NULL, the
@@ -117,7 +117,7 @@
 #define FD_POOL_BATCHABLE 2
 
 FD_EXPORT fd_exception
-  fd_CantLockOID, fd_InvalidPoolPtr, 
+  fd_CantLockOID, fd_InvalidPoolPtr,
   fd_NotAFilePool, fd_AnonymousOID, fd_UnallocatedOID,
   fd_NoFilePools, fd_NotAPool, fd_UnknownPool, fd_CorrputedPool,
   fd_BadFilePoolLabel, fd_ReadOnlyPool, fd_ExhaustedPool,
@@ -134,9 +134,9 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   FD_OID base;                                             \
   unsigned int capacity, read_only;                        \
   int serialno; int cache_level, flags;                    \
-  u8_string label, source, cid, xid, prefix;		   \
+  u8_string label, source, cid, xid, prefix;               \
   int n_adjuncts, max_adjuncts;                            \
-  struct FD_ADJUNCT *adjuncts;				   \
+  struct FD_ADJUNCT *adjuncts;                             \
   struct FD_POOL_HANDLER *handler;                         \
   fdtype oidnamefn;                                        \
   struct FD_HASHTABLE cache, locks; int n_locks
@@ -160,8 +160,8 @@ FD_EXPORT int fd_pool_serial_count;
 struct FD_POOL_HANDLER {
   u8_string name; int version, length, n_handlers;
   void (*close)(fd_pool p);
-  void (*setcache)(fd_pool p,int level);  
-  void (*setbuf)(fd_pool p,int size);  
+  void (*setcache)(fd_pool p,int level);
+  void (*setbuf)(fd_pool p,int size);
   fdtype (*alloc)(fd_pool p,int n);
   fdtype (*fetch)(fd_pool p,fdtype oid);
   fdtype *(*fetchn)(fd_pool p,int n,fdtype *oids);
@@ -190,8 +190,8 @@ struct FD_POOL_HANDLER some_handler={
 #endif
 
 FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
-			    struct FD_POOL_HANDLER *h,
-			    u8_string source,u8_string cid);
+                            struct FD_POOL_HANDLER *h,
+                            u8_string source,u8_string cid);
 FD_EXPORT void fd_set_pool_namefn(fd_pool p,fdtype namefn);
 
 FD_EXPORT int fd_for_pools(int (*fcn)(fd_pool,void *),void *data);
@@ -217,7 +217,7 @@ typedef struct FD_GLUEPOOL {
   FD_POOL_FIELDS;
   int n_subpools; struct FD_POOL **subpools;} FD_GLUEPOOL;
 typedef struct FD_GLUEPOOL *fd_gluepool;
-  
+
 FD_EXPORT fd_pool fd_find_subpool(struct FD_GLUEPOOL *gp,fdtype oid);
 
 FD_EXPORT fd_pool _fd_oid2pool(fdtype oid);
@@ -301,7 +301,7 @@ FD_FASTOP fd_pool fd_oid2pool(fdtype oid)
 }
 FD_FASTOP fdtype fd_fetch_oid(fd_pool p,fdtype oid)
 {
-  FDTC *fdtc=((FD_USE_THREADCACHE)?(fd_threadcache):(NULL)); 
+  FDTC *fdtc=((FD_USE_THREADCACHE)?(fd_threadcache):(NULL));
   fdtype value;
   if (p==NULL) p=fd_oid2pool(oid);
   if (p==NULL) {
@@ -309,16 +309,16 @@ FD_FASTOP fdtype fd_fetch_oid(fd_pool p,fdtype oid)
     else return fd_err(fd_AnonymousOID,NULL,NULL,oid);}
   if (fdtc) {
     fdtype value=((fdtc->oids.n_keys)?
-		  (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
-		  (FD_VOID));
+                  (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
+                  (FD_VOID));
     if (!(FD_VOIDP(value))) return value;}
   if (p->n_locks)
     if (fd_hashtable_probe_novoid(&(p->locks),oid)) {
       value=fd_hashtable_get(&(p->locks),oid,FD_VOID);
       if (value == FD_LOCKHOLDER) {
-	value=fd_pool_fetch(p,oid);
-	fd_hashtable_store(&(p->locks),oid,value);
-	return value;}
+        value=fd_pool_fetch(p,oid);
+        fd_hashtable_store(&(p->locks),oid,value);
+        return value;}
       else return value;}
   if (p->cache_level)
     value=fd_hashtable_get(&(p->cache),oid,FD_VOID);
@@ -340,7 +340,7 @@ FD_FASTOP fdtype fd_oid_value(fdtype oid)
 }
 FD_FASTOP MAYBE_UNUSED fd_pool fd_get_poolptr(fdtype x)
 {
-  int serial=FD_GET_IMMEDIATE(x,fd_pool_type); 
+  int serial=FD_GET_IMMEDIATE(x,fd_pool_type);
   if (serial<fd_pool_serial_count)
     return fd_pool_serial_table[serial];
   else return NULL;
@@ -414,4 +414,3 @@ FD_EXPORT void fd_register_pool_opener
    fdtype (*mdwriter)(FD_DTYPE_STREAM *,fdtype));
 
 #endif /* FRAMERD_POOLS_H */
-

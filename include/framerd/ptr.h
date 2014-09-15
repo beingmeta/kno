@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 
    This file implements the basic structures, macros, and function
@@ -93,7 +93,7 @@
 
 /* 0 and 1 are reserved for OIDs and fixnums.
    CONS types start at 0x84 and go until 0x104, which
-    is the limit to what we can store together with 
+    is the limit to what we can store together with
     the reference count in fd_consbit
    IMMEDIATE types start after that
 */
@@ -132,7 +132,7 @@ typedef enum FD_PTR_TYPE {
   fd_choice_type=FD_CONS_TYPECODE(5),
   fd_achoice_type=FD_CONS_TYPECODE(6),
   fd_qchoice_type=FD_CONS_TYPECODE(7),
-  fd_vector_type=FD_CONS_TYPECODE(8), 
+  fd_vector_type=FD_CONS_TYPECODE(8),
   fd_slotmap_type=FD_CONS_TYPECODE(9),
   fd_schemap_type=FD_CONS_TYPECODE(10),
   fd_hashtable_type=FD_CONS_TYPECODE(11),
@@ -226,7 +226,7 @@ FD_FASTOP MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 
 #if FD_PTR_TYPE_MACRO
 #define FD_PTR_TYPE(x) \
-  (((FD_PTR_MANIFEST_TYPE(FDTYPE(x)))>1) ? (FD_PTR_MANIFEST_TYPE(x)) :	\
+  (((FD_PTR_MANIFEST_TYPE(FDTYPE(x)))>1) ? (FD_PTR_MANIFEST_TYPE(x)) :  \
    ((FD_PTR_MANIFEST_TYPE(x))==1) ? (FD_IMMEDIATE_TYPE(x)) : \
    (x) ? (FD_CONS_TYPE(((struct FD_CONS *)FD_CONS_DATA(x)))) : (-1))
 
@@ -341,13 +341,13 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 #define FD_FIX2INT(x) \
   ((int)((((int)x)>=0) ? ((x)/4) : (-((x&FD_FIXNUM_MAGNITUDE_MASK)>>2))))
 #define FD_INT2DTYPE(x) \
-  ((((x) > FD_MAX_FIXNUM) || ((x) < FD_MIN_FIXNUM)) ?	\
+  ((((x) > FD_MAX_FIXNUM) || ((x) < FD_MIN_FIXNUM)) ?   \
    (fd_make_bigint(x)) : \
    (((fdtype)((x>=0) ? (((x)*4)|fd_fixnum_type) : \
-	       (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2))))))
+               (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2))))))
 #define FD_SHORT2DTYPE(x) \
   (((fdtype)((x>=0) ? (((x)*4)|fd_fixnum_type) : \
-	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2)))))
+              (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2)))))
 #define FD_USHORT2DTYPE(x) ((fdtype)(fd_fixnum_type|((x&0xFFFF)<<2)))
 #define FD_BYTE2DTYPE(x)((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
 #define FD_BYTE2LISP(x)((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
@@ -657,28 +657,28 @@ FD_EXPORT int fd_ptr_debug_density;
 #if (FD_PTR_DEBUG_DENSITY<0)
 /* When the check level is negative, use a runtime variable. */
 #define FD_CHECK_PTR1(x,cxt) ((fd_ptr_debug_density>0) ? (_fd_check_ptr(x,((u8_context)cxt))) : (x))
-#define FD_PTR_CHECK1(x,cxt)						\
+#define FD_PTR_CHECK1(x,cxt)                                            \
   {if ((fd_ptr_debug_density>0) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,((u8_context)cxt));}
 #define FD_CHECK_PTR2(x,cxt) ((fd_ptr_debug_density>1) ? (_fd_check_ptr(x,((u8_context)cxt))) : (x))
-#define FD_PTR_CHECK2(x,cxt)						\
+#define FD_PTR_CHECK2(x,cxt)                                            \
   {if ((fd_ptr_debug_density>1) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,((u8_context)cxt));}
 #define FD_CHECK_PTR3(x,cxt) ((fd_ptr_debug_density>2) ? (_fd_check_ptr(x,((u8_context)cxt))) : (x))
-#define FD_PTR_CHECK3(x,cxt)						\
+#define FD_PTR_CHECK3(x,cxt)                                            \
   {if ((fd_ptr_debug_density>2) && (FD_DEBUG_BADPTRP(x))) _fd_bad_pointer(x,((u8_context)cxt));}
 #else
 #if (FD_PTR_DEBUG_DENSITY > 0)
 #define FD_CHECK_PTR1(x,cxt) (_fd_check_ptr((x),((u8_context)cxt)))
-#define FD_PTR_CHECK1(x,cxt)			\
+#define FD_PTR_CHECK1(x,cxt)                    \
   {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,((u8_context)cxt));}
 #endif
 #if (FD_PTR_DEBUG_DENSITY > 1)
 #define FD_CHECK_PTR2(x,cxt) (_fd_check_ptr((x),((u8_context)cxt)))
-#define FD_PTR_CHECK2(x,cxt)			\
+#define FD_PTR_CHECK2(x,cxt)                    \
   {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,((u8_context)cxt));}
 #endif
 #if (FD_PTR_DEBUG_DENSITY > 2)
 #define FD_CHECK_PTR3(x,cxt) (_fd_check_ptr((x),((u8_context)cxt)))
-#define FD_PTR_CHECK3(x,cxt)			\
+#define FD_PTR_CHECK3(x,cxt)                    \
   {if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,((u8_context)cxt));}
 #endif
 #endif
@@ -705,4 +705,3 @@ FD_EXPORT int fd_ptr_debug_density;
 #endif
 
 #endif /* ndef FRAMERD_PTR_H */
-

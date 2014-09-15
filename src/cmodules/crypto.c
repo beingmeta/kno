@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2007-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -45,8 +45,8 @@ static fdtype doencrypt(fdtype data,fdtype key,u8_string ciphername,int dtype)
     payload=tmp.start; payload_len=tmp.ptr-tmp.start;
     free_payload=1;}
   outbuf=u8_encrypt(payload,payload_len,ciphername,
-		    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
-		    &outlen);
+                    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
+                    &outlen);
   if (outbuf) {
     if (free_payload) u8_free(payload);
     return fd_init_packet(NULL,outlen,outbuf);}
@@ -85,8 +85,8 @@ static fdtype decrypt_prim(fdtype data,fdtype key,fdtype cipher)
   else return fd_type_error("ciphername","decrypt_prim",cipher);
   payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);
   outbuf=u8_decrypt(payload,payload_len,ciphername,
-		    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
-		    &outlen);
+                    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
+                    &outlen);
   if (outbuf)
     return fd_init_packet(NULL,outlen,outbuf);
   else return FD_ERROR_VALUE;
@@ -104,8 +104,8 @@ static fdtype decrypt2string_prim(fdtype data,fdtype key,fdtype cipher)
   else return fd_type_error("ciphername","decrypt_prim",cipher);
   payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);
   outbuf=u8_decrypt(payload,payload_len,ciphername,
-		    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
-		    &outlen);
+                    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
+                    &outlen);
   if (outbuf)
     return fd_init_string(NULL,outlen,outbuf);
   else return FD_ERROR_VALUE;
@@ -123,8 +123,8 @@ static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher)
   else return fd_type_error("ciphername","decrypt_prim",cipher);
   payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);
   outbuf=u8_decrypt(payload,payload_len,ciphername,
-		    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
-		    &outlen);
+                    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
+                    &outlen);
   if (outbuf) {
     struct FD_BYTE_INPUT in; fdtype result;
     FD_INIT_BYTE_INPUT(&in,outbuf,outlen);
@@ -137,7 +137,7 @@ static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher)
 FD_EXPORT fdtype random_packet_prim(fdtype arg)
 {
   return fd_init_packet(NULL,FD_FIX2INT(arg),
-			u8_random_vector(FD_FIX2INT(arg)));
+                        u8_random_vector(FD_FIX2INT(arg)));
 }
 
 FD_EXPORT int fd_init_crypto()
@@ -151,27 +151,27 @@ FD_EXPORT int fd_init_crypto()
   u8_init_cryptofns();
 
   fd_idefn(crypto_module,
-	   fd_make_cprim3x("ENCRYPT",encrypt_prim,2,
-			   -1,FD_VOID,-1,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim3x("ENCRYPT",encrypt_prim,2,
+                           -1,FD_VOID,-1,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(crypto_module,
-	   fd_make_cprim3x("ENCRYPT-DTYPE",encrypt_dtype_prim,2,
-			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+           fd_make_cprim3x("ENCRYPT-DTYPE",encrypt_dtype_prim,2,
+                           -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
 
   fd_idefn(crypto_module,
-	   fd_make_cprim3x("DECRYPT",decrypt_prim,2,
-			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+           fd_make_cprim3x("DECRYPT",decrypt_prim,2,
+                           -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(crypto_module,
-	   fd_make_cprim3x("DECRYPT->STRING",decrypt2string_prim,2,
-			   -1,FD_VOID,-1,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim3x("DECRYPT->STRING",decrypt2string_prim,2,
+                           -1,FD_VOID,-1,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(crypto_module,
-	   fd_make_cprim3x("DECRYPT->DTYPE",decrypt2dtype_prim,2,
-			   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+           fd_make_cprim3x("DECRYPT->DTYPE",decrypt2dtype_prim,2,
+                           -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
 
   fd_idefn(crypto_module,
-	   fd_make_cprim1x
-	   ("RANDOM-PACKET",random_packet_prim,1,fd_fixnum_type,FD_VOID));
+           fd_make_cprim1x
+           ("RANDOM-PACKET",random_packet_prim,1,fd_fixnum_type,FD_VOID));
 
   fd_finish_module(crypto_module);
   fd_persist_module(crypto_module);

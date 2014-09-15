@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2007-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -100,9 +100,9 @@ FD_EXPORT int fd_init_tidy()
   tidy_module=fd_new_module("TIDY",(FD_MODULE_SAFE));
 
   fd_idefn(tidy_module,
-	   fd_make_cprim3x("TIDY->XHTML",tidy_prim,1,
-			   fd_string_type,FD_VOID,-1,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim3x("TIDY->XHTML",tidy_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID,
+                           -1,FD_VOID));
 
   fd_finish_module(tidy_module);
   fd_persist_module(tidy_module);

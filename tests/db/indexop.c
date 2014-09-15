@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -35,7 +35,7 @@ int main(int argc,char **argv)
   if (argc == 3) {
     fdtype value=fd_index_get(ix,key);
     u8_fprintf(stderr,_("The key %q is associated with %d values\n"),
-	       key,FD_CHOICE_SIZE(value));
+               key,FD_CHOICE_SIZE(value));
     {FD_DO_CHOICES(each,value)
        u8_fprintf(stderr,"\t%q\n",each);}
     fd_decref(value); value=FD_VOID;}

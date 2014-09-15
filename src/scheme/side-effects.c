@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -49,15 +49,15 @@ FD_EXPORT void fd_init_side_effects_c()
 {
   fdtype module=fd_new_module("SIDE-EFFECTS",FD_MODULE_SAFE);
   fd_idefn(module,fd_make_cprim3x("VECTOR-SET!",vector_set,3,
-				  fd_vector_type,FD_VOID,
-				  fd_fixnum_type,FD_VOID,
-				  -1,FD_VOID));
+                                  fd_vector_type,FD_VOID,
+                                  fd_fixnum_type,FD_VOID,
+                                  -1,FD_VOID));
   fd_idefn(module,fd_make_cprim2x("SET-CAR!",set_car,2,
-				  fd_pair_type,FD_VOID,
-				  -1,FD_VOID));
+                                  fd_pair_type,FD_VOID,
+                                  -1,FD_VOID));
   fd_idefn(module,fd_make_cprim2x("SET-CDR!",set_cdr,2,
-				  fd_pair_type,FD_VOID,
-				  -1,FD_VOID));
+                                  fd_pair_type,FD_VOID,
+                                  -1,FD_VOID));
 
   u8_register_source_file(_FILEINFO);
 

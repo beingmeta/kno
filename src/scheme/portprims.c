@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -272,7 +272,7 @@ static fdtype portdata(fdtype port_arg)
     if (port->out)
       return fd_extract_string(NULL,port->out->u8_outbuf,port->out->u8_outptr);
     else return fd_extract_string
-	   (NULL,port->out->u8_outbuf,port->out->u8_outlim);}
+           (NULL,port->out->u8_outbuf,port->out->u8_outlim);}
   else return fd_type_error(_("port"),"portdata",port_arg);
 }
 
@@ -377,7 +377,7 @@ static fdtype substringout(fdtype arg,fdtype start,fdtype end)
     u8_putn(output,string+byte_start,len-byte_start);}
   else {
     unsigned int byte_start=u8_byteoffset(string,FD_FIX2INT(start),len);
-    unsigned int byte_end=u8_byteoffset(string,FD_FIX2INT(end),len);  
+    unsigned int byte_end=u8_byteoffset(string,FD_FIX2INT(end),len);
     u8_putn(output,string+byte_start,byte_end-byte_start);}
   return FD_VOID;
 }
@@ -385,10 +385,10 @@ static fdtype substringout(fdtype arg,fdtype start,fdtype end)
 static fdtype uniscape(fdtype arg,fdtype excluding)
 {
   u8_string input=((FD_STRINGP(arg))?(FD_STRDATA(arg)):
-		   (fd_dtype2string(arg)));
+                   (fd_dtype2string(arg)));
   u8_string exstring=((FD_STRINGP(excluding))?
-		      (FD_STRDATA(excluding)):
-		      ((u8_string)""));
+                      (FD_STRDATA(excluding)):
+                      ((u8_string)""));
   u8_output output=u8_current_output;
   u8_string string=input;
   u8_byte *scan=string; int c=u8_sgetc(&scan);
@@ -554,9 +554,9 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
       fdtype value=fasteval(FD_CAR(body),env);
       if (printout_helper(out,value)) fd_decref(value);
       else {
-	u8_set_default_output(stream);
-	u8_close_output(out);
-	return value;}
+        u8_set_default_output(stream);
+        u8_close_output(out);
+        return value;}
       body=FD_CDR(body);}
     u8_set_default_output(stream);
     u8_logger(-10,condition,out->u8_outbuf);
@@ -573,16 +573,16 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
   else value=fasteval(test_expr,env);
   if (FD_ABORTP(value)) return value;
   else if ((FD_FALSEP(value)) || (FD_VOIDP(value)) ||
-	   (FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_LISTP(value)))
+           (FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_LISTP(value)))
     return FD_VOID;
   else loglevel_arg=fd_eval(fd_get_arg(expr,2),env);
   if (FD_ABORTP(loglevel_arg)) return loglevel_arg;
   else if (FD_VOIDP(loglevel_arg))
     return fd_reterr(fd_SyntaxError,"logif_plus_handler",
-		     _("LOGIF+ loglevel invalid"),expr);
+                     _("LOGIF+ loglevel invalid"),expr);
   else if (!(FD_FIXNUMP(loglevel_arg)))
     return fd_reterr(fd_TypeError,"logif_plus_handler",
-		     _("LOGIF+ loglevel invalid"),loglevel_arg);
+                     _("LOGIF+ loglevel invalid"),loglevel_arg);
   else {
     fdtype body=fd_get_body(expr,3);
     U8_OUTPUT *out=u8_open_output_string(1024);
@@ -598,9 +598,9 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
       fdtype value=fasteval(FD_CAR(body),env);
       if (printout_helper(out,value)) fd_decref(value);
       else {
-	u8_set_default_output(stream);
-	u8_close_output(out);
-	return value;}
+        u8_set_default_output(stream);
+        u8_close_output(out);
+        return value;}
       body=FD_CDR(body);}
     u8_set_default_output(stream);
     u8_logger(priority,condition,out->u8_outbuf);
@@ -654,20 +654,20 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg,
     data=u8_gets_x(NULL,lim,in,eos,&size);
     if (data)
       if (strlen(data)<size) {
-	/* Handle embedded NUL */
-	struct U8_OUTPUT out;
-	u8_byte *scan=data, *limit=scan+size;
-	U8_INIT_OUTPUT(&out,size+8);
-	while (scan<limit) {
-	  if (*scan)
-	    u8_putc(&out,u8_sgetc(&scan));
-	  else u8_putc(&out,0);}
-	u8_free(data);
-	return fd_stream2string(&out);}
+        /* Handle embedded NUL */
+        struct U8_OUTPUT out;
+        u8_byte *scan=data, *limit=scan+size;
+        U8_INIT_OUTPUT(&out,size+8);
+        while (scan<limit) {
+          if (*scan)
+            u8_putc(&out,u8_sgetc(&scan));
+          else u8_putc(&out,0);}
+        u8_free(data);
+        return fd_stream2string(&out);}
       else return fd_init_string(NULL,size,data);
     else if (size<0)
       if (errno==EAGAIN)
-	return FD_EOF;
+        return FD_EOF;
       else return FD_ERROR_VALUE;
     else return fd_incref(eof_marker);}
   else return fd_type_error(_("input port"),"getline_prim",port);
@@ -690,11 +690,11 @@ static int find_substring(u8_string string,fdtype strings,int *lenp)
     u8_string next=strstr(string,FD_STRDATA(s));
     if (next) {
       if (off<0) {
-	off=next-string; matchlen=FD_STRLEN(s);}
+        off=next-string; matchlen=FD_STRLEN(s);}
       else if ((next-string)<off) {
-	off=next-string;
-	if (matchlen<(FD_STRLEN(s))) {
-	  matchlen=FD_STRLEN(s);}}
+        off=next-string;
+        if (matchlen<(FD_STRLEN(s))) {
+          matchlen=FD_STRLEN(s);}}
       else {}}}
   *lenp=matchlen;
   return off;
@@ -712,7 +712,7 @@ static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
   else {
     FD_DO_CHOICES(end,ends)
       if (!(FD_STRINGP(end)))
-	return fd_type_error(_("string"),"record_reader",end);}
+        return fd_type_error(_("string"),"record_reader",end);}
   while (1) {
     if (FD_VOIDP(ends)) {
       u8_string found=strstr(in->u8_inptr,"\n");
@@ -813,7 +813,7 @@ static fdtype quote_symbol, unquote_symbol, quasiquote_symbol, unquote_star_symb
 
 FD_EXPORT
 int fd_pprint(u8_output out,fdtype x,u8_string prefix,
-	      int indent,int col,int maxcol,int is_initial)
+              int indent,int col,int maxcol,int is_initial)
 {
   int startoff=out->u8_outptr-out->u8_outbuf, n_chars;
   if (is_initial==0) u8_putc(out,' ');
@@ -848,7 +848,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       u8_puts(out,"#;"); indent=indent+2; x=FD_CAR(FD_CDR(x));}}
   /* Special compound printers for different types. */
   if (FD_PAIRP(x)) {
-    fdtype car=FD_CAR(x), scan=x; int first=1; 
+    fdtype car=FD_CAR(x), scan=x; int first=1;
     if (FD_SYMBOLP(car)) indent=indent+2;
     u8_putc(out,'('); col++; indent++;
     while (FD_PAIRP(scan)) {
@@ -861,53 +861,53 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       u8_printf(out," . %q)",scan);
       n_chars=u8_strlen(out->u8_outbuf+startoff);
       if (col+n_chars>maxcol) {
-	int i=indent;
-	out->u8_outptr=out->u8_outbuf+startoff;
-	out->u8_outbuf[startoff]='\0';
-	u8_putc(out,'\n');
-	if (prefix) u8_puts(out,prefix);
-	while (i>0) {u8_putc(out,' '); i--;}
-	u8_printf(out,". ");
-	col=indent+2+((prefix) ? (u8_strlen(prefix)) : (0));
-	col=fd_pprint(out,scan,prefix,indent+2,col,maxcol,1);
-	u8_putc(out,')'); return col+1;}
+        int i=indent;
+        out->u8_outptr=out->u8_outbuf+startoff;
+        out->u8_outbuf[startoff]='\0';
+        u8_putc(out,'\n');
+        if (prefix) u8_puts(out,prefix);
+        while (i>0) {u8_putc(out,' '); i--;}
+        u8_printf(out,". ");
+        col=indent+2+((prefix) ? (u8_strlen(prefix)) : (0));
+        col=fd_pprint(out,scan,prefix,indent+2,col,maxcol,1);
+        u8_putc(out,')'); return col+1;}
       else return col+n_chars;}}
   else if (FD_VECTORP(x)) {
     int len=FD_VECTOR_LENGTH(x);
     if (len==0) {u8_printf(out,"#()"); return col+3;}
     else {
-      int eltno=0; 
+      int eltno=0;
       u8_printf(out,"#("); col=col+2;
       while (eltno<len) {
-	col=fd_pprint(out,FD_VECTOR_REF(x,eltno),prefix,
-		      indent+2,col,maxcol,(eltno==0));
-	eltno++;}
+        col=fd_pprint(out,FD_VECTOR_REF(x,eltno),prefix,
+                      indent+2,col,maxcol,(eltno==0));
+        eltno++;}
       u8_putc(out,')'); return col+1;}}
   else if (FD_QCHOICEP(x)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(x);
     int first_value=1;
-    FD_DO_CHOICES(elt,qc->choice) 
+    FD_DO_CHOICES(elt,qc->choice)
       if (first_value) {
-	u8_puts(out,"#{"); col++; first_value=0;
-	col=fd_pprint(out,elt,prefix,indent+2,col,maxcol,1);}
+        u8_puts(out,"#{"); col++; first_value=0;
+        col=fd_pprint(out,elt,prefix,indent+2,col,maxcol,1);}
       else col=fd_pprint(out,elt,prefix,indent+2,col,maxcol,0);
     u8_putc(out,'}'); return col+1;}
   else if (FD_CHOICEP(x)) {
     int first_value=1;
-    FD_DO_CHOICES(elt,x) 
+    FD_DO_CHOICES(elt,x)
       if (first_value) {
-	u8_putc(out,'{'); col++; first_value=0;
-	col=fd_pprint(out,elt,prefix,indent+1,col,maxcol,1);}
+        u8_putc(out,'{'); col++; first_value=0;
+        col=fd_pprint(out,elt,prefix,indent+1,col,maxcol,1);}
       else col=fd_pprint(out,elt,prefix,indent+1,col,maxcol,0);
     u8_putc(out,'}'); return col+1;}
   else if (FD_SLOTMAPP(x)) {
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
     struct FD_KEYVAL *scan, *limit;
-    int slotmap_size, first_pair=1; 
+    int slotmap_size, first_pair=1;
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     if (slotmap_size==0) {
       if (is_initial) {
-	u8_printf(out," #[]"); return col+3;}
+        u8_printf(out," #[]"); return col+3;}
       else {u8_printf(out," #[]"); return col+4;}}
     fd_read_lock_struct(sm);
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
@@ -929,8 +929,8 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
 
 FD_EXPORT
 int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
-	       int indent,int col,int maxcol,int is_initial,
-	       fd_pprintfn fn,void *data)
+               int indent,int col,int maxcol,int is_initial,
+               fd_pprintfn fn,void *data)
 {
   int startoff=out->u8_outptr-out->u8_outbuf, n_chars;
   if (fn) {
@@ -946,7 +946,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
   out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
   /* Newline and indent if you're non-initial and ran out of space. */
   if ((is_initial==0) && (col+n_chars>=maxcol)) {
-    int i=indent; u8_putc(out,'\n'); 
+    int i=indent; u8_putc(out,'\n');
     if (prefix) u8_puts(out,prefix);
     while (i>0) {u8_putc(out,' '); i--;}
     col=indent+((prefix) ? (u8_strlen(prefix)) : (0));
@@ -966,7 +966,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
       indent++; indent++; u8_puts(out,",@"); x=FD_CAR(FD_CDR(x));}}
   /* Special compound printers for different types. */
   if (FD_PAIRP(x)) {
-    fdtype car=FD_CAR(x), scan=x; int first=1; 
+    fdtype car=FD_CAR(x), scan=x; int first=1;
     if (FD_SYMBOLP(car)) indent=indent+2;
     u8_putc(out,'('); col++; indent++;
     while (FD_PAIRP(scan)) {
@@ -978,61 +978,61 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
       startoff=out->u8_outptr-out->u8_outbuf; u8_printf(out," . %q)",scan);
       n_chars=u8_strlen(out->u8_outbuf+startoff);
       if (col+n_chars>maxcol) {
-	int i=indent;
-	out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
-	u8_putc(out,'\n');
-	if (prefix) u8_puts(out,prefix);
-	while (i>0) {u8_putc(out,' '); i--;}
-	u8_printf(out,". ");
-	col=indent+2+((prefix) ? (u8_strlen(prefix)) : (0));
-	col=fd_xpprint(out,scan,prefix,indent+2,col,maxcol,1,fn,data);
-	u8_putc(out,')'); return col+1;}
+        int i=indent;
+        out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
+        u8_putc(out,'\n');
+        if (prefix) u8_puts(out,prefix);
+        while (i>0) {u8_putc(out,' '); i--;}
+        u8_printf(out,". ");
+        col=indent+2+((prefix) ? (u8_strlen(prefix)) : (0));
+        col=fd_xpprint(out,scan,prefix,indent+2,col,maxcol,1,fn,data);
+        u8_putc(out,')'); return col+1;}
       else return col+n_chars;}}
   else if (FD_VECTORP(x)) {
     int len=FD_VECTOR_LENGTH(x);
     if (len==0) {u8_printf(out,"#()"); return col+3;}
     else {
-      int eltno=0; 
+      int eltno=0;
       u8_printf(out,"#("); col=col+2;
       while (eltno<len) {
-	col=fd_xpprint(out,FD_VECTOR_REF(x,eltno),prefix,indent+2,col,maxcol,(eltno==0),fn,data);
-	eltno++;}
+        col=fd_xpprint(out,FD_VECTOR_REF(x,eltno),prefix,indent+2,col,maxcol,(eltno==0),fn,data);
+        eltno++;}
       u8_putc(out,')'); return col+1;}}
   else if (FD_QCHOICEP(x)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(x);
     int first_value=1;
-    FD_DO_CHOICES(elt,qc->choice) 
+    FD_DO_CHOICES(elt,qc->choice)
       if (first_value) {
-	u8_puts(out,"#{"); col++; first_value=0;
-	col=fd_xpprint(out,elt,prefix,indent+2,col,maxcol,1,fn,data);}
+        u8_puts(out,"#{"); col++; first_value=0;
+        col=fd_xpprint(out,elt,prefix,indent+2,col,maxcol,1,fn,data);}
       else col=fd_xpprint(out,elt,prefix,indent+2,col,maxcol,0,fn,data);
     u8_putc(out,'}'); return col+1;}
   else if (FD_CHOICEP(x)) {
     int first_value=1;
-    FD_DO_CHOICES(elt,x) 
+    FD_DO_CHOICES(elt,x)
       if (first_value) {
-	u8_putc(out,'{'); col++; first_value=0;
-	col=fd_xpprint(out,elt,prefix,indent+1,col,maxcol,1,fn,data);}
+        u8_putc(out,'{'); col++; first_value=0;
+        col=fd_xpprint(out,elt,prefix,indent+1,col,maxcol,1,fn,data);}
       else col=fd_xpprint(out,elt,prefix,indent+1,col,maxcol,0,fn,data);
     u8_putc(out,'}'); return col+1;}
   else if (FD_SLOTMAPP(x)) {
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
     struct FD_KEYVAL *scan, *limit;
-    int slotmap_size, first_pair=1; 
+    int slotmap_size, first_pair=1;
     fd_read_lock_struct(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     if (slotmap_size==0) fd_rw_unlock_struct(sm);
     if (slotmap_size==0) {
       if (is_initial) {
-	u8_printf(out," #[]"); return 3;}
+        u8_printf(out," #[]"); return 3;}
       else {u8_printf(out," #[]"); return 4;}}
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
       col=fd_xpprint(out,scan->key,prefix,
-		     indent+2,col,maxcol,first_pair,fn,data);
+                     indent+2,col,maxcol,first_pair,fn,data);
       col=fd_xpprint(out,scan->value,
-		     prefix,indent+4,col,maxcol,0,fn,data);
+                     prefix,indent+4,col,maxcol,0,fn,data);
       first_pair=0;
       scan++;}
     u8_puts(out,"]");
@@ -1049,7 +1049,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
 struct FOCUS_STRUCT {fdtype focus; u8_string prefix, suffix;};
 
 static int focus_pprint(u8_output out,fdtype x,u8_string prefix,
-			int indent,int col,int maxcol,int is_initial,void *data)
+                        int indent,int col,int maxcol,int is_initial,void *data)
 {
   struct FOCUS_STRUCT *fs=(struct FOCUS_STRUCT *) data;
   if (FD_EQ(x,fs->focus)) {
@@ -1072,7 +1072,7 @@ static int focus_pprint(u8_output out,fdtype x,u8_string prefix,
 
 FD_EXPORT
 void fd_pprint_focus(U8_OUTPUT *out,fdtype entry,fdtype focus,u8_string prefix,
-		     int indent,int width,u8_string focus_prefix,u8_string focus_suffix)
+                     int indent,int width,u8_string focus_prefix,u8_string focus_suffix)
 {
   struct FOCUS_STRUCT fs; fs.focus=focus; fs.prefix=focus_prefix; fs.suffix=focus_suffix;
   fd_xpprint(out,entry,prefix,indent,indent,width,1,focus_pprint,(void *)&fs);
@@ -1110,9 +1110,9 @@ static int embeddedp(fdtype focus,fdtype expr)
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     while (scan<limit)
       if (embeddedp(focus,scan->key)) {
-	fd_rw_unlock_struct(sm); return 1;}
+        fd_rw_unlock_struct(sm); return 1;}
       else if (embeddedp(focus,scan->value)) {
-	fd_rw_unlock_struct(sm); return 1;}
+        fd_rw_unlock_struct(sm); return 1;}
       else scan++;
     fd_rw_unlock_struct(sm);
     return 0;}
@@ -1142,8 +1142,8 @@ static void print_backtrace_env(U8_OUTPUT *out,u8_exception ex,int width)
   fdtype entry=exception_data(ex);
   fdtype keys=fd_getkeys(entry);
   u8_string head=((ex->u8x_details) ? ((u8_string)(ex->u8x_details)) :
-		  (ex->u8x_context) ?  ((u8_string)(ex->u8x_context)) :
-		  ((u8_string)""));
+                  (ex->u8x_context) ?  ((u8_string)(ex->u8x_context)) :
+                  ((u8_string)""));
   if (FD_ABORTP(keys)) {
     u8_printf(out,"%s %q\n",head,entry);}
   else {
@@ -1172,7 +1172,7 @@ static u8_exception print_backtrace_entry(U8_OUTPUT *out,u8_exception ex,int wid
     while (i < lim) {
       fdtype arg=FD_VECTOR_REF(entry,i); i++;
       if ((FD_SYMBOLP(arg)) || (FD_PAIRP(arg)))
-	u8_printf(out," '%q",arg);
+        u8_printf(out," '%q",arg);
       else u8_printf(out," %q",arg);}
     u8_printf(out,"\n");}
   else if ((ex->u8x_context) && (ex->u8x_context[0]==':')) {
@@ -1201,20 +1201,20 @@ void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex)
       cond=scan->u8x_cond; u8_printf(out," (%m)",cond);}
     if (scan->u8x_context) {
       if (scan->u8x_context==fd_eval_context)
-	if ((FD_PAIRP(irritant)) && (!(FD_PAIRP(FD_CAR(irritant))))) {
-	  u8_printf(out," (%q ...)",FD_CAR(irritant));
-	  show_irritant=0;}
-	else {}
+        if ((FD_PAIRP(irritant)) && (!(FD_PAIRP(FD_CAR(irritant))))) {
+          u8_printf(out," (%q ...)",FD_CAR(irritant));
+          show_irritant=0;}
+        else {}
       else if (scan->u8x_context==fd_apply_context)
-	if ((FD_VECTORP(irritant)) && (FD_VECTOR_LENGTH(irritant)>0)) {
-	  u8_printf(out," %q",FD_VECTOR_REF(irritant,0));
-	  show_irritant=0;}
-	else {}
+        if ((FD_VECTORP(irritant)) && (FD_VECTOR_LENGTH(irritant)>0)) {
+          u8_printf(out," %q",FD_VECTOR_REF(irritant,0));
+          show_irritant=0;}
+        else {}
       else if ((scan->u8x_context) && (strcmp(scan->u8x_context,":SPROC")==0)) {
-	show_irritant=0;}
+        show_irritant=0;}
       else if ((scan->u8x_context) && (*(scan->u8x_context)==':')) {
-	u8_printf(out," %s",scan->u8x_context);
-	show_irritant=0;}
+        u8_printf(out," %s",scan->u8x_context);
+        show_irritant=0;}
       else u8_printf(out," %s",scan->u8x_context);}
     if (scan->u8x_details)
       u8_printf(out," [%s]",scan->u8x_details);
@@ -1236,14 +1236,14 @@ static fdtype lisp_show_table(fdtype tables,fdtype slotids,fdtype portarg)
       U8_OUTPUT *tmp=u8_open_output_string(1024);
       u8_printf(out,"%q\n");
       {FD_DO_CHOICES(slotid,slotids) {
-	fdtype values=fd_frame_get(table,slotid);
-	tmp->u8_outptr=tmp->u8_outbuf; *(tmp->u8_outbuf)='\0';
-	u8_printf(tmp,"   %q:   %q\n",slotid,values);
-	if (u8_strlen(tmp->u8_outbuf)<80) u8_puts(out,tmp->u8_outbuf);
-	else {
-	  u8_printf(out,"   %q:\n",slotid);
-	  {FD_DO_CHOICES(value,values) u8_printf(out,"      %q\n",value);}}
-	fd_decref(values);}}
+        fdtype values=fd_frame_get(table,slotid);
+        tmp->u8_outptr=tmp->u8_outbuf; *(tmp->u8_outbuf)='\0';
+        u8_printf(tmp,"   %q:   %q\n",slotid,values);
+        if (u8_strlen(tmp->u8_outbuf)<80) u8_puts(out,tmp->u8_outbuf);
+        else {
+          u8_printf(out,"   %q:\n",slotid);
+          {FD_DO_CHOICES(value,values) u8_printf(out,"      %q\n",value);}}
+        fd_decref(values);}}
       u8_close((u8_stream)tmp);}
     else fd_display_table(out,table,slotids);
   u8_flush(out);
@@ -1375,7 +1375,7 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
   if (!((FD_STRINGP(arg)||FD_PACKETP(arg))))
     return fd_type_error("string or packet","x2zipfile_prim",arg);
   else {
-    fd_exception error=NULL; 
+    fd_exception error=NULL;
     unsigned char *data=((FD_STRINGP(arg))?(FD_STRDATA(arg)):(FD_PACKET_DATA(arg)));
     unsigned int data_len=((FD_STRINGP(arg))?(FD_STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
     struct FD_BYTE_OUTPUT out; int flags=0; /* FDPP_FHCRC */
@@ -1416,23 +1416,23 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
       csize=csize_max=dsize+(dsize/1000)+13;
       cbuf=u8_malloc(csize_max); memset(cbuf,0,csize);
       while ((zerror=compress2(cbuf,&csize,dbuf,dsize,9)) < Z_OK)
-	if (zerror == Z_MEM_ERROR) {
-	  error=_("ZLIB ran out of memory"); break;}
-	else if (zerror == Z_BUF_ERROR) {
-	  /* We don't use realloc because there's not point in copying
-	     the data and we hope the overhead of free/malloc beats
-	     realloc when we're doubling the buffer size. */
+        if (zerror == Z_MEM_ERROR) {
+          error=_("ZLIB ran out of memory"); break;}
+        else if (zerror == Z_BUF_ERROR) {
+          /* We don't use realloc because there's not point in copying
+             the data and we hope the overhead of free/malloc beats
+             realloc when we're doubling the buffer size. */
           u8_free(cbuf);
-	  cbuf=u8_malloc(csize_max*2);
-	  if (cbuf==NULL) {
-	    error=_("OIDPOOL compress ran out of memory"); break;}
-	  csize=csize_max=csize_max*2;}
-	else if (zerror == Z_DATA_ERROR) {
-	  error=_("ZLIB compress data error"); break;}
-	else {
-	  error=_("Bad ZLIB return code"); break;}
+          cbuf=u8_malloc(csize_max*2);
+          if (cbuf==NULL) {
+            error=_("OIDPOOL compress ran out of memory"); break;}
+          csize=csize_max=csize_max*2;}
+        else if (zerror == Z_DATA_ERROR) {
+          error=_("ZLIB compress data error"); break;}
+        else {
+          error=_("Bad ZLIB return code"); break;}
       if (error==NULL) {
-	fd_write_bytes(&out,cbuf+2,csize-6);}
+        fd_write_bytes(&out,cbuf+2,csize-6);}
       u8_free(cbuf);}
     if (error) {
       fd_seterr(error,"x2zipfile",NULL,FD_VOID);
@@ -1470,28 +1470,28 @@ FD_EXPORT void fd_init_portfns_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("LISP->STRING",lisp2string,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2("INEXACT->STRING",inexact2string,1));
+           fd_make_cprim2("INEXACT->STRING",inexact2string,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("NUMBER->STRING",number2string,1,
-			   -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(10)));
+           fd_make_cprim2x("NUMBER->STRING",number2string,1,
+                           -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(10)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2("NUMBER->LOCALE",number2locale,1));
+           fd_make_cprim2("NUMBER->LOCALE",number2locale,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STRING->NUMBER",string2number,1,
-			   fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_INT2DTYPE(-1)));
+           fd_make_cprim2x("STRING->NUMBER",string2number,1,
+                           fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_INT2DTYPE(-1)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("->NUMBER",just2number,1,
-			   -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(-1)));
+           fd_make_cprim2x("->NUMBER",just2number,1,
+                           -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(-1)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("EOF-OBJECT?",eofp,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("PORTID",portid,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim0("OPEN-OUTPUT-STRING",open_output_string,0));
+           fd_make_cprim0("OPEN-OUTPUT-STRING",open_output_string,0));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1("OPEN-INPUT-STRING",open_input_string,1));
+           fd_make_cprim1("OPEN-INPUT-STRING",open_input_string,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PORTDATA",portdata,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("WRITE",write_prim,1));
@@ -1506,21 +1506,21 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("READ",read_prim,0));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("READ-RECORD",read_record_prim,1)));
+           fd_make_ndprim(fd_make_cprim3("READ-RECORD",read_record_prim,1)));
 
   fd_defspecial(fd_scheme_module,"PRINTOUT",printout_handler);
   fd_defspecial(fd_scheme_module,"LINEOUT",lineout_handler);
   fd_defspecial(fd_scheme_module,"STRINGOUT",stringout_handler);
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("SUBSTRINGOUT",substringout,1,
-			   fd_string_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID,
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim3x("SUBSTRINGOUT",substringout,1,
+                           fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("UNISCAPE",uniscape,1,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
-  
+           fd_make_cprim2x("UNISCAPE",uniscape,1,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
+
   /* Logging functions for specific levels */
   fd_defspecial(fd_scheme_module,"NOTIFY",notify_handler);
   fd_defspecial(fd_scheme_module,"STATUS",status_handler);
@@ -1538,68 +1538,68 @@ FD_EXPORT void fd_init_portfns_c()
   fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_handler);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("READ-DTYPE",read_dtype,1,fd_dtstream_type,FD_VOID));
+           fd_make_cprim1x("READ-DTYPE",read_dtype,1,fd_dtstream_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("WRITE-DTYPE",write_dtype,2,
-			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+           fd_make_cprim2x("WRITE-DTYPE",write_dtype,2,
+                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("WRITE-BYTES",write_bytes,2,
-			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+           fd_make_cprim2x("WRITE-BYTES",write_bytes,2,
+                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
 
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("PACKET->DTYPE",packet2dtype,1,
-			   fd_packet_type,FD_VOID));
+           fd_make_cprim1x("PACKET->DTYPE",packet2dtype,1,
+                           fd_packet_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("DTYPE->PACKET",dtype2packet,1,
-			   -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(128)));
+           fd_make_cprim2x("DTYPE->PACKET",dtype2packet,1,
+                           -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(128)));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("READ-INT",read_int,1,fd_dtstream_type,FD_VOID));
+           fd_make_cprim1x("READ-INT",read_int,1,fd_dtstream_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("WRITE-INT",write_int,2,
-			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+           fd_make_cprim2x("WRITE-INT",write_int,2,
+                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ZREAD-DTYPE",
-			   zread_dtype,1,fd_dtstream_type,FD_VOID));
+           fd_make_cprim1x("ZREAD-DTYPE",
+                           zread_dtype,1,fd_dtstream_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("ZWRITE-DTYPE",zwrite_dtype,2,
-			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+           fd_make_cprim2x("ZWRITE-DTYPE",zwrite_dtype,2,
+                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("ZWRITE-DTYPES",zwrite_dtypes,2,
-			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+           fd_make_cprim2x("ZWRITE-DTYPES",zwrite_dtypes,2,
+                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ZREAD-INT",
-			   zread_int,1,fd_dtstream_type,FD_VOID));
+           fd_make_cprim1x("ZREAD-INT",
+                           zread_int,1,fd_dtstream_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("ZWRITE-INT",zwrite_int,2,
-			   -1,FD_VOID,fd_dtstream_type,FD_VOID));
+           fd_make_cprim2x("ZWRITE-INT",zwrite_int,2,
+                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("BASE64->PACKET",from_base64_prim,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("BASE64->PACKET",from_base64_prim,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("PACKET->BASE64",to_base64_prim,1,
-			   fd_packet_type,FD_VOID));
+           fd_make_cprim1x("PACKET->BASE64",to_base64_prim,1,
+                           fd_packet_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("->BASE64",any_to_base64_prim,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("BASE16->PACKET",from_base16_prim,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("BASE16->PACKET",from_base16_prim,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("PACKET->BASE16",to_base16_prim,1,
-			   fd_packet_type,FD_VOID));
+           fd_make_cprim1x("PACKET->BASE16",to_base16_prim,1,
+                           fd_packet_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("GZIP",gzip_prim,1,-1,FD_VOID,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim3x("GZIP",gzip_prim,1,-1,FD_VOID,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim(fd_make_cprim3("%SHOW",lisp_show_table,1)));
+           fd_make_ndprim(fd_make_cprim3("%SHOW",lisp_show_table,1)));
 
 }
 

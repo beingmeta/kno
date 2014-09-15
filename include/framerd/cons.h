@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -28,26 +28,26 @@
         is not dynamically allocated and shouldn't be reference counted.  It
         is mostly used when a structure is allocated on the stack or with a
         static top-level declaration.
-      * a reference count of xx (the maximnum) indicates that the 
+      * a reference count of xx (the maximnum) indicates that the
          CONS has been freed and is no longer in use.  Attempting to
          increment or decrement such a reference count yields an error.
     Because the reference count is in the high 30 bits, referencing and
     dereferencing actually increments or decrements the consbits by
     4, after checking for the boundary cases of a static CONS (zero reference
     count) or freed cons (maximal reference count).
-    
+
     All lowercase functions and macros are written to record a reference
     for their return values but not record or consume references for their
     parameters.  That this means practically is that if you get a dtype
     pointer from a lower-cased function, you need to either dereference it
     (with FD_DECREF) or use another upper-case consuming operation on it
     (such as FD_ADD_TO_CHOICE (see <fdb/choices.h>)).
-    
+
     Because the immediate type information on a dtype pointer distinguishes
     between CONSes and other types (which don't need to be reference
     counted), determining whether a value needs to be reference counted is
     very cheap.
-    
+
     MULTI THREADING: Reference counting is made threadsafe by using global
     mutexes to protect access to the consbits fields.  In order to reduce
     contention, fdb uses a strategy called "hash locking" to regulate
@@ -82,7 +82,7 @@ FD_EXPORT fd_exception fd_MallocFailed;
 FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
 #define FD_GET_CONS(x,typecode,typecast) \
-  ((FD_EXPECT_TRUE(FD_PTR_TYPEP(x,typecode))) ? ((typecast)(FD_CONS_DATA(x))) :	\
+  ((FD_EXPECT_TRUE(FD_PTR_TYPEP(x,typecode))) ? ((typecast)(FD_CONS_DATA(x))) : \
    ((typecast)(u8_seterr(fd_TypeError,fd_type_names[typecode],NULL),NULL)))
 #define FD_STRIP_CONS(x,typecode,typecast) ((typecast)(FD_CONS_DATA(x)))
 #define FD_CHECK_TYPE_THROW(x,typecode) \
@@ -112,9 +112,9 @@ static MAYBE_UNUSED void *fd_ptr2cons(fdtype x,int tc)
 
 #define FD_PTR2CONS(x,typecode,typecast)                                \
   ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) ?                   \
-   ((typecast)(fd_ptr2cons(x,typecode))) :				\
+   ((typecast)(fd_ptr2cons(x,typecode))) :                              \
    ((typecode<0) || (FD_PTR_TYPEP(x,typecode))) ?                       \
-    ((typecast)(FD_CONS_DATA(x))) :					\
+    ((typecast)(FD_CONS_DATA(x))) :                                     \
     ((typecast)(u8_raise(fd_TypeError,type2name(typecode),NULL),        \
                 NULL)))
 
@@ -162,7 +162,7 @@ FD_EXPORT fdtype fd_deep_copy(fdtype x);
 */
 
 #if (!(FD_NO_GC))
-FD_INLINE_FCN fdtype _fd_incref(struct FD_CONS *x) 
+FD_INLINE_FCN fdtype _fd_incref(struct FD_CONS *x)
 {
   FD_LOCK_PTR(x);
   if (FD_CONSBITS(x)>0xFFFFFF80) {
@@ -171,14 +171,14 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_CONS *x)
     return (fdtype)NULL;}
   else if (FD_CONSBITS(x)>=0x80) {
 #ifdef HUGE_REFCOUNT
-    if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT) 
+    if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
       u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
 #endif
     x->consbits=x->consbits+0x80;
     FD_UNLOCK_PTR(x);
     return (fdtype) x;}
   else {
-    FD_UNLOCK_PTR(x);    
+    FD_UNLOCK_PTR(x);
     return fd_copy((fdtype)x);}
 }
 
@@ -256,13 +256,13 @@ FD_EXPORT fdtype fdtype_string(u8_string string);
 
 #define fd_stream2string(stream) \
   ((((stream)->u8_streaminfo)&(U8_STREAM_OWNS_BUF))?                    \
-   (fd_block_string((((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
-		   ((stream)->u8_outbuf))):                             \
-   (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
-		   ((stream)->u8_outbuf))))
+   (fd_block_string((((stream)->u8_outptr)-((stream)->u8_outbuf)),      \
+                   ((stream)->u8_outbuf))):                             \
+   (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),  \
+                   ((stream)->u8_outbuf))))
 #define fd_stream_string(stream) \
-  (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),	\
-		  ((stream)->u8_outbuf)))
+  (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),   \
+                  ((stream)->u8_outbuf)))
 
 #define fd_lispstring(s) fd_init_string(NULL,-1,(s))
 #define fd_unistring(s) fd_conv_string(NULL,-1,(s))
@@ -396,13 +396,13 @@ typedef struct FD_COMPOUND *fd_compound;
   ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->tag)
 #define FD_COMPOUND_DATA(x) \
   ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0)
-#define FD_COMPOUND_TYPEP(x,tag)			\
+#define FD_COMPOUND_TYPEP(x,tag)                        \
   ((FD_PTR_TYPE(x) == fd_compound_type) && (FD_COMPOUND_TAG(x)==tag))
 #define FD_COMPOUND_ELTS(x) \
   (&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0))
 #define FD_COMPOUND_LENGTH(x) \
   (&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->n_elts))
-#define FD_COMPOUND_REF(x,i)						\
+#define FD_COMPOUND_REF(x,i)                                            \
   ((&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0))[i])
 #define FD_XCOMPOUND(x) (FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))
 
@@ -561,7 +561,7 @@ static int cons_compare(fdtype x,fdtype y)
     if (FD_ATOMICP(y))
       if (x < y) return -1;
       else if (x == y)
-	return 0;
+        return 0;
       else return 1;
     else return -1;
   else if (FD_ATOMICP(y))
@@ -571,7 +571,7 @@ static int cons_compare(fdtype x,fdtype y)
     fd_ptr_type ytype=FD_PTR_TYPE(y);
     if (FD_NUMBER_TYPEP(xtype))
       if (FD_NUMBER_TYPEP(ytype))
-	return fd_numcompare(x,y);
+        return fd_numcompare(x,y);
       else return -1;
     else if (FD_NUMBER_TYPEP(ytype))
       return 1;

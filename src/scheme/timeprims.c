@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -101,8 +101,8 @@ static fdtype timestamp_prim(fdtype arg)
   else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
     struct FD_TIMESTAMP *fdt=(struct FD_TIMESTAMP *)arg;
     u8_local_xtime(&(tm->xtime),
-		   fdt->xtime.u8_tick,fdt->xtime.u8_prec,
-		   fdt->xtime.u8_nsecs);
+                   fdt->xtime.u8_tick,fdt->xtime.u8_prec,
+                   fdt->xtime.u8_nsecs);
     return FDTYPE_CONS(tm);}
   else if (FD_BIGINTP(arg)) {
 #if (SIZEOF_TIME_T == 8)
@@ -138,22 +138,22 @@ static fdtype gmtimestamp_prim(fdtype arg)
     else {
       time_t tick=ftm->xtime.u8_tick;
       if (ftm->xtime.u8_prec>u8_second)
-	u8_init_xtime(&(tm->xtime),tick,ftm->xtime.u8_prec,
-		      ftm->xtime.u8_nsecs,0,0);
+        u8_init_xtime(&(tm->xtime),tick,ftm->xtime.u8_prec,
+                      ftm->xtime.u8_nsecs,0,0);
       else u8_init_xtime(&(tm->xtime),tick,ftm->xtime.u8_prec,0,0,0);
       return FDTYPE_CONS(tm);}}
   else if (FD_STRINGP(arg)) {
     u8_string sdata=FD_STRDATA(arg);
     int c=*sdata; time_t moment;
-    if (u8_isdigit(c)) 
+    if (u8_isdigit(c))
       u8_iso8601_to_xtime(sdata,&(tm->xtime));
     else u8_rfc822_to_xtime(sdata,&(tm->xtime));
     moment=u8_mktime(&(tm->xtime));
     if (moment<0) {
       u8_free(tm); return FD_ERROR_VALUE;}
-    if ((tm->xtime.u8_tzoff!=0)||(tm->xtime.u8_dstoff!=0)) 
+    if ((tm->xtime.u8_tzoff!=0)||(tm->xtime.u8_dstoff!=0))
       u8_init_xtime(&(tm->xtime),moment,tm->xtime.u8_prec,
-		    tm->xtime.u8_nsecs,0,0);
+                    tm->xtime.u8_nsecs,0,0);
     return FDTYPE_CONS(tm);}
   else if (FD_SYMBOLP(arg)) {
     enum u8_timestamp_precision prec=get_precision(arg);
@@ -195,13 +195,13 @@ static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
     u8_iso8601_to_xtime(FD_STRDATA(arg),&(tm->xtime)); *freeit=1;
     return tm;}
   else if (FD_FIXNUMP(arg)) {
-    struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP); 
+    struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     u8_now(&(tm->xtime)); *freeit=1;
     u8_xtime_plus(&(tm->xtime),FD_FIX2INT(arg));
     return tm;}
   else if (FD_VOIDP(arg)) {
-    struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP); 
+    struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     u8_now(&(tm->xtime)); *freeit=1;
     return tm;}
@@ -238,7 +238,7 @@ static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
 
 static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
 {
-  int free1=0, free2=0; 
+  int free1=0, free2=0;
   struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
   struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free2);
   if ((t1 == NULL) || (t2 == NULL)) {
@@ -256,7 +256,7 @@ static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
 
 static fdtype timestamp_greater(fdtype timestamp1,fdtype timestamp2)
 {
-  int free1=0; 
+  int free1=0;
   struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
   if (t1==NULL) return FD_ERROR_VALUE;
   else if (FD_VOIDP(timestamp2)) {
@@ -277,7 +277,7 @@ static fdtype timestamp_greater(fdtype timestamp1,fdtype timestamp2)
 
 static fdtype timestamp_lesser(fdtype timestamp1,fdtype timestamp2)
 {
-  int free1=0; 
+  int free1=0;
   struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
   if (t1==NULL) return FD_ERROR_VALUE;
   else if (FD_VOIDP(timestamp2)) {
@@ -353,27 +353,27 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       return FD_INT2DTYPE(xt->u8_year);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
-  else if (FD_EQ(slotid,fullstring_symbol)) 
-    if (xt->u8_prec>=u8_day) 
+  else if (FD_EQ(slotid,fullstring_symbol))
+    if (xt->u8_prec>=u8_day)
       return use_strftime("%A %d %B %Y %r %Z",xt);
     else if (xt->u8_prec==u8_day)
       return use_strftime("%A %d %B %Y %Z",xt);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if ((FD_EQ(slotid,iso_symbol)) ||
-	   (FD_EQ(slotid,isostring_symbol)) ||
-	   (FD_EQ(slotid,iso8601_symbol))) {
+           (FD_EQ(slotid,isostring_symbol)) ||
+           (FD_EQ(slotid,iso8601_symbol))) {
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,128);
     u8_xtime_to_iso8601(&out,xt);
     return fd_stream2string(&out);}
   else if (FD_EQ(slotid,isodate_symbol)) {
     struct U8_XTIME newt;
-    struct U8_OUTPUT out; 
+    struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,128);
     memcpy(&newt,xt,sizeof(struct U8_XTIME));
     u8_set_xtime_precision(&newt,u8_day);
@@ -386,7 +386,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     return fd_stream2string(&out);}
   else if (FD_EQ(slotid,isobasicdate_symbol)) {
     struct U8_XTIME newt;
-    struct U8_OUTPUT out; 
+    struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,128);
     memcpy(&newt,xt,sizeof(struct U8_XTIME));
     u8_set_xtime_precision(&newt,u8_day);
@@ -408,7 +408,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     u8_xtime_to_rfc822_x(&out,xt,1,U8_RFC822_NOZONE);
     return fd_stream2string(&out);}
   else if (FD_EQ(slotid,gmt_symbol))
-    if (xt->u8_tzoff==0) 
+    if (xt->u8_tzoff==0)
       return fd_make_timestamp(xt);
     else {
       struct U8_XTIME asgmt;
@@ -419,183 +419,183 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       return FD_BYTE2DTYPE(xt->u8_mon);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,monthid_symbol))
     if (xt->u8_prec>=u8_month)
       if (xt->u8_mon<12)
-	return monthids[xt->u8_mon];
+        return monthids[xt->u8_mon];
       else if (reterr)
-	return fd_err(fd_InvalidTimestamp,"xtime_get",
-		      FD_SYMBOL_NAME(slotid),FD_VOID);
+        return fd_err(fd_InvalidTimestamp,"xtime_get",
+                      FD_SYMBOL_NAME(slotid),FD_VOID);
       else return FD_EMPTY_CHOICE;
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,shortmonth_symbol))
     if (xt->u8_prec>=u8_month)
       return use_strftime("%b",xt);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,longmonth_symbol))
     if (xt->u8_prec>=u8_month)
       return use_strftime("%B",xt);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,dowid_symbol))
     if (xt->u8_prec>u8_month)
       if (xt->u8_wday<7)
-	return dowids[xt->u8_wday];
+        return dowids[xt->u8_wday];
       else if (reterr)
-	return fd_err(fd_InvalidTimestamp,"xtime_get",
-		      FD_SYMBOL_NAME(slotid),FD_VOID);
+        return fd_err(fd_InvalidTimestamp,"xtime_get",
+                      FD_SYMBOL_NAME(slotid),FD_VOID);
       else return FD_EMPTY_CHOICE;
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,shortday_symbol))
     if (xt->u8_prec>u8_month)
       return use_strftime("%a",xt);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,longday_symbol))
     if (xt->u8_prec>u8_month)
       return use_strftime("%A",xt);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,hms_symbol))
     if (xt->u8_prec>=u8_hour)
       return use_strftime("%T",xt);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,timestring_symbol))
     if (xt->u8_prec>=u8_hour)
       return use_strftime("%X",xt);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,string_symbol))
     if (xt->u8_prec>=u8_second)
       return use_strftime("%c",xt);
-	else if (reterr)
-	  return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-			FD_SYMBOL_NAME(slotid),FD_VOID);
+        else if (reterr)
+          return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+                        FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,shortstring_symbol)) {
     u8_byte buf[128]; struct U8_OUTPUT out;
     U8_INIT_FIXED_OUTPUT(&out,128,buf);
     if (xt->u8_prec<u8_hour)
       u8_printf(&out,"%d%s%d",
-		xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
+                xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
     else u8_printf
-	   (&out,"%d%s%d %02d:%02d:%02d%s",
-	    xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
-	    ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
-	    xt->u8_min,xt->u8_sec,
-	    ((xt->u8_hour>=12)?("PM"):("AM")));
+           (&out,"%d%s%d %02d:%02d:%02d%s",
+            xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
+            ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
+            xt->u8_min,xt->u8_sec,
+            ((xt->u8_hour>=12)?("PM"):("AM")));
     return fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_EQ(slotid,short_symbol)) {
     u8_byte buf[128]; struct U8_OUTPUT out;
     U8_INIT_FIXED_OUTPUT(&out,128,buf);
     if (xt->u8_prec<u8_hour)
       u8_printf(&out,"%d%s%d",
-		xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
+                xt->u8_mday,month_names[xt->u8_mon],xt->u8_year);
     else u8_printf
-	   (&out,"%d%s%d %02d:%02d%s",
-	    xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
-	    ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
-	    xt->u8_min,((xt->u8_hour>=12)?("PM"):("AM")));
+           (&out,"%d%s%d %02d:%02d%s",
+            xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
+            ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
+            xt->u8_min,((xt->u8_hour>=12)?("PM"):("AM")));
     return fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_EQ(slotid,datestring_symbol))
     if (xt->u8_prec>=u8_hour)
       return use_strftime("%x",xt);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,dmy_symbol))
     if (xt->u8_prec>=u8_day) {
       if (xt->u8_mon<12) {
-	char buf[64];
-	sprintf(buf,"%d%s%04d",xt->u8_mday,
-		month_names[xt->u8_mon],xt->u8_year);
-	return fd_make_string(NULL,-1,buf);}
+        char buf[64];
+        sprintf(buf,"%d%s%04d",xt->u8_mday,
+                month_names[xt->u8_mon],xt->u8_year);
+        return fd_make_string(NULL,-1,buf);}
       else if (reterr)
-	return fd_err(fd_InvalidTimestamp,"xtime_get",
-		      FD_SYMBOL_NAME(slotid),FD_VOID);
+        return fd_err(fd_InvalidTimestamp,"xtime_get",
+                      FD_SYMBOL_NAME(slotid),FD_VOID);
       else return FD_EMPTY_CHOICE;}
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,dm_symbol))
     if (xt->u8_prec>=u8_day)
       if (xt->u8_mon<12) {
-	char buf[64];
-	sprintf(buf,"%d%s",xt->u8_mday,month_names[xt->u8_mon]);
-	return fd_make_string(NULL,-1,buf);}
+        char buf[64];
+        sprintf(buf,"%d%s",xt->u8_mday,month_names[xt->u8_mon]);
+        return fd_make_string(NULL,-1,buf);}
       else if (reterr)
-	return fd_err(fd_InvalidTimestamp,"xtime_get",
-		      FD_SYMBOL_NAME(slotid),FD_VOID);
+        return fd_err(fd_InvalidTimestamp,"xtime_get",
+                      FD_SYMBOL_NAME(slotid),FD_VOID);
       else return FD_EMPTY_CHOICE;
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,my_symbol))
     if (xt->u8_prec>=u8_month)
       if (xt->u8_mon<12) {
-	char buf[64];
-	sprintf(buf,"%s%d",month_names[xt->u8_mon],xt->u8_year);
-	return fd_make_string(NULL,-1,buf);}
+        char buf[64];
+        sprintf(buf,"%s%d",month_names[xt->u8_mon],xt->u8_year);
+        return fd_make_string(NULL,-1,buf);}
       else if (reterr)
-	return fd_err(fd_InvalidTimestamp,"xtime_get",
-		      FD_SYMBOL_NAME(slotid),FD_VOID);
+        return fd_err(fd_InvalidTimestamp,"xtime_get",
+                      FD_SYMBOL_NAME(slotid),FD_VOID);
       else return FD_EMPTY_CHOICE;
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,date_symbol))
     if (xt->u8_prec>=u8_day)
       return FD_BYTE2DTYPE(xt->u8_mday);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,hours_symbol))
     if (xt->u8_prec>=u8_hour)
       return FD_BYTE2DTYPE(xt->u8_hour);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,minutes_symbol))
     if (xt->u8_prec>=u8_minute)
       return FD_BYTE2DTYPE(xt->u8_min);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,seconds_symbol))
     if (xt->u8_prec>=u8_second)
       return FD_BYTE2DTYPE(xt->u8_sec);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,tzoff_symbol))
     return FD_SHORT2DTYPE(xt->u8_tzoff);
@@ -609,7 +609,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       return FD_INT2DTYPE((long)tick);}
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,prim_tick_symbol)) {
     time_t tick=xt->u8_tick;
@@ -620,24 +620,24 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       return fd_init_double(NULL,dsecs+(dnsecs/1000000000.0));}
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if ((FD_EQ(slotid,nanoseconds_symbol)) ||
-	   (FD_EQ(slotid,microseconds_symbol)) ||
-	   (FD_EQ(slotid,milliseconds_symbol)))
+           (FD_EQ(slotid,microseconds_symbol)) ||
+           (FD_EQ(slotid,milliseconds_symbol)))
     if (xt->u8_prec>=u8_second) {
       unsigned int nsecs=xt->u8_nsecs;
       if (FD_EQ(slotid,nanoseconds_symbol))
-	return FD_INT2DTYPE(nsecs);
+        return FD_INT2DTYPE(nsecs);
       else {
-	unsigned int reduce=
-	  ((FD_EQ(slotid,microseconds_symbol)) ? (1000) :(1000000));
-	unsigned int half_reduce=reduce/2;
-	unsigned int retval=((nsecs/reduce)+((nsecs%reduce)>=half_reduce));
-	return FD_INT2DTYPE(retval);}}
+        unsigned int reduce=
+          ((FD_EQ(slotid,microseconds_symbol)) ? (1000) :(1000000));
+        unsigned int half_reduce=reduce/2;
+        unsigned int retval=((nsecs/reduce)+((nsecs%reduce)>=half_reduce));
+        return FD_INT2DTYPE(retval);}}
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,precision_symbol))
     switch (xt->u8_prec) {
@@ -656,34 +656,34 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
       fdtype results=FD_EMPTY_CHOICE;
       int mon=xt->u8_mon+1;
       if ((mon>=12) || (mon<4)) {
-	FD_ADD_TO_CHOICE(results,winter_symbol);}
+        FD_ADD_TO_CHOICE(results,winter_symbol);}
       if ((mon>=3) && (mon<7)) {
-	FD_ADD_TO_CHOICE(results,spring_symbol);}
+        FD_ADD_TO_CHOICE(results,spring_symbol);}
       if ((mon>5) && (mon<10)) {
-	FD_ADD_TO_CHOICE(results,summer_symbol);}
+        FD_ADD_TO_CHOICE(results,summer_symbol);}
       if ((mon>8) && (mon<12)) {
-	FD_ADD_TO_CHOICE(results,autumn_symbol);}
+        FD_ADD_TO_CHOICE(results,autumn_symbol);}
       return results;}
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,time_of_day_symbol))
     if (xt->u8_prec>=u8_hour) {
       fdtype results=FD_EMPTY_CHOICE;
       int hr=xt->u8_hour;
       if ((hr<5) || (hr>20)) {
-	FD_ADD_TO_CHOICE(results,nighttime_symbol);}
+        FD_ADD_TO_CHOICE(results,nighttime_symbol);}
       if ((hr>5) && (hr<=12)) {
-	FD_ADD_TO_CHOICE(results,morning_symbol);}
+        FD_ADD_TO_CHOICE(results,morning_symbol);}
       if ((hr>=12) && (hr<19)) {
-	FD_ADD_TO_CHOICE(results,afternoon_symbol);}
+        FD_ADD_TO_CHOICE(results,afternoon_symbol);}
       if ((hr>16) && (hr<22)) {
-	FD_ADD_TO_CHOICE(results,evening_symbol);}
+        FD_ADD_TO_CHOICE(results,evening_symbol);}
       return results;}
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-		    FD_SYMBOL_NAME(slotid),FD_VOID);
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (reterr)
     return fd_err(fd_NoSuchKey,"timestamp",NULL,slotid);
@@ -694,46 +694,46 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
 {
   time_t tick=xt->u8_tick; int rv=-1;
   if (FD_EQ(slotid,year_symbol))
-    if (FD_FIXNUMP(value)) 
+    if (FD_FIXNUMP(value))
       xt->u8_year=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("year")),value);
   else if (FD_EQ(slotid,month_symbol))
     if ((FD_FIXNUMP(value)) &&
-	(FD_FIX2INT(value)>0) && (FD_FIX2INT(value)<13))
+        (FD_FIX2INT(value)>0) && (FD_FIX2INT(value)<13))
       xt->u8_mon=FD_FIX2INT(value)-1;
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("month")),value);
   else if (FD_EQ(slotid,date_symbol))
     if ((FD_FIXNUMP(value)) &&
-	(FD_FIX2INT(value)>0) && (FD_FIX2INT(value)<32))
+        (FD_FIX2INT(value)>0) && (FD_FIX2INT(value)<32))
       xt->u8_mday=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("date")),value);
   else if (FD_EQ(slotid,hours_symbol))
     if ((FD_FIXNUMP(value)) &&
-	(FD_FIX2INT(value)>=0) && (FD_FIX2INT(value)<32))
+        (FD_FIX2INT(value)>=0) && (FD_FIX2INT(value)<32))
       xt->u8_hour=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("hours")),value);
   else if (FD_EQ(slotid,minutes_symbol))
     if ((FD_FIXNUMP(value)) &&
-	(FD_FIX2INT(value)>=0) && (FD_FIX2INT(value)<60))
+        (FD_FIX2INT(value)>=0) && (FD_FIX2INT(value)<60))
       xt->u8_min=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("minutes")),value);
   else if (FD_EQ(slotid,seconds_symbol))
     if ((FD_FIXNUMP(value)) &&
-	(FD_FIX2INT(value)>=0) && (FD_FIX2INT(value)<60))
+        (FD_FIX2INT(value)>=0) && (FD_FIX2INT(value)<60))
       xt->u8_sec=FD_FIX2INT(value);
     else return fd_reterr(fd_TypeError,"xtime_set",u8_strdup(_("seconds")),value);
   else if (FD_EQ(slotid,gmtoff_symbol)) {
     int gmtoff; if (tzvalueok(value,&gmtoff,"xtime_set/gmtoff")) {
-      u8_tmprec prec=xt->u8_prec; 
-      time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs; 
+      u8_tmprec prec=xt->u8_prec;
+      time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs;
       int dstoff=xt->u8_dstoff;
       u8_init_xtime(xt,tick,prec,nsecs,gmtoff-dstoff,dstoff);
       return 0;}
     else return FD_ERROR_VALUE;}
   else if (FD_EQ(slotid,dstoff_symbol)) {
     int dstoff; if (tzvalueok(value,&dstoff,"xtime_set/dstoff")) {
-      u8_tmprec prec=xt->u8_prec; 
-      time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs; 
+      u8_tmprec prec=xt->u8_prec;
+      time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs;
       int gmtoff=xt->u8_tzoff+xt->u8_dstoff;
       u8_init_xtime(xt,tick,prec,nsecs,gmtoff-dstoff,dstoff);
       return 0;}
@@ -741,7 +741,7 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
   else if (FD_EQ(slotid,tzoff_symbol)) {
     int tzoff; if (tzvalueok(value,&tzoff,"xtime_set/tzoff")) {
       u8_tmprec prec=xt->u8_prec; int dstoff=xt->u8_dstoff;
-      time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs; 
+      time_t tick=xt->u8_tick; int nsecs=xt->u8_nsecs;
       u8_init_xtime(xt,tick,prec,nsecs,tzoff,dstoff);
       return 0;}
     else return FD_ERROR_VALUE;}
@@ -750,7 +750,7 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
       u8_apply_tzspec(xt,FD_STRDATA(value));
       return 0;}
     else return fd_reterr(fd_TypeError,"xtime_set",
-			  u8_strdup(_("timezone string")),value);}
+                          u8_strdup(_("timezone string")),value);}
   rv=u8_mktime(xt);
   if (rv<0) return rv;
   else if (xt->u8_tick==tick) return 0;
@@ -787,21 +787,21 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
   fdtype result;
   if (!(FD_TABLEP(slotmap)))
     return fd_type_error("table","modtime_prim",slotmap);
-  else if (FD_VOIDP(base)) 
+  else if (FD_VOIDP(base))
     result=timestamp_prim(FD_VOID);
-  else if (FD_PTR_TYPEP(base,fd_timestamp_type)) 
-    result=fd_deep_copy(base); 
+  else if (FD_PTR_TYPEP(base,fd_timestamp_type))
+    result=fd_deep_copy(base);
   else result=timestamp_prim(base);
   if (FD_ABORTP(result)) return result;
   else {
     struct U8_XTIME *xt=
       &((FD_GET_CONS(result,fd_timestamp_type,struct FD_TIMESTAMP *))->xtime);
     int tzoff=xt->u8_tzoff;
-    fdtype keys=fd_getkeys(slotmap); 
+    fdtype keys=fd_getkeys(slotmap);
     FD_DO_CHOICES(key,keys) {
       fdtype val=fd_get(slotmap,key,FD_VOID);
       if (xtime_set(xt,key,val)<0) {
-	result=FD_ERROR_VALUE; FD_STOP_DO_CHOICES; break;}
+        result=FD_ERROR_VALUE; FD_STOP_DO_CHOICES; break;}
       else {}}
     if (FD_ABORTP(result)) return result;
     else if (FD_FALSEP(togmt)) {
@@ -812,14 +812,14 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
       time_t moment=u8_mktime(xt);
       u8_init_xtime(xt,moment,xt->u8_prec,xt->u8_nsecs,0,0);
       return result;}}
-}      
+}
 
 static fdtype mktime_lexpr(int n,fdtype *args)
 {
   fdtype base; struct U8_XTIME *xt; int scan=0;
   if (n%2) {
     fdtype spec=args[0]; scan=1;
-    if (FD_PRIM_TYPEP(spec,fd_timestamp_type)) 
+    if (FD_PRIM_TYPEP(spec,fd_timestamp_type))
       base=fd_deep_copy(spec);
     else if ((FD_FIXNUMP(spec))||(FD_BIGINTP(spec))) {
       time_t moment=(time_t)
@@ -844,9 +844,9 @@ static fdtype timestring()
   u8_local_xtime(&onstack,-1,u8_second,0);
   U8_INIT_OUTPUT(&out,16);
   u8_printf(&out,"%02d:%02d:%02d",
-	    onstack.u8_hour,
-	    onstack.u8_min,
-	    onstack.u8_sec);
+            onstack.u8_hour,
+            onstack.u8_min,
+            onstack.u8_sec);
   return fd_stream2string(&out);
 }
 
@@ -883,11 +883,11 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
 {
   struct U8_OUTPUT out;
   int precision=((FD_FIXNUMP(prec_arg)) ? (FD_FIX2INT(prec_arg)) :
-		 (FD_FALSEP(prec_arg)) ? (-1) : (0));
+                 (FD_FALSEP(prec_arg)) ? (-1) : (0));
   int elts=0;
   double seconds;
   int years, months, weeks, days, hours, minutes;
-  if (FD_FIXNUMP(secs)) 
+  if (FD_FIXNUMP(secs))
     seconds=(double)FD_FIX2INT(secs);
   else if (FD_FLONUMP(secs))
     seconds=FD_FLONUM(secs);
@@ -931,9 +931,9 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
   if ((precision>0) && (elts>=precision)) {}
   else if (weeks>0) {
     if (elts>0) u8_puts(&out,", ");
-    if (weeks>1) 
+    if (weeks>1)
       u8_printf(&out,_("%d weeks"),weeks);
-    else if (weeks==1) 
+    else if (weeks==1)
       u8_printf(&out,_("one week"));
     else {}
     elts++;}
@@ -941,9 +941,9 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
   if ((precision>0) && (elts>=precision)) {}
   else if (days>0) {
     if (elts>0) u8_puts(&out,", ");
-    if (days>1) 
+    if (days>1)
       u8_printf(&out,_("%d days"),days);
-    else if (days==1) 
+    else if (days==1)
       u8_printf(&out,_("one day"));
     else {}
     elts++;}
@@ -951,9 +951,9 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
   if ((precision>0) && (elts>=precision)) {}
   else if (hours>0) {
     if (elts>0) u8_puts(&out,", ");
-    if (hours>1) 
+    if (hours>1)
       u8_printf(&out,_("%d hours"),hours);
-    else if (hours==1) 
+    else if (hours==1)
       u8_printf(&out,_("one hour"));
     else {}
     elts++;}
@@ -961,9 +961,9 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
   if ((precision>0) && (elts>=precision)) {}
   else if (minutes>0) {
     if (elts>0) u8_puts(&out,", ");
-    if (minutes>1) 
+    if (minutes>1)
       u8_printf(&out,_("%d minutes"),minutes);
-    else if (minutes==1) 
+    else if (minutes==1)
       u8_printf(&out,_("one minute"));
     else {}
     elts++;}
@@ -971,7 +971,7 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
   if ((precision>0) && (elts>=precision)) {}
   else if (seconds==0) {}
   else if ((precision==0) && (elts>0) &&
-	   (FD_FLONUMP(secs)) && (seconds>1)) {
+           (FD_FLONUMP(secs)) && (seconds>1)) {
     /* This is the case where we round the seconds */
     if (elts>0) u8_puts(&out,", ");
     u8_printf(&out,_("%d seconds"),(int)floor(seconds));}
@@ -1065,7 +1065,7 @@ static fdtype loadavgs_prim()
     return fd_make_nvector(1,fd_make_double(loadavg[0]));
   else if (nsamples==2)
     return fd_make_nvector
-      (2,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]));    
+      (2,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]));
   else if (nsamples==3)
     return fd_make_nvector
       (3,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]),
@@ -1083,7 +1083,7 @@ static fdtype rusage_prim(fdtype field)
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return FD_ERROR_VALUE;
   else if (FD_VOIDP(field)) {
     fdtype result=fd_empty_slotmap();
@@ -1095,21 +1095,21 @@ static fdtype rusage_prim(fdtype field)
     fd_add(result,pid_symbol,FD_INT2DTYPE(pid));
     fd_add(result,ppid_symbol,FD_INT2DTYPE(ppid));
     {
-      double loadavg[3]; int nsamples=getloadavg(loadavg,3); 
+      double loadavg[3]; int nsamples=getloadavg(loadavg,3);
       if (nsamples>0) {
-	fdtype lval=fd_make_double(loadavg[0]), lvec=FD_VOID; 
-	fd_store(result,load_symbol,lval);
-	if (nsamples==1) 
-	  lvec=fd_make_nvector(1,fd_make_double(loadavg[0]));
-	else if (nsamples==2)
-	  lvec=fd_make_nvector(2,fd_make_double(loadavg[0]),
-                               fd_make_double(loadavg[1]));    
-	else lvec=fd_make_nvector
-	       (3,fd_make_double(loadavg[0]),
+        fdtype lval=fd_make_double(loadavg[0]), lvec=FD_VOID;
+        fd_store(result,load_symbol,lval);
+        if (nsamples==1)
+          lvec=fd_make_nvector(1,fd_make_double(loadavg[0]));
+        else if (nsamples==2)
+          lvec=fd_make_nvector(2,fd_make_double(loadavg[0]),
+                               fd_make_double(loadavg[1]));
+        else lvec=fd_make_nvector
+               (3,fd_make_double(loadavg[0]),
                 fd_make_double(loadavg[1]),
-		fd_make_double(loadavg[2]));
-	if (!(FD_VOIDP(lvec))) fd_store(result,loadavg_symbol,lvec);
-	fd_decref(lval); fd_decref(lvec);}}
+                fd_make_double(loadavg[2]));
+        if (!(FD_VOIDP(lvec))) fd_store(result,loadavg_symbol,lvec);
+        fd_decref(lval); fd_decref(lvec);}}
     {
       double elapsed=u8_elapsed_time();
       fdtype tval=fd_init_double(NULL,elapsed);
@@ -1143,19 +1143,19 @@ static fdtype rusage_prim(fdtype field)
   else if (FD_EQ(field,stime_symbol))
     return fd_make_double(u8_dbltime(r.ru_stime));
   else if (FD_EQ(field,load_symbol)) {
-    double loadavg; int nsamples=getloadavg(&loadavg,1); 
+    double loadavg; int nsamples=getloadavg(&loadavg,1);
     if (nsamples>0) return fd_make_double(loadavg);
     else return FD_EMPTY_CHOICE;}
   else if (FD_EQ(field,loadavg_symbol)) {
-    double loadavg[3]; int nsamples=getloadavg(loadavg,3); 
+    double loadavg[3]; int nsamples=getloadavg(loadavg,3);
     if (nsamples>0) {
-      if (nsamples==1) 
-	return fd_make_nvector(1,fd_make_double(loadavg[0]));
+      if (nsamples==1)
+        return fd_make_nvector(1,fd_make_double(loadavg[0]));
       else if (nsamples==2)
-	return fd_make_nvector(2,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]));    
+        return fd_make_nvector(2,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]));
       else return fd_make_nvector
-	     (3,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]),
-	      fd_make_double(loadavg[2]));}
+             (3,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]),
+              fd_make_double(loadavg[2]));}
     else if (FD_EQ(field,pid_symbol))
       return FD_INT2DTYPE((unsigned long)(getpid()));
     else if (FD_EQ(field,ppid_symbol))
@@ -1185,20 +1185,20 @@ static fdtype usertime_prim()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return FD_ERROR_VALUE;
   else return fd_init_double
-	 (NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
+         (NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
 }
 
 static fdtype systime_prim()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return FD_ERROR_VALUE;
   else return fd_init_double
-	 (NULL,(r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0));
+         (NULL,(r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0));
 }
 
 static fdtype cpusage_prim(fdtype arg)
@@ -1208,21 +1208,21 @@ static fdtype cpusage_prim(fdtype arg)
   else {
     struct rusage r;
     memset(&r,0,sizeof(r));
-    if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+    if (u8_getrusage(RUSAGE_SELF,&r)<0)
       return FD_ERROR_VALUE;
     else {
       fdtype prelapsed=fd_get(arg,clock_symbol,FD_VOID);
       fdtype prestime=fd_get(arg,stime_symbol,FD_VOID);
       fdtype preutime=fd_get(arg,utime_symbol,FD_VOID);
       if ((FD_FLONUMP(prelapsed)) &&
-	  (FD_FLONUMP(prestime)) &&
-	  (FD_FLONUMP(preutime))) {
-	double elapsed=
-	  (u8_elapsed_time()-FD_FLONUM(prelapsed))*1000000.0;
-	double stime=(u8_dbltime(r.ru_stime)-FD_FLONUM(prestime));
-	double utime=u8_dbltime(r.ru_utime)-FD_FLONUM(preutime);
-	double cpusage=(stime+utime)*100.0/elapsed;
-	return fd_init_double(NULL,cpusage);}
+          (FD_FLONUMP(prestime)) &&
+          (FD_FLONUMP(preutime))) {
+        double elapsed=
+          (u8_elapsed_time()-FD_FLONUM(prelapsed))*1000000.0;
+        double stime=(u8_dbltime(r.ru_stime)-FD_FLONUM(prestime));
+        double utime=u8_dbltime(r.ru_utime)-FD_FLONUM(preutime);
+        double cpusage=(stime+utime)*100.0/elapsed;
+        return fd_init_double(NULL,cpusage);}
       else return fd_type_error(_("rusage"),"getcpusage",arg);}}
 }
 
@@ -1276,7 +1276,7 @@ static double utime_sensor()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return 0.0;
   else return r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0;
 }
@@ -1284,7 +1284,7 @@ static double stime_sensor()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return 0.0;
   else return r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0;
 }
@@ -1293,7 +1293,7 @@ static long inblock_sensor()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return 0;
   else return r.ru_inblock;
 }
@@ -1301,7 +1301,7 @@ static long outblock_sensor()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return 0;
   else return r.ru_oublock;
 }
@@ -1311,7 +1311,7 @@ static long majflt_sensor()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return 0;
   else return r.ru_majflt;
 }
@@ -1319,7 +1319,7 @@ static long nswaps_sensor()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return 0;
   else return r.ru_nswap;
 }
@@ -1329,7 +1329,7 @@ static long cxtswitch_sensor()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return 0;
   else return r.ru_nvcsw+r.ru_nivcsw;
 }
@@ -1337,7 +1337,7 @@ static long vcxtswitch_sensor()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return 0;
   else return r.ru_nvcsw;
 }
@@ -1345,7 +1345,7 @@ static long ivcxtswitch_sensor()
 {
   struct rusage r;
   memset(&r,0,sizeof(r));
-  if (u8_getrusage(RUSAGE_SELF,&r)<0) 
+  if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return 0;
   else return r.ru_nivcsw;
 }
@@ -1368,7 +1368,7 @@ static fdtype calltrack_sensors()
 static fdtype calltrack_sense(fdtype all)
 {
 #if FD_CALLTRACK_ENABLED
-  if (FD_FALSEP(all)) 
+  if (FD_FALSEP(all))
     return fd_calltrack_sense(0);
   else return fd_calltrack_sense(1);
 #else
@@ -1394,12 +1394,12 @@ static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
       u8_string start=FD_STRDATA(nodeid);
       FD_INIT_CONS(uuid,fd_uuid_type);
       if ((start[0]==':')&&(start[1]=='#')&&
-	  (start[2]=='U')&&(isxdigit(start[3])))
-	start=start+3;
+          (start[2]=='U')&&(isxdigit(start[3])))
+        start=start+3;
       else if ((start[0]=='#')&&(start[1]=='U')&&(isxdigit(start[2])))
-	start=start+2;
+        start=start+2;
       else if ((start[0]=='U')&&(isxdigit(start[1])))
-	start=start+1;
+        start=start+1;
       else if (isxdigit(start[0])) {}
       else return fd_type_error("UUID string","getuuid_prim",nodeid);
       u8_parseuuid(start,(u8_uuid)&(uuid->uuid));
@@ -1532,7 +1532,7 @@ FD_EXPORT void fd_init_timeprims_c()
   FD_ADD_TO_CHOICE(xtime_keys,dstoff_symbol);
   gmtoff_symbol=fd_intern("GMTOFF");
   FD_ADD_TO_CHOICE(xtime_keys,gmtoff_symbol);
-  
+
   milliseconds_symbol=fd_intern("MILLISECONDS");
   FD_ADD_TO_CHOICE(xtime_keys,milliseconds_symbol);
   microseconds_symbol=fd_intern("MICROSECONDS");
@@ -1543,7 +1543,7 @@ FD_EXPORT void fd_init_timeprims_c()
   FD_ADD_TO_CHOICE(xtime_keys,picoseconds_symbol);
   femtoseconds_symbol=fd_intern("FEMTOSECONDS");
   FD_ADD_TO_CHOICE(xtime_keys,femtoseconds_symbol);
-  
+
   tick_symbol=fd_intern("TICK");
   FD_ADD_TO_CHOICE(xtime_keys,tick_symbol);
   prim_tick_symbol=fd_intern("%TICK");
@@ -1568,7 +1568,7 @@ FD_EXPORT void fd_init_timeprims_c()
   FD_ADD_TO_CHOICE(xtime_keys,rfc822x_symbol);
   localstring_symbol=fd_intern("LOCALSTRING");
   FD_ADD_TO_CHOICE(xtime_keys,localstring_symbol);
-  
+
   time_of_day_symbol=fd_intern("TIME-OF-DAY");
   FD_ADD_TO_CHOICE(xtime_keys,time_of_day_symbol);
   morning_symbol=fd_intern("MORNING");
@@ -1611,15 +1611,15 @@ FD_EXPORT void fd_init_timeprims_c()
   FD_ADD_TO_CHOICE(xtime_keys,datestring_symbol);
   fullstring_symbol=fd_intern("FULLSTRING");
   FD_ADD_TO_CHOICE(xtime_keys,fullstring_symbol);
-  
+
   dowid_symbol=fd_intern("DOWID");
   FD_ADD_TO_CHOICE(xtime_keys,dowid_symbol);
   monthid_symbol=fd_intern("MONTHID");
   FD_ADD_TO_CHOICE(xtime_keys,monthid_symbol);
-  
+
   timezone_symbol=fd_intern("TIMEZONE");
   FD_ADD_TO_CHOICE(xtime_keys,timezone_symbol);
-  
+
   gmt_symbol=fd_intern("GMT");
 
   data_symbol=fd_intern("DATA");
@@ -1664,30 +1664,30 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("UUID?",uuidp_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim2("GETUUID",getuuid_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("UUID-TIME",uuidtime_prim,1,
-					    fd_uuid_type,FD_VOID));
+                                            fd_uuid_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("UUID-NODE",uuidnode_prim,1,
-					    fd_uuid_type,FD_VOID));
+                                            fd_uuid_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("UUID->STRING",uuidstring_prim,1,
-					    fd_uuid_type,FD_VOID));
+                                            fd_uuid_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1x("UUID->PACKET",uuidpacket_prim,1,
-					    fd_uuid_type,FD_VOID));
+                                            fd_uuid_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("SECS->STRING",secs2string,1,
-			   -1,FD_VOID,-1,FD_FALSE));
+           fd_make_cprim2x("SECS->STRING",secs2string,1,
+                           -1,FD_VOID,-1,FD_FALSE));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETHOSTNAME",hostname_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HOSTADDRS",hostaddrs_prim,0));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("GETENV",getenv_prim,1,
-			   fd_string_type,FD_VOID));
-  
+           fd_make_cprim1x("GETENV",getenv_prim,1,
+                           fd_string_type,FD_VOID));
+
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("USERTIME",usertime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("SYSTIME",systime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CPUSAGE",cpusage_prim,0));
-  
+
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETLOAD",loadavg_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("LOADAVG",loadavgs_prim,0));
 

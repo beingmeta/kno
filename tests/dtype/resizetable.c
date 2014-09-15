@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2014 beingmeta, inc.
-   This file is part of beingmeta's FramerD platform and is copyright 
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -37,29 +37,29 @@ static void report_on_hashtable(fdtype ht)
 {
   int n_slots, n_keys, n_buckets, n_collisions, max_bucket, n_vals, max_vals;
   fd_hashtable_stats(FD_GET_CONS(ht,fd_hashtable_type,struct FD_HASHTABLE *),
-		     &n_slots,&n_keys,&n_buckets,&n_collisions,&max_bucket,
-		     &n_vals,&max_vals);
+                     &n_slots,&n_keys,&n_buckets,&n_collisions,&max_bucket,
+                     &n_vals,&max_vals);
   fprintf(stderr,"Table distributes %d keys over %d slots in %d buckets\n",
-	  n_keys,n_slots,n_buckets);
+          n_keys,n_slots,n_buckets);
   fprintf(stderr,"%d collisions, averaging %f keys per bucket (max=%d)\n",
-	  n_collisions,((1.0*n_keys)/n_buckets),max_bucket);
+          n_collisions,((1.0*n_keys)/n_buckets),max_bucket);
   fprintf(stderr,
-	  "The keys refer to %d values all together (mean=%f,max=%d)\n",
-	  n_vals,((1.0*n_vals)/n_keys),max_vals);
+          "The keys refer to %d values all together (mean=%f,max=%d)\n",
+          n_vals,((1.0*n_vals)/n_keys),max_vals);
 }
 
 static void check_consistency
   (unsigned int *buf,struct FD_HASHENTRY **slots,int n_slots)
 {
-  int i=0; while (i < n_slots) 
+  int i=0; while (i < n_slots)
     if (((buf[i]==0) && (slots[i] == NULL)) ||
-	((buf[i]) && (slots[i]) &&
-	 (slots[i]->n_keyvals==buf[i])) )
+        ((buf[i]) && (slots[i]) &&
+         (slots[i]->n_keyvals==buf[i])) )
       i++;
     else {
       int real_values=((slots[i]==NULL) ? 0 : (slots[i]->n_keyvals));
       fprintf(stderr,"Trouble in slot %d, %ud differs from %ud\n",
-	      i,buf[i],real_values);
+              i,buf[i],real_values);
       i++;}
 }
 
@@ -95,44 +95,44 @@ int main(int argc,char **argv)
     FD_DO_CHOICES(key,keys) {
       int hash=fd_hash_lisp(key);
       if (FDTYPE_EQUAL(key,watch_for))
-	fprintf(stderr,"Hashing key\n");
+        fprintf(stderr,"Hashing key\n");
       if (hash==0)
-	fprintf(stderr,"Warning: zero hash value\n");
+        fprintf(stderr,"Warning: zero hash value\n");
       hashv[i++]=hash;}
     fprintf(stderr,"Initialized hash values for %d keys\n",
-	    FD_CHOICE_SIZE(keys));}
+            FD_CHOICE_SIZE(keys));}
   {
     unsigned int n_buckets, max_bucket, n_collisions;
     fd_hash_quality(hashv,n_keys,n_slots,
-		    tmpbuf,tmpbuf_size,
-		    &n_buckets,&max_bucket,&n_collisions);
+                    tmpbuf,tmpbuf_size,
+                    &n_buckets,&max_bucket,&n_collisions);
     fprintf(stderr,
-	    "With %d slots, %f keys per bucket (max=%d), %d buckets, %d collisions\n",
-	    n_slots,((double)(1.0*n_keys))/n_buckets,
-	    max_bucket,n_buckets,n_collisions);
+            "With %d slots, %f keys per bucket (max=%d), %d buckets, %d collisions\n",
+            n_slots,((double)(1.0*n_keys))/n_buckets,
+            max_bucket,n_buckets,n_collisions);
     check_consistency(tmpbuf,FD_XHASHTABLE(ht)->slots,n_slots);
     best_size=n_slots; best_buckets=n_buckets;}
   {
     unsigned int n_buckets, max_bucket, n_collisions;
     fd_hash_quality(hashv,n_keys,n_keys,
-		    tmpbuf,tmpbuf_size,
-		    &n_buckets,&max_bucket,&n_collisions);
+                    tmpbuf,tmpbuf_size,
+                    &n_buckets,&max_bucket,&n_collisions);
     fprintf(stderr,
-	    "With %d slots, %f keys per bucket (max=%d), %d buckets, %d collisions\n",
-	    n_keys,((double)(1.0*n_keys))/n_buckets,
-	    max_bucket,n_buckets,n_collisions);
+            "With %d slots, %f keys per bucket (max=%d), %d buckets, %d collisions\n",
+            n_keys,((double)(1.0*n_keys))/n_buckets,
+            max_bucket,n_buckets,n_collisions);
     if (n_buckets<best_buckets) {
       best_size=n_keys; best_buckets=n_buckets;}}
   i=0; while (i < n_tries) {
     unsigned int trial_slots=read_size_from_stdin();
     unsigned int n_buckets, max_bucket, n_collisions;
     fd_hash_quality(hashv,n_keys,trial_slots,
-		    tmpbuf,tmpbuf_size,
-		    &n_buckets,&max_bucket,&n_collisions);
+                    tmpbuf,tmpbuf_size,
+                    &n_buckets,&max_bucket,&n_collisions);
     fprintf(stderr,
-	    "With %d slots, %f keys per bucket (max=%d), %d buckets, %d collisions\n",
-	    trial_slots,((double)(1.0*n_keys))/n_buckets,
-	    max_bucket,n_buckets,n_collisions);
+            "With %d slots, %f keys per bucket (max=%d), %d buckets, %d collisions\n",
+            trial_slots,((double)(1.0*n_keys))/n_buckets,
+            max_bucket,n_buckets,n_collisions);
     if (n_buckets<best_buckets) {
       best_size=trial_slots; best_buckets=n_buckets;}
     i++;}

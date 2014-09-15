@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2013 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright 
+   This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -22,7 +22,7 @@ typedef struct FD_CONFIG_HANDLER {
   int (*config_set_method)(fdtype var,fdtype val,void *data);
   struct FD_CONFIG_HANDLER *next;} FD_CONFIG_HANDLER;
 typedef struct FD_CONFIG_HANDLER *fd_config_handler;
-  
+
 typedef struct FD_CONFIG_LOOKUPS {
   fdtype (*fdcfg_lookup)(fdtype var,void *data);
   void *fdcfg_lookup_data;
