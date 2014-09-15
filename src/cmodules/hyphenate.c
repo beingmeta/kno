@@ -253,7 +253,8 @@ FD_EXPORT int fd_init_hyphenate()
       default_dict=hnj_hyphen_load(dictfile);
     else u8_log(LOG_CRIT,fd_FileNotFound,
                 "Hyphenation dictionary %s does not exist!",
-                dictfile);}
+                dictfile);
+    u8_free(dictfile);}
 
   hyphenate_module=fd_new_module("HYPHENATE",(FD_MODULE_SAFE));
 
