@@ -159,8 +159,8 @@ static fdtype string_compoundp(fdtype string)
       u8_byte *lim=scan+FD_STRLEN(string);
       int c=u8_sgetc(&scan);
       while ((c>=0) && (scan<lim))
-	if (u8_isspace(c)) return FD_TRUE;
-	else c=u8_sgetc(&scan);
+        if (u8_isspace(c)) return FD_TRUE;
+        else c=u8_sgetc(&scan);
       return FD_FALSE;}}
   else return FD_FALSE;
 }
@@ -176,7 +176,7 @@ static fdtype string_phrase_length(fdtype string)
   while ((c>=0) && (scan<lim))
     if (u8_isspace(c)) {
       len++; while ((u8_isspace(c)) && (c>=0) && (scan<lim)) {
-	c=u8_sgetc(&scan);}
+        c=u8_sgetc(&scan);}
       continue;}
     else c=u8_sgetc(&scan);
   return FD_INT2DTYPE(len+1);
@@ -361,8 +361,8 @@ static fdtype string_stdspace(fdtype string,fdtype keep_vertical_arg)
     if ((keep_vertical) && ((c=='\n') && (*scan=='\n'))) {
       u8_putc(&out,c); u8_putc(&out,c); scan++; white=1;}
     else if ((keep_vertical) &&
-	     ((c==0xB6) || (c==0x0700) ||(c==0x10FB) ||
-	      (c==0x1368) || (c==0x2029))) {
+             ((c==0xB6) || (c==0x0700) ||(c==0x10FB) ||
+              (c==0x1368) || (c==0x2029))) {
       u8_putc(&out,c); white=1;}
     else if (u8_isspace(c))
       if (white) {}
@@ -383,13 +383,13 @@ static fdtype string_stdstring(fdtype string)
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
       if (u8_isspace(c))
-	if (white) {}
-	else {u8_putc(&out,' '); white=1;}
+        if (white) {}
+        else {u8_putc(&out,' '); white=1;}
       else if (u8_ismodifier(c)) white=0;
       else {
-	int bc=u8_base_char(c);
-	bc=u8_tolower(bc); white=0;
-	u8_putc(&out,bc);}}
+        int bc=u8_base_char(c);
+        bc=u8_tolower(bc); white=0;
+        u8_putc(&out,bc);}}
     if (out.u8_outptr==out.u8_outbuf) {
       u8_free(out.u8_outbuf);
       return fdtype_string("");}
@@ -711,8 +711,8 @@ static fdtype has_suffix_test(fdtype string,fdtype suffix)
     u8_string string_data=FD_STRING_DATA(string);
     u8_string suffix_data=FD_STRING_DATA(suffix);
     if (strncmp(string_data+(string_len-suffix_len),
-		suffix_data,
-		suffix_len) == 0)
+                suffix_data,
+                suffix_len) == 0)
       return FD_TRUE;
     else return FD_FALSE;}
 }
@@ -734,25 +734,25 @@ static fdtype has_suffix(fdtype string,fdtype suffix)
     fdtype result=FD_FALSE;
     FD_DO_CHOICES(s,string) {
       FD_DO_CHOICES(sx,suffix) {
-	result=has_suffix_test(s,sx);
-	if (FD_TRUEP(result)) {
-	  FD_STOP_DO_CHOICES; break;}}
+        result=has_suffix_test(s,sx);
+        if (FD_TRUEP(result)) {
+          FD_STOP_DO_CHOICES; break;}}
       if (FD_TRUEP(result)) {
-	FD_STOP_DO_CHOICES; break;}}
+        FD_STOP_DO_CHOICES; break;}}
     return result;}
   else if (FD_CHOICEP(string)) {
     FD_DO_CHOICES(s,string) {
       fdtype result=has_suffix_test(s,suffix);
       if (FD_TRUEP(result)) {
-	FD_STOP_DO_CHOICES;
-	return result;}}
+        FD_STOP_DO_CHOICES;
+        return result;}}
     return FD_FALSE;}
   else if (FD_CHOICEP(suffix)) {
     FD_DO_CHOICES(sx,suffix) {
       fdtype result=has_suffix_test(string,sx);
       if (FD_TRUEP(result)) {
-	FD_STOP_DO_CHOICES;
-	return result;}}
+        FD_STOP_DO_CHOICES;
+        return result;}}
     return FD_FALSE;}
   else return FD_FALSE;
 }
@@ -789,25 +789,25 @@ static fdtype has_prefix(fdtype string,fdtype prefix)
     fdtype result=FD_FALSE;
     FD_DO_CHOICES(s,string) {
       FD_DO_CHOICES(p,prefix) {
-	result=has_prefix_test(s,p);
-	if (FD_TRUEP(result)) {
-	  FD_STOP_DO_CHOICES; break;}}
+        result=has_prefix_test(s,p);
+        if (FD_TRUEP(result)) {
+          FD_STOP_DO_CHOICES; break;}}
       if (FD_TRUEP(result)) {
-	FD_STOP_DO_CHOICES; break;}}
+        FD_STOP_DO_CHOICES; break;}}
     return result;}
   else if (FD_CHOICEP(string)) {
     FD_DO_CHOICES(s,string) {
       fdtype result=has_prefix_test(s,prefix);
       if (FD_TRUEP(result)) {
-	FD_STOP_DO_CHOICES;
-	return result;}}
+        FD_STOP_DO_CHOICES;
+        return result;}}
     return FD_FALSE;}
   else if (FD_CHOICEP(prefix)) {
     FD_DO_CHOICES(p,prefix) {
       fdtype result=has_prefix_test(string,p);
       if (FD_TRUEP(result)) {
-	FD_STOP_DO_CHOICES;
-	return result;}}
+        FD_STOP_DO_CHOICES;
+        return result;}}
     return FD_FALSE;}
   else return FD_FALSE;
 }
@@ -946,7 +946,7 @@ static fdtype fixnuls(fdtype string)
     U8_INIT_OUTPUT(&out,ss->length+8);
     while (scan<limit) {
       if (*scan)
-	u8_putc(&out,u8_sgetc(&scan));
+        u8_putc(&out,u8_sgetc(&scan));
       else u8_putc(&out,0);}
     return fd_stream2string(&out);}
   else return fd_incref(string);
@@ -965,13 +965,13 @@ static fdtype string_subst_prim(fdtype string,fdtype substring,fdtype with)
     u8_string replace=FD_STRDATA(with);
     int searchlen=FD_STRING_LENGTH(substring);
     int startlen=((FD_STRLEN(with)<=FD_STRLEN(substring))?
-		  (FD_STRLEN(string)+17):(FD_STRLEN(string)*2));
+                  (FD_STRLEN(string)+17):(FD_STRLEN(string)*2));
     u8_string point=strstr(original,search);
     if (point) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,startlen);
       u8_string last=original; while (point) {
-	u8_putn(&out,last,point-last); u8_puts(&out,replace);
-	last=point+searchlen; point=strstr(last,search);}
+        u8_putn(&out,last,point-last); u8_puts(&out,replace);
+        last=point+searchlen; point=strstr(last,search);}
       u8_puts(&out,last);
       return fd_stream2string(&out);}
     else return fd_incref(string);}
@@ -1009,8 +1009,8 @@ static fdtype trim_spaces(fdtype string)
   while (scan>=trim_start) {
     u8_byte *cstart=scan; int c;
     while ((cstart>=trim_start) &&
-	   ((*cstart)>=0x80) &&
-	   ((*cstart)<0xC0)) cstart--;
+           ((*cstart)>=0x80) &&
+           ((*cstart)<0xC0)) cstart--;
     if (cstart<trim_start) break;
     scan=cstart;
     c=u8_sgetc(&scan);
@@ -1055,12 +1055,12 @@ static fdtype glom_lexpr(int n,fdtype *args)
       strings[i]=FD_PACKET_DATA(args[i]);
       lengths[i]=FD_PACKET_LENGTH(args[i]);
       if (FD_PRIM_TYPEP(args[i],fd_secret_type))
-	result_type=fd_secret_type;
+        result_type=fd_secret_type;
       else if (result_type!=fd_secret_type)
-	result_type=fd_packet_type;
+        result_type=fd_packet_type;
       consed[i++]=0;}
     else if ((FD_FALSEP(args[i]))||(FD_EMPTY_CHOICEP(args[i]))||
-	     (FD_VOIDP(args[i]))) {
+             (FD_VOIDP(args[i]))) {
       if (result_type==0) result_type=fd_string_type;
       strings[i]=NULL; lengths[i]=0; consed[i++]=0;}
     else {
@@ -1092,6 +1092,57 @@ static fdtype glom_lexpr(int n,fdtype *args)
     return result;}
 }
 
+/* Text if */
+
+static fdtype textif_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype test_expr=fd_get_arg(expr,1), test_val=FD_VOID;
+  if (FD_VOIDP(test_expr))
+    return fd_err(fd_SyntaxError,"textif_handler",NULL,FD_VOID);
+  else test_val=fd_eval(test_expr,env);
+  if (FD_ABORTP(test_val)) return test_val;
+  else if ((FD_FALSEP(test_val))||(FD_EMPTY_CHOICEP(test_val)))
+    return fd_make_string(NULL,0,"");
+  else {
+    fdtype body=fd_get_body(expr,2), len=fd_seq_length(body);
+    fd_decref(test_val);
+    if (len==0) return fd_make_string(NULL,0,NULL);
+    else if (len==1) {
+      fdtype text=fd_eval(fd_get_arg(body,0),env);
+      if (FD_STRINGP(text)) return fd_incref(text);
+      else if ((FD_FALSEP(text))||(FD_EMPTY_CHOICEP(text)))
+        return fd_make_string(NULL,0,"");
+      else {
+        u8_string as_string=fd_dtype2string(text);
+        return fd_init_string(NULL,-1,as_string);}}
+    else {
+      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
+      if (FD_PAIRP(body)) {
+        FD_DOLIST(text_expr,body) {
+          fdtype text=fd_eval(text_expr,env);
+          if (FD_ABORTP(text))
+            return fd_err("Bad text clause","textif_handler",
+                          out.u8_outbuf,text_expr);
+          else if (FD_STRINGP(text))
+            u8_putn(&out,FD_STRDATA(text),FD_STRLEN(text));
+          else fd_unparse(&out,text);
+          fd_decref(text); text=FD_VOID;}}
+      else {
+        int i=0; while (i<len) { 
+          fdtype text_expr=fd_get_arg(body,i++);
+          fdtype text=fd_eval(text_expr,env);
+          if (FD_ABORTP(text))
+            return fd_err("Bad text clause","textif_handler",
+                          out.u8_outbuf,text_expr);
+          else if (FD_STRINGP(text))
+            u8_putn(&out,FD_STRDATA(text),FD_STRLEN(text));
+          else fd_unparse(&out,text);
+          fd_decref(text); text=FD_VOID;}}
+      return fd_block_string(out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    }
+  }
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_strings_c()
@@ -1099,190 +1150,190 @@ FD_EXPORT void fd_init_strings_c()
   u8_register_source_file(_FILEINFO);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("ASCII?",asciip,1,fd_string_type,FD_VOID));
+           fd_make_cprim1x("ASCII?",asciip,1,fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("LATIN1?",latin1p,1,fd_string_type,FD_VOID));
+           fd_make_cprim1x("LATIN1?",latin1p,1,fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("LOWERCASE?",lowercasep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE",downcase,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("CHAR-DOWNCASE",char_downcase,1,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim1x("CHAR-DOWNCASE",char_downcase,1,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("UPPERCASE?",uppercasep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("UPCASE",upcase,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("CHAR-UPCASE",char_upcase,1,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim1x("CHAR-UPCASE",char_upcase,1,
+                           fd_character_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STRING=?",string_eq,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("STRING=?",string_eq,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STRING-CI=?",string_ci_eq,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("STRING-CI=?",string_ci_eq,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STRING<?",string_lt,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("STRING<?",string_lt,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STRING-CI<?",string_ci_lt,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("STRING-CI<?",string_ci_lt,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STRING>?",string_gt,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("STRING>?",string_gt,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STRING-CI>?",string_ci_gt,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("STRING-CI>?",string_ci_gt,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STRING>=?",string_gte,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("STRING>=?",string_gte,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STRING-CI>=?",string_ci_gte,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("STRING-CI>=?",string_ci_gte,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STRING<=?",string_lte,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("STRING<=?",string_lte,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STRING-CI<=?",string_ci_lte,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("STRING-CI<=?",string_ci_lte,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("CHAR=?",char_eq,2,
-			   fd_character_type,FD_VOID,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim2x("CHAR=?",char_eq,2,
+                           fd_character_type,FD_VOID,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("CHAR-CI=?",char_ci_eq,2,
-			   fd_character_type,FD_VOID,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim2x("CHAR-CI=?",char_ci_eq,2,
+                           fd_character_type,FD_VOID,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("CHAR<?",char_lt,2,
-			   fd_character_type,FD_VOID,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim2x("CHAR<?",char_lt,2,
+                           fd_character_type,FD_VOID,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("CHAR-CI<?",char_ci_lt,2,
-			   fd_character_type,FD_VOID,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim2x("CHAR-CI<?",char_ci_lt,2,
+                           fd_character_type,FD_VOID,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("CHAR>?",char_gt,2,
-			   fd_character_type,FD_VOID,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim2x("CHAR>?",char_gt,2,
+                           fd_character_type,FD_VOID,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("CHAR-CI>?",char_ci_gt,2,
-			   fd_character_type,FD_VOID,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim2x("CHAR-CI>?",char_ci_gt,2,
+                           fd_character_type,FD_VOID,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("CHAR>=?",char_gte,2,
-			   fd_character_type,FD_VOID,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim2x("CHAR>=?",char_gte,2,
+                           fd_character_type,FD_VOID,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("CHAR-CI>=?",char_ci_gte,2,
-			   fd_character_type,FD_VOID,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim2x("CHAR-CI>=?",char_ci_gte,2,
+                           fd_character_type,FD_VOID,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("CHAR<=?",char_lte,2,
-			   fd_character_type,FD_VOID,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim2x("CHAR<=?",char_lte,2,
+                           fd_character_type,FD_VOID,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("CHAR-CI<=?",char_ci_lte,2,
-			   fd_character_type,FD_VOID,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim2x("CHAR-CI<=?",char_ci_lte,2,
+                           fd_character_type,FD_VOID,
+                           fd_character_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZED?",capitalizedp,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x
-	   ("SOMECAP?",some_capitalizedp,1,
-	    fd_string_type,FD_VOID,
-	    fd_fixnum_type,FD_INT2DTYPE(-1)));
+           fd_make_cprim2x
+           ("SOMECAP?",some_capitalizedp,1,
+            fd_string_type,FD_VOID,
+            fd_fixnum_type,FD_INT2DTYPE(-1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE",capitalize,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE1",capitalize1,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",string_downcase1,1));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("EMPTY-STRING?",
-			   empty_stringp,1,-1,FD_VOID,-1,FD_FALSE));
+           fd_make_cprim2x("EMPTY-STRING?",
+                           empty_stringp,1,-1,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("COMPOUND-STRING?",string_compoundp,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("COMPOUND-STRING?",string_compoundp,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("PHRASE-LENGTH",string_phrase_length,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("PHRASE-LENGTH",string_phrase_length,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("COMPOUND?",string_compoundp,1,-1,FD_VOID));
+           fd_make_cprim1x("COMPOUND?",string_compoundp,1,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("STDSPACE",string_stdspace,1,
-			   fd_string_type,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("STDSPACE",string_stdspace,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("STDCAP",string_stdcap,1,fd_string_type,FD_VOID));
+           fd_make_cprim1x("STDCAP",string_stdcap,1,fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("STDSTRING",string_stdstring,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("STDSTRING",string_stdstring,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("BASESTRING",string_basestring,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("BASESTRING",string_basestring,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("STARTWORD",string_startword,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("STARTWORD",string_startword,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("TRIGRAMS",string_trigrams,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("TRIGRAMS",string_trigrams,1,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("BIGRAMS",string_bigrams,1,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim1x("BIGRAMS",string_bigrams,1,
+                           fd_string_type,FD_VOID));
   
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("CHAR->INTEGER",char2integer,1,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim1x("CHAR->INTEGER",char2integer,1,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("INTEGER->CHAR",integer2char,1,
-			   fd_fixnum_type,FD_VOID));
+           fd_make_cprim1x("INTEGER->CHAR",integer2char,1,
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("CHAR-ALPHABETIC?",char_alphabeticp,1,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim1x("CHAR-ALPHABETIC?",char_alphabeticp,1,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("CHAR-NUMERIC?",char_numericp,1,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim1x("CHAR-NUMERIC?",char_numericp,1,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("CHAR-ALPHANUMERIC?",char_alphanumericp,1,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim1x("CHAR-ALPHANUMERIC?",char_alphanumericp,1,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("CHAR-PUNCTUATION?",char_punctuationp,1,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim1x("CHAR-PUNCTUATION?",char_punctuationp,1,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("CHAR-WHITESPACE?",char_whitespacep,1,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim1x("CHAR-WHITESPACE?",char_whitespacep,1,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("CHAR-UPPER-CASE?",char_upper_casep,1,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim1x("CHAR-UPPER-CASE?",char_upper_casep,1,
+                           fd_character_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("CHAR-LOWER-CASE?",char_lower_casep,1,
-			   fd_character_type,FD_VOID));
+           fd_make_cprim1x("CHAR-LOWER-CASE?",char_lower_casep,1,
+                           fd_character_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim
-	   (fd_make_cprim2x("HAS-PREFIX",has_prefix,2,
-			    -1,FD_VOID,-1,FD_VOID)));
+           fd_make_ndprim
+           (fd_make_cprim2x("HAS-PREFIX",has_prefix,2,
+                            -1,FD_VOID,-1,FD_VOID)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("IS-PREFIX",is_prefix,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("IS-PREFIX",is_prefix,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_ndprim
-	   (fd_make_cprim2x("HAS-SUFFIX",has_suffix,2,
-			    -1,FD_VOID,-1,FD_VOID)));
+           fd_make_ndprim
+           (fd_make_cprim2x("HAS-SUFFIX",has_suffix,2,
+                            -1,FD_VOID,-1,FD_VOID)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("IS-SUFFIX",is_suffix,2,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim2x("IS-SUFFIX",is_suffix,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim4x("YES?",yesp_prim,1,
+           fd_make_cprim4x("YES?",yesp_prim,1,
                            -1,FD_VOID,-1,FD_FALSE,
                            -1,FD_EMPTY_CHOICE,
                            -1,FD_EMPTY_CHOICE));
@@ -1290,32 +1341,33 @@ FD_EXPORT void fd_init_strings_c()
   fd_idefn(fd_scheme_module,fd_make_cprimn("STRING-APPEND",string_append,0));
   fd_idefn(fd_scheme_module,fd_make_cprimn("STRING",string_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim2x("MAKE-STRING",makestring,1,
-					    fd_fixnum_type,FD_VOID,
-					    fd_character_type,FD_CODE2CHAR(32)));
+                                            fd_fixnum_type,FD_VOID,
+                                            fd_character_type,FD_CODE2CHAR(32)));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("STRING-SUBST",string_subst_prim,3,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID,
-			   fd_string_type,FD_VOID));
+           fd_make_cprim3x("STRING-SUBST",string_subst_prim,3,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprimn("STRING-SUBST*",string_subst_star,3));
+           fd_make_cprimn("STRING-SUBST*",string_subst_star,3));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("TRIM-SPACES",trim_spaces,1,fd_string_type,FD_VOID));
+           fd_make_cprim1x("TRIM-SPACES",trim_spaces,1,fd_string_type,FD_VOID));
   
   fd_idefn(fd_scheme_module,fd_make_cprimn("GLOM",glom_lexpr,1));
+  fd_defspecial(fd_scheme_module,"TEXTIF",textif_handler);
 
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim3x("STRING->PACKET",string2packet,1,
-			   fd_string_type,FD_VOID,
-			   -1,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim3x("STRING->PACKET",string2packet,1,
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim2x("PACKET->STRING",packet2string,1,
-			   fd_packet_type,FD_VOID,
-			   -1,FD_VOID));
+           fd_make_cprim2x("PACKET->STRING",packet2string,1,
+                           fd_packet_type,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(fd_scheme_module,fd_make_cprim1("->SECRET",x2secret_prim,1));
   fd_idefn(fd_scheme_module,
-	   fd_make_cprim1x("FIXNULS",fixnuls,1,fd_string_type,FD_VOID));
+           fd_make_cprim1x("FIXNULS",fixnuls,1,fd_string_type,FD_VOID));
 
   entity_escape=fd_intern("ENTITIES");
 

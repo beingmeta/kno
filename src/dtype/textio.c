@@ -73,9 +73,9 @@ static int skip_whitespace(u8_input s)
     else if ((c=='#') && (u8_probec(s)=='|')) {
       int bar=0; c=u8_getc(s); 
       while ((c=u8_getc(s))>=0)
-	if (c=='|') bar=1;
-	else if ((bar) && (c=='#')) break;
-	else bar=0;
+        if (c=='|') bar=1;
+        else if ((bar) && (c=='#')) break;
+        else bar=0;
       if (c=='#') c=u8_getc(s);}
     else break;}
   if (c<0) return c;
@@ -126,7 +126,7 @@ static int emit_symbol_name(U8_OUTPUT *out,u8_string name)
   int c=u8_sgetc(&scan), needs_protection=0;
   while (c>=0) 
     if ((atombreakp(c)) ||
-	((u8_islower(c)) && ((u8_toupper(c))!=c))) {
+        ((u8_islower(c)) && ((u8_toupper(c))!=c))) {
       needs_protection=1; break;}
     else c=u8_sgetc(&scan);
   if (needs_protection==0) u8_puts(out,name);
@@ -135,14 +135,14 @@ static int emit_symbol_name(U8_OUTPUT *out,u8_string name)
     u8_putc(out,'|');
     while (*scan) 
       if ((*scan == '\\') || (*scan == '|')) {
-	u8_putn(out,start,scan-start);
-	u8_putc(out,'\\'); u8_putc(out,*scan);
-	scan++; start=scan;}
+        u8_putn(out,start,scan-start);
+        u8_putc(out,'\\'); u8_putc(out,*scan);
+        scan++; start=scan;}
       else if (iscntrl(*scan)) {
-	char buf[32];
-	u8_putn(out,start,scan-start);
-	sprintf(buf,"\\%03o",*scan); u8_puts(out,buf);
-	scan++; start=scan;}
+        char buf[32];
+        u8_putn(out,start,scan-start);
+        sprintf(buf,"\\%03o",*scan); u8_puts(out,buf);
+        scan++; start=scan;}
       else scan++;
     u8_puts(out,start);
     u8_putc(out,'|');}
@@ -171,13 +171,13 @@ static int unparse_string(U8_OUTPUT *out,fdtype x)
   u8_putc(out,'"'); while (scan < limit) {
     u8_string chunk=scan;
     while ((scan < limit) &&
-	   (*scan != '"') && (*scan != '\\') &&
-	   (!((*scan<0x80)&&(iscntrl(*scan))))) {
+           (*scan != '"') && (*scan != '\\') &&
+           (!((*scan<0x80)&&(iscntrl(*scan))))) {
       scan++; n_chars++;
       if ((fd_unparse_maxchars>0) && (n_chars>=fd_unparse_maxchars)) {
-	u8_putn(out,chunk,scan-chunk); u8_putc(out,' ');
-	output_ellipsis(out,u8_strlen(scan),"chars");
-	return u8_putc(out,'"');}}
+        u8_putn(out,chunk,scan-chunk); u8_putc(out,' ');
+        output_ellipsis(out,u8_strlen(scan),"chars");
+        return u8_putc(out,'"');}}
     u8_putn(out,chunk,scan-chunk);
     if (scan < limit) {
       int c=*scan++;
@@ -191,10 +191,10 @@ static int unparse_string(U8_OUTPUT *out,fdtype x)
       case '\a': u8_puts(out,"\\a"); break;
       case '\f': u8_puts(out,"\\f"); break;
       default:
-	if (iscntrl(c)) {
-	  char buf[32]; sprintf(buf,"\\%03o",c);
-	  u8_puts(out,buf);}
-	else u8_putc(out,c);}}}
+        if (iscntrl(c)) {
+          char buf[32]; sprintf(buf,"\\%03o",c);
+          u8_puts(out,buf);}
+        else u8_putc(out,c);}}}
   /* We don't check for an error value until we get here, which means that
      many of the calls above might have failed, however this shouldn't
      be a functional problem. */
@@ -272,12 +272,12 @@ static int unparse_pair(U8_OUTPUT *out,fdtype x)
     scan=FD_CDR(scan);
     while (FD_PTR_TYPE(scan) == fd_pair_type)
       if ((fd_unparse_maxelts>0) && (len>=fd_unparse_maxelts)) {
-	if (len==fd_unparse_maxelts) ellipsis_start=len;
-	scan=FD_CDR(scan); len++;}
+        if (len==fd_unparse_maxelts) ellipsis_start=len;
+        scan=FD_CDR(scan); len++;}
       else {
-	u8_puts(out," ");
-	fd_unparse(out,FD_CAR(scan)); len++;
-	scan=FD_CDR(scan);}
+        u8_puts(out," ");
+        fd_unparse(out,FD_CAR(scan)); len++;
+        scan=FD_CDR(scan);}
     if (ellipsis_start>0) {
       u8_puts(out," ");
       output_ellipsis(out,len-ellipsis_start,"elts");}
@@ -362,15 +362,15 @@ int fd_unparse(u8_output out,fdtype x)
     else if (itype == fd_character_type) { /* Output unicode character */
       int c=data; char buf[32];
       if ((c<0x80) && (isalnum(c))) /*  || (u8_isalnum(c)) */
-	sprintf(buf,"#\\%c",c);
+        sprintf(buf,"#\\%c",c);
       else sprintf(buf,"#\\u%04x",c);
       return u8_puts(out,buf);}
     else if (itype == fd_constant_type)
       if (data<n_const_names)
-	return u8_puts(out,const_names[data]);
+        return u8_puts(out,const_names[data]);
       else {
-	char buf[24]; sprintf(buf,"#!%lx",(unsigned long)x);
-	return u8_puts(out,buf);}
+        char buf[24]; sprintf(buf,"#!%lx",(unsigned long)x);
+        return u8_puts(out,buf);}
     else if (fd_unparsers[itype])
       return fd_unparsers[itype](out,x);
     else {
@@ -418,8 +418,8 @@ static int parse_unicode_escape(u8_string arg)
   if (arg[0] == '\\') s=arg+1; else s=arg;
   if (s[0] == 'u')
     if ((strlen(s)==5) &&
-	(isxdigit(s[1])) && (isxdigit(s[2])) &&
-	(isxdigit(s[3])) && (isxdigit(s[4]))) {
+        (isxdigit(s[1])) && (isxdigit(s[2])) &&
+        (isxdigit(s[3])) && (isxdigit(s[4]))) {
       int code=-1;
       if (sscanf(s+1,"%4x",&code)<1) code=-1;
       return code;}
@@ -428,10 +428,10 @@ static int parse_unicode_escape(u8_string arg)
       return -1;}
   else if (s[0] == 'U') 
     if ((strlen(s)==9) &&
-	(isxdigit(s[1])) && (isxdigit(s[2])) &&
-	(isxdigit(s[3])) && (isxdigit(s[4])) &&
-	(isxdigit(s[5])) && (isxdigit(s[6])) &&
-	(isxdigit(s[7])) && (isxdigit(s[8]))) {
+        (isxdigit(s[1])) && (isxdigit(s[2])) &&
+        (isxdigit(s[3])) && (isxdigit(s[4])) &&
+        (isxdigit(s[5])) && (isxdigit(s[6])) &&
+        (isxdigit(s[7])) && (isxdigit(s[8]))) {
       int code=-1;
       if (sscanf(s+1,"%8x",&code)<1) code=-1;
       return code;}
@@ -486,7 +486,7 @@ static int read_escape(u8_input in)
     if (strlen(buf)==4) {
       if (sscanf(buf+1,"%o",&code)<1) code=-1;
       if (code<0)
-	fd_seterr3(fd_BadEscapeSequence,"read_escape",u8_strdup(buf));
+        fd_seterr3(fd_BadEscapeSequence,"read_escape",u8_strdup(buf));
       return code;}
     else return -1;}
   case '&': {
@@ -567,7 +567,7 @@ fdtype fd_parse_atom(u8_string start,int len)
   else if (start[0]=='#') { /* It's a constant */
     int i=0; while (constant_names[i])
       if (strcmp(start,constant_names[i]) == 0)
-	return constant_values[i];
+        return constant_values[i];
       else i++;
     if (strchr("XxOoBbEeIiDd",start[1])) {
       fdtype result=_fd_parse_number(start,-1);
@@ -577,7 +577,7 @@ fdtype fd_parse_atom(u8_string start,int len)
   else {
     fdtype result;
     if ((isdigit(start[0])) || (start[0]=='+') ||
-	(start[0]=='-') || (start[0]=='.')) {
+        (start[0]=='-') || (start[0]=='.')) {
       result=_fd_parse_number(start,-1);
       if (!(FD_FALSEP(result))) return result;}
     return fd_make_symbol(start,len);}
@@ -597,10 +597,10 @@ static fdtype parse_character(U8_INPUT *in)
     int code=u8_get_entity(in);
     if (code<0)
       if (atombreakp(*(in->u8_inptr)))
-	return FD_CODE2CHAR('&');
+        return FD_CODE2CHAR('&');
       else {
-	fd_seterr3(fd_BadEscapeSequence,"read_escape",NULL);
-	return FD_PARSE_ERROR;}
+        fd_seterr3(fd_BadEscapeSequence,"read_escape",NULL);
+        return FD_PARSE_ERROR;}
     else return FD_CODE2CHAR(code);}
   if ((c<128) && (ispunct(c))) {
     return FD_CODE2CHAR(c);}
@@ -620,10 +620,10 @@ static fdtype parse_character(U8_INPUT *in)
   else {
     int i=0; while (character_constant_names[i])
       if (strcasecmp(buf,character_constant_names[i]) == 0)
-	return character_constants[i];
+        return character_constants[i];
       else i++;
     fd_seterr3(fd_InvalidCharacterConstant,
-	       "parse_character",u8_strdup(tmpbuf.u8_outbuf));
+               "parse_character",u8_strdup(tmpbuf.u8_outbuf));
     return FD_PARSE_ERROR;}
 }
 
@@ -711,15 +711,15 @@ static fdtype parse_string(U8_INPUT *in)
     else if (c == '\\') {
       int nextc=u8_getc(in);
       if (nextc=='\n') {
-	while (u8_isspace(nextc)) nextc=u8_getc(in);
-	u8_putc(&out,nextc);
-	continue;}
+        while (u8_isspace(nextc)) nextc=u8_getc(in);
+        u8_putc(&out,nextc);
+        continue;}
       else u8_ungetc(in,nextc);
       c=read_escape(in);
       if (c<0) {
-	if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
-	  u8_free(out.u8_outbuf);
-	return FD_PARSE_ERROR;}
+        if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
+          u8_free(out.u8_outbuf);
+        return FD_PARSE_ERROR;}
       u8_putc(&out,c);}
     else u8_putc(&out,c);
   result=fd_make_string(NULL,u8_outlen(&out),u8_outstring(&out));
@@ -739,28 +739,28 @@ static fdtype parse_packet(U8_INPUT *in)
       char obuf[4];
       obuf[0]=c=u8_getc(in);
       if (obuf[0]=='\n') {
-	while (u8_isspace(c)) c=u8_getc(in);
-	continue;}
+        while (u8_isspace(c)) c=u8_getc(in);
+        continue;}
       else if (obuf[0]=='\\') {
-	data[len++]='\\';
-	continue;}
+        data[len++]='\\';
+        continue;}
       else if (c=='n') {
-	data[len++]='\n';
-	continue;}
+        data[len++]='\n';
+        continue;}
       else if (c=='t') {
-	data[len++]='\t';
-	continue;}
+        data[len++]='\t';
+        continue;}
       else if (c=='#') {
-	data[len++]='#';
-	continue;}
+        data[len++]='#';
+        continue;}
       obuf[1]=c=u8_getc(in);
       obuf[2]='\0';
       if (c<0) {
         u8_free(data);
         return FD_EOX;}
       else if ((isxdigit(obuf[0])) && (isxdigit(obuf[1]))) {
-	c=strtol(obuf,NULL,16);
-	if (c<256) data[len++]=c; else break;}
+        c=strtol(obuf,NULL,16);
+        if (c<256) data[len++]=c; else break;}
       else break;}
     else data[len++]=c;
     c=u8_getc(in);}
@@ -800,18 +800,18 @@ static int copy_string(u8_input s,u8_output a)
   u8_putc(a,c);
   while ((c=u8_getc(s))>=0) {
       if (c == '"') {
-	u8_putc(a,c);
-	return c;}
+        u8_putc(a,c);
+        return c;}
       else if (c == '\\') {
-	int nextc=u8_getc(s);
-	if (nextc=='\n') {
-	  while (u8_isspace(nextc)) nextc=u8_getc(s);
-	  u8_putc(a,nextc);
-	  continue;}
-	else u8_ungetc(s,nextc);
-	c=read_escape(s);
-	if (c<0) return c;
-	u8_putc(a,c);}
+        int nextc=u8_getc(s);
+        if (nextc=='\n') {
+          while (u8_isspace(nextc)) nextc=u8_getc(s);
+          u8_putc(a,nextc);
+          continue;}
+        else u8_ungetc(s,nextc);
+        c=read_escape(s);
+        if (c<0) return c;
+        u8_putc(a,c);}
       else u8_putc(a,c);}
   return c;
 }
@@ -829,7 +829,7 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
     fdtype elt=fd_parser(in);
     if (FD_ABORTP(elt)) {
       int i=0; while (i < n_elts) {
-	fd_decref(elts[i]); i++;}
+        fd_decref(elts[i]); i++;}
       u8_free(elts); 
       if (elt == FD_EOX) *size=-1;
       else if (elt == FD_PARSE_ERROR) *size=-2;
@@ -840,9 +840,9 @@ static fdtype *parse_vec(u8_input in,char end_char,int *size)
       fdtype *new_elts=u8_realloc_n(elts,max_elts*2,fdtype);
       if (new_elts) {elts=new_elts; max_elts=max_elts*2;}
       else {
-	int i=0; while (i < n_elts) {fd_decref(elts[i]); i++;}
-	u8_free(elts); *size=n_elts;
-	return NULL;}}
+        int i=0; while (i < n_elts) {fd_decref(elts[i]); i++;}
+        u8_free(elts); *size=n_elts;
+        return NULL;}}
     elts[n_elts++]=elt;
     ch=skip_whitespace(in);}
   if (ch == end_char) {
@@ -892,22 +892,22 @@ static fdtype parse_list(U8_INPUT *in)
     ch=skip_whitespace(in);
     while ((ch>=0) && (ch != ')')) {
       /* After starting with the head, we iterate until we get to
-	 the closing paren, except for the dotted pair exit clause. */
+         the closing paren, except for the dotted pair exit clause. */
       fdtype list_elt; struct FD_PAIR *new_pair;
       if (ch == '.') {
-	int nextch=u8_getc(in), probed=u8_probec(in);
-	if (u8_isspace(probed)) break;
-	else u8_ungetc(in,nextch);}
+        int nextch=u8_getc(in), probed=u8_probec(in);
+        if (u8_isspace(probed)) break;
+        else u8_ungetc(in,nextch);}
       list_elt=fd_parser(in);
       if (FD_ABORTP(list_elt)) {
-	fd_decref(head); return list_elt;}
+        fd_decref(head); return list_elt;}
       new_pair=u8_alloc(struct FD_PAIR);
       if (new_pair) {
-	scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
-	scan=new_pair;}
+        scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
+        scan=new_pair;}
       else {
-	fd_decref(head); fd_decref(list_elt);
-	return FD_OOM;}
+        fd_decref(head); fd_decref(list_elt);
+        return FD_OOM;}
       ch=skip_whitespace(in);}
     if (ch<0) {
       fd_decref(head);
@@ -920,7 +920,7 @@ static fdtype parse_list(U8_INPUT *in)
       fdtype tail;
       tail=fd_parser(in);
       if (FD_ABORTP(tail)) {
-	fd_decref(head); return tail;}
+        fd_decref(head); return tail;}
       skip_whitespace(in); ch=u8_getc(in);
       if (ch == ')') {scan->cdr=tail; return head;}
       fd_decref(head); fd_decref(tail);
@@ -955,22 +955,22 @@ static fdtype parse_bracket_list(U8_INPUT *in)
     ch=skip_whitespace(in);
     while ((ch>=0) && (ch != ']')) {
       /* After starting with the head, we iterate until we get to
-	 the closing paren, except for the dotted pair exit clause. */
+         the closing paren, except for the dotted pair exit clause. */
       fdtype list_elt; struct FD_PAIR *new_pair;
       if (ch == '.') {
-	int nextch=u8_getc(in), probed=u8_probec(in);
-	if (u8_isspace(probed)) break;
-	else u8_ungetc(in,nextch);}
+        int nextch=u8_getc(in), probed=u8_probec(in);
+        if (u8_isspace(probed)) break;
+        else u8_ungetc(in,nextch);}
       list_elt=fd_parser(in);
       if (FD_ABORTP(list_elt)) {
-	fd_decref(head); return list_elt;}
+        fd_decref(head); return list_elt;}
       new_pair=u8_alloc(struct FD_PAIR);
       if (new_pair) {
-	scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
-	scan=new_pair;}
+        scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
+        scan=new_pair;}
       else {
-	fd_decref(head); fd_decref(list_elt);
-	return FD_OOM;}
+        fd_decref(head); fd_decref(list_elt);
+        return FD_OOM;}
       ch=skip_whitespace(in);}
     if (ch<0) {
       fd_decref(head);
@@ -983,7 +983,7 @@ static fdtype parse_bracket_list(U8_INPUT *in)
       fdtype tail;
       tail=fd_parser(in);
       if (FD_ABORTP(tail)) {
-	fd_decref(head); return tail;}
+        fd_decref(head); return tail;}
       skip_whitespace(in); ch=u8_getc(in);
       if (ch == ')') {scan->cdr=tail; return head;}
       fd_decref(head); fd_decref(tail);
@@ -1040,8 +1040,8 @@ static fdtype parse_choice(U8_INPUT *in)
       struct FD_CHOICE *ch=fd_alloc_choice(n_elts);
       fdtype result=fd_init_choice(ch,n_elts,elts,FD_CHOICE_DOSORT);
       if (FD_XCHOICE_SIZE(ch)==1) {
-	result=FD_XCHOICE_DATA(ch)[0];
-	u8_free(ch);}
+        result=FD_XCHOICE_DATA(ch)[0];
+        u8_free(ch);}
       u8_free(elts);
       return result;}
     else return FD_PARSE_ERROR;}
@@ -1053,7 +1053,7 @@ static fdtype parse_qchoice(U8_INPUT *in)
   fdtype *elts=parse_vec(in,'}',&n_elts);
   if (n_elts==0)
     return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),
-			   FD_EMPTY_CHOICE);
+                           FD_EMPTY_CHOICE);
   else if (n_elts==1) return elts[0];
   else if (n_elts>1) {
     struct FD_CHOICE *xch=fd_alloc_choice(n_elts);
@@ -1151,8 +1151,8 @@ fdtype fd_parser(u8_input in)
   case ')': case ']': case '}': {
     u8_getc(in); /* Consume the character */
     return fd_err(fd_ParseError,"unexpected terminator",
-		  u8_strndup(in->u8_inptr,17),
-		  FD_CODE2CHAR(inchar));}
+                  u8_strndup(in->u8_inptr,17),
+                  FD_CODE2CHAR(inchar));}
   case '"': return parse_string(in);
   case '@': return parse_oid(in);
   case '(': 
@@ -1226,7 +1226,7 @@ fdtype fd_parser(u8_input in)
       fdtype content=fd_parser(in);
       if (FD_ABORTP(content)) return content;
       else return fd_init_pair(NULL,comment_symbol,
-			       fd_init_pair(NULL,content,FD_EMPTY_LIST));}
+                               fd_init_pair(NULL,content,FD_EMPTY_LIST));}
     case '%': {
       int c=u8_getc(in);
       if (c=='(') return parse_record(in);
@@ -1238,10 +1238,10 @@ fdtype fd_parser(u8_input in)
     case '!': return parse_atom(in,inchar,ch); /* pointer reference */
     default:
       if (u8_ispunct(ch)) {
-	u8_byte buf[16]; struct U8_OUTPUT out;
-	U8_INIT_OUTPUT_X(&out,16,buf,0);
-	u8_putc(&out,'#'); u8_putc(&out,ch);
-	return fd_make_list(2,fd_intern(buf),fd_parser(in));}
+        u8_byte buf[16]; struct U8_OUTPUT out;
+        U8_INIT_OUTPUT_X(&out,16,buf,0);
+        u8_putc(&out,'#'); u8_putc(&out,ch);
+        return fd_make_list(2,fd_intern(buf),fd_parser(in));}
       else {
         u8_ungetc(in,ch);
         return parse_atom(in,'#',-1);}}}
@@ -1321,14 +1321,14 @@ fdtype fd_parse_arg(u8_string arg)
     else {
       fdtype val=fd_parse(arg+1);
       if (FD_ABORTP(val)) {
-	u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
-	fd_clear_errors(1);
-	return fdtype_string(arg);}
+        u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg '%s'",arg);
+        fd_clear_errors(1);
+        return fdtype_string(arg);}
       else return val;}
   else if (*arg == '\\') return fdtype_string(arg+1);
   else if ((isdigit(arg[0])) ||
-	   ((strchr("+-.",arg[0])) && (isdigit(arg[1]))) ||
-	   ((arg[0]=='#') && (strchr("OoXxDdBbIiEe",arg[1])))) {
+           ((strchr("+-.",arg[0])) && (isdigit(arg[1]))) ||
+           ((arg[0]=='#') && (strchr("OoXxDdBbIiEe",arg[1])))) {
     fdtype num=fd_string2number(arg,-1);
     if (FD_NUMBERP(num)) return num;
     else return fdtype_string(arg);}
