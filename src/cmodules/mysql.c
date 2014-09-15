@@ -744,7 +744,13 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,
                                  outbound,isnullbuf);}
   /* Clean up */
   i=0; while (i<n_cols) {
-    if (outbound[i].buffer) u8_free(outbound[i].buffer); i++;}
+    if (outbound[i].buffer) {
+      u8_free(outbound[i].buffer);
+      outbound[i].buffer=NULL;}
+    if (outbound[i].length) {
+      u8_free(outbound[i].length);
+      outbound[i].length=NULL;}
+    i++;}
   if (outbound) u8_free(outbound);
   if (colnames) u8_free(colnames);
   if (isnullbuf) u8_free(isnullbuf);
@@ -857,12 +863,22 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
 {
   /* This assumes that both dbp and dpbroc have been locked.  */
   MYSQL *db=dbp->db;
-  int retval=0, n_cols, n_params;
+  int retval=0, n_cols=dbproc->n_cols, n_params;
   u8_condition error_phase="init_mysqlproc";
   /* Reinitialize these structures in case there have been schema
      changes. */
   if (dbproc->outbound) {
-    u8_free(dbproc->outbound); dbproc->outbound=NULL;}
+    MYSQL_BIND *outbound=dbproc->outbound;
+    int i=0; while (i<n_cols) {
+      if (outbound[i].buffer) {
+        u8_free(outbound[i].buffer);
+        outbound[i].buffer=NULL;}
+      if (outbound[i].length) {
+        u8_free(outbound[i].length);
+        outbound[i].length=NULL;}
+      i++;}
+    u8_free(outbound);
+    dbproc->outbound=NULL;}
   if (dbproc->colnames) {
     u8_free(dbproc->colnames); dbproc->colnames=NULL;}
   if (dbproc->isnull) {
@@ -953,40 +969,45 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
 
 static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
 {
-  struct FD_MYSQL_PROC *dbp=(struct FD_MYSQL_PROC *)c;
+  struct FD_MYSQL_PROC *dbproc=(struct FD_MYSQL_PROC *)c;
   int i, lim, rv;
   fd_release_extdb_proc(c);
-  if (dbp->stmt) {
-    if ((rv=mysql_stmt_close(dbp->stmt))) {
-      int mysqlerrno=mysql_stmt_errno(dbp->stmt);
-      const char *errmsg=mysql_stmt_error(dbp->stmt);
+  if (dbproc->stmt) {
+    if ((rv=mysql_stmt_close(dbproc->stmt))) {
+      int mysqlerrno=mysql_stmt_errno(dbproc->stmt);
+      const char *errmsg=mysql_stmt_error(dbproc->stmt);
       u8_log(LOG_WARN,MySQL_Error,"Error (%d:%d) closing statement %s: %s",
-             rv,mysqlerrno,dbp->stmt_string,errmsg);}}
-  fd_decref(dbp->colinfo);
+             rv,mysqlerrno,dbproc->stmt_string,errmsg);}}
+  fd_decref(dbproc->colinfo);
 
-  if (dbp->bindbuf) u8_free(dbp->bindbuf);
-  if (dbp->isnull) u8_free(dbp->isnull);
-  if (dbp->inbound) u8_free(dbp->inbound);
-  if (dbp->colnames) u8_free(dbp->colnames);
+  if (dbproc->bindbuf) u8_free(dbproc->bindbuf);
+  if (dbproc->isnull) u8_free(dbproc->isnull);
+  if (dbproc->inbound) u8_free(dbproc->inbound);
+  if (dbproc->colnames) u8_free(dbproc->colnames);
 
-  if (dbp->outbound) {
-    i=0; lim=dbp->n_cols; while (i<lim) {
-      if (dbp->outbound[i].buffer) u8_free(dbp->outbound[i].buffer);
+  if (dbproc->outbound) {
+    i=0; lim=dbproc->n_cols; while (i<lim) {
+      if (dbproc->outbound[i].buffer) {
+        u8_free(dbproc->outbound[i].buffer);
+        dbproc->outbound[i].buffer=NULL;}
+      if (dbproc->outbound[i].length) {
+        u8_free(dbproc->outbound[i].length);
+        dbproc->outbound[i].length=NULL;}
       i++;}
-    u8_free(dbp->outbound);}
+    u8_free(dbproc->outbound);}
 
-  if (dbp->paramtypes) {
-    i=0; lim=dbp->n_params; while (i< lim) {
-      fd_decref(dbp->paramtypes[i]); i++;}
-    u8_free(dbp->paramtypes);}
+  if (dbproc->paramtypes) {
+    i=0; lim=dbproc->n_params; while (i< lim) {
+      fd_decref(dbproc->paramtypes[i]); i++;}
+    u8_free(dbproc->paramtypes);}
 
-  u8_free(dbp->spec);
-  u8_free(dbp->qtext);
-  u8_free(dbp->stmt_string);
+  u8_free(dbproc->spec);
+  u8_free(dbproc->qtext);
+  u8_free(dbproc->stmt_string);
 
-  u8_mutex_destroy(&(dbp->lock));
+  u8_mutex_destroy(&(dbproc->lock));
 
-  fd_decref(dbp->db);
+  fd_decref(dbproc->db);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
