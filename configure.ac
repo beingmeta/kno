@@ -991,7 +991,7 @@ if test "x$with_tcmalloc" != "xno" && test "x$custom_malloc" != "x"; then
   exit;
 fi
 if test $with_tcmalloc = "yes"; then
-  AC_CHECK_LIB(tcmalloc,malloc)
+  AC_CHECK_LIB(tcmalloc,malloc,HeapProfile)
 #  debuglibs="${debuglibs} -ltcmalloc_debug"
   memtest_prefix=builtin_
   heaptest_prefix=builtin_
@@ -1014,7 +1014,8 @@ fi
 if test $with_perftools = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)
-#  debuglibs="${debuglibs} -ltcmalloc_debug"
+  AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
+  AC_CHECK_HEADERS(gperftools/heap-checker.h)
   memtest_prefix=builtin_
   heaptest_prefix=builtin_
   heaptest_env="RUNENV=HEAPCHECK=normal" 
@@ -1022,6 +1023,8 @@ if test $with_perftools = "yes"; then
 elif test $with_perftools = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)
+  AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
+  AC_CHECK_HEADERS(gperftools/heap-checker.h)
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
   heaptest_env="RUNENV=HEAPCHECK=normal" 

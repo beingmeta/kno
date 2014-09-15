@@ -8944,12 +8944,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
 $as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
 if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC 1
-_ACEOF
-
-  LIBS="-ltcmalloc $LIBS"
-
+  HeapProfile
 fi
 
 #  debuglibs="${debuglibs} -ltcmalloc_debug"
@@ -9113,7 +9108,31 @@ _ACEOF
 
 fi
 
-#  debuglibs="${debuglibs} -ltcmalloc_debug"
+  for ac_header in gperftools/profiler.h gperftools/heap-profiler.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+
+done
+
+  for ac_header in gperftools/heap-checker.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-checker.h" "ac_cv_header_gperftools_heap_checker_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GPERFTOOLS_HEAP_CHECKER_H 1
+_ACEOF
+
+fi
+
+done
+
   memtest_prefix=builtin_
   heaptest_prefix=builtin_
   heaptest_env="RUNENV=HEAPCHECK=normal"
@@ -9208,6 +9227,31 @@ _ACEOF
   LIBS="-lprofiler $LIBS"
 
 fi
+
+  for ac_header in gperftools/profiler.h gperftools/heap-profiler.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+
+done
+
+  for ac_header in gperftools/heap-checker.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-checker.h" "ac_cv_header_gperftools_heap_checker_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GPERFTOOLS_HEAP_CHECKER_H 1
+_ACEOF
+
+fi
+
+done
 
   heaptest_prefix=builtin_
   memtest_prefix=builtin_

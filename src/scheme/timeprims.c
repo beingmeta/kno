@@ -29,6 +29,13 @@
 #include <math.h>
 #include <sys/time.h>
 
+#if HAVE_GPERFTOOLS_PROFILER_H
+#include <gperftools/profiler.h>
+#endif
+#if HAVE_GPERFTOOLS_HEAP_PROFILER_H
+#include <gperftools/heap-profiler.h>
+#endif
+
 fd_exception fd_ImpreciseTimestamp=_("Timestamp too imprecise");
 fd_exception fd_InvalidTimestamp=_("Invalid timestamp object");
 fd_exception fd_MissingFeature=_("OS doesn't support operation");
@@ -1078,6 +1085,7 @@ static fdtype loadavgs_prim()
 static fdtype data_symbol, stack_symbol, shared_symbol, resident_symbol;
 static fdtype utime_symbol, stime_symbol, cpusage_symbol, clock_symbol;
 static fdtype load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
+static fdtype memusage_symbol;
 
 static fdtype rusage_prim(fdtype field)
 {
@@ -1088,10 +1096,12 @@ static fdtype rusage_prim(fdtype field)
   else if (FD_VOIDP(field)) {
     fdtype result=fd_empty_slotmap();
     pid_t pid=getpid(), ppid=getppid();
+    unsigned long mem=u8_memusage();
     fd_add(result,data_symbol,FD_INT2DTYPE(r.ru_idrss));
     fd_add(result,stack_symbol,FD_INT2DTYPE(r.ru_isrss));
     fd_add(result,shared_symbol,FD_INT2DTYPE(r.ru_ixrss));
     fd_add(result,resident_symbol,FD_INT2DTYPE(r.ru_maxrss));
+    fd_add(result,memusage_symbol,FD_INT2DTYPE(mem));
     fd_add(result,pid_symbol,FD_INT2DTYPE(pid));
     fd_add(result,ppid_symbol,FD_INT2DTYPE(ppid));
     {
@@ -1142,6 +1152,8 @@ static fdtype rusage_prim(fdtype field)
     return fd_make_double(u8_dbltime(r.ru_utime));
   else if (FD_EQ(field,stime_symbol))
     return fd_make_double(u8_dbltime(r.ru_stime));
+  else if (FD_EQ(field,memusage_symbol))
+    return FD_INT2DTYPE(u8_memusage());
   else if (FD_EQ(field,load_symbol)) {
     double loadavg; int nsamples=getloadavg(&loadavg,1);
     if (nsamples>0) return fd_make_double(loadavg);
@@ -1494,6 +1506,51 @@ static int corelimit_set(fdtype symbol,fdtype value,void *vptr)
   else return 1;
 }
 
+/* Google profiling tools */
+
+#if HAVE_GPERFTOOLS_HEAP_PROFILER_H
+static fdtype gheap_profiler(fdtype arg)
+{
+  int running=IsHeapProfilerRunning();
+  if (FD_FALSEP(arg)) {
+    if (running) {
+      HeapProfilerStop();
+    return FD_TRUE;}
+    else return FD_FALSE;}
+  else if (running) return FD_FALSE;
+  else if (FD_STRINGP(arg)) {
+    HeapProfilerStart(FD_STRDATA(arg));
+    return FD_TRUE;}
+  else {
+    HeapProfilerStart(u8_appid());
+    return FD_TRUE;}
+}
+
+static fdtype gheap_profiler_dump(fdtype arg)
+{
+  int running=IsHeapProfilerRunning();
+  if (running) {
+    HeapProfilerDump(FD_STRDATA(arg));
+    return FD_TRUE;}
+  else return FD_FALSE;
+}
+#endif
+
+#if HAVE_GPERFTOOLS_PROFILER_H
+static fdtype gperf_profiler(fdtype arg)
+{
+  if (FD_STRINGP(arg))
+    ProfilerStart(FD_STRDATA(arg));
+  else ProfilerStop();
+  return FD_VOID;
+}
+static fdtype gperf_profiler_flush(fdtype arg)
+{
+  ProfilerFlush();
+  return FD_VOID;
+}
+#endif
+
 /* Initialization */
 
 FD_EXPORT void fd_init_timeprims_c()
@@ -1632,6 +1689,7 @@ FD_EXPORT void fd_init_timeprims_c()
   cpusage_symbol=fd_intern("CPUSAGE");
   pid_symbol=fd_intern("PID");
   ppid_symbol=fd_intern("PPID");
+  memusage_symbol=fd_intern("MEMUSAGE");
 
   load_symbol=fd_intern("LOAD");
   loadavg_symbol=fd_intern("LOADAVG");
@@ -1701,6 +1759,20 @@ FD_EXPORT void fd_init_timeprims_c()
     ("CORELIMIT",_("Set core size limit"),
      corelimit_get,corelimit_set,NULL);
 
+#if HAVE_GPERFTOOLS_HEAP_PROFILER_H
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim1("GPERF/HEAP/PROFILE",gheap_profiler,0));
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim1("GPERF/HEAP/DUMP",gheap_profiler_dump,1));
+#endif
+
+#if HAVE_GPERFTOOLS_PROFILER_H
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim1("GPERF/PROFILE",gperf_profiler,0));
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim1("GPREF/FLUSH",gperf_profiler_flush,1));
+#endif
+
 
   /* Initialize utime and stime sensors */
 #if FD_CALLTRACK_ENABLED
@@ -1710,6 +1782,9 @@ FD_EXPORT void fd_init_timeprims_c()
   {
     fd_calltrack_sensor cts=fd_get_calltrack_sensor("STIME",1);
     cts->enabled=0; cts->dblfcn=stime_sensor;}
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("MEMUSAGE",1);
+    cts->enabled=0; cts->intfcn=(long (*)(void))u8_memusage;}
 #if HAVE_STRUCT_RUSAGE_RU_INBLOCK
   {
     fd_calltrack_sensor cts=fd_get_calltrack_sensor("INBLOCK",1);

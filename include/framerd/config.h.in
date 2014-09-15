@@ -286,6 +286,15 @@
 /* Whether we've got the profiler headers */
 #undef HAVE_LIBPROFILER
 
+/* Whether we've got the perftools heap profiler */
+#undef HAVE_GPERFTOOLS_HEAP_PROFILER_H
+
+/* Whether we've got the perftools heap profiler */
+#undef HAVE_GPERFTOOLS_HEAP_CHECKER_H
+
+/* Whether we've got the perftools heap profiler */
+#undef HAVE_GPERFTOOLS_PROFILER_H
+
 /* Whether we've got ODBC headers */
 #undef HAVE_SQL_H
 
