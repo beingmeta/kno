@@ -1824,7 +1824,8 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
           fd_lispenv xmlparent=((FD_ENVIRONMENTP(xmlenvparent)) ?
                                 ((fd_lispenv)xmlenvparent) :
                                 (parsed_env));
-          fd_lispenv new_xmlenv=fd_make_env(xmlenvarg,xmlparent);
+          fd_lispenv new_xmlenv=
+            fd_make_env(fd_incref(xmlenvarg),xmlparent);
           fd_bind_value(xml_env_symbol,(fdtype)new_xmlenv,target_env);
           fd_decref(((fdtype)new_xmlenv)); fd_decref(xmlenvparent);}
         else {}}
