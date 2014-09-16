@@ -1865,8 +1865,11 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
       else {
 	/* Failed for some reason, open an excess socket */
 	ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
-		      "Error opening %s, trying ephemeral",
-		      fdsocketinfo(sock,infobuf));
+		      "Error opening %s %s, trying ephemeral",
+		      ((s->socktype==filesock)?("servlet file socket"):
+		       (s->socktype==aprsock)?("servlet APR socket"):
+		       ("servlet bad socket")),
+		      s->sockname);
 	s->n_ephemeral++; s->n_busy++;
 	apr_thread_mutex_unlock(s->lock);
 	sock=servlet_open(s,NULL,r);
