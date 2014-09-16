@@ -14,6 +14,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
+#include "framerd/sequences.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8convert.h>
@@ -1105,7 +1106,7 @@ static fdtype textif_handler(fdtype expr,fd_lispenv env)
     return fd_make_string(NULL,0,"");
   else {
     fdtype body=fd_get_body(expr,2), len=fd_seq_length(body);
-    fd_decref(test_val);
+    fd_decref(test_val); 
     if (len==0) return fd_make_string(NULL,0,NULL);
     else if (len==1) {
       fdtype text=fd_eval(fd_get_arg(body,0),env);
