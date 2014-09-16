@@ -2073,7 +2073,7 @@ static fdtype md5_prim(fdtype input)
     struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,1024);
     fd_write_dtype(&out,input);
     digest=u8_md5(out.start,out.ptr-out.start,NULL);
-    u8_free(out.u8_outbuf);}
+    u8_free(out.start);}
   if (digest==NULL)
     return FD_ERROR_VALUE;
   else return fd_init_packet(NULL,16,digest);
