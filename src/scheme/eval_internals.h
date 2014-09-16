@@ -15,19 +15,19 @@ static void free_environment(struct FD_ENVIRONMENT *env)
   /* There are three cases:
         a simple static environment (env->copy==NULL)
         a static environment copied into a dynamic environment
-	  (env->copy!=env)
-	a dynamic environment (env->copy==env->copy)
+          (env->copy!=env)
+        a dynamic environment (env->copy==env->copy)
   */
-  if (env->copy) 
+  if (env->copy)
     if (env==env->copy)
       fd_recycle_environment(env->copy);
     else {
       struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->bindings);
       int i=0, n=FD_XSCHEMAP_SIZE(sm); fdtype *vals=sm->values;
       while (i < n) {
-	fdtype val=vals[i++];
-	if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
-	  fd_decref(val);}}
+        fdtype val=vals[i++];
+        if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+          fd_decref(val);}}
       fd_recycle_environment(env->copy);}
   else {
     struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->bindings);
@@ -35,7 +35,7 @@ static void free_environment(struct FD_ENVIRONMENT *env)
     while (i < n) {
       fdtype val=vals[i++];
       if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
-	fd_decref(val);}}}
+        fd_decref(val);}}}
 }
 
 FD_INLINE_FCN fdtype return_error_env
@@ -50,7 +50,7 @@ FD_INLINE_FCN fdtype return_error_env
 }
 
 FD_FASTOP fdtype eval_body(u8_context cxt,fdtype expr,int offset,
-			   fd_lispenv inner_env)
+                           fd_lispenv inner_env)
 {
   fdtype result=FD_VOID;
   FD_DOBODY(bodyexpr,expr,offset) {
@@ -59,8 +59,8 @@ FD_FASTOP fdtype eval_body(u8_context cxt,fdtype expr,int offset,
     if (FD_ABORTP(result)) {
       if (FD_THROWP(result)) return result;
       else {
-	fd_push_error_context(cxt,copy_bindings(inner_env));
-	return result;}}
+        fd_push_error_context(cxt,copy_bindings(inner_env));
+        return result;}}
     else {fd_decref(result);}
     result=fast_tail_eval(bodyexpr,inner_env);}
   if (FD_THROWP(result)) return result;

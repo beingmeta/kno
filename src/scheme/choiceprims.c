@@ -56,13 +56,13 @@ static fdtype parse_control_spec
 
 static fdtype retenv1(fdtype var,fdtype val)
 {
-  struct FD_KEYVAL *keyvals=u8_alloc(struct FD_KEYVAL);
+  struct FD_KEYVAL keyvals[1];
   keyvals[0].key=var; keyvals[0].value=fd_incref(val);
   return fd_make_slotmap(1,1,keyvals);
 }
 static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
-  struct FD_KEYVAL *keyvals=u8_alloc_n(2,struct FD_KEYVAL);
+  struct FD_KEYVAL keyvals[2];
   keyvals[0].key=var; keyvals[0].value=fd_incref(val);
   keyvals[1].key=xvar; keyvals[1].value=fd_incref(xval);
   return fd_make_slotmap(2,2,keyvals);

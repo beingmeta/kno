@@ -26,7 +26,7 @@ static fdtype iter_var;
 /* These are for returning binding information in the backtrace. */
 static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
 {
-  struct FD_KEYVAL *keyvals=u8_alloc_n(2,struct FD_KEYVAL);
+  struct FD_KEYVAL keyvals[2];
   keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
   keyvals[1].key=var; keyvals[1].value=fd_incref(val);
   return fd_make_slotmap(2,2,keyvals);
@@ -34,7 +34,7 @@ static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
 static fdtype iterenv2
   (fdtype seq, fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
-  struct FD_KEYVAL *keyvals=u8_alloc_n(3,struct FD_KEYVAL);
+  struct FD_KEYVAL keyvals[3];
   keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
   keyvals[1].key=var; keyvals[1].value=fd_incref(val);
   keyvals[2].key=xvar; keyvals[2].value=fd_incref(xval);
