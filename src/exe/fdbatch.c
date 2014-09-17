@@ -161,6 +161,8 @@ int main(int argc,char **argv)
              pid_file,ival,pid);
       exit(1);}}
 
+  atexit(exit_fdexec);
+
   done_file=get_donefile();
   died_file=get_diedfile();
   /* We only redirect stdio going to ttys. */

@@ -11,8 +11,10 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include <libu8/u8rusage.h>
 #include <stdarg.h>
 #include <time.h>
+#include <math.h>
 
 #if ((HAVE_LIBDUMA)&&(HAVE_DUMA_H))
 #include <duma.h>
@@ -110,6 +112,43 @@ FD_EXPORT void fd_boot_message()
   u8_message("Copyright (C) beingmeta 2004-2014, all rights reserved");
   u8_message("(%s:%ld) %s %s",u8_appid(),getpid(),
              fd_getrevision(),u8_getrevision());
+}
+
+static double format_secs(double secs,char **units)
+{
+  if (secs<0.001) {*units="ms"; return secs*1000000;}
+  if (secs<1) {*units="us"; return secs*1000;}
+  if (secs>300) {*units="m"; return secs/60;}
+  if (secs>7200) {*units="h"; return secs/3600;}
+  if (secs>3600*24) {*units="d"; return secs/3600;}
+}
+FD_EXPORT void fd_status_message()
+{
+  struct rusage usage;
+  int pagesize=u8_getpagesize();
+  int retval=u8_getrusage(0,&usage);
+  /* long membytes=(usage.ru_idrss+usage.ru_isrss); double memsize; */
+  long heapbytes=u8_memusage(); double heapsize;
+  char *stu="s", *utu="s", *etu="s", *memu="KB", *heapu="KB";
+  double elapsed=format_secs(u8_elapsed_time(),&etu);
+  double usertime=format_secs
+    (usage.ru_utime.tv_sec+(((double)usage.ru_utime.tv_usec)/1000000),
+     &utu);
+  double systime=format_secs
+    (usage.ru_stime.tv_sec+(((double)usage.ru_stime.tv_usec)/1000000),
+     &stu);
+  /*
+  if (membytes>1500000) {
+    memsize=floor(((double)membytes)/1000000); memu="MB";} 
+    else {memsize=floor(((double)membytes)/1000); memu="KB";} */
+  if (heapbytes>1500000) {
+    heapsize=floor(((double)heapbytes)/1000000); heapu="MB";}
+  else {heapsize=floor(((double)heapbytes)/1000); heapu="KB";}
+  u8_message
+    ("%s %s<%ld> used %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s",
+     FRAMERD_REVISION,u8_appid(),getpid(),
+     elapsed,etu,usertime,utu,systime,stu,
+     heapsize,heapu);
 }
 
 FD_EXPORT int fd_init_dtypelib()

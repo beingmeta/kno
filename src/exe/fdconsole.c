@@ -299,16 +299,7 @@ static void exit_fdconsole()
     if (run_start<0)
       u8_message("<%ld> Exiting FramerD (%s) console before we even started!",
                  (long)getpid(),FRAMERD_REVISION);
-    else {
-      double wall_time=u8_elapsed_time()-run_start;
-      u8_string units="seconds";
-      if (wall_time<120) {}
-      else if (wall_time<7200) {
-        units="minutes"; wall_time=wall_time/60;}
-      else {
-        units="hours"; wall_time=wall_time/3600;}
-      u8_message("<%ld> Exiting FramerD (%s) console after %f %s",
-                 (long)getpid(),FRAMERD_REVISION,wall_time,units);}}
+    else fd_status_message();}
   close_consoles();
 }
 
@@ -693,7 +684,7 @@ int main(int argc,char **argv)
     else if (startup_time>0.001) {
       startup_time=startup_time*1000; units="ms";}
     else {startup_time=startup_time*1000000; units="us";}
-    u8_message("FramerD %s booted in %0.3f%s, %d/%d pools/indices",
+    u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indices",
                u8_appid(),startup_time,units,fd_n_pools,
                fd_n_primary_indices+fd_n_secondary_indices);}
   if (dotload) {

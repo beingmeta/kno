@@ -41,7 +41,7 @@
 
 #include "main.c"
 
-static int debug_maxelts=32, debug_maxchars=80, quiet_start=0;
+static int debug_maxelts=32, debug_maxchars=80, quiet_console=0;
 
 static char *configs[MAX_CONFIGS], *exe_arg=NULL, *file_arg=NULL;
 static int n_configs=0;
@@ -68,6 +68,11 @@ static void identify_application(int argc,char **argv,char *dflt)
       u8_free(copy);
       return;}
   u8_default_appid(dflt);
+}
+
+static void exit_fdexec()
+{
+  if (!(quiet_console)) fd_status_message();
 }
 
 typedef char *charp;
@@ -142,12 +147,14 @@ int main(int argc,char **argv)
   fd_register_config
     ("QUIET",_("Whether to output startup messages"),
      fd_boolconfig_get,fd_boolconfig_set,
-     &quiet_start);
+     &quiet_console);
   setlocale(LC_ALL,"");
   /* Process command line config arguments */
 #ifndef FDEXEC_INCLUDED
   fd_argv_config(argc,argv);
 #endif
+
+  atexit(exit_fdexec);
 
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
@@ -172,7 +179,7 @@ int main(int argc,char **argv)
 
   fd_init_schemeio();
   identify_application(argc,argv,argv[0]);
-  if (!(quiet_start)) fd_boot_message();
+  if (!(quiet_console)) fd_boot_message();
   if (wait_for_file) {
     if (u8_file_existsp(wait_for_file))
       u8_log(LOG_NOTICE,FileWait,"Starting now because '%s' exists",
@@ -221,14 +228,14 @@ int main(int argc,char **argv)
             "Usage: fdexec [conf=val]* source_file (arg | [conf=val])*\n");
     return 1;}
 
-  if (!(quiet_start)) {
+  if (!(quiet_console)) {
     double startup_time=u8_elapsed_time()-fd_load_start;
     char *units="s";
     if (startup_time>1) {}
     else if (startup_time>0.001) {
       startup_time=startup_time*1000; units="ms";}
     else {startup_time=startup_time*1000000; units="ms";}
-    u8_message("FramerD %s booted in %0.3f%s, %d/%d pools/indices",
+    u8_message("FramerD %s loaded in %0.3f%s, %d/%d pools/indices",
                u8_appid(),startup_time,units,fd_n_pools,
                fd_n_primary_indices+fd_n_secondary_indices);}
 
