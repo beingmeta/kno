@@ -1329,7 +1329,7 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
 	  etc/OSXStartupItem/FramerD etc/logrotate
 	  etc/fdserver.conf etc/fdservlet.conf etc/framerd.conf
 	  etc/fdserv.conf etc/fdserv.load
-	  etc/install-script dist/framerd-3.5.spec)
+	  etc/install-script dist/framerd-3.6.spec)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
 chmod a+x etc/fdconfig
