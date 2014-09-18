@@ -275,6 +275,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,apache,adm) %{_var}/run/fdserv
 %attr(-,apache,adm) %{_var}/log/fdserv
 %{_sysconfdir}/httpd/conf.d/fdserv.conf
+%{_sysconfdir}/httpd/conf.d/fdserv.load
 %{_libdir}/httpd/modules/mod_fdserv.*
 
 %files tagger
