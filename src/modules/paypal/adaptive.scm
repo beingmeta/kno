@@ -32,7 +32,9 @@
 		  ,(getopt spec 'fees "EACHRECEIVER")
 		  "returnUrl" ,(getopt spec 'return return-url)
 		  "cancelUrl" ,(getopt spec 'cancel cancel-url)
-		  "memo" ,(getmemo (getopt spec 'invoice (getuuid)))
+		  ;; "memo" ,(getmemo (getopt spec 'invoice (getuuid)))
+		  "memo" ,(getopt spec 'memo
+				  (getmemo (getopt spec 'invoice (getuuid))))
 		  "reverseAllParallelPaymentsOnError" "true"
 		  "trackingId"
 		  ,(if (uuid? invoice) (uuid->string invoice)

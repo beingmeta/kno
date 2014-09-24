@@ -1603,6 +1603,8 @@ int main(int argc,char **argv)
     u8_log(LOG_WARN,ServletStartup,"Couldn't initialize FramerD");
     exit(EXIT_FAILURE);}
 
+  atexit(fd_status_message);
+
   if (load_config) fd_load_config(load_config);
 
   /* INITIALIZING MODULES */

@@ -1,12 +1,12 @@
 Name:           framerd
-Version:        3.6.0
-Release:        1%{?dist}
+Version:        @FDVERSION@
+Release:        @RPMVERSION@%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
 License:        GNU GPL
 URL:            http://www.beingmeta.com/
-Source0:        framerd-3.6.0.tar.gz
+Source0:        framerd-@FDVERSION@.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  libu8-devel curl-devel mysql-devel libtidy-devel
@@ -275,6 +275,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,apache,adm) %{_var}/run/fdserv
 %attr(-,apache,adm) %{_var}/log/fdserv
 %{_sysconfdir}/httpd/conf.d/fdserv.conf
+%{_sysconfdir}/httpd/conf.d/fdserv.load
 %{_libdir}/httpd/modules/mod_fdserv.*
 
 %files tagger

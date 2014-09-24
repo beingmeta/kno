@@ -837,6 +837,8 @@ int main(int argc,char **argv)
     fprintf(stderr,"Can't initialize FramerD libraries\n");
     return -1;}
 
+  atexit(fd_status_message);
+
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
      dynamically loaded.  However, if we are statically linked, or we
