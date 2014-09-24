@@ -67,7 +67,10 @@
 
 (define (make-logconfigfn level)
   (lambda (var (val))
-    (if (bound? val) (logctl! val level)
+    (if (bound? val)
+	(when val 
+	  (logctl! (if (string? val) (string->lisp val) val)
+		   (getloglevel level)))
 	(car (pick levels cdr level)))))
 
 (config-def! 'logdeluge (make-logconfigfn %deluge%))
