@@ -67,7 +67,8 @@
 	(if (bound? default-value) default-value (fail)))))
 (define path->ctype path->mimetype)
 
-(define (getsuffix path) (gather #("." (isalnum+) (eos)) path))
+(define (getsuffix path (default {}))
+  (try (gather #("." (isalnum+) (eos)) path) default))
 
 (define (ctype->suffix ctype) (get *inv-mimetable* ctype))
 
