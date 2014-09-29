@@ -77,7 +77,7 @@
 		  (add! combined key (get field key))))
 	       combined)))
       (irritant result |Bad SQS response| SQS/GET
-		"Received from " (get result 'effective-url))))
+		"Received from " (getopt result 'effective-url))))
 
 (define (get-queue-opts (queue #f) (opts #[]) (qopts))
   (default! qopts (try (tryif queue (get queue-opts queue)) #[]))
