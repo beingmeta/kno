@@ -36,6 +36,9 @@
 	((and (pair? val) (string? (car val)) (urish? (cdr val)))
 	 (set! saveroot (car val))
 	 (set! webroot (cdr val)))
+	((and (pair? val) (string? (cdr val)) (urish? (car val)))
+	 (set! saveroot (cdr val))
+	 (set! webroot (car val)))
 	((not (string? val))
 	 (error BADLOGROOT BUGJAR-CONFIG
 		"Not a valid logroot specification: " val))
@@ -46,6 +49,12 @@
 		 (set! saveroot (second split)))
 	       (begin (set! webroot (second split))
 		 (set! saveroot (first split))))))
+	((and (urish? val) (has-prefix val {"https:" "http:"})
+	      (has-suffix (urihost val) ".s3.amazonaws.com"))
+	 (set! webroot val)
+	 (set! saveroot
+	       (glom "s3://" (string-subst (urihost val) ".s3.amazonaws.com" "")
+		 "/" (uripath val))))
 	((urish? val) (set! webroot val))
 	(else (set! saveroot val))))
 (config-def! 'bugjar bugjar-config)
@@ -94,6 +103,7 @@
 	 (detailsblock #f)
 	 (irritantblock #f)
 	 (sections '()))
+    (debug%watch spec uuid saveroot webroot reqdata)
     (when (string? saveroot) (mkdirs (mkpath saveroot "example")))
     (when reqdata
       (dtype->gpath reqdata (gp/mkpath saveroot "request.dtype")))
