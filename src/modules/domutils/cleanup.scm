@@ -493,11 +493,15 @@
   (if (pair? arg)
       (->list (apply append (forseq (node (->vector arg))
 			      (cleanblocks node settings))))
-      (if (and (exists? (get arg '%content)) (test arg '%xmltag 'div))
-	  (begin (store! arg '%content
-			 (dom/cleanblocks! (get arg '%content) settings))
+      (if (exists? (get arg '%content))
+	  (begin
+	    (store! arg '%content
+		    (append->list
+		     (forseq (node (->vector (get arg '%content)))
+		       (cleanblocks node settings))))
 	    arg)
-	  '())))
+	  arg)))
+(define (append->list elts) (->list (apply append elts)))
 
 (define (cleanblocks node (opts #f))
   (cond ((string? node) (vector node))
@@ -580,7 +584,8 @@
 			(equal? top '(#f . #f)))))
       (when (cdr top)
 	(if (and (test node 'style) (not (empty-string? node 'style)))
-	    (dom/set! node 'style (dom/normstyle (glom (get node 'style) " " (cdr top))))
+	    (dom/set! node 'style
+		      (dom/normstyle (glom (get node 'style) " " (cdr top))))
 	    (dom/set! node 'style (cdr top))))
       (when (car top)
 	(if (and (test node 'class) (not (empty-string? node 'class)))

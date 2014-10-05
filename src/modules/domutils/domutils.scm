@@ -39,15 +39,13 @@
 
 ;;;; Kinds of HTML tags
 
-(define *block-tags*
-  '{DIV P SECTION ASIDE DETAIL FIGURE BLOCKQUOTE UL OL HEAD BODY DL})
 (define *block-text-tags*
   (string->symbol
-   '{"P" "LI" "DT" "DD" "BLOCKQUOTE"
-     "DIV" "SECTION" "ASIDE" "DETAIL"
-     "UL" "DL" "OL"
-     "H1" "H2" "H3" "H4" "H5" "H6" "H7"
-     "PRE"}))
+   '{P LI DT DD BLOCKQUOTE
+     DIV SECTION ASIDE DETAIL
+     UL DL OL
+     H1 H2 H3 H4 H5 H6 H7
+     PRE}))
 (define *table-tags*
   (string->symbol '{"TABLE" "TBODY" "TR" "TD" "TH" "COL"}))
 (define *inline-tags* '{a em strong i b span cite sup sub})
@@ -55,6 +53,8 @@
   '{blockquote ul ol dl section aside detail})
 (define *terminal-block-tags*
    '{p li dt dd h1 h2 h3 h4 h5 h6 h7})
+(define *block-tags*
+  (choice *terminal-block-tags* *wrapper-tags* 'body))
 
 (define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
 (define *void-tags*
