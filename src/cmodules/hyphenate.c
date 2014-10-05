@@ -23,6 +23,8 @@
 #include <libu8/u8filefns.h>
 #include <hyphen.h>
 
+#define EDGE_LEN 1
+
 FD_EXPORT int fd_init_hyphenate(void) FD_LIBINIT_FN;
 
 static u8_string default_hyphenation_file=NULL;
@@ -141,7 +143,7 @@ static int hyphenout_helper(U8_OUTPUT *out,
     int cpos=0, c=u8_sgetc(&scan), n_hyphens=0;
     while (c>=0) {
       u8_putc(out,c);
-      if (hyphens[cpos]&1) {
+      if ((cpos>EDGE_LEN)&&(hyphens[cpos]&1)&&(cpos<(len-EDGE_LEN))) {
         u8_putc(out,hyphen_char); n_hyphens++;}
       cpos=scan-string;
       c=u8_sgetc(&scan);}
