@@ -40,12 +40,11 @@
 ;;;; Kinds of HTML tags
 
 (define *block-text-tags*
-  (string->symbol
-   '{P LI DT DD BLOCKQUOTE
-     DIV SECTION ASIDE DETAIL
-     UL DL OL
-     H1 H2 H3 H4 H5 H6 H7
-     PRE}))
+  '{P LI DT DD BLOCKQUOTE
+    DIV SECTION ASIDE DETAIL
+    UL DL OL
+    H1 H2 H3 H4 H5 H6 H7
+    PRE})
 (define *table-tags*
   (string->symbol '{"TABLE" "TBODY" "TR" "TD" "TH" "COL"}))
 (define *inline-tags* '{a em strong i b span cite sup sub})
