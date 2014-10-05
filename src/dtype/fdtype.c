@@ -121,6 +121,7 @@ static double format_secs(double secs,char **units)
   if (secs>300) {*units="m"; return secs/60;}
   if (secs>7200) {*units="h"; return secs/3600;}
   if (secs>3600*24) {*units="d"; return secs/3600;}
+  return secs;
 }
 FD_EXPORT void fd_status_message()
 {
