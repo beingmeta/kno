@@ -56,7 +56,7 @@ static fdtype parse_error(u8_output out,fdtype result,int report)
 {
   fd_clear_errors(report);
   fd_decref(result);
-  return fd_init_string(NULL,out->u8_outptr-out->u8_outbuf,out->u8_outbuf);
+  return fd_block_string(out->u8_outptr-out->u8_outbuf,out->u8_outbuf);
 }
 
 static fdtype convert_value(fdtype fn,fdtype val,int free,int warn)
@@ -187,7 +187,7 @@ static fdtype json_intern(U8_INPUT *in,int flags)
     if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
     return result;}
   else {
-    fdtype result=((good_symbol)?
+    fdtype result=(((good_symbol)&&(out.u8_outptr-out.u8_outbuf))?
                    (fd_parse(out.u8_outbuf)):
                    (fd_stream_string(&out)));
     if (FD_ABORTP(result))
