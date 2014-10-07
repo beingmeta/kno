@@ -116,8 +116,9 @@ FD_EXPORT void fd_boot_message()
 
 static double format_secs(double secs,char **units)
 {
-  if (secs<0.001) {*units="ms"; return secs*1000000;}
-  if (secs<1) {*units="us"; return secs*1000;}
+  if (secs<0.001) {*units="us"; return secs*1000000;}
+  if (secs<1) {*units="ms"; return secs*1000;}
+  if (secs<300) {*units="s"; return secs;}
   if (secs>300) {*units="m"; return secs/60;}
   if (secs>7200) {*units="h"; return secs/3600;}
   if (secs>3600*24) {*units="d"; return secs/3600;}
@@ -138,11 +139,9 @@ FD_EXPORT void fd_status_message()
   double systime=format_secs
     (usage.ru_stime.tv_sec+(((double)usage.ru_stime.tv_usec)/1000000),
      &stu);
-  /*
-  if (membytes>1500000) {
-    memsize=floor(((double)membytes)/1000000); memu="MB";} 
-    else {memsize=floor(((double)membytes)/1000); memu="KB";} */
-  if (heapbytes>1500000) {
+  if (heapbytes>10000000000) {
+    heapsize=floor(((double)heapbytes)/1000000000); heapu="GB";}
+  else if (heapbytes>1500000) {
     heapsize=floor(((double)heapbytes)/1000000); heapu="MB";}
   else {heapsize=floor(((double)heapbytes)/1000); heapu="KB";}
   u8_message
