@@ -18,13 +18,15 @@
 		    (cons (stdspace (get r 'prop)) (stdspace (get r 'val)))))
 	 (rules (rsorted ruleset car))
 	 (prop #f))
-    (stringout
-      (doseq (rule rules i)
-	(unless (equal? (car rule) prop)
-	  (printout (if (> i 0) "; ")
-	    (car rule) ": " (trim-spaces (cdr rule)))
-	  (set! prop (car rule))))
-      ";")))
+    (if (> (length rules) 0)
+	(stringout
+	  (doseq (rule rules i)
+	    (unless (equal? (car rule) prop)
+	      (printout (if (> i 0) "; ")
+		(car rule) ": " (trim-spaces (cdr rule)))
+	      (set! prop (car rule))))
+	  ";")
+	"")))
 
 (define (dom/gather-styles! node (stylemap (make-hashtable)) (normalize #t))
   (when (test node 'style)
