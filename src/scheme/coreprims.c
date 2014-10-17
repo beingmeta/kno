@@ -229,6 +229,20 @@ static fdtype booleanp(fdtype x)
   else return FD_FALSE;
 }
 
+static fdtype truep(fdtype x)
+{
+  if (FD_FALSEP(x))
+    return FD_FALSE;
+  else return FD_TRUE;
+}
+
+static fdtype falsep(fdtype x)
+{
+  if (FD_FALSEP(x))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype typeof_prim(fdtype x)
 {
   fd_ptr_type t=FD_PRIM_TYPE(x);
@@ -679,6 +693,8 @@ FD_EXPORT void fd_init_corefns_c()
 
   fd_defalias(fd_scheme_module,"CHAR?","CHARACTER?");
   fd_idefn(fd_scheme_module,fd_make_cprim1("BOOLEAN?",booleanp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("TRUE?",truep,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("FALSE?",falsep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("NUMBER?",numberp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("IMMEDIATE?",immediatep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CONSED?",consedp,1));
