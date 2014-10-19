@@ -22,6 +22,8 @@
 (define-init add-procs (make-hashtable))
 (define-init drop-procs (make-hashtable))
 (define-init get-indices (make-hashtable))
+(define-init typefns (make-hashtable))
+(store! typefns 'boolean true?)
 
 (define (xo/decache! oid (slotid #f))
   (if slotid
@@ -35,6 +37,7 @@
       (let ((method
 	     (try (get store-procs (cons (getpool oid) slotid))
 		  (get store-procs slotid))))
+	(logdebug |XO/STORE!| slotid "(" oid ")=" value ", using " method)
 	(prog1
 	    (if (exists? method)
 		(method (qc value) oid)
@@ -48,7 +51,7 @@
       (let ((method
 	     (try (get add-procs (cons (getpool oid) slotid))
 		  (get add-procs slotid))))
-	(debug%watch "XO/ADD!" oid slotid method)
+	(logdebug |XO/ADD!| slotid "(" oid ")=+" value ", using " method)
 	(if (exists? method)
 	    (method (if (fail? value) (qc) value) oid)
 	    (add-with-store oid slotid value)))
@@ -61,7 +64,7 @@
       (let ((method
 	     (try (get drop-procs (cons (getpool oid) slotid))
 		  (get drop-procs slotid))))
-	(debug%watch "XO/DROP!" oid slotid method)
+	(logdebug |XO/DROP!| slotid "(" oid ")=-" value ", using " method)
 	(if (exists? method)
 	    (method (if (bound? value) (if (fail? value) (qc) value)
 			(get oid slotid))
@@ -117,33 +120,39 @@
 
 ;;; Defining methods
 
-(define (xo/defstore pool slotid db query (valtype #f))
+(define (xo/defstore pool slotid db query (valtype))
+  (default! valtype (try (get default-sqlmap slotid) #f))
   (store! store-procs
 	  (if pool (cons pool slotid) slotid)
 	  (extdb/proc db query
 		      (qc default-sqlmap)
-		      valtype (pool-base pool))))
+		      (try (get typefns valtype) valtype)
+		      (pool-base pool))))
 (defambda (xo/defstore! slotid method (pool #f))
   (do-choices slotid
     (do-choices pool
       (store! store-procs (if pool (cons pool slotid) slotid)
 	      method))))
 (define (xo/defadd pool slotid db query (valtype #f))
+  (default! valtype (try (get default-sqlmap slotid) #f))
   (store! add-procs
 	  (if pool (cons pool slotid) slotid)
 	  (extdb/proc db query
 		      (qc default-sqlmap)
-		      valtype (pool-base pool))))
+		      (try (get typefns valtype) valtype)
+		      (pool-base pool))))
 (defambda (xo/defadd! slotid method (pool #f))
   (do-choices slotid
     (do-choices pool
       (store! add-procs (if pool (cons pool slotid) slotid) method))))
 (define (xo/defdrop pool slotid db query (valtype #f))
+  (default! valtype (try (get default-sqlmap slotid) #f))
   (store! drop-procs
 	  (if pool (cons pool slotid) slotid)
 	  (extdb/proc db query
 		      (qc default-sqlmap)
-		      valtype (pool-base pool))))
+		      (try (get typefns valtype) valtype)
+		      (pool-base pool))))
 (defambda (xo/defdrop! slotid method (pool #f))
   (do-choices slotid
     (do-choices pool

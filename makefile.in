@@ -1084,7 +1084,7 @@ $(DESTDIR)@module_dir@ $(DESTDIR)@data_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-MODULE_DIRS=aws brico facebook misc paypal tests twitter webapi
+MODULE_DIRS=aws brico facebook misc paypal tests twitter webapi google
 SAFE_MODULE_DIRS=domutils knodules textindex
 BEINGMETA_MODULE_DIRS= \
 	morph morph/data chopper chopper/english \

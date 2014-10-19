@@ -9,37 +9,32 @@
 
 (use-module '{google fdweb texttools mimetable logger ezrecords oauth})
 
-(defrecord (gdrive . #[stringfn gdrive-string])
-  auth bucket path (opts {}))
-
-(define (gdrive-string loc)
+(define (gdrive-string loc (auth))
+  (set! auth (gdrive-auth loc))
   (stringout "#%(GDRIVE "
-    (write (gdrive-auth loc))
-    (write (gdrive-bucket loc))
-    (if (> (compound-length loc) 2) 
-	(printout " " (write (gdrive-path loc))))
-    (if (and (> (compound-length loc) 2) (exists? (s3loc-opts loc)))
-	(printout " " (write (gdrive-opts loc))))
-    ")"))
+    (write (getopt auth 'email (getopt auth 'handle))) " "
+    (gdrive-path loc) ")"))
+
+(defrecord (gdrive . #[stringfn gdrive-string])
+  auth path (opts {}))
 
 (module-export!
  '{cons-gdrive
-   gdrive?
-   gdrive/auth gdrive/bucket gdrive/path gdrive-string})
+   gdrive? gdrive/auth gdrive/path gdrive-string})
 
-(define gdrive/auth gdrive-bucket)
-(define gdrive/bucket gdrive-bucket)
-(define gdrive/path gdrive/path)
+(module-export! '{gdrive/info})
 
-(define (make-gdpath bucket path (opts #f))
-  (if (and (string? bucket) (not (position #\/ bucket)))
-      (if (not path) (cons-gdrive bucket "")
-	  (if (string? path)
-	      (if (has-prefix path "/")
-		  (cons-gdrive bucket path (or opts #{}))
-		  (cons-gdrive bucket (glom "/" path) (or opts #{})))
-	      (error badpath make-gdrive path)))
-      (error badbucket make-gdrive bucket)))
+(define gdrive/auth gdrive-auth)
+(define gdrive/path gdrive-path)
+
+(define (make-gdpath auth (path #f) (opts #f))
+  (if (or (not path) (empty-string? path))
+      (cons-gdrive auth "")
+      (if (string? path)
+	  (if (has-prefix path "/")
+	      (cons-gdrive auth path (or opts #{}))
+	      (cons-gdrive auth (glom "/" path) (or opts #{})))
+	  (error badpath make-gdrive path))))
 
 (define (->gdrive input)
   (if (gdrive? input) input
@@ -71,12 +66,132 @@
 				(make-gdrive input "")))))))
 	  (error "Can't convert to gdrive" input))))
 
+;;; Methods
 
+(define (gdrive/info oauth path (error #f))
+  (let* ((endpoint (glom "https://www.googleapis.com/drive/v2/files" path))
+	 (result (oauth/call oauth 'GET endpoint '() #f #f #t))
+	 (status (get result 'response))
+	 (metadata (jsonparse (get result 'x-gdrive-metadata))))
+    (if (>= 299 status 200)
+	(let ((parsed (jsonparse (get result '%content))))
+	  (store! parsed 'ctype (get parsed 'mime_type))
+	  (store! parsed 'modified (timestamp (get parsed 'modified)))
+	  (store! parsed 'length
+		  (get (text->frame #((label bytes (isdigit+) #t) (spaces) "bytes")
+				    (get parsed 'size))
+		       'bytes))
+	  parsed)
+	(if (= status 404) #f
+	    (and (or error (not (<= 400 status 500)))
+		 (irritant result CALLFAILED GDRIVE/INFO
+			   path " with " oauth))))))
+#|
+
+(define (gdrive/get/req oauth path)
+  (let ((endpoint (db/url "https://api-content.gdrive.com/1/files/"
+			  oauth path)))
+    (if revision
+	(oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
+	(oauth/call oauth 'GET endpoint '() #f #f #t))))
+(define (gdrive/get oauth path (revision #f))
+  (let* ((endpoint (db/url "https://api-content.gdrive.com/1/files/"
+			   oauth path))
+	 (result (if revision
+		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
+		     (oauth/call oauth 'GET endpoint '() #f #f #t)))
+	 (status (get result 'response)))
+    (if (>= 299 status 200) (get result '%content)
+	(if (= status 404)
+	    (begin (lognotice |Gdrive404| "Gdrive call returned 404" result)
+	      (fail))
+	    (irritant result CALLFAILED GDRIVE/GET
+		      path " with " oauth)))))
+(define (gdrive/get+ oauth path (revision #f) (err #f))
+  (let* ((endpoint (db/url "https://api-content.gdrive.com/1/files/"
+			   oauth path))
+	 (result (if revision
+		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
+		     (oauth/call oauth 'GET endpoint '() #f #f #t)))
+	 (status (get result 'response))
+	 (metadata (jsonparse (get result 'x-gdrive-metadata))))
+    (if (>= 299 status 200)
+	(if (exists? metadata)
+	    (begin (store! metadata 'content (get result '%content))
+	      (store! metadata 'ctype (get result 'content-type))
+	      (store! metadata 'modified (timestamp (get metadata 'modified)))
+	      (store! metadata 'length (string->number (get metadata 'size)))
+	      (store! metadata 'length
+		      (get (text->frame
+			    #((label bytes (isdigit+) #t) (spaces) "bytes")
+			    (get metadata 'size))
+			   'bytes))
+	      metadata)
+	    (frame-create #f
+	      'content (get result '%content)
+	      'ctype (get result 'content-type)
+	      'modified (get result 'modified)
+	      'etag (get result 'etag)))
+	(if (= status 404)
+	    (begin (lognotice |Gdrive404| "Gdrive call returned 404" result)
+	      (fail))
+	    (irritant result CALLFAILED GDRIVE/GET+
+		      path " with " oauth)))))
+
+(define (gdrive/info oauth path (revision #f) (error #f))
+  (let* ((endpoint (db/url "https://api.gdrive.com/1/metadata/"
+			   oauth path))
+	 (result (if revision
+		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
+		     (oauth/call oauth 'GET endpoint '() #f #f #t)))
+	 (status (get result 'response))
+	 (metadata (jsonparse (get result 'x-gdrive-metadata))))
+    (if (>= 299 status 200)
+	(let ((parsed (jsonparse (get result '%content))))
+	  (store! parsed 'ctype (get parsed 'mime_type))
+	  (store! parsed 'modified (timestamp (get parsed 'modified)))
+	  (store! parsed 'length
+		  (get (text->frame #((label bytes (isdigit+) #t) (spaces) "bytes")
+				    (get parsed 'size))
+		       'bytes))
+	  parsed)
+	(if (= status 404) #f
+	    (and (or error (not (<= 400 status 500)))
+		 (irritant result CALLFAILED GDRIVE/INFO
+			   path " with " oauth))))))
+
+(define (gdrive/list oauth path (revision #f))
+  (let* ((endpoint (db/url "https://api.gdrive.com/1/metadata/"
+			   oauth path))
+	 (result (if revision
+		     (oauth/call oauth 'GET endpoint
+				 `("list" "true" rev ,revision) #f #f #t)
+		     (oauth/call oauth 'GET endpoint '("list" "true") #f #f #t)))
+	 (status (get result 'response))
+	 (metadata (jsonparse (get result 'x-gdrive-metadata))))
+
+    (if (>= 299 status 200)
+	(jsonparse (get result '%content))
+	(irritant result CALLFAILED GDRIVE/INFO
+		  path " with " oauth))))
+
+(define (gdrive/put! oauth path content (ctype #f) (revision #f))
+  (unless ctype
+    (set! ctype
+	  (path->mimetype
+	   path (if (packet? content) "application" "text"))))
+  (let* ((endpoint
+	  (db/url "https://api-content.gdrive.com/1/files_put/"
+		  oauth path))
+	 (result (oauth/call oauth 'put endpoint '() content ctype)))
+    result))
 
 (define (gd/get path)
   )
 
 (define (j->s x) (stringout (jsonout x)))
+
+|#
 
 #|
 (define gdrive (get @/u/66 'gdrive_info))
