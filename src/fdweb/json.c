@@ -350,6 +350,8 @@ static void json_escape(u8_output out,u8_string s)
       case '\f': u8_putc(out,'f'); break;
       case '\r': u8_putc(out,'r'); break;
       case '\t': u8_putc(out,'t'); break;
+      case '"': u8_putc(out,'"'); break;
+      case '\\': u8_putc(out,'\\'); break;
       default:
         if (c>=128) {
           long uc=u8_sgetc(&scan);
