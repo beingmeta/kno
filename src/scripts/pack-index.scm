@@ -100,7 +100,8 @@
     (do-vector-mt (key keyv (config 'nthreads 4)
 		       prefetcher (config 'blocksize 50000)
 		       (mt/custom-progress "Copying keys"))
-		  (add! new key (get old key)))))
+		  (unless (or (void? (get old key)) (fail? (get old key)))
+		    (add! new key (get old key))))))
 
 (define (main from (to #f))
   (optimize! copy-keys) (optimize! compute-slotids)

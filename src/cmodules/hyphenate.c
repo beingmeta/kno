@@ -160,7 +160,7 @@ static fdtype hyphenout_prim(fdtype string_arg,fdtype hyphen_arg)
   struct U8_OUTPUT word; u8_byte *scan=string;
   int c=u8_sgetc(&scan);
   if (len==0) return FD_VOID;
-  while (!(u8_isalnum(c))) {
+  while ((c>=0)&&(!(u8_isalnum(c)))) {
     u8_putc(output,c); c=u8_sgetc(&scan);}
   U8_INIT_OUTPUT(&word,64);
   while (c>=0) {
@@ -210,7 +210,7 @@ static fdtype hyphenate_prim(fdtype string_arg,fdtype hyphen_arg)
   if (len==0) return fd_incref(string_arg);
   U8_INIT_OUTPUT(&out,len*2);
   U8_INIT_OUTPUT(&word,64);
-  while (!(u8_isalnum(c))) {
+  while ((c>=0)&&(!(u8_isalnum(c)))) {
     u8_putc(output,c); c=u8_sgetc(&scan);}
   while (c>=0) {
     if (u8_isalnum(c)) {
