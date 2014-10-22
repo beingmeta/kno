@@ -160,6 +160,8 @@ static fdtype hyphenout_prim(fdtype string_arg,fdtype hyphen_arg)
   struct U8_OUTPUT word; u8_byte *scan=string;
   int c=u8_sgetc(&scan);
   if (len==0) return FD_VOID;
+  while (!(u8_isalnum(c))) {
+    u8_putc(output,c); c=u8_sgetc(&scan);}
   U8_INIT_OUTPUT(&word,64);
   while (c>=0) {
     if (u8_isalnum(c)) {
@@ -170,8 +172,9 @@ static fdtype hyphenout_prim(fdtype string_arg,fdtype hyphen_arg)
           (output,word.u8_outbuf,word.u8_outptr-word.u8_outbuf,
            hyphen_char);
         word.u8_outptr=word.u8_outbuf; word.u8_outptr[0]='\0';}
-      u8_putc(output,c);
-      c=u8_sgetc(&scan);}
+      while ((c>=0)&&(!(u8_isalnum(c)))) {
+        u8_putc(output,c);
+        c=u8_sgetc(&scan);}}
     else {
       int nc=u8_sgetc(&scan);
       if ((nc<0)||(!(u8_isalnum(nc)))) {
@@ -181,9 +184,10 @@ static fdtype hyphenout_prim(fdtype string_arg,fdtype hyphen_arg)
              hyphen_char);
           word.u8_outptr=word.u8_outbuf; word.u8_outptr[0]='\0';}
         u8_putc(output,c);
-        if (nc<0) break;
-        u8_putc(output,nc);
-        c=u8_sgetc(&scan);}
+        if (nc<0) break; else c=nc;
+        while ((c>=0)&&(!(u8_isalnum(c)))) {
+          u8_putc(output,c);
+          c=u8_sgetc(&scan);}}
       else {u8_putc(&word,c); u8_putc(&word,nc); c=u8_sgetc(&scan);}}}
   if (word.u8_outptr!=word.u8_outbuf) {
     hyphenout_helper
@@ -206,6 +210,8 @@ static fdtype hyphenate_prim(fdtype string_arg,fdtype hyphen_arg)
   if (len==0) return fd_incref(string_arg);
   U8_INIT_OUTPUT(&out,len*2);
   U8_INIT_OUTPUT(&word,64);
+  while (!(u8_isalnum(c))) {
+    u8_putc(output,c); c=u8_sgetc(&scan);}
   while (c>=0) {
     if (u8_isalnum(c)) {
       u8_putc(&word,c); c=u8_sgetc(&scan);}
@@ -215,8 +221,10 @@ static fdtype hyphenate_prim(fdtype string_arg,fdtype hyphen_arg)
           (output,word.u8_outbuf,word.u8_outptr-word.u8_outbuf,
            hyphen_char);
         word.u8_outptr=word.u8_outbuf; word.u8_outptr[0]='\0';}
-      u8_putc(output,c);
-      c=u8_sgetc(&scan);}
+      while ((c>=0)&&(!(u8_isalnum(c)))) {
+        u8_putc(output,c);
+        c=u8_sgetc(&scan);}
+      if (c<0) break;}
     else {
       int nc=u8_sgetc(&scan);
       if ((nc<0)||(!(u8_isalnum(nc)))) {
@@ -226,9 +234,10 @@ static fdtype hyphenate_prim(fdtype string_arg,fdtype hyphen_arg)
              hyphen_char);
           word.u8_outptr=word.u8_outbuf; word.u8_outptr[0]='\0';}
         u8_putc(output,c);
-        if (nc<0) break;
-        u8_putc(output,nc);
-        c=u8_sgetc(&scan);}
+        if (nc<0) break; else c=nc;
+        while ((c>=0)&&(!(u8_isalnum(c)))) {
+          u8_putc(output,c);
+          c=u8_sgetc(&scan);}}
       else {u8_putc(&word,c); u8_putc(&word,nc); c=u8_sgetc(&scan);}}}
   if (word.u8_outptr!=word.u8_outbuf) {
     hyphenout_helper
