@@ -132,10 +132,13 @@
     (set! ctype
 	  (path->mimetype
 	   path (if (packet? content) "application" "text"))))
+  (loginfo |DROPBOX/PUT!| "Saving " (length content) " of " ctype " to " path
+	   " given\n\t" (pprint oauth))
   (let* ((endpoint
 	  (db/url "https://api-content.dropbox.com/1/files_put/"
 		  oauth path))
-	 (result (oauth/call oauth 'put endpoint '() content ctype)))
+	 (result (oauth/call oauth 'put endpoint '() content ctype))
+	 (status (get result 'response)))
     result))
 
 ;;;; GPATH handling
