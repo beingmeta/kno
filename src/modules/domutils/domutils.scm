@@ -424,7 +424,7 @@
 
 (defrecord selector tag (class #f) (id #f) (attribs {}) (context '()))
 
-(define xmlid #((isalpha) (opt (isalnum+)) (* #("_" (opt (isalnum+))))))
+(define xmlid #((isalpha) (opt (isalnum+)) (* #({"_" "-"} (opt (isalnum+))))))
 
 (define (dom/selector? x) (selector? x))
 (define (dom/selector->string sel)
