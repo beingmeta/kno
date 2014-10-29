@@ -961,11 +961,43 @@ static fdtype file_modtime(fdtype filename)
   else return make_timestamp(mtime);
 }
 
+static fdtype set_file_modtime(fdtype filename,fdtype timestamp)
+{
+  time_t mtime=
+    ((FD_VOIDP(timestamp))?(time(NULL)):
+     (FD_FIXNUMP(timestamp))?(FD_FIX2INT(timestamp)):
+     (FD_BIGINTP(timestamp))?(fd_getint(timestamp)):
+     (FD_PRIM_TYPEP(timestamp,fd_timestamp_type))?
+     (((struct FD_TIMESTAMP *)timestamp)->xtime.u8_tick):
+     (-1));
+  if (mtime<0)
+    return fd_type_error("time","set_file_modtime",timestamp);
+  else if (u8_set_mtime(FD_STRDATA(filename),mtime)<0)
+    return FD_ERROR_VALUE;
+  else return FD_TRUE;
+}
+
 static fdtype file_atime(fdtype filename)
 {
   time_t mtime=u8_file_atime(FD_STRDATA(filename));
   if (mtime<0) return FD_ERROR_VALUE;
   else return make_timestamp(mtime);
+}
+
+static fdtype set_file_atime(fdtype filename,fdtype timestamp)
+{
+  time_t atime=
+    ((FD_VOIDP(timestamp))?(time(NULL)):
+     (FD_FIXNUMP(timestamp))?(FD_FIX2INT(timestamp)):
+     (FD_BIGINTP(timestamp))?(fd_getint(timestamp)):
+     (FD_PRIM_TYPEP(timestamp,fd_timestamp_type))?
+     (((struct FD_TIMESTAMP *)timestamp)->xtime.u8_tick):
+     (-1));
+  if (atime<0)
+    return fd_type_error("time","set_file_atime",timestamp);
+  else if (u8_set_atime(FD_STRDATA(filename),atime)<0)
+    return FD_ERROR_VALUE;
+  else return FD_TRUE;
 }
 
 static fdtype file_ctime(fdtype filename)
@@ -2206,6 +2238,13 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
            fd_make_cprim1x("FILE-CREATIONTIME",file_ctime,1,
                            fd_string_type,FD_VOID));
+  fd_idefn(fileio_module,
+           fd_make_cprim2x("SET-FILE-MODTIME!",set_file_modtime,1,
+                           fd_string_type,FD_VOID));
+  fd_idefn(fileio_module,
+           fd_make_cprim2x("SET-FILE-ATIME!",set_file_atime,1,
+                           fd_string_type,FD_VOID));
+
   fd_idefn(fileio_module,
            fd_make_cprim1x("FILE-OWNER",file_owner,1,
                            fd_string_type,FD_VOID));
