@@ -125,6 +125,8 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata);
 FD_EXPORT void fd_urify(u8_output out,fdtype val);
 FD_EXPORT fdtype fd_mapurl(fdtype uri);
 
+FD_EXPORT char *fd_sendfile_header;
+
 /* URI stuff */
 
 FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int,int,char *);

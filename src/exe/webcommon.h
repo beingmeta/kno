@@ -50,7 +50,7 @@ static MU fdtype http_accept_language, http_accept_encoding, http_accept_charset
 static MU fdtype content_type, content_length, post_data;
 static MU fdtype server_port, server_name, path_translated, script_filename;
 static MU fdtype auth_type, remote_host, remote_user, remote_port;
-static MU fdtype http_cookie, request_method, retfile_slotid, cleanup_slotid;
+static MU fdtype http_cookie, request_method, sendfile_slotid, cleanup_slotid;
 static MU fdtype query_symbol, referer_symbol, forcelog_symbol;
 static MU fdtype webdebug_symbol, output_symbol, error_symbol;
 static MU fdtype errorpage_symbol, crisispage_symbol, reqdata_symbol;
@@ -71,7 +71,7 @@ static void init_webcommon_symbols()
   xmlpi_slotid=fd_intern("XMLPI");
   content_type=fd_intern("CONTENT-TYPE");
   content_slotid=fd_intern("CONTENT");
-  retfile_slotid=fd_intern("RETFILE");
+  sendfile_slotid=fd_intern("_SENDFILE");
   cleanup_slotid=fd_intern("CLEANUP");
   html_headers=fd_intern("HTML-HEADERS");
   http_headers=fd_intern("HTTP-HEADERS");

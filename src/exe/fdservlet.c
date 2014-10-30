@@ -931,16 +931,16 @@ static int webservefn(u8_client ucl)
     /* See if the content or retfile will get us into trouble. */
     content=fd_get(cgidata,content_slotid,FD_VOID);
     retfile=((FD_VOIDP(content))?
-             (fd_get(cgidata,retfile_slotid,FD_VOID)):
+             (fd_get(cgidata,sendfile_slotid,FD_VOID)):
              (FD_VOID));
     if ((!(FD_VOIDP(content)))&&
         (!((FD_STRINGP(content))||(FD_PACKETP(content))))) {
       fd_decref(result);
       result=fd_err(fd_TypeError,"FDServlet/content","string or packet",
                     content);}
-    if ((!(FD_VOIDP(retfile)))&&
-        ((!(FD_STRINGP(retfile)))||
-         (!(u8_file_existsp(FD_STRDATA(retfile)))))) {
+    else if ((!(FD_VOIDP(retfile)))&&
+	     ((!(FD_STRINGP(retfile)))||
+	      (!(u8_file_existsp(FD_STRDATA(retfile)))))) {
       fd_decref(result);
       result=fd_err(u8_CantOpenFile,"FDServlet/retfile","existing filename",
                     retfile);}}
@@ -1126,6 +1126,8 @@ static int webservefn(u8_client ucl)
         u8_client_write(ucl,start,bundle_len,0);
         buffered=1;
         return_code=1;}}
+    else if ((FD_STRINGP(retfile))&&(fd_sendfile_header)) {
+      /* The web server supports a sendfile header, so we use that */}
     else if (FD_STRINGP(retfile)) {
       /* This needs more error checking, signalling, etc */
       u8_string filename=FD_STRDATA(retfile);
