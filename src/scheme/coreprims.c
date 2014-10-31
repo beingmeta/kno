@@ -598,14 +598,16 @@ static int lconfig_set(fdtype var,fdtype val,void *data)
 static int reuse_lconfig(struct FD_CONFIG_HANDLER *e);
 static fdtype config_def(fdtype var,fdtype handler,fdtype docstring)
 {
-  int retval=
-    fd_register_config_x(FD_SYMBOL_NAME(var),
-                         ((FD_VOIDP(docstring)) ? (NULL) :
-                          (FD_STRDATA(docstring))),
-                         lconfig_get,lconfig_set,(void *) handler,
-                         reuse_lconfig);
-  if (retval<0) return FD_ERROR_VALUE;
+  int retval;
   fd_incref(handler);
+  retval=fd_register_config_x(FD_SYMBOL_NAME(var),
+                              ((FD_VOIDP(docstring)) ? (NULL) :
+                               (FD_STRDATA(docstring))),
+                              lconfig_get,lconfig_set,(void *) handler,
+                              reuse_lconfig);
+  if (retval<0) {
+    fd_decref(handler);
+    return FD_ERROR_VALUE;}
   return FD_VOID;
 }
 static int reuse_lconfig(struct FD_CONFIG_HANDLER *e){
