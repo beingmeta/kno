@@ -347,7 +347,7 @@ static void update_status()
     double xmax=(double)(stats.xmax);
     char *rmean_units, *rmax_units, *xmean_units, *xmax_units;
     double uptime; char *uptime_units;
-    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+    struct U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,4096);
     u8_printf(&out,STATUS_LINE_CURRENT,
               fdwebserver.n_busy,fdwebserver.n_queued,
               fdwebserver.n_clients,fdwebserver.n_threads,
@@ -692,7 +692,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   fd_webconn consed=(fd_webconn)
     u8_client_init(NULL,sizeof(FD_WEBCONN),addr,len,sock,srv);
   fd_init_dtype_stream(&(consed->in),sock,4096);
-  U8_INIT_OUTPUT(&(consed->out),8192);
+  U8_INIT_STATIC_OUTPUT((consed->out),8192);
   u8_set_nodelay(sock,1);
   consed->cgidata=FD_VOID;
   u8_log(LOG_INFO,"webclient/open","Created web client (0x%lx) %s",
@@ -1044,7 +1044,7 @@ static int webservefn(u8_client ucl)
              ((FD_STRDATA(errorpage)[0]=='/')||
               (u8_has_prefix(FD_STRDATA(errorpage),"http:",0))||
               (u8_has_prefix(FD_STRDATA(errorpage),"https:",0)))) {
-      struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,1024);
+      struct U8_OUTPUT tmpout; U8_INIT_STATIC_OUTPUT(tmpout,1024);
       write_string(client->socket,"Status: 307\r\nLocation: ");
       write_string(client->socket,FD_STRDATA(errorpage));
       write_string(client->socket,"\r\n\r\n");
@@ -1092,7 +1092,7 @@ static int webservefn(u8_client ucl)
     U8_OUTPUT httphead, htmlhead; int tracep;
     fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
-    U8_INIT_OUTPUT(&httphead,1024); U8_INIT_OUTPUT(&htmlhead,1024);
+    U8_INIT_STATIC_OUTPUT(httphead,1024); U8_INIT_STATIC_OUTPUT(htmlhead,1024);
     fd_output_http_headers(&httphead,cgidata);
     if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
       char clen_header[128]; size_t bundle_len=0;
@@ -1127,40 +1127,48 @@ static int webservefn(u8_client ucl)
         buffered=1;
         return_code=1;}}
     else if ((FD_STRINGP(retfile))&&(fd_sendfile_header)) {
-      /* The web server supports a sendfile header, so we use that */}
+      u8_byte *start;
+      u8_log(LOG_NOTICE,"Sendfile","Using %s to pass %s",
+	     fd_sendfile_header,FD_STRDATA(retfile));
+      /* The web server supports a sendfile header, so we use that */
+      u8_printf(&httphead,"Content-length: 0\r\n\r\n");
+      http_len=httphead.u8_outptr-httphead.u8_outbuf;
+      u8_client_write(ucl,httphead.u8_outbuf,http_len,0);
+      buffered=1; return_code=1;}
     else if (FD_STRINGP(retfile)) {
       /* This needs more error checking, signalling, etc */
       u8_string filename=FD_STRDATA(retfile);
       struct stat fileinfo; FILE *f;
       if ((stat(filename,&fileinfo)==0)&&(f=u8_fopen(filename,"rb")))  {
         int bytes_read=0;
-        unsigned char *filebuf=NULL; fd_off_t total_len=-1;
+	unsigned char *filebuf=NULL; fd_off_t total_len=-1;
+	u8_log(LOG_NOTICE,"Sendfile","Returning content of %s",
+	       FD_STRDATA(retfile));
         u8_printf(&httphead,"Content-length: %ld\r\n\r\n",
                   (long int)(fileinfo.st_size));
         http_len=httphead.u8_outptr-httphead.u8_outbuf;
         total_len=http_len+fileinfo.st_size;
         if ((async)&&(total_len<FD_FILEBUF_MAX))
-          filebuf=u8_malloc(total_len);
+          filebuf=u8_malloc(total_len+1);
         if (filebuf) {
-          /* This is the case where we hand off a buffer to mod_fdserv
+          /* This is the case where we hand off a buffer to u8_server
              to write for us. */
           unsigned char *write=filebuf+http_len;
           fd_off_t to_read=fileinfo.st_size;
           memcpy(write,httphead.u8_outbuf,http_len);
+	  /* Copy the whole file */
           while ((to_read>0)&&
                  ((bytes_read=fread(write,sizeof(uchar),to_read,f))>0)) {
+	    write=write+bytes_read;
             to_read=to_read-bytes_read;}
           if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
               ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
             u8_log(LOG_WARN,"Buffering/file",
-                   "Queued %d+%d=%d bytes of 0x%lx for output",
+                   "Queued %d+%d=%d file bytes of 0x%lx for output",
                    http_len,to_read,total_len,(unsigned long)filebuf);
-          client->buf=filebuf; client->off=0;
-          client->len=client->buflen=total_len;
-          client->writing=u8_microtime(); client->reading=-1;
-          /* Let the server loop free the buffer when done */
-          client->ownsbuf=1; buffered=1; return_code=1;
-          fclose(f);}
+	  u8_client_write_x(ucl,filebuf,total_len,0,U8_CLIENT_WRITE_OWNBUF);
+	  buffered=1; return_code=1;
+	  fclose(f);}
         else {
           char buf[32768];
           /* This is the case where we hang while we write. */
@@ -1171,8 +1179,13 @@ static int webservefn(u8_client ucl)
               content_len=content_len+bytes_read;
               retval=u8_writeall(client->socket,buf,bytes_read);
               if (retval<0) break;}
-            return_code=0;}}}
-      else {/* Error here */}}
+	    return_code=0;}}}
+      else {
+	u8_log(LOG_NOTICE,"Sendfile","The content file %s does not exist",
+	       FD_STRDATA(retfile));
+	u8_seterr(fd_FileNotFound,"fdservlet/sendfile",
+		  u8_strdup(FD_STRDATA(retfile)));
+	result=FD_ERROR_VALUE;}}
     else if (FD_STRINGP(content)) {
       int bundle_len; unsigned char *outbuf=NULL;
       content_len=FD_STRLEN(content);
@@ -1184,15 +1197,13 @@ static int webservefn(u8_client ucl)
         memcpy(outbuf,httphead.u8_outbuf,http_len);
         memcpy(outbuf+http_len,FD_STRDATA(content),content_len);
         outbuf[bundle_len]='\0';
-        client->buf=outbuf; client->len=client->buflen=bundle_len;
-        client->writing=u8_microtime(); client->reading=-1; client->off=0;
+	u8_client_write_x(ucl,outbuf,bundle_len,0,U8_CLIENT_WRITE_OWNBUF);
         if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
             ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
           u8_log(LOG_WARN,"Buffering/text",
-                 "Queued %d+%d=%d bytes of 0x%lx for output",
+                 "Queued %d+%d=%d string bytes of 0x%lx for output",
                  http_len,content_len,bundle_len,(unsigned long)outbuf);
-        /* Let the server loop free the buffer when done */
-        client->ownsbuf=1; buffered=1; return_code=1;}
+	buffered=1; return_code=1;}
       else  {
         retval=u8_writeall(client->socket,httphead.u8_outbuf,
                            httphead.u8_outptr-httphead.u8_outbuf);
@@ -1211,12 +1222,10 @@ static int webservefn(u8_client ucl)
         if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
             ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
           u8_log(LOG_WARN,"Buffering/packet",
-                 "Queued %d+%d=%d bytes of 0x%lx for output",
+                 "Queued %d+%d=%d packet bytes of 0x%lx for output",
                  http_len,content_len,bundle_len,(unsigned long)outbuf);
-        client->buf=outbuf; client->len=client->buflen=bundle_len;
-        client->writing=u8_microtime(); client->reading=-1;
-        /* Let the server loop free the buffer when done */
-        client->ownsbuf=1; buffered=1; return_code=1;}
+	u8_client_write_x(ucl,outbuf,bundle_len,0,U8_CLIENT_WRITE_OWNBUF);
+	buffered=1; return_code=1;}
       else {
         retval=u8_writeall(client->socket,httphead.u8_outbuf,
                            httphead.u8_outptr-httphead.u8_outbuf);

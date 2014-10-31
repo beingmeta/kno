@@ -711,8 +711,10 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
        u8_log(LOG_WARN,CGIDataInconsistency,"Bad cookie data: %q",cookie);}
   if (FD_STRINGP(redirect))
     u8_printf(out,"Location: %s\r\n",FD_STRDATA(redirect));
-  else if ((FD_STRINGP(sendfile))&&(fd_sendfile_header)) 
-    u8_printf(out,"%s: %s\r\n",fd_sendfile_header,FD_STRDATA(sendfile));
+  else if ((FD_STRINGP(sendfile))&&(fd_sendfile_header)) {
+    u8_log(LOG_DEBUG,"Sendfile","Using %s to pass %s",
+           fd_sendfile_header,FD_STRDATA(sendfile));
+    u8_printf(out,"%s: %s\r\n",fd_sendfile_header,FD_STRDATA(sendfile));}
   else {}
   fd_decref(ctype); fd_decref(status); fd_decref(headers);
   fd_decref(redirect); fd_decref(sendfile); fd_decref(cookies);
@@ -744,7 +746,7 @@ static fdtype update_body_attribs(fdtype body_attribs,fdtype body_classes)
     if (FD_VOIDP(class_cons)) {
       class_cons=fd_init_pair(NULL,FD_FALSE,body_attribs);
       body_attribs=fd_init_pair(NULL,class_symbol,class_cons);}
-    U8_INIT_OUTPUT_BUF(&classout,sizeof(_classbuf),_classbuf);
+    U8_INIT_STATIC_OUTPUT_BUF(classout,sizeof(_classbuf),_classbuf);
     if (FD_STRINGP(FD_CAR(class_cons))) {
       u8_puts(&classout,FD_STRDATA(FD_CAR(class_cons)));
       u8_puts(&classout," ");}
@@ -1049,15 +1051,27 @@ FD_EXPORT int sendfile_set(fdtype ignored,fdtype v,void *vptr)
 {
   u8_string *ptr=vptr;
   if (FD_STRINGP(v)) {
-    if (*ptr) u8_free(*ptr);
-    *ptr=u8_strdup(FD_STRDATA(v));
+    int bool=fd_boolstring(FD_STRDATA(v),-1);
+    if (bool<0) {
+      if (*ptr) u8_free(*ptr);
+      *ptr=u8_strdup(FD_STRDATA(v));
+      return 1;}
+    else if (bool==0) {
+      if (*ptr) u8_free(*ptr);
+      *ptr=NULL;
+      return 0;}
+    else {
+      if (*ptr) u8_free(*ptr);
+      *ptr=u8_strdup("X-Sendfile");}
     return 1;}
   else if (FD_TRUEP(v)) {
     if (*ptr) u8_free(*ptr);
-    *ptr=u8_strdup("X-Sendfile");}
+    *ptr=u8_strdup("X-Sendfile");
+    return 1;}
   else if (FD_FALSEP(v)) {
     if (*ptr) u8_free(*ptr);
-    *ptr=NULL;}
+    *ptr=NULL;
+    return 0;}
   else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
 }
 
