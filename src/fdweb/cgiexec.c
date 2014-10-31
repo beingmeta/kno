@@ -1187,8 +1187,8 @@ FD_EXPORT void fd_init_cgiexec_c()
      _("Functions to execute between parsing and responding to a CGI request"),
      fd_lconfig_get,fd_lconfig_set,&cgi_prepfns);
   fd_register_config
-    ("SENDFILE",
-     _("Header for using the web server's SENDFILE functionality"),
+    ("XSENDFILE",
+     _("Header for using the web server's X-SENDFILE functionality"),
      fd_sconfig_get,sendfile_set,&fd_sendfile_header);
   fd_register_config
     ("LOGCGI",_("Whether to log CGI bindings passed to FramerD"),
