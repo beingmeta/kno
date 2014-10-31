@@ -77,7 +77,7 @@ static struct FD_CONFIG_LOOKUPS *config_lookupfns=NULL;
 static fdtype config_intern(u8_string start)
 {
   U8_OUTPUT nameout; u8_byte buf[64], *scan=start;
-  U8_INIT_OUTPUT_BUF(&nameout,64,buf);
+  U8_INIT_STATIC_OUTPUT_BUF(nameout,64,buf);
   while (*scan) {
     int c=u8_sgetc(&scan);
     if ((c == '/')||(c==':')) u8_putc(&nameout,c);

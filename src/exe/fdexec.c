@@ -86,7 +86,7 @@ static fdtype chain_prim(int n,fdtype *args)
     /* This stream will contain the chaining message */
     struct U8_OUTPUT argstring;
     char **cargv=u8_alloc_n(n+n_configs+3,charp);
-    U8_INIT_OUTPUT(&argstring,512);
+    U8_INIT_STATIC_OUTPUT(argstring,512);
     cargv[cargc++]=exe_arg;
     cargv[cargc++]=file_arg;
     i=0; while (i<n)
@@ -249,7 +249,7 @@ int main(int argc,char **argv)
   if (FD_TROUBLEP(result)) {
     u8_exception e=u8_erreify(), root=e;
     int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
-    U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+    U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
     fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
     while (root->u8x_prev) root=root->u8x_prev;
     fd_print_exception(&out,root);

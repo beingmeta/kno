@@ -671,7 +671,7 @@ static int init_stmt_results
     int i=0;
     memset(outbound,0,n_cols*sizeof(MYSQL_BIND));
     memset(nullbuf,0,n_cols*sizeof(my_bool));
-    U8_INIT_OUTPUT_BUF(&out,128,namebuf);
+    U8_INIT_STATIC_OUTPUT_BUF(out,128,namebuf);
     if (fields==NULL) {
       const char *errmsg=mysql_stmt_error(stmt);
       u8_free(colnames); u8_free(outbound); u8_free(nullbuf);

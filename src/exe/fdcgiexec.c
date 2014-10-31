@@ -318,7 +318,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
     fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
-    U8_INIT_OUTPUT(&tmp,1024);
+    U8_INIT_STATIC_OUTPUT(tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
     u8_putn(&tmp,"\r\n",2);
     if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
@@ -378,7 +378,7 @@ static fd_ptrbits fcgiserveloop(fd_ptrbits socket)
   int retval;
   FCGX_Request req;
   struct U8_OUTPUT out;
-  U8_INIT_OUTPUT(&out,8192*4);
+  U8_INIT_STATIC_OUTPUT(out,8192*4);
   u8_log(LOG_CRIT,"fdcgiexec","Starting loop listening to socket %d",socket);
   if (retval=FCGX_InitRequest(&req,socket,0))
     return retval;
@@ -476,7 +476,7 @@ static int simplecgi(fdtype path)
   double setup_time, parse_time, exec_time, write_time;
   struct rusage start_usage, end_usage;
   fdtype proc=reqsetup(), result=FD_VOID, cgidata=FD_VOID;
-  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,16384);
+  struct U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,16384);
   if (FD_ABORTP(proc)) {
     parse_time=setup_time=u8_elapsed_time();}
   else {
@@ -560,7 +560,7 @@ static int simplecgi(fdtype path)
     fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
     fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
-    U8_INIT_OUTPUT(&tmp,1024);
+    U8_INIT_STATIC_OUTPUT(tmp,1024);
     fd_output_http_headers(&tmp,cgidata);
     u8_putn(&tmp,"\r\n",2);
     if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);

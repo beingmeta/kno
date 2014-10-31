@@ -431,7 +431,7 @@ static int dtypeserver(u8_client ucl)
                     client->idstring,sock,trans_id,
                     root->u8x_cond,root->u8x_context,elapsed);
         if (logbacktrace) {
-          struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
+          struct U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,1024);
           out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
           fd_print_backtrace(&out,ex,120);
           u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
@@ -1163,7 +1163,7 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
     fdtype result=fd_load_source(source_file,env,NULL);
     if (FD_TROUBLEP(result)) {
       u8_exception e=u8_erreify();
-      U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+      U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
       fd_print_exception(&out,e);
       fd_print_backtrace(&out,e,80);
       fputs(out.u8_outbuf,stderr);
@@ -1194,7 +1194,7 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
           if (FD_ABORTP(result)) {
             u8_exception ex=u8_erreify(), root=ex;
             int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
-            U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+            U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
             while (root->u8x_prev) root=root->u8x_prev;
             fd_unparse_maxchars=debug_maxchars;
             fd_unparse_maxelts=debug_maxelts;

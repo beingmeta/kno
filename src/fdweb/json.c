@@ -121,7 +121,7 @@ static fdtype json_atom(U8_INPUT *in,int flags)
 {
   fdtype result;
   struct U8_OUTPUT out; u8_byte _buf[256]; int c=readc(in);
-  U8_INIT_OUTPUT_BUF(&out,256,_buf);
+  U8_INIT_STATIC_OUTPUT_BUF(out,256,_buf);
   while ((u8_isalnum(c)) || (c=='-') || (c=='_') || (c=='+') || (c=='.')) {
     u8_putc(&out,c); c=readc(in);}
   if (c>=0) u8_ungetc(in,c);
@@ -489,7 +489,7 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
   else {
     u8_byte buf[256]; struct U8_OUTPUT tmpout;
     fdtype tval=((FD_VOIDP(miscfn))?(FD_VOID):(fd_dapply(miscfn,1,&x)));
-    U8_INIT_OUTPUT_BUF(&tmpout,256,buf);
+    U8_INIT_STATIC_OUTPUT_BUF(tmpout,256,buf);
     if (FD_VOIDP(tval)) fd_unparse(&tmpout,x);
     else fd_unparse(&tmpout,tval);
     fd_decref(tval);

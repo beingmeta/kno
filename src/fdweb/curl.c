@@ -1011,7 +1011,7 @@ static fdtype urlpost(int n,fdtype *args)
           keyname=FD_STRDATA(key); keylen=FD_STRLEN(key);}
         else {
           if (initnameout) {
-            U8_INIT_OUTPUT_BUF(&nameout,128,_buf); initnameout=0;}
+            U8_INIT_STATIC_OUTPUT_BUF(nameout,128,_buf); initnameout=0;}
           else nameout.u8_outptr=nameout.u8_outbuf;
           fd_unparse(&nameout,key);
           keyname=nameout.u8_outbuf;
@@ -1068,7 +1068,7 @@ static fdtype urlpost(int n,fdtype *args)
         keyname=FD_STRDATA(key); keylen=FD_STRLEN(key);}
       else {
         if (initnameout) {
-          U8_INIT_OUTPUT_BUF(&nameout,128,_buf);
+          U8_INIT_STATIC_OUTPUT_BUF(nameout,128,_buf);
           initnameout=0;}
         else nameout.u8_outptr=nameout.u8_outbuf;
         fd_unparse(&nameout,key);

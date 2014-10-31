@@ -591,7 +591,7 @@ static fdtype parse_character(U8_INPUT *in)
   struct U8_OUTPUT tmpbuf;
   int c, n_chars=0;
   /* First, copy an entire atom. */
-  U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
+  U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   c=u8_getc(in);
   if ((c=='&')&&(!(atombreakp(*(in->u8_inptr))))) {
     int code=u8_get_entity(in);
@@ -675,7 +675,7 @@ static int copy_string(u8_input s,u8_output a);
 static fdtype parse_oid(U8_INPUT *in)
 {
   struct U8_OUTPUT tmpbuf; char buf[128]; int c; fdtype result;
-  U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
+  U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   /* First, copy the data into a buffer.
      The buffer will almost never grow, but it might
      if we have a really long prefix id. */
@@ -1188,7 +1188,7 @@ fdtype fd_parser(u8_input in)
   case '|': { /* Escaped symbol */
     struct U8_OUTPUT tmpbuf; char buf[128];
     fdtype result; MAYBE_UNUSED int c;
-    U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
+    U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
     c=copy_atom(in,&tmpbuf);
     result=fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
     if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
@@ -1255,7 +1255,7 @@ static fdtype parse_atom(u8_input in,int ch1,int ch2)
      contain any special spaces or other special characters */
   struct U8_OUTPUT tmpbuf; char buf[128];
   fdtype result; MAYBE_UNUSED int c;
-  U8_INIT_OUTPUT_BUF(&tmpbuf,128,buf);
+  U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   if (ch1>=0) u8_putc(&tmpbuf,ch1);
   if (ch2>=0) u8_putc(&tmpbuf,ch2);
   c=copy_atom(in,&tmpbuf);

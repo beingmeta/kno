@@ -98,7 +98,7 @@ int main(int argc,char **argv)
     {
       FD_DO_CHOICES(v,difference) {
         struct U8_OUTPUT os;
-        U8_INIT_OUTPUT(&os,256);
+        U8_INIT_STATIC_OUTPUT(os,256);
         fd_unparse(&os,v);
         fputs(os.u8_outbuf,f); fputs("\n",f);
         free(os.u8_outbuf);}}

@@ -33,7 +33,7 @@ static fdtype multipart_symbol, text_symbol, preamble_slotid, parts_slotid;
 static fdtype parse_fieldname(char *start,char *end)
 {
   U8_OUTPUT out; char buf[128], *scan=start; fdtype fieldid;
-  U8_INIT_OUTPUT_BUF(&out,128,buf);
+  U8_INIT_STATIC_OUTPUT_BUF(out,128,buf);
   while (scan<end) {
     int c=*scan++; u8_putc(&out,toupper(c));}
   fieldid=fd_intern(out.u8_outbuf);

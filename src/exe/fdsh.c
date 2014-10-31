@@ -100,7 +100,7 @@ static void output_element(u8_output out,fdtype elt)
     else {
       struct U8_OUTPUT tmpout;
       u8_printf(out,"\n  ;; ##%d=\n  ",fd_histpush(elt),elt);
-      U8_INIT_OUTPUT(&tmpout,512);
+      U8_INIT_STATIC_OUTPUT(tmpout,512);
       fd_pprint(&tmpout,elt,"  ",2,2,console_width,1);
       u8_puts(out,tmpout.u8_outbuf);
       u8_free(tmpout.u8_outbuf);
@@ -141,7 +141,7 @@ static int output_result(u8_output out,fdtype result,int histref,int showall)
   else if ((showall)&&(FD_OIDP(result))) {
     fdtype v=fd_oid_value(result);
     if (FD_TABLEP(v)) {
-      U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+      U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,4096);
       u8_printf(&out,"%q:\n",result);
       fd_display_table(&out,v,FD_VOID);
       fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
@@ -156,7 +156,7 @@ static int output_result(u8_output out,fdtype result,int histref,int showall)
       u8_printf(out,"%q\n;; =##%d\n",result,histref);
     else {
       struct U8_OUTPUT tmpout;
-      U8_INIT_OUTPUT(&tmpout,512);
+      U8_INIT_STATIC_OUTPUT(tmpout,512);
       fd_pprint(&tmpout,result,"  ",2,2,console_width,1);
       u8_puts(out,tmpout.u8_outbuf); u8_putc(out,'\n');
       u8_free(tmpout.u8_outbuf);
@@ -411,7 +411,7 @@ int main(int argc,char **argv)
     if (FD_OIDP(expr)) {
       fdtype v=fd_oid_value(expr);
       if (FD_TABLEP(v)) {
-        U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
+        U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,4096);
         u8_printf(&out,"%q:\n",expr);
         fd_display_table(&out,v,FD_VOID);
         fputs(out.u8_outbuf,stdout); u8_free(out.u8_outbuf);
@@ -455,7 +455,7 @@ int main(int argc,char **argv)
     else if (FD_TROUBLEP(result)) {
       u8_exception ex=u8_erreify(), root=ex;
       int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
-      U8_OUTPUT out; U8_INIT_OUTPUT(&out,512);
+      U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
       while (root->u8x_prev) root=root->u8x_prev;
       fd_unparse_maxchars=debug_maxchars; fd_unparse_maxelts=debug_maxelts;
       fd_print_exception(&out,root);

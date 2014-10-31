@@ -164,7 +164,7 @@ static void emit_xmlattrib
     attrib_entify(out,tmp->u8_outbuf);}
   else {
     U8_OUTPUT tmp; u8_byte buf[128];
-    U8_INIT_OUTPUT_BUF(&tmp,128,buf);
+    U8_INIT_STATIC_OUTPUT_BUF(tmp,128,buf);
     tmp.u8_streaminfo=tmp.u8_streaminfo|U8_STREAM_TACITURN;
     fd_unparse(&tmp,value);
     u8_puts(out,":");
@@ -320,7 +320,7 @@ FD_EXPORT int fd_open_markup
 
 static u8_string get_tagname(fdtype tag,u8_byte *buf,int len)
 {
-  U8_OUTPUT out; U8_INIT_OUTPUT_BUF(&out,len,buf);
+  U8_OUTPUT out; U8_INIT_STATIC_OUTPUT_BUF(out,len,buf);
   if (FD_SYMBOLP(tag)) {
     u8_byte *scan=FD_SYMBOL_NAME(tag); int c;
     while ((c=u8_sgetc(&scan))>=0)
@@ -356,7 +356,7 @@ static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
   else {
     U8_OUTPUT _out; u8_byte buf[128];
     if (tmp==NULL) {
-      U8_INIT_OUTPUT_BUF(&_out,64,buf); tmp=&_out;}
+      U8_INIT_STATIC_OUTPUT_BUF(_out,64,buf); tmp=&_out;}
     tmp->u8_outptr=tmp->u8_outbuf;
     fd_unparse(tmp,x);
     /* if (FD_OIDP(x)) output_oid(tmp,x); else {} */
@@ -370,7 +370,7 @@ static fdtype xmlout(fdtype expr,fd_lispenv env)
   U8_OUTPUT *out=u8_current_output, tmpout;
   fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
   u8_byte buf[128];
-  U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
+  U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
@@ -402,7 +402,7 @@ static fdtype raw_xhtml_handler(fdtype expr,fd_lispenv env)
   U8_OUTPUT *out=u8_current_output, tmpout;
   fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
   u8_byte buf[128];
-  U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
+  U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
   while (FD_PAIRP(body)) {
     fdtype value=fasteval(FD_CAR(body),env);
     if (FD_ABORTP(value)) {
@@ -512,7 +512,7 @@ static fdtype doxmlblock(fdtype expr,fd_lispenv env,int newline)
     fd_decref(xmloidfn);
     return fd_err(fd_SyntaxError,"xmlblock",NULL,expr);}
   out=u8_current_output;
-  U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
+  U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
   if (open_markup(out,&tmpout,tagname,attribs,
                   ((eval_attribs)?(env):(NULL)),0)<0) {
     fd_decref(xmloidfn);
@@ -559,7 +559,7 @@ static fdtype handle_markup(fdtype expr,fd_lispenv env,int star,int block)
     fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
     U8_OUTPUT *out=u8_current_output, tmpout;
     u8_byte *tagname, tagbuf[128], buf[128];
-    U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
+    U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
     if (star) {
       attribs=fd_get_arg(expr,1); body=fd_get_body(expr,2);}
     else {attribs=FD_EMPTY_LIST; body=fd_get_body(expr,1);}
@@ -1314,7 +1314,7 @@ static fdtype doanchor(fdtype expr,fd_lispenv env)
   U8_OUTPUT *out=u8_current_output, tmpout;
   fdtype target=fd_eval(fd_get_arg(expr,1),env), xmloidfn;
   fdtype body=fd_get_body(expr,2);
-  u8_byte buf[128]; U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
+  u8_byte buf[128]; U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
   if (FD_VOIDP(target))
     return fd_err(fd_SyntaxError,"doanchor",NULL,FD_VOID);
   else if (FD_EMPTY_LISTP(body))
@@ -1376,7 +1376,7 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
   fdtype target=fd_eval(fd_get_arg(expr,1),env), xmloidfn=FD_VOID;
   fdtype attribs=fd_get_arg(expr,2);
   fdtype body=fd_get_body(expr,3);
-  u8_byte buf[128]; U8_INIT_OUTPUT_BUF(&tmpout,128,buf);
+  u8_byte buf[128]; U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
   if (FD_VOIDP(target))
     return fd_err(fd_SyntaxError,"doanchor",NULL,FD_VOID);
   else if (FD_EMPTY_LISTP(body))
@@ -1902,7 +1902,7 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lispenv env)
                   FD_OID_LO(FD_OID_ADDR(val)));
       else {
         U8_OUTPUT tmp; u8_byte buf[128]; u8_byte *scan;
-        U8_INIT_OUTPUT_BUF(&tmp,128,buf);
+        U8_INIT_STATIC_OUTPUT_BUF(tmp,128,buf);
         tmp.u8_streaminfo=tmp.u8_streaminfo|U8_STREAM_TACITURN;
         u8_puts(out,"\":");
         fd_unparse(&tmp,val);
