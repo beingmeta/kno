@@ -1131,7 +1131,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
       inbound[i].length=&(inbound[i].buffer_length);}
     else if (FD_PRIM_TYPEP(arg,fd_uuid_type)) {
       struct FD_UUID *uuid=FD_GET_CONS(arg,fd_uuid_type,struct FD_UUID *);
-      inbound[i].buffer_type=MYSQL_TYPE_STRING;
+      inbound[i].buffer_type=MYSQL_TYPE_BLOB;
       inbound[i].buffer=&(uuid->uuid);
       inbound[i].buffer_length=16;
       inbound[i].length=NULL;}
