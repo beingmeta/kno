@@ -1131,7 +1131,7 @@ static int webservefn(u8_client ucl)
       u8_log(LOG_NOTICE,"Sendfile","Using %s to pass %s",
 	     fd_sendfile_header,FD_STRDATA(retfile));
       /* The web server supports a sendfile header, so we use that */
-      u8_printf(&httphead,"Content-length: 0\r\n\r\n");
+      u8_printf(&httphead,"\r\n");
       http_len=httphead.u8_outptr-httphead.u8_outbuf;
       u8_client_write(ucl,httphead.u8_outbuf,http_len,0);
       buffered=1; return_code=1;}

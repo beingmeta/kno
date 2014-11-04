@@ -1,3 +1,24 @@
+framerd (3.6.1-2) unstable; urgency=low
+
+  * Bumped release number to non experimental 3.6
+  * Fix various leaks
+  * Many DOMUTILS improvements and optimizations
+  * Add more GDB commands for GC debugging
+  * Add some memory initializations
+  * Add head cache for S3 operations
+  * Starting Google Drive implementation
+  * Fixed some cases for AWS/V4 signature algorithms
+  * GPATH fixes, especially for ZIP files
+  * Improve mempool handling, including resets
+  * Added primitives for generating dompools
+  * Make bugjar able to use GPATHs for storing backtrace
+  * Fixes to CSS handling
+  * Fixes to JSON parsing, colonize handling
+  * Improvements to S3 module, especially recursive operations
+  * Fixes to mod_fdserv, especially spawn locking
+  * Add debugging support for sanitize, DUMA, etc
+ -- Ken Haase <kh@beingmeta.com>  Tue, 04 Nov 2014 09:27:50 -0500
+
 framerd (3.6.0-1) testing; urgency=low
 
   * Bumped the minor version number, numerous memory/leak fixes
