@@ -935,6 +935,12 @@ static fdtype packet2string(fdtype packet,fdtype encoding)
     else return fd_stream2string(&out);}
 }
 
+static fdtype string_byte_length(fdtype string)
+{
+  int len=FD_STRLEN(string);
+  return FD_INT2DTYPE(len);
+}
+
 /* Fixing embedded NULs */
 
 static fdtype fixnuls(fdtype string)
@@ -1356,6 +1362,10 @@ FD_EXPORT void fd_init_strings_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("GLOM",glom_lexpr,1));
   fd_defspecial(fd_scheme_module,"TEXTIF",textif_handler);
+
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("BYTE-LENGTH",string_byte_length,1,
+                           fd_string_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("STRING->PACKET",string2packet,1,
