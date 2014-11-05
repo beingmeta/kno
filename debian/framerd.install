@@ -31,3 +31,4 @@ usr/share/framerd/standard_modules/*.scm
 usr/share/framerd/standard_modules/safe/*.scm
 usr/share/framerd/standard_modules/*/*.scm
 usr/share/framerd/standard_modules/safe/*/*.scm
+etc/logrotate.d/framerd

@@ -18,4 +18,4 @@ override_dh_auto_configure:
 
 override_dh_auto_install:
 	make DESTDIR=$$(pwd)/debian/tmp install install-fdserv install-i18n \
-		setup-upstart setup-sysv
+		setup-upstart setup-sysv setup-logrotate

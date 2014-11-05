@@ -1132,7 +1132,10 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 
 install-modules: @install_modules_target@
 
-statedirs: $(DESTDIR)@rundir@/framerd $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/framerd/bugjar
+logdirs: $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/fdserv \
+	$(DESTDIR)@fdserv_log_dir@
+
+statedirs: $(DESTDIR)@rundir@/framerd logdirs
 $(DESTDIR)/etc/init.d:
 	@$(SYSINSTALL) -m 0755 -d $(DESTDIR)/etc/init.d
 $(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
@@ -1151,6 +1154,10 @@ $(DESTDIR)@logdir@/framerd/bugjar: $(DESTDIR)@logdir@/framerd
 	@$(MSG) Installing FramerD bugjar directory
 	@$(SYSINSTALL) -m 0777 @fdaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@logdir@/framerd/bugjar
+$(DESTDIR)@fdserv_log_dir@:
+	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
+		-d $(DESTDIR)@fdserv_log_dir@
+
 setup-sysv: $(DESTDIR)/etc/init.d/framerd statedirs
 enable-sysv: setup-sysv
 	@if which update-rc.d; then \
@@ -1178,7 +1185,7 @@ $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.conf $(DESTDIR)/etc/init/framerd.conf
 
-setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
+setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd logdirs
 $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate $(DESTDIR)/etc/logrotate.d
 	@$(MSG) Installing logrotate script
 	@$(SYSINSTALL) -T -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
@@ -1230,8 +1237,6 @@ install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 			$(DESTDIR)@apache_modinfo@;
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/fdserv;
-	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-			-d $(DESTDIR)@logdir@/fdserv;
 	@cd etc; if test -f mod_fdserv.so; \
 		then @SUDO@ ${APXS} -i mod_fdserv.so; \
 		else @SUDO@ ${APXS} -i mod_fdserv.la; \
@@ -1244,9 +1249,6 @@ $(DESTDIR)@apache_modules_dir@:
 $(DESTDIR)@apache_modinfo@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		-d $(DESTDIR)@apache_modinfo@
-$(DESTDIR)@fdserv_log_dir@:
-	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-		-d $(DESTDIR)@fdserv_log_dir@
 
 update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 		$(DESTDIR)@apache_modules_dir@
