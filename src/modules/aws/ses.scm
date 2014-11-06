@@ -5,7 +5,7 @@
 
 (module-export! '{ses/call ses/rawcall ses/sendmail ses/send})
 
-(use-module '{aws fdweb texttools logger email varconfig})
+(use-module '{aws fdweb texttools mimeout logger email varconfig})
 (define %used_modules '{aws})
 
 (define %loglevel %notify!)
@@ -132,26 +132,23 @@
 			   'header (cons "X-Amzn-Authorization" authstring)
 			   'header (cons "Expect" "")
 			   'method 'POST
-			   'verbose (getopt opts 'verbose #f))))
-    (store! query "Action" (try (get args 'action) "SendEmail"))
+			   'verbose (getopt opts 'verbose #f)))
+	 (message
+	  (stringout (mimeout (get-mime-head args from)
+			      (try (get args 'content)
+				   (get args 'text)
+				   "")))))
+    (store! query "Action" (try (get args 'action) "SendRawEmail"))
     (store! query "Timestamp" (get date 'iso8601))
     (store! query "Source" from)
     (when (exists? (get args 'returnpath))
       (store! query "ReturnPath" (get args 'returnpath)))
+
     (do-choices (dest (get args 'to) i)
-      (store! query (stringout "Destination.ToAddresses.member." (1+ i))
+      (store! query (stringout "Destinations.member." (1+ i))
 	      dest))
-    (do-choices (dest (get args 'cc) i)
-      (store! query (stringout "Destination.CcAddresses.member." (1+ i))
-	      dest))
-    (do-choices (dest (get args 'bcc) i)
-      (store! query (stringout "Destination.BccAddresses.member." (1+ i))
-	      dest))
-    (do-choices (dest (get args 'replyto) i)
-      (store! query (stringout "ReplyToAddresses.member." (1+ i))
-	      dest))
-    (store! query "RawMessage"
-	    (stringout (mimeout req "" {} '{to cc bcc reply-to})))
+
+    (store! query "RawMessage.Data" (->base64 message))
     
     (debug%watch "SES/RAWCALL" query)
     
@@ -161,6 +158,26 @@
 		   "application/x-www-form-urlencoded"
 		   handle)))
       (debug%watch "SES/RESPONSE" response)
+      ;; (store! response 'messagedata message)
       response)))
+
+(define (get-mime-head args from)
+  (frame-create #f
+    'from from
+    'to (stringout (do-choices (to (get args 'to) i)
+		     (printout (if (> i 0) ", ") to)))
+    'cc (tryif (test args 'cc)
+	  (stringout (do-choices (to (get args 'cc) i)
+		       (printout (if (> i 0) ", "))
+		       to)))
+    '%ordered #(TO FROM CC)
+    'replyto
+    (tryif (test args 'bcc)
+	  (stringout (do-choices (to (get args 'bcc) i)
+		       (printout (if (> i 0) ", "))
+		       to)))
+    'subject (try (get args 'subject) "")))
+
+
 
 
