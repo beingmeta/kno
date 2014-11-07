@@ -67,6 +67,7 @@
 
 (define nagtime (* 60 30))
 (varconfig! checkurl:nagtime nagtime)
+(set! nagtime 60)
 
 (define (getopts (opts #f))
   (if opts
@@ -90,17 +91,32 @@
   #t)
 
 (define (report-trouble testid url req ex testfn (opts #f))
-  (%watch "REPORT-TROUBLE" testid url req)
   (if req
       (logwarn (stringout testid) " accessing " url ":\n\t"
 	       (pprint req))
       (logwarn (stringout testid) " accessing " url ":\n\t" ex))
   (when (or (fail? (get troubles testid))
 	     (> (difftime (get troubles testid)) nagtime))
+    (logwarn |InformAuthorities|
+      "Informing the authorities about the failure of " testid " on " url)
     (when email
       (ses/call `#[to ,email from ,email-from
 		   subject ,(stringout "Failed " testid " @ " url)
-		   text ,(stringout (pprint req))]))
+		   text ,(stringout
+			   "The test " testid " on " url " has failed.\n"
+			   (when ex
+			     (printout "The error was "
+			       (error-condition ex) " in "
+			       (error-context ex)
+			       (when (error-details ex)
+				 (printout
+				   "\n\treporting " (write (error-details ex))))
+			       (when (error-irritant? ex)
+				 (printout "\n\twith irritant: "
+				   (pprint (error-irritant ex))))))
+			   (when req
+			     (printout "The network response was:\n")
+			     (pprint req)))]))
     (when sms
       (twilio/send (stringout "Failed " testid " @ " url) sms))
     (when troubles (store! troubles testid (timestamp 'seconds)))
