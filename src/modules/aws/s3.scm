@@ -659,6 +659,7 @@
 	   `(("x-amz-copy-source" .
 	      ,(stringout "/" (s3loc-bucket from) 
 		 (encode-path (s3loc-path from))))
+	     ("x-amz-metadata-directive" . "COPY")
 	     ,@inheaders
 	     ,@outheaders))))
 (define s3/copy! s3loc/copy!)
@@ -817,7 +818,8 @@
 
 ;;; Synchronizing
 
-(define (s3/push! dir s3loc (match #f) (headers) (forcewrite #f) (pause (config 's3:pause #f)))
+(define (s3/push! dir s3loc (match #f) (headers)
+		  (forcewrite #f) (pause (config 's3:pause #f)))
   (if (string? s3loc) (set! s3loc (->s3loc s3loc)))
   (default! headers (try (get (s3loc/opts s3loc) 'headers) '()))
   (let* ((s3info (s3/list+ s3loc))
@@ -843,8 +845,8 @@
 			      (exists textmatch patmatch (basename file))))))))
 	 (updated {}))
     (logwarn |S3/push|
-	     "Checking " (choice-size copynames)
-	     " files from " (choice-size filenames) " in " dir)
+	     "Updating " (choice-size copynames) "/" (choice-size filenames)
+	     " modified files in " dir)
     (do-choices-mt (file copynames (config 's3threads 1))
       (let* ((info (pick s3info 'name (basename file)))
 	     (loc (try (get info 'loc) (s3/mkpath s3loc (basename file))))
