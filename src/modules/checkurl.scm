@@ -90,11 +90,12 @@
   #t)
 
 (define (report-trouble testid url req ex testfn (opts #f))
+  (%watch "REPORT-TROUBLE" testid url req)
   (if req
       (logwarn (stringout testid) " accessing " url ":\n\t"
 	       (pprint req))
       (logwarn (stringout testid) " accessing " url ":\n\t" ex))
-  (when (and (test troubles testid)
+  (when (or (fail? (get troubles testid))
 	     (> (difftime (get troubles testid)) nagtime))
     (when email
       (ses/call `#[to ,email from ,email-from
@@ -165,7 +166,8 @@
 			       (test testfn '{location response}))
 			  (urlget url opts)
 			  (urlget+ url opts))
-	       (lambda (ex) (report-trouble testid url #f ex testfn opts)))))
+	       (lambda (ex)
+		 (report-trouble testid url #f ex testfn opts)))))
     (cond ((not req) #f)
 	  ((and testfn (applicable? testfn))
 	   (if (testfn req)
