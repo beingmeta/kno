@@ -47,7 +47,8 @@
     PRE})
 (define *table-tags*
   (string->symbol '{"TABLE" "TBODY" "TR" "TD" "TH" "COL"}))
-(define *inline-tags* '{a em strong i b span cite sup sub})
+(define *inline-tags*
+  '{a em strong i b span cite sup sub code kbd var dfn samp})
 (define *pre-tags* '{pre})
 (define *wrapper-tags* ;; semantic wrapper tags
   '{blockquote ul ol dl section aside detail})
