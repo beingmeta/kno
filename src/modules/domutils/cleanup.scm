@@ -99,7 +99,9 @@
 	  (set! scan (1+ qpos))
 	  (set! qpos (position #\" node scan)))
 	(printout (subseq node scan)))
-      (when (and (test node '%content) (exists? (get node '%content))
+      (when (and (not (test node '%xmltag %pre))
+		 (not (test node 'xml:space "preserve"))
+		 (test node '%content) (exists? (get node '%content))
 		 (pair? (get node '%content)))
 	(store! node '%content
 		(->list (forseq (elt (->vector (get node '%content)))
@@ -222,21 +224,22 @@
 
 (define (cleanup! node textfn dropfn dropempty classrules stylerules)
   (logdetail "Cleanup " (dom/eltref node))
-  (if (test node '%content)
-      (if (test node '%xmltag 'script) node
-	  (cleanup-content node textfn dropfn dropempty classrules stylerules))
-      ;; Fix empty tags
-      (if (test node '%xmltag *void-tags*)
-	  node
-	  (begin (store! node '%content '())
-	    node))))
+  (if (or (test node '%xmltag '{pre script style})
+	  (test node 'xml:space "preserve"))
+      node
+      (if (test node '%content)
+	  (cleanup-content node textfn dropfn dropempty
+			   classrules stylerules)
+	  ;; Fix empty tags
+	  (if (test node '%xmltag *void-tags*)
+	      node
+	      (begin (store! node '%content '())
+		node)))))
 
 (defambda (cleanup-content node textfn dropfn dropempty classrules stylerules)
   (let ((vec (->vector (get node '%content)))
 	(newfn (and textfn
-		    (not (or (try (get node 'keepspace) #f)
-			     (test node '%xmltag 'pre)
-			     (test node 'xml:space "preserve")))
+		    (not (try (get node 'keepspace) #f))
 		    textfn))
 	(isblock (test node '%xmltag *block-tags*))
 	(strings '())
@@ -505,6 +508,9 @@
 (define (cleanblocks node (opts #f))
   (cond ((string? node) (vector node))
 	((or (not (test node '%content)) (null? (get node '%content)))
+	 (vector node))
+	((or (test node '%xmltag *pre-tags*)
+	     (test node 'xml:space "preserve"))
 	 (vector node))
 	((test node '%xmltag *inline-tags*) (vector node))
 	((test node '%xmltag *terminal-block-tags*)
