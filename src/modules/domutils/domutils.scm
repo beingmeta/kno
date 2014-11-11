@@ -29,7 +29,7 @@
    dom/split-space dom/split-semi dom/split-comma dom/split-semi+comma
    ->selector selector-tag selector-class selector-id
    *block-tags* *block-text-tags* *terminal-block-tags* *table-tags*
-   *wrapper-tags* *inline-tags* *empty-tags* *void-tags*  
+   *pre-tags* *wrapper-tags* *inline-tags* *empty-tags* *void-tags*  
    dom/block? dom/inline? dom/terminal?
    dom->id id->dom dom->xmlids
    dom/parent
@@ -48,6 +48,7 @@
 (define *table-tags*
   (string->symbol '{"TABLE" "TBODY" "TR" "TD" "TH" "COL"}))
 (define *inline-tags* '{a em strong i b span cite sup sub})
+(define *pre-tags* '{pre})
 (define *wrapper-tags* ;; semantic wrapper tags
   '{blockquote ul ol dl section aside detail})
 (define *terminal-block-tags*
@@ -276,13 +277,15 @@
 			  `(WORD ,classname)))
 		  (try (pickstrings (get node attrib)) ""))))
 (define (dom/addclass! node classname)
-  (if (test node 'class)
-      (let ((classes (segment (get node 'class) " ")))
-	(unless (position classname classes)
-	  (dom/set! node 'class
-		    (stringout (doseq (class classes) (printout class " "))
-		      (printout classname)))))
-      (dom/set! node 'class classname))
+  (if (and (string? classname) (not (empty-string? classname)))
+      (if (test node 'class)
+	  (let ((classes (segment (get node 'class) " ")))
+	    (unless (position classname classes)
+	      (dom/set! node 'class
+			(stringout (doseq (class classes) (printout class " "))
+			  (printout classname)))))
+	  (dom/set! node 'class classname))
+      (logwarn DOM/ADDCLASS "Invalid classname " (write classname)))
   (when (oid? node) (store! node '%id (dom/sig node #t #f))))
 (define (dom/dropclass! node classname)
   (when (test node 'class)
@@ -1231,7 +1234,15 @@
 		      (doseq (elt node) (set! table (dom/oidmap elt table))))
 		    table))))))
 
-(define (dom/sig elt (attribs #f) (showptr #t))
+(define *sig-attribs* {})
+(varconfig! dom:sigattribs *sig-attribs* #f choice)
+
+(defambda (get-sig-attribs attribids)
+  (intersection (choice (reject attribids vector?)
+			(elts (pick attribids vector?)))
+		*sig-attribs*))
+
+(define (dom/sig elt (attribs #f) (showptr #t) (seen '{name rel class id}))
   (stringout
     (try (get elt '%%xmltag) (get elt '%xmltag))
     (when (test elt 'class)
@@ -1240,13 +1251,18 @@
     (when (test elt 'id) (printout "#" (get elt 'id)))
     (when (test elt 'name) (printout "[NAME=" (get elt 'name) "]"))
     (when (test elt 'rel) (printout "[REL=" (get elt 'rel) "]"))
+    (do-choices (attrib (difference (get-sig-attribs (get elt '%attribids))
+				    seen))
+      (when (test elt attrib)
+	(printout "[" attrib "=" (get elt attrib) "]")
+	(set+! seen attrib)))
     (when attribs
       (if (and (singleton? (get elt '%attribids))
 	       (vector? (get elt '%attribids)))
 	  (doseq (attrib (get elt '%attribids))
-	    (unless (overlaps? attrib '{name rel class id})
+	    (unless (overlaps? attrib seen)
 	      (printout "[" attrib "]")))
-	  (do-choices (attrib (difference (get elt '%attribids) '{name class rel id}))
+	  (do-choices (attrib (difference (get elt '%attribids) seen))
 	    (printout "[" attrib "]"))))
     (when (and showptr
 	       (or (overlaps? showptr '{force always})
