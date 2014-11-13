@@ -59,7 +59,7 @@
 
 (define gp->s gpath->string)
 
-(define (sync! ref savepath absref options ctype urlmap
+(define (sync! ref savepath absref options urlmap
 	       (checksync) (exists))
   (default! urlmap (getopt options 'urlmap))
   (default! checksync
@@ -184,7 +184,7 @@
        (store! urlmap absref lref))
      (debug%watch "LOCALREF" lref ref base absref saveto read
 		  (get urlmap absref))
-     (if (sync! ref savepath absref options ctype urlmap)
+     (if (sync! ref savepath absref options urlmap)
 	 (begin
 	   ;; Save the mapping in both directions (we assume that
 	   ;;  lrefs and absrefs are disjoint, so we can use the
@@ -224,7 +224,7 @@
     (loginfo |Localize| "Localizing [src] elements")
     (dolist (node (dom/select->list dom "[src]"))
       (loginfo |Localize| "Localizing " (dom/sig node)
-	       "\n\tfrom " base "\n\tto " saveto)
+	       "\n\tfrom " (gpath->string base) "\n\tto " (gpath->string saveto))
       (let* ((cached (get urlmap (get node 'src)))
 	     (ref (try cached
 		       (begin
@@ -236,11 +236,14 @@
 	  (if (exists? cached)
 	      (loginfo |Localize|
 		       "Localized (cached) " (write (get node 'src))
-		       " to " (write ref) " for " (dom/sig node #t))
+		       "\n\tto " (write ref) " for " (dom/sig node #t) " saved in"
+		       (do-choices saveto (printout "\n\t\t" (gpath->string saveto))))
 	      (loginfo |Localize|
 		       "Localized " (write (get node 'src))
-		       " to " (write ref) " for " (dom/sig node #t)))
+		       "\n\tto " (write ref) " for " (dom/sig node #t) " saved in"
+		       (do-choices saveto (printout "\n\t\t" (gpath->string saveto)))))
 	  (when saveslot (dom/set! node saveslot (get node 'src)))
+	  (unless (test node 'data-origin) (dom/set! node 'data-origin (get node 'src)))
 	  (dom/set! node 'src ref))))
     ;; Convert url() references in stylesheets
     (loginfo |Localize| "Localizing stylesheet links")
