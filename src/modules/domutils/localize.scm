@@ -54,8 +54,9 @@
 
 (define (needsync? savepath absref (basetime #f))
   (let ((current (or basetime (gp/modified savepath)))
-	(remote  (gp/modified absref)))
-    (or (not current) (not remote) (time>? current remote))))
+	(remote (gp/modified absref)))
+    (or (not current) (not remote)
+	(time>? remote current))))
 
 (define gp->s gpath->string)
 
@@ -67,7 +68,10 @@
 	    (getopt options 'basetime
 		    (not (getopt options 'updateall (config 'updateall))))))
   (default! exists (gp/exists? savepath))
-  (logdebug |LOCALIZE/sync| "Syncing " ref " with " (gp->s savepath) " from " (gp->s absref))
+  (logdebug |LOCALIZE/sync|
+    "Syncing " ref " with " (gp->s savepath) " from " (gp->s absref)
+    (if exists " exists" " missing")
+    (if checksync " checksync" " dontcheck"))
   (cond ((equal? (gp->s savepath) (gp->s absref))
 	 (logwarn |DOMUTILS/LOCALIZE/sync!| "Identical paths: " savepath absref)
 	 #t)
@@ -78,6 +82,9 @@
 		   " from " (gp->s absref))
 	 #t)
 	(else
+	 (logdebug |DOMUTILS/LOCALIZE/sync!|
+	   "Updating out-of-date " ref " at " (gp->s savepath)
+	   " from " (gp->s absref))
 	 (let* ((fetched
 		 (onerror (gp/fetch+ absref)
 		   (lambda (ex)
