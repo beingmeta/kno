@@ -88,6 +88,7 @@
     (drop! troubles test)
     (when statefile (dtype->file troubles statefile))
     (report-resolution testid url req testfn opts))
+  (logdebug "Passed test " testid " accessing " url ":\n" (pprint req))
   #t)
 
 (define (report-trouble testid url req ex testfn (opts #f))
