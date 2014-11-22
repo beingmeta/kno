@@ -100,6 +100,7 @@
 	 (metadata (jsonparse (get result 'x-dropbox-metadata))))
     (if (>= 299 status 200)
 	(let ((parsed (jsonparse (get result '%content))))
+	  (debug%watch "DROPBOX/INFO" parsed result)
 	  (store! parsed 'ctype (get parsed 'mime_type))
 	  (store! parsed 'modified (timestamp (get parsed 'modified)))
 	  (store! parsed 'length
