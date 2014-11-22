@@ -916,7 +916,20 @@ fdtype fd_xmleval(u8_output out,fdtype xml,fd_lispenv env)
         if (FD_ABORTP(value)) return value;}}
     return value;}
   if (FD_NEED_EVALP(xml)) {
-    fdtype result=fd_eval(xml,env);
+    fdtype result;
+    if (FD_SYMBOLP(xml)) {
+      fdtype xml_env=fd_symeval(xml_env_symbol,env);
+      fdtype val=FD_VOID;
+      if (FD_ENVIRONMENTP(xml_env)) 
+        val=fd_symeval(xml,(fd_lispenv)xml_env);
+      else if (FD_TABLEP(xml_env))
+        val=fd_get(xml_env,xml,FD_VOID);
+      else {}
+      fd_decref(xml_env);
+      if ((FD_TROUBLEP(val))||(FD_VOIDP(val)))
+        result=fd_eval(xml,env);
+      else result=val;}
+    else result=fd_eval(xml,env);
     /* This is where we have a symbol or list embedded in
        the document (via escapes, for instance) */
     if (FD_VOIDP(result)) {}
