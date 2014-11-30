@@ -1,0 +1,32 @@
+instance $DIR
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+author "Ken Haase"
+description "FramerD servlets"
+expect none
+console log
+
+pre-start script
+   mkdir -p @rundir@/fdserv
+   mkdir -p @logdir@/fdserv
+   chown @webuser@ @rundir@/fdserv @logdir@/fdserv
+   chgrp @admin_group@ @rundir@/fdserv @logdir@/fdserv
+   chmod g+rwx @rundir@/fdserv  @logdir@/fdserv
+
+   for sock in ${DIR}/*.sock;
+     do if (readlink ${sock}>/dev/null);
+        then start fdservlet SOCKET=`basename ${sock}` CONFIG=`readlink ${sock}`;
+        else start fdservlet SOCKET=`basename ${sock}` CONFIG=${sock}; fi;
+     done;
+end script
+
+post-stop script
+   for sock in ${DIR}/*.sock;
+       do stop fdservlet SOCKET=${sock} || true; done
+end script
+
+
+
+
