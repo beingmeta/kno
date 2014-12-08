@@ -12,7 +12,7 @@
 (module-export!
  '{
    dom/textify dom/find
-   dom/textual? dom/structural?
+   dom/textual? dom/structural? dom/content?
    dom/hasclass? dom/addclass! dom/dropclass!
    dom/oidify dom/oidmap dom/sig dom/nodeid dom/eltref dom/updateid!
    dom/get dom/set-tag! dom/set! dom/add! dom/drop!
@@ -1073,6 +1073,13 @@
        (every? (lambda (x) (if (string? x) (empty-string? x)
 			       (not (and (test x '%xmltag *inline-tags*)
 					 (dom/textual? x)))))
+	       (get node '%content))))
+
+(define (dom/content? node)
+  "Returns true if a node only contains other blocks or empty strings"
+  (and (test node '%content)
+       (some? (lambda (x) (if (string? x) (not (empty-string? x))
+			      (dom/content? x)))
 	       (get node '%content))))
 
 ;;; Cloning nodes
