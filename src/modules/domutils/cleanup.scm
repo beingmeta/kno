@@ -99,7 +99,7 @@
 	  (set! scan (1+ qpos))
 	  (set! qpos (position #\" node scan)))
 	(printout (subseq node scan)))
-      (when (and (not (test node '%xmltag %pre))
+      (when (and (not (test node '%xmltag '%pre))
 		 (not (test node 'xml:space "preserve"))
 		 (test node '%content) (exists? (get node '%content))
 		 (pair? (get node '%content)))
