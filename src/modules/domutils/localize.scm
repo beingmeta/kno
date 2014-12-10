@@ -394,14 +394,19 @@
 
 (define url-prefix-pat #((maxlen (isalpha+) 10) ":"))
 
-(define (dom/getmanifest doc)
+(define (dom/getmanifest doc (skiprels #f))
   (choice (for-choices (link (dom/find doc "LINK"))
-	    (tryif (or (test link 'rel "stylesheet")
-		       (test link 'rel "knowlet")
-		       (test link 'rel "knodule")
-		       (and (test link 'href)
-			    (fail? (textmatcher url-prefix-pat
-						(get link 'href)))))
+	    (tryif (and
+		    (test link 'href)
+		    (or (not skiprels)
+			(not (test link 'rel))
+			(not (if (applicable? skiprels)
+				 (skiprels (get link 'rel))
+				 (textmatch skiprels (get link 'rel)))))
+		    (or (test link 'rel "stylesheet")
+			(test link 'rel "knowlet")
+			(test link 'rel "knodule")
+			(fail? (textmatcher url-prefix-pat (get link 'href)))))
 	      (get link 'href)))
 	  (get (dom/find doc "SCRIPT") 'src)
 	  (get (dom/find doc "IMG") 'src)
