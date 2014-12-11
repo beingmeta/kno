@@ -13,7 +13,8 @@
    gp/has-suffix gp/has-prefix
    gp/fetch gp/fetch+ gp/etag gp/info
    gp/exists? gp/exists gp/modified gp/newer
-   gp/path gp/mkpath gp/subpath gp/makepath gpath->string
+   gp/path gp/mkpath gp/subpath gp/makepath
+   gpath->string gp/string
    gp:config gpath/handler
    gp/urlfetch gp/urlinfo
    dtype->gpath
@@ -270,6 +271,7 @@
 	((and (pair? path) (zipfile? (car path)))
 	 (stringout "zip:" (zip/filename (car path)) "(" (cdr path) ")"))
 	(else (stringout path))))
+(define gp/string gpath->string)
 
 (define (makepath root path (mode *default-dirmode*) (require-subpath #f))
   (when (and (pair? root) (null? (cdr root)))
