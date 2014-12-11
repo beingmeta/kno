@@ -58,8 +58,6 @@
     (or (not current) (not remote)
 	(time>? remote current))))
 
-(define gp->s gpath->string)
-
 (define (sync! ref savepath absref options urlmap
 	       (checksync) (exists))
   (default! urlmap (getopt options 'urlmap))
@@ -69,22 +67,23 @@
 		    (not (getopt options 'updateall (config 'updateall))))))
   (default! exists (gp/exists? savepath))
   (logdebug |LOCALIZE/sync|
-    "Syncing " ref " with " (gp->s savepath) " from " (gp->s absref)
+    "Syncing " ref " with " (gp/string savepath) " from " (gp/string absref)
     (if exists " exists" " missing")
     (if checksync " checksync" " dontcheck"))
-  (cond ((equal? (gp->s savepath) (gp->s absref))
-	 (logwarn |DOMUTILS/LOCALIZE/sync!| "Identical paths: " savepath absref)
+  (cond ((equal? (gp/string savepath) (gp/string absref))
+	 (logwarn |DOMUTILS/LOCALIZE/sync!| "Identical paths: "
+		  savepath " == " absref)
 	 #t)
 	((and checksync exists
 	      (not (needsync? savepath absref (getopt options 'basetime))))
 	 (logdebug |DOMUTILS/LOCALIZE/sync!|
-		   "Content " ref " is up to date in " (gp->s savepath)
-		   " from " (gp->s absref))
+		   "Content " ref " is up to date in " (gp/string savepath)
+		   " from " (gp/string absref))
 	 #t)
 	(else
 	 (logdebug |DOMUTILS/LOCALIZE/sync!|
-	   "Updating out-of-date " ref " at " (gp->s savepath)
-	   " from " (gp->s absref))
+	   "Updating out-of-date " ref " at " (gp/string savepath)
+	   " from " (gp/string absref))
 	 (let* ((fetched
 		 (onerror (gp/fetch+ absref)
 		   (lambda (ex)
@@ -98,13 +97,13 @@
 	   (cond ((and exists (not fetched))
 		  (logwarn |LOCALIZE/sync|
 			   "Couldn't update content for " ref
-			   " from " (gp->s absref) ", "
-			   "using current " (gp->s savepath)))
+			   " from " (gp/string absref) ", "
+			   "using current " (gp/string savepath)))
 		 ((or (not fetched)
 		      (fail? (get fetched 'content))
 		      (not (get fetched 'content)))
 		  (logwarn |LOCALIZE/sync|
-			   "Couldn't read content from " (gp->s absref)
+			   "Couldn't read content from " (gp/string absref)
 			   " for " ref))
 		 (else (onerror (gp/save! savepath
 				  (if xform (xform (get fetched 'content))
@@ -113,15 +112,15 @@
 			 (lambda (ex)
 			   (logwarn |LOCALIZE/sync/save|
 				    "Couldn't update content for " ref
-				    " from " (gp->s absref) ", "
-				    "using current " (gp->s savepath))))))
+				    " from " (gp/string absref) ", "
+				    "using current " (gp/string savepath))))))
 	   (when (and fetched (test fetched 'content)
 		      (or (string? content) (packet? content)))
 	     (loginfo "Copied " (length content) " "
 		      (if (packet? content) "bytes" "characters")
 		      " of " (or ftype "stuff")
-		      " from\n\t" (gp->s absref)
-		      "\n  to\t " (gp->s savepath)
+		      " from\n\t" (gp/string absref)
+		      "\n  to\t " (gp/string savepath)
 		      "\n  for\t" ref)
 	     (store! urlmap (list absref) (get fetched 'modified)))
 	   (or fetched exists)))))
@@ -135,7 +134,8 @@
 ;; SAVETO is the where downloaded data should be stored locally
 ;; READ is the relative path to use for local references
 (define (localref ref urlmap base saveto read options (ctype) (xform))
-  (default! ctype (getopt options 'mimetype (path->mimetype (gp/basename ref))))
+  (default! ctype (getopt options 'mimetype
+			  (path->mimetype (gp/basename ref))))
   (default! xform (getopt options 'xform #f))
   (when (position #\% ref) (set! ref (uridecode ref)))
   (try ;; non http/ftp references are untouched
@@ -150,7 +150,7 @@
        (get urlmap ref)))
    (begin (logdebug |LOCALIZE/ref| ref
 		    "\n\tfrom " base "\n\tto " saveto "\n\tfor " read)
-     (fail))
+     {})
    (tryif (position #\# ref)
      (let* ((baseuri (uribase ref))
 	    (hashid (urifrag ref))
@@ -219,19 +219,20 @@
   (default! dolinks (getopt options 'synclinks {}))
   (default! stylerules (getopt options 'stylerules {}))
   (loginfo "Localizing references for "
-	   (try (gpath->string (get dom 'source)) "source")
-	   "\n\tfrom " (write (gp->s base))
+	   (try (gp/string (get dom 'source)) "source")
+	   "\n\tfrom " (write (gp/string base))
 	   "\n\tto " (write read) ", copying content to "
-	   (if (singleton? saveto) (write (gp->s saveto))
+	   (if (singleton? saveto) (write (gp/string saveto))
 	       (do-choices saveto
-		 (printout "\n\t\t" (write (gp->s saveto))))))
+		 (printout "\n\t\t" (write (gp/string saveto))))))
   (debug%watch "DOM/LOCALIZE!" base saveto read doanchors)
   (let ((head (dom/find dom "HEAD" #f))
 	(saveslot (getopt options 'saveslot)))
     (loginfo |Localize| "Localizing [src] elements")
     (dolist (node (dom/select->list dom "[src]"))
       (loginfo |Localize| "Localizing " (dom/sig node)
-	       "\n\tfrom " (gpath->string base) "\n\tto " (gpath->string saveto))
+	       "\n\tfrom " (gp/string base) "\n\tto "
+	       (gp/string saveto))
       (let* ((cached (get urlmap (get node 'src)))
 	     (ref (try cached
 		       (begin
@@ -244,14 +245,15 @@
 	      (loginfo |Localize|
 		       "Localized (cached) " (write (get node 'src))
 		       "\n\tto " (write ref) " for " (dom/sig node #t) " saved in"
-		       (do-choices saveto (printout "\n\t\t" (gpath->string saveto))))
+		       (do-choices saveto (printout "\n\t\t" (gp/string saveto))))
 	      (loginfo |Localize|
 		       "Localized " (write (get node 'src))
 		       "\n\tto " (write ref) " for " (dom/sig node #t) " saved in"
-		       (do-choices saveto (printout "\n\t\t" (gpath->string saveto)))))
+		       (do-choices saveto (printout "\n\t\t" (gp/string saveto)))))
 	  (when saveslot (dom/set! node saveslot (get node 'src)))
 	  (unless (test node 'data-origin) (dom/set! node 'data-origin (get node 'src)))
-	  (dom/set! node 'src ref))))
+	  (dom/set! node 'src ref)
+	  (message "Got converted node is: \n"  (pprint node)))))
     ;; Convert url() references in stylesheets
     (loginfo |Localize| "Localizing stylesheet links")
     (do-choices (node (pick (pick (dom/find head "link") 'rel "stylesheet")
@@ -403,6 +405,7 @@
 			(not (if (applicable? skiprels)
 				 (skiprels (get link 'rel))
 				 (textmatch skiprels (get link 'rel)))))
+		    (or skiprels (not (test link 'rel "x-resource")))
 		    (or (test link 'rel "stylesheet")
 			(test link 'rel "knowlet")
 			(test link 'rel "knodule")
