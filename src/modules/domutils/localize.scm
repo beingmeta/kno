@@ -5,7 +5,7 @@
 
 ;;; Utilites for manipulating parsed XML in terms of the XHTML DOM
 
-(use-module '{fdweb texttools domutils aws/s3
+(use-module '{fdweb texttools reflection domutils aws/s3
 	      savecontent gpath logger mimetable})
 
 (define-init %loglevel %notice%)
