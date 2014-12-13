@@ -13,4 +13,3 @@ usr/lib/libfdweb.a
 usr/lib/libtexttools.a
 usr/lib/libtagger.a
 usr/include/framerd/*.h
-usr/bin/fdconfig
