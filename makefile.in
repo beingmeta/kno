@@ -893,8 +893,8 @@ dist/debs.done: staging/framerd_@FDVERSION@
 			../dist) && \
 	touch dist/debs.done;
 
-install-debian install-debs: dist/debs.done
-	@SUDO@dpkg -i dist/framerd*_@FDVERSION@*.deb
+install-debian install-debs debinstall installdebs: dist/debs.done
+	@SUDO@ dpkg -i dist/framerd*_@FDVERSION@*.deb
 
 update-repo: dist/debs.done
 	deb-s3 upload --bucket=repo.beingmeta.com \
