@@ -57,7 +57,7 @@ $(TESTBIN): ../../lib/libfddbfile@suffix@.a \
 %@suffix@.shared: %.c
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
-		-lfdtype -lfddb -lfddbfile
+		-lfdtype -lfddb -lfddbfile $(LIBS)
 ../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype.a
 ../../lib/libfddb@suffix@.a:
