@@ -259,14 +259,14 @@ bigbricotests: ../data/brico.dump
 
 $(TESTBIN): ../../src/db/dtypestream.o ../../lib/libfdtype@suffix@.a
 %@suffix@: %.c
-	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 	@echo MKTEST_STATIC $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # This is for making shared (dynamically linked) versions of the test programs
 %@suffix@.shared: %.c
+	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ \
 		../../src/db/dtypestream.o $(LIBS) -lfdtype $(LIBS)
-	@echo MKTEST_SHARED $@
 
 ../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype.a

@@ -12,7 +12,7 @@ LDFLAGS=@LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
 BASELIBS=@LIBS@ -lm -lz
 BMLIBS=-lu8io -lu8data -lu8
 XLIBS=
-LIBS=${XLIBS} ${BMLIBS} ${BASELIBS}
+LIBS=$(XLIBS) $(BMLIBS) $(BASELIBS)
 
 CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
 	  	  	../../lib/libfdbserv@suffix@.a  \
@@ -50,9 +50,9 @@ all: $(TESTBIN)
 
 # This is for making shared test programs, when there are associated problems
 %.shared: %.c
+	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
 		-lfdtype -lfddb -lfddbfile -lfdscheme -lfdschemeio
-	@echo MKTEST_SHARED $@
 
 ../../lib/libfdweb@suffix@.a:
 	cd ../..; make lib/libfdweb@suffix@.a
@@ -76,8 +76,8 @@ $(TESTBIN): $(EXTRA_LIBS) \
 	    ../../lib/libfddb@suffix@.a ../../lib/libfdtype@suffix@.a
 
 %: %.c $(EXTRA_LIBS) $(CORE_LIBS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(EXTRA_LIBS) $(CORE_LIBS) $(LIBS) -lu8stdio
 	@echo MKTEST_STATIC $@
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(EXTRA_LIBS) $(CORE_LIBS) $(LIBS) -lu8stdio
 fdservlet: ../../src/exe/webcommon.h
 fdcgiexec: ../../src/exe/webcommon.h
 
