@@ -212,6 +212,12 @@ static fdtype errorp(fdtype x)
   if (FD_PRIM_TYPEP(x,fd_error_type)) return FD_TRUE; else return FD_FALSE;
 }
 
+static fdtype applicablep(fdtype x)
+{
+  if (FD_APPLICABLEP(x)) return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype opcodep(fdtype x)
 {
   if (FD_OPCODEP(x)) return FD_TRUE; else return FD_FALSE;
@@ -692,6 +698,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CHARACTER?",characterp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("OPCODE?",opcodep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("ERROR?",errorp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("APPLICABLE?",applicablep,1));
 
   fd_defalias(fd_scheme_module,"CHAR?","CHARACTER?");
   fd_idefn(fd_scheme_module,fd_make_cprim1("BOOLEAN?",booleanp,1));
