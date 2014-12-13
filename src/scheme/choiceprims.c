@@ -1315,7 +1315,9 @@ FD_EXPORT void fd_init_choicefns_c()
            fd_make_cprim2("GETRANGE",getrange_prim,1));
 
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim2("SAMPLE-N",samplen,2)));
+           fd_make_ndprim(fd_make_cprim2x
+                          ("SAMPLE-N",samplen,1,-1,FD_VOID,
+                           fd_fixnum_type,FD_SHORT2DTYPE(10))));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3x("PICK-N",pickn,2,
                                           -1,FD_VOID,fd_fixnum_type,FD_VOID,
