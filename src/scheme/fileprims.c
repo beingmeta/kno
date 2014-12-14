@@ -771,7 +771,7 @@ static u8_string tempdir_core(fdtype template_arg,int keep)
   else {
     u8_condition cond=u8_strerror(errno); errno=0;
     if (consed) u8_free(consed);
-    fd_err(cond,"tempdir_prim",NULL,template_arg);
+    fd_seterr(cond,"tempdir_prim",u8_strdup(template),fd_incref(template_arg));
     return NULL;}
 }
 
