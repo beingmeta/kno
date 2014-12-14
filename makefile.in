@@ -889,7 +889,7 @@ dist/debs.done: staging/framerd_@FDVERSION@
 	 dpkg-buildpackage -k$(GPGID) -uc -us -F -rfakeroot) && \
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
 	(cd staging; mv framerd*_@FDVERSION@*.deb \
-			libapache2-mod-fdserver_@FDVERSION@*.deb \
+			libapache2-mod-fdserv_@FDVERSION@*.deb \
 			framerd_@FDVERSION@*.dsc \
 			framerd_@FDVERSION@*.changes \
 			../dist) && \
