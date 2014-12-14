@@ -60,30 +60,30 @@ Depends: framerd (= ${binary:Version})
 Description: HTML Tidy (bindings) for FramerD
 
 Package: framerd-doc
-Architecture: all
+Architecture: any
 Description: documentation for framerd
 
 Package: framerd-gnosys
-Architecture: all
+Architecture: any
 Depends: framerd
 Description: A document/media search and analysis toolkit in FramerD
 
 Package: framerd-morph
-Architecture: all
+Architecture: any
 Depends: framerd
 Description: Multi-language morphological analysis for FramerD
 
 Package: framerd-chopper
-Architecture: all
+Architecture: any
 Depends: framerd
 Description: Natural language processing development environment
 
 Package: framerd-upstart
-Architecture: all
+Architecture: any
 Depends: framerd
 Description: Upstart configuration for FramerD
 
 Package: framerd-sysv
-Architecture: all
+Architecture: any
 Depends: framerd
 Description: SYSV init.d configuration for FramerD
