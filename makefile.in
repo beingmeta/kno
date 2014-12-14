@@ -902,6 +902,7 @@ update-repo: dist/debs.done
 		      --codename=$(CODENAME) \
 		      --sign=$(GPGID)      \
 		dist/framerd*_@FDVERSION@*.deb
+		dist/libapache*.deb
 
 # Installation targets
 
