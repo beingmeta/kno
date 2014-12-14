@@ -811,7 +811,7 @@ debian deb debs: dist/debs.done
 
 cleandist cleanrpms cleandeb rpmclean debclean: 
 	rm -rf dist/rpms.done dist/rpms.ready dist/debs.done dist/debs.ready
-	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc
+	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes
 	find dist -name "*.rpm" | xargs -r rm
 	rm -rf staging/framerd*
 
@@ -888,7 +888,9 @@ dist/debs.done: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
 	 dpkg-buildpackage -k$(GPGID) -uc -us -F -rfakeroot) && \
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
-	(cd staging; mv framerd*_@FDVERSION@*.deb framerd_@FDVERSION@*.dsc \
+	(cd staging; mv framerd*_@FDVERSION@*.deb \
+			libapache2-mod-fdserver_@FDVERSION@*.deb \
+			framerd_@FDVERSION@*.dsc \
 			framerd_@FDVERSION@*.changes \
 			../dist) && \
 	touch dist/debs.done;
