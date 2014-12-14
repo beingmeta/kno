@@ -129,7 +129,7 @@
 (define (->s3loc input)
   (cond ((s3loc? input) input)
 	((not (string? input))
-	 (error "Can't convert to s3loc" input))
+	 (irritant input |S3Loc| ->S3LOC))
 	((has-prefix input "s3:") (->s3loc (subseq input 3)))
 	((has-prefix input "//")
 	 (let ((slash (position #\/ input 2)))
