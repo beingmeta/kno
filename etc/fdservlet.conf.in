@@ -13,4 +13,10 @@ setuid @webuser@
 setgid @admin_group@
 env LOGDIR=@logdir@/fdserv
 export CONFIG
+pre-start script
+	  touch ${SOCKET}.nospawn
+end script
+post-stop script
+	  rm ${SOCKET}.nospawn
+end script
 exec @prefix@/bin/fdservlet ${SOCKET} CONFIG=${CONFIG}

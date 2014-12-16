@@ -271,6 +271,12 @@ static int stat_can_writep(apr_pool_t *p,server_rec *s,apr_finfo_t *finfo)
   if (finfo->protection & APR_FPROT_WWRITE) return 1;
   else return 0;
 }
+static int file_existsp(apr_pool_t *p,const char *filename)
+{
+  fileinfo finfo;
+  int rv=apr_stat(&finfo,filename,FINFO_FLAGS,p);
+  return (rv==OK);
+}
 
 static int file_writablep(apr_pool_t *p,server_rec *s,const char *filename)
 {
@@ -794,6 +800,7 @@ static const char *servlet_spawn(cmd_parms *parms,void *mconfig,const char *arg)
   LOG_CONFIG(parms,arg);
   if (strcasecmp(arg,"on")==0) spawn_wait=10;
   else if (strcasecmp(arg,"off")==0) spawn_wait=0;
+  else if (strcasecmp(arg,"auto")==0) spawn_wait=-1;
   else if (*arg=='\0') {
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,
 		 "Bad spawn wait '%s'",arg);
@@ -1160,6 +1167,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   /* Executable, socket name, NULL, LOG_FILE env, NULL */
   const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
   struct stat stat_data; int rv, n_configs=0, retval=0;
+  const char *nospawn=apr_pstrcat(p,sockname,".nospawn",NULL);
   const char *lockname=apr_pstrcat(p,sockname,".spawn",NULL);
   apr_file_t *lockfile;
   int unlock=0;
@@ -1193,8 +1201,10 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   if ((servlet_wait<0)&&
       ((strchr(sockname,'@')!=NULL)||(strchr(sockname,':')!=NULL)))
     servlet_wait=0;
-  else if (servlet_wait<0)
-    servlet_wait=DEFAULT_SERVLET_WAIT;
+  else if (servlet_wait<0) {
+    if (!(file_existsp(p,nospawn)))
+      servlet_wait=DEFAULT_SERVLET_WAIT;
+    else servlet_wait=0;}
   else {}
   
   apr_uid_current(&uid,&gid,p);
