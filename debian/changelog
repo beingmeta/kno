@@ -1,3 +1,9 @@
+framerd (3.6.3-6) unstable; urgency=low
+
+  * Fix libtidy dependencies
+	
+ -- Ken Haase <kh@beingmeta.com>  Tue, 16 Dec 2014 20:32:07 -0800
+
 framerd (3.6.3-5) unstable; urgency=low
 
   * Fix SSL dependencies
