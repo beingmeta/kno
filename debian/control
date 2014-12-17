@@ -8,7 +8,7 @@ Homepage: http://www.framerd.org/
 
 Package: framerd
 Architecture: any
-Depends: ${misc:Depends}, libu8, libzip2, libssl1, libcurl3
+Depends: ${misc:Depends}, libu8, libzip2, libssl1.0.0, libcurl3
 Description: Scalable knowledge base development and application platform
  FramerD provides a robust and scalable object database especially
  designed and optimized for pointer-intensive semi-structured data with
