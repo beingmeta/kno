@@ -8,7 +8,7 @@ Homepage: http://www.framerd.org/
 
 Package: framerd
 Architecture: any
-Depends: ${misc:Depends}, libu8
+Depends: ${misc:Depends}, libu8, libzip2, libssl1, libcurl3
 Description: Scalable knowledge base development and application platform
  FramerD provides a robust and scalable object database especially
  designed and optimized for pointer-intensive semi-structured data with
@@ -34,17 +34,17 @@ Description: Development files for FramerD
 
 Package: framerd-mysql
 Architecture: any
-Depends: framerd (= ${binary:Version})
+Depends: framerd (= ${binary:Version}), mysql-client-5.6
 Description: MYSQL bindings for FramerD
 
 Package: framerd-sqlite
 Architecture: any
-Depends: framerd (= ${binary:Version})
+Depends: framerd (= ${binary:Version}), sqlite
 Description: SQLite bindings for FramerD
 
 Package: framerd-imagetools
 Architecture: any
-Depends: framerd (= ${binary:Version})
+Depends: framerd (= ${binary:Version}), libexif12, libmagickwand5, libqrencode3
 Description: Image tools for FramerD
   Bindings to various image libraries modules for FramerD,
   including ImageMagick, QRCode generation, and EXIF extraction.
@@ -56,7 +56,7 @@ Description: Markdown conversion (bindings) for FramerD
 
 Package: framerd-tidy
 Architecture: any
-Depends: framerd (= ${binary:Version})
+Depends: framerd (= ${binary:Version}), libtidy
 Description: HTML Tidy (bindings) for FramerD
 
 Package: framerd-doc
