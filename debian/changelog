@@ -1,3 +1,18 @@
+framerd (3.6.3-3) unstable; urgency=low
+
+  * Improvements and fixes to HTML/CSS/text handling
+  * Fixes to XMLEVAL processing
+  * Add APPLICABLE? in core package
+  * Add default arg (10) for SAMPLE-N
+  * Added BYTE-LENGTH primitive for strings and packets
+  * Add fdservlets Upstart config
+  * Added more tidy->xhtml options
+  * Fixes to gpath, checkurl, and aws/s3 modules
+  * Added raw email support to SES
+  * Add logdirs and logrotate scripts to packaging
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 16 Dec 2014 17:01:07 -0800
+
 framerd (3.6.2-2) unstable; urgency=low
 
   * Improvements and fixes to HTML/CSS/text handling
