@@ -38,5 +38,4 @@ usr/share/framerd/standard_modules/*/*.json
 usr/share/framerd/standard_modules/safe/*/*.scm
 usr/share/framerd/standard_modules/safe/*/*.dtype
 usr/share/framerd/standard_modules/safe/*/*.table
-usr/share/framerd/standard_modules/safe/*/*.json
 etc/logrotate.d/framerd
