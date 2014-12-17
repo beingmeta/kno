@@ -30,7 +30,6 @@ usr/etc/framerd/servers
 usr/share/framerd/standard_modules/*.js
 usr/share/framerd/standard_modules/*.css
 usr/share/framerd/standard_modules/*.scm
-usr/share/framerd/standard_modules/*.json
 usr/share/framerd/standard_modules/safe/*.scm
 usr/share/framerd/standard_modules/*/*.scm
 usr/share/framerd/standard_modules/*/*.dtype
