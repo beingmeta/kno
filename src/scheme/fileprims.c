@@ -2240,10 +2240,12 @@ FD_EXPORT void fd_init_fileio_c()
                            fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
            fd_make_cprim2x("SET-FILE-MODTIME!",set_file_modtime,1,
-                           fd_string_type,FD_VOID));
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(fileio_module,
            fd_make_cprim2x("SET-FILE-ATIME!",set_file_atime,1,
-                           fd_string_type,FD_VOID));
+                           fd_string_type,FD_VOID,
+                           -1,FD_VOID));
 
   fd_idefn(fileio_module,
            fd_make_cprim1x("FILE-OWNER",file_owner,1,
