@@ -362,11 +362,11 @@
 (define-init text-settings
   `#[wordrule ,default-word-rule
      stoprules ,default-stoprules
-     stopwords ,(file->dtype (get-component "en.stops"))
+     stopwords ,(file->dtype (get-component "en-stops.dtype"))
      morphrules ,default-morphrules
-     rootmaps ,(file->dtype (get-component "en.rootmap"))
-     rootset ,(file->dtype (get-component "en.rootset"))
+     rootmaps ,(file->dtype (get-component "en-rootmap.dtype"))
+     rootset ,(file->dtype (get-component "en-rootset.dtype"))
      phrasemap ,(text/phrasemap
-		 (file->dtype (get-component "en.rootmap"))
-		 (file->dtype (get-component "en.rootset")))
+		 (file->dtype (get-component "en-rootmap.dtype"))
+		 (file->dtype (get-component "en-rootset.dtype")))
      nameinfo #[nameglue ,default-name-glue]])
