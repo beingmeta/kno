@@ -1,8 +1,8 @@
 framerd (3.6.3-4) unstable; urgency=low
 
-* Packaging fixes
-
- -- Ken Haase <kh@beingmeta.com>  Tue, 16 Dec 2014 17:01:07 -0800
+  * Packaging fixes
+	
+ -- Ken Haase <kh@beingmeta.com>  Tue, 16 Dec 2014 20:03:07 -0800
 
 framerd (3.6.3-3) unstable; urgency=low
 
