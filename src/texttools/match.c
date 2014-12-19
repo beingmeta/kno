@@ -3174,7 +3174,10 @@ static u8_byteoff lword_search
   while (scan < limit) {
     u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
     if ((good_start) && (u8_islower(ch))) return prev-string;
-    if ((u8_isspace(ch))||((u8_ispunct(ch))&&(strchr("-./_",ch)==NULL)))
+    if ((u8_isspace(ch))||
+        ((u8_ispunct(ch))&&
+         (strchr("-./_'",ch)==NULL)&&
+         (!(apostrophep(ch)))&&(!(dashp(ch)))))
       good_start=1; else good_start=0;}
   return -1;
 }

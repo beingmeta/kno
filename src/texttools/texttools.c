@@ -53,7 +53,7 @@ static u8_byteoff _forward_char(u8_byte *s,u8_byteoff i)
   if (next) return next-s; else return i+1;
 }
 
-#define forward_char(s,i) \
+#define forward_char(s,i)                                               \
   ((s[i] == 0) ? (i) : (s[i] >= 0x80) ? (_forward_char(s,i)) : (i+1))
 
 static u8_input get_input_port(fdtype portarg)
@@ -323,13 +323,13 @@ static fdtype getwordsv_prim(fdtype arg,fdtype punctflag)
 /* Making fragments from word vectors */
 
 /* This function takes a vector of words and returns a choice
-     of lists enumerating subsequences of the vector.  It also
-     creates subsequences starting and ending with false (#f)
-     indicating prefix or suffix subsequences.
+   of lists enumerating subsequences of the vector.  It also
+   creates subsequences starting and ending with false (#f)
+   indicating prefix or suffix subsequences.
    The window argument specifies the maximnum span to generate and
-     all spans of length smaller than or equal to the window are generated.
+   all spans of length smaller than or equal to the window are generated.
    The output of this function is useful for indexing strings
-     for purposes of partial indexing.
+   for purposes of partial indexing.
 */
 static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
 {
@@ -401,14 +401,14 @@ static fdtype list2phrase_prim(fdtype arg)
 {
   int dospace=0; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   {FD_DOLIST(word,arg) {
-    if (dospace) {u8_putc(&out,' ');} else dospace=1;
-    if (FD_STRINGP(word)) u8_puts(&out,FD_STRING_DATA(word));
-    else u8_printf(&out,"%q",word);}}
+      if (dospace) {u8_putc(&out,' ');} else dospace=1;
+      if (FD_STRINGP(word)) u8_puts(&out,FD_STRING_DATA(word));
+      else u8_printf(&out,"%q",word);}}
   return fd_stream2string(&out);
 }
 
 static fdtype seq2phrase_ndhelper
-  (u8_string base,fdtype seq,int start,int end,int dospace);
+(u8_string base,fdtype seq,int start,int end,int dospace);
 
 static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
 {
@@ -444,7 +444,7 @@ static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
 }
 
 static fdtype seq2phrase_ndhelper
-  (u8_string base,fdtype seq,int start,int end,int dospace)
+(u8_string base,fdtype seq,int start,int end,int dospace)
 {
   if (start==end)
     return fd_lispstring(u8_strdup(base));
@@ -517,9 +517,9 @@ static fdtype count_words(fdtype string)
   while (u8_isspace(c)) c=egetc(&scan);
   if (c<0) return FD_INT2DTYPE(0);
   else while (c>0) {
-    while ((c>0) && (!(u8_isspace(c)))) c=egetc(&scan);
-    word_count++;
-    while ((c>0) && (u8_isspace(c))) c=egetc(&scan);}
+      while ((c>0) && (!(u8_isspace(c)))) c=egetc(&scan);
+      word_count++;
+      while ((c>0) && (u8_isspace(c))) c=egetc(&scan);}
   return FD_INT2DTYPE(word_count);
 }
 
@@ -535,7 +535,7 @@ static fdtype ismarkup_percentage(fdtype string)
           u8_string end=strstr(scan,"-->");
           if (end) scan=end+3; else break;}
         else while ((c>0) && (c!='>')) {
-          markup++; c=egetc(&scan);}
+            markup++; c=egetc(&scan);}
         if (c>0) {markup++; c=egetc(&scan);}
         else break;}
       else if (u8_isspace(c)) {
@@ -618,23 +618,23 @@ static fdtype strip_markup(fdtype string,fdtype insert_space_arg)
   int c, insert_space=FD_TRUEP(insert_space_arg);
   u8_string start=FD_STRDATA(string), scan=start, last=start;
   if (*start) {
-      U8_OUTPUT out; U8_INIT_OUTPUT(&out,FD_STRLEN(string));
-      while ((c=egetc(&scan))>0)
-        if (c=='<') 
-          if (strncmp(scan,"!--",3)==0) {
-            u8_string end=strstr(scan,"-->");
-            if (end) scan=end+3; else break;}
-          else if (strncmp(scan,"<[CDATA[",8)==0) {
-            u8_string end=strstr(scan,"-->");
-            if (end) scan=end+3; else break;}
-          else {
-            while ((c>0) && (c!='>')) c=egetc(&scan);
-            if (c<=0) break;
-            else start=last=scan;
-            if (insert_space) u8_putc(&out,' ');}
-        else u8_putc(&out,c);
-      u8_putn(&out,start,last-start);
-      return fd_stream2string(&out);}
+    U8_OUTPUT out; U8_INIT_OUTPUT(&out,FD_STRLEN(string));
+    while ((c=egetc(&scan))>0)
+      if (c=='<') 
+        if (strncmp(scan,"!--",3)==0) {
+          u8_string end=strstr(scan,"-->");
+          if (end) scan=end+3; else break;}
+        else if (strncmp(scan,"<[CDATA[",8)==0) {
+          u8_string end=strstr(scan,"-->");
+          if (end) scan=end+3; else break;}
+        else {
+          while ((c>0) && (c!='>')) c=egetc(&scan);
+          if (c<=0) break;
+          else start=last=scan;
+          if (insert_space) u8_putc(&out,' ');}
+      else u8_putc(&out,c);
+    u8_putn(&out,start,last-start);
+    return fd_stream2string(&out);}
   else return fd_incref(string);
 }
 
@@ -723,7 +723,7 @@ static fdtype return_offsets(u8_string s,fdtype results)
 #define convert_arg(off,string,max) u8_byteoffset(string,off,max)
 
 static void convert_offsets
-  (fdtype string,fdtype offset,fdtype limit,u8_byteoff *off,u8_byteoff *lim)
+(fdtype string,fdtype offset,fdtype limit,u8_byteoff *off,u8_byteoff *lim)
 {
   u8_charoff offval=fd_getint(offset);
   if (FD_FIXNUMP(limit)) {
@@ -738,7 +738,7 @@ static void convert_offsets
 }
 
 static fdtype textmatcher(fdtype pattern,fdtype string,
-                           fdtype offset,fdtype limit)
+                          fdtype offset,fdtype limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -752,7 +752,7 @@ static fdtype textmatcher(fdtype pattern,fdtype string,
 }
 
 static fdtype textmatch(fdtype pattern,fdtype string,
-                         fdtype offset,fdtype limit)
+                        fdtype offset,fdtype limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -767,7 +767,7 @@ static fdtype textmatch(fdtype pattern,fdtype string,
 }
 
 static fdtype textsearch(fdtype pattern,fdtype string,
-                          fdtype offset,fdtype limit)
+                         fdtype offset,fdtype limit)
 {
   int off, lim;
   convert_offsets(string,offset,limit,&off,&lim);
@@ -823,7 +823,11 @@ static fdtype textgather_base(fdtype pattern,fdtype string,
       fdtype substring, match_result=
         fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
       int maxpoint=-1;
-      {FD_DO_CHOICES(match,match_result) {
+      if (FD_EMPTY_CHOICEP(match_result)) {
+        start=forward_char(data,start);
+        continue;}
+      else {
+        FD_DO_CHOICES(match,match_result) {
           int pt=fd_getint(match);
           if ((pt>maxpoint)&&(pt<=lim)) {
             maxpoint=pt;}}}
