@@ -1827,26 +1827,32 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 			fdsocketinfo(&(sockets[i]),infobuf));
 #endif
 	  return &(sockets[i]);}}}
-    /* Go to the end of the queue of busy sockets */
+    /* All allocated sockets are busy, so we just go to the end of the
+       opened sockets vector to (probably) use a new one. */
     else i=s->n_socks;
     if (closed>=0) {
+      /* If there's a closed socket < i, try to use that. */
       struct FDSOCKET *sockets=s->sockets; fdsocket sock;
       ap_log_rerror(APLOG_MARK,LOGSOCKET,OK,r,"Reopening %s",
 		    fdsocketinfo(&(sockets[closed]),infobuf));
-      sock=servlet_open(s,&(sockets[closed]),r); s->n_busy++;
+      sock=servlet_open(s,&(sockets[closed]),r); 
+      if (sock) s->n_busy++;
       apr_thread_mutex_unlock(s->lock);
       return sock;}
     if (i>=s->keep_socks) {
+      /* You're past the number of sockets to keep open, so either
+	 open an ephemeral one or give up */
       if ((s->max_socks>0)&&(s->n_busy>=s->max_socks)) {
 	ap_log_error(APLOG_MARK,APLOG_CRIT,OK,s->server,
 		     "Reached max sockets on %s busy=%d>%d=max",
 		     s->sockname,s->n_busy,s->max_socks);
+	/* Give up if you're over max_socks */
 	apr_thread_mutex_unlock(s->lock);
 	return NULL;}
       else {
+	/* Open an ephemeral socket */
 	fdsocket sock=servlet_open(s,NULL,r);
-	s->n_ephemeral++; s->n_busy++;
-	/* Can't allocate any more keepers, so just open a regular socket. */
+	if (sock) {s->n_ephemeral++; s->n_busy++;}
 #if DEBUG_SOCKETS
 	ap_log_rerror
 	  (APLOG_MARK,LOGNOTICE,OK,r,
@@ -1883,10 +1889,15 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 	s->n_ephemeral++; s->n_busy++;
 	apr_thread_mutex_unlock(s->lock);
 	sock=servlet_open(s,NULL,r);
-	if (sock==NULL)
+	if (sock==NULL) {
+	  /* If the socket open failed, relock the servlet structure
+	     and decrement the busy/emphemeral counters */
+	  apr_thread_mutex_lock(s->lock);
+	  s->n_ephemeral--; s->n_busy--;
+	  apr_thread_mutex_unlock(s->lock);
 	  ap_log_rerror(APLOG_MARK,APLOG_WARNING,OK,r,
 			"Ephemeral open failed (n=%d) for %s",
-			s->n_ephemeral,r->uri);
+			s->n_ephemeral,r->uri);}
 	else ap_log_rerror(APLOG_MARK,LOGSOCKET,OK,r,
 			   "Ephemeral (#%d) %s opened for %s",
 			   s->n_ephemeral,
