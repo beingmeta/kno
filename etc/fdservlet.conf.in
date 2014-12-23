@@ -14,9 +14,9 @@ setgid @admin_group@
 env LOGDIR=@logdir@/fdserv
 export CONFIG
 pre-start script
-	  touch @rundir@/${SOCKET}.nospawn
+	  touch @rundir@/fdserv/${SOCKET}.nospawn
 end script
 post-stop script
-	  rm @rundir@/${SOCKET}.nospawn
+	  rm @rundir@/fdserv/${SOCKET}.nospawn
 end script
 exec @prefix@/bin/fdservlet ${SOCKET} CONFIG=${CONFIG}
