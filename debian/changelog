@@ -1,3 +1,9 @@
+framerd (3.6.3-9) unstable; urgency=low
+
+  * Fix bad path in fdservlet upstart config
+	
+ -- Ken Haase <kh@beingmeta.com>  Tue, 23 Dec 2014 07:55:09 -0800
+	
 framerd (3.6.3-8) unstable; urgency=low
 
   * Fix bug with upstart configuration
