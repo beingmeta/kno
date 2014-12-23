@@ -24,7 +24,7 @@ Description: Scalable knowledge base development and application platform
 
 Package: libapache2-mod-fdserv
 Architecture: any
-Depends: framerd (= ${binary:Version}), apache2-mpm
+Depends: framerd (= ${binary:Version}), apache2
 Description: The mod_fdserv module for FramerD servlets under Apache
 
 Package: framerd-dev
