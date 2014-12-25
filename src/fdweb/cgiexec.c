@@ -739,10 +739,11 @@ static fdtype update_body_attribs(fdtype body_attribs,fdtype body_classes)
     while (FD_PAIRP(scan)) {
       fdtype car=FD_CAR(scan);
       if ((car==class_symbol)||
-          ((FD_STRINGP(car))&&
-           (strcasecmp(FD_STRDATA(car),"class")))) {
+          ((FD_STRINGP(car))&&(strcasecmp(FD_STRDATA(car),"class")==0))) {
         class_cons=FD_CDR(scan); break;}
-      else scan=FD_CDR(scan);}
+      else {
+        scan=FD_CDR(scan); 
+        if (FD_PAIRP(scan)) scan=FD_CDR(scan);}}
     if (FD_VOIDP(class_cons)) {
       class_cons=fd_init_pair(NULL,FD_FALSE,body_attribs);
       body_attribs=fd_init_pair(NULL,class_symbol,class_cons);}

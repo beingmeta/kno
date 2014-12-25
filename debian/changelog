@@ -1,3 +1,9 @@
+framerd (3.6.3-10) unstable; urgency=low
+
+  * Fix bug in handling bodyclass declarations
+	
+ -- Ken Haase <kh@beingmeta.com>  Tue, 24 Dec 2014 16:45:09 -0800
+	
 framerd (3.6.3-9) unstable; urgency=low
 
   * Fix bad path in fdservlet upstart config
