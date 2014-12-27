@@ -1,0 +1,30 @@
+### Commented entries have reasonable defaults.
+### Uncomment to edit them.
+# Source: <source package name; defaults to package name>
+Section: misc
+Priority: optional
+Homepage: http://www.beingmeta.com/
+Standards-Version: 3.9.2
+
+Package: bmcore
+Version: 3.6
+Maintainer: kh@beingmeta.com
+Pre-Depends: libu8 libu8-encodings libu8-dev
+Depends: libu8 libu8-encodings framerd framerd-sqlite framerd-sundown framerd-regex framerd-doc
+# Recommends:
+# Suggests:
+# Provides:
+# Replaces:
+# Architecture: all
+# Copyright: other
+# Changelog: 
+# Readme: 
+# Extra-Files: 
+# Files: 
+#  <more pairs, if there's more than one file to include. Notice the starting space>
+Description: The beingmeta software stack
+ This meta-package provides the beingmeta software stack, including FramerD
+ and any optional modules.  It does not include FramerD modules which
+ rely on other packages, such as framed-mysql or framerd-tidy.
+ .
+
