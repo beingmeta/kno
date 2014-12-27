@@ -284,10 +284,10 @@ makefile: makefile.in config.status
 	if test -x ./config.status; then ./config.status; fi
 ./config.status: configure
 	if test -x ./config.status; then ./config.status --recheck; fi
-configure: configure.ac
-	@if test -f .autoautoconf; then \
-	     echo "REBUILDING configure"; autoconf; \
-	else echo "WARNING: configure may be out of date"; fi
+configure: configure.ac etc/release
+	@if test -f .staticautoconf; then \
+	    echo "WARNING: configure may be out of date"; \
+	else echo "REBUILDING configure"; autoconf; fi
 include/framerd/config.h: include/framerd/config.h.in
 	if test -x ./config.status; then ./config.status; fi
 include/framerd/fdsource.h: include/framerd/fdsource.h.in
@@ -888,11 +888,12 @@ dist/debs.done: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
 	 dpkg-buildpackage -k$(GPGID) -uc -us -F -rfakeroot) && \
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
-	(cd staging; mv framerd*_@FDVERSION@*.deb \
-			libapache2-mod-fdserv_@FDVERSION@*.deb \
-			framerd_@FDVERSION@*.dsc \
-			framerd_@FDVERSION@*.changes \
-			../dist) && \
+	(cd staging; mv framerd*_@FDVERSION@*.deb               \
+			libapache2-mod-fdserv_@FDVERSION@*.deb  \
+			framerd_@FDVERSION@*.dsc                \
+			framerd_@FDVERSION@*.changes            \
+			../dist) &&                             \
+	(cd dist; equivs-build bmstack) &&                      \
 	touch dist/debs.done;
 
 install-debian install-debs debinstall installdebs: dist/debs.done
