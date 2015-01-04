@@ -349,7 +349,7 @@ FD_FASTOP MAYBE_UNUSED fd_pool fd_get_poolptr(fdtype x)
 #define fd_fetch_oid _fd_fetch_oid
 #define fd_oid_value _fd_oid_value
 #define fd_oid2pool _fd_oid2pool
-#define fd_get_poolptr _fd_getpoolptr
+#define fd_get_poolptr _fd_get_poolptr
 #endif
 
 FD_EXPORT fdtype fd_anonymous_oid(const u8_string cxt,fdtype oid);
