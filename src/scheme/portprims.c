@@ -820,7 +820,8 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
   fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
   /* If we're not going to descend, and it all fits, just return the
      new column position. */
-  if ((PPRINT_ATOMICP(x)) && ((is_initial) || (col+n_chars<maxcol)))
+  if ((n_chars<5)||
+      ((PPRINT_ATOMICP(x)) && ((is_initial) || (col+n_chars<maxcol))))
     return col+n_chars;
   /* Otherwise, reset the stream pointer. */
   out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
@@ -886,12 +887,17 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
   else if (FD_QCHOICEP(x)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(x);
     int first_value=1;
-    FD_DO_CHOICES(elt,qc->choice)
-      if (first_value) {
-        u8_puts(out,"#{"); col++; first_value=0;
-        col=fd_pprint(out,elt,prefix,indent+2,col,maxcol,1);}
-      else col=fd_pprint(out,elt,prefix,indent+2,col,maxcol,0);
-    u8_putc(out,'}'); return col+1;}
+    if (FD_EMPTY_CHOICEP(qc->choice)) {
+      u8_puts(out,"#{}");
+      return col+3;}
+    else {
+      FD_DO_CHOICES(elt,qc->choice)
+        if (first_value) {
+          u8_puts(out,"#{"); col++; first_value=0;
+          col=fd_pprint(out,elt,prefix,indent+2,col,maxcol,1);}
+        else col=fd_pprint(out,elt,prefix,indent+2,col,maxcol,0);
+      u8_putc(out,'}');
+      return col+1;}}
   else if (FD_CHOICEP(x)) {
     int first_value=1;
     FD_DO_CHOICES(elt,x)
