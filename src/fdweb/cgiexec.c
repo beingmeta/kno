@@ -117,6 +117,48 @@ void fd_urify(u8_output out,fdtype val)
 
 /* Converting cgidata */
 
+static struct FD_PROTECTED_CGI {
+  fdtype field;
+  struct FD_PROTECTED_CGI *next;} *protected_cgi;
+#if FD_THREADS_ENABLED
+static u8_mutex protected_cgi_lock;
+#endif
+
+static int isprotected(fdtype field)
+{
+  struct FD_PROTECTED_CGI *scan=protected_cgi;
+  while (scan) {
+    if (FDTYPE_EQUAL(scan->field,field)) return 1;
+    else scan=scan->next;}
+  return 0;
+}
+static fdtype protected_cgi_get(fdtype var,void *ptr)
+{
+  fdtype result=FD_EMPTY_CHOICE;
+  struct FD_PROTECTED_CGI *scan=protected_cgi;
+  while (scan) {
+    fdtype field=scan->field; fd_incref(field);
+    FD_ADD_TO_CHOICE(result,field); 
+    scan=scan->next;}
+  return result;
+}
+static int protected_cgi_set(fdtype var,fdtype field,void *ptr)
+{
+  struct FD_PROTECTED_CGI *scan=protected_cgi, *fresh=NULL;
+  u8_lock_mutex(&protected_cgi_lock);
+  while (scan) {
+    if (FDTYPE_EQUAL(scan->field,field)) {
+      u8_unlock_mutex(&protected_cgi_lock);
+      return 0;}
+    else scan=scan->next;}
+  fresh=u8_alloc(struct FD_PROTECTED_CGI);
+  fresh->field=field; fd_incref(field);
+  fresh->next=protected_cgi;
+  protected_cgi=fresh;
+  u8_unlock_mutex(&protected_cgi_lock);
+  return 1;
+}
+
 static void convert_parse(fd_slotmap c,fdtype slotid)
 {
   fdtype value=fd_slotmap_get(c,slotid,FD_VOID);
@@ -269,6 +311,7 @@ static void parse_query_string(fd_slotmap c,char *data,int len)
       if (buf[0]=='_') slotid=FD_VOID;
       if (strncmp(buf,"HTTP",4)==0) slotid=FD_VOID;
       else slotid=buf2slotid(buf,isascii);
+      if (isprotected(slotid)) slotid=FD_VOID;
       write=buf; isascii=1; scan++;}
     else if (*scan=='&') {
       *write++='\0';
@@ -1085,6 +1128,10 @@ FD_EXPORT void fd_init_cgiexec_c()
   module=fd_new_module("FDWEB",(0));
   xhtmlout_module=fd_new_module("XHTML",FD_MODULE_SAFE);
 
+#if FD_THREADS_ENABLED
+  fd_init_mutex(&protected_cgi_lock);
+#endif
+
   fd_defspecial(module,"HTTPHEADER",httpheader);
   fd_idefn(module,fd_make_cprim1("HTTPHEADER!",addhttpheader,1));
   fd_idefn(module,fd_make_cprim6("SET-COOKIE!",setcookie,2));
@@ -1198,6 +1245,9 @@ FD_EXPORT void fd_init_cgiexec_c()
     ("QUERYONPOST",
      _("Whether to parse REST query args when there is POST data"),
      fd_boolconfig_get,fd_boolconfig_set,&parse_query_on_post);
+  fd_register_config
+    ("CGI:PROTECT",_("Fields to avoid binding directly for CGI requests"),
+     protected_cgi_get,protected_cgi_set,NULL);
 
   u8_register_source_file(_FILEINFO);
 }
