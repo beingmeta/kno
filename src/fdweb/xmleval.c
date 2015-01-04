@@ -51,6 +51,8 @@ void *inherit_node_data(FD_XML *node)
   return NULL;
 }
 
+/* Markup output support functions */
+
 FD_INLINE_FCN void entify(u8_output out,u8_string value,int len)
 {
   u8_byte *scan=value, *lim=value+len;
@@ -96,83 +98,6 @@ static void attrib_entify_x(u8_output out,u8_string value,u8_string escape)
     else u8_putc(out,c);
 }
 
-/* Accessing xml attributes and elements. */
-
-FD_EXPORT
-fdtype fd_xml_get(fdtype xml,fdtype slotid)
-{
-  fdtype results=fd_get(xml,slotid,FD_EMPTY_CHOICE);
-  fdtype content=fd_get(xml,content_slotid,FD_VOID);
-  FD_DOLIST(item,content)
-    if ((FD_TABLEP(item)) && (fd_test(item,elt_name,slotid))) {
-      fd_incref(item); FD_ADD_TO_CHOICE(results,item);}
-  fd_decref(content);
-  return results;
-}
-
-static int output_attribval(u8_output out,fdtype val,fd_lispenv env,int colon)
-{
-  if ((FD_PAIRP(val)) &&
-      ((FD_EQ(FD_CAR(val),xmleval_tag)) ||
-       (FD_EQ(FD_CAR(val),xmleval2expr_tag)))) {
-    fdtype expr=FD_CDR(val); fdtype value;
-    u8_string as_string;
-    if (FD_SYMBOLP(expr))
-      value=fd_symeval(expr,env);
-    else value=fd_eval(expr,env);
-    if (FD_ABORTP(value)) return fd_interr(value);
-    else if ((FD_VOIDP(value))&&(FD_SYMBOLP(expr)))
-      as_string=u8_strdup("");
-    else if (FD_VOIDP(value)) return 0;
-    else if (FD_EQ(FD_CAR(val),xmleval2expr_tag))
-      as_string=fd_dtype2string(value);
-    else if (FD_STRINGP(value))
-      as_string=u8_strdup(FD_STRDATA(value));
-    else if (FD_EMPTY_CHOICEP(value))
-      as_string=u8_strdup("");
-    else as_string=fd_dtype2string(value);
-    if (FD_EQ(FD_CAR(val),xmleval2expr_tag)) {
-      if ((FD_STRINGP(value)) && (FD_STRLEN(value)>0) &&
-          ((isdigit(FD_STRDATA(value)[0]))||(FD_STRDATA(value)[0]==':')))
-        u8_putc(out,'\\');
-    /* Don't output a preceding colon if the value would be 'self parsing' */
-      else if ((FD_FIXNUMP(value)) ||
-               (FD_FLONUMP(value)) ||
-               (FD_STRINGP(value))) {}
-      else u8_putc(out,':');}
-    fd_attrib_entify(out,as_string);
-    fd_decref(value); u8_free(as_string);
-    return 0;}
-  else if (FD_SLOTMAPP(val)) {
-    fdtype value=fd_xmleval(NULL,val,env); u8_string as_string;
-    if (FD_ABORTP(value)) return fd_interr(value);
-    else as_string=fd_dtype2string(value);
-    u8_putc(out,'"');
-    if (!(FD_STRINGP(value))) u8_putc(out,':');
-    fd_attrib_entify(out,as_string);
-    u8_putc(out,'"');
-    fd_decref(value); u8_free(as_string);
-    return 0;}
-  else if (FD_STRINGP(val)) {
-    u8_putc(out,'"');
-    fd_attrib_entify(out,FD_STRDATA(val));
-    u8_putc(out,'"');
-    return 1;}
-  else if (FD_OIDP(val)) {
-    FD_OID addr=FD_OID_ADDR(val);
-    u8_printf(out,"\"@%x/%x\"",FD_OID_HI(addr),FD_OID_LO(addr));
-    return 1;}
-  else {
-    u8_string as_string=fd_dtype2string(val);
-    u8_putc(out,'"');
-    if (!((FD_FIXNUMP(val)) || (FD_FLONUMP(val)) || (FD_BIGINTP(val))))
-      u8_putc(out,':');
-    fd_attrib_entify(out,as_string);
-    u8_putc(out,'"');
-    u8_free(as_string);
-    return 1;}
-}
-
 static int output_markup_sym(u8_output out,fdtype sym)
 {
   if (FD_STRINGP(sym)) return u8_puts(out,FD_STRDATA(sym));
@@ -188,6 +113,100 @@ static int output_markup_sym(u8_output out,fdtype sym)
   else {
     u8_printf(out,"%q",sym);
     return 1;}
+}
+
+static void start_attrib(u8_output out,fdtype name)
+{
+  u8_putc(out,' ');
+  output_markup_sym(out,name);
+  u8_putc(out,'=');
+}
+
+static int output_attribval(u8_output out,
+                            fdtype name,fdtype val,
+                            fd_lispenv env,int colon)
+{
+  if ((FD_PAIRP(val)) &&
+      ((FD_EQ(FD_CAR(val),xmleval_tag)) ||
+       (FD_EQ(FD_CAR(val),xmleval2expr_tag)))) {
+    fdtype expr=FD_CDR(val); fdtype value;
+    u8_string as_string;
+    if (FD_SYMBOLP(expr))
+      value=fd_symeval(expr,env);
+    else value=fd_eval(expr,env);
+    if (FD_ABORTP(value)) return fd_interr(value);
+    else if ((FD_VOIDP(value))&&(FD_SYMBOLP(expr)))
+      as_string=u8_strdup("");
+    else if ((FD_VOIDP(value))||(FD_EMPTY_CHOICEP(value))) {
+      /* This means the caller has already output then name= so there
+       * better be a value */
+      if (!(name)) u8_puts(out,"\"\"");
+      return 0;}
+    else if (FD_EQ(FD_CAR(val),xmleval2expr_tag))
+      as_string=fd_dtype2string(value);
+    else if (FD_STRINGP(value))
+      as_string=u8_strdup(FD_STRDATA(value));
+    else as_string=fd_dtype2string(value);
+    if (FD_EQ(FD_CAR(val),xmleval2expr_tag)) {
+      if ((FD_STRINGP(value)) && (FD_STRLEN(value)>0) &&
+          ((isdigit(FD_STRDATA(value)[0]))||(FD_STRDATA(value)[0]==':')))
+        u8_putc(out,'\\');
+    /* Don't output a preceding colon if the value would be 'self parsing' */
+      else if ((FD_FIXNUMP(value)) ||
+               (FD_FLONUMP(value)) ||
+               (FD_STRINGP(value))) {}
+      else u8_putc(out,':');}
+    if (name) start_attrib(out,name);
+    fd_attrib_entify(out,as_string);
+    fd_decref(value); u8_free(as_string);
+    return 0;}
+  else if (FD_SLOTMAPP(val)) {
+    fdtype value=fd_xmleval(NULL,val,env); u8_string as_string;
+    if (FD_ABORTP(value)) return fd_interr(value);
+    else if ((name)&&(FD_EMPTY_CHOICEP(value))) return 0;
+    else as_string=fd_dtype2string(value);
+    if (name) start_attrib(out,name);
+    u8_putc(out,'"');
+    if (!(FD_STRINGP(value))) u8_putc(out,':');
+    fd_attrib_entify(out,as_string);
+    u8_putc(out,'"');
+    fd_decref(value); u8_free(as_string);
+    return 0;}
+  else if (FD_STRINGP(val)) {
+    if (name) start_attrib(out,name);
+    u8_putc(out,'"');
+    fd_attrib_entify(out,FD_STRDATA(val));
+    u8_putc(out,'"');
+    return 1;}
+  else if (FD_OIDP(val)) {
+    FD_OID addr=FD_OID_ADDR(val);
+    if (name) start_attrib(out,name);
+    u8_printf(out,"\"@%x/%x\"",FD_OID_HI(addr),FD_OID_LO(addr));
+    return 1;}
+  else {
+    u8_string as_string=fd_dtype2string(val);
+    if (name) start_attrib(out,name);
+    u8_putc(out,'"');
+    if (!((FD_FIXNUMP(val)) || (FD_FLONUMP(val)) || (FD_BIGINTP(val))))
+      u8_putc(out,':');
+    fd_attrib_entify(out,as_string);
+    u8_putc(out,'"');
+    u8_free(as_string);
+    return 1;}
+}
+
+/* Accessing xml attributes and elements. */
+
+FD_EXPORT
+fdtype fd_xml_get(fdtype xml,fdtype slotid)
+{
+  fdtype results=fd_get(xml,slotid,FD_EMPTY_CHOICE);
+  fdtype content=fd_get(xml,content_slotid,FD_VOID);
+  FD_DOLIST(item,content)
+    if ((FD_TABLEP(item)) && (fd_test(item,elt_name,slotid))) {
+      fd_incref(item); FD_ADD_TO_CHOICE(results,item);}
+  fd_decref(content);
+  return results;
 }
 
 static fdtype get_markup_string(fdtype xml,fd_lispenv env)
@@ -238,17 +257,21 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
         FD_STOP_DO_CHOICES;
         return fd_type_error("attrib","get_markup_string",attrib);}
       else {
-        u8_string name=FD_STRDATA(FD_VECTOR_REF(attrib,0));
+        fdtype name=FD_VECTOR_REF(attrib,0);
         fdtype value=FD_VECTOR_REF(attrib,2);
-        if (name) {
-          u8_printf(&out," %s=\"",name);
+        if (FD_PAIRP(value)) {
+          if (cache_result)
+            cache_result=output_attribval(&out,name,value,env,1);
+          else output_attribval(&out,name,value,env,1);}
+        else if ((FD_SYMBOLP(name))||(FD_STRINGP(name))) {
+          start_attrib(&out,name); u8_putc(&out,'"');
           if (FD_STRINGP(value))
             fd_attrib_entify(&out,FD_STRDATA(value));
           else if (FD_FIXNUMP(value))
             u8_printf(&out,"\"%d\"",FD_FIX2INT(value));
           else if (cache_result)
-            cache_result=output_attribval(&out,value,env,1);
-          else output_attribval(&out,value,env,1);
+            cache_result=output_attribval(&out,FD_NULL,value,env,1);
+          else output_attribval(&out,FD_NULL,value,env,1);
           u8_putc(&out,'"');}}}
     fd_decref(attribs);}
   else if (!(FD_EMPTY_CHOICEP(attribids))) {
@@ -269,38 +292,32 @@ static fdtype get_markup_string(fdtype xml,fd_lispenv env)
       fdtype attribid=data[i++];
       fdtype value=fd_get(xml,attribid,FD_VOID);
       if (!((FD_VOIDP(value))||(FD_EMPTY_CHOICEP(value)))) {
-        u8_putc(&out,' ');
-        output_markup_sym(&out,attribid);
-        u8_putc(&out,'=');
-        if (FD_STRINGP(value)) {
-          if (strchr(FD_STRDATA(value),'"')) {
-            u8_putc(&out,'\'');
-            attrib_entify_x(&out,FD_STRDATA(value),"'<>&");
-            u8_putc(&out,'\'');}
-          else if (strchr(FD_STRDATA(value),'\'')) {
-            u8_putc(&out,'"');
-            attrib_entify_x(&out,FD_STRDATA(value),"<>\"&");
-            u8_putc(&out,'"');}
-          else {
-            u8_putc(&out,'"');
-            attrib_entify_x(&out,FD_STRDATA(value),NULL);
-            u8_putc(&out,'"');}}
-        else if (FD_FIXNUMP(value))
-          u8_printf(&out,"\"%d\"",FD_FIX2INT(value));
-        else if (cache_result)
-          cache_result=output_attribval(&out,value,env,1);
-        else output_attribval(&out,value,env,1);
-        /*
+        if (FD_PAIRP(value)) {
+          if (cache_result)
+            cache_result=output_attribval(&out,attribid,value,env,1);
+          else output_attribval(&out,attribid,value,env,1);}
         else {
-          int dquote=1;
-          struct U8_OUTPUT subout; U8_INIT_OUTPUT(&subout,64);
-          fd_unparse(&subout,value);
-          if (strchr(subout.u8_outbuf,'"')) dquote=0;
-          if (dquote) u8_putc(&out,'"'); else u8_putc(&out,'\'');
-          u8_putc(&out,':'); fd_attrib_entify(&out,subout.u8_outbuf);
-          if (dquote) u8_putc(&out,'"'); else u8_putc(&out,'\'');
-          u8_free(subout.u8_outbuf);}
-        */
+          u8_putc(&out,' ');
+          output_markup_sym(&out,attribid);
+          u8_putc(&out,'=');
+          if (FD_STRINGP(value)) {
+            if (strchr(FD_STRDATA(value),'"')) {
+              u8_putc(&out,'\'');
+              attrib_entify_x(&out,FD_STRDATA(value),"'<>&");
+              u8_putc(&out,'\'');}
+            else if (strchr(FD_STRDATA(value),'\'')) {
+              u8_putc(&out,'"');
+              attrib_entify_x(&out,FD_STRDATA(value),"<>\"&");
+              u8_putc(&out,'"');}
+            else {
+              u8_putc(&out,'"');
+              attrib_entify_x(&out,FD_STRDATA(value),NULL);
+              u8_putc(&out,'"');}}
+          else if (FD_FIXNUMP(value))
+            u8_printf(&out,"\"%d\"",FD_FIX2INT(value));
+          else if (cache_result)
+            cache_result=output_attribval(&out,FD_NULL,value,env,1);
+          else output_attribval(&out,FD_NULL,value,env,1);}
         fd_decref(value);}}
     fd_decref(to_free);
     fd_decref(attribids);}
