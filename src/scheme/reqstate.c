@@ -101,39 +101,73 @@ static fdtype reqcall_prim(fdtype proc)
   return value;
 }
 
-static fdtype reqget_prim(fdtype var,fdtype dflt)
+static fdtype reqget_prim(fdtype vars,fdtype dflt)
 {
-  fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
-  fdtype val=fd_req_get(name,FD_VOID);
-  if (FD_VOIDP(val))
-    if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
-    else return fd_incref(dflt);
-  else return val;
+  fdtype results=FD_EMPTY_CHOICE; int found=0;
+  FD_DO_CHOICES(var,vars) {
+    fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
+    fdtype val=fd_req_get(name,FD_VOID);
+    if (!(FD_VOIDP(val))) {
+      found=1; FD_ADD_TO_CHOICE(results,val);}}
+  if (found) return fd_simplify_choice(results);
+  else if (FD_QCHOICEP(dflt)) {
+    struct FD_QCHOICE *qc=FD_XQCHOICE(dflt);
+    return fd_make_simple_choice(qc->choice);}
+  else return fd_incref(dflt);
 }
 
-static fdtype reqval_prim(fdtype var,fdtype dflt)
+static fdtype reqval_prim(fdtype vars,fdtype dflt)
 {
-  fdtype val;
-  if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
-  val=fd_req_get(var,FD_VOID);
-  if (FD_VOIDP(val))
-    if (FD_VOIDP(dflt))
-      return FD_EMPTY_CHOICE;
-    else return fd_incref(dflt);
-  else if (FD_STRINGP(val)) {
-    fdtype parsed=fd_parse_arg(FD_STRDATA(val));
-    fd_decref(val);
-    return parsed;}
-  else if (FD_CHOICEP(val)) {
-    fdtype result=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(v,val)
-      if (FD_STRINGP(v)) {
-        fdtype parsed=fd_parse_arg(FD_STRDATA(v));
-        FD_ADD_TO_CHOICE(result,parsed);}
-      else {fd_incref(v); FD_ADD_TO_CHOICE(result,v);}
-    fd_decref(val);
-    return result;}
-  else return val;
+  fdtype results=FD_EMPTY_CHOICE; int found=0;
+  FD_DO_CHOICES(var,vars) {
+    fdtype val;
+    if (FD_STRINGP(var)) var=fd_intern(FD_STRDATA(var));
+    val=fd_req_get(var,FD_VOID);
+    if (FD_VOIDP(val)) {}
+    else if (FD_STRINGP(val)) {
+      fdtype parsed=fd_parse_arg(FD_STRDATA(val));
+      fd_decref(val);
+      FD_ADD_TO_CHOICE(results,parsed);
+      found=1;}
+    else if (FD_CHOICEP(val)) {
+      FD_DO_CHOICES(v,val) {
+        if (FD_STRINGP(v)) {
+          fdtype parsed=fd_parse_arg(FD_STRDATA(v));
+          FD_ADD_TO_CHOICE(results,parsed);}
+        else {
+          fd_incref(v); FD_ADD_TO_CHOICE(results,v);}}
+      fd_decref(val);
+      found=1;}
+    else {
+      FD_ADD_TO_CHOICE(results,val);
+      found=1;}}
+  if (found) return results;
+  else if (FD_QCHOICEP(dflt)) {
+    struct FD_QCHOICE *qc=FD_XQCHOICE(dflt);
+    return fd_make_simple_choice(qc->choice);}
+  else return fd_incref(dflt);
+}
+
+static fdtype reqsym_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype var=fd_get_arg(expr,1);
+  if (FD_VOIDP(var))
+    return fd_err(fd_SyntaxError,"reqsym_handler",NULL,expr);
+  else return reqget_prim(var,FD_EMPTY_CHOICE);
+}
+
+static fdtype reqsymparse_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype var=fd_get_arg(expr,1);
+  if (FD_VOIDP(var))
+    return fd_err(fd_SyntaxError,"reqsymparse_handler",NULL,expr);
+  else {
+    fdtype val=reqget_prim(var,FD_EMPTY_CHOICE);
+    if (FD_STRINGP(val)) {
+      fdtype result=fd_parse_arg(FD_STRDATA(val));
+      fd_decref(val);
+      return result;}
+    else return val;}
 }
 
 static fdtype reqtest_prim(fdtype vars,fdtype val)
@@ -273,14 +307,18 @@ FD_EXPORT void fd_init_reqstate_c()
   u8_register_source_file(_FILEINFO);
 
   fd_idefn(module,fd_make_cprim1("REQ/CALL",reqcall_prim,1));
-  fd_idefn(module,fd_make_cprim2("REQ/GET",reqget_prim,1));
-  fd_idefn(module,fd_make_cprim2("REQ/VAL",reqval_prim,1));
+  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/GET",reqget_prim,1)));
+  fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/VAL",reqval_prim,1)));
   fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/TEST",reqtest_prim,1)));
   fd_idefn(module,fd_make_ndprim(fd_make_cprim2("REQ/SET!",reqset_prim,2)));
   fd_idefn(module,fd_make_cprim2("REQ/ADD!",reqadd_prim,2));
   fd_idefn(module,fd_make_cprim2("REQ/DROP!",reqdrop_prim,1));
   fd_idefn(module,fd_make_cprim2("REQ/PUSH!",reqpush_prim,2));
   fd_idefn(module,fd_make_cprim0("REQ/LIVE?",req_livep_prim,2));
+  fd_defspecial(module,"REQSYM",reqsym_handler);
+  fd_defalias(module,"#:","REQSYM");
+  fd_defspecial(module,"REQSYM/PARSE",reqsymparse_handler);
+  fd_defalias(module,"#::","REQSYM/PARSE");
 
   fd_defspecial(module,"REQLOG",reqlog_handler);
   fd_defspecial(module,"REQ/LOG!",reqlog_handler);
