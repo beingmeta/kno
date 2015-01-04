@@ -1216,7 +1216,10 @@ fdtype fd_parser(u8_input in)
       return result;}
     case 'X': {
       int nextc=u8_getc(in); fdtype result;
-      if (nextc!='"') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
+      if (nextc!='"') {
+        fd_seterr(fd_ParseError,"fd_parser","invalid hex packet",
+                  FD_VOID);
+        return FD_PARSE_ERROR;}
       result=parse_hex_packet(in);
       return result;}
     case '"': return parse_packet(in);
@@ -1225,8 +1228,9 @@ fdtype fd_parser(u8_input in)
     case ';': {
       fdtype content=fd_parser(in);
       if (FD_ABORTP(content)) return content;
-      else return fd_init_pair(NULL,comment_symbol,
-                               fd_init_pair(NULL,content,FD_EMPTY_LIST));}
+      else return fd_init_pair
+             (NULL,comment_symbol,
+              fd_init_pair(NULL,content,FD_EMPTY_LIST));}
     case '%': {
       int c=u8_getc(in);
       if (c=='(') return parse_record(in);
@@ -1238,9 +1242,17 @@ fdtype fd_parser(u8_input in)
     case '!': return parse_atom(in,inchar,ch); /* pointer reference */
     default:
       if (u8_ispunct(ch)) {
-        u8_byte buf[16]; struct U8_OUTPUT out;
+        u8_byte buf[16]; struct U8_OUTPUT out; int nch;
         U8_INIT_OUTPUT_X(&out,16,buf,0);
-        u8_putc(&out,'#'); u8_putc(&out,ch);
+        u8_putc(&out,'#'); u8_putc(&out,ch); nch=u8_getc(in);
+        while (u8_ispunct(nch)) {
+          u8_putc(&out,nch);
+          if ((out.u8_outptr-out.u8_outbuf)>11) {
+            fd_seterr(fd_ParseError,"fd_parser","invalid hash # prefix",
+                      fd_stream2string(&out));
+            return FD_PARSE_ERROR;}
+          else nch=u8_getc(in);}
+        u8_ungetc(in,nch);
         return fd_make_list(2,fd_intern(buf),fd_parser(in));}
       else {
         u8_ungetc(in,ch);
