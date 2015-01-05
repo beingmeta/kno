@@ -1232,6 +1232,24 @@ static fdtype fdxml_if(fdtype expr,fd_lispenv env)
     return do_body(expr,env);}
 }
 
+static fdtype fdxml_ifreq(fdtype expr,fd_lispenv env)
+{
+  fdtype test=fd_get(expr,test_symbol,FD_VOID);
+  fdtype value=fdxml_get(expr,value_symbol,env);
+  fdtype var=((FD_SYMBOLP(test))?(test):
+              (FD_STRINGP(test))?(fd_parse(test)):
+              (FD_VOID));
+  if (FD_VOIDP(test)) {
+    u8_log(LOG_WARN,"Missing XML attribute","IFREQ missing TEST");
+    return FD_VOID;}
+  else if (FD_VOIDP(var)) {
+    u8_log(LOG_WARN,"Bad XML attribute","IFReq TEST=%q",test);
+    return FD_VOID;}
+  else if (fd_req_test(test,value))
+    return do_body(expr,env);
+  else return do_else(expr,env);
+}
+
 static fdtype do_body(fdtype expr,fd_lispenv env)
 {
   u8_output out=u8_current_output;
@@ -1683,6 +1701,7 @@ FD_EXPORT void fd_init_xmleval_c()
   fdxml_module=fd_make_env(fd_make_hashtable(NULL,17),NULL);
 
   fd_defspecial((fdtype)fdxml_module,"IF",fdxml_if);
+  fd_defspecial((fdtype)fdxml_module,"IFREQ",fdxml_ifreq);
   fd_defspecial((fdtype)fdxml_module,"LOOP",fdxml_loop);
   fd_defspecial((fdtype)fdxml_module,"INSERT",fdxml_insert);
   fd_defspecial((fdtype)fdxml_module,"DEFINE",fdxml_define);
