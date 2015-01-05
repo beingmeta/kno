@@ -519,7 +519,7 @@ fdtype fd_use_module(fd_lispenv env,fdtype module)
       FD_GET_CONS(module,fd_environment_type,fd_environment);
     fdtype expval=(fdtype)get_exports(expenv);
     env->parent=fd_make_export_env(expval,env->parent);
-    fd_decref((fdtype)(oldparent));}
+    if (oldparent) fd_decref((fdtype)(oldparent));}
   else return fd_type_error("module","fd_use_module",module);
   fd_decref(module);
   return FD_VOID;
