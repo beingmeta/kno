@@ -1727,6 +1727,11 @@ int main(int argc,char **argv)
       fd_config_assignment(argv[i++]);}
     else i++;
 
+  if (!socket_spec) {
+    u8_log(LOG_CRIT,"USAGE","fdservlet <socket> [config]*");
+    fprintf(stderr,"Usage: fdservlet <socket> [config]*\n");
+    exit(1);}
+
   fd_setapp(socket_spec,NULL);
 
   fd_boot_message();
