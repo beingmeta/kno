@@ -1036,10 +1036,10 @@ static fdtype xmlparse(fdtype input,fdtype options)
 
 /* Parsing FDXML */
 
-static fdtype fdxmlparse(fdtype input,fdtype sloppy)
+static fdtype fdxml_load(fdtype input,fdtype sloppy)
 {
   int flags=FD_XML_KEEP_RAW;
-  struct FD_XML *retval;
+  struct FD_XML *parsed;
   struct U8_INPUT *in, _in;
   if (flags<0) return FD_ERROR_VALUE;
   if (FD_PORTP(input)) {
@@ -1052,15 +1052,47 @@ static fdtype fdxmlparse(fdtype input,fdtype sloppy)
     U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
     in=&_in;}
   else return fd_type_error(_("string or port"),"xmlparse",input);
-  if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))
+  if (FD_FIXNUMP(sloppy))
+    flags=FD_FIX2INT(sloppy);
+  else if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))
     flags=flags|FD_SLOPPY_XML;
-  retval=fd_read_fdxml(in,flags);
-  if (retval) {
-    fdtype result=fd_incref(retval->head);
-    fdtype lispenv=(fdtype)(retval->data);
+  else {}
+  parsed=fd_load_fdxml(in,flags);
+  if (parsed) {
+    fdtype result=fd_incref(parsed->head);
+    fdtype lispenv=(fdtype)(parsed->data);
     fd_incref(lispenv);
-    /* free_node(&object,0); */
+    u8_free(parsed);
     return fd_init_pair(NULL,lispenv,result);}
+  else return FD_ERROR_VALUE;
+}
+
+static fdtype fdxml_read(fdtype input,fdtype sloppy)
+{
+  int flags=FD_XML_KEEP_RAW;
+  struct FD_XML *parsed;
+  struct U8_INPUT *in, _in;
+  if (flags<0) return FD_ERROR_VALUE;
+  if (FD_PORTP(input)) {
+    struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
+    in=p->in;}
+  else if (FD_STRINGP(input)) {
+    U8_INIT_STRING_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
+    in=&_in;}
+  else if (FD_PACKETP(input)) {
+    U8_INIT_STRING_INPUT(&_in,FD_PACKET_LENGTH(input),FD_PACKET_DATA(input));
+    in=&_in;}
+  else return fd_type_error(_("string or port"),"xmlparse",input);
+  if (FD_FIXNUMP(sloppy))
+    flags=FD_FIX2INT(sloppy);
+  else if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))
+    flags=flags|FD_SLOPPY_XML;
+  else {}
+  parsed=fd_read_fdxml(in,flags);
+  if (parsed) {
+    fdtype result=parsed->head;
+    u8_free(parsed);
+    return result;}
   else return FD_ERROR_VALUE;
 }
 
@@ -1071,10 +1103,16 @@ FD_EXPORT void fd_init_xmlinput_c()
   fdtype full_module=fd_new_module("FDWEB",0);
   fdtype safe_module=fd_new_module("FDWEB",(FD_MODULE_SAFE));
   fdtype xmlparse_prim=fd_make_ndprim(fd_make_cprim2("XMLPARSE",xmlparse,1));
-  fdtype fdxmlparse_prim=
-    fd_make_ndprim(fd_make_cprim2("FDXML/PARSE",fdxmlparse,1));
+  fdtype fdxml_load_prim=
+    fd_make_ndprim(fd_make_cprim2("FDXML/LOAD",fdxml_load,1));
+  fdtype fdxml_read_prim=
+    fd_make_ndprim(fd_make_cprim2("FDXML/PARSE",fdxml_read,1));
   fd_defn(full_module,xmlparse_prim); fd_idefn(safe_module,xmlparse_prim);
-  fd_defn(full_module,fdxmlparse_prim); fd_idefn(safe_module,fdxmlparse_prim);
+  fd_defn(full_module,fdxml_read_prim); fd_idefn(safe_module,fdxml_read_prim);
+  fd_defn(full_module,fdxml_load_prim);
+
+  fd_defn(full_module,xmlparse_prim); fd_idefn(safe_module,xmlparse_prim);
+  fd_defn(full_module,fdxml_read_prim); fd_idefn(safe_module,fdxml_read_prim);
 
   attribs_symbol=fd_intern("%ATTRIBS");
   content_symbol=fd_intern("%CONTENT");
