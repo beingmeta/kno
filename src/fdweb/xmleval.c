@@ -1095,8 +1095,14 @@ fdtype fd_xmleval_with(U8_OUTPUT *out,fdtype xml,
       xml_env=fd_make_env(fd_make_hashtable(NULL,17),
                           fd_make_env(implicit_xml_env,fdxml_module));}
     else {}}
-  {FD_DO_CHOICES(given,given_env){fd_use_module(scheme_env,given);}}
-  {FD_DO_CHOICES(given,given_xml_env){fd_use_module(xml_env,given);}}
+  {FD_DO_CHOICES(given,given_env){
+      if ((FD_SYMBOLP(given))||(FD_TABLEP(given))||
+          (FD_ENVIRONMENTP(given)))
+        fd_use_module(scheme_env,given);}}
+  {FD_DO_CHOICES(given,given_xml_env){
+      if ((FD_SYMBOLP(given))||(FD_TABLEP(given))||
+          (FD_ENVIRONMENTP(given)))
+        fd_use_module(xml_env,given);}}
   result=fd_xmlevalout(out,xml,scheme_env,xml_env);
   fd_decref((fdtype)scheme_env);
   fd_decref((fdtype)xml_env);
