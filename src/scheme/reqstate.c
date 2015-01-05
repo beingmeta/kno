@@ -110,6 +110,7 @@ static fdtype reqget_prim(fdtype vars,fdtype dflt)
     if (!(FD_VOIDP(val))) {
       found=1; FD_ADD_TO_CHOICE(results,val);}}
   if (found) return fd_simplify_choice(results);
+  else if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
   else if (FD_QCHOICEP(dflt)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(dflt);
     return fd_make_simple_choice(qc->choice);}
@@ -142,6 +143,7 @@ static fdtype reqval_prim(fdtype vars,fdtype dflt)
       FD_ADD_TO_CHOICE(results,val);
       found=1;}}
   if (found) return results;
+  else if (FD_VOIDP(dflt)) return FD_EMPTY_CHOICE;
   else if (FD_QCHOICEP(dflt)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(dflt);
     return fd_make_simple_choice(qc->choice);}
