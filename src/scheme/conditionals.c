@@ -68,7 +68,7 @@ static fdtype tryif_handler(fdtype expr,fd_lispenv env)
   if (FD_ABORTP(test_result)) {
     fd_incref(expr); fd_push_error_context("tryif_handler",expr);
     return test_result;}
-  else if (FD_FALSEP(test_result))
+  else if ((FD_FALSEP(test_result))||(FD_EMPTY_CHOICEP(test_result)))
     return FD_EMPTY_CHOICE;
   else {
     fdtype value=FD_VOID; fd_decref(test_result);
