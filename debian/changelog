@@ -1,3 +1,11 @@
+framerd (3.6.4-1) unstable; urgency=low
+
+  * Made #<punct> handle <punct> runs    
+  * Added #: and #:: methods for REQ vars
+  * Fixes to XMLEVAL implementation and semantics
+  * Add FDXML:ALT
+ -- Ken Haase <kh@beingmeta.com>  Mon, 05 Jan 2015 22:15:35 -0500
+
 framerd (3.6.3-10) unstable; urgency=low
 
   * Fix bug in handling bodyclass declarations
