@@ -928,15 +928,15 @@ fdtype fd_xapply_sproc
   if (FD_THROWP(result)) {}
   else if ((FD_ABORTP(result)) && (fn->filename))
     u8_current_exception->u8x_details=sproc_id(fn);
+  else {}
   /* If we're synchronized, unlock the mutex. */
   if (fn->synchronized) fd_unlock_struct(fn);
-  {
-    int j=0; while (j<i) {
-      fdtype val=vals[j++];
-      if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
-        fd_decref(val);}}
-    if (vals!=_vals) u8_free(vals);}
   fd_destroy_rwlock(&(bindings.rwlock));
+  if (envstruct.copy) {
+    fd_recycle_environment(envstruct.copy);
+    envstruct.copy=NULL;}
+  free_environment(&envstruct);
+  if (vals!=_vals) u8_free(vals);
   return result;
 }
 
