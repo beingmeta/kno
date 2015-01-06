@@ -1,0 +1,11 @@
+usr/share/framerd/scheme_modules/gnosys
+usr/share/framerd/scheme_modules/gnosys/analyzers
+usr/share/framerd/scheme_modules/gnosys/analyzers/text
+usr/share/framerd/scheme_modules/gnosys/bookmarks
+usr/share/framerd/scheme_modules/gnosys/cgi
+usr/share/framerd/scheme_modules/gnosys/funnel
+usr/share/framerd/scheme_modules/gnosys/gnoweb
+usr/share/framerd/scheme_modules/gnosys/metakeys
+usr/share/framerd/scheme_modules/gnosys/metakeys/cgi
+usr/share/framerd/scheme_modules/gnosys/utils
+usr/share/framerd/scheme_modules/gnosys/webapp
