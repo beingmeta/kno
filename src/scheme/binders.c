@@ -922,7 +922,9 @@ fdtype fd_xapply_sproc
   /* If we're synchronized, lock the mutex. */
   if (fn->synchronized) fd_lock_struct(fn);
   result=eval_body(":XPROC",fn->body,0,&envstruct);
-  if (fn->synchronized) result=fd_finish_call(result);
+  /* if (fn->synchronized) result=fd_finish_call(result); */
+  /* We always finish tail calls here */
+  result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
   else if ((FD_ABORTP(result)) && (fn->filename))
     u8_current_exception->u8x_details=sproc_id(fn);
