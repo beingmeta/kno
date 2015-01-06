@@ -224,9 +224,9 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 
 SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
 	src/modules/aws/*.scm src/modules/brico/*.scm \
-	src/modules/facebook/*.scm src/modules/misc/*.scm \
+	src/modules/facebook/*.scm src/modules/google/*.scm \
+	src/modules/paypal/*.scm src/modules/twitter/*.scm \
 	src/modules/misc/*.scm src/modules/tests/*.scm \
-	src/modules/twitter/*.scm src/modules/webapi/*.scm \
 	src/modules/domutils/*.scm src/modules/knodules/*.scm \
 	src/modules/textindex/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
@@ -1088,7 +1088,7 @@ $(DESTDIR)@module_dir@ $(DESTDIR)@data_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-MODULE_DIRS=aws brico facebook misc paypal tests twitter webapi google
+MODULE_DIRS=aws brico bugjar facebook misc paypal tests twitter google
 SAFE_MODULE_DIRS=domutils knodules textindex
 BEINGMETA_MODULE_DIRS= \
 	morph morph/data chopper chopper/english \
@@ -1101,8 +1101,6 @@ link-modules: $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@ \
 	@$(MSG) Installing symbolic links for Scheme modules
 	@@SUDO@ln -sf $(BUILD)/etc/*.el @data_dir@
 	@@SUDO@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
-	@@SUDO@ln -sf $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
-	@@SUDO@ln -sf $(BUILD)/src/modules/*.js $(DESTDIR)@standard_module_dir@
 	@for x in $(MODULE_DIRS); do \
 	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; \
 	 done
@@ -1116,8 +1114,6 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	@$(ECHO) Copying Scheme modules to install directories
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.css $(DESTDIR)@standard_module_dir@
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.js $(DESTDIR)@standard_module_dir@
 	@for x in $(MODULE_DIRS); do \
 	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@standard_module_dir@/$$x; \
 	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$$x/* $(DESTDIR)@standard_module_dir@/$$x; \
