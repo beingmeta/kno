@@ -213,7 +213,7 @@ static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
     u8_now(&(tm->xtime)); *freeit=1;
     return tm;}
   else {
-    fd_set_type_error("timestamp",arg);
+    fd_set_type_error("timestamp",arg); *freeit=0;
     return NULL;}
 }
 
@@ -226,7 +226,9 @@ static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
   if (FD_VOIDP(arg2)) {
     if ((FD_FIXNUMP(arg1)) || (FD_FLONUMP(arg1)) || (FD_RATIONALP(arg1)))
       delta=fd_todouble(arg1);
-    else return fd_type_error("number","timestamp_plus",arg1);
+    else {
+      u8_free(newtm);
+      return fd_type_error("number","timestamp_plus",arg1);}
     u8_init_xtime(&tmp,-1,u8_nanosecond,-1,0,0);
     btime=&tmp;}
   else if ((FD_FIXNUMP(arg2)) || (FD_FLONUMP(arg2)) || (FD_RATIONALP(arg2))) {
