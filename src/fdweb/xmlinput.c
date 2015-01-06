@@ -84,7 +84,8 @@ static fdtype namespace_symbol, name_symbol, qname_symbol, xmlns_symbol;
 static fdtype attribs_symbol, content_symbol, type_symbol;
 
 static fdtype sloppy_symbol, keepraw_symbol, crushspace_symbol;
-static fdtype slotify_symbol, nocontents_symbol, nsfree_symbol, autoclose_symbol;
+static fdtype slotify_symbol, nocontents_symbol, nsfree_symbol;
+static fdtype autoclose_symbol;
 static fdtype noempty_symbol, data_symbol, decode_symbol, ishtml_symbol;
 static fdtype comment_symbol, cdata_symbol;
 
@@ -145,8 +146,10 @@ static fdtype decode_entities(fdtype input)
 }
 
 static u8_string block_elts[]=
-  {"p","ul","ol","dl","h1","h2","h3","h4","h5","h6","pre","table","div","blockquote",
-   "noframes","noscript","menu","isindex",NULL};
+  {"p","ul","ol","dl","h1","h2","h3","h4","h5","h6",
+   "pre","table","div","blockquote",
+   "noframes","noscript","menu","isindex",
+   NULL};
 
 static int block_elementp(u8_string name)
 {
