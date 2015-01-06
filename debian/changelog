@@ -1,3 +1,9 @@
+framerd (3.6.5-1) unstable; urgency=low
+
+  * Add IF attribute for XMLEVAL/FDXML conditional inclusion
+
+ --
+
 framerd (3.6.4-1) unstable; urgency=low
 
   * Made #<punct> handle <punct> runs    
