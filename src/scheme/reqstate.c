@@ -216,8 +216,7 @@ static fdtype reqpush_prim(fdtype vars,fdtype values)
   {FD_DO_CHOICES(var,vars) {
       fdtype name=((FD_STRINGP(var))?(fd_intern(FD_STRDATA(var))):(var));
       FD_DO_CHOICES(value,values) {
-        /* fd_req_push is weird because it doesn't incref its arg */
-        fd_incref(value); fd_req_push(name,value);}}}
+        fd_req_push(name,value);}}}
   return FD_VOID;
 }
 
