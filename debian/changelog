@@ -2,7 +2,7 @@ framerd (3.6.5-1) unstable; urgency=low
 
   * Add IF attribute for XMLEVAL/FDXML conditional inclusion
 
- --
+ -- Ken Haase <kh@beingmeta.com>  Tue, 06 Jan 2015 10:42:29 -0500
 
 framerd (3.6.4-1) unstable; urgency=low
 
