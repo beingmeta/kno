@@ -587,7 +587,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
     fd_store(cnode,content_symbol,cdata_content);
     fd_decref(cdata_content);
     add_content(node,cnode);}
-  else add_content(node,fdtype_string(s));
+  else add_content(node,fd_block_string(len,s));
 }
 
 FD_EXPORT
@@ -1064,8 +1064,7 @@ static fdtype fdxml_load(fdtype input,fdtype sloppy)
   if (parsed) {
     fdtype result=fd_incref(parsed->head);
     fdtype lispenv=(fdtype)(parsed->data);
-    fd_incref(lispenv);
-    u8_free(parsed);
+    free_node(parsed,1);
     return fd_init_pair(NULL,lispenv,result);}
   else return FD_ERROR_VALUE;
 }
@@ -1091,10 +1090,10 @@ static fdtype fdxml_read(fdtype input,fdtype sloppy)
   else if (!((FD_VOIDP(sloppy)) || (FD_FALSEP(sloppy))))
     flags=flags|FD_SLOPPY_XML;
   else {}
-  parsed=fd_read_fdxml(in,flags);
+  parsed=fd_parse_fdxml(in,flags);
   if (parsed) {
     fdtype result=parsed->head;
-    u8_free(parsed);
+    free_node(parsed,1);
     return result;}
   else return FD_ERROR_VALUE;
 }
