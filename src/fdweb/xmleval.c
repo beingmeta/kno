@@ -34,7 +34,7 @@ int fd_cache_markup=1;
 static fdtype xmleval_tag, xmleval2expr_tag;
 static fdtype raw_name_slotid, raw_markup;
 static fdtype content_slotid, elt_name, qname_slotid;
-static fdtype attribs_slotid, attribids_slotid;
+static fdtype attribs_slotid, attribids_slotid, if_symbol, pif_symbol;
 static fdtype id_symbol, bind_symbol, xml_env_symbol, xmlns_symbol;
 
 static fdtype pblank_symbol, xmlnode_symbol, xmlbody_symbol, env_symbol;
@@ -361,6 +361,28 @@ static fdtype get_markup_string(fdtype xml,
   return cached;
 }
 
+static int test_if(fdtype xml,fd_lispenv scheme_env,fd_lispenv xml_env)
+{
+  fdtype test=fd_get(xml,pif_symbol,FD_VOID);
+  if (FD_VOIDP(test)) return 1;
+  if (FD_SYMBOLP(test)) {
+    fdtype val=fd_symeval(test,scheme_env);
+    if (FD_VOIDP(val)) val=fd_req_get(test,FD_VOID);
+    if ((FD_VOIDP(val))||(FD_FALSEP(val))) return 0;
+    else {fd_decref(val); return 1;}}
+  else if (FD_PAIRP(test)) {
+    fdtype value=fd_eval(test,scheme_env);
+    fd_decref(test);
+    if (FD_ABORTP(value)) return fd_interr(value);
+    else if (FD_VOIDP(value)) return 0;
+    else if ((FD_FALSEP(value))||(FD_EMPTY_CHOICEP(value)))
+      return 0;
+    else return 1;}
+  else {
+    fd_decref(test);
+    return 1;}
+}
+
 FD_EXPORT
 fdtype fd_xmlout(u8_output out,fdtype xml,
                  fd_lispenv scheme_env,fd_lispenv xml_env)
@@ -395,6 +417,10 @@ fdtype fd_xmlout(u8_output out,fdtype xml,
         if (FD_STRINGP(elt)) u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));}
       u8_puts(out,"]]>");
       fd_decref(content);
+      return FD_VOID;}
+    else if ((fd_test(xml,pif_symbol,FD_VOID))&&
+             (!(test_if(xml,scheme_env,xml_env)))) {
+      /* This node is excluded */
       return FD_VOID;}
     else {
       fdtype markup=get_markup_string(xml,scheme_env,xml_env);
@@ -593,20 +619,20 @@ static fdtype extract_var(u8_string start,u8_string end)
 static fdtype parse_infix(u8_string start)
 {
   u8_string split;
-  if ((split=(strchr(start,'.'))))
+  if ((split=(strchr(start,'.')))) {
+    if (split==start) return fd_parse(start);
+   /* Record form x.y ==> (get x 'y) */
     return fd_make_list(3,get_symbol,extract_var(start,split),
-                        fd_make_list(2,quote_symbol,fd_parse(split+1)));
-  else if ((split=(strchr(start,'#'))))
-    return fd_make_list(2,fd_parse(split+1),extract_var(start,split));
-  else if ((split=(strchr(start,'['))))
+                        fd_make_list(2,quote_symbol,fd_parse(split+1)));}
+  else if ((split=(strchr(start,'#')))) {
+    if (split==start) return fd_parse(start);
+    /* Call form x#y ==> (y x) */
+    return fd_make_list(2,fd_parse(split+1),extract_var(start,split));}
+  else if ((split=(strchr(start,'[')))) {
+    if (split==start) return fd_parse(start);
+    /* Vector form x[y] ==> (elt x y) */
     return fd_make_list(3,elt_symbol,extract_var(start,split),
-                        fd_parse(split+1));
-  else if ((split=(strchr(start,'@'))))
-    if (split[1]=='?')
-      return fd_make_list
-        (3,get_symbol,extract_var(start,split),fd_parse(split));
-    else return fd_make_list
-           (3,get_symbol,extract_var(start,split),fd_parse(split+1));
+                        fd_parse(split+1));}
   else return fd_parse(start);
 }
 
@@ -657,7 +683,8 @@ FD_EXPORT int fd_xmleval_attribfn
   u8_string namespace, attrib_name=fd_xmlns_lookup(xml,name,&namespace);
   fdtype slotid=parse_attribname(name);
   fdtype slotval=((!(val))?(slotid):
-                  ((val[0]=='\0')||(val[0]=='#'))?
+                  ((val[0]=='\0')||(val[0]=='#')||
+                   (slotid==if_symbol))?
                   (fdtype_string(val)):
                   (quote>0) ? (xmlevalify(val)) :
                   (xmldtypify(val)));
@@ -668,6 +695,11 @@ FD_EXPORT int fd_xmleval_attribfn
     slotval=fdtype_string(val);
   if (FD_EMPTY_CHOICEP(xml->attribs)) fd_init_xml_attribs(xml);
   xml->bits=xml->bits|FD_XML_HASDATA;
+  if (slotid==if_symbol) {
+    u8_string sv=FD_STRDATA(slotval);
+    fdtype sval=((sv[0]=='$')?(fd_parse(sv+1)):(fd_parse(sv)));
+    fd_add(xml->attribs,pif_symbol,sval);
+    fd_decref(sval);}
   fd_add(xml->attribs,slotid,slotval);
   if (namespace) {
     fd_add(xml->attribs,parse_attribname(attrib_name),slotval);
@@ -1750,6 +1782,8 @@ FD_EXPORT void fd_init_xmleval_c()
   bind_symbol=fd_intern("BIND");
 
   test_symbol=fd_intern("TEST");
+  if_symbol=fd_intern("IF");
+  pif_symbol=fd_intern("%IF");
   predicate_symbol=fd_intern("PREDICATE");
   else_symbol=fd_intern("ELSE");
 
