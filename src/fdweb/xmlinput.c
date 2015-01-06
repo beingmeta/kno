@@ -275,6 +275,14 @@ FD_EXPORT fdtype fd_make_qid(u8_string eltname,u8_string namespace)
   return make_qid(eltname,namespace);
 }
 
+FD_EXPORT void fd_free_xml_node(FD_XML *node)
+{
+  free_nsinfo(node);
+  fd_decref(node->attribs);
+  fd_decref(node->head);
+  if (node->eltname) u8_free(node->eltname);
+}
+
 static void ns_add(FD_XML *xml,u8_string prefix,u8_string url)
 {
   int prefix_len=strlen(prefix), url_len=strlen(url);

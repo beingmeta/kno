@@ -488,12 +488,16 @@ static fdtype loadcontent(fdtype path)
       struct FD_PAIR *old_parsed=(struct FD_PAIR *)parsed;
       parsed=FD_CDR(parsed);
       old_parsed->cdr=FD_EMPTY_LIST;}
-    env=(fd_lispenv)xml->data;
-    lenv=(fdtype)env; ldata=parsed;
+    ldata=parsed;
+    env=(fd_lispenv)xml->data; lenv=(fdtype)env;
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);
-    u8_free(content); u8_free(xml);
+    fd_incref(ldata); fd_incref(lenv);
+    u8_free(content);
+    fd_free_xml_node(xml);
+    u8_free(xml);
+
     return fd_init_pair(NULL,ldata,lenv);}
   else {
     fd_environment newenv=

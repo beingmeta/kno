@@ -92,6 +92,7 @@ FD_EXPORT void fd_add_content(struct FD_XML *node,fdtype item);
 
 FD_EXPORT u8_string fd_xmlns_lookup(FD_XML *xml,u8_string s,u8_string *nsp);
 FD_EXPORT fdtype fd_make_qid(u8_string eltname,u8_string namespace);
+FD_EXPORT void fd_free_xml_node(FD_XML *node);
 
 FD_EXPORT void fd_attrib_entify(u8_output out,u8_string value);
 FD_EXPORT u8_string fd_deentify(u8_string value,u8_string lim);
