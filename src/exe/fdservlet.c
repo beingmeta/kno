@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2014 beingmeta, inc.
+/* Copyright (C) 2004-2015 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -1852,7 +1852,7 @@ static int launch_servlet(u8_string socket_spec)
          "FramerD (%s) FDServlet running, %d/%d pools/indices",
          FRAMERD_REVISION,fd_n_pools,
          fd_n_primary_indices+fd_n_secondary_indices);
-  u8_message("beingmeta FramerD, (C) beingmeta 2004-2014, all rights reserved");
+  u8_message("beingmeta FramerD, (C) beingmeta 2004-2015, all rights reserved");
   if (fdwebserver.n_servers>0) {
     u8_log(LOG_WARN,"FDServlet","Listening on %d addresses",
 	   fdwebserver.n_servers);
