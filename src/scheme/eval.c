@@ -183,9 +183,14 @@ static fdtype lisp_copy_environment(fdtype env,int deep)
 FD_EXPORT fd_lispenv fd_copy_env(fd_lispenv env)
 {
   if (env==NULL) return env;
-  else if (env->copy)
-    return (fd_lispenv)(fd_incref((fdtype)(env->copy)));
-  else return copy_environment(env);
+  else if (env->copy) {
+    fdtype existing=(fdtype)env->copy;
+    fd_incref(existing);
+    return env->copy;}
+  else {
+    fd_lispenv fresh=dynamic_environment(env);
+    fdtype ref=(fdtype)fresh; fd_incref(ref);
+    return fresh;}
 }
 
 static void recycle_environment(struct FD_CONS *envp)
