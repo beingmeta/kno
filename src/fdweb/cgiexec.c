@@ -552,15 +552,15 @@ static fdtype addhttpheader(fdtype header)
 
 static fdtype htmlheader(fdtype expr,fd_lispenv env)
 {
-  U8_OUTPUT out; fdtype result;
+  U8_OUTPUT out; fdtype header_string; fdtype result;
   U8_INIT_OUTPUT(&out,64);
   result=do_xmlout(&out,fd_get_body(expr,1),env);
   if (FD_ABORTP(result)) {
     u8_free(out.u8_outbuf);
     return result;}
-  else fd_req_push
-         (html_headers,
-          fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf));
+  header_string=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  fd_req_push(html_headers,header_string);
+  fd_decref(header_string);
   return FD_VOID;
 }
 
@@ -653,7 +653,7 @@ static fdtype setcookie
     cookiedata=
       fd_make_nvector(6,fd_incref(var),fd_incref(val),
                       fd_incref(domain),fd_incref(path),
-                      fd_incref(expires),fd_incref(secure));
+                      expires,fd_incref(secure));
     setcookiedata(cookiedata,FD_VOID);
     fd_decref(cookiedata);
     return FD_VOID;}
@@ -684,26 +684,30 @@ static fdtype clearcookie
 
 static fdtype add_stylesheet(fdtype stylesheet,fdtype type)
 {
+  fdtype header_string=FD_VOID;
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   if (FD_VOIDP(type))
     u8_printf(&out,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
               FD_STRDATA(stylesheet));
   else u8_printf(&out,"<link rel='stylesheet' type='%s' href='%s'/>\n",
                  FD_STRDATA(type),FD_STRDATA(stylesheet));
-  fd_req_push(html_headers,
-              fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf));
+  header_string=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  fd_req_push(html_headers,header_string);
+  fd_decref(header_string);
   return FD_VOID;
 }
 
 static fdtype add_javascript(fdtype url)
 {
+  fdtype header_string=FD_VOID;
   U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   u8_printf(&out,"<script language='javascript' src='%s'>\n",
             FD_STRDATA(url));
   u8_printf(&out,"  <!-- empty content for some browsers -->\n");
   u8_printf(&out,"</script>\n");
-  fd_req_push(html_headers,
-              fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf));
+  header_string=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  fd_req_push(html_headers,header_string);
+  fd_decref(header_string);
   return FD_VOID;
 }
 
@@ -718,8 +722,10 @@ static fdtype title_handler(fdtype expr,fd_lispenv env)
     u8_free(out.u8_outbuf);
     return result;}
   else {
-    fd_req_push(html_headers,
-                fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf));
+    fdtype header_string=
+      fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    fd_req_push(html_headers,header_string);
+    fd_decref(header_string);
     return FD_VOID;}
 }
 
@@ -875,9 +881,8 @@ static fdtype set_body_attribs(int n,fdtype *args)
     return FD_VOID;}
   else {
     int i=n-1; while (i>=0) {
-      fd_incref(args[i]);
-      fd_req_push(body_attribs_slotid,args[i]);
-      i--;}
+      fdtype arg=args[i--];
+      fd_req_push(body_attribs_slotid,arg);}
     return FD_VOID;}
 }
 
