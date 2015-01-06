@@ -452,6 +452,7 @@ static int write_pid_file()
   if (pid_fd<0) {
     if (stat_err) u8_graberr(stat_err,"write_pid_file",u8_strdup(pid_file));
     u8_graberr(errno,"write_pid_file",u8_strdup(pid_file));
+    u8_free(abspath);
     return -1;}
   lv=lock_fd(pid_fd,1,0);
   if (lv<0) {
@@ -459,6 +460,7 @@ static int write_pid_file()
            pid_file);
     u8_graberr(errno,"write_pid_file",u8_strdup(pid_file));
     close(pid_fd);
+    u8_free(abspath);
     return -1;}
   else {
     if (exists)
@@ -468,6 +470,7 @@ static int write_pid_file()
     atexit(cleanup_pid_file);
     /* It's now okay to steal sockets and other files */
     stealsockets=1;
+    u8_free(abspath);
     return pid_fd;}
 }
 
@@ -1850,7 +1853,10 @@ static int launch_servlet(u8_string socket_spec)
          FRAMERD_REVISION,fd_n_pools,
          fd_n_primary_indices+fd_n_secondary_indices);
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2014, all rights reserved");
-  if (fdwebserver.n_servers>0) u8_server_loop(&fdwebserver);
+  if (fdwebserver.n_servers>0) {
+    u8_log(LOG_WARN,"FDServlet","Listening on %d addresses",
+	   fdwebserver.n_servers);
+    u8_server_loop(&fdwebserver);}
   else {
     u8_log(LOG_CRIT,NoServers,"No servers configured, exiting...");
     exit(-1);
