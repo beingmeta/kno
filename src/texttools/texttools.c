@@ -1465,7 +1465,9 @@ static fdtype text2frame(fdtype pattern,fdtype string,
         if (fd_getint(FD_CAR(extraction))==lim) {
           fdtype frame=fd_empty_slotmap();
           if (framify(frame,NULL,FD_CDR(extraction))<0) {
-            fd_decref(frame_results); fd_decref(extract_results);
+            fd_decref(frame);
+            fd_decref(frame_results);
+            fd_decref(extract_results);
             return FD_ERROR_VALUE;}
           FD_ADD_TO_CHOICE(frame_results,frame);}}
       fd_decref(extract_results);
