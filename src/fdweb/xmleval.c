@@ -166,6 +166,8 @@ static int output_attribval(u8_output out,
     else if (FD_STRINGP(value))
       as_string=u8_strdup(FD_STRDATA(value));
     else as_string=fd_dtype2string(value);
+    if (name) start_attrib(out,name);
+    u8_putc(out,'"');
     if (FD_EQ(FD_CAR(val),xmleval2expr_tag)) {
       if ((FD_STRINGP(value)) && (FD_STRLEN(value)>0) &&
           ((isdigit(FD_STRDATA(value)[0]))||(FD_STRDATA(value)[0]==':')))
@@ -175,8 +177,8 @@ static int output_attribval(u8_output out,
                (FD_FLONUMP(value)) ||
                (FD_STRINGP(value))) {}
       else u8_putc(out,':');}
-    if (name) start_attrib(out,name);
     fd_attrib_entify(out,as_string);
+    u8_putc(out,'"');
     fd_decref(value); u8_free(as_string);
     return 0;}
   else if (FD_SLOTMAPP(val)) {
@@ -1232,12 +1234,29 @@ static fdtype fdxml_if(fdtype expr,fd_lispenv env)
     return do_body(expr,env);}
 }
 
+static fdtype fdxml_alt(fdtype expr,fd_lispenv env)
+{
+  fdtype content=fd_get(expr,content_slotid,FD_VOID);
+  if (FD_PAIRP(content)) {
+    FD_DOLIST(x,content) {
+      if (FD_STRINGP(x)) {}
+      else if (fd_test(x,test_symbol,FD_VOID)) {
+        fdtype test=fdxml_get(x,test_symbol,env);
+        if (!((FD_FALSEP(test))||(FD_EMPTY_CHOICEP(test)))) {
+          fdtype result=fd_xmleval(u8_current_output,x,env);
+          fd_decref(result);}
+        fd_decref(test);}
+      else {}}}
+  fd_decref(content);
+  return FD_VOID;
+}
+
 static fdtype fdxml_ifreq(fdtype expr,fd_lispenv env)
 {
   fdtype test=fd_get(expr,test_symbol,FD_VOID);
   fdtype value=fdxml_get(expr,value_symbol,env);
   fdtype var=((FD_SYMBOLP(test))?(test):
-              (FD_STRINGP(test))?(fd_parse(test)):
+              (FD_STRINGP(test))?(fd_parse(FD_STRDATA(test))):
               (FD_VOID));
   if (FD_VOIDP(test)) {
     u8_log(LOG_WARN,"Missing XML attribute","IFREQ missing TEST");
@@ -1701,6 +1720,7 @@ FD_EXPORT void fd_init_xmleval_c()
   fdxml_module=fd_make_env(fd_make_hashtable(NULL,17),NULL);
 
   fd_defspecial((fdtype)fdxml_module,"IF",fdxml_if);
+  fd_defspecial((fdtype)fdxml_module,"ALT",fdxml_alt);
   fd_defspecial((fdtype)fdxml_module,"IFREQ",fdxml_ifreq);
   fd_defspecial((fdtype)fdxml_module,"LOOP",fdxml_loop);
   fd_defspecial((fdtype)fdxml_module,"INSERT",fdxml_insert);
