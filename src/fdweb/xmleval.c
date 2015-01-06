@@ -466,7 +466,7 @@ fdtype fd_xmlout(u8_output out,fdtype xml,
         u8_putc(out,'>');}
       fd_decref(markup); fd_decref(content);
       return FD_VOID;}
-  else return fd_type_error("XML node","get_markup_string",xml);
+  else return fd_type_error("XML node","fd_xmlout",xml);
   return FD_VOID;
 }
 
