@@ -1169,8 +1169,9 @@ FD_EXPORT int fd_req_drop(fdtype var,fdtype val)
 FD_EXPORT int fd_req_push(fdtype var,fdtype val)
 {
   fdtype info=get_reqinfo(), cur=fd_get(info,var,FD_EMPTY_LIST);
-  fd_store(info,var,fd_init_pair(NULL,val,cur));
-  fd_incref(val);
+  fdtype new_pair=fd_init_pair(NULL,val,cur);
+  fd_store(info,var,new_pair);
+  fd_incref(val); fd_decref(new_pair);
   return 1;
 }
 
