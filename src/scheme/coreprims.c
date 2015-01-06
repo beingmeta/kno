@@ -669,10 +669,14 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("EQUAL?",equalp,2));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("IDENTICAL?",equalp,2)));
+  fd_defalias(fd_scheme_module,"=?","IDENTICAL?");
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("OVERLAPS?",overlapsp,2)));
+  fd_defalias(fd_scheme_module,"*=?","OVERLAPS?");
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("CONTAINS?",containsp,2)));
+  fd_defalias(fd_scheme_module,"⊆?","CONTAINS?");
+  fd_defalias(fd_scheme_module,"⊆","CONTAINS?");
   fd_idefn(fd_scheme_module,fd_make_cprim2("COMPARE",comparefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("FASTCOMPARE",fastcomparefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DEEP-COPY",deepcopy,1));

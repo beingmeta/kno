@@ -1198,9 +1198,13 @@ FD_EXPORT void fd_init_choicefns_c()
   u8_register_source_file(_FILEINFO);
 
   fd_defspecial(fd_scheme_module,"DO-CHOICES",dochoices_handler);
+  fd_defalias(fd_scheme_module,"DO∀","DO-CHOICES");
   fd_defspecial(fd_scheme_module,"FOR-CHOICES",forchoices_handler);
+  fd_defalias(fd_scheme_module,"FOR∀","FOR-CHOICES");
   fd_defspecial(fd_scheme_module,"TRY-CHOICES",trychoices_handler);
+  fd_defalias(fd_scheme_module,"TRY∀","TRY-CHOICES");
   fd_defspecial(fd_scheme_module,"FILTER-CHOICES",filterchoices_handler);
+  fd_defalias(fd_scheme_module,"?∀","FILTER-CHOICES");
 
   fd_defspecial(fd_scheme_module,"DO-SUBSETS",dosubsets_handler);
 
@@ -1223,11 +1227,13 @@ FD_EXPORT void fd_init_choicefns_c()
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("INTERSECTION",intersection_lexpr,1)));
+  fd_defalias(fd_scheme_module,"∩","INTERSECTION");
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("UNION",union_lexpr,1)));
+  fd_defalias(fd_scheme_module,"∪","UNION");
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("DIFFERENCE",difference_lexpr,1)));
-
+  fd_defalias(fd_scheme_module,"∖","DIFFERENCE");
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("SMALLEST",smallest_handler,1)));
@@ -1241,6 +1247,7 @@ FD_EXPORT void fd_init_choicefns_c()
       fd_make_ndprim(fd_make_cprim1("EMPTY?",emptyp,1));
     fd_idefn(fd_scheme_module,empty_prim);
     fd_store(fd_scheme_module,fd_intern("FAIL?"),empty_prim);
+    fd_defalias(fd_scheme_module,"∄","FAIL?");
   }
 
   fd_defspecial(fd_scheme_module,"IFEXISTS",ifexists_handler);
@@ -1250,14 +1257,18 @@ FD_EXPORT void fd_init_choicefns_c()
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("EXISTS?",existsp,1)));
+  fd_defalias(fd_scheme_module,"∃","EXISTS?");
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("CHOICE-SIZE",choicesize_prim,1)));
+  fd_defalias(fd_scheme_module,"Ω","CHOICE-SIZE");
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("EXISTS",exists_lexpr,1)));
+  fd_defalias(fd_scheme_module,"∃?","EXISTS");
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("FORALL",forall_lexpr,1)));
+  fd_defalias(fd_scheme_module,"∀?","FORALL");
   fd_defspecial(fd_scheme_module,"WHENEXISTS",whenexists_handler);
 
   {
