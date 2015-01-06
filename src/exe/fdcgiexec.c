@@ -59,27 +59,6 @@ static int max_backlog=-1;
 
 /* Writing the PID file */
 
-#if 0
-static void write_pid_file(char *sockname)
-{
-  FILE *f;
-  int len=strlen(sockname);
-  char *dot=strchr(sockname,'.');
-  pidfile=u8_malloc(len+8);
-  if (dot) {
-    strncpy(pidfile,sockname,dot-sockname);
-    pidfile[dot-sockname]='\0';}
-  else strcpy(pidfile,sockname);
-  strcat(pidfile,".pid");
-  f=fopen(pidfile,"w");
-  if (f==NULL)
-    u8_log(LOG_WARN,Startup,"Couldn't write file","Couldn't write PID file %s",pidfile);
-  else {
-    fprintf(f,"%d",getpid());
-    fclose(f);}
-}
-#endif
-
 static void shutdown_server(u8_condition reason)
 {
   if (reason)
