@@ -42,6 +42,7 @@ usr/share/framerd/standard_modules/bugjar/*.css
 usr/share/framerd/standard_modules/aws/*.scm
 usr/share/framerd/standard_modules/aws/*.json
 usr/share/framerd/standard_modules/brico/*.scm
+usr/share/framerd/standard_modules/brico/*.dtype
 usr/share/framerd/standard_modules/brico/*.table
 usr/share/framerd/standard_modules/facebook/*.scm
 usr/share/framerd/standard_modules/google/*.scm

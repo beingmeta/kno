@@ -1,3 +1,9 @@
+framerd (3.7.1-5) unstable; urgency=low
+
+  * Add brico/*.dtype to packaging
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 07 Jan 2015 14:07:36 -0500
+
 framerd (3.7.1-4) unstable; urgency=low
 
   * Add knodules/*.dtype to packaging
