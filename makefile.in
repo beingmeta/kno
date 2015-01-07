@@ -1123,7 +1123,7 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_module_dir@/$$x; \
 	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$$x/* $(DESTDIR)@safe_module_dir@/$$x; \
 	 done
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@standard_module_dir@/xhtml
+	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_module_dir@/xhtml
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/* $(DESTDIR)@safe_module_dir@/xhtml
 	@for x in $(BEINGMETA_MODULE_DIRS); do \
 	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@module_dir@/$$x; \
