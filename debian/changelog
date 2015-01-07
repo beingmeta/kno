@@ -1,3 +1,9 @@
+framerd (3.7.1-6) unstable; urgency=low
+
+  * Update two more 2014s to 2015s
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 07 Jan 2015 14:39:25 -0500
+
 framerd (3.7.1-5) unstable; urgency=low
 
   * Add brico/*.dtype to packaging

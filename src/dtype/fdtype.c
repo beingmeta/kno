@@ -109,7 +109,7 @@ FD_EXPORT void fd_init_pptrs_c(void);
 
 FD_EXPORT void fd_boot_message()
 {
-  u8_message("Copyright (C) beingmeta 2004-2014, all rights reserved");
+  u8_message("Copyright (C) beingmeta 2004-2015, all rights reserved");
   u8_message("(%s:%ld) %s %s",u8_appid(),getpid(),
              fd_getrevision(),u8_getrevision());
 }
