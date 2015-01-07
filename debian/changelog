@@ -1,3 +1,9 @@
+framerd (3.7.1-3) unstable; urgency=low
+
+  * Update packing for xhtml module
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 07 Jan 2015 13:34:07 -0500
+
 framerd (3.7.1-2) unstable; urgency=low
 
   * Updated to minor version 3.7, improved packaging and fixes

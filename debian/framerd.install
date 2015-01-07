@@ -28,9 +28,9 @@ usr/bin/fdsetconfig
 usr/bin/fdconfig
 usr/etc/framerd/servers
 usr/share/framerd/standard_modules/*.scm
-usr/share/framerd/standard_modules/safe/*/*.scm
-usr/share/framerd/standard_modules/safe/*/*.dtype
-usr/share/framerd/standard_modules/safe/*/*.table
+usr/share/framerd/standard_modules/safe/*.scm
+usr/share/framerd/standard_modules/safe/xhtml/*.scm
+usr/share/framerd/standard_modules/safe/domutils/*.scm
 usr/share/framerd/standard_modules/safe/knodules/*.scm
 usr/share/framerd/standard_modules/safe/knodules/*.table
 usr/share/framerd/standard_modules/safe/textindex/*.scm
