@@ -33,6 +33,7 @@ usr/share/framerd/standard_modules/safe/xhtml/*.scm
 usr/share/framerd/standard_modules/safe/domutils/*.scm
 usr/share/framerd/standard_modules/safe/knodules/*.scm
 usr/share/framerd/standard_modules/safe/knodules/*.table
+usr/share/framerd/standard_modules/safe/knodules/*.dtype
 usr/share/framerd/standard_modules/safe/textindex/*.scm
 usr/share/framerd/standard_modules/safe/textindex/*.dtype
 usr/share/framerd/standard_modules/bugjar/*.scm
