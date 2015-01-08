@@ -595,7 +595,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
     fd_store(cnode,content_symbol,cdata_content);
     fd_decref(cdata_content);
     add_content(node,cnode);}
-  else add_content(node,fd_block_string(len,s));
+  else add_content(node,fd_make_string(NULL,len,s));
 }
 
 FD_EXPORT
