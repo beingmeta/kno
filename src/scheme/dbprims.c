@@ -2136,7 +2136,31 @@ static fdtype oidhex_prim(fdtype oid,fdtype base_arg)
   return fd_make_string(NULL,-1,buf);
 }
 
-static oidplus(FD_OID base,int delta)
+static fdtype oidb32_prim(fdtype oid,fdtype base_arg)
+{
+  char buf[64]; int offset, buflen=64;
+  FD_OID addr=FD_OID_ADDR(oid);
+  if ((FD_VOIDP(base_arg)) || (FD_FALSEP(base_arg))) {
+    fd_pool p=fd_oid2pool(oid);
+    if (p) {
+      FD_OID base=p->base;
+      offset=FD_OID_DIFFERENCE(addr,base);}
+    else offset=(FD_OID_LO(addr))%0x100000;}
+  else if (FD_POOLP(base_arg)) {
+    fd_pool p=fd_get_poolptr(base_arg);
+    if (p) {
+      FD_OID base=p->base;
+      offset=FD_OID_DIFFERENCE(addr,base);}
+    else offset=(FD_OID_LO(addr))%0x100000;}
+  else if (FD_OIDP(base_arg)) {
+    FD_OID base=FD_OID_ADDR(base_arg);
+    offset=FD_OID_DIFFERENCE(addr,base);}
+  else offset=(FD_OID_LO(addr))%0x100000;
+  fd_ulonglong_to_b32(offset,buf,&buflen);
+  return fd_make_string(NULL,buflen,buf);
+}
+
+static fdtype oidplus(FD_OID base,int delta)
 {
   FD_OID next=FD_OID_PLUS(base,delta);
   return fd_make_oid(next);
@@ -2150,6 +2174,32 @@ static fdtype hex2oid_prim(fdtype arg,fdtype base_arg)
   else if (FD_FIXNUMP(arg))
     offset=FD_FIX2INT(arg);
   else return fd_type_error("hex offset","hex2oid_prim",arg);
+  if (offset<0) return fd_type_error("hex offset","hex2oid_prim",arg);
+  if (FD_OIDP(base_arg)) {
+    FD_OID base=FD_OID_ADDR(base_arg);
+    return oidplus(base,offset);}
+  else if (FD_POOLP(base_arg)) {
+    fd_pool p=fd_get_poolptr(base_arg);
+    return oidplus(p->base,offset);}
+  else if (FD_STRINGP(base_arg)) {
+    fd_pool p=fd_name2pool(FD_STRDATA(base_arg));
+    if (p) return oidplus(p->base,offset);
+    else return fd_type_error("pool id","hex2oid_prim",base_arg);}
+  else return fd_type_error("pool id","hex2oid_prim",base_arg);
+}
+
+static fdtype b32oid_prim(fdtype arg,fdtype base_arg)
+{
+  char buf[64]; long long offset; 
+  FD_OID base; 
+  if (FD_STRINGP(arg)) {
+    offset=fd_b32_to_longlong(FD_STRDATA(arg));
+    if (offset<0) {
+      fd_seterr(fd_ParseError,"b32oid",u8_strdup("invalid B32 string"),arg);
+      return FD_ERROR_VALUE;}}
+  else if (FD_FIXNUMP(arg))
+    offset=FD_FIX2INT(arg);
+  else return fd_type_error("b32 offset","b32oid_prim",arg);
   if (offset<0) return fd_type_error("hex offset","hex2oid_prim",arg);
   if (FD_OIDP(base_arg)) {
     FD_OID base=FD_OID_ADDR(base_arg);
@@ -2639,6 +2689,15 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("HEX->OID",hex2oid_prim,2,
                            -1,FD_VOID,-1,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim2x("OID/B32",oidb32_prim,1,
+                           fd_oid_type,FD_VOID,
+                           -1,FD_VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim2x("B32/OID",b32oid_prim,2,
+                           -1,FD_VOID,-1,FD_VOID));
+
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim5x("MAKE-MEMPOOL",make_mempool,2,

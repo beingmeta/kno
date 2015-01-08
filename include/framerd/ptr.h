@@ -331,6 +331,10 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 #define FD_OID_BASE_OFFSET(x) ((x)>>12)
 #define FD_OID_BUCKET_SIZE    (1<<12)
 
+FD_EXPORT char *fd_ulonglong_to_b32(unsigned long long offset,char *buf,int *len);
+FD_EXPORT int fd_b32_to_ulonglong(char *digits,unsigned long long *out);
+FD_EXPORT long long fd_b32_to_longlong(char *digits);
+
 /* Fixnums */
 
 #define FD_FIXNUM_SIGN_BIT 0x80000000

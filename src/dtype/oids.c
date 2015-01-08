@@ -15,6 +15,7 @@
 
 /* For sprintf */
 #include <stdio.h>
+#include <ctype.h>
 
 static fd_exception OIDBaseOverflow;
 
@@ -85,6 +86,72 @@ static u8_string _simple_oid_info(fdtype oid)
     sprintf(oid_info_buf,"@%x/%x",hi,lo);
     return oid_info_buf;}
   else return "not an oid!";
+}
+
+/* B32 representation */
+
+static char b32_chars[]="0123456789abcdefghjklmnpqrtvwxyz";
+static char b32_weights[]=
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+   -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+   -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+   0,1,2,3,4,5,6,7,8,9,-1,-1,-1,-1,-1,-1,
+   -1,10,11,12,13,14,15,16,17,-1,18,19,20,21,22,-1,
+   23,24,25,-1,26,-1,27,28,29,30,31,-1,-1,-1,-1,-1,
+   -1,10,11,12,13,14,15,16,17,-1,18,19,20,21,22,-1,
+   23,24,25,-1,26,-1,27,28,29,30,31,-1,-1,-1,-1,-1};
+
+FD_EXPORT char *fd_ulonglong_to_b32(unsigned long long offset,char *buf,int *len)
+{
+  char tmpbuf[32]; int rem=offset, outlen=0;
+  int buflen=((len)?(*len):((sizeof(unsigned long long)/5)+1));
+  char *write=tmpbuf, *read, *limit=tmpbuf+buflen; 
+  while (rem>0) {
+    char digit=rem&0x1F, ch=b32_chars[digit];
+    if (write<limit) *write=ch; 
+    else outlen=(write-tmpbuf);
+    write++; rem=rem>>5;}
+  if (outlen) {*len=-outlen; return NULL;}
+  else outlen=write-tmpbuf;
+  if (!(buf)) buf=u8_malloc((write-tmpbuf)+1);
+  read=write-1; write=buf;
+  while (read>=tmpbuf) *write++=*read--;
+  *write++='\0';
+  if (len) *len=outlen;
+  return buf;
+}
+
+FD_EXPORT int fd_b32_to_ulonglong(char *digits,unsigned long long *out)
+{
+  unsigned long long sum=0; long long xsum;
+  char *scan=digits; int err=0, weight;
+  while (*scan) {
+    int ch=*scan++;
+    if ((ch>=128)||(ispunct(ch))||(isspace(ch)))
+      continue;
+    weight=b32_weights[ch];
+    if (weight<0) err=1;
+    else {sum=sum<<5; sum=sum+weight;}}
+  *out=sum; xsum=sum;
+  if (err) return -1;
+  else if (xsum<0) return 0;
+  else return xsum;
+}
+
+FD_EXPORT long long fd_b32_to_longlong(char *digits)
+{
+  unsigned long long sum=0; long long xsum;
+  char *scan=digits; int err=0;
+  while (*scan) {
+    int ch=*scan++;
+    if ((ch>=128)||(ispunct(ch))||(isspace(ch)))
+      continue;
+    int weight=b32_weights[ch];
+    if (weight<0) err=1;
+    else {sum=sum<<5; sum=sum+weight;}}
+  xsum=sum;
+  if ((err)||(xsum<0)) return -1;
+  else return xsum;
 }
 
 fdtype fd_preoids=FD_EMPTY_CHOICE;
