@@ -106,15 +106,18 @@
 		   text ,(stringout
 			   "The test " testid " on " url " has failed.\n"
 			   (when ex
-			     (printout "The error was "
-			       (error-condition ex) " in "
-			       (error-context ex)
-			       (when (error-details ex)
-				 (printout
-				   "\n\treporting " (write (error-details ex))))
-			       (when (error-irritant? ex)
-				 (printout "\n\twith irritant: "
-				   (pprint (error-irritant ex))))))
+			     (if (error? x)
+				 (printout "The error was "
+				   (error-condition ex) " in "
+				   (error-context ex)
+				   (when (error-details ex)
+				     (printout
+				       "\n\treporting " (write (error-details ex))))
+				   (when (error-irritant? ex)
+				     (printout "\n\twith irritant: "
+				       (pprint (error-irritant ex)))))
+				 (printout "The surprising condition was\n\t"
+				   (pprint ex #t 80 "\t"))))
 			   (when req
 			     (printout "The network response was:\n")
 			     (pprint req)))]))
