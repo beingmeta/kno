@@ -1101,6 +1101,7 @@ static fdtype fdxml_read(fdtype input,fdtype sloppy)
   parsed=fd_parse_fdxml(in,flags);
   if (parsed) {
     fdtype result=parsed->head;
+    fd_incref(result);
     free_node(parsed,1);
     return result;}
   else return FD_ERROR_VALUE;
