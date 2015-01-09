@@ -1236,7 +1236,7 @@ FD_EXPORT
 struct FD_XML *fd_parse_fdxml(u8_input in,int bits)
 {
   struct FD_XML *xml=u8_alloc(struct FD_XML), *retval;
-  fd_init_xml_node(xml,NULL,"top");
+  fd_init_xml_node(xml,NULL,u8_strdup("top"));
   xml->bits=bits; xml->data=NULL;
   retval=fd_walk_xml(in,fd_xmleval_contentfn,
                      handle_eval_pi,
