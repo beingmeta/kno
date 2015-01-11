@@ -150,19 +150,19 @@ static fdtype reqval_prim(fdtype vars,fdtype dflt)
   else return fd_incref(dflt);
 }
 
-static fdtype reqsym_handler(fdtype expr,fd_lispenv env)
+static fdtype hashcolon_handler(fdtype expr,fd_lispenv env)
 {
   fdtype var=fd_get_arg(expr,1);
   if (FD_VOIDP(var))
-    return fd_err(fd_SyntaxError,"reqsym_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"hashcolon_handler",NULL,expr);
   else return reqget_prim(var,FD_EMPTY_CHOICE);
 }
 
-static fdtype reqsymparse_handler(fdtype expr,fd_lispenv env)
+static fdtype hashcoloncolon_handler(fdtype expr,fd_lispenv env)
 {
   fdtype var=fd_get_arg(expr,1);
   if (FD_VOIDP(var))
-    return fd_err(fd_SyntaxError,"reqsymparse_handler",NULL,expr);
+    return fd_err(fd_SyntaxError,"hashcoloncolon_handler",NULL,expr);
   else {
     fdtype val=reqget_prim(var,FD_EMPTY_CHOICE);
     if (FD_STRINGP(val)) {
@@ -170,6 +170,37 @@ static fdtype reqsymparse_handler(fdtype expr,fd_lispenv env)
       fd_decref(val);
       return result;}
     else return val;}
+}
+
+static fdtype hashcolondollar_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype var=fd_get_arg(expr,1);
+  if (FD_VOIDP(var))
+    return fd_err(fd_SyntaxError,"hashcoloncolon_handler",NULL,expr);
+  else {
+    fdtype val=reqget_prim(var,FD_VOID);
+    if (FD_STRINGP(val)) {
+      fdtype result=fd_parse_arg(FD_STRDATA(val));
+      fd_decref(val);
+      return result;}
+    else if (FD_VOIDP(val))
+      return fd_block_string(0,"");
+    else {
+      fdtype result; struct U8_OUTPUT out;
+      U8_INIT_OUTPUT(&out,64); fd_unparse(&out,val);
+      result=fd_stream_string(&out);
+      u8_free(out.u8_outbuf);
+      return result;}}
+}
+
+static fdtype hashcolonquestion_handler(fdtype expr,fd_lispenv env)
+{
+  fdtype var=fd_get_arg(expr,1);
+  if (FD_VOIDP(var))
+    return fd_err(fd_SyntaxError,"hashcoloncolon_handler",NULL,expr);
+  else if (fd_req_test(var,FD_VOID))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 static fdtype reqtest_prim(fdtype vars,fdtype val)
@@ -316,10 +347,10 @@ FD_EXPORT void fd_init_reqstate_c()
   fd_idefn(module,fd_make_cprim2("REQ/DROP!",reqdrop_prim,1));
   fd_idefn(module,fd_make_cprim2("REQ/PUSH!",reqpush_prim,2));
   fd_idefn(module,fd_make_cprim0("REQ/LIVE?",req_livep_prim,2));
-  fd_defspecial(module,"REQSYM",reqsym_handler);
-  fd_defalias(module,"#:","REQSYM");
-  fd_defspecial(module,"REQSYM/PARSE",reqsymparse_handler);
-  fd_defalias(module,"#::","REQSYM/PARSE");
+  fd_defspecial(module,"#:",hashcolon_handler);
+  fd_defspecial(module,"#::",hashcoloncolon_handler);
+  fd_defspecial(module,"#:$",hashcolondollar_handler);
+  fd_defspecial(module,"#:?",hashcolonquestion_handler);
 
   fd_defspecial(module,"REQLOG",reqlog_handler);
   fd_defspecial(module,"REQ/LOG!",reqlog_handler);
