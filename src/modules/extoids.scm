@@ -46,37 +46,39 @@
 			     oid)))))
   (store! (oid-value oid) slotid value))
 (defambda (xo/add! oid slotid value)
-  (do-choices oid
-    (do-choices slotid
-      (let ((method
-	     (try (get add-procs (cons (getpool oid) slotid))
-		  (get add-procs slotid))))
-	(logdebug |XO/ADD!| slotid "(" oid ")=+" value ", using " method)
-	(if (exists? method)
-	    (method (if (fail? value) (qc) value) oid)
-	    (add-with-store oid slotid value)))
-      (extindex-decache! (get get-indices (cons (getpool oid) slotid))
-			 oid)))
+  (when (exists? value)
+    (do-choices oid
+      (do-choices slotid
+	(let ((method
+	       (try (get add-procs (cons (getpool oid) slotid))
+		    (get add-procs slotid))))
+	  (logdebug |XO/ADD!| slotid "(" oid ")=+" value ", using " method)
+	  (if (exists? method)
+	      (method value oid)
+	      (add-with-store oid slotid value)))
+	(extindex-decache! (get get-indices (cons (getpool oid) slotid))
+			   oid))))
   (add! (oid-value oid) slotid value))
 (defambda (xo/drop! oid slotid (value))
-  (do-choices oid
-    (do-choices slotid
-      (let ((method
-	     (try (get drop-procs (cons (getpool oid) slotid))
-		  (get drop-procs slotid))))
-	(logdebug |XO/DROP!| slotid "(" oid ")=-" value ", using " method)
-	(if (exists? method)
-	    (method (if (bound? value) (if (fail? value) (qc) value)
-			(get oid slotid))
-		    oid)
-	    (if (bound? value)
-		(drop-with-store oid slotid value)
-		(xo/store! oid slotid {}))))
-      (extindex-decache! (get get-indices (cons (getpool oid) slotid))
-			 oid)))
-  (if (bound? value)
-      (drop! (oid-value oid) slotid value)
-      (drop! (oid-value oid) slotid)))
+  (when (exists? value)
+    (do-choices oid
+      (do-choices slotid
+	(let ((method
+	       (try (get drop-procs (cons (getpool oid) slotid))
+		    (get drop-procs slotid))))
+	  (logdebug |XO/DROP!| slotid "(" oid ")=-" value ", using " method)
+	  (if (exists? method)
+	      (method (if (bound? value) (if (fail? value) (qc) value)
+			  (get oid slotid))
+		      oid)
+	      (if (bound? value)
+		  (drop-with-store oid slotid value)
+		  (xo/store! oid slotid {}))))
+	(extindex-decache! (get get-indices (cons (getpool oid) slotid))
+			   oid)))
+    (if (bound? value)
+	(drop! (oid-value oid) slotid value)
+	(drop! (oid-value oid) slotid))))
 
 (defambda (store-with-edits oid slotid values)
   (let* ((current (get oid slotid))
