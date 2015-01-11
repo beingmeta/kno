@@ -1794,15 +1794,6 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
   }
 }
 
-static fd_lispenv extend_env(fdtype arg,fd_lispenv base)
-{
-  fdtype bindings=FD_VOID;
-  if (FD_ENVIRONMENTP(arg)) {}
-  else if (FD_TABLEP(arg)) {}
-  else if (FD_SYMBOLP(arg)) {}
-  else return base;
-}
-
 static fdtype xmlopen_handler(fdtype expr,fd_lispenv env)
 {
   if (!(FD_PAIRP(FD_CDR(expr))))
