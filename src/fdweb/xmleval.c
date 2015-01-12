@@ -1029,7 +1029,7 @@ static FD_XML *handle_eval_pi(u8_input in,FD_XML *xml,u8_string content,int len)
   { struct U8_INPUT in;
     fdtype insert=fd_init_pair(NULL,begin_symbol,FD_EMPTY_LIST);
     fdtype *tail=&(FD_CDR(insert)), expr=FD_VOID;
-    U8_INIT_STRING_INPUT(&in,len,xcontent+pioff);
+    U8_INIT_STRING_INPUT(&in,len,xcontent);
     expr=fd_parse_expr(&in);
     while (1) {
       if (FD_ABORTP(expr)) {
