@@ -1108,6 +1108,7 @@ link-modules: $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@ \
 	@for x in $(SAFE_MODULE_DIRS); do \
 	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; done
 	@@SUDO@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
+	@@SUDO@ln -sf $(BUILD)/src/fdweb/fdxml $(DESTDIR)@safe_module_dir@
 	@@SUDO@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@data_dir@
@@ -1125,6 +1126,8 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	 done
 	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_module_dir@/xhtml
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/* $(DESTDIR)@safe_module_dir@/xhtml
+	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_module_dir@/fdxml
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/fdxml/* $(DESTDIR)@safe_module_dir@/fdxml
 	@for x in $(BEINGMETA_MODULE_DIRS); do \
 	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@module_dir@/$$x; \
 	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/beingmeta/$$x/*.* $(DESTDIR)@module_dir@/$$x; \

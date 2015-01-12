@@ -476,6 +476,39 @@ static fdtype xmlentry(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
+static fdtype xmlstart_handler(fdtype expr,fd_lispenv env)
+{
+  U8_OUTPUT *out=u8_current_output;
+  fdtype head=fd_get_arg(expr,1), args=FD_CDR(FD_CDR(expr));
+  u8_byte tagbuf[128], *tagname;
+  if ((FD_PAIRP(head)))  head=fd_eval(head,env);
+  else head=fd_incref(head);
+  tagname=get_tagname(head,tagbuf,128);
+  if (tagname==NULL) {
+    fd_decref(head);
+    return fd_err(fd_SyntaxError,"xmlentry",NULL,expr);}
+  else if (open_markup(out,NULL,tagname,args,env,0)<0) {
+    fd_decref(head);
+    u8_flush(out);
+    return FD_ERROR_VALUE;}
+  else {
+    fd_decref(head);
+    u8_flush(out);
+    return FD_VOID;}
+}
+
+static fdtype xmlend_prim(fdtype head)
+{
+  U8_OUTPUT *out=u8_current_output;
+  u8_byte tagbuf[128], *tagname;
+  tagname=get_tagname(head,tagbuf,128);
+  if (tagname==NULL) {
+    fd_decref(head);
+    return fd_err(fd_SyntaxError,"xmlend",NULL,head);}
+  else u8_printf(out,"</%s>",tagname);
+  return FD_VOID;
+}
+
 static fdtype doxmlblock(fdtype expr,fd_lispenv env,int newline)
 {
   fdtype tagspec=fd_get_arg(expr,1), attribs, body;
@@ -2120,11 +2153,17 @@ FD_EXPORT void fd_init_xmloutput_c()
   fd_defspecial(safe_fdweb_module,"XMLEVAL",xmleval_handler);
   fd_defspecial(fdweb_module,"XMLOPEN",xmlopen_handler);
   fd_defspecial(safe_fdweb_module,"XMLOPEN",xmlopen_handler);
+  fd_defspecial(fdweb_module,"XMLSTART",xmlstart_handler);
+  fd_defspecial(safe_fdweb_module,"XMLSTART",xmlstart_handler);
   {
     fdtype xmlcloseprim=
       fd_make_cprim1("XMLCLOSE",xmlclose_prim,1);
+    fdtype xmlendprim=
+      fd_make_cprim1("XMLEND",xmlend_prim,1);
     fd_defn(fdweb_module,xmlcloseprim);
-    fd_idefn(safe_fdweb_module,xmlcloseprim);}
+    fd_idefn(safe_fdweb_module,xmlcloseprim);
+    fd_defn(fdweb_module,xmlendprim);
+    fd_idefn(safe_fdweb_module,xmlendprim);}
 
   fd_decref(markup_prim); fd_decref(markupstar_prim);
   fd_decref(markupblock_prim); fd_decref(markupstarblock_prim);
@@ -2183,8 +2222,6 @@ FD_EXPORT void fd_init_xmloutput_c()
   u8_register_source_file(_FILEINFO);
 
 }
-
-
 
 /* Emacs local variables
    ;;;  Local variables: ***

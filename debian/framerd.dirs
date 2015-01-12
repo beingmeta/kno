@@ -12,6 +12,7 @@ usr/share/framerd/standard_modules/misc
 usr/share/framerd/standard_modules/tests
 usr/share/framerd/standard_modules/safe/domutils
 usr/share/framerd/standard_modules/safe/xhtml
+usr/share/framerd/standard_modules/safe/fdxml
 usr/share/framerd/standard_modules/safe/knodules
 usr/share/framerd/standard_modules/safe/textindex
 usr/share/framerd/scheme_modules
