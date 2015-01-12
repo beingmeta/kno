@@ -1,3 +1,9 @@
+framerd (3.7.1-10) unstable; urgency=low
+
+  * Fix bug in inline XML parsing
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 12 Jan 2015 15:59:30 -0500
+
 framerd (3.7.1-9) unstable; urgency=low
 
   * Added more #: expressions
