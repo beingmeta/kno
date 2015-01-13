@@ -93,7 +93,8 @@
 			     filecheck-default-lag))
 	       (parser (try (or parser (loadinfo-parser info)) #f))
 	       (enc (try (or enc (loadinfo-encoding info)) #f))
-	       (data (cond ((or (not enc) (eq? enc 'binary)) (filedata file))
+	       (data (cond ((applicable? enc) (enc file))
+			   ((or (not enc) (eq? enc 'binary)) (filedata file))
 			   ((string? enc) (filestring file enc))
 			   ;; This is UTF-8
 			   (else (filestring file))))
