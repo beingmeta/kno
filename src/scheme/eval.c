@@ -1097,6 +1097,14 @@ fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent)
     return e;}
 }
 
+FD_EXPORT fd_lispenv fd_new_environment(fdtype bindings,int safe)
+{
+  if (fdscheme_initialized==0) fd_init_fdscheme();
+  if (FD_VOIDP(bindings))
+    bindings=fd_make_hashtable(NULL,17);
+  else fd_incref(bindings);
+  return fd_make_env(bindings,((safe)?(safe_default_env):(default_env)));
+}
 FD_EXPORT fd_lispenv fd_working_environment()
 {
   if (fdscheme_initialized==0) fd_init_fdscheme();

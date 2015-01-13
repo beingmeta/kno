@@ -97,6 +97,7 @@ typedef struct FD_DTSERVER *fd_dtserver;
 
 /* Modules */
 
+FD_EXPORT fd_lispenv fd_new_environment(fdtype bindings,int safe);
 FD_EXPORT fd_lispenv fd_working_environment(void);
 FD_EXPORT fd_lispenv fd_safe_working_environment(void);
 FD_EXPORT fd_lispenv fd_make_env(fdtype module,fd_lispenv parent);
