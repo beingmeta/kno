@@ -291,6 +291,32 @@ static fdtype load_source(fdtype expr,fd_lispenv env)
   return result;
 }
 
+static fdtype load_into_env_prim(fdtype source,fdtype envarg,fdtype resultfn)
+{
+  fdtype result=FD_VOID; fd_lispenv env;
+  if (!((FD_VOIDP(resultfn))||(FD_APPLICABLEP(resultfn))))
+    return fd_type_error("callback procedure","LOAD->ENV",envarg);
+  if ((FD_VOIDP(envarg))||(FD_TRUEP(envarg)))
+    env=fd_working_environment();
+  else if (FD_FALSEP(envarg))
+    env=fd_safe_working_environment();
+  else if (FD_ENVIRONMENTP(envarg)) {
+    env=(fd_lispenv)envarg; fd_incref(envarg);}
+  else if (FD_TABLEP(envarg)) {
+    env=fd_new_environment(envarg,0);
+    fd_incref(envarg);}
+  else return fd_type_error("environment","LOAD->ENV",envarg);
+  result=fd_load_source(FD_STRDATA(source),env,NULL);
+  if (FD_ABORTP(result)) {
+    fd_decref((fdtype)env);
+    return result;}
+  if (FD_APPLICABLEP(resultfn)) {
+    fdtype tmp=fd_apply(resultfn,1,&result);
+    fd_decref(tmp);}
+  fd_decref(result);
+  return (fdtype) env;
+}
+
 static fdtype load_component(fdtype expr,fd_lispenv env)
 {
   fdtype source_expr=fd_get_arg(expr,1), source, result;
@@ -439,6 +465,12 @@ FD_EXPORT void fd_init_load_c()
 
  fd_defspecial(fd_xscheme_module,"LOAD",load_source);
  fd_defspecial(fd_xscheme_module,"LOAD-COMPONENT",load_component);
+
+ fd_defn(fd_xscheme_module,
+         fd_make_cprim3x("LOAD->ENV",load_into_env_prim,1,
+                         fd_string_type,FD_VOID,
+                         fd_environment_type,FD_VOID,
+                         -1,FD_VOID));
 
  fd_idefn(fd_scheme_module,
           fd_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
