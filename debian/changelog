@@ -1,3 +1,11 @@
+framerd (3.7.1-11) unstable; urgency=low
+
+  * Extend GETCONTENT to allow a load function to be passed as the ENC argument
+  * Added fd_new_environment for consing environments from tables
+  * Added LOAD->ENV to return environments created by loading a file
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 13 Jan 2015 10:00:17 -0500
+
 framerd (3.7.1-10) unstable; urgency=low
 
   * Fix bug in inline XML parsing
