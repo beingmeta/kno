@@ -185,7 +185,7 @@
   (store! node '{%xmltag %qname} name)
   (store! node '%id (dom/nodeid node)))
 
-(define (dom/set! node attrib val (fdxml #f) (index #f))
+(define (dom/set! node attrib val (index #f) (fdxml #f) )
   (drop! node '%markup)
   (let* ((slotid (if (symbol? attrib) attrib (string->lisp attrib)))
 	 (aname (if (symbol? attrib) (downcase (symbol->string attrib))
@@ -622,10 +622,11 @@
 (defambda (dom/match elt sel)
   (for-choices elt
     (if (string? elt) #f
-	(if (exists? (reject sel selector?))
-	    (dom/match elt (->selector sel))
-	    (try (try-choices sel (or (selmatch elt sel) {}))
-		 #f)))))
+	(or (test elt '%xmltag (pick sel symbol?))
+	    (if (exists? (reject sel selector?))
+		(dom/match elt (->selector sel))
+		(try (try-choices sel (or (selmatch elt sel) {}))
+		     #f))))))
 
 ;;; Finding using the index
 
