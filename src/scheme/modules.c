@@ -530,6 +530,12 @@ fdtype fd_use_module(fd_lispenv env,fdtype module)
       fd_lispenv oldp=env->parent;
       env->parent=fd_make_export_env(module,oldp);
       fd_decref((fdtype)(oldp));}}
+  else if (FD_SLOTMAPP(module)) {
+    if (!(uses_bindings(env,module))) {
+      fd_lispenv oldp=env->parent;
+      env->parent=fd_make_env(module,oldp);
+      fd_incref(module);
+      fd_decref((fdtype)(oldp));}}
   else if (FD_ENVIRONMENTP(module)) {
     fd_lispenv expenv=
       FD_GET_CONS(module,fd_environment_type,fd_environment);
