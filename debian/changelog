@@ -1,3 +1,9 @@
+framerd (3.7.1-12) unstable; urgency=low
+
+  * Get USE-MODULE to work with slotmap arguments
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 16 Jan 2015 22:18:35 -0500
+
 framerd (3.7.1-11) unstable; urgency=low
 
   * Extend GETCONTENT to allow a load function to be passed as the ENC argument
