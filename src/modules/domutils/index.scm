@@ -74,7 +74,8 @@
 			 (pick (choice (pick indexslots pair?)
 				       (pick eltinfo pair?))
 			       slots)
-			 (pick indexrules hashtable?))))
+			 (pick indexrules hashtable?)))
+		 (terminal #t))
 	    (debug%watch "DOM/INDEXER" (dom/sig xml) index xml parent
 			 indexval indexslots slot rules eltinfo)
 	    (when idmap (add! idmap (get xml 'id) xml))
@@ -83,6 +84,12 @@
 	    (add! index (cons 'parents parents) indexval)
 	    (when (exists? indexval)
 	      (add! index (cons '%doc doc) indexval)
+	      (if (fail? content)
+		  (add! index (cons '%type 'void) indexval)
+		  (if (null? content)
+		      (add! index (cons '%type 'empty) indexval)
+		      (if (every? string? content)
+			  (add! index (cons '%type 'terminal) indexval)))
 	      (do-choices (slotid (reject slots rules))
 		(add! index (cons slotid (get xml slotid)) indexval))
 	      (do-choices (slotid (pick slots rules))
@@ -95,15 +102,18 @@
 		  (when (overlaps? (car slot.val) cacheslots)
 		    (add! xml (car slot.val) (cdr slot.val)))
 		  (add! index (cons (car slot.val) (cdr slot.val))
-			indexval))))
+			indexval)))))
 	    (when (exists? content)
 	      (dolist (elt content)
-		(dom/indexer index elt
-			     (if (oid? xml) xml (get xml 'id))
-			     (choice (if (oid? xml) xml (get xml 'id))
-				     parents)
-			     indexslots cacheslots
-			     indexrules analyzers idmap
-			     settings doc))))))))
+		(unless (string? elt)
+		  (dom/indexer index elt
+			       (if (oid? xml) xml (get xml 'id))
+			       (choice (if (oid? xml) xml (get xml 'id))
+				       parents)
+			       indexslots cacheslots
+			       indexrules analyzers idmap
+			       settings doc)))))))))
+
+
 
 
