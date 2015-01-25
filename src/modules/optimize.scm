@@ -550,6 +550,28 @@
 		      (dotighten uwclause env bound lexrefs w/rails))
 		    (cddr expr))))
 
+(define (tighten-quasiquote handler expr env bound lexrefs w/rails)
+  `(,handler ,(tighten-quasiquote-node (cadr expr) env bound lexrefs w/rails)))
+(defambda (tighten-quasiquote-node expr env bound lexrefs w/rails)
+  (cond ((and (pair? expr) 
+	      (or (eq? (car expr) 'unquote)  (eq? (car expr) 'unquote*)))
+	 `(,(car expr) ,(dotighten (cadr expr) env bound lexrefs w/rails)))
+	((pair? expr)
+	 (forseq (elt expr)
+	   (tighten-quasiquote-node elt env bound lexrefs w/rails)))
+	((vector? expr)
+	 (forseq (elt expr)
+	   (tighten-quasiquote-node elt env bound lexrefs w/rails)))
+	((slotmap? expr)
+	 (let ((copy (frame-create #f))
+	       (slots (getkeys expr)))
+	   (do-choices (slot slots)
+	     (store! copy (tighten-quasiquote-node slot env bound lexrefs w/rails)
+		     (try (tighten-quasiquote-node (get expr slot) env bound lexrefs w/rails)
+			  (get expr slot))))
+	   copy))
+	(else expr)))
+
 (define (tighten-logmsg handler expr env bound lexrefs w/rails)
   (if (or (symbol? (cadr expr)) (number? (cadr expr)))
       (if (or (symbol? (caddr expr)) (number? (caddr expr)))
@@ -690,6 +712,12 @@
       {"ONERROR" "UNWIND-PROTECT" "DYNAMIC-WIND"}
       tighten-block)
 (add! special-form-tighteners {"FILEOUT" "SYSTEM"} tighten-block)
+
+(add! special-form-tighteners 
+      ({procedure-name (lambda (x) x) 
+	(lambda (x) (string->symbol (procedure-name x)))}
+       quasiquote)
+      tighten-quasiquote)
 
 (add! special-form-tighteners logmsg tighten-logmsg)
 (add! special-form-tighteners logif tighten-logif)

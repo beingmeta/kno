@@ -106,7 +106,7 @@
 		   text ,(stringout
 			   "The test " testid " on " url " has failed.\n"
 			   (when ex
-			     (if (error? x)
+			     (if (error? ex)
 				 (printout "The error was "
 				   (error-condition ex) " in "
 				   (error-context ex)
