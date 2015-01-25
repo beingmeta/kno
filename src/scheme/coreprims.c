@@ -256,6 +256,23 @@ static fdtype typeof_prim(fdtype x)
   else return fdtype_string("??");
 }
 
+#define GETSPECFORM(x) \
+  ((FD_PPTRP(x)) ? ((fd_special_form)(fd_pptr_ref(x))) : ((fd_special_form)x))
+static fdtype procedure_name(fdtype x)
+{
+  if (FD_APPLICABLEP(x)) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
+    if (f->name)
+      return fdtype_string(f->name);
+    else return FD_FALSE;}
+  else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
+    struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
+    if (sf->name)
+      return fdtype_string(sf->name);
+    else return FD_FALSE;}
+  else return fd_type_error(_("function"),"procedure_name",x);
+}
+
 /* Arithmetic */
 
 static fdtype plus_lexpr(int n,fdtype *args)
@@ -716,6 +733,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("MAKE-OPCODE",make_opcode,1,
                            fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("PROCEDURE-NAME",procedure_name,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("+",plus_lexpr,-1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("-",minus_lexpr,-1));
