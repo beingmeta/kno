@@ -89,7 +89,7 @@
 		  (if (null? content)
 		      (add! index (cons '%type 'empty) indexval)
 		      (if (every? string? content)
-			  (add! index (cons '%type 'terminal) indexval)))
+			  (add! index (cons '%type 'terminal) indexval))))
 	      (do-choices (slotid (reject slots rules))
 		(add! index (cons slotid (get xml slotid)) indexval))
 	      (do-choices (slotid (pick slots rules))
@@ -102,7 +102,7 @@
 		  (when (overlaps? (car slot.val) cacheslots)
 		    (add! xml (car slot.val) (cdr slot.val)))
 		  (add! index (cons (car slot.val) (cdr slot.val))
-			indexval)))))
+			indexval))))
 	    (when (exists? content)
 	      (dolist (elt content)
 		(unless (string? elt)
@@ -113,6 +113,7 @@
 			       indexslots cacheslots
 			       indexrules analyzers idmap
 			       settings doc)))))))))
+
 
 
 
