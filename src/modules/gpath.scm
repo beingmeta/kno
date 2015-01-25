@@ -427,7 +427,7 @@
 	   (and (exists? mf)
 		(if (memfile? mf)
 		    `#[content ,(memfile-content mf)
-		       ctype ,(or (memfile-ctype mf) default-ctype
+		       ctype ,(or (memfile-mimetype mf) default-ctype
 				  (guess-mimetype (get-namestring ref)))
 		       modified ,(memfile-modified mf)
 		       etag ,(memfile-hash mf)]
@@ -473,9 +473,7 @@
 			      (or (ctype->charset ctype) #t)))
 		(etag (tryif etag
 			(packet->base16 (md5 (zip/get zip realpath #t))))))
-	 `#[content ,(if (string? charset)
-			 (packet->string content charset)
-			 content)
+	 `#[path ,(gpath->string ref)
 	    ctype ,(or ctype {})
 	    charset ,(if (string? charset) charset (if charset "utf-8" {}))
 	    modified ,(tryif (bound? zip/modtime) (zip/modtime zip realpath))
@@ -483,7 +481,7 @@
 	((and (pair? ref) (hashtable? (car ref)) (string? (cdr ref)))
 	 (let ((mf (get (car ref) (cdr ref))))
 	   `#[path ,(gpath->string ref)
-	      ctype ,(try (tryif (memfile? mf) (memfile-ctype mf))
+	      ctype ,(try (tryif (memfile? mf) (memfile-mimetype mf))
 			  default-ctype)
 	      modified ,(tryif (memfile? mf)
 			  (memfile-modified (get (car ref) (cdr ref))))
