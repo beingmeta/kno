@@ -10402,7 +10402,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d etc/OSXStartupItem/FramerD etc/logrotate etc/fdserver.conf etc/framerd.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.6.spec dist/bmstack"
+ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d etc/OSXStartupItem/FramerD etc/logrotate etc/fdserver.conf etc/framerd.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.7.spec dist/bmstack"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -11120,7 +11120,7 @@ do
     "etc/fdserv.conf") CONFIG_FILES="$CONFIG_FILES etc/fdserv.conf" ;;
     "etc/fdserv.load") CONFIG_FILES="$CONFIG_FILES etc/fdserv.load" ;;
     "etc/install-script") CONFIG_FILES="$CONFIG_FILES etc/install-script" ;;
-    "dist/framerd-3.6.spec") CONFIG_FILES="$CONFIG_FILES dist/framerd-3.6.spec" ;;
+    "dist/framerd-3.7.spec") CONFIG_FILES="$CONFIG_FILES dist/framerd-3.7.spec" ;;
     "dist/bmstack") CONFIG_FILES="$CONFIG_FILES dist/bmstack" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
