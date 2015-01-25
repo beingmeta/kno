@@ -675,12 +675,17 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg,
 
 static fdtype read_prim(fdtype port)
 {
-  U8_INPUT *in=get_input_port(port);
-  if (in) {
-    int c=fd_skip_whitespace(in);
-    if (c<0) return FD_EOF;
-    else return fd_parser(in);}
-  else return fd_type_error(_("input port"),"read_prim",port);
+  if (FD_STRINGP(port)) {
+    struct U8_INPUT in;
+    U8_INIT_STRING_INPUT(&in,FD_STRLEN(port),FD_STRDATA(port));
+    return fd_parser(&in);}
+  else {
+    U8_INPUT *in=get_input_port(port);
+    if (in) {
+      int c=fd_skip_whitespace(in);
+      if (c<0) return FD_EOF;
+      else return fd_parser(in);}
+    else return fd_type_error(_("input port"),"read_prim",port);}
 }
 
 static int find_substring(u8_string string,fdtype strings,int *lenp)
