@@ -253,7 +253,7 @@
 	  (when saveslot (dom/set! node saveslot (get node 'src)))
 	  (unless (test node 'data-origin) (dom/set! node 'data-origin (get node 'src)))
 	  (dom/set! node 'src ref)
-	  (message "Got converted node is: \n"  (pprint node)))))
+	  (loginfo |Localize| "New converted node: \n"  (pprint node)))))
     ;; Convert url() references in stylesheets
     (loginfo |Localize| "Localizing stylesheet links")
     (do-choices (node (pick (pick (dom/find head "link") 'rel "stylesheet")
