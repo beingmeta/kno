@@ -158,10 +158,10 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
 
 static fdtype doseq_handler(fdtype expr,fd_lispenv env)
 {
-  int i=0, lim;
+  int i=0, lim, ispair=0;
   fdtype seq, count_var=FD_VOID, *iterval=NULL;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
-  fdtype vars[2], vals[2];
+  fdtype vars[2], vals[2], pairscan=FD_VOID;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -172,6 +172,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
   if (lim==0) {
     fd_decref(seq);
     return FD_VOID;}
+  if (FD_PAIRP(seq)) {ispair=1; pairscan=seq;}
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
@@ -185,7 +186,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
     bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
-    fdtype elt=fd_seq_elt(seq,i);
+    fdtype elt=(ispair)?(FD_CAR(pairscan)):(fd_seq_elt(seq,i));
     vals[0]=elt;
     if (iterval) *iterval=FD_INT2DTYPE(i);
     {FD_DOBODY(subexpr,expr,2) {
@@ -210,6 +211,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
       fd_recycle_environment(envstruct.copy);
       envstruct.copy=NULL;}
     fd_decref(vals[0]);
+    if (ispair) pairscan=FD_CDR(pairscan);
     i++;}
   fd_decref(seq);
   fd_destroy_rwlock(&(bindings.rwlock));
@@ -220,10 +222,10 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
 
 static fdtype forseq_handler(fdtype expr,fd_lispenv env)
 {
-  int i=0, lim;
+  int i=0, lim, ispair=0;
   fdtype seq, count_var=FD_VOID, *iterval=NULL, *results, result;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
-  fdtype vars[2], vals[2];
+  fdtype vars[2], vals[2], pairscan=FD_VOID;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -234,6 +236,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
   else lim=fd_seq_length(seq);
   if (lim==0) return fd_incref(seq);
   else results=u8_alloc_n(lim,fdtype);
+  if (FD_PAIRP(seq)) {ispair=1; pairscan=seq;}
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
@@ -247,7 +250,8 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
     bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
-    fdtype elt=fd_seq_elt(seq,i), val=FD_VOID;
+    fdtype elt=(ispair)?(FD_CAR(pairscan)):(fd_seq_elt(seq,i));
+    fdtype val=FD_VOID;
     vals[0]=elt;
     if (iterval) *iterval=FD_INT2DTYPE(i);
     {FD_DOBODY(subexpr,expr,2) {
@@ -272,6 +276,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
       envstruct.copy=NULL;}
     fd_decref(vals[0]);
     results[i]=val;
+    if (ispair) pairscan=FD_CDR(pairscan);
     i++;}
   fd_destroy_rwlock(&(bindings.rwlock));
   result=fd_makeseq(FD_PTR_TYPE(seq),lim,results);
@@ -285,11 +290,11 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
 
 static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
 {
-  int i=0, lim;
+  int i=0, lim, ispair=0;
   fdtype seq, count_var=FD_VOID, *iterval=NULL;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
   fdtype val=FD_EMPTY_CHOICE;
-  fdtype vars[2], vals[2];
+  fdtype vars[2], vals[2], pairscan=FD_VOID;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTP(var)) return var;
@@ -300,6 +305,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
   if (lim==0) {
     fd_decref(seq);
     return FD_EMPTY_CHOICE;}
+  if (FD_PAIRP(seq)) {ispair=1; pairscan=seq;}
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
@@ -313,7 +319,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
     bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
-    fdtype elt=fd_seq_elt(seq,i);
+    fdtype elt=(ispair)?(FD_CAR(pairscan)):(fd_seq_elt(seq,i));
     if (envstruct.copy) {
       fd_set_value(var,elt,envstruct.copy);
       if (iterval)
@@ -342,7 +348,9 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
       fd_recycle_environment(envstruct.copy);
       envstruct.copy=NULL;}
     fd_decref(vals[0]);
-    if (FD_EMPTY_CHOICEP(val)) i++;
+    if (FD_EMPTY_CHOICEP(val)) {
+      if (ispair) pairscan=FD_CDR(pairscan);
+      i++;}
     else break;}
   fd_decref(seq);
   fd_destroy_rwlock(&(bindings.rwlock));
