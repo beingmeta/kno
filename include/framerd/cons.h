@@ -380,6 +380,32 @@ FD_EXPORT fdtype fd_make_nrail(int len,...);
 
 #define FD_XRAIL(x) (FD_GET_CONS(x,fd_rail_type,struct FD_VECTOR *))
 
+/* Generic-ish iteration macro */
+
+#define FD_DOELTS(evar,seq,counter)              \
+  fdtype _seq=seq, evar=FD_VOID, counter=0;      \
+  fdtype _scan=FD_VOID, *_elts;                  \
+  int _i=0, _islist=0, _lim=0, _ok=0;            \
+  if (FD_PAIRP(seq)) {                           \
+     _islist=1; _scan=_seq; _ok=1;}              \
+  else if ((FD_VECTORP(_seq))||                  \
+           (FD_RAILP(_seq))) {			 \
+    _lim=FD_VECTOR_LENGTH(_seq);                 \
+    _elts=FD_VECTOR_DATA(_seq);                  \
+    _ok=1;}                                      \
+  else if ((FD_EMPTY_LISTP(_seq))||              \
+           (FD_EMPTY_CHOICEP(_seq))) {           \
+    _ok=-1;}                                     \
+  else u8_log(LOG_WARN,fd_TypeError,             \
+              "Not a pair or vector: %q",_seq);  \
+  if (_ok<0) {}                                  \
+  else if (!(_ok)) {}                            \
+  else while (((_islist)?(FD_PAIRP(_scan)):(counter<_lim))? \
+	      (evar=(_islist)?(FD_CAR(_scan)):(_elts[_i]),  \
+	       _scan=((_islist)?(FD_CDR(_scan)):(FD_VOID)), \
+	       counter=_i++,1):				    \
+	      (0))
+
 /* Compounds */
 
 typedef struct FD_COMPOUND {

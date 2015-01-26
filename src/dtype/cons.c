@@ -1327,6 +1327,16 @@ static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_entry MU e)
                      x);
 }
 
+/* Testing */
+
+static int some_false(fdtype arg)
+{
+  int some_false=0;
+  FD_DOELTS(elt,arg,count) {
+    if (FD_FALSEP(elt)) some_false=1;}
+  return some_false;
+}
+
 
 /* Initialization */
 
