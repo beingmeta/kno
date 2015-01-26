@@ -47,8 +47,8 @@
 (defambda (dom/indexer index xml parent parents
 		       indexslots cacheslots indexrules
 		       analyzers idmap settings doc)
-  (if (pair? xml)
-      (dolist (elt xml)
+  (if (or (pair? xml) (vector? xml))
+      (doseq (elt xml)
 	(dom/indexer index elt parent parents
 		     indexslots cacheslots
 		     indexrules analyzers idmap
@@ -97,7 +97,7 @@
 		  (add! index (cons (car slot.val) (cdr slot.val))
 			indexval))))
 	    (when (exists? content)
-	      (dolist (elt content)
+	      (doseq (elt content)
 		(dom/indexer index elt
 			     (if (oid? xml) xml (get xml 'id))
 			     (choice (if (oid? xml) xml (get xml 'id))
