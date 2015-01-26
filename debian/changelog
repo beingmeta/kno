@@ -1,3 +1,13 @@
+framerd (3.7.2-14) unstable; urgency=low
+
+  * Made DOM operations handle both list and vector contents
+  * Fix bugs in DOM cleanup code which broke tables
+  * Add indexing of DOM node types (void/empty/terminal)
+  * Fix bug in doseq/forseq/tryseq iteration over lists
+  * Remove some leftover debug messages
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 26 Jan 2015 17:03:08 -0500
+
 framerd (3.7.2-13) unstable; urgency=low
 
   * Move procedure-name into coreprims
