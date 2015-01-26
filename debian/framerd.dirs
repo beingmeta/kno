@@ -1,5 +1,6 @@
 usr/share
 usr/share/framerd
+usr/share/framerd/data
 usr/share/framerd/standard_modules
 usr/share/framerd/standard_modules/brico
 usr/share/framerd/standard_modules/bugjar

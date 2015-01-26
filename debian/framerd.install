@@ -10,6 +10,7 @@ usr/lib/libtagger.so*
 usr/lib/framerd/regex.so*
 usr/lib/framerd/crypto.so*
 usr/lib/framerd/ziptools.so*
+usr/lib/framerd/hyphenate.so*
 usr/lib/framerd/zlib.so*
 usr/bin/fdconsole
 usr/bin/fdexec
@@ -27,6 +28,7 @@ usr/bin/fdgetconfig
 usr/bin/fdsetconfig
 usr/bin/fdconfig
 usr/etc/framerd/servers
+usr/share/framerd/data/hyph_en_US.dic
 usr/share/framerd/standard_modules/*.scm
 usr/share/framerd/standard_modules/safe/*.scm
 usr/share/framerd/standard_modules/safe/xhtml/*.scm

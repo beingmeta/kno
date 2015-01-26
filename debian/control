@@ -2,13 +2,13 @@ Source: framerd
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benfiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, sqlite3, apache2-threaded-dev, libmysqlclient-dev, libcurl4-openssl-dev,libexif-dev,libtidy-dev,libzip-dev,libqrencode-dev,libu8-dev
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, sqlite3, apache2-threaded-dev, libmysqlclient-dev, libcurl4-openssl-dev,libexif-dev,libtidy-dev,libzip-dev,libqrencode-dev,libu8-dev,libhyphen-dev
 Standards-Version: 3.9.4
 Homepage: http://www.framerd.org/
 
 Package: framerd
 Architecture: any
-Depends: ${misc:Depends}, libu8, libzip2, libssl1.0.0, libcurl3
+Depends: ${misc:Depends}, libu8, libzip2, libssl1.0.0, libcurl3, libhyphen0
 Description: Scalable knowledge base development and application platform
  FramerD provides a robust and scalable object database especially
  designed and optimized for pointer-intensive semi-structured data with
@@ -48,6 +48,12 @@ Depends: framerd (= ${binary:Version}), libexif12, libmagickwand5, libqrencode3
 Description: Image tools for FramerD
   Bindings to various image libraries modules for FramerD,
   including ImageMagick, QRCode generation, and EXIF extraction.
+
+Package: framerd-elisp
+Architecture: any
+Depends: framerd (= ${binary:Version}), emacsen
+Description: Emacs fdconsole library 
+  Defines M-x fdconsole together various scheme indent rules
 
 Package: framerd-sundown
 Architecture: any
