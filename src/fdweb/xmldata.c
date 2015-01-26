@@ -43,10 +43,10 @@ static void xmlget_helper(fdtype *result,fdtype doc,fdtype eltid,int cons)
       fdtype content=fd_get(doc,content_slotid,FD_EMPTY_CHOICE);
       xmlget_helper(result,content,eltid,cons);
       fd_decref(content);}
-  else if (FD_PAIRP(doc)) {
-    FD_DOLIST(elt,doc)
+  else if ((FD_PAIRP(doc))||(FD_VECTORP(doc))) {
+    FD_DOELTS(elt,doc,count) {
       if (FD_STRINGP(elt)) {}
-      else xmlget_helper(result,elt,eltid,cons);}
+      else xmlget_helper(result,elt,eltid,cons);}}
   else return;
 }
 
@@ -91,10 +91,11 @@ static fdtype xmlget_first(fdtype doc,fdtype attrib_id)
     return FD_EMPTY_CHOICE;
   else {
     fdtype last_result=FD_VOID;
-    FD_DOLIST(elt,results) {last_result=elt;}
+    FD_DOELTS(elt,results,count) {last_result=elt;}
     fd_incref(last_result);
     fd_decref(results);
-    return last_result;}
+    if (FD_VOIDP(last_result)) return FD_EMPTY_CHOICE;
+    else return last_result;}
 }
 
 /* This returns the content field as parsed. */
@@ -112,9 +113,9 @@ static fdtype xmlcontents(fdtype doc,fdtype attrib_id)
     else if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc)))
       return fd_get(doc,content_slotid,FD_EMPTY_LIST);
     else return fd_type_error("XML node","xmlcontents",doc);
-  else if (FD_PAIRP(doc)) {
+  else if ((FD_PAIRP(doc))||(FD_VECTORP(doc))) {
     fdtype results=FD_EMPTY_CHOICE;
-    FD_DOLIST(docelt,doc) {
+    FD_DOELTS(docelt,doc,count) {
       fdtype contents=xmlcontents(docelt,attrib_id);
       if (!(FD_EMPTY_LISTP(contents))) {
         FD_ADD_TO_CHOICE(results,contents);}}
@@ -135,7 +136,9 @@ static fdtype xmlemptyp(fdtype elt,fdtype attribid)
   else {
     fdtype content=fd_get(elt,attribid,FD_EMPTY_LIST);
     if ((FD_EMPTY_LISTP(content)) ||
-        (FD_EMPTY_CHOICEP(content)))
+        (FD_EMPTY_CHOICEP(content))||
+        ((FD_VECTORP(content))&&
+         (FD_VECTOR_LENGTH(content)==0)))
       return FD_TRUE;
     else {
       fd_decref(content);
@@ -154,14 +157,14 @@ static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
   else if (FD_VOIDP(attrib_id))
     if (FD_EMPTY_LISTP(doc)) return fd_init_string(NULL,0,u8_strdup(""));
     else if (FD_STRINGP(doc)) return fd_incref(doc);
-    else if (FD_PAIRP(doc)) {
+    else if ((FD_PAIRP(doc))||(FD_VECTORP(doc))) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
-      {FD_DOLIST(docelt,doc)
-         if (FD_STRINGP(docelt))
-           u8_putn(&out,FD_STRDATA(docelt),FD_STRLEN(docelt));
-         else if ((FD_OIDP(docelt)) || (FD_SLOTMAPP(docelt)))
-           fd_unparse_xml(&out,docelt,NULL);
-         else fd_unparse(&out,docelt);}
+      {FD_DOELTS(docelt,doc,count) {
+          if (FD_STRINGP(docelt))
+            u8_putn(&out,FD_STRDATA(docelt),FD_STRLEN(docelt));
+          else if ((FD_OIDP(docelt)) || (FD_SLOTMAPP(docelt)))
+            fd_unparse_xml(&out,docelt,NULL);
+          else fd_unparse(&out,docelt);}}
       return fd_stream2string(&out);}
     else if ((FD_OIDP(doc)) || (FD_SLOTMAPP(doc))) {
       fdtype content=fd_get(doc,content_slotid,FD_EMPTY_LIST);
@@ -169,9 +172,9 @@ static fdtype xmlcontent(fdtype doc,fdtype attrib_id)
       fd_decref(content);
       return as_string;}
     else return fd_type_error("XML node","xmlcontent",doc);
-  else if (FD_PAIRP(doc)) {
+  else if ((FD_PAIRP(doc))||(FD_VECTORP(doc))) {
     fdtype results=FD_EMPTY_CHOICE;
-    FD_DOLIST(docelt,doc) {
+    FD_DOELTS(docelt,doc,count) {
       fdtype contents=xmlcontent(docelt,attrib_id);
       if (!(FD_EMPTY_LISTP(contents))) {
         FD_ADD_TO_CHOICE(results,contents);}}

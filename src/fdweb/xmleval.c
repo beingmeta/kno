@@ -224,7 +224,7 @@ fdtype fd_xml_get(fdtype xml,fdtype slotid)
 {
   fdtype results=fd_get(xml,slotid,FD_EMPTY_CHOICE);
   fdtype content=fd_get(xml,content_slotid,FD_VOID);
-  FD_DOLIST(item,content)
+  FD_DOELTS(item,content,count)
     if ((FD_TABLEP(item)) && (fd_test(item,elt_name,slotid))) {
       fd_incref(item); FD_ADD_TO_CHOICE(results,item);}
   fd_decref(content);
@@ -402,8 +402,8 @@ fdtype fd_xmlout(u8_output out,fdtype xml,
         fd_decref(content);
         return FD_FALSE;}
       u8_puts(out,"<!--");
-      FD_DOLIST(elt,content) {
-        if (FD_STRINGP(elt)) entify(out,FD_STRDATA(elt),FD_STRLEN(elt));}
+      {FD_DOELTS(elt,content,count) {
+          if (FD_STRINGP(elt)) entify(out,FD_STRDATA(elt),FD_STRLEN(elt));}}
       u8_puts(out,"-->");
       fd_decref(content);
       return FD_VOID;}
@@ -413,8 +413,8 @@ fdtype fd_xmlout(u8_output out,fdtype xml,
         fd_decref(content);
         return FD_FALSE;}
       u8_puts(out,"<![CDATA[");
-      FD_DOLIST(elt,content) {
-        if (FD_STRINGP(elt)) u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));}
+      {FD_DOELTS(elt,content,count) {
+          if (FD_STRINGP(elt)) u8_putn(out,FD_STRDATA(elt),FD_STRLEN(elt));}}
       u8_puts(out,"]]>");
       fd_decref(content);
       return FD_VOID;}
@@ -439,7 +439,7 @@ fdtype fd_xmlout(u8_output out,fdtype xml,
       if (FD_STRINGP(markup))
         u8_printf(out,"<%s>",FD_STRDATA(markup));
       if (FD_PAIRP(content)) {
-        FD_DOLIST(item,content) {
+        FD_DOELTS(item,content,count) {
           fdtype result=FD_VOID;
           if (FD_STRINGP(item))
             u8_putn(out,FD_STRDATA(item),FD_STRLEN(item));
@@ -1056,7 +1056,7 @@ fdtype fd_xmlevalout(u8_output out,fdtype xml,
       ((FD_STRINGP(FD_CAR(xml))) || (FD_TABLEP(FD_CAR(xml))))) {
     /* This is the case where it's a node list */
     fdtype value=FD_VOID;
-    FD_DOLIST(elt,xml) {
+    FD_DOELTS(elt,xml,count) {
       if (FD_STRINGP(elt)) u8_puts(out,FD_STRDATA(elt));
       else {
         fd_decref(value);
@@ -1280,8 +1280,8 @@ static fdtype fdxml_if(fdtype expr,fd_lispenv env)
 static fdtype fdxml_alt(fdtype expr,fd_lispenv env)
 {
   fdtype content=fd_get(expr,content_slotid,FD_VOID);
-  if (FD_PAIRP(content)) {
-    FD_DOLIST(x,content) {
+  if ((FD_PAIRP(content))||(FD_VECTORP(content))) {
+    FD_DOELTS(x,content,count) {
       if (FD_STRINGP(x)) {}
       else if (fd_test(x,test_symbol,FD_VOID)) {
         fdtype test=fdxml_get(x,test_symbol,env);
@@ -1316,8 +1316,8 @@ static fdtype do_body(fdtype expr,fd_lispenv env)
 {
   u8_output out=u8_current_output;
   fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_VOID;
-  if (FD_PAIRP(body)) {
-    FD_DOLIST(elt,body) {
+  if ((FD_PAIRP(body))||(FD_VECTORP(body))) {
+    FD_DOELTS(elt,body,count) {
       fdtype value=fd_xmleval(out,elt,env);
       if (FD_ABORTP(value)) {
         fd_decref(body);
@@ -1343,8 +1343,8 @@ static fdtype fdxml_try(fdtype expr,fd_lispenv env)
 {
   u8_output out=u8_current_output;
   fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_EMPTY_CHOICE;
-  if (FD_PAIRP(body)) {
-    FD_DOLIST(elt,body)
+  if ((FD_PAIRP(body))||(FD_VECTORP(body))) {
+    FD_DOELTS(elt,body,count) {
       if (FD_STRINGP(elt)) {}
       else {
         fdtype value=fd_xmleval(out,elt,env);
@@ -1354,7 +1354,7 @@ static fdtype fdxml_try(fdtype expr,fd_lispenv env)
           return value;}
         else {
           fd_decref(body);
-          return value;}}}
+          return value;}}}}
   fd_decref(body);
   return result;
 }
@@ -1363,8 +1363,8 @@ static fdtype fdxml_union(fdtype expr,fd_lispenv env)
 {
   u8_output out=u8_current_output;
   fdtype body=fd_get(expr,content_slotid,FD_VOID), result=FD_EMPTY_CHOICE;
-  if (FD_PAIRP(body)) {
-    FD_DOLIST(elt,body)
+  if ((FD_PAIRP(body))||(FD_VECTORP(body))) {
+    FD_DOELTS(elt,body,count) {
       if (FD_STRINGP(elt)) {}
       else {
         fdtype value=fd_xmleval(out,elt,env);
@@ -1374,7 +1374,7 @@ static fdtype fdxml_union(fdtype expr,fd_lispenv env)
           return value;}
         else {
           fd_decref(body);
-          FD_ADD_TO_CHOICE(result,value);}}}
+          FD_ADD_TO_CHOICE(result,value);}}}}
   fd_decref(body);
   return result;
 }
@@ -1385,10 +1385,14 @@ static fdtype fdxml_intersection(fdtype expr,fd_lispenv env)
   fdtype body=fd_get(expr,content_slotid,FD_VOID);
   int len=0, n=0, i=0;
   fdtype _v[16], *v, result=FD_EMPTY_CHOICE;
-  {FD_DOLIST(elt,body) {(void)elt; len++;}}
-  if (len<16) v=_v; else v=u8_alloc_n(len,fdtype);
   if (FD_PAIRP(body)) {
-    FD_DOLIST(elt,body)
+    FD_DOLIST(elt,body) {(void)elt; len++;}}
+  else if (FD_VECTORP(body))
+    len=FD_VECTOR_LENGTH(body);
+  else return FD_ERROR_VALUE;
+  if (len<16) v=_v; else v=u8_alloc_n(len,fdtype);
+  if ((FD_PAIRP(body))||(FD_VECTORP(body))) {
+    FD_DOELTS(elt,body,count) {
       if (FD_STRINGP(elt)) {}
       else {
         fdtype value=fd_xmleval(out,elt,env);
@@ -1397,7 +1401,7 @@ static fdtype fdxml_intersection(fdtype expr,fd_lispenv env)
           if (v!=_v) u8_free(v);
           return result;}
         else {
-          v[n++]=value;}}}
+          v[n++]=value;}}}}
   result=fd_intersection(v,n);
   while (i<n) {fd_decref(v[i]); i++;}
   if (v!=_v) u8_free(v);
@@ -1428,8 +1432,8 @@ static fdtype fdxml_binding(fdtype expr,fd_lispenv env)
     fd_bind_value(attrib,val,inner_env);
     fd_decref(val);}}
   fd_decref(attribs);
-  if (FD_PAIRP(body)) {
-    FD_DOLIST(elt,body)
+  if ((FD_PAIRP(body))||(FD_VECTORP(body))) {
+    FD_DOELTS(elt,body,counter) {
       if (FD_STRINGP(elt))
         entify(out,FD_STRDATA(elt),FD_STRLEN(elt));
       else {
@@ -1438,7 +1442,7 @@ static fdtype fdxml_binding(fdtype expr,fd_lispenv env)
           fd_recycle_environment(inner_env);
           fd_decref(result);
           return value;}
-        else {fd_decref(result); result=value;}}}
+        else {fd_decref(result); result=value;}}}}
   fd_recycle_environment(inner_env);
   fd_decref(body);
   return result;
@@ -1548,7 +1552,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
     else {
       vals[0]=elt;
       if (iterval) *iterval=FD_INT2DTYPE(i);}
-    {FD_DOLIST(expr,body) {
+    {FD_DOELTS(expr,body,count) {
       fdtype val=fd_xmleval(out,expr,&envstruct);
       if (FD_ABORTP(val)) {
         fdtype errbind;
@@ -1608,7 +1612,7 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
       else {
         *vloc=elt;
         if (iloc) *iloc=FD_INT2DTYPE(i);}
-      {FD_DOLIST(expr,body) {
+      {FD_DOELTS(expr,body,count) {
         fdtype val=fd_xmleval(out,expr,&envstruct);
         if (FD_ABORTP(val)) {
           fdtype env;
@@ -1653,7 +1657,7 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
     if (envstruct.copy)
       fd_set_value(var,FD_INT2DTYPE(i),envstruct.copy);
     else vals[0]=FD_INT2DTYPE(i);
-    {FD_DOLIST(expr,body) {
+    {FD_DOELTS(expr,body,count) {
       fdtype val=fd_xmleval(out,expr,&envstruct);
       if (FD_ABORTP(val)) {
         fd_push_error_context(":FXMLRANGE",iterenv1(limit_val,var,FD_INT2DTYPE(i)));
@@ -1680,7 +1684,7 @@ static fdtype fdxml_find(fdtype expr,fd_lispenv env)
   fdtype *slotvals=u8_alloc_n(16,fdtype);
   fdtype content=fd_get(expr,content_slotid,FD_EMPTY_LIST);
   int i=0, n=0, lim=16;
-  FD_DOLIST(elt,content) {
+  FD_DOELTS(elt,content,count) {
     fdtype name=fd_get(elt,elt_name,FD_VOID);
     if (FD_EQ(name,with_symbol)) {
       fdtype slotid=fdxml_get(expr,slot_symbol,env);
@@ -1845,3 +1849,4 @@ FD_EXPORT void fd_init_xmleval_c()
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
+

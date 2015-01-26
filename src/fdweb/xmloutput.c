@@ -1868,48 +1868,48 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lispenv env)
       return fd_type_error(_("javascript function name"),
                            "output_javascript",head);
     else u8_printf(out,"%s(",FD_STRDATA(head));
-    FD_DOLIST(elt,body) {
-      fdtype val;
-      if (i>0) u8_putc(out,','); i++;
-      if (FD_NEED_EVALP(elt))
-        val=fd_eval(elt,env);
-      else val=fd_incref(elt);
-      if (FD_VOIDP(val)) {}
-      else if (FD_FIXNUMP(val))
-        u8_printf(out,"%d",FD_FIX2INT(val));
-      else if (FD_FLONUMP(val))
-        u8_printf(out,"%f",FD_FLONUM(val));
-      else if (FD_STRINGP(val)) {
-        u8_byte *scan=FD_STRDATA(val);
-        u8_putc(out,'"');
-        while (*scan) {
-          int c=u8_sgetc(&scan);
-          if (c=='"') {u8_putc(out,'\\'); u8_putc(out,'"');}
-          else u8_putc(out,c);}
-        u8_putc(out,'"');}
-      else if (FD_OIDP(val))
-        u8_printf(out,"\":@%x/%x\"",
-                  FD_OID_HI(FD_OID_ADDR(val)),
-                  FD_OID_LO(FD_OID_ADDR(val)));
-      else {
-        U8_OUTPUT tmp; u8_byte buf[128]; u8_byte *scan;
-        U8_INIT_STATIC_OUTPUT_BUF(tmp,128,buf);
-        tmp.u8_streaminfo=tmp.u8_streaminfo|U8_STREAM_TACITURN;
-        u8_puts(out,"\":");
-        fd_unparse(&tmp,val);
-        scan=tmp.u8_outbuf; while (scan<tmp.u8_outptr) {
-          int c=u8_sgetc(&scan);
-          if (c<0) break;
-          else if (c=='\\') {
-            c=u8_sgetc(&scan);
-            if (c<0) {u8_putc(out,'\\'); break;}
-            else {u8_putc(out,'\\'); u8_putc(out,c);}}
-          else if (c=='"') {
-            u8_putc(out,'\\'); u8_putc(out,c);}
-          else u8_putc(out,c);}
-        if (tmp.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmp.u8_outbuf);
-        u8_puts(out,"\"");}
-      fd_decref(val);}
+    {FD_DOELTS(elt,body,count) {
+        fdtype val;
+        if (i>0) u8_putc(out,','); i++;
+        if (FD_NEED_EVALP(elt))
+          val=fd_eval(elt,env);
+        else val=fd_incref(elt);
+        if (FD_VOIDP(val)) {}
+        else if (FD_FIXNUMP(val))
+          u8_printf(out,"%d",FD_FIX2INT(val));
+        else if (FD_FLONUMP(val))
+          u8_printf(out,"%f",FD_FLONUM(val));
+        else if (FD_STRINGP(val)) {
+          u8_byte *scan=FD_STRDATA(val);
+          u8_putc(out,'"');
+          while (*scan) {
+            int c=u8_sgetc(&scan);
+            if (c=='"') {u8_putc(out,'\\'); u8_putc(out,'"');}
+            else u8_putc(out,c);}
+          u8_putc(out,'"');}
+        else if (FD_OIDP(val))
+          u8_printf(out,"\":@%x/%x\"",
+                    FD_OID_HI(FD_OID_ADDR(val)),
+                    FD_OID_LO(FD_OID_ADDR(val)));
+        else {
+          U8_OUTPUT tmp; u8_byte buf[128]; u8_byte *scan;
+          U8_INIT_STATIC_OUTPUT_BUF(tmp,128,buf);
+          tmp.u8_streaminfo=tmp.u8_streaminfo|U8_STREAM_TACITURN;
+          u8_puts(out,"\":");
+          fd_unparse(&tmp,val);
+          scan=tmp.u8_outbuf; while (scan<tmp.u8_outptr) {
+            int c=u8_sgetc(&scan);
+            if (c<0) break;
+            else if (c=='\\') {
+              c=u8_sgetc(&scan);
+              if (c<0) {u8_putc(out,'\\'); break;}
+              else {u8_putc(out,'\\'); u8_putc(out,c);}}
+            else if (c=='"') {
+              u8_putc(out,'\\'); u8_putc(out,c);}
+            else u8_putc(out,c);}
+          if (tmp.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmp.u8_outbuf);
+          u8_puts(out,"\"");}
+        fd_decref(val);}}
     u8_putc(out,')');
     fd_decref(head);
     return FD_VOID;}
