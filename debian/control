@@ -49,12 +49,6 @@ Description: Image tools for FramerD
   Bindings to various image libraries modules for FramerD,
   including ImageMagick, QRCode generation, and EXIF extraction.
 
-Package: framerd-emacs
-Architecture: any
-Depends: framerd (= ${binary:Version}), emacsen
-Description: Emacs fdconsole library 
-  Defines M-x fdconsole together various scheme indent rules
-
 Package: framerd-sundown
 Architecture: any
 Depends: framerd (= ${binary:Version})
