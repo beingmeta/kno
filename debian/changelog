@@ -1,3 +1,9 @@
+framerd (3.7.2-15) unstable; urgency=low
+
+  * Update elisp installation
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 26 Jan 2015 19:20:07 -0500
+
 framerd (3.7.2-14) unstable; urgency=low
 
   * Made DOM operations handle both list and vector contents
