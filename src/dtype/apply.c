@@ -503,9 +503,19 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
         if (f->arity<=8) args=argbuf;
         else args=u8_alloc_n((f->arity),fdtype);
         while (i<n) {
-          args[i]=argvec[i]; i++;}
+          fdtype a=argvec[i];
+          if (a==FD_DEFAULT_VALUE) {
+            fdtype d=((defaults)?(defaults[i]):(FD_VOID));
+            if (FD_VOIDP(d)) args[i]=a;
+            else {
+              fd_incref(d); args[i]=d;}}
+          else args[i]=a;
+          i++;}
         if (defaults)
-          while (i<f->arity) {args[i]=defaults[i]; i++;}
+          while (i<f->arity) {
+            fdtype d=defaults[i];
+            args[i]=d; fd_incref(d);
+            i++;}
         else while (i<f->arity) {args[i]=FD_VOID; i++;}}
       else args=argvec;
       /* Check typeinfo */

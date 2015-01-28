@@ -390,6 +390,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 {
   fdtype _vals[6], *vals=_vals, lexpr_arg=FD_EMPTY_LIST, result=FD_VOID;
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
+  int n_vars=fn->n_vars;
   /* We're optimizing to avoid GC (and thread contention) for the
      simple case where the arguments exactly match the argument list.
      Essentially, we use the args vector as the values vector of
@@ -400,23 +401,16 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   bindings.schema=fn->schema;
-  bindings.size=fn->n_vars;
+  bindings.size=n_vars;
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   fd_init_rwlock(&(bindings.rwlock));
   envstruct.bindings=FDTYPE_CONS(&bindings);
   envstruct.exports=FD_VOID;
   envstruct.parent=fn->env; envstruct.copy=NULL;
-  if (fn->n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
+  if (n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
   bindings.values=vals;
   if (fn->arity>0) {
-    if (n==fn->n_vars) {
-      int i=0; while (i<n) {
-        fdtype val=args[i];
-        if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
-          vals[i]=fd_incref(val);
-        else vals[i]=val;
-        i++;}}
-    else if (n<fn->min_arity)
+    if (n<fn->min_arity)
       return fd_err(fd_TooFewArgs,fn->name,NULL,FD_VOID);
     else if (n>fn->arity)
       return fd_err(fd_TooManyArgs,fn->name,NULL,FD_VOID);
@@ -427,7 +421,12 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
         FD_DOLIST(arg,fn->arglist)
           if (i<n) {
             fdtype val=args[i];
-            if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+            if ((val==FD_DEFAULT_VALUE)&&(FD_PAIRP(arg))&&
+                (FD_PAIRP(FD_CDR(arg)))) {
+              fdtype default_expr=FD_CADR(arg);
+              fdtype default_value=fd_eval(default_expr,fn->env);
+              vals[i]=default_value;}
+            else if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
               vals[i]=fd_incref(val);
             else vals[i]=val;
             i++;}
@@ -440,18 +439,21 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
       else if (FD_RAILP(fn->arglist)) {
         struct FD_VECTOR *v=FD_GET_CONS(fn->arglist,fd_rail_type,fd_vector);
         int len=v->length; fdtype *dflts=v->data;
-        if (i<n) {
-          fdtype val=args[i];
-          if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+        while (i<len) {
+          if (i<n) {
+            fdtype val=args[i];
+            if ((val==FD_DEFAULT_VALUE)&&(dflts))  {
+              fdtype default_expr=dflts[i];
+              fdtype default_value=fd_eval(default_expr,fn->env);
+              if (FD_VOIDP(default_value)) vals[i]=val;
+              else vals[i]=default_value;
+              i++;}
+          else if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
             vals[i]=fd_incref(val);
           else vals[i]=val;
-          i++;}
-        else if (i>=len) vals[i++]=FD_VOID;
-        else {
-          fdtype default_expr=dflts[i];
-          fdtype default_value=fd_eval(default_expr,fn->env);
-          vals[i]=default_value; i++;}}
+            i++;}}}
       else {}
+      while (i<n_vars) vals[i++]=FD_VOID;
       assert(i==fn->n_vars);}}
   else if (fn->arity==0) {}
   else { /* We have a lexpr */
@@ -459,10 +461,16 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     {FD_DOLIST(arg,fn->arglist)
        if (i<n) {
          fdtype val=args[i];
-          if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
-            vals[i]=fd_incref(val);
-          else vals[i]=val;
-          i++;}
+         if ((val==FD_DEFAULT_VALUE)&&(FD_PAIRP(arg))&&
+             (FD_PAIRP(FD_CDR(arg)))) {
+           /* This code handles argument defaults for sprocs */
+           fdtype default_expr=FD_CADR(arg);
+           fdtype default_value=fd_eval(default_expr,fn->env);
+           vals[i]=default_value; i++;}
+         else if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
+           vals[i]=fd_incref(val);
+         else vals[i]=val;
+         i++;}
        else if ((FD_PAIRP(arg)) && (FD_PAIRP(FD_CDR(arg)))) {
          /* This code handles argument defaults for sprocs */
          fdtype default_expr=FD_CADR(arg);
@@ -896,9 +904,8 @@ fdtype fd_xapply_sproc
           fd_decref(val);}
       if (vals!=_vals) u8_free(vals);
       return argval;}
-    else if ((FD_VOIDP(argval)) &&
-             (FD_PAIRP(argspec)) &&
-             (FD_PAIRP(FD_CDR(argspec)))) {
+    else if (((FD_VOIDP(argval))||(argval==FD_DEFAULT_VALUE)) &&
+             (FD_PAIRP(argspec)) && (FD_PAIRP(FD_CDR(argspec)))) {
       fdtype default_expr=FD_CADR(argspec);
       fdtype default_value=fd_eval(default_expr,fn->env);
       vals[i++]=default_value;}
