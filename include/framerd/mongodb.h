@@ -30,12 +30,15 @@ FD_EXPORT fdtype fd_bson2dtype(bson *);
 typedef struct FD_MONGO_POOL {
   FD_POOL_FIELDS;
   u8_mutex lock;
-  mongo conn;} FD_MONGO_POOL;
+  mongo conn;
+  mongo_client_t *conn;
+  mongo_collection_t *collection;} FD_MONGO_POOL;
 typedef struct FD_MONGO_POOL *fd_mongo_pool;
 
 typedef struct FD_MONGO_INDEX {
   FD_INDEX_FIELDS;
   u8_mutex lock;
-  mongo conn;} FD_MONGO_INDEX;
+  mongo_client_t *conn;
+  mongo_collection_t *collection;} FD_MONGO_INDEX;
 typedef struct FD_MONGO_INDEX *fd_mongo_index;
 
