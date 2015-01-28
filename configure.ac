@@ -135,6 +135,8 @@ BOOTSETUP="none"
 CFLAGS=" -DLIBU8_SOURCE -fno-strict-aliasing -g "
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
+MONGODB_CFLAGS=
+MONGODB_LDFLAGS=
 IMAGICK_CFLAGS=
 IMAGICK_LDFLAGS=
 LIBZIP_CFLAGS=
@@ -234,6 +236,8 @@ AC_SUBST(BOOTSETUP)
 AC_SUBST(INSTALLCMODULES)
 AC_SUBST(MYSQL_CFLAGS)
 AC_SUBST(MYSQL_LDFLAGS)
+AC_SUBST(MONGODB_CFLAGS)
+AC_SUBST(MONGODB_LDFLAGS)
 AC_SUBST(LIBZIP_CFLAGS)
 AC_SUBST(LIBZIP_LDFLAGS)
 AC_SUBST(IMAGICK_CFLAGS)
@@ -857,6 +861,13 @@ if test $pkg_config != "na"; then
    else
       with_ziptools_default=no;
    fi
+   if $pkg_config --exists libmongoc-1.0; then
+      MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags` 
+      MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs` 
+      with_mongodb_default=yes;
+   else
+      with_mongodb_default=no;
+   fi
 fi
 
 AC_ARG_WITH(mysql,--with[out]-mysql Use alternate mysql lib,,with_mysql=$with_mysql_default)
@@ -975,6 +986,12 @@ AC_ARG_WITH(imagick,--with-imagick Build and install imagemagick library,,with_i
 if test x$with_imagick = "xyes"; then
   CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
+fi
+
+AC_ARG_WITH(mongodb,--with-mongodb Build and install MongoDB library,,with_mongodb=$with_mongodb_default)
+if test x$with_mongodb = "xyes"; then
+  CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}"
 fi
 
 AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")

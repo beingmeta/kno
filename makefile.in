@@ -709,6 +709,19 @@ lib/framerd/mysql.dylib: src/cmodules/mysql.o
 		-o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(MYSQL)" $@
 
+src/cmodules/mongodb.o: src/cmodules/mongodb.c
+	@$(CC) @MONGODB_CFLAGS@ $(CFLAGS)  -o $@ -c $<
+	@$(MSG) CC "(MONGODB)" $@
+lib/framerd/mongodb.so: src/cmodules/mongodb.o ${MODULE_SO}
+	@$(MKSO) -Wl,--as-needed -L./ -L./lib \
+		-o $@ $< ${MODULE_SO} @MONGODB_LDFLAGS@ @LIBS@
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+	@$(MSG) MKSO "(MONGODB)" $@
+lib/framerd/mongodb.dylib: src/cmodules/mongodb.o
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		-o $@ src/cmodules/mongodb.o @MONGODB_LDFLAGS@
+	@$(MSG) MACLIBTOOL "(MONGODB)" $@
+
 src/cmodules/imagick.o: src/cmodules/imagick.c
 	@$(CC) @IMAGICK_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(IMAGICK)" $@
@@ -1058,6 +1071,8 @@ install-tidy: $(LIBINSTALLDIR)/framerd/tidy.@shared_suffix@ \
 	         $(LIBINSTALLDIR)/framerd/tidy.@vshared_suffix@
 install-imagick: $(LIBINSTALLDIR)/framerd/imagick.@shared_suffix@ \
 	         $(LIBINSTALLDIR)/framerd/imagick.@vshared_suffix@
+install-mongodb: $(LIBINSTALLDIR)/framerd/mongodb.@shared_suffix@ \
+	         $(LIBINSTALLDIR)/framerd/mongodb.@vshared_suffix@
 install-exif: $(LIBINSTALLDIR)/framerd/exif.@shared_suffix@ \
 	        $(LIBINSTALLDIR)/framerd/exif.@vshared_suffix@
 install-zlib: $(LIBINSTALLDIR)/framerd/zlib.@shared_suffix@ \

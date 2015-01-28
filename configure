@@ -673,6 +673,8 @@ IMAGICK_LDFLAGS
 IMAGICK_CFLAGS
 LIBZIP_LDFLAGS
 LIBZIP_CFLAGS
+MONGODB_LDFLAGS
+MONGODB_CFLAGS
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
 INSTALLCMODULES
@@ -839,6 +841,7 @@ with_odbc
 with_ziptools
 with_tidy
 with_imagick
+with_mongodb
 with_fileinfo
 with_tcmalloc
 with_perftools
@@ -1546,6 +1549,7 @@ Optional Packages:
 --with-ziptools Build and install ziptools
 --with-tidy Build and install tidy library
 --with-imagick Build and install imagemagick library
+--with-mongodb Build and install MongoDB library
 --without-fileinfo record fileinfo
 --without-tcmalloc Use the Google malloc library
 --without-google Use the Google perftools
@@ -2850,6 +2854,8 @@ BOOTSETUP="none"
 CFLAGS=" -DLIBU8_SOURCE -fno-strict-aliasing -g "
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
+MONGODB_CFLAGS=
+MONGODB_LDFLAGS=
 IMAGICK_CFLAGS=
 IMAGICK_LDFLAGS=
 LIBZIP_CFLAGS=
@@ -2897,6 +2903,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 
@@ -8178,6 +8186,13 @@ if test $pkg_config != "na"; then
    else
       with_ziptools_default=no;
    fi
+   if $pkg_config --exists libmongoc-1.0; then
+      MONGODB_CFLAGS=`$pkg_config libmongoc-1.0 --cflags`
+      MONGODB_LDFLAGS=`$pkg_config libmongoc-1.0 --libs`
+      with_mongodb_default=yes;
+   else
+      with_mongodb_default=no;
+   fi
 fi
 
 
@@ -8879,6 +8894,19 @@ fi
 if test x$with_imagick = "xyes"; then
   CMODULES="lib/framerd/imagick.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-imagick ${INSTALLCMODULES}"
+fi
+
+
+# Check whether --with-mongodb was given.
+if test "${with_mongodb+set}" = set; then :
+  withval=$with_mongodb;
+else
+  with_mongodb=$with_mongodb_default
+fi
+
+if test x$with_mongodb = "xyes"; then
+  CMODULES="lib/framerd/mongodb.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}"
 fi
 
 
