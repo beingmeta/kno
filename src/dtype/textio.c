@@ -90,13 +90,6 @@ FD_EXPORT int fd_skip_whitespace(u8_input s)
 
 /* Tables */
 
-static int n_const_names=20;
-static u8_string const_names[]={
-  "#?","#f","#t","{}","()","#eof","#eod","#eox",
-  "#baddtype","#badparse","#oom","#typeerror","#rangeerror",
-  "#error","#badptr","#throw","#exception_tag","#unbound","#neverseen",
-  "#lockholder","#dflt",NULL};
-
 static u8_string character_constant_names[]={
   "SPACE","NEWLINE","RETURN",
   "TAB","VTAB","VERTICALTAB",
@@ -366,8 +359,8 @@ int fd_unparse(u8_output out,fdtype x)
       else sprintf(buf,"#\\u%04x",c);
       return u8_puts(out,buf);}
     else if (itype == fd_constant_type)
-      if (data<n_const_names)
-        return u8_puts(out,const_names[data]);
+      if ((data<256)&&(fd_constant_names[data]))
+        return u8_puts(out,fd_constant_names[data]);
       else {
         char buf[24]; sprintf(buf,"#!%lx",(unsigned long)x);
         return u8_puts(out,buf);}
@@ -567,9 +560,14 @@ fdtype fd_parse_atom(u8_string start,int len)
             u8_strdup(start),FD_VOID);}
   else if (start[0]=='#') { /* It's a constant */
     int i=0; while (constant_names[i])
-      if (strcmp(start,constant_names[i]) == 0)
-        return constant_values[i];
-      else i++;
+               if (strcmp(start,constant_names[i]) == 0)
+                 return constant_values[i];
+               else i++;
+    i=0; while (i<256)
+           if ((fd_constant_names[i])&&
+               (strcasecmp(start,fd_constant_names[i])==0))
+             return FD_CONSTANT(i);
+           else i++;
     if (strchr("XxOoBbEeIiDd",start[1])) {
       fdtype result=_fd_parse_number(start,-1);
       if (!(FD_FALSEP(result))) return result;}

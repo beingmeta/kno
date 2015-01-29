@@ -40,7 +40,54 @@ fd_copy_fn fd_copiers[FD_TYPE_MAX];
 fd_hashfn fd_hashfns[FD_TYPE_MAX];
 fd_checkfn fd_immediate_checkfns[FD_MAX_IMMEDIATE_TYPES+4];
 
-FD_EXPORT int max_constant;
+#if FD_THREADS_ENABLED
+static u8_mutex constant_registry_lock;
+#endif
+int fd_max_constant=FD_MAX_BUILTIN_CONSTANT;
+
+unsigned char *fd_constant_names[]={
+  "#?","#f","#t","{}","()","#eof","#eod","#eox",
+  "#baddtype","badparse","#oom","#typeerror","#rangeerror",
+  "#error","#badptr","#throw","#exception_tag","#unbound",
+  "#neverseen","#lockholder","#default",        /* 21 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 30 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 100 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 200 */
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 250 */
+  NULL,NULL,NULL,NULL,NULL,NULL};
+
+FD_EXPORT
+fdtype fd_register_constant(u8_string name)
+{
+  int i=0;
+  u8_lock_mutex(&constant_registry_lock);
+  while (i<fd_max_constant) {
+    if (strcasecmp(name,fd_constant_names[i])==0)
+      return FD_CONSTANT(i);
+    else i++;}
+  fd_constant_names[fd_max_constant++]=name;
+  return FD_CONSTANT(i);
+}
+
 
 FD_EXPORT
 /* fd_check_immediate:
@@ -1352,6 +1399,7 @@ void fd_init_cons_c()
   u8_register_source_file(_FILEINFO);
 
 #if FD_THREADS_ENABLED
+  fd_init_mutex(&constant_registry_lock);
   fd_init_mutex(&compound_registry_lock);
   fd_init_mutex(&type_registry_lock);
 #endif
