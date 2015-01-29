@@ -35,7 +35,7 @@ static bool bson_append_keyval(bson_t *,fdtype,fdtype);
 static bool bson_append_dtype(bson_t *,const char *,int,fdtype);
 static fdtype idsym;
 
-/* Basic stuff */
+/* Consing MongoDB clients, collections, and cursors */
 
 static fdtype mongodb_open(fdtype arg)
 {
@@ -149,8 +149,102 @@ static int unparse_cursor(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
+static fdtype mongodb_insert(fdtype coll,fdtype obj)
+{
+  struct FD_MONGODB_COLLECTION *c=(struct FD_MONGODB_COLLECTION *)coll;
+  bson_error_t error;
+  bson_t *doc=fd_dtype2bson(obj);
+  if (mongoc_collection_insert
+      (c->collection,MONGOC_INSERT_NONE,doc,NULL,&error)) {
+    bson_destroy(doc);
+    return FD_TRUE;}
+  else {
+    bson_destroy(doc); fd_incref(obj);
+    fd_seterr(fd_MongoDB_Error,"mongodb_insert",
+              u8_mkstring("%s>%s>%s:%s",
+                          c->uri,c->dbname,c->name,
+                          error.message),
+              obj);
+    return FD_ERROR_VALUE;}
+}
+
+static fdtype mongodb_delete(fdtype coll,fdtype obj)
+{
+  struct FD_MONGODB_COLLECTION *c=(struct FD_MONGODB_COLLECTION *)coll;
+  bson_error_t error;
+  bson_t *doc=bson_new();
+  if (FD_TABLEP(obj)) {
+    fdtype id=fd_get(obj,idsym,FD_VOID);
+    if (FD_VOIDP(id))
+      return fd_err("No MongoDB _id","mongodb_delete",NULL,obj);
+    bson_append_dtype(doc,"_id",3,id);
+    fd_decref(id);}
+  else bson_append_dtype(doc,"_id",3,obj);
+  if (mongoc_collection_remove
+      (c->collection,MONGOC_DELETE_SINGLE_REMOVE,doc,NULL,&error)) {
+    bson_destroy(doc);
+    return FD_TRUE;}
+  else {
+    bson_destroy(doc); fd_incref(obj);
+    fd_seterr(fd_MongoDB_Error,"mongodb_delete",
+              u8_mkstring("%s>%s>%s:%s",
+                          c->uri,c->dbname,c->name,
+                          error.message),
+              obj);
+    return FD_ERROR_VALUE;}
+}
+
+static fdtype mongodb_update(fdtype coll,fdtype obj,fdtype id)
+{
+  struct FD_MONGODB_COLLECTION *c=(struct FD_MONGODB_COLLECTION *)coll;
+  bson_error_t error;
+  bson_t *query=bson_new(), *action;
+  if (FD_VOIDP(id)) {
+    if (FD_TABLEP(obj)) {
+      id=fd_get(obj,idsym,FD_VOID);
+      if (FD_VOIDP(id))
+        return fd_err("No MongoDB _id","mongodb_update",NULL,obj);}}
+  else fd_incref(id);
+  bson_append_dtype(query,"_id",3,id);
+  bson_append_dtype(action,"$set",4,obj);
+  if (mongoc_collection_update
+      (c->collection,MONGOC_UPDATE_NONE,query,action,NULL,&error)) {
+    bson_destroy(query); bson_destroy(action);
+    return FD_TRUE;}
+  else {
+    bson_destroy(query); bson_destroy(action); fd_incref(obj);
+    fd_seterr(fd_MongoDB_Error,"mongodb_delete",
+              u8_mkstring("%s>%s>%s(%q):%s",
+                          c->uri,c->dbname,c->name,id,
+                          error.message),
+              obj);
+    return FD_ERROR_VALUE;}
+}
+
+static fdtype mongodb_find(fdtype coll,fdtype query)
+{
+  struct FD_MONGODB_COLLECTION *fc=(struct FD_MONGODB_COLLECTION *)coll;
+  mongoc_collection_t *c=fc->collection;
+  fdtype results=FD_EMPTY_CHOICE;
+  bson_t *q=fd_dtype2bson(query);
+  const bson_t *doc;
+  mongoc_cursor_t *cursor;
+  bson_error_t error;
+  cursor=mongoc_collection_find(c,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
+  while (mongoc_cursor_next(cursor,&doc)) {
+    u8_string json=bson_as_json(doc,NULL);
+    fdtype r=fd_block_string(-1,json);
+    FD_ADD_TO_CHOICE(results,r);
+    bson_free(json);}
+  bson_destroy(q);
+  mongoc_cursor_destroy(cursor);
+  return results;
+}
+
+/* BSON functions */
+
 static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
-                                fdtype val)
+                              fdtype val)
 {
   bool ok=true;
   if (FD_CONSP(val)) {
@@ -300,98 +394,6 @@ FD_EXPORT bson_t *fd_dtype2bson(fdtype in)
   doc = bson_new ();
   fd_bson_write(doc,in);
   return doc;
-}
-
-static fdtype mongodb_insert(fdtype coll,fdtype obj)
-{
-  struct FD_MONGODB_COLLECTION *c=(struct FD_MONGODB_COLLECTION *)coll;
-  bson_error_t error;
-  bson_t *doc=fd_dtype2bson(obj);
-  if (mongoc_collection_insert
-      (c->collection,MONGOC_INSERT_NONE,doc,NULL,&error)) {
-    bson_destroy(doc);
-    return FD_TRUE;}
-  else {
-    bson_destroy(doc); fd_incref(obj);
-    fd_seterr(fd_MongoDB_Error,"mongodb_insert",
-              u8_mkstring("%s>%s>%s:%s",
-                          c->uri,c->dbname,c->name,
-                          error.message),
-              obj);
-    return FD_ERROR_VALUE;}
-}
-
-static fdtype mongodb_delete(fdtype coll,fdtype obj)
-{
-  struct FD_MONGODB_COLLECTION *c=(struct FD_MONGODB_COLLECTION *)coll;
-  bson_error_t error;
-  bson_t *doc=bson_new();
-  if (FD_TABLEP(obj)) {
-    fdtype id=fd_get(obj,idsym,FD_VOID);
-    if (FD_VOIDP(id))
-      return fd_err("No MongoDB _id","mongodb_delete",NULL,obj);
-    bson_append_dtype(doc,"_id",3,id);
-    fd_decref(id);}
-  else bson_append_dtype(doc,"_id",3,obj);
-  if (mongoc_collection_remove
-      (c->collection,MONGOC_DELETE_SINGLE_REMOVE,doc,NULL,&error)) {
-    bson_destroy(doc);
-    return FD_TRUE;}
-  else {
-    bson_destroy(doc); fd_incref(obj);
-    fd_seterr(fd_MongoDB_Error,"mongodb_delete",
-              u8_mkstring("%s>%s>%s:%s",
-                          c->uri,c->dbname,c->name,
-                          error.message),
-              obj);
-    return FD_ERROR_VALUE;}
-}
-
-static fdtype mongodb_update(fdtype coll,fdtype obj,fdtype id)
-{
-  struct FD_MONGODB_COLLECTION *c=(struct FD_MONGODB_COLLECTION *)coll;
-  bson_error_t error;
-  bson_t *query=bson_new(), *action;
-  if (FD_VOIDP(id)) {
-    if (FD_TABLEP(obj)) {
-      id=fd_get(obj,idsym,FD_VOID);
-      if (FD_VOIDP(id))
-        return fd_err("No MongoDB _id","mongodb_update",NULL,obj);}}
-  else fd_incref(id);
-  bson_append_dtype(query,"_id",3,id);
-  bson_append_dtype(action,"$set",4,obj);
-  if (mongoc_collection_update
-      (c->collection,MONGOC_UPDATE_NONE,query,action,NULL,&error)) {
-    bson_destroy(query); bson_destroy(action);
-    return FD_TRUE;}
-  else {
-    bson_destroy(query); bson_destroy(action); fd_incref(obj);
-    fd_seterr(fd_MongoDB_Error,"mongodb_delete",
-              u8_mkstring("%s>%s>%s(%q):%s",
-                          c->uri,c->dbname,c->name,id,
-                          error.message),
-              obj);
-    return FD_ERROR_VALUE;}
-}
-
-static fdtype mongodb_find(fdtype coll,fdtype query)
-{
-  struct FD_MONGODB_COLLECTION *fc=(struct FD_MONGODB_COLLECTION *)coll;
-  mongoc_collection_t *c=fc->collection;
-  fdtype results=FD_EMPTY_CHOICE;
-  bson_t *q=fd_dtype2bson(query);
-  const bson_t *doc;
-  mongoc_cursor_t *cursor;
-  bson_error_t error;
-  cursor=mongoc_collection_find(c,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
-  while (mongoc_cursor_next(cursor,&doc)) {
-    u8_string json=bson_as_json(doc,NULL);
-    fdtype r=fd_block_string(-1,json);
-    FD_ADD_TO_CHOICE(results,r);
-    bson_free(json);}
-  bson_destroy(q);
-  mongoc_cursor_destroy(cursor);
-  return results;
 }
 
 /* Initialization */
