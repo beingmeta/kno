@@ -1,14 +1,29 @@
-typedef struct FD_MONGODB {
+#include <bson.h>
+#include <mongoc.h>
+
+FD_EXPORT u8_condition fd_MongoDB_Error, fd_MongoDB_Warning;
+FD_EXPORT fd_ptr_type fd_mongo_client, fd_mongo_collection, fd_mongo_cursor;
+
+FD_EXPORT bson_t *fd_dtype2bson(fdtype in);
+
+typedef struct FD_MONGODB_CLIENT {
   FD_CONS_HEADER;
-  u8_mutex lock;
-  mongo conn; u8_string default_collection;
-  u8_string spec;} FD_MONGODB;
-typedef struct FD_MONGODB *fd_mongodb;
+  u8_string uri;
+  mongoc_client_t *client;} FD_MONGODB_CLIENT;
+typedef struct FD_MONGODB_CLIENT *fd_mongodb_client;
 
-FD_EXPORT fd_ptr_type fd_mongodb_type;
+typedef struct FD_MONGODB_COLLECTION {
+  FD_CONS_HEADER;
+  fdtype client; u8_string uri, dbname, name;
+  mongoc_collection_t *collection;} FD_MONGODB_COLLECTION;
+typedef struct FD_MONGODB_COLLECTION *fd_mongodb_collection;
 
-FD_EXPORT fdtype fd_mongodb_open(fdtype specs,fdtype opts);
-FD_EXPORT fdtype fd_mongodb_close(fdtype);
+typedef struct FD_MONGODB_CURSOR {
+  FD_CONS_HEADER;
+  fdtype collection, query;
+  bson_t *bsonquery;
+  mongoc_cursor_t *cursor;} FD_MONGODB_CURSOR;
+typedef struct FD_MONGODB_CURSOR *fd_mongodb_cursor;
 
 /*
   BSON -> DTYPE mapping
@@ -24,9 +39,10 @@ FD_EXPORT fdtype fd_mongodb_close(fdtype);
   
  */
 
-FD_EXPORT fdtype fd_dtype2bson(fdtype,bson *);
-FD_EXPORT fdtype fd_bson2dtype(bson *);
+FD_EXPORT bson_t *fd_dtype2bson(fdtype);
+FD_EXPORT fdtype fd_bson2dtype(bson_t *);
 
+#if 0
 typedef struct FD_MONGO_POOL {
   FD_POOL_FIELDS;
   u8_mutex lock;
@@ -42,3 +58,4 @@ typedef struct FD_MONGO_INDEX {
   mongo_collection_t *collection;} FD_MONGO_INDEX;
 typedef struct FD_MONGO_INDEX *fd_mongo_index;
 
+#endif

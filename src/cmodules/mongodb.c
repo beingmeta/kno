@@ -22,41 +22,18 @@
 #include <libu8/u8printf.h>
 #include <libu8/u8crypto.h>
 
-#include <bson.h>
-#include <mongoc.h>
+#include "framerd/mongodb.h"
 
 /* Initialization */
 
-static u8_condition fd_MongoDB_Error=_("MongoDB error");
-static u8_condition fd_MongoDB_Warning=_("MongoDB warning");
+u8_condition fd_MongoDB_Error=_("MongoDB error");
+u8_condition fd_MongoDB_Warning=_("MongoDB warning");
 
-FD_EXPORT fd_ptr_type fd_mongo_client, fd_mongo_collection, fd_mongo_cursor;
+fd_ptr_type fd_mongo_client, fd_mongo_collection, fd_mongo_cursor;
 
-FD_EXPORT bson_t *fd_dtype2bson(fdtype in);
 static bool bson_append_keyval(bson_t *,fdtype,fdtype);
 static bool bson_append_dtype(bson_t *,const char *,int,fdtype);
 static fdtype idsym;
-
-typedef struct FD_MONGODB_CLIENT {
-  FD_CONS_HEADER;
-  u8_string uri;
-  mongoc_client_t *client;} FD_MONGODB_CLIENT;
-typedef struct FD_MONGODB_CLIENT *fd_mongodb_client;
-
-typedef struct FD_MONGODB_COLLECTION {
-  FD_CONS_HEADER;
-  fdtype client; u8_string uri, dbname, name;
-  mongoc_collection_t *collection;} FD_MONGODB_COLLECTION;
-typedef struct FD_MONGODB_COLLECTION *fd_mongodb_collection;
-
-typedef struct FD_MONGODB_CURSOR {
-  FD_CONS_HEADER;
-  fdtype collection, query;
-  bson_t *bsonquery;
-  mongoc_cursor_t *cursor;} FD_MONGODB_CURSOR;
-typedef struct FD_MONGODB_CURSOR *fd_mongodb_cursor;
-
-static int mongodb_initialized=0;
 
 /* Basic stuff */
 
@@ -64,23 +41,23 @@ static fdtype mongodb_open(fdtype arg)
 {
   char *uri; mongoc_client_t *client;
   if (FD_STRINGP(arg))
-    uri=u8_strdup(FD_STRDATA(uri));
+    uri=u8_strdup(FD_STRDATA(arg));
   else if (FD_SYMBOLP(arg)) {
     fdtype conf_val=fd_config_get(FD_SYMBOL_NAME(arg));
     if (FD_VOIDP(conf_val))
-      return fd_type_error("MongoDB URI config","open_mongodb",arg);
+      return fd_type_error("MongoDB URI config","mongodb_open",arg);
     else if (FD_STRINGP(conf_val)) {
       uri=FD_STRDATA(conf_val); uri=u8_strdup(uri);
       fd_decref(conf_val);}
     else return fd_type_error("MongoDB URI config val",FD_SYMBOL_NAME(arg),conf_val);}
-  else return fd_type_error("MongoDB URI","open_mongodb",arg);
+  else return fd_type_error("MongoDB URI","mongodb_open",arg);
   client=mongoc_client_new(uri);
   if (client) {
     struct FD_MONGODB_CLIENT *cl=u8_alloc(struct FD_MONGODB_CLIENT);
     FD_INIT_CONS(cl,fd_mongo_client);
     cl->uri=u8_strdup(uri);
     cl->client=client;}
-  else return fd_type_error("MongoDB client URI","open_mongodb",arg);
+  else return fd_type_error("MongoDB client URI","mongodb_open",arg);
 }
 static void recycle_client(struct FD_CONS *c)
 {
@@ -102,14 +79,15 @@ static fdtype mongodb_collection(fdtype client,fdtype dbname,fdtype cname)
     cl=(struct FD_MONGODB_CLIENT *)client;
     fd_incref(client);}
   else {
-    client=open_mongodb(client);
+    client=mongodb_open(client);
     if (FD_ABORTP(client)) return client;
     cl=(struct FD_MONGODB_CLIENT *)client;}
   coll=mongoc_client_get_collection
     (cl->client,FD_STRDATA(dbname),FD_STRDATA(cname));
   if (coll) {
-    struct FD_MONGODB_COLLECTION *result;
-    FD_INIT_CONS(&result,fd_mongo_collection);
+    struct FD_MONGODB_COLLECTION *result=
+      u8_alloc(struct FD_MONGODB_COLLECTION);
+    FD_INIT_CONS(result,fd_mongo_collection);
     result->client=client;
     result->uri=u8_strdup(cl->uri);
     result->dbname=u8_strdup(FD_STRDATA(dbname));
@@ -118,7 +96,7 @@ static fdtype mongodb_collection(fdtype client,fdtype dbname,fdtype cname)
     return (fdtype) result;}
   else {
     fd_seterr("MongoDB/nocollection","mongodb_collection",
-              u8_mkstring("%s>%s>%s",cl->uri,FD_STDATA(dbname),
+              u8_mkstring("%s>%s>%s",cl->uri,FD_STRDATA(dbname),
                           FD_STRDATA(cname)),
               client);
     return FD_ERROR_VALUE;}
@@ -171,14 +149,12 @@ static int unparse_cursor(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-
-
 static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
-                              fdtype val)
+                                fdtype val)
 {
   bool ok=true;
   if (FD_CONSP(val)) {
-    fd_ptr_type ctype=FD_PPTR_TYPE(val);
+    fd_ptr_type ctype=FD_PTR_TYPE(val);
     switch (ctype) {
     case fd_string_type:
       ok=bson_append_utf8(out,key,keylen,FD_STRDATA(val),FD_STRLEN(val));
@@ -193,10 +169,10 @@ static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
       break;}
     case fd_bigint_type: {
       fd_bigint b=FD_GET_CONS(val,fd_bigint_type,fd_bigint);
-      if (fd_bigint_fits_in_wordp(b,32,1)) {
+      if (fd_bigint_fits_in_word_p(b,32,1)) {
         long int b32=fd_bigint_to_long(b);
         ok=bson_append_int32(out,key,keylen,b32);}
-      else if (fd_bigint_fits_in_wordp(b,65,1)) {
+      else if (fd_bigint_fits_in_word_p(b,65,1)) {
         long long int b64=fd_bigint_to_long_long(b);
         ok=bson_append_int64(out,key,keylen,b64);}
       else {
@@ -266,7 +242,7 @@ static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
     return bson_append_oid(out,key,keylen,&oid);}
   else if (FD_SYMBOLP(val)) {
     return bson_append_utf8(out,key,keylen,FD_SYMBOL_NAME(val),-1);
-}
+  }
   else if (FD_CHARACTERP(val)) {
     int code=FD_CHARCODE(val);
     if (code<128) {
@@ -418,16 +394,36 @@ static fdtype mongodb_find(fdtype coll,fdtype query)
   return results;
 }
 
+/* Initialization */
+
+FD_EXPORT int fd_init_mongodb(void) FD_LIBINIT_FN;
+static int mongodb_initialized=0;
+
 FD_EXPORT int fd_init_mongodb()
 {
   fdtype module;
   if (mongodb_initialized) return 0;
   mongodb_initialized=1;
-  fd_init_fdscheme();
 
-  module=fd_new_module("MONGODB",(0));
+  module=fd_new_module("MONGODB",(FD_MODULE_SAFE));
 
   idsym=fd_intern("_ID");
+
+  fd_mongo_client=fd_register_cons_type("MongoDB client");
+  fd_mongo_collection=fd_register_cons_type("MongoDB collection");
+  fd_mongo_cursor=fd_register_cons_type("MongoDB cursor");
+
+  fd_type_names[fd_mongo_client]="MongoDB client";
+  fd_type_names[fd_mongo_collection]="MongoDB collection";
+  fd_type_names[fd_mongo_cursor]="MongoDB cursor";
+
+  fd_recyclers[fd_mongo_client]=recycle_client;
+  fd_recyclers[fd_mongo_collection]=recycle_collection;
+  fd_recyclers[fd_mongo_cursor]=recycle_cursor;
+
+  fd_unparsers[fd_mongo_client]=unparse_client;
+  fd_unparsers[fd_mongo_collection]=unparse_collection;
+  fd_unparsers[fd_mongo_cursor]=unparse_cursor;
 
   fd_idefn(module,fd_make_cprim1x("MONGODB/OPEN",mongodb_open,1,
                                   fd_string_type,FD_VOID));
@@ -450,19 +446,8 @@ FD_EXPORT int fd_init_mongodb()
                                   fd_mongo_collection,FD_VOID,
                                   -1,FD_VOID));
 
-  fd_mongo_client=fd_register_cons_type("MongoDB client");
-  fd_mongo_collection=fd_register_cons_type("MongoDB collection");
-  fd_mongo_cursor=fd_register_cons_type("MongoDB cursor");
-  
-  fd_recyclers[fd_mongo_client]=recycle_client;
-  fd_recyclers[fd_mongo_collection]=recycle_collection;
-  fd_recyclers[fd_mongo_cursor]=recycle_cursor;
-
-  fd_unparsers[fd_mongo_client]=unparse_client;
-  fd_unparsers[fd_mongo_collection]=unparse_collection;
-  fd_unparsers[fd_mongo_cursor]=unparse_cursor;
-
   fd_finish_module(module);
+  fd_persist_module(module);
 
   u8_register_source_file(_FILEINFO);
 
