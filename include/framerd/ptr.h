@@ -389,6 +389,10 @@ FD_EXPORT long long fd_b32_to_longlong(char *digits);
 #define FD_LOCKHOLDER             FD_CONSTANT(19)
 #define FD_DEFAULT_VALUE          FD_CONSTANT(20)
 
+#define FD_MAX_BUILTIN_CONSTANT 20
+
+FD_EXPORT int max_constant;
+
 #define FD_VOIDP(x) ((x) == (FD_VOID))
 #define FD_NOVOIDP(x) ((x) != (FD_VOID))
 #define FD_FALSEP(x) ((x) == (FD_FALSE))

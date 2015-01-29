@@ -40,6 +40,8 @@ fd_copy_fn fd_copiers[FD_TYPE_MAX];
 fd_hashfn fd_hashfns[FD_TYPE_MAX];
 fd_checkfn fd_immediate_checkfns[FD_MAX_IMMEDIATE_TYPES+4];
 
+FD_EXPORT int max_constant;
+
 FD_EXPORT
 /* fd_check_immediate:
      Arguments: a list pointer
