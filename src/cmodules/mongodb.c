@@ -241,7 +241,7 @@ static fdtype mongodb_find(fdtype coll,fdtype query)
   return results;
 }
 
-/* BSON functions */
+/* BSON output functions */
 
 static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
                               fdtype val)
@@ -334,9 +334,8 @@ static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
     bytes[1]=((lo>>8)&0xFF); bytes[0]=(lo&0xFF);
     bson_oid_init_from_data(&oid,bytes);
     return bson_append_oid(out,key,keylen,&oid);}
-  else if (FD_SYMBOLP(val)) {
-    return bson_append_utf8(out,key,keylen,FD_SYMBOL_NAME(val),-1);
-  }
+  else if (FD_SYMBOLP(val)) 
+    return bson_append_utf8(out,key,keylen,pname,-1);
   else if (FD_CHARACTERP(val)) {
     int code=FD_CHARCODE(val);
     if (code<128) {
@@ -361,8 +360,12 @@ static bool bson_append_keyval(bson_t *out,fdtype key,fdtype val)
   U8_INIT_OUTPUT_BUF(&keyout,256,buf);
   if (FD_VOIDP(val)) return;
   if (FD_SYMBOLP(key)) {
-    keystring=FD_SYMBOL_NAME(key);
-    keylen=strlen(keystring);}
+    u8_string pname=FD_SYMBOL_NAME(key);
+    u8_byte *scan=pname; int c;
+    while ((c=u8_sgetc(&scan))>=0) {
+      u8_putc(&keyout,u8_tolower(c));}
+    keystring=keyout.u8_outbuf;
+    keylen=keyout.u8_outptr-keyout.u8_outbuf;}
   else if (FD_STRINGP(key)) {
     keystring=FD_STRDATA(key);
     keylen=FD_STRLEN(key);}
@@ -394,6 +397,14 @@ FD_EXPORT bson_t *fd_dtype2bson(fdtype in)
   doc = bson_new ();
   fd_bson_write(doc,in);
   return doc;
+}
+
+/* BSON input functions */
+
+static fdtype bson_read(bson_iter_t *in)
+{
+  bson_type_t btype=bson_iter_type(in);
+  
 }
 
 /* Initialization */
