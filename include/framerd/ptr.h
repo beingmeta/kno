@@ -456,6 +456,7 @@ FD_EXPORT u8_mutex fd_symbol_lock;
 FD_EXPORT fdtype fd_make_symbol(u8_string string,int len);
 FD_EXPORT fdtype fd_probe_symbol(u8_string string,int len);
 FD_EXPORT fdtype fd_intern(u8_string string);
+FD_EXPORT fdtype fd_symbolize(u8_string string);
 FD_EXPORT fdtype fd_all_symbols(void);
 
 /* Persistent pointers */

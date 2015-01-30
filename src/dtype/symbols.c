@@ -154,6 +154,20 @@ FD_EXPORT fdtype fd_intern(u8_string string)
   return fd_make_symbol(string,strlen(string));
 }
 
+FD_EXPORT fdtype fd_symbolize(u8_string string)
+{
+  fdtype result;
+  struct U8_OUTPUT out; unsigned char buf[64];
+  u8_byte *scan=string; int c=u8_sgetc(&scan);
+  U8_INIT_OUTPUT_BUF(&out,64,buf);
+  while (c>=0) {
+    u8_putc(&out,u8_toupper(c));
+    c=u8_sgetc(&scan);}
+  result=fd_make_symbol(out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  u8_close((u8_stream)&out);
+  return result;
+}
+
 FD_EXPORT fdtype fd_all_symbols()
 {
   fdtype results=FD_EMPTY_CHOICE;
