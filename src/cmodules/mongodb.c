@@ -235,11 +235,9 @@ static fdtype mongodb_find(fdtype coll,fdtype query)
   bson_error_t error;
   cursor=mongoc_collection_find(c,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
   while (mongoc_cursor_next(cursor,&doc)) {
-    /* u8_string json=bson_as_json(doc,NULL);
-       fdtype r=fd_block_string(-1,json); */
+    /* u8_string json=bson_as_json(doc,NULL); */
     fdtype r=fd_bson2dtype((bson_t *)doc,0);
-    FD_ADD_TO_CHOICE(results,r);
-    /* bson_free(json); */}
+    FD_ADD_TO_CHOICE(results,r);}
   bson_destroy(q);
   mongoc_cursor_destroy(cursor);
   return results;
@@ -416,7 +414,7 @@ static int bson_reader(fdtype into,bson_iter_t *in,int flags)
     bson_type_t bt=bson_iter_type(in);
     fdtype slotid=((field[0]=='_')||(field[0]=='$'))?
       (fd_symbolize((unsigned char *)field)):
-      (fd_block_string(-1,(unsigned char *)field));
+      (fd_make_string(NULL,-1,(unsigned char *)field));
     fdtype value=FD_VOID;
     switch (bt) {
     case BSON_TYPE_DOUBLE:
@@ -424,8 +422,9 @@ static int bson_reader(fdtype into,bson_iter_t *in,int flags)
     case BSON_TYPE_BOOL:
       value=(bson_iter_bool(in))?(FD_TRUE):(FD_FALSE); break;
     case BSON_TYPE_UTF8: {
-      int len; const unsigned char *bytes=bson_iter_utf8(in,&len);
-      value=fd_block_string(len,(unsigned char *)bytes);
+      int len=-1;
+      const unsigned char *bytes=bson_iter_utf8(in,&len);
+      value=fd_make_string(NULL,((len>0)?(len):(-1)),(unsigned char *)bytes);
       break;}
     case BSON_TYPE_BINARY: {
       int len; bson_subtype_t st; const unsigned char *data;
@@ -488,8 +487,7 @@ static int bson_reader(fdtype into,bson_iter_t *in,int flags)
       bson_iter_t child;
       value=fd_init_slotmap(NULL,0,NULL);
       bson_iter_recurse(in,&child);
-      while (bson_reader(value,&child,flags)) {}
-      return 1;}
+      while (bson_reader(value,&child,flags)) {}}
     default: {
       u8_log(LOGWARN,fd_BSON_Input_Error,
              "Can't handle BSON type %d",bt);
@@ -503,6 +501,7 @@ static int bson_reader(fdtype into,bson_iter_t *in,int flags)
 FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags)
 {
   bson_iter_t iter; fdtype doc;
+  memset(&iter,0,sizeof(bson_iter_t));
   if (bson_iter_init(&iter,in)) {
     doc=fd_init_slotmap(NULL,0,NULL);
     while (bson_reader(doc,&iter,flags)) {}
