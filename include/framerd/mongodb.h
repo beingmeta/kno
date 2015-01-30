@@ -4,8 +4,6 @@
 FD_EXPORT u8_condition fd_MongoDB_Error, fd_MongoDB_Warning;
 FD_EXPORT fd_ptr_type fd_mongo_client, fd_mongo_collection, fd_mongo_cursor;
 
-FD_EXPORT bson_t *fd_dtype2bson(fdtype in);
-
 typedef struct FD_MONGODB_CLIENT {
   FD_CONS_HEADER;
   u8_string uri;
@@ -39,8 +37,9 @@ typedef struct FD_MONGODB_CURSOR *fd_mongodb_cursor;
   
  */
 
-FD_EXPORT bson_t *fd_dtype2bson(fdtype);
-FD_EXPORT fdtype fd_bson2dtype(bson_t *);
+FD_EXPORT fdtype fd_bson_write(bson_t *out,int flags,fdtype in);
+FD_EXPORT bson_t *fd_dtype2bson(fdtype,int);
+FD_EXPORT fdtype fd_bson2dtype(bson_t *,int);
 
 #if 0
 typedef struct FD_MONGO_POOL {

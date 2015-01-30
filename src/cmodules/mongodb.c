@@ -28,12 +28,14 @@
 
 u8_condition fd_MongoDB_Error=_("MongoDB error");
 u8_condition fd_MongoDB_Warning=_("MongoDB warning");
+u8_condition fd_BSON_Input_Error=_("BSON input error");
 
 fd_ptr_type fd_mongo_client, fd_mongo_collection, fd_mongo_cursor;
 
-static bool bson_append_keyval(bson_t *,fdtype,fdtype);
-static bool bson_append_dtype(bson_t *,const char *,int,fdtype);
-static fdtype idsym;
+static bool bson_append_keyval(bson_t *,int,fdtype,fdtype);
+static bool bson_append_dtype(bson_t *,int,const char *,int,fdtype);
+static fdtype idsym, maxkey, minkey;
+static fdtype oidtag, mongofun, mongouser, mongomd5;
 
 /* Consing MongoDB clients, collections, and cursors */
 
@@ -49,7 +51,8 @@ static fdtype mongodb_open(fdtype arg)
     else if (FD_STRINGP(conf_val)) {
       uri=FD_STRDATA(conf_val); uri=u8_strdup(uri);
       fd_decref(conf_val);}
-    else return fd_type_error("MongoDB URI config val",FD_SYMBOL_NAME(arg),conf_val);}
+    else return fd_type_error("MongoDB URI config val",
+                              FD_SYMBOL_NAME(arg),conf_val);}
   else return fd_type_error("MongoDB URI","mongodb_open",arg);
   client=mongoc_client_new(uri);
   if (client) {
@@ -120,7 +123,7 @@ static fdtype mongodb_cursor(fdtype coll,fdtype query)
   struct FD_MONGODB_COLLECTION *fc=(struct FD_MONGODB_COLLECTION *)coll;
   struct FD_MONGODB_CURSOR *consed=u8_alloc(struct FD_MONGODB_CURSOR);
   mongoc_collection_t *c=fc->collection;
-  bson_t *q=fd_dtype2bson(query);
+  bson_t *q=fd_dtype2bson(query,0);
   mongoc_cursor_t *cursor;
   bson_error_t error;
   cursor=mongoc_collection_find(c,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
@@ -153,7 +156,7 @@ static fdtype mongodb_insert(fdtype coll,fdtype obj)
 {
   struct FD_MONGODB_COLLECTION *c=(struct FD_MONGODB_COLLECTION *)coll;
   bson_error_t error;
-  bson_t *doc=fd_dtype2bson(obj);
+  bson_t *doc=fd_dtype2bson(obj,0);
   if (mongoc_collection_insert
       (c->collection,MONGOC_INSERT_NONE,doc,NULL,&error)) {
     bson_destroy(doc);
@@ -177,9 +180,9 @@ static fdtype mongodb_delete(fdtype coll,fdtype obj)
     fdtype id=fd_get(obj,idsym,FD_VOID);
     if (FD_VOIDP(id))
       return fd_err("No MongoDB _id","mongodb_delete",NULL,obj);
-    bson_append_dtype(doc,"_id",3,id);
+    bson_append_dtype(doc,0,"_id",3,id);
     fd_decref(id);}
-  else bson_append_dtype(doc,"_id",3,obj);
+  else bson_append_dtype(doc,0,"_id",3,obj);
   if (mongoc_collection_remove
       (c->collection,MONGOC_DELETE_SINGLE_REMOVE,doc,NULL,&error)) {
     bson_destroy(doc);
@@ -205,8 +208,8 @@ static fdtype mongodb_update(fdtype coll,fdtype obj,fdtype id)
       if (FD_VOIDP(id))
         return fd_err("No MongoDB _id","mongodb_update",NULL,obj);}}
   else fd_incref(id);
-  bson_append_dtype(query,"_id",3,id);
-  bson_append_dtype(action,"$set",4,obj);
+  bson_append_dtype(query,0,"_id",3,id);
+  bson_append_dtype(action,0,"$set",4,obj);
   if (mongoc_collection_update
       (c->collection,MONGOC_UPDATE_NONE,query,action,NULL,&error)) {
     bson_destroy(query); bson_destroy(action);
@@ -226,16 +229,17 @@ static fdtype mongodb_find(fdtype coll,fdtype query)
   struct FD_MONGODB_COLLECTION *fc=(struct FD_MONGODB_COLLECTION *)coll;
   mongoc_collection_t *c=fc->collection;
   fdtype results=FD_EMPTY_CHOICE;
-  bson_t *q=fd_dtype2bson(query);
+  bson_t *q=fd_dtype2bson(query,0);
   const bson_t *doc;
   mongoc_cursor_t *cursor;
   bson_error_t error;
   cursor=mongoc_collection_find(c,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
   while (mongoc_cursor_next(cursor,&doc)) {
-    u8_string json=bson_as_json(doc,NULL);
-    fdtype r=fd_block_string(-1,json);
+    /* u8_string json=bson_as_json(doc,NULL);
+       fdtype r=fd_block_string(-1,json); */
+    fdtype r=fd_bson2dtype((bson_t *)doc,0);
     FD_ADD_TO_CHOICE(results,r);
-    bson_free(json);}
+    /* bson_free(json); */}
   bson_destroy(q);
   mongoc_cursor_destroy(cursor);
   return results;
@@ -243,7 +247,8 @@ static fdtype mongodb_find(fdtype coll,fdtype query)
 
 /* BSON output functions */
 
-static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
+static bool bson_append_dtype(bson_t *out,int flags,
+                              const char *key,int keylen,
                               fdtype val)
 {
   bool ok=true;
@@ -277,7 +282,9 @@ static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
     case fd_timestamp_type: {
       struct FD_TIMESTAMP *fdt=
         FD_GET_CONS(val,fd_timestamp_type,struct FD_TIMESTAMP* );
-      ok=bson_append_time_t(out,key,keylen,fdt->xtime.u8_tick);
+      unsigned long long millis=(fdt->xtime.u8_tick*1000)+
+        ((fdt->xtime.u8_prec>u8_second)?(fdt->xtime.u8_nsecs/1000000):(0));
+      ok=bson_append_date_time(out,key,keylen,millis);
       break;}
     case fd_uuid_type: {
       struct FD_UUID *uuid=FD_GET_CONS(val,fd_uuid_type,struct FD_UUID *);
@@ -289,7 +296,7 @@ static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
       if (ok) {
         int i=0; FD_DO_CHOICES(v,val) {
           sprintf(buf,"%d",i++);
-          ok=bson_append_dtype(out,buf,strlen(buf),v);
+          ok=bson_append_dtype(out,flags,buf,strlen(buf),v);
           if (!(ok)) FD_STOP_DO_CHOICES;}}
       bson_append_array_end(out,&arr);
       break;}
@@ -301,7 +308,7 @@ static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
       ok=bson_append_array_begin(out,key,keylen,&arr);
       if (ok) while (i<lim) {
           fdtype v=data[i]; sprintf(buf,"%d",i++);
-          ok=bson_append_dtype(out,buf,strlen(buf),v);
+          ok=bson_append_dtype(out,flags,buf,strlen(buf),v);
           if (!(ok)) break;}
       bson_append_array_end(out,&arr);
       break;}
@@ -313,7 +320,7 @@ static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
         FD_DO_CHOICES(key,keys) {
           fdtype value=fd_get(val,key,FD_VOID);
           if (!(FD_VOIDP(value))) {
-            ok=bson_append_keyval(&doc,key,value);
+            ok=bson_append_keyval(&doc,flags,key,value);
             fd_decref(value);
             if (!(ok)) FD_STOP_DO_CHOICES;}}}
       fd_decref(keys);
@@ -335,7 +342,8 @@ static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
     bson_oid_init_from_data(&oid,bytes);
     return bson_append_oid(out,key,keylen,&oid);}
   else if (FD_SYMBOLP(val)) 
-    return bson_append_utf8(out,key,keylen,pname,-1);
+    return bson_append_utf8
+      (out,key,keylen,FD_SYMBOL_NAME(val),-1);
   else if (FD_CHARACTERP(val)) {
     int code=FD_CHARCODE(val);
     if (code<128) {
@@ -353,7 +361,7 @@ static bool bson_append_dtype(bson_t *out,const char *key,int keylen,
     default: return true;}
 }
 
-static bool bson_append_keyval(bson_t *out,fdtype key,fdtype val)
+static bool bson_append_keyval(bson_t *out,int flags,fdtype key,fdtype val)
 {
   struct U8_OUTPUT keyout; unsigned char buf[256];
   const char *keystring; int keylen; bool ok=true;
@@ -375,36 +383,131 @@ static bool bson_append_keyval(bson_t *out,fdtype key,fdtype val)
     fd_unparse(&keyout,key);
     keystring=keyout.u8_outbuf;
     keylen=keyout.u8_outptr-keyout.u8_outbuf;}
-  ok=bson_append_dtype(out,keystring,keylen,val);
+  ok=bson_append_dtype(out,flags,keystring,keylen,val);
   u8_close((u8_stream)&keyout);
   return ok;
 }
 
-FD_EXPORT fdtype fd_bson_write(bson_t *out,fdtype in)
+FD_EXPORT fdtype fd_bson_write(bson_t *out,int flags,fdtype in)
 {
   fdtype keys=fd_getkeys(in);
   {FD_DO_CHOICES(key,keys) {
       fdtype val=fd_get(in,key,FD_VOID);
-      bson_append_keyval(out,key,val);
+      bson_append_keyval(out,flags,key,val);
       fd_decref(val);}}
   fd_decref(keys);
   return FD_VOID;
 }
 
-FD_EXPORT bson_t *fd_dtype2bson(fdtype in)
+FD_EXPORT bson_t *fd_dtype2bson(fdtype in,int flags)
 {
   bson_t *doc;
   doc = bson_new ();
-  fd_bson_write(doc,in);
+  fd_bson_write(doc,flags,in);
   return doc;
 }
 
 /* BSON input functions */
 
-static fdtype bson_read(bson_iter_t *in)
+static int bson_reader(fdtype into,bson_iter_t *in,int flags)
 {
-  bson_type_t btype=bson_iter_type(in);
-  
+  if (bson_iter_next(in)) {
+    const unsigned char *field=bson_iter_key(in);
+    bson_type_t bt=bson_iter_type(in);
+    fdtype slotid=((field[0]=='_')||(field[0]=='$'))?
+      (fd_symbolize((unsigned char *)field)):
+      (fd_block_string(-1,(unsigned char *)field));
+    fdtype value=FD_VOID;
+    switch (bt) {
+    case BSON_TYPE_DOUBLE:
+      value=fd_make_double(bson_iter_double(in)); break;
+    case BSON_TYPE_BOOL:
+      value=(bson_iter_bool(in))?(FD_TRUE):(FD_FALSE); break;
+    case BSON_TYPE_UTF8: {
+      int len; const unsigned char *bytes=bson_iter_utf8(in,&len);
+      value=fd_block_string(len,(unsigned char *)bytes);
+      break;}
+    case BSON_TYPE_BINARY: {
+      int len; bson_subtype_t st; const unsigned char *data;
+      bson_iter_binary(in,&st,&len,&data);
+      if (st==BSON_SUBTYPE_UUID) {
+        struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
+        FD_INIT_CONS(uuid,fd_uuid_type);
+        memcpy(uuid->uuid,data,len);
+        value= (fdtype) uuid;}
+      else if (st==BSON_SUBTYPE_BINARY)
+        value=fd_make_packet(NULL,len,(unsigned char *)data);
+      /* Probably should really make a record here */
+      else {
+        fdtype packet=fd_make_packet(NULL,len,(unsigned char *)data);
+        if (st==BSON_SUBTYPE_USER)
+          value=fd_init_compound(NULL,mongouser,0,1,packet);
+        else if (st==BSON_SUBTYPE_MD5)
+          value=fd_init_compound(NULL,mongomd5,0,1,packet);
+        else if (st==BSON_SUBTYPE_FUNCTION)
+          value=fd_init_compound(NULL,mongofun,0,1,packet);
+        else value=packet;}
+      break;}
+    case BSON_TYPE_INT32:
+      value=FD_INT2DTYPE(bson_iter_int32(in));
+      break;
+    case BSON_TYPE_INT64:
+      value=FD_INT2DTYPE(bson_iter_int64(in));
+      break;
+    case BSON_TYPE_OID: {
+      const bson_oid_t *oidval=bson_iter_oid(in);
+      const unsigned char *bytes=oidval->bytes;
+      if ((bytes[0]==0)&&(bytes[1]==0)&&(bytes[2]==0)&&(bytes[3]==0)) {
+        FD_OID dtoid;
+        unsigned int hi=
+          (((((bytes[4]<<8)|(bytes[5]))<<8)|(bytes[6]))<<8)|(bytes[7]);
+        unsigned int lo=
+          (((((bytes[8]<<8)|(bytes[9]))<<8)|(bytes[10]))<<8)|(bytes[11]);
+        FD_SET_OID_HI(dtoid,hi); FD_SET_OID_LO(dtoid,lo);
+        value=fd_make_oid(dtoid);}
+      else {
+        fdtype packet=fd_make_packet(NULL,12,(unsigned char *)bytes);
+        value=fd_init_compound(NULL,oidtag,0,1,packet);}
+      break;}
+    case BSON_TYPE_UNDEFINED:
+      value=FD_VOID; break;
+    case BSON_TYPE_NULL:
+      value=FD_EMPTY_CHOICE; break;
+    case BSON_TYPE_DATE_TIME: {
+      unsigned long long millis=bson_iter_date_time(in);
+      struct FD_TIMESTAMP *ts=u8_alloc(struct FD_TIMESTAMP);
+      FD_INIT_CONS(ts,fd_timestamp_type);
+      u8_init_xtime(&(ts->xtime),millis/1000,u8_millisecond,
+                    ((millis%1000)*1000000),0,0);
+      value=(fdtype)ts;}
+    case BSON_TYPE_MAXKEY:
+      value=maxkey; break;
+    case BSON_TYPE_MINKEY:
+      value=minkey; break;
+    case BSON_TYPE_DOCUMENT: case BSON_TYPE_ARRAY: {
+      bson_iter_t child;
+      value=fd_init_slotmap(NULL,0,NULL);
+      bson_iter_recurse(in,&child);
+      while (bson_reader(value,&child,flags)) {}
+      return 1;}
+    default: {
+      u8_log(LOGWARN,fd_BSON_Input_Error,
+             "Can't handle BSON type %d",bt);
+      return 1;}}
+    fd_store(into,slotid,value);
+    fd_decref(value);
+    return 1;}
+  else return 0;
+}
+
+FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags)
+{
+  bson_iter_t iter; fdtype doc;
+  if (bson_iter_init(&iter,in)) {
+    doc=fd_init_slotmap(NULL,0,NULL);
+    while (bson_reader(doc,&iter,flags)) {}
+    return doc;}
+  else return fd_err(fd_BSON_Input_Error,"fd_bson2dtype",NULL,FD_VOID);
 }
 
 /* Initialization */
@@ -421,6 +524,12 @@ FD_EXPORT int fd_init_mongodb()
   module=fd_new_module("MONGODB",(FD_MODULE_SAFE));
 
   idsym=fd_intern("_ID");
+  maxkey=fd_register_constant("mongomax");
+  minkey=fd_register_constant("mongomin");
+  oidtag=fd_register_constant("mongoid");
+  mongofun=fd_register_constant("mongofun");
+  mongouser=fd_register_constant("mongouser");
+  mongomd5=fd_register_constant("md5hash");
 
   fd_mongo_client=fd_register_cons_type("MongoDB client");
   fd_mongo_collection=fd_register_cons_type("MongoDB collection");
