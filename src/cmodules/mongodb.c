@@ -39,7 +39,7 @@ static fdtype oidtag, mongofun, mongouser, mongomd5;
 
 /* Consing MongoDB clients, collections, and cursors */
 
-static fdtype mongodb_open(fdtype arg)
+static fdtype mongodb_open(fdtype arg,fdtype flags)
 {
   char *uri; mongoc_client_t *client;
   if (FD_STRINGP(arg))
@@ -58,6 +58,8 @@ static fdtype mongodb_open(fdtype arg)
   if (client) {
     struct FD_MONGODB_CLIENT *cl=u8_alloc(struct FD_MONGODB_CLIENT);
     FD_INIT_CONS(cl,fd_mongo_client);
+    if (FD_VOIDP(flags)) cl->flags=FD_MONGODB_DEFAULTS;
+    else cl->flags=FD_FIX2INT(flags);
     cl->uri=u8_strdup(uri);
     cl->client=client;}
   else return fd_type_error("MongoDB client URI","mongodb_open",arg);
@@ -74,7 +76,8 @@ static int unparse_client(struct U8_OUTPUT *out,fdtype x)
   u8_printf(out,"#<MongoDB/CLIENT %s>",cl->uri);
   return 1;
 }
-static fdtype mongodb_collection(fdtype client,fdtype dbname,fdtype cname)
+static fdtype mongodb_collection(fdtype client,fdtype dbname,fdtype cname,
+                                 fdtype flags)
 {
   struct FD_MONGODB_CLIENT *cl;
   mongoc_collection_t *coll;
@@ -82,7 +85,7 @@ static fdtype mongodb_collection(fdtype client,fdtype dbname,fdtype cname)
     cl=(struct FD_MONGODB_CLIENT *)client;
     fd_incref(client);}
   else {
-    client=mongodb_open(client);
+    client=mongodb_open(client,flags);
     if (FD_ABORTP(client)) return client;
     cl=(struct FD_MONGODB_CLIENT *)client;}
   coll=mongoc_client_get_collection
@@ -96,6 +99,8 @@ static fdtype mongodb_collection(fdtype client,fdtype dbname,fdtype cname)
     result->dbname=u8_strdup(FD_STRDATA(dbname));
     result->name=u8_strdup(FD_STRDATA(cname));
     result->collection=coll;
+    if (FD_VOIDP(flags)) result->flags=cl->flags;
+    else result->flags=FD_FIX2INT(flags);
     return (fdtype) result;}
   else {
     fd_seterr("MongoDB/nocollection","mongodb_collection",
@@ -118,7 +123,7 @@ static int unparse_collection(struct U8_OUTPUT *out,fdtype x)
             cl->dbname,cl->name,cl->uri);
   return 1;
 }
-static fdtype mongodb_cursor(fdtype coll,fdtype query)
+static fdtype mongodb_cursor(fdtype coll,fdtype query,fdtype flags)
 {
   struct FD_MONGODB_COLLECTION *fc=(struct FD_MONGODB_COLLECTION *)coll;
   struct FD_MONGODB_CURSOR *consed=u8_alloc(struct FD_MONGODB_CURSOR);
@@ -132,6 +137,8 @@ static fdtype mongodb_cursor(fdtype coll,fdtype query)
   consed->query=query; fd_incref(query);
   consed->bsonquery=q;
   consed->cursor=cursor;
+  if (FD_VOIDP(flags)) consed->flags=fc->flags;
+  else consed->flags=FD_FIX2INT(flags);
   return (fdtype) consed;
 }
 static void recycle_cursor(struct FD_CONS *c)
@@ -253,9 +260,17 @@ static bool bson_append_dtype(bson_t *out,int flags,
   if (FD_CONSP(val)) {
     fd_ptr_type ctype=FD_PTR_TYPE(val);
     switch (ctype) {
-    case fd_string_type:
-      ok=bson_append_utf8(out,key,keylen,FD_STRDATA(val),FD_STRLEN(val));
-      break;
+    case fd_string_type: {
+      unsigned char _buf[64], *buf=_buf;
+      u8_string str=FD_STRDATA(val); int len=FD_STRLEN(val);
+      if ((flags&FD_MONGODB_COLONIZE)&&
+          ((isdigit(str[0]))||(strchr(":(#@",str[0])!=NULL))) {
+        if (len>62) buf=u8_malloc(len+2);
+        buf[0]='\\'; strncpy(buf+1,str,len+1);
+        ok=bson_append_utf8(out,key,keylen,buf,len+1);
+        if (buf!=_buf) u8_free(buf);}
+      else ok=bson_append_utf8(out,key,keylen,str,len);
+      break;}
     case fd_packet_type:
       ok=bson_append_binary(out,key,keylen,BSON_SUBTYPE_BINARY,
                             FD_PACKET_DATA(val),FD_PACKET_LENGTH(val));
@@ -364,20 +379,32 @@ static bool bson_append_keyval(bson_t *out,int flags,fdtype key,fdtype val)
   struct U8_OUTPUT keyout; unsigned char buf[256];
   const char *keystring; int keylen; bool ok=true;
   U8_INIT_OUTPUT_BUF(&keyout,256,buf);
-  if (FD_VOIDP(val)) return;
+  if (FD_VOIDP(val)) return 0;
   if (FD_SYMBOLP(key)) {
-    u8_string pname=FD_SYMBOL_NAME(key);
-    u8_byte *scan=pname; int c;
-    while ((c=u8_sgetc(&scan))>=0) {
-      u8_putc(&keyout,u8_tolower(c));}
-    keystring=keyout.u8_outbuf;
-    keylen=keyout.u8_outptr-keyout.u8_outbuf;}
+    if (flags&FD_MONGODB_SLOTIFY) {
+      u8_string pname=FD_SYMBOL_NAME(key);
+      u8_byte *scan=pname; int c;
+      while ((c=u8_sgetc(&scan))>=0) {
+        u8_putc(&keyout,u8_tolower(c));}
+      keystring=keyout.u8_outbuf;
+      keylen=keyout.u8_outptr-keyout.u8_outbuf;}
+    else {
+      keystring=FD_SYMBOL_NAME(key);
+      keylen=strlen(keystring);}}
   else if (FD_STRINGP(key)) {
     keystring=FD_STRDATA(key);
-    keylen=FD_STRLEN(key);}
+    if ((flags&FD_MONGODB_SLOTIFY)&&
+        ((isdigit(keystring[0]))||
+         (strchr(":(#@",keystring[0])!=NULL))) {
+      u8_putc(&keyout,'\\'); u8_puts(&keyout,(u8_string)keystring);
+      keystring=keyout.u8_outbuf;
+      keylen=keyout.u8_outptr-keyout.u8_outbuf;}
+    else keylen=FD_STRLEN(key);}
   else {
     keyout.u8_outptr=keyout.u8_outbuf;
-    u8_putc(&keyout,':');
+    if ((flags&FD_MONGODB_SLOTIFY)&&
+        (!((FD_OIDP(key))||(FD_VECTORP(key))||(FD_PAIRP(key)))))
+      u8_putc(&keyout,':');
     fd_unparse(&keyout,key);
     keystring=keyout.u8_outbuf;
     keylen=keyout.u8_outptr-keyout.u8_outbuf;}
@@ -407,15 +434,34 @@ FD_EXPORT bson_t *fd_dtype2bson(fdtype in,int flags)
 
 /* BSON input functions */
 
+#define slotify_char(c) \
+    ((c=='_')||(c=='-')||(c=='.')||(c=='/')||(c=='$')||(u8_isalnum(c)))
+
+/* -1 means don't slotify at all, 0 means symbolize, 1 means intern */
+static int slotcode(u8_string s)
+{
+  u8_byte *scan=s; int c, i=0, isupper=0;
+  while ((c=u8_sgetc(&scan))>=0) {
+    if (i>32) return -1;
+    if (!(slotify_char(c))) return -1; else i++;
+    if (u8_isupper(c)) isupper=1;}
+  return isupper;
+}
+
 static int bson_reader(fdtype into,bson_iter_t *in,int flags)
 {
   if (bson_iter_next(in)) {
     const unsigned char *field=bson_iter_key(in);
     bson_type_t bt=bson_iter_type(in);
-    fdtype slotid=((field[0]=='_')||(field[0]=='$'))?
-      (fd_symbolize((unsigned char *)field)):
-      (fd_make_string(NULL,-1,(unsigned char *)field));
-    fdtype value=FD_VOID;
+    fdtype slotid, value=FD_VOID;
+    if ((flags&FD_MONGODB_SLOTIFY)&&(strchr(":(#@",field[0])!=NULL))
+      slotid=fd_parse_arg((u8_string)field);
+    else if (flags&FD_MONGODB_SLOTIFY) {
+      int sc=slotcode((u8_string)field);
+      if (sc<0) slotid=fd_make_string(NULL,-1,(unsigned char *)field);
+      else if (sc==0) slotid=fd_symbolize((unsigned char *)field);
+      else slotid=fd_intern((unsigned char *)field);}
+    else slotid=fd_make_string(NULL,-1,(unsigned char *)field);
     switch (bt) {
     case BSON_TYPE_DOUBLE:
       value=fd_make_double(bson_iter_double(in)); break;
@@ -424,7 +470,13 @@ static int bson_reader(fdtype into,bson_iter_t *in,int flags)
     case BSON_TYPE_UTF8: {
       int len=-1;
       const unsigned char *bytes=bson_iter_utf8(in,&len);
-      value=fd_make_string(NULL,((len>0)?(len):(-1)),(unsigned char *)bytes);
+      if ((flags&FD_MONGODB_COLONIZE)&&(strchr(":(#@",field[0])!=NULL))
+        value=fd_parse_arg((u8_string)(bytes+1));
+      else if ((flags&FD_MONGODB_COLONIZE)&&(bytes[0]=='\\'))
+        value=fd_make_string(NULL,((len>0)?(len-1):(-1)),
+                             (unsigned char *)bytes+1);
+      else value=fd_make_string(NULL,((len>0)?(len):(-1)),
+                                (unsigned char *)bytes);
       break;}
     case BSON_TYPE_BINARY: {
       int len; bson_subtype_t st; const unsigned char *data;
@@ -434,12 +486,11 @@ static int bson_reader(fdtype into,bson_iter_t *in,int flags)
         FD_INIT_CONS(uuid,fd_uuid_type);
         memcpy(uuid->uuid,data,len);
         value= (fdtype) uuid;}
-      else if (st==BSON_SUBTYPE_BINARY)
-        value=fd_make_packet(NULL,len,(unsigned char *)data);
-      /* Probably should really make a record here */
       else {
         fdtype packet=fd_make_packet(NULL,len,(unsigned char *)data);
-        if (st==BSON_SUBTYPE_USER)
+        if (st==BSON_SUBTYPE_BINARY)
+          value=fd_make_packet(NULL,len,(unsigned char *)data);
+        else if (st==BSON_SUBTYPE_USER)
           value=fd_init_compound(NULL,mongouser,0,1,packet);
         else if (st==BSON_SUBTYPE_MD5)
           value=fd_init_compound(NULL,mongomd5,0,1,packet);
@@ -514,6 +565,8 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags)
 FD_EXPORT int fd_init_mongodb(void) FD_LIBINIT_FN;
 static int mongodb_initialized=0;
 
+#define DEFAULT_FLAGS (FD_SHORT2DTYPE(FD_MONGODB_DEFAULTS))
+
 FD_EXPORT int fd_init_mongodb()
 {
   fdtype module;
@@ -546,14 +599,16 @@ FD_EXPORT int fd_init_mongodb()
   fd_unparsers[fd_mongo_collection]=unparse_collection;
   fd_unparsers[fd_mongo_cursor]=unparse_cursor;
 
-  fd_idefn(module,fd_make_cprim1x("MONGODB/OPEN",mongodb_open,1,
-                                  fd_string_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x("MONGODB/COLLECTION",mongodb_collection,1,
+  fd_idefn(module,fd_make_cprim2x("MONGODB/OPEN",mongodb_open,1,
+                                  fd_string_type,FD_VOID,
+                                  fd_fixnum_type,DEFAULT_FLAGS));
+  fd_idefn(module,fd_make_cprim4x("MONGODB/COLLECTION",mongodb_collection,1,
                                   -1,FD_VOID,fd_string_type,FD_VOID,
-                                  fd_string_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x("MONGODB/COLLECTION",mongodb_collection,3,
-                                  -1,FD_VOID,fd_string_type,FD_VOID,
-                                  fd_string_type,FD_VOID));
+                                  fd_string_type,FD_VOID,
+                                  fd_fixnum_type,DEFAULT_FLAGS));
+  fd_idefn(module,fd_make_cprim3x("MONGODB/CURSOR",mongodb_cursor,2,
+                                  -1,FD_VOID,-1,FD_VOID,
+                                  fd_fixnum_type,DEFAULT_FLAGS));
   fd_idefn(module,fd_make_cprim2x("MONGODB/INSERT!",mongodb_insert,2,
                                   fd_mongo_collection,FD_VOID,
                                   -1,FD_VOID));
