@@ -304,26 +304,36 @@ static bool bson_append_dtype(bson_t *out,int flags,
       ok=bson_append_binary(out,key,keylen,BSON_SUBTYPE_UUID,uuid->uuid,16);
       break;}
     case fd_choice_type: case fd_achoice_type: {
-      bson_t arr; char buf[16];
+      bson_t arr; char buf[16]; int i=0;
       ok=bson_append_array_begin(out,key,keylen,&arr);
+      if (flags&&FD_MONGODB_TAGCHOICE) {
+        /* With the 'tagged choice' representation, choices
+           are just arrays which start with null */
+        bson_append_null(out,"0",1); i=1;}
       if (ok) {
-        int i=0; FD_DO_CHOICES(v,val) {
+        int i=1; FD_DO_CHOICES(v,val) {
           sprintf(buf,"%d",i++);
           ok=bson_append_dtype(out,flags,buf,strlen(buf),v);
           if (!(ok)) FD_STOP_DO_CHOICES;}}
-      bson_append_array_end(out,&arr);
+      bson_append_document_end(out,&arr);
       break;}
     case fd_vector_type: case fd_rail_type: {
+      bson_t arr, ch; char buf[16]; int nflags=flags;
       struct FD_VECTOR *vec=(struct FD_VECTOR *)val;
-      bson_t arr; char buf[16];
       int i=0, lim=vec->length;
       fdtype *data=vec->data;
-      ok=bson_append_array_begin(out,key,keylen,&arr);
+      if (!(flags&&FD_MONGODB_TAGCHOICE)) {
+        ok=bson_append_array_begin(out,key,keylen,&ch);
+        if (ok)
+          ok=bson_append_array_begin(ch,"0",1,&arr);}
+      else ok=bson_append_array_begin(out,key,keylen,&arr);
       if (ok) while (i<lim) {
           fdtype v=data[i]; sprintf(buf,"%d",i++);
-          ok=bson_append_dtype(out,flags,buf,strlen(buf),v);
+          ok=bson_append_dtype(out,nflags,buf,strlen(buf),v);
           if (!(ok)) break;}
       bson_append_array_end(out,&arr);
+      if (!(flags&&FD_MONGODB_TAGCHOICE))
+        bson_append_array_end(out,&ch);
       break;}
     case fd_slotmap_type: case fd_hashtable_type: {
       bson_t doc; char buf[16];
@@ -354,7 +364,7 @@ static bool bson_append_dtype(bson_t *out,int flags,
     bytes[1]=((lo>>8)&0xFF); bytes[0]=(lo&0xFF);
     bson_oid_init_from_data(&oid,bytes);
     return bson_append_oid(out,key,keylen,&oid);}
-  else if (FD_SYMBOLP(val)) 
+  else if (FD_SYMBOLP(val))
     return bson_append_utf8
       (out,key,keylen,FD_SYMBOL_NAME(val),-1);
   else if (FD_CHARACTERP(val)) {
@@ -371,7 +381,16 @@ static bool bson_append_dtype(bson_t *out,int flags,
   else switch (val) {
     case FD_TRUE: case FD_FALSE:
       return bson_append_bool(out,key,keylen,(val==FD_TRUE));
-    default: return true;}
+    default: {
+      struct U8_OUTPUT vout; unsigned char buf[128]; bool rv;
+      U8_INIT_OUTPUT_BUF(&vout,128,buf);
+      if (flags&FD_MONGODB_COLONIZE) 
+        u8_printf(&vout,":%q",val);
+      else fd_unparse(&vout,val);
+      rv=bson_append_utf8(out,key,keylen,vout.u8_outbuf,
+                          vout.u8_outptr-vout.u8_outbuf);
+      u8_close((u8_stream)&vout);
+      return rv;}}
 }
 
 static bool bson_append_keyval(bson_t *out,int flags,fdtype key,fdtype val)
@@ -534,7 +553,12 @@ static int bson_reader(fdtype into,bson_iter_t *in,int flags)
       value=maxkey; break;
     case BSON_TYPE_MINKEY:
       value=minkey; break;
-    case BSON_TYPE_DOCUMENT: case BSON_TYPE_ARRAY: {
+    case BSON_TYPE_DOCUMENT: {
+      bson_iter_t child;
+      value=fd_init_slotmap(NULL,0,NULL);
+      bson_iter_recurse(in,&child);
+      while (bson_reader(value,&child,flags)) {}}
+    case BSON_TYPE_ARRAY: {
       bson_iter_t child;
       value=fd_init_slotmap(NULL,0,NULL);
       bson_iter_recurse(in,&child);

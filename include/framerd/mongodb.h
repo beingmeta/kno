@@ -3,6 +3,7 @@
 
 #define FD_MONGODB_COLONIZE 1
 #define FD_MONGODB_SLOTIFY 2
+#define FD_MONGODB_TAGCHOICE 4
 #define FD_MONGODB_DEFAULTS 3
 
 FD_EXPORT u8_condition fd_MongoDB_Error, fd_MongoDB_Warning;
