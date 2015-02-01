@@ -560,6 +560,18 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     value=fd_make_double(bson_iter_double(in)); break;
   case BSON_TYPE_BOOL:
     value=(bson_iter_bool(in))?(FD_TRUE):(FD_FALSE); break;
+  case BSON_TYPE_REGEX: {
+    const char *props, *src=bson_iter_regex(in,&props);
+    /* In props:
+         x=extended
+         m=multiline
+         i=ignorecase
+         s=singleline
+    */
+    value=fd_init_compound(NULL,fd_intern("REGEX"),0,2,
+                           fdtype_string((u8_string)src),
+                           fdtype_string((u8_string)props));
+    break;}
   case BSON_TYPE_UTF8: {
     int len=-1;
     const unsigned char *bytes=bson_iter_utf8(in,&len);
