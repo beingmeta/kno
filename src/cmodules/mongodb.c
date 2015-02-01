@@ -789,6 +789,9 @@ FD_EXPORT int fd_init_mongodb()
   fd_finish_module(module);
   fd_persist_module(module);
 
+  mongoc_init();
+  atexit(mongoc_cleanup);
+
   u8_register_source_file(_FILEINFO);
 
   return 1;
