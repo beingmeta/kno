@@ -398,6 +398,7 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 #define FD_VOIDP(x) ((x) == (FD_VOID))
 #define FD_NOVOIDP(x) ((x) != (FD_VOID))
 #define FD_FALSEP(x) ((x) == (FD_FALSE))
+#define FD_DEFAULTP(x) ((x) == (FD_DEFAULT_VALUE))
 #define FD_TRUEP(x) ((x) == (FD_TRUE))
 #define FD_EMPTY_CHOICEP(x) ((x) == (FD_EMPTY_CHOICE))
 #define FD_EXISTSP(x) (!(x == FD_EMPTY_CHOICE))
