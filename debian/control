@@ -2,7 +2,7 @@ Source: framerd
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benfiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, sqlite3, apache2-threaded-dev, libmysqlclient-dev, libcurl4-openssl-dev,libexif-dev,libtidy-dev,libzip-dev,libqrencode-dev,libu8-dev,libhyphen-dev
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, sqlite3, apache2-threaded-dev, libmysqlclient-dev, libcurl4-openssl-dev,libexif-dev,libtidy-dev,libzip-dev,libqrencode-dev,libu8-dev,libhyphen-dev,libsasl2-dev,libbson-dev,libmongoc-dev
 Standards-Version: 3.9.4
 Homepage: http://www.framerd.org/
 
@@ -41,6 +41,11 @@ Package: framerd-sqlite
 Architecture: any
 Depends: framerd (= ${binary:Version}), sqlite
 Description: SQLite bindings for FramerD
+
+Package: framerd-mongodb
+Architecture: any
+Depends: framerd (= ${binary:Version}), libbson-1.0, libmongoc-1.0
+Description: MongoDB interface for FramerD
 
 Package: framerd-imagetools
 Architecture: any
