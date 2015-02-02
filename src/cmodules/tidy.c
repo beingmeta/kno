@@ -154,8 +154,8 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
                             "INDENTATTRIBS",FD_TRUE);
   if (rc>=0) rc=copyIntOpt(opts,tdoc,TidyIndentSpaces,"INDENTATION",2);
   if (rc>=0) rc=copyIntOpt(opts,tdoc,TidyTabSize,"TABSIZE",5);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMergeDivs,"MERGEDIVS",FD_FALSE);
   /*
+  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMergeDivs,"MERGEDIVS",FD_FALSE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMergeSpans,"MERGESPANS",FD_FALSE);
   */
   if (rc>=0) {
