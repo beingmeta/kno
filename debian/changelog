@@ -1,3 +1,9 @@
+framerd (3.7.4-17) unstable; urgency=low
+
+  * Added mongodb module to Debian packaging
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 02 Feb 2015 16:14:56 -0500
+
 framerd (3.7.3-16) unstable; urgency=low
 
   * Moved regex module into FramerD core
