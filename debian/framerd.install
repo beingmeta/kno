@@ -7,7 +7,6 @@ usr/lib/libfdschemeio.so.*
 usr/lib/libfdweb.so*
 usr/lib/libtexttools.so*
 usr/lib/libtagger.so*
-usr/lib/framerd/regex.so*
 usr/lib/framerd/crypto.so*
 usr/lib/framerd/ziptools.so*
 usr/lib/framerd/hyphenate.so*

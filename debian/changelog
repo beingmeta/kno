@@ -1,3 +1,9 @@
+framerd (3.7.3-16) unstable; urgency=low
+
+  * Moved regex module into FramerD core
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 02 Feb 2015 11:02:04 -0500
+
 framerd (3.7.2-15) unstable; urgency=low
 
   * Update elisp installation
