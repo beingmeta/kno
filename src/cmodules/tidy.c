@@ -103,7 +103,8 @@ static int copyStringOpt(fdtype opts,TidyDoc tdoc,TidyOptionId optname,
 
 static fdtype doctype_symbol, dontfix_symbol, wrap_symbol;
 
-static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
+static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
+                               int for_real_arg,int for_xml_arg)
 {
   fdtype result=FD_VOID;
   TidyBuffer outbuf={NULL};
@@ -111,6 +112,8 @@ static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
   int rc=-1;
   TidyDoc tdoc=tidyCreate();
   Bool ok=tidyOptSetBool(tdoc,TidyXhtmlOut,yes);
+  fdtype for_real=((for_real_arg)?(FD_TRUE):(FD_FALSE));
+  fdtype for_xml=((for_xml_arg)?(FD_TRUE):(FD_FALSE));
   if (ok) {
     tidyBufInit(&outbuf);
     tidyBufInit(&errbuf);
@@ -120,27 +123,27 @@ static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
     return fd_err(fd_TidyError,"tidy_prim/init",NULL,FD_VOID);}
   if (rc>=0) rc=copyStringOpt(opts,tdoc,TidyCharEncoding,"ENCODING","utf8");
   if (rc>=0) rc=copyStringOpt(opts,tdoc,TidyAltText,"ALTSTRING","utf8");
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyShowWarnings,"WARN",FD_FALSE);
+  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyShowWarnings,"WARN",for_real);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyQuiet,"QUIET",FD_TRUE);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMakeBare,"BARE",FD_TRUE);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMakeClean,"CLEAN",FD_TRUE);
+  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMakeBare,"BARE",for_real);
+  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMakeClean,"CLEAN",for_real);
   if (rc>=0) rc=copyBoolOpt
-               (opts,tdoc,TidyDropEmptyParas,"DROPEMPTY",FD_TRUE);
+               (opts,tdoc,TidyDropEmptyParas,"DROPEMPTY",for_real);
   if (rc>=0) rc=copyBoolOpt
                (opts,tdoc,TidyFixComments,"FIXCOMMENTS",FD_TRUE);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXmlSpace,"XMLSPACE",FD_TRUE);
+  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXmlSpace,"XMLSPACE",for_xml);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXmlTags,"XMLIN",FD_TRUE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXmlDecl,"XMLDECL",FD_FALSE);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXmlOut,"XMLOUT",FD_TRUE);
+  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXmlOut,"XMLOUT",for_xml);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyEncloseBodyText,"ENCLOSEBODY",
-                            FD_TRUE);
+                            for_real);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyEncloseBlockText,"ENCLOSEBLOCK",
                             FD_FALSE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyWord2000,"FIXWORD2000",FD_TRUE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMark,"LEAVEMARK",FD_FALSE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyJoinClasses,"JOINCLASSES",FD_TRUE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyJoinStyles,"JOINSTYLES",FD_TRUE);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXhtmlOut,"XHTMLOUT",FD_TRUE);
+  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXhtmlOut,"XHTMLOUT",for_xml);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyHtmlOut,"HTMLOUT",FD_FALSE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyFixUri,"FIXURI",FD_TRUE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyNCR,"NUMENTITIES",FD_FALSE);
@@ -151,9 +154,9 @@ static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
                             "INDENTATTRIBS",FD_TRUE);
   if (rc>=0) rc=copyIntOpt(opts,tdoc,TidyIndentSpaces,"INDENTATION",2);
   if (rc>=0) rc=copyIntOpt(opts,tdoc,TidyTabSize,"TABSIZE",5);
+  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMergeDivs,"MERGEDIVS",FD_FALSE);
   /*
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMergeSpans,"MERGESPANS",FD_FALSE);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMergeDivs,"MERGEDIVS",FD_FALSE);
   */
   if (rc>=0) {
     fdtype wrap=fd_getopt(opts,wrap_symbol,FD_VOID);
@@ -220,6 +223,20 @@ static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
   return result;
 }
 
+static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
+{
+  return tidy_prim_helper(string,opts,diag,1,1);
+}
+static fdtype tidy_indent_prim(fdtype string,fdtype opts,fdtype diag)
+{
+  return tidy_prim_helper(string,opts,diag,0,1);
+}
+static fdtype tidy_html_prim(fdtype string,fdtype opts,fdtype diag)
+{
+  return tidy_prim_helper(string,opts,diag,1,0);
+}
+
+
 FD_EXPORT int fd_init_tidy()
 {
   fdtype tidy_module;
@@ -233,6 +250,14 @@ FD_EXPORT int fd_init_tidy()
 
   fd_idefn(tidy_module,
            fd_make_cprim3x("TIDY->XHTML",tidy_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID,
+                           -1,FD_VOID));
+  fd_idefn(tidy_module,
+           fd_make_cprim3x("TIDY->INDENT",tidy_indent_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID,
+                           -1,FD_VOID));
+  fd_idefn(tidy_module,
+           fd_make_cprim3x("TIDY->HTML",tidy_html_prim,1,
                            fd_string_type,FD_VOID,-1,FD_VOID,
                            -1,FD_VOID));
 
