@@ -925,10 +925,6 @@ fi
 if (test "x$have_regex_h" = "xyes") && (test "x$have_regcomp" = "xno"); then
   AC_CHECK_LIB(regex,regcomp,have_regcomp="yes",have_regcomp="no")
 fi
-if (test "x$have_regex_h" = "xyes") && (test "x$have_regcomp" = "xyes"); then
-  CMODULES="lib/framerd/regex.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-regex ${INSTALLCMODULES}"
-fi
 
 AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
 if (test "x$have_zlib_h" = "xyes"); then

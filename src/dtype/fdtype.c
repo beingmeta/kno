@@ -93,6 +93,7 @@ static void init_type_names()
   fd_type_names[fd_rail_type]=_("rail");
   fd_type_names[fd_secret_type]=_("secret");
   fd_type_names[fd_sproc_type]=_("SCHEME procedure");
+  fd_type_names[fd_regex_type]=_("regex");
 }
 
 static int fdtype_version=101;

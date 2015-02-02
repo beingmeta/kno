@@ -1947,6 +1947,7 @@ FD_EXPORT void fd_init_side_effects_c(void);
 FD_EXPORT void fd_init_reflection_c(void);
 FD_EXPORT void fd_init_history_c(void);
 FD_EXPORT void fd_init_reqstate_c(void);
+FD_EXPORT void fd_init_regex_c(void);
 FD_EXPORT void fd_init_quasiquote_c(void);
 FD_EXPORT void fd_init_extdbi_c(void);
 
@@ -1976,6 +1977,7 @@ static void init_core_builtins()
   fd_init_history_c();
   fd_init_extdbi_c();
   fd_init_reqstate_c();
+  fd_init_regex_c();
 
   u8_threadcheck();
 

@@ -108,7 +108,7 @@ SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
 	    src/scheme/seqprims.o src/scheme/stringprims.o              \
 	    src/scheme/portprims.o src/scheme/timeprims.o               \
 	    src/scheme/arithprims.o src/scheme/side-effects.o           \
-	    src/scheme/reqstate.o src/scheme/extdb.o
+	    src/scheme/regex.o src/scheme/reqstate.o src/scheme/extdb.o
 SCHEMEIO_OBJS=src/scheme/fileprims.o src/scheme/dbfileprims.o
 FDWEB_OBJS=src/fdweb/fdweb.o src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
 	src/fdweb/xmldata.o src/fdweb/mime.o src/fdweb/email.o          \
@@ -125,7 +125,7 @@ SUNDOWN_OBJS= src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
 CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/modules/crypto.o src/cmodules/ldap.o \
 	     src/cmodules/dbus.o src/cmodules/mysql.o \
-	     src/cmodules/qrcode.o src/cmodules/regex.o \
+	     src/cmodules/qrcode.o \
 	     src/cmodules/ziptools.o src/cmodules/tidy.o \
 	     src/cmodules/zlib.o src/cmodules/imagick.o \
 	     src/cmodules/hyphenate.o \
@@ -192,10 +192,9 @@ FRAMERD_SOURCES=\
 CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
 	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
-	src/cmodules/qrcode.c src/cmodules/regex.c                     \
-	src/cmodules/ziptools.c src/cmodules/tidy.c                    \
-	src/cmodules/imagick.c src/cmodules/hyphenate.c		       \
-	src/cmodules/sundown/sundown.c 
+	src/cmodules/qrcode.c src/cmodules/ziptools.c                  \
+	src/cmodules/tidy.c src/cmodules/imagick.c                     \
+	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c 
 
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
         lib/libfdbserv@suffix@.a lib/libfddbfile@suffix@.a     \
@@ -773,9 +772,6 @@ lib/framerd/qrcode.dylib: src/cmodules/qrcode.o
 lib/framerd/tidy.so: src/cmodules/tidy.o ${MODULE_SO}
 lib/framerd/tidy.dylib: src/cmodules/tidy.o
 
-lib/framerd/regex.so: src/cmodules/regex.o ${MODULE_SO}
-lib/framerd/regex.dylib: src/cmodules/regex.o
-
 lib/framerd/zlib.so: src/cmodules/zlib.o ${MODULE_SO}
 lib/framerd/zlib.dylib: src/cmodules/zlib.o
 
@@ -1061,8 +1057,6 @@ install-mysql: $(LIBINSTALLDIR)/framerd/mysql.@shared_suffix@ \
 	       $(LIBINSTALLDIR)/framerd/mysql.@vshared_suffix@
 install-qrcode: $(LIBINSTALLDIR)/framerd/qrcode.@shared_suffix@ \
 	       $(LIBINSTALLDIR)/framerd/qrcode.@vshared_suffix@
-install-regex: $(LIBINSTALLDIR)/framerd/regex.@shared_suffix@ \
-	       $(LIBINSTALLDIR)/framerd/regex.@vshared_suffix@
 install-hyphenate: $(LIBINSTALLDIR)/framerd/hyphenate.@shared_suffix@ \
 	       $(LIBINSTALLDIR)/framerd/hyphenate.@vshared_suffix@
 install-ziptools: $(LIBINSTALLDIR)/framerd/ziptools.@shared_suffix@ \

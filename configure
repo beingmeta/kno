@@ -8560,10 +8560,6 @@ else
 fi
 
 fi
-if (test "x$have_regex_h" = "xyes") && (test "x$have_regcomp" = "xyes"); then
-  CMODULES="lib/framerd/regex.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-regex ${INSTALLCMODULES}"
-fi
 
 ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
 if test "x$ac_cv_header_zlib_h" = xyes; then :

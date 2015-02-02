@@ -22,6 +22,7 @@
 #include <libu8/u8printf.h>
 #include <libu8/u8crypto.h>
 
+#include "framerd/fdregex.h"
 #include "framerd/mongodb.h"
 
 /* Initialization */
@@ -417,6 +418,15 @@ static fdtype mongodb_find(fdtype coll,fdtype query,fdtype opts_arg)
        fd_decref(keys);
        bson_append_document_end(out,&doc);
        break;}
+     case fd_regex_type: {
+       struct FD_REGEX *fdrx=(struct FD_REGEX *)val;
+       char opts[8], *write=opts; int flags=fdrx->flags;
+       if (flags&REG_EXTENDED) *write++='x';
+       if (flags&REG_ICASE) *write++='i';
+       if (flags&REG_NEWLINE) *write++='m';
+       *write++='\0';
+       bson_append_regex(out,key,keylen,fdrx->src,opts);
+       break;}
      default: break;}
      return ok;}
    else if (FD_FIXNUMP(val))
@@ -562,15 +572,11 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     value=(bson_iter_bool(in))?(FD_TRUE):(FD_FALSE); break;
   case BSON_TYPE_REGEX: {
     const char *props, *src=bson_iter_regex(in,&props);
-    /* In props:
-         x=extended
-         m=multiline
-         i=ignorecase
-         s=singleline
-    */
-    value=fd_init_compound(NULL,fd_intern("REGEX"),0,2,
-                           fdtype_string((u8_string)src),
-                           fdtype_string((u8_string)props));
+    int flags=0;
+    if (strchr(props,'x')>=0) flags|=REG_EXTENDED;
+    if (strchr(props,'i')>=0) flags|=REG_ICASE;
+    if (strchr(props,'m')>=0) flags|=REG_NEWLINE;
+    value=fd_make_regex((u8_string)src,flags);
     break;}
   case BSON_TYPE_UTF8: {
     int len=-1;

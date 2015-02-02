@@ -17,23 +17,34 @@
 #include "framerd/indices.h"
 #include "framerd/frames.h"
 #include "framerd/numbers.h"
+#include "framerd/fdregex.h"
 
 #include <libu8/libu8io.h>
 
 #include <sys/types.h>
-#include <regex.h>
 
 fd_exception fd_RegexError=_("Regular expression error");
 
-typedef struct FD_REGEX {
-  FD_CONS_HEADER;
-  u8_string src; int flags;
-  u8_mutex lock; int active;
-  regex_t compiled;} FD_REGEX;
-typedef struct FD_REGEX *fd_regex;
+static int default_regex_flags=REG_EXTENDED|REG_NEWLINE;
 
-FD_EXPORT fd_ptr_type fd_regex_type;
-fd_ptr_type fd_regex_type;
+FD_EXPORT fdtype fd_make_regex(u8_string src,int flags)
+{
+  struct FD_REGEX *ptr=u8_alloc(struct FD_REGEX); int retval;
+  FD_INIT_FRESH_CONS(ptr,fd_regex_type);
+  if (flags<0) flags=default_regex_flags;
+  src=u8_strdup(src);
+  retval=regcomp(&(ptr->compiled),src,flags);
+  if (retval) {
+    u8_byte buf[512];
+    regerror(retval,&(ptr->compiled),buf,512);
+    u8_free(ptr);
+    return fd_err(fd_RegexError,"fd_make_regex",u8_strdup(buf),
+                  fd_init_string(NULL,-1,src));}
+  else {
+    ptr->flags=flags; ptr->src=src;
+    u8_init_mutex(&(ptr->lock)); ptr->active=1;
+    return FDTYPE_CONS(ptr);}
+}
 
 static fdtype make_regex(fdtype pat,fdtype nocase,fdtype matchnl)
 {
@@ -150,19 +161,15 @@ static fdtype regex_matchpair(fdtype pat,fdtype string)
 
 /* Initialization */
 
-FD_EXPORT int fd_init_regex(void) FD_LIBINIT_FN;
-
 static int regex_init=0;
 
-FD_EXPORT int fd_init_regex()
+FD_EXPORT int fd_init_regex_c()
 {
   fdtype regex_module;
   if (regex_init) return 0;
 
   regex_init=1;
   regex_module=fd_new_module("REGEX",(FD_MODULE_SAFE));
-
-  fd_regex_type=fd_register_cons_type("REGEX");
 
   fd_unparsers[fd_regex_type]=unparse_regex;
   fd_recyclers[fd_regex_type]=recycle_regex;
