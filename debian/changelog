@@ -1,3 +1,9 @@
+framerd (3.7.4-18) unstable; urgency=low
+
+  * Made encode-entities not encode all non-ascii characters
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 03 Feb 2015 11:49:30 -0500
+
 framerd (3.7.4-17) unstable; urgency=low
 
   * Added mongodb module to Debian packaging

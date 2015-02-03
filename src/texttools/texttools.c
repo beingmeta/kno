@@ -170,23 +170,70 @@ static fdtype decode_entities_prim(fdtype input)
   else return fd_incref(input);
 }
 
-static fdtype encode_entities_prim(fdtype input,fdtype also_encode)
+static fdtype encode_entities(fdtype input,int nonascii,
+                              u8_string ascii_chars,fdtype other_chars)
 {
   struct U8_OUTPUT out;
+  u8_string scan=FD_STRDATA(input);
+  int c=u8_sgetc(&scan), enc=0;
   if (FD_STRLEN(input)==0) return fd_incref(input);
+  U8_INIT_OUTPUT(&out,FD_STRLEN(input));
+  if (ascii_chars==NULL) ascii_chars="<&>";
+  while (c>=0) {
+    if (((c>128)&&(nonascii))||
+        ((c<128)&&(ascii_chars)&&(strchr(ascii_chars,c)))) {
+      u8_printf(&out,"&#%d",c); enc=1;}
+    else if (FD_EMPTY_CHOICEP(other_chars))
+      u8_putc(&out,c);
+    else {
+      fdtype code=FD_CODE2CHAR(c);
+      if (fd_choice_containsp(code,other_chars)) {
+        u8_printf(&out,"&#%d",c); enc=1;}
+      else u8_putc(&out,c);}
+    c=u8_sgetc(&scan);}
+  if (enc) return fd_stream2string(&out);
   else {
-    u8_string scan=FD_STRDATA(input);
-    unsigned char *also=((FD_STRINGP(also_encode))?(FD_STRDATA(also_encode)):
-                         (FD_FALSEP(also_encode))?(NULL):
-                         ((unsigned char *)"<&>"));
-    int c=u8_sgetc(&scan);
-    U8_INIT_OUTPUT(&out,FD_STRLEN(input));
-    while (c>=0) {
-      if ((c>=128)||((also)&&(strchr(also,c))))
-        u8_printf(&out,"&#x%x;",c);
-      else u8_putc(&out,c);
-      c=u8_sgetc(&scan);}
-    return fd_stream2string(&out);}
+    u8_free(out.u8_outbuf);
+    return fd_incref(input);}
+}
+
+static fdtype encode_entities_prim(fdtype input,fdtype chars,fdtype nonascii)
+{
+  int na=(!((FD_VOIDP(nonascii))||(FD_FALSEP(nonascii))));
+  if (FD_STRLEN(input)==0) return fd_incref(input);
+  else if (FD_VOIDP(chars))
+    return encode_entities(input,na,"<&>",FD_EMPTY_CHOICE);
+  else {
+    fdtype other_chars=FD_EMPTY_CHOICE, result=FD_VOID;
+    struct U8_OUTPUT ascii_chars; u8_byte buf[128];
+    U8_INIT_FIXED_OUTPUT(&ascii_chars,128,buf); buf[0]='\0';
+    {FD_DO_CHOICES(xch,chars) {
+        if (FD_STRINGP(xch)) {
+          u8_string string=FD_STRDATA(xch);
+          u8_byte *scan=string; int c=u8_sgetc(&scan);
+          while (c>=0) {
+            if (c<128) {
+              if (strchr(buf,c)<0) u8_putc(&ascii_chars,c);}
+            else {
+              fdtype xch=FD_CODE2CHAR(c);
+              FD_ADD_TO_CHOICE(other_chars,xch);}
+            c=u8_sgetc(&scan);}}
+        else if (FD_CHARACTERP(xch)) {
+          int ch=FD_CHAR2CODE(xch);
+          if (ch<128) u8_putc(&ascii_chars,ch);
+          else {FD_ADD_TO_CHOICE(other_chars,xch);}}
+        else {
+          FD_STOP_DO_CHOICES;
+          return fd_type_error("character or string",
+                               "encode_entities_prim",
+                               xch);}}}
+    if (FD_EMPTY_CHOICEP(other_chars))
+      return encode_entities(input,na,buf,other_chars);
+    else {
+      fdtype oc=fd_simplify_choice(other_chars);
+      fdtype result=encode_entities(input,na,buf,oc);
+      fd_decref(oc);
+      return result;}}
 }
 
 /* Breaking up strings into words */
@@ -2258,9 +2305,9 @@ void fd_init_texttools()
            fd_make_cprim1x("DECODE-ENTITIES",decode_entities_prim,1,
                            fd_string_type,FD_VOID));
   fd_idefn(texttools_module,
-           fd_make_cprim2x("ENCODE-ENTITIES",encode_entities_prim,1,
-                           fd_string_type,FD_VOID,
-                           fd_string_type,FD_VOID));
+           fd_make_cprim3x("ENCODE-ENTITIES",encode_entities_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID,
+                           -1,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim3x("COLUMNIZE",columnize_prim,2,
                            fd_string_type,FD_VOID,
