@@ -104,23 +104,24 @@ static int copyStringOpt(fdtype opts,TidyDoc tdoc,TidyOptionId optname,
 static fdtype doctype_symbol, dontfix_symbol, wrap_symbol;
 
 static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
-                               int for_real_arg,int for_xml_arg)
+                               int do_fixes,int xhtml)
 {
-  fdtype result=FD_VOID;
-  TidyBuffer outbuf={NULL};
+  fdtype result=FD_VOID; TidyBuffer outbuf={NULL};
   TidyBuffer errbuf={NULL};
   int rc=-1;
   TidyDoc tdoc=tidyCreate();
-  Bool ok=tidyOptSetBool(tdoc,TidyXhtmlOut,yes);
-  fdtype for_real=((for_real_arg)?(FD_TRUE):(FD_FALSE));
-  fdtype for_xml=((for_xml_arg)?(FD_TRUE):(FD_FALSE));
-  if (ok) {
-    tidyBufInit(&outbuf);
-    tidyBufInit(&errbuf);
-    rc=tidySetErrorBuffer(tdoc,&errbuf);}
+  fdtype for_real=((do_fixes)?(FD_TRUE):(FD_FALSE));
+  fdtype for_xml=((xhtml)?(FD_TRUE):(FD_FALSE));
+  tidyBufInit(&outbuf);
+  tidyBufInit(&errbuf);
+  rc=tidySetErrorBuffer(tdoc,&errbuf);
   if (rc<0) {
     tidyRelease(tdoc);
     return fd_err(fd_TidyError,"tidy_prim/init",NULL,FD_VOID);}
+  if (xhtml) {
+    rc=copyBoolOpt(opts,tdoc,TidyXhtmlOut,"XHTMLOUT",FD_TRUE);
+    if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXmlSpace,"XMLSPACE",FD_TRUE);}
+  else rc=copyBoolOpt(opts,tdoc,TidyHtmlOut,"HTMLOUT",FD_FALSE);
   if (rc>=0) rc=copyStringOpt(opts,tdoc,TidyCharEncoding,"ENCODING","utf8");
   if (rc>=0) rc=copyStringOpt(opts,tdoc,TidyAltText,"ALTSTRING","utf8");
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyShowWarnings,"WARN",for_real);
@@ -131,10 +132,7 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
                (opts,tdoc,TidyDropEmptyParas,"DROPEMPTY",for_real);
   if (rc>=0) rc=copyBoolOpt
                (opts,tdoc,TidyFixComments,"FIXCOMMENTS",FD_TRUE);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXmlSpace,"XMLSPACE",for_xml);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXmlTags,"XMLIN",FD_TRUE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXmlDecl,"XMLDECL",FD_FALSE);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXmlOut,"XMLOUT",for_xml);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyEncloseBodyText,"ENCLOSEBODY",
                             for_real);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyEncloseBlockText,"ENCLOSEBLOCK",
@@ -143,8 +141,6 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyMark,"LEAVEMARK",FD_FALSE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyJoinClasses,"JOINCLASSES",FD_TRUE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyJoinStyles,"JOINSTYLES",FD_TRUE);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyXhtmlOut,"XHTMLOUT",for_xml);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyHtmlOut,"HTMLOUT",FD_FALSE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyFixUri,"FIXURI",FD_TRUE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyNCR,"NUMENTITIES",FD_FALSE);
   if (rc>=0) rc=copyStringOpt(opts,tdoc,TidyCSSPrefix,"CSSPREFIX","tidy-");
