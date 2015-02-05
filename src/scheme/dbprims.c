@@ -24,6 +24,7 @@
 #include "framerd/sequences.h"
 #include "framerd/dbprims.h"
 #include "framerd/numbers.h"
+#include "framerd/fdregex.h"
 
 #include "libu8/u8printf.h"
 
@@ -1468,6 +1469,21 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel
     if (datalevel)
       return fd_test(candidate,test,FD_VOID);
     else return fd_frame_test(candidate,test,FD_VOID);
+  else if (FD_PTR_TYPEP(test,fd_regex_type)) {
+    if (FD_STRINGP(candidate)) {
+      struct FD_REGEX *fdrx=(struct FD_REGEX *)test;
+      regmatch_t results[1];
+      u8_string data=FD_STRDATA(candidate);
+      int retval=regexec(&(fdrx->compiled),data,1,results,0);
+      if (retval==REG_NOMATCH) return 0;
+      else if (retval) {
+        u8_byte buf[512];
+        regerror(retval,&(fdrx->compiled),buf,512);
+        fd_seterr(fd_RegexError,"regex_pick",u8_strdup(buf),FD_VOID);
+        return -1;}
+      else if (results[0].rm_so<0) return 0;
+      else return 1;}
+    else return 0;}
   else if (FD_PTR_TYPEP(test,fd_hashset_type))
     if (fd_hashset_get((fd_hashset)test,candidate))
       return 1;
