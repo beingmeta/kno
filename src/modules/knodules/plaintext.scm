@@ -244,6 +244,8 @@
 	     "\n\t in " knodule)
     (doseq (clause (cdr clauses))
       (handle-clause clause dterm knodule))
+    (add! dterm 'clauses clauses)
+    (add! dterm 'defs entry)
     dterm))
 
 (define (handle-entry entry knodule)
