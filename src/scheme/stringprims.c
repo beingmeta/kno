@@ -693,7 +693,7 @@ static fdtype string_bigrams(fdtype string)
 
 /* String predicates */
 
-static int getnonstring(fdtype choice)
+static fdtype getnonstring(fdtype choice)
 {
   FD_DO_CHOICES(x,choice) {
     if (!(FD_STRINGP(x))) {
