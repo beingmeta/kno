@@ -525,6 +525,9 @@ typedef struct FD_COMPLEX *fd_complex;
   ((FD_GET_CONS(x,fd_complex_type,struct FD_COMPLEX *))->imagpart)
 
 
+/* Parsing regexes */
+FD_EXPORT fdtype (*fd_regex_parser)(u8_string src,u8_string opts);
+
 /* Mysteries */
 
 typedef struct FD_MYSTERY {

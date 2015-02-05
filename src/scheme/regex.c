@@ -66,6 +66,28 @@ static fdtype make_regex(fdtype pat,fdtype nocase,fdtype matchnl)
     return FDTYPE_CONS(ptr);}
 }
 
+static fdtype parse_regex(u8_string src_arg,u8_string opts)
+{
+  struct FD_REGEX *ptr=u8_alloc(struct FD_REGEX);
+  int retval, cflags=REG_EXTENDED;
+  u8_string src=u8_strdup(src_arg);
+  FD_INIT_FRESH_CONS(ptr,fd_regex_type);
+  if (strchr(opts,'i')) cflags=cflags|REG_ICASE;
+  else if (strchr(opts,'c')) cflags=cflags|REG_ICASE;
+  else if (strchr(opts,'m')) cflags=cflags|REG_NEWLINE;
+  else {}
+  retval=regcomp(&(ptr->compiled),src,cflags);
+  if (retval) {
+    u8_byte buf[512];
+    regerror(retval,&(ptr->compiled),buf,512);
+    u8_free(ptr);
+    return fd_err(fd_RegexError,"parse_regex",u8_strdup(buf),FD_VOID);}
+  else {
+    ptr->flags=cflags; ptr->src=src;
+    u8_init_mutex(&(ptr->lock)); ptr->active=1;
+    return FDTYPE_CONS(ptr);}
+}
+
 static fdtype regexp_prim(fdtype x)
 {
   if (FD_PRIM_TYPEP(x,fd_regex_type)) return FD_TRUE;
@@ -83,9 +105,9 @@ static void recycle_regex(struct FD_CONS *c)
 static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_REGEX *rx=(struct FD_REGEX *)x;
-  u8_printf(out,"#<REGEX /%s/%s%s%s%s>",rx->src,
+  u8_printf(out,"#/%s/%s%s%s%s",rx->src,
             (((rx->flags)&REG_EXTENDED)?"e":""),
-            (((rx->flags)&REG_ICASE)?"c":""),
+            (((rx->flags)&REG_ICASE)?"i":""),
             (((rx->flags)&REG_ICASE)?"l":""),
             (((rx->flags)&REG_NOSUB)?"s":""));
   return 1;
@@ -107,8 +129,8 @@ static fdtype regex_searchop(enum SEARCHOP op,fdtype pat,fdtype string)
   regmatch_t results[1];
   int retval, len=FD_STRLEN(string);
   u8_string s=FD_STRDATA(string);
-  retval=regexec(&(ptr->compiled),FD_STRDATA(string),1,results,0);
   u8_lock_mutex(&(ptr->lock));
+  retval=regexec(&(ptr->compiled),FD_STRDATA(string),1,results,0);
   if (retval==REG_NOMATCH) return FD_FALSE;
   else if (retval) {
     u8_byte buf[512];
@@ -170,6 +192,8 @@ FD_EXPORT int fd_init_regex_c()
 
   regex_init=1;
   regex_module=fd_new_module("REGEX",(FD_MODULE_SAFE));
+
+  fd_regex_parser=parse_regex;
 
   fd_unparsers[fd_regex_type]=unparse_regex;
   fd_recyclers[fd_regex_type]=recycle_regex;

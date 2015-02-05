@@ -771,6 +771,36 @@ static fdtype parse_packet(U8_INPUT *in)
     else return FD_PARSE_ERROR;}
 }
 
+fdtype (*fd_regex_parser)(u8_string src,u8_string opts)=NULL;
+
+static fdtype parse_regex(U8_INPUT *in)
+{
+  fdtype result; struct U8_OUTPUT src; u8_byte buf[128];
+  u8_byte opts[16], *optwrite=opts;
+  int c=u8_getc(in); U8_INIT_OUTPUT_BUF(&src,128,buf);
+  while (c>=0) {
+    if (c!='/') u8_putc(&src,c);
+    else {
+      int mc=u8_getc(in);
+      while ((mc<128)&&(u8_isalpha(mc))) {
+        if (strchr("eils",mc)) *optwrite++=(char)mc;
+        else {
+          fd_seterr(fd_ParseError,"parse_regex",src.u8_outbuf,FD_VOID);
+          return FD_PARSE_ERROR;}
+        mc=u8_getc(in);}
+      u8_ungetc(in,mc);
+      *optwrite++='\0';
+      if (fd_regex_parser)
+        result=fd_regex_parser(src.u8_outbuf,opts);
+      else result=fd_make_nvector(3,fd_intern("NOREGEX"),
+                                  fdtype_string(src.u8_outbuf),
+                                  fdtype_string(opts));
+      u8_close((u8_stream)&src);
+      return result;}
+    c=u8_getc(in);}
+  return FD_EOF;
+}
+
 static fdtype parse_hex_packet(U8_INPUT *in)
 {
   char *data=u8_malloc(128);
@@ -1222,6 +1252,7 @@ fdtype fd_parser(u8_input in)
       result=parse_hex_packet(in);
       return result;}
     case '"': return parse_packet(in);
+    case '/': return parse_regex(in);
     case '<':
       return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
     case ';': {
