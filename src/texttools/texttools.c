@@ -448,6 +448,9 @@ static fdtype list2phrase_prim(fdtype arg)
 {
   int dospace=0; struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
   {FD_DOLIST(word,arg) {
+      if ((FD_FALSEP(word))||(FD_EMPTY_CHOICEP(word))||
+          (FD_EMPTY_LISTP(word)))
+        continue;
       if (dospace) {u8_putc(&out,' ');} else dospace=1;
       if (FD_STRINGP(word)) u8_puts(&out,FD_STRING_DATA(word));
       else u8_printf(&out,"%q",word);}}
@@ -483,7 +486,10 @@ static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
           seq2phrase_ndhelper(out.u8_outbuf,arg,start,end,dospace);
         fd_decref(word); u8_free(out.u8_outbuf);
         return fd_simplify_choice(result);}
-      if (dospace) {u8_putc(&out,' ');} else dospace=1;
+      else if ((FD_FALSEP(word))||(FD_EMPTY_CHOICEP(word))||
+               (FD_EMPTY_LISTP(word))) {
+        start++; continue;}
+      else if (dospace) {u8_putc(&out,' ');} else dospace=1;
       if (FD_STRINGP(word)) u8_puts(&out,FD_STRING_DATA(word));
       else u8_printf(&out,"%q",word);
       fd_decref(word); start++;}
