@@ -1,3 +1,11 @@
+framerd (3.7.4-21) unstable; urgency=low
+
+  * Fuller integration of POSIX regexes
+  * Various updates to the new MongoDB implementation
+  * Fixes to various text processing functions
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 07 Feb 2015 13:24:38 -0500
+
 framerd (3.7.4-20) unstable; urgency=low
 
   * Added MongoDB commands and findAndModify
