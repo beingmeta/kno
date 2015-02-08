@@ -115,7 +115,7 @@ static fdtype character_constants[]={
 
 static int emit_symbol_name(U8_OUTPUT *out,u8_string name)
 {
-  u8_byte *scan=name;
+  const u8_byte *scan=name;
   int c=u8_sgetc(&scan), needs_protection=0;
   while (c>=0)
     if ((atombreakp(c)) ||
@@ -124,7 +124,7 @@ static int emit_symbol_name(U8_OUTPUT *out,u8_string name)
     else c=u8_sgetc(&scan);
   if (needs_protection==0) u8_puts(out,name);
   else {
-    u8_byte *start=name, *scan=start;
+    const u8_byte *start=name, *scan=start;
     u8_putc(out,'|');
     while (*scan)
       if ((*scan == '\\') || (*scan == '|')) {
@@ -197,7 +197,8 @@ static int unparse_string(U8_OUTPUT *out,fdtype x)
 static int unparse_packet(U8_OUTPUT *out,fdtype x)
 {
   struct FD_STRING *s=(struct FD_STRING *)x;
-  unsigned char *bytes=s->bytes; int i=0, len=s->length;
+  const unsigned char *bytes=s->bytes;
+  int i=0, len=s->length;
   if (fd_unparse_hexpacket) {
     u8_puts(out,"#x\"");
     while (i<len) {
@@ -233,7 +234,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
 static int unparse_secret(U8_OUTPUT *out,fdtype x)
 {
   struct FD_STRING *s=(struct FD_STRING *)x;
-  unsigned char *bytes=s->bytes; int i=0, len=s->length;
+  const unsigned char *bytes=s->bytes; int i=0, len=s->length;
   unsigned char hashbuf[16], *hash;
   u8_printf(out,"#*\"%d:",len);
   hash=u8_md5(bytes,len,hashbuf);
@@ -608,7 +609,7 @@ static fdtype parse_character(U8_INPUT *in)
   if (n_chars==0) return FD_CODE2CHAR(c);
   else u8_ungetc(in,c);
   if (n_chars==1) {
-    u8_byte *scan=buf; int c=u8_sgetc(&scan);
+    const u8_byte *scan=buf; int c=u8_sgetc(&scan);
     return FD_CODE2CHAR(c);}
   else if ((tmpbuf.u8_outbuf[0]=='u') || (tmpbuf.u8_outbuf[0]=='U'))
     c=parse_unicode_escape(tmpbuf.u8_outbuf);
@@ -645,18 +646,22 @@ typedef unsigned long long ull;
 
 static fdtype default_parse_oid(u8_string start,int len)
 {
+  u8_byte _buf[64], *buf=buf;
   FD_OID oid=FD_NULL_OID_INIT;
   unsigned int hi, lo, c=start[len];
-  start[len]='\0';
-  if ((strchr(start,'/'))>0) {
-    int items=sscanf(start,"@%x/%x",&hi,&lo);
+  if (len>64) buf=u8_malloc(len+1);
+  strncpy(buf,start,len);
+  if ((strchr(buf,'/'))>0) {
+    int items=sscanf(buf,"@%x/%x",&hi,&lo);
     if (items!=2) {
-      start[len]=c; return FD_PARSE_ERROR;}}
+      if (buf!=_buf) u8_free(buf);
+      return FD_PARSE_ERROR;}}
   else {
     unsigned long long addr;
-    int items=sscanf(start,"@%llx",&addr);
+    int items=sscanf(buf,"@%llx",&addr);
     if (items!=1) {
-      start[len]=c; return FD_PARSE_ERROR;}
+      if (buf!=_buf) u8_free(buf);
+      return FD_PARSE_ERROR;}
     hi=((addr>>32)&((ull)0xFFFFFFFF));
     lo=(addr&((ull)0xFFFFFFFF));}
   FD_SET_OID_HI(oid,hi); FD_SET_OID_LO(oid,lo);

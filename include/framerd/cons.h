@@ -244,7 +244,7 @@ typedef struct FD_STRING *fd_string;
 #define fd_strdata(x) (FD_STRDATA(x))
 
 FD_EXPORT fdtype fd_extract_string
-  (struct FD_STRING *ptr,u8_byte *start,u8_byte *end);
+  (struct FD_STRING *ptr,u8_string start,u8_string end);
 FD_EXPORT fdtype fd_init_string
   (struct FD_STRING *ptr,int slen,u8_string string);
 FD_EXPORT fdtype fd_make_string
@@ -281,11 +281,11 @@ FD_EXPORT fdtype fdtype_string(u8_string string);
   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->bytes[i])
 
 FD_EXPORT fdtype fd_init_packet
-  (struct FD_STRING *ptr,int len,unsigned char *data);
+  (struct FD_STRING *ptr,int len,const unsigned char *data);
 FD_EXPORT fdtype fd_make_packet
-  (struct FD_STRING *ptr,int len,unsigned char *data);
+  (struct FD_STRING *ptr,int len,const unsigned char *data);
 FD_EXPORT fdtype fd_bytes2packet
-  (struct FD_STRING *ptr,int len,unsigned char *data);
+  (struct FD_STRING *ptr,int len,const unsigned char *data);
 
 #define FD_XPACKET(x) (FD_GET_CONS(x,fd_packet_type,struct FD_STRING *))
 

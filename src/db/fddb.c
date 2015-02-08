@@ -51,7 +51,7 @@ static int fddb_initialized=0;
 static fdtype better_parse_oid(u8_string start,int len)
 {
   if (start[1]=='?') {
-    u8_byte *scan=start+2;
+    const u8_byte *scan=start+2;
     fdtype name=fd_parse(scan);
     if (scan-start>len) return FD_VOID;
     else if (FD_ABORTP(name)) return name;
@@ -94,7 +94,8 @@ static fdtype better_parse_oid(u8_string start,int len)
            (((u8_string)strchr(start,'/'))<(start+len))) {
     FD_OID base=FD_NULL_OID_INIT, result=FD_NULL_OID_INIT;
     unsigned int delta;
-    u8_byte prefix[64], suffix[64], *copy_start, *copy_end;
+    u8_byte prefix[64], suffix[64];
+    const u8_byte *copy_start, *copy_end;
     copy_start=((start[1]=='/') ? (start+2) : (start+1));
     copy_end=strchr(copy_start,'/');
     if (copy_end==NULL) return FD_PARSE_ERROR;

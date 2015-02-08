@@ -68,7 +68,7 @@ static void emit_xmlname(u8_output out,u8_string name)
 
 static void attrib_entify(u8_output out,u8_string value)
 {
-  u8_byte *scan=value; int c;
+  const u8_byte *scan=value; int c;
   while ((c=u8_sgetc(&scan))>=0)
     if (strchr("'<>&\"",c)) /* (strchr("'<>&\"!@$%(){}[]",c)) */
       /* For now, we're not escaping +/-, even though some sources suggest
@@ -100,7 +100,7 @@ static void attrib_entify(u8_output out,u8_string value)
 
 FD_INLINE_FCN void entify(u8_output out,u8_string value)
 {
-  u8_byte *scan=value; int c;
+  const u8_byte *scan=value; int c;
   while ((c=u8_sgetc(&scan))>=0)
     if (c=='<') u8_puts(out,"&#60;");
     else if (c=='>') u8_puts(out,"&#62;");
@@ -110,7 +110,7 @@ FD_INLINE_FCN void entify(u8_output out,u8_string value)
 
 FD_INLINE_FCN void entify_lower(u8_output out,u8_string value)
 {
-  u8_byte *scan=value; int c;
+  const u8_byte *scan=value; int c;
   while ((c=u8_sgetc(&scan))>=0)
     if (c=='<') u8_puts(out,"&#60;");
     else if (c=='>') u8_puts(out,"&#62;");
@@ -133,7 +133,7 @@ void fd_attrib_entify(u8_output out,u8_string value)
 static void emit_xmlattrib
   (u8_output out,u8_output tmp,u8_string name,fdtype value,int lower)
 {
-  int c; u8_byte *scan=name;
+  int c; const u8_byte *scan=name;
   /* Start every attrib with a space, just in case */
   u8_putc(out,' ');
   if (lower) {
@@ -322,7 +322,7 @@ static u8_string get_tagname(fdtype tag,u8_byte *buf,int len)
 {
   U8_OUTPUT out; U8_INIT_STATIC_OUTPUT_BUF(out,len,buf);
   if (FD_SYMBOLP(tag)) {
-    u8_byte *scan=FD_SYMBOL_NAME(tag); int c;
+    const u8_byte *scan=FD_SYMBOL_NAME(tag); int c;
     while ((c=u8_sgetc(&scan))>=0)
       if ((c=='*') && (*scan=='\0')) break;
       else if (u8_isupper(c))
@@ -429,9 +429,11 @@ static fdtype nbsp_prim()
 
 static fdtype xmlemptyelt(int n,fdtype *args)
 {
-  fdtype eltname=args[0];
-  u8_byte tagbuf[128], *tagname; int i=1;
   U8_OUTPUT *out=u8_current_output;
+  fdtype eltname=args[0];
+  const u8_byte *tagname;
+  u8_byte tagbuf[128];
+  int i=1;
   tagname=get_tagname(eltname,tagbuf,128);
   if (tagname) {
     u8_putc(out,'<');
@@ -459,7 +461,7 @@ static fdtype xmlentry(fdtype expr,fd_lispenv env)
 {
   U8_OUTPUT *out=u8_current_output;
   fdtype head=fd_get_arg(expr,1), args=FD_CDR(FD_CDR(expr));
-  u8_byte tagbuf[128], *tagname;
+  u8_byte tagbuf[128]; u8_string tagname;
   if ((FD_PAIRP(head)))  head=fd_eval(head,env);
   else head=fd_incref(head);
   tagname=get_tagname(head,tagbuf,128);
@@ -480,7 +482,7 @@ static fdtype xmlstart_handler(fdtype expr,fd_lispenv env)
 {
   U8_OUTPUT *out=u8_current_output;
   fdtype head=fd_get_arg(expr,1), args=FD_CDR(FD_CDR(expr));
-  u8_byte tagbuf[128], *tagname;
+  u8_byte tagbuf[128]; u8_string tagname;
   if ((FD_PAIRP(head)))  head=fd_eval(head,env);
   else head=fd_incref(head);
   tagname=get_tagname(head,tagbuf,128);
@@ -500,7 +502,7 @@ static fdtype xmlstart_handler(fdtype expr,fd_lispenv env)
 static fdtype xmlend_prim(fdtype head)
 {
   U8_OUTPUT *out=u8_current_output;
-  u8_byte tagbuf[128], *tagname;
+  u8_byte tagbuf[128]; u8_string tagname;
   tagname=get_tagname(head,tagbuf,128);
   if (tagname==NULL) {
     fd_decref(head);
@@ -513,7 +515,8 @@ static fdtype doxmlblock(fdtype expr,fd_lispenv env,int newline)
 {
   fdtype tagspec=fd_get_arg(expr,1), attribs, body;
   fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
-  u8_byte tagbuf[128], buf[128], *tagname; int eval_attribs=0;
+  u8_byte tagbuf[128], buf[128];
+  u8_string tagname; int eval_attribs=0;
   U8_OUTPUT *out, tmpout;
   if (FD_SYMBOLP(tagspec)) {
     attribs=fd_get_arg(expr,2); body=fd_get_body(expr,3);
@@ -591,7 +594,8 @@ static fdtype handle_markup(fdtype expr,fd_lispenv env,int star,int block)
     fdtype attribs=fd_get_arg(expr,1), body=fd_get_body(expr,2);
     fdtype xmloidfn=fd_symeval(xmloidfn_symbol,env);
     U8_OUTPUT *out=u8_current_output, tmpout;
-    u8_byte *tagname, tagbuf[128], buf[128];
+    u8_byte tagbuf[128], buf[128];
+    u8_string tagname;
     U8_INIT_STATIC_OUTPUT_BUF(tmpout,128,buf);
     if (star) {
       attribs=fd_get_arg(expr,1); body=fd_get_body(expr,2);}
@@ -653,9 +657,10 @@ static fdtype markupstar_handler(fdtype expr,fd_lispenv env)
 
 static fdtype emptymarkup_handler(fdtype expr,fd_lispenv env)
 {
+  u8_byte tagbuf[128];
   U8_OUTPUT *out=u8_current_output;
   fdtype head=FD_CAR(expr), args=FD_CDR(expr);
-  u8_byte tagbuf[128], *tagname=get_tagname(head,tagbuf,128);
+  u8_string tagname=get_tagname(head,tagbuf,128);
   if (tagname==NULL)
     return fd_err(fd_SyntaxError,"emptymarkup_handler",NULL,expr);
   else if (open_markup(out,NULL,tagname,args,env,1)<0)
@@ -935,7 +940,7 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
   if (ex==NULL) return;
   else if (ex->u8x_context==fd_eval_context) {
     fdtype expr=exception_data(ex);
-    struct U8_OUTPUT tmp; u8_string focus_start;
+    struct U8_OUTPUT tmp; u8_byte *focus_start;
     fdtype focus=get_focus_expr(ex);
     U8_INIT_OUTPUT(&tmp,1024);
     u8_printf(s,"<tbody class='eval'><tr><th>Eval</th>\n<td class='expr'>");
@@ -1635,10 +1640,11 @@ static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
   else if (FD_SYMBOLP(string)) input=FD_SYMBOL_NAME(string);
   else if (FD_PACKETP(string)) {
     int len=FD_PACKET_LENGTH(string);
-    input=u8_malloc(len+1);
-    memcpy(input,FD_PACKET_DATA(string),len);
-    input[len]='\0';
-    free_input=1;}
+    u8_byte *buf=u8_malloc(len+1);
+    memcpy(buf,FD_PACKET_DATA(string),len);
+    buf[len]='\0';
+    free_input=1;
+    input=buf;}
   else {
     input=fd_dtype2string(string);
     free_input=1;}
@@ -1662,7 +1668,7 @@ static int xdigit_weight(int c)
 static fdtype uridecode_prim(fdtype string)
 {
   int len=FD_STRLEN(string), c;
-  u8_byte *scan=FD_STRDATA(string), *limit=scan+len;
+  const u8_byte *scan=FD_STRDATA(string), *limit=scan+len;
   u8_byte *result=result=u8_malloc(len+1), *write=result;
   while (scan<limit) {
     c=*(scan++);
@@ -1880,7 +1886,7 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lispenv env)
         else if (FD_FLONUMP(val))
           u8_printf(out,"%f",FD_FLONUM(val));
         else if (FD_STRINGP(val)) {
-          u8_byte *scan=FD_STRDATA(val);
+          const u8_byte *scan=FD_STRDATA(val);
           u8_putc(out,'"');
           while (*scan) {
             int c=u8_sgetc(&scan);
@@ -1892,7 +1898,7 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lispenv env)
                     FD_OID_HI(FD_OID_ADDR(val)),
                     FD_OID_LO(FD_OID_ADDR(val)));
         else {
-          U8_OUTPUT tmp; u8_byte buf[128]; u8_byte *scan;
+          U8_OUTPUT tmp; u8_byte buf[128]; const u8_byte *scan;
           U8_INIT_STATIC_OUTPUT_BUF(tmp,128,buf);
           tmp.u8_streaminfo=tmp.u8_streaminfo|U8_STREAM_TACITURN;
           u8_puts(out,"\":");

@@ -42,9 +42,11 @@ static void get_mailinfo(fdtype headers,u8_string *host,u8_string *domain,u8_str
   if (FD_STRINGP(mailfrom_spec)) *from=FD_STRDATA(mailfrom_spec);
 }
 
-static fdtype smtp_function(fdtype dest,fdtype headers,fdtype content,fdtype ctype,fdtype mailinfo)
+static fdtype smtp_function(fdtype dest,fdtype headers,fdtype content,
+                            fdtype ctype,fdtype mailinfo)
 {
-  u8_byte *mailhost=mailhost_dflt, *maildomain=maildomain_dflt, *mailfrom=mailfrom_dflt;
+  u8_string mailhost=mailhost_dflt, maildomain=maildomain_dflt;
+  u8_string mailfrom=mailfrom_dflt;
   fdtype header_keys=fd_getkeys(headers);
   int retval, i=0, n_headers=FD_CHOICE_SIZE(header_keys), n_to_free=0;
   struct U8_MAILHEADER *mh=u8_alloc_n(n_headers,struct U8_MAILHEADER);

@@ -26,14 +26,17 @@ typedef unsigned int fd_matchflags;
 /* Matcher functions */
 
 typedef fdtype
-  (*tx_matchfn)(fdtype pat,fdtype next,fd_lispenv env,u8_byte *string,
-                u8_byteoff off,u8_byteoff lim,int flags);
+  (*tx_matchfn)(fdtype pat,fdtype next,fd_lispenv env,
+		const u8_byte *string,u8_byteoff off,u8_byteoff lim,
+		int flags);
 typedef u8_byteoff
-  (*tx_searchfn)(fdtype pat,fd_lispenv env,u8_byte *string,
-                 u8_byteoff off,u8_byteoff lim,int flags);
+  (*tx_searchfn)(fdtype pat,fd_lispenv env,
+		 const u8_byte *string,u8_byteoff off,u8_byteoff lim,
+		 int flags);
 typedef fdtype
-  (*tx_extractfn)(fdtype pat,fdtype next,fd_lispenv env,u8_byte *string,
-                  u8_byteoff off,u8_byteoff lim,int flags);
+  (*tx_extractfn)(fdtype pat,fdtype next,fd_lispenv env,
+		  const u8_byte *string,u8_byteoff off,u8_byteoff lim,
+		  int flags);
 
 FD_EXPORT int fd_text_match
   (fdtype pat,fd_lispenv env,

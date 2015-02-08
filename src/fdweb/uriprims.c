@@ -128,7 +128,7 @@ static int uri_merge(fdtype uri,fdtype base)
 
 /* Parsing URIs */
 
-static int guess_portno(char *string,int n)
+static int guess_portno(u8_string string,int n)
 {
   /* We could do getservbyname, but let's not. */
   if (*string=='\0') return 80;
@@ -205,7 +205,7 @@ static fdtype mergeuris(fdtype uri,fdtype base)
 }
 
 static void uri_output(u8_output out,u8_string s,int len,int upper,
-                       char *escape)
+                       const char *escape)
 {
   u8_string lim=((len<0)?(NULL):(s+len));
   while ((lim)?(s<lim):(*s))
@@ -358,9 +358,9 @@ static fdtype uribase_prim(fdtype uri_arg)
 static fdtype uripath_prim(fdtype uri_arg)
 {
   u8_string uri=FD_STRDATA(uri_arg);
-  u8_byte *hash=strchr(uri,'#');
-  u8_byte *qmark=strchr(uri,'?');
-  u8_byte *pathstart=strchr(uri,'/');
+  u8_string hash=strchr(uri,'#');
+  u8_string qmark=strchr(uri,'?');
+  u8_string pathstart=strchr(uri,'/');
   while ((pathstart)&&(pathstart[1]=='/'))
     pathstart=strchr(pathstart+2,'/');
   if (!(pathstart)) pathstart=uri;
@@ -378,7 +378,7 @@ static fdtype uripath_prim(fdtype uri_arg)
 }
 
 FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int len,int upper,
-                             char *escape)
+                             const char *escape)
 {
   uri_output(out,uri,len,upper,escape);
 }

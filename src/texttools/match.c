@@ -261,7 +261,7 @@ static fdtype match_apply(fdtype method,u8_context cxt,fd_lispenv env,
 
 /** Utility functions **/
 
-static u8_byteoff _get_char_start(u8_byte *s,u8_byteoff i)
+static u8_byteoff _get_char_start(const u8_byte *s,u8_byteoff i)
 {
   if (s[i]<0x80) return i-1;
   else if (s[i]>=0xc0) return -1;
@@ -273,9 +273,9 @@ static u8_byteoff _get_char_start(u8_byte *s,u8_byteoff i)
 #define backward_char(s,i) \
   ((i==0) ? (i) : ((s[i-1] >= 0x80) ? (_get_char_start(s,i-1)) : (i-1)))
 
-static u8_byteoff _forward_char(u8_byte *s,u8_byteoff i)
+static u8_byteoff _forward_char(const u8_byte *s,u8_byteoff i)
 {
-  u8_byte *next=u8_substring(s+i,1);
+  u8_string next=u8_substring(s+i,1);
   if (next) return next-s; else return i+1;
 }
 
@@ -296,7 +296,7 @@ static u8_unichar get_previous_char(u8_string string,u8_byteoff off)
   if (off == 0) return -1;
   else if (string[off-1] < 0x80) return string[off-1];
   else {
-    u8_byteoff i=off-1, ch; u8_byte *scan;
+    u8_byteoff i=off-1, ch; const u8_byte *scan;
     while ((i>0) && (string[i]>=0x80) && (string[i]<0xC0)) i--;
     scan=string+i; ch=u8_sgetc(&scan);
     return ch;}
@@ -304,7 +304,7 @@ static u8_unichar get_previous_char(u8_string string,u8_byteoff off)
 
 static u8_byteoff strmatcher
   (int flags,
-   u8_byte *pat,u8_byteoff patlen,
+   const u8_byte *pat,u8_byteoff patlen,
    u8_string string,u8_byteoff off,u8_byteoff lim)
 {
   if ((flags&FD_MATCH_SPECIAL) == 0)
@@ -313,7 +313,7 @@ static u8_byteoff strmatcher
   else {
     int di=(flags&FD_MATCH_IGNORE_DIACRITICS),
       si=(flags&FD_MATCH_COLLAPSE_SPACES);
-    u8_byte *s1=pat, *s2=string+off, *end=s2, *limit=string+lim;
+    const u8_byte *s1=pat, *s2=string+off, *end=s2, *limit=string+lim;
     u8_unichar c1=u8_sgetc(&s1), c2=u8_sgetc(&s2);
     while ((c1>0) && (c2>0) && (s2 <= limit))
       if ((si) && (u8_isspace(c1)) && (u8_isspace(c2))) {
@@ -350,7 +350,7 @@ static void init_match_operators_table()
 
 FD_EXPORT
 void fd_add_match_operator
-  (u8_byte *label,
+  (u8_string label,
    tx_matchfn matcher,tx_searchfn searcher,tx_extractfn extract)
 {
   fdtype sym=fd_intern(label);

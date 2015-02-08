@@ -30,9 +30,11 @@ static fdtype content_type_slotid, headers_slotid, content_disposition_slotid, c
 static fdtype charset_slotid, encoding_slotid, separator_slotid;
 static fdtype multipart_symbol, text_symbol, preamble_slotid, parts_slotid;
 
-static fdtype parse_fieldname(char *start,char *end)
+static fdtype parse_fieldname(u8_string start,u8_string end)
 {
-  U8_OUTPUT out; char buf[128], *scan=start; fdtype fieldid;
+  U8_OUTPUT out; char buf[128];
+  u8_string scan=start;
+  fdtype fieldid;
   U8_INIT_STATIC_OUTPUT_BUF(out,128,buf);
   while (scan<end) {
     int c=*scan++; u8_putc(&out,toupper(c));}
@@ -41,26 +43,27 @@ static fdtype parse_fieldname(char *start,char *end)
   return fieldid;
 }
 
-u8_byte *parse_headers(fdtype s,u8_byte *start,u8_byte *end)
+const u8_byte *parse_headers(fdtype s,const u8_byte *start,const u8_byte *end)
 {
   U8_OUTPUT hstream;
-  u8_byte *hstart=start;
+  const u8_byte *hstart=start;
   U8_INIT_OUTPUT(&hstream,1024);
   while (hstart<end) {
     fdtype slotid;
-    u8_byte *colon=strchr(hstart,':'), *vstart;
+    const u8_byte *colon=strchr(hstart,':'), *vstart;
     if (colon) {
       slotid=parse_fieldname(hstart,colon);
       vstart=colon+1; while (isspace(*vstart)) vstart++;}
     else {slotid=headers_slotid; vstart=hstart;}
     hstream.u8_outptr=hstream.u8_outbuf;
     while (1) {
-      u8_byte *line_end=strchr(vstart,'\n');
+      const u8_byte *line_end=strchr(vstart,'\n');
       if (line_end>end) line_end=end;
       if (line_end[-1]=='\r')
         u8_putn(&hstream,vstart,(line_end-vstart)-1);
       else u8_putn(&hstream,vstart,(line_end-vstart));
-      if ((line_end) && ((line_end[1]==' ') || (line_end[1]=='\t'))) vstart=line_end+1;
+      if ((line_end) && ((line_end[1]==' ') || (line_end[1]=='\t')))
+        vstart=line_end+1;
       else {
         fdtype slotval=
           fd_lispstring(u8_mime_convert
@@ -72,9 +75,9 @@ u8_byte *parse_headers(fdtype s,u8_byte *start,u8_byte *end)
   return end;
 }
 
-static void handle_parameters(fdtype fields,u8_byte *data)
+static void handle_parameters(fdtype fields,const u8_byte *data)
 {
-  u8_byte *scan=data, *start=scan;
+  const u8_byte *scan=data, *start=scan;
   int c=u8_sgetc(&scan);
   while (u8_isspace(c)) {start=scan; c=u8_sgetc(&scan);}
   while (c>0) {
@@ -121,8 +124,8 @@ fdtype fd_handle_compound_mime_field(fdtype fields,fdtype slotid,fdtype orig_slo
     return major_type;}
 }
 
-static fdtype convert_data(char *start,char *end,fdtype dataenc,
-                           int could_be_string)
+static fdtype convert_data(const char *start,const char *end,
+                           fdtype dataenc,int could_be_string)
 {
   fdtype result=FD_VOID; char *data; int len;
   /* First do any conversion you need to do. */
@@ -143,21 +146,27 @@ static fdtype convert_data(char *start,char *end,fdtype dataenc,
   return result;
 }
 
-static fdtype convert_text
-  (char *start,char *end,fdtype dataenc,fdtype charenc)
+static fdtype convert_text(const char *start,const char *end,
+                           fdtype dataenc,fdtype charenc)
 {
   int len; u8_encoding encoding;
-  u8_byte *data, *scan, *data_end;
+  const u8_byte *data, *scan, *data_end;
   struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
-  if (FD_STRINGP(dataenc))
+  if (FD_STRINGP(dataenc)) {
     if (strcasecmp(FD_STRDATA(dataenc),"quoted-printable")==0)
       data=u8_read_quoted_printable(start,end,&len);
     else if (strcasecmp(FD_STRDATA(dataenc),"base64")==0)
       data=u8_read_base64(start,end,&len);
     else {
-      len=end-start; data=u8_malloc(len); memcpy(data,start,len);}
+      u8_byte *buf;
+      len=end-start; buf=u8_malloc(end-start);
+      memcpy(buf,start,len);
+      data=buf;}}
   else {
-    len=end-start; data=u8_malloc(len); memcpy(data,start,len);}
+    u8_byte *buf;
+    len=end-start; buf=u8_malloc(len);
+    memcpy(buf,start,len);
+    data=buf;}
   if (FD_STRINGP(charenc))
     encoding=u8_get_encoding(FD_STRDATA(charenc));
   else encoding=NULL;
@@ -166,7 +175,8 @@ static fdtype convert_text
   return fd_stream2string(&out);
 }
 
-static fdtype convert_content(char *start,char *end,fdtype majtype,fdtype dataenc,fdtype charenc)
+static fdtype convert_content(const char *start,const char *end,
+                              fdtype majtype,fdtype dataenc,fdtype charenc)
 {
   if (end==NULL) end=start+strlen(start);
   if ((FD_STRINGP(charenc)) || (FD_EQ(majtype,text_symbol)))
@@ -174,9 +184,9 @@ static fdtype convert_content(char *start,char *end,fdtype majtype,fdtype dataen
   else return convert_data(start,end,dataenc,FD_VOIDP(majtype));
 }
 
-static char *find_boundary(char *boundary,char *scan,
-                           size_t len,size_t blen,
-                           int at_start)
+static const char *find_boundary(const char *boundary,const char *scan,
+                                 size_t len,size_t blen,
+                                 int at_start)
 {
   char *next;
   if ((at_start)&&(len>(blen-2))&&
@@ -190,9 +200,9 @@ static char *find_boundary(char *boundary,char *scan,
 }
 
 FD_EXPORT
-fdtype fd_parse_multipart_mime(fdtype slotmap,char *start,char *end)
+fdtype fd_parse_multipart_mime(fdtype slotmap,const char *start,const char *end)
 {
-  char *scan=start, *boundary; int boundary_len;
+  const char *scan=start; char *boundary; int boundary_len;
   fdtype charenc, dataenc;
   fdtype majtype=fd_handle_compound_mime_field
     (slotmap,content_type_slotid,FD_VOID);
@@ -239,10 +249,10 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,char *start,char *end)
 }
 
 FD_EXPORT
-fdtype fd_parse_mime(char *start,char *end)
+fdtype fd_parse_mime(const char *start,const char *end)
 {
   fdtype slotmap=fd_empty_slotmap();
-  char *scan=parse_headers(slotmap,start,end);
+  const char *scan=parse_headers(slotmap,start,end);
   fdtype majtype=fd_handle_compound_mime_field
     (slotmap,content_type_slotid,FD_VOID);
   fdtype charenc, dataenc;

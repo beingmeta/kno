@@ -27,12 +27,12 @@ u8_mutex fd_symbol_lock;
 #define MYSTERIOUS_MULTIPLIER 2654435769U
 #define MYSTERIOUS_MODULUS 256001281
 
-FD_FASTOP unsigned int mult_hash_string(unsigned char *start,int len)
+FD_FASTOP unsigned int mult_hash_string(const unsigned char *start,int len)
 {
   unsigned int h=0;
   unsigned *istart=(unsigned int *)start, asint=0;
   const unsigned int *scan=istart, *limit=istart+len/4;
-  unsigned char *tail=start+(len/4)*4;
+  const unsigned char *tail=start+(len/4)*4;
   while (scan<limit) h=((127*h)+*scan++)%MYSTERIOUS_MODULUS;
   switch (len%4) {
   case 0: asint=1; break;
@@ -158,7 +158,8 @@ FD_EXPORT fdtype fd_symbolize(u8_string string)
 {
   fdtype result;
   struct U8_OUTPUT out; unsigned char buf[64];
-  u8_byte *scan=string; int c=u8_sgetc(&scan);
+  const u8_byte *scan=string;
+  int c=u8_sgetc(&scan);
   U8_INIT_OUTPUT_BUF(&out,64,buf);
   while (c>=0) {
     u8_putc(&out,u8_toupper(c));

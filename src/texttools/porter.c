@@ -205,7 +205,7 @@ FD_EXPORT
     is too long (more than 200 characters) it just gives up.  This
     returns a malloc'd string containing the porter stem.   Note that
     the porter stem is usually not itself a word you would recognize. */
-char *fd_stem_english_word(u8_byte *original)
+char *fd_stem_english_word(const u8_byte *original)
 {
   char *copy; int do1b1=0, len=strlen(original);
   struct WORD w;

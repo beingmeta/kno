@@ -392,7 +392,7 @@ FD_EXPORT long long fd_b32_to_longlong(char *digits);
 
 #define FD_MAX_BUILTIN_CONSTANT 20
 
-FD_EXPORT unsigned char *fd_constant_names[];
+FD_EXPORT const char *fd_constant_names[];
 FD_EXPORT int fd_max_constant;
 FD_EXPORT fdtype fd_register_constant(u8_string name);
 

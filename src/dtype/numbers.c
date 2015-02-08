@@ -2173,7 +2173,7 @@ fdtype fd_string2number(u8_string string,int base)
   else if (strchr(string+1,'-')) return FD_FALSE;
   else {
     fdtype result;
-    long fixnum, nbase=0; u8_byte *start=string, *end=NULL;
+    long fixnum, nbase=0; const u8_byte *start=string, *end=NULL;
     if (string[0]=='0') {
       if (string[1]=='\0') return FD_INT2DTYPE(0);
       else if ((string[1]=='x') || (string[1]=='X')) {
@@ -2201,7 +2201,7 @@ fdtype fd_string2number(u8_string string,int base)
 
 fdtype (*_fd_parse_number)(u8_string,int)=fd_string2number;
 
-static int read_digit_weight(u8_byte **scan)
+static int read_digit_weight(const u8_byte **scan)
 {
   int c=u8_sgetc(scan), wt=c-'0';
   if ((wt>=0) && (wt<10)) return wt;
@@ -2212,7 +2212,8 @@ static int read_digit_weight(u8_byte **scan)
 
 static fdtype parse_bigint(u8_string string,int base,int negative)
 {
-  int n_digits=u8_strlen(string); u8_byte *scan=string;
+  int n_digits=u8_strlen(string);
+  const u8_byte *scan=string;
   if (n_digits) {
     fd_bigint bi=fd_digit_stream_to_bigint
       (n_digits,(bigint_producer)read_digit_weight,(void *)&scan,base,negative);

@@ -44,11 +44,12 @@ static u8_string xmlsnip(u8_string s)
 
 static u8_string deentify(u8_string arg,u8_string lim)
 {
-  U8_OUTPUT out; u8_byte *scan=arg; int c=u8_sgetc(&scan);
+  U8_OUTPUT out; const u8_byte *scan=arg; int c=u8_sgetc(&scan);
   U8_INIT_OUTPUT(&out,strlen(arg));
   while ((c>0)&&((lim==NULL)||(scan<=lim)))
     if (c=='&') {
-      u8_byte *end=NULL; int code=u8_parse_entity(scan,&end);
+      const u8_byte *end=NULL;
+      int code=u8_parse_entity(scan,&end);
       if (code<=0) {
         u8_putc(&out,c); c=u8_sgetc(&scan);}
       else {
@@ -65,11 +66,14 @@ FD_EXPORT u8_string fd_deentify(u8_string arg,u8_string lim)
 
 FD_EXPORT fdtype fd_convert_entities(u8_string arg,u8_string lim)
 {
-  U8_OUTPUT out; u8_byte *scan=arg; int c=u8_sgetc(&scan);
+  U8_OUTPUT out;
+  const u8_byte *scan=arg;
+  int c=u8_sgetc(&scan);
   U8_INIT_OUTPUT(&out,strlen(arg));
   while ((c>0)&&((lim==NULL)||(scan<=lim)))
     if (c=='&') {
-      u8_byte *end=NULL; int code=u8_parse_entity(scan,&end);
+      const u8_byte *end=NULL;
+      int code=u8_parse_entity(scan,&end);
       if (code<=0) {
         u8_putc(&out,c); c=u8_sgetc(&scan);}
       else {
@@ -127,7 +131,8 @@ static int egetc(u8_string *s)
     if (**s=='&')
       if (strncmp(*s,"&nbsp;",6)==0) {*s=*s+6; return ' ';}
       else {
-        u8_byte *end=NULL; int code=u8_parse_entity((*s)+1,&end);
+        const u8_byte *end=NULL;
+        int code=u8_parse_entity((*s)+1,&end);
         if (code>0) {
           *s=end; return code;}
         else {(*s)++; return '&';}}
@@ -286,7 +291,7 @@ FD_EXPORT void fd_free_xml_node(FD_XML *node)
 static void ns_add(FD_XML *xml,u8_string prefix,u8_string url)
 {
   int prefix_len=strlen(prefix), url_len=strlen(url);
-  u8_string entry=u8_malloc(prefix_len+url_len+2);
+  u8_byte *entry=u8_malloc(prefix_len+url_len+2);
   strncpy(entry,prefix,prefix_len);
   entry[prefix_len]=':';
   strcpy(entry+prefix_len+1,url);
@@ -355,7 +360,7 @@ static int process_nsattrib(FD_XML *xml,u8_string name,u8_string val)
 
 static int allspacep(u8_string s)
 {
-  u8_byte *scan=s; int c=u8_sgetc(&scan);
+  const u8_byte *scan=s; int c=u8_sgetc(&scan);
   while ((c>0) && (u8_isspace(c))) c=u8_sgetc(&scan);
   if (c<0) return 1; else return 0;
 }
@@ -418,7 +423,8 @@ static void set_elt_name(FD_XML *xml,u8_string name)
 
 FD_EXPORT
 int fd_parse_element(u8_byte **scanner,u8_byte *end,
-                     u8_byte **elts,int max_elts,int sloppy)
+                     const u8_byte **elts,int max_elts,
+                     int sloppy)
 {
   int n_elts=0;
   u8_byte *scan=*scanner, *elt_start=scan;
@@ -455,10 +461,11 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
         /* Not closed, but sloppy is okay, so we just go up to the
            first space after the opening quote.  We could be more
            clever (looking for xxx=, for exampe) but let's not.  */
-        u8_byte *lookahead=scan;
+        const u8_byte *lookahead=scan;
         int c=u8_sgetc(&lookahead);
         while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
-          scan=lookahead; c=u8_sgetc(&lookahead);}}
+          scan=(u8_byte *)lookahead;
+          c=u8_sgetc(&lookahead);}}
       else {
         fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
                    xmlsnip(*scanner));
@@ -476,26 +483,28 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
         /* Not closed, but sloppy is okay, so we just go up to the
            first space after the opening quote.  We could be more
            clever (looking for xxx=, for exampe) but let's not.  */
-        u8_byte *lookahead=scan;
+        const u8_byte *lookahead=scan;
         int c=u8_sgetc(&lookahead);
-        if (lookahead==end) scan=lookahead;
+        if (lookahead==end) scan=(u8_byte *)lookahead;
         else while ((c>0)&&(!(u8_isspace(c)))&&(lookahead<end)) {
-            scan=lookahead; c=u8_sgetc(&lookahead);}}
+            scan=(u8_byte *)lookahead;
+            c=u8_sgetc(&lookahead);}}
       else {
         fd_seterr3(fd_XMLParseError,"unclosed quote in attribute",
                    xmlsnip(*scanner));
         return -1;}}
     else if (*scan=='=') {
       /* Skip whitespace after an = sign */
-      u8_byte *start=++scan; u8_byte *next=start;
+      u8_byte *start=++scan; const u8_byte *next=start;
       int c=u8_sgetc(&next);
       while ((c>0)&&(u8_isspace(c))&&(scan<end)) {
-        scan=next; c=u8_sgetc(&next);}
+        scan=(u8_byte *)next;
+        c=u8_sgetc(&next);}
       /* If you ran over (no value for =), just take the
          string up to the = */
       if (scan>=end) scan=start;}
     else if (*scan=='\0') scan++;
-    else u8_sgetc(&scan);
+    else u8_sgetc((u8_string *)&scan);
   if (scan>elt_start) {
     *scan='\0'; elts[n_elts++]=elt_start;}
   return n_elts;
@@ -516,7 +525,7 @@ FD_EXPORT
 fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int html)
 {
   fd_xmlelt_type elt_type;
-  u8_byte *start=buf, *end=buf+(len-1);
+  const u8_byte *start=buf, *end=buf+(len-1);
   while ((start<end) && (isspace(*start))) start++;
   while ((end>start) && (isspace(*end))) end--;
   if (*start=='/') elt_type=xmlclose;
@@ -548,23 +557,23 @@ static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
     u8_string item=items[i++]; int quote=-1;
     u8_byte *equals=strchr(item,'=');
     if (equals) {
-      u8_byte *valstart=equals+1, *scan=valstart; int c;
-      u8_byte *valend=valstart+strlen(valstart)-1;
-      u8_string val=NULL;
-      *equals='\0'; /* We're going to parse this */
+      const u8_byte *valstart=equals+1;
+      const u8_byte *scan=valstart;
+      const u8_byte *valend=valstart+strlen(valstart)-1;
+      u8_string val=NULL; int c;
       c=u8_sgetc(&scan);
       /* Skip whitespace */
-      while ((c>=0)&&((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c)))) {
+      while ((scan<equals)&&
+             (c>=0)&&((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c)))) {
         valstart=scan; c=u8_sgetc(&scan);}
       /* We don't have to worry about where the item ends
          (that was handled by parse_element) but we do need to
          strip off any quotes. */
       if (*valstart=='"') {
-        valstart++; quote='"'; if (*valend=='"') *valend='\0';}
+        valstart++; quote='"'; if (*valend=='"') valend--;}
       else if (*valstart=='\'') {
-        valstart++; quote='\''; if (*valend=='\'') *valend='\0';}
+        valstart++; quote='\''; if (*valend=='\'') valend--;}
       else {}
-      /* if (strchr(valstart,'&')) val=deentify(valstart,NULL); else */
       val=valstart;
       if (process_nsattrib(xml,item,val)) {}
       else if ((attribfn) && (attribfn(xml,item,val,quote))) {}

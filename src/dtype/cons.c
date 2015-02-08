@@ -45,7 +45,7 @@ static u8_mutex constant_registry_lock;
 #endif
 int fd_max_constant=FD_MAX_BUILTIN_CONSTANT;
 
-unsigned char *fd_constant_names[]={
+const char *fd_constant_names[]={
   "#?","#f","#t","{}","()","#eof","#eod","#eox",
   "#baddtype","badparse","#oom","#typeerror","#rangeerror",
   "#error","#badptr","#throw","#exception_tag","#unbound",
@@ -456,7 +456,8 @@ fdtype fd_init_string(struct FD_STRING *ptr,int slen,u8_string string)
     ptr->freedata=1;}
   FD_INIT_CONS(ptr,fd_string_type);
   if ((len==0) && (string==NULL)) {
-    string=u8_malloc(1); *string='\0';}
+    u8_byte *bytes=u8_malloc(1); *bytes='\0';
+    string=(u8_string)bytes;}
   ptr->length=len; ptr->bytes=string;
   return FDTYPE_CONS(ptr);
 }
@@ -469,7 +470,7 @@ FD_EXPORT
   If the structure pointer is NULL, one is mallocd.
   This copies the region between the pointers into a string and initializes
    a lisp string based on the region. */
-fdtype fd_extract_string(struct FD_STRING *ptr,u8_byte *start,u8_byte *end)
+fdtype fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
 {
   int length=((end==NULL) ? (strlen(start)) : (end-start));
   u8_byte *bytes=NULL; int freedata=1;
@@ -478,7 +479,7 @@ fdtype fd_extract_string(struct FD_STRING *ptr,u8_byte *start,u8_byte *end)
     bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
     memcpy(bytes,start,length); bytes[length]='\0';
     freedata=0;}
-  else bytes=u8_strndup(start,length+1);
+  else bytes=(u8_byte *)u8_strndup(start,length+1);
   FD_INIT_CONS(ptr,fd_string_type);
   ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
   return FDTYPE_CONS(ptr);
@@ -688,7 +689,7 @@ FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
 /* Packets */
 
 FD_EXPORT fdtype fd_init_packet
-  (struct FD_STRING *ptr,int len,unsigned char *data)
+  (struct FD_STRING *ptr,int len,const unsigned char *data)
 {
   if ((ptr==NULL)&&(data==NULL))
     return fd_make_packet(ptr,len,data);
@@ -697,14 +698,15 @@ FD_EXPORT fdtype fd_init_packet
     ptr->freedata=1;}
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
-    int i=0; data=u8_malloc(len);
-    while (i < len) data[i++]=0;}
+    int i=0; u8_byte *consed=u8_malloc(len);
+    while (i < len) consed[i++]=0;
+    data=consed;}
   ptr->length=len; ptr->bytes=data;
   return FDTYPE_CONS(ptr);
 }
 
 FD_EXPORT fdtype fd_make_packet
-  (struct FD_STRING *ptr,int len,unsigned char *data)
+  (struct FD_STRING *ptr,int len,const unsigned char *data)
 {
   u8_byte *bytes=NULL; int freedata=1;
   if (ptr == NULL) {
@@ -715,14 +717,14 @@ FD_EXPORT fdtype fd_make_packet
     freedata=0;}
   else if (data==NULL) {
     bytes=u8_malloc(len); memset(bytes,0,len);}
-  else bytes=data;
+  else bytes=(unsigned char *)data;
   FD_INIT_CONS(ptr,fd_packet_type);
   ptr->length=len; ptr->bytes=bytes; ptr->freedata=freedata;
   return FDTYPE_CONS(ptr);
 }
 
 FD_EXPORT fdtype fd_bytes2packet
-  (struct FD_STRING *ptr,int len,unsigned char *data)
+  (struct FD_STRING *ptr,int len,const unsigned char *data)
 {
   u8_byte *bytes=NULL; int freedata=1;
   if (ptr == NULL) {
