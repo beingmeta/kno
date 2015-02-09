@@ -28,7 +28,7 @@
 #include <sqltypes.h>
 #include <sqlext.h>
 
-static unsigned char *_memdup(unsigned char *data,int len)
+static unsigned char *_memdup(const unsigned char *data,int len)
 {
   unsigned char *duplicate=u8_alloc_n(len,unsigned char);
   memcpy(duplicate,data,len);
@@ -92,19 +92,20 @@ FD_EXPORT fdtype fd_odbc_connect(fdtype spec,fdtype colinfo,int interactive)
   FD_INIT_FRESH_CONS(dbp,fd_extdb_type);
   ret=SQLAllocHandle(SQL_HANDLE_ENV,SQL_NULL_HANDLE,&(dbp->env));
   if (SQL_SUCCEEDED(ret)) {
+    char *info;
     howfar++;
     SQLSetEnvAttr(dbp->env, SQL_ATTR_ODBC_VERSION,
                   (void *) SQL_OV_ODBC3, 0);
     ret=SQLAllocHandle(SQL_HANDLE_DBC,dbp->env,&(dbp->conn));
     dbp->spec=u8_strdup(FD_STRDATA(spec)); dbp->options=FD_VOID;
-    dbp->info=u8_malloc(512); strcpy(dbp->info,"uninitialized");
+    info=u8_malloc(512); strcpy(info,"uninitialized"); dbp->info=info;
     u8_init_mutex(&(dbp->proclock));
     dbp->dbhandler=&odbc_handler;
     if (SQL_SUCCEEDED(ret)) {
       howfar++;
       ret=SQLDriverConnect(dbp->conn,sqldialog,
-                           FD_STRDATA(spec),FD_STRLEN(spec),
-                           dbp->info,512,NULL,
+                           (char *)FD_STRDATA(spec),FD_STRLEN(spec),
+                           info,512,NULL,
                            ((interactive==0) ? (SQL_DRIVER_NOPROMPT) :
                             (interactive==1) ? (SQL_DRIVER_COMPLETE_REQUIRED) :
                             (SQL_DRIVER_PROMPT)));
@@ -155,7 +156,7 @@ static fdtype odbcmakeproc
   ret=SQLAllocHandle(SQL_HANDLE_STMT, dbp->conn, &(dbproc->stmt));
   if (SQL_SUCCEEDED(ret)) have_stmt=1;
   if (SQL_SUCCEEDED(ret))
-    ret=SQLPrepare(dbproc->stmt,stmt,stmt_len);
+    ret=SQLPrepare(dbproc->stmt,(char *)stmt,stmt_len);
   if (SQL_SUCCEEDED(ret))
     ret=SQLNumParams(dbproc->stmt,&n_params);
   if (!(SQL_SUCCEEDED(ret))) {
@@ -433,7 +434,7 @@ static fdtype odbcexec(struct FD_ODBC *dbp,fdtype string,fdtype colinfo)
   if (!(SQL_SUCCEEDED(ret))) {
     u8_seterr(ODBCError,"odbcexec",NULL);
     return FD_ERROR_VALUE;}
-  ret=SQLExecDirect(stmt,FD_STRDATA(string),FD_STRLEN(string));
+  ret=SQLExecDirect(stmt,(char *)FD_STRDATA(string),FD_STRLEN(string));
   if (FD_VOIDP(colinfo)) colinfo=dbp->colinfo;
   if (SQL_SUCCEEDED(ret))
     return get_stmt_results(stmt,"odbcexec",1,colinfo);
@@ -476,7 +477,9 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       SQLBindParameter(dbp->stmt,i+1,
                        SQL_PARAM_INPUT,SQL_C_CHAR,
                        dbp->sqltypes[i],0,0,
-                       FD_STRDATA(arg),FD_STRLEN(arg),NULL);}
+                       (char *)FD_STRDATA(arg),
+                       FD_STRLEN(arg),
+                       NULL);}
     else if (FD_OIDP(arg)) {
       if (FD_OIDP(dbp->paramtypes[i])) {
         FD_OID addr=FD_OID_ADDR(arg);

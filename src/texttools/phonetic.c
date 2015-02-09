@@ -43,7 +43,7 @@ static int soundex_class(int c)
 FD_EXPORT u8_string fd_soundex(u8_string string)
 {
   struct U8_OUTPUT out; int c, lastc;
-  u8_byte *s=string, buf[8];
+  const u8_byte *s=string; u8_byte buf[8];
   U8_INIT_FIXED_OUTPUT(&out,8,buf);
   c=u8_sgetc(&s);
   c=u8_toupper(u8_base_char(c));
@@ -67,7 +67,7 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
   struct U8_OUTPUT out;
   char buf[32], *start, *scan;
   char capbuf[32], *capstart, *capscan;
-  u8_byte *s=string;
+  const u8_byte *s=string;
   int c=u8_sgetc(&s), lastc=-1, len=strlen(string), lenout=0, lc=-1;
   U8_INIT_OUTPUT(&out,32);
   /* First we write an uppercase ASCII version of the string to a buffer. */

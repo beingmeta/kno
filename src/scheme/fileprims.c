@@ -171,7 +171,7 @@ static fdtype extend_dtype_file(fdtype fname)
 
 static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
 {
-  int len=0; unsigned char *bytes; int free_bytes=0;
+  int len=0; const unsigned char *bytes; int free_bytes=0;
   if (FD_STRINGP(object)) {
     bytes=FD_STRDATA(object); len=FD_STRLEN(object);}
   else if (FD_PACKETP(object)) {
@@ -311,11 +311,13 @@ static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
            (!(u8_file_existsp(FD_STRDATA(args[0])))))
     return fd_type_error("real file",caller,args[0]);
   else {
-    char **argv, *arg1=FD_STRDATA(args[0]), *filename=NULL, *argcopy=NULL;
+    char **argv;
+    u8_byte *arg1=(u8_byte *)FD_STRDATA(args[0]);
+    u8_byte *filename=NULL, *argcopy=NULL;
     int i=1, argc=0, max_argc=n+2, retval=0; pid_t pid;
     if (strchr(arg1,' ')) {
-      char *scan=arg1; while (scan) {
-        char *brk=strchr(scan,' ');
+      const char *scan=arg1; while (scan) {
+        const char *brk=strchr(scan,' ');
         if (brk) {max_argc++; scan=brk+1;}
         else break;}}
     else {}
@@ -324,8 +326,8 @@ static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
       max_argc=max_argc+FD_CHOICE_SIZE(keys);}
     argv=u8_alloc_n(max_argc,char *);
     if (flags&FD_IS_SCHEME) {
-      argv[argc++]=filename=u8_strdup(FD_EXEC);
-      argv[argc++]=u8_tolibc(arg1);}
+      argv[argc++]=filename=((u8_byte *)u8_strdup(FD_EXEC));
+      argv[argc++]=(u8_byte *)u8_tolibc(arg1);}
     else if (strchr(arg1,' ')) {
 #ifndef FD_EXEC_WRAPPER
       u8_free(argv);
@@ -333,21 +335,21 @@ static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
                     caller,NULL,args[0]);
 #else
       char *argcopy=u8_tolibc(arg1), *start=argcopy, *scan=strchr(start,' ');
-      argv[argc++]=filename=u8_strdup(FD_EXEC_WRAPPER);
+      argv[argc++]=filename=(u8_byte *)u8_strdup(FD_EXEC_WRAPPER);
       while (scan) {
         *scan='\0'; argv[argc++]=start;
         start=scan+1; while (isspace(*start)) start++;
         scan=strchr(start,' ');}
-      argv[argc++]=u8_tolibc(start);
+      argv[argc++]=(u8_byte *)u8_tolibc(start);
 #endif
     }
     else {
 #ifdef FD_EXEC_WRAPPER
-      argv[argc++]=filename=u8_strdup(FD_EXEC_WRAPPER);
+      argv[argc++]=filename=(u8_byte *)u8_strdup(FD_EXEC_WRAPPER);
 #endif
       if (filename)
         argv[argc++]=u8_tolibc(arg1);
-      else argv[argc++]=filename=u8_tolibc(arg1);}
+      else argv[argc++]=filename=(u8_byte *)u8_tolibc(arg1);}
     if ((n>1)&&(FD_SLOTMAPP(args[1]))) {
       fdtype params=args[1];
       fdtype keys=fd_getkeys(args[1]);

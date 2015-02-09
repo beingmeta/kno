@@ -38,7 +38,7 @@ FD_EXPORT void fd_init_tagxtract_c(void);
 #define FD_TAGGER_DEFAULT_FLAGS (FD_TAGGER_SKIP_MARKUP|FD_TAGGER_SPLIT_SENTENCES)
 
 struct FD_WORD {
-  u8_string spelling; u8_byte *bufptr;
+  u8_string spelling; const u8_byte *bufptr;
   fdtype lstr, compounds;
   unsigned char weights[FD_MAX_ARCS];
   short cap, tag, d, w;

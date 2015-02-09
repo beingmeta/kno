@@ -135,7 +135,7 @@ typedef struct FD_BYTE_OUTPUT {
   int (*flushfn)(fd_byte_output);} FD_BYTE_OUTPUT;
 
 typedef struct FD_BYTE_INPUT {
-  unsigned char *start, *ptr, *end; int flags;
+  const unsigned char *start, *ptr, *end; int flags;
   /* FD_BYTE_INPUT has a flushfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
@@ -163,7 +163,8 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in);
 
 FD_EXPORT void fd_need_bytes(struct FD_BYTE_OUTPUT *b,int size);
 FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTPUT *,unsigned char);
-FD_EXPORT int _fd_write_bytes(struct FD_BYTE_OUTPUT *,unsigned char *,int len);
+FD_EXPORT int _fd_write_bytes(struct FD_BYTE_OUTPUT *,
+			      const unsigned char *,int len);
 FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTPUT *,unsigned int);
 FD_EXPORT int _fd_write_8bytes(struct FD_BYTE_OUTPUT *,fd_8bytes);
 

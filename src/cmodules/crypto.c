@@ -32,7 +32,7 @@ fdtype (*unpacker)(unsigned char *,size_t len);
 static fdtype doencrypt(fdtype data,fdtype key,u8_string ciphername,int dtype)
 {
   struct FD_BYTE_OUTPUT tmp;
-  unsigned char *payload; size_t payload_len; int free_payload=0;
+  const unsigned char *payload; size_t payload_len; int free_payload=0;
   unsigned char *outbuf; size_t outlen;
   if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);
   if ((!(dtype))&& (FD_STRINGP(data))) {
@@ -44,7 +44,7 @@ static fdtype doencrypt(fdtype data,fdtype key,u8_string ciphername,int dtype)
     fd_write_dtype(&tmp,data);
     payload=tmp.start; payload_len=tmp.ptr-tmp.start;
     free_payload=1;}
-  outbuf=u8_encrypt(payload,payload_len,ciphername,
+  outbuf=u8_encrypt(payload,payload_len,(char *)ciphername,
                     FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
                     &outlen);
   if (outbuf) {
@@ -74,7 +74,7 @@ static fdtype encrypt_dtype_prim(fdtype data,fdtype key,fdtype cipher)
 
 static fdtype decrypt_prim(fdtype data,fdtype key,fdtype cipher)
 {
-  unsigned char *payload; size_t payload_len;
+  const unsigned char *payload; size_t payload_len;
   unsigned char *outbuf; size_t outlen;
   u8_string ciphername;
   if (!(FD_PACKETP(key)))
@@ -84,7 +84,7 @@ static fdtype decrypt_prim(fdtype data,fdtype key,fdtype cipher)
   else if (FD_VOIDP(cipher)) ciphername=NULL;
   else return fd_type_error("ciphername","decrypt_prim",cipher);
   payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);
-  outbuf=u8_decrypt(payload,payload_len,ciphername,
+  outbuf=u8_decrypt(payload,payload_len,(char *)ciphername,
                     FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
                     &outlen);
   if (outbuf)
@@ -94,7 +94,7 @@ static fdtype decrypt_prim(fdtype data,fdtype key,fdtype cipher)
 
 static fdtype decrypt2string_prim(fdtype data,fdtype key,fdtype cipher)
 {
-  unsigned char *payload; size_t payload_len;
+  const unsigned char *payload; size_t payload_len;
   unsigned char *outbuf; size_t outlen;
   u8_string ciphername;
   if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);
@@ -113,7 +113,7 @@ static fdtype decrypt2string_prim(fdtype data,fdtype key,fdtype cipher)
 
 static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher)
 {
-  unsigned char *payload; size_t payload_len;
+  const unsigned char *payload; size_t payload_len;
   unsigned char *outbuf; size_t outlen;
   u8_string ciphername;
   if (!(FD_PACKETP(key))) return fd_type_error("packet/secret","doencrypt",key);

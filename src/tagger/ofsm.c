@@ -439,7 +439,7 @@ static void init_ofsm_data(struct FD_GRAMMAR *g,fdtype vector)
     Arguments: a character string
     Returns: 1 or 0 if string looks like a possessive
 */
-static int possessivep(u8_byte *s)
+static int possessivep(const u8_byte *s)
 {
   int c=u8_sgetc(&s);
   while (c>=0)
@@ -631,8 +631,8 @@ struct MARKUP_TAG whitespace_markup[]={
   {"/td",3},
   {NULL,-1}};
 
-static int add_input(fd_parse_context pc,u8_string s,u8_byte *bufp);
-static void add_punct(fd_parse_context pc,u8_string s,u8_byte *bufp);
+static int add_input(fd_parse_context pc,u8_string s,const u8_byte *bufp);
+static void add_punct(fd_parse_context pc,u8_string s,const u8_byte *bufp);
 
 static int is_whitespace_markup(u8_string s)
 {
@@ -1072,7 +1072,8 @@ static u8_string find_sentence_end(u8_string string)
     Arguments: a parse context and a word string
     Returns: Adds the string to the end of the current sentence.
 */
-static int add_input(fd_parse_context pc,u8_string spelling,u8_byte *bufp)
+static int add_input(fd_parse_context pc,u8_string spelling,
+                     const u8_byte *bufp)
 {
   u8_string s=strdup(spelling);
   int first_char=u8_sgetc(&spelling);
@@ -1197,7 +1198,8 @@ static void bump_weights_for_capitalization(fd_parse_context pc,int word)
    Arguments: a parse context and a punctuation string
    Returns: Adds the string to the end of the current sentence.
 */
-static void add_punct(fd_parse_context pc,u8_string spelling,u8_byte *bufptr)
+static void add_punct(fd_parse_context pc,u8_string spelling,
+                      const u8_byte *bufptr)
 {
   u8_string s=strdup(spelling); int i;
   fdtype ls=fd_lispstring(s), value;
@@ -1659,7 +1661,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
   fdtype answer=FD_EMPTY_LIST, sentence=FD_EMPTY_LIST;
   fdtype arc_names=pc->grammar->arc_names;
   unsigned char *mod_tags=pc->grammar->mod_tags;
-  u8_byte *bufptr=pc->end;
+  const u8_byte *bufptr=pc->end;
   int glom_phrases=pc->flags&FD_TAGGER_GLOM_PHRASES;
   while (s >= 0) {
     fdtype source=FD_VOID;
@@ -1701,7 +1703,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
       if ((pc->flags&FD_TAGGER_INCLUDE_SOURCE) ||
           (pc->flags&FD_TAGGER_INCLUDE_TEXTRANGE)) {
         struct FD_PARSER_STATE *pstate=&(pc->states[scan]);
-        u8_byte *start, *end;
+        const u8_byte *start, *end;
         if (scan<0) {
           start=pc->input[0].bufptr;
           end=find_end(pc->input[0].bufptr,bufptr);
@@ -1737,7 +1739,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
       if ((pc->flags&FD_TAGGER_INCLUDE_SOURCE) ||
           (pc->flags&FD_TAGGER_INCLUDE_TEXTRANGE)) {
         struct FD_PARSER_STATE *pstate=&(pc->states[state->previous]);
-        u8_byte *start=pc->input[pstate->input].bufptr, *end=NULL;
+        const u8_byte *start=pc->input[pstate->input].bufptr, *end=NULL;
         if (start==NULL) {}
         else {
           if (bufptr==NULL) {
@@ -1788,7 +1790,7 @@ fdtype fd_analyze_text
   if (pcxt->flags&FD_TAGGER_SPLIT_SENTENCES) {
     double full_start=u8_elapsed_time();
     double lextime=0.0, comptime=0.0, parsetime=0.0, proctime=0.0;
-    u8_byte *sentence=pcxt->start, *sentence_end; int n_calls=0;
+    const u8_byte *sentence=pcxt->start, *sentence_end; int n_calls=0;
     while ((sentence) && (*sentence) &&
            (sentence_end=find_sentence_end(sentence))) {
       double start_time=u8_elapsed_time();
@@ -2077,12 +2079,13 @@ static fdtype lexweight_prim(fdtype string,fdtype tag,fdtype value)
           if (FD_VECTORP(weights)) {
             FD_VECTOR_SET(weights,i,fd_incref(value));}
           else if (FD_PACKETP(weights)) {
+            unsigned char *bytes=(unsigned char *)FD_PACKET_DATA(weights);
             if (FD_FALSEP(value)) {
-              FD_PACKET_DATA(weights)[i]=255;}
+              bytes[i]=255;}
             else if ((FD_FIXNUMP(value)) &&
                      (FD_FIX2INT(value)>=0) &&
                      (FD_FIX2INT(value)<128))
-              FD_PACKET_DATA(weights)[i]=FD_FIX2INT(value);}
+              bytes[i]=FD_FIX2INT(value);}
           else {}
           if (weight==255) return FD_FALSE;
           else return FD_INT2DTYPE(weight);}

@@ -33,7 +33,7 @@ static u8_condition zlibDataError=_("Bad ZLIB input data");
 static fdtype zlib_compress_prim(fdtype input_arg,fdtype level_arg)
 {
   int level=((FD_FIXNUMP(level_arg))?(FD_FIX2INT(level_arg)):(9));
-  Bytef *input; uLongf input_len=0;
+  const Bytef *input; uLongf input_len=0;
   Bytef *output; uLongf output_len=0;
   int retval;
   if ((level<0)||(level>9)) level=9;
@@ -68,7 +68,7 @@ static fdtype zlib_compress_prim(fdtype input_arg,fdtype level_arg)
 static fdtype zlib_uncompress_prim(fdtype input_arg,fdtype text,fdtype init_factor)
 {
   int init_grow=((FD_FIXNUMP(init_factor))?(FD_FIX2INT(init_factor)):(5));
-  Bytef *input; uLongf input_len=0;
+  const Bytef *input; uLongf input_len=0;
   Bytef *output; uLongf output_len=0, buf_len=0;
   int retval;
   if ((init_grow<1)||(init_grow>20)) init_grow=5;
@@ -117,7 +117,8 @@ static fdtype zlib_uncompress_prim(fdtype input_arg,fdtype text,fdtype init_fact
       return fd_type_error("text encoding","unzip_prim",text);}
     else {
       int retval=0;
-      unsigned char *scan=output, *limit=output+output_len;
+      /* The output (of compression) is now the input for conversion */
+      const unsigned char *scan=output, *limit=output+output_len;
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,output_len);
       retval=u8_convert(enc,0,&out,&scan,limit);
       if (retval<0) {

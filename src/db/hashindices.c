@@ -1761,7 +1761,7 @@ struct COMMIT_SCHEDULE {
 struct KEYENTRY {
   int dtype_size, n_values;
   /* Make this into an int relative to the parent keybucket's keybuf */
-  unsigned char *dtype_start;
+  const unsigned char *dtype_start;
   fdtype values; FD_CHUNK_REF vref;};
 
 struct KEYBUCKET {
@@ -1882,7 +1882,7 @@ static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
 }
 
 FD_FASTOP void parse_keybucket(fd_hash_index hx,struct KEYBUCKET *kb,
-                            fd_byte_input in,int n_keys)
+                               fd_byte_input in,int n_keys)
 {
   int i=0; struct KEYENTRY *base_entry=&(kb->elt0);
   kb->n_keys=n_keys;

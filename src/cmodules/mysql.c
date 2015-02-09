@@ -39,7 +39,7 @@ static fdtype boolean_symbol;
 u8_condition ServerReset=_("MYSQL server reset");
 u8_condition UnusedType=_("MYSQL unused parameter type");
 
-#define dupstring(x) ((x==NULL) ? (x) : ((char *)u8_strdup(x)))
+#define dupstring(x) ((x==NULL) ? ((u8_byte *)x) : ((u8_byte *)u8_strdup(x)))
 
 #define NEED_RESTART(err)                               \
   ((err==CR_SERVER_GONE_ERROR) ||                       \
@@ -108,7 +108,7 @@ static fdtype intern_upcase(u8_output out,u8_string s)
   return fd_make_symbol(out->u8_outbuf,out->u8_outptr-out->u8_outbuf);
 }
 
-static unsigned char *_memdup(unsigned char *data,int len)
+static unsigned char *_memdup(const unsigned char *data,int len)
 {
   unsigned char *duplicate=u8_alloc_n(len,unsigned char);
   memcpy(duplicate,data,len);
@@ -338,7 +338,7 @@ static fdtype open_mysql
    fdtype user,fdtype password,
    fdtype options)
 {
-  char *host, *username, *passwd, *dbstring, *sockname;
+  const char *host, *username, *passwd, *dbstring, *sockname;
   int portno=0, flags=0, retval;
   struct FD_MYSQL *dbp=u8_alloc(struct FD_MYSQL);
   /* Initialize the cons (does a memset too) */
@@ -580,8 +580,10 @@ static fdtype get_stmt_values
       else if (FD_PRIM_TYPEP(colmaps[i],fd_uuid_type))
         if ((FD_PACKETP(value))||(FD_STRINGP(value))) {
           struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
-          unsigned char *data=
-            ((FD_PACKETP(value))?(FD_PACKET_DATA(value)):(FD_STRDATA(value)));
+          const unsigned char *data=
+            ((FD_PACKETP(value))?
+             (FD_PACKET_DATA(value)):
+             (FD_STRDATA(value)));
           unsigned char *uuidbytes;
           FD_INIT_CONS(uuid,fd_uuid_type);
           uuidbytes=uuid->uuid;
@@ -1115,18 +1117,18 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
       bindbuf[i].fval=FD_FLONUM(arg);}
     else if (FD_STRINGP(arg)) {
       inbound[i].buffer_type=MYSQL_TYPE_STRING;
-      inbound[i].buffer=FD_STRDATA(arg);
+      inbound[i].buffer=(u8_byte *)FD_STRDATA(arg);
       inbound[i].buffer_length=FD_STRLEN(arg);
       inbound[i].length=&(inbound[i].buffer_length);}
     else if (FD_SYMBOLP(arg)) {
       u8_string pname=FD_SYMBOL_NAME(arg);
       inbound[i].buffer_type=MYSQL_TYPE_STRING;
-      inbound[i].buffer=pname;
+      inbound[i].buffer=(u8_byte *)pname;
       inbound[i].buffer_length=strlen(pname);
       inbound[i].length=&(inbound[i].buffer_length);}
     else if (FD_PACKETP(arg)) {
       inbound[i].buffer_type=MYSQL_TYPE_BLOB;
-      inbound[i].buffer=FD_PACKET_DATA(arg);
+      inbound[i].buffer=(u8_byte *)FD_PACKET_DATA(arg);
       inbound[i].buffer_length=FD_PACKET_LENGTH(arg);
       inbound[i].length=&(inbound[i].buffer_length);}
     else if (FD_PRIM_TYPEP(arg,fd_uuid_type)) {
@@ -1197,7 +1199,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
         if (proclock)  {u8_mutex_unlock(&(dbproc->lock)); proclock=0;}
         return FD_ERROR_VALUE;}
       else {
-        u8_string as_string=out.u8_outbuf;
+        u8_byte *as_string=out.u8_outbuf;
         int stringlen=out.u8_outptr-out.u8_outbuf;
         inbound[i].buffer_type=MYSQL_TYPE_STRING;
         inbound[i].buffer=as_string;

@@ -79,8 +79,10 @@ static fdtype smtp_function(fdtype dest,fdtype headers,fdtype content,
 
 static fdtype mailout_handler(fdtype expr,fd_lispenv env)
 {
-  u8_byte *mailhost=mailhost_dflt, *maildomain=maildomain_dflt, *mailfrom=mailfrom_dflt;
-  fdtype dest_arg=fd_get_arg(expr,1), headers_arg=fd_get_arg(expr,2), body=fd_get_body(expr,3);
+  const u8_byte *mailhost=mailhost_dflt, *maildomain=maildomain_dflt;
+  const u8_byte *mailfrom=mailfrom_dflt;
+  fdtype dest_arg=fd_get_arg(expr,1), headers_arg=fd_get_arg(expr,2);
+  fdtype body=fd_get_body(expr,3);
   fdtype dest, headers, header_fields, result;
   int retval, i=0, n_headers, n_to_free=0;
   struct U8_MAILHEADER *mh;

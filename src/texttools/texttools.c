@@ -2183,7 +2183,7 @@ static fdtype sha256_prim(fdtype input)
 
 static fdtype hmac_sha1_prim(fdtype key,fdtype input)
 {
-  unsigned char *data, *keydata, *digest=NULL;
+  const unsigned char *data, *keydata, *digest=NULL;
   int data_len, key_len, digest_len, free_key=0, free_data=0;
   if (FD_STRINGP(input)) {
     data=FD_STRDATA(input); data_len=FD_STRLEN(input);}
@@ -2213,7 +2213,7 @@ static fdtype hmac_sha1_prim(fdtype key,fdtype input)
 
 static fdtype hmac_sha256_prim(fdtype key,fdtype input)
 {
-  unsigned char *data, *keydata, *digest=NULL;
+  const unsigned char *data, *keydata, *digest=NULL;
   int data_len, key_len, digest_len, free_key=0, free_data=0;
   if (FD_STRINGP(input)) {
     data=FD_STRDATA(input); data_len=FD_STRLEN(input);}

@@ -87,7 +87,7 @@ static size_t copy_upload_data(void *ptr,size_t size,size_t nmemb,void *stream)
 
 static size_t copy_content_data(char *data,size_t size,size_t n,void *vdbuf)
 {
-  INBUF *dbuf=(INBUF *)vdbuf;
+  INBUF *dbuf=(INBUF *)vdbuf; u8_byte *databuf;
   if (dbuf->size+size*n > dbuf->limit) {
     char *newptr;
     int need_space=dbuf->size+size*n, new_limit=dbuf->limit;
@@ -95,9 +95,10 @@ static size_t copy_content_data(char *data,size_t size,size_t n,void *vdbuf)
       if (new_limit >= 65536)
         new_limit=new_limit+65536;
       else new_limit=new_limit*2;}
-    newptr=u8_realloc(dbuf->bytes,new_limit);
+    newptr=u8_realloc((char *)dbuf->bytes,new_limit);
     dbuf->bytes=newptr; dbuf->limit=new_limit;}
-  memcpy(dbuf->bytes+dbuf->size,data,size*n);
+  databuf=(unsigned char *)dbuf->bytes;
+  memcpy(databuf+dbuf->size,data,size*n);
   dbuf->size=dbuf->size+size*n;
   return size*n;
 }
@@ -467,7 +468,7 @@ static const char *digits="0123456789ABCDEF";
 
 static fdtype fixurl(u8_string url)
 {
-  u8_byte *scan=url; int c;
+  const u8_byte *scan=url; int c;
   struct U8_OUTPUT out; char buf[8];
   U8_INIT_OUTPUT(&out,256); buf[0]='%'; buf[3]='\0';
   scan=url; while ((c=(*scan++))) {
@@ -531,16 +532,22 @@ static fdtype fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
   return result;
 }
 
-static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,INBUF *data)
+static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,
+                                INBUF *data)
 {
   fdtype cval; long http_response=0;
   int retval=curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
   if (retval==0)
     fd_add(result,response_code_slotid,FD_INT2DTYPE(http_response));
-  if (data->size<data->limit) data->bytes[data->size]='\0';
+  if (data->size<data->limit) {
+    unsigned char *buf=(unsigned char *)(data->bytes);
+    buf[data->size]='\0';
+    data->bytes=buf;}
   else {
-    data->bytes=u8_realloc(data->bytes,data->size+4);
-    data->bytes[data->size]='\0';}
+    unsigned char *buf=
+      u8_realloc((u8_byte *)data->bytes,data->size+4);
+    data->bytes=buf;
+    buf[data->size]='\0';}
   if (data->size<0) cval=FD_EMPTY_CHOICE;
   else if ((fd_test(result,type_symbol,text_types))&&
            (!(fd_test(result,content_encoding_symbol,FD_VOID))))
@@ -552,7 +559,7 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,INBUF *da
         U8_OUTPUT out;
         u8_encoding enc=u8_get_encoding(FD_STRDATA(chset));
         if (enc) {
-          unsigned char *scan=data->bytes;
+          const unsigned char *scan=data->bytes;
           U8_INIT_OUTPUT(&out,data->size);
           u8_convert(enc,1,&out,&scan,data->bytes+data->size);
           cval=fd_block_string(out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
@@ -667,13 +674,13 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
     curl_easy_setopt(h->handle,CURLOPT_READDATA,&rdbuf);}
   if (FD_STRINGP(content)) {
     size_t length=FD_STRLEN(content);
-    rdbuf.scan=FD_STRDATA(content);
-    rdbuf.end=FD_STRDATA(content)+length;
+    rdbuf.scan=(u8_byte *)FD_STRDATA(content);
+    rdbuf.end=(u8_byte *)FD_STRDATA(content)+length;
     curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,length);}
   else if (FD_PACKETP(content)) {
     size_t length=FD_PACKET_LENGTH(content);
-    rdbuf.scan=FD_PACKET_DATA(content);
-    rdbuf.end=FD_PACKET_DATA(content)+length;
+    rdbuf.scan=(u8_byte *)FD_PACKET_DATA(content);
+    rdbuf.end=(u8_byte *)FD_PACKET_DATA(content)+length;
     curl_easy_setopt(h->handle,CURLOPT_INFILESIZE,length);}
   else {}
   retval=curl_easy_perform(h->handle);
@@ -757,7 +764,7 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
       U8_OUTPUT out;
       u8_encoding enc=u8_get_encoding(FD_STRDATA(chset));
       if (enc) {
-        unsigned char *scan=data.bytes;
+        const unsigned char *scan=data.bytes;
         U8_INIT_OUTPUT(&out,data.size);
         u8_convert(enc,1,&out,&scan,data.bytes+data.size);
         u8_free(data.bytes); buf=out.u8_outbuf;

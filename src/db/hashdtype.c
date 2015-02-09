@@ -24,7 +24,7 @@
 
 FD_FASTOP unsigned int hash_string_dtype1 (fdtype x)
 {
-  char *ptr=FD_STRDATA(x), *limit=ptr+FD_STRLEN(x);
+  const char *ptr=FD_STRDATA(x), *limit=ptr+FD_STRLEN(x);
   unsigned int sum=0;
   while (ptr < limit) {
     sum=(sum<<8)+(*ptr++);
@@ -34,7 +34,7 @@ FD_FASTOP unsigned int hash_string_dtype1 (fdtype x)
 
 static unsigned int hash_unicode_string_dtype1 (fdtype x)
 {
-  unsigned char *ptr=FD_STRDATA(x), *limit=ptr+FD_STRLEN(x);
+  const unsigned char *ptr=FD_STRDATA(x), *limit=ptr+FD_STRLEN(x);
   unsigned int sum=0;
   while (ptr < limit) {
     int c=u8_sgetc(&ptr);
@@ -46,8 +46,8 @@ static unsigned int hash_unicode_string_dtype1 (fdtype x)
 static unsigned int hash_packet(fdtype x)
 {
   int size=FD_PACKET_LENGTH(x);
-  unsigned char *data=FD_PACKET_DATA(x);
-  unsigned char *ptr=data, *limit=ptr+size;
+  const unsigned char *data=FD_PACKET_DATA(x);
+  const unsigned char *ptr=data, *limit=ptr+size;
   unsigned int sum=0;
   while (ptr < limit) sum=((sum<<4)+(*ptr++))%MAGIC_MODULUS;
   return sum;
@@ -61,7 +61,7 @@ static unsigned int hash_packet(fdtype x)
 */
 FD_FASTOP unsigned int hash_symbol_dtype1(fdtype x)
 {
-  unsigned char *s = FD_SYMBOL_NAME (x);
+  const unsigned char *s = FD_SYMBOL_NAME (x);
   unsigned int sum=0;
   while (*s != '\0') {
     int c;
@@ -105,7 +105,7 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
   else if (FD_FIXNUMP(x))
     return (FD_FIX2INT(x))%(MAGIC_MODULUS);
   else if (FD_STRINGP(x)) {
-    u8_byte *scan=FD_STRDATA(x), *lim=scan+FD_STRLEN(x);
+    const u8_byte *scan=FD_STRDATA(x), *lim=scan+FD_STRLEN(x);
     while (scan<lim)
       if (*scan>=0x80) return hash_unicode_string_dtype1(x);
       else scan++;
@@ -223,10 +223,10 @@ FD_FASTOP unsigned int hash_combine(unsigned int x,unsigned int y)
   else return hash_mult(x,y);
 }
 
-FD_FASTOP unsigned int mult_hash_string(unsigned char *start,int len)
+FD_FASTOP unsigned int mult_hash_string(const unsigned char *start,int len)
 {
   unsigned int prod=1, asint=0;
-  unsigned char *ptr=start, *limit=ptr+len;
+  const unsigned char *ptr=start, *limit=ptr+len;
   /* Compute a starting place */
   while (ptr < limit) prod=prod+*ptr++;
   /* Now do a multiplication */
@@ -335,7 +335,7 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
 */
 FD_FASTOP unsigned int hash_symbol_dtype2(fdtype x)
 {
-  unsigned char *s = FD_SYMBOL_NAME (x);
+  const unsigned char *s = FD_SYMBOL_NAME (x);
   unsigned int sum=0;
   while (*s != '\0') {
     int c;

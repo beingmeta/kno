@@ -1151,7 +1151,7 @@ FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
   return module;
 }
 
-FD_EXPORT fdtype fd_register_module(char *name,fdtype module,int flags)
+FD_EXPORT fdtype fd_register_module(u8_string name,fdtype module,int flags)
 {
   return fd_register_module_x(fd_intern(name),module,flags);
 }

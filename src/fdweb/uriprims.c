@@ -438,7 +438,7 @@ static fdtype datauri_prim(fdtype data,fdtype ctype_arg)
     ((FD_STRINGP(data))?(13):(0))+8+data_len+1;
   result=fd_make_string(NULL,uri_len,NULL);
   string=FD_GET_CONS(result,fd_string_type,struct FD_STRING *);
-  write=FD_STRDATA(result);
+  write=(u8_byte *)FD_STRDATA(result);
   if ((ctype)&&(FD_STRINGP(data)))
     sprintf(write,"data:%s;charset=UTF-8;base64,",ctype);
   else if (ctype)

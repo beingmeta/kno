@@ -111,7 +111,8 @@ FD_EXPORT fd_8bytes _fd_dtsread_zint8(fd_dtype_stream s);
 
 FD_EXPORT int _fd_dtswrite_byte(struct FD_DTYPE_STREAM *stream,int b);
 FD_EXPORT int _fd_dtswrite_4bytes(struct FD_DTYPE_STREAM *stream,fd_4bytes w);
-FD_EXPORT int _fd_dtswrite_bytes(struct FD_DTYPE_STREAM *stream,unsigned char *bytes,int len);
+FD_EXPORT int _fd_dtswrite_bytes(struct FD_DTYPE_STREAM *stream,
+				 const unsigned char *bytes,int len);
 FD_EXPORT int _fd_dtswrite_zint(struct FD_DTYPE_STREAM *stream,fd_4bytes w);
 FD_EXPORT int _fd_dtswrite_zint8(struct FD_DTYPE_STREAM *stream,fd_8bytes b);
 
@@ -245,7 +246,7 @@ FD_FASTOP int fd_dtswrite_8bytes(fd_dtype_stream s,unsigned long long w)
 }
 
 FD_FASTOP int fd_dtswrite_bytes
-  (fd_dtype_stream s,unsigned char *bytes,int n)
+  (fd_dtype_stream s,const unsigned char *bytes,int n)
 {
   fd_dts_start_write(s);
   if (s->ptr+n>=s->end)

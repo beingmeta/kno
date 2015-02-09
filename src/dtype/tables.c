@@ -944,12 +944,12 @@ static unsigned int hash_combine(unsigned int x,unsigned int y)
   else return hash_mult(x,y);
 }
 
-FD_FASTOP unsigned int mult_hash_string(unsigned char *start,int len)
+FD_FASTOP unsigned int mult_hash_string(const unsigned char *start,int len)
 {
   unsigned int h=0;
   unsigned *istart=(unsigned int *)start, asint=0;
   const unsigned int *scan=istart, *limit=istart+len/4;
-  unsigned char *tail=start+(len/4)*4;
+  const unsigned char *tail=start+(len/4)*4;
   while (scan<limit) h=((127*h)+*scan++)%MYSTERIOUS_MODULUS;
   switch (len%4) {
   case 0: asint=1; break;

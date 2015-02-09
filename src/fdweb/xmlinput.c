@@ -432,7 +432,7 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
   if ((*scan=='/') || (*scan=='?') || (*scan=='!')) {
     /* Skip post < character */
     scan++; elt_start=scan;}
-  while (scan<end)
+  while (scan<end) 
     /* Scan to set scan at the end */
     if (isspace(*scan)) {
       u8_byte *item_end=scan;
@@ -495,14 +495,14 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
         return -1;}}
     else if (*scan=='=') {
       /* Skip whitespace after an = sign */
-      u8_byte *start=++scan; const u8_byte *next=start;
+      const u8_byte *start=++scan, *next=start;
       int c=u8_sgetc(&next);
       while ((c>0)&&(u8_isspace(c))&&(scan<end)) {
         scan=(u8_byte *)next;
         c=u8_sgetc(&next);}
       /* If you ran over (no value for =), just take the
          string up to the = */
-      if (scan>=end) scan=start;}
+      if (scan>=end) scan=(u8_byte *)start;}
     else if (*scan=='\0') scan++;
     else u8_sgetc((u8_string *)&scan);
   if (scan>elt_start) {
@@ -863,7 +863,7 @@ void *fd_walk_xml(U8_INPUT *in,
                   FD_XML *node)
 {
   int bufsize=1024, size=bufsize;
-  u8_byte *buf=u8_malloc(1024), *rbuf;
+  u8_byte *buf=u8_malloc(1024); const u8_byte *rbuf;
   while (1) {
     fd_xmlelt_type type;
     if ((rbuf=readbuf(in,&buf,&bufsize,&size,"<"))==NULL) {
@@ -894,7 +894,7 @@ void *fd_walk_xml(U8_INPUT *in,
         contentfn(node,reconstituted,size+2);
         u8_free(reconstituted);}}
     else if (type == xmlcomment) {
-      u8_byte *remainder=NULL, *combined;
+      const u8_byte *remainder=NULL; u8_byte *combined;
       int combined_len, more_data=0;
       if (strcmp((buf+size-2),"--"))
         /* If the markup end isn't --, we still need to find the
@@ -915,7 +915,7 @@ void *fd_walk_xml(U8_INPUT *in,
       u8_free(combined);
       if (more_data) u8_free(remainder);}
     else if (type == xmlcdata) {
-      u8_byte *remainder=NULL, *combined;
+      const u8_byte *remainder=NULL; u8_byte *combined;
       int more_data=0, combined_len;
       if (strcmp((buf+size-2),"]]"))
         remainder=u8_gets_x(NULL,0,in,"]]>",&more_data);
@@ -939,11 +939,12 @@ void *fd_walk_xml(U8_INPUT *in,
         contentfn(node,reconstituted,size+2);
         u8_free(reconstituted);}}
     else {
-      u8_byte *scan=buf, *_elts[32], **elts=_elts;
+      u8_byte *scan=buf;
+      const u8_byte *_elts[32], **elts=_elts;
       int n_elts;
       if ((type == xmlempty)&&(buf[size-1]=='/')) {
         buf[size-1]='\0'; size--;}
-     n_elts=fd_parse_element
+      n_elts=fd_parse_element
         (&scan,buf+size,elts,32,((node->bits)&(FD_XML_BADATTRIB)));
       if (n_elts<0) {
         fd_seterr3(fd_XMLParseError,"xmlstep",xmlsnip(scan));

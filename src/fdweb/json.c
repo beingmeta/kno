@@ -369,7 +369,7 @@ static void json_escape(u8_output out,u8_string s)
 
 static void json_lower(u8_output out,u8_string s)
 {
-  u8_byte *scan=s;
+  const u8_byte *scan=s;
   int c=u8_sgetc(&scan);
   while (c>=0) {
     int lc=u8_tolower(c);

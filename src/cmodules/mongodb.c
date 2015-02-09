@@ -94,7 +94,7 @@ static fdtype combine_opts(fdtype opts,fdtype clopts)
 
 static fdtype mongodb_open(fdtype arg,fdtype opts)
 {
-  char *uri; mongoc_client_t *client; int flags;
+  const char *uri; mongoc_client_t *client; int flags;
   if (FD_STRINGP(arg))
     uri=u8_strdup(FD_STRDATA(arg));
   else if (FD_SYMBOLP(arg)) {
@@ -575,7 +575,7 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
   if (FD_SYMBOLP(key)) {
     if (flags&FD_MONGODB_SLOTIFY) {
       u8_string pname=FD_SYMBOL_NAME(key);
-      u8_byte *scan=pname; int c;
+      const u8_byte *scan=pname; int c;
       while ((c=u8_sgetc(&scan))>=0) {
         u8_putc(&keyout,u8_tolower(c));}
       keystring=keyout.u8_outbuf;
@@ -647,7 +647,7 @@ FD_EXPORT bson_t *fd_dtype2bson(fdtype obj,int flags,fdtype opts)
 /* -1 means don't slotify at all, 0 means symbolize, 1 means intern */
 static int slotcode(u8_string s)
 {
-  u8_byte *scan=s; int c, i=0, isupper=0;
+  const u8_byte *scan=s; int c, i=0, isupper=0;
   while ((c=u8_sgetc(&scan))>=0) {
     if (i>32) return -1;
     if (!(slotify_char(c))) return -1; else i++;

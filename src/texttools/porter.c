@@ -181,9 +181,9 @@ static struct WORD apply_rule
   return w;
 }
 
-static int canonicalize_string(u8_byte *string,char *copy,int space)
+static int canonicalize_string(const u8_byte *string,char *copy,int space)
 {
-  u8_byte *read=string; char *write=copy, *limit=copy+space;
+  const u8_byte *read=string; char *write=copy, *limit=copy+space;
   while ((*read) && (write < limit))
     if (*read < 0x80) *write++=tolower(*read++);
     else {

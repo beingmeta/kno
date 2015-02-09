@@ -44,7 +44,7 @@ FD_EXPORT fdtype fd_init_double(struct FD_DOUBLE *ptr,double flonum);
 
 static int needs_escape(u8_string string)
 {
-  u8_byte *scan=string; int c;
+  const u8_byte *scan=string; int c;
   while ((c=u8_sgetc(&scan))>0)
     if (c>=128) return 1;
     else if (u8_isspace(c)) return 1;
@@ -54,7 +54,7 @@ static int needs_escape(u8_string string)
 
 static void out_escaped(FILE *f,u8_string name)
 {
-  u8_byte *scan=name;
+  const u8_byte *scan=name;
   while (*scan) {
     int c=u8_sgetc(&scan);
     if (c=='"') fprintf(f,"\\\"");
@@ -151,7 +151,7 @@ FD_FASTOP FILE *get_calltrack_logfile()
   struct CALLTRACK_DATA *cd=u8_tld_get(calltrack_log_key);
   if (cd) return cd->f; else return NULL;
 }
-FD_EXPORT int fd_start_calltrack(char *filename)
+FD_EXPORT int fd_start_calltrack(u8_string filename)
 {
   struct CALLTRACK_DATA *cd=u8_tld_get(calltrack_log_key);
   int current=0;
@@ -185,7 +185,7 @@ FD_EXPORT int fd_start_calltrack(char *filename)
 static FD_THREADVAR FILE *calltrack_logfile;
 static FD_THREADVAR char *calltrack_logfilename;
 #define get_calltrack_logfile() (calltrack_logfile)
-FD_EXPORT int fd_start_calltrack(char *filename)
+FD_EXPORT int fd_start_calltrack(u8_string filename)
 {
   int retval=0; FILE *f;
   if ((calltrack_logfilename) &&
@@ -374,7 +374,7 @@ FD_EXPORT fdtype _fd_dapply_ct(fdtype fp,int n,fdtype *args);
 FD_EXPORT fdtype fd_dapply(fdtype fp,int n,fdtype *args)
 {
   struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
-  fdtype result; u8_byte buf[64], *name;
+  fdtype result; u8_byte buf[64]; u8_string name;
   if (f->name==NULL) {
     sprintf(buf,"FN%lx",(unsigned long int)f); name=buf;}
   else name=f->name;

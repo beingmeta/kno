@@ -101,7 +101,8 @@ static char b32_weights[]=
    -1,10,11,12,13,14,15,16,17,-1,18,19,20,21,22,-1,
    23,24,25,-1,26,-1,27,28,29,30,31,-1,-1,-1,-1,-1};
 
-FD_EXPORT char *fd_ulonglong_to_b32(unsigned long long offset,char *buf,int *len)
+FD_EXPORT char *fd_ulonglong_to_b32(unsigned long long offset,
+                                    char *buf,int *len)
 {
   char tmpbuf[32]; int rem=offset, outlen=0;
   int buflen=((len)?(*len):((sizeof(unsigned long long)/5)+1));
@@ -121,10 +122,11 @@ FD_EXPORT char *fd_ulonglong_to_b32(unsigned long long offset,char *buf,int *len
   return buf;
 }
 
-FD_EXPORT int fd_b32_to_ulonglong(char *digits,unsigned long long *out)
+FD_EXPORT int fd_b32_to_ulonglong
+  (const char *digits,unsigned long long *out)
 {
   unsigned long long sum=0; long long xsum;
-  char *scan=digits; int err=0, weight;
+  const char *scan=digits; int err=0, weight;
   while (*scan) {
     int ch=*scan++;
     if ((ch>=128)||(ispunct(ch))||(isspace(ch)))
@@ -138,10 +140,10 @@ FD_EXPORT int fd_b32_to_ulonglong(char *digits,unsigned long long *out)
   else return xsum;
 }
 
-FD_EXPORT long long fd_b32_to_longlong(char *digits)
+FD_EXPORT long long fd_b32_to_longlong(const char *digits)
 {
   unsigned long long sum=0; long long xsum;
-  char *scan=digits; int err=0;
+  const char *scan=digits; int err=0;
   while (*scan) {
     int ch=*scan++;
     if ((ch>=128)||(ispunct(ch))||(isspace(ch)))
