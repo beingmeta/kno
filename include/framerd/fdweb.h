@@ -77,7 +77,8 @@ FD_EXPORT void *fd_walk_markup
 FD_EXPORT void fd_init_xml_node(FD_XML *node,FD_XML *parent,u8_string name);
 FD_EXPORT void fd_init_xml_attribs(FD_XML *node);
 FD_EXPORT int fd_parse_element
-  (u8_byte **scanner,u8_byte *end,u8_byte **elts,int max_elts,int sloppy);
+  (u8_byte **scanner,u8_byte *end,
+   const u8_byte **elts,int max_elts,int sloppy);
 FD_EXPORT fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int ishtml);
 
 FD_EXPORT void fd_default_contentfn(FD_XML *node,u8_string s,int len);
@@ -141,7 +142,7 @@ FD_EXPORT char *fd_sendfile_header;
 
 /* URI stuff */
 
-FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int,int,char *);
+FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int,int,const char *);
 FD_EXPORT fdtype fd_parse_uri(u8_string uri,fdtype base);
 
 /* XML output stuff */
@@ -165,8 +166,8 @@ FD_EXPORT fdtype fd_parse_uri(u8_string uri,fdtype base);
 
 /* MIME parsing stuff */
 
-FD_EXPORT fdtype fd_parse_multipart_mime(fdtype,char *,char *);
-FD_EXPORT fdtype fd_parse_mime(char *,char *);
+FD_EXPORT fdtype fd_parse_multipart_mime(fdtype,const char *,const char *);
+FD_EXPORT fdtype fd_parse_mime(const char *,const char *);
 FD_EXPORT fdtype fd_handle_compound_mime_field(fdtype,fdtype,fdtype);
 
 /* Init functions */

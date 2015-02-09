@@ -77,8 +77,8 @@ static fdtype char_punctuationp(fdtype arg)
 
 static fdtype asciip(fdtype string)
 {
-  u8_byte *scan=FD_STRDATA(string);
-  u8_byte *limit=scan+FD_STRLEN(string);
+  const u8_byte *scan=FD_STRDATA(string);
+  const u8_byte *limit=scan+FD_STRLEN(string);
   while (scan<limit)
     if (*scan>=0x80) return FD_FALSE;
     else scan++;
@@ -87,8 +87,8 @@ static fdtype asciip(fdtype string)
 
 static fdtype latin1p(fdtype string)
 {
-  u8_byte *scan=FD_STRDATA(string);
-  u8_byte *limit=scan+FD_STRLEN(string);
+  const u8_byte *scan=FD_STRDATA(string);
+  const u8_byte *limit=scan+FD_STRLEN(string);
   int c=u8_sgetc(&scan);
   while (scan<limit) {
     if (c>0x100) return FD_FALSE;
@@ -99,7 +99,7 @@ static fdtype latin1p(fdtype string)
 static fdtype lowercasep(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string); int c;
+    const u8_byte *scan=FD_STRDATA(string); int c;
     while ((c=u8_sgetc(&scan))>=0) {
       if (u8_isupper(c)) return FD_FALSE;}
     return FD_TRUE;}
@@ -113,7 +113,7 @@ static fdtype lowercasep(fdtype string)
 static fdtype uppercasep(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string); int c;
+    const u8_byte *scan=FD_STRDATA(string); int c;
     while ((c=u8_sgetc(&scan))>=0) {
       if (u8_islower(c)) return FD_FALSE;}
     return FD_TRUE;}
@@ -127,7 +127,7 @@ static fdtype uppercasep(fdtype string)
 static fdtype capitalizedp(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan);
+    const u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan);
     if (u8_isupper(c)) return FD_TRUE; else return FD_FALSE;}
   else if (FD_CHARACTERP(string)) {
     int c=FD_CHARCODE(string);
@@ -139,7 +139,8 @@ static fdtype capitalizedp(fdtype string)
 static fdtype some_capitalizedp(fdtype string,fdtype window_arg)
 {
   int window=FD_FIX2INT(window_arg);
-  u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan), i=0;
+  const u8_byte *scan=FD_STRDATA(string);
+  int c=u8_sgetc(&scan), i=0;
   if (c<0) return FD_FALSE;
   else if (window<=0)
     while (c>0) {
@@ -154,10 +155,10 @@ static fdtype some_capitalizedp(fdtype string,fdtype window_arg)
 static fdtype string_compoundp(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string);
+    const u8_byte *scan=FD_STRDATA(string);
     if (strchr(scan,' ')) return FD_TRUE;
     else {
-      u8_byte *lim=scan+FD_STRLEN(string);
+      const u8_byte *lim=scan+FD_STRLEN(string);
       int c=u8_sgetc(&scan);
       while ((c>=0) && (scan<lim))
         if (u8_isspace(c)) return FD_TRUE;
@@ -169,8 +170,8 @@ static fdtype string_compoundp(fdtype string)
 static fdtype string_phrase_length(fdtype string)
 {
   int len=0;
-  u8_byte *scan=FD_STRDATA(string);
-  u8_byte *lim=scan+FD_STRLEN(string);
+  const u8_byte *scan=FD_STRDATA(string);
+  const u8_byte *lim=scan+FD_STRLEN(string);
   int c=u8_sgetc(&scan);
   if (u8_isspace(c)) while ((u8_isspace(c)) && (c>=0) && (scan<lim)) {
       c=u8_sgetc(&scan);}
@@ -189,7 +190,7 @@ static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg)
   if (!(FD_STRINGP(string))) return FD_FALSE;
   else if (FD_STRLEN(string)==0) return FD_TRUE;
   else {
-    u8_byte *scan=FD_STRDATA(string), *lim=scan+FD_STRLEN(string);
+    const u8_byte *scan=FD_STRDATA(string), *lim=scan+FD_STRLEN(string);
     while (scan<lim) {
       int c=u8_sgetc(&scan);
       if ((count_vspace)&&
@@ -205,7 +206,7 @@ static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg)
 static fdtype downcase(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string); int c;
+    const u8_byte *scan=FD_STRDATA(string); int c;
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
@@ -215,7 +216,7 @@ static fdtype downcase(fdtype string)
     int c=FD_CHARCODE(string);
     return FD_CODE2CHAR(u8_tolower(c));}
   else if (FD_SYMBOLP(string)) {
-    u8_byte *scan=FD_SYMBOL_NAME(string); int c;
+    const u8_byte *scan=FD_SYMBOL_NAME(string); int c;
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
@@ -233,7 +234,7 @@ static fdtype char_downcase(fdtype ch)
 static fdtype upcase(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string); int c;
+    const u8_byte *scan=FD_STRDATA(string); int c;
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
@@ -243,7 +244,7 @@ static fdtype upcase(fdtype string)
     int c=FD_CHARCODE(string);
     return FD_CODE2CHAR(u8_toupper(c));}
   else if (FD_SYMBOLP(string)) {
-    u8_byte *scan=FD_SYMBOL_NAME(string); int c;
+    const u8_byte *scan=FD_SYMBOL_NAME(string); int c;
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
@@ -260,7 +261,7 @@ static fdtype char_upcase(fdtype ch)
 static fdtype capitalize(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string); int c;
+    const u8_byte *scan=FD_STRDATA(string); int c;
     struct U8_OUTPUT out; int word_start=1;
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
@@ -276,7 +277,7 @@ static fdtype capitalize(fdtype string)
 static fdtype capitalize1(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan);
+    const u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan);
     if (u8_isupper(c)) return fd_incref(string);
     else {
       struct U8_OUTPUT out;
@@ -341,7 +342,7 @@ static fdtype string_stdcap(fdtype string)
 static fdtype string_downcase1(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan);
+    const u8_byte *scan=FD_STRDATA(string); int c=u8_sgetc(&scan);
     if (u8_islower(c)) return fd_incref(string);
     else {
       struct U8_OUTPUT out;
@@ -355,7 +356,7 @@ static fdtype string_downcase1(fdtype string)
 static fdtype string_stdspace(fdtype string,fdtype keep_vertical_arg)
 {
   int keep_vertical=FD_TRUEP(keep_vertical_arg);
-  u8_byte *scan=FD_STRDATA(string); int c, white=1;
+  const u8_byte *scan=FD_STRDATA(string); int c, white=1;
   struct U8_OUTPUT out;
   U8_INIT_OUTPUT(&out,64);
   while ((c=u8_sgetc(&scan))>=0) {
@@ -379,7 +380,7 @@ static fdtype string_stdspace(fdtype string,fdtype keep_vertical_arg)
 static fdtype string_stdstring(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string); int c, white=1;
+    const u8_byte *scan=FD_STRDATA(string); int c, white=1;
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
@@ -402,7 +403,7 @@ static fdtype string_stdstring(fdtype string)
 static fdtype string_basestring(fdtype string)
 {
   if (FD_STRINGP(string)) {
-    u8_byte *scan=FD_STRDATA(string); int c;
+    const u8_byte *scan=FD_STRDATA(string); int c;
     struct U8_OUTPUT out;
     U8_INIT_OUTPUT(&out,64);
     while ((c=u8_sgetc(&scan))>=0) {
@@ -634,7 +635,7 @@ static fdtype makestring(fdtype len,fdtype character)
 
 /* Trigrams and Bigrams */
 
-static int get_stdchar(u8_byte **in)
+static int get_stdchar(const u8_byte **in)
 {
   int c;
   while ((c=u8_sgetc(in))>=0)
@@ -648,7 +649,7 @@ static int get_stdchar(u8_byte **in)
 static fdtype string_trigrams(fdtype string)
 {
   U8_OUTPUT out; u8_byte buf[64];
-  u8_byte *in=FD_STRDATA(string);
+  const u8_byte *in=FD_STRDATA(string);
   int c1=' ', c2=' ', c3=' ', c;
   fdtype trigram, trigrams=FD_EMPTY_CHOICE;
   U8_INIT_FIXED_OUTPUT(&out,64,buf);
@@ -673,7 +674,7 @@ static fdtype string_trigrams(fdtype string)
 static fdtype string_bigrams(fdtype string)
 {
   U8_OUTPUT out; u8_byte buf[64];
-  u8_byte *in=FD_STRDATA(string);
+  const u8_byte *in=FD_STRDATA(string);
   int c1=' ', c2=' ', c;
   fdtype bigram, bigrams=FD_EMPTY_CHOICE;
   U8_INIT_FIXED_OUTPUT(&out,64,buf);
@@ -875,7 +876,8 @@ static fdtype entity_escape;
 
 static fdtype string2packet(fdtype string,fdtype encoding,fdtype escape)
 {
-  char *data; int n_bytes; u8_byte *scan, *limit;
+  char *data; int n_bytes;
+  const u8_byte *scan, *limit;
   struct U8_TEXT_ENCODING *enc;
   if (FD_VOIDP(encoding)) {
     int n_bytes=FD_STRLEN(string);
@@ -920,7 +922,8 @@ static fdtype packet2string(fdtype packet,fdtype encoding)
     return fdtype_string("");
   else {
     struct U8_OUTPUT out;
-    u8_byte *scan=FD_PACKET_DATA(packet), *limit=scan+FD_PACKET_LENGTH(packet);
+    const u8_byte *scan=FD_PACKET_DATA(packet);
+    const u8_byte *limit=scan+FD_PACKET_LENGTH(packet);
     U8_INIT_OUTPUT(&out,2*FD_PACKET_LENGTH(packet));
     struct U8_TEXT_ENCODING *enc;
     if (FD_VOIDP(encoding))
@@ -949,7 +952,7 @@ static fdtype fixnuls(fdtype string)
   if (strlen(ss->bytes)<ss->length) {
     /* Handle embedded NUL */
     struct U8_OUTPUT out;
-    u8_byte *scan=ss->bytes, *limit=scan+ss->length;
+    const u8_byte *scan=ss->bytes, *limit=scan+ss->length;
     U8_INIT_OUTPUT(&out,ss->length+8);
     while (scan<limit) {
       if (*scan)
@@ -1005,16 +1008,16 @@ static fdtype string_subst_star(int n,fdtype *args)
 
 static fdtype trim_spaces(fdtype string)
 {
-  u8_byte *start=FD_STRDATA(string), *end=start+FD_STRLEN(string);
-  u8_byte *trim_start=start, *trim_end=end;
-  u8_byte *scan=trim_start;
+  const u8_byte *start=FD_STRDATA(string), *end=start+FD_STRLEN(string);
+  const u8_byte *trim_start=start, *trim_end=end;
+  const u8_byte *scan=trim_start;
   while (scan<end) {
     int c=u8_sgetc(&scan);
     if (u8_isspace(c)) trim_start=scan;
     else break;}
   scan=trim_end-1;
   while (scan>=trim_start) {
-    u8_byte *cstart=scan; int c;
+    const u8_byte *cstart=scan; int c;
     while ((cstart>=trim_start) &&
            ((*cstart)>=0x80) &&
            ((*cstart)<0xC0)) cstart--;
@@ -1036,7 +1039,7 @@ static fdtype glom_lexpr(int n,fdtype *args)
 {
   unsigned char *result_data, *write;
   int i=0, sumlen=0; fd_ptr_type result_type=0;
-  unsigned char **strings, *stringsbuf[16];
+  const unsigned char **strings, *stringsbuf[16];
   int *lengths, lengthsbuf[16];
   unsigned char *consed, consedbuf[16];
   if (n>16) {

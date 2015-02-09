@@ -111,7 +111,7 @@ FD_EXPORT fdtype fd_load_source
   u8_string sourcebase=NULL, outer_sourcebase;
   u8_string encoding=((enc_name)?(enc_name):((u8_string)("auto")));
   u8_string content=fd_get_source(sourceid,encoding,&sourcebase,NULL);
-  u8_byte *input=content;
+  const u8_byte *input=content;
   double start=u8_elapsed_time();
   if (content==NULL) return FD_ERROR_VALUE;
   else outer_sourcebase=bind_sourcebase(sourcebase);

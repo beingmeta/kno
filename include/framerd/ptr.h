@@ -333,8 +333,8 @@ FD_EXPORT int fd_get_oid_base_index(FD_OID addr,int add);
 #define FD_OID_BUCKET_SIZE    (1<<12)
 
 FD_EXPORT char *fd_ulonglong_to_b32(unsigned long long offset,char *buf,int *len);
-FD_EXPORT int fd_b32_to_ulonglong(char *digits,unsigned long long *out);
-FD_EXPORT long long fd_b32_to_longlong(char *digits);
+FD_EXPORT int fd_b32_to_ulonglong(const char *digits,unsigned long long *out);
+FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 
 /* Fixnums */
 
@@ -392,7 +392,7 @@ FD_EXPORT long long fd_b32_to_longlong(char *digits);
 
 #define FD_MAX_BUILTIN_CONSTANT 20
 
-FD_EXPORT unsigned char *fd_constant_names[];
+FD_EXPORT const char *fd_constant_names[];
 FD_EXPORT int fd_max_constant;
 FD_EXPORT fdtype fd_register_constant(u8_string name);
 

@@ -105,7 +105,7 @@ FD_EXPORT int fd_unlock_fd(int fd)
 
 /* Utility functions */
 
-static int writeall(int fd,unsigned char *data,int n)
+static int writeall(int fd,const unsigned char *data,int n)
 {
   int written=0;
   while (written<n) {
@@ -643,7 +643,7 @@ FD_EXPORT int _fd_dtswrite_zint(struct FD_DTYPE_STREAM *s,fd_4bytes val)
 }
 
 FD_EXPORT int _fd_dtswrite_bytes
-  (fd_dtype_stream s,unsigned char *bytes,int n)
+  (fd_dtype_stream s,const unsigned char *bytes,int n)
 {
   if ((s->flags)&FD_DTSTREAM_READING)
     if (fd_set_read(s,0)<0) return -1;

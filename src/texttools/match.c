@@ -261,7 +261,7 @@ static fdtype match_apply(fdtype method,u8_context cxt,fd_lispenv env,
 
 /** Utility functions **/
 
-static u8_byteoff _get_char_start(u8_byte *s,u8_byteoff i)
+static u8_byteoff _get_char_start(const u8_byte *s,u8_byteoff i)
 {
   if (s[i]<0x80) return i-1;
   else if (s[i]>=0xc0) return -1;
@@ -273,9 +273,9 @@ static u8_byteoff _get_char_start(u8_byte *s,u8_byteoff i)
 #define backward_char(s,i) \
   ((i==0) ? (i) : ((s[i-1] >= 0x80) ? (_get_char_start(s,i-1)) : (i-1)))
 
-static u8_byteoff _forward_char(u8_byte *s,u8_byteoff i)
+static u8_byteoff _forward_char(const u8_byte *s,u8_byteoff i)
 {
-  u8_byte *next=u8_substring(s+i,1);
+  u8_string next=u8_substring(s+i,1);
   if (next) return next-s; else return i+1;
 }
 
@@ -296,7 +296,7 @@ static u8_unichar get_previous_char(u8_string string,u8_byteoff off)
   if (off == 0) return -1;
   else if (string[off-1] < 0x80) return string[off-1];
   else {
-    u8_byteoff i=off-1, ch; u8_byte *scan;
+    u8_byteoff i=off-1, ch; const u8_byte *scan;
     while ((i>0) && (string[i]>=0x80) && (string[i]<0xC0)) i--;
     scan=string+i; ch=u8_sgetc(&scan);
     return ch;}
@@ -304,7 +304,7 @@ static u8_unichar get_previous_char(u8_string string,u8_byteoff off)
 
 static u8_byteoff strmatcher
   (int flags,
-   u8_byte *pat,u8_byteoff patlen,
+   const u8_byte *pat,u8_byteoff patlen,
    u8_string string,u8_byteoff off,u8_byteoff lim)
 {
   if ((flags&FD_MATCH_SPECIAL) == 0)
@@ -313,7 +313,7 @@ static u8_byteoff strmatcher
   else {
     int di=(flags&FD_MATCH_IGNORE_DIACRITICS),
       si=(flags&FD_MATCH_COLLAPSE_SPACES);
-    u8_byte *s1=pat, *s2=string+off, *end=s2, *limit=string+lim;
+    const u8_byte *s1=pat, *s2=string+off, *end=s2, *limit=string+lim;
     u8_unichar c1=u8_sgetc(&s1), c2=u8_sgetc(&s2);
     while ((c1>0) && (c2>0) && (s2 <= limit))
       if ((si) && (u8_isspace(c1)) && (u8_isspace(c2))) {
@@ -350,7 +350,7 @@ static void init_match_operators_table()
 
 FD_EXPORT
 void fd_add_match_operator
-  (u8_byte *label,
+  (u8_string label,
    tx_matchfn matcher,tx_searchfn searcher,tx_extractfn extract)
 {
   fdtype sym=fd_intern(label);
@@ -1388,7 +1388,7 @@ static fdtype word_match
           u8_byteoff noff=FD_FIX2INT(offset), complete_word=0;
           if (noff == lim) complete_word=1;
           else {
-            u8_byte *ptr=string+noff;
+            const u8_byte *ptr=string+noff;
             u8_unichar ch=u8_sgetc(&ptr);
             if ((u8_isspace(ch)) || (u8_ispunct(ch))) complete_word=1;}
           if (complete_word) {
@@ -1405,7 +1405,7 @@ static fdtype word_match
 static u8_byteoff get_next_candidate
   (u8_string string,u8_byteoff off,u8_byteoff lim)
 {
-  u8_byte *scan=string+off, *limit=string+lim;
+  const u8_byte *scan=string+off, *limit=string+lim;
   while (scan < limit) {   /* Find another space */
     u8_unichar ch=string_ref(scan);
     if ((u8_isspace(ch)) || (u8_ispunct(ch))) break;
@@ -1413,7 +1413,7 @@ static u8_byteoff get_next_candidate
     else u8_sgetc(&scan);}
   if (scan >= limit) return -1;
   else { /* Skip over the space */
-    u8_byte *probe=scan, *prev=scan; 
+    const u8_byte *probe=scan, *prev=scan;
     while (probe < limit) {
       u8_unichar ch=u8_sgetc(&probe);
       if ((u8_isspace(ch)) || (u8_ispunct(ch))) prev=probe;
@@ -1442,7 +1442,7 @@ static u8_byteoff word_search
         if (n == lim) {
           match_result=cand; FD_STOP_DO_CHOICES; break;}
         else {
-          u8_byte *p=string+n; ch=u8_sgetc(&p);
+          const u8_byte *p=string+n; ch=u8_sgetc(&p);
           if ((u8_isspace(ch)) || (u8_ispunct(ch))) {
             match_result=cand; FD_STOP_DO_CHOICES; break;}}}}
     cand=get_next_candidate(string,cand,lim);
@@ -1921,10 +1921,10 @@ static u8_byteoff search_bol
   if (off == 0) return off;
   else if ((string[off-1] == '\n') || (string[off-1] == '\r')) return off;
   else {
-    u8_byte *scan=strchr(string+off,'\n');
+    const u8_byte *scan=strchr(string+off,'\n');
     if (scan) return ((scan-string)+1);
     else {
-      u8_byte *scan=strchr(string+off,'\r');
+      const u8_byte *scan=strchr(string+off,'\r');
       if (scan) return ((scan-string)+1);
       else return -1;}}
 }
@@ -1948,10 +1948,10 @@ static u8_byteoff search_eol
   if (off == lim) return off+1;
   else if (off > lim) return -1;
   else {
-    u8_byte *scan=strchr(string+off,'\n');
+    const u8_byte *scan=strchr(string+off,'\n');
     if (scan) return ((scan-string));
     else {
-      u8_byte *scan=strchr(string+off,'\r');
+      const u8_byte *scan=strchr(string+off,'\r');
       if (scan) return ((scan-string));
       else return lim;}}
 }
@@ -1966,7 +1966,7 @@ static fdtype match_bow
     return FD_INT2DTYPE(0);
   else {
     u8_byteoff prev=backward_char(string,off);
-    u8_byte *ptr=string+prev;
+    const u8_byte *ptr=string+prev;
     int c=u8_sgetc(&ptr);
     if (u8_isspace(c)) return FD_INT2DTYPE(off);
     else return FD_EMPTY_CHOICE;}
@@ -1978,7 +1978,7 @@ static u8_byteoff search_bow
 {
   if (off == 0) return off;
   else {
-    u8_byte *scan=string+off, *scanlim=string+lim, *last=scan;
+    const u8_byte *scan=string+off, *scanlim=string+lim, *last=scan;
     int c=u8_sgetc(&scan);
     if (u8_isspace(c))  {
       while ((c>0) && (scan<scanlim) && (u8_isspace(c))) {
@@ -2068,7 +2068,7 @@ static fdtype match_char_range
     start=u8_tolower(start); start=u8_tolower(end);
     actual=u8_tolower(start);}
   if ((actual >= start) && (actual <= end)) {
-    u8_byte *new_off=u8_substring(string+off,1);
+    const u8_byte *new_off=u8_substring(string+off,1);
     return FD_INT2DTYPE(new_off-string);}
   else return FD_EMPTY_CHOICE;
 }
@@ -2079,14 +2079,14 @@ static fdtype match_char_not_core
    int flags,int match_null_string)
 {
   fdtype arg1=fd_get_arg(pat,1);
-  u8_byte *scan=string+off, *last_scan=scan, *end=string+lim;
+  const u8_byte *scan=string+off, *last_scan=scan, *end=string+lim;
   int *break_chars, n_break_chars=0;
   if (FD_VOIDP(pat))
     return fd_err(fd_MatchSyntaxError,"match_char_not_core",NULL,pat);
   else if (!(FD_STRINGP(arg1)))
     return fd_type_error("string","match_char_not_core",arg1);
   else {
-    u8_byte *scan=FD_STRDATA(arg1); int c=u8_sgetc(&scan);
+    const u8_byte *scan=FD_STRDATA(arg1); int c=u8_sgetc(&scan);
     break_chars=u8_alloc_n(FD_STRLEN(arg1),unsigned int);
     while (!(c<0)) {
       if (flags&(FD_MATCH_IGNORE_CASE))
@@ -2162,7 +2162,7 @@ static fdtype isspace_plus_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   fdtype match_points=FD_EMPTY_CHOICE;
-  u8_byte *scan=string+off, *limit=string+lim, *last=scan;
+  const u8_byte *scan=string+off, *limit=string+lim, *last=scan;
   u8_unichar ch=u8_sgetc(&scan);
   while (u8_isspace(ch)) 
     if (scan > limit) break;
@@ -2181,7 +2181,7 @@ static u8_byteoff isspace_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_isspace(ch)) return s-string;
@@ -2194,7 +2194,7 @@ static fdtype spaces_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *limit=string+lim, *last=scan;
+  const u8_byte *scan=string+off, *limit=string+lim, *last=scan;
   u8_unichar ch=u8_sgetc(&scan);
   while (u8_isspace(ch)) 
     if (scan > limit) break; else {last=scan; ch=u8_sgetc(&scan);}
@@ -2205,7 +2205,7 @@ static u8_byteoff spaces_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_isspace(ch)) return s-string;
@@ -2218,7 +2218,7 @@ static fdtype spaces_star_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *limit=string+lim, *last=scan;
+  const u8_byte *scan=string+off, *limit=string+lim, *last=scan;
   u8_unichar ch=u8_sgetc(&scan);
   while ((ch>0) && (u8_isspace(ch))) 
     if (scan > limit) break; else {last=scan; ch=u8_sgetc(&scan);}
@@ -2248,7 +2248,7 @@ static fdtype ishspace_plus_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   fdtype match_points=FD_EMPTY_CHOICE;
-  u8_byte *scan=string+off, *limit=string+lim, *last=scan;
+  const u8_byte *scan=string+off, *limit=string+lim, *last=scan;
   u8_unichar ch=u8_sgetc(&scan);
   while (u8_ishspace(ch)) 
     if (scan > limit) break;
@@ -2267,7 +2267,7 @@ static u8_byteoff ishspace_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_ishspace(ch)) return s-string;
@@ -2291,7 +2291,7 @@ static fdtype isvspace_plus_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   fdtype match_points=FD_EMPTY_CHOICE;
-  u8_byte *scan=string+off, *limit=string+lim, *last=scan;
+  const u8_byte *scan=string+off, *limit=string+lim, *last=scan;
   u8_unichar ch=u8_sgetc(&scan);
   while (u8_isvspace(ch)) 
     if (scan > limit) break;
@@ -2310,7 +2310,7 @@ static u8_byteoff isvspace_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_isvspace(ch)) return s-string;
@@ -2351,7 +2351,7 @@ static u8_byteoff isalnum_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_isalnum(ch)) return s-string;
@@ -2391,7 +2391,7 @@ static u8_byteoff isword_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if ((u8_isalpha(ch)) || (ch == '-') || (ch == '_')) return s-string;
@@ -2432,7 +2432,7 @@ static u8_byteoff isdigit_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_isdigit(ch)) return s-string;
@@ -2471,7 +2471,7 @@ static u8_byteoff isxdigit_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_isxdigit(ch)) return s-string;
@@ -2510,7 +2510,7 @@ static u8_byteoff isodigit_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_isodigit(ch)) return s-string;
@@ -2549,7 +2549,7 @@ static u8_byteoff isalpha_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_isalpha(ch)) return s-string;
@@ -2588,7 +2588,7 @@ static u8_byteoff ispunct_search
    (fdtype pat,fd_lispenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_ispunct(ch)) return s-string;
@@ -2628,7 +2628,7 @@ static u8_byteoff isprint_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_isprint(ch)) return s-string;
@@ -2667,7 +2667,7 @@ static u8_byteoff iscntrl_search
    (fdtype pat,fd_lispenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_isctrl(ch)) return s-string;
@@ -2708,7 +2708,7 @@ static u8_byteoff islower_search
    (fdtype pat,fd_lispenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_islower(ch)) return s-string;
@@ -2751,7 +2751,7 @@ static u8_byteoff isnotlower_search
    (fdtype pat,fd_lispenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (isnotlower(ch)) return s-string;
@@ -2792,7 +2792,7 @@ static u8_byteoff isupper_search
    (fdtype pat,fd_lispenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (u8_isupper(ch)) return s-string;
@@ -2835,7 +2835,7 @@ static u8_byteoff isnotupper_search
    (fdtype pat,fd_lispenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     u8_unichar ch=string_ref(s);
     if (isnotupper(ch)) return s-string;
@@ -2851,9 +2851,9 @@ static fdtype compound_word_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   fdtype embpunc=fd_get_arg(pat,1);
-  u8_byte *embstr=
-    ((FD_STRINGP(embpunc) ? (FD_STRDATA(embpunc)) : ((u8_byte *)",-/.")));
-  u8_byte *scan=string+off, *limit=string+lim, *end;
+  const u8_byte *embstr=
+    ((FD_STRINGP(embpunc) ? (FD_STRDATA(embpunc)) : ((const u8_byte *)",-/.")));
+  const u8_byte *scan=string+off, *limit=string+lim, *end;
   u8_unichar ch=u8_sgetc(&scan);
   if (u8_isalnum(ch)) {
     end=scan;
@@ -2899,10 +2899,10 @@ static u8_byteoff islsym_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *limit=string+lim;
+  const u8_byte *scan=string+off, *limit=string+lim;
   int good_start=lsymbol_startp(string,off);
   while (scan < limit) {
-    u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
+    const u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
     if ((good_start) && (islsym(ch))) return prev-string;
     if (islsym(ch)) good_start=0; else good_start=1;}
   return -1;
@@ -2934,10 +2934,10 @@ static u8_byteoff iscsym_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *limit=string+lim;
+  const u8_byte *scan=string+off, *limit=string+lim;
   int good_start=csymbol_startp(string,off);
   while (scan < limit) {
-    u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
+    const u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
     if ((good_start) && (u8_isalpha(ch))) return prev-string;
     if (u8_isalnum(ch) || (ch == '_'))
       good_start=0; else good_start=1;}
@@ -2955,7 +2955,7 @@ static fdtype ismailid_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim; u8_byteoff atsign=0;
+  const u8_byte *s=string+off, *sl=string+lim; u8_byteoff atsign=0;
   while (s < sl) 
     if (*s == '@') {atsign=s-string; s++;}
     else {
@@ -2975,13 +2975,13 @@ static u8_byteoff ismailid_search
    (fdtype pat,fd_lispenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *start=string+off, *slim=string+lim;
-  u8_byte *atsign=strchr(start,'@');
+  const u8_byte *start=string+off, *slim=string+lim;
+  const u8_byte *atsign=strchr(start,'@');
   while ((atsign) && (atsign < slim)) {
     if (atsign == start) start=atsign+1;
     else if (!(ismailid(atsign[0]))) start=atsign+1;
     else {
-      u8_byte *s=atsign-1; fdtype match;
+      const u8_byte *s=atsign-1; fdtype match;
       while (s > start) 
         if (!(ismailid(*s))) break; else s--;
       if (s != start) s++;
@@ -3027,7 +3027,7 @@ static fdtype xmlname_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  const u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
   int ch=u8_sgetc(&scan);
   if (!(xmlnmstartcharp(ch))) return FD_EMPTY_CHOICE;
   else while ((scan<limit) && (xmlnmcharp(ch))) {
@@ -3039,7 +3039,7 @@ static u8_byteoff xmlname_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  const u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
   int ch=u8_sgetc(&scan);
   while (scan<limit) {
     if (xmlnmstartcharp(ch)) break;
@@ -3052,7 +3052,7 @@ static fdtype xmlnmtoken_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  const u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
   int ch=u8_sgetc(&scan);
   if (!(xmlnmcharp(ch))) return FD_EMPTY_CHOICE;
   else while ((scan<limit) && (xmlnmcharp(ch))) {
@@ -3064,7 +3064,7 @@ static u8_byteoff xmlnmtoken_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  const u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
   int ch=u8_sgetc(&scan);
   while (scan<limit) {
     if (xmlnmcharp(ch)) break;
@@ -3082,7 +3082,7 @@ static fdtype htmlid_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  const u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
   int ch=u8_sgetc(&scan);
   if ((ch>0x80) || (!(isalpha(ch)))) return FD_EMPTY_CHOICE;
   else while ((scan<limit) && (ch<0x80) && (htmlidcharp(ch))) {
@@ -3094,7 +3094,7 @@ static u8_byteoff htmlid_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  const u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
   int ch=u8_sgetc(&scan);
   while (scan<limit)  {
     if ((ch<0x80) && (isalpha(ch))) break;
@@ -3112,14 +3112,14 @@ static fdtype aword_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *slim=string+lim, *last=scan;
+  const u8_byte *scan=string+off, *slim=string+lim, *last=scan;
   u8_unichar ch=u8_sgetc(&scan), lastch=-1;
   int allupper=u8_isupper(ch), dotcount=0;
   if (word_startp(string,off) == 0) return FD_EMPTY_CHOICE;
   while ((scan<=slim) &&
          ((u8_isalpha(ch)) || (apostrophep(ch)) || (dashp(ch)) ||
           ((allupper)&&(ch=='.')))) {
-    u8_byte *prev=scan; u8_unichar nextch=u8_sgetc(&scan);
+    const u8_byte *prev=scan; u8_unichar nextch=u8_sgetc(&scan);
     if (u8_islower(nextch)) allupper=0;
     if (nextch=='.') dotcount++;
     if ((!(u8_isalpha(ch)))&&(!(u8_isalpha(nextch)))) {
@@ -3138,10 +3138,10 @@ static u8_byteoff aword_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *limit=string+lim;
+  const u8_byte *scan=string+off, *limit=string+lim;
   int good_start=word_startp(string,off);
   while (scan < limit) {
-    u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
+    const u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
     if ((good_start) && (u8_isalpha(ch))) return prev-string;
     if ((u8_isspace(ch))||((u8_ispunct(ch))&&(strchr("-./_",ch)==NULL)))
       good_start=1; else good_start=0;}
@@ -3152,12 +3152,12 @@ static fdtype lword_match
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *slim=string+lim, *last=scan;
+  const u8_byte *scan=string+off, *slim=string+lim, *last=scan;
   u8_unichar ch=u8_sgetc(&scan);
   if (word_startp(string,off) == 0) return FD_EMPTY_CHOICE;
   if (!(u8_islower(ch))) return FD_EMPTY_CHOICE;
   while ((scan<=slim) && ((u8_isalpha(ch)) || (apostrophep(ch)) || (dashp(ch)))) {
-    u8_unichar nextch; u8_byte *prev=scan; nextch=u8_sgetc(&scan);
+    u8_unichar nextch; const u8_byte *prev=scan; nextch=u8_sgetc(&scan);
     if ((!(u8_isalpha(ch)))&&(!(u8_isalpha(nextch)))) {
       if (apostrophep(ch)) last=prev;
       break;}
@@ -3169,10 +3169,10 @@ static u8_byteoff lword_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *limit=string+lim;
+  const u8_byte *scan=string+off, *limit=string+lim;
   int good_start=word_startp(string,off);
   while (scan < limit) {
-    u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
+    const u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
     if ((good_start) && (u8_islower(ch))) return prev-string;
     if ((u8_isspace(ch))||
         ((u8_ispunct(ch))&&
@@ -3187,7 +3187,7 @@ static fdtype capword_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   fdtype matches=FD_EMPTY_CHOICE;
-  u8_byte *scan=string+off, *last=scan, *slim=string+lim;
+  const u8_byte *scan=string+off, *last=scan, *slim=string+lim;
   u8_unichar ch=u8_sgetc(&scan), lastch=-1;
   int greedy=((flags)&(FD_MATCH_BE_GREEDY)), allupper=1, dotcount=0;
   if (word_startp(string,off) == 0) return FD_EMPTY_CHOICE;
@@ -3195,7 +3195,7 @@ static fdtype capword_match
   while ((scan<=slim) &&
          ((u8_isalpha(ch)) || (apostrophep(ch)) || (dashp(ch)) ||
           ((allupper)&&(ch=='.')))) {
-    u8_byte *prev=scan; u8_unichar nextch=u8_sgetc(&scan); 
+    const u8_byte *prev=scan; u8_unichar nextch=u8_sgetc(&scan); 
     /* Handle embedded dots */
     if (u8_islower(nextch)) allupper=0;
     if (nextch=='.') dotcount++;
@@ -3221,10 +3221,10 @@ static u8_byteoff capword_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *scan=string+off, *limit=string+lim;
+  const u8_byte *scan=string+off, *limit=string+lim;
   int good_start=word_startp(string,off);
   while (scan < limit) {
-    u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
+    const u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
     if ((good_start) && (u8_isupper(ch))) return prev-string;
     if ((u8_isspace(ch))||((u8_ispunct(ch))&&(strchr("-./_",ch)==NULL)))
         good_start=1; else good_start=0;}
@@ -3243,7 +3243,7 @@ static fdtype anumber_match
   u8_string sepchars=
     ((FD_VOIDP(sep_arg)) ? ((u8_string)".,") :
      (FD_STRINGP(sep_arg)) ? (FD_STRDATA(sep_arg)) : ((u8_string)(NULL)));
-  u8_byte *scan=string+off, *slim=string+lim, *last=scan;
+  const u8_byte *scan=string+off, *slim=string+lim, *last=scan;
   u8_unichar prev_char=get_previous_char(string,off), ch=u8_sgetc(&scan);
   if (u8_isdigit(prev_char)) return FD_EMPTY_CHOICE;
   if (base == 8)
@@ -3277,9 +3277,9 @@ static u8_byteoff anumber_search
 {
   fdtype base_arg=fd_get_arg(pat,1);
   int base=((FD_FIXNUMP(base_arg)) ? (FD_FIX2INT(base_arg)) : (10));
-  u8_byte *scan=string+off, *limit=string+lim;
+  const u8_byte *scan=string+off, *limit=string+lim;
   while (scan < limit) {
-    u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
+    const u8_byte *prev=scan; u8_unichar ch=u8_sgetc(&scan);
     if (check_digit(ch,base)) return prev-string;}
   return -1;
 }
@@ -3516,12 +3516,13 @@ static u8_byteoff minlen_search
 
 /** Search functions **/
 
-static u8_byte *strsearch
+static const u8_byte *strsearch
   (int flags,
-   u8_byte *pat,u8_byteoff patlen,
+   const u8_byte *pat,u8_byteoff patlen,
    u8_string string,u8_byteoff off,u8_byteoff lim)
 {
-  u8_byte buf[64], *scan=pat, *limit;
+  u8_byte buf[64];
+  const u8_byte *scan=pat, *limit;
   int first_char=u8_sgetc(&scan), use_buf=0, c, cand;
   if ((flags&FD_MATCH_COLLAPSE_SPACES) &&
       ((flags&(FD_MATCH_IGNORE_CASE|FD_MATCH_IGNORE_DIACRITICS)) == 0)) {
@@ -3534,7 +3535,7 @@ static u8_byte *strsearch
   scan=string+off; limit=string+lim; cand=scan-string;
   while (scan < limit) {
     if (use_buf) {
-      u8_byte *next=strstr(scan,buf);
+      const u8_byte *next=strstr(scan,buf);
       if (next) {
         cand=scan-string; scan++;}
       else return NULL;}
@@ -3560,7 +3561,7 @@ static u8_byteoff slow_search
    (fdtype pat,fd_lispenv env,
     u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  u8_byte *s=string+off, *sl=string+lim;
+  const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     fdtype result=fd_text_matcher(pat,env,string,s-string,lim,flags);
     if (!(FD_EMPTY_CHOICEP(result))) return s-string;
@@ -3579,12 +3580,13 @@ u8_byteoff fd_text_search
   if (off > lim) return -1;
   else if (FD_EMPTY_CHOICEP(pat)) return -1;
   else if (FD_STRINGP(pat)) {
-    u8_byte c=string[lim], *next; string[lim]='\0';
+    u8_byte c=string[lim]; const u8_byte *next;
     if (flags&(FD_MATCH_SPECIAL))
       next=strsearch(flags,FD_STRDATA(pat),FD_STRLEN(pat),
                      string,off,lim);
-    else next=strstr(string+off,FD_STRDATA(pat));
-    string[lim]=c;
+    else {
+      next=strstr(string+off,FD_STRDATA(pat));
+      if (next>=string+lim) next=NULL;}
     if ((next) && (next<string+lim))
       return next-string;
     else return -1;}
@@ -3607,11 +3609,12 @@ u8_byteoff fd_text_search
     u8_unichar c=FD_CHAR2CODE(pat);
     if (c < 0x80) {
       u8_byte c=string[lim], *next;
-      string[lim]='\0'; next=strchr(string+off,c);
+      next=strchr(string+off,c);
+      if (next>=string+lim) next=NULL;
       if (next) return next-string;
       else return -1;}
     else {
-      u8_byte *s=string+off, *sl=string+lim;
+      const u8_byte *s=string+off, *sl=string+lim;
       while (s < sl) {
         u8_unichar ch=string_ref(s);
         if (ch == c) return s-string;

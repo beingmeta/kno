@@ -99,7 +99,7 @@ FD_EXPORT int _fd_write_8bytes(struct FD_BYTE_OUTPUT *b,fd_8bytes w)
 }
 
 FD_EXPORT int _fd_write_bytes
-   (struct FD_BYTE_OUTPUT *b,unsigned char *data,int size)
+   (struct FD_BYTE_OUTPUT *b,const unsigned char *data,int size)
 {
   if (fd_needs_space(b,size)==0) return -1;
   memcpy(b->ptr,data,size); b->ptr=b->ptr+size;
@@ -260,7 +260,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       return 5+s->length;}
     case fd_secret_type: {
       struct FD_STRING *s=(struct FD_STRING *) cons;
-      unsigned char *data=s->bytes;
+      const unsigned char *data=s->bytes;
       unsigned int len=s->length, sz=0;
       output_byte(out,dt_character_package);
       if (len<256) {
@@ -513,7 +513,8 @@ static int write_hashset(struct FD_BYTE_OUTPUT *out,struct FD_HASHSET *v)
 
 #define newpos(pos,ptr,lim) ((((ptr)+pos) <= lim) ? (pos) : (-1))
 
-static int validate_dtype(int pos,unsigned char *ptr,unsigned char *lim)
+static int validate_dtype(int pos,const unsigned char *ptr,
+                          const unsigned char *lim)
 {
   if (pos < 0) return pos;
   else if (ptr+pos >= lim) return -1;
@@ -596,12 +597,12 @@ FD_EXPORT int fd_grow_byte_input(struct FD_BYTE_INPUT *b,size_t len)
 {
   unsigned int current_off=b->ptr-b->start;
   unsigned int current_limit=b->end-b->start;
-  unsigned char *new;
+  unsigned char *old=(unsigned char *)b->start, *new;
   if ((b->flags)&(FD_BYTEBUF_MALLOCD))
-    new=u8_realloc(b->start,len);
+    new=u8_realloc(old,len);
   else {
     new=u8_malloc(len);
-    if (new) memcpy(new,b->start,current_limit);
+    if (new) memcpy(new,old,current_limit);
     b->flags=b->flags|FD_BYTEBUF_MALLOCD;}
   if (new == NULL) return 0;
   b->start=new; b->ptr=new+current_off;

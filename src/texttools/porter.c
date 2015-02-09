@@ -181,9 +181,9 @@ static struct WORD apply_rule
   return w;
 }
 
-static int canonicalize_string(u8_byte *string,char *copy,int space)
+static int canonicalize_string(const u8_byte *string,char *copy,int space)
 {
-  u8_byte *read=string; char *write=copy, *limit=copy+space;
+  const u8_byte *read=string; char *write=copy, *limit=copy+space;
   while ((*read) && (write < limit))
     if (*read < 0x80) *write++=tolower(*read++);
     else {
@@ -205,7 +205,7 @@ FD_EXPORT
     is too long (more than 200 characters) it just gives up.  This
     returns a malloc'd string containing the porter stem.   Note that
     the porter stem is usually not itself a word you would recognize. */
-char *fd_stem_english_word(u8_byte *original)
+char *fd_stem_english_word(const u8_byte *original)
 {
   char *copy; int do1b1=0, len=strlen(original);
   struct WORD w;

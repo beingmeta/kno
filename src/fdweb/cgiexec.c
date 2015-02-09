@@ -174,8 +174,8 @@ static void convert_accept(fd_slotmap c,fdtype slotid)
   if (!(FD_STRINGP(value))) {fd_decref(value);}
   else {
     fdtype newvalue=FD_EMPTY_CHOICE, entry;
-    u8_byte *data=FD_STRDATA(value), *scan=data;
-    u8_byte *comma=strchr(scan,','), *semi=strstr(scan,";q=");
+    const u8_byte *data=FD_STRDATA(value), *scan=data;
+    const u8_byte *comma=strchr(scan,','), *semi=strstr(scan,";q=");
     while (comma) {
       if ((semi) && (semi<comma))
         entry=fd_init_pair(NULL,fd_extract_string(NULL,scan,semi),
@@ -200,7 +200,7 @@ static fdtype post_data_slotid, form_data_string;
    CONFIG option QUERYWITHPOST (boolean) */
 static int parse_query_on_post=1;
 
-static void parse_query_string(fd_slotmap c,char *data,int len);
+static void parse_query_string(fd_slotmap c,const char *data,int len);
 
 static fdtype intern_compound(u8_string s1,u8_string s2)
 {
@@ -296,11 +296,10 @@ static void get_form_args(fd_slotmap c)
       fd_decref(qval);}}
 }
 
-static void parse_query_string(fd_slotmap c,char *data,int len)
+static void parse_query_string(fd_slotmap c,const char *data,int len)
 {
-  fdtype slotid=FD_VOID, value=FD_VOID;
-  int isascii=1;
-  u8_byte *scan=data, *end=scan+len;
+  fdtype slotid=FD_VOID, value=FD_VOID; int isascii=1;
+  const u8_byte *scan=data, *end=scan+len;
   char *buf=u8_malloc(len+1), *write=buf;
   while (scan<end)
     if ((FD_VOIDP(slotid)) && (*scan=='=')) {
@@ -377,7 +376,7 @@ static void convert_cookie_arg(fd_slotmap c)
   else {
     fdtype slotid=FD_VOID, name=FD_VOID, value=FD_VOID;
     int len=FD_STRLEN(qval); int isascii=1, badcookie=0;
-    u8_byte *scan=FD_STRDATA(qval), *end=scan+len;
+    const u8_byte *scan=FD_STRDATA(qval), *end=scan+len;
     char *buf=u8_malloc(len), *write=buf;
     while (scan<end)
       if ((FD_VOIDP(slotid)) && (*scan=='=')) {
@@ -581,7 +580,7 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
   else real_val=fd_incref(FD_VECTOR_REF(cookie,1));
   if ((len>2) || (!(FD_EQ(real_val,FD_VECTOR_REF(cookie,1))))) {
     fdtype var=FD_VECTOR_REF(cookie,0);
-    u8_string namestring; u8_byte *scan;
+    u8_string namestring; const u8_byte *scan;
     int free_namestring=0, c;
     u8_printf(out,"Set-Cookie: ");
     if (FD_SYMBOLP(var)) namestring=FD_SYMBOL_NAME(var);

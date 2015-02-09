@@ -159,7 +159,8 @@ static fdtype packet2dtype(fdtype packet)
 {
   fdtype object;
   struct FD_BYTE_INPUT in;
-  FD_INIT_BYTE_INPUT(&in,FD_PACKET_DATA(packet),FD_PACKET_LENGTH(packet));
+  FD_INIT_BYTE_INPUT(&in,FD_PACKET_DATA(packet),
+                     FD_PACKET_LENGTH(packet));
   object=fd_read_dtype(&in);
   return object;
 }
@@ -391,7 +392,8 @@ static fdtype uniscape(fdtype arg,fdtype excluding)
                       ((u8_string)""));
   u8_output output=u8_current_output;
   u8_string string=input;
-  u8_byte *scan=string; int c=u8_sgetc(&scan);
+  const u8_byte *scan=string;
+  int c=u8_sgetc(&scan);
   while (c>0) {
     if ((c>=0x80)||(strchr(exstring,c))) {
       u8_printf(output,"\\u%04x",c);}
@@ -656,7 +658,7 @@ static fdtype getline_prim(fdtype port,fdtype eos_arg,fdtype lim_arg,
       if (strlen(data)<size) {
         /* Handle embedded NUL */
         struct U8_OUTPUT out;
-        u8_byte *scan=data, *limit=scan+size;
+        const u8_byte *scan=data, *limit=scan+size;
         U8_INIT_OUTPUT(&out,size+8);
         while (scan<limit) {
           if (*scan)
@@ -1306,7 +1308,7 @@ static u8_string lisp_pprintf_handler
 
 static fdtype from_base64_prim(fdtype string)
 {
-  u8_byte *string_data=FD_STRDATA(string);
+  const u8_byte *string_data=FD_STRDATA(string);
   unsigned int string_len=FD_STRLEN(string), data_len;
   unsigned char *data=
     u8_read_base64(string_data,string_data+string_len,&data_len);
@@ -1317,7 +1319,7 @@ static fdtype from_base64_prim(fdtype string)
 
 static fdtype to_base64_prim(fdtype packet)
 {
-  u8_byte *packet_data=FD_PACKET_DATA(packet);
+  const u8_byte *packet_data=FD_PACKET_DATA(packet);
   unsigned int packet_len=FD_PACKET_LENGTH(packet), ascii_len;
   char *ascii_string=u8_write_base64(packet_data,packet_len,&ascii_len);
   if (ascii_string)
@@ -1328,7 +1330,7 @@ static fdtype to_base64_prim(fdtype packet)
 static fdtype any_to_base64_prim(fdtype arg)
 {
   unsigned int data_len, ascii_len;
-  u8_byte *data; char *ascii_string;
+  const u8_byte *data; char *ascii_string;
   if (FD_PACKETP(arg)) {
     data=FD_PACKET_DATA(arg);
     data_len=FD_PACKET_LENGTH(arg);}
@@ -1346,7 +1348,7 @@ static fdtype any_to_base64_prim(fdtype arg)
 
 static fdtype from_base16_prim(fdtype string)
 {
-  u8_byte *string_data=FD_STRDATA(string);
+  const u8_byte *string_data=FD_STRDATA(string);
   unsigned int string_len=FD_STRLEN(string), data_len;
   unsigned char *data=u8_read_base16(string_data,string_len,&data_len);
   if (data)
@@ -1356,7 +1358,7 @@ static fdtype from_base16_prim(fdtype string)
 
 static fdtype to_base16_prim(fdtype packet)
 {
-  u8_byte *packet_data=FD_PACKET_DATA(packet);
+  const u8_byte *packet_data=FD_PACKET_DATA(packet);
   unsigned int packet_len=FD_PACKET_LENGTH(packet);
   char *ascii_string=u8_write_base16(packet_data,packet_len);
   if (ascii_string)
@@ -1387,8 +1389,10 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
     return fd_type_error("string or packet","x2zipfile_prim",arg);
   else {
     fd_exception error=NULL;
-    unsigned char *data=((FD_STRINGP(arg))?(FD_STRDATA(arg)):(FD_PACKET_DATA(arg)));
-    unsigned int data_len=((FD_STRINGP(arg))?(FD_STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
+    const unsigned char *data=
+      ((FD_STRINGP(arg))?(FD_STRDATA(arg)):(FD_PACKET_DATA(arg)));
+    unsigned int data_len=
+      ((FD_STRINGP(arg))?(FD_STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
     struct FD_BYTE_OUTPUT out; int flags=0; /* FDPP_FHCRC */
     time_t now=time(NULL); u8_int4 crc, intval;
     FD_INIT_BYTE_OUTPUT(&out,1024); memset(out.start,0,1024);

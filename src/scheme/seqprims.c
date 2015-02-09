@@ -77,8 +77,8 @@ FD_EXPORT fdtype fd_seq_elt(fdtype x,int i)
       else {j++; scan=FD_CDR(scan);}
     return FD_RANGE_ERROR;}
   case fd_string_type: {
-    u8_byte *sdata=FD_STRDATA(x);
-    u8_byte *starts=string_start(sdata,i);
+    const u8_byte *sdata=FD_STRDATA(x);
+    const u8_byte *starts=string_start(sdata,i);
     if ((starts) && (starts<sdata+FD_STRING_LENGTH(x))) {
       int c=u8_sgetc(&starts);
       return FD_CODE2CHAR(c);}
@@ -113,7 +113,7 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
     u8_free(elts);
     return result;}
   case fd_packet_type: case fd_secret_type: {
-    unsigned char *data=FD_PACKET_DATA(x);
+    const unsigned char *data=FD_PACKET_DATA(x);
     if (end<0) end=FD_PACKET_LENGTH(x);
     else if (end>FD_PACKET_LENGTH(x)) return FD_VOID;
     else if (ctype==fd_secret_type) {
@@ -135,12 +135,12 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
     else {
       fd_decref(head); return FD_RANGE_ERROR;}}
   case fd_string_type: {
-    u8_byte *starts=string_start(FD_STRDATA(x),start);
+    const u8_byte *starts=string_start(FD_STRDATA(x),start);
     if (starts==NULL) return FD_RANGE_ERROR;
     else if (end<0)
       return fd_extract_string(NULL,starts,NULL);
     else {
-      u8_byte *ends=u8_substring(starts,(end-start));
+      const u8_byte *ends=u8_substring(starts,(end-start));
       if (ends)
         return fd_extract_string(NULL,starts,ends);
       else return FD_RANGE_ERROR;}}
@@ -176,7 +176,7 @@ FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end)
       else start++;
     return -1;}
   case fd_packet_type: case fd_secret_type: {
-    unsigned char *data=FD_PACKET_DATA(x);
+    const unsigned char *data=FD_PACKET_DATA(x);
     int len=FD_PACKET_LENGTH(x), keyval;
     if (end<0) end=len;
     if (FD_FIXNUMP(key)) keyval=FD_FIX2INT(key); else return -1;
@@ -249,7 +249,7 @@ FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end)
       if (FDTYPE_EQUAL(key,data[end])) return end;
     return -1;}
   case fd_packet_type: case fd_secret_type: {
-    unsigned char *data=FD_PACKET_DATA(x);
+    const unsigned char *data=FD_PACKET_DATA(x);
     int len=FD_PACKET_LENGTH(x), keyval;
     if (end<0) end=len;
     if (FD_FIXNUMP(key)) keyval=FD_FIX2INT(key); else return -1;
@@ -271,8 +271,8 @@ FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end)
 static int packet_search(fdtype key,fdtype x,int start,int end)
 {
   int klen=FD_PACKET_LENGTH(key);
-  unsigned char *kdata=FD_PACKET_DATA(key), first_byte=kdata[0];
-  unsigned char *data=FD_PACKET_DATA(x), *scan, *lim=data+end;
+  const unsigned char *kdata=FD_PACKET_DATA(key), first_byte=kdata[0];
+  const unsigned char *data=FD_PACKET_DATA(x), *scan, *lim=data+end;
   if (klen>(end-start)) return -1;
   scan=data+start;
   while ((scan=memchr(scan,first_byte,lim-scan))) {
@@ -309,14 +309,14 @@ static int vector_search(fdtype key,fdtype x,int start,int end)
 FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end)
 {
   if ((FD_STRINGP(key)) && (FD_STRINGP(x))) {
-    u8_byte *starts=string_start(FD_STRDATA(x),start), *found;
+    const u8_byte *starts=string_start(FD_STRDATA(x),start), *found;
     if (starts == NULL) return -2;
     found=strstr(starts,FD_STRDATA(key));
     if (end<0) {
       if (found) return start+u8_strlen_x(starts,found-starts);
       else return -1;}
     else {
-      u8_byte *ends=string_start(starts,end-start);
+      const u8_byte *ends=string_start(starts,end-start);
       if (ends==NULL) return -2;
       else if ((found) && (found<ends))
         return start+u8_strlen_x(starts,found-starts);
@@ -369,14 +369,14 @@ fdtype *fd_elts(fdtype seq,int *n)
     *n=len;
     switch (ctype) {
     case fd_packet_type: case fd_secret_type: {
-      unsigned char *packet=FD_PACKET_DATA(seq);
+      const unsigned char *packet=FD_PACKET_DATA(seq);
       int i=0; while (i < len) {
         int byte=packet[i];
         vec[i]=FD_INT2DTYPE(byte); i++;}
       break;}
     case fd_string_type: {
       int i=0;
-      u8_byte *scan=FD_STRING_DATA(seq),
+      const u8_byte *scan=FD_STRING_DATA(seq),
         *limit=scan+FD_STRING_LENGTH(seq);
       while (scan<limit)
         if (*scan=='\0') {
@@ -1031,7 +1031,7 @@ static fdtype every_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
   else if (!(FD_APPLICABLEP(proc)))
     return fd_type_error(_("function"),"every_prim",x);
   else if (FD_STRINGP(x)) {
-    u8_byte *scan=FD_STRDATA(x);
+    const u8_byte *scan=FD_STRDATA(x);
     int i=0; while (i<end) {
       int c=u8_sgetc(&scan);
       if (i<start) i++;
@@ -1065,7 +1065,7 @@ static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
   else if (!(FD_APPLICABLEP(proc)))
     return fd_type_error(_("function"),"some_prim",x);
   else if (FD_STRINGP(x)) {
-    u8_byte *scan=FD_STRDATA(x);
+    const u8_byte *scan=FD_STRDATA(x);
     int i=0; while (i<end) {
       int c=u8_sgetc(&scan);
       if (i<start) i++;
@@ -1529,7 +1529,8 @@ FD_EXPORT fdtype fd_seq_elts(fdtype x)
         FD_ADD_TO_CHOICE(result,tail);}
       return result;}
     case fd_string_type: {
-      u8_byte *scan=FD_STRDATA(x); int c=u8_sgetc(&scan);
+      const u8_byte *scan=FD_STRDATA(x);
+      int c=u8_sgetc(&scan);
       while (c>=0) {
         FD_ADD_TO_CHOICE(result,FD_CODE2CHAR(c));
         c=u8_sgetc(&scan);}
@@ -1558,7 +1559,7 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
         FD_ADD_TO_CHOICE(results,v);}
       return results;}
     case fd_packet_type: case fd_secret_type: {
-      unsigned char *read=FD_PACKET_DATA(x), *lim=read+end;
+      const unsigned char *read=FD_PACKET_DATA(x), *lim=read+end;
       while (read<lim) {
         int v=*read++;
         FD_ADD_TO_CHOICE(results,FD_INT2DTYPE(v));}
@@ -1574,7 +1575,8 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
         else {j++; scan=FD_CDR(scan);}
       return results;}
     case fd_string_type: {
-      int count=0; u8_byte *scan=FD_STRDATA(x); int c;
+      int count=0, c;
+      const u8_byte *scan=FD_STRDATA(x);
       while ((c=u8_sgetc(&scan))>=0)
         if (count<start) count++;
         else if (count>=end) break;

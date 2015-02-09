@@ -432,7 +432,7 @@ static void cleanup_pid_file()
 
 static int write_pid_file()
 {
-  char *abspath=u8_abspath(pid_file,NULL);
+  const char *abspath=u8_abspath(pid_file,NULL);
   u8_byte buf[512];
   struct stat fileinfo;
   int lv, sv=stat(abspath,&fileinfo), stat_err=0, exists=0;
@@ -1410,21 +1410,18 @@ static void kill_dependent_onsignal(int sig){
 #define SOCKDIR_PERMISSIONS \
   (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IXOTH)
 
-static int check_socket_path(char *sockarg)
+static int check_socket_path(u8_string sockname)
 {
-  u8_string sockname=u8_fromlibc(sockarg);
   u8_string sockfile=u8_abspath(sockname,NULL);
   u8_string sockdir=u8_dirname(sockfile);
   int retval=u8_mkdirs(sockdir,SOCKDIR_PERMISSIONS);
   if (retval<0) {
-    if (sockname!=((u8_string)sockarg)) u8_free(sockname);
     u8_free(sockfile);
     u8_free(sockdir);
     return retval;}
   else if ((u8_file_existsp(sockname)) ?
            (u8_file_writablep(sockname)) :
            (u8_file_writablep(sockdir))) {
-    if (sockname!=((u8_string)sockarg)) u8_free(sockname);
     u8_free(sockfile);
     u8_free(sockdir);
     return retval;}
@@ -1442,7 +1439,7 @@ static int add_server(u8_string spec)
   int file_socket=((strchr(spec,'/'))!=NULL);
   int len=strlen(spec), retval;
   if (spec[0]==':') spec=spec+1;
-  else if (spec[len-1]=='@') spec[len-1]='\0';
+  /* else if (spec[len-1]=='@') spec[len-1]='\0'; */
   else {}
   retval=u8_add_server(&fdwebserver,spec,((file_socket)?(-1):(0)));
   if (retval<0) return retval;
@@ -1544,7 +1541,7 @@ int main(int argc,char **argv)
   int fd_version; /* Wait to set this until we have a log file */
   int i=1;
   u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;
-  char *logfile=NULL;
+  u8_string logfile=NULL;
 
   if (u8_version<0) {
     u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
@@ -1583,7 +1580,7 @@ int main(int argc,char **argv)
                      fd_boolconfig_get,fd_boolconfig_set,&async_mode);
 
   if (getenv("LOGFILE"))
-    logfile=u8_strdup(getenv("LOGFILE"));
+    logfile=u8_fromlibc(getenv("LOGFILE"));
   else if ((getenv("LOGDIR"))&&(socket_spec)) {
     u8_string base=u8_basename(socket_spec,"*");
     u8_string logname=u8_mkstring("%s.log",base);

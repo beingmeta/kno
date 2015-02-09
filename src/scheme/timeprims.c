@@ -1426,7 +1426,7 @@ static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
   else if ((FD_VOIDP(tptr))&&(FD_PACKETP(nodeid)))
     if (FD_PACKET_LENGTH(nodeid)==16) {
       struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
-      unsigned char *data=FD_PACKET_DATA(nodeid);
+      const unsigned char *data=FD_PACKET_DATA(nodeid);
       FD_INIT_CONS(uuid,fd_uuid_type);
       memcpy(&(uuid->uuid),data,16);
       return FDTYPE_CONS(uuid);}

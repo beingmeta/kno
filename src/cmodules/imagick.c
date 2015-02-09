@@ -524,8 +524,8 @@ static fdtype imagick_get(fdtype fdwand,fdtype property,fdtype dflt)
   struct FD_IMAGICK *wrapper=
     FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
   MagickWand *wand=wrapper->wand;
-  char *pname=((FD_SYMBOLP(property))?(FD_SYMBOL_NAME(property)):
-               (FD_STRINGP(property))?(FD_STRDATA(property)):(NULL));
+  const char *pname=((FD_SYMBOLP(property))?(FD_SYMBOL_NAME(property)):
+                     (FD_STRINGP(property))?(FD_STRDATA(property)):(NULL));
   char *value=MagickGetImageProperty(wand,pname);
   if (value) {
     fdtype stringval=fd_make_string(NULL,-1,value);

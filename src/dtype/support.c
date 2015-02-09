@@ -76,7 +76,8 @@ static struct FD_CONFIG_LOOKUPS *config_lookupfns=NULL;
 
 static fdtype config_intern(u8_string start)
 {
-  U8_OUTPUT nameout; u8_byte buf[64], *scan=start;
+  U8_OUTPUT nameout; u8_byte buf[64];
+  const u8_byte *scan=start;
   U8_INIT_STATIC_OUTPUT_BUF(nameout,64,buf);
   while (*scan) {
     int c=u8_sgetc(&scan);
@@ -125,7 +126,9 @@ static fdtype config_get(u8_string var)
 static fdtype getenv_config_lookup(fdtype symbol,void *ignored)
 {
   U8_OUTPUT out;
-  char *getenv_result, *u8result; fdtype result;
+  char *getenv_result;
+  u8_string u8result;
+  fdtype result;
   U8_INIT_OUTPUT(&out,32);
   u8_printf(&out,"FD_%s",FD_SYMBOL_NAME(symbol));
   getenv_result=getenv(out.u8_outbuf);
@@ -1770,7 +1773,8 @@ static fdtype u8major_config_get(fdtype var,void *data)
 
 static int boot_config()
 {
-  u8_string config_string=u8_getenv("FD_BOOT_CONFIG"), scan, end; int count=0;
+  u8_byte *config_string=(u8_byte *)u8_getenv("FD_BOOT_CONFIG");
+  u8_byte *scan, *end; int count=0;
   if (config_string==NULL) config_string=u8_strdup(FD_BOOT_CONFIG);
   else config_string=u8_strdup(config_string);
   scan=config_string; end=strchr(scan,';');

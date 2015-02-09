@@ -38,7 +38,8 @@ static int egetc(u8_string *s)
     if (**s=='&')
       if (strncmp(*s,"&nbsp;",6)==0) {*s=*s+6; return ' ';}
       else {
-        u8_byte *end=NULL; int code=u8_parse_entity((*s)+1,&end);
+        const u8_byte *end=NULL;
+        int code=u8_parse_entity((*s)+1,&end);
         if (code>0) {
           *s=end; return code;}
         else {(*s)++; return '&';}}
@@ -47,9 +48,9 @@ static int egetc(u8_string *s)
   else return u8_sgetc(s);
 }
 
-static u8_byteoff _forward_char(u8_byte *s,u8_byteoff i)
+static u8_byteoff _forward_char(const u8_byte *s,u8_byteoff i)
 {
-  u8_byte *next=u8_substring(s+i,1);
+  const u8_byte *next=u8_substring(s+i,1);
   if (next) return next-s; else return i+1;
 }
 
@@ -87,7 +88,7 @@ static u8_string skip_whitespace(u8_string s)
 {
   if (s==NULL) return NULL;
   else if (*s) {
-    u8_byte *scan=s, *last=s; int c=egetc(&scan);
+    const u8_byte *scan=s, *last=s; int c=egetc(&scan);
     while ((c>0) && (u8_isspace(c))) {last=scan; c=egetc(&scan);}
     return last;}
   else return NULL;
@@ -97,7 +98,7 @@ static u8_string skip_nonwhitespace(u8_string s)
 {
   if (s==NULL) return NULL;
   else if (*s) {
-    u8_byte *scan=s, *last=s; int c=egetc(&scan);
+    const u8_byte *scan=s, *last=s; int c=egetc(&scan);
     while ((c>0) && (!(u8_isspace(c)))) {last=scan; c=egetc(&scan);}
     return last;}
   else return NULL;
@@ -106,7 +107,7 @@ static u8_string skip_nonwhitespace(u8_string s)
 static fdtype whitespace_segment(u8_string s)
 {
   fdtype result=FD_EMPTY_LIST, *lastp=&result;
-  u8_byte *start=skip_whitespace(s), *end=skip_nonwhitespace(start);
+  const u8_byte *start=skip_whitespace(s), *end=skip_nonwhitespace(start);
   while (start) {
     fdtype newcons=
       fd_init_pair(NULL,fd_extract_string(NULL,start,end),FD_EMPTY_LIST);
@@ -117,7 +118,7 @@ static fdtype whitespace_segment(u8_string s)
 
 static fdtype dosegment(u8_string string,fdtype separators)
 {
-  u8_byte *scan=string;
+  const u8_byte *scan=string;
   fdtype result=FD_EMPTY_LIST, *resultp=&result;
   while (scan) {
     fdtype sepstring=FD_EMPTY_CHOICE, pair;
@@ -210,7 +211,8 @@ static fdtype encode_entities_prim(fdtype input,fdtype chars,fdtype nonascii)
     {FD_DO_CHOICES(xch,chars) {
         if (FD_STRINGP(xch)) {
           u8_string string=FD_STRDATA(xch);
-          u8_byte *scan=string; int c=u8_sgetc(&scan);
+          const u8_byte *scan=string;
+          int c=u8_sgetc(&scan);
           while (c>=0) {
             if (c<128) {
               if (strchr(buf,c)<0) u8_putc(&ascii_chars,c);}
@@ -250,7 +252,7 @@ static u8_string skip_spaces(u8_string start)
 {
   if (start==NULL) return start;
   else if (*start) {
-    u8_byte *last=start, *scan=start; int c=egetc(&scan);
+    const u8_byte *last=start, *scan=start; int c=egetc(&scan);
     while (spacecharp(c)) {
       last=scan; c=egetc(&scan);}
     return last;}
@@ -261,7 +263,7 @@ static u8_string skip_punct(u8_string start)
 {
   if (start==NULL) return start;
   else if (*start) {
-    u8_byte *last=start, *scan=start; int c=egetc(&scan);
+    const u8_byte *last=start, *scan=start; int c=egetc(&scan);
     while (punctcharp(c)) {
       last=scan; c=egetc(&scan);}
     return last;}
@@ -274,7 +276,7 @@ static u8_string skip_word(u8_string start)
 {
   if (start==NULL) return start;
   else if (*start) {
-    u8_byte *last=start, *scan=start; int c=egetc(&scan);
+    const u8_byte *last=start, *scan=start; int c=egetc(&scan);
     while (c>0) {
       if (spacecharp(c)) break;
       else if (punctcharp(c)) {
@@ -602,7 +604,7 @@ static fdtype ismarkup_percentage(fdtype string)
 
 /* Stemming */
 
-FD_EXPORT u8_byte *fd_stem_english_word(u8_byte *original);
+FD_EXPORT u8_byte *fd_stem_english_word(const u8_byte *original);
 
 static fdtype stem_prim(fdtype arg)
 {
@@ -695,7 +697,8 @@ static fdtype strip_markup(fdtype string,fdtype insert_space_arg)
 
 static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
 {
-  u8_string scan=FD_STRDATA(string), limit=scan+FD_STRLEN(string), buf;
+  u8_string scan=FD_STRDATA(string), limit=scan+FD_STRLEN(string);
+  u8_byte *buf;
   int i=0, field=0, n_fields=fd_seq_length(cols), parselen=0;
   fdtype *fields;
   while (i<n_fields) {
@@ -1728,7 +1731,7 @@ static fdtype firstword_prim(fdtype string,fdtype sep)
     if (end) return fd_extract_string(NULL,string_data,end);
     else return fd_incref(string);}
   else if ((FD_VOIDP(sep))||(FD_FALSEP(sep))||(FD_TRUEP(sep)))  {
-    u8_byte *scan=(u8_byte *)string_data, *last=scan;
+    const u8_byte *scan=(u8_byte *)string_data, *last=scan;
     int c=u8_sgetc(&scan); while ((c>0)&&(!(u8_isspace(c)))) {
       last=scan; c=u8_sgetc(&scan);}
     return fd_extract_string(NULL,string_data,last);}
@@ -2013,8 +2016,8 @@ static fdtype findsep_prim(fdtype string,fdtype sep,
   else if (e>=0x80)
     return fd_type_error("ascii char","findsep_prim",esc);
   else {
-    u8_byte *str=FD_STRDATA(string), *start=str+off, *limit=str+lim;
-    u8_byte *scan=start, *pos=strchr(scan,c);
+    const u8_byte *str=FD_STRDATA(string), *start=str+off, *limit=str+lim;
+    const u8_byte *scan=start, *pos=strchr(scan,c);
     while ((pos) && (scan<limit)) {
       if (pos==start)
         return FD_INT2DTYPE(u8_charoffset(str,(pos-str)));
@@ -2039,8 +2042,8 @@ static fdtype splitsep_prim(fdtype string,fdtype sep,
     return fd_type_error("ascii char","splitsep_prim",esc);
   else {
     fdtype head=FD_VOID, pair=FD_VOID;
-    u8_byte *str=FD_STRDATA(string), *start=str+off, *limit=str+lim;
-    u8_byte *scan=start, *pos=strchr(scan,c);
+    const u8_byte *str=FD_STRDATA(string), *start=str+off, *limit=str+lim;
+    const u8_byte *scan=start, *pos=strchr(scan,c);
     if (pos)
       while ((scan) && (scan<limit)) {
         if ((pos) && (pos>start) && (*(pos-1)==e)) {
@@ -2073,7 +2076,7 @@ static fdtype unslashify_prim(fdtype string,fdtype offset,fdtype limit_arg,
     return fd_err(fd_RangeError,"unslashify_prim",NULL,FD_VOID);
   start=sdata+off; limit=sdata+lim; split1=strchr(start,'\\');
   if ((split1) && (split1<limit)) {
-    u8_byte *scan=start;
+    const u8_byte *scan=start;
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,FD_STRLEN(string));
     while (scan) {
       u8_byte *split=strchr(scan,'\\');
@@ -2180,7 +2183,7 @@ static fdtype sha256_prim(fdtype input)
 
 static fdtype hmac_sha1_prim(fdtype key,fdtype input)
 {
-  unsigned char *data, *keydata, *digest=NULL;
+  const unsigned char *data, *keydata, *digest=NULL;
   int data_len, key_len, digest_len, free_key=0, free_data=0;
   if (FD_STRINGP(input)) {
     data=FD_STRDATA(input); data_len=FD_STRLEN(input);}
@@ -2210,7 +2213,7 @@ static fdtype hmac_sha1_prim(fdtype key,fdtype input)
 
 static fdtype hmac_sha256_prim(fdtype key,fdtype input)
 {
-  unsigned char *data, *keydata, *digest=NULL;
+  const unsigned char *data, *keydata, *digest=NULL;
   int data_len, key_len, digest_len, free_key=0, free_data=0;
   if (FD_STRINGP(input)) {
     data=FD_STRDATA(input); data_len=FD_STRLEN(input);}

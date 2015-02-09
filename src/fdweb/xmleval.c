@@ -68,7 +68,7 @@ fd_lispenv read_xml_env(fd_lispenv env)
 
 FD_INLINE_FCN void entify(u8_output out,u8_string value,int len)
 {
-  u8_byte *scan=value, *lim=value+len;
+  const u8_byte *scan=value, *lim=value+len;
   while (scan<lim) {
     int c=u8_sgetc(&scan);
     if (c<0) {}
@@ -80,7 +80,7 @@ FD_INLINE_FCN void entify(u8_output out,u8_string value,int len)
 
 static void attrib_entify_x(u8_output out,u8_string value,u8_string escape)
 {
-  u8_byte *scan=value; int c;
+  const u8_byte *scan=value; int c;
   if (!(escape)) escape="'<>&\"";
   while ((c=u8_sgetc(&scan))>=0)
     if (strchr(escape,c)) /* (strchr("'<>&\"!@$%(){}[]",c)) */
@@ -115,7 +115,7 @@ static int output_markup_sym(u8_output out,fdtype sym)
 {
   if (FD_STRINGP(sym)) return u8_puts(out,FD_STRDATA(sym));
   else if (FD_SYMBOLP(sym)) {
-    u8_byte *scan=FD_SYMBOL_NAME(sym);
+    const u8_byte *scan=FD_SYMBOL_NAME(sym);
     int c=u8_sgetc(&scan);
     while (c>=0) {
       int lc=u8_tolower(c);
@@ -717,7 +717,7 @@ FD_EXPORT int fd_xmleval_attribfn
 
 static fdtype xattrib_slotid;
 
-static int check_symbol_entity(u8_byte *start,u8_byte *end);
+static int check_symbol_entity(const u8_byte *start,const u8_byte *end);
 
 FD_EXPORT
 void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
@@ -726,7 +726,7 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
   else if ((strchr(s,'&'))==NULL)
     fd_add_content(node,fd_extract_string(NULL,s,s+len));
   else {
-    u8_byte *start=s, *scan=strchr(s,'&'), *lim=s+len;
+    const u8_byte *start=s, *scan=strchr(s,'&'), *lim=s+len;
     while ((scan)&&(scan<lim)) {
       /* Definitely a character entity */
       if (scan[1]=='#') scan=strchr(scan+1,'&');
@@ -740,7 +740,7 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
           /* Make a different kind of node to be evaluated */
           struct U8_OUTPUT out; u8_byte buf[64];
           fdtype symbol=FD_VOID;
-          u8_byte *as=scan+1, *end=semi;
+          const u8_byte *as=scan+1, *end=semi;
           U8_INIT_FIXED_OUTPUT(&out,64,buf);
           while (as<end) {
             int c=u8_sgetc(&as); c=u8_toupper(c);
@@ -757,9 +757,9 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
       fd_add_content(node,fd_extract_string(NULL,start,lim));}
 }
 
-static int check_symbol_entity(u8_byte *start,u8_byte *end)
+static int check_symbol_entity(const u8_byte *start,const u8_byte *end)
 {
-  u8_byte *scan=start, *chref_end=end;
+  const u8_byte *scan=start, *chref_end=end;
   if (((end-start)<=16)&&(u8_parse_entity(scan,&chref_end)>=0))
     return 0;
   else while (scan<end) {
@@ -810,7 +810,7 @@ static u8_string get_pi_string(u8_string start)
   if ((c=='\'') || (c=='"')) {
     start++; end=strchr(start,c);}
   else {
-    u8_byte *last=start, *scan=start;
+    const u8_byte *last=start, *scan=start;
     while (c>0) {
       c=u8_sgetc(&scan);
       if ((c<0) || (u8_isspace(c))) break;
@@ -859,8 +859,8 @@ static FD_XML *handle_fdxml_pi
 {
   fd_lispenv env=(fd_lispenv)(xml->data), xml_env=NULL;
   if (strncmp(content,"?fdxml ",6)==0) {
-    u8_string copy=u8_strdup(content);
-    u8_byte *scan=copy, *attribs[16];
+    u8_byte *copy=(u8_byte *)u8_strdup(content);
+    u8_byte *scan=copy; u8_string attribs[16];
     int i=0, n_attribs=fd_parse_element(&scan,copy+len,attribs,16,0);
     while (i<n_attribs)
       if ((strncmp(attribs[i],"load=",5))==0) {

@@ -570,7 +570,7 @@ static fdtype flip64(fdtype arg)
 static fdtype cityhash64(fdtype arg,fdtype asint)
 {
   u8_int8 hash;
-  u8_byte *data; size_t datalen;
+  const u8_byte *data; size_t datalen;
   if (FD_STRINGP(arg)) {
     data=FD_STRDATA(arg); datalen=FD_STRLEN(arg);}
   else if (FD_PACKETP(arg)) {
@@ -596,7 +596,7 @@ static fdtype cityhash128(fdtype arg)
 {
   unsigned char bytes[16];
   u8_int16 hash; u8_int8 hi; u8_int8 lo;
-  u8_byte *data; size_t datalen;
+  const u8_byte *data; size_t datalen;
   if (FD_STRINGP(arg)) {
     data=FD_STRDATA(arg); datalen=FD_STRLEN(arg);}
   else if (FD_PACKETP(arg)) {
