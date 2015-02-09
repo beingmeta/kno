@@ -1,3 +1,9 @@
+framerd (3.7.5-22) unstable; urgency=low
+
+  * Switched to const representation for u8_string references
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 08 Feb 2015 22:06:05 -0500
+
 framerd (3.7.4-21) unstable; urgency=low
 
   * Fuller integration of POSIX regexes
