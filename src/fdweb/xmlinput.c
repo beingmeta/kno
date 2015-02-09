@@ -422,13 +422,13 @@ static void set_elt_name(FD_XML *xml,u8_string name)
 /* Parsing XML tags */
 
 FD_EXPORT
-int fd_parse_element(u8_byte **scanner,u8_byte *end,
-                     const u8_byte **elts,int max_elts,
+int fd_parse_xmltag(u8_byte **scanner,u8_byte *end,
+                     const u8_byte **attribs,int max_attribs,
                      int sloppy)
 {
-  int n_elts=0;
+  int n_attribs=0;
   u8_byte *scan=*scanner, *elt_start=scan;
-  /* Accumulate elements into _elts_ */
+  /* Accumulate the tag attribs (including the tag name) */
   if ((*scan=='/') || (*scan=='?') || (*scan=='!')) {
     /* Skip post < character */
     scan++; elt_start=scan;}
@@ -436,17 +436,21 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
     /* Scan to set scan at the end */
     if (isspace(*scan)) {
       u8_byte *item_end=scan;
-      /* Spaces outside of quotes or not after or before = are always
-       * breaks */
+      /* Skip (and ignore) whitespace; spaces outside of quotes
+         or not after or before = are always 'attribute' breaks */
       while ((scan<end) && (isspace(*scan))) scan++;
+      /* This = is part of an attribute */
       if (*scan=='=') {
-        scan++;
+        scan++; /* Skip the whitespace after the = */
         while ((scan<end) && (isspace(*scan))) scan++;
+        /* We're still in the attribute */
         continue;}
       else {
-        *item_end='\0'; elts[n_elts++]=elt_start;
-        if (n_elts>=max_elts) {
-          *scanner=scan; return n_elts;}
+        /* The space really ends the attribute, so NUL terminate it and
+           add it to *attribs */
+        *item_end='\0'; attribs[n_attribs++]=elt_start;
+        if (n_attribs>=max_attribs) {
+          *scanner=scan; return n_attribs;}
         elt_start=scan;}}
     else if (*scan=='\'') {
       /* Scan a single quoted value, waiting for an unprotected
@@ -506,9 +510,18 @@ int fd_parse_element(u8_byte **scanner,u8_byte *end,
     else if (*scan=='\0') scan++;
     else u8_sgetc((u8_string *)&scan);
   if (scan>elt_start) {
-    *scan='\0'; elts[n_elts++]=elt_start;}
-  return n_elts;
+    *scan='\0'; attribs[n_attribs++]=elt_start;}
+  return n_attribs;
 }
+/* Old name, keeping around until the next ABI update */
+FD_EXPORT
+int fd_parse_element(u8_byte **scanner,u8_byte *end,
+                     const u8_byte **elts,int max_elts,
+                     int sloppy)
+{
+  return fd_parse_xmltag(scanner,end,elts,max_elts,sloppy);
+}
+
 
 static int _tag_matchp(u8_string buf,u8_string tagname,int len)
 {
@@ -551,34 +564,36 @@ fd_xmlelt_type fd_get_markup_type(u8_string buf,int len,int html)
 /* Attribute processing */
 
 static void process_attribs(int (*attribfn)(FD_XML *,u8_string,u8_string,int),
-                            FD_XML *xml,u8_string *items,int n)
+                            FD_XML *xml,u8_string *attribs,int n)
 {
   int i=0; while (i< n) {
-    u8_string item=items[i++]; int quote=-1;
-    u8_byte *equals=strchr(item,'=');
+    u8_byte *item=(u8_byte *)attribs[i++], *end=item+strlen(item)-1;
+    u8_byte *equals=strchr(item,'='), *name_end=equals; 
+    u8_string name=item, val; int quote=-1;
     if (equals) {
-      const u8_byte *valstart=equals+1;
-      const u8_byte *scan=valstart;
-      const u8_byte *valend=valstart+strlen(valstart)-1;
-      u8_string val=NULL; int c;
-      c=u8_sgetc(&scan);
-      /* Skip whitespace */
-      while ((scan<equals)&&
-             (c>=0)&&((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c)))) {
-        valstart=scan; c=u8_sgetc(&scan);}
+      const u8_byte *scan=item; int c=u8_sgetc(&scan);
+      /* Find the end of the name, ignoring any whitespace before
+         the equals sign. */
+      while ((scan<=equals)&&(c>=0)) {
+        /* When we exit the loop, we've got the end of the attrib name */
+        if (!((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c)))) 
+          name_end=(u8_byte *)scan;
+        c=u8_sgetc(&scan);}
+      c=u8_sgetc(&scan); /* c=='=' */
+      /* Now get the value, skipping whitespace and unwrapping quotes */
+      if (u8_isspace(c)) {
+        while ((c==' ')||(c=='\n')||(c=='\r')||(u8_isspace(c))) {
+          val=scan; c=u8_sgetc(&scan);}}
+      else val=equals+1;
       /* We don't have to worry about where the item ends
-         (that was handled by parse_element) but we do need to
+         (that was handled by fd_parse_xmltag) but we do need to
          strip off any quotes. */
-      if (*valstart=='"') {
-        valstart++; quote='"'; if (*valend=='"') valend--;}
-      else if (*valstart=='\'') {
-        valstart++; quote='\''; if (*valend=='\'') valend--;}
-      else {}
-      val=valstart;
-      if (process_nsattrib(xml,item,val)) {}
-      else if ((attribfn) && (attribfn(xml,item,val,quote))) {}
-      else fd_default_attribfn(xml,item,val,quote);
-      if (val!=valstart) u8_free(val);}
+      if ((c=='"')||(c=='\'')) {quote=c; val++;}
+      *name_end='\0';
+      if (*end==quote) *end='\0';
+      if (process_nsattrib(xml,name,val)) {}
+      else if ((attribfn) && (attribfn(xml,name,val,quote))) {}
+      else fd_default_attribfn(xml,name,val,quote);}
     else if ((attribfn) && (attribfn(xml,item,NULL,-1))) {}
     else fd_default_attribfn(xml,item,NULL,-1);}
 }
@@ -944,7 +959,7 @@ void *fd_walk_xml(U8_INPUT *in,
       int n_elts;
       if ((type == xmlempty)&&(buf[size-1]=='/')) {
         buf[size-1]='\0'; size--;}
-      n_elts=fd_parse_element
+      n_elts=fd_parse_xmltag
         (&scan,buf+size,elts,32,((node->bits)&(FD_XML_BADATTRIB)));
       if (n_elts<0) {
         fd_seterr3(fd_XMLParseError,"xmlstep",xmlsnip(scan));

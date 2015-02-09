@@ -861,7 +861,7 @@ static FD_XML *handle_fdxml_pi
   if (strncmp(content,"?fdxml ",6)==0) {
     u8_byte *copy=(u8_byte *)u8_strdup(content);
     u8_byte *scan=copy; u8_string attribs[16];
-    int i=0, n_attribs=fd_parse_element(&scan,copy+len,attribs,16,0);
+    int i=0, n_attribs=fd_parse_xmltag(&scan,copy+len,attribs,16,0);
     while (i<n_attribs)
       if ((strncmp(attribs[i],"load=",5))==0) {
         u8_string arg=get_pi_string(attribs[i]+5);

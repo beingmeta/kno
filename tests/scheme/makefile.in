@@ -99,6 +99,7 @@ schemetests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) picktest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cachecall.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) texttest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) fdwebtest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) timefns.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) threadtest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) i18n.scm

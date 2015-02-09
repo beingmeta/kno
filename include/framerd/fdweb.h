@@ -76,6 +76,9 @@ FD_EXPORT void *fd_walk_markup
    void *data);
 FD_EXPORT void fd_init_xml_node(FD_XML *node,FD_XML *parent,u8_string name);
 FD_EXPORT void fd_init_xml_attribs(FD_XML *node);
+FD_EXPORT int fd_parse_xmltag
+  (u8_byte **scanner,u8_byte *end,
+   const u8_byte **elts,int max_elts,int sloppy);
 FD_EXPORT int fd_parse_element
   (u8_byte **scanner,u8_byte *end,
    const u8_byte **elts,int max_elts,int sloppy);
