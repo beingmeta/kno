@@ -1,3 +1,9 @@
+framerd (3.7.5-23) unstable; urgency=low
+
+  * Update mysql to thread zero OID offets as an empty choice result
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 10 Feb 2015 13:28:00 -0500
+
 framerd (3.7.5-22) unstable; urgency=low
 
   * Switched to const representation for u8_string references
