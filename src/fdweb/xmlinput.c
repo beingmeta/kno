@@ -940,8 +940,9 @@ void *fd_walk_xml(U8_INPUT *in,
       strncpy(combined,"<",1);
       strncpy(combined+1,buf,size);
       if (more_data) {
-        strncpy(combined+1+size,remainder,more_data);
-        strncpy(combined+1+size+more_data,"]]>",4);}
+        strncpy(combined+1+size,">",2);
+        strncpy(combined+1+size+1,remainder,more_data);
+        strncpy(combined+1+size+1+more_data,"]]>",4);}
       else strncpy(combined+1+size,">",2);
       if (contentfn) contentfn(node,combined,combined_len);
       u8_free(combined); if (more_data) u8_free(remainder);}
