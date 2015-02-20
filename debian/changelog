@@ -1,3 +1,9 @@
+framerd (3.7.5-24) unstable; urgency=low
+
+  * New Debian release
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 20 Feb 2015 12:49:01 -0500
+
 framerd (3.7.5-23) unstable; urgency=low
 
   * Update mysql to thread zero OID offets as an empty choice result
