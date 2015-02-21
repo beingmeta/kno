@@ -5,7 +5,7 @@
 
 ;;; Utilites for manipulating parsed XML in terms of the XHTML DOM
 
-(use-module '{fdweb texttools reflection domutils aws/s3
+(use-module '{fdweb texttools regex reflection domutils aws/s3
 	      savecontent gpath logger mimetable})
 
 (define-init %loglevel %notice%)
@@ -211,6 +211,7 @@
 (define image-suffixes
   (choice {".png" ".gif" ".jpg" ".jpeg" ".svg"}
 	  (upcase {".png" ".gif" ".jpg" ".jpeg" ".svg"})))
+(define extprefix #((isalpha) (isalpha) (isalpha+) ":"))
 
 (define (dom/localize! dom base saveto read (options #f)
 		       (urlmap) (doanchors) (dolinks) (stylerules))
@@ -297,20 +298,31 @@
 		     " for " (dom/sig node #t))))
 	(when (and (exists? ref) ref)
 	  (when saveslot (dom/set! node saveslot href))
-	  (dom/set! node 'href ref))))
-    (loginfo |Localize| "Localizing anchorish [href] elements")
-    (dolist (node (dom/select->list dom "[href]"))
-      (when (and (or (and doanchors (test node '%xmltag 'a))
-		     (test node 'rel {dolinks "knodule"}))
-		 (not (string-starts-with?
-		       (get node 'href)
-		       #((isalpha) (isalpha) (isalpha+) ":")))
-		 (or (and doanchors (immediate? doanchors))
-		     (and doanchors
-			  (textsearch doanchors (get node 'href)))))
+	  (dom/set! node 'href ref))
+	(logdebug |Localize/css| "New converted node: \n"  (pprint node))))
+    (let ((hrefs (dom/select->list dom "[href]")) (anchors '()) (others '()))
+      (dolist (node hrefs)
+	(if (or (and doanchors (test node '%xmltag 'a))
+		(and (test node '%xmltag 'link)
+		     (test node 'rel {dolinks "knodule" "x-resource" "stylesheet"}))
+		(not (test node '%xmltag '{a link})))
+	    (unless (or (string-starts-with? (get node 'href) extprefix)
+			;; We handle these separately
+			(test node 'rel {"x-resource" "stylesheet"}))
+	      (when (or (immediate? doanchors)
+			(exists textsearch (reject doanchors regex?) (get node 'href))
+			(exists regex/search (pick doanchors regex?) (get node 'href)))
+		(set! anchors (cons node anchors))))
+	    (set! others (cons node others))))
+      (unless (null? hrefs)
+	(loginfo |Localize| "Split " (length hrefs) " [HREF]s into "
+		 (length anchors) " anchors and " (length others) " other elements"))
+      (unless (null? anchors)
+	(loginfo |Localize|
+	  "Localizing " (length anchors) " anchor [href] elements"))
+      (dolist (node (reverse anchors))
 	(logdebug |Localize|
-		  "Localizing " (get node 'href) "\n\tfrom " base
-		  "\n\tto " saveto)
+	  "Localizing (anchor) " (get node 'href) "\n\tfrom " base "\n\tto " saveto)
 	(let* ((href (get node 'href))
 	       (hashpos (position #\# href))
 	       (baseuri (slice href 0 hashpos))
@@ -323,16 +335,17 @@
 			    (glom rootref hashid)))))
 	  (debug%watch href baseuri rootref hashid ref)
 	  (loginfo |Localize|
-		   "Localized " (write href) " to " (write ref)
-		   " for " (dom/sig node #t))
+	    "Localized " (write href) " to " (write ref)
+	    " for " (dom/sig node #t))
 	  (when (and (exists? ref) ref)
 	    (when (and saveslot (not (equal? ref href)))
 	      (dom/set! node saveslot href))
-	    (dom/set! node 'href ref)))))
-    (loginfo |Localize| "Localizing other [href] elements")
-    (dolist (node (dom/select->list dom "[href]"))
-      (unless (or (test node 'rel {dolinks "x-resource" "stylesheet" "knodule"})
-		  (test node '%xmltag 'a))
+	    (dom/set! node 'href ref)))
+	(logdebug |Localize/anchor| "New converted node: \n"  (pprint node)))
+      (unless (null? others)
+	(loginfo |Localize|
+	  "Localizing " (length others) " non-anchor [href] elements"))
+      (dolist (node (reverse others))
 	(let* ((href (get node 'href))
 	       (hashpos (position #\# href)))
 	  (cond ((and (test urlmap href) (get urlmap href))
@@ -347,23 +360,24 @@
 		 (dom/set! node 'href
 			   (or (localref href urlmap base (qc saveto)
 					 read options)
-			       href)))))))
-    (let ((xresources '()) (files {}))
-      (do-choices (resource (pick (pickstrings (get urlmap (getkeys urlmap)))
-				  has-prefix read))
-	(set+! files resource)
-	(set! xresources
-	      (cons* `#[%XMLTAG LINK %ATTRIBIDS {REL HREF}
-			REL "x-resource"
-			HREF ,resource]
-		     "\n"
-		     xresources)))
-      (if (pair? options)
-	  (add! (car options) 'xresources files)
-	  (add! options 'xresources files))
-      (add! dom 'xresources files)
-      (store! head '%content
-	      (append (get head '%content) xresources)))))
+			       href))))
+	  (logdebug |Localize/href| "New converted node: \n"  (pprint node))))
+      (let ((xresources '()) (files {}))
+	(do-choices (resource (pick (pickstrings (get urlmap (getkeys urlmap)))
+				    has-prefix read))
+	  (set+! files resource)
+	  (set! xresources
+		(cons* `#[%XMLTAG LINK %ATTRIBIDS {REL HREF}
+			  REL "x-resource"
+			  HREF ,resource]
+		       "\n"
+		       xresources)))
+	(if (pair? options)
+	    (add! (car options) 'xresources files)
+	    (add! options 'xresources files))
+	(add! dom 'xresources files)
+	(store! head '%content
+		(append (get head '%content) xresources))))))
 
 (define (hashmerge root hash urlmap)
   (cond ((fail? (get urlmap hash))
