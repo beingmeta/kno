@@ -203,15 +203,16 @@
 	   (stringval (if (and (not fdxml) (string? val)) val
 			  (->domstring val)))
 	   (qattrib (string->lisp (first (singleton attribs))))
-	   (newattrib (vector (elt attribs 0) (elt attribs 1) stringval)))
+	   (newattrib (vector (elt attribs 0) (elt attribs 1) stringval))
+	   (xslotid (pick (difference (string->lisp (elt attribs 0)) slotid) node)))
       (when index
-	(drop! index (cons (choice attrib slotid qattrib) (get node attrib)) node)
-	(add! index (cons (choice attrib slotid qattrib) val) node))
+	(drop! index (cons (choice attrib xslotid slotid qattrib) (get node attrib)) node)
+	(add! index (cons (choice attrib xslotid slotid qattrib) val) node))
       (when (ambiguous? attribs)
 	(error "AmbiguousDOMAttribute"
 	       "DOM/SET of ambiguous attribute " attrib
 	       attribs))
-      (store! node slotid val)
+      (store! node {slotid xslotid} val)
       (if (exists? ids)
 	  (unless (overlaps? ids (choice qattrib slotid))
 	    (if (and (singleton? ids) (or (vector? ids) (pair? ids)))
