@@ -83,8 +83,8 @@ FD_EXPORT fdtype fd_convert_entities(u8_string arg,u8_string lim)
   return fd_stream2string(&out);
 }
 
-static fdtype raw_name_symbol;
-static fdtype namespace_symbol, name_symbol, qname_symbol, xmlns_symbol;
+static fdtype rawtag_symbol;
+static fdtype namespace_symbol, xmltag_symbol, qname_symbol, xmlns_symbol;
 static fdtype attribs_symbol, content_symbol, type_symbol;
 
 static fdtype sloppy_symbol, keepraw_symbol, crushspace_symbol;
@@ -410,10 +410,11 @@ static void set_elt_name(FD_XML *xml,u8_string name)
   if ((ns) && ((xml->bits&FD_XML_NSFREE)==0)) {
     fdtype namespace=fdtype_string(ns);
     fdtype qname=make_qid(eltname,ns);
+    fd_store(xml->attribs,rawtag_symbol,fd_intern(name));
     fd_add(xml->attribs,namespace_symbol,namespace);
     fd_add(xml->attribs,qname_symbol,qname);
     fd_decref(qname); fd_decref(namespace);}
-  fd_add(xml->attribs,name_symbol,lispname);
+  fd_add(xml->attribs,xmltag_symbol,lispname);
   fd_add(xml->attribs,qname_symbol,qlispname);
   fd_decref(qlispname);
   fd_decref(lispname);
@@ -607,7 +608,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
     fdtype cnode=fd_empty_slotmap();
     fdtype comment_string=fd_extract_string(NULL,s+4,s+(len-3));
     fdtype comment_content=fd_init_pair(NULL,comment_string,FD_EMPTY_LIST);
-    fd_store(cnode,name_symbol,comment_symbol);
+    fd_store(cnode,xmltag_symbol,comment_symbol);
     fd_store(cnode,content_symbol,comment_content);
     fd_decref(comment_content);
     add_content(node,cnode);}
@@ -615,7 +616,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
     fdtype cnode=fd_empty_slotmap();
     fdtype cdata_string=fd_extract_string(NULL,s+9,s+(len-3));
     fdtype cdata_content=fd_init_pair(NULL,cdata_string,FD_EMPTY_LIST);
-    fd_store(cnode,name_symbol,cdata_symbol);
+    fd_store(cnode,xmltag_symbol,cdata_symbol);
     fd_store(cnode,content_symbol,cdata_content);
     fd_decref(cdata_content);
     add_content(node,cnode);}
@@ -661,7 +662,7 @@ FD_XML *fd_default_popfn(FD_XML *node)
     fdtype slotid;
     if (FD_EMPTY_CHOICEP(node->parent->attribs))
       init_node_attribs(node->parent);
-    slotid=fd_get(node->attribs,name_symbol,FD_EMPTY_CHOICE);
+    slotid=fd_get(node->attribs,xmltag_symbol,FD_EMPTY_CHOICE);
     if ((node->bits)&FD_XML_KEEP_RAW)
       add_content(node->parent,fd_incref(node->attribs));
     node->parent->bits=node->parent->bits|FD_XML_HASDATA;
@@ -820,7 +821,6 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
     else if ((node->bits&FD_XML_EMPTY_CLOSE) && (elts[0][0]=='\0')) {
       struct FD_XML *retnode;
       if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
-      fd_add(node->attribs,raw_name_symbol,fdtype_string(node->eltname));
       retnode=popfn(node);
       if (retnode!=node)
         free_node(node,1);
@@ -829,7 +829,6 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       if (node->bits&FD_XML_AUTOCLOSE) {
         FD_XML *closenode=NULL;
         if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
-        fd_add(node->attribs,raw_name_symbol,fdtype_string(node->eltname));
         closenode=autoclose(node,elts[0],popfn);
         if (closenode) {
           struct FD_XML *retnode;
@@ -1156,11 +1155,11 @@ FD_EXPORT void fd_init_xmlinput_c()
   type_symbol=fd_intern("%TYPE");
 
   namespace_symbol=fd_intern("%NAMESPACE");
-  name_symbol=fd_intern("%XMLTAG");
+  xmltag_symbol=fd_intern("%XMLTAG");
+  rawtag_symbol=fd_intern("%RAWTAG");
   qname_symbol=fd_intern("%QNAME");
   xmlns_symbol=fd_intern("%XMLNS");
 
-  raw_name_symbol=fd_intern("%RAWTAG");
   comment_symbol=fd_intern("%COMMENT");
   cdata_symbol=fd_intern("%CDATA");
 

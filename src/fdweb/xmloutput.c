@@ -55,7 +55,7 @@ FD_EXPORT void fd_pprint_focus
 */
 
 static fdtype xmloidfn_symbol, obj_name, id_symbol, quote_symbol;
-static fdtype href_symbol, class_symbol, raw_name_symbol, browseinfo_symbol;
+static fdtype href_symbol, class_symbol, rawtag_symbol, browseinfo_symbol;
 static fdtype embedded_symbol, estylesheet_symbol, xmltag_symbol;
 static fdtype modules_symbol, xml_env_symbol;
 
@@ -2239,7 +2239,7 @@ FD_EXPORT void fd_init_xmloutput_c()
   obj_name=fd_intern("OBJ-NAME");
   quote_symbol=fd_intern("QUOTE");
   xmltag_symbol=fd_intern("%XMLTAG");
-  raw_name_symbol=fd_intern("%%XMLTAG");
+  rawtag_symbol=fd_intern("%RAWTAG");
   browseinfo_symbol=fd_intern("BROWSEINFO");
   embedded_symbol=fd_intern("%EMBEDDED");
   estylesheet_symbol=fd_intern("%ERRORSTYLE");
