@@ -410,16 +410,20 @@ static int parse_unicode_escape(u8_string arg)
 {
   u8_string s;
   if (arg[0] == '\\') s=arg+1; else s=arg;
-  if (s[0] == 'u')
+  if (s[0] == 'u') {
     if ((strlen(s)==5) &&
         (isxdigit(s[1])) && (isxdigit(s[2])) &&
         (isxdigit(s[3])) && (isxdigit(s[4]))) {
       int code=-1;
       if (sscanf(s+1,"%4x",&code)<1) code=-1;
       return code;}
+    else if (s[1]=='{') {
+      int code=-1;
+      if (sscanf(s+1,"{%x}",&code)<1) code=-1;
+      return code;}
     else {
       fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",u8_strdup(s));
-      return -1;}
+      return -1;}}
   else if (s[0] == 'U')
     if ((strlen(s)==9) &&
         (isxdigit(s[1])) && (isxdigit(s[2])) &&
@@ -428,6 +432,10 @@ static int parse_unicode_escape(u8_string arg)
         (isxdigit(s[7])) && (isxdigit(s[8]))) {
       int code=-1;
       if (sscanf(s+1,"%8x",&code)<1) code=-1;
+      return code;}
+    else if (s[1]=='{') {
+      int code=-1;
+      if (sscanf(s+1,"{%x}",&code)<1) code=-1;
       return code;}
     else {
       fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",u8_strdup(s));
@@ -467,8 +475,11 @@ static int read_escape(u8_input in)
       fd_seterr3(fd_BadEscapeSequence,"parse_unicode_escape",NULL);
       return -1;}}
   case 'u': {
-    char buf[16];
-    buf[0]='\\'; buf[1]='u'; u8_getn(buf+2,4,in);
+    char buf[16]; int nc=u8_probec(in), len;
+    if (nc=='{') {
+      buf[0]='\\'; buf[1]='u';
+      u8_gets_x(buf+2,13,in,"}",&len);}
+    else {buf[0]='\\'; buf[1]='u'; u8_getn(buf+2,4,in);}
     return parse_unicode_escape(buf);}
   case 'U': {
     char buf[16];
