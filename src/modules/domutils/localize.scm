@@ -410,24 +410,23 @@
 
 (define url-prefix-pat #((maxlen (isalpha+) 10) ":"))
 
-(define (dom/getmanifest doc (skiprels #f))
-  (choice (for-choices (link (dom/find doc "LINK"))
-	    (tryif (and
-		    (test link 'href)
-		    (or (not skiprels)
-			(not (test link 'rel))
-			(not (if (applicable? skiprels)
-				 (skiprels (get link 'rel))
-				 (textmatch skiprels (get link 'rel)))))
-		    (or skiprels (not (test link 'rel "x-resource")))
-		    (or (test link 'rel "stylesheet")
-			(test link 'rel "knowlet")
-			(test link 'rel "knodule")
-			(fail? (textmatcher url-prefix-pat (get link 'href)))))
-	      (get link 'href)))
-	  (get (dom/find doc "SCRIPT") 'src)
-	  (get (dom/find doc "IMG") 'src)
-	  (get (dom/find doc "IMAGE") 'href)))
+(define (dom/getmanifest doc (skiprels #f) (refroot #f))
+  (let* ((links (pick (dom/find doc "LINK") 'href))
+	 (keeplinks (if (not skiprels) keeplinks
+			(choice (pick links 'rels (pick skiprels applicable?))
+				(pick links 'rels (pick skiprels regex?))
+				(pick links 'rels (pickstrings skiprels)))))
+	 (csslinks (pick links 'rel "stylesheet" 'type "text/css")))
+    (choice (get links 'href)
+	    (get (dom/find doc "SCRIPT") 'src)
+	    (get (dom/find doc "IMG") 'src)
+	    (get (dom/find doc "IMAGE") 'href)
+	    (tryif refroot
+	      (for-choices (ref csslinks)
+		(let* ((fullpath (gp/mkpath refroot ref))
+		       (content (and (gp/exists? fullpath)
+				     (gp/fetch fullpath))))
+		  (tryif content (dom/getcssurls content))))))))
 
 (defambda (dom/textmanifest node (staticrefs {}) (dynamicrefs {}))
   "Generates a text manifest for a document, with additional static or dynamic refs"
