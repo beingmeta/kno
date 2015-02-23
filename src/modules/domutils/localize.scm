@@ -6,7 +6,7 @@
 ;;; Utilites for manipulating parsed XML in terms of the XHTML DOM
 
 (use-module '{fdweb texttools regex reflection domutils aws/s3
-	      savecontent gpath logger mimetable})
+	      varconfig savecontent gpath logger mimetable})
 
 (define-init %loglevel %notice%)
 ;;(set! %loglevel %info%)
@@ -15,6 +15,9 @@
 (module-export! '{dom/localize!})
 (module-export! '{dom/getmanifest dom/textmanifest dom/datamanifest})
 (module-export! '{dom/getcssurls})
+
+(define synclinks {"knodule" "x-resource" "stylesheet"})
+(varconfig! domutils:synclinks synclinks)
 
 (define (chkdir filename)
   (if (file-directory? (dirname filename))
@@ -214,10 +217,10 @@
 (define extprefix #((isalpha) (isalpha) (isalpha+) ":"))
 
 (define (dom/localize! dom base saveto read (options #f)
-		       (urlmap) (doanchors) (dolinks) (stylerules))
+		       (urlmap) (doanchors) (syncrels) (stylerules))
   (default! urlmap (getopt options 'urlmap (make-hashtable)))
   (default! doanchors (getopt options 'doanchors #f))
-  (default! dolinks (getopt options 'synclinks {}))
+  (default! syncrels (getopt options 'synclinks (config 'synclinks synclinks)))
   (default! stylerules (getopt options 'stylerules {}))
   (loginfo "Localizing references for "
 	   (try (gp/string (get dom 'source)) "source")
@@ -304,7 +307,7 @@
       (dolist (node hrefs)
 	(if (or (and doanchors (test node '%xmltag 'a))
 		(and (test node '%xmltag 'link)
-		     (test node 'rel {dolinks "knodule" "x-resource" "stylesheet"}))
+		     (test node 'rel syncrels))
 		(not (test node '%xmltag '{a link})))
 	    (unless (or (string-starts-with? (get node 'href) extprefix)
 			;; We handle these separately
@@ -413,12 +416,10 @@
   #((subst {"," (bos)} "") (subst (spaces*) "")
     (not> {(eos) "," (spaces)})))
 
-(define (dom/getmanifest doc (skiprels #f) (refroot #f))
-  (let* ((links (pick (dom/find doc "LINK") 'href))
-	 (keeplinks (if (not skiprels) links
-			(choice (pick links 'rels (pick skiprels applicable?))
-				(pick links 'rels (pick skiprels regex?))
-				(pick links 'rels (pickstrings skiprels)))))
+(define (dom/getmanifest doc (refroot #f)
+			 (syncrels (config 'synclinks synclinks))
+			 (syncrefs #t))
+  (let* ((links (pick (pick (dom/find doc "LINK") 'href) 'rel syncrels))
 	 (csslinks (pick links 'rel "stylesheet" 'type "text/css")))
     (choice (get links 'href)
 	    (get (dom/find doc "SCRIPT") 'src)
@@ -434,7 +435,7 @@
 		(let* ((fullpath (gp/mkpath refroot ref))
 		       (content (and (gp/exists? fullpath)
 				     (gp/fetch fullpath))))
-		  (tryif content (%watch (dom/getcssurls content) fullpath))))))))
+		  (tryif content (dom/getcssurls content))))))))
 
 (defambda (dom/textmanifest node (staticrefs {}) (dynamicrefs {}))
   "Generates a text manifest for a document, with additional static or dynamic refs"
