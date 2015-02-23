@@ -12,7 +12,8 @@
 
 (define %loglevel %notice%)
 (define default-dom-slots
-  '{%xmltag %qname %attribids id class name href src rel})
+  '{%xmltag %qname %attribids %rawtag %namespace
+    id class name href src rel})
 
 (define default-indexrules (make-hashtable))
 (define (indexrule-config var (val))
@@ -92,6 +93,10 @@
 			  (add! index (cons '%type 'terminal) indexval))))
 	      (do-choices (slotid (reject slots rules))
 		(add! index (cons slotid (get xml slotid)) indexval))
+	      (when (overlaps? slots '%attribids)
+		(do-choices (attrib (get xml '%attribs))
+		  (when (or (vector? attrib) (pair? attrib))
+		    (add! index (cons '%attribid (first attrib)) indexval))))
 	      (do-choices (slotid (pick slots rules))
 		(add! index
 		      (cons slotid ((get rules slotid) (get xml slotid)))
@@ -113,6 +118,8 @@
 			       indexslots cacheslots
 			       indexrules analyzers idmap
 			       settings doc)))))))))
+
+
 
 
 
