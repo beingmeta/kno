@@ -1,3 +1,9 @@
+framerd (3.7.5-26) unstable; urgency=low
+
+  * New Debian release: framerd-3.7.5-26/framerd-3.7.5-13
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 23 Feb 2015 16:12:19 -0500
+
 framerd (3.7.5-25) unstable; urgency=low
 
   * New Debian release: framerd-3.7.5-12
