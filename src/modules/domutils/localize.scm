@@ -409,10 +409,13 @@
 ;;;; Manifests
 
 (define url-prefix-pat #((maxlen (isalpha+) 10) ":"))
+(define srcset-url-pat
+  #((subst {"," (bos)} "") (subst (spaces*) "")
+    (not> {(eos) "," (spaces)})))
 
 (define (dom/getmanifest doc (skiprels #f) (refroot #f))
   (let* ((links (pick (dom/find doc "LINK") 'href))
-	 (keeplinks (if (not skiprels) keeplinks
+	 (keeplinks (if (not skiprels) links
 			(choice (pick links 'rels (pick skiprels applicable?))
 				(pick links 'rels (pick skiprels regex?))
 				(pick links 'rels (pickstrings skiprels)))))
@@ -420,13 +423,18 @@
     (choice (get links 'href)
 	    (get (dom/find doc "SCRIPT") 'src)
 	    (get (dom/find doc "IMG") 'src)
+	    (gathersubst srcset-url-pat (get (dom/find doc "IMG") 'srcset))
+	    ;; From SVG
 	    (get (dom/find doc "IMAGE") 'href)
+	    ;; From HTML5
+	    (gathersubst srcset-url-pat
+			 (get (dom/find doc "SOURCE") 'srcset))
 	    (tryif refroot
 	      (for-choices (ref csslinks)
 		(let* ((fullpath (gp/mkpath refroot ref))
 		       (content (and (gp/exists? fullpath)
 				     (gp/fetch fullpath))))
-		  (tryif content (dom/getcssurls content))))))))
+		  (tryif content (%watch (dom/getcssurls content) fullpath))))))))
 
 (defambda (dom/textmanifest node (staticrefs {}) (dynamicrefs {}))
   "Generates a text manifest for a document, with additional static or dynamic refs"
