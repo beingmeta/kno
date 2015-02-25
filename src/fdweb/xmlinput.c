@@ -1111,7 +1111,9 @@ static fdtype fdxml_read(fdtype input,fdtype sloppy)
   if (FD_PORTP(input)) {
     struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
     in=p->in;}
-  else if (FD_STRINGP(input)) {
+  else if ((FD_STRINGP(input))&&(strchr(FD_STRDATA(input),'<')==NULL))
+    return fdxml_load(input,sloppy);
+ else if (FD_STRINGP(input)) {
     U8_INIT_STRING_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
     in=&_in;}
   else if (FD_PACKETP(input)) {
@@ -1130,6 +1132,11 @@ static fdtype fdxml_read(fdtype input,fdtype sloppy)
     free_node(parsed,1);
     return result;}
   else return FD_ERROR_VALUE;
+}
+
+FD_EXPORT fdtype fd_fdxml_arg(fdtype input)
+{
+  return fdxml_read(input,FD_INT2DTYPE(FD_XML_SLOPPY|FD_XML_KEEP_RAW));
 }
 
 /* Initialization functions */

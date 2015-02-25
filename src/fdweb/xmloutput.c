@@ -1833,50 +1833,26 @@ static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
   }
 }
 
-static fdtype xmlevalout_handler(fdtype expr,fd_lispenv env)
+static fdtype xml2string_prim(fdtype xml,fdtype env_arg,fdtype xml_env_arg)
 {
-  fdtype xmlarg=fd_get_arg(expr,1);
-  if (FD_VOIDP(xmlarg))
-    return fd_err(fd_SyntaxError,"xmleval_handler",NULL,FD_VOID);
+  if (!((FD_VOIDP(env_arg)) || (FD_FALSEP(env_arg)) ||
+        (FD_TRUEP(env_arg)) || (FD_ENVIRONMENTP(env_arg)) ||
+        (FD_TABLEP(env_arg)))) {
+    return fd_type_error("SCHEME environment","xmleval_handler",env_arg);}
+  else if (!((FD_VOIDP(xml_env_arg)) || (FD_FALSEP(xml_env_arg)) ||
+               (FD_ENVIRONMENTP(xml_env_arg)) || (FD_TABLEP(xml_env_arg)))) {
+    return fd_type_error("environment","xmleval_handler",xml_env_arg);}
+  if (FD_STRINGP(xml)) {
+    fdtype parsed=fd_fdxml_arg(xml);
+    fdtype result=xml2string_prim(parsed,env_arg,xml_env_arg);
+    fd_decref(parsed);
+    return result;}
   else {
     U8_OUTPUT out; char buf[1024];
     U8_INIT_OUTPUT_BUF(&out,1024,buf);
-    if (FD_STRINGP(xmlarg)) {
-      u8_string data=FD_STRDATA(xmlarg);
-      if (data[0]=='<') u8_putn(&out,data,FD_STRLEN(xmlarg));
-      else emit_xmlcontent(&out,data);
-      return fd_stream2string(&out);}
-    else {
-      fdtype xml=fd_eval(xmlarg,env);
-      fdtype env_arg=fd_eval(fd_get_arg(expr,2),env);
-      fdtype xml_env_arg=fd_eval(fd_get_arg(expr,3),env);
-      if (FD_ABORTP(xml)) {
-        fd_decref(env_arg); fd_decref(xml_env_arg);
-        return xml;}
-      else if (FD_ABORTP(env_arg)) {
-        fd_decref(xml); fd_decref(xml_env_arg);
-        return env_arg;}
-      else if (FD_ABORTP(xml_env_arg)) {
-        fd_decref(env_arg); fd_decref(xml);
-        return xml_env_arg;}
-      else if (!((FD_VOIDP(env_arg)) || (FD_FALSEP(env_arg)) ||
-                 (FD_TRUEP(env_arg)) || (FD_ENVIRONMENTP(env_arg)) ||
-                 (FD_TABLEP(env_arg)))) {
-        fdtype err=
-          fd_type_error("SCHEME environment","xmleval_handler",env_arg);
-        fd_decref(xml); fd_decref(xml_env_arg);
-        return err;}
-      else if (!((FD_VOIDP(xml_env_arg)) || (FD_FALSEP(xml_env_arg)) ||
-                 (FD_ENVIRONMENTP(xml_env_arg)) || (FD_TABLEP(xml_env_arg)))) {
-        fd_decref(xml); fd_decref(env_arg);
-        return fd_type_error("environment","xmleval_handler",xml_env_arg);}
-      else {
-        fdtype result=fd_xmleval_with(&out,xml,env_arg,xml_env_arg);
-        fd_decref(xml); fd_decref(env_arg); fd_decref(xml_env_arg);
-        fd_decref(result);
-        return fd_stream2string(&out);}
-    }
-  }
+    fdtype result=fd_xmleval_with(&out,xml,env_arg,xml_env_arg);
+    fd_decref(result);
+    return fd_stream2string(&out);}
 }
 
 static fdtype xmlopen_handler(fdtype expr,fd_lispenv env)
@@ -2114,6 +2090,7 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_store(module,fd_intern("BLOCKMARKUP*FN"),markupstarblock_prim);
     fd_store(module,fd_intern("EMPTYMARKUPFN"),emptymarkup_prim);
     fd_defspecial(module,"SOAPENVELOPE",soapenvelope_handler);
+    fd_defn(module,fd_make_cprim3("XML->STRING",xml2string_prim,1));
   }
 
   {
@@ -2142,6 +2119,7 @@ FD_EXPORT void fd_init_xmloutput_c()
     fd_defspecial(module,"SOAPENVELOPE",soapenvelope_handler);
     fd_defn(module,debug2html);
     fd_defn(module,backtrace2html);
+    fd_defn(module,fd_make_cprim3("XML->STRING",xml2string_prim,1));
   }
 
   fd_defspecial(xhtml_module,"ANCHOR",doanchor);
@@ -2203,8 +2181,6 @@ FD_EXPORT void fd_init_xmloutput_c()
 
   fd_defspecial(fdweb_module,"XMLEVAL",xmleval_handler);
   fd_defspecial(safe_fdweb_module,"XMLEVAL",xmleval_handler);
-  fd_defspecial(fdweb_module,"XMLEVALOUT",xmlevalout_handler);
-  fd_defspecial(safe_fdweb_module,"XMLEVALOUT",xmlevalout_handler);
   fd_defspecial(fdweb_module,"XMLOPEN",xmlopen_handler);
   fd_defspecial(safe_fdweb_module,"XMLOPEN",xmlopen_handler);
   fd_defspecial(fdweb_module,"XMLSTART",xmlstart_handler);

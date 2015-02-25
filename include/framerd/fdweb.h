@@ -48,12 +48,14 @@ FD_EXPORT fd_exception fd_XMLParseError;
    (FD_XML_FOLDCASE)|(FD_XML_BADCLOSE)|(FD_XML_CLOSE_REPEATS)| \
    (FD_XML_DECODE_ENTITIES)|(FD_XML_BADATTRIB))
 
-#define FD_SLOPPY_XML \
+#define FD_XML_SLOPPY \
   ((FD_XML_AUTOCLOSE)|(FD_XML_EMPTY_CLOSE)|\
    (FD_XML_CLOSE_REPEATS)|(FD_XML_FOLDCASE)|(FD_XML_BADCLOSE)|  \
    (FD_XML_ISHTML)|(FD_XML_BADATTRIB))
-#define FD_DATA_XML \
+#define FD_SLOPPY_XML FD_XML_SLOPPY
+#define FD_XML_DATA \
   ((FD_XML_CRUSHSPACE)|(FD_XML_SLOTIFY)|(FD_XML_NOCONTENTS)|(FD_XML_NSFREE)|(FD_XML_NOEMPTY))
+#define FD_DATA_XML FD_XML_DATA
 
 #define FD_XML_DEFAULT_BITS 0
 
@@ -131,6 +133,7 @@ FD_EXPORT fdtype fd_xmlout(u8_output out,fdtype xml,
 FD_EXPORT struct FD_XML *fd_load_fdxml(u8_input in,int bits);
 FD_EXPORT struct FD_XML *fd_read_fdxml(u8_input in,int bits);
 FD_EXPORT struct FD_XML *fd_parse_fdxml(u8_input in,int bits);
+FD_EXPORT fdtype fd_fdxml_arg(fdtype arg);
 
 FD_EXPORT void fd_dtype2html(u8_output s,fdtype v,u8_string tag,u8_string cl);
 
