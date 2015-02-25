@@ -1,3 +1,14 @@
+framerd (3.7.5-27) unstable; urgency=low
+
+  * New Debian release: framerd-3.7.5-27 (patch level 27)
+  * Small bug fixes caught by optimizer
+  * Add xml->string to replace xmlevalout
+  * Fixes and improvements to OAUTH handling
+  * Added PRINTOPTS to the 'opts' module to enable pretty printing of
+    nested option structures.
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 25 Feb 2015 14:26:46 -0500
+
 framerd (3.7.5-26) unstable; urgency=low
 
   * New Debian release: framerd-3.7.5-26/framerd-3.7.5-13
