@@ -3,7 +3,8 @@
 
 (in-module 'opts)
 
-(module-export! '{setopt! setopt+! mergeopts saveopt checkopts})
+(module-export! '{setopt! setopt+! mergeopts saveopt checkopts
+		  printopts})
 
 (defambda (setopt! opts opt val)
   (store! (if (pair? opts) (car opts) opts) opt val))
@@ -54,4 +55,45 @@
   (macro expr
     `(,_saveopt ,(second expr) ,(third expr)
 		(lambda () ,(fourth expr)))))
+
+;;;; Pretty printing opts
+
+(define (printopts opts (margin "  ;;+\t") (width 90))
+  (let ((scan opts) (depth 0))
+    (while (pair? scan)
+      (print-table (car scan) (make-margin margin depth) width)
+      (set! depth (1+ depth))
+      (set! scan (cdr scan)))
+    (when (table? scan)
+      (print-table scan (make-margin margin depth) width))
+    (printout "\n")))
+
+(define (print-table table (margin "") (width 90))
+  (cond ((pair? table)
+	 (let ((stringval (lisp->string table)))
+	   (if (> (+ (length margin) (length stringval)) width)
+	       (printout margin (pprint table #t margin width))
+	       (lineout margin stringval))))
+	((table? table)
+	 (doseq (key (lexsorted (getkeys table)) i)
+	   (let* ((value (get table key))
+		  (keystring (lisp->string key))
+		  (valstring (lisp->string value)))
+	     (if (> (+ (length margin) (length keystring) (length valstring) 3)
+		    width)
+		 (lineout margin " " keystring "\n"
+		   margin "    " (pprint value #t (glom margin "  ")))
+		 (lineout margin " " keystring " " valstring)))))
+	(else (printout margin "?!?!" table))))
+
+(define (make-margin margin depth)
+  (if (string? margin)
+      (glom margin (make-string #\Space (* depth 2)))
+      (if (symbol? margin)
+	  (glom "  ;;-" (make-string depth #\-)
+	    margin ": ")
+	  #f)))
+
+
+
 
