@@ -3,7 +3,7 @@
 
 (in-module 'oauth)
 
-(use-module '{fdweb reflection xhtml/auth varconfig})
+(use-module '{fdweb reflection xhtml/auth varconfig opts})
 (use-module '{texttools logger})
 (define %used_modules '{varconfig xhtml/auth})
 
@@ -61,7 +61,16 @@
        AUTHENTICATE "https://api.twitter.com/oauth/authenticate"
        KEY TWITTER:KEY SECRET TWITTER:SECRET
        VERSION "1.0"
-       REALM TWITTER
+       REALM TWITTER10
+       NAME "Twitter"]
+     TWITTER20
+     #[ACCESS "https://api.twitter.com/oauth2/token"
+       AUTHORIZE "https://api.twitter.com/oauth/authorize"
+       ;; AUTHENTICATE "https://api.twitter.com/oauth/authenticate"
+       KEY TWITTER:KEY SECRET TWITTER:SECRET
+       ACCESS_TOKEN "oauth_token"
+       VERSION "2.0"
+       REALM TWITTER20
        NAME "Twitter"]
      LINKEDIN
      #[AUTHORIZE "https://www.linkedin.com/uas/oauth2/authorization"
@@ -120,7 +129,7 @@
      AMAZON
      #[AUTHORIZE "https://www.amazon.com/ap/oa"
        ACCESS "https://api.amazon.com/auth/o2/token"
-       KEY AMZ:KEY SECRET AMZ:SECRET
+       KEY AMAZON:KEY SECRET AMAZON:SECRET
        SCOPE "profile postal_code"
        VERSION "2.0"
        REALM AMAZON
@@ -305,6 +314,7 @@
   (set! spec (debug%watch (oauth/spec spec) spec))
   (default! ckey (getckey spec))
   (default! csecret (getcsecret spec))
+  (debug%watch "OAUTH/REQUEST" spec ckey cecret)
   (unless (and (getopt spec 'request)
 	       (getopt spec 'authorize)
 	       (getopt spec 'verify))
@@ -340,7 +350,10 @@
 	    "oauth_version=\"" (getopt spec 'version "1.0") "\""))
 	 (handle (curlopen 'header auth-header 'method 'POST))
 	 (req (urlget endpoint handle)))
-    (debug%watch sigstring sig sig64 auth-header)
+    (debug%watch "OAUTH/REQUEST"
+      sigstring sig sig64 auth-header
+      (get req 'response)
+      (get req '%content))
     (if (test req 'response 200)
 	(cons (cgiparse (get req '%content)) spec)
 	(begin (warn%watch "Can't get request token" spec req)
@@ -829,17 +842,23 @@
 	       (oauth_realm #f) (oauth_token #f) (oauth_verifier #f)
 	       (scope #f))
   (debug%watch "OAUTH" oauth_realm code oauth_token oauth_verifier scope getuser)
-  (if oauth_verifier ;; 1.0
+  (if oauth_verifier ;; 1.0 success
       (let* ((auth-state (oauth/pending oauth_token))
 	     (verified (oauth/verify auth-state oauth_verifier)))
 	(oauth/pending! oauth_token) ;; Drop state
 	(store! oauth-info oauth_token (cons verified (cdr auth-state)))
 	(let ((user (getuser verified)))
-	  (debug%watch "OAUTH1/complete" user verified auth-state)
+	  (loginfo |OAUTH1/complete| " Got user " user
+		   " verified with\n" (printopts verified 'verified)
+		   " and auth-state\n" (printopts auth-state 'oauth))
 	  user))
-      (if code ;; 2.0
+      (if code ;; 2.0 success
 	  (let* ((spec (oauth/pending state))
 		 (access (and spec (oauth/getaccess spec code))))
+	    (unless access
+	      (logwarn |OAUTH2/noaccess|
+		"Couldn't get access token given code " code
+		"for spec " spec))
 	    (and access
 		 (let* ((handler (getopt spec 'onaccess getuser))
 			(redirect (getopt spec 'redirect))
@@ -849,6 +868,9 @@
 					   (procedure? (get oauth-onaccess handler)))
 				      ((get oauth-onaccess handler) access)
 				      (error "Not a valid OAUTH ONACCESS handler" handler)))))
+		   (loginfo |OAUTH2/gotcode|
+		     "Code=" code " and access " access
+		     " yielding user " user " returning to " redirect)
 		   (debug%watch "OAUTH2/complete" handler user access spec)
 		   (oauth/pending! state) ;; Drop state
 		   (when redirect
@@ -865,6 +887,9 @@
 				     callback ,(getcallback spec)]
 				  spec)))
 		 (redirect (oauth/authurl state scope)))
+	    (loginfo |OAUTH/redirect|
+	      "\n   Directing user to " redirect
+	      " given state:\n" (printopts state 'oauth))
 	    (debug%watch "OAUTH/redirect" redirect state)
 	    (oauth/pending! (getopt state 'oauth_token (getopt state 'state))
 			    state)
