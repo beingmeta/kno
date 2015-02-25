@@ -6,6 +6,7 @@
 (use-module '{fdweb texttools reflection})
 (use-module '{varconfig ezrecords})
 (use-module '{brico brico/lookup brico/dterms})
+(use-module '{knodules})
 
 (define have-knodules #f)
 
@@ -61,7 +62,7 @@
 
 (define (oid->dterm oid (language (get-language-info)))
   (if (and (test oid 'knodule) have-knodules)
-      (let* ((knodule (try (knodule (get oid 'knodule))
+      (let* ((knodule (try (knodule/ref (get oid 'knodule))
 			   (get oid 'knodule)))
 	     (try (get oid 'term) (get oid 'dterm)
 		  (pick-one (get oid (tryif (knodule? knodule)

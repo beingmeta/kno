@@ -23,8 +23,8 @@
   (set! time timearg)
   (if (and (number? time) (not (complex? time)))
       (set! time
-	    (if (or  (< time maxinterval))
-		(gmtimestamp+ time)
+	    (if (< time maxinterval)
+		(timestamp+ (gmtimestamp) time)
 		(gmtimestamp time)))
       (if (string? time) (set! time (parsetime time))))
   (unless (timestamp? time)

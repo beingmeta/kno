@@ -166,7 +166,7 @@
 			 (?? always (list p))))))
 
 (define (testsometimes p q)
-  (or (if expanded-index
+  (or (if expanded-indexing
 	  (or (overlaps? q (?? sometimes p))
 	      (overlaps? p (?? sometimes q)))
 	  (or (test p sometimes q)

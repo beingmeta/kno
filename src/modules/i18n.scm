@@ -7,6 +7,8 @@
 
 (use-module '{texttools reflection})
 
+(define default-language 'en)
+
 (module-export!
  '{i18n/translate i18n/translator i18n/translateout
 		  entranslate translateoid})

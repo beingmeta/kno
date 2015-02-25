@@ -56,8 +56,7 @@
 ;;; Support functions
 
 (define (fbcalluri method args (w/session #t) (w/callid #t) (sessionkey (cgiget 'fb_sig_session_key)))
-  (when (and w/session (not (cgitest 'fb_sig_session_key)) (cgitest 'fbinfo))
-    (fb/useinfo))
+  ;; (when (and w/session (not (cgitest 'fb_sig_session_key)) (cgitest 'fbinfo)) (fb/useinfo))
   (when w/callid (set! args (cons* "call_id" (time) args)))
   (set! args (cons* "api_key" apikey "v" "1.0" "method" method
 		    args))
