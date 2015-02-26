@@ -46,13 +46,13 @@ typedef struct FD_MONGODB_COLLECTION {
   u8_string uri, dbname, name;
   fdtype opts; int flags, busy; u8_mutex lock;
   mongoc_collection_t *collection;
-  mongo_client_t *client;} FD_MONGODB_COLLECTION;
+  mongoc_client_t *cl;} FD_MONGODB_COLLECTION;
 typedef struct FD_MONGODB_COLLECTION *fd_mongodb_collection;
 
 typedef struct FD_MONGODB_CURSOR {
   FD_CONS_HEADER;
   fdtype collection, query, opts; int flags;
-  mongo_collection_t coll; mongo_client_t cl;
+  mongoc_collection_t *coll; mongoc_client_t *cl;
   bson_t *bsonquery;
   mongoc_cursor_t *cursor;} FD_MONGODB_CURSOR;
 typedef struct FD_MONGODB_CURSOR *fd_mongodb_cursor;
