@@ -4,7 +4,8 @@
 
 ;;; Connects with Paypal
 
-(use-module '{fdweb xhtml texttools ezrecords parsetime varconfig logger})
+(use-module '{fdweb xhtml texttools ezrecords
+	      parsetime varconfig logger opts})
 (use-module 'paypal)
 
 (define-init %loglevel %notify!)
@@ -70,6 +71,10 @@
 	      (let* ((parsed (if (test response 'type "text/xml")
 				 (xmlparse (get response '%content))
 				 (jsonparse (get response '%content))))
+		     (trouble (try (if (test response 'type "text/xml")
+				       (xmlget parsed 'faultmessage)
+				       (first (get parsed 'error)))
+				   #f))
 		     (paykey (get parsed 'paykey))
 		     (formurl
 		      (stringout
@@ -77,10 +82,11 @@
 				       "www.paypal.com"
 				       "www.sandbox.paypal.com")
 			"/cgi-bin/webscr")))
-		(when (if (test response 'type "text/xml")
-			  (exists? (xmlget parsed 'faultmessage))
-			  (exists? (get parsed 'error)))
-		  (error "PayPal call returned error" response))
+		(when trouble
+		  (irritant (cons trouble response)
+			    |PayPal| PAYPAL/START
+			    (try (get trouble 'message)
+				 "PayPal call returned error")))
 		(store! parsed 'invoice invoice)
 		(unless (getopt spec 'action #f)
 		  (store! parsed 'action formurl))
