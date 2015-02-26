@@ -832,7 +832,7 @@
 			       (else (logwarn "Redefining ONACCESS handler for "
 					      name)
 				     (store! oauth-onaccess name val))))
-		       (error |TypeError| 'OAUTH:ONACCESS
+		       (error |TypeError| OAUTH:ONACCESS
 			      "Not a named procedure: " val))
 		   (get oauth-onaccess (getkeys oauth-onaccess)))))
 
@@ -867,7 +867,9 @@
 				  (if (and (test oauth-onaccess handler)
 					   (procedure? (get oauth-onaccess handler)))
 				      ((get oauth-onaccess handler) access)
-				      (error "Not a valid OAUTH ONACCESS handler" handler)))))
+				      (error |BadHandler| OAUTH
+					     "Not a valid OAUTH ONACCESS handler"
+					     handler)))))
 		   (loginfo |OAUTH2/gotcode|
 		     "Code=" code " and access " access
 		     " yielding user " user " returning to " redirect)
