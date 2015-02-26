@@ -22,11 +22,12 @@
 #define FD_MONGODB_COLONIZE_OUT 8
 #define FD_MONGODB_COLONIZE (FD_MONGODB_COLONIZE_IN|FD_MONGODB_COLONIZE_OUT)
 #define FD_MONGODB_CHOICEVALS 16
+#define FD_MONGODB_NOBLOCK 32
 #define FD_MONGODB_DEFAULTS \
   (FD_MONGODB_CHOICEVALS|FD_MONGODB_COLONIZE|FD_MONGODB_SLOTIFY)
 
 FD_EXPORT u8_condition fd_MongoDB_Error, fd_MongoDB_Warning;
-FD_EXPORT fd_ptr_type fd_mongo_client, fd_mongo_collection, fd_mongo_cursor;
+FD_EXPORT fd_ptr_type fd_mongo_server, fd_mongo_collection, fd_mongo_cursor;
 
 typedef struct FD_BSON_OUTPUT {
   bson_t *doc; fdtype opts; int flags;} FD_BSON_OUTPUT;
@@ -34,25 +35,24 @@ typedef struct FD_BSON_INPUT {
   bson_iter_t *iter; fdtype opts; int flags;} FD_BSON_INPUT;
 typedef struct FD_BSON_INPUT *fd_bson_input;
 
-typedef struct FD_MONGODB_CLIENT {
+typedef struct FD_MONGODB_SERVER {
   FD_CONS_HEADER;
   u8_string uri; fdtype opts; int flags;
-  mongoc_client_t *client;} FD_MONGODB_CLIENT;
-typedef struct FD_MONGODB_CLIENT *fd_mongodb_client;
+  mongoc_client_pool_t *pool;
+  mongoc_uri_t *info;} FD_MONGODB_SERVER;
+typedef struct FD_MONGODB_SERVER *fd_mongodb_server;
 
 typedef struct FD_MONGODB_COLLECTION {
   FD_CONS_HEADER;
-  fdtype client;
-  u8_string uri, dbname, name;
-  fdtype opts; int flags, busy; u8_mutex lock;
-  mongoc_collection_t *collection;
-  mongoc_client_t *cl;} FD_MONGODB_COLLECTION;
+  fdtype server; u8_string dbname, name;
+  u8_string uri; fdtype opts; int flags;} FD_MONGODB_COLLECTION;
 typedef struct FD_MONGODB_COLLECTION *fd_mongodb_collection;
 
 typedef struct FD_MONGODB_CURSOR {
   FD_CONS_HEADER;
-  fdtype collection, query, opts; int flags;
-  mongoc_collection_t *coll; mongoc_client_t *cl;
+  fdtype server, domain, query, opts; int flags;
+  mongoc_client_t *connection;
+  mongoc_collection_t *collection;
   bson_t *bsonquery;
   mongoc_cursor_t *cursor;} FD_MONGODB_CURSOR;
 typedef struct FD_MONGODB_CURSOR *fd_mongodb_cursor;
