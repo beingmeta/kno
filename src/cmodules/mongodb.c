@@ -92,6 +92,45 @@ static fdtype combine_opts(fdtype opts,fdtype clopts)
 
 /* Consing MongoDB clients, collections, and cursors */
 
+/* Notes on using libmongc collection pools:
+   
+   FD_MONGO_CLIENT wraps a connection pool, not a simple connection.
+
+   FD_MONGO_COLLECTION now has a client pointer field, to go with its
+   collection field.  It also now has a busy value and a mutex.
+   
+   fd_mongodb_use(collection,mongo_collection**,mongo_client_t**)
+   returns 1 if the collection and client need to be freed.
+   It does the following:
+    1. locks the mutex
+    2. if busy is zero, increfs and sets the arguments, 
+      sets busy to 0, unlocks the mutex, and returns 0;
+    3. otherwise, pops a new client from the pool and 
+     creates a new collection, and sets them, unlocking the 
+     mutex and returning 1.
+
+   fd_mongodb_dup(collection) makes a copy of a collection with its own
+    client and collection
+   fd_mongodb_cons(collection,mongo_collection**,mongo_client**)
+    pops a new client and creates a new connection.  It's especially 
+    used for things like cursors.
+
+   fd_mongodb_done(collection,mongo_collection_t *c,mongo_client_t *)
+   lock the mutex
+   if c != ->collection, destroy it and return the client to the pool.
+   if c == ->collection, check that busy isn't zero (warning) 
+      and set busy to zero
+   unlock the mutex
+
+   fd_mongodb_release(FD_MONGO_CLIENT,mongo_client_t *)
+
+   FD_MONGO_CURSOR now has mongo_collection_t and mongo_client_t pointer
+
+
+
+   
+ */
+
 static fdtype mongodb_open(fdtype arg,fdtype opts)
 {
   const char *uri; mongoc_client_t *client; int flags;
@@ -831,6 +870,28 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
     return result;}
   else return fd_err(fd_BSON_Input_Error,"fd_bson2dtype",NULL,FD_VOID);
 }
+
+/* MongoDB pools and indices */
+
+/* Notes: 
+
+   1.  Pools are collections which map OID offsets into integer _id
+   fields.  
+   
+   2.  The _id:poolinfo records in the collection records the base
+   OID, the capacity, and any names or aliases.
+
+   3.  OID allocation is handled by a record which specifies a base, a
+   range, and a load.  find/modify calls are used to pull this record,
+   checking the available capacity, and increment the load.  By
+   default, this record lives in the same collection as the pool
+   itself, but it can be on any client/database/collection/id.  This
+   allows the specification of sharded object pools where different
+   shards have disintct alloc structures.
+
+   4.  Indices are essentially parameterized queries.
+
+*/
 
 /* Initialization */
 

@@ -1,6 +1,20 @@
 #include <bson.h>
 #include <mongoc.h>
 
+/*
+  BSON -> DTYPE mapping
+
+  strings, packets, ints, doubles, true, false, symbols,
+  timestamp, uuid (direct),
+  slotmaps are objects (unparse-arg/parse-arg),
+  BSON arrays are DTYPE choices, BSON_NULL is empty choice,
+  DTYPE vectors are converted into arrays of arrays,
+  other types are also objects, with a _kind attribute,
+  including bignums, rational and complex numbers, quoted
+  choices, etc.
+  
+ */
+
 #define FD_MONGODB_SLOTIFY_IN 1
 #define FD_MONGODB_SLOTIFY_OUT 2
 #define FD_MONGODB_SLOTIFY (FD_MONGODB_SLOTIFY_IN|FD_MONGODB_SLOTIFY_OUT)
@@ -30,30 +44,18 @@ typedef struct FD_MONGODB_COLLECTION {
   FD_CONS_HEADER;
   fdtype client;
   u8_string uri, dbname, name;
-  fdtype opts; int flags;
-  mongoc_collection_t *collection;} FD_MONGODB_COLLECTION;
+  fdtype opts; int flags, busy; u8_mutex lock;
+  mongoc_collection_t *collection;
+  mongo_client_t *client;} FD_MONGODB_COLLECTION;
 typedef struct FD_MONGODB_COLLECTION *fd_mongodb_collection;
 
 typedef struct FD_MONGODB_CURSOR {
   FD_CONS_HEADER;
   fdtype collection, query, opts; int flags;
+  mongo_collection_t coll; mongo_client_t cl;
   bson_t *bsonquery;
   mongoc_cursor_t *cursor;} FD_MONGODB_CURSOR;
 typedef struct FD_MONGODB_CURSOR *fd_mongodb_cursor;
-
-/*
-  BSON -> DTYPE mapping
-
-  strings, packets, ints, doubles, true, false, symbols,
-  timestamp, uuid (direct),
-  slotmaps are objects (unparse-arg/parse-arg),
-  BSON arrays are DTYPE choices, BSON_NULL is empty choice,
-  DTYPE vectors are converted into arrays of arrays,
-  other types are also objects, with a _kind attribute,
-  including bignums, rational and complex numbers, quoted
-  choices, etc.
-  
- */
 
 FD_EXPORT fdtype fd_bson_write(bson_t *out,int flags,fdtype in);
 FD_EXPORT bson_t *fd_dtype2bson(fdtype,int,fdtype);
