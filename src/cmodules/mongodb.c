@@ -1056,11 +1056,11 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
 
 /* MongoDB pools and indices */
 
-/* Notes: 
+/* Notes:
 
    1.  Pools are collections which map OID offsets into integer _id
-   fields.  
-   
+   fields.
+
    2.  The _id:poolinfo records in the collection records the base
    OID, the capacity, and any names or aliases.
 
@@ -1072,7 +1072,8 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
    allows the specification of sharded object pools where different
    shards have disintct alloc structures.
 
-   4.  Indices are essentially parameterized queries.
+   4. Locking will be done by adding documents of the form:
+        {_id: someobjid, lock: intoffset, expires: datetime}
 
 */
 
@@ -1089,10 +1090,10 @@ static fdtype mongodb_pool_fetch(fd_pool p,fdtype oid)
   BSON_APPEND_INT32(q,"_id",FD_OID_LO(addr)-FD_OID_LO(base));
   cursor=mongoc_collection_find(domain,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
   if (mongoc_cursor_next(cursor,&doc))
-    fetched=bson2dtype(doc,mp->mdbflags,mp->mdbopts);
+    fetched=fd_bson2dtype((bson_t *)doc,mp->mdbflags,mp->mdbopts);
   bson_destroy(q);
   mongoc_collection_destroy(domain);
-  mongoc_collection_pool_push(mp->clients,client);
+  mongoc_client_pool_push(mp->clients,client);
   return fetched;
 }
 
