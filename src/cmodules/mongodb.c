@@ -44,6 +44,8 @@ static fdtype skipsym, limitsym, batchsym, sortsym;
 static fdtype fieldssym, upsertsym, newsym, removesym;
 static fdtype max_clients_symbol, max_ready_symbol;
 
+/* Handling options and flags */
+
 int mongodb_defaults=FD_MONGODB_DEFAULTS;
 
 static int getflags(fdtype opts,int dflt)
@@ -92,57 +94,10 @@ static fdtype combine_opts(fdtype opts,fdtype clopts)
     return opts;}
 }
 
-static int getfixopt(fdtype opts,fdtype field)
-{
-  int result=-1;
-  FD_DO_CHOICES(opt,opts) {
-    if (FD_TABLEP(opt)) {
-      fdtype value=fd_getopt(opt,field,FD_VOID);
-      if (FD_FIXNUMP(value)) {
-        int iv=FD_FIX2INT(value);
-        if (iv>result) result=iv;}}}
-  return result;
-}
-
-
 /* Consing MongoDB clients, collections, and cursors */
 
-/* Notes on using libmongc collection pools:
-   
-   FD_MONGO_CLIENT wraps a connection pool, not a simple connection.
-
-   FD_MONGO_COLLECTION now has a client pointer field, to go with its
-   collection field.  It also now has a busy value and a mutex.
-   
-   fd_mongodb_use(collection,mongo_collection**,mongo_client_t**)
-   returns 1 if the collection and client need to be freed.
-   It does the following:
-    1. locks the mutex
-    2. if busy is zero, increfs and sets the arguments, 
-      sets busy to 0, unlocks the mutex, and returns 0;
-    3. otherwise, pops a new client from the pool and 
-     creates a new collection, and sets them, unlocking the 
-     mutex and returning 1.
-
-   fd_mongodb_dup(collection) makes a copy of a collection with its own
-    client and collection
-   fd_mongodb_cons(collection,mongo_collection**,mongo_client**)
-    pops a new client and creates a new connection.  It's especially 
-    used for things like cursors.
-
-   fd_mongodb_done(collection,mongo_collection_t *c,mongo_client_t *)
-   lock the mutex
-   if c != ->collection, destroy it and return the client to the pool.
-   if c == ->collection, check that busy isn't zero (warning) 
-      and set busy to zero
-   unlock the mutex
-
-   fd_mongodb_release(FD_MONGO_CLIENT,mongo_client_t *)
-
-   FD_MONGO_CURSOR now has mongo_collection_t and mongo_client_t pointer
-
- */
-
+/* This returns a MongoDB server object which wraps a MongoDB client
+   pool. */
 static fdtype mongodb_open(fdtype arg,fdtype opts)
 {
   mongoc_client_pool_t *client_pool; int flags;
@@ -189,19 +144,13 @@ static int unparse_server(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static void client_done(fdtype arg,mongoc_client_t *client)
-{
-  if (FD_PRIM_TYPEP(arg,fd_mongo_server)) {
-    struct FD_MONGODB_SERVER *server=(struct FD_MONGODB_SERVER *)arg;
-    mongoc_client_pool_push(server->pool,client);}
-  else if (FD_PRIM_TYPEP(arg,fd_mongo_collection)) {
-    struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-    struct FD_MONGODB_SERVER *server=(struct FD_MONGODB_SERVER *)(domain->server);
-    mongoc_client_pool_push(server->pool,client);}
-  else {
-    u8_log(LOG_WARN,"BAD client_done call","Wrong type for %q",arg);}
-}
+/* Creating collections */
 
+/* Collection creation is actually deferred until the collection is
+   used because we want the collection to be "thread safe" which means
+   that it won't correspond to a single mongoc_collection_t object,
+   but that each use of the collection will pop a client from the pool
+   and create a collection with that client. */
 static fdtype mongodb_collection(fdtype server,fdtype dbname,fdtype cname,
                                  fdtype opts_arg)
 {
@@ -243,6 +192,10 @@ static int unparse_collection(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
+/* Using collections */
+
+/*  This is where the collection actually gets created based on
+    a client popped from the client pool for the server. */
 mongoc_collection_t *open_collection(struct FD_MONGODB_COLLECTION *domain,
                                      mongoc_client_t **clientp,
                                      int flags)
@@ -264,6 +217,8 @@ mongoc_collection_t *open_collection(struct FD_MONGODB_COLLECTION *domain,
   else return NULL;
 }
 
+/*  This combines using the collection with using an opts arg to
+    generate flags and combined opts to use.  */
 mongoc_collection_t *use_collection(struct FD_MONGODB_COLLECTION *domain,
                                     fdtype opts_arg,
                                     mongoc_client_t **clientp,
@@ -273,11 +228,28 @@ mongoc_collection_t *use_collection(struct FD_MONGODB_COLLECTION *domain,
   int flags=getflags(opts_arg,domain->flags);
   mongoc_collection_t *collection=open_collection(domain,clientp,flags);
   if (collection) {
-    *flagsp=flags; *optsp=combine_opts(opts_arg,domain->opts);
+    if (flagsp) *flagsp=flags;
+    if (optsp) *optsp=combine_opts(opts_arg,domain->opts);
     return collection;}
   else return NULL;
 }
 
+/* This returns a client to a client pool.  The argument can be either
+   a server or a collection (which is followed to its server). */
+static void client_done(fdtype arg,mongoc_client_t *client)
+{
+  if (FD_PRIM_TYPEP(arg,fd_mongo_server)) {
+    struct FD_MONGODB_SERVER *server=(struct FD_MONGODB_SERVER *)arg;
+    mongoc_client_pool_push(server->pool,client);}
+  else if (FD_PRIM_TYPEP(arg,fd_mongo_collection)) {
+    struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
+    struct FD_MONGODB_SERVER *server=(struct FD_MONGODB_SERVER *)(domain->server);
+    mongoc_client_pool_push(server->pool,client);}
+  else {
+    u8_log(LOG_WARN,"BAD client_done call","Wrong type for %q",arg);}
+}
+
+/* This destroys the collection returns a client to a client pool. */
 static void collection_done(mongoc_collection_t *collection,
                             mongoc_client_t *client,
                             struct FD_MONGODB_COLLECTION *domain)
@@ -287,58 +259,7 @@ static void collection_done(mongoc_collection_t *collection,
   mongoc_client_pool_push(server->pool,client);
 }
 
-static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
-{
-  struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  int flags=getflags(opts_arg,domain->flags); fdtype opts=FD_VOID;
-  mongoc_client_t *connection;
-  bson_t *bq=NULL; mongoc_cursor_t *cursor=NULL; bson_error_t error;
-  mongoc_collection_t *collection=
-    use_collection(domain,opts_arg,&connection,&opts,NULL);
-  if (collection) bq=fd_dtype2bson(query,flags,opts);
-  if (bq) cursor=mongoc_collection_find
-           (collection,MONGOC_QUERY_NONE,0,0,0,bq,NULL,NULL);
-  if (cursor) {
-    struct FD_MONGODB_CURSOR *consed=u8_alloc(struct FD_MONGODB_CURSOR);
-    FD_INIT_CONS(consed,fd_mongo_cursor);
-    consed->domain=arg; fd_incref(arg);
-    consed->server=domain->server; fd_incref(domain->server);
-    consed->query=query; fd_incref(query);
-    consed->opts=combine_opts(opts_arg,domain->opts);
-    consed->flags=flags;
-    consed->bsonquery=bq;
-    consed->connection=connection;
-    consed->collection=collection;
-    consed->cursor=cursor;
-   return (fdtype) consed;}
-  else {
-    fd_decref(opts);
-    if (bq) bson_destroy(bq);
-    if (collection) collection_done(collection,connection,domain);
-    return FD_ERROR_VALUE;}
-}
-static void recycle_cursor(struct FD_CONS *c)
-{
-  struct FD_MONGODB_CURSOR *cursor=(struct FD_MONGODB_CURSOR *)c;
-  struct FD_MONGODB_SERVER *s=(struct FD_MONGODB_SERVER *)cursor->server;
-  mongoc_cursor_destroy(cursor->cursor);
-  mongoc_collection_destroy(cursor->collection);
-  mongoc_client_pool_push(s->pool,cursor->connection);
-  fd_decref(cursor->domain);
-  fd_decref(cursor->query);
-  fd_decref(cursor->opts);
-  bson_destroy(cursor->bsonquery);
-  u8_free(cursor);
-}
-static int unparse_cursor(struct U8_OUTPUT *out,fdtype x)
-{
-  struct FD_MONGODB_CURSOR *cursor=(struct FD_MONGODB_CURSOR *)x;
-  struct FD_MONGODB_COLLECTION *domain=
-    (struct FD_MONGODB_COLLECTION *)(cursor->domain);
-  u8_printf(out,"#<MongoDB/Cursor '%s/%s' %q>",
-            domain->dbname,domain->name,cursor->query);
-  return 1;
-}
+/* Basic operations on collections */
 
 static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
 {
@@ -461,10 +382,12 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
   else return FD_ERROR_VALUE;
 }
 
+/* Command execution */
+
 static fdtype mongodb_command(fdtype arg,fdtype command,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  int flags=get_flags(opts_arg,domain->flags);
+  int flags=getflags(opts_arg,domain->flags);
   fdtype opts=combine_opts(opts_arg,domain->opts);
   mongoc_client_t *client;
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
@@ -498,7 +421,7 @@ static fdtype mongodb_command(fdtype arg,fdtype command,fdtype opts_arg)
 static fdtype mongodb_command_simple(fdtype arg,fdtype command,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  int flags=get_flags(opts_arg,domain->flags);
+  int flags=getflags(opts_arg,domain->flags);
   fdtype opts=combine_opts(opts_arg,domain->opts);
   bson_t *cmd=fd_dtype2bson(command,flags,opts);
   if (cmd) {
@@ -573,6 +496,124 @@ static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
                 fd_make_pair(query,update));
       return FD_ERROR_VALUE;}}
   else return FD_ERROR_VALUE;
+}
+
+/* Cursor creation */
+
+static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
+{
+  struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
+  int flags=getflags(opts_arg,domain->flags); fdtype opts=FD_VOID;
+  mongoc_client_t *connection;
+  bson_t *bq=NULL; mongoc_cursor_t *cursor=NULL; bson_error_t error;
+  mongoc_collection_t *collection=
+    use_collection(domain,opts_arg,&connection,&opts,NULL);
+  if (collection) bq=fd_dtype2bson(query,flags,opts);
+  if (bq) cursor=mongoc_collection_find
+           (collection,MONGOC_QUERY_NONE,0,0,0,bq,NULL,NULL);
+  if (cursor) {
+    struct FD_MONGODB_CURSOR *consed=u8_alloc(struct FD_MONGODB_CURSOR);
+    FD_INIT_CONS(consed,fd_mongo_cursor);
+    consed->domain=arg; fd_incref(arg);
+    consed->server=domain->server; fd_incref(domain->server);
+    consed->query=query; fd_incref(query);
+    consed->opts=combine_opts(opts_arg,domain->opts);
+    consed->flags=flags;
+    consed->bsonquery=bq;
+    consed->connection=connection;
+    consed->collection=collection;
+    consed->cursor=cursor;
+   return (fdtype) consed;}
+  else {
+    fd_decref(opts);
+    if (bq) bson_destroy(bq);
+    if (collection) collection_done(collection,connection,domain);
+    return FD_ERROR_VALUE;}
+}
+static void recycle_cursor(struct FD_CONS *c)
+{
+  struct FD_MONGODB_CURSOR *cursor=(struct FD_MONGODB_CURSOR *)c;
+  struct FD_MONGODB_SERVER *s=(struct FD_MONGODB_SERVER *)cursor->server;
+  mongoc_cursor_destroy(cursor->cursor);
+  mongoc_collection_destroy(cursor->collection);
+  mongoc_client_pool_push(s->pool,cursor->connection);
+  fd_decref(cursor->domain);
+  fd_decref(cursor->query);
+  fd_decref(cursor->opts);
+  bson_destroy(cursor->bsonquery);
+  u8_free(cursor);
+}
+static int unparse_cursor(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_MONGODB_CURSOR *cursor=(struct FD_MONGODB_CURSOR *)x;
+  struct FD_MONGODB_COLLECTION *domain=
+    (struct FD_MONGODB_COLLECTION *)(cursor->domain);
+  u8_printf(out,"#<MongoDB/Cursor '%s/%s' %q>",
+            domain->dbname,domain->name,cursor->query);
+  return 1;
+}
+
+/* Operations on cursors */
+
+static fdtype mongodb_donep(fdtype cursor)
+{
+  struct FD_MONGODB_CURSOR *c=(struct FD_MONGODB_CURSOR *)cursor;
+  if (mongoc_cursor_more(c->cursor))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype mongodb_skip(fdtype cursor,fdtype howmany)
+{
+  struct FD_MONGODB_CURSOR *c=(struct FD_MONGODB_CURSOR *)cursor;
+  int n=FD_FIX2INT(howmany), i=0; const bson_t *doc;
+  while ((i<n)&&(mongoc_cursor_more(c->cursor))) {
+    mongoc_cursor_next(c->cursor,&doc); i++;}
+  if (i==n) return FD_TRUE; else return FD_FALSE;
+}
+
+static fdtype mongodb_read(fdtype cursor,fdtype howmany,fdtype opts_arg)
+{
+  struct FD_MONGODB_CURSOR *c=(struct FD_MONGODB_CURSOR *)cursor;
+  int n=FD_FIX2INT(howmany), i=0;
+  fdtype opts=c->opts;
+  if (n==0) return FD_EMPTY_CHOICE;
+  else {
+    fdtype results=FD_EMPTY_CHOICE;
+    mongoc_cursor_t *scan=c->cursor; const bson_t *doc;
+    int flags=c->flags; fdtype opts=c->opts;
+    if (!(FD_VOIDP(opts_arg))) {
+      flags=getflags(opts_arg,c->flags);
+      opts=combine_opts(opts_arg,opts);}
+    while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
+      fdtype dtype=fd_bson2dtype((bson_t *)doc,flags,opts);
+      FD_ADD_TO_CHOICE(results,dtype); i++;}
+    if (!(FD_VOIDP(opts_arg))) fd_decref(opts);
+    return results;}
+}
+
+static fdtype mongodb_readvec(fdtype cursor,fdtype howmany,fdtype opts_arg)
+{
+  struct FD_MONGODB_CURSOR *c=(struct FD_MONGODB_CURSOR *)cursor;
+  int n=FD_FIX2INT(howmany), i=0;
+  fdtype opts=c->opts;
+  if (n==0) return fd_make_vector(0,NULL);
+  else {
+    fdtype result=fd_make_vector(n,NULL);
+    mongoc_cursor_t *scan=c->cursor; const bson_t *doc;
+    int flags=c->flags; fdtype opts=c->opts;
+    if (!(FD_VOIDP(opts_arg))) {
+      flags=getflags(opts_arg,c->flags);
+      opts=combine_opts(opts_arg,opts);}
+    while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
+      fdtype dtype=fd_bson2dtype((bson_t *)doc,flags,opts);
+      FD_VECTOR_SET(result,i,dtype); i++;}
+    if (!(FD_VOIDP(opts_arg))) fd_decref(opts);
+    if (i==n) return result;
+    else {
+      fdtype truncated=fd_make_vector(i,FD_VECTOR_DATA(result));
+      u8_free((struct FD_CONS *)result);
+      return truncated;}}
 }
 
 /* BSON output functions */
@@ -1111,6 +1152,21 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprim3x("MONGODB/SIMPLE",mongodb_command_simple,2,
                                   fd_mongo_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID));
+
+  fd_idefn(module,fd_make_cprim1x("MONGODB/DONE?",mongodb_donep,1,
+                                  fd_mongo_cursor,FD_VOID));
+  fd_idefn(module,fd_make_cprim2x("MONGODB/SKIP",mongodb_skip,1,
+                                  fd_mongo_cursor,FD_VOID,
+                                  fd_fixnum_type,FD_FIXNUM_ONE));
+  fd_idefn(module,fd_make_cprim3x("MONGODB/READ",mongodb_read,1,
+                                  fd_mongo_cursor,FD_VOID,
+                                  fd_fixnum_type,FD_FIXNUM_ONE,
+                                  -1,FD_VOID));
+  fd_idefn(module,fd_make_cprim3x("MONGODB/READ->VECTOR",
+                                  mongodb_readvec,1,
+                                  fd_mongo_cursor,FD_VOID,
+                                  fd_fixnum_type,FD_FIXNUM_ONE,
+                                  -1,FD_VOID));
 
   fd_register_config("MONGODB:FLAGS",
                      "Default flags (fixnum) for MongoDB/BSON processing",
