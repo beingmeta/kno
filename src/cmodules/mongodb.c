@@ -1076,6 +1076,26 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
 
 */
 
+static fdtype mongodb_pool_fetch(fd_pool p,fdtype oid)
+{
+  struct FD_MONGODB_POOL *mp=(struct FD_MONGODB_POOL *)p;
+  FD_OID base=mp->base, addr=FD_OID_ADDR(oid);
+  mongoc_client_t *client=mongoc_client_pool_pop(mp->clients);
+  mongoc_collection_t *domain=
+    mongoc_client_get_collection(client,mp->dbname,mp->collection);
+  mongoc_cursor_t *cursor;
+  bson_t *q=bson_new(); const bson_t *doc;
+  fdtype fetched=FD_VOID;
+  BSON_APPEND_INT32(q,"_id",FD_OID_LO(addr)-FD_OID_LO(base));
+  cursor=mongoc_collection_find(domain,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
+  if (mongoc_cursor_next(cursor,&doc))
+    fetched=bson2dtype(doc,mp->mdbflags,mp->mdbopts);
+  bson_destroy(q);
+  mongoc_collection_destroy(domain);
+  mongoc_collection_pool_push(mp->clients,client);
+  return fetched;
+}
+
 /* Initialization */
 
 FD_EXPORT int fd_init_mongodb(void) FD_LIBINIT_FN;

@@ -1,5 +1,6 @@
 #include <bson.h>
 #include <mongoc.h>
+#include "fddb.h"
 
 /*
   BSON -> DTYPE mapping
@@ -61,20 +62,17 @@ FD_EXPORT fdtype fd_bson_write(bson_t *out,int flags,fdtype in);
 FD_EXPORT bson_t *fd_dtype2bson(fdtype,int,fdtype);
 FD_EXPORT fdtype fd_bson2dtype(bson_t *,int,fdtype);
 
-#if 0
-typedef struct FD_MONGO_POOL {
+typedef struct FD_MONGODB_POOL {
   FD_POOL_FIELDS;
-  u8_mutex lock;
-  mongo conn;
-  mongo_client_t *conn;
-  mongo_collection_t *collection;} FD_MONGO_POOL;
-typedef struct FD_MONGO_POOL *fd_mongo_pool;
+  mongoc_client_pool_t *clients;
+  u8_string dbname, collection;
+  fdtype mdbopts; int mdbflags;} FD_MONGODB_POOL;
+typedef struct FD_MONGODB_POOL *fd_mongodb_pool;
 
-typedef struct FD_MONGO_INDEX {
+typedef struct FD_MONGODB_INDEX {
   FD_INDEX_FIELDS;
-  u8_mutex lock;
-  mongo_client_t *conn;
-  mongo_collection_t *collection;} FD_MONGO_INDEX;
-typedef struct FD_MONGO_INDEX *fd_mongo_index;
+  mongoc_client_pool_t *clients;
+  u8_string dbname, collection;
+  fdtype mdbopts; int mdbflags;} FD_MONGODB_INDEX;
+typedef struct FD_MONGODB_INDEX *fd_mongodb_index;
 
-#endif
