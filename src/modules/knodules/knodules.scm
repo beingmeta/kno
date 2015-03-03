@@ -585,7 +585,7 @@
 ;;; Natural language terms
 
 (defambda (add-phrase! frame slotid value)
-  (debug%watch "ADD-PHRASE" frame slotid value)
+  (detail%watch "ADD-PHRASE" frame slotid value)
   (let* ((knodule (get knodules (get frame 'knodule)))
 	 (index (knodule-index knodule)))
     ;; Index expanded vales (including metaphone hashes)
