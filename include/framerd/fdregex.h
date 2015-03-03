@@ -24,4 +24,12 @@ typedef struct FD_REGEX *fd_regex;
 
 FD_EXPORT fdtype fd_make_regex(u8_string src,int flags);
 
+enum FD_REGEX_OP {
+  rx_search, rx_zeromatch, rx_matchlen, rx_exactmatch, rx_matchpair,
+  rx_matchstring};
+
+FD_EXPORT int fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
+			  u8_string s,size_t len,
+			  int eflags);
+
 #endif /* FRAMERD_FDREGEX_H */

@@ -24,6 +24,7 @@
 #include <sys/types.h>
 
 fd_exception fd_RegexError=_("Regular expression error");
+fd_exception fd_RegexBadOp=_("Invalid Regex operation");
 
 static int default_regex_flags=REG_EXTENDED|REG_NEWLINE;
 
@@ -113,24 +114,26 @@ static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-enum SEARCHOP {
-  rx_search, rx_zeromatch, rx_matchlen, rx_exactmatch, rx_matchpair,
-  rx_matchstring};
-
 static fdtype getcharoff(u8_string s,int byteoff)
 {
   int charoff=u8_charoffset(s,byteoff);
   return FD_INT2DTYPE(charoff);
 }
 
-static fdtype regex_searchop(enum SEARCHOP op,fdtype pat,fdtype string)
+static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,
+                             int eflags)
 {
   struct FD_REGEX *ptr=FD_GET_CONS(pat,fd_regex_type,struct FD_REGEX *);
   regmatch_t results[1];
   int retval, len=FD_STRLEN(string);
   u8_string s=FD_STRDATA(string);
+  /* Convert numeric eflags value to correct flags field */
+  if (eflags==1) eflags=REG_NOTBOL;
+  else if (eflags==2) eflags=REG_NOTEOL;
+  else if (eflags==3) eflags=REG_NOTEOL|REG_NOTBOL;
+  else eflags=0;
   u8_lock_mutex(&(ptr->lock));
-  retval=regexec(&(ptr->compiled),FD_STRDATA(string),1,results,0);
+  retval=regexec(&(ptr->compiled),FD_STRDATA(string),1,results,eflags);
   if (retval==REG_NOMATCH) return FD_FALSE;
   else if (retval) {
     u8_byte buf[512];
@@ -140,7 +143,7 @@ static fdtype regex_searchop(enum SEARCHOP op,fdtype pat,fdtype string)
   else u8_unlock_mutex(&(ptr->lock));
   if (results[0].rm_so<0) return FD_FALSE;
   else switch (op) {
-    case rx_search: return getcharoff(s,results[0].rm_so);;
+    case rx_search: return getcharoff(s,results[0].rm_so);
     case rx_exactmatch:
       if ((results[0].rm_so==0)&&(results[0].rm_eo==len))
         return FD_TRUE;
@@ -160,25 +163,70 @@ static fdtype regex_searchop(enum SEARCHOP op,fdtype pat,fdtype string)
     default: return FD_FALSE;}
 }
 
-static fdtype regex_search(fdtype pat,fdtype string)
+FD_EXPORT int fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
+                          u8_string s,size_t len,
+                          int eflags)
 {
-  return regex_searchop(rx_search,pat,string);
+  struct FD_REGEX *ptr=FD_GET_CONS(pat,fd_regex_type,struct FD_REGEX *);
+  regmatch_t results[1];
+  int retval;
+  /* Convert numeric eflags value to correct flags field */
+  if (eflags==1) eflags=REG_NOTBOL;
+  else if (eflags==2) eflags=REG_NOTEOL;
+  else if (eflags==3) eflags=REG_NOTEOL|REG_NOTBOL;
+  else eflags=0;
+  u8_lock_mutex(&(ptr->lock));
+  retval=regexec(&(ptr->compiled),s,1,results,eflags);
+  if (retval==REG_NOMATCH) return -1;
+  else if (retval) {
+    u8_byte buf[512];
+    regerror(retval,&(ptr->compiled),buf,512);
+    u8_unlock_mutex(&(ptr->lock));
+    fd_seterr(fd_RegexError,"fd_regex_op",u8_strdup(buf),FD_VOID);
+    return -2;}
+  else u8_unlock_mutex(&(ptr->lock));
+  if (results[0].rm_so<0) return -1;
+  else switch (op) {
+    case rx_search: return u8_charoffset(s,results[0].rm_so);
+    case rx_exactmatch:
+      if ((results[0].rm_so==0)&&(results[0].rm_eo==len))
+        return 1;
+      else return 0;
+    case rx_matchlen:
+      if ((results[0].rm_so==0)&&
+          (results[0].rm_eo<len))
+        return u8_charoffset(s,results[0].rm_eo);
+      else return -1;
+    case rx_matchstring: {
+      fd_seterr(fd_RegexBadOp,"fd_regex_op","rx_matchstring",pat);
+      fd_incref(pat); return -2;}
+    case rx_matchpair: {
+      fd_seterr(fd_RegexBadOp,"fd_regex_op","rx_matchpair",pat);
+      fd_incref(pat); return -2;}
+    default: {
+      fd_seterr(fd_RegexBadOp,"fd_regex_op","badop",pat);
+      fd_incref(pat); return -2;}}
 }
-static fdtype regex_matchlen(fdtype pat,fdtype string)
+
+static fdtype regex_search(fdtype pat,fdtype string,fdtype ef)
 {
-  return regex_searchop(rx_matchlen,pat,string);
+  return regex_searchop(rx_search,pat,string,FD_FIX2INT(ef));
 }
-static fdtype regex_exactmatch(fdtype pat,fdtype string)
+static fdtype regex_matchlen(fdtype pat,fdtype string,fdtype ef)
 {
-  return regex_searchop(rx_exactmatch,pat,string);
+  return regex_searchop(rx_matchlen,pat,string,FD_FIX2INT(ef));
 }
-static fdtype regex_matchstring(fdtype pat,fdtype string)
+static fdtype regex_exactmatch(fdtype pat,fdtype string,fdtype ef)
 {
-  return regex_searchop(rx_matchstring,pat,string);
+  return regex_searchop(rx_exactmatch,pat,string,FD_FIX2INT(ef));
 }
-static fdtype regex_matchpair(fdtype pat,fdtype string)
+static fdtype regex_matchstring(fdtype pat,fdtype string,fdtype ef)
 {
-  return regex_searchop(rx_matchstring,pat,string);
+  return regex_searchop(rx_matchstring,pat,string,FD_FIX2INT(ef));
+}
+static fdtype regex_matchpair(fdtype pat,fdtype string,fdtype ef)
+{
+  return regex_searchop(rx_matchstring,pat,string,FD_FIX2INT(ef));
 }
 
 /* Initialization */
@@ -204,20 +252,25 @@ FD_EXPORT int fd_init_regex_c()
   fd_idefn(regex_module,fd_make_cprim1("REGEX?",regexp_prim,1));
 
   fd_idefn(regex_module,
-           fd_make_cprim2x("REGEX/SEARCH",regex_search,2,
-                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
+           fd_make_cprim3x("REGEX/SEARCH",regex_search,2,
+                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_FIXZERO));
   fd_idefn(regex_module,
-           fd_make_cprim2x("REGEX/MATCH",regex_exactmatch,2,
-                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
+           fd_make_cprim3x("REGEX/MATCH",regex_exactmatch,2,
+                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_FIXZERO));
   fd_idefn(regex_module,
-           fd_make_cprim2x("REGEX/MATCHLEN",regex_matchlen,2,
-                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
+           fd_make_cprim3x("REGEX/MATCHLEN",regex_matchlen,2,
+                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_FIXZERO));
   fd_idefn(regex_module,
-           fd_make_cprim2x("REGEX/MATCHSTRING",regex_matchstring,2,
-                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
+           fd_make_cprim3x("REGEX/MATCHSTRING",regex_matchstring,2,
+                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_FIXZERO));
   fd_idefn(regex_module,
-           fd_make_cprim2x("REGEX/MATCHPAIR",regex_matchpair,2,
-                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID));
+           fd_make_cprim3x("REGEX/MATCHPAIR",regex_matchpair,2,
+                           fd_regex_type,FD_VOID,fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_FIXZERO));
 
   fd_finish_module(regex_module);
   fd_persist_module(regex_module);
