@@ -14,6 +14,7 @@
  '{knodule/ref get-knodule
    kno/dterm kno/dref kno/ref kno/probe knodule?
    kno/add! kno/drop! kno/replace! kno/onadd! kno/ondrop! kno/find
+   kno/index-string kno/string-indices
    kno/phrasemap
    kno/slotid kno/slotids kno/slotnames kno/relcodes
    knodule-name knodule-opts knodule-language
@@ -208,20 +209,20 @@
   (try (get (knodule-dterms knodule) (stdcap term))
        (new-dterm term knodule)))
 (define (new-dterm term knodule)
-  (let ((f (frame-create (or (knodule-pool knodule) knodule:pool)
-	     'knodule (knodule-oid knodule)
-	     'dterm term 'dterms term
-	     (knodule-language knodule) term
-	     '%id term))
-	(termkeys (choice term) (stdcap term)))
-    (debug%watch "NEW-DTERM" term knodule)
+  (let* ((lang (knodule-language knodule))
+	 (f (frame-create (or (knodule-pool knodule) knodule:pool)
+	      'knodule (knodule-oid knodule)
+	      'dterm term 'dterms term lang term
+	      '%id term))
+	 (termkeys (choice term) (stdcap term)))
+    (info%watch "NEW-DTERM" f term lang knodule)
     (store! (knodule-dterms knodule) termkeys f)
     (hashset-add! (knodule-alldterms knodule) f)
     (index-frame (choice knodule:index (knodule-index knodule))
 	f '{dterm dterms} termkeys)
     (index-frame knodule:index f 'knodule)
-    (index-frame (knodule-index knodule)
-	f (knodule-language knodule))
+    (index-frame (knodule-index knodule) f lang)
+    (add-phrase! f lang term)
     f))
 
 (define (kno/dref term (knodule default-knodule) (create #t))
@@ -397,9 +398,12 @@
 ;;; String indexing
 
 (define (dedash string)
-  (tryif (position #\- string)
-	 (choice (string-subst string "-" " " )
-		 (string-subst string "-" ""))))
+  (choice (tryif (position #\- string)
+	    (choice (string-subst string "-" " " )
+		    (string-subst string "-" "")))
+	  (tryif (position #\. string)
+	    (textsubst string
+		       #((subst "." "") {(spaces) (eos) (eol)})))))
 
 (defambda (kno/string-indices value (phonetic #f))
   (let* ((values (stdspace value))
@@ -581,6 +585,7 @@
 ;;; Natural language terms
 
 (defambda (add-phrase! frame slotid value)
+  (debug%watch "ADD-PHRASE" frame slotid value)
   (let* ((knodule (get knodules (get frame 'knodule)))
 	 (index (knodule-index knodule)))
     ;; Index expanded vales (including metaphone hashes)
