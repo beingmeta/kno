@@ -2616,7 +2616,7 @@ static int fdserv_handler(request_rec *r)
   fdservlet servlet=NULL; fdsocket sock=NULL;
   char *post_data, errbuf[512], infobuf[512];
   int post_size, bytes_written=0, bytes_transferred=-1;
-  char *new_error=NULL, *error=NULL;
+  char *new_error=NULL, *error=NULL; const char *proxyto=NULL;
   int rv;
   struct HEAD_SCANNER scanner;
   struct FDSERV_SERVER_CONFIG *sconfig=
@@ -2796,7 +2796,12 @@ static int fdserv_handler(request_rec *r)
   
   if (checkabort(r,servlet,sock,1)) return OK;
   
-  if (rv==HTTP_INTERNAL_SERVER_ERROR) {
+  proxyto=apr_table_get(r->headers_out,"Proxy");
+
+  if (proxyto) {
+    request_rec *sr=ap_sub_req_method_uri("GET",proxyto,r,NULL);
+    return ap_run_sub_req(sr);}
+  else if (rv==HTTP_INTERNAL_SERVER_ERROR) {
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,rv,r,
 		  "Error (%s) status=%d reading header from %s",
 		  errbuf,r->status,fdsocketinfo(sock,infobuf));
@@ -2807,7 +2812,7 @@ static int fdserv_handler(request_rec *r)
 		     fdsocketinfo(sock,infobuf));
   
   computed=apr_time_now();
-
+  
   bytes_transferred=copy_servlet_output(sock,r);
   
   if (checkabort(r,servlet,sock,1)) return OK;
