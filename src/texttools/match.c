@@ -204,6 +204,7 @@
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
 #include "framerd/texttools.h"
+#include "framerd/fdregex.h"
 
 #include <libu8/u8printf.h>
 #include <libu8/u8ctype.h>
@@ -407,7 +408,7 @@ fdtype fd_text_domatch
          string,off,lim);
       if (mlen < 0) return FD_EMPTY_CHOICE;
       else return FD_INT2DTYPE(mlen);}
-  else if ((FD_CHOICEP(pat)) || (FD_ACHOICEP(pat)))
+  else if ((FD_CHOICEP(pat)) || (FD_ACHOICEP(pat))) {
     if (flags&(FD_MATCH_BE_GREEDY)) {
       u8_byteoff max=-1;
       FD_DO_CHOICES(each,pat) {
@@ -445,8 +446,8 @@ fdtype fd_text_domatch
           fd_decref(answers);
           return answer;}
         FD_ADD_TO_CHOICE(answers,answer);}
-      return answers;}
-  else if (FD_CHARACTERP(pat))
+      return answers;}}
+  else if (FD_CHARACTERP(pat)) {
     if (off == lim) return FD_EMPTY_CHOICE;
     else {
       u8_unichar code=FD_CHAR2CODE(pat);
@@ -454,7 +455,7 @@ fdtype fd_text_domatch
           (code == string_ref(string+off))) {
         int next=forward_char(string,off);
         return FD_INT2DTYPE(next);}
-      else return FD_EMPTY_CHOICE;}
+      else return FD_EMPTY_CHOICE;}}
   else if (FD_VECTORP(pat))
     return match_sequence(pat,next,env,string,off,lim,flags);
   else if (FD_PAIRP(pat)) {
@@ -481,6 +482,12 @@ fdtype fd_text_domatch
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return fd_text_matcher(txc->pattern,txc->env,string,off,lim,flags);}
+  else if (FD_PTR_TYPEP(pat,fd_regex_type)) {
+    int retval=fd_regex_op(rx_matchlen,pat,string+off,lim-off,0);
+    if (retval<-1) 
+      return fd_err(fd_InternalMatchError,"fd_text_domatch",NULL,pat);
+    else if ((retval>lim)||(retval<0)) return FD_EMPTY_CHOICE;
+    else return FD_INT2DTYPE(retval);}
   else return fd_err(fd_MatchSyntaxError,"fd_text_domatch",NULL,pat);
 }
 
@@ -672,6 +679,22 @@ static fdtype textract
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return textract(txc->pattern,next,txc->env,string,off,lim,flags);}
+  else if (FD_PTR_TYPEP(pat,fd_regex_type)) {
+    struct FD_REGEX *ptr=FD_GET_CONS(pat,fd_regex_type,struct FD_REGEX *);
+    regmatch_t results[1]; u8_string base=base+off;
+    int retval=regexec(&(ptr->compiled),base,1,results,0);
+    if (retval==REG_NOMATCH) return FD_EMPTY_CHOICE;
+    else if (retval) {
+      u8_byte buf[512];
+      regerror(retval,&(ptr->compiled),buf,512);
+      u8_unlock_mutex(&(ptr->lock));
+      return fd_err(fd_RegexError,"fd_text_extract",
+                    u8_strdup(buf),FD_VOID);}
+    else {
+      fdtype ex=fd_extract_string
+        (NULL,base+results[0].rm_so,base+results[0].rm_eo);
+      int loc=u8_charoffset(string,off+results[0].rm_so);
+      return fd_init_pair(NULL,FD_INT2DTYPE(loc),ex);}}
   else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);
 }
 
@@ -3660,6 +3683,10 @@ u8_byteoff fd_text_search
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)(pat);
     return fd_text_search(txc->pattern,txc->env,string,off,lim,flags);}
+  else if (FD_PTR_TYPEP(pat,fd_regex_type))  {
+    int retval=fd_regex_op(rx_search,pat,string+off,lim-off,0);
+    if (retval<0) return retval;
+    else return retval;}
   else {
     fd_seterr(fd_MatchSyntaxError,"fd_text_search",NULL,fd_incref(pat));
     return -2;}
