@@ -131,14 +131,6 @@ typedef struct FDSERV_CONTEXT {
 
 ngx_module_t ngx_http_fdserv_module;
 
-char *version_num="0.7.1";
-char version_info[256];
-
-static void init_version_info()
-{
-  sprintf(version_info,"nginx_fdserv/%s",version_num);
-}
-
 /* Writing DTypes to BUFFs */
 
 #define ARBITRARY_BUFLIM (8*65536)
