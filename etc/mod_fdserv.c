@@ -1076,7 +1076,7 @@ static const command_rec fdserv_cmds[] =
 
   /* Everything below here is stuff about how to start a servlet */
   AP_INIT_TAKE1("FDServletSpawn", servlet_spawn, NULL, OR_ALL,
-		"How long to wait for servlets to start (on=5, off=0)"),
+		"How long to wait for servlets to start (on=5s, off=0)"),
   AP_INIT_TAKE1("FDServletExecutable", servlet_executable, NULL, OR_ALL,
 		"the executable used to start a servlet"),
   AP_INIT_TAKE1("FDServletWait", servlet_wait, NULL, OR_ALL,
@@ -1254,7 +1254,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
 		 "Waiting on external socket %s for %s, uid=%d, gid=%d",
 		 sockname,r->unparsed_uri,uid,gid);
-    return 0;}
+    return spawn_wait(s,r);}
   
   if (log_file==NULL) log_file=get_log_file(r,sockname);
   
