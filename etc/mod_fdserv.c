@@ -204,7 +204,7 @@ static apr_thread_mutex_t *servlets_lock;
 
 static int use_dtblock=USEDTBLOCK;
 
-static int reset_servlet(fdservlet s,apr_pool_t *p);
+static int reset_servlet(fdservlet s,apr_pool_t *p,int locked);
 
 char *version_num="2.4.5";
 char version_info[256];
@@ -1165,6 +1165,9 @@ static const char *get_log_file(request_rec *r,const char *sockname) /* 2.0 */
 }
 
 static int spawn_wait(fdservlet s,request_rec *r) ;
+static int start_servlet(request_rec *r,fdservlet s,
+			 struct FDSERV_DIR_CONFIG *dconfig,
+			 struct FDSERV_SERVER_CONFIG *sconfig);
 
 static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p) 
 {
@@ -1172,20 +1175,50 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   /* This launches the fdservlet process.  It probably shouldn't be used
      when using TCP to connect, since the specified server might not be one
      we can lanuch a process on (i.e. not us) */
-  apr_proc_t proc; apr_procattr_t *attr;
-  /* Executable, socket name, NULL, LOG_FILE env, NULL */
-  const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
-  struct stat stat_data; int rv, n_configs=0, retval=0;
   const char *nospawn=apr_pstrcat(p,sockname,".nospawn",NULL);
-  const char *lockname=apr_pstrcat(p,sockname,".spawn",NULL);
-  apr_file_t *lockfile;
-  int unlock=0;
 
-  server_rec *server=r->server;
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(r->server->module_config,&fdserv_module);
   struct FDSERV_DIR_CONFIG *dconfig=
     ap_get_module_config(r->per_dir_config,&fdserv_module);
+
+  server_rec *server=r->server;
+  int servlet_wait=dconfig->servlet_wait;
+  int servlet_spawn=dconfig->servlet_spawn;
+  int log_sync=dconfig->log_sync;
+
+  if (log_sync<0) log_sync=sconfig->log_sync;
+  if (log_sync<0) log_sync=DEFAULT_LOG_SYNC;
+
+  if (servlet_spawn<0) servlet_spawn=sconfig->servlet_spawn;
+  if (servlet_wait<0) servlet_wait=sconfig->servlet_wait;
+  if ((strchr(sockname,'@')!=NULL)||(strchr(sockname,':')!=NULL))
+    servlet_spawn=0;
+  else if ((servlet_spawn>0)&&(file_existsp(p,nospawn)))
+    servlet_spawn=0;
+  else if (servlet_spawn<0) servlet_spawn=10;
+
+  reset_servlet(s,p,1);
+
+  if (servlet_spawn<=0) {
+    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
+		 "Waiting on external socket %s for %s",
+		 sockname,r->unparsed_uri);
+    return spawn_wait(s,r);}
+  else {
+    ap_log_rerror
+      (APLOG_MARK,APLOG_INFO,OK,r,
+       "Need to spawn servlet %s for %s",s->sockname,r->unparsed_uri);
+    return start_servlet(r,s,dconfig,sconfig);}
+}
+
+static int start_servlet(request_rec *r,fdservlet s,
+			 struct FDSERV_DIR_CONFIG *dconfig,
+			 struct FDSERV_SERVER_CONFIG *sconfig)
+{
+  apr_pool_t *p=r->pool;
+  server_rec *server=r->server;
+  const char *sockname=s->sockname;
   const char *exename=((dconfig->server_executable) ?
 		       (dconfig->server_executable) :
 		       (sconfig->server_executable) ?
@@ -1196,68 +1229,47 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   const char **server_env=(sconfig->servlet_env);
   const char **dir_env=(dconfig->servlet_env);
   const char *log_file=get_log_file(r,NULL);
-  int servlet_wait=dconfig->servlet_spawn;
-  int log_sync=dconfig->log_sync;
+  const char *lockname=apr_pstrcat(p,sockname,".spawn",NULL);
+  apr_proc_t proc; apr_procattr_t *attr;
+  /* Executable, socket name, NULL, LOG_FILE env, NULL */
+  const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
+  struct stat stat_data; int rv, n_configs=0, retval=0;
   uid_t uid; gid_t gid;
+  apr_file_t *lockfile;
+  int unlock=0;
 
-  if (log_sync<0) log_sync=sconfig->log_sync;
-  if (log_sync<0) log_sync=DEFAULT_LOG_SYNC;
-
-  if (servlet_wait<0) servlet_wait=sconfig->servlet_spawn;
-  if (servlet_wait<0) servlet_wait=dconfig->servlet_spawn;
-  if (servlet_wait<0) servlet_wait=dconfig->servlet_wait;
-  if (servlet_wait<0) servlet_wait=sconfig->servlet_wait;
-  if ((servlet_wait<0)&&
-      ((strchr(sockname,'@')!=NULL)||(strchr(sockname,':')!=NULL)))
-    servlet_wait=0;
-  else if (servlet_wait<0) {
-    if (!(file_existsp(p,nospawn)))
-      servlet_wait=DEFAULT_SERVLET_WAIT;
-    else servlet_wait=0;}
-  else {}
-  
-  reset_servlet(s,p);
-
+  apr_status_t lock_status=
+    apr_file_open(&lockfile,lockname,
+		  APR_FOPEN_READ|APR_FOPEN_WRITE|APR_FOPEN_CREATE,
+		  APR_FPROT_OS_DEFAULT,
+		  p);
   apr_uid_current(&uid,&gid,p);
-
-  if (servlet_wait) {
-    apr_status_t lock_status=
-      apr_file_open(&lockfile,lockname,
-		    APR_FOPEN_READ|APR_FOPEN_WRITE|APR_FOPEN_CREATE,
-		    APR_FPROT_OS_DEFAULT,
-		    p);
+  if (lock_status!=OK) {
+    char errbuf[512];
+    ap_log_error
+      (APLOG_MARK,APLOG_CRIT,lock_status,server,
+       "Failed to create lock file %s with status %d (%s) for %s uid=%d gid=%d",
+       lockname,lock_status,apr_strerror(lock_status,errbuf,512),
+       r->unparsed_uri,uid,gid);}
+  else {
+    lock_status=apr_file_lock
+      (lockfile,APR_FLOCK_EXCLUSIVE|APR_FLOCK_NONBLOCK);
     if (lock_status!=OK) {
       char errbuf[512];
       ap_log_error
 	(APLOG_MARK,APLOG_CRIT,lock_status,server,
-	 "Failed to create lock file %s with status %d (%s) for %s uid=%d gid=%d",
+	 "Failed to lock %s with status %d (%s) for %s uid=%d gid=%d",
 	 lockname,lock_status,apr_strerror(lock_status,errbuf,512),
-	 r->unparsed_uri,uid,gid);}
+	 r->unparsed_uri,uid,gid);
+      s->spawning=apr_time_now();}
     else {
-      lock_status=apr_file_lock
-	(lockfile,APR_FLOCK_EXCLUSIVE|APR_FLOCK_NONBLOCK);
-      if (lock_status!=OK) {
-	char errbuf[512];
-	ap_log_error
-	  (APLOG_MARK,APLOG_CRIT,lock_status,server,
-	   "Failed to lock %s with status %d (%s) for %s uid=%d gid=%d",
-	   lockname,lock_status,apr_strerror(lock_status,errbuf,512),
-	   r->unparsed_uri,uid,gid);
-	s->spawning=apr_time_now();}
-      else {
-	unlock=1;
-	ap_log_error
-	  (APLOG_MARK,APLOG_WARNING,lock_status,server,
-	   "Got spawn lock %s for %s uid=%d gid=%d",
-	   lockname,r->unparsed_uri,uid,gid);}}}
-  else {
-    ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
-		 "Waiting on external socket %s for %s, uid=%d, gid=%d",
-		 sockname,r->unparsed_uri,uid,gid);
-    return spawn_wait(s,r);}
-  
-  if (log_file==NULL) log_file=get_log_file(r,sockname);
-  
+      unlock=1;
+      ap_log_error
+	(APLOG_MARK,APLOG_WARNING,lock_status,server,
+	 "Got spawn lock %s for %s uid=%d gid=%d",
+	 lockname,r->unparsed_uri,uid,gid);}}
+    if (log_file==NULL) log_file=get_log_file(r,sockname);
+
   if (s->spawning) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
 		 "Waiting on spawned socket %s for %s, uid=%d, gid=%d",
@@ -1449,30 +1461,9 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   else ap_log_error(APLOG_MARK,APLOG_NOTICE,rv,server,
 		    "Spawned %s @%s (nolog) for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
 		    exename,sockname,r->unparsed_uri,rv,proc.pid,uid,gid);
-    
+
   /* Now wait for the socket file to exist */
-  {
-    int sleep_count=1;
-    sleep(1); while ((rv=stat(sockname,&stat_data)) < 0) {
-      if (sleep_count>servlet_wait) {
-	ap_log_rerror(APLOG_MARK,APLOG_EMERG,apr_get_os_error(),r,
-		      "Failed to spawn socket file %s (i=%d/wait=%d) (%d:%s)",
-		      sockname,sleep_count,servlet_wait,
-		      errno,strerror(errno));
-	errno=0;
-	if (unlock) apr_file_unlock(lockfile);
-	apr_file_remove(lockname,p);
-	return -1;}
-      if (((sleep_count+1)%4)==0) {
-	ap_log_rerror
-	  (APLOG_MARK,APLOG_NOTICE,OK,r,
-	   "Still waiting for %s to exist (i=%d/wait=%d) (errno=%d:%s)",
-	   sockname,sleep_count,servlet_wait,errno,strerror(errno));
-	errno=0; sleep(2);}
-      else sleep(1);
-      sleep_count++;}
-    s->spawned=apr_time_now();
-    s->spawning=0;}
+  rv=spawn_wait(s,r);
 
   if (unlock) apr_file_unlock(lockfile);
   apr_file_remove(lockname,p);
@@ -1481,7 +1472,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
   else return retval;
 }
 
-static int spawn_wait(fdservlet s,request_rec *r) 
+static int spawn_wait(fdservlet s,request_rec *r)
 {
   apr_pool_t *p=((r==NULL)?(fdserv_pool):(r->pool));
   const char *sockname=s->sockname;
@@ -1491,24 +1482,32 @@ static int spawn_wait(fdservlet s,request_rec *r)
     ap_get_module_config(r->per_dir_config,&fdserv_module);
   struct stat stat_data; int rv;
   int servlet_wait=dconfig->servlet_wait;
-  int sleep_count=1;
+  int elapsed=0;
+  if (servlet_wait<0) servlet_wait=sconfig->servlet_wait;
+  if (servlet_wait<0) servlet_wait=7;
   sleep(1); while ((rv=stat(sockname,&stat_data)) < 0) {
-      if (sleep_count>servlet_wait) {
+      if (elapsed>servlet_wait) {
 	ap_log_rerror(APLOG_MARK,APLOG_EMERG,apr_get_os_error(),r,
-		      "Failed to spawn socket file %s (i=%d/wait=%d) (%d:%s)",
-		      sockname,sleep_count,servlet_wait,
+		      "Failed to spawn socket %s after %d/%d seconds (%d:%s)",
+		      sockname,elapsed,servlet_wait,
 		      errno,strerror(errno));
 	errno=0;
 	return -1;}
-      if (((sleep_count+1)%4)==0) {
+      if (((elapsed)%10)==0) {
 	ap_log_rerror
 	  (APLOG_MARK,APLOG_NOTICE,OK,r,
-	   "Still waiting for %s to exist (i=%d/wait=%d) (errno=%d:%s)",
-	   sockname,sleep_count,servlet_wait,errno,strerror(errno));
-	errno=0; sleep(2);}
+	   "(%d/%dsecs) waiting for %s to exist (errno=%d:%s)",
+	   elapsed,servlet_wait,sockname,errno,strerror(errno));
+	errno=0; sleep(1);}
       else sleep(1);
-      sleep_count++;}
-  if (rv>=0) return 0;
+      elapsed++;}
+  if (rv>=0) {
+    if (elapsed>1)
+      ap_log_rerror
+	(APLOG_MARK,APLOG_NOTICE,OK,r,
+	 "Socket %s materialized after %d/%d seconds",
+	 sockname,elapsed,servlet_wait);
+    return 0;}
   else return rv;
 }
 
@@ -1900,8 +1899,8 @@ static fdsocket servlet_connect(fdservlet s,request_rec *r)
 		       ("servlet bad socket")),
 		      s->sockname);
 	s->n_ephemeral++; s->n_busy++;
-	apr_thread_mutex_unlock(s->lock);
 	sock=servlet_open(s,NULL,r);
+	apr_thread_mutex_unlock(s->lock);
 	if (sock==NULL) {
 	  /* If the socket open failed, relock the servlet structure
 	     and decrement the busy/emphemeral counters */
@@ -2095,11 +2094,11 @@ static apr_status_t close_servlets(void *data)
   return OK;
 }
 
-static int reset_servlet(fdservlet s,apr_pool_t *p)
+static int reset_servlet(fdservlet s,apr_pool_t *p,int locked)
 {
   int j=0, n_socks, n_closed=0;
   struct FDSOCKET *sockets;
-  apr_thread_mutex_lock(s->lock);
+  if (locked==0) apr_thread_mutex_lock(s->lock);
   sockets=s->sockets; n_socks=s->n_socks;
 
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
@@ -2123,7 +2122,7 @@ static int reset_servlet(fdservlet s,apr_pool_t *p)
 		       j-1,s->sockname);
     sock->closed=1; sock->busy=0;}
   s->n_busy=0;
-  apr_thread_mutex_unlock(s->lock);
+  if (locked==0) apr_thread_mutex_unlock(s->lock);
   return n_closed;
 }
 
