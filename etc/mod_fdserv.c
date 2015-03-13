@@ -1216,7 +1216,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     else servlet_wait=0;}
   else {}
   
-  /* reset_servlet(s,p); */
+  reset_servlet(s,p);
 
   apr_uid_current(&uid,&gid,p);
 
@@ -1947,7 +1947,8 @@ static int servlet_recycle_socket(fdservlet servlet,fdsocket sock)
 		 ephemeral,busy);
 #endif
     if (sock->socktype==aprsock) apr_socket_close(sock->conn.apr);
-    else if (sock->socktype==filesock) close(sock->conn.fd);
+    else if (sock->socktype==filesock) {
+      if (sock->conn.fd>0) close(sock->conn.fd);}
     else {}
     memset(sock,0,sizeof(struct FDSOCKET));
     return 0;}
@@ -1992,15 +1993,20 @@ static int servlet_close_socket(fdservlet servlet,fdsocket sock)
     int i=sock->socket_index;
     /* The sockets array was reallocated, so sock is different than it was */
     sock=&(servlet->sockets[i]);}
-  if (sock->busy) servlet->n_busy--;
-  sock->busy=0;
-  if (sock->socktype==filesock) {
-    int rv=close(sock->conn.fd);
+  if (sock->busy) {
+    servlet->n_busy--;
+    sock->busy=0;}
+  if ((sock->socktype==filesock)&&(sock->conn.fd>0)) {
+    int rv= close(sock->conn.fd);
     if (rv<0)
       ap_log_error(APLOG_MARK,LOGDEBUG,rv,servlet->server,
 		   "Error (%s) closing %s",strerror(errno),
 		   fdsocketinfo(sock,infobuf));
     sock->conn.fd=-1; errno=0;}
+  else if (sock->socktype==filesock) {
+    ap_log_error(APLOG_MARK,APLOG_WARNING,OK,servlet->server,
+		 "Weird filesocket for %s: %s",
+		 servlet->sockname,fdsocketinfo(sock,infobuf));}
   else if (sock->socktype==aprsock) {
     apr_status_t rv=apr_socket_close(sock->conn.apr);
     if (rv!=OK) 
@@ -2008,7 +2014,9 @@ static int servlet_close_socket(fdservlet servlet,fdsocket sock)
 		   "Error (%s) closing %s",strerror(errno),
 		   fdsocketinfo(sock,infobuf));
     sock->conn.apr=NULL;}
-  else {}
+  else ap_log_error(APLOG_MARK,APLOG_WARNING,OK,servlet->server,
+		    "Weird socket for %s: %s",
+		    servlet->sockname,fdsocketinfo(sock,infobuf));
   sock->closed=1;
   if (sock->socket_index<0) servlet->n_ephemeral--;
   apr_thread_mutex_unlock(servlet->lock);
@@ -2071,7 +2079,8 @@ static apr_status_t close_servlets(void *data)
       fdsocket sock=&(sockets[j++]);
       if (sock->closed) continue;
       sock_count++;
-      if (sock->socktype==filesock) close(sock->conn.fd);
+      if (sock->socktype==filesock) {
+	if (sock->conn.fd>0) close(sock->conn.fd);}
       else if (sock->socktype==aprsock)
 	apr_socket_close(sock->conn.apr);
       else {}
@@ -2086,10 +2095,11 @@ static apr_status_t close_servlets(void *data)
 
 static int reset_servlet(fdservlet s,apr_pool_t *p)
 {
-  int j=0, n_socks;
+  int j=0, n_socks, n_closed=0;
   struct FDSOCKET *sockets;
   apr_thread_mutex_lock(s->lock);
   sockets=s->sockets; n_socks=s->n_socks;
+
   ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
 		"mod_fdserv Resetting servlet %s (%d sockets/%d busy)",
 		s->sockname,n_socks,s->n_busy);
@@ -2100,13 +2110,19 @@ static int reset_servlet(fdservlet s,apr_pool_t *p)
 		  "mod_fdserv Resetting socket#%d for %s",
 		  j-1,s->sockname);
     if (sock->closed) continue;
-    if (sock->socktype==filesock) close(sock->conn.fd);
-    else if (sock->socktype==aprsock)
+    if (sock->socktype==filesock) {
+      if (sock->conn.fd>0) close(sock->conn.fd);
+      n_closed++;}
+    else if (sock->socktype==aprsock) {
       apr_socket_close(sock->conn.apr);
-    else {}
-    sock->closed=1; sock->busy=1;}
+      n_closed++;}
+    else ap_log_perror(APLOG_MARK,APLOG_WARNING,OK,p,
+		       "mod_fdserv Weird socket entry (#%d) for %s",
+		       j-1,s->sockname);
+    sock->closed=1; sock->busy=0;}
   s->n_busy=0;
   apr_thread_mutex_unlock(s->lock);
+  return n_closed;
 }
 
 /* Writing DTypes to BUFFs */

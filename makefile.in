@@ -1254,6 +1254,8 @@ install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 		else @SUDO@ ${APXS} -i mod_fdserv.la; \
 		fi
 	@echo Installed fdserv module with @rundir@/fdserv @logdir@/fdserv
+update-fdserv: install-fdserv
+	@@SUDO@ apachectl restart
 
 $(DESTDIR)@apache_modules_dir@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
