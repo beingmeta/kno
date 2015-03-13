@@ -1230,7 +1230,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
       char errbuf[512];
       ap_log_error
 	(APLOG_MARK,APLOG_CRIT,lock_status,server,
-	 "Failed to lock file %s with status %d (%s) for %s uid=%d gid=%d",
+	 "Failed to create lock file %s with status %d (%s) for %s uid=%d gid=%d",
 	 lockname,lock_status,apr_strerror(lock_status,errbuf,512),
 	 r->unparsed_uri,uid,gid);}
     else {
@@ -1240,7 +1240,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 	char errbuf[512];
 	ap_log_error
 	  (APLOG_MARK,APLOG_CRIT,lock_status,server,
-	   "Failed spawn lock %s with status %d (%s) for %s uid=%d gid=%d",
+	   "Failed to lock %s with status %d (%s) for %s uid=%d gid=%d",
 	   lockname,lock_status,apr_strerror(lock_status,errbuf,512),
 	   r->unparsed_uri,uid,gid);
 	s->spawning=apr_time_now();}
@@ -1275,12 +1275,14 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
 		 "Can't write socket file '%s' (%s) for %s, uid=%d, gid=%d",
 		 sockname,exename,r->unparsed_uri,uid,gid);
     if (unlock) apr_file_unlock(lockfile);
+    apr_file_remove(lockname,p);
     return -1;}
   if ((log_file) && (!(file_writablep(p,server,log_file)))) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
 		 "Logfile %s isn't writable for processing %s",
 		 log_file,r->unparsed_uri);
     if (unlock) apr_file_unlock(lockfile);
+    apr_file_remove(lockname,p);
     return -1;}
     
   if (log_file)
@@ -1425,12 +1427,12 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     else {
       ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
 		   "Could not remove socket file %s",sockname);
+      if (unlock) apr_file_unlock(lockfile);
       apr_file_remove(lockname,p);
       return -1;}}
     
   errno=0;
-  rv=apr_proc_create(&proc,exename,(const char **)argv,envp,
-		     attr,p);
+  rv=apr_proc_create(&proc,exename,(const char **)argv,envp,attr,p);
   if (rv!=APR_SUCCESS) {
     ap_log_rerror(APLOG_MARK,APLOG_EMERG, rv, r,
 		  "Couldn't spawn %s @%s for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
@@ -2340,9 +2342,11 @@ static int scan_fgets(char *buf,int n_bytes,void *stream)
       else *write++=bytes[0];
       if (bytes[0]=='\n') break;}
     *write='\0';
+#if DEBUG_FDSERV
     ap_log_error
       (APLOG_MARK,APLOG_WARNING,OK,r->server,
        "mod_fdserv/scan_fgets: Read header string %s from %d",buf,sock);
+#endif
     if (write>=limit) return write-buf;
     else return write-buf;}
   else {
