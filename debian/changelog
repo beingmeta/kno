@@ -1,3 +1,12 @@
+framerd (3.7.6-28) unstable; urgency=low
+
+  * New Debian release 3.7.6
+  * Fixes to mod_fdserv socket management
+  * Added X-Redirect for internal mod_fdserv redirects
+  * Updates to mongodb implementation and groundwork
+    
+ -- Ken Haase <kh@beingmeta.com>  Fri, 13 Mar 2015 13:39:20 -0400
+
 framerd (3.7.5-27) unstable; urgency=low
 
   * New Debian release: framerd-3.7.5-27 (patch level 27)
