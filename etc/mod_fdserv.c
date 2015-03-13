@@ -84,7 +84,6 @@ static int debug_kv(void *data,const char *key,const char *value)
   return 0;
 }
 
-
 #if DEBUG_CONFIG
 #define LOG_CONFIG(p,arg) log_config(p,arg)
 #else
@@ -204,6 +203,8 @@ static apr_thread_mutex_t *servlets_lock;
 #endif
 
 static int use_dtblock=USEDTBLOCK;
+
+static int reset_servlet(fdservlet s,apr_pool_t *p);
 
 char *version_num="2.4.5";
 char version_info[256];
@@ -1215,6 +1216,8 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     else servlet_wait=0;}
   else {}
   
+  /* reset_servlet(s,p); */
+
   apr_uid_current(&uid,&gid,p);
 
   if (servlet_wait) {
@@ -2079,6 +2082,31 @@ static apr_status_t close_servlets(void *data)
 		sock_count,lim);
   apr_thread_mutex_unlock(servlets_lock);
   return OK;
+}
+
+static int reset_servlet(fdservlet s,apr_pool_t *p)
+{
+  int j=0, n_socks;
+  struct FDSOCKET *sockets;
+  apr_thread_mutex_lock(s->lock);
+  sockets=s->sockets; n_socks=s->n_socks;
+  ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
+		"mod_fdserv Resetting servlet %s (%d sockets/%d busy)",
+		s->sockname,n_socks,s->n_busy);
+  
+  while (j<n_socks) {
+    fdsocket sock=&(sockets[j++]);
+    ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
+		  "mod_fdserv Resetting socket#%d for %s",
+		  j-1,s->sockname);
+    if (sock->closed) continue;
+    if (sock->socktype==filesock) close(sock->conn.fd);
+    else if (sock->socktype==aprsock)
+      apr_socket_close(sock->conn.apr);
+    else {}
+    sock->closed=1; sock->busy=1;}
+  s->n_busy=0;
+  apr_thread_mutex_unlock(s->lock);
 }
 
 /* Writing DTypes to BUFFs */
