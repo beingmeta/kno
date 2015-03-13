@@ -32,7 +32,7 @@
 static fdtype accept_language, accept_type, accept_charset, accept_encoding;
 static fdtype server_port, remote_port, request_method, status_field;
 static fdtype get_method, post_method, browseinfo_symbol;
-static fdtype redirect_field, sendfile_field;
+static fdtype redirect_field, sendfile_field, xredirect_field;
 static fdtype query_string, query_elts, query, http_cookie, http_referrer;
 static fdtype http_headers, html_headers, cookiedata_symbol;
 static fdtype outcookies_symbol, incookies_symbol, bad_cookie, text_symbol;
@@ -45,6 +45,7 @@ static fdtype parts_slotid, name_slotid, filename_slotid, mapurlfn_symbol;
 static fdtype ipeval_symbol;
 
 char *fd_sendfile_header=NULL; /* X-Sendfile */
+char *fd_xredirect_header="X-Redirect";
 static int log_cgidata=0;
 
 static u8_condition CGIDataInconsistency="Inconsistent CGI data";
@@ -736,6 +737,7 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   fdtype headers=fd_get(cgidata,http_headers,FD_EMPTY_CHOICE);
   fdtype redirect=fd_get(cgidata,redirect_field,FD_VOID);
   fdtype sendfile=fd_get(cgidata,sendfile_field,FD_VOID);
+  fdtype xredirect=fd_get(cgidata,xredirect_field,FD_VOID);
   fdtype cookies=fd_get(cgidata,outcookies_symbol,FD_EMPTY_CHOICE);
   if ((FD_STRINGP(redirect))&&(FD_VOIDP(status))) {
     status=FD_INT2DTYPE(303);}
@@ -763,6 +765,10 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
     u8_log(LOG_DEBUG,"Sendfile","Using %s to pass %s",
            fd_sendfile_header,FD_STRDATA(sendfile));
     u8_printf(out,"%s: %s\r\n",fd_sendfile_header,FD_STRDATA(sendfile));}
+  else if ((FD_STRINGP(xredirect))&&(fd_xredirect_header)) {
+    u8_log(LOG_DEBUG,"Xredirect","Using %s to pass %s",
+           fd_xredirect_header,FD_STRDATA(xredirect));
+    u8_printf(out,"%s: %s\r\n",fd_xredirect_header,FD_STRDATA(xredirect));}
   else {}
   fd_decref(ctype); fd_decref(status); fd_decref(headers);
   fd_decref(redirect); fd_decref(sendfile); fd_decref(cookies);
@@ -1122,6 +1128,33 @@ FD_EXPORT int sendfile_set(fdtype ignored,fdtype v,void *vptr)
     return 0;}
   else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
 }
+FD_EXPORT int xredirect_set(fdtype ignored,fdtype v,void *vptr)
+{
+  u8_string *ptr=vptr;
+  if (FD_STRINGP(v)) {
+    int bool=fd_boolstring(FD_STRDATA(v),-1);
+    if (bool<0) {
+      if (*ptr) u8_free(*ptr);
+      *ptr=u8_strdup(FD_STRDATA(v));
+      return 1;}
+    else if (bool==0) {
+      if (*ptr) u8_free(*ptr);
+      *ptr=NULL;
+      return 0;}
+    else {
+      if (*ptr) u8_free(*ptr);
+      *ptr=u8_strdup("X-Redirect");}
+    return 1;}
+  else if (FD_TRUEP(v)) {
+    if (*ptr) u8_free(*ptr);
+    *ptr=u8_strdup("X-Sendfile");
+    return 1;}
+  else if (FD_FALSEP(v)) {
+    if (*ptr) u8_free(*ptr);
+    *ptr=NULL;
+    return 0;}
+  else return fd_reterr(fd_TypeError,"fd_sconfig_set",u8_strdup(_("string")),v);
+}
 
 FD_EXPORT void fd_init_cgiexec_c()
 {
@@ -1203,6 +1236,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   status_field=fd_intern("STATUS");
   redirect_field=fd_intern("_REDIRECT");
   sendfile_field=fd_intern("_SENDFILE");
+  xredirect_field=fd_intern("_XREDIRECT");
   http_headers=fd_intern("HTTP-HEADERS");
   html_headers=fd_intern("HTML-HEADERS");
 
@@ -1242,6 +1276,10 @@ FD_EXPORT void fd_init_cgiexec_c()
     ("XSENDFILE",
      _("Header for using the web server's X-SENDFILE functionality"),
      fd_sconfig_get,sendfile_set,&fd_sendfile_header);
+  fd_register_config
+    ("XREDIRECT",
+     _("Header for using the web server's X-REDIRECT functionality"),
+     fd_sconfig_get,xredirect_set,&fd_xredirect_header);
   fd_register_config
     ("LOGCGI",_("Whether to log CGI bindings passed to FramerD"),
      fd_boolconfig_get,fd_boolconfig_set,&log_cgidata);

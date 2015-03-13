@@ -77,6 +77,14 @@ static void log_config(cmd_parms *parms,const char *arg)
        parms->cmd->name,arg);
 }
 
+static int debug_kv(void *data,const char *key,const char *value)
+{
+  request_rec *r=(request_rec *)data;
+  ap_log_error(APLOG_MARK,APLOG_WARNING,OK,r->server,"debug_kv %s=%s",key,value);
+  return 0;
+}
+
+
 #if DEBUG_CONFIG
 #define LOG_CONFIG(p,arg) log_config(p,arg)
 #else
@@ -2288,17 +2296,14 @@ static int scan_fgets(char *buf,int n_bytes,void *stream)
       else *write++=bytes[0];
       if (bytes[0]=='\n') break;}
     *write='\0';
-#if DEBUG_FDSERV
     ap_log_error
-      (APLOG_MARK,LOGDEBUG,OK,r->server,
+      (APLOG_MARK,APLOG_WARNING,OK,r->server,
        "mod_fdserv/scan_fgets: Read header string %s from %d",buf,sock);
-#endif
     if (write>=limit) return write-buf;
     else return write-buf;}
   else {
     return -1;}
 }
-
 
 static int sock_write(request_rec *r,
 		      const unsigned char *buf,
@@ -2616,7 +2621,8 @@ static int fdserv_handler(request_rec *r)
   fdservlet servlet=NULL; fdsocket sock=NULL;
   char *post_data, errbuf[512], infobuf[512];
   int post_size, bytes_written=0, bytes_transferred=-1;
-  char *new_error=NULL, *error=NULL; const char *proxyto=NULL;
+  char *new_error=NULL, *error=NULL;
+  const char *xredirect=NULL;
   int rv;
   struct HEAD_SCANNER scanner;
   struct FDSERV_SERVER_CONFIG *sconfig=
@@ -2796,11 +2802,12 @@ static int fdserv_handler(request_rec *r)
   
   if (checkabort(r,servlet,sock,1)) return OK;
   
-  proxyto=apr_table_get(r->headers_out,"Proxy");
+  xredirect=apr_table_get(r->headers_out,"X-Redirect");
+  if (!(xredirect)) xredirect=apr_table_get(r->err_headers_out,"X-Redirect");
 
-  if (proxyto) {
-    request_rec *sr=ap_sub_req_method_uri("GET",proxyto,r,NULL);
-    return ap_run_sub_req(sr);}
+  if (xredirect) {
+    ap_internal_redirect(xredirect,r);
+    return OK;}
   else if (rv==HTTP_INTERNAL_SERVER_ERROR) {
     ap_log_rerror(APLOG_MARK,APLOG_CRIT,rv,r,
 		  "Error (%s) status=%d reading header from %s",
