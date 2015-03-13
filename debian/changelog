@@ -1,3 +1,10 @@
+framerd (3.7.6-29) unstable; urgency=low
+
+  * Updated build for mongodb dependencies
+  * git patch level framerd-3.7.6-3
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 13 Mar 2015 14:50:27 -0400
+
 framerd (3.7.6-28) unstable; urgency=low
 
   * New Debian release 3.7.6

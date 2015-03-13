@@ -44,7 +44,7 @@ Description: SQLite bindings for FramerD
 
 Package: framerd-mongodb
 Architecture: any
-Depends: framerd (= ${binary:Version}), libbson-1.0, libmongoc-1.0
+Depends: framerd (= ${binary:Version}), libbson, libmongoc
 Description: MongoDB interface for FramerD
 
 Package: framerd-imagetools
