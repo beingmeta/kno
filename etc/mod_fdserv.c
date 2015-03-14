@@ -2859,6 +2859,8 @@ static int fdserv_handler(request_rec *r)
 		  "Internal (x)redirect to %s for %s",
 		  xredirect,fdsocketinfo(sock,infobuf));
     servlet_recycle_socket(servlet,sock);
+    apr_table_setn(r->subprocess_env,"XREDIRECT",
+		   apr_pstrdup(r->pool,xredirect));
     ap_internal_redirect(xredirect,r);
     return OK;}
   else if (rv==HTTP_INTERNAL_SERVER_ERROR) {
