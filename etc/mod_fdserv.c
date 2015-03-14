@@ -1261,6 +1261,7 @@ static int start_servlet(request_rec *r,fdservlet s,
 	 "Failed to lock %s with status %d (%s) for %s uid=%d gid=%d",
 	 lockname,lock_status,apr_strerror(lock_status,errbuf,512),
 	 r->unparsed_uri,uid,gid);
+      /* Another affiliated process is spawning, so we just wait */
       s->spawning=apr_time_now();}
     else {
       unlock=1;
@@ -1268,8 +1269,6 @@ static int start_servlet(request_rec *r,fdservlet s,
 	(APLOG_MARK,APLOG_WARNING,lock_status,server,
 	 "Got spawn lock %s for %s uid=%d gid=%d",
 	 lockname,r->unparsed_uri,uid,gid);}}
-    if (log_file==NULL) log_file=get_log_file(r,sockname);
-
   if (s->spawning) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
 		 "Waiting on spawned socket %s for %s, uid=%d, gid=%d",
@@ -1281,7 +1280,7 @@ static int start_servlet(request_rec *r,fdservlet s,
 		 exename,sockname,r->unparsed_uri,uid,gid);
     s->spawning=apr_time_now();
     s->spawned=0;}
-    
+
   if (!(file_writablep(p,server,sockname))) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
 		 "Can't write socket file '%s' (%s) for %s, uid=%d, gid=%d",
@@ -1297,6 +1296,8 @@ static int start_servlet(request_rec *r,fdservlet s,
     apr_file_remove(lockname,p);
     return -1;}
     
+  if (log_file==NULL) log_file=get_log_file(r,sockname);
+
   if (log_file)
     ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,server,
 		 "Spawning fdservlet %s @%s>%s for %s, uid=%d, gid=%d",
@@ -1467,6 +1468,7 @@ static int start_servlet(request_rec *r,fdservlet s,
 
   if (unlock) apr_file_unlock(lockfile);
   apr_file_remove(lockname,p);
+  s->spawning=0;
 
   if (rv>=0) return 1;
   else return retval;
