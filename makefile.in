@@ -903,6 +903,10 @@ dist/debs.done: staging/framerd_@FDVERSION@
 			framerd_@FDVERSION@*.changes            \
 			../dist) &&                             \
 	(cd dist; equivs-build bmstack) &&                      \
+	(cd dist; equivs-build bmdbstack) &&                    \
+	(cd dist; equivs-build bmwebstack) &&                   \
+	(cd dist; equivs-build bmfullstack) &&                  \
+	(cd dist; equivs-build bmdevstack) &&                   \
 	touch dist/debs.done;
 
 install-debian install-debs debinstall installdebs: dist/debs.done

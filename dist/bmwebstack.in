@@ -1,0 +1,29 @@
+### Commented entries have reasonable defaults.
+### Uncomment to edit them.
+# Source: <source package name; defaults to package name>
+Section: misc
+Priority: optional
+Homepage: http://www.beingmeta.com/
+Standards-Version: 3.9.2
+
+Package: bmfullstack
+Version: @VERSION@
+Maintainer: kh@beingmeta.com
+Pre-Depends: libu8, libu8-encodings, libu8-dev
+Depends: bmcore, libu8, libu8-encodings, framerd, framerd-sqlite, framerd-sundown, framerd-doc, framerd-mongodb, framerd-mysql, framerd-tidy, framerd-morph, framerd-chopper, framerd-gnosys, framerd-imagetools, libapache2-mod-fdserv
+# Recommends:
+# Suggests:
+# Provides:
+# Replaces:
+Architecture: all
+# Copyright: other
+# Changelog: 
+# Readme: 
+# Extra-Files: 
+# Files: 
+#  <more pairs, if there's more than one file to include. Notice the starting space>
+Description: The beingmeta software stack
+ This meta-package provides the beingmeta software stack, including FramerD
+ and modules built with it (such as framerd-mysql)
+ .
+
