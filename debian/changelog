@@ -1,3 +1,10 @@
+framerd (3.7.6-30) unstable; urgency=low
+
+  * Updates to make mod_fdserv more securable
+  * git patch level framerd-3.7.6-8
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 14 Mar 2015 12:34:32 -0400
+
 framerd (3.7.6-29) unstable; urgency=low
 
   * Updated build for mongodb dependencies
