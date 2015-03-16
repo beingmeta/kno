@@ -37,8 +37,8 @@ static fdtype query_string, query_elts, query, http_cookie, http_referrer;
 static fdtype http_headers, html_headers, cookiedata_symbol;
 static fdtype outcookies_symbol, incookies_symbol, bad_cookie, text_symbol;
 static fdtype doctype_slotid, xmlpi_slotid, html_attribs_slotid;
-static fdtype body_attribs_slotid, body_classes_slotid, class_symbol;
-static fdtype content_slotid, content_type, cgi_content_type;
+static fdtype body_attribs_slotid, body_classes_slotid, html_classes_slotid;
+static fdtype class_symbol, content_slotid, content_type, cgi_content_type;
 static fdtype remote_user_symbol, remote_host_symbol, remote_addr_symbol;
 static fdtype remote_info_symbol, remote_agent_symbol, remote_ident_symbol;
 static fdtype parts_slotid, name_slotid, filename_slotid, mapurlfn_symbol;
@@ -783,11 +783,11 @@ static void output_headers(U8_OUTPUT *out,fdtype headers)
     u8_putn(out,"\n",1);}
 }
 
-static fdtype update_body_attribs(fdtype body_attribs,fdtype body_classes)
+static fdtype attrib_merge_classes(fdtype attribs,fdtype classes)
 {
-  if (!(FD_PAIRP(body_classes))) return body_attribs;
-  else if (FD_PAIRP(body_attribs)) {
-    fdtype scan=body_attribs, scan_classes=body_classes;
+  if (!(FD_PAIRP(classes))) return attribs;
+  else if (FD_PAIRP(attribs)) {
+    fdtype scan=attribs, scan_classes=classes;
     struct U8_OUTPUT classout; fdtype class_cons=FD_VOID;
     u8_byte _classbuf[256]; int i=0;
     while (FD_PAIRP(scan)) {
@@ -796,30 +796,41 @@ static fdtype update_body_attribs(fdtype body_attribs,fdtype body_classes)
           ((FD_STRINGP(car))&&(strcasecmp(FD_STRDATA(car),"class")==0))) {
         class_cons=FD_CDR(scan); break;}
       else {
-        scan=FD_CDR(scan); 
+        scan=FD_CDR(scan);
         if (FD_PAIRP(scan)) scan=FD_CDR(scan);}}
     if (FD_VOIDP(class_cons)) {
-      class_cons=fd_init_pair(NULL,FD_FALSE,body_attribs);
-      body_attribs=fd_init_pair(NULL,class_symbol,class_cons);}
+      class_cons=fd_init_pair(NULL,FD_FALSE,attribs);
+      attribs=fd_init_pair(NULL,class_symbol,class_cons);}
     U8_INIT_STATIC_OUTPUT_BUF(classout,sizeof(_classbuf),_classbuf);
     if (FD_STRINGP(FD_CAR(class_cons))) {
       u8_puts(&classout,FD_STRDATA(FD_CAR(class_cons)));
       u8_puts(&classout," ");}
-    while (FD_PAIRP(body_classes)) {
-      fdtype car=FD_CAR(body_classes);
+    while (FD_PAIRP(classes)) {
+      fdtype car=FD_CAR(classes);
       if (!(FD_STRINGP(car))) {}
       else {
         if (i) u8_puts(&classout," "); i++;
         u8_puts(&classout,FD_STRDATA(car));}
-      body_classes=FD_CDR(body_classes);}
+      classes=FD_CDR(classes);}
     {fdtype old=FD_CAR(class_cons);
       FD_RPLACA(class_cons,fd_make_string
                 (NULL,classout.u8_outptr-classout.u8_outbuf,
                  classout.u8_outbuf));
       fd_decref(old);
       u8_close((u8_stream)&classout);}
-    return body_attribs;}
-  else return body_attribs;
+    return attribs;}
+  else {
+    struct U8_OUTPUT classout;
+    u8_byte _classbuf[256]; int i=0;
+    U8_INIT_STATIC_OUTPUT_BUF(classout,sizeof(_classbuf),_classbuf);
+    {FD_DOLIST(class,classes) {
+        if (FD_STRINGP(class)) {
+          if (i>0) u8_putc(&classout,' '); i++;
+          u8_puts(&classout,FD_STRDATA(class));}}}
+    return fd_init_pair
+      (NULL,class_symbol,
+       fd_init_pair(NULL,fd_stream_string(&classout),
+                    attribs));}
 }
 
 FD_EXPORT
@@ -828,6 +839,7 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
   fdtype doctype=fd_get(cgidata,doctype_slotid,FD_VOID);
   fdtype xmlpi=fd_get(cgidata,xmlpi_slotid,FD_VOID);
   fdtype html_attribs=fd_get(cgidata,html_attribs_slotid,FD_VOID);
+  fdtype html_classes=fd_get(cgidata,html_classes_slotid,FD_VOID);
   fdtype body_attribs=fd_get(cgidata,body_attribs_slotid,FD_VOID);
   fdtype body_classes=fd_get(cgidata,body_classes_slotid,FD_VOID);
   fdtype headers=fd_get(cgidata,html_headers,FD_VOID);
@@ -839,6 +851,8 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
   if (FD_STRINGP(xmlpi))
     u8_putn(out,FD_STRDATA(xmlpi),FD_STRLEN(xmlpi));
   else u8_puts(out,DEFAULT_XMLPI);
+  if (FD_PAIRP(html_classes))
+    html_attribs=attrib_merge_classes(html_attribs,html_classes);
   if (FD_VOIDP(html_attribs))
     u8_puts(out,"\n<html>\n<head>\n");
   else {
@@ -849,7 +863,7 @@ int fd_output_xhtml_preface(U8_OUTPUT *out,fdtype cgidata)
     fd_decref(headers);}
   u8_puts(out,"</head>\n");
   if (FD_PAIRP(body_classes))
-    body_attribs=update_body_attribs(body_attribs,body_classes);
+    body_attribs=attrib_merge_classes(body_attribs,body_classes);
   if (FD_FALSEP(body_attribs)) {}
   else if (FD_VOIDP(body_attribs)) u8_puts(out,"<body>");
   else {
@@ -894,6 +908,12 @@ static fdtype set_body_attribs(int n,fdtype *args)
 static fdtype add_body_class(fdtype classname)
 {
   fd_req_push(body_classes_slotid,classname);
+  return FD_VOID;
+}
+
+static fdtype add_html_class(fdtype classname)
+{
+  fd_req_push(html_classes_slotid,classname);
   return FD_VOID;
 }
 
@@ -1176,6 +1196,8 @@ FD_EXPORT void fd_init_cgiexec_c()
   fd_idefn(module,fd_make_cprimn("BODY!",set_body_attribs,1));
   fd_idefn(module,fd_make_cprim1x("BODYCLASS!",add_body_class,1,
                                   fd_string_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("HTMLCLASS!",add_html_class,1,
+                                  fd_string_type,FD_VOID));
 
   fd_defspecial(module,"WITH/REQUEST/OUT",withreqout_handler);
   fd_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
@@ -1249,6 +1271,7 @@ FD_EXPORT void fd_init_cgiexec_c()
   html_attribs_slotid=fd_intern("%HTML");
   body_attribs_slotid=fd_intern("%BODY");
   body_classes_slotid=fd_intern("%BODYCLASSES");
+  html_classes_slotid=fd_intern("%HTMLCLASSES");
   class_symbol=fd_intern("CLASS");
 
   post_data_slotid=fd_intern("POST_DATA");
