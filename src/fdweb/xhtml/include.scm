@@ -30,3 +30,9 @@
 
 (define (firebuglite)
   (xhtml "<script type='text/javascript' src='http://getfirebug.com/releases/lite/1.2/firebug-lite-compressed.js'></script>"))
+
+(define fdxml
+  (macro expr
+    `(,xmleval ',(fdxml/parse (glom ,@(cdr expr))))))
+
+(module-export! 'fdxml)
