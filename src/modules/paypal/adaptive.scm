@@ -137,15 +137,23 @@
 ;;; Getting details
 
 (define (paypal/details spec (raw #f))
-  (if (string? spec) (set! spec `#[paykey ,spec]))
-  (let* ((paykey (getopt spec 'paykey))
-	 (url (getopt spec 'url
+  (if (string? spec) (set! spec `#[paykey ,spec])
+      (if (uuid? spec) (set! spec `#[invoice ,spec])))
+  (if (not (table? spec)) (set! spec `#[id ,spec]))
+  (let* ((url (getopt spec 'url
 		      (if (getopt spec 'live pp:live)
 			  "https://svcs.paypal.com/AdaptivePayments/PaymentDetails"
 			  "https://svcs.sandbox.paypal.com/AdaptivePayments/PaymentDetails")))
-	 (args `#["payKey" ,paykey
-		  "requestEnvelope.errorLanguage"
-		  ,(getopt spec 'language  "en_US")]))
+	 (args (if (testopt spec 'paykey)
+		   `#["payKey" ,(getopt spec 'paykey)
+		      "requestEnvelope.errorLanguage"
+		      ,(getopt spec 'language  "en_US")]
+		   (if (testopt spec 'invoice)
+		       `#["trackingId" ,(uuid->string (getopt spec 'invoice))
+			  "requestEnvelope.errorLanguage"
+			  ,(getopt spec 'language  "en_US")]
+		       (error |MissingID| paypal/details
+			      "Need invoice (UUID) or paykey to get transaction details")))))
     (when (getopt spec 'detail #f)
       (store! args "detailLevel"
 	      (if (eq? #t (getopt spec 'detail #f))
