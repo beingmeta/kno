@@ -1,3 +1,13 @@
+framerd (3.7.6-31) unstable; urgency=low
+
+  * Add FDXML macro for inline FDXML strings
+  * HTMLCLASS! primitive
+  * Elide (by default) 0-valued OID offset slots in tables
+  * Make paypal/details accept tracking UUID
+  * git match version framerd-3.7.6-15
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 16 Mar 2015 21:30:13 -0400
+
 framerd (3.7.6-30) unstable; urgency=low
 
   * Updates to make mod_fdserv more securable
