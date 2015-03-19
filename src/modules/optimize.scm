@@ -738,6 +738,8 @@
 (add! special-form-tighteners "XMLOUT" tighten-block)
 (add! special-form-tighteners "XHTML" tighten-block)
 (add! special-form-tighteners "XMLEVAL" tighten-block)
+(add! special-form-tighteners "GETOPT" tighten-block)
+(add! special-form-tighteners "TESTOPT" tighten-block)
 
 (when (bound? fileout)
   (add! special-form-tighteners
