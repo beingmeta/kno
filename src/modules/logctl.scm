@@ -39,9 +39,9 @@
 	       (exists? (get mod '%moduleid)))
     (error "No module from " id ": " mod))
   (if level
-      (logdebug "Setting loglevel of " id " to " level)
-      (logdebug "Resetting loglevel of " id " to "
-		(get saved-levels id)))
+      (logwarn LOGCTL "Setting loglevel of " id " to " level)
+      (logwarn LOGCTL "Resetting loglevel of " id " to "
+	       (get saved-levels id)))
   (set! id (try (pick (get mod '%moduleid) symbol?)
 		(get mod '%moduleid)))
   (when level
