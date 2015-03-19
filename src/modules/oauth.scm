@@ -13,6 +13,12 @@
 (define-init default-callback #f)
 (varconfig! oauth:callback default-callback)
 
+(define-init default-endpoint #f)
+(varconfig! oauth:endpoint default-endpoint)
+
+(define-init default-verify-endpoint #f)
+(varconfig! oauth:verifier default-verify-endpoint)
+
 (module-export!
  '{oauth oauth/spec oauth/start oauth/refresh!
    oauth/request oauth/authurl oauth/verify oauth/getaccess
