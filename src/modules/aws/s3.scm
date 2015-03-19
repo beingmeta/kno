@@ -28,7 +28,7 @@
 
 (define-init %loglevel %warn%)
 ;;(set! %loglevel %info%)
-(logctl! 'aws/v4 %info%)
+;;(logctl! 'aws/v4 %info%)
 ;;(logctl! 'gpath %info%)
 
 (define headcache #f)
