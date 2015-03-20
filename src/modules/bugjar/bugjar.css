@@ -119,14 +119,14 @@ table.backtrace > tbody.bindings > tr > td {
 table.backtrace > tbody.bindings > tr > td > table.bindings {
     font-family: fixed;}
 table.backtrace > tbody.eval td.expr {
-  font-size: 1px; visibility: hidden; }
+  font-size: 10px;}
 table.backtrace > tbody.eval td.expr span.focus {
-  font-size: 16px; visibility: visible;}
+  font-size: 16px;}
 table.backtrace > tbody.eval.expanded td.expr,
 table.backtrace.expandall > tbody.eval td.expr,
 table.backtrace > tbody.eval.expanded td.expr span.focus,
 table.backtrace.expandall > tbody.eval td.expr span.focus {
-  font-size: inherit; visibility: visible; }
+  font-size: inherit; }
 
 
 table.backtrace > tbody.bindings > tr { display: none; }
