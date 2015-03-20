@@ -207,7 +207,8 @@
 	   (xslotid (pick (difference (string->lisp (elt attribs 0)) slotid) node)))
       (when index
 	(drop! index (cons (choice attrib xslotid slotid qattrib) (get node attrib)) node)
-	(add! index (cons (choice attrib xslotid slotid qattrib) val) node))
+	(add! index (cons (choice attrib xslotid slotid qattrib) val) node)
+	(add! index (cons 'has {slotid xslotid}) node))
       (when (ambiguous? attribs)
 	(error "AmbiguousDOMAttribute"
 	       "DOM/SET of ambiguous attribute " attrib
@@ -242,6 +243,7 @@
 	 (anames (if (symbol? attrib) (varycase attrib) attrib))
 	 (attribs (try (pick (get node '%attribs) first anames)
 		       (pick (get node '%attribs) attrib-basename anames)))
+	 (xslotid (pick (difference (string->lisp (elt attribs 0)) slotid) node))
 	 (ids (get node '%attribids)))
     (when (ambiguous? attribs)
       (error "AmbiguousDOMAttribute"
@@ -260,12 +262,14 @@
 			    (doseq (v newvals i)
 			      (printout (if (> i 0) " ") v)))))))
 	(begin
-	  (drop! node slotid)
+	  (drop! node {slotid xslotid})
 	  (if (and (singleton? ids) (or (pair? ids) (vector? ids)))
 	      (store! node '%attribids (remove slotid ids))
 	      (drop! node '%attribids slotid))
 	  (when (exists? attribs) (drop! node '%attribs attribs))
-	  (when index (drop! index (cons attrib value) node))))))
+	  (when index
+	    (drop! index (cons {slotid xslotid attrib} value) node)
+	    (drop! index (cons 'has {slotid xslotid attrib}) node))))))
 
 (define (dom/get node attrib)
   (if (symbol? attrib) (get node attrib)
