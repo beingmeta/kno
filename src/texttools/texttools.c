@@ -1741,6 +1741,49 @@ static fdtype firstword_prim(fdtype string,fdtype sep)
     else return fd_extract_string(NULL,string_data,string_data+search);}
 }
 
+static int match_end(fdtype sep,u8_string data,int off,int lim);
+static fdtype lastword_prim(fdtype string,fdtype sep)
+{
+  u8_string string_data=FD_STRDATA(string);
+  if (FD_STRINGP(sep)) {
+    u8_string end=string_data, scan=strstr(string_data,FD_STRDATA(sep));
+    if (!(scan)) return fd_incref(string);
+    else while (scan) {
+        end=scan+FD_STRLEN(sep);
+        scan=strstr(scan,FD_STRDATA(sep));}
+    return fd_extract_string(NULL,end+FD_STRLEN(string),NULL);}
+  else if ((FD_VOIDP(sep))||(FD_FALSEP(sep))||(FD_TRUEP(sep)))  {
+    const u8_byte *scan=(u8_byte *)string_data, *last=scan;
+    int c=u8_sgetc(&scan); while (c>0) {
+      if (u8_isspace(c)) {
+        u8_string word=scan; c=u8_sgetc(&scan);
+        while ((c>0)&&(u8_isspace(c))) {word=scan; c=u8_sgetc(&scan);}
+        if (c>0) last=word;}
+      else c=u8_sgetc(&scan);}
+    return fd_extract_string(NULL,last,NULL);}
+  else {
+    int lim=FD_STRLEN(string);
+    int end=0, search=fd_text_search(sep,NULL,string_data,0,lim,0);
+    if (search<0) return fd_incref(string);
+    else {
+      while (search>=0) {
+        end=match_end(sep,string_data,search,lim);
+        search=fd_text_search(sep,NULL,string_data,end,lim,0);}
+      return fd_extract_string(NULL,string_data+end,NULL);}}
+}
+
+static int match_end(fdtype sep,u8_string data,int off,int lim)
+{
+  fdtype matches=fd_text_matcher(sep,NULL,data,off,lim,FD_MATCH_BE_GREEDY);
+  if (FD_EMPTY_CHOICEP(matches)) return off+1;
+  if (FD_FIXNUMP(matches)) return FD_FIX2INT(matches);
+  else {
+    int max=off+1; FD_DO_CHOICES(match,matches) {
+      int matchlen=((FD_FIXNUMP(match))?(FD_FIX2INT(match)):(-1));
+      if (matchlen>max) max=matchlen;}
+    return max;}
+}
+
 /* Morphrule */
 
 static int has_suffix(fdtype string,fdtype suffix)
@@ -2335,6 +2378,10 @@ void fd_init_texttools()
                            -1,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim2x("FIRSTWORD",firstword_prim,1,
+                           fd_string_type,FD_VOID,
+                           -1,FD_TRUE));
+  fd_idefn(texttools_module,
+           fd_make_cprim2x("LASTWORD",lastword_prim,1,
                            fd_string_type,FD_VOID,
                            -1,FD_TRUE));
 
