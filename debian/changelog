@@ -1,3 +1,15 @@
+framerd (3.7.6-32) unstable; urgency=low
+
+  * Added LASTWORD primitive
+  * Fix dropping of namespaced XML attributes
+  * Update bugjar CSS to not show full expr
+  * Fix OAUTH defaults
+  * Optimize GETOPT and TESTOPT
+  * Always warn on LOGCTL calls
+  * git release version framerd-3.7.6-24
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 23 Mar 2015 11:28:01 -0400
+
 framerd (3.7.6-31) unstable; urgency=low
 
   * Add FDXML macro for inline FDXML strings
