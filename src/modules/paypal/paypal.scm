@@ -16,7 +16,7 @@
 (define pp:user "store_1288290819_biz_api1.beingmeta.com")
 (define pp:pass "1288290827")
 (define pp:sig "Ahtmaqpduek-SZn7-BlOIE3N9iHpA9wBdjV93rW33IVJiSTp20qT5Pjd")
-(module-export! '{pp:live pp:appid pp:business pp:user pp:pass pp:sig })
+(module-export! '{pp:live pp:appid pp:business pp:user pp:pass pp:sig})
 
 (define ppid #f)
 (define default-options #[])
@@ -35,7 +35,12 @@
 (varconfig! pp:pass pp:pass)
 (varconfig! pp:sig pp:sig)
 
-(define (format-amount amount)
+(define paypal/return-url "https://www.example.com/completed")
+(varconfig! pp:return paypal/return-url)
+(define paypal/cancel-url "https://www.example.com/cancelled")
+(varconfig! pp:cancel paypal/cancel-url)
+
+(define (paypal/amount amount)
   (if (number? amount)
       (inexact->string amount 2)
       amount))
@@ -48,7 +53,7 @@
 	(input TYPE "HIDDEN" NAME "invoice" VALUE (uuid->string (getuuid))))
     (when (getopt options 'amount)
       (input TYPE "HIDDEN" NAME "amount"
-	     VALUE (format-amount (getopt options 'amount))))
+	     VALUE (paypal/amount (getopt options 'amount))))
     (input TYPE "HIDDEN" NAME "business"
 	   VALUE (getopt options 'business
 			 (if pp:live pp:business pp:testbusiness)))
@@ -117,4 +122,5 @@
 	 ,@(cddr expr)
 	 (when pp:needbutton (pp:button))))))
 
-(module-export! '{paypal/form paypal/fields paypal/opts})
+(module-export! '{paypal/form paypal/fields paypal/amount
+		  paypal/opts paypay/return-url paypal/cancel-url})

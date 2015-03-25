@@ -11,8 +11,6 @@
 (define-init %loglevel %notify!)
 ;;(define %loglevel %debug!)
 
-(define return-url "https://www.sbooks.net/completed")
-(define cancel-url "https://www.sbooks.net/cancelled")
 (define (getmemo x)
   (if (uuid? x) (uuid->string x)
       (if (string? x) x (->string x))))
@@ -31,8 +29,8 @@
 		  ,(getopt spec 'errlang (getopt spec 'language  "en_US"))
 		  "feesPayer"
 		  ,(getopt spec 'fees "EACHRECEIVER")
-		  "returnUrl" ,(getopt spec 'return return-url)
-		  "cancelUrl" ,(getopt spec 'cancel cancel-url)
+		  "returnUrl" ,(getopt spec 'return paypal/return-url)
+		  "cancelUrl" ,(getopt spec 'cancel paypal/cancel-url)
 		  ;; "memo" ,(getmemo (getopt spec 'invoice (getuuid)))
 		  "memo" ,(getopt spec 'memo
 				  (getmemo (getopt spec 'invoice (getuuid))))
@@ -100,7 +98,7 @@
 		 (car receiver))
 	 (store! args
 		 (glom "receiverList.receiver(" i ").amount")
-		 (cdr receiver))
+		 (paypal/amount (cdr receiver)))
 	 (when (or (equal? (getopt opts 'primary #f) receiver)
 		   (equal? (getopt opts 'primary #f) (car receiver)))
 	   (store! args
@@ -112,7 +110,7 @@
 		 (get receiver 'email))
 	 (store! args
 		 (glom "receiverList.receiver(" i ").amount")
-		 (get receiver 'amount))
+		 (paypal/amount (get receiver 'amount)))
 	 (when (test receiver 'primary)
 	   (store! args
 		   (glom "receiverList.receiver(" i ").primary")
