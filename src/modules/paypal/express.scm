@@ -11,6 +11,8 @@
 (define-init %loglevel %notify!)
 ;;(define %loglevel %debug!)
 
+(define express-api-version 78)
+
 (module-export! '{paypal/express/start paypal/express/details})
 
 (define (paypal/express/start spec (raw #f))
@@ -57,7 +59,11 @@
 	 (url (getopt spec 'url payurl))
 	 (invoice (getopt spec 'invoice (getuuid)))
 	 (args `#["METHOD" "GetExpressCheckoutDetails"
-		  "TOKEN" ,(getopt spec 'token)]))
+		  "TOKEN" ,(getopt spec 'token)
+		  "USER" ,(getopt spec 'pp:user pp:user)
+		  "PWD" ,(getopt spec 'pp:pass pp:pass)
+		  "SIGNATURE" ,(getopt spec 'pp:sig pp:sig)
+		  "VERSION" ,(getopt spec 'version express-api-version)]))
     (let* ((requrl (scripturl+ url args))
 	   (response (urlget requrl))
 	   (parsed (cgiparse (get response '%content))))
@@ -65,6 +71,8 @@
 	  (if (test parsed 'ack "Success")
 	      (cons parsed response)
 	      (irritant (cons parsed response) |PayPalFail|))))))
+
+
 
 
 

@@ -15,9 +15,9 @@
   (if (uuid? x) (uuid->string x)
       (if (string? x) x (->string x))))
 
-(module-export! '{paypal/start paypal/details})
+(module-export! '{paypal/adaptive/start paypal/adaptive/details})
 
-(define (paypal/start spec (raw #f))
+(define (paypal/adaptive/start spec (raw #f))
   (let* ((payurl (if (getopt spec 'live pp:live)
 		     "https://svcs.paypal.com/AdaptivePayments/Pay"
 		     "https://svcs.sandbox.paypal.com/AdaptivePayments/Pay"))
@@ -134,7 +134,7 @@
 
 ;;; Getting details
 
-(define (paypal/details spec (raw #f))
+(define (paypal/adaptive/details spec (raw #f))
   (if (string? spec) (set! spec `#[paykey ,spec])
       (if (uuid? spec) (set! spec `#[invoice ,spec])))
   (if (not (table? spec)) (set! spec `#[id ,spec]))
