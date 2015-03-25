@@ -17,7 +17,7 @@
 
 (define (paypal/express/start spec (raw #f))
   (let* ((payurl (if (getopt spec 'live pp:live)
-		     "https://svcs.paypal.com/AdaptivePayments/Pay"
+		     "https://api-3t.paypal.com/nvp"
 		     "https://api-3t.sandbox.paypal.com/nvp"))
 	 (url (getopt spec 'url payurl))
 	 (invoice (getopt spec 'invoice (getuuid)))
@@ -29,7 +29,7 @@
 		  "PAYMENTREQUEST_0_CURRENCYCODE"
 		  ,(getopt spec 'currency "USD")
 		  "PAYMENTREQUEST_0_INVNUM"
-		  ,(getopt spec 'invoice (getuuid))
+		  ,(paypal/uuid (getopt spec 'invoice (getuuid)))
 		  "PAYMENTREQUEST_0_DESC"
 		  ,(getopt spec 'description "an item of great value")
 		  "NOSHIPPING" 1 "ALLOWNOTE" 1
@@ -54,12 +54,33 @@
 
 (define (paypal/express/details spec (raw #f))
   (let* ((payurl (if (getopt spec 'live pp:live)
-		     "https://svcs.paypal.com/AdaptivePayments/Pay"
+		     "https://api-3t.paypal.com/nvp"
 		     "https://api-3t.sandbox.paypal.com/nvp"))
 	 (url (getopt spec 'url payurl))
 	 (invoice (getopt spec 'invoice (getuuid)))
 	 (args `#["METHOD" "GetExpressCheckoutDetails"
 		  "TOKEN" ,(getopt spec 'token)
+		  "USER" ,(getopt spec 'pp:user pp:user)
+		  "PWD" ,(getopt spec 'pp:pass pp:pass)
+		  "SIGNATURE" ,(getopt spec 'pp:sig pp:sig)
+		  "VERSION" ,(getopt spec 'version express-api-version)]))
+    (let* ((requrl (scripturl+ url args))
+	   (response (urlget requrl))
+	   (parsed (cgiparse (get response '%content))))
+      (if raw response
+	  (if (test parsed 'ack "Success")
+	      (cons parsed response)
+	      (irritant (cons parsed response) |PayPalFail|))))))
+
+(define (paypal/express/finish spec (raw #f))
+  (let* ((payurl (if (getopt spec 'live pp:live)
+		     "https://api-3t.paypal.com/nvp"
+		     "https://api-3t.sandbox.paypal.com/nvp"))
+	 (url (getopt spec 'url payurl))
+	 (invoice (getopt spec 'invoice (getuuid)))
+	 (args `#["METHOD" "DoExpressCheckoutPayment"
+		  "TOKEN" ,(getopt spec 'token)
+		  "PAYERID" ,(getopt spec 'payer)
 		  "USER" ,(getopt spec 'pp:user pp:user)
 		  "PWD" ,(getopt spec 'pp:pass pp:pass)
 		  "SIGNATURE" ,(getopt spec 'pp:sig pp:sig)

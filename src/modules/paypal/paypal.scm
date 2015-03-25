@@ -45,6 +45,11 @@
       (inexact->string amount 2)
       amount))
 
+(define (paypal/uuid uuid)
+  (if (uuid? uuid) (uuid->string uuid)
+      (if (string? uuid) uuid
+	  (stringout uuid))))
+
 (define (paypal/fields (options default-options))
   (unless (getopt options 'paykey #f)
     (input TYPE "HIDDEN" NAME "cmd" VALUE (getopt options 'cmd "_xclick"))
@@ -122,5 +127,5 @@
 	 ,@(cddr expr)
 	 (when pp:needbutton (pp:button))))))
 
-(module-export! '{paypal/form paypal/fields paypal/amount
+(module-export! '{paypal/form paypal/fields paypal/amount paypal/uuid
 		  paypal/opts paypay/return-url paypal/cancel-url})

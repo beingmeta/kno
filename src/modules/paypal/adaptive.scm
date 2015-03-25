@@ -31,13 +31,10 @@
 		  ,(getopt spec 'fees "EACHRECEIVER")
 		  "returnUrl" ,(getopt spec 'return paypal/return-url)
 		  "cancelUrl" ,(getopt spec 'cancel paypal/cancel-url)
-		  ;; "memo" ,(getmemo (getopt spec 'invoice (getuuid)))
 		  "memo" ,(getopt spec 'memo
-				  (getmemo (getopt spec 'invoice (getuuid))))
+				  (paypal/uuid (getopt spec 'invoice (getuuid))))
 		  "reverseAllParallelPaymentsOnError" "true"
-		  "trackingId"
-		  ,(if (uuid? invoice) (uuid->string invoice)
-		       invoice)]))
+		  "trackingId" ,(paypal/uuid invoice)]))
     (when (getopt spec 'notify #f)
       (store! args "ipnNotificationUrl" (getopt spec 'ipnurl #f)))
     (when (getopt spec 'detail #f)
@@ -147,7 +144,7 @@
 		      "requestEnvelope.errorLanguage"
 		      ,(getopt spec 'language  "en_US")]
 		   (if (testopt spec 'invoice)
-		       `#["trackingId" ,(uuid->string (getopt spec 'invoice))
+		       `#["trackingId" ,(paypal/uuid (getopt spec 'invoice))
 			  "requestEnvelope.errorLanguage"
 			  ,(getopt spec 'language  "en_US")]
 		       (error |MissingID| paypal/details
