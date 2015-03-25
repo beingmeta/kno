@@ -23,6 +23,17 @@
 (define aws-services
   {"sqs" "ses" "s3" "sns" "simpledb" "dynamodb" "ec2"})
 
+(define curlcache #f)
+(varconfig! aws:curlcache curlcache)
+
+(define (getcurl)
+  (if curlcache
+      (try (threadget 'curlcache)
+	   (let ((handle (curlopen)))
+	     (threadset! 'curlcache handle)
+	     handle))
+      (frame-create #f)))
+
 ;;; Support functions
 
 (define (derive-key secret date region service)
@@ -51,7 +62,7 @@
 ;;; Doing a GET with AWS4 authentication
 
 (define (aws/v4/get req endpoint (args #[]) (headers #[]) (payload #f)
-		  (curl #[]) (date (gmtimestamp)))
+		  (curl (getcurl)) (date (gmtimestamp)))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
@@ -93,7 +104,7 @@
 
 (define (aws/v4/op req op endpoint (args #[]) (headers #[]) 
 		   (payload #f) (ptype #f)
-		   (curl #[]) (date (gmtimestamp)))
+		   (curl (getcurl)) (date (gmtimestamp)))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
