@@ -1,3 +1,10 @@
+framerd (3.7.6-33) unstable; urgency=low
+
+  * Added AWS curlcache
+  * git release framerd-3.7.6-26
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 25 Mar 2015 07:32:09 -0400
+
 framerd (3.7.6-32) unstable; urgency=low
 
   * Added LASTWORD primitive

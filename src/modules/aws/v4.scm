@@ -23,7 +23,7 @@
 (define aws-services
   {"sqs" "ses" "s3" "sns" "simpledb" "dynamodb" "ec2"})
 
-(define curlcache #f)
+(define-init curlcache #f)
 (varconfig! aws:curlcache curlcache)
 
 (define (getcurl)

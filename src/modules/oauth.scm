@@ -19,6 +19,9 @@
 (define-init default-verify-endpoint #f)
 (varconfig! oauth:verifier default-verify-endpoint)
 
+(define-init curlcache #f)
+(varconfig! oauth:curlcache curlcache)
+
 (module-export!
  '{oauth oauth/spec oauth/start oauth/refresh!
    oauth/request oauth/authurl oauth/verify oauth/getaccess
@@ -28,6 +31,14 @@
 
 (define-init %loglevel %notice!)
 ;;(set!  %loglevel %debug%)
+
+(define (getcurl)
+  (if curlcache
+      (try (threadget 'curlcache)
+	   (let ((handle (curlopen)))
+	     (threadset! 'curlcache handle)
+	     handle))
+      (frame-create #f)))
 
 (define (getxmldata string)
   (let ((parsed (xmlparse string '{data slotify})))
