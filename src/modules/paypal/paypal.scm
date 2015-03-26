@@ -128,4 +128,4 @@
 	 (when pp:needbutton (pp:button))))))
 
 (module-export! '{paypal/form paypal/fields paypal/amount paypal/uuid
-		  paypal/opts paypay/return-url paypal/cancel-url})
+		  paypal/opts paypal/return-url paypal/cancel-url})

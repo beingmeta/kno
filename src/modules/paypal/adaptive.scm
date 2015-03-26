@@ -17,7 +17,7 @@
 
 (module-export! '{paypal/adaptive/start paypal/adaptive/details})
 
-(define (paypal/adaptive/start spec (raw #f))
+(define (paypal/adaptive/start spec)
   (let* ((payurl (if (getopt spec 'live pp:live)
 		     "https://svcs.paypal.com/AdaptivePayments/Pay"
 		     "https://svcs.sandbox.paypal.com/AdaptivePayments/Pay"))
@@ -61,32 +61,31 @@
 			CONTENT-TYPE "application/x-www-form-urlencoded"])
 	   (argdata (scripturl+ #f args))
 	   (response (urlpost url curlargs argdata)))
-      (if raw response
-	  (if (test response 'type {"text/xml"  "application/json"})
-	      (let* ((parsed (if (test response 'type "text/xml")
-				 (xmlparse (get response '%content))
-				 (jsonparse (get response '%content))))
-		     (trouble (try (if (test response 'type "text/xml")
-				       (xmlget parsed 'faultmessage)
-				       (first (get parsed 'error)))
-				   #f))
-		     (paykey (get parsed 'paykey))
-		     (formurl
-		      (stringout
-			"https://" (if (getopt spec 'live pp:live)
-				       "www.paypal.com"
-				       "www.sandbox.paypal.com")
-			"/cgi-bin/webscr")))
-		(when trouble
-		  (irritant (cons trouble response)
-			    |PayPal| PAYPAL/START
-			    (try (get trouble 'message)
-				 "PayPal call returned error")))
-		(store! parsed 'invoice invoice)
-		(unless (getopt spec 'action #f)
-		  (store! parsed 'action formurl))
-		(store! parsed 'invoice invoice)
-		(cons parsed spec)))))))
+      (if (test response 'type {"text/xml"  "application/json"})
+	  (let* ((parsed (if (test response 'type "text/xml")
+			     (xmlparse (get response '%content))
+			     (jsonparse (get response '%content))))
+		 (trouble (try (if (test response 'type "text/xml")
+				   (xmlget parsed 'faultmessage)
+				   (first (get parsed 'error)))
+			       #f))
+		 (paykey (get parsed 'paykey))
+		 (formurl
+		  (stringout
+		    "https://" (if (getopt spec 'live pp:live)
+				   "www.paypal.com"
+				   "www.sandbox.paypal.com")
+		    "/cgi-bin/webscr")))
+	    (when trouble
+	      (irritant (cons trouble response)
+			|PayPalFail| PAYPAL/ADAPTIVE/START
+			(try (get trouble 'message)
+			     "PayPal call returned error")))
+	    (store! parsed 'invoice invoice)
+	    (unless (getopt spec 'action #f)
+	      (store! parsed 'action formurl))
+	    (store! parsed 'invoice invoice)
+	    parsed)))))
 
 (define (add-receiver! args receiver opts i)
   (cond ((pair? receiver)
@@ -131,16 +130,17 @@
 
 ;;; Getting details
 
-(define (paypal/adaptive/details spec (raw #f))
+(define (paypal/adaptive/details spec)
   (if (string? spec) (set! spec `#[paykey ,spec])
       (if (uuid? spec) (set! spec `#[invoice ,spec])))
   (if (not (table? spec)) (set! spec `#[id ,spec]))
-  (let* ((url (getopt spec 'url
-		      (if (getopt spec 'live pp:live)
-			  "https://svcs.paypal.com/AdaptivePayments/PaymentDetails"
-			  "https://svcs.sandbox.paypal.com/AdaptivePayments/PaymentDetails")))
-	 (args (if (testopt spec 'paykey)
-		   `#["payKey" ,(getopt spec 'paykey)
+  (let* ((ppurl
+	  (if (getopt spec 'live pp:live)
+	      "https://svcs.paypal.com/AdaptivePayments/PaymentDetails"
+	      "https://svcs.sandbox.paypal.com/AdaptivePayments/PaymentDetails"))
+	 (url (getopt spec 'endpoint ppurl))
+	 (args (if (or (testopt spec 'paykey) (testopt spec 'payid))
+		   `#["payKey" ,(getopt spec 'paykey (getopt spec 'payid))
 		      "requestEnvelope.errorLanguage"
 		      ,(getopt spec 'language  "en_US")]
 		   (if (testopt spec 'invoice)
@@ -167,15 +167,16 @@
 			  "X-PAYPAL-RESPONSE-DATA-FORMAT" "JSON"]
 			CONTENT-TYPE "application/x-www-form-urlencoded"])
 	   (response (urlpost url curlargs (scripturl+ #f args))))
-      (if raw response
-	  (if (test response 'type {"text/xml"  "application/json"})
-	      (let ((parsed (if (test response 'type "text/xml")
-				(xmlparse (get response '%content))
-				(jsonparse (get response '%content)))))
-		(when (if (test response 'type "text/xml")
-			  (exists? (xmlget parsed 'faultmessage))
-			  (exists? (get parsed 'error)))
-		  (error "PayPal call returned error" response))
-		(cons parsed spec)))))))
+      (if (test response 'type {"text/xml"  "application/json"})
+	  (let* ((parsed (if (test response 'type "text/xml")
+			     (xmlparse (get response '%content))
+			     (jsonparse (get response '%content))))
+		 (trouble (if (test response 'type "text/xml")
+			      (exists? (xmlget parsed 'faultmessage))
+			      (exists? (get parsed 'error)))))
+	    (when trouble
+	      (error "PayPal call returned error" response))
+	    (modify-frame parsed 'completed (not trouble)))))))
+
 
 

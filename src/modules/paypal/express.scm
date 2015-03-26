@@ -11,15 +11,17 @@
 (define-init %loglevel %notify!)
 ;;(define %loglevel %debug!)
 
-(define express-api-version 78)
+(define express-api-version "121.0")
 
-(module-export! '{paypal/express/start paypal/express/details})
+(module-export!
+ '{paypal/express/start paypal/express/details
+   paypal/express/finish})
 
 (define (paypal/express/start spec (raw #f))
   (let* ((payurl (if (getopt spec 'live pp:live)
 		     "https://api-3t.paypal.com/nvp"
 		     "https://api-3t.sandbox.paypal.com/nvp"))
-	 (url (getopt spec 'url payurl))
+	 (url (getopt spec 'endpoint payurl))
 	 (invoice (getopt spec 'invoice (getuuid)))
 	 (args `#["METHOD" "SetExpressCheckout"
 		  "PAYMENTREQUEST_0_AMT"
@@ -46,54 +48,61 @@
       (store! args "PAYMENTREQUEST_0_CUSTOM" (getopt spec 'memo)))
     (let* ((requrl (scripturl+ url args))
 	   (response (urlget requrl))
-	   (parsed (cgiparse (get response '%content))))
-      (if raw response
-	  (if (test parsed 'ack "Success")
-	      (cons parsed response)
-	      (irritant (cons parsed response) |PayPalFail|))))))
+	   (ok (response/ok? response))
+	   (parsed (and ok (cgiparse (get response '%content)))))
+      (debug%watch "PAYPAL/EXPRESS/START" spec requrl response parsed)
+      (if (and parsed (test parsed 'ack "Success"))
+	  parsed
+	  (irritant (cons parsed response) |PayPalFail|)))))
 
-(define (paypal/express/details spec (raw #f))
+(define (paypal/express/details spec)
   (let* ((payurl (if (getopt spec 'live pp:live)
 		     "https://api-3t.paypal.com/nvp"
 		     "https://api-3t.sandbox.paypal.com/nvp"))
-	 (url (getopt spec 'url payurl))
+	 (url (getopt spec 'endpoint payurl))
 	 (invoice (getopt spec 'invoice (getuuid)))
 	 (args `#["METHOD" "GetExpressCheckoutDetails"
-		  "TOKEN" ,(getopt spec 'token)
+		  "TOKEN" ,(getopt spec 'token (getopt spec 'payid))
 		  "USER" ,(getopt spec 'pp:user pp:user)
 		  "PWD" ,(getopt spec 'pp:pass pp:pass)
 		  "SIGNATURE" ,(getopt spec 'pp:sig pp:sig)
 		  "VERSION" ,(getopt spec 'version express-api-version)]))
     (let* ((requrl (scripturl+ url args))
 	   (response (urlget requrl))
-	   (parsed (cgiparse (get response '%content))))
-      (if raw response
-	  (if (test parsed 'ack "Success")
-	      (cons parsed response)
-	      (irritant (cons parsed response) |PayPalFail|))))))
+	   (ok (response/ok? response))
+	   (parsed (and ok (cgiparse (get response '%content)))))
+      (debug%watch "PAYPAL/EXPRESS/DETAILS" spec requrl response parsed)
+      (if (and parsed (test parsed 'ack {"Success" "SuccessWithWarning"}))
+	  (modify-frame parsed
+	    'completed (test parsed 'PAYMENTINFO_0_PAYMENTSTATUS
+			     "Completed"))
+	  (irritant (cons parsed response) |PayPalFail|)))))
 
-(define (paypal/express/finish spec (raw #f))
+(define (paypal/express/finish spec)
   (let* ((payurl (if (getopt spec 'live pp:live)
 		     "https://api-3t.paypal.com/nvp"
 		     "https://api-3t.sandbox.paypal.com/nvp"))
-	 (url (getopt spec 'url payurl))
-	 (invoice (getopt spec 'invoice (getuuid)))
+	 (url (getopt spec 'endpoint payurl))
+	 (amount (getopt spec 'PAYMENTREQUEST_0_AMT 0))
+	 (currency (getopt spec 'PAYMENTREQUEST_0_CURRENCYCODE 0))
 	 (args `#["METHOD" "DoExpressCheckoutPayment"
 		  "TOKEN" ,(getopt spec 'token)
-		  "PAYERID" ,(getopt spec 'payer)
+		  "PAYERID" ,(getopt spec 'payerid)
+		  "PAYMENTREQUEST_0_AMT" ,amount
+		  "PAYMENTREQUEST_0_CURRENCYCODE" ,currency
+		  "PAYMENTREQUEST_0_PAYMENTACTION" "Sale"
 		  "USER" ,(getopt spec 'pp:user pp:user)
 		  "PWD" ,(getopt spec 'pp:pass pp:pass)
 		  "SIGNATURE" ,(getopt spec 'pp:sig pp:sig)
 		  "VERSION" ,(getopt spec 'version express-api-version)]))
     (let* ((requrl (scripturl+ url args))
 	   (response (urlget requrl))
-	   (parsed (cgiparse (get response '%content))))
-      (if raw response
-	  (if (test parsed 'ack "Success")
-	      (cons parsed response)
-	      (irritant (cons parsed response) |PayPalFail|))))))
-
-
-
-
-
+	   (ok (response/ok? response))
+	   (parsed (and ok (cgiparse (get response '%content)))))
+      (debug%watch "PAYPAL/EXPRESS/FINISHED" spec requrl response parsed)
+      (if (and parsed (test parsed 'ack {"Success" "SuccessWithWarning"}))
+	  (modify-frame parsed
+	    'completed (test parsed 'PAYMENTINFO_0_PAYMENTSTATUS
+			     "Completed"))
+	  (irritant (cons parsed response)
+		    |PayPalFail| PAYPAL/EXPRESS/DETAILS)))))
