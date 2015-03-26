@@ -1,3 +1,10 @@
+framerd (3.7.6-34) unstable; urgency=low
+
+  * Updated PayPal modules
+  * git release framerd-3.7.6-31
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 26 Mar 2015 12:36:54 -0400
+
 framerd (3.7.6-33) unstable; urgency=low
 
   * Added AWS curlcache
