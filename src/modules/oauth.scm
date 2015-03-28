@@ -576,10 +576,8 @@
 	(begin
 	  (logwarn |OATH/GETACCESS:Failure|
 	    "OAUTH/GETACCESS failed " spec " ==> " req)
-	  (if (getopt spec 'noverify)
-	      ((getopt spec 'noverify) spec verifier req)
-	      (irritant req OAUTH:REQFAIL OAUTH/GETACCESS
-			"Web call failed"))))))
+	  (irritant req OAUTH:REQFAIL OAUTH/GETACCESS
+		    "Web call failed")))))
 
 ;;; Actually calling the API
 
