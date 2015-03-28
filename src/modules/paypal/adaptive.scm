@@ -82,9 +82,15 @@
 			(try (get trouble 'message)
 			     "PayPal call returned error")))
 	    (store! parsed 'invoice invoice)
+	    (store! parsed 'payid paykey)
+	    (store! parsed 'approve_url
+		    (scripturl formurl 
+			"cmd" "_ap-payment"
+			"paykey" paykey))
 	    (unless (getopt spec 'action #f)
 	      (store! parsed 'action formurl))
 	    (store! parsed 'invoice invoice)
+	    (store! parsed 'api 'ppadaptive)
 	    parsed)))))
 
 (define (add-receiver! args receiver opts i)

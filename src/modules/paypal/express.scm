@@ -49,10 +49,19 @@
     (let* ((requrl (scripturl+ url args))
 	   (response (urlget requrl))
 	   (ok (response/ok? response))
-	   (parsed (and ok (cgiparse (get response '%content)))))
+	   (parsed (and ok (urldata/parse (get response '%content)))))
       (debug%watch "PAYPAL/EXPRESS/START" spec requrl response parsed)
       (if (and parsed (test parsed 'ack "Success"))
-	  parsed
+	  (modify-frame parsed
+	    'approve_url
+	    (scripturl 
+		(if pp:live
+		    "https://www.paypal.com/cgi-bin/webscr"
+		    "https://www.sandbox.paypal.com/cgi-bin/webscr")
+		"cmd" "_express-checkout"
+		"token" (get parsed 'token))
+	    'payid (get parsed 'token)
+	    'api 'ppexpress)
 	  (irritant (cons parsed response) |PayPalFail|)))))
 
 (define (paypal/express/details spec)
@@ -70,7 +79,7 @@
     (let* ((requrl (scripturl+ url args))
 	   (response (urlget requrl))
 	   (ok (response/ok? response))
-	   (parsed (and ok (cgiparse (get response '%content)))))
+	   (parsed (and ok (urldata/parse (get response '%content)))))
       (debug%watch "PAYPAL/EXPRESS/DETAILS" spec requrl response parsed)
       (if (and parsed (test parsed 'ack {"Success" "SuccessWithWarning"}))
 	  (modify-frame parsed
@@ -98,7 +107,7 @@
     (let* ((requrl (scripturl+ url args))
 	   (response (urlget requrl))
 	   (ok (response/ok? response))
-	   (parsed (and ok (cgiparse (get response '%content)))))
+	   (parsed (and ok (urldata/parse (get response '%content)))))
       (debug%watch "PAYPAL/EXPRESS/FINISHED" spec requrl response parsed)
       (if (and parsed (test parsed 'ack {"Success" "SuccessWithWarning"}))
 	  (modify-frame parsed
@@ -106,3 +115,4 @@
 			     "Completed"))
 	  (irritant (cons parsed response)
 		    |PayPalFail| PAYPAL/EXPRESS/DETAILS)))))
+
