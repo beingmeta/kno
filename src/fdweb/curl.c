@@ -210,7 +210,7 @@ static int _curl_set2dtype(u8_string cxt,struct FD_CURL_HANDLE *h,
   fdtype v=fd_get(f,slotid,FD_VOID);
   if (FD_ABORTP(v))
     return fd_interr(v);
-  else if (FD_STRINGP(v)) {
+  else if ((FD_STRINGP(v))||(FD_PRIM_TYPEP(v,fd_secret_type))) {
     CURLcode retval=curl_easy_setopt(h->handle,option,FD_STRDATA(v));
     if (retval) {
       u8_free(h); fd_decref(v);
@@ -380,6 +380,13 @@ static fdtype curlhandlep(fdtype arg)
   else return FD_FALSE;
 }
 
+static fdtype curlreset(fdtype arg)
+{
+  struct FD_CURL_HANDLE *ch=(struct FD_CURL_HANDLE *)arg;
+  curl_easy_reset(ch->handle);
+  return FD_VOID;
+}
+
 static fdtype set_curlopt
   (struct FD_CURL_HANDLE *ch,fdtype opt,fdtype val)
 {
@@ -413,12 +420,12 @@ static fdtype set_curlopt
       curl_easy_setopt(ch->handle,CURLOPT_USERPWD,FD_STRDATA(val));}
     else return fd_type_error("string","set_curlopt",val);
   else if (FD_EQ(opt,basicauth_symbol))
-    if (FD_STRINGP(val)) {
+    if ((FD_STRINGP(val))||(FD_PRIM_TYPEP(val,fd_secret_type))) {
       curl_easy_setopt(ch->handle,CURLOPT_HTTPAUTH,CURLAUTH_BASIC);
       curl_easy_setopt(ch->handle,CURLOPT_USERPWD,FD_STRDATA(val));}
     else return fd_type_error("string","set_curlopt",val);
   else if (FD_EQ(opt,cookie_symbol))
-    if (FD_STRINGP(val))
+    if ((FD_STRINGP(val))||(FD_PRIM_TYPEP(val,fd_secret_type)))
       curl_easy_setopt(ch->handle,CURLOPT_COOKIE,FD_STRDATA(val));
     else return fd_type_error("string","set_curlopt",val);
   else if (FD_EQ(opt,cookiejar_symbol))
@@ -1353,8 +1360,13 @@ FD_EXPORT void fd_init_curl_c()
   fd_idefn(module,fd_make_cprim4("URLPUT",urlput,2));
   fd_idefn(module,fd_make_cprim2("URLCONTENT",urlcontent,1));
   fd_idefn(module,fd_make_cprim3("URLXML",urlxml,1));
-  fd_idefn(module,fd_make_cprimn("CURLOPEN",curlopen,0));
-  fd_idefn(module,fd_make_cprim3("CURLSETOPT!",curlsetopt,2));
+  fd_idefn(module,fd_make_cprimn("CURL/OPEN",curlopen,0));
+  fd_defalias(module,"CURLOPEN","CURL/OPEN");
+  fd_idefn(module,fd_make_cprim3("CURL/SETOPT!",curlsetopt,2));
+  fd_defalias(module,"CURLSETOPT!","CURL/SETOPT!");
+  fd_idefn(module,fd_make_cprim1x
+           ("CURL/RESET!",curlreset,1,fd_curl_type,FD_VOID));
+  fd_defalias(module,"CURLRESET!","CURL/RESET!");
   fd_idefn(module,fd_make_cprim1("ADD-TEXT_TYPE!",addtexttype,1));
   fd_idefn(module,fd_make_cprim1("CURL-HANDLE?",curlhandlep,1));
 
