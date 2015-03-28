@@ -1,3 +1,11 @@
+framerd (3.7.6-35) unstable; urgency=low
+
+  * Added paypal/checkout module, updates/fixes to others
+  * Fixes to scripturl generation, renamed cgiparse to urldata/parse (w/alias)
+  * git version id framerd-3.7.6-38
+
+ --  <kh@beingmeta.com>  Sat, 28 Mar 2015 23:44:35 +0000
+
 framerd (3.7.6-34) unstable; urgency=low
 
   * Updated PayPal modules
