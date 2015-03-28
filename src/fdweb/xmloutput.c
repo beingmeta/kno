@@ -1505,13 +1505,12 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon);
 
 static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,fdtype *args,int nocolon)
 {
-  struct U8_OUTPUT out; int i=0;
+  struct U8_OUTPUT out; int i=0, need_qmark=(strchr(baseuri,'?')!=NULL);
   U8_INIT_OUTPUT(&out,64);
-  if (baseuri) {
-    u8_puts(&out,baseuri);
-    if (strchr(baseuri,'?')==NULL) u8_putc(&out,'?');}
+  if (baseuri) u8_puts(&out,baseuri);
   if (n == 1) {
-    if (FD_STRINGP(args[0]))
+    if (need_qmark) {u8_putc(&out,'?'); need_qmark=0;}
+    if (FD_STRINGP(args[0])) 
       fd_uri_output(&out,FD_STRDATA(args[0]),FD_STRLEN(args[0]),0,NULL);
     else if (FD_OIDP(args[0])) {
       FD_OID addr=FD_OID_ADDR(args[0]);
@@ -1524,10 +1523,12 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,fdtype *args,
         fdtype keys=fd_getkeys(table);
         FD_DO_CHOICES(key,keys) {
           fdtype value=fd_get(table,key,FD_VOID);
+          if (need_qmark) {u8_putc(&out,'?'); need_qmark=0;}
           add_query_param(&out,key,value,nocolon);
           fd_decref(value);}
         fd_decref(keys);}}
   while (i<n) {
+    if (need_qmark) {u8_putc(&out,'?'); need_qmark=0;}
     add_query_param(&out,args[i],args[i+1],nocolon);
     i=i+2;}
   return fd_stream2string(&out);

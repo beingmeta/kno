@@ -21,8 +21,9 @@
 (define ppid #f)
 (define default-options #[])
 ;;(define default-button "https://www.paypal.com/en_US/i/btn/btn_buynow_LG.gif")
-(define default-button "https://www.paypal.com/en_US/i/btn/btn_buynow_SM.gif")
-
+;;(define default-button "https://www.paypal.com/en_US/i/btn/btn_buynow_SM.gif")
+(define default-button 
+  "https://www.paypalobjects.com/webstatic/en_US/btn/btn_buynow_pp_142x27.png")
 (varconfig! pp:live pp:live)
 (varconfig! pp:business pp:business)
 (varconfig! pp:testbusiness pp:testbusiness)

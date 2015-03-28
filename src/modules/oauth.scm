@@ -24,7 +24,8 @@
 
 (module-export!
  '{oauth oauth/spec oauth/start oauth/refresh!
-   oauth/request oauth/authurl oauth/verify oauth/getaccess
+   oauth/request oauth/authurl oauth/verify 
+   oauth/getaccess oauth/getclient
    oauth/call oauth/call* oauth/call/req
    oauth/get oauth/post oauth/put
    oauth/sigstring oauth/callsig})
@@ -167,6 +168,28 @@
        "https://api.sandbox.paypal.com/v1/identity/openidconnect/tokenservice"
        KEY PP:TESTKEY SECRET PP:TESTSECRET
        SCOPE "openid profile email"
+       VERSION "2.0"
+       REALM PAYPAL
+       ACCESS_TOKEN HTTP
+       NAME "Paypal Test"]
+     PAYPALAPI
+     #[AUTHORIZE
+       "https://api.paypal.com/v1/oauth2/token"
+       ACCESS
+       "https://api.paypal.com/v1/oauth2/token"
+       KEY PP:KEY SECRET PP:SECRET
+       SCOPE ""
+       VERSION "2.0"
+       REALM PAYPAL
+       ACCESS_TOKEN HTTP
+       NAME "Paypal Test"]
+     PAYPALAPITEST
+     #[AUTHORIZE
+       "https://api.sandbox.paypal.com/v1/oauth2/token"
+       ACCESS
+       "https://api.sandbox.paypal.com/v1/oauth2/token"
+       KEY PP:TESTKEY SECRET PP:TESTSECRET
+       SCOPE ""
        VERSION "2.0"
        REALM PAYPAL
        ACCESS_TOKEN HTTP
@@ -517,6 +540,44 @@
 	      ((getopt spec 'noverify) spec verifier req)
 	      (irritant req OAUTH:REQFAIL OAUTH/GETACCESS
 			"Web call failed"))))))
+
+(define (oauth/getclient spec (ckey) (csecret))
+  (set! spec (oauth/spec spec))
+  (default! ckey (getckey spec))
+  (default! csecret (getcsecret spec))
+  (debug%watch "OAUTH/GETACCESS" spec)
+  (let* ((callback (getcallback spec))
+	 (req (urlpost (getopt spec 'access)
+		       `#[content-type "application/x-www-form-urlencoded"
+			  basicauth ,(glom ckey ":" csecret)
+			  header ("Expect" . "")]
+		       (args->post
+			(list "grant_type" 
+			      (getopt spec 'grant "client_credentials"))))))
+    (if (test req 'response 200)
+	(let* ((parsed (getreqdata req))
+	       (expires_in (->number
+			    (try (get parsed 'expires_in)
+				 (get parsed 'expires))))
+	       (authinfo `#[token ,(get parsed 'access_token)]))
+	  (debug%watch parsed spec req expires_in)
+	  (when (exists? (get parsed 'token_type))
+	    (unless (string-ci=? (get parsed 'token_type) "Bearer")
+	      (logwarn |OAUTH/GETACESS/OddToken|
+		"Odd token type " (get parsed 'token_type) " responding to " spec
+		" response=" parsed)))
+	  (when (and (exists? expires_in) expires_in)
+	    (store! authinfo 'expires (timestamp+ expires_in))
+	    (when (exists? (get parsed 'refresh_token))
+	      (store! authinfo 'refresh
+		      (->secret (get parsed 'refresh_token)))))
+	  (debug%watch (cons authinfo spec) "OAUTH/GETACCESS/RESULT")
+	  (cons authinfo spec))
+	(begin
+	  (logwarn |OATH/GETACCESS:Failure|
+	    "OAUTH/GETACCESS failed " spec " ==> " req)
+	  (irritant req OAUTH:REQFAIL OAUTH/GETACCESS
+		    "Web call failed")))))
 
 ;;; Actually calling the API
 

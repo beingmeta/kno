@@ -1057,7 +1057,7 @@ FD_EXPORT fdtype fd_cgiexec(fdtype proc,fdtype cgidata)
 
 /* Parsing query strings */
 
-static fdtype cgiparse(fdtype qstring)
+static fdtype urldata_parse(fdtype qstring)
 {
   fdtype smap=fd_empty_slotmap();
   parse_query_string((fd_slotmap)smap,FD_STRDATA(qstring),FD_STRLEN(qstring));
@@ -1216,7 +1216,8 @@ FD_EXPORT void fd_init_cgiexec_c()
   /* fd_defspecial(module,"CGIVAR",cgivar_handler); */
 
   fd_idefn(module,fd_make_cprim1x
-           ("CGIPARSE",cgiparse,1,fd_string_type,FD_VOID));
+           ("URLDATA/PARSE",urldata_parse,1,fd_string_type,FD_VOID));
+  fd_defalias(module,"CGIPARSE","URLDATA/PARSE");
 
   fd_defspecial(xhtmlout_module,"HTMLHEADER",htmlheader);
   fd_defspecial(xhtmlout_module,"TITLE!",title_handler);
