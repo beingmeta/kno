@@ -1,9 +1,9 @@
 framerd (3.7.6-36) unstable; urgency=low
 
   * fixed bug introduced into scripturl functions
-  * git version id framerd-3.7.6-43
+  * git version id framerd-3.7.6-44
 
- --  <kh@beingmeta.com>  Sat, 28 Mar 2015 23:44:35 +0000
+ --  <kh@beingmeta.com>  Sat, 28 Mar 2015 22:29:35 -0400
 
 framerd (3.7.6-36) unstable; urgency=low
 

@@ -238,8 +238,6 @@
 
 ;;; Canonical query
 
-(define (carlen x) (length (car x)))
-
 (define (canonical-query-string args (params))
   (default! params
     (getopt args '%params (getopt args 'params (getkeys args))))
