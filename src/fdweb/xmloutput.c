@@ -1505,7 +1505,7 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon);
 
 static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,fdtype *args,int nocolon)
 {
-  struct U8_OUTPUT out; int i=0, need_qmark=(strchr(baseuri,'?')!=NULL);
+  struct U8_OUTPUT out; int i=0, need_qmark=(strchr(baseuri,'?')==NULL);
   U8_INIT_OUTPUT(&out,64);
   if (baseuri) u8_puts(&out,baseuri);
   if (n == 1) {
