@@ -238,6 +238,8 @@
 
 ;;; Canonical query
 
+(define (carlen x) (length (car x)))
+
 (define (canonical-query-string args (params))
   (default! params
     (getopt args '%params (getopt args 'params (getkeys args))))
@@ -248,7 +250,7 @@
 			      (if (timestamp? v) (get v 'isobasic)
 				  (uriencode (stringout v)))))))))
     (stringout
-      (doseq (q (sorted pairs car) i)
+      (doseq (q (sorted pairs (vector carlen car)) i)
 	(printout (if (> i 0) "&")
 	  (car q) "=" (cdr q))))))
 
