@@ -250,7 +250,7 @@
 			      (if (timestamp? v) (get v 'isobasic)
 				  (uriencode (stringout v)))))))))
     (stringout
-      (doseq (q (sorted pairs (vector carlen car)) i)
+      (doseq (q (sorted pairs car) i)
 	(printout (if (> i 0) "&")
 	  (car q) "=" (cdr q))))))
 
