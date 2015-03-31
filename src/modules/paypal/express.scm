@@ -38,12 +38,33 @@
 		  "TOTALTYPE" ,(getopt spec 'totaltype "Total")
 		  "BUYEREMAILOPTINENABLE"
 		  ,(if (getopt spec 'askemail #t) 1 0)
+		  "no_shipping" ,(if (getopt spec 'shipping #f) 0 1)
 		  "returnUrl" ,(getopt spec 'return paypal/return-url)
 		  "cancelUrl" ,(getopt spec 'cancel paypal/cancel-url)
 		  "USER" ,(getopt spec 'pp:user pp:user)
 		  "PWD" ,(getopt spec 'pp:pass pp:pass)
 		  "SIGNATURE" ,(getopt spec 'pp:sig pp:sig)
 		  "VERSION" 78]))
+    (when (and (getopt spec 'digitalgoods)
+	       (not (getopt spec 'items)))
+      (store! args "L_PAYMENT_REQUEST_0_QTY0" 1)
+      (store! args "L_PAYMENT_REQUEST_0_QTY0" 1)
+      (store! args "L_PAYMENT_REQUEST_0_ITEMAMT"
+	      (paypal/amount (getopt spec 'amount 10.00)))
+      (store! args "L_PAYMENT_REQUEST_0_AMT0"
+	      (paypal/amount (getopt spec 'amount 10.00)))
+      (store! args "L_PAYMENT_REQUEST_0_NAME0"
+	      (getopt spec 'description "an item of great value"))
+      (store! args "L_PAYMENT_REQUEST_0_ITEMCATEGORY0" "Digital"))
+    (do-choices (item (getopt spec 'items {}) i)
+      (store! args (glom "L_PAYMENTREQUEST_0_QTY" i)
+	      (getopt item 'quanity 1))
+      (store! args (glom "L_PAYMENTREQUEST_0_AMT" i)
+	      (getopt item 'amount {}))
+      (store! args (glom "L_PAYMENTREQUEST_0_NAME" i)
+	      (getopt item 'name {}))
+      (store! args (glom "L_PAYMENTREQUEST_0_ITEMCATEGORY" i)
+	      (getopt item 'category {})))
     (when (getopt spec 'memo)
       (store! args "PAYMENTREQUEST_0_CUSTOM" (getopt spec 'memo)))
     (let* ((requrl (scripturl+ url args))
@@ -53,7 +74,7 @@
       (debug%watch "PAYPAL/EXPRESS/START" spec requrl response parsed)
       (if (and parsed (test parsed 'ack "Success"))
 	  (modify-frame parsed
-	    'approve_url
+	    'payurl
 	    (scripturl 
 		(if pp:live
 		    "https://www.paypal.com/cgi-bin/webscr"
@@ -111,6 +132,9 @@
       (debug%watch "PAYPAL/EXPRESS/FINISHED" spec requrl response parsed)
       (if (and parsed (test parsed 'ack {"Success" "SuccessWithWarning"}))
 	  (modify-frame parsed
+	    'api (getopt spec 'api)
+	    'payid (try (get parsed 'payid)
+			(getopt spec 'payid (getopt spec 'token)))
 	    'completed (test parsed 'PAYMENTINFO_0_PAYMENTSTATUS
 			     "Completed"))
 	  (irritant (cons parsed response)

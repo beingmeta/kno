@@ -31,6 +31,7 @@
 		  ,(getopt spec 'fees "EACHRECEIVER")
 		  "returnUrl" ,(getopt spec 'return paypal/return-url)
 		  "cancelUrl" ,(getopt spec 'cancel paypal/cancel-url)
+		  "no_shipping" ,(if (getopt spec 'shipping #f) 0 1)
 		  "memo" ,(getopt spec 'memo
 				  (paypal/uuid (getopt spec 'invoice (getuuid))))
 		  "reverseAllParallelPaymentsOnError" "true"
@@ -83,12 +84,10 @@
 			     "PayPal call returned error")))
 	    (store! parsed 'invoice invoice)
 	    (store! parsed 'payid paykey)
-	    (store! parsed 'approve_url
+	    (store! parsed 'payurl
 		    (scripturl formurl 
 			"cmd" "_ap-payment"
 			"paykey" paykey))
-	    (unless (getopt spec 'action #f)
-	      (store! parsed 'action formurl))
 	    (store! parsed 'invoice invoice)
 	    (store! parsed 'api 'ppadaptive)
 	    parsed)))))
@@ -182,7 +181,10 @@
 			      (exists? (get parsed 'error)))))
 	    (when trouble
 	      (error "PayPal call returned error" response))
-	    (modify-frame parsed 'completed (not trouble)))))))
+	    (modify-frame parsed
+	      'api (getopt spec 'api)
+	      'payid (getopt spec 'payid)
+	      'completed (not trouble)))))))
 
 
 

@@ -41,6 +41,9 @@
 (define paypal/cancel-url "https://www.example.com/cancelled")
 (varconfig! pp:cancel paypal/cancel-url)
 
+(define pp:ccbutton
+  "https://www.paypalobjects.com/webstatic/en_US/btn/btn_buynow_cc_171x47.png")
+
 (define (paypal/amount amount)
   (if (number? amount)
       (inexact->string amount 2)
@@ -130,3 +133,6 @@
 
 (module-export! '{paypal/form paypal/fields paypal/amount paypal/uuid
 		  paypal/opts paypal/return-url paypal/cancel-url})
+(module-export! '{paypal/form paypal/fields paypal/amount paypal/uuid
+		  paypal/opts paypal/return-url paypal/cancel-url
+		  pp:ccbutton})

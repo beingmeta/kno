@@ -32,8 +32,7 @@
 	 (invoice (getopt spec 'invoice (getuuid)))
 	 (creds (or paypal-creds (get-paypal-creds)))
 	 (body `#["intent" "sale"
-		  "payer" #["payment_method" 
-			    ,(getopt spec 'payby "paypal")]
+		  "payer" #["payment_method" "paypal"]
 		  "transactions"
 		  #(#["amount"
 		      #["total" ,(paypal/amount (getopt spec 'amount))
@@ -50,9 +49,9 @@
 		       "application/json")))
       (modify-frame response
 	'payid (get response 'id) 'api 'ppcheckout
-	'approve_url (get (pick (elts (get response 'links))
-				'rel "approval_url")
-			  'href)))))
+	'payurl (get (pick (elts (get response 'links))
+			   'rel "approval_url")
+		     'href)))))
 
 (define (paypal/checkout/details spec)
   (let* ((payurl (if (getopt spec 'live pp:live)
@@ -62,20 +61,20 @@
 	 (creds (or paypal-creds (get-paypal-creds))))
     (let* ((requrl (glom url "/" (get spec 'payid)))
 	   (response (oauth/call creds 'GET requrl))
-	   (ok (response/ok? response))
-	   (parsed (and ok (jsonparse (get response '%content)))))
+	   (parsed (jsonparse (get response '%content))))
       (debug%watch "PAYPAL/CHECKOUT/FINISHED" spec requrl response parsed)
-      (if ok
-	  (modify-frame parsed
-	    'completed (test parsed 'state "approved"))
-	  (irritant (cons parsed response)
-		    |PayPalFail| PAYPAL/EXPRESS/DETAILS)))))
+      (modify-frame parsed
+	'completed (test parsed 'state "approved")
+	'payid (get response 'id) 'api 'ppcheckout
+	'payurl (get (pick (elts (get response 'links))
+			   'rel "approval_url")
+		     'href)))))
 
 (define (paypal/checkout/finish spec)
-  (let* ((payurl (if (getopt spec 'live pp:live)
-		     "https://api.paypal.com/v1/payments/payment"
-		     "https://api.sandbox.paypal.com/v1/payments/payment"))
-	 (url (getopt spec 'endpoint payurl))
+  (let* ((ppurl (if (getopt spec 'live pp:live)
+		    "https://api.paypal.com/v1/payments/payment"
+		    "https://api.sandbox.paypal.com/v1/payments/payment"))
+	 (url (getopt spec 'endpoint ppurl))
 	 (creds (or paypal-creds (get-paypal-creds))))
     (let* ((requrl (glom url "/" (get spec 'payid) "/execute"))
 	   (body (stringout (jsonout #["payer_id" (getopt spec 'payer_id (getopt spec 'payerid))])))
@@ -85,6 +84,7 @@
       (debug%watch "PAYPAL/CHECKOUT/FINISHED" spec requrl response parsed)
       (if (and ok (test parsed 'state "approved"))
 	  (modify-frame parsed
+	    'api 'ppcheckout 'payid (getopt spec 'payid)
 	    'completed (test parsed 'state "approved"))
 	  (irritant (cons parsed response)
 		    |PayPalFail| PAYPAL/CHECKOUT/DETAILS)))))
