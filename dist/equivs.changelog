@@ -1,0 +1,5 @@
+metapackage (3.7.6-1) unstable; urgency=low
+
+  * Initial packaging
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 01 Apr 2015 10:51:36 -0400

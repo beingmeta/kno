@@ -6,11 +6,11 @@ Priority: optional
 Homepage: http://www.beingmeta.com/
 Standards-Version: 3.9.2
 
-Package: bmfullstack
-Version: @VERSION@
+Package: bmstack
+Changelog: bmstack.changelog
 Maintainer: kh@beingmeta.com
 Pre-Depends: libu8, libu8-encodings, libu8-dev
-Depends: bmcore, libu8, libu8-encodings, framerd, framerd-sqlite, framerd-sundown, framerd-doc, framerd-mongodb, framerd-mysql, framerd-tidy, framerd-morph, framerd-chopper, framerd-gnosys, framerd-imagetools, libapache2-mod-fdserv
+Depends: bmcore, libu8, libu8-encodings, framerd, framerd-sqlite, framerd-sundown, framerd-regex, framerd-doc, framerd-mysql, framerd-tidy, framerd-morph, framerd-chopper
 # Recommends:
 # Suggests:
 # Provides:

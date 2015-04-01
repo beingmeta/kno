@@ -1,0 +1,4 @@
+#!/bin/bash
+echo package name is $1 >2
+echo input file is $1 >2
+sed s/metapackage/$1/g < $2

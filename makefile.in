@@ -448,6 +448,9 @@ $(BININSTALLDIR)/%: src/scripts/%.scm
 	@$(MSG) Installing script $@
 	@etc/install-script $<
 
+dist/%.changelog: dist/changelog
+	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
+
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
 exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdservlet@suffix@: \
@@ -893,7 +896,10 @@ dist/rpms.zip: dist/rpms.done
 
 # Rules for Debian building
 
-dist/debs.done: staging/framerd_@FDVERSION@
+dist/debs.done: staging/framerd_@FDVERSION@ \
+	dist/bmstack.changelog dist/bmdbstack.changelog \
+	dist/bmwebstack.changelog dist/bmdevstack.changelog \
+	dist/bmfullstack.changelog
 	(cd staging/framerd_@FDVERSION@; \
 	 dpkg-buildpackage -k$(GPGID) -uc -us -F -rfakeroot) && \
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
