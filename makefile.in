@@ -448,7 +448,7 @@ $(BININSTALLDIR)/%: src/scripts/%.scm
 	@$(MSG) Installing script $@
 	@etc/install-script $<
 
-dist/%.changelog: dist/changelog
+dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
