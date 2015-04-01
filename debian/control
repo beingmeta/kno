@@ -2,13 +2,13 @@ Source: framerd
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benfiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, sqlite3, apache2-threaded-dev, libmysqlclient-dev, libcurl4-openssl-dev,libexif-dev,libtidy-dev,libzip-dev,libqrencode-dev,libu8-dev,libhyphen-dev,libsasl2-dev,libbson-dev,libmongoc-dev
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, sqlite3, apache2-threaded-dev, libmysqlclient-dev, libcurl4-openssl-dev,libexif-dev,libtidy-dev,libzip-dev,libqrencode-dev,libu8-dev (>= 2.5.1),libhyphen-dev,libsasl2-dev,libbson-dev,libmongoc-dev
 Standards-Version: 3.9.4
 Homepage: http://www.framerd.org/
 
 Package: framerd
 Architecture: any
-Depends: ${misc:Depends}, libu8, libzip2, libssl1.0.0, libcurl3, libhyphen0
+Depends: ${misc:Depends}, libu8 (>= 2.5.1), libzip2, libssl1.0.0, libcurl3, libhyphen0
 Description: Scalable knowledge base development and application platform
  FramerD provides a robust and scalable object database especially
  designed and optimized for pointer-intensive semi-structured data with

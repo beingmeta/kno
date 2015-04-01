@@ -1,15 +1,22 @@
+framerd (3.7.6-38) unstable; urgency=low
+
+  * Updated control file to include explicit version for libu8 dependency
+  * git version/patch framerd-3.7.6-47
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 01 Apr 2015 10:36:00 -0400
+
 framerd (3.7.6-37) unstable; urgency=low
 
   * fixed bug introduced into scripturl functions
   * git version id framerd-3.7.6-45
 
- --  <kh@beingmeta.com>  Sat, 28 Mar 2015 22:29:35 -0400
+ --  Ken Haase <kh@beingmeta.com>  Sat, 28 Mar 2015 22:29:35 -0400
 
 framerd (3.7.6-36) unstable; urgency=low
 
   * git version id framerd-3.7.6-40
 
- --  <kh@beingmeta.com>  Sat, 28 Mar 2015 23:44:35 +0000
+ --  Ken Haase <kh@beingmeta.com>  Sat, 28 Mar 2015 23:44:35 +0000
 
 framerd (3.7.6-35) unstable; urgency=low
 
@@ -17,7 +24,7 @@ framerd (3.7.6-35) unstable; urgency=low
   * Fixes to scripturl generation, renamed cgiparse to urldata/parse (w/alias)
   * git version id framerd-3.7.6-38
 
- --  <kh@beingmeta.com>  Sat, 28 Mar 2015 23:44:35 +0000
+ --  Ken Haase <kh@beingmeta.com>  Sat, 28 Mar 2015 23:44:35 +0000
 
 framerd (3.7.6-34) unstable; urgency=low
 
