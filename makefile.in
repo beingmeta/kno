@@ -823,6 +823,7 @@ debian deb debs: dist/debs.done
 
 cleandist cleanrpms cleandeb rpmclean debclean: 
 	rm -rf dist/rpms.done dist/rpms.ready dist/debs.done dist/debs.ready
+	rm -f dist/debs.built dist/metadebs.built
 	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes
 	find dist -name "*.rpm" | xargs -r rm
 	rm -rf staging/framerd*
@@ -896,10 +897,7 @@ dist/rpms.zip: dist/rpms.done
 
 # Rules for Debian building
 
-dist/debs.done: staging/framerd_@FDVERSION@ \
-	dist/bmstack.changelog dist/bmdbstack.changelog \
-	dist/bmwebstack.changelog dist/bmdevstack.changelog \
-	dist/bmfullstack.changelog
+dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
 	 dpkg-buildpackage -k$(GPGID) -uc -us -F -rfakeroot) && \
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
@@ -908,12 +906,20 @@ dist/debs.done: staging/framerd_@FDVERSION@ \
 			framerd_@FDVERSION@*.dsc                \
 			framerd_@FDVERSION@*.changes            \
 			../dist) &&                             \
-	(cd dist; equivs-build bmstack) &&                      \
-	(cd dist; equivs-build bmdbstack) &&                    \
-	(cd dist; equivs-build bmwebstack) &&                   \
-	(cd dist; equivs-build bmfullstack) &&                  \
-	(cd dist; equivs-build bmdevstack) &&                   \
-	touch dist/debs.done;
+	touch dist/debs.built;
+
+dist/metadebs.built: dist/bmstack.changelog dist/bmdbstack.changelog \
+	dist/bmwebstack.changelog dist/bmdevstack.changelog \
+	dist/bmfullstack.changelog
+	(cd dist; equivs-build -f bmstack) &&                      \
+	(cd dist; equivs-build -f bmdbstack) &&                    \
+	(cd dist; equivs-build -f bmwebstack) &&                   \
+	(cd dist; equivs-build -f bmfullstack) &&                  \
+	(cd dist; equivs-build -f bmdevstack) &&                   \
+	touch dist/metadebs.built;
+
+dist/debs.done: dist/debs.built dist/metadebs.built
+	touch dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@SUDO@ dpkg -i dist/framerd*_@FDVERSION@*.deb

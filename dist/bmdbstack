@@ -6,7 +6,7 @@ Priority: optional
 Homepage: http://www.beingmeta.com/
 Standards-Version: 3.9.2
 
-Package: bmfullstack
+Package: bmdbstack
 Changelog: bmdbstack.changelog
 Maintainer: kh@beingmeta.com
 Pre-Depends: libu8, libu8-encodings, libu8-dev

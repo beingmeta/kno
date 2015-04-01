@@ -1,3 +1,10 @@
+framerd (3.7.7-39) unstable; urgency=low
+
+  * Bumped release number to reflect new metapackaging
+  * git patch version framerd-3.7.7-1
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 01 Apr 2015 11:33:27 -0400
+
 framerd (3.7.6-38) unstable; urgency=low
 
   * Updated control file to include explicit version for libu8 dependency
