@@ -154,3 +154,13 @@
 (define (import->json obj) (importjson obj #t))
 (module-export! '{export->json import->json})
 
+;;; JSON stringout
+
+(define (json->string x)
+  (stringout (exportjson x #t)))
+(define (jsonstringout x) (json->string x))
+(define (json/stringout x) (json->string x))
+
+(module-export! '{json->string jsonstringout json/stringout})
+
+
