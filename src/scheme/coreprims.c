@@ -20,6 +20,7 @@
 #include "framerd/frames.h"
 #include "framerd/numbers.h"
 #include "framerd/support.h"
+#include "framerd/fdregex.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8filefns.h>
@@ -599,6 +600,22 @@ static fdtype config_default(fdtype var,fdtype val)
   else return FD_FALSE;
 }
 
+static fdtype find_configs(fdtype pat,fdtype raw)
+{
+  int with_docs=((FD_VOIDP(raw))||(FD_FALSEP(raw))||(FD_DEFAULTP(raw)));
+  fdtype configs=((with_docs)?(fd_all_configs(0)):(fd_all_configs(1)));
+  fdtype results=FD_EMPTY_CHOICE;
+  FD_DO_CHOICES(config,configs) {
+    fdtype key=((FD_PAIRP(config))?(FD_CAR(config)):(config));
+    u8_string keystring=
+      ((FD_STRINGP(key))?(FD_STRDATA(key)):(FD_SYMBOL_NAME(key)));
+    if ((FD_STRINGP(pat))?(strcasestr(keystring,FD_STRDATA(pat))!=NULL):
+        (FD_PRIM_TYPEP(pat,fd_regex_type))?(fd_regex_test(pat,keystring,-1)):
+        (0)) {
+      FD_ADD_TO_CHOICE(results,config); fd_incref(config);}}
+  return results;
+}
+
 static fdtype lconfig_get(fdtype var,void *data)
 {
   fdtype proc=(fdtype)data;
@@ -760,6 +777,7 @@ FD_EXPORT void fd_init_corefns_c()
            fd_make_ndprim(fd_make_cprim2("CONFIG!",config_set,2)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("CONFIG-DEFAULT!",config_default,2)));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("CONFIGS?",find_configs,1));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("CONFIG-DEF!",config_def,2,

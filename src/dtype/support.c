@@ -332,6 +332,24 @@ FD_EXPORT int fd_register_config
   return fd_register_config_x(var,doc,getfn,setfn,data,NULL);
 }
 
+FD_EXPORT fdtype fd_all_configs(int with_docs)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  struct FD_CONFIG_HANDLER *scan;
+  fd_lock_mutex(&config_register_lock); {
+    scan=config_handlers;
+    while (scan) {
+      fdtype var=scan->var;
+      if (with_docs) {
+        fdtype doc=((scan->doc)?(fdstring(scan->doc)):(FD_EMPTY_LIST));
+        fdtype pair=fd_init_pair(NULL,var,doc); fd_incref(var);
+        FD_ADD_TO_CHOICE(results,pair);}
+      else {fd_incref(var); FD_ADD_TO_CHOICE(results,var);}
+      scan=scan->next;}}
+  fd_unlock_mutex(&config_register_lock);
+  return results;
+}
+
 /* Lots of different ways to specify configuration */
 
 /* This takes a string of the form var=value */
@@ -2093,11 +2111,11 @@ void fd_init_support_c()
      u8major_config_get,fd_readonly_config_set,NULL);
 
   fd_register_config
-    ("DISPLAYMAXCHARS",_("Max number of chars to show in strings"),
+    ("MAXCHARS",_("Max number of chars to show in strings"),
      fd_intconfig_get,fd_intconfig_set,
      &fd_unparse_maxchars);
   fd_register_config
-    ("DISPLAYMAXELTS",
+    ("MAXELTS",
      _("Max number of elements to show in vectors/lists/choices, etc"),
      fd_intconfig_get,fd_intconfig_set,
      &fd_unparse_maxelts);

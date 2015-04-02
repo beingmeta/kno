@@ -560,11 +560,11 @@ int main(int argc,char **argv)
   fd_register_config("SHOWTIME",_("Threshold for displaying execution time"),
                      fd_dblconfig_get,fd_dblconfig_set,&showtime_threshold);
   fd_register_config
-    ("DEBUGMAXCHARS",
+    ("DBGMAXCHARS",
      _("Max number of string characters to display in debug message"),
      fd_intconfig_get,fd_intconfig_set,&debug_maxchars);
   fd_register_config
-    ("DEBUGMAXELTS",
+    ("DBGMAXELTS",
      _("Max number of sequence/choice elements to display in debug message"),
      fd_intconfig_get,fd_intconfig_set,&debug_maxelts);
   fd_register_config
