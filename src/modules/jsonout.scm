@@ -157,7 +157,7 @@
 ;;; JSON stringout
 
 (define (json->string x)
-  (stringout (exportjson x #t)))
+  (stringout (jsonout (exportjson x #t))))
 (define (jsonstringout x) (json->string x))
 (define (json/stringout x) (json->string x))
 
