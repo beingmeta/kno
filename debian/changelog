@@ -1,3 +1,10 @@
+framerd (3.7.7-40) unstable; urgency=low
+
+  * Added CONFIGS? configuration apropos function
+  * git patch version framerd-3.7.7-8
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 02 Apr 2015 10:45:55 -0400
+
 framerd (3.7.7-39) unstable; urgency=low
 
   * Bumped release number to reflect new metapackaging
