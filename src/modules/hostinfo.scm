@@ -1,15 +1,18 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2013 beingmeta, inc. All rights reserved
+;;; Copyright (C) 2005-2015 beingmeta, inc. All rights reserved
 
-(in-module 'email)
+(in-module 'hostinfo)
 
 (use-module '{fdweb jsonout})
 
-(module-export! '{hostinfo/json})
+(module-export! '{hostinfo/json hostinfo/field hostinfo})
 
-(define (hostinfo)
+(define (hostinfo (hostname) (ips))
+  (set! hostname (gethostname))
+  (set! ips (hostaddrs (gethostname)))
   (frame-create #f
-    'hostname (gethostname)
+    'hostname hostname
+    'ip (try (pick-one (difference ips "127.0.0.1")) ips) 'ips ips
     'port (req/get 'server_port)
     'syshost (req/get 'syshost)
     'http (req/get 'server_protocol)
@@ -20,8 +23,6 @@
     'serverip (req/get 'serveraddr)
     'remoteip (req/get 'remote_addr)
     'remoteport (req/get 'remote_port)
-    'ip (try (difference (hostaddrs (gethostname)) "127.0.0.1")
-	     (hostaddrs (gethostname)))
     'uptime (elapsed-time)))
 
 (define (hostinfo/json)
@@ -35,4 +36,4 @@
   (req/set! 'content (try (get (hostinfo) slotid)
 			  (glom "Unknown field: " slotid))))
 
-(module-export! '{hostinfo/json hostinfo/field hostinfo})
+
