@@ -89,6 +89,7 @@ static void init_webcommon_symbols()
   output_symbol=fd_intern("OUTPUT");
   error_symbol=fd_intern("REQERROR");
   reqdata_symbol=fd_intern("REQDATA");
+  request_method=fd_intern("REQUEST_METHOD");
 }
 
 /* Preflight/postflight */

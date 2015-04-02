@@ -826,6 +826,7 @@ static int webservefn(u8_client ucl)
     if ((forcelog)||(traceweb>0)) {
       fdtype referer=fd_get(cgidata,referer_symbol,FD_VOID);
       fdtype remote=fd_get(cgidata,remote_info,FD_VOID);
+      fdtype method=fd_get(cgidata,request_method,FD_VOID);
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
       if (FD_STRINGP(uri))
         ucl->status=u8_strdup(FD_STRDATA(uri));
@@ -833,23 +834,25 @@ static int webservefn(u8_client ucl)
           (FD_STRINGP(referer)) &&
           (FD_STRINGP(remote)))
         u8_log(LOG_NOTICE,
-               "REQUEST","Handling request for %s from %s by %s, load=%f/%f/%f",
-               FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote),
+               "REQUEST","Handling %q request for %s from %s by %s, load=%f/%f/%f",
+	       method,FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote),
                start_load[0],start_load[1],start_load[2]);
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
         u8_log(LOG_NOTICE,
-               "REQUEST","Handling request for %s by %s, load=%f/%f/%f",
-               FD_STRDATA(uri),FD_STRDATA(remote),
+               "REQUEST","Handling %q request for %s by %s, load=%f/%f/%f",
+	       method,FD_STRDATA(uri),FD_STRDATA(remote),
                start_load[0],start_load[1],start_load[2]);
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
         u8_log(LOG_NOTICE,
-               "REQUEST","Handling request for %s from %s, load=%f/%f/%f",
-               FD_STRDATA(uri),FD_STRDATA(referer),
+               "REQUEST","Handling %q request for %s from %s, load=%f/%f/%f",
+	       method,FD_STRDATA(uri),FD_STRDATA(referer),
                start_load[0],start_load[1],start_load[2]);
       else if (FD_STRINGP(uri))
-        u8_log(LOG_NOTICE,"REQUEST","Handling request for %s (q=%s)",FD_STRDATA(uri));
+        u8_log(LOG_NOTICE,"REQUEST","Handling %q request for %s (q=%s)",
+	       method,FD_STRDATA(uri));
       fd_decref(remote);
       fd_decref(referer);
+      fd_decref(method);
       fd_decref(uri);}
     else {
       fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
@@ -1269,13 +1272,14 @@ static int webservefn(u8_client ucl)
   u8_getrusage(RUSAGE_SELF,&end_usage);
   if ((forcelog)||(traceweb>0)||
       ((overtime>0)&&((write_time-start_time)>overtime))) {
+    fdtype method=fd_get(cgidata,request_method,FD_VOID);
     fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
     if (FD_VOIDP(query))
       u8_log(LOG_NOTICE,"DONE",
-             "%s %d=%d+%d+%d bytes for %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+             "%s %d=%d+%d+%d bytes for %q %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
              ((buffered)?("Buffered"):("Sent")),
              http_len+head_len+content_len,http_len,head_len,content_len,
-             path,
+	     method,path,
              write_time-start_time,
              setup_time-start_time,
              parse_time-setup_time,
@@ -1285,10 +1289,10 @@ static int webservefn(u8_client ucl)
              (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
              end_load[0],end_load[1],end_load[2]);
     else u8_log(LOG_NOTICE,"DONE",
-                "%s %d=%d+%d+%d bytes %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+                "%s %d=%d+%d+%d bytes for %q %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
                 ((buffered)?("Buffered"):("Sent")),
                 http_len+head_len+content_len,http_len,head_len,content_len,
-                path,query,
+		method,path,query,
                 write_time-start_time,
                 setup_time-start_time,
                 parse_time-setup_time,
@@ -1310,6 +1314,7 @@ static int webservefn(u8_client ucl)
     if (urllog) fflush(urllog);
     if (reqlog) fd_dtsflush(reqlog);
     fd_unlock_mutex(&log_lock);
+    fd_decref(method);
     fd_decref(query);}
   else {}
   fd_decref(proc); fd_decref(result); fd_decref(path);
