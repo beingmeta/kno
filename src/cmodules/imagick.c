@@ -225,7 +225,8 @@ fdtype imagick2imagick(fdtype fdwand)
 
 /* Getting properties */
 
-static fdtype format, resolution, size, width, height;
+static fdtype format, resolution, size, width, height, interlace;
+static fdtype line_interlace, plane_interlace, partition_interlace;
 
 static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
 {
@@ -243,6 +244,13 @@ static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
     MagickGetResolution(wand,&x,&y);
     return fd_init_pair(NULL,fd_make_double(x),fd_make_double(y));}
 #endif
+  else if (FD_EQ(field,interlace)) {
+    InterlaceType it=MagickGetInterlaceScheme(wand);
+    if (it==NoInterlace) return FD_FALSE;
+    else if (it==LineInterlace) return line_interlace;
+    else if (it==PlaneInterlace) return plane_interlace;
+    else if (it==PartitionInterlace) return partition_interlace;
+    else return FD_EMPTY_CHOICE;}
   else if (FD_EQ(field,size)) {
     size_t w=MagickGetImageWidth(wand);
     size_t h=MagickGetImageHeight(wand);
@@ -323,6 +331,27 @@ static fdtype imagick_fit(fdtype fdwand,fdtype w_arg,fdtype h_arg,
     (wand,target_width,target_height,
      getfilter(filter,"imagick_fit"),
      ((FD_VOIDP(blur))?(1.0):(FD_FLONUM(blur))));
+  if (retval==MagickFalse) {
+    grabmagickerr("imagick_fit",wand);
+    return FD_ERROR_VALUE;}
+  else return fd_incref(fdwand);
+}
+
+static fdtype imagick_interlace(fdtype fdwand,fdtype scheme)
+{
+  MagickBooleanType retval;
+  struct FD_IMAGICK *wrapper=
+    FD_GET_CONS(fdwand,fd_imagick_type,struct FD_IMAGICK *);
+  MagickWand *wand=wrapper->wand;
+  InterlaceType it;
+  if ((FD_FALSEP(scheme))||(FD_VOIDP(scheme)))
+    it=NoInterlace;
+  else if (scheme==line_interlace) it=LineInterlace;
+  else if (scheme==plane_interlace) it=PlaneInterlace;
+  else if (scheme==partition_interlace) it=PartitionInterlace;
+  else return fd_type_error
+         ("MagickWand Interlace type","imagick_interlace",scheme);
+  retval=MagickSetInterlaceScheme(wand,it);
   if (retval==MagickFalse) {
     grabmagickerr("imagick_fit",wand);
     return FD_ERROR_VALUE;}
@@ -564,6 +593,11 @@ static void init_symbols()
   size=fd_intern("SIZE");
   width=fd_intern("WIDTH");
   height=fd_intern("HEIGHT");
+  interlace=fd_intern("INTERLACE");
+  line_interlace=fd_intern("LINE");
+  plane_interlace=fd_intern("PLANE");
+  partition_interlace=fd_intern("PARITION");
+
 }
 
 int fd_init_imagick()
@@ -616,6 +650,11 @@ int fd_init_imagick()
            fd_make_cprim2x("IMAGICK/FORMAT",imagick_format,2,
                            fd_imagick_type,FD_VOID,
                            fd_string_type,FD_VOID));
+
+  fd_idefn(imagick_module,
+           fd_make_cprim2x("IMAGICK/INTERLACE",imagick_interlace,2,
+                           fd_imagick_type,FD_VOID,
+                           -1,FD_VOID));
 
   fd_idefn(imagick_module,
            fd_make_cprim6x("IMAGICK/EXTEND",imagick_extend,3,
