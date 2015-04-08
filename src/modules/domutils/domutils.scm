@@ -318,7 +318,7 @@
   (let ((current (dom/get node attrib))
 	(svalue (->domstring value)))
     (if (fail? current)
-	(dom/set! node attrib value)
+	(dom/set! node attrib value index)
 	(let ((values (segment current sep)))
 	  (unless (position svalue values)
 	    (dom/set! node attrib (string-append svalue sep current))
