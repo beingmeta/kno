@@ -1,3 +1,13 @@
+framerd (3.7.7-42) unstable; urgency=low
+
+  * Updates to domutils
+  * Added interlacing prims to imagick interface
+  * Show method when logging web requests
+  * Return improved hostinfo
+  * git patch version framerd-3.7.7-16
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 08 Apr 2015 19:59:53 -0400
+
 framerd (3.7.7-41) unstable; urgency=low
 
   * Fixes to jsonout and hostinfo
