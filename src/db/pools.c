@@ -1604,7 +1604,8 @@ FD_EXPORT
 fd_pool fd_make_extpool(u8_string label,
                         FD_OID base,int cap,
                         fdtype fetchfn,fdtype savefn,
-                        fdtype lockfn,fdtype state)
+                        fdtype lockfn,fdtype allocfn,
+                        fdtype state)
 {
   struct FD_EXTPOOL *xp=u8_alloc(struct FD_EXTPOOL);
   memset(xp,0,sizeof(struct FD_EXTPOOL));
@@ -1614,7 +1615,8 @@ fd_pool fd_make_extpool(u8_string label,
   fd_incref(fetchfn); fd_incref(savefn);
   fd_incref(lockfn); fd_incref(state);
   xp->fetchfn=fetchfn; xp->savefn=savefn;
-  xp->lockfn=lockfn; xp->state=state;
+  xp->lockfn=lockfn; xp->allocfn=allocfn;
+  xp->state=state;
   xp->flags=xp->flags|FD_OIDHOLES_OKAY;
   return (fd_pool)xp;
 }
@@ -1696,6 +1698,23 @@ static int extpool_lock(fd_pool p,fdtype oids)
   return 0;
 }
 
+static fdtype extpool_alloc(fd_pool p,int n)
+{
+  fdtype results=FD_EMPTY_CHOICE, request;
+  struct FD_EXTPOOL *ep=(struct FD_EXTPOOL *)p;
+  if (FD_VOIDP(ep->allocfn))
+    return fd_err(_("No OID alloc method"),"extpool_alloc",NULL,
+                  fd_pool2lisp(p));
+  else {
+    fdtype args[2]; args[0]=FD_INT2DTYPE(n); args[1]=ep->state;
+    if (FD_FIXNUMP(args[0]))
+      return fd_apply(ep->allocfn,2,args);
+    else {
+      fdtype result=fd_apply(ep->allocfn,2,args);
+      fd_decref(args[0]);
+      return result;}}
+}
+
 static int extpool_unlock(fd_pool p,fdtype oids)
 {
   FD_DO_CHOICES(oid,oids) {
@@ -1717,7 +1736,7 @@ struct FD_POOL_HANDLER fd_extpool_handler={
   NULL, /* close */
   NULL, /* setcache */
   NULL, /* setbuf */
-  NULL, /* alloc */
+  extpool_alloc, /* alloc */
   extpool_fetch, /* fetch */
   extpool_fetchn, /* fetchn */
   NULL, /* getload */

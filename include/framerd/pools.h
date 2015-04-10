@@ -373,7 +373,9 @@ typedef struct FD_NETWORK_POOL *fd_network_pool;
 
 typedef struct FD_EXTPOOL {
   FD_POOL_FIELDS;
-  fdtype fetchfn, savefn, lockfn, state;} FD_EXTPOOL;
+  fdtype fetchfn, savefn;
+  fdtype lockfn, allocfn;
+  fdtype state;} FD_EXTPOOL;
 typedef struct FD_EXTPOOL *fd_extpool;
 
 FD_EXPORT
@@ -381,7 +383,8 @@ fd_pool fd_make_extpool
   (u8_string label,
    FD_OID base,int cap,
    fdtype fetchfn,fdtype savefn,
-   fdtype lockfn,fdtype state);
+   fdtype lockfn,fdtype allocfn,
+   fdtype state);
 FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value);
 
 FD_EXPORT struct FD_POOL_HANDLER fd_extpool_handler;
