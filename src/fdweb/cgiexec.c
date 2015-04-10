@@ -739,6 +739,7 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   fdtype sendfile=fd_get(cgidata,sendfile_field,FD_VOID);
   fdtype xredirect=fd_get(cgidata,xredirect_field,FD_VOID);
   fdtype cookies=fd_get(cgidata,outcookies_symbol,FD_EMPTY_CHOICE);
+  int keep_doctype=0;
   if ((FD_STRINGP(redirect))&&(FD_VOIDP(status))) {
     status=FD_INT2DTYPE(303);}
   if (FD_FIXNUMP(status))
@@ -769,7 +770,8 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
     u8_log(LOG_DEBUG,"Xredirect","Using %s to pass %s",
            fd_xredirect_header,FD_STRDATA(xredirect));
     u8_printf(out,"%s: %s\r\n",fd_xredirect_header,FD_STRDATA(xredirect));}
-  else {}
+  else keep_doctype=1;
+  if (!(keep_doctype)) fd_store(cgidata,doctype_slotid,FD_FALSE);
   fd_decref(ctype); fd_decref(status); fd_decref(headers);
   fd_decref(redirect); fd_decref(sendfile); fd_decref(cookies);
 }
