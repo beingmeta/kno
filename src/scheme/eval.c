@@ -543,8 +543,8 @@ static int check_line_length(u8_output out,int off,int max_len)
       scan=start+scan_off;}
     /* Use memmove because it's overlapping */
     memmove(start+off+3,start+off,len-off);
-    start[off]='\\'; start[off+1]='\n'; start[off+2]='\t';
-    start[len+3]='\0'; out->u8_outptr=out->u8_outptr+3;
+    start[off]=' '; start[off+1]='\\'; start[off+2]='\n'; start[off+3]='\t';
+    start[len+4]='\0'; out->u8_outptr=out->u8_outptr+4;
     return -1;}
 }
 
