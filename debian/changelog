@@ -1,3 +1,11 @@
+framerd (3.7.8-44) unstable; urgency=low
+
+  * Have redirects (etc) clear the doctype
+  * Small update to watchpoint multi-line output
+  * git patch version framerd-3.7.8-5
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 10 Apr 2015 10:56:41 -0400
+
 framerd (3.7.8-43) unstable; urgency=low
 
   * Bumped release number
