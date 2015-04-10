@@ -41,9 +41,15 @@
 		  "no_shipping" ,(if (getopt spec 'shipping #f) 0 1)
 		  "returnUrl" ,(getopt spec 'return paypal/return-url)
 		  "cancelUrl" ,(getopt spec 'cancel paypal/cancel-url)
-		  "USER" ,(getopt spec 'pp:user pp:user)
-		  "PWD" ,(getopt spec 'pp:pass pp:pass)
-		  "SIGNATURE" ,(getopt spec 'pp:sig pp:sig)
+		  "USER" ,(getopt spec 'pp:user
+				  (if (getopt spec 'live pp:live)
+				      pp:user pp:testuser))
+		  "PWD" ,(getopt spec 'pp:pass
+				 (if (getopt spec 'live pp:live)
+				     pp:pass pp:testpass))
+		  "SIGNATURE" ,(getopt spec 'pp:sig
+				       (if (getopt spec 'live pp:live)
+					   pp:sig pp:testsig))
 		  "VERSION" 78]))
     (when (and (getopt spec 'digitalgoods)
 	       (not (getopt spec 'items)))

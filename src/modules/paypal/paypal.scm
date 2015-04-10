@@ -14,9 +14,14 @@
 (define pp:testbusiness "anonymous@company.com")
 (define pp:appid "APP-80W284485P519543T")
 (define pp:user "store_1288290819_biz_api1.beingmeta.com")
+(define pp:testuser "store_1288290819_biz_api1.beingmeta.com")
 (define pp:pass "1288290827")
+(define pp:testpass "1288290827")
 (define pp:sig "Ahtmaqpduek-SZn7-BlOIE3N9iHpA9wBdjV93rW33IVJiSTp20qT5Pjd")
-(module-export! '{pp:live pp:appid pp:business pp:user pp:pass pp:sig})
+(define pp:testsig "Ahtmaqpduek-SZn7-BlOIE3N9iHpA9wBdjV93rW33IVJiSTp20qT5Pjd")
+(module-export! '{pp:live pp:appid
+		  pp:business pp:user pp:pass pp:sig
+		  pp:testbusiness pp:testuser pp:testpass pp:testsig})
 
 (define ppid #f)
 (define default-options #[])
@@ -32,9 +37,14 @@
 (varconfig! pp:button default-button)
 
 (varconfig! pp:appid pp:appid)
+
 (varconfig! pp:user pp:user)
 (varconfig! pp:pass pp:pass)
 (varconfig! pp:sig pp:sig)
+
+(varconfig! pp:testuser pp:testuser)
+(varconfig! pp:testpass pp:testpass)
+(varconfig! pp:testsig pp:testsig)
 
 (define paypal/return-url "https://www.example.com/completed")
 (varconfig! pp:return paypal/return-url)
