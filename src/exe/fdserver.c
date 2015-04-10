@@ -1270,3 +1270,10 @@ static void write_state_files()
     errno=0;}
   atexit(cleanup_state_files);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

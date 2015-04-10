@@ -2855,7 +2855,7 @@ static int fdserv_handler(request_rec *r)
   if (!(xredirect)) xredirect=apr_table_get(r->err_headers_out,"X-Redirect");
 
   if (xredirect) {
-    ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
+    ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
 		  "Internal (x)redirect to %s for %s",
 		  xredirect,fdsocketinfo(sock,infobuf));
     servlet_recycle_socket(servlet,sock);

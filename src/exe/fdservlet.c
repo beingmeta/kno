@@ -834,22 +834,23 @@ static int webservefn(u8_client ucl)
           (FD_STRINGP(referer)) &&
           (FD_STRINGP(remote)))
         u8_log(LOG_NOTICE,
-               "REQUEST","Handling %q request for %s from %s by %s, load=%f/%f/%f",
-	       method,FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote),
-               start_load[0],start_load[1],start_load[2]);
+               "REQUEST","Handling (load=%f/%f/%f)\n\t> %q %s\n\t> from %s\n\t> for %s",
+               start_load[0],start_load[1],start_load[2],
+               method,FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote));
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
         u8_log(LOG_NOTICE,
-               "REQUEST","Handling %q request for %s by %s, load=%f/%f/%f",
-	       method,FD_STRDATA(uri),FD_STRDATA(remote),
-               start_load[0],start_load[1],start_load[2]);
+               "REQUEST","Handling (load=%f/%f/%f)\n\t> %q %s\n\t> for %s",
+               start_load[0],start_load[1],start_load[2],
+               method,FD_STRDATA(uri),FD_STRDATA(remote));
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
         u8_log(LOG_NOTICE,
-               "REQUEST","Handling %q request for %s from %s, load=%f/%f/%f",
-	       method,FD_STRDATA(uri),FD_STRDATA(referer),
-               start_load[0],start_load[1],start_load[2]);
+               "REQUEST","Handling (load=%f/%f/%f)\n\t> %q %s\n\t> from %s",
+               start_load[0],start_load[1],start_load[2],
+               method,FD_STRDATA(uri),FD_STRDATA(referer));
       else if (FD_STRINGP(uri))
-        u8_log(LOG_NOTICE,"REQUEST","Handling %q request for %s (q=%s)",
-	       method,FD_STRDATA(uri));
+        u8_log(LOG_NOTICE,"REQUEST","Handling (load=%f/%f/%f)\n\t> %q %s",
+               start_load[0],start_load[1],start_load[2],
+               method,FD_STRDATA(uri));
       fd_decref(remote);
       fd_decref(referer);
       fd_decref(method);
@@ -945,8 +946,8 @@ static int webservefn(u8_client ucl)
       result=fd_err(fd_TypeError,"FDServlet/content","string or packet",
                     content);}
     else if ((!(FD_VOIDP(retfile)))&&
-	     ((!(FD_STRINGP(retfile)))||
-	      (!(u8_file_existsp(FD_STRDATA(retfile)))))) {
+             ((!(FD_STRINGP(retfile)))||
+              (!(u8_file_existsp(FD_STRDATA(retfile)))))) {
       fd_decref(result);
       result=fd_err(u8_CantOpenFile,"FDServlet/retfile","existing filename",
                     retfile);}}
@@ -1135,7 +1136,7 @@ static int webservefn(u8_client ucl)
     else if ((FD_STRINGP(retfile))&&(fd_sendfile_header)) {
       u8_byte *start;
       u8_log(LOG_NOTICE,"Sendfile","Using %s to pass %s",
-	     fd_sendfile_header,FD_STRDATA(retfile));
+             fd_sendfile_header,FD_STRDATA(retfile));
       /* The web server supports a sendfile header, so we use that */
       u8_printf(&httphead,"\r\n");
       http_len=httphead.u8_outptr-httphead.u8_outbuf;
@@ -1147,9 +1148,9 @@ static int webservefn(u8_client ucl)
       struct stat fileinfo; FILE *f;
       if ((stat(filename,&fileinfo)==0)&&(f=u8_fopen(filename,"rb")))  {
         int bytes_read=0;
-	unsigned char *filebuf=NULL; fd_off_t total_len=-1;
-	u8_log(LOG_NOTICE,"Sendfile","Returning content of %s",
-	       FD_STRDATA(retfile));
+        unsigned char *filebuf=NULL; fd_off_t total_len=-1;
+        u8_log(LOG_NOTICE,"Sendfile","Returning content of %s",
+               FD_STRDATA(retfile));
         u8_printf(&httphead,"Content-length: %ld\r\n\r\n",
                   (long int)(fileinfo.st_size));
         http_len=httphead.u8_outptr-httphead.u8_outbuf;
@@ -1162,19 +1163,19 @@ static int webservefn(u8_client ucl)
           unsigned char *write=filebuf+http_len;
           fd_off_t to_read=fileinfo.st_size;
           memcpy(write,httphead.u8_outbuf,http_len);
-	  /* Copy the whole file */
+          /* Copy the whole file */
           while ((to_read>0)&&
                  ((bytes_read=fread(write,sizeof(uchar),to_read,f))>0)) {
-	    write=write+bytes_read;
+            write=write+bytes_read;
             to_read=to_read-bytes_read;}
           if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
               ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
             u8_log(LOG_WARN,"Buffering/file",
                    "Queued %d+%d=%d file bytes of 0x%lx for output",
                    http_len,to_read,total_len,(unsigned long)filebuf);
-	  u8_client_write_x(ucl,filebuf,total_len,0,U8_CLIENT_WRITE_OWNBUF);
-	  buffered=1; return_code=1;
-	  fclose(f);}
+          u8_client_write_x(ucl,filebuf,total_len,0,U8_CLIENT_WRITE_OWNBUF);
+          buffered=1; return_code=1;
+          fclose(f);}
         else {
           char buf[32768];
           /* This is the case where we hang while we write. */
@@ -1185,13 +1186,13 @@ static int webservefn(u8_client ucl)
               content_len=content_len+bytes_read;
               retval=u8_writeall(client->socket,buf,bytes_read);
               if (retval<0) break;}
-	    return_code=0;}}}
+            return_code=0;}}}
       else {
-	u8_log(LOG_NOTICE,"Sendfile","The content file %s does not exist",
-	       FD_STRDATA(retfile));
-	u8_seterr(fd_FileNotFound,"fdservlet/sendfile",
-		  u8_strdup(FD_STRDATA(retfile)));
-	result=FD_ERROR_VALUE;}}
+        u8_log(LOG_NOTICE,"Sendfile","The content file %s does not exist",
+               FD_STRDATA(retfile));
+        u8_seterr(fd_FileNotFound,"fdservlet/sendfile",
+                  u8_strdup(FD_STRDATA(retfile)));
+        result=FD_ERROR_VALUE;}}
     else if (FD_STRINGP(content)) {
       int bundle_len; unsigned char *outbuf=NULL;
       content_len=FD_STRLEN(content);
@@ -1203,13 +1204,13 @@ static int webservefn(u8_client ucl)
         memcpy(outbuf,httphead.u8_outbuf,http_len);
         memcpy(outbuf+http_len,FD_STRDATA(content),content_len);
         outbuf[bundle_len]='\0';
-	u8_client_write_x(ucl,outbuf,bundle_len,0,U8_CLIENT_WRITE_OWNBUF);
+        u8_client_write_x(ucl,outbuf,bundle_len,0,U8_CLIENT_WRITE_OWNBUF);
         if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
             ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
           u8_log(LOG_WARN,"Buffering/text",
                  "Queued %d+%d=%d string bytes of 0x%lx for output",
                  http_len,content_len,bundle_len,(unsigned long)outbuf);
-	buffered=1; return_code=1;}
+        buffered=1; return_code=1;}
       else  {
         retval=u8_writeall(client->socket,httphead.u8_outbuf,
                            httphead.u8_outptr-httphead.u8_outbuf);
@@ -1230,8 +1231,8 @@ static int webservefn(u8_client ucl)
           u8_log(LOG_WARN,"Buffering/packet",
                  "Queued %d+%d=%d packet bytes of 0x%lx for output",
                  http_len,content_len,bundle_len,(unsigned long)outbuf);
-	u8_client_write_x(ucl,outbuf,bundle_len,0,U8_CLIENT_WRITE_OWNBUF);
-	buffered=1; return_code=1;}
+        u8_client_write_x(ucl,outbuf,bundle_len,0,U8_CLIENT_WRITE_OWNBUF);
+        buffered=1; return_code=1;}
       else {
         retval=u8_writeall(client->socket,httphead.u8_outbuf,
                            httphead.u8_outptr-httphead.u8_outbuf);
@@ -1274,12 +1275,13 @@ static int webservefn(u8_client ucl)
       ((overtime>0)&&((write_time-start_time)>overtime))) {
     fdtype method=fd_get(cgidata,request_method,FD_VOID);
     fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
-    if (FD_VOIDP(query))
-      u8_log(LOG_NOTICE,"DONE",
-             "%s %d=%d+%d+%d bytes for %q %q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+    fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
+    if ((FD_VOIDP(query))||((FD_STRINGP(query))&&(FD_STRLEN(query)==0)))
+      u8_log(LOG_NOTICE,"REQUEST/DONE",
+             "%s %d=%d+%d+%d bytes for\n\t< %q %s\n\t< generated by %q\n\t< taking %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
              ((buffered)?("Buffered"):("Sent")),
              http_len+head_len+content_len,http_len,head_len,content_len,
-	     method,path,
+	     method,FD_STRDATA(uri),path,
              write_time-start_time,
              setup_time-start_time,
              parse_time-setup_time,
@@ -1288,11 +1290,11 @@ static int webservefn(u8_client ucl)
              (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
              (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
              end_load[0],end_load[1],end_load[2]);
-    else u8_log(LOG_NOTICE,"DONE",
-                "%s %d=%d+%d+%d bytes for %q %q q=%q in %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+    else u8_log(LOG_NOTICE,"REQUEST/DONE",
+                "%s %d=%d+%d+%d bytes for\n\t< %q %s\n\t< generated by %q\n\t< from query %q\n\t< taking %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
                 ((buffered)?("Buffered"):("Sent")),
                 http_len+head_len+content_len,http_len,head_len,content_len,
-		method,path,query,
+		method,FD_STRDATA(uri),path,query,
                 write_time-start_time,
                 setup_time-start_time,
                 parse_time-setup_time,
@@ -1315,7 +1317,8 @@ static int webservefn(u8_client ucl)
     if (reqlog) fd_dtsflush(reqlog);
     fd_unlock_mutex(&log_lock);
     fd_decref(method);
-    fd_decref(query);}
+    fd_decref(query);
+    fd_decref(uri);}
   else {}
   fd_decref(proc); fd_decref(result); fd_decref(path);
   fd_decref(cgidata);
@@ -1857,7 +1860,7 @@ static int launch_servlet(u8_string socket_spec)
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2015, all rights reserved");
   if (fdwebserver.n_servers>0) {
     u8_log(LOG_WARN,"FDServlet","Listening on %d addresses",
-	   fdwebserver.n_servers);
+           fdwebserver.n_servers);
     u8_server_loop(&fdwebserver);}
   else {
     u8_log(LOG_CRIT,NoServers,"No servers configured, exiting...");
@@ -2018,3 +2021,10 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
   exit(0);
   return 0;
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

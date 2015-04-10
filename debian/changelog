@@ -1,3 +1,10 @@
+framerd (3.7.8-45) unstable; urgency=low
+
+  * Made fdservlet logs more readable
+  * git patch version framerd-3.7.8-6
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 10 Apr 2015 13:10:42 -0400
+
 framerd (3.7.8-44) unstable; urgency=low
 
   * Have redirects (etc) clear the doctype
