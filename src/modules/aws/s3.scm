@@ -42,11 +42,13 @@
 (define-init s3errs #t)
 (varconfig! s3errs s3errs config:boolean)
 
-(define s3retry #f)
-(varconfig! s3retry s3retry)
-
 (define default-usepath #t)
 (varconfig! s3pathstyle default-usepath)
+
+(define n-retries 3)
+(varconfig! s3:retries n-retries)
+(define retry-wait 3)
+(varconfig! s3:retry-wait retry-wait)
 
 (define-init s3opts #[])
 
@@ -284,32 +286,41 @@
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
   (unless (table? opts) (set! opts `#[errs ,opts]))
+  (when (has-prefix bucket {"." "/"}) (set! bucket (slice bucket 1)))
   (let* ((err (getopt opts 'errs))
-	 (s3result (s3op op bucket path content ctype headers opts args))
-	 (content (get s3result '%content))
-	 (status (get s3result 'response)))
-    (when (has-prefix bucket {"." "/"}) (set! bucket (slice bucket 1)))
-    (when (and (not (>= status 500))
-	       (if (exists? (threadget 's3retry))
-		   (threadget 's3retry)
-		   (getopt opts 'retry s3retry)))
-      (if (number? (try (threadget 's3retry) s3retry))
-	  (sleep (number? (try (threadget 's3retry) s3retry)))
-	  (sleep 1))
-      (set! s3result (s3op op bucket path content ctype headers opts args))
-      (set! content (get s3result '%content))
-      (set! status (get s3result 'response)))
-    (when (and (>= 299 status 200) (equal? op "GET") (exists? content))
+	 (retries (getopt opts 'retry n-retries))
+	 (tries 0)
+	 (wait 1)
+	 (s3result
+	  (onerror (s3op op bucket path content ctype headers opts args)
+	    (lambda (ex)
+	      (op-failed ex op bucket path)
+	      (set! tries (1+ tries))
+	      #f)))
+	 (content (and s3result (get s3result '%content)))
+	 (status (and s3result (get s3result 'response)))
+	 (success (and status (>= 299 status 200))))
+    (while (and (not success) retries (>= retries 0) (not (>= status 500)))
+      (sleep wait)
+      (set! retries (-1+ retries))
+      (set! wait (+ wait retry-wait))
+      (set! s3result
+	    (onerror (s3op op bucket path content ctype headers opts args)
+	      (lambda (ex)
+		(op-failed ex op bucket path)
+		#f)))
+      (set! content (and s3result (get s3result '%content)))
+      (set! status (and s3result (get s3result 'response)))
+      (set! success (and status (>= 299 status 200))))
+    (when (and success (equal? op "GET") (exists? content))
       (loginfo |S3OP/result| "GET s3://" bucket "/" path
 	       "\n\treturned " (length content)
 	       (if (string? content) " characters of " " bytes of ")
 	       (try (get s3result 'content-type) "stuff")))
-    (unless (>= 299 status 200)
-      (onerror
-	  (store! s3result '%content (xmlparse content))
+    (unless success
+      (onerror (store! s3result '%content (xmlparse content))
 	(lambda (ex) #f)))
-    (if (>= 299 status 200)
-	(detail%watch s3result)
+    (if success (detail%watch s3result)
 	(cond ((equal? op "HEAD")
 	       ;; Don't generate warnings for HEAD probes
 	       s3result)
@@ -371,6 +382,16 @@
 		 (segment (car (get (xmlget (xmlparse (get response '%content))
 					    'stringtosignbytes)
 				    '%content))))))
+
+(define (op-failed ex op bucket path)
+  (logwarn |S3/Error|
+    "Error on " OP " to s3://" bucket "/" path "\n\t"
+    (error-condition ex)
+    (when (error-context ex) (printout " @" (error-context ex)))
+    (when (error-details ex)
+      (printout " (" (error-details ex) ") "))
+    (when (error-irritant ex)
+      (printout "\n\t" (pprint (error-irritant ex))))))
 
 ;;; Getting S3 URIs for the API
 
@@ -861,9 +882,9 @@
 			  (or (exists regex/match rxmatch (basename file))
 			      (exists textmatch patmatch (basename file))))))))
 	 (updated {}))
-    (logwarn |S3/push|
-	     "Updating " (choice-size copynames) "/" (choice-size filenames)
-	     " modified files in " dir)
+    (lognotice |S3/push|
+      "Updating " (choice-size copynames) "/" (choice-size filenames)
+      " modified files in " dir)
     (do-choices-mt (file copynames (config 's3threads 1))
       (let* ((info (pick s3info 'name (basename file)))
 	     (loc (try (get info 'loc) (s3/mkpath s3loc (basename file))))
