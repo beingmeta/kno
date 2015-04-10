@@ -1,8 +1,13 @@
 framerd (3.7.8-43) unstable; urgency=low
 
-  * 
+  * Bumped release number
+  * Added alias oid->hex
+  * Made extpools take an allocfn
+  * Added more retries to S3 operations
+  * Separate out PAYPAL test user/password/signature
+  * git patch version framerd-3.7.8-1
 
- --
+ -- Ken Haase <kh@beingmeta.com>  Fri, 10 Apr 2015 10:01:41 -0400
 
 framerd (3.7.7-42) unstable; urgency=low
 
