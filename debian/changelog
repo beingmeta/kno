@@ -1,3 +1,10 @@
+framerd (3.7.8-46) unstable; urgency=low
+
+  * Various updates, mostly to meta packages
+  * git patch version framerd-3.7.8-11
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 10 Apr 2015 22:19:51 -0400
+
 framerd (3.7.8-45) unstable; urgency=low
 
   * Made fdservlet logs more readable
