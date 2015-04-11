@@ -10,7 +10,7 @@ Package: bmwebstack
 Changelog: bmwebstack.changelog
 Maintainer: kh@beingmeta.com
 Pre-Depends: libu8, libu8-encodings, libu8-dev
-Depends: libu8, libu8-encodings, framerd, framerd-sqlite, framerd-sundown, framerd-doc, framerd-mongodb, framerd-mysql, framerd-tidy, framerd-morph, framerd-chopper, framerd-gnosys, framerd-imagetools, libapache2-mod-fdserv
+Depends: bmstack, framerd-sundown, framerd-tidy, libapache2-mod-fdserv
 # Recommends:
 # Suggests:
 # Provides:
@@ -22,8 +22,8 @@ Architecture: all
 # Extra-Files: 
 # Files: 
 #  <more pairs, if there's more than one file to include. Notice the starting space>
-Description: The beingmeta software stack
- This meta-package provides the beingmeta software stack, including FramerD
- and modules built with it (such as framerd-mysql)
- .
+Description: Web related components of the beingmeta software stack
+ This meta-package provides web related components of the beingmeta
+ software stack, including the Apache mod_fdserv module, and FramerD
+ modules for Markdown (sundown) and tidy.
 

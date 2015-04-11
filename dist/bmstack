@@ -10,7 +10,7 @@ Package: bmstack
 Changelog: bmstack.changelog
 Maintainer: kh@beingmeta.com
 Pre-Depends: libu8, libu8-encodings, libu8-dev
-Depends: libu8, libu8-encodings, framerd, framerd-sqlite, framerd-sundown, framerd-regex, framerd-doc, framerd-mysql, framerd-tidy, framerd-morph, framerd-chopper
+Depends: libu8, libu8-encodings, framerd, framerd-sqlite, framerd-doc
 # Recommends:
 # Suggests:
 # Provides:
@@ -22,8 +22,10 @@ Architecture: all
 # Extra-Files: 
 # Files: 
 #  <more pairs, if there's more than one file to include. Notice the starting space>
-Description: The beingmeta software stack
- This meta-package provides the beingmeta software stack, including FramerD
- and modules built with it (such as framerd-mysql)
- .
+Description: The basic beingmeta software stack
+ This meta-package provides the core beingmeta software stack, excluding
+   modules built on external libraries such as mysql or imagemagick or
+   specifically oriented towards databases, web applications, or
+   text processing.
+
 
