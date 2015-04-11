@@ -2,7 +2,7 @@ metapackage (3.7.8-3) unstable; urgency=low
 
   * Added bmtextstack
 
- -- Ken Haase <kh@beingmeta.com>  Fri, 10 Apr 2015 22:53:54 -0400
+ -- beingmeta repository manager <repoman@beingmeta.com> Fri, 10 Apr 2015 22:53:54 -0400
 
 metapackage (3.7.8-2) unstable; urgency=low
 
