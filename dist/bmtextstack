@@ -9,7 +9,6 @@ Standards-Version: 3.9.2
 Package: bmtextstack
 Changelog: bmtextstack.changelog
 Maintainer: kh@beingmeta.com
-Pre-Depends: libu8, libu8-encodings, libu8-dev
 Depends: bmstack, framerd-morph, framerd-chopper, framerd-gnosys
 # Recommends:
 # Suggests:

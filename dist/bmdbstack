@@ -9,7 +9,6 @@ Standards-Version: 3.9.2
 Package: bmdbstack
 Changelog: bmdbstack.changelog
 Maintainer: kh@beingmeta.com
-Pre-Depends: libu8, libu8-encodings, libu8-dev
 Depends: bmstack, framerd-sqlite, framerd-mongodb, framerd-mysql
 # Recommends:
 # Suggests:

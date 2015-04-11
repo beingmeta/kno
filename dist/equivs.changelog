@@ -1,3 +1,9 @@
+metapackage (3.7.8-4) unstable; urgency=low
+
+  * Fix pre-depends
+
+ --  beingmeta repository manager <repoman@beingmeta.com> Fri, 10 Apr 2015 23:06:51 -0400
+
 metapackage (3.7.8-3) unstable; urgency=low
 
   * Added bmtextstack
