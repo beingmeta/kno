@@ -3,7 +3,7 @@
 
 (in-module 'aws/v4)
 
-(use-module '{aws fdweb texttools logger varconfig})
+(use-module '{aws fdweb texttools logger varconfig curlcache})
 (define %used_modules '{aws varconfig})
 
 (define-init %loglevel %notify%)
@@ -23,16 +23,14 @@
 (define aws-services
   {"sqs" "ses" "s3" "sns" "simpledb" "dynamodb" "ec2"})
 
-(define-init curlcache #f)
-(varconfig! aws:curlcache curlcache)
+(define-init aws-curlcache #f)
+(varconfig! aws:curlcache aws-curlcache)
 
 (define (getcurl)
-  (if curlcache
-      (try (threadget 'curlcache)
-	   (let ((handle (curlopen)))
-	     (threadset! 'curlcache handle)
-	     handle))
-      (frame-create #f)))
+  (if (not aws-curlcache) (frame-create #f)
+      (if (symbol? aws-curlcache)
+	  (curlcache/get aws-curlcache)
+	  (curlcache/get))))
 
 ;;; Support functions
 

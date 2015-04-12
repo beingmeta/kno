@@ -5,7 +5,7 @@
 
 (use-module '{aws aws/v4 fdweb texttools mimetable regex logctl
 	      ezrecords rulesets logger varconfig meltcache
-	      mttools})
+	      curlcache mttools})
 (define %used_modules '{aws varconfig ezrecords rulesets})
 
 (module-export! '{s3/signature s3/op s3/expected
@@ -80,7 +80,8 @@
     (do-choices (map '{("jpg" "image/jpeg") ("jpeg" "image/jpeg")
 		       ("png" "image/png") ("gif" "image/gif")
 		       ("css" "text/css") ("js" "text/javascript")
-		       ("html" "text/html") ("htm" "text/html") ("xhtml" "text/html")
+		       ("html" "text/html") ("htm" "text/html")
+		       ("xhtml" "text/html")
 		       ("manifest" "text/manifest")})
       (add! table (car map) (cadr map)))
     table))
@@ -295,12 +296,16 @@
 	  (onerror (s3op op bucket path content ctype headers opts args)
 	    (lambda (ex)
 	      (op-failed ex op bucket path)
+	      (curlcache/reset!)
 	      (set! tries (1+ tries))
 	      #f)))
 	 (content (and s3result (get s3result '%content)))
 	 (status (and s3result (get s3result 'response)))
+	 (retry (or (not status) (>= status 500)))
 	 (success (and status (>= 299 status 200))))
-    (while (and (not success) retries (>= retries 0) (not (>= status 500)))
+    (while (and retry retries (>= retries 0))
+      (logwarn |S3/Retry| "Retrying " op " (" status ") for " path " in " bucket ":\n"
+	       (pprint s3result))
       (sleep wait)
       (set! retries (-1+ retries))
       (set! wait (+ wait retry-wait))
@@ -308,10 +313,11 @@
 	    (onerror (s3op op bucket path content ctype headers opts args)
 	      (lambda (ex)
 		(op-failed ex op bucket path)
+		(curlcache/reset!)
 		#f)))
       (set! content (and s3result (get s3result '%content)))
       (set! status (and s3result (get s3result 'response)))
-      (set! success (and status (>= 299 status 200))))
+      (set! retry (or (not status) (>= status 500))))
     (when (and success (equal? op "GET") (exists? content))
       (loginfo |S3OP/result| "GET s3://" bucket "/" path
 	       "\n\treturned " (length content)
