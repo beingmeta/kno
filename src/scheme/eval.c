@@ -521,31 +521,31 @@ static fdtype timed_evalx(fdtype expr,fd_lispenv env)
 
 static int check_line_length(u8_output out,int off,int max_len)
 {
-  u8_byte *start=out->u8_outbuf, *end=out->u8_outptr, *scan=end;
+  u8_byte *start=out->u8_outbuf, *end=out->u8_outptr, *scanner=end;
   int scan_off, line_len, len=end-start;
-  if (off<=0) return end-start;
-  while (scan>start) {
-    if (*scan=='\n') break; else scan--;}
-  line_len=end-scan; scan_off=scan-start;
+  while ((scanner>start)&&((*scanner)!='\n')) scanner--;
+  line_len=end-scanner; scan_off=scanner-start;
   /* If the current line is less than max_len, return the current offset */
-  if (line_len<max_len) return (end-start)+1;
+  if (line_len<max_len) return len+1;
   /* If the offset is non-positive, the last item was the first
      item on a line and gets the whole line to itself, so we still
      return the current offset.  We don't insert a \n\t now because
      it might be the last item output. */
-  else if (off<=0) return (end-start)+1;
+  else if (off<=0)
+    return len+1;
   else {
     /* The line is too long, insert a \n\t at off */
     if ((end+5)>(out->u8_outlim)) {
       /* Grow the stream if needed */
       u8_grow_stream(out,8);
       start=out->u8_outbuf; end=out->u8_outptr;
-      scan=start+scan_off;}
+      scanner=start+scan_off;}
     /* Use memmove because it's overlapping */
-    memmove(start+off+3,start+off,len-off);
-    start[off]=' '; start[off+1]='\\'; start[off+2]='\n'; start[off+3]='\t';
-    start[len+4]='\0'; out->u8_outptr=out->u8_outptr+4;
-    return -1;}
+    memmove(start+off+2,start+off,len-off);
+    start[off]='\n'; start[off+1]='\t';
+    out->u8_outptr=out->u8_outptr+2;
+    start[len+2]='\0';
+    return 0;}
 }
 
 static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
