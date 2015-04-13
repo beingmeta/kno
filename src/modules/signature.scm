@@ -11,6 +11,7 @@
 
 (define-init %loglevel %notice%)
 (varconfig! sbooks:signature:loglevel %loglevel)
+;;(set! %loglevel %debug%)
 
 (defambda (makesigtext . args)
   (let ((table (if (odd? (length args)) (deep-copy (car args)) `#[]))
@@ -46,12 +47,14 @@
 
 (defambda (sig/check sig key . args)
   (let ((text (apply makesigtext args)))
-    ;; debug%watch
     (debug%watch "SIG/CHECK" sig key text (hmac-sha1 text key) args)
     (when (string? sig) (set! sig (base16->packet sig)))
     (and sig (or (equal? sig (hmac-sha1 text key))
-		 (begin (warn%watch "SIG/CHECK/FAILED"
-			  (hmac-sha1 text key) sig key text)
+		 (begin (logwarn |SIG/CHECK/Failed|
+			  " with text " (write text)
+			  "\n\tsigned with " key
+			  "\n\tyielding " (hmac-sha1 text key)
+			  "\n\trather than " sig)
 		   #f)))))
 
 (defambda (sig/check/ sigarg key condense . args)
