@@ -526,13 +526,13 @@ static int check_line_length(u8_output out,int off,int max_len)
   while ((scanner>start)&&((*scanner)!='\n')) scanner--;
   line_len=end-scanner; scan_off=scanner-start;
   /* If the current line is less than max_len, return the current offset */
-  if (line_len<max_len) return len+1;
+  if (line_len<max_len) return len;
   /* If the offset is non-positive, the last item was the first
      item on a line and gets the whole line to itself, so we still
      return the current offset.  We don't insert a \n\t now because
      it might be the last item output. */
   else if (off<=0)
-    return len+1;
+    return len;
   else {
     /* The line is too long, insert a \n\t at off */
     if ((end+5)>(out->u8_outlim)) {
@@ -545,7 +545,7 @@ static int check_line_length(u8_output out,int off,int max_len)
     start[off]='\n'; start[off+1]='\t';
     out->u8_outptr=out->u8_outptr+2;
     start[len+2]='\0';
-    return 0;}
+    return -1;}
 }
 
 static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
