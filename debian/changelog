@@ -1,3 +1,10 @@
+framerd (3.7.8-48) unstable; urgency=low
+
+  * Added curlcache module
+  * git patch version framerd-3.7.8-17
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 13 Apr 2015 07:58:26 -0400
+
 framerd (3.7.8-47) unstable; urgency=low
 
   * Fixed bug in retry logic for S3
