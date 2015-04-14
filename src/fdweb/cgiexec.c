@@ -490,7 +490,7 @@ static void add_remote_info(fdtype cgidata)
   fdtype remote_string=FD_VOID;
   struct U8_OUTPUT remote;
   U8_INIT_OUTPUT(&remote,128);
-  u8_printf(&remote,"%s%s%s@%s%s%s<%s",
+  u8_printf(&remote,"%s%s%s@%s%s%s(%s)",
             ((FD_STRINGP(remote_ident)) ? (FD_STRDATA(remote_ident)) : ((u8_string)"")),
             ((FD_STRINGP(remote_ident)) ? ((u8_string)"|") : ((u8_string)"")),
             ((FD_STRINGP(remote_user)) ? (FD_STRDATA(remote_user)) : ((u8_string)"nobody")),
@@ -729,8 +729,8 @@ static fdtype title_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
-/* Generating the XML */
-void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
+/* Generating the HTTP header */
+FD_EXPORT int fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
 {
   fdtype ctype=fd_get(cgidata,content_type,FD_VOID);
   fdtype status=fd_get(cgidata,status_field,FD_VOID);
@@ -739,13 +739,16 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   fdtype sendfile=fd_get(cgidata,sendfile_field,FD_VOID);
   fdtype xredirect=fd_get(cgidata,xredirect_field,FD_VOID);
   fdtype cookies=fd_get(cgidata,outcookies_symbol,FD_EMPTY_CHOICE);
-  int keep_doctype=0;
+  int keep_doctype=0, http_status=-1;
   if ((FD_STRINGP(redirect))&&(FD_VOIDP(status))) {
-    status=FD_INT2DTYPE(303);}
-  if (FD_FIXNUMP(status))
+    status=FD_INT2DTYPE(303); http_status=303;}
+  if (FD_FIXNUMP(status)) {
     u8_printf(out,"Status: %d\r\n",FD_FIX2INT(status));
-  else if (FD_STRINGP(status))
+    http_status=FD_FIX2INT(status);}
+  else if (FD_STRINGP(status)) {
     u8_printf(out,"Status: %s\r\n",FD_STRDATA(status));
+    http_status=atoi(FD_STRDATA(status));}
+  else http_status=200;
   if (FD_STRINGP(ctype))
     u8_printf(out,"Content-type: %s\r\n",FD_STRDATA(ctype));
   else u8_printf(out,"%s\r\n",DEFAULT_CONTENT_TYPE);
@@ -774,6 +777,7 @@ void fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   if (!(keep_doctype)) fd_store(cgidata,doctype_slotid,FD_FALSE);
   fd_decref(ctype); fd_decref(status); fd_decref(headers);
   fd_decref(redirect); fd_decref(sendfile); fd_decref(cookies);
+  return http_status;
 }
 
 static void output_headers(U8_OUTPUT *out,fdtype headers)
