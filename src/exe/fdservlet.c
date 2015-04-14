@@ -698,7 +698,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   U8_INIT_STATIC_OUTPUT((consed->out),8192);
   u8_set_nodelay(sock,1);
   consed->cgidata=FD_VOID;
-  u8_log(LOG_INFO,"webclient/open","Created web client (0x%lx) %s",
+  u8_log(LOG_INFO,"webclient/open","Created web client (#%lx) %s",
          consed,
          ((consed->idstring==NULL)?((u8_string)""):(consed->idstring)));
   return (u8_client) consed;
@@ -724,7 +724,7 @@ static int webservefn(u8_client ucl)
   fd_dtype_stream stream=&(client->in);
   u8_output outstream=&(client->out);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
-  int return_code=0, buffered=0, recovered=1;
+  int return_code=0, buffered=0, recovered=1, http_status=-1;
   /* Reset the streams */
   outstream->u8_outptr=outstream->u8_outbuf;
   stream->ptr=stream->end=stream->start;
@@ -834,22 +834,22 @@ static int webservefn(u8_client ucl)
           (FD_STRINGP(referer)) &&
           (FD_STRINGP(remote)))
         u8_log(LOG_NOTICE,
-               "REQUEST","Handling (load=%f/%f/%f)\n\t> %q %s\n\t> from %s\n\t> for %s",
-               start_load[0],start_load[1],start_load[2],
+               "REQUEST","Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s\n\t> from %s\n\t> for %s",
+               (unsigned long)ucl,start_load[0],start_load[1],start_load[2],
                method,FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote));
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
         u8_log(LOG_NOTICE,
-               "REQUEST","Handling (load=%f/%f/%f)\n\t> %q %s\n\t> for %s",
-               start_load[0],start_load[1],start_load[2],
+               "REQUEST","Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s\n\t> for %s",
+               (unsigned long)ucl,start_load[0],start_load[1],start_load[2],
                method,FD_STRDATA(uri),FD_STRDATA(remote));
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
         u8_log(LOG_NOTICE,
-               "REQUEST","Handling (load=%f/%f/%f)\n\t> %q %s\n\t> from %s",
-               start_load[0],start_load[1],start_load[2],
+               "REQUEST","Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s\n\t> from %s",
+               (unsigned long)ucl,start_load[0],start_load[1],start_load[2],
                method,FD_STRDATA(uri),FD_STRDATA(referer));
       else if (FD_STRINGP(uri))
-        u8_log(LOG_NOTICE,"REQUEST","Handling (load=%f/%f/%f)\n\t> %q %s",
-               start_load[0],start_load[1],start_load[2],
+        u8_log(LOG_NOTICE,"REQUEST","Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s",
+               (unsigned long)ucl,start_load[0],start_load[1],start_load[2],
                method,FD_STRDATA(uri));
       fd_decref(remote);
       fd_decref(referer);
@@ -881,8 +881,8 @@ static int webservefn(u8_client ucl)
   else if (FD_SPROCP(proc)) {
     struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
     if ((forcelog)||(traceweb>1))
-      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
-             path,proc);
+      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q (#%lx)",
+             path,proc,(unsigned long)ucl);
     base_env=sp->env;
     threadcache=checkthreadcache(sp->env);
     result=fd_cgiexec(proc,cgidata);}
@@ -890,8 +890,8 @@ static int webservefn(u8_client ucl)
            (FD_SPROCP((FD_CAR(proc))))) {
     struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
     if ((forcelog)||(traceweb>1))
-      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q",
-             path,proc);
+      u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q (#%lx)",
+             path,proc,(unsigned long)ucl);
     threadcache=checkthreadcache(sp->env);
     /* This should possibly put the CDR of proc into the environment chain,
        but it no longer does. ?? */
@@ -909,7 +909,8 @@ static int webservefn(u8_client ucl)
     if (base) fd_load_latest(NULL,base,NULL);
     threadcache=checkthreadcache(base);
     if ((forcelog)||(traceweb>1))
-      u8_log(LOG_NOTICE,"START","Handling %q with template",path);
+      u8_log(LOG_NOTICE,"START","Handling %q with template (#%lx)",
+             path,(unsigned long)ucl);
     setup_proc=fd_symeval(setup_symbol,base);
     /* Run setup procs */
     if (FD_VOIDP(setup_proc)) {}
@@ -974,10 +975,10 @@ static int webservefn(u8_client ucl)
                             ((u8_string)"no more details"));
       fdtype irritant=fd_exception_xdata(exscan);
       if (FD_STRINGP(path))
-        u8_log(LOG_ERR,excond,"Unexpected error \"%m \" for %s:@%s (%s)",
-               excond,FD_STRDATA(path),excxt,exdetails);
-      else u8_log(LOG_ERR,excond,"Unexpected error \"%m \" %s:@%s (%s)",
-                  excond,excxt,exdetails);
+        u8_log(LOG_ERR,excond,"Unexpected error \"%m \" for %s:@%s (%s) (#%lx)",
+               excond,FD_STRDATA(path),excxt,exdetails,(unsigned long)ucl);
+      else u8_log(LOG_ERR,excond,"Unexpected error \"%m \" %s:@%s (%s) (#%lx)",
+                  excond,excxt,exdetails,(unsigned long)ucl);
       if (!(FD_VOIDP(irritant))) u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
       exscan=exscan->u8x_prev; depth++;}
     /* First we try to apply the error page if it's defined */
@@ -1021,11 +1022,11 @@ static int webservefn(u8_client ucl)
           fdtype irritant=fd_exception_xdata(exscan);
           if (FD_STRINGP(path))
             u8_log(LOG_ERR,excond,
-                   "Unexpected recursive error \"%m \" for %s:@%s (%s)",
-                   excond,FD_STRDATA(path),excxt,exdetails);
+                   "Unexpected recursive error \"%m \" for %s:@%s (%s) (#%lx)",
+                   excond,FD_STRDATA(path),excxt,exdetails,(unsigned long)ucl);
           else u8_log(LOG_ERR,excond,
-                      "Unexpected recursive error \"%m \" %s:@%s (%s)",
-                      excond,excxt,exdetails);
+                      "Unexpected recursive error \"%m \" %s:@%s (%s) (#%lx)",
+                      excond,excxt,exdetails,(unsigned long)ucl);
           if (!(FD_VOIDP(irritant))) u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
           lastex=exscan; exscan=exscan->u8x_prev; depth++;}
         while (exscan) {
@@ -1100,7 +1101,7 @@ static int webservefn(u8_client ucl)
     fdtype traceval=fd_get(cgidata,tracep_slotid,FD_VOID);
     if (FD_VOIDP(traceval)) tracep=0; else tracep=1;
     U8_INIT_STATIC_OUTPUT(httphead,1024); U8_INIT_STATIC_OUTPUT(htmlhead,1024);
-    fd_output_http_headers(&httphead,cgidata);
+    http_status=fd_output_http_headers(&httphead,cgidata);
     if ((FD_VOIDP(content))&&(FD_VOIDP(retfile))) {
       char clen_header[128]; size_t bundle_len=0;
       if (write_headers) {
@@ -1135,8 +1136,8 @@ static int webservefn(u8_client ucl)
         return_code=1;}}
     else if ((FD_STRINGP(retfile))&&(fd_sendfile_header)) {
       u8_byte *start;
-      u8_log(LOG_NOTICE,"Sendfile","Using %s to pass %s",
-             fd_sendfile_header,FD_STRDATA(retfile));
+      u8_log(LOG_NOTICE,"Sendfile","Using %s to pass %s (#%lx)",
+             fd_sendfile_header,FD_STRDATA(retfile),(unsigned long)ucl);
       /* The web server supports a sendfile header, so we use that */
       u8_printf(&httphead,"\r\n");
       http_len=httphead.u8_outptr-httphead.u8_outbuf;
@@ -1149,8 +1150,8 @@ static int webservefn(u8_client ucl)
       if ((stat(filename,&fileinfo)==0)&&(f=u8_fopen(filename,"rb")))  {
         int bytes_read=0;
         unsigned char *filebuf=NULL; fd_off_t total_len=-1;
-        u8_log(LOG_NOTICE,"Sendfile","Returning content of %s",
-               FD_STRDATA(retfile));
+        u8_log(LOG_NOTICE,"Sendfile","Returning content of %s (#%lx)",
+               FD_STRDATA(retfile),(unsigned long)ucl);
         u8_printf(&httphead,"Content-length: %ld\r\n\r\n",
                   (long int)(fileinfo.st_size));
         http_len=httphead.u8_outptr-httphead.u8_outbuf;
@@ -1171,8 +1172,9 @@ static int webservefn(u8_client ucl)
           if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
               ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
             u8_log(LOG_WARN,"Buffering/file",
-                   "Queued %d+%d=%d file bytes of 0x%lx for output",
-                   http_len,to_read,total_len,(unsigned long)filebuf);
+                   "Queued %d+%d=%d file bytes of 0x%lx for output (#%lx)",
+                   http_len,to_read,total_len,(unsigned long)filebuf,
+                   (unsigned long)ucl);
           u8_client_write_x(ucl,filebuf,total_len,0,U8_CLIENT_WRITE_OWNBUF);
           buffered=1; return_code=1;
           fclose(f);}
@@ -1188,8 +1190,8 @@ static int webservefn(u8_client ucl)
               if (retval<0) break;}
             return_code=0;}}}
       else {
-        u8_log(LOG_NOTICE,"Sendfile","The content file %s does not exist",
-               FD_STRDATA(retfile));
+        u8_log(LOG_NOTICE,"Sendfile","The content file %s does not exist (#%lx)",
+               FD_STRDATA(retfile),(unsigned long)ucl);
         u8_seterr(fd_FileNotFound,"fdservlet/sendfile",
                   u8_strdup(FD_STRDATA(retfile)));
         result=FD_ERROR_VALUE;}}
@@ -1208,8 +1210,9 @@ static int webservefn(u8_client ucl)
         if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
             ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
           u8_log(LOG_WARN,"Buffering/text",
-                 "Queued %d+%d=%d string bytes of 0x%lx for output",
-                 http_len,content_len,bundle_len,(unsigned long)outbuf);
+                 "Queued %d+%d=%d string bytes of 0x%lx for output (#%lx)",
+                 http_len,content_len,bundle_len,(unsigned long)outbuf,
+                 (unsigned long)ucl);
         buffered=1; return_code=1;}
       else  {
         retval=u8_writeall(client->socket,httphead.u8_outbuf,
@@ -1228,9 +1231,10 @@ static int webservefn(u8_client ucl)
         memcpy(outbuf+http_len,FD_PACKET_DATA(content),content_len);
         if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
             ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
-          u8_log(LOG_WARN,"Buffering/packet",
-                 "Queued %d+%d=%d packet bytes of 0x%lx for output",
-                 http_len,content_len,bundle_len,(unsigned long)outbuf);
+          u8_log(LOG_WARN,"FDServlet/buffering/packet",
+                 "Queued %d+%d=%d packet bytes of 0x%lx for output (#%lx)",
+                 http_len,content_len,bundle_len,(unsigned long)outbuf,
+                 (unsigned long)ucl);
         u8_client_write_x(ucl,outbuf,bundle_len,0,U8_CLIENT_WRITE_OWNBUF);
         buffered=1; return_code=1;}
       else {
@@ -1247,11 +1251,13 @@ static int webservefn(u8_client ucl)
     /* If we're not still in the transaction, call u8_client_done() */
     if (!(return_code)) {u8_client_done(ucl);}
     if ((forcelog)||(traceweb>2))
-      u8_log(LOG_NOTICE,"HTTPHEAD","HTTPHEAD=%s",httphead.u8_outbuf);
+      u8_log(LOG_NOTICE,"FDServlet/HTTPHEAD",
+             "HTTPHEAD=%s (#%lx)",httphead.u8_outbuf,(unsigned long)ucl);
     u8_free(httphead.u8_outbuf); u8_free(htmlhead.u8_outbuf);
     fd_decref(content); fd_decref(traceval);
     if (retval<0)
-      u8_log(LOG_ERROR,"BADRET","Bad retval from writing data");
+      u8_log(LOG_ERROR,"FDServlet/BADRET",
+             "Bad retval from writing data (#%lx)",(unsigned long)ucl);
     if ((reqlog) || (urllog) || (trace_cgidata) || (tracep))
       dolog(cgidata,result,client->out.u8_outbuf,
             outstream->u8_outptr-outstream->u8_outbuf,
@@ -1278,10 +1284,10 @@ static int webservefn(u8_client ucl)
     fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
     if ((FD_VOIDP(query))||((FD_STRINGP(query))&&(FD_STRLEN(query)==0)))
       u8_log(LOG_NOTICE,"REQUEST/DONE",
-             "%s %d=%d+%d+%d bytes for\n\t< %q %s\n\t< generated by %q\n\t< taking %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
-             ((buffered)?("Buffered"):("Sent")),
+             "%q (%d) %s %d=%d+%d+%d bytes (#%lx)\n\t< %q %s\n\t< generated by %q\n\t< taking %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+             method,http_status,((buffered)?("buffered"):("sent")),
              http_len+head_len+content_len,http_len,head_len,content_len,
-	     method,FD_STRDATA(uri),path,
+             (unsigned long)ucl,method,FD_STRDATA(uri),path,
              write_time-start_time,
              setup_time-start_time,
              parse_time-setup_time,
@@ -1291,10 +1297,10 @@ static int webservefn(u8_client ucl)
              (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
              end_load[0],end_load[1],end_load[2]);
     else u8_log(LOG_NOTICE,"REQUEST/DONE",
-                "%s %d=%d+%d+%d bytes for\n\t< %q %s\n\t< generated by %q\n\t< from query %q\n\t< taking %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
-                ((buffered)?("Buffered"):("Sent")),
+                "%q (%d) %s %d=%d+%d+%d bytes (#%lx)\n\t< %q %s\n\t< generated by %q\n\t< from query %q\n\t< taking %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
+                method,http_status,((buffered)?("buffered"):("sent")),
                 http_len+head_len+content_len,http_len,head_len,content_len,
-		method,FD_STRDATA(uri),path,query,
+                (unsigned long)ucl,method,FD_STRDATA(uri),path,query,
                 write_time-start_time,
                 setup_time-start_time,
                 parse_time-setup_time,
@@ -1332,7 +1338,7 @@ static int webservefn(u8_client ucl)
 static int close_webclient(u8_client ucl)
 {
   fd_webconn client=(fd_webconn)ucl;
-  u8_log(LOG_INFO,"webclient/close","Closing web client %s (0x%lx#%d.%d)",
+  u8_log(LOG_INFO,"webclient/close","Closing web client %s (#%lx#%d.%d)",
          ucl->idstring,ucl,ucl->clientid,ucl->socket);
   fd_decref(client->cgidata); client->cgidata=FD_VOID;
   fd_dtsclose(&(client->in),2);
@@ -1346,7 +1352,7 @@ static int reuse_webclient(u8_client ucl)
   fdtype cgidata=client->cgidata;
   int refcount=((FD_CONSP(cgidata))?
                 (FD_CONS_REFCOUNT((fd_cons)cgidata)):(0));
-  u8_log(LOG_INFO,"webclient/reuse","Reusing web client %s (0x%lx)",
+  u8_log(LOG_INFO,"webclient/reuse","Reusing web client %s (#%lx)",
          ucl->idstring,ucl);
   fd_decref(cgidata); client->cgidata=FD_VOID;
   return 1;

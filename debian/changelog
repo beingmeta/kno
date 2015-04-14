@@ -1,3 +1,10 @@
+framerd (3.7.8-50) unstable; urgency=low
+
+  * Fixes to fdservlet logging
+  * git patch version framerd-3.7.8-23
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 14 Apr 2015 10:55:18 -0400
+
 framerd (3.7.8-49) unstable; urgency=low
 
   * Fixed bug in watchpoint line breaking
