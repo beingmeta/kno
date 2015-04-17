@@ -1,3 +1,11 @@
+framerd (3.7.8-51) unstable; urgency=low
+
+  * Fixed upstart configs to delay startup until rc is done and
+    network/files are ready
+  * git patch version framerd-3.7.8-24
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 17 Apr 2015 11:29:28 -0400
+
 framerd (3.7.8-50) unstable; urgency=low
 
   * Fixes to fdservlet logging
