@@ -1,3 +1,10 @@
+framerd (3.7.8-52) unstable; urgency=low
+
+  * Made upstart scripts start on runlevel 3, not 2
+  * git patch version framerd-3.7.8-25
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 17 Apr 2015 12:31:12 -0400
+
 framerd (3.7.8-51) unstable; urgency=low
 
   * Fixed upstart configs to delay startup until rc is done and

@@ -8,7 +8,7 @@
 # Provides:		fdmanager
 # Required-Start:	$local_fs $network $named $syslog
 # Required-Stop:	$local_fs $network $named $syslog
-# Default-Start:  	2 3 4 5
+# Default-Start:  	3 4 5
 # Default-Stop:  	0 1 6
 # Short-Description: 	Start configure FramerD servers
 # Description: 		Start the FramerD servers described in etc/framerd/servers, including data and API servers
