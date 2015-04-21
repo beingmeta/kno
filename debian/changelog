@@ -1,3 +1,10 @@
+framerd (3.7.8-53) unstable; urgency=low
+
+  * Add strip-prefix and strip-suffix
+  * git patch version framerd-3.7.8-27
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 21 Apr 2015 17:31:11 -0400
+
 framerd (3.7.8-52) unstable; urgency=low
 
   * Made upstart scripts start on runlevel 3, not 2
