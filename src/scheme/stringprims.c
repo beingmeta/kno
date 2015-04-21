@@ -704,26 +704,28 @@ static fdtype getnonstring(fdtype choice)
   return FD_VOID;
 }
 
-static fdtype has_suffix_test(fdtype string,fdtype suffix)
+static int has_suffix_test(fdtype string,fdtype suffix)
 {
   int string_len=FD_STRING_LENGTH(string);
   int suffix_len=FD_STRING_LENGTH(suffix);
-  if (suffix_len>string_len) return FD_FALSE;
+  if (suffix_len>string_len) return 0;
   else {
     u8_string string_data=FD_STRING_DATA(string);
     u8_string suffix_data=FD_STRING_DATA(suffix);
     if (strncmp(string_data+(string_len-suffix_len),
                 suffix_data,
                 suffix_len) == 0)
-      return FD_TRUE;
-    else return FD_FALSE;}
+      return 1;
+    else return 0;}
 }
 static fdtype has_suffix(fdtype string,fdtype suffix)
 {
   fdtype notstring;
   if (FD_QCHOICEP(suffix)) suffix=(FD_XQCHOICE(suffix))->choice;
-  if ((FD_STRINGP(string))&&(FD_STRINGP(suffix)))
-    return has_suffix_test(string,suffix);
+  if ((FD_STRINGP(string))&&(FD_STRINGP(suffix))) {
+    if (has_suffix_test(string,suffix))
+      return FD_TRUE;
+    else return FD_FALSE;}
   if ((FD_EMPTY_CHOICEP(string))||(FD_EMPTY_CHOICEP(suffix)))
     return FD_FALSE;
   notstring=getnonstring(string);
@@ -733,52 +735,86 @@ static fdtype has_suffix(fdtype string,fdtype suffix)
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","has_suffix/suffix",notstring);
   if ((FD_CHOICEP(string))&&(FD_CHOICEP(suffix))) {
-    fdtype result=FD_FALSE;
+    int matched=0;
     FD_DO_CHOICES(s,string) {
       FD_DO_CHOICES(sx,suffix) {
-        result=has_suffix_test(s,sx);
-        if (FD_TRUEP(result)) {
-          FD_STOP_DO_CHOICES; break;}}
-      if (FD_TRUEP(result)) {
-        FD_STOP_DO_CHOICES; break;}}
-    return result;}
+        matched=has_suffix_test(s,sx);
+        if (matched) {FD_STOP_DO_CHOICES; break;}}
+      if (matched) {FD_STOP_DO_CHOICES; break;}}
+    if (matched)
+      return FD_TRUE;
+    else return FD_FALSE;}
   else if (FD_CHOICEP(string)) {
     FD_DO_CHOICES(s,string) {
-      fdtype result=has_suffix_test(s,suffix);
-      if (FD_TRUEP(result)) {
+      if (has_suffix_test(s,suffix)) {
         FD_STOP_DO_CHOICES;
-        return result;}}
+        return FD_TRUE;}}
     return FD_FALSE;}
   else if (FD_CHOICEP(suffix)) {
     FD_DO_CHOICES(sx,suffix) {
-      fdtype result=has_suffix_test(string,sx);
-      if (FD_TRUEP(result)) {
+      if (has_suffix_test(string,sx)) {
         FD_STOP_DO_CHOICES;
-        return result;}}
+        return FD_TRUE;}}
     return FD_FALSE;}
   else return FD_FALSE;
 }
 static fdtype is_suffix(fdtype suffix,fdtype string) {
   return has_suffix(string,suffix); }
 
-static fdtype has_prefix_test(fdtype string,fdtype prefix)
+static fdtype strip_suffix(fdtype string,fdtype suffix)
+{
+  fdtype notstring;
+  if (FD_QCHOICEP(suffix)) suffix=(FD_XQCHOICE(suffix))->choice;
+  if ((FD_STRINGP(string))&&(FD_STRINGP(suffix))) {
+    if (has_suffix_test(string,suffix)) {
+      int sufflen=FD_STRLEN(suffix), len=FD_STRLEN(string);
+      return fd_extract_string(NULL,FD_STRDATA(string),
+                               FD_STRDATA(string)+(len-sufflen));}
+    else return fd_incref(string);}
+  if ((FD_EMPTY_CHOICEP(string))||(FD_EMPTY_CHOICEP(suffix)))
+    return fd_incref(string);
+  notstring=getnonstring(string);
+  if (!(FD_VOIDP(notstring)))
+    return fd_type_error("string","has_suffix/input",notstring);
+  else notstring=getnonstring(suffix);
+  if (!(FD_VOIDP(notstring)))
+    return fd_type_error("string","has_suffix/suffix",notstring);
+  else {
+    fdtype result=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(s,string) {
+      int nomatch=1;
+      FD_DO_CHOICES(sx,suffix) {
+        if (has_suffix_test(s,sx)) {
+          int sufflen=FD_STRLEN(sx), len=FD_STRLEN(s);
+          fdtype stripped=fd_extract_string
+            (NULL,FD_STRDATA(s),FD_STRDATA(s)+(len-sufflen));
+          FD_ADD_TO_CHOICE(result,stripped);
+          nomatch=0;}}
+      if (nomatch) {
+        fd_incref(s); 
+        FD_ADD_TO_CHOICE(result,s);}}
+    return result;}
+}
+
+static int has_prefix_test(fdtype string,fdtype prefix)
 {
   int string_len=FD_STRING_LENGTH(string);
   int prefix_len=FD_STRING_LENGTH(prefix);
-  if (prefix_len>string_len) return FD_FALSE;
+  if (prefix_len>string_len) return 0;
   else {
     u8_string string_data=FD_STRING_DATA(string);
     u8_string prefix_data=FD_STRING_DATA(prefix);
     if (strncmp(string_data,prefix_data,prefix_len) == 0)
-      return FD_TRUE;
-    else return FD_FALSE;}
+      return 1;
+    else return 0;}
 }
 static fdtype has_prefix(fdtype string,fdtype prefix)
 {
   fdtype notstring;
   if (FD_QCHOICEP(prefix)) prefix=(FD_XQCHOICE(prefix))->choice;
-  if ((FD_STRINGP(string))&&(FD_STRINGP(prefix)))
-    return has_prefix_test(string,prefix);
+  if ((FD_STRINGP(string))&&(FD_STRINGP(prefix))) {
+    if (has_prefix_test(string,prefix)) return FD_TRUE;
+    else return FD_FALSE;}
   if ((FD_EMPTY_CHOICEP(string))||(FD_EMPTY_CHOICEP(prefix)))
     return FD_FALSE;
   notstring=getnonstring(string);
@@ -788,33 +824,62 @@ static fdtype has_prefix(fdtype string,fdtype prefix)
   if (!(FD_VOIDP(notstring)))
     return fd_type_error("string","has_prefix/prefix",notstring);
   if ((FD_CHOICEP(string))&&(FD_CHOICEP(prefix))) {
-    fdtype result=FD_FALSE;
+    int matched=0;
     FD_DO_CHOICES(s,string) {
       FD_DO_CHOICES(p,prefix) {
-        result=has_prefix_test(s,p);
-        if (FD_TRUEP(result)) {
+        matched=has_prefix_test(s,p);
+        if (matched) {
           FD_STOP_DO_CHOICES; break;}}
-      if (FD_TRUEP(result)) {
+      if (matched) {
         FD_STOP_DO_CHOICES; break;}}
-    return result;}
+    if (matched) return FD_TRUE; else return FD_FALSE;}
   else if (FD_CHOICEP(string)) {
     FD_DO_CHOICES(s,string) {
-      fdtype result=has_prefix_test(s,prefix);
-      if (FD_TRUEP(result)) {
+      if (has_prefix_test(s,prefix)) {
         FD_STOP_DO_CHOICES;
-        return result;}}
+        return FD_TRUE;}}
     return FD_FALSE;}
   else if (FD_CHOICEP(prefix)) {
     FD_DO_CHOICES(p,prefix) {
-      fdtype result=has_prefix_test(string,p);
-      if (FD_TRUEP(result)) {
+      if (has_prefix_test(string,p)) {
         FD_STOP_DO_CHOICES;
-        return result;}}
+        return FD_TRUE;}}
     return FD_FALSE;}
   else return FD_FALSE;
 }
 static fdtype is_prefix(fdtype prefix,fdtype string) {
   return has_prefix(string,prefix); }
+
+static fdtype strip_prefix(fdtype string,fdtype prefix)
+{
+  fdtype notstring;
+  if (FD_QCHOICEP(prefix)) prefix=(FD_XQCHOICE(prefix))->choice;
+  if ((FD_STRINGP(string))&&(FD_STRINGP(prefix))) {
+    if (has_prefix_test(string,prefix)) {}
+    else return fd_incref(string);}
+  if ((FD_EMPTY_CHOICEP(string))||(FD_EMPTY_CHOICEP(prefix)))
+    return fd_incref(string);
+  notstring=getnonstring(string);
+  if (!(FD_VOIDP(notstring)))
+    return fd_type_error("string","has_prefix/input",notstring);
+  else notstring=getnonstring(prefix);
+  if (!(FD_VOIDP(notstring)))
+    return fd_type_error("string","has_prefix/prefix",notstring);
+  else {
+    fdtype result=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(s,string) {
+      int nomatch=1;
+      FD_DO_CHOICES(p,prefix) {
+        if (has_prefix_test(s,p)) {
+          int preflen=FD_STRLEN(p), len=FD_STRLEN(s);
+          fdtype stripped=fd_extract_string
+            (NULL,FD_STRDATA(s)+preflen,FD_STRDATA(s)+len);
+          FD_ADD_TO_CHOICE(result,stripped);
+          nomatch=0;}}
+      if (nomatch) {
+        fd_incref(s); FD_ADD_TO_CHOICE(result,s);}}
+    return result;}
+}
 
 /* YES/NO */
 
@@ -1336,12 +1401,21 @@ FD_EXPORT void fd_init_strings_c()
                            fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim
+           (fd_make_cprim2x("STRIP-PREFIX",strip_prefix,2,
+                            -1,FD_VOID,-1,FD_VOID)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim
            (fd_make_cprim2x("HAS-SUFFIX",has_suffix,2,
                             -1,FD_VOID,-1,FD_VOID)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("IS-SUFFIX",is_suffix,2,
                            fd_string_type,FD_VOID,
                            fd_string_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim2x("STRIP-SUFFIX",strip_suffix,2,
+                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID));
+
   fd_idefn(fd_scheme_module,
            fd_make_cprim4x("YES?",yesp_prim,1,
                            -1,FD_VOID,-1,FD_FALSE,
