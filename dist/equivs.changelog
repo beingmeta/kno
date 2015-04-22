@@ -1,3 +1,9 @@
+metapackage (3.7.8-5) unstable; urgency=low
+
+  * Restored framerd-tidy to bmwebstack
+
+ -- beingmeta repository manager <repoman@beingmeta.com> Wed, 22 Apr 2015 15:54:43 -0400
+
 metapackage (3.7.8-4) unstable; urgency=low
 
   * Fix pre-depends

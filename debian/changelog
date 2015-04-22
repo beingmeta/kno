@@ -1,3 +1,30 @@
+framerd (3.7.8-57) unstable; urgency=low
+
+  * Fix packaging problems
+  * git patch version framerd-3.7.8-36
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 22 Apr 2015 16:14:48 -0400
+
+framerd (3.7.8-56) unstable; urgency=low
+
+  * Restored tidy module
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 22 Apr 2015 15:28:38 -0400
+
+framerd (3.7.8-54) unstable; urgency=low
+
+  * Added user/group setup to packaging
+  * git patch version framerd-3.7.8-30
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 22 Apr 2015 15:14:40 -0400
+
+framerd (3.7.8-53) unstable; urgency=low
+
+  * Add strip-prefix and strip-suffix
+  * git patch version framerd-3.7.8-27
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 21 Apr 2015 17:31:11 -0400
+
 framerd (3.7.8-52) unstable; urgency=low
 
   * Made upstart scripts start on runlevel 3, not 2
