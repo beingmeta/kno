@@ -1,3 +1,10 @@
+framerd (3.7.8-57) unstable; urgency=low
+
+  * Fix packaging problems
+  * git patch version framerd-3.7.8-36
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 22 Apr 2015 16:14:48 -0400
+
 framerd (3.7.8-56) unstable; urgency=low
 
   * Restored tidy module
