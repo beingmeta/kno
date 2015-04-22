@@ -1,3 +1,10 @@
+framerd (3.7.8-54) unstable; urgency=low
+
+  * Added user/group setup to packaging
+  * git patch version framerd-3.7.8-30
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 22 Apr 2015 15:14:40 -0400
+
 framerd (3.7.8-53) unstable; urgency=low
 
   * Add strip-prefix and strip-suffix

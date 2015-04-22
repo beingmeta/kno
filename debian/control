@@ -59,10 +59,10 @@ Architecture: any
 Depends: framerd (= ${binary:Version})
 Description: Markdown conversion (bindings) for FramerD
 
-Package: framerd-tidy
-Architecture: any
-Depends: framerd (= ${binary:Version}), tidy
-Description: HTML Tidy (bindings) for FramerD
+#Package: framerd-tidy
+#Architecture: any
+#Depends: framerd (= ${binary:Version}), tidy
+#Description: HTML Tidy (bindings) for FramerD
 
 Package: framerd-doc
 Architecture: any
