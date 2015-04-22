@@ -22,6 +22,8 @@ usr/etc/framerd
 usr/etc/framerd/config
 usr/etc/framerd/daemons
 usr/etc/framerd/servlets
+var/run/fdserv
+var/run/framerd
 var/log/framerd
 var/log/framerd/bugjar
 var/log/fdserv
