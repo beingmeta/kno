@@ -20,6 +20,11 @@ set -e
 
 case "$1" in
     configure)
+	chown -R root:framerd /usr/etc/framerd
+	chown -R root:framerd /usr/share/framerd
+	chown -R root:framerd /var/run/framerd
+	chown -R root:framerd /var/log/framerd
+	chown -R root:framerd /var/log/fdserv
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

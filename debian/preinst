@@ -16,6 +16,8 @@ set -e
 
 case "$1" in
     install|upgrade)
+	addgroup --system framerd
+	adduser --system --no-create-home --disabled-password fdaemon
     ;;
 
     abort-upgrade)
