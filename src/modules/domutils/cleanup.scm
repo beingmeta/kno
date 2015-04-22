@@ -45,6 +45,8 @@
 			   (error "Invalid cleanup rule")))
 		   dom-cleanup-rules)))
 
+(define keep-empty-attribs '{id name})
+
 ;;; Fixing punctuation to be prettier
 
 (define (wrapdash string) (glom "&nbsp;" string " "))
@@ -271,7 +273,9 @@
 			     (qc classrules)
 			     (qc stylerules)))
 	     (when (and dropempty isblock
-			(not (test child '{id class name}))
+			(not (test child keep-empty-attribs))
+			(not (has-prefix (first (get child '%attribs))
+					 "DATA-"))
 			(test child '%content)
 			(or (null? (get child '%content))
 			    (every? empty-child? (get child '%content))))
