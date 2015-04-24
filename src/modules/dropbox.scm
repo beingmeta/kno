@@ -45,7 +45,7 @@
 			  oauth path)))
     (if revision
 	(oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
-	(%wc oauth/call oauth 'GET endpoint '() #f #f #t))))
+	(oauth/call oauth 'GET endpoint '() #f #f #t))))
 (define (dropbox/get oauth path (revision #f))
   (let* ((endpoint (db/url "https://api-content.dropbox.com/1/files/"
 			   oauth path))
