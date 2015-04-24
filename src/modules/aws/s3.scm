@@ -433,7 +433,7 @@
   (unless (has-prefix path "/") (set! path (glom "/" path)))
   (default! usepath (position #\. bucket))
   (unless (has-suffix scheme "://") (set! scheme (fix-scheme scheme)))
-  (info%watch "SIGNEDURI" opt bucket path scheme expires headers usepath)
+  (info%watch "SIGNEDURI" op bucket path scheme expires headers usepath)
   (let* ((endpoint (if usepath
 		       (glom scheme s3root "/" bucket path)
 		       (glom scheme bucket "." s3root path)))
@@ -470,15 +470,19 @@
 	     (opts (tryif (table? optarg) optarg))
 	     (s3loc (->s3loc arg)))
 	(signeduri (s3loc-bucket s3loc) (s3loc-path s3loc)
-		   (getopt opts 'scheme "https://")
+		   (try (getopt opts 'scheme {})
+			(intersection optarg {"http://" "https://"})
+			(glom (intersection optarg {"http:" "https:"}) "//"))
 		   (if (not optarg) (* 48 3600)
 		       (if (number? optarg) (timestamp+ (car args))
 			   (if (timestamp? optarg) optarg
 			       (if (table? optarg)
 				   (getopt optarg 'expires (* 48 3600))
-				   (irritant optarg |BadOptArg| s3/signeduri)))))
+				   (irritant optarg |BadOptArg| 
+					     s3/signeduri)))))
 		   "GET"
-		   (try (getopt opts 'headers (get (s3loc/opts s3loc) 'headers))
+		   (try (getopt opts 'headers 
+				(get (s3loc/opts s3loc) 'headers))
 			'())
 		   (position #\. (s3loc-bucket s3loc))))
       (apply signeduri arg args)))
