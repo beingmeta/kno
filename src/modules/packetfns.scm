@@ -26,7 +26,7 @@
 		 (string->number (packet->base16 packet) 16)))
 	(base (length digits))
 	(result '()))
-    (while (> num base)
+    (while (>= num base)
       (set! result (cons (elt digits (remainder num base)) result))
       (set! num (quotient num base)))
     (set! result (cons (elt digits num) result))

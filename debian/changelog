@@ -1,3 +1,10 @@
+framerd (3.7.8-59) unstable; urgency=low
+
+  * Fixed bug in packetfns
+  * git patch version framerd-3.7.8-42
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 29 Apr 2015 16:37:27 -0400
+
 framerd (3.7.8-58) unstable; urgency=low
 
   * Update DOM cleanup module
