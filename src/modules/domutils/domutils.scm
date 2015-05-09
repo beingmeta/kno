@@ -250,7 +250,7 @@
 	     "DOM/SET of ambiguous attribute " attrib
 	     attribs))
     (if (bound? value)
-	(let* ((val (try (cadr attribs) (get node slotid)))
+	(let* ((val (try (second attribs) (get node slotid)))
 	       (vals (if sep (segment val sep) (segment val)))
 	       (newvals (remove value vals)))
 	  (unless (equal? vals newvals)
