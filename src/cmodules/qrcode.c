@@ -85,7 +85,7 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
   if ((FD_FIXNUMP(dotsize_arg)) && ((FD_FIXNUMP(dotsize_arg))>0))
     dotsize=FD_FIX2INT(dotsize_arg);
   else return fd_type_error("positive fixnum","write_png_packet",dotsize_arg);
-  if ((FD_FIXNUMP(margin_arg)) && ((FD_FIXNUMP(margin_arg))>=0))
+  if ((FD_FIXNUMP(margin_arg)) && ((FD_FIX2INT(margin_arg))>=0))
     margin=FD_FIX2INT(margin_arg);
   else return fd_type_error("positive fixnum","write_png_packet",margin_arg);
   /* Start building the PNG, using setjmp */
