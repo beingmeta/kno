@@ -1243,10 +1243,13 @@ static fdtype boundp_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"boundp_handler",NULL,fd_incref(expr));
   else {
     fdtype val=fd_symeval(symbol,env);
-    if (FD_VOIDP(val)) return FD_FALSE;
-    else if (val == FD_UNBOUND) return FD_FALSE;
+    if ((FD_VOIDP(val))||(val==FD_DEFAULT_VALUE))
+      return FD_FALSE;
+    else if (val == FD_UNBOUND) 
+      return FD_FALSE;
     else {
-      fd_decref(val); return FD_TRUE;}}
+      fd_decref(val); 
+      return FD_TRUE;}}
 }
 
 static fdtype modref_handler(fdtype expr,fd_lispenv env)
@@ -1301,6 +1304,7 @@ static fdtype symbol_boundp_prim(fdtype symbol,fdtype envarg)
     fd_lispenv env=(fd_lispenv)envarg;
     fdtype val=fd_symeval(symbol,env);
     if (FD_VOIDP(val)) return FD_FALSE;
+    else if (val == FD_DEFAULT_VALUE) return FD_FALSE;
     else if (val == FD_UNBOUND) return FD_FALSE;
     else return FD_TRUE;}
   else if (FD_TABLEP(envarg)) {
