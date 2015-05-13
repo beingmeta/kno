@@ -1,7 +1,7 @@
 framerd (3.7.8-60) unstable; urgency=low
 
   * Made framerd-tidy depend on libtidy5
-  * git patch version framerd-3.7.8-42
+  * git patch version framerd-3.7.8-48
 
  -- Ken Haase <kh@beingmeta.com>  Wed, 12 May 2015 09:55:27 +0200
 
