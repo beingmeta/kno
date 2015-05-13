@@ -1,9 +1,15 @@
+framerd (3.7.8-63) unstable; urgency=low
+
+  * Trying out tidy5 dependencies
+  * git patch version framerd-3.7.8-51
+ --
+
 framerd (3.7.8-62) unstable; urgency=low
 
   * Back out of framerd-tidy updates
   * git patch version framerd-3.7.8-50
 
- --  <kh@beingmeta.com>  Wed, 13 May 2015 13:22:20 +0000
+ --  Ken Haase <kh@beingmeta.com>  Wed, 13 May 2015 13:22:20 +0000
 
 framerd (3.7.8-61) unstable; urgency=low
 

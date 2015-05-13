@@ -969,8 +969,8 @@ if (test "x$have_tidy_tidy_h" = "xyes"); then
   AC_DEFINE(HAVE_TIDY_TIDY_H,1)
 fi
 if ((test "x$have_tidy_h" = "xyes")||(test "x$have_tidy_tidy_h" = "xyes")); then
-  AC_CHECK_LIB(tidy,tidyCreate)
-  AC_CHECK_LIB(tidy,tidyCreate,have_libtidy="yes",have_libtidy="no")
+  AC_CHECK_LIB(tidy5,tidyCreate)
+  AC_CHECK_LIB(tidy5,tidyCreate,have_libtidy="yes",have_libtidy="no")
 fi
 if (test "x$have_libtidy" = "xyes"); then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
