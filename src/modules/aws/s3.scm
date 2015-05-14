@@ -472,7 +472,8 @@
 	(signeduri (s3loc-bucket s3loc) (s3loc-path s3loc)
 		   (try (getopt opts 'scheme {})
 			(intersection optarg {"http://" "https://"})
-			(glom (intersection optarg {"http:" "https:"}) "//"))
+			(glom (intersection optarg {"http:" "https:"}) "//")
+			"https://")
 		   (if (not optarg) (* 48 3600)
 		       (if (number? optarg) (timestamp+ (car args))
 			   (if (timestamp? optarg) optarg
