@@ -306,7 +306,7 @@ static fdtype imagick_format(fdtype fdwand,fdtype format)
   MagickWand *wand=wrapper->wand;
   retval=MagickSetImageFormat(wand,FD_STRDATA(format));
   if (retval==MagickFalse) {
-    grabmagickerr("imagick_fit",wand);
+    grabmagickerr("imagick_format",wand);
     return FD_ERROR_VALUE;}
   else return fd_incref(fdwand);
 }
@@ -375,7 +375,7 @@ static fdtype imagick_extend(fdtype fdwand,fdtype w_arg,fdtype h_arg,
     DestroyPixelWand(color);}
   retval=MagickExtentImage(wand,width,height,xoff,yoff);
   if (retval==MagickFalse) {
-    grabmagickerr("imagick_fit",wand);
+    grabmagickerr("imagick_extend",wand);
     return FD_ERROR_VALUE;}
   else return fd_incref(fdwand);
 }
@@ -475,7 +475,7 @@ static fdtype imagick_flop(fdtype fdwand)
   MagickWand *wand=wrapper->wand;
   retval=MagickFlopImage(wand);
   if (retval==MagickFalse) {
-    grabmagickerr("imagick_flip",wand);
+    grabmagickerr("imagick_flop",wand);
     return FD_ERROR_VALUE;}
   else return fd_incref(fdwand);
 }
@@ -543,7 +543,7 @@ static fdtype imagick_display(fdtype fdwand,fdtype display_name)
     ((FD_VOIDP(display_name))?((u8_string)":0.0"):(FD_STRDATA(display_name)));
   retval=MagickDisplayImage(wand,display);
   if (retval==MagickFalse) {
-    grabmagickerr("imagick_deskew",wand);
+    grabmagickerr("imagick_display",wand);
     return FD_ERROR_VALUE;}
   else return fd_incref(fdwand);
 }
