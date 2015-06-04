@@ -30,7 +30,7 @@
       ("Two plus three is " (BEGIN (+ 2 3)) " ") %QNAME P]))
 (applytester test-result-3 fdxml/parse test-input-3)
 (evaltest "<p>Two plus three is 5 </p>"
-	  (xmlevalout test-result-3))
+	  (xml->string test-result-3))
 
 (define test-input-4
   "<p title=\"$(glom 'alpha 2 #f 'omega)\">Two plus three is <?=(+ 2 3)?>.</p>")
@@ -42,5 +42,5 @@
       TITLE (%XMLEVAL GLOM 'ALPHA 2 #f 'OMEGA)]))
 (applytester test-result-4 fdxml/parse test-input-4)
 (evaltest "<p title=\"ALPHA2OMEGA\">Two plus three is 5.</p>"
-	  (xmlevalout test-result-4))
+	  (xml->string test-result-4))
 
