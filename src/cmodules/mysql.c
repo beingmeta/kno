@@ -580,7 +580,8 @@ static fdtype get_stmt_values
           fd_decref(value);}
         else kv[n_slots].value=value;
       else if (FD_PRIM_TYPEP(colmaps[i],fd_secret_type)) {
-        FD_SET_CONS_TYPE(value,fd_secret_type);
+        if ((FD_STRINGP(value))||(FD_PACKETP(value)))
+          FD_SET_CONS_TYPE(value,fd_secret_type);
         kv[n_slots].value=value;}
       else if (FD_PRIM_TYPEP(colmaps[i],fd_uuid_type))
         if ((FD_PACKETP(value))||(FD_STRINGP(value))) {
