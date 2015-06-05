@@ -640,8 +640,8 @@ FD_EXPORT void fd_init_modules_c()
                      fd_lconfig_get,fd_lconfig_push,&dloadpath);
 
   fd_config_set_consed("DLOADPATH",fd_lispstring(FD_DEFAULT_DLOADPATH));
-  if (u8_getenv("FD_DLOADPATH"))
-    fd_config_set_consed("DLOADPATH",fd_lispstring(u8_getenv("FD_DLOADPATH")));
+  {u8_string tmp=u8_getenv("FD_DLOADPATH");
+    if (tmp) fd_config_set_consed("DLOADPATH",fd_unistring(tmp));}
 
   loadstamp_symbol=fd_intern("%LOADSTAMP");
   moduleid_symbol=fd_intern("%MODULEID");
