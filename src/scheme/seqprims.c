@@ -342,7 +342,7 @@ FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end)
           if ((FDTYPE_EQUAL(kelt,velt)) ||
               ((FD_CHOICEP(velt)) && (fd_overlapp(kelt,velt)))) {
             fd_decref(kelt); fd_decref(velt); i++; j++;}
-          else break;}
+          else {fd_decref(kelt); fd_decref(velt); break;}}
         if (i == keylen) {
           fd_decref(keystart);
           return pos;}
