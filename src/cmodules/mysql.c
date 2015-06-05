@@ -555,10 +555,9 @@ static fdtype get_stmt_values
       else if (FD_APPLICABLEP(colmaps[i])) {
         kv[n_slots].value=fd_apply(colmaps[i],1,&value);
         fd_decref(value);}
-      else if (FD_OIDP(colmaps[i]))
+      else if (FD_OIDP(colmaps[i])) {
         if (FD_STRINGP(value)) {
-          kv[n_slots].value=fd_parse(FD_STRDATA(value));
-          fd_decref(value);}
+          kv[n_slots].value=fd_parse(FD_STRDATA(value));}
         else {
           FD_OID base=FD_OID_ADDR(colmaps[i]);
           int offset=fd_getint(value);
@@ -570,8 +569,8 @@ static fdtype get_stmt_values
             else kv[n_slots].value=FD_EMPTY_CHOICE;}
           else {
             FD_OID baseplus=FD_OID_PLUS(base,offset);
-            kv[n_slots].value=fd_make_oid(baseplus);
-            fd_decref(value);}}
+            kv[n_slots].value=fd_make_oid(baseplus);}}
+        fd_decref(value);}
       else if (colmaps[i]==FD_TRUE)
         if (FD_STRINGP(value)) {
           if (FD_STRLEN(value))
