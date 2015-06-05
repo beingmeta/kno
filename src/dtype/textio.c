@@ -1099,7 +1099,9 @@ static fdtype parse_qchoice(U8_INPUT *in)
   if (n_elts==0)
     return fd_init_qchoice(u8_alloc(struct FD_QCHOICE),
                            FD_EMPTY_CHOICE);
-  else if (n_elts==1) return elts[0];
+  else if (n_elts==1) {
+    fdtype result=elts[0]; u8_free(elts);
+    return result;}
   else if (n_elts>1) {
     struct FD_CHOICE *xch=fd_alloc_choice(n_elts);
     fdtype choice=fd_init_choice(xch,n_elts,elts,FD_CHOICE_DOSORT);
