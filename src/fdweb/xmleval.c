@@ -487,16 +487,20 @@ static fdtype get_xml_handler(fdtype xml,fd_lispenv xml_env)
   if (!(xml_env)) return FD_VOID;
   else {
     fdtype qname=fd_get(xml,qname_slotid,FD_VOID);
-    fdtype name=fd_get(xml,xmltag_symbol,FD_VOID);
     fdtype value=FD_VOID;
-    if (FD_STRINGP(qname)) {
-      fdtype symbol=fd_probe_symbol(FD_STRDATA(qname),FD_STRLEN(qname));
-      if (FD_SYMBOLP(symbol)) value=fd_symeval(symbol,xml_env);}
-    if (!(FD_VOIDP(value))) {}
-    else if (FD_SYMBOLP(name))
-      value=fd_symeval(name,xml_env);
-    else {}
-    return value;}
+    FD_DO_CHOICES(q,qname) {
+      if (FD_STRINGP(q)) {
+        fdtype symbol=fd_probe_symbol(FD_STRDATA(q),FD_STRLEN(q));
+        if (FD_SYMBOLP(symbol)) value=fd_symeval(symbol,xml_env);
+        if (!(FD_VOIDP(value))) {
+          fd_decref(qname);
+          FD_STOP_DO_CHOICES;
+          return value;}}}
+    fd_decref(qname); {
+      fdtype name=fd_get(xml,xmltag_symbol,FD_VOID);
+      if (FD_SYMBOLP(name)) value=fd_symeval(name,xml_env);
+      else {}
+      return value;}}
 }
 
 struct XMLAPPLY { fdtype xml; fd_lispenv env;};
