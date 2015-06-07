@@ -236,8 +236,7 @@ static fdtype get_markup_string(fdtype xml,
                                 fd_lispenv xml_env)
 {
   U8_OUTPUT out; int cache_result=fd_cache_markup;
-  fdtype cached, attribs=FD_EMPTY_CHOICE, attribids=FD_EMPTY_CHOICE;;
-  fdtype xmlns=fd_get(xml,xmlns_symbol,FD_VOID);
+  fdtype cached, attribs=FD_EMPTY_CHOICE, attribids=FD_EMPTY_CHOICE;
   if (fd_cache_markup) {
     cached=fd_get(xml,raw_markup,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
@@ -265,17 +264,20 @@ static fdtype get_markup_string(fdtype xml,
     else output_markup_sym(&out,name);
     fd_decref(name);}
   else return fd_type_error("XML node","get_markup_string",xml);
-  if (!(FD_VOIDP(xmlns))) {
-    FD_DO_CHOICES(nspec,xmlns) {
-      if (FD_STRINGP(nspec)) {
-        u8_printf(&out," xmlns=\"%s\"",FD_STRDATA(nspec));}
-      else if ((FD_PAIRP(nspec))&&
-               (FD_STRINGP(FD_CAR(nspec)))&&
-               (FD_STRINGP(FD_CDR(nspec)))) {
-        u8_printf(&out," xmlns:%s=\"%s\"",
-                  FD_STRDATA(FD_CAR(nspec)),
-                  FD_STRDATA(FD_CDR(nspec)));}
-      else {}}}
+  {
+    fdtype xmlns=fd_get(xml,xmlns_symbol,FD_VOID);
+    if (!(FD_VOIDP(xmlns))) {
+      FD_DO_CHOICES(nspec,xmlns) {
+        if (FD_STRINGP(nspec)) {
+          u8_printf(&out," xmlns=\"%s\"",FD_STRDATA(nspec));}
+        else if ((FD_PAIRP(nspec))&&
+                 (FD_STRINGP(FD_CAR(nspec)))&&
+                 (FD_STRINGP(FD_CDR(nspec)))) {
+          u8_printf(&out," xmlns:%s=\"%s\"",
+                    FD_STRDATA(FD_CAR(nspec)),
+                    FD_STRDATA(FD_CDR(nspec)));}
+        else {}}}
+    fd_decref(xmlns);}
   attribs=fd_get(xml,attribs_slotid,FD_EMPTY_CHOICE);
   if (FD_EMPTY_CHOICEP(attribs))
     attribids=fd_get(xml,attribids_slotid,FD_EMPTY_CHOICE);
