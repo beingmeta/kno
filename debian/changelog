@@ -1,3 +1,10 @@
+framerd (3.7.8-68) unstable; urgency=low
+
+  * Fix tidy to accept numeric entities by default
+  * git patch version framerd-3.7.8-71
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 11 Jun 2015 12:59:37 -0400
+
 framerd (3.7.8-67) unstable; urgency=low
 
   * Fixed various leaks

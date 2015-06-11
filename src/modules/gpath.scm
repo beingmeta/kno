@@ -231,7 +231,7 @@
 	 (make-s3loc (s3loc-bucket path) (dirname (s3loc-path path))))
 	((and (s3loc? path) (string? (s3loc-path path)))
 	 (make-s3loc (s3loc-bucket path) ""))
-	((and (string? path) (has-prefix path "/")) (dirname path))
+	((and (string? path) (has-prefix path {"/" "~"})) (dirname path))
 	((and (string? path) (has-prefix path {"ftp:" "http:" "https:"}))
 	 (if (has-suffix path "/") path (dirname path)))
 	((and (string? path) (position #\/ path))
@@ -290,7 +290,7 @@
 	((not (string? path))
 	 (error |TypeError| makepath "Relative path is not a string" path))
 	((and (not require-subpath)
-	      (has-prefix path {"/" "http:" "s3:" "https:"
+	      (has-prefix path {"/" "http:" "s3:" "https:" "~"
 				"HTTP:" "S3:" "HTTPS:"}))
 	 (->gpath path))
 	((s3loc? root) (s3/mkpath root path))
@@ -634,7 +634,7 @@
 	   (or (s3loc? (car val)) (zipfile? (car val))))
       (if (string? val)
 	  (and (not (position #\newline val))
-	       (has-prefix val {"http:" "https:" "ftp:" "s3:" "/"}))
+	       (has-prefix val {"http:" "https:" "ftp:" "s3:" "/" "~"}))
 	  (or (s3loc? val) (zipfile? val)))))
 
 (define (->gpath val (root #f))
@@ -642,7 +642,9 @@
       (if (has-prefix val {"s3:" "S3:"}) (->s3loc val)
 	  (if (has-prefix val {"http:" "https:" "ftp:"}) val
 	      (if (has-prefix val "/") val
-		  (if root (gp/mkpath root val) (abspath val)))))
+		  (if (has-prefix val "~") (abspath val)
+		      (if root (gp/mkpath root val)
+			  (abspath val))))))
       val))
 
 (defambda (gp/has-suffix gpath suffixes (casematch #f))

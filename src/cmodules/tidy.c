@@ -142,7 +142,8 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyJoinClasses,"JOINCLASSES",FD_TRUE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyJoinStyles,"JOINSTYLES",FD_TRUE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyFixUri,"FIXURI",FD_TRUE);
-  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyNCR,"NUMENTITIES",FD_FALSE);
+  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyNumEntities,"NUMENTITIES",FD_TRUE);
+  if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyNCR,"NUMENTITIES",FD_TRUE);
   if (rc>=0) rc=copyStringOpt(opts,tdoc,TidyCSSPrefix,"CSSPREFIX","tidy-");
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyQuoteAmpersand,"QUOTEAMP",FD_TRUE);
   if (rc>=0) rc=copyBoolOpt(opts,tdoc,TidyQuoteNbsp,"QUOTENBSP",FD_FALSE);
