@@ -63,6 +63,8 @@ static u8_condition ServletStartup=_("FDServlet Startup");
 static u8_condition NoServers=_("No servers configured");
 #define Startup ServletStartup
 
+static int daemonize=0, foreground=0;
+
 FD_EXPORT int fd_init_fddbserv(void);
 
 #include "webcommon.h"
@@ -1593,6 +1595,11 @@ int main(int argc,char **argv)
   fd_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
                      fd_boolconfig_get,fd_boolconfig_set,&async_mode);
 
+  fd_register_config("FOREGROUND",_("Whether to run in the foreground"),
+                     fd_boolconfig_get,fd_boolconfig_set,&foreground);
+  fd_register_config("DAEMONIZE",_("Whether to enable auto-restart"),
+                     fd_boolconfig_get,fd_boolconfig_set,&daemonize);
+
   if (getenv("LOGFILE"))
     logfile=u8_fromlibc(getenv("LOGFILE"));
   else if ((getenv("LOGDIR"))&&(socket_spec)) {
@@ -1766,7 +1773,7 @@ int main(int argc,char **argv)
     fd_decref(path); fd_decref(result);}
   else {}
 
-  if (getenv("FD_FOREGROUND"))
+if (foreground)
     return launch_servlet(socket_spec);
   else return fork_servlet(socket_spec);
 }
@@ -1887,7 +1894,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec);
 static int fork_servlet(u8_string socket_spec)
 {
   pid_t child, grandchild; double start=u8_elapsed_time();
-  if ((getenv("FD_FOREGROUND"))&&(getenv("FD_DAEMONIZE"))) {
+  if ((foreground)&&(daemonize>0)) {
     /* This is the scenario where we stay in the foreground but
        restart automatically.  */
     if ((child=fork())) {
@@ -1951,14 +1958,14 @@ static int fork_servlet(u8_string socket_spec)
       if (grandchild<0) {
         u8_log(LOG_CRIT,"fork_servlet","Second fork failed for %s",socket_spec);
         exit(1);}
-      else if (getenv("FD_DAEMONIZE"))
+      else if (daemonize>0)
         u8_log(LOG_NOTICE,"fork_servlet","Restart monitor for %s has PID %d",
                socket_spec,grandchild);
       else u8_log(LOG_NOTICE,"fork_servlet","Running server %s has PID %d",
                   socket_spec,grandchild);
       /* This is the parent, which always exits */
       exit(0);}
-    else if (getenv("FD_DAEMONIZE")) {
+    else if (daemonize>0) {
       pid_t worker;
       if ((worker=fork())) {
         if (worker<0)
@@ -1976,8 +1983,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
 {
   u8_string ppid_filename=fd_runbase_filename(".ppid");
   FILE *f=fopen(ppid_filename,"w");
-  char *restartval=getenv("FD_DAEMONIZE");
-  int status=-1, sleepfor=atoi(restartval);
+  int status=-1, sleepfor=daemonize;
   if (f) {
     fprintf(f,"%ld\n",(long)getpid());
     fclose(f);

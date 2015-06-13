@@ -1,3 +1,10 @@
+framerd (3.7.8-69) unstable; urgency=low
+
+  * Make fdserver/fdservlet DAEMONIZE and FOREGROUND use configuration framework
+  * git patch version framerd-3.7.8-72
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 13 Jun 2015 11:33:10 -0400
+
 framerd (3.7.8-68) unstable; urgency=low
 
   * Fix tidy to accept numeric entities by default

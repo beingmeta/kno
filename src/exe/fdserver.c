@@ -42,6 +42,8 @@ FD_EXPORT int fd_update_file_modules(int force);
 
 #include "main.c"
 
+static int daemonize=0, foreground=0;
+
 #define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
 
@@ -905,7 +907,7 @@ int main(int argc,char **argv)
   pid_file=fd_runbase_filename(".pid");
   nid_file=fd_runbase_filename(".nid");
 
-  if ((getenv("FD_DAEMONIZE"))||(!(getenv("FD_FOREGROUND"))))
+  if ((daemonize>0)||(!(foreground)))
     return fork_server(server_spec,core_env);
   else return launch_server(server_spec,core_env);
 
@@ -913,6 +915,10 @@ int main(int argc,char **argv)
 
 static void init_configs()
 {
+  fd_register_config("FOREGROUND",_("Whether to run in the foreground"),
+                     fd_boolconfig_get,fd_boolconfig_set,&foreground);
+  fd_register_config("DAEMONIZE",_("Whether to enable auto-restart"),
+                     fd_boolconfig_get,fd_boolconfig_set,&daemonize);
   fd_register_config("BACKLOG",
                      _("Number of pending connection requests allowed"),
                      fd_intconfig_get,fd_intconfig_set,&max_backlog);
@@ -1009,7 +1015,7 @@ static int sustain_server(pid_t grandchild,
 static int fork_server(u8_string server_spec,fd_lispenv env)
 {
   pid_t child, grandchild; double start=u8_elapsed_time();
-  if ((getenv("FD_FOREGROUND"))&&(getenv("FD_DAEMONIZE"))) {
+  if ((foreground)&&(daemonize>0)) {
     /* This is the scenario where we stay in the foreground but
        restart automatically.  */
     if ((child=fork())) {
@@ -1073,14 +1079,14 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
       if (grandchild<0) {
         u8_log(LOG_CRIT,"fork_server","Second fork failed for %s",server_spec);
         exit(1);}
-      else if (getenv("FD_DAEMONIZE"))
+      else if (daemonize>0)
         u8_log(LOG_NOTICE,"fork_server","Restart monitor for %s has PID %d",
                server_spec,grandchild);
       else u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
                   server_spec,grandchild);
       /* This is the parent, which always exits */
       exit(0);}
-    else if (getenv("FD_DAEMONIZE")) {
+    else if (daemonize>0) {
       pid_t worker;
       if ((worker=fork())) {
         if (worker<0)
@@ -1099,8 +1105,7 @@ static int sustain_server(pid_t grandchild,
 {
   u8_string ppid_filename=fd_runbase_filename(".ppid");
   FILE *f=fopen(ppid_filename,"w");
-  char *restartval=getenv("FD_DAEMONIZE");
-  int status=-1, sleepfor=atoi(restartval);
+  int status=-1, sleepfor=daemonize;
   if (f) {
     fprintf(f,"%ld\n",(long)getpid());
     fclose(f);
