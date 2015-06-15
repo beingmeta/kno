@@ -1,3 +1,10 @@
+framerd (3.7.8-70) unstable; urgency=low
+
+  * Fixed table/timestamp bug in signeduri
+  * git patch version framerd-3.7.8-73
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 15 Jun 2015 09:12:25 -0400
+
 framerd (3.7.8-69) unstable; urgency=low
 
   * Make fdserver/fdservlet DAEMONIZE and FOREGROUND use configuration framework
