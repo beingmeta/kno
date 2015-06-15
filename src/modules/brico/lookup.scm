@@ -112,6 +112,7 @@
   (if (not (number? tryhard)) (error "Tryhard argument should be number"))
   ;; Syntactic prefix tricks:
   ;; ~ means try harder, xx$ means try in language xx, $ means try in English
+  (debug%watch "LOOKUP-WORD" word language tryhard)
   (if (has-prefix word "~")
       (lookup-word (subseq word 1) language (+ tryhard 1))
       (if (has-prefix word "$")
@@ -120,24 +121,24 @@
 	      (lookup-word (subseq word 3)
 			   (?? 'iso639/1 (subseq word 0 2))
 			   tryhard)
-	      (lookup-word-core (stdspace word) language tryhard)))))
+	      (debug%watch (lookup-word-core (stdspace word) language tryhard)
+		word language tryhard)))))
 
 (define (lookup-word-core word language tryhard)
-  ;; (message "lookup-word-core " (write word) " " language " " tryhard)
   (choice (?? language word)
 	  (tryif (> tryhard 0)
-		 (let* ((baselang (getbaselang language))
-			(variants (vary-word word baselang tryhard)))
-		   (lookup-variants variants language tryhard)))
+	    (let* ((baselang (getbaselang language))
+		   (variants (vary-word word baselang tryhard)))
+	      (lookup-variants variants language tryhard)))
 	  (tryif (and (> tryhard 1) (not (uppercase? word)) (> (length word) 4))
-		 (choice-max
-		  (?? language (metaphone (choice word (porter-stem word))
-					  #t))
-		  metaphone-max))
+	    (choice-max
+	     (?? language (metaphone (choice word (porter-stem word))
+				     #t))
+	     metaphone-max))
 	  (tryif (> tryhard 1)
-		 (if (capitalized? word)
-		     (?? language (downcase (choice word (basestring word))))
-		     (?? language (capitalize (choice word (basestring word))))))))
+	    (if (capitalized? word)
+		(?? language (downcase (choice word (basestring word))))
+		(?? language (capitalize (choice word (basestring word))))))))
 
 (defambda (lookup-variants variants language tryhard)
   (for-choices (variant variants)
@@ -234,7 +235,8 @@
 (define default-combo-slotids (choice partof* genls* implies*))
 
 (define (lookup-combo base cxt (slotid #f) (language default-language))
-  ;; (message "Looking up combo of " base " and " cxt " linked by " slotid " in " language)
+  (logdebug |LookupCombo|
+    "Looking up combo of " base " and " cxt " linked by " slotid " in " language)
   (let ((sym (pick cxt symbol?)))
     (if (empty? sym)
 	(choice
@@ -335,7 +337,8 @@
 	 (eg-cxt (get matches 'eg))
 	 (sumterm-cxt (get matches 'sumterm))
 	 (meanings (lookup-word word language tryhard)))
-    ;;(%watch matches word language syn-cxt paren-cxt partof-cxt colon-cxt eg-cxt meanings)
+    (debug%watch "TRY-TERMULES"
+      matches word language syn-cxt paren-cxt partof-cxt colon-cxt eg-cxt meanings)
     (cons word
 	  (try (intersection meanings (lookup-word syn-cxt language))
 	       (tryif (and (exists? partof-cxt) (exists? paren-cxt))
