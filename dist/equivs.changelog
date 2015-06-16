@@ -2,7 +2,7 @@ metapackage (3.7.9-6) unstable; urgency=low
 
   * Updated release number
 
- -- Ken Haase <kh@beingmeta.com>  Tue, 16 Jun 2015 14:39:39 -0400
+ -- beingmeta repository manager <repoman@beingmeta.com> Tue, 16 Jun 2015 14:39:39 -0400
 
 metapackage (3.7.8-5) unstable; urgency=low
 
