@@ -42,7 +42,7 @@ FD_EXPORT int fd_update_file_modules(int force);
 
 #include "main.c"
 
-static int daemonize=0, foreground=0;
+static int daemonize=0, foreground=0, pidwait=1;
 
 #define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
@@ -919,6 +919,8 @@ static void init_configs()
                      fd_boolconfig_get,fd_boolconfig_set,&foreground);
   fd_register_config("DAEMONIZE",_("Whether to enable auto-restart"),
                      fd_boolconfig_get,fd_boolconfig_set,&daemonize);
+  fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
+                     fd_boolconfig_get,fd_boolconfig_set,&pidwait);
   fd_register_config("BACKLOG",
                      _("Number of pending connection requests allowed"),
                      fd_intconfig_get,fd_intconfig_set,&max_backlog);
@@ -934,7 +936,7 @@ static void init_configs()
                      fd_intconfig_get,fd_intconfig_set,&n_threads);
   fd_register_config("MODULE",_("modules to provide in the server environment"),
                      config_get_modules,config_use_module,NULL);
-  fd_register_config("FULLSCHEME",_("whether to provide full scheme interpretation to client"),
+  fd_register_config("FULLSCHEME",_("whether to provide full scheme interpreter"),
                      config_get_fullscheme,config_set_fullscheme,NULL);
   fd_register_config("LOGEVAL",_("Whether to log each request and response"),
                      fd_boolconfig_get,fd_boolconfig_set,&logeval);
@@ -1049,7 +1051,9 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
 #endif
     /* If the parent has exited, we wait around for the pid_file to be created
        by our grandchild. */
-    while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
+    if (!(pidwait))
+      u8_log(LOG_WARN,ServerStartup,"Not waiting for PID file %s",pid_file);
+    else while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
       if ((count%10)==0)
         u8_log(LOG_WARN,ServerStartup,"Waiting for PID file %s",pid_file);
       count--; sleep(1);}

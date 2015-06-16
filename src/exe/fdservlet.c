@@ -63,7 +63,7 @@ static u8_condition ServletStartup=_("FDServlet Startup");
 static u8_condition NoServers=_("No servers configured");
 #define Startup ServletStartup
 
-static int daemonize=0, foreground=0;
+static int daemonize=0, foreground=0, pidwait=1;
 
 FD_EXPORT int fd_init_fddbserv(void);
 
@@ -1599,6 +1599,8 @@ int main(int argc,char **argv)
                      fd_boolconfig_get,fd_boolconfig_set,&foreground);
   fd_register_config("DAEMONIZE",_("Whether to enable auto-restart"),
                      fd_boolconfig_get,fd_boolconfig_set,&daemonize);
+  fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
+                     fd_boolconfig_get,fd_boolconfig_set,&pidwait);
 
   if (getenv("LOGFILE"))
     logfile=u8_fromlibc(getenv("LOGFILE"));
@@ -1928,7 +1930,9 @@ static int fork_servlet(u8_string socket_spec)
 #endif
     /* If the parent has exited, we wait around for the pid_file to be created
        by our grandchild. */
-    while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
+    if (!(pidwait))
+      u8_log(LOG_WARN,ServletStartup,"Not waiting for PID file %s",pid_file);
+    else while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
       if ((count%10)==0)
         u8_log(LOG_WARN,ServletStartup,"Waiting for PID file %s",pid_file);
       count--; sleep(1);}
