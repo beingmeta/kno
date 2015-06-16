@@ -1,5 +1,3 @@
-instance $DIR
-
 start on (net-device-up and
           local-filesystems and
 	  runlevel [345] and
@@ -17,17 +15,27 @@ pre-start script
    chown @webuser@ @rundir@/fdserv @logdir@/fdserv
    chgrp @admin_group@ @rundir@/fdserv @logdir@/fdserv
    chmod g+rwx @rundir@/fdserv  @logdir@/fdserv
+end script
 
-   for sock in ${DIR}/*.sock;
+post-start script
+   for sock in $(find @config_dir@/servlets/ -name "*.sock" -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
-        then start fdservlet SOCKET=`basename ${sock}` CONFIG=`readlink ${sock}`;
-        else start fdservlet SOCKET=`basename ${sock}` CONFIG=${sock}; fi;
+        then touch @rundir@/fdserv/`basename ${sock}`.nospawn;
+	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
+               fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=`readlink ${sock}` \
+	         STATEDIR=@rundir@/fdserv DAEMONIZE=5 PIDWAIT=no;
+        else touch @rundir@/fdserv/`basename ${sock}`.nospawn;
+	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
+ 	       fdservlet @rundir@/fdserver/`basename ${sock}` CONFIG=${sock} \
+	         STATEDIR=@rundir@/fdserv DAEMONIZE=5 PIDWAIT=no; fi;
      done;
 end script
 
 post-stop script
-   for sock in ${DIR}/*.sock;
-       do stop fdservlet SOCKET=${sock} || true; done
+   for ppid in @rundir@/fdserv/*.ppid;
+       do kill `cat $ppid` || true; 
+          rm -f  @rundir@/fdserv/`basename $ppid .ppid`.nospawn
+       done
 end script
 
 

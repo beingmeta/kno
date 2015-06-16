@@ -15,7 +15,6 @@
 # X-Interactive:	false
 ### END INIT INFO
 
-export FDMANAGER=@prefix@/bin/fdmanager
 export FDSERVER=@prefix@/bin/fdserver
 export FDSERVLET=@prefix@/bin/fdservlet
 export FDAEMON_USER=@fdaemon@
@@ -100,9 +99,9 @@ case "$1" in
 	rm  @rundir@/framerd/_started;
 	;;
   status)
-	if (test -f $STATFILE) then
-	  cat $STATFILE
-	else echo "fdmanager not running"
+	if test -f @rundir@/framerd/_started;
+	    echo -n "Daemons: "; ls @rundir@/framerd/*.ppid;
+	    echo -n "Servlets: "; ls @rundir@/fdserv/*.ppid;
 	fi
 	;;
   restart|force-reload)

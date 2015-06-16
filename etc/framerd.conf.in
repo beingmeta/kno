@@ -1,6 +1,4 @@
 # FramerD upstart config, replaces fdmanager
-task
-
 start on (net-device-up and
           local-filesystems and
 	  runlevel [345])
@@ -25,31 +23,49 @@ pre-start script
 
    for ctl in $(find @config_dir@/daemons/ -name "*.fdz" -mindepth 1 -maxdepth 1);
      do if (readlink ${ctl}>/dev/null);
-        then start fdserver CTL=`readlink ${ctl}`;
-        else start fdserver CTL=${ctl}; fi;
+        then LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
+	       fdserver `readlink ${ctl}` STATEDIR=@rundir@/framerd DAEMONIZE=5;
+        else LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
+               fdserver ${ctl} STATEDIR=@rundir@/framerd DAEMONIZE=5; fi;
      done;
    for sock in $(find @config_dir@/servlets/ -name "*.sock" -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
-        then start fdservlet SOCKET=`basename ${sock}` CONFIG=`readlink ${sock}`;
-        else start fdservlet SOCKET=`basename ${sock}` CONFIG=${sock}; fi;
+        then touch @rundir@/fdserv/`basename ${sock}`.nospawn;
+	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
+               fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=`readlink ${sock}` \
+	         STATEDIR=@rundir@/fdserv DAEMONIZE=5;
+        else touch @rundir@/fdserv/`basename ${sock}`.nospawn;
+	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
+ 	       fdservlet @rundir@/fdserver/`basename ${sock}` CONFIG=${sock} \
+	         STATEDIR=@rundir@/fdserv DAEMONIZE=5; fi;
      done;
    for sock in $(find @config_dir@/servlets/ -name "*@*" -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
-        then start fdservlet SOCKET=`basename ${sock}` CONFIG=`readlink ${sock}`;
-        else start fdservlet SOCKET=`basename ${sock}` CONFIG=${sock}; fi;
+        then LOGFILE=@logdir@/fdserv/${sock}.log \
+	       fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=`readlink ${sock}` \
+	         STATEDIR=@rundir@/fdserv DAEMONIZE=5;
+        else LOGFILE=@logdir@/fdserv/${sock}.log \
+	       fdservlet @rundir@/fdserv/`basename ${sock}` \
+	         CONFIG=${sock} STATEDIR=@rundir@/fdserv DAEMONIZE=5; fi;
      done;
    for sock in $(find @config_dir@/servlets/ -name "*:*" -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
-        then start fdservlet SOCKET=`basename ${sock}` CONFIG=`readlink ${sock}`;
-        else start fdservlet SOCKET=`basename ${sock}` CONFIG=${sock}; fi;
+        then LOGFILE=@logdir@/fdserv/${sock}.log \
+	       fdservlet @rundir@/fdserv/`basename ${sock}` \
+                 CONFIG=`readlink ${sock}` STATEDIR=@rundir@/fdserv DAEMONIZE=5;
+        else LOGFILE=@logdir@/fdserv/${sock}.log \
+	       fdservlet @rundir@/fdserv/`basename ${sock}` \
+	         CONFIG=${sock} STATEDIR=@rundir@/fdserv DAEMONIZE=5; fi;
      done;
 end script
 
 post-stop script
-   for inst in `initctl list|grep "^fdserver "|awk '{print $2}'|tr -d ')'|tr -d '('`;
-       do stop fdserver CTL=$inst || true; done
-    for inst in `initctl list|grep "^fdservlet "|awk '{print $2}'|tr -d ')'|tr -d '('`;
-       do stop fdservlet SOCKET=$inst || true; done
+   for ppid in @rundir@/fdserv/*.ppid;
+       do kill `cat $ppid` || true; 
+          rm -f  @rundir@/fdserv/`basename $ppid .ppid`.nospawn
+       done
+   for ppid in  @rundir@/framerd/*.ppid;
+       do kill `cat $ppid` || true; done
 end script
 
 
