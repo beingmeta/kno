@@ -351,9 +351,9 @@ fi
 
 CFLAGS="$CFLAGS -I$prefix/include"
 
-if test -h $prefix/share/framerd/standard/modules/logger.scm; then
+if test -h $prefix/share/framerd/standard_modules/logger.scm; then
   devmode_default="yes";
-elif test -f $prefix/share/framerd/standard/modules/logger.scm; then
+elif test -f $prefix/share/framerd/standard_modules/logger.scm; then
   devmode_default="no";
 elif test -f .devmode; then
   devmode_default="yes";
@@ -362,9 +362,12 @@ elif test `pwd` = /src/framerd; then
 else devmode_default="no";
 fi
 
+
 AC_ARG_ENABLE(devmode,--en[dis]able-devmode Special settings for development machines (e.g. linking module files),,enable_devmode=$devmode_default)
 if test "x$enable_devmode" != "xno"; then
+  echo checking for devmode... yes
   install_modules_target="link-modules";
+else echo checking for devmode... no;
 fi
 
 if test "x$with_duma" != "xno" && test "x$custom_malloc" != "x"; then
