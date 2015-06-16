@@ -11,7 +11,7 @@
 (use-module 'brico)
 (use-module '{texttools reflection})
 (use-module '{morph morph/en})
-(use-module '{brico/maprules rulesets varconfig})
+(use-module '{brico/maprules rulesets varconfig logger})
 
 (define logger %logger)
 
