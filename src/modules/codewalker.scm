@@ -214,8 +214,8 @@
 
 (add! codewalkers quasiquote codewalk-quasiquote)
 
-(add! codewalkers (choice let letq) codewalk-let)
-(add! codewalkers (choice let* letq*) codewalk-let*)
+(add! codewalkers (choice let) codewalk-let)
+(add! codewalkers (choice let*) codewalk-let*)
 (add! codewalkers (choice lambda ambda slambda)
       codewalk-lambda)
 (add! codewalkers (choice set! set+! default!)
@@ -231,8 +231,8 @@
 (add! codewalkers do codewalk-do)
 
 (add! codewalkers
-      (choice begin prog1 until while ipeval
-	      tipeval try if tryif when unless and or
+      (choice begin prog1 until while ;; ipeval tipeval
+	      try if tryif when unless and or
 	      default bound? ifexists)
       codewalk-block)
 (add! codewalkers case codewalk-case)
