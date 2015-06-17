@@ -91,6 +91,9 @@ static int logeval=0, logerrs=0, logtrans=0, logbacktrace=0;
 
 static int no_fddb=0;
 
+static time_t last_launch=(time_t)-1;
+static int fastfail_threshold=60, fastfail_wait=60;
+
 #if FD_THREADS_ENABLED
 static u8_mutex init_server_lock;
 #endif
@@ -921,6 +924,11 @@ static void init_configs()
                      fd_boolconfig_get,fd_boolconfig_set,&daemonize);
   fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
                      fd_boolconfig_get,fd_boolconfig_set,&pidwait);
+  fd_register_config("FASTFAIL",_("Threshold for daemon fastfails"),
+                     fd_intconfig_get,fd_intconfig_set,&fastfail_threshold);
+  fd_register_config("FASTFAIL_WAIT",
+                     _("How long (secs) to wait after a fastfail"),
+                     fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
   fd_register_config("BACKLOG",
                      _("Number of pending connection requests allowed"),
                      fd_intconfig_get,fd_intconfig_set,&max_backlog);
@@ -1118,9 +1126,9 @@ static int sustain_server(pid_t grandchild,
     u8_log(LOG_WARN,"CantWritePPID","Couldn't write ppid file %s",
            ppid_filename);
     u8_free(ppid_filename);}
+  last_launch=time(NULL);
   /* Don't try to catch an error here */
-  if (sleepfor<0) sleepfor=7;
-  else if (sleepfor>60) sleepfor=60;
+  if (sleepfor>60) sleepfor=60;
   errno=0;
   /* Update the global variable with our current dependent grandchild */
   dependent=grandchild;
@@ -1135,6 +1143,7 @@ static int sustain_server(pid_t grandchild,
   signal(SIGQUIT,kill_dependent_onsignal);
 #endif
   while (waitpid(grandchild,&status,0)) {
+    time_t now=time(NULL);
     if (WIFSIGNALED(status))
       u8_log(LOG_WARN,"FDServer/restart",
              "Server %s(%d) terminated on signal %d",
@@ -1148,7 +1157,14 @@ static int sustain_server(pid_t grandchild,
       u8_log(LOG_WARN,"FDServer/done",
              "Terminating restart process for %s",server_spec);
       exit(0);}
-    sleep(sleepfor);
+    if ((now-last_launch)<fastfail_threshold) {
+      u8_log(LOG_CRIT,"FDServer/sustain",
+             "FDServer %s fast-failed after %d seconds, pausing %d seconds",
+             server_spec,now-last_launch,fastfail_wait);
+      sleep(fastfail_wait);}
+    else if (sleepfor>0) sleep(sleepfor);
+    else {}
+    last_launch=time(NULL);
     if ((grandchild=fork())) {
       u8_log(LOG_NOTICE,"FDServer/restart",
              "Server %s restarted with pid %d",
