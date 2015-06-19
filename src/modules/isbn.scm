@@ -1,12 +1,15 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
+;;; Copyright (C) 2005-2015 beingmeta, inc.  All rights reserved.
 
-;;; Copyright (C) 2005-2014 beingmeta, inc.  All rights reserved.
+;;; Recognizing valid ISBNs
+;;; Based on descriptions in:
+;;;  https://uva.onlinejudge.org/external/3/333.html
+;;;  https://en.wikipedia.org/wiki/International_Standard_Book_Number
 
-;;; Optimizing code structures for the interpreter, including
-;;;  use of constant OPCODEs and relative lexical references
 (in-module 'isbn)
-
 (module-export! 'isbn?)
+
+(define gs1-prefixes {"978" "979"})
 
 (define (char-weight char (code))
   (set! code (char->integer char))
@@ -27,15 +30,14 @@
       (set! sum (+ sum (* n (if (even? i) 1 3)))))
     sum))
 
-(define (isbn? string)
-  (let ((weights (remove #f (map char-weight string))))
-    (if (= (length weights) 10)
-	(zero? (remainder (isbn10-sum weights) 11))
-	(if (= (length weights) 13)
-	    (zero? (remainder (isbn13-sum weights) 10))
-	    #f))))
-
-
-
-
-
+(define (isbn? string (checkprefix #t))
+  (and
+   (or (not checkprefix)
+       (has-prefix string gs1-prefixes)
+       (has-prefix string (pickstrings checkprefix)))
+   (let ((weights (remove #f (map char-weight string))))
+     (if (= (length weights) 10)
+	 (zero? (remainder (isbn10-sum weights) 11))
+	 (if (= (length weights) 13)
+	     (zero? (remainder (isbn13-sum weights) 10))
+	     #f)))))
