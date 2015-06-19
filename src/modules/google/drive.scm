@@ -34,7 +34,7 @@
 	  (if (has-prefix path "/")
 	      (cons-gdrive auth path (or opts #{}))
 	      (cons-gdrive auth (glom "/" path) (or opts #{})))
-	  (error badpath make-gdrive path))))
+	  (error |BadPath| make-gdpath path))))
 
 (define (->gdrive input)
   (if (gdrive? input) input
@@ -44,26 +44,26 @@
 	      (if (has-prefix input "//")
 		  (let ((slash (position #\/ input 2)))
 		    (if slash
-			(make-gdrive (subseq input 2 slash)
+			(cons-gdrive (subseq input 2 slash)
 				     (subseq input (1+ slash)))
-			(make-gdrive (subseq input 2) "")))
+			(cons-gdrive (subseq input 2) "")))
 		  (let ((colon (position #\: input))
 			(slash (position #\/ input)))
 		    (if (and colon slash)
 			(if (< colon slash)
-			    (make-gdrive (subseq input 0 colon)
+			    (cons-gdrive (subseq input 0 colon)
 					 (if (= slash (1+ colon))
 					     (subseq input (+ colon 2))
 					     (subseq input (1+ colon))))
-			    (make-gdrive (subseq input 0 slash)
+			    (cons-gdrive (subseq input 0 slash)
 					 (subseq input (1+ slash))))
 			(if slash
-			    (make-gdrive (subseq input 0 slash)
+			    (cons-gdrive (subseq input 0 slash)
 					 (subseq input (1+ slash)))
 			    (if colon
-				(make-gdrive (subseq input 0 colon)
+				(cons-gdrive (subseq input 0 colon)
 					     (subseq input (1+ colon)))
-				(make-gdrive input "")))))))
+				(cons-gdrive input "")))))))
 	  (error "Can't convert to gdrive" input))))
 
 ;;; Methods

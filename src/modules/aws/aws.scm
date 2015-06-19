@@ -4,7 +4,7 @@
 ;;; Core file for accessing Amazon Web Services
 (in-module 'aws)
 
-(use-module 'crypto)
+(use-module '{logger crypto})
 
 (module-export! 
  '{awskey secretawskey awsaccount
@@ -37,8 +37,6 @@
 	       (if (bound? val)
 		   (set! awsaccount val)
 		   awsaccount)))
-
-(define (getit) hmac-sha256)
 
 (define (aws/datesig (date (timestamp)) (spec #{}))
   (unless date (set! date (timestamp)))
