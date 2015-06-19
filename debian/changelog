@@ -1,3 +1,10 @@
+framerd (3.7.9-73) unstable; urgency=low
+
+  * Assorted fixes to modules, mostly syntax errors caught by new testmodules module
+  * git patch version framerd-3.7.9-10
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 19 Jun 2015 08:06:27 -0400
+
 framerd (3.7.9-72) unstable; urgency=low
 
   * Build with correct version tag

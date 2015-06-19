@@ -4,7 +4,7 @@
 ;;; Core file for accessing Amazon Web Services
 (in-module 'aws)
 
-(use-module '{logger crypto})
+(use-module '{logger texttools})
 
 (module-export! 
  '{awskey secretawskey awsaccount
