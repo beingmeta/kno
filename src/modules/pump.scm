@@ -8,7 +8,7 @@
 (module-export! '{pump/make
 		  pump/push! pump/cancel!
 		  pump/pending pump/shutdown
-		  pump-name pump-input)
+		  pump-name pump-input})
 
 (define-init %loglevel %info!)
 ;;(define %loglevel %debug!)
@@ -20,7 +20,7 @@
   name dofn donefn options
   (input (fifo/make default-pump-queue))
   (output (fifo/make default-pump-queue))
-  (live #t) (threads (make-hashtable)) (items (make-hashset))
+  (live? #t) (threads (make-hashtable)) (items (make-hashset))
   (running (make-hashtable)))
 
 (define default-opts #[])
@@ -53,7 +53,7 @@
       (set! opts default-opts)
       (if (not (pair? opts))
 	  (set! opts (cons opts default-opts))))
-  (if (and name (test named-queues name))
+  (if (and name (test named-pumps name))
       (error DUPLICATENAME pump/make "A pump named " name " already exists")
       (freshpump dofn donefn name opts)))
 

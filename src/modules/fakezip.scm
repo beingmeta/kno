@@ -61,7 +61,7 @@
 	(curdir (getcwd))
 	(args (list path))
 	(moreopts '()))
-    (checkpath! fspath)
+    (checkdir! fspath)
     (write-file fspath content)
     (unwind-protect
 	(begin (setcwd (fakezip-tmpdir fz))
@@ -71,6 +71,6 @@
 		      "-u"
 		      (if compress "-9" "-0")
 		      (append moreopts (list path))))
-      (chdir curdir))))
+      (setcwd curdir))))
 
 

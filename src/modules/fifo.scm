@@ -10,7 +10,7 @@
 
 (module-export!
  '{fifo/make fifo/close
-   fifo/pop fifo/push! fifo/jump!  
+   fifo/pop fifo/remove! fifo/push! fifo/jump!  
    fifo/loop fifo/queued fifo/load})
 
 (module-export!

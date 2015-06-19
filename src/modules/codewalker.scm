@@ -143,9 +143,9 @@
       (codewalker fcn call bound env))))
 
 (define (codewalk-lambda fcn expr bound env)
-  (let ((args (second expr))
-	(body (cddr expr))
-	(newbound (append (map arg-symbol args) bound)))
+  (let* ((args (second expr))
+	 (body (cddr expr))
+	 (newbound (append (map arg-symbol args) bound)))
     (dolist (arg args)
       (when (and (pair? arg) (pair? (cdr arg)))
 	(codewalker fcn (cadr arg) bound env)))

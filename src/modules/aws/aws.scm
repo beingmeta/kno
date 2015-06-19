@@ -4,9 +4,11 @@
 ;;; Core file for accessing Amazon Web Services
 (in-module 'aws)
 
-(module-export! '{awskey secretawskey awsaccount})
+(use-module 'crypto)
 
-(module-export! '{aws/datesig aws/datesig/head})
+(module-export! 
+ '{awskey secretawskey awsaccount
+   aws/datesig aws/datesig/head})
 
 ;; Default (non-working) values from the online documentation
 ;;  Helpful for testing requests
@@ -35,6 +37,8 @@
 	       (if (bound? val)
 		   (set! awsaccount val)
 		   awsaccount)))
+
+(define (getit) hmac-sha256)
 
 (define (aws/datesig (date (timestamp)) (spec #{}))
   (unless date (set! date (timestamp)))

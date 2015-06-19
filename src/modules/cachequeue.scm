@@ -23,6 +23,9 @@
    cachequeue? cqstep cqdaemon
    cq/prefetch})
 
+(define meltentry-creation (within-module 'meltcache meltentry-creation))
+(define meltentry-expiration (within-module 'meltcache meltentry-expiration))
+
 (define (doconsume method result)
   (if (null? method) result
       (apply (car method) result (cdr method))))
@@ -50,7 +53,7 @@
 
 #|
 (module-export!
- '{cq-cache cq-method cq-fifo cq-state
+ '{cq-cache cq-method cq-fifo cq-cache
 	    cq-compute cq-consumers
 	    cq-meltpoint cq-props})
 |#
@@ -92,8 +95,7 @@
    cq (if (and (pair? fn) (null? args)) fn (cons fn args))))
 
 (define (cq/status cq fn . args)
-  (cachequeuestatus
-   cq (if (and (pair? fn) (null? args)) fn (cons fn args))))
+  (cqstatus cq (if (and (pair? fn) (null? args)) fn (cons fn args))))
 
 (define (cq/probe cq fn . args)
   (let* ((call (if (and (pair? fn) (null? args)) fn (cons fn args)))
@@ -221,21 +223,22 @@
 	(meltvalue cachevalue)
 	(meltvalue (cachequeuepreempt cq call)))))
 
-(define (cqstatus cq call)
+(define (cqstatus cq call (args))
   "Returns the status of a queued computation"
+  (set! args (cdr call))
   (let ((cachekey (if (index? (cq-cache cq))
 		      (cons (procedure-id (car call)) (cdr call))
 		      call)))
     (if (test (cq-cache cq) cachekey)
 	(let ((cachev (get (cq-cache cq) cachekey)))
-	  (if (and (exists? v) (meltentry? v))
-	      (if (melted? v)
+	  (if (and (exists? cachev) (meltentry? cachev))
+	      (if (melted? cachev)
 		  (list 'melted
-			(meltentry-creation v)
-			(meltentry-expiration v))
+			(meltentry-creation cachev)
+			(meltentry-expiration cachev))
 		  (list 'cached 
-			(meltentry-creation v)
-			(meltentry-expiration v)))
+			(meltentry-creation cachev)
+			(meltentry-expiration cachev)))
 	      '(cached)))
 	(let ((statev (get (cq-pending cq) call)))
 	  (cond ((fail? statev) #f)
@@ -246,10 +249,10 @@
 		 (list 'queued statev))))))
   (if (test (cq-cache cq) args) #t
       (unwind-protect
-	  (begin (synchro-lock! (cq-compute cq))
-		 (try (get (cq-state cq) args)
+	  (begin (synchro-lock (cq-lock cq))
+		 (try (get (cq-cache cq) args)
 		      #f))
-	(synchro-unlock! (cq-compute cq)))))
+	(synchro-unlock (cq-lock cq)))))
 
 (define (cqinfo cq call)
   "Returns the status of a queued computation"

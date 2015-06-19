@@ -6,6 +6,7 @@
 (use-module '{fdweb reflection xhtml/auth varconfig opts})
 (use-module '{texttools logger})
 (define %used_modules '{varconfig xhtml/auth})
+(define %volatile '{getuser oauth-sessionfn})
 
 (define-init getuser #f)
 (varconfig! oauth:getuser getuser)

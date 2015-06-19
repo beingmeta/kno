@@ -7,7 +7,7 @@
 ;;;  distances and the ability to get ambiguous lat/long keys to use for
 ;;;  location indexing.
 
-(use-module 'texttools)
+(use-module '{texttools parsetime})
 
 (module-export! '{geodistance geodirection project-point
 		  dms->float float->dms
@@ -142,10 +142,9 @@
     (vector plat plong)))
 (define (project-point arg . args)
   (let ((lat (if (number? arg) arg (getlat arg))))
-    (multiple-value-bind (long direction distance)
-	(if (number? arg)
-	    (values (get-arg args 0) (get-arg args 1) (get-arg args 2))
-	  (values (getlong arg) (get-arg args 0) (get-arg args 1)))
+    (let ((long (if (number? arg) (get-arg args 0) (getlong arg)))
+	  (direction (if (number? arg) (get-arg args 1) (get-arg args 0)))
+	  (distance (if (number? arg) (get-arg args 2) (get-arg args 1))))
       (let ((vec (project-point-radians (degrees->radians lat)
 					(degrees->radians long)
 					(degrees->radians direction)
@@ -206,7 +205,7 @@
       (if (> new 90) (- new 180)
 	new))))
 (define (latrange degrees fraction (radius 0))
-  (let* ((base (round degrees fraction))
+  (let* ((base (round degrees))
 	 (results base))
     (dotimes (i radius)
       (set+! results (choice results
@@ -214,7 +213,7 @@
 			     (lat+ base (- (* fraction radius))))))
     results))
 (define (longrange degrees fraction (radius 0))
-  (let* ((base (round degrees fraction))
+  (let* ((base (round degrees))
 	 (results base))
     (dotimes (i radius)
       (set+! results (choice results
@@ -314,7 +313,7 @@
 (define (readstring s)
   (if (= (length s) 0) (fail) (string->lisp s)))
 (define (time-parse time date)
-  (parse-timestring
+  (parsetime
    (if (= (length time) 0)
        (if (= (length date) 0) (fail)
 	 (string-append (subseq date 4) "-"

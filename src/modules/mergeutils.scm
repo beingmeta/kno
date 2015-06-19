@@ -45,7 +45,7 @@
 
 (define (merge-overlay-entries e1 e2 key)
   (cond ((and (vector? e1) (vector e2))
-	 (sorted (choice (elts elts1) (elts elts2))))
+	 (sorted (choice (elts e1) (elts e2))))
 	((and (pair? e1) (pair? e2))
 	 (let ((adds (choice (car e1) (car e2)))
 	       (drops (choice (cdr e1) (cdr e2))))

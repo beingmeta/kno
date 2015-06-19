@@ -13,7 +13,7 @@
 (define (recycle-oids! pool)
   (when (pool? pool)
     (let ((deleted (pick (?? 'status 'deleted) pool)))
-      (store! pool-queues (rsorted deleted oid-lo)))))
+      (store! pool-queues pool (rsorted deleted oid-lo)))))
 
 (define oids-now-in-use {})
 
@@ -52,6 +52,6 @@
 	(apply frame-create pool args)
 	(let ((top (get-recycled-oid pool)))
 	  (if (exists? top)
-	      (begin (apply initframe oid args) top)
+	      (begin (apply initframe top args) top)
 	      (apply frame-create pool args))))))
 

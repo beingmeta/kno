@@ -46,7 +46,7 @@
 		     (get rss-caches (get parsed 'host))
 		     rss-cache)))
     (let ((expiration (get cache (cons 'expires normalized))))
-      (if (or (fail? expiration) (past-time? expiration))
+      (if (or (fail? expiration) (time>? expiration))
 	  (let* ((fetched (urlget normalized))
 		 (parsed (xmlparse (get fetched '%content) (qc xmloptions)))
 		 (items (normalize-entry (xmlget parsed '{item entry})

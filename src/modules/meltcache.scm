@@ -87,7 +87,9 @@
 				     (get meltpoint-table (cons fcnid 'error))))
 			 (get meltpoint-table fcn)
 			 (get meltpoint-table fcnid)
-			 meltpoint)))
+			 meltpoint))
+	 (next (if (meltentry? newv) (meltentry-expiration newv)
+		   (now+ (meltentry-delta entry newv meltpoint)))))
     (if (error? newv)
 	(lognotice "Error (retry at " (get next 'iso) ") "
 		   "while updating meltentry applying "

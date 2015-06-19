@@ -192,9 +192,12 @@
 	((fail? expr) expr)
 	((symbol? expr)
 	 (let ((lexref (get-lexref expr bound 0)))
+	   (%watch "SYMBOL" expr lexref env bound)
 	   (if lexref (if lexrefs lexref expr)
 	       (let ((module (wherefrom expr env)))
+		 (%watch "SYMBOL" module expr lexref env bound)
 		 (when (and module (table? env))
+		   (%watch "SYMBOL/TABLE" module expr lexref env bound)
 		   (add! env '%free_vars expr)
 		   (when (and module (table? module))
 		     (add! env '%used_modules
@@ -247,8 +250,8 @@
 		  (when (and from (table? from))
 		    (add! env '%used_modules
 			  (pick (get from '%moduleid) symbol?))))
-		(cond ((if from (test from '%unoptimized head)
-			   (and env (test env '%unoptimized head)))
+		(cond ((if from (test from '{%unoptimized %volatile} head)
+			   (and env (test env '{%unoptimized %volatile} head)))
 		       expr)
 		      ((and from (%test from '%rewrite)
 			    (%test (get from '%rewrite) head))
@@ -332,7 +335,7 @@
       ((if w/rails ->rail ident)
        (if (or (symbol? (car expr)) (pair? (car expr))
 	       (ambiguous? (car expr)))
-	   `(,(dotighten (car expr) env bound lexrefs w/rails)
+	   `(,(%wc dotighten (car expr) env bound lexrefs w/rails)
 	     . ,(if (pair? (cdr expr))
 		    (tighten-args (cdr expr) env bound lexrefs w/rails)
 		    (cdr expr)))
@@ -432,7 +435,7 @@
 
 (define (tighten-block handler expr env bound lexrefs w/rails)
   (cons (map-opcode handler (length (cdr expr)))
-	(map (lambda (x) (dotighten x env bound lexrefs w/rails))
+	(map (lambda (x) (%wc dotighten x env bound lexrefs w/rails))
 	     (cdr expr))))
 (define (tighten-block->rail handler expr env bound lexrefs w/rails)
   (if w/rails

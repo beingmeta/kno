@@ -11,32 +11,32 @@
 
 (define root-modules
   '{audit cachequeue calltrack checkurl codewalker
-    couchdb ctt curlcache delicious dopool dropbox ellipsize email
+    couchdb ctt curlcache dopool dropbox ellipsize email
     extoids ezrecords fakezip fifo fillin findcycles getcontent
     gpath gravatar gutdb hashfs hashstats histogram hostinfo i18n
-    ice jsonout lexml logctl logger meltcache mergeutils mimeout
-    mimetable mttools myweb oauth openlibrary optimize opts
+    ice jsonout logctl logger meltcache mergeutils mimeout ;;  lexml
+    mimetable mttools oauth openlibrary optimize opts
     packetfns parsetime pump rdf readcsv recycle rss rulesets
-    samplefns sandbox savecontent saveopt signature soap speling
-    stringfmts tighten tinygis tracer trackrefs twilio updatefile
+    samplefns savecontent saveopt signature speling ;; soap
+    stringfmts tinygis tracer trackrefs twilio updatefile ;; tighten
     usedb varconfig whocalls xtags})
 
 (define other-modules
-  '{(AWS AWS/S3 AWS/V4 AWS/AWS AWS/SES AWS/SQS AWS/DYNAMODB
+  '{(AWS AWS/S3 AWS/V4 AWS/SES AWS/SQS AWS/DYNAMODB
 	 AWS/SIMPLEDB AWS/ASSOCIATES)
     (DOMUTILS DOMUTILS/CSS DOMUTILS/INDEX DOMUTILS/ADJUST DOMUTILS/STYLES
-	      DOMUTILS/ANALYZE DOMUTILS/CLEANUP DOMUTILS/DOMUTILS DOMUTILS/LOCALIZE
+	      DOMUTILS/ANALYZE DOMUTILS/CLEANUP DOMUTILS/LOCALIZE
 	      DOMUTILS/HYPHENATE DOMUTILS/DOMANALYZE)
     (BUGJAR)
     (KNODULES KNODULES/HTML KNODULES/DRULES KNODULES/DEFTERM
-	      KNODULES/KNODULES KNODULES/USEBRICO KNODULES/PLAINTEXT)
-    (PAYPAL PAYPAL/PAYPAL PAYPAL/EXPRESS PAYPAL/ADAPTIVE
+	      KNODULES/USEBRICO KNODULES/PLAINTEXT)
+    (PAYPAL PAYPAL/EXPRESS PAYPAL/ADAPTIVE
 	    PAYPAL/CHECKOUT)
-    (FACEBOOK FACEBOOK/FBML FACEBOOK/FBCALL FACEBOOK/FACEBOOK)
-    (TWITTER TWITTER/TWITTER)
-    (GOOGLE GOOGLE/DRIVE GOOGLE/GOOGLE)
-    (TEXTINDEX TEXTINDEX/DOMTEXT TEXTINDEX/TEXTINDEX)
-    (BRICO BRICO/BRICO BRICO/DTERMS BRICO/LOOKUP BRICO/XDTERMS
+    (FACEBOOK FACEBOOK/FBML FACEBOOK/FBCALL)
+    (TWITTER)
+    (GOOGLE GOOGLE/DRIVE)
+    (TEXTINDEX TEXTINDEX/DOMTEXT)
+    (BRICO BRICO/DTERMS BRICO/LOOKUP BRICO/XDTERMS
 	   BRICO/INDEXING BRICO/MAPRULES BRICO/ANALYTICS BRICO/WIKIPEDIA
 	   BRICO/DTERMCACHE)
     (MISC/OIDSHIFT)
