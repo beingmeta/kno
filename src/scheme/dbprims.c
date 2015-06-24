@@ -368,6 +368,12 @@ static fdtype lockoids(fdtype oids)
   else return FD_INT2DTYPE(retval);
 }
 
+static fdtype lockedoids(fdtype pool)
+{
+  fd_pool p=fd_lisp2pool(pool);
+  return fd_hashtable_keys(&(p->locks));
+}
+
 static fdtype unlockoids(fdtype oids,fdtype commitp)
 {
   int force_commit=(!((FD_VOIDP(commitp)) || (FD_FALSEP(commitp))));
@@ -2617,6 +2623,7 @@ FD_EXPORT void fd_init_dbfns_c()
            fd_make_ndprim(fd_make_cprim1("LOCK-OIDS!",lockoids,1)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("UNLOCK-OIDS!",unlockoids,0)));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("LOCKED-OIDS",lockedoids,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL?",poolp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INDEX?",indexp,1));
