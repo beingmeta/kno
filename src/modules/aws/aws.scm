@@ -1,10 +1,10 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2014 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2015 beingmeta, inc.  All rights reserved.
 
 ;;; Core file for accessing Amazon Web Services
 (in-module 'aws)
 
-(use-module 'crypto)
+(use-module '{logger texttools})
 
 (module-export! 
  '{awskey secretawskey awsaccount
@@ -37,8 +37,6 @@
 	       (if (bound? val)
 		   (set! awsaccount val)
 		   awsaccount)))
-
-(define (getit) hmac-sha256)
 
 (define (aws/datesig (date (timestamp)) (spec #{}))
   (unless date (set! date (timestamp)))

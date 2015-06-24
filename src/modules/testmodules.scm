@@ -1,5 +1,5 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2014 beingmeta, inc. All rights reserved.
+;;; Copyright (C) 2005-2015 beingmeta, inc. All rights reserved.
 
 (in-module 'testmodules)
 
@@ -26,7 +26,7 @@
 	 AWS/SIMPLEDB AWS/ASSOCIATES)
     (DOMUTILS DOMUTILS/CSS DOMUTILS/INDEX DOMUTILS/ADJUST DOMUTILS/STYLES
 	      DOMUTILS/ANALYZE DOMUTILS/CLEANUP DOMUTILS/LOCALIZE
-	      DOMUTILS/HYPHENATE DOMUTILS/DOMANALYZE)
+	      DOMUTILS/HYPHENATE)
     (BUGJAR)
     (KNODULES KNODULES/HTML KNODULES/DRULES KNODULES/DEFTERM
 	      KNODULES/USEBRICO KNODULES/PLAINTEXT)
@@ -40,12 +40,13 @@
 	   BRICO/INDEXING BRICO/MAPRULES BRICO/ANALYTICS BRICO/WIKIPEDIA
 	   BRICO/DTERMCACHE)
     (MISC/OIDSHIFT)
-    (TESTS/TEST-MTTOOLS)
+    (TESTS/MTTOOLS)
     (WEBAPI/FACEBOOK)})
 
 (define beingmeta-modules {})
 
 (define (test-module name)
+  (logwarn |Testing Module| "Module " name)
   (if (get-module name)
       (optimize-module! name)
       (logwarn |LoadFailed| "Couldn't load module " name)))

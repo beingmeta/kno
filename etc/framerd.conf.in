@@ -21,41 +21,54 @@ pre-start script
    chmod g+rwx @rundir@/fdserv  @logdir@/fdserv
    chmod g+rwx @rundir@/framerd @logdir@/framerd
 
-   for ctl in $(find @config_dir@/daemons/ -name "*.fdz" -mindepth 1 -maxdepth 1);
+   for ctl in $(find @config_dir@/daemons/ -name "*.fdz" \
+       	             -mindepth 1 -maxdepth 1);
      do if (readlink ${ctl}>/dev/null);
         then LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
-	       fdserver `readlink ${ctl}` STATEDIR=@rundir@/framerd DAEMONIZE=5;
+	       fdserver `readlink ${ctl}` STATEDIR=@rundir@/framerd \
+	          DAEMONIZE=5;
         else LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
                fdserver ${ctl} STATEDIR=@rundir@/framerd DAEMONIZE=5; fi;
      done;
-   for sock in $(find @config_dir@/servlets/ -name "*.sock" -mindepth 1 -maxdepth 1);
+   for sock in $(find @config_dir@/servlets/ -name "*.sock" \
+                      -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
         then touch @rundir@/fdserv/`basename ${sock}`.nospawn;
 	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
-               fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=`readlink ${sock}` \
+               fdservlet @rundir@/fdserv/`basename ${sock}` \
+                 CONFIG=`readlink ${sock}` PIDWAIT=no \
 	         STATEDIR=@rundir@/fdserv DAEMONIZE=5;
         else touch @rundir@/fdserv/`basename ${sock}`.nospawn;
 	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
  	       fdservlet @rundir@/fdserver/`basename ${sock}` CONFIG=${sock} \
-	         STATEDIR=@rundir@/fdserv DAEMONIZE=5; fi;
-     done;
-   for sock in $(find @config_dir@/servlets/ -name "*@*" -mindepth 1 -maxdepth 1);
-     do if (readlink ${sock}>/dev/null);
-        then LOGFILE=@logdir@/fdserv/${sock}.log \
-	       fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=`readlink ${sock}` \
 	         STATEDIR=@rundir@/fdserv DAEMONIZE=5;
+        fi;
+     done;
+   for sock in $(find @config_dir@/servlets/ -name "*@*"
+                      -mindepth 1 -maxdepth 1);
+     do if (readlink ${sock}>/dev/null);
+        then LOGFILE=@logdir@/fdserv/${sock}.log \
+	       fdservlet @rundir@/fdserv/`basename ${sock}`
+	         CONFIG=`readlink ${sock}` STATEDIR=@rundir@/fdserv \
+		 PIDWAIT=no DAEMONIZE=5;
         else LOGFILE=@logdir@/fdserv/${sock}.log \
 	       fdservlet @rundir@/fdserv/`basename ${sock}` \
-	         CONFIG=${sock} STATEDIR=@rundir@/fdserv DAEMONIZE=5; fi;
+	         CONFIG=${sock} STATEDIR=@rundir@/fdserv \
+		 PIDWAIT=no DAEMONIZE=5;
+	fi;
      done;
-   for sock in $(find @config_dir@/servlets/ -name "*:*" -mindepth 1 -maxdepth 1);
+   for sock in $(find @config_dir@/servlets/ -name "*:*" \
+                      -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
         then LOGFILE=@logdir@/fdserv/${sock}.log \
 	       fdservlet @rundir@/fdserv/`basename ${sock}` \
-                 CONFIG=`readlink ${sock}` STATEDIR=@rundir@/fdserv DAEMONIZE=5;
+                 CONFIG=`readlink ${sock}` STATEDIR=@rundir@/fdserv \
+		 PIDWAIT=no DAEMONIZE=5;
         else LOGFILE=@logdir@/fdserv/${sock}.log \
 	       fdservlet @rundir@/fdserv/`basename ${sock}` \
-	         CONFIG=${sock} STATEDIR=@rundir@/fdserv DAEMONIZE=5; fi;
+	         CONFIG=${sock} STATEDIR=@rundir@/fdserv \
+		 PIDWAIT=no DAEMONIZE=5;
+        fi;
      done;
 end script
 

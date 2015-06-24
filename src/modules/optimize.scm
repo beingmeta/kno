@@ -1,6 +1,5 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-
-;;; Copyright (C) 2005-2014 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2015 beingmeta, inc.  All rights reserved.
 
 ;;; Optimizing code structures for the interpreter, including
 ;;;  use of constant OPCODEs and relative lexical references
@@ -192,12 +191,11 @@
 	((fail? expr) expr)
 	((symbol? expr)
 	 (let ((lexref (get-lexref expr bound 0)))
-	   (%watch "SYMBOL" expr lexref env bound)
+	   (debug%watch "DOTIGHTEN/SYMBOL" expr lexref env bound)
 	   (if lexref (if lexrefs lexref expr)
 	       (let ((module (wherefrom expr env)))
-		 (%watch "SYMBOL" module expr lexref env bound)
+		 (debug%watch "DOTIGHTEN/SYMBOL/module" expr module env bound)
 		 (when (and module (table? env))
-		   (%watch "SYMBOL/TABLE" module expr lexref env bound)
 		   (add! env '%free_vars expr)
 		   (when (and module (table? module))
 		     (add! env '%used_modules
@@ -335,7 +333,7 @@
       ((if w/rails ->rail ident)
        (if (or (symbol? (car expr)) (pair? (car expr))
 	       (ambiguous? (car expr)))
-	   `(,(%wc dotighten (car expr) env bound lexrefs w/rails)
+	   `(,(dotighten (car expr) env bound lexrefs w/rails)
 	     . ,(if (pair? (cdr expr))
 		    (tighten-args (cdr expr) env bound lexrefs w/rails)
 		    (cdr expr)))
@@ -435,7 +433,7 @@
 
 (define (tighten-block handler expr env bound lexrefs w/rails)
   (cons (map-opcode handler (length (cdr expr)))
-	(map (lambda (x) (%wc dotighten x env bound lexrefs w/rails))
+	(map (lambda (x) (dotighten x env bound lexrefs w/rails))
 	     (cdr expr))))
 (define (tighten-block->rail handler expr env bound lexrefs w/rails)
   (if w/rails

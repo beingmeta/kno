@@ -1,6 +1,5 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-
-;;; Copyright (C) 2005-2014 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2015 beingmeta, inc.  All rights reserved.
 
 (in-module 'brico/indexing)
 ;;; Functions for generating BRICO indices
@@ -94,7 +93,10 @@
     ;;  be lowercased.
     (choice expvalues normvalues
 	    (pick (metaphone (choice values normvalues) #t) length>1)
-	    (pick (soundex (choice values normvalues) #t) length>1))))
+	    (pick (soundex (pick (reject (choice values normvalues) compound?)
+				 length < 11)
+			   #t)
+		  length>1))))
 
 (defambda (index-name index frame slot (value #f) (window default-frag-window))
   (let* ((values (downcase (stdspace (if value value (get frame slot)))))

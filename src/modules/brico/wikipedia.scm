@@ -1,6 +1,5 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-
-;;; Copyright (C) 2005-2014 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2015 beingmeta, inc.  All rights reserved.
 
 (in-module 'brico/wikipedia)
 ;;; This uses tables to get Wikipedia mappings for BRICO concepts
