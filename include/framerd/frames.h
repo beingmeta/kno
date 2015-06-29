@@ -19,6 +19,8 @@ FD_EXPORT int fd_adjunctp(fd_pool p,fdtype slotid);
 
 FD_EXPORT fdtype fd_adjunct_slotids;
 
+FD_EXPORT int fd_pool_setop(fd_pool,fdtype,fdtype,fdtype);
+
 FD_EXPORT fdtype fd_method_table;
 
 FD_EXPORT int  fd_slot_cache_load(void);

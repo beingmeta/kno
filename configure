@@ -2803,7 +2803,7 @@ TESTLDFLAGS=
 EXELDFLAGS=
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=3
-FDMINOR=7
+FDMINOR=8
 FDRELEASE=`cat etc/release`
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
@@ -5052,6 +5052,11 @@ elif test -f .devmode; then
 elif test `pwd` = /src/framerd; then
   devmode_default="yes";
 else devmode_default="no";
+fi
+
+if test -f .ipeval; then
+  enable_ipeval_default="yes;
+else enable_ipeval_default="no;
 fi
 
 
@@ -10429,7 +10434,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d etc/OSXStartupItem/FramerD etc/logrotate etc/fdserver.conf etc/framerd.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.7.spec"
+ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d etc/OSXStartupItem/FramerD etc/logrotate etc/fdserver.conf etc/framerd.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.8.spec"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -11147,7 +11152,7 @@ do
     "etc/fdserv.conf") CONFIG_FILES="$CONFIG_FILES etc/fdserv.conf" ;;
     "etc/fdserv.load") CONFIG_FILES="$CONFIG_FILES etc/fdserv.load" ;;
     "etc/install-script") CONFIG_FILES="$CONFIG_FILES etc/install-script" ;;
-    "dist/framerd-3.7.spec") CONFIG_FILES="$CONFIG_FILES dist/framerd-3.7.spec" ;;
+    "dist/framerd-3.8.spec") CONFIG_FILES="$CONFIG_FILES dist/framerd-3.8.spec" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

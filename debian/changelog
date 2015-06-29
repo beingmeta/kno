@@ -1,3 +1,11 @@
+framerd (3.8.0-1) unstable; urgency=low
+
+  * Added pool ops functionality for more flexible extpools (note, this
+    changes the layout of all of the POOL structures)
+  * Bumped minor version number, keep release at 0 for now
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 29 Jun 2015 09:26:02 -0400
+
 framerd (3.7.9-74) unstable; urgency=low
 
   * Updated some copyright dates

@@ -1097,6 +1097,54 @@ static fdtype mongodb_pool_fetch(fd_pool p,fdtype oid)
   return fetched;
 }
 
+/*
+static fdtype *mongodb_pool_fetchn(fd_pool p,int n,fdtype *oids)
+{
+  struct FD_MONGODB_POOL *mp=(struct FD_MONGODB_POOL *)p;
+  mongoc_client_t *client=mongoc_client_pool_pop(mp->clients);
+  mongoc_collection_t *domain=
+    mongoc_client_get_collection(client,mp->dbname,mp->collection);
+  mongoc_cursor_t *cursor;
+  bson_t *q=bson_new(); const bson_t doc, ids, *response;
+
+  fdtype fetched=fd_init_vector(NULL,n,NULL);
+  FD_OID base=mp->base; int i=0;
+  char keybuf[32];
+
+  mongodb_append_document_begin(q,"_id",3,&doc);
+  mongodb_append_array_begin(&doc,"$in",3,&ids);
+  while (i<n) {
+    fdtype oid=oids[i]; FD_OID addr=FD_OID_ADDR(oid);
+    unsigned int oid_off=FD_OID_LO(addr)-FD_OID_LO(base);
+    snprintf(buf,32,"%ud",i); i++;
+    BSON_APPEND_INT32(ids,buf,-1,oid_off);}
+  mongodb_append_array_end(&ids);
+  mongodb_append_document_end(&doc);
+  while (mongoc_cursor_next(cursor,&doc)) {
+    fdtype fetched=fd_bson2dtype((bson_t *)doc,mp->mdbflags,mp->mdbopts);
+    fdtype id=fd_get(fetched,id_symbol);
+    if (FD_FIXNUMP(id)) {
+      unsigned int off=FD_FIX2INT(id);
+      struct FD_OID addr=FD_OID_PLUS(base,off);}}
+  bson_destroy(q);
+  mongoc_collection_destroy(domain);
+  mongoc_client_pool_push(mp->clients,client);
+
+  cursor=mongoc_collection_find(domain,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
+
+  fdtype value=fd_dtcall(np->connpool,2,fetch_oids_symbol,oidvec);
+  fd_decref(oidvec);
+  if (FD_VECTORP(value)) {
+    fdtype *values=u8_alloc_n(n,fdtype);
+    memcpy(values,FD_VECTOR_ELTS(value),sizeof(fdtype)*n);
+    return values;}
+  else {
+    fd_seterr(fd_BadServerResponse,"netpool_fetchn",
+              u8_strdup(np->cid),fd_incref(value));
+    return NULL;}
+}
+*/
+
 /* Initialization */
 
 FD_EXPORT int fd_init_mongodb(void) FD_LIBINIT_FN;

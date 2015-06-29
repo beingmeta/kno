@@ -84,7 +84,7 @@ TESTLDFLAGS=
 EXELDFLAGS=
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=3
-FDMINOR=7
+FDMINOR=8
 FDRELEASE=`cat etc/release`
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
@@ -360,6 +360,11 @@ elif test -f .devmode; then
 elif test `pwd` = /src/framerd; then
   devmode_default="yes";
 else devmode_default="no";
+fi
+
+if test -f .ipeval; then
+  enable_ipeval_default="yes;
+else enable_ipeval_default="no;
 fi
 
 
@@ -1346,7 +1351,7 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
 	  etc/fdserver.conf etc/framerd.conf
 	  etc/fdservlet.conf etc/fdservlets.conf
 	  etc/fdserv.conf etc/fdserv.load
-	  etc/install-script dist/framerd-3.7.spec)
+	  etc/install-script dist/framerd-3.8.spec)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
 chmod a+x etc/fdconfig

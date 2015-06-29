@@ -132,6 +132,34 @@ static int adjunct_test(fd_adjunct adj,fdtype frame,fdtype value)
   return fd_test(adj->table,frame,value);
 }
 
+/* Using the ops handlers */
+
+static fdtype plus_symbol,  minus_symbol, equals_symbol;
+static fdtype dot_symbol, question_symbol;
+
+static fdtype get_op_handler(fd_pool p,fdtype symbol,fdtype slotid)
+{
+  struct FD_HASHTABLE *handlers=p->op_handlers; struct FD_PAIR pair;
+  if (handlers) {
+    FD_INIT_STATIC_CONS(&pair,fd_pair_type);
+    pair.car=symbol; pair.cdr=slotid;
+    return fd_hashtable_get(p->op_handlers,(fdtype)(&pair),FD_VOID);}
+  else return FD_VOID;
+}
+
+FD_EXPORT int fd_pool_setop(fd_pool p,fdtype op,fdtype slotid,
+                            fdtype handler)
+{
+  struct FD_HASHTABLE *handlers=p->op_handlers; fdtype key; int retval;
+  if (handlers==NULL)
+    handlers=p->op_handlers=(struct FD_HASHTABLE *)
+      fd_make_hashtable(NULL,17);
+  key=fd_init_pair(NULL,op,slotid);
+  retval=fd_hashtable_store(handlers,key,handler);
+  fd_decref(key);
+  return retval;
+}
+
 /* Table operations on OIDs */
 
 /* OIDs provide an intermediate data layer.  In general, getting a
@@ -154,6 +182,15 @@ FD_EXPORT fdtype fd_oid_get(fdtype f,fdtype slotid,fdtype dflt)
     fd_adjunct adj=get_adjunct(p,slotid); fdtype smap; int free_smap=0;
     if (adj)
       return adjunct_fetch(adj,f,dflt);
+    else if (p->op_handlers) {
+      fdtype handler=get_op_handler(p,dot_symbol,slotid);
+      if (FD_VOIDP(handler)) {smap=fd_fetch_oid(p,f); free_smap=1;}
+      else {
+        fdtype args[3], result;
+        args[0]=f; args[1]=slotid; args[2]=dflt;
+        result=fd_apply(handler,3,args);
+        fd_decref(handler);
+        return result;}}
     else {smap=fd_fetch_oid(p,f); free_smap=1;}
     if (FD_ABORTP(smap))
       return smap;
@@ -186,6 +223,17 @@ FD_EXPORT int fd_oid_add(fdtype f,fdtype slotid,fdtype value)
     fdtype smap; int retval;
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_add(adj,f,value);
+    else if (p->op_handlers) {
+      fdtype handler=get_op_handler(p,plus_symbol,slotid);
+      if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
+      else {
+        fdtype args[3], result;
+        args[0]=f; args[1]=slotid; args[2]=value;
+        result=fd_apply(handler,3,args);
+        fd_decref(handler);
+        if ((FD_VOIDP(result))||(FD_FALSEP(result))) return 0;
+        fd_decref(result);
+        return 1;}}
     else smap=fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
       return fd_interr(smap);
@@ -210,6 +258,17 @@ FD_EXPORT int fd_oid_store(fdtype f,fdtype slotid,fdtype value)
     fdtype smap; int retval;
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_store(adj,f,value);
+    else if (p->op_handlers) {
+      fdtype handler=get_op_handler(p,equals_symbol,slotid);
+      if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
+      else {
+        fdtype args[3], result;
+        args[0]=f; args[1]=slotid; args[2]=value;
+        result=fd_apply(handler,3,args);
+        fd_decref(handler);
+        if ((FD_VOIDP(result))||(FD_FALSEP(result))) return 0;
+        fd_decref(result);
+        return 1;}}
     else smap=fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
       return fd_interr(smap);
@@ -236,6 +295,17 @@ FD_EXPORT int fd_oid_delete(fdtype f,fdtype slotid)
     fdtype smap; int retval;
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_store(adj,f,FD_EMPTY_CHOICE);
+    else if (p->op_handlers) {
+      fdtype handler=get_op_handler(p,minus_symbol,slotid);
+      if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
+      else {
+        fdtype args[3], result;
+        args[0]=f; args[1]=slotid; args[2]=FD_VOID;
+        result=fd_apply(handler,3,args);
+        fd_decref(handler);
+        if ((FD_VOIDP(result))||(FD_FALSEP(result))) return 0;
+        fd_decref(result);
+        return 1;}}
     else smap=fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
       return fd_interr(smap);
@@ -260,6 +330,17 @@ FD_EXPORT int fd_oid_drop(fdtype f,fdtype slotid,fdtype value)
     fdtype smap; int retval;
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_drop(adj,f,value);
+    else if (p->op_handlers) {
+      fdtype handler=get_op_handler(p,minus_symbol,slotid);
+      if (FD_VOIDP(handler)) smap=fd_locked_oid_value(p,f);
+      else {
+        fdtype args[3], result;
+        args[0]=f; args[1]=slotid; args[2]=value;
+        result=fd_apply(handler,3,args);
+        fd_decref(handler);
+        if ((FD_VOIDP(result))||(FD_FALSEP(result))) return 0;
+        fd_decref(result);
+        return 1;}}
     else smap=fd_locked_oid_value(p,f);
     if (FD_ABORTP(smap))
       return fd_interr(smap);
@@ -282,6 +363,20 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
   else if (FD_VOIDP(value)) {
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
+    else if (p->op_handlers) {
+      fdtype handler=get_op_handler(p,question_symbol,slotid);
+      if (FD_VOIDP(handler)) {
+        fdtype v=fd_oid_get(f,slotid,FD_VOID);
+        if (FD_VOIDP(v)) return 0;
+        else {fd_decref(v); return 1;}}
+      else {
+        fdtype args[3], result;
+        args[0]=f; args[1]=slotid; args[2]=FD_VOID;
+        result=fd_apply(handler,3,args);
+        fd_decref(handler);
+        if ((FD_VOIDP(result))||(FD_FALSEP(result))) return 0;
+        fd_decref(result);
+        return 1;}}
     else {
       fdtype v=fd_oid_get(f,slotid,FD_VOID);
       if (FD_VOIDP(v)) return 0;
@@ -290,6 +385,17 @@ FD_EXPORT int fd_oid_test(fdtype f,fdtype slotid,fdtype value)
     fdtype smap; int retval;
     fd_adjunct adj=get_adjunct(p,slotid);
     if (adj) return adjunct_test(adj,f,value);
+    else if (p->op_handlers) {
+      fdtype handler=get_op_handler(p,question_symbol,slotid);
+      if (FD_VOIDP(handler)) smap=fd_fetch_oid(p,f);
+      else {
+        fdtype args[3], result;
+        args[0]=f; args[1]=slotid; args[2]=value;
+        result=fd_apply(handler,3,args);
+        fd_decref(handler);
+        if ((FD_VOIDP(result))||(FD_FALSEP(result))) return 0;
+        fd_decref(result);
+        return 1;}}
     else smap=fd_fetch_oid(p,f);
     if (FD_ABORTP(smap))
       retval=fd_interr(smap);
@@ -412,9 +518,12 @@ FD_EXPORT fdtype fd_getpath(fdtype start,int n,fdtype *path,int infer,int accumu
           while (FD_PAIRP(args)) {
             argv[j++]=FD_CAR(args); args=FD_CDR(args);}
         else argv[j++]=args;
-        if (j>7) newval=fd_err(fd_RangeError,"fd_getpath","too many elements in compound path",FD_VOID);
+        if (j>7)
+          newval=fd_err(fd_RangeError,"fd_getpath",
+                        "too many elements in compound path",FD_VOID);
         else newval=fd_apply(j,fcn,argv);}
-      else newval=fd_err(fd_TypeError,"fd_getpath","invalid path element",FD_VOID);
+      else newval=fd_err(fd_TypeError,"fd_getpath",
+                         "invalid path element",FD_VOID);
       if (FD_ABORTP(newval)) {
         fd_decref(scan); fd_decref(newscan);
         return newval;}
@@ -435,6 +544,13 @@ FD_EXPORT void fd_init_xtables_c()
   u8_register_source_file(_FILEINFO);
 
   fd_adjunct_slotids=FD_EMPTY_CHOICE;
+
+  /* Symbols */
+  dot_symbol=fd_intern(".");
+  plus_symbol=fd_intern("+");
+  minus_symbol=fd_intern("-");
+  equals_symbol=fd_intern("=");
+  question_symbol=fd_intern("?");
 
   /* Table functions for OIDs */
   fd_tablefns[fd_oid_type]=u8_alloc(struct FD_TABLEFNS);

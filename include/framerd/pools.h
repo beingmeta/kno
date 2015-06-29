@@ -137,6 +137,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   u8_string label, source, cid, xid, prefix;               \
   int n_adjuncts, max_adjuncts;                            \
   struct FD_ADJUNCT *adjuncts;                             \
+  struct FD_HASHTABLE *op_handlers;                        \
   struct FD_POOL_HANDLER *handler;                         \
   fdtype oidnamefn;                                        \
   struct FD_HASHTABLE cache, locks; int n_locks

@@ -1199,6 +1199,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   fd_make_hashtable(&(p->cache),64);
   fd_make_hashtable(&(p->locks),0);
   p->max_adjuncts=0; p->n_adjuncts=0; p->adjuncts=NULL;
+  p->op_handlers=NULL;
   p->n_locks=0;
   p->handler=h;
   p->source=u8_strdup(source); p->cid=u8_strdup(cid); p->xid=NULL;
