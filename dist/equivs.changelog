@@ -1,3 +1,9 @@
+metapackage (3.8.0-1) unstable; urgency=low
+
+  * New minor version number
+
+ -- beingmeta repository manager <repoman@beingmeta.com> Fri, 03 Jul 2015 20:52:43 -0400
+
 metapackage (3.7.9-6) unstable; urgency=low
 
   * Updated release number
