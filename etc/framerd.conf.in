@@ -26,9 +26,9 @@ pre-start script
      do if (readlink ${ctl}>/dev/null);
         then LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
 	       fdserver `readlink ${ctl}` STATEDIR=@rundir@/framerd \
-	          DAEMONIZE=5;
+	          RESTART=1;
         else LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
-               fdserver ${ctl} STATEDIR=@rundir@/framerd DAEMONIZE=5; fi;
+               fdserver ${ctl} STATEDIR=@rundir@/framerd RESTART=1; fi;
      done;
    for sock in $(find @config_dir@/servlets/ -name "*.sock" \
                       -mindepth 1 -maxdepth 1);
@@ -37,11 +37,11 @@ pre-start script
 	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
                fdservlet @rundir@/fdserv/`basename ${sock}` \
                  CONFIG=`readlink ${sock}` PIDWAIT=no \
-	         STATEDIR=@rundir@/fdserv DAEMONIZE=5;
+	         STATEDIR=@rundir@/fdserv RESTART=1;
         else touch @rundir@/fdserv/`basename ${sock}`.nospawn;
 	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
  	       fdservlet @rundir@/fdserver/`basename ${sock}` CONFIG=${sock} \
-	         STATEDIR=@rundir@/fdserv DAEMONIZE=5;
+	         STATEDIR=@rundir@/fdserv RESTART=1;
         fi;
      done;
    for sock in $(find @config_dir@/servlets/ -name "*@*"
@@ -50,11 +50,11 @@ pre-start script
         then LOGFILE=@logdir@/fdserv/${sock}.log \
 	       fdservlet @rundir@/fdserv/`basename ${sock}`
 	         CONFIG=`readlink ${sock}` STATEDIR=@rundir@/fdserv \
-		 PIDWAIT=no DAEMONIZE=5;
+		 PIDWAIT=no RESTART=1;
         else LOGFILE=@logdir@/fdserv/${sock}.log \
 	       fdservlet @rundir@/fdserv/`basename ${sock}` \
 	         CONFIG=${sock} STATEDIR=@rundir@/fdserv \
-		 PIDWAIT=no DAEMONIZE=5;
+		 PIDWAIT=no RESTART=1;
 	fi;
      done;
    for sock in $(find @config_dir@/servlets/ -name "*:*" \
@@ -63,11 +63,11 @@ pre-start script
         then LOGFILE=@logdir@/fdserv/${sock}.log \
 	       fdservlet @rundir@/fdserv/`basename ${sock}` \
                  CONFIG=`readlink ${sock}` STATEDIR=@rundir@/fdserv \
-		 PIDWAIT=no DAEMONIZE=5;
+		 PIDWAIT=no RESTART=1;
         else LOGFILE=@logdir@/fdserv/${sock}.log \
 	       fdservlet @rundir@/fdserv/`basename ${sock}` \
 	         CONFIG=${sock} STATEDIR=@rundir@/fdserv \
-		 PIDWAIT=no DAEMONIZE=5;
+		 PIDWAIT=no RESTART=1;
         fi;
      done;
 end script

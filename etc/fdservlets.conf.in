@@ -23,11 +23,11 @@ post-start script
         then touch @rundir@/fdserv/`basename ${sock}`.nospawn;
 	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
                fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=`readlink ${sock}` \
-	         STATEDIR=@rundir@/fdserv DAEMONIZE=5 PIDWAIT=no;
+	         STATEDIR=@rundir@/fdserv RESTART=1 PIDWAIT=no;
         else touch @rundir@/fdserv/`basename ${sock}`.nospawn;
 	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
  	       fdservlet @rundir@/fdserver/`basename ${sock}` CONFIG=${sock} \
-	         STATEDIR=@rundir@/fdserv DAEMONIZE=5 PIDWAIT=no; fi;
+	         STATEDIR=@rundir@/fdserv RESTART=1 PIDWAIT=no; fi;
      done;
 end script
 
