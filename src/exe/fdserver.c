@@ -1140,6 +1140,9 @@ static int sustain_server(pid_t grandchild,
   u8_log(LOG_WARN,"FDServer/sustain",
          "Monitoring %s pid=%d",server_spec,grandchild);
   atexit(kill_dependent_onexit);
+#ifdef SIGHUP
+  signal(SIGHUP,SIG_IGN);
+#endif
 #ifdef SIGTERM
   signal(SIGTERM,kill_dependent_onsignal);
 #endif
@@ -1184,6 +1187,10 @@ static void write_state_files(void);
 
 static int launch_server(u8_string server_spec,fd_lispenv core_env)
 {
+#ifdef SIGHUP
+  signal(SIGHUP,shutdown_dtypeserver_onsignal);
+#endif
+  tweak_exename("fdxerv",2,'s');
   if (u8_file_existsp(server_spec)) {
     /* The source file is loaded into a full (non sandbox environment).
        It's exports are then exposed through the server. */

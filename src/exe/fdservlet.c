@@ -67,7 +67,7 @@ static u8_condition NoServers=_("No servers configured");
 static int daemonize=0, foreground=0, pidwait=1;
 
 static time_t last_launch=(time_t)-1;
-static int fastfail_threshold=60, fastfail_wait=60;
+static int fastfail_threshold=15, fastfail_wait=60;
 
 FD_EXPORT int fd_init_fddbserv(void);
 
@@ -1807,6 +1807,10 @@ if (foreground)
 static int launch_servlet(u8_string socket_spec)
 {
   int rv=write_pid_file();
+  tweak_exename("fdxerv",2,'s');
+#ifdef SIGHUP
+  signal(SIGHUP,shutdown_on_signal);
+#endif
   if (rv<0)  {
     /* Error here, rather than repeatedly */
     fd_clear_errors(1);
@@ -2044,6 +2048,9 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
 #endif
 #ifdef SIGQUIT
   signal(SIGQUIT,kill_dependent_onsignal);
+#endif
+#ifdef SIGHUP
+  signal(SIGHUP,SIG_IGN);
 #endif
   while (waitpid(grandchild,&status,0)) {
     time_t now=time(NULL);
