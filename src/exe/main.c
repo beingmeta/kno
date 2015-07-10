@@ -19,4 +19,20 @@ FD_EXPORT int _fd_showenv(fd_lispenv env)
   return depth;
 }
 
+/* Exename tweaking */
 
+static char **exenamep, *exename;
+
+static void set_exename(char **argv)
+{
+  exenamep=&(argv[0]);
+  exename=*exenamep;
+}
+
+static void tweak_exename(char *str,int off,char altc)
+{
+  char *starts=strstr(exename,str);
+  if (starts) {
+    starts[off]=altc;
+    *exenamep=exename;}
+}

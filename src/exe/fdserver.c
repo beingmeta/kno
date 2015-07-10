@@ -132,20 +132,20 @@ static int set_logfile(u8_string logfile,int exitonfail)
 {
   int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
   if (!(logfile)) {
-    u8_log(LOG_WARN,"Config","Can't specify NULL log file");
+    u8_log(LOG_WARN,"FDServer/Config","Can't specify NULL log file");
     if (exitonfail) exit(1);
     u8_seterr(LogFileError,"set_logfile",u8_strdup("Can't set NULL log file"));
     return -1;}
   int new_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
   if (new_fd<0) {
-    u8_log(LOG_WARN,"Config","Couldn't open log file %s",logfile);
+    u8_log(LOG_WARN,"FDServer/Config","Couldn't open log file %s",logfile);
     if (exitonfail) exit(1);
     u8_seterr(LogFileError,"set_logfile",u8_strdup(logfile));
     return -1;}
   else if ((log_filename)&&((strcmp(logfile,log_filename))!=0))
-    u8_log(LOG_WARN,"Config","Changing log file to %s from %s",
+    u8_log(LOG_WARN,"FDServer/Config","Changing log file to %s from %s",
            logfile,log_filename);
-  else u8_log(LOG_WARN,"Config","Using log file %s",logfile);
+  else u8_log(LOG_WARN,"FDServer/Config","Using log file %s",logfile);
   dup2(new_fd,1);
   dup2(new_fd,2);
   if (log_fd>=0) close(log_fd);
@@ -796,15 +796,17 @@ int main(int argc,char **argv)
 
   /* Close and reopen STDIN */
   close(0);  if (open("/dev/null",O_RDONLY) == -1) {
-    u8_log(LOG_CRIT,"fdserver","Unable to reopen stdin for daemon");
+    u8_log(LOG_CRIT,"FDServer/startup","Unable to reopen stdin for daemon");
     exit(1);}
   /* We handle stderr and stdout below */
 
   if (u8_version<0) {
-    u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
+    u8_log(LOG_ERROR,"FDServer/startup","Can't initialize LIBU8");
     exit(1);}
   /* Record the startup time for UPTIME */
   else u8_now(&boot_time);
+
+  set_exename(argv);
 
   /* Find the source file (the non-config arg)
      Also initialize the log file if needed.  */
@@ -920,7 +922,7 @@ static void init_configs()
 {
   fd_register_config("FOREGROUND",_("Whether to run in the foreground"),
                      fd_boolconfig_get,fd_boolconfig_set,&foreground);
-  fd_register_config("DAEMONIZE",_("Whether to enable auto-restart"),
+  fd_register_config("RESTART",_("Whether to enable auto-restart"),
                      fd_boolconfig_get,fd_boolconfig_set,&daemonize);
   fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
                      fd_boolconfig_get,fd_boolconfig_set,&pidwait);
@@ -1118,6 +1120,7 @@ static int sustain_server(pid_t grandchild,
   u8_string ppid_filename=fd_runbase_filename(".ppid");
   FILE *f=fopen(ppid_filename,"w");
   int status=-1, sleepfor=daemonize;
+  tweak_exename("fdserv",2,'x');
   if (f) {
     fprintf(f,"%ld\n",(long)getpid());
     fclose(f);
@@ -1134,7 +1137,8 @@ static int sustain_server(pid_t grandchild,
   dependent=grandchild;
   /* Setup atexit and signal handlers to kill our dependent when we're
      gone. */
-  u8_log(LOG_WARN,"FDServer/sustain","Monitoring %s pid=%d",server_spec,grandchild);
+  u8_log(LOG_WARN,"FDServer/sustain",
+         "Monitoring %s pid=%d",server_spec,grandchild);
   atexit(kill_dependent_onexit);
 #ifdef SIGTERM
   signal(SIGTERM,kill_dependent_onsignal);

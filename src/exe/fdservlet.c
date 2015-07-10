@@ -59,7 +59,8 @@
 
 #include "main.c"
 
-static u8_condition ServletStartup=_("FDServlet Startup");
+static u8_condition ServletStartup=_("FDServlet/STARTUP");
+static u8_condition ServletFork=_("FDServlet/FORK");
 static u8_condition NoServers=_("No servers configured");
 #define Startup ServletStartup
 
@@ -237,7 +238,8 @@ static int statloginterval_set(fdtype var,fdtype val,void *data)
   else if (FD_STRINGP(val)) {
     int flag=fd_boolstring(FD_STRDATA(val),-1);
     if (flag<0) {
-      u8_log(LOG_WARN,"statloginterval_set","Unknown value: %s",FD_STRDATA(val));
+      u8_log(LOG_WARN,"statloginterval_set",
+             "Unknown value: %s",FD_STRDATA(val));
       return 0;}
     else if (flag) {
       if (statlog_interval>0) return 0;
@@ -417,7 +419,8 @@ static void cleanup_pid_file()
     if (pid_fd>=0) {
       int lv=lock_fd(pid_fd,0,0);
       if (lv<0) {
-        u8_log(LOG_CRIT,"Waiting to release lock on PID file %s",pid_file);
+        u8_log(LOG_CRIT,"FDServlet/cleanup",
+               "Waiting to release lock on PID file %s",pid_file);
         errno=0; lv=lock_fd(pid_fd,0,1);}
       if (lv<0) {
         u8_graberr(errno,"cleanup_pid_file",u8_strdup(pid_file));
@@ -448,7 +451,7 @@ static int write_pid_file()
     time_t mtime=fileinfo.st_mtime;
     uid_t uid=fileinfo.st_uid;
     u8_string uname=u8_username(uid);
-    u8_log(LOG_WARN,"Leftover PID file",
+    u8_log(LOG_WARN,"FDServlet/Leftover PID file",
            "File %s created %t, modified %t, owned by %s (%d)",
            abspath,ctime,mtime,uname,uid);
     if (uname) u8_free(uname);}
@@ -461,7 +464,8 @@ static int write_pid_file()
     return -1;}
   lv=lock_fd(pid_fd,1,0);
   if (lv<0) {
-    u8_log(LOG_CRIT,"write_pid_file","Can't get lock on PID file %s",
+    u8_log(LOG_CRIT,"FDServlet/write_pid_file",
+           "Can't get lock on PID file %s",
            pid_file);
     u8_graberr(errno,"write_pid_file",u8_strdup(pid_file));
     close(pid_fd);
@@ -469,7 +473,8 @@ static int write_pid_file()
     return -1;}
   else {
     if (exists)
-      u8_log(LOGWARN,"write_pid_file","Bogarted existing PID file %s",abspath);
+      u8_log(LOGWARN,"FDServlet/write_pid_file",
+             "Bogarted existing PID file %s",abspath);
     sprintf(buf,"%d\n",getpid());
     write(pid_fd,buf,strlen(buf));
     atexit(cleanup_pid_file);
@@ -679,9 +684,10 @@ static int config_set_u8server_flag(fdtype var,fdtype val,void *data)
                  ((s[0]=='N')||(s[0]=='n'))?(0):
                  (-1));
       if (guess<0) {
-        u8_log(LOG_WARN,"SERVERFLAG","Unknown boolean setting %s",s);
+        u8_log(LOG_WARN,"FDServlet/SERVERFLAG",
+               "Unknown boolean setting %s",s);
         return fd_reterr(fd_TypeError,"setserverflag","boolean value",val);}
-      else u8_log(LOG_WARN,"SERVERFLAG",
+      else u8_log(LOG_WARN,"FDSerlvet/SERVERFLAG",
                   "Unfamiliar boolean setting %s, assuming %s",
                   s,((guess)?("true"):("false")));
       if (!(guess<0)) bool=guess;}
@@ -703,7 +709,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   U8_INIT_STATIC_OUTPUT((consed->out),8192);
   u8_set_nodelay(sock,1);
   consed->cgidata=FD_VOID;
-  u8_log(LOG_INFO,"webclient/open","Created web client (#%lx) %s",
+  u8_log(LOG_INFO,"FDServlet/open","Created web client (#%lx) %s",
          consed,
          ((consed->idstring==NULL)?((u8_string)""):(consed->idstring)));
   return (u8_client) consed;
@@ -810,7 +816,8 @@ static int webservefn(u8_client ucl)
     cgidata=fd_dtsread_dtype(stream);
     if (cgidata==FD_EOD) {
       if (traceweb>0)
-        u8_log(LOG_NOTICE,"FDServlet/webservefn","Client %s (sock=%d) closing",
+        u8_log(LOG_NOTICE,"FDServlet/webservefn",
+               "Client %s (sock=%d) closing",
                client->idstring,client->socket);
       if (ucl->status) {u8_free(ucl->status); ucl->status=NULL;}
       u8_client_close(ucl);
@@ -838,22 +845,23 @@ static int webservefn(u8_client ucl)
       if ((FD_STRINGP(uri)) &&
           (FD_STRINGP(referer)) &&
           (FD_STRINGP(remote)))
-        u8_log(LOG_NOTICE,
-               "REQUEST","Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s\n\t> from %s\n\t> for %s",
+        u8_log(LOG_NOTICE,"REQUEST",
+               "Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s\n\t> from %s\n\t> for %s",
                (unsigned long)ucl,start_load[0],start_load[1],start_load[2],
                method,FD_STRDATA(uri),FD_STRDATA(referer),FD_STRDATA(remote));
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(remote)))
-        u8_log(LOG_NOTICE,
-               "REQUEST","Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s\n\t> for %s",
+        u8_log(LOG_NOTICE,"REQUEST",
+               "Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s\n\t> for %s",
                (unsigned long)ucl,start_load[0],start_load[1],start_load[2],
                method,FD_STRDATA(uri),FD_STRDATA(remote));
       else if ((FD_STRINGP(uri)) &&  (FD_STRINGP(referer)))
-        u8_log(LOG_NOTICE,
-               "REQUEST","Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s\n\t> from %s",
+        u8_log(LOG_NOTICE,"REQUEST",
+               "Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s\n\t> from %s",
                (unsigned long)ucl,start_load[0],start_load[1],start_load[2],
                method,FD_STRDATA(uri),FD_STRDATA(referer));
       else if (FD_STRINGP(uri))
-        u8_log(LOG_NOTICE,"REQUEST","Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s",
+        u8_log(LOG_NOTICE,"REQUEST",
+               "Handling 0x%lx (load=%f/%f/%f)\n\t> %q %s",
                (unsigned long)ucl,start_load[0],start_load[1],start_load[2],
                method,FD_STRDATA(uri));
       fd_decref(remote);
@@ -980,11 +988,14 @@ static int webservefn(u8_client ucl)
                             ((u8_string)"no more details"));
       fdtype irritant=fd_exception_xdata(exscan);
       if (FD_STRINGP(path))
-        u8_log(LOG_ERR,excond,"Unexpected error \"%m \" for %s:@%s (%s) (#%lx)",
+        u8_log(LOG_ERR,excond,
+               "Unexpected error \"%m \" for %s:@%s (%s) (#%lx)",
                excond,FD_STRDATA(path),excxt,exdetails,(unsigned long)ucl);
-      else u8_log(LOG_ERR,excond,"Unexpected error \"%m \" %s:@%s (%s) (#%lx)",
+      else u8_log(LOG_ERR,excond,
+                  "Unexpected error \"%m \" %s:@%s (%s) (#%lx)",
                   excond,excxt,exdetails,(unsigned long)ucl);
-      if (!(FD_VOIDP(irritant))) u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
+      if (!(FD_VOIDP(irritant))) 
+        u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
       exscan=exscan->u8x_prev; depth++;}
     /* First we try to apply the error page if it's defined */
     if (FD_APPLICABLEP(errorpage)) {
@@ -1032,7 +1043,8 @@ static int webservefn(u8_client ucl)
           else u8_log(LOG_ERR,excond,
                       "Unexpected recursive error \"%m \" %s:@%s (%s) (#%lx)",
                       excond,excxt,exdetails,(unsigned long)ucl);
-          if (!(FD_VOIDP(irritant))) u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
+          if (!(FD_VOIDP(irritant))) 
+            u8_log(LOG_ERR,excond,"Irritant: %q",irritant);
           lastex=exscan; exscan=exscan->u8x_prev; depth++;}
         while (exscan) {
           lastex=exscan; exscan=exscan->u8x_prev; depth++;}
@@ -1141,7 +1153,7 @@ static int webservefn(u8_client ucl)
         return_code=1;}}
     else if ((FD_STRINGP(retfile))&&(fd_sendfile_header)) {
       u8_byte *start;
-      u8_log(LOG_NOTICE,"Sendfile","Using %s to pass %s (#%lx)",
+      u8_log(LOG_NOTICE,"FDServlet/Sendfile","Using %s to pass %s (#%lx)",
              fd_sendfile_header,FD_STRDATA(retfile),(unsigned long)ucl);
       /* The web server supports a sendfile header, so we use that */
       u8_printf(&httphead,"\r\n");
@@ -1155,7 +1167,8 @@ static int webservefn(u8_client ucl)
       if ((stat(filename,&fileinfo)==0)&&(f=u8_fopen(filename,"rb")))  {
         int bytes_read=0;
         unsigned char *filebuf=NULL; fd_off_t total_len=-1;
-        u8_log(LOG_NOTICE,"Sendfile","Returning content of %s (#%lx)",
+        u8_log(LOG_NOTICE,"FDServlet/Sendfile",
+               "Returning content of %s (#%lx)",
                FD_STRDATA(retfile),(unsigned long)ucl);
         u8_printf(&httphead,"Content-length: %ld\r\n\r\n",
                   (long int)(fileinfo.st_size));
@@ -1176,7 +1189,7 @@ static int webservefn(u8_client ucl)
             to_read=to_read-bytes_read;}
           if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
               ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
-            u8_log(LOG_WARN,"Buffering/file",
+            u8_log(LOG_WARN,"FDServlet/Buffering/file",
                    "Queued %d+%d=%d file bytes of 0x%lx for output (#%lx)",
                    http_len,to_read,total_len,(unsigned long)filebuf,
                    (unsigned long)ucl);
@@ -1195,7 +1208,8 @@ static int webservefn(u8_client ucl)
               if (retval<0) break;}
             return_code=0;}}}
       else {
-        u8_log(LOG_NOTICE,"Sendfile","The content file %s does not exist (#%lx)",
+        u8_log(LOG_NOTICE,"FDServlet/Sendfile",
+               "The content file %s does not exist (#%lx)",
                FD_STRDATA(retfile),(unsigned long)ucl);
         u8_seterr(fd_FileNotFound,"fdservlet/sendfile",
                   u8_strdup(FD_STRDATA(retfile)));
@@ -1214,7 +1228,7 @@ static int webservefn(u8_client ucl)
         u8_client_write_x(ucl,outbuf,bundle_len,0,U8_CLIENT_WRITE_OWNBUF);
         if (((server->flags)&(U8_SERVER_LOG_TRANSACT))||
             ((client->flags)&(U8_CLIENT_LOG_TRANSACT)))
-          u8_log(LOG_WARN,"Buffering/text",
+          u8_log(LOG_WARN,"FDServlet/Buffering/text",
                  "Queued %d+%d=%d string bytes of 0x%lx for output (#%lx)",
                  http_len,content_len,bundle_len,(unsigned long)outbuf,
                  (unsigned long)ucl);
@@ -1288,7 +1302,7 @@ static int webservefn(u8_client ucl)
     fdtype query=fd_get(cgidata,query_symbol,FD_VOID);
     fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
     if ((FD_VOIDP(query))||((FD_STRINGP(query))&&(FD_STRLEN(query)==0)))
-      u8_log(LOG_NOTICE,"REQUEST/DONE",
+      u8_log(LOG_NOTICE,"FDServlet/REQUEST/DONE",
              "%q (%d) %s %d=%d+%d+%d bytes (#%lx)\n\t< %q %s\n\t< generated by %q\n\t< taking %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
              method,http_status,((buffered)?("buffered"):("sent")),
              http_len+head_len+content_len,http_len,head_len,content_len,
@@ -1301,7 +1315,7 @@ static int webservefn(u8_client ucl)
              (u8_dbldifftime(end_usage.ru_utime,start_usage.ru_utime))/1000.0,
              (u8_dbldifftime(end_usage.ru_stime,start_usage.ru_stime))/1000.0,
              end_load[0],end_load[1],end_load[2]);
-    else u8_log(LOG_NOTICE,"REQUEST/DONE",
+    else u8_log(LOG_NOTICE,"FDSerlvet/REQUEST/DONE",
                 "%q (%d) %s %d=%d+%d+%d bytes (#%lx)\n\t< %q %s\n\t< generated by %q\n\t< from query %q\n\t< taking %f=setup:%f+req:%f+run:%f+write:%f secs, stime=%.2fms, utime=%.2fms, load=%f/%f/%f",
                 method,http_status,((buffered)?("buffered"):("sent")),
                 http_len+head_len+content_len,http_len,head_len,content_len,
@@ -1343,7 +1357,7 @@ static int webservefn(u8_client ucl)
 static int close_webclient(u8_client ucl)
 {
   fd_webconn client=(fd_webconn)ucl;
-  u8_log(LOG_INFO,"webclient/close","Closing web client %s (#%lx#%d.%d)",
+  u8_log(LOG_INFO,"FDServlet/close","Closing web client %s (#%lx#%d.%d)",
          ucl->idstring,ucl,ucl->clientid,ucl->socket);
   fd_decref(client->cgidata); client->cgidata=FD_VOID;
   fd_dtsclose(&(client->in),2);
@@ -1357,7 +1371,7 @@ static int reuse_webclient(u8_client ucl)
   fdtype cgidata=client->cgidata;
   int refcount=((FD_CONSP(cgidata))?
                 (FD_CONS_REFCOUNT((fd_cons)cgidata)):(0));
-  u8_log(LOG_INFO,"webclient/reuse","Reusing web client %s (#%lx)",
+  u8_log(LOG_INFO,"FDServlet/reuse","Reusing web client %s (#%lx)",
          ucl->idstring,ucl);
   fd_decref(cgidata); client->cgidata=FD_VOID;
   return 1;
@@ -1389,8 +1403,8 @@ static void shutdown_server(u8_condition reason)
   if (pidfile) {
     int retval=u8_removefile(pidfile);
     if (retval<0)
-      u8_log(LOG_WARN,
-             "FDServlet/shutdown","Couldn't remove pid file %s",pidfile);
+      u8_log(LOG_WARN,"FDServlet/shutdown",
+             "Couldn't remove pid file %s",pidfile);
     u8_free(pidfile);}
   pidfile=NULL;
   fd_recycle_hashtable(&pagemap);
@@ -1416,7 +1430,7 @@ static void kill_dependent_onsignal(int sig){
   u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
   if (dep>0)
-    u8_log(LOG_WARN,"FDServer/signal",
+    u8_log(LOG_WARN,"FDServlet/signal",
            "FDServer controller %d got signal %d, passing to %d",
            getpid(),sig,dep);
   if (dep>0) kill(dep,sig);
@@ -1532,11 +1546,11 @@ static int start_servers()
       if (stealsockets) {
         int retval=u8_removefile(port);
         if (retval<0)
-          u8_log(LOG_WARN,"FDServlet/start","Couldn't remove socket file %s",
-                 port);}
+          u8_log(LOG_WARN,"FDServlet/start",
+                 "Couldn't remove socket file %s",port);}
       else {
-        u8_log(LOG_WARN,"FDServlet/start","Socket file %s already exists",
-               port);}}}
+        u8_log(LOG_WARN,"FDServlet/start",
+               "Socket file %s already exists",port);}}}
   i=0; while (i<lim) {
     int retval=add_server(ports[i]);
     if (retval<0) {
@@ -1562,8 +1576,10 @@ int main(int argc,char **argv)
   u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;
   u8_string logfile=NULL;
 
+  set_exename(argv);
+
   if (u8_version<0) {
-    u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
+    u8_log(LOG_ERROR,ServletStartup,"Can't initialize LIBU8");
     exit(1);}
 
   /* Set this here, before processing any configs */
@@ -1600,7 +1616,7 @@ int main(int argc,char **argv)
 
   fd_register_config("FOREGROUND",_("Whether to run in the foreground"),
                      fd_boolconfig_get,fd_boolconfig_set,&foreground);
-  fd_register_config("DAEMONIZE",_("Whether to enable auto-restart"),
+  fd_register_config("RESTART",_("Whether to enable auto-restart"),
                      fd_boolconfig_get,fd_boolconfig_set,&daemonize);
   fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
                      fd_boolconfig_get,fd_boolconfig_set,&pidwait);
@@ -1621,7 +1637,7 @@ int main(int argc,char **argv)
 
   /* Close and reopen STDIN */
   close(0);  if (open("/dev/null",O_RDONLY) == -1) {
-    u8_log(LOG_CRIT,"fdserver","Unable to reopen stdin for daemon");
+    u8_log(LOG_CRIT,"fdservlet","Unable to reopen stdin for daemon");
     exit(1);}
 
   /* We do this using the Unix environment (rather than configuration
@@ -1749,12 +1765,12 @@ int main(int argc,char **argv)
   fd_init_mutex(&log_lock);
 #endif
 
-  u8_log(LOG_NOTICE,"LAUNCH","FDServlet %s",socket_spec);
+  u8_log(LOG_NOTICE,"FDServlet/LAUNCH","FDServlet %s",socket_spec);
 
   /* Process the config statements */
   while (i<argc)
     if (strchr(argv[i],'=')) {
-      u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i]);
+      u8_log(LOG_NOTICE,"FDServlet/CONFIG","   %s",argv[i]);
       fd_config_assignment(argv[i++]);}
     else i++;
 
@@ -1800,8 +1816,8 @@ static int launch_servlet(u8_string socket_spec)
   if ((strchr(socket_spec,'/'))&&
       (u8_file_existsp(socket_spec))&&
       (!((stealsockets)||(getenv("FD_STEALSOCKETS"))))) {
-    u8_log(LOG_CRIT,"Socket exists","Socket file %s already exists!",
-           socket_spec);
+    u8_log(LOG_CRIT,"FDSerlvet/Socket exists",
+           "Socket file %s already exists!",socket_spec);
     exit(1);}
 
   u8_log(LOG_DEBUG,ServletStartup,"Updating preloads");
@@ -1873,7 +1889,7 @@ static int launch_servlet(u8_string socket_spec)
   update_preloads();
 
   if (start_servers()<=0) {
-    u8_log(LOG_CRIT,"FDServlet/STARTUP","Startup failed");
+    u8_log(LOG_CRIT,ServletStartup,"Startup failed");
     exit(1);}
 
   u8_log(LOG_INFO,NULL,
@@ -1882,7 +1898,7 @@ static int launch_servlet(u8_string socket_spec)
          fd_n_primary_indices+fd_n_secondary_indices);
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2015, all rights reserved");
   if (fdwebserver.n_servers>0) {
-    u8_log(LOG_WARN,"FDServlet","Listening on %d addresses",
+    u8_log(LOG_WARN,ServletStartup,"Listening on %d addresses",
            fdwebserver.n_servers);
     u8_server_loop(&fdwebserver);}
   else {
@@ -1909,11 +1925,12 @@ static int fork_servlet(u8_string socket_spec)
        restart automatically.  */
     if ((child=fork())) {
       if (child<0) {
-        u8_log(LOG_CRIT,"fork_servlet","Fork failed for %s",socket_spec);
+        u8_log(LOG_CRIT,ServletFork,
+               "Fork failed for %s",socket_spec);
         exit(1);}
       else {
-        u8_log(LOG_NOTICE,"fork_servlet","Running server %s has PID %d",
-               socket_spec,child);
+        u8_log(LOG_NOTICE,"FDSERVLET/fork_servlet",
+               "Running server %s has PID %d",socket_spec,child);
         return sustain_servlet(child,socket_spec);}}
     else return launch_servlet(socket_spec);}
   else if ((child=fork()))  {
@@ -1921,9 +1938,11 @@ static int fork_servlet(u8_string socket_spec)
        waits until the .pid file has been written. */
     int count=60; double done; int status=0;
     if (child<0) {
-      u8_log(LOG_CRIT,"fork_servlet","Fork failed for %s\n",socket_spec);
+      u8_log(LOG_CRIT,ServletFork,
+             "Fork failed for %s\n",socket_spec);
       exit(1);}
-    else u8_log(LOG_WARN,"fork_servlet","Initial fork spawned pid %d from %d",
+    else u8_log(LOG_WARN,ServletFork,
+                "Initial fork spawned pid %d from %d",
                 child,getpid());
 #if HAVE_WAITPID
     if (waitpid(child,&status,0)<0) {
@@ -1956,35 +1975,38 @@ static int fork_servlet(u8_string socket_spec)
     /* If we get here, we're the parent, and we start by trying to
        become session leader */
     if (setsid()==-1) {
-      u8_log(LOG_CRIT,"fork_servlet",
+      u8_log(LOG_CRIT,ServletFork,
              "Process %d failed to become session leader for %s (%s)",
              getpid(),socket_spec,strerror(errno));
       errno=0;
       exit(1);}
-    else u8_log(LOG_INFO,"fork_servlet",
-                "Process %d become session leader for %s",getpid(),socket_spec);
+    else u8_log(LOG_INFO,ServletFork,
+                "Process %d become session leader for %s",
+                getpid(),socket_spec);
     /* Now we fork again.  In the normal case, this fork (the grandchild) is
        the actual server.  If we're auto-restarting, this fork is the one which
        does the restarting. */
     if ((grandchild=fork())) {
       if (grandchild<0) {
-        u8_log(LOG_CRIT,"fork_servlet","Second fork failed for %s",socket_spec);
+        u8_log(LOG_CRIT,ServletFork,
+               "Second fork failed for %s",socket_spec);
         exit(1);}
       else if (daemonize>0)
-        u8_log(LOG_NOTICE,"fork_servlet","Restart monitor for %s has PID %d",
-               socket_spec,grandchild);
-      else u8_log(LOG_NOTICE,"fork_servlet","Running server %s has PID %d",
-                  socket_spec,grandchild);
+        u8_log(LOG_NOTICE,ServletFork,
+               "Restart monitor for %s has PID %d",socket_spec,grandchild);
+      else u8_log(LOG_NOTICE,ServletFork,
+                  "Running server %s has PID %d",socket_spec,grandchild);
       /* This is the parent, which always exits */
       exit(0);}
     else if (daemonize>0) {
       pid_t worker;
       if ((worker=fork())) {
         if (worker<0)
-          u8_log(LOG_CRIT,"fork_servlet","Worker fork failed for %s",socket_spec);
+          u8_log(LOG_CRIT,ServletFork,
+                 "Worker fork failed for %s",socket_spec);
         else {
-          u8_log(LOG_NOTICE,"fork_servlet","Running server %s has PID %d",
-                 socket_spec,worker);
+          u8_log(LOG_NOTICE,ServletFork,
+                 "Running server %s has PID %d",socket_spec,worker);
           return sustain_servlet(worker,socket_spec);}}
       else return launch_servlet(socket_spec);}
     else return launch_servlet(socket_spec);}
@@ -1996,13 +2018,14 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
   u8_string ppid_filename=fd_runbase_filename(".ppid");
   FILE *f=fopen(ppid_filename,"w");
   int status=-1, sleepfor=daemonize;
+  tweak_exename("fdserv",2,'x');
   if (f) {
     fprintf(f,"%ld\n",(long)getpid());
     fclose(f);
     u8_free(ppid_filename);}
   else {
-    u8_log(LOG_WARN,"CantWritePPID","Couldn't write ppid file %s",
-           ppid_filename);
+    u8_log(LOG_WARN,"CantWritePPID",
+           "Couldn't write ppid file %s",ppid_filename);
     u8_free(ppid_filename);}
   last_launch=time(NULL);
   /* Don't try to catch an error here */
@@ -2013,7 +2036,8 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
   dependent=grandchild;
   /* Setup atexit and signal handlers to kill our dependent when we're
      gone. */
-  u8_log(LOG_WARN,"FDServer/sustain %s pid=%d",socket_spec,grandchild);
+  u8_log(LOG_WARN,"FDServlet/sustain",
+         "Starting %s pid=%d",socket_spec,grandchild);
   atexit(kill_dependent_onexit);
 #ifdef SIGTERM
   signal(SIGTERM,kill_dependent_onsignal);
@@ -2024,16 +2048,16 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
   while (waitpid(grandchild,&status,0)) {
     time_t now=time(NULL);
     if (WIFSIGNALED(status))
-      u8_log(LOG_WARN,"FDServer/restart",
-             "Server %s(%d) terminated on signal %d",
+      u8_log(LOG_WARN,"FDServlet/restart",
+             "Servlet %s(%d) terminated on signal %d",
              socket_spec,grandchild,WTERMSIG(status));
     else if (WIFEXITED(status))
-      u8_log(LOG_NOTICE,"FDServer/restart",
+      u8_log(LOG_NOTICE,"FDServlet/restart",
              "Server %s(%d) terminated normally with status %d",
              socket_spec,grandchild,status);
     else continue;
     if (dependent<0) {
-      u8_log(LOG_WARN,"FDServer/done",
+      u8_log(LOG_WARN,"FDServlet/done",
              "Terminating restart process for %s",socket_spec);
       exit(0);}
     if ((now-last_launch)<fastfail_threshold) {
@@ -2045,7 +2069,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
     else {}
     last_launch=time(NULL);
     if ((grandchild=fork())) {
-      u8_log(LOG_NOTICE,"FDServer/restart",
+      u8_log(LOG_NOTICE,"FDServlet/restart",
              "Server %s restarted with pid %d",
              socket_spec,grandchild);
       dependent=grandchild;
