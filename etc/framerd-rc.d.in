@@ -34,11 +34,11 @@ case "$1" in
 	for ctl in @config_dir@/daemons/*; do
 	    if test ! -f ${ctl}; then echo > /dev/null;
 	    elif (readlink ${ctl}>/dev/null);
-	    then FD_DAEMONIZE=3 \
+	    then FD_RESTART=1 \
 		 LOGFILE=@logdir@/framerd/`basename ${ctl}`.log \
 		 ${FDSERVER} `readlink ${ctl}` "PORT=`basename ${ctl}`" \
 		             STATEDIR=@rundir@/framerd;
-	    else FD_DAEMONIZE=3 \
+	    else FD_RESTART=1 \
 		 LOGFILE=@logdir@/framerd/`basename ${ctl}`.log \
 		 ${FDSERVER} ${ctl} "PORT=`basename ${ctl}`" \
 		             STATEDIR=@rundir@/framerd;
@@ -47,11 +47,11 @@ case "$1" in
 	for ctl in @config_dir@/servlets/*@* @config_dir@/servlets/*:*; do
 	    if test ! -f ${ctl}; then echo > /dev/null;
 	    elif (readlink ${ctl}>/dev/null);
-	    then FD_DAEMONIZE=3 \
+	    then FD_RESTART=1 \
 		 LOGFILE=@logdir@/fdserv/`basename ${ctl}`.log \
 		 ${FDSERVLET} `basename ${ctl}` "CONFIG=`readlink ${ctl}`" \
 		             STATEDIR=@rundir@/fdserv;
-	    else FD_DAEMONIZE=3 \
+	    else FD_RESTART=1 \
 		 LOGFILE=@logdir@/fdserv/`basename ${ctl}`.log \
 		 ${FDSERVLET} `basename ${ctl}` "CONFIG=${ctl}" \
 		             STATEDIR=@rundir@/fdserv;
@@ -60,11 +60,11 @@ case "$1" in
 	for ctl in @config_dir@/servlets/*.sock; do
 	    if test ! -f ${ctl}; then echo > /dev/null;
 	    elif (readlink ${ctl}>/dev/null);
-	    then FD_DAEMONIZE=3 \
+	    then FD_RESTART=1 \
 		 LOGFILE=@logdir@/fdserv/`basename ${ctl} .sock`.log \
 		 ${FDSERVLET} `basename ${ctl}` "CONFIG=`readlink ${ctl}`" \
 		             STATEDIR=@rundir@/fdserv;
-	    else FD_DAEMONIZE=3 \
+	    else FD_RESTART=1 \
 		 LOGFILE=@logdir@/fdserv/`basename ${ctl} .sock`.log \
 		 ${FDSERVLET} `basename ${ctl}` "CONFIG=${ctl}" \
 		             STATEDIR=@rundir@/fdserv;
