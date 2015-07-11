@@ -1,32 +1,38 @@
+metapackage (3.8.1-2) unstable; urgency=low
+
+  * Fixed for actual inital release 3.8.1
+
+ -- beingmeta repository manager <repoman@beingmeta.com>  Sat, 11 Jul 2015 14:57:39 +0000
+
 metapackage (3.8.0-1) unstable; urgency=low
 
   * New minor version number
 
- -- beingmeta repository manager <repoman@beingmeta.com> Fri, 03 Jul 2015 20:52:43 -0400
+ -- beingmeta repository manager <repoman@beingmeta.com>  Fri, 03 Jul 2015 20:52:43 -0400
 
 metapackage (3.7.9-6) unstable; urgency=low
 
   * Updated release number
 
- -- beingmeta repository manager <repoman@beingmeta.com> Tue, 16 Jun 2015 14:39:39 -0400
+ -- beingmeta repository manager <repoman@beingmeta.com>  Tue, 16 Jun 2015 14:39:39 -0400
 
 metapackage (3.7.8-5) unstable; urgency=low
 
   * Restored framerd-tidy to bmwebstack
 
- -- beingmeta repository manager <repoman@beingmeta.com> Wed, 22 Apr 2015 15:54:43 -0400
+ -- beingmeta repository manager <repoman@beingmeta.com>  Wed, 22 Apr 2015 15:54:43 -0400
 
 metapackage (3.7.8-4) unstable; urgency=low
 
   * Fix pre-depends
 
- --  beingmeta repository manager <repoman@beingmeta.com> Fri, 10 Apr 2015 23:06:51 -0400
+ --  beingmeta repository manager <repoman@beingmeta.com>  Fri, 10 Apr 2015 23:06:51 -0400
 
 metapackage (3.7.8-3) unstable; urgency=low
 
   * Added bmtextstack
 
- -- beingmeta repository manager <repoman@beingmeta.com> Fri, 10 Apr 2015 22:53:54 -0400
+ -- beingmeta repository manager <repoman@beingmeta.com>  Fri, 10 Apr 2015 22:53:54 -0400
 
 metapackage (3.7.8-2) unstable; urgency=low
 
