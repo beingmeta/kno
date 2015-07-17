@@ -244,6 +244,12 @@
 /* The root log directory */
 #undef FD_LOG_DIR
 
+/* The servlet log directory */
+#undef FD_SERVLET_LOG_DIR
+
+/* The servlet log directory */
+#undef FD_DAEMON_LOG_DIR
+
 /* Where to find config information */
 #undef FD_CONFIG_FILE_PATH
 

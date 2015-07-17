@@ -826,7 +826,10 @@ int main(int argc,char **argv)
 
   fddb_loglevel=LOG_INFO;
 
-  if ((!(log_filename))&&(getenv("LOGFILE")))
+  if (getenv("STDLOG")) {
+    u8_log(LOG_WARN,"FDServer/startup",
+           "Obeying STDLOG and using stdout/stderr for logging");}
+  else if ((!(log_filename))&&(getenv("LOGFILE")))
     set_logfile(getenv("LOGFILE"),1);
   if ((!(log_filename))&&(getenv("LOGDIR"))) {
     u8_string base=u8_basename(server_spec,"*");
@@ -834,9 +837,6 @@ int main(int argc,char **argv)
     u8_string logfile=u8_mkpath(getenv("LOGDIR"),logname);
     set_logfile(logfile,1);
     u8_free(base); u8_free(logname);}
-
-  if (!(log_filename))
-    u8_log(LOG_WARN,ServerStartup,"No logfile, using stdout");
 
   fd_version=fd_init_fdscheme();
 
@@ -875,6 +875,18 @@ int main(int argc,char **argv)
 
   /* Initialize config settings */
   init_configs();
+
+  if (getenv("STDLOG")) {}
+  else if (log_filename) {}
+  else if ((!(foreground))&&(server_spec)) {
+    u8_string base=u8_basename(server_spec,"*");
+    u8_string logname=u8_mkstring("%s.log",base);
+    u8_string logfile=u8_mkpath(FD_DAEMON_LOG_DIR,logname);
+    set_logfile(logfile,1);
+    u8_free(base); u8_free(logname);}
+  else {
+    u8_log(LOG_WARN,ServerStartup,"No logfile, using stdout");}
+
 
   /* Get the core environment */
   core_env=init_core_env();

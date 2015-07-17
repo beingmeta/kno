@@ -121,8 +121,8 @@ TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$prefix/etc/framerd"
 rundir="${localstatedir}/run"
 logdir="${localstatedir}/log"
-framerd_log_dir="${localstatedir}/log/framerd"
-fdserv_log_dir="${localstatedir}/log/fdserv"
+framerd_log_dir="${logdir}/framerd"
+fdserv_log_dir="${logdir}/fdserv"
 archflags=""
 with_ziptools_default="yes"
 with_mysql_default="yes"
@@ -536,6 +536,9 @@ dnl Specifies where log files should live
 AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="$localstatedir/log")
 logdir=$with_logdir
 AC_DEFINE_UNQUOTED(FD_LOG_DIR,"$logdir")
+
+AC_DEFINE_UNQUOTED(FD_DAEMON_LOG_DIR,"$logdir/framerd/")
+AC_DEFINE_UNQUOTED(FD_SERVLET_LOG_DIR,"$logdir/fdserv/")
 
 AC_AIX
 

@@ -1626,12 +1626,22 @@ int main(int argc,char **argv)
                      _("How long (secs) to wait after a fastfail"),
                      fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
 
-  if (getenv("LOGFILE"))
-    logfile=u8_fromlibc(getenv("LOGFILE"));
+  if (getenv("STDLOG")) {
+    u8_log(LOG_WARN,ServletStartup,
+           "Obeying STDLOG and using stdout/stderr for logging");}
+  else if (getenv("LOGFILE")) {
+    char *envfile=getenv("LOGFILE");
+    if ((envfile)&&(envfile[0])&&(strcmp(envfile,"-")))
+      logfile=u8_fromlibc(envfile);}
   else if ((getenv("LOGDIR"))&&(socket_spec)) {
     u8_string base=u8_basename(socket_spec,"*");
     u8_string logname=u8_mkstring("%s.log",base);
     logfile=u8_mkpath(getenv("LOGDIR"),logname);
+    u8_free(base); u8_free(logname);}
+  else if ((!(foreground))&&(socket_spec)) {
+    u8_string base=u8_basename(socket_spec,"*");
+    u8_string logname=u8_mkstring("%s.log",base);
+    logfile=u8_mkpath(FD_SERVLET_LOG_DIR,logname);
     u8_free(base); u8_free(logname);}
   else u8_log(LOG_WARN,ServletStartup,"No logfile, using stdout");
 

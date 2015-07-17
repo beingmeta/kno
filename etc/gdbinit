@@ -1,4 +1,5 @@
 set env UNDERGDB=yes
+set env STDLOG=yes
 set env FD_FOREGROUND=yes
 set env FD_IGNORELEFTOVERS=yes
 set env FD_STEALSOCKETS=yes
