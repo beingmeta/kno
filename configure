@@ -2840,8 +2840,8 @@ TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$prefix/etc/framerd"
 rundir="${localstatedir}/run"
 logdir="${localstatedir}/log"
-framerd_log_dir="${localstatedir}/log/framerd"
-fdserv_log_dir="${localstatedir}/log/fdserv"
+framerd_log_dir="${logdir}/framerd"
+fdserv_log_dir="${logdir}/fdserv"
 archflags=""
 with_ziptools_default="yes"
 with_mysql_default="yes"
@@ -5360,8 +5360,19 @@ else
 fi
 
 logdir=$with_logdir
+
 cat >>confdefs.h <<_ACEOF
 #define FD_LOG_DIR "$logdir"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define FD_DAEMON_LOG_DIR "$logdir/framerd/"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define FD_SERVLET_LOG_DIR "$logdir/fdserv/"
 _ACEOF
 
 

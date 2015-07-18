@@ -535,9 +535,11 @@ AC_DEFINE_UNQUOTED(FD_RUN_DIR,"$rundir")
 dnl Specifies where log files should live
 AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="$localstatedir/log")
 logdir=$with_logdir
+
 AC_DEFINE_UNQUOTED(FD_LOG_DIR,"$logdir")
 
 AC_DEFINE_UNQUOTED(FD_DAEMON_LOG_DIR,"$logdir/framerd/")
+
 AC_DEFINE_UNQUOTED(FD_SERVLET_LOG_DIR,"$logdir/fdserv/")
 
 AC_AIX
