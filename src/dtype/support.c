@@ -60,6 +60,8 @@ fd_exception fd_ReadOnlyConfig=_("Read-only config setting");
 
 static u8_string logdir=NULL, datadir=NULL;
 
+static int trace_config=0;
+
 /* Configuration handling */
 
 struct FD_CONFIG_HANDLER *config_handlers=NULL;
@@ -223,8 +225,15 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
     if (FD_EQ(scan->var,symbol)) {
       scan->flags=scan->flags|FD_CONFIG_ALREADY_MODIFIED;
       retval=scan->config_set_method(symbol,val,scan->data);
+      if (trace_config)
+        u8_log(LOG_WARN,"ConfigSet",
+               "Using handler to configure %s (%s) with %q",
+               var,FD_SYMBOL_NAME(symbol),val);
       break;}
     else scan=scan->next;
+  if ((!(scan))&&(trace_config))
+    u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
+           var,FD_SYMBOL_NAME(symbol),val);
   config_set(var,val);
   if (retval<0) {
     u8_string errsum=fd_errstring(NULL);
@@ -242,10 +251,18 @@ FD_EXPORT int fd_config_default(u8_string var,fdtype val)
       if ((scan->flags)&(FD_CONFIG_ALREADY_MODIFIED)) return 0;
       scan->flags=scan->flags|FD_CONFIG_ALREADY_MODIFIED;
       retval=scan->config_set_method(symbol,val,scan->data);
+      if (trace_config)
+        u8_log(LOG_WARN,"ConfigSet",
+               "Using handler to configure default %s (%s) with %q",
+               var,FD_SYMBOL_NAME(symbol),val);
       break;}
     else scan=scan->next;
   if (fd_test(configuration_table,symbol,FD_VOID)) return 0;
-  else config_set(var,val);
+  else {
+    if ((!(scan))&&(trace_config))
+      u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
+             var,FD_SYMBOL_NAME(symbol),val);
+    retval=config_set(var,val);}
   if (retval<0) {
     u8_string errsum=fd_errstring(NULL);
     u8_log(LOG_WARN,fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
@@ -2054,6 +2071,9 @@ void fd_init_support_c()
      _("Threshold at which to use an external hashset for merging"),
      fd_intconfig_get,fd_intconfig_set,
      &fd_mergesort_threshold);
+  fd_register_config
+    ("TRACECONFIG",_("whether to trace configuration"),
+     fd_boolconfig_get,fd_boolconfig_set,&trace_config);
 
   fd_register_config
     ("LOGLEVEL",_("Required priority for messages to be displayed"),
