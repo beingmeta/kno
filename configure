@@ -5370,10 +5370,7 @@ cat >>confdefs.h <<_ACEOF
 #define FD_DAEMON_LOG_DIR "$logdir/framerd/"
 _ACEOF
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 5697b5b2a8b89f45d38ca434f58b1f805cf5c64b
 cat >>confdefs.h <<_ACEOF
 #define FD_SERVLET_LOG_DIR "$logdir/fdserv/"
 _ACEOF
