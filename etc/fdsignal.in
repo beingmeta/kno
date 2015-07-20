@@ -1,0 +1,15 @@
+#!/bin/bash
+SIGNAL=${SIGNAL:-TERM}
+CMD="kill -s"
+for name in $*; do
+    if test -f ${name}; then
+	${CMD} ${SIGNAL} `cat ${name}`;
+    elif test -f ${name}.pid; then
+	${CMD} ${SIGNAL} `cat ${name}.pid`;
+    elif test -f @rundir@/framerd/${name}.pid; then
+	${CMD} ${SIGNAL} `cat @rundir@/framerd/${name}.pid`;
+    elif test -f @rundir@/fdserv/${name}.pid; then
+	${CMD} ${SIGNAL} `cat @rundir@/fdserv/${name}.pid`;
+    else echo "fdsignal: Couldn't find task ${name}";
+    fi;
+done;

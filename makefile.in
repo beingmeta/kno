@@ -136,7 +136,7 @@ EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
 	static/fdbatch@suffix@ \
 	static/fdservlet@suffix@ static/fdserver@suffix@
-SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig
+SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdsignal etc/fdconfig
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
                exe/scripts/make-hash-index \
                exe/scripts/make-oidpool \
@@ -305,6 +305,8 @@ tests/db/.gdbinit: tests/db/.gdbinit.in ./configure
 tests/scheme/.gdbinit: tests/scheme/.gdbinit.in ./configure
 	./configure
 exe/.gdbinit: exe/.gdbinit.in ./configure
+	./configure
+etc/fdsignal: etc/fdsignal.in ./configure
 	./configure
 etc/fdgetconfig: etc/fdgetconfig.in ./configure
 	./configure

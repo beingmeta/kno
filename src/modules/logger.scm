@@ -279,7 +279,3 @@
 (define logpanic?
   (macro expr `(>= %loglevel ,%panic%)))
 
-
-
-
-

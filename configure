@@ -10445,7 +10445,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/framerd-rc.d etc/OSXStartupItem/FramerD etc/logrotate etc/fdserver.conf etc/framerd.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.8.spec"
+ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdsignal etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/fdserver.conf etc/framerd.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.8.spec"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -11153,9 +11153,10 @@ do
     "etc/fdsetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdsetconfig" ;;
     "etc/fdgetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdgetconfig" ;;
     "etc/fdconfig") CONFIG_FILES="$CONFIG_FILES etc/fdconfig" ;;
-    "etc/framerd-rc.d") CONFIG_FILES="$CONFIG_FILES etc/framerd-rc.d" ;;
+    "etc/fdsignal") CONFIG_FILES="$CONFIG_FILES etc/fdsignal" ;;
     "etc/OSXStartupItem/FramerD") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/FramerD" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;
+    "etc/framerd-rc.d") CONFIG_FILES="$CONFIG_FILES etc/framerd-rc.d" ;;
     "etc/fdserver.conf") CONFIG_FILES="$CONFIG_FILES etc/fdserver.conf" ;;
     "etc/framerd.conf") CONFIG_FILES="$CONFIG_FILES etc/framerd.conf" ;;
     "etc/fdservlet.conf") CONFIG_FILES="$CONFIG_FILES etc/fdservlet.conf" ;;
