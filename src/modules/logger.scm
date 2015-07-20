@@ -29,7 +29,8 @@
 		  info%call notice%call warn%call})
 (module-export! '{logswamp? logdeluge? logdetail? logdebug?
 		  loginfo? lognotice? logwarn?
-		  logerr? logcrit? logalert? logpanic?})
+		  logerr? logcrit? logalert? logpanic?
+		  log>? log>=?})
 
 (module-export!
  '{swamp%watch deluge%watch detail%watch debug%watch
@@ -250,6 +251,11 @@
 
 ;;; Local loglevel predicates
 
+(define log>=?
+  (macro expr `(>= %loglevel ,(get-arg expr 1))))
+(define log>?
+  (macro expr `(> %loglevel ,(get-arg expr 1))))
+
 (define logswamp?
   (macro expr `(>= %loglevel ,%swamp%)))
 (define logdeluge?
@@ -272,6 +278,8 @@
   (macro expr `(>= %loglevel ,%alert%)))
 (define logpanic?
   (macro expr `(>= %loglevel ,%panic%)))
+
+
 
 
 
