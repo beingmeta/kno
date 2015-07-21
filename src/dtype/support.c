@@ -19,6 +19,9 @@
 #include <libu8/u8printf.h>
 #include <libu8/u8logging.h>
 
+#include <sys/types.h>
+#include <pwd.h>
+
 #if 0
 typedef int bool;
 
@@ -1537,61 +1540,6 @@ static int config_setrandomseed(fdtype var,fdtype val,void *data)
   else return -1;
 }
 
-/* Setting the group */
-
-static fdtype config_getgroup(fdtype var,void *data)
-{
-#if HAVE_GETGID
-  gid_t g=getgid(); int ival=(int)g;
-  if (ival<0) {
-    u8_graberr(errno,"config_getgroup",NULL); errno=0;
-    return FD_ERROR_VALUE;}
-  return FD_INT2DTYPE(ival);
-#else
-  return FD_FALSE;
-#endif
-}
-
-static int config_setgroup(fdtype var,fdtype val,void *data)
-{
-#if HAVE_SETGID
-  if (FD_FIXNUMP(val)) {
-    int retval=setgid((gid_t)(FD_FIX2INT(val)));
-    if (retval<0) {
-      u8_log(LOG_CRIT,"setgroup failed","setgid: %s",strerror(errno));
-      errno=0;
-      return 0;}
-    else return 1;}
-  else if (FD_STRINGP(val)) {
-    int retval=-1;
-#if HAVE_GETGRNAM_R
-    char buf[512]; struct group g;
-    retval=getgrnam_r(FD_STRDATA(val),&g,buf,512,NULL);
-    if (retval>=0) {
-      retval=setgid(g.gr_gid);
-      if (retval<0) {
-        u8_log(LOG_CRIT,"setgroup failed","setgid(%d): %s",
-               g.gr_gid,strerror(errno));
-        errno=0;
-        return 0;}
-      else return 1;}
-    else {
-      u8_log(LOG_CRIT,"setgroup failed","getgrnam_r: %s",strerror(errno));
-      errno=0;
-      return 0;}
-#else
-    u8_seterr("Not implemented","config_setgroup",NULL);
-#endif
-    return 0;}
-  else {
-    fd_seterr(fd_TypeError,"config_setgroup","string or integer",val);
-    return 0;}
-#else
-  u8_log(LOG_WARN,"Not implemented","setgroup not implemented");
-  return 0;
-#endif
-}
-
 /* LOGLEVEL */
 
 static int loglevelconfig_set(fdtype var,fdtype val,void *data)
@@ -1803,6 +1751,156 @@ static fdtype u8major_config_get(fdtype var,void *data)
 {
   return FD_INT2DTYPE(u8_getmajorversion());
 }
+
+/* UID/GID setting */
+
+static int resolve_uid(fdtype val)
+{
+  if (FD_FIXNUMP(val)) return (gid_t)(FD_FIX2INT(val));
+#if ((HAVE_GETPWNAM_R)||(HAVE_GETPWNAM))
+  if (FD_STRINGP(val)) {
+    struct passwd _uinfo, *uinfo; char buf[1024]; int retval;
+#if HAVE_GETPWNAM_R
+    retval=getpwnam_r(FD_STRDATA(val),&_uinfo,buf,1024,&uinfo);
+#else
+    uinfo=getpwnam(FD_STRDATA(val));
+#endif
+    if ((retval<0)||(uinfo==NULL)) {
+      if (errno) u8_graberr(errno,"resolve_uid",NULL);
+      fd_seterr("BadUser","resolve_uid",NULL,val);
+      return (uid_t) -1;}
+    else return uinfo->pw_uid;}
+  else return fd_type_error("userid","resolve_uid",val);
+#else
+  return -1;
+#endif
+}
+
+static int resolve_gid(fdtype val)
+{
+  if (FD_FIXNUMP(val)) return (gid_t)(FD_FIX2INT(val));
+#if ((HAVE_GETGRNAM_R)||(HAVE_GETGRNAM))
+  if (FD_STRINGP(val)) {
+    struct group _ginfo, *ginfo; char buf[1024]; int retval;
+#if HAVE_GETGRNAM_R
+    retval=getgrnam_r(FD_STRDATA(val),&_ginfo,buf,1024,&ginfo);
+#else
+    ginfo=getgrnam(FD_STRDATA(val));
+#endif
+    if ((retval<0)||(ginfo==NULL)) {
+      if (errno) u8_graberr(errno,"resolve_gid",NULL);
+      fd_seterr("BadGroup","resolve_gid",NULL,val);
+      return (uid_t) -1;}
+    else return ginfo->gr_gid;}
+  else return fd_type_error("groupid","resolve_gid",val);
+#else
+  return -1;
+#endif
+}
+
+/* Determine which functions to use */
+
+#if HAVE_GETEUID
+#define GETUIDFN geteuid
+#elif HAVE_GETUID
+#define GETUIDFN getuid
+#endif
+
+#if HAVE_SETEUID
+#define SETUIDFN seteuid
+#elif HAVE_SETUID
+#define SETUIDFN setuid
+#endif
+
+#if HAVE_GETEGID
+#define GETGIDFN getegid
+#elif HAVE_GETGID
+#define GETGIDFN getgid
+#endif
+
+#if HAVE_SETEGID
+#define SETGIDFN setegid
+#elif HAVE_SETGID
+#define SETGIDFN setgid
+#endif
+
+/* User config functions */
+
+#if (HAVE_GETUID|HAVE_GETEUID)
+static fdtype config_getuser(fdtype var,void *data)
+{
+  uid_t gid=GETUIDFN(); int ival=(int)gid;
+  return FD_INT2DTYPE(ival);
+}
+#else
+static fdtype config_getuser(fdtype var,void *data)
+{
+  return FD_FALSE;
+}
+#endif
+
+#if ((HAVE_GETUID|HAVE_GETEUID)&((HAVE_SETUID|HAVE_SETEUID)))
+static int config_setuser(fdtype var,fdtype val,void *data)
+{
+  uid_t cur_uid=GETUIDFN(); int uid=resolve_uid(val);
+  if (uid<0) return -1;
+  else if (cur_uid==uid) return 0;
+  else {
+    int rv=SETUIDFN(uid);
+    if (rv<0) {
+      u8_graberr(errno,"config_setuser",NULL);
+      u8_log(LOG_CRIT,"Can't set user","Can't change user ID from %d",cur_uid);
+      fd_seterr("CantSetUser","config_setuser",NULL,uid);
+      return -1;}
+    return 1;}
+}
+#else
+static int config_setuser(fdtype var,fdtype val,void *data)
+{
+  u8_log(LOG_CRIT,"Can't set user","Can't change user ID in this OS");
+  fd_seterr("SystemCantSetUser","config_setuser",NULL,val);
+  return -1;
+}
+#endif
+
+/* User config functions */
+
+#if (HAVE_GETGID|HAVE_GETEGID)
+static fdtype config_getgroup(fdtype var,void *data)
+{
+  gid_t gid=GETGIDFN(); int i=(int)gid;
+  return FD_INT2DTYPE(i);
+}
+#else
+static fdtype config_getgroup(fdtype var,void *data)
+{
+  return FD_FALSE;
+}
+#endif
+
+#if (HAVE_SETGID|HAVE_SETEGID)
+static int config_setgroup(fdtype var,fdtype val,void *data)
+{
+  gid_t cur_gid=GETGIDFN(); int gid=resolve_gid(val);
+  if (gid<0) return -1;
+  else if (cur_gid==gid) return 0;
+  else {
+    int rv=SETGIDFN(gid);
+    if (rv<0) {
+      u8_graberr(errno,"config_setgroup",NULL);
+      u8_log(LOG_CRIT,"Can't set group","Can't change group ID from %d",cur_gid);
+      fd_seterr("CantSetGroup","config_setgroup",NULL,gid);
+      return -1;}
+    return 1;}
+}
+#else
+static int config_setgroup(fdtype var,fdtype val,void *data)
+{
+  u8_log(LOG_CRIT,"Can't set group","Can't change group ID in this OS");
+  fd_seterr("SystemCantSetGroup","config_setgroup",NULL,val);
+  return -1;
+}
+#endif
 
 /* Initialization */
 
@@ -2112,6 +2210,14 @@ void fd_init_support_c()
      &u8_log_show_elapsed);
 
   fd_register_config
+    ("USER",_("Set the user ID for this process"),
+     config_getuser,config_setuser,NULL);
+  fd_register_config
+    ("GROUP",_("Set the group ID for this process"),
+     config_getgroup,config_setgroup,NULL);
+
+
+  fd_register_config
     ("FDVERSION",_("Get the FramerD version string"),
      fdversion_config_get,fd_readonly_config_set,NULL);
   fd_register_config
@@ -2147,9 +2253,6 @@ void fd_init_support_c()
 
   fd_register_config("RUNBASE",_("Path prefix for program state files"),
                      config_getrunbase,config_setrunbase,NULL);
-
-  fd_register_config("GROUP",_("Set current group"),
-                     config_getgroup,config_setgroup,NULL);
 
 #if HAVE_SYS_RESOURCE_H
 #ifdef RLIMIT_CPU

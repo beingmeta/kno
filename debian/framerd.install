@@ -25,6 +25,7 @@ usr/bin/pack-index
 usr/bin/pack-pool
 usr/bin/fdgetconfig
 usr/bin/fdsetconfig
+usr/bin/fdsignal
 usr/bin/fdconfig
 usr/etc/framerd/servers
 usr/share/framerd/fdconsole.el

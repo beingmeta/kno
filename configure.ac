@@ -708,6 +708,11 @@ AC_CHECK_FUNCS(waitpid)
 AC_CHECK_FUNCS(wait4)
 AC_CHECK_FUNCS(gettext)
 
+AC_CHECK_FUNCS(geteuid getuid getgid getegid)
+AC_CHECK_FUNCS(seteuid setuid setgid setegid)
+AC_CHECK_FUNCS(getpwnam_r getpwnam)
+AC_CHECK_FUNCS(getgrnam getgrnam_r)
+
 # This gets it in the library list
 AC_CHECK_LIB(m,floor)
 AC_CHECK_LIB(z,compress2)
@@ -721,7 +726,7 @@ fi
 AC_ARG_ENABLE(maintainer-mode,--en[dis]able-maintainer-mode doesn't do anything)
 AC_ARG_ENABLE(dependency-tracking,--en[dis]able-dependency-tracking doesn't do anything)
 
-dnl Build the shared libraries.  
+dnl Build the shared libraries.
 AC_ARG_ENABLE(shared,--en[dis]able-shared Build with/without shared libraries,,enable_shared=$shared_default)
 if test $enable_shared = "yes"; then
   CFLAGS="-fPIC $CFLAGS"
