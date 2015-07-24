@@ -99,9 +99,15 @@
 	 (invoice (getopt spec 'invoice (getuuid)))
 	 (args `#["METHOD" "GetExpressCheckoutDetails"
 		  "TOKEN" ,(getopt spec 'token (getopt spec 'payid))
-		  "USER" ,(getopt spec 'pp:user pp:user)
-		  "PWD" ,(getopt spec 'pp:pass pp:pass)
-		  "SIGNATURE" ,(getopt spec 'pp:sig pp:sig)
+		  "USER" ,(getopt spec 'pp:user
+				  (if (getopt spec 'live pp:live)
+				      pp:user pp:testuser))
+		  "PWD" ,(getopt spec 'pp:pass
+				 (if (getopt spec 'live pp:live)
+				     pp:pass pp:testpass))
+		  "SIGNATURE" ,(getopt spec 'pp:sig
+				       (if (getopt spec 'live pp:live)
+					   pp:sig pp:testsig))
 		  "VERSION" ,(getopt spec 'version express-api-version)]))
     (let* ((requrl (scripturl+ url args))
 	   (response (urlget requrl))
@@ -127,9 +133,15 @@
 		  "PAYMENTREQUEST_0_AMT" ,amount
 		  "PAYMENTREQUEST_0_CURRENCYCODE" ,currency
 		  "PAYMENTREQUEST_0_PAYMENTACTION" "Sale"
-		  "USER" ,(getopt spec 'pp:user pp:user)
-		  "PWD" ,(getopt spec 'pp:pass pp:pass)
-		  "SIGNATURE" ,(getopt spec 'pp:sig pp:sig)
+		  "USER" ,(getopt spec 'pp:user
+				  (if (getopt spec 'live pp:live)
+				      pp:user pp:testuser))
+		  "PWD" ,(getopt spec 'pp:pass
+				 (if (getopt spec 'live pp:live)
+				     pp:pass pp:testpass))
+		  "SIGNATURE" ,(getopt spec 'pp:sig
+				       (if (getopt spec 'live pp:live)
+					   pp:sig pp:testsig))
 		  "VERSION" ,(getopt spec 'version express-api-version)]))
     (let* ((requrl (scripturl+ url args))
 	   (response (urlget requrl))
