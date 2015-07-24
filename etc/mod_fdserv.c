@@ -2702,7 +2702,7 @@ static int fdserv_handler(request_rec *r)
   servlet=request_servlet(r);
   if (!(servlet)) {
     ap_log_rerror(APLOG_MARK,APLOG_ERR,OK,r,
-		  "Couldn't get servlet %s to resolve %s",
+		  "Couldn't get servlet for %s to resolve %s",
 		  r->filename,r->unparsed_uri);
     if (errno) error=strerror(errno); else error="no servlet";
     errno=0;}
@@ -2726,7 +2726,7 @@ static int fdserv_handler(request_rec *r)
     return HTTP_SERVICE_UNAVAILABLE;}
   else {
     connected=apr_time_now();
-    ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
+    ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
 		  "Handling %s with %s through %s, %d busy",
 		  r->unparsed_uri,r->filename,
 		  fdsocketinfo(sock,infobuf),
@@ -2780,7 +2780,7 @@ static int fdserv_handler(request_rec *r)
 		     "Composing request data as a slotmap for %s (%s)",
 		     r->unparsed_uri,r->filename);
 #endif
-  
+
   /* Write the slotmap into buf, the write the buf to the servlet socket */
   if (write_cgidata(r,reqdata,r->subprocess_env,
 		    sreq_params,dreq_params,
@@ -2790,7 +2790,6 @@ static int fdserv_handler(request_rec *r)
     servlet_recycle_socket(servlet,sock);
     return HTTP_INTERNAL_SERVER_ERROR;}
 
-  /* We don't really need the socket until here, but we want to fail earlier. */
 #if ((DEBUG_CGIDATA)||(DEBUG_TRANSPORT))
   ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		"Writing %ld bytes of request to %s for %s (%s)",
@@ -2798,7 +2797,7 @@ static int fdserv_handler(request_rec *r)
 		fdsocketinfo(sock,infobuf),
 		r->unparsed_uri,r->filename);
 #endif
-  
+
   if (using_dtblock) {
     unsigned char buf[8];
     unsigned int nbytes=reqdata->ptr-reqdata->buf;

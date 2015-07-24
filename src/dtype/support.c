@@ -2210,10 +2210,10 @@ void fd_init_support_c()
      &u8_log_show_elapsed);
 
   fd_register_config
-    ("USER",_("Set the user ID for this process"),
+    ("RUNUSER",_("Set the user ID for this process"),
      config_getuser,config_setuser,NULL);
   fd_register_config
-    ("GROUP",_("Set the group ID for this process"),
+    ("RUNGROUP",_("Set the group ID for this process"),
      config_getgroup,config_setgroup,NULL);
 
 
