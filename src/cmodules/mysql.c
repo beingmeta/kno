@@ -617,10 +617,10 @@ static fdtype get_stmt_values
        at some point. */
     if (n_slots==0) {
       result=FD_EMPTY_CHOICE;
-      u8_free(kv);}
+      if (kv) u8_free(kv);}
     else if (FD_ABORTP(result)) {
       int j=0; while (j<n_slots) {fd_decref(kv[j].value); j++;}
-      u8_free(kv);}
+      if (kv) u8_free(kv);}
     else if ((n_cols==1) && (FD_TRUEP(mergefn))) {
       result=kv[0].value;
       u8_free(kv);}
@@ -681,7 +681,9 @@ static int init_stmt_results
     U8_INIT_STATIC_OUTPUT_BUF(out,128,namebuf);
     if (fields==NULL) {
       const char *errmsg=mysql_stmt_error(stmt);
-      u8_free(colnames); u8_free(outbound); u8_free(nullbuf);
+      if (colnames) u8_free(colnames); 
+      if (outbound) u8_free(outbound);
+      if (nullbuf) u8_free(nullbuf);
       if (metadata) mysql_free_result(metadata);
       u8_seterr(MySQL_Error,"init_stmt_results",u8_strdup(errmsg));
       return -1;}
@@ -884,14 +886,17 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
         u8_free(outbound[i].length);
         outbound[i].length=NULL;}
       i++;}
-    u8_free(outbound);
+    if (outbound) u8_free(outbound);
     dbproc->outbound=NULL;}
   if (dbproc->colnames) {
-    u8_free(dbproc->colnames); dbproc->colnames=NULL;}
+    u8_free(dbproc->colnames); 
+    dbproc->colnames=NULL;}
   if (dbproc->isnull) {
-    u8_free(dbproc->isnull); dbproc->isnull=NULL;}
+    u8_free(dbproc->isnull);
+    dbproc->isnull=NULL;}
   if (dbproc->bindbuf) {
-    u8_free(dbproc->bindbuf); dbproc->bindbuf=NULL;}
+    u8_free(dbproc->bindbuf);
+    dbproc->bindbuf=NULL;}
 
   /* Close any existing statement */
   if (dbproc->stmt) {
@@ -949,7 +954,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
                   "Parameter type %hq is not used for %s",ptype,dbproc->qtext);
       fd_decref(ptype);}
     dbproc->paramtypes=ptypes; dbproc->n_params=n_params;
-    u8_free(init_ptypes);}
+    if (init_ptypes) u8_free(init_ptypes);}
 
   /* Check that the number of returned columns has not changed
      (this could happen if there were schema changes) */
