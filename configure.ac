@@ -339,9 +339,9 @@ AC_DEFINE_UNQUOTED(FD_RELEASE_VERSION,$FDRELEASE)
 AC_CHECK_PROGS(buildrpm,"lsb-rpmbuild","rpmbuild","lsb-rpm","na")
 AC_CHECK_PROGS(rpm,"lsb-rpm","rpm","na")
 
-AC_CHECK_GROUP(default_admin_group,framerd adm admin)
-AC_CHECK_USER(default_fdaemon,fdaemon daemon nobody)
-AC_CHECK_USER(default_daemon,xdaemon fdaemon daemon nobody)
+AC_CHECK_GROUP(default_admin_group,framerd _framerd adm admin)
+AC_CHECK_USER(default_fdaemon,fdaemon _fdaemon daemon nobody)
+AC_CHECK_USER(default_daemon,xdaemon fdaemon _fdaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
 
 AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)

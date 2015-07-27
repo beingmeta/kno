@@ -4971,7 +4971,7 @@ test -n "$rpm" || rpm=""rpm""
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for group default_admin_group" >&5
 $as_echo_n "checking for group default_admin_group... " >&6; }
   found_group="none";
-  for group in framerd adm admin;
+  for group in framerd _framerd adm admin;
   do if grep ^$group: /etc/group > /dev/null;
   then
 	found_group=$group;
@@ -4984,7 +4984,7 @@ $as_echo "$found_group" >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_fdaemon" >&5
 $as_echo_n "checking for user default_fdaemon... " >&6; }
   found_user="none";
-  for user in fdaemon daemon nobody;
+  for user in fdaemon _fdaemon daemon nobody;
   do
   if grep ^$user: /etc/passwd > /dev/null;
   then
@@ -4999,7 +4999,7 @@ $as_echo "$found_user" >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemon" >&5
 $as_echo_n "checking for user default_daemon... " >&6; }
   found_user="none";
-  for user in xdaemon fdaemon daemon nobody;
+  for user in xdaemon fdaemon _fdaemon daemon nobody;
   do
   if grep ^$user: /etc/passwd > /dev/null;
   then
