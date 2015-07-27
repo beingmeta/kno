@@ -168,6 +168,7 @@ typedef struct FDSERVLET {
   fdsocktype socktype;
   const char *sockname;
   apr_time_t spawning, spawned;
+  apr_proc_t proc;
   int servlet_index;
   const struct server_rec *server;
   union {
@@ -1164,7 +1165,7 @@ static const char *get_log_file(request_rec *r,const char *sockname) /* 2.0 */
   else return log_file;
 }
 
-static int spawn_wait(fdservlet s,request_rec *r) ;
+static int spawn_wait(fdservlet s,request_rec *r,apr_proc_t *p);
 static int start_servlet(request_rec *r,fdservlet s,
 			 struct FDSERV_DIR_CONFIG *dconfig,
 			 struct FDSERV_SERVER_CONFIG *sconfig);
@@ -1204,7 +1205,7 @@ static int spawn_fdservlet(fdservlet s,request_rec *r,apr_pool_t *p)
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
 		 "Waiting on external socket %s for %s",
 		 sockname,r->unparsed_uri);
-    return spawn_wait(s,r);}
+    return spawn_wait(s,r,NULL);}
   else {
     ap_log_rerror
       (APLOG_MARK,APLOG_INFO,OK,r,
@@ -1230,7 +1231,7 @@ static int start_servlet(request_rec *r,fdservlet s,
   const char **dir_env=(dconfig->servlet_env);
   const char *log_file=get_log_file(r,NULL);
   const char *lockname=apr_pstrcat(p,sockname,".spawn",NULL);
-  apr_proc_t proc; apr_procattr_t *attr;
+  apr_procattr_t *attr; apr_proc_t *proc=&(s->proc);
   /* Executable, socket name, NULL, LOG_FILE env, NULL */
   const char *argv[2+MAX_CONFIGS+1+1+1], **envp, **write_argv=argv;
   struct stat stat_data; int rv, n_configs=0, retval=0;
@@ -1273,7 +1274,7 @@ static int start_servlet(request_rec *r,fdservlet s,
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,server,
 		 "Waiting on spawned socket %s for %s, uid=%d, gid=%d",
 		 sockname,r->unparsed_uri,uid,gid);
-    return spawn_wait(s,r);}
+    return spawn_wait(s,r,&(s->proc));}
   else {
     ap_log_error(APLOG_MARK,APLOG_INFO,OK,server,
 		 "Spawning %s %s for %s, uid=%d, gid=%d",
@@ -1445,11 +1446,11 @@ static int start_servlet(request_rec *r,fdservlet s,
       return -1;}}
     
   errno=0;
-  rv=apr_proc_create(&proc,exename,(const char **)argv,envp,attr,p);
+  rv=apr_proc_create(proc,exename,(const char **)argv,envp,attr,p);
   if (rv!=APR_SUCCESS) {
     ap_log_rerror(APLOG_MARK,APLOG_EMERG, rv, r,
 		  "Couldn't spawn %s @%s for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
-		  exename,sockname,r->unparsed_uri,rv,proc.pid,uid,gid);
+		  exename,sockname,r->unparsed_uri,rv,proc->pid,uid,gid);
     /* We don't exit right away because there might be a race condition
        so another process is creating the socket.  So we still wait. */
     retval=-1;}
@@ -1458,13 +1459,13 @@ static int start_servlet(request_rec *r,fdservlet s,
       (APLOG_MARK,APLOG_NOTICE,rv,server,
        "Spawned %s @%s (logfile=%s) for %s [rv=%d,pid=%d,uid=%d,uid=%d]",
        exename,sockname,log_file,r->unparsed_uri,rv,
-       proc.pid,uid,gid);
+       proc->pid,uid,gid);
   else ap_log_error(APLOG_MARK,APLOG_NOTICE,rv,server,
 		    "Spawned %s @%s (nolog) for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
-		    exename,sockname,r->unparsed_uri,rv,proc.pid,uid,gid);
+		    exename,sockname,r->unparsed_uri,rv,proc->pid,uid,gid);
 
   /* Now wait for the socket file to exist */
-  rv=spawn_wait(s,r);
+  rv=spawn_wait(s,r,proc);
 
   if (unlock) apr_file_unlock(lockfile);
   apr_file_remove(lockname,p);
@@ -1474,7 +1475,7 @@ static int start_servlet(request_rec *r,fdservlet s,
   else return retval;
 }
 
-static int spawn_wait(fdservlet s,request_rec *r)
+static int spawn_wait(fdservlet s,request_rec *r,apr_proc_t *proc)
 {
   apr_pool_t *p=((r==NULL)?(fdserv_pool):(r->pool));
   const char *sockname=s->sockname;

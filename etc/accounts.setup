@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+SUDO=sudo
+if getent group framerd > /dev/null; then
+  echo "Group framerd already exists";
+else
+  ${SUDO} addgroup --system framerd;
+fi
+if id -u fdaemon; then
+  echo "User fdaemon already exists";
+else
+  ${SUDO} adduser --system fdaemon \
+  	  --disabled-login --disabled-password \
+          --no-create-home --shell ${FALSE};
+fi
+
+
+ 
