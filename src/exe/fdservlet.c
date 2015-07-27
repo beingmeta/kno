@@ -1816,16 +1816,12 @@ if (foreground)
 
 static int launch_servlet(u8_string socket_spec)
 {
-  int rv=write_pid_file();
   tweak_exename("fdxerv",2,'s');
 #ifdef SIGHUP
   signal(SIGHUP,shutdown_on_signal);
 #endif
-  if (rv<0)  {
-    /* Error here, rather than repeatedly */
-    fd_clear_errors(1);
-    exit(EXIT_FAILURE);}
-  else setup_status_file();
+
+  setup_status_file();
 
   if ((strchr(socket_spec,'/'))&&
       (u8_file_existsp(socket_spec))&&
@@ -1840,8 +1836,6 @@ static int launch_servlet(u8_string socket_spec)
     /* Error here, rather than repeatedly */
     fd_clear_errors(1);
     exit(EXIT_FAILURE);}
-
-
 
   memset(&fdwebserver,0,sizeof(fdwebserver));
 
@@ -1914,6 +1908,7 @@ static int launch_servlet(u8_string socket_spec)
   if (fdwebserver.n_servers>0) {
     u8_log(LOG_WARN,ServletStartup,"Listening on %d addresses",
            fdwebserver.n_servers);
+    write_pid_file();
     u8_server_loop(&fdwebserver);}
   else {
     u8_log(LOG_CRIT,NoServers,"No servers configured, exiting...");
