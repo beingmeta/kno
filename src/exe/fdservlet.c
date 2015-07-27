@@ -1576,6 +1576,45 @@ int main(int argc,char **argv)
   u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;
   u8_string logfile=NULL;
 
+  if (getenv("STDLOG")) {
+    u8_log(LOG_WARN,ServletStartup,
+           "Obeying STDLOG and using stdout/stderr for logging");}
+  else if (getenv("LOGFILE")) {
+    char *envfile=getenv("LOGFILE");
+    if ((envfile)&&(envfile[0])&&(strcmp(envfile,"-")))
+      logfile=u8_fromlibc(envfile);}
+  else if ((getenv("LOGDIR"))&&(socket_spec)) {
+    u8_string base=u8_basename(socket_spec,"*");
+    u8_string logname=u8_mkstring("%s.log",base);
+    logfile=u8_mkpath(getenv("LOGDIR"),logname);
+    u8_free(base); u8_free(logname);}
+  else if ((!(foreground))&&(socket_spec)) {
+    u8_string base=u8_basename(socket_spec,"*");
+    u8_string logname=u8_mkstring("%s.log",base);
+    logfile=u8_mkpath(FD_SERVLET_LOG_DIR,logname);
+    u8_free(base); u8_free(logname);}
+  else u8_log(LOG_WARN,ServletStartup,"No logfile, using stdout");
+
+  /* Close and reopen STDIN */
+  close(0);  if (open("/dev/null",O_RDONLY) == -1) {
+    u8_log(LOG_CRIT,"fdservlet","Unable to reopen stdin for daemon");
+    exit(1);}
+
+  /* We do this using the Unix environment (rather than configuration
+     variables) for two reasons.  First, we want to redirect errors
+     from the processing of the configuration variables themselves
+     (where lots of errors could happen); second, we want to be able
+     to set this in the environment we wrap around calls (which is how
+     mod_fdserv does it). */
+  if (logfile) {
+    int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
+    int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
+    if (log_fd<0) {
+      u8_log(LOG_WARN,ServletStartup,"Couldn't open log file %s",logfile);
+      exit(1);}
+    dup2(log_fd,1);
+    dup2(log_fd,2);}
+
   set_exename(argv);
 
   if (u8_version<0) {
@@ -1625,45 +1664,6 @@ int main(int argc,char **argv)
   fd_register_config("FASTFAIL_WAIT",
                      _("How long (secs) to wait after a fastfail"),
                      fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
-
-  if (getenv("STDLOG")) {
-    u8_log(LOG_WARN,ServletStartup,
-           "Obeying STDLOG and using stdout/stderr for logging");}
-  else if (getenv("LOGFILE")) {
-    char *envfile=getenv("LOGFILE");
-    if ((envfile)&&(envfile[0])&&(strcmp(envfile,"-")))
-      logfile=u8_fromlibc(envfile);}
-  else if ((getenv("LOGDIR"))&&(socket_spec)) {
-    u8_string base=u8_basename(socket_spec,"*");
-    u8_string logname=u8_mkstring("%s.log",base);
-    logfile=u8_mkpath(getenv("LOGDIR"),logname);
-    u8_free(base); u8_free(logname);}
-  else if ((!(foreground))&&(socket_spec)) {
-    u8_string base=u8_basename(socket_spec,"*");
-    u8_string logname=u8_mkstring("%s.log",base);
-    logfile=u8_mkpath(FD_SERVLET_LOG_DIR,logname);
-    u8_free(base); u8_free(logname);}
-  else u8_log(LOG_WARN,ServletStartup,"No logfile, using stdout");
-
-  /* Close and reopen STDIN */
-  close(0);  if (open("/dev/null",O_RDONLY) == -1) {
-    u8_log(LOG_CRIT,"fdservlet","Unable to reopen stdin for daemon");
-    exit(1);}
-
-  /* We do this using the Unix environment (rather than configuration
-     variables) for two reasons.  First, we want to redirect errors
-     from the processing of the configuration variables themselves
-     (where lots of errors could happen); second, we want to be able
-     to set this in the environment we wrap around calls (which is how
-     mod_fdserv does it). */
-  if (logfile) {
-    int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
-    int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
-    if (log_fd<0) {
-      u8_log(LOG_WARN,ServletStartup,"Couldn't open log file %s",logfile);
-      exit(1);}
-    dup2(log_fd,1);
-    dup2(log_fd,2);}
 
   fd_version=fd_init_fdscheme();
 

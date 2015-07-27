@@ -1290,14 +1290,18 @@ static int start_servlet(request_rec *r,fdservlet s,
     apr_file_remove(lockname,p);
     return -1;}
   if ((log_file) && (!(file_writablep(p,server,log_file)))) {
+    const char *new_log_file=get_log_file(r,sockname);
+    ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
+		 "Logfile %s isn't writable for processing %s, trying %s",
+		 log_file,r->unparsed_uri,new_log_file);
+    log_file=new_log_file;}
+  else if (log_file==NULL) log_file=get_log_file(r,sockname);
+  else {}
+  if ((log_file) && (!(file_writablep(p,server,log_file)))) {
     ap_log_error(APLOG_MARK,APLOG_CRIT,apr_get_os_error(),server,
 		 "Logfile %s isn't writable for processing %s",
 		 log_file,r->unparsed_uri);
-    if (unlock) apr_file_unlock(lockfile);
-    apr_file_remove(lockname,p);
-    return -1;}
-    
-  if (log_file==NULL) log_file=get_log_file(r,sockname);
+    log_file=NULL;}
 
   if (log_file)
     ap_log_error(APLOG_MARK,APLOG_NOTICE,OK,server,
@@ -1463,6 +1467,18 @@ static int start_servlet(request_rec *r,fdservlet s,
   else ap_log_error(APLOG_MARK,APLOG_NOTICE,rv,server,
 		    "Spawned %s @%s (nolog) for %s [rv=%d,pid=%d,uid=%d,gid=%d]",
 		    exename,sockname,r->unparsed_uri,rv,proc->pid,uid,gid);
+
+  {
+    int exitcode; apr_exit_why_e why;
+    rv=apr_proc_wait(proc,&exitcode,&why,APR_WAIT);
+    
+    if (exitcode) {
+      ap_log_error(APLOG_MARK,APLOG_CRIT,rv,server,
+		   "Servlet exited(%s) with %d: %s @%s for %s",
+		   ((why==APR_PROC_SIGNAL_CORE)?("core"):
+		    (why==APR_PROC_SIGNAL)?("signal"):("normal")),
+		   exitcode,exename,sockname,r->unparsed_uri);
+      return -1;}}
 
   /* Now wait for the socket file to exist */
   rv=spawn_wait(s,r,proc);
