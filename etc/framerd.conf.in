@@ -40,7 +40,7 @@ pre-start script
 	       fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=`readlink ${sock}` ${SERVLETCFG};
         else touch @rundir@/fdserv/`basename ${sock}`.nospawn;
 	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
-	       fdservlet @rundir@/fdserver/`basename ${sock}` CONFIG=${sock} ${SERVLETCFG};
+	       fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=${sock} ${SERVLETCFG};
         fi;
      done;
    for cfg in $(find -L @config_dir@/servlets/ -name "*.cfg");
@@ -51,7 +51,7 @@ pre-start script
 	       		 CONFIG=`readlink ${cfg}` ${SERVLETCFG};
         else touch @rundir@/fdserv/`basename ${sock} .cfg`.sock.nospawn;
 	     LOGFILE=@logdir@/fdserv/`basename ${cfg} .cfg`.log \
-	       fdservlet @rundir@/fdserver/`basename ${cfg} .cfg`.sock \
+	       fdservlet @rundir@/fdserv/`basename ${cfg} .cfg`.sock \
 	       		 CONFIG=${sock} ${SERVLETCFG};
         fi;
      done;
