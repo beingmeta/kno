@@ -1332,6 +1332,9 @@ static int start_servlet(request_rec *r,fdservlet s,
 	*write_argv++=(char *)(*scan_config);}
       scan_config++;
       n_configs++;}}
+  else ap_log_error(APLOG_MARK,APLOG_WARNING,OK,server,
+		    "No FramerD server configs for %s (%s)",
+		    sockname,exename);
   if (dir_configs) {
     const char **scan_config=dir_configs;
     while (*scan_config) {
@@ -1346,6 +1349,9 @@ static int start_servlet(request_rec *r,fdservlet s,
 	*write_argv++=(char *)(*scan_config);}
       scan_config++;
       n_configs++;}}
+  else ap_log_error(APLOG_MARK,APLOG_WARNING,OK,server,
+		    "No FramerD dir configs for %s (%s)",
+		    sockname,exename);
     
   *write_argv++=NULL; n_configs++;
     
