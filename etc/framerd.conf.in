@@ -22,8 +22,9 @@ pre-start script
    chmod g+rwx @rundir@/framerd @logdir@/framerd
 
    export FD_LOGLEVEL=7
-   export SERVLETCFG="STATEDIR=@rundir@/fdserv RUNUSER=@webuser@ RESTART=1 PIDWAIT=no" 
-   export DAEMONCFG="STATEDIR=@rundir@/framerd RUNGROUP=@admin_group@ RUNUSER=@fdaemon@ RESTART=1 PIDWAIT=no" 
+   export COMMONCFG="STATEDIR=@rundir@/fdserv RESTART=1 PIDWAIT=no" 
+   export SERVLETCFG="${COMMONCFG} RUNUSER=@webuser@" 
+   export DAEMONCFG="${COMMONCFG} RUNGROUP=@admin_group@ RUNUSER=@fdaemon@" 
    for ctl in $(find -L @config_dir@/daemons/ -name "*.fdz");
      do if (readlink ${ctl}>/dev/null);
         then LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
@@ -40,6 +41,18 @@ pre-start script
         else touch @rundir@/fdserv/`basename ${sock}`.nospawn;
 	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
 	       fdservlet @rundir@/fdserver/`basename ${sock}` CONFIG=${sock} ${SERVLETCFG};
+        fi;
+     done;
+   for cfg in $(find -L @config_dir@/servlets/ -name "*.cfg");
+     do if (readlink ${cfg}>/dev/null);
+        then touch @rundir@/fdserv/`basename ${cfg} .cfg`.sock.nospawn;
+	     LOGFILE=@logdir@/fdserv/`basename ${cfg} .cfg`.log \
+	       fdservlet @rundir@/fdserv/`basename ${cfg} .cfg`.sock \
+	       		 CONFIG=`readlink ${cfg}` ${SERVLETCFG};
+        else touch @rundir@/fdserv/`basename ${sock} .cfg`.sock.nospawn;
+	     LOGFILE=@logdir@/fdserv/`basename ${cfg} .cfg`.log \
+	       fdservlet @rundir@/fdserver/`basename ${cfg} .cfg`.sock \
+	       		 CONFIG=${sock} ${SERVLETCFG};
         fi;
      done;
    for sock in $(find -L @config_dir@/servlets/ -name "*@*");
