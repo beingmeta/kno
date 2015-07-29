@@ -1,3 +1,10 @@
+framerd (3.8.1-9) unstable; urgency=low
+
+  * Fixes to upstart framerd.conf
+  * git patch version framerd-3.8.1-28
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 29 Jul 2015 04:19:42 +0000
+
 framerd (3.8.1-8) unstable; urgency=low
 
   * Various fixes to servlet launching, especially for on-demand
