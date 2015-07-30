@@ -22,64 +22,13 @@ pre-start script
    chmod g+rwx @rundir@/framerd @logdir@/framerd
 
    export FD_LOGLEVEL=7
-   export COMMONCFG="STATEDIR=@rundir@/fdserv RESTART=1 PIDWAIT=no" 
-   export SERVLETCFG="${COMMONCFG} RUNUSER=@webuser@" 
-   export DAEMONCFG="${COMMONCFG} RUNGROUP=@admin_group@ RUNUSER=@fdaemon@" 
-   for ctl in $(find -L @config_dir@/daemons/ -name "*.fdz");
-     do if (readlink ${ctl}>/dev/null);
-        then LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
-	       fdserver `readlink ${ctl}` ${DAEMONCFG};
-        else LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
-	       fdserver ${ctl} ${DAEMONCFG}; 
-        fi;
-     done;
-   for sock in $(find -L @config_dir@/servlets/ -name "*.sock");
-     do if (readlink ${sock}>/dev/null);
-        then touch @rundir@/fdserv/`basename ${sock}`.nospawn;
-	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
-	       fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=`readlink ${sock}` ${SERVLETCFG};
-        else touch @rundir@/fdserv/`basename ${sock}`.nospawn;
-	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
-	       fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=${sock} ${SERVLETCFG};
-        fi;
-     done;
-   for cfg in $(find -L @config_dir@/servlets/ -name "*.cfg");
-     do if (readlink ${cfg}>/dev/null);
-        then touch @rundir@/fdserv/`basename ${cfg} .cfg`.sock.nospawn;
-	     LOGFILE=@logdir@/fdserv/`basename ${cfg} .cfg`.log \
-	       fdservlet @rundir@/fdserv/`basename ${cfg} .cfg`.sock \
-	       		 CONFIG=`readlink ${cfg}` ${SERVLETCFG};
-        else touch @rundir@/fdserv/`basename ${sock} .cfg`.sock.nospawn;
-	     LOGFILE=@logdir@/fdserv/`basename ${cfg} .cfg`.log \
-	       fdservlet @rundir@/fdserv/`basename ${cfg} .cfg`.sock \
-	       		 CONFIG=${sock} ${SERVLETCFG};
-        fi;
-     done;
-   for sock in $(find -L @config_dir@/servlets/ -name "*@*");
-     do if (readlink ${sock}>/dev/null);
-        then LOGFILE=@logdir@/fdserv/${sock}.log \
-	       fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=`readlink ${sock}` ${SERVLETCFG};
-        else LOGFILE=@logdir@/fdserv/${sock}.log \
-	       fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=${sock} ${SERVLETCFG};
-	fi;
-     done;
-   for sock in $(find -L @config_dir@/servlets/ -name "*:*");
-     do if (readlink ${sock}>/dev/null);
-        then LOGFILE=@logdir@/fdserv/${sock}.log \
-	       fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=`readlink ${sock}` ${SERVLETCFG};
-        else LOGFILE=@logdir@/fdserv/${sock}.log \
-	       fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=${sock} ${SERVLETCFG};
-        fi;
-     done;
+   fdstart @config_dir@/daemons/
+   fdstart @config_dir@/servlets/
 end script
 
 post-stop script
-   for ppid in @rundir@/fdserv/*.ppid;
-       do kill `cat $ppid` || true; 
-          rm -f  @rundir@/fdserv/`basename $ppid .ppid`.nospawn
-       done
-   for ppid in  @rundir@/framerd/*.ppid;
-       do kill `cat $ppid` || true; done
+   fdstop @rundir@/fdserv;
+   fdstop @rundir@/framerd
 end script
 
 

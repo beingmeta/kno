@@ -1,0 +1,33 @@
+#!/bin/sh
+PIDWAIT=2
+for ppid in @rundir@/fdserv/*.ppid;
+  do if test `basename ${ppid}` != "*.ppid"; then
+        echo "Terminating servlet manager" `basename $ppid .ppid` "pid="`cat ${ppid}`;
+     	@SUDO@ kill `cat ${ppid}` &&
+    	@SUDO@ rm -f  /var/run/fdserv/`basename ${ppid} .ppid`.nospawn;
+	fi;
+    done;
+for ppid in  @rundir@/framerd/*.ppid;
+  do if test `basename ${ppid}` != "*.ppid"; then 
+    echo "Terminating daemon manager" `basename $ppid .ppid` "pid="`cat ${ppid}`;
+    @SUDO@ kill `cat ${ppid}`; fi; 
+  done
+for pid in @rundir@/fdserv/*.pid;
+  do if test `basename ${pid}` != "*.pid"; then
+	sleep ${PIDWAIT};
+     	if test -f ${pid}; then 
+          echo "Terminating servlet" `basename ${pid} .pid` "pid="`cat ${pid}`;
+	  @SUDO@ kill `cat ${pid}`; 
+	else echo "Servlet" `basename ${pid} .pid` "died naturally"; fi
+	fi;
+    done;
+for pid in @rundir@/framerd/*.pid;
+  do if test `basename ${pid}` != "*.pid"; then 
+	sleep ${PIDWAIT};
+     	if test -f ${pid}; then 
+	   echo "Terminating daemon" `basename ${pid} .pid` "pid="`cat ${pid}`;
+	   @SUDO@ kill `cat ${pid}`;
+	else echo "Daemon" `basename ${pid} .pid` "died naturally"; fi
+    fi;
+  done;
+

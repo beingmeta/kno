@@ -1,3 +1,2 @@
 #!/bin/sh
-VERSION="$Id$"
 echo $2 > @local_config@/$1

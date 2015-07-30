@@ -1,0 +1,3 @@
+#!/bin/sh
+fdstart @config_dir@/servlets/
+fdstart @config_dir@/daemons/
