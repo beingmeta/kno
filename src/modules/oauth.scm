@@ -423,7 +423,7 @@
        (if scope
 	   (getopt spec 'authorize (getopt spec 'authenticate))
 	   (getopt spec 'authenticate (getopt spec 'authorize)))
-       (getopt spec 'auth_args)
+       (get-auth-args spec)
        "client_id" (getckey spec)
        "redirect_uri" (getcallback spec)
        "scope"
@@ -432,6 +432,17 @@
 		      (printout (if (> i 0) " ") scope))))
        "state" (getopt spec 'state (uuid->string (getuuid)))
        "response_type" "code")))
+
+(define (get-auth-args spec)
+  (let ((args (getopt spec 'auth_args))
+	(req_args (req/get 'oauth_args #f)))
+    (cond ((and args req_args)
+	   (set! args (deep-copy args))
+	   (do-choices (key (getkeys req_args))
+	     (store! args key (get req_args key)))
+	   args)
+	  ((not args) req_args)
+	  (else args))))
 
 (define (oauth/verify spec verifier (ckey) (csecret))
   (set! spec (oauth/spec spec))
