@@ -1418,10 +1418,12 @@ static fdtype servlet_status_string()
 
 /* Managing your dependent (for restarting servers) */
 
+static int sustaining=0;
 static pid_t dependent=-1;
 static void kill_dependent_onexit(){
   u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
+  sustaining=0;
   if (dep>0) kill(dep,SIGTERM);
   if (u8_file_existsp(ppid_file)) {
     u8_removefile(ppid_file);
@@ -1429,6 +1431,7 @@ static void kill_dependent_onexit(){
 static void kill_dependent_onsignal(int sig){
   u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
+  sustaining=0;
   if (dep>0)
     u8_log(LOG_WARN,"FDServlet/signal",
            "FDServer controller %d got signal %d, passing to %d",
@@ -2028,6 +2031,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
   FILE *f=fopen(ppid_filename,"w");
   int status=-1, sleepfor=daemonize;
   tweak_exename("fdserv",2,'x');
+  sustaining=1;
   if (f) {
     fprintf(f,"%ld\n",(long)getpid());
     fclose(f);
@@ -2057,7 +2061,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
 #ifdef SIGHUP
   signal(SIGHUP,SIG_IGN);
 #endif
-  while (waitpid(grandchild,&status,0)) {
+  while ((sustaining)&&(waitpid(grandchild,&status,0))) {
     time_t now=time(NULL);
     if (WIFSIGNALED(status))
       u8_log(LOG_WARN,"FDServlet/restart",

@@ -102,10 +102,12 @@ static void init_server(void);
 
 /* Managing your dependent (for restarting servers) */
 
+static int sustaining=0;
 static pid_t dependent=-1;
 static void kill_dependent_onexit(){
   u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
+  sustaining=0;
   if (dep>0) kill(dep,SIGTERM);
   if (u8_file_existsp(ppid_file)) {
     u8_removefile(ppid_file);
@@ -113,6 +115,7 @@ static void kill_dependent_onexit(){
 static void kill_dependent_onsignal(int sig){
   u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
+  sustaining=0;
   if (dep>0)
     u8_log(LOG_WARN,"FDServer/signal",
            "FDServer controller %d got signal %d, passing to %d",
@@ -1161,7 +1164,7 @@ static int sustain_server(pid_t grandchild,
 #ifdef SIGQUIT
   signal(SIGQUIT,kill_dependent_onsignal);
 #endif
-  while (waitpid(grandchild,&status,0)) {
+  while ((sustaining)&&(waitpid(grandchild,&status,0))) {
     time_t now=time(NULL);
     if (WIFSIGNALED(status))
       u8_log(LOG_WARN,"FDServer/restart",
