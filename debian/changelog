@@ -1,9 +1,17 @@
+framerd (3.8.1-11) unstable; urgency=low
+
+  * Allow req/* functions to modify oauth calls
+  * Warn when a servlet starts without any configs
+  * git patch version framerd-3.8.1-39
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 30 Jul 2015 03:38:32 +0000
+
 framerd (3.8.1-10) unstable; urgency=low
 
   * Made upstart config handle .cfg files
   * git patch version framerd-3.8.1-35
 
- -- Ken Haase <kh@beingmeta.com>  Wed, 29 Jul 2015 16:18:42 +0000
+  -- Ken Haase <kh@beingmeta.com>  Wed, 29 Jul 2015 16:18:42 +0000
 
 framerd (3.8.1-9) unstable; urgency=low
 
