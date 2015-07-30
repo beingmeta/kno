@@ -2,7 +2,7 @@ framerd (3.8.1-11) unstable; urgency=low
 
   * Allow req/* functions to modify oauth calls
   * Warn when a servlet starts without any configs
-  * git patch version framerd-3.8.1-38
+  * git patch version framerd-3.8.1-39
 
  -- Ken Haase <kh@beingmeta.com>  Thu, 30 Jul 2015 03:38:32 +0000
 
