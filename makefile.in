@@ -1156,9 +1156,9 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	@for x in $(SAFE_MODULE_DIRS); do \
 	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_module_dir@/$$x; \
 	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$$x/* $(DESTDIR)@safe_module_dir@/$$x; \
-	   if test -f $(DESTDIR)@standard_module_dir@/$$x/$$x.scm; then \
-		@SUDO@ rm -f $(DESTDIR)@standard_module_dir@/$$x/module.scm; \
-		@SUDO@ ln -sf $$x.scm $(DESTDIR)@standard_module_dir@/$$x/module.scm; fi; \
+	   if test -f $(DESTDIR)@standard_module_dir@/safe/$$x/$$x.scm; then \
+		@SUDO@ rm -f $(DESTDIR)@standard_module_dir@/safe/$$x/module.scm; \
+		@SUDO@ ln -sf $$x.scm $(DESTDIR)@standard_module_dir@/safe/$$x/module.scm; fi; \
 	 done
 	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_module_dir@/xhtml
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/* $(DESTDIR)@safe_module_dir@/xhtml
