@@ -14,11 +14,13 @@
 		  s3loc/uri s3loc/filename})
 (module-export! '{s3loc/get s3loc/head s3loc/exists?
 		  s3loc/etag s3loc/modified s3loc/info
-		  s3loc/content s3loc/put s3loc/copy! s3loc/link!})
+		  s3loc/content s3loc/put s3loc/copy! s3loc/link!
+		  s3loc/modify!})
 (module-export! '{s3/get s3/get+ s3/head s3/ctype s3/exists?
 		  s3/modified s3/etag  s3/info
-		  s3/bucket? s3/copy! s3/link! s3/put
+		  s3/bucket? s3/copy! s3/link! s3/modify! s3/put
 		  s3/download!})
+
 (module-export! '{s3/getpolicy s3/setpolicy! s3/addpolicy!
 		  s3/policy/endmarker})
 (module-export!
@@ -734,6 +736,47 @@
 		   (stringout "/" (s3loc-bucket src) (s3loc-path src))
 		   src))))))
 (define s3/link! s3loc/link!)
+
+(define (s3loc/modify! loc (new #[]) (opts))
+  (when (string? loc) (set! loc (->s3loc loc)))
+  (default! opts
+    (if (exists? (get (s3loc/opts loc) 'err))
+	(cons #[errs #t] s3opts)
+	s3opts))
+  (when (not (table? opts)) (set! opts (cons `#[errs ,opts] s3opts)))
+  (let* ((inheaders (getopt opts 'inheaders '()))
+	 (head (s3loc/head loc inheaders))
+	 (ctype (try (get new 'content-type)
+		     (get new 'mimetype)
+		     (get new 'ctype)
+		     (get new 'type)
+		     (get head 'content-type)
+		     (path->mimetype (s3loc-path loc) "text")))
+	 (disposition (try (get new 'content-disposition)
+			   (get new 'disposition)
+			   (get head 'content-disposition)))
+	 (encoding (try (get new 'content-encoding)
+			(get new 'encoding)
+			(get head 'content-encoding)))
+	 (outheaders '()))
+    (when (exists? disposition)
+      (set! outheaders 
+	    (cons (cons "content-disposition" disposition) outheaders)))
+    (when (exists? encoding)
+      (set! outheaders (cons (cons "content-encoding" encoding)
+			     outheaders)))
+    (do-choices (key (pickstrings (getkeys new)))
+      (set! outheaders (cons (cons key (get new key)) outheaders)))
+    (logwarn |S3/modify| "Modifying " ctype " " (s3loc->string loc)
+	     " to " outheaders)
+    (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) opts "" ctype
+	   `(("x-amz-copy-source" .
+	      ,(stringout "/" (s3loc-bucket loc) 
+		 (encode-path (s3loc-path loc))))
+	     ("x-amz-metadata-directive" . "REPLACE")
+	     ,@inheaders
+	     ,@outheaders))))
+(define s3/modify! s3loc/modify!)
 
 ;;; Listing loc
 
