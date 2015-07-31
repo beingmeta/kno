@@ -1136,6 +1136,7 @@ static int sustain_server(pid_t grandchild,
   FILE *f=fopen(ppid_filename,"w");
   int status=-1, sleepfor=daemonize;
   tweak_exename("fdserv",2,'x');
+  sustaining=1;
   if (f) {
     fprintf(f,"%ld\n",(long)getpid());
     fclose(f);
