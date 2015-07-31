@@ -1,3 +1,12 @@
+framerd (3.8.1-12) unstable; urgency=low
+
+  * Fix fdserver/fdservlet shutdown problem
+  * Add fdstart/fdstop/fdstartall/fdstopall
+  * Update FramerD upstart config
+  * git patch version framerd-3.8.1-2
+  
+ -- Ken Haase <kh@beingmeta.com>  Thu, 30 Jul 2015 23:47:30 +0000
+
 framerd (3.8.1-11) unstable; urgency=low
 
   * Allow req/* functions to modify oauth calls
