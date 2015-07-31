@@ -1,3 +1,10 @@
+framerd (3.8.2-3) unstable; urgency=low
+
+  * Fix bug in fdserver manager
+  * git patch version framerd-3.8.2-5
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 31 Jul 2015 20:10:29 +0000
+
 framerd (3.8.2-2) unstable; urgency=low
 
   * Fixed module link packaging
