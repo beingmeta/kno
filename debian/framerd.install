@@ -27,6 +27,10 @@ usr/bin/fdgetconfig
 usr/bin/fdsetconfig
 usr/bin/fdsignal
 usr/bin/fdconfig
+usr/bin/fdstart
+usr/bin/fdstop
+usr/bin/fdstartall
+usr/bin/fdstopall
 usr/etc/framerd/servers
 usr/share/framerd/fdconsole.el
 usr/share/framerd/data/hyph_en_US.dic
