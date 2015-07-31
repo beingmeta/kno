@@ -2,7 +2,7 @@ framerd (3.8.2-1) unstable; urgency=low
 
   * Fix packaging of fdstart/fdstop etc
   * Fix module link packaging
-  * git patch version framerd-3.8.2
+  * git patch version framerd-3.8.2-1
 
  -- Ken Haase <kh@beingmeta.com>  Fri, 31 Jul 2015 19:33:03 +0000
 
