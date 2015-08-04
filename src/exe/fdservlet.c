@@ -62,6 +62,7 @@
 static u8_condition ServletStartup=_("FDServlet/STARTUP");
 static u8_condition ServletFork=_("FDServlet/FORK");
 static u8_condition NoServers=_("No servers configured");
+static u8_condition DeletePID=_("Delete PID");
 #define Startup ServletStartup
 
 static int daemonize=0, foreground=0, pidwait=1;
@@ -1550,7 +1551,7 @@ static int start_servers()
         int retval=u8_removefile(port);
         if (retval<0)
           u8_log(LOG_WARN,"FDServlet/start",
-                 "Couldn't remove socket file %s",port);}
+                 "Couldn't remove existing socket file %s",port);}
       else {
         u8_log(LOG_WARN,"FDServlet/start",
                "Socket file %s already exists",port);}}}
@@ -1829,7 +1830,7 @@ static int launch_servlet(u8_string socket_spec)
   if ((strchr(socket_spec,'/'))&&
       (u8_file_existsp(socket_spec))&&
       (!((stealsockets)||(getenv("FD_STEALSOCKETS"))))) {
-    u8_log(LOG_CRIT,"FDSerlvet/Socket exists",
+    u8_log(LOG_CRIT,"FDServlet/launch",
            "Socket file %s already exists!",socket_spec);
     exit(1);}
 
@@ -2069,7 +2070,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
              socket_spec,grandchild,WTERMSIG(status));
     else if (WIFEXITED(status))
       u8_log(LOG_NOTICE,"FDServlet/restart",
-             "Server %s(%d) terminated normally with status %d",
+             "Servlet %s(%d) terminated normally with status %d",
              socket_spec,grandchild,status);
     else continue;
     if (dependent<0) {
@@ -2086,7 +2087,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
     last_launch=time(NULL);
     if ((grandchild=fork())) {
       u8_log(LOG_NOTICE,"FDServlet/restart",
-             "Server %s restarted with pid %d",
+             "Servlet %s restarted with pid %d",
              socket_spec,grandchild);
       dependent=grandchild;
       continue;}
