@@ -21,13 +21,13 @@ pre-start script
    chmod g+rwx @rundir@/fdserv  @logdir@/fdserv
    chmod g+rwx @rundir@/framerd @logdir@/framerd
 
-   export FD_LOGLEVEL=7
+   export FD_LAUNCHER=framerd.conf
    fdstart @config_dir@/daemons/
    fdstart @config_dir@/servlets/
 end script
 
 post-stop script
-   fdstop @rundir@/fdserv;
+   fdstop @rundir@/fdserv
    fdstop @rundir@/framerd
 end script
 

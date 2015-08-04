@@ -1,3 +1,4 @@
 #!/bin/sh
+FD_LAUNCHER=${FD_LANUCHER:-fdstartall} 
 fdstart @config_dir@/servlets/
 fdstart @config_dir@/daemons/

@@ -1318,6 +1318,11 @@ static int start_servlet(request_rec *r,fdservlet s,
     char *gidconfig=apr_psprintf(p,"RUNGROUP=%d",gid);
     *write_argv++=gidconfig;}
     
+  {
+    char *launchconfig=apr_psprintf(p,"LAUNCHER=mod_fdserv");
+    *write_argv++=launchconfig;}
+
+
   if (server_configs) {
     const char **scan_config=server_configs;
     while (*scan_config) {
@@ -1353,6 +1358,10 @@ static int start_servlet(request_rec *r,fdservlet s,
 		    "No FramerD dir configs for %s (%s)",
 		    sockname,exename);
     
+  {
+    char *launchurl=apr_psprintf(p,"LAUNCHURL=%s",r->unparsed_uri);
+    *write_argv++=launchurl;}
+
   *write_argv++=NULL; n_configs++;
     
   envp=NULL;
