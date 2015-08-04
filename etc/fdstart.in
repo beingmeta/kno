@@ -5,7 +5,7 @@ XARGS=$*
 export FD_LOGLEVEL=7
 export FD_LAUNCHER=${FD_LANUCHER:-fdstart} 
 export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
-export COMMONCFG="RESTART=1 PIDWAIT=no" 
+export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
 export SERVLETCFG="${COMMONCFG} STATEDIR=@rundir@/fdserv RUNUSER=@webuser@ FDSTART=${TARGET}" 
 export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@rundir@/framerd RUNGROUP=@admin_group@ RUNUSER=@fdaemon@ FDSTART=${TARGET}" 
 for ctl in $(find -L ${TARGET} -name "*.fdz");
