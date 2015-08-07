@@ -27,14 +27,14 @@
 (define default-options #[])
 ;;(define default-button "https://www.paypal.com/en_US/i/btn/btn_buynow_LG.gif")
 ;;(define default-button "https://www.paypal.com/en_US/i/btn/btn_buynow_SM.gif")
-(define default-button 
+(define pp:button 
   "https://www.paypalobjects.com/webstatic/en_US/btn/btn_buynow_pp_142x27.png")
 (varconfig! pp:live pp:live)
 (varconfig! pp:business pp:business)
 (varconfig! pp:testbusiness pp:testbusiness)
 (varconfig! pp:id ppid)
 (varconfig! pp:options default-options)
-(varconfig! pp:button default-button)
+(varconfig! pp:button pp:button)
 
 (varconfig! pp:appid pp:appid)
 
@@ -129,7 +129,7 @@
 			       ((applicable? pp:buttonopt) (pp:buttonopt))
 			       ((and (table? pp:buttonopt) (test pp:buttonopt '%xmltag))
 				(xmleval pp:buttonopt))
-			       (else (,buttonout ,default-button))))))
+			       (else (,buttonout ,pp:button))))))
        (,xmlblock "FORM"
 	   ((action (getopt pp:options 'action
 			    (if (getopt pp:options 'live pp:live)
@@ -145,4 +145,4 @@
 		  paypal/opts paypal/return-url paypal/cancel-url})
 (module-export! '{paypal/form paypal/fields paypal/amount paypal/uuid
 		  paypal/opts paypal/return-url paypal/cancel-url
-		  pp:ccbutton})
+		  pp:button})
