@@ -913,13 +913,15 @@ dist/debs.built: staging/framerd_@FDVERSION@
 
 dist/metadebs.built: dist/bmstack.changelog dist/bmdbstack.changelog \
 	dist/bmwebstack.changelog dist/bmdevstack.changelog \
-	dist/bmtextstack.changelog dist/bmfullstack.changelog
+	dist/bmtextstack.changelog dist/bmfullstack.changelog \
+	dist/bmfakestack.changelog
 	(cd dist; equivs-build -f bmstack) &&                      \
 	(cd dist; equivs-build -f bmdbstack) &&                    \
 	(cd dist; equivs-build -f bmwebstack) &&                   \
 	(cd dist; equivs-build -f bmtextstack) &&                  \
 	(cd dist; equivs-build -f bmfullstack) &&                  \
 	(cd dist; equivs-build -f bmdevstack) &&                   \
+	(cd dist; equivs-build -f bmfakestack) &&                  \
 	touch dist/metadebs.built;
 
 dist/debs.done: dist/debs.built dist/metadebs.built
