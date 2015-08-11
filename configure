@@ -8047,8 +8047,8 @@ fi
 done
 test -n "$sudo_program" || sudo_program=""na""
 
-if test "x$sudoprogram" != "xna"; then
-  SUDO=$sudoprogram;
+if test "x$sudo_program" != "xna"; then
+  SUDO=$sudo_program;
 fi
 
 
@@ -8060,13 +8060,12 @@ else
 fi
 
 if test "x$with_sudo" == "xyes"; then
-  if test "x$sudoprogram" == "xna"; then
+  if test "x$sudo_program" == "xna"; then
     INSTALLSUDO=""
   else
     INSTALLSUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program "
   fi
 elif test "x$with_sudo" != "xno"; then
-  SUDO="$with_sudo "
   INSTALLSUDO="$with_sudo "
 fi
 
