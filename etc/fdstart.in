@@ -8,15 +8,15 @@ export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}"
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
 export SERVLETCFG="${COMMONCFG} STATEDIR=@rundir@/fdserv FDSTART=${TARGET}" 
 export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@rundir@/framerd FDSTART=${TARGET}" 
-export DAEDO="-u @fdaemon@ -g @admin_group@"
-export WEBDO="-u @webuser@ -g @admin_group@"
+export FDSTART="@SUDO@ -u @fdaemon@ -g @admin_group@"
+export WEBSTART="@SUDO@ -u @webuser@ -g @admin_group@"
 for ctl in $(find -L ${TARGET} -name "*.fdz");
 do if (readlink ${ctl}>/dev/null);
    then echo "Starting daemon manager for ${ctl}";
-	@SUDO@ ${DAEDO} LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
+	${FDSTART} LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
 	       fdserver `readlink ${ctl}` ${DAEMONCFG} ${XARGS};
    else echo "Starting daemon manager for ${ctl}";
-	@SUDO@ ${DAEDO} LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
+	${FDSTART} LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
 	       fdserver ${ctl} ${DAEMONCFG} ${XARGS}; 
    fi;
 done;

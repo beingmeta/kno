@@ -28,7 +28,7 @@ APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 CLEAN		= @CLEAN@
 ECHO		= @ECHO@
 MSG		= @MSG@
-SYSINSTALL	= @SUDO@@INSTALL@
+SYSINSTALL	= @INSTALLSUDO@@INSTALL@
 SUDO	        = @SUDO@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
@@ -420,14 +420,14 @@ $(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@: lib/%@suffix@.so
 $(LIBINSTALLDIR)/%@suffix@.so.@FDMAJOR@.@FDMINOR@: \
 	$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
 	@echo Linking $< to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
+	@@INSTALLSUDO@ln -sf $(shell basename $<) $@
 $(LIBINSTALLDIR)/%@suffix@.so.@FDMAJOR@: \
 	$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
 	@echo Linking $< to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
+	@@INSTALLSUDO@ln -sf $(shell basename $<) $@
 $(LIBINSTALLDIR)/%@suffix@.so: $(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
 	@echo Linking to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
+	@@INSTALLSUDO@ln -sf $(shell basename $<) $@
 
 $(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib: lib/%@suffix@.dylib
 	@echo Installing $@
@@ -436,14 +436,14 @@ $(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib: lib/%@suffix@.dylib
 $(LIBINSTALLDIR)/%@suffix@.@FDMAJOR@.@FDMINOR@.dylib: \
 	$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
 	@echo Linking $< to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
+	@@INSTALLSUDO@ln -sf $(shell basename $<) $@
 $(LIBINSTALLDIR)/%@suffix@.@FDMAJOR@.dylib: \
 	$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
 	@echo Linking $< to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
+	@@INSTALLSUDO@ln -sf $(shell basename $<) $@
 $(LIBINSTALLDIR)/%@suffix@.dylib: $(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
 	@echo Linking $< to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
+	@@INSTALLSUDO@ln -sf $(shell basename $<) $@
 
 $(BININSTALLDIR)/%: exe/%
 
@@ -928,7 +928,7 @@ dist/debs.done: dist/debs.built dist/metadebs.built
 	touch dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
-	@SUDO@ dpkg -i dist/framerd*_@FDVERSION@*.deb
+	@INSTALLSUDO@ dpkg -i dist/framerd*_@FDVERSION@*.deb
 
 update-repo: dist/debs.done
 	deb-s3 upload --bucket=repo.beingmeta.com \
@@ -1131,17 +1131,17 @@ BEINGMETA_MODULE_DIRS= \
 link-modules: $(DESTDIR)@standard_module_dir@ $(DESTDIR)@safe_module_dir@ \
 		$(DESTDIR)@module_dir@ $(DESTDIR)@data_dir@
 	@$(MSG) Installing symbolic links for Scheme modules
-	@@SUDO@ln -sf $(BUILD)/etc/*.el @data_dir@
-	@@SUDO@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
+	@@INSTALLSUDO@ln -sf $(BUILD)/etc/*.el @data_dir@
+	@@INSTALLSUDO@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@standard_module_dir@
 	@for x in $(MODULE_DIRS); do \
-	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; \
+	   @INSTALLSUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@standard_module_dir@; \
 	 done
-	@@SUDO@ln -sf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
+	@@INSTALLSUDO@ln -sf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
 	@for x in $(SAFE_MODULE_DIRS); do \
-	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; done
-	@@SUDO@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
-	@@SUDO@ln -sf $(BUILD)/src/fdweb/fdxml $(DESTDIR)@safe_module_dir@
-	@@SUDO@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
+	   @INSTALLSUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; done
+	@@INSTALLSUDO@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
+	@@INSTALLSUDO@ln -sf $(BUILD)/src/fdweb/fdxml $(DESTDIR)@safe_module_dir@
+	@@INSTALLSUDO@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
 copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
               $(DESTDIR)@safe_module_dir@ $(DESTDIR)@data_dir@
 	@$(ECHO) Copying Scheme modules to install directories
@@ -1151,16 +1151,16 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@standard_module_dir@/$$x; \
 	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$$x/* $(DESTDIR)@standard_module_dir@/$$x; \
 	   if test -f $(DESTDIR)@standard_module_dir@/$$x/$$x.scm; then \
-		@SUDO@ rm -f $(DESTDIR)@standard_module_dir@/$$x/module.scm; \
-		@SUDO@ ln -sf $$x.scm $(DESTDIR)@standard_module_dir@/$$x/module.scm; fi; \
+		@INSTALLSUDO@ rm -f $(DESTDIR)@standard_module_dir@/$$x/module.scm; \
+		@INSTALLSUDO@ ln -sf $$x.scm $(DESTDIR)@standard_module_dir@/$$x/module.scm; fi; \
 	 done
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
 	@for x in $(SAFE_MODULE_DIRS); do \
 	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_module_dir@/$$x; \
 	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$$x/* $(DESTDIR)@safe_module_dir@/$$x; \
 	   if test -f $(DESTDIR)@standard_module_dir@/safe/$$x/$$x.scm; then \
-		@SUDO@ rm -f $(DESTDIR)@standard_module_dir@/safe/$$x/module.scm; \
-		@SUDO@ ln -sf $$x.scm $(DESTDIR)@standard_module_dir@/safe/$$x/module.scm; fi; \
+		@INSTALLSUDO@ rm -f $(DESTDIR)@standard_module_dir@/safe/$$x/module.scm; \
+		@INSTALLSUDO@ ln -sf $$x.scm $(DESTDIR)@standard_module_dir@/safe/$$x/module.scm; fi; \
 	 done
 	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_module_dir@/xhtml
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/* $(DESTDIR)@safe_module_dir@/xhtml
@@ -1279,8 +1279,8 @@ install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 			-d $(DESTDIR)@rundir@/fdserv;
 	@cd etc; if test -f mod_fdserv.so; \
-		then @SUDO@ ${APXS} -i mod_fdserv.so; \
-		else @SUDO@ ${APXS} -i mod_fdserv.la; \
+		then @INSTALLSUDO@ ${APXS} -i mod_fdserv.so; \
+		else @INSTALLSUDO@ ${APXS} -i mod_fdserv.la; \
 		fi
 	@echo Installed fdserv module with @rundir@/fdserv @logdir@/fdserv
 

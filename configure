@@ -682,6 +682,7 @@ BOOTSETUP
 DATAFILES
 CMODULES
 WWWUSER
+INSTALLSUDO
 SUDO
 INSTALLI18N
 I18N
@@ -2832,6 +2833,7 @@ CMODULES=""
 INSTALLCMODULES=""
 DATAFILES="etc/version"
 SUDO=""
+INSTALLSUDO=""
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 GPGID=repoman@beingmeta.com
@@ -2903,6 +2905,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -8001,16 +8004,7 @@ if test "x$with_libu8" != "x"; then
   EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
 fi
 
-
-# Check whether --with-sudo was given.
-if test "${with_sudo+set}" = set; then :
-  withval=$with_sudo;
-else
-  with_sudo="yes"
-fi
-
-if test "x$with_sudo" == "xyes"; then
-  for ac_prog in sudo
+for ac_prog in sudo
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -8053,13 +8047,27 @@ fi
 done
 test -n "$sudo_program" || sudo_program=""na""
 
+if test "x$sudoprogram" != "xna"; then
+  SUDO=$sudoprogram;
+fi
+
+
+# Check whether --with-sudo was given.
+if test "${with_sudo+set}" = set; then :
+  withval=$with_sudo;
+else
+  with_sudo="yes"
+fi
+
+if test "x$with_sudo" == "xyes"; then
   if test "x$sudoprogram" == "xna"; then
-    SUDO=""
+    INSTALLSUDO=""
   else
-    SUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program "
+    INSTALLSUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program "
   fi
 elif test "x$with_sudo" != "xno"; then
   SUDO="$with_sudo "
+  INSTALLSUDO="$with_sudo "
 fi
 
 with_fastcgi="yes";
