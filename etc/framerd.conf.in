@@ -30,7 +30,3 @@ post-stop script
    fdstop @rundir@/fdserv
    fdstop @rundir@/framerd
 end script
-
-
-
-
