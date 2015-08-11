@@ -113,7 +113,6 @@ CMODULES=""
 INSTALLCMODULES=""
 DATAFILES="etc/version"
 SUDO=""
-INSTALLSUDO=""
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 GPGID=repoman@beingmeta.com
@@ -230,7 +229,6 @@ AC_SUBST(GITDESCRIBE)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
-AC_SUBST(INSTALLSUDO)
 AC_SUBST(WWWUSER)
 AC_SUBST(CMODULES)
 AC_SUBST(DATAFILES)
@@ -835,22 +833,17 @@ if test "x$with_libu8" != "x"; then
   EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
 fi
 
-AC_CHECK_PROGS(sudo_program,sudo,"na")
-if test "x$sudoprogram" != "xna"; then
-  SUDO=$sudoprogram;
-fi
-
 dnl Use sudo for installations in makefile
 AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="yes")
 if test "x$with_sudo" == "xyes"; then
+  AC_CHECK_PROGS(sudo_program,sudo,"na")
   if test "x$sudoprogram" == "xna"; then
-    INSTALLSUDO=""
+    SUDO=""
   else 
-    INSTALLSUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program "
+    SUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program "
   fi
 elif test "x$with_sudo" != "xno"; then
   SUDO="$with_sudo "
-  INSTALLSUDO="$with_sudo "
 fi
 
 with_fastcgi="yes";
