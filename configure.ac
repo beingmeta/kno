@@ -836,19 +836,20 @@ if test "x$with_libu8" != "x"; then
 fi
 
 AC_CHECK_PROGS(sudo_program,sudo,"na")
-if test "x$sudo_program" != "xna"; then
-  SUDO=$sudo_program;
+if test "x$sudoprogram" != "xna"; then
+  SUDO=$sudoprogram;
 fi
 
 dnl Use sudo for installations in makefile
 AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="yes")
 if test "x$with_sudo" == "xyes"; then
-  if test "x$sudo_program" == "xna"; then
+  if test "x$sudoprogram" == "xna"; then
     INSTALLSUDO=""
   else 
     INSTALLSUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program "
   fi
 elif test "x$with_sudo" != "xno"; then
+  SUDO="$with_sudo "
   INSTALLSUDO="$with_sudo "
 fi
 
