@@ -1,3 +1,11 @@
+framerd (3.8.2-10) unstable; urgency=low
+
+  * Add tempdir?
+  * Minor aws/s3 logging changes
+  * git patch version framerd-3.8.2-24
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 17 Aug 2015 10:55:25 -0400
+
 framerd (3.8.2-9) unstable; urgency=low
 
   * Fix to fdstart builds in sudo reference
