@@ -767,8 +767,8 @@
 			     outheaders)))
     (do-choices (key (pickstrings (getkeys new)))
       (set! outheaders (cons (cons key (get new key)) outheaders)))
-    (logwarn |S3/modify| "Modifying " ctype " " (s3loc->string loc)
-	     " to " outheaders)
+    (lognotice |S3/modify| "Modifying " ctype " " (s3loc->string loc)
+	       " to " outheaders)
     (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) opts "" ctype
 	   `(("x-amz-copy-source" .
 	      ,(stringout "/" (s3loc-bucket loc) 
