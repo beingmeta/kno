@@ -1,3 +1,25 @@
+framerd (3.8.2-9) unstable; urgency=low
+
+  * Fix to fdstart builds in sudo reference
+  * git patch version framerd-3.8.2-20
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 11 Aug 2015 14:49:21 -0400
+
+framerd (3.8.2-6) unstable; urgency=low
+
+  * Fixes to fdstart to move user/group to sudo invocation
+  * git patch version framerd-3.8.2-15
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 11 Aug 2015 10:52:48 -0400
+
+framerd (3.8.2-5) unstable; urgency=low
+
+  * Added ximage module for image transformation and caching
+  * More fixes to fdstart/etc
+  * git patch version framerd-3.8.2-12
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 07 Aug 2015 20:59:15 +0000
+
 framerd (3.8.2-4) unstable; urgency=low
 
   * Fixes to fdstart/fdstartall/etc

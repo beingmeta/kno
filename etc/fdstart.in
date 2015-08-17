@@ -6,15 +6,17 @@ export FD_LOGLEVEL=7
 export FD_LAUNCHER=${FD_LANUCHER:-fdstart} 
 export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
-export SERVLETCFG="${COMMONCFG} STATEDIR=@rundir@/fdserv RUNUSER=@webuser@ FDSTART=${TARGET}" 
-export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@rundir@/framerd RUNGROUP=@admin_group@ RUNUSER=@fdaemon@ FDSTART=${TARGET}" 
+export SERVLETCFG="${COMMONCFG} STATEDIR=@rundir@/fdserv FDSTART=${TARGET}" 
+export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@rundir@/framerd FDSTART=${TARGET}" 
+export FDSTART="sudo -u @fdaemon@ -g @admin_group@"
+export WEBSTART="sudo -u @webuser@ -g @admin_group@"
 for ctl in $(find -L ${TARGET} -name "*.fdz");
 do if (readlink ${ctl}>/dev/null);
    then echo "Starting daemon manager for ${ctl}";
-	@SUDO@ LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
+	${FDSTART} LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
 	       fdserver `readlink ${ctl}` ${DAEMONCFG} ${XARGS};
    else echo "Starting daemon manager for ${ctl}";
-	@SUDO@ LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
+	${FDSTART} LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
 	       fdserver ${ctl} ${DAEMONCFG} ${XARGS}; 
    fi;
 done;
@@ -22,12 +24,12 @@ for sock in $(find -L ${TARGET} -name "*.sock");
 do if (readlink ${sock}>/dev/null);
    then @SUDO@ touch /var/run/fdserv/`basename ${sock}`.nospawn;
 	echo "Starting servlet manager for ${sock}";
-	@SUDO@ LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
+	${WEBSTART} LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
 	 fdservlet /var/run/fdserv/`basename ${sock}` ${LAUNCHCFG} \
 	          CONFIG=`readlink ${sock}` ${SERVLETCFG} ${XARGS};
    else @SUDO@ touch /var/run/fdserv/`basename ${sock}`.nospawn;
 	echo "Starting servlet manager for ${sock}";
-	@SUDO@ LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log      \
+	${WEBSTART} LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log      \
 	       fdservlet /var/run/fdserv/`basename ${sock}` ${LAUNCHCFG} \
 	          CONFIG=${sock} ${SERVLETCFG} ${XARGS};
    fi;
@@ -36,37 +38,37 @@ for cfg in $(find -L ${TARGET} -name "*.cfg");
 do if (readlink ${cfg}>/dev/null);
    then @SUDO@ touch /var/run/fdserv/`basename ${cfg} .cfg`.sock.nospawn;
 	echo "Starting servlet manager for ${cfg}";
-	@SUDO@ LOGFILE=@logdir@/fdserv/`basename ${cfg} .cfg`.log \
+	${WEBSTART} LOGFILE=@logdir@/fdserv/`basename ${cfg} .cfg`.log \
 	    fdservlet /var/run/fdserv/`basename ${cfg} .cfg`.sock \
 	        ${LAUNCHCFG} CONFIG=`readlink ${cfg}` ${SERVLETCFG} ${XARGS};
    else @SUDO@ touch /var/run/fdserv/`basename ${sock} .cfg`.sock.nospawn;
 	echo "Starting servlet manager for ${cfg}";
-	@SUDO@ LOGFILE=@logdir@/fdserv/`basename ${cfg} .cfg`.log \
+	${WEBSTART} LOGFILE=@logdir@/fdserv/`basename ${cfg} .cfg`.log \
 	    fdservlet /var/run/fdserv/`basename ${cfg} .cfg`.sock \
 	        ${LAUNCHCFG} CONFIG=${cfg} ${SERVLETCFG} ${XARGS};
    fi;
 done;
-for sock in $(find -L ${TARGET} -name "*@*");
-do if (readlink ${sock}>/dev/null);
-   then echo "Starting servlet manager for ${sock}";
-	@SUDO@ LOGFILE=@logdir@/fdserv/${sock}.log \
-	 fdservlet `basename ${sock}` CONFIG=`readlink ${sock}` \
+for addr in $(find -L ${TARGET} -name "*@*");
+do if (readlink ${addr}>/dev/null);
+   then echo "Starting servlet manager for ${addr}";
+	${WEBSTART} LOGFILE=@logdir@/fdserv/${addr}.log \
+	 fdservlet `basename ${addr}` CONFIG=`readlink ${addr}` \
 	     ${LAUNCHCFG} ${SERVLETCFG} ${XARGS};
-   else echo "Starting servlet manager for ${sock}";
-	@SUDO@ LOGFILE=@logdir@/fdserv/${sock}.log   \
-	 fdservlet `basename ${sock}` CONFIG=${sock} \
+   else echo "Starting servlet manager for ${addr}";
+	${WEBSTART} LOGFILE=@logdir@/fdserv/${addr}.log   \
+	 fdservlet `basename ${addr}` CONFIG=${addr} \
 	     ${LAUNCHCFG} ${SERVLETCFG} ${XARGS};
    fi;
 done;
-for sock in $(find -L ${TARGET} -name "*:*");
-do if (readlink ${sock}>/dev/null);
-   then echo "Starting servlet manager for ${sock}";
-	@SUDO@ LOGFILE=@logdir@/fdserv/${sock}.log \
-	 fdservlet `basename ${sock}` \
-	     ${LAUNCHCFG} CONFIG=`readlink ${sock}` ${SERVLETCFG} ${XARGS};
-   else echo "Starting servlet manager for ${sock}";
-	@SUDO@ LOGFILE=@logdir@/fdserv/${sock}.log \
-	       fdservlet `basename ${sock}`        \
-	           ${LAUNCHCFG} CONFIG=${sock} ${SERVLETCFG} ${XARGS};
+for addr in $(find -L ${TARGET} -name "*:*");
+do if (readlink ${addr}>/dev/null);
+   then echo "Starting servlet manager for ${addr}";
+	${WEBSTART} LOGFILE=@logdir@/fdserv/${addr}.log \
+	 fdservlet `basename ${addr}` \
+	     ${LAUNCHCFG} CONFIG=`readlink ${addr}` ${SERVLETCFG} ${XARGS};
+   else echo "Starting servlet manager for ${addr}";
+	${WEBSTART} LOGFILE=@logdir@/fdserv/${addr}.log \
+	       fdservlet `basename ${addr}`        \
+	           ${LAUNCHCFG} CONFIG=${addr} ${SERVLETCFG} ${XARGS};
    fi;
 done;
