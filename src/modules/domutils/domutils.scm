@@ -185,7 +185,7 @@
   (store! node '{%xmltag %qname} name)
   (store! node '%id (dom/nodeid node)))
 
-(define (dom/set! node attrib val (index #f) (fdxml #f) )
+(define (dom/set! node attrib val (index #f) (fdxml #f))
   (drop! node '%markup)
   (let* ((slotid (if (symbol? attrib) attrib (string->lisp attrib)))
 	 (aname (if (symbol? attrib) (downcase (symbol->string attrib))
@@ -210,9 +210,13 @@
 	(add! index (cons (choice attrib xslotid slotid qattrib) val) node)
 	(add! index (cons 'has {slotid xslotid}) node))
       (when (ambiguous? attribs)
-	(error "AmbiguousDOMAttribute"
-	       "DOM/SET of ambiguous attribute " attrib
-	       attribs))
+	(logwarn "AmbiguousDOMAttribute"
+	  "DOM/SET! of ambiguous attribute " attrib
+	  attribs)
+	(drop! node '%attribs attribs)
+	(set! ids (difference ids {qattrib slotid}))
+	(set! allattribs (difference allattribs attribs))
+	(set! attribs {}))
       (store! node {slotid xslotid} val)
       (if (exists? ids)
 	  (unless (overlaps? ids (choice qattrib slotid))
