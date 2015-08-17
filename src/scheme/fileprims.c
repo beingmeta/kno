@@ -839,7 +839,7 @@ static fdtype tempdir_done_prim(fdtype tempdir,fdtype force_arg)
         doit=1;}}
     else if (!(u8_directoryp(dirname)))
       u8_log(LOG_WARN,_("Weird temp directory"),
-             "The temporary directory %s is neither declared or actual",dirname);
+             "The temporary directory %s is neither declared or existing",dirname);
     else if (force) {
       u8_log(LOG_WARN,"Forced temp delete",
              "Forcing deletion of the undeclared temporary directory %s",dirname);
@@ -854,6 +854,15 @@ static fdtype tempdir_done_prim(fdtype tempdir,fdtype force_arg)
     else if (retval==0) return FD_FALSE;
     else return FD_INT2DTYPE(retval);}
   else return FD_FALSE;
+}
+
+static fdtype is_tempdir_prim(fdtype tempdir)
+{
+  u8_lock_mutex(&tempdirs_lock); {
+    fdtype cur_tempdirs=tempdirs; 
+    int found=fd_overlapp(tempdir,cur_tempdirs);
+    u8_unlock_mutex(&tempdirs_lock); 
+    if (found) return FD_TRUE; else return FD_FALSE;}
 }
 
 static fdtype tempdirs_get(fdtype sym,void *ignore)
@@ -2223,6 +2232,9 @@ FD_EXPORT void fd_init_fileio_c()
            fd_make_cprim2x("TEMPDIR",tempdir_prim,0,
                            fd_string_type,FD_VOID,
                            -1,FD_FALSE));
+  fd_idefn(fileio_module,
+           fd_make_cprim1x("TEMPDIR?",is_tempdir_prim,0,
+                           fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
            fd_make_cprim2x("TEMPDIR/DONE",tempdir_done_prim,0,
                            fd_string_type,FD_VOID,
