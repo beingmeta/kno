@@ -1,3 +1,10 @@
+framerd (3.8.2-11) unstable; urgency=low
+
+  * Fix bug with dom/set! of ambiguous attributes
+  * git patch version framerd-3.8.2-26
+  
+ -- Ken Haase <kh@beingmeta.com>  Mon, 17 Aug 2015 13:22:42 -0400
+
 framerd (3.8.2-10) unstable; urgency=low
 
   * Add tempdir?
