@@ -298,6 +298,26 @@ static fdtype exit_prim(fdtype arg)
   return FD_VOID;
 }
 
+static fdtype ispid_prim(fdtype pid_arg)
+{
+  pid_t pid=FD_FIX2INT(pid_arg);
+  int rv=kill(pid,0);
+  if (rv<0) {
+    errno=0; return FD_FALSE;}
+  else return FD_TRUE;
+}
+
+static fdtype pid_kill_prim(fdtype pid_arg,fdtype sig_arg)
+{
+  pid_t pid=FD_FIX2INT(pid_arg); int sig=FD_FIX2INT(sig_arg);
+  int rv=kill(pid,sig);
+  if (rv<0) {
+    char buf[128]; sprintf(buf,"pid=%ld;sig=%d",(long int)pid,sig);
+    u8_graberr(-1,"os_kill_prim",u8_strdup(buf));
+    return FD_ERROR_VALUE;}
+  else return FD_TRUE;
+}
+
 #define FD_IS_SCHEME 1
 #define FD_DO_FORK 2
 #define FD_DO_WAIT 4
@@ -2154,6 +2174,9 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,fd_make_cprimn("FORKLOOKUPWAIT",forklookupwait_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDFORKWAIT",fdforkwait_prim,1));
 #endif
+
+  fd_idefn(fileio_module,fd_make_cprim1("PID?",ispid_prim,1));
+  fd_idefn(fileio_module,fd_make_cprim2("PID/KILL",pid_kill_prim,2));
 
   fd_idefn(fileio_module,
            fd_make_cprim2x("REMOVE-FILE",remove_file_prim,1,
