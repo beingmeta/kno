@@ -1000,18 +1000,32 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
 fdtype sleep_prim(fdtype arg)
 {
   if (FD_FIXNUMP(arg)) {
-    sleep(FD_FIX2INT(arg));
+    int ival=FD_FIX2INT(arg);
+    if (ival<0)
+      return fd_type_error(_("positive fixnum time interval"),"sleep_prim",arg);
+    sleep(ival);
     return FD_TRUE;}
   else if (FD_FLONUMP(arg)) {
 #if HAVE_NANOSLEEP
     double interval=FD_FLONUM(arg);
     struct timespec req;
+    if (interval<0)
+      return fd_type_error(_("positive time interval"),"sleep_prim",arg);
     req.tv_sec=floor(interval);
     req.tv_nsec=1000000000*(interval-req.tv_sec);
     nanosleep(&req,NULL);
     return FD_TRUE;
 #else
-    return fd_type_error(_("fixnum time interval"),"sleep_prim",arg);
+    double floval=FD_FLONUM(arg);
+    double secs=ceil(floval);
+    int ival=(int)secs;
+    if (ival<0)
+      return fd_type_error(_("positive time interval"),"sleep_prim",arg);
+    if (ival!=(int)floval)
+      u8_log(LOG_WARN,"UnsupportedSleepPrecision",
+             "This system doesnt' have fine-grained sleep precision");
+    sleep(ival);
+    return FD_TRUE;
 #endif
   }
   else return fd_type_error(_("time interval"),"sleep_prim",arg);
