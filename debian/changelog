@@ -1,3 +1,12 @@
+framerd (3.8.2-12) unstable; urgency=low
+
+  * Added pid? and pid/kill
+  * Fixed handling for (sleep) args
+  * Made fdstop more robust
+  * git patch version framerd-3.8.2-31
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 19 Aug 2015 11:40:49 -0400
+
 framerd (3.8.2-11) unstable; urgency=low
 
   * Fix bug with dom/set! of ambiguous attributes
