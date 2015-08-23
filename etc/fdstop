@@ -2,7 +2,7 @@
 KILLWAIT=2
 KILLPAUSE=1
 for rundir in $*; do
-    for ppid in ${rundir}/fdserv/*.ppid; do
+    for ppid in ${rundir}/*.ppid; do
 	if test `basename ${ppid}` != "*.ppid"; then
             export npid=`cat ${ppid}`;
             echo "Terminating manager ${ppid} (${npid})";
@@ -12,32 +12,32 @@ for rundir in $*; do
 done;
 sleep ${KILLWAIT};
 for rundir in $*; do
-    for ppid in ${rundir}/fdserv/*.ppid; do
+    for ppid in ${rundir}/*.ppid; do
 	export base=`basename ${ppid} .ppid`;
 	if test "${base}" != "*"; then
             export npid=`cat ${ppid}`;
             echo "Killing stubborn manager ${pid} (${npid})";
      	    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo  kill -9 ${npid} &&
     		unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo  rm -f ${ppid} ${rundir}/${base}.nospawn;
-	    if test -f ${ppid}; then echo "Warning: Servlet manager ${ppid} (${npid}) couldn't be terminated or killed"; fi;
+	    if test -f ${ppid}; then echo "Warning: Server manager ${ppid} (${npid}) couldn't be terminated or killed"; fi;
 	fi;
     done;
 done;
 for rundir in $*; do
-    for pid in ${rundir}/fdserv/*.pid; do
+    for pid in ${rundir}/*.pid; do
 	if test `basename ${pid}` != "*.pid"; then
 	    if test -f ${pid}; then sleep ${KILLPAUSE}; fi
      	    if test -f ${pid}; then 
 		export npid=`cat ${pid}`
 		echo "Terminating server ${pid} (${npid})";
 		unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo  kill ${npid}; 
-	    else echo "Servlet ${pid} died naturally"; fi
+	    else echo "Server ${pid} died naturally"; fi
 	fi;
     done;
 done;
 sleep ${KILLWAIT};
 for rundir in $*; do
-    for pid in ${rundir}/fdserv/*.pid; do
+    for pid in ${rundir}/*.pid; do
 	if test `basename ${pid}` != "*.pid"; then
      	    if test -f ${pid}; then 
 		export npid=`cat ${pid}`
@@ -48,15 +48,15 @@ for rundir in $*; do
 		    if test -f ${pid}; then
 			# If the file still exists, check the process
 			if sudo kill -0 ${npid} 1&>2 > /dev/null; then
-			    echo "Warning: Servlet ${pid} (${npid}) didn't die";
-			else echo "Removing leftover servlet pid file ${pid}";
+			    echo "Warning: Server ${pid} (${npid}) didn't die";
+			else echo "Removing server pid file ${pid}";
 			     sudo rm -f ${pid};
 			fi;
 		    fi;
-		else echo "Removing leftover servlet pid file ${pid}";
+		else echo "Removing leftover server pid file ${pid}";
 		     sudo rm -f ${pid};
 		fi;
-	    else echo "Servlet ${pid} eventually died naturally"; fi
+	    else echo "Server ${pid} eventually died naturally"; fi
 	fi;
     done;
 done;
