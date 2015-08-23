@@ -1,3 +1,10 @@
+framerd (3.8.2-13) unstable; urgency=low
+
+  * Fix bugs in fdstop, generalized call
+  * git patch version framerd-3.8.2-34
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 23 Aug 2015 16:18:27 +0000
+
 framerd (3.8.2-12) unstable; urgency=low
 
   * Added pid? and pid/kill
