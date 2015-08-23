@@ -1,3 +1,2 @@
 #!/bin/sh
-fdstop @rundir@/fdserv/
-fdstop @rundir@/framerd/
+fdstop @rundir@/fdserv/ @rundir@/framerd/

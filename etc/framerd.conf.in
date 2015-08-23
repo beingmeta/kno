@@ -27,6 +27,5 @@ pre-start script
 end script
 
 post-stop script
-   fdstop @rundir@/fdserv
-   fdstop @rundir@/framerd
+   fdstop @rundir@/fdserv @rundir@/framerd
 end script
