@@ -272,13 +272,15 @@
 			     (qc dropfn) dropempty
 			     (qc classrules)
 			     (qc stylerules)))
-	     (when (and dropempty isblock
+	     (when (and dropempty (test child '%xmltag *block-tags*)
 			(not (test child keep-empty-attribs))
 			(not (has-prefix (first (get child '%attribs))
 					 "DATA-"))
 			(test child '%content)
 			(or (null? (get child '%content))
 			    (every? empty-child? (get child '%content))))
+	       (lognotice |DeleteEmpty|
+		 "Deleting empty node \n\t" (pprint child))
 	       (set! child #f))
 	     (when (null? child) (set! child #f))
 	     (when (and child dropfn (dropfn child)) (set! child #f))
