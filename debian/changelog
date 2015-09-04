@@ -1,3 +1,11 @@
+framerd (3.8.2-14) unstable; urgency=low
+
+  * Fix error with #f paths in Dropbox gpath
+  * Fix bug in deletion of empty elements in domutils/cleanup
+  * git patch version framerd-3.8.2-38
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 04 Sep 2015 13:33:27 -0400
+
 framerd (3.8.2-13) unstable; urgency=low
 
   * Fix bugs in fdstop, generalized call
