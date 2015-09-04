@@ -8,10 +8,11 @@
 	      curlcache mttools})
 (define %used_modules '{aws varconfig ezrecords rulesets})
 
-(module-export! '{s3/signature s3/op s3/expected
-		  s3/uri s3/signeduri s3/pathuri s3/hosturi})
+(module-export!
+ '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath
+   s3loc->string s3ish?})
 (module-export! '{s3loc s3/getloc s3loc/s3uri make-s3loc
-		  s3loc/uri s3loc/filename})
+		  s3loc/uri s3loc/filename s3/bytecodes->string})
 (module-export! '{s3loc/get s3loc/head s3loc/exists?
 		  s3loc/etag s3loc/modified s3loc/info
 		  s3loc/content s3loc/put s3loc/copy! s3loc/link!
@@ -20,13 +21,11 @@
 		  s3/modified s3/etag  s3/info
 		  s3/bucket? s3/copy! s3/link! s3/modify! s3/put
 		  s3/download!})
-
+(module-export! '{s3/signature s3/op s3/expected
+		  s3/uri s3/signeduri s3/pathuri s3/hosturi})
+(module-export! '{s3/axe! s3/copy*! s3/push!})
 (module-export! '{s3/getpolicy s3/setpolicy! s3/addpolicy!
 		  s3/policy/endmarker})
-(module-export!
- '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath
-   s3loc->string s3ish?})
-(module-export! '{s3/bytecodes->string})
 
 (define-init %loglevel %warn%)
 ;;(set! %loglevel %info%)
@@ -907,7 +906,6 @@
 	  (begin (s3/copy! path (s3/mkpath to (basename (s3loc-path path)))
 		      opts inheaders outheaders)
 	    (when pause (sleep pause)))))))
-(module-export! '{s3/axe! s3/copy*!})
 
 ;;; Synchronizing
 
@@ -963,7 +961,6 @@
 		    (set+! updated loc)
 		    (when pause (sleep pause))))))))
     updated))
-(module-export! 's3/push!)
 
 (define (dowrite loc data mimetype headers)
   (logdebug |S3/writing| "Writing " (length data) " "
