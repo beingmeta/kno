@@ -170,10 +170,10 @@
 	      (or root path)))))
 
 (define (dropbox/gpath spec (path))
-  (default! path (getopt spec 'rootpath))
-  (when (string-starts-with? path #("/Apps/" (not> "/") "/"))
+  (default! path (getopt spec 'rootpath ""))
+  (when (and path (string-starts-with? path #("/Apps/" (not> "/") "/")))
     (set! path (textsubst path #((bos) "/Apps/" (not> "/") "/") "")))
-  (cons-dropbox spec path))
+  (cons-dropbox spec (or path "")))
 
 (config! 'gpath:handlers
 	 (gpath/handler 'dropbox
