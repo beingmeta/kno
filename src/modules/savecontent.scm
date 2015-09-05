@@ -18,7 +18,7 @@
 (use-module '{fileio aws/s3 varconfig logger fdweb reflection
 	      texttools mimetable})
 
-(define %loglevel %info!)
+(define-init %loglevel %info%)
 
 (module-export! '{savecontent saveoutput save/path save/fetch})
 

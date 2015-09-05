@@ -10,7 +10,8 @@
 
 (module-export! '{dom/index! dom/indexer})
 
-(define %loglevel %notice%)
+(define-init %loglevel %notice%)
+
 (define default-dom-slots
   '{%xmltag %qname %attribids %rawtag %namespace
     id class name href src rel})

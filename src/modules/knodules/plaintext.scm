@@ -8,7 +8,7 @@
 (use-module '{texttools fdweb ezrecords logger varconfig})
 (use-module '{knodules knodules/drules})
 
-(define %loglevel %warn%)
+(define-init %loglevel %warn%)
 
 (module-export!
  '{kno/read-plaintext

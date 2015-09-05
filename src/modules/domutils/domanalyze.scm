@@ -7,8 +7,7 @@
 
 (use-module '{textindex domutils logger})
 
-;;(define %loglevel %debug!)
-(define %loglevel %notice!)
+(define-init %loglevel %notice%)
 
 (module-export! 'dom/analyze)
 

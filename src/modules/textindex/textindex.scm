@@ -20,8 +20,7 @@
    text/phrasemap
    text/index text/analyze})
 
-(define %loglevel %notify!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notify%)
 
 ;;;; Simple text analysis
 

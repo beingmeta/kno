@@ -75,7 +75,7 @@
 (define %swamp% 9)
 (define %swamp! 9)
 
-(define %loglevel 4)
+(define-init %loglevel 4)
 
 (define loglevel-init-map
   '{(SWAMP . 9) (DELUGE . 9) (VERYDETAILED 9)

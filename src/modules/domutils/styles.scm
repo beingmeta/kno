@@ -10,7 +10,7 @@
 		  dom/normstyle dom/gather-styles!
 		  css/relsizes})
 
-(define %loglevel %notice%)
+(define-init %loglevel %notice%)
 
 (define (dom/normstyle string (rules #f))
   (let* ((prepped (if rules (textsubst string (qc rules)) string))

@@ -8,8 +8,7 @@
 (use-module '{aws fdweb texttools mimeout logger email varconfig})
 (define %used_modules '{aws})
 
-(define %loglevel %notify!)
-;;(set!  %loglevel %debug%)
+(define-init %loglevel %notice%)
 
 (define ses-key #f)
 (define ses-secret #f)

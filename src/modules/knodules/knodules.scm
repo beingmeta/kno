@@ -28,7 +28,7 @@
    kno/dumper kno/undumper
    langids})
 
-(define %loglevel %notice%)
+(define-init %loglevel %notice%)
 
 ;;;; Global tables, variables, and structures (with their configs)
 

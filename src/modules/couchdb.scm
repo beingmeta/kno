@@ -6,9 +6,7 @@
 (use-module '{fdweb ezrecords extoids jsonout})
 (use-module '{texttools logger})
 
-(define-init %loglevel %notice!)
-;;(define %loglevel %debug!)
-;;(set! %loglevel  %debug!)
+(define-init %loglevel %notice%)
 
 (define-init couchdbs (make-hashtable))
 

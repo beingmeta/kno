@@ -17,7 +17,7 @@
 
 (use-module '{aws fdweb texttools logger fdweb varconfig jsonout rulesets})
 
-(define %loglevel %notice!)
+(define-init %loglevel %notice%)
 
 (define-init default-domain #f)
 (varconfig! simpledb:domain default-domain)

@@ -8,8 +8,7 @@
 	      parsetime varconfig logger opts})
 (use-module 'paypal)
 
-(define-init %loglevel %notify!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notify%)
 
 (define (getmemo x)
   (if (uuid? x) (uuid->string x)

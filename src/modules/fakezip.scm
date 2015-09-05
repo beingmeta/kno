@@ -8,8 +8,7 @@
 
 (module-export! '{fz/open fz/add! fz/update! fz/close})
 
-(define %loglevel %notify!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notify%)
 
 (defrecord fakezip filename tmpdir tmpzip)
 

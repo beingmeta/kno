@@ -38,7 +38,7 @@
 
 (module-export! '{ice/freeze ice/thaw})
 
-(define %loglevel %notify!)
+(define-init %loglevel %notify%)
 
 
 ;;;; Top level functions

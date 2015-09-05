@@ -6,8 +6,7 @@
 
 (use-module '{fdweb xhtml texttools ezrecords parsetime logger varconfig})
 
-(define-init %loglevel %notify!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notify%)
 
 (define pp:live #f)
 (define pp:business "anonymous@company.com")

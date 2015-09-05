@@ -9,8 +9,7 @@
 
 (module-export! 'bugjar!)
 
-(define-init %loglevel %notify!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notice%)
 
 (define bugjar-css (get-component "bugjar.css"))
 (define bugjar-js (get-component "bugjar.js"))

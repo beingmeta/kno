@@ -12,8 +12,7 @@
 		  paypal/checkout/details
 		  paypal/checkout/finish})
 
-(define-init %loglevel %notify!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notify%)
 
 (define paypal-creds #f)
 (define get-paypal-creds

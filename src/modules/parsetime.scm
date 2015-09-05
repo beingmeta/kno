@@ -10,7 +10,7 @@
 (use-module '{logger varconfig})
 (define %used_modules 'varconfig)
 
-(define %loglevel %notice!)
+(define-init %loglevel %notice%)
 
 (module-export! '{parsetime parsegmtime timeparser time-patterns time-pattern})
 

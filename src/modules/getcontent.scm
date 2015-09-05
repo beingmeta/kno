@@ -8,7 +8,7 @@
 
 (use-module '{fileio ezrecords varconfig logger reflection})
 
-(define %loglevel %notify%)
+(define-init %loglevel %notice%)
 
 (module-export! '{getcontent getcontent/info})
 

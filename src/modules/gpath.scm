@@ -38,7 +38,7 @@
 
 (use-module '{fileio aws/s3 varconfig logger fdweb 
 	      texttools mimetable ezrecords hashfs})
-(define %loglevel %notice%)
+(define-init %loglevel %notice%)
 
 (define gp/urlsubst {})
 (varconfig! gp:urlsubst gp/urlsubst #f)

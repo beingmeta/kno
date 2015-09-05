@@ -25,7 +25,7 @@
    lazy-dterm
    })
 
-(define %loglevel %info!)
+(define-init %loglevel %notice%)
 
 ;;;; The dterm cache
 

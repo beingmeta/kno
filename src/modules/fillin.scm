@@ -5,7 +5,7 @@
 
 (use-module '{texttools logger})
 
-(define %loglevel %notify%)
+(define-init %loglevel %notify%)
 
 (module-export! 'fillin)
 

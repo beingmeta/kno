@@ -8,7 +8,7 @@
 (use-module '{twilio aws/ses})
 (define %used_modules '{varconfig})
 
-(define %loglevel %warn%)
+(define-init %loglevel %warn%)
 
 (module-export! 'checkurl)
 

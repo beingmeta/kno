@@ -19,7 +19,7 @@
    fifo-load fifo-live? fifo-waiting fifo/waiting
    fifo/idle? fifo/set-debug!})
 
-(define %loglevel %warn%)
+(define-init %loglevel %warn%)
 
 ;;;; Implementation
 

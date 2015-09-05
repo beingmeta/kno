@@ -10,8 +10,7 @@
 		  sqs/extend sqs/req/extend
 		  sqs/getn sqs/vacuum})
 
-(define-init %loglevel %info!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notice%)
 
 (define sqs-key #f)
 (define sqs-secret #f)

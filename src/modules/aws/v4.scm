@@ -6,8 +6,7 @@
 (use-module '{aws fdweb texttools logger varconfig curlcache})
 (define %used_modules '{aws varconfig})
 
-(define-init %loglevel %notify%)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notice%)
 
 (module-export! '{aws/v4/prepare aws/v4/get aws/v4/op}) ;; aws/v4/post
 (module-export! '{derive-key})

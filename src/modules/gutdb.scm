@@ -4,8 +4,7 @@
 
 (use-module '{texttools fdweb logger domutils domutils/index varconfig})
 
-;;(define %loglevel %debug!)
-(define %loglevel %notify!)
+(define-init %loglevel %notify%)
 
 (define gutcache (make-hashtable))
 (define gutindex #f)

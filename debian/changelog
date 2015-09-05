@@ -1,3 +1,11 @@
+framerd (3.8.2-15) unstable; urgency=low
+
+  * Clean up modules in various small ways, add optall to run the
+    optimizer on all bundled modules
+  * git patch version framerd-3.8.2-40
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 05 Sep 2015 17:55:08 -0400
+
 framerd (3.8.2-14) unstable; urgency=low
 
   * Fix error with #f paths in Dropbox gpath

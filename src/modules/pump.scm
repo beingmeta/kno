@@ -10,8 +10,7 @@
 		  pump/pending pump/shutdown
 		  pump-name pump-input})
 
-(define-init %loglevel %info!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notice%)
 
 (define default-pump-queue 64)
 (define named-pumps 64)

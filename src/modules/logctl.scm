@@ -12,7 +12,7 @@
 (define-init saved-levels {})
 (define-init levels {})
 
-(define %loglevel %notice%)
+(define-init %loglevel %notice%)
 
 (define (convert-log-arg arg)
   (if (and (pair? arg) (eq? (car arg) 'quote) (pair? (cdr arg))

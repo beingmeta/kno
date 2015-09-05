@@ -8,7 +8,7 @@
 
 (use-module '{brico brico/indexing logger})
 
-(define %loglevel %notice!)
+(define-init %loglevel %notice%)
 
 ;;; Index updates
 

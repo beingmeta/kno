@@ -5,7 +5,7 @@
 
 (use-module '{reflection texttools varconfig logger domutils gpath})
 
-(define %loglevel %debug%)
+(define-init %loglevel %notice%)
 
 (module-export! '{css-rules css-rule css/parse dom/getcss
 		  css/selector/parse css/selector/norm

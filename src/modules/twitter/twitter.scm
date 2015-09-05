@@ -6,6 +6,6 @@
 (use-module '{fdweb texttools reflection varconfig logger})
 (use-module '{xhtml xhtml/auth})
 
-(define %loglevel %notice!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notice%)
+
 

@@ -7,7 +7,7 @@
 
 (use-module '{fdweb texttools tagger})
 
-(define %loglevel 5) ; 9
+(define-init %loglevel 5)
 
 (module-export!
  '{lexml->lexicon get-custom-lexicon reload-lexicon!})

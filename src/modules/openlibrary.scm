@@ -14,8 +14,7 @@
    olib/getauthor
    olib/get olib/string})
 
-(define %loglevel %notify!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notice%)
 
 (define (olib/string x)
   (if (string? x) x

@@ -8,8 +8,7 @@
 	      parsetime varconfig logger opts})
 (use-module 'paypal)
 
-(define-init %loglevel %notify!)
-;;(define %loglevel %debug!)
+(define-init %loglevel %notify%)
 
 (define express-api-version "121.0")
 

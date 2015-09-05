@@ -7,7 +7,7 @@
 	      varconfig logger})
 
 (define %used_modules '{varconfig ezrecords})
-(define %loglevel %notice%)
+(define-init %loglevel %notice%)
 
 (module-export!
  '{

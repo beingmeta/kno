@@ -10,7 +10,7 @@
 (use-module '{knodules knodules/usebrico})
 (use-module '{brico brico/lookup brico/dterms})
 
-(define %loglevel %notice%)
+(define-init %loglevel %notice%)
 
 (module-export! 'defterm)
 
