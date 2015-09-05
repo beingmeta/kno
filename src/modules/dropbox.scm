@@ -13,7 +13,7 @@
 		  dropbox/gpath
 		  dropbox-oauth})
 
-(define %loglevel %warning%)
+(define-init %loglevel %warning%)
 
 (defrecord dropbox oauth (root-path #f))
 
@@ -53,6 +53,7 @@
 		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
 		     (oauth/call oauth 'GET endpoint '() #f #f #t)))
 	 (status (get result 'response)))
+    (loginfo |DROPBOX/GET| path " has status " status " given\n\t" (pprint oauth))
     (if (>= 299 status 200) (get result '%content)
 	(if (= status 404)
 	    (begin (lognotice |Dropbox404| "Dropbox call returned 404" result)
@@ -67,6 +68,7 @@
 		     (oauth/call oauth 'GET endpoint '() #f #f #t)))
 	 (status (get result 'response))
 	 (metadata (jsonparse (get result 'x-dropbox-metadata))))
+    (loginfo |DROPBOX/GET+| path " has status " status " given\n\t" (pprint oauth))
     (if (>= 299 status 200)
 	(if (exists? metadata)
 	    (begin (store! metadata 'content (get result '%content))
@@ -98,6 +100,7 @@
 		     (oauth/call oauth 'GET endpoint '() #f #f #t)))
 	 (status (get result 'response))
 	 (metadata (jsonparse (get result 'x-dropbox-metadata))))
+    (loginfo |DROPBOX/INFO| path " has status " status " given\n\t" (pprint oauth))
     (if (>= 299 status 200)
 	(let ((parsed (jsonparse (get result '%content))))
 	  (debug%watch "DROPBOX/INFO" parsed result)
@@ -122,7 +125,7 @@
 		     (oauth/call oauth 'GET endpoint '("list" "true") #f #f #t)))
 	 (status (get result 'response))
 	 (metadata (jsonparse (get result 'x-dropbox-metadata))))
-
+    (loginfo |DROPBOX/LIST| path " has status " status " given\n\t" (pprint oauth))
     (if (>= 299 status 200)
 	(jsonparse (get result '%content))
 	(irritant result CALLFAILED DROPBOX/INFO
