@@ -14,7 +14,7 @@
    gp/fetch gp/fetch+ gp/etag gp/info
    gp/exists? gp/exists gp/modified gp/newer
    gp/path gp/mkpath gp/subpath gp/makepath
-   gpath->string gp/string
+   gpath->string gp/string gpath->location
    gp:config gpath/handler
    gp/urlfetch gp/urlinfo
    dtype->gpath
@@ -238,6 +238,10 @@
 	 (mkpath (getcwd) (dirname path)))
 	((string? path) (mkpath (getcwd) path))
 	(else path)))
+
+(define (gpath->location path)
+  (if (string? path) (set! path (->gpath path)))
+  (if (gp/location? path) path (gp/location path)))
 
 (define (gpath->string path)
   (cond ((string? path) path)
