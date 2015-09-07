@@ -12,7 +12,8 @@
 		  css/match css/matches
 		  css/drop-class! css/drop-property!
 		  css/change-class! css/change-property!
-		  css/textout css/norm})
+		  css/textout css/norm
+		  css/analyze})
 
 (define property-extract
   #((label property #((opt "-") (lword)))
@@ -111,9 +112,10 @@
 
 ;;; Parsing selectors
 
+(define (noempty s) (difference s ""))
 (define selector-extract
   `(+ {#((bow) (label tag (char-not ".#:[ \t\n")))
-       #("." (label class (char-not ".#:[ \t\n")))
+       #("." (label class (char-not ".#:[ \t\n") ,noempty))
        #("#" (label id (char-not ".#:[ \t\n")))
        #("[" (label attrib (not> "]")) "]")
        #(":" (label pseudo (char-not ".#:[ \t\n")))}))
@@ -373,3 +375,91 @@
 	   (printout prop ":" (get entry prop) ";"))
     "}"))
 
+;;;; CSS analysis
+
+(define (get-sourceroot dom)
+  (let ((settings (get dom 'settings)))
+    (getopt settings 'sourceroot
+	    (getopt settings 'filebase
+		    (try (get dom 'sourceroot)
+			 (gp/location (get dom 'source))
+			 #f)))))
+
+;;; Analyzing CSS
+
+(define (get-local-css dom (pat #f) (source))
+  (default! source (get-sourceroot dom))
+  (let ((rules {}))
+    (dolist (sheet (dom/getcss dom source))
+      (when (or (number? (car sheet))
+		(oid? (car sheet)) (slotmap? (car sheet))
+		(has-prefix (car sheet) "#")
+		(equal? (car sheet) pat)
+		(and source pat (textmatch pat (car sheet))))
+	(dolist (rule (cdr sheet)) (unless (string? rule) (set+! rules rule)))))
+    rules))
+
+(define (rule->classes rule) (get (get rule 'matchers) 'class))
+(define numpat
+  '(GREEDY {(isdigit+)
+	    #((isdigit+) "." (isdigit+))
+	    #("." (isdigit+))
+	    #((isdigit+) ".")}))
+(define (->num n)
+  (if (string? n)
+      (string->number (slice n 0 (textmatcher numpat n)))
+      n))
+(define i2e inexact->exact)
+
+(define (simplify-rule rule)
+  (let ((result (frame-create #f)))
+    (dolist (prop (get rule 'properties))
+      (let ((value (get rule prop)))
+	(cond ((has-suffix value "px")
+	       (store! result (intern (upcase prop))
+		       (glom (i2e (round (->num value))) "px")))
+	      ((has-suffix value "pt")
+	       (store! result (intern (upcase prop))
+		       (glom (i2e (floor (->num value))) "pt")))
+	      ((has-suffix value "%")
+	       (store! result (intern (upcase prop))
+		       (glom (i2e (floor (->num value))) "%")))
+	      (else (store! result (intern (upcase prop)) value)))))
+    result))
+
+(define local-css-path
+  #((* #((+ {(isalnum) "-" "_"}) "/")) (+ {(isalnum) "-" "_"})  ".css"))
+
+(define (css/analyze dom (pat local-css-path) (source))
+  (default! source (get-sourceroot dom))
+  (let* ((index (get dom 'index))
+	 (rules (get-local-css dom pat source))
+	 (allclasses (rule->classes rules))
+	 (base `#[allclasses ,allclasses
+		  ids ,(get (get rules 'matchers) 'id)])
+	 (unused (filter-choices (class allclasses)
+		   (fail? (find-frames index 'class class))))
+	 (simple (for-choices (class (difference allclasses unused))
+		   (if (singleton? (pick rules rule->classes class))
+		       (cons class (pick rules rule->classes class)))))
+	 (simpler (for-choices (class.rule simple)
+		    (tryif (fail? (pick (get (cdr class.rule) 'parsed) vector?))
+		      (cons (car class.rule) (simplify-rule (cdr class.rule))))))
+	 (classrules (make-hashtable))
+	 (ruleclasses (make-hashtable))
+	 (propclasses (make-hashtable)))
+    (store! base 'unused unused)
+    (store! base 'classes (difference allclasses unused))
+    (do-choices (class.rule simpler)
+      (add! classrules (car class.rule) (cdr class.rule))
+      (add! ruleclasses  (cdr class.rule) (car class.rule))
+      (do-choices (prop (getkeys (cdr class.rule)))
+	(add! propclasses (cons prop (get (cdr class.rule) prop))
+	      (car class.rule))))
+    (store! base 'classrules classrules)
+    (store! base 'ruleclasses ruleclasses)
+    (store! base 'propclasses propclasses)
+    (do-choices (rule (getkeys ruleclasses))
+      (when (ambiguous? (get ruleclasses rule))
+	(add! base 'redundant (sorted (get ruleclasses rule)))))
+    base))
