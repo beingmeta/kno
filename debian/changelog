@@ -1,3 +1,10 @@
+framerd (3.8.2-17) unstable; urgency=low
+
+  * Added PATHELT text matcher
+  * git patch version framerd-3.8.2-44
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 07 Sep 2015 18:00:14 -0400
+
 framerd (3.8.2-16) unstable; urgency=low
 
   * Added gpath->location to handle args which might be locations or

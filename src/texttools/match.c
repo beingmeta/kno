@@ -2891,9 +2891,9 @@ static fdtype compound_word_match
   else return FD_EMPTY_CHOICE;
 }
 
-/** Special matchers **/
+/* Lisp Symbols */
 
-#define islsym(c) \
+#define islsym(c)                                                  \
    (!((u8_isspace(c)) || (c == '"') || (c == '(') || (c == '{') || \
       (c == '[') || (c == ')') || (c == '}') || (c == ']')))
 
@@ -2931,6 +2931,8 @@ static u8_byteoff islsym_search
   return -1;
 }
 
+/* C Symbols */
+
 static u8_byteoff csymbol_startp(u8_string string,u8_byteoff off)
 {
   u8_unichar ch=get_previous_char(string,off);
@@ -2966,6 +2968,37 @@ static u8_byteoff iscsym_search
       good_start=0; else good_start=1;}
   return -1;
 }
+
+/* C Symbols */
+
+#define ispathelt(ch) ((u8_isalnum(ch)) || (ch == '_') || (ch == '-') || (ch == '.'))
+
+static fdtype ispathelt_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_byteoff i=off; u8_unichar ch=string_ref(string+off);
+  if (ispathelt(ch))
+    while (i < lim) {
+      u8_unichar ch=string_ref(string+i);
+      if (ispathelt(ch)) i=forward_char(string,i);
+      else break;}
+  if (i > off) return FD_INT2DTYPE(i);
+  else return FD_EMPTY_CHOICE;
+}
+static u8_byteoff ispathelt_search
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  const u8_byte *scan=string+off, *oscan=scan, *limit=string+lim;
+  int ch=u8_sgetc(&scan);
+  while (scan<limit) {
+    if (ispathelt(ch)) return oscan-string;
+    oscan=scan; ch=u8_sgetc(&scan);}
+  return -1;
+}
+
+/* Mail Identifiers */
 
 #define isprinting(x) ((u8_isalnum(x)) || (u8_ispunct(x)))
 
@@ -3840,6 +3873,7 @@ void fd_init_match_c()
                         isnotlower_plus_match,isnotlower_search,NULL);
   fd_add_match_operator("LSYMBOL",islsym_match,islsym_search,NULL);
   fd_add_match_operator("CSYMBOL",iscsym_match,iscsym_search,NULL);
+  fd_add_match_operator("PATHELT",ispathelt_match,ispathelt_search,NULL);
   fd_add_match_operator("XMLNAME",xmlname_match,xmlname_search,NULL);
   fd_add_match_operator("XMLNMTOKEN",xmlnmtoken_match,xmlnmtoken_search,NULL);
   fd_add_match_operator("HTMLID",htmlid_match,htmlid_search,NULL);
