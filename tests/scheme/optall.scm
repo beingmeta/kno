@@ -15,19 +15,19 @@
 	 (loginfo |Load All| "Optimizing module " mod)
 	 (optimize-module! mod)))))
 
-(check-modules '{audit cachequeue calltrack checkurl codewalker
+(check-modules '{cachequeue calltrack checkurl codewalker
 		 couchdb ctt curlcache dopool dropbox ellipsize
 		 email extoids ezrecords fakezip fifo fillin
 		 findcycles getcontent gpath gravatar gutdb
 		 hashfs hashstats histogram hostinfo i18n
-		 ice isbn jsonout lexml logctl logger
+		 ice isbn jsonout logctl logger
 		 meltcache mergeutils mimeout mimetable
 		 mttools oauth openlibrary optimize
 		 opts packetfns parsetime bugjar
-		 pump rdf readcsv rulesets samplefns
+		 pump readcsv rulesets samplefns
 		 savecontent saveopt signature speling ;; soap
 		 stringfmts tinygis tracer trackrefs twilio
-		 updatefile usedb varconfig whocalls ximage xtags})
+		 updatefile usedb varconfig whocalls ximage})
 
 (check-modules '{aws aws/s3 aws/ses aws/simpledb aws/sqs aws/v4
 		 aws/associates aws/dynamodb})
@@ -41,7 +41,7 @@
 
 (check-modules '{google google/drive})
 
-(check-modules '{knodules knodules/defterm knodules/drules
+(check-modules '{knodules knodules/drules
 		 knodules/html knodules/plaintext})
 
 (check-modules '{misc/oidshift})
@@ -54,10 +54,22 @@
 
 (check-modules '{morph morph/en morph/es})
 
-(when (config 'BRICOSOURCE)
+(define (have-brico)
+  (and (config 'bricosource)
+       (onerror (begin (use-module 'brico) #t) #f)))
+
+(when (have-brico)
   (check-modules '{brico brico/dterms brico/indexing brico/lookup
 		   brico/analytics brico/maprules brico/xdterms
 		   brico/wikipedia
-		   knodules/usebrico}))
+		   knodules/usebrico knodules/defterm
+		   xtags rdf audit}))
 
+(define (have-lexdata)
+  (and (config 'lexdata)
+       (onerror (and (exists? (get (get-module 'tagger) 'lextags))
+		     ((get (get-module 'tagger) 'lextags)))
+	 (lambda () #f))))
 
+(when (have-lexdata)
+  (check-modules '{lexml}))
