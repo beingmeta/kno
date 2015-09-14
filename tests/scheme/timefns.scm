@@ -6,6 +6,9 @@
 (define est-time1-string #T2011-12-03T03:23:00EST)
 (define gmt-time1-string "2011-12-03T08:23:00Z")
 
+(define (get-sign n)
+  (if (< n 0) -1 (if (> n 0) 1 0)))
+
 (define time1-tick 1322900580)
 (applytest #t equal? est-time1 gmt-time1)
 (applytest #t equal? (get est-time1 'tick) (get gmt-time1 'tick))
@@ -13,6 +16,11 @@
 (applytest 0 get est-time1 'dstoff)
 (applytest -18000 get est-time1 'gmtoff)
 (applytest -18000 get est-time1 'tzoff)
+
+(applytest #f time<? time1-tick)
+(applytest #t time>? time1-tick)
+(evaltest 1 (get-sign (time-since time1-tick)))
+(evaltest -1 (get-sign (time-until time1-tick)))
 
 (applytest time1-tick get gmt-time1 'tick)
 (applytest 0 get gmt-time1 'gmtoff)

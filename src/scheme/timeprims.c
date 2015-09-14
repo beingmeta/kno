@@ -201,11 +201,18 @@ static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     u8_iso8601_to_xtime(FD_STRDATA(arg),&(tm->xtime)); *freeit=1;
     return tm;}
-  else if (FD_FIXNUMP(arg)) {
+  else if ((FD_FIXNUMP(arg))||
+           ((FD_BIGINTP(arg))&&
+            (fd_modest_bigintp((fd_bigint)arg)))) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
-    memset(tm,0,sizeof(struct FD_TIMESTAMP));
-    u8_now(&(tm->xtime)); *freeit=1;
-    u8_xtime_plus(&(tm->xtime),FD_FIX2INT(arg));
+    long long int tick;
+    if (FD_FIXNUMP(arg)) tick=FD_FIX2INT(arg);
+    else tick=fd_bigint_to_long_long((fd_bigint)arg);
+    memset(tm,0,sizeof(struct FD_TIMESTAMP)); *freeit=1;
+    if (tick<31536000L) {
+      u8_now(&(tm->xtime));
+      u8_xtime_plus(&(tm->xtime),FD_FIX2INT(arg));}
+    else u8_init_xtime(&(tm->xtime),tick,u8_second,0,0,0);
     return tm;}
   else if (FD_VOIDP(arg)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
@@ -253,14 +260,19 @@ static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
   if ((t1 == NULL) || (t2 == NULL)) {
     if (free1) u8_free(t1); if (free2) u8_free(t2);
     return FD_ERROR_VALUE;}
-  else if (FD_VOIDP(timestamp2)) {
-    double diff=u8_xtime_diff(&(t2->xtime),&(t1->xtime));
-    if (free1) u8_free(t1); if (free2) u8_free(t2);
-    return fd_init_double(NULL,diff);}
   else {
     double diff=u8_xtime_diff(&(t1->xtime),&(t2->xtime));
     if (free1) u8_free(t1); if (free2) u8_free(t2);
     return fd_init_double(NULL,diff);}
+}
+
+static fdtype time_until(fdtype arg)
+{
+  return timestamp_diff(arg,FD_VOID);
+}
+static fdtype time_since(fdtype arg)
+{
+  return timestamp_diff(FD_VOID,arg);
 }
 
 static fdtype timestamp_greater(fdtype timestamp1,fdtype timestamp2)
@@ -272,7 +284,7 @@ static fdtype timestamp_greater(fdtype timestamp1,fdtype timestamp2)
     double diff;
     struct U8_XTIME xtime; u8_now(&xtime);
     if (free1) u8_free(t1);
-    diff=u8_xtime_diff(&(t1->xtime),&xtime);
+    diff=u8_xtime_diff(&xtime,&(t1->xtime));
     if (diff>0) return FD_TRUE; else return FD_FALSE;}
   else {
     double diff; int free2=0;
@@ -293,7 +305,7 @@ static fdtype timestamp_lesser(fdtype timestamp1,fdtype timestamp2)
     double diff;
     struct U8_XTIME xtime; u8_now(&xtime);
     if (free1) u8_free(t1);
-    diff=u8_xtime_diff(&(t1->xtime),&xtime);
+    diff=u8_xtime_diff(&xtime,&(t1->xtime));
     if (diff<0) return FD_TRUE; else return FD_FALSE;}
   else {
     double diff; int free2=0;
@@ -1737,6 +1749,8 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("TIME<?",timestamp_lesser,1));
   fd_defalias(fd_scheme_module,"TIME-EARLIER?","TIME<?");
   fd_defalias(fd_scheme_module,"TIME-LATER?","TIME>?");
+  fd_idefn(fd_scheme_module,fd_make_cprim1("TIME-UNTIL",time_until,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("TIME-SINCE",time_since,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("MKTIME",mktime_lexpr,0));
 

@@ -97,7 +97,7 @@
 	       (pprint req))
       (logwarn (stringout testid) " accessing " url ":\n\t" ex))
   (when (or (fail? (get troubles testid))
-	     (> (difftime (get troubles testid)) nagtime))
+	     (> (- (time-since (get troubles testid))) nagtime))
     (logwarn |InformAuthorities|
       "Informing the authorities about the failure of " testid " on " url)
     (when email

@@ -444,7 +444,7 @@
 			  (- expires (time))
 			  expires)
 		      (if (timestamp? expires)
-			  (- (difftime expires))
+			  (time-until expires)
 			  (* 17 3600))))
 	 (req (aws/v4/prepare 
 	       `#[%params {"X-Amz-Credential" 

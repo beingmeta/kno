@@ -1,3 +1,12 @@
+framerd (3.8.2-18) unstable; urgency=low
+
+  * Made difftime and time<? and time>? take bigints
+  * Changed semantics of 1 argument time difference/comparison functions
+  * Added tests of new time functions
+  * git patch version framerd-3.8.2-46
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 13 Sep 2015 20:09:51 -0400
+
 framerd (3.8.2-17) unstable; urgency=low
 
   * Added PATHELT text matcher

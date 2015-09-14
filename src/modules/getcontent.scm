@@ -14,7 +14,7 @@
 
 ;; The number of seconds to assume that a file hasn't been touched.
 ;; When debugging, make this small, in production, make it big.
-(define filecheck-default-lag 2) ;; 15
+(define filecheck-default-lag 15) ;; 15
 (varconfig! getcontent:lag filecheck-default-lag)
 
 (define (identity x) x)
@@ -65,7 +65,7 @@
 (define (getcontent/info file (enc #f) (parser #f))
   (let ((info (get loadinfo (vector file (or enc 'binary) parser))))
     (if (exists? info)
-	(if (< (difftime (loadinfo-checktime info)) (loadinfo-lagtime info))
+	(if (< (time-since (loadinfo-checktime info)) (loadinfo-lagtime info))
 	    info
 	    (let ((modtime (file-modtime file)))
 	      (if (and (or (not parser)
