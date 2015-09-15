@@ -896,7 +896,8 @@ static int webservefn(u8_client ucl)
       else if (FD_STRINGP(default_notfoundpage)) {
         u8_string errtext=FD_STRDATA(default_notfoundpage);
         fd_req_store(status_symbol,FD_INT2DTYPE(404));
-        if (strchr(errtext,'\n')) 
+        u8_log(LOG_WARN,"NotFound","Using %s",errtext);
+        if (strchr(errtext,'\n'))
           fd_req_store(content_slotid,default_notfoundpage);
         else if (*errtext=='/') {
           fd_req_store(doctype_slotid,FD_FALSE);
@@ -1310,7 +1311,7 @@ static int webservefn(u8_client ucl)
       u8_log(LOG_NOTICE,"FDServlet/HTTPHEAD",
              "HTTPHEAD=%s (#%lx)",httphead.u8_outbuf,(unsigned long)ucl);
     u8_free(httphead.u8_outbuf); u8_free(htmlhead.u8_outbuf);
-    fd_decref(content); fd_decref(traceval);
+    fd_decref(content); fd_decref(traceval); fd_decref(retfile);
     if (retval<0)
       u8_log(LOG_ERROR,"FDServlet/BADRET",
              "Bad retval from writing data (#%lx)",(unsigned long)ucl);
@@ -1844,6 +1845,7 @@ int main(int argc,char **argv)
       fd_config_assignment(argv[i++]);}
     else i++;
 
+  u8_log(LOG_WARN,"PageNotFound","Handler=%q",default_notfoundpage);
   if (!socket_spec) {
     u8_log(LOG_CRIT,"USAGE","fdservlet <socket> [config]*");
     fprintf(stderr,"Usage: fdservlet <socket> [config]*\n");
@@ -1869,7 +1871,7 @@ int main(int argc,char **argv)
     fd_decref(path); fd_decref(result);}
   else {}
 
-if (foreground)
+  if (foreground)
     return launch_servlet(socket_spec);
   else return fork_servlet(socket_spec);
 }
