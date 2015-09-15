@@ -473,7 +473,8 @@ FD_EXPORT fdtype fd_lconfig_get(fdtype ignored,void *lispp)
 }
 FD_EXPORT int fd_lconfig_set(fdtype ignored,fdtype v,void *lispp)
 {
-  fdtype *val=(fdtype *)lispp;
+  fdtype *val=(fdtype *)lispp, cur=*val;
+  fd_decref(cur); fd_incref(v);
   *val=v;
   return 1;
 }
