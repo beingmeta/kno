@@ -1,3 +1,12 @@
+framerd (3.8.2-19) unstable; urgency=low
+
+  * Fix bug with lisp-config leaks
+  * Improvements to fdservlet sendfile handling
+  * Add ximage semantics for string xforms (just renaming)
+  * git patch version framerd-3.8.2-52
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 15 Sep 2015 10:39:13 -0400
+
 framerd (3.8.2-18) unstable; urgency=low
 
   * Made difftime and time<? and time>? take bigints
