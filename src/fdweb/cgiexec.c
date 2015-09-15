@@ -768,6 +768,7 @@ FD_EXPORT int fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
   else if ((FD_STRINGP(sendfile))&&(fd_sendfile_header)) {
     u8_log(LOG_DEBUG,"Sendfile","Using %s to pass %s",
            fd_sendfile_header,FD_STRDATA(sendfile));
+    u8_printf(out,"Content-length: 0\r\n");
     u8_printf(out,"%s: %s\r\n",fd_sendfile_header,FD_STRDATA(sendfile));}
   else if ((FD_STRINGP(xredirect))&&(fd_xredirect_header)) {
     u8_log(LOG_DEBUG,"Xredirect","Using %s to pass %s",
