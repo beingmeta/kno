@@ -106,6 +106,8 @@ static int max_backlog=-1;
    away, so we can start another server.  */
 static int shutdown_grace=30000000; /* 30 seconds */
 
+static fdtype fallback_notfoundpage=FD_VOID;
+
 u8_string pid_file=NULL;
 
 /* When the server started, used by UPTIME */
@@ -883,6 +885,33 @@ static int webservefn(u8_client ucl)
   fd_use_reqinfo(cgidata); fd_reqlog(1);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   parse_time=u8_elapsed_time();
+  if (FD_ABORTP(proc)) {
+    u8_log(LOG_WARN,u8_current_exception->u8x_cond,
+           "Problem getting content from %q",path);
+    if (u8_current_exception->u8x_cond==fd_FileNotFound) {
+      fd_clear_errors(1);
+      if (FD_VOIDP(default_notfoundpage)) {
+        fd_incref(fallback_notfoundpage); fd_decref(proc);
+        proc=fallback_notfoundpage;}
+      else if (FD_STRINGP(default_notfoundpage)) {
+        u8_string errtext=FD_STRDATA(default_notfoundpage);
+        fd_req_store(status_symbol,FD_INT2DTYPE(404));
+        if (strchr(errtext,'\n')) 
+          fd_req_store(content_slotid,default_notfoundpage);
+        else if (*errtext=='/') {
+          fd_req_store(doctype_slotid,FD_FALSE);
+          fd_req_store(sendfile_slotid,default_notfoundpage);}
+        else {
+          fd_req_store(doctype_slotid,FD_FALSE);
+          fd_req_store(redirect_symbol,default_notfoundpage);}
+        fd_decref(proc); proc=FD_VOID;}
+      else {
+        fd_incref(default_notfoundpage); fd_decref(proc);
+        proc=default_notfoundpage;}}
+    if (FD_ABORTP(proc)) {
+      if (!(FD_VOIDP(default_nocontentpage)))
+        fd_incref(default_nocontentpage);
+      proc=default_nocontentpage;}}
   if ((reqlog) || (urllog) || (trace_cgidata))
     dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
   if (!(FD_ABORTP(proc)))
@@ -892,6 +921,11 @@ static int webservefn(u8_client ucl)
              (FD_VOIDP(precheck))||
              (FD_EMPTY_CHOICEP(precheck))))
     result=precheck;
+  else if (FD_PRIM_TYPEP(proc,fd_function_type)) {
+    if ((forcelog)||(traceweb>1))
+      u8_log(LOG_NOTICE,"START","Handling %q with primitive procedure %q (#%lx)",
+             path,proc,(unsigned long)ucl);
+    result=fd_apply(proc,0,NULL);}
   else if (FD_SPROCP(proc)) {
     struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
     if ((forcelog)||(traceweb>1))
@@ -947,6 +981,7 @@ static int webservefn(u8_client ucl)
         if (FD_ABORTP(result)) break;}}
     else result=fd_xmleval(&(client->out),FD_CAR(proc),runenv);
     fd_decref((fdtype)runenv);}
+  else {} /* This is the case where the error was found earlier. */
   exec_time=u8_elapsed_time();
   /* We're now done with all the core computation. */
   if (!(FD_TROUBLEP(result))) {
@@ -1153,13 +1188,14 @@ static int webservefn(u8_client ucl)
         buffered=1;
         return_code=1;}}
     else if ((FD_STRINGP(retfile))&&(fd_sendfile_header)) {
-      u8_byte *start;
+      u8_byte *copy;
       u8_log(LOG_NOTICE,"FDServlet/Sendfile","Using %s to pass %s (#%lx)",
              fd_sendfile_header,FD_STRDATA(retfile),(unsigned long)ucl);
       /* The web server supports a sendfile header, so we use that */
       u8_printf(&httphead,"\r\n");
       http_len=httphead.u8_outptr-httphead.u8_outbuf;
-      u8_client_write(ucl,httphead.u8_outbuf,http_len,0);
+      copy=u8_strdup(httphead.u8_outbuf);
+      u8_client_write_x(ucl,copy,http_len,0,U8_CLIENT_WRITE_OWNBUF);
       buffered=1; return_code=1;}
     else if (FD_STRINGP(retfile)) {
       /* This needs more error checking, signalling, etc */
@@ -1182,7 +1218,7 @@ static int webservefn(u8_client ucl)
              to write for us. */
           unsigned char *write=filebuf+http_len;
           fd_off_t to_read=fileinfo.st_size;
-          memcpy(write,httphead.u8_outbuf,http_len);
+          memcpy(filebuf,httphead.u8_outbuf,http_len);
           /* Copy the whole file */
           while ((to_read>0)&&
                  ((bytes_read=fread(write,sizeof(uchar),to_read,f))>0)) {
@@ -1566,6 +1602,24 @@ static int start_servers()
   return i;
 }
 
+/* Fallback pages */
+
+static fdtype notfoundpage()
+{
+  fdtype title, ctype=fdtype_string("text/html");
+  struct U8_OUTPUT *body=u8_current_output;
+  struct U8_OUTPUT tmpout; U8_INIT_STATIC_OUTPUT(tmpout,1024);
+  fd_req_store(status_symbol,FD_INT2DTYPE(404));
+  fd_req_store(content_type,ctype);
+  fd_req_store(doctype_slotid,FD_FALSE);
+  u8_printf(&tmpout,"<title>We couldn't find the named file</title>");
+  title=fd_init_string(NULL,-1,tmpout.u8_outbuf);
+  fd_req_add(html_headers,title);
+  u8_printf(body,"\n<p>We weren't able to find what you were looking for</p>\n");
+  fd_decref(ctype); fd_decref(title);
+  return FD_VOID;
+}
+
 /* The main() event */
 
 FD_EXPORT void fd_init_dbfile(void);
@@ -1722,6 +1776,8 @@ int main(int argc,char **argv)
 
   init_webcommon_data();
   init_webcommon_symbols();
+
+  fallback_notfoundpage=fd_make_cprim0("NOTFOUND404",notfoundpage,0);
 
   /* This is the root of all client service environments */
   if (server_env==NULL) server_env=fd_working_environment();

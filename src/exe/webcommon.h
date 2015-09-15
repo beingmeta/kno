@@ -40,8 +40,8 @@ static int pid_fd=-1;
 static fd_lispenv server_env=NULL;
 
 static MU fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
-static MU fdtype response_symbol, err_symbol;
-static MU fdtype browseinfo_symbol, threadcache_symbol;
+static MU fdtype response_symbol, err_symbol, status_symbol, redirect_symbol;
+static MU fdtype browseinfo_symbol, threadcache_symbol, filedata_symbol;
 static MU fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid;
 static MU fdtype content_slotid, content_type, tracep_slotid, query_string;
 static MU fdtype query_string, script_name, path_info, remote_info, document_root;
@@ -57,6 +57,8 @@ static MU fdtype errorpage_symbol, crisispage_symbol, reqdata_symbol;
 
 static fdtype default_errorpage=FD_VOID;
 static fdtype default_crisispage=FD_VOID;
+static fdtype default_notfoundpage=FD_VOID;
+static fdtype default_nocontentpage=FD_VOID;
 
 static void init_webcommon_symbols()
 {
@@ -77,6 +79,7 @@ static void init_webcommon_symbols()
   http_headers=fd_intern("HTTP-HEADERS");
   tracep_slotid=fd_intern("TRACEP");
   err_symbol=fd_intern("%ERR");
+  status_symbol=fd_intern("STATUS");
   response_symbol=fd_intern("%RESPONSE");
   browseinfo_symbol=fd_intern("BROWSEINFO");
   threadcache_symbol=fd_intern("%THREADCACHE");
@@ -90,6 +93,8 @@ static void init_webcommon_symbols()
   error_symbol=fd_intern("REQERROR");
   reqdata_symbol=fd_intern("REQDATA");
   request_method=fd_intern("REQUEST_METHOD");
+  redirect_symbol=fd_intern("_REDIRECT");
+  filedata_symbol=fd_intern("_FILEDATA");
 }
 
 /* Preflight/postflight */
@@ -609,9 +614,19 @@ static void init_webcommon_configs()
 		     fd_boolconfig_get,fd_boolconfig_set,&weballowdebug);
   fd_register_config("ERRORPAGE",_("Default error page for web errors"),
 		     fd_lconfig_get,fd_lconfig_set,&default_errorpage);
-  fd_register_config("CRISISPAGE",
-		     _("Default crisis page (for when the error page yields an error)"),
-		     fd_lconfig_get,fd_lconfig_set,&default_crisispage);
+  fd_register_config
+    ("CRISISPAGE",
+     _("Default crisis page (for when the error page yields an error)"),
+     fd_lconfig_get,fd_lconfig_set,&default_crisispage);
+  fd_register_config
+    ("NOTFOUNDPAGE",
+     _("Default not found page (for when specified content isn't found)"),
+     fd_lconfig_get,fd_lconfig_set,&default_notfoundpage);
+  fd_register_config
+    ("NOCONTENTPAGE",
+     _("Default no content page (for when content fetch failed generically)"),
+     fd_lconfig_get,fd_lconfig_set,&default_nocontentpage);
+
   fd_register_config("PRELOAD",
 		     _("Files to preload into the shared environment"),
 		     preload_get,preload_set,NULL);
