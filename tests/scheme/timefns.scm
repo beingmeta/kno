@@ -31,7 +31,8 @@
 (define gmt-time2 #T2011-06-08T19:00:00Z)
 (define cet-time2 #T2011-06-08T15:00:00EDT)
 (store! cet-time2 'tzoff 3600)
-(define time2-tick 1307563200)
+;; To check, try date --date='@1307559600'
+(define time2-tick 1307559600)
 
 (applytest #t equal? est-time2 gmt-time2)
 (applytest #t equal? (get est-time2 'tick) (get gmt-time2 'tick))
