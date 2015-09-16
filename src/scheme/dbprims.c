@@ -1505,7 +1505,8 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel
     if (fd_hashset_get((fd_hashset)test,candidate))
       return 1;
     else return 0;
-  else if ((FD_OIDP(test)) || (FD_SYMBOLP(test)))
+  else if ((FD_TABLEP(candidate)&&
+            ((FD_OIDP(test)) || (FD_SYMBOLP(test)))))
     return fd_test(candidate,test,FD_VOID);
   else if (FD_APPLICABLEP(test)) {
     fdtype v=fd_apply(test,1,&candidate);
@@ -1536,6 +1537,8 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel
     else return 0;
   else if (FD_TABLEP(test))
     return fd_test(test,candidate,FD_VOID);
+  else if (FD_TABLEP(candidate)) 
+    return fd_test(candidate,test,FD_VOID);
   else {
     fdtype ev=fd_type_error(_("test object"),"test_selector_predicate",test);
     return fd_interr(ev);}
