@@ -1,3 +1,11 @@
+framerd (3.8.2-21) unstable; urgency=low
+
+  * Fixed (pick sym oid) case
+  * Lowered loglevel for domutils/cleanup
+  * git patch version framerd-3.8.2-58
+  
+ -- Ken Haase <kh@beingmeta.com>  Wed, 16 Sep 2015 12:55:38 -0400
+
 framerd (3.8.2-20) unstable; urgency=low
 
   * Fix missing info in S3 logging
