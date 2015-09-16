@@ -6,7 +6,7 @@
 (use-module '{fdweb xhtml texttools reflection ezrecords logger varconfig
 	      domutils domutils/styles})
 
-(define-init %loglevel %notice%)
+(define-init %loglevel %warn%)
 
 (module-export! '{dom/cleanup! dom/mergestyles! dom/unipunct!
 		  dom/cleanblocks! dom/raisespans!
@@ -159,7 +159,7 @@
 		       (mergeheads (cdr content) (cons (car content) output)))))
 	      (mergeheads (cdr content) (cons (car content) output))))))
 
-(define (dom/mergeheads node (wrapper #[%XMLTAG HGROPU]))
+(define (dom/mergeheads node (wrapper #[%XMLTAG HGROUP]))
   (if (pair? node) (mergeheads node '() wrapper)
       (if (test node '%xmltag 'hgroup)
 	  node
@@ -354,7 +354,7 @@
   (store! node '%xmltag 'span)
   (when (exists? (get node 'size))
     (set! style (glom style " font-size: "
-		  (+ 60 (* 20 (get node 'size))) 
+		  (+ 60 (* 20 (->number (get node 'size)))) 
 		  "%;"))
     (dom/drop! node 'size))
   (when (exists? (get node 'face))
