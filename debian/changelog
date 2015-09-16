@@ -1,3 +1,11 @@
+framerd (3.8.2-20) unstable; urgency=low
+
+  * Fix missing info in S3 logging
+  * Extend ximage to allow named transforms
+  * git patch version framerd-3.8.2-55
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 16 Sep 2015 10:38:58 -0400
+
 framerd (3.8.2-19) unstable; urgency=low
 
   * Fix bug with lisp-config leaks
