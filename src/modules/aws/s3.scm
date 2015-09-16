@@ -251,8 +251,8 @@
 	       (glom " ("
 		 (if ctype ctype "content") ", " (length content) 
 		 (if (string? content) " characters)" " bytes)")))
-	     (if (null? headers) " headers=" " headers=\n\t")
-	     (if (null? params) " params=" " params=\n\t") params
+	     (if (null? headers) " headers=()" " headers=\n\t") headers
+	     (if (null? params) " params=()" " params=\n\t") params
 	     "\n\tendpoint:\t" endpoint)
     (car (aws/v4/op (frame-create #f) op endpoint params headers
 		    content ctype urlparams date))))
