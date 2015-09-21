@@ -611,30 +611,6 @@ static fdtype file_directoryp(fdtype arg)
   else return FD_FALSE;
 }
 
-static fdtype file_basename(fdtype arg,fdtype suffix)
-{
-  if ((FD_VOIDP(suffix)) || (FD_FALSEP(suffix)))
-    return fd_lispstring(u8_basename(FD_STRDATA(arg),NULL));
-  else if (FD_STRINGP(suffix))
-    return fd_lispstring(u8_basename(FD_STRDATA(arg),FD_STRDATA(suffix)));
-  else return fd_lispstring(u8_basename(FD_STRDATA(arg),"*"));
-}
-
-static fdtype file_suffix(fdtype arg)
-{
-  u8_string s=FD_STRDATA(arg);
-  u8_byte *slash=strrchr(s,'/');
-  u8_byte *dot=strrchr(s,'.');
-  if ((dot)&&((!(slash))||(slash<dot)))
-    return fdtype_string(dot);
-  else return fdtype_string("");
-}
-
-static fdtype file_dirname(fdtype arg)
-{
-  return fd_lispstring(u8_dirname(FD_STRDATA(arg)));
-}
-
 static fdtype file_abspath(fdtype arg,fdtype wd)
 {
   u8_string result;
@@ -653,6 +629,33 @@ static fdtype file_realpath(fdtype arg,fdtype wd)
   else result=u8_realpath(FD_STRDATA(arg),FD_STRDATA(wd));
   if (result) return fd_lispstring(result);
   else return FD_ERROR_VALUE;
+}
+
+
+static fdtype path_basename(fdtype arg,fdtype suffix)
+{
+  if ((FD_VOIDP(suffix)) || (FD_FALSEP(suffix)))
+    return fd_lispstring(u8_basename(FD_STRDATA(arg),NULL));
+  else if (FD_STRINGP(suffix))
+    return fd_lispstring(u8_basename(FD_STRDATA(arg),FD_STRDATA(suffix)));
+  else return fd_lispstring(u8_basename(FD_STRDATA(arg),"*"));
+}
+
+static fdtype path_suffix(fdtype arg,fdtype dflt)
+{
+  u8_string s=FD_STRDATA(arg);
+  u8_string slash=strrchr(s,'/');
+  u8_string dot=strrchr(s,'.');
+  if ((dot)&&((!(slash))||(slash<dot)))
+    return fdtype_string(dot);
+  else if (FD_VOIDP(dflt))
+    return fdtype_string("");
+  else return fd_incref(dflt);
+}
+
+static fdtype path_dirname(fdtype arg)
+{
+  return fd_lispstring(u8_dirname(FD_STRDATA(arg)));
 }
 
 static fdtype mkpath_prim(fdtype dirname,fdtype name)
@@ -2217,15 +2220,17 @@ FD_EXPORT void fd_init_fileio_c()
            fd_make_cprim1x("FILE-DIRECTORY?",file_directoryp,1,
                            fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
-           fd_make_cprim1x("DIRNAME",file_dirname,1,
+           fd_make_cprim1x("DIRNAME",path_dirname,1,
                            fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
-           fd_make_cprim2x("BASENAME",file_basename,1,
+           fd_make_cprim2x("BASENAME",path_basename,1,
                            fd_string_type,FD_VOID,
                            -1,FD_VOID));
   fd_idefn(fileio_module,
-           fd_make_cprim1x("FILESUFFIX",file_suffix,1,
-                           fd_string_type,FD_VOID));
+           fd_make_cprim2x("PATHSUFFIX",path_suffix,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID));
+  fd_defalias(fileio_module,"FILESUFFIX","PATHSUFFIX");
+
   fd_idefn(fileio_module,
            fd_make_cprim2x("ABSPATH",file_abspath,1,
                            fd_string_type,FD_VOID,
