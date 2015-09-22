@@ -2227,9 +2227,8 @@ FD_EXPORT void fd_init_fileio_c()
                            fd_string_type,FD_VOID,
                            -1,FD_VOID));
   fd_idefn(fileio_module,
-           fd_make_cprim2x("PATHSUFFIX",path_suffix,1,
+           fd_make_cprim2x("PATH-SUFFIX",path_suffix,1,
                            fd_string_type,FD_VOID,-1,FD_VOID));
-  fd_defalias(fileio_module,"FILESUFFIX","PATHSUFFIX");
 
   fd_idefn(fileio_module,
            fd_make_cprim2x("ABSPATH",file_abspath,1,

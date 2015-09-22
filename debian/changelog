@@ -1,3 +1,10 @@
+framerd (3.8.2-22) unstable; urgency=low
+
+  * Add path-suffix
+  * git patch version framerd-3.8.2-61
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 21 Sep 2015 20:11:25 -0400
+
 framerd (3.8.2-21) unstable; urgency=low
 
   * Fixed (pick sym oid) case
