@@ -1,3 +1,10 @@
+framerd (3.8.2-24) unstable; urgency=low
+
+  * Fixed bug with tail calls in json parser handlers
+  * git patch version framerd-3.8.2-74
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 22 Sep 2015 12:43:27 -0400
+
 framerd (3.8.2-23) unstable; urgency=low
 
   * Add and use fd_substring
