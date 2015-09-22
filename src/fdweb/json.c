@@ -412,7 +412,8 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
 {
   if (FD_FIXNUMP(x)) u8_printf(out,"%d",FD_FIX2INT(x));
   else if (FD_OIDP(x)) {
-    fdtype oidval=((FD_VOIDP(oidfn))?(FD_VOID):(fd_dapply(oidfn,1,&x)));
+    fdtype oidval=((FD_VOIDP(oidfn))?(FD_VOID):
+                   (fd_finish_call(fd_dapply(oidfn,1,&x))));
     if (FD_VOIDP(oidval)) {
       FD_OID addr=FD_OID_ADDR(x);
       if (flags)
@@ -488,7 +489,8 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
   else if (FD_FALSEP(x)) u8_puts(out,"false");
   else {
     u8_byte buf[256]; struct U8_OUTPUT tmpout;
-    fdtype tval=((FD_VOIDP(miscfn))?(FD_VOID):(fd_dapply(miscfn,1,&x)));
+    fdtype tval=((FD_VOIDP(miscfn))?(FD_VOID):
+                 (fd_finish_call(fd_dapply(miscfn,1,&x))));
     U8_INIT_STATIC_OUTPUT_BUF(tmpout,256,buf);
     if (FD_VOIDP(tval)) fd_unparse(&tmpout,x);
     else fd_unparse(&tmpout,tval);
