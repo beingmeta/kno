@@ -464,12 +464,13 @@ fdtype fd_init_string(struct FD_STRING *ptr,int slen,u8_string string)
 
 FD_EXPORT
 /* fd_extract_string:
-    Arguments: A pointer to an FD_STRING struct, and two pointers to byte vectors
+    Arguments: A pointer to an FD_STRING struct, and two pointers to ut8-strings
     Returns: a lisp string
   This returns a lisp string object from a region of a character string.
   If the structure pointer is NULL, one is mallocd.
   This copies the region between the pointers into a string and initializes
-   a lisp string based on the region. */
+   a lisp string based on the region. 
+   If the second argument is NULL, the end of the first argument is used. */
 fdtype fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
 {
   int length=((end==NULL) ? (strlen(start)) : (end-start));
@@ -482,6 +483,25 @@ fdtype fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
   else bytes=(u8_byte *)u8_strndup(start,length+1);
   FD_INIT_CONS(ptr,fd_string_type);
   ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
+  return FDTYPE_CONS(ptr);
+}
+
+FD_EXPORT
+/* fd_substring:
+    Arguments: two pointers to utf-8 strings
+    Returns: a lisp string
+  This returns a lisp string object from a region of a character string.
+  If the structure pointer is NULL, one is mallocd.
+  This copies the region between the pointers into a string and initializes
+   a lisp string based on the region. */
+fdtype fd_substring(u8_string start,u8_string end)
+{
+  int length=((end==NULL) ? (strlen(start)) : (end-start));
+  struct FD_STRING *ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
+  u8_byte *bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+  memcpy(bytes,start,length); bytes[length]='\0';
+  FD_INIT_CONS(ptr,fd_string_type);
+  ptr->length=length; ptr->bytes=bytes; ptr->freedata=0;
   return FDTYPE_CONS(ptr);
 }
 

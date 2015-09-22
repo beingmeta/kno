@@ -245,6 +245,7 @@ typedef struct FD_STRING *fd_string;
 
 FD_EXPORT fdtype fd_extract_string
   (struct FD_STRING *ptr,u8_string start,u8_string end);
+FD_EXPORT fdtype fd_substring(u8_string start,u8_string end);
 FD_EXPORT fdtype fd_init_string
   (struct FD_STRING *ptr,int slen,u8_string string);
 FD_EXPORT fdtype fd_make_string
