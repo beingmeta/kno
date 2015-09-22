@@ -57,6 +57,11 @@
 (define (have-brico)
   (and (config 'bricosource)
        (onerror (begin (use-module 'brico) #t) #f)))
+(define (have-lexdata)
+  (and (config 'lexdata)
+       (onerror (and (exists? (get (get-module 'tagger) 'lextags))
+		     ((get (get-module 'tagger) 'lextags)))
+	 (lambda () #f))))
 
 (when (have-brico)
   (check-modules '{brico brico/dterms brico/indexing brico/lookup
@@ -64,12 +69,6 @@
 		   brico/wikipedia
 		   knodules/usebrico knodules/defterm
 		   xtags rdf audit}))
-
-(define (have-lexdata)
-  (and (config 'lexdata)
-       (onerror (and (exists? (get (get-module 'tagger) 'lextags))
-		     ((get (get-module 'tagger) 'lextags)))
-	 (lambda () #f))))
 
 (when (have-lexdata)
   (check-modules '{lexml}))
