@@ -45,6 +45,10 @@
 
 #include <ctype.h>
 
+#if HAVE_SIGNAL_H
+#include <signal.h>
+#endif
+
 static U8_XINPUT u8stdin;
 static U8_XOUTPUT u8stdout;
 static U8_XOUTPUT u8stderr;
@@ -656,6 +660,14 @@ static fdtype path_suffix(fdtype arg,fdtype dflt)
 static fdtype path_dirname(fdtype arg)
 {
   return fd_lispstring(u8_dirname(FD_STRDATA(arg)));
+}
+
+static fdtype path_location(fdtype arg)
+{
+  u8_string path=FD_STRDATA(arg); size_t len=FD_STRLEN(arg);
+  u8_string slash=strrchr(path,'/');
+  if (slash[1]=='\0') return fd_incref(arg);
+  else return fd_substring(path,slash+1);
 }
 
 static fdtype mkpath_prim(fdtype dirname,fdtype name)
@@ -2220,12 +2232,18 @@ FD_EXPORT void fd_init_fileio_c()
            fd_make_cprim1x("FILE-DIRECTORY?",file_directoryp,1,
                            fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
-           fd_make_cprim1x("DIRNAME",path_dirname,1,
+           fd_make_cprim1x("PATH-DIRNAME",path_dirname,1,
                            fd_string_type,FD_VOID));
+  fd_defalias(fileio_module,"DIRNAME","PATH-DIRNAME");
+
   fd_idefn(fileio_module,
-           fd_make_cprim2x("BASENAME",path_basename,1,
+           fd_make_cprim2x("PATH-BASENAME",path_basename,1,
                            fd_string_type,FD_VOID,
                            -1,FD_VOID));
+  fd_defalias(fileio_module,"BASENAME","PATH-BASENAME");
+
+  fd_idefn(fileio_module,
+           fd_make_cprim1x("PATH-LOCATION",path_location,1,fd_string_type,FD_VOID));
   fd_idefn(fileio_module,
            fd_make_cprim2x("PATH-SUFFIX",path_suffix,1,
                            fd_string_type,FD_VOID,-1,FD_VOID));

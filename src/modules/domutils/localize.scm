@@ -175,7 +175,7 @@
    ;; No easy outs, fetch the content and store it
    (let* ((absref (getabsref ref base))
 	  (name (gp/basename ref))
-	  (suffix (filesuffix name))
+	  (suffix (path-suffix name))
 	  (lref (try (get urlmap ref)
 		     (get urlmap absref)
 		     (mkpath read name)))
