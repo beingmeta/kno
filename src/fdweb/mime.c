@@ -90,7 +90,7 @@ static void handle_parameters(fdtype fields,const u8_byte *data)
       else if (*vstart=='\'') {vstart++; vend=strchr(vstart,'\'');}
       else vend=strchr(vstart,';');
       slotid=parse_fieldname(start,equals);
-      slotval=fd_extract_string(NULL,vstart,vend);
+      slotval=fd_substring(vstart,vend);
       fd_store(fields,slotid,slotval); fd_decref(slotval);
       if (vend==NULL) start=vend;
       else if (*vend==';') start=vend+1;
@@ -114,7 +114,7 @@ fdtype fd_handle_compound_mime_field(fdtype fields,fdtype slotid,fdtype orig_slo
     u8_string data=FD_STRDATA(value), start=data, end, scan;
     if (FD_SYMBOLP(orig_slotid)) fd_store(fields,orig_slotid,value);
     if ((end=(strchr(start,';')))) {
-      fdtype segval=fd_extract_string(NULL,start,end);
+      fdtype segval=fd_substring(start,end);
       fd_store(fields,slotid,segval); fd_decref(segval);}
     if ((scan=strchr(start,'/')) && ((end==NULL) || (scan<end))) {
       major_type=parse_fieldname(start,scan);

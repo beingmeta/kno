@@ -606,7 +606,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
 {
   if (strncmp(s,"<!--",4)==0) {
     fdtype cnode=fd_empty_slotmap();
-    fdtype comment_string=fd_extract_string(NULL,s+4,s+(len-3));
+    fdtype comment_string=fd_substring(s+4,s+(len-3));
     fdtype comment_content=fd_init_pair(NULL,comment_string,FD_EMPTY_LIST);
     fd_store(cnode,xmltag_symbol,comment_symbol);
     fd_store(cnode,content_symbol,comment_content);
@@ -614,7 +614,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
     add_content(node,cnode);}
   else if (strncmp(s,"<![CDATA[",9)==0) {
     fdtype cnode=fd_empty_slotmap();
-    fdtype cdata_string=fd_extract_string(NULL,s+9,s+(len-3));
+    fdtype cdata_string=fd_substring(s+9,s+(len-3));
     fdtype cdata_content=fd_init_pair(NULL,cdata_string,FD_EMPTY_LIST);
     fd_store(cnode,xmltag_symbol,cdata_symbol);
     fd_store(cnode,content_symbol,cdata_content);

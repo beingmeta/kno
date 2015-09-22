@@ -179,13 +179,13 @@ FD_EXPORT int fd_register_pool(fd_pool p)
     u8_byte *dot=strchr(p->label,'.');
     fdtype pkey=FD_VOID, probe=FD_VOID;
     if (dot) {
-      pkey=fd_extract_string(NULL,p->label,dot);
+      pkey=fd_substring(p->label,dot);
       probe=fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
       if (FD_EMPTY_CHOICEP(probe)) {
         fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));
         p->prefix=FD_STRDATA(pkey);}
       else fd_decref(pkey);}
-    pkey=fd_extract_string(NULL,p->label,NULL);
+    pkey=fd_substring(p->label,NULL);
     probe=fd_hashtable_get(&poolid_table,pkey,FD_EMPTY_CHOICE);
     if (FD_EMPTY_CHOICEP(probe)) {
       fd_hashtable_store(&poolid_table,pkey,fd_pool2lisp(p));

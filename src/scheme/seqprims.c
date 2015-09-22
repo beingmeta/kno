@@ -138,11 +138,11 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
     const u8_byte *starts=string_start(FD_STRDATA(x),start);
     if (starts==NULL) return FD_RANGE_ERROR;
     else if (end<0)
-      return fd_extract_string(NULL,starts,NULL);
+      return fd_substring(starts,NULL);
     else {
       const u8_byte *ends=u8_substring(starts,(end-start));
       if (ends)
-        return fd_extract_string(NULL,starts,ends);
+        return fd_substring(starts,ends);
       else return FD_RANGE_ERROR;}}
   default:
     if (FD_EMPTY_LISTP(x))

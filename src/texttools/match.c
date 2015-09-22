@@ -668,7 +668,7 @@ static fdtype textract
       FD_DO_CHOICES(l,lengths) {
         fdtype extraction=
           fd_init_pair
-          (NULL,l,fd_extract_string(NULL,string+off,string+fd_getint(l)));
+          (NULL,l,fd_substring(string+off,string+fd_getint(l)));
         if (FD_ABORTP(extraction)) {
           FD_STOP_DO_CHOICES;
           fd_decref(answers);
@@ -885,10 +885,10 @@ static fdtype extract_star
     if (nextpos==-2) return FD_ERROR_VALUE;
     else if (nextpos<0)
       return fd_init_pair(NULL,FD_INT2DTYPE(nextpos),
-                          fd_extract_string(NULL,string+off,string+lim));
+                          fd_substring(string+off,string+lim));
     else return fd_init_pair
       (NULL,FD_INT2DTYPE(nextpos),
-       fd_extract_string(NULL,string+off,string+nextpos));}
+       fd_substring(string+off,string+nextpos));}
   else {
     fdtype pat_arg=fd_get_arg(pat,1);
     if (FD_VOIDP(pat_arg))
@@ -1096,7 +1096,7 @@ static fdtype match_bind
   if ((flags)&(FD_MATCH_DO_BINDINGS)) {
     fdtype ends=fd_text_domatch(spat,next,env,string,off,lim,flags);
     FD_DO_CHOICES(end,ends) {
-      fdtype substr=fd_extract_string(NULL,string+off,string+fd_getint(end));
+      fdtype substr=fd_substring(string+off,string+fd_getint(end));
       fd_bind_value(sym,substr,env);}
     return ends;}
   else return fd_text_domatch(spat,next,env,string,off,lim,flags);
@@ -1210,7 +1210,7 @@ static fdtype subst_extract
       fdtype expanded=expand_subst_args(args,env);
       FD_DO_CHOICES(match,matches) {
         int matchlen=fd_getint(match);
-        fdtype matched=fd_extract_string(NULL,string+off,string+matchlen);
+        fdtype matched=fd_substring(string+off,string+matchlen);
         if ((FD_CHOICEP(expanded))||(FD_ACHOICEP(expanded))) {
           FD_DO_CHOICES(subst_arg,expanded) {
             fdtype new_args=fd_init_pair(NULL,fd_incref(matched),
@@ -1486,7 +1486,7 @@ static fdtype word_extract
     fdtype answers=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(end,ends) {
       fdtype substring=
-        fd_extract_string(NULL,string+off,string+fd_getint(end));
+        fd_substring(string+off,string+fd_getint(end));
       fdtype pair=fd_init_pair(NULL,end,substring);
       FD_ADD_TO_CHOICE(answers,pair);}
     fd_decref(ends);
@@ -1527,7 +1527,7 @@ static fdtype chunk_extract
     fdtype answers=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(end,ends) {
       fdtype substring=
-        fd_extract_string(NULL,string+off,string+fd_getint(end));
+        fd_substring(string+off,string+fd_getint(end));
       fdtype pair=fd_init_pair(NULL,end,substring);
       FD_ADD_TO_CHOICE(answers,pair);}
     fd_decref(ends);
@@ -2075,7 +2075,7 @@ static fdtype extract_rest
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   return fd_init_pair(NULL,FD_INT2DTYPE(lim),
-                      fd_extract_string(NULL,string+off,string+lim));
+                      fd_substring(string+off,string+lim));
 }
 
 /** Character match operations **/

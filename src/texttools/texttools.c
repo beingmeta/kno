@@ -110,7 +110,7 @@ static fdtype whitespace_segment(u8_string s)
   const u8_byte *start=skip_whitespace(s), *end=skip_nonwhitespace(start);
   while (start) {
     fdtype newcons=
-      fd_init_pair(NULL,fd_extract_string(NULL,start,end),FD_EMPTY_LIST);
+      fd_init_pair(NULL,fd_substring(start,end),FD_EMPTY_LIST);
     *lastp=newcons; lastp=&(FD_CDR(newcons));
     start=skip_whitespace(end); end=skip_nonwhitespace(start);}
   return result;
@@ -134,7 +134,7 @@ static fdtype dosegment(u8_string string,fdtype separators)
       pair=fd_init_pair(NULL,fdtype_string(scan),FD_EMPTY_LIST);
       *resultp=pair;
       return result;}
-    pair=fd_init_pair(NULL,fd_extract_string(NULL,scan,brk),FD_EMPTY_LIST);
+    pair=fd_init_pair(NULL,fd_substring(scan,brk),FD_EMPTY_LIST);
     *resultp=pair;
     resultp=&(((struct FD_PAIR *)pair)->cdr);
     scan=brk+FD_STRLEN(sepstring);}
@@ -314,7 +314,7 @@ static fdtype words2list(u8_string string,int keep_punct)
       last=scan; scan=skip_span(last,&spantype);}
     else if (((spantype==punctspan) && (keep_punct))||(spantype==wordspan)) {
       fdtype newcons;
-      fdtype extraction=((scan) ? (fd_extract_string(NULL,last,scan)) : (fdtype_string(last)));
+      fdtype extraction=((scan) ? (fd_substring(last,scan)) : (fdtype_string(last)));
       newcons=fd_init_pair(NULL,extraction,FD_EMPTY_LIST);
       *lastp=newcons; lastp=&(FD_CDR(newcons));
       if (scan==NULL) break;
@@ -345,7 +345,7 @@ static fdtype words2vector(u8_string string,int keep_punct)
           int newmax=((n>=1024) ? (n+1024) : (n*2));
           wordsv=u8_realloc_n(wordsv,newmax,fdtype);
           max=newmax;}}
-      wordsv[n++]=((scan) ? (fd_extract_string(NULL,last,scan)) :
+      wordsv[n++]=((scan) ? (fd_substring(last,scan)) :
                    (fdtype_string(last)));
       if (scan==NULL) break;
       last=scan; scan=skip_span(last,&spantype);}
@@ -727,7 +727,7 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
       else fields[field++]=FD_FALSE;
     /* If the parse function is false, make a string. */
     else if (FD_FALSEP(parsefn))
-      fields[field++]=fd_extract_string(NULL,start,scan);
+      fields[field++]=fd_substring(start,scan);
     /* If the parse function is #t, use the lisp parser */
     else if (FD_TRUEP(parsefn)) {
       fdtype value;
@@ -741,7 +741,7 @@ static fdtype columnize_prim(fdtype string,fdtype cols,fdtype parse)
     /* If the parse function is applicable, make a string
        and apply the parse function. */
     else if (FD_APPLICABLEP(parsefn)) {
-      fdtype stringval=fd_extract_string(NULL,start,scan);
+      fdtype stringval=fd_substring(start,scan);
       fdtype value=fd_apply(parse,1,&stringval);
       if (field<parselen) fd_decref(parsefn);
       if (FD_ABORTP(value)) {
@@ -890,7 +890,7 @@ static fdtype textgather_base(fdtype pattern,fdtype string,
       fd_decref(match_result);
       if (maxpoint<0) return results;
       else if (maxpoint>start) {
-        substring=fd_extract_string(NULL,data+start,data+maxpoint);
+        substring=fd_substring(data+start,data+maxpoint);
         FD_ADD_TO_CHOICE(results,substring);}
       if (star)
         start=fd_text_search(pattern,NULL,data,forward_char(data,start),lim,0);
@@ -937,7 +937,7 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
       if (end<0) return head;
       else if (end>start) {
         fdtype newpair=
-          fd_init_pair(NULL,fd_extract_string(NULL,data+start,data+end),
+          fd_init_pair(NULL,fd_substring(data+start,data+end),
                        FD_EMPTY_LIST);
         *tail=newpair; tail=&(FD_CDR(newpair));
         start=fd_text_search(pattern,NULL,data,end,lim,0);}
@@ -1168,7 +1168,7 @@ static fdtype textsubst(fdtype string,
       return fd_stream2string(&out);}
     else if (start==-2) 
       return FD_ERROR_VALUE;
-    else return fd_extract_string(NULL,data+off,data+lim);}
+    else return fd_substring(data+off,data+lim);}
 }
 
 /* Gathering and rewriting together */
@@ -1638,11 +1638,11 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
          just attach start to scan. */
       if (end>start)
         if (keep<=0)
-          substring=fd_extract_string(NULL,data+start,data+scan);
+          substring=fd_substring(data+start,data+scan);
         else if (keep==2) {
-          sepstring=fd_extract_string(NULL,data+scan,data+end);
-          substring=fd_extract_string(NULL,data+start,data+scan);}
-        else substring=fd_extract_string(NULL,data+start,data+end);
+          sepstring=fd_substring(data+scan,data+end);
+          substring=fd_substring(data+start,data+scan);}
+        else substring=fd_substring(data+start,data+end);
       else {}
       /* Advance to the next separator.  Use a start from the current
          separator if you're attaching separators as suffixes (keep<0), and
@@ -1670,7 +1670,7 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
       return FD_ERROR_VALUE;}
     else if (start<len) {
       /* If you ran out of separators, just add the tail end to the list. */
-      fdtype substring=fd_extract_string(NULL,data+start,data+len);
+      fdtype substring=fd_substring(data+start,data+len);
       fdtype newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);
       *tail=newpair; tail=&(FD_CDR(newpair));}
     return slices;
@@ -1728,17 +1728,17 @@ static fdtype firstword_prim(fdtype string,fdtype sep)
   u8_string string_data=FD_STRDATA(string);
   if (FD_STRINGP(sep)) {
     u8_string end=strstr(string_data,FD_STRDATA(sep));
-    if (end) return fd_extract_string(NULL,string_data,end);
+    if (end) return fd_substring(string_data,end);
     else return fd_incref(string);}
   else if ((FD_VOIDP(sep))||(FD_FALSEP(sep))||(FD_TRUEP(sep)))  {
     const u8_byte *scan=(u8_byte *)string_data, *last=scan;
     int c=u8_sgetc(&scan); while ((c>0)&&(!(u8_isspace(c)))) {
       last=scan; c=u8_sgetc(&scan);}
-    return fd_extract_string(NULL,string_data,last);}
+    return fd_substring(string_data,last);}
   else {
     int search=fd_text_search(sep,NULL,string_data,0,FD_STRLEN(string),0);
     if (search<0) return fd_incref(string);
-    else return fd_extract_string(NULL,string_data,string_data+search);}
+    else return fd_substring(string_data,string_data+search);}
 }
 
 static int match_end(fdtype sep,u8_string data,int off,int lim);
@@ -1751,7 +1751,7 @@ static fdtype lastword_prim(fdtype string,fdtype sep)
     else while (scan) {
         end=scan+FD_STRLEN(sep);
         scan=strstr(scan,FD_STRDATA(sep));}
-    return fd_extract_string(NULL,end+FD_STRLEN(string),NULL);}
+    return fd_substring(end+FD_STRLEN(string),NULL);}
   else if ((FD_VOIDP(sep))||(FD_FALSEP(sep))||(FD_TRUEP(sep)))  {
     const u8_byte *scan=(u8_byte *)string_data, *last=scan;
     int c=u8_sgetc(&scan); while (c>0) {
@@ -1760,7 +1760,7 @@ static fdtype lastword_prim(fdtype string,fdtype sep)
         while ((c>0)&&(u8_isspace(c))) {word=scan; c=u8_sgetc(&scan);}
         if (c>0) last=word;}
       else c=u8_sgetc(&scan);}
-    return fd_extract_string(NULL,last,NULL);}
+    return fd_substring(last,NULL);}
   else {
     int lim=FD_STRLEN(string);
     int end=0, search=fd_text_search(sep,NULL,string_data,0,lim,0);
@@ -1769,7 +1769,7 @@ static fdtype lastword_prim(fdtype string,fdtype sep)
       while (search>=0) {
         end=match_end(sep,string_data,search,lim);
         search=fd_text_search(sep,NULL,string_data,end,lim,0);}
-      return fd_extract_string(NULL,string_data+end,NULL);}}
+      return fd_substring(string_data+end,NULL);}}
 }
 
 static int match_end(fdtype sep,u8_string data,int off,int lim)
@@ -2014,7 +2014,7 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
   if ((start>=0)&&(end>start)&&
       ((lim==0)|(end<lim))&&
       ((end<buflen)||(eof))) {
-    fdtype result=fd_extract_string(NULL,in->u8_inptr+start,in->u8_inptr+end);
+    fdtype result=fd_substring(in->u8_inptr+start,in->u8_inptr+end);
     in->u8_inptr=in->u8_inptr+end;
     return result;}
   else if ((lim)&&(end>lim))
@@ -2037,7 +2037,7 @@ static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
       else end=new_end;
       fd_decref(ends);}
   if ((start>=0)&&(end>start)&&((end<buflen)||(eof))) {
-    fdtype result=fd_extract_string(NULL,in->u8_inptr+start,in->u8_inptr+end);
+    fdtype result=fd_substring(in->u8_inptr+start,in->u8_inptr+end);
     in->u8_inptr=in->u8_inptr+end;
     return result;}
   else return FD_EOF;
@@ -2094,7 +2094,7 @@ static fdtype splitsep_prim(fdtype string,fdtype sep,
         else if (pos==scan) {
           scan=pos+1; pos=strchr(scan,c);}
         else  {
-          fdtype seg=fd_extract_string(NULL,scan,pos);
+          fdtype seg=fd_substring(scan,pos);
           fdtype elt=fd_init_pair(NULL,seg,FD_EMPTY_LIST);
           if (FD_VOIDP(head)) head=pair=elt;
           else {
@@ -2137,7 +2137,7 @@ static fdtype unslashify_prim(fdtype string,fdtype offset,fdtype limit_arg,
     return fd_stream2string(&out);}
   else if ((off==0) && (lim==FD_STRLEN(string)))
     return fd_incref(string);
-  else return fd_extract_string(NULL,start,limit);
+  else return fd_substring(start,limit);
 }
 
 

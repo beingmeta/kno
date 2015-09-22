@@ -22,6 +22,8 @@
 #include <stdio.h>
 
 fd_exception fd_MallocFailed=_("malloc/realloc failed");
+fd_exception fd_StringOverflow=_("allocating humongous string past limit");
+fd_exception fd_StackOverflow=_("the space set for the stack overflowed");
 fd_exception fd_TypeError=_("Type error"), fd_RangeError=_("Range error");
 fd_exception fd_BadPtr=_("bad dtype pointer");
 fd_exception fd_DoubleGC=_("Freeing already freed CONS");
@@ -44,6 +46,8 @@ fd_checkfn fd_immediate_checkfns[FD_MAX_IMMEDIATE_TYPES+4];
 static u8_mutex constant_registry_lock;
 #endif
 int fd_max_constant=FD_MAX_BUILTIN_CONSTANT;
+
+ssize_t fd_max_strlen=-1;
 
 const char *fd_constant_names[]={
   "#?","#f","#t","{}","()","#eof","#eod","#eox",
@@ -474,16 +478,18 @@ FD_EXPORT
 fdtype fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
 {
   int length=((end==NULL) ? (strlen(start)) : (end-start));
-  u8_byte *bytes=NULL; int freedata=1;
-  if (ptr == NULL) {
-    ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
-    bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
-    memcpy(bytes,start,length); bytes[length]='\0';
-    freedata=0;}
-  else bytes=(u8_byte *)u8_strndup(start,length+1);
-  FD_INIT_CONS(ptr,fd_string_type);
-  ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
-  return FDTYPE_CONS(ptr);
+  if ((length>=0)&&((fd_max_strlen<0)||(length<fd_max_strlen))) {
+    u8_byte *bytes=NULL; int freedata=1;
+    if (ptr == NULL) {
+      ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
+      bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+      memcpy(bytes,start,length); bytes[length]='\0';
+      freedata=0;}
+    else bytes=(u8_byte *)u8_strndup(start,length+1);
+    FD_INIT_CONS(ptr,fd_string_type);
+    ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
+    return FDTYPE_CONS(ptr);}
+  else return fd_err(fd_StringOverflow,"fd_substring",NULL,FD_VOID);
 }
 
 FD_EXPORT
@@ -497,12 +503,14 @@ FD_EXPORT
 fdtype fd_substring(u8_string start,u8_string end)
 {
   int length=((end==NULL) ? (strlen(start)) : (end-start));
-  struct FD_STRING *ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
-  u8_byte *bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
-  memcpy(bytes,start,length); bytes[length]='\0';
-  FD_INIT_CONS(ptr,fd_string_type);
-  ptr->length=length; ptr->bytes=bytes; ptr->freedata=0;
-  return FDTYPE_CONS(ptr);
+  if ((length>=0)&&((fd_max_strlen<0)||(length<fd_max_strlen))) {
+    struct FD_STRING *ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
+    u8_byte *bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
+    memcpy(bytes,start,length); bytes[length]='\0';
+    FD_INIT_CONS(ptr,fd_string_type);
+    ptr->length=length; ptr->bytes=bytes; ptr->freedata=0;
+    return FDTYPE_CONS(ptr);}
+  else return fd_err(fd_StringOverflow,"fd_substring",NULL,FD_VOID);
 }
 
 FD_EXPORT

@@ -1444,7 +1444,7 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
     attribs=fd_init_pair
       (NULL,href_symbol,
        fd_init_pair(NULL,
-                    fd_extract_string(NULL,tmpout.u8_outbuf,tmpout.u8_outptr),
+                    fd_substring(tmpout.u8_outbuf,tmpout.u8_outptr),
                     attribs));
     fd_decref(browseinfo);}
   else return fd_type_error(_("valid anchor target"),"doanchor_star",target);

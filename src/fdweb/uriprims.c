@@ -33,7 +33,7 @@ static fdtype query_symbol, fragment_symbol;
 static void assign_substring
   (fdtype frame,fdtype slotid,u8_string start,u8_string end)
 {
-  fdtype value=fd_extract_string(NULL,start,end);
+  fdtype value=fd_substring(start,end);
   fd_store(frame,slotid,value);
   fd_decref(value);
 }
@@ -51,7 +51,7 @@ static u8_string breakup_path(fdtype f,u8_string start)
       u8_putc(&eltout,inschar);
       c=u8_sgetc(&scan);}
     else if ((c<0) || (c=='?') || (c=='#') || (c=='/') || (c==';')) {
-      fdtype eltstring=fd_extract_string(NULL,eltout.u8_outbuf,eltout.u8_outptr);
+      fdtype eltstring=fd_substring(eltout.u8_outbuf,eltout.u8_outptr);
       if (c=='/') {
         fdtype eltpair=fd_init_pair(NULL,eltstring,FD_EMPTY_LIST);
         *tail=eltpair; tail=&(FD_CDR(eltpair));
@@ -300,7 +300,7 @@ static fdtype urischeme_prim(fdtype uri_arg)
   u8_string uri=FD_STRDATA(uri_arg);
   u8_byte *scheme_end=strstr(uri,":");
   if (!(scheme_end)) return FD_EMPTY_CHOICE;
-  else return fd_extract_string(NULL,uri,scheme_end);
+  else return fd_substring(uri,scheme_end);
 }
 
 static fdtype urihost_prim(fdtype uri_arg)
@@ -313,7 +313,7 @@ static fdtype urihost_prim(fdtype uri_arg)
     u8_byte *port_end=strstr(host_start+2,":");
     u8_byte *end=(((port_end) && (host_end) && (port_end<host_end)) ?
                   (port_end):(host_end));
-    if (end) return fd_extract_string(NULL,host_start+2,host_end);
+    if (end) return fd_substring(host_start+2,host_end);
     else return FD_EMPTY_CHOICE;}
 }
 
@@ -323,8 +323,8 @@ static fdtype urifrag_prim(fdtype uri_arg)
   u8_byte *qmark=strchr(uri,'?');
   u8_byte *hash=strchr(uri,'#');
   if ((hash)&&(qmark)&&(hash<qmark))
-    return fd_extract_string(NULL,hash+1,qmark);
-  else if (hash) return fd_extract_string(NULL,hash+1,NULL);
+    return fd_substring(hash+1,qmark);
+  else if (hash) return fd_substring(hash+1,NULL);
   else return FD_EMPTY_CHOICE;
 }
 
@@ -334,8 +334,8 @@ static fdtype uriquery_prim(fdtype uri_arg)
   u8_byte *qmark=strchr(uri,'?');
   u8_byte *hash=strchr(uri,'#');
   if ((hash)&&(qmark)&&(qmark<hash))
-    return fd_extract_string(NULL,qmark+1,hash);
-  else if (qmark) return fd_extract_string(NULL,qmark+1,NULL);
+    return fd_substring(qmark+1,hash);
+  else if (qmark) return fd_substring(qmark+1,NULL);
   else return FD_EMPTY_CHOICE;
 }
 
@@ -346,12 +346,12 @@ static fdtype uribase_prim(fdtype uri_arg)
   u8_byte *qmark=strchr(uri,'?');
   if ((hash) && (qmark))
     if (hash<qmark)
-      return fd_extract_string(NULL,uri,hash);
-    else return fd_extract_string(NULL,uri,qmark);
+      return fd_substring(uri,hash);
+    else return fd_substring(uri,qmark);
   else if (hash)
-    return fd_extract_string(NULL,uri,hash);
+    return fd_substring(uri,hash);
   else if (qmark)
-    return fd_extract_string(NULL,uri,qmark);
+    return fd_substring(uri,qmark);
   else return fd_incref(uri_arg);
 }
 
@@ -367,14 +367,14 @@ static fdtype uripath_prim(fdtype uri_arg)
   else pathstart++;
   if ((hash) && (qmark))
     if (hash<qmark)
-      return fd_extract_string(NULL,pathstart,hash);
-    else return fd_extract_string(NULL,pathstart,qmark);
+      return fd_substring(pathstart,hash);
+    else return fd_substring(pathstart,qmark);
   else if (hash)
-    return fd_extract_string(NULL,pathstart,hash);
+    return fd_substring(pathstart,hash);
   else if (qmark)
-    return fd_extract_string(NULL,pathstart,qmark);
+    return fd_substring(pathstart,qmark);
   else if (pathstart==uri) return fd_incref(uri_arg);
-  else return fd_extract_string(NULL,pathstart,uri+FD_STRLEN(uri_arg));
+  else return fd_substring(pathstart,uri+FD_STRLEN(uri_arg));
 }
 
 FD_EXPORT void fd_uri_output(u8_output out,u8_string uri,int len,int upper,

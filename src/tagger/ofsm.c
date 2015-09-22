@@ -1532,9 +1532,9 @@ static fdtype possessive_root(fdtype word)
   if (FD_STRINGP(word)) {
     u8_string s=FD_STRDATA(word); int len=FD_STRLEN(word);
     if ((len>1) && (s[len-1]=='\''))
-      return fd_extract_string(NULL,s,s+(len-1));
+      return fd_substring(s,s+(len-1));
     else if ((len>2) && (s[len-1]=='s') && (s[len-2]=='\''))
-      return fd_extract_string(NULL,s,s+(len-2));
+      return fd_substring(s,s+(len-2));
     else return fd_incref(word);}
   else if ((FD_VECTORP(word)) && (FD_VECTOR_LENGTH(word)>0)) {
     int i=0, n=FD_VECTOR_LENGTH(word)-1;
@@ -1708,7 +1708,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
           start=pc->input[0].bufptr;
           end=find_end(pc->input[0].bufptr,bufptr);
           if (bufptr)
-            source=fd_extract_string(NULL,start,bufptr);
+            source=fd_substring(start,bufptr);
           else source=fdtype_string(start);
           char_start=pc->input[0].char_pos;
           char_end=char_start+count_chars(start,end);}
@@ -1719,7 +1719,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
           if (bufptr==NULL) {
             source=fdtype_string(start);}
           else {
-            source=fd_extract_string(NULL,start,bufptr);}
+            source=fd_substring(start,bufptr);}
           char_end=char_start+count_chars(start,end);
           bufptr=start;}}
       if (FD_VOIDP(glom))
@@ -1745,7 +1745,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
           if (bufptr==NULL) {
             source=fdtype_string(start);}
           else {
-            source=fd_extract_string(NULL,start,bufptr);}
+            source=fd_substring(start,bufptr);}
           char_start=pc->input[pstate->input].char_pos;
           end=find_end(start,bufptr);
           char_end=char_start+count_chars(start,end);

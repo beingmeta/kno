@@ -521,10 +521,10 @@ static fdtype get_ixes(u8_string start,u8_string end,int prefix,int suffix)
     if (c==' ') {
       if ((prefix) && (last>start)) {
         if (last>start) {
-          fdtype xstring=fd_extract_string(NULL,start,last);
+          fdtype xstring=fd_substring(start,last);
           FD_ADD_TO_CHOICE(results,xstring);}}
       if ((suffix) && (scan<end)) {
-        fdtype xstring=fd_extract_string(NULL,scan,end);
+        fdtype xstring=fd_substring(scan,end);
         FD_ADD_TO_CHOICE(results,xstring);}}
     last=scan; c=u8_sgetc(&scan);}
   return results;

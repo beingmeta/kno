@@ -734,7 +734,7 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
 {
   if (len==0) {}
   else if ((strchr(s,'&'))==NULL)
-    fd_add_content(node,fd_extract_string(NULL,s,s+len));
+    fd_add_content(node,fd_substring(s,s+len));
   else {
     const u8_byte *start=s, *scan=strchr(s,'&'), *lim=s+len;
     while ((scan)&&(scan<lim)) {
@@ -757,14 +757,14 @@ void fd_xmleval_contentfn(FD_XML *node,u8_string s,int len)
             u8_putc(&out,c);}
           symbol=fd_intern(out.u8_outbuf);
           if (start<scan)
-            fd_add_content(node,fd_extract_string(NULL,start,scan));
+            fd_add_content(node,fd_substring(start,scan));
           fd_add_content(node,symbol);
           start=semi+1; scan=strchr(start,'&');}
         else if (semi)
           scan=strchr(semi+1,'&');
         else scan=strchr(scan+1,'&');}}
     if (start<(s+len))
-      fd_add_content(node,fd_extract_string(NULL,start,lim));}
+      fd_add_content(node,fd_substring(start,lim));}
 }
 
 static int check_symbol_entity(const u8_byte *start,const u8_byte *end)

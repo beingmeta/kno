@@ -426,7 +426,7 @@ static fdtype string_startword(fdtype string)
     last=scan;}
   while (c>=0) {
     if (u8_isspace(c))
-      return fd_extract_string(NULL,start,last);
+      return fd_substring(start,last);
     else {
       last=scan; c=u8_sgetc(&scan);}}
   return fd_incref(string);
@@ -768,7 +768,7 @@ static fdtype strip_suffix(fdtype string,fdtype suffix)
   if ((FD_STRINGP(string))&&(FD_STRINGP(suffix))) {
     if (has_suffix_test(string,suffix)) {
       int sufflen=FD_STRLEN(suffix), len=FD_STRLEN(string);
-      return fd_extract_string(NULL,FD_STRDATA(string),
+      return fd_substring(FD_STRDATA(string),
                                FD_STRDATA(string)+(len-sufflen));}
     else return fd_incref(string);}
   if ((FD_EMPTY_CHOICEP(string))||(FD_EMPTY_CHOICEP(suffix)))
@@ -1095,7 +1095,7 @@ static fdtype trim_spaces(fdtype string)
     else break;}
   if ((trim_start==start) && (trim_end==end))
     return fd_incref(string);
-  else return fd_extract_string(NULL,trim_start,trim_end);
+  else return fd_substring(trim_start,trim_end);
 }
 
 /* Glomming */

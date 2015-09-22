@@ -179,15 +179,15 @@ static void convert_accept(fd_slotmap c,fdtype slotid)
     const u8_byte *comma=strchr(scan,','), *semi=strstr(scan,";q=");
     while (comma) {
       if ((semi) && (semi<comma))
-        entry=fd_init_pair(NULL,fd_extract_string(NULL,scan,semi),
-                           fd_extract_string(NULL,semi+3,comma));
-      else entry=fd_extract_string(NULL,scan,comma);
+        entry=fd_init_pair(NULL,fd_substring(scan,semi),
+                           fd_substring(semi+3,comma));
+      else entry=fd_substring(scan,comma);
       FD_ADD_TO_CHOICE(newvalue,entry);
       scan=comma+1; comma=strchr(scan,','); semi=strstr(scan,";q=");}
     if (semi)
-      entry=fd_init_pair(NULL,fd_extract_string(NULL,scan,semi),
-                         fd_extract_string(NULL,semi+3,NULL));
-    else entry=fd_extract_string(NULL,scan,NULL);
+      entry=fd_init_pair(NULL,fd_substring(scan,semi),
+                         fd_substring(semi+3,NULL));
+    else entry=fd_substring(scan,NULL);
     FD_ADD_TO_CHOICE(newvalue,entry);
     fd_slotmap_store(c,slotid,newvalue);
     fd_decref(value); fd_decref(newvalue);}
@@ -273,8 +273,8 @@ static void get_form_args(fd_slotmap c)
               if ((len>1) && (chars[len-1]=='\n')) {
                 fdtype new_content;
                 if (chars[len-2]=='\r')
-                  new_content=fd_extract_string(NULL,chars,chars+len-2);
-                else new_content=fd_extract_string(NULL,chars,chars+len-1);
+                  new_content=fd_substring(chars,chars+len-2);
+                else new_content=fd_substring(chars,chars+len-1);
                 fd_add((fdtype)c,namesym,new_content);
                 fd_decref(new_content);}
               else fd_add((fdtype)c,namesym,content);}

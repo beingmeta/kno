@@ -78,7 +78,7 @@
 #include "ptr.h"
 #include <libu8/u8timefns.h>
 
-FD_EXPORT fd_exception fd_MallocFailed;
+FD_EXPORT fd_exception fd_MallocFailed, fd_StringOverflow, fd_StackOverflow;
 FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
 #define FD_GET_CONS(x,typecode,typecast) \
@@ -227,6 +227,8 @@ typedef struct FD_STRING {
   unsigned int length:31;
   u8_string bytes;} FD_STRING;
 typedef struct FD_STRING *fd_string;
+
+FD_EXPORT ssize_t fd_max_strlen;
 
 #define FD_STRINGP(x) (FD_PTR_TYPEP(x,fd_string_type))
 #define FD_STRLEN(x) \

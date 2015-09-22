@@ -271,7 +271,7 @@ static fdtype portdata(fdtype port_arg)
   if (FD_PORTP(port_arg)) {
     struct FD_PORT *port=(struct FD_PORT *)port_arg;
     if (port->out)
-      return fd_extract_string(NULL,port->out->u8_outbuf,port->out->u8_outptr);
+      return fd_substring(port->out->u8_outbuf,port->out->u8_outptr);
     else return fd_extract_string
            (NULL,port->out->u8_outbuf,port->out->u8_outlim);}
   else return fd_type_error(_("port"),"portdata",port_arg);
