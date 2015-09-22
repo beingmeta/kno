@@ -32,11 +32,10 @@ SYSINSTALL	= @SUDO@@INSTALL@
 SUDO	        = @SUDO@
 INSTALL		= @INSTALL@
 MKSTATIC	= @MKSTATIC@
-MACOSX_DEPLOYMENT_TARGET=10.3
 MKSO		= $(CC) -shared $(LDFLAGS) $(LIBS)
 #MACLIBTOOL	= libtool -dynamic -single_module $(LDFLAGS) $(LIBS)
-MACLIBTOOL	= MACOSX_DEPLOYMENT_TARGET=10.3 \
-		  $(CC) -dynamiclib -single_module \
+#MACOSX_DEPLOYMENT_TARGET=10.3
+MACLIBTOOL	= $(CC) -dynamiclib -single_module \
 			-undefined dynamic_lookup \
 			$(LDFLAGS) $(LIBS)
 BUILD		= `pwd`
