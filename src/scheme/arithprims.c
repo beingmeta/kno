@@ -430,21 +430,21 @@ static fdtype scalerep_prim(fdtype x,fdtype scalearg)
       int factor=-scale;
       double val=FD_FLONUM(x), factor_up=doround(val*factor);
       int ival=factor_up;
-      return fd_init_pair(NULL,FD_INT2DTYPE(ival),scalearg);}
+      return fd_conspair(FD_INT2DTYPE(ival),scalearg);}
     else return FD_EMPTY_CHOICE;
   else if (FD_FIXNUMP(x)) {
     int ival=FD_FIX2INT(x), rem=ival%scale, base=(ival/scale);
-    if (rem==0) return fd_init_pair(NULL,x,scalearg);
+    if (rem==0) return fd_conspair(x,scalearg);
     else if (rem*2>scale)
       if (ival>0)
-        return fd_init_pair(NULL,FD_INT2DTYPE((base+1)*scale),scalearg);
-      else return fd_init_pair(NULL,FD_INT2DTYPE((base-1)*scale),scalearg);
-    else return fd_init_pair(NULL,FD_INT2DTYPE(base*scale),scalearg);}
+        return fd_conspair(FD_INT2DTYPE((base+1)*scale),scalearg);
+      else return fd_conspair(FD_INT2DTYPE((base-1)*scale),scalearg);
+    else return fd_conspair(FD_INT2DTYPE(base*scale),scalearg);}
   else if (FD_FLONUMP(x)) {
     double dv=FD_FLONUM(x);
     double scaled=doround(dv/scale)*scale;
     int ival=scaled;
-    return fd_init_pair(NULL,FD_INT2DTYPE(ival),scalearg);}
+    return fd_conspair(FD_INT2DTYPE(ival),scalearg);}
   else return FD_EMPTY_CHOICE;
 }
 

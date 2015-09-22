@@ -153,7 +153,7 @@ static fdtype gpool_alloc(fd_pool p,int n)
 {
   fdtype results=FD_EMPTY_CHOICE, request; int i=0;
   struct FD_GPOOL *np=(struct FD_GPOOL *)p;
-  request=fd_init_pair(NULL,new_oid_symbol,FD_EMPTY_LIST);
+  request=fd_conspair(new_oid_symbol,FD_EMPTY_LIST);
   while (i < n) {
     fdtype result=fd_dteval(np->connpool,request);
     FD_ADD_TO_CHOICE(results,result);

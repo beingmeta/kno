@@ -89,8 +89,8 @@ static fdtype zread_key
   int code=fd_dtsread_zint(s), len=FD_VECTOR_LENGTH(slotids);
   if (code)
     if (code<=len)
-      return fd_init_pair(NULL,FD_VECTOR_REF(slotids,code-1),
-                          zread_value(s,baseoids,n_baseoids));
+      return fd_conspair(FD_VECTOR_REF(slotids,code-1),
+                         zread_value(s,baseoids,n_baseoids));
     else return fd_err(BadZKEY,"zread_key",NULL,FD_INT2DTYPE(code));
   else return zread_value(s,baseoids,n_baseoids);
 }

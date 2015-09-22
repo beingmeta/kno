@@ -179,14 +179,12 @@ static void convert_accept(fd_slotmap c,fdtype slotid)
     const u8_byte *comma=strchr(scan,','), *semi=strstr(scan,";q=");
     while (comma) {
       if ((semi) && (semi<comma))
-        entry=fd_init_pair(NULL,fd_substring(scan,semi),
-                           fd_substring(semi+3,comma));
+        entry=fd_conspair(fd_substring(scan,semi),fd_substring(semi+3,comma));
       else entry=fd_substring(scan,comma);
       FD_ADD_TO_CHOICE(newvalue,entry);
       scan=comma+1; comma=strchr(scan,','); semi=strstr(scan,";q=");}
     if (semi)
-      entry=fd_init_pair(NULL,fd_substring(scan,semi),
-                         fd_substring(semi+3,NULL));
+      entry=fd_conspair(fd_substring(scan,semi),fd_substring(semi+3,NULL));
     else entry=fd_substring(scan,NULL);
     FD_ADD_TO_CHOICE(newvalue,entry);
     fd_slotmap_store(c,slotid,newvalue);
@@ -806,8 +804,8 @@ static fdtype attrib_merge_classes(fdtype attribs,fdtype classes)
         scan=FD_CDR(scan);
         if (FD_PAIRP(scan)) scan=FD_CDR(scan);}}
     if (FD_VOIDP(class_cons)) {
-      class_cons=fd_init_pair(NULL,FD_FALSE,attribs);
-      attribs=fd_init_pair(NULL,class_symbol,class_cons);}
+      class_cons=fd_conspair(FD_FALSE,attribs);
+      attribs=fd_conspair(class_symbol,class_cons);}
     U8_INIT_STATIC_OUTPUT_BUF(classout,sizeof(_classbuf),_classbuf);
     if (FD_STRINGP(FD_CAR(class_cons))) {
       u8_puts(&classout,FD_STRDATA(FD_CAR(class_cons)));
@@ -834,10 +832,8 @@ static fdtype attrib_merge_classes(fdtype attribs,fdtype classes)
         if (FD_STRINGP(class)) {
           if (i>0) u8_putc(&classout,' '); i++;
           u8_puts(&classout,FD_STRDATA(class));}}}
-    return fd_init_pair
-      (NULL,class_symbol,
-       fd_init_pair(NULL,fd_stream_string(&classout),
-                    attribs));}
+    return fd_conspair(class_symbol,
+                       fd_conspair(fd_stream_string(&classout),attribs));}
 }
 
 FD_EXPORT

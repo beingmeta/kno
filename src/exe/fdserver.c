@@ -162,7 +162,7 @@ static int set_logfile(u8_string logfile,int exitonfail)
 static fdtype config_get_logfile(fdtype var,void *state)
 {
   if (log_filename)
-    return fdtype_string(log_filename);
+    return fdstring(log_filename);
   else return FD_FALSE;
 }
 
@@ -220,7 +220,7 @@ static fdtype config_get_ports(fdtype var,void MAYBE_UNUSED *data)
   fdtype results=FD_EMPTY_CHOICE;
   int i=0, lim=dtype_server.n_servers;
   while (i<lim) {
-    fdtype id=fdtype_string(dtype_server.server_info[i].idstring);
+    fdtype id=fdstring(dtype_server.server_info[i].idstring);
     FD_ADD_TO_CHOICE(results,id); i++;}
   return results;
 }
@@ -538,7 +538,7 @@ static int config_use_module(fdtype var,fdtype val,void *data)
     if (FD_HASHTABLEP(env->exports))
       exposed_environment=
         fd_make_env(fd_incref(env->exports),exposed_environment);}
-  module_list=fd_init_pair(NULL,fd_incref(val),module_list);
+  module_list=fd_conspair(fd_incref(val),module_list);
   return 1;
 }
 
@@ -917,7 +917,7 @@ int main(int argc,char **argv)
     fd_config_set("SOURCE",src);
     fd_decref(interpreter); fd_decref(src);}
   if (server_port) {
-    fdtype sval=fdtype_string(server_port);
+    fdtype sval=fdstring(server_port);
     fd_config_set("PORT",sval);
     fd_decref(sval);}
 

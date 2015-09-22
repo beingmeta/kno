@@ -238,9 +238,9 @@ fdtype fd_parse_multipart_mime(fdtype slotmap,const char *start,const char *end)
       /* Find the end of the encapsluation */
       scan=find_boundary(boundary,start,end-start,boundary_len,0);
       if (scan)
-        new_pair=fd_init_pair(NULL,fd_parse_mime(start,scan),FD_EMPTY_LIST);
+        new_pair=fd_conspair(fd_parse_mime(start,scan),FD_EMPTY_LIST);
       else new_pair=
-             fd_init_pair(NULL,fd_parse_mime(start,end),FD_EMPTY_LIST);
+             fd_conspair(fd_parse_mime(start,end),FD_EMPTY_LIST);
       *point=new_pair; point=&(FD_CDR(new_pair));
       if (scan==NULL)  break;
       else start=scan+boundary_len;}

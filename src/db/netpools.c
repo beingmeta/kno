@@ -37,7 +37,7 @@ static u8_mutex client_id_lock;
 static int server_supportsp(struct FD_NETWORK_POOL *np,fdtype operation)
 {
   fdtype request=
-    fd_init_pair(NULL,boundp,fd_init_pair(NULL,operation,FD_EMPTY_LIST));
+    fd_conspair(boundp,fd_conspair(operation,FD_EMPTY_LIST));
   fdtype response=fd_dteval(np->connpool,request);
   fd_decref(request);
   if (FD_FALSEP(response)) return 0;
@@ -228,7 +228,7 @@ static fdtype network_pool_alloc(fd_pool p,int n)
 {
   fdtype results=FD_EMPTY_CHOICE, request; int i=0;
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
-  request=fd_init_pair(NULL,new_oid_symbol,FD_EMPTY_LIST);
+  request=fd_conspair(new_oid_symbol,FD_EMPTY_LIST);
   while (i < n) {
     fdtype result=fd_dteval(np->connpool,request);
     FD_ADD_TO_CHOICE(results,result);

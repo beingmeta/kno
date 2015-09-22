@@ -53,7 +53,7 @@ static u8_string breakup_path(fdtype f,u8_string start)
     else if ((c<0) || (c=='?') || (c=='#') || (c=='/') || (c==';')) {
       fdtype eltstring=fd_substring(eltout.u8_outbuf,eltout.u8_outptr);
       if (c=='/') {
-        fdtype eltpair=fd_init_pair(NULL,eltstring,FD_EMPTY_LIST);
+        fdtype eltpair=fd_conspair(eltstring,FD_EMPTY_LIST);
         *tail=eltpair; tail=&(FD_CDR(eltpair));
         c=u8_sgetc(&scan); eltout.u8_outptr=eltout.u8_outbuf; continue;}
       else {

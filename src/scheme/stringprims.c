@@ -769,7 +769,7 @@ static fdtype strip_suffix(fdtype string,fdtype suffix)
     if (has_suffix_test(string,suffix)) {
       int sufflen=FD_STRLEN(suffix), len=FD_STRLEN(string);
       return fd_substring(FD_STRDATA(string),
-                               FD_STRDATA(string)+(len-sufflen));}
+                          FD_STRDATA(string)+(len-sufflen));}
     else return fd_incref(string);}
   if ((FD_EMPTY_CHOICEP(string))||(FD_EMPTY_CHOICEP(suffix)))
     return fd_incref(string);

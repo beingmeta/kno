@@ -360,7 +360,7 @@ int main(int argc,char **argv)
     fd_use_index(source_file);
     eval_server=newstream;}
   else {
-    fdtype sourceval=fdtype_string(u8_realpath(source_file,NULL));
+    fdtype sourceval=fdstring(u8_realpath(source_file,NULL));
     fd_config_set("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
   {

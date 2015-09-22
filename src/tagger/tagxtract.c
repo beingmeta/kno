@@ -359,7 +359,7 @@ static fdtype probe_compound(fd_index lexicon,fdtype *elt,int start,int end)
 {
   fdtype compound=FD_EMPTY_LIST, lexentry;
   while (end>=start) {
-    compound=fd_init_pair(NULL,fd_incref(elt[end]),compound);
+    compound=fd_conspair(fd_incref(elt[end]),compound);
     end--;}
   lexentry=fd_index_get(lexicon,compound);
   if (FD_EMPTY_CHOICEP(lexentry)) {
@@ -583,14 +583,14 @@ static fdtype getxkeys
       if (fd_overlapp(tag,prefix_tags)) {
         fdtype pair;
         if (FD_VOIDP(spectrum)) spectrum=term_spectrum(root);
-        pair=fd_init_pair(NULL,FD_INT2DTYPE(wordpos),fd_incref(spectrum));
+        pair=fd_conspair(FD_INT2DTYPE(wordpos),fd_incref(spectrum));
         FD_ADD_TO_CHOICE(prefixes,pair);}
       if (fd_overlapp(tag,suffix_tags)) {
         if ((radius<0) || ((headpos>0) && ((wordpos-headpos)<=radius))) {
           FD_DO_CHOICES(head,last_head) {
             if (FD_VOIDP(spectrum)) spectrum=term_spectrum(root);
             {FD_DO_CHOICES(suffix,spectrum) {
-              fdtype xkey=fd_init_pair(NULL,fd_incref(head),fd_incref(suffix));
+                fdtype xkey=fd_conspair(fd_incref(head),fd_incref(suffix));
               FD_ADD_TO_CHOICE(xkeys,xkey);}}}}}
       if (fd_overlapp(tag,head_tags)) {
         if (FD_VOIDP(spectrum)) spectrum=term_spectrum(root);
@@ -600,7 +600,7 @@ static fdtype getxkeys
             fdtype prefixes=FD_CDR(prefix_entry);
             if ((radius<0) || ((wordpos-pos)<=radius)) {
               FD_DO_CHOICES(prefix,prefixes) {
-                fdtype xkey=fd_init_pair(NULL,fd_incref(prefix),fd_incref(head));
+                fdtype xkey=fd_conspair(fd_incref(prefix),fd_incref(head));
                 FD_ADD_TO_CHOICE(xkeys,xkey);}}}}}
         fd_decref(prefixes); prefixes=FD_EMPTY_CHOICE;
         fd_decref(last_head); last_head=spectrum;}

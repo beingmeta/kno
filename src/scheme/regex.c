@@ -157,9 +157,8 @@ static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,
         (NULL,FD_STRDATA(string)+results[0].rm_so,
          FD_STRDATA(string)+results[0].rm_eo);
     case rx_matchpair:
-      return fd_init_pair
-        (NULL,getcharoff(s,results[0].rm_so),
-         getcharoff(s,results[0].rm_eo));
+      return fd_conspair(getcharoff(s,results[0].rm_so),
+                         getcharoff(s,results[0].rm_eo));
     default: return FD_FALSE;}
 }
 

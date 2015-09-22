@@ -509,7 +509,7 @@ static fdtype lower_compound(fdtype compound)
           if (u8_isupper(c)) new_elt=lower_string(sdata);
           else new_elt=fd_incref(word);}
         else new_elt=fd_incref(word);
-        newpair=fd_init_pair(NULL,new_elt,FD_EMPTY_LIST);
+        newpair=fd_conspair(new_elt,FD_EMPTY_LIST);
         *tail=newpair; tail=&(FD_CDR(newpair));}
       return head;}
     else return fd_incref(compound);}
@@ -829,7 +829,7 @@ static void add_alt(fd_parse_context pc,int i,fdtype alt)
     phrase=alt; fd_incref(alt);}
   else if (FD_STRINGP(alt)) {
     fd_incref(alt);
-    phrase=fd_init_pair(NULL,alt,FD_EMPTY_LIST);}
+    phrase=fd_conspair(alt,FD_EMPTY_LIST);}
   FD_ADD_TO_CHOICE(pc->inputs[i].compounds,phrase);
 }
 
@@ -879,11 +879,10 @@ static fdtype probe_compound
     return FD_EMPTY_CHOICE;
   else {
     fdtype prefix_key=
-      fd_init_pair
-      (NULL,((lower) ? (lower_string(pc->input[start].spelling)) :
-             (fd_incref(pc->input[start].lstr))),
-       ((lower) ? (lower_string(pc->input[start+1].spelling)) :
-        (fd_incref(pc->input[start+1].lstr))));
+      fd_conspair(((lower) ? (lower_string(pc->input[start].spelling)) :
+                   (fd_incref(pc->input[start].lstr))),
+                  ((lower) ? (lower_string(pc->input[start+1].spelling)) :
+                   (fd_incref(pc->input[start+1].lstr))));
     fdtype compounds=get_lexinfo(pc,prefix_key);
     if (FD_EMPTY_CHOICEP(compounds)) return compounds;
     else {
@@ -893,7 +892,7 @@ static fdtype probe_compound
         else if ((FD_VECTOR_LENGTH(compound))>(lim-start)) {}
         else if (check_compound(compound,pc,start,lim,lower)) {
           fdtype lexinfo=get_lexinfo(pc,compound);
-          fdtype lexpair=fd_init_pair(NULL,fd_incref(compound),lexinfo);
+          fdtype lexpair=fd_conspair(fd_incref(compound),lexinfo);
           FD_ADD_TO_CHOICE(results,lexpair);}
         else {}
       fd_decref(compounds); fd_decref(prefix_key);
@@ -920,7 +919,7 @@ static void identify_compounds(fd_parse_context pc)
       fdtype lexdata=get_lexinfo(pc,lowered);
       if (FD_EMPTY_CHOICEP(lexdata)) {fd_decref(lowered);}
       else {
-        fdtype entry=fd_init_pair(NULL,fd_make_list(1,lowered),lexdata);
+        fdtype entry=fd_conspair(fd_make_list(1,lowered),lexdata);
         if (((start==0) || (pc->input[i].cap)) && (!(allcaps)))
           bump_weights_for_capitalization(pc,i);
         FD_ADD_TO_CHOICE(compounds,entry);}
@@ -1546,9 +1545,9 @@ static fdtype possessive_root(fdtype word)
     return result;}
   else if (FD_PAIRP(word))
     if (FD_PAIRP(FD_CDR(word)))
-      return fd_init_pair(NULL,fd_incref(FD_CAR(word)),
-                          possessive_root(FD_CDR(word)));
-    else return fd_init_pair(NULL,possessive_root(FD_CAR(word)),FD_EMPTY_LIST);
+      return fd_conspair(fd_incref(FD_CAR(word)),
+                         possessive_root(FD_CDR(word)));
+    else return fd_conspair(possessive_root(FD_CAR(word)),FD_EMPTY_LIST);
   else return fd_incref(word);
 }
 
@@ -1693,9 +1692,9 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
                      (nextstate->arc==noise_tag))
               {}
             else {
-              glom=fd_init_pair(NULL,fd_incref(nextstate->word),glom);
+              glom=fd_conspair(fd_incref(nextstate->word),glom);
               glom_root=
-                fd_init_pair(NULL,fd_incref(nextstate->word),glom_root);}
+                fd_conspair(fd_incref(nextstate->word),glom_root);}
             scan=nextstate->previous;}
           else if (nextstate->arc==0) scan=nextstate->previous;
           else break;}
@@ -1729,7 +1728,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
         word_entry=make_word_entry(glom,fd_incref(tag),glom_root,
                                    state->distance,source,char_start,char_end);
         fd_decref(word);}
-      sentence=fd_init_pair(NULL,word_entry,sentence);
+      sentence=fd_conspair(word_entry,sentence);
       s=scan;}
     else {
       fdtype word=word2string(state->word), word_entry=FD_VOID;
@@ -1756,14 +1755,14 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
       fd_decref(root);
       if (state->arc==pc->grammar->sentence_end_tag)
         if (FD_EMPTY_LISTP(sentence))
-          sentence=fd_init_pair(NULL,word_entry,sentence);
+          sentence=fd_conspair(word_entry,sentence);
         else {
-          answer=fd_init_pair(NULL,sentence,answer);
-          sentence=fd_init_pair(NULL,word_entry,FD_EMPTY_LIST);}
-      else sentence=fd_init_pair(NULL,word_entry,sentence);
+          answer=fd_conspair(sentence,answer);
+          sentence=fd_conspair(word_entry,FD_EMPTY_LIST);}
+      else sentence=fd_conspair(word_entry,sentence);
       s=state->previous;}}
   if (FD_EMPTY_LISTP(sentence)) return answer;
-  else return fd_init_pair(NULL,sentence,answer);
+  else return fd_conspair(sentence,answer);
 }
 
 
@@ -2063,8 +2062,8 @@ static fdtype lexweight_prim(fdtype string,fdtype tag,fdtype value)
       int weight=get_weight(weights,i);
       if (weight<0) i++;
       else {
-        fdtype pair=fd_init_pair(NULL,fd_incref(FD_VECTOR_REF(arcs,i)),
-                                  fd_incref(FD_INT2DTYPE(weight)));
+        fdtype pair=fd_conspair(fd_incref(FD_VECTOR_REF(arcs,i)),
+                                fd_incref(FD_INT2DTYPE(weight)));
         FD_ADD_TO_CHOICE(results,pair); i++;}}
     return results;}
   else {

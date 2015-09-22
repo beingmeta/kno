@@ -1276,9 +1276,8 @@ fdtype fd_parser(u8_input in)
     case ';': {
       fdtype content=fd_parser(in);
       if (FD_ABORTP(content)) return content;
-      else return fd_init_pair
-             (NULL,comment_symbol,
-              fd_init_pair(NULL,content,FD_EMPTY_LIST));}
+      else return fd_conspair(comment_symbol,
+                              fd_conspair(content,FD_EMPTY_LIST));}
     case '%': {
       int c=u8_getc(in);
       if (c=='(') return parse_record(in);

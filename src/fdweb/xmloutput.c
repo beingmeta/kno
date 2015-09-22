@@ -1420,15 +1420,12 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
   else if (FD_EMPTY_LISTP(body))
     return fd_err(fd_SyntaxError,"doanchor",NULL,FD_VOID);
   if (FD_STRINGP(target))
-    attribs=fd_init_pair
-      (NULL,href_symbol,fd_init_pair(NULL,fd_incref(target),fd_incref(attribs)));
+    attribs=fd_conspair(href_symbol,fd_conspair(fd_incref(target),fd_incref(attribs)));
   else if (FD_SYMBOLP(target)) {
     tmpout.u8_outptr=tmpout.u8_outbuf;
     u8_printf(out,"#%s",FD_SYMBOL_NAME(target));
-    attribs=fd_init_pair
-      (NULL,href_symbol,
-       fd_init_pair(NULL,fd_stream2string(&tmpout),
-                    fd_incref(attribs)));}
+    attribs=fd_conspair(href_symbol,
+                        fd_conspair(fd_stream2string(&tmpout),fd_incref(attribs)));}
   else if (FD_OIDP(target)) {
     FD_OID addr=FD_OID_ADDR(target);
     fdtype browseinfo=get_browseinfo(target);
@@ -1436,16 +1433,14 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
     unpack_browseinfo(browseinfo,&uri,&class,NULL);
     if (has_class_attrib(attribs))
       fd_incref(attribs);
-    else attribs=fd_init_pair
-           (NULL,fd_intern("CLASS"),
-            fd_init_pair(NULL,fdtype_string(class),fd_incref(attribs)));
+    else attribs=fd_conspair(fd_intern("CLASS"),
+                             fd_conspair(fdtype_string(class),fd_incref(attribs)));
     tmpout.u8_outptr=tmpout.u8_outbuf;
     u8_printf(&tmpout,"%s:@%x/%x",uri,FD_OID_HI(addr),(FD_OID_LO(addr)));
-    attribs=fd_init_pair
-      (NULL,href_symbol,
-       fd_init_pair(NULL,
-                    fd_substring(tmpout.u8_outbuf,tmpout.u8_outptr),
-                    attribs));
+    attribs=fd_conspair
+      (href_symbol,
+       fd_conspair(fd_substring(tmpout.u8_outbuf,tmpout.u8_outptr),
+                   attribs));
     fd_decref(browseinfo);}
   else return fd_type_error(_("valid anchor target"),"doanchor_star",target);
   xmloidfn=fd_symeval(xmloidfn_symbol,env);

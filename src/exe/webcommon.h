@@ -121,7 +121,7 @@ static int preflight_set(fdtype var,fdtype val,void *data)
 	    p->car=val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
 	scan=FD_CDR(scan);}}
-    preflight=fd_init_pair(NULL,val,preflight);
+    preflight=fd_conspair(val,preflight);
     fd_incref(val);
     return 1;}
   else {
@@ -129,7 +129,7 @@ static int preflight_set(fdtype var,fdtype val,void *data)
       fdtype fn=FD_CAR(scan);
       if (val==fn) return 0;
       scan=FD_CDR(scan);}
-    preflight=fd_init_pair(NULL,val,preflight);
+    preflight=fd_conspair(val,preflight);
     fd_incref(val);
     return 1;}
 }
@@ -173,7 +173,7 @@ static int postflight_set(fdtype var,fdtype val,void *data)
 	    p->car=val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
 	scan=FD_CDR(scan);}}
-    postflight=fd_init_pair(NULL,val,postflight);
+    postflight=fd_conspair(val,postflight);
     fd_incref(val);
     return 1;}
   else {
@@ -181,7 +181,7 @@ static int postflight_set(fdtype var,fdtype val,void *data)
       fdtype fn=FD_CAR(scan);
       if (val==fn) return 0;
       scan=FD_CDR(scan);}
-    postflight=fd_init_pair(NULL,val,postflight);
+    postflight=fd_conspair(val,postflight);
     fd_incref(val);
     return 1;}
 }
@@ -383,7 +383,7 @@ static fdtype preload_get(fdtype var,void *ignored)
   fdtype results=FD_EMPTY_LIST; struct FD_PRELOAD_LIST *scan;
   fd_lock_mutex(&preload_lock);
   scan=preloads; while (scan) {
-    results=fd_init_pair(NULL,fdtype_string(scan->filename),results);
+    results=fd_conspair(fdtype_string(scan->filename),results);
     scan=scan->next;}
   fd_unlock_mutex(&preload_lock);
   return results;
@@ -504,7 +504,7 @@ static fdtype loadcontent(fdtype path)
     fd_free_xml_node(xml);
     u8_free(xml);
 
-    return fd_init_pair(NULL,ldata,lenv);}
+    return fd_conspair(ldata,lenv);}
   else {
     fd_environment newenv=
       ((server_env) ? (fd_make_env(fd_make_hashtable(NULL,17),server_env)) :
@@ -521,7 +521,7 @@ static fdtype loadcontent(fdtype path)
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);
-    return fd_init_pair(NULL,main_proc,(fdtype)newenv);}
+    return fd_conspair(main_proc,(fdtype)newenv);}
 }
 
 static fdtype getcontent(fdtype path)
@@ -541,8 +541,8 @@ static fdtype getcontent(fdtype path)
       if (FD_ABORTP(content)) {
 	u8_free(lpath);
 	return content;}
-      table_value=fd_init_pair(NULL,fd_make_timestamp(&mtime),
-			       fd_incref(content));
+      table_value=fd_conspair(fd_make_timestamp(&mtime),
+			      fd_incref(content));
       fd_hashtable_store(&pagemap,path,table_value);
       u8_free(lpath);
       fd_decref(table_value);
@@ -563,8 +563,8 @@ static fdtype getcontent(fdtype path)
 	fdtype content_record;
 	u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
 	content_record=
-	  fd_init_pair(NULL,fd_make_timestamp(&mtime),
-		       fd_incref(new_content));
+	  fd_conspair(fd_make_timestamp(&mtime),
+		      fd_incref(new_content));
 	fd_hashtable_store(&pagemap,path,content_record);
 	u8_free(lpath); fd_decref(content_record);
 	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&

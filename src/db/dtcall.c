@@ -142,7 +142,7 @@ FD_FASTOP fdtype quote_lisp(fdtype x,int dorefs,int doeval)
   if (dorefs) fd_incref(x);
   if (doeval) return x;
   else if ((FD_SYMBOLP(x)) || (FD_PAIRP(x)))
-    return fd_init_pair(NULL,quote_symbol,fd_init_pair(NULL,x,FD_EMPTY_LIST));
+    return fd_conspair(quote_symbol,fd_conspair(x,FD_EMPTY_LIST));
   else return x;
 }
 static fdtype dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
@@ -150,11 +150,11 @@ static fdtype dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
 {
   fdtype request=FD_EMPTY_LIST, result=FD_VOID;
   n--; while (n>0) {
-    request=fd_init_pair(NULL,quote_lisp(args[n],dorefs,((doeval)&(1<<n))),
-                         request);
+    request=fd_conspair(quote_lisp(args[n],dorefs,((doeval)&(1<<n))),
+                        request);
     n--;}
   if (dorefs) fd_incref(args[0]);
-  request=fd_init_pair(NULL,args[0],request);
+  request=fd_conspair(args[0],request);
   result=dteval_pool(cp,request,default_async);
   fd_decref(request);
   return result;

@@ -654,15 +654,14 @@ static fdtype xmlevalify(u8_string encoded)
      (fd_deentify(encoded,NULL)));
   if (string[0]==':')
     if (string[1]=='$')
-      result=fd_init_pair
-        (NULL,xmleval2expr_tag,parse_infix(string+2));
+      result=fd_conspair(xmleval2expr_tag,parse_infix(string+2));
     else result=fd_parse(string+1);
   else if (string[0]=='$') {
     u8_string start=string+1;
     int c=u8_sgetc(&start);
     if (u8_isalpha(c))
-      result=fd_init_pair(NULL,xmleval_tag,parse_infix(string+1));
-    else result=fd_init_pair(NULL,xmleval_tag,fd_parse(string+1));}
+      result=fd_conspair(xmleval_tag,parse_infix(string+1));
+    else result=fd_conspair(xmleval_tag,fd_parse(string+1));}
   else if (string[0]=='\\') result=fdtype_string(string+1);
   else result=fdtype_string(string);
   if (string!=encoded) u8_free(string);
@@ -998,7 +997,7 @@ static FD_XML *handle_fdxml_pi
       xcontent=content+pioff;
       len=len-pioff;}
     { struct U8_INPUT in;
-      fdtype insert=fd_init_pair(NULL,begin_symbol,FD_EMPTY_LIST);
+      fdtype insert=fd_conspair(begin_symbol,FD_EMPTY_LIST);
       fdtype *tail=&(FD_CDR(insert)), expr=FD_VOID;
       U8_INIT_STRING_INPUT(&in,len,xcontent);
       expr=fd_parse_expr(&in);
@@ -1008,7 +1007,7 @@ static FD_XML *handle_fdxml_pi
           return NULL;}
         else if ((FD_EOFP(expr)) || (FD_EOXP(expr))) break;
         else {
-          fdtype new_cons=fd_init_pair(NULL,expr,FD_EMPTY_LIST);
+          fdtype new_cons=fd_conspair(expr,FD_EMPTY_LIST);
           *tail=new_cons; tail=&(FD_CDR(new_cons));}
         expr=fd_parse_expr(&in);}
       fd_add_content(xml,insert);}
@@ -1037,7 +1036,7 @@ static FD_XML *handle_eval_pi(u8_input in,FD_XML *xml,u8_string content,int len)
     xcontent=content+pioff;
     len=len-pioff;}
   { struct U8_INPUT in;
-    fdtype insert=fd_init_pair(NULL,begin_symbol,FD_EMPTY_LIST);
+    fdtype insert=fd_conspair(begin_symbol,FD_EMPTY_LIST);
     fdtype *tail=&(FD_CDR(insert)), expr=FD_VOID;
     U8_INIT_STRING_INPUT(&in,len,xcontent);
     expr=fd_parse_expr(&in);
@@ -1047,7 +1046,7 @@ static FD_XML *handle_eval_pi(u8_input in,FD_XML *xml,u8_string content,int len)
         return NULL;}
       else if ((FD_EOFP(expr)) || (FD_EOXP(expr))) break;
       else {
-        fdtype new_cons=fd_init_pair(NULL,expr,FD_EMPTY_LIST);
+        fdtype new_cons=fd_conspair(expr,FD_EMPTY_LIST);
         *tail=new_cons; tail=&(FD_CDR(new_cons));}
       expr=fd_parse_expr(&in);}
     fd_add_content(xml,insert);}
@@ -1745,7 +1744,7 @@ static fdtype fdxml_define(fdtype expr,fd_lispenv env)
     {FD_DO_CHOICES(slotid,attribs)
         if (slotid!=id_symbol) {
           fdtype v=fd_get(expr,slotid,FD_FALSE);
-          fdtype pair=fd_init_pair(NULL,fd_make_list(2,slotid,v),arglist);
+          fdtype pair=fd_conspair(fd_make_list(2,slotid,v),arglist);
           arglist=pair;}}
 
     /* Construct the body */

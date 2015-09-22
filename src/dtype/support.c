@@ -362,7 +362,7 @@ FD_EXPORT fdtype fd_all_configs(int with_docs)
       fdtype var=scan->var;
       if (with_docs) {
         fdtype doc=((scan->doc)?(fdstring(scan->doc)):(FD_EMPTY_LIST));
-        fdtype pair=fd_init_pair(NULL,var,doc); fd_incref(var);
+        fdtype pair=fd_conspair(var,doc); fd_incref(var);
         FD_ADD_TO_CHOICE(results,pair);}
       else {fd_incref(var); FD_ADD_TO_CHOICE(results,var);}
       scan=scan->next;}}
@@ -487,7 +487,7 @@ FD_EXPORT int fd_lconfig_add(fdtype ignored,fdtype v,void *lispp)
 FD_EXPORT int fd_lconfig_push(fdtype ignored,fdtype v,void *lispp)
 {
   fdtype *val=(fdtype *)lispp;
-  *val=fd_init_pair(NULL,fd_incref(v),*val);
+  *val=fd_conspair(fd_incref(v),*val);
   return 1;
 }
 
@@ -952,7 +952,7 @@ fdtype fd_exception_backtrace(u8_exception ex)
          (d)?(u8_mkstring("%s: %s",c,d)):
          (cx)?(u8_mkstring("%s (%s)",c,cx)):
          ((u8_string)u8_strdup(c)));
-      result=fd_init_pair(NULL,fd_make_string(NULL,-1,sum),result);
+      result=fd_conspair(fd_make_string(NULL,-1,sum),result);
       u8_free(sum);}
     if (!((FD_NULLP(x))||(FD_VOIDP(x)))) {
       if (FD_VECTORP(x)) {
@@ -963,9 +963,9 @@ fdtype fd_exception_backtrace(u8_exception ex)
           FD_VECTOR_SET(applyvec,i+1,elt);
           i++;}
         FD_VECTOR_SET(applyvec,0,fd_intern("=>"));
-        result=fd_init_pair(NULL,applyvec,result);}
+        result=fd_conspair(applyvec,result);}
       else {
-        fd_incref(x); result=fd_init_pair(NULL,x,result);}}
+        fd_incref(x); result=fd_conspair(x,result);}}
     ex=ex->u8x_prev;}
   return result;
 }
@@ -1211,7 +1211,7 @@ FD_EXPORT int fd_req_drop(fdtype var,fdtype val)
 FD_EXPORT int fd_req_push(fdtype var,fdtype val)
 {
   fdtype info=get_reqinfo(), cur=fd_get(info,var,FD_EMPTY_LIST);
-  fdtype new_pair=fd_init_pair(NULL,val,cur);
+  fdtype new_pair=fd_conspair(val,cur);
   fd_store(info,var,new_pair);
   fd_incref(val); fd_decref(new_pair);
   return 1;

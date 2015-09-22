@@ -396,8 +396,8 @@ static fdtype testopt_prim(fdtype opts,fdtype key,fdtype val)
 static fdtype optplus_prim(fdtype opts,fdtype key,fdtype val)
 {
   if (FD_VOIDP(val))
-    return fd_init_pair(NULL,key,fd_incref(opts));
-  else return fd_init_pair(NULL,fd_init_pair(NULL,key,fd_incref(val)),fd_incref(opts));
+    return fd_conspair(key,fd_incref(opts));
+  else return fd_conspair(fd_conspair(key,fd_incref(val)),fd_incref(opts));
 }
 
 /* Quote */
@@ -431,7 +431,7 @@ static fdtype profiled_eval(fdtype expr,fd_lispenv env)
     return profile_data;}
   else if (FD_VOIDP(profile_data)) {
     fdtype time=fd_init_double(NULL,(finish-start));
-    profile_data=fd_init_pair(NULL,FD_INT2DTYPE(1),time);
+    profile_data=fd_conspair(FD_INT2DTYPE(1),time);
     fd_store(profile_info,tag,profile_data);}
   else {
     struct FD_PAIR *p=FD_GET_CONS(profile_data,fd_pair_type,fd_pair);
@@ -967,10 +967,9 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
     memcpy(avec+1,argv,sizeof(fdtype)*(arg_count));
     if (fcn->filename)
       if (fcn->name)
-        avec[0]=fd_init_pair(NULL,fd_intern(fcn->name),
-                             fdtype_string(fcn->filename));
-      else avec[0]=fd_init_pair
-             (NULL,fd_intern("LAMBDA"),fdtype_string(fcn->filename));
+        avec[0]=fd_conspair(fd_intern(fcn->name),
+                            fdtype_string(fcn->filename));
+      else avec[0]=fd_conspair(fd_intern("LAMBDA"),fdtype_string(fcn->filename));
     else if (fcn->name) avec[0]=fd_intern(fcn->name);
     else avec[0]=fd_intern("LAMBDA");
     if (free_argv) u8_free(argv);
@@ -1688,8 +1687,8 @@ static fdtype dtcall(int n,fdtype *args)
   while (i>=1) {
     fdtype param=args[i];
     if ((i>1) && ((FD_SYMBOLP(param)) || (FD_PAIRP(param))))
-      request=fd_init_pair(NULL,fd_make_list(2,quote_symbol,param),request);
-    else request=fd_init_pair(NULL,param,request);
+      request=fd_conspair(fd_make_list(2,quote_symbol,param),request);
+    else request=fd_conspair(param,request);
     fd_incref(param); i--;}
   result=fd_dteval(((fd_dtserver)server)->connpool,request);
   fd_decref(request);

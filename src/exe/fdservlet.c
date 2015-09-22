@@ -191,7 +191,7 @@ static int statlog_set(fdtype var,fdtype val,void *data)
 static fdtype statlog_get(fdtype var,void *data)
 {
   if (statlog)
-    return fdtype_string(statlogfile);
+    return fdstring(statlogfile);
   else return FD_FALSE;
 }
 
@@ -1571,7 +1571,7 @@ static fdtype getfdservports(fdtype var,void *data)
   int i=0, lim=n_ports;
   u8_lock_mutex(&server_port_lock); lim=n_ports;
   while (i<lim) {
-    fdtype string=fdtype_string(ports[i++]);
+    fdtype string=fdstring(ports[i++]);
     FD_ADD_TO_CHOICE(result,string);}
   u8_unlock_mutex(&server_port_lock);
   return result;
@@ -1607,7 +1607,7 @@ static int start_servers()
 
 static fdtype notfoundpage()
 {
-  fdtype title, ctype=fdtype_string("text/html");
+  fdtype title, ctype=fdstring("text/html");
   struct U8_OUTPUT *body=u8_current_output;
   struct U8_OUTPUT tmpout; U8_INIT_STATIC_OUTPUT(tmpout,1024);
   fd_req_store(status_symbol,FD_INT2DTYPE(404));
@@ -1866,7 +1866,7 @@ int main(int argc,char **argv)
   else if ((u8_has_suffix(load_source,".scm",1))||
            (u8_has_suffix(load_source,".fdcgi",1))||
            (u8_has_suffix(load_source,".fdxml",1))) {
-    fdtype path=fdtype_string(load_source);
+    fdtype path=fdstring(load_source);
     fdtype result=getcontent(path);
     fd_decref(path); fd_decref(result);}
   else {}

@@ -442,7 +442,7 @@ static fdtype inverse_getbase_method(fdtype root,fdtype slotid)
     fd_decref(answer);
     return inv_slots;}
   else {
-    fdtype root_as_list=fd_init_pair(NULL,root,FD_EMPTY_LIST);
+    fdtype root_as_list=fd_conspair(root,FD_EMPTY_LIST);
     others=fd_bgfind(inv_slots,root_as_list,FD_VOID);
     fd_decref(root_as_list);}
   if (FD_ABORTP(others)) {
@@ -567,7 +567,7 @@ static fdtype assoc_add_method(fdtype f,fdtype slotid,fdtype value)
   if (FD_ABORTP(key)) {
     fd_decref(through); return key;}
   else {
-    fdtype pair=fd_init_pair(NULL,fd_incref(key),fd_incref(value));
+    fdtype pair=fd_conspair(fd_incref(key),fd_incref(value));
     fd_oid_add(f,through,pair);
     fd_decref(pair);
     return FD_VOID;}
@@ -582,7 +582,7 @@ static fdtype assoc_drop_method(fdtype f,fdtype slotid,fdtype value)
   if (FD_ABORTP(key)) {
     fd_decref(through); return key;}
   else {
-    fdtype pair=fd_init_pair(NULL,fd_incref(key),fd_incref(value));
+    fdtype pair=fd_conspair(fd_incref(key),fd_incref(value));
     fd_oid_drop(f,through,pair);
     fd_decref(pair);
     return FD_VOID;}

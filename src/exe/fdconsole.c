@@ -447,7 +447,7 @@ static int module_config_set(fdtype var,fdtype vals,void *d)
       fd_decref(modname); fd_decref(module); fd_decref(used);
       return -1;}
     else {
-      module_list=fd_init_pair(NULL,modname,module_list);
+      module_list=fd_conspair(modname,module_list);
       fd_decref(module); fd_decref(used);
       loads++;}}
   return loads;
@@ -475,7 +475,7 @@ static int loadfile_config_set(fdtype var,fdtype vals,void *d)
       fd_seterr(_("load error"),"loadfile_config_set",loadpath,val);
       return -1;}
     else {
-      loadfile_list=fd_init_pair(NULL,fdtype_string(loadpath),loadfile_list);
+      loadfile_list=fd_conspair(fdstring(loadpath),loadfile_list);
       u8_free(loadpath);
       loads++;}}
   return loads;
@@ -660,7 +660,7 @@ int main(int argc,char **argv)
     fd_use_index(source_file);
     eval_server=newstream;}
   else {
-    fdtype sourceval=fdtype_string(u8_realpath(source_file,NULL));
+    fdtype sourceval=fdstring(u8_realpath(source_file,NULL));
     fd_config_set("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
 

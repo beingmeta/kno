@@ -127,7 +127,7 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
     return fd_incref(colinfo);
   else {
     fd_incref(dbp->colinfo); fd_incref(colinfo);
-    return fd_init_pair(NULL,colinfo,dbp->colinfo);}
+    return fd_conspair(colinfo,dbp->colinfo);}
 }
 
 /* Connection operations */

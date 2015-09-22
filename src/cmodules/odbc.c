@@ -186,7 +186,7 @@ static fdtype odbcmakeproc
     dbproc->colinfo=fd_incref(colinfo);
   else {
     fd_incref(colinfo); fd_incref(dbp->colinfo);
-    dbproc->colinfo=fd_init_pair(NULL,colinfo,dbp->colinfo);}
+    dbproc->colinfo=fd_conspair(colinfo,dbp->colinfo);}
   {
     int i=0; fdtype *specs=u8_alloc_n(n_params,fdtype);
     while (i<n_params)

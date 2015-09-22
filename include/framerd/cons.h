@@ -336,6 +336,7 @@ FD_EXPORT fdtype fd_make_list(int len,...);
 FD_EXPORT fdtype fd_pmake_list(int len,...);
 
 #define FD_XPAIR(x) (FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))
+#define fd_conspair(car,cdr) fd_init_pair(NULL,car,cdr)
 
 /* Vectors */
 

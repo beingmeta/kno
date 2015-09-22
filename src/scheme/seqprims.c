@@ -126,7 +126,7 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
     while (FD_PAIRP(scan))
       if (j==end) return head;
       else if (j>=start) {
-        fdtype cons=fd_init_pair(NULL,fd_incref(FD_CAR(scan)),FD_EMPTY_LIST);
+        fdtype cons=fd_conspair(fd_incref(FD_CAR(scan)),FD_EMPTY_LIST);
         *tail=cons; tail=&(((struct FD_PAIR *)cons)->cdr);
         j++; scan=FD_CDR(scan);}
       else {j++; scan=FD_CDR(scan);}
@@ -1230,7 +1230,7 @@ static fdtype cons_star(int n,fdtype *args)
 {
   int i=n-2; fdtype list=fd_incref(args[n-1]);
   while (i>=0) {
-    list=fd_init_pair(NULL,fd_incref(args[i]),list);
+    list=fd_conspair(fd_incref(args[i]),list);
     i--;}
   return list;
 }
@@ -1427,7 +1427,7 @@ static fdtype seq2list(fdtype seq)
   else if (FD_SEQUENCEP(seq)) {
     int n; fdtype *data=fd_elts(seq,&n), result=FD_EMPTY_LIST;
     n--; while (n>=0) {
-      result=fd_init_pair(NULL,data[n],result); n--;}
+      result=fd_conspair(data[n],result); n--;}
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2list",seq);
@@ -1716,7 +1716,7 @@ static fdtype recons_prim(fdtype car,fdtype cdr,fdtype orig)
   if ((FD_EQ(car,FD_CAR(orig)))&&(FD_EQ(cdr,FD_CDR(orig))))
     return fd_incref(orig);
   else {
-    fdtype cons=fd_init_pair(NULL,car,cdr);
+    fdtype cons=fd_conspair(car,cdr);
     fd_incref(car); fd_incref(cdr);
     return cons;}
 }

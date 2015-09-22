@@ -110,7 +110,7 @@ static fdtype whitespace_segment(u8_string s)
   const u8_byte *start=skip_whitespace(s), *end=skip_nonwhitespace(start);
   while (start) {
     fdtype newcons=
-      fd_init_pair(NULL,fd_substring(start,end),FD_EMPTY_LIST);
+      fd_conspair(fd_substring(start,end),FD_EMPTY_LIST);
     *lastp=newcons; lastp=&(FD_CDR(newcons));
     start=skip_whitespace(end); end=skip_nonwhitespace(start);}
   return result;
@@ -131,10 +131,10 @@ static fdtype dosegment(u8_string string,fdtype separators)
           sepstring=sep; brk=try;}}
       else return fd_type_error(_("string"),"dosegment",sep);
     if (brk==NULL) {
-      pair=fd_init_pair(NULL,fdtype_string(scan),FD_EMPTY_LIST);
+      pair=fd_conspair(fdtype_string(scan),FD_EMPTY_LIST);
       *resultp=pair;
       return result;}
-    pair=fd_init_pair(NULL,fd_substring(scan,brk),FD_EMPTY_LIST);
+    pair=fd_conspair(fd_substring(scan,brk),FD_EMPTY_LIST);
     *resultp=pair;
     resultp=&(((struct FD_PAIR *)pair)->cdr);
     scan=brk+FD_STRLEN(sepstring);}
@@ -315,7 +315,7 @@ static fdtype words2list(u8_string string,int keep_punct)
     else if (((spantype==punctspan) && (keep_punct))||(spantype==wordspan)) {
       fdtype newcons;
       fdtype extraction=((scan) ? (fd_substring(last,scan)) : (fdtype_string(last)));
-      newcons=fd_init_pair(NULL,extraction,FD_EMPTY_LIST);
+      newcons=fd_conspair(extraction,FD_EMPTY_LIST);
       *lastp=newcons; lastp=&(FD_CDR(newcons));
       if (scan==NULL) break;
       last=scan; scan=skip_span(last,&spantype);}
@@ -399,7 +399,7 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
   if (n==0) return results;
   else if (n==1) {
     fdtype elt=FD_VECTOR_REF(vec,0); fd_incref(elt);
-    return fd_init_pair(NULL,elt,FD_EMPTY_LIST);}
+    return fd_conspair(elt,FD_EMPTY_LIST);}
   else if (maxspan<=0)
     return fd_type_error(_("natural number"),"vector2frags",window);
   if (with_affixes) { int span=maxspan; while (span>=minspan) {
@@ -407,20 +407,20 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
       fdtype frag=FD_EMPTY_LIST;
       int i=span-1; while ((i>=0) && (i<n)) {
         fdtype elt=data[i]; fd_incref(elt);
-        frag=fd_init_pair(NULL,elt,frag);
+        frag=fd_conspair(elt,frag);
         i--;}
-      frag=fd_init_pair(NULL,FD_FALSE,frag);
+      frag=fd_conspair(FD_FALSE,frag);
       FD_ADD_TO_CHOICE(results,frag);
       span--;}}
   /* Compute suffix fragments
      We're a little clever here, because we can use the same sublist
      repeatedly.  */
   if (with_affixes) {
-    fdtype frag=fd_init_pair(NULL,FD_FALSE,FD_EMPTY_LIST);
+    fdtype frag=fd_conspair(FD_FALSE,FD_EMPTY_LIST);
     int stopat=n-maxspan; if (stopat<0) stopat=0;
     i=n-minspan; while (i>=stopat) {
       fdtype elt=data[i]; fd_incref(elt);
-      frag=fd_init_pair(NULL,elt,frag);
+      frag=fd_conspair(elt,frag);
       /* We incref it because we're going to point to it from both the
          result and from the next longer frag */
       fd_incref(frag);
@@ -435,7 +435,7 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
       int i=end; int lim=end-maxspan;
       if (lim<0) lim=-1; while (i>lim) {
         fdtype elt=data[i]; fd_incref(elt);
-        frag=fd_init_pair(NULL,elt,frag);
+        frag=fd_conspair(elt,frag);
         if ((1+(end-i))>=minspan) {
           fd_incref(frag);
           FD_ADD_TO_CHOICE(results,frag);}
@@ -937,8 +937,7 @@ static fdtype textgather2list(fdtype pattern,fdtype string,
       if (end<0) return head;
       else if (end>start) {
         fdtype newpair=
-          fd_init_pair(NULL,fd_substring(data+start,data+end),
-                       FD_EMPTY_LIST);
+          fd_conspair(fd_substring(data+start,data+end),FD_EMPTY_LIST);
         *tail=newpair; tail=&(FD_CDR(newpair));
         start=fd_text_search(pattern,NULL,data,end,lim,0);}
       else if (end==lim)
@@ -1658,11 +1657,11 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
       else scan=fd_text_search(sep,NULL,data,end,len,0);
       /* Push it onto the list. */
       if (!(FD_VOIDP(substring))) {
-        newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);
+        newpair=fd_conspair(substring,FD_EMPTY_LIST);
         *tail=newpair; tail=&(FD_CDR(newpair));}
       /* Push the separator if you're keeping it */
       if (!(FD_VOIDP(sepstring))) {
-        newpair=fd_init_pair(NULL,sepstring,FD_EMPTY_LIST);
+        newpair=fd_conspair(sepstring,FD_EMPTY_LIST);
         *tail=newpair; tail=&(FD_CDR(newpair));}}
     /* scan==-2 indicates a real error, not just a failed search. */
     if (scan==-2) {
@@ -1671,7 +1670,7 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
     else if (start<len) {
       /* If you ran out of separators, just add the tail end to the list. */
       fdtype substring=fd_substring(data+start,data+len);
-      fdtype newpair=fd_init_pair(NULL,substring,FD_EMPTY_LIST);
+      fdtype newpair=fd_conspair(substring,FD_EMPTY_LIST);
       *tail=newpair; tail=&(FD_CDR(newpair));}
     return slices;
   }
@@ -2095,13 +2094,13 @@ static fdtype splitsep_prim(fdtype string,fdtype sep,
           scan=pos+1; pos=strchr(scan,c);}
         else  {
           fdtype seg=fd_substring(scan,pos);
-          fdtype elt=fd_init_pair(NULL,seg,FD_EMPTY_LIST);
+          fdtype elt=fd_conspair(seg,FD_EMPTY_LIST);
           if (FD_VOIDP(head)) head=pair=elt;
           else {
             FD_RPLACD(pair,elt); pair=elt;}
           if (pos) {scan=pos+1; pos=strchr(scan,c);}
           else scan=NULL;}}
-    else head=fd_init_pair(NULL,fd_incref(string),FD_EMPTY_LIST);
+    else head=fd_conspair(fd_incref(string),FD_EMPTY_LIST);
     return head;}
 }
 

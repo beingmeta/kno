@@ -242,7 +242,7 @@ static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
     double x=0, y=0;
     /* MagickBooleanType rv= */
     MagickGetResolution(wand,&x,&y);
-    return fd_init_pair(NULL,fd_make_double(x),fd_make_double(y));}
+    return fd_conspair(fd_make_double(x),fd_make_double(y));}
 #endif
   else if (FD_EQ(field,interlace)) {
     InterlaceType it=MagickGetInterlaceScheme(wand);
@@ -254,7 +254,7 @@ static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
   else if (FD_EQ(field,size)) {
     size_t w=MagickGetImageWidth(wand);
     size_t h=MagickGetImageHeight(wand);
-    return fd_init_pair(NULL,FD_INT2DTYPE(w),FD_INT2DTYPE(h));}
+    return fd_conspair(FD_INT2DTYPE(w),FD_INT2DTYPE(h));}
   else if (FD_EQ(field,width)) {
     size_t w=MagickGetImageWidth(wand);
     return FD_INT2DTYPE(w);}

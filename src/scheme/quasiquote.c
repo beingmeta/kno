@@ -66,7 +66,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
             if (FD_ABORTP(splice_at_end)) {
               fd_decref(head); return splice_at_end;}
             else {
-              fdtype with_unquote=fd_init_pair(NULL,unquote,splice_at_end);
+              fdtype with_unquote=fd_conspair(unquote,splice_at_end);
               *tail=with_unquote;
               return head;}}
         else {
@@ -108,14 +108,14 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
               return err;}
             else {
               FD_DOLIST(insert_elt,insertion) {
-                fdtype new_pair=fd_init_pair(NULL,insert_elt,FD_EMPTY_LIST);
+                fdtype new_pair=fd_conspair(insert_elt,FD_EMPTY_LIST);
                 *tail=new_pair; tail=&(FD_CDR(new_pair));
                 fd_incref(insert_elt);}}}
           else if (FD_VECTORP(insertion)) {
             int i=0, lim=FD_VECTOR_LENGTH(insertion);
             while (i<lim) {
               fdtype insert_elt=FD_VECTOR_REF(insertion,i);
-              fdtype new_pair=fd_init_pair(NULL,insert_elt,FD_EMPTY_LIST);
+              fdtype new_pair=fd_conspair(insert_elt,FD_EMPTY_LIST);
               *tail=new_pair; tail=&(FD_CDR(new_pair));
               fd_incref(insert_elt); i++;}}
           else {
@@ -138,7 +138,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
     else new_elt=fd_quasiquote(elt,env,level);
     if (FD_ABORTP(new_elt)) {
       fd_decref(head); return new_elt;}
-    new_tail=fd_init_pair(NULL,new_elt,FD_EMPTY_LIST);
+    new_tail=fd_conspair(new_elt,FD_EMPTY_LIST);
     tailcons=FD_STRIP_CONS(new_tail,fd_pair_type,struct FD_PAIR *);
     *tail=new_tail; tail=&(tailcons->cdr);
     obj=FD_CDR(obj);}

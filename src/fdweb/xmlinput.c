@@ -348,8 +348,7 @@ static int process_nsattrib(FD_XML *xml,u8_string name,u8_string val)
       return 1;}
     else if ((nsprefix=(strchr(name,':')))) {
       fdtype entry=
-        fd_init_pair(NULL,fdtype_string(nsprefix+1),
-                     fdtype_string(val));
+        fd_conspair(fdtype_string(nsprefix+1),fdtype_string(val));
       ns_add(xml,nsprefix+1,val);
       fd_add(xml->attribs,xmlns_symbol,entry);
       fd_decref(entry);
@@ -607,7 +606,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
   if (strncmp(s,"<!--",4)==0) {
     fdtype cnode=fd_empty_slotmap();
     fdtype comment_string=fd_substring(s+4,s+(len-3));
-    fdtype comment_content=fd_init_pair(NULL,comment_string,FD_EMPTY_LIST);
+    fdtype comment_content=fd_conspair(comment_string,FD_EMPTY_LIST);
     fd_store(cnode,xmltag_symbol,comment_symbol);
     fd_store(cnode,content_symbol,comment_content);
     fd_decref(comment_content);
@@ -615,7 +614,7 @@ void fd_default_contentfn(FD_XML *node,u8_string s,int len)
   else if (strncmp(s,"<![CDATA[",9)==0) {
     fdtype cnode=fd_empty_slotmap();
     fdtype cdata_string=fd_substring(s+9,s+(len-3));
-    fdtype cdata_content=fd_init_pair(NULL,cdata_string,FD_EMPTY_LIST);
+    fdtype cdata_content=fd_conspair(cdata_string,FD_EMPTY_LIST);
     fd_store(cnode,xmltag_symbol,cdata_symbol);
     fd_store(cnode,content_symbol,cdata_content);
     fd_decref(cdata_content);
@@ -812,8 +811,7 @@ FD_XML *xmlstep(FD_XML *node,fd_xmlelt_type type,
       if (FD_EMPTY_CHOICEP(node->attribs)) init_node_attribs(node);
       if ((FD_EMPTY_LISTP(node->head)) &&
           (!(node->bits&FD_XML_NOEMPTY)))
-        node->head=fd_init_pair(NULL,fd_init_string(NULL,0,NULL),
-                                FD_EMPTY_LIST);
+        node->head=fd_conspair(fd_init_string(NULL,0,NULL),FD_EMPTY_LIST);
       retnode=popfn(node);
       if (retnode!=node)
         free_node(node,1);
@@ -1098,7 +1096,7 @@ static fdtype fdxml_load(fdtype input,fdtype sloppy)
     fdtype result=fd_incref(parsed->head);
     fdtype lispenv=(fdtype)(parsed->data);
     free_node(parsed,1);
-    return fd_init_pair(NULL,lispenv,result);}
+    return fd_conspair(lispenv,result);}
   else return FD_ERROR_VALUE;
 }
 

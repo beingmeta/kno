@@ -107,16 +107,18 @@ static void hashtable_index_frame(fdtype ix,
   if (FD_VOIDP(values)) {
     FD_DO_CHOICES(frame,frames) {
       FD_DO_CHOICES(slotid,slotids) {
-        fdtype values=((FD_OIDP(frame)) ? (fd_frame_get(frame,slotid)) : (fd_get(frame,slotid,FD_EMPTY_CHOICE)));
+        fdtype values=((FD_OIDP(frame)) ?
+                       (fd_frame_get(frame,slotid)) :
+                       (fd_get(frame,slotid,FD_EMPTY_CHOICE)));
         FD_DO_CHOICES(value,values) {
-          fdtype key=fd_init_pair(NULL,fd_incref(slotid),fd_incref(value));
+          fdtype key=fd_conspair(fd_incref(slotid),fd_incref(value));
           fd_add(ix,key,frame);
           fd_decref(key);}
         fd_decref(values);}}}
   else {
     FD_DO_CHOICES(slotid,slotids) {
       FD_DO_CHOICES(value,values) {
-        fdtype key=fd_init_pair(NULL,fd_incref(slotid),fd_incref(value));
+        fdtype key=fd_conspair(fd_incref(slotid),fd_incref(value));
         fd_add(ix,key,frames);
         fd_decref(key);}}}
 }
@@ -1352,7 +1354,7 @@ static fdtype indexdecache(fdtype ixarg,fdtype key,fdtype value)
   if (FD_VOIDP(value))
     fd_hashtable_op(&(ix->cache),fd_table_replace,key,FD_VOID);
   else {
-    fdtype keypair=fd_init_pair(NULL,fd_incref(key),fd_incref(value));
+    fdtype keypair=fd_conspair(fd_incref(key),fd_incref(value));
     fd_hashtable_op(&(ix->cache),fd_table_replace,keypair,FD_VOID);
     fd_decref(keypair);}
   return FD_VOID;
@@ -1365,7 +1367,7 @@ static fdtype bgdecache(fdtype key,fdtype value)
   if (FD_VOIDP(value))
     fd_hashtable_op(&(ix->cache),fd_table_replace,key,FD_VOID);
   else {
-    fdtype keypair=fd_init_pair(NULL,fd_incref(key),fd_incref(value));
+    fdtype keypair=fd_conspair(fd_incref(key),fd_incref(value));
     fd_hashtable_op(&(ix->cache),fd_table_replace,keypair,FD_VOID);
     fd_decref(keypair);}
   return FD_VOID;
@@ -2070,9 +2072,8 @@ static fdtype oid_offset_prim(fdtype oidarg,fdtype against)
 #ifdef FD_OID_BASE_ID
 static fdtype oid_ptrdata_prim(fdtype oid)
 {
-  return fd_init_pair(NULL,
-                      FD_INT2DTYPE(FD_OID_BASE_ID(oid)),
-                      FD_INT2DTYPE(FD_OID_BASE_OFFSET(oid)));
+  return fd_conspair(FD_INT2DTYPE(FD_OID_BASE_ID(oid)),
+                     FD_INT2DTYPE(FD_OID_BASE_OFFSET(oid)));
 }
 #endif
 

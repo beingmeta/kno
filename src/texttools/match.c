@@ -555,9 +555,8 @@ static fdtype extract_text(u8_string string,u8_byteoff start,fdtype ends)
   fdtype answers=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(each_end,ends)
     if (FD_FIXNUMP(each_end)) {
-      fdtype extraction=fd_init_pair
-        (NULL,each_end,fd_extract_string
-         (NULL,string+start,string+fd_getint(each_end)));
+      fdtype extraction=fd_conspair(each_end,fd_extract_string
+                                    (NULL,string+start,string+fd_getint(each_end)));
       FD_ADD_TO_CHOICE(answers,extraction);}
   return answers;
 }
@@ -588,7 +587,7 @@ static fdtype textract
   else if (FD_EMPTY_CHOICEP(pat)) return FD_EMPTY_CHOICE;
   else if (FD_STRINGP(pat))
     if ((FD_STRLEN(pat)) == 0)
-      return fd_init_pair(NULL,FD_INT2DTYPE(off),fdtype_string(""));
+      return fd_conspair(FD_INT2DTYPE(off),fdtype_string(""));
     else if (off == lim) return FD_EMPTY_CHOICE;
     else {
       u8_byteoff mlen=
@@ -632,7 +631,7 @@ static fdtype textract
         int next=forward_char(string,off);
         U8_INIT_FIXED_OUTPUT(&str,16,buf);
         u8_putc(&str,code);
-        return fd_init_pair(NULL,FD_INT2DTYPE(next),fdtype_string(buf));}
+        return fd_conspair(FD_INT2DTYPE(next),fdtype_string(buf));}
       else return FD_EMPTY_CHOICE;}
   else if (FD_VECTORP(pat)) {
     fdtype seq_matches=extract_sequence(pat,0,next,env,string,off,lim,flags);
@@ -667,8 +666,7 @@ static fdtype textract
       fdtype answers=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(l,lengths) {
         fdtype extraction=
-          fd_init_pair
-          (NULL,l,fd_substring(string+off,string+fd_getint(l)));
+          fd_conspair(l,fd_substring(string+off,string+fd_getint(l)));
         if (FD_ABORTP(extraction)) {
           FD_STOP_DO_CHOICES;
           fd_decref(answers);
@@ -694,7 +692,7 @@ static fdtype textract
       fdtype ex=fd_extract_string
         (NULL,base+results[0].rm_so,base+results[0].rm_eo);
       int loc=u8_charoffset(string,off+results[0].rm_so);
-      return fd_init_pair(NULL,FD_INT2DTYPE(loc),ex);}}
+      return fd_conspair(FD_INT2DTYPE(loc),ex);}}
   else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);
 }
 
@@ -704,7 +702,7 @@ static fdtype extract_sequence
 {
   int l=FD_VECTOR_LENGTH(pat);
   if (pat_elt == l)
-    return fd_init_pair(NULL,FD_INT2DTYPE(off),FD_EMPTY_LIST);
+    return fd_conspair(FD_INT2DTYPE(off),FD_EMPTY_LIST);
   else {
     fdtype nextpat=
       (((pat_elt+1)==l) ? (next) : (FD_VECTOR_REF(pat,pat_elt+1)));
@@ -726,10 +724,10 @@ static fdtype extract_sequence
           else {
             FD_DO_CHOICES(remainder,remainders) {
               fdtype result=
-                fd_init_pair(NULL,FD_CAR(remainder),
-                             fd_init_pair
-                             (NULL,fd_incref(FD_CDR(sub_match)),
-                              fd_incref(FD_CDR(remainder))));
+                fd_conspair(FD_CAR(remainder),
+                            fd_conspair(
+                                        fd_incref(FD_CDR(sub_match)),
+                                        fd_incref(FD_CDR(remainder))));
               FD_ADD_TO_CHOICE(results,result);}
             fd_decref(remainders);}}}
       fd_decref(sub_matches);
@@ -747,7 +745,7 @@ static fdtype lists_to_vectors(fdtype lists)
       fdtype car=FD_CAR(scan); fd_incref(car);
       FD_VECTOR_SET(vec,i,car);
       i++; scan=FD_CDR(scan);}
-    elt=fd_init_pair(NULL,lsize,vec);
+    elt=fd_conspair(lsize,vec);
     FD_ADD_TO_CHOICE(answer,elt);}
   return answer;
 }
@@ -816,7 +814,7 @@ static fdtype extract_repeatedly
   fdtype choices=FD_EMPTY_CHOICE;
   fdtype top=textract(pat,next,env,string,off,lim,flags);
   if (FD_EMPTY_CHOICEP(top))
-    if (zero_ok) return fd_init_pair(NULL,FD_INT2DTYPE(off),FD_EMPTY_LIST);
+    if (zero_ok) return fd_conspair(FD_INT2DTYPE(off),FD_EMPTY_LIST);
     else return FD_EMPTY_CHOICE;
   else {
     FD_DO_CHOICES(each,top)
@@ -828,20 +826,18 @@ static fdtype extract_repeatedly
           extract_repeatedly(pat,next,env,string,fd_getint(size),lim,flags,1);
         if (FD_EMPTY_CHOICEP(remainders)) {
           fdtype last_item=
-            fd_init_pair(NULL,fd_incref(extraction),FD_EMPTY_LIST);
-          fdtype with_size=fd_init_pair(NULL,size,last_item);
+            fd_conspair(fd_incref(extraction),FD_EMPTY_LIST);
+          fdtype with_size=fd_conspair(size,last_item);
           FD_ADD_TO_CHOICE(choices,with_size);}
         else {
           FD_DO_CHOICES(remainder,remainders) {
-            fdtype item=fd_init_pair
-              (NULL,fd_car(remainder),
-               fd_init_pair
-               (NULL,fd_incref(extraction),(fd_cdr(remainder))));
+            fdtype item=fd_conspair(fd_car(remainder),
+                                    fd_conspair(fd_incref(extraction),(fd_cdr(remainder))));
             FD_ADD_TO_CHOICE(choices,item);}
           fd_decref(remainders);}
         if ((flags&FD_MATCH_BE_GREEDY)==0) {
           fdtype singleton=fd_make_list(1,fd_incref(extraction));
-          fdtype pair=fd_init_pair(NULL,size,singleton);
+          fdtype pair=fd_conspair(size,singleton);
           FD_ADD_TO_CHOICE(choices,pair);}}}
   fd_decref(top);
   return choices;
@@ -884,11 +880,10 @@ static fdtype extract_star
        (fd_text_search(next,env,string,off,lim,flags)));
     if (nextpos==-2) return FD_ERROR_VALUE;
     else if (nextpos<0)
-      return fd_init_pair(NULL,FD_INT2DTYPE(nextpos),
-                          fd_substring(string+off,string+lim));
-    else return fd_init_pair
-      (NULL,FD_INT2DTYPE(nextpos),
-       fd_substring(string+off,string+nextpos));}
+      return fd_conspair(FD_INT2DTYPE(nextpos),
+                         fd_substring(string+off,string+lim));
+    else return fd_conspair(FD_INT2DTYPE(nextpos),
+                            fd_substring(string+off,string+nextpos));}
   else {
     fdtype pat_arg=fd_get_arg(pat,1);
     if (FD_VOIDP(pat_arg))
@@ -900,8 +895,7 @@ static fdtype extract_star
       FD_DO_CHOICES(extraction,extractions) {
         fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);
         fdtype pair=
-          fd_init_pair(NULL,size,fd_init_pair
-                       (NULL,star_symbol,fd_incref(data)));
+          fd_conspair(size,fd_conspair(star_symbol,fd_incref(data)));
         FD_ADD_TO_CHOICE(answer,pair);}
       fd_decref(extractions);
       return answer;}}
@@ -939,7 +933,7 @@ static fdtype extract_plus
     FD_DO_CHOICES(extraction,extractions) {
       fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);
       fdtype pair=
-        fd_init_pair(NULL,size,fd_init_pair(NULL,plus_symbol,fd_incref(data)));
+        fd_conspair(size,fd_conspair(plus_symbol,fd_incref(data)));
       FD_ADD_TO_CHOICE(answer,pair);}
     fd_decref(extractions);
     return answer;}
@@ -971,8 +965,8 @@ static fdtype extract_opt
   else {
     fdtype extraction=textract(pat_arg,next,NULL,string,off,lim,flags);
     if (FD_EMPTY_CHOICEP(extraction))
-      return fd_init_pair(NULL,FD_INT2DTYPE(off),
-                          fd_make_list(1,opt_symbol));
+      return fd_conspair(FD_INT2DTYPE(off),
+                         fd_make_list(1,opt_symbol));
     else return extraction;}
 }
 
@@ -1167,7 +1161,7 @@ static fdtype label_extract
         else {
           fd_incref(parser);
           xtract=fd_make_list(4,FD_CAR(pat),sym,data,parser);}
-        addval=fd_init_pair(NULL,size,xtract);
+        addval=fd_conspair(size,xtract);
         FD_ADD_TO_CHOICE(answers,addval);}
       fd_decref(extractions);
       return answers;}}
@@ -1213,16 +1207,15 @@ static fdtype subst_extract
         fdtype matched=fd_substring(string+off,string+matchlen);
         if ((FD_CHOICEP(expanded))||(FD_ACHOICEP(expanded))) {
           FD_DO_CHOICES(subst_arg,expanded) {
-            fdtype new_args=fd_init_pair(NULL,fd_incref(matched),
-                                         fd_incref(subst_arg));
-            fdtype new_subst=fd_init_pair(NULL,subst_symbol,new_args);
-            fdtype answer=fd_init_pair(NULL,match,new_subst);
+            fdtype new_args=fd_conspair(fd_incref(matched),fd_incref(subst_arg));
+            fdtype new_subst=fd_conspair(subst_symbol,new_args);
+            fdtype answer=fd_conspair(match,new_subst);
             FD_ADD_TO_CHOICE(answers,answer);}
           fd_decref(matched);}
         else {
-          fdtype new_args=fd_init_pair(NULL,matched,expanded);
-          fdtype new_subst=fd_init_pair(NULL,subst_symbol,new_args);
-          fdtype answer=fd_init_pair(NULL,match,new_subst);
+          fdtype new_args=fd_conspair(matched,expanded);
+          fdtype new_subst=fd_conspair(subst_symbol,new_args);
+          fdtype answer=fd_conspair(match,new_subst);
           fd_incref(expanded);
           FD_ADD_TO_CHOICE(answers,answer);}}
       fd_decref(expanded);
@@ -1247,7 +1240,7 @@ static fdtype expand_subst_args(fdtype args,fd_lispenv env)
       fdtype conses=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(car,carchoices) {
         FD_DO_CHOICES(cdr,cdrchoices) {
-          fdtype cons=fd_init_pair(NULL,car,cdr);
+          fdtype cons=fd_conspair(car,cdr);
           fd_incref(car); fd_incref(cdr);
           FD_ADD_TO_CHOICE(conses,cons);}}
       fd_decref(carchoices);
@@ -1257,7 +1250,7 @@ static fdtype expand_subst_args(fdtype args,fd_lispenv env)
              (FD_EQUAL(cdrchoices,FD_CDR(args)))) {
       fd_decref(carchoices); fd_decref(cdrchoices);
       return fd_incref(args);}
-    else return fd_init_pair(NULL,carchoices,cdrchoices);}
+    else return fd_conspair(carchoices,cdrchoices);}
   else if (FD_CHOICEP(args)) {
     fdtype changed=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(elt,args) {
@@ -1487,7 +1480,7 @@ static fdtype word_extract
     FD_DO_CHOICES(end,ends) {
       fdtype substring=
         fd_substring(string+off,string+fd_getint(end));
-      fdtype pair=fd_init_pair(NULL,end,substring);
+      fdtype pair=fd_conspair(end,substring);
       FD_ADD_TO_CHOICE(answers,pair);}
     fd_decref(ends);
     return answers;}
@@ -1528,7 +1521,7 @@ static fdtype chunk_extract
     FD_DO_CHOICES(end,ends) {
       fdtype substring=
         fd_substring(string+off,string+fd_getint(end));
-      fdtype pair=fd_init_pair(NULL,end,substring);
+      fdtype pair=fd_conspair(end,substring);
       FD_ADD_TO_CHOICE(answers,pair);}
     fd_decref(ends);
     return answers;}
@@ -2074,8 +2067,8 @@ static fdtype extract_rest
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  return fd_init_pair(NULL,FD_INT2DTYPE(lim),
-                      fd_substring(string+off,string+lim));
+  return fd_conspair(FD_INT2DTYPE(lim),
+                     fd_substring(string+off,string+lim));
 }
 
 /** Character match operations **/

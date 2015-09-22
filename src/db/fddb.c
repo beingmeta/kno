@@ -56,7 +56,7 @@ static fdtype better_parse_oid(u8_string start,int len)
     if (scan-start>len) return FD_VOID;
     else if (FD_ABORTP(name)) return name;
     else if (fd_background) {
-      fdtype key=fd_init_pair(NULL,id_symbol,fd_incref(name));
+      fdtype key=fd_conspair(id_symbol,fd_incref(name));
       fdtype item=fd_index_get((fd_index)fd_background,key);
       fd_decref(key);
       if (FD_OIDP(item)) return item;
@@ -70,7 +70,7 @@ static fdtype better_parse_oid(u8_string start,int len)
     if (lookupfns!=FD_EMPTY_LIST) {
       FD_DOLIST(method,lookupfns) {
         if ((FD_SYMBOLP(method))||(FD_OIDP(method))) {
-          fdtype key=fd_init_pair(NULL,method,fd_incref(name));
+          fdtype key=fd_conspair(method,fd_incref(name));
           fdtype item=fd_index_get((fd_index)fd_background,key);
           fd_decref(key);
           if (FD_OIDP(item)) return item;

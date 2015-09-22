@@ -37,7 +37,7 @@ fd_exception fd_NoServerMethod=_("Server doesn't support method");
 static int server_supportsp(struct FD_NETWORK_INDEX *ni,fdtype operation)
 {
   fdtype request=
-    fd_init_pair(NULL,boundp,fd_init_pair(NULL,operation,FD_EMPTY_LIST));
+    fd_conspair(boundp,fd_conspair(operation,FD_EMPTY_LIST));
   fdtype response=fd_dteval(ni->connpool,request);
   fd_decref(request);
   if ((FD_FALSEP(response)) || (FD_ABORTP(response))) return 0;

@@ -1633,10 +1633,10 @@ static int do_hashtable_op
     if ((FD_VOIDP(result->value)) || (FD_EMPTY_CHOICEP(result->value)))
       result->value=fd_make_pair(value,FD_EMPTY_LIST);
     else if (FD_PAIRP(result->value))
-      result->value=fd_init_pair(NULL,fd_incref(value),result->value);
+      result->value=fd_conspair(fd_incref(value),result->value);
     else {
-      fdtype tail=fd_init_pair(NULL,result->value,FD_EMPTY_LIST);
-      result->value=fd_init_pair(NULL,fd_incref(value),tail);}
+      fdtype tail=fd_conspair(result->value,FD_EMPTY_LIST);
+      result->value=fd_conspair(fd_incref(value),tail);}
     break;
   default:
     added=-1;

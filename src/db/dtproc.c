@@ -69,11 +69,11 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   fd_init_dtype_stream(&stream,conn,8192);
   while (i>=0) {
     if ((FD_SYMBOLP(args[i])) || (FD_PAIRP(args[i])))
-      expr=fd_init_pair(NULL,fd_make_list(2,quote_symbol,fd_incref(args[i])),
-                        expr);
-    else expr=fd_init_pair(NULL,fd_incref(args[i]),expr);
+      expr=fd_conspair(fd_make_list(2,quote_symbol,fd_incref(args[i])),
+                       expr);
+    else expr=fd_conspair(fd_incref(args[i]),expr);
     i--;}
-  expr=fd_init_pair(NULL,dtp->fcnsym,expr);
+  expr=fd_conspair(dtp->fcnsym,expr);
   /* u8_log(LOG_DEBUG,"DTPROC","Using connection %d",conn); */
   if ((fd_dtswrite_dtype(&stream,expr)<0) ||
       (fd_dtsflush(&stream)<0)) {

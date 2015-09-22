@@ -478,7 +478,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
          vals[i]=default_value; i++;}
        else {vals[i]=FD_VOID; i++;}}
     while (j >= i) {
-      lexpr_arg=fd_init_pair(NULL,fd_incref(args[j]),lexpr_arg);
+      lexpr_arg=fd_conspair(fd_incref(args[j]),lexpr_arg);
       j--;}
     fd_incref(lexpr_arg);
     vals[i]=lexpr_arg;}
@@ -612,8 +612,8 @@ static fdtype macro_handler(fdtype expr,fd_lispenv env)
       (FD_PAIRP(FD_CDR(FD_CDR(expr))))) {
     fdtype name=FD_CADR(expr), body=FD_CDR(FD_CDR(expr));
     fdtype lambda_form=
-      fd_init_pair(NULL,lambda_symbol,
-                   fd_init_pair(NULL,fd_make_list(1,name),fd_incref(body)));
+      fd_conspair(lambda_symbol,
+                  fd_conspair(fd_make_list(1,name),fd_incref(body)));
     fdtype transformer=fd_eval(lambda_form,env);
     fdtype macro=fd_make_macro(FD_SYMBOL_NAME(name),transformer);
     fd_decref(lambda_form); fd_decref(transformer);

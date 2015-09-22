@@ -1845,7 +1845,7 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
       struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
       FD_INIT_CONS(tstamp,fd_timestamp_type);
       u8_init_xtime(&(tstamp->xtime),mod_time,u8_second,0,0,0);
-      entry=fd_init_pair(NULL,fd_incref(abspath_dtype),FDTYPE_CONS(tstamp));
+      entry=fd_conspair(fd_incref(abspath_dtype),FDTYPE_CONS(tstamp));
       if (FD_EMPTY_CHOICEP(sources)) fd_bind_value(source_symbol,entry,env);
       else fd_add_value(source_symbol,entry,env);}
     if (log_reloads)
@@ -1919,7 +1919,7 @@ int fd_snapshot(fd_lispenv env,u8_string filename)
     {FD_DO_CHOICES(sym,configvars)
        if (FD_SYMBOLP(sym)) {
          fdtype val=fd_config_get(FD_SYMBOL_NAME(sym));
-         fdtype config_entry=fd_init_pair(NULL,sym,val);
+         fdtype config_entry=fd_conspair(sym,val);
          if (FD_VOIDP(val))
            u8_log(LOG_WARN,SnapshotTrouble,"The snapshot config %q is not set",
                    sym);

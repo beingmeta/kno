@@ -154,7 +154,7 @@ FD_EXPORT int fd_pool_setop(fd_pool p,fdtype op,fdtype slotid,
   if (handlers==NULL)
     handlers=p->op_handlers=(struct FD_HASHTABLE *)
       fd_make_hashtable(NULL,17);
-  key=fd_init_pair(NULL,op,slotid);
+  key=fd_conspair(op,slotid);
   retval=fd_hashtable_store(handlers,key,handler);
   fd_decref(key);
   return retval;

@@ -183,18 +183,18 @@ static fdtype overlay_add
    (fdtype overlay,fdtype frame,fdtype slotid,fdtype value)
 {
   int retval=0;
-  fdtype key=fd_init_pair(NULL,slotid,fd_incref(frame));
+  fdtype key=fd_conspair(slotid,fd_incref(frame));
   fdtype entry=((FD_INDEXP(overlay)) ?
                 (fd_index_get(fd_indexptr(overlay),key)) :
                 (fd_hashtable_get((fd_hashtable)overlay,key,FD_VOID))),
     new_entry;
   if (FD_ABORTP(entry)) {fd_decref(key); return entry;}
   else if ((FD_VOIDP(entry)) || (FD_EMPTY_CHOICEP(entry)))
-    new_entry=fd_init_pair(NULL,fd_incref(value),FD_EMPTY_CHOICE);
+    new_entry=fd_conspair(fd_incref(value),FD_EMPTY_CHOICE);
   else if (FD_PAIRP(entry)) {
     fdtype adds=fd_make_simple_choice(FD_CAR(entry)), drops=FD_CDR(entry);
     fd_incref(value); FD_ADD_TO_CHOICE(adds,value);
-    new_entry=fd_init_pair(NULL,adds,fd_difference(drops,value));}
+    new_entry=fd_conspair(adds,fd_difference(drops,value));}
   else if (FD_VECTORP(entry)) {
     fdtype values=FD_VECTOR_REF(entry,0), *elts=u8_alloc_n(1,fdtype);
     /* Leak?  This fd_incref wasn't there before, but it looks like it should be. */
@@ -221,18 +221,18 @@ static fdtype overlay_drop
    (fdtype overlay,fdtype frame,fdtype slotid,fdtype value)
 {
   int retval=0;
-  fdtype key=fd_init_pair(NULL,slotid,fd_incref(frame));
+  fdtype key=fd_conspair(slotid,fd_incref(frame));
   fdtype entry=((FD_INDEXP(overlay)) ?
                 (fd_index_get(fd_indexptr(overlay),key)) :
                 (fd_hashtable_get((fd_hashtable)overlay,key,FD_VOID))),
     new_entry;
   if (FD_ABORTP(entry)) {fd_decref(key); return entry;}
   else if ((FD_VOIDP(entry)) || (FD_EMPTY_CHOICEP(entry)))
-    new_entry=fd_init_pair(NULL,FD_EMPTY_CHOICE,fd_incref(value));
+    new_entry=fd_conspair(FD_EMPTY_CHOICE,fd_incref(value));
   else if (FD_PAIRP(entry)) {
     fdtype adds=FD_CAR(entry), drops=fd_make_simple_choice(FD_CDR(entry));
     fd_incref(value); FD_ADD_TO_CHOICE(drops,value);
-    new_entry=fd_init_pair(NULL,fd_difference(adds,value),drops);}
+    new_entry=fd_conspair(fd_difference(adds,value),drops);}
   else if (FD_VECTORP(entry)) {
     fdtype values=FD_VECTOR_REF(entry,0), *elts=u8_alloc_n(1,fdtype);
     elts[0]=fd_difference(values,value);
@@ -256,7 +256,7 @@ static fdtype overlay_drop
 static fdtype overlay_store
    (fdtype overlay,fdtype frame,fdtype slotid,fdtype value)
 {
-  fdtype key=fd_init_pair(NULL,slotid,fd_incref(frame));
+  fdtype key=fd_conspair(slotid,fd_incref(frame));
   fdtype *data=u8_alloc_n(1,fdtype);
   fdtype entry=fd_init_vector(NULL,1,data);
   data[0]=value; fd_incref(value);
@@ -606,8 +606,9 @@ static void record_dependencies(fd_frameop_stack *cxt,fdtype factoid)
     while (i<n) {
       fdtype depends;
       if (FD_VOIDP(records[i].value))
-        depends=fd_init_pair(NULL,records[i].frame,records[i].slotid);
-      else depends=fd_make_list(3,records[i].frame,records[i].slotid,fd_incref(records[i].value));
+        depends=fd_conspair(records[i].frame,records[i].slotid);
+      else depends=fd_make_list(3,records[i].frame,records[i].slotid,
+                                fd_incref(records[i].value));
       factoids[i++]=depends;}
     fd_hashtable_iterkeys(&implications,fd_table_add,n,factoids,factoid);
     i=0; while (i<n) {fdtype factoid=factoids[i++]; fd_decref(factoid);}
@@ -642,11 +643,11 @@ FD_EXPORT void fd_decache(fdtype frame,fdtype slotid,fdtype value)
   fdtype factoid;
   if (!(FD_VOIDP(value))) {
     /* Do a value specific decache */
-    factoid=fd_init_pair(NULL,fd_incref(frame),
-                         fd_init_pair(NULL,fd_incref(slotid),fd_incref(value)));
+    factoid=fd_conspair
+      (fd_incref(frame),fd_conspair(fd_incref(slotid),fd_incref(value)));
     decache_implications(factoid);
     fd_decref(factoid);}
-  factoid=fd_init_pair(NULL,fd_incref(frame),fd_incref(slotid));
+  factoid=fd_conspair(fd_incref(frame),fd_incref(slotid));
   decache_implications(factoid);
   fd_decref(factoid);
 }
@@ -760,7 +761,7 @@ FD_EXPORT fdtype fd_frame_get(fdtype f,fdtype slotid)
       computed=fd_simplify_choice(computed);
       fd_decref(methods);
       if ((cache) && ((fd_ipeval_status()==ipestate))) {
-        fdtype factoid=fd_init_pair(NULL,fd_incref(f),fd_incref(slotid));
+        fdtype factoid=fd_conspair(fd_incref(f),fd_incref(slotid));
         record_dependencies(&fop,factoid); fd_decref(factoid);
         fd_hashtable_store(cache,f,computed);
         fd_pop_opstack(&fop,1);}
@@ -797,7 +798,7 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
       fdtype cached, methods;
       if (FD_VOIDP(cachev)) {
         cache=make_test_cache(slotid); cachev=(fdtype)cache;
-        cached=fd_init_pair(NULL,fd_make_hashset(),fd_make_hashset());
+        cached=fd_conspair(fd_make_hashset(),fd_make_hashset());
         fd_hashtable_store(cache,f,cached);}
       else if (FD_EMPTY_CHOICEP(cachev)) {
         cache=NULL; cached=FD_VOID;}
@@ -805,7 +806,7 @@ FD_EXPORT int fd_frame_test(fdtype f,fdtype slotid,fdtype value)
         cache=FD_XHASHTABLE(cachev);
         cached=fd_hashtable_get(cache,f,FD_VOID);
         if (FD_VOIDP(cached)) {
-          cached=fd_init_pair(NULL,fd_make_hashset(),fd_make_hashset());
+          cached=fd_conspair(fd_make_hashset(),fd_make_hashset());
           fd_hashtable_store(cache,f,cached);}}
       if (FD_PAIRP(cached)) {
         fdtype in=FD_CAR(cached), out=FD_CDR(cached);
@@ -1100,7 +1101,7 @@ int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
     fdtype keys=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(slotid,slotids) {
       FD_DO_CHOICES(value,values) {
-        fdtype key=fd_init_pair(NULL,slotid,value);
+        fdtype key=fd_conspair(slotid,value);
         FD_ADD_TO_CHOICE(keys,key);}}
     fd_index_prefetch(ix,keys);
     fd_decref(keys);
@@ -1112,7 +1113,7 @@ int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
     int n_keys=0;
     FD_DO_CHOICES(slotid,slotids) {
       FD_DO_CHOICES(value,values) {
-        fdtype key=fd_init_pair(NULL,slotid,value);
+        fdtype key=fd_conspair(slotid,value);
         keyv[n_keys++]=key;}}
     valuev=(ix->handler->fetchn)(ix,n_keys,keyv);
     fd_hashtable_iter(&(ix->cache),fd_table_add_empty_noref,

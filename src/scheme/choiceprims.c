@@ -865,7 +865,7 @@ static fdtype choice2vector(fdtype x)
 static fdtype choice2list(fdtype x)
 {
   fdtype lst=FD_EMPTY_LIST;
-  FD_DO_CHOICES(elt,x) lst=fd_init_pair(NULL,fd_incref(elt),lst);
+  FD_DO_CHOICES(elt,x) lst=fd_conspair(fd_incref(elt),lst);
   return lst;
 }
 

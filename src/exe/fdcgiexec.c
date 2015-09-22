@@ -95,7 +95,7 @@ static fdtype reqsetup()
 static void copy_envparam(char *name,fdtype target,fdtype slotid)
 {
   char *param=getenv(name);
-  fdtype value=((param) ? (fdtype_string(param)) : (FD_VOID));
+  fdtype value=((param) ? (fdstring(param)) : (FD_VOID));
   if (!(FD_VOIDP(value))) fd_add(target,slotid,value);
   fd_decref(value);
 }
@@ -146,7 +146,7 @@ static int fcgi_socket=-1;
 static void copy_param(char *name,FCGX_ParamArray envp,fdtype target,fdtype slotid)
 {
   char *param=FCGX_GetParam(name,envp);
-  fdtype value=((param) ? (fdtype_string(param)) : (FD_VOID));
+  fdtype value=((param) ? (fdstring(param)) : (FD_VOID));
   if (!(FD_VOIDP(value))) fd_add(target,slotid,value);
   fd_decref(value);
 }
@@ -711,12 +711,12 @@ int main(int argc,char **argv)
 
 #if FD_WITH_FASTCGI
   if ((loadfile) || (FCGX_IsCGI()))
-    simplecgi(fdtype_string(loadfile));
+    simplecgi(fdstring(loadfile));
   else start_fcgi_server(socketspec);
 #else
   if (loadfile==NULL) {
     u8_log(LOG_CRIT,"No file","No script file specified");}
-  else simplecgi(fdtype_string(loadfile));
+  else simplecgi(fdstring(loadfile));
 #endif
   return 0;
 }

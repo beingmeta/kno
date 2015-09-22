@@ -726,7 +726,7 @@ FD_FASTOP fdtype read_zkey(fd_hash_index hx,fd_byte_input in)
   else if ((code-1)<hx->n_slotids) {
     fdtype cdr=fast_read_dtype(in);
     if (FD_ABORTP(cdr)) return cdr;
-    else return fd_init_pair(NULL,hx->slotids[code-1],cdr);}
+    else return fd_conspair(hx->slotids[code-1],cdr);}
   else return fd_err(CorruptedHashIndex,"read_zkey",NULL,FD_VOID);
 }
 

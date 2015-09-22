@@ -402,7 +402,7 @@ static fdtype get_config_files(fdtype var,void MAYBE_UNUSED *data)
   struct FD_CONFIG_RECORD *scan; fdtype result=FD_EMPTY_LIST;
   fd_lock_mutex(&config_file_lock);
   scan=config_records; while (scan) {
-    result=fd_init_pair(NULL,fdtype_string(scan->source),result);
+    result=fd_conspair(fdtype_string(scan->source),result);
     scan=scan->next;}
   fd_unlock_mutex(&config_file_lock);
   return result;
