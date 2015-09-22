@@ -142,7 +142,7 @@ static fdtype get_changes(struct FD_CHANGELOG *clog,int cstamp,int *new_cstamp)
 
 static fdtype get_syncstamp_prim()
 {
-  return fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(change_count));
+  return fd_make_list(2,FD_INT(init_timestamp),FD_INT(change_count));
 }
 
 static fdtype oid_server_changes(fdtype sid,fdtype xid)
@@ -152,8 +152,8 @@ static fdtype oid_server_changes(fdtype sid,fdtype xid)
     int new_syncstamp;
     fdtype changes=get_changes(&oid_changelog,FD_FIX2INT(xid),&new_syncstamp);
     if (FD_FALSEP(changes))
-      return fd_make_list(1,fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)));
-    else return fd_conspair(fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)),
+      return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)));
+    else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)),
                             changes);}
 }
 
@@ -164,8 +164,8 @@ static fdtype iserver_changes(fdtype sid,fdtype xid)
     int new_syncstamp;
     fdtype changes=get_changes(&index_changelog,FD_FIX2INT(xid),&new_syncstamp);
     if (FD_FALSEP(changes))
-      return fd_make_list(1,fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)));
-    else return fd_conspair(fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)),
+      return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)));
+    else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)),
                             changes);}
 }
 
@@ -179,8 +179,8 @@ static fdtype ixserver_changes(fdtype index,fdtype sid,fdtype xid)
     int new_syncstamp;
     fdtype changes=get_changes(clog,FD_FIX2INT(xid),&new_syncstamp);
     if (FD_FALSEP(changes))
-      return fd_make_list(1,fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)));
-    else return fd_conspair(fd_make_list(2,FD_INT2DTYPE(init_timestamp),FD_INT2DTYPE(new_syncstamp)),
+      return fd_make_list(1,fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)));
+    else return fd_conspair(fd_make_list(2,FD_INT(init_timestamp),FD_INT(new_syncstamp)),
                             changes);}
 }
 
@@ -528,7 +528,7 @@ static fdtype server_get_load(fdtype oid_arg)
     int load=fd_pool_load(p);
     if (load<0)
       return fd_err(_("No method for load"),"server_get_load",NULL,oid_arg);
-    else return FD_INT2DTYPE(load);}
+    else return FD_INT(load);}
   else return fd_type_error("OID","server_get_load",oid_arg);
 }
 
@@ -583,7 +583,7 @@ static fdtype server_pool_data(fdtype session_id)
   int i=0; while (i<len) {
     fd_pool p=served_pools[i];
     fdtype base=fd_make_oid(p->base);
-    fdtype capacity=FD_INT2DTYPE(p->capacity);
+    fdtype capacity=FD_INT(p->capacity);
     fdtype ro=((p->read_only) ? (FD_FALSE) : (FD_TRUE));
     elts[i++]=
       ((p->label) ? (fd_make_list(4,base,capacity,ro,fdtype_string(p->label))) :
@@ -620,7 +620,7 @@ static fdtype iserver_get_size(fdtype key)
   fdtype value=fd_index_get((fd_index)(primary_index),key);
   int size=FD_CHOICE_SIZE(value);
   fd_decref(value);
-  return FD_INT2DTYPE(size);
+  return FD_INT(size);
 }
 static fdtype iserver_keys(fdtype key)
 {
@@ -677,12 +677,12 @@ static fdtype ixserver_get_size(fdtype index,fdtype key)
     fdtype value=fd_index_get(fd_indexptr(index),key);
     int size=FD_CHOICE_SIZE(value);
     fd_decref(value);
-    return FD_INT2DTYPE(size);}
+    return FD_INT(size);}
   else if (FD_TABLEP(index)) {
     fdtype value=fd_get(index,key,FD_EMPTY_CHOICE);
     int size=FD_CHOICE_SIZE(value);
     fd_decref(value);
-    return FD_INT2DTYPE(size);}
+    return FD_INT(size);}
   else return fd_type_error("index","ixserver_get",FD_VOID);
 }
 static fdtype ixserver_keys(fdtype index)
@@ -701,7 +701,7 @@ static fdtype ixserver_sizes(fdtype index)
     fdtype results=FD_EMPTY_CHOICE, keys=fd_getkeys(index);
     FD_DO_CHOICES(key,keys) {
       fdtype value=fd_get(index,key,FD_EMPTY_CHOICE);
-      fdtype keypair=fd_conspair(fd_incref(key),FD_INT2DTYPE(FD_CHOICE_SIZE(value)));
+      fdtype keypair=fd_conspair(fd_incref(key),FD_INT(FD_CHOICE_SIZE(value)));
       FD_ADD_TO_CHOICE(results,keypair);
       fd_decref(value);}
     fd_decref(keys);

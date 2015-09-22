@@ -244,7 +244,7 @@ static fdtype odbcintattr(struct FD_ODBC *dbp,int attrid)
   int ret, attrval=0;
   ret=SQLGetInfo(dbp->conn,attrid,(SQLPOINTER)&attrval,0,NULL);
   if (SQL_SUCCEEDED(ret))
-    return FD_INT2DTYPE(attrval);
+    return FD_INT(attrval);
   else return FD_ERROR_VALUE;
 }
 
@@ -292,13 +292,13 @@ static fdtype get_colvalue
     unsigned long long intval=0;
     int ret=SQLGetData(stmt,i+1,SQL_C_UBIGINT,&intval,0,NULL);
     if (SQL_SUCCEEDED(ret)) {
-      result=FD_INT2DTYPE(intval); break;}
+      result=FD_INT(intval); break;}
     else return stmt_error(stmt,"get_colvalue",0);}
   case SQL_INTEGER: case SQL_SMALLINT: {
     long intval=0;
     int ret=SQLGetData(stmt,i+1,SQL_C_LONG,&intval,0,NULL);
     if (SQL_SUCCEEDED(ret)) {
-      result=FD_INT2DTYPE(intval); break;}
+      result=FD_INT(intval); break;}
     else return stmt_error(stmt,"get_colvalue",0);}
   case SQL_FLOAT: case SQL_DOUBLE: {
     double dblval;

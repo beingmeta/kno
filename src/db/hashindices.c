@@ -2517,15 +2517,15 @@ FD_EXPORT fdtype fd_hash_index_stats(struct FD_HASH_INDEX *hx)
 {
   fdtype result=fd_empty_slotmap();
   int n_filled=0, maxk=0, n_singles=0, n2sum=0;
-  fd_add(result,fd_intern("NBUCKETS"),FD_INT2DTYPE(hx->n_buckets));
-  fd_add(result,fd_intern("NKEYS"),FD_INT2DTYPE(hx->n_keys));
-  fd_add(result,fd_intern("NBASEOIDS"),FD_INT2DTYPE(hx->n_baseoids));
-  fd_add(result,fd_intern("NSLOTIDS"),FD_INT2DTYPE(hx->n_slotids));
+  fd_add(result,fd_intern("NBUCKETS"),FD_INT(hx->n_buckets));
+  fd_add(result,fd_intern("NKEYS"),FD_INT(hx->n_keys));
+  fd_add(result,fd_intern("NBASEOIDS"),FD_INT(hx->n_baseoids));
+  fd_add(result,fd_intern("NSLOTIDS"),FD_INT(hx->n_slotids));
   hash_index_getstats(hx,&n_filled,&maxk,&n_singles,&n2sum);
-  fd_add(result,fd_intern("NFILLED"),FD_INT2DTYPE(n_filled));
-  fd_add(result,fd_intern("NSINGLES"),FD_INT2DTYPE(n_singles));
-  fd_add(result,fd_intern("MAXKEYS"),FD_INT2DTYPE(maxk));
-  fd_add(result,fd_intern("N2SUM"),FD_INT2DTYPE(n2sum));
+  fd_add(result,fd_intern("NFILLED"),FD_INT(n_filled));
+  fd_add(result,fd_intern("NSINGLES"),FD_INT(n_singles));
+  fd_add(result,fd_intern("MAXKEYS"),FD_INT(maxk));
+  fd_add(result,fd_intern("N2SUM"),FD_INT(n2sum));
   {
     double avg=(hx->n_keys*1.0)/(n_filled*1.0);
     double sd2=(n2sum*1.0)/(n_filled*n_filled*1.0);

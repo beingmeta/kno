@@ -243,7 +243,7 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
            "available libzip doesn't support uncompressed fields");}
 #endif
   u8_unlock_mutex(&(zf->lock));
-  return FD_INT2DTYPE(index);
+  return FD_INT(index);
 }
 
 static fdtype zipdrop_prim(fdtype zipfile,fdtype filename)

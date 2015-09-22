@@ -492,7 +492,7 @@ static int copy_value_sizes(fdtype key,fdtype value,void *vptr)
 {
   struct FD_HASHTABLE *sizes=(struct FD_HASHTABLE *)vptr;
   int value_size=((FD_VOIDP(value)) ? (0) : FD_CHOICE_SIZE(value));
-  fd_hashtable_store(sizes,key,FD_INT2DTYPE(value_size));
+  fd_hashtable_store(sizes,key,FD_INT(value_size));
   return 0;
 }
 
@@ -508,7 +508,7 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
       int i=0; while (i<n_fetched) {
         fdtype key=fetched[i].key, pair;
         unsigned int n_values=fetched[i].n_values;
-        pair=fd_conspair(fd_incref(key),FD_INT2DTYPE(n_values));
+        pair=fd_conspair(fd_incref(key),FD_INT(n_values));
         *write++=pair; i++;}
       u8_free(fetched);
       return fd_init_choice(result,n_fetched,NULL,
@@ -525,9 +525,9 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
       while (i<n_fetched) {
         fdtype key=fetched[i].key, pair;
         unsigned int n_values=fetched[i].n_values;
-        fdtype added=fd_hashtable_get(&added_sizes,key,FD_INT2DTYPE(0));
+        fdtype added=fd_hashtable_get(&added_sizes,key,FD_INT(0));
         n_values=n_values+fd_getint(added); fd_decref(added);
-        pair=fd_conspair(fd_incref(key),FD_INT2DTYPE(n_values));
+        pair=fd_conspair(fd_incref(key),FD_INT(n_values));
         *write++=pair; i++;}
       fd_recycle_hashtable(&added_sizes); u8_free(fetched);
       return fd_init_choice(result,n_total,NULL,

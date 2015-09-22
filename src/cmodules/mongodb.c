@@ -939,10 +939,10 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
       else value=packet;}
     break;}
   case BSON_TYPE_INT32:
-    value=FD_INT2DTYPE(bson_iter_int32(in));
+    value=FD_INT(bson_iter_int32(in));
     break;
   case BSON_TYPE_INT64:
-    value=FD_INT2DTYPE(bson_iter_int64(in));
+    value=FD_INT(bson_iter_int64(in));
     break;
   case BSON_TYPE_OID: {
     const bson_oid_t *oidval=bson_iter_oid(in);

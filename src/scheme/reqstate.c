@@ -294,7 +294,7 @@ FD_EXPORT fdtype reqloglen_prim()
   if (!(log)) return FD_FALSE;
   else {
     int len=log->u8_outptr-log->u8_outbuf;
-    return FD_INT2DTYPE(len);}
+    return FD_INT(len);}
 }
 
 FD_EXPORT fdtype reqlog_handler(fdtype expr,fd_lispenv env)

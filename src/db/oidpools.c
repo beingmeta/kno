@@ -411,7 +411,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
     else {
       fd_seterr(fd_BadFilePoolLabel,"open_oidpool",
                 u8_strdup("bad label loc"),
-                FD_INT2DTYPE(label_loc));
+                FD_INT(label_loc));
       fd_dtsclose(stream,1);
       u8_free(rname); u8_free(pool);
       return NULL;}}
@@ -453,7 +453,7 @@ static int init_schema_entry(struct FD_SCHEMA_ENTRY *e,int pos,fdtype vec)
     slotids[i]=fd_incref(val); i++;}
   sort_schema(slotids,len);
   /* This will make it fast to get the pos from the schema pointer */
-  slotids[len]=FD_INT2DTYPE(pos);
+  slotids[len]=FD_INT(pos);
   i=0; while (i<len) {
     fdtype val=FD_VECTOR_REF(vec,i);
     int j=0; while (j<len)

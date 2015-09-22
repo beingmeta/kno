@@ -643,7 +643,7 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
     case dt_fixnum:
       if (havebytes(in,4)) {
         int intval=fd_get_4bytes(in->ptr); in->ptr=in->ptr+4;
-        return FD_INT2DTYPE(intval);}
+        return FD_INT(intval);}
       else return fd_return_errcode(FD_EOD);
     case dt_flonum: {
       char bytes[4];

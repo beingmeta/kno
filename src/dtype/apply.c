@@ -123,7 +123,7 @@ FD_EXPORT fdtype fd_calltrack_sense(int trackall)
       write[i++]=(FD_FIXNUM_ZERO);
     else if (calltrack_sensors[i].intfcn) {
       long lv=calltrack_sensors[i].intfcn();
-      fdtype dv=(fdtype)FD_INT2DTYPE(lv);
+      fdtype dv=(fdtype)FD_INT(lv);
       write[i++]=dv;}
     else  if (calltrack_sensors[i].dblfcn) {
       double fv=calltrack_sensors[i].dblfcn();

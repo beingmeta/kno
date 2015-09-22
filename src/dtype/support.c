@@ -512,7 +512,7 @@ FD_EXPORT int fd_sconfig_set(fdtype ignored,fdtype v,void *vptr)
 FD_EXPORT fdtype fd_intconfig_get(fdtype ignored,void *vptr)
 {
   int *ptr=vptr;
-  return FD_INT2DTYPE(*ptr);
+  return FD_INT(*ptr);
 }
 FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *vptr)
 {
@@ -656,7 +656,7 @@ FD_EXPORT fdtype fd_config_rlimit_get(fdtype ignored,void *vptr)
     return fd_err(cond,"rlimit_get",u8_strdup(nrl->name),FD_VOID);}
   else if (rlim.rlim_cur==RLIM_INFINITY)
     return FD_FALSE;
-  else return FD_INT2DTYPE((long long)(rlim.rlim_cur));
+  else return FD_INT((long long)(rlim.rlim_cur));
 }
 
 FD_EXPORT int fd_config_rlimit_set(fdtype ignored,fdtype v,void *vptr)
@@ -1417,13 +1417,13 @@ static int config_setappid(fdtype var,fdtype val,void *data)
 static fdtype config_getpid(fdtype var,void *data)
 {
   pid_t pid=getpid();
-  return FD_INT2DTYPE(((unsigned long)pid));
+  return FD_INT(((unsigned long)pid));
 }
 
 static fdtype config_getppid(fdtype var,void *data)
 {
   pid_t pid=getppid();
-  return FD_INT2DTYPE(((unsigned long)pid));
+  return FD_INT(((unsigned long)pid));
 }
 
 static fdtype config_getsessionid(fdtype var,void *data)
@@ -1513,7 +1513,7 @@ static unsigned int randomseed=0x327b23c6;
 
 static fdtype config_getrandomseed(fdtype var,void *data)
 {
-  if (randomseed<FD_MAX_FIXNUM) return FD_INT2DTYPE(randomseed);
+  if (randomseed<FD_MAX_FIXNUM) return FD_INT(randomseed);
   else return (fdtype)fd_ulong_to_bigint(randomseed);
 }
 
@@ -1738,7 +1738,7 @@ static fdtype fdrevision_config_get(fdtype var,void *data)
 }
 static fdtype fdmajor_config_get(fdtype var,void *data)
 {
-  return FD_INT2DTYPE(FD_MAJOR_VERSION);
+  return FD_INT(FD_MAJOR_VERSION);
 }
 static fdtype u8version_config_get(fdtype var,void *data)
 {
@@ -1750,7 +1750,7 @@ static fdtype u8revision_config_get(fdtype var,void *data)
 }
 static fdtype u8major_config_get(fdtype var,void *data)
 {
-  return FD_INT2DTYPE(u8_getmajorversion());
+  return FD_INT(u8_getmajorversion());
 }
 
 /* UID/GID setting */
@@ -1831,7 +1831,7 @@ static int resolve_gid(fdtype val)
 static fdtype config_getuser(fdtype var,void *data)
 {
   uid_t gid=GETUIDFN(); int ival=(int)gid;
-  return FD_INT2DTYPE(ival);
+  return FD_INT(ival);
 }
 #else
 static fdtype config_getuser(fdtype var,void *data)
@@ -1870,7 +1870,7 @@ static int config_setuser(fdtype var,fdtype val,void *data)
 static fdtype config_getgroup(fdtype var,void *data)
 {
   gid_t gid=GETGIDFN(); int i=(int)gid;
-  return FD_INT2DTYPE(i);
+  return FD_INT(i);
 }
 #else
 static fdtype config_getgroup(fdtype var,void *data)
@@ -1945,7 +1945,7 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
 {
   int local_log=(loglevel<0);
   int abs_loglevel=((loglevel<0)?(-loglevel):(loglevel));
-  fdtype ll=FD_INT2DTYPE(loglevel);
+  fdtype ll=FD_INT(loglevel);
   fdtype csym=((c==NULL)?(FD_FALSE):(fd_intern((u8_string)c)));
   struct U8_OUTPUT *reqout=((req_loglevel>=loglevel)?(try_reqlog()):(NULL));
   fdtype mstring=fd_make_string(NULL,-1,message);
@@ -2065,7 +2065,7 @@ static int config_add_logfn(fdtype var,fdtype val,void *data)
 static fdtype config_get_reqloglevel(fdtype var,void *data)
 {
   if ((using_fd_logger)&&(req_loglevel>=0))
-    return FD_INT2DTYPE(req_loglevel);
+    return FD_INT(req_loglevel);
   else return FD_FALSE;
 }
 
@@ -2091,7 +2091,7 @@ static int config_set_reqloglevel(fdtype var,fdtype val,void *data)
 static fdtype config_get_reqlogonly(fdtype var,void *data)
 {
   if ((using_fd_logger)&&(req_logonly>=0))
-    return FD_INT2DTYPE(req_logonly);
+    return FD_INT(req_logonly);
   else return FD_FALSE;
 }
 

@@ -195,7 +195,7 @@ static fdtype compound_corelen_prim(fdtype tag)
   struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
   if (e) {
     if (e->core_slots<0) return FD_FALSE;
-    else return FD_INT2DTYPE(e->core_slots);}
+    else return FD_INT(e->core_slots);}
   else return FD_EMPTY_CHOICE;
 }
 

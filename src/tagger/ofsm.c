@@ -1631,7 +1631,7 @@ static fdtype make_word_entry(fdtype word,fdtype tag,fdtype root,int distance,fd
   else return fd_make_nvector(7,word,fd_incref(tag),root,
                               FD_USHORT2DTYPE(distance),
                               ((FD_VOIDP(source)) ? (FD_FALSE) : (source)),
-                              FD_INT2DTYPE(start),FD_INT2DTYPE(end));
+                              FD_INT(start),FD_INT(end));
 }
 
 static u8_string find_end(u8_string start,u8_string lim)
@@ -1828,7 +1828,7 @@ fdtype fd_analyze_text
              "Parsed %d sentences in %f seconds; %f/%f/%f/%f lex/comp/parse/proc",
              n_calls,u8_elapsed_time()-full_start,
              lextime,comptime,parsetime,proctime);
-    return FD_INT2DTYPE(n_calls);}
+    return FD_INT(n_calls);}
   else {
     double start_time=u8_elapsed_time();
     fd_parse_state final;
@@ -1842,7 +1842,7 @@ fdtype fd_analyze_text
     if (FD_ABORTP(retval)) {
       if (free_pcxt) fd_free_parse_context(pcxt);
       return retval;}
-    else return FD_INT2DTYPE(1);}
+    else return FD_INT(1);}
 }
 
 /* Sentence tagging */
@@ -2038,9 +2038,9 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
     fd_seterr(ParseFailed,"",NULL,FD_VOID);
     return retval;}
   else result=fd_make_nvector
-         (5,FD_INT2DTYPE(parse_context.n_calls),
-          FD_INT2DTYPE(parse_context.n_inputs),
-          FD_INT2DTYPE(parse_context.n_states),
+         (5,FD_INT(parse_context.n_calls),
+          FD_INT(parse_context.n_inputs),
+          FD_INT(parse_context.n_states),
           fd_init_double(NULL,parse_context.runtime),
           result);
   fd_free_parse_context(&parse_context);
@@ -2063,7 +2063,7 @@ static fdtype lexweight_prim(fdtype string,fdtype tag,fdtype value)
       if (weight<0) i++;
       else {
         fdtype pair=fd_conspair(fd_incref(FD_VECTOR_REF(arcs,i)),
-                                fd_incref(FD_INT2DTYPE(weight)));
+                                fd_incref(FD_INT(weight)));
         FD_ADD_TO_CHOICE(results,pair); i++;}}
     return results;}
   else {
@@ -2072,7 +2072,7 @@ static fdtype lexweight_prim(fdtype string,fdtype tag,fdtype value)
         if (FD_VOIDP(value)) {
           int weight=get_weight(weights,i);
           if (weight==255) return FD_FALSE;
-          else return FD_INT2DTYPE(weight);}
+          else return FD_INT(weight);}
         else {
           int weight=get_weight(weights,i);
           if (FD_VECTORP(weights)) {
@@ -2087,7 +2087,7 @@ static fdtype lexweight_prim(fdtype string,fdtype tag,fdtype value)
               bytes[i]=FD_FIX2INT(value);}
           else {}
           if (weight==255) return FD_FALSE;
-          else return FD_INT2DTYPE(weight);}
+          else return FD_INT(weight);}
       else i++;
     return FD_EMPTY_CHOICE;}
 }
@@ -2254,7 +2254,7 @@ static fdtype lisp_set_word_limit(fdtype x)
   int olimit=word_limit;
   if (FD_FIXNUMP(x)) word_limit=FD_FIX2INT(x);
   else word_limit=-1;
-  return FD_INT2DTYPE(olimit);
+  return FD_INT(olimit);
 }
 
 FD_EXPORT
@@ -2270,9 +2270,9 @@ void fd_trace_tagger()
 static fdtype lisp_get_stats()
 {
   return fd_make_nvector(4,
-                         FD_INT2DTYPE(total_states),
-                         FD_INT2DTYPE(total_inputs),
-                         FD_INT2DTYPE(total_sentences),
+                         FD_INT(total_states),
+                         FD_INT(total_inputs),
+                         FD_INT(total_sentences),
                          fd_init_double(NULL,total_parse_time));
 }
 

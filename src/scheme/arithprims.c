@@ -90,10 +90,10 @@ static fdtype oddp(fdtype x)
     int ival=FD_FIX2INT(x);
     if (ival%2) return FD_TRUE; else return FD_FALSE;}
   else if (FD_BIGINTP(x)) {
-    fdtype remainder=fd_remainder(x,FD_INT2DTYPE(2));
+    fdtype remainder=fd_remainder(x,FD_INT(2));
     if (FD_ABORTP(remainder)) return remainder;
     else if (FD_FIXNUMP(remainder))
-      if (FD_INT2DTYPE(remainder)) return FD_TRUE; else return FD_FALSE;
+      if (FD_INT(remainder)) return FD_TRUE; else return FD_FALSE;
     else {
       fd_decref(remainder); return FD_FALSE;}}
   else return FD_FALSE;
@@ -105,10 +105,10 @@ static fdtype evenp(fdtype x)
     int ival=FD_FIX2INT(x);
     if (ival%2) return FD_FALSE; else return FD_TRUE;}
   else if (FD_BIGINTP(x)) {
-    fdtype remainder=fd_remainder(x,FD_INT2DTYPE(2));
+    fdtype remainder=fd_remainder(x,FD_INT(2));
     if (FD_ABORTP(remainder)) return remainder;
     else if (FD_FIXNUMP(remainder))
-      if (FD_INT2DTYPE(remainder)) return FD_FALSE; else return FD_TRUE;
+      if (FD_INT(remainder)) return FD_FALSE; else return FD_TRUE;
     else {
       fd_decref(remainder); return FD_FALSE;}}
   else return FD_FALSE;
@@ -121,12 +121,12 @@ static fdtype realp(fdtype x)
 
 static fdtype positivep(fdtype x)
 {
-  int sgn=fd_numcompare(x,FD_INT2DTYPE(0));
+  int sgn=fd_numcompare(x,FD_INT(0));
   if (sgn>0) return FD_TRUE; else return FD_FALSE;
 }
 static fdtype negativep(fdtype x)
 {
-  int sgn=fd_numcompare(x,FD_INT2DTYPE(0));
+  int sgn=fd_numcompare(x,FD_INT(0));
   if (sgn<0) return FD_TRUE; else return FD_FALSE;
 }
 
@@ -149,7 +149,7 @@ static fdtype denominator_prim(fdtype x)
   if (FD_RATIONALP(x)) {
     fdtype den=FD_DENOMINATOR(x);
     return fd_incref(den);}
-  else if (FD_NUMBERP(x)) return FD_INT2DTYPE(1);
+  else if (FD_NUMBERP(x)) return FD_INT(1);
   else return fd_type_error("number","denominator_prim",x);
 }
 
@@ -169,7 +169,7 @@ static fdtype real_part_prim(fdtype x)
 
 static fdtype imag_part_prim(fdtype x)
 {
-  if (REALP(x)) return FD_INT2DTYPE(0);
+  if (REALP(x)) return FD_INT(0);
   else if (FD_COMPLEXP(x)) {
     fdtype r=FD_IMAGPART(x);
     return fd_incref(r);}
@@ -284,10 +284,10 @@ static fdtype abs_prim(fdtype x)
 {
   if (FD_FIXNUMP(x))
     if (FD_FIX2INT(x)<0)
-      return FD_INT2DTYPE(-(FD_FIX2INT(x)));
+      return FD_INT(-(FD_FIX2INT(x)));
     else return x;
-  else if (fd_numcompare(x,FD_INT2DTYPE(0))<0)
-    return fd_subtract(FD_INT2DTYPE(0),x);
+  else if (fd_numcompare(x,FD_INT(0))<0)
+    return fd_subtract(FD_INT(0),x);
   else return fd_incref(x);
 }
 
@@ -295,19 +295,19 @@ static fdtype modulo_prim(fdtype x,fdtype b)
 {
   if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(b))) {
     int ix=FD_FIX2INT(x), ib=FD_FIX2INT(b);
-    if (ix==0) return FD_INT2DTYPE(0);
+    if (ix==0) return FD_INT(0);
     else if (ib==0)
       return fd_type_error("nonzero","modulo_prim",b);
     else if (((ix>0) && (ib>0)) || ((ix<0) && (ib<0)))
-      return FD_INT2DTYPE((ix%ib));
+      return FD_INT((ix%ib));
     else {
       int rem=ix%ib;
-      if (rem) return FD_INT2DTYPE(ib+rem);
+      if (rem) return FD_INT(ib+rem);
       else return rem;}}
   else {
-    int xsign=fd_numcompare(x,FD_INT2DTYPE(0));
-    int bsign=fd_numcompare(b,FD_INT2DTYPE(0));
-    if (xsign==0) return FD_INT2DTYPE(0);
+    int xsign=fd_numcompare(x,FD_INT(0));
+    int bsign=fd_numcompare(b,FD_INT(0));
+    if (xsign==0) return FD_INT(0);
     else if (bsign==0)
       return fd_type_error("nonzero","modulo_prim",b);
     else if (((xsign>0) && (bsign>0)) || ((xsign<0) && (bsign<0)))
@@ -362,8 +362,8 @@ static fdtype floor_prim(fdtype x)
   else if (FD_RATIONALP(x)) {
     fdtype n=FD_NUMERATOR(x), d=FD_DENOMINATOR(x);
     fdtype q=fd_quotient(n,d);
-    if (fd_numcompare(x,FD_INT2DTYPE(0))<0) {
-      fdtype qminus=fd_subtract(q,FD_INT2DTYPE(1));
+    if (fd_numcompare(x,FD_INT(0))<0) {
+      fdtype qminus=fd_subtract(q,FD_INT(1));
       fd_decref(q);
       return qminus;}
     else return q;}
@@ -379,8 +379,8 @@ static fdtype ceiling_prim(fdtype x)
   else if (FD_RATIONALP(x)) {
     fdtype n=FD_NUMERATOR(x), d=FD_DENOMINATOR(x);
     fdtype q=fd_quotient(n,d);
-    if (fd_numcompare(x,FD_INT2DTYPE(0))>0) {
-      fdtype qminus=fd_plus(q,FD_INT2DTYPE(1));
+    if (fd_numcompare(x,FD_INT(0))>0) {
+      fdtype qminus=fd_plus(q,FD_INT(1));
       fd_decref(q);
       return qminus;}
     else return q;}
@@ -400,16 +400,16 @@ static fdtype round_prim(fdtype x)
     fdtype n=FD_NUMERATOR(x), d=FD_DENOMINATOR(x);
     fdtype q=fd_quotient(n,d);
     fdtype r=fd_remainder(n,d);
-    fdtype halfd=fd_quotient(d,FD_INT2DTYPE(2));
+    fdtype halfd=fd_quotient(d,FD_INT(2));
     if (fd_numcompare(r,halfd)<0) {
       fd_decref(halfd); fd_decref(r);
       return q;}
-    else if (fd_numcompare(x,FD_INT2DTYPE(0))<0) {
-      fdtype qplus=fd_subtract(q,FD_INT2DTYPE(1));
+    else if (fd_numcompare(x,FD_INT(0))<0) {
+      fdtype qplus=fd_subtract(q,FD_INT(1));
       fd_decref(q);
       return qplus;}
     else {
-      fdtype qminus=fd_plus(q,FD_INT2DTYPE(1));
+      fdtype qminus=fd_plus(q,FD_INT(1));
       fd_decref(q);
       return qminus;}}
   else return fd_type_error(_("scalar"),"floor_prim",x);
@@ -430,21 +430,21 @@ static fdtype scalerep_prim(fdtype x,fdtype scalearg)
       int factor=-scale;
       double val=FD_FLONUM(x), factor_up=doround(val*factor);
       int ival=factor_up;
-      return fd_conspair(FD_INT2DTYPE(ival),scalearg);}
+      return fd_conspair(FD_INT(ival),scalearg);}
     else return FD_EMPTY_CHOICE;
   else if (FD_FIXNUMP(x)) {
     int ival=FD_FIX2INT(x), rem=ival%scale, base=(ival/scale);
     if (rem==0) return fd_conspair(x,scalearg);
     else if (rem*2>scale)
       if (ival>0)
-        return fd_conspair(FD_INT2DTYPE((base+1)*scale),scalearg);
-      else return fd_conspair(FD_INT2DTYPE((base-1)*scale),scalearg);
-    else return fd_conspair(FD_INT2DTYPE(base*scale),scalearg);}
+        return fd_conspair(FD_INT((base+1)*scale),scalearg);
+      else return fd_conspair(FD_INT((base-1)*scale),scalearg);
+    else return fd_conspair(FD_INT(base*scale),scalearg);}
   else if (FD_FLONUMP(x)) {
     double dv=FD_FLONUM(x);
     double scaled=doround(dv/scale)*scale;
     int ival=scaled;
-    return fd_conspair(FD_INT2DTYPE(ival),scalearg);}
+    return fd_conspair(FD_INT(ival),scalearg);}
   else return FD_EMPTY_CHOICE;
 }
 
@@ -456,7 +456,7 @@ static fdtype ilog_prim(fdtype n,fdtype base_arg)
   int count=0, exp=1;
   while (exp<limit) {
     count++; exp=exp*base;}
-  return FD_INT2DTYPE(count);
+  return FD_INT(count);
 }
 
 /* HASHPTR */
@@ -491,7 +491,7 @@ static fdtype knuth_hash(fdtype arg)
       return fd_type_error("uint32","knuth_hash",arg);
     else {
       unsigned long long int hash=(num*2654435761ll)%0x100000000ll;
-      return FD_INT2DTYPE(hash);}}
+      return FD_INT(hash);}}
   else return fd_type_error("uint32","knuth_hash",arg);
 }
 
@@ -511,7 +511,7 @@ static fdtype wang_hash32(fdtype arg)
     num = num ^ (num >> 4);
     num = num * constval;
     num = num ^ (num >> 15);
-    return FD_INT2DTYPE(num);}
+    return FD_INT(num);}
   else return fd_type_error("uint32","wang_hash32",arg);
 }
 
@@ -533,7 +533,7 @@ static fdtype wang_hash64(fdtype arg)
     num = num ^ (num >> 28);
     num = num + (num << 31);
     if (num<0x8000000000000000ll)
-      return FD_INT2DTYPE(num);
+      return FD_INT(num);
     else return (fdtype) fd_ulong_long_to_bigint(num);}
   else return fd_type_error("uint64","wang_hash64",arg);
 }
@@ -545,7 +545,7 @@ static fdtype flip32(fdtype arg)
        (fd_bigint_fits(((fd_bigint)arg),32,0)))) {
     unsigned int word=fd_getint(arg);
     unsigned int flipped=fd_flip_word(word);
-    return FD_INT2DTYPE(flipped);}
+    return FD_INT(flipped);}
   else return fd_type_error("uint32","flip32",arg);
 }
 
@@ -560,7 +560,7 @@ static fdtype flip64(fdtype arg)
       ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
        (fd_bigint_to_ulong_long((fd_bigint)arg)));
     unsigned long long int flipped=fd_flip_word8(word);
-    if (flipped<FD_MAX_FIXNUM) return FD_INT2DTYPE(flipped);
+    if (flipped<FD_MAX_FIXNUM) return FD_INT(flipped);
     else return (fdtype) fd_ulong_long_to_bigint(flipped);}
   else return fd_type_error("uint64","flip64",arg);
 }
@@ -578,7 +578,7 @@ static fdtype cityhash64(fdtype arg,fdtype asint)
   else return fd_type_error("packet/string","cityhash64",arg);
   hash=u8_cityhash64(data,datalen);
   if (FD_TRUEP(asint))
-    return FD_INT2DTYPE(hash);
+    return FD_INT(hash);
   else {
     unsigned char bytes[8];
     bytes[0]=((hash>>56)&0xFF);
@@ -689,7 +689,7 @@ FD_EXPORT void fd_init_numeric_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x("ILOG",ilog_prim,1,
                                             fd_fixnum_type,FD_VOID,
-                                            fd_fixnum_type,FD_INT2DTYPE(2)));
+                                            fd_fixnum_type,FD_INT(2)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("KNUTH-HASH",knuth_hash,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("WANG-HASH32",wang_hash32,1));

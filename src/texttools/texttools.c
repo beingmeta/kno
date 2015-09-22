@@ -532,37 +532,37 @@ static fdtype seq2phrase_ndhelper
 static fdtype isspace_percentage(fdtype string)
 {
   u8_string scan=FD_STRDATA(string);
-  if (*scan=='\0') return FD_INT2DTYPE(0);
+  if (*scan=='\0') return FD_INT(0);
   else {
     int non_space=0, space=0, c;
     while ((c=egetc(&scan))>=0)
       if (u8_isspace(c)) space++;
       else non_space++;
-    return FD_INT2DTYPE((space*100)/(space+non_space));}
+    return FD_INT((space*100)/(space+non_space));}
 }
 
 static fdtype isalpha_percentage(fdtype string)
 {
   u8_string scan=FD_STRDATA(string);
-  if (*scan=='\0') return FD_INT2DTYPE(0);
+  if (*scan=='\0') return FD_INT(0);
   else {
     int non_alpha=0, alpha=0, c;
     while ((c=egetc(&scan))>0)
       if (u8_isalpha(c)) alpha++;
       else non_alpha++;
-    return FD_INT2DTYPE((alpha*100)/(alpha+non_alpha));}
+    return FD_INT((alpha*100)/(alpha+non_alpha));}
 }
 
 static fdtype isalphalen(fdtype string)
 {
   u8_string scan=FD_STRDATA(string);
-  if (*scan=='\0') return FD_INT2DTYPE(0);
+  if (*scan=='\0') return FD_INT(0);
   else {
     int non_alpha=0, alpha=0, c;
     while ((c=egetc(&scan))>0)
       if (u8_isalpha(c)) alpha++;
       else non_alpha++;
-    return FD_INT2DTYPE(alpha);}
+    return FD_INT(alpha);}
 }
 
 static fdtype count_words(fdtype string)
@@ -570,18 +570,18 @@ static fdtype count_words(fdtype string)
   u8_string scan=FD_STRDATA(string);
   int c=egetc(&scan), word_count=0;
   while (u8_isspace(c)) c=egetc(&scan);
-  if (c<0) return FD_INT2DTYPE(0);
+  if (c<0) return FD_INT(0);
   else while (c>0) {
       while ((c>0) && (!(u8_isspace(c)))) c=egetc(&scan);
       word_count++;
       while ((c>0) && (u8_isspace(c))) c=egetc(&scan);}
-  return FD_INT2DTYPE(word_count);
+  return FD_INT(word_count);
 }
 
 static fdtype ismarkup_percentage(fdtype string)
 {
   u8_string scan=FD_STRDATA(string);
-  if (*scan=='\0') return FD_INT2DTYPE(0);
+  if (*scan=='\0') return FD_INT(0);
   else {
     int content=0, markup=0, c=egetc(&scan);
     while (c>0)
@@ -599,7 +599,7 @@ static fdtype ismarkup_percentage(fdtype string)
         while ((c>0) && (u8_isspace(c))) c=egetc(&scan);}
       else {content++; c=egetc(&scan);}
     if ((content+markup==0)) return 0;
-    else return FD_INT2DTYPE((markup*100)/(content+markup));}
+    else return FD_INT((markup*100)/(content+markup));}
 }
 
 /* Stemming */
@@ -770,7 +770,7 @@ static fdtype return_offsets(u8_string s,fdtype results)
   FD_DO_CHOICES(off,results)
     if (FD_FIXNUMP(off)) {
       u8_charoff charoff=u8_charoffset(s,FD_FIX2INT(off));
-      FD_ADD_TO_CHOICE(final_results,FD_INT2DTYPE(charoff));}
+      FD_ADD_TO_CHOICE(final_results,FD_INT(charoff));}
     else {}
   fd_decref(results);
   return final_results;
@@ -834,7 +834,7 @@ static fdtype textsearch(fdtype pattern,fdtype string,
     if (pos<0)
       if (pos==-2) return FD_ERROR_VALUE;
       else return FD_FALSE;
-    else return FD_INT2DTYPE(u8_charoffset(FD_STRDATA(string),pos));}
+    else return FD_INT(u8_charoffset(FD_STRDATA(string),pos));}
 }
 
 static fdtype textract(fdtype pattern,fdtype string,
@@ -1102,7 +1102,7 @@ static fdtype textsubst(fdtype string,
             u8_puts(&out,FD_STRDATA(replace));
           else {
             u8_string stringdata=FD_STRDATA(string);
-            fdtype lisp_lim=FD_INT2DTYPE(u8_charoffset(stringdata,lim));
+            fdtype lisp_lim=FD_INT(u8_charoffset(stringdata,lim));
             fdtype replace_pat, xtract;
             if (FD_VOIDP(replace)) replace_pat=pattern;
             else replace_pat=replace;
@@ -1138,7 +1138,7 @@ static fdtype textsubst(fdtype string,
                   u8_charoff new_char_off=u8_charoffset(stringdata,newstart);
                   fdtype remainder=textsubst
                     (string,pattern,replace,
-                     FD_INT2DTYPE(new_char_off),lisp_lim);
+                     FD_INT(new_char_off),lisp_lim);
                   FD_DO_CHOICES(rem,remainder) {
                     fdtype stringval;
                     struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
@@ -1373,7 +1373,7 @@ static fdtype string_ends_with_test(fdtype string,fdtype pattern,
                                     int off,int lim)
 {
   u8_string data=FD_STRDATA(string); int start;
-  fdtype end=FD_INT2DTYPE(lim);
+  fdtype end=FD_INT(lim);
   if (FD_QCHOICEP(pattern)) pattern=(FD_XQCHOICE(pattern))->choice;
   if (FD_EMPTY_CHOICEP(pattern)) return FD_FALSE;
   start=fd_text_search(pattern,NULL,data,off,lim,0);
@@ -1859,7 +1859,7 @@ static fdtype apply_suffixrule
           fd_decref(xform); return checked;}}
       else {fd_decref(xform); return FD_EMPTY_CHOICE;}}
     else if (FD_VECTORP(replacement)) {
-      fdtype rewrites=textrewrite(replacement,string,FD_INT2DTYPE(0),FD_VOID);
+      fdtype rewrites=textrewrite(replacement,string,FD_INT(0),FD_VOID);
       if (FD_TRUEP(lexicon)) return rewrites;
       else if (FD_CHOICEP(rewrites)) {
         fdtype accepted=FD_EMPTY_CHOICE;
@@ -1883,7 +1883,7 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
 {
   if (FD_VECTORP(rule)) {
     fdtype results=FD_EMPTY_CHOICE;
-    fdtype candidates=textrewrite(rule,string,FD_INT2DTYPE(0),FD_VOID);
+    fdtype candidates=textrewrite(rule,string,FD_INT(0),FD_VOID);
     if (FD_EMPTY_CHOICEP(candidates)) {}
     else if (FD_TRUEP(lexicon))
       return candidates;
@@ -2062,10 +2062,10 @@ static fdtype findsep_prim(fdtype string,fdtype sep,
     const u8_byte *scan=start, *pos=strchr(scan,c);
     while ((pos) && (scan<limit)) {
       if (pos==start)
-        return FD_INT2DTYPE(u8_charoffset(str,(pos-str)));
+        return FD_INT(u8_charoffset(str,(pos-str)));
       else if (*(pos-1)==e) {
         pos++; u8_sgetc(&pos); scan=pos; pos=strchr(scan,c);}
-      else return FD_INT2DTYPE(u8_charoffset(str,(pos-str)));}
+      else return FD_INT(u8_charoffset(str,(pos-str)));}
     return FD_FALSE;}
 }
 
@@ -2345,12 +2345,12 @@ void fd_init_texttools()
   fd_idefn(texttools_module,
            fd_make_cprim3x("SEQ->PHRASE",seq2phrase_prim,1,
                            -1,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim3x("VECTOR->FRAGS",vector2frags_prim,1,
                            fd_vector_type,FD_VOID,
-                           -1,FD_INT2DTYPE(2),
+                           -1,FD_INT(2),
                            -1,FD_TRUE));
   fd_idefn(texttools_module,
            fd_make_cprim1x("DECODE-ENTITIES",decode_entities_prim,1,
@@ -2407,27 +2407,27 @@ void fd_init_texttools()
   fd_idefn(texttools_module,
            fd_make_cprim4x("TEXTMATCHER",textmatcher,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim4x("TEXTMATCH",textmatch,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim4x("TEXTSEARCH",textsearch,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim4x("TEXTRACT",textract,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim4x("TEXTREWRITE",textrewrite,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_ndprim(fd_make_cprim2("TEXTFILTER",textfilter,2)));
@@ -2436,72 +2436,72 @@ void fd_init_texttools()
            (fd_make_cprim4x
             ("STRING-MATCHES?",string_matches,2,
              -1,FD_VOID,-1,FD_VOID,
-             fd_fixnum_type,FD_INT2DTYPE(0),
+             fd_fixnum_type,FD_INT(0),
              fd_fixnum_type,FD_VOID)));
   fd_idefn(texttools_module,
            fd_make_ndprim
            (fd_make_cprim4x
             ("STRING-CONTAINS?",string_contains,2,
              -1,FD_VOID,-1,FD_VOID,
-             fd_fixnum_type,FD_INT2DTYPE(0),
+             fd_fixnum_type,FD_INT(0),
              fd_fixnum_type,FD_VOID)));
   fd_idefn(texttools_module,
            fd_make_ndprim
            (fd_make_cprim4x
             ("STRING-STARTS-WITH?",string_starts_with,2,
              -1,FD_VOID,-1,FD_VOID,
-             fd_fixnum_type,FD_INT2DTYPE(0),
+             fd_fixnum_type,FD_INT(0),
              fd_fixnum_type,FD_VOID)));
   fd_idefn(texttools_module,
            fd_make_ndprim
            (fd_make_cprim4x
             ("STRING-ENDS-WITH?",string_ends_with,2,
              -1,FD_VOID,-1,FD_VOID,
-             fd_fixnum_type,FD_INT2DTYPE(0),
+             fd_fixnum_type,FD_INT(0),
              fd_fixnum_type,FD_VOID)));
   
   fd_idefn(texttools_module,
            fd_make_cprim4x("TEXT->FRAME",text2frame,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim4x("TEXT->FRAMES",text2frames,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
 
   fd_idefn(texttools_module,
            fd_make_cprim5x("TEXTSUBST",textsubst,2,
                            fd_string_type,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim4x("GATHER",textgather,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim4x("GATHER*",textgather_star,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim4x("GATHERSUBST",gathersubst,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_idefn(texttools_module,
            fd_make_cprim4x("GATHERSUBST*",gathersubst_star,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
 
   fd_idefn(texttools_module,
            fd_make_cprim4x("GATHER->LIST",textgather2list,2,
                            -1,FD_VOID,fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
   fd_defalias(texttools_module,"GATHER->SEQ","GATHER->LIST");
 
@@ -2509,7 +2509,7 @@ void fd_init_texttools()
            fd_make_cprim5x("TEXTSLICE",textslice,2,
                            fd_string_type,FD_VOID,-1,FD_VOID,
                            -1,FD_TRUE,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
+                           fd_fixnum_type,FD_INT(0),
                            fd_fixnum_type,FD_VOID));
 
   fd_defspecial(texttools_module,"TEXTCLOSURE",textclosure_handler);

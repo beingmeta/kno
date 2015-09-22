@@ -371,7 +371,7 @@ static fdtype lisp_load_config(fdtype arg)
     u8_free(abspath);
     if (retval<0)
       return FD_ERROR_VALUE;
-    else return FD_INT2DTYPE(retval);}
+    else return FD_INT(retval);}
   else if (FD_SYMBOLP(arg)) {
     fdtype config_val=fd_config_get(FD_SYMBOL_NAME(arg));
     if (FD_STRINGP(config_val)) {

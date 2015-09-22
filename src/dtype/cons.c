@@ -1248,15 +1248,15 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
   fd_write_byte(out,dt_compound);
   size=size+fd_write_dtype(out,timestamp_symbol);
   if ((xtm->xtime.u8_prec == u8_second) && (xtm->xtime.u8_tzoff==0)) {
-    fdtype xval=FD_INT2DTYPE(xtm->xtime.u8_tick);
+    fdtype xval=FD_INT(xtm->xtime.u8_tick);
     size=size+fd_write_dtype(out,xval);}
   else {
     fdtype vec=fd_init_vector(NULL,4,NULL);
     int tzoff=xtm->xtime.u8_tzoff;
-    FD_VECTOR_SET(vec,0,FD_INT2DTYPE(xtm->xtime.u8_tick));
-    FD_VECTOR_SET(vec,1,FD_INT2DTYPE(xtm->xtime.u8_nsecs));
-    FD_VECTOR_SET(vec,2,FD_INT2DTYPE((int)xtm->xtime.u8_prec));
-    FD_VECTOR_SET(vec,3,FD_INT2DTYPE(tzoff));
+    FD_VECTOR_SET(vec,0,FD_INT(xtm->xtime.u8_tick));
+    FD_VECTOR_SET(vec,1,FD_INT(xtm->xtime.u8_nsecs));
+    FD_VECTOR_SET(vec,2,FD_INT((int)xtm->xtime.u8_prec));
+    FD_VECTOR_SET(vec,3,FD_INT(tzoff));
     size=size+fd_write_dtype(out,vec);}
   return size;
 }
@@ -1492,7 +1492,7 @@ void fd_init_cons_c()
 
   fd_compound_descriptor_type=
     fd_init_compound(NULL,FD_VOID,9,
-                     fd_intern("COMPOUNDTYPE"),FD_INT2DTYPE(9),
+                     fd_intern("COMPOUNDTYPE"),FD_INT(9),
                      fd_make_nvector(9,fd_intern("TAG"),fd_intern("LENGTH"),fd_intern("FIELDS"),
                                      fd_intern("INITFN"),fd_intern("FREEFN"),fd_intern("COMPAREFN"),
                                      fd_intern("STRINGFN"),fd_intern("DUMPFN"),fd_intern("RESTOREFN")),

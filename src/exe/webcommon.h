@@ -705,7 +705,7 @@ static void shutdown_on_signal(int sig)
   sprintf(buf,"SIG%d",sig);
   server_shutdown=1;
   shutdown_server((u8_condition)buf);
-  fd_doexit(FD_INT2DTYPE(sig));
+  fd_doexit(FD_INT(sig));
   return;  
 }
 

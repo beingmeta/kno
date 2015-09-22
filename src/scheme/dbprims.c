@@ -351,7 +351,7 @@ static fdtype lockoid(fdtype o,fdtype soft)
       fd_poperr(NULL,NULL,NULL,NULL);
       return FD_FALSE;}
     else return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(retval);
+  else return FD_INT(retval);
 }
 
 static fdtype oidlockedp(fdtype arg)
@@ -367,7 +367,7 @@ static fdtype lockoids(fdtype oids)
   int retval=fd_lock_oids(oids);
   if (retval<0)
     return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(retval);
+  else return FD_INT(retval);
 }
 
 static fdtype lockedoids(fdtype pool)
@@ -388,13 +388,13 @@ static fdtype unlockoids(fdtype oids,fdtype commitp)
     if (p) {
       int retval=fd_pool_unlock_all(p,force_commit);
       if (retval<0) return FD_ERROR_VALUE;
-      else return FD_INT2DTYPE(retval);}
+      else return FD_INT(retval);}
     else return fd_type_error("pool or OID","unlockoids",oids);}
   else {
     int retval=fd_unlock_oids(oids,force_commit);
     if (retval<0)
       return FD_ERROR_VALUE;
-    else return FD_INT2DTYPE(retval);}
+    else return FD_INT(retval);}
 }
 
 static fdtype make_compound_index(int n,fdtype *args)
@@ -453,14 +453,14 @@ static fdtype clean_mempool(fdtype pool_arg)
 {
   int retval=fd_clean_mempool(fd_lisp2pool(pool_arg));
   if (retval<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(retval);
+  else return FD_INT(retval);
 }
 
 static fdtype reset_mempool(fdtype pool_arg)
 {
   int retval=fd_reset_mempool(fd_lisp2pool(pool_arg));
   if (retval<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(retval);
+  else return FD_INT(retval);
 }
 
 static fdtype make_extpool(fdtype label,fdtype base,fdtype cap,
@@ -783,7 +783,7 @@ static fdtype pool_load(fdtype arg)
     return fd_type_error(_("pool spec"),"pool_load",arg);
   else {
     int load=fd_pool_load(p);
-    if (load>=0) return FD_INT2DTYPE(load);
+    if (load>=0) return FD_INT(load);
     else return FD_ERROR_VALUE;}
 }
 
@@ -792,7 +792,7 @@ static fdtype pool_capacity(fdtype arg)
   fd_pool p=arg2pool(arg);
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_capacity",arg);
-  else return FD_INT2DTYPE(p->capacity);
+  else return FD_INT(p->capacity);
 }
 
 static fdtype pool_base(fdtype arg)
@@ -972,19 +972,19 @@ static fdtype cachecount(fdtype arg)
   fd_pool p=NULL; fd_index ix=NULL;
   if (FD_VOIDP(arg)) {
     int count=fd_object_cache_load()+fd_index_cache_load();
-    return FD_INT2DTYPE(count);}
+    return FD_INT(count);}
   else if (FD_EQ(arg,pools_symbol)) {
     int count=fd_object_cache_load();
-    return FD_INT2DTYPE(count);}
+    return FD_INT(count);}
   else if (FD_EQ(arg,indices_symbol)) {
     int count=fd_index_cache_load();
-    return FD_INT2DTYPE(count);}
+    return FD_INT(count);}
   else if ((p=(fd_lisp2pool(arg)))) {
     int count=p->cache.n_keys;
-    return FD_INT2DTYPE(count);}
+    return FD_INT(count);}
   else if ((ix=(fd_indexptr(arg)))) {
     int count=ix->cache.n_keys;
-    return FD_INT2DTYPE(count);}
+    return FD_INT(count);}
   else return fd_type_error(_("pool or index"),"cachecount",arg);
 }
 
@@ -993,13 +993,13 @@ static fdtype cachecount(fdtype arg)
 static fdtype oidhi(fdtype x)
 {
   FD_OID addr=FD_OID_ADDR(x);
-  return FD_INT2DTYPE(FD_OID_HI(addr));
+  return FD_INT(FD_OID_HI(addr));
 }
 
 static fdtype oidlo(fdtype x)
 {
   FD_OID addr=FD_OID_ADDR(x);
-  return FD_INT2DTYPE(FD_OID_LO(addr));
+  return FD_INT(FD_OID_LO(addr));
 }
 
 static fdtype oidp(fdtype x)
@@ -1408,7 +1408,7 @@ static fdtype indexsource(fdtype ix_arg)
 static fdtype suggest_hash_size(fdtype size)
 {
   unsigned int suggestion=fd_get_hashtable_size(fd_getint(size));
-  return FD_INT2DTYPE(suggestion);
+  return FD_INT(suggestion);
 }
 
 /* PICK and REJECT */
@@ -2059,12 +2059,12 @@ static fdtype oid_offset_prim(fdtype oidarg,fdtype against)
   else if ((FD_VOIDP(against)) || (FD_FALSEP(against))) {
     fd_pool p=fd_oid2pool(oidarg);
     if (p) {base=p->base; cap=p->capacity;}
-    else return FD_INT2DTYPE((FD_OID_LO(oid))%0x100000);}
+    else return FD_INT((FD_OID_LO(oid))%0x100000);}
   else return fd_type_error(_("offset base"),"oid_offset_prim",against);
   if ((FD_OID_HI(oid))==(FD_OID_HI(base))) {
     int diff=(FD_OID_LO(oid))-(FD_OID_LO(base));
     if ((diff>=0) && ((cap<0) || (diff<cap)))
-      return FD_INT2DTYPE(diff);
+      return FD_INT(diff);
     else return FD_FALSE;}
   else return FD_FALSE;
 }
@@ -2072,8 +2072,8 @@ static fdtype oid_offset_prim(fdtype oidarg,fdtype against)
 #ifdef FD_OID_BASE_ID
 static fdtype oid_ptrdata_prim(fdtype oid)
 {
-  return fd_conspair(FD_INT2DTYPE(FD_OID_BASE_ID(oid)),
-                     FD_INT2DTYPE(FD_OID_BASE_OFFSET(oid)));
+  return fd_conspair(FD_INT(FD_OID_BASE_ID(oid)),
+                     FD_INT(FD_OID_BASE_OFFSET(oid)));
 }
 #endif
 
@@ -2260,8 +2260,8 @@ static fdtype oidaddr_prim(fdtype oid)
 #else
     unsigned long long addr=oidaddr;
 #endif
-    return FD_INT2DTYPE(addr);}
-  else return FD_INT2DTYPE(FD_OID_LO(oid));
+    return FD_INT(addr);}
+  else return FD_INT(FD_OID_LO(oid));
 }
 
 /* sumframe function */
@@ -2701,7 +2701,7 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("OID-PLUS",oid_plus_prim,1,
                            fd_oid_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(1)));
+                           fd_fixnum_type,FD_INT(1)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("OID-OFFSET",oid_offset_prim,1,
                            fd_oid_type,FD_VOID,
@@ -2742,8 +2742,8 @@ FD_EXPORT void fd_init_dbfns_c()
            fd_make_cprim5x("MAKE-MEMPOOL",make_mempool,2,
                            fd_string_type,FD_VOID,
                            fd_oid_type,FD_VOID,
-                           fd_fixnum_type,(FD_INT2DTYPE(1024*1024)),
-                           fd_fixnum_type,(FD_INT2DTYPE(0)),
+                           fd_fixnum_type,(FD_INT(1024*1024)),
+                           fd_fixnum_type,(FD_INT(0)),
                            -1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("CLEAN-MEMPOOL",clean_mempool,1));

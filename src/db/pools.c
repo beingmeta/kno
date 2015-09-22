@@ -1707,7 +1707,7 @@ static fdtype extpool_alloc(fd_pool p,int n)
     return fd_err(_("No OID alloc method"),"extpool_alloc",NULL,
                   fd_pool2lisp(p));
   else {
-    fdtype args[2]; args[0]=FD_INT2DTYPE(n); args[1]=ep->state;
+    fdtype args[2]; args[0]=FD_INT(n); args[1]=ep->state;
     if (FD_FIXNUMP(args[0]))
       return fd_apply(ep->allocfn,2,args);
     else {

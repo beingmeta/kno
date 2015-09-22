@@ -135,7 +135,7 @@ static fdtype write_dtype(fdtype object,fdtype stream)
     FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
   int bytes=fd_dtswrite_dtype(ds->dt_stream,object);
   if (bytes<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(bytes);
+  else return FD_INT(bytes);
 }
 
 static fdtype write_bytes(fdtype object,fdtype stream)
@@ -152,7 +152,7 @@ static fdtype write_bytes(fdtype object,fdtype stream)
   else {
     int bytes=fd_dtswrite_dtype(ds->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
-    else return FD_INT2DTYPE(bytes);}
+    else return FD_INT(bytes);}
 }
 
 static fdtype packet2dtype(fdtype packet)
@@ -180,7 +180,7 @@ static fdtype read_int(fdtype stream)
   struct FD_DTSTREAM *ds=
     FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
   unsigned int ival=fd_dtsread_4bytes(ds->dt_stream);
-  return FD_INT2DTYPE(ival);
+  return FD_INT(ival);
 }
 
 static fdtype write_int(fdtype object,fdtype stream)
@@ -190,7 +190,7 @@ static fdtype write_int(fdtype object,fdtype stream)
   int ival=fd_getint(object);
   int bytes=fd_dtswrite_4bytes(ds->dt_stream,ival);
   if (bytes<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(bytes);
+  else return FD_INT(bytes);
 }
 
 static fdtype zread_dtype(fdtype stream)
@@ -208,7 +208,7 @@ static fdtype zwrite_dtype(fdtype object,fdtype stream)
     FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
   int bytes=fd_zwrite_dtype(ds->dt_stream,object);
   if (bytes<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(bytes);
+  else return FD_INT(bytes);
 }
 
 static fdtype zwrite_dtypes(fdtype object,fdtype stream)
@@ -217,7 +217,7 @@ static fdtype zwrite_dtypes(fdtype object,fdtype stream)
     FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
   int bytes=fd_zwrite_dtypes(ds->dt_stream,object);
   if (bytes<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(bytes);
+  else return FD_INT(bytes);
 }
 
 static fdtype zread_int(fdtype stream)
@@ -225,7 +225,7 @@ static fdtype zread_int(fdtype stream)
   struct FD_DTSTREAM *ds=
     FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
   unsigned int ival=fd_dtsread_zint(ds->dt_stream);
-  return FD_INT2DTYPE(ival);
+  return FD_INT(ival);
 }
 
 static fdtype zwrite_int(fdtype object,fdtype stream)
@@ -235,7 +235,7 @@ static fdtype zwrite_int(fdtype object,fdtype stream)
   int ival=fd_getint(object);
   int bytes=fd_dtswrite_zint(ds->dt_stream,ival);
   if (bytes<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(bytes);
+  else return FD_INT(bytes);
 }
 
 /* Output strings */
@@ -1487,16 +1487,16 @@ FD_EXPORT void fd_init_portfns_c()
            fd_make_cprim2("INEXACT->STRING",inexact2string,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("NUMBER->STRING",number2string,1,
-                           -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(10)));
+                           -1,FD_VOID,fd_fixnum_type,FD_INT(10)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2("NUMBER->LOCALE",number2locale,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("STRING->NUMBER",string2number,1,
                            fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(-1)));
+                           fd_fixnum_type,FD_INT(-1)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("->NUMBER",just2number,1,
-                           -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(-1)));
+                           -1,FD_VOID,fd_fixnum_type,FD_INT(-1)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("EOF-OBJECT?",eofp,1));
 
@@ -1567,7 +1567,7 @@ FD_EXPORT void fd_init_portfns_c()
                            fd_packet_type,FD_VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("DTYPE->PACKET",dtype2packet,1,
-                           -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(128)));
+                           -1,FD_VOID,fd_fixnum_type,FD_INT(128)));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("READ-INT",read_int,1,fd_dtstream_type,FD_VOID));

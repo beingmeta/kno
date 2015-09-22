@@ -26,7 +26,7 @@ static int write_dtype_to_file(fdtype object,FILE *f)
 int main(int argc,char **argv)
 {
   int lispv=fd_init_dtypelib();
-  fdtype fix1=FD_INT2DTYPE(33994);
+  fdtype fix1=FD_INT(33994);
   fdtype dbl1=fd_init_double(NULL,3.445);
   fdtype dbl2=fd_init_double(u8_alloc(struct FD_DOUBLE),-3.9994);
   fdtype string1=fd_make_string(NULL,3,"foo");
@@ -34,7 +34,7 @@ int main(int argc,char **argv)
   fdtype compound=
     fd_init_compound(NULL,
                      fd_probe_symbol("QUOTE",5),0,1,
-                     fd_make_pair(FD_INT2DTYPE(5),FD_TRUE));
+                     fd_make_pair(FD_INT(5),FD_TRUE));
   fdtype vec=fd_make_nvector(3,fix1,dbl1,string1);
   fdtype lst=fd_make_list(4,vec,string2,dbl2,compound);
   u8_string as_string=fd_dtype2string(lst);

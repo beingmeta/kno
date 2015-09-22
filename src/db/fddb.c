@@ -243,7 +243,7 @@ static int set_default_cache_level(fdtype var,fdtype val,void *data)
 }
 static fdtype get_default_cache_level(fdtype var,void *data)
 {
-  return FD_INT2DTYPE(fd_default_cache_level);
+  return FD_INT(fd_default_cache_level);
 }
 
 static int set_oid_display_level(fdtype var,fdtype val,void *data)
@@ -255,7 +255,7 @@ static int set_oid_display_level(fdtype var,fdtype val,void *data)
 }
 static fdtype get_oid_display_level(fdtype var,void *data)
 {
-  return FD_INT2DTYPE(fd_oid_display_level);
+  return FD_INT(fd_oid_display_level);
 }
 
 static int set_prefetch(fdtype var,fdtype val,void *data)

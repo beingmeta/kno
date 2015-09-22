@@ -371,7 +371,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
 {
   if (FD_EQ(slotid,year_symbol))
     if (xt->u8_prec>=u8_year)
-      return FD_INT2DTYPE(xt->u8_year);
+      return FD_INT(xt->u8_year);
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
                     FD_SYMBOL_NAME(slotid),FD_VOID);
@@ -627,14 +627,14 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
   else if (FD_EQ(slotid,tick_symbol))
     if (xt->u8_prec>=u8_second) {
       time_t tick=xt->u8_tick;
-      return FD_INT2DTYPE((long)tick);}
+      return FD_INT((long)tick);}
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
                     FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,prim_tick_symbol)) {
     time_t tick=xt->u8_tick;
-    return FD_INT2DTYPE((long)tick);}
+    return FD_INT((long)tick);}
   else if (FD_EQ(slotid,xtick_symbol))
     if (xt->u8_prec>=u8_second) {
       double dsecs=(double)(xt->u8_tick), dnsecs=(double)(xt->u8_nsecs);
@@ -649,13 +649,13 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
     if (xt->u8_prec>=u8_second) {
       unsigned int nsecs=xt->u8_nsecs;
       if (FD_EQ(slotid,nanoseconds_symbol))
-        return FD_INT2DTYPE(nsecs);
+        return FD_INT(nsecs);
       else {
         unsigned int reduce=
           ((FD_EQ(slotid,microseconds_symbol)) ? (1000) :(1000000));
         unsigned int half_reduce=reduce/2;
         unsigned int retval=((nsecs/reduce)+((nsecs%reduce)>=half_reduce));
-        return FD_INT2DTYPE(retval);}}
+        return FD_INT(retval);}}
     else if (reterr)
       return fd_err(fd_ImpreciseTimestamp,"xtime_get",
                     FD_SYMBOL_NAME(slotid),FD_VOID);
@@ -877,7 +877,7 @@ static fdtype time_prim()
   if (now<0) {
     u8_graberr(-1,"time_prim",NULL);
     return FD_ERROR_VALUE;}
-  else return FD_INT2DTYPE(now);
+  else return FD_INT(now);
 }
 
 static fdtype millitime_prim()
@@ -886,7 +886,7 @@ static fdtype millitime_prim()
   if (now<0) {
     u8_graberr(-1,"millitime_prim",NULL);
     return FD_ERROR_VALUE;}
-  else return FD_INT2DTYPE(now);
+  else return FD_INT(now);
 }
 
 static fdtype microtime_prim()
@@ -895,7 +895,7 @@ static fdtype microtime_prim()
   if (now<0) {
     u8_graberr(-1,"microtime_prim",NULL);
     return FD_ERROR_VALUE;}
-  else return FD_INT2DTYPE(now);
+  else return FD_INT(now);
 }
 
 /* Counting seconds */
@@ -1125,13 +1125,13 @@ static fdtype rusage_prim(fdtype field)
     fdtype result=fd_empty_slotmap();
     pid_t pid=getpid(), ppid=getppid();
     unsigned long mem=u8_memusage();
-    fd_add(result,data_symbol,FD_INT2DTYPE(r.ru_idrss));
-    fd_add(result,stack_symbol,FD_INT2DTYPE(r.ru_isrss));
-    fd_add(result,shared_symbol,FD_INT2DTYPE(r.ru_ixrss));
-    fd_add(result,resident_symbol,FD_INT2DTYPE(r.ru_maxrss));
-    fd_add(result,memusage_symbol,FD_INT2DTYPE(mem));
-    fd_add(result,pid_symbol,FD_INT2DTYPE(pid));
-    fd_add(result,ppid_symbol,FD_INT2DTYPE(ppid));
+    fd_add(result,data_symbol,FD_INT(r.ru_idrss));
+    fd_add(result,stack_symbol,FD_INT(r.ru_isrss));
+    fd_add(result,shared_symbol,FD_INT(r.ru_ixrss));
+    fd_add(result,resident_symbol,FD_INT(r.ru_maxrss));
+    fd_add(result,memusage_symbol,FD_INT(mem));
+    fd_add(result,pid_symbol,FD_INT(pid));
+    fd_add(result,ppid_symbol,FD_INT(ppid));
     {
       double loadavg[3]; int nsamples=getloadavg(loadavg,3);
       if (nsamples>0) {
@@ -1163,7 +1163,7 @@ static fdtype rusage_prim(fdtype field)
       fd_decref(tval);}
     return result;}
   else if (FD_EQ(field,data_symbol))
-    return FD_INT2DTYPE(r.ru_idrss);
+    return FD_INT(r.ru_idrss);
   else if (FD_EQ(field,cpusage_symbol)) {
     double elapsed=u8_elapsed_time()*1000000.0;
     double stime=u8_dbltime(r.ru_stime);
@@ -1171,17 +1171,17 @@ static fdtype rusage_prim(fdtype field)
     double cpusage=(stime+utime)*100.0/elapsed;
     return fd_init_double(NULL,cpusage);}
   else if (FD_EQ(field,stack_symbol))
-    return FD_INT2DTYPE(r.ru_isrss);
+    return FD_INT(r.ru_isrss);
   else if (FD_EQ(field,shared_symbol))
-    return FD_INT2DTYPE(r.ru_ixrss);
+    return FD_INT(r.ru_ixrss);
   else if (FD_EQ(field,resident_symbol))
-    return FD_INT2DTYPE(r.ru_maxrss);
+    return FD_INT(r.ru_maxrss);
   else if (FD_EQ(field,utime_symbol))
     return fd_make_double(u8_dbltime(r.ru_utime));
   else if (FD_EQ(field,stime_symbol))
     return fd_make_double(u8_dbltime(r.ru_stime));
   else if (FD_EQ(field,memusage_symbol))
-    return FD_INT2DTYPE(u8_memusage());
+    return FD_INT(u8_memusage());
   else if (FD_EQ(field,load_symbol)) {
     double loadavg; int nsamples=getloadavg(&loadavg,1);
     if (nsamples>0) return fd_make_double(loadavg);
@@ -1197,9 +1197,9 @@ static fdtype rusage_prim(fdtype field)
              (3,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]),
               fd_make_double(loadavg[2]));}
     else if (FD_EQ(field,pid_symbol))
-      return FD_INT2DTYPE((unsigned long)(getpid()));
+      return FD_INT((unsigned long)(getpid()));
     else if (FD_EQ(field,ppid_symbol))
-      return FD_INT2DTYPE((unsigned long)(getppid()));
+      return FD_INT((unsigned long)(getppid()));
     else return FD_EMPTY_CHOICE;}
   else return FD_EMPTY_CHOICE;
 }
@@ -1207,18 +1207,18 @@ static fdtype rusage_prim(fdtype field)
 static fdtype getpid_prim()
 {
   pid_t pid=getpid();
-  return FD_INT2DTYPE(((unsigned long)pid));
+  return FD_INT(((unsigned long)pid));
 }
 static fdtype getppid_prim()
 {
   pid_t pid=getppid();
-  return FD_INT2DTYPE(((unsigned long)pid));
+  return FD_INT(((unsigned long)pid));
 }
 
 static fdtype memusage_prim()
 {
   unsigned long size=u8_memusage();
-  return FD_INT2DTYPE(size);
+  return FD_INT(size);
 }
 
 static fdtype usertime_prim()
@@ -1494,7 +1494,7 @@ static fdtype uuidnode_prim(fdtype uuid_arg)
   long long id= u8_uuid_nodeid(uuid->uuid);
   if (id<0)
     return fd_type_error("time-based UUID","uuidnode_prim",uuid_arg);
-  else return FD_INT2DTYPE(id);
+  else return FD_INT(id);
 }
 
 static fdtype uuidstring_prim(fdtype uuid_arg)
@@ -1518,7 +1518,7 @@ static fdtype corelimit_get(fdtype symbol,void *vptr)
   if (rv<0) {
     u8_graberr(errno,"corelimit_get",NULL);
     return FD_ERROR_VALUE;}
-  else return FD_INT2DTYPE(limit.rlim_cur);
+  else return FD_INT(limit.rlim_cur);
 }
 
 static int corelimit_set(fdtype symbol,fdtype value,void *vptr)

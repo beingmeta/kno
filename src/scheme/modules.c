@@ -554,7 +554,7 @@ static fdtype bronze_module(fdtype module)
   if (FD_HASHTABLEP(module)) {
     int conversions=fd_persist_module(module);
     if (conversions<0) return FD_ERROR_VALUE;
-    else return FD_INT2DTYPE(conversions);}
+    else return FD_INT(conversions);}
   else if (FD_ENVIRONMENTP(module)) {
     fd_lispenv env=(fd_lispenv) module;
     int conversions=0, delta=0;
@@ -565,7 +565,7 @@ static fdtype bronze_module(fdtype module)
     if ((env->exports) && (FD_HASHTABLEP(env->exports)))
       delta=fd_persist_module(env->exports);
     if (conversions<0) return FD_ERROR_VALUE;
-    else return FD_INT2DTYPE(conversions+delta);}
+    else return FD_INT(conversions+delta);}
   else {
     fdtype module_val=fd_find_module(module,0,0);
     if (FD_ABORTP(module_val)) return module_val;

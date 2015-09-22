@@ -146,7 +146,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,fd_off_t mdblockpos)
       fd_setpos(ds,mdpos);
       metadata=fd_dtsread_dtype(ds);}
     else metadata=fd_empty_slotmap();
-    fd_store(metadata,rev_symbol,FD_INT2DTYPE(rev));
+    fd_store(metadata,rev_symbol,FD_INT(rev));
     return metadata;}
   else if (mdversion!=0xFFFFFFFE)
     return fd_err(fd_BadMetaData,NULL,u8_strdup(ds->id),FD_VOID);
@@ -172,7 +172,7 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,fd_off_t mdblockpos)
     fd_setpos(ds,mdpos);
     metadata=fd_dtsread_dtype(ds);}
   else metadata=fd_empty_slotmap();
-  fd_store(metadata,rev_symbol,FD_INT2DTYPE(rev));
+  fd_store(metadata,rev_symbol,FD_INT(rev));
   fd_store(metadata,gentime_symbol,fd_make_timestamp(&_gentime));
   fd_store(metadata,packtime_symbol,fd_make_timestamp(&_packtime));
   fd_store(metadata,modtime_symbol,fd_make_timestamp(&_modtime));

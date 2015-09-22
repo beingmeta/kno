@@ -552,13 +552,13 @@ static void shutdown_dtypeserver_onsignal(int sig)
   u8_log(LOG_CRIT,ServerShutdown,"Shutting down server on signal %d",sig);
   u8_server_shutdown(&dtype_server,shutdown_grace);
   if (FD_APPLICABLEP(shutdown_proc)) {
-    fdtype sigval=FD_INT2DTYPE(sig), value;
+    fdtype sigval=FD_INT(sig), value;
     u8_log(LOG_WARNING,ServerShutdown,"Calling shutdown procedure %q",
            shutdown_proc);
     value=fd_apply(shutdown_proc,1,&sigval);
     fd_decref(value);}
   cleanup_state_files();
-  fd_doexit(FD_INT2DTYPE(sig));
+  fd_doexit(FD_INT(sig));
   u8_log(LOG_CRIT,ServerShutdown,"Done shutting down server");
 }
 
@@ -595,136 +595,136 @@ static fdtype get_server_status()
   fdtype result=fd_init_slotmap(NULL,0,NULL);
   struct U8_SERVER_STATS stats, livestats, curstats;
 
-  fd_store(result,fd_intern("NTHREADS"),FD_INT2DTYPE(dtype_server.n_threads));
-  fd_store(result,fd_intern("NQUEUED"),FD_INT2DTYPE(dtype_server.n_queued));
-  fd_store(result,fd_intern("NBUSY"),FD_INT2DTYPE(dtype_server.n_busy));
-  fd_store(result,fd_intern("NCLIENTS"),FD_INT2DTYPE(dtype_server.n_clients));
-  fd_store(result,fd_intern("TOTALTRANS"),FD_INT2DTYPE(dtype_server.n_trans));
-  fd_store(result,fd_intern("TOTALCONN"),FD_INT2DTYPE(dtype_server.n_accepted));
+  fd_store(result,fd_intern("NTHREADS"),FD_INT(dtype_server.n_threads));
+  fd_store(result,fd_intern("NQUEUED"),FD_INT(dtype_server.n_queued));
+  fd_store(result,fd_intern("NBUSY"),FD_INT(dtype_server.n_busy));
+  fd_store(result,fd_intern("NCLIENTS"),FD_INT(dtype_server.n_clients));
+  fd_store(result,fd_intern("TOTALTRANS"),FD_INT(dtype_server.n_trans));
+  fd_store(result,fd_intern("TOTALCONN"),FD_INT(dtype_server.n_accepted));
 
   u8_server_statistics(&dtype_server,&stats);
   u8_server_livestats(&dtype_server,&livestats);
   u8_server_curstats(&dtype_server,&curstats);
 
-  fd_store(result,fd_intern("NACTIVE"),FD_INT2DTYPE(stats.n_active));
-  fd_store(result,fd_intern("NREADING"),FD_INT2DTYPE(stats.n_reading));
-  fd_store(result,fd_intern("NWRITING"),FD_INT2DTYPE(stats.n_writing));
-  fd_store(result,fd_intern("NXBUSY"),FD_INT2DTYPE(stats.n_busy));
+  fd_store(result,fd_intern("NACTIVE"),FD_INT(stats.n_active));
+  fd_store(result,fd_intern("NREADING"),FD_INT(stats.n_reading));
+  fd_store(result,fd_intern("NWRITING"),FD_INT(stats.n_writing));
+  fd_store(result,fd_intern("NXBUSY"),FD_INT(stats.n_busy));
 
   if (stats.tcount>0) {
     fd_store(result,fd_intern("TRANSAVG"),
              fd_make_double(((double)stats.tsum)/
                             (((double)stats.tcount))));
-    fd_store(result,fd_intern("TRANSMAX"),FD_INT2DTYPE(stats.tmax));
-    fd_store(result,fd_intern("TRANSCOUNT"),FD_INT2DTYPE(stats.tcount));}
+    fd_store(result,fd_intern("TRANSMAX"),FD_INT(stats.tmax));
+    fd_store(result,fd_intern("TRANSCOUNT"),FD_INT(stats.tcount));}
 
   if (stats.qcount>0) {
     fd_store(result,fd_intern("QUEUEAVG"),
              fd_make_double(((double)stats.qsum)/
                             (((double)stats.qcount))));
-    fd_store(result,fd_intern("QUEUEMAX"),FD_INT2DTYPE(stats.qmax));
-    fd_store(result,fd_intern("QUEUECOUNT"),FD_INT2DTYPE(stats.qcount));}
+    fd_store(result,fd_intern("QUEUEMAX"),FD_INT(stats.qmax));
+    fd_store(result,fd_intern("QUEUECOUNT"),FD_INT(stats.qcount));}
 
   if (stats.rcount>0) {
     fd_store(result,fd_intern("READAVG"),
              fd_make_double(((double)stats.rsum)/
                             (((double)stats.rcount))));
-    fd_store(result,fd_intern("READMAX"),FD_INT2DTYPE(stats.rmax));
-    fd_store(result,fd_intern("READCOUNT"),FD_INT2DTYPE(stats.rcount));}
+    fd_store(result,fd_intern("READMAX"),FD_INT(stats.rmax));
+    fd_store(result,fd_intern("READCOUNT"),FD_INT(stats.rcount));}
 
   if (stats.wcount>0) {
     fd_store(result,fd_intern("WRITEAVG"),
              fd_make_double(((double)stats.wsum)/
                             (((double)stats.wcount))));
-    fd_store(result,fd_intern("WRITEMAX"),FD_INT2DTYPE(stats.wmax));
-    fd_store(result,fd_intern("WRITECOUNT"),FD_INT2DTYPE(stats.wcount));}
+    fd_store(result,fd_intern("WRITEMAX"),FD_INT(stats.wmax));
+    fd_store(result,fd_intern("WRITECOUNT"),FD_INT(stats.wcount));}
 
   if (stats.xcount>0) {
     fd_store(result,fd_intern("EXECAVG"),
              fd_make_double(((double)stats.xsum)/
                             (((double)stats.xcount))));
-    fd_store(result,fd_intern("EXECMAX"),FD_INT2DTYPE(stats.xmax));
-    fd_store(result,fd_intern("EXECCOUNT"),FD_INT2DTYPE(stats.xcount));}
+    fd_store(result,fd_intern("EXECMAX"),FD_INT(stats.xmax));
+    fd_store(result,fd_intern("EXECCOUNT"),FD_INT(stats.xcount));}
 
   if (livestats.tcount>0) {
     fd_store(result,fd_intern("LIVE/TRANSAVG"),
              fd_make_double(((double)livestats.tsum)/
                             (((double)livestats.tcount))));
-    fd_store(result,fd_intern("LIVE/TRANSMAX"),FD_INT2DTYPE(livestats.tmax));
+    fd_store(result,fd_intern("LIVE/TRANSMAX"),FD_INT(livestats.tmax));
     fd_store(result,fd_intern("LIVE/TRANSCOUNT"),
-             FD_INT2DTYPE(livestats.tcount));}
+             FD_INT(livestats.tcount));}
 
   if (livestats.qcount>0) {
     fd_store(result,fd_intern("LIVE/QUEUEAVG"),
              fd_make_double(((double)livestats.qsum)/
                             (((double)livestats.qcount))));
-    fd_store(result,fd_intern("LIVE/QUEUEMAX"),FD_INT2DTYPE(livestats.qmax));
+    fd_store(result,fd_intern("LIVE/QUEUEMAX"),FD_INT(livestats.qmax));
     fd_store(result,fd_intern("LIVE/QUEUECOUNT"),
-             FD_INT2DTYPE(livestats.qcount));}
+             FD_INT(livestats.qcount));}
 
   if (livestats.rcount>0) {
     fd_store(result,fd_intern("LIVE/READAVG"),
              fd_make_double(((double)livestats.rsum)/
                             (((double)livestats.rcount))));
-    fd_store(result,fd_intern("LIVE/READMAX"),FD_INT2DTYPE(livestats.rmax));
+    fd_store(result,fd_intern("LIVE/READMAX"),FD_INT(livestats.rmax));
     fd_store(result,fd_intern("LIVE/READCOUNT"),
-             FD_INT2DTYPE(livestats.rcount));}
+             FD_INT(livestats.rcount));}
 
   if (livestats.wcount>0) {
     fd_store(result,fd_intern("LIVE/WRITEAVG"),
              fd_make_double(((double)livestats.wsum)/
                             (((double)livestats.wcount))));
-    fd_store(result,fd_intern("LIVE/WRITEMAX"),FD_INT2DTYPE(livestats.wmax));
+    fd_store(result,fd_intern("LIVE/WRITEMAX"),FD_INT(livestats.wmax));
     fd_store(result,fd_intern("LIVE/WRITECOUNT"),
-             FD_INT2DTYPE(livestats.wcount));}
+             FD_INT(livestats.wcount));}
 
   if (livestats.xcount>0) {
     fd_store(result,fd_intern("LIVE/EXECAVG"),
              fd_make_double(((double)livestats.xsum)/
                             (((double)livestats.xcount))));
-    fd_store(result,fd_intern("LIVE/EXECMAX"),FD_INT2DTYPE(livestats.xmax));
+    fd_store(result,fd_intern("LIVE/EXECMAX"),FD_INT(livestats.xmax));
     fd_store(result,fd_intern("LIVE/EXECCOUNT"),
-             FD_INT2DTYPE(livestats.xcount));}
+             FD_INT(livestats.xcount));}
 
     if (curstats.tcount>0) {
     fd_store(result,fd_intern("CUR/TRANSAVG"),
              fd_make_double(((double)curstats.tsum)/
                             (((double)curstats.tcount))));
-    fd_store(result,fd_intern("CUR/TRANSMAX"),FD_INT2DTYPE(curstats.tmax));
+    fd_store(result,fd_intern("CUR/TRANSMAX"),FD_INT(curstats.tmax));
     fd_store(result,fd_intern("CUR/TRANSCOUNT"),
-             FD_INT2DTYPE(curstats.tcount));}
+             FD_INT(curstats.tcount));}
 
   if (curstats.qcount>0) {
     fd_store(result,fd_intern("CUR/QUEUEAVG"),
              fd_make_double(((double)curstats.qsum)/
                             (((double)curstats.qcount))));
-    fd_store(result,fd_intern("CUR/QUEUEMAX"),FD_INT2DTYPE(curstats.qmax));
+    fd_store(result,fd_intern("CUR/QUEUEMAX"),FD_INT(curstats.qmax));
     fd_store(result,fd_intern("CUR/QUEUECOUNT"),
-             FD_INT2DTYPE(curstats.qcount));}
+             FD_INT(curstats.qcount));}
 
   if (curstats.rcount>0) {
     fd_store(result,fd_intern("CUR/READAVG"),
              fd_make_double(((double)curstats.rsum)/
                             (((double)curstats.rcount))));
-    fd_store(result,fd_intern("CUR/READMAX"),FD_INT2DTYPE(curstats.rmax));
+    fd_store(result,fd_intern("CUR/READMAX"),FD_INT(curstats.rmax));
     fd_store(result,fd_intern("CUR/READCOUNT"),
-             FD_INT2DTYPE(curstats.rcount));}
+             FD_INT(curstats.rcount));}
 
   if (curstats.wcount>0) {
     fd_store(result,fd_intern("CUR/WRITEAVG"),
              fd_make_double(((double)curstats.wsum)/
                             (((double)curstats.wcount))));
-    fd_store(result,fd_intern("CUR/WRITEMAX"),FD_INT2DTYPE(curstats.wmax));
+    fd_store(result,fd_intern("CUR/WRITEMAX"),FD_INT(curstats.wmax));
     fd_store(result,fd_intern("CUR/WRITECOUNT"),
-             FD_INT2DTYPE(curstats.wcount));}
+             FD_INT(curstats.wcount));}
 
   if (curstats.xcount>0) {
     fd_store(result,fd_intern("CUR/EXECAVG"),
              fd_make_double(((double)curstats.xsum)/
                             (((double)curstats.xcount))));
-    fd_store(result,fd_intern("CUR/EXECMAX"),FD_INT2DTYPE(curstats.xmax));
+    fd_store(result,fd_intern("CUR/EXECMAX"),FD_INT(curstats.xmax));
     fd_store(result,fd_intern("CUR/EXECCOUNT"),
-             FD_INT2DTYPE(curstats.xcount));}
+             FD_INT(curstats.xcount));}
 
   return result;
 }

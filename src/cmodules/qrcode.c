@@ -73,8 +73,8 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
   png_infop info_ptr;
   png_structp png_ptr=png_create_write_struct
     (PNG_LIBPNG_VER_STRING,(png_voidp)NULL,NULL,NULL);
-  fdtype dotsize_arg=fd_getopt(opts,dotsize_symbol,FD_INT2DTYPE(default_dotsize));
-  fdtype margin_arg=fd_getopt(opts,margin_symbol,FD_INT2DTYPE(default_margin));
+  fdtype dotsize_arg=fd_getopt(opts,dotsize_symbol,FD_INT(default_dotsize));
+  fdtype margin_arg=fd_getopt(opts,margin_symbol,FD_INT(default_margin));
   int dotsize, margin;
   /* Check for errors */
   if (png_ptr==NULL)
@@ -148,7 +148,7 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
 static fdtype qrencode_prim(fdtype string,fdtype opts)
 {
   fdtype level_arg=fd_getopt(opts,robustness_symbol,FD_FALSE);
-  fdtype version_arg=fd_getopt(opts,version_symbol,FD_INT2DTYPE(0));
+  fdtype version_arg=fd_getopt(opts,version_symbol,FD_INT(0));
   QRecLevel eclevel=geteclevel(level_arg);
   {
     fdtype result;

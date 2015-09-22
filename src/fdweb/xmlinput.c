@@ -1050,7 +1050,7 @@ static fdtype xmlparse_core(fdtype input,int flags)
     free_node(&object,0);
     return result;}
   errpos=_in.u8_inptr-_in.u8_inbuf;
-  fd_seterr("XMLPARSE error","xmlparse_core",NULL,FD_INT2DTYPE(errpos));
+  fd_seterr("XMLPARSE error","xmlparse_core",NULL,FD_INT(errpos));
   return FD_ERROR_VALUE;
 }
 
@@ -1134,7 +1134,7 @@ static fdtype fdxml_read(fdtype input,fdtype sloppy)
 
 FD_EXPORT fdtype fd_fdxml_arg(fdtype input)
 {
-  return fdxml_read(input,FD_INT2DTYPE(FD_XML_SLOPPY|FD_XML_KEEP_RAW));
+  return fdxml_read(input,FD_INT(FD_XML_SLOPPY|FD_XML_KEEP_RAW));
 }
 
 /* Initialization functions */

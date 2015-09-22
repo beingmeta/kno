@@ -40,13 +40,13 @@ static fdtype equalp(fdtype x,fdtype y)
 static fdtype comparefn(fdtype x,fdtype y)
 {
   int n=FDTYPE_COMPARE(x,y);
-  return FD_INT2DTYPE(n);
+  return FD_INT(n);
 }
 
 static fdtype fastcomparefn(fdtype x,fdtype y)
 {
   int n=FD_QCOMPARE(x,y);
-  return FD_INT2DTYPE(n);
+  return FD_INT(n);
 }
 
 static fdtype deepcopy(fdtype x)
@@ -65,7 +65,7 @@ static fdtype get_refcount(fdtype x,fdtype delta)
       return fd_reterr("Bad REFCOUNT","get_refcount",
                        u8_mkstring("%lx",(unsigned long)x),
                        FD_VOID);
-    else return FD_INT2DTYPE((refcount-(d+1)));}
+    else return FD_INT((refcount-(d+1)));}
   else return FD_FALSE;
 }
 
@@ -123,7 +123,7 @@ static fdtype lisp_zerop(fdtype x)
   else if (!(FD_NUMBERP(x)))
     return FD_FALSE;
   else {
-    int cmp=fd_numcompare(x,FD_INT2DTYPE(0));
+    int cmp=fd_numcompare(x,FD_INT(0));
     if (cmp==0) return FD_TRUE;
     else if (cmp>1) return FD_ERROR_VALUE;
     else return FD_FALSE;}
@@ -289,7 +289,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
       int val=0;
       if (FD_FIXNUMP(args[i])) val=fd_getint(args[i]);
       fixresult=fixresult+val; i++;}
-    return FD_INT2DTYPE(fixresult);}
+    return FD_INT(fixresult);}
   else if (generic == 0) {
     double floresult=0.0;
     i=0; while (i < n) {
@@ -302,7 +302,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
       i++;}
     return fd_init_double(NULL,floresult);}
   else {
-    fdtype result=FD_INT2DTYPE(0);
+    fdtype result=FD_INT(0);
     i=0; while (i < n) {
       fdtype newv=fd_plus(result,args[i]);
       if (FD_ABORTP(newv)) {
@@ -313,12 +313,12 @@ static fdtype plus_lexpr(int n,fdtype *args)
 
 static fdtype plus1(fdtype x)
 {
-  fdtype args[2]; args[0]=x; args[1]=FD_INT2DTYPE(1);
+  fdtype args[2]; args[0]=x; args[1]=FD_INT(1);
   return plus_lexpr(2,args);
 }
 static fdtype minus1(fdtype x)
 {
-  fdtype args[2]; args[0]=x; args[1]=FD_INT2DTYPE(-1);
+  fdtype args[2]; args[0]=x; args[1]=FD_INT(-1);
   return plus_lexpr(2,args);
 }
 
@@ -333,18 +333,18 @@ static fdtype times_lexpr(int n,fdtype *args)
     long long fixresult=1;
     i=0; while (i < n) {
       long long mult=fd_getint(args[i]);
-      if (mult==0) return FD_INT2DTYPE(0);
+      if (mult==0) return FD_INT(0);
       else {
         int q=((mult>0)?(FD_MAX_FIXNUM/mult):(FD_MIN_FIXNUM/mult));
         if ((fixresult>0)?(fixresult>q):((-fixresult)>q)) {
-          fdtype bigresult=fd_multiply(FD_INT2DTYPE(fixresult),args[i]);
+          fdtype bigresult=fd_multiply(FD_INT(fixresult),args[i]);
           i++; while (i<n) {
             fdtype bigprod=fd_multiply(bigresult,args[i]);
             fd_decref(bigresult); bigresult=bigprod; i++;}
           return bigresult;}
         else fixresult=fixresult*mult;}
       i++;}
-    return FD_INT2DTYPE(fixresult);}
+    return FD_INT(fixresult);}
   else if (generic == 0) {
     double floresult=1.0;
     i=0; while (i < n) {
@@ -357,7 +357,7 @@ static fdtype times_lexpr(int n,fdtype *args)
       i++;}
     return fd_init_double(NULL,floresult);}
   else {
-    fdtype result=FD_INT2DTYPE(1);
+    fdtype result=FD_INT(1);
     i=0; while (i < n) {
       fdtype newv=fd_multiply(result,args[i]);
       fd_decref(result); result=newv; i++;}
@@ -368,10 +368,10 @@ static fdtype minus_lexpr(int n,fdtype *args)
 {
   if (n == 1)
     if (FD_FIXNUMP(args[0]))
-      return FD_INT2DTYPE(-(FD_FIX2INT(args[0])));
+      return FD_INT(-(FD_FIX2INT(args[0])));
     else if (FD_FLONUMP(args[0]))
       return fd_init_double(NULL,-(FD_FLONUM(args[0])));
-    else return fd_subtract(FD_INT2DTYPE(0),args[0]);
+    else return fd_subtract(FD_INT(0),args[0]);
   else {
     int i=0; int floating=0, generic=0;
     while (i < n)
@@ -387,7 +387,7 @@ static fdtype minus_lexpr(int n,fdtype *args)
           val=(double)fd_bigint_to_double((fd_bigint)args[i]);
         if (i==0) fixresult=val; else fixresult=fixresult-val;
         i++;}
-      return FD_INT2DTYPE(fixresult);}
+      return FD_INT(fixresult);}
     else if (generic == 0) {
       double floresult=0.0;
       i=0; while (i < n) {
@@ -436,7 +436,7 @@ static fdtype div_lexpr(int n,fdtype *args)
       while (i<n) {val=val/FD_FLONUM(args[i]); i++;}
       return fd_init_double(NULL,val);}
   else if (n==1)
-    return fd_divide(FD_INT2DTYPE(1),args[0]);
+    return fd_divide(FD_INT(1),args[0]);
   else {
     fdtype value=fd_incref(args[0]); i=1;
     while (i<n) {
@@ -476,14 +476,14 @@ static fdtype remainder_prim(fdtype x,fdtype m)
   if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(m))) {
     int ix=FD_FIX2INT(x), im=FD_FIX2INT(m);
     int r=ix%im;
-    return FD_INT2DTYPE(r);}
+    return FD_INT(r);}
   else return fd_remainder(x,m);
 }
 
 static fdtype random_prim(fdtype maxarg)
 {
   int max=fd_getint(maxarg), n=u8_random(max);
-  return FD_INT2DTYPE(n);
+  return FD_INT(n);
 }
 
 static fdtype quotient_prim(fdtype x,fdtype y)
@@ -491,7 +491,7 @@ static fdtype quotient_prim(fdtype x,fdtype y)
   if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y))) {
     int ix=FD_FIX2INT(x), iy=FD_FIX2INT(y);
     int q=ix/iy;
-    return FD_INT2DTYPE(q);}
+    return FD_INT(q);}
   else return fd_quotient(x,y);
 }
 
@@ -716,7 +716,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("DEEP-COPY",deepcopy,1));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2x("REFCOUNT",get_refcount,1,-1,FD_VOID,
-                                          fd_fixnum_type,FD_INT2DTYPE(0))));
+                                          fd_fixnum_type,FD_INT(0))));
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("<",lt,2));
   fd_idefn(fd_scheme_module,fd_make_cprimn("<=",lte,2));

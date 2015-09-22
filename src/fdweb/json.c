@@ -536,20 +536,20 @@ FD_EXPORT void fd_init_json_c()
   fdtype unsafe_module=fd_new_module("FDWEB",0);
 
   fd_idefn(module,fd_make_cprim3x
-           ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),-1,FD_VOID));
+           ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),-1,FD_VOID));
   fd_idefn(unsafe_module,fd_make_cprim3x
-           ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),-1,FD_VOID));
+           ("JSONPARSE",jsonparseprim,1,-1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),-1,FD_VOID));
   fd_idefn(module,fd_make_cprim5x("->JSON",jsonstring,1,
                                   -1,FD_VOID,-1,FD_TRUE,
                                   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(unsafe_module,fd_make_cprim5x("->JSON",jsonstring,1,
-                                         -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
+                                         -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
                                          -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim5x("JSONOUTPUT",jsonoutput,1,
-                                  -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
+                                  -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
                                   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(unsafe_module,fd_make_cprim5x("JSONOUTPUT",jsonoutput,1,
-                                         -1,FD_VOID,-1,FD_INT2DTYPE(FD_JSON_DEFAULTS),
+                                         -1,FD_VOID,-1,FD_INT(FD_JSON_DEFAULTS),
                                          -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
 
   u8_register_source_file(_FILEINFO);

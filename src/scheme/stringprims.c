@@ -23,7 +23,7 @@
 
 static fdtype char2integer(fdtype arg)
 {
-  return FD_INT2DTYPE(FD_CHAR2CODE(arg));
+  return FD_INT(FD_CHAR2CODE(arg));
 }
 
 static fdtype integer2char(fdtype arg)
@@ -181,7 +181,7 @@ static fdtype string_phrase_length(fdtype string)
         c=u8_sgetc(&scan);}
       continue;}
     else c=u8_sgetc(&scan);
-  return FD_INT2DTYPE(len+1);
+  return FD_INT(len+1);
 }
 
 static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg)
@@ -1006,7 +1006,7 @@ static fdtype packet2string(fdtype packet,fdtype encoding)
 static fdtype string_byte_length(fdtype string)
 {
   int len=FD_STRLEN(string);
-  return FD_INT2DTYPE(len);
+  return FD_INT(len);
 }
 
 /* Fixing embedded NULs */
@@ -1326,7 +1326,7 @@ FD_EXPORT void fd_init_strings_c()
            fd_make_cprim2x
            ("SOMECAP?",some_capitalizedp,1,
             fd_string_type,FD_VOID,
-            fd_fixnum_type,FD_INT2DTYPE(-1)));
+            fd_fixnum_type,FD_INT(-1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE",capitalize,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CAPITALIZE1",capitalize1,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",string_downcase1,1));

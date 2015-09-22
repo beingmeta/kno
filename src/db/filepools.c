@@ -86,7 +86,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
     else {
       fd_seterr(fd_BadFilePoolLabel,"open_std_file_pool",
                 u8_strdup("bad label loc"),
-                FD_INT2DTYPE(label_loc));
+                FD_INT(label_loc));
       fd_dtsclose(&(pool->stream),1);
       u8_free(rname); u8_free(pool);
       return NULL;}}

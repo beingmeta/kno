@@ -2075,7 +2075,7 @@ fdtype fd_string2number(u8_string string,int base)
 	else return FD_FALSE;}
     case 'e': case 'E': {
       if (strchr(string,'.')) {
-	fdtype num, den=FD_INT2DTYPE(1);
+	fdtype num, den=FD_INT(1);
 	u8_byte *copy=u8_strdup(string+2);
 	u8_byte *dot=strchr(copy,'.'), *scan=dot+1;
 	*dot='\0'; num=fd_string2number(copy,10);
@@ -2084,12 +2084,12 @@ fdtype fd_string2number(u8_string string,int base)
 	  return FD_FALSE;}
 	while (*scan)
 	  if (isdigit(*scan)) {
-	    fdtype numx10=fd_multiply(num,FD_INT2DTYPE(10));
+	    fdtype numx10=fd_multiply(num,FD_INT(10));
 	    int uchar=*scan;
 	    int numweight=u8_digit_weight(uchar);
-	    fdtype add_digit=FD_INT2DTYPE(numweight);
+	    fdtype add_digit=FD_INT(numweight);
 	    fdtype nextnum=fd_plus(numx10,add_digit);
-	    fdtype nextden=fd_multiply(den,FD_INT2DTYPE(10));
+	    fdtype nextden=fd_multiply(den,FD_INT(10));
 	    fd_decref(numx10); fd_decref(num); fd_decref(den);
 	    num=nextnum; den=nextden;
 	    scan++;}
@@ -2097,12 +2097,12 @@ fdtype fd_string2number(u8_string string,int base)
 	    int i=0, exponent=strtol(scan+1,NULL,10);
 	    if (exponent>=0)
 	      while (i<exponent) {
-		fdtype nextnum=fd_multiply(num,FD_INT2DTYPE(10));
+		fdtype nextnum=fd_multiply(num,FD_INT(10));
 		fd_decref(num); num=nextnum; i++;}
 	    else {
 	      exponent=-exponent;
 	      while (i<exponent) {
-		fdtype nextden=fd_multiply(den,FD_INT2DTYPE(10));
+		fdtype nextden=fd_multiply(den,FD_INT(10));
 		fd_decref(den); den=nextden; i++;}}
 	    break;}
 	  else {
@@ -2136,7 +2136,7 @@ fdtype fd_string2number(u8_string string,int base)
       imag=fd_string2number(copy,base);
       if (FD_EXPECT_FALSE(!(FD_NUMBERP(imag)))) {
 	fd_decref(imag); u8_free(copy); return FD_FALSE;}
-      real=FD_INT2DTYPE(0);}
+      real=FD_INT(0);}
     else {
       imag=fd_string2number(istart,base); *istart='\0';
       if (FD_EXPECT_FALSE(!(FD_NUMBERP(imag)))) {
@@ -2175,7 +2175,7 @@ fdtype fd_string2number(u8_string string,int base)
     fdtype result;
     long fixnum, nbase=0; const u8_byte *start=string, *end=NULL;
     if (string[0]=='0') {
-      if (string[1]=='\0') return FD_INT2DTYPE(0);
+      if (string[1]=='\0') return FD_INT(0);
       else if ((string[1]=='x') || (string[1]=='X')) {
 	start=string+2; nbase=16;}}
     if ((base<0) && (nbase)) base=nbase;
@@ -2185,9 +2185,9 @@ fdtype fd_string2number(u8_string string,int base)
     if (!((end>string) && ((end-string)==len)))
       return FD_FALSE;
     else if ((fixnum) && ((fixnum<FD_MAX_FIXNUM) && (fixnum>FD_MIN_FIXNUM))) 
-      return FD_INT2DTYPE(fixnum);
+      return FD_INT(fixnum);
     else if ((fixnum==0) && (end) && (*end=='\0'))
-      return FD_INT2DTYPE(0);
+      return FD_INT(0);
     else if ((errno) && (errno != ERANGE)) return FD_FALSE;
     else errno=0;
     if (!(base)) base=10;
@@ -2253,11 +2253,11 @@ int fd_output_number(u8_output out,fdtype num,int base)
 
 #define COMPLEXP(x) (FD_PTR_TYPEP((x),fd_complex_type))
 #define REALPART(x) ((COMPLEXP(x)) ? (FD_REALPART(x)) : (x))
-#define IMAGPART(x) ((COMPLEXP(x)) ? (FD_IMAGPART(x)) : (FD_INT2DTYPE(0)))
+#define IMAGPART(x) ((COMPLEXP(x)) ? (FD_IMAGPART(x)) : (FD_INT(0)))
 
 #define RATIONALP(x) (FD_PTR_TYPEP((x),fd_rational_type))
 #define NUMERATOR(x) ((RATIONALP(x)) ? (FD_NUMERATOR(x)) : (x))
-#define DENOMINATOR(x) ((RATIONALP(x)) ? (FD_DENOMINATOR(x)) : (FD_INT2DTYPE(1)))
+#define DENOMINATOR(x) ((RATIONALP(x)) ? (FD_DENOMINATOR(x)) : (FD_INT(1)))
 
 #define INTEGERP(x) ((FD_FIXNUMP(x)) || (FD_BIGINTP(x)))
 
@@ -2306,7 +2306,7 @@ static fdtype simplify_bigint(fd_bigint bi)
   if (fd_bigint_fits_in_word_p(bi,30,1)) {
     int intval=fd_bigint_to_long(bi);
     fd_decref((fdtype)bi);
-    return FD_INT2DTYPE(intval);}
+    return FD_INT(intval);}
   else return (fdtype)bi;
 }
 
@@ -2314,7 +2314,7 @@ static fdtype simplify_bigint(fd_bigint bi)
 
 static fdtype make_complex(fdtype real,fdtype imag)
 {
-  if (fd_numcompare(imag,FD_INT2DTYPE(0))==0) {
+  if (fd_numcompare(imag,FD_INT(0))==0) {
     fd_decref(imag); return real;}
   else {
     struct FD_COMPLEX *result=u8_alloc(struct FD_COMPLEX);
@@ -2326,9 +2326,9 @@ static fdtype make_complex(fdtype real,fdtype imag)
 static int unparse_complex(struct U8_OUTPUT *out,fdtype x)
 {
   fdtype imag=FD_IMAGPART(x), real=FD_REALPART(x);
-  int has_real=fd_numcompare(real,FD_INT2DTYPE(0));
-  if (fd_numcompare(imag,FD_INT2DTYPE(0))<0) {
-    fdtype negated=fd_subtract(FD_INT2DTYPE(0),imag);
+  int has_real=fd_numcompare(real,FD_INT(0));
+  if (fd_numcompare(imag,FD_INT(0))<0) {
+    fdtype negated=fd_subtract(FD_INT(0),imag);
     if (has_real)
       u8_printf(out,"%q-%qi",FD_REALPART(x),negated);
     else u8_printf(out,"-%qi",negated);
@@ -2358,10 +2358,10 @@ static fdtype make_rational(fdtype num,fdtype denom)
   else if ((FD_FIXNUMP(num)) && (FD_FIXNUMP(denom))) {
     int in=FD_FIX2INT(num), id=FD_FIX2INT(denom), igcd=fix_gcd(in,id);
     in=in/igcd; id=id/igcd;
-    if (id == 1) return FD_INT2DTYPE(in);
+    if (id == 1) return FD_INT(in);
     else if (id < 0) {
-      num=FD_INT2DTYPE(-in); denom=FD_INT2DTYPE(-id);}
-    else {num=FD_INT2DTYPE(in); denom=FD_INT2DTYPE(id);}}
+      num=FD_INT(-in); denom=FD_INT(-id);}
+    else {num=FD_INT(in); denom=FD_INT(id);}}
   else if ((INTEGERP(num)) && (INTEGERP(denom))) {
     fdtype gcd=int_gcd(num,denom);
     fdtype new_num=fd_quotient(num,gcd);
@@ -2413,23 +2413,23 @@ static fdtype int_gcd(fdtype x,fdtype y)
 {
   errno=0;
   if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y)))
-    return FD_INT2DTYPE(fix_gcd(FD_FIX2INT(x),FD_FIX2INT(y)));
+    return FD_INT(fix_gcd(FD_FIX2INT(x),FD_FIX2INT(y)));
   else if ((INTEGERP(x)) && (INTEGERP(y))) {
     fdtype a; fd_incref(x); fd_incref(y);
     /* Normalize the sign of x */
     if (FD_FIXNUMP(x)) {
       int ival=FD_FIX2INT(x);
-      if (ival<0) x=FD_INT2DTYPE(-ival);}
+      if (ival<0) x=FD_INT(-ival);}
     else if (INT_NEGATIVEP(x)) {
-      fdtype bval=fd_subtract(FD_INT2DTYPE(0),x);
+      fdtype bval=fd_subtract(FD_INT(0),x);
       fd_decref(x); x=bval;}
     else {}
     /* Normalize the sign of y */
     if (FD_FIXNUMP(y)) {
       int ival=FD_FIX2INT(y);
-      if (ival<0) y=FD_INT2DTYPE(-ival);}
+      if (ival<0) y=FD_INT(-ival);}
     else if (INT_NEGATIVEP(y)) {
-      fdtype bval=fd_subtract(FD_INT2DTYPE(0),y);
+      fdtype bval=fd_subtract(FD_INT(0),y);
       fd_decref(y); y=bval;}
     else {}
     a=y;
@@ -2444,10 +2444,10 @@ static fdtype int_lcm (fdtype x, fdtype y)
 {
   fdtype prod=fd_multiply(x,y), gcd=int_gcd(x,y), lcm;
   if (FD_FIXNUMP(prod))
-    if (FD_FIX2INT(prod) < 0) prod=FD_INT2DTYPE(-(FD_FIX2INT(prod)));
+    if (FD_FIX2INT(prod) < 0) prod=FD_INT(-(FD_FIX2INT(prod)));
     else {}
   else if (INT_NEGATIVEP(prod)) {
-    fdtype negated=fd_subtract(FD_INT2DTYPE(0),prod);
+    fdtype negated=fd_subtract(FD_INT(0),prod);
     fd_decref(prod); prod=negated;}
   lcm=fd_divide(prod,gcd);
   fd_decref(prod); fd_decref(gcd);
@@ -2519,7 +2519,7 @@ fdtype fd_plus(fdtype x,fdtype y)
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
     int result=FD_FIX2INT(x)+FD_FIX2INT(y);
     if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
-      return FD_INT2DTYPE(result);
+      return FD_INT(result);
     else return (fdtype) fd_long_long_to_bigint(result);}
   else if ((xt==fd_double_type) && (yt==fd_double_type)) {
     double result=FD_FLONUM(x)+FD_FLONUM(y);
@@ -2564,7 +2564,7 @@ fdtype fd_multiply(fdtype x,fdtype y)
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
     int ix=FD_FIX2INT(x), iy=FD_FIX2INT(y), q;
     long long result;
-    if (iy==0) return FD_INT2DTYPE(0);
+    if (iy==0) return FD_INT(0);
     q=((iy>0)?(FD_MAX_FIXNUM/iy):(FD_MIN_FIXNUM/iy));
     if ((ix>0)?(ix>q):((-ix)>q)) {
       /* This is the overflow case (?) */
@@ -2574,7 +2574,7 @@ fdtype fd_multiply(fdtype x,fdtype y)
       return simplify_bigint(bresult);}
     else result=ix*iy;
     if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
-      return FD_INT2DTYPE(result);
+      return FD_INT(result);
     else return (fdtype) fd_long_long_to_bigint(result);}
   else if ((xt==fd_double_type) && (yt==fd_double_type)) {
     double result=FD_FLONUM(x)*FD_FLONUM(y);
@@ -2619,7 +2619,7 @@ fdtype fd_subtract(fdtype x,fdtype y)
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
     int result=(FD_FIX2INT(x))-(FD_FIX2INT(y));
     if ((result<FD_MAX_FIXNUM) && (result>FD_MIN_FIXNUM))
-      return FD_INT2DTYPE(result);
+      return FD_INT(result);
     else return (fdtype) fd_long_long_to_bigint(result);}
   else if ((xt==fd_double_type) && (yt==fd_double_type)) {
     double result=FD_FLONUM(x)-FD_FLONUM(y);
@@ -2707,7 +2707,7 @@ fdtype fd_inexact_divide(fdtype x,fdtype y)
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
     int result=FD_FIX2INT(x)/FD_FIX2INT(y);
     if ((FD_FIX2INT(x)) == (result*(FD_FIX2INT(y))))
-      return FD_INT2DTYPE(result);
+      return FD_INT(result);
     else {
       double dx=x, dy=y;
       return fd_init_double(NULL,dx/dy);}}
@@ -2729,7 +2729,7 @@ fdtype fd_quotient(fdtype x,fdtype y)
   fd_ptr_type xt=FD_PTR_TYPE(x), yt=FD_PTR_TYPE(y);
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
     int result=FD_FIX2INT(x)/FD_FIX2INT(y);
-    return FD_INT2DTYPE(result);}
+    return FD_INT(result);}
   else if ((INTEGERP(x)) && (INTEGERP(y))) {
     fd_bigint bx=tobigint(x), by=tobigint(y);
     fd_bigint result=fd_bigint_quotient(bx,by);
@@ -2747,7 +2747,7 @@ fdtype fd_remainder(fdtype x,fdtype y)
   fd_ptr_type xt=FD_PTR_TYPE(x), yt=FD_PTR_TYPE(y);
   if ((xt==fd_fixnum_type) && (yt==fd_fixnum_type)) {
     int result=FD_FIX2INT(x)%FD_FIX2INT(y);
-    return FD_INT2DTYPE(result);}
+    return FD_INT(result);}
   else if ((INTEGERP(x)) && (INTEGERP(y))) {
     fd_bigint bx=tobigint(x), by=tobigint(y);
     fd_bigint result=fd_bigint_remainder(bx,by);

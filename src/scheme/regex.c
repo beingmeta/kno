@@ -117,7 +117,7 @@ static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
 static fdtype getcharoff(u8_string s,int byteoff)
 {
   int charoff=u8_charoffset(s,byteoff);
-  return FD_INT2DTYPE(charoff);
+  return FD_INT(charoff);
 }
 
 static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,

@@ -224,7 +224,7 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
     if (free_bytes) u8_free(bytes);
     return fd_type_error("encoding","writefile_prim",enc);}
   if (free_bytes) u8_free(bytes);
-  return FD_INT2DTYPE(len);
+  return FD_INT(len);
 }
 
 /* FILEOUT */
@@ -292,7 +292,7 @@ static fdtype simple_system(fdtype expr,fd_lispenv env)
       else u8_printf(&out,"%q",value);
       fd_decref(value);}}
   result=system(out.u8_outbuf); u8_free(out.u8_outbuf);
-  return FD_INT2DTYPE(result);
+  return FD_INT(result);
 }
 
 static fdtype exit_prim(fdtype arg)
@@ -407,9 +407,9 @@ static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
       if (flags&FD_DO_WAIT) {
         unsigned int retval=-1;
         waitpid(pid,&retval,0);
-        return FD_INT2DTYPE(retval);}
+        return FD_INT(retval);}
 #endif
-      return FD_INT2DTYPE(pid);}
+      return FD_INT(pid);}
     if (flags&FD_IS_SCHEME)
       retval=execvp(FD_EXEC,argv);
     else if (flags&FD_DO_LOOKUP)
@@ -740,7 +740,7 @@ static fdtype mkdirs_prim(fdtype pathname,fdtype mode_arg)
     u8_condition cond=u8_strerror(errno); errno=0;
     return fd_err(cond,"mkdirs_prim",NULL,pathname);}
   else if (retval==0) return FD_FALSE;
-  else return FD_INT2DTYPE(retval);
+  else return FD_INT(retval);
 }
 
 /* Temporary directories */
@@ -887,7 +887,7 @@ static fdtype tempdir_done_prim(fdtype tempdir,fdtype force_arg)
     int retval=u8_rmtree(dirname);
     if (retval<0) return FD_ERROR_VALUE;
     else if (retval==0) return FD_FALSE;
-    else return FD_INT2DTYPE(retval);}
+    else return FD_INT(retval);}
   else return FD_FALSE;
 }
 
@@ -1057,7 +1057,7 @@ static fdtype file_mode(fdtype filename)
 {
   int mode=u8_file_mode(FD_STRDATA(filename));
   if (mode<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(mode);
+  else return FD_INT(mode);
 }
 
 static fdtype file_size(fdtype filename)
@@ -1065,7 +1065,7 @@ static fdtype file_size(fdtype filename)
   ssize_t size=u8_file_size(FD_STRDATA(filename));
   if (size<0) return FD_ERROR_VALUE;
   else if (size<FD_MAX_FIXNUM)
-    return FD_INT2DTYPE(size);
+    return FD_INT(size);
   else return fd_make_bigint(size);
 }
 
@@ -1141,12 +1141,12 @@ static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
     fd_dtsclose(out,FD_DTSCLOSE_FULL);
     u8_movefile(temp_name,FD_STRDATA(filename));
     u8_free(temp_name);
-    return FD_INT2DTYPE(bytes);}
+    return FD_INT(bytes);}
   else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *out=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
     int bytes=fd_dtswrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
-    else return FD_INT2DTYPE(bytes);}
+    else return FD_INT(bytes);}
   else return fd_type_error(_("string"),"dtype2file",filename);
 }
 
@@ -1167,12 +1167,12 @@ static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz)
     fd_dtsclose(out,FD_DTSCLOSE_FULL);
     u8_movefile(temp_name,FD_STRDATA(filename));
     u8_free(temp_name);
-    return FD_INT2DTYPE(bytes);}
+    return FD_INT(bytes);}
   else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *out=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
     int bytes=fd_zwrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
-    else return FD_INT2DTYPE(bytes);}
+    else return FD_INT(bytes);}
   else return fd_type_error(_("string"),"dtype2zipfile",filename);
 }
 
@@ -1187,12 +1187,12 @@ static fdtype add_dtype2file(fdtype object,fdtype filename)
     fd_endpos(out);
     bytes=fd_dtswrite_dtype(out,object);
     fd_dtsclose(out,FD_DTSCLOSE_FULL);
-    return FD_INT2DTYPE(bytes);}
+    return FD_INT(bytes);}
   else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *out=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
     int bytes=fd_dtswrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
-    else return FD_INT2DTYPE(bytes);}
+    else return FD_INT(bytes);}
   else return fd_type_error(_("string"),"add_dtype2file",filename);
 }
 
@@ -1207,12 +1207,12 @@ static fdtype add_dtype2zipfile(fdtype object,fdtype filename)
     fd_endpos(out);
     bytes=fd_dtswrite_dtype(out,object);
     fd_dtsclose(out,FD_DTSCLOSE_FULL);
-    return FD_INT2DTYPE(bytes);}
+    return FD_INT(bytes);}
   else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *out=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
     int bytes=fd_dtswrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
-    else return FD_INT2DTYPE(bytes);}
+    else return FD_INT(bytes);}
   else return fd_type_error(_("string"),"add_dtype2zipfile",filename);
 }
 
@@ -1385,13 +1385,13 @@ static fdtype getpos_prim(fdtype portarg)
     if (result<0)
       return FD_ERROR_VALUE;
     else if (result<FD_MAX_FIXNUM)
-      return FD_INT2DTYPE(result);
+      return FD_INT(result);
     else return fd_make_bigint(result);}
   else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
     fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
     fd_off_t pos=fd_getpos(ds->dt_stream);
     if (pos<0) return FD_ERROR_VALUE;
-    else if (pos<FD_MAX_FIXNUM) return FD_INT2DTYPE(pos);
+    else if (pos<FD_MAX_FIXNUM) return FD_INT(pos);
     else return fd_make_bigint(pos);}
   else return fd_type_error("port or stream","getpos_prim",portarg);
 }
@@ -1410,13 +1410,13 @@ static fdtype endpos_prim(fdtype portarg)
     if (result<0)
       return FD_ERROR_VALUE;
     else if (result<FD_MAX_FIXNUM)
-      return FD_INT2DTYPE(result);
+      return FD_INT(result);
     else return fd_make_bigint(result);}
   else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
     fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
     fd_off_t pos=fd_endpos(ds->dt_stream);
     if (pos<0) return FD_ERROR_VALUE;
-    else if (pos<FD_MAX_FIXNUM) return FD_INT2DTYPE(pos);
+    else if (pos<FD_MAX_FIXNUM) return FD_INT(pos);
     else return fd_make_bigint(pos);}
   else return fd_type_error("port or stream","getpos_prim",portarg);
 }
@@ -1458,7 +1458,7 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
     if (result<0)
       return FD_ERROR_VALUE;
     else if (result<FD_MAX_FIXNUM)
-      return FD_INT2DTYPE(off);
+      return FD_INT(off);
     else return fd_make_bigint(result);}
   else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
     fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
@@ -1473,7 +1473,7 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
     else return fd_type_error(_("offset"),"setpos_prim",off_arg);
     result=fd_setpos(ds->dt_stream,off);
     if (result<0) return FD_ERROR_VALUE;
-    else if (result<FD_MAX_FIXNUM) return FD_INT2DTYPE(result);
+    else if (result<FD_MAX_FIXNUM) return FD_INT(result);
     else return fd_make_bigint(result);}
   else return fd_type_error("port or stream","getpos_prim",portarg);
 }
@@ -1864,7 +1864,7 @@ static fdtype load_latest(fdtype expr,fd_lispenv env)
 {
   if (FD_EMPTY_LISTP(FD_CDR(expr))) {
     int loads=fd_load_latest(NULL,env,NULL);
-    return FD_INT2DTYPE(loads);}
+    return FD_INT(loads);}
   else {
     int retval=-1;
     fdtype path_expr=fd_get_arg(expr,1);
@@ -2018,7 +2018,7 @@ static fdtype snapshot_handler(fdtype expr,fd_lispenv env)
   retval=fd_snapshot(save_env,save_file);
   fd_decref(arg1); fd_decref(arg2); u8_free(save_file);
   if (retval<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(retval);
+  else return FD_INT(retval);
 }
 
 static fdtype snapback_handler(fdtype expr,fd_lispenv env)
@@ -2048,7 +2048,7 @@ static fdtype snapback_handler(fdtype expr,fd_lispenv env)
   retval=fd_snapback(save_env,save_file);
   fd_decref(arg1); fd_decref(arg2); u8_free(save_file);
   if (retval<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(retval);
+  else return FD_INT(retval);
 }
 
 /* Stackdump configuration */

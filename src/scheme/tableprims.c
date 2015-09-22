@@ -76,7 +76,7 @@ static fdtype pick_hashtable_size(fdtype count_arg)
 {
   int count=FD_FIX2INT(count_arg);
   int size=fd_get_hashtable_size(count);
-  return FD_INT2DTYPE(size);
+  return FD_INT(size);
 }
 
 static fdtype reset_hashtable(fdtype table,fdtype n_slots)
@@ -97,7 +97,7 @@ static fdtype static_hashtable(fdtype table)
 static fdtype hash_lisp_prim(fdtype x)
 {
   int val=fd_hash_lisp(x);
-  return FD_INT2DTYPE(val);
+  return FD_INT(val);
 }
 
 static fdtype lispget(fdtype table,fdtype key,fdtype dflt)
@@ -222,7 +222,7 @@ static fdtype hashtable_increment(fdtype table,fdtype keys,fdtype increment)
   else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(increment)) increment=FD_INT2DTYPE(1);
+  if (FD_VOIDP(increment)) increment=FD_INT(1);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(keys)) {
       const fdtype *elts=FD_CHOICE_DATA(keys);
@@ -245,7 +245,7 @@ static fdtype table_increment(fdtype table,fdtype keys,fdtype increment)
   else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(increment)) increment=FD_INT2DTYPE(1);
+  if (FD_VOIDP(increment)) increment=FD_INT(1);
   else if (!(FD_NUMBERP(increment)))
     return fd_type_error("number","table_increment",increment);
   if (FD_HASHTABLEP(table))
@@ -268,7 +268,7 @@ static fdtype table_increment(fdtype table,fdtype keys,fdtype increment)
         fd_store(table,key,increment);
       else if ((FD_FIXNUMP(cur)) && (FD_FIXNUMP(increment))) {
         int sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
-        fdtype lsum=FD_INT2DTYPE(sum);
+        fdtype lsum=FD_INT(sum);
         fd_store(table,key,lsum);
         fd_decref(lsum);}
       else if (FD_NUMBERP(cur)) {
@@ -287,7 +287,7 @@ static fdtype hashtable_increment_existing
   else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(increment)) increment=FD_INT2DTYPE(1);
+  if (FD_VOIDP(increment)) increment=FD_INT(1);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(key)) {
       fdtype keys=fd_make_simple_choice(key);
@@ -315,7 +315,7 @@ static fdtype table_increment_existing
   else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(increment)) increment=FD_INT2DTYPE(1);
+  if (FD_VOIDP(increment)) increment=FD_INT(1);
   else if (!(FD_NUMBERP(increment)))
     return fd_type_error("number","table_increment_existing",increment);
   if (FD_HASHTABLEP(table))
@@ -337,7 +337,7 @@ static fdtype table_increment_existing
       if (FD_VOIDP(cur)) {}
       else if ((FD_FIXNUMP(cur)) && (FD_FIXNUMP(increment))) {
         int sum=FD_FIX2INT(cur)+FD_FIX2INT(increment);
-        fdtype lsum=FD_INT2DTYPE(sum);
+        fdtype lsum=FD_INT(sum);
         fd_store(table,key,lsum);
         fd_decref(lsum);}
       else if (FD_NUMBERP(cur)) {
@@ -355,7 +355,7 @@ static fdtype hashtable_multiply(fdtype table,fdtype key,fdtype factor)
   else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(factor)) factor=FD_INT2DTYPE(2);
+  if (FD_VOIDP(factor)) factor=FD_INT(2);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(key)) {
       fdtype keys=fd_make_simple_choice(key);
@@ -382,7 +382,7 @@ static fdtype table_multiply(fdtype table,fdtype keys,fdtype factor)
   else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(factor)) factor=FD_INT2DTYPE(1);
+  if (FD_VOIDP(factor)) factor=FD_INT(1);
   else if (!(FD_NUMBERP(factor)))
     return fd_type_error("number","table_multiply",factor);
   if (FD_HASHTABLEP(table))
@@ -419,7 +419,7 @@ static fdtype hashtable_multiply_existing
   else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(factor)) factor=FD_INT2DTYPE(2);
+  if (FD_VOIDP(factor)) factor=FD_INT(2);
   if (FD_HASHTABLEP(table))
     if (FD_CHOICEP(key)) {
       fdtype keys=fd_make_simple_choice(key);
@@ -446,7 +446,7 @@ static fdtype table_multiply_existing(fdtype table,fdtype keys,fdtype factor)
   else if (FD_EMPTY_CHOICEP(keys)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else {}
-  if (FD_VOIDP(factor)) factor=FD_INT2DTYPE(1);
+  if (FD_VOIDP(factor)) factor=FD_INT(1);
   else if (!(FD_NUMBERP(factor)))
     return fd_type_error("number","table_multiply_existing",factor);
   if (FD_HASHTABLEP(table))
@@ -731,14 +731,14 @@ static fdtype hashtable_skim(fdtype table,fdtype threshold,fdtype scope)
 static fdtype hashtable_buckets(fdtype table)
 {
   fd_hashtable h=FD_GET_CONS(table,fd_hashtable_type,fd_hashtable);
-  return FD_INT2DTYPE(h->n_slots);
+  return FD_INT(h->n_slots);
 }
 
 static fdtype table_size(fdtype table)
 {
   int size=fd_getsize(table);
   if (size<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(size);
+  else return FD_INT(size);
 }
 
 static fdtype table_max(fdtype tables,fdtype scope)
@@ -850,7 +850,7 @@ static fdtype hashsetadd(fdtype hs,fdtype key)
   else {
     int retval=fd_hashset_add((fd_hashset)hs,key);
     if (retval<0) return FD_ERROR_VALUE;
-    else if (retval) return FD_INT2DTYPE(retval);
+    else if (retval) return FD_INT(retval);
     else return FD_FALSE;}
 }
 
@@ -921,7 +921,7 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_xscheme_module,
            fd_make_cprim2x("RESET-HASHTABLE!",reset_hashtable,1,
                            fd_hashtable_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(-1)));
+                           fd_fixnum_type,FD_INT(-1)));
   /* Note that GET and TEST are actually DB functions which do inference */
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("%GET",lispget,2)));
@@ -939,7 +939,7 @@ FD_EXPORT void fd_init_tablefns_c()
            fd_make_ndprim(fd_make_cprim3("STORE!",lispstore,3)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("GETKEYS",fd_getkeys,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2x("PICK-KEYS",lisp_pick_keys,1,
-                                            -1,FD_VOID,fd_fixnum_type,FD_INT2DTYPE(1)));
+                                            -1,FD_VOID,fd_fixnum_type,FD_INT(1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-SIZE",table_size,1));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("TABLE-MAX",table_max,1)));

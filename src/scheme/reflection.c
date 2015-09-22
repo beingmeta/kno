@@ -122,7 +122,7 @@ static fdtype procedure_arity(fdtype x)
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
     int arity=f->arity;
     if (arity<0) return FD_FALSE;
-    else return FD_INT2DTYPE(arity);}
+    else return FD_INT(arity);}
   else return fd_type_error(_("procedure"),"procedure_arity",x);
 }
 
@@ -131,7 +131,7 @@ static fdtype procedure_min_arity(fdtype x)
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
     int arity=f->min_arity;
-    return FD_INT2DTYPE(arity);}
+    return FD_INT(arity);}
   else return fd_type_error(_("procedure"),"procedure_min_arity",x);
 }
 

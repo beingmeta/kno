@@ -1550,23 +1550,23 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
   envstruct.copy=NULL;
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
-    vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
+    vars[1]=count_var; vals[1]=FD_INT(0);
     bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
     fdtype elt=fd_seq_elt(seq,i);
     if (envstruct.copy) {
       fd_set_value(var,elt,envstruct.copy);
       if (iterval)
-        fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+        fd_set_value(count_var,FD_INT(i),envstruct.copy);}
     else {
       vals[0]=elt;
-      if (iterval) *iterval=FD_INT2DTYPE(i);}
+      if (iterval) *iterval=FD_INT(i);}
     {FD_DOELTS(expr,body,count) {
       fdtype val=fd_xmleval(out,expr,&envstruct);
       if (FD_ABORTP(val)) {
         fdtype errbind;
         if (iterval) errbind=iterenv1(seq,var,elt);
-        else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
+        else errbind=iterenv2(seq,var,elt,count_var,FD_INT(i));
         fd_destroy_rwlock(&(bindings.rwlock));
         if (envstruct.copy) fd_recycle_environment(envstruct.copy);
         fd_decref(elt); fd_decref(seq);
@@ -1602,7 +1602,7 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
   else {
     bindings.size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
-    vars[1]=count_var; vals[1]=FD_INT2DTYPE(0); iloc=&(vals[1]);}
+    vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
   fd_init_rwlock(&(bindings.rwlock));
@@ -1617,15 +1617,15 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
       fd_incref(elt);
       if (envstruct.copy) {
         fd_set_value(var,elt,envstruct.copy);
-        if (iloc) fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+        if (iloc) fd_set_value(count_var,FD_INT(i),envstruct.copy);}
       else {
         *vloc=elt;
-        if (iloc) *iloc=FD_INT2DTYPE(i);}
+        if (iloc) *iloc=FD_INT(i);}
       {FD_DOELTS(expr,body,count) {
         fdtype val=fd_xmleval(out,expr,&envstruct);
         if (FD_ABORTP(val)) {
           fdtype env;
-          if (iloc) env=retenv2(var,elt,count_var,FD_INT2DTYPE(i));
+          if (iloc) env=retenv2(var,elt,count_var,FD_INT(i));
           else env=retenv1(var,elt);
           fd_decref(choices);
           if (envstruct.copy) fd_recycle_environment(envstruct.copy);
@@ -1661,15 +1661,15 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  vars[0]=var; vals[0]=FD_INT2DTYPE(0);
+  vars[0]=var; vals[0]=FD_INT(0);
   while (i < limit) {
     if (envstruct.copy)
-      fd_set_value(var,FD_INT2DTYPE(i),envstruct.copy);
-    else vals[0]=FD_INT2DTYPE(i);
+      fd_set_value(var,FD_INT(i),envstruct.copy);
+    else vals[0]=FD_INT(i);
     {FD_DOELTS(expr,body,count) {
       fdtype val=fd_xmleval(out,expr,&envstruct);
       if (FD_ABORTP(val)) {
-        fd_push_error_context(":FXMLRANGE",iterenv1(limit_val,var,FD_INT2DTYPE(i)));
+        fd_push_error_context(":FXMLRANGE",iterenv1(limit_val,var,FD_INT(i)));
         fd_destroy_rwlock(&(bindings.rwlock));
         if (envstruct.copy) fd_recycle_environment(envstruct.copy);
         return val;}

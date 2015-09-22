@@ -353,14 +353,14 @@ static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
       FD_DO_CHOICES(arg,arg1) {
 	if (FD_SEQUENCEP(arg)) {
 	  int len=fd_seq_length(arg);
-	  fdtype dlen=FD_INT2DTYPE(len);
+	  fdtype dlen=FD_INT(len);
 	  FD_ADD_TO_CHOICE(results,dlen);}
 	else {
 	  fd_decref(results);
 	  return fd_type_error(_("sequence"),"LENGTH opcode",arg);}}
       return fd_simplify_choice(results);}
     else if (FD_SEQUENCEP(arg1))
-      return FD_INT2DTYPE(fd_seq_length(arg1));
+      return FD_INT(fd_seq_length(arg1));
     else return fd_type_error(_("sequence"),"LENGTH opcode",arg1);
   case FD_QCHOICE_OPCODE:
     if (FD_CHOICEP(arg1)) {
@@ -374,15 +374,15 @@ static fdtype opcode_unary_nd_dispatch(fdtype opcode,fdtype arg1)
   case FD_CHOICE_SIZE_OPCODE:
     if (FD_CHOICEP(arg1)) {
       int sz=FD_CHOICE_SIZE(arg1);
-      return FD_INT2DTYPE(sz);}
+      return FD_INT(sz);}
     else if (FD_ACHOICEP(arg1)) {
       fdtype simple=fd_make_simple_choice(arg1);
       int size=FD_CHOICE_SIZE(simple);
       fd_decref(simple);
-      return FD_INT2DTYPE(size);}
+      return FD_INT(size);}
     else if (FD_EMPTY_CHOICEP(arg1))
-      return FD_INT2DTYPE(0);
-    else return FD_INT2DTYPE(1);
+      return FD_INT(0);
+    else return FD_INT(1);
   case FD_PICKOIDS_OPCODE:
     return pickoids_opcode(arg1);
   case FD_PICKSTRINGS_OPCODE:
@@ -431,14 +431,14 @@ static fdtype opcode_unary_dispatch(fdtype opcode,fdtype arg1)
   case FD_PLUS1_OPCODE: 
     if (FD_FIXNUMP(arg1)) {
       int iarg=FD_FIX2INT(arg1);
-      return FD_INT2DTYPE(iarg+delta);}
+      return FD_INT(iarg+delta);}
     else if (FD_NUMBERP(arg1))
       return fd_plus(arg1,FD_FIX2INT(-1));
     else return fd_type_error(_("number"),"opcode 1+/-",arg1);
   case FD_NUMBERP_OPCODE: 
     if (FD_NUMBERP(arg1)) return FD_TRUE; else return FD_FALSE;
   case FD_ZEROP_OPCODE: 
-    if (arg1==FD_INT2DTYPE(0)) return FD_TRUE; else return FD_FALSE;
+    if (arg1==FD_INT(0)) return FD_TRUE; else return FD_FALSE;
   case FD_VECTORP_OPCODE: 
     if (FD_VECTORP(arg1)) return FD_TRUE; else return FD_FALSE;
   case FD_PAIRP_OPCODE: 
@@ -463,7 +463,7 @@ static fdtype opcode_unary_dispatch(fdtype opcode,fdtype arg1)
     else if (FD_STRINGP(arg1))
       return fd_string2number(FD_STRDATA(arg1),10);
     else if (FD_CHARACTERP(arg1))
-      return FD_INT2DTYPE(FD_CHARCODE(arg1));
+      return FD_INT(FD_CHARCODE(arg1));
     else return fd_type_error(_("number|string"),"opcode ->number",arg1);
   default:
     return fd_err(_("Invalid opcode"),"opcode eval",NULL,FD_VOID);
@@ -548,7 +548,7 @@ static fdtype opcode_binary_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
   case FD_PLUS_OPCODE:
     if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
       int m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
-      return FD_INT2DTYPE(m+n);}
+      return FD_INT(m+n);}
     else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
       double x=FD_FLONUM(arg1), y=FD_FLONUM(arg2);
       return fd_init_double(NULL,x+y);}
@@ -556,7 +556,7 @@ static fdtype opcode_binary_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
   case FD_MINUS_OPCODE:
     if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
       int m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
-      return FD_INT2DTYPE(m-n);}
+      return FD_INT(m-n);}
     else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
       double x=FD_FLONUM(arg1), y=FD_FLONUM(arg2);
       return fd_init_double(NULL,x-y);}
@@ -564,7 +564,7 @@ static fdtype opcode_binary_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
   case FD_TIMES_OPCODE:
     if ((FD_FIXNUMP(arg1)) && (FD_FIXNUMP(arg2)))  {
       int m=FD_FIX2INT(arg1), n=FD_FIX2INT(arg2);
-      return FD_INT2DTYPE(m*n);}
+      return FD_INT(m*n);}
     else if ((FD_FLONUMP(arg1)) && (FD_FLONUMP(arg2))) {
       double x=FD_FLONUM(arg1), y=FD_FLONUM(arg2);
       return fd_init_double(NULL,x*y);}

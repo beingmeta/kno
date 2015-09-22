@@ -59,9 +59,9 @@ FD_EXPORT fdtype fd_history_ref(fdtype history,int ref)
   if (ref<0) ref=top+ref;
   if (ref>=top)
     return fd_err(fd_RangeError,"fd_history_ref",
-                  _("invalid history reference"),FD_INT2DTYPE(ref));
+                  _("invalid history reference"),FD_INT(ref));
   else if (ref<(top-len))
-    return fd_hashtable_get(h,FD_INT2DTYPE(ref),FD_VOID);
+    return fd_hashtable_get(h,FD_INT(ref),FD_VOID);
   else return fd_incref(data[ref%len]);
 }
 
@@ -74,9 +74,9 @@ FD_EXPORT int fd_history_set(fdtype history,int ref,fdtype value)
     return fd_reterr(fd_RangeError,"fd_history_set",
                      _("invalid history reference"),history);
   else if (ref<(top-len))
-    return fd_hashtable_op(h,fd_table_replace,FD_INT2DTYPE(ref),FD_VOID);
+    return fd_hashtable_op(h,fd_table_replace,FD_INT(ref),FD_VOID);
   else {
-    int retval=fd_hashtable_op(h,fd_table_replace,FD_INT2DTYPE(ref),FD_VOID);
+    int retval=fd_hashtable_op(h,fd_table_replace,FD_INT(ref),FD_VOID);
     fd_decref(data[ref%len]);
     data[ref%len]=FD_VOID;
     return retval;}
@@ -87,7 +87,7 @@ FD_EXPORT int fd_history_keep(fdtype history,int ref,fdtype value)
   int top, len; fdtype *data; fd_hashtable h;
   if (unpack_history(history,&top,&len,&data,&h)<0)
     return fd_type_error(_("history"),"fd_history_set",history);
-  if (fd_hashtable_store(h,FD_INT2DTYPE(ref),value)<0)
+  if (fd_hashtable_store(h,FD_INT(ref),value)<0)
     return -1;
   else return ref;
 }
@@ -127,7 +127,7 @@ FD_EXPORT int fd_history_push(fdtype history,fdtype value)
     return -1;}
   data[top%len]=stored;
   fd_decref(current);
-  FD_VECTOR_SET(history,0,FD_INT2DTYPE(top+1));
+  FD_VECTOR_SET(history,0,FD_INT(top+1));
   return top;
 }
 
@@ -194,7 +194,7 @@ FD_EXPORT void fd_histinit(int size)
       fd_decref(configval);
       size=128;}}
   if (FD_VOIDP(history)) {
-    history=fd_make_nvector(3,FD_INT2DTYPE(0),
+    history=fd_make_nvector(3,FD_INT(0),
                             fd_init_vector(NULL,size,NULL),
                             fd_make_hashtable(NULL,17));
     fd_thread_set(history_symbol,history);}

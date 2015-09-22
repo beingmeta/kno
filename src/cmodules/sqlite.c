@@ -594,7 +594,7 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
             ((strcasecmp(decltype,"DATETIME")==0)||
              (strcasecmp(decltype,"DATE")==0)))
           value=fd_time2timestamp((time_t)intval);
-        else value=FD_INT2DTYPE(intval);
+        else value=FD_INT(intval);
         break;}
       case SQLITE_FLOAT:
         value=fd_init_double(NULL,sqlite3_column_double(stmt,j)); break;

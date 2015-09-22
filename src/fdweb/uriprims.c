@@ -172,8 +172,8 @@ fdtype fd_parse_uri(u8_string uri,fdtype base)
       char buf[64]; long int portno;
       strncpy(buf,colon+1,slash-colon); buf[slash-colon]='\0';
       portno=strtol(buf,NULL,10);
-      fd_add(f,portno_symbol,FD_INT2DTYPE(portno));}
-    else fd_add(f,portno_symbol,FD_INT2DTYPE(default_portno));
+      fd_add(f,portno_symbol,FD_INT(portno));}
+    else fd_add(f,portno_symbol,FD_INT(default_portno));
     if (slash) start=slash+1; else start=NULL;}
   if (start==NULL)
     return f;

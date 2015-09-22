@@ -69,7 +69,7 @@ FD_EXPORT fdtype fd_seq_elt(fdtype x,int i)
     if (i>=FD_PACKET_LENGTH(x)) return FD_RANGE_ERROR;
     else {
       int val=FD_PACKET_DATA(x)[i];
-      return FD_INT2DTYPE(val);}
+      return FD_INT(val);}
   case fd_pair_type: {
     int j=0; fdtype scan=x;
     while (FD_PAIRP(scan))
@@ -372,7 +372,7 @@ fdtype *fd_elts(fdtype seq,int *n)
       const unsigned char *packet=FD_PACKET_DATA(seq);
       int i=0; while (i < len) {
         int byte=packet[i];
-        vec[i]=FD_INT2DTYPE(byte); i++;}
+        vec[i]=FD_INT(byte); i++;}
       break;}
     case fd_string_type: {
       int i=0;
@@ -795,7 +795,7 @@ static fdtype seqlen_prim(fdtype x)
 {
   int len=fd_seq_length(x);
   if (len<0) return fd_type_error(_("sequence"),"seqlen",x);
-  else return FD_INT2DTYPE(len);
+  else return FD_INT(len);
 }
 
 static fdtype seqelt_prim(fdtype x,fdtype offset)
@@ -900,13 +900,13 @@ static fdtype check_empty_list_range
 {
   if ((FD_FALSEP(start_arg)) ||
       (FD_VOIDP(start_arg)) ||
-      (start_arg==FD_INT2DTYPE(0))) {}
+      (start_arg==FD_INT(0))) {}
   else if (FD_FIXNUMP(start_arg))
     return fd_err(fd_RangeError,prim,"start",start_arg);
   else return fd_type_error("fixnum",prim,start_arg);
   if ((FD_FALSEP(end_arg)) ||
       (FD_VOIDP(end_arg)) ||
-      (end_arg==FD_INT2DTYPE(0))) {}
+      (end_arg==FD_INT(0))) {}
   else if (FD_FIXNUMP(end_arg))
     return fd_err(fd_RangeError,prim,"start",end_arg);
   else return fd_type_error("fixnum",prim,end_arg);
@@ -965,14 +965,14 @@ static fdtype position_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
   fdtype check=check_range("position_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(check)) return check;
   else result=fd_position(key,x,start,end);
-  if (result>=0) return FD_INT2DTYPE(result);
+  if (result>=0) return FD_INT(result);
   else if (result == -1) return FD_FALSE;
   else if (result == -2)
     return fd_type_error(_("sequence"),"position_prim",x);
   else if (result == -3) {
     sprintf(buf,"%d[%d:%d]",fd_seq_length(x),start,end);
     return fd_err(fd_RangeError,"position_prim",u8_strdup(buf),x);}
-  else return FD_INT2DTYPE(result);
+  else return FD_INT(result);
 }
 
 static fdtype rposition_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
@@ -981,14 +981,14 @@ static fdtype rposition_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg
   fdtype check=check_range("rposition_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(check)) return check;
   else result=fd_rposition(key,x,start,end);
-  if (result>=0) return FD_INT2DTYPE(result);
+  if (result>=0) return FD_INT(result);
   else if (result == -1) return FD_FALSE;
   else if (result == -2)
     return fd_type_error(_("sequence"),"rposition_prim",x);
   else if (result == -3) {
     sprintf(buf,"%d[%d:%d]",fd_seq_length(x),start,end);
     return fd_err(fd_RangeError,"rposition_prim",u8_strdup(buf),x);}
-  else return FD_INT2DTYPE(result);
+  else return FD_INT(result);
 }
 
 static fdtype find_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
@@ -1013,7 +1013,7 @@ static fdtype search_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
   fdtype check=check_range("search_prim",x,start_arg,end_arg,&start,&end);
   if (FD_ABORTP(check)) return check;
   else result=fd_search(key,x,start,end);
-  if (result>=0) return FD_INT2DTYPE(result);
+  if (result>=0) return FD_INT(result);
   else if (result == -1) return FD_FALSE;
   else if (result == -2) {
     sprintf(buf,"%d:%d",start,end);
@@ -1562,7 +1562,7 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
       const unsigned char *read=FD_PACKET_DATA(x), *lim=read+end;
       while (read<lim) {
         int v=*read++;
-        FD_ADD_TO_CHOICE(results,FD_INT2DTYPE(v));}
+        FD_ADD_TO_CHOICE(results,FD_INT(v));}
       return results;}
     case fd_pair_type: {
       int j=0; fdtype scan=x;
@@ -1868,29 +1868,29 @@ FD_EXPORT void fd_init_sequences_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim4x("POSITION",position_prim,2,
                            -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_INT2DTYPE(0),
+                           -1,FD_INT(0),
                            -1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim4x("RPOSITION",rposition_prim,2,
                            -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_INT2DTYPE(0),
+                           -1,FD_INT(0),
                            -1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim4x("FIND",find_prim,2,
                            -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_INT2DTYPE(0),
+                           -1,FD_INT(0),
                            -1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim4x("SEARCH",search_prim,2,
                            -1,FD_VOID,-1,FD_VOID,
-                           -1,FD_INT2DTYPE(0),
+                           -1,FD_INT(0),
                            -1,FD_FALSE));
   fd_idefn(fd_scheme_module,fd_make_cprim1("REVERSE",fd_reverse,1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("APPEND",fd_append,0));
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("MATCH?",seqmatch_prim,2,
                            -1,FD_VOID,-1,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0)));
+                           fd_fixnum_type,FD_INT(0)));
 
   /* Initial sequence functions */
   fd_idefn(fd_scheme_module,fd_make_cprim1("FIRST",first,1));

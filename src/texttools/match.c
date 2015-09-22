@@ -123,7 +123,7 @@
 
   Match results are represented by choices of byte offsets encoded
   as lisp FIXNUMs, with int values extracted by FD_FIX2INT and recreated
-  by FD_INT2DTYPE. If there is only one result, the representation is a
+  by FD_INT. If there is only one result, the representation is a
   single fixnum.
 
   Search results, because they describe the *first* match of a pattern,
@@ -380,7 +380,7 @@ static fdtype get_longest_match(fdtype matches)
       if (ival>max) max=ival;}
     fd_decref(matches);
     if (max<0) return FD_EMPTY_CHOICE;
-    else return FD_INT2DTYPE(max);}
+    else return FD_INT(max);}
   else return matches;
 }
 
@@ -400,14 +400,14 @@ fdtype fd_text_domatch
   else if (FD_EMPTY_CHOICEP(pat)) return FD_EMPTY_CHOICE;
   else if (FD_STRINGP(pat))
     if (off == lim)
-      if (FD_STRLEN(pat) == 0) return FD_INT2DTYPE(off);
+      if (FD_STRLEN(pat) == 0) return FD_INT(off);
       else return FD_EMPTY_CHOICE;
     else {
       u8_byteoff mlen=strmatcher
         (flags,FD_STRDATA(pat),FD_STRLEN(pat),
          string,off,lim);
       if (mlen < 0) return FD_EMPTY_CHOICE;
-      else return FD_INT2DTYPE(mlen);}
+      else return FD_INT(mlen);}
   else if ((FD_CHOICEP(pat)) || (FD_ACHOICEP(pat))) {
     if (flags&(FD_MATCH_BE_GREEDY)) {
       u8_byteoff max=-1;
@@ -436,7 +436,7 @@ fdtype fd_text_domatch
         else {
           fd_decref(answer); FD_STOP_DO_CHOICES;
           return fd_err(fd_InternalMatchError,"fd_text_domatch",NULL,each);}}
-      if (max<0) return FD_EMPTY_CHOICE; else return FD_INT2DTYPE(max);}
+      if (max<0) return FD_EMPTY_CHOICE; else return FD_INT(max);}
     else {
       fdtype answers=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(epat,pat) {
@@ -454,7 +454,7 @@ fdtype fd_text_domatch
       if ((code < 0x7f)?(string[off] == code):
           (code == string_ref(string+off))) {
         int next=forward_char(string,off);
-        return FD_INT2DTYPE(next);}
+        return FD_INT(next);}
       else return FD_EMPTY_CHOICE;}}
   else if (FD_VECTORP(pat))
     return match_sequence(pat,next,env,string,off,lim,flags);
@@ -487,7 +487,7 @@ fdtype fd_text_domatch
     if (retval<-1) 
       return fd_err(fd_InternalMatchError,"fd_text_domatch",NULL,pat);
     else if ((retval>lim)||(retval<0)) return FD_EMPTY_CHOICE;
-    else return FD_INT2DTYPE(retval);}
+    else return FD_INT(retval);}
   else return fd_err(fd_MatchSyntaxError,"fd_text_domatch",NULL,pat);
 }
 
@@ -504,7 +504,7 @@ static fdtype match_sequence
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   int i=0, l=FD_VECTOR_LENGTH(pat);
-  fdtype state=FD_INT2DTYPE(off);
+  fdtype state=FD_INT(off);
   while (i < l) {
     fdtype epat=FD_VECTOR_REF(pat,i);
     fdtype npat=((i+1==l)?(next):(FD_VECTOR_REF(pat,i+1)));
@@ -587,14 +587,14 @@ static fdtype textract
   else if (FD_EMPTY_CHOICEP(pat)) return FD_EMPTY_CHOICE;
   else if (FD_STRINGP(pat))
     if ((FD_STRLEN(pat)) == 0)
-      return fd_conspair(FD_INT2DTYPE(off),fdtype_string(""));
+      return fd_conspair(FD_INT(off),fdtype_string(""));
     else if (off == lim) return FD_EMPTY_CHOICE;
     else {
       u8_byteoff mlen=
         strmatcher(flags,FD_STRDATA(pat),FD_STRLEN(pat),
                    string,off,lim);
       if (mlen<0) return FD_EMPTY_CHOICE;
-      else return extract_text(string,off,FD_INT2DTYPE(mlen));}
+      else return extract_text(string,off,FD_INT(mlen));}
   else if ((FD_CHOICEP(pat)) || (FD_QCHOICEP(pat)) || (FD_ACHOICEP(pat))) {
     fdtype answers=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(epat,pat) {
@@ -631,7 +631,7 @@ static fdtype textract
         int next=forward_char(string,off);
         U8_INIT_FIXED_OUTPUT(&str,16,buf);
         u8_putc(&str,code);
-        return fd_conspair(FD_INT2DTYPE(next),fdtype_string(buf));}
+        return fd_conspair(FD_INT(next),fdtype_string(buf));}
       else return FD_EMPTY_CHOICE;}
   else if (FD_VECTORP(pat)) {
     fdtype seq_matches=extract_sequence(pat,0,next,env,string,off,lim,flags);
@@ -692,7 +692,7 @@ static fdtype textract
       fdtype ex=fd_extract_string
         (NULL,base+results[0].rm_so,base+results[0].rm_eo);
       int loc=u8_charoffset(string,off+results[0].rm_so);
-      return fd_conspair(FD_INT2DTYPE(loc),ex);}}
+      return fd_conspair(FD_INT(loc),ex);}}
   else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);
 }
 
@@ -702,7 +702,7 @@ static fdtype extract_sequence
 {
   int l=FD_VECTOR_LENGTH(pat);
   if (pat_elt == l)
-    return fd_conspair(FD_INT2DTYPE(off),FD_EMPTY_LIST);
+    return fd_conspair(FD_INT(off),FD_EMPTY_LIST);
   else {
     fdtype nextpat=
       (((pat_elt+1)==l) ? (next) : (FD_VECTOR_REF(pat,pat_elt+1)));
@@ -758,8 +758,8 @@ static fdtype match_repeatedly
    int flags,int zero_ok)
 {
   fdtype match_points=FD_EMPTY_CHOICE;
-  fdtype state=FD_INT2DTYPE(off); int count=0;
-  if (zero_ok) {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+  fdtype state=FD_INT(off); int count=0;
+  if (zero_ok) {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
   while (1) {
     fdtype next_state=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(pos,state) {
@@ -814,7 +814,7 @@ static fdtype extract_repeatedly
   fdtype choices=FD_EMPTY_CHOICE;
   fdtype top=textract(pat,next,env,string,off,lim,flags);
   if (FD_EMPTY_CHOICEP(top))
-    if (zero_ok) return fd_conspair(FD_INT2DTYPE(off),FD_EMPTY_LIST);
+    if (zero_ok) return fd_conspair(FD_INT(off),FD_EMPTY_LIST);
     else return FD_EMPTY_CHOICE;
   else {
     FD_DO_CHOICES(each,top)
@@ -857,8 +857,8 @@ static fdtype match_star
     u8_byteoff nextpos=((FD_VOIDP(next))?(-1):
                  (fd_text_search(next,env,string,off,lim,flags)));
     if (nextpos==-2) return FD_ERROR_VALUE;
-    else if (nextpos<0) return FD_INT2DTYPE(lim);
-    else return FD_INT2DTYPE(nextpos);}
+    else if (nextpos<0) return FD_INT(lim);
+    else return FD_INT(nextpos);}
   else {
     fdtype pat_arg=fd_get_arg(pat,1);
     FD_PAT_ARG(pat_arg,"match_star",pat);
@@ -880,9 +880,9 @@ static fdtype extract_star
        (fd_text_search(next,env,string,off,lim,flags)));
     if (nextpos==-2) return FD_ERROR_VALUE;
     else if (nextpos<0)
-      return fd_conspair(FD_INT2DTYPE(nextpos),
+      return fd_conspair(FD_INT(nextpos),
                          fd_substring(string+off,string+lim));
-    else return fd_conspair(FD_INT2DTYPE(nextpos),
+    else return fd_conspair(FD_INT(nextpos),
                             fd_substring(string+off,string+nextpos));}
   else {
     fdtype pat_arg=fd_get_arg(pat,1);
@@ -946,7 +946,7 @@ static fdtype match_opt
   fdtype pat_arg=fd_get_arg(pat,1), match_result;
   FD_PAT_ARG(pat_arg,"match_opt",pat);
   match_result=fd_text_domatch(pat_arg,next,env,string,off,lim,flags);
-  if (FD_EMPTY_CHOICEP(match_result)) return FD_INT2DTYPE(off);
+  if (FD_EMPTY_CHOICEP(match_result)) return FD_INT(off);
   else return match_result;
 }
 static u8_byteoff search_opt
@@ -965,7 +965,7 @@ static fdtype extract_opt
   else {
     fdtype extraction=textract(pat_arg,next,NULL,string,off,lim,flags);
     if (FD_EMPTY_CHOICEP(extraction))
-      return fd_conspair(FD_INT2DTYPE(off),
+      return fd_conspair(FD_INT(off),
                          fd_make_list(1,opt_symbol));
     else return extraction;}
 }
@@ -991,9 +991,9 @@ static fdtype match_not
         last=pos;
       else last=lim;
       while (i < last) {
-        FD_ADD_TO_CHOICE(result,FD_INT2DTYPE(i));
+        FD_ADD_TO_CHOICE(result,FD_INT(i));
         i=forward_char(string,i);}
-      FD_ADD_TO_CHOICE(result,FD_INT2DTYPE(i));
+      FD_ADD_TO_CHOICE(result,FD_INT(i));
       return result;}}
 }
 
@@ -1071,10 +1071,10 @@ static fdtype match_not_gt
     u8_byteoff pos=fd_text_search(pat_arg,env,string,off,lim,flags);
     if (pos < 0)
       if (pos==-2) return FD_ERROR_VALUE;
-      else return FD_INT2DTYPE(lim);
+      else return FD_INT(lim);
     /* else if (pos == off) return FD_EMPTY_CHOICE; */
-    else if (pos >= lim) return FD_INT2DTYPE(lim);
-    else return FD_INT2DTYPE(pos);}
+    else if (pos >= lim) return FD_INT(lim);
+    else return FD_INT(pos);}
 }
 
 /** Match BIND **/
@@ -1297,7 +1297,7 @@ static fdtype match_pref
         else {
           fd_decref(answer);
           return fd_err(fd_InternalMatchError,"fd_text_matcher",NULL,each);}}
-    if (max<0) return FD_EMPTY_CHOICE; else return FD_INT2DTYPE(max);}
+    if (max<0) return FD_EMPTY_CHOICE; else return FD_INT(max);}
   else {
     fdtype answers=FD_EMPTY_CHOICE;
     FD_DOLIST(epat,FD_CDR(pat)) {
@@ -1924,9 +1924,9 @@ static fdtype match_bol
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == 0)
-    return FD_INT2DTYPE(0);
+    return FD_INT(0);
   else if ((string[off-1] == '\n') || (string[off-1] == '\r'))
-    return FD_INT2DTYPE(off);
+    return FD_INT(off);
   else return FD_EMPTY_CHOICE;
 }
 
@@ -1951,9 +1951,9 @@ static fdtype match_eol
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  if (off == lim) return FD_INT2DTYPE(off);
+  if (off == lim) return FD_INT(off);
   else if ((string[off] == '\n') || (string[off] == '\r'))
-    return FD_INT2DTYPE(off+1);
+    return FD_INT(off+1);
   else return FD_EMPTY_CHOICE;
 }
 
@@ -1979,12 +1979,12 @@ static fdtype match_bow
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   if (off == 0)
-    return FD_INT2DTYPE(0);
+    return FD_INT(0);
   else {
     u8_byteoff prev=backward_char(string,off);
     const u8_byte *ptr=string+prev;
     int c=u8_sgetc(&ptr);
-    if (u8_isspace(c)) return FD_INT2DTYPE(off);
+    if (u8_isspace(c)) return FD_INT(off);
     else return FD_EMPTY_CHOICE;}
 }
 
@@ -2021,7 +2021,7 @@ static fdtype match_bos
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  if (off == 0) return FD_INT2DTYPE(off);
+  if (off == 0) return FD_INT(off);
   else return FD_EMPTY_CHOICE;
 }
 
@@ -2037,7 +2037,7 @@ static fdtype match_eos
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  if (off == lim) return FD_INT2DTYPE(off);
+  if (off == lim) return FD_INT(off);
   else return FD_EMPTY_CHOICE;
 }
 
@@ -2055,7 +2055,7 @@ static fdtype match_rest
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  return FD_INT2DTYPE(lim);
+  return FD_INT(lim);
 }
 static u8_byteoff search_rest
   (fdtype pat,fd_lispenv env,
@@ -2067,7 +2067,7 @@ static fdtype extract_rest
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  return fd_conspair(FD_INT2DTYPE(lim),
+  return fd_conspair(FD_INT(lim),
                      fd_substring(string+off,string+lim));
 }
 
@@ -2085,7 +2085,7 @@ static fdtype match_char_range
     actual=u8_tolower(start);}
   if ((actual >= start) && (actual <= end)) {
     const u8_byte *new_off=u8_substring(string+off,1);
-    return FD_INT2DTYPE(new_off-string);}
+    return FD_INT(new_off-string);}
   else return FD_EMPTY_CHOICE;
 }
 
@@ -2118,14 +2118,14 @@ static fdtype match_char_not_core
     if (hit)
       if (last_scan == string+off) {
         u8_free(break_chars);
-        if (match_null_string) return FD_INT2DTYPE(last_scan-string);
+        if (match_null_string) return FD_INT(last_scan-string);
         else return FD_EMPTY_CHOICE;}
       else {
         u8_free(break_chars);
-        return FD_INT2DTYPE(last_scan-string);}
+        return FD_INT(last_scan-string);}
     else last_scan=scan;}
   u8_free(break_chars);
-  return FD_INT2DTYPE(lim);
+  return FD_INT(lim);
 }
 
 static fdtype match_char_not
@@ -2152,7 +2152,7 @@ static fdtype isvowel_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off), bch=u8_base_char(ch);
-  if (strchr("aeiouAEIOU",bch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (strchr("aeiouAEIOU",bch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 
@@ -2162,7 +2162,7 @@ static fdtype isnotvowel_match
 {
   u8_unichar ch=string_ref(string+off), bch=u8_base_char(ch);
   if (strchr("aeiouAEIOU",bch)) return FD_EMPTY_CHOICE;
-  else return FD_INT2DTYPE(forward_char(string,off));
+  else return FD_INT(forward_char(string,off));
 }
 
 static fdtype isspace_match
@@ -2170,7 +2170,7 @@ static fdtype isspace_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_isspace(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_isspace(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isspace_plus_match
@@ -2185,8 +2185,8 @@ static fdtype isspace_plus_match
     else {
       last=scan;
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(last-string);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(last-string));}
+        match_points=FD_INT(last-string);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(last-string));}
       ch=u8_sgetc(&scan);}
   if (last == string) return FD_EMPTY_CHOICE;
   else if ((flags)&(FD_MATCH_BE_GREEDY))
@@ -2215,7 +2215,7 @@ static fdtype spaces_match
   while (u8_isspace(ch)) 
     if (scan > limit) break; else {last=scan; ch=u8_sgetc(&scan);}
   if (last == string+off) return FD_EMPTY_CHOICE;
-  else return FD_INT2DTYPE(last-string);
+  else return FD_INT(last-string);
 }
 static u8_byteoff spaces_search
   (fdtype pat,fd_lispenv env,
@@ -2238,8 +2238,8 @@ static fdtype spaces_star_match
   u8_unichar ch=u8_sgetc(&scan);
   while ((ch>0) && (u8_isspace(ch))) 
     if (scan > limit) break; else {last=scan; ch=u8_sgetc(&scan);}
-  if (last == string) return FD_INT2DTYPE(off);
-  else return FD_INT2DTYPE(last-string);
+  if (last == string) return FD_INT(off);
+  else return FD_INT(last-string);
 }
 static u8_byteoff spaces_star_search
   (fdtype pat,fd_lispenv env,
@@ -2256,7 +2256,7 @@ static fdtype ishspace_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_ishspace(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_ishspace(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype ishspace_plus_match
@@ -2271,8 +2271,8 @@ static fdtype ishspace_plus_match
     else {
       last=scan;
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(last-string);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(last-string));}
+        match_points=FD_INT(last-string);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(last-string));}
       ch=u8_sgetc(&scan);}
   if (last == string) return FD_EMPTY_CHOICE;
   else if ((flags)&(FD_MATCH_BE_GREEDY))
@@ -2299,7 +2299,7 @@ static fdtype isvspace_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_isvspace(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_isvspace(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isvspace_plus_match
@@ -2314,8 +2314,8 @@ static fdtype isvspace_plus_match
     else {
       last=scan;
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(last-string);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(last-string));}
+        match_points=FD_INT(last-string);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(last-string));}
       ch=u8_sgetc(&scan);}
   if (last == string) return FD_EMPTY_CHOICE;
   else if ((flags)&(FD_MATCH_BE_GREEDY))
@@ -2342,7 +2342,7 @@ static fdtype isalnum_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_isalnum(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_isalnum(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isalnum_plus_match
@@ -2355,8 +2355,8 @@ static fdtype isalnum_plus_match
     while (u8_isalnum(ch)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2382,7 +2382,7 @@ static fdtype isword_match
 {
   u8_unichar ch=string_ref(string+off);
   if ((u8_isalpha(ch)) || (ch == '-') || (ch == '_'))
-    return FD_INT2DTYPE(forward_char(string,off));
+    return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isword_plus_match
@@ -2395,8 +2395,8 @@ static fdtype isword_plus_match
     while ((u8_isalpha(ch)) || (ch == '-') || (ch == '_')) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2423,7 +2423,7 @@ static fdtype isdigit_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_isdigit(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_isdigit(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isdigit_plus_match
@@ -2436,8 +2436,8 @@ static fdtype isdigit_plus_match
     while (u8_isdigit(ch)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2462,7 +2462,7 @@ static fdtype isxdigit_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_isxdigit(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_isxdigit(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isxdigit_plus_match
@@ -2475,8 +2475,8 @@ static fdtype isxdigit_plus_match
     while (u8_isxdigit(ch)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2501,7 +2501,7 @@ static fdtype isodigit_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_isodigit(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_isodigit(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isodigit_plus_match
@@ -2514,8 +2514,8 @@ static fdtype isodigit_plus_match
     while (u8_isodigit(ch)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2540,7 +2540,7 @@ static fdtype isalpha_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_isalpha(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_isalpha(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isalpha_plus_match
@@ -2553,8 +2553,8 @@ static fdtype isalpha_plus_match
     while ((u8_isalpha(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2579,7 +2579,7 @@ static fdtype ispunct_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_ispunct(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_ispunct(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype ispunct_plus_match
@@ -2592,8 +2592,8 @@ static fdtype ispunct_plus_match
     while ((u8_ispunct(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2619,7 +2619,7 @@ static fdtype isprint_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_isprint(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_isprint(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isprint_plus_match
@@ -2632,8 +2632,8 @@ static fdtype isprint_plus_match
     while (u8_isprint(ch)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2658,7 +2658,7 @@ static fdtype iscntrl_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_isctrl(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_isctrl(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype iscntrl_plus_match
@@ -2671,8 +2671,8 @@ static fdtype iscntrl_plus_match
     while ((u8_isctrl(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2699,7 +2699,7 @@ static fdtype islower_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_islower(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_islower(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype islower_plus_match
@@ -2712,8 +2712,8 @@ static fdtype islower_plus_match
     while ((u8_islower(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2742,7 +2742,7 @@ static fdtype isnotlower_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (isnotlower(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (isnotlower(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isnotlower_plus_match
@@ -2755,8 +2755,8 @@ static fdtype isnotlower_plus_match
     while ((isnotlower(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2783,7 +2783,7 @@ static fdtype isupper_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (u8_isupper(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (u8_isupper(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isupper_plus_match
@@ -2796,8 +2796,8 @@ static fdtype isupper_plus_match
     while ((u8_isupper(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2826,7 +2826,7 @@ static fdtype isnotupper_match
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
   u8_unichar ch=string_ref(string+off);
-  if (isnotupper(ch)) return FD_INT2DTYPE(forward_char(string,off));
+  if (isnotupper(ch)) return FD_INT(forward_char(string,off));
   else return FD_EMPTY_CHOICE;
 }
 static fdtype isnotupper_plus_match
@@ -2839,8 +2839,8 @@ static fdtype isnotupper_plus_match
     while ((isnotupper(ch)) && (off<lim)) {
       off=forward_char(string,off);
       if (flags&FD_MATCH_BE_GREEDY)
-        match_points=FD_INT2DTYPE(off);
-      else {FD_ADD_TO_CHOICE(match_points,FD_INT2DTYPE(off));}
+        match_points=FD_INT(off);
+      else {FD_ADD_TO_CHOICE(match_points,FD_INT(off));}
       ch=string_ref(string+off);}
     if ((flags)&(FD_MATCH_BE_GREEDY))
       return get_longest_match(match_points);
@@ -2878,9 +2878,9 @@ static fdtype compound_word_match
       if (strchr(embstr,ch)) {
         ch=u8_sgetc(&scan);
         if (u8_isalnum(ch)) continue;
-        else return FD_INT2DTYPE(end-string);}
-      else return FD_INT2DTYPE(end-string);}
-    return FD_INT2DTYPE(end-string);}
+        else return FD_INT(end-string);}
+      else return FD_INT(end-string);}
+    return FD_INT(end-string);}
   else return FD_EMPTY_CHOICE;
 }
 
@@ -2908,7 +2908,7 @@ static fdtype islsym_match
     u8_unichar ch=string_ref(string+i);
     if (islsym(ch)) i=forward_char(string,i);
     else break;}
-  if (i > off) return FD_INT2DTYPE(i);
+  if (i > off) return FD_INT(i);
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff islsym_search
@@ -2945,7 +2945,7 @@ static fdtype iscsym_match
       u8_unichar ch=string_ref(string+i);
       if ((u8_isalnum(ch)) || (ch == '_')) i=forward_char(string,i);
       else break;}
-  if (i > off) return FD_INT2DTYPE(i);
+  if (i > off) return FD_INT(i);
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff iscsym_search
@@ -2976,7 +2976,7 @@ static fdtype ispathelt_match
       u8_unichar ch=string_ref(string+i);
       if (ispathelt(ch)) i=forward_char(string,i);
       else break;}
-  if (i > off) return FD_INT2DTYPE(i);
+  if (i > off) return FD_INT(i);
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff ispathelt_search
@@ -3013,8 +3013,8 @@ static fdtype ismailid_match
       else s=u8_substring(s,1);
       if (is_not_mailidp(ch)) break;}
   if ((atsign) && (!(s == string+atsign+1)))
-    if (s == sl) return FD_INT2DTYPE((s-string)-1);
-    else return FD_INT2DTYPE((s-string));
+    if (s == sl) return FD_INT((s-string)-1);
+    else return FD_INT((s-string));
   else return FD_EMPTY_CHOICE;
 }
 
@@ -3081,8 +3081,8 @@ static fdtype xmlname_match
   if (!(xmlnmstartcharp(ch))) return FD_EMPTY_CHOICE;
   else while ((scan<limit) && (xmlnmcharp(ch))) {
       oscan=scan; ch=u8_sgetc(&scan);}
-  if (xmlnmcharp(ch)) return FD_INT2DTYPE(scan-string);
-  else return FD_INT2DTYPE(oscan-string);
+  if (xmlnmcharp(ch)) return FD_INT(scan-string);
+  else return FD_INT(oscan-string);
 }
 static u8_byteoff xmlname_search
   (fdtype pat,fd_lispenv env,
@@ -3106,8 +3106,8 @@ static fdtype xmlnmtoken_match
   if (!(xmlnmcharp(ch))) return FD_EMPTY_CHOICE;
   else while ((scan<limit) && (xmlnmcharp(ch))) {
       oscan=scan; ch=u8_sgetc(&scan);}
-  if (xmlnmcharp(ch)) return FD_INT2DTYPE(scan-string);
-  else return FD_INT2DTYPE(oscan-string);
+  if (xmlnmcharp(ch)) return FD_INT(scan-string);
+  else return FD_INT(oscan-string);
 }
 static u8_byteoff xmlnmtoken_search
   (fdtype pat,fd_lispenv env,
@@ -3119,8 +3119,8 @@ static u8_byteoff xmlnmtoken_search
     if (xmlnmcharp(ch)) break;
     oscan=scan; ch=u8_sgetc(&scan);}
   if (xmlnmcharp(ch))
-    if (scan<limit) return FD_INT2DTYPE(scan-string);
-    else if (oscan<limit) return FD_INT2DTYPE(oscan-string);
+    if (scan<limit) return FD_INT(scan-string);
+    else if (oscan<limit) return FD_INT(oscan-string);
     else return FD_EMPTY_CHOICE;
   else return FD_EMPTY_CHOICE;
 }
@@ -3136,8 +3136,8 @@ static fdtype htmlid_match
   if ((ch>0x80) || (!(isalpha(ch)))) return FD_EMPTY_CHOICE;
   else while ((scan<limit) && (ch<0x80) && (htmlidcharp(ch))) {
       oscan=scan; ch=u8_sgetc(&scan);}
-  if (htmlidcharp(ch)) return FD_INT2DTYPE(scan-string);
-  else return FD_INT2DTYPE(oscan-string);
+  if (htmlidcharp(ch)) return FD_INT(scan-string);
+  else return FD_INT(oscan-string);
 }
 static u8_byteoff htmlid_search
   (fdtype pat,fd_lispenv env,
@@ -3149,8 +3149,8 @@ static u8_byteoff htmlid_search
     if ((ch<0x80) && (isalpha(ch))) break;
     oscan=scan; ch=u8_sgetc(&scan);}
   if ((ch<0x80) && (isalpha(ch)))
-    if (scan<limit) return FD_INT2DTYPE(scan-string);
-    else if (oscan<limit) return FD_INT2DTYPE(oscan-string);
+    if (scan<limit) return FD_INT(scan-string);
+    else if (oscan<limit) return FD_INT(oscan-string);
     else return FD_EMPTY_CHOICE;
   else return FD_EMPTY_CHOICE;
 }
@@ -3178,9 +3178,9 @@ static fdtype aword_match
   if (last > string+off)
     if (lastch=='.')
       if ((allupper)&&(dotcount>1))
-        return FD_INT2DTYPE(last-string);
-      else return FD_INT2DTYPE((last-1)-string);
-    else return FD_INT2DTYPE(last-string);
+        return FD_INT(last-string);
+      else return FD_INT((last-1)-string);
+    else return FD_INT(last-string);
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff aword_search
@@ -3211,7 +3211,7 @@ static fdtype lword_match
       if (apostrophep(ch)) last=prev;
       break;}
     else {ch=nextch; last=prev;}}
-  if (last > string+off) return FD_INT2DTYPE(last-string);
+  if (last > string+off) return FD_INT(last-string);
   else return FD_EMPTY_CHOICE;
 }
 static u8_byteoff lword_search
@@ -3249,7 +3249,7 @@ static fdtype capword_match
     if (u8_islower(nextch)) allupper=0;
     if (nextch=='.') dotcount++;
     if ((!(greedy))&&(dashp(ch))) {
-      FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE(prev-string));}
+      FD_ADD_TO_CHOICE(matches,FD_INT(prev-string));}
     if ((!(u8_isalpha(ch)))&&(!(u8_isalpha(nextch)))) {
       if ((nextch=='.')||(apostrophep(nextch))) last=prev;
       break;}
@@ -3257,10 +3257,10 @@ static fdtype capword_match
   if (last > string+off) {
     if (lastch=='.')
       if ((allupper)&&(dotcount>1)) {
-        FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE(last-string));}
-      else {FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE((last-1)-string));}
+        FD_ADD_TO_CHOICE(matches,FD_INT(last-string));}
+      else {FD_ADD_TO_CHOICE(matches,FD_INT((last-1)-string));}
     else {
-      FD_ADD_TO_CHOICE(matches,FD_INT2DTYPE(last-string));}}
+      FD_ADD_TO_CHOICE(matches,FD_INT(last-string));}}
   if (greedy)
     return get_longest_match(matches);
   else return matches;
@@ -3307,7 +3307,7 @@ static fdtype anumber_match
   else while ((scan<=slim) && (ch<0x80) &&
               ((u8_isdigit(ch)) || ((sepchars)&&(strchr(sepchars,ch))))) {
     last=scan; ch=u8_sgetc(&scan);}
-  if (last > string+off) return FD_INT2DTYPE(last-string);
+  if (last > string+off) return FD_INT(last-string);
   else return FD_EMPTY_CHOICE;
 }
 static int check_digit(u8_unichar ch,int base)

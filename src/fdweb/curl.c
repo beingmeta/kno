@@ -545,7 +545,7 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,
   fdtype cval; long http_response=0;
   int retval=curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
   if (retval==0)
-    fd_add(result,response_code_slotid,FD_INT2DTYPE(http_response));
+    fd_add(result,response_code_slotid,FD_INT(http_response));
   if (data->size<data->limit) {
     unsigned char *buf=(unsigned char *)(data->bytes);
     buf[data->size]='\0';

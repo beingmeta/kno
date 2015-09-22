@@ -458,17 +458,17 @@ static fdtype outbound_get(MYSQL_STMT *stmt,MYSQL_BIND *bindings,
   case MYSQL_TYPE_LONG:
     if (outval->is_unsigned) {
       unsigned int intval=*((unsigned int *)(outval->buffer));
-      return FD_INT2DTYPE(intval);}
+      return FD_INT(intval);}
     else {
       int intval=*((int *)(outval->buffer));
-      return FD_INT2DTYPE(intval);}
+      return FD_INT(intval);}
   case MYSQL_TYPE_LONGLONG:
     if (outval->is_unsigned) {
       unsigned long long intval=*((unsigned long long *)(outval->buffer));
-      return FD_INT2DTYPE(intval);}
+      return FD_INT(intval);}
     else {
       long intval=*((long long *)(outval->buffer));
-      return FD_INT2DTYPE(intval);}
+      return FD_INT(intval);}
   case MYSQL_TYPE_DOUBLE: {
     double floval=*((double *)(outval->buffer));
     return fd_make_double(floval);}
@@ -1083,7 +1083,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
       FD_OID addr=FD_OID_ADDR(arg);
       FD_OID base=FD_OID_ADDR(ptypes[i]);
       unsigned long long offset=FD_OID_DIFFERENCE(addr,base);
-      argbuf[i]=arg=FD_INT2DTYPE(offset);}
+      argbuf[i]=arg=FD_INT(offset);}
     else if (FD_APPLICABLEP(ptypes[i])) {
       argbuf[i]=arg=fd_apply(ptypes[i],1,&arg);}
     else if (FD_TRUEP(ptypes[i])) {

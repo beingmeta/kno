@@ -254,13 +254,13 @@ static fdtype imagick_table_get(fdtype fdwand,fdtype field,fdtype dflt)
   else if (FD_EQ(field,size)) {
     size_t w=MagickGetImageWidth(wand);
     size_t h=MagickGetImageHeight(wand);
-    return fd_conspair(FD_INT2DTYPE(w),FD_INT2DTYPE(h));}
+    return fd_conspair(FD_INT(w),FD_INT(h));}
   else if (FD_EQ(field,width)) {
     size_t w=MagickGetImageWidth(wand);
-    return FD_INT2DTYPE(w);}
+    return FD_INT(w);}
   else if (FD_EQ(field,height)) {
     size_t h=MagickGetImageHeight(wand);
-    return FD_INT2DTYPE(h);}
+    return FD_INT(h);}
   else return FD_VOID;
 }
 
@@ -689,8 +689,8 @@ int fd_init_imagick()
                            fd_imagick_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
-                           fd_fixnum_type,FD_INT2DTYPE(0),
-                           fd_fixnum_type,FD_INT2DTYPE(0)));
+                           fd_fixnum_type,FD_INT(0),
+                           fd_fixnum_type,FD_INT(0)));
   fd_idefn(imagick_module,
            fd_make_cprim2x("IMAGICK/DESKEW",imagick_deskew,2,
                            fd_imagick_type,FD_VOID,

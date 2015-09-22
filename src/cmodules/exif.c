@@ -81,11 +81,11 @@ static fdtype exif2lisp(ExifEntry *exentry)
     if (exentry->format==EXIF_FORMAT_SLONG)
       while (i < n) {
         long int ival=exif_get_long(exifdata+(i*item_size),o);
-        lispdata[i]=FD_INT2DTYPE(ival);
+        lispdata[i]=FD_INT(ival);
         i++;}
     else while (i < n) {
       unsigned long int ival=exif_get_long(exifdata+(i*item_size),o);
-      lispdata[i]=FD_INT2DTYPE(ival);
+      lispdata[i]=FD_INT(ival);
       i++;}
     if (n==1) {
       fdtype retval=lispdata[0]; u8_free(lispdata);
@@ -283,7 +283,7 @@ FD_EXPORT int fd_init_exif()
   fd_make_hashtable(&exif_tagmap,139);
   while (scan->tagname) {
     fdtype symbol=fd_intern(scan->tagname);
-    fd_hashtable_store(&exif_tagmap,symbol,FD_INT2DTYPE(scan->tagid));
+    fd_hashtable_store(&exif_tagmap,symbol,FD_INT(scan->tagid));
     scan->tagsym=symbol;
     scan++;}
   fd_idefn(exif_module,fd_make_cprim2("EXIF-GET",exif_get,1));

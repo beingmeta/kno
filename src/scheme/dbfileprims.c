@@ -79,7 +79,7 @@ static fdtype make_oidpool(int n,fdtype *args)
   FD_OID base; int retval, flags=0, load, cap; u8_string filename, label;
   fdtype fname=args[0], base_arg=args[1], capacity=args[2];
   fdtype label_arg=FD_VOID, flags_arg=FD_VOID, schemas=FD_VOID;
-  fdtype metadata=FD_VOID, load_arg=FD_INT2DTYPE(0);
+  fdtype metadata=FD_VOID, load_arg=FD_INT(0);
   if (n>3) load_arg=args[3];
   if (n>4) flags_arg=args[4];
   if (n>5) schemas=args[5];
@@ -254,7 +254,7 @@ static fdtype populate_hash_index
       fd_decref(keyvec[i]); i++;}
     if (consed_keyvec) u8_free(consed_keyvec);}
   if (retval<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(retval);
+  else return FD_INT(retval);
 }
 
 static fdtype hash_index_bucket(fdtype ix_arg,fdtype key,fdtype modulus)
@@ -264,8 +264,8 @@ static fdtype hash_index_bucket(fdtype ix_arg,fdtype key,fdtype modulus)
     return fd_type_error(_("hash index"),"hash_index_bucket",ix_arg);
   bucket=fd_hash_index_bucket((struct FD_HASH_INDEX *)ix,key,FD_VOIDP(modulus));
   if (FD_FIXNUMP(modulus))
-    return FD_INT2DTYPE((bucket%FD_FIX2INT(modulus)));
-  else return FD_INT2DTYPE(bucket);
+    return FD_INT((bucket%FD_FIX2INT(modulus)));
+  else return FD_INT(bucket);
 }
 
 static fdtype hash_index_stats(fdtype ix_arg)
@@ -343,24 +343,24 @@ static fdtype load_caches_prim(fdtype arg)
 static fdtype lisphashdtype1(fdtype x)
 {
   int hash=fd_hash_dtype1(x);
-  return FD_INT2DTYPE(hash);
+  return FD_INT(hash);
 }
 static fdtype lisphashdtype2(fdtype x)
 {
   int hash=fd_hash_dtype2(x);
-  return FD_INT2DTYPE(hash);
+  return FD_INT(hash);
 }
 
 static fdtype lisphashdtype3(fdtype x)
 {
   int hash=fd_hash_dtype3(x);
-  return FD_INT2DTYPE(hash);
+  return FD_INT(hash);
 }
 
 static fdtype lisphashdtyperep(fdtype x)
 {
   unsigned int hash=fd_hash_dtype_rep(x);
-  return FD_INT2DTYPE(hash);
+  return FD_INT(hash);
 }
 
 /* Opening unregistered file pools */

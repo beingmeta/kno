@@ -1547,7 +1547,7 @@ static int do_hashtable_op
         if ((FD_FIXNUMP(current)) && (FD_FIXNUMP(v))) {
           int cval=FD_FIX2INT(current);
           int delta=FD_FIX2INT(v);
-          result->value=FD_INT2DTYPE(cval+delta);}
+          result->value=FD_INT(cval+delta);}
         else if ((FD_FLONUMP(current)) &&
                  (FD_CONS_REFCOUNT(((fd_cons)current))<2) &&
                  ((FD_FIXNUMP(v)) || (FD_FLONUMP(v)))) {
@@ -1577,7 +1577,7 @@ static int do_hashtable_op
         if ((FD_FIXNUMP(current)) && (FD_FIXNUMP(v))) {
           int cval=FD_FIX2INT(current);
           int factor=FD_FIX2INT(v);
-          result->value=FD_INT2DTYPE(cval*factor);}
+          result->value=FD_INT(cval*factor);}
         else if ((FD_FLONUMP(current)) &&
                  (FD_CONS_REFCOUNT(((fd_cons)current))<2) &&
                  ((FD_FIXNUMP(v)) || (FD_FLONUMP(v)))) {
@@ -2815,7 +2815,7 @@ static int pairtest(fdtype pair,fdtype key,fdtype val)
 
 static fdtype pairgetsize(fdtype pair)
 {
-  return FD_INT2DTYPE(1);
+  return FD_INT(1);
 }
 
 static fdtype pairkeys(fdtype pair)

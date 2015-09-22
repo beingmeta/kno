@@ -404,7 +404,7 @@ FD_EXPORT fd_off_t fd_setpos(fd_dtype_stream s,fd_off_t pos)
   else if (pos<0)
     return fd_reterr(fd_BadSeek,"fd_setpos",
                      ((s->id)?(u8_strdup(s->id)):(NULL)),
-                     FD_INT2DTYPE(pos));
+                     FD_INT(pos));
   else if (s->filepos<0) {
     /* We're not tracking filepos, so we'll check by hand. */
     fd_off_t maxpos;
@@ -413,12 +413,12 @@ FD_EXPORT fd_off_t fd_setpos(fd_dtype_stream s,fd_off_t pos)
     if (maxpos<0)
       return fd_reterr(fd_BadLSEEK,"fd_setpos",
                        ((s->id)?(u8_strdup(s->id)):(NULL)),
-                       FD_INT2DTYPE(pos));
+                       FD_INT(pos));
     else if (pos<maxpos)
       return lseek(s->fd,pos,SEEK_SET);
     else return fd_reterr(fd_OverSeek,"fd_setpos",
                           ((s->id)?(u8_strdup(s->id)):(NULL)),
-                          FD_INT2DTYPE(pos));}
+                          FD_INT(pos));}
   else if ((s->filepos>=0) && (pos>s->maxpos)) {
     /* We just sought out of bounds.  */
     fd_dtsflush(s); /* Reset the buffer pointers. */
@@ -432,7 +432,7 @@ FD_EXPORT fd_off_t fd_setpos(fd_dtype_stream s,fd_off_t pos)
       return (s->filepos=(lseek(s->fd,pos,SEEK_SET)));
     else return fd_reterr(fd_OverSeek,"fd_setpos",
                           ((s->id)?(u8_strdup(s->id)):(NULL)),
-                          FD_INT2DTYPE(pos));}
+                          FD_INT(pos));}
   else if ((s->flags)&FD_DTSTREAM_READING)
     if ((pos>s->filepos) && ((pos-s->filepos)<(s->end-s->start))) {
       /* Here's the case where we are seeking within the buffer. */
@@ -453,16 +453,16 @@ FD_EXPORT fd_off_t fd_movepos(fd_dtype_stream s,int delta)
     if ((pos<0)||(maxpos<0))
       return fd_reterr(fd_BadLSEEK,"fd_movepos",
                        ((s->id)?(u8_strdup(s->id)):(NULL)),
-                       FD_INT2DTYPE(delta));
+                       FD_INT(delta));
     else if ((pos+delta)<0)
       return fd_reterr(fd_UnderSeek,"fd_movepos",
                        ((s->id)?(u8_strdup(s->id)):(NULL)),
-                       FD_INT2DTYPE(pos));
+                       FD_INT(pos));
     else if ((pos+delta)<maxpos)
       return lseek(s->fd,(pos+delta),SEEK_SET);
     else return fd_reterr(fd_OverSeek,"fd_movepos",
                           ((s->id)?(u8_strdup(s->id)):(NULL)),
-                          FD_INT2DTYPE(pos));}
+                          FD_INT(pos));}
   else if ((s->filepos+delta)>s->maxpos) {
     int pos=s->filepos+delta;
     /* We just sought out of bounds.  */
@@ -478,7 +478,7 @@ FD_EXPORT fd_off_t fd_movepos(fd_dtype_stream s,int delta)
     if (pos<=s->maxpos) return (s->filepos=(lseek(s->fd,pos,SEEK_SET)));
     else return fd_reterr(fd_OverSeek,"fd_movepos",
                           ((s->id)?(u8_strdup(s->id)):(NULL)),
-                          FD_INT2DTYPE(pos));}
+                          FD_INT(pos));}
   else if ((s->flags)&FD_DTSTREAM_READING) {
     unsigned char *relpos=s->ptr+delta;
     if ((relpos>s->start) && (relpos<s->end)) {

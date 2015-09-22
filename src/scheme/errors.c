@@ -344,7 +344,7 @@ static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
 static fdtype clear_errors()
 {
   int n_errs=fd_clear_errors(1);
-  if (n_errs) return FD_INT2DTYPE(n_errs);
+  if (n_errs) return FD_INT(n_errs);
   else return FD_FALSE;
 }
 

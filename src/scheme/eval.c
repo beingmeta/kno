@@ -431,12 +431,12 @@ static fdtype profiled_eval(fdtype expr,fd_lispenv env)
     return profile_data;}
   else if (FD_VOIDP(profile_data)) {
     fdtype time=fd_init_double(NULL,(finish-start));
-    profile_data=fd_conspair(FD_INT2DTYPE(1),time);
+    profile_data=fd_conspair(FD_INT(1),time);
     fd_store(profile_info,tag,profile_data);}
   else {
     struct FD_PAIR *p=FD_GET_CONS(profile_data,fd_pair_type,fd_pair);
     struct FD_DOUBLE *d=FD_GET_CONS((p->cdr),fd_double_type,fd_double);
-    p->car=FD_INT2DTYPE(fd_getint(p->car)+1);
+    p->car=FD_INT(fd_getint(p->car)+1);
     d->flonum=d->flonum+(finish-start);}
   fd_decref(profile_data); fd_decref(profile_info);
   return value;
@@ -1863,9 +1863,9 @@ static void init_localfns()
            ("DTPROC",make_dtproc,2,
             fd_symbol_type,FD_VOID,fd_string_type,FD_VOID,
             -1,FD_VOID,-1,FD_VOID,
-            fd_fixnum_type,FD_INT2DTYPE(2),
-            fd_fixnum_type,FD_INT2DTYPE(4),
-            fd_fixnum_type,FD_INT2DTYPE(1)));
+            fd_fixnum_type,FD_INT(2),
+            fd_fixnum_type,FD_INT(4),
+            fd_fixnum_type,FD_INT(1)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("CALL/CC",callcc,1));
   fd_defalias(fd_scheme_module,"CALL-WITH-CURRENT-CONTINUATION","CALL/CC");

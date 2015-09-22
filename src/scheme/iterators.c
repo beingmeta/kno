@@ -126,9 +126,9 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
-  vars[0]=var; vals[0]=FD_INT2DTYPE(0);
+  vars[0]=var; vals[0]=FD_INT(0);
   while (i < limit) {
-    vals[0]=FD_INT2DTYPE(i);
+    vals[0]=FD_INT(i);
     {FD_DOBODY(subexpr,expr,2) {
         fdtype val=fasteval(subexpr,&envstruct);
         if (FD_THROWP(val)) {
@@ -137,7 +137,7 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
           fd_destroy_rwlock(&(bindings.rwlock));
           return val;}
         else if (FD_ABORTP(val)) {
-          fd_push_error_context(":DOTIMES",iterenv1(limit_val,var,FD_INT2DTYPE(i)));
+          fd_push_error_context(":DOTIMES",iterenv1(limit_val,var,FD_INT(i)));
           if (envstruct.copy) fd_recycle_environment(envstruct.copy);
           fd_decref(vals[0]);
           fd_destroy_rwlock(&(bindings.rwlock));
@@ -183,12 +183,12 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
   envstruct.copy=NULL;
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
-    vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
+    vars[1]=count_var; vals[1]=FD_INT(0);
     bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
     fdtype elt=(islist)?(fd_car(pairscan)):(fd_seq_elt(seq,i));
     vals[0]=elt;
-    if (iterval) *iterval=FD_INT2DTYPE(i);
+    if (iterval) *iterval=FD_INT(i);
     {FD_DOBODY(subexpr,expr,2) {
         fdtype val=fasteval(subexpr,&envstruct);
         if (FD_THROWP(val)) {
@@ -199,7 +199,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
         else if (FD_ABORTP(val)) {
           fdtype errbind;
           if (iterval) errbind=iterenv1(seq,var,elt);
-          else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
+          else errbind=iterenv2(seq,var,elt,count_var,FD_INT(i));
           if (envstruct.copy) fd_recycle_environment(envstruct.copy);
           fd_decref(vals[0]); fd_decref(seq);
           fd_destroy_rwlock(&(bindings.rwlock));
@@ -247,13 +247,13 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
   envstruct.copy=NULL;
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
-    vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
+    vars[1]=count_var; vals[1]=FD_INT(0);
     bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
     fdtype elt=(islist)?(fd_car(pairscan)):(fd_seq_elt(seq,i));
     fdtype val=FD_VOID;
     vals[0]=elt;
-    if (iterval) *iterval=FD_INT2DTYPE(i);
+    if (iterval) *iterval=FD_INT(i);
     {FD_DOBODY(subexpr,expr,2) {
         fd_decref(val);
         val=fasteval(subexpr,&envstruct);
@@ -265,7 +265,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
         else if (FD_ABORTP(val)) {
           fdtype errbind;
           if (iterval) errbind=iterenv1(seq,var,elt);
-          else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
+          else errbind=iterenv2(seq,var,elt,count_var,FD_INT(i));
           fd_destroy_rwlock(&(bindings.rwlock));
           if (envstruct.copy) fd_recycle_environment(envstruct.copy);
           fd_decref(vals[0]); fd_decref(seq);
@@ -316,17 +316,17 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
   envstruct.copy=NULL;
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
-    vars[1]=count_var; vals[1]=FD_INT2DTYPE(0);
+    vars[1]=count_var; vals[1]=FD_INT(0);
     bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
     fdtype elt=(islist)?(fd_car(pairscan)):(fd_seq_elt(seq,i));
     if (envstruct.copy) {
       fd_set_value(var,elt,envstruct.copy);
       if (iterval)
-        fd_set_value(count_var,FD_INT2DTYPE(i),envstruct.copy);}
+        fd_set_value(count_var,FD_INT(i),envstruct.copy);}
     else {
       vals[0]=elt;
-      if (iterval) *iterval=FD_INT2DTYPE(i);}
+      if (iterval) *iterval=FD_INT(i);}
     {FD_DOBODY(subexpr,expr,2) {
         fd_decref(val);
         val=fasteval(subexpr,&envstruct);
@@ -338,7 +338,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
         else if (FD_ABORTP(val)) {
           fdtype errbind;
           if (iterval) errbind=iterenv1(seq,var,elt);
-          else errbind=iterenv2(seq,var,elt,count_var,FD_INT2DTYPE(i));
+          else errbind=iterenv2(seq,var,elt,count_var,FD_INT(i));
           fd_destroy_rwlock(&(bindings.rwlock));
           if (envstruct.copy) fd_recycle_environment(envstruct.copy);
           fd_decref(elt); fd_decref(seq);
@@ -380,7 +380,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
   else {
     bindings.size=2;
     vars[1]=var; vals[1]=FD_VOID; vloc=&(vals[1]);
-    vars[0]=count_var; vals[0]=FD_INT2DTYPE(0); iloc=&(vals[0]);}
+    vars[0]=count_var; vals[0]=FD_INT(0); iloc=&(vals[0]);}
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
   fd_init_rwlock(&(bindings.rwlock));
@@ -388,7 +388,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
   {int i=0; FD_DOLIST(elt,list) {
-      *vloc=elt; fd_incref(elt); if (iloc) *iloc=FD_INT2DTYPE(i);
+      *vloc=elt; fd_incref(elt); if (iloc) *iloc=FD_INT(i);
       {FD_DOBODY(subexpr,expr,2) {
           fdtype val=fasteval(subexpr,&envstruct);
           if (FD_THROWP(val)) {
@@ -398,7 +398,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
             return val;}
           else if (FD_ABORTP(val)) {
             fdtype errenv;
-            if (iloc) errenv=iterenv2(list,var,elt,count_var,FD_INT2DTYPE(i));
+            if (iloc) errenv=iterenv2(list,var,elt,count_var,FD_INT(i));
             else errenv=iterenv1(list,var,elt);
             if (envstruct.copy) fd_recycle_environment(envstruct.copy);
             fd_decref(list); fd_decref(*vloc);
@@ -488,7 +488,7 @@ static fdtype track_ipeval_handler(fdtype expr,fd_lispenv env)
   i=0; while (i<n_cycles) {
     struct FD_IPEVAL_RECORD *record=&(records[i]);
     vec[i++]=
-      fd_make_nvector(3,FD_INT2DTYPE(record->delays),
+      fd_make_nvector(3,FD_INT(record->delays),
                       fd_init_double(NULL,record->exec_time),
                       fd_init_double(NULL,record->fetch_time));}
   return fd_make_nvector(3,tmp.value,
