@@ -1023,6 +1023,7 @@ static void recycle_tail_call(struct FD_CONS *c)
     while (scan<limit) {fd_decref(*scan); scan++;}}
   /* The head is always incref'd */
   else fd_decref(*scan);
+  memset(tc,0,sizeof(struct FD_TAIL_CALL));
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
