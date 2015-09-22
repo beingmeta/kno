@@ -477,7 +477,7 @@ FD_EXPORT
    If the second argument is NULL, the end of the first argument is used. */
 fdtype fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
 {
-  int length=((end==NULL) ? (strlen(start)) : (end-start));
+  ssize_t length=((end==NULL) ? (strlen(start)) : (end-start));
   if ((length>=0)&&((fd_max_strlen<0)||(length<fd_max_strlen))) {
     u8_byte *bytes=NULL; int freedata=1;
     if (ptr == NULL) {
@@ -489,7 +489,7 @@ fdtype fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
     FD_INIT_CONS(ptr,fd_string_type);
     ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
     return FDTYPE_CONS(ptr);}
-  else return fd_err(fd_StringOverflow,"fd_substring",NULL,FD_VOID);
+  else return fd_err(fd_StringOverflow,"fd_extract_string",NULL,FD_VOID);
 }
 
 FD_EXPORT
@@ -502,7 +502,7 @@ FD_EXPORT
    a lisp string based on the region. */
 fdtype fd_substring(u8_string start,u8_string end)
 {
-  int length=((end==NULL) ? (strlen(start)) : (end-start));
+  ssize_t length=((end==NULL) ? (strlen(start)) : (end-start));
   if ((length>=0)&&((fd_max_strlen<0)||(length<fd_max_strlen))) {
     struct FD_STRING *ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
     u8_byte *bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
