@@ -1,3 +1,10 @@
+framerd (3.8.2-26) unstable; urgency=low
+
+  * Fixed bug/typo in OID lookup parsing
+  * git patch version framerd-3.8.2-77
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 24 Sep 2015 13:54:48 -0400
+
 framerd (3.8.2-25) unstable; urgency=low
 
   * Added SYSCONF information to RUSAGE

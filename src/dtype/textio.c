@@ -657,7 +657,7 @@ typedef unsigned long long ull;
 
 static fdtype default_parse_oid(u8_string start,int len)
 {
-  u8_byte _buf[64], *buf=buf;
+  u8_byte _buf[64], *buf=_buf;
   FD_OID oid=FD_NULL_OID_INIT;
   unsigned int hi, lo, c=start[len];
   if (len>64) buf=u8_malloc(len+1);
