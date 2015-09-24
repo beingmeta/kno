@@ -1115,10 +1115,17 @@ static fdtype loadavgs_prim()
 static fdtype data_symbol, stack_symbol, shared_symbol, resident_symbol;
 static fdtype utime_symbol, stime_symbol, cpusage_symbol, clock_symbol;
 static fdtype load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
-static fdtype memusage_symbol, n_cpus_symbol;
+static fdtype memusage_symbol, n_cpus_symbol, pagesize_symbol;
+static fdtype physical_pages_symbol, available_pages_symbol;
+static fdtype physical_memory_symbol, available_memory_symbol;
 
-static int n_cpus=-1;
+static int pagesize=-1;
 static int get_n_cpus(void);
+static int get_pagesize(void);
+static int get_physical_pages(void);
+static int get_available_pages(void);
+static long long get_physical_memory(void);
+static long long get_available_memory(void);
 
 static fdtype rusage_prim(fdtype field)
 {
@@ -1137,7 +1144,7 @@ static fdtype rusage_prim(fdtype field)
     fd_add(result,memusage_symbol,FD_INT(mem));
     fd_add(result,pid_symbol,FD_INT(pid));
     fd_add(result,ppid_symbol,FD_INT(ppid));
-    {
+    { /* Load average(s) */
       double loadavg[3]; int nsamples=getloadavg(loadavg,3);
       if (nsamples>0) {
         fdtype lval=fd_make_double(loadavg[0]), lvec=FD_VOID;
@@ -1153,21 +1160,41 @@ static fdtype rusage_prim(fdtype field)
                 fd_make_double(loadavg[2]));
         if (!(FD_VOIDP(lvec))) fd_store(result,loadavg_symbol,lvec);
         fd_decref(lval); fd_decref(lvec);}}
-    {
+    { /* Elapsed time */
       double elapsed=u8_elapsed_time();
       fdtype tval=fd_init_double(NULL,elapsed);
       fd_add(result,clock_symbol,tval);
       fd_decref(tval);}
-    {
+    { /* User time */
       fdtype tval=fd_make_double(u8_dbltime(r.ru_utime));
       fd_add(result,utime_symbol,tval);
       fd_decref(tval);}
-    {
+    { /* System time */
       fdtype tval=fd_make_double(u8_dbltime(r.ru_stime));
       fd_add(result,stime_symbol,tval);
       fd_decref(tval);}
-    if (n_cpus<0) n_cpus=get_n_cpus();
-    if (n_cpus>0) fd_add(result,n_cpus_symbol,FD_INT(n_cpus));
+
+    { /* SYSCONF information */
+      int n_cpus=get_n_cpus(), pagesize=get_pagesize();
+      int physical_pages=get_physical_pages();
+      int available_pages=get_available_pages();
+      long long physical_memory=get_physical_memory();
+      long long available_memory=get_available_memory();
+      if (n_cpus>0) fd_add(result,n_cpus_symbol,FD_INT(n_cpus));
+      if (pagesize>0) fd_add(result,pagesize_symbol,FD_INT(pagesize));
+      if (physical_pages>0)
+        fd_add(result,physical_pages_symbol,
+               FD_INT(physical_pages));
+      if (available_pages>0)
+        fd_add(result,available_pages_symbol,
+               FD_INT(available_pages));
+      if (physical_memory>0)
+        fd_add(result,physical_memory_symbol,
+               FD_INT(physical_memory));
+      if (available_memory>0)
+        fd_add(result,available_memory_symbol,
+               FD_INT(available_memory));}
+
     return result;}
   else if (FD_EQ(field,data_symbol))
     return FD_INT(r.ru_idrss);
@@ -1209,10 +1236,47 @@ static fdtype rusage_prim(fdtype field)
       return FD_INT((unsigned long)(getppid()));
     else return FD_EMPTY_CHOICE;}
   else if (FD_EQ(field,n_cpus_symbol)) {
-    if (n_cpus<0) n_cpus=get_n_cpus();
-    if (n_cpus>0)
-      return FD_INT(n_cpus);
-    else return FD_EMPTY_CHOICE;}
+    int n_cpus=get_n_cpus();
+    if (n_cpus>0) return FD_INT(n_cpus);
+    else if (n_cpus==0) return FD_EMPTY_CHOICE;
+    else {
+      u8_graberr(-1,"rusage_prim/N_CPUS",NULL);
+      return FD_ERROR_VALUE;}}
+  else if (FD_EQ(field,pagesize_symbol)) {
+    int pagesize=get_pagesize();
+    if (pagesize>0) return FD_INT(pagesize);
+    else if (pagesize==0) return FD_EMPTY_CHOICE;
+    else {
+      u8_graberr(-1,"rusage_prim/PAGESIZE",NULL);
+      return FD_ERROR_VALUE;}}
+  else if (FD_EQ(field,physical_pages_symbol)) {
+    int physical_pages=get_physical_pages();
+    if (physical_pages>0) return FD_INT(physical_pages);
+    else if (physical_pages==0) return FD_EMPTY_CHOICE;
+    else {
+      u8_graberr(-1,"rusage_prim/PHYSICAL_PAGES",NULL);
+      return FD_ERROR_VALUE;}}
+  else if (FD_EQ(field,available_pages_symbol)) {
+    int available_pages=get_available_pages();
+    if (available_pages>0) return FD_INT(available_pages);
+    else if (available_pages==0) return FD_EMPTY_CHOICE;
+    else {
+      u8_graberr(-1,"rusage_prim/AVAILABLE_PAGES",NULL);
+      return FD_ERROR_VALUE;}}
+  else if (FD_EQ(field,physical_memory_symbol)) {
+    long long physical_memory=get_physical_memory();
+    if (physical_memory>0) return FD_INT(physical_memory);
+    else if (physical_memory==0) return FD_EMPTY_CHOICE;
+    else {
+      u8_graberr(-1,"rusage_prim/PHYSICAL_MEMORY",NULL);
+      return FD_ERROR_VALUE;}}
+  else if (FD_EQ(field,available_memory_symbol)) {
+    long long available_memory=get_available_memory();
+    if (available_memory>0) return FD_INT(available_memory);
+    else if (available_memory==0) return FD_EMPTY_CHOICE;
+    else {
+      u8_graberr(-1,"rusage_prim/AVAILABLE_MEMORY",NULL);
+      return FD_ERROR_VALUE;}}
   else return FD_EMPTY_CHOICE;
 }
 
@@ -1281,10 +1345,76 @@ static fdtype cpusage_prim(fdtype arg)
 static int get_n_cpus()
 {
   int retval=0;
-  if (n_cpus>=0) return n_cpus;
 #if ((HAVE_SYSCONF)&&(defined(_SC_NPROCESSORS_ONLN)))
   retval=sysconf(_SC_NPROCESSORS_ONLN);
   if (retval>0) return retval;
+  if (retval<0) fd_clear_errors(1);
+#endif
+  return 0;
+}
+
+static int get_pagesize()
+{
+  int retval=0;
+  if (pagesize>=0) return pagesize;
+#if (HAVE_SYSCONF)
+#if (defined(_SC_PAGESIZE))
+  retval=sysconf(_SC_PAGESIZE);
+#elif (defined(_SC_PAGE_SIZE))
+  retval=sysconf(_SC_PAGE_SIZE);
+#else
+  retval=0;
+#endif
+#endif
+  pagesize=retval;
+  if (retval>0) return retval;
+  if (retval<0) fd_clear_errors(1);
+  return 0;
+}
+
+static int get_physical_pages()
+{
+  int retval=0;
+#if ((HAVE_SYSCONF)&&(defined(_SC_PHYS_PAGES)))
+  retval=sysconf(_SC_PHYS_PAGES);
+  if (retval>0) return retval;
+  if (retval<0) fd_clear_errors(1);
+#endif
+  return 0;
+}
+
+static int get_available_pages()
+{
+  int retval=0;
+#if ((HAVE_SYSCONF)&&(defined(_SC_AVPHYS_PAGES)))
+  retval=sysconf(_SC_AVPHYS_PAGES);
+  if (retval>0) return retval;
+  if (retval<0) fd_clear_errors(1);
+#endif
+  return 0;
+}
+
+static long long get_physical_memory()
+{
+  long long retval=0;
+  if (pagesize<0) pagesize=get_pagesize();
+  if (pagesize==0) return 0;
+#if ((HAVE_SYSCONF)&&(defined(_SC_PHYS_PAGES)))
+  retval=sysconf(_SC_PHYS_PAGES);
+  if (retval>0) return retval*pagesize;
+  if (retval<0) fd_clear_errors(1);
+#endif
+  return 0;
+}
+
+static long long get_available_memory()
+{
+  long long retval=0;
+  if (pagesize<0) pagesize=get_pagesize();
+  if (pagesize==0) return 0;
+#if ((HAVE_SYSCONF)&&(defined(_SC_AVPHYS_PAGES)))
+  retval=sysconf(_SC_AVPHYS_PAGES);
+  if (retval>0) return retval*pagesize;
   if (retval<0) fd_clear_errors(1);
 #endif
   return 0;
@@ -1755,6 +1885,11 @@ FD_EXPORT void fd_init_timeprims_c()
   ppid_symbol=fd_intern("PPID");
   memusage_symbol=fd_intern("MEMUSAGE");
   n_cpus_symbol=fd_intern("NCPUS");
+  pagesize_symbol=fd_intern("PAGESIZE");
+  physical_pages_symbol=fd_intern("PHYSICAL-PAGES");
+  available_pages_symbol=fd_intern("AVAILABLE-PAGES");
+  physical_memory_symbol=fd_intern("PHYSICAL-MEMORY");
+  available_memory_symbol=fd_intern("AVAILABLE-MEMORY");
 
   load_symbol=fd_intern("LOAD");
   loadavg_symbol=fd_intern("LOADAVG");

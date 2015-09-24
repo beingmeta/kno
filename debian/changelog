@@ -1,3 +1,10 @@
+framerd (3.8.2-25) unstable; urgency=low
+
+  * Added SYSCONF information to RUSAGE
+  * git patch version framerd-3.8.2-76
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 24 Sep 2015 13:27:22 -0400
+
 framerd (3.8.2-24) unstable; urgency=low
 
   * Fixed bug with tail calls in json parser handlers
