@@ -48,13 +48,15 @@ static fdtype picoseconds_symbol, femtoseconds_symbol;
 static fdtype precision_symbol, tzoff_symbol, dstoff_symbol, gmtoff_symbol;
 static fdtype spring_symbol, summer_symbol, autumn_symbol, winter_symbol;
 static fdtype season_symbol, gmt_symbol, timezone_symbol;
-static fdtype morning_symbol, afternoon_symbol, evening_symbol, nighttime_symbol;
+static fdtype morning_symbol, afternoon_symbol;
+static fdtype  evening_symbol, nighttime_symbol;
 static fdtype tick_symbol, xtick_symbol, prim_tick_symbol;
 static fdtype iso_symbol, isostring_symbol, iso8601_symbol, rfc822_symbol;
 static fdtype rfc822x_symbol, localstring_symbol;
 static fdtype isodate_symbol, isobasic_symbol, isobasicdate_symbol;
 static fdtype time_of_day_symbol, dowid_symbol, monthid_symbol;
-static fdtype shortmonth_symbol, longmonth_symbol, shortday_symbol, longday_symbol;
+static fdtype shortmonth_symbol, longmonth_symbol;
+static fdtype  shortday_symbol, longday_symbol;
 static fdtype hms_symbol, dmy_symbol, dm_symbol, my_symbol;
 static fdtype shortstring_symbol, short_symbol;
 static fdtype string_symbol, fullstring_symbol;
@@ -1113,7 +1115,10 @@ static fdtype loadavgs_prim()
 static fdtype data_symbol, stack_symbol, shared_symbol, resident_symbol;
 static fdtype utime_symbol, stime_symbol, cpusage_symbol, clock_symbol;
 static fdtype load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
-static fdtype memusage_symbol;
+static fdtype memusage_symbol, n_cpus_symbol;
+
+static int n_cpus=-1;
+static int get_n_cpus(void);
 
 static fdtype rusage_prim(fdtype field)
 {
@@ -1161,6 +1166,8 @@ static fdtype rusage_prim(fdtype field)
       fdtype tval=fd_make_double(u8_dbltime(r.ru_stime));
       fd_add(result,stime_symbol,tval);
       fd_decref(tval);}
+    if (n_cpus<0) n_cpus=get_n_cpus();
+    if (n_cpus>0) fd_add(result,n_cpus_symbol,FD_INT(n_cpus));
     return result;}
   else if (FD_EQ(field,data_symbol))
     return FD_INT(r.ru_idrss);
@@ -1200,6 +1207,11 @@ static fdtype rusage_prim(fdtype field)
       return FD_INT((unsigned long)(getpid()));
     else if (FD_EQ(field,ppid_symbol))
       return FD_INT((unsigned long)(getppid()));
+    else return FD_EMPTY_CHOICE;}
+  else if (FD_EQ(field,n_cpus_symbol)) {
+    if (n_cpus<0) n_cpus=get_n_cpus();
+    if (n_cpus>0)
+      return FD_INT(n_cpus);
     else return FD_EMPTY_CHOICE;}
   else return FD_EMPTY_CHOICE;
 }
@@ -1264,6 +1276,18 @@ static fdtype cpusage_prim(fdtype arg)
         double cpusage=(stime+utime)*100.0/elapsed;
         return fd_init_double(NULL,cpusage);}
       else return fd_type_error(_("rusage"),"getcpusage",arg);}}
+}
+
+static int get_n_cpus()
+{
+  int retval=0;
+  if (n_cpus>=0) return n_cpus;
+#if ((HAVE_SYSCONF)&&(defined(_SC_NPROCESSORS_ONLN)))
+  retval=sysconf(_SC_NPROCESSORS_ONLN);
+  if (retval>0) return retval;
+  if (retval<0) fd_clear_errors(1);
+#endif
+  return 0;
 }
 
 /* Initialization */
@@ -1730,6 +1754,7 @@ FD_EXPORT void fd_init_timeprims_c()
   pid_symbol=fd_intern("PID");
   ppid_symbol=fd_intern("PPID");
   memusage_symbol=fd_intern("MEMUSAGE");
+  n_cpus_symbol=fd_intern("NCPUS");
 
   load_symbol=fd_intern("LOAD");
   loadavg_symbol=fd_intern("LOADAVG");
