@@ -1,3 +1,10 @@
+framerd (3.8.2-27) unstable; urgency=low
+
+  * Fixes to ximage with null transforms
+  * git patch version framerd-3.8.2-80
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 24 Sep 2015 19:45:01 -0400
+
 framerd (3.8.2-26) unstable; urgency=low
 
   * Fixed bug/typo in OID lookup parsing
