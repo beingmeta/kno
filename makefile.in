@@ -550,7 +550,7 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@rm -f SCHEMETAGS
 	@# We skip module.scm files because they are always links
 	@#  to other files (with more distinctive names)
-	@find src/modules -name "*.scm" | \
+	@find src/modules src/fdweb/xhtml -name "*.scm" | \
 		grep -v module.scm | \
 		grep -v sandbox | \
 		xargs etags -o SCHEMETAGS -a
