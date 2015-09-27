@@ -1,7 +1,15 @@
+framerd (3.8.2-31) unstable; urgency=low
+
+  * Made mod_fdserv pass in all headers as well as Apache environment variables
+  * Added timestamps to swapcaches
+  * git patch version framerd-3.8.2-87
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 27 Sep 2015 18:01:02 -0400
+
 framerd (3.8.2-30) unstable; urgency=low
 
   * Fixed bug in swapcache module
-  * git patch version framerd-3.8.2-24
+  * git patch version framerd-3.8.2-84
   
  -- Ken Haase <kh@beingmeta.com>  Sun, 27 Sep 2015 13:50:37 -0400
 
