@@ -1,3 +1,10 @@
+framerd (3.8.2-29) unstable; urgency=low
+
+  * Added swapcache module
+  * git patch version framerd-3.8.2-83
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 27 Sep 2015 13:40:51 -0400
+
 framerd (3.8.2-28) unstable; urgency=low
 
   * Check arity for mysqlprocs after initialization
