@@ -1071,6 +1071,14 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
   bindbuf=dbproc->bindbuf;
   ptypes=dbproc->paramtypes;
 
+  /* We check arity here because the procedure may not have been initialized
+     (and determined its arity) during the arity checking done by APPLY. */
+  if (n!=n_params) {
+    u8_unlock_mutex(&(dbproc->lock));
+    if (n<n_params)
+      return fd_err(fd_TooFewArgs,"fd_dapply",fn->name,FD_VOID);
+    else return fd_err(fd_TooManyArgs,"fd_dapply",fn->name,FD_VOID);}
+
   if (n_params>4) argbuf=u8_alloc_n(n_params,fdtype);
 
   /* Initialize the input parameters from the arguments.
