@@ -6,8 +6,9 @@
 (use-module '{reflection ezrecords logger varconfig})
 
 (module-export!
- '{swc/make swc/get swc/store!
+ '{swc/make swc/get swc/store! swc/cache swc/cache*
    swapcache/make swapcache/get swapcache/store!
+   swapcache/cache swapcache/cache*
    swapcache/swap! swapcache/swap?!})
 
 (define-init %loglevel %notice%)
@@ -78,6 +79,21 @@
 	     v))))
 (define (swapcache/cache swc key proc) (swc/cache swc key proc))
 
+(define (swc/cache* swc proc . args)
+  (try (get (swapcache-front swc) args)
+       (if (test (swapcache-back swc) args)
+	   (let ((v (get (swapcache-back swc) args)))
+	     (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
+	       (swapcache/swap! swc))
+	     (store! (swapcache-front swc) args v)
+	     v)
+	   (let ((v (apply proc args)))
+	     (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
+	       (swapcache/swap! swc))
+	     (store! (swapcache-front swc) args v)
+	     v))))
+(define (swapcache/cache* swc key proc) (swc/cache* swc key proc))
+
 (define swapcache/swap!
   (slambda (swc (thresh #f))
     (if (swapcache-trace swc)
@@ -105,10 +121,20 @@
  (define (compute-string n)
    (logwarn |ComputeString| n)
    (number->string n))
+ (define (compute-string2 n)
+   (logwarn |ComputeString2| n)
+   (cons n (number->string n)))
  (define (cached-get n)
    (swc/cache swctest n compute-string))
-  ;; This should show compute-string called less for smaller numbers
-  ;; because they stay in the cache.
-  (begin (dotimes (i 9) (cached-get i))
-    (dotimes (i 5) (cached-get i))
-    (dotimes (i 9) (cached-get i))))
+ ;; This should show compute-string called less for smaller numbers
+ ;; because they stay in the cache.
+ (begin (dotimes (i 9) (cached-get i))
+   (dotimes (i 5) (cached-get i))
+   (dotimes (i 9) (cached-get i)))
+ (set! swctest (swc/make #[max 5 id swctest]))
+ (define (cached-get2 n)
+   (swc/cache* swctest compute-string2 n))
+ (begin (dotimes (i 9) (cached-get2 i))
+   (dotimes (i 5) (cached-get2 i))
+   (dotimes (i 9) (cached-get2 i))))
+

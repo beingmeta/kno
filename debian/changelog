@@ -1,3 +1,10 @@
+framerd (3.8.2-30) unstable; urgency=low
+
+  * Fixed bug in swapcache module
+  * git patch version framerd-3.8.2-24
+  
+ -- Ken Haase <kh@beingmeta.com>  Sun, 27 Sep 2015 13:50:37 -0400
+
 framerd (3.8.2-29) unstable; urgency=low
 
   * Added swapcache module
