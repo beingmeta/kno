@@ -21,6 +21,8 @@
 #include "mpm_common.h"
 #include "netdb.h"
 
+#include <ctype.h>
+
 #if ((AP_SERVER_MAJORVERSION_NUMBER<=2)&&(AP_SERVER_MINORVERSION_NUMBER<4))
 #define ap_unixd_config unixd_config
 #endif
@@ -2208,6 +2210,16 @@ static int ap_bwrite(BUFF *b,char *string,int len)
   memcpy((char *)b->ptr,string,len); b->ptr=b->ptr+len;
   return len;
 }
+static int ap_bwrite_upcase(BUFF *b,char *string,int len)
+{
+  char *scan=string, *limit=scan+len, *write;
+  if (ap_bneeds(b,len+1)<0) return -1; 
+  write=(char*)(b->ptr); while (scan<limit) {
+    int c=*scan++; if (c>=128) *write++=c;
+    else *write++=toupper(c);}
+  b->ptr=write;
+  return len;
+}
 static BUFF *ap_bcreate(apr_pool_t *p,int ignore_flag)
 {
   struct BUFF *b=apr_palloc(p,sizeof(struct BUFF));
@@ -2238,41 +2250,16 @@ static int buf_write_symbol(char *string,BUFF *b)
   int len=strlen(string);
   if (ap_bneeds(b,len+5)<0) return -1; 
   ap_bputc(0x07,b); buf_write_4bytes(len,b);
-  ap_bwrite(b,string,len);
+  ap_bwrite_upcase(b,string,len);
   return len+5;
 }
 
-static int write_cgidata
-  (request_rec *r,BUFF *b,
-   apr_table_t *t,const char **sparams,const char **dparams,
-   int post_size,char *post_data)
+static int write_table(BUFF *b,apr_table_t *tbl)
 {
-  const apr_array_header_t *ah=apr_table_elts(t);
-  int n_elts=ah->nelts, n_params=0, n_sparams=0, n_dparams=0;
-  apr_table_entry_t *scan=(apr_table_entry_t *) ah->elts, *limit=scan+n_elts;
-  ssize_t n_bytes=6, delta=0;
-  if (sparams) {
-    const char **pscan=sparams; while (*pscan) {
-      pscan=pscan+2; n_sparams++; n_params++;};}
-  if (dparams) {
-    const char **pscan=dparams;
-    while (*pscan) {
-	pscan=pscan+2; n_dparams++; n_params++;};}
-#if DEBUG_CGIDATA
-  if (post_size)
-    ap_log_error
-      (APLOG_MARK,LOGDEBUG,OK,
-       r->server,"CGIDATA: %d slots=%d HTTP+%d config; %d post bytes",
-       n_params+n_elts+1,n_elts,n_params,post_size);
-  else ap_log_error
-	 (APLOG_MARK,LOGDEBUG,OK,
-	  r->server,"CGIDATA: - %d slots= %d HTTP+%d config",
-	  n_params+n_elts+1,n_elts,n_params);
-#endif
-  if (ap_bneeds(b,6)<0) return -1; 
-  ap_bputc(0x42,b); ap_bputc(0xC1,b);
-  if (post_size) buf_write_4bytes((n_elts*2)+(n_params*2)+2,b);
-  else buf_write_4bytes((n_elts*2)+(n_params*2),b);
+  const apr_array_header_t *hdr=apr_table_elts(tbl);
+  apr_table_entry_t *scan=(apr_table_entry_t *) hdr->elts;
+  apr_table_entry_t *limit=scan+hdr->nelts;
+  int n_bytes=0, delta=0;
   while (scan < limit) {
 #if DEBUG_CGIDATA
     ap_log_error
@@ -2289,6 +2276,44 @@ static int write_cgidata
        scan->key,scan->val);
 #endif
     scan++;}
+  return n_bytes;
+}
+
+static int write_cgidata
+  (request_rec *r,BUFF *b,
+   apr_table_t *env,apr_table_t *headers,
+   const char **sparams,const char **dparams,
+   int post_size,char *post_data)
+{
+  const apr_array_header_t *envh=apr_table_elts(env);
+  const apr_array_header_t *hdrh=apr_table_elts(headers);
+  int n_env=envh->nelts, n_hdrs=hdrh->nelts;
+  int n_params=0, n_sparams=0, n_dparams=0;
+  ssize_t n_bytes=6, delta=0;
+  if (sparams) {
+    const char **pscan=sparams; while (*pscan) {
+      pscan=pscan+2; n_sparams++; n_params++;};}
+  if (dparams) {
+    const char **pscan=dparams;
+    while (*pscan) {
+	pscan=pscan+2; n_dparams++; n_params++;};}
+#if DEBUG_CGIDATA
+  if (post_size)
+    ap_log_error
+      (APLOG_MARK,LOGDEBUG,OK,
+       r->server,"CGIDATA: %d slots=%d Apache+%d HTTP+%d config; %d post bytes",
+       n_params+n_env+n_hdrs+1,n_elts,n_hdrs,n_params,post_size);
+  else ap_log_error
+	 (APLOG_MARK,LOGDEBUG,OK,
+	  r->server,"CGIDATA: - %d slots= %d HTTP+%d config",
+	  n_params+n_elts+1,n_elts,n_params);
+#endif
+  if (ap_bneeds(b,6)<0) return -1; 
+  ap_bputc(0x42,b); ap_bputc(0xC1,b);
+  if (post_size) buf_write_4bytes((n_hdrs*2)+(n_env*2)+(n_params*2)+2,b);
+  else buf_write_4bytes((n_hdrs*2)+(n_env*2)+(n_params*2),b);
+  n_bytes=n_bytes+write_table(b,env);
+  n_bytes=n_bytes+write_table(b,headers);
   if (sparams) {
     const char **pscan=sparams, **plimit=pscan+n_sparams;
     while (pscan<plimit) {
@@ -2814,7 +2839,8 @@ static int fdserv_handler(request_rec *r)
 #endif
 
   /* Write the slotmap into buf, the write the buf to the servlet socket */
-  if (write_cgidata(r,reqdata,r->subprocess_env,
+  if (write_cgidata(r,reqdata,
+		    r->subprocess_env,r->headers_in,
 		    sreq_params,dreq_params,
 		    post_size,post_data)<0) {
     ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
