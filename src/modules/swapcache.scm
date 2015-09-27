@@ -6,8 +6,9 @@
 (use-module '{reflection ezrecords logger varconfig})
 
 (module-export!
- '{swc/make swc/get swc/store! swc/cache swc/cache*
-   swapcache/make swapcache/get swapcache/store!
+ '{swc/make swc/get swc/age swc/store! swc/cache swc/cache*
+   swapcache/make swapcache/store!
+   swapcache/get swapcache/age 
    swapcache/cache swapcache/cache*
    swapcache/swap! swapcache/swap?!})
 
@@ -44,55 +45,83 @@
   (apply swc/make args))
 
 (define (swc/get swc key (dflt {}) (v))
-  (try (get (swapcache-front swc) key)
+  (try (car (get (swapcache-front swc) key))
        (if (test (swapcache-back swc) key)
-	   (begin (set! v (try (get (swapcache-back swc) key)
-			       dflt))
+	   (begin (set! v (get (swapcache-back swc) key))
 	     (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
 	       (swapcache/swap! swc))
-	     (store! (swapcache-front swc) key v)
-	     v)
+	     (if (exists? v)
+		 (begin (store! (swapcache-front swc) key v)
+		   (car v))
+		 dflt))
 	   dflt)))
 (define (swapcache/get swc key (dflt {})) (swc/get swc key (qc dflt)))
 
 (define (swc/store! swc key value)
   (if (test (swapcache-front swc) key)
-      (store! (swapcache-front swc) key value)
+      (store! (swapcache-front swc) key (cons value (gmtimestamp)))
       (begin
 	(when (> (table-size (swapcache-front swc)) (swapcache-max swc))
 	  (swapcache/swap! swc (swapcache-max swc)))
-	(store! (swapcache-front swc) key value))))
+	(store! (swapcache-front swc) key (cons value (gmtimestamp))))))
 (define (swapcache/store! swc key value) (swc/store! swc key value))
 
+(define (swc/age swc key)
+  (try (cdr (get (swapcache-front swc) key)) #f))
+(define (swapcache/age swc key) (swc/age swc key))
+
+;;;; Cache functions
+
 (define (swc/cache swc key proc (v))
-  (try (get (swapcache-front swc) key)
+  (try (car (get (swapcache-front swc) key))
        (if (test (swapcache-back swc) key)
 	   (begin (set! v (get (swapcache-back swc) key))
 	     (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
 	       (swapcache/swap! swc))
 	     (store! (swapcache-front swc) key v)
-	     v)
+	     (car v))
 	   (begin (set! v (proc key))
 	     (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
 	       (swapcache/swap! swc))
-	     (store! (swapcache-front swc) key v)
+	     (store! (swapcache-front swc) key (cons v (gmtimestamp)))
 	     v))))
 (define (swapcache/cache swc key proc) (swc/cache swc key proc))
 
 (define (swc/cache* swc proc . args)
-  (try (get (swapcache-front swc) args)
-       (if (test (swapcache-back swc) args)
-	   (let ((v (get (swapcache-back swc) args)))
+  (try (car (get (swapcache-front swc) args))
+       (let ((v (get (swapcache-back swc) args)))
+	 (tryif (exists? v)
+	   (begin
 	     (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
 	       (swapcache/swap! swc))
 	     (store! (swapcache-front swc) args v)
-	     v)
-	   (let ((v (apply proc args)))
+	     (car v))))
+       (let ((v (apply proc args)))
+	 (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
+	   (swapcache/swap! swc))
+	 (store! (swapcache-front swc) args (cons v (gmtimestamp)))
+	 v)))
+(define (swapcache/cache* swc key proc . args)
+  (apply swc/cache* swc key proc args))
+
+(define (swc/cache+ swc key proc . args)
+  (try (car (get (swapcache-front swc) key))
+       (let ((v (get (swapcache-back swc) key)))
+	 (tryif (exists? v)
+	   (begin
 	     (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
 	       (swapcache/swap! swc))
-	     (store! (swapcache-front swc) args v)
-	     v))))
-(define (swapcache/cache* swc key proc) (swc/cache* swc key proc))
+	     (store! (swapcache-front swc) key v)
+	     (car v))))
+       (let ((v (apply proc args)))
+	 (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
+	   (swapcache/swap! swc))
+	 (store! (swapcache-front swc) key (cons v (gmtimestamp)))
+	 v)))
+(define (swapcache/cache+ swc key proc . args)
+  (apply swc/cache+ swc key proc args))
+
+;;;; Doing swaps
 
 (define swapcache/swap!
   (slambda (swc (thresh #f))
@@ -129,12 +158,14 @@
  ;; This should show compute-string called less for smaller numbers
  ;; because they stay in the cache.
  (begin (dotimes (i 9) (cached-get i))
-   (dotimes (i 5) (cached-get i))
-   (dotimes (i 9) (cached-get i)))
+   (dotimes (i 5) (lineout "Got " (cached-get i) " for " i))
+   (dotimes (i 9) (lineout "Got " (cached-get i) " for " i)))
  (set! swctest (swc/make #[max 5 id swctest]))
  (define (cached-get2 n)
    (swc/cache* swctest compute-string2 n))
  (begin (dotimes (i 9) (cached-get2 i))
-   (dotimes (i 5) (cached-get2 i))
-   (dotimes (i 9) (cached-get2 i))))
+   (dotimes (i 5) (lineout "Got " (write (cached-get2 i)) " for " i))
+   (dotimes (i 9) (lineout "Got " (write (cached-get2 i)) " for " i))))
+
+
 
