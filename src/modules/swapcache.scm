@@ -6,10 +6,11 @@
 (use-module '{reflection ezrecords logger varconfig})
 
 (module-export!
- '{swc/make swc/get swc/age swc/store! swc/cache swc/cache*
+ '{swc/make swc/get swc/modtime
+   swc/store! swc/cache swc/cache* swc/cache+
    swapcache/make swapcache/store!
-   swapcache/get swapcache/age 
-   swapcache/cache swapcache/cache*
+   swapcache/get swapcache/modtime
+   swapcache/cache swapcache/cache* swapcache/cache+
    swapcache/swap! swapcache/swap?!})
 
 (define-init %loglevel %notice%)
@@ -66,9 +67,9 @@
 	(store! (swapcache-front swc) key (cons value (gmtimestamp))))))
 (define (swapcache/store! swc key value) (swc/store! swc key value))
 
-(define (swc/age swc key)
+(define (swc/modtime swc key)
   (try (cdr (get (swapcache-front swc) key)) #f))
-(define (swapcache/age swc key) (swc/age swc key))
+(define (swapcache/modtime swc key) (swc/modtime swc key))
 
 ;;;; Cache functions
 
@@ -88,19 +89,21 @@
 (define (swapcache/cache swc key proc) (swc/cache swc key proc))
 
 (define (swc/cache* swc proc . args)
-  (try (car (get (swapcache-front swc) args))
-       (let ((v (get (swapcache-back swc) args)))
-	 (tryif (exists? v)
-	   (begin
-	     (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
-	       (swapcache/swap! swc))
-	     (store! (swapcache-front swc) args v)
-	     (car v))))
-       (let ((v (apply proc args)))
-	 (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
-	   (swapcache/swap! swc))
-	 (store! (swapcache-front swc) args (cons v (gmtimestamp)))
-	 v)))
+  (let* ((key (apply vector (or (procedure-name proc) proc) args))
+	 (cached (get (swapcache-front swc) key)))
+    (try (car cached)
+	 (begin (set! cached (get (swapcache-back swc) args))
+	   (tryif (exists? cached)
+	     (begin
+	       (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
+		 (swapcache/swap! swc))
+	       (store! (swapcache-front swc) key cached)
+	       (car cached))))
+	 (let ((v (apply proc args)))
+	   (when (> (table-size (swapcache-front swc)) (swapcache-max swc))
+	     (swapcache/swap! swc))
+	   (store! (swapcache-front swc) args (cons v (gmtimestamp)))
+	   v))))
 (define (swapcache/cache* swc key proc . args)
   (apply swc/cache* swc key proc args))
 
