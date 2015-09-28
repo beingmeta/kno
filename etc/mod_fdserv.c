@@ -1239,7 +1239,10 @@ static int start_servlet(request_rec *r,fdservlet s,
   struct stat stat_data; int rv, n_configs=0, retval=0;
   uid_t uid; gid_t gid;
   apr_file_t *lockfile;
-  int unlock=0;
+  int log_sync=dconfig->log_sync, unlock=0;
+
+  if (log_sync<0) log_sync=sconfig->log_sync;
+  if (log_sync<0) log_sync=DEFAULT_LOG_SYNC;
 
   apr_status_t lock_status=
     apr_file_open(&lockfile,lockname,
@@ -2212,9 +2215,10 @@ static int ap_bwrite(BUFF *b,char *string,int len)
 }
 static int ap_bwrite_upcase(BUFF *b,char *string,int len)
 {
-  char *scan=string, *limit=scan+len, *write;
+  unsigned char *scan=(unsigned char *)string;
+  unsigned char *limit=scan+len, *write;
   if (ap_bneeds(b,len+1)<0) return -1; 
-  write=(char*)(b->ptr); while (scan<limit) {
+  write=(b->ptr); while (scan<limit) {
     int c=*scan++; if (c>=128) *write++=c;
     else *write++=toupper(c);}
   b->ptr=write;
