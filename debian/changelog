@@ -1,3 +1,11 @@
+framerd (3.8.2-33) unstable; urgency=low
+
+  * Added additional AWS functionality
+  * Fixed some warnings for mod_fdserv
+  * git patch version framerd-2.8.2-92
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 29 Sep 2015 12:15:51 -0400
+
 framerd (3.8.2-32) unstable; urgency=low
 
   * Updates to swapcache implementation
