@@ -533,7 +533,9 @@
 
 (define (s3loc/uri s3loc)
   (if (string? s3loc) (set! s3loc (->s3loc s3loc)))
-  (stringout s3scheme s3root "/" (s3loc-bucket s3loc) (s3loc-path s3loc)))
+  (if (position #\. (s3loc-bucket s3loc))
+      (stringout s3scheme s3root "/"  (s3loc-bucket s3loc) (s3loc-path s3loc))
+      (stringout s3scheme  (s3loc-bucket s3loc) "." s3root (s3loc-path s3loc))))
 
 (define (s3loc/s3uri s3loc)
   (if (string? s3loc) (set! s3loc (->s3loc s3loc)))
