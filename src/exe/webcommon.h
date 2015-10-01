@@ -39,21 +39,22 @@ static int pid_fd=-1;
 
 static fd_lispenv server_env=NULL;
 
-static MU fdtype cgisymbol, main_symbol, setup_symbol, script_filename, uri_symbol;
-static MU fdtype response_symbol, err_symbol, status_symbol, redirect_symbol;
-static MU fdtype browseinfo_symbol, threadcache_symbol, filedata_symbol;
+static MU fdtype cgisymbol, main_symbol, setup_symbol, script_filename;
+static MU fdtype uri_slotid, response_symbol, err_symbol, status_symbol;
+static MU fdtype browseinfo_symbol, threadcache_symbol;
 static MU fdtype http_headers, html_headers, doctype_slotid, xmlpi_slotid;
-static MU fdtype content_slotid, content_type, tracep_slotid, query_string;
-static MU fdtype query_string, script_name, path_info, remote_info, document_root;
-static MU fdtype http_referer, http_accept;
 static MU fdtype http_accept_language, http_accept_encoding, http_accept_charset;
+static MU fdtype http_cookie, request_method, http_referer, http_accept;
+static MU fdtype auth_type, remote_host, remote_user, remote_port;
+static MU fdtype content_slotid, content_type, query_string, reqdata_symbol;
+static MU fdtype query_string, script_name, path_info, remote_info, document_root;
 static MU fdtype content_type, content_length, post_data;
 static MU fdtype server_port, server_name, path_translated, script_filename;
-static MU fdtype auth_type, remote_host, remote_user, remote_port;
-static MU fdtype http_cookie, request_method, sendfile_slotid, cleanup_slotid;
-static MU fdtype query_symbol, referer_symbol, forcelog_symbol;
-static MU fdtype webdebug_symbol, output_symbol, error_symbol;
-static MU fdtype errorpage_symbol, crisispage_symbol, reqdata_symbol;
+static MU fdtype query_slotid, referer_slotid, forcelog_slotid, tracep_slotid;
+static MU fdtype webdebug_symbol, output_symbol, error_symbol, cleanup_slotid;
+static MU fdtype errorpage_symbol, crisispage_symbol;
+static MU fdtype redirect_slotid, xredirect_slotid;
+static MU fdtype sendfile_slotid, filedata_slotid;
 
 static fdtype default_errorpage=FD_VOID;
 static fdtype default_crisispage=FD_VOID;
@@ -62,8 +63,8 @@ static fdtype default_nocontentpage=FD_VOID;
 
 static void init_webcommon_symbols()
 {
-  uri_symbol=fd_intern("REQUEST_URI");
-  query_symbol=fd_intern("QUERY_STRING");
+  uri_slotid=fd_intern("REQUEST_URI");
+  query_slotid=fd_intern("QUERY_STRING");
   main_symbol=fd_intern("MAIN");
   setup_symbol=fd_intern("SETUP");
   cgisymbol=fd_intern("CGIDATA");
@@ -83,9 +84,9 @@ static void init_webcommon_symbols()
   response_symbol=fd_intern("%RESPONSE");
   browseinfo_symbol=fd_intern("BROWSEINFO");
   threadcache_symbol=fd_intern("%THREADCACHE");
-  referer_symbol=fd_intern("HTTP_REFERER");
+  referer_slotid=fd_intern("HTTP_REFERER");
   remote_info=fd_intern("REMOTE_INFO");
-  forcelog_symbol=fd_intern("FORCELOG");
+  forcelog_slotid=fd_intern("FORCELOG");
   webdebug_symbol=fd_intern("WEBDEBUG");
   errorpage_symbol=fd_intern("ERRORPAGE");
   crisispage_symbol=fd_intern("CRISISPAGE");  
@@ -93,8 +94,9 @@ static void init_webcommon_symbols()
   error_symbol=fd_intern("REQERROR");
   reqdata_symbol=fd_intern("REQDATA");
   request_method=fd_intern("REQUEST_METHOD");
-  redirect_symbol=fd_intern("_REDIRECT");
-  filedata_symbol=fd_intern("_FILEDATA");
+  redirect_slotid=fd_intern("_REDIRECT");
+  xredirect_slotid=fd_intern("_XREDIRECT");
+  filedata_slotid=fd_intern("_FILEDATA");
 }
 
 /* Preflight/postflight */
@@ -327,7 +329,7 @@ static void dolog
   if (FD_NULLP(val)) {
     /* This is pre execution */
     if (urllog) {
-      fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
+      fdtype uri=fd_get(cgidata,uri_slotid,FD_VOID);
       u8_string tmp=u8_mkstring(">%s\n@%*lt %g/%g\n",
 				FD_STRDATA(uri),
 				exectime,
@@ -336,7 +338,7 @@ static void dolog
       fd_decref(uri);}}
   else if (FD_ABORTP(val)) {
     if (urllog) {
-      fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID); u8_string tmp;
+      fdtype uri=fd_get(cgidata,uri_slotid,FD_VOID); u8_string tmp;
       if (FD_TROUBLEP(val)) {
 	u8_exception ex=u8_erreify();
 	if (ex==NULL)
@@ -357,7 +359,7 @@ static void dolog
       fd_dtswrite_dtype(reqlog,cgidata);}}
   else {
     if (urllog) {
-      fdtype uri=fd_get(cgidata,uri_symbol,FD_VOID);
+      fdtype uri=fd_get(cgidata,uri_slotid,FD_VOID);
       u8_string tmp=u8_mkstring("<%s\n@%*lt %ld %g/%g\n",FD_STRDATA(uri),
 				len,exectime,u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);}

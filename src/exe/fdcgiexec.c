@@ -464,7 +464,7 @@ static int simplecgi(fdtype path)
     cgidata=get_envcgidata();
     if (docroot) webcommon_adjust_docroot(cgidata,docroot);
     if (traceweb>0) {
-      uri=fd_get(cgidata,uri_symbol,FD_VOID);
+      uri=fd_get(cgidata,uri_slotid,FD_VOID);
       if (FD_STRINGP(uri))
         u8_log(LOG_NOTICE,"REQUEST","Handling request for %s",FD_STRDATA(uri));
       fd_decref(uri);}
