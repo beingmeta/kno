@@ -884,27 +884,31 @@ static const char *servlet_env
     return NULL;}
 }
 
-static char **extend_config(apr_pool_t *p,char **config_args,const char *var,const char *val)
+static char **extend_config(apr_pool_t *p,char **config_args,const char *var,
+			    const char *val)
 {
-  char *config_arg=apr_pstrcat(p,var,"=",val,NULL);
-  char *config_prefix=apr_pstrcat(p,var,"=",NULL);
-  int prefix_len=strlen(config_prefix);
+  const char *varname=((var[0]=='!')?(var+1):(var));
+  char *config_prefix=((var[0]=='!')?(apr_pstrcat(p,varname,"=",NULL)):(NULL));
+  int prefix_len=((config_prefix)?(strlen(config_prefix)):(-1));
+  char *config_arg=apr_pstrcat(p,varname,"=",val,NULL);
   if (config_args==NULL) {
     char **vec=apr_palloc(p,2*sizeof(char *));
     vec[0]=config_arg; vec[1]=NULL;
     return vec;}
   else {
     char **scan=config_args, **grown; int n_configs=0;
-    while (*scan) {
-      if (strncmp(*scan,config_prefix,prefix_len)==0) {
-	/* Override an earlier definition */
-	*scan=config_arg;
-	return config_args;}
-      else {scan++; n_configs++;}}
+    while (*scan) {scan++; n_configs++;}
     grown=(char **)prealloc(p,(char *)config_args,
 			    (n_configs+2)*sizeof(char *),
 			    (n_configs+1)*sizeof(char *));
     grown[n_configs]=config_arg; grown[n_configs+1]=NULL;
+    scan=grown; if (config_prefix) while (*scan) {
+	if (strncmp(*scan,config_prefix,prefix_len)==0) {
+	  char *override=*scan, *valpart=override+prefix_len;
+	  /* Override an earlier definition */
+	  *scan=apr_pstrcat(p,"!",varname,"=",valpart,NULL);}
+	scan++;}
+    else {scan++; n_configs++;}
     return grown;}
 }
 
