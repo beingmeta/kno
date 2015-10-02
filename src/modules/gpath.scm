@@ -108,7 +108,7 @@
       (let ((ctype (or ctype (guess-mimetype (get-namestring dest) content)))
 	    (charset (or charset (get-charset ctype))))
 	(when (and (string? dest) (has-prefix dest {"http:" "https:"}))
-	  (set! dest (try (->s3loc dest) (gpath->uri dest) dest)))
+	  (set! dest (try (->s3loc dest) (uri->gpath dest) dest)))
 	(loginfo GP/SAVE! "Saving " (length content)
 		 (if (string? content) " characters of "
 		     (if (packet? content) " bytes of "))
@@ -350,7 +350,7 @@
 	((pair? ref) (gp/fetch (gp/path (car ref) (cdr ref))))
 	((and (string? ref)
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
-	 (set! ref (try (->s3loc ref) (gpath->uri ref) ref))
+	 (set! ref (try (->s3loc ref) (uri->gpath ref) ref))
 	 (if (string? ref)
 	     (get (gp/urlfetch ref) 'content)
 	     (get (gp/fetch ref) 'content)))
@@ -662,7 +662,7 @@
       (try (->s3loc val)
 	   (try-choices (handler (get gpath-handlers (getkeys gpath-handlers)))
 	     (tryif (gpath-handler-fromuri handler)
-	       (difference ((gpath-fromuri handler) val) #f))))
+	       (difference ((gpath-handler-fromuri handler) val) #f))))
       (fail)))
 
 (defambda (gp/has-suffix gpath suffixes (casematch #f))

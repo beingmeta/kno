@@ -1,3 +1,10 @@
+framerd (3.8.2-36) unstable; urgency=low
+
+  * Fixed bug with gpath uri conversion feature
+  * git patch version framerd-3.8.2-102
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 02 Oct 2015 17:29:12 -0400
+
 framerd (3.8.2-35) unstable; urgency=low
 
   * Add regexes as tests for predicates, under PICK
