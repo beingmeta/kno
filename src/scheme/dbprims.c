@@ -1414,6 +1414,7 @@ static fdtype suggest_hash_size(fdtype size)
 /* PICK and REJECT */
 
 FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel);
+FD_FASTOP int test_relation_regex(fdtype candidate,fdtype pred,fdtype regex);
 
 FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalevel)
 {
@@ -1424,6 +1425,8 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
         {FD_STOP_DO_CHOICES;}
         return retval;}}
     return 0;}
+  else if ((!datalevel)&&(FD_PRIM_TYPEP(val,fd_regex_type)))
+    return test_relation_regex(f,pred,val);
   else if ((FD_OIDP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
     if (datalevel)
       return fd_test(f,pred,val);
@@ -1453,7 +1456,6 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
       else if (fcn->min_arity==2) {
           rail[0]=f; rail[1]=val; result=fd_apply(pred,2,rail);}
       else result=fd_err(fd_TypeError,"test_selector_relation","invalid relation",pred);}
-    else result=fd_err(fd_TypeError,"test_selector_relation","invalid relation",pred);
     if (FD_ABORTP(result))
       return fd_interr(result);
     else if ((FD_FALSEP(result)) || (FD_EMPTY_CHOICEP(result)))
@@ -1473,6 +1475,34 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
   else return fd_type_error(_("test relation"),"test_selector_relation",pred);
 }
 
+FD_FASTOP int test_relation_regex(fdtype candidate,fdtype pred,fdtype regex)
+{
+  fdtype values=((FD_OIDP(candidate))?
+                 (fd_frame_get(candidate,pred)):
+                 (fd_get(candidate,pred,FD_EMPTY_CHOICE)));
+  if (FD_EMPTY_CHOICEP(values)) return 0;
+  else {
+    struct FD_REGEX *fdrx=(struct FD_REGEX *)regex;
+    FD_DO_CHOICES(value,values) {
+      if (FD_STRINGP(value)) {
+        regmatch_t results[1];
+        u8_string data=FD_STRDATA(value);
+        int retval=regexec(&(fdrx->compiled),data,1,results,0);
+        if (retval!=REG_NOMATCH) {
+          if (retval) {
+            u8_byte buf[512];
+            regerror(retval,&(fdrx->compiled),buf,512);
+            fd_seterr(fd_RegexError,"regex_pick",u8_strdup(buf),FD_VOID);
+            FD_STOP_DO_CHOICES;
+            fd_decref(values);
+            return -1;}
+          else if (results[0].rm_so>=0) {
+            FD_STOP_DO_CHOICES;
+            fd_decref(values);
+            return 1;}}}}
+    return 0;}
+}
+
 FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel)
 {
   if (FD_EMPTY_CHOICEP(candidate)) return 0;
@@ -1488,7 +1518,7 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel
     if (datalevel)
       return fd_test(candidate,test,FD_VOID);
     else return fd_frame_test(candidate,test,FD_VOID);
-  else if (FD_PTR_TYPEP(test,fd_regex_type)) {
+  else if ((!(datalevel))&&(FD_PTR_TYPEP(test,fd_regex_type))) {
     if (FD_STRINGP(candidate)) {
       struct FD_REGEX *fdrx=(struct FD_REGEX *)test;
       regmatch_t results[1];
