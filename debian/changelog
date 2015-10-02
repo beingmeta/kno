@@ -1,3 +1,12 @@
+framerd (3.8.2-35) unstable; urgency=low
+
+  * Add regexes as tests for predicates, under PICK
+  * Don't do regex matching for the data level (%PICK rather than PICK)
+  * In GPATH, handle conversion of URIs into GPATHs which might be more accessible
+  * git patch version 3.8.2-101
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 02 Oct 2015 16:44:00 -0400
+
 framerd (3.8.2-34) unstable; urgency=low
 
   * Made mod_fdserv apache configs able to accumulate config values
