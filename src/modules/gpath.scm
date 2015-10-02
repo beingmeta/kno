@@ -8,7 +8,7 @@
  '{gp/write! gp/save!
    writeout writeout/type
    gp/writeout gp/writeout! gp/writeout+!
-   gpath? ->gpath
+   gpath? ->gpath uri->gpath
    gp/location? gp/location gp/basename
    gp/has-suffix gp/has-prefix
    gp/fetch gp/fetch+ gp/etag gp/info
@@ -46,7 +46,7 @@
 (defrecord memfile mimetype content modified (hash #f))
 
 (defrecord gpath-handler name get (save #f)
-  (tostring #f) (fromstring #f) (prefixes {}))
+  (tostring #f) (fromstring #f) (fromuri #f) (prefixes {}))
 (define gpath/handler cons-gpath-handler)
 
 (define-init gpath-handlers (make-hashtable))
@@ -107,6 +107,8 @@
     (do-choices dest
       (let ((ctype (or ctype (guess-mimetype (get-namestring dest) content)))
 	    (charset (or charset (get-charset ctype))))
+	(when (and (string? dest) (has-prefix dest {"http:" "https:"}))
+	  (set! dest (try (->s3loc dest) (gpath->uri dest) dest)))
 	(loginfo GP/SAVE! "Saving " (length content)
 		 (if (string? content) " characters of "
 		     (if (packet? content) " bytes of "))
@@ -348,7 +350,10 @@
 	((pair? ref) (gp/fetch (gp/path (car ref) (cdr ref))))
 	((and (string? ref)
 	      (exists has-prefix ref {"http:" "https:" "ftp:"}))
-	 (get (gp/urlfetch ref) 'content))
+	 (set! ref (try (->s3loc ref) (gpath->uri ref) ref))
+	 (if (string? ref)
+	     (get (gp/urlfetch ref) 'content)
+	     (get (gp/fetch ref) 'content)))
 	((and (string? ref) (has-prefix ref "s3:")) (s3/get (->s3loc ref)))
 	((and (string? ref) (string-starts-with? ref #((isalnum+) ":")))
 	 (irritant ref |Bad gpath scheme|))
@@ -447,7 +452,8 @@
 	  (car ref) (cdr ref) #t))
 	((pair? ref) (gp/fetch+ (gp/path (car ref) (cdr ref)) default-ctype))
 	((and (string? ref) (exists has-prefix ref {"http:" "https:" "ftp:"}))
-	 (gp/urlfetch ref))
+	 (set! ref (try (->s3loc ref) (uri->gpath ref) ref))
+	 (if (string? ref) (gp/urlfetch ref) (gp/fetch+ ref)))
 	((and (string? ref) (has-prefix ref "s3:")) (s3/get+ (->s3loc ref)))
 	((and (string? ref) (string-starts-with? ref #((isalnum+) ":")))
 	 (irritant ref |Bad gpath scheme|))
@@ -651,6 +657,14 @@
 			  (abspath val))))))
       val))
 
+(define (uri->gpath val)
+  (if (and (string? val) (has-prefix val {"http:" "https:" "ftp:"}))
+      (try (->s3loc val)
+	   (try-choices (handler (get gpath-handlers (getkeys gpath-handlers)))
+	     (tryif (gpath-handler-fromuri handler)
+	       (difference ((gpath-fromuri handler) val) #f))))
+      (fail)))
+
 (defambda (gp/has-suffix gpath suffixes (casematch #f))
   (if casematch
       (has-suffix (gp/basename gpath) suffixes)
@@ -735,5 +749,3 @@
   (do-choices gpath
     (let ((gp (if (string? gpath) (->gpath gpath) gpath)))
       (gp/save! gp (dtype->packet (qc dtype)) "application/dtype"))))
-
-
