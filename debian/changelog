@@ -1,3 +1,10 @@
+framerd (3.8.2-37) unstable; urgency=low
+
+  * Small fixes to gpath, aws/s3, and ximage
+  * git patch version framerd-3.8.2-106
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 03 Oct 2015 12:46:00 -0400
+
 framerd (3.8.2-36) unstable; urgency=low
 
   * Fixed bug with gpath uri conversion feature
