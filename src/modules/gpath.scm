@@ -280,6 +280,13 @@
 (define gp/string gpath->string)
 
 (define (makepath root path (mode *default-dirmode*) (require-subpath #f))
+  (unless (string? path)
+    (set! path 
+	  (cond ((uuid? path) (glom "u:" (uuid->string path)))
+		((packet? path) (glom "p:" (packet->base16 path)))
+		((timestamp? path) (glom "t:" (get path 'iso)))
+		((number? path) (number->string path))
+		(else (irritant path |BadPathElement| gp/makepath)))))
   (when (and (pair? root) (null? (cdr root)))
     (set! root (cons (car root) "")))
   (if (string? root) (set! root (string->root root))
