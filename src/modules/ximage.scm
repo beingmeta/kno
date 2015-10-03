@@ -28,9 +28,10 @@
 
 (define (ximage content xform (root #f) (force ximage:force))
   (if (symbol? xform)
-      (try (get xforms xform)
-	   (get xforms (downcase xform))
-	   xform))
+      (set! xform
+	    (try (get xforms xform)
+		 (get xforms (downcase xform))
+		 xform)))
   (let* ((useroot (cond ((not root) ximage:root)
 			((and (string? root) (not (has-prefix root "/")))
 			 (gp/mkpath ximage:root root))
@@ -77,8 +78,9 @@
     " bytes of imagedata (MD5:" (packet->base16 (md5 data)) ")"
     "\n\t\twith " xform)
   (if (or (procedure? xform)
-	  (getopt xform 'handler)
-	  (procedure? (getopt xform 'handler)))
+	  (and (table? xform)
+	       (or (getopt xform 'handler)
+		   (procedure? (getopt xform 'handler)))))
       (let* ((image (packet->imagick data))
 	     (newimage (if (procedure? xform)
 			   (xform image content)
