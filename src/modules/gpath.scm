@@ -322,7 +322,7 @@
 	(else (error "Weird GPATH root" root " for " path))))
 (define gp/makepath makepath)
 (define (gp/path root path . more)
-  (let ((result (makepath (->gpath root) path)))
+  (let ((result (if path (makepath (->gpath root) path) (->gpath root))))
     (if (null? more) result
 	(if (not (car more))
 	    (if (null? (cdr more)) result
