@@ -121,18 +121,22 @@
 	      (error badpath make-s3loc path)))
       (error badbucket make-s3loc bucket)))
 
+(define bucket-part
+  '(EXPANSIVE #({(islower) (isdigit)}
+		(+ {(islower) (isdigit) "-"})
+		{(islower) (isdigit)})))
+(define bucket-pat `#(,bucket-part (* #("." ,bucket-part))))
+
 (define s3uripat
-  '(GREEDY {#("http" {"s:" ":"} "//"
-	      (label bucket (not> ".s3.amazonaws.com/"))
+  `(GREEDY {#("http" {"s:" ":"} "//"
+	      (label bucket ,bucket-pat)
 	      ".s3.amazonaws.com/"
 	      (label path (rest)))
-   
 	    #("http" {"s:" ":"} "//s3.amazonaws.com/"
-	      (label bucket (not> "/")) "/"
-	      (label path (rest)))
-	    #("s3://" (label bucket (not> "/")) "/" (label path (rest)))
-	    #("//" (label bucket (not> "/")) "/" (label path (rest)))
-	    #("s3:" (label bucket (not> {"/" ":"})) {"/" ":"} (label path (rest)))}))
+	      (label bucket ,bucket-pat) "/" (label path (rest)))
+	    #("s3://" (label bucket ,bucket-pat) "/" (label path (rest)))
+	    #("//" (label bucket ,bucket-pat) "/" (label path (rest)))
+	    #("s3:" (label bucket ,bucket-pat) {"/" ":"} (label path (rest)))}))
 (define (->s3loc input)
   (cond ((s3loc? input) input)
 	((not (string? input))
