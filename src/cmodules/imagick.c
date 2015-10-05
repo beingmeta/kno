@@ -2,7 +2,7 @@
 
 /* imagemagick.c
    This implements FramerD bindings to the MagickWand API
-   Copyright (C) 2012-2013 beingmeta, inc.
+   Copyright (C) 2012-2015 beingmeta, inc.
 */
 
 #ifndef _FILEINFO
