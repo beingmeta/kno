@@ -1717,7 +1717,8 @@ int main(int argc,char **argv)
   {
     struct U8_OUTPUT out; unsigned char buf[2048]; int i=1;
     U8_INIT_OUTPUT_BUF(&out,2048,buf);
-    while (i<argc) {u8_putc(&out,' '); u8_puts(&out,argv[i++]);}
+    while (i<argc) {
+      char *arg=argv[i++]; u8_putc(&out,' '); u8_puts(&out,arg);}
     u8_log(LOG_WARN,"ServletBoot",
            "Starting beingmeta fdservlet %s as \n  %s",
            socket_spec,out.u8_outbuf);
