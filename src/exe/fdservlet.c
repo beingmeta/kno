@@ -1715,18 +1715,21 @@ int main(int argc,char **argv)
     u8_free(sockets_dir);}
 
   {
-    struct U8_OUTPUT out; unsigned char buf[2048]; int i=1;
-    U8_INIT_OUTPUT_BUF(&out,2048,buf);
-    while (i<argc) {
-      char *arg=argv[i++]; u8_putc(&out,' '); u8_puts(&out,arg);}
-    u8_log(LOG_WARN,"ServletBoot",
-           "Starting beingmeta fdservlet %s as \n  %s",
-           socket_spec,out.u8_outbuf);
+    if (argc>2) {
+      struct U8_OUTPUT out; unsigned char buf[2048]; int i=1;
+      U8_INIT_OUTPUT_BUF(&out,2048,buf);
+      while (i<argc) {
+        unsigned char *arg=argv[i++];
+        if (arg==socket_spec) u8_puts(&out," @");
+        else {u8_putc(&out,' '); u8_puts(&out,arg);}}
+      u8_log(LOG_WARN,"ServletBoot",
+             "Starting beingmeta fdservlet %s with\n  %s",
+             socket_spec,out.u8_outbuf);
+      u8_close((U8_STREAM *)&out);}
+    else u8_log(LOG_WARN,"ServletBoot",
+                "Starting beingmeta fdservlet %s",socket_spec);
     u8_log(LOG_WARN,"ServerBoot",
-           "Copyright (C) beingmeta 2004-2015, all rights reserved");
-    u8_close((U8_STREAM *)&out);}
-
-
+           "Copyright (C) beingmeta 2004-2015, all rights reserved");}
 
   if (socket_spec) {
     ports=u8_malloc(sizeof(u8_string)*8);

@@ -1,3 +1,11 @@
+framerd (3.8.2-39) unstable; urgency=low
+
+  * Improved boot-up messages for fdserver/fdservlet
+  * Fixed memusage to favor procfs
+  * git patch version framerd-3.8.2-113
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 05 Oct 2015 08:37:46 -0400
+
 framerd (3.8.2-38) unstable; urgency=low
 
   * Minor fixes to S3 and GPATH bugs

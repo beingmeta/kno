@@ -842,16 +842,21 @@ int main(int argc,char **argv)
     u8_free(base); u8_free(logname);}
 
   {
-    struct U8_OUTPUT out; unsigned char buf[2048]; int i=1;
-    U8_INIT_OUTPUT_BUF(&out,2048,buf);
-    while (i<argc) {
-      char *arg=argv[i++]; u8_putc(&out,' '); u8_puts(&out,arg);}
+    if (argc>2) {
+      struct U8_OUTPUT out; unsigned char buf[2048]; int i=1;
+      U8_INIT_OUTPUT_BUF(&out,2048,buf);
+      while (i<argc) {
+        unsigned char *arg=argv[i++];
+        if (arg==server_spec) u8_puts(&out," @");
+        else {u8_putc(&out,' '); u8_puts(&out,arg);}}
+      u8_log(LOG_WARN,"ServerBoot",
+             "Starting beingmeta fdserver %s with:\n  %s",
+             server_spec,out.u8_outbuf);
+      u8_close((U8_STREAM *)&out);}
+    else u8_log(LOG_WARN,"ServerBoot",
+                "Starting beingmeta fdserver %s",server_spec);
     u8_log(LOG_WARN,"ServerBoot",
-           "Starting beingmeta fdserver %s as:\n  %s",
-           server_spec,out.u8_outbuf);
-    u8_log(LOG_WARN,"ServerBoot",
-           "Copyright (C) beingmeta 2004-2015, all rights reserved");
-    u8_close((U8_STREAM *)&out);}
+           "Copyright (C) beingmeta 2004-2015, all rights reserved");}
 
   fd_version=fd_init_fdscheme();
 
