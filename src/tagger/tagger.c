@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* tagger.c
-   Copyright (C) 2005-2013 beingmeta, inc.
+   Copyright (C) 2005-2015 beingmeta, inc.
    This is the initialization file for the tagger module.
 */
 

@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2013 beingmeta, inc.
+/* Copyright (C) 2004-2015 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -431,7 +431,7 @@ static int cache_load()
 
 FD_EXPORT int fd_swapcheck()
 {
-  int memgap; size_t usage=u8_memusage();
+  int memgap; ssize_t usage=u8_memusage();
   fdtype l_memgap=fd_config_get("SWAPCHECK");
   if (FD_FIXNUMP(l_memgap)) memgap=FD_FIX2INT(l_memgap);
   else if (!(FD_VOIDP(l_memgap))) {

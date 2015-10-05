@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2013 beingmeta, inc.
+/* Copyright (C) 2004-2015 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -131,7 +131,7 @@ FD_EXPORT void fd_status_message()
   int pagesize=u8_getpagesize();
   int retval=u8_getrusage(0,&usage);
   /* long membytes=(usage.ru_idrss+usage.ru_isrss); double memsize; */
-  long heapbytes=u8_memusage(); double heapsize;
+  ssize_t heapbytes=u8_memusage(); double heapsize;
   char *stu="s", *utu="s", *etu="s", *memu="KB", *heapu="KB";
   double elapsed=format_secs(u8_elapsed_time(),&etu);
   double usertime=format_secs

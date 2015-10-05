@@ -2,7 +2,7 @@
 
 /* mongodb.c
    This implements FramerD bindings to mongodb.
-   Copyright (C) 2007-2013 beingmeta, inc.
+   Copyright (C) 2007-2015 beingmeta, inc.
 */
 
 #ifndef _FILEINFO

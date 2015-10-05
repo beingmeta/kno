@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2013 beingmeta, inc.
+/* Copyright (C) 2004-2015 beingmeta, inc.
    This file is part of beingmeta's FDB platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -1136,7 +1136,7 @@ static fdtype rusage_prim(fdtype field)
   else if (FD_VOIDP(field)) {
     fdtype result=fd_empty_slotmap();
     pid_t pid=getpid(), ppid=getppid();
-    unsigned long mem=u8_memusage();
+    size_t mem=u8_memusage();
     fd_add(result,data_symbol,FD_INT(r.ru_idrss));
     fd_add(result,stack_symbol,FD_INT(r.ru_isrss));
     fd_add(result,shared_symbol,FD_INT(r.ru_ixrss));
@@ -1293,7 +1293,7 @@ static fdtype getppid_prim()
 
 static fdtype memusage_prim()
 {
-  unsigned long size=u8_memusage();
+  ssize_t size=u8_memusage();
   return FD_INT(size);
 }
 
@@ -1484,7 +1484,7 @@ static double stime_sensor()
 }
 static long memusage_sensor()
 {
-  unsigned long usage=u8_memusage();
+  ssize_t usage=u8_memusage();
   return (long)usage;
 }
 #if HAVE_STRUCT_RUSAGE_RU_INBLOCK
