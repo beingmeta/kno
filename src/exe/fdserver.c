@@ -841,6 +841,17 @@ int main(int argc,char **argv)
     set_logfile(logfile,1);
     u8_free(base); u8_free(logname);}
 
+  {
+    struct U8_OUTPUT out; unsigned char buf[2048]; int i=1;
+    U8_INIT_OUTPUT_BUF(&out,2048,buf);
+    while (i<argc) {u8_putc(&out,' '); u8_puts(&out,argv[i++]);}
+    u8_log(LOG_WARN,"ServerBoot",
+           "Starting beingmeta fdserver %s as:\n  %s",
+           server_spec,out.u8_outbuf);
+    u8_log(LOG_WARN,"ServerBoot",
+           "Copyright (C) beingmeta 2004-2015, all rights reserved");
+    u8_close((U8_STREAM *)&out);}
+
   fd_version=fd_init_fdscheme();
 
   if (fd_version<0) {

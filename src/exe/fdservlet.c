@@ -1714,6 +1714,19 @@ int main(int argc,char **argv)
     socket_spec=u8_mkpath(sockets_dir,socket_spec);
     u8_free(sockets_dir);}
 
+  {
+    struct U8_OUTPUT out; unsigned char buf[2048]; int i=1;
+    U8_INIT_OUTPUT_BUF(&out,2048,buf);
+    while (i<argc) {u8_putc(&out,' '); u8_puts(&out,argv[i++]);}
+    u8_log(LOG_WARN,"ServletBoot",
+           "Starting beingmeta fdservlet %s as \n  %s",
+           socket_spec,out.u8_outbuf);
+    u8_log(LOG_WARN,"ServerBoot",
+           "Copyright (C) beingmeta 2004-2015, all rights reserved");
+    u8_close((U8_STREAM *)&out);}
+
+
+
   if (socket_spec) {
     ports=u8_malloc(sizeof(u8_string)*8);
     max_ports=8; n_ports=1;
