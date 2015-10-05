@@ -5041,8 +5041,6 @@ _ACEOF
 
 fi
 
-CFLAGS="$CFLAGS -I$prefix/include"
-
 if test -h $prefix/share/framerd/standard_modules/logger.scm; then
   devmode_default="yes";
 elif test -f $prefix/share/framerd/standard_modules/logger.scm; then
@@ -5175,7 +5173,11 @@ if test $with_bootsystem != "none"; then
   BOOTSETUP="setup-$with_bootsystem"
 fi
 
-LDFLAGS="$LDFLAGS -L$prefix/lib"
+if test "x$prefix" != "x/user"; then
+  CFLAGS="$CFLAGS -I$prefix/include"
+  CPPFLAGS="$CPPFLAGS -I$prefix/include"
+  LDFLAGS="$LDFLAGS -L$prefix/lib"
+fi
 
 
 # Check whether --with-optlib was given.

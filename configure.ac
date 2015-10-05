@@ -349,8 +349,6 @@ if test "x$with_execwrapper" != "x"; then
   AC_DEFINE_UNQUOTED(FD_EXEC_WRAPPER,"$with_execwrapper")
 fi
 
-CFLAGS="$CFLAGS -I$prefix/include"
-
 if test -h $prefix/share/framerd/standard_modules/logger.scm; then
   devmode_default="yes";
 elif test -f $prefix/share/framerd/standard_modules/logger.scm; then
@@ -408,7 +406,11 @@ if test $with_bootsystem != "none"; then
   BOOTSETUP="setup-$with_bootsystem"
 fi
 
-LDFLAGS="$LDFLAGS -L$prefix/lib"
+if test "x$prefix" != "x/user"; then
+  CFLAGS="$CFLAGS -I$prefix/include"
+  CPPFLAGS="$CPPFLAGS -I$prefix/include"
+  LDFLAGS="$LDFLAGS -L$prefix/lib"
+fi
 
 AC_ARG_WITH(optlib,--with-optlib Use optional library directory,,with_optlib="none")
 if test $with_optlib != "none"; then
