@@ -40,7 +40,7 @@
 		       ("audio/mpeg" "mp1" "mp2" "mp3" "mpg" "mpeg")		       
 		       ("text/javascript" "js" "javascript")
 		       ("font/opentype" "otf")
-		       ;;("application/x-font-ttf" "ttf")
+		       ("application/font-woff" "woff")
 		       ("font/ttf" "ttf")
 		       ("application/adobe-page-template+xml" "xpgt")
 		       ("application/x-dtbncx+xml" "ncx")})
