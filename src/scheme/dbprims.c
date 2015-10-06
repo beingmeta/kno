@@ -1425,12 +1425,12 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
         {FD_STOP_DO_CHOICES;}
         return retval;}}
     return 0;}
-  else if ((!datalevel)&&(FD_PRIM_TYPEP(val,fd_regex_type)))
-    return test_relation_regex(f,pred,val);
-  else if ((FD_OIDP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
-    if (datalevel)
+  else if ((FD_OIDP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred)))) {
+    if ((!datalevel)&&(FD_PRIM_TYPEP(val,fd_regex_type)))
+      return test_relation_regex(f,pred,val);
+    else if (datalevel)
       return fd_test(f,pred,val);
-    else return fd_frame_test(f,pred,val);
+    else return fd_frame_test(f,pred,val);}
   else if ((FD_TABLEP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
     return fd_test(f,pred,val);
   else if (FD_TABLEP(pred))
@@ -1447,7 +1447,10 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
         if (FD_EMPTY_CHOICEP(value)) return 0;
         else if (fd_overlapp(value,val)) retval=1;
         else if (datalevel) retval=0;
-        else if ((FD_HASHTABLEP(val))||(FD_HASHSETP(val))||(FD_APPLICABLEP(val))||
+        else if ((FD_HASHSETP(val))||
+                 (FD_HASHTABLEP(val))||
+                 (FD_APPLICABLEP(val))||
+                 ((datalevel==0)&&(FD_PRIM_TYPEP(val,fd_regex_type)))||
                  ((FD_PAIRP(val))&&(FD_APPLICABLEP(FD_CAR(val)))))
           retval=test_selector_predicate(value,val,datalevel);
         else retval=0;
@@ -1455,7 +1458,8 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
         return retval;}
       else if (fcn->min_arity==2) {
           rail[0]=f; rail[1]=val; result=fd_apply(pred,2,rail);}
-      else result=fd_err(fd_TypeError,"test_selector_relation","invalid relation",pred);}
+      else result=fd_err(fd_TypeError,"test_selector_relation",
+                         "invalid relation",pred);}
     if (FD_ABORTP(result))
       return fd_interr(result);
     else if ((FD_FALSEP(result)) || (FD_EMPTY_CHOICEP(result)))
@@ -1503,7 +1507,8 @@ FD_FASTOP int test_relation_regex(fdtype candidate,fdtype pred,fdtype regex)
     return 0;}
 }
 
-FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel)
+FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,
+                                      int datalevel)
 {
   if (FD_EMPTY_CHOICEP(candidate)) return 0;
   else if (FD_EMPTY_CHOICEP(test)) return 0;
@@ -1538,12 +1543,15 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel
       return 1;
     else return 0;
   else if ((FD_TABLEP(candidate)&&
-            ((FD_OIDP(test)) || (FD_SYMBOLP(test)))))
-    return fd_test(candidate,test,FD_VOID);
+            ((FD_OIDP(test)) || (FD_SYMBOLP(test))))) {
+    if ((!(datalevel))&&(FD_OIDP(candidate)))
+      return fd_frame_test(candidate,test,FD_VOID);
+    else return fd_test(candidate,test,FD_VOID);}
   else if (FD_APPLICABLEP(test)) {
     fdtype v=fd_apply(test,1,&candidate);
     if (FD_ABORTP(v)) return fd_interr(v);
-    else if ((FD_FALSEP(v)) || (FD_EMPTY_CHOICEP(v)) || (FD_VOIDP(v))) return 0;
+    else if ((FD_FALSEP(v)) || (FD_EMPTY_CHOICEP(v)) || (FD_VOIDP(v)))
+      return 0;
     else {fd_decref(v); return 1;}}
   else if ((FD_PAIRP(test))&&(FD_APPLICABLEP(FD_CAR(test)))) {
     fdtype fcn=FD_CAR(test), newval=FD_FALSE;
@@ -1553,7 +1561,9 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel
       while (FD_PAIRP(args)) {
         argv[j++]=FD_CAR(args); args=FD_CDR(args);}
     else argv[j++]=args;
-    if (j>7) newval=fd_err(fd_RangeError,"test_selector_relation","too many elements in test condition",FD_VOID);
+    if (j>7)
+      newval=fd_err(fd_RangeError,"test_selector_relation",
+                    "too many elements in test condition",FD_VOID);
     else newval=fd_apply(j,fcn,argv);
     if (FD_ABORTP(newval)) return newval;
     else if ((FD_FALSEP(newval))||(FD_EMPTY_CHOICEP(newval)))
@@ -1576,7 +1586,8 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,int datalevel
     return fd_interr(ev);}
 }
 
-FD_FASTOP int test_selector_clauses(fdtype candidate,int n,fdtype *args,int datalevel)
+FD_FASTOP int test_selector_clauses(fdtype candidate,int n,fdtype *args,
+                                    int datalevel)
 {
   if (n==1)
     if (FD_EMPTY_CHOICEP(args[0])) return 0;
@@ -1587,7 +1598,8 @@ FD_FASTOP int test_selector_clauses(fdtype candidate,int n,fdtype *args,int data
     fd_decref(scan);
     return retval;}
   else if (n%2) {
-    fd_seterr(fd_TooManyArgs,"test_selector_clauses","odd number of args/clauses in db pick/reject",FD_VOID);
+    fd_seterr(fd_TooManyArgs,"test_selector_clauses",
+              "odd number of args/clauses in db pick/reject",FD_VOID);
     return -1;}
   else {
     int i=0; while (i<n) {
