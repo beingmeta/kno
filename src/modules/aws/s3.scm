@@ -894,13 +894,15 @@
 
 ;;; Synchronizing
 
-(define (s3/push! dir s3loc (match #f) (forcewrite #f) (opts #f))
+(define (s3/push! dir s3loc (match #f) (opts #f))
   (if (string? s3loc) (set! s3loc (->s3loc s3loc)))
   (let* ((opts (if opts (s3loc/opts s3loc)
 		   (cons opts (s3loc/opts s3loc))))
 	 (pause (getopt opts 'pause (config 's3:pause #f)))
 	 (headers (getopt opts 'headers '()))
-	 (%loglevel (getopt opts 'loglevel %loglevel%)))
+	 (nthreads (getopt opts 'threads (config 's3copy:threads 1)))
+	 (forcewrite (getopt opts 'writeall))
+	 (%loglevel (getopt opts 'loglevel %loglevel)))
     (let* ((s3info (s3/list+ s3loc))
 	   (filenames (getfiles dir))
 	   (strmatch (tryif match (pickstrings match)))
@@ -909,45 +911,48 @@
 	   (copynames
 	    (filter-choices (file filenames)
 	      (and (not (has-suffix file "/"))
-		   (or (and (not match)
-			    (not (has-prefix (basename file) "."))
-			    (not (has-suffix (basename file) "~")))
-		       (has-suffix file strmatch)
+		   (or match (not (has-prefix (basename file) ".")))
+		   (or match (not (has-suffix (basename file) "~")))
+		   (or (has-suffix file strmatch)
 		       (has-prefix file (reject strmatch has-prefix "."))
-		       (has-suffix (basename file) strmatch)
-		       (has-prefix (basename file) (reject strmatch has-prefix "."))
+		       (has-prefix (basename file)
+				   (reject strmatch has-prefix "."))
 		       (exists regex/match rxmatch file)
 		       (exists textmatch patmatch file)
-		       (and (not (has-prefix (basename file) "."))
-			    (not (has-suffix (basename file) "~"))
-			    (or (exists regex/match rxmatch (basename file))
-				(exists textmatch patmatch (basename file))))))))
+		       (not (has-prefix (basename file) "."))
+		       (not (has-suffix (basename file) "~"))))))
 	   (updated {}))
-      (lognotice |S3/push|
-	"Updating " (choice-size copynames) "/" (choice-size filenames)
-	" modified files in " dir)
-      (do-choices-mt (file copynames (config 's3threads 1))
+      (if match
+	  (lognotice |S3/push|
+	    "Syncing " (choice-size copynames) "/" (choice-size filenames)
+	    " matching files in " dir)
+	  (lognotice |S3/push|
+	    "Syncing " (choice-size filenames) " files in " dir))
+      (do-choices-mt (file copynames nthreads)
 	(let* ((info (pick s3info 'name (basename file)))
 	       (loc (try (get info 'loc) (s3/mkpath s3loc (basename file))))
 	       (mimetype (path->mimetype file)))
-	  (if (or (fail? info) forcewrite
-		  (not (= (get info 'size) (file-size file))))
-	      (begin (if (fail? info)
-			 (loginfo |S3/push| "Pushing to " loc)
-			 (loginfo |S3/push| "Updating to " loc
-				  " (" (file-size file) " != "
-				  (get info 'size)")"))
+	  (logdebug |S3/push|
+	    "Syncing " mimetype " " file " to " (s3loc->string loc) ": "
+	    "\n info: " info)
+	  (if (or (fail? info) forcewrite)
+	      (begin (loginfo |S3/push| "Pushing to " loc)
 		(s3/write! loc (filedata file) mimetype headers)
 		(set+! updated loc)
 		(when pause (sleep pause)))
 	      (let ((data (filedata file)))
-		(if (equal? (md5 data) (get info 'hash))
-		    (logdebug "Skipping unchanged " loc)
-		    (begin (loginfo |S3/push| "Updating to " loc "\n\t"
-				    "(" (get info 'hash) " != "  (md5 data) ")")
-		      (s3/write! loc data mimetype headers)
-		      (set+! updated loc)
-		      (when pause (sleep pause))))))))
+		(if (and (= (get info 'size) (file-size file))
+			 (or (not (getopt opts 'testhash #t))
+			     (not (test info 'hash))
+			     (test info 'hash (md5 data))))
+		    (logdebug |S3/push| "Skipping unchanged " loc)
+		    (s3/write! loc data mimetype headers)
+		    (set+! updated loc)
+		    (when pause (sleep pause)))))))
+      (lognotice |S3/push|
+	"Updated " (choice-size updated) "/"
+	(choice-size copynames) "/" (choice-size filenames)
+	" files from " dir "\n to " (s3loc->string s3loc))
       updated)))
 
 (define (dowrite loc data mimetype headers)
