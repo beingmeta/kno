@@ -1,3 +1,12 @@
+framerd (3.8.2-41) unstable; urgency=low
+
+  * Fixed bugs in pick logic, especially for regex predicates
+  * Fixed problem with incoming headers from mod_fdserv being sent back
+    out with results
+  * git patch version framerd-3.8.2-122
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 06 Oct 2015 20:06:35 -0400
+
 framerd (3.8.2-40) unstable; urgency=low
 
   * Many fixes to s3/push!
