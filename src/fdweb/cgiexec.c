@@ -38,7 +38,9 @@ static fdtype http_headers, html_headers, cookiedata_symbol;
 static fdtype outcookies_symbol, incookies_symbol, bad_cookie, text_symbol;
 static fdtype doctype_slotid, xmlpi_slotid, html_attribs_slotid;
 static fdtype body_attribs_slotid, body_classes_slotid, html_classes_slotid;
-static fdtype class_symbol, content_slotid, content_type, cgi_content_type;
+static fdtype class_symbol;
+static fdtype content_slotid, content_type, cgi_content_type;
+static fdtype content_length, incoming_content_length, incoming_content_type;
 static fdtype remote_user_symbol, remote_host_symbol, remote_addr_symbol;
 static fdtype remote_info_symbol, remote_agent_symbol, remote_ident_symbol;
 static fdtype parts_slotid, name_slotid, filename_slotid, mapurlfn_symbol;
@@ -459,6 +461,8 @@ static void add_remote_info(fdtype cgidata);
 FD_EXPORT int fd_parse_cgidata(fdtype data)
 {
   struct FD_SLOTMAP *cgidata=FD_XSLOTMAP(data);
+  fdtype ctype=fd_get(data,content_type,FD_VOID);
+  fdtype clen=fd_get(data,content_length,FD_VOID);
   convert_accept(cgidata,accept_language);
   convert_accept(cgidata,accept_type);
   convert_accept(cgidata,accept_charset);
@@ -469,6 +473,14 @@ FD_EXPORT int fd_parse_cgidata(fdtype data)
   convert_cookie_arg(cgidata);
   get_form_args(cgidata);
   add_remote_info(data);
+  if (!(FD_VOIDP(ctype))) {
+    fd_slotmap_store(cgidata,incoming_content_type,ctype);
+    fd_slotmap_drop(cgidata,content_type,FD_VOID);
+    fd_decref(ctype);}
+  if (!(FD_VOIDP(clen))) {
+    fd_slotmap_store(cgidata,incoming_content_length,clen);
+    fd_slotmap_drop(cgidata,content_length,FD_VOID);
+    fd_decref(clen);}
   {FD_DO_CHOICES(handler,cgi_prepfns) {
     if (FD_APPLICABLEP(handler)) {
       fdtype value=fd_apply(handler,1,&data);
@@ -1268,7 +1280,10 @@ FD_EXPORT void fd_init_cgiexec_c()
 
   content_type=fd_intern("CONTENT-TYPE");
   cgi_content_type=fd_intern("CONTENT_TYPE");
+  incoming_content_type=fd_intern("INCOMING-CONTENT-TYPE");
   content_slotid=fd_intern("CONTENT");
+  content_length=fd_intern("CONTENT-LENGTH");
+  incoming_content_length=fd_intern("INCOMING-CONTENT-LENGTH");
 
   doctype_slotid=fd_intern("DOCTYPE");
   xmlpi_slotid=fd_intern("XMLPI");
