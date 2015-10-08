@@ -2818,7 +2818,7 @@ apache_modules_dir="/usr/lib/apache2/modules"
 apache_conf_dir="/etc/apache2"
 apache_log_dir="/var/log/apache"
 apache_modinfo="/etc/apache2"
-APXS_FLAGS=
+APXSFLAGS=
 A2EN="none"
 standard_module_path=""
 safe_module_path=""
@@ -5302,7 +5302,6 @@ elif test -d /usr/log/http; then
 else echo "Can't find Apache log dir for apache, using ${apache_log_dir}";
 fi;
 
-
 if test ! -z $APXS; then
   apache_conf_dir=`$APXS -q SYSCONFDIR`
   apache_modules_dir=`$APXS -q LIBEXECDIR`
@@ -5312,6 +5311,8 @@ if test ! -z $APXS; then
     apache_modinfo=${apache_conf_dir}/mods_available;
   elif test -d ${apache_conf_dir}.d; then
     apache_modinfo=${apache_conf_dir}.d;
+  elif test -d ${apache_conf_dir}/other; then
+    apache_modinfo=${apache_conf_dir}/other;
   else apache_modinfo=$apache_conf_dir;
   fi;
 else
