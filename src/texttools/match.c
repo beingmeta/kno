@@ -3460,6 +3460,55 @@ static u8_byteoff hashset_not_search
     return try;}
 }
 
+/* Proc matches */
+
+static fdtype applytest_match
+  (fdtype pat,fdtype next,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype cpat=fd_get_arg(pat,1);
+  fdtype proc=fd_get_arg(pat,2);
+  if ((FD_VOIDP(proc)) || (FD_VOIDP(proc)))
+    return fd_err(fd_MatchSyntaxError,"proc_match",NULL,cpat);
+  else if (!(FD_APPLICABLEP(proc)))
+    return fd_type_error(_("applicable"),"proc_match",proc);
+  else {
+    fdtype iresults=fd_text_domatch
+      (cpat,next,env,string,off,lim,(flags&(~FD_MATCH_BE_GREEDY)));
+    fdtype results=FD_EMPTY_CHOICE;
+    {FD_DO_CHOICES(possibility,iresults) {
+        fdtype substring=fd_extract_string
+          (NULL,string+off,string+fd_getint(possibility));
+        fdtype match=fd_apply(proc,1,&substring);
+        if (!((FD_FALSEP(match))||(FD_EMPTY_CHOICEP(match))||(FD_VOIDP(match)))) {
+          fd_incref(possibility); FD_ADD_TO_CHOICE(results,possibility);}
+        fd_decref(substring); fd_decref(match);}}
+    fd_decref(iresults);
+    if (flags&FD_MATCH_BE_GREEDY)
+      return get_longest_match(results);
+    else return results;}
+}
+
+static u8_byteoff applytest_search
+  (fdtype pat,fd_lispenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  fdtype cpat=fd_get_arg(pat,1);
+  fdtype proc=fd_get_arg(pat,2);
+  if ((FD_VOIDP(proc)) || (FD_VOIDP(proc)))
+    return fd_err(fd_MatchSyntaxError,"proc_match",NULL,cpat);
+  else if (!(FD_APPLICABLEP(proc)))
+    return fd_type_error(_("applicable"),"proc_match",proc);
+  else {
+    u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
+    while ((try >= 0) && (try < lim)) {
+      fdtype matches=applytest_match(pat,FD_VOID,env,string,try,lim,flags);
+      if (!(FD_EMPTY_CHOICEP(matches))) {fd_decref(matches); return try;}
+      else try=fd_text_search(cpat,env,string,
+                              forward_char(string,try),lim,flags);}
+    return try;}
+}
+  
 /* MAXLEN matches */
 
 static fdtype maxlen_match
@@ -3802,6 +3851,7 @@ void fd_init_match_c()
     ("EXPANSIVE",match_expansive,search_expansive,extract_expansive);
   fd_add_match_operator
     ("LONGEST",match_longest,search_longest,extract_longest);
+  fd_add_match_operator("APPLYTEST",applytest_match,applytest_search,NULL);
 
   fd_add_match_operator("MATCH-CASE",match_cs,search_cs,extract_cs);
   fd_add_match_operator("MC",match_cs,search_cs,extract_cs);
