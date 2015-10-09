@@ -1961,7 +1961,9 @@ static fdtype allocate_oids(fdtype pool,fdtype howmany)
 static fdtype frame_create_lexpr(int n,fdtype *args)
 {
   fdtype result; int i=(n%2);
-  if (n==1) return fd_new_frame(args[0],FD_VOID,0);
+  if ((n>=1)&&(FD_EMPTY_CHOICEP(args[0])))
+    return FD_EMPTY_CHOICE;
+  else if (n==1) return fd_new_frame(args[0],FD_VOID,0);
   else if (n==2) return fd_new_frame(args[0],args[1],1);
   else if (n%2) {
     if ((FD_SLOTMAPP(args[0]))||(FD_SCHEMAPP(args[0]))||
