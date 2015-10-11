@@ -1,3 +1,11 @@
+framerd (3.8.2-42) unstable; urgency=low
+
+  * Have frame-create (fail) when the first argument (fail)s
+  * Add applytest match operator
+  * git patch version framerd-3.8.2-126
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 09 Oct 2015 13:04:16 +0000
+
 framerd (3.8.2-41) unstable; urgency=low
 
   * Fixed bugs in pick logic, especially for regex predicates
