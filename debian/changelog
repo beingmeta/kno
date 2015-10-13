@@ -1,3 +1,12 @@
+framerd (3.8.2-44) unstable; urgency=low
+
+  * Let gp/mkpath (etc) coerce path elements which are (themselves) gpaths
+    into the element's basename
+  * Add some more utility functions to the opts module
+  * git patch version framerd-3.8.2-132
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 13 Oct 2015 09:44:18 -0400
+
 framerd (3.8.2-43) unstable; urgency=low
 
   * Fixed bugs with composing root gpaths (e.g. loc + /)
