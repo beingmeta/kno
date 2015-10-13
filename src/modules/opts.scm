@@ -3,13 +3,30 @@
 
 (in-module 'opts)
 
-(module-export! '{setopt! setopt+! mergeopts saveopt checkopts
+(module-export! '{opt/set! opt/add! opt/try
+		  mergeopts saveopt checkopts
+		  setopt! setopt+!
 		  printopts})
 
-(defambda (setopt! opts opt val)
+(defambda (opt/set! opts opt val)
   (store! (if (pair? opts) (car opts) opts) opt val))
-(defambda (setopt+! opts opt val)
-  (add! (if (pair? opts) (car opts) opts) opt val))
+(define setopt+ opt/set!)
+(defambda (opt/add! opts opt val (head))
+  (set! head (if (pair? opts) (car opts) opts))
+  (if (test head opt) (add! head opt val)
+      (store! head opt (choice val (getopt opts opt {})))))
+(define setopt+ opt/add!)
+
+(define (opt/try settings optnames)
+  (unless (or (vector? optnames) (pair? optnames))
+    (set! optnames (vector optnames)))
+  (let ((found #f) (val {}))
+    (doseq (optname optnames)
+      (unless found
+	(when (testopt settings optname)
+	  (set! val (getopt settings optname))
+	  (set! found #t))))
+    (tryif found val)))
 
 (defambda (mergeopts . settings)
   (if (null? settings) (fail)
