@@ -36,6 +36,10 @@
 #include <gperftools/heap-profiler.h>
 #endif
 
+#if ((HAVE_SYS_UTSNAME_H)&&(HAVE_UNAME))
+#include <sys/utsname.h>
+#endif
+
 fd_exception fd_ImpreciseTimestamp=_("Timestamp too imprecise");
 fd_exception fd_InvalidTimestamp=_("Invalid timestamp object");
 fd_exception fd_MissingFeature=_("OS doesn't support operation");
@@ -1280,6 +1284,43 @@ static fdtype rusage_prim(fdtype field)
   else return FD_EMPTY_CHOICE;
 }
 
+static int setprop(fdtype result,u8_string field,char *value)
+{
+  if ((value)&&(strcmp(value,"(none)"))) {
+    fdtype slotid=fd_intern(field);
+    u8_string svalue=u8_fromlibc(value);
+    fdtype lvalue=fdstring(svalue);
+    int rv=fd_store(result,slotid,lvalue);
+    fd_decref(lvalue);
+    u8_free(svalue);
+    return rv;}
+  else return 0;
+}
+
+static fdtype uname_prim()
+{
+#if ((HAVE_SYS_UTSNAME_H)&&(HAVE_UNAME))
+  struct utsname sysinfo;
+  int rv=uname(&sysinfo);
+  if (rv==0) {
+    fdtype result=fd_init_slotmap(NULL,0,NULL);
+    setprop(result,"SYSNAME",sysinfo.sysname);
+    setprop(result,"NODENAME",sysinfo.nodename);
+    setprop(result,"RELEASE",sysinfo.release);
+    setprop(result,"VERSION",sysinfo.version);
+    setprop(result,"MACHINE",sysinfo.machine);
+#ifdef _GNU_SOURCE
+    setprop(result,"HOSTNAME",sysinfo.domainname);
+#endif
+    return result;}
+  else {
+    u8_graberr(errno,"uname_prim",NULL);
+    return FD_ERROR_VALUE;}
+#else
+  return fd_init_slotmap(NULL,0,NULL);
+#endif
+}
+
 static fdtype getpid_prim()
 {
   pid_t pid=getpid();
@@ -1947,6 +1988,7 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim0("USERTIME",usertime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("SYSTIME",systime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CPUSAGE",cpusage_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("UNAME",uname_prim,0));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETLOAD",loadavg_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("LOADAVG",loadavgs_prim,0));

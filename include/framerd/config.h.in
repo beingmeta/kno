@@ -149,6 +149,12 @@
 #undef HAVE_REALPATH
 
 /* Define if you have the sleep library function.  */
+#undef HAVE_SYS_UTSNAME_H
+
+/* Define if you have the sleep library function.  */
+#undef HAVE_UNAME
+
+/* Define if you have the sleep library function.  */
 #undef HAVE_SLEEP
 
 /* Define if you have the nanosleep library function.  */
