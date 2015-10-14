@@ -3,7 +3,7 @@
 
 (in-module 'opts)
 
-(module-export! '{opt/set! opt/add! opt/try
+(module-export! '{opt/set! opt/add! opt/cache opt/try
 		  mergeopts saveopt checkopts
 		  setopt! setopt+!
 		  printopts})
@@ -69,6 +69,10 @@
 	     (store! settings opt v))
 	 v)))
 (define saveopt
+  (macro expr
+    `(,_saveopt ,(second expr) ,(third expr)
+		(lambda () ,(fourth expr)))))
+(define opt/cache
   (macro expr
     `(,_saveopt ,(second expr) ,(third expr)
 		(lambda () ,(fourth expr)))))
