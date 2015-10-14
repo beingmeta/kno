@@ -1304,13 +1304,13 @@ static fdtype uname_prim()
   int rv=uname(&sysinfo);
   if (rv==0) {
     fdtype result=fd_init_slotmap(NULL,0,NULL);
-    setprop(result,"SYSNAME",sysinfo.sysname);
+    setprop(result,"OSNAME",sysinfo.sysname);
     setprop(result,"NODENAME",sysinfo.nodename);
     setprop(result,"RELEASE",sysinfo.release);
     setprop(result,"VERSION",sysinfo.version);
     setprop(result,"MACHINE",sysinfo.machine);
-#ifdef _GNU_SOURCE
-    setprop(result,"HOSTNAME",sysinfo.domainname);
+#if HAVE_UNAME_DOMAINNAME
+    setprop(result,"NETNAME",sysinfo.domainname);
 #endif
     return result;}
   else {

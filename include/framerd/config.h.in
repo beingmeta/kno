@@ -148,11 +148,14 @@
 /* Define if you have the realpath function.  */
 #undef HAVE_REALPATH
 
-/* Define if you have the sleep library function.  */
+/* Define if you have the sys/utsname.h header for uname()  */
 #undef HAVE_SYS_UTSNAME_H
 
-/* Define if you have the sleep library function.  */
+/* Define if you have the uname() library function.  */
 #undef HAVE_UNAME
+
+/* Define if the utsname structure has the domainname field*/
+#undef HAVE_UNAME_DOMAINNAME
 
 /* Define if you have the sleep library function.  */
 #undef HAVE_SLEEP
