@@ -1,3 +1,12 @@
+framerd (3.8.2-45) unstable; urgency=low
+
+  * Added (uname) primitive
+  * Added (opt/cache settings op dflt) macro
+  * Added browser module for invoking web browsers
+  * git patch version framerd-3.8.2-139
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 14 Oct 2015 18:01:36 -0400
+
 framerd (3.8.2-44) unstable; urgency=low
 
   * Let gp/mkpath (etc) coerce path elements which are (themselves) gpaths
