@@ -433,9 +433,9 @@ static fdtype exec_prim(int n,fdtype *args)
   return exec_helper("exec_prim",0,n,args);
 }
 
-static fdtype execpath_prim(int n,fdtype *args)
+static fdtype exec_cmd_prim(int n,fdtype *args)
 {
-  return exec_helper("execpath_prim",FD_DO_LOOKUP,n,args);
+  return exec_helper("exec_cmd_prim",FD_DO_LOOKUP,n,args);
 }
 
 static fdtype fdexec_prim(int n,fdtype *args)
@@ -448,25 +448,25 @@ static fdtype fork_prim(int n,fdtype *args)
   return exec_helper("fork_prim",FD_DO_FORK,n,args);
 }
 
-static fdtype forkpath_prim(int n,fdtype *args)
+static fdtype fork_cmd_prim(int n,fdtype *args)
 {
-  return exec_helper("forkpath_prim",(FD_DO_FORK|FD_DO_LOOKUP),n,args);
+  return exec_helper("fork_cmd_prim",(FD_DO_FORK|FD_DO_LOOKUP),n,args);
 }
 
-static fdtype forkwait_prim(int n,fdtype *args)
+static fdtype fork_wait_prim(int n,fdtype *args)
 {
-  return exec_helper("forkwait_prim",(FD_DO_FORK|FD_DO_WAIT),n,args);
+  return exec_helper("fork_wait_prim",(FD_DO_FORK|FD_DO_WAIT),n,args);
 }
 
-static fdtype forklookupwait_prim(int n,fdtype *args)
+static fdtype fork_cmd_wait_prim(int n,fdtype *args)
 {
-  return exec_helper("forklookupwait_prim",
+  return exec_helper("fork_cmd_wait_prim",
                      (FD_DO_FORK|FD_DO_LOOKUP|FD_DO_WAIT),n,args);
 }
 
-static fdtype fdforkwait_prim(int n,fdtype *args)
+static fdtype fdfork_wait_prim(int n,fdtype *args)
 {
-  return exec_helper("fdforkwait_prim",
+  return exec_helper("fdfork_wait_prim",
                      (FD_IS_SCHEME|FD_DO_FORK|FD_DO_WAIT),
                      n,args);
 }
@@ -674,7 +674,7 @@ static fdtype mkpath_prim(fdtype dirname,fdtype name)
 {
   fdtype config_val=FD_VOID; u8_string dir=NULL, namestring=NULL;
   if (!(FD_STRINGP(name)))
-    return fd_type_error(_("string"),"mkuripath_prim",name);
+    return fd_type_error(_("string"),"mkpath_prim",name);
   else namestring=FD_STRDATA(name);
   if (*namestring=='/') return fd_incref(name);
   else if ((FD_STRINGP(dirname))&&(FD_STRLEN(dirname)==0))
@@ -685,9 +685,9 @@ static fdtype mkpath_prim(fdtype dirname,fdtype name)
     if (FD_STRINGP(config_val)) dir=FD_STRDATA(config_val);
     else {
       fd_decref(config_val);
-      return fd_type_error(_("string CONFIG var"),"mkuripath_prim",dirname);}}
+      return fd_type_error(_("string CONFIG var"),"mkpath_prim",dirname);}}
   else return fd_type_error
-         (_("string or string CONFIG var"),"mkuripath_prim",dirname);
+         (_("string or string CONFIG var"),"mkpath_prim",dirname);
   if (FD_VOIDP(config_val))
     return fd_lispstring(u8_mkpath(dir,namestring));
   else {
@@ -2179,15 +2179,15 @@ FD_EXPORT void fd_init_fileio_c()
 
   fd_idefn(fileio_module,fd_make_cprim1("EXIT",exit_prim,0));
   fd_idefn(fileio_module,fd_make_cprimn("EXEC",exec_prim,1));
-  fd_idefn(fileio_module,fd_make_cprimn("EXEC/PATH",execpath_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("EXEC/CMD",exec_cmd_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FORK",fork_prim,1));
-  fd_idefn(fileio_module,fd_make_cprimn("FORK/PATH",forkpath_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FORK/CMD",fork_cmd_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDEXEC",fdexec_prim,1));
   fd_idefn(fileio_module,fd_make_cprimn("FDFORK",fdfork_prim,1));
 #if HAVE_WAITPID
-  fd_idefn(fileio_module,fd_make_cprimn("FORKWAIT",forkwait_prim,1));
-  fd_idefn(fileio_module,fd_make_cprimn("FORKLOOKUPWAIT",forklookupwait_prim,1));
-  fd_idefn(fileio_module,fd_make_cprimn("FDFORKWAIT",fdforkwait_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FORK/WAIT",fork_wait_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FORK/CMD/WAIT",fork_cmd_wait_prim,1));
+  fd_idefn(fileio_module,fd_make_cprimn("FDFORK/WAIT",fdfork_wait_prim,1));
 #endif
 
   fd_idefn(fileio_module,fd_make_cprim1("PID?",ispid_prim,1));
