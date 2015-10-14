@@ -6352,13 +6352,6 @@ _ACEOF
 
 fi
 
-ac_fn_c_check_member "$LINENO" "struct utsname" "domainname" "ac_cv_member_struct_utsname_domainname" "$ac_includes_default"
-if test "x$ac_cv_member_struct_utsname_domainname" = xyes; then :
-  $as_echo "#define HAVE_UNAME_DOMAINNAME 1" >>confdefs.h
-
-fi
-
-
 
 
 

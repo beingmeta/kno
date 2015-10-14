@@ -154,9 +154,6 @@
 /* Define if you have the uname() library function.  */
 #undef HAVE_UNAME
 
-/* Define if the utsname structure has the domainname field*/
-#undef HAVE_UNAME_DOMAINNAME
-
 /* Define if you have the sleep library function.  */
 #undef HAVE_SLEEP
 

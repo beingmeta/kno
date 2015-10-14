@@ -1309,9 +1309,6 @@ static fdtype uname_prim()
     setprop(result,"RELEASE",sysinfo.release);
     setprop(result,"VERSION",sysinfo.version);
     setprop(result,"MACHINE",sysinfo.machine);
-#if HAVE_UNAME_DOMAINNAME
-    setprop(result,"NETNAME",sysinfo.domainname);
-#endif
     return result;}
   else {
     u8_graberr(errno,"uname_prim",NULL);

@@ -635,9 +635,6 @@ AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusag
 	         [#include <sys/resource.h>])
 AC_CHECK_MEMBERS([struct rusage.ru_majflt, struct rusage.ru_nswap],[],[],
 	         [#include <sys/resource.h>])
-AC_CHECK_MEMBER([struct utsname.domainname],
-		[AC_DEFINE(HAVE_UNAME_DOMAINNAME,1)])	
-
 
 dnl Various directory/path configuration options
 
