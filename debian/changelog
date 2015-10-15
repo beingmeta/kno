@@ -1,3 +1,12 @@
+framerd (3.8.2-46) unstable; urgency=low
+
+  * Add 'which' module and use in 'browser' module
+  * Add better error handling to ximage module
+  * Make bugjar listings more useful
+  * git master patch framerd-3.8.2-144
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 15 Oct 2015 13:06:19 -0400
+
 framerd (3.8.2-45) unstable; urgency=low
 
   * Added (uname) primitive
