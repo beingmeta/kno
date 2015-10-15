@@ -3,7 +3,7 @@
 
 (in-module 'ximage)
 
-(use-module '{fdweb texttools imagick gpath aws/s3
+(use-module '{fdweb texttools imagick gpath aws/s3 opts
 	      reflection varconfig logger})
 
 (define-init %loglevel %notice%)
@@ -77,39 +77,44 @@
     "Transforming " (length data) 
     " bytes of imagedata (MD5:" (packet->base16 (md5 data)) ")"
     "\n\t\twith " xform)
-  (if (or (procedure? xform)
-	  (and (table? xform)
-	       (or (getopt xform 'handler)
-		   (procedure? (getopt xform 'handler)))))
-      (let* ((image (packet->imagick data))
-	     (newimage (if (procedure? xform)
-			   (xform image content)
-			   ((getopt xform 'handler) image data xform))))
-	newimage)
-      (if (table? xform)
-	  (let* ((image (packet->imagick data))
-		 (width (try (getopt xform 'width {})
-			     (* (getopt xform 'scalex (getopt xform 'scale {}))
-				(get image 'width))))
-		 (height (or (getopt xform 'height {})
-			     (* (getopt xform 'scaley (getopt xform 'scale {}))
-				(get image 'height))))
-		 (w/h (/~ (get image 'width) (get image 'height)))
-		 (result #f))
-	    (if (or (exists? width) (exists? height))
-		(begin
-		  (when (fail? width) (set! width (* height w/h)))
-		  (when (fail? height) (set! height (* (/ w/h) width)))
-		  (lognotice |XIMAGE/Transform| "Fitting image to " 
-			     (->fix width) "x" (->fix height))
-		  (set! result (imagick/fit (imagick/clone image) 
-					    (->fix width) (->fix height)
-					    'catrom)))
-		(set! result image))
-	    (when (getopt xform 'format)
-	      (set! result (imagick/format result (getopt xform 'format))))
-	    result)
-	  (packet->imagick data))))
+  (let ((image (onerror (packet->imagick data) #f)))
+    (when (not image)
+      (error |IMagick/Failed| "Couldn't generate image from data"))
+    (if (or (procedure? xform)
+	    (and (table? xform)
+		 (or (getopt xform 'handler)
+		     (procedure? (getopt xform 'handler)))))
+	(let* ((newimage (if (procedure? xform)
+			     (xform image content)
+			     ((getopt xform 'handler) image data xform))))
+	  newimage)
+	(if (table? xform)
+	    (standard-xform image xform)
+	    image))))
+
+(define (standard-xform image xform)
+  (let* ((width (getopt xform 'width
+			(* (opt/try xform '(scalex scale))
+			   (get image 'width))))
+	 (height (getopt xform 'height
+			 (* (opt/try xform '(scaley scale))
+			    (get image 'height))))
+	 (w/h (/~ (get image 'width) (get image 'height)))
+	 (result #f))
+    (if (or (exists? width) (exists? height))
+	(begin
+	  (when (fail? width) (set! width (* height w/h)))
+	  (when (fail? height) (set! height (* (/ w/h) width)))
+	  (lognotice |XIMAGE/Transform| "Fitting image to " 
+		     (->fix width) "x" (->fix height))
+	  (set! result (imagick/fit (imagick/clone image) 
+				    (->fix width) (->fix height)
+				    'catrom)))
+	(set! result image))
+    (when (getopt xform 'format)
+      (set! result
+	    (imagick/format result (getopt xform 'format))))
+    result))
 
 (define (ximage/xformname xform)
   (if (string? xform) xform
