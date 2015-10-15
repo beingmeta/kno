@@ -94,9 +94,10 @@
   (let* ((uuid (getopt spec 'uuid (getuuid)))
 	 (saveroot (makelogbase uuid saveroot))
 	 (webroot (and webroot (mkpath webroot (getlogbase uuid))))
-	 (reqdata (try (getopt spec 'reqdata)
-		       (and (req/get 'SCRIPT_FILENAME)
-			    (or (req/get 'reqdata #f) (req/data)))))
+	 (reqdata (or (getopt spec 'reqdata)
+		      (req/get 'bugjar:reqdata #f)
+		      (req/get 'reqdata #f)
+		      (req/data)))
 	 (reqlog (req/getlog))
 	 (head (getopt spec 'head))
 	 (detailsblock #f)
@@ -203,13 +204,16 @@
 		     (set! scan (cddr scan))))))
 	   (if detailsblock (anchor "#DETAILS" "Details")) " "
 	   (if irritantblock (anchor "#IRRITANT" "Irritant")) " "
-	   (anchor "#REQDATA" "Request") " "
+	   (when reqdata (anchor "#REQDATA" "Request")) " "
 	   (anchor "#RESOURCES" "Resources") " "
 	   (anchor "#BACKTRACE" "Backtrace")))
        (div ((class "main"))
 	 (when reqdata
 	   (h2* ((id "REQDATA")) "Request data")
-	   (tableout reqdata #[skipempty #t class "fdjtdata reqdata"]))
+	   (tableout reqdata
+		     #[skipempty #t class "fdjtdata reqdata"
+		       skip parts maxdata 1024
+		       sortfn #t recur 3]))
 	 (doseq (section (reverse sections))
 	   (h2* ((id (second section))) (first section))
 	   (if (and (not (pair? (third section))) (table? (third section)))
@@ -237,15 +241,3 @@
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (gp/mkpath saveroot "backtrace.html")))))
-
-
-
-
-
-
-
-
-
-
-
-
