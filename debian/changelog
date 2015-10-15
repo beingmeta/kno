@@ -1,3 +1,10 @@
+framerd (3.8.2-47) unstable; urgency=low
+
+  * Fixes to new TABLEOUT features, better logging for signatures
+  * git master patch framerd-3.8.2-147
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 15 Oct 2015 16:00:54 -0400
+
 framerd (3.8.2-46) unstable; urgency=low
 
   * Add 'which' module and use in 'browser' module
