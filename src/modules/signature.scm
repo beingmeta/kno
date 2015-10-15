@@ -7,11 +7,17 @@
 (use-module '{varconfig logger})
 (define %used_modules 'varconfig)
 
-(module-export! '{sig/make sig/check sig/check/})
+(module-export! '{sig/make sig/check sig/condense
+		  sig/check/condensed sig/check/})
 
 (define-init %loglevel %notice%)
 (varconfig! sbooks:signature:loglevel %loglevel)
 ;;(set! %loglevel %debug%)
+
+(define pkt->hex packet->base16)
+(define sig/condense packet/condense)
+
+;;;; Making signature text from args
 
 (defambda (makesigtext . args)
   (let ((table (if (odd? (length args)) (deep-copy (car args)) `#[]))
@@ -52,20 +58,38 @@
     (and sig (or (equal? sig (hmac-sha1 text key))
 		 (begin (logwarn |SIG/CHECK/Failed|
 			  " with text " (write text)
+			  " based on " args
 			  "\n\tsigned with " key
-			  "\n\tyielding " (hmac-sha1 text key)
-			  "\n\trather than " sig)
+			  "\n\tyielding " (pkt->hex (hmac-sha1 text key))
+			  "\n\trather than " (pkt->hex sig))
 		   #f)))))
 
-(defambda (sig/check/ sigarg key condense . args)
+(defambda (sig/check/condensed sigarg key condense . args)
   (let* ((text (apply makesigtext args))
 	 (hash (hmac-sha1 text key))
 	 (usesig (if condense (packet/condense hash condense) hash))
 	 (sig (if (string? sigarg) (base16->packet sigarg) sigarg)))
+    (loginfo |SIG/CHECK/CONDENSED|
+      "Using text " (write text)
+      "\n\t based on " args
+      "\n\tsigned with " key
+      "\n\tyielding " (pkt->hex hash)
+      "\n\tand condensed by " condense
+      "\n\tto          " (pkt->hex (packet/condense hash condense))
+      "\n\trather than " (pkt->hex sig))
     (debug%watch "SIG/CHECK/"
       sigarg sig usesig condense hash text args)
     (and sig (or (equal? sig usesig) (equal? sig hash)
-		 (begin (warn%watch (hmac-sha1 text key)
-				    "SIG/CHECK//FAILED" sig key text)
+		 (begin (logwarn |SIG/CHECK/CONDENSED/Failed|
+			  " with text " (write text)
+			  " based on " args
+			  "\n\tsigned with " key
+			  "\n\tyielding " (pkt->hex hash)
+			  "\n\tand condensed by " condense
+			  "\n\tto          " (pkt->hex (packet/condense hash condense))
+			  "\n\trather than " (pkt->hex sig))
 		   #f)))))
+
+(defambda (sig/check/ sigarg key condense . args)
+  (apply sig/check/condensed sigarg key condense args))
 
