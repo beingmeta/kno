@@ -112,10 +112,10 @@
 	(tableout/value e t key recur maxdata maxdatafn)))))
 (define (consout lst t key recur maxdata maxdatafn)
   (xmlblock DL ()
-    (xmblock DT () "CAR")
-    (xmblock DD () (car lst))
-    (xmblock DT () "CDR")
-    (xmblock DD () (cdr lst))))
+    (xmlblock DT () "CAR")
+    (xmlblock DD () (car lst))
+    (xmlblock DT () "CDR")
+    (xmlblock DD () (cdr lst))))
 (define (iplistout lst t key recur maxdata maxdatafn)
   (span ((class "label")) "Improper list of " (length lst) "+1 elements")
   (xmlblock DL ()
@@ -126,11 +126,11 @@
 	  (tableout/value (car scan) t key recur
 			  maxdata maxdatafn))
 	(set! count (1+ count))
-	(set! scan (cdr scan))))
-    (xmlblock "DT" () "TAIL")
-    (xmlblock "DD" ()
-      (tableout/value scan t key recur
-		      maxdata maxdatafn))))
+	(set! scan (cdr scan)))
+      (xmlblock "DT" () "TAIL")
+      (xmlblock "DD" ()
+	(tableout/value scan t key recur
+			maxdata maxdatafn)))))
 
 (define (slotmapout data t key recur maxdata maxdatafn)
   (xmlblock DL ()
