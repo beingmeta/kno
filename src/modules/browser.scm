@@ -3,20 +3,24 @@
 
 (in-module 'browser)
 
-(use-module '{logger varconfig gpath aws/s3})
+(use-module '{logger varconfig gpath which aws/s3})
 
 (define %loglevel %info%)
 
 (module-export! '{browse})
 
 (define browse-commands
-  #["linux" "xdg-open" "osx" "open" "darwin" "open"
-    "bsd" "xdg-open"])
+  #["osx" "open"])
 
 (define browser-command
-  (try (get browse-commands (downcase (get (uname) 'osname))) #f)
+  (try (get browse-commands (downcase (get (uname) 'osname)))
+       (which "sensible-browser" "xdg-open" "gnome-open" "kde-open"
+	      "google-chrome" "firefox"))
   #f)
 (varconfig! browser browser-command)
+
+(define-init browser-wait 2)
+(varconfig! browser:wait browser-wait)
 
 (define (browse loc)
   (if (string? loc) (set! loc (or (->gpath loc) loc)))
@@ -25,6 +29,9 @@
 		     (s3/signeduri loc)
 		     (gpath->uri loc)))))
     (debug%watch "BROWSE" loc url)
-    (if (position #\/ browser-command)
-	(fork/exec browser-command url)
-	(fork/cmd browser-command url))))
+    (let ((pid (if (position #\/ browser-command)
+		   (fork browser-command url)
+		   (fork/cmd browser-command url))))
+      (when browser-wait (sleep browser-wait))
+      (logwarn |BrowserLaunch|
+	"Using " browser-command " with PID " pid))))
