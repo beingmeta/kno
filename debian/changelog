@@ -1,3 +1,13 @@
+framerd (3.8.2-48) unstable; urgency=low
+
+  * Add new TIME+/TIME- definitions/aliases
+  * Handle strings as methods in CURL
+  * Improvements to logging and mergeopts
+  * Don't include delete chars in printed packets
+  * git master patch framerd-3.8.2-155
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 17 Oct 2015 12:59:31 -0400
+
 framerd (3.8.2-47) unstable; urgency=low
 
   * Fixes to new TABLEOUT features, better logging for signatures
