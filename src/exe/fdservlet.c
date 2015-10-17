@@ -59,7 +59,12 @@
 
 #include "main.c"
 
+static u8_condition Startup=_("Startup");
 static u8_condition ServletStartup=_("FDServlet/STARTUP");
+static u8_condition ServletLoop=_("FDServlet/LOOP");
+static u8_condition ServletRestart=_("FDServlet/RESTART");
+static u8_condition ServletConfig=_("FDServlet/CONFIG");
+static u8_condition ServletAbort=_("FDServlet/ABORT");
 static u8_condition ServletFork=_("FDServlet/FORK");
 static u8_condition NoServers=_("No servers configured");
 static u8_condition DeletePID=_("Delete PID");
@@ -1648,8 +1653,7 @@ int main(int argc,char **argv)
   u8_string logfile=NULL;
 
   if (getenv("STDLOG")) {
-    u8_log(LOG_WARN,ServletStartup,
-           "Obeying STDLOG and using stdout/stderr for logging");}
+    u8_log(LOG_WARN,Startup,"Obeying STDLOG and using stdout/stderr for logging");}
   else if (getenv("LOGFILE")) {
     char *envfile=getenv("LOGFILE");
     if ((envfile)&&(envfile[0])&&(strcmp(envfile,"-")))
@@ -1664,11 +1668,11 @@ int main(int argc,char **argv)
     u8_string logname=u8_mkstring("%s.log",base);
     logfile=u8_mkpath(FD_SERVLET_LOG_DIR,logname);
     u8_free(base); u8_free(logname);}
-  else u8_log(LOG_WARN,ServletStartup,"No logfile, using stdout");
+  else u8_log(LOG_WARN,Startup,"No logfile, using stdout");
 
   /* Close and reopen STDIN */
   close(0);  if (open("/dev/null",O_RDONLY) == -1) {
-    u8_log(LOG_CRIT,"fdservlet","Unable to reopen stdin for daemon");
+    u8_log(LOG_CRIT,ServletAbort,"Unable to reopen stdin for daemon");
     exit(1);}
 
   /* We do this using the Unix environment (rather than configuration
@@ -1681,7 +1685,7 @@ int main(int argc,char **argv)
     int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
     int log_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
     if (log_fd<0) {
-      u8_log(LOG_WARN,ServletStartup,"Couldn't open log file %s",logfile);
+      u8_log(LOG_CRIT,ServletAbort,"Couldn't open log file %s",logfile);
       exit(1);}
     dup2(log_fd,1);
     dup2(log_fd,2);}
@@ -1689,7 +1693,7 @@ int main(int argc,char **argv)
   set_exename(argv);
 
   if (u8_version<0) {
-    u8_log(LOG_ERROR,ServletStartup,"Can't initialize LIBU8");
+    u8_log(LOG_CRIT,ServletAbort,"Can't initialize LIBU8");
     exit(1);}
 
   /* Set this here, before processing any configs */
@@ -1722,14 +1726,11 @@ int main(int argc,char **argv)
         unsigned char *arg=argv[i++];
         if (arg==socket_spec) u8_puts(&out," @");
         else {u8_putc(&out,' '); u8_puts(&out,arg);}}
-      u8_log(LOG_WARN,"ServletBoot",
-             "Starting beingmeta fdservlet %s with\n  %s",
+      u8_log(LOG_WARN,Startup,"Starting beingmeta fdservlet %s with\n  %s",
              socket_spec,out.u8_outbuf);
       u8_close((U8_STREAM *)&out);}
-    else u8_log(LOG_WARN,"ServletBoot",
-                "Starting beingmeta fdservlet %s",socket_spec);
-    u8_log(LOG_WARN,"ServerBoot",
-           "Copyright (C) beingmeta 2004-2015, all rights reserved");}
+    else u8_log(LOG_WARN,Startup,"Starting beingmeta fdservlet %s",socket_spec);
+    u8_log(LOG_WARN,Startup,"Copyright (C) beingmeta 2004-2015, all rights reserved");}
 
   if (socket_spec) {
     ports=u8_malloc(sizeof(u8_string)*8);
@@ -1756,7 +1757,7 @@ int main(int argc,char **argv)
   fd_version=fd_init_fdscheme();
 
   if (fd_version<0) {
-    u8_log(LOG_WARN,ServletStartup,"Couldn't initialize FramerD");
+    u8_log(LOG_WARN,ServletAbort,"Couldn't initialize FramerD");
     exit(EXIT_FAILURE);}
 
   atexit(fd_status_message);
@@ -1865,16 +1866,16 @@ int main(int argc,char **argv)
   fd_init_mutex(&log_lock);
 #endif
 
-  u8_log(LOG_NOTICE,"FDServlet/LAUNCH","FDServlet %s",socket_spec);
+  u8_log(LOG_NOTICE,Startup,"FDServlet %s",socket_spec);
 
   /* Process the config statements */
   while (i<argc)
     if (strchr(argv[i],'=')) {
-      u8_log(LOG_NOTICE,"FDServlet/CONFIG","   %s",argv[i]);
+      u8_log(LOG_NOTICE,ServletConfig,"   %s",argv[i]);
       fd_config_assignment(argv[i++]);}
     else i++;
 
-  u8_log(LOG_WARN,"PageNotFound","Handler=%q",default_notfoundpage);
+  u8_log(LOG_NOTICE,"SetPageNotFound","Handler=%q",default_notfoundpage);
   if (!socket_spec) {
     u8_log(LOG_CRIT,"USAGE","fdservlet <socket> [config]*");
     fprintf(stderr,"Usage: fdservlet <socket> [config]*\n");
@@ -1921,7 +1922,7 @@ static int launch_servlet(u8_string socket_spec)
            "Socket file %s already exists!",socket_spec);
     exit(1);}
 
-  u8_log(LOG_DEBUG,ServletStartup,"Updating preloads");
+  u8_log(LOG_DEBUG,Startup,"Updating preloads");
   /* Initial handling of preloads */
   if (update_preloads()<0) {
     /* Error here, rather than repeatedly */
@@ -1988,10 +1989,10 @@ static int launch_servlet(u8_string socket_spec)
   update_preloads();
 
   if (start_servers()<=0) {
-    u8_log(LOG_CRIT,ServletStartup,"Startup failed");
+    u8_log(LOG_CRIT,ServletAbort,"Startup failed");
     exit(1);}
 
-  u8_log(LOG_INFO,NULL,
+  u8_log(LOG_INFO,ServletStartup,
          "FramerD (%s) FDServlet running, %d/%d pools/indices",
          FRAMERD_REVISION,fd_n_pools,
          fd_n_primary_indices+fd_n_secondary_indices);
@@ -2029,7 +2030,7 @@ static int fork_servlet(u8_string socket_spec)
                "Fork failed for %s",socket_spec);
         exit(1);}
       else {
-        u8_log(LOG_NOTICE,"FDSERVLET/fork_servlet",
+        u8_log(LOG_NOTICE,ServletFork,
                "Running server %s has PID %d",socket_spec,child);
         return sustain_servlet(child,socket_spec);}}
     else return launch_servlet(socket_spec);}
@@ -2058,16 +2059,16 @@ static int fork_servlet(u8_string socket_spec)
     /* If the parent has exited, we wait around for the pid_file to be created
        by our grandchild. */
     if (!(pidwait))
-      u8_log(LOG_WARN,ServletStartup,"Not waiting for PID file %s",pid_file);
+      u8_log(LOG_WARN,Startup,"Not waiting for PID file %s",pid_file);
     else while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
       if ((count%10)==0)
-        u8_log(LOG_WARN,ServletStartup,"Waiting for PID file %s",pid_file);
+        u8_log(LOG_WARN,Startup,"Waiting for PID file %s",pid_file);
       count--; sleep(1);}
     done=u8_elapsed_time();
     if (u8_file_existsp(pid_file))
-      u8_log(LOG_NOTICE,"fdservlet","Servlet %s launched in %02fs",
+      u8_log(LOG_NOTICE,Startup,"Servlet %s launched in %02fs",
              socket_spec,done-start);
-    else u8_log(LOG_CRIT,"fdservlet",
+    else u8_log(LOG_CRIT,ServletAbort,
                 "Servlet %s hasn't launched after %02fs",
                 socket_spec,done-start);
     exit(0);}
@@ -2152,20 +2153,20 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
   while ((sustaining)&&(waitpid(grandchild,&status,0))) {
     time_t now=time(NULL);
     if (WIFSIGNALED(status))
-      u8_log(LOG_WARN,"FDServlet/restart",
+      u8_log(LOG_WARN,ServletRestart,
              "Servlet %s(%d) terminated on signal %d",
              socket_spec,grandchild,WTERMSIG(status));
     else if (WIFEXITED(status))
-      u8_log(LOG_NOTICE,"FDServlet/restart",
+      u8_log(LOG_NOTICE,ServletRestart,
              "Servlet %s(%d) terminated normally with status %d",
              socket_spec,grandchild,status);
     else continue;
     if (dependent<0) {
-      u8_log(LOG_WARN,"FDServlet/done",
+      u8_log(LOG_WARN,ServletAbort,
              "Terminating restart process for %s",socket_spec);
       exit(0);}
     if ((now-last_launch)<fastfail_threshold) {
-      u8_log(LOG_CRIT,"FDServlet/sustain",
+      u8_log(LOG_CRIT,ServletLoop,
              "FDServlet %s fast-failed after %d seconds, pausing %d seconds",
              socket_spec,now-last_launch,fastfail_wait);
       sleep(fastfail_wait);}
@@ -2173,7 +2174,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
     else {}
     last_launch=time(NULL);
     if ((grandchild=fork())) {
-      u8_log(LOG_NOTICE,"FDServlet/restart",
+      u8_log(LOG_NOTICE,ServletRestart,
              "Servlet %s restarted with pid %d",
              socket_spec,grandchild);
       dependent=grandchild;

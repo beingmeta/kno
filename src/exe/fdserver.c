@@ -56,8 +56,15 @@ static int debug_maxelts=32, debug_maxchars=80;
 static fd_exception BadPortSpec=_("Bad port spec");
 static fd_exception BadRequest=_("Bad client request");
 static u8_condition NoServers=_("NoServers");
-static u8_condition ServerStartup=_("ServerStart");
-static u8_condition ServerShutdown=_("ServerShutdown");
+static u8_condition Startup=_("Startup");
+static u8_condition ServerFork=_("FDServer/FORK");
+static u8_condition ServerAbort=_("FDServer/ABORT");
+static u8_condition ServerSignal=_("FDServer/SIGNAL");
+static u8_condition ServerRestart=_("FDServer/RESTART");
+static u8_condition ServerConfig=_("FDServer/CONFIG");
+static u8_condition ServerLoop=_("FDServer/LOOP");
+static u8_condition ServerStartup=_("FDServer/STARTUP");
+static u8_condition ServerShutdown=_("FDServer/SHUTDOWN");
 
 static u8_condition Incoming=_("Incoming"), Outgoing=_("Outgoing");
 
@@ -117,7 +124,7 @@ static void kill_dependent_onsignal(int sig){
   pid_t dep=dependent; dependent=-1;
   sustaining=0;
   if (dep>0)
-    u8_log(LOG_WARN,"FDServer/signal",
+    u8_log(LOG_WARN,ServerSignal,
            "FDServer controller %d got signal %d, passing to %d",
            getpid(),sig,dep);
   if (dep>0) kill(dep,sig);
@@ -135,20 +142,20 @@ static int set_logfile(u8_string logfile,int exitonfail)
 {
   int logsync=((getenv("LOGSYNC")==NULL)?(0):(O_SYNC));
   if (!(logfile)) {
-    u8_log(LOG_WARN,"FDServer/Config","Can't specify NULL log file");
+    u8_log(LOG_WARN,ServerConfig,"Can't specify NULL log file");
     if (exitonfail) exit(1);
     u8_seterr(LogFileError,"set_logfile",u8_strdup("Can't set NULL log file"));
     return -1;}
   int new_fd=open(logfile,O_RDWR|O_APPEND|O_CREAT|logsync,0644);
   if (new_fd<0) {
-    u8_log(LOG_WARN,"FDServer/Config","Couldn't open log file %s",logfile);
+    u8_log(LOG_WARN,ServerConfig,"Couldn't open log file %s",logfile);
     if (exitonfail) exit(1);
     u8_seterr(LogFileError,"set_logfile",u8_strdup(logfile));
     return -1;}
   else if ((log_filename)&&((strcmp(logfile,log_filename))!=0))
-    u8_log(LOG_WARN,"FDServer/Config","Changing log file to %s from %s",
+    u8_log(LOG_WARN,ServerConfig,"Changing log file to %s from %s",
            logfile,log_filename);
-  else u8_log(LOG_WARN,"FDServer/Config","Using log file %s",logfile);
+  else u8_log(LOG_WARN,ServerConfig,"Using log file %s",logfile);
   dup2(new_fd,1);
   dup2(new_fd,2);
   if (log_fd>=0) close(log_fd);
@@ -259,12 +266,12 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
                  ((s[0]=='N')||(s[0]=='n'))?(0):
                  (-1));
       if (guess<0) {
-        u8_log(LOG_WARN,"SERVERFLAG","Unknown boolean setting %s",s);
+        u8_log(LOG_WARN,ServerConfig,"Unknown boolean setting %s for %q",s,var);
         fd_unlock_mutex(&init_server_lock);
         return fd_reterr(fd_TypeError,"setserverflag","boolean value",val);}
-      else u8_log(LOG_WARN,"SERVERFLAG",
-                  "Unfamiliar boolean setting %s, assuming %s",
-                  s,((guess)?("true"):("false")));
+      else u8_log(LOG_WARN,ServerConfig,
+                  "Unfamiliar boolean setting %s for %q, assuming %s",
+                  s,var,((guess)?("true"):("false")));
       if (!(guess<0)) bool=guess;}
     if (bool) *flagsp=flags|mask;
     else *flagsp=flags&(~(mask));}
@@ -799,12 +806,12 @@ int main(int argc,char **argv)
 
   /* Close and reopen STDIN */
   close(0);  if (open("/dev/null",O_RDONLY) == -1) {
-    u8_log(LOG_CRIT,"FDServer/startup","Unable to reopen stdin for daemon");
+    u8_log(LOG_CRIT,ServerAbort,"Unable to reopen stdin for daemon");
     exit(1);}
   /* We handle stderr and stdout below */
 
   if (u8_version<0) {
-    u8_log(LOG_ERROR,"FDServer/startup","Can't initialize LIBU8");
+    u8_log(LOG_CRIT,ServerAbort,"Can't initialize LIBU8");
     exit(1);}
   /* Record the startup time for UPTIME */
   else u8_now(&boot_time);
@@ -830,7 +837,7 @@ int main(int argc,char **argv)
   fddb_loglevel=LOG_INFO;
 
   if (getenv("STDLOG")) {
-    u8_log(LOG_WARN,"FDServer/startup",
+    u8_log(LOG_WARN,Startup,
            "Obeying STDLOG and using stdout/stderr for logging");}
   else if ((!(log_filename))&&(getenv("LOGFILE")))
     set_logfile(getenv("LOGFILE"),1);
@@ -849,13 +856,11 @@ int main(int argc,char **argv)
         unsigned char *arg=argv[i++];
         if (arg==server_spec) u8_puts(&out," @");
         else {u8_putc(&out,' '); u8_puts(&out,arg);}}
-      u8_log(LOG_WARN,"ServerBoot",
-             "Starting beingmeta fdserver %s with:\n  %s",
+      u8_log(LOG_WARN,Startup,"Starting beingmeta fdserver %s with:\n  %s",
              server_spec,out.u8_outbuf);
       u8_close((U8_STREAM *)&out);}
-    else u8_log(LOG_WARN,"ServerBoot",
-                "Starting beingmeta fdserver %s",server_spec);
-    u8_log(LOG_WARN,"ServerBoot",
+    else u8_log(LOG_WARN,Startup,"Starting beingmeta fdserver %s",server_spec);
+    u8_log(LOG_WARN,Startup,
            "Copyright (C) beingmeta 2004-2015, all rights reserved");}
 
   fd_version=fd_init_fdscheme();
@@ -905,7 +910,7 @@ int main(int argc,char **argv)
     set_logfile(logfile,1);
     u8_free(base); u8_free(logname);}
   else {
-    u8_log(LOG_WARN,ServerStartup,"No logfile, using stdout");}
+    u8_log(LOG_WARN,Startup,"No logfile, using stdout");}
 
 
   /* Get the core environment */
@@ -1064,10 +1069,10 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
        restart automatically.  */
     if ((child=fork())) {
       if (child<0) {
-        u8_log(LOG_CRIT,"fork_server","Fork failed for %s",server_spec);
+        u8_log(LOG_CRIT,ServerFork,"Fork failed for %s",server_spec);
         exit(1);}
       else {
-        u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
+        u8_log(LOG_NOTICE,ServerFork,"Running server %s has PID %d",
                server_spec,child);
         return sustain_server(child,server_spec,env);}}
     else return launch_server(server_spec,env);}
@@ -1076,34 +1081,34 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
        waits until the .pid file has been written. */
     int count=60; double done; int status=0;
     if (child<0) {
-      u8_log(LOG_CRIT,"fork_server","Fork failed for %s\n",server_spec);
+      u8_log(LOG_CRIT,ServerFork,"Fork failed for %s\n",server_spec);
       exit(1);}
-    else u8_log(LOG_WARN,"fork_server","Initial fork spawned pid %d from %d",
+    else u8_log(LOG_WARN,ServerFork,"Initial fork spawned pid %d from %d",
                 child,getpid());
 #if HAVE_WAITPID
     if (waitpid(child,&status,0)<0) {
-      u8_log(LOG_CRIT,ServerStartup,"Fork wait failed");
+      u8_log(LOG_CRIT,ServerFork,"Fork wait failed");
       exit(1);}
     if (!(WIFEXITED(status))) {
-      u8_log(LOG_CRIT,ServerStartup,"First fork failed to finish");
+      u8_log(LOG_CRIT,ServerFork,"First fork failed to finish");
       exit(1);}
     else if (WEXITSTATUS(status)!=0) {
-      u8_log(LOG_CRIT,ServerStartup,"First fork return non-zero status");
+      u8_log(LOG_CRIT,ServerFork,"First fork return non-zero status");
       exit(1);}
 #endif
     /* If the parent has exited, we wait around for the pid_file to be created
        by our grandchild. */
     if (!(pidwait))
-      u8_log(LOG_WARN,ServerStartup,"Not waiting for PID file %s",pid_file);
+      u8_log(LOG_WARN,Startup,"Not waiting for PID file %s",pid_file);
     else while ((count>0)&&(!(u8_file_existsp(pid_file)))) {
       if ((count%10)==0)
-        u8_log(LOG_WARN,ServerStartup,"Waiting for PID file %s",pid_file);
+        u8_log(LOG_WARN,Startup,"Waiting for PID file %s",pid_file);
       count--; sleep(1);}
     done=u8_elapsed_time();
     if (u8_file_existsp(pid_file))
-      u8_log(LOG_NOTICE,"fdserver","Server %s launched in %02fs",
+      u8_log(LOG_NOTICE,Startup,"Server %s launched in %02fs",
              server_spec,done-start);
-    else u8_log(LOG_CRIT,"fdserver",
+    else u8_log(LOG_CRIT,ServerAbort,
                 "Server %s hasn't launched after %02fs",
                 server_spec,done-start);
     exit(0);}
@@ -1111,24 +1116,24 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
     /* If we get here, we're the parent, and we start by trying to
        become session leader */
     if (setsid()==-1) {
-      u8_log(LOG_CRIT,"fork_server",
+      u8_log(LOG_CRIT,ServerAbort,
              "Process %d failed to become session leader for %s (%s)",
              getpid(),server_spec,strerror(errno));
       errno=0;
       exit(1);}
-    else u8_log(LOG_INFO,"fork_server",
+    else u8_log(LOG_INFO,ServerFork,
                 "Process %d become session leader for %s",getpid(),server_spec);
     /* Now we fork again.  In the normal case, this fork (the grandchild) is
        the actual server.  If we're auto-restarting, this fork is the one which
        does the restarting. */
     if ((grandchild=fork())) {
       if (grandchild<0) {
-        u8_log(LOG_CRIT,"fork_server","Second fork failed for %s",server_spec);
+        u8_log(LOG_CRIT,ServerAbort,"Second fork failed for %s",server_spec);
         exit(1);}
       else if (daemonize>0)
-        u8_log(LOG_NOTICE,"fork_server","Restart monitor for %s has PID %d",
+        u8_log(LOG_NOTICE,ServerFork,"Restart monitor for %s has PID %d",
                server_spec,grandchild);
-      else u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
+      else u8_log(LOG_NOTICE,ServerFork,"Running server %s has PID %d",
                   server_spec,grandchild);
       /* This is the parent, which always exits */
       exit(0);}
@@ -1136,9 +1141,9 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
       pid_t worker;
       if ((worker=fork())) {
         if (worker<0)
-          u8_log(LOG_CRIT,"fork_server","Worker fork failed for %s",server_spec);
+          u8_log(LOG_CRIT,ServerAbort,"Worker fork failed for %s",server_spec);
         else {
-          u8_log(LOG_NOTICE,"fork_server","Running server %s has PID %d",
+          u8_log(LOG_NOTICE,ServerFork,"Running server %s has PID %d",
                  server_spec,worker);
           return sustain_server(worker,server_spec,env);}}
       else return launch_server(server_spec,env);}
@@ -1170,8 +1175,7 @@ static int sustain_server(pid_t grandchild,
   dependent=grandchild;
   /* Setup atexit and signal handlers to kill our dependent when we're
      gone. */
-  u8_log(LOG_WARN,"FDServer/sustain",
-         "Monitoring %s pid=%d",server_spec,grandchild);
+  u8_log(LOG_WARN,ServerLoop,"Monitoring %s pid=%d",server_spec,grandchild);
   atexit(kill_dependent_onexit);
 #ifdef SIGHUP
   signal(SIGHUP,SIG_IGN);
@@ -1185,20 +1189,20 @@ static int sustain_server(pid_t grandchild,
   while ((sustaining)&&(waitpid(grandchild,&status,0))) {
     time_t now=time(NULL);
     if (WIFSIGNALED(status))
-      u8_log(LOG_WARN,"FDServer/restart",
+      u8_log(LOG_WARN,ServerRestart,
              "Server %s(%d) terminated on signal %d",
              server_spec,grandchild,WTERMSIG(status));
     else if (WIFEXITED(status))
-      u8_log(LOG_NOTICE,"FDServer/restart",
+      u8_log(LOG_NOTICE,ServerRestart,
              "Server %s(%d) terminated normally with status %d",
              server_spec,grandchild,status);
     else continue;
     if (dependent<0) {
-      u8_log(LOG_WARN,"FDServer/done",
+      u8_log(LOG_WARN,ServerAbort,
              "Terminating restart process for %s",server_spec);
       exit(0);}
     if ((now-last_launch)<fastfail_threshold) {
-      u8_log(LOG_CRIT,"FDServer/sustain",
+      u8_log(LOG_CRIT,ServerLoop,
              "FDServer %s fast-failed after %d seconds, pausing %d seconds",
              server_spec,now-last_launch,fastfail_wait);
       sleep(fastfail_wait);}
@@ -1206,7 +1210,7 @@ static int sustain_server(pid_t grandchild,
     else {}
     last_launch=time(NULL);
     if ((grandchild=fork())) {
-      u8_log(LOG_NOTICE,"FDServer/restart",
+      u8_log(LOG_NOTICE,ServerRestart,
              "Server %s restarted with pid %d",
              server_spec,grandchild);
       dependent=grandchild;
@@ -1299,7 +1303,7 @@ static int run_server(u8_string server_spec)
     return -1;}
   write_state_files();
   u8_message("beingmeta FramerD, (C) beingmeta 2004-2015, all rights reserved");
-  u8_log(LOG_NOTICE,NULL,
+  u8_log(LOG_NOTICE,ServerStartup,
          "FramerD (%s) fdserver %s running, %d/%d pools/indices, %d ports",
          FRAMERD_REVISION,server_spec,fd_n_pools,
          fd_n_primary_indices+fd_n_secondary_indices,n_ports);
@@ -1332,10 +1336,10 @@ static void write_state_files()
            pid_file);
     if (dtype_server.n_servers) {
       int i=0; while (i<dtype_server.n_servers) {
-        u8_log(LOG_NOTICE,ServerStartup,"%s\n",
+        u8_log(LOG_NOTICE,Startup,"%s\n",
                dtype_server.server_info[i].idstring);
         i++;}}
-    else u8_log(LOG_NOTICE,ServerStartup,"temp.socket\n");
+    else u8_log(LOG_NOTICE,Startup,"temp.socket\n");
     errno=0;}
   atexit(cleanup_state_files);
 }
