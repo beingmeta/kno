@@ -30,11 +30,16 @@
 
 (defambda (mergeopts . settings)
   (if (null? settings) (fail)
-      (if (or (fail? (car settings)) (not (car settings)))
+      (if (or (fail? (car settings)) (not (car settings))
+	      (null? (car settings)))
 	  (apply mergeopts (cdr settings))
 	  (if (ambiguous? (car settings))
-	      (for-choices (s (car settings))
-		(apply mergeopts s (cdr settings)))
+	      (let ((result #f))
+		(do-choices (s (car settings))
+		  (set! result 
+			(if result (mergeopts s result)
+			    (apply mergeopts s (cdr settings)))))
+		result)
 	      (if (pair? (car settings))
 		  (if (null? (car settings))
 		      (try (cons (car (car settings))
@@ -49,7 +54,7 @@
 				 (apply mergeopts (cdr settings)))
 			   (car settings))
 		      (if (symbol? (car settings))
-			  (cons `#[,(car settings) ,(car settings)]
+			  (cons `#[,(car settings) ,(cdr settings)]
 				(apply mergeopts (cdr settings)))
 			  (apply mergeopts (cdr settings)))))))))
 
