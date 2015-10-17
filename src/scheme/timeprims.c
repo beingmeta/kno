@@ -1959,8 +1959,8 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("TIME<?",timestamp_lesser,1));
   fd_defalias(fd_scheme_module,"TIME-EARLIER?","TIME<?");
   fd_defalias(fd_scheme_module,"TIME-LATER?","TIME>?");
-  fd_defalias(fd_scheme_module,"TIMESTAMP+","TIME+");
-  fd_defalias(fd_scheme_module,"TIMESTAMP-","TIME-");
+  fd_defalias(fd_scheme_module,"TIME+","TIMESTAMP+");
+  fd_defalias(fd_scheme_module,"TIME-","TIMESTAMP-");
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIME-UNTIL",time_until,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIME-SINCE",time_since,1));
 
