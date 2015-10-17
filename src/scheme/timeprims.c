@@ -230,7 +230,7 @@ static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
     return NULL;}
 }
 
-static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
+static fdtype timestamp_plus_helper(fdtype arg1,fdtype arg2,int neg)
 {
   double delta; int free_old=0;
   struct U8_XTIME tmp, *btime;
@@ -249,6 +249,7 @@ static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
     oldtm=get_timestamp(arg1,&free_old);
     btime=&(oldtm->xtime);}
   else return fd_type_error("number","timestamp_plus",arg2);
+  if (neg) delta=-delta;
   /* Init the cons bit field */
   FD_INIT_CONS(newtm,fd_timestamp_type);
   /* Copy the data */
@@ -256,6 +257,16 @@ static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
   u8_xtime_plus(&(newtm->xtime),delta);
   if (free_old) u8_free(oldtm);
   return FDTYPE_CONS(newtm);
+}
+
+static fdtype timestamp_plus(fdtype arg1,fdtype arg2)
+{
+  return timestamp_plus_helper(arg1,arg2,0);
+}
+
+static fdtype timestamp_minus(fdtype arg1,fdtype arg2)
+{
+  return timestamp_plus_helper(arg1,arg2,1);
 }
 
 static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
@@ -1942,11 +1953,14 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim3("MODTIME",modtime_prim,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("TIMESTAMP+",timestamp_plus,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("TIMESTAMP-",timestamp_minus,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("DIFFTIME",timestamp_diff,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("TIME>?",timestamp_greater,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("TIME<?",timestamp_lesser,1));
   fd_defalias(fd_scheme_module,"TIME-EARLIER?","TIME<?");
   fd_defalias(fd_scheme_module,"TIME-LATER?","TIME>?");
+  fd_defalias(fd_scheme_module,"TIMESTAMP+","TIME+");
+  fd_defalias(fd_scheme_module,"TIMESTAMP-","TIME-");
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIME-UNTIL",time_until,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIME-SINCE",time_since,1));
 

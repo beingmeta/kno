@@ -397,6 +397,8 @@ static fdtype set_curlopt
   else if (FD_EQ(opt,method_symbol))
     if (FD_SYMBOLP(val))
       curl_easy_setopt(ch->handle,CURLOPT_CUSTOMREQUEST,FD_SYMBOL_NAME(val));
+    else if (FD_STRINGP(val))
+      curl_easy_setopt(ch->handle,CURLOPT_CUSTOMREQUEST,FD_STRDATA(val));
     else return fd_type_error("symbol/method","set_curlopt",val);
   else if (FD_EQ(opt,verbose_symbol)) {
     if ((FD_FALSEP(val))||(FD_EMPTY_CHOICEP(val)))
