@@ -217,7 +217,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
       if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
         u8_putc(out,' '); output_ellipsis(out,len-i,"bytes");
         return u8_putc(out,'"');}
-      if ((byte>=0x80) || (byte<0x20) ||
+      if ((byte>=0x7f) || (byte<0x20) ||
           (byte == '\\') || (byte == '"')) {
         sprintf(buf,"\\%02x",byte);
         u8_puts(out,buf);}
