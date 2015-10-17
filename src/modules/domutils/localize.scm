@@ -296,13 +296,15 @@
 			      options)))
 	    (set! ref (localref (get node 'href) urlmap base
 				(qc saveto) read options))
-	    (loginfo |Localize|
-		     "Localized stylesheet " (write href) " to " (write ref)
-		     " for " (dom/sig node #t))))
-	(when (and (exists? ref) ref)
+	    (unless (equal? href ref)
+	      (loginfo |Localize|
+		"Localized stylesheet " (write href) " to " (write ref)
+		" for " (dom/sig node #t)))))
+	(when (and (exists? ref) ref (not (equal? href ref)))
 	  (when saveslot (dom/set! node saveslot href))
-	  (dom/set! node 'href ref))
-	(logdebug |Localize/css| "New converted node: \n"  (pprint node))))
+	  (dom/set! node 'href ref)
+	  (logdebug |Localize/css|
+	    "New converted node: \n" (pprint node)))))
     (let ((hrefs (dom/select->list dom "[href]")) (anchors '()) (others '()))
       (dolist (node hrefs)
 	(if (or (and doanchors (test node '%xmltag 'a))
