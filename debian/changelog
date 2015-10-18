@@ -1,3 +1,12 @@
+framerd (3.8.2-49) unstable; urgency=low
+
+  * Fixes to etag/hash comparison in aws/s3
+  * Remove mergeheads (into hgroup) in domutils/cleanup
+  * Add some bookhub default XMLNS definitions
+  * FramerD point release framerd-3.8.2-159
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 18 Oct 2015 17:59:38 -0400
+
 framerd (3.8.2-48) unstable; urgency=low
 
   * Add new TIME+/TIME- definitions/aliases
