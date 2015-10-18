@@ -1,9 +1,17 @@
+framerd (3.8.2-50) unstable; urgency=low
+
+  * Fixes to S3 hash conversion and comparison
+  * Store x-amz-meta-md5 header with s3push
+  * git master patch version framerd-3.8.2-160
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 18 Oct 2015 19:09:49 -0400
+
 framerd (3.8.2-49) unstable; urgency=low
 
   * Fixes to etag/hash comparison in aws/s3
   * Remove mergeheads (into hgroup) in domutils/cleanup
   * Add some bookhub default XMLNS definitions
-  * FramerD point release framerd-3.8.2-159
+  * git master patch version framerd-3.8.2-159
 
  -- Ken Haase <kh@beingmeta.com>  Sun, 18 Oct 2015 17:59:38 -0400
 

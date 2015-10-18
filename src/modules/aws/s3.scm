@@ -627,10 +627,13 @@
   (get (s3loc/head loc) 'content-type))
 (define s3/ctype s3loc/ctype)
 
+(define etag-pat #((bos) {"" "\"" "&quot;"} (label hash (isxdigit+))))
+
 (define (s3loc/info loc (headers) (text #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
   (let ((req (s3/head loc headers)))
+    (debug%watch "S3LOC/INFO" loc req)
     (and (response/ok? req)
 	 (frame-create #f
 	   'path (s3loc/s3uri loc)
@@ -642,7 +645,8 @@
 	   'modified (try (get req 'last-modified) (timestamp))
 	   'etag (try (get req 'etag) 
 		      (packet->base16 (md5 (get req '%content))))
-	   'hash (try (base16->packet (get req 'etag))
+	   'hash (try (base16->packet (get req 'x-amz-meta-md5))
+		      (base16->packet (get (text->frames etag-pat (get req 'etag)) 'hash))
 		      (md5 (get req '%content)))))))
 (define s3/info s3loc/info)
 
@@ -830,8 +834,9 @@
 	  size ,(string->number (get elt 'size))
 	  modified ,(timestamp (get elt 'lastmodified))
 	  etag ,(slice (decode-entities (get elt 'etag)) 1 -1)
-	  hash ,(base16->packet
-		 (slice (decode-entities (get elt 'etag)) 1 -1))])
+	  hash ,(try (base16->packet (get req 'x-amz-meta-md5))
+		     (base16->packet
+		      (get (text->frames etag-pat (get elt 'etag)) 'hash)))])
      (tryif next (s3/list+ loc headers opts next)))))
 (module-export! 's3/list+)
 
@@ -957,21 +962,24 @@
 	    "Syncing " mimetype " " (write file) " to " (s3loc->string loc) ": "
 	    "\n info: " info)
 	  (if (or (fail? info) forcewrite)
-	      (begin (loginfo |S3/push| "Pushing to " loc)
-		(s3/write! loc (filedata file) (try mimetype "text")
-			   headers)
+	      (let ((data (filedata file)))
+		(loginfo |S3/push| "Pushing to " loc)
+		(s3/write! loc data (try mimetype "application")
+			   (cons* (cons "x-amz-meta-md5" (packet->base16 (md5 data)))
+				  headers))
 		(set+! updated loc)
 		(when pause (sleep pause)))
 	      (let ((data (filedata file)))
 		(if (and (= (get info 'size) (file-size file))
 			 (or (not (getopt opts 'testhash #t))
 			     (not (test info '{hash etag md5}))
-			     (overlaps? (downcase {(pickstrings (get info '{hash etag md5}))
-						   (packet->base16 (pick (get info '{hash etag md5}) packet?))})
-					(downcase (packet->base16 (md5 data))))))
+			     (overlaps? (stdhash (get info '{hash etag md5}))
+					(stdhash (md5 data)))))
 		    (logdebug |S3/push| "Skipping unchanged " loc)
 		    (begin (loginfo |S3/push| "Pushing to " loc)
-		      (s3/write! loc data mimetype headers)
+		      (s3/write! loc data mimetype
+				 (cons (cons "x-amz-meta-md5" (packet->base16 (md5 data)))
+				       headers))
 		      (set+! updated loc)
 		      (when pause (sleep pause))))))))
       (if (fail? updated)
@@ -984,6 +992,14 @@
 	    (when match (printout "/" (choice-size filenames) " matching"))
 	    " files to " (s3loc->string s3loc)))
       updated)))
+
+(define (stdhash x)
+  (try
+   (if (packet? x) (downcase (packet->base16 x))
+       (if (string? x)
+	   (downcase (get (text->frames etag-pat x) 'hash)) 
+	   (fail)))
+   #f))
 
 (define (dowrite loc data mimetype headers)
   (logdebug |S3/writing| "Writing " (length data) " "
