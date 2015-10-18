@@ -94,7 +94,9 @@
 		      (fd . "http://framerd.org/")
 		      (kno . "http://knodules.org/")
 		      (bm . "http://beingmeta.com/")
-		      (beingmeta . "http://beingmeta.com/")})
+		      (beingmeta . "http://beingmeta.com/")
+		      (bookhub . "http://bookhub.io/")
+		      (pubtool . "http://beingmeta.com/pubtool/")})
     (choice def (cons (cdr def) (car def)))))
 (config-def! 'stdschemas
 	     (lambda (name (val))
