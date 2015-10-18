@@ -13,9 +13,7 @@
 		  dom/smartquote!})
 
 (module-export!
- '{dom/mergeheads/subst
-   dom/mergeheads
-   dom/mergebreaks/subst
+ '{dom/mergebreaks/subst
    dom/mergebreaks
    dom/mergenbsp/subst
    dom/mergenbsp
@@ -114,63 +112,6 @@
 				  (begin (set! state (dom/smartquote! elt state))
 				    elt))))))))
   state)
-
-;;; Merging heads
-
-(define (wrap core prefix suffix) (string-append prefix core suffix))
-
-(define (mergeheadrunrule head level)
-  `(ic (subst (GREEDY #("<" ,head (not> ">") ">" (not> "</") "</" ,head ">"
-			(+ #((spaces)
-			     "<" ,head (not> ">") ">"
-			     (not> "</") "</" ,head ">"))))
-	      ,wrap
-	      ,(stringout
-		 "<div class='sbookterminal sbookid sbook"level"head'>\n")
-	      "\n</div>\n")))
-(define dom/mergeheadruns/subst
-  '(subst  (greedy (+ #("<" {"H" "h"} (isdigit)
-			(not> "</" {"H" "h"} (isdigit))
-			"</" {"H" "h"} (isdigit) ">" (spaces))))
-	  ,wrap "\n<hgroup>\n" "\n</hgroup>\n"))
-
-(define heads '{h1 h2 h3 h4 h5 h6 h7 h8 h9})
-
-(define (mergeheads content (output '()) (wrapper #[%XMLTAG HGROUP]))
-  (if (null? content) (reverse output)
-      (if (string? (car content))
-	  (mergeheads (cdr content) (cons (car content) output))
-	  (if (test (car content) '%xmltag heads)
-	      (do ((headtag (get (car content) '%xmltag))
-		   (scan (cdr content) (cdr scan))
-		   (hgroup (list (car content))  (cons (car scan) hgroup))
-		   (headcount 1 (if (string? (car scan)) headcount (1+ headcount))))
-		  ((or (null? scan)
-		       (not (if (string? (car scan))
-				(empty-string? (car scan))
-				(test (car scan) '%xmltag headtag))))
-		   (when (and (> headcount 1)
-			      (string? (car hgroup)) (empty-string? (car hgroup)))
-		     (set! hgroup (cons "\n" (cdr hgroup))))
-		   (if (> headcount 1)
-		       (let ((node (deep-copy wrapper)))
-			 (store! node '%content (cons "\n" (reverse hgroup)))
-			 (mergeheads scan (cons* "\n" node "\n" output)))
-		       (mergeheads (cdr content) (cons (car content) output)))))
-	      (mergeheads (cdr content) (cons (car content) output))))))
-
-(define (dom/mergeheads node (wrapper #[%XMLTAG HGROUP]))
-  (if (pair? node) (mergeheads node '() wrapper)
-      (if (test node '%xmltag 'hgroup)
-	  node
-	  (if (test node '%content)
-	      (let* ((content (get node '%content))
-		     (merged (mergeheads content)))
-		(store! node '%content merged)
-		(doseq (elt content)
-		  (unless (string? elt) (dom/mergeheads elt wrapper)))
-		node)
-	      node))))
 
 ;;; Merging nbsp runs
 
