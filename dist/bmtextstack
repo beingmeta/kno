@@ -9,7 +9,7 @@ Standards-Version: 3.9.2
 Package: bmtextstack
 Changelog: bmtextstack.changelog
 Maintainer: kh@beingmeta.com
-Depends: bmstack, framerd-morph, framerd-chopper, framerd-gnosys
+Depends: bmstack, framerd-morph, framerd-chopper, framerd-gnosys, framerd-sundown, framerd-tidy
 # Recommends:
 # Suggests:
 # Provides:
