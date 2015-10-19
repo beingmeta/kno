@@ -6,7 +6,7 @@
 (use-module '{logger})
 
 (module-export! '{varconfigfn varconfig! optconfigfn optconfig!})
-(module-export! '{config:boolean config:boolean+
+(module-export! '{config:boolean config:boolean+ config:boolean+parse
 		  config:number config:loglevel
 		  config:goodstring config:symbol config:oneof})
 
@@ -92,6 +92,20 @@
 	((has-prefix (downcase val) "y") #t)
 	((has-prefix (downcase val) "n") #f)
 	(else val)))
+(define (config:boolean+parse val)
+  (cond ((not val) #f)
+	((and (not (string? val))
+	      (or (empty? val) (not val)
+		  (and (number? val) (zero? val))))
+	 #f)
+	((not (string? val)) val)
+	((overlaps? val true-values) #t)
+	((overlaps? val false-values) #f)
+	((overlaps? (downcase val) true-values) #t)
+	((overlaps? (downcase val) false-values) #f)
+	((has-prefix (downcase val) "y") #t)
+	((has-prefix (downcase val) "n") #f)
+	(else (string->lisp val))))
 
 (config-def! 'config:true
 	     (lambda (var (val))
