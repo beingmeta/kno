@@ -6,8 +6,10 @@
 (use-module '{fdweb varconfig logger})
 (define %used_modules '{varconfig xhtml/auth})
 
+(define-init curlcache-default #t)
+(varconfig! curlcache:default curlcache-default)
 (define-init curlcache #f)
-(varconfig! aws:curlcache curlcache)
+(varconfig! curlcache curlcache config:boolean+parse)
 
 (module-export! '{curlcache/get curlcache/reset!})
 
@@ -16,16 +18,21 @@
     (and curlcache (if (symbol? curlcache) curlcache 'curlcache)))
   (if cachesym
       (try (threadget cachesym)
-	   (let ((handle (curlopen)))
-	     (threadset! cachesym handle)
-	     handle))
+	   (if curlcache-default
+	       (let ((handle (curlopen)))
+		 (threadset! cachesym handle)
+		 handle)
+	       (frame-create #f)))
       (frame-create #f)))
 
-(define (curlcache/reset! (cachesym))
+(define (curlcache/reset! (cachesym) (force))
+  (default! force (or (bound? cachesym) curlcache-default))
   (default! cachesym
     (and curlcache (if (symbol? curlcache) curlcache 'curlcache)))
-  (let ((handle (curlopen)))
-    (threadset! cachesym handle))
+  (if (or force (exists? (threadget cachesym)))
+      (let ((handle (curlopen)))
+	(threadset! cachesym handle)))
   cachesym)
+
 
 

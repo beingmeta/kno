@@ -29,7 +29,7 @@
   (if (not aws-curlcache) (frame-create #f)
       (if (symbol? aws-curlcache)
 	  (curlcache/get aws-curlcache)
-	  (curlcache/get))))
+	  (curlcache/get 'awscurl))))
 
 ;;; Support functions
 
