@@ -8,7 +8,8 @@
 (module-export! '{varconfigfn varconfig! optconfigfn optconfig!})
 (module-export! '{config:boolean config:boolean+ config:boolean+parse
 		  config:number config:loglevel
-		  config:goodstring config:symbol config:oneof})
+		  config:goodstring config:symbol config:oneof
+		  config:boolset config:fnset})
 
 (define varconfigfn
   (macro expr
@@ -156,3 +157,16 @@
       (if (overlaps? val combined) val
 	  (begin (logwarn "Invalid config value" (write val))
 	    (fail))))))
+
+;;; This combines values but treats #f as {}
+(defambda (config:boolset new cur)
+  (if (or (fail? cur) (not cur)) new
+      (choice cur new)))
+
+(defambda (config:fnset new cur)
+  (if (or (fail? cur) (not cur)) new
+      (if (and (procedure? new) (procedure-name new))
+	  (choice (reject cur procedure-name (procedure-name new))
+		  new)
+	  (choice cur new))))
+
