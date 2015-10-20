@@ -1,3 +1,11 @@
+framerd (3.8.2-51) unstable; urgency=low
+
+  * Add support for encodings to s3/push and mimetable
+  * Add extra varconfig helper functions, config:boolset anc config:fnset
+  * git master branch patch framerd-3.8.2-167
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 20 Oct 2015 13:20:02 -0400
+
 framerd (3.8.2-50) unstable; urgency=low
 
   * Fixes to S3 hash conversion and comparison
