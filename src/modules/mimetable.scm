@@ -6,7 +6,11 @@
 (use-module '{texttools varconfig texttools})
 (define %used_modules 'varconfig)
 
-(module-export! '{*mimetable* getsuffix ctype->suffix path->ctype path->mimetype ctype->charset})
+(module-export!
+ '{*mimetable* getsuffix
+   ctype->suffix ctype->charset
+   path->ctype path->mimetype
+   path->encoding})
 
 (define *default-charset* #f)
 (varconfig! mime:charset *default-charset* config:goodstring)
@@ -53,7 +57,11 @@
 
 (define (guess-ctype path)
   (if (string? path)
-      (get *mimetable* (gather #("." (isalnum+) (eos)) path))
+      (if (has-suffix path ".gz")
+	  (get *mimetable* (gather #("." (isalnum+) (eos)) (slice path 0 -3)))
+	  (if (has-suffix path ".Z")
+	      (get *mimetable* (gather #("." (isalnum+) (eos)) (slice path 0 -2)))
+	      (get *mimetable* (gather #("." (isalnum+) (eos)) path))))
       (if (and (pair? path) (string? (cdr path)))
 	  (get *mimetable* (gather #("." (isalnum+) (eos)) (cdr path)))
 	  (fail))))
@@ -66,6 +74,11 @@
 	(and (exists? ctype) ctype)
 	(if (bound? default-value) default-value (fail)))))
 (define path->ctype path->mimetype)
+
+(define (path->encoding path)
+  (if (has-suffix path ".gz") "gzip"
+      (if (has-suffix path ".Z") "compress"
+	  #f)))
 
 (define (getsuffix path (default {}))
   (try (gather #("." (isalnum+) (eos)) path) default))
