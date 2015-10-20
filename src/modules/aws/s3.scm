@@ -957,16 +957,16 @@
       (do-choices-mt (file copynames nthreads)
 	(let* ((info (pick s3info 'name (basename file)))
 	       (loc (try (get info 'loc) (s3/mkpath s3loc (basename file))))
+	       (encoding (path->encoding file))
 	       (mimetype (path->mimetype file)))
 	  (logdebug |S3/push|
-	    "Syncing " mimetype " " (write file) " to " (s3loc->string loc) ": "
-	    "\n info: " info)
+	    "Syncing " mimetype " " (write file)
+	    " to " (s3loc->string loc) ":\n info: " info)
 	  (if (or (fail? info) forcewrite)
 	      (let ((data (filedata file)))
 		(loginfo |S3/push| "Pushing to " loc)
 		(s3/write! loc data (try mimetype "application")
-			   (cons* (cons "x-amz-meta-md5" (packet->base16 (md5 data)))
-				  headers))
+			   (data-headers data encoding headers))
 		(set+! updated loc)
 		(when pause (sleep pause)))
 	      (let ((data (filedata file)))
@@ -977,9 +977,7 @@
 					(stdhash (md5 data)))))
 		    (logdebug |S3/push| "Skipping unchanged " loc)
 		    (begin (loginfo |S3/push| "Pushing to " loc)
-		      (s3/write! loc data mimetype
-				 (cons (cons "x-amz-meta-md5" (packet->base16 (md5 data)))
-				       headers))
+		      (s3/write! loc data mimetype (data-headers data encoding headers))
 		      (set+! updated loc)
 		      (when pause (sleep pause))))))))
       (if (fail? updated)
@@ -992,6 +990,12 @@
 	    (when match (printout "/" (choice-size filenames) " matching"))
 	    " files to " (s3loc->string s3loc)))
       updated)))
+
+(define (data-headers data encoding headers)
+  (cons (cons "x-amz-meta-md5" (packet->base16 (md5 data)))
+	(if encoding
+	    (cons (cons "content-encoding" encoding) headers)
+	    headers)))
 
 (define (stdhash x)
   (try
