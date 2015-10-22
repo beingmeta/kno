@@ -9,7 +9,7 @@
 (module-export!
  '{logger
    getloglevel %loglevel
-   logwsamp logdeluge logdetail logdebug loginfo
+   logwsamp logdeluge logdetail logdebug loginfo logmessage
    lognotice logwarn logerr logerror logcrit logalert logpanic
    logswamp! logdeluge! logdetail! logdebug! loginfo!
    lognotice! logwarn! logerr! logcrit! logalert! logpanic!
@@ -109,6 +109,9 @@
 (define (getloglevel arg)
   (if (number? arg) arg (get loglevel-table arg)))
 
+(define logmessage
+  (macro expr `(,logmsg #f ,@(cdr expr))))
+
 (define logger
   (macro expr
     `(logif+ (>= %loglevel ,(cadr expr)) ,(cadr expr) ,@(cddr expr))))
@@ -198,6 +201,8 @@
     `(if (>= %loglevel ,%warn%)
 	 (,%watch ,@(cdr expr))
 	 ,(cadr expr))))
+(define always%watch
+  (macro expr `(,%watch ,@(cdr expr))))
 
 (define swamp%call
   (macro expr
