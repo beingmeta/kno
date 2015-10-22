@@ -3,7 +3,7 @@
 
 (in-module 'varconfig)
 
-(use-module '{logger})
+(use-module '{logger reflection})
 
 (module-export! '{varconfigfn varconfig! optconfigfn optconfig!})
 (module-export! '{config:boolean config:boolean+ config:boolean+parse
