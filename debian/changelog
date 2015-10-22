@@ -1,3 +1,11 @@
+framerd (3.8.2-54) unstable; urgency=low
+
+  * Fixes to gpath conversion code
+  * Make BROWSE get the URL slot of tables
+  * git patch version framerd-3.8.2-174 (master)
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 22 Oct 2015 16:14:34 -0400
+
 framerd (3.8.2-53) unstable; urgency=low
 
   * Minor additions to logging functions
