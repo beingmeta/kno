@@ -1,7 +1,15 @@
+framerd (3.8.2-53) unstable; urgency=low
+
+  * Minor additions to logging functions
+  * Fix bug added in fnset extension to varconfig
+  * git patch version framerd-3.8.2-172 (master)
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 22 Oct 2015 15:29:28 -0400
+
 framerd (3.8.2-52) unstable; urgency=low
 
   * Added some more mime types
-  * git path version framerd-3.8.2-168 (master)
+  * git patch version framerd-3.8.2-168 (master)
 
  -- Ken Haase <kh@beingmeta.com>  Tue, 20 Oct 2015 14:01:43 -0400
 
