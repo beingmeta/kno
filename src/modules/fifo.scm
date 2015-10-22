@@ -44,18 +44,18 @@
 (define (fifo/push! fifo item (broadcast #f))
   (unwind-protect
       (begin (if (fifo-debug fifo)
-		 (%watch "FIFO/PUSH!" item broadcast fifo)
+		 (always%watch "FIFO/PUSH!" item broadcast fifo)
 		 (debug%watch "FIFO/PUSH!" item broadcast fifo))
 	(condvar-lock (fifo-state fifo))
 	(if (hashset-get (fifo-items fifo) item)
 	    (if (fifo-debug fifo)
-		(%watch "FIFO/PUSH!/REDUNDANT" item fifo)
+		(always%watch "FIFO/PUSH!/REDUNDANT" item fifo)
 		(debug%watch "FIFO/PUSH!/REDUNDANT" item fifo))
 	    (let ((vec (fifo-queue fifo))
 		  (start (fifo-start fifo))
 		  (end (fifo-end fifo)))
 	      (if (fifo-debug fifo)
-		  (%watch "FIFO/PUSH!/INSERT" item fifo)
+		  (always%watch "FIFO/PUSH!/INSERT" item fifo)
 		  (debug%watch "FIFO/PUSH!/INSERT" item fifo))
 	      (cond ((< end (length vec))
 		     (vector-set! vec end item)
@@ -73,7 +73,7 @@
 		    (else
 		     (let ((newvec (make-vector (* 2 (length vec)))))
 		       (if (fifo-debug fifo)
-			   (%watch "FIFO/PUSH!/GROW" fifo)
+			   (always%watch "FIFO/PUSH!/GROW" fifo)
 			   (debug%watch "FIFO/PUSH!/GROW" fifo))
 		       (debug%watch "FIFO/PUSH!/GROW" fifo)
 		       (dotimes (i (- end start))
@@ -88,7 +88,7 @@
 
 (define (fifo-waiting! fifo flag)
  (if (fifo-debug fifo)
-     (%watch "FIFO-WAITING!" flag (fifo-waiting fifo) fifo)
+     (always%watch "FIFO-WAITING!" flag (fifo-waiting fifo) fifo)
      (debug%watch "FIFO-WAITING!" flag (fifo-waiting fifo) fifo))
  (set-fifo-waiting! fifo (+ (if flag 1 -1) (fifo-waiting fifo)))
  (condvar-signal (fifo-state fifo) #t)
@@ -96,7 +96,7 @@
 
 (define (fifo/pop fifo)
   (if (fifo-debug fifo)
-      (%watch "FIFO/POP" fifo)
+      (always%watch "FIFO/POP" fifo)
       (debug%watch "FIFO/POP" fifo))
   (if (fifo-live? fifo)
       (unwind-protect
@@ -114,7 +114,7 @@
 		       (end (fifo-end fifo))
 		       (item (elt vec start)))
 		  (if (fifo-debug fifo)
-		      (%watch "FIFO/POP/ITEM" start end item fifo)
+		      (always%watch "FIFO/POP/ITEM" start end item fifo)
 		      (debug%watch "FIFO/POP/ITEM" start end item fifo))
 		  ;; Replace the item with false
 		  (vector-set! vec start #f)

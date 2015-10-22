@@ -60,7 +60,7 @@
   (when w/callid (set! args (cons* "call_id" (time) args)))
   (set! args (cons* "api_key" apikey "v" "1.0" "method" method
 		    args))
-  ;; (%watch "FBCALLURI" method w/session (cgiget 'fb_sig_session_key))
+  ;; (debug%watch "FBCALLURI" method w/session (cgiget 'fb_sig_session_key))
   (when (and w/session sessionkey (string? sessionkey))
     (set! args (cons* "session_key" sessionkey args)))
   (stringout "http://api.facebook.com/restserver.php?"

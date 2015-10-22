@@ -164,7 +164,7 @@
 ;;; Exported functions
 
 (define (text/keystrings text (options #[]))
-  ;; (%watch "TEXTANALYZE" settings)
+  (info%watch "TEXT/KEYSTRINGS" settings)
   (textanalyze text (try (getopt options 'wordrule
 				 (get text-settings 'default-word-rule)))
 	       (try (getopt options 'stopcache {}) (make-hashtable))
@@ -201,7 +201,7 @@
       (index-frame index f 'has slotid))))
 
 (defambda (text/analyze passages options)
-  ;; (%watch "TEXT/ANALYZE" options)
+  ;; (info%watch "TEXT/ANALYZE" options)
   (let* ((allkeys (make-hashset))
 	 (text/settings
 	  (try (getopt options 'text/settings {})
@@ -239,7 +239,7 @@
 	 (textfns (getopt options 'textfns)))
     (debug%watch "TEXT/ANALYZE" options)
     (do-choices (passage passages)
-      ;; (%watch "TEXT/ANALYZE" passage)
+      ;; (debug%watch "TEXT/ANALYZE" passage)
       (do-choices (text (if textfns
 			    (choice ((pick textfns applicable?) passage)
 				    (get passage (pick textfns slotid?)))

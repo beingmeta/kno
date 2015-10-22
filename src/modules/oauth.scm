@@ -892,9 +892,9 @@
 	      "oauth_token=\"" (getopt spec 'oauth_token) "\", "
 	      "oauth_version=\"" (getopt spec 'version "1.0") "\"")))
       ;; These are supposed to be naked %watch statements
-      (%watch now nonce sig64)
-      (%watch sigstring)
-      (%watch auth-header)
+      (always%watch now nonce sig64)
+      (always%watch sigstring)
+      (always%watch auth-header)
       sig)))
   
 ;;; Calling functions

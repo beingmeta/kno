@@ -48,7 +48,6 @@
 
 (define (os/convert-oid oid)
   (let ((offset (oid-offset oid conversion-base)))
-    ;; (%watch offset conversion-range)
     (if (and offset (> offset 0) (< offset conversion-range))
 	(oid-plus conversion-target offset)
 	oid)))
