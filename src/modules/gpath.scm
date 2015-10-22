@@ -661,14 +661,14 @@
 		   (test gpath-handlers (compound-tag val)))))))
 
 (define (->gpath val (root #f))
-  (if (string? val)
-      (if (has-prefix val {"s3:" "S3:"}) (->s3loc val)
-	  (if (has-prefix val {"http:" "https:" "ftp:"}) val
-	      (if (has-prefix val "/") val
-		  (if (has-prefix val "~") (abspath val)
-		      (if root (gp/mkpath root val)
-			  (abspath val))))))
-      val))
+  (cond ((not (string? val)) val)
+	((has-prefix val {"s3:" "S3:"}) (->s3loc val))
+	((has-prefix val "/") (if root (gp/mkpath root val) val))
+	((has-prefix val "ftp:") val)
+	((has-prefix val {"http:" "https:"}) (try (->s3loc val) val))
+	((has-prefix val "~") (abspath val))
+	(root (gp/mkpath root val))
+	(else (abspath val))))
 
 (define (uri->gpath val)
   (if (and (string? val) (has-prefix val {"http:" "https:" "ftp:"}))

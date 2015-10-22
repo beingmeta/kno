@@ -23,7 +23,10 @@
 (varconfig! browser:wait browser-wait)
 
 (define (browse loc)
-  (if (string? loc) (set! loc (or (->gpath loc) loc)))
+  (when (and (table? loc) (test loc 'url)
+	     (string? (get doc 'url)))
+    (set! loc (get loc 'url)))
+  (when (string? loc) (set! loc (or (->gpath loc) loc)))
   (let ((url (if (string? loc) loc
 		 (if (s3loc? loc)
 		     (s3/signeduri loc)
