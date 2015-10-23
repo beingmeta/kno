@@ -283,8 +283,10 @@
 	      (curlcache/reset!)
 	      (set! tries (1+ tries))
 	      #f)))
-	 (content (and s3result (get s3result '%content)))
-	 (status (and s3result (get s3result 'response)))
+	 (request (and s3result (cdr s3result)))
+	 (response (and result (cdr s3result)))
+	 (content (and response (get response '%content)))
+	 (status (and response (get response 'response)))
 	 (retry (or (not status) (>= status 500)))
 	 (success (and status (>= 299 status 200))))
     (while (and retry retries (>= retries 0))
@@ -299,8 +301,10 @@
 		(op-failed ex op bucket path)
 		(curlcache/reset!)
 		#f)))
-      (set! content (and s3result (get s3result '%content)))
-      (set! status (and s3result (get s3result 'response)))
+      (set! request (and s3result (cdr s3result)))
+      (set! response (and s3result (car s3result)))
+      (set! content (and response (get response '%content)))
+      (set! status (and response (get response 'response)))
       (set! retry (or (not status) (>= status 500))))
     (when (and success (equal? op "GET") (exists? content))
       (loginfo |S3OP/result| "GET s3://" bucket "/" path
@@ -308,23 +312,26 @@
 	       (if (string? content) " characters of " " bytes of ")
 	       (try (get s3result 'content-type) "stuff")))
     (unless success
-      (onerror (store! s3result '%content (xmlparse content))
+      (onerror (store! response '%content (xmlparse content))
 	(lambda (ex) #f)))
-    (if success (detail%watch s3result)
+    (if success
+	(detail%watch "S3FAIL" "REQUEST" request "RESPONSE" response)
 	(cond ((equal? op "HEAD")
 	       ;; Don't generate warnings for HEAD probes
 	       s3result)
 	      ((and (not err) (= status 404))
 	       (unless (testopt opts 'ignore 404)
 		 (lognotice |S3/NotFound|
-			    op " " (glom "s3://" bucket
-				     (if (has-prefix path "/") "" "/")
-				     path)
-			    (if (or (not opts) (empty? (getkeys opts)))
-				" (no opts)"
-				(printout "\n\t" (pprint opts)))
-			    "\n\t" (pprint s3result)))
-	       s3result)
+		   op " " (glom "s3://" bucket
+			    (if (has-prefix path "/") "" "/")
+			    path)
+		   (if (or (not opts) (empty? (getkeys opts)))
+		       " (no opts)"
+		       (printout "\n\t" (pprint opts)))
+		   "\nREQ\t" (pprint request)
+		   "\nRESP\t" (pprint response)))
+	       (store! response '%request request)
+	       response)
 	      ((and (not err) (= status 403))
 	       (unless (testopt opts 'ignore 403)
 		 (logwarn |S3/Forbidden|
@@ -332,8 +339,10 @@
 			  (if (or (not opts) (empty? (getkeys opts)))
 			      " (no opts)"
 			      (printout "\n\t" (pprint opts)))
-			  "\n\t" (pprint s3result)))
-	       s3result)
+			  "\nREQ\t" (pprint request)
+			  "\nRESP\t" (pprint response)))
+	       (store! response '%request request)
+	       response)
 	      ((not err)
 	       (logwarn |S3/Failure|
 			op " " (glom "s3://" bucket
@@ -343,7 +352,8 @@
 			(if (or (not opts) (empty? (getkeys opts)))
 			    " (no opts)"
 			    (printout "\n\t" (pprint opts)))
-			"\n\t" (pprint s3result))
+			"\nREQ\t" (pprint request)
+			"\nRESP\t" (pprint response))
 	       s3result)
 	      ((and err (= status 404))
 	       (irritant s3result |S3/NotFound| S3/OP
