@@ -24,13 +24,13 @@
 
 (define (browse loc)
   (when (and (table? loc) (test loc 'url)
-	     (string? (get doc 'url)))
+	     (string? (get loc 'url)))
     (set! loc (get loc 'url)))
   (when (string? loc) (set! loc (or (->gpath loc) loc)))
   (let ((url (if (string? loc) loc
 		 (if (s3loc? loc)
 		     (s3/signeduri loc)
-		     (gpath->uri loc)))))
+		     (error BADREF loc)))))
     (debug%watch "BROWSE" loc url)
     (let ((pid (if (position #\/ browser-command)
 		   (fork browser-command url)
@@ -38,3 +38,4 @@
       (when browser-wait (sleep browser-wait))
       (logwarn |BrowserLaunch|
 	"Using " browser-command " with PID " pid))))
+
