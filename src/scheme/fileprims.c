@@ -500,11 +500,11 @@ static fdtype open_socket_prim(fdtype spec,fdtype opts)
 static fdtype remove_file_prim(fdtype arg,fdtype must_exist)
 {
   u8_string filename=FD_STRDATA(arg);
-  if (u8_file_existsp(filename))
+  if ((u8_file_existsp(filename))||(u8_symlinkp(filename))) {
     if (u8_removefile(FD_STRDATA(arg))<0) {
       fdtype err=fd_err(RemoveFailed,"remove_file_prim",filename,arg);
       return err;}
-    else return FD_TRUE;
+    else return FD_TRUE;}
   else if (FD_TRUEP(must_exist)) {
     u8_string absolute=u8_abspath(filename,NULL);
     fdtype err=fd_err(NoSuchFile,"remove_file_prim",absolute,arg);
@@ -841,7 +841,8 @@ static void remove_tempdirs()
       if (FD_STRINGP(tmpfile)) {
         u8_log(LOG_DEBUG,"TEMPFILES","Removing directory %s",
                FD_STRDATA(tmpfile));
-        u8_rmtree(FD_STRDATA(tmpfile));}}
+        if (u8_directoryp(FD_STRDATA(tmpfile)))
+          u8_rmtree(FD_STRDATA(tmpfile));}}
     fd_decref(tempdirs); fd_decref(keeptemp); fd_decref(to_remove);
     tempdirs=FD_EMPTY_CHOICE; keeptemp=FD_EMPTY_CHOICE;
     u8_unlock_mutex(&tempdirs_lock);}
