@@ -34,7 +34,8 @@
 
 (module-export!
  '{swamp%watch deluge%watch detail%watch debug%watch
-   info%watch notice%watch warn%watch})
+   info%watch notice%watch warn%watch
+   always%watch})
 
 (define %nosubst '%loglevel)
 
