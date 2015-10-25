@@ -284,7 +284,7 @@
 	      (set! tries (1+ tries))
 	      #f)))
 	 (request (and s3result (cdr s3result)))
-	 (response (and result (cdr s3result)))
+	 (response (and s3result (cdr s3result)))
 	 (content (and response (get response '%content)))
 	 (status (and response (get response 'response)))
 	 (retry (or (not status) (>= status 500)))
