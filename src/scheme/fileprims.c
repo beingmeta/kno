@@ -635,6 +635,19 @@ static fdtype file_realpath(fdtype arg,fdtype wd)
   else return FD_ERROR_VALUE;
 }
 
+static fdtype file_readlink(fdtype arg,fdtype abs,fdtype err)
+{
+  u8_string result;
+  if (FD_FALSEP(abs))
+    result=u8_readlink(FD_STRDATA(arg),0);
+  else result=u8_readlink(FD_STRDATA(arg),1);
+  if (result) return fd_lispstring(result);
+  else if (FD_TRUEP(err)) 
+    return FD_ERROR_VALUE;
+  else {
+    u8_clear_errors(0);
+    return FD_FALSE;}
+}
 
 static fdtype path_basename(fdtype arg,fdtype suffix)
 {
@@ -2259,6 +2272,10 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fileio_module,
            fd_make_cprim2x("MKPATH",mkpath_prim,2,
                            -1,FD_VOID,fd_string_type,FD_VOID));
+  fd_idefn(fileio_module,
+           fd_make_cprim3x("READLINK",file_readlink,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+
 
   fd_idefn(fileio_module,
            fd_make_cprim2x("MKDIR",mkdir_prim,1,
