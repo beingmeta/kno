@@ -635,7 +635,7 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
     if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan)))) {
       label=FD_STRDATA(FD_CAR(scan)); scan=FD_CDR(scan);}}
   else if (FD_STRINGP(toeval)) {
-    /* "label" . watchexprs, no expr */
+    /* "label" . watchexprs, no expr, call should be side-effect */
     label=FD_STRDATA(toeval); scan=FD_CDR(scan);}
   else if (FD_SYMBOLP(toeval)) {
     /* If the first argument is a symbol, we change the label and
@@ -659,15 +659,21 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
            label=<value> */
       fdtype towatch=FD_CAR(scan), wval=FD_VOID;
       if ((FD_STRINGP(towatch)) && (FD_PAIRP(FD_CDR(scan)))) {
-        fdtype label=towatch;
+        fdtype label=towatch; u8_string lbl=FD_STRDATA(label);
         towatch=FD_CAR(FD_CDR(scan)); scan=FD_CDR(FD_CDR(scan));
         wval=((FD_SYMBOLP(towatch))?(fd_symeval(towatch,env)):
               (fd_eval(towatch,env)));
-        if (oneout) u8_printf(&out," // %s=%q",FD_STRDATA(label),wval);
+        if (lbl[0]=='\n') {
+          if (oneout) {
+            if (off>0) u8_printf(&out,"\n  // %s=",lbl+1);
+            else u8_printf(&out," // %s=",lbl+1);}
+          else oneout=1;
+          fd_pprint(&out,wval,"   ",0,3,100,0);
+          u8_puts(&out,"\n"); off=0;}
         else {
+          if (oneout) u8_puts(&out," // "); else oneout=1;
           u8_printf(&out,"%s=%q",FD_STRDATA(label),wval);
-          oneout=1;}
-        off=check_line_length(&out,off,50);
+          off=check_line_length(&out,off,100);}
         fd_decref(wval); wval=FD_VOID;}
       else {
         wval=((FD_SYMBOLP(towatch))?(fd_symeval(towatch,env)):
