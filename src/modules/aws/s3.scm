@@ -290,8 +290,8 @@
 	 (retry (or (not status) (>= status 500)))
 	 (success (and status (>= 299 status 200))))
     (debug%watch "S3/OP" 
-      op bucket path request response 
-      success status retry)
+      op bucket path success status retry
+      "\nREQUEST" request "\nRESPONSE" response)
     (while (and retry retries (>= retries 0))
       (logwarn |S3/Retry|
 	"Retrying " op " (" status ") for " path " in " bucket " after:\n"
@@ -319,7 +319,6 @@
       (onerror (store! response '%content (xmlparse content))
 	(lambda (ex) #f)))
     (cond (success response)
-	  ;; (detail%watch "S3/OP" "REQUEST" request "RESPONSE" response)
 	  ;; Don't generate warnings for HEAD probes
 	  ((equal? op "HEAD") response)
 	  ((testopt opts 'ignore status) response)
@@ -352,7 +351,7 @@
 
 (define (s3-warn status request response op bucket path opts)
   (cond ((= status 404)
-	 (lognotice |S3/NotFound|
+	 (lognotice |S3/NotFound| 
 	   op " " (glom "s3://" bucket
 		    (if (has-prefix path "/") "" "/")
 		    path)
