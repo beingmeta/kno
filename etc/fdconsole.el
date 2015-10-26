@@ -198,10 +198,13 @@
 (put 'frame-create 'scheme-indent-function 1)
 
 (put '%watch 'scheme-indent-function 1)
+(put 'deluge%watch 'scheme-indent-function 1)
+(put 'detail%watch 'scheme-indent-function 1)
 (put 'debug%watch 'scheme-indent-function 1)
 (put 'info%watch 'scheme-indent-function 1)
 (put 'notice%watch 'scheme-indent-function 1)
 (put 'warn%watch 'scheme-indent-function 1)
+(put 'always%watch 'scheme-indent-function 1)
 (put 'saveoutput 'scheme-indent-function 1)
 
 (put 'extdb/proc 'scheme-indent-function 1)
