@@ -1184,15 +1184,17 @@ static int webservefn(u8_client ucl)
         return_code=0;}
       else {
         u8_byte *start;
-        u8_grow_stream(outstream,head_len+http_len+1);
-        start=outstream->u8_outbuf;
-        memmove(start+head_len+http_len,start,content_len);
-        strncpy(start,httphead.u8_outbuf,http_len);
-        strncpy(start+http_len,htmlhead.u8_outbuf,head_len);
-        outstream->u8_outptr=start+http_len+head_len+content_len;
-        u8_client_write(ucl,start,bundle_len,0);
-        buffered=1;
-        return_code=1;}}
+        ssize_t rv=u8_grow_stream(outstream,head_len+http_len+1);
+        if (rv>0) {
+          start=outstream->u8_outbuf;
+          memmove(start+head_len+http_len,start,content_len);
+          strncpy(start,httphead.u8_outbuf,http_len);
+          strncpy(start+http_len,htmlhead.u8_outbuf,head_len);
+          outstream->u8_outptr=start+http_len+head_len+content_len;
+          u8_client_write(ucl,start,bundle_len,0);
+          buffered=1;
+          return_code=1;}
+        else {/* To be written */}}}
     else if ((FD_STRINGP(retfile))&&(fd_sendfile_header)) {
       u8_byte *copy;
       u8_log(LOG_NOTICE,"FDServlet/Sendfile","Using %s to pass %s (#%lx)",
