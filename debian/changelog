@@ -1,3 +1,10 @@
+framerd (3.8.2-57) unstable; urgency=low
+
+  * Make slotmap pretty printing keep key values together more
+  * git patch version framerd-3.8.2-190
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 26 Oct 2015 11:21:55 -0400
+
 framerd (3.8.2-56) unstable; urgency=low
 
   * Fixes to s3 and logger modules
