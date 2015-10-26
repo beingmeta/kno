@@ -811,7 +811,11 @@ static fdtype just2number(fdtype x,fdtype base)
 
 /* Pretty printing */
 
-static fdtype quote_symbol, unquote_symbol, quasiquote_symbol, unquote_star_symbol, comment_symbol;
+static fdtype quote_symbol, comment_symbol;
+static fdtype unquote_symbol, quasiquote_symbol, unquote_star_symbol;
+
+static int output_keyval(u8_output out,fdtype key,fdtype val,
+                         int col,int maxcol,int first_kv);
 
 #define PPRINT_ATOMICP(x) \
   (!((FD_PAIRP(x)) || (FD_VECTORP(x)) || (FD_SLOTMAPP(x)) || \
@@ -915,20 +919,30 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
   else if (FD_SLOTMAPP(x)) {
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
     struct FD_KEYVAL *scan, *limit;
-    int slotmap_size, first_pair=1;
+    int slotmap_size, first_kv=1;
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     if (slotmap_size==0) {
       if (is_initial) {
-        u8_printf(out," #[]"); return col+3;}
+        u8_printf(out,"#[]"); return col+3;}
       else {u8_printf(out," #[]"); return col+4;}}
     fd_read_lock_struct(sm);
     scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
-      col=fd_pprint(out,scan->key,prefix,indent+2,col,maxcol,first_pair);
+      fdtype key=scan->key, val=scan->value;
+      int newcol=output_keyval(out,key,val,col,maxcol,first_kv);
+      if (newcol>=0) {
+        col=newcol; scan++; first_kv=0;
+        continue;}
+      else {
+        int i=indent; u8_putc(out,'\n');
+        if (prefix) u8_puts(out,prefix);
+        while (i>0) {u8_putc(out,' '); i--;}
+        col=indent+((prefix) ? (u8_strlen(prefix)) : (0));}
+      col=fd_pprint(out,scan->key,prefix,indent+2,col,maxcol,first_kv);
       u8_putc(out,' '); col++;
       col=fd_pprint(out,scan->value,prefix,indent+4,col,maxcol,0);
-      first_pair=0;
+      first_kv=0;
       scan++;}
     u8_puts(out,"]");
     fd_rw_unlock_struct(sm);
@@ -1054,6 +1068,34 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     int startoff=out->u8_outptr-out->u8_outbuf;
     fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
     return indent+n_chars;}
+}
+
+static int output_keyval(u8_output out,fdtype key,fdtype val,
+                         int col,int maxcol,int first_kv)
+{
+  int len=0;
+  if (FD_STRINGP(key)) len=len+FD_STRLEN(key)+3;
+  else if (FD_SYMBOLP(key)) {
+    u8_string pname=FD_SYMBOL_NAME(key);
+    len=len+strlen(pname)+1;}
+  else if (FD_CONSP(key)) return -1;
+  else {}
+  if (FD_STRINGP(val)) len=len+FD_STRLEN(val)+3;
+  else if (FD_SYMBOLP(val)) {
+    u8_string pname=FD_SYMBOL_NAME(val);
+    len=len+strlen(pname)+1;}
+  else {}
+  if ((col+len)>maxcol) return -1;
+  else {
+    struct U8_OUTPUT kvout; u8_byte kvbuf[128];
+    U8_INIT_FIXED_OUTPUT(&kvout,128,kvbuf);
+    if (first_kv)
+      u8_printf(&kvout,"%q %q",key,val);
+    else u8_printf(&kvout," %q %q",key,val);
+    if ((kvout.u8_streaminfo&U8_STREAM_OVERFLOW)||
+        ((col+(kvout.u8_outptr-kvout.u8_outbuf))>maxcol))
+      return -1;
+    else u8_putn(out,kvout.u8_outbuf,kvout.u8_outptr-kvout.u8_outbuf);}
 }
 
 /* Focused pprinting */
