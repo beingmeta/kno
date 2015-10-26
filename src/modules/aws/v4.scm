@@ -137,16 +137,17 @@
      (getopt req 'credential) ", "
      "SignedHeaders=" (getopt req 'signed-headers) ", "
      "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
-  (loginfo |AWS/V4/op| op " " endpoint
-	   "\n  params: " args "\n  headers: " headers "\n  "
-	   (if payload
-	       (printout (length payload)
-		 (if (packet? payload) " bytes" " characters")
-		 " of " (or ptype "stuff"))
-	       "no payload"))
   (let* ((escaped (if (position #\% endpoint) endpoint
 		      (encode-uri endpoint)))
 	 (url (scripturl+ escaped args)))
+    (loginfo |AWS/V4/op| (write op) " " endpoint
+	     "\n  params: " args "\n  headers: " headers "\n  "
+	     (if (and payload (> (length payload) 0))
+		 (printout (length payload)
+		   (if (packet? payload) " bytes" " characters")
+		   " of " (or ptype "stuff"))
+		 "no payload")
+	     "\n  url: " url "\n  curl: " curl)
     (cons (if (equal? op "GET")
 	      (urlget url curl)
 	      (if (equal? op "HEAD")
@@ -200,8 +201,8 @@
 	   (signing-key (derive-key secret date region service))
 	   (awskey (getopt req 'key awskey))
 	   (signature (hmac-sha256 signing-key string-to-sign)))
-      (loginfo AWS/V4/PREPARE method " " uri 
-	       (if payload
+      (loginfo AWS/V4/PREPARE (write method) " " uri 
+	       (if (and payload (> (length payload) 0))
 		   (printout "\n  " (length payload)
 		     " " (if (packet? payload) "bytes " "characters ")
 		     " of " (or ptype "stuff"))

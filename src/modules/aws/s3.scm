@@ -237,8 +237,8 @@
 	     (if (null? headers) " headers=()" " headers=\n\t") headers
 	     (if (null? params) " params=()" " params=\n\t") params
 	     "\n\tendpoint:\t" endpoint)
-    (car (aws/v4/op (frame-create #f) op endpoint params headers
-		    content ctype urlparams date))))
+    (aws/v4/op (frame-create #f) op endpoint params headers
+	       content ctype urlparams date)))
 
 (define (headerlist->headers headerlist)
   (let ((headers (frame-create #f)))
@@ -284,14 +284,18 @@
 	      (set! tries (1+ tries))
 	      #f)))
 	 (request (and s3result (cdr s3result)))
-	 (response (and s3result (cdr s3result)))
+	 (response (and s3result (car s3result)))
 	 (content (and response (get response '%content)))
 	 (status (and response (get response 'response)))
 	 (retry (or (not status) (>= status 500)))
 	 (success (and status (>= 299 status 200))))
+    (debug%watch "S3/OP" 
+      op bucket path request response 
+      success status retry)
     (while (and retry retries (>= retries 0))
-      (logwarn |S3/Retry| "Retrying " op " (" status ") for " path " in " bucket ":\n"
-	       (pprint s3result))
+      (logwarn |S3/Retry|
+	"Retrying " op " (" status ") for " path " in " bucket " after:\n"
+	(pprint s3result))
       (sleep wait)
       (set! retries (-1+ retries))
       (set! wait (+ wait retry-wait))
@@ -314,68 +318,68 @@
     (unless success
       (onerror (store! response '%content (xmlparse content))
 	(lambda (ex) #f)))
-    (if success
-	(detail%watch "S3FAIL" "REQUEST" request "RESPONSE" response)
-	(cond ((equal? op "HEAD")
-	       ;; Don't generate warnings for HEAD probes
-	       s3result)
-	      ((and (not err) (= status 404))
-	       (unless (testopt opts 'ignore 404)
-		 (lognotice |S3/NotFound|
-		   op " " (glom "s3://" bucket
-			    (if (has-prefix path "/") "" "/")
-			    path)
+    (cond (success response)
+	  ;; (detail%watch "S3/OP" "REQUEST" request "RESPONSE" response)
+	  ;; Don't generate warnings for HEAD probes
+	  ((equal? op "HEAD") response)
+	  ((testopt opts 'ignore status) response)
+	  (err (s3-error status s3result op bucket path opts))
+	  (else (s3-warn status request response op bucket path opts)
+		response))))
+
+(define (s3-error status s3result op bucket path opts)
+  (cond ((= status 404)
+	 (irritant s3result |S3/NotFound| S3/OP
+		   op " " "s3://" bucket
+		   (if (has-prefix path "/") "" "/") path
+		   (if (or (not opts) (empty? (getkeys opts)))
+		       " no opts"
+		       (printout "\n\t" (pprint opts)))))
+	((= status 403)
+	 (irritant s3result |S3/Forbidden| S3/OP
+		   op " " "s3://" bucket
+		   (if (has-prefix path "/") "" "/") path
 		   (if (or (not opts) (empty? (getkeys opts)))
 		       " (no opts)"
-		       (printout "\n\t" (pprint opts)))
-		   "\nREQ\t" (pprint request)
-		   "\nRESP\t" (pprint response)))
-	       (store! response '%request request)
-	       response)
-	      ((and (not err) (= status 403))
-	       (unless (testopt opts 'ignore 403)
-		 (logwarn |S3/Forbidden|
-			  op " " (glom "s3://" bucket "/" path)
-			  (if (or (not opts) (empty? (getkeys opts)))
-			      " (no opts)"
-			      (printout "\n\t" (pprint opts)))
-			  "\nREQ\t" (pprint request)
-			  "\nRESP\t" (pprint response)))
-	       (store! response '%request request)
-	       response)
-	      ((not err)
-	       (logwarn |S3/Failure|
-			op " " (glom "s3://" bucket
-				 (if (has-prefix path "/") "" "/")
-				 path) " "
-			(try (get s3result 'header) "")
+		       (printout "\n\t" (pprint opts)))))
+	(else (irritant s3result |S3/Failure| S3/OP
+			op " " "s3://" bucket
+			(if (has-prefix path "/") "" "/")
+			path
 			(if (or (not opts) (empty? (getkeys opts)))
 			    " (no opts)"
-			    (printout "\n\t" (pprint opts)))
-			"\nREQ\t" (pprint request)
-			"\nRESP\t" (pprint response))
-	       s3result)
-	      ((and err (= status 404))
-	       (irritant s3result |S3/NotFound| S3/OP
-			 op " " "s3://" bucket
-			 (if (has-prefix path "/") "" "/") path
-			 (if (or (not opts) (empty? (getkeys opts)))
-			     " no opts"
-			     (printout "\n\t" (pprint opts)))))
-	      ((and err (= status 403))
-	       (irritant s3result |S3/Forbidden| S3/OP
-			 op " " "s3://" bucket
-			 (if (has-prefix path "/") "" "/") path
-			 (if (or (not opts) (empty? (getkeys opts)))
-			     " (no opts)"
-			     (printout "\n\t" (pprint opts)))))
-	      (else (irritant s3result |S3/Failure| S3/OP
-			      op " " "s3://" bucket
-			      (if (has-prefix path "/") "" "/")
-			      path
-			      (if (or (not opts) (empty? (getkeys opts)))
-				  " (no opts)"
-				  (printout "\n\t" (pprint opts)))))))))
+			    (printout "\n\t" (pprint opts)))))))
+
+(define (s3-warn status request response op bucket path opts)
+  (cond ((= status 404)
+	 (lognotice |S3/NotFound|
+	   op " " (glom "s3://" bucket
+		    (if (has-prefix path "/") "" "/")
+		    path)
+	   (if (or (not opts) (empty? (getkeys opts)))
+	       " (no opts)"
+	       (printout "\n\t" (pprint opts)))
+	   "\nREQ\t" (pprint request)
+	   "\nRESP\t" (pprint response)))
+	((= status 403)
+	 (logwarn |S3/Forbidden|
+	   op " " (glom "s3://" bucket "/" path)
+	   (if (or (not opts) (empty? (getkeys opts)))
+	       " (no opts)"
+	       (printout "\n\t" (pprint opts)))
+	   "\nREQ\t" (pprint request)
+	   "\nRESP\t" (pprint response)))
+	(else
+	 (logwarn |S3/Failure|
+	   op " " (glom "s3://" bucket
+		    (if (has-prefix path "/") "" "/")
+		    path) " "
+	   (try (get request 'header) "")
+	   (if (or (not opts) (empty? (getkeys opts)))
+	       " (no opts)"
+	       (printout "\n\t" (pprint opts)))
+	   "\nREQ\t" (pprint request)
+	   "\nRESP\t" (pprint response)))))
 
 (define (s3/expected response)
   (->string (map (lambda (x) (integer->char (string->number x 16)))
