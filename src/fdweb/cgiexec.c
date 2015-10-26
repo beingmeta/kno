@@ -105,7 +105,7 @@ static void emit_uri_value(u8_output out,fdtype val)
     fd_uri_output(out,FD_STRDATA(val),FD_STRLEN(val),0,NULL);
   else {
     struct U8_OUTPUT xout; u8_byte buf[256];
-    U8_INIT_OUTPUT_X(&xout,256,buf,0);
+    U8_INIT_OUTPUT_X(&xout,256,buf,U8_FIXED_STREAM);
     fd_unparse(&xout,val);
     u8_putn(out,"%3a",3);
     fd_uri_output(out,xout.u8_outbuf,xout.u8_outptr-xout.u8_outbuf,0,NULL);
@@ -207,7 +207,7 @@ static fdtype intern_compound(u8_string s1,u8_string s2)
 {
   fdtype result=FD_VOID;
   struct U8_OUTPUT tmpout; u8_byte tmpbuf[128];
-  U8_INIT_OUTPUT_X(&tmpout,128,tmpbuf,U8_STREAM_GROWS);
+  U8_INIT_OUTPUT_X(&tmpout,128,tmpbuf,0);
   u8_puts(&tmpout,s1); u8_puts(&tmpout,s2);
   result=fd_parse(tmpout.u8_outbuf);
   u8_close_output(&tmpout);

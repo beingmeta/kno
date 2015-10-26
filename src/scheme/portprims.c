@@ -612,7 +612,7 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
 static fdtype stringout_handler(fdtype expr,fd_lispenv env)
 {
   struct U8_OUTPUT out; fdtype result; u8_byte buf[256];
-  U8_INIT_OUTPUT_X(&out,256,buf,U8_STREAM_GROWS);
+  U8_INIT_OUTPUT_X(&out,256,buf,0);
   result=fd_printout_to(&out,fd_get_body(expr,1),env);
   if (!(FD_ABORTP(result))) {
     fd_decref(result);

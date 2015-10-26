@@ -720,7 +720,7 @@ static fdtype parse_string(U8_INPUT *in)
 {
   fdtype result=FD_VOID; u8_byte buf[256];
   struct U8_OUTPUT out; int c=u8_getc(in);
-  U8_INIT_OUTPUT_X(&out,256,buf,U8_STREAM_GROWS);
+  U8_INIT_OUTPUT_X(&out,256,buf,0);
   while ((c=u8_getc(in))>=0)
     if (c == '"') break;
     else if (c == '\\') {
@@ -1290,7 +1290,7 @@ fdtype fd_parser(u8_input in)
     default:
       if (u8_ispunct(ch)) {
         u8_byte buf[16]; struct U8_OUTPUT out; int nch;
-        U8_INIT_OUTPUT_X(&out,16,buf,0);
+        U8_INIT_OUTPUT_X(&out,16,buf,U8_FIXED_STREAM);
         u8_putc(&out,'#'); u8_putc(&out,ch); nch=u8_getc(in);
         while (u8_ispunct(nch)) {
           u8_putc(&out,nch);

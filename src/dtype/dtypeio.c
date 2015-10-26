@@ -980,7 +980,7 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
   case dt_unicode_short_string: case dt_unicode_string: {
     u8_byte buf[256];
     struct U8_OUTPUT os; unsigned char *scan, *limit; fdtype result;
-    U8_INIT_OUTPUT_X(&os,256,buf,U8_STREAM_GROWS);
+    U8_INIT_OUTPUT_X(&os,256,buf,0);
     scan=bytes; limit=bytes+len;
     while (scan < limit) {
       int c=scan[0]<<8|scan[1]; scan=scan+2;
