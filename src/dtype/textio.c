@@ -331,7 +331,7 @@ static int unparse_choice(U8_OUTPUT *out,fdtype x)
 FD_EXPORT
 /* fd_unparse:
      Arguments: a U8 output stream and a lisp object
-     Returns: void
+     Returns: int
   Emits a printed representation of the object to the stream.
 */
 int fd_unparse(u8_output out,fdtype x)
@@ -373,9 +373,17 @@ int fd_unparse(u8_output out,fdtype x)
   case fd_cons_ptr_type: {/* output cons */
     struct FD_CONS *cons=FD_CONS_DATA(x);
     fd_ptr_type ct=FD_CONS_TYPE(cons);
-    if ((FD_VALID_TYPEP(ct)) && (fd_unparsers[ct]) && (fd_unparsers[ct](out,x)))
-      return 1;
-    else if (fd_unparse_error)
+    if ((FD_VALID_TYPEP(ct)) && (fd_unparsers[ct])) {
+      int uv=fd_unparsers[ct](out,x);
+      if (uv<0) {
+        char buf[128]; int retval;
+        sprintf(buf,"#!%lx (type=0x%x)",(unsigned long)x,ct);
+        u8_log(LOG_WARN,fd_CantUnparse,
+               "fd_unparse handler failed for CONS %s",buf);
+        u8_clear_errors(1);
+        return uv;}
+      else return 1;}
+    if (fd_unparse_error)
       return fd_unparse_error(out,x,_("no handler"));
     else {
       char buf[128]; int retval;
