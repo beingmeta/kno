@@ -49,6 +49,12 @@
 #include <signal.h>
 #endif
 
+#if ((HAVE_SYS_VFS_H)&&(HAVE_STATFS))
+#include <sys/vfs.h>
+#elif ((HAVE_SYS_FSTAT_H)&&(HAVE_STATFS))
+#include <sys/statfs.h>
+#endif
+
 static U8_XINPUT u8stdin;
 static U8_XOUTPUT u8stdout;
 static U8_XOUTPUT u8stderr;
@@ -1492,6 +1498,63 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
   else return fd_type_error("port or stream","getpos_prim",portarg);
 }
 
+/* File system info */
+
+#if (((HAVE_SYS_STATFS_H)||(HAVE_SYS_VSTAT_H))&&(HAVE_STATFS))
+static void statfs_set(fdtype,u8_string,long long int,long long int);
+
+static fdtype fsinfo_prim(fdtype arg)
+{
+  u8_string path=FD_STRDATA(arg); struct statfs info;
+  char *usepath; int retval;
+  if (u8_file_existsp(path))
+    usepath=u8_tolibc(path);
+  else {
+    u8_string abs=u8_abspath(path,NULL);
+    u8_string dir=u8_dirname(abs);
+    usepath=u8_tolibc(dir);
+    u8_free(abs); u8_free(dir);}
+  retval=statfs(usepath,&info);
+  if (((char *)path)!=usepath) u8_free(usepath);
+  if (retval) {
+    u8_graberr(-1,"fsinfo_prim",u8_strdup(path));
+    return FD_ERROR_VALUE;}
+  else {
+    fdtype result=fd_init_slotmap(NULL,0,NULL);
+    statfs_set(result,"BLOCKSIZE",info.f_bsize,1);
+    statfs_set(result,"TOTAL-BLOCKS",info.f_blocks,1);
+    statfs_set(result,"FREE-BLOCKS",info.f_bfree,1);
+    statfs_set(result,"AVAILABLE-BLOCKS",info.f_bavail,1);
+    statfs_set(result,"USED-BLOCKS",info.f_blocks-info.f_bavail,1);
+    statfs_set(result,"TOTAL",info.f_blocks,info.f_bsize);
+    statfs_set(result,"FREE",info.f_bfree,info.f_bsize);
+    statfs_set(result,"AVAILABLE",info.f_bavail,info.f_bsize);
+    statfs_set(result,"USED",info.f_blocks-info.f_bavail,info.f_bsize);
+    statfs_set(result,"FSTYPE",info.f_type,1);
+    statfs_set(result,"FSID",info.f_type,1);
+    statfs_set(result,"NAMELEN",info.f_namelen,1);
+    return result;}
+}
+static void statfs_set(fdtype r,u8_string name,
+                       long long int val,long long int mul)
+{
+  fdtype slotid=fd_intern(name);
+  fdtype lval=FD_INT2DTYPE(val);
+  if (mul!=1) {
+    fdtype mulval=FD_INT2DTYPE(mul);
+    fdtype rval=fd_multiply(lval,mulval);
+    fd_decref(mulval); fd_decref(lval);
+    lval=rval;}
+  fd_store(r,slotid,lval);
+  fd_decref(lval);
+}
+#else
+static fdtype fsinfo_prim(fdtype arg)
+{
+  return fd_err("statfs unavailable","fsinfo_prim",NULL,FD_VOID);
+}
+#endif
+
 /* Module finding */
 
 static fdtype safe_loadpath=FD_EMPTY_LIST;
@@ -2277,6 +2340,11 @@ FD_EXPORT void fd_init_fileio_c()
            fd_make_cprim3x("READLINK",file_readlink,1,
                            fd_string_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
 
+
+  fd_idefn(fileio_module,
+           fd_make_cprim1x("FSINFO",fsinfo_prim,1,
+                           fd_string_type,FD_VOID));
+  fd_defalias(fileio_module,"STATFS","FSINFO");
 
   fd_idefn(fileio_module,
            fd_make_cprim2x("MKDIR",mkdir_prim,1,

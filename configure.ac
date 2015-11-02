@@ -629,7 +629,7 @@ dnl Some system headers and members
 AC_CHECK_HEADERS(fcntl.h sys/resource.h)
 AC_CHECK_HEADERS(resource.h sys/resource.h)
 AC_CHECK_HEADERS(sys/types.h sys/wait.h sys/stat.h sys/file.h signal.h)
-AC_CHECK_HEADERS(sys/utsname.h)
+AC_CHECK_HEADERS(sys/utsname.h sys/vfs.h sys/statfs.h)
 
 AC_CHECK_MEMBERS([struct rusage.ru_inblock, struct rusage.ru_nvcsw, struct rusage.ru_nivcsw],[],[],
 	         [#include <sys/resource.h>])
@@ -712,6 +712,7 @@ AC_CHECK_FUNCS(mmap)
 AC_CHECK_FUNCS(ftime)
 AC_CHECK_FUNCS(waitpid)
 AC_CHECK_FUNCS(wait4)
+AC_CHECK_FUNCS(statfs)
 AC_CHECK_FUNCS(gettext)
 
 AC_CHECK_FUNCS(geteuid getuid getgid getegid)

@@ -6287,12 +6287,13 @@ fi
 
 done
 
-for ac_header in sys/utsname.h
+for ac_header in sys/utsname.h sys/vfs.h sys/statfs.h
 do :
-  ac_fn_c_check_header_mongrel "$LINENO" "sys/utsname.h" "ac_cv_header_sys_utsname_h" "$ac_includes_default"
-if test "x$ac_cv_header_sys_utsname_h" = xyes; then :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_SYS_UTSNAME_H 1
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
 
 fi
@@ -6669,6 +6670,17 @@ do :
 if test "x$ac_cv_func_wait4" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_WAIT4 1
+_ACEOF
+
+fi
+done
+
+for ac_func in statfs
+do :
+  ac_fn_c_check_func "$LINENO" "statfs" "ac_cv_func_statfs"
+if test "x$ac_cv_func_statfs" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_STATFS 1
 _ACEOF
 
 fi
