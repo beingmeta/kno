@@ -55,7 +55,7 @@
 (define *terminal-block-tags*
    '{p li dt dd h1 h2 h3 h4 h5 h6 h7})
 (define *block-tags*
-  (choice *terminal-block-tags* *wrapper-tags* 'body))
+  (choice *terminal-block-tags* *wrapper-tags* 'body 'div))
 
 (define *head-tags* '{H1 H2 H3 H4 H5 H6 H7})
 (define *void-tags*
@@ -455,6 +455,11 @@
 	    (printout "[" (car a) "]")
 	    (printout "[" (car a) "=" (cdr a) "]"))))))
 
+(define (strip-quotes s)
+  (if (has-prefix s {"'" "\""}) (set! s (slice s 1)))
+  (if (has-suffix s {"'" "\""}) (set! s (slice s 0 -1)))
+  s)
+
 (define selector-pattern
   `{#("." (label classname ,xmlid))
     #("#" (label idname ,xmlid))
@@ -463,7 +468,7 @@
      #("[" (label name ,xmlid #t)
        (opt
 	#((label cmp {"=" "=~"})
-	  (label value (not> "]"))))
+	  (label value (not> "]") ,strip-quotes)))
        "]"))})
 (module-export! 'selector-pattern)
 
@@ -605,7 +610,8 @@
 	  (if (null? (cdr attrib))
 	      (tryif (not (test elt (car attrib))) attrib)
 	      (tryif (not (if (string? (cdr attrib))
-			      (test elt (car attrib) (cdr attrib))
+			      (or (test elt (car attrib) (cdr attrib))
+				  (test elt (car attrib) (parse-arg (cdr attrib))))
 			      (textsearch (cdr attrib) (get elt (car attrib)))))
 		attrib))))))
 (define (selmatch elt sel)
@@ -707,7 +713,9 @@
 	       (set! selected
 		     (if (null? (cdr attrib))
 			 (find-frames index '{has %attribids} (car attrib))
-			 (find-frames index (car attrib) (cdr attrib))))
+			 (find-frames index (car attrib)
+				      (choice (cdr attrib)
+					      (parse-arg (cdr attrib))))))
 	       (if cands (set! cands (intersection cands selected))
 		   (set! cands selected))))
 	   cands))
