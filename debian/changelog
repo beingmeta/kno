@@ -1,3 +1,10 @@
+framerd (3.8.2-60) unstable; urgency=low
+
+  * Fixed small bugs with unparsing
+  * git patch version framerd-3.8.2-198
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 02 Nov 2015 13:07:45 -0500
+
 framerd (3.8.2-59) unstable; urgency=low
 
   * Added FSINFO primitive to get filesystem info (statfs wrapper)
