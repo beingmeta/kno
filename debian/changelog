@@ -1,3 +1,12 @@
+framerd (3.8.2-59) unstable; urgency=low
+
+  * Added FSINFO primitive to get filesystem info (statfs wrapper)
+  * Fixes and extensions to domutils
+  * Use liub8 fixed buffer fixes
+  * git patch version framerd-3.8.2-196
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 02 Nov 2015 12:16:49 -0500
+
 framerd (3.8.2-58) unstable; urgency=low
 
   * Build with new libu8 fixed string bugs
