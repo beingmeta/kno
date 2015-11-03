@@ -110,6 +110,19 @@ table.backtrace tbody.error tr.details td { font-style: italic;}
 table.backtrace tbody.error tr.irritant td {
     background-color: white; font-family: fixed; color: black;} 
 
+tbody div.irritant {
+  margin-left: 6px; font-family: fixed;
+  max-height: 3em; overflow: hidden;
+  color: red;}
+tbody.expanded div.irritant { max-height: inherit; }
+table.backtrace > tbody.eval div.expr {
+    font-family: fixed;
+    white-space: pre;
+    max-height: 5em;
+    overflow: hidden;}
+table.backtrace > tbody.eval.expanded div.expr {
+    max-height: inherit; }
+
 table.backtrace td > table { font-size: 90%;}
 
 table.backtrace > tbody > tr > th {
@@ -121,7 +134,7 @@ table.backtrace > tbody > tr.irritant > th {
 table.backtrace > tbody > tr > td {
     text-align: left; padding-top: 2px;}
 table.backtrace > tbody.eval td.expr {
-    background-color: white; color: black; white-space: pre;}
+    background-color: white; color: black;}
 table.backtrace > tbody.eval td.expr .focus { color: blue; }
 table.backtrace > tbody.call > tr > td {
     background-color: whitesmoke; color: black;}
@@ -138,7 +151,6 @@ table.backtrace.expandall > tbody.eval td.expr,
 table.backtrace > tbody.eval.expanded td.expr span.focus,
 table.backtrace.expandall > tbody.eval td.expr span.focus {
   font-size: inherit; }
-
 
 table.backtrace > tbody.bindings > tr { display: none; }
 table.backtrace > tbody.bindings.expanded > tr,

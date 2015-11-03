@@ -77,7 +77,10 @@
 	     (yname (gp/mkpath root (glom "Y0" (get date 'year))))
 	     (mname (gp/mkpath yname (glom "M" (padnum (1+ (get date 'month)) 2))))
 	     (dname (gp/mkpath mname (glom "D" (padnum (get date 'date) 2))))
-	     (dir (gp/mkpath dname (stringout "BJ" (uuid->string uuid)))))
+	     (dir (gp/mkpath dname (glom (padnum (get date 'hours) 2) ":"
+				     (padnum (get date 'minutes) 2) ":"
+				     (padnum (get date 'seconds) 2)
+				     "-BJ" (uuid->string uuid)))))
 	(when (string? root)
 	  (unless (file-directory? root) (mkdir root #o777))
 	  (unless (file-directory? yname) (mkdir yname #o777))

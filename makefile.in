@@ -468,9 +468,11 @@ exe/fdmanager@suffix@: src/exe/fdmanager.c
 	@$(MSG) MKEXE $@
 
 # Custom rules for making include files with CSS headers
-src/fdweb/xmloutput.o: src/fdweb/backtrace_css.h
+src/fdweb/xmloutput.o: src/fdweb/backtrace_css.h src/fdweb/backtrace_js.h
 src/fdweb/backtrace_css.h: src/fdweb/backtrace.css etc/text2include
 	./etc/text2include FD_BACKTRACE_CSS $< $@
+src/fdweb/backtrace_js.h: src/fdweb/backtrace.js etc/text2include
+	./etc/text2include FD_BACKTRACE_JS $< $@
 
 # This can be helpful for some debugging 
 etc/usememory: etc/usememory.c

@@ -17,9 +17,11 @@ div.error span.details { font-weight: normal; font-style: italic; }
 div.error span.irritant {
   margin-left: 6px; white-space: nowrap;
   color: red;}
-div.error div.irritant {
-  margin-left: 6px; font-family: fixed; white-space: pre;
+tbody div.irritant {
+  margin-left: 6px; font-family: fixed;
+  max-height: 3em; overflow: hidden;
   color: red;}
+tbody.expanded div.irritant { max-height: inherit; }
 
 /* Backtraces */
 
@@ -41,6 +43,9 @@ table.backtrace tbody.error tr.details td { font-style: italic;}
 table.backtrace tbody.error tr.irritant td {
     background-color: white; font-family: fixed; color: black;} 
 
+table.backtrace > tbody.eval td.expr { white-space: normal;}
+table.backtrace > tbody.eval td.expr > * { white-space: pre;}
+
 table.backtrace td > table { font-size: 90%;}
 
 table.backtrace > tbody > tr > th {
@@ -52,7 +57,14 @@ table.backtrace > tbody > tr.irritant > th {
 table.backtrace > tbody > tr > td {
     text-align: left; padding-top: 2px;}
 table.backtrace > tbody.eval td.expr {
-    background-color: white; color: black; white-space: pre;}
+    background-color: white; color: black;}
+table.backtrace > tbody.eval div.expr {
+    font-family: fixed;
+    white-space: pre;
+    max-height: 5em;
+    overflow: hidden;}
+table.backtrace > tbody.eval.expanded div.expr {
+    max-height: inherit; }
 table.backtrace > tbody.eval td.expr .focus { color: blue; }
 table.backtrace > tbody.call > tr > td {
     background-color: whitesmoke; color: black;}
@@ -60,6 +72,10 @@ table.backtrace > tbody.bindings > tr > td {
     background-color: lightskyblue; color: black;}
 table.backtrace > tbody.bindings > tr > td > table.bindings {
     font-family: fixed;}
+tbody.bindings span.var { font-weight: bold; font-family: sans-serif;}
+tbody.bindings table.bindings { display: none;}
+tbody.bindings.expanded table.bindings { display: table;}
+
 table.bindings { }
 table.bindings th.head { text-align: left;}
 table.bindings tr.binding th.var { font-family: sans,sans-serif;}

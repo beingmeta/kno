@@ -24,6 +24,7 @@
 #include "framerd/support.h"
 
 #include "backtrace_css.h"
+#include "backtrace_js.h"
 
 #include "framerd/support.h"
 
@@ -943,7 +944,9 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
     struct U8_OUTPUT tmp; u8_byte *focus_start;
     fdtype focus=get_focus_expr(ex);
     U8_INIT_OUTPUT(&tmp,1024);
-    u8_printf(s,"<tbody class='eval'><tr><th>Eval</th>\n<td class='expr'>");
+    u8_printf(s,
+              "<tbody class='eval'><tr><th>Eval</th>\n"
+              "<td class='expr'>\n<div class='expr'>");
     fd_pprint_focus(&tmp,expr,focus,NULL,0,80,"#@?#","#@?#");
     if ((focus_start=(strstr(tmp.u8_outbuf,"#@?#")))) {
       u8_byte *focus_end=strstr(focus_start+4,"#@?#");
@@ -954,7 +957,7 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
       fd_entify(s,focus_end+4);}
     else fd_entify(s,tmp.u8_outbuf);
     u8_free(tmp.u8_outbuf);
-    u8_printf(s,"</td></tr></tbody>\n");}
+    u8_printf(s,"\n</div>\n</td></tr></tbody>\n");}
   else if (ex->u8x_context==fd_apply_context) {
     fdtype entry=exception_data(ex);
     int i=1, len=FD_VECTOR_LENGTH(entry);
@@ -1032,9 +1035,13 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
         u8_printf(s,"<tr><th>Env</th><td>%k (no bindings)</td></tr>\n",head);
       else {
         if (head)
-          u8_printf(s,"<tr><th>Env</th><td>%k</td></tr>\n<tr><th></th><td>\n",head);
-        else u8_puts(s,"<tr><th>Env</th><td>\n");
-        u8_puts(s,"<table class='bindings'>\n");
+          u8_printf(s,"<tr><th>Env</th><td>%k ",head);
+        else u8_puts(s,"<tr><th>Env</th><td>");
+        {FD_DO_CHOICES(key,keys) {
+            if (FD_SYMBOLP(key))
+              u8_printf(s,"<span class='var'>%s</span> ",FD_SYMBOL_NAME(key));
+            else u8_printf(s,"<span class='var'>%q</span> ",key);}}
+        u8_puts(s,"</td></tr>\n<tr><th></th><td>\n<table class='bindings'>\n");
         {FD_DO_CHOICES(key,keys) {
             fdtype val=fd_get(entry,key,FD_VOID);
             u8_puts(s,"\n\t<tr class='binding'>");
@@ -1056,9 +1063,9 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
     if (ex->u8x_details)
       u8_printf(s,"\n<tr class='details'><th>details</th><td>%k</td></tr>",ex->u8x_details);
     if (!(FD_VOIDP(irritant))) {
-      u8_puts(s,"<tr class='irritant'><th>irritant</th>\n");
-      output_value(s,irritant,"td","irritant");
-      u8_printf(s,"</tr>\n");}
+      u8_puts(s,"<tr class='irritant'><th>irritant</th>\n<td>");
+      output_value(s,irritant,"div","irritant");
+      u8_printf(s,"\n</td></tr>\n");}
     u8_puts(s,"</tbody>\n");}
 }
 
@@ -1072,7 +1079,7 @@ static void output_backtrace_entries(u8_output s,u8_exception ex)
 static void output_backtrace(u8_output s,u8_exception ex)
 {
   u8_exception scan=ex;
-  u8_printf(s,"<table class='backtrace'>\n");
+  u8_printf(s,"<table class='backtrace' onclick='tbodyToggle(event);'>\n");
   output_backtrace_entries(s,scan);
   u8_printf(s,"\n</table>\n");
 }
@@ -1110,6 +1117,8 @@ void fd_xhtmldebugpage(u8_output s,u8_exception ex)
     if (e->u8x_details) u8_printf(s," (%k)",e->u8x_details);
     u8_printf(s,"</title>\n");}
   u8_printf(s,"\n<style type='text/css'>%s</style>\n",FD_BACKTRACE_CSS);
+  u8_printf(s,"\n<script language='javascript'>\n%s\n</script>\n",
+            FD_BACKTRACE_JS);
   if (customstylesheet==0)
     u8_printf(s,"<link rel='stylesheet' type='text/css' href='%s'/>\n",
               error_stylesheet);
