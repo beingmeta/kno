@@ -99,8 +99,15 @@
      "SignedHeaders=" (getopt req 'signed-headers) ", "
      "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
   (info%watch "AWS/V4/get" endpoint args)
-  (cons (urlget (scripturl+ endpoint args) curl)
-	req))
+  (let* ((err (getopt req 'v4err v4err))
+	 (url (scripturl+ endpoint args))
+	 (result (urlget url curl))
+	 (status (and result (try (get result 'response) #f))))
+    (if (and err status (or (not (number? status)) (not (>= 299 status 200))))
+	(irritant (cons result req)
+		  |AWS/V4/Error| aws/v4/get
+		  "endpoint=" endpoint ", url=" url ", curl=" curl)
+	(cons result req))))
 
 (define (aws/v4/op req op endpoint (args #[]) (headers #[]) 
 		   (payload #f) (ptype #f)
