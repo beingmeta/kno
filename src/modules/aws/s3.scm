@@ -327,7 +327,15 @@
 		response))))
 
 (define (s3-error status s3result op bucket path opts)
-  (cond ((= status 404)
+  (cond ((not status)
+	 (irritant s3result |S3/Failure| S3/OP
+		   op " " "s3://" bucket
+		   (if (has-prefix path "/") "" "/")
+		   path
+		   (if (or (not opts) (empty? (getkeys opts)))
+		       " (no opts)"
+		       (printout "\n\t" (pprint opts)))))
+	((= status 404)
 	 (irritant s3result |S3/NotFound| S3/OP
 		   op " " "s3://" bucket
 		   (if (has-prefix path "/") "" "/") path
