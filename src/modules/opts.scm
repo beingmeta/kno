@@ -4,7 +4,7 @@
 (in-module 'opts)
 
 (module-export! '{opt/set! opt/add! opt/cache opt/try
-		  mergeopts saveopt checkopts
+		  mergeopts saveopt checkopts opts/get
 		  setopt! setopt+!
 		  printopts})
 
@@ -27,6 +27,12 @@
 	  (set! val (getopt settings optname))
 	  (set! found #t))))
     (tryif found val)))
+
+(defambda (optsget opt dflt optslist)
+  (if (null? optslist) dflt
+      (getopt (car optslist) opt
+	      (optsget opt dflt (cdr optslist)))))
+(defambda (opts/get opt dflt . optslist) (optsget opt dflt optslist))
 
 (defambda (mergeopts . settings)
   (if (null? settings) (fail)
