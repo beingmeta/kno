@@ -8,7 +8,10 @@
 
 (define-init %loglevel %notice%)
 
-(module-export! '{aws/v4/prepare aws/v4/get aws/v4/op}) ;; aws/v4/post
+(define-init v4err #f)
+(varconfig! aws:v4err v4err)
+
+(module-export! '{aws/v4/prepare aws/v4/get aws/v4/op v4err}) ;; aws/v4/post
 (module-export! '{derive-key})
 
 (define default-region "us-east-1")
@@ -148,16 +151,25 @@
 		   " of " (or ptype "stuff"))
 		 "no payload")
 	     "\n  url: " url "\n  curl: " curl)
-    (cons (if (equal? op "GET")
-	      (urlget url curl)
-	      (if (equal? op "HEAD")
-		  (urlhead url curl)
-		  (if (equal? op "POST")
-		      (urlpost url curl (or payload ""))
-		      (if (equal? op "PUT")
-			  (urlput url (or payload "") ptype curl)
-			  (urlget url curl)))))
-	  req)))
+    (let* ((result
+	    (if (equal? op "GET")
+		(urlget url curl)
+		(if (equal? op "HEAD")
+		    (urlhead url curl)
+		    (if (equal? op "POST")
+			(urlpost url curl (or payload ""))
+			(if (equal? op "PUT")
+			    (urlput url (or payload "") ptype curl)
+			    (urlget url curl))))))
+	   (err (getopt req 'v4err v4err))
+	   (status (get result 'response)))
+      (if (and err status (not (equal? op "HEAD"))
+	       (not (>= 299 status 200)))
+	  (irritant (cons result req)
+		    |AWS/V4/Error| aws/v4/op
+		    "op=" op ", endpoint=" endpoint ", "
+		    "url=" url ", curl=" curl)
+	  (cons result req)))))
 
 ;;; GENERATING KEYS, ETC
 
