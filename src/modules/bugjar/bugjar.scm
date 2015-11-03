@@ -66,7 +66,10 @@
 	 (daily (stringout "Y0" (get date 'year) "/"
 		  "M" (padnum (1+ (get date 'month)) 2) "/"
 		  "D" (padnum (get date 'date) 2)))
-	 (dir (mkpath daily (stringout "BJ" (uuid->string uuid)))))
+	 (dir (mkpath daily (glom (padnum (get date 'hours) 2) ":"
+			      (padnum (get date 'minutes) 2) ":"
+			      (padnum (get date 'seconds) 2)
+			      "-" (uuid->string uuid)))))
     dir))
 (define (makelogbase uuid (root saveroot))
   (if (or (not (string? root)) (has-prefix root "s3:")
@@ -80,7 +83,7 @@
 	     (dir (gp/mkpath dname (glom (padnum (get date 'hours) 2) ":"
 				     (padnum (get date 'minutes) 2) ":"
 				     (padnum (get date 'seconds) 2)
-				     "-BJ" (uuid->string uuid)))))
+				     "-" (uuid->string uuid)))))
 	(when (string? root)
 	  (unless (file-directory? root) (mkdir root #o777))
 	  (unless (file-directory? yname) (mkdir yname #o777))
@@ -231,7 +234,7 @@
 	 (h2* ((id "RESOURCES")) "Resource data")
 	 (tableout (rusage) #[skipempty #t class "fdjtdata rusage"])
 	 (h2* ((id "BACKTRACE")) "Full backtrace")
-	 (div ((class "backtracediv") (onclick "expandTBODY(event);"))
+	 (div ((class "backtracediv"))
 	   (void (backtrace->html exception)))
 	 (when detailsblock
 	   (h2* ((id "DETAILS")) "Details")
