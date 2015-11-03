@@ -72,7 +72,10 @@ table.backtrace > tbody.bindings > tr > td {
     background-color: lightskyblue; color: black;}
 table.backtrace > tbody.bindings > tr > td > table.bindings {
     font-family: fixed;}
-tbody.bindings span.var { font-weight: bold; font-family: sans-serif;}
+tbody.bindings span.var {
+    font-weight: bold;
+    font-family: sans-serif;
+    text-decoration: underline;}
 tbody.bindings table.bindings { display: none;}
 tbody.bindings.expanded table.bindings { display: table;}
 

@@ -152,6 +152,10 @@ table.backtrace > tbody.eval.expanded td.expr span.focus,
 table.backtrace.expandall > tbody.eval td.expr span.focus {
   font-size: inherit; }
 
+tbody.bindings span.var {
+    font-weight: bold;
+    font-family: sans-serif;
+    text-decoration: underline;}
 table.backtrace > tbody.bindings > tr { display: none; }
 table.backtrace > tbody.bindings.expanded > tr,
 table.backtrace.expandall > tbody.bindings.expanded > tr,
