@@ -1,4 +1,4 @@
-function expandTBODY(evt){
+function tbodyToggle(evt){
     evt=evt||event;
     var target=evt.target||evt.relatedTarget;
     var scan=target; while (scan) {
