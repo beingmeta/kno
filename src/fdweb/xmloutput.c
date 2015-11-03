@@ -1080,6 +1080,8 @@ static void output_backtrace(u8_output s,u8_exception ex)
 {
   u8_exception scan=ex;
   u8_printf(s,"<table class='backtrace' onclick='tbodyToggle(event);'>\n");
+  u8_printf(s,"\n<script language='javascript'>\n%s\n</script>\n",
+            FD_BACKTRACE_JS);
   output_backtrace_entries(s,scan);
   u8_printf(s,"\n</table>\n");
 }
