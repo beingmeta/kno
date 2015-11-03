@@ -1,3 +1,10 @@
+framerd (3.8.2-62) unstable; urgency=low
+
+  * Fixes to HTML backtrace output
+  * git patch version framerd-3.8.2-207
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 03 Nov 2015 12:47:29 -0500
+
 framerd (3.8.2-61) unstable; urgency=low
 
   * Revamp of HTML backtrace output
