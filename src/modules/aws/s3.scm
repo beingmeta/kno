@@ -41,7 +41,7 @@
 (varconfig! s3scheme s3scheme)
 
 (define-init s3errs #t)
-(varconfig! s3errs s3errs config:boolean)
+(varconfig! aws:s3errs s3errs config:boolean)
 
 (define default-usepath #t)
 (varconfig! s3pathstyle default-usepath)
@@ -266,13 +266,13 @@
 	    (else (set! scan (cdr scan)))))
     params))
 
-(define (s3/op op bucket path (opts s3opts)
+(define (s3/op op bucket path (opts #f)
 	       (content "") (ctype) (headers '()) . args)
   (default! ctype
     (path->mimetype path (if (packet? content) "application" "text")))
-  (unless (table? opts) (set! opts `#[errs ,opts]))
   (when (has-prefix bucket {"." "/"}) (set! bucket (slice bucket 1)))
-  (let* ((err (getopt opts 'errs))
+  (if opts (set! opts (cons opts s3opts)) (set! opts s3opts))
+  (let* ((err (getopt opts 'errs (getopt opts 's3errs s3errs)))
 	 (retries (getopt opts 'retry n-retries))
 	 (tries 0)
 	 (wait 1)
@@ -488,23 +488,29 @@
 
 ;;; Operations
 
-(define (s3/write! loc content (ctype #f) (headers) (opts s3errs))
+(define (s3/write! loc content (ctype #f) (headers) (opts #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   (unless ctype
     (set! ctype
 	  (path->mimetype (s3loc-path loc)
 			  (if (packet? content) "application" "text"))))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
   (when (not content) (error |NoContent| "No content to S3/WRITE"))
   (debug%watch
       (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc)
 	opts content ctype headers)
     loc ctype headers))
 
-(define (s3/delete! loc (headers) (opts s3errs))
+(define (s3/delete! loc (headers) (opts #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   ;; '(("x-amx-acl" . "public-read"))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
   (s3/op "DELETE" (s3loc-bucket loc)
 	 (s3loc-path loc) opts "" #f headers))
 
@@ -583,17 +589,15 @@
 		     (else
 		      (set! headcache (make-hashtable))))))
 
-(define (s3loc/get+ loc (text #t) (headers) (opts s3opts))
+(define (s3loc/get+ loc (text #t) (headers) (opts #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (default! opts
-    (if (exists? (get (s3loc/opts loc) 'err))
-	#[errs #t]
-	s3opts))
-  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
   (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
 		opts "" "text" headers))
-	 (err (getopt opts 'errs s3errs))
+	 (err (getopt opts 'errs (getopt opts 's3errs s3errs)))
 	 (status (get req 'response)))
     (when headcache
       (let ((copy (deep-copy req)))
@@ -665,17 +669,15 @@
 
 ;;; Basic S3 network write methods
 
-(define (s3loc/put loc content (ctype) (headers) (opts s3opts))
+(define (s3loc/put loc content (ctype) (headers) (opts #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! ctype
     (path->mimetype (s3loc-path loc)
 		    (if (packet? content) "application" "text")))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (default! opts
-    (if (exists? (get (s3loc/opts loc) 'err))
-	#[errs #t]
-	s3opts))
-  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
   (when (testopt opts 'headers)
     (set! headers (append (getopt opts 'headers) headers)))
   (when (not content) (error |NoContent| "No content to S3LOC/PUT"))
@@ -683,18 +685,16 @@
     content ctype headers))
 (define s3/put s3loc/put)
 
-(define (s3loc/copy! from to (opts s3opts) (inheaders #f) (outheaders #f))
+(define (s3loc/copy! from to (opts #f) (inheaders #f) (outheaders #f))
   (when (string? to) (set! to (->s3loc to)))
   (when (string? from) (set! from (->s3loc from)))
   (unless inheaders
     (set! inheaders (try (get (s3loc/opts from) 'headers) '())))
   (unless outheaders
     (set! outheaders (try (get (s3loc/opts to) 'headers) '())))
-  (default! opts
-    (if (exists? (get (s3loc/opts to) 'err))
-	#[errs #t]
-	s3opts))
-  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts to) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts to) s3opts)  s3opts)))
 
   (when (testopt opts 'inheaders)
     (set! inheaders (append (getopt opts 'inheaders) inheaders)))
@@ -717,11 +717,13 @@
 	     ,@outheaders))))
 (define s3/copy! s3loc/copy!)
 
-(define (s3loc/link! src loc (opts s3opts))
+(define (s3loc/link! src loc (opts #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   (when (and (string? src) (not (has-prefix src {"http:" "https:" "ftp:"})))
     (set! src (->s3loc src)))
-  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
   (let* ((head (tryif (s3loc? src) (s3loc/head src)))
 	 (ctype (try (get head 'content-type)
 		     (path->mimetype
@@ -812,10 +814,12 @@
 
 ;;; Working with S3 'dirs'
 
-(define (s3/list loc (headers) (opts s3opts) (next #f))
+(define (s3/list loc (headers) (opts #f) (next #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
   (when (testopt opts 'headers)
     (set! headers (append headers (getopt opts 'headers))))
   (let* ((req (list-chunk loc headers opts "/" next))
@@ -831,12 +835,14 @@
      (tryif next (s3/list loc headers opts next)))))
 (module-export! 's3/list)
 
-(define (s3/list+ loc (headers) (opts s3opts) (next #f))
+(define (s3/list+ loc (headers) (opts #f) (next #f))
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
   (when (testopt opts 'headers)
     (set! headers (append headers (getopt opts 'headers))))
-  (when (not (table? opts)) (set! opts `#[errs ,opts]))
   (let* ((req (list-chunk loc headers opts "/" next))
 	 (content (reject (elts (xmlparse (get req '%content) 'data)) string?))
 	 (next (try (get content 'nextmarker) #f)))
@@ -855,9 +861,11 @@
 
 ;;; Recursive deletion
 
-(define (s3/axe! loc (headers '()) (opts s3opts) (pause (config 's3:pause #f)))
+(define (s3/axe! loc (headers '()) (opts #f) (pause (config 's3:pause #f)))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
   (when (testopt opts 'headers)
     (set! headers (append headers (getopt opts 'headers))))
   (let ((paths (s3/list loc '() opts)))
@@ -873,13 +881,15 @@
 (define (get-tail-dir string)
   (slice (gather #("/" (not> "/") "/" (eos)) string) 1))
 
-(define (s3/copy*! from to (opts s3opts)
+(define (s3/copy*! from to (opts #f)
 		   (inheaders #f) (outheaders #f) 
 		   (pause (config 's3:pause #f))
 		   (listheaders '()))
   (when (string? from) (set! from (->s3loc from)))
   (when (string? to) (set! to (->s3loc to)))
-  (when (not (table? opts)) (set! opts `#[errs ,opts]))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts to) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts to) s3opts)  s3opts)))
   (unless inheaders
     (set! inheaders (try (get (s3loc/opts from) 'headers)
 			 '())))
@@ -914,8 +924,9 @@
 
 (define (s3/push! dir s3loc (match #f) (opts #f))
   (if (string? s3loc) (set! s3loc (->s3loc s3loc)))
-  (let* ((opts (if opts (s3loc/opts s3loc)
-		   (cons opts (s3loc/opts s3loc))))
+  (let* ((opts (if opts
+		   (cons opts (try (cons (s3loc/opts s3loc) s3opts)  s3opts))
+		   (try (cons (s3loc/opts s3loc) s3opts)  s3opts)))
 	 (pause (getopt opts 'pause (config 's3:pause #f)))
 	 (headers (getopt opts 'headers '()))
 	 (nthreads (getopt opts 'threads (config 's3copy:threads 1)))
@@ -976,13 +987,17 @@
 	    "Syncing " mimetype " " (write file)
 	    " to " (s3loc->string loc) ":\n info: " info)
 	  (if (or (fail? info) forcewrite)
-	      (let ((data (filedata file)))
+	      (let ((data (if (and (not encoding) (has-prefix mimetype "text"))
+			      (filestring file)
+			      (filedata file))))
 		(loginfo |S3/push| "Pushing to " loc)
 		(s3/write! loc data (try mimetype "application")
 			   (data-headers data encoding headers))
 		(set+! updated loc)
 		(when pause (sleep pause)))
-	      (let ((data (filedata file)))
+	      (let ((data (if (and (not encoding) (has-prefix mimetype "text"))
+			      (filestring file)
+			      (filedata file))))
 		(if (and (= (get info 'size) (file-size file))
 			 (or (not (getopt opts 'testhash #t))
 			     (not (test info '{hash etag md5}))
@@ -1068,8 +1083,11 @@
 	      (tryif (exists? (textmatcher (cadr rule) (s3loc-path loc)))
 		(textsubst (s3loc-path loc) (cadr rule))))))))
 
-(define (s3loc/content loc (text #t) (headers '()) (opts s3opts))
+(define (s3loc/content loc (text #t) (headers '()) (opts #f))
   (when (string? loc) (set! loc (->s3loc loc)))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
   (try (if text (filestring (s3loc/filename loc))
 	   (filedata (s3loc/filename loc)))
        (let* ((req (s3/op "GET" (s3loc-bucket loc) (s3loc-path loc)
@@ -1135,7 +1153,10 @@
     (s3/op "PUT" bucketname "/" #[errs #t usepath #f]
 	   string "application/json" '() "policy")))
 
-(define (s3/addpolicy! loc add (init-policy policy-template) (opts s3opts))
+(define (s3/addpolicy! loc add (init-policy policy-template) (opts #f))
+  (if opts
+      (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
+      (set! opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
   (let* ((bucket (s3loc-bucket loc))
 	 (path (s3loc-path loc))
 	 (policy (s3/getpolicy bucket)))
