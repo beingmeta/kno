@@ -803,7 +803,9 @@ static fdtype parse_regex(U8_INPUT *in)
   u8_byte opts[16], *optwrite=opts;
   int c=u8_getc(in); U8_INIT_OUTPUT_BUF(&src,128,buf);
   while (c>=0) {
-    if (c!='/') u8_putc(&src,c);
+    if (c=='\\') {
+      c=u8_getc(in); if (c>0) u8_putc(&src,c);}
+    else if (c!='/') u8_putc(&src,c);
     else {
       int mc=u8_getc(in);
       while ((mc<128)&&(u8_isalpha(mc))) {
