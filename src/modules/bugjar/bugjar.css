@@ -1,51 +1,62 @@
-body.fdjtbugreport {
+body.bugjar {
    font-family: sans, sans-serif;
-   margin-top: 4em;}
-body.fdjtbugreport hgroup {}
+   margin-top: 3em;}
 
-body.fdjtbugreport div.navbar {
+body.bugjar div.navbar {
     position: fixed; 
     top: 0px; left: 0px; right: 0px;
     text-align: right;
     background-color: silver;
     border-bottom: solid black 2px;
     height: auto;}
-body.fdjtbugreport div.navbar span.buginfo {
+body.bugjar div.navbar span.buginfo {
     float: left; font-size: 10px; padding-top: 3px; padding-left: 2px;}
-body.fdjtbugreport div.navbar span.bugid:before {
+body.bugjar div.navbar span.bugid:before {
     font-weight: bold; content: "Bug id: ";}
-body.fdjtbugreport div.navbar span.datetime:before {
+body.bugjar div.navbar span.datetime:before {
     font-weight: bold; content: " recorded: ";}
-body.fdjtbugreport div.navbar a {
-    font-size: 24px; padding-left: 2em;
+body.bugjar div.navbar a {
+    font-size: 20px; font-size: 2vw; padding-left: 1em;
     text-decoration: none; font-weight: bold;
     font-variant: small-caps;}
-body.fdjtbugreport div.navbar a:visited { color: blue;}
-body.fdjtbugreport div.navbar a:hover { text-decoration: overline; }
-body.fdjtbugreport div.navbar span.links { white-space: nowrap; }
+body.bugjar div.navbar a:visited { color: blue;}
+body.bugjar div.navbar a:hover { text-decoration: overline; }
+body.bugjar div.navbar span.links {
+    white-space: nowrap; padding-right: 1ex;}
 @media (max-width: 600px) {
-  body.fdjtbugreport div.navbar span.links { white-space: normal; }}
+    body.bugjar { margin-top: 4em; }
+    body.bugjar div.navbar span.links { white-space: normal; }}
 
-hgroup.head h1, hgroup.head h2, hgroup.head h3 {
+div.expands { max-height: 3em; }
+div.expands.expanded { max-height: inherit; }
+
+div.bughead h1, div.bughead h2, div.bughead h3 {
     text-align: right; margin-top: 2px; margin-bottom: 2px;}
-hgroup.head { text-align: right;}
-hgroup.head h1 { font-weight: normal; }
-hgroup.head h1 span.bugid { float: left; font-size: 12px; font-family: fixed;}
-hgroup.head h1 span.datetime { float: left; font-size: 10px; font-family: sans,sans-serif;}
-hgroup.head h1 span.condition { font-weight: bold;}
-hgroup.head h2.detail { font-weight: normal; font-style: italic; }
-hgroup.head h2.irritant {
+div.bughead { text-align: right;}
+
+div.bughead h1 { font-weight: normal; }
+div.bughead h1 span.bugid { float: left; font-size: 12px; font-family: fixed;}
+div.bughead h1 span.datetime { float: left; font-size: 10px; font-family: sans,sans-serif;}
+div.bughead h1 span.condition { font-weight: bold;}
+
+div.bughead h2.detail { font-weight: normal; font-style: italic; }
+div.bughead h2.irritant {
     font-family: fixed; color: red; font-size: 80%;}
-hgroup.head h3.uri {
+
+div.bughead h3 {
     font-family: fixed; font-weight: normal; text-align: left;
     border-bottom: solid black 1px;}
-hgroup.head h3.uri span.scriptname { float: right; font-size: 90%; font-weight: bold;}
-hgroup.head h3.uri span.query { font-style: italic;}
-hgroup.head h3.uri span.query span.qmark { font-weight: bold;}
-body.fdjtbugreport div.main h2 {
+div.bughead h3 .timestamp, div.bughead h3 datetime {
+    float: right; font-family: sans; font-size: 90%;}
+
+div.bughead h3.uri span.scriptname { float: right; font-size: 90%; font-weight: bold;}
+div.bughead h3.uri span.query { font-style: italic;}
+div.bughead h3.uri span.query span.qmark { font-weight: bold;}
+
+body.bugjar div.main h2 {
     padding-top: 32px; text-align: left;
     border-bottom: solid black 2px;}
-body.fdjtbugreport div.main { margin-bottom: 1000px; }
+body.bugjar div.main { margin-bottom: 1000px; }
 
 /* Data tables (from fdjt.css) */
 

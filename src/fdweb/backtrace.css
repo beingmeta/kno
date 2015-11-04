@@ -23,6 +23,9 @@ tbody div.irritant {
   color: red;}
 tbody.expanded div.irritant { max-height: inherit; }
 
+div.expands { max-height: 3em; }
+div.expands.expanded { max-height: inherit; }
+
 /* Backtraces */
 
 table.backtrace {

@@ -14,6 +14,8 @@
 (define bugjar-css (get-component "bugjar.css"))
 (define bugjar-js (get-component "bugjar.js"))
 
+(define datetime markup*fn)
+
 ;;; Configurable
 
 (define-init saveroot
@@ -138,28 +140,31 @@
 	  (xmlblock SCRIPT ((type "text/javascript") (language "javascript"))
 	    (xhtml "\n" (getcontent bugjar-js))))
 	 (stylesheet! "https://s3.amazonaws.com/beingmeta/static/fdjt/fdjt.css")
-	 (body! 'class "fdjtbugreport")
+	 (body! 'class "bugjar")
 	 (htmlheader
 	  (xmlelt "META" http-equiv "Content-type"
 	    content "text/html; charset=utf-8"))
-	 (xmlblock HGROUP ((class "head") (id "HEAD"))
-	   (when (and reqdata (test reqdata 'request_uri))
-	     (let ((base (uribase (get reqdata 'request_uri))))
-	       (h3* ((class "uri"))
-		    (unless (equal? base (get reqdata 'script_name))
-		      (span ((class "scriptname")) (get reqdata 'script_name)))
-		    (if (test reqdata 'https) "https:" "http:")
-		    "//" (get reqdata 'http_host)
-		    (if (or (and (test reqdata 'https)
-				 (not (test reqdata 'server_port 443)))
-			    (and (not (test reqdata 'https))
-				 (not (test reqdata 'server_port 80))))
-			(xmlout ":" (get reqdata 'server_port)))
-		    base
-		    (when (and (exists? (get reqdata 'query_string))
-			       (not (empty-string? (get reqdata 'query_string))))
-		      (span ((class "query"))
-			(span ((class "qmark")) "?") (get reqdata 'query_string))))))
+	 (xmlblock DIV ((class "bughead") (id "HEAD"))
+	   (when (and reqdata (test reqdata '{request_uri taskid}))
+	     (h3* ((class (if (test reqdata 'request_uri) "uri" "taskid")))
+		  (datetime ((class "fdjttime")) (get (uuid-time uuid) 'string))
+		  (if (test reqdata 'request_uri)
+		      (let ((base (uribase (get reqdata 'request_uri))))
+			(unless (equal? base (get reqdata 'script_name))
+			  (span ((class "scriptname")) (get reqdata 'script_name)))
+			(if (test reqdata 'https) "https:" "http:")
+			"//" (get reqdata 'http_host)
+			(if (or (and (test reqdata 'https)
+				     (not (test reqdata 'server_port 443)))
+				(and (not (test reqdata 'https))
+				     (not (test reqdata 'server_port 80))))
+			    (xmlout ":" (get reqdata 'server_port)))
+			base
+			(when (and (exists? (get reqdata 'query_string))
+				   (not (empty-string? (get reqdata 'query_string))))
+			  (span ((class "query"))
+			    (span ((class "qmark")) "?") (get reqdata 'query_string))))
+		      (get reqdata 'taskid))))
 	   (when head
 	     (onerror (xmleval head)
 	       (lambda (x)
@@ -207,6 +212,19 @@
 		       #[skipempty #t class "fdjtdata reqdata"
 			 skip parts maxdata 1024
 			 sortfn #t recur 3]))
+	   (h2* ((id "RESOURCES")) "Resource data")
+	   (tableout (rusage) #[skipempty #t class "fdjtdata rusage"])
+	   (h2* ((id "BACKTRACE")) "Full backtrace")
+	   (div ((class "backtracediv"))
+	     (void (backtrace->html exception)))
+	   (when detailsblock
+	     (h2* ((id "DETAILS")) "Details")
+	     (xmlblock PRE ((class "errdetails"))
+	       (xmlout (error-details exception))))
+	   (when irritantblock
+	     (h2* ((id "IRRITANT")) "Irritant")
+	     (xmlblock PRE ((class "irritant"))
+	       (xmlout (stringout (pprint (error-irritant exception))))))
 	   (doseq (section (reverse sections))
 	     (when (test section 'id)
 	       (h2* ((id (get section 'id)))
@@ -222,22 +240,11 @@
 			(get section 'text)))
 		     ((test section 'expr)
 		      (xmlblock "PRE" ((class (downcase (get section 'id))))
-			(pprint (get section 'expr)))))))
-	   (h2* ((id "RESOURCES")) "Resource data")
-	   (tableout (rusage) #[skipempty #t class "fdjtdata rusage"])
-	   (h2* ((id "BACKTRACE")) "Full backtrace")
-	   (div ((class "backtracediv"))
-	     (void (backtrace->html exception)))
-	   (when detailsblock
-	     (h2* ((id "DETAILS")) "Details")
-	     (xmlblock PRE ((class "errdetails"))
-	       (xmlout (error-details exception))))
-	   (when irritantblock
-	     (h2* ((id "IRRITANT")) "Irritant")
-	     (xmlblock PRE ((class "irritant"))
-	       (xmlout (stringout (pprint (error-irritant exception)))))))))
+			(pprint (get section 'expr))))))))))
     (if webroot
 	(mkpath webroot "backtrace.html")
 	(glom "file://" (gp/mkpath saveroot "backtrace.html")))))
+
+
 
 
