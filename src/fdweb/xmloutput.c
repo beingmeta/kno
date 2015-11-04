@@ -694,7 +694,9 @@ static fdtype get_compound_tag(fdtype tag)
   else return tag;
 }
 
-static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
+static void output_value(u8_output s,fdtype val,
+                         u8_string tag,u8_string cl,
+                         int wrapval)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(val);
   u8_string typename=((FD_VALID_TYPEP(argtype))?(fd_type_names[argtype]):(NULL));
@@ -704,9 +706,11 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
     int preformat=((strchr(data,'\n')!=NULL)||(strchr(data,'\t')!=NULL));
     if (!(tag)) tag="span";
     open_tag(s,tag,cl,typename,(len>256));
+    if (wrapval) u8_puts(s,"\n<div class='expands'>\n");
     if (preformat) u8_puts(s,"\n<pre>\n“"); else u8_puts(s,"“");
     entify(s,data);
     if (preformat) u8_puts(s,"”\n</pre>\n"); else u8_puts(s,"”");
+    if (wrapval) u8_puts(s,"\n</div>\n");
     u8_printf(s,"</%s>",tag);}
   else {
     struct U8_OUTPUT out; int len;
@@ -725,7 +729,7 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
         u8_puts(s,"\n\t<tr>");
         if (i==0) u8_puts(s,"<th class='delimiter open'>#(</th>");
         else u8_printf(s,"<th class='count'>#%d</th>",i);
-        output_value(s,FD_VECTOR_REF(val,i),"td",NULL);
+        output_value(s,FD_VECTOR_REF(val,i),"td",NULL,1);
         if (i==(len-1))
           u8_printf(s,"<th class='delimiter close'>)</th>",len);
         else if (i==0)
@@ -747,7 +751,7 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
             u8_puts(s,"<th class='delimiter open'>{</th>");
           else u8_puts(s,"<th class='delimiter open'>#{</th>");}
         else u8_printf(s,"<th class='count'>#%d</th>",count);
-        output_value(s,x,"td",NULL); count++;
+        output_value(s,x,"td",NULL,1); count++;
         if (count==size)
           u8_puts(s,"<th class='delimiter close'>}</th></tr>");
         else if (count==1)
@@ -765,13 +769,13 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
         u8_puts(s,"\n\t<tr>");
         if (count==0) u8_puts(s,"<th class='delimiter open'>(</th>");
         else u8_printf(s,"<th class='count'>#%d</th>",count);
-        output_value(s,car,"td",NULL);
+        output_value(s,car,"td",NULL,1);
         if (atend) u8_puts(s,"<th class='delimiter close'>)</th>");
         else u8_puts(s,"<th></th>");
         scan=FD_CDR(scan); count++;}
       if (!(FD_EMPTY_LISTP(scan))) {
         u8_puts(s,"\n\t<tr><th class='delimiter'>.</th>");
-        output_value(s,scan,"td","improper");
+        output_value(s,scan,"td","improper",1);
         u8_puts(s,"<th class='delimiter close'>)</th></tr>");}
       u8_puts(s,"\n\t</table>\n");
       if (tag) u8_printf(s,"</%s>\n",tag);}
@@ -788,8 +792,8 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
         u8_puts(s,"\n\t<tr>");
         if (count==0) u8_puts(s,"<th class='delimiter open'>#[</th>");
         else u8_printf(s,"<th class='count'>#%d</th>",count);
-        output_value(s,key,"th","key");
-        output_value(s,keyval,"td","value");
+        output_value(s,key,"th","key",0);
+        output_value(s,keyval,"td","value",1);
         if ((count+1)==size)
           u8_printf(s,"<th class='delimiter close'>]</th>");
         else if (count==0)
@@ -825,7 +829,7 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
         u8_printf(s,"<td>%lk</td><th></th></tr>",ctag);
         while (i<n) {
           u8_printf(s,"\n<tr><th class='count'>#%d</th>",i);
-          output_value(s,data[i],"td","compoundelt");
+          output_value(s,data[i],"td","compoundelt",1);
           i++;
           if (i>=n)
             u8_puts(s,"<th class='delimiter close'>)</th></tr>");
@@ -841,7 +845,7 @@ static void output_value(u8_output s,fdtype val,u8_string tag,u8_string cl)
 }
 
 FD_EXPORT void fd_dtype2html(u8_output s,fdtype v,u8_string tag,u8_string cl){
-  output_value(s,v,tag,cl);}
+  output_value(s,v,tag,cl,1);}
 
 /* XHTML error report */
 
@@ -978,7 +982,7 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
       else u8_puts(s,"</span>");
       while (i<len) {
         u8_puts(s,"\n\t");
-        output_value(s,FD_VECTOR_REF(entry,i),"span","param");
+        output_value(s,FD_VECTOR_REF(entry,i),"span","param",1);
         i++;}
       u8_puts(s,"\n</td></tr></tbody>\n");}
     else if (htype==fd_sproc_type) {
@@ -1006,17 +1010,17 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
         if (isopt)
           u8_puts(s," <span class='param optional'>");
         else u8_puts(s," <span class='param'>");
-        output_value(s,FD_VECTOR_REF(entry,i),"span","value");
+        output_value(s,FD_VECTOR_REF(entry,i),"span","value",1);
         if (!(FD_VOIDP(argname))) {
-          u8_puts(s," "); output_value(s,argname,"span","name");}
+          u8_puts(s," "); output_value(s,argname,"span","name",0);}
         i++;}
       u8_puts(s,"\n</td></tr></tbody>\n");}
     else {
       u8_puts(s,"<tbody class='call'><tr><th>Call</th><td>");
-      output_value(s,FD_VECTOR_REF(entry,0),"span","operator");
+      output_value(s,FD_VECTOR_REF(entry,0),"span","operator",0);
       while (i<len) {
         u8_puts(s," ");
-        output_value(s,FD_VECTOR_REF(entry,i),"span","param");
+        output_value(s,FD_VECTOR_REF(entry,i),"span","param",1);
         i++;}
       u8_puts(s,"</td></tr></tbody>\n");}}
   else if ((ex->u8x_context) && (ex->u8x_context[0]==':')) {
@@ -1045,8 +1049,8 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
         {FD_DO_CHOICES(key,keys) {
             fdtype val=fd_get(entry,key,FD_VOID);
             u8_puts(s,"\n\t<tr class='binding'>");
-            output_value(s,key,"th","var");
-            output_value(s,val,"td","val");
+            output_value(s,key,"th","var",0);
+            output_value(s,val,"td","val",1);
             u8_puts(s,"</tr>");
             fd_decref(val);}}
         fd_decref(keys);
@@ -1064,7 +1068,7 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
       u8_printf(s,"\n<tr class='details'><th>details</th><td>%k</td></tr>",ex->u8x_details);
     if (!(FD_VOIDP(irritant))) {
       u8_puts(s,"<tr class='irritant'><th>irritant</th>\n<td>");
-      output_value(s,irritant,"div","irritant");
+      output_value(s,irritant,"div","irritant expands",0);
       u8_printf(s,"\n</td></tr>\n");}
     u8_puts(s,"</tbody>\n");}
 }
@@ -1791,7 +1795,7 @@ static fdtype obj2html_prim(fdtype obj,fdtype tag)
   else if (FD_SYMBOLP(tag)) tagname=FD_SYMBOL_NAME(tag);
   else if ((FD_VOIDP(tag))||(FD_FALSEP(tag))) {}
   else return fd_type_error("HTML tag.class","obj2html_prim",tag);
-  output_value(s,obj,tagname,classname);
+  output_value(s,obj,tagname,classname,1);
   return FD_VOID;
 }
 
