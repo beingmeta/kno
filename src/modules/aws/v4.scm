@@ -106,12 +106,14 @@
     (if (and err status (or (not (number? status)) (not (>= 299 status 200))))
 	(irritant (cons result req)
 		  |AWS/V4/Error| aws/v4/get
-		  "endpoint=" endpoint ", url=" url ", curl=" curl)
+		  "endpoint=" endpoint "\nurl=" url "\ncurl=" curl)
 	(cons result req))))
 
-(define (aws/v4/op req op endpoint (args #[]) (headers #[]) 
+(define (aws/v4/op req op endpoint
+		   (args #[]) (headers #[]) (opts #[])
 		   (payload #f) (ptype #f)
-		   (curl (getcurl)) (date (gmtimestamp)))
+		   (curl (getcurl))
+		   (date (gmtimestamp)))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
@@ -174,8 +176,8 @@
 	       (not (>= 299 status 200)))
 	  (irritant (cons result req)
 		    |AWS/V4/Error| aws/v4/op
-		    "op=" op ", endpoint=" endpoint ", "
-		    "url=" url ", curl=" curl)
+		    "\nop=" op "\nendpoint=" endpoint ", "
+		    "\nurl=" url "\ncurl=" curl)
 	  (cons result req)))))
 
 ;;; GENERATING KEYS, ETC
