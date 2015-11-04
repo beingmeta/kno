@@ -1431,8 +1431,10 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
     else if (datalevel)
       return fd_test(f,pred,val);
     else return fd_frame_test(f,pred,val);}
-  else if ((FD_TABLEP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred))))
-    return fd_test(f,pred,val);
+  else if ((FD_TABLEP(f)) && ((FD_SYMBOLP(pred)) || (FD_OIDP(pred)))) {
+    if ((!datalevel)&&(FD_PRIM_TYPEP(val,fd_regex_type)))
+      return test_relation_regex(f,pred,val);
+    else return fd_test(f,pred,val);}
   else if (FD_TABLEP(pred))
     return fd_test(pred,f,val);
   else if (FD_APPLICABLEP(pred)) {
