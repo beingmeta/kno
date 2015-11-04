@@ -899,17 +899,19 @@
       (set! opts (cons opts (try (cons (s3loc/opts to) s3opts)  s3opts)))
       (set! opts (try (cons (s3loc/opts to) s3opts)  s3opts)))
   (unless inheaders
-    (set! inheaders (try (get (s3loc/opts from) 'headers)
-			 '())))
+    (set! inheaders (try (getopt (s3loc/opts from) 'headers)
+			 (getopt opts 'headers '()))))
   (unless outheaders
-    (set! outheaders (try (get (s3loc/opts to) 'headers)
-			  '())))
+    (set! outheaders (try (get (s3loc/opts from) 'headers)
+			  (getopt opts 'headers '()))))
   (unless listheaders
     (set! listheaders (try (get (s3loc/opts from) 'headers)
-			   '())))
+			   (getopt opts 'headers '()))))
   
   (when (testopt opts 'inheaders)
     (set! listheaders (append listheaders (getopt opts 'inheaders))))
+  (when (testopt opts 'outheaders)
+    (set! listheaders (append outheaders (getopt opts 'outheaders))))
   (when (testopt opts 'listheaders)
     (set! listheaders (append listheaders (getopt opts 'listheaders))))
 
@@ -937,7 +939,7 @@
 		   (try (cons (s3loc/opts s3loc) s3opts)  s3opts)))
 	 (pause (getopt opts 'pause (config 's3:pause #f)))
 	 (headers (getopt opts 'headers '()))
-	 (nthreads (getopt opts 'threads (config 's3copy:threads 1)))
+	 (nthreads (getopt opts 'threads (config 's3:pushthreads 1)))
 	 (forcewrite (getopt opts 'writeall))
 	 (%loglevel (getopt opts 'loglevel %loglevel)))
     (let* ((s3info (s3/list+ s3loc))
