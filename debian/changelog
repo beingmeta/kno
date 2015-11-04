@@ -1,3 +1,11 @@
+framerd (3.8.2-64) unstable; urgency=low
+
+  * Fixed bugs with AWS retry logic
+  * Improved bugjar and backtrace display
+  * git patch version framerd-3.8.2-216
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 04 Nov 2015 09:29:06 -0500
+
 framerd (3.8.2-63) unstable; urgency=low
 
   * Bug fixes and better error catching for AWS
