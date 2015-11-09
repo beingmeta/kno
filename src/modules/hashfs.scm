@@ -10,6 +10,7 @@
 
 (module-export! '{hashfs? hashfs/open hashfs/save!
 		  hashfs/get hashfs/get+ hashfs/info
+		  hashfs/list hashfs/list+
 		  hashfs/commit!
 		  hashfs/string})
 
@@ -55,9 +56,31 @@
 
 (define (hashfs/info hashfs path)
   (unless (has-prefix path "/") (set! path (glom "/" path)))
-  `#[path ,(hashfs/string hashfs path)
+  `#[path ,path gpath (gp/mkpath hashfs path)
+     gpathstring (hashfs/string hashfs path)
      ctype ,(get (get (hashfs-files hashfs) path) 'ctype)
      modified ,(get (get (hashfs-files hashfs) path) 'ctype)])
+
+(define (hashfs/list hashfs (match #f))
+  (let* ((paths (pickstrings (getkeys (hashfs-files hashfs))))
+	 (matching (if match
+		       (filter-choices (path paths)
+			 (textsearch (qc match) path))
+		       paths)))
+    (for-choices (path matching)
+      (if (has-prefix path "/") (slice  path 1) path))))
+(define (hashfs/list+ hashfs (match #f))
+  (let* ((paths (pickstrings (getkeys (hashfs-files hashfs))))
+	 (matching (if match
+		       (filter-choices (path paths)
+			 (textsearch (qc match) path))
+		       paths)))
+    (for-choices (path matching)
+      `#[path ,(if (has-prefix path "/") (slice  path 1) path)
+	 gpath (gp/mkpath hashfs path)
+	 gpathstring (hashfs/string hashfs path)
+	 ctype ,(get (get (hashfs-files hashfs) path) 'ctype)
+	 modified ,(get (get (hashfs-files hashfs) path) 'ctype)])))
 
 (define (hashfs/commit! hashfs)
   (if (hashfs-source hashfs)
