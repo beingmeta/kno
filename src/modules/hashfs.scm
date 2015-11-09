@@ -5,7 +5,7 @@
 
 ;;; Virtual file system implemented on top of hashtables
 
-(use-module '{mimetable ezrecords gpath})
+(use-module '{mimetable ezrecords texttools gpath})
 (define %used_modules '{ezrecords mimetable})
 
 (module-export! '{hashfs? hashfs/open hashfs/save!
