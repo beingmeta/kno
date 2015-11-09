@@ -726,38 +726,37 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
     return fd_incref(dflt);}
   else if (FD_QCHOICEP(opts))
     return fd_getopt(FD_XQCHOICE(opts)->choice,key,dflt);
-  else while (!(FD_VOIDP(opts)))
-    if (FD_PAIRP(opts)) {
-      fdtype car=FD_CAR(opts);
-      if (FD_SYMBOLP(car)) {
-        if (FD_EQ(key,car)) return FD_TRUE;}
-      else if (FD_PAIRP(car)) {
-        if (FD_EQ(FD_CAR(car),key))
-          return fd_incref(FD_CDR(car));
-        else {
-          fdtype value=fd_getopt(car,key,FD_VOID);
-          if (!(FD_VOIDP(value))) return value;}}
-      else if (FD_TABLEP(car)) {
-        fdtype value=fd_get(car,key,FD_VOID);
-        if (!(FD_VOIDP(value))) return value;}
-      else {
-        u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
-      opts=FD_CDR(opts);}
-    else if (FD_SYMBOLP(opts))
-      if (FD_EQ(key,opts)) return FD_TRUE;
-      else return fd_incref(dflt);
-    else if (FD_TABLEP(opts))
-      return fd_get(opts,key,dflt);
-    else if (FD_EMPTY_LISTP(opts)) return fd_incref(dflt);
-    else {
-      u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
-      return fd_incref(dflt);}
+  else while (!(FD_VOIDP(opts))) {
+      if (FD_PAIRP(opts)) {
+        fdtype car=FD_CAR(opts);
+        if (FD_SYMBOLP(car)) {
+          if (FD_EQ(key,car)) return FD_TRUE;}
+        else if (FD_PAIRP(car)) {
+          if (FD_EQ(FD_CAR(car),key))
+            return fd_incref(FD_CDR(car));
+          else {
+            fdtype value=fd_getopt(car,key,FD_VOID);
+            if (!(FD_VOIDP(value))) return value;}}
+        else if (FD_TABLEP(car)) {
+          fdtype value=fd_get(car,key,FD_VOID);
+          if (!(FD_VOIDP(value))) return value;}
+        else if ((FD_FALSEP(car))||(FD_EMPTY_LISTP(car))) {}
+        else return fd_err(WeirdOption,"fd_getopt",NULL,car);
+        opts=FD_CDR(opts);}
+      else if (FD_SYMBOLP(opts))
+        if (FD_EQ(key,opts)) return FD_TRUE;
+        else return fd_incref(dflt);
+      else if (FD_TABLEP(opts))
+        return fd_get(opts,key,dflt);
+      else if ((FD_EMPTY_LISTP(opts))||(FD_FALSEP(opts)))
+        return fd_incref(dflt);
+      else return fd_err(WeirdOption,"fd_getopt",NULL,opts);}
   return fd_incref(dflt);
 }
 
 static int boolopt(fdtype opts,fdtype key)
 {
-  while (!(FD_VOIDP(opts)))
+  while (!(FD_VOIDP(opts))) {
     if (FD_PAIRP(opts)) {
       fdtype car=FD_CAR(opts);
       if (FD_SYMBOLP(car)) {
@@ -766,13 +765,13 @@ static int boolopt(fdtype opts,fdtype key)
         if (FD_EQ(FD_CAR(car),key)) {
           if (FD_FALSEP(FD_CDR(car))) return 0;
           else return 1;}}
+      else if (FD_FALSEP(car)) {}
       else if (FD_TABLEP(car)) {
         fdtype value=fd_get(car,key,FD_VOID);
         if (FD_FALSEP(value)) return 0;
         else if (!(FD_VOIDP(value))) {
           fd_decref(value); return 1;}}
-      else {
-        u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
+      else return fd_err(WeirdOption,"fd_getopt",NULL,car);
       opts=FD_CDR(opts);}
     else if (FD_SYMBOLP(opts))
       if (FD_EQ(key,opts)) return 1;
@@ -782,10 +781,9 @@ static int boolopt(fdtype opts,fdtype key)
       if (FD_FALSEP(value)) return 0;
       else if (FD_VOIDP(value)) return 0;
       else return 1;}
-    else if (FD_EMPTY_LISTP(opts)) return 0;
-    else {
-      u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
-      return 0;}
+    else if ((FD_EMPTY_LISTP(opts))||(FD_FALSEP(opts)))
+      return 0;
+    else return fd_err(WeirdOption,"fd_getopt",NULL,opts);}
   return 0;
 }
 
@@ -803,7 +801,7 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
     return fd_testopt(FD_XQCHOICE(opts)->choice,key,val);
   else if (FD_EMPTY_CHOICEP(opts))
     return 0;
-  else while (!(FD_VOIDP(opts)))
+  else while (!(FD_VOIDP(opts))) {
          if (FD_PAIRP(opts)) {
            fdtype car=FD_CAR(opts);
            if (FD_SYMBOLP(car)) {
@@ -817,8 +815,8 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
            else if (FD_TABLEP(car)) {
              int tv=fd_test(car,key,val);
              if (tv) return tv;}
-           else {
-             u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),car);}
+           else if (FD_FALSEP(car)) {}
+           else return fd_err(WeirdOption,"fd_getopt",NULL,car);
            opts=FD_CDR(opts);}
          else if (FD_SYMBOLP(opts))
            if (FD_EQ(key,opts))
@@ -827,10 +825,9 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
            else return 0;
          else if (FD_TABLEP(opts))
            return fd_test(opts,key,val);
-         else if (FD_EMPTY_LISTP(opts)) return 0;
-         else {
-           u8_log(LOG_WARN,WeirdOption,_("Couldn't handle %q"),opts);
-           return 0;}
+         else if ((FD_EMPTY_LISTP(opts))||(FD_FALSEP(opts)))
+           return 0;
+         else return fd_err(WeirdOption,"fd_getopt",NULL,opts);}
   return 0;
 }
 
