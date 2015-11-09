@@ -1,3 +1,15 @@
+framerd (3.8.2-66) unstable; urgency=low
+
+  * Add charset guessing code to gp/copy!
+  * Add listing functions to hashfs
+  * Make dom/getmanifest return all links when #t syncrels argument
+  * Added imagesizes dom cleanup
+  * Add opts/merge alias for mergeopts
+  * Handle #f and () option objects without complaint
+  * git patch version framerd-3.8.2-230
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 09 Nov 2015 12:47:36 -0500
+
 framerd (3.8.2-65) unstable; urgency=low
 
   * Made pick/reject regex matching work with tables as well as OIDs
