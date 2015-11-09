@@ -20,7 +20,8 @@
    dom/mergespans!})
 
 (module-export! '{dom/cleanup/mergelines dom/cleanup/unipunct
-		  dom/cleanup/mergelines+unipunct})
+		  dom/cleanup/mergelines+unipunct
+		  dom/cleanup/drop-imagesizes!})
 
 ;;; Rules
 
@@ -570,3 +571,27 @@
 		     (hashtable-increment! scores key width)
 		     (add! spans key elt))
 		   (score-styles (cdr content) spans scores (+ len width))))))))
+
+;;;; Dropping image dimensions
+
+(define (dom/cleanup/drop-imagesizes! dom)
+  (let* ((index (get dom 'index))
+	 (images (pick (find-frames index '%xmltag 'img) '{width height})))
+    (when (exists? images)
+      (logdebug PUBTOOL/READEPUB "Dropping explicit dimensions from "
+		(choice-size images) " image(s)."))
+    (do-choices (img images)
+      (when (test img 'width)
+	(drop! index (cons 'width (get img 'width)) img)
+	(add! index (cons 'has 'data-source-width) img)
+	(add! index (cons 'data-source-width (get img 'width)) img)
+	(dom/set! img 'data-source-width (get img 'width))
+	(dom/drop! img 'width)
+	(drop! index (cons 'has 'width) img))
+      (when (test img 'height)
+	(drop! index (cons 'height (get img 'height)) img)
+	(add! index (cons 'has 'data-source-height) img)
+	(add! index (cons 'data-source-height (get img 'height)) img)
+	(dom/set! img 'data-source-height (get img 'height))
+	(dom/drop! img 'height)
+	(drop! index (cons 'has 'height) img)))))
