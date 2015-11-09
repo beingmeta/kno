@@ -751,7 +751,7 @@
 (varconfig! gpath:guess-encoding guess-encoding)
 
 (define charset-patterns
-  {#({(isspace) ";") "character-encoding:" (spaces*) (label charset (not> ";")))
+  {#({";" (isspace)} (spaces*) "character-encoding:" (spaces*) (label charset (not> ";")))
    #((bol) (spaces* )"@charset " (label charset (not (eol))))})
 
 (define (gp/copy! from (to #f) (opts #f))
@@ -763,7 +763,7 @@
 		   (gp/mkpath (getcwd) (gp/basename from))))
 	 (ctype (getopt opts 'ctype (get fetched 'ctype)))
 	 (charset (getopt opts 'charset
-			  (and (exist? ctype) ctype (has-prefix ctype "text/")
+			  (and (exists? ctype) ctype (has-prefix ctype "text/")
 			       (or (get-charset ctype)
 				   (content->charset (get fetched 'content)))))))
     (gp/save! dest (get fetched 'content) ctype charset)))
