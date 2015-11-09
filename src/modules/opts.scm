@@ -4,7 +4,8 @@
 (in-module 'opts)
 
 (module-export! '{opt/set! opt/add! opt/cache opt/try
-		  mergeopts saveopt checkopts opts/get
+		  mergeopts saveopt checkopts
+		  opts/get opts/merge
 		  setopt! setopt+!
 		  printopts})
 
@@ -63,6 +64,7 @@
 			  (cons `#[,(car settings) ,(cdr settings)]
 				(apply mergeopts (cdr settings)))
 			  (apply mergeopts (cdr settings)))))))))
+(define opts/merge mergeopts)
 
 (define (checkopts settings table)
   (if (pair? settings)
