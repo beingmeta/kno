@@ -747,14 +747,32 @@
 
 ;;;; Copying/downloads
 
-(define (gp/copy! from (to #f))
-  (let ((fetched (gp/fetch+ from))
-	(dest (if to
-		  (if (gp/location? to)
-		      (gp/mkpath to (gp/basename from))
-		      (->gpath to))
-		  (gp/mkpath (getcwd) (gp/basename from)))))
-    (gp/save! dest (get fetched 'content) (get fetched 'ctype))))
+(define guess-encoding #t)
+(varconfig! gpath:guess-encoding guess-encoding)
+
+(define charset-patterns
+  {#({(isspace) ";") "character-encoding:" (spaces*) (label charset (not> ";")))
+   #((bol) (spaces* )"@charset " (label charset (not (eol))))})
+
+(define (gp/copy! from (to #f) (opts #f))
+  (let* ((fetched (gp/fetch+ from))
+	 (dest (if to
+		   (if (gp/location? to)
+		       (gp/mkpath to (gp/basename from))
+		       (->gpath to))
+		   (gp/mkpath (getcwd) (gp/basename from))))
+	 (ctype (getopt opts 'ctype (get fetched 'ctype)))
+	 (charset (getopt opts 'charset
+			  (and (exist? ctype) ctype (has-prefix ctype "text/")
+			       (or (get-charset ctype)
+				   (content->charset (get fetched 'content)))))))
+    (gp/save! dest (get fetched 'content) ctype charset)))
+
+(define (content->charset content)
+  (and (string? content) guess-encoding
+       (singleton (get (text->frames charset-patterns content)
+		       'charset))
+       "utf-8"))
 
 ;;;; Writing dtypes to gpaths
 
