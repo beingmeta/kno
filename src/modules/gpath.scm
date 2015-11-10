@@ -83,6 +83,11 @@
 (define *default-dirmode* 0x775) ;; rwxrwxr_x
 (varconfig! gpath:dirmode *default-dirmode*)
 
+(define (root-path path)
+  (if (has-prefix path "/") (slice path 1)
+      (if (has-prefix path "./") (slice path 2)
+	  path)))
+
 ;;; Writing to a gpath
 
 (defambda (gp/write! saveto name content (ctype #f) (charset #f))
@@ -343,10 +348,7 @@
   (default! ctype (guess-mimetype (get-namestring ref)))
   (cond ((s3loc? ref) (s3/get ref))
 	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
-	 (zip/get (car ref)
-		  (if (has-prefix (cdr ref) "/")
-		      (subseq (cdr ref) 1)
-		      (cdr ref))
+	 (zip/get (car ref) (root-path (cdr ref))
 		  (or (not ctype) (not (has-prefix ctype "text")))))
 	((and (pair? ref) (hashtable? (car ref)) (string? (cdr ref)))
 	 (memfile-content (get (car ref) (cdr ref))))
@@ -425,9 +427,7 @@
 (define (gp/fetch+ ref (default-ctype #f))
   (cond ((s3loc? ref) (s3/get+ ref))
 	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
-	 (let* ((realpath (if (has-prefix (cdr ref) "/")
-			      (subseq (cdr ref) 1)
-			      (cdr ref)))
+	 (let* ((realpath (root-path (cdr ref)))
 		(zip (car ref))
 		(ctype (or default-ctype (guess-mimetype (get-namestring ref))))
 		(charset (and ctype (has-prefix ctype "text")
@@ -483,9 +483,7 @@
 (define (gp/info ref (etag #t) (default-ctype #f))
   (cond ((s3loc? ref) (s3/info ref))
 	((and (pair? ref) (zipfile? (car ref)) (string? (cdr ref)))
-	 (let* ((realpath (if (has-prefix (cdr ref) "/")
-			      (subseq (cdr ref) 1)
-			      (cdr ref)))
+	 (let* ((realpath (root-path (cdr ref)))
 		(zip (car ref))
 		(ctype (or default-ctype (guess-mimetype (get-namestring ref))))
 		(charset (and ctype (has-prefix ctype "text")
