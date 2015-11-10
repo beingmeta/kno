@@ -1,3 +1,12 @@
+framerd (3.8.2-67) unstable; urgency=low
+
+  * Added fdcleanup utility script for run/log directories
+  * Fix DOM cleanup smart quotes function
+  * Make gpath handle relative '/' and './' paths correctly
+  * git patch version framerd-3.8.2-235
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 10 Nov 2015 09:45:55 -0500
+
 framerd (3.8.2-66) unstable; urgency=low
 
   * Add charset guessing code to gp/copy!
