@@ -1,3 +1,10 @@
+framerd (3.8.2-68) unstable; urgency=low
+
+  * Added gpath->dtype
+  * git patch version framerd-3.8.2-236
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 12 Nov 2015 11:01:43 -0500
+
 framerd (3.8.2-67) unstable; urgency=low
 
   * Added fdcleanup utility script for run/log directories

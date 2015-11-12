@@ -17,7 +17,7 @@
    gpath->string gp/string gpath->location
    gp:config gpath/handler
    gp/urlfetch gp/urlinfo
-   dtype->gpath
+   dtype->gpath gpath->dtype
    gp/copy!})
 (module-export! '{zip/gopen zip/gclose})
 
@@ -778,3 +778,9 @@
   (do-choices gpath
     (let ((gp (if (string? gpath) (->gpath gpath) gpath)))
       (gp/save! gp (dtype->packet (qc dtype)) "application/dtype"))))
+
+(define (gpath->dtype gpath)
+  (let* ((gp (if (string? gpath) (->gpath gpath) gpath))
+	 (fetched (gp/fetch gp)))
+    (packet->dtype fetched)))
+
