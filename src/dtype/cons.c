@@ -687,7 +687,7 @@ FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
     elts=data;}
   FD_INIT_CONS(ptr,fd_rail_type);
   while (i < len) elts[i++]=FD_VOID;
-  ptr->length=len; ptr->data=data; ptr->freedata=freedata;
+  ptr->length=len; ptr->data=elts; ptr->freedata=freedata;
   return FDTYPE_CONS(ptr);
 }
 
