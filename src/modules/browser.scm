@@ -10,13 +10,13 @@
 (module-export! '{browse})
 
 (define browse-commands
-  #["osx" "open"])
+  #["osx" "open" "darwin" "open"])
 
 (define browser-command
   (try (get browse-commands (downcase (get (uname) 'osname)))
        (which "sensible-browser" "xdg-open" "gnome-open" "kde-open"
-	      "google-chrome" "firefox"))
-  #f)
+	      "google-chrome" "firefox")
+       #f))
 (varconfig! browser browser-command)
 
 (define-init browser-wait 2)
