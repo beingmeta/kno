@@ -1095,7 +1095,9 @@ static int output_keyval(u8_output out,fdtype key,fdtype val,
     if ((kvout.u8_streaminfo&U8_STREAM_OVERFLOW)||
         ((col+(kvout.u8_outptr-kvout.u8_outbuf))>maxcol))
       return -1;
-    else u8_putn(out,kvout.u8_outbuf,kvout.u8_outptr-kvout.u8_outbuf);}
+    else u8_putn(out,kvout.u8_outbuf,kvout.u8_outptr-kvout.u8_outbuf);
+    len=len+kvout.u8_outptr-kvout.u8_outbuf;}
+  return len;
 }
 
 /* Focused pprinting */
