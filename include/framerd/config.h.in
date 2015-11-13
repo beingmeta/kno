@@ -286,6 +286,12 @@
 /* Define if the editline header files exist */
 #undef HAVE_HISTEDIT_H
 
+/* Define if the editline/readline header file exists */
+#undef HAVE_EDITLINE_READLINE_H
+
+/* Define if fdconsole is linking with editline */
+#undef HAVE_LIBEDIT
+
 /* Define if you have the CURL header file */
 #undef HAVE_CURL_CURL_H
 

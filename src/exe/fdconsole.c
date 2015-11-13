@@ -27,8 +27,12 @@
 #include <libu8/u8streamio.h>
 #include <libu8/u8stdio.h>
 
-#if ((FD_WITH_EDITLINE) && (HAVE_HISTEDIT_H))
+#if ((FD_WITH_EDITLINE) && (HAVE_HISTEDIT_H) && (HAVE_LIBEDIT))
 #include <histedit.h>
+#define USING_EDITLINE 1
+static EditLine *editconsole;
+#else
+#define USING_EDITLINE 0
 #endif
 
 #include <stdlib.h>
@@ -47,6 +51,17 @@
 #define EVAL_PROMPT ";; Eval: "
 
 #include "main.c"
+
+static int use_editline=0;
+
+static fdtype equals_symbol;
+
+#if USING_EDITLINE
+static char *editline_promptfn(EditLine *ignored)
+{
+return EVAL_PROMPT;
+}
+#endif
 
 int skip_whitespace(u8_input in)
 {
@@ -283,14 +298,49 @@ static int output_result(u8_output out,fdtype result,
   return 0;
 }
 
-static fdtype top_parse(u8_input in)
+static fdtype stream_read(u8_input in)
 {
-  fdtype expr=fd_parser(in);
+  fdtype expr; int c;
+  u8_puts(outconsole,EVAL_PROMPT); u8_flush(outconsole);
+  c=u8_getc(in);
+  if (c=='=') {
+    fdtype sym=fd_parser(in);
+    if (FD_SYMBOLP(sym)) {
+      return fd_make_nrail(2,equals_symbol,sym);}
+    else {
+      fd_decref(sym);
+      u8_printf(errconsole,_(";; Bad assignment expression!\n"));
+      return FD_VOID;}}
+  else u8_ungetc(in,c);
+  expr=fd_parser(in);
   if ((expr==FD_EOX)||(expr==FD_EOF)) {
     if (in->u8_inptr>in->u8_inbuf)
-      return fd_err(fd_ParseError,"top_parse",NULL,expr);
+      return fd_err(fd_ParseError,"stream_read",NULL,expr);
     else return expr;}
   else return expr;
+}
+
+static fdtype console_read(u8_input in)
+{
+#if USING_EDITLINE
+  if ((use_editline)&&(in==inconsole)) {
+    struct U8_INPUT scan; fdtype expr; int n_bytes;
+    const char *line=el_gets(editconsole,&n_bytes);
+    if (!(line)) return FD_EOF;
+    else if (line[0]=='=') {
+      U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
+      expr=fd_parser(&scan);
+      return fd_make_nrail(2,equals_symbol,expr);}
+    else {
+      U8_INIT_STRING_INPUT(&scan,n_bytes,line);
+      expr=fd_parser(&scan);
+      if (FD_ABORTP(expr)) {
+        el_reset(editconsole);
+        return expr;}
+      else return expr;}}
+  else return stream_read(in);
+#endif
+  return stream_read(in);
 }
 
 static void exit_fdconsole()
@@ -635,6 +685,7 @@ int main(int argc,char **argv)
   setlocale(LC_ALL,"");
   that_symbol=fd_intern("THAT");
   histref_symbol=fd_intern("%HISTREF");
+  equals_symbol=fd_intern("=");
 
   /* Process config fields in the arguments,
      storing the first non config field as a source file. */
@@ -693,27 +744,37 @@ int main(int argc,char **argv)
     dotloader("~/.fdconsole",env);
     dotloader(".fdconsole",env);}
   else u8_message("Warning: .fdconfig/.fdconsole files are suppressed");
+
+#if USING_EDITLINE
+  if (!(getenv("UNDER_EMACS"))) {
+    editconsole=el_init(u8_appid(),stdin,stdout,stderr);
+    el_set(editconsole,EL_PROMPT,editline_promptfn);
+    el_set(editconsole,EL_EDITOR,"emacs");
+    use_editline=1;}
+#endif
+
+  /* This is the REPL value history, not the editline history */
   fd_histinit(0);
-  u8_printf(out,EVAL_PROMPT);
-  u8_flush(out);
-  while ((c=skip_whitespace((u8_input)in))>=0) {
+
+  while (1) { /* ((c=skip_whitespace((u8_input)in))>=0) */
     int start_icache, finish_icache;
     int start_ocache, finish_ocache;
     double start_time, finish_time;
     int histref=-1, stat_line=0, is_histref=0;
     start_ocache=fd_object_cache_load();
     start_icache=fd_index_cache_load();
-    if (c == '=') {
-      fdtype sym=fd_parser((u8_input)in);
-      if (FD_SYMBOLP(sym)) {
-        fd_bind_value(sym,lastval,env);
-        u8_printf(out,_(";; Assigned %s\n"),FD_SYMBOL_NAME(sym));}
-      else u8_printf(out,_(";; Bad assignment expression\n"));
-      u8_printf(out,EVAL_PROMPT);
-      u8_flush(out);
-      fd_decref(sym); continue;}
-    else u8_ungetc(((u8_input)in),c);
-    expr=top_parse(in);
+    u8_flush(out);
+    expr=console_read(in);
+    if (FD_PRIM_TYPEP(expr,fd_rail_type)) {
+      /* Handle commands */
+      fdtype head=FD_VECTOR_REF(expr,0);
+      if ((head==equals_symbol)&&
+          (FD_VECTOR_LENGTH(expr)==2)&&
+          (FD_SYMBOLP(FD_VECTOR_REF(expr,1)))) {
+        fdtype sym=FD_VECTOR_REF(expr,1);
+        fd_bind_value(sym,lastval,env);}
+      else u8_printf(out,_(";; Bad command result %q\n"),expr);
+      continue;}
     if ((FD_EOFP(expr)) || (FD_EOXP(expr))) {
       fd_decref(result); break;}
     /* Clear the buffer (should do more?) */
@@ -721,7 +782,7 @@ int main(int argc,char **argv)
         (FD_EQ(expr,that_symbol))) {
       if (!(FD_EQ(expr,that_symbol)))
         is_histref=1;
-        histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
+      histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
     if (FD_OIDP(expr)) {
       fdtype v=fd_oid_value(expr);
       if (FD_TABLEP(v)) {
@@ -732,8 +793,6 @@ int main(int argc,char **argv)
         fflush(stdout);}
       else u8_printf(out,"OID value: %q\n",v);
       fd_decref(v);
-      u8_printf(out,EVAL_PROMPT);
-      u8_flush(out);
       continue;}
     start_time=u8_elapsed_time();
     if (FD_ABORTP(expr)) {
@@ -834,9 +893,7 @@ int main(int argc,char **argv)
     if ((FD_CHECK_PTR(lastval)) &&
         (!(FD_ABORTP(lastval))) &&
         (!(FDTYPE_CONSTANTP(lastval))))
-      fd_bind_value(that_symbol,lastval,env);
-    u8_printf(out,EVAL_PROMPT);
-    u8_flush(out);}
+      fd_bind_value(that_symbol,lastval,env);}
   if (eval_server) fd_dtsclose(eval_server,1);
   u8_free(eval_server);
   fd_decref(lastval);
