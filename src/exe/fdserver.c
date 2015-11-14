@@ -1108,6 +1108,10 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
     if (u8_file_existsp(pid_file))
       u8_log(LOG_NOTICE,Startup,"Server %s launched in %02fs",
              server_spec,done-start);
+    else if (!(pidwait))
+      u8_log(LOG_WARN,Startup,
+             "Server %s hasn't launched after %02fs",
+             server_spec,done-start);
     else u8_log(LOG_CRIT,ServerAbort,
                 "Server %s hasn't launched after %02fs",
                 server_spec,done-start);
