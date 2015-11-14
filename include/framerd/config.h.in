@@ -314,6 +314,12 @@
 #undef FD_SERVLET_LOG_DIR
 
 /* The server log directory */
+#undef FD_DAEMON_RUN_DIR
+
+/* The servlet log directory */
+#undef FD_SERVLET_RUN_DIR
+
+/* The server log directory */
 #undef FD_DAEMON_LOG_DIR
 
 /* Where to find config information */

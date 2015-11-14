@@ -10,31 +10,31 @@ expect none
 console log
 
 pre-start script
-   mkdir -p @rundir@/fdserv
+   mkdir -p @servlet_rundir@
    mkdir -p @logdir@/fdserv
-   chown @webuser@ @rundir@/fdserv @logdir@/fdserv
-   chgrp @admin_group@ @rundir@/fdserv @logdir@/fdserv
-   chmod g+rwx @rundir@/fdserv  @logdir@/fdserv
+   chown @webuser@ @servlet_rundir@ @logdir@/fdserv
+   chgrp @admin_group@ @servlet_rundir@ @logdir@/fdserv
+   chmod g+rwx @servlet_rundir@  @logdir@/fdserv
 end script
 
 post-start script
    for sock in $(find @config_dir@/servlets/ -name "*.sock" -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
-        then touch @rundir@/fdserv/`basename ${sock}`.nospawn;
+        then touch @servlet_rundir@/`basename ${sock}`.nospawn;
 	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
-               fdservlet @rundir@/fdserv/`basename ${sock}` CONFIG=`readlink ${sock}` \
-	         STATEDIR=@rundir@/fdserv RESTART=1 PIDWAIT=no;
-        else touch @rundir@/fdserv/`basename ${sock}`.nospawn;
+               fdservlet @servlet_rundir@/`basename ${sock}` CONFIG=`readlink ${sock}` \
+	         STATEDIR=@servlet_rundir@ RESTART=1 PIDWAIT=no;
+        else touch @servlet_rundir@/`basename ${sock}`.nospawn;
 	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
- 	       fdservlet @rundir@/fdserver/`basename ${sock}` CONFIG=${sock} \
-	         STATEDIR=@rundir@/fdserv RESTART=1 PIDWAIT=no; fi;
+ 	       fdservlet @servlet_rundir@er/`basename ${sock}` CONFIG=${sock} \
+	         STATEDIR=@servlet_rundir@ RESTART=1 PIDWAIT=no; fi;
      done;
 end script
 
 post-stop script
-   for ppid in @rundir@/fdserv/*.ppid;
+   for ppid in @servlet_rundir@/*.ppid;
        do kill `cat $ppid` || true; 
-          rm -f  @rundir@/fdserv/`basename $ppid .ppid`.nospawn
+          rm -f  @servlet_rundir@/`basename $ppid .ppid`.nospawn
        done
 end script
 

@@ -1,27 +1,27 @@
 #!/bin/sh
 fdstopall
-if test -d @fdserv_log_dir@; then
-  rm -f @fdserv_log_dir@/*.log @fdserv_log_dir@/*.log*
+if test -d @servlet_logdir@; then
+  rm -f @servlet_logdir@/*.log @servlet_logdir@/*.log*
 fi
-if test -d @framerd_log_dir@; then
-  rm -f @framerd_log_dir@/*.log @framerd_log_dir@/*.log*
+if test -d @daemon_logdir@; then
+  rm -f @daemon_logdir@/*.log @daemon_logdir@/*.log*
 fi
-if test -d @rundir@/fdserv; then
-  rm -f @rundir@/fdserv/*.sock @rundir@/fdserv/*.status \
-        @rundir@/fdserv/*.run @rundir@/fdserv/*.sock \
-        @rundir@/fdserv/*.pid;
-  for tmpdir in @rundir@/fdserv/*.tmp;
+if test -d @servlet_rundir@; then
+  rm -f @servlet_rundir@/*.sock @servlet_rundir@/*.status \
+        @servlet_rundir@/*.run @servlet_rundir@/*.sock \
+        @servlet_rundir@/*.pid;
+  for tmpdir in @servlet_rundir@/*.tmp;
   do if test -h ${tmpdir}; then
 	  link_target=`readlink ${tmpdir}`; \
 	      if test -d ${link_target}; then rm -rf ${link_target}; fi
 	  rm -f ${tmpdir}; fi
   done
 fi
-if test -d @rundir@/framerd; then
-  rm -f @rundir@/framerd/*.sock @rundir@/framerd/*.status \
-        @rundir@/framerd/*.run @rundir@/framerd/*.sock \
-        @rundir@/framerd/*.pid;
-  for tmpdir in @rundir@/framerd/*.tmp;
+if test -d @daemon_rundir@; then
+  rm -f @daemon_rundir@/*.sock @daemon_rundir@/*.status \
+        @daemon_rundir@/*.run @daemon_rundir@/*.sock \
+        @daemon_rundir@/*.pid;
+  for tmpdir in @daemon_rundir@/*.tmp;
   do if test -h ${tmpdir}; then
 	  link_target=`readlink ${tmpdir}`; \
 	      if test -d ${link_target}; then rm -rf ${link_target}; fi

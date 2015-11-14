@@ -537,15 +537,14 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
 		src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
 		src/cmodules/sundown/sundown.c include/framerd/*.h        \
-		${SRC_HEADERS}
+		etc/*.in ${SRC_HEADERS}
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in      \
 	      tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
 	      src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
 	      src/cmodules/sundown/sundown.c include/framerd/*.h        \
-	      ${SRC_HEADERS}
-
+	      etc/*.in ${SRC_HEADERS}
 
 SCHEMETAGS: ${SCHEME_MODULES}
 	@echo Building SCHEMETAGS file
@@ -1175,7 +1174,7 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 install-modules: @install_modules_target@
 
 logdirs: $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/fdserv \
-	$(DESTDIR)@fdserv_log_dir@
+	$(DESTDIR)@servlet_logdir@
 
 statedirs: $(DESTDIR)@rundir@/framerd logdirs
 $(DESTDIR)/etc/init.d:
@@ -1196,9 +1195,9 @@ $(DESTDIR)@logdir@/framerd/bugjar: $(DESTDIR)@logdir@/framerd
 	@$(MSG) Installing FramerD bugjar directory
 	@$(SYSINSTALL) -m 0777 @fdaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@logdir@/framerd/bugjar
-$(DESTDIR)@fdserv_log_dir@:
+$(DESTDIR)@servlet_logdir@:
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-		-d $(DESTDIR)@fdserv_log_dir@
+		-d $(DESTDIR)@servlet_logdir@
 
 setup-sysv: $(DESTDIR)/etc/init.d/framerd statedirs
 enable-sysv: setup-sysv
@@ -1272,7 +1271,7 @@ mod_fdserv: etc/mod_fdserv.so
 # For OSX, try this
 # apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a -i -c etc/mod_fdserv.c
 install-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
-	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@fdserv_log_dir@
+	$(DESTDIR)@apache_modules_dir@ $(DESTDIR)@servlet_logdir@
 	@cd etc; $(SYSINSTALL) @install_file_opts@ fdserv.conf \
 			$(DESTDIR)@apache_modinfo@;
 	@cd etc; $(SYSINSTALL) @install_file_opts@ fdserv.load \

@@ -6,6 +6,6 @@
 	FDServletExecutable @prefix@/bin/fdservlet
 	FDServletUser @webuser@
 	FDServletGroup @admin_group@
-	FDServletPrefix @rundir@/fdserv
-	FDServletLogPrefix @fdserv_log_dir@
+	FDServletPrefix @servlet_rundir@
+	FDServletLogPrefix @servlet_logdir@
 </IfModule>

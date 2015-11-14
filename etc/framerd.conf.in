@@ -10,16 +10,16 @@ expect none
 console log
 
 pre-start script
-   mkdir -p @rundir@/fdserv
+   mkdir -p @servlet_rundir@
    mkdir -p @logdir@/fdserv
-   mkdir -p @rundir@/framerd
+   mkdir -p @daemon_rundir@
    mkdir -p @logdir@/framerd
-   chown @webuser@ @rundir@/fdserv @logdir@/fdserv
-   chown @fdaemon@ @rundir@/framerd @logdir@/framerd
-   chgrp @admin_group@ @rundir@/fdserv @logdir@/fdserv
-   chgrp @admin_group@ @rundir@/framerd @logdir@/framerd
-   chmod g+rwx @rundir@/fdserv  @logdir@/fdserv
-   chmod g+rwx @rundir@/framerd @logdir@/framerd
+   chown @webuser@ @servlet_rundir@ @logdir@/fdserv
+   chown @fdaemon@ @daemon_rundir@ @logdir@/framerd
+   chgrp @admin_group@ @servlet_rundir@ @logdir@/fdserv
+   chgrp @admin_group@ @daemon_rundir@ @logdir@/framerd
+   chmod g+rwx @servlet_rundir@  @logdir@/fdserv
+   chmod g+rwx @daemon_rundir@ @logdir@/framerd
 
    export FD_LAUNCHER=framerd.conf
    fdstart @config_dir@/daemons/
@@ -27,5 +27,5 @@ pre-start script
 end script
 
 post-stop script
-   fdstop @rundir@/fdserv @rundir@/framerd
+   fdstop @servlet_rundir@ @daemon_rundir@
 end script

@@ -6,10 +6,10 @@ for name in $*; do
 	${CMD} ${SIGNAL} `cat ${name}`;
     elif test -f ${name}.pid; then
 	${CMD} ${SIGNAL} `cat ${name}.pid`;
-    elif test -f @rundir@/framerd/${name}.pid; then
-	${CMD} ${SIGNAL} `cat @rundir@/framerd/${name}.pid`;
-    elif test -f @rundir@/fdserv/${name}.pid; then
-	${CMD} ${SIGNAL} `cat @rundir@/fdserv/${name}.pid`;
+    elif test -f @daemon_rundir@/${name}.pid; then
+	${CMD} ${SIGNAL} `cat @daemon_rundir@/${name}.pid`;
+    elif test -f @servlet_rundir@/${name}.pid; then
+	${CMD} ${SIGNAL} `cat @servlet_rundir@/${name}.pid`;
     else echo "fdsignal: Couldn't find task ${name}";
     fi;
 done;

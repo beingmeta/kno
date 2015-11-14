@@ -1,2 +1,2 @@
 #!/bin/sh
-fdstop @rundir@/fdserv/ @rundir@/framerd/
+fdstop @servlet_rundir@/ @daemon_rundir@/

@@ -12,7 +12,7 @@ kill timeout 90 # wait 90s between SIGTERM and SIGKILL.
 env LOGDIR=@logdir@/framerd
 setuid @fdaemon@
 setgid @admin_group@
-exec @prefix@/bin/fdserver ${CTL} STATEDIR=@rundir@/framerd
+exec @prefix@/bin/fdserver ${CTL} STATEDIR=@daemon_rundir@
 
 
 

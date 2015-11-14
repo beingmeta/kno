@@ -6,8 +6,8 @@ export FD_LOGLEVEL=7
 export FD_LAUNCHER=${FD_LANUCHER:-fdstart} 
 export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
-export SERVLETCFG="${COMMONCFG} STATEDIR=@rundir@/fdserv FDSTART=${TARGET}" 
-export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@rundir@/framerd FDSTART=${TARGET}" 
+export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}" 
+export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${TARGET}" 
 export FDSTART="sudo -u @fdaemon@ -g @admin_group@"
 export WEBSTART="sudo -u @webuser@ -g @admin_group@"
 for ctl in $(find -L ${TARGET} -name "*.fdz");

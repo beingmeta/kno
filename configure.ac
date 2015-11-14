@@ -121,8 +121,12 @@ TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$prefix/etc/framerd"
 rundir="${localstatedir}/run"
 logdir="${localstatedir}/log"
-framerd_log_dir="${logdir}/framerd"
-fdserv_log_dir="${logdir}/fdserv"
+framerd_rundir="${rundir}/framerd"
+framerd_logdir="${logdir}/framerd"
+daemon_logdir="${framerd_logdir}/daemons"
+servlet_logdir="${framerd_logdir}/servlets"
+daemon_rundir="${framerd_rundir}/daemons"
+servlet_rundir="${framerd_rundir}/servlets"
 archflags=""
 with_ziptools_default="yes"
 with_mysql_default="yes"
@@ -193,8 +197,12 @@ AC_SUBST(fdaemoninstall)
 AC_SUBST(install_modules_target)
 AC_SUBST(rundir)
 AC_SUBST(logdir)
-AC_SUBST(framerd_log_dir)
-AC_SUBST(fdserv_log_dir)
+AC_SUBST(framerd_rundir)
+AC_SUBST(framerd_logdir)
+AC_SUBST(daemon_rundir)
+AC_SUBST(daemon_logdir)
+AC_SUBST(servlet_rundir)
+AC_SUBST(servlet_logdir)
 AC_SUBST(archflags)
 AC_SUBST(versionsh)
 AC_SUBST(definefileinfo)
@@ -541,9 +549,13 @@ logdir=$with_logdir
 
 AC_DEFINE_UNQUOTED(FD_LOG_DIR,"$logdir")
 
-AC_DEFINE_UNQUOTED(FD_DAEMON_LOG_DIR,"$logdir/framerd/")
+AC_DEFINE_UNQUOTED(FD_DAEMON_LOG_DIR,"$daemon_logdir")
 
-AC_DEFINE_UNQUOTED(FD_SERVLET_LOG_DIR,"$logdir/fdserv/")
+AC_DEFINE_UNQUOTED(FD_SERVLET_LOG_DIR,"$servlet_logdir")
+
+AC_DEFINE_UNQUOTED(FD_DAEMON_RUN_DIR,"$daemon_rundir")
+
+AC_DEFINE_UNQUOTED(FD_SERVLET_RUN_DIR,"$daemon_rundir")
 
 AC_AIX
 
