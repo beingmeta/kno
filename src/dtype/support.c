@@ -1965,6 +1965,7 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
     u8_printf(reqout,"\n\t<message>\n%s\n\t</message>",message);
     u8_printf(reqout,"\n</logentry>\n");}
   if ((reqout!=NULL)&&
+      (!(local_log))&&
       (req_logonly>=0)&&
       (abs_loglevel>=LOG_NOTIFY)&&
       (abs_loglevel>=req_logonly))
