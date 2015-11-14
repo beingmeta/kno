@@ -21,11 +21,11 @@ post-start script
    for sock in $(find @config_dir@/servlets/ -name "*.sock" -mindepth 1 -maxdepth 1);
      do if (readlink ${sock}>/dev/null);
         then touch @servlet_rundir@/`basename ${sock}`.nospawn;
-	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
+	     LOGFILE=@servlet_logdir@/`basename ${sock} .sock`.log \
                fdservlet @servlet_rundir@/`basename ${sock}` CONFIG=`readlink ${sock}` \
 	         STATEDIR=@servlet_rundir@ RESTART=1 PIDWAIT=no;
         else touch @servlet_rundir@/`basename ${sock}`.nospawn;
-	     LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
+	     LOGFILE=@servlet_logdir@/`basename ${sock} .sock`.log \
  	       fdservlet @servlet_rundir@er/`basename ${sock}` CONFIG=${sock} \
 	         STATEDIR=@servlet_rundir@ RESTART=1 PIDWAIT=no; fi;
      done;

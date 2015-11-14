@@ -13,49 +13,49 @@ export WEBSTART="sudo -u @webuser@ -g @admin_group@"
 for ctl in $(find -L ${TARGET} -name "*.fdz");
 do if (readlink ${ctl}>/dev/null);
    then echo "Starting daemon manager for ${ctl}";
-	${FDSTART} LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
+	${FDSTART} LOGFILE=@daemon_logdir@/`basename ${ctl} .fdz`.log \
 	       fdserver `readlink ${ctl}` ${DAEMONCFG} ${XARGS};
    else echo "Starting daemon manager for ${ctl}";
-	${FDSTART} LOGFILE=@logdir@/framerd/`basename ${ctl} .fdz`.log \
+	${FDSTART} LOGFILE=@daemon_logdir@`basename ${ctl} .fdz`.log \
 	       fdserver ${ctl} ${DAEMONCFG} ${XARGS}; 
    fi;
 done;
 for sock in $(find -L ${TARGET} -name "*.sock");
 do if (readlink ${sock}>/dev/null);
-   then @SUDO@ touch /var/run/fdserv/`basename ${sock}`.nospawn;
+   then @SUDO@ touch @servlet_rundir@/`basename ${sock}`.nospawn;
 	echo "Starting servlet manager for ${sock}";
-	${WEBSTART} LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log \
-	 fdservlet /var/run/fdserv/`basename ${sock}` ${LAUNCHCFG} \
+	${WEBSTART} LOGFILE=@servlet_logdir@/`basename ${sock} .sock`.log \
+	 fdservlet @servlet_rundir@/`basename ${sock}` ${LAUNCHCFG} \
 	          CONFIG=`readlink ${sock}` ${SERVLETCFG} ${XARGS};
-   else @SUDO@ touch /var/run/fdserv/`basename ${sock}`.nospawn;
+   else @SUDO@ touch @servlet_rundir@/`basename ${sock}`.nospawn;
 	echo "Starting servlet manager for ${sock}";
-	${WEBSTART} LOGFILE=@logdir@/fdserv/`basename ${sock} .sock`.log      \
-	       fdservlet /var/run/fdserv/`basename ${sock}` ${LAUNCHCFG} \
+	${WEBSTART} LOGFILE=@servlet_logdir@/`basename ${sock} .sock`.log      \
+	       fdservlet @servlet_rundir@/`basename ${sock}` ${LAUNCHCFG} \
 	          CONFIG=${sock} ${SERVLETCFG} ${XARGS};
    fi;
 done;
 for cfg in $(find -L ${TARGET} -name "*.cfg");
 do if (readlink ${cfg}>/dev/null);
-   then @SUDO@ touch /var/run/fdserv/`basename ${cfg} .cfg`.sock.nospawn;
+   then @SUDO@ touch @servlet_rundir@/`basename ${cfg} .cfg`.sock.nospawn;
 	echo "Starting servlet manager for ${cfg}";
-	${WEBSTART} LOGFILE=@logdir@/fdserv/`basename ${cfg} .cfg`.log \
-	    fdservlet /var/run/fdserv/`basename ${cfg} .cfg`.sock \
+	${WEBSTART} LOGFILE=@servlet_logdir@/`basename ${cfg} .cfg`.log \
+	    fdservlet @servlet_rundir@/`basename ${cfg} .cfg`.sock \
 	        ${LAUNCHCFG} CONFIG=`readlink ${cfg}` ${SERVLETCFG} ${XARGS};
-   else @SUDO@ touch /var/run/fdserv/`basename ${sock} .cfg`.sock.nospawn;
+   else @SUDO@ touch @servlet_rundir@/`basename ${sock} .cfg`.sock.nospawn;
 	echo "Starting servlet manager for ${cfg}";
-	${WEBSTART} LOGFILE=@logdir@/fdserv/`basename ${cfg} .cfg`.log \
-	    fdservlet /var/run/fdserv/`basename ${cfg} .cfg`.sock \
+	${WEBSTART} LOGFILE=@servlet_logdir@/`basename ${cfg} .cfg`.log \
+	    fdservlet @servlet_rundir@/`basename ${cfg} .cfg`.sock \
 	        ${LAUNCHCFG} CONFIG=${cfg} ${SERVLETCFG} ${XARGS};
    fi;
 done;
 for addr in $(find -L ${TARGET} -name "*@*");
 do if (readlink ${addr}>/dev/null);
    then echo "Starting servlet manager for ${addr}";
-	${WEBSTART} LOGFILE=@logdir@/fdserv/${addr}.log \
+	${WEBSTART} LOGFILE=@servlet_logdir@/${addr}.log \
 	 fdservlet `basename ${addr}` CONFIG=`readlink ${addr}` \
 	     ${LAUNCHCFG} ${SERVLETCFG} ${XARGS};
    else echo "Starting servlet manager for ${addr}";
-	${WEBSTART} LOGFILE=@logdir@/fdserv/${addr}.log   \
+	${WEBSTART} LOGFILE=@servlet_logdir@/${addr}.log   \
 	 fdservlet `basename ${addr}` CONFIG=${addr} \
 	     ${LAUNCHCFG} ${SERVLETCFG} ${XARGS};
    fi;
@@ -63,11 +63,11 @@ done;
 for addr in $(find -L ${TARGET} -name "*:*");
 do if (readlink ${addr}>/dev/null);
    then echo "Starting servlet manager for ${addr}";
-	${WEBSTART} LOGFILE=@logdir@/fdserv/${addr}.log \
+	${WEBSTART} LOGFILE=@servlet_logdir@/${addr}.log \
 	 fdservlet `basename ${addr}` \
 	     ${LAUNCHCFG} CONFIG=`readlink ${addr}` ${SERVLETCFG} ${XARGS};
    else echo "Starting servlet manager for ${addr}";
-	${WEBSTART} LOGFILE=@logdir@/fdserv/${addr}.log \
+	${WEBSTART} LOGFILE=@servlet_logdir@/${addr}.log \
 	       fdservlet `basename ${addr}`        \
 	           ${LAUNCHCFG} CONFIG=${addr} ${SERVLETCFG} ${XARGS};
    fi;

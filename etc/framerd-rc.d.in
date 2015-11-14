@@ -35,11 +35,11 @@ case "$1" in
 	    if test ! -f ${ctl}; then echo > /dev/null;
 	    elif (readlink ${ctl}>/dev/null);
 	    then FD_RESTART=1 \
-		 LOGFILE=@logdir@/framerd/`basename ${ctl}`.log \
+		 LOGFILE=@daemon_logdir@`basename ${ctl}`.log \
 		 ${FDSERVER} `readlink ${ctl}` "PORT=`basename ${ctl}`" \
 		             STATEDIR=@daemon_rundir@;
 	    else FD_RESTART=1 \
-		 LOGFILE=@logdir@/framerd/`basename ${ctl}`.log \
+		 LOGFILE=@daemon_logdir@`basename ${ctl}`.log \
 		 ${FDSERVER} ${ctl} "PORT=`basename ${ctl}`" \
 		             STATEDIR=@daemon_rundir@;
 	    fi;
@@ -48,11 +48,11 @@ case "$1" in
 	    if test ! -f ${ctl}; then echo > /dev/null;
 	    elif (readlink ${ctl}>/dev/null);
 	    then FD_RESTART=1 \
-		 LOGFILE=@logdir@/fdserv/`basename ${ctl}`.log \
+		 LOGFILE=@servlet_logdir@/`basename ${ctl}`.log \
 		 ${FDSERVLET} `basename ${ctl}` "CONFIG=`readlink ${ctl}`" \
 		             STATEDIR=@servlet_rundir@;
 	    else FD_RESTART=1 \
-		 LOGFILE=@logdir@/fdserv/`basename ${ctl}`.log \
+		 LOGFILE=@servlet_logdir@/`basename ${ctl}`.log \
 		 ${FDSERVLET} `basename ${ctl}` "CONFIG=${ctl}" \
 		             STATEDIR=@servlet_rundir@;
 	    fi;
@@ -61,11 +61,11 @@ case "$1" in
 	    if test ! -f ${ctl}; then echo > /dev/null;
 	    elif (readlink ${ctl}>/dev/null);
 	    then FD_RESTART=1 \
-		 LOGFILE=@logdir@/fdserv/`basename ${ctl} .sock`.log \
+		 LOGFILE=@servlet_logdir@/`basename ${ctl} .sock`.log \
 		 ${FDSERVLET} `basename ${ctl}` "CONFIG=`readlink ${ctl}`" \
 		             STATEDIR=@servlet_rundir@;
 	    else FD_RESTART=1 \
-		 LOGFILE=@logdir@/fdserv/`basename ${ctl} .sock`.log \
+		 LOGFILE=@servlet_logdir@/`basename ${ctl} .sock`.log \
 		 ${FDSERVLET} `basename ${ctl}` "CONFIG=${ctl}" \
 		             STATEDIR=@servlet_rundir@;
 	    fi;

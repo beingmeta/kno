@@ -1,4 +1,4 @@
-@logdir@/fdserv/*.log {
+@servlet_logdir@/*.log {
    rotate 17
    su root @admin_group@
    notifempty
@@ -15,7 +15,7 @@
    #  missing logs
    copytruncate
 }
-@logdir@/framerd/*.log {
+@daemon_logdir@*.log {
    rotate 17
    su root @admin_group@
    notifempty
@@ -32,7 +32,7 @@
    #  missing logs
    copytruncate
 }
-@logdir@/framerd/*.err {
+@daemon_logdir@*.err {
    rotate 17
    su root @admin_group@
    notifempty

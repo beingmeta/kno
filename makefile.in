@@ -1099,8 +1099,11 @@ install-sundown: $(LIBINSTALLDIR)/framerd/sundown.@shared_suffix@ \
 
 # Setup targets
 
-workdirs: $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/framerd/bugjar \
-	$(DESTDIR)@rundir@/framerd 
+workdirs: $(DESTDIR)@framerd_rundir@ $(DESTDIR)@framerd_logdir@ \
+	$(DESTDIR)@daemon_rundir@ $(DESTDIR)@daemon_logdir@ \
+	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
+	$(DESTDIR)@framerd_logdir@/bugjar
+
 confdirs: $(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets \
 		$(DESTDIR)@config_dir@/config
 	@$(MSG) Setting up configuration directories
@@ -1173,29 +1176,42 @@ copy-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@standard_module_dir@ \
 
 install-modules: @install_modules_target@
 
-logdirs: $(DESTDIR)@logdir@/framerd $(DESTDIR)@logdir@/fdserv \
-	$(DESTDIR)@servlet_logdir@
+logdirs: $(DESTDIR)@framerd_logdir@ $(DESTDIR)@servlet_logdir@ \
+	$(DESTDIR)@daemon_logdir@
 
-statedirs: $(DESTDIR)@rundir@/framerd logdirs
+statedirs: $(DESTDIR)@rundir@/framerd \
+	$(DESTDIR)@daemon_rundir@ $(DESTDIR)@servlet_rundir@ \
+	logdirs
 $(DESTDIR)/etc/init.d:
 	@$(SYSINSTALL) -m 0755 -d $(DESTDIR)/etc/init.d
 $(DESTDIR)/etc/init.d/framerd: etc/framerd-rc.d $(DESTDIR)/etc/init.d
 	@$(MSG) Installing FramerD init.d
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd-rc.d $(DESTDIR)/etc/init.d/framerd
-$(DESTDIR)@rundir@/framerd:
+$(DESTDIR)@framerd_rundir@:
 	@$(MSG) Installing FramerD run directory
 	@$(SYSINSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
-		   $(DESTDIR)@rundir@/framerd
-$(DESTDIR)@logdir@/framerd:
+		   $(DESTDIR)@framerd_rundir@
+$(DESTDIR)@daemon_rundir@: $(DESTDIR)@framerd_rundir@
+	@$(MSG) Installing FramerD daemon run directory
+	@$(SYSINSTALL) -m 0775  @fdaemoninstall@ @admininstall@ -d \
+		   $(DESTDIR)@daemon_rundir@
+$(DESTDIR)@servlet_rundir@: $(DESTDIR)@framerd_rundir@
+	@$(MSG) Installing FramerD servlet run directory
+	@$(SYSINSTALL) -m 0775  @wwwinstall@ @admininstall@ -d \
+		   $(DESTDIR)@servlet_rundir@
+$(DESTDIR)@framerd_logdir@:
 	@$(MSG) Installing FramerD log directory
 	@$(SYSINSTALL) -m 0775 @fdaemoninstall@  @admininstall@ -d \
-		   $(DESTDIR)@logdir@/framerd
-$(DESTDIR)@logdir@/framerd/bugjar: $(DESTDIR)@logdir@/framerd
+		   $(DESTDIR)@framerd_logdir@
+$(DESTDIR)@daemon_logdir@bugjar: $(DESTDIR)@framerd_logdir@
 	@$(MSG) Installing FramerD bugjar directory
 	@$(SYSINSTALL) -m 0777 @fdaemoninstall@  @admininstall@ -d \
-		   $(DESTDIR)@logdir@/framerd/bugjar
-$(DESTDIR)@servlet_logdir@:
+		   $(DESTDIR)@daemon_logdir@bugjar
+$(DESTDIR)@daemon_logdir@:  $(DESTDIR)@framerd_logdir@
+	@$(SYSINSTALL) -m 0775 @fdaemoninstall@ @admininstall@ \
+		-d $(DESTDIR)@daemon_logdir@
+$(DESTDIR)@servlet_logdir@: $(DESTDIR)@framerd_logdir@
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		-d $(DESTDIR)@servlet_logdir@
 
