@@ -2070,6 +2070,11 @@ static int fork_servlet(u8_string socket_spec)
     if (u8_file_existsp(pid_file))
       u8_log(LOG_NOTICE,Startup,"Servlet %s launched in %02fs",
              socket_spec,done-start);
+    else if (!(pidwait))
+      u8_log(LOG_WARN,Startup,
+             "Servlet %s hasn't launched after %02fs",
+             socket_spec,done-start);
+    
     else u8_log(LOG_CRIT,ServletAbort,
                 "Servlet %s hasn't launched after %02fs",
                 socket_spec,done-start);
