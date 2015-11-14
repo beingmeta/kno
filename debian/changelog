@@ -1,3 +1,11 @@
+framerd (3.8.3-2) unstable; urgency=low
+
+  * Always output forced log entries (loglevel<0) to the standard log as
+    well as the request log
+  * git patch version 3.8.3-4
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 14 Nov 2015 20:28:08 +0000
+
 framerd (3.8.3-1) unstable; urgency=low
 
   * Fixes to bugs in rail consing and pprint output
