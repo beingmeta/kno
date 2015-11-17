@@ -10,7 +10,8 @@
  '{*mimetable* getsuffix
    ctype->suffix ctype->charset
    path->ctype path->mimetype
-   path->encoding})
+   path->encoding
+   mimetype/text?})
 
 (define *default-charset* #f)
 (varconfig! mime:charset *default-charset* config:goodstring)
@@ -513,4 +514,14 @@
 			  string)
 	    'charset)
        #f))
+
+(define (mimetype/text? mimetype)
+  (and (string? mimetype)
+       (or (has-prefix mimetype "text")
+	   (has-prefix mimetype
+		       {"application/xml"
+			"application/json"
+			"application/javascript"
+			"application/x-json"
+			"application/x-javascript"}))))
 
