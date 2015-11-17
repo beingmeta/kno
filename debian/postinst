@@ -20,12 +20,14 @@ set -e
 
 case "$1" in
     configure)
-	chown -R root:framerd /usr/etc/framerd /usr/share/framerd;
-	chown -R fdaemon:framerd /var/run/framerd /var/log/framerd;
-        chown -R www-data:framerd /var/run/fdserv /var/log/fdserv;
+	chown -R root:framerd /usr/etc/framerd /usr/share/framerd /var/log/framerd;
+	chown -R fdaemon:framerd /var/run/framerd/daemons /var/log/framerd/daemons;
+        chown -R www-data:framerd /var/run/framerd/servlets /var/log/framerd/servlets;
+        chown -R root:framerd /var/log/framerd/bugjar;
 	chmod -R g+rwX /usr/etc/framerd /usr/share/framerd;
 	chmod -R g+rwX /var/run/framerd /var/log/framerd;
-	chmod -R g+rwX /var/run/fdserv /var/log/fdserv;
+	chmod -R ag+rwX /var/log/framerd/bugjar;
+
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

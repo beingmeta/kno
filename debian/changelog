@@ -1,7 +1,7 @@
 framerd (3.8.3-3) unstable; urgency=low
 
   * Changed layout of run/log directories
-  * git patch version framerd-3.8.3-10
+  * git patch version framerd-3.8.3-11
 
  -- Ken Haase <kh@beingmeta.com>  Tue, 17 Nov 2015 08:36:32 -0500
 
