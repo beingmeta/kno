@@ -1,3 +1,10 @@
+framerd (3.8.3-4) unstable; urgency=low
+
+  * Fixed INSIDE_EMACS check
+  * git patch version framerd-3.8.3-12
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 17 Nov 2015 10:41:50 -0500
+
 framerd (3.8.3-3) unstable; urgency=low
 
   * Changed layout of run/log directories

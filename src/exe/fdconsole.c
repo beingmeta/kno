@@ -746,7 +746,7 @@ int main(int argc,char **argv)
   else u8_message("Warning: .fdconfig/.fdconsole files are suppressed");
 
 #if USING_EDITLINE
-  if (!(getenv("UNDER_EMACS"))) {
+  if (!(getenv("INSIDE_EMACS"))) {
     editconsole=el_init(u8_appid(),stdin,stdout,stderr);
     el_set(editconsole,EL_PROMPT,editline_promptfn);
     el_set(editconsole,EL_EDITOR,"emacs");
