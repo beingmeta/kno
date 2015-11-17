@@ -717,6 +717,7 @@ versionsh
 archflags
 servlet_logdir
 servlet_rundir
+bugjar
 daemon_logdir
 daemon_rundir
 framerd_logdir
@@ -814,6 +815,7 @@ with_apacheinfo
 with_apachelib
 with_rundir
 with_logdir
+with_bugjar
 with_arch
 with_suffix
 with_extlib
@@ -1530,6 +1532,7 @@ Optional Packages:
 --with-apachelib where Apache extensions live
 --with-rundir The default location for server state files
 --with-logdir The default location for log files
+--with-bugjar The default location for bugjar reports
 --without-arch build with particular --arch flags
 --with-suffix string
   --with-extlib[=DIR]       use additional lib dir
@@ -2850,6 +2853,7 @@ daemon_logdir="${framerd_logdir}/daemons"
 servlet_logdir="${framerd_logdir}/servlets"
 daemon_rundir="${framerd_rundir}/daemons"
 servlet_rundir="${framerd_rundir}/servlets"
+default_bugjar="${framerd_logdir}/bugjar"
 archflags=""
 with_ziptools_default="yes"
 with_mysql_default="yes"
@@ -2911,6 +2915,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -5376,6 +5381,16 @@ fi
 
 logdir=$with_logdir
 
+
+# Check whether --with-bugjar was given.
+if test "${with_bugjar+set}" = set; then :
+  withval=$with_bugjar;
+else
+  with_bugjar="$default_bugjar"
+fi
+
+bugjar=$with_bugjar
+
 cat >>confdefs.h <<_ACEOF
 #define FD_LOG_DIR "$logdir"
 _ACEOF
@@ -5398,6 +5413,11 @@ _ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define FD_SERVLET_RUN_DIR "$daemon_rundir"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define FD_BUGJAR_ROOT "$bugjar"
 _ACEOF
 
 

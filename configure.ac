@@ -127,6 +127,7 @@ daemon_logdir="${framerd_logdir}/daemons"
 servlet_logdir="${framerd_logdir}/servlets"
 daemon_rundir="${framerd_rundir}/daemons"
 servlet_rundir="${framerd_rundir}/servlets"
+default_bugjar="${framerd_logdir}/bugjar"
 archflags=""
 with_ziptools_default="yes"
 with_mysql_default="yes"
@@ -201,6 +202,7 @@ AC_SUBST(framerd_rundir)
 AC_SUBST(framerd_logdir)
 AC_SUBST(daemon_rundir)
 AC_SUBST(daemon_logdir)
+AC_SUBST(bugjar)
 AC_SUBST(servlet_rundir)
 AC_SUBST(servlet_logdir)
 AC_SUBST(archflags)
@@ -547,6 +549,10 @@ dnl Specifies where log files should live
 AC_ARG_WITH(logdir,--with-logdir The default location for log files,,with_logdir="$localstatedir/log")
 logdir=$with_logdir
 
+dnl Specifies where the default bugjar location
+AC_ARG_WITH(bugjar,--with-bugjar The default location for bugjar reports,,with_bugjar="$default_bugjar")
+bugjar=$with_bugjar
+
 AC_DEFINE_UNQUOTED(FD_LOG_DIR,"$logdir")
 
 AC_DEFINE_UNQUOTED(FD_DAEMON_LOG_DIR,"$daemon_logdir")
@@ -556,6 +562,8 @@ AC_DEFINE_UNQUOTED(FD_SERVLET_LOG_DIR,"$servlet_logdir")
 AC_DEFINE_UNQUOTED(FD_DAEMON_RUN_DIR,"$daemon_rundir")
 
 AC_DEFINE_UNQUOTED(FD_SERVLET_RUN_DIR,"$daemon_rundir")
+
+AC_DEFINE_UNQUOTED(FD_BUGJAR_ROOT,"$bugjar")
 
 AC_AIX
 

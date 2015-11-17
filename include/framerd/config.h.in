@@ -322,6 +322,9 @@
 /* The server log directory */
 #undef FD_DAEMON_LOG_DIR
 
+/* The root log directory */
+#undef FD_BUGJAR_DIR
+
 /* Where to find config information */
 #undef FD_CONFIG_FILE_PATH
 

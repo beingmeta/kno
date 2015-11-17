@@ -1102,7 +1102,7 @@ install-sundown: $(LIBINSTALLDIR)/framerd/sundown.@shared_suffix@ \
 workdirs: $(DESTDIR)@framerd_rundir@ $(DESTDIR)@framerd_logdir@ \
 	$(DESTDIR)@daemon_rundir@ $(DESTDIR)@daemon_logdir@ \
 	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
-	$(DESTDIR)@framerd_logdir@/bugjar
+	$(DESTDIR)@bugjar@
 
 confdirs: $(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets \
 		$(DESTDIR)@config_dir@/config
@@ -1204,10 +1204,10 @@ $(DESTDIR)@framerd_logdir@:
 	@$(MSG) Installing FramerD log directory
 	@$(SYSINSTALL) -m 0775 @fdaemoninstall@  @admininstall@ -d \
 		   $(DESTDIR)@framerd_logdir@
-$(DESTDIR)@daemon_logdir@bugjar: $(DESTDIR)@framerd_logdir@
+$(DESTDIR)@bugjar@: $(DESTDIR)@framerd_logdir@
 	@$(MSG) Installing FramerD bugjar directory
 	@$(SYSINSTALL) -m 0777 @fdaemoninstall@  @admininstall@ -d \
-		   $(DESTDIR)@daemon_logdir@bugjar
+		   $(DESTDIR)@bugjar@
 $(DESTDIR)@daemon_logdir@:  $(DESTDIR)@framerd_logdir@
 	@$(SYSINSTALL) -m 0775 @fdaemoninstall@ @admininstall@ \
 		-d $(DESTDIR)@daemon_logdir@
