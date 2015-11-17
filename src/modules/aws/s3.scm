@@ -219,7 +219,8 @@
 (define (s3op op bucket path (content #f) (ctype) 
 	      (headerlist '()) (opts #[]) args)
   (default! ctype
-    (path->mimetype path (if (packet? content) "application" "text")))
+    (path->mimetype path (if (packet? content) "application" "text")
+		    (getopt opts 'mimetable #f)))
   (let* ((date (gmtimestamp))
 	 (endpoint (glom s3scheme s3root "/" bucket path))
 	 (urlparams (frame-create #f 'header "Expect:"))
@@ -269,7 +270,8 @@
 (define (s3/op op bucket path (opts #f)
 	       (content "") (ctype) (headers '()) . args)
   (default! ctype
-    (path->mimetype path (if (packet? content) "application" "text")))
+    (path->mimetype path (if (packet? content) "application" "text")
+		    (getopt opts 'mimetable #f)))
   (when (has-prefix bucket {"." "/"}) (set! bucket (slice bucket 1)))
   (if opts (set! opts (cons opts s3opts)) (set! opts s3opts))
   (let* ((err (getopt opts 'errs (getopt opts 's3errs s3errs)))
@@ -501,7 +503,8 @@
   (unless ctype
     (set! ctype
 	  (path->mimetype (s3loc-path loc)
-			  (if (packet? content) "application" "text"))))
+			  (if (packet? content) "application" "text")
+			  (getopt opts 'mimetable #f))))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
   (if opts
       (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
@@ -614,7 +617,10 @@
     (if (and status (>= 299 status 200))
 	`#[content ,(get req '%content)
 	   ctype ,(try (get req 'content-type)
-		       (path->mimetype (s3loc-path loc))
+		       (getopt opts 'mimetype {})
+		       (path->mimetype (s3loc-path loc)
+				       (if text "text" "application")
+				       (getopt opts 'mimetable #f))
 		       (if text "text" "application"))
 	   encoding ,(get req 'content-encoding)
 	   modified ,(try (get req 'last-modified) (timestamp))
@@ -654,16 +660,20 @@
 
 (define etag-pat #((bos) {"" "\"" "&quot;"} (label hash (isxdigit+))))
 
-(define (s3loc/info loc (headers) (text #f))
+(define (s3loc/info loc (headers) (text #f) (opts #f))
   (when (string? loc) (set! loc (->s3loc loc)))
-  (default! headers (try (get (s3loc/opts loc) 'headers) '()))
-  (let ((req (s3/head loc headers)))
+  (default! headers (try (get (s3loc/opts loc) 'headers)
+			 (getopt opts 'headers '())))
+  (let ((req (s3/head loc headers))
+	(mimetable (getopt opts 'mimetable #f)))
     (debug%watch "S3LOC/INFO" loc req)
     (and (response/ok? req)
 	 (frame-create #f
 	   'path (s3loc/s3uri loc)
 	   'ctype (try (get req 'content-type)
-		       (path->mimetype (s3loc-path loc))
+		       (path->mimetype (s3loc-path loc)
+				       (if text "text" "application")
+				       mimetable)
 		       (if text "text" "application"))
 	   'size (get req 'content-length)
 	   'encoding (get req 'content-encoding)
@@ -681,7 +691,8 @@
   (when (string? loc) (set! loc (->s3loc loc)))
   (default! ctype
     (path->mimetype (s3loc-path loc)
-		    (if (packet? content) "application" "text")))
+		    (if (packet? content) "application" "text")
+		    (getopt opts 'mimetable #f)))
   (default! headers (try (get (s3loc/opts loc) 'headers) '()))
   (if opts
       (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
@@ -710,10 +721,12 @@
     (set! outheaders (append (getopt opts 'outheaders) outheaders)))
 
   (let* ((head (s3loc/head from inheaders))
+	 (mimetable (getopt opts 'mimetable #f))
 	 (ctype (try (get head 'content-type)
 		     (path->mimetype
 		      (s3loc-path to)
-		      (path->mimetype (s3loc-path from) "text")))))
+		      (path->mimetype (s3loc-path from) "text" mimetable)
+		      mimetable))))
     (loginfo |S3/copy| "Copying " (s3loc->string from)
 	     " to " (s3loc->string to))
     (s3/op "PUT" (s3loc-bucket to) (s3loc-path to) opts "" ctype
@@ -733,13 +746,15 @@
       (set! opts (cons opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
       (set! opts (try (cons (s3loc/opts loc) s3opts)  s3opts)))
   (let* ((head (tryif (s3loc? src) (s3loc/head src)))
+	 (mimetable (getopt opts 'mimetable #f))
 	 (ctype (try (get head 'content-type)
 		     (path->mimetype
 		      (s3loc-path loc)
 		      (path->mimetype
 		       (if (s3loc? src) (s3loc-path src)
 			   (uripath src))
-		       "text")))))
+		       "text" mimetable)
+		      mimetable))))
     (loginfo |S3/link| "Linking (via redirect) " src " to " loc)
     (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) opts "" ctype
 	   `(("x-amz-website-redirect-location" .
@@ -757,12 +772,13 @@
   (when (not (table? opts)) (set! opts (cons `#[errs ,opts] s3opts)))
   (let* ((inheaders (getopt opts 'inheaders '()))
 	 (head (s3loc/head loc inheaders))
+	 (mimetable (getopt opts 'mimetable #f))
 	 (ctype (try (get new 'content-type)
 		     (get new 'mimetype)
 		     (get new 'ctype)
 		     (get new 'type)
 		     (get head 'content-type)
-		     (path->mimetype (s3loc-path loc) "text")))
+		     (path->mimetype (s3loc-path loc) "text" mimetable)))
 	 (disposition (try (get new 'content-disposition)
 			   (get new 'disposition)
 			   (get head 'content-disposition)))
@@ -941,6 +957,7 @@
 	 (headers (getopt opts 'headers '()))
 	 (nthreads (getopt opts 'threads (config 's3:pushthreads 1)))
 	 (forcewrite (getopt opts 'writeall))
+	 (mimetable (getopt opts 'mimetable #f))
 	 (%loglevel (getopt opts 'loglevel %loglevel)))
     (let* ((s3info (s3/list+ s3loc))
 	   (filenames (reject (reject (getfiles dir) has-prefix "#")
@@ -992,7 +1009,8 @@
 	(let* ((info (pick s3info 'name (basename file)))
 	       (loc (try (get info 'loc) (s3/mkpath s3loc (basename file))))
 	       (encoding (path->encoding file))
-	       (mimetype (path->mimetype file)))
+	       (mimetype (getopt opts 'mimetype
+				 (path->mimetype file "text" mimetable))))
 	  (logdebug |S3/push|
 	    "Syncing " mimetype " " (write file)
 	    " to " (s3loc->string loc) ":\n info: " info)
