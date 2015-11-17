@@ -1010,12 +1010,15 @@
 	       (loc (try (get info 'loc) (s3/mkpath s3loc (basename file))))
 	       (encoding (path->encoding file))
 	       (mimetype (getopt opts 'mimetype
-				 (path->mimetype file "text" mimetable))))
+				 (path->mimetype file #f mimetable))))
 	  (logdebug |S3/push|
-	    "Syncing " mimetype " " (write file)
+	    "Syncing " (try mimetype "unknown type") " " (write file)
 	    " to " (s3loc->string loc) ":\n info: " info)
 	  (if (or (fail? info) forcewrite)
-	      (let ((data (if (and (not encoding) (has-prefix mimetype "text"))
+	      (let ((data (if (and (not encoding)
+				   (exists? mimetype) mimetype
+				   (or (has-prefix mimetype "text")
+				       (mimetype/text? mimetype)))
 			      (filestring file)
 			      (filedata file))))
 		(loginfo |S3/push| "Pushing to " loc)
@@ -1023,7 +1026,10 @@
 			   (data-headers data encoding headers))
 		(set+! updated loc)
 		(when pause (sleep pause)))
-	      (let ((data (if (and (not encoding) (has-prefix mimetype "text"))
+	      (let ((data (if (and (not encoding)
+				   (exists? mimetype) mimetype
+				   (or (has-prefix mimetype "text")
+				       (mimetype/text? mimetype)))
 			      (filestring file)
 			      (filedata file))))
 		(if (and (= (get info 'size) (file-size file))
