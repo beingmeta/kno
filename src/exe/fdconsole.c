@@ -753,6 +753,10 @@ int main(int argc,char **argv)
     use_editline=1;}
 #endif
 
+  fd_register_config
+    ("EDITLINE",_("Whether to use EDITLINE for the console"),
+     fd_boolconfig_get,fd_boolconfig_set,&use_editline);
+
   /* This is the REPL value history, not the editline history */
   fd_histinit(0);
 
