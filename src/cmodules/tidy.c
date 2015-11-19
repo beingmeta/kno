@@ -101,7 +101,17 @@ static int copyStringOpt(fdtype opts,TidyDoc tdoc,TidyOptionId optname,
 
 /* The main primitive */
 
-static fdtype doctype_symbol, dontfix_symbol, wrap_symbol;
+static fdtype doctype_symbol, dontfix_symbol, wrap_symbol, xhtml_symbol;
+
+static int testopt(fdtype opts,fdtype sym,int dflt)
+{
+  fdtype v=fd_getopt(opts,sym,FD_VOID);
+  if (FD_VOIDP(v)) return dflt;
+  else if (FD_FALSEP(v)) return 0;
+  else {
+    fd_decref(v);
+    return 1;}
+}
 
 static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
                                int do_fixes,int xhtml)
@@ -111,7 +121,8 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
   int rc=-1;
   TidyDoc tdoc=tidyCreate();
   fdtype for_real=((do_fixes)?(FD_TRUE):(FD_FALSE));
-  fdtype for_xml=((xhtml)?(FD_TRUE):(FD_FALSE));
+  fdtype for_xml=((xhtml<0)?(testopt(opts,xhtml_symbol,0)):
+                  ((xhtml)?(FD_TRUE):(FD_FALSE)));
   tidyBufInit(&outbuf);
   tidyBufInit(&errbuf);
   rc=tidySetErrorBuffer(tdoc,&errbuf);
@@ -222,15 +233,19 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
 
 static fdtype tidy_prim(fdtype string,fdtype opts,fdtype diag)
 {
-  return tidy_prim_helper(string,opts,diag,1,1);
+  return tidy_prim_helper(string,opts,diag,1,-1);
 }
 static fdtype tidy_indent_prim(fdtype string,fdtype opts,fdtype diag)
 {
-  return tidy_prim_helper(string,opts,diag,0,1);
+  return tidy_prim_helper(string,opts,diag,0,-1);
 }
 static fdtype tidy_html_prim(fdtype string,fdtype opts,fdtype diag)
 {
   return tidy_prim_helper(string,opts,diag,1,0);
+}
+static fdtype tidy_xhtml_prim(fdtype string,fdtype opts,fdtype diag)
+{
+  return tidy_prim_helper(string,opts,diag,1,1);
 }
 
 
@@ -242,11 +257,16 @@ FD_EXPORT int fd_init_tidy()
   tidy_init=1;
   doctype_symbol=fd_intern("DOCTYPE");
   dontfix_symbol=fd_intern("DONTFIX");
+  xhtml_symbol=fd_intern("XHTML");
   wrap_symbol=fd_intern("WRAP");
   tidy_module=fd_new_module("TIDY",(FD_MODULE_SAFE));
 
   fd_idefn(tidy_module,
-           fd_make_cprim3x("TIDY->XHTML",tidy_prim,1,
+           fd_make_cprim3x("TIDY5",tidy_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_VOID,
+                           -1,FD_VOID));
+  fd_idefn(tidy_module,
+           fd_make_cprim3x("TIDY->XHTML",tidy_xhtml_prim,1,
                            fd_string_type,FD_VOID,-1,FD_VOID,
                            -1,FD_VOID));
   fd_idefn(tidy_module,
