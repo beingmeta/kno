@@ -323,7 +323,8 @@
       (loginfo |S3OP/result| "GET s3://" bucket "/" path
 	       "\n\treturned " (length content)
 	       (if (string? content) " characters of " " bytes of ")
-	       (try (get s3result 'content-type) "stuff")))
+	       (try (get response 'content-type)
+		    "stuff")))
     (unless success
       (onerror (store! response '%content (xmlparse content))
 	(lambda (ex) #f)))
