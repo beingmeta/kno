@@ -7,7 +7,9 @@
 (define %used_modules 'varconfig)
 
 (module-export!
- '{*mimetable* getsuffix
+ '{*mimetable* *inv-mimetable*
+   *default-mimetype* *default-charset*
+   getsuffix
    ctype->suffix ctype->charset
    path->ctype path->mimetype
    path->encoding
@@ -461,28 +463,36 @@
     })
 
 (define *mimetable*
-  (let ((table (make-hashtable))
-	(overrides (elts (cdr *override-data*))))
-    (do-choices (map (choice *override-data* *mimetable-data*))
-      (let ((suffixes (difference (elts (cdr map)) overrides)))
+  (let ((table (make-hashtable)))
+    (do-choices (map *override-data*)
+      (let ((suffixes (if (pair? (cdr map)) (elts (cdr map)) (cdr map))))
 	(store! *inv-mimetable* (car map)
 		(pick-one (downcase (smallest suffixes length))))
 	(store! table (choice suffixes (string-append "." suffixes))
 		(car map))))
+    (do-choices (map *mimetable-data*)
+      (let ((suffixes (reject (if (pair? (cdr map)) (elts (cdr map)) (cdr map))
+			      table)))
+	(when (exists? suffixes)
+	  (store! *inv-mimetable* (car map)
+		  (pick-one (downcase (smallest suffixes length))))
+	  (store! table (choice suffixes (string-append "." suffixes))
+		  (car map)))))
     table))
 
 (define (suffix->ctype suffix (typemap #f))
-  (try (tryif typemap (get typemap suffix)) (get *mimetable* suffix)))
+  (try (tryif typemap (get typemap suffix))
+       (%wc get *mimetable* suffix)))
 
 (define (guess-ctype path (typemap #f))
   (if (string? path)
       (if (has-suffix path ".gz")
-	  (suffix->ctype (gather #("." (isalnum+) (eos)) (slice path 0 -3)) typemap)
+	  (suffix->ctype (path-suffix (slice path 0 -3)) typemap)
 	  (if (has-suffix path ".Z")
-	      (suffix->ctype (gather #("." (isalnum+) (eos)) (slice path 0 -2)) typemap)
-	      (suffix->ctype (gather #("." (isalnum+) (eos)) path) typemap)))
+	      (suffix->ctype (path-suffix (slice path 0 -2)) typemap)
+	      (%wc suffix->ctype (path-suffix path) typemap)))
       (if (and (pair? path) (string? (cdr path)))
-	  (suffix->ctype (gather #("." (isalnum+) (eos)) (cdr path)) typemap)
+	  (suffix->ctype (path-suffix (cdr path)) typemap)
 	  (fail))))
 
 (define (path->mimetype path (default-value {}) (typemap #f))
@@ -503,8 +513,7 @@
       (if (has-suffix path ".Z") "compress"
 	  #f)))
 
-(define (getsuffix path (default {}))
-  (try (gather #("." (isalnum+) (eos)) path) default))
+(define getsuffix path-suffix)
 
 (define (ctype->suffix ctype) (get *inv-mimetable* ctype))
 
