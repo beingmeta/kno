@@ -60,9 +60,13 @@
 		       (error "NOT a GPATH HANDLER"))
 		   (get gpath-handlers (getkeys gpath-handlers)))))
 
-(define (guess-mimetype name (content))
-  (or (path->mimetype (gp/basename name) #f)
-      (if (bound? content)
+(define (guess-mimetype name (content) (opts #f))
+  (when (and (bound? content) (table? content) (not opts))
+    (set! opts content)
+    (set! content #f))
+  (or (and opts (getopt opts 'mimetype))
+      (try (path->mimetype (gp/basename name) #f opts) #f)
+      (if (and (bound? content) content)
 	  (if (string? content) "text"
 	      (if (packet? content) "application"
 		  "application/dtype"))
@@ -74,11 +78,12 @@
   (when (has-prefix dirpath "file:") (mkdirs (subseq dirpath 5)))
   dirpath)
 
-(define (get-charset ctype)
-  (and ctype (try
-	      (get (text->frames #("charset=" (label charset (not> ";"))) ctype)
-		   'charset)
-	      #f)))
+(define charset-pat #("charset=" (label charset (not> ";"))))
+
+(define (get-charset ctype (opts #f))
+  (try (tryif opts (getopt opts 'charset))
+       (tryif ctype
+	 (get (text->frames charset-pat ctype) 'charset))))
 
 (define *default-dirmode* 0x775) ;; rwxrwxr_x
 (varconfig! gpath:dirmode *default-dirmode*)
@@ -90,10 +95,14 @@
 
 ;;; Writing to a gpath
 
-(defambda (gp/write! saveto name content (ctype #f) (charset #f))
+(defambda (gp/write! saveto name content (ctype #f) (charset #f) (opts #f))
+  (when (and ctype (table? ctype) (not opts))
+    (set! opts ctype) (set! ctype #f))
+  (when (and charset (table? charset) (not opts))
+    (set! opts charset) (set! charset #f))
   (do-choices name
-    (let ((ctype (or ctype (guess-mimetype (get-namestring name) content)))
-	  (charset (or charset (get-charset ctype))))
+    (let ((ctype (or ctype (guess-mimetype (get-namestring name) content opts)))
+	  (charset (or charset (get-charset ctype opts))))
       ;; Do any charset conversion required by the CTYPE
       (when (and charset
 		 (string? content)
@@ -107,7 +116,11 @@
 	  (if (pair? gpath) (cdr gpath)
 	      ""))))
 
-(defambda (gp/save! dest content (ctype #f) (charset #f))
+(defambda (gp/save! dest content (ctype #f) (charset #f) (opts #f))
+  (when (and ctype (table? ctype) (not opts))
+    (set! opts ctype) (set! ctype #f))
+  (when (and charset (table? charset) (not opts))
+    (set! opts charset) (set! charset #f))
   (if (exists? content)
     (do-choices dest
       (let ((ctype (or ctype (guess-mimetype (get-namestring dest) content)))
