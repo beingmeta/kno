@@ -123,8 +123,8 @@
     (set! opts charset) (set! charset #f))
   (if (exists? content)
     (do-choices dest
-      (let ((ctype (or ctype (guess-mimetype (get-namestring dest) content)))
-	    (charset (or charset (get-charset ctype))))
+      (let ((ctype (or ctype (guess-mimetype (get-namestring dest) content opts)))
+	    (charset (try (or charset (get-charset ctype opts)) #f)))
 	(when (and (string? dest) (has-prefix dest {"http:" "https:"}))
 	  (set! dest (try (->s3loc dest) (uri->gpath dest) dest)))
 	(loginfo GP/SAVE! "Saving " (length content)
@@ -134,8 +134,7 @@
 		     (printout (write ctype) " "))
 		 "content into " dest)
 	;; Do any charset conversion required by the CTYPE
-	(when (and charset
-		   (string? content)
+	(when (and charset (string? content)
 		   (not (overlaps? (downcase charset) {"utf8" "utf-8"})))
 	  (set! content (packet->string (string->packet content) charset)))
 	(cond ((and (string? dest) (string-starts-with? dest {"http:" "https:"}))
