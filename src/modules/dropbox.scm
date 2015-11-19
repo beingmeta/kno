@@ -147,22 +147,26 @@
 
 ;;;; GPATH handling
 
-(define (dropbox-get dropbox path (info))
+(define (dropbox-get dropbox path (opts #f) (info) (auth))
+  (set! auth (getopt opts 'oauth (dropbox-oauth dropbox)))
   (if (bound? info)
       (if info
-	  (dropbox/get+ (dropbox-oauth dropbox) path)
-	  (dropbox/info (dropbox-oauth dropbox) path))
-      (dropbox/get (dropbox-oauth dropbox) path)))
+	  (dropbox/get+ auth path)
+	  (dropbox/info auth path))
+      (dropbox/get auth path)))
 
-(define (dropbox-save dropbox path content (ctype) (charset) (fullpath))
-  (default! ctype
-    (path->mimetype
-     path (if (packet? content) "application" "text")))
+(define (dropbox-save dropbox path content (ctype #f) (opts #f)
+		      (charset) (fullpath))
+  (unless ctype
+    (set! ctype
+	  (path->mimetype path (if (packet? content) "application" "text")
+			  opts)))
   (set! fullpath
 	(if (dropbox-root-path dropbox)
 	    (mkpath (dropbox-root-path dropbox) path)
 	    path))
-  (dropbox/put! (dropbox-oauth dropbox) fullpath content ctype))
+  (dropbox/put! (getopt opts 'oauth (dropbox-oauth dropbox))
+		fullpath content ctype))
 
 (define (dropbox-pathstring dropbox path)
   (let ((oauth (dropbox-oauth dropbox))
