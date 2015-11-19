@@ -1,3 +1,10 @@
+framerd (3.8.3-8) unstable; urgency=low
+
+  * Make defaults for TIDY to not be XHTML
+  * git patch version framerd-3.8.3-30
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 19 Nov 2015 11:10:25 -0500
+
 framerd (3.8.3-7) unstable; urgency=low
 
   * Fix bug in updated mimetable code
