@@ -1,3 +1,11 @@
+framerd (3.8.3-7) unstable; urgency=low
+
+  * Fix bug in updated mimetable code
+  * Add opts arguments to gpath, improved logging
+  * git patch version framerd-3.8.3-27
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 19 Nov 2015 10:24:57 -0500
+
 framerd (3.8.3-6) unstable; urgency=low
 
   * Dramatically expand mimetable, fix S3 call logic for mime types
