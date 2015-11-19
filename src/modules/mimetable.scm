@@ -482,7 +482,7 @@
 
 (define (suffix->ctype suffix (typemap #f))
   (try (tryif typemap (get typemap suffix))
-       (%wc get *mimetable* suffix)))
+       (get *mimetable* suffix)))
 
 (define (guess-ctype path (typemap #f))
   (if (string? path)
@@ -490,7 +490,7 @@
 	  (suffix->ctype (path-suffix (slice path 0 -3)) typemap)
 	  (if (has-suffix path ".Z")
 	      (suffix->ctype (path-suffix (slice path 0 -2)) typemap)
-	      (%wc suffix->ctype (path-suffix path) typemap)))
+	      (suffix->ctype (path-suffix path) typemap)))
       (if (and (pair? path) (string? (cdr path)))
 	  (suffix->ctype (path-suffix (cdr path)) typemap)
 	  (fail))))
