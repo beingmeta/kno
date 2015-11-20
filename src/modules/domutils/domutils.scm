@@ -239,7 +239,7 @@
 	    (add! node '%attribs (vector aname #f stringval)))))
     (drop! node '%markup))
   (store! node '%attribs (simplify (get node '%attribs)))
-  (when (oid? node) (store! node '%id (dom/sig node #t #f))))
+  (dom/updateid! node))
 
 (define (dom/drop! node attrib (value) (sep #f) (index #f))
   (drop! node '%markup)
@@ -275,7 +275,8 @@
 	  (when (exists? attribs) (drop! node '%attribs attribs))
 	  (when index
 	    (drop! index (cons {slotid xslotid attrib} value) node)
-	    (drop! index (cons 'has {slotid xslotid attrib}) node))))))
+	    (drop! index (cons 'has {slotid xslotid attrib}) node)))))
+  (dom/updateid! node))
 
 (define (dom/get node attrib)
   (if (symbol? attrib) (get node attrib)
@@ -299,8 +300,7 @@
 	      (when index (index-frame index node 'classname classname))))
 	  (begin (dom/set! node 'class classname)
 	    (when index (index-frame index node 'classname classname))))
-      (logwarn DOM/ADDCLASS "Invalid classname " (write classname)))
-  (when (oid? node) (store! node '%id (dom/sig node #t #f))))
+      (logwarn DOM/ADDCLASS "Invalid classname " (write classname))))
 (define (dom/dropclass! node classname)
   (when (test node 'class)
     (let ((classes (segment (get node 'class) " ")))
@@ -310,8 +310,7 @@
 	    (dom/set! node 'class
 		      (stringout
 			(doseq (class (remove classname classes) i)
-			  (printout (if (> i 0) " ") class)))))))
-    (when (oid? node) (store! node '%id (dom/sig node #t #f)))))
+			  (printout (if (> i 0) " ") class)))))))))
 
 (define (->domstring value)
   (cond ((string? value) value)
