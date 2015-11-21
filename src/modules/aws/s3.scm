@@ -9,8 +9,10 @@
 (define %used_modules '{aws varconfig ezrecords rulesets})
 
 (module-export!
- '{s3loc? s3loc-path s3loc-bucket make-s3loc ->s3loc s3/loc s3/mkpath
-   s3loc->string s3ish?})
+ '{s3loc? s3loc-path s3loc-bucket make-s3loc  s3/mkpath
+   ->s3loc s3/loc >s3
+   s3loc->string ->s3string >s3s
+   s3ish?})
 (module-export! '{s3loc s3/getloc s3loc/s3uri make-s3loc
 		  s3loc/uri s3loc/filename s3/bytecodes->string})
 (module-export! '{s3loc/get s3loc/head s3loc/exists?
@@ -146,8 +148,9 @@
 	    (try (make-s3loc (get info 'bucket) (get info 'path))
 		 (error "Can't convert to s3loc" input))))
 	 (else (fail))))
-
 (define s3/loc ->s3loc)
+(define >s3 ->s3loc)
+
 (define (s3ish? loc)
   (if (string? loc)
       (or (has-prefix loc "s3:")
@@ -167,6 +170,8 @@
 
 (define (s3loc->string s3)
   (stringout "s3://" (s3loc-bucket s3) (s3loc-path s3)))
+(define (->s3string x) (s3loc->string (->s3loc x)))
+(define >s3s ->s3string)
 
 ;;; Computing signatures for S3 calls
 

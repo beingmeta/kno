@@ -14,7 +14,7 @@
    gp/fetch gp/fetch+ gp/etag gp/info
    gp/exists? gp/exists gp/modified gp/newer
    gp/path gp/mkpath gp/subpath gp/makepath
-   gpath->string gp/string gpath->location
+   gpath->string gp/string gp>s gpath->location
    gp:config gpath/handler
    gp/urlfetch gp/urlinfo
    dtype->gpath gpath->dtype
@@ -296,6 +296,7 @@
 	 (stringout "zip:" (zip/filename (car path)) "(" (cdr path) ")"))
 	(else (stringout path))))
 (define gp/string gpath->string)
+(define gp>s gpath->string)
 
 (define (makepath root path (mode *default-dirmode*) (require-subpath #f))
   (unless (string? path)
@@ -389,8 +390,7 @@
 	((string? ref)
 	 (if  (and ctype
 		   (or (has-prefix ctype "text")
-		       (textsearch #{"xml" ".htm" ".txt" ".text" ".md" "charset"}
-				   ctype)))
+		       (textsearch #{"xml" "json"} ctype)))
 	      (filestring (abspath ref)
 			  (or (and ctype (ctype->charset ctype)) "auto"))
 	      (filedata (abspath ref))))
