@@ -1,3 +1,11 @@
+framerd (3.8.3-9) unstable; urgency=low
+
+  * Make dom/drop/set/add! reset the %id slot
+  * Added short utility names to gpath/s3 functions
+  * git path version framerd-3.8.3-33
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 21 Nov 2015 05:41:21 -0500
+
 framerd (3.8.3-8) unstable; urgency=low
 
   * Make defaults for TIDY to not be XHTML
