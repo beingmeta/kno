@@ -487,7 +487,9 @@ static fdtype loadcontent(fdtype path)
     fd_restore_sourcebase(oldsource);
     if (xml==NULL) {
       u8_free(content);
-      u8_log(LOG_WARN,Startup,"ERROR","Error parsing %s",pathname);
+      if (u8_current_exception==NULL) {
+	u8_seterr("BadFDXML","loadconfig/fdxml",u8_strdup(pathname));}
+      u8_log(LOG_CRIT,Startup,"ERROR","Error parsing %s",pathname);
       return FD_ERROR_VALUE;}
     parsed=xml->head;
     while ((FD_PAIRP(parsed)) && 
@@ -517,9 +519,19 @@ static fdtype loadcontent(fdtype path)
        use that. */
     u8_free(content);
     load_result=fd_load_source(pathname,newenv,NULL);
-    if (FD_TROUBLEP(load_result)) return load_result;
+    if (FD_TROUBLEP(load_result)) {
+      if (u8_current_exception==NULL) {
+	u8_seterr("LoadSourceFailed","loadcontent/scheme",
+		  u8_strdup(pathname));}
+      return load_result;}
     fd_decref(load_result);
     main_proc=fd_eval(main_symbol,newenv);
+    if (!(FD_APPLICABLEP(main_proc))) {
+      u8_log(LOG_CRIT,"ServletMainNotApplicable",
+	     "From loading %s",pathname);
+      u8_seterr("ServletMainNotApplicable","loadcontent/scheme",
+		u8_strdup(pathname));
+      return FD_ERROR_VALUE;}
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);
@@ -536,6 +548,8 @@ static fdtype getcontent(fdtype path)
       char *lpath=u8_localpath(FD_STRDATA(path));
       int retval=stat(lpath,&fileinfo);
       if (retval<0) {
+	u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
+	       lpath,errno);
 	u8_graberr(-1,"getcontent",lpath);
 	return FD_ERROR_VALUE;}
       u8_init_xtime(&mtime,fileinfo.st_mtime,u8_second,0,0,0);
@@ -556,6 +570,8 @@ static fdtype getcontent(fdtype path)
       struct stat fileinfo;
       char *lpath=u8_localpath(FD_STRDATA(path));
       if (stat(lpath,&fileinfo)<0) {
+	u8_log(LOG_CRIT,"StatFailed","Stat on %s failed (errno=%d)",
+	       lpath,errno);
 	u8_graberr(-1,"getcontent",u8_strdup(FD_STRDATA(path)));
 	u8_free(lpath); fd_decref(value);
 	return FD_ERROR_VALUE;}
@@ -581,9 +597,11 @@ static fdtype getcontent(fdtype path)
 	fd_decref(value);
 	u8_free(lpath);
 	return retval;}}}
-  else if (FD_STRINGP(path))
-    return fd_err(fd_FileNotFound,"getcontent",NULL,path);
+  else if (FD_STRINGP(path)) {
+    u8_log(LOG_CRIT,"FileNotFound","Content file %s",FD_STRDATA(path));
+    return fd_err(fd_FileNotFound,"getcontent",NULL,path);}
   else {
+    u8_log(LOG_CRIT,"BadPathArg","To getcontent");
     return fd_type_error("pathname","getcontent",path);}
 }
 

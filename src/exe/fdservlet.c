@@ -800,6 +800,7 @@ static int webservefn(u8_client ucl)
   if (fd_update_file_modules(0)<0) {
     u8_condition c; u8_context cxt; u8_string details=NULL;
     fdtype irritant;
+    u8_log(LOG_CRIT,"ModuleUpdateFailed","Failure updating file modules");
     setup_time=parse_time=u8_elapsed_time();
     if (fd_poperr(&c,&cxt,&details,&irritant))
       proc=fd_err(c,cxt,details,irritant);
@@ -810,6 +811,7 @@ static int webservefn(u8_client ucl)
     u8_condition c; u8_context cxt; u8_string details=NULL;
     fdtype irritant;
     setup_time=parse_time=u8_elapsed_time();
+    u8_log(LOG_CRIT,"PreloadUpdateFailed","Failure updating preloads");
     if (fd_poperr(&c,&cxt,&details,&irritant))
       proc=fd_err(c,cxt,details,irritant);
     if (details) u8_free(details); fd_decref(irritant);
@@ -890,7 +892,7 @@ static int webservefn(u8_client ucl)
   fd_use_reqinfo(cgidata); fd_reqlog(1);
   fd_thread_set(browseinfo_symbol,FD_EMPTY_CHOICE);
   parse_time=u8_elapsed_time();
-  if (FD_ABORTP(proc)) {
+  if ((FD_ABORTP(proc))&&(u8_current_exception!=NULL)) {
     u8_log(LOG_WARN,u8_current_exception->u8x_cond,
            "Problem getting content from %q",path);
     if (u8_current_exception->u8x_cond==fd_FileNotFound) {
@@ -917,7 +919,11 @@ static int webservefn(u8_client ucl)
     if (FD_ABORTP(proc)) {
       if (!(FD_VOIDP(default_nocontentpage)))
         fd_incref(default_nocontentpage);
-      proc=default_nocontentpage;}}
+      proc=default_nocontentpage;}} 
+  else if (FD_ABORTP(proc)) {
+    u8_log(LOG_CRIT,"BadWebProc",
+           "Getting procedure failed for request %q",cgidata);}
+  else {}
   if ((reqlog) || (urllog) || (trace_cgidata))
     dolog(cgidata,FD_NULL,NULL,-1,parse_time-start_time);
   if (!(FD_ABORTP(proc)))
