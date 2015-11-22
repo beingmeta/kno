@@ -1,0 +1,17 @@
+[Unit]
+Description=FramerD service(s) starter
+
+[Service]
+Type=oneshot
+ExecStartPre=mkdir -p @daemon_rundir@ @daemon_logdir@ @servlet_rundir@ @servlet_logdir@
+ExecStartPre=chown @webuser@ @servlet_rundir@ @servlet_logdir@
+ExecStartPre=chown @fdaemon@ @daemon_rundir@ @daemon_logdir@
+ExecStartPre=chgrp @admin_group@ @servlet_rundir@ @servlet_logdir@
+ExecStartPre=chgrp @admin_group@ @daemon_rundir@ @daemon_logdir@
+ExecStartPre=chmod g+rwx @servlet_rundir@  @servlet_logdir@
+ExecStartPre=chmod g+rwx @daemon_rundir@ @daemon_logdir@
+ExecStart=FD_LAUNCHER=framerd.service @bindir@/fdstart @config_dir@/daemons; @bindir@/fdstart @config_dir@/servlets
+ExecStop=@bindir@/fdstop @config_dir@/daemons @config_dir@/servlets
+
+[Install]
+WantedBy=multi-user.target
