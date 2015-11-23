@@ -178,6 +178,7 @@ AC_SUBST(xstatic_exe_libs)
 AC_SUBST(xstatic_scheme_libs)
 AC_SUBST(xdynamic_scheme_libs)
 AC_SUBST(scheme_builtins_init)
+AC_SUBST(systemd_loc)
 AC_SUBST(data_dir)
 AC_SUBST(module_dir)
 AC_SUBST(safe_module_dir)
@@ -402,7 +403,9 @@ if test $with_optinclude != "none"; then
   CFLAGS="$CFLAGS -I$with_optinclude"
 fi
 
-if test -d /etc/init; then
+if test -d /etc/systemd; then
+  default_bootsystem="systemd";
+elif test -d /etc/init; then
   default_bootsystem="upstart";
  elif test -d /etc/init.d; then
   default_bootsystem="sysv";
@@ -410,11 +413,23 @@ if test -d /etc/init; then
   default_bootsystem="none"
 fi
 
-AC_ARG_WITH(bootsystem,--with-bootsytem Setup boot method,,with_bootsystem=$default_bootsystem)
+AC_ARG_WITH(bootsystem,--with-bootsystem Setup boot method,,with_bootsystem=$default_bootsystem)
 
 if test $with_bootsystem != "none"; then
   BOOTSETUP="setup-$with_bootsystem"
 fi
+
+if test -d /usr/lib/systemd/system;
+  then default_systemd_loc=/usr/lib/systemd/system;
+elif test -d /lib/systemd/system;
+  then default_systemd_loc=/lib/systemd/system;
+elif test -d /etc/systemd/system;
+  then default_systemd_loc=/etc/systemd/system;
+else default_systemd_loc=/usr/lib/systemd/system;
+fi
+
+AC_ARG_WITH(systemd,--with-systemd Specify systemd install directory,,with_systemd=$default_systemd_loc)
+systemd_loc=$with_systemd
 
 if test "x$prefix" != "x/user"; then
   CFLAGS="$CFLAGS -I$prefix/include"

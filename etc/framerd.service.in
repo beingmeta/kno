@@ -1,8 +1,10 @@
 [Unit]
 Description=FramerD service(s) starter
+Requires=network.target syslog.target
 
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStartPre=mkdir -p @daemon_rundir@ @daemon_logdir@ @servlet_rundir@ @servlet_logdir@
 ExecStartPre=chown @webuser@ @servlet_rundir@ @servlet_logdir@
 ExecStartPre=chown @fdaemon@ @daemon_rundir@ @daemon_logdir@
