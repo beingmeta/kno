@@ -1684,7 +1684,7 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,
       else {
 	apr_sockaddr_ip_get(&rname,addr);
 	ap_log_rerror
-	  (APLOG_MARK,APLOG_INFO,OK,r,
+	  (APLOG_MARK,APLOG_DEBUG,OK,r,
 	   "Got info for port %d at %s, addr=%s, port=%d",
 	   portno,hostname,rname,addr->port);}}
     apr_thread_mutex_create(&(servlet->lock),
@@ -2078,7 +2078,7 @@ static fdservlet request_servlet(request_rec *r)
     ap_get_module_config(r->per_dir_config,&fdserv_module);
   fdservlet servlet;
   int keep_socks=sconfig->keep_socks, max_socks=sconfig->max_socks;
-  ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
+  ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
 		"Resolving %s using servlet %s",r->unparsed_uri,sockname);
   servlet=get_servlet(sockname);
   if ((dconfig)&&(dconfig->keep_socks>keep_socks))
@@ -2111,7 +2111,7 @@ static apr_status_t close_servlets(void *data)
   int i=0; int lim; int sock_count=0;
   apr_thread_mutex_lock(servlets_lock);
   lim=n_servlets;
-  ap_log_perror(APLOG_MARK,APLOG_INFO,OK,p,
+  ap_log_perror(APLOG_MARK,APLOG_NOTICE,OK,p,
 		"mod_fdserv closing %d open servlets",lim);
   while (i<lim) {
     fdservlet s=&(servlets[i++]);
@@ -2524,7 +2524,7 @@ static int sock_write(request_rec *r,
 	  errno=0;}
 	else {
 	  ap_log_rerror
-	    (APLOG_MARK,LOGDEBUG,OK,r,
+	    (APLOG_MARK,APLOG_ERR,OK,r,
 	     "Error %d (%s) on %s after %ld/%ld bytes for %s (%s)",
 	     errno,strerror(errno),
 	     fdsocketinfo(sockval,infobuf),
@@ -2791,7 +2791,7 @@ static int fdserv_handler(request_rec *r)
     return HTTP_SERVICE_UNAVAILABLE;}
   else {
     connected=apr_time_now();
-    ap_log_rerror(APLOG_MARK,APLOG_NOTICE,OK,r,
+    ap_log_rerror(APLOG_MARK,APLOG_INFO,OK,r,
 		  "Handling %s with %s through %s, %d busy",
 		  r->unparsed_uri,r->filename,
 		  fdsocketinfo(sock,infobuf),
