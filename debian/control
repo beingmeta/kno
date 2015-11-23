@@ -92,3 +92,8 @@ Package: framerd-sysv
 Architecture: any
 Depends: framerd
 Description: SYSV init.d configuration for FramerD
+
+Package: framerd-systemd
+Architecture: any
+Depends: framerd
+Description: systemd init configuration for FramerD
