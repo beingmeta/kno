@@ -130,6 +130,15 @@ CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/cmodules/hyphenate.o \
 	     ${SUNDOWN_OBJS}
 
+SUNDOWN_OBJECTS=src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
+	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
+	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
+	src/cmodules/sundown/houdini_href_e.o src/cmodules/sundown/houdini_html_e.o
+SUNDOWN_H_FILES=src/cmodules/sundown/autolink.h src/cmodules/sundown/buffer.h \
+	src/cmodules/sundown/markdown.h src/cmodules/sundown/stack.h \
+	src/cmodules/sundown/html_blocks.h src/cmodules/sundown/html.h \
+	src/cmodules/sundown/houdini.h
+
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 	    exe/fdservlet@suffix@ exe/fdserver@suffix@
 STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
@@ -452,6 +461,10 @@ $(BININSTALLDIR)/%: src/scripts/%.scm
 
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
+
+src/cmodules/sundown/%.o: src/cmodules/sundown/%.c $(SUNDOWN_H_FILES)
+	@$(CC) $(CFLAGS) -I./src/cmodules/sundown/ -o $@ -c $<
+	@$(MSG) CC "(SUNDOWN)" $@
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
@@ -781,21 +794,8 @@ lib/framerd/tidy.dylib: src/cmodules/tidy.o
 lib/framerd/zlib.so: src/cmodules/zlib.o ${MODULE_SO}
 lib/framerd/zlib.dylib: src/cmodules/zlib.o
 
-SUNDOWN_OBJECTS=src/cmodules/sundown/sundown.o \
-	src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
-	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
-	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
-	src/cmodules/sundown/houdini_href_e.o src/cmodules/sundown/houdini_html_e.o
-SUNDOWN_H_FILES=src/cmodules/sundown/autolink.h src/cmodules/sundown/buffer.h \
-	src/cmodules/sundown/markdown.h src/cmodules/sundown/stack.h \
-	src/cmodules/sundown/html_blocks.h src/cmodules/sundown/html.h \
-	src/cmodules/sundown/houdini.h
-src/cmodules/sundown/%.o: src/cmodules/sundown/%.c $(SUNDOWN_H_FILES)
-	@$(CC) $(CFLAGS) -I./src/cmodules/sundown/ -o $@ $<
-	@$(MSG) CC "(SUNDOWN)" $@
-
-lib/framerd/sundown.so: $(SUNDOWN_OBJECTS)
-	@$(MKSO) -o $@ $(SUNDOWN_OBJECTS) @LIBS@
+lib/framerd/sundown.so: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS) $(MODULE_SO)
+	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS) $(MODULE_SO)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 lib/framerd/sundown.dylib: $(SUNDOWN_OBJECTS)
@@ -1222,11 +1222,12 @@ enable-sysv: setup-sysv
 		$(SUDO) update-rc.d framerd defaults; \
 	 fi
 
+startupdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
+
 setup-upstart: $(DESTDIR)/etc/init/fdserver.conf \
 	$(DESTDIR)/etc/init/fdservlet.conf \
 	$(DESTDIR)/etc/init/framerd.conf \
-	upstartdirs
-upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
+	startupdirs
 $(DESTDIR)/etc/init:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
 $(DESTDIR)/etc/init/fdserver.conf: etc/fdserver.conf $(DESTDIR)/etc/init
@@ -1241,6 +1242,13 @@ $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing framerd Upstart config
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.conf $(DESTDIR)/etc/init/framerd.conf
+
+setup-systemd: $(DESTDIR)@systemd_loc@/framerd.service startupdirs
+$(DESTDIR)@systemd_loc@/framerd.service:
+	@$(MSG) Installing framerd system config
+	@$(SYSINSTALL) -m 0555 @admininstall@ \
+		   etc/framerd.service $(DESTDIR)@systemd_loc@/framerd.service
+
 
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd logdirs
 $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate $(DESTDIR)/etc/logrotate.d
