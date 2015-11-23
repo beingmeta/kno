@@ -17,6 +17,7 @@
 #include "framerd/eval.h"
 #include "framerd/sequences.h"
 #include "framerd/texttools.h"
+#include "framerd/bigints.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
