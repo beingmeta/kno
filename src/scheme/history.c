@@ -222,7 +222,7 @@ FD_EXPORT void fd_histclear(int size)
   fd_histinit(size);
 }
 
-static fdtype histref_prim(arg)
+static fdtype histref_prim(fdtype arg)
 {
   if (!(FD_FIXNUMP(arg)))
     return fd_err(fd_SyntaxError,"histref_prim",
