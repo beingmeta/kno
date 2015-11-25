@@ -1,1 +1,1 @@
-usr/lib/systemd/system/framerd.service
+lib/systemd/system/framerd.service
