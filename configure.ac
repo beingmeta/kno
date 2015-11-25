@@ -256,6 +256,11 @@ AC_SUBST(IMAGICK_LDFLAGS)
 AC_SUBST(DEFAULTISASYNC)
 AC_SUBST(USEDTBLOCK)
 AC_SUBST(MSG)
+AC_SUBST(BINDIR)
+AC_SUBST(CHOWN)
+AC_SUBST(CHMOD)
+AC_SUBST(MKDIR)
+AC_SUBST(CHGRP)
 
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
@@ -266,6 +271,10 @@ AC_SUBST(GPGID)
 
 AC_PATH_PROG(binenv,env)
 AC_CHECK_PROG(ECHO,echo,,/bin/echo)
+AC_CHECK_PROG(MKDIR_DEFAULT,mkdir,,/bin/mkdir)
+AC_CHECK_PROG(CHMOD_DEFAULT,chmod,,/bin/chmod)
+AC_CHECK_PROG(CHOWN_DEFAULT,chown,,/bin/chown)
+AC_CHECK_PROG(CHGRP_DEFAULT,chgrp,,/bin/chgrp)
 AC_PATH_PROG(VALGRIND,valgrind,none)
 AC_PATH_PROG(DUMA,duma,none)
 AC_PATH_PROG(CLANG,clang,none)
@@ -273,6 +282,15 @@ AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr
 AC_CHECK_PROG(CREATEREPO,createrepo,,echo No createrepo for )
 AC_CHECK_PROGS(LLVM_SYMBOLIZER,llvm-symbolizer-3.5,llvm-symbolizer-3.4)
 AC_PATH_PROG(LLVM_SYMBOLIZER_PATH,$LLVM_SYMBOLIZER)
+
+AC_ARG_WITH(mkdir,--with-mkdir command,with_mkdir=$withval,with_mkdir=$MKDIR_DEFAULT)
+MKDIR=$with_mkdir
+AC_ARG_WITH(chmod,--with-chmod command,with_chmod=$withval,with_chmod=$CHMOD_DEFAULT)
+CHMOD=$with_chmod
+AC_ARG_WITH(chown,--with-chown command,with_chown=$withval,with_chown=$CHOWN_DEFAULT)
+CHOWN=$with_chown
+AC_ARG_WITH(chgrp,--with-chgrp command,with_chgrp=$withval,with_chgrp=$CHGRP_DEFAULT)
+CHGRP=$with_chgrp
 
 if test "x$VALGRIND" != "xnone"; then
   memtest_prefix=vg_
@@ -1394,6 +1412,11 @@ if test "x$enable_rpath" != "xno" && test "$prefix" != "/usr" && test "$prefix" 
 fi
 
 AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
+
+if test $exec_prefix == 'NONE';
+  then BINDIR="${prefix}/bin";
+else BINDIR="${exec_prefix}/bin";
+fi
 
 AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile

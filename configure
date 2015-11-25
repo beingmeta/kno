@@ -661,11 +661,20 @@ APXS
 CLANG
 DUMA
 VALGRIND
+CHGRP_DEFAULT
+CHOWN_DEFAULT
+CHMOD_DEFAULT
+MKDIR_DEFAULT
 ECHO
 binenv
 GPGID
 RPMFLAGS
 RPMDIR
+CHGRP
+MKDIR
+CHMOD
+CHOWN
+BINDIR
 MSG
 USEDTBLOCK
 DEFAULTISASYNC
@@ -801,6 +810,10 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+with_mkdir
+with_chmod
+with_chown
+with_chgrp
 with_sanitize
 with_duma
 with_execwrapper
@@ -1520,6 +1533,10 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+--with-mkdir command
+--with-chmod command
+--with-chown command
+--with-chgrp command
 --with-sanitize=address*|memory|thread
 --with-duma Build with Detect Unintended Memory Access
 --with-execwrapper program to use when calling exec()
@@ -3022,6 +3039,11 @@ ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd
 
 
 
+
+
+
+
+
 # Extract the first word of "env", so it can be a program name with args.
 set dummy env; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -3094,6 +3116,158 @@ ECHO=$ac_cv_prog_ECHO
 if test -n "$ECHO"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ECHO" >&5
 $as_echo "$ECHO" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "mkdir", so it can be a program name with args.
+set dummy mkdir; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_MKDIR_DEFAULT+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$MKDIR_DEFAULT"; then
+  ac_cv_prog_MKDIR_DEFAULT="$MKDIR_DEFAULT" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_MKDIR_DEFAULT=""
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_MKDIR_DEFAULT" && ac_cv_prog_MKDIR_DEFAULT="/bin/mkdir"
+fi
+fi
+MKDIR_DEFAULT=$ac_cv_prog_MKDIR_DEFAULT
+if test -n "$MKDIR_DEFAULT"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $MKDIR_DEFAULT" >&5
+$as_echo "$MKDIR_DEFAULT" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "chmod", so it can be a program name with args.
+set dummy chmod; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_CHMOD_DEFAULT+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$CHMOD_DEFAULT"; then
+  ac_cv_prog_CHMOD_DEFAULT="$CHMOD_DEFAULT" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_CHMOD_DEFAULT=""
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_CHMOD_DEFAULT" && ac_cv_prog_CHMOD_DEFAULT="/bin/chmod"
+fi
+fi
+CHMOD_DEFAULT=$ac_cv_prog_CHMOD_DEFAULT
+if test -n "$CHMOD_DEFAULT"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $CHMOD_DEFAULT" >&5
+$as_echo "$CHMOD_DEFAULT" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "chown", so it can be a program name with args.
+set dummy chown; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_CHOWN_DEFAULT+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$CHOWN_DEFAULT"; then
+  ac_cv_prog_CHOWN_DEFAULT="$CHOWN_DEFAULT" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_CHOWN_DEFAULT=""
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_CHOWN_DEFAULT" && ac_cv_prog_CHOWN_DEFAULT="/bin/chown"
+fi
+fi
+CHOWN_DEFAULT=$ac_cv_prog_CHOWN_DEFAULT
+if test -n "$CHOWN_DEFAULT"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $CHOWN_DEFAULT" >&5
+$as_echo "$CHOWN_DEFAULT" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "chgrp", so it can be a program name with args.
+set dummy chgrp; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_CHGRP_DEFAULT+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$CHGRP_DEFAULT"; then
+  ac_cv_prog_CHGRP_DEFAULT="$CHGRP_DEFAULT" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_CHGRP_DEFAULT=""
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_CHGRP_DEFAULT" && ac_cv_prog_CHGRP_DEFAULT="/bin/chgrp"
+fi
+fi
+CHGRP_DEFAULT=$ac_cv_prog_CHGRP_DEFAULT
+if test -n "$CHGRP_DEFAULT"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $CHGRP_DEFAULT" >&5
+$as_echo "$CHGRP_DEFAULT" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -3386,6 +3560,43 @@ $as_echo "no" >&6; }
 fi
 
 
+
+
+# Check whether --with-mkdir was given.
+if test "${with_mkdir+set}" = set; then :
+  withval=$with_mkdir; with_mkdir=$withval
+else
+  with_mkdir=$MKDIR_DEFAULT
+fi
+
+MKDIR=$with_mkdir
+
+# Check whether --with-chmod was given.
+if test "${with_chmod+set}" = set; then :
+  withval=$with_chmod; with_chmod=$withval
+else
+  with_chmod=$CHMOD_DEFAULT
+fi
+
+CHMOD=$with_chmod
+
+# Check whether --with-chown was given.
+if test "${with_chown+set}" = set; then :
+  withval=$with_chown; with_chown=$withval
+else
+  with_chown=$CHOWN_DEFAULT
+fi
+
+CHOWN=$with_chown
+
+# Check whether --with-chgrp was given.
+if test "${with_chgrp+set}" = set; then :
+  withval=$with_chgrp; with_chgrp=$withval
+else
+  with_chgrp=$CHGRP_DEFAULT
+fi
+
+CHGRP=$with_chgrp
 
 if test "x$VALGRIND" != "xnone"; then
   memtest_prefix=vg_
@@ -10611,6 +10822,11 @@ cat >>confdefs.h <<_ACEOF
 #define FD_SCHEME_BUILTINS $scheme_builtins_init
 _ACEOF
 
+
+if test $exec_prefix == 'NONE';
+  then BINDIR="${prefix}/bin";
+else BINDIR="${exec_prefix}/bin";
+fi
 
 ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdsignal etc/fdstart etc/fdstartall etc/fdstopall etc/fdcleanup etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/fdserver.conf etc/framerd.conf etc/framerd.service etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.8.spec"
 

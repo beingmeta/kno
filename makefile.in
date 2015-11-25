@@ -1244,7 +1244,7 @@ $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
 		   etc/framerd.conf $(DESTDIR)/etc/init/framerd.conf
 
 setup-systemd: $(DESTDIR)@systemd_loc@/framerd.service startupdirs
-$(DESTDIR)@systemd_loc@/framerd.service:
+$(DESTDIR)@systemd_loc@/framerd.service: etc/framerd.service
 	@$(MSG) Installing framerd system config
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.service $(DESTDIR)@systemd_loc@/framerd.service

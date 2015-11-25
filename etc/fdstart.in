@@ -6,11 +6,11 @@ export FD_LOGLEVEL=7
 export FD_LAUNCHER=${FD_LANUCHER:-fdstart} 
 export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
-export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}" 
-export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${TARGET}" 
 export FDSTART="sudo -u @fdaemon@ -g @admin_group@"
 export WEBSTART="sudo -u @webuser@ -g @admin_group@"
 for TARGET in ${TARGETS}; do
+    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}";
+    export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${TARGET}";
     for ctl in $(find -L ${TARGET} -name "*.fdz");
     do if (readlink ${ctl}>/dev/null);
        then echo "Starting daemon manager for ${ctl}";
@@ -23,6 +23,8 @@ for TARGET in ${TARGETS}; do
     done;
 done;
 for TARGET in ${TARGETS}; do
+    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}";
+    export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${TARGET}";
     for sock in $(find -L ${TARGET} -name "*.sock");
     do if (readlink ${sock}>/dev/null);
        then @SUDO@ touch @servlet_rundir@/`basename ${sock}`.nospawn;
@@ -39,6 +41,8 @@ for TARGET in ${TARGETS}; do
     done;
 done;
 for TARGET in ${TARGETS}; do
+    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}";
+    export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${TARGET}";
     for cfg in $(find -L ${TARGET} -name "*.cfg");
     do if (readlink ${cfg}>/dev/null);
        then @SUDO@ touch @servlet_rundir@/`basename ${cfg} .cfg`.sock.nospawn;
@@ -55,6 +59,8 @@ for TARGET in ${TARGETS}; do
     done;
 done;
 for TARGET in ${TARGETS}; do
+    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}";
+    export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${TARGET}";
     for addr in $(find -L ${TARGET} -name "*@*");
     do if (readlink ${addr}>/dev/null);
        then echo "Starting servlet manager for ${addr}";
@@ -69,6 +75,8 @@ for TARGET in ${TARGETS}; do
     done;
 done;
 for TARGET in ${TARGETS}; do
+    export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}";
+    export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${TARGET}";
     for addr in $(find -L ${TARGET} -name "*:*");
     do if (readlink ${addr}>/dev/null);
        then echo "Starting servlet manager for ${addr}";
