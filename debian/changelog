@@ -1,3 +1,11 @@
+framerd (3.8.3-11) unstable; urgency=medium
+
+  * Added framerd-systemd module
+  * Multiple generic fixes to startup scripts
+  * git patch version framerd-3.8.3-48
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 25 Nov 2015 12:13:40 -0500
+
 framerd (3.8.3-10) unstable; urgency=low
 
   * Add more error checking for servlets
