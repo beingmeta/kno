@@ -27,10 +27,14 @@ for rundir in $*; do
 	fi;
     done;
 done;
+sleep ${KILLWAIT};
 for rundir in $*; do
     for pid in ${rundir}/*.pid; do
 	if test `basename ${pid}` != "*.pid"; then
-	    if test -f ${pid}; then sleep ${KILLPAUSE}; fi
+	    if test -f ${pid}; then sleep 1; fi
+	    if test -f ${pid}; then sleep 2; fi
+	    if test -f ${pid}; then sleep 4; fi
+	    if test -f ${pid}; then sleep 8; fi
      	    if test -f ${pid}; then 
 		export npid=`cat ${pid}`
 		echo "Terminating server ${pid} (${npid})";
