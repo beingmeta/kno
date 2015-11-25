@@ -798,8 +798,8 @@ lib/framerd/sundown.so: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS) $(MODU
 	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS) $(MODULE_SO)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
-lib/framerd/sundown.dylib: $(SUNDOWN_OBJECTS)
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $(SUNDOWN_OBJECTS)
+lib/framerd/sundown.dylib: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
+	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib ${CFLAGS} -o $@ src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
 # Internationalization stuff
