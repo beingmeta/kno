@@ -323,7 +323,7 @@
 		    (set! anchors (cons node anchors))
 		    (set! ignored (cons node ignored)))
 		(set! ignored (cons node ignored)))
-	    (set! others (cons node others))))
+	    (set! ignored (cons node ignored))))
       (unless (null? hrefs)
 	(loginfo |Localize| "Split " (length hrefs) " [HREF]s into "
 		 (length anchors) " anchors and " (length others) " other elements"
