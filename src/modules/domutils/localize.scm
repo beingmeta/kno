@@ -257,7 +257,7 @@
 	  (when saveslot (dom/set! node saveslot (get node 'src)))
 	  (unless (test node 'data-origin) (dom/set! node 'data-origin (get node 'src)))
 	  (dom/set! node 'src ref)
-	  (loginfo |Localize| "New converted node: \n"  (pprint node)))))
+	  (logdebug |Localize| "New converted node: \n"  (pprint node)))))
     ;; Convert url() references in stylesheets
     (loginfo |Localize| "Localizing stylesheet links")
     (do-choices (node (pick (pick (dom/find head "link") 'rel "stylesheet")
@@ -305,28 +305,34 @@
 	  (dom/set! node 'href ref)
 	  (logdebug |Localize/css|
 	    "New converted node: \n" (pprint node)))))
-    (let ((hrefs (dom/select->list dom "[href]")) (anchors '()) (others '()))
+    (let ((hrefs (dom/select->list dom "[href]")) 
+	  (ignored '())
+	  (anchors '())
+	  (others '()))
       (dolist (node hrefs)
 	(if (or (and doanchors (test node '%xmltag 'a))
 		(and (test node '%xmltag 'link)
 		     (test node 'rel syncrels))
 		(not (test node '%xmltag '{a link})))
-	    (unless (or (string-starts-with? (get node 'href) extprefix)
-			;; We handle these separately
-			(test node 'rel {"x-resource" "stylesheet"}))
-	      (when (or (immediate? doanchors)
+	    (if (not (or (string-starts-with? (get node 'href) extprefix)
+			 ;; We handle these separately
+			 (test node 'rel {"x-resource" "stylesheet"})))
+		(if (or (immediate? doanchors)
 			(exists textsearch (reject doanchors regex?) (get node 'href))
 			(exists regex/search (pick doanchors regex?) (get node 'href)))
-		(set! anchors (cons node anchors))))
+		    (set! anchors (cons node anchors))
+		    (set! ignored (cons node ignored)))
+		(set! ignored (cons node ignored)))
 	    (set! others (cons node others))))
       (unless (null? hrefs)
 	(loginfo |Localize| "Split " (length hrefs) " [HREF]s into "
-		 (length anchors) " anchors and " (length others) " other elements"))
+		 (length anchors) " anchors and " (length others) " other elements"
+		 (unless (null? ignored) (printout " (" (length ignored) " ignored)"))))
       (unless (null? anchors)
 	(loginfo |Localize|
 	  "Localizing " (length anchors) " anchor [href] elements"))
       (dolist (node (reverse anchors))
-	(logdebug |Localize|
+	(loginfo |Localize|
 	  "Localizing (anchor) " (get node 'href) "\n\tfrom " base "\n\tto " saveto)
 	(let* ((href (get node 'href))
 	       (hashpos (position #\# href))
@@ -351,6 +357,10 @@
 	(loginfo |Localize|
 	  "Localizing " (length others) " non-anchor [href] elements"))
       (dolist (node (reverse others))
+	(loginfo |Localize|
+	  "Localizing (" (get node '%xmltag) 
+	  (when (test node 'rel) (printout "/" (get node 'rel))) ") " 
+	  (get node 'href) "\n\tfrom " base "\n\tto " saveto)
 	(let* ((href (get node 'href))
 	       (hashpos (position #\# href)))
 	  (cond ((and (test urlmap href) (get urlmap href))
