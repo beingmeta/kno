@@ -52,7 +52,10 @@
   (get (get (hashfs-files hashfs) path) 'data))
 (define (hashfs/get+ hashfs path)
   (unless (has-prefix path "/") (set! path (glom "/" path)))
-  (get (hashfs-files hashfs) path))
+  (let ((info (get (hashfs-files hashfs) path)))
+    (tryif (exists? info)
+      `#[content ,(get info 'data) ctype ,(get info 'ctype)
+	 modified ,(get info 'modified)])))
 
 (define (hashfs/info hashfs path)
   (unless (has-prefix path "/") (set! path (glom "/" path)))
@@ -87,8 +90,4 @@
       (gp/save! (hashfs-source hashfs)
 	(dtype->packet (hashfs-files hashfs)))
       (error "This HASHFS doesn't have a source" hashfs)))
-
-
-
-
 
