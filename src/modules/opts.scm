@@ -3,7 +3,7 @@
 
 (in-module 'opts)
 
-(module-export! '{opt/set! opt/add! opt/cache opt/try
+(module-export! '{opt/set! opt/default! opt/add! opt/cache opt/try
 		  mergeopts saveopt checkopts
 		  opts/get opts/merge
 		  setopt! setopt+!
@@ -17,6 +17,10 @@
   (if (test head opt) (add! head opt val)
       (store! head opt (choice val (getopt opts opt {})))))
 (define setopt+ opt/add!)
+
+(defambda (opt/default! opts opt val)
+  (unless (testopt opts opt)
+    (store! (if (pair? opts) (car opts) opts) opt val)))
 
 (define (opt/try settings optnames)
   (unless (or (vector? optnames) (pair? optnames))
