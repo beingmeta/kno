@@ -74,6 +74,19 @@ int skip_whitespace(u8_input in)
   else return c;
 }
 
+int swallow_whitespace(u8_input in)
+{
+  int c=u8_peekc(in);
+  if (c<0) return c;
+  while ((c>=0) && (isspace(c))) {
+    u8_getc(in); c=u8_peekc(in);}
+  if (c==';') {
+    while ((c>=0) && (c != '\n')) c=u8_getc(in);
+    if (c<0) return c;
+    else return skip_whitespace(in);}
+  else return c;
+}
+
 static fd_dtype_stream eval_server=NULL;
 
 static u8_input inconsole=NULL;
@@ -298,26 +311,54 @@ static int output_result(u8_output out,fdtype result,
   return 0;
 }
 
+/* Command line design */
+/*
+  :command params*
+  To read a param:
+   skip whitepsace
+   if at :({#" call parse_arg and wrap in quasiquote if needed;
+   if at , just call read;
+   otherwise read string until space,
+    using \ and | as escapes;
+
+  Model A: just combine command name (as symbol) with args into an expression
+  Model B; model A, but add a suffix/prefix to command name (e.g. foo-command)
+  Model C: return a rail and lookup the command handler, gather
+   arguments (with prompts) as needed.
+
+  Using temp file state.
+  Have ==foo store the last value into the file FOO.dtype
+   in a temporary directory (FDCONSOLETMP)
+  Have #=foo fetch that value if it exists.
+
+*/
+
 static fdtype stream_read(u8_input in)
 {
   fdtype expr; int c;
   u8_puts(outconsole,EVAL_PROMPT); u8_flush(outconsole);
-  c=u8_getc(in);
-  if (c=='=') {
+  c=skip_whitespace(in);
+  if (c<0) return FD_EOF;
+  else if (c=='=') {
     fdtype sym=fd_parser(in);
     if (FD_SYMBOLP(sym)) {
+      swallow_whitespace(in);
       return fd_make_nrail(2,equals_symbol,sym);}
     else {
       fd_decref(sym);
       u8_printf(errconsole,_(";; Bad assignment expression!\n"));
       return FD_VOID;}}
+  /* Handle command parsing here *
+  /* else if (c==':') {} */
   else u8_ungetc(in,c);
   expr=fd_parser(in);
   if ((expr==FD_EOX)||(expr==FD_EOF)) {
     if (in->u8_inptr>in->u8_inbuf)
       return fd_err(fd_ParseError,"stream_read",NULL,expr);
     else return expr;}
-  else return expr;
+  else {
+    swallow_whitespace(in);
+    return expr;}
 }
 
 static fdtype console_read(u8_input in)
@@ -331,6 +372,8 @@ static fdtype console_read(u8_input in)
       U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
       expr=fd_parser(&scan);
       return fd_make_nrail(2,equals_symbol,expr);}
+    /* Handle command line parsing here */
+    /* else if (line[0]=='=') {} */
     else {
       U8_INIT_STRING_INPUT(&scan,n_bytes,line);
       expr=fd_parser(&scan);
@@ -776,8 +819,10 @@ int main(int argc,char **argv)
           (FD_VECTOR_LENGTH(expr)==2)&&
           (FD_SYMBOLP(FD_VECTOR_REF(expr,1)))) {
         fdtype sym=FD_VECTOR_REF(expr,1);
-        fd_bind_value(sym,lastval,env);}
+        fd_bind_value(sym,lastval,env);
+        u8_printf(out,_(";; Bound %q\n"),sym);}
       else u8_printf(out,_(";; Bad command result %q\n"),expr);
+      fd_decref(expr);
       continue;}
     if ((FD_EOFP(expr)) || (FD_EOXP(expr))) {
       fd_decref(result); break;}
