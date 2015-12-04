@@ -51,6 +51,7 @@ FD_EXPORT fdtype fd_parser(struct U8_INPUT *);
 FD_EXPORT fdtype fd_parse(u8_string string);
 FD_EXPORT fdtype fd_parse_arg(u8_string string);
 FD_EXPORT u8_string fd_unparse_arg(fdtype obj);
+FD_EXPORT fdtype fd_read_arg(u8_input s);
 FD_EXPORT int fd_skip_whitespace(u8_input s);
 FD_EXPORT int fd_read_escape(u8_input in);
 

@@ -1414,6 +1414,52 @@ fdtype fd_parse_arg(u8_string arg)
 }
 
 FD_EXPORT
+/* fd_read_arg:
+     Arguments: an input stream
+     Returns: a lisp object
+
+     Parses a textual object representation into a lisp object.  This is
+     designed for command line arguments or other external contexts
+     (e.g. Windows registry entries).
+*/
+fdtype fd_read_arg(u8_input in)
+{
+  int c=skip_whitespace(in);
+  if (c<0) return  fdtype_string("");
+  else if (c == ':') {
+    int nc=u8_getc(in); nc=u8_probec(in);
+    if (nc<0) return fdtype_string(":");
+    else {
+      fdtype val=fd_parser(in);
+      if (FD_ABORTP(val)) {
+        u8_log(LOG_WARN,fd_ParseArgError,"Bad colon spec arg");
+        fd_clear_errors(1);
+        return fdtype_string(":");}
+      else return val;}}
+  else if ((strchr("@{#(\"|",c))||(isdigit(c))||
+           ((strchr("+-.",c)) && (isdigit(c)))) 
+    return fd_parser(in);
+  else {
+    struct U8_OUTPUT out; fdtype result;
+    U8_INIT_OUTPUT(&out,256); c=u8_getc(in);
+    while ((c>=0)&&(!(u8_isspace(c)))) {
+      if (c=='\\') {
+        c=u8_getc(in); 
+        u8_putc(&out,c);
+        c=u8_getc(in);}
+      else if (c=='|') {
+        c=u8_getc(in); 
+        while ((c>=0)&&(c!='|')) {
+          u8_putc(&out,c); c=u8_getc(in);}}
+      else {
+        u8_putc(&out,c);
+        c=u8_getc(in);}}
+    result=fd_stream_string(&out);
+    u8_close((u8_stream)&out);
+    return result;}
+}
+
+FD_EXPORT
 /* fd_unparse_arg:
      Arguments: a lisp object
      Returns: a utf-8 string
