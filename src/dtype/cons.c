@@ -697,7 +697,7 @@ FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
     ptr=u8_alloc(struct FD_VECTOR);
     elts=data;}
   FD_INIT_CONS(ptr,fd_rail_type);
-  if (data=NULL) while (i < len) elts[i++]=FD_VOID;
+  if (data==NULL) while (i < len) elts[i++]=FD_VOID;
   ptr->length=len; ptr->data=elts; ptr->freedata=freedata;
   return FDTYPE_CONS(ptr);
 }
