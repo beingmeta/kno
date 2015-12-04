@@ -348,7 +348,7 @@ static fdtype stream_read(u8_input in)
       fd_decref(sym);
       u8_printf(errconsole,_(";; Bad assignment expression!\n"));
       return FD_VOID;}}
-  /* Handle command parsing here *
+  /* Handle command parsing here */
   /* else if (c==':') {} */
   else u8_ungetc(in,c);
   expr=fd_parser(in);
