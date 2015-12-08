@@ -1083,11 +1083,13 @@ static fdtype hostname_prim()
    than that it has to do with getting stuff from the environment. */
 static fdtype hostaddrs_prim(fdtype hostname)
 {
-  int addr_len=-1; unsigned int type;
+  int addr_len=-1; unsigned int type=-1;
   char **addrs=u8_lookup_host(FD_STRDATA(hostname),&addr_len,&type);
   fdtype results=FD_EMPTY_CHOICE;
   int i=0;
-  if (addrs==NULL) return results;
+  if (addrs==NULL) {
+    fd_clear_errors(1);
+    return results;}
   else while (addrs[i]) {
     unsigned char *addr=addrs[i++]; fdtype string;
     struct U8_OUTPUT out; int j=0; U8_INIT_OUTPUT(&out,16);
