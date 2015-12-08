@@ -1,3 +1,11 @@
+framerd (3.8.3-14) unstable; urgency=low
+
+  * Fix bug in rail inits
+  * Added fd_read_arg
+  * git patch version framerd-3.8.3-63
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 04 Dec 2015 17:54:07 +0000
+
 framerd (3.8.3-13) unstable; urgency=low
 
   * Fix rail initialization bugs
