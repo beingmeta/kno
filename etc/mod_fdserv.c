@@ -2262,7 +2262,7 @@ static int buf_write_symbol(char *string,BUFF *b)
   return len+5;
 }
 
-static int write_table(BUFF *b,apr_table_t *tbl)
+static int write_table(BUFF *b,apr_table_t *tbl,request_rec *r)
 {
   const apr_array_header_t *hdr=apr_table_elts(tbl);
   apr_table_entry_t *scan=(apr_table_entry_t *) hdr->elts;
@@ -2310,18 +2310,18 @@ static int write_cgidata
     ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,
        r->server,"CGIDATA: %d slots=%d Apache+%d HTTP+%d config; %d post bytes",
-       n_params+n_env+n_hdrs+1,n_elts,n_hdrs,n_params,post_size);
+       n_params+n_env+n_hdrs+1,n_env,n_hdrs,n_params,post_size);
   else ap_log_error
 	 (APLOG_MARK,LOGDEBUG,OK,
-	  r->server,"CGIDATA: - %d slots= %d HTTP+%d config",
-	  n_params+n_elts+1,n_elts,n_params);
+	  r->server,"CGIDATA: - %d slots=%d Apache+%d HTTP+%d config",
+	  n_params+n_env+n_hdrs+1,n_env,n_hdrs,n_params);
 #endif
   if (ap_bneeds(b,6)<0) return -1; 
   ap_bputc(0x42,b); ap_bputc(0xC1,b);
   if (post_size) buf_write_4bytes((n_hdrs*2)+(n_env*2)+(n_params*2)+2,b);
   else buf_write_4bytes((n_hdrs*2)+(n_env*2)+(n_params*2),b);
-  n_bytes=n_bytes+write_table(b,env);
-  n_bytes=n_bytes+write_table(b,headers);
+  n_bytes=n_bytes+write_table(b,env,r);
+  n_bytes=n_bytes+write_table(b,headers,r);
   if (sparams) {
     const char **pscan=sparams, **plimit=pscan+n_sparams;
     while (pscan<plimit) {
@@ -2360,12 +2360,13 @@ static int write_cgidata
   if (post_size)
     ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,
-       r->server,"CGIDATA: %lu bytes/%lu posted/%d slots= %d HTTP/%d config",
-       (long)n_bytes,(long)post_size,n_params+n_elts+1,n_elts,n_params);
+       r->server,"CGIDATA: %lu bytes/%lu posted/%d slots=%d Apache+%d HTTP/%d config",
+       (long)n_bytes,(long)post_size,
+       n_params+n_env+n_hdrs+1,n_env,n_hdrs,n_params);
   else ap_log_error
       (APLOG_MARK,LOGDEBUG,OK,
-       r->server,"CGIDATA: %lu bytes/%d slots= %d HTTP/%d config",
-       (long)n_bytes,n_params+n_elts+1,n_elts,n_params);
+       r->server,"CGIDATA: %lu bytes/%d slots=%d Apache+%d HTTP+%d config",
+       (long)n_bytes,n_params+n_env+n_hdrs+1,n_env,n_hdrs,n_params);
 #endif
   return n_bytes;
 }
