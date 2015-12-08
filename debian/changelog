@@ -1,3 +1,10 @@
+framerd (3.8.3-15) unstable; urgency=low
+
+  * Make hostaddrs more robust
+  * git patch version framerd-3.8.3-68
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 08 Dec 2015 17:20:40 +0000
+
 framerd (3.8.3-14) unstable; urgency=low
 
   * Fix bug in rail inits
