@@ -1078,6 +1078,7 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
 
 */
 
+/*
 static fdtype mongodb_pool_fetch(fd_pool p,fdtype oid)
 {
   struct FD_MONGODB_POOL *mp=(struct FD_MONGODB_POOL *)p;
@@ -1097,6 +1098,7 @@ static fdtype mongodb_pool_fetch(fd_pool p,fdtype oid)
   mongoc_client_pool_push(mp->clients,client);
   return fetched;
 }
+*/
 
 /*
 static fdtype *mongodb_pool_fetchn(fd_pool p,int n,fdtype *oids)
