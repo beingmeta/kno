@@ -51,9 +51,9 @@
   '{a em strong i b span cite sup sub code kbd var dfn samp})
 (define *pre-tags* '{pre})
 (define *wrapper-tags* ;; semantic wrapper tags
-  '{blockquote ul ol dl section aside detail})
+  '{blockquote ul ol dl section aside  li dt dd detail})
 (define *terminal-block-tags*
-   '{p li dt dd h1 h2 h3 h4 h5 h6 h7})
+   '{p h1 h2 h3 h4 h5 h6 h7})
 (define *block-tags*
   (choice *terminal-block-tags* *wrapper-tags* 'body 'div))
 
