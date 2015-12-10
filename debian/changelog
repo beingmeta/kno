@@ -1,3 +1,11 @@
+framerd (3.8.3-15) unstable; urgency=medium
+
+  * Remove DT, DD, and LI from terminal HTML nodes
+  * Improve some mod_fdserv debugging
+  * git patch version framerd-3.8.3-69
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 10 Dec 2015 06:57:02 -0500
+
 framerd (3.8.3-14) unstable; urgency=low
 
   * Fix bug in rail inits
