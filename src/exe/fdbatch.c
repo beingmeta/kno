@@ -35,6 +35,14 @@ static u8_string get_pidfile()
   else return fd_runbase_filename(".pid");
 }
 
+static u8_string get_cmdfile()
+{
+  fdtype as_configured=fd_config_get("CMDFILE");
+  if (FD_STRINGP(as_configured))
+    return u8_strdup(FD_STRDATA(as_configured));
+  else return fd_runbase_filename(".cmd");
+}
+
 static u8_string get_logfile()
 {
   fdtype as_configured=fd_config_get("LOGFILE");
@@ -69,12 +77,14 @@ static u8_string get_diedfile()
 
 /* End stuff */
 
-static u8_string pid_file=NULL, died_file=NULL;
+static u8_string pid_file=NULL, died_file=NULL, cmd_file=NULL;
 
 static void fdbatch_atexit()
 {
   if ((pid_file) && (u8_file_existsp(pid_file)))
     u8_removefile(pid_file);
+  if ((cmd_file) && (u8_file_existsp(cmd_file)))
+    u8_removefile(cmd_file);
 }
 
 #if 0
@@ -122,6 +132,44 @@ static void wait_for_the_end(pid_t pid)
   exit(0);
 }
 
+/* Writing the cmd file */
+
+#define need_escape(s) \
+  ((strchr(s,'"'))||(strchr(s,'\\'))|| \
+   (strchr(s,' '))||(strchr(s,'\t'))|| \
+   (strchr(s,'\n'))||(strchr(s,'\r')))
+
+static int write_cmd_file(int argc,char **argv)
+{
+  const char *abspath=u8_abspath(cmd_file,NULL);
+  int i=0, fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC,
+                   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+  u8_byte buf[512]; struct U8_OUTPUT out;
+  U8_INIT_OUTPUT_BUF(&out,512,buf);
+  while (i<argc) {
+    char *arg=argv[i];
+    u8_string argstring=u8_fromlibc(arg);
+    if (i>0) u8_putc(&out,' '); i++;
+    if (need_escape(argstring)) {
+      u8_string scan=argstring; 
+      int c=u8_sgetc(&scan); u8_putc(&out,'"');
+      while (c>=0) {
+        if (c=='\\') {
+          u8_putc(&out,'\\'); c=u8_sgetc(&scan);}
+        else if ((c==' ')||(c=='\n')||(c=='\t')||(c=='\r')||(c=='"')) {
+          u8_putc(&out,'\\');}
+        if (c>=0) u8_putc(&out,c);
+        c=u8_sgetc(&scan);}
+      u8_putc(&out,'"');}
+    else u8_puts(&out,argstring);
+    if (argstring!=((u8_string)arg)) u8_free(argstring);}
+  u8_log(LOG_INFO,"ServletInvocation","%s",out.u8_outbuf);
+  if (fd>=0) write(fd,out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  u8_free(abspath); u8_close_output(&out); close(fd);
+}
+
+/* The main event */
+
 static int newlog=0;
 
 int main(int argc,char **argv)
@@ -163,13 +211,15 @@ int main(int argc,char **argv)
 
   atexit(exit_fdexec);
 
+  cmd_file=get_cmdfile();
   done_file=get_donefile();
   died_file=get_diedfile();
   /* We only redirect stdio going to ttys. */
   if ((pid_fd=u8_open_fd(pid_file,O_WRONLY|O_CREAT,LOGMODE))<0) {
     u8_log(LOG_CRIT,fd_CantOpenFile,"Couldn't open pid file %s",pid_file);
     exit(-1);}
-  /* Remove any pre-existing done file. */
+  /* Remove any pre-existing state files. */
+  if (u8_file_existsp(cmd_file)) u8_removefile(cmd_file);
   if (u8_file_existsp(done_file)) u8_removefile(done_file);
   if (u8_file_existsp(died_file)) u8_removefile(died_file);
   /* If either stdout or stderr are interactive, redirect them to files. */
@@ -186,6 +236,7 @@ int main(int argc,char **argv)
       close(pid_fd);
       if ((log_file)&&(log_fd>=0)) close(log_fd);
       exit(-1);}}
+  write_cmd_file(argc,argv);
   /* Now, do the fork. */
   if ((chained==0) && (fork())) exit(0);
   else if ((chained==0) && (pid=fork())) {

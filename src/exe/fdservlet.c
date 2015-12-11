@@ -18,6 +18,7 @@
 
 #include <libu8/libu8.h>
 #include <libu8/libu8io.h>
+#include <libu8/u8logging.h>
 #include <libu8/u8timefns.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -113,7 +114,7 @@ static int shutdown_grace=30000000; /* 30 seconds */
 
 static fdtype fallback_notfoundpage=FD_VOID;
 
-u8_string pid_file=NULL;
+u8_string pid_file=NULL, cmd_file=NULL;
 
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
@@ -436,6 +437,7 @@ static void cleanup_pid_file()
       close(pid_fd);
       pid_fd=-1;}
     u8_removefile(pid_file);}
+  if (cmd_file) u8_removefile(cmd_file);
   if (exitfile) {
     struct U8_XTIME xt; struct U8_OUTPUT out;
     char timebuf[64]; double elapsed=u8_elapsed_time();
@@ -490,6 +492,40 @@ static int write_pid_file()
     stealsockets=1;
     u8_free(abspath);
     return pid_fd;}
+}
+
+#define need_escape(s) \
+  ((strchr(s,'"'))||(strchr(s,'\\'))|| \
+   (strchr(s,' '))||(strchr(s,'\t'))|| \
+   (strchr(s,'\n'))||(strchr(s,'\r')))
+
+static int write_cmd_file(int argc,char **argv)
+{
+  const char *abspath=u8_abspath(cmd_file,NULL);
+  int i=0, fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC,
+                   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+  u8_byte buf[512]; struct U8_OUTPUT out;
+  U8_INIT_OUTPUT_BUF(&out,512,buf);
+  while (i<argc) {
+    char *arg=argv[i];
+    u8_string argstring=u8_fromlibc(arg);
+    if (i>0) u8_putc(&out,' '); i++;
+    if (need_escape(argstring)) {
+      u8_string scan=argstring; 
+      int c=u8_sgetc(&scan); u8_putc(&out,'"');
+      while (c>=0) {
+        if (c=='\\') {
+          u8_putc(&out,'\\'); c=u8_sgetc(&scan);}
+        else if ((c==' ')||(c=='\n')||(c=='\t')||(c=='\r')||(c=='"')) {
+          u8_putc(&out,'\\');}
+        if (c>=0) u8_putc(&out,c);
+        c=u8_sgetc(&scan);}
+      u8_putc(&out,'"');}
+    else u8_puts(&out,argstring);
+    if (argstring!=((u8_string)arg)) u8_free(argstring);}
+  u8_log(LOG_INFO,"ServletInvocation","%s",out.u8_outbuf);
+  if (fd>=0) write(fd,out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  u8_free(abspath); u8_close_output(&out); close(fd);
 }
 
 static void close_statlog()
@@ -1899,6 +1935,9 @@ int main(int argc,char **argv)
     server_id=u8_uuidstring(tmp,NULL);}
 
   pid_file=fd_runbase_filename(".pid");
+  cmd_file=fd_runbase_filename(".cmd");
+
+  write_cmd_file(argc,argv);
 
   if (!(load_source)) {}
   else if ((u8_has_suffix(load_source,".scm",1))||
