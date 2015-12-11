@@ -4,18 +4,21 @@
 ;;; Core file for accessing Dropbox
 (in-module 'dropbox)
 
-(use-module '{fdweb xhtml signature oauth
+(use-module '{fdweb xhtml signature oauth varconfig
 	      gpath texttools mimetable ezrecords
 	      logger})
 
 (module-export! '{dropbox/get dropbox/get/req dropbox/get+
 		  dropbox/list dropbox/info dropbox/put!
-		  dropbox/gpath
+		  dropbox/gpath dropbox:appname
 		  dropbox-oauth})
 
 (define-init %loglevel %warning%)
 
 (defrecord dropbox oauth (root-path #f))
+
+(define-init dropbox:appname "")
+(varconfig! dropbox:appname dropbox:appname)
 
 (define-init dropbox-root "sandbox")
 (config-def!
@@ -33,10 +36,10 @@
 
 (define (db/url base oauth path (root))
   (glom base
-    (getopt oauth 'root
-	    (if (testopt oauth 'live)
-		(if (getopt oauth 'live #f) "dropbox" "sandbox")
-		dropbox-root))
+    (if (testopt oauth 'live)
+	(if (getopt oauth 'live #f) "dropbox" "sandbox")
+	dropbox-root)
+    (getopt oauth 'rootpath)
     (if (has-prefix path "/") #f "/")
     path))
 

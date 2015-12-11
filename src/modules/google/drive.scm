@@ -15,12 +15,16 @@
     (write (getopt auth 'email (getopt auth 'handle))) " "
     (gdrive-path loc) ")"))
 
+(define-init gdrive:appname "")
+(varconfig! gdrive:appname gdrive:appname)
+
 (defrecord (gdrive . #[stringfn gdrive-string])
   auth path (opts {}))
 
 (module-export!
  '{cons-gdrive
-   gdrive? gdrive/auth gdrive/path gdrive-string})
+   gdrive? gdrive/auth gdrive/path gdrive-string
+   gdrive:appname})
 
 (module-export! '{gdrive/info})
 
