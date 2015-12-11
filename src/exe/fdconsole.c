@@ -398,8 +398,8 @@ static void exit_fdconsole()
     else fd_status_message();}
   close_consoles();
 #if USING_EDITLINE
-  history_end(edithistory);
-  el_end(editconsole);
+  if (edithistory) history_end(edithistory);
+  if (editconsole) el_end(editconsole);
 #endif
 }
 
