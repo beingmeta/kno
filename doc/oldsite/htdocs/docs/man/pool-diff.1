@@ -1,0 +1,46 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH POOL-DIFF 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+pool-diff \- displays changes in a file pool
+.SH SYNOPSIS
+.B pool-diff
+.I current-pool
+.B (
+.I older-version
+.B |
+.I version-id
+.B )
+
+The argument
+.I current-pool
+is the filename of a file pool.  The argument 
+.I older-version 
+(if provided) is the filename of an older version of the same pool;
+the argument
+.I version-id
+(if provided instead) is a version identifier of the form
+.I major
+.B :
+.I minor
+as displayed by
+.BR list-file-pool (1)
+.SH DESCRIPTION
+.B pool-diff
+prints the changes in a pool to the standard output, presenting
+them as alternating numeric OIDs and LISP values.
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if the file pools or version ids are invalid.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: pool-diff.1,v 1.2 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+
+

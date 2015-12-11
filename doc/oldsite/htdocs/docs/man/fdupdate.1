@@ -1,0 +1,40 @@
+.\" Process this file with
+.\" groff -man -Tascii fdmanager.8
+.\"
+.TH FDUPDATE 8 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fdupdate \- installs FramerD files
+.SH SYNOPSIS
+.B fdupdate 
+.I source dest
+
+.B fdupdate 
+.I sources
+.B ...
+.I destdir 
+
+.SH DESCRIPTION
+.B fdupdate
+copies the file
+.I source
+to the file
+.I dest
+or the files
+.I sources
+to the destination directory
+.I destdir
+being clever about writing through links and retaining
+group, mode, and owner (if possible) information.
+
+.SH OPTIONS
+No options
+.SH FILES
+No files
+.SH BUGS
+None known.
+.SH Revision Info
+.B $Id: fdupdate.1,v 1.1 2002/04/20 01:32:32 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+
+

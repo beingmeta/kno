@@ -1,0 +1,52 @@
+.\" Process this file with
+.\" groff -man -Tascii analyze-index.1
+.\"
+.TH ANALYZE-INDEX 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+analyze-index \- analyzes a FramerD file index
+.SH SYNOPSIS
+.B analyze-index
+.I filename
+.B [
+.I histogram
+.B ]
+.SH DESCRIPTION
+.B analyze-index
+analyzes and summarizes the hashing performance and other
+characteristics of the framerd file index in
+.I filename
+
+It reports the number of keys, the number of direct hits, and the average
+and maximum number of chains neccessary to retrieve a key.  It also
+reports the largest number of values associated with any given key and
+summarizes the "low end" of the index's value histogram.
+
+If the filename parameter
+.I histogram
+is provided, a complete histogram is written into this file.  This
+consists of a series of tab-separated lines: the first field is the
+number of associated values and the second field is the number keys
+which have that number of associated values.
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if
+.I filename
+does not exist or does not contain valid file index.
+.SH BUGS
+If some of the associations contain repeated values, they will be
+counted twice.  For a completely accurate histogram, the file index
+should be repacked with
+.BR repack-file-index (1)
+before being analyzed.
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH Revision Info
+.B $Id: analyze-index.1,v 1.4 2002/07/10 00:13:11 haase Exp $
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR repack-file-index (1)
+.BR make-file-index (1)
+
+
+

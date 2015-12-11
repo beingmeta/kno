@@ -1,0 +1,981 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<HTML>
+<HEAD>
+<TITLE>FramerD Concepts</TITLE>
+<LINK REL="stylesheet" TYPE="text/css" HREF="framerd.css">
+</HEAD>
+<BODY>
+<TABLE ALIGN=LEFT WIDTH='100%'>
+<TR>
+<TH CLASS=bigtitle ALIGN=LEFT WIDTH='70%'>FramerD Concepts
+<BR><span class=author>Ken Haase</span>
+<TH ALIGN=RIGHT ROWSPAN=2>
+<A HREF="http://www.framerd.org/"><IMG BORDER=0 SRC="fdlogo.png"></A>
+<TR>
+</TABLE><BR CLEAR=LEFT>
+<P CLASS=quickref>
+Quick ref: [<A HREF="#oids">OIDs and the Object Database</A>]&nbsp; 
+[<A HREF="#indices">Persistent Indices</A>]&nbsp; 
+[<A HREF="#frames">Frames in FramerD</A>]&nbsp; 
+[<A HREF="#search">Searching for Frames</A>]&nbsp; 
+[<A HREF="#dtypes">The DTYPE Protocol</A>]&nbsp;
+<HR>
+
+<div class=section>
+<a name="architecture">
+<TABLE class="header" width=100% cellpadding=0>
+<TR><TH class="title">Architecture</TH>
+    <TD class="gloss">FramerD has a layered architecture</TD></TR>
+</TABLE>
+</a>
+
+</div>
+<div class=section>
+<a name="oids">
+<TABLE class="header" width=100% cellpadding=0>
+<TR><TH class="title">OIDs and the object database</TH>
+    <TD class="gloss">FramerD provides a simple object database which
+associates numeric <B>object identifers</B> (OIDs) with DType
+structures. DType structures can contain these object identifiers so
+that one DType structure can point to the location in the object
+database where another DType structure is stored.  </TD></TR>
+</TABLE>
+</a>
+
+<P>One of the major components of FramerD is a distributed persistent
+object database.  Objects in the database are designated by unique
+object identifiers or OIDs. The allocation of OIDs is managed so that
+different users, projects, or programs will not use the same OID for
+different purposes.
+
+<P>An OID is a 64-bit address pointing into a virtual memory space
+whose locations are associated with complex structured objects.  These
+objects can also contain pointers to other OIDs.  The idea is that one
+program can associate an OID with a particular value (for instance,
+the integer <tt>3</tt> or the list <tt>("Three" THREE 3)</tt>).  Other
+programs can retrieve this value (or whatever value replaces it) by
+just knowing the OID to which it was assigned.  OIDs can be included
+in other structures, written to files, and accessed through indices,
+so that application users need not typically worry about the exact
+numerical value of an OID.
+
+<P>OID's numeric IDs are further organized into continuous ranges
+called <strong>pools</strong>.  Pools are used to organize the storage
+and management of the values associated with OIDs.  There are
+currently two kinds of pools: file pools are disk files containing
+DTYPE representations for the values associated with a particular
+range of OIDs; network pools are network servers using the DTYPE
+protocol which likewise provide access to a particular range of OIDs.
+
+<H2>OID values</H2>
+
+<P>OIDs are associated with values which applications may access or
+modify.  When an application makes changes to an OID's value, those
+changes are local to the application until they are
+<strong>committed</strong>, at which point they are saved to the
+appropriate file or network pool.  When this occurs, the new value
+will be visible to other applications which request it.
+
+<P>Access and revision control is managed by locking particular OIDs.
+When an application locks an OID, two things are guaranteed: that the
+value which the application sees for the OID is the latest value; and
+that the value will not be changed by any other application until
+either the OID is committed or it is unlocked.  Locking of OIDs is
+normally invisible to applications.  When an application sets an OID's
+value locally, it locks it.  When the value is committed, it unlocks
+it.
+
+<P>For file pools, locking any OID in the pool locks the entire pool; for
+network pools, OIDs are locked on an individual basis.
+
+<P>Pools reflect both implementational and administrative properties:
+the values associated with the OIDs in a particular pool are generally
+provided by a particular file or server; the allocation of new OIDs
+and the modification of the value for existing OIDs is generally the
+responsibility of one administrative entity.
+
+<H2>External Representations</H2>
+
+<P>OIDs have two different external representations. A <dfn><B>literal
+OID reference</dfn></B> has the form @hi/lo where hi is the high 32
+bits of the address and lo is the low 32 bits, both in hex. For
+example, an OID that looks like this <TT>@1/1b54e</TT> refers to the
+address <TT>0x000000010001b54e</TT>.  A <dfn><B>logical OID
+reference</dfn></B> has the form
+<TT>@/<I>pool-id</I>/<I>offset</I></TT> and indicates an OID in a
+particular pool. Thus, the reference <TT>@/brico/1b54e</TT> refers to
+the same object shown above if the pool <TT>brico</TT> starts at
+<TT>@1/0</TT>. In addition, when the system can figure out a name for
+an OID, it appears after the @-expression identifying its address,
+e.g.:
+<PRE class=typescript>
+@/brico/1b54e"NOUN.COGNITION synset for example, illustration, instance, and representative"
+</PRE>
+<P>to make it less cryptic to the user.
+
+<P>The high 32 bits of an object identifer indicate the <dfn><B>super
+pool</DFN></B> of the OID. The OID above, for instance, is in the super
+pool <TT>0x1</TT>. The allocation of new object identifiers is based on
+the division of the 64 bit address space into smaller <B>pools</B>. The
+first such division is into super pools and subsequent divisions divide
+super pools into smaller chunks. Each chunk consists of 2<super>i</super>
+object identifiers.
+
+<H2>Getting Pools, OIDs, and their values</H2>
+
+<BLOCKQUOTE>
+<DIV ALIGN=right><I>The Lisp programmer knows the value of everything but
+the cost of nothing.</I><BR>
+Alan Perlis</DIV>
+</BLOCKQUOTE>
+
+<P>The FDScript procedure <TT>use-pool</TT> arranges for the current
+session to access a particular pool of OIDs. It's single argument is
+either a filename or a network specification of the sort used for
+remote evaluation (e.g.  `brico@framerd.org'). Once <TT>use-pool</TT>
+has been called, the value of an OID in the pool can be extracted by
+the procedure <TT>OID-VALUE</TT> e.g.
+<PRE class=typescript>
+[fdscript] <strong>(USE-POOL "brico@framerd.org")</strong>
+[11:57:27 Session id=fdscript haase@eliza.media.mit.edu /OS:DIGITAL UNIX /Compiled:Feb 10 1997 /Started:Tue Feb 11 11:57:27 1997]
+[11:57:27 Added pool brico@framerd.org]
+[#POOL brico@framerd.org @1/0+1048576 {}]
+[fdscript] <strong>(OID-VALUE @1/33334)</strong>
+[SPELLING: "cause_to_tip" OBJ-NAME: "cause_to_tip" 
+ SENSES: @/brico/32f96"VERB.MOTION synset for tip, cause_to_tip, and cause_to_tilt"
+ RANKED-SENSES:
+  (V 1 @/brico/32f96"VERB.MOTION synset for tip, cause_to_tip, and cause_to_tilt")]
+</PRE>
+<P>One can use the procedure <TT>random-oid</TT> to pick a random OID from
+a pool, e.g.
+<PRE class=typescript>
+[fdscript] <strong>(RANDOM-OID (USE-POOL "brico@framerd.org"))</strong>
+@/brico/58e1"ADJ.ALL synset for functional"
+[fdscript] <strong>(RANDOM-OID (USE-POOL "brico@framerd.org"))</strong>
+@/brico/21a5e"alpha_particle"
+</PRE>
+<P>Pools can be stored in variables and used as arguments, e.g.
+<PRE class=typescript>
+[fdscript] <strong>(define WORDNET (USE-POOL "brico@framerd.org"))</strong>
+[fdscript] <strong>(RANDOM-OID wordnet)</strong>
+@/brico/148d3"NOUN.ARTIFACT synset for stoup and stoop"
+</PRE>
+<P>Also, procedures which expect pools as arguments (like
+<TT>ALLOCATE-OID</TT>) will also take strings and automatically
+interpret them as pool specifications), for example:
+<PRE class=typescript>
+[fdscript] <strong>(RANDOM-OID "brico@framerd.org")</strong>
+@/brico/1d9a7"NOUN.COMMUNICATION synset for hillbilly_music"
+</PRE>
+
+<H2>Allocating and changing OIDs</H2>
+
+<P>The procedure <TT>ALLOCATE-OID</TT> returns an OID from a pool; pools
+can be either stored in files on disk or servers on a network. So we can
+say:
+<PRE class=typescript>
+[fdscript] <strong>(ALLOCATE-OID (USE-POOL "temp@framerd.org"))</strong>
+[11:59:57 Added pool temp@framerd.org]
+@/temp/40001
+</PRE>
+<P>to allocate an OID in the network pool <TT>"temp@framerd.org"</TT>.
+(This pool is maintained for demo purposes at the Media Laboratory. Values
+stored in this pool are subject to erasure whenever our disk space gets
+tight). If we call ALLOCATE-OID again, we get a different oid:
+<PRE class=typescript>
+[fdscript] <strong>(ALLOCATE-OID (USE-POOL "temp@framerd.org"))</strong>
+@/temp/40002
+</PRE>
+<P>When an OID is newly allocated it has no values assigned to it, E.G. a
+call to <TT>OID-VALUE</TT>
+<PRE class=typescript>
+[fdscript] <strong>(OID-VALUE @/temp/40001)</strong>
+{}
+</PRE>
+<P>fails by returning no results. One can set the value of an OID with the
+<TT>SET-OID-VALUE!</TT> procedure:
+<PRE class=typescript>
+(SET-OID-VALUE! @/temp/40001 "My first OID")
+</PRE>
+<P>allowing us to get the value we put there:
+<PRE class=typescript>
+[fdscript] <strong>(OID-VALUE @a/40001)</strong>
+"My first OID"
+</PRE>
+
+<H2>Saving and Reverting OID values</H2>
+
+<P>When you modify the value associated with an OID, the value is only
+changed locally until the changes are <I>committed</I> to the pool
+containing the object. There are three basic `commitment' procedures
+for OIDs and pools:
+<DL COMPACT>
+<DT><B><TT><A NAME="COMMIT-OID">
+    (COMMIT-OID <I>oid</I>)</A></TT></B>
+<DD>saves the changes associated with a particular OID.
+<DT><B><TT><A NAME="COMMIT-POOL">
+    (COMMIT-POOL <I>pool</I>)</A></TT></B>
+<DD>saves all the changes to a particular pool;
+<DT><B><TT><A NAME="COMMIT-POOLS">(COMMIT-POOLS)</A></TT></B>
+<DD>saves all the changes to OIDs in the current session, and
+</DL>
+<P><font color=red><strong>All changes are automatically committed if
+your FDScript session exits normally (and lost if it exits
+abnormally).</strong></font>
+
+<P>Not all OIDs can be changed or modified. If you change an OID in a file
+pool, the system attempts to lock the corresponding file before making
+the change. The file stays locked until your process exits or the file
+is explicitly unlocked. If you cannot lock the file --- because someone
+else has locked it or the file is read-only --- you cannot change the value
+associated with the OID stored in the file.
+
+<P>If you change an OID in a network pool, the system attempts to lock
+the individual OID before making the change. If this succeeds, the
+local value for the OID is changed and the remote OID will be unlocked
+when your changes are committed. If this fails, (for instance, the
+network server will not permit you to lock the OID), the OID cannot be
+modified. A server might refuse to lock an OID because another user
+has locked the OID or because the OID is declared read-only.
+
+<P>Before you've committed your changes, it is possible to back out of
+the changes by <I>reverting</I> the modifications:
+<DL COMPACT>
+<DT><B><TT><A NAME="REVERT-OID">(REVERT-OID <I>oid</I>)</A></TT></B>
+<DD>undoes your changes to the individual OID <I>oid</I>.
+<DT><B><TT><A NAME="REVERT-POOL">(REVERT-POOL <I>pool</I>)</A></TT></B>
+<DD>undoes all the changes to OIDs in a particular pool</DD>
+<DT><B><TT><A NAME="REVERT-POOLS">(REVERT-POOLS)</A></TT></B>
+<DD>undoes all the changes to OIDs in the current session that have not
+yet been committed.
+</DL>
+<P>Two caveats: remember that committed changes cannot be reverted in
+this way; also, only changes that directly affect the OID or its value
+can be reverted. If you store a pointer to an OID in a hashtable, for
+instance, reverting the OID will not remove the hash table entry.
+
+<H2>Making file pools</H2>
+
+<P>The frames created above were allocated and stored on a
+demonstration server at MIT. Though the values might stay around for a
+few days, they are unlikely to last longer for administrative
+reasons. To create objects with more presistence, one has to either
+use <B>file pools</B> maintained in files on the local file system or
+use <B>network pools</B> maintained by oneself or others with more
+persistence. Actually, the network servers you would use will rely on
+pools maintained in files on their local file system, so eventually
+someone has to worry about how OIDs live on disk in file
+pools. Fortunately, dealing with file pools is straightforward.
+
+<P>The procedure <TT>MAKE-FILE-POOL</TT> creates a file pool in the local
+file system, E.G.
+<PRE class=typescript>
+[fdscript] <strong>(MAKE-FILE-POOL "test.pool" 32)</strong>
+[#POOL test.pool @a/140000+0/32 {}]
+</PRE>
+<P>creates a file pool containing 32 possible and no actual objects and and
+whose first object will be @a/140000. We can allocate that first object
+with <TT>allocate-oid</TT>:
+<PRE class=typescript>
+[fdscript] <strong>(allocate-oid "test.pool")</strong>
+@/test/0 ; <em>or @a/140000 if printed "literally"</em>
+</PRE>
+<P>Creating a pool automatically causes the pool to be <I>used</I>,
+just as if you had called <TT>use-pool</TT> on the argument.
+
+<P>The command-line program <TT>make-file-pool</TT> also creates file pools;
+it looks just like the FDScript call, but without the parentheses, e.g.
+<PRE class=typescript>
+sh% make-file-pool test.pool 32
+Created test.pool with space for 32 OIDs starting at @a/100
+</PRE>
+<P>This command line program is written in and invokes FDScript, but
+it doesn't require that the user deal with the listener and associated
+parentheses.  It also generates a message describing what it has done.
+
+<div class=section>
+<a name="frames">
+<TABLE class="header" width=100% cellpadding=0>
+<TR><TH class="title">Frames in FramerD</TH>
+    <TD class="gloss">Frames are at the heart of FramerD, providing a way to
+build complex extensible descriptions and to share pointers to these
+descriptions between different databases and
+applications.</TD></TR>
+</TABLE>
+</a>
+
+<P>The word "frame" in FramerD comes from its support for frames, a
+popular AI representation model. A <dfn>frame</DFN> in FramerD is an
+OID whose value consists of a set of slots. Each slot consists of a
+<defn>slotid</defn> --- either a symbol or an OID --- and a set of
+values. Slots divide the description of objects into several labelled
+parts. For instance, the following frame from the FramerD port of
+WordNet represents the concept (synset) of an "example":
+<PRE class=typescript>
+SYNSET-ID:  3946824 <strong>[[[<em>Slot values may be numbers or strings.</em>]]]</strong>
+SYNSET-TYPE:  "n"
+WORDS: (4 values) <strong>[[[<em>A slot may have any number of values</em>]]]</strong>
+   "representative"
+   "instance"
+   "illustration"
+   "example"
+DESCRIPTION:  "a single item that is representative of a type"
+OBJ-NAME:  "NOUN.COGNITION synset for example, illustration, instance, and representative"
+    SENSE:  NOUN.COGNITION
+    HYPERNYM:  @/brico/b709"NOUN.COGNITION synset for information"
+    HYPONYM: (5 values) <strong>[[[<em>The values can also be pointers to other frames</em>]]]</strong>
+       @/brico/1b56e"NOUN.COGNITION synset for exception"
+       @/brico/1b56f"NOUN.COGNITION synset for precedent and case_in_point"
+       @/brico/1b570"NOUN.COGNITION synset for quintessence"
+       @/brico/1b571"NOUN.COGNITION synset for sample"
+       @/brico/1b572"NOUN.COGNITION synset for specimen"
+    A:  @/brico/b709"NOUN.COGNITION synset for information"
+    SYNSET-DEPTH:  4
+    SYNSET-HEIGHT:  3
+    SYNSET-TOTAL-HYPONYMS:  8
+    SYNSET-TOTAL-BRANCHING:  2
+</PRE>
+
+<P>The description above lists a number of <defn>slots</defn>, each of
+which associates a particular <defn>slotid</defn>
+(e.g. <tt>HYPERNYM</tt>) with a set of <defn>slot values</defn> (which
+are abitrary objects).  This set of associations is called a
+<tt>slotmap</tt>.  A <defn>frame</defn> is an OID whose value in the
+object database is a slotmap.  Using OIDs allows different programs
+and databases to keep separate references to a frame while managing to
+share changes and augmentations.
+
+<P>Operations on slots include getting their value(s), adding a value,
+removing a value, and checking whether they contain a particular
+value.  The value may be non-deterministic (a choice), in which case
+we may refer to the <em>values</em> of the slot.
+
+<P>When the slotid is a symbol, operations on the value of the slot
+are just operations on the slot's data.  Getting the slot's value
+retrieves the slot data and adding a value to a slot adds an element
+to the slot's data (which is represented as a non-deterministic
+value).  Except for this last point, frames whose slotids are symbols
+function much as property lists of symbols in languages like LISP or
+associative arrays in Perl.  (From a computational standpoint,
+slotmaps are not a very efficient way to store large numbers of
+associations.  For that, it is better to use a hashtable or an
+external index.)
+
+<P>When the slotid is itself a frame (i.e. an OID whose value is a
+slotmap), operations on the slot are more complicated.  Instead of
+just operating on the slot's data, operations evaluate methods for
+computing or testing for values, adding or removing elements, or
+checking that the given frames or values are correct.  The methods are
+expressions in FDScript, the FramerD scripting language, which can
+access the variables frame, slotid, data, and value which contain the
+details of the particular slot and (when appropriate) the value being
+added, removed, or tested for.  The expressions are stored in the
+following slots of the slotid:
+<ul>
+<LI><tt>GET-METHODS</tt> evaluated to get the value of the slot
+<LI><tt>TEST-METHODS</tt> evaluated to determine whether or not the slot has
+a particular value; the slot "has a value" whenever any of these
+methods returnst true.
+<LI><tt>VALIDATE-METHODS</tt> evaluated whenever a value is added to a slot; an
+error is signalled (and the value is not added) whenever any of these
+methods returns false.
+<LI><tt>ADD-EFFECTS</tt> evaluated whenever a new value is added to a slot
+<LI><tt>REMOVE-EFFECTS</tt> evaluated whenever a value is removed from a slot
+</ul>
+
+<P>Methods can operate on slots of the same or other frames and
+normally this simply invokes the corresponding methods, except when
+this is likely to recur infinitely.  This can occur when the inference
+relations between slots are implicitly circular.  For example, slots
+describing the width, height, and area of a rectangle might be defined
+in terms of one another.  However, this could lead to an infinite
+recursion if, for instance, by the following path:
+<ul>
+<li>To know the area of X, figure out the width and height of X</li>
+<li>To know the width of X, figure out the area and height of X</li>
+<li>To know the area of X, figure out the width and height of X....</li>
+</ul>
+<P>To avoid this recursion, operations on a complex slots always check
+whether an identical operation (getting the same slot, adding,
+removing, or testing for the same value) is already being performed.
+If it is already being performed, the recursive operation either:
+<ul>
+<LI>returns the empty set (for getting a value)
+<LI>returns false (for testing for a value)
+<LI>does nothing (for adding or removing a value)
+</ul>
+<P>This allows slots to freely refer to one another without concern
+for infinite recursion.  
+
+<H2>Getting at Frames from FDScript</H2>
+
+<P>The procedure <TT>FRAME-CREATE</TT> creates a frame and requires
+specifying a <var>pool</var> in which the frame's OID will be
+allocated.  The value returned by <tt>FRAME-CREATE</tt> is this OID.
+If the pool argument is <tt>#f</tt> (false), a raw slotmap (rather
+than an OID whose value is a slotmap) is returned.  All of the frame
+procedures will take a raw slotmap as an argument, but the unique
+identity of the slotmap will not be preserved between FramerD
+sessions.
+
+<P><font size=-1>This is a subtle but important point.  If you save a
+raw slotmap, subsequent changes to the slotmap will not be shared.  If
+you save a frame (an OID whose value is a slotmap), subsequent changes
+will be changed.  In general, it is important to use frames for
+descriptions which may persist beyond the current session.</font>
+
+<P>In addition to the pool argument, <tt>frame-create</tt> takes a
+number of other arguments.  If it is given one argument, it should be
+a slotmap to which the corresponding OID's value is initialized.  If
+it is given more than one argument, they are intepreted as a series of
+slots and values initially assigned to the frame, e.g.
+<PRE class=typescript>
+[fdscript] (frame-create "temp@framerd.org"
+              'obj-name "test" 'test-slot 'test-value
+              'another-test-slot "another-value")
+@a/40010"test" ;&lt;- Prints out using the obj-name slot
+</PRE>
+<P>the slot <TT>OBJ-NAME</TT> is used by FDScript when displaying the
+frame's OID, as you can see in the printed value above.
+
+<P>The procedure <TT>FGET</TT> extracts a slot from a frame given a
+slotid, E.G.
+<PRE class=typescript>
+[fdscript] <strong>(fget @a/40010"test" 'test-slot)</strong>
+TEST-VALUE
+</PRE>
+<P>When the slotid is a symbol, <TT>FGET</TT> simply retrieves whatever was
+initially or subsequently stored in the slot. The rules are different when
+the slotid is itself a frame, when certain inferences may happen, but we
+discuss that below.
+
+<P>The procedure <TT>FADD!</TT> adds a new value to a frame for a given
+slotid, E.G.
+<PRE class=typescript>
+[fdscript] <strong>(fadd! @a/40010"test" 'test-slot 'another-value)</strong>
+[fdscript] <strong>(fget @a/40010"test" 'test-slot)</strong>
+{TEST-VALUE ANOTHER-VALUE}
+</PRE>
+<P>A formatted description of a frame can be gotten with the procedure <TT>FDD</TT>:
+<PRE class=typescript>
+[fdscript] (FDD @a/40010)
+---------------------------------------------------------------
+The frame @a/40010:
+OBJ-NAME:  "test"
+TEST-SLOT: (2 values)
+  TEST-VALUE
+  ANOTHER-VALUE
+ANOTHER-TEST-SLOT:  "another-value"
+@a/40010"test"
+</PRE>
+<P>FDD is also a command line program with the same name, so you can do <TT>fdd
+</TT> (lowercase for Unix) at the shell.
+
+<P>Since frames are OIDs, changes to frames are not permanent until
+either the session exits normally or the changes are explicitly
+committed. The procedures <TT>COMMIT-OID</TT>, <TT>COMMIT-POOL</TT>,
+and <TT>COMMIT-POOLS</TT> all work to save changes to frames and the
+additional procedure <TT>COMMIT-FRAME</TT> is just another name for
+<TT>COMMIT-OID</TT>.
+
+<P>The procedure <TT>FRAME-SLOTS</TT> returns all the slotids associated
+with a frame, E.G.
+<PRE class=typescript>
+[fdscript] (frame-slots @a/40010)
+{obj-name test-slot another-test-slot}
+</PRE>
+<P>For example, The following code converts a frame into an
+association list (i.e. a list of key value pairs):
+<PRE class=typescript>
+[fdscript] (define (get-alist-entry unit slotid)
+             (cons slotid (set->list (frame-get unit slotid))))
+[fdscript] (define (frame-&gt;alist frame)
+             (set->list (get-alist-entry frame (frame-slots frame))))
+(frame->alist @a/40010)
+((ANOTHER-TEST-SLOT "another-value") 
+ (TEST-SLOT ANOTHER-VALUE TEST-VALUE)
+ (OBJ-NAME "test"))
+</PRE>
+
+<H2>Inferences over slots</H2>
+
+<P>When a slotid is another frame, procedures like <TT>fget</TT> and
+<TT>fadd!</TT> act a little differently based on the slots of that
+frame. Each operation has a special slot associated with it and that
+slot contains a set of FDScript expressions which may be evaluated
+when the operation is performed:
+<CENTER><TABLE PAD=5>
+<TR><TH>OPERATION<TH>SLOT<TH>VARIABLES BOUND
+<TR><TD>fget<TD>GET-METHODS<TD><TT><B>frame, slotid, data</B></TT>
+<TR><TD>ftest<TD>TEST-METHODS<TD><B><TT>frame, slotid, data, value</TT></B>
+<TR><TD>fadd!<TD>ADD-EFFECTS<TD><B><TT>frame, slotid, data, value</TT></B>
+<TR><TD>fzap!<TD>ZAP-EFFECTS<TD><B><TT>frame, slotid, data, value</TT></B>
+</TABLE></CENTER>
+when these values are evaluated, certain variables are bound:
+<DL>
+<DT><TT>frame</TT><DD>is bound to the frame being operated upon
+<DT><TT>slotid</TT><DD>is bound to the slot being operated upon
+<DT><TT>data</TT><DD>is bound to primitive values associated with the slotid
+<DT><TT>value</TT><DD>is bound to the value being tested for, added, or
+removed
+</DL>
+<P>allowing the procedure to compute extra values, make additional changes,
+or notify users of changes. For instance, the following definition..
+<PRE class=typescript>
+[fdscript] (frame-create test-pool 
+             'obj-name "n-hyponyms"
+             'get-methods (set-size (GET frame 'hyponyms)))
+@1/3338"n-hyponyms"
+</PRE>
+<P>so that we can ask:
+<PRE class=typescript>
+[fdscript] (fget @/brico/1b54e @/brico/3338"n-hyponyms")
+5
+</PRE>
+</div>
+
+<div class=section>
+<a name="indices">
+<TABLE class="header" width=100% cellpadding=0>
+<TR><TH class="title">Persistent Indices</TH>
+    <TD class="gloss">Indices are a way of storing and
+manipulating associations between objects and descriptions.  They can
+be used to go from words to their roots (e.g. "flew" to "fly") or from
+features to findings (e.g. "BROTHER-OF Ken" to "Bruce").  FramerD's
+indices are persistent <strong>incremental</strong> data structures designed
+to support millions of keys.
+</TD></TR>
+</TABLE>
+</a>
+
+<H2>Indices are persistent</H2>
+
+<P CLASS="first">
+The mappings described by an index are maintained outside of the
+application using the index.  An application can change an index and
+those changes will be automatically available to later instantiations
+of the application or even of other applications.  Changes are not
+visible at once, however; an application must explicitly
+<em>commit</em> its changes to make them persistent and shared.
+
+<P>Because indices are persistent, they are typically used as
+resources by programs and may represent the accumulation of results
+from many computations and many different processes.  A suite of
+applications may have a set of indices which they share and update.
+
+<H2>Indices are demand-driven</H2>
+
+<P CLASS="first">
+When an application uses an index, it normally only uses resources for
+a fraction of the index.  The rest of the index is maintained --- on a
+remote server or in the file system --- for when it is needed.  When
+neccessary, it goes to the server or file and retrieves the needed
+mappings.  A quite small application can access a huge index through
+this method.
+
+<P>FramerD has two sorts of built-in indices.  File indices store
+mappings in a file on a local or remote disk and retrieve mappings by
+random access in the file.  Network indices use a simple protocol to
+access DType servers which provide mappings to their clients.  These
+two types are interchangable.
+
+<H2>Indices are incremental</H2>
+
+<P CLASS="first">
+Indices are designed to efficiently support incremental changes.
+In particular, it is supposed to be efficient to both add new values
+to existing keys and to add initial values to new keys.  This makes
+index files useful for storing <em>inverted indices</em> used in many
+information retrieval applications.  It is also easy to get the
+<em>number</em> of values associated with a particular key, which is
+important for certain kinds of statistical retrieval algorithms.
+
+<P>Indices also cache values in two directions.  When an index goes to
+a file or server to get a mapping, it caches the result locally so
+that a subsequent request can proceed much faster.  For this reason,
+some FramerD applications may speed up over time as they cache
+commonly referenced index keys.
+
+<P>When an index is modified, the modifications are stored locally
+with the application making the modifications.  Only when the index is
+<em>committed</em> do the changes go into the files on disk or across
+the network.  
+
+<H2>Indices can index objects</H2>
+
+<P CLASS="first">
+Indices are the basis of a general object indexing facility.  This
+uses the convention that keys of the form: <tt>(slot . value)</tt>
+refer to frames whose <tt>slot</tt> contains <tt>value</tt>.  For
+example, the key <tt>(year-of-birth . 1961)</tt> would be associated
+with all the frames whose <tt>year-of-birth</tt> slot was
+<tt>1961</tt>.  These indices can be used to find frames with
+particular properties or combinations of properties as well as for
+more flexible "fuzzy" searches.
+
+<H2>Using indices from FDScript</H2>
+
+<P>Indices are accessed by the function <B><TT>USE-INDEX</TT></B>:
+<PRE class=typescript>
+[fdscript] <strong>(USE-INDEX "/local/test-index")</strong>
+[#INDEX "/local/test-index"]
+</PRE>
+<P>which can also take a network server specification, as in:
+<PRE class=typescript>
+[fdscript] <strong>(USE-INDEX "testi@somehost")</strong>
+[#INDEX "testi@somehost"]
+</PRE>
+<P>The functions for accessing an index are just like the functions for
+accessing a hashtable:
+<DL COMPACT>
+<DT><B><TT><A NAME="INDEX-GET">
+    (INDEX-GET <VAR>index</VAR> <VAR>key</VAR>)</A></TT></B>
+<DD>gets the values associated with <VAR>key</VAR> in <VAR>index</VAR>.
+<DT><B><TT> <A NAME="INDEX-ADD!">
+    (INDEX-ADD! <VAR>index</VAR> <VAR>key</VAR> <VAR>new</VAR>)</A></TT></B>
+<DD>adds <VAR>new</VAR> to the values associated with <VAR>key</VAR> in <VAR>index</VAR>.
+<DT><B><TT><A NAME="INDEX-SET!">
+    (INDEX-SET! <VAR>index</VAR> <VAR>key</VAR> <VAR>new</VAR>)</A></TT></B>
+<DD>makes <VAR>new</VAR> be the only value associated with <VAR>key</VAR> in
+<VAR>index</VAR>
+<DT><B><TT><A NAME="INDEX-ZAP!">
+    (INDEX-ZAP! <VAR>index</VAR> <VAR>key</VAR>)</A></TT></B>
+<DD>ensures that no values will be associated with <VAR>key</VAR> in
+<VAR>index</VAR>. </DD>
+
+<DT><B><TT><A NAME="INDEX-KEYS">(INDEX-KEYS <VAR>index</VAR>)</A></TT></B>
+<DD>returns all of the keys stored in an index.
+</DL>
+<P>Changes to indices are like changes to pools in that they need to be
+<B>committed</B> to be permanent. Changes are committed automatically
+if the FDScript session exits normally. Changes can also be committed
+manually:
+<DL COMPACT>
+<DT><B><TT><A NAME="COMMIT-INDEX">(COMMIT-INDEX <VAR>index</VAR>)</A></TT></B>
+<DD>saves the changes made all the keys in <VAR>index</VAR>
+<DT><B><TT><A NAME="COMMIT-INDICES">(COMMIT-INDICES)</A></TT></B>
+<DD>saves the changes made to all the keys in all of the indices
+</DL>
+<P>As with pools, changes to indices can be <VAR>reverted</VAR>:
+<DL>
+<DT><B><TT><A NAME="REVERT-INDEX">(REVERT-INDEX <VAR>index</VAR>)</A></TT></B>
+<DD>removes all the changes made to keys in <VAR>index</VAR>.</DD>
+
+<DT><B><TT><A NAME="REVERT-INDICES">(REVERT-INDICES)</A></TT></B>
+<DD>removes all the changes made to keys in all indices.</DD>
+</DL>
+<P>As with pools, changes cannot be reverted once they are committed and
+reversion applies only to the associations in the index and not to
+other relations involving the keys or values.
+
+<H2>File indices</H2>
+
+<P CLASS="first">
+There are a number of special functions for dealing with file indices.
+<DL COMPACT>
+<DT><B><TT><A NAME="make-file-index">
+    (make-file-index <VAR>filename</VAR> <VAR>minsize</VAR>)</A></TT></B></DT>
+<DD>Creates a new file index in the file <VAR>filename</VAR> that contains
+at least <VAR>minsize</VAR> slots. Note that file indices have a fixed
+size and need to be explicitly grown using maintenance tools built
+into FDScript or available from the command prompt. This is because
+growing a file index with millions of keys can be very time consuming
+and couldn't be "transparent" even if you wanted it to be. <A
+NAME="cache-index"></A>
+<DT><B><TT>(cache-index <VAR>index</VAR>)</TT></B></DT>
+
+<DD>When <VAR>index</VAR> is a file index, this keeps a copy of the files
+offset table in memory, which improves access time by avoiding one
+disk seek.  This is especially useful when disk seeks are particularly
+slow (for instance with CD-ROM drives).
+
+<DT><B><TT><A NAME="auto-cache-file-indices">
+    (auto-cache-file-indices)</A></TT></B>
+<DD>Arranges for file indices to be automatically cached when
+referenced. This is a good idea for programs which do a lot of index
+accesses or for speed when the index file is on a slow device (such as
+a CD-ROM or network disk).
+</DL>
+
+<P>In addition, there are several command line utilities for dealing
+with file indices:
+<DL COMPACT>
+<DT><TT>make-file-index <VAR>filename</VAR> <VAR>minsize</VAR></TT>
+<DD>Creates a file index with (at least) a particular size.
+<DT><TT>analyze-index <VAR>filename</VAR> --keys | --values | --stats</TT>
+<DD>Returns information about the index file in <VAR>filename</VAR>. The
+options can be combined and have the following interpretation:
+<UL>
+<L><TT>--stats</TT> reports hashtable statistics (number of keys, average
+and max misses per key, most common keys, etc)
+<LI><TT>--keys</TT> lists all of the keys with the number of values
+for each
+<LI><TT>--values</TT> lists all of the values
+</UL>
+With no arguments, <TT>analyze-index</TT> simply prints the number of
+slots in the index.
+</DL>
+<P>File indices have standard sizes at roughly powers of 2 and user specified
+sizes are rounded up to the nearest standard size.
+</div>
+
+<div class=section>
+<a name="search">
+<TABLE class="header" width=100% cellpadding=0>
+<TR><TH class="title">Searching for Frames</TH>
+    <TD class="gloss">FramerD builds an object indexing facility on top of the general
+association facility described above. <DFN><B>Indexing</DFN></B> a
+frame stores inverse pointers from its properties to the frame. This
+allows the frame to be found later based on a set of properties or to
+find objects similar (i.e. with common properties) to one particular
+frame.</TD></TR>
+</TABLE>
+</a>
+
+<P>FramerD builds an object indexing facility on top of the general
+association facility described above. <DFN><B>Indexing</DFN></B> a
+frame stores inverse pointers from its properties to the frame. This
+allows the frame to be found later based on a set of properties or to
+find objects similar (i.e. with common properties) to one particular
+frame.
+
+<P>There are three main ways of indexing frames:
+<DL COMPACT>
+<DT><B><TT><A NAME="index-frame">
+    (index-frame <I>index</I> <I>frame</I>)</A></TT></B>
+<DD>Indexes all the properties actually stored on <I>frame</I> in
+<I>index</I>.
+<DT><B><TT>(index-frame <I>index</I> <I>frame</I> <I>slot1</I> <I>slot2</I>... <I>slot<SUB>n</SUB></I>)</TT></B>
+<DD>Indexes all the specified slots (<I>slot1</I>, <I>slot2</I>, through
+<I>slot<SUB>n</SUB></I>) on frame. If some of the slots are frames, they
+may be computed even if they aren't actually stored on <I>frame</I>.
+<DT><B><TT><A NAME="index-slot-value">
+    (index-slot-value <I>index</I> <I>frame</I> <I>slot</I> <I>value</I>)
+    </A></TT></B>
+<DD>Indexes frame as having SLOT with VALUE (whether it does or not).
+</DL>
+<P>Once a frame has been indexed, one can search for it either strictly ---
+based on certain combinations of slots and values --- or "fuzzily" based
+on similarity to an instance or set of instances.
+
+<H2>Strict Searching</H2>
+
+<DIV ALIGN=right><I>I'll have the french onion soup, without the cheese
+on top,<BR>
+the green salad with honey-mustard dressing on the side,<BR>
+and a decaffeinated coffee with one sugar.</I><BR>
+Sally, in <B>When Harry Met Sally</B></DIV>
+
+<P>Strict searching uses the <I>FIND-FRAMES</I> procedure:
+<PRE class=typescript>
+(find-frames <I>index</I> 
+   <I>slot<SUB>1</SUB></I> <I>value<SUB>1</SUB></I>
+   ... <I>slot<SUB>n</SUB></I> <I>value<SUB>n</SUB></I>)
+</PRE>
+<P>which finds all objects that have all the specified slots and values. If
+any of the <I>value<SUB>i</SUB></I> are non-deterministic sets, the slot
+need only have one of the specified values, allowing some variations. For
+example, in the WordNet database, the expression:
+<PRE class=typescript>
+[fdscript] <strong>(find-frames "brico@framerd.org" 'words {"hack" "chop"})</strong>
+{@1/31813"VERB.COMPETITION synset for hack and kick_on_the_arm" 
+ @1/151a5"NOUN.ARTIFACT synset for cab, hack, taxi, and taxicab" 
+ @1/316ff"VERB.COMPETITION synset for chop and hit_sharply" 
+ @1/23e1b"NOUN.PERSON synset for machine_politician, ward-heeler, political_hack, and hack" 
+ @1/321a4"VERB.CONTACT synset for chop and strike_sharply" 
+ @1/303a5"VERB.CHANGE synset for hack and hack_on" 
+ @1/1299a"NOUN.ANIMAL synset for hack, jade, nag, and plug" 
+ @1/cdc6"NOUN.ACT synset for chop and chop_shot" 
+ @1/31c45"VERB.CONTACT synset for hack and clear" 
+ @1/20578"NOUN.PERSON synset for hack, hack_writer, and literary_hack" 
+ @1/31c3d"VERB.CONTACT synset for chop and hack" 
+ @1/2ee62"VERB.BODY synset for hack and whoop" 
+ @1/32cfe"VERB.MOTION synset for chop and move_suddenly" 
+ @1/31812"VERB.COMPETITION synset for hack and kick_on_the_shins" 
+ @1/129cd"NOUN.ANIMAL synset for hack" 
+ @1/1ed62"NOUN.FOOD synset for chop" 
+ @1/2262a"NOUN.PERSON synset for hack, drudge, and hacker" 
+ @1/31c3f"VERB.CONTACT synset for chop, chop_up, and cut_into_pieces" 
+ @1/2f7e3"VERB.CHANGE synset for hack and cut_up" 
+ @1/12999"NOUN.ANIMAL synset for hack" 
+ @1/bc17"NOUN.ACT synset for chop and chopper"}
+</PRE>
+<P>finds all the synsets containing either the words "hack" or "chop", while
+<PRE class=typescript>
+[fdscript] (find-frames "brico@framerd.org" 'words "hack" 'words "chop")
+@1/31c3d"VERB.CONTACT synset for chop and hack"
+</PRE>
+<P>finds only the synsets containing both the words "hack" and
+"chop". One way to think about this visually, is the search performed
+by <TT>find-frames</TT> is conjunctive horizontally (along the list of
+arguments) and disjunctive vertically (within each argument).
+
+<H2>Fuzzy Searching</H2>
+
+<DIV ALIGN=right>
+<I>I'll have a burger with fries and a chocolate shake.</I><BR>
+Harry in <B>When Harry met Sally</B></DIV>
+
+<P>A fuzzy search does not require an exact match, but returns the
+best possible match measured by the number of overlapping
+properties. There are a variety of fuzzy search functions as well as a
+set of tools for writing your own fuzzy search routines.  The chief
+function find-best, looks just like find-frames:
+<PRE class=typescript>
+(find-frames <I>index</I> 
+   <I>slot<SUB>1</SUB></I> <I>value<SUB>1</SUB></I>
+   ... <I>slot<SUB>n</SUB></I> <I>value<SUB>n</SUB></I>)
+</pre>
+<P>but returns those objects with the largest number of matching
+properties.
+
+<H2>Similarity Searching</H2>
+
+<DIV ALIGN=right><I>I'll have what she's having.</I><BR>
+from <B>When Harry Met Sally</B></DIV>
+
+<P>One of the most powerful search mechanisms in FramerD and FDscript
+is "similarity searching" which begins with an object or set of
+objects and finds objects which have the same properties as those
+objects, weighting as higher those which are more in common among the
+set of initial descriptions.
+<DL>
+<DT><B><TT><A NAME="find-similar">
+    (find-similar <I>indices</I> <I>frame</I>)</A></TT></B>
+<DD>Returns the frames indexed in <I>indices</I> which have the most
+number of slot values in common with <I>frame</I>.</DD>
+<DT><B><TT><A NAME="find-similar">
+    (find-similar <I>indices</I> <I>frame</I><I>slots</I>)</A></TT></B>
+<DD>limits the search for similarity to <I>slots</I>.  Returns the frames
+indexed in <I>indices</I> which have the most number of slot values in
+common with <I>frame</I>.</DD>
+</DL>
+<P>For example, the following search finds words with similar meanings to
+the common sense of "hack" and "chop":
+<PRE class=typescript>
+[fdscript] (find-similar "brico@framerd.org"
+             @1/31c3d"VERB.CONTACT synset for chop and hack")
+{@1/31be9"VERB.CONTACT synset for shave, trim, and cut_closely" 
+ @1/31c3f"VERB.CONTACT synset for chop, chop_up, and cut_into_pieces" 
+ @1/31e95"VERB.CONTACT synset for mow and cut_down" 
+ @1/325d4"VERB.CONTACT synset for rebate and cut_a_rebate_in" 
+ @1/325d7"VERB.CONTACT synset for saw and cut_with_a_saw"}
+</PRE>
+<B>Fuzzy searching and non-determinism.</B> When the <I>frame</I>
+argument to <TT>find-similar</TT> is non-deterministic, the search
+mechanism does a single search but uses features from each of the
+frames in combination.  As a consequence, the search weighs properties
+common between the frames more heavily. For example, in this
+retrieval,
+<PRE class=typescript>
+[fdscript] (find-similar "brico@framerd" 
+             (amb @1/31c3f"VERB.CONTACT synset for chop, chop_up, and cut_into_pieces" 
+                  @1/31e95"VERB.CONTACT synset for mow and cut_down"))</strong>
+@1/31c3d"VERB.CONTACT synset for chop and hack"
+</PRE>
+<P>the properties common to the two synsets selects the search pattern which
+put them together in the first place.
+
+</div>
+
+<div class=section>
+<a name="dtypes">
+<TABLE class="header" width=100% cellpadding=0>
+<TR><TH class="title">The DTYPE Protocol</TH>
+    <TD class="gloss">DTypes are a binary data format and communications
+protocol underlying FramerD.  DTypes allow the storage and transmission
+of complex recursively structured objects.  DTypes can be extended to encode
+application-specific data while still using generic facilities for
+storage and search.</TD></TR>
+</TABLE>
+</a>
+<HR>
+<P>DTypes are a portable data representation used throughout the
+FramerD suite of libraries, tools, and applications.  There are two
+basic levels to the DType representation: a minimal set of "core data
+types" and an extensible external binary representation for those
+types and their extensions.  Applications and libraries use and extend
+the native data types, taking advantage of communication, persistence,
+and indexing facilities which use the external representation.
+
+<P>DTypes differ from other data sharing approaches in not depending
+on explicit data declarations for sharing complex structures.
+Distributed processing models like CORBA rely on shared data
+declarations for communicating complex data structures.  DTypes allow
+a `sloppier' approach where basic data types include nested and
+labelled heterogenous structures.  This allows for fast prototyping of
+applications and protocols as well as their on-line extension.
+
+<P>The minimal set of native types include fixed and floating point
+numbers, ASCII strings and symbols, vectors and pair structures.  It
+also includes some special types, especially the OID (Object
+IDentifier) pointers used by the FramerD object database.  The
+external binary representation is used in three primary ways:
+<ul>
+<li>in communicating among clients and servers
+using a remote procedure call protocol;</li>
+
+<li>in storing the values associated global "Object IDentifiers"
+(OIDs) by FramerD's <A HREF="odb.html">object database</A>;</li>
+
+<li>in associating structured objects to one another through <A
+HREF="indices.html">FramerD indices</A>.</li>
+</ul>
+
+<P>The DType core representation includes the following types:
+<ul>
+<li>literal constants for truth, falsity, the empty list, and a void value
+<li>small signed integers (32 bits)
+<li>limited precision floating point numbers (again, 32 bits)
+<li>ASCII strings
+<li>Symbols ("interned" ascii strings)
+<li>Pairs (of any two other types, which can be composed into lists)
+<li>Vectors (of any mixture of types)
+<li>Packets (arbitrary vectors of bytes)
+<li>OIDs (object identifiers) identifying in a virtual 64-bit address space
+<li>Exceptions and Errors (representing unusual conditions)
+</ul>
+
+<P>Native applications can provide their own types and use FramerD
+storage and indexing facilities by implementing extensions to the
+external binary representation for their types.  These extensions can
+either be in the form of compounds or package types.
+
+<P>A compound representation consists of a type name (a tag) and a
+"canonical form" which can be used to identify and regenerate the
+object.  Logically, neither the tag nor the the canonical form can
+include the object being described or else the translation would recur
+indefinitely.
+
+<P>A packaged representation consists of a two byte type code followed by
+1 or 4 bytes of size information and some amount of additional data.
+The value of the first byte identifies a "package" for the extension;
+the value of the second byte (which is defined by the package
+maintainer) specifies a more precise type code and also specifies the
+format of the subsequent data in a fashion which FramerD facilities
+can manipulate without interpreting.
+
+<P>The core FramerD libraries introduce new datatypes with packaged data
+representations for:
+<ul>
+<li><strong>choices</strong> used to represent
+unordered sets of alternative results and values
+<li><strong>slotmaps</strong> providing simple associations between
+keys and values 
+<li>various <strong>numerical types</strong>, including:
+<ul>
+<li>arbitrary precision integers</li>
+<li>rational numbers</li>
+<li>complex numbers</li>
+</ul>
+<li>extended <strong>character types</strong>, including:
+<ul>
+<li>unicode and ascii characters</li>
+<li>unicode strings</li>
+<li>unicode symbols (interned unicode strings)</li>
+</ul>
+</ul>
+</div>
+
+</body>
+</HTML>

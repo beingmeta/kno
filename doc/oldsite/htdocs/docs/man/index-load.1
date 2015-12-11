@@ -1,0 +1,38 @@
+.\" Process this file with
+.\" groff -man -Tascii index-load.1
+.\"
+.TH INDEX-LOAD 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+index-load \- returns the load (number of keys w.r.t. number of slots)
+for a file index
+.SH SYNOPSIS
+.B index-load
+.I filename
+.SH DESCRIPTION
+.B index-load
+reports the number of slots, number of keys, and relative loading
+of the file index (an on-disk incremental hashtable) stored in
+.I filename
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if
+.I filename
+does not exist or does not contain valid file index.
+.SH BUGS
+If some of the associations contain repeated values, they will be
+counted twice.  For a completely accurate histogram, the file index
+should be repacked with
+.BR repack-file-index (1)
+before being analyzed.
+.SH Revision Info
+.B $Id: index-load.1,v 1.3 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR repack-file-index (1)
+.BR make-file-index (1)
+
+
+

@@ -1,0 +1,146 @@
+.\" Process this file with
+.\" groff -man -Tascii fdshell.7
+.\"
+.TH FD_ID 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fdshell \- using FramerD from the shell
+.SH SYNOPSIS
+.B fdshell
+.SH DESCRIPTION
+fdshell provides a set of scripts and conventions for accessing FramerD
+databases from the Unix (or other) shells.  The scripts collectively use
+a set of configuration variables and a module, written in FDScript, for
+using those variables and parsing commands args.
+
+The variables are as follows:
+.TP
+.B %POOL
+The default pool used for creating new frames
+.TP
+.B %POOLS
+The pools used by the 
+.BR fdshell (7)
+scripts; these determine which frames are accessible to access
+and searching
+.TP
+.B %INDICES
+The background indices used to search for frames with particular
+slotid/value combinations.
+.TP
+.B %INDEX
+The foreground index used by default to store newly created
+frame/slotid/value combinations.  Note that this is only used when
+indices directly associated with the frame's pool are not available or
+not modifiable.
+
+In addition, the variable
+.B FDENV
+identifies a configuration file which will be loaded before any of
+these configuration variables are used, allowing a particular fdshell
+setup to be stored in a configuration file and then "switched on" by
+simply specifing the
+.B FDENV variable.
+
+In addition to these standard configuration variables, the fdshell
+scripts all share a set of conventions for parsing command line
+arguments.  The challenge is that FDScript and FramerD are based on
+richly typed Lisp objects (including vectors, lists, choices, OIDs,
+numbers, etc) while the Unix shell is pretty much all about strings,
+especially on the command line.  To deal with this, fdshell introduces
+a parser for strings which are are called on nearly all command line
+arguments.   The rules of this parser are simple:
+
+Strings starting with 
+.B @,#,(, 
+or
+.B {
+are directly parsed by the lisp parser.  Strings starting with a colon
+(:) have the lisp parser called on the rest of the string (forcing a
+lisp parse); strings starting with a single backslash (\) simple
+return the rest of the string (forcing a string interprtation).
+
+Strings starting with "@?" are converted into OIDs by various search
+methods in the following order:
+.TP
+.B @?string
+resolves to frames indexed under the 
+.B OBJ-NAME
+slot of
+.I string
+or if this fails,
+.B @?symbol
+resolves to frames indexed under the 
+.B OBJ-NAME
+slot of the symbol
+.I symbol
+produced by calling
+.B read-from-string
+on the rest of the argument.  If even this fails,
+a more complicated search is done,
+.TP
+.B @?symbol:value
+resolves to all frames indexed to have
+.I value
+on their slot named
+.I symbol
+according to the current background.  The parameter
+.I value
+is interpreted recursively according to these rules.  If this
+fails to resolve to any frames, a final method is tried
+.TP
+.B @?obj-name:value
+the field
+.I obj-name
+is resolved to any frames with an obj-name slot of
+.I obj-name
+as either a string or a symbol.  These frames are then used
+as slotids in a search for frames possessing 
+.I value
+again interpreted recursively.
+
+.SH OPTIONS
+.B fdshell
+scripts is implemented as FDScript scripts, so their arguments
+may have CONFIG bindings, as well as accepting the flags
+.B -m -c -f
+to load modules, configs, and scheme files, as described in
+.BR fdscript (1)
+.SH CONFIG VARIABLES
+.TP
+.B %POOL
+The default pool used for creating new frames
+.TP
+.B %POOLS
+The pools used by the 
+.BR fdshell (7)
+scripts; these determine which frames are accessible to access
+and searching
+.TP
+.B %INDICES
+The background indices used to search for frames with particular
+slotid/value combinations.
+.TP
+.B %INDEX
+The foreground index used by default to store newly created
+frame/slotid/value combinations.  Note that this is only used when
+indices directly associated with the frame's pool are not available or
+not modifiable.
+
+.SH BUGS
+No known bugs
+.SH Revision Info
+.B $Id: fdshell.7,v 1.2 2002/04/02 22:21:07 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR fdd (1)
+.BR fd_add (1)
+.BR fd_drop (1)
+.BR fd_get (1)
+.BR fd_find (1)
+.BR fd_test (1)
+.BR fd_make (1)
+
+
+

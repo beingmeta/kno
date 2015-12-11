@@ -1,0 +1,943 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<HTML>
+<HEAD>
+<TITLE>Writing FramerD Web Applications</TITLE>
+<LINK REL="stylesheet" TYPE="text/css" HREF="framerd.css">
+</HEAD>
+<BODY>
+<TABLE ALIGN=LEFT WIDTH='100%'>
+<TR>
+<TH class=bigtitle ALIGN=LEFT WIDTH='70%'>
+FramerD Web Applications
+<BR><span class=author>Ken Haase</span>
+<TH ALIGN=RIGHT ROWSPAN=2>
+<A HREF="http://www.framerd.org/"><IMG BORDER=0 SRC="fdlogo.png"></A>
+<TR>
+</TABLE><BR CLEAR=LEFT>
+<P class=quickref>
+Quick ref: [<A HREF="#generating">Generating Markup</A>]&nbsp;
+[<A HREF="#builtins">HTML builtins</A>]&nbsp;
+[<A HREF="#linking">Making links</A>]&nbsp;
+[<A HREF="#scripturl">Complex Links</A>]&nbsp;
+[<A HREF="#cgi">Dyamic Pages from FDScript</A>]&nbsp;
+[<A HREF="#cgivars">Script Variables</A>]&nbsp;
+[<A HREF="#cgiforms">Using HTML forms</A>]&nbsp;
+[<A HREF="#cgivar">CGI-VAR and CGI-INIT</A>]&nbsp;
+[<A HREF="#cookies">Cookies</A>]&nbsp;
+[<A HREF="#browsing">Frames to Anchors</A>]&nbsp;
+[<A HREF="#details">HTTP generation: connection control and metadata</A>]
+[<a HREF="#fdserv">Using mod_fdserv</a>]
+[<A HREF="#configure">Configuring your web server</A>]
+<HR>
+
+<P>At its creation in the early 1990's, the World Wide Web was
+imagined as `just' a medium for global publication and conversation.
+It subsequently grew into (among other things) a framework for
+application deployment where the ubiquitous web browser provided a GUI
+for networked applications.  FramerD and FDScript have been especially
+extended to take advantage of this environment in two different
+ways.</P>
+
+<P>First, FDScript provides numerous special forms and operations for
+generating HTML --- the language interpreted by web browsers --- and
+XML, HTML's younger, more refined, and more versatile cousin.  These
+mechanisms rely on an analogy between the recursive, nested structures
+of HTML/XML and the similar structure of Lisp (FDScript) expressions.
+This (in our unbiased opinion) makes it much easier to write programs
+which produce correct HTML (or XML) markup.  The framework for
+generating HTML also contains special provisions for presenting
+FramerD frames as links to <em>browse scripts</em> which can present
+the frame to the user as an HTML document.</P>
+
+<P>Second, FDScript programs are able to use the <A
+HREF="http://hoohoo.ncsa.uiuc.edu/cgi/">CGI protocol</A> to gain
+access to particular information provided by clients to web servers.
+The CGI (for Common Gateway Interface) protocol was designed to allow
+browsers to pass along user information, especially the results of
+filling out online forms.  FramerD scripts running on a web server can
+read the values which users put in forms and customize action and
+presentation based on these specifications.</P>
+
+<P>Together, these two features make for a complete application
+framework, where FramerD applications can be written which are usable
+by any individual with a web browser.  This document describes how to
+build such applications, starting with how FDScript can generate HTML,
+moving on to how it can access CGI parameters, and wrapping up with a
+discussion of how to get all of this working together under the <A
+HREF="http://www.apache.org/">Apache web server</A>.</P>
+
+<H2><a name=generating>Generating Markup</a></H2>
+
+<P>Web documents are typically encoded and transmitted in a <em>markup
+language</em> where content is interspersed with machine-recognizable
+tags indicating document structure or presentation information.
+FDScript provides ways to automatically generate documents with markup
+information for two pervasive markup standards: XML and HTML.  XML is
+an extensible standard for document markup; HTML is a more limited
+standard for mostly "display markup" which is a cornerstone of
+documents published on the World Wide Web.  These standards are
+closely related and --- except for a few handfuls of exceptions ---
+HTML can be interpreted as a kind of XML.</P>
+
+<P>The FDScript modules <tt class=symbol>XMLGEN</tt> and <tt
+class=symbol>HTMLGEN</tt> provide functions for generating markup
+based on the <A HREF="fdscript-guide.html#printout">PRINTOUT</A> model
+for producing formatted output.  The PRINTOUT model uses Scheme
+expressions to generate complex documents.  Expressions are evaluated
+depth-first from left to right, producing output; expressions which
+evaluate to strings are displayed verbatim; expressions evaluating to
+other (non-void) values are displayed with <tt
+class=symbol>WRITE</tt>; and expressions which don't return values or
+return the void value are ignored (and are assumed to have done their
+own output).  This allows new formatting directives to be implemented
+simply as functions which do output and return void values.</P>
+
+<P>The most general primitive for generating marked up content is
+<tt class=symbol>MARKUP</tt>:</P>
+<pre class=typescript>
+(markup 'P "Two plus three is " (markup 'strong (+ 2 3)))
+</pre>
+<p>which outputs the text:</p>
+<PRE class=markup>
+&lt;P&gt;Two plus three is &lt;STRONG&gt;5&lt;/STRONG&gt;&lt;/P&gt
+</pre>
+<p>which renders as something like this in a browser:</p>
+<blockquote>
+Two plus three is <strong>5</strong>
+</blockquote>
+<p>The generation of marked up text manages character encoding
+automatically, so that Unicode strings or symbols are rendered with
+approriate escapes in marked up documents.</p>
+
+<P>The <tt class=symbol>MARKUP</tt> function always produces markup with some
+"content" and with matching start and end tags (e.g. "&lt;P&gt;" and
+"&lt;/P&gt;").  To produce so-called "empty tags," the functions <tt
+class=symbol>HTMLTAG</tt> and <tt class=symbol>XMLTAG</tt> can be used.  They
+each take as arguments a sequence of "markup attributes" which are included in
+the output.  For example:
+<pre class=typescript>
+(HTMLTAG 'IMG 'SRC "foo.png" 'ALT "This is a picture of a foo")
+</pre>
+<p>produces the following output:</p>
+<PRE class=markup>
+&lt;IMG SRC="foo.png" ALT="This is a picture of a foo"&gt;
+</pre>
+<p>The same call to <tt class=symbol>XMLTAG</tt> produces almost exactly the
+same text but replaces the terminating `&gt;' with `/&gt;' to obey the XML
+specification for empty elements.</p>
+
+<H3><a name=attributes>Generating markup attributes</a></H3>
+
+<P>Tags in both HTML and XML can have associated attributes which
+provide important additional parameters.  Attributes can be specified for 
+<tt>MARKUP</tt> by giving a list as an argument, rather than a symbol:
+<pre class=typescript>
+(markup '(P ALIGN RIGHT) "This paragraph should be flush right")
+</pre>
+<p>where the first element of the list is the markup tag used and the remaining
+elements are taken as alternating attribute names and values, so that
+we get this marked up output:</p>
+<pre class=typescript>
+&lt;P ALIGN=RIGHT&gt;This paragraph should be flush right&lt;/P&gt;
+</pre>
+<p>which would be rendered thus:</p>
+<blockquote>
+<P ALIGN=RIGHT>This paragraph should be flush right
+</blockquote>
+<P>By using backquote, the results of evaluation can be included in
+the attributes of generated markup, as in:
+<pre class="typescript">
+(markup `(FONT SIZE ,(+ 7 (get-importance)))
+        "This paragraph should be flush right")
+</pre>
+
+<H3><a name=builtins>HTML builtins</a></H3>
+
+<P>In addition to these general ways of generating markup, the <tt>HTMLGEN</tt>
+module contains a plethora of specialized expressions for generating
+HTML-specific tags.  The general form of these functions takes the name of the
+HTML markup tag as a procedure name, so that:</P>
+<pre class=typescript>
+(H2 "This is a level " 2 " heading")
+</pre>
+<P>yields the marked up text:</P>
+<pre class=typescript>
+&lt;H2&gt;This is a level 2 heading&lt;/H2&gt;
+</pre>
+<P>Attributes can be specified by using an expression where the
+function name has an asterisk (*) suffix:</P>
+<pre class=typescript>
+(OL* (STYLE "a")
+  (LI "First letter")
+  (LI "Second letter")
+  (LI "Third letter"))
+</pre>
+<P>interpeting the first argument as a list of alternating attributes
+and values, yielding the markup:</P>
+<PRE class=markup>
+&lt;OL STYLE="a"&gt;
+&lt;LI&gt;First letter&lt;/li&gt;
+&lt;LI&gt;Second letter&lt;/li&gt;
+&lt;LI&gt;Third letter&lt;/li&gt;
+&lt;/OL&gt;
+</pre>
+
+<P>These naming conventions are changed when a given tag doesn't "make
+sense" without any attributes.  In these cases, the unmodified form of
+the tag name is defined as a function which takes markup attributes,
+e.g. as with the anchor tag <tt class=symbol>A</tt>:</P>
+<pre class=typescript>
+(A (HREF "http://www.framerd.org/") "Visit the FramerD web site")
+</pre>
+<P>which yields the markup:</P>
+<PRE class=markup>
+&lt;A HREF="http://www.framerd.org/"&gt;Visit the FramerD web site&lt;/A&gt;
+</pre>
+<P>or the <tt class=symbol>FONT</tt> tag,</P>
+<pre class=typescript>
+(P "This word should be almost " 
+   (FONT (COLOR "purple") "violet"))
+</pre>
+
+<P>These HTML tags have corresponding generators in
+<tt class=symbol>HTMLGEN</tt>:</P>
+<blockquote>
+<tt class=symbol>H1</tt>, <tt class=symbol>H2</tt>, <tt class=symbol>H3</tt>, <tt class=symbol>H4</tt>, <tt class=symbol>CENTER</tt>,
+<tt class=symbol>P</tt>, <tt class=symbol>BLOCKQUOTE</tt>, <tt class=symbol>OL</tt>, <tt class=symbol>UL</tt>,
+<tt class=symbol>LI</tt>, <tt class=symbol>TABLE</tt>, <tt class=symbol>TR</tt>, <tt class=symbol>TH</tt>, <tt class=symbol>TD</tt>,
+<tt class=symbol>EM</tt>, <tt class=symbol>STRONG</tt>, <tt class=symbol>DEFN</tt>, <tt class=symbol>TT</tt>,
+<tt class=symbol>SUB</tt>, <tt class=symbol>SUP</tt>, <tt class=symbol>FONT</tt>, <tt class=symbol>SPAN</tt>,
+<tt class=symbol>DIV</tt>.
+</blockquote>
+<P>The last three generators always take an attribute argument, as described above.  All of the functions,
+including the last three, have <TT><var>tag</var>*</TT> variants which take arguments.
+
+<P>The following functions generate the corresponding `empty' tags:</P>
+<blockquote>
+<tt class=symbol>HR</tt>, <tt class=symbol>BR</tt>, <tt class=symbol>IMG</tt>
+</blockquote>
+<P>interpreting their arguments as paramaters directly, e.g.</P>
+<pre class=typescript>
+(IMG SRC "image1.png" ALT (string-append "Imagine seeing " "image.png"))
+</pre>
+<P>would yield the markup text:</P>
+<PRE class=markup>
+&lt;IMG SRC="image1.png" ALT="Imagine seeing image.png"&gt;
+</pre>
+
+<H2><a name=linking>Generating Links</a></H2>
+
+<P>Possibly the most defining feature of the World Wide Web is the
+capacity for <em>hyperlinking</em> between documents, letting a
+fragment of text in one document lead directly to another document (or
+a fragment therein).  By selecting the link in one document, a reader
+can have instant access to another document or fragment.  In HTML,
+this linking is accomplished with the <tt>A</tt> element; a document
+generator can use a <tt class=symbol>MARKUP</tt> expression to
+generate a link in this way:</P>
+<pre>
+(markup '(A HREF "http://www.whitehouse.gov/")
+        "Where President " current-president " lives.")
+</pre>
+
+<P>The <tt class=symbol>ANCHOR</tt> function is a special markup
+function intended to simplify certain patterns of hyperlinking.  Its
+first argument is a <em>destination</em> which may interpreted in
+various ways:</P>
+<ul>
+<li>a <em>string</em> is simply used as a regular URL reference</li>
+<li>a <em>symbol</em> is taken as an internal reference to the
+current document (in HTML, this becomes a "#name" link)</li>
+<li>a <em>list</em> must be a pair of a string and a symbol,
+indicating a document and an internal pointer in that document</li>
+</ul>
+<P>For example, the following are possible <tt
+class=symbol>ANCHOR</tt> expressions:</P>
+<pre class=typescript>
+(anchor "http://www.framerd.org/" "This is the FramerD web site")
+(anchor '("http://www.framerd.org/docs/www-guide.html" ANCHOR)
+        "This points to the description of the " 'ANCHOR " expression")
+(anchor 'INTRO
+        "This points to the section of the current document which is tagged as INTRO")
+</pre>
+
+<P>Passing a symbol to <tt class=symbol>ANCHOR</tt> usually implies a call to
+the <A HREF="tagged"><tt class=symbol>TAGGED</tt></A> expression elsewhere in
+the document.  The <tt class=symbol>TAGGED</tt> expression marks its content
+with a named tag which <tt class=symbol>ANCHOR</tt> can refer to.  For
+example,</P>
+<pre class=typescript>
+(tagged 'intro "This is the introduction as generated on " (datestring))
+</pre>
+
+<P>The first argument to <tt class=symbol>ANCHOR</tt> is evaluated, so
+it can be another expression whose value is the actual destination.
+For example, this definition produces an email address link for a
+particular individual.</P>
+<pre class=typescript>
+(define (email-addr real-name email)
+  (ANCHOR (string-append "mailto:" email)
+          "Send electronic mail to " real-name))
+</pre>
+<P>and could easily be included in another document thus</P>
+<pre class=typescript>
+(email-addr "Ken Haase" "haase@media.mit.edu")
+</pre>
+<P>which would generate the markup:</P>
+<PRE class=markup>
+&lt;A HREF="mailto:haase@media.mit.edu"&gt;Send electronic mail to Ken Haase&lt;/A&gt;
+</pre>
+
+<H3><A NAME="scripturl">Generating Complex Anchors</A></H3>
+
+<P>The destination of an HTML anchor does not have to be a static
+document existing on some remote machine.  Commonly, it can refer to a
+virtual document generated by a program on some remote computer based
+on some inputs.  The <tt class=symbol>HTMLGEN</tt> library provides a
+special function for generating such references: <tt
+class=symbol>SCRIPTURL</tt>, whose first argument is a remote URL to
+be invoked as a script.  <tt>SCRIPTURL</tt> has two forms.  The first
+takes one additional argument, which is a query string to pass to the
+script, e.g.</P>
+<pre class=typescript>
+[fdscript] (index-url "http://www.altavista.com/search.cgi" "Scheme Hackers")
+"http://www.altavista.com/search.cgi?Scheme+Hackers"
+</pre>
+<P>automatically encoding the string into characters valid for a URL.</P>
+
+<P>The second form of <tt class=symbol>SCRIPTURL</tt> is intended for
+use with scripts which expect a number of named inputs (rather than a
+single query string).  These are typically scripts intended to process
+the input from HTML forms.  As before, the first argument in this form
+is a string indicating the script's URL; the remaining arguments are
+alternating symbols (indicating named inputs) and values (indicating
+values assigned to them).  For example:</P>
+<pre class=typescript>
+(ANCHOR (SCRIPTURL "http://www.beingmeta.com/brico/search.fdcgi"
+                    LANGUAGE "NL" WORDS "hoofd")
+        "This looks up the Dutch word " "`hoofd'"
+	" in the BRICO knowledge base")
+</pre>
+<P>generates an anchor which will list a set of frames from the BRICO
+knowledge base, dynamically generated by the <tt
+class=symbol>enter.fdcgi</tt> script.</P>
+
+<H2><a name=cgi>Dynamic Pages from FDScript</a></H2>
+
+<P>We just saw how to make links which point to virtual pages
+generated by remote scripts.  The protocol for generating such remote
+pages is the <A HREF="http://hoohoo.ncsa.uiuc.edu/cgi/">CGI
+protocol</A> which is standard on nearly all web servers. This section
+describes how to write such scripts using FDScript.  In general, a
+script for generating a virtual page is an FDScript file placed on a
+web server, marked as executable, and starting with a line indicating
+where the <tt class=symbol>fdcgi</tt> executable can be found,
+e.g. something like:</P>
+<pre class=typescript>
+#!/usr/local/bin/fdcgi
+</pre>
+
+<P>For example when your web server is properly <A
+HREF="#configure">configured</A>, you should be able to create a
+script file <tt class=symbol>test.fdcgi</tt>:</P>
+<pre class=typescript>
+#!/usr/local/bin/fdcgi
+;; This is the file test.fdcgi
+(define (main)
+  (httpdoc
+    (title "This is demonstration FDCGI script")
+    (H1 "This is a heading")
+    (P "This is the file " arg0 " being run at "
+       (iso-timestring (xtimestamp)))))
+</pre>
+<P>and set it to be executable.  You should then be able to access the
+URL <tt class=symbol>http://<var>your host</var>/<var>some
+path</var>/test.fdcgi</tt> where <var>some path</var> is dependent on
+how the web server is configured to map URLs into local filenames.
+Accessing this URL will produce a page dynamically generated by the
+<tt class=symbol>main</tt> procedure defined above.  When you access
+the page again (or reload it from your browser), it will appear with a
+different date, since it is regenerated for each access.</P>
+
+<P>Normally, the web server will start a new <tt
+class=symbol>fdcgi</tt> script for each page access; however, if your
+server is configured to support FastCGI for FramerD scripts, <tt
+class=symbol>fdcgi</tt> will only be run once for each separate
+script, processing multiple requests within the same process.  This
+can provide much faster response and less use of system resources for
+starting the script over and over again.</P>
+
+<H2><a name=cgivars>Script Variables</a></H2>
+
+<P>Scripts generating dynamic pages can typically use input variables
+from a variety of sources:</P>
+<ul>
+
+<li><strong>server variables</strong> are defined by the web server
+and include (for instance), the network address of the browser making
+the request</li>
+
+<li><strong>client variables</strong> are defined by the browser
+making the request; these can include identity information or
+<em>cookies</em> maintaining client-side state</li>
+
+<li><strong>script variables</strong> are defined by the script itself
+or the interpreter running the script; these include all of the
+standard <tt class=symbol>fdscript</tt> functions as well as the
+contents of the text, xmlgen, and htmlgen modules</li>
+
+<li><strong>request variables</strong> are defined for a particular
+script and generally come from the client-side "form" by which the
+script has been invoked</li>
+
+</ul>
+<P>These variables are all gathered together into a single slotmap bound to <tt
+class=symbol>CGI-DATA</tt> when the script's main procedure is executed.
+We could use this, for instance, to modify <tt class=symbol>test.fdcgi</tt>
+above to report the clients address:</P>
+<pre class=typescript>
+#!/usr/local/bin/fdcgi
+;; This is the file test.fdcgi
+(define (main)
+  (httpdoc
+    (title "This is demonstration FDCGI script")
+    (H1 "This is a heading")
+    (P "This is the file " arg0 " being run at "
+       (iso-timestring (xtimestamp)))
+    (P "You are connecting from the Internet address " 
+       (get cgi-data 'remote-host))))
+</pre>
+<P>The following server and client variables are typically available
+to CGI scripts.</P>
+<TABLE>
+<TR><TH>Variable</TH><TH>Meaning</TH></TR>
+
+<TR><TD>USER-AGENT</TD><TD>A string identifying the client program
+(browser) being used; e.g. </TD></TR>
+
+<TR><TD>REFERER</TD><TD>The URL from which the user clicked to this URL.
+</TD></TR>
+
+<TR><TD>REMOTE-HOST</TD><TD>The hostname of the machine making the
+request; this is either the client's machine or the `proxy server'
+they are operating through.  Depending on the configuration of the
+webserver, this value may be either a "real" host name (like
+<tt class=symbol>flipper.media.mit.edu</tt>) or a simple IP address (like
+<tt class=symbol>18.85.2.138</tt>).</TD></TR>
+
+<TR><TD>REMOTE-ADDRESS</TD><TD>The IP address of the machine making the
+request; again, this is either the client's machine or the `proxy server'
+they are operating through.  This is always a simple IP address (like
+<tt class=symbol>18.85.2.138</tt>).</TD></TR>
+
+<TR><TD>REMOTE-IDENT</TD><TD>If provided, this is a string identifying
+the remote user.  If the client did not provide this information, it
+is not bound.</TD></TR>
+
+<TR><TD>SCRIPT-NAME</TD><TD>The filename of the script being
+executed.</TD></TR>
+
+<TR><TD>SERVER-NAME</TD><TD>The name of the machine on which this
+server is being run.</TD></TR>
+
+<TR><TD>SERVER-PORT</TD><TD>The name of the port on which this
+server is listening.</TD></TR>
+
+<TR><TD>SERVER-SOFTWARE</TD><TD>A string identifying
+the software and version of the Web server which is invoking
+this script.</TD></TR>
+
+<TR><TD>SERVER-HOST-NAME</TD><TD>The server name explicitly requested
+by the client.  This is for use with virtual servers, where different
+requests to the same machine may go to different virtual servers.
+This variable contains the name of the virtual server for the request.
+(It corresponds to the HTTP/1.1 <tt>hostname:</tt> request
+field.</TD></TR>
+
+<TR><TD>PATH-INFO</TD><TD>Additional information given in the path of
+the URL.  For more information, see the <A
+HREF="http://hoohoo.ncsa.uiuc.edu/cgi/interface.html">CGI
+spec</A>.</TR>
+
+
+<TR><TD>DOCUMENT-ROOT</TD><TD>The file system location where
+the document tree for the webserver lives.</TD></TR>
+
+<TR><TD>PATH-TRANSLATED</TD><TD>The translated pathname,
+in the local file system, for the current document (the script
+being run).</TD></TR>
+
+<TR><TD>AUTH-TYPE</TD><TD>If an authorization method was used to
+validate the user's identity, this is the method which was used.</TR>
+
+<TR><TD>REMOTE-USER</TD><TD>If an authorization method was used to
+validate the user's identity, this is the identification used.</TR>
+
+<TR><TD>HTTP-COOKIE</TD><TD>The HTTP cookie argument passed with the
+request.  This cookie is also split apart into individual variable bindings
+for each of the named cookies.  E.G. if the client passes a cookie
+named <TT>COLOR</TT> the cgi variable <TT>color</TT> will be set.</TR>
+
+</TABLE>
+
+<P>A good text on CGI scripting will describe these variables (which are
+conventions in the CGI protocol) in more detail.  The only substantial
+difference is that those texts and their programs may use underscores (_)
+rather than dashes (-) in variable names.</P>
+
+<H2><a name=cgiforms>Using Forms</a></H2>
+
+<P>To see how this works with interpreting the input from an HTML form,
+consider the following HTML fragment:</P>
+<PRE class=markup>
+&lt;H1&gt;A silly form&lt;/H1&gt;
+&lt;P&gt;&lt;form action="silly-form.fdcgi"&gt;
+My name is &lt;input type='text' name='informant'&gt;.  My favorite color is
+&lt;select name='color'&gt;
+&lt;option&gt;Red
+&lt;option&gt;Green
+&lt;option&gt;Blue
+&lt;option&gt;Black
+&lt;option&gt;White
+&lt;/select&gt;
+
+&lt;P&gt;However, I think that `white'
+&lt;input type=radio name='white' value=yes&gt;&nbsp;is
+&lt;input type=radio name='white' value=no&gt;&nbsp;is&nbsp;not
+a color</P>
+&lt;P&gt;&lt;input type=checkbox name='black' value=yes&gt;&nbsp;I think that `black'
+is a color
+&lt;/form&gt;&lt;/P&gt;
+</pre>
+
+<P>The results of this form could be processed by a file <tt
+class=symbol>silly-form.fdcgi</tt>:</P>
+<pre class=typescript>
+#!/usr/local/bin/fdcgi
+;;; This is the file silly-form.fdcgi
+(define (main)
+  (httpdoc (title "Answers to silly form")
+    (H1 "Hello, " (get cgi-data 'informant))
+    (let ((col (get cgi-data 'color))
+          (is-white-a-color? (equal? (get cgi-data 'white) "yes")))
+      (P "So, your favorite color is " (font (color col) col)
+         " and you think that white "
+         (if is-white-a-color? "is" "is not")
+         " a color")
+    (if (exists? (get cgi-data 'black))
+        (P "And you have an opinion about whether black is a color too"))))
+</pre>
+<P>For more information about writing forms in HTML, consult a
+document such as <A
+HREF="http://www.cc.ukans.edu/~acs/docs/other/forms-intro.shtml">this
+summary</A>.</P>
+
+<P>The <tt class=symbol>HTMLGEN</tt> module also includes primitives for
+generating forms.  For example, a form like that above could be generated
+by:</P>
+<pre class=typescript>
+(define colors '("red" "green" "blue" "black" "white"))
+(define (main)
+  (httpdoc (title "A silly form")
+    (H1 "A silly form")
+    (FORM (ACTION "silly-form.fdcgi")
+      (P "My name is " (textfield 'informant) ".  "
+         "My favorite color is "
+         (selection (dolist (clr colors)) (option 'color clr) clr) ".")
+      (P "I think that white "
+         (radiobutton 'white "yes") "&nbsp;is"
+         (radiobutton 'white "no") "&nbsp;is&nbsp;not"
+         " a color")
+      (P (checkbox 'black "yes") "I think that black is a color."))))
+</pre>
+
+<H2><a name=cgivar><tt>CGI-VAR</tt> and <tt>CGI-INIT</tt></a></H2>
+
+<P>It is often more convenient way to access CGI parameters with the special
+forms <tt class="symbol">CGI-INIT</tt> and <tt class="symbol">CGI-VAR</tt>.
+These forms create local bindings (just like Scheme's internal <tt
+class="symbol">DEFINE</tt>s) into which the parameter values are stored.  For
+example, we could reimplement <tt>silly-form.fdcgi</tt> using <tt
+class="symbol">CGI-INIT</tt>:</P>
+<pre class=typescript>
+#!/usr/local/bin/fdcgi
+;;; This is the file silly-form.fdcgi
+(define (main)
+  ;; This locally binds these variables to the string passed as part of
+  ;; the current CGI request
+  (cgi-init informant color white black)
+  (httpdoc (title "Answers to silly form")
+    (H1 "Hello, " informant)
+    (P "So, your favorite color is " (font (color col) col)
+       " and you think that white "
+       (if (equal? white "Yes") "is" "is not") " a color")
+    (if (not (null? black))
+        (P "And you have an opinion about whether black is a color too"))))
+</pre>
+<P>The difference between <tt class="symbol">CGI-INIT</tt> and <tt
+class="symbol">CGI-VAR</tt> is how much the process their arguments.
+<tt class="symbol">CGI-INIT</tt> leaves all of its arguments as strings
+and uses a list of strings when the client provides multiple values
+for a variable.  <tt>CGI-VAR</tt>, on the other hand, calls a special version
+of the FDScript's LISP parser on the string it gets from the client; it also
+collects multiple values into an unordered choice rather than a list.
+To see how this works, consider the following simple "calculator" form:
+<PRE class=markup>
+&lt;H1&gt;Adding Numbers&lt;/H1&gt;
+&lt;form action="calculate.fdcgi"&gt;
+What is &lt;input type='text' name='num1'&gt;&nbsp;
+&lt;input type='checkbox' name='op' value='+'&gt;&nbsp;+&nbsp;
+&lt;input type='checkbox' name='op' value='+'&gt;&nbsp;-&nbsp;
+&lt;input type='checkbox' name='op' value='+'&gt;&nbsp;*&nbsp;
+&lt;input type='checkbox' name='op' value='+'&gt;&nbsp;/&nbsp;
+&lt;input type='text' name='num2'&gt;
+&lt;input type='submit' value='?'&gt;
+&lt;/form&gt;
+</pre>
+<P>This could be processed by the following <tt>.fdcgi</tt> file:
+<pre>
+(define (main)
+  (cgi-var num1 num2 op)
+  (httpdoc (title "Combining two numbers")
+    ;; Always show the sum
+    (P num1 "+" num2 "=" (+ num1 num2))
+    (do-choices (each op)
+      (P num1 op num2 "=" ((eval op) num1 num2)))))
+</pre>
+<P>Using <tt class=symbol>CGI-INIT</tt> instead of <tt
+class=symbol>CGI-VAR</tt> would have bound <tt
+class=symbol>num1</tt> and <tt
+class=symbol>num2</tt> to strings, and <tt>op</tt> to a list of strings;
+this would have signalled an error when <tt
+class=symbol>+</tt> was called to add them; had it had the chance, it also
+would have signalled an error when it attempted to evaluate the list of
+strings to get an operator.</P>
+
+<H2><a name=cookies>Cookies</a></H2>
+
+<P>The HTTP 1.1 protocol provides a way to maintain client-side state using
+<em>cookies</em>.  A cookie is a string, stored with the client's browser,
+which is sent along with requests to identify the browser and client.  Cookies
+may be set automatically (though sometimes, browsers ask the user to confirm
+the acceptance of a cookie) when certain documents are read and then sent along
+automatically with subsequent requests.</P>
+
+<P>The function <tt class=symbol>(SET-COOKIE! <var>symbol</var>
+<var>value</var> [<var>domain+path</var>] [<var>expires</var>])</tt>
+includes a cookie with the current page being generated.  If the page
+is read on a browser, subsequent requests from the browser will bind
+the CGI variable <var>symbol</var> to <var>value</var>.  The
+additional arguments limit the scope of the cookie so that it is only
+sent back to a particular path or to particular domains or up till a
+specified time.  The argument <var>domain+path</var> can have the form
+of a qualified domain name (in which case all hosts in the specified
+domain will receive the cookie), a slash-separated pathname (in which
+case scripts beneath that path on the current server will receive the
+cookie), or both together (in which case scripts beneath the path on
+any hosts in the domain will receive the cookie).</P>
+
+<P>If the value <var>value</var> is a string, it is used directly
+(with escapes in and out of Unicode handled automatically); otherwise,
+it is converted to a string and set as a string when subsequently
+received.  The function <TT>parse-arg</TT> can be used to convert it
+back to a Lisp object.</P>
+
+<H2><a name=browsing>Frames to Anchors</a></H2>
+
+<P>As we described above, one of the greatest things about the World
+Wide Web is the ability to link between documents.  Comparably, one of
+the greatest things about FramerD and FDScript is the easy ability for
+objects (frames) to refer to other frames.  These two aspects are
+connected whenever HTML generation needs to display a frame reference
+(an OID) on a web page.  The frame reference is "made live" by
+converting it into an <em>anchor</em> which refers to a <strong>browse
+script</strong> directed at the OID.  The browse script is just an
+FDCGI script (actually it could be any kind of script, but practically
+it is nearly always an FDCGI script) which interprets its argument as
+a frame reference and describes the corresponding frame.  When
+everything comes together, a user can just click on a frame
+description and --- voila! --- get a description of the frame.</P>
+
+<P>The default browse script used in generating such "live links" is
+called <tt class=file>browse.fdcgi</tt>, which browsers normally
+interpret with respect to the path of the URL under which the
+reference appears.  This means that if a script in one directory
+displays a reference to a frame, it will refer to the script <tt
+class=file>browse.fdcgi</tt> in the current directory.</P>
+
+<P>The procedure <tt class="symbol">USE-BROWSE-SCRIPT!</tt> sets the
+default browse script or to set a special browse script for a
+particular OID or a particular pool.  Different browse scripts may be
+customized to different applications, highlighting different aspects
+of the frame or even presenting just the information in the frame
+without any indication of its "framishness".  For example, the GNOSYS
+knowledge management application uses a browse script which renders
+frames describing web pages into a reconstructed version of the web
+page, subtly annotated with pointers into GNOSYS' knowledge base.</P>
+
+<P>When provided, the second argument to <TT
+class="symbol">USE-BROWSE-SCRIPT!</TT> can be an OID or a pool,
+specifying that the first argument (a URL) be used to browse either
+the particular OID or all OIDs in the designated pool.</P>
+
+<P>In any case, the basic framework for a browse script is very
+simple.  For example, the following browse script simply displays a
+table of slot values.</P>
+<pre class=typescript>
+#!/usr/local/bin/fdcgi
+;; This is the file sbrowse.fdcgi
+(use-browse-script! "sbrowse.fdcgi")
+(define (main)
+  (cgi-var QUERY) ;; Get the query string
+  (httpdoc (header 'pragma "no-cache") ; the browser shouldn't save this
+    (TITLE "Description of the frame " QUERY)
+    (H1 "Description of the frame " QUERY)
+    (table
+      (doslots (f slot value QUERY)
+        (tr (th slot) (td value)))))))
+
+</pre>
+<P>This kind of tabular display is also generated by the special HTML
+generation procedure <tt>FRAME-&gt;HTML</tt>; the script above could
+have been rewritten simply as:</P>
+<pre class=typescript>
+#!/usr/local/bin/fdcgi
+;; This is the file sbrowse.fdcgi
+(use-browse-script! "sbrowse.fdcgi")
+(define (main)
+  (cgi-var QUERY) ;; Get the query string
+  (httpdoc (header 'pragma "no-cache") ; the browser shouldn't save this
+    (TITLE "Description of the frame " QUERY)
+    (H1 "Description of the frame " QUERY)
+    (FRAME-&gt;HTML QUERY)))
+</pre>
+<P>In fact, the display would probably look better than the simple tabular
+format produced by the original version since <TT>FRAME-&gt;HTML</TT> takes
+advantage of a few HTML bells and whistles).</P>
+
+<P>The default generation of live links from frames can always be
+overridden by an explicit <tt class=symbol>ANCHOR</tt> expression
+combined with a URL generated by <tt class=symbol>SCRIPTURL</tt>,
+e.g.</P>
+<pre>
+(anchor (scripturl "alternate-browse-script.fdcgi" frame)
+        (get frame 'obj-name))
+</pre>
+
+<P>Also, while OIDs are normally linked to browse scripts, generated
+documents sometimes have descriptions of several OIDs within the
+document and it would be better to have clicking on the OID go to
+another location in the currently generated document.  When the
+argument to a <tt class=symbol>TAGGED</tt> expression [<A
+HREF="tagged">ref</A>] is a frame, it creates just such an internal
+link target; subsequent presentation of the frame will turn into a
+link to the internal pointer rather than external script invocation.
+To make things easier still, descriptions of frames generated by <tt
+class=symbol>FRAME-&gt;HTML</tt> generates an automatic tag for
+internal reference.</P>
+
+<P>The only problem with this is that the description itself (from <tt
+class=symbol>TAGGED</tt> or <tt class=symbol>FRAME-&gt;HTML</tt>)
+needs to be generated before any references to the OID it describes
+(so the reference can know that there is an internal pointer).  To get
+around this particular problem, the procedure <tt
+class=symbol>(DECLARE-LOCAL-FRAME!  <var>frame</var>)</tt> asserts
+that <var>frame</var> will be an internal reference, forcing the
+generation of OID anchors to be internal.</P>
+
+<H2><a name=details>Details of HTTP generation</a></H2>
+
+<P>When generating a document, FDScript divides document generation into four
+distinct phases:
+<ol>
+<li>HTTP header generation; this is where cookies are set and URL redirection
+can happen</li>
+<li>HTML HEAD generation; this is where titles, metadata, and stylesheets
+(among other properties) are emitted</li>
+<li>HTML BODY generation; this is where what the user sees is generated</li>
+<li>HTML post generation; this is normally empty, but is kept to signal
+errors when attempts to output content occur after the document is finished
+</li>
+</ol>
+
+<H3>HTTP Header Phase Procedures</H3>
+
+<P>The function <tt class=symbol>HEADER</tt> outputs an HTTP header and signals
+an error if it is too late to do so.  One particularly useful application is to
+provide a <tt>pragma</tt> header of "no-cache" to keep the browser from caching
+the contents of a dynamically changing page.  It would be emitted by this expression:</P>
+<pre>
+   (header 'pragma "no-cache")
+</pre>
+<P>The first argument is a symbol or string naming the header to be sent;
+the second argument is a string containing the actual content.  Note that
+<tt>header</tt> (like the other header phase procedures) must be called before
+any HTML primitives (either content generating primitives like <tt>P</tt> or
+metadata primitives like <tt>TITLE</tt>) are called.</P>
+
+<P>The function <tt class=symbol>(HTTP-REDIRECT <var>url</var>)</tt> generates
+a header which redirects the browser to <var>url</var>.
+
+<P>The function <tt class=symbol>(HTTP-SPLASH <var>url</var>
+<var>interval</var>)</tt> emits a <tt class=symbol>Refresh:</tt> header which
+will cause the page to reload from <var>url</var> every <var>interval</var>
+seconds.
+
+<H3>HTML HEAD Phase Procedures</H3>
+
+<P>The function <tt class=symbol>(TITLE <var>...args</var>)</tt> adds a
+<tt>title</tt> element to the header; this is often displayed at the top
+of the browser frame.  The arguments are processed <tt>PRINTOUT</tt>-style:</P>
+<pre>
+  (title "This document was generated under "
+         (get (resources) 'os) " on " (get-day))
+</pre>
+<p>would produce markup of the form:</p>
+<pre>
+&lt;TITLE&gt;This document was generated under i686-unknown-linux on SATURDAY&lt;/TITLE&gt;
+</pre>
+
+<P>The function <tt class=symbol>(STYLESHEET! <var>local or global url
+reference</var>)</tt> adds a declaration to the header indicating which
+stylesheet to use for displaying this document.  For example</P>
+<pre>
+  (stylesheet! "fdsite.css")
+</pre>
+
+<P>The function <tt class=symbol>(META <var>var</var> <var>val</var>)</tt>
+specifies a META HTML header (such as KEYWORDS or author).  For example:</P>
+<pre>
+  (META 'keywords "knowledge,poetry,natural language")
+</pre>
+
+<P>The function <tt class=symbol>(SET-DOCTYPE! <var>type</var>
+<var>location</var>)</tt> configures the <tt class=symbol>!DOCTYPE</tt> header
+used in a generated document.  The <var>type</var> argument should be a symbol
+while the <var>location</var> argument should be either a URL or a standard
+reference to be recognized by the browser (starting with "+" or "-").</P>
+
+<H2><a name=configure>Configuring your Web Server</a></H2>
+
+<P><strong>Disclaimer:</strong> <em>This section is a provisional
+guide to setting up an Apache web server to use fdcgi scripts.  It
+explains what I've done for my web servers, but it may not be the best
+way to do things.  I'm not an expert Apache hacker.</em></P>
+
+<P>To set up your web server to run <tt>fdcgi</tt> scripts in a
+particular directory, you need to tell Apache two things:</P>
+<ol>
+<li>it's okay to execute scripts in the directory where your <tt>.fdcgi</tt>
+files live</li>
+
+<li>files ending in <tt>.fdcgi</tt> should be handled as CGI
+scripts</li>
+</ol>
+
+<P>To do the first, add the following to your web server's
+<tt>httpd.conf</tt> configuration file:</P>
+<pre class=markup>
+&lt;Location /<var>dir</var>&gt;
+Options ExecCGI
+AddHandler cgi-script .fdcgi
+&lt;/Location&gt;
+</pre>
+<P>where <var>dir</var> is the directory where your files live.</P>
+
+<P>If you want to be able to have <tt>.fdcgi</tt> scripts anywhere,
+you can add the following to the <tt>access.conf</tt> file:</P>
+<pre class=markup>
+&lt;Location /&gt;
+Options ExecCGI
+AddHandler cgi-script .fdcgi
+&lt;/Location&gt;
+</pre>
+
+<H3><a name=fdserv>Using mod_fdserv</a></H3>
+
+<P>FramerD can be used, with the Apache <strong>mod_fdserv</strong>
+module, to implement persistent multi-threaded web applications.  This
+module can be installed through either a bundled RPM or DEB package or
+by typing <tt>make fdserv-install</tt> in the root of the FramerD
+build tree. The module can then be configured by editing your site's
+<tt class="file">httpd.conf</tt> to include a line something like:
+<pre>
+    AddHandler fdservlet .fdcgi .fdxml
+</pre>
+</P>
+
+<P>The apache module works by establishing a persistent server using
+the Framerd <tt>fdservlet</tt> executable and communicating to that
+server through local sockets (it doesn't currently work under
+WIN32).  But normally, such implementation details shouldn't matter.</P>
+
+<P>Once set up as above, <tt>mod_fdserv</tt> can be further configured
+with the following commands:
+<DL>
+<DT>FDServletExecutable <var>filename</var></DT>
+<DD>specifies the path to the <tt>fdservlet</tt>
+executable.  If unspecified, it assumes
+<tt class="filename">/usr/bin/fdservlet</tt>.
+Note that this can only be configured on a per server/per virtual host
+basis.</DD>
+
+<DT>FDServletThreads <var>n</var></DT>
+<DD>Indicates the number of threads the underlying server should start
+for responding to requests.  The default is five threads.</DD>
+
+<DT>FDServletPrefix <var>pathname_prefix</var></DT> <DD>Indicates the
+prefix to any sockets created by <strong>mod_fdserv</strong> and
+passed to <tt>fdservlet</tt>.  It defaults to <tt
+class="filename">/tmp/fdserv</tt>.
+
+<DT>FDServletLogFile <var>filename</var></DT>
+<DD>Specifies the file to which servlet's stdout and stderr will be
+redirected.</DD>
+
+<DT>FDServletSocketFile <var>pathname</var></DT>
+<DD>Indicates the particular pathname to be used for the
+socket for a particular document or script.  This does
+not make sense to specify for a particular directory.</DD>
+</DL></P>
+
+<P>The combination of <tt>mod_fdserv</tt> and <tt>fdservlet</tt>
+handle both scripted files (e.g. <tt>.fdcgi</tt> files) and dynamic
+document files (e.g. <tt>.fdxml</tt> or <tt>.fdhtml</tt> files).</P>
+
+<H3><a name=fastcgi>Using FastCGI</a></H3>
+
+<P>FramerD also has support for the <A
+HREF="http://www.FastCGI.com/">FastCGI</A> protocol (also, check out
+<A HREF="http://www.fastcgi.org/">here</A>).  If you have the Apache
+module <A
+HREF="http://www.fastcgi.com/dist/mod_fastcgi-2.2.12.tar.gz"><tt>mod_fastcgi</tt></A>
+installed, it should be possible to say:
+<PRE>
+AddHandler fastcgi-script .fdcgi
+</PRE>
+<P>to have .fdcgi scripts handled by fast-cgi.  However, in order for
+the FramerD <tt>fdcgi</tt> executable to talk with this module, it
+needs to be compiled with fastcgi support.  You can do this by
+installing OpenMarket's <A
+HREF="http://www.fastcgi.com/dist/fcgi-2.2.2.tar.gz">FastCGI
+development kit</A> and reconfiguring and recompiling FramerD.
+FramerD's configuration script should find the installed development
+kit and link against it.</P>
+
+<P>Finally, there is a modified version of the <tt>mod_fastcgi</tt> module
+especially for use with FramerD.  Called <tt>mod_fdcgi</tt>, it invokes either
+the <tt>fdcgi</tt> or <tt>fdxml</tt> interpreters, depending on the script's
+suffix.  You still need to declare the handler with:</P>
+<pre>
+Options ExecCGI
+AddHandler fdcgi .fdcgi
+AddHandler fdcgi .fdxml
+</pre>
+<P>in the appropriate location in <tt>httpd.conf</tt>, but you do not need to
+declare the script executable or have the <tt>#!/usr/local/bin/fd...</tt> in
+the file's first line.  As with cgi and fastcgi, the scripts are run as
+neutered users (typically <tt>nobody</tt>) in order to enhance security.  We
+use <tt>mod_fdcgi</tt> on our sites and it works fine.  You can 
+<A HREF="ftp://ftp.framerd.org/downloads/mod_fdcgi.tar.gz">download</A>
+it from framerd.org or find it elsewhere on the web.</P>
+</BODY>
+</HTML>

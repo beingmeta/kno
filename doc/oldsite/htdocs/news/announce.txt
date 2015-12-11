@@ -1,0 +1,27 @@
+FramerD 2.0 is now available in a stable beta version.  FramerD 2.0
+provides:
+  * an internationalized Scheme implementation (FDScript) with support
+for Unicode in both programs and data
+  * a robust object store and index designed to support very large
+(> 10^6 nodes) pointer-intensive distributed databases
+  * built-in support for *non-deterministic programming* allowing
+the perspicuous expression of search and set operations
+  * a rich library of text matching, analysis, and rewriting functions
+including parsers for MIME-encoded messages, XML, and HTML
+  * the ability to divide processing and data among lightweight servers
+distributed across multiple machines
+  * operating system access functions useful for command line scripting,
+including interaction with other programs through sockets or pipes
+
+FramerD 2.0 can be downloaded from http://www.framerd.org/.  Bug
+reports are welcomed at bug-framerd@framerd.org and a discussion among
+interested users is hosted at discuss-framerd@framerd.org.  You may
+subscribe to these mailing lists through the FramerD web site or by
+sending email to minordomo@framerd.org with the subject line
+`subscribe mlist'.
+
+FramerD 2.0 is released under the GNU GPL (General Public License) and
+has been ported to most major Unix implementations, Microsoft's WIN32
+architecture, and Apple's OS X.  The source for the current release
+can be downloaded from http://www.framerd.org/ as can precompiled
+packages for certain architectures.

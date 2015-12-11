@@ -1,0 +1,86 @@
+<head>
+<title>Release of FramerD 2.3 Beta</title>
+<link rel=stylesheet type="text/css" href="/fdsite.css">
+</head>
+<body>
+<P class=headline>
+FramerD 2.3 is now available as a beta release.</P>
+
+<P class=newsbody>The beta release of FramerD 2.3 is now available to be 
+<A HREF="http://prdownloads.sourceforge.net/framerd/framerd-2.3-20011204.tar.gz">
+downloaded</A>.<BR>(Note that FramerD development has now moved from MIT to
+<A HREF="http://sourceforge.net/projects/framerd/">SourceForge</A>.)</P>
+
+<P class=newsbody>FramerD provides:
+<UL>
+<LI class=newsbody>an internationalized Scheme implementation (FDScript) with support
+for Unicode in both programs and data</LI>
+<LI class=newsbody>a robust object store and index designed to support very large
+(> 10^6 nodes) pointer-intensive distributed databases</LI>
+<LI class=newsbody>built-in support for <strong>non-deterministic programming</strong>
+allowing the perspicuous expression of search and set operations</LI>
+<LI class=newsbody>a rich library of text matching, analysis, and rewriting functions
+including parsers for MIME-encoded messages, XML, and HTML</LI>
+<LI class=newsbody>the ability to divide processing and data among lightweight servers
+distributed across multiple machines</LI>
+<LI class=newsbody>operating system access functions useful for command line scripting,
+including interaction with other programs or services through sockets
+or pipes</LI>
+</UL></P>
+
+<P class=newsbody>
+New with Version 2.3 of FramerD, we have:
+<UL>
+<LI class=newsbody>substantially improved memory performance
+<LI class=newsbody>optimized set/choice operations permitting log or linear time operations in many cases</LI>
+<LI class=newsbody>robust and efficient utilization of multiple processors on SMP (symmetric multi processing) architectures</LI>
+<LI class=newsbody>better integration with Apache for dynamic generation of web pages with the fdcgi and fdxml executables</LI>
+<LI class=newsbody>improved mime parsing with handling of Unicode data in headers</LI>
+<LI class=newsbody>plugin architectures for adding new kinds of pools and indices</LI>
+<LI class=newsbody>extended subjob and networking socket support (subjob support remains incomplete under WIN32)</LI>
+<LI class=newsbody>builtin MIME, XML, and HTML parsers for dealing with external textual data</LI>
+<LI class=newsbody>extension of character operations to full Unicode and provisions for interpreting compound Unicode characters</LI>
+<LI class=newsbody>support for UTF-8 locales</LI>
+</UL>
+
+<P class=newsbody>As mentioned above, development work on FramerD and Java FramerD
+have now moved from MIT to SourceForge and anonymous CVS access is
+available at
+<tt>:pserver:anonymous@cvs.framerd.sourceforge.net:/cvsroot/framerd</tt>.</P>
+
+<P class=newsbody>Developers are encouraged to join the work on FramerD; the current
+wish list includes:
+<UL>
+<LI class=newsbody>translations of the FramerD message catalogs into other languages</LI>
+<LI class=newsbody>FDScript bindings for all the standard POSIX library functions</LI>
+<LI class=newsbody>FDScript bindings to the major windowing toolkits  (GTK &amp; QT)</LI>
+<LI class=newsbody>implementation of CORBA connectivity for FramerD</LI>
+<LI class=newsbody>FDScript bindings for ODBC to allow FramerD to access SQL databases </LI>
+<LI class=newsbody>someone to help with maintaining and extending the WIN32 port (based on MINGW)</LI>
+<LI class=newsbody>someone to update the Common Lisp library for FramerD to the latest version of FramerD and the latest versions of Common Lisp</LI>
+<LI class=newsbody>someone to take the lead on the Java-based FramerD which works (and has
+been used in applications) but has had little attention paid to performance
+and only partial attention (frankly) to robustness</LI>
+<LI class=newsbody>more documentation, especially tutorials and example programs</LI>
+</UL></P>
+
+<P class=newsbody>For help already received, special thanks are due to Ralph Campbell,
+Tim Chklovski, and Matthew Fredette for bug finding.  In addition,
+thanks to beingmeta, inc. for providing a copy of Insure++ to help in
+making FramerD a more robust and secure platform.</P>
+
+<P class=newsbody>The primary support for FramerD development has also
+moved from MIT to beingmeta inc., an early-stage startup developing
+semantically rich knowledge and content management solutions based on
+a variety of technologies including FramerD.  beingmeta is committed
+to FramerD remaining an open-source technology developed by a
+heterogenous community and released under the GPL or LGPL.  The final
+MIT version of FramerD, FramerD 2.2, has been officially released
+under the LGPL and is available at <A
+HREF="ftp://ftp.media.mit.edu/pub/framerd/framerd22final.tar.gz">
+ftp://ftp.media.mit.edu/pub/framerd/framerd22final.tar.gz</A> or <A
+HREF="ftp://download.sourceforge.net/pub/sourceforge/framerd/framerd22final.tar.gz">
+ftp://download.sourceforge.net/pub/sourceforge/framerd/framerd22final.tar.gz</A>.
+</P>
+
+

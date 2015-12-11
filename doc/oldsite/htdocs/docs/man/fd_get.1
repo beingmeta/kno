@@ -1,0 +1,60 @@
+.\" Process this file with
+.\" groff -man -Tascii fd_get.1
+.\"
+.TH FD_GET 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fd_get \- gets the values of a slot on a frame
+.SH SYNOPSIS
+.B fd_find
+.I frame
+.I slotid
+
+Arguments are parsed by the conventions of
+.BR fdshell (7)
+.SH DESCRIPTION
+.B fd_get
+prints to the standard output all the values associated with
+.I slotid
+of
+.I frame
+
+.SH OPTIONS
+.B fd_get
+is implemented as an FDScript script, so its arguments
+may have CONFIG bindings, as well as accepting the flags
+.B -m -c -f
+to load modules, configs, and scheme files, as described in
+.BR fdscript (1)
+.SH CONFIG VARIABLES
+.TP
+.B %POOL
+The default pool used for creating new frames
+.TP
+.B %POOLS
+The pools used by the 
+.BR fdshell (7)
+scripts; these determine which frames are accessible to access
+and searching
+.TP
+.B %INDICES
+The background indices used to search for frames with particular
+slotid/value combinations.
+.TP
+.B %INDEX
+The foreground index used by default to store newly created
+frame/slotid/value combinations.  Note that this is only used when
+indices directly associated with the frame's pool are not available or
+not modifiable.
+
+.SH BUGS
+No known bugs
+.SH Revision Info
+.B $Id: fd_get.1,v 1.2 2002/04/02 22:21:06 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR fdshell (7)
+
+
+

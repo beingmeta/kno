@@ -1,0 +1,48 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH REPACK-FILE-POOL 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+repack-file-pool \- reorganize a FramerD file pool
+.SH SYNOPSIS
+.B repack-file-pool [-q]
+.I filename
+.B [
+.I new_name
+.B ]
+.SH DESCRIPTION
+.B repack-file-pool
+reorganizes a FramerD file pool by removing history information
+and ordering OIDs numerically.  This saves space and can 
+improve performance.  If
+.I new_name
+is provided, the reorganized file pool is written into this file and
+the original file pool
+.I filename
+is left untouched.  Otherwise, the new file pool is written into a temporary
+working file and copied back over
+.I filename
+when complete.
+.SH OPTIONS
+.IP "-q"
+Run quietly, without progress reports to the console.
+.SH DIAGNOSTICS
+The program reports an error if
+.I filename
+does not exist or does not contain a valid file pool.  It also
+reports an error if either
+.I new_name
+cannot be written or
+.I filename
+cannot be overwritten (whichever it needs to do).
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: repack-file-pool.1,v 1.3 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+
+
+

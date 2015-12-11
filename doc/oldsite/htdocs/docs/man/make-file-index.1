@@ -1,0 +1,40 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH MAKE-FILE-INDEX 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+make-file-index \- creates a FramerD file index
+.SH SYNOPSIS
+.B make-file-index
+.I filename 
+.I size
+.SH DESCRIPTION
+.B make-file-index
+creates a new empty FramerD file index in the file
+.I filename
+with at least
+.I size
+slots.  A file index is an on-disk hashtable which can
+be incrementally read and modified.  It is intended to support
+the association of single keys with multiple values and the low-cost
+addition of new associations with an existing key.  At intervals, it may
+be helpful to reorganize the table by using
+.BR repack-file-index (1).
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if
+.I filename
+cannot be written or if
+.I size
+is unreasonably large.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: make-file-index.1,v 1.3 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR analyze-index (1)
+.BR make-file-index (1)

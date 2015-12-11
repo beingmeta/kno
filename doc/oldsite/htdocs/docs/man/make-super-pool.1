@@ -1,0 +1,53 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH MAKE-SUPER-POOL 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+make-super-pool \- creates a FramerD super pool
+.SH SYNOPSIS
+.B make-super-pool
+.I filename 
+.B [
+.I base-oid
+.B ] [
+.I initial-load
+.B ]
+
+The optional parameter
+.I base-oid
+has the form
+.B @
+.I hex_hi
+.B /0
+while the optional parameter
+.I initial-load
+is an integer.
+.SH DESCRIPTION
+.B make-super-pool
+creates a new FramerD super pool from which file pools may be
+allocated.  The new super pool is created in the file
+.I filename
+If the parameter
+.I base-oid
+is provided, it should be an OID whose low order word should
+be zero.  If it is not provided, a base OID is identified at random.
+The parameter 
+.I initial-oid
+if specified, indicates a number of OIDs to reserve at the head of the
+super pool.
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if
+.I filename
+cannot be written or if the other parameters are improper.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: make-super-pool.1,v 1.1 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR make-file-pool (1)
+.BR list-file-pool (1)

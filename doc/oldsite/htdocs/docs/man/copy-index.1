@@ -1,0 +1,49 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH COPY-INDEX 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+copy-index \- copies the contents of one file or network index to another
+.SH SYNOPSIS
+.B copy-index
+.I index1 index2 
+.B [
+.I chunk-size
+.B ] [
+.I min
+.B ] [
+.I max
+.B ]
+
+.I index1
+and 
+.I index2
+are either index filenames or server specifications (as
+specified in
+.BR dtcall (1)
+).  The remaining arguments are all integers.
+.SH DESCRIPTION
+.B copy-index
+reads key-value assocations from
+.I index1 
+and copies them to 
+.I index2
+removing all entries with fewer than
+.I min
+values or greater than
+.I max
+values.  It reads 
+.I chunk-size
+keys at a time which can be selected on the basis of available memory.
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if the provided index specs are invalid.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: copy-index.1,v 1.2 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)

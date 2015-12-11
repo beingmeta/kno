@@ -1,0 +1,81 @@
+New in FramerD 2.0
+
+Internal Unicode support is much more pervasive and robust and a large
+number of external character encodings is supported, in addition to
+the ability to read Unicode Consortium "mapping" files to get more.
+In addition, the character properties (upper, lower, digit, etc) have
+now been extended to all of the Unicode BMP (Basic Multilingual
+Plane).
+
+A new init/configuration file interface makes it much easier to
+customize FramerD at your site or for your personal use.  Config files
+can now specify additions to (rather than just assignments for) global
+variables.  You can either load config files by hand using
+LOAD-CONFIG, or specify them on the command line with --config=file.
+
+FramerD database (pool) servers can now serve multiple pools at the
+same time.  Unlike the facility in FramerD 0.9, these pools do not
+need to be contiguous. In addition, some fdserver security holes were
+fixed.
+
+Many optimizations for handling of non-deterministic values (now
+called `choices') have been added.  In particular, "sorted choices"
+are now supported which allow for linear time set operations.  In
+addition, fixed several complicated bugs having to do with shared
+pointers to choices and side-effects.
+
+Repacking utilities (repack-file-index and repack-file-pool) have been
+made into their own separate binaries and sped up tremendously by
+intelligently scheduling disk accesses.
+
+The system now relies on POSIX flock rather than it's own locking
+(which tended to leave lock files lying around).  This also means that
+(currently) WIN32 FramerD does not support file locking (I can't get
+the LockFile function to do the right thing), but just bludgeons ahead
+without it.  This will be fixed before 2.0 leaves BETA.
+
+New global variables %BACKGROUND, %FOREGROUND, and %POOL are used by
+several built in primitives as defaults for searching indices, adding
+new index entries, and creating new frames (OIDs).
+
+Test suites for client/server interaction have been written (and
+passed).  This led to a number of bug fixes and a fair bit of
+prophylactic programming.  The knowledge base construction & access
+test suite now runs with either file pools or network pools.
+
+Server journalling has been TAKEN OUT because it didn't work very
+well.  Instead, each "side-effecting" transaction with a server now
+saves all of the server's unsaved state; the server API has been
+extended to allow "bulk commits" saving many OIDs in a single
+transaction.  This addresses some of the overhead/performance issues
+which journalling was introduced to deal with.
+
+There is a new regular expression matching, extraction, and rewrite
+facility which uses LISP structures as patterns, making them more
+readable and manipulable.  In particular, it allows sub patterns to be
+defined symbolically, permitting complex patterns to be broken into
+understandable elements.  This is an effort to make regular
+expressions less of a "write-only" programming medium.
+
+Numerous fixes have been made to GET-REFPOINTS, which heuristically
+extracts proper names from strings.  A corresponding procedure
+GET-TIMEPOINTS attempts to extract time references.
+
+The XML/HTML parser has had various bugs fixed.  A MIME parser has
+been added which generates slotmaps (or lists of slotmaps) from
+MIME-formatted messages.  The URLSTRING procedure now parses the
+retrieved document as a MIME entity; the URLGET procedure actually
+returns the slotmaps generated (with all the attached HTTP headers as
+slots).
+
+A new procedure SUFFIXRULE has been introduced for writing simple
+morphological analyzers.  The Porter stemmer is still built in, but
+SUFFIXRULE should help with text analysis of languages besides
+English.
+
+HTML generation and CGI interpretation have had numerous fixes to
+allow international character data to be transmitted and received.  In
+addition, a new set of primitives for dynamically generating forms
+makes CGI interfaces much easier to write.
+
+

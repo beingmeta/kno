@@ -1,0 +1,269 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>FramerD C API Tutorials Test Server Setup</title>
+  </head>
+
+  <body>
+    <h1>FramerD C API Tutorials Test Server Setup</h1>
+
+    <p>
+      This document takes you step-by-step through building the
+      FramerD pools and data you'll use in the programming
+      tutorials. The document is divided up into pre-tutorial setup
+      (that you'll need to do before you begin the tutorial), and
+      steps to be performed in preparation for each tutorial
+      step. Thus, you will continually refer to this document
+      throughout the tutorial.
+    </p>
+
+    <p>
+      Though the tutorial itself focuses on programming FramerD
+      through the C API, you'll use FDScript and the command-line
+      tools included with FramerD extensively in these setup steps.
+    </p>
+
+
+
+    <h2>Pre-Tutorial Setup</h2>
+    <hr>
+
+    <h3>Creating the File Pool</h3>
+    <p>
+      The very first thing you have to do is create an initial pool
+      with some very simple data that you'll access through the
+      FramerD C API. Use the <code>make-file-pool</code> tool to do
+      this:
+    </p>
+
+    <blockquote>
+      <code>make-file-pool tutorial.pool 32768</code>
+    </blockquote>
+
+    <p>
+      This creates a file in the current directory called
+      <i>tutorial.pool</i>, which contains a FramerD pool with a
+      capacity of 32768 OIDs. Note that the capacity specified must be
+      a power of two. If it is not, FramerD will automatically round
+      it up to the next power of two.
+    </p>
+
+
+    <h3>Serving the File Pool Over the Network</h3>
+    <p>
+      Now that you've created the file pool, you have to run fdserver
+      against it so that it's shared and available to network
+      clients. The simplest way to accomplish this is by invoking
+      fdserver with the server name and the pool name, but it doesn't
+      work (see below). Here's the command as it <i>should</i> be, but 
+      don't bother typing it in:
+    </p>
+
+    <blockquote>
+      <code>fdserver atut --pool tutorial.pool</code>
+    </blockquote>
+
+    <p>
+      This shares the pool contained in the file <i>tutorial.pool</i>
+      as server <i>atut@host</i>, where <i>host</i> is the hostname of
+      your machine. Note that, unless overridden, this will share on
+      port 2888, which is derived from <i>atut</i> using <a
+      href="touch-tone-encoding.html"><i>touch-tone
+      encoding</i></a>. If you wish to use a different port, specify
+      it in place of the string <i>atut</i> on the fdserver command
+      line. You may either specify another string to be touch-tone
+      encoded, or a number to be taken literally. Note that if you
+      specify a number, you will need to refer to that server as
+      <i>port@host</i> instead of <i>name@host</i>, since there is no
+      server "name" per se (server "names" are simply used to generate
+      port numbers internally, and have no real meaning).
+    </p>
+
+    <p>
+      However, as mentioned above, this doesn't seem to work as
+      expected. There seems to be a subtle bug in fdserver that causes
+      it to seg fault if you invoke the server without a configuration
+      file, on a port that's different than the one implied by the
+      base filename of the pool file. Thus, <code><i>fdserver fred
+      --pool fred.pool</i></code> would work, but <code><i>fdserver
+      frood --pool fred.pool</i></code> wouldn't. I'm not up to
+      patching the sources right now, but I have a workaround for you,
+      which is necessary if you wish to use the names as I've used
+      them in the tutorials:
+    </p>
+
+    <p>
+      First, create an initialization file for fdserver called
+      <i>atut.fdx</i>, that contains the following:
+    </p>
+
+    <p>
+    <pre>
+(serve-pool "tutorial.pool")
+    </pre>
+    </p>
+
+    <p>
+      Now, invoke fdserver with this command line:
+    </p>
+    
+    <blockquote>
+      <code>fdserver atut</code>
+    </blockquote>
+
+    <p>
+      What happens here is that fdserver looks for the file
+      <i>atut.fdx</i> before it does anything else. Finding that file, 
+      it executes the 'initialization' commands contained therein. The 
+      only command (<code><i>(serve-pool "tutorial.pool")</i></code>)
+      tells fdserver to serve the pool file <i>tutorial.pool</i>, and
+      nothing else. fdserver takes its port number from the string
+      "atut", specified on the command line. The end result is what we 
+      intended with the original command line.
+    </p>
+
+    
+      
+
+
+    <a anchor="pool-get.c">
+    <h2>pool-get.c Tutorial Setup</h2>
+    </a>
+
+    <h3>Connecting to the Pool Server</h3>
+    <p>
+      In preparation for pool-get.c, you'll need to add an OID to your 
+      pool, and give it some data. Invoke fdscript with no arguments,
+      and you should see the banner and prompt:
+    </p>
+
+    <p>
+    <pre>
+[02:08:24 MIT FramerD library 1.0 (c) 1994-1999, built Jun  6 1999]
+*[fdscript]
+    </pre>
+    </p>
+
+    <p>
+      Now, connect to the tutorial pool using the use-pool command:
+    </p>
+
+    <p>
+    <pre>
+*[fdscript] (use-pool "atut@host")
+    </pre>
+    </p>
+
+    <p>
+      <i>host</i> is your hostname, and <i>atut</i> should reflect
+      whatever value you used as the server/port name when starting
+      fdserver above.
+    </p>
+
+    <p>
+      The output of this command will be a session information banner, 
+      along with some miscellaneous status, similar to this:
+    </p>
+
+    <p>
+    <pre>
+[02:47:50 Session id=fdscript tlilley@defiant /PID:1932 /OS:i686-unknown-linux /Compiled:Jun  6 1999 /Started:Mon Jun  7 02:47:50 1999]
+[02:47:50 Added pool atut@defiant]
+[#POOL atut@defiant @375ae87e/20020+32768 {}]
+    </pre>
+    </p>
+
+    <p>
+      The <code><i>#POOL</i></code> status line reports the super-pool 
+      half of the OID (375ae87e), the base offset within the
+      super-pool of this pool (20020), and the capacity of the pool
+      (32768). Pay attention to these numbers, as we'll need them
+      later in the tutorial.
+    </p>
+
+
+    <h3>Allocating an OID</h3>
+    <p>
+      Now you'll need to allocate an OID from the pool to which you're 
+      connected. In the fdscript listener, enter:
+    </p>
+
+    <blockquote>
+      <code>(allocate-oid "atut@host")</code>
+    </blockquote>
+
+    <p>
+      fdscript will return a response line that simply contains the
+      new OID, like so:
+    </p>
+
+    <p>
+    <pre>
+@/atut/0
+    </pre>
+    </p>
+
+    <p>
+      Note that this expression is a <i>logical</i> OID. You can tell
+      this by the forward-slash immediately following the initial at
+      ('@') sign. By simply adding the super-pool OID, the base offset
+      of this pool, and the logical part of this OID, we can compute
+      the literal OID. For this example, based on our
+      <code><i>#POOL</i></code> output discussed above, the literal
+      OID is <code>@375ae87e/20020</code>. For more details on literal
+      and logical OIDs, and conversions between them, see <a
+      href="../odb.html">The Object Database</a>. Not also that, in
+      properly written FramerD programs, you can use literal and
+      logical OIDs interchangably (see the note in <a
+      href="pool-get.c.html#use_pool">pool-get.c</a> for an
+      explanation of what "properly written" means, and why it
+      matters).
+    </p>
+
+
+    <h3>Assigning a Value to an OID</h3>
+    <p>
+      Now that you've created an OID, you need to assign a simple
+      string value to it for our testing:
+    </p>
+
+    <blockquote>
+      <code>(set-oid-value! @/atut/0 "simple value")</code>
+    </blockquote>
+
+    <p>
+      The fdserver listener will report <code><i>;; No return value
+	  expected</i></code>, since the value set function doesn't
+      return anything. To double-check that the value was set as you
+      expected, enter this command at the listener prompt:
+    </p>
+
+    <blockquote>
+      <code>(oid-value @/atut/0)</code>
+    </blockquote>
+
+    <p>
+      The system should report <code><i>"simple value"</i></code>, as
+      we expect. Finally, commit the changes to the pool (even though
+      fdserver will commit if it exits normally) with this command:
+    </p>
+
+    <blockquote>
+      <code>(commit-pools)</code>
+    </blockquote>
+
+    <p>
+      That's it! You're now ready to proceed with the <a
+	href="pool-get.c.html">pool-get.c</a> introductory tutorial.
+    </p>
+
+    
+
+    <hr>
+    <address><a href="mailto:tripp.lilley@perspex.com">Tripp Lilley</a></address>
+<!-- Created: Mon Jun  7 01:27:59 EDT 1999 -->
+<!-- hhmts start -->
+Last modified: Mon Jun  7 16:43:32 EDT 1999
+<!-- hhmts end -->
+  </body>
+</html>

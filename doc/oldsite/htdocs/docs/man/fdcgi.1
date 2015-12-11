@@ -1,0 +1,151 @@
+.\" Process this file with
+.\" groff -man -Tascii fdcgi.1
+.\"
+.TH FDCGI 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fdcgi \- execute a CGI script implemented in FDScript
+.SH SYNOPSIS
+.B fdcgi 
+.I filename
+.B [
+.I query
+.B ]
+.BR
+
+This is an FDScript interpreter designed to be invoked as a CGI
+processor by a web server (typically Apache).
+
+.SH DESCRIPTION
+
+When started, it uses both the execution environment and the standard
+input to set up a slotmap containing information about a CGI request.
+It then loads the file
+.I filename
+which can either generate HTML output directly or define a procedure
+.B (main)
+to generate the output.  When FramerD is compiled with access to the
+fastcgi library and the web server uses the fastcgi module, the fdcgi
+interpreter will handle an indefinite series of requests in the same
+process, avoiding the overhead of starting a new process for each
+request.
+
+The procedure
+.B (CGI-DATA)
+returns the slotmap describing the current request.  The special form
+.B (CGI-INIT 
+.I vars...
+.B )
+binds each 
+.I var
+to the string or list of strings passed under the name
+.I var.
+The special form 
+.B (CGI-VAR
+.I vars...
+.B )
+does the exact same thing except that the strings 
+strings are passed to the lisp parser (so the string "3" is converted
+to the number 3) and the lists are converted into choices of these
+parsed values.
+
+For debugging purposes, the optional argument
+.I query
+will be bound to be the 
+.B QUERY_STRING
+in an artificial request before processing the file as normal.
+
+.SH OPTIONS
+
+
+.SH ENVIRONMENT
+
+The following variables are typically bound and accessible on the
+.B (CGI-DATA)
+slotmap as well as through 
+.B (CGI-INIT)
+and
+.B (CGI-VAR)
+
+.IP SERVER_SOFTWARE
+The type and version of the web server passing on this CGI request
+.IP SERVER_NAME
+The name of the server passing on the request
+.IP SERVER_PORT
+The port on which the server is listening
+.IP SCRIPT_NAME
+The name of the script being run  
+
+.IP HTTP_REFERER
+If provided, this is the document from which this script was invoked
+.IP HTTP_USER_AGENT
+The kind of program making the request, often the web browser being
+used by the human requestor
+.IP REMOTE_IDENT
+Rarely provided, this is an identifier of the individual making the reauest
+.IP REMOTE_HOST
+This is the hostname of the machine from which the request apparently
+originated.
+.IP REMOTE_ADDR
+This is the IP address (dd.dd.dd.dd) of the machine from which the request
+apparently originated.
+  
+.IP PATH_INFO
+This is the part of the URL which occurs after the script name but before
+any parameters
+.IP DOCUMENT_ROOT
+This is the document root
+.IP PATH_TRANSLATED
+This is the local file to which this request was translated  
+
+.IP AUTH_TYPE
+This describes how the user authenticated her/him/itself.
+.IP REMOTE_USER
+This describes who the user authenticated her/him/itself as.
+.IP HTTP_COOKIE
+This is the "cookie" passed with this request.  The individual components
+of this cookie are separated out into separate fields in the
+.B CGI-DATA
+slotmap
+.IP SERVER_HOST
+This is host on which the server is running.  This will differ from 
+.B SERVER_NAME
+only if virtual hosts are being used
+.IP HTTPS
+This is true if the connection with client is a secure (SSL) connection.
+.IP HTTP_ACCEPT
+.IP HTTP_ACCEPT_CHARSET
+.IP HTTP_ACCEPT_ENCODING
+.IP HTTP_ACCEPT_LANGUAGE
+  
+.IP REQUEST_METHOD
+This is the request method.  Only 
+.B GET
+and
+.B POST
+are currently handled
+.IP CONTENT_TYPE
+This is the mime time of any data sent with the request
+.IP CONTENT_LENGTH
+This is the number of bytes of data sent along with the request
+.IP QUERY_STRING
+This is the query string passed with the request.  If it provides
+form variables (common when the REQUEST_METHOD is GET), these variables
+are each broken out and assigned to the slotmap.
+.IP POST_DATA
+This is the actual data sent along with the request.  If the mime
+type is a text type, this is a string; otherwise, it is a packet.  If
+the post data contains form variables (either url-encoded or mime-encoded),
+these are broken out
+.IP PARSED_POST
+When the posted data is a multi-part mime document, this is the parsed
+document.
+
+.SH BUGS
+None known.
+.SH Revision Info
+.B $Id: fdcgi.1,v 1.1 2002/05/29 18:38:01 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR fdxml (1)
+.BR fdservlet (1)

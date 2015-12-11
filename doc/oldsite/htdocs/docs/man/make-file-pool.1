@@ -1,0 +1,61 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH MAKE-FILE-POOL 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+make-file-pool \- creates a FramerD file pool
+.SH SYNOPSIS
+.B make-file-pool
+.I filename 
+.I size
+.B [
+.I super_pool
+.B |
+.I oid
+.B ]
+
+The optional parameter
+.I oid
+has the form
+.B @
+.I hex_hi
+.B /
+.I hex_lo 
+while the optional parameter
+.I super_pool
+is either a filename or a server specification (as in
+.BR dtcall (1).
+.SH DESCRIPTION
+.B make-file-pool
+creates a new empty FramerD file pool in the file
+.I filename
+with a capacity for at least
+.I size
+OIDs.  If the parameter
+.I oid
+is specified, this is the bae of the newly created file pool.
+Otherwise, the space for the file pool is allocated from either the
+default super pool for the FramerD installation or the
+.I super_pool
+specified on the command line, which is either a super pool file
+or a remote super pool server.
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if
+.I filename
+cannot be written or if
+.I size
+is unreasonably large.  It will also report an error if
+.I super_pool
+does not exist or cannot be contacted.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: make-file-pool.1,v 1.3 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR reset-file-pool (1)
+.BR list-file-pool (1)

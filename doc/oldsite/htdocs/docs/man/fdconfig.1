@@ -1,0 +1,174 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH FDCONFIG 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fdconfig \- manipulates FramerD configuration files
+.SH SYNOPSIS
+.B fdconfig [
+.I config_name
+.B ] list
+
+.B fdconfig [
+.I config_name
+.B ] locate
+
+.B fdconfig [
+.I config_name
+.B ] get 
+.I var
+
+.B fdconfig [
+.I config_name
+.B ] set 
+.I var 
+.I value
+
+.B fdconfig [
+.I config_name
+.B ] reset 
+.I var 
+
+.B fdconfig [
+.I config_name
+.B ] add
+.I var 
+.I val 
+
+.B fdconfig [
+.I config_name
+.B ] use-pool
+.I pool
+
+.B fdconfig [
+.I config_name
+.B ] use-index
+.I index
+
+.B fdconfig [
+.I config_name
+.B ] use-server
+.I function
+.I port
+.B @
+.I hostname
+
+
+.SH DESCRIPTION
+.B fdconfig
+is used to maintain FramerD configuration files, which provide
+configuration information for various programs.  A configuration file
+specifies a set of global variable bindings which are used to initialize
+different programs or modules.
+
+If the initial
+.I config_file
+argument is
+.B -profile
+, then the current user's FramerD profile is accessed; if the
+.I config_file
+parameter is either not provided (e.g. the first argument is the
+subcommand name) or is
+.B -config
+, the system-wide FramerD config file is accessed (this may require
+special privileges).  Otherwise,
+.I config_file	
+is a filename to which
+.B fdconfig
+will append the suffix
+.B .cfg
+
+Certain of the commands require write access to the specified file or
+create access to its directory (the file will be created if
+neccessary).
+
+.SH SUBCOMMANDS
+.IP "locate"
+returns the absolute pathname of the specified configuration file.  This
+is most useful for locating the system configuration file on the system.
+.IP "list"
+lists all of the variable bindings specified by the configuration file.
+.IP "get var"
+prints the binding for
+.I var
+specified by the configuration file.
+.IP "set var val"
+sets the binding for
+.I var
+in the configuration file to be
+.I val
+.IP "reset var"
+removes and bindings for
+.I var
+in the configuration file
+.IP "add var"
+adds an additional value
+.I val
+to the bindings of
+.I var
+in the configuration file.  If there are no current bindings for
+.I var
+in the file (i.e. it has not been
+.B set
+), the additional value will be marked to be added to whatever
+current values exist in the environment when the configuration file
+is loaded.  This allows multiple configuration files to contribute
+to the same global values.
+
+.IP "use-pool pool"
+adds the pool
+.I pool
+(which is either a filename or a server specification (see
+.BR dtcall (1)
+) to the configuration variable
+.B %POOLS
+which is used by the command line interface to FramerD databases (see
+.BR fdd (1)
+).
+.IP "use-index pool"
+adds the index
+.I pool
+(which is either a filename or a server specification (see
+.BR dtcall (1)
+) to the configuration variable
+.B %INDICES
+which is used by the command line interface to FramerD databases (see
+.BR fdd (1)
+).
+.IP "use-server fcn_name port@hostname"
+assigns the global value of
+.I fcn_name
+to be a
+.B remote procedure
+implemented by the server listening on
+.I port
+at
+.I hostname.
+.SH OPTIONS
+.B fdconfig
+is a script implemented by
+.BR fdscript (1)
+so its command line can contain interspersed bindings of the form
+.I var
+.B =
+.I val
+as well as options such as
+.B -f
+.I scheme-file,
+.B -C
+.I config-file,
+or
+.B -m
+.I module
+which can load arbitrary scheme files, config files, or modules.
+.SH DIAGNOSTICS
+The program reports file access errors.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: fdconfig.1,v 1.3 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR make-file-index (1)

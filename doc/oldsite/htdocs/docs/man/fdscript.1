@@ -1,0 +1,146 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH FDSCRIPT 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fdscript \- start an FDscript interpreter
+.SH SYNOPSIS
+.B fdscript [--noprofile] [--noconfig] [--noherald] [-x
+.I charset
+.B ] [-m
+.I module
+.B ]* [-f 
+.I file 
+.B ]* [-g
+.I config_file
+.B ]* [
+.I var
+.B =
+.I val
+.B ]* [
+.I filename
+.B ] 
+.I arguments
+.B ...
+.BR
+
+The module, file, config, and variable binding options may be intermixed
+and are processed from left to right before 
+.I filename
+is loaded or the interactive interpreter is started.
+.SH DESCRIPTION
+.B fdscript
+starts an fdscript interpreter either interactively or
+by reading commands from the file
+.I filename.
+The scheme variables 
+.B args
+and
+.B nargs
+are bound to the specified 
+.I arguments
+provided on the command line.  The interpreter is interactive if either
+.I filename
+is not given or is either a single dash ("-") or a single dot (".").
+In either case, the files or modules specified by the other options
+are processed first, as are any Scheme variable assignments specified
+on the command line.
+
+If
+.I filename
+is provided and defines a Scheme procedure
+.B main,
+it is applied to the given
+.I arguments
+after
+.I filename
+has been read.
+
+The additional
+.I arguments
+are interpreted with two special conventions.  An argument specified
+by a single dollar sign ($) is bound to the entire standard input,
+read as a string; an argument specified by a single dash (-), reads a
+series of lisp objects from the standard input and binds the
+corresponding argument to those objects as a
+.I choice.
+
+If
+.I filename
+is a single dash (-), the interactive read-eval-print loop will
+proceed without any prompts, simply reading values and printing
+results; if the argument is a single period ("."), a prompt will be
+displayed but command line arguments after the period will be processed
+into
+.B args
+Finally, if there is no filename argument, a prompt will be issued
+when the interpreter is ready for a result and (if available) the GNU
+readline commands will be available for input editing.
+.SH OPTIONS
+.IP "--noconfig"
+Do not load the system configuration file
+.IP "--noprofile"
+When running interactively, do not load the users
+.B .fdprofile
+file
+.IP "--noherald"
+Do not output the FramerD library herald and copyright notice
+.IP "-x charset"
+.IP "--charset charset"
+Use the character encoding
+.I charset
+as the default encoding, especially for interaction with the console
+(stdio and stderr).
+.IP "-m module"
+Load the FDScript module
+.I module
+and have its exported symbols accessible to the
+interpreter environment.
+.IP "-c config_file"
+.IP "--config=config_file"
+Load the config file
+.I config_file
+into the global environment.  See
+.BR fdconfig (2)
+for more details.
+.IP "-f scheme-file"
+.IP "--file scheme-file"
+Load the scheme file
+.I scheme-file
+into the default environment
+.IP "var=val"
+.IP "-Dvar=val"
+Bind the global variable
+.I var
+to
+.I val
+.SH FILES
+.I framerd.cfg
+The system wide configuration file, in the common
+installation directory.  See
+.BR fdconfig (5)
+and
+.BR fdconfig (1)
+for futher details
+.I ~/.fdprofile
+.RS
+The users's individual configuration file
+.SH ENVIRONMENT
+.IP ALWAYS_BUSY
+Determines whether, in interactive mode with a prompt, 
+.IP FRAMERD_CONFIG
+Overrides the default location of the system configuration file
+.IP DEBUG_FRAMERD
+Output a backtrace when an error occurs.
+.SH CONFIG VARIABLES
+.IP %DEBUG
+Output a backtrace when an error occurs.
+.SH BUGS
+None known.
+.SH Revision Info
+.B $Id: fdscript.1,v 1.5 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR dtcall (1)

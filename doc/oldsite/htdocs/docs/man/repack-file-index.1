@@ -1,0 +1,109 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH REPACK-FILE-INDEX 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+repack-file-index \- reorganize a FramerD file index
+.SH SYNOPSIS
+.B repack-file-index [-q] [-v] <
+.I file_index
+.B > [
+.I output_file
+.B ] [--size
+.I new_size
+.B ] [--min
+.I min_vals
+.B ] [--max
+.I max_vals
+.B ] [--bsize
+.I block_size
+.B ]
+.I filename
+.B [
+.I new_name
+.B ] [
+.I min
+.B ] [
+.I max
+.B ] [
+.I block_size
+.B ]
+.SH DESCRIPTION
+.B repack-file-index
+reorganizes a FramerD file index by consolidating associations into
+continuous blocks on disk, possibly increasing the number of slots in
+the table, and reordering keys to prioritize keys with more values.
+It also removes duplicate associations and sorts large associations
+for more efficient processing upon retrieval.
+
+FramerD file indices are designed to be updated incrementally, but such
+incremental additions can leave related data spread throughout the file.
+.B repack-file-index
+reorganizes this data to save space and can dramatically improve performance
+by reducing the number of file seeks required to retrieve the associations
+for a given key.
+
+.B repack-file-index
+reads the file index stored in
+.I file_index
+and writes a new file index to
+.I output_file.
+If 
+.I output_file
+is not provided, the new index is written into a temporary
+file and copied back into
+.I file_index
+when it is completely generated.
+.SH OPTIONS
+.IP "-q"
+Run quietly, without progress reports to the console.
+.IP "-v"
+Run verbosely, without progress reports to the console.
+.IP "--size size"
+Create the new index file with
+.I size
+slots.  If size is the literal
+.B keep
+, the current size of the index is maintained.  If the size
+specified is smaller than the number of slots, the minimum
+number of possible slots is chosen.
+.IP "--min min_vals"
+Exclude keys associated with fewer than
+.I min_vals
+values.
+.IP "--max max_vals"
+Exclude keys associated with more than
+.I max_vals
+values.
+.IP "--bsize block_size"
+In order to improve performance, 
+.B repack-file-index
+reads blocks of values together and schedules its disk accesses
+within any particular.  This incurs a memory cost as the number
+of values in a block increases.  The
+.I block_size
+parameter can control this cost by using the smallest feasible block
+size larger than
+.I block_size
+.SH DIAGNOSTICS
+The program reports an error if
+.I filename
+does not exist or does not contain a valid file index.  It also
+reports an error if either
+.I output_file
+cannot be written or
+.I filename
+cannot be overwritten (whichever it needs to do).
+.SH BUGS
+The trimming of keys by max and min do not correctly register
+repeated values.  If this is a problem, it can be worked around
+by first repacking the file index without value bounds (removing
+duplicate values) and then repacking with the desired bounds.
+.SH Revision Info
+.B $Id: repack-file-index.1,v 1.4 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR analyze-index (1)
+.BR make-file-index (1)

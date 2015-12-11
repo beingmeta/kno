@@ -1,0 +1,354 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>pool-get.c</title>
+  </head>
+
+  <body>
+    <h1><code><i>pool-get.c</i></code></h1>
+
+    <h2>Introduction</h2>
+    <p>
+      <code><i>pool-get.c</i></code> is probably the simplest introduction to
+      programming FramerD. It does nothing more than open the pool
+      specified on the command-line, and retrieve the value associated 
+      with the OID specified on the command-line. A simple invocation
+      (against the data you created in the <a
+	href="test-server-setup.html#pool-get.c">Test Server
+	Setup</a>) looks like this:
+    </p>
+    
+    <blockquote>
+      <pre>pool-get atut@defiant @/atut/0</pre>
+    </blockquote>
+
+    <p>
+      And produces this output:
+    </p>
+    
+    <blockquote>
+      <pre>
+[03:17:14 MIT FramerD library 1.0 (c) 1994-1999, built Jun  7 1999]
+[03:17:14 Session id=framerd tlilley@defiant /PID:2424 /OS:i686-unknown-linux /Compiled:Jun  7 1999 /Started:Mon Jun  7 03:17:14 1999]
+[03:17:14 Added pool atut@defiant]
+The OID @/atut/0 in the pool atut@defiant has the value:
+"a simple OID value"
+      </pre>
+    </blockquote>
+
+    <p>
+      Now, using the OID you marked earlier when you were creating and
+      adding data, go ahead and try using a literal OID (note that
+      this literal OID must be the one you got as the output from
+      fdscript's "allocate-oid" command, combined with the information 
+      found in the <code><i>#POOL</i></code> message from fdscript
+      when you connected to the pool in the setup phase.
+    </p>
+
+    <blockquote>
+      <pre>pool-get atut@defiant @375ae87e/20020</pre>
+    </blockquote>
+
+    <p>
+      Your output should be the same as the previous invocation
+      (except, of course, for the timestamps).
+    </p>
+
+
+
+
+    <h2>Source Commentary</h2>
+    <p>
+      <code><i>pool-get.c</i></code> itself is so small and elegant
+      that it seems a shame to clutter it with extensive
+      commentary. Heck, I felt bad just adding the usage message!
+      Instead, we'll explore it line-by-line here. There are
+      horizontal rules between each function call (line of the
+      original program) to clarify the context of the discussion.
+    </p>
+
+
+    <hr>
+    <p>
+      Of course, to do anything, you'll have to include the FramerD
+      include files :-) Fortunately, they're nicely bundled through
+      one file:
+    </p>
+
+    <blockquote>
+      <pre>
+#include &lt;framerd/framerd.h&gt;
+      </pre>
+    </blockquote>
+
+
+    <hr>
+    <p>
+      The first meaningful statement in the program is the call to
+      <code><i>void fd_initialize_framerd(void)</i></code>
+      [<code><i>src/odb/libframerd.c</i></code>], which does the basic
+      initialization of all of the FramerD library components. This
+      call is, of course, necessary for any subsequent FramerD work.
+    </p>
+
+    <blockquote>
+      <pre>
+fd_initialize_framerd();
+      </pre>
+    </blockquote>
+
+    <p>
+      <b>NOTE:</b> Obviously, it's important to call this initializer
+      if you're doing anything with the FramerD libraries, like OID or
+      DType manipulation. What may not strike you, though, when you go
+      to write a simple little test program to exercise
+      <code><i>fd_fprintf</i></code>, for example, is that you have to
+      put this call in for <i>any</i> program using the FramerD
+      libraries! We wrote a simple test program that contained nothing
+      more than a single call to <code><i>fd_fprintf</i></code> to
+      display the time, and were baffled when it consistenly printed
+      out two copies of our message, regardless of what we put in the
+      format string. Once the lightbulb went on and we inserted a call
+      to <code><i>fd_initialize_framerd</i></code>, things returned to
+      normal :-) The moral of the story is: <i>be careful out
+      there</i>.
+    </p>
+
+
+    <hr>
+    <a anchor="use_pool"></a>
+    <p>
+      Next is the call to <code><i>fd_use_pool fd_use_pool(char * c)</i></code>
+      [<code><i>src/odb/odb.c</i></code>], which opens a file pool, or
+      connects to a network pool server, depending on the pool name
+      given it. If the pool name is in the form
+      <code><i>server@host</i></code>, the system treats it as a
+      network pool server, otherwise it treats it as a pool file.
+    </p>
+
+    <blockquote>
+      <pre>
+fd_use_pool(pool);
+      </pre>
+    </blockquote>
+
+    <p>
+      Note that the call to <code><i>fd_use_pool</i></code> has the
+      side effect of registering the pool's name in a hashtable that
+      the FramerD libraries use to map logical OIDs to literal
+      OIDs. The internal function <code><i>parse_oid_ref</i></code>
+      [<code><i>src/cons/io.c</i></code>] uses this hashtable to
+      resolve an OID string into a 64-bit OID structure. Therefore, if 
+      you haven't mounted the pool before calling any functions which
+      attempt to parse OID strings, logical OIDs won't resolve
+      properly (the program will die with an unhandled exception: "No
+      logical OIDs found"). The version of
+      <code></i>pool-get.c</i></code> shipped with the framerd-1.0
+      distribution calls <code><i>fd_arg2lisp</i></code> on the OID
+      string <i>before</i> calling <code><i>fd_use_pool</i></code>,
+      and thus will not properly recognize logical OIDs. The
+      <code><i>pool-get.c</i></code> we're dissecting here, however,
+      has this corrected.
+    </p>
+
+
+    <hr>
+    <p>
+      Next, the call to <code><i>fd_lisp fd_arg2lisp(u8char *string)</i></code>
+      [<code><i>src/cons/io.c</i></code>] takes the string OID
+      representation passed in on the command line, and converts it
+      into a LISP structure containing the OID. Internally, the
+      function calls <code><i>parse_atom</i></code>, then
+	  <code><i>parse_oid_ref</i></code> to accomplish this.
+    </p>
+
+    <blockquote>
+      <pre>oid=fd_arg2lisp(oid_str);</pre>
+    </blockquote>
+
+    <p>
+      Note that this function will throw the exception <i>"No logical
+	OIDs defined"</i> if you pass it a logical OID and the pool
+      named in the logical OID hasn't been mounted with
+      <code><i>fd_use_pool</i></code>. 
+    </p>
+
+    <p>
+      <font color="#ff0000"><b>NOTE:</b></font> Apparently,
+      <code><i>fd_arg2lisp</i></code> likes to modify the contents of
+      the string you pass it during its parsing. Thus, if you pass it
+      a constant string, you're asking for a seg fault or GPF. This
+      code does not work:
+    </p>
+    
+    <blockquote>
+      <pre>
+u8char * oid_str = "@/test/0";
+lisp oid = fd_arg2lisp( oid_str );
+      </pre>
+    </blockquote>
+
+    <p>
+      But this code, which copies the string into a
+      dynamically-allocated char array, does work:
+    </p>
+
+    <blockquote>
+      <pre>
+u8char * oid_str = (u8char *) malloc( (strlen( "@/test/0" ) + 1) * sizeof( u8char ) );
+strcpy( oid_str, "@/test/0" );
+lisp oid = fd_arg2lisp( oid_str );
+      </pre>
+    </blockquote>
+
+    <p>
+      (Note that <code><i>lisp</i></code> is effectively the same as
+      <code><i>fd_lisp</i></code>, and is described in the <a
+	href="../c-manual.html">C Manual</a> for FramerD.)
+    </p>
+
+
+    <hr>
+    <p>
+      The invocation of the <i>macro</i> <code><i>lisp oid_value(lisp oid)</i></code>
+      [<code><i>include/framerd/odb.h</i></code>] resolves the OID and
+      retrieves whatever is stored in the "body" of the DType as a
+      LISP structure. Thus, if the value is more than a simple datum,
+      you will receive the full, complex value.
+    </p>
+
+    <blockquote>
+      <pre>value=oid_value(oid);</pre>
+    </blockquote>
+
+    <p>
+      <code><i>oid_value</i></code> is actually a wrapper around
+      wrappers :-), implemented as C macros and, eventually, function
+      calls into the FramerD library. I suggest you study the source
+      to divine exactly what's happening, but, in brief,
+      <code><i>oid_value</i></code> is a macro which either locks the
+      OID, then evaluates it, in a multi-threaded build, or simply
+      evaluates the OID directly, in a single-threaded build. In
+      either case, oid_value checks to make sure the OID is valid, and 
+      has a value. Otherwise it throws an exception.
+    </p>
+
+
+    <hr>
+    <p>
+      The last series of calls are to FramerD's modified output
+      functions, <code><i>void fd_fprintf(FILE *f, char
+	  *format_string, ...)</i></code>
+      [<code><i>src/os/fdprintf.c</i></code>], and
+      <code><i>void fd_pprint_lisp(fd_lisp x, FILE *stream, int width)</i></code>
+      [<code><i>src/cons/io.c</i></code>]. The
+      <code><i>fd_fprintf</i></code> function is a replacement for the
+      standard IO library's <code><i>fprintf</i></code>, supporting
+      internationalization and some extensions to integrally print
+      FramerD LISP objects. The <code><i>fd_pprint_lisp</i></code>
+      function is a simple pretty-printer for LISP objects.
+    </p>
+
+    <blockquote>
+      <pre>
+fd_fprintf(stdout,"The OID %q in the pool %s has the value:\n",oid,argv[1]);
+fd_pprint_lisp(value,stdout,40);
+fd_fprintf(stdout,"\n");
+return 0;
+      </pre>
+    </blockquote>
+
+    <p>
+      The <code><i>fd_fprintf</i></code> is a simple wrapper around
+      <code><i>do_printf</i></code>
+      [<code><i>src/os/fdprintf.c</i></code>]. I encourage you to read 
+      <code><i>do_printf</i></code> closely to make sure you
+      understand how it handles your data.
+    </p>
+
+    <p>
+      <code><i>void fd_printf(fd_string_stream s, char *format_string, 
+	...)</i></code> (and its derivatives,
+      <code><i>void fd_fprintf(FILE *f, char *format_string, ...)</i></code>, and
+      <code><i>void fd_xprintf(char *fstring)</i></code>] supports the following extended
+      formatting characters:
+    </p>
+
+    <ul>
+      <li>
+	<code><b>%m</b></code> - internationalized string (ie: a
+	string that's passed through the translation tables).
+      </li>
+      <li>
+	<code><b>%q</b></code> - plain-print a LISP object
+      </li>
+      <li>
+	<code><b>%Q</b></code> - pretty-print a LISP object
+      </li>
+      <li>
+	<code><b>%t</b></code> - the current time as
+	<code>hh:mm:ss</code> (uses <code><i>strftime</i></code>]
+      </li>
+      <li>
+	<code><b>%lt</b></code> - the current time as
+	<code>DDMoYYYY@hh:mm:ssTZ</code> (ex:
+	<code>07Jun1999@14:58:43-0400</code>)
+      </li>
+    </ul>
+
+
+
+    <h2>Building a <code><i>pool-get.c</i></code> Clone</h2>
+    <p>
+      So, you've successfully dissected
+      <code><i>pool-get.c</i></code>, and want to retype it and build
+      it in your own directory. That's simple enough (under Linux
+      2.0.36, Debian 2.1 (slink), anyway). Here's a typical
+      command-line for compiling <code><i>pool-get.c</i></code> to
+      <code><i>pool-get</i></code> on a GNU-ified Unixish system:
+    </p>
+
+    <blockquote>
+      <pre>
+gcc pool-get.c -o pool-get -L/usr/local/lib -L/usr/lib -lframerd -ldtypes -lreadline -lpthread
+      </pre>
+    </blockquote>
+
+    <p>
+      Apps that use the FramerD core require
+      <code><i>libframerd</i></code> and
+      <code><i>libdtypes</i></code>, at a minimum. On systems where
+      FramerD comes with GNU Readline support compiled in, you'll also
+      need to link to <code><i>libreadline</i></code>. Finally, on
+      systems where you've built FramerD with pthreads (multithreading
+      under UNIX) support, you'll need to link in
+      <code><i>libpthread</i></code>, as well.
+    </p>
+
+    <p>
+      (<b>NOTE:</b> on our test system (Linux 2.0.36 Debian 2.1
+      (slink), gcc 2.7.2.3, GNU ld 2.9.1), it seems that the order of
+      the command-line arguments is, indeed important. So, the command 
+      line given above works as specified, but moving the source file
+      and <code><i>-o pool-get</i></code> specified to the end of the
+      line seemed to not work. I'm quite sure this is explained
+      adequately in the GNU gcc and ld docs. Have you seen the size of 
+      those docs?)
+    </p>
+
+    <p>
+      Of course, this is only a very simplistic treatment of the
+      libraries and options available for compiling FramerD
+      applications. Once I understand them all, I'll be happy to
+      explain them to you :-)
+    </p>
+
+
+    <hr>
+    <address><a href="mailto:tripp.lilley@perspex.com">Tripp Lilley</a></address>
+<!-- Created: Mon Jun  7 01:08:28 EDT 1999 -->
+<!-- hhmts start -->
+Last modified: Mon Jun  7 19:13:35 EDT 1999
+<!-- hhmts end -->
+  </body>
+</html>

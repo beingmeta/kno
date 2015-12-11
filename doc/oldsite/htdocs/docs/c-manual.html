@@ -1,0 +1,1452 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<HTML>
+<HEAD>
+<TITLE>Using FramerD from C</TITLE>
+<LINK REL="stylesheet" TYPE="text/css" HREF="framerd.css">
+</HEAD>
+<BODY>
+<TABLE ALIGN=LEFT WIDTH='100%'>
+<TR>
+<TH CLASS=bigtitle ALIGN=LEFT WIDTH='70%'>
+Using FramerD From C
+<BR><span class=author>Ken Haase</span>
+<TH ALIGN=RIGHT ROWSPAN=2>
+<A HREF="http://www.framerd.org/"><IMG BORDER=0 SRC="fdlogo.png"></A>
+<TR>
+</TABLE><BR CLEAR=LEFT>
+<P class=quickref>
+Quick ref:
+[<A HREF="#fcnmorph">Function name morphology</A>]&nbsp;
+[<A HREF="#lisppointers">Lisp pointers</A>]&nbsp;
+[<A HREF="#exceptions">Exception Handling</A>]&nbsp;
+[<A HREF="#unicode">Unicode Representation</A>]&nbsp;
+[<A HREF="#stringinput">Input from strings</A>]&nbsp;
+[<A HREF="#stringoutput">Output to strings</A>]&nbsp;
+[<A HREF="#lisptypes">Lisp Types</A>]&nbsp;
+(esp. <A HREF="#immediates">immediates</A>, <A HREF="#strings">strings</A>, <A HREF="#composite">composites</A>)
+[<A HREF="#evaltypes">Evaluator Types</A>]&nbsp;
+[<A HREF="#evalfcns">Evaluator Functions</A>]&nbsp;
+[<A HREF="#modules">Implementing Modules</A>]&nbsp;
+[<A HREF="#dirstructure">Directory Structure</A>]&nbsp;
+[<A HREF="#files">Source Files</A>]&nbsp;
+<HR>
+<P>The kernel of FramerD is written in ANSI C and one way of using
+FramerD is by writing C or C++ code and using the FramerD libraries in
+either static or dynamic form.  This provisional document describes
+programming with these libraries and also describes the structure of
+the FramerD source tree.</P>
+
+<H1>Programming with FramerD</H1>
+
+<P>In order to program using FramerD from C, you need to know what
+compile flags to use and where to find headers and include files.  The
+script <tt>fdxs</tt> provides this information in the form of command
+line strings which can be passed directly to compilers and linkers.
+For these purposes, there are three forms of the <tt>fdxs</tt>
+commands:</P>
+<TABLE>
+<TR><TD><TT class="commands">fdxs cflags</tt></TD><TD>returns the command line
+options to use for compiling programs which use the FramerD libraries.
+This includes options specifying where the FramerD include files live
+as well as other flags such as (on some platforms)
+<tt>-fshort-enums</tt>.</TD></TR>
+<TR><TD><TT class="commands">fdxs libs</tt></TD><TD>returns the arguments for linking against
+the FramerD libraries, including the <TT>-L</TT> argument indicating
+where the libraries live and individual <tt>-l<var>lib</var></tt>
+arguments for the various FramerD libraries themselves.</TD></TR>
+<TR><TD><TT class="commands">fdxs modules</tt></TD><TD>returns the directory where FramerD modules
+should be installed.</TD></TR>
+</TABLE>
+<P>The fdxs command can be used to write portable makefiles by using the
+backquoted shell escape to execute an <TT class="command">fdxs</TT> and include
+its results in the compilation commands.  For instance, here is the makefile for the
+<TT>xframerd</tt> module:
+<PRE>
+CFLAGS = `fdxs cflags` `libwww-config --cflags` $(XCFLAGS)
+
+all:  w3fd.so
+
+tidy:
+	rm -f w3fd.o *~
+clean: tidy
+	rm -f w3fd.so
+
+w3fd.so: w3fd.o makefile
+	ld -shared -o $@ w3fd.o `libwww-config --libs` `fdxs libs`
+
+install: w3fd.so
+	cp -f w3fd.so `fdxs modules`
+</PRE>
+<P>which uses <tt>`fdxs cflags`</tt> to get the C compiler command
+line, <tt>`fdxs libs`</tt> to get the linker command line arguments,
+and <tt>`fdxs modules`</tt> to get the modules directory.
+
+<A NAME="fcnmorph"><H3>Function name morphology</H3></A>
+
+<P>There are a few heuristics for determining the semantics of
+functions and macros based on their names.  First, nearly all library
+functions and macros start with the prefix <tt class=ccode>fd_</tt> or
+<tt class=ccode>FD_</tt>; if the preprocessor variable <TT
+class=ccode>FD_SOURCE</TT> is defined to be <tt>1</tt> before the
+FramerD include files are referenced, some aliases without the <tt
+class=ccode>fd_</tt> prefix will be defined.</P>
+
+<P>Function names starting with <TT class=ccode>_fd_</tt> are internal
+library functions typically used by preprocessor macros, and should
+not be directly called by user code.  Most functions in the library
+should be <em>threadsafe</em>, but some functions have variants with
+the suffix <tt class=ccode>_nolock</tt> indicating that they are
+<strong>not</strong> threadsafe.</P>
+
+<P>Case is used to distinguish "well-behaved type-checking" functions
+from riskier functions.  Lower case functions (or preprocessor macros
+which can be called as functions) typically do type checking (when
+handed LISP pointers) and obey standard conventions for interaction
+with the garbage collector (if they hold onto an argument they will
+<em>incref</em> it and if the return a lisp pointer it will need to be
+<em>decref</em>ed unless further returned.  Some functions have upper
+case names (and are often implemented as macros or inline functions)
+and make no such guarantees.  Other uppercase identifiers act as
+semi-syntactic elements, rather than as functions, and these are
+always implemented by C preprocessor macros (though they may have
+helper functions, generally starting with <tt class=ccode>_fd_</tt>.
+These are mostly used in the <A HREF="#exceptions">exception handling
+system</A>.</P>
+
+<P>The FramerD libraries are divided into five core collections of
+functions:
+<DL>
+<DT>dtype</DT><DD>provides utility functions, the core LISP data types used by FramerD,
+and binary DType I/O allowing these data types transmission and storage;</DD>
+<DT>framerd</DT><DD>provides the basic object database, the associative indices
+used to do fast searches for objects, the core of the FDScript evaluator (including
+threading and the module and security system), and basic procedures for accessing
+frames and making simple inferences;</DD>
+<DT>scheme</DT><DD>provides much of the R4RS scheme functionality, including the
+full arithmetic system, string and character operations, and I/O primitives;
+currently, these functions are lumped into the <strong>fdscript</strong> library
+from the developer's point of view;</DD>
+<DT>fdscript</DT><DD>provides FDScript's special extensions, including
+more advanced FramerD access and maintenance functions, operating
+system access, the <TT class=lcode>PRINTOUT</TT> family of functions,
+imports from Common LISP (including sequence functions, <TT
+class=lcode>DOLIST</TT>, <TT class=lcode>DOTIMES</TT>, etc.</DD>
+<DT>fdtext</DT><DD>provides FDScript's text analysis tools, including
+a powerful and extensible textual pattern matcher, HTML and XML
+generation and parsing (including XML namespace handling), MIME and
+RFC-822 parsing, MD5 hashing, the Porter stemmer, and a simple
+proper name extractor.</DD>
+</DL>
+
+<P>All externally available functions are prefixed by a preprocessor
+macro providing information to the linker.  In the core FramerD code,
+these macros are:
+<BLOCKQUOTE>
+<TT class=ccode>DTYPES_EXPORT</tt>, <TT
+class=ccode>FRAMERD_EXPORT</tt>, <TT class=ccode>FDSCRIPT_EXPORT</tt>,
+<TT class=ccode>FDTEXT_EXPORT</tt>, <TT class=ccode>EXPORTED</tt>
+</BLOCKQUOTE>
+
+<A NAME="lisppointers"><H1>LISP Pointers: <tt class=ccode>fd_lisp</tt></H1></A>
+
+<P>This is a typed pointer. In the standard implementation, this is a
+struct of type <TT class=ccode>struct FD_LISP_PTR</tt> consisting of a type tag
+(of enumerated type <TT class=ccode>fd_lisp_type</tt> stored in the <TT class=ccode>type</tt>
+field) and a data pointer (of union type fd_lisp_data stored in the
+<TT class=ccode>-&gt;data</tt> field).  The type of a pointer can be directly tested
+with the macro <TT class=ccode>FD_PRIM_TYPEP(x,type)</tt> where <TT class=ccode>x</tt> is the lisp
+pointer and <TT class=ccode>type</tt> is one of the values of
+<TT class=ccode>fd_lisp_type</tt>.  The data portion can be extracted with the
+function <TT class=ccode>FD_PTR_DATA(x,field)</tt> where <TT class=ccode>field</tt> indicates
+a particular kind of data.
+
+<P><strong>Garbage Collection</strong>&nbsp;&nbsp;FramerD uses a reference counting garbage collector, the important
+external functions/macros are:
+<UL>
+<LI><TT class=ccode>fd_incref(x)</tt> increases the "reference count" of
+the object referred to by the lisp pointer <var>x</var>. Note that if
+<var>x</var> is a fixnum, immediate, symbol, or object reference, this is
+simply the identity.</LI>
+
+<LI><TT class=ccode>fd_decref(x)</tt> reduces the "reference count" of the object
+referred to by the lisp pointer <var>x</var> and --- if the reference
+count reaches zero --- frees the storage it is using for other
+purposes.
+
+<LI><TT class=ccode>fd_copy_lisp(x)</tt> returns a copy of the object referred
+to be the lisp pointer <I>x</I>. Note that if <var>x</var> is a fixnum,
+immediate, symbol, or object reference, this is simply the
+identity.</LI>
+</UL>
+
+<P>The contract between <tt>fd_copy_lisp</tt> and <tt>fd_decref</tt>
+is that if an object y is created by <tt>fd_copy_lisp(x)</tt>, it will
+be unaffected by a subsequent <tt>fd_decref(x)</tt>.  Nearly all
+normal FramerD library functions and preprocessor macros which take
+lisp pointers as arguments will <em>incref</em> those pointers if they
+will hang onto them; likewise nearly all functions returning LISP
+pointers will implicitly <em>incref</em> their argument.  Functions
+and macros which do not do this will have either uppercase names or
+begin with an underscore "_", indicating that the function is an
+internal function.</P>
+
+<P><strong>Comparing Objects</strong>&nbsp;&nbsp;Lisp objects can also
+be compared with one another:
+<UL>
+<LI><TT class=ccode>FD_LISP_EQUAL(obj1,obj2)</tt><BR>
+Returns 1 if <var>obj1</var> and <var>obj2</var> are equal, zero otherwise.
+<LI><TT class=ccode>FD_LISP_EQ(obj1,obj2)</tt><BR>
+Returns 1 if <var>obj1</var> and <var>obj2</var> have identical types and literal data
+fields; this is the same as <TT class=ccode>LISP_EQUAL</tt> for fixnums, flonums, immediate
+values, symbols, and OIDs.
+<li><TT class=ccode>fd_memberp(object,list)</tt><BR>
+Returns 1 if an object is in a list.
+<li>fd_choice_containsp(object,coice)<BR>
+Returns 1 if an object is an element of the choice <var>choice</var>.
+</UL>
+
+<P>Functions and macros for generating or accessing particular types
+of objects are shown below.
+
+<H2>Printing LISP objects</H2>
+
+<DL>
+<DT>fd_object_to_string(object) </DT>
+<DD>Returns a string containing a printed representation for object. </DD>
+
+<DT>fd_parse_lisp_from_stream(stream)</DT>
+<DD>Returns an object generated from a printed representation read from
+stream (of type <TT class=ccode>FILE *</TT>).</DD>
+
+<DT>fd_parse_lisp_from_string</DT>
+<DD>Returns an object generated from a printed representation stored in
+string</DD>
+
+<DT>fd_print_dtype(object,file stream) </DT>
+<DD>Emits a printed representation of an object onto file stream. </DD>
+
+<DT>fd_print_dtype_to_stdout(object) </DT>
+<DD>Writes a printed representation of object to the standard output, followed
+by a carriage return. </DD>
+
+<DT>fd_print_dtype_to_string(object,string stream) </DT>
+<DD>Writes a printed representation of object to a string data structure.
+</DD>
+
+<DT>fd_read_dtype_from_file(filestring) </DT>
+
+<DT>fd_str2lisp(string) </DT>
+<DD>Converts a string containing a printed representation into a lisp object.
+</DD>
+
+<DT>fd_arg2lisp(string) </DT>
+<DD>Returns an object based on the printed representation in <I>string</I>.
+It is designed for parsing command line arguments as lisp objects and favors
+returning LISP strings. In particular, only arguments beginning with a
+colon are interpreted as symbols. </DD>
+</DL>
+
+<H2>Reading and Writing DTypes</H2>
+
+<DL>
+<DT><TT class=ccode>fd_dread_dtype</tt>(data_buffer)<DD>Takes a data buffer and returns the
+object specified by the DType representation within it. </DD>
+
+<DT><TT class=ccode>fd_dtype_compare</tt>(object,stream) </DT><DD>Returns 1 if the
+stream specifies a DTYPE representation for OBJECT.</DD>
+
+<DT><TT class=ccode>fd_dwrite_dtype</tt>(object,data_buffer) </DT> <DD>Writes a
+dtype representation for an object into a data buffer.</DD>
+
+<DT><TT class=ccode>fd_fignore_dtype</tt>(stream) </DT>
+<DD>Skips over one dtype representation on stream. </DD>
+
+<DT><TT class=ccode>fd_fread_dtype</tt>(filestream) </DT>
+<DD>Reads a dtype representation from a binary filestream, returning the
+corresponding object. </DD>
+
+<DT><TT class=ccode>fd_fwrite_dtype</tt>(object,filestream) </DT>
+<DD>Writes a DType representation of object to a filestream. </DD>
+
+<DT><TT class=ccode>fd_write_dtype_to_file</tt>(object,filestring) </DT>
+<DD>Writes a dtype representation of an object to the specified file. </DD>
+</DL>
+
+<A NAME="exceptions"><H1>Exception Handling</H1></A>
+
+<P>The type <tt class=ccode>fd_exception</tt> is used by FramerD's exception handling
+system, this is a pointer to a string (<TT class=ccode>char *</tt>) describing an
+error.  The functions for dealing with errors can be found in
+<tt>src/os/except.c</tt>.  The key functions for signalling errors are
+<ul compact>
+<li><TT class=ccode>fd_raise_exception(<var>exception</var>)</tt>
+<li><TT class=ccode>fd_raise_detailed_exception(<var>exception</var>,details string)</tt>
+<li><TT class=ccode>fd_raise_lisp_exception(<var>exception</var>,details string,lisp irritant)</tt>
+</ul>
+
+<P>Catching exceptions is done with macros that make C look a little
+like LISP.  The basic schemas are:
+<pre>
+{
+  WITH_HANDLING {
+    ... do some stuff ... }
+  ON_EXCEPTION {
+    ... do stuff when an exception gets raised ... }
+  END_HANDLING
+}
+</pre>
+<P>for catching exceptions and 
+<pre>
+{
+  UNWIND_PROTECT {
+    ... do some stuff ... }
+  ON_UNWIND {
+    ... do this even if an exception is raised ... }
+  END_UNWIND
+}
+</pre>
+<P>to ensure that cleanup code gets run despite exceptions.  In either case, you can use
+the function <TT class=ccode>fd_theException()</tt> to get the exception which was
+signalled, <TT class=ccode>fd_exception_details()</tt> to get the details string
+for the exception, and <TT class=ccode>fd_exception_object()</tt> to get whatever
+LISP object was associated with the acception (or <TT class=ccode>FD_VOID</tt>
+if there wasn't any).</P>
+
+<P>The exception handliing or protection code can call <tt
+class=ccode>fd_reraise()</tt> to pass on the current exception, or <tt
+class=ccode>fd_clear_exception()</tt> to clear the current exception.
+The protection code will automatically reraise the exception unless it
+has been cleared.</P>
+
+<!---
+ (generate-api-refs "fd_raise_exception" "fd_raise_detailed_exception" "fd_raise_lisp_exception"
+			      "fd_type_error" "fd_exception" "fd_exception_details" "fd_exception_object")
+--->
+
+<H3>Some Standard Exceptions</H3>
+
+<DL>
+<DT><TT class=ccode>fd_Out_Of_Memory</tt><DD>An exception signalled when a system call to
+malloc() has failed
+</DD>
+
+<DT><TT class=ccode>fd_Parse_Error</tt><DD>An exception signalled when the parser for LISP
+expressions encounters an unexpected token </DD>
+
+<DT><TT class=ccode>fd_Unexpected_EOD</tt><DD>An exception signalled when a data buffer
+ends unexpectedly.</DD>
+
+<DT><TT class=ccode>fd_Unexpected_EOF</tt><DD>An exception signalled when a data stream
+ends unexpectedly.</DD>
+
+<DT><TT class=ccode>fd_Unknown_Record_Type</tt><DD>An exception signalled when the system
+tries to operate on an unknown record type.
+
+<DT><TT class=ccode>fd_Unknown_Type_Code</tt><DD>An exception signalled when when
+an unknown DTYPE data code is read.  It generally occurs when
+mis-aligned data has been written out, which none of the built-in
+procedures should ever do.
+</DD>
+</DL>
+
+<A NAME="unicode"><H1>Unicode</H1></A>
+
+<P>FramerD uses UTF-8 as its internal coding for Unicode strings.
+UTF-8 encodes ASCII characters using a single byte and encodes other
+Unicode code points using a series of non-ASCII (decimal value &gt;
+255) characters.  Most strings in FramerD are UTF-8 strings and are
+typed as either <TT class=ccode>fd_utf8_string</tt> or (more commonly)
+a pointer to an array of type <TT class=ccode>fd_u8char</tt> (which is
+just an unsigned character).</P>
+
+<P>Translations from external character sets to UTF-8 is managed by
+FramerD using structures of type <TT class=ccode>struct FD_TEXT_ENCODING</tt>.
+The function <TT class=ccode>fd_get_encoding(char *)</tt> returns a particular
+named encoding, e.g. <TT class=ccode>fd_get_encoding("LATIN-1")</tt> returns the
+LATIN-1 encoding for Western European characters.</P>
+
+<P>The function <TT class=ccode>fd_make_utf8(char *start,char
+*end,struct FD_TEXT_ENCODING *e)</tt> returns a newly malloc'd UTF-8
+string based on the characters between <var>start</var> and
+<var>end</var> based on the encoding <var>e</var>.  If <var>end</var>
+is <TT class=ccode>NULL</tt>, the entire string <var>start</var> is
+used; if <var>e</var> is NULL, the default encoding is used.</P>
+
+<P>The function <TT class=ccode>fd_convert_utf8(u8char *start,int len,struct
+FD_TEXT_ENCODING *e,int *sizep)</tt> does the opposite conversion, taking a UTF-8
+string and producing a newly malloc'd string of characters using
+encoding <var>e</var>.  If a given character cannot be represented in
+this encoding, an error is signalled.  The length of the resulting string
+is stored in <var>sizep</var> if it is non-NULL (this is especially
+important if the generated string contains NULs ('\0') which will
+mislead the C libraries <tt>strlen</tt>.</P>
+
+<P>The function <TT class=ccode>fd_localize_utf8(u8char *start,struct
+FD_TEXT_ENCODING *e)</tt> does the opposite conversion, taking a UTF-8
+string and producing a newly malloc'd string of characters using
+encoding <var>e</var>.  If a given character cannot be represented in
+this encoding, an error is signalled.</P>
+
+<P>FramerD provides a structure called an <TT class=ccode>FD_XFILE</tt> (which
+deals with alien characters) for doing I/O using character sets.  The
+function <TT class=ccode>fd_get_xfile(FILE *f,struct FD_TEXT_ENCODING *e)</tt>
+returns an FD_XFILE structure (malloc'ing it if neccessary) which reads its input or
+writes its output using <var>f</var> together with the encoding
+<var>e</var>.  This structure should be freed with the function
+<TT class=ccode>fd_free_xfile</tt>.
+
+<P>The functions for directly using XFILEs are:
+<ul>
+
+<li><TT class=ccode>fd_xputc(int c,struct FD_XFILE *xf)</tt> writes a representation
+of the unicode code point <var>c</var> to <var>xf</var></li>.  This signals an error
+if the encoding of <var>xf</var> cannot represent <var>c</var>.
+
+<li><TT class=ccode>fd_xgetc(struct FD_XFILE *xf)</tt> returns the <TT class=ccode>int</tt>
+code point for the character from <var>xf</var></li>, based on the
+encoding assigned to <TT class=ccode>xf</tt>.
+
+<li><TT class=ccode>fd_xputc_escaped(int c,struct FD_XFILE *xf)</tt> writes a
+representation of the unicode code point <var>c</var> to
+<var>xf</var></li>.  If the encoding for <var>xf</var> cannot
+represent <var>c</var>, an escape sequence of the form <TT class=lcode>\uXXXX</tt>
+or <TT class=lcode>\UXXXXXXXX</tt> is used to encode the character, where each
+<TT class=lcode>XXXX</tt> or <TT class=lcode>XXXXXXXX</tt> is the hexadecimal code for the
+character.
+
+<li><TT class=ccode>fd_xgetc_escaped(int c,struct FD_XFILE *xf)</tt> returns the
+<TT class=ccode>int</tt> code point for the character from <var>xf</var></li>,
+based on the encoding assigned to <TT class=ccode>xf</tt>.  This will parse
+escapes generated by <TT class=ccode>fd_xputc_encoded</tt>.
+</ul>
+
+<P>The FramerD internationalization library also provides a layer for
+using stdio <TT class=ccode>FILE *</tt> pointers directly, without the
+intervening <TT class=ccode>XFILE</tt>s.  The function <TT
+class=ccode>fd_set_file_encoding(FILE *f,char *name)</tt> associates
+the encoding named <var>name</var> with the file <var>f</var>.  After
+this association, the following functions provide automatic encoding
+and decoding:
+<ul>
+<li><TT class=ccode>fd_fgetc(FILE *f)</tt> returns a character</li>
+<li><TT class=ccode>fd_fputc(int c,FILE *f)</tt> writes <var>c</var> to <var>f</var>
+
+<li><TT class=ccode>fd_fputs_raw(u8char *s,int len,FILE *f)</tt> writes <var>len</var>
+bytes of the UTF-8 encoded string <var>s</var> to <var>f</var>,
+signalling an error if the encoding for <var>f</var> cannot represent
+a character.</li>
+
+<li><TT class=ccode>fd_fputs_escaped(u8char *s,int len,FILE *f)</tt> writes
+<var>len</var> bytes of the UTF-8 encoded string <var>s</var> to
+<var>f</var>, expressing any unrepresentable characters by
+<TT class=lcode>\uXXXX</tt> or <TT class=lcode>\UXXXXXXXX</tt> escape sequences.</li>
+</ul>
+
+<P>The encoding assigned by <tt class=ccode>fd_set_file_encoding</tt>
+can be retrieved by <tt class=ccode>fd_get_file_encoding</tt>.
+
+<P>In addition to file specific and XFILE encodings, there are three
+special global encodings: the <strong>console encoding</strong> is
+used for output to the console (stdin/stdout/stderr); the
+<strong>system encoding</strong> is used to convert strings before and
+after system or library calls, for instance filenames; finally, the
+<strong>default encoding</strong> is used whenever neither of these
+encodings are relevant and no other encoding is explicity
+provided.</P>
+
+<P>The function <TT class=ccode>fd_set_default_encoding(struct
+FD_TEXT_ENCODING *e)</tt> sets the default encoding and the function
+<TT class=ccode>fd_get_default_encoding()</tt> retrieves it.
+Similarly, for the system encoding, the function <TT
+class=ccode>fd_set_system_encoding(struct FD_TEXT_ENCODING *e)</tt>
+sets the default encoding and the function <TT
+class=ccode>fd_get_system_encoding()</tt> retrieves it.  The console
+encoding can be modified by applying the functions above
+
+<P>FramerD normally comes with built-in encodings for ASCII,
+LATIN-[1-9], ISO-8859/[1-15], UTF-8, UCS-2, and KOI-8.  In addition,
+the function <TT class=ccode>fd_load_encoding(char *name,char
+*file)</tt> loads a named encoding from an external file.  It is able
+to interpret both the "charset mapping files" provided by the Unicode
+Consortium (<A
+HREF="ftp://ftp.unicode.org/Public/MAPPINGS/">ftp://ftp.unicode.org/Public/MAPPINGS/</A>)
+and the native character set encoding used by Linux and some other
+operating systems.  Under Linux, these mappings usually live in the
+<tt class=file>/usr/share/i18n/charmaps/</tt> directory.</P>
+
+<P>The environment variable <tt>ENCODINGS_PATH</tt> can refer to a
+number of directories where FramerD automatically searches for
+encodings in this format.  In this search, encoding names are
+canonicalized by removal of of punctuation characters and upper-casing
+of alphabetic characters.</P>
+
+<P>The following program translates the standard input to the standard
+output, doing character translations automatically:</P>
+<pre>
+int main()
+{
+  struct FD_TEXT_ENCODING *in, *out; int c;
+  in=fd_get_encoding(argv[1]); out=fd_get_encoding(argv[2]);
+  fd_set_file_encoding(stdin,in); fd_set_file_encoding(stdout,out);
+  while ((c=fd_fgetc(stdin)) &gt;= 0) fd_fputc(c,stdout);
+  exit(0);
+}
+</pre>
+
+<H2>Composed Characters</H2>
+
+<P>Some unicode characters are <strong>combining characters</strong>
+which work by modifying preceding or succeeding characters with (for
+instance) diacritical or other marks.  This leads to a potential for
+ambiguity because some modified characters have two representations: a
+direct representation as a single unicode character and a combined
+representation consisting of the unmodified character and a subsequent
+modifier.  The function <tt class=ccode>fd_decompose_char(unsigned int
+ch)</tt> returns a UTF-8 string encoding <var>ch</var> as a sequence
+of base character plus modifiers; the function <tt
+class=ccode>fd_recompose_char(fd_u8char *s)</tt> returns the single
+unicode character (if it exists) represented by the character and
+modifiers in the UTF-8 string <var>s</var> It returns <tt>-1</tt> if
+the string does not describe a combined character with a single
+character equivalent.</P>
+
+<P>The standard I/O functions (such as fd_fgetc) do not normally
+interpret combined characters, but return base and combining characters
+separately.  The functions above are designed to be used when programs
+need to interpret such combined characters.</P>
+
+<A NAME="stringoutput"><H1>String Streams</H1></A>
+
+<P>String streams are for generating strings programmatically and are
+used extensively by FDScript and especially its text processing
+utilities.  String streams grow automatically as output is received.
+A string stream is initialized by the macro <TT
+class=ccode>FD_INITIALIZE_STRING_STREAM(ssp,isize)</tt> where
+<var>ssp</var> is a pointer to a string stream and <var>isize</var> is
+the initial number of bytes allocated to its buffer.  This buffer is
+kept in the <TT class=ccode>-&gt;ptr</tt> field of the <TT
+class=ccode>FD_STRING_STREAM</tt> (of type <TT class=ccode>fd_u8char
+*</tt>).  The current capacity of this buffer is an int in the
+<var>limit</var> and the current actual size is in the <var>size</var>
+field.  These sizes are in bytes and the number of represented unicode
+characters may differ, since some Unicode characters take more than
+one byte of UTF-8 encoding.</P>
+
+<P>As indicated by the type of the buffer, string streams use UTF-8 to
+represent Unicode output.  The functions for doing output to string
+streams are:</P>
+<ul>
+<li><TT class=ccode>fd_sputc(fd_string_stream,int c)</tt> writes the unicode character
+represented by <var>c</var>;</li>
+<li><TT class=ccode>fd_sputs(fd_string_stream,u8char *s)</tt> writes the UTF-8 string
+<var>s</var> to the stream;</li>
+<li><TT class=ccode>fd_sputn(fd_string_stream,u8char *s,int n)</tt> writes
+the UTF-8 string between <var>s</var> and <var>s+n</var> to the stream.
+</ul>
+<P>For example, the following procedure returns a string based on a character range:</P>
+<pre>
+u8char *enumerate_char_range(int bot,int top)
+{
+  /* Return a string of characters from bot to top */
+  struct FD_STRING_STREAM s; int i=bot;
+  FD_INITIALIZE_STRING_STREAM(&s,(top-bot)*2);
+  while (i &lt; top) {fd_sputc(&s,i); i++;}
+  return s.ptr;
+}
+</pre>
+
+<P>The macro <tt class=ccode>FD_INITIALIZE_FIXED_STRING_STREAM</tt>
+initializes a string stream of fixed size; output beyond the specified
+size is a no-op.  It takes three arguments: a pointer to the string
+stream to initialize, the size of the buffer, and a pointer to the
+buffer (which is typically on the stack).  We could use this to implement
+a limited version of the procedure above:</P>
+<pre>
+u8char *enumerate_char_range(int bot,int top)
+{
+  /* Return a string of characters from bot to top */
+  struct FD_STRING_STREAM s; int i=bot; char buf[128];
+  if ((top-bot)*2 &gt; 128)
+     fd_raise_exception("Range might be too big");
+  else {
+    FD_INITIALIZE_FIXED_STRING_STREAM(&s,128,buf);
+    while (i &lt; top) {fd_sputc(&s,i); i++;}
+    /* We have to copy it because it is in this stack frame. */
+    return fd_strdup(s.ptr);}
+}
+</pre>
+
+<P>The function <TT class=ccode>fd_printf(fd_string_stream,char
+*fmt,...)</tt> is a version of the <TT class=ccode>printf</tt> which takes
+a string stream as argument and also supports several additional
+format directives:</P>
+<ul>
+<li>"%q" prints a lisp pointer</li>
+<li>"%Q" prints a lisp pointer using the pretty printer</li>
+<li>"%t" prints the current time</li>
+<li>"%lt" prints the current time and date</li>
+<li>"%m" prints a `message' string which should be processed by GNU
+<tt>gettext</tt> for translation before printing.</li>
+</ul>
+
+<P>The function <tt class=ccode>fd_fprintf</tt> takes a <tt
+class=ccode>FILE *</tt> pointer as its first argument.  It will also
+obey any encoding assigned to the file pointer by
+<tt>fd_set_file_encoding</tt>.  The function <tt
+class=ccode>fd_xprintf(char *fmt,...)</tt> handles <em>exceptional
+i/o</em> which goes to either the standard error output or a
+dynamically declared error stream.</P>
+
+<P>The functions <tt class=ccode>fd_notify(char *fmt,...)</tt> and <tt
+class=ccode>fd_warn(char *fmt,...)</tt> are both specialized versions
+of <tt class=ccode>fd_printf</tt> which use globally declared handlers
+to display output to the user.  These functions might, for instance,
+pop up a dialog box rather than doing output to the console.  Both
+functions produce strings which are then passed to handlers.  The
+handler for <tt>fd_notify</tt> is defined by
+<tt>fd_set_notify_handler</tt>: its argument is a function which takes
+a string and returns void.  The handler for <tt>fd_warn</tt> is
+defined by <tt>fd_set_warn_handler</tt>: its argument is also a
+function which takes a string and returns void.  The function
+<tt>fd_disable_notifications()</tt> turns <tt>fd_notify</tt> into a
+no-op.  There is no way to turn off warnings.  In the case of both
+functions, the default action is to do output to the standard error
+stream (stderr).</P>
+
+<A NAME="stringinput"><H2>Reading from Strings</H2></A>
+
+<P>UTF-8 strings can also be read from using a set of functions which
+parallel the FILE and XFILE reading functions.  In this case, an input
+string is simply a pointer to a pointer to a UTF-8 string (i.e. <tt
+class=ccode>fd_utf8 **</tt>; as characters are read, the pointer is
+advanced.  The function <tt class=ccode>fd_sgetc(fd_u8char **ss)</tt>
+reads a character from such a stream.  The function <tt
+class=ccode>fd_parse_lisp_from_string(fd_u8char **ss)</tt> parses a
+LISP object from the representation in the string.</P>
+
+<A NAME="lisptypes"><H1>Lisp Types</H1></A>
+
+<P>There are four basic kinds of lisp types in FramerD:
+<ul>
+
+<li><strong>immediate types</strong> (fixnums, flonums, characters,
+and constants) take up no additional storage (beyond the pointer
+itself, which is typically stack-allocated</li>
+
+<li><strong>consed types</strong> (strings or symbols, for instance)
+point to an internal FramerD structures of some sort; some of these
+(such as symbols) may be interned, so that LISP equality and pointer
+identity are equivalent.  And in some of these cases, such as symbols,
+the consed data is permanent and cannot be reclaimed.  Note that
+object identifiers, OIDs, are a special case, depending on how FramerD
+is compiled; when FramerD is compiled with <strong>consed
+oids</strong> (currently the default), OIDs are a native type and
+point to a lisp strcuture; when FramerD is compiled with
+<strong>lightweight oids</strong>, OIDs are an immediate type which
+may not have a corresponding structure.</li>
+
+<li><strong>composite types</strong> contain other pointers as elements</li>
+
+<li><strong>foreign types</strong> contain reference counted C pointers to other objects</li>
+</ul>
+
+<P><A NAME="immediates">The immediate types are:</A>
+<ul>
+<li><strong>fixnums</strong> (tagged with <TT class=ccode>fixnum_type</tt>)<BR>
+<TT class=ccode>FD_FIXNUMP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is a fixnum;<BR>
+<TT class=ccode>FD_LISPFIX(int)</tt> converts a C int into a tagged lisp pointer; <TT class=ccode>FD_FIXLISP(lisp_int)</tt> extracts
+the integer value from a lisp pointer; <TT class=ccode>fixlisp(lisp_int)</tt> does the same but signals
+an error if <var>lisp_int</var> is not tagged as a fixnum.
+</li>
+<li><strong>constants</strong> (tagged with <TT class=ccode>immediate_type</tt> and including true,
+false, the empty list, the empty choice, the `void' value, and the end
+of file marker);<BR>
+constants are returned by <TT class=ccode>FD_TRUE</tt>, <TT class=ccode>FD_FALSE</tt>,
+<TT class=ccode>FD_EMPTY_LIST</tt>, <TT class=ccode>FD_EMPTY_CHOICE</tt>, <TT class=ccode>FD_VOID</tt>,
+and <TT class=ccode>FD_EOF_OBJECT</tt>;<BR>
+values are tested by  <TT class=ccode>FD_TRUEP</tt>, <TT class=ccode>FD_FALSEP</tt>,
+<TT class=ccode>FD_EMPTY_LISTP</tt>, <TT class=ccode>FD_EMPTYP</tt>, <TT class=ccode>FD_VOIDP</tt>,
+and <TT class=ccode>FD_EOF_OBJECTP</tt>;
+</li>
+<li><strong>characters</strong> (tagged with <TT class=ccode>character_type</tt>)<BR>
+<TT class=ccode>FD_CHARACTERP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is a character object;<BR>
+<TT class=ccode>FD_CODE_CHAR(int)</tt> returns a character object representing the code point <var>int</var>;
+<TT class=ccode>FD_CHAR_CODE(x)</tt> returns the integer code point for <var>x</var>; <TT class=ccode>fd_char_code(x)</tt>
+does the same but signals an error if <var>v</var> is not a character object
+<TT class=ccode>fd_make_character(int x)</tt> returns a LISP character object for the integer code point for <var>x</var>
+</li>
+<li><strong>OIDs</strong> (when OIDS are lightweight) are unsigned ints whose first 8 bits indicate a <em>pseudo pool</em> and whose
+remaining 24 bits indicate an offset into that pool.  These pseudo pools may or may not align with actual pools of OIDs used
+by the object database.<BR>
+<TT class=ccode>FD_OIDP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is an OID;<BR>
+<TT class=ccode>fd_oid_current_value(x)</tt> returns the value
+associated with the OID <var>x</var> if it has been set or loaded
+already; <TT class=ccode>fd_oid_value(x)</tt> returns the value
+associated with the OID <var>x</var>, retrieving it if neccessary and
+incref'ing the result;<BR>
+<TT class=ccode>FD_OID_ADDR_HIGH(x)</tt> returns the top 32-bits of the unique 64-bit ID of <var>x</var>;
+<TT class=ccode>FD_OID_ADDR_LOW(x)</tt> returns the lower 32-bits of the unique 64-bit ID of <var>x</var>;<BR>
+
+</li>
+</ul>
+
+<P>The primary consed types are:
+<ul>
+<li><A NAME="strings"><strong>strings</strong></A> are pointers to structures of type
+<TT class=ccode>struct FD_STRING</tt> which store length information<BR>
+<TT class=ccode>FD_STRINGP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is a string;
+<TT class=ccode>FD_ASCII_STRINGP(x)</tt> will tell you if <var>x</var> is an ASCII string<BR>
+<TT class=ccode>FD_STRING_DATA(x)</tt> returns the UTF-8 string data of a string;
+<TT class=ccode>FD_STRING_LENGTH(x)</tt> returns the number of bytes used in this
+string; <TT class=ccode>fd_strdata(x)</tt> and <TT class=ccode>fd_strlen(x)</tt> do type
+checking<BR>
+
+<TT class=ccode>fd_init_string(fd_u8char *s,int len)</tt> creates a
+new string object, using the string <var>s</var> as data; <var>s</var>
+is not copied and it's UTF-8 validity is not normally checked; <TT
+class=ccode>fd_copy_string(fd_u8char *s)</tt> returns a string object
+based on the UTF-8 string <var>s</var>, however it also does not
+validate the UTF-8 string; <TT class=ccode>fd_make_string(char
+*s)</tt> returns a string object based on the string <var>s</var>
+using the default character encoding to convert <var>s</var> to UTF-8;
+<TT class=ccode>fd_make_substring(fd_u8char
+*start,fd_u8char *end)</tt> returns a string object based on the substring starting
+at <var>start</var> and ending at <var>end>.
+
+</li>
+<li><strong>symbols</strong> are pointers to structures of type <TT class=ccode>struct FD_SYMBOL</tt> and have associated
+names and global values; symbols are interned, so all symbols with the same name will
+actually be the same <TT class=ccode>struct FD_SYMBOL</tt> structure and <TT class=ccode>fd_decref(x)</tt> on
+a symbol does nothing<BR>
+<TT class=ccode>FD_SYMBOLP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is a symbol;<BR>
+<TT class=ccode>FD_SYMBOL_NAME(x)</tt> returns the name of the symbol <var>x</var>, a UTF-8 string
+(<TT class=ccode>u8char *</tt>) which should not be modified.  <TT class=ccode>FD_SYMBOL_VALUE(x)</tt> returns the
+lisp value globally associated with the symbol <var>x</var>;<BR>
+<TT class=ccode>fd_make_symbol(string)</tt> returns the symbol with the name <var>string</var> (a UTF-8 string
+which will be copied).  This will always return the same pointer with equal arguments and will
+cons a new <TT class=ccode>struct FD_SYMBOL</tt> if neccessary;<BR>
+<TT class=ccode>fd_probe_symbol(string)</tt> is like <TT class=ccode>fd_make_symbol</tt> but returns <TT class=ccode>FD_EMPTY_CHOICE</tt>
+if the symbol has not already been returned.
+</li>
+<li><strong>OIDs</strong> (when OIDS are consed) are pointers to structures of type <TT class=ccode>struct FD_OID</tt> which combine
+a unique 64-bit identifier with a lisp value; they are also interned, like symbols;<BR>
+<TT class=ccode>FD_OIDP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is an OID;<BR>
+<TT class=ccode>FD_OID_VALUE(x)</tt> returns the value associated with the OID <var>x</var> if it has been
+set or loaded; <TT class=ccode>FD_OID_ADDR_HIGH(x)</tt> returns the top 32-bits of the unique 64-bit ID of <var>x</var>;
+<TT class=ccode>FD_OID_ADDR_LOW(x)</tt> returns the lower 32-bits of the unique 64-bit ID of <var>x</var>;<BR>
+there are a lot of functions and macros for dealing with OIDs; the are described here (to be written).
+</li>
+<li><strong>flonums</strong> (tagged with <TT class=ccode>flonum_type</tt>) are pointers to C <TT class=ccode>double</tt>s<BR>
+<TT class=ccode>FD_FLONUMP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is a flonum object;<BR>
+<TT class=ccode>FD_LISPFLOAT(fl)</tt> returns a floating point object with value <var>fl</var>;
+<TT class=ccode>FD_FLOATLISP(x)</tt> returns the floating point value of <var>x</var> and
+<TT class=ccode>fd_lisp2float(x)</tt> does the same conversion together with
+a type check on <var>x</var></li>
+<li><strong>C records</strong> are C pointers tagged with a lisp object for type information; they are implemented by
+the <TT class=ccode>struct FD_RECORD</tt> structure;<BR>
+<TT class=ccode>FD_RECORDP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is a C record;<BR>
+<TT class=ccode>FD_RECORD_TAG(x)</tt> returns the LISP object used as a type tag for <var>x</var>;
+<TT class=ccode>FD_RECORD_DATA(x)</tt> returns a <TT class=ccode>void *</tt> pointer
+describing the data for <var>x</var>;<BR>
+<TT class=ccode>fd_record_tag(x)</tt> returns the LISP object used as a type tag for <var>x</var>, signalling an error
+if <var>x</var> is not a record; <TT class=ccode>fd_record_data(x,type)</tt> returns a <TT class=ccode>void *</tt> pointer
+describing the data for <var>x</var>, but will signal an error if <var>x</var> is not a record with type tag <var>type</var>;<BR>
+<TT class=ccode>fd_make_record(ltag,ptr)</tt> returns a C record with the tag <var>tag</var> and containing the pointer <var>ptr</var>
+(which should be of type <var>void *</var>
+</li>
+</ul>
+
+<P><A NAME="composite">The primary composite types are:</A>
+<ul>
+<li><strong>conses</strong> are pairs of two other pointers;<BR>
+<TT class=ccode>FD_PAIRP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is a pair;<BR>
+<TT class=ccode>FD_MAKE_PAIR(x,y)</tt> makes a cons out of <var>x</var> and <var>y</var> (without <TT class=ccode>incref</tt>ing them);
+<TT class=ccode>fd_make_pair(x,y)</tt> does the same but increfs its arguments;
+<TT class=ccode>FD_MAKE_LIST1(elt)</tt> returns a list with one element <var>elt</var> (not incref'd);<BR>
+<TT class=ccode>FD_CAR(x)</tt> will get <var>x</var> back, <TT
+class=ccode>FD_CDR(x)</tt> will be <var>y</var> back.  <TT
+class=ccode>fd_car(x)</tt> and <TT class=ccode>fd_cdr(x)</tt> will do
+the same with type checking and an incref; <TT
+class=ccode>fd_car_noref</TT>, and <TT class=ccode>fd_cdr_noref</tt>
+do the type checking but not the incref<BR>
+<TT class=ccode>fd_list_length(x)</tt> returns the number of elements in <var>x</var></li>
+<li><strong>vectors</strong> are composed of a fixed number of other pointers with a specific order;<BR>
+<TT class=ccode>FD_VECTORP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is a vector;<BR>
+<TT class=ccode>FD_VECTOR_LENGTH(x)</tt> returns the number of elements in <var>x</var>; <TT class=ccode>FD_VECTOR_REF(x,i)</tt>
+returns the <var>i</var><sup>th</sup> element;  <TT class=ccode>FD_VECTOR_SET(v,i,x)</tt> sets the <var>i</var><sup>th</sup>
+element of the vector <var>v</var> to <var>x</var>;<BR>
+<TT class=ccode>fd_vector_length(x)</tt> and <TT class=ccode>fd_vector_ref(x,i)</tt> do type and bounds checking.</li>
+<li><strong>choices</strong> represent unordered sets of objects
+(pointers) and are used by the evaluator to implement
+non-deterministic evaluation and by the frame language to implement
+many-valued slots; technically, a regular lisp object is a
+<em>singular choice</em>, and most of the macros and functions below
+will do the right thing with regular objects.  When a choice is
+non-singular and non-empty, it is represented by a pointer to a <TT
+class=ccode>struct FD_CHOICE</tt> structure<BR>
+<TT class=ccode>FD_CHOICEP(x)</tt> is <TT class=ccode>1</tt> if
+<var>x</var> is a non-singular choice; <TT
+class=ccode>FD_CHOICE_SIZE(x)</tt> returns the number of elements in
+<var>x</var> and returns <TT class=ccode>1</tt> if <var>x</var> is not
+a choice and <TT class=ccode>0</tt> if <var>x</var> is the empty
+choice;<BR>
+the macro <TT class=ccode>FD_ADD_TO_CHOICE(loc,x)</tt> adds a pointer
+to <var>x</var> to the choice stored in <var>loc</var>; for example,
+<TT class=ccode>FD_ADD_TO_CHOICE(answers,LISPFIX(3));</tt> adds the
+fixnum <TT class=ccode>3</tt> to the choice stored in the C variable
+<TT class=ccode>answers</tt>.  Note that answers should have been
+initialized to some lisp pointer (typically the empty choice);<BR>
+the macro pattern <TT
+class=ccode>FD_DO_CHOICES(x,choice)<var>body</var>END_FD_DO_CHOICES;</tt>
+iterates over the elements of a choice, processing for the next C
+statement for each element of <var>choice</var> and binding
+<var>x</var> to the element.  Note that <TT
+class=ccode>FD_DO_CHOICES</tt> declares some internal variables, so it
+must occur before any non-declarations in a C block.<BR>
+choices are internally divided into <em>proper choices</em> (which
+have no repeated elements) and <em>sorted choices</em> (which are
+sorted to optimize certain operations).  The macros <TT
+class=ccode>FD_PROPER_CHOICEP(x)</tt> and <TT
+class=ccode>FD_SORTED_CHOICEP(x)</tt> check the manifest type of
+<var>x</var> (they don't actually check the data).  The functions <TT
+class=ccode>fd_return_proper_choice(x)</tt> and <TT
+class=ccode>fd_return_sorted_choice(x)</tt> generate proper or sorted
+choices from <var>x</var> (they also may free their argument
+<var>x</var> and return a different pointer).
+</li>
+<li><strong>slotmaps</strong> represent sets of assocations between <em>keys</em> (typically symbols or OIDs) and lisp values;
+they are kept in a <TT class=ccode>struct FD_SLOTMAP</tt> structure<BR>
+<TT class=ccode>FD_SLOTMAPP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is a slotmap; <TT class=ccode>FD_SLOTMAP_PTR(x)</tt> returns a pointer
+to the slotmap structure used for <var>x</var><BR>
+<TT class=ccode>SLOTMAP_SIZE(x)</tt> returns the number of associations in <var>x</var>; <TT class=ccode>FD_SLOTMAP_KEY(sm,i)</tt> returns the
+key for the <var>i</var><sup>th</sup> association; <TT class=ccode>FD_SLOTMAP_VALUE(sm,i)</tt> returns its value;<BR>
+<TT class=ccode>fd_make_slotmap(size)</tt> makes a new slotmap with initial space for <var>size</var> associations; these assocations can
+be modified by several functions:
+<ul>
+<li><TT class=ccode>fd_slotmap_set(sm,key,val)</tt> sets the value associated with <var>key</var> in the slotmap <var>sm</var> to <var>val</var>;</li>
+<li><TT class=ccode>fd_slotmap_add(sm,key,val)</tt> adds <var>val</var> to the values associated with <var>key</var> in the slotmap <var>sm</var>;</li>
+<li><TT class=ccode>fd_slotmap_get(sm,key,default)</tt> returns the values associated with <var>key</var> in the slotmap <var>sm</var>, or returns <var>default</var>
+if there are no associations in <var>sm</var>;
+<li><TT class=ccode>fd_slotmap_test(sm,key,val)</tt> returns <TT class=ccode>1</tt> if <var>val</var> is associated with <var>key</var> in <var>sm</var>;
+</ul>
+<P>there are other slotmap functions as well.
+</li>
+<li><strong>lisp records</strong> are lisp objects tagged with type information represented by a LISP tag
+(which could be a symbol, a string, an OID, anything);<BR>
+<TT class=ccode>FD_LRECORDP(x)</tt> is <TT class=ccode>1</tt> if <var>x</var> is a lisp record; <TT class=ccode>LRECORD_TAG(x)</tt> returns the lisp object being used to tag <var>x</var>;
+<TT class=ccode>FD_LRECORD_TAG(x)</tt> returns the lisp type tag of <var>x</var>.<BR>
+<TT class=ccode>FD_LRECORD_DATA(x)</tt> returns the lisp data of <var>x</var>.<BR>
+<TT class=ccode>FD_LRECORD_TYPEP(x,tag)</tt> is <TT class=ccode>1</tt> if the tag on <var>x</var> is <TT class=ccode>EQ?</tt> to <var>tag</var>.<BR>
+<TT class=ccode>fd_lrecord_tag(x)</tt> returns the lisp object describing the type of <var>x</var> and signals
+an error if <var>x</var> is not an LRECORD.<BR>
+<TT class=ccode>fd_lrecord_data(x,type)</tt> returns the lisp data for <var>x</var> but signals an error
+if <var>x</var> is not an LRECORD with type tag <var>type</var>.<BR>
+<TT class=ccode>fd_make_record(ltag,ldata)</tt> returns a lisp record whose tag is <var>tag</var> and whose data is <var>data</var>.
+</li>
+</ul>
+
+<P><strong>Foreign types</strong> are reference counted C pointers.
+The pointer of a foreign type can be extracted by the macro
+<TT class=ccode>FD_CPTR_DATA(x)</tt>, and an object of foreign type is created by the
+function <TT class=ccode>fd_make_cptr(type,ptr)</tt> where <var>type</var> is one
+of the legal <TT class=ccode>fd_lisp_type</tt> values.
+
+<P>This table lists the foreign types, the kind of pointer which <TT class=ccode>CPTR_DATA</tt>, and the chief
+file where that data structure is defined and used will return:
+<TABLE WIDTH="75%" BORDER=2 CELLPADDING=5>
+<TR><TH>Type</TH><TH>FD_CPTR_DATA is</TH><TH>file(s)</TH></TR>
+<TR><TD>dtype_server_type</TD><TD>struct FD_SERVER *</TD><TD>src/eval/eval.c</TD></TR>
+<TR><TD>pool_type</TD><TD>struct FD_POOL *</TD><TD>src/odb/odb.c</TD></TR>
+<TR><TD>index_type</TD><TD>struct FD_INDEX *</TD><TD>src/index/index.c</TD></TR>
+<TR><TD>hashtable_type</TD><TD>struct FD_HASHTABLE *</TD><TD ROWSPAN=2>src/cons/hash.c<BR>src/fdscript/hashprims.c</TD></TR>
+<TR><TD>hashset_type</TD><TD>struct FD_HASHSET *</TD></TR>
+<TR><TD>input_file_type</TD><TD>FILE *</TD><TD ROWSPAN=5>src/fdscript/ioprims.c</TD></TR>
+<TR><TD>output_file_type</TD><TD>FILE *</TD></TR>
+<TR><TD>io_file_type</TD><TD>FILE *</TD></TR>
+<TR><TD>input_string_type</TD><TD>struct FD_STRING_ISTREAM *</TD></TR>
+<TR><TD>output_string_type</TD><TD>struct FD_STRING_STREAM *</TD></TR>
+<TR><TD>mutex_type</TD><TD>pthread_mutex_t *</TD><TD>src/eval/threads.c</TD></TR>
+<TR><TD>mystery_type</TD><TD>struct FD_MYSTERY *</TD></TR>
+<TR><TD>segmented_stream_type</TD><TD>struct FD_MYSTERY *</TD><TD ROWSPAN=2>src/text/text.c</TD></TR>
+<TR><TD>record_stream_type</TD><TD>struct FD_MYSTERY *</TD></TR>
+<TR><TD>tx_closure_type</TD><TD>struct TX_CLOSURE *</TD><TD>src/text/match.c</TD></TR>
+</TABLE>
+
+<P><A NAME="evaltypes">In addition, a number of special `foreign' types are used by the evaluator; this table summarizes
+them.  For the time being, if you have any questions, "Use the Source, Luke".</A>
+<TABLE WIDTH="75%" BORDER=2 CELLPADDING=5>
+<TR><TH>type</TH><TD>FD_PTR_DATA is</TD><TH>Description</TH></TR>
+<TR><TD>tail_call_type</TD>
+    <TD>struct FD_VECTOR *</TD>
+    <TD>Represents a partially evaluated expression, used to allow
+constant-space tail recursion</TD></TR>
+<TR><TD>cproc_type</TD>
+    <TD>struct FD_CPROC *</TD>
+    <TD>a C primitive accessible from FDScript</TD></TR>
+<TR><TD>sproc_type</TD>
+    <TD>struct FD_SPROC *</TD>
+    <TD>a Scheme procedure definition, closed in a particular environment</TD></TR>
+<TR><TD>ssproc_type</TD>
+    <TD>struct FD_SSPROC *</TD>
+    <TD>a "synchronized" scheme procedure, which is guaranteed to only
+be running in any one thread at any one time</TD></TR>
+<TR><TD>continuation_type</TD>
+    <TD>a FD_CPTR to a char *</TD>
+    <TD>indicates a dynamic return point somewhere up the stack;
+the continuation passing mechanism uses FramerD's native exception
+handling to implement its upward continuations</TD></TR>
+<TR><TD>gproc_type</TD>
+    <TD>struct FD_GPROC *</TD>
+    <TD>a procedure which returns the empty choice when
+called recursively on the same arguments; used for certain
+special sorts of programming</TD></TR>
+<TR><TD>rproc_type</TD>
+    <TD>struct FD_RPROC *</TD>
+    <TD>a procedure which uses a remote server to get its value</TD></TR>
+<TR><TD>multiple_value_type</TD>
+    <TD>struct FD_VECTOR *</TD>
+    <TD>used to represent multiple values returned from a procedure; note that
+these multiple values are different from <em>choices</em></TD></TR>
+<TR><TD>delay_type</TD>
+    <TD>struct FD_PAIR *</TD>
+    <TD>a delayed value; the <TT class=ccode>CAR</tt> is the delay's <em>thunk</em>, the <TT class=ccode>CDR</tt>
+is the value returned by it and the thunk is freed after itis called.</TD></TR>
+<TR><TD>env_type</TD>
+    <TD>struct FD_LISPENV *</TD>
+    <TD>a pointer to an environment structure; when this structure has a <TT class=ccode>-&gt;module</tt> field,
+it is a top level module</TD></TR>
+<TR><TD>quoted_choice_type</TD>
+    <TD>struct FD_CHOICE *</TD>
+    <TD>This is used to temporarily suspend non-determinism when passing an argument; a quoted choice
+is automatically unquoted whenever it is passed to a primitive or bound to a variable</TD></TR>
+</TABLE>
+
+<A NAME="evalfcns"><H1>FDScript Evaluator Functions</H1></A>
+
+<DL>
+<DT><TT class=ccode>fd_add_cproc</tt>(&quot;fdscript-name&quot;,arity,c_procedure) </DT>
+<DD>Declares a new primitive in the scripting language with the name
+<I>&quot;fdscript-name&quot;</I>, implemented by <I>c_procedure</I>,
+and taking <I>arity</I>.  Evaluating the expression <TT class=ccode>(fdscript-name
+<I>arg1</I> <I>arg2</I> ...)</TT> calls the <I>c_procedure</I> on the
+result of evaluating each of the arguments.</DD>
+
+<DT><TT class=ccode>fd_add_cform</tt>(&quot;fdscript-name&quot;,c_procedure) </DT>
+<DD>Declares a new special form in the scripting language with the
+name <I>&quot;fdscript-name&quot;</I>, implemented by
+<I>c_procedure</I>.  Evaluating the expression <TT class=ccode>(fdscript-name
+<I>arg1</I> <I>arg2</I> ...)</TT> calls the <I>c_procedure</I> on the
+entire expression without evaluating any arguments.</DD>
+
+<DT><TT class=ccode>fd_add_nary_cproc</tt>(&quot;fdscript-name&quot;,c_procedure) </DT>
+<DD>Declares a new primitive in the scripting language with the name
+<I>&quot;fdscript-name&quot;</I>, implemented by <I>c_procedure</I>,
+and taking any number of arguments.  Evaluating the expression
+<TT class=ccode>(fdscript-name <I>arg1</I> <I>arg2</I> ...)</TT> calls the
+<I>c_procedure</I> on a list whose elements are the results of
+evaluating each <var>arg<sub>i</sub></var>.  If the argument
+evaluations return non-deterministic values, the values are passed as
+elements of the list, rather than calling <var>c_procedure</var>
+repeatedly on each combination.</DD>
+
+<DT><TT class=ccode>fd_eval</tt>(expr)</DT>
+<DD>Evaluates an expression in this process. </DD>
+
+<DT><TT class=ccode>fd_eval_loop</tt>(input,output) </DT>
+<DD>Enters a read-eval-print loop going to a specified input and output
+stream. </DD>
+
+<DT><TT class=ccode>fd_get_arg</tt>(expr,arg_number,default) </DT>
+<DD>Given an expression, returns the arg_numberth element if it exists
+and the default otherwise. If the default value is <tt>FD_VOID</tt>, an error
+is signalled if the argument is not provided. </DD>
+
+<DT><TT class=ccode>fd_get_body</tt>(expr,offset)</DT>
+<DD>Given an expression, returns the sublist starting after the offset<SUP>th
+</SUP>element. </DD>
+
+<DT><TT class=ccode>fd_interactive_loop</tt>(input file stream,output file stream)</DT>
+<DD>Iteratively reads expressions from the input file stream (a FILE *),
+evaluates them, and outputs them to the output file stream.</DD>
+
+<DT><TT class=ccode>fd_load_init</tt>(filestring) </DT>
+<DD>Loads and evaluates a file of FDScript expressions.</DD>
+
+</DL>
+
+<A name=modules><H1>Writing a Module</H1></A>
+
+<P>To write a C module to link FDScript with some existing library,
+take a look at the automatic code generator in
+<TT class=ccode>extras/c-bindings/cbind.fdx</tt>.  Otherwise, this section offers
+a few pointers and you can look at <TT class=ccode>samples/c-modules/</tt> for
+example code.
+
+<P>There are three basic kinds of primitives: cprocs, lexprs, and
+special forms.  A cproc takes some fixed number of arguments, all of
+which are evaluated; a lexpr takes an arbitrary number of arguments,
+all of which are evaluted; a special form takes an expression and an
+environment and does whatever it pleases with it.
+
+<P>Special forms are declared by the function
+<TT class=ccode>fd_add_special_form(env,"name",cproc)</tt> which defines a special
+form bound to the symbol <var>name</var> in <var>env</var> which will
+be handled by the C function <var>cproc</var>.  The C function
+<var>cproc</var> should have the signature <TT class=ccode>lisp
+<var>cproc</var>(lisp expr,fd_lispenv env)</tt>.
+
+<P>CPROCs are declared by the function
+<TT class=ccode>fd_add_cproc("name",n_args,cproc)</tt> which defines a CPROC that
+takes <var>n_args</var> arguments (surprise) and is handled by the C
+function <var>cproc</var>.  The C function <var>cproc</var> should
+have the signature <TT class=ccode>lisp <var>cproc</var>(lisp arg1,lisp
+arg2,...)</tt>.  The compiler will not warn you if the number of
+arguments doesn't match.  This binds the symbol <var>name</var> to
+this primitive in the environment <var>env</var>.
+
+<P>LEXPRs come in two flavors and are declared by the function
+<TT class=ccode>fd_add_lexpr("name",lexpr_type,cprc)</tt> where
+<var>lexpr_type</var> is either <TT class=ccode>NORMAL_LEXPR_ARGS</tt> or
+<TT class=ccode>SPECIAL_LEXPR_ARGS</tt>.  If the type is
+<TT class=ccode>NORMAL_LEXPR_ARGS</tt>, the evaluator will automatically enumerate
+any choices passed as arguments (so <var>cproc</var> may be called
+multiple times).  Otherwise, <var>cproc</var> will only be called
+once, but the argument list it receives may contain non-singular
+<em>choices</em>.  This binds the symbol <var>name</var> to
+this primitive in the environment <var>env</var>.
+
+<P>A C module normally contains a series of <TT class=ccode>static</tt> functions
+which implement the primitives and an <em>initialization function</em>
+which calls the function <TT class=ccode>fd_make_module()</tt> to make an empty
+module (which has C type <TT class=ccode>fd_lispenv</tt>).  It then makes a series
+of calls to <TT class=ccode>fd_add_cproc</tt> and its siblings to populate this
+environment with siblings.  Finally, it calls the function
+<TT class=ccode>fd_register_module(name,env)</tt> on the module to bind
+<var>name</var> in the global environment to the module where a call
+to <TT class=ccode>USE-MODULE!</tt> can find it.  (Alternatively, it can call the
+function <TT class=ccode>fd_register_restricted_module</tt> to bind the module in
+FDScript's `restricted environment'.)
+
+<P>If the <var>env</var> argument to the <TT class=ccode>fd_add_</tt> functions is
+<TT class=ccode>NULL</tt>, the primitive is defined in the global environment.
+This will allow for faster accesses, but access cannot be restricted
+and there is a risk of name collisions.
+
+<a NAME="dirstructure">
+<H1>The Directories of FramerD</H1></a>
+
+<P>The top level of the FramerD directory tree (which you get when you
+unpack a source tarball or do a CVS checkout) is organized into
+multiple subdirectories show in <A HREF="#dirs">this table</A>.
+<TABLE WIDTH="75%" BORDER=2 CELLPADDING=5>
+<caption>Top Level FramerD directory structure</caption>
+<TR><TD>src</TD><TD>contains the source for the C libraries and
+executables; the structure of these sources is described
+<A HREF="#sources">below</A>.
+</TD></TR>
+<TR><TD class="file">include/</TD><TD>contains C header files used by
+the FramerD source files</TD></TR>
+<TR><TD class="file">include/framerd/</TD><TD>contains C header files used by
+external FramerD libraries as well as the FramerD source files</TD></TR>
+<TR><TD class="file">bin/<TD>is the directory into which executable files are compiled</TD></TR>
+<TR><TD class="file">lib/</TD><TD>is the directory into which static and shared libraries
+are compiled</TD></TR>
+<TR><TD class="file">etc/</TD>
+<TD>contains the Emacs Lisp (ELISP) interface to
+FramerD, the FDScript installation scripts, and various shell scripts
+for server management.</TD></TR>
+<TR><TD class="file">extras/</TD>
+<TD>contains subdirectories for various FDScript extension libraries
+written in C.  Each has its own makefile and produces static and dynamic
+libraries</TD>
+</TR>
+<TR><TD class="file">extras/c-bindings</TD>
+<TD>The file <tt>cbind.fdx</tt> implements a package which
+automatically generates interfaces from FDScript to C libraries.  The
+individual `.fdx' files in this directory implement various
+bindings for common libraries.</TD>
+</TR>
+<TR><TD class="file">docs/</TD>
+<TD>contains documentation for FramerD in HTML, together with a handful of
+<tt>.png</tt> format images.</TD>
+</TR>
+<TR><TD class="file">tests/</TD><TD>contains a FramerD test suites, including
+Aubrey Jaffer's R4RS test suite, custom tests for FramerD itself,
+and regression tests to catch the return of past bugs.</TD></TR>
+<TR><TD class="file">tests/gabriel</TD><TD>contains Scheme versions of the
+Gabriel benchmarks for evaluating FDScript performance</TD></TR>
+<TR><TD class="file">scripts/</TD>
+<TD>contains FDScript programs to be installed as command line
+utilities.  These utilities include pool and index maintenance utilities
+as well as command line tools for browsing FramerD databases.</TD></TR>
+<TR><TD class="file">samples/</TD><TD>contains subdirectories of various 
+collections of sample code for servers, shell commands, web scripting,
+and email parsing</TD></TR>
+</TABLE>
+<P>In addition, the top level directory contains configuration and
+make files (configure, configure.in, and makefile.in) as well as text
+files describing how to compile FramerD (<tt>BUILD</tt>), how to
+install it (<tt>INSTALL</tt>), news about changes (<tt>README</tt>),
+and a copy of the GNU General Public License (<tt>LICENSE</tt>).
+
+<P>Conceptually, the FramerD sources can be divided into six modules,
+summarized in <A HREF="#sources">this table</A>.
+<a name=sources><TABLE WIDTH="75%" BORDER=3 CELLPADDING=5>
+<caption>Structure of FramerD source modules</caption>
+<TR><TH>directories</TH><TH>libraries</TH><TH>Description</TH><TH>header files</TH></TR>
+<TR><TD class="file">src/os<TD ROWSPAN=2 class="file">libdtypes
+<td>a system module provides for OS-independent internationalization,
+environment access, and file system operations
+<TD class="file">include/framerd/os.h
+<BR>include/framerd/except.h<BR>include/framerd/strstream.h
+</TR>
+
+<TR><TD class="file">src/cons</TD>
+<td>a data module provides the basic LISP data structures, printed and
+binary object i/o, and some derived structures, including hashtables
+and slotmaps
+<TD class="file">include/framerd/cons.h<BR>include/framerd/lisp.h</TD>
+</TR>
+
+<TR><TD class="file">src/odb<BR>src/index<BR>src/eval<TD class="file">libframerd
+<td>the FramerD core provides management for object (OID) databases,
+persistent associative indices, and a minimal evaluator for a subset
+of Scheme
+<TD class="file">include/framerd/odb.h<BR>include/framerd/index.h<BR>include/framerd/eval.h
+</TR>
+
+<TR><TD class="file">src/scheme<TD ROWSPAN=2 class="file">libfdscript
+<td>the Scheme module provides most of the R5RS scheme functions,
+including rational, complex, and arbitrary precision arithmetic
+<TD>include/framerd/bignum.h<BR>include/framerd/bignmint.h
+</TR>
+
+<TR><TD class="file">src/fdscript
+<td>the FDScript module provides further advancec functions, including
+operating system access, bindings for internal utilities in the
+system, data and FramerD modules, formatted output, generic sequences,
+and console interaction
+<TD>&nbsp;
+</TR>
+
+<TR><TD class="file">src/text<TD class="file">libfdtext
+<td>the text module provides pattern matching and parsing functions
+for natural and artifical languages, especially intended for
+implementing transducers between existing programs and databases and
+FramerD.
+<TD class="file">include/framerd/fdtext.h
+</TR>
+
+<TR><TD class="file">src/exe<BR>src/misc</TD><TD class="file">&nbsp;</TD>
+<TD>the executables themsleves which are linked against the
+libraries above; the directory <tt>src/misc</tt> contains code used
+with the server and CGI executables.  A description of the standard executables
+can be found <A HREF="#executables">here</A></TD>
+<TD class="file">&nbsp;</TD>
+</TR>
+
+</TABLE></a>
+
+<P>The "standard executables" in FramerD are compiled from files in
+<tt>src/exe</tt>, linked against the above libraries.  The server and
+web gateway executables are also linked together with the files
+<tt>src/misc/server.c</tt> and <tt>src/misc/cgiparse.c</tt>.  These
+standard executables are summarized in <A HREF="#executables">this table</A>.
+<a name=executables><TABLE WIDTH="75%" BORDER=2 CELLPADDING=5>
+<caption>Standard FramerD executables</caption>
+<TR><TD class="file">print-dtype</TD>
+<TD>prints and ASCII representation
+of a DTYPE stored in a file</TD></TR>
+<TR><TD class="file">make-dtype</TD>
+<TD>makes a DTYPE in a file given an ASCII
+representation from the command line</TD></TR>
+<TR><TD class="file">dtcall</TD>
+<TD>does a remote procedure call using
+the DType protocol.</TD></TR>
+<TR><TD class="file">pool-get</TD>
+<TD>prints the value of an OID in a pool</TD></TR>
+<TR><TD class="file">index-get</TD>
+<TD>prints the values associated with
+a key in an index</TD></TR>
+<TR><TD class="file">analyze-index</TD>
+<TD>analyzes and index file for 
+hashing properties and statistics</TD></TR>
+<TR><TD class="file">fdscript</TD>
+<TD>runs an FDScript interpreter,
+either interactively or on a command file; this is used to
+implement command-line access to FramerD databases</TD></TR>
+<TR><TD class="file">fdcgi</TD>
+<TD>runs an FDScript interpreter,
+intended to use with a web server's <strong>common gateway
+interface</strong> to provide WWW-hosted interaction with FramerD
+databases</TD></TR>
+<TR><TD class="file">fdserver</TD>
+<TD>starts a FramerD server on a specified port,
+which may provide access to pools or indices in local files</TD></TR>
+</table></a>
+
+<A NAME="files"><H1>The Files of FramerD</H1></A>
+
+<TABLE WIDTH="75%" BORDER=2 CELLPADDING=5>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#except.c">src/cons/except.c</A></TD>
+<TD>implements basic exception handling based on the C runtime <tt>setjmp</tt> and <tt>longjmp</tt></TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#data.c">src/cons/data.c</A></TD>
+<TD>implements data types such as lists and integers and
+the facilities for implementing new datatypes in C</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#hash.c">src/cons/hash.c</A></TD>
+<TD>interned datatypes (symbols and object identifiers (OIDs)) which rely
+on them</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#xdata.c">src/cons/xdata.c</A></TD>
+<TD>datatypes, including vectors, slotmaps, bignums, unicode strings,
+etc</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#io.c">src/cons/io.c<BR>src/cons/dtio.c<BR>src/cons/txio.c</A></TD>
+<TD>implements the binary DTYPE
+format for transmitting data across the network and storing it
+persistently in disk files; it is included twice in the file
+<tt>io.c</tt> to implement I/O to and form buffers in memory and I/O
+using the C stdio library.  <LI><TT>src/cons/io.c</TT> provides a
+wrapper for the binary DTYPE functions as well as functions for
+producing and parsing printed representations of objects.  It also
+includes the functions for getting miscellaneous enviromental
+information (including accessing the WIN32 registry)</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#network.c">src/os/network.c</A></TD>
+<TD>implements basic generic network access
+functions across operating systems</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#fdprintf.c">src/os/fdprintf.c</A></TD>
+<TD>with a <strong>printf</strong> syntax extended for the presentation of
+lisp objects.  Output can be either directed to files or to the
+<em>string streams</em> used throughout FramerD.  This file also
+implements <em>exceptional i/o</em> facilities for managing reports of
+unexpected events.</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#i18n.c">src/os/i18n.c</A></TD>
+<TD>provides an OS independent layer for dealing with Unicode strings
+and character set conversions</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#envfns.c">src/os/envfns.c</A></TD>
+<TD>provides an OS independent layer for dealing with environment queries,
+including time and system functions</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#filefns.c">src/os/filefns.c</A></TD>
+<TD>provides an OS independent layer for dealing with file access and information</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#odb.c">src/odb/odb.c</A></TD>
+<TD>implements the object database which maps
+OIDs to their values, whether stored in local files or remote servers;
+it also manages the locking and unlocking of OIDs and the organization
+of OIDs into disjoint <i>pools</i>.</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#pools.c">src/odb/pools.c</A></TD>
+<TD>implements the management of the pools into which the object
+address space is divided.</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#file-pool.c">src/odb/file-pool.c</A></TD>
+<TD>implements access to subsets of the
+object database stored in disk files, called <i>file pools</i></TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#network-pool.c">src/odb/network-pool.c</A></TD>
+<TD>implements access to subsets of the
+object database stored on remote servers, called <i>network pools</i></TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#frames.c">src/odb/frames.c</A></TD>
+<TD>implements <strong>frames</strong> which
+are OIDs whose values are slotmaps implementing an attribute value
+structure with the possibility for complex inferences over some of
+their values.</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#index.c">src/index/index.c</A></TD>
+<TD>implements access to persistent indices mapping Scheme objects to each
+other and especially matching key objects to OIDs</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#file-index.c">src/index/file-index.c</A></TD>
+<TD>implements access to on-disk hash tables as indices.</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#network-index.c">src/index/network-index.c</A></TD>
+<TD>implements access remote DTYPE servers used as indices.</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#search.c">src/index/search.c</A></TD>
+<TD>combines the frames implemented in the
+object database with the indexing facility to do automatic or
+semi-automatic frame indexing</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#eval.c">src/eval/eval.c</A></TD>
+<TD>contains the evaluator kernel and a
+small set of evaluator related functions.</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#ndeval.c">src/eval/ndeval.c</A></TD>
+<TD>contains handlers for dealing with non-determinism in evaluation and application</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#mini.c">src/eval/mini.c</A></TD>
+<TD>contains basic core functions (no binding constructs) to be used by
+FramerD inference methods</TD>
+</TR>
+
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#lambda.c">src/eval/lambda.c</A></TD>
+<TD>implements environment structures and lambdas to
+support user definitions.</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#sandbox.c">src/eval/sandbox.c</A></TD>
+<TD>implements basic symbol level access in order to support
+limited-capability interpreters for more secure FDScript environments</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#threads.c">src/eval/threads.c</A></TD>
+<TD>contains support for multi-threaded programming, including mutexes and
+spawning new threads.</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#load.c">src/eval/load.c</A></TD>
+<TD>implements procedures for loading disk files containing FDScript code.
+</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#arith.c">src/scheme/arith.c</A></TD>
+<TD>contains arithmetic primitives</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#bignum.c">src/scheme/bignum.c</A></TD>
+<TD>contains the code for arbitrary
+precision integers, inherited from MIT Scheme</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#strings.c">src/scheme/strings.c</A></TD>
+<TD>contains special string manipulation
+primitives</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#pairs.c">src/scheme/pairs.c</A></TD>
+<TD>contains special pair/list manipulation
+primitives</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#characters.c">src/scheme/characters.c</A></TD>
+<TD>contains special character access
+and manipulation primitives</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#reflect.c">src/scheme/reflect.c</A></TD>
+<TD>contains forms for environment manipulation</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#special.c">src/scheme/special.c</A></TD>
+<TD>contains Scheme and Common Lisp special forms</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#cxr.c">src/scheme/cxr.c</A></TD>
+<TD>contains list access primitives of the form "C[AD]+R"</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#ioprims.c">src/scheme/ioprims.c</A></TD>
+<TD>contains primitives for binary and character
+I/0, including the R4RS I/0 primitives</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#prims.c">src/fdscript/prims.c</A></TD>
+<TD>contains a miscellaneous primitives for FDScript</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#printout.c">src/fdscript/printout.c</A></TD>
+<TD>implements the <tt>PRINTOUT</tt>
+facility for producing formatted output.</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#seq.c">src/fdscript/seq.c</A></TD>
+<TD>contains special sequence functions
+inherited from Common Lisp</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#osprims.c">src/fdscript/osprims.c</A></TD>
+<TD>contains primitives for operating
+system access</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#framerd.c">src/fdscript/framerd.c</A></TD>
+<TD>contains primitives for accessing
+FramerD objects, frames, pools, and indices</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#maint.c">src/fdscript/maint.c</A></TD>
+<TD>contains primitives for maintaining
+FramerD pools and indices</TD>
+</TR>
+
+<TR>
+<TD class=file><A HREF="framerd-capi.html#hashprims.c">src/fdscript/hashprims.c</A></TD>
+<TD>contains primitives for using
+hashtables and hashsets</TD>
+</TR>
+</TABLE>
+
+</BODY>
+</HTML>

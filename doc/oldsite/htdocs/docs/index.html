@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<HTML>
+<HEAD>
+<TITLE>FramerD Documentation</TITLE>
+<LINK REL="stylesheet" TYPE="text/css" HREF="framerd.css">
+</HEAD>
+<BODY>
+<TABLE ALIGN=LEFT WIDTH='100%'>
+<TR>
+<TH CLASS=bigtitle ALIGN=LEFT WIDTH='70%'>
+FramerD Documentation
+<TH ALIGN=RIGHT ROWSPAN=2>
+<A HREF="http://www.framerd.org/"><IMG BORDER=0 SRC="fdlogo.png"></A>
+<TR>
+</TABLE><BR CLEAR=LEFT>
+
+<P STYLE="font-size: small;">These documents describe FramerD, a database designed for
+generating, managing, and using very large pointer-intensive data
+sets.  It is especially appropriate for structures such as semantic
+networks, domain ontologies, and hypermedia.  The FramerD
+implementation includes <tt>fdscript</tt>, a Scheme-based very high
+level language especially designed to support text processing,
+artificial intelligence, and multimedia scripting.  FramerD and
+FDScript also support international programming with Unicode,
+multi-threaded programming with the Posix threads model, and a novel
+<A HREF="fdscript-guide.html#text">text analysis package</A> for
+reading and interacting with outside services and databases.</P>
+
+<P><A class=bibref HREF="/cgi-bin/autodoc.fdcgi">Dynamic API Documentation Browser</A></P>
+
+<P><A CLASS=bibref HREF="users-guide.html">User's Guide to FramerD</A><BR>
+<span class=quickref>
+[<A HREF="users-guide.html#installation">Installation</A>]&nbsp; 
+[<A HREF="users-guide.html#listeners">Listeners</A>]&nbsp; 
+[<A HREF="users-guide.html#customization">Customizing&nbsp;FramerD</A>]&nbsp; 
+[<A HREF="users-guide.html#config">Configuration&nbsp;Files</A>]&nbsp; 
+[<A HREF="users-guide.html#example">An&nbsp;Extended&nbsp;Example</A>]&nbsp; 
+[<A HREF="users-guide.html#shell">Shell&nbsp;Commands</A>]&nbsp; 
+[<A HREF="users-guide.html#emacs">Using&nbsp;FramerD&nbsp;from&nbsp;Emacs</A>]&nbsp; 
+[<A HREF="users-guide.html#invoking">Invoking&nbsp;FDScript</A>]&nbsp;
+</span>
+
+<P><A CLASS=bibref HREF="GPL.txt">GNU General Public
+License</A><BR> FramerD and FDScript are released under the GNU
+General Public License and are free of charge under that license.
+
+<P><A CLASS=bibref HREF="concepts.html">FramerD Concepts</A>&nbsp;&nbsp;<BR>
+<span class=quickref>
+[<A HREF="concepts.html#oids">OIDs and the Object Database</A>]&nbsp; 
+[<A HREF="concepts.html#indices">Persistent Indices</A>]&nbsp; 
+[<A HREF="concepts.html#frames">Frames in FramerD</A>]&nbsp; 
+[<A HREF="concepts.html#search">Searching for Frames</A>]&nbsp; 
+[<A HREF="concepts.html#dtypes">The DTYPE Protocol</A>]&nbsp;
+</span>
+
+<P><A CLASS=bibref HREF="fdscript-guide.html">Programming in FDScript</A><BR>
+<span class=quickref>
+[<A HREF="fdscript-guide.html#distributed">Distributed Programming</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#choices">Choices</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#hashing">Hash tables, sets, etc.</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#printout">Formatted Output</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#os">OS functions</A> including
+<A HREF="fdscript-guide.html#time">time</A>, <A HREF="fdscript-guide.html#resources">resources</A>, 
+and <A HREF="fdscript-guide.html#users">users</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#filesystem">Accessing Information about Files</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#i18n">Internationalization</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#scripts">Writing Shell Scripts</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#inthelarge">Programming in the Large</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#subjobs">Remote and Local Subjobs</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#sequences">Sequence Functions</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#macros">Dirty macros</A>]&nbsp; 
+[<A HREF="fdscript-guide.html#text">Text matching, searching, and substitution</A>]&nbsp; 
+[Specialized parsers for <A HREF="fdscript-guide.html#XML">HTML &amp; XML</A>, <A
+HREF="fdscript-guide.html#mime">EMAIL messages</A>, and English
+<A HREF="fdscript-guide.html#misctext">morphology</A>.]
+</span>
+<P><A CLASS=bibref HREF="servers.html">Writing FramerD Servers</A><BR>
+<span class=quickref>
+[<A HREF="#simple">Simple Servers</A>]&nbsp; 
+[<A HREF="#security">Security Concerns</A>]&nbsp; 
+[<A HREF="#complicated">More Complicated Servers</A>]&nbsp; 
+[<A HREF="#admin">Administering Servers</A>]&nbsp; 
+[<A HREF="#hairy">Hairy fdserver invocations</A>]
+</span>
+<P><A CLASS=bibref HREF="www-guide.html">Writing FramerD Web Applications</A><BR>
+<span class=quickref>
+[<A HREF="#generating">Generating Markup</A>]&nbsp;
+[<A HREF="#builtins">HTML builtins</A>]&nbsp;
+[<A HREF="#linking">Making links</A>]&nbsp;
+[<A HREF="#scripturl">Complex Links</A>]&nbsp;
+[<A HREF="#cgi">Dyamic Pages from FDScript</A>]&nbsp;
+[<A HREF="#cgivars">Script Variables</A>]&nbsp;
+[<A HREF="#cgiforms">Using HTML forms</A>]&nbsp;
+[<A HREF="#cgivar">CGI-VAR and CGI-INIT</A>]&nbsp;
+[<A HREF="#cookies">Cookies</A>]&nbsp;
+[<A HREF="#browsing">Frames to Anchors</A>]&nbsp;
+[<A HREF="#details">HTTP generation: connection control and metadata</A>]
+[<a HREF="#fdserv">Using mod_fdserv</a>]
+[<A HREF="#configure">Configuring your web server</A>]
+</span>
+<P><A CLASS=bibref HREF="c-manual.html">Programming FramerD from C</A><BR>
+<span class=quickref>
+[<A HREF="c-manual.html#dirstructure">Directory Structure</A>]&nbsp;
+[<A HREF="c-manual.html#ctypes">C Types</A>]&nbsp;
+[<A HREF="c-manual.html#exceptions">Exception Handling</A>]&nbsp;
+[<A HREF="c-manual.html#stringstreams">String Streams</A>]&nbsp;
+[<A HREF="c-manual.html#lisppointers">Lisp Pointers</A>]&nbsp;
+[<A HREF="c-manual.html#unicode">Unicode Representation</A>]&nbsp;
+[<A HREF="c-manual.html#lisptypes">Lisp Types</A>]&nbsp;
+[<A HREF="c-manual.html#evaltypes">Evaluator Types</A>]&nbsp;
+[<A HREF="c-manual.html#modules">Implementing Modules</A>]&nbsp;
+</span>
+<P><A CLASS=bibref HREF="framerd-capi.html">FramerD/FDScript C API</A>&nbsp;&nbsp;
+<P><A CLASS=bibref HREF="why.html">Why Should I use FramerD?</A>&nbsp;&nbsp;
+<P><A CLASS=bibref HREF="http://isj.www.media.mit.edu/projects/isj/SectionB/381.htm">
+FramerD: Representing Knowledge in the Large</A> from the
+IBM Systems Journal (Volume 35, Numbers 3&amp;4, 1996)
+<P><A CLASS=bibref HREF="api-tutorials/index.html">Tripp Lilley's Very Experimental
+ API Tutorials</A>, an documentary experience introducing FramerD low-level
+fundamentals
+
+</BODY>
+</HTML>
+
+
+
+
