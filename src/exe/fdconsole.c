@@ -31,6 +31,7 @@
 #include <histedit.h>
 #define USING_EDITLINE 1
 static EditLine *editconsole;
+static History *edithistory;
 #else
 #define USING_EDITLINE 0
 #endif
@@ -375,6 +376,8 @@ static fdtype console_read(u8_input in)
     /* Handle command line parsing here */
     /* else if (line[0]=='=') {} */
     else {
+      struct HistEvent tmp;
+      history(edithistory,&tmp,H_ENTER,line);
       U8_INIT_STRING_INPUT(&scan,n_bytes,line);
       expr=fd_parser(&scan);
       if (FD_ABORTP(expr)) {
@@ -394,6 +397,10 @@ static void exit_fdconsole()
                  (long)getpid(),FRAMERD_REVISION);
     else fd_status_message();}
   close_consoles();
+#if USING_EDITLINE
+  history_end(edithistory);
+  el_end(editconsole);
+#endif
 }
 
 static fdtype that_symbol, histref_symbol;
@@ -790,8 +797,12 @@ int main(int argc,char **argv)
 
 #if USING_EDITLINE
   if (!(getenv("INSIDE_EMACS"))) {
+    struct HistEvent tmp;
+    edithistory=history_init();
+    history(edithistory,&tmp,H_SETSIZE,256);
     editconsole=el_init(u8_appid(),stdin,stdout,stderr);
     el_set(editconsole,EL_PROMPT,editline_promptfn);
+    el_set(editconsole,EL_HIST,history,edithistory);
     el_set(editconsole,EL_EDITOR,"emacs");
     use_editline=1;}
 #endif
