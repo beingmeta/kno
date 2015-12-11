@@ -1,3 +1,11 @@
+framerd (3.8.3-17) unstable; urgency=low
+
+  * Enabled input history for fdconsole
+  * Made daemons write .cmd files with their command lines
+  * git patch version framerd-3.8.3-77
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 11 Dec 2015 14:49:43 +0000
+
 framerd (3.8.3-16) unstable; urgency=medium
 
   * Remove DT, DD, and LI from terminal HTML nodes
