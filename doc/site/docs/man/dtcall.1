@@ -1,0 +1,56 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH DTCALL 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+dtcall \- invokes a procedure on a remote DType server
+.SH SYNOPSIS
+.B dtcall
+.I port
+.B@
+.I hostname
+.I method
+.B [
+.I arguments
+.B ...]
+
+.I port
+is either a decimal number, a registered service name, or a
+"touch-tone encoded" service name converted into an integer
+port number based on the "touch tone" encoding.
+.SH DESCRIPTION
+.B dtcall
+connects to the remote DType server running on
+.I hostname
+and listening for requests on
+.I port
+and requests the invocation of
+.I method
+on
+.I arguments.
+It prints the resulting values to the standard output.
+
+As with
+.BR fdscript (1),
+an argument of a single dollar sign ($) passes the whole contents
+of the standard input to the remote procedure as a string and
+an argument of a single dash (-) parses lisp objects from the
+standard input and passes them (as a FramerD choice) to the remote
+procedure.
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if the remote server fails to respond
+or if the server id cannot be resolved.
+.SH BUGS
+No known bugs
+.SH Revision Info
+.B $Id: dtcall.1,v 1.2 2002/04/02 22:21:06 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR fdserver (1)
+.BR DTypes (1)
+
+
+

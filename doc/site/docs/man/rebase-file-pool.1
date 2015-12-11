@@ -1,0 +1,38 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH REBASE-FILE-POOL 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+rebase-file-pool \- relocates a file pool's internal OID pointers from one superpool to another
+.SH SYNOPSIS
+.B rebase-file-index
+.I filename newname old-super-pool new-super-pool
+.SH DESCRIPTION
+.B reset-file-index
+relocates internal OID references in the file pool
+.I filename 
+replacing all references from the superpool 
+.I old-super-pool
+with numerically equivalent offsets into
+.I new-super-pool
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if
+.I filename
+does not exist or is not a file pool or if 
+.I newname 
+cannot be written.  It also reports an error if either
+.I old-super-pool 
+or 
+.I new-super-pool 
+do not exist.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: rebase-file-pool.1,v 1.2 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR make-file-index (1)

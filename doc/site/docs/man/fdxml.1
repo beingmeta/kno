@@ -1,0 +1,181 @@
+.\" Process this file with
+.\" groff -man -Tascii fdxml.1
+.\"
+.TH FDXML 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fdxml \- convert an FDXML document to XHTML
+.SH SYNOPSIS
+.B fdxml
+.I filename
+.B [
+.I query
+.B ]
+.BR
+
+This reads an FDXML document and produces an XHTML document.  FDXML is
+actually a superset of XHTML, which can be extended by new elements
+implemented by Scheme procedures.
+
+.SH DESCRIPTION
+
+This is designed primarily to be called by a web server to dynamically
+render FDXML documents into HTML.
+
+When started, it uses both the execution environment and the standard
+input to set up a slotmap containing information about the request for the
+document.  It then reads the XML document in
+.I filename
+which may read certain special processing instructions to define
+specialized element types.  These element types invoke FDScript code
+to translate themselves into HTML.  They can also access the variables of
+the document request.
+
+.SH DIRECTIVES
+
+The 
+.B fdxml
+preprocessor handles the following processing instructions:
+
+.B <?framerd module 
+.I module_name
+.B >
+
+loads the module 
+.I module_name
+and uses its exported symbols to implement elements in the document.
+
+.B <?framerd pool
+.I pool_spec
+.B >
+
+access the pool specified by
+.I pool_spec
+
+.B <?framerd index
+.I index_spec
+.B >
+
+adds the index specified by
+.I index_spec
+to the background
+
+.B <?framerd load
+.I filename
+.B >
+
+loads the file
+.I filename
+interpreting the path relative to the directory where the .fdxml file
+is located.  The file will be loaded into its own module and the symbols
+exported from the module will be available as elements in the FDXML file.
+
+.SH CONVENTIONS
+
+The procedure implementing an element takes a single argument, which
+is a parsed XML object.  The following primitives can be applied to
+this argument:
+.IP xml-attributes XML
+Returns the attributs of the XML element as an alternating
+list of keyword and values.
+.IP xml-content XML
+Returns the content of the XML element
+.IP xml-get XML TAG
+Returns the attribute named TAG of the parsed xml data XML.  If
+there is no such attribute, the subelement name SLOT (of the items content)
+is returned
+.IP xml-getall XML SLOT
+Returns all the subelements of XML with element type SLOT
+
+
+.SH ENVIRONMENT
+
+The following variables are typically bound and accessible on the
+.B (CGI-DATA)
+slotmap as well as through 
+.B (CGI-INIT)
+and
+.B (CGI-VAR)
+
+.IP SERVER_SOFTWARE
+The type and version of the web server passing on this CGI request
+.IP SERVER_NAME
+The name of the server passing on the request
+.IP SERVER_PORT
+The port on which the server is listening
+.IP SCRIPT_NAME
+The name of the script being run  
+
+.IP HTTP_REFERER
+If provided, this is the document from which this script was invoked
+.IP HTTP_USER_AGENT
+The kind of program making the request, often the web browser being
+used by the human requestor
+.IP REMOTE_IDENT
+Rarely provided, this is an identifier of the individual making the reauest
+.IP REMOTE_HOST
+This is the hostname of the machine from which the request apparently
+originated.
+.IP REMOTE_ADDR
+This is the IP address (dd.dd.dd.dd) of the machine from which the request
+apparently originated.
+  
+.IP PATH_INFO
+This is the part of the URL which occurs after the script name but before
+any parameters
+.IP DOCUMENT_ROOT
+This is the document root
+.IP PATH_TRANSLATED
+This is the local file to which this request was translated  
+
+.IP AUTH_TYPE
+This describes how the user authenticated her/him/itself.
+.IP REMOTE_USER
+This describes who the user authenticated her/him/itself as.
+.IP HTTP_COOKIE
+This is the "cookie" passed with this request.  The individual components
+of this cookie are separated out into separate fields in the
+.B CGI-DATA
+slotmap
+.IP SERVER_HOST
+This is host on which the server is running.  This will differ from 
+.B SERVER_NAME
+only if virtual hosts are being used
+.IP HTTPS
+This is true if the connection with client is a secure (SSL) connection.
+.IP HTTP_ACCEPT
+.IP HTTP_ACCEPT_CHARSET
+.IP HTTP_ACCEPT_ENCODING
+.IP HTTP_ACCEPT_LANGUAGE
+  
+.IP REQUEST_METHOD
+This is the request method.  Only 
+.B GET
+and
+.B POST
+are currently handled
+.IP CONTENT_TYPE
+This is the mime time of any data sent with the request
+.IP CONTENT_LENGTH
+This is the number of bytes of data sent along with the request
+.IP QUERY_STRING
+This is the query string passed with the request.  If it provides
+form variables (common when the REQUEST_METHOD is GET), these variables
+are each broken out and assigned to the slotmap.
+.IP POST_DATA
+This is the actual data sent along with the request.  If the mime
+type is a text type, this is a string; otherwise, it is a packet.  If
+the post data contains form variables (either url-encoded or mime-encoded),
+these are broken out
+.IP PARSED_POST
+When the posted data is a multi-part mime document, this is the parsed
+document.
+
+.SH BUGS
+
+.SH Revision Info
+.B $Id: fdxml.1,v 1.1 2002/05/29 18:38:01 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR fdxml (1)
+.BR fdservlet (1)

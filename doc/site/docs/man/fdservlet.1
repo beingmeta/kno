@@ -1,0 +1,170 @@
+.\" Process this file with
+.\" groff -man -Tascii fdservlet.1
+.\"
+.TH FDSERVLET 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fdservlet \- execute a persistent FramerD "servlet" to handle CGI requests
+.SH SYNOPSIS
+.B fdservlet 
+.I filename socket 
+.B [
+.I nthreads
+.B ]
+.BR
+
+This starts an server which will receive and handle CGI requests
+mediated by the 
+.B mod_fdserv
+module for the Apache webserver.  The
+.I filename
+argument may be either an FDScript file as would be handled by 
+.B fdcgi
+or an FDXML or FDHTML file as would be handled by
+.B fdxml
+
+.SH DESCRIPTION
+
+When started, this program opens up a Unix domain socket in the file
+.I socket
+to be used to communicate with the program.  It then starts a number
+of threads to respond to CGI requests issued on this socket.  To
+initiate a CGI request, a client (typically the
+.B mod_fdserv
+module) makes a connection to the designated socket and gets back a
+communications socket.  It then sends a slotmap (represented as a
+DType) across the socket.  This slotmap is processed by fdservlet to
+extract special fields such as form variables, uploaded files, and
+individual cookies.  It then generates a response based on the content
+of the specified
+.I filename
+
+If the file is an FDXML file, it is interpreted and sent to the client
+in response to any request.  If it is an FDCGI file, it may be handled
+in one of two ways.  First, if it defines a procedure 
+.B (main),
+this procedure will be called to respond to requests.   Otherwise,
+all of the expressions in the file are executed, in order, to respond to
+each request.
+
+If the file
+.I filename
+changes between requests, it is reloaded.  In addition, any file loaded by
+an FDXML file will be reloaded if it changes.
+
+When compiled without multithreading, 
+.B fdservlet
+still works, but will process only one request at a time, offering
+persistence but not parallelism.
+
+.SH ENVIRONMENT
+
+The procedure
+.B (CGI-DATA)
+returns the slotmap describing the current request.  The special form
+.B (CGI-INIT 
+.I vars...
+.B )
+binds each 
+.I var
+to the string or list of strings passed under the name
+.I var.
+The special form 
+.B (CGI-VAR
+.I vars...
+.B )
+does the exact same thing except that the strings 
+strings are passed to the lisp parser (so the string "3" is converted
+to the number 3) and the lists are converted into choices of these
+parsed values.
+
+The following variables are typically bound and accessible through
+these mechanisms, as well as any form variables or cookies received
+with the request.
+
+.IP SERVER_SOFTWARE
+The type and version of the web server passing on this CGI request
+.IP SERVER_NAME
+The name of the server passing on the request
+.IP SERVER_PORT
+The port on which the server is listening
+.IP SCRIPT_NAME
+The name of the script being run  
+
+.IP HTTP_REFERER
+If provided, this is the document from which this script was invoked
+.IP HTTP_USER_AGENT
+The kind of program making the request, often the web browser being
+used by the human requestor
+.IP REMOTE_IDENT
+Rarely provided, this is an identifier of the individual making the reauest
+.IP REMOTE_HOST
+This is the hostname of the machine from which the request apparently
+originated.
+.IP REMOTE_ADDR
+This is the IP address (dd.dd.dd.dd) of the machine from which the request
+apparently originated.
+  
+.IP PATH_INFO
+This is the part of the URL which occurs after the script name but before
+any parameters
+.IP DOCUMENT_ROOT
+This is the document root
+.IP PATH_TRANSLATED
+This is the local file to which this request was translated  
+
+.IP AUTH_TYPE
+This describes how the user authenticated her/him/itself.
+.IP REMOTE_USER
+This describes who the user authenticated her/him/itself as.
+.IP HTTP_COOKIE
+This is the "cookie" passed with this request.  The individual components
+of this cookie are separated out into separate fields in the
+.B CGI-DATA
+slotmap
+.IP SERVER_HOST
+This is host on which the server is running.  This will differ from 
+.B SERVER_NAME
+only if virtual hosts are being used
+.IP HTTPS
+This is true if the connection with client is a secure (SSL) connection.
+.IP HTTP_ACCEPT
+.IP HTTP_ACCEPT_CHARSET
+.IP HTTP_ACCEPT_ENCODING
+.IP HTTP_ACCEPT_LANGUAGE
+  
+.IP REQUEST_METHOD
+This is the request method.  Only 
+.B GET
+and
+.B POST
+are currently handled
+.IP CONTENT_TYPE
+This is the mime time of any data sent with the request
+.IP CONTENT_LENGTH
+This is the number of bytes of data sent along with the request
+.IP QUERY_STRING
+This is the query string passed with the request.  If it provides
+form variables (common when the REQUEST_METHOD is GET), these variables
+are each broken out and assigned to the slotmap.
+.IP POST_DATA
+This is the actual data sent along with the request.  If the mime
+type is a text type, this is a string; otherwise, it is a packet.  If
+the post data contains form variables (either url-encoded or mime-encoded),
+these are broken out
+.IP PARSED_POST
+When the posted data is a multi-part mime document, this is the parsed
+document.
+
+.SH BUGS
+Doesn't work under WIN32 because of the lack of local (or "unix domain")
+sockets.
+
+.SH Revision Info
+.B $Id: fdservlet.1,v 1.1 2002/05/29 18:38:01 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR fdxml (1)
+.BR fdcgi (1)
+.BR mod_fdserv (4)
+

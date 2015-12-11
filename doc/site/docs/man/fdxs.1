@@ -1,0 +1,76 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH FDCONFIG 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fdconfig \- manipulates FramerD configuration files
+.SH SYNOPSIS
+.B fdxs cflags
+
+.B fdxs modules
+
+.B fdxs libs
+
+.B fdxs install [
+.I module
+.B .so | 
+.I module
+.B .fdx |
+.I directory
+.B ]
+
+.SH DESCRIPTION
+.B fdxs
+is a utility script used to access configuration variables
+from the FramerD installation and to allow the compilation and
+installation of programs using the local installation.
+
+.SH SUBCOMMANDS
+.IP "cflags"
+returns compiler flags to use when compiling programs to link
+against the FramerD library.  This can be used inline, as in
+
+.B gcc `fdxs cflags` -o myprog myprog.c
+
+.IP "modules"
+returns the system directory where FramerD modules live, this
+also can be used inline as in:
+
+.B cp mymodule.so `fdxs modules`
+
+.IP "libs"
+returns the arguments for linking against the FramerD system
+libraries.  This can also be used inline.
+
+.IP "install"
+installs its argument in the FramerD modules system directory.  If the
+argument is a directory, this results in a recursive copy of the directory,
+excluding only CVS files.
+.SH OPTIONS
+.B fdconfig
+is a script implemented by
+.BR fdscript (1)
+so its command line can contain interspersed bindings of the form
+.I var
+.B =
+.I val
+as well as options such as
+.B -f
+.I scheme-file,
+.B -C
+.I config-file,
+or
+.B -m
+.I module
+which can load arbitrary scheme files, config files, or modules.
+.SH DIAGNOSTICS
+The program reports file access errors.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: fdxs.1,v 1.3 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR make-file-index (1)

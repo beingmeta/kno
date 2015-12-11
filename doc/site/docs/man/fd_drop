@@ -1,0 +1,41 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH FD_ADD 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fd_add \- adds a value to a frame
+.SH SYNOPSIS
+.B fd_add
+.I frame
+.I slotid
+.I value
+
+Arguments are parsed by the conventions of
+.BR fdshell (7)
+.SH DESCRIPTION
+.B fd_add
+modifies the slot
+.I slotid
+of the frame
+.I frame
+to include
+.I value
+
+It also attempts to do indexing of the added value
+.SH OPTIONS
+.B fd_add
+is implemented as an FDScript script, so its arguments
+may have CONFIG bindings, as well as accepting the flags
+.B -m -c -f
+to load modules, configs, and scheme files, as described in
+.BR fdscript (1)
+.SH BUGS
+No known bugs.
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (1)
+.BR fdshell (7)
+
+
+

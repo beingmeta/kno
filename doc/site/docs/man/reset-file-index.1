@@ -1,0 +1,30 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH RESET-FILE-INDEX 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+reset-file-index \- clears all of the associations in a FramerD file index
+.SH SYNOPSIS
+.B reset-file-index
+.I filename 
+.SH DESCRIPTION
+.B reset-file-index
+resets the FramerD file index in the file
+.I filename
+by deleting all of keys and their associated values.  The new file index
+will have the same number of slots as the original file index.
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if
+.I filename
+does not exist or is not a file index or if it cannot be (over) written.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: reset-file-index.1,v 1.3 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR make-file-index (1)

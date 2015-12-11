@@ -1,0 +1,41 @@
+BODY {
+  background-color: #e0e0c0; color: black; font-size: 14pt;}
+TD.abouttag {
+  text-align: right; vertical-align: top;
+  font-family: sans-serif; font-size: large; font-weight: bold;}
+TD.aboutcontent {
+  text-align: left; vertical-align: top;
+  font-family: times,serif; font-size: 14pt;}
+TH.leftlogo {
+  text-align: right; vertical-align: bottom;
+  font-family: sans-serif; font-size: large; font-weight: bold;}
+TD.bigtitle {
+  text-align: left; vertical-align: bottom;
+  font-family: sans-serif; font-size: 48pt; font-weight: bold;}
+TH.lefttag {
+  text-align: right; vertical-align: top;
+  font-family: sans-serif; font-size: large; font-weight: bold;}
+TD.quickref { font-family: sans-serif; margin-left: 0pt; }
+TD.quickref A { font-size: smaller; white-space: pre; }
+TD.content {
+  text-align: left; vertical-align: top;
+  font-family: serif;}
+TD.bigcontent {
+  text-align: left; vertical-align: top;
+  font-family: serif; font-size: large;}
+TABLE.topnav {
+  margin: 0; padding: 0; border: 0;}
+TH.topnav {
+  margin: 0; padding: 0; border: 0;
+  text-align: center; vertical-align: center; 
+  font-family: sans-serif; font-size: large; font-weight: bold;}
+TH.toplogo {
+  margin: 0; padding: 0; border: 0;
+  text-align: center; vertical-align: top;
+  font-family: sans-serif; font-size: large; font-weight: bold;}
+P.headline {
+  font-family: sans-serif; font-size: 18pt; font-weight: bold; color: maroon; text-align: top;}
+P.newsbody {
+  font-family: times,serif; font-size: 12pt;}
+LI.newsbody {
+  font-family: times,serif; font-size: 12pt; font-weight: bold;}

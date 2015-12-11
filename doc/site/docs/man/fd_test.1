@@ -1,0 +1,67 @@
+.\" Process this file with
+.\" groff -man -Tascii fd_test.1
+.\"
+.TH FD_TEST 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fd_test \- tests whether a slot of a frame has a particular value
+.SH SYNOPSIS
+.B fd_test
+.I frame
+.I slotid
+.I value
+
+Arguments are parsed by the conventions of
+.BR fdshell (7)
+.SH DESCRIPTION
+.B fd_test
+checks if
+.I slotid
+of the frame
+.I frame
+contains the value
+.I value
+
+The exit code indicates whether or not the value is present, making
+it possible to use 
+.B fd_test
+as tests in shell scripts.
+.SH OPTIONS
+.B fd_test
+is implemented as an FDScript script, so its arguments
+may have CONFIG bindings, as well as accepting the flags
+.B -m -c -f
+to load modules, configs, and scheme files, as described in
+.BR fdscript (1)
+.SH CONFIG VARIABLES
+.TP
+.B %POOL
+The default pool used for creating new frames
+.TP
+.B %POOLS
+The pools used by the 
+.BR fdshell (7)
+scripts; these determine which frames are accessible to access
+and searching
+.TP
+.B %INDICES
+The background indices used to search for frames with particular
+slotid/value combinations.
+.TP
+.B %INDEX
+The foreground index used by default to store newly created
+frame/slotid/value combinations.  Note that this is only used when
+indices directly associated with the frame's pool are not available or
+not modifiable.
+
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: fd_test.1,v 1.2 2002/04/02 22:21:06 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR fdshell (7)
+
+
+

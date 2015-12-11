@@ -1,0 +1,62 @@
+.\" Process this file with
+.\" groff -man -Tascii fd_id.1
+.\"
+.TH FD_ID 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fd_id \- prints frames along with their names
+.SH SYNOPSIS
+.B fd_id
+.I frame
+
+Arguments are parsed by the conventions of
+.BR fdshell (7)
+.SH DESCRIPTION
+.B fd_get
+prints
+.I frame
+to the standard output together with its name, if it
+has one.  This is intended mostly to take the output
+of other commands (by specifing
+.I frame
+to be "-") and print it with object names
+
+.SH OPTIONS
+.B fd_id
+is implemented as an FDScript script, so its arguments
+may have CONFIG bindings, as well as accepting the flags
+.B -m -c -f
+to load modules, configs, and scheme files, as described in
+.BR fdscript (1)
+.SH CONFIG VARIABLES
+.TP
+.B %POOL
+The default pool used for creating new frames
+.TP
+.B %POOLS
+The pools used by the 
+.BR fdshell (7)
+scripts; these determine which frames are accessible to access
+and searching
+.TP
+.B %INDICES
+The background indices used to search for frames with particular
+slotid/value combinations.
+.TP
+.B %INDEX
+The foreground index used by default to store newly created
+frame/slotid/value combinations.  Note that this is only used when
+indices directly associated with the frame's pool are not available or
+not modifiable.
+
+.SH BUGS
+No known bugs
+.SH Revision Info
+.B $Id: fd_id.1,v 1.2 2002/04/02 22:21:06 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR fdshell (7)
+
+
+

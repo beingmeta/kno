@@ -1,0 +1,31 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH COMPARE-FILE-POOLS 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+compare-file-pools \- lists OIDs with different values in two file pools
+.SH SYNOPSIS
+.B compar-file-pools
+.I pool1 pool2
+
+The arguments are both file pools.
+.SH DESCRIPTION
+.B  compare-file-pools
+compares the contents of two file pools.  This opens up two subjobs running
+.BR file-pool-data (2) 
+and reads and compares their results, outputting differences to the standard
+output.
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if the file pools are invalid.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: compare-file-pools.1,v 1.2 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+
+

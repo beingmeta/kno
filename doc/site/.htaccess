@@ -1,0 +1,5 @@
+Redirect /download/ http://www.framerd.org/download.html
+Redirect /download http://www.framerd.org/download.html
+
+
+

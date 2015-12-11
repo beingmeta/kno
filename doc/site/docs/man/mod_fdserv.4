@@ -1,0 +1,88 @@
+.\" Process this file with
+.\" groff -man -Tascii mod_fdserv.4
+.\"
+.TH MOD_FDSERV 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+mod_fdserv \- Apache module for persistent FramerD CGI servers
+.SH SYNOPSIS
+.B LoadModule fdserv_module 
+.I module_path
+.B /mod_fdserv.so
+.BR
+.B AddHandler fdservlet .fdcgi
+.BR
+
+This implements the
+.B fdservlet
+handler for creating persistent FramerD processes for handling
+CGI requests.
+
+.SH DESCRIPTION
+
+.B mod_fdserv
+works with the Apache web server and the
+.B fdservlet
+executable to provide for persistent, multi-threaded (when available)
+responses to CGI requests.  The
+.B mod_fdserv
+module is typically installed and configured in the webserver's
+.B httpd.conf
+file.  In particular, the line:
+
+.B   AddHandler fdservlet .fdcgi
+
+will declare that files with the suffix
+.B .fdcgi
+will be handled by mod_fdserv.
+
+.SH Configuration
+
+The following configuration commands are available for use in
+.B httpd.conf
+or
+.B .htaccess 
+files:
+
+.IP FDServletExecutable filename
+specifies the path to the
+.B fdservlet
+executable.  If unspecified, it assumes
+.B /usr/bin/fdservlet.
+Note that this can only be configured on a per server/per virtual host
+basis.
+
+.IP FDServletThreads n
+Indicates the number of threads the underlying server should start
+for responding to requests.  The default is five threads.
+
+.IP FDServletPrefix pathname_prefix
+Indicates the prefix to any sockets created by
+.B mod_fdserv
+and passed to
+.B fdservlet.
+It defaults to
+.B /tmp/fdserv
+
+.IP FDServletLogFile filename
+Specifies the file to which servlet's stdout and stderr will be redirected.
+
+.IP FDServletSocketFile pathname
+Indicates the particular pathname to be used for the
+socket for a particular document or script.  This does
+not make sense to specify for a particular directory.
+
+.SH BUGS
+Doesn't work under WIN32 because of the lack of local (or "unix domain")
+sockets.
+Doesn't automatically restart when the servlet executable changes (requires
+a restart).
+
+.SH Revision Info
+.B $Id: mod_fdserv.4,v 1.1 2002/05/29 18:38:01 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR fdxml (1)
+.BR fdcgi (1)
+.BR mod_fdserv (4)
+

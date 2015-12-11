@@ -1,0 +1,36 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH FRAMERD-SETUP 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+framerd-setup \- initializes a FramerD configuration directory
+.SH SYNOPSIS
+.B framerd-setup 
+.I directory 
+
+.SH DESCRIPTION
+.B framerd-setup 
+sets up the FramerD configuration directory, including a default
+super pool and the 
+.B framerd.cfg
+configuration file.  It is normally only called by installation scripts.
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if
+.I filename
+cannot be written or if
+.I size
+is unreasonably large.  It will also report an error if
+.I super_pool
+does not exist or cannot be contacted.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: framerd-setup.1,v 1.2 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+
+

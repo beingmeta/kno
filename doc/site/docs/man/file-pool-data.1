@@ -1,0 +1,30 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH FILE-POOL-DATA 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+file-pool-data \- displays all the contents of a file pool to the standard output
+.SH SYNOPSIS
+.B file-pool-data
+.I file-pool
+
+.SH DESCRIPTION
+.B file-pool-data
+prints the contents of
+.I file-pool
+to the standard output as an alternating list of numeric OIDs and Lisp
+values.
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if the provided index specs are invalid.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: file-pool-data.1,v 1.2 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+
+

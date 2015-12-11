@@ -1,0 +1,60 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH FDCONFIG 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fdconfig \- manipulates FramerD configuration files
+.SH SYNOPSIS
+.B fdservctl 
+.I server_control_file
+.B ] status
+
+.B fdservctl 
+.I server_control_file
+.B ] reset
+
+.B fdservctl 
+.I server_control_file
+.B ] sleep
+
+.B fdservctl 
+.I server_control_file
+.B ] wake
+
+.SH DESCRIPTION
+.B fdservctl
+is used to interact with an
+.BR fdmanager (8)
+process.  Its first argument is either a server control file
+or a server control file with the
+.B .fdz
+suffix.  This indicates the server to be operated upon.
+
+.SH SUBCOMMANDS
+.IP "status"
+reports the status of the designated server
+.IP "reset"
+restarts the server.  This works by killing it and the letting
+.B fdmanager
+restart it.
+.IP "sleep"
+Terminates the server and keeps fdmanager from restarting it until
+a
+.B wake
+command is given
+.IP "wake"
+Resumes a sleeping server managed by fdmanager
+.SH OPTIONS
+.B fdservctl
+takes no options
+.SH DIAGNOSTICS
+The program reports file access errors.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: fdservctl.8,v 1.2 2002/04/02 22:21:06 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR fdmanager (8)
+.BR fdserver (1)

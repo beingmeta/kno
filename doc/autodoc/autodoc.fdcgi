@@ -101,7 +101,7 @@
 		      (TD* (ALIGN 'CENTER COLSPAN 2)
 			   (INPUT TYPE 'RESET VALUE "Reset Selections")))
 		  (TR (TH* (ALIGN 'CENTER COLSPAN 6)
-			   (doseq (kword (sorted all-keywords))
+			   (doseq (kword (sorted all-keywords symbol->string))
 			     (html (input type 'checkbox name 'keywords value kword)
 				   "&nbsp;&nbsp;" (TT kword) " "))))))))
 

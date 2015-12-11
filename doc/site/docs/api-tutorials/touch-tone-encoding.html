@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>Touch-Tone Encoding</title>
+  </head>
+
+  <body>
+    <h1>Touch-Tone Encoding</h1>
+
+    <p>
+      This document describes the touch-tone encoding scheme used by
+      FramerD.In brief, touch-tone encoding is to the practice of
+      assigning to each of the letters of the alphabet a position on
+      the 3x3 keypad of a telephone. Since the positions of these
+      letters vary from country to country, we document those used in
+      FramerD here.
+    </p>
+
+    <p>
+      This table represents the standard US assignment of letters to
+      numbers, and is the assignment used in FramerD:
+    </p>
+
+    <table border="1">
+      <tr valign="top" align="center">
+	<td><b>1</b></td>
+	<td><b>2</b><br>ABC</td>
+	<td><b>3</b><br>DEF</td>
+      </tr>
+      <tr valign="top" align="center">
+	<td><b>4</b><br>GHI</td>
+	<td><b>5</b><br>JKL</td>
+	<td><b>6</b><br>MNO</td>
+      </tr>
+      <tr valign="top" align="center">
+	<td><b>7</b><br>PQRS</td>
+	<td><b>8</b><br>TUV</td>
+	<td><b>9</b><br>WXYZ</td>
+      </tr>
+    </table>
+
+
+    <p>
+      This source code excerpt is the actual mapping table (from the
+      low 7-bit ASCII range to integers) used in FramerD to implement
+      the Touch-tone encoding. This code can be found in
+      src/os/network.c.
+    </p>
+
+    <p>
+      <pre>
+/** TT (Touch-tone) encoding **/
+
+static char tt_codes[128]=
+{-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+ 0,1,2,3,4,5,6,7,8,9,-1,-1,-1,-1,-1,-1,
+ -1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,
+ 7,7,7,7,8,8,8,9,9,9,9,-1,-1,-1,-1,-1,
+ -1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,
+ 7,7,7,7,8,8,8,9,9,9,9,-1,-1,-1,-1,-1};
+      </pre>
+    </p>
+
+
+
+    <hr>
+    <address><a href="mailto:tripp.lilley@perspex.com">Tripp Lilley</a></address>
+<!-- Created: Mon Jun  7 01:42:47 EDT 1999 -->
+<!-- hhmts start -->
+Last modified: Mon Jun  7 01:55:13 EDT 1999
+<!-- hhmts end -->
+  </body>
+</html>

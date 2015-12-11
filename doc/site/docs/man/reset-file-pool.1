@@ -1,0 +1,33 @@
+.\" Process this file with
+.\" groff -man -Tascii fdscript.1
+.\"
+.TH RESET-FILE-POOL 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+reset-file-pool \- undefines and "frees" the OIDs in a FramerD file pool
+.SH SYNOPSIS
+.B reset-file-pool
+.I filename 
+.SH DESCRIPTION
+.B reset-file-pool
+resets the FramerD file pool in the file
+.I filename
+by deleting all of the existing OIDs and resetting the file pool's
+load so that they can be allocated again.  Note that there is no way of
+telling if other pools or indices may still have pointers to some of
+these OIDs, so this command should never be used for publicly distributed
+file pools and should be used with caution on private pools.
+.SH OPTIONS
+No options
+.SH DIAGNOSTICS
+The program reports an error if
+.I filename
+does not exist or is not a file pool or if it cannot be (over) written.
+.SH BUGS
+No known bugs.
+.SH Revision Info
+.B $Id: reset-file-pool.1,v 1.3 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR make-file-pool (1)

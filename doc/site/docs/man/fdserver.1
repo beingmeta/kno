@@ -1,0 +1,147 @@
+.\" Process this file with
+.\" groff -man -Tascii fdserver.1
+.\"
+.TH FDSERVER 1 "MARCH 2002" FramerD "FramerD Documentation"
+.SH NAME
+fdserver \- start a FramerD server
+.SH SYNOPSIS
+.B fdserver [--local] [--read-only] [--log
+.I log_file
+.B ] [--trace 
+.I trace_file 
+.B ] [--access read-only | locking | run-with-scissors] [-m
+.I module
+.B ]* [-c
+.I config_file
+.B ]* [-f
+.I scheme_file
+.B ] 
+.B ] [
+.I var
+.B =
+.I val
+.B ]* <
+.I control_file
+.B >
+.BR
+
+The module, file, config, and variable binding options may be intermixed
+and are processed from left to right before the
+.I control_file
+is loaded.
+.SH DESCRIPTION
+.B fdserver
+starts a FramerD server which is initialized by loading
+.I control_file
+which typically has the suffix
+.B .fdz
+
+The various options to
+.B fdserver
+set up the environment into which the control file is loaded.  The
+server generally listens on one particular port on all of the network
+addresses associated with the specified host (see below).  Once
+started, the server can be accessed from any FramerD application,
+including
+.BR fdscript (1)
+or from the command line using
+.BR dtcall (1)
+
+If
+.B fdserver
+is started as root, it does a setuid to the value of the environment
+variable
+.B FDSERVER_USER
+and will setgid to the value of the environment variable
+.B FDSERVER_GROUP.
+If these variables are not defined, "nobody" and "nogroup" are used
+instead.  This happens after the server initialization file is loaded.
+If you really want to live dangerously, you can call the FDScript primitive
+.B (SET-UID! "root")
+to keep the server running as root.
+
+.SH OPTIONS
+.IP "-f scheme-file"
+Load the scheme file
+.I scheme-file
+into the default environment
+.IP "-m module"
+Load the FDScript module
+.I module
+and have its exported symbols accessible to the
+interpreter environment.
+.IP "-g config_file"
+Load the config file
+.I config_file
+into the global environment.  See
+.BR fdconfig (2)
+for more details.
+.IP "var=val"
+.IP "-Dvar=val"
+Bind the global variable
+.I var
+to
+.I val
+.IP "--local"
+Runs the server only on the localhost (127.0.0.1)
+.IP "--access read-only | locking | run-with-scissors"
+declares the kind of access control used for the data provided by
+this server.  If the argument is
+.B read-only
+no modifications are permitted; if the argument is
+.B locking
+served indices may be modified and served pools may be locked
+on an OID-by-OID basis, depending on whether the underlying database
+(typically the file pool or file index) is writable.  If the value is 
+.B run-with-scissors
+the system performs no locking on individual OIDs, but provides write
+access provided that the underlying database is writable.
+.IP "--log file"
+Writes log information, mostly connection opening and closing, to 
+.I file
+.IP "--trace file"
+Writes detailed transaction records, including every remote call
+and response, to
+.I file
+.SH FILES
+The 
+.I server_base
+is the name of the control file without the 
+.B .fdz
+suffix.  It is used to generate several status files.
+
+.I server_base
+.B .pid
+Contains the process id of the started server and
+is deleted when the server exists normally.
+.I server_base
+.B .nid
+Contains the server spec of the started server;
+this can be used as an argument to
+.BR dtcall (1) or within other FramerD applications.  It
+is deleted when the server exists normally.
+
+.SH ENVIRONMENT
+.IP FRAMERD_CONFIG
+Overrides the default location of the system configuration file
+.IP DEBUG_FRAMERD
+Output a backtrace when an error occurs.
+.IP FDSERVER_USER
+When started as root, this environment variable specifies the
+user which fdserver will actually run under.
+.IP FDSERVER_GROUP
+When started as root, this environment variable specifies the
+group which fdserver will actually run under.
+.SH CONFIG VARIABLES
+.IP %DEBUG
+Output a backtrace when an error occurs.
+.SH BUGS
+None known.
+.SH Revision Info
+.B $Id: fdserver.1,v 1.3 2002/07/10 00:13:11 haase Exp $
+.SH AUTHOR
+Ken Haase < kh@beingmeta.com >
+.SH "SEE ALSO"
+.BR framerd (7)
+.BR dtcall (1)
+.BR fdmanager (1)
