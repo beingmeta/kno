@@ -139,11 +139,11 @@ static void wait_for_the_end(pid_t pid)
    (strchr(s,' '))||(strchr(s,'\t'))|| \
    (strchr(s,'\n'))||(strchr(s,'\r')))
 
-static int write_cmd_file(int argc,char **argv)
+static void write_cmd_file(int argc,char **argv)
 {
   const char *abspath=u8_abspath(cmd_file,NULL);
   int i=0, fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC,
-                   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+                   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
   u8_byte buf[512]; struct U8_OUTPUT out;
   U8_INIT_OUTPUT_BUF(&out,512,buf);
   while (i<argc) {

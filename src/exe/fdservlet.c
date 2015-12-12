@@ -466,7 +466,7 @@ static int write_pid_file()
            abspath,ctime,mtime,uname,uid);
     if (uname) u8_free(uname);}
   pid_fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC,
-              S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+              S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
   if (pid_fd<0) {
     if (stat_err) u8_graberr(stat_err,"write_pid_file",u8_strdup(pid_file));
     u8_graberr(errno,"write_pid_file",u8_strdup(pid_file));
@@ -499,7 +499,7 @@ static int write_pid_file()
    (strchr(s,' '))||(strchr(s,'\t'))|| \
    (strchr(s,'\n'))||(strchr(s,'\r')))
 
-static int write_cmd_file(int argc,char **argv)
+static void write_cmd_file(int argc,char **argv)
 {
   const char *abspath=u8_abspath(cmd_file,NULL);
   int i=0, fd=open(abspath,O_CREAT|O_RDWR|O_TRUNC,
