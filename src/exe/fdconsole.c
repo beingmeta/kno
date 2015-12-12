@@ -334,7 +334,7 @@ static int output_result(u8_output out,fdtype result,
 
 */
 
-static fdtype stream_read(u8_input in)
+static fdtype stream_read(u8_input in,fd_lispenv env)
 {
   fdtype expr; int c;
   u8_puts(outconsole,EVAL_PROMPT); u8_flush(outconsole);
@@ -350,7 +350,7 @@ static fdtype stream_read(u8_input in)
       u8_printf(errconsole,_(";; Bad assignment expression!\n"));
       return FD_VOID;}}
   /* Handle command parsing here */
-  /* else if (c==':') {} */
+  /* else if ((c==':')||(c==',')) {} */
   else u8_ungetc(in,c);
   expr=fd_parser(in);
   if ((expr==FD_EOX)||(expr==FD_EOF)) {
@@ -362,19 +362,20 @@ static fdtype stream_read(u8_input in)
     return expr;}
 }
 
-static fdtype console_read(u8_input in)
+static fdtype console_read(u8_input in,fd_lispenv env)
 {
 #if USING_EDITLINE
   if ((use_editline)&&(in==inconsole)) {
     struct U8_INPUT scan; fdtype expr; int n_bytes;
     const char *line=el_gets(editconsole,&n_bytes);
     if (!(line)) return FD_EOF;
-    else if (line[0]=='=') {
+    else while (isspace(*line)) line++;
+    if (line[0]=='=') {
       U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
       expr=fd_parser(&scan);
       return fd_make_nrail(2,equals_symbol,expr);}
     /* Handle command line parsing here */
-    /* else if (line[0]=='=') {} */
+    /* else if ((line[0]=='=')||(line[0]==',')) {} */
     else {
       struct HistEvent tmp;
       history(edithistory,&tmp,H_ENTER,line);
@@ -384,9 +385,9 @@ static fdtype console_read(u8_input in)
         el_reset(editconsole);
         return expr;}
       else return expr;}}
-  else return stream_read(in);
+  else return stream_read(in,env);
 #endif
-  return stream_read(in);
+  return stream_read(in,env);
 }
 
 static void exit_fdconsole()
@@ -822,7 +823,7 @@ int main(int argc,char **argv)
     start_ocache=fd_object_cache_load();
     start_icache=fd_index_cache_load();
     u8_flush(out);
-    expr=console_read(in);
+    expr=console_read(in,env);
     if (FD_PRIM_TYPEP(expr,fd_rail_type)) {
       /* Handle commands */
       fdtype head=FD_VECTOR_REF(expr,0);
