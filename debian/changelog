@@ -1,3 +1,10 @@
+framerd (3.8.3-20) unstable; urgency=low
+
+  * Fix dropbox path generation
+  * git patch version framerd-3.8.3-85
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 13 Dec 2015 21:57:46 +0000
+
 framerd (3.8.3-19) unstable; urgency=low
 
   * Made fdconsole history a little cleaner
