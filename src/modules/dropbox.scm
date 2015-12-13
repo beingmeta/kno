@@ -36,12 +36,14 @@
 
 (define (db/url base oauth path (root))
   (glom base
-    (if (testopt oauth 'live)
-	(if (getopt oauth 'live #f) "dropbox" "sandbox")
-	dropbox-root)
-    (getopt oauth 'rootpath)
-    (if (has-prefix path "/") #f "/")
-    path))
+    (mkpath
+     (if (testopt oauth 'live)
+	 (if (getopt oauth 'live #f) "dropbox" "sandbox")
+	 dropbox-root)
+     (if (and (testopt oauth 'rootpath)
+	      (not (empty-string? (getopt oauth 'rootpath))))
+	 (mkpath (getopt oauth 'rootpath) (strip-prefix path "/"))
+	 (strip-prefix path "/")))))
 
 (define (dropbox/get/req oauth path (revision #f))
   (let ((endpoint (db/url "https://api-content.dropbox.com/1/files/"
