@@ -972,7 +972,7 @@ install-static: static-libs $(LIBINSTALLDIR)
 install-shared: shared-libs $(LIBINSTALLDIR)
 	make install-@shared_suffix@
 install-data: $(DATAINSTALLDIR)
-	@$(SYSINSTALL) @install_file_opts@ doc/misc/data.README $(DATAINSTALLDIR)/README
+	@$(SYSINSTALL) @install_file_opts@ docs/misc/data.README $(DATAINSTALLDIR)/README
 	@$(SYSINSTALL) @install_file_opts@ @DATAFILES@ $(DATAINSTALLDIR)
 
 # Versioned shared libraries
