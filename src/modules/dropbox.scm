@@ -175,16 +175,14 @@
 
 (define (dropbox-pathstring dropbox path)
   (let ((oauth (dropbox-oauth dropbox))
-	(root (dropbox-root-path dropbox)))
+	(root (try (reject (dropbox-root-path dropbox) empty-string?) #f)))
     (glom "dropbox://"
-      (getopt oauth 'email) ":" (getopt oauth 'remoteid)
-      "/" (if (and path root) (mkpath root path)
-	      (or root path)))))
+      (getopt oauth 'email (getopt oauth 'remoteid)) ":" 
+      (getopt oauth 'appname "*") 
+      (and root ":") (and root (string-subst root "/" ":"))
+      "/" (strip-prefix path "/"))))
 
-(define (dropbox/gpath spec (path))
-  (default! path (getopt spec 'rootpath ""))
-  (when (and path (string-starts-with? path #("/Apps/" (not> "/") "/")))
-    (set! path (textsubst path #((bos) "/Apps/" (not> "/") "/") "")))
+(define (dropbox/gpath spec (path ""))
   (cons-dropbox spec (or path "")))
 
 (config! 'gpath:handlers
