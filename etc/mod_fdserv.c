@@ -397,7 +397,7 @@ static const char *get_sockname(request_rec *r)
     const char *socket_prefix=
       ((dconfig->socket_prefix) ? (dconfig->socket_prefix) :
        (sconfig->socket_prefix) ? (sconfig->socket_prefix) :
-       "/var/run/fdserv/");
+       "/var/run/framerd/servlets/");
 
     if ((socket_location)&&
 	((strchr(socket_location,'@'))||
@@ -1559,8 +1559,11 @@ static int spawn_wait(fdservlet s,request_rec *r,apr_proc_t *proc)
 static fdservlet get_servlet(const char *sockname)
 {
   int i=0; int lim=n_servlets;
+  if (!(sockname)) return NULL;
   while (i<lim) {
-    if (strcmp(sockname,servlets[i].sockname)==0) return &(servlets[i]);
+    if ((servlets[i].sockname!=NULL)&&
+	(strcmp(sockname,servlets[i].sockname)==0))
+      return &(servlets[i]);
     else i++;}
   return NULL;
 }
@@ -1602,10 +1605,12 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,
   int i=0; int lim=n_servlets;
   apr_thread_mutex_lock(servlets_lock);
   while (i<lim) {
-    /* First check (probably again) if it's already there */
+    /* First check (probably again) if it's already there, this time
+       with the mutex locked.  */
     /* If the number of servlets gets big, this could be made into a
        binary search in a custom table. */
-    if (strcmp(sockname,servlets[i].sockname)==0) {
+    if ((servlets[i].sockname!=NULL)&&
+	(strcmp(sockname,servlets[i].sockname)==0)) {
       if (servlets[i].keep_socks<keep_socks)
 	servlet_set_keep_socks(&(servlets[i]),keep_socks);
       servlets[i].max_socks=max_socks;
@@ -1613,7 +1618,7 @@ static fdservlet add_servlet(struct request_rec *r,const char *sockname,
       return &(servlets[i]);}
     else i++;}
   if (i>=max_servlets) {
-    /* Grow the servlets table if needed */
+    /* Grow the table of servlets if needed */
     int old_max=max_servlets;
     int new_max=max_servlets+FDSERV_INIT_SERVLETS;
     struct FDSERVLET *newvec=(struct FDSERVLET *)
@@ -2076,11 +2081,15 @@ static fdservlet request_servlet(request_rec *r)
     ap_get_module_config(r->server->module_config,&fdserv_module);
   struct FDSERV_DIR_CONFIG *dconfig=
     ap_get_module_config(r->per_dir_config,&fdserv_module);
-  fdservlet servlet;
   int keep_socks=sconfig->keep_socks, max_socks=sconfig->max_socks;
-  ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
-		"Resolving %s using servlet %s",r->unparsed_uri,sockname);
-  servlet=get_servlet(sockname);
+  fdservlet servlet;
+  if (sockname)
+    ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
+		  "Resolving %s using servlet %s",r->unparsed_uri,sockname);
+  else {
+    ap_log_rerror(APLOG_MARK,APLOG_CRIT,500,r,
+		  "Couldn't identify socket for handling %s",r->unparsed_uri);
+    return NULL;}
   if ((dconfig)&&(dconfig->keep_socks>keep_socks))
     keep_socks=dconfig->keep_socks;
   if ((dconfig)&&(dconfig->max_socks>max_socks))
@@ -2089,6 +2098,7 @@ static fdservlet request_servlet(request_rec *r)
      value for keep socks (no socket cache), but not for max socks.  */
   if (keep_socks<0) keep_socks=DEFAULT_KEEP_SOCKS;
   if (max_socks<=0) max_socks=DEFAULT_MAX_SOCKS;
+  servlet=get_servlet(sockname);
   if (servlet) {
 #if DEBUG_FDSERV
     ap_log_rerror(APLOG_MARK,LOGDEBUG,OK,r,
@@ -2099,6 +2109,9 @@ static fdservlet request_servlet(request_rec *r)
     servlet->max_socks=max_socks;
     return servlet;}
   else {
+    ap_log_rerror(APLOG_MARK,APLOG_NOTICE,500,r,
+		  "No existing servlet for socket %s to handle %s",
+		  sockname,r->unparsed_uri);
     servlet=add_servlet(r,sockname,keep_socks,max_socks);
     return servlet;}
 }
@@ -2990,7 +3003,7 @@ static int fdserv_post_config(apr_pool_t *p,
 		"mod_fdserv v%s starting post config for Apache 2.x (%s)",
 		version_num,_FILEINFO);
   if (sconfig->socket_prefix==NULL)
-    sconfig->socket_prefix=apr_pstrdup(p,"/var/run/fdserv/");
+    sconfig->socket_prefix=apr_pstrdup(p,"/var/run/framerd/servlets/");
   if (sconfig->socket_prefix[0]=='/') {
     const char *dirname=sconfig->socket_prefix;
     int retval=apr_dir_make_recursive(dirname,RUN_FDSERV_PERMISSIONS,p);
