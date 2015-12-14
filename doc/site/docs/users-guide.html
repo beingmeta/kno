@@ -1,1052 +1,1038 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
-<HTML>
-<HEAD>
-<TITLE>FramerD Users Guide</TITLE>
-<LINK REL="stylesheet" TYPE="text/css" HREF="/static/framerd/documentation.css">
-</HEAD>
-<BODY>
-<TABLE ALIGN=LEFT WIDTH='100%'>
-<TR>
-<TH class=bigtitle ALIGN=LEFT WIDTH='70%'>Framer<sub><em><font color=red>D</font></em></sub> Users Guide
-<BR><span class=author>Ken Haase</span>
-<TH ALIGN=RIGHT ROWSPAN=2>
-<A HREF="http://www.framerd.org/"><IMG BORDER=0 SRC="fdlogo.png"></A>
-</TABLE><BR CLEAR=LEFT>
+<html>
+  <head>
+    <TITLE>FramerD Users Guide</TITLE>
+    <LINK REL="stylesheet" TYPE="text/css" HREF="/static/framerd/documentation.css">
+  </HEAD>
+  <body>
+    <TABLE ALIGN=LEFT WIDTH='100%'>
+      <TR>
+	<TH class=bigtitle ALIGN=LEFT WIDTH='70%'>Framer<sub><em><font color=red>D</font></em></sub> Users Guide
+	  <BR><span class=author>Ken Haase</span>
+	<TH ALIGN=RIGHT ROWSPAN=2>
+	  <A HREF="http://www.framerd.org/"><IMG BORDER=0 SRC="fdlogo.png"></A>
+    </TABLE><BR CLEAR=LEFT>
+    
+    <P class=quickref>
+      Quick ref: [<A HREF="#installation">Installation</A>]&nbsp; 
+      [<A HREF="#listeners">Listeners</A>]&nbsp; 
+      [<A HREF="#customization">Customizing&nbsp;FramerD</A>]&nbsp; 
+      [<A HREF="#config">Configuration&nbsp;Files</A>]&nbsp; 
+      [<A HREF="#example">An&nbsp;Extended&nbsp;Example</A>]&nbsp; 
+      [<A HREF="#shell">Shell&nbsp;Commands</A>]&nbsp; 
+      [<A HREF="#emacs">Using&nbsp;FramerD&nbsp;from&nbsp;Emacs</A>]&nbsp; 
+      [<A HREF="#invoking">Invoking&nbsp;FDScript</A>]&nbsp;
+      <HR>
+      
+      <div class="section" id="installation">
+	
+	<TABLE class="header">
+	    <tr><TH class="title">Installing FramerD</TH>
+	      <TD class="gloss">
+		How you install FramerD and FDScript depends on what kind of
+		package you have, but each one eventually runs an
+		installation script written in FDScript, the FramerD scripting
+		language.  This script figures out and sets up configuration
+		information regarding your installation.  In most cases, it also does
+		the file copying.  Normally, it also installs the command
+		<tt>uninstall-framerd</tt> to undo its actions.  </TD></TR>
+	  </TABLE>
+	
+	<P>The way you install FramerD depends on the kind of installation file
+	  you have:
+	  <ul>
+	    <li>If you have a FramerD <strong>RPM</strong> file, simply (as root)
+	      do <tt>rpm -Uvh <var>rpm file</var></tt> to install it; it should take
+	      care of everything.</li>
+	    <li>If you have a FramerD binary tarball (called something like
+	      framerd-2.3-linux386.tar.gz) do the following:
+	      <ol>
+		<li>uncompress it with <tt>gunzip framerd-2.2....tar.gz</tt></li>
+		<li>unpack it with <tt>tar -xf framerd-2.2....tar.gz</tt></li>
+		<li>go into the directory (<tt>cd framerd</tt>)</li>
+		<li>run the installation script (which is written in FDScript) by typing<BR>
+		  <tt>bin/fdscript etc/install.fdx <var>directory</var></tt><BR>
+		  where <var>directory</var> is the directory you want to install
+		  FramerD.  If you do not specify the directory, it stores into <tt class="filename">
+		    /opt/framer-<var>version</var></tt>.</li>
+		<li>if you specified a different installation directly, add a line to
+		  your Unix init file setting the variable <tt>FRAMERD_CONFIG</tt>
+		  to <tt><var>directory</var>/share/framerd/framerd.cfg</tt> where <var>directory</var> is the
+		  argument you used with <tt>install.fdx</tt>.  If you use <tt>bash</tt>
+		  modify the file <tt>~/.bashrc</tt> to include the line<BR>
+		  <tt>export FRAMERD_CONFIG=<var>directory</var></tt><BR>
+		  if you use <tt>csh</tt> or <tt>tcsh</tt>, modify the file <tt>.cshrc</tt> to include the line<BR>
+		  <tt>setenv FRAMERD_CONFIG <var>directory</var></tt></li>
+	    </ol></li>
+	    <li>If you have a
+	      FramerD source tarball (called something like framerd-2.2.tar.gz), do
+	      the following:
+	      <ol>
+		<li>uncompress it with <tt>gunzip framerd-2.2.tar.gz</tt></li>
+		<li>unpack it with <tt>tar -xf framerd-2.2.tar</tt></li>
+		<li>go into the directory it unpacked with <tt>cd framerd</tt></li>
+		
+		<li>configure it by typing <tt>./configure</tt> there</li><BR> you can
+		change where it installs itself by giving a
+		<tt>--prefix=<var>directory</var></tt> argument to
+		<tt>configure</tt>;</li>
+		<li>build it by typing <tt>make</tt></li>
+		<li>(optionally) test it by typing <tt>make test</tt> (this does
+		  a lot of stuff and creates a detailed file <tt class="filename">test.log</tt>)</li>
+		<li>install it by typing <tt>make install</tt>, which you might
+		  have to do as the <tt>root</tt> user</li>
+	    </ol></li>
+	    <li>If you have the <tt>WIN32</tt> self-extracting
+	      <tt>fdDDinstall.exe</tt> (where DD is the major and minor version
+	      numbers), just run it.  It will ask you some questions
+	      and you'll probably be happy with its defaults.</li>
+	  </ul>
+	  
+      </div>
+      
+      <div class="section" id="listeners">
+	
+	  <TABLE class="header" width=100% cellpadding=0>
+	    <Tr><TH class="title">Interacting with Listeners</TH>
+	      <TD class="gloss">
+		One can interact directly with FDScript through a `listener' which
+		takes FDScript expressions and evaluates them.  If you are programming
+		in FDScript, sooner or later, you will probably want to interact with
+		an FDScript listener.</TD></TR>
+	  </TABLE>
+	
+	<P>The FDScript listener is an interactive program which is usually
+	  invoked from a system's command line or under GNU Emacs (see Using
+	  FDScript under GNU Emacs).  It is usually invoked by a command like:
+	  <pre class="typescript">
+	    sh% fdscript
+	  </pre>
+	  
+	<P>and responds with some information about the executable version,
+	  followed by a prompt (typically `fdscript') in square brackets:
+	  <pre class="typescript">
+	    [15:47:39 MIT FramerD library 2.2 (C) 1994-2000, built Mar 16 2001]
+	    [fdscript] 
+	  </pre>
+	  
+	<P>The square brackets indicate that the text or messages which they
+	  contain are not a direct part of the interaction with FDScript.  In
+	  this case, the string "[fdscript]" prompts you to type an expression.
+	  The listener then displays the results of evaluating the expression,
+	  followed by another prompt:
+	  <pre class="typescript">
+	    [fdscript] (+ 2 3)
+	    5
+	    [fdscript] (* 3+5i 8i)
+	    -40+24i
+	    [fdscript] (* (choice 1 2 3 4 5) 10)
+	    ;; There are 5 values
+	    {10 20 30 40 50}
+	    [fdscript] (dtcall "admin@framerd.org" session-id)
+	    "framerd haase@framerd.media.mit.edu /PID:6836 /OS:i586-unknown-linux /Compiled:Dec 16 1999 /Started:Wed Jan  5 11:52:09 2000"
+	    [fdscript]
+	  </pre>
+	  
+	<P>As you interact with the listener, the variable <tt>THAT</tt> is
+	  bound to the result of the last expression:
+	  <pre class="typescript">
+	    [fdscript] (/ 22 7)
+	    22/7
+	    [fdscript] (* that 5)
+	    110/7
+	    [fdscript] (exact-&gt;inexact that)
+	    15.714286
+	    [fdscript] (set! pi (/ that 5))
+	    [fdscript] (* pi pi)
+	    9.877550
+	    [fdscript]
+	  </pre>
+	<P>When an expression non-deterministically returns multiple values,
+	  or no values, the listener reports how many values and either lists
+	  them or reports the absence of results, e.g.
+	  <pre class="typescript">
+	    [fdscript] (elts "Foo")
+	    ;; 2 choices were returned
+	    {#\F #\o}
+	    [fdscript] (elts "")
+	    ;; No choices were returned
+	    [fdscript]
+	  </pre>
+	<P>Some expressions, like <tt>SET!</tt>, <tt>DEFINE</tt> or
+	  <tt>DISPLAY</tt> are defined to not have return values.  When
+	  processing one of these expressions, the listener says `Nothing (void)
+	  was returned' to indicate the the expression returned no useful value,
+	  e.g.
+	  <pre class="typescript">
+	    [fdscript] (display foo)
+	    Foo
+	    ;; Nothing (void) was returned
+	    [fdscript]
+	  </pre>
+	<P>The listener also tracks changes in the values of variables,
+	  so that a form like <tt>DEFINE</tt> will also elicit a report of
+	  change in valuye, e.g.
+	  <pre class="typescript">
+	    [fdscript] (define (fact n) (if (= n 0) 1 (* n (fact (- n 1)))))
+	    ;; Nothing (void) was returned
+	    ;; Values changed (1): FACT
+	    [fdscript]
+	  </pre>
+	<P>This works with all top level expressions, providing a useful way
+	  to tell (for instance) which global symbols are defined by a
+	  particular file:
+	  <pre class="typescript">
+	    [fdscript] (load "fact")
+	    ;; Nothing (void) was returned
+	    ;; Global values changed (2): FACT FACT-ITER
+	    [fdscript]
+	  </pre>
+	  
+	  <H2>Using READLINE</H2>
+	  
+	<P>When the listener's prompt starts with an asterisk
+	  (e.g. <samp>*[fdscript]</samp>), this indicates that the GNU readline
+	  library is being used to read input the console.  This library offers
+	  simple editing commands much like those in Emacs.  In addition, the
+	  FDScript listener also defines automatic <em>completion</em> of
+	  FDScript symbols and external filenames.
+	  
+	<P>Completion means that hitting the <kbd>Tab</kbd> key automatically
+	  tries to expand whatever you are typing to a known symbol,
+	  e.g. hitting tab when you have typed:
+	  <pre class="typescript">
+	    [fdscript] (make-file-p
+	  </pre>
+	<P>automatically generates the completion:
+	  <pre class="typescript">
+	    [fdscript] (make-file-pool
+	  </pre>
+	<P>Hitting <kbd>Tab</kbd> twice lists possible completions.  For
+	  example, hitting tab twice after typing the following:
+	  <pre class="typescript">
+	    [fdscript] (make-file-
+	  </pre>
+	<P>would yield:
+	  <pre class="typescript">
+	    [fdscript] (make-file-
+	    MAKE-FILE-INDEX MAKE-FILE-POOL
+	  </pre>
+	  
+	<P>When the cursor is inside a string, <kbd>Tab</kbd> attempts to do
+	  <em>filename completion</em> rather than symbol completion.
+	  E.G. hitting <kbd>Tab</kbd> when you have typed:
+	  <pre class="typescript">
+	    [fdscript] (filestring "/usr/local/src/fram
+	  </pre>
+	<P>might automatically generate the completion:
+	  <pre class="typescript">
+	    [fdscript] (filestring "/usr/local/src/framerd
+	  </pre>
+	  
+	<P>Binary releases of FramerD only use the readline library for
+	  operating systems which typically include the library.  If you are
+	  using another platform, you can get and install the readline library
+	  separately and recompile FramerD yourself.
+      </div>
+      
+      <div class="section" id="example">
+	  <TABLE class="header" width=100% cellpadding=0>
+	    <Tr><TH class="title">Using A Database</TH>
+	      <TD class="gloss">FramerD databases can be examined interactively
+		through a listener.  This transcript is an annotated tour of the BRICO
+		knowledge base through an FDScript listener.  You can also browse this
+		database through the web at <A
+					       HREF="http://www.framerd.org/brico/">http://www.framerd.org/brico/</A>.
+	    </TD></TR>
+	  </TABLE>
+	
+	<P>We start by telling the system to access the objects in the BRICO
+	  knowledge base:
+	  <pre class="typescript">
+	    [15:47:39 MIT FramerD library 2.2 (C) 1994-2000, built Mar 16 2001]
+	    [fdscript] (use-pool 'brico) 
+	  </pre>
+	<P>It outputs some identifying information and then reports the pools
+	  it has added
+	  <pre class="typescript">
+	    [15:50:04 Session id=fdscript haase@buster.media.mit.edu /PID:2403 /OS:i686-unknown-linux /V:2.2 /Compiled:Mar 16 2001 /Started:Sun Mar 18 15:50:04 2001]
+	    [#POOL brico@leviathan @1/0+1048576 {}]
+	  </pre>
+	<P>Once the pool is added, we can use a numeric OID (Object IDentifier) 
+	  to retrieve a particular object.
+	  <pre class="typescript">
+	    [fdscript] @1/13800
+	    @/brico/13800("example" "illustration" "instance" "representative")
+	  </pre>
+	<P>We can describe this object by using the <tt>D</tt> function, which
+	  gives us a lot of output:
+	  <pre class="typescript">
+	    [fdscript] (d @/brico/13800)
+	    ---------------------------------------------------------------
+	    The frame @/brico/13800("example" "illustration" "instance" "representative"):
+	    SYNSET-CODE:  (NOUN 4483764 0)
+	    SOURCE:  @/brico/0"WordNet 1.6 Copyright 1997 by Princeton University.  All rights reserved."
+	    WORD-DATA:  #(("example" . 0) ("illustration" . 2) ("instance" . 0) ("representative" . 0))
+	    SYNSET-ID:  4483764
+	    N-WORDS:  4
+	    LEX-FILENO:  9
+	    SENSE-KEYS: (4 values)
+	    "illustration%1:09:02::"
+	    "representative%1:09:00::"
+	    "instance%1:09:00::"
+	    "example%1:09:00::"
+	    OBJ-NAME:  ("example" "illustration" "instance" "representative")
+	    HYPERNYM:  @/brico/13754("information")
+	    HYPONYM: (6 values)
+	    @/brico/1bd54("precedent" "case_in_point")
+	    @/brico/1bd56("sample")
+	    @/brico/1bd57("specimen")
+	    @/brico/1bd52("apology")
+	    @/brico/1bd55("quintessence")
+	    @/brico/1bd53("exception")
+	    GLOSS:  " a single item of information that is representative of a type; \"this patient provides a typical example of the syndrome\"; \"there is a good example on page 10\"  "
+	    PART-OF-SPEECH:  NOUN
+	    WORDS: (4 values)
+	    "representative"
+	    "illustration"
+	    "instance"
+	    "example"
+	    ROGET-CLUSTERS: (14 values)
+	    @/brico/95eb("Nouns32750" "representative" "commissioner" "deputy")
+	    @/brico/f9c3("Nouns987" "protoplast" "module" "exemplar" "example" "ensample" "paradigm")
+	    @/brico/40c5("Nouns37449" "postulation" "solicitation" "invitation" "entreaty" "importunity" "supplication" "instance" "impetration" "imploration" "obsecration" "obtestation" "invocation" "interpellation")
+	    @/brico/1553a("Nouns24846" "illustration" "delineation" "depictment")
+	    @/brico/8011("Adjectives24699" "diacritical" "representative" "typical" "symbolic" "pantomimic" "pathognomonic" "symptomatic" "characteristic" "demonstrative" "diagnostic" "exponential" "emblematic" "armorial")
+	    @/brico/1a430("Nouns3707" "exemplification" "illustration" "case in point")
+	    @/brico/1955("Nouns27738" "influence" "prompting" "dictate" "instance")
+	    @/brico/40c4("Nouns3706" "example" "instance" "specimen" "sample" "quotation")
+	    @/brico/2b92("Nouns37175" "deputy" "substitute" "vice" "proxy" "locum tenens" "badli" "delegate" "representative" "next friend" "surrogate" "secondary")
+	    @/brico/26b9("Adjectives24914" "represent" "representing" "representative")
+	    @/brico/1a431("Nouns22765" "illustration" "exemplification")
+	    @/brico/95ec("Nouns37154" "representative" "resident" "consul" "legate" "nuncio" "internuncio" "charge d'affaires" "attache")
+	    @/brico/13a6d("Nouns25071" "illustration" "illumination")
+	    @/brico/13a6e("Nouns42133" "illustration" "illumination" "vignette")
+	    CYC-CONCEPTS: (3 values) ;; Some cross references into CYC
+	    @1/200939"SalesRepresentative"
+	    @1/20093b"RepresentativeDemocracy"
+	    @1/20093a"ArtistOrEntertainerRepresentative"
+	    PORTUGUESE: (3 values)
+	    "exemplo"
+	    ;; Our console is declared to be US-ASCII, so we see unicode escapes
+	    "ilustra\u00ff\u00ffo" 
+	    "representante"
+	    TRANSLATIONS: (37 values)
+	    (DEUTSCH "Illustration")
+	    (DEUTSCH "Illustration, -en")
+	    (FRAN\u00c7AIS "exemple")
+	    (ESPA\u00d1OL "ejemplo")
+	    (ESPA\u00d1OL "sustituta")
+	    (ITALIANO "esempio")
+	    (ESPA\u00d1OL "suplente")
+	    (ENGLISH "representative")
+	    (ENGLISH "illustration")
+	    (ENGLISH "instance")
+	    (ENGLISH "example")
+	    (FRAN\u00c7AIS "preuve")
+	    (FRAN\u00c7AIS "repr\u00e9sentation")
+	    (FRAN\u00c7AIS "type")
+	    (FRAN\u00c7AIS "mod\u00e8le")
+	    (FRAN\u00c7AIS "rempla\u00e7ant")
+	    (ESPA\u00d1OL "representaci\u00f3n")
+	    (ESPA\u00d1OL "prueba")
+	    (ESPA\u00d1OL "figura")
+	    (ESPA\u00d1OL "ilustraci\u00f3n")
+	    (ESPA\u00d1OL "modelo")
+	    (ESPA\u00d1OL "delegado")
+	    (ESPA\u00d1OL "sustituto")
+	    (DEUTSCH ("Illustration," "-en"))
+	    (DEUTSCH "Beleg")
+	    (DEUTSCH "Beispiel")
+	    (DEUTSCH "Exempel")
+	    (ITALIANO "illustrazione")
+	    (ITALIANO "sostituta")
+	    (ITALIANO "domanda")
+	    (ITALIANO "prova")
+	    (NEDERLANDS "illustratie")
+	    (NEDERLANDS "verluchting")
+	    (NEDERLANDS "zaakwaarnemer")
+	    (DANSK "eksempel")
+	    (SUOMI "esimerkki")
+	    (TAGALOG "halimbaw\u00ff")
+	    @/brico/13800("example" "illustration" "instance" "representative")
+	  </pre>
+	<P>We `tell' FramerD to use its index for BRICO as the background for
+	  searches and the do a search for concepts related to the word "kludge"
+	  <pre class="typescript">
+	    [fdscript] (set! %background 'BRICO) 
+	    ;; No value (void) was returned
+	    [fdscript] (?? words "kludge")
+	    [15:36:30 Using index brico@leviathan]
+	    ;; No choices were returned
+	  </pre>
+	<P>Now we look for concepts that can be described by the word
+	  "cluck".  We have some more luck.
+	  <pre class="typescript">
+	    [fdscript] (?? words "cluck")
+	    {;; There are 5 results
+	    @/brico/1d674("cluck")
+	    @/brico/7a5("Verbs17023" "cackle" "cluck" "clack "hen" "rooster" "poultry")
+	    @/brico/7a5("Verbs17023" "cackle" "cluck" "clack "hen" "rooster" "poultry")
+	    @/brico/356a("cluck" "click" "clack")
+	    @/brico/356a("cluck" "click" "clack")
+	    }
+	  </pre>
+	<P>Let's look at one of them, again using the <tt>D</tt> function:
+	  <pre class="typescript">
+	    [fdscript] (d @/brico/1d674("cluck"))
+	    ---------------------------------------------------------------
+	    The frame @/brico/1d674("cluck"):
+	    SYNSET-CODE:  (NOUN 5495412 0)
+	    SOURCE:  @/brico/0"WordNet 1.6 Copyright 1997 by Princeton University.  All rights reserved."
+	    WORD-DATA:  #(("cluck" . 0))
+	    SYNSET-ID:  5495412
+	    N-WORDS:  1
+	    LEX-FILENO:  17
+	    SENSE-KEYS:  "cluck%1:17:00::"
+	    OBJ-NAME:  ("cluck")
+	    HYPERNYM:  @/brico/1d492("cry")
+	    GLOSS:  " the sound made by a hen (as in calling her chicks)  "
+	    PART-OF-SPEECH:  NOUN
+	    WORDS:  "cluck"
+	    ROGET-CLUSTERS:  @/brico/7a5("Verbs17023" "cackle" "cluck" "clack "hen" "rooster" "poultry")
+	    @/brico/1d674("cluck")
+	  </pre>
+	<p>We can use the <tt>GET</tt> function to get its generalization
+	  (hypernym in WordNet-speak), and to get its generalizations (recursively).
+	  <pre class="typescript">
+	    [fdscript] (get @/brico/1d674("cluck") 'hypernym)
+	    @/brico/1d492("cry")
+	    [fdscript] (get that 'hypernym)
+	    @/brico/13ae1("sound")
+	    [fdscript] (get that 'hypernym)
+	    @/brico/13ac3("happening" "occurrence" "natural_event")
+	    [fdscript] (get that 'hypernym)
+	    [15:37:22 Growing OID table from 517/1033]
+	    [15:37:22 OID table grown to 517/2083]
+	    @/brico/13ac0("event")
+	  </pre>
+	<p>This is the top of the generalization hierarchy, but we can also go
+	  down, which we do from the node for a meaning of "cry" which we found
+	  along the way.  This gives us a list of the different kinds of cries
+	  which BRICO "knows about":
+	  <pre class="typescript">
+	    [fdscript] (get that 'hypernym)
+	    ;; No choices were returned
+	    [fdscript] (get @/brico/1d492("cry") 'hyponym)
+	    {;; There are 21 results
+	    @/brico/1d670("cackle")
+	    @/brico/1d676("crow")
+	    @/brico/1d67f("yelp" "yelping")
+	    @/brico/1d674("cluck")
+	    @/brico/1d66d("bay")
+	    @/brico/1d67c("moo")
+	    @/brico/1d677("gobble")
+	    @/brico/1d671("caterwaul")
+	    @/brico/1d66b("baa")
+	    @/brico/1d679("honk")
+	    @/brico/1d675("coo")
+	    @/brico/1d66e("bleat")
+	    @/brico/1d67d("neigh" "whinny")
+	    @/brico/1d678("growl" "growling")
+	    @/brico/1d672("caw")
+	    @/brico/1d67a("howl")
+	    @/brico/1d66f("bray")
+	    @/brico/1d67e("roar")
+	    @/brico/1d673("cheep" "peep")
+	    @/brico/1d66c("bark")
+	    @/brico/1d67b("meow" "mew" "miaou" "miaow")
+	    }
+	  </pre>
+	<P>We can get the same list by searching (with the function
+	  <tt>??</tt>) for the concepts which have cry as their hypernym.
+	  <pre class="typescript">
+	    [fdscript] (?? hypernym @/brico/1d492("cry"))
+	    {;; There are 21 results
+	    @/brico/1d674("cluck")
+	    @/brico/1d670("cackle")
+	    @/brico/1d676("crow")
+	    @/brico/1d67f("yelp" "yelping")
+	    @/brico/1d66d("bay")
+	    @/brico/1d67c("moo")
+	    @/brico/1d677("gobble")
+	    @/brico/1d671("caterwaul")
+	    @/brico/1d66b("baa")
+	    @/brico/1d679("honk")
+	    @/brico/1d675("coo")
+	    @/brico/1d66e("bleat")
+	    @/brico/1d67d("neigh" "whinny")
+	    @/brico/1d678("growl" "growling")
+	    @/brico/1d672("caw")
+	    @/brico/1d67a("howl")
+	    @/brico/1d66f("bray")
+	    @/brico/1d67e("roar")
+	    @/brico/1d673("cheep" "peep")
+	    @/brico/1d66c("bark")
+	    @/brico/1d67b("meow" "mew" "miaou" "miaow")
+	    }
+	  </pre>
+	<P>We can use the <tt>DIFFERENCE</tt> primitive to compare these
+	  results automatically:
+	  <pre class="typescript">
+	    [fdscript] (difference (get @/brico/1d492("cry") 'hyponym)
+            (?? hypernym @/brico/1d492("cry")))
+	    ;; No choices were returned
+	  </pre>
+	<P>Finally, we exit with <tt>(exit)</tt> and
+	  the system tells us what it's been doing...
+	  <pre class="typescript">
+	    [fdscript] (exit)
+	    ;; 2 pools, 1 indices, 1 net connections
+	    ;; 591/53 OIDs refd/loaded, 0 new OIDs, 53 OID loads, 1057 symbols
+	    ;; 4858 conses in use, 4858*20+166490=263650 bytes total
+	  </pre>
+      </div>
+      
+      <div class="section" id="customizing">
+	  <TABLE class="header" width=100% cellpadding=0>
+	    <TR><TH class="title">Customizing FramerD
+		<TD class="gloss">
+		  The working environment for FramerD applications can be
+		  customized by specifying initial global variable bindings.  These intial
+		  bindings come from three sources: the <strong>configuration</strong>
+		  file associated with the current installation, an individual user
+		  <strong>profile</strong> associated with a particular user, and the
+		  <strong>command line</strong> with which the program was invoked.
+	  </TABLE>
+	
+	<P>When an interactive FramerD application (like a listener) starts
+	  up, it tries to read two initialization files:</p>
+	  <ol>
+	    <li>the <em>configuration</em> file associated with the FramerD installation</li>
+	    <li>a <em>user profile</em> associated with the current user</li>
+	</ol>
+	
+	<P>Additional configuration files can be included by either calling
+	  the FDScript function <tt>LOAD-CONFIG</tt> or by passing a
+	  <tt>--config=<var>file</var></tt> argument to the FramerD executables
+	  (e.g. <tt>fdscript</tt>, <tt>fdserver</tt>, <tt>fdcgi</tt>).
+	  
+	<P>The location of the default configuration file is normally
+	  established when FramerD is installed: the FDScript function
+	  <tt>(get-config-file)</tt> will return this location if you are
+	  interested.  The location of the user profile is typically a file
+	  named <samp>.fdprofile</samp> in the user's home directory.  (You can
+	  override these defaults with the shell environment variables
+	  <tt>FRAMERD_CONFIG</tt> and <tt>FRAMERD_PROFILE</tt>).
+	  
+	<P>When a series of configuration files are loaded, they can either
+	  <strong>set</strong> variables or <strong>add</strong> to variables.
+	  When a configuration file sets a variable, all values set by previous
+	  configuration files (or the user) are lost; when a configuration file
+	  adds to a variable, existing and added values coexist.
+	  
+	<P>In addition, the <tt>fdscript</tt> and <tt>fdserver</tt> executables and any
+	  scripts which invoke <tt>fdscript</tt> process command line arguments of the
+	  form "<tt><var>VAR</var>=<var>val</var></tt>" as defining configuration
+	  variables.  For example, the following turns on debugging (emitting full
+	  backtraces for errors) while loading the file <tt>foo.fdx</tt>:
+	  <pre>
+	    fdscript %DEBUG=#t foo.fdx
+	  </pre>
+	  Command line entries of the form "<tt><var>VAR</var>+=<var>val</var></tt>" adds
+	  an item to the current value of the configuration variable.  Suppose that the
+	  script <tt>find-dated</tt> were an fdscript script which took a date
+	  argument and searched by default in the indices stored in
+	  <tt>%BACKGROUND</tt>.  The background used for the search could be extended by
+	  something like this:	</P>
 
-<P class=quickref>
-Quick ref: [<A HREF="#installation">Installation</A>]&nbsp; 
-[<A HREF="#listeners">Listeners</A>]&nbsp; 
-[<A HREF="#customization">Customizing&nbsp;FramerD</A>]&nbsp; 
-[<A HREF="#config">Configuration&nbsp;Files</A>]&nbsp; 
-[<A HREF="#example">An&nbsp;Extended&nbsp;Example</A>]&nbsp; 
-[<A HREF="#shell">Shell&nbsp;Commands</A>]&nbsp; 
-[<A HREF="#emacs">Using&nbsp;FramerD&nbsp;from&nbsp;Emacs</A>]&nbsp; 
-[<A HREF="#invoking">Invoking&nbsp;FDScript</A>]&nbsp;
-<HR>
-
-<div class="section">
-
-<A NAME=installation>
-<TABLE class="header">
-<tr><TH class="title">Installing FramerD</TH>
-    <TD class="gloss">
-    How you install FramerD and FDScript depends on what kind of
-package you have, but each one eventually runs an
-installation script written in FDScript, the FramerD scripting
-language.  This script figures out and sets up configuration
-information regarding your installation.  In most cases, it also does
-the file copying.  Normally, it also installs the command
-<tt>uninstall-framerd</tt> to undo its actions.  </TD></TR>
-</TABLE>
-</A>
-
-<P>The way you install FramerD depends on the kind of installation file
-you have:
-<ul>
-<li>If you have a FramerD <strong>RPM</strong> file, simply (as root)
-do <tt>rpm -Uvh <var>rpm file</var></tt> to install it; it should take
-care of everything.</li>
-<li>If you have a FramerD binary tarball (called something like
-framerd-2.3-linux386.tar.gz) do the following:
-<ol>
-<li>uncompress it with <tt>gunzip framerd-2.2....tar.gz</tt></li>
-<li>unpack it with <tt>tar -xf framerd-2.2....tar.gz</tt></li>
-<li>go into the directory (<tt>cd framerd</tt>)</li>
-<li>run the installation script (which is written in FDScript) by typing<BR>
-<tt>bin/fdscript etc/install.fdx <var>directory</var></tt><BR>
-where <var>directory</var> is the directory you want to install
-FramerD.  If you do not specify the directory, it stores into <tt class="filename">
-/opt/framer-<var>version</var></tt>.</li>
-<li>if you specified a different installation directly, add a line to
-your Unix init file setting the variable <tt>FRAMERD_CONFIG</tt>
-to <tt><var>directory</var>/share/framerd/framerd.cfg</tt> where <var>directory</var> is the
-argument you used with <tt>install.fdx</tt>.  If you use <tt>bash</tt>
-modify the file <tt>~/.bashrc</tt> to include the line<BR>
-<tt>export FRAMERD_CONFIG=<var>directory</var></tt><BR>
-if you use <tt>csh</tt> or <tt>tcsh</tt>, modify the file <tt>.cshrc</tt> to include the line<BR>
-<tt>setenv FRAMERD_CONFIG <var>directory</var></tt></li>
-</ol></li>
-<li>If you have a
-FramerD source tarball (called something like framerd-2.2.tar.gz), do
-the following:
-<ol>
-<li>uncompress it with <tt>gunzip framerd-2.2.tar.gz</tt></li>
-<li>unpack it with <tt>tar -xf framerd-2.2.tar</tt></li>
-<li>go into the directory it unpacked with <tt>cd framerd</tt></li>
-
-<li>configure it by typing <tt>./configure</tt> there</li><BR> you can
-change where it installs itself by giving a
-<tt>--prefix=<var>directory</var></tt> argument to
-<tt>configure</tt>;
-<li>build it by typing <tt>make</tt></li>
-<li>(optionally) test it by typing <tt>make test</tt> (this does
-a lot of stuff and creates a detailed file <tt class="filename">test.log</tt>)</li>
-<li>install it by typing <tt>make install</tt>, which you might
-have to do as the <tt>root</tt> user</li>
-</ol></li>
-<li>If you have the <tt>WIN32</tt> self-extracting
-<tt>fdDDinstall.exe</tt> (where DD is the major and minor version
-numbers), just run it.  It will ask you some questions
-and you'll probably be happy with its defaults.</li>
-</ul>
-
-</div>
-
-<div class="section">
-
-<A NAME=listeners>
-<TABLE class="header" width=100% cellpadding=0>
-<Tr><TH class="title">Interacting with Listeners</TH>
-    <TD class="gloss">
-One can interact directly with FDScript through a `listener' which
-takes FDScript expressions and evaluates them.  If you are programming
-in FDScript, sooner or later, you will probably want to interact with
-an FDScript listener.</TD></TR>
-</TABLE>
-</A>
-
-<P>The FDScript listener is an interactive program which is usually
-invoked from a system's command line or under GNU Emacs (see Using
-FDScript under GNU Emacs).  It is usually invoked by a command like:
-<pre class="typescript">
-sh% fdscript
-</pre>
-
-<P>and responds with some information about the executable version,
-followed by a prompt (typically `fdscript') in square brackets:
-<pre class="typescript">
-[15:47:39 MIT FramerD library 2.2 (C) 1994-2000, built Mar 16 2001]
-[fdscript] 
-</pre>
-
-<P>The square brackets indicate that the text or messages which they
-contain are not a direct part of the interaction with FDScript.  In
-this case, the string "[fdscript]" prompts you to type an expression.
-The listener then displays the results of evaluating the expression,
-followed by another prompt:
-<pre class="typescript">
-[fdscript] (+ 2 3)
-5
-[fdscript] (* 3+5i 8i)
--40+24i
-[fdscript] (* (choice 1 2 3 4 5) 10)
-;; There are 5 values
-{10 20 30 40 50}
-[fdscript] (dtcall "admin@framerd.org" session-id)
-"framerd haase@framerd.media.mit.edu /PID:6836 /OS:i586-unknown-linux /Compiled:Dec 16 1999 /Started:Wed Jan  5 11:52:09 2000"
-[fdscript]
-</pre>
-
-<P>As you interact with the listener, the variable <tt>THAT</tt> is
-bound to the result of the last expression:
-<pre class="typescript">
-[fdscript] (/ 22 7)
-22/7
-[fdscript] (* that 5)
-110/7
-[fdscript] (exact-&gt;inexact that)
-15.714286
-[fdscript] (set! pi (/ that 5))
-[fdscript] (* pi pi)
-9.877550
-[fdscript]
-</pre>
-<P>When an expression non-deterministically returns multiple values,
-or no values, the listener reports how many values and either lists
-them or reports the absence of results, e.g.
-<pre class="typescript">
-[fdscript] (elts "Foo")
-;; 2 choices were returned
-{#\F #\o}
-[fdscript] (elts "")
-;; No choices were returned
-[fdscript]
-</pre>
-<P>Some expressions, like <tt>SET!</tt>, <tt>DEFINE</tt> or
-<tt>DISPLAY</tt> are defined to not have return values.  When
-processing one of these expressions, the listener says `Nothing (void)
-was returned' to indicate the the expression returned no useful value,
-e.g.
-<pre class="typescript">
-[fdscript] (display foo)
-Foo
-;; Nothing (void) was returned
-[fdscript]
-</pre>
-<P>The listener also tracks changes in the values of variables,
-so that a form like <tt>DEFINE</tt> will also elicit a report of
-change in valuye, e.g.
-<pre class="typescript">
-[fdscript] (define (fact n) (if (= n 0) 1 (* n (fact (- n 1)))))
-;; Nothing (void) was returned
-;; Values changed (1): FACT
-[fdscript]
-</pre>
-<P>This works with all top level expressions, providing a useful way
-to tell (for instance) which global symbols are defined by a
-particular file:
-<pre class="typescript">
-[fdscript] (load "fact")
-;; Nothing (void) was returned
-;; Global values changed (2): FACT FACT-ITER
-[fdscript]
-</pre>
-
-<H2>Using READLINE</H2>
-
-<P>When the listener's prompt starts with an asterisk
-(e.g. <samp>*[fdscript]</samp>), this indicates that the GNU readline
-library is being used to read input the console.  This library offers
-simple editing commands much like those in Emacs.  In addition, the
-FDScript listener also defines automatic <em>completion</em> of
-FDScript symbols and external filenames.
-
-<P>Completion means that hitting the <kbd>Tab</kbd> key automatically
-tries to expand whatever you are typing to a known symbol,
-e.g. hitting tab when you have typed:
-<pre class="typescript">
-[fdscript] (make-file-p
-</pre>
-<P>automatically generates the completion:
-<pre class="typescript">
-[fdscript] (make-file-pool
-</pre>
-<P>Hitting <kbd>Tab</kbd> twice lists possible completions.  For
-example, hitting tab twice after typing the following:
-<pre class="typescript">
-[fdscript] (make-file-
-</pre>
-<P>would yield:
-<pre class="typescript">
-[fdscript] (make-file-
-MAKE-FILE-INDEX MAKE-FILE-POOL
-</pre>
-
-<P>When the cursor is inside a string, <kbd>Tab</kbd> attempts to do
-<em>filename completion</em> rather than symbol completion.
-E.G. hitting <kbd>Tab</kbd> when you have typed:
-<pre class="typescript">
-[fdscript] (filestring "/usr/local/src/fram
-</pre>
-<P>might automatically generate the completion:
-<pre class="typescript">
-[fdscript] (filestring "/usr/local/src/framerd
-</pre>
-
-<P>Binary releases of FramerD only use the readline library for
-operating systems which typically include the library.  If you are
-using another platform, you can get and install the readline library
-separately and recompile FramerD yourself.
-</div>
-
-<div class="section">
-<a name=example>
-<TABLE class="header" width=100% cellpadding=0>
-<Tr><TH class="title">Using A Database</TH>
-    <TD class="gloss">FramerD databases can be examined interactively
-through a listener.  This transcript is an annotated tour of the BRICO
-knowledge base through an FDScript listener.  You can also browse this
-database through the web at <A
-HREF="http://www.framerd.org/brico/">http://www.framerd.org/brico/</A>.
-</TD></TR>
-</TABLE>
-</a>
-
-<P>We start by telling the system to access the objects in the BRICO
-knowledge base:
-<pre class="typescript">
-[15:47:39 MIT FramerD library 2.2 (C) 1994-2000, built Mar 16 2001]
-[fdscript] (use-pool 'brico) 
-</pre>
-<P>It outputs some identifying information and then reports the pools
-it has added
-<pre class="typescript">
-[15:50:04 Session id=fdscript haase@buster.media.mit.edu /PID:2403 /OS:i686-unknown-linux /V:2.2 /Compiled:Mar 16 2001 /Started:Sun Mar 18 15:50:04 2001]
-[#POOL brico@leviathan @1/0+1048576 {}]
-</pre>
-<P>Once the pool is added, we can use a numeric OID (Object IDentifier) 
-to retrieve a particular object.
-<pre class="typescript">
-[fdscript] @1/13800
-@/brico/13800("example" "illustration" "instance" "representative")
-</pre>
-<P>We can describe this object by using the <tt>D</tt> function, which
-gives us a lot of output:
-<pre class="typescript">
-[fdscript] (d @/brico/13800)
----------------------------------------------------------------
-The frame @/brico/13800("example" "illustration" "instance" "representative"):
-    SYNSET-CODE:  (NOUN 4483764 0)
-    SOURCE:  @/brico/0"WordNet 1.6 Copyright 1997 by Princeton University.  All rights reserved."
-    WORD-DATA:  #(("example" . 0) ("illustration" . 2) ("instance" . 0) ("representative" . 0))
-    SYNSET-ID:  4483764
-    N-WORDS:  4
-    LEX-FILENO:  9
-    SENSE-KEYS: (4 values)
-       "illustration%1:09:02::"
-       "representative%1:09:00::"
-       "instance%1:09:00::"
-       "example%1:09:00::"
-    OBJ-NAME:  ("example" "illustration" "instance" "representative")
-    HYPERNYM:  @/brico/13754("information")
-    HYPONYM: (6 values)
-       @/brico/1bd54("precedent" "case_in_point")
-       @/brico/1bd56("sample")
-       @/brico/1bd57("specimen")
-       @/brico/1bd52("apology")
-       @/brico/1bd55("quintessence")
-       @/brico/1bd53("exception")
-    GLOSS:  " a single item of information that is representative of a type; \"this patient provides a typical example of the syndrome\"; \"there is a good example on page 10\"  "
-    PART-OF-SPEECH:  NOUN
-    WORDS: (4 values)
-       "representative"
-       "illustration"
-       "instance"
-       "example"
-    ROGET-CLUSTERS: (14 values)
-       @/brico/95eb("Nouns32750" "representative" "commissioner" "deputy")
-       @/brico/f9c3("Nouns987" "protoplast" "module" "exemplar" "example" "ensample" "paradigm")
-       @/brico/40c5("Nouns37449" "postulation" "solicitation" "invitation" "entreaty" "importunity" "supplication" "instance" "impetration" "imploration" "obsecration" "obtestation" "invocation" "interpellation")
-       @/brico/1553a("Nouns24846" "illustration" "delineation" "depictment")
-       @/brico/8011("Adjectives24699" "diacritical" "representative" "typical" "symbolic" "pantomimic" "pathognomonic" "symptomatic" "characteristic" "demonstrative" "diagnostic" "exponential" "emblematic" "armorial")
-       @/brico/1a430("Nouns3707" "exemplification" "illustration" "case in point")
-       @/brico/1955("Nouns27738" "influence" "prompting" "dictate" "instance")
-       @/brico/40c4("Nouns3706" "example" "instance" "specimen" "sample" "quotation")
-       @/brico/2b92("Nouns37175" "deputy" "substitute" "vice" "proxy" "locum tenens" "badli" "delegate" "representative" "next friend" "surrogate" "secondary")
-       @/brico/26b9("Adjectives24914" "represent" "representing" "representative")
-       @/brico/1a431("Nouns22765" "illustration" "exemplification")
-       @/brico/95ec("Nouns37154" "representative" "resident" "consul" "legate" "nuncio" "internuncio" "charge d'affaires" "attache")
-       @/brico/13a6d("Nouns25071" "illustration" "illumination")
-       @/brico/13a6e("Nouns42133" "illustration" "illumination" "vignette")
-    CYC-CONCEPTS: (3 values) ;; Some cross references into CYC
-       @1/200939"SalesRepresentative"
-       @1/20093b"RepresentativeDemocracy"
-       @1/20093a"ArtistOrEntertainerRepresentative"
-    PORTUGUESE: (3 values)
-       "exemplo"
-       ;; Our console is declared to be US-ASCII, so we see unicode escapes
-       "ilustra\u00ff\u00ffo" 
-       "representante"
-    TRANSLATIONS: (37 values)
-       (DEUTSCH "Illustration")
-       (DEUTSCH "Illustration, -en")
-       (FRAN\u00c7AIS "exemple")
-       (ESPA\u00d1OL "ejemplo")
-       (ESPA\u00d1OL "sustituta")
-       (ITALIANO "esempio")
-       (ESPA\u00d1OL "suplente")
-       (ENGLISH "representative")
-       (ENGLISH "illustration")
-       (ENGLISH "instance")
-       (ENGLISH "example")
-       (FRAN\u00c7AIS "preuve")
-       (FRAN\u00c7AIS "repr\u00e9sentation")
-       (FRAN\u00c7AIS "type")
-       (FRAN\u00c7AIS "mod\u00e8le")
-       (FRAN\u00c7AIS "rempla\u00e7ant")
-       (ESPA\u00d1OL "representaci\u00f3n")
-       (ESPA\u00d1OL "prueba")
-       (ESPA\u00d1OL "figura")
-       (ESPA\u00d1OL "ilustraci\u00f3n")
-       (ESPA\u00d1OL "modelo")
-       (ESPA\u00d1OL "delegado")
-       (ESPA\u00d1OL "sustituto")
-       (DEUTSCH ("Illustration," "-en"))
-       (DEUTSCH "Beleg")
-       (DEUTSCH "Beispiel")
-       (DEUTSCH "Exempel")
-       (ITALIANO "illustrazione")
-       (ITALIANO "sostituta")
-       (ITALIANO "domanda")
-       (ITALIANO "prova")
-       (NEDERLANDS "illustratie")
-       (NEDERLANDS "verluchting")
-       (NEDERLANDS "zaakwaarnemer")
-       (DANSK "eksempel")
-       (SUOMI "esimerkki")
-       (TAGALOG "halimbaw\u00ff")
-@/brico/13800("example" "illustration" "instance" "representative")
-</pre>
-<P>We `tell' FramerD to use its index for BRICO as the background for
-searches and the do a search for concepts related to the word "kludge"
-<pre class="typescript">
-[fdscript] (set! %background 'BRICO) 
-;; No value (void) was returned
-[fdscript] (?? words "kludge")
-[15:36:30 Using index brico@leviathan]
-;; No choices were returned
-</pre>
-<P>Now we look for concepts that can be described by the word
-"cluck".  We have some more luck.
-<pre class="typescript">
-[fdscript] (?? words "cluck")
-{;; There are 5 results
- @/brico/1d674("cluck")
- @/brico/7a5("Verbs17023" "cackle" "cluck" "clack "hen" "rooster" "poultry")
- @/brico/7a5("Verbs17023" "cackle" "cluck" "clack "hen" "rooster" "poultry")
- @/brico/356a("cluck" "click" "clack")
- @/brico/356a("cluck" "click" "clack")
-}
-</pre>
-<P>Let's look at one of them, again using the <tt>D</tt> function:
-<pre class="typescript">
-[fdscript] (d @/brico/1d674("cluck"))
----------------------------------------------------------------
-The frame @/brico/1d674("cluck"):
-    SYNSET-CODE:  (NOUN 5495412 0)
-    SOURCE:  @/brico/0"WordNet 1.6 Copyright 1997 by Princeton University.  All rights reserved."
-    WORD-DATA:  #(("cluck" . 0))
-    SYNSET-ID:  5495412
-    N-WORDS:  1
-    LEX-FILENO:  17
-    SENSE-KEYS:  "cluck%1:17:00::"
-    OBJ-NAME:  ("cluck")
-    HYPERNYM:  @/brico/1d492("cry")
-    GLOSS:  " the sound made by a hen (as in calling her chicks)  "
-    PART-OF-SPEECH:  NOUN
-    WORDS:  "cluck"
-    ROGET-CLUSTERS:  @/brico/7a5("Verbs17023" "cackle" "cluck" "clack "hen" "rooster" "poultry")
-@/brico/1d674("cluck")
-</pre>
-<p>We can use the <tt>GET</tt> function to get its generalization
-(hypernym in WordNet-speak), and to get its generalizations (recursively).
-<pre class="typescript">
-[fdscript] (get @/brico/1d674("cluck") 'hypernym)
-@/brico/1d492("cry")
-[fdscript] (get that 'hypernym)
-@/brico/13ae1("sound")
-[fdscript] (get that 'hypernym)
-@/brico/13ac3("happening" "occurrence" "natural_event")
-[fdscript] (get that 'hypernym)
-[15:37:22 Growing OID table from 517/1033]
-[15:37:22 OID table grown to 517/2083]
-@/brico/13ac0("event")
-</pre>
-<p>This is the top of the generalization hierarchy, but we can also go
-down, which we do from the node for a meaning of "cry" which we found
-along the way.  This gives us a list of the different kinds of cries
-which BRICO "knows about":
-<pre class="typescript">
-[fdscript] (get that 'hypernym)
-;; No choices were returned
-[fdscript] (get @/brico/1d492("cry") 'hyponym)
-{;; There are 21 results
- @/brico/1d670("cackle")
- @/brico/1d676("crow")
- @/brico/1d67f("yelp" "yelping")
- @/brico/1d674("cluck")
- @/brico/1d66d("bay")
- @/brico/1d67c("moo")
- @/brico/1d677("gobble")
- @/brico/1d671("caterwaul")
- @/brico/1d66b("baa")
- @/brico/1d679("honk")
- @/brico/1d675("coo")
- @/brico/1d66e("bleat")
- @/brico/1d67d("neigh" "whinny")
- @/brico/1d678("growl" "growling")
- @/brico/1d672("caw")
- @/brico/1d67a("howl")
- @/brico/1d66f("bray")
- @/brico/1d67e("roar")
- @/brico/1d673("cheep" "peep")
- @/brico/1d66c("bark")
- @/brico/1d67b("meow" "mew" "miaou" "miaow")
-}
-</pre>
-<P>We can get the same list by searching (with the function
-<tt>??</tt>) for the concepts which have cry as their hypernym.
-<pre class="typescript">
-[fdscript] (?? hypernym @/brico/1d492("cry"))
-{;; There are 21 results
- @/brico/1d674("cluck")
- @/brico/1d670("cackle")
- @/brico/1d676("crow")
- @/brico/1d67f("yelp" "yelping")
- @/brico/1d66d("bay")
- @/brico/1d67c("moo")
- @/brico/1d677("gobble")
- @/brico/1d671("caterwaul")
- @/brico/1d66b("baa")
- @/brico/1d679("honk")
- @/brico/1d675("coo")
- @/brico/1d66e("bleat")
- @/brico/1d67d("neigh" "whinny")
- @/brico/1d678("growl" "growling")
- @/brico/1d672("caw")
- @/brico/1d67a("howl")
- @/brico/1d66f("bray")
- @/brico/1d67e("roar")
- @/brico/1d673("cheep" "peep")
- @/brico/1d66c("bark")
- @/brico/1d67b("meow" "mew" "miaou" "miaow")
-}
-</pre>
-<P>We can use the <tt>DIFFERENCE</tt> primitive to compare these
-results automatically:
-<pre class="typescript">
-[fdscript] (difference (get @/brico/1d492("cry") 'hyponym)
-                       (?? hypernym @/brico/1d492("cry")))
-;; No choices were returned
-</pre>
-<P>Finally, we exit with <tt>(exit)</tt> and
-the system tells us what it's been doing...
-<pre class="typescript">
-[fdscript] (exit)
-;; 2 pools, 1 indices, 1 net connections
-;; 591/53 OIDs refd/loaded, 0 new OIDs, 53 OID loads, 1057 symbols
-;; 4858 conses in use, 4858*20+166490=263650 bytes total
-</pre>
-</div>
-
-<div class="section">
-<a name=customizing>
-<TABLE class="header" width=100% cellpadding=0>
-<TR><TH class="title">Customizing FramerD
-    <TD class="gloss">
-The working environment for FramerD applications can be
-customized by specifying initial global variable bindings.  These intial
-bindings come from three sources: the <strong>configuration</strong>
-file associated with the current installation, an individual user
-<strong>profile</strong> associated with a particular user, and the
-<strong>command line</strong> with which the program was invoked.
-</TABLE>
-</a>
-
-<P>When an interactive FramerD application (like a listener) starts
-up, it tries to read two initialization files:
-<ol>
-<li>the <em>configuration</em> file associated with the FramerD installation</li>
-<li>a <em>user profile</em> associated with the current user</li>
-</ol></P>
-
-<P>Additional configuration files can be included by either calling
-the FDScript function <tt>LOAD-CONFIG</tt> or by passing a
-<tt>--config=<var>file</var></tt> argument to the FramerD executables
-(e.g. <tt>fdscript</tt>, <tt>fdserver</tt>, <tt>fdcgi</tt>).
-
-<P>The location of the default configuration file is normally
-established when FramerD is installed: the FDScript function
-<tt>(get-config-file)</tt> will return this location if you are
-interested.  The location of the user profile is typically a file
-named <samp>.fdprofile</samp> in the user's home directory.  (You can
-override these defaults with the shell environment variables
-<tt>FRAMERD_CONFIG</tt> and <tt>FRAMERD_PROFILE</tt>).
-
-<P>When a series of configuration files are loaded, they can either
-<strong>set</strong> variables or <strong>add</strong> to variables.
-When a configuration file sets a variable, all values set by previous
-configuration files (or the user) are lost; when a configuration file
-adds to a variable, existing and added values coexist.
-
-<P>In addition, the <tt>fdscript</tt> and <tt>fdserver</tt> executables and any
-scripts which invoke <tt>fdscript</tt> process command line arguments of the
-form "<tt><var>VAR</var>=<var>val</var></tt>" as defining configuration
-variables.  For example, the following turns on debugging (emitting full
-backtraces for errors) while loading the file <tt>foo.fdx</tt>:
-<pre>
-fdscript %DEBUG=#t foo.fdx
-</pre>
-Command line entries of the form "<tt><var>VAR</var>+=<var>val</var></tt>" adds
-an item to the current value of the configuration variable.  Suppose that the
-script <tt>find-dated</tt> were an fdscript script which took a date
-argument and searched by default in the indices stored in
-<tt>%BACKGROUND</tt>.  The background used for the search could be extended by
-something like this:
-<pre>
-find-dated %BACKGROUND+=~/oldmail.index "June 1993"
-</pre>
-</P>
-
-<H2><a name=config>Dealing with Configuration Files</a></H2>
-
-<P>The command <tt>fdconfig</tt> is used to examine or change the
-current FramerD configuration.  It provides several sub-commands:
-<TABLE>
-<TR><TD>fdconfig locate</TD>
-    <TD>identifies the file where the configuration is stored</TD></TR>
-<TR><TD>fdconfig list</TD>
-    <TD>lists the variable bindings defined by the configuration</TD></TR>
-<TR><TD>fdconfig get <var>var</var></TD>
-    <TD>lists the bindings defined for <var>var</var> in
-the configuration</TD></TR>
-<TR><TD>fdconfig reset <var>var</var></TD>
-    <TD>removes any bindings defined for <var>var</var>
-in the configuration</TD></TR>
-<TR><TD>fdconfig set <var>var</var> <var>value</var></TD>
-    <TD>changes the binding of <var>var</var> to <var>value</var> 
-in the configuration</TD></TR>
-<TR><TD>fdconfig add <var>var</var> <var>value</var></TD>
-    <TD>adds a binding of <var>var</var> to <var>value</var> 
-in the configuration; this will combine with any bindings defined
-before the configuration is loaded</TD></TR>
-<TR><TD>fdconfig use-pool <var>pool</var></TD>
-    <TD>creates a `pooltab' entry for <var>pool</var> in the
-configuration</TD></TR>
-<TR><TD>fdconfig use-server <var>fcn</var> <var>server</var></TD>
-    <TD>defines the symbol <var>fcn</var> in the current
-configuration to execute on the remote server <var>server</var></TD></TR>
-</TABLE>
-<P>The shell command <tt>fdprofile</tt> is just like <tt>fdconfig</tt>
-but modifies the current user's profile rather than the system
-configuration.  And the general command <tt>fdcfg</tt> takes a config
-file as its first argument and treats the remaining arguments just as
-<tt>fdconfig</tt> does.
-
-<P>From FDScript, you can use the functions <tt>config-add!</tt>,
-<tt>config-reset!</tt> and <tt>config-set!</tt> to manipluate the
-values in configuration files.
-
-<H2>Anatomy of a Configuration File</H2>
-
-<P>Configuration files and user profiles are designed to be readable
-and writable by both humans and machines, though the commands
-<samp>fdconfig</samp> and <samp>fdprofile</samp> are the preferred way
-for users and maintainers to change these files.  However, you can also read and edit the files by hand.
-
-<P>Each file consists of a sequence of initializations of either the
-form:
-<pre class="typescript">
-(<var>symbol</var> <var>value</var>)
-</pre>
-<P>(which causes the symbol <var>symbol</var> in the startup
-environment to be bound to the value <var>value</var>) or
-<pre class="typescript">
-(<var>symbol</var> <var>value</var> <tt>+</tt>)
-</pre>
-<P>where the second form indicates that <var>value</var> should be
-added to whatever the current value of <var>symbol</var> may be.
-
-<P>The expression <var>value</var> is read as a Lisp value, but <em>is
-not evaluated</em> (since not all FramerD applications include an
-evaluator).  For instance, here is a sample configuration file:
-<pre class="typescript">
-(INSTALL_ROOT "/usr/local")
-(INSTALLATION "1999-06-27T15:26:49-4:00")
-(FRAMERD_DATA "/usr/local/share/framerd/data")
-(FRAMERD_LIB "/usr/local/share/framerd")
-(SUPER_POOL "/usr/local/share/framerd/public/super-pool")
-(BRICO "brico@framerd.org")
-</pre>
-<P>which sets up initial variables based on the installation and adds
-some customizations to identify the sources for particular named
-resources (the BRICO server).
-
-<H2>FramerD configuration variables</H2>
-
-<TABLE>
-<TR><TD class="ccode">%ENCODING</TD>
-    <TD>default text encoding </TD></TR>
-<TR><TD class="ccode">FRAMERD_PROFILE</TD>
-    <TD>where the user profile is loaded from for interactive listeners</TD>
-</TR>
-<TR><TD class="ccode">HERALD</TD>
-    <TD>message string emitted with the FramerD library is initialized</TD>
-</TR>
-<TR><TD class="ccode">PPWIDTH</TD>
-    <TD>how many columns to aim for pretty printing objects</TD>
-</TR>
-<TR><TD class="ccode">FD_DIE_CONVENTIONALLY</TD>
-    <TD>don't signal errors on bad signals</TD>
-</TR>
-<TR><TD class="ccode">ENCODINGS_PATH</TD>
-    <TD>where to find character encoding mapping files</TD>
-</TR>
-<TR><TD class="ccode">MAILHOST</TD>
-    <TD>SMTP mail server</TD>
-</TR>
-<TR><TD class="ccode">MAILDOMAIN</TD>
-    <TD>mail domain </TD>
-</TR>
-<TR><TD class="ccode">FRAMERD_EMAIL</TD>
-    <TD>default from field for generated email</TD>
-</TR>
-<TR><TD class="ccode">FRAMERD_REPLY_TO</TD>
-    <TD>default replyto field for generated email</TD>
-</TR>
-<TR><TD class="ccode">FDMYPATH</TD>
-    <TD>search path for file loading</TD>
-</TR>
-<TR><TD class="ccode">FDPATH</TD>
-    <TD>search path for file loading</TD>
-</TR>
-<TR><TD class="ccode">FD_LISTENER_INIT</TD>
-    <TD>initialization file</TD>
-</TR>
-<TR><TD class="ccode">FD_LISTENER_LIBS</TD>
-    <TD>library modules to load into listener</TD>
-</TR>
-<TR><TD class="ccode">SUPER_POOL</TD>
-    <TD>where pools are taken from</TD>
-</TR>
-<TR><TD class="ccode">ALWAYS_BUSY</TD>
-    <TD>whether prompt always includes resource information</TD>
-</TR>
-<TR><TD class="ccode">%POOLTAB</TD>
-    <TD>lookup table for OIDs</TD>
-</TR>
-<TR><TD class="ccode">OID_LOCATOR</TD>
-    <TD>lookup server for OIDs</TD>
-</TR>
-<TR><TD class="ccode">%BACKGROUND</TD>
-    <TD>default indices for frame searching</TD>
-</TR>
-</TABLE>
-
-
-</div>
-
-<div class="section">
-<a name=shell>
-<TABLE class="header" width=100% cellpadding=0>
-<TR><TH class="title">Using FramerD From the Shell
-    <TD class="gloss">
-One can use FramerD commands from the Unix or DOS shell.
-</TABLE>
-</a>
-
-<P>One convenient way to access FramerD is to invoke commands directly
-from your computer's command line, typically either the Unix shell or
-the Windows DOS prompt.  FramerD comes with a variety of scripts
-designed to help with this.  In addition, it is very simple (if you
-know a little Scheme or LISP) to define your own shell commands.  And
-the FramerD program <tt>dtcall</tt> allows you to access remote
-servers from the command line.</P>
-
-<P>Both FramerD scripts and DTCALL interpret command line arguments of
-dash (-) and dollar sign ($) specially.  A "-" argument is converted
-into a set of lisp objects read from the standard input; a "$"
-argument is converted into a single string whose content consists of
-the entire standard input.  This allows the output from commands can
-be piped together to do more complex processing.</P>
-
-<P>In addition, FramerD scripts process and ignore configuration expressions
-such as <tt><var>variable</var>=<var>value</var></tt> from the command line.</P>
-
-<P>The following shell transcript describes one session of interaction
-with FramerD through the shell; we start by adding the BRICO pool to
-the variable <tt>%pools</tt>, which is used by the default scripts:
-<pre class="typescript">
-[haase@localhost /tmp]$ fdprofile add %pools brico 
-</pre></P>
-
-<P>we then look for frames whose <tt>words</tt> slot contains the string <tt>"example"</tt>
-<pre class="typescript">
-[haase@localhost /tmp]$ fdfind words "example"
-;;; There are 8 matches
-  @1/f9c3("Nouns987" "protoplast" "module" "exemplar" "example" "ensample" "paradigm")
-  @1/40c4("Nouns3706" "example" "instance" "specimen" "sample" "quotation")
-  @1/13800(NOUN.COGNITION "example" "instance" "illustration" "representative")
-  @1/13ad9(NOUN.EVENT "case" "example" "instance")
-  @1/1525d(NOUN.ACT "example" "exercise")
-  @1/1bbe8(NOUN.COGNITION "model" "example")
-  @1/1bdff(NOUN.COGNITION "exemplar" "model" "example" ("good" "example"))
-  @1/1cb47(NOUN.COMMUNICATION ("object" "lesson") ("deterrent" "example") "example" "lesson")
-</pre>
-<P>and we can now look at one particular frame:
-<pre class="typescript">
-[haase@localhost /tmp]$ fdd @1/13800
-The frame @1/13800(NOUN.COGNITION "example" "instance" "illustration" "representative"):
-    SYNSET-CODE:  (NOUN 4483764 0)
-    SOURCE:  @1/0"WordNet 1.6 Copyright 1997 by Princeton University.  All rights reserved."
-    WORD-DATA:  #(("example" . 0) ("illustration" . 2) ("instance" . 0) ("representative" . 0))
-    SYNSET-ID:  4483764
-    N-WORDS:  4
-    SENSE-KEYS: (8 values)
-       "illustration%1:09:02::"
-       "representative%1:09:00::"
-       "instance%1:09:00::"
-       "example%1:09:00::"
-       ("example%1:09:00::" 1 45)
-       ("illustration%1:09:02::" 3 1)
-       ("instance%1:09:00::" 2 4)
-       ("representative%1:09:00::" 4 0)
-    HYPERNYM:  @1/13754(NOUN.COGNITION "information")
-    HYPONYM: (6 values)
-       @1/1bd54(NOUN.COGNITION "precedent" ("case" "in" "point"))
-       @1/1bd56(NOUN.COGNITION "sample")
-       @1/1bd57(NOUN.COGNITION "specimen")
-       @1/1bd52(NOUN.COGNITION "apology")
-       @1/1bd55(NOUN.COGNITION "quintessence")
-       @1/1bd53(NOUN.COGNITION "exception")
-    GLOSS:  " a single item of information that is representative of a type; \"this patient provides a typical example of the syndrome\"; \"there is a good example on page 10\"  "
-    PART-OF-SPEECH:  NOUN
-    WORDS: (4 values)
-       "representative"
-       "illustration"
-       "instance"
-       "example"
-    ROGET-CLUSTERS: (14 values)
-       @1/95eb("Nouns32750" "representative" "commissioner" "deputy")
-       @1/f9c3("Nouns987" "protoplast" "module" "exemplar" "example" "ensample" "paradigm")
-       @1/40c5("Nouns37449" "postulation" "solicitation" "invitation" "entreaty" "importunity" "supplication" "instance" "impetration" "imploration" "obsecration" "obtestation" "invocation" "interpellation")
-       @1/1553a("Nouns24846" "illustration" "delineation" "depictment")
-       @1/8011("Adjectives24699" "diacritical" "representative" "typical" "symbolic" "pantomimic" "pathognomonic" "symptomatic" "characteristic" "demonstrative" "diagnostic" "exponential" "emblematic" "armorial")
-       @1/1a430("Nouns3707" "exemplification" "illustration" "case in point")
-       @1/1955("Nouns27738" "influence" "prompting" "dictate" "instance")
-       @1/40c4("Nouns3706" "example" "instance" "specimen" "sample" "quotation")
-       @1/2b92("Nouns37175" "deputy" "substitute" "vice" "proxy" "locum tenens" "badli" "delegate" "representative" "next friend" "surrogate" "secondary")
-       @1/26b9("Adjectives24914" "represent" "representing" "representative")
-       @1/1a431("Nouns22765" "illustration" "exemplification")
-       @1/95ec("Nouns37154" "representative" "resident" "consul" "legate" "nuncio" "internuncio" "charge d'affaires" "attache")
-       @1/13a6d("Nouns25071" "illustration" "illumination")
-       @1/13a6e("Nouns42133" "illustration" "illumination" "vignette")
-    CYC-CONCEPTS: (3 values)
-       @1/200939"SalesRepresentative"
-       @1/20093b"RepresentativeDemocracy"
-       @1/20093a"ArtistOrEntertainerRepresentative"
-    PORTUGUESE: (3 values)
-       "exemplo"
-       "ilustra\u00ff\u00ffo"
-       "representante"
-    TRANSLATIONS: (37 values)
-       (DEUTSCH "Illustration")
-       (DEUTSCH "Illustration, -en")
-       (FRAN\u00c7AIS "exemple")
-       (ESPA\u00d1OL "ejemplo")
-       (ESPA\u00d1OL "sustituta")
-       (ITALIANO "esempio")
-       (ESPA\u00d1OL "suplente")
-       (ENGLISH "representative")
-       (ENGLISH "illustration")
-       (ENGLISH "instance")
-       (ENGLISH "example")
-       (FRAN\u00c7AIS "preuve")
-       (FRAN\u00c7AIS "repr\u00e9sentation")
-       (FRAN\u00c7AIS "type")
-       (FRAN\u00c7AIS "mod\u00e8le")
-       (FRAN\u00c7AIS "rempla\u00e7ant")
-       (ESPA\u00d1OL "representaci\u00f3n")
-       (ESPA\u00d1OL "prueba")
-       (ESPA\u00d1OL "figura")
-       (ESPA\u00d1OL "ilustraci\u00f3n")
-       (ESPA\u00d1OL "modelo")
-       (ESPA\u00d1OL "delegado")
-       (ESPA\u00d1OL "sustituto")
-       (DEUTSCH ("Illustration," "-en"))
-       (DEUTSCH "Beleg")
-       (DEUTSCH "Beispiel")
-       (DEUTSCH "Exempel")
-       (ITALIANO "illustrazione")
-       (ITALIANO "sostituta")
-       (ITALIANO "domanda")
-       (ITALIANO "prova")
-       (NEDERLANDS "illustratie")
-       (NEDERLANDS "verluchting")
-       (NEDERLANDS "zaakwaarnemer")
-       (DANSK "eksempel")
-       (SUOMI "esimerkki")
-       (TAGALOG "halimbaw\u00ff")
-    LEX-FILENO:  9
-    SENSE-CATEGORY:  NOUN.COGNITION
-    OBJ-NAME:  (NOUN.COGNITION "example" "instance" "illustration" "representative")
-</pre>
-<P>though we might prefer to get a particular slot:
-<pre class="typescript">
-[haase@localhost /tmp]$ fdget @1/13800 hypernym
-;; There are 1 results
-  @1/13754(NOUN.COGNITION "information")
-</pre>
-<P>and we can pipe one command into another by using the special `-'
-argument to indicate the inputs on the standard input:
-<pre class="typescript">
-[haase@localhost /tmp]$ fdget @1/13800 hypernym | fdget - hypernym
-;; There are 1 results
-  @1/6436(NOUN.TOPS "cognition" "knowledge")
-[haase@localhost /tmp]$ fdget @1/13800 hypernym | fdget - hypernym | fdget - hypernym
-;; There are 1 results
-  @1/13747(NOUN.TOPS ("psychological" "feature"))
-[haase@localhost /tmp]$ fdget @1/13800 hypernym | fdget - hypernym | fdget - hypernym |  fdget - hyponym
-;; There are 3 results
-  @1/aac1(NOUN.TOPS "feeling")
-  @1/e732(NOUN.TOPS "motive" "motivation" "need")
-  @1/6436(NOUN.TOPS "cognition" "knowledge")
-</pre>
-
-<P>the <tt>dtcall</tt> program takes a server specification
-(service@hostname), an operation, and a set of arguments.  The
-operation is just a symbol whose value will be applied on the remote
-server.  We could use this to invoke the <tt>get-similar</tt> function
-on <tt>framerd.org</tt>'s brico server:
-<pre class=typescript>
-[haase@localhost haase]$ fdget @1/13800 hypernym | dtcall brico@localhost get-similar brico - 
-@1/13c49
-@1/1c948
-@1/13d75
-@1/cf6a
-</pre>
-<P>which has the advantage of not using local memory and taking
-advantage of the big caches which we will assume are on
-<tt>brico@framerd.org</tt>.  (If this takes a while, it may be that
-<tt>brico@framerd.org</tt> is overloaded.)  However, the OIDs listed
-as results are not given with names, since <tt>dtcall</tt> doesn't use
-the <tt>%pools</tt> variable to find the actual objects and their
-names.  However, we can pipe the result to the fd_id script, which
-just prints its outputs, but it does use <tt>%pools</tt> and so can
-get the OID's names:
-<pre class=typescript>
-[haase@localhost haase]$ fdget @1/13800 hypernym | dtcall brico@localhost get-similar brico - | fd_id -
-;; There are 4 results
-  @1/13c49(NOUN.GROUP "data" "information")
-  @1/1c948(NOUN.COMMUNICATION "information")
-  @1/13d75(NOUN.COMMUNICATION "information" "info")
-  @1/cf6a(NOUN.ATTRIBUTE "entropy" "information" ("selective" "information"))
-</pre>
-
-<P>The command line argument "$" takes the entire standard input as a
-string.  Using this, one can (for instance) say
-<pre class="typescript">
-sh% cat index.html | dtcall demo@framerd.org length $
-11394
-</pre>
-<P>to get the length of the text in a file.  A more interesting application
-might be something like:
-<pre class="typescript">
-sh% cat index.html | dtcall demo@framerd.org refpoints $
-"MIT Media Laboratory"
-"Java"
-"ANSI C"
-"FramerD Root"
-"Scheme"
-"GNU GPL"
-"Machine Understanding Group"
-"Media Laboratory"
-"FramerD"
-"Technology Licensing Office"
-"Unix"        
-</pre>
-</div>
-
-<div class="appendix">
-<a name=emacs>
-<TABLE class="header" width=100% cellpadding=0>
-<Tr><TH class="title">Appendix: Using FramerD from Emacs</TH>
-    <TD class="gloss">It is sometimes useful, for an extended
-interaction with FDScript, to use it under Emacs.  This appendix
-examples how this works.</TD></TR>
-</TABLE>
-</a>
-
-<P>FramerD's current development environment is a set of rudimentary
-but effective tools implemented in GNU Emacs.  These are built on top
-of Emacs' native facilities for dealing with lisp-like languages and
-for interacting with external processes.  They work by maintaining an
-external <tt>fdscript</tt> interpreter and sending expressions from
-Emacs to the interpreter.
-
-<P>The interface is implemented by the <file>fdscript.el</file> which
-tries to be installed in whatever the first directory on your site's
-"elisp load path".  Providing this has been executed successfully, you
-can arrange for automatically loading this file by adding the
-following lines to your <tt>.emacs</tt> initialization file:
-<pre class="typescript">
-(autoload 'fdscript "fdscript" t
-  "Starts an FDScript interpreter process")
-(autoload 'fdscript-mode "fdscript" t
-  "Sets up a buffer for editing FDScript files.")
-(setq auto-mode-alist
-      (append '(("\\.fdx" . fdscript-mode)
-		("\\.fdz" . fdscript-mode)
-		("\\.fdcgi" . fdscript-mode))
-	      auto-mode-alist))
-</pre>
-
-<P>The command <tt>M-x fdscript</tt> starts an external fdscript
-process and shifts to a buffer interacting with FDScript.  In this
-buffer, you can type expressions much as you would in an FDScript
-listener.  The command <tt>M-x start-fdscript</tt> starts the external
-process and creates the interaction buffer but does not actually
-switch to the buffer.
-
-<P>Within the interaction buffer, expressions are sent to fdscript by
-typing Return within or after a complete expression at the end of the
-buffer.  Typing return elsewhere in the buffer takes a copy of the
-nearest expression and inserts it at the end of the buffer to be
-edited.
-
-<P>The commands <kbd>Meta-P</kbd> and <kbd>Meta-N</kbd> go forward and
-backwards in the history of past commands.  The command
-<kbd>Meta-S</kbd> selects a particular past command (with completion)
-while the command <kbd>Meta-T</kbd> gets past commands which contain a
-particular substring.
-
-<P>A buffer can be changed to <defn>fdscript-mode</defn> with the
-command <tt>M-x fdscript-mode</tt>.  If your emacs is set up as above,
-new or existing <tt>.fdx</tt>, <tt>.fdz</tt>, or <tt>.fdcgi</tt> files
-are automatically in fdscript-mode.  This mode implements some special
-commands for working with fdscript source code.
-
-<P>Typing <tt>Meta-Enter</tt> sends the nearest complete expression to
-the FDScript process.  This is a good way to send definitions to
-FDScript.  The command <tt>C-c C-z</tt> sends the entire current
-buffer to FDScript.  The command <tt>C-c C-l</tt> asks the FDScript
-process to load a specific file (which defaults to the file the
-current buffer is visiting).
-
-<P>There are also special commands for examining frames listed in
-FDScript's output.  The command <tt>C-x .</tt> gets the frame/OID
-reference around the text cursor and sends a "description command" to
-the FDScript process.  This is normally an expression of the form
-<tt>(XF <var>oid</var>)</tt> which causes a description of
-<var>oid</var> to be emitted.
-</div>
-
-<div class="appendix">
-<a name=invoking>
-<TABLE class="header" width=100% cellpadding=0>
-<Tr><TH class="title">Appendix: Invoking FDScript</TH>
-    <TD class="gloss">FDScript also takes some useful
-command line arguments, which can be used to override user or site
-configuration setups</TD></TR>
-</TABLE>
-</a>
-
-<P>The <tt>fdscript</tt> executable takes a number of command line
-switches which it may be useful to know:
-<TABLE>
-<TR><TD>--noherald</TD>
-    <TD>supresses the printing of the copyright/warranty herald</TD></TR>
-<TR><TD>--noconfig<BR>--nodefaultconfig</TD>
-    <TD>supresses loading of the system configuration file</TD></TR>
-<TR><TD>--noprofile</TD>
-    <TD>supresses loading of the user's profile</TD></TR>
-<TR><TD>--charset=<var>enc</var></TD>
-    <TD>sets the default charset for program, e.g. latin-1,
-iso-8859/1, JIS, BIG5, UTF-8, etc</TD></TR>
-<TR><TD>--config=<var>filename</var><BR>-C <var>filename</var></TD>
-    <TD>loads an extra configuration file, searching
-the current directory, <tt>FDMYPATH</tt>, and <tt>FDPATH</tt> </TD></TR>
-<TR><TD>-f<var>filename</var></TD>
-    <TD>loads the Scheme (FDScript) file <var>filename</var></TD></TR>
-<TR><TD>-m<var>module</var></TD>
-    <TD>loads the module <var>module</var> and causes the default
-environment (for subsequent loads or interaction) to <tt>use</tt> that
-module.</TD></TR>
-<TR><TD><var>variable</var>=<var>value</var></TD>
-    <TD>Sets <var>variable</var> to <var>value</var> (which is parsed by the lisp
-parser) in the global environment.  This can be used to override or augment 
-configuration variables.</TD></TR>
-<TR><TD><var>variable</var>=+<var>value</var></TD>
-    <TD>Adds <var>value</var> (which is parsed by the lisp
-parser) to the value of <var>variable</var> to  in the global environment.
-This can be used to override or augment configuration variables.</TD></TR>
-</TABLE>
-
-<P>The first non-option argument to <tt>fdscript</tt> indicates where
-it should get its input.  If it is a filename, the file is opened and
-loaded; if it is a single dash `-', the program uses the standard
-input and declines to print prompts; if it is a single period '.', the
-program starts up interactively (just as it would with no argument).
-Finally if there is no such argument, the program enters an
-interactive listener.
-
-<P>The remaining arguments on the command line are passed to the
-program.  The variable <tt>nargs</tt> contains the number of arguments
-(including the file being used as input), the variable <tt>args</tt>
-is bound to this list of arguments, and the variables <tt>arg1</tt>,
-<tt>arg2</tt>, and <tt>arg3</tt> are bound to the first, second, and
-third elements of this list.
-</div>
-
-</BODY>
-</HTML>
+	  <pre>
+	    find-dated %BACKGROUND+=~/oldmail.index "June 1993"
+	  </pre>
+	
+	<H2 id="config">Dealing with Configuration Files</H2>
+	
+	<P>The command <tt>fdconfig</tt> is used to examine or change the
+	  current FramerD configuration.  It provides several sub-commands:
+	  <TABLE>
+	    <TR><TD>fdconfig locate</TD>
+	      <TD>identifies the file where the configuration is stored</TD></TR>
+	    <TR><TD>fdconfig list</TD>
+	      <TD>lists the variable bindings defined by the configuration</TD></TR>
+	    <TR><TD>fdconfig get <var>var</var></TD>
+	      <TD>lists the bindings defined for <var>var</var> in
+		the configuration</TD></TR>
+	    <TR><TD>fdconfig reset <var>var</var></TD>
+	      <TD>removes any bindings defined for <var>var</var>
+		in the configuration</TD></TR>
+	    <TR><TD>fdconfig set <var>var</var> <var>value</var></TD>
+	      <TD>changes the binding of <var>var</var> to <var>value</var> 
+		in the configuration</TD></TR>
+	    <TR><TD>fdconfig add <var>var</var> <var>value</var></TD>
+	      <TD>adds a binding of <var>var</var> to <var>value</var> 
+		in the configuration; this will combine with any bindings defined
+		before the configuration is loaded</TD></TR>
+	    <TR><TD>fdconfig use-pool <var>pool</var></TD>
+	      <TD>creates a `pooltab' entry for <var>pool</var> in the
+		configuration</TD></TR>
+	    <TR><TD>fdconfig use-server <var>fcn</var> <var>server</var></TD>
+	      <TD>defines the symbol <var>fcn</var> in the current
+		configuration to execute on the remote server <var>server</var></TD></TR>
+	  </TABLE>
+	<P>The shell command <tt>fdprofile</tt> is just like <tt>fdconfig</tt>
+	  but modifies the current user's profile rather than the system
+	  configuration.  And the general command <tt>fdcfg</tt> takes a config
+	  file as its first argument and treats the remaining arguments just as
+	  <tt>fdconfig</tt> does.
+	  
+	<P>From FDScript, you can use the functions <tt>config-add!</tt>,
+	  <tt>config-reset!</tt> and <tt>config-set!</tt> to manipluate the
+	  values in configuration files.
+	  
+	  <H2>Anatomy of a Configuration File</H2>
+	  
+	<P>Configuration files and user profiles are designed to be readable
+	  and writable by both humans and machines, though the commands
+	  <samp>fdconfig</samp> and <samp>fdprofile</samp> are the preferred way
+	  for users and maintainers to change these files.  However, you can also read and edit the files by hand.
+	  
+	<P>Each file consists of a sequence of initializations of either the
+	  form:
+	  <pre class="typescript">
+	    (<var>symbol</var> <var>value</var>)
+	  </pre>
+	<P>(which causes the symbol <var>symbol</var> in the startup
+	  environment to be bound to the value <var>value</var>) or
+	  <pre class="typescript">
+	    (<var>symbol</var> <var>value</var> <tt>+</tt>)
+	  </pre>
+	<P>where the second form indicates that <var>value</var> should be
+	  added to whatever the current value of <var>symbol</var> may be.
+	  
+	<P>The expression <var>value</var> is read as a Lisp value, but <em>is
+	    not evaluated</em> (since not all FramerD applications include an
+	  evaluator).  For instance, here is a sample configuration file:
+	  <pre class="typescript">
+	    (INSTALL_ROOT "/usr/local")
+	    (INSTALLATION "1999-06-27T15:26:49-4:00")
+	    (FRAMERD_DATA "/usr/local/share/framerd/data")
+	    (FRAMERD_LIB "/usr/local/share/framerd")
+	    (SUPER_POOL "/usr/local/share/framerd/public/super-pool")
+	    (BRICO "brico@framerd.org")
+	  </pre>
+	<P>which sets up initial variables based on the installation and adds
+	  some customizations to identify the sources for particular named
+	  resources (the BRICO server).
+	  
+	  <H2>FramerD configuration variables</H2>
+	  
+	  <TABLE>
+	    <TR><TD class="ccode">%ENCODING</TD>
+	      <TD>default text encoding </TD></TR>
+	    <TR><TD class="ccode">FRAMERD_PROFILE</TD>
+	      <TD>where the user profile is loaded from for interactive listeners</TD>
+	    </TR>
+	    <TR><TD class="ccode">HERALD</TD>
+	      <TD>message string emitted with the FramerD library is initialized</TD>
+	    </TR>
+	    <TR><TD class="ccode">PPWIDTH</TD>
+	      <TD>how many columns to aim for pretty printing objects</TD>
+	    </TR>
+	    <TR><TD class="ccode">FD_DIE_CONVENTIONALLY</TD>
+	      <TD>don't signal errors on bad signals</TD>
+	    </TR>
+	    <TR><TD class="ccode">ENCODINGS_PATH</TD>
+	      <TD>where to find character encoding mapping files</TD>
+	    </TR>
+	    <TR><TD class="ccode">MAILHOST</TD>
+	      <TD>SMTP mail server</TD>
+	    </TR>
+	    <TR><TD class="ccode">MAILDOMAIN</TD>
+	      <TD>mail domain </TD>
+	    </TR>
+	    <TR><TD class="ccode">FRAMERD_EMAIL</TD>
+	      <TD>default from field for generated email</TD>
+	    </TR>
+	    <TR><TD class="ccode">FRAMERD_REPLY_TO</TD>
+	      <TD>default replyto field for generated email</TD>
+	    </TR>
+	    <TR><TD class="ccode">FDMYPATH</TD>
+	      <TD>search path for file loading</TD>
+	    </TR>
+	    <TR><TD class="ccode">FDPATH</TD>
+	      <TD>search path for file loading</TD>
+	    </TR>
+	    <TR><TD class="ccode">FD_LISTENER_INIT</TD>
+	      <TD>initialization file</TD>
+	    </TR>
+	    <TR><TD class="ccode">FD_LISTENER_LIBS</TD>
+	      <TD>library modules to load into listener</TD>
+	    </TR>
+	    <TR><TD class="ccode">SUPER_POOL</TD>
+	      <TD>where pools are taken from</TD>
+	    </TR>
+	    <TR><TD class="ccode">ALWAYS_BUSY</TD>
+	      <TD>whether prompt always includes resource information</TD>
+	    </TR>
+	    <TR><TD class="ccode">%POOLTAB</TD>
+	      <TD>lookup table for OIDs</TD>
+	    </TR>
+	    <TR><TD class="ccode">OID_LOCATOR</TD>
+	      <TD>lookup server for OIDs</TD>
+	    </TR>
+	    <TR><TD class="ccode">%BACKGROUND</TD>
+	      <TD>default indices for frame searching</TD>
+	    </TR>
+	  </TABLE>
+	  
+	  
+      </div>
+      
+      <div class="section" id="shell">
+	  <TABLE class="header" width=100% cellpadding=0>
+	    <TR><TH class="title">Using FramerD From the Shell
+		<TD class="gloss">
+		  One can use FramerD commands from the Unix or DOS shell.
+	  </TABLE>
+	
+	<P>One convenient way to access FramerD is to invoke commands directly
+	  from your computer's command line, typically either the Unix shell or
+	  the Windows DOS prompt.  FramerD comes with a variety of scripts
+	  designed to help with this.  In addition, it is very simple (if you
+	  know a little Scheme or LISP) to define your own shell commands.  And
+	  the FramerD program <tt>dtcall</tt> allows you to access remote
+	  servers from the command line.</P>
+	
+	<P>Both FramerD scripts and DTCALL interpret command line arguments of
+	  dash (-) and dollar sign ($) specially.  A "-" argument is converted
+	  into a set of lisp objects read from the standard input; a "$"
+	  argument is converted into a single string whose content consists of
+	  the entire standard input.  This allows the output from commands can
+	  be piped together to do more complex processing.</P>
+	
+	<P>In addition, FramerD scripts process and ignore configuration expressions
+	  such as <tt><var>variable</var>=<var>value</var></tt> from the command line.</P>
+	
+	<P>The following shell transcript describes one session of interaction
+	  with FramerD through the shell; we start by adding the BRICO pool to
+	  the variable <tt>%pools</tt>, which is used by the default scripts:</P>
+	  <pre class="typescript">
+	    [haase@localhost /tmp]$ fdprofile add %pools brico 
+	</pre>
+	
+	<P>we then look for frames whose <tt>words</tt> slot contains the string <tt>"example"</tt>
+	  <pre class="typescript">
+	    [haase@localhost /tmp]$ fdfind words "example"
+	    ;;; There are 8 matches
+	    @1/f9c3("Nouns987" "protoplast" "module" "exemplar" "example" "ensample" "paradigm")
+	    @1/40c4("Nouns3706" "example" "instance" "specimen" "sample" "quotation")
+	    @1/13800(NOUN.COGNITION "example" "instance" "illustration" "representative")
+	    @1/13ad9(NOUN.EVENT "case" "example" "instance")
+	    @1/1525d(NOUN.ACT "example" "exercise")
+	    @1/1bbe8(NOUN.COGNITION "model" "example")
+	    @1/1bdff(NOUN.COGNITION "exemplar" "model" "example" ("good" "example"))
+	    @1/1cb47(NOUN.COMMUNICATION ("object" "lesson") ("deterrent" "example") "example" "lesson")
+	  </pre>
+	<P>and we can now look at one particular frame:
+	  <pre class="typescript">
+	    [haase@localhost /tmp]$ fdd @1/13800
+	    The frame @1/13800(NOUN.COGNITION "example" "instance" "illustration" "representative"):
+	    SYNSET-CODE:  (NOUN 4483764 0)
+	    SOURCE:  @1/0"WordNet 1.6 Copyright 1997 by Princeton University.  All rights reserved."
+	    WORD-DATA:  #(("example" . 0) ("illustration" . 2) ("instance" . 0) ("representative" . 0))
+	    SYNSET-ID:  4483764
+	    N-WORDS:  4
+	    SENSE-KEYS: (8 values)
+	    "illustration%1:09:02::"
+	    "representative%1:09:00::"
+	    "instance%1:09:00::"
+	    "example%1:09:00::"
+	    ("example%1:09:00::" 1 45)
+	    ("illustration%1:09:02::" 3 1)
+	    ("instance%1:09:00::" 2 4)
+	    ("representative%1:09:00::" 4 0)
+	    HYPERNYM:  @1/13754(NOUN.COGNITION "information")
+	    HYPONYM: (6 values)
+	    @1/1bd54(NOUN.COGNITION "precedent" ("case" "in" "point"))
+	    @1/1bd56(NOUN.COGNITION "sample")
+	    @1/1bd57(NOUN.COGNITION "specimen")
+	    @1/1bd52(NOUN.COGNITION "apology")
+	    @1/1bd55(NOUN.COGNITION "quintessence")
+	    @1/1bd53(NOUN.COGNITION "exception")
+	    GLOSS:  " a single item of information that is representative of a type; \"this patient provides a typical example of the syndrome\"; \"there is a good example on page 10\"  "
+	    PART-OF-SPEECH:  NOUN
+	    WORDS: (4 values)
+	    "representative"
+	    "illustration"
+	    "instance"
+	    "example"
+	    ROGET-CLUSTERS: (14 values)
+	    @1/95eb("Nouns32750" "representative" "commissioner" "deputy")
+	    @1/f9c3("Nouns987" "protoplast" "module" "exemplar" "example" "ensample" "paradigm")
+	    @1/40c5("Nouns37449" "postulation" "solicitation" "invitation" "entreaty" "importunity" "supplication" "instance" "impetration" "imploration" "obsecration" "obtestation" "invocation" "interpellation")
+	    @1/1553a("Nouns24846" "illustration" "delineation" "depictment")
+	    @1/8011("Adjectives24699" "diacritical" "representative" "typical" "symbolic" "pantomimic" "pathognomonic" "symptomatic" "characteristic" "demonstrative" "diagnostic" "exponential" "emblematic" "armorial")
+	    @1/1a430("Nouns3707" "exemplification" "illustration" "case in point")
+	    @1/1955("Nouns27738" "influence" "prompting" "dictate" "instance")
+	    @1/40c4("Nouns3706" "example" "instance" "specimen" "sample" "quotation")
+	    @1/2b92("Nouns37175" "deputy" "substitute" "vice" "proxy" "locum tenens" "badli" "delegate" "representative" "next friend" "surrogate" "secondary")
+	    @1/26b9("Adjectives24914" "represent" "representing" "representative")
+	    @1/1a431("Nouns22765" "illustration" "exemplification")
+	    @1/95ec("Nouns37154" "representative" "resident" "consul" "legate" "nuncio" "internuncio" "charge d'affaires" "attache")
+	    @1/13a6d("Nouns25071" "illustration" "illumination")
+	    @1/13a6e("Nouns42133" "illustration" "illumination" "vignette")
+	    CYC-CONCEPTS: (3 values)
+	    @1/200939"SalesRepresentative"
+	    @1/20093b"RepresentativeDemocracy"
+	    @1/20093a"ArtistOrEntertainerRepresentative"
+	    PORTUGUESE: (3 values)
+	    "exemplo"
+	    "ilustra\u00ff\u00ffo"
+	    "representante"
+	    TRANSLATIONS: (37 values)
+	    (DEUTSCH "Illustration")
+	    (DEUTSCH "Illustration, -en")
+	    (FRAN\u00c7AIS "exemple")
+	    (ESPA\u00d1OL "ejemplo")
+	    (ESPA\u00d1OL "sustituta")
+	    (ITALIANO "esempio")
+	    (ESPA\u00d1OL "suplente")
+	    (ENGLISH "representative")
+	    (ENGLISH "illustration")
+	    (ENGLISH "instance")
+	    (ENGLISH "example")
+	    (FRAN\u00c7AIS "preuve")
+	    (FRAN\u00c7AIS "repr\u00e9sentation")
+	    (FRAN\u00c7AIS "type")
+	    (FRAN\u00c7AIS "mod\u00e8le")
+	    (FRAN\u00c7AIS "rempla\u00e7ant")
+	    (ESPA\u00d1OL "representaci\u00f3n")
+	    (ESPA\u00d1OL "prueba")
+	    (ESPA\u00d1OL "figura")
+	    (ESPA\u00d1OL "ilustraci\u00f3n")
+	    (ESPA\u00d1OL "modelo")
+	    (ESPA\u00d1OL "delegado")
+	    (ESPA\u00d1OL "sustituto")
+	    (DEUTSCH ("Illustration," "-en"))
+	    (DEUTSCH "Beleg")
+	    (DEUTSCH "Beispiel")
+	    (DEUTSCH "Exempel")
+	    (ITALIANO "illustrazione")
+	    (ITALIANO "sostituta")
+	    (ITALIANO "domanda")
+	    (ITALIANO "prova")
+	    (NEDERLANDS "illustratie")
+	    (NEDERLANDS "verluchting")
+	    (NEDERLANDS "zaakwaarnemer")
+	    (DANSK "eksempel")
+	    (SUOMI "esimerkki")
+	    (TAGALOG "halimbaw\u00ff")
+	    LEX-FILENO:  9
+	    SENSE-CATEGORY:  NOUN.COGNITION
+	    OBJ-NAME:  (NOUN.COGNITION "example" "instance" "illustration" "representative")
+	  </pre>
+	<P>though we might prefer to get a particular slot:
+	  <pre class="typescript">
+	    [haase@localhost /tmp]$ fdget @1/13800 hypernym
+	    ;; There are 1 results
+	    @1/13754(NOUN.COGNITION "information")
+	  </pre>
+	<P>and we can pipe one command into another by using the special `-'
+	  argument to indicate the inputs on the standard input:
+	  <pre class="typescript">
+	    [haase@localhost /tmp]$ fdget @1/13800 hypernym | fdget - hypernym
+	    ;; There are 1 results
+	    @1/6436(NOUN.TOPS "cognition" "knowledge")
+	    [haase@localhost /tmp]$ fdget @1/13800 hypernym | fdget - hypernym | fdget - hypernym
+	    ;; There are 1 results
+	    @1/13747(NOUN.TOPS ("psychological" "feature"))
+	    [haase@localhost /tmp]$ fdget @1/13800 hypernym | fdget - hypernym | fdget - hypernym |  fdget - hyponym
+	    ;; There are 3 results
+	    @1/aac1(NOUN.TOPS "feeling")
+	    @1/e732(NOUN.TOPS "motive" "motivation" "need")
+	    @1/6436(NOUN.TOPS "cognition" "knowledge")
+	  </pre>
+	  
+	<P>the <tt>dtcall</tt> program takes a server specification
+	  (service@hostname), an operation, and a set of arguments.  The
+	  operation is just a symbol whose value will be applied on the remote
+	  server.  We could use this to invoke the <tt>get-similar</tt> function
+	  on <tt>framerd.org</tt>'s brico server:
+	  <pre class=typescript>
+	    [haase@localhost haase]$ fdget @1/13800 hypernym | dtcall brico@localhost get-similar brico - 
+	    @1/13c49
+	    @1/1c948
+	    @1/13d75
+	    @1/cf6a
+	  </pre>
+	<P>which has the advantage of not using local memory and taking
+	  advantage of the big caches which we will assume are on
+	  <tt>brico@framerd.org</tt>.  (If this takes a while, it may be that
+	  <tt>brico@framerd.org</tt> is overloaded.)  However, the OIDs listed
+	  as results are not given with names, since <tt>dtcall</tt> doesn't use
+	  the <tt>%pools</tt> variable to find the actual objects and their
+	  names.  However, we can pipe the result to the fd_id script, which
+	  just prints its outputs, but it does use <tt>%pools</tt> and so can
+	  get the OID's names:
+	  <pre class=typescript>
+	    [haase@localhost haase]$ fdget @1/13800 hypernym | dtcall brico@localhost get-similar brico - | fd_id -
+	    ;; There are 4 results
+	    @1/13c49(NOUN.GROUP "data" "information")
+	    @1/1c948(NOUN.COMMUNICATION "information")
+	    @1/13d75(NOUN.COMMUNICATION "information" "info")
+	    @1/cf6a(NOUN.ATTRIBUTE "entropy" "information" ("selective" "information"))
+	  </pre>
+	  
+	<P>The command line argument "$" takes the entire standard input as a
+	  string.  Using this, one can (for instance) say
+	  <pre class="typescript">
+	    sh% cat index.html | dtcall demo@framerd.org length $
+	    11394
+	  </pre>
+	<P>to get the length of the text in a file.  A more interesting application
+	  might be something like:
+	  <pre class="typescript">
+	    sh% cat index.html | dtcall demo@framerd.org refpoints $
+	    "MIT Media Laboratory"
+	    "Java"
+	    "ANSI C"
+	    "FramerD Root"
+	    "Scheme"
+	    "GNU GPL"
+	    "Machine Understanding Group"
+	    "Media Laboratory"
+	    "FramerD"
+	    "Technology Licensing Office"
+	    "Unix"        
+	  </pre>
+      </div>
+      
+      <div class="appendix" id="emacs">
+	  <TABLE class="header" width=100% cellpadding=0>
+	    <Tr><TH class="title">Appendix: Using FramerD from Emacs</TH>
+	      <TD class="gloss">It is sometimes useful, for an extended
+		interaction with FDScript, to use it under Emacs.  This appendix
+		examples how this works.</TD></TR>
+	  </TABLE>
+	
+	<P>FramerD's current development environment is a set of rudimentary
+	  but effective tools implemented in GNU Emacs.  These are built on top
+	  of Emacs' native facilities for dealing with lisp-like languages and
+	  for interacting with external processes.  They work by maintaining an
+	  external <tt>fdscript</tt> interpreter and sending expressions from
+	  Emacs to the interpreter.
+	  
+	<P>The interface is implemented by the <tt class="filename">fdscript.el</tt> which
+	  tries to be installed in whatever the first directory on your site's
+	  "elisp load path".  Providing this has been executed successfully, you
+	  can arrange for automatically loading this file by adding the
+	  following lines to your <tt>.emacs</tt> initialization file:
+	  <pre class="typescript">
+	    (autoload 'fdscript "fdscript" t
+	    "Starts an FDScript interpreter process")
+	    (autoload 'fdscript-mode "fdscript" t
+	    "Sets up a buffer for editing FDScript files.")
+	    (setq auto-mode-alist
+	    (append '(("\\.fdx" . fdscript-mode)
+	    ("\\.fdz" . fdscript-mode)
+	    ("\\.fdcgi" . fdscript-mode))
+	    auto-mode-alist))
+	  </pre>
+	  
+	<P>The command <tt>M-x fdscript</tt> starts an external fdscript
+	  process and shifts to a buffer interacting with FDScript.  In this
+	  buffer, you can type expressions much as you would in an FDScript
+	  listener.  The command <tt>M-x start-fdscript</tt> starts the external
+	  process and creates the interaction buffer but does not actually
+	  switch to the buffer.
+	  
+	<P>Within the interaction buffer, expressions are sent to fdscript by
+	  typing Return within or after a complete expression at the end of the
+	  buffer.  Typing return elsewhere in the buffer takes a copy of the
+	  nearest expression and inserts it at the end of the buffer to be
+	  edited.
+	  
+	<P>The commands <kbd>Meta-P</kbd> and <kbd>Meta-N</kbd> go forward and
+	  backwards in the history of past commands.  The command
+	  <kbd>Meta-S</kbd> selects a particular past command (with completion)
+	  while the command <kbd>Meta-T</kbd> gets past commands which contain a
+	  particular substring.
+	  
+	<P>A buffer can be changed to <dfn>fdscript-mode</dfn> with the
+	  command <tt>M-x fdscript-mode</tt>.  If your emacs is set up as above,
+	  new or existing <tt>.fdx</tt>, <tt>.fdz</tt>, or <tt>.fdcgi</tt> files
+	  are automatically in fdscript-mode.  This mode implements some special
+	  commands for working with fdscript source code.
+	  
+	<P>Typing <tt>Meta-Enter</tt> sends the nearest complete expression to
+	  the FDScript process.  This is a good way to send definitions to
+	  FDScript.  The command <tt>C-c C-z</tt> sends the entire current
+	  buffer to FDScript.  The command <tt>C-c C-l</tt> asks the FDScript
+	  process to load a specific file (which defaults to the file the
+	  current buffer is visiting).
+	  
+	<P>There are also special commands for examining frames listed in
+	  FDScript's output.  The command <tt>C-x .</tt> gets the frame/OID
+	  reference around the text cursor and sends a "description command" to
+	  the FDScript process.  This is normally an expression of the form
+	  <tt>(XF <var>oid</var>)</tt> which causes a description of
+	  <var>oid</var> to be emitted.
+      </div>
+      
+      <div class="appendix" id="invoking">
+	<TABLE class="header" width=100% cellpadding=0>
+	  <Tr><TH class="title">Appendix: Invoking FDScript</TH>
+	    <TD class="gloss">FDScript also takes some useful
+	      command line arguments, which can be used to override user or site
+	      configuration setups</TD></TR>
+	</TABLE>
+	
+	<P>The <tt>fdscript</tt> executable takes a number of command line
+	  switches which it may be useful to know:
+	  <TABLE>
+	    <TR><TD>--noherald</TD>
+	      <TD>supresses the printing of the copyright/warranty herald</TD></TR>
+	    <TR><TD>--noconfig<BR>--nodefaultconfig</TD>
+	      <TD>supresses loading of the system configuration file</TD></TR>
+	    <TR><TD>--noprofile</TD>
+	      <TD>supresses loading of the user's profile</TD></TR>
+	    <TR><TD>--charset=<var>enc</var></TD>
+	      <TD>sets the default charset for program, e.g. latin-1,
+		iso-8859/1, JIS, BIG5, UTF-8, etc</TD></TR>
+	    <TR><TD>--config=<var>filename</var><BR>-C <var>filename</var></TD>
+	      <TD>loads an extra configuration file, searching
+		the current directory, <tt>FDMYPATH</tt>, and <tt>FDPATH</tt> </TD></TR>
+	    <TR><TD>-f<var>filename</var></TD>
+	      <TD>loads the Scheme (FDScript) file <var>filename</var></TD></TR>
+	    <TR><TD>-m<var>module</var></TD>
+	      <TD>loads the module <var>module</var> and causes the default
+		environment (for subsequent loads or interaction) to <tt>use</tt> that
+		module.</TD></TR>
+	    <TR><TD><var>variable</var>=<var>value</var></TD>
+	      <TD>Sets <var>variable</var> to <var>value</var> (which is parsed by the lisp
+		parser) in the global environment.  This can be used to override or augment 
+		configuration variables.</TD></TR>
+	    <TR><TD><var>variable</var>=+<var>value</var></TD>
+	      <TD>Adds <var>value</var> (which is parsed by the lisp
+		parser) to the value of <var>variable</var> to  in the global environment.
+		This can be used to override or augment configuration variables.</TD></TR>
+	  </TABLE>
+	  
+	<P>The first non-option argument to <tt>fdscript</tt> indicates where
+	  it should get its input.  If it is a filename, the file is opened and
+	  loaded; if it is a single dash `-', the program uses the standard
+	  input and declines to print prompts; if it is a single period '.', the
+	  program starts up interactively (just as it would with no argument).
+	  Finally if there is no such argument, the program enters an
+	  interactive listener.
+	  
+	<P>The remaining arguments on the command line are passed to the
+	  program.  The variable <tt>nargs</tt> contains the number of arguments
+	  (including the file being used as input), the variable <tt>args</tt>
+	  is bound to this list of arguments, and the variables <tt>arg1</tt>,
+	  <tt>arg2</tt>, and <tt>arg3</tt> are bound to the first, second, and
+	  third elements of this list.
+      </div>
+      
+  </body>
+</html>

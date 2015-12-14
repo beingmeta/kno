@@ -1,0 +1,2833 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for HTML5 for Linux version 4.9.27">
+<title>FDScript Programming Guide</title>
+<link rel="stylesheet" type="text/css" href=
+"/static/framerd/documentation.css">
+</head>
+<body>
+<table align="left" width='100%'>
+<tr>
+<th class="bigtitle" align="left" width='70%'>FDScript Programming
+Guide<br>
+<span class="author">Ken Haase</span></th>
+<th align="right" rowspan="2"><a href=
+"http://www.framerd.org/"><img border="0" src=
+"fdlogo.png"></a></th>
+</tr>
+</table>
+<br clear="left">
+<p class="quickref">Quick ref: [<a href="#distributed">Distributed
+Programming</a>]&nbsp; [<a href="#choices">Choices</a>]&nbsp;
+[<a href="#hashing">Hash tables, sets, etc.</a>]&nbsp; [<a href=
+"#printout">Formatted Output</a>]&nbsp; [<a href="#os">OS
+functions</a> including <a href="#time">time</a>, <a href=
+"#resources">resources</a>, and <a href="#users">users</a>]&nbsp;
+[<a href="#filesystem">Accessing Information about Files</a>]&nbsp;
+[<a href="#i18n">Internationalization</a>]&nbsp; [<a href=
+"#errors">Dealing with Errors</a>]&nbsp; [<a href=
+"#inthelarge">Programming in the Large</a>]&nbsp; [<a href=
+"#subjobs">Remote and Local Subjobs</a>]&nbsp; [<a href=
+"#sequences">Sequence Functions</a>]&nbsp; [<a href="#macros">Dirty
+macros</a>]&nbsp; [<a href="#text">Text matching, searching, and
+substitution</a>]&nbsp; [Specialized parsers for <a href=
+"#XML">HTML &amp; XML</a>, <a href="#mime">EMAIL messages</a>, and
+English <a href="#misctext">morphology</a>.]&nbsp; [<a href=
+"#scripts">Writing Shell Scripts</a>]</p>
+<hr>
+<p>The most comprehensive way to use FramerD is through FDScript,
+the FramerD scripting language. FDScript is a dialect of the Scheme
+programming language with a number of special FramerD-related
+extensions as well as special extensions for text analysis, web
+scripting, and general operating system access.</p>
+<p>This document describes how FDScript differs from and extends
+the Scheme standard. It also introduces the basic FDScript
+facilities for cool functions like text analysis and operating
+system access. It is not intended as a tutorial for Scheme
+programming; for learning Scheme, the <a href=
+"http://www.schemers.org/">schemers.org</a> site provides many
+valuable resources.</p>
+<p><strong>What's Cool.</strong> FDScript includes a framework for
+building distributed applications, pervasive support for
+international programming (including text searching, matching, and
+processing) with Unicode, and language-level support for
+non-deterministic programming. This is in addition to operating
+system access functions, extensive tools for web scripting, general
+purpose text analysis tools, and specific tools for dealing with
+HTML, XML, and MIME documents.</p>
+<p>Of course, the <em>raison d'etre</em> of FDScript is access to
+the persistent object and association databases maintained by
+FramerD. FDScript is used to implement shell and web access to
+FramerD databases as well as providing the basis for FramerD
+applications.</p>
+<p><strong>What's Missing.</strong> FDScript is a full
+implementation of R4RS scheme except for full continuations. In
+FDScript, it is only possible to return from a given procedure call
+<em>once</em>. In particular one cannot return from
+<tt>call-with-current-continuation</tt> more than once. With
+respect to the latest R5RS standard, FDScript is missing the
+standardized top level environments and the hygenic macro
+implementation. FDScript 2.0 does have an unhygienic <a href=
+"#macros">macro facility</a>.</p>
+<p>This document is a manual for writing programs in FDScript; it
+assumes some familiarity with the Scheme language and is intended
+for use in conjunction with other FramerD documentation, especially
+the <a href="concepts.html">FramerD Concepts</a> document.</p>
+<div class="section" id="distributed">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">Distributed Programming</th>
+<td class="gloss">FDScript allows programs and data to be
+distributed across processors and machines, by a special <em>remote
+procedure call</em> protocol which allows Scheme objects to be
+passed among multiple clients and servers.</td>
+</tr>
+</table>
+<p>Distributed programming in FDScript is organized around the
+notion of <em>servers</em> processing <em>requests</em>.
+Distributing a program across many machines consists of defining
+servers with different roles depending on capacities of machines,
+dependencies between services and data, and prosaic concerns of
+bandwidth and connectivity.</p>
+<p>Every server on a machine has a particular address, called a
+<var>port</var> on which it listens for requests. Combining this
+port with the name of the machine defines a unique <em>server
+id</em> which other programs can use to access the server. The
+syntax <var>port@host</var> specifies a server, where the
+<var>port</var> can be:</p>
+<ul>
+<li>an integer address, typically larger than 1000 but less than
+100000</li>
+<li>a service name, defined by an operating system database</li>
+<li>a "touch tone encoded" integer address, where an integer
+address is encoded alphabetically</li>
+</ul>
+<p>Each server is effectively a remote Scheme interpreter which
+provides some subset of the Scheme namespace augmented by whatever
+special procedures it defines. These special procedures are called
+<strong>operations</strong>, but it can be useful to think of them
+as procedures which happen to be executed remotely. We give a brief
+description of how to start your own server <a href=
+"#server">below</a>, but a more detailed description can be found
+in <a href="server.html">Implementing DType servers</a>.</p>
+<p>There are numerous ways to use a remote server from FDScript.
+The most seamless method uses an expression of the form
+<tt>(USE-SERVER&nbsp;"<var>service</var>@<var>host</var>"&nbsp;<var>op</var>)</tt>
+returns a <dfn>remote procedure</dfn> whose application in the
+current machine invokes the remote operation <var>op</var> (which
+is typically a symbol) on the server listening for
+<var>service</var> requests for the host <var>host</var>. For
+example,</p>
+<pre class="typescript">
+            [fdscript] (define rplus (use-server "demos@framerd.org" '+))
+            [fdscript] (rplus 3 4 5)
+            12
+          
+</pre>
+<p>uses an Internet connection to add three numbers. A more
+interesting use would be:</p>
+<pre class="typescript">
+            [fdscript] (define nlphrase (use-server "demos@framerd.org" 'nlphrase))
+            [fdscript] (nlphrase "This sentence starts with a T")
+            (#((#("This" DETERMINER "this") #("sentence" NOUN)) (#("begins" VERB "begin")) 
+            (#("with" PREPOSITION) #("a" DETERMINER) #("T" NOMINALIZATION "t"))))
+          
+</pre>
+<p>The infrastructure for remote evaluation can be directly
+accessed through the FDScript functions <tt>remote-eval</tt> and
+<tt>dtcall</tt>. The <tt>remote-eval</tt> procedure takes a Scheme
+expression and evaluates it on the remote server, e.g.</p>
+<pre class="typescript">
+            [fdscript] (dtype-eval '(if (even? (length (session-id))) 'even-id 'odd-id)
+            "demos@framerd.org")
+            EVEN-ID
+          
+</pre>
+<p>the <tt>dtcall</tt> procedure takes a server id, a remote
+operation, and any number of arguments and applies the operation to
+the arguments remotely, for example</p>
+<pre class="typescript">
+            [fdscript] (dtcall "demos@framerd.org" nlphrase "Many sentences start with M")
+            (#((#("Many" DETERMINER "many") #("sentences" PLURAL-NOUN "sentence")) 
+            (#("start" VERB)) (#("with" PREPOSITION) #("M" NOMINALIZATION "m"))))
+          
+</pre>
+<p>The <tt>dtcall</tt> procedure differs from <tt>dtype-eval</tt>
+in that it evaluates its arguments <em>locally</em>, so that:</p>
+<pre class="typescript">
+            [fdscript] (define my-sentence "Many sentences start with M")
+            [fdscript] (dtcall "demos@framerd.org" nlparse my-sentence)
+            (#((#("Many" DETERMINER "many") #("sentences" PLURAL-NOUN "sentence")) 
+            (#("start" VERB)) (#("with" PREPOSITION) #("M" NOMINALIZATION "m"))))
+          
+</pre>
+<p>does what you would expect.</p>
+<p>Remote processing with dtcall can also be initiated from your
+operating system's command line using the <tt>dtcall</tt> command;
+for example:</p>
+<pre class="typescript">
+            sh% dtcall demos@framerd.org nlphrase "Other sentences start with other letters"
+            (#((#("Other" DETERMINER "other") 
+            #("sentences" PLURAL-NOUN "sentence")) 
+            (#("start" VERB)) 
+            (#("with" PREPOSITION) #("other" DETERMINER) 
+            #("letters" NOUN "letter"))))
+          
+</pre>
+<h2 id="server">Starting a Server</h2>
+<p>Starting a server can be as simple as creating a <em>server
+configuration file</em> and calling the <tt>fdserver</tt> program
+on this file. A server configuration file is just a regular Scheme
+text file, with the suffix (type) <tt>.fdz</tt>, which may include
+some special function calls to configure the server.</p>
+<pre class="typescript">
+            ;; This is the file myfact.fdz
+            (set-port-id! "fact")
+            (define (fact n)
+            (define (fact-iter i f)
+            (if (= i 0) f (fact-iter (- i 1) (* f i))))
+            (fact-iter n 1))
+            (define (help)
+            "This server provides an iterative factorial computation 
+            through the operation FACT")
+          
+</pre>
+<p>given this definition, a `local' server can be started with
+simply the line:</p>
+<pre class="typescript">
+            sh% fdserver myfact.fdz --local &amp;
+            
+          
+</pre>
+<p>The <tt>--local</tt> argument tells <tt>fdserver</tt> to run the
+server "locally", where it can be accessed by the current machine
+using the hostname <tt>localhost</tt> but not accessed from
+anywhere else. The ampersand (&amp;) at the end of the line tells
+the computer to run the server in the background, so you can type
+other things at the command line.</p>
+<p>Once the server has been started, it can be used remotely from
+fdscript:</p>
+<pre class="typescript">
+            Eval: (define rfact (use-server "fact@localhost" 'fact))
+            Eval: (rfact 33)
+            8683317618811886495518194401280000000
+          
+</pre>
+<p>It can also be used from the command line (with
+<tt>dtcall</tt>):</p>
+<pre class="typescript">
+            [haase@buster docs]$ dtcall fact@localhost fact 10
+            3628800
+          
+</pre>
+<p>If the program is started without the <tt>--local</tt> argument,
+as in:</p>
+<pre class="typescript">
+            sh% fdserver myfact.fdz &amp;
+          
+</pre>
+<p>it can be accessed from other machines with a server id of the
+form <tt>fact@<var>hostname</var></tt> where <var>hostname</var> is
+the name of the machine running <tt>fdserver</tt>. As discussed at
+length in <a href="servers.html">Running DType Servers</a>, this
+means that any machine on the Internet can connect to the server
+(if they know about it), but there are numerous ways to restrict
+access.</p>
+<p>FramerD servers are described in detail in the <a href=
+"servers.html">FramerD Server Guide</a></p>
+</div>
+<div class="section" id="choices">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">Choices: Non-Deterministic Values</th>
+<td class="gloss">FDScript allows values to be "non-deterministic",
+implicitly representing several possible results or outcomes. These
+values, called <dfn>choices</dfn>, simplify many programming
+patterns.</td>
+</tr>
+</table>
+<p style="clear: right;">FDScript includes a novel facility for
+<strong>non-deterministic programming</strong> organized around a
+construct called the <em>choice</em>. A <dfn>choice</dfn> describes
+a set of values which may be any object <em>except</em> another
+choice. When FDScript encounters a choice, it automatically
+explores different possible outcomes based on each element of the
+choice. This makes it very simple to describe certain kinds of
+processes and operations by characterizing the inputs and outputs
+of procedures as <em>choices</em> rather than single values.</p>
+<blockquote align="right">
+<p><font size="-1">Choices in FDScript are descended from the AMB
+operator discussed by John McCarthy and various versions of this
+idea implemented by David Chapman, Ramin Zabih, David McAllester,
+and Jeff Siskind. They first entered FramerD in its predecessor
+language, <tt>Framer</tt>, as a way of regularizing functions
+involving multi-valued and single-valued slots.</font></p>
+<p><font size="-1">Choices are distinct from the <em>multiple
+values</em> provided by Common Lisp and as specified by the R5RS
+Scheme standard. These facilities allow a procedure to return
+<em>structured</em> multiple values, where different value
+<em>positions</em> have different semantics (e.g. the first value
+might be an x coordinate and the second value might be a y
+coordinate). Choices in FDScript, on the other hand, represent an
+unstructured set of values.</font></p>
+</blockquote>
+<p>Curly braces represent literal choices, so evaluating a choice
+between 3, 4, and 5 just returns a choice between the three
+numbers.</p>
+<pre class="typescript">
+            [fdscript] {3 4 5}
+            {3 4 5}
+          
+</pre>
+<p>However, adding 10 to the set of choices returns a different set
+of choices:</p>
+<pre class="typescript">
+            [fdscript] (+ {3 4 5} 10)
+            {13 14 15}
+          
+</pre>
+<p>while multiplying the set of choices by itself produces even
+more options:</p>
+<pre class="typescript">
+            [fdscript] (* {3 4 5} {3 4 5})
+            {9 12 15 16 15 20 25}
+          
+</pre>
+<p>Whenever FDScript applies a procedure to a set of choices, it
+picks each of the choices, applies the procedure, and combines the
+results; thus, if we define SQUARE as:</p>
+<pre class="typescript">
+            (define (square x) (* x x))
+          
+</pre>
+<p>and apply it to the same set of choices as above, we get only
+three choices back, since square is called three times on each
+single input and that single input is then multipled by itself:</p>
+<pre class="typescript">
+            [fdscript] (square {3 4 5})
+            {9 16 25}
+          
+</pre>
+<p>When a procedure returns a non-deterministic value, we can apply
+another procedure to it, as in:</p>
+<pre class="typescript">
+            [fdscript] (+ (square {3 4 5}) 10)
+            {19 26 35}
+          
+</pre>
+<p>Most FDScript procedures work in exactly this way when given non
+deterministic sets for arguments, passing on any non-determinism in
+their arguments to their results. However, some procedures work
+differently by either returning deterministic results for
+non-deterministic arguments into a single result or taking
+deterministic arguments and returning a set of choices (a
+non-deterministic result).</p>
+<p>When a procedure returns a non-deterministic result consisting
+of one choice, that is the same as a deterministic result. This
+means that a regular procedure can return a deterministic result
+from non-deterministic argument, as in:</p>
+<pre class="typescript">
+            [fdscript] (square {3 -3})
+            9
+          
+</pre>
+<h2 id="Reducing">Deterministic results from non-deterministic
+inputs</h2>
+<p>Built-in procedures for generating deterministic results from
+non-deterministic inputs include:</p>
+<ul>
+<li><tt>(pick-one <var>set</var>)</tt> randomly selects one of the
+choices in <var>set</var></li>
+<li><tt>(choice-&gt;list <var>set</var>)</tt> returns the choices
+as a list of elements</li>
+<li><tt>(choice-size <em>set</em>)</tt> returns the number of
+choices in <em>set</em></li>
+<li><tt>(empty? <var>expr</var>)</tt><br>
+<tt>(fail? <var>expr</var>)</tt> returns true if evaluating
+<var>expr</var> returns no values</li>
+<li><tt>(exists? <var>expr</var>)</tt> returns true if evaluating
+<var>expr</var> returns any values at all</li>
+<li><tt>(contains? <var>val</var> <var>expr</var>)</tt> returns
+true the result of evaluating <var>expr</var> includes
+<var>val</var></li>
+</ul>
+<pre class="typescript">
+  [fdscript] <strong>(PICK-ONE (CHOICE 2 3 4))</strong>
+  3
+  [fdscript] <strong>(PICK-ONE (CHOICE 2 3 4))</strong>
+  2
+  [fdscript] <strong>(CHOICE-SIZE (CHOICE 2 3 4))</strong>
+  3
+  [fdscript] <strong>(CHOICE-SIZE 8)</strong>
+  1
+  [fdscript] <strong>(CHOICE-SIZE {})</strong>
+  0
+  [fdscript] <strong>(FAIL? (CHOICE))</strong>
+  #T
+  [fdscript] <strong>(FAIL? 3)</strong>
+  #F
+  [fdscript] <strong>(EMPTY? (CHOICE 3 4))</strong>
+  #F
+  [fdscript] <strong>(DEFINE (EVEN? x) (if (zero? (remainder x 2)) x (CHOICE)))</strong>
+  [fdscript] <strong>(EXISTS? (CHOICE))</strong>
+  #F
+  [fdscript] <strong>(EXISTS? 3)</strong>
+  #T
+  [fdscript] <strong>(EXISTS? (even? (CHOICE 3 5 9)))</strong>
+  #F
+  [fdscript] <strong>(EXISTS? (even? (CHOICE 2 3 5 9)))</strong>
+  #T
+  [fdscript] <strong>(CONTAINS? 2 (CHOICE 2 3 4))</strong>
+  #t
+  [fdscript] <strong>(CONTAINS? 5 (CHOICE 2 3 4))</strong>
+  #f
+  [fdscript] <strong>(CONTAINS? 8 (+ (CHOICE 2 3 4) (CHOICE 4 5 6)))</strong>
+  #t
+</pre>
+<h2 id="introducing">Non-deterministic results from deterministic
+inputs</h2>
+<p>Other built-in procedures generate non-deterministic results
+from deterministic arguments. The most basic such procedure is
+<tt>CHOICE</tt>, which returns its arguments non-deterministically,
+e.g.</p>
+<pre class="typescript">
+    [fdscript] (choice 3 4 5)
+    {3 4 5}
+    [fdscript] (+ (CHOICE 3 4 5) 10)
+    {13 14 15}
+  
+</pre>
+<p>while another important one is <tt>ELTS</tt> which returns the
+elements of a sequence non-deterministically, e.g.:</p>
+<pre class="typescript">
+    [fdscript] (elts '(a b c))
+    {A B C}
+    [fdscript] (elts "def")
+    {#\d #\f #\e}
+  
+</pre>
+<h2 id="pruning">Failure and Pruning</h2>
+<p>A procedure can also return no choices at all. This "return
+value" is called a <dfn>failure</dfn> and is indicated by pair of
+empty curly braces "<tt class="symbol">{}</tt>", e.g.</p>
+<pre class="typescript">
+    [fdscript] <strong>(CHOICE)</strong>
+    {}
+  
+</pre>
+<p>when a procedure is called on a failure, the procedure itself
+returns a failure, so:</p>
+<pre class="typescript">
+    [fdscript] <strong>(+ (CHOICE 10 8) (CHOICE))</strong>
+    {}
+  
+</pre>
+<p>This special result, indicating no returned choices, is called a
+failure because of the way that choices are used in searching by
+non-deterministic programming. If you think of a given procedure as
+doing some `search' given the constraints of its arguments,
+returning the empty choice can be considered as "failing" in the
+part of the search.</p>
+<p>The early termination on failure is called "pruning." We say
+that the call to <tt>+</tt> was <strong>pruned</strong> because the
+second call to CHOICE <em>failed</em>. Note that if a subexpression
+fails in this way, none of the remaining arguments are evaluated,
+E.G.</p>
+<pre class="typescript">
+    [fdscript] <strong>(+ (CHOICE) (begin (lineout "last argument") 3))</strong>
+    {}
+  
+</pre>
+<p>doesn't produce the output line `<tt>last argument</tt>' because
+the whole expression is pruned before the final form is
+evaluated.</p>
+<h2 id="sets">Using Choices to Represent Sets</h2>
+<p>Non-deterministic return values can be used to represent sets,
+as in the following definition of set intersection, which specifies
+the base case and naturally generalizes:</p>
+<pre class="typescript">
+    [fdscript] <strong>(define (intersect x y) (if (equal? x y) x (fail)))</strong>
+    [fdscript] <strong>(intersect (CHOICE 3 4 5 6) (CHOICE 5 6 7 8))</strong>
+    {5 6}
+  
+</pre>
+<p>We can see the value combination process in action by adding
+trace statements to the <tt>INTERSECT</tt> procedure, as in:</p>
+<pre class="typescript">
+    [fdscript] <strong>(define (intersect x y) 
+      (lineout "INTERSECT " x " = " y " is " (equal? x y))
+      (if (equal? x y) x {}))</strong>
+    [fdscript] <strong>(intersect (CHOICE 3 4 5) (CHOICE 5 6 7))</strong>
+    INTERSECT 3 = 5 is #f 
+    INTERSECT 3 = 6 is #f
+    INTERSECT 3 = 7 is #f
+    INTERSECT 4 = 5 is #f
+    INTERSECT 4 = 6 is #f
+    INTERSECT 4 = 7 is #f
+    INTERSECT 5 = 5 is #t 
+    INTERSECT 5 = 6 is #f
+    INTERSECT 5 = 7 is #f
+    5
+  
+</pre>
+<p>Of course, this is an inefficient way to compute intersections.
+FDScript provides a number of special forms for dealing with
+non-deterministic values, which we describe in the next
+section.</p>
+<h2 id="combining">Combining Choices</h2>
+<p>There are a variety of FDScript special forms for dealing with
+non-deterministic values. They are called "special" forms because
+they do not follow the normal rules for non-deterministic procedure
+combination.</p>
+<dl>
+<dt><tt class="symbol" id="INTERSECTION">(INTERSECTION
+<var>expr<sub>1</sub></var> <var>expr<sub>2</sub></var>)</tt></dt>
+<dd>evaluates <var>expr<sub>1</sub></var> and
+<var>expr<sub>2</sub></var> and returns only the values returned by
+both expressions. E.G.
+<pre class="typescript">
+          [fdscript] <strong>(INTERSECTION {3 4 5} {2 4 6})</strong>
+          4
+        
+</pre>
+<p>On very large choices, operations like intersection can be very
+time consuming. FDScript provides a special flavor of choice, the
+<em>sorted choice</em> which can be optimized for these sorts of
+operations. The function <tt>sorted-choice</tt> returns such a
+choice.</p>
+</dd>
+<dt><tt class="symbol" id="UNION">(UNION
+<var>expr<sub>1</sub></var> <var>expr<sub>2</sub></var>)</tt></dt>
+<dd>evaluates <var>expr<sub>1</sub></var> and
+<var>expr<sub>2</sub></var> and returns the results from both. E.G.
+<pre class="typescript">
+                [fdscript] <strong>(UNION {3 4 5} {2 4 6})</strong>
+                {2 3 4 5 6}
+              
+</pre></dd>
+<dt><tt class="symbol" id="DIFFERENCE">(DIFFERENCE
+<var>expr<sub>1</sub></var> <var>expr<sub>2</sub></var>)</tt></dt>
+<dd>evaluates <var>expr<sub>1</sub></var> and
+<var>expr<sub>2</sub></var> and returns the results of
+<var>expr<sub>1</sub></var> which are <strong>not</strong> returned
+by <var>expr<sub>2</sub></var>. E.G.
+<pre class="typescript">
+                    [fdscript] <strong>(DIFFERENCE {3 4 5} {2 4 6})</strong>
+                    {3 5}
+                  
+</pre></dd>
+<dt><tt class="symbol" id="TRY">(TRY expr<sub>i</sub>...)</tt></dt>
+<dd>Evaluates each expr<sub>i</sub> in order, returning the first
+one which doesn't fail (e.g. which produces any values at all),
+E.G.
+<pre class="typescript">
+                        [fdscript] <strong>(TRY (INTERSECTION (CHOICE 3 4 5) (CHOICE 6 7 8)) ;<em> This one fails</em>
+                          (INTERSECTION (CHOICE 3 4 5) (CHOICE 1 2 3))  ;<em> This one doesn't</em>
+                          (INTERSECTION (CHOICE 3 4 5) (CHOICE 4 5 6))) ;<em> This one doesn't get a chance</em></strong>
+                        3
+                      
+</pre></dd>
+</dl>
+<h3>Pruning and Special Forms</h3>
+<p>You may have figured out that non-deterministic evaluation and
+pruning can't apply to the definitions above or else an expression
+like:</p>
+<pre class="typescript">
+    (UNION (CHOICE) (CHOICE 3 4))
+  
+</pre>
+<p>would automatically be pruned. Some other special forms also
+break the default rules for combination and pruning. For instance,
+the formatted output functions such as <tt class=
+"symbol">LINEOUT</tt> don't do automatic enumeration and pruning,
+so you get the following behavior:</p>
+<pre class="typescript">
+    [fdscript] <strong>(LINEOUT "This is empty: " (CHOICE) " but this isn't: " (CHOICE 2 3))</strong>
+    This is empty: {} but this isn't: {2 3}
+  
+</pre>
+<h2 name="user choices">Choices and User Procedures</h2>
+<p>User procedures (like the procedure <tt class=
+"symbol">INTERSECT</tt> which we defined above) automatically
+invoke the interpreter's search and combination mechanisms. For
+instance, the following fragment generates possible sentences:</p>
+<pre class="typescript">
+    [fdscript] <strong>(DEFINE (sentence subject verb object) (list subject verb object))</strong>
+    [fdscript] <strong>(sentence (CHOICE "Moe" "Larry" "Curly") 
+      (CHOICE "hit" "kissed")
+      (CHOICE "Huey" "Dewey" "Louie"))</strong>
+    {("Moe" "hit" "Huey") ("Larry" "hit" "Huey") ("Curly" "hit" "Huey") 
+    ("Moe" "kissed" "Huey") ("Larry" "kissed" "Huey") 
+    ("Curly" "kissed" "Huey") ("Moe" "hit" "Dewey") 
+    ("Larry" "hit" "Dewey") ("Curly" "hit" "Dewey") 
+    ("Moe" "kissed" "Dewey") ("Larry" "kissed" "Dewey") 
+    ("Curly" "kissed" "Dewey") ("Moe" "hit" "Louie") 
+    ("Larry" "hit" "Louie") ("Curly" "hit" "Louie") 
+    ("Moe" "kissed" "Louie") ("Larry" "kissed" "Louie") 
+    ("Curly" "kissed" "Louie")}
+  
+</pre>
+<p>The only caveat to the non-deterministic application of user
+procedures was mentioned above. If a user procedure takes a dotted
+or optional argument, the argument is bound to a list of the
+remaining choices rather than a choice among the lists that they
+would generate. So, this definition calls <tt>LINEOUT</tt> once on
+the choice <tt class="symbol">{3 4}</tt>:</p>
+<pre class="typescript">
+    [fdscript] <strong>(define (list-choices . x) (lineout "Results are: " (car x)))</strong>
+    [fdscript] <strong>(list-choices (CHOICE 3 4))</strong>
+    Results are: {3 4}
+  
+</pre>
+<p>while this definition calls <tt>list-choices</tt> separately on
+the returned values:</p>
+<pre class="typescript">
+    [fdscript] <strong>(define (list-choices x) (lineout "Results are: " x))</strong>
+    [fdscript] <strong>(list-choices (CHOICE 3 4))</strong>
+    Results are: 3
+    Results are: 4
+  
+</pre>
+<p>calls <tt class="symbol">list-choices</tt> separately on the
+returned values.</p>
+<p>The key point is that if a procedure is expecting a choice as an
+argument and needs the choice to remain a choice (rather than
+having its elements enumerated), the argument should be extracted
+from a "dotted" argument. For instance, suppose we wanted to define
+a function which returned twice the size of a choice, we might try
+to write it this way:</p>
+<pre class="typescript">
+    [fdscript] <strong>(DEFINE (BAD-DOUBLE-SIZE x) (* 2 (choice-size x)))</strong>
+    [fdscript] <strong>(BAD-DOUBLE-SIZE 3)</strong> ; &lt;== this works fine
+    2
+    [fdscript] <strong>(BAD-DOUBLE-SIZE {3 4 5 6})</strong> ; &lt;== this doesn't
+    2
+  
+</pre>
+<p>but that won't work because the <tt>x</tt> argument is bound to
+each of the numbers in the choice individually, rather than as an
+entire choice at once. A correct definition would be:</p>
+<pre class="typescript">
+    [fdscript] <strong>(DEFINE (DOUBLE-SIZE . ARGS) (* 2 (SET-SIZE (CAR ARGS))))</strong>
+    [fdscript] <strong>(DOUBLE-SIZE 3)</strong> ; &lt;== this still works fine
+    2
+    [fdscript] <strong>(DOUBLE-SIZE {3 4 5 6})</strong> ; &lt;== and so does this...
+    8
+  
+</pre>
+<h2 id="variables">Choices and variables</h2>
+<p>Choices can be stored and saved in a variety of ways. For
+instance, the special form <tt>SET!</tt> sets a variable to contain
+a set of possible values, so one can say:</p>
+<pre class="typescript">
+    [fdscript] <strong>(SET! small-primes (CHOICE 2 3 5 7 11 13 17 19))</strong>
+    [fdscript] <strong>(define (divides? x y) (if (zero? (remainder x y)) y {}))</strong>
+    [fdscript] <strong>(divides? 15 small-primes)</strong>
+    {3 5}
+  
+</pre>
+<p id="SET+">The <tt>SET+!</tt> adds a set of values
+non-deterministically to a variable. For example,</p>
+<pre class="typescript">
+    [fdscript] <strong>(SET! small-odd-numbers (CHOICE 1 3 5 7))</strong>
+    [fdscript] <strong>small-odd-numbers</strong>
+    {5 1 7 3}
+    [fdscript] <strong>(SET+! small-odd-numbers (CHOICE 9 17))</strong>
+    [fdscript] <strong>small-odd-numbers</strong>
+    {5 9 1 7 17 3}
+  
+</pre>
+<p>The binding special forms <tt class="symbol" id="LET">LET</tt>
+and <tt class="symbol" id="LET*">LET*</tt> can be used to store
+non-deterministic values in the same way as <tt>set!</tt>. E.G.</p>
+<pre class="typescript">
+    [fdscript] <strong>(define (divides? x y) (if (zero? (remainder x y)) y {}))</strong>
+    [fdscript] <strong>(let ((small-primes (CHOICE 2 3 5 7 11 13 17 19)))
+      (divides? 15 small-primes))</strong>
+    {3 5}
+  
+</pre>
+<p>(For old-time Scheme aficianados, this interpretation of
+<tt>LET</tt> breaks the equivalence of <tt>LET</tt> and
+<tt>LAMBDA</tt>, since writing the above as an application of a
+lambda would automatically iterate through the choices..)</p>
+<h2 id="iterating">Iterating over choices</h2>
+<p>Sometimes it is important to be able to process each element of
+a choice separately. FDScript provides three special forms
+supporting this kind of processing, <tt>DO-CHOICES,
+FOR-CHOICES,</tt> and <tt>FILTER-CHOICES</tt>:</p>
+<dl compact>
+<dt id="DO-CHOICES"><tt class="symbol">(DO-CHOICES (<var>var</var>
+<var>val-expr</var>) <var>expr<sub>1</sub></var>
+<var>expr<sub>2</sub></var>...)</tt></dt>
+<dd>Evaluates all of the expr<sub>i</sub> with var bound to each of
+the values returned by val-expr. E.G.
+<pre class="typescript">
+        [fdscript] <strong>(DO-CHOICES (x (CHOICE 3 4)) (lineout "I saw a " x))</strong>
+        I saw a 4
+        I saw a 3
+      
+</pre>
+<tt>DO-CHOICES</tt> can be used to unpack a set of values to pass
+to forms which don't automatically unpack their arguments (such as
+<tt>LINEOUT</tt>), as in the following definition which puts each
+of the values returned by <tt>FGET</tt> on a different line:
+<pre class="typescript">
+        (define (print-slot-values frame slot)
+        (let ((values (fget frame slot)))
+        (lineout "The " slot " of " frame " is:")
+        (do-choices (value values)
+        (lineout "            " value))))
+      
+</pre></dd>
+<dt id="FOR-CHOICES"><tt class="symbol">(FOR-CHOICES
+(<var>var</var> <var>val-expr</var>) <var>expr<sub>1</sub></var>
+<var>expr<sub>2</sub></var>...)</tt></dt>
+<dd>Like DO-CHOICES, but combines the results of evaluating the
+last expr<sub>i</sub> for each value, E.G.
+<pre class="typescript">
+            [fdscript] <strong>(FOR-CHOICES (x (CHOICE 3 4 5 6)) (if (zero? (remainder x 2)) (+ x 3)))</strong>
+            {7 9}
+        
+</pre></dd>
+<dt id="FILTER-CHOICES"><tt class="symbol">(FILTER-CHOICES
+(<var>var</var> <var>value-expr</var>)
+<var>test-expr<sub>i</sub></var>...)</tt></dt>
+<dd>Evaluates <var>value-expr</var> and and binds <var>var</var> to
+each element and returning those elements for which every
+<var>test-expr<sub>i</sub></var> returns true given the binding.
+E.G.
+<pre class="typescript">
+      [fdscript] <strong>(DEFINE (EVEN? x) (zero? (remainder x 2)))</strong>
+      [fdscript] <strong>(FILTER-CHOICES (num (CHOICE 1 2 3 4 5 6)) 
+        (EVEN? x))</strong>
+      {2 4 6}
+      [fdscript] <strong>(FILTER-CHOICES (num (CHOICE 1 2 3 4 5 6)) 
+        (EVEN? num)
+        (&lt; num 6))</strong>
+      {2 4}
+    
+</pre></dd>
+</dl>
+</div>
+<div class="section" name="hashing">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">Hashing Utilities</th>
+<td class="gloss">FDscript provides primitive hashtables and
+"hashsets" to support efficient operations with large heterogenous
+data sets. These are analogous to Perl's associative arrays or
+Python's dictionaries.</td>
+</tr>
+</table>
+<p class="first">FDScript provides fast implementations of sets and
+association tables using an internal hashing implementation. These
+functions are similar to those provided by other programming
+environments, so our descriptions here will be brief.</p>
+<dl>
+<dt class="fcn" id="make-hashtable">(make-hashtable)</dt>
+<dd>returns an empty hash table.</dd>
+<dt class="fcn"><a name="hashtable-get">(hashtable-get
+<var>hashtable</var> <var>key</var>)</a></dt>
+<dd>gets the value(s) associated with <var>key</var> in
+<var>hashtable</var>.</dd>
+<dt class="fcn"><a name="hashtable-add!">(hashtable-add!
+<var>hashtable</var> <var>key</var> <var>new</var>)</a></dt>
+<dd>adds <var>new</var> to the values associated with
+<var>key</var> in <var>hashtable</var>.</dd>
+<dt class="fcn"><a name="hashtable-set!">(hashtable-set!
+<var>hashtable</var> <var>key</var> <var>new</var>)</a></dt>
+<dd>makes <var>new</var> be the only values associated with
+<var>key</var> in <var>hashtable</var>.</dd>
+<dt class="fcn"><a name="hashtable-zap!">(hashtable-zap!
+<var>hashtable</var> <var>key</var>)</a></dt>
+<dd>removes any associations with <var>key</var> in
+<var>hashtable</var>.</dd>
+</dl>
+<p>For example, the following code stores the squares of the
+integers from 0 to 199 in a hashtable:</p>
+<pre class="typescript">
+      [fdscript] <strong>(define square-table (make-hashtable))</strong>
+      [fdscript] <strong>squares-table</strong>
+      [#hashtable 0/19]
+      [fdscript] <strong>(dotimes (i 200) (hashtable-add! square-table i (* i i)))</strong>
+      [fdscript] <strong>squares-table</strong>
+      [#hashtable 200/271]
+      [fdscript] <strong>(hashtable-get square-table 20 #f)</strong>
+      400
+      [fdscript] <strong>(hashtable-zap! square-table 20)</strong>
+      [fdscript] <strong>(hashtable-get square-table 20 #f)</strong>
+      {}
+      [fdscript] <strong>(hashtable-add! square-table 30 300)</strong> ; Not true!
+      [fdscript] <strong>(hashtable-get square-table 30 #f)</strong>
+      {900 300} ; &lt; Note multiple values
+    
+</pre>
+<p>FDScript also provides a "hashset" facility for maintaining
+large sets of objects with fast tests for membership</p>
+<dl compact>
+<dt class="fcn"><a name="make-hashset">(make-hashset)</a></dt>
+<dd>returns an empty hashset.</dd>
+<dt class="fcn"><a name="hashset-get">(hashset-get
+<var>hashset</var> <var>elt</var>)</a></dt>
+<dd>returns true if <var>elt</var> is in <var>hashset</var>.</dd>
+<dt class="fcn"><a name="hashset-add!">(hashset-add!
+<var>hashset</var> <var>elt</var>)</a></dt>
+<dd>adds <var>elt</var> to <var>hashset</var>.</dd>
+<dt class="fcn"><a name="hashset-zap!">(hashset-zap!
+<var>hashset</var> <var>elt</var>)</a></dt>
+<dd>removes <var>elt</var> from <var>hashset</var>.</dd>
+<dt class="fcn"><a name="hashset-elts">(hashset-elts
+<var>hashset</var>)</a></dt>
+<dd>returns the elements of <var>hashset</var> as a
+non-deterministic set.</dd>
+</dl>
+For example, the following code stores some number of primes in a
+hashset:
+<pre class="typescript">
+      [fdscript] <strong>(define primes-table (make-hashset))</strong>
+      [fdscript] <strong>primes-table</strong>
+      [#hashset 0/19]
+      [fdscript] <strong>(hashset-add! primes-table (amb 1 2 3 5 7 11 13 17 19 23 29))</strong>
+      [fdscript] <strong>(hashset-get primes-table 15)</strong>
+      #F
+      [fdscript] <strong>(hashset-get primes-table 17)</strong>
+      #T
+      [fdscript] <strong>(hashset-get primes-table 2)</strong>
+      #T
+      [fdscript] <strong>(hashset-zap! primes-table 2)</strong>
+      [fdscript] <strong>(hashset-get primes-table 2)</strong>
+      #F
+      [fdscript] <strong>(hashset-elts primes-table)</strong>
+      {1 2 3 5 7 11 13 17 19 23 29}
+    
+</pre>
+<p>In addition to hashing primitives, FDScript provides a generic
+ordering function for many lisp objects, which allows numbers,
+strings, symbols, pairs, vectors, etc to be placed in a "total
+order". This ordering is first based on types, with numbers being
+smaller than all other types and proceeding in order: numbers,
+characters, symbols, OIDs, strings, pairs, vectors, records, and
+slotmaps. Objects of the same time are ordered numerically,
+lexicographically (using Unicode character values), or
+recursively.</p>
+<p>The generic ordering can be accessed through the primitives
+<tt>ANY&lt;?</tt> and <tt>ANY&gt;?</tt>, as in:</p>
+<pre class="typescript">
+      [fdscript] (any&lt;? 33 44)
+      #t
+      [fdscript] (any&lt;? 33 "forty-four")
+      #t
+      [fdscript] (any&lt;? "thirty-three" 44)
+      #f
+      [fdscript] (any&gt;? "thirty-three" 44)
+      #t
+      [fdscript] (any&lt;? "thirty-three" "three hundred")
+      #t
+    
+</pre>
+<p>The procedure <tt>SORTED</tt> takes a choice and returns a
+vector whose elements are sorted by the generic comparision
+function:</p>
+<pre class="typescript">
+      [fdscript] (sorted (choice "abc" "abd"))
+      #("abc" "abd")
+      [fdscript] (sorted (choice 110/17 1 2.3))
+      #(1 2.300000 110/17)
+    
+</pre>
+<p>when <tt>SORTED</tt> is given a second argument, it is a
+procedure which is used as the <em>key</em> for sorting, for
+example</p>
+<pre class="typescript">
+      [fdscript] (sorted (choice '(3 . "three") '(28 . "twenty-eight")
+      '(3000000000 . "really big"))
+      car)
+      #((3 . "three") (28 . "twenty-eight") (3000000000 . "really big"))
+    
+</pre></div>
+<div class="section" id="sequence">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">Sequence functions</th>
+<td class="gloss">FDscript provides a number of generic "sequence"
+functions based on similar functions in Common Lisp. These
+functions operate on lists, vectors, strings, and packets,
+uniformly, attempting to reduce the cognitive overload of all these
+extra data types.</td>
+</tr>
+</table>
+<p>Sequences are either lists, vectors, strings or packets. Generic
+functions on sequences include:</p>
+<dl class="fcntable">
+<dt>(elt <var>sequence</var> <var>index</var>)</dt>
+<dd>returns the <var>index</var>th element of <var>sequence</var>.
+For strings, this will be a character, for packets, it will be an
+integer in the range 0-255, and for vectors and lists it could be
+any object. This procedure <strong>fails</strong> (returns the
+empty choice) if <var>sequence</var> has fewer than
+<var>index</var> elements.</dd>
+<dt>(reverse <var>sequence</var>)</dt>
+<dd>returns a sequence of the same type with its elements in
+reverse order.</dd>
+<dt>(length <var>sequence</var>)</dt>
+<dd>returns the number of elements in <var>sequence</var></dd>
+<dt>(find <var>key</var> <var>sequence</var>)</dt>
+<dd>returns an element of <var>sequence</var> which is
+<tt>EQUAL?</tt> to <var>key</var> or <tt>#F</tt> otherwise.</dd>
+<dt>(position <var>key</var> <var>sequence</var>
+<var>[start]</var>)</dt>
+<dd>returns the position of the first element of
+<var>sequence</var> after <var>start</var> which is <tt>EQUAL?</tt>
+to <var>key</var> or <tt>#F</tt> otherwise. If <var>start</var> (an
+integer) is not provided, the absolute first occurence is
+returned.</dd>
+<dt>(count <var>key</var> <var>sequence</var>)</dt>
+<dd>returns the number of elements of <var>sequence</var> which are
+<tt>EQUAL?</tt> to <var>key</var>.</dd>
+<dt>(subseq <var>sequence</var> <var>start</var>
+<var>[end]</var>)</dt>
+<dd>returns the subsequence of <var>sequence</var> starting at
+<var>start</var> and ending at <var>end</var> (or the end of
+<var>sequence</var> if <var>end</var> is not specified).</dd>
+<dt>(remove <var>key</var> <var>sequence</var>)</dt>
+<dd>returns a copy of <var>sequence</var> with all elements
+<tt>EQUAL?</tt> to <var>key</var> removed.</dd>
+<dt>(search <var>sub-sequence</var> <var>sequence</var>
+<var>[start]</var>)</dt>
+<dd>returns an offset into <var>sequence</var> where
+<var>sub-sequence</var> starts, or <tt>#f</tt> otherwise.
+<var>sequence</var> and <var>sub-sequence</var> need not be the
+same type. If <var>start</var> is specified, the search starts at
+the offset <var>start</var> in <var>sequence</var> (but still
+returns an offset relative to the beginning of
+<var>sequence</var>).</dd>
+<dt>(mismatch <var>sequence1</var> <var>sequence2</var>
+<var>[start1]</var> <var>[start2]</var>)</dt>
+<dd>returns the offset at which <var>sequence1</var> and
+<var>sequence2</var> begin to differ. If <var>start1</var> and
+<var>start2</var> are specified, they indicate starting places in
+<var>sequence1</var> and <var>sequence2</var> respectively.</dd>
+<dt>(doseq (<var>var</var> <var>sequence</var> <var>[index]</var>)
+<var>body...</var>)</dt>
+<dd>evaluates <var>body</var> repeatedly with each element (in
+order) bound to <var>var</var>. If the variable <var>index</var> is
+provided, it is bound to the position in the sequence where the
+element is found.</dd>
+<dt>(first <var>sequence</var>)</dt>
+<dd>returns the first element of <var>sequence</var></dd>
+<dt>(second <var>sequence</var>)</dt>
+<dd>returns the second element of <var>sequence</var></dd>
+<dt>(third <var>sequence</var>)</dt>
+<dd>returns the third element of <var>sequence</var></dd>
+<dt>(fourth <var>sequence</var>)</dt>
+<dd>returns the fourth element of <var>sequence</var></dd>
+<dt>(fifth <var>sequence</var>)</dt>
+<dd>returns the fifth element of <var>sequence</var></dd>
+</dl>
+</div>
+<div class="section" id="printout">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">Formatted Output with <tt>PRINTOUT</tt></th>
+<td class="gloss">FDScript includes a formatted output library
+modelled (and named) after InterLisp's PRINTOUT. PRINTOUT can be
+used to create formatted messages for the user or to generate
+textual data files. The PRINTOUT model is also used by the HTML
+generation procedures in the <tt>FDWWW</tt> library.</td>
+</tr>
+</table>
+</div>
+<p>FDScript provides a simple and elegant way of generating
+formatted output. Most other Lisp dialects provide <tt class=
+"symbol">FORMAT</tt> commands descended in spirit from Fortran's
+<tt class="symbol">FORMAT</tt> directive. In FDScript, we instead
+take InterLisp's <tt class="symbol">PRINTOUT</tt> expression and
+use it as our model. Each formatted output procedure takes an
+arbitrary number of arguments and evaluates each one. If it is
+string, it is output without enclosing quotes; if it is the void
+value (such as is returned by iteration functions), it does
+nothing; and for any other value, it calls the procedure <tt class=
+"symbol">WRITE</tt> to display it, which produces a LISP-like
+representation of the object. E.G.</p>
+<pre class="typescript">
+    [fdscript] <strong>(printout "Two plus three is " (+ 2 3) "\n")</strong>
+    Two plus three is 5
+  
+</pre>
+<p>Strings inside of structures are enclosed in quotes, so:</p>
+<pre class="typescript">
+    [fdscript] (printout "Strings at top level are " "in the raw" "\n"
+    "But embedded in structures " '("they wear quotes"))
+    Strings at top level are in the raw
+    But embedded in structures ("they wear quotes")
+  
+</pre>
+<p>The procedure <tt class="symbol">PRINTOUT</tt> processes its
+arguments and sends the results to the standard output. The
+function <tt class="symbol">LINEOUT</tt> does the same but appends
+a newline to the end of the output.</p>
+<p>The procedure <tt class="symbol">STRINGOUT</tt> does its output
+to a string and returns the result without doing any external
+output, E.G.</p>
+<pre class="typescript">
+    [fdscript] <strong>(stringout "Two plus three is " (+ 2 3))</strong>
+    "Two plus three is 5"
+  
+</pre>
+<p>If one of the arguments to a <tt class="symbol">PRINTOUT</tt>
+function is an iterative expression (like <tt class=
+"symbol">DOLIST</tt>) its arguments can call PRINTOUT themselves.
+Since the iteration expression returns void, only the generated
+output will be seen. E.G.</p>
+<pre class="typescript">
+    [fdscript] (define table '((1 2 3) (4 5 6) (7 8 9)))
+    [fdscript] (dolist (row table)
+    (lineout (dolist (column table) (printout "\t" column)) "\n"))
+    1       2       3
+    4       5       6
+    7       8       9
+  
+</pre>
+<p>The procedure <tt>printout-to</tt> takes an initial argument of
+an output stream, followed by printout args. Generated output is
+sent to the designated stream. For example</p>
+<pre class="typescript">
+    [fdscript] (define ofile (open-output-file "temp"))
+    [fdscript] (printout-to ofile "Two plus three is " (+ 2 3))
+    [fdscript] (close-output-port ofile)
+    [fdscript] (filestring "temp")
+    "Two plus three is 5"
+  
+</pre>
+<p>FDScript support for <a href=
+"www.html#Generating%20formatted%20HTML">generating HTML</a> is
+based on this formatted output model.</p>
+<div class="section" id="ports">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">Useful Input/Output Functions</th>
+<td class="gloss">FDScript provides a number of special functions
+for input and output. These include forms and procedures for
+binding the default input and output streams, working with "virtual
+streams" writing to strings, and doing binary input and
+output.</td>
+</tr>
+</table>
+<p>FDScript implements Scheme <strong>ports</strong> as an input
+and output abstraction. The function <tt>open-input-file</tt> opens
+an external file for input; the function <tt>open-output-file</tt>
+opens an external file for output. The results of these functions
+can be used as second arguments to functions like <tt>write</tt>,
+<tt>display</tt>, and <tt>newline</tt> or as the first argument to
+<tt>printout-to</tt>.</p>
+<p>The ports returned by these functions can also be made the
+<em>default</em> port for input or output. The form <tt>(WITH-INPUT
+<var>port</var> ...<var>body</var>...)</tt> evaluates
+<var>body</var> with a default input port of <var>port</var>.
+Similarly, the form <tt>(WITH-OUTPUT <var>port</var>
+...<var>body</var>...)</tt> evaluates <var>body</var> with a
+default output port of <var>port</var>.</p>
+<p>Variants of this function can take filenames as arguments and
+implicitly open an input or output file. The form
+<tt>(WITH-INPUT-FROM-FILE <var>filename</var>
+...<var>body</var>...)</tt> evaluates <var>body</var> with a
+default input port reading data from <var>filename</var>.
+Similarly, the form <tt>(WITH-OUTPUT-TO-FILE <var>filename</var>
+...<var>body</var>...)</tt> evaluates <var>body</var> with a
+default output port writing data to <var>filename</var>.</p>
+<p>In addition to file ports, string ports allow programs to read
+from and write to strings. A string input port reads from a literal
+string as though it were a file; a string output port accumulates
+its output in a string which can be extracted along the way. The
+function <tt>(open-string-input-stream <var>string</var>)</tt>
+opens a string input port for reading, e.g.</p>
+<pre class="typescript">
+      (define p1 (open-string-input-port "(first) (second)"))
+      (read p1)
+      (first)
+      (read p1)
+      (second)
+      (read p1)
+      #EOF
+    
+</pre>
+<p>while the form <tt>(open-string-output-stream)</tt> creates a
+stream for output whose "output thus far" can be extracted with
+<tt>STRING-STREAM-CONTENTS</tt>, e.g.</p>
+<pre class="typescript">
+      (define p2 (open-string-output-stream))
+      (write '(first) p2)
+      (write '(second) p2)
+      (string-stream-contents p2)
+      "(FIRST)(SECOND)"
+    
+</pre>
+<p>String streams can also be used implicitly with the form
+<tt>(WITH-OUTPUT-TO-STRING ...<var>body</var>...)</tt> which
+evaluates <tt>body</tt> with output going (by default) to a string
+whose value is returned. Thus, we can say:</p>
+<pre class="typescript">
+      (with-output-to-string (write '(first)) (write '(second)))
+      "(FIRST)(SECOND)"
+    
+</pre>
+<p>or with the form <tt>(WITH-INPUT-FROM-STRING <var>string</var>
+...<var>body</var>...)</tt> which evaluates <var>forms</var> given
+default input from the string <var>string</var>, e.g.</p>
+<pre class="typescript">
+      (with-input-from-string "33+5i 44.5"
+      (list (read) (read)))
+      (33+5i 44.5)
+    
+</pre>
+<h2 id="binary">Binary I/O</h2>
+<p>A binary input or output file can be opened by using the
+<tt>fopen</tt> function with a "b" mode to get an input or output
+port. The functions <tt>read-byte</tt> and <tt>write-byte</tt> will
+read integer-valued bytes from such streams.</p>
+<p>The function <tt>write-data</tt> can be used to write a packet
+to a file or output stream. <tt>(write-data <var>packet</var>
+<var>stream-or-filename</var>)</tt> writes the bytes in a packet
+directly to the output stream.</p>
+<p><a href="concepts.html#dtypes">DTypes</a> can be written to
+binary output ports with the function <tt>write-dtype</tt> and read
+with the function <tt>read-dtype</tt>.</p>
+<p>An object's DTYPE representation can be written to a file with
+<tt>write-dtype-to-file</tt>; a DTYPE representation for an object
+can be added to the end of a file with the function
+<tt>add-dtype-to-file</tt>. These can be used together with
+<tt>read-dtype-from-file</tt> to accumulate a set of objects in a
+file.</p>
+<p>DTypes can also be written to packets with the function
+<tt>write-dtype-to-packet</tt> and read from packets with the
+function <tt>read-dtype-from-packet</tt>. For example,</p>
+<pre class="typescript">
+      [fdscript] (write-dtype-to-packet "foo")
+      [#PACKET 8 0x0600000003666f6f]
+      [fdscript] (write-dtype-to-packet "föb")
+      [#PACKET 9 0x400206006600f60062]
+      [fdscript] (write-dtype-to-packet 88)
+      [#PACKET 5 0x0300000058]
+    
+</pre>
+<p>Direct binary I/O is possible with four functions:</p>
+<dl>
+<dt class="fcn">read-byte</dt>
+<dd>Reads a single byte from the stream as an integer between 0 and
+255</dd>
+</dl>
+</div>
+<div class="section" id="os">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">Operating System Functions</th>
+<td class="gloss">FDScript provides a variety of functions for
+interacting with the host operating system. These can be useful in
+the construction of system utilities and in connecting systems of
+description to the systems they are describing.</td>
+</tr>
+</table>
+<p>FDScript also provides a number of functions for accessing
+operating system functions. These are useful for tracking
+resources, converting non-FramerD data into FramerD data, and other
+operations.</p>
+<h2 id="envaccess">Environment access</h2>
+<dl>
+<dt><tt class="symbol"><a name="getenv">(getenv
+<var>var</var>)</a></tt></dt>
+<dd>looks up the value associated with the string <var>var</var> in
+the following places:
+<ul>
+<li>the global FDScript environment (potentially modified by
+<a href="users-guide.html#config">configuration files or
+profiles</a>)</li>
+<li>(under WIN32) the Windows Registry, under the key
+"Software\\FramerD\\environment\\<var>var</var>" beneath both the
+user and local machine roots</li>
+<li>through the ANSI standard function <tt class="C">getenv</tt> on
+the variable <var>var</var></li>
+</ul>
+<p>For example,</p>
+<pre class="typescript">
+                [fdscript] <strong>(fdgetenv "USER")</strong>
+                "haase"
+                [fdscript] <strong>(getenv "SUPER_POOL")</strong>
+                "/usr/local/share/framerd/super-pool"
+              
+</pre></dd>
+<dt><tt class="symbol"><a name="cgetenv">(getenv
+<var>var</var>)</a></tt></dt>
+<dd>uses the C library function <tt>getenv</tt> to get the value of
+the environment variable <var>var</var>, e.g.
+<pre class="typescript">
+                    [fdscript] <strong>(cgetenv "TERM")</strong>
+                    "VT100"
+                  
+</pre></dd>
+<dt><tt class="symbol"><a name=
+"timestring">(timestring)</a></tt></dt>
+<dd>returns a string representing the current time, e.g.
+<pre class="typescript">
+                        [fdscript] <strong>(timestring)</strong>
+                        "15:45"
+                      
+</pre></dd>
+<dt><tt class="symbol"><a name=
+"session-id">(session-id)</a></tt></dt>
+<dd>returns a string representing the current FDScript session,
+e.g.
+<pre class="typescript">
+                            [fdscript] <strong>(session-id)</strong>
+                            "framerd: haase@eliza.media.mit.edu OS:Digital Unix Release:Jan 24 1997 Fri Jan 24 23:50:03 1997"
+                          
+</pre></dd>
+<dt><tt class="symbol">(system <a name=
+"system"></a><var>printout-args...</var>)</tt></dt>
+<dd>Combines <var>printout-args</var> to make a command line which
+it passes to the default command intepreter. For example,
+<pre class="typescript">
+                            [fdscript] (define filename "badfile")
+                            [fdscript] (system "rm " filename)
+                            0
+                            [fdscript] (system "rm " filename) ; Already gone
+                            rm: cannot remove `foobar': No such file or directory
+                            256
+                          
+</pre></dd>
+<dt><tt class="symbol"><a name="CD">(CD
+<var>dir</var>)</a></tt><br>
+<tt class="symbol"><a name="CWD">(CWD <var>dir</var>)</a></tt></dt>
+<dd>changes the current working directory to be
+<var>dir</var>.</dd>
+</dl>
+<h2><a name="filesystem">Exploring the Filesystem</a></h2>
+<p>FDScript uses strings to represent files and directories in the
+file system. The file system can be explored by the functions
+<tt>GETFILES</tt> and <tt>GETDIRS</tt>. <tt>GETFILES</tt> takes a
+directory name and returns all of the files it contains;
+<tt>GETDIRS</tt> also takes a directory name but returns all of the
+subdirectories it contains. The following procedure gets all of the
+files recursively underneath a particular directory, taking
+advantage of <tt>getfiles</tt>, <tt>getdirs</tt>, and FDScript's
+automatic non-determinism:</p>
+<pre>
+      (define (allfiles dir)
+      (choice (getfiles dir)
+      (allfiles (getdirs dir))))
+    
+</pre>
+<p>These predicates can be applied to give information about a file
+given its name:</p>
+<ul>
+<li><tt>(file-exists? filename)</tt> returns true if
+<var>filename</var> exists</li>
+<li><tt>(file-writable? filename)</tt> returns true if
+<var>filename</var> can be modified</li>
+<li><tt>(directory? filename)</tt> returns true if
+<var>filename</var> is a directory</li>
+<li><tt>(symbolic-link? filename)</tt> returns true if
+<var>filename</var> is a symbolic link</li>
+<li><tt>(regular-file? filename)</tt> returns true if
+<var>filename</var> is a regular file (not a directory or a
+symbolic link)</li>
+</ul>
+<p>The following functions can be applied to pathnames to generate
+other pathnames or components of pathnames:</p>
+<ul>
+<li><tt>(fullname <var>path</var>)</tt> returns a complete pathname
+(based at the file system root) given a relative pathname.</li>
+<li><tt>(basename <var>path</var>)</tt> returns a the final part of
+a pathname, with the directory component removed.</li>
+<li><tt>(dirname <var>path</var>)</tt> returns the initial part of
+a pathname, just the directory.</li>
+<li><tt>(readlink <var>path</var>)</tt> returns the target of a
+link or the file itself otherwise.</li>
+</ul>
+<p>Other information about particular files can be determined with
+these functions:</p>
+<ul>
+<li><tt>(file-size <var>filename</var>)</tt> returns the size (in
+bytes) of a regular file</li>
+<li><tt>(file-access-time <var>filename</var>)</tt> returns the
+last time a file was accessed, as a timestamp object</li>
+<li><tt>(file-creation-time <var>filename</var>)</tt> returns the
+time at which a file was created, as a timestamp object</li>
+<li><tt>(file-modification-time <var>filename</var>)</tt> returns
+the last time at which a file was modified, as a timestamp
+object</li>
+<li><tt>(file-size <var>filename</var>)</tt> returns the number of
+bytes comprising a file</li>
+<li><tt>(file-owner <var>filename</var>)</tt> returns a string
+describing the owner of <var>filename</var></li>
+</ul>
+<p>The predicate <tt>(FILE-OLDER? <var>file1</var>
+<var>file2</var>)</tt> returns true if <var>file1</var> is older
+than <var>file2</var>.</p>
+<h2><a name="user">User-specific Information</a></h2>
+<ul>
+<li><tt>(get-user-data)</tt><br>
+<tt>(get-user-data <var>username</var>)</tt><br>
+<tt>(get-user-data <var>numeric-userid</var>)</tt> returns
+information about a specified user, defaulting to the current user.
+<pre class="typescript">
+          [fdscript] (get-user-data)
+          #[UID 31406
+          GID 501
+          UNAME "haase"
+          TEXT-DATA "Kenneth Haase"
+          HOMEDIR "/local/haase"
+          SHELL "/bin/bash"]
+          [fdscript] (get-user-data "root")
+          #[UID 0 GID 0 UNAME "root" TEXT-DATA "root" HOMEDIR "/root" SHELL "/bin/bash"]
+          [fdscript] (get-user-data 0)
+          #[UID 0 GID 0 UNAME "root" TEXT-DATA "root" HOMEDIR "/root" SHELL "/bin/bash"]
+        
+</pre></li>
+<li><tt>(get-homedir)</tt> returns the absolute pathname of the
+current user's home directory.
+<pre class="typescript">
+          [fdscript] (get-homedir)
+          "/local/haase"
+        
+</pre></li>
+</ul>
+<h2><a name="www">Accessing the Web</a></h2>
+<p>FDScript also has builtin functions for getting documents from
+the World Wide Web. The function <tt>URLSTRING</tt> returns the
+content of a remote URL as a string, trying to use any information
+the server sends about character set and encoding. This will signal
+an error if the retrieved object does not have a MIME text
+type.</p>
+<p>The function <tt>URLGET</tt> is more general and returns a
+slotmap describing a generalized mime type document parsed by
+FramerD's <a href="#mime">internal MIME parser</a>.</p>
+<h2><a name="time">Functions Dealing with Time</a></h2>
+<p>The basic time structure in FramerD is the timestamp which comes
+in two flavors: simple timestamps which represent moments with a
+precision of seconds and complex timestamps which representation
+moments with varying degrees of precision (days, seconds,
+milliseconds, microseconds, etc) and also carry timezone
+information.</p>
+<ul>
+<li><tt>(timestamp)</tt><br>
+<tt>(timestamp <var>string</var>)</tt><br>
+<tt>(timestamp <var>string</var> <var>timezone</var>)</tt><br>
+<tt>(timestamp <var>timestamp</var> <var>timezone</var>)</tt><br>
+Returns a timestamp object. Without an argument or with <tt>#f</tt>
+as an argument, the timestamp describes the current moment; with an
+argument, the string is parsed as an ISO-8601 formatted time, e.g.
+<tt>1990-01-20T15:00:00-5:00</tt> describes the 20th of January,
+1990 at 3pm in the afternoon (Easter Standard Time) while
+<tt>1990-01-20T20:00:00GMT</tt> describes the same moment in
+Greenwich Mean Time. When the <var>timezone</var> argument is
+provided it either changes the timezone of the first argument
+(keeping the moment the same) or is used in interpreting it. For
+example, (timestamp "199O-01-20T15:00:00EST" "GMT") would return a
+timestamp which prints out as <tt>1990-01-20T20:00:00UTC</tt>.</li>
+<li><tt>(xtimestamp)</tt><br>
+<tt>(xtimestamp <var>precision</var>)</tt><br>
+<tt>(xtimestamp <var>timestamp</var> <var>precision</var>)</tt><br>
+Returns a timestamp object with a particular precision. With no
+arguments, it returns a timestamp with the greatest possible
+precision; with one argument, it returns a timestamp with a
+particular precision (providing that timestamp is Precision can be
+a symbol <tt>year</tt>, <tt>month</tt>, <tt>day</tt>,
+<tt>hour</tt>, <tt>minute</tt>, <tt>second</tt>,
+<tt>millisecond</tt>, <tt>microsecond</tt>, or <tt>nanosecond</tt>.
+For example, (xtimestamp #f 'millisecond) returns something like
+.</li>
+<li><tt>(get-month)<br>
+(get-month <var>timestamp</var>)</tt>returns a symbol denoting the
+current month or the month of a particular timestamp (in the local
+timezone), e.g. <tt>(get-month) ==&gt; MARCH</tt>.</li>
+<li><tt>(get-year)</tt> Gets the current year (AD), e.g.
+<tt>(get-year) ==&gt; 1997</tt></li>
+<li><tt>(get-hour)</tt> Gets the current hour (hours since
+midnight), e.g. <tt>(get-hour) ==&gt; 14</tt></li>
+<li><tt>(get-season)</tt> Gets the current season, being ambiguous
+on the edges, e.g. <tt>(get-season) ==&gt; {winter
+spring}</tt></li>
+<li><tt>(get-day)</tt> returns a symbol describing the current day
+of the week, e.g. <tt>(get-day) ==&gt; THURSDAY</tt></li>
+<li><tt>(get-daytime)</tt> Returns a symbol describing the current
+time of day, being ambiguous on the edges, e.g. <tt>(get-daytime)
+==&gt; {afternoon evening}</tt></li>
+</ul>
+<h2><a name="registry">Accessing the WIN32 Registry</a></h2>
+<p>Under WIN32, FDScript also provides some access to the Windows
+Registry. The registry can be used to store fixnums, strings, lists
+of strings, and binary data packets. The functions to use are:</p>
+<dl>
+<dt><tt class="symbol"><a name="registry-get"></a> (registry-get
+<var>path</var> <var>entry</var>)</tt></dt>
+<dd>looks up the value associated with the string <var>entry</var>
+under the registry key <var>path</var>. This does a search which
+first looks in the "Current User" tree and then looks in the "Local
+Machine" tree, returning the first branch to have a matching entry.
+It returns the empty set if the entry is not defined. E.G.
+<pre class="typescript">
+          [fdscript] <strong>(registry-get "Software\\MUSOFT\\framerd" "super-pool")</strong>
+          xxx
+        
+</pre></dd>
+<dt><tt class="symbol"><a name="registry-get">(registry-set!
+<var>path</var> <var>entry</var> <var>value</var>)</a></tt></dt>
+<dd>changes the value associated with the string <var>entry</var>
+under the registry key <var>path</var>. This does a search which
+first looks in the "Current User" tree and then looks in the "Local
+Machine" tree, changing the first branch to have a matching entry.
+It is created in the user tree if the entry is not defined in
+either entry. E.G.
+<pre class="typescript">
+              [fdscript] <strong>(registry-set! "Software\\MUSOFT\\etc" "birthday" 22197)</strong>
+              #t
+              [fdscript] <strong>(registry-get "Software\\MUSOFT\\etc" "birthday")</strong>
+              22197
+            
+</pre></dd>
+</dl>
+<p>These functions can be combined with the functions <a name=
+"write-dtype-to-packet"><tt>write-dtype-to-packet</tt></a> and
+<a name=
+"read-dtype-from-packet"><tt>read-dtype-from-packet</tt></a> to
+store arbitrary LISP objects in the registry, e.g.</p>
+<pre class="typescript">
+    [fdscript] (registry-set! "Software\\MUSOFT\\etc" "example"
+    (write-dtype-to-packet '("example" 1)))
+    #t
+    [fdscript] <strong>(read-dtype-from-packet (registry-get "Software\\MUSOFT\\etc" "example"))</strong>
+    ("example" 1)
+  
+</pre>
+<h2><a name="resources">Counting Resources</a></h2>
+<p>The procedure <tt><a name="resources">(resources)</a></tt>
+returns a slotmap containing various implementation-dependent
+resource information, e.g.</p>
+<pre class="typescript">
+    [fdscript] (resources)
+    #[MEMORY: 688 SWAPS: 0 USER-USECS: 57584 SYSTEM-USECS: 103456
+    CONSES: 746 MALLOCD: 264 CONS-MEMORY: 12232 REFERENCED-OIDS: 0
+    LOADED-OIDS: 0]
+  
+</pre>
+<p>The function <tt class="symbol">GET</tt> can be used to extract
+fields from a slotmap, E.G.</p>
+<pre class="typescript">
+    [fdscript] (get (resources) 'cons-memory)
+    167218
+  
+</pre>
+<p>The <tt class="symbol"><a name="clock">(clock)</a></tt> function
+returns the number of microseconds of processing time expended
+since the first time <tt>clock</tt> was called:</p>
+<pre class="typescript">
+    [fdscript] (clock)
+    0
+    [fdscript] (clock)
+    1652000
+  
+</pre>
+<p>The <tt class="symbol"><a name="memusage">(memusage)</a></tt>
+function returns the number of KBytes of memory being used by the
+data of the current process. This is based on the operating
+system's accounting.</p>
+<p>The <tt class="symbol"><a name="consusage">(consusage)</a></tt>
+function returns the number of <var>bytes</var> of memory being
+used by the current process. This uses FramerD's own accounting
+methods rather than the operating systems and also leaves out
+conses which have been allocated but are not currently being
+used.</p>
+<h2><a name="configs">Accessing and modifying configuration
+information</a></h2>
+<p>FramerD installations and applications are customized by
+<em>configuration files</em> loaded when the installations or
+applications start up. A configuration file is a set of variable
+bindings which are established when the configuration file is
+loaded. No expressions are evaluated (which makes them somewhat
+safer), but the configuration file can define or redefine default
+values as well as adding values to variables which are already
+defined (potentially making them into choices).</p>
+<p>Every FramerD application loads the "system configuration" file;
+interactive applications generally also load a "user profile"
+containing user specific information. In addition, the executables
+<tt>fdscript</tt> and <tt>fdserver</tt> both take arguments of the
+form <tt>--config=<em>file</em></tt> to specify additional
+configuration files. These files can be manipulated from the system
+command line with the scripts <tt>fdconfig</tt>,
+<tt>fdprofile</tt>, and <tt>fdcfg</tt> as described in the <a href=
+"users-guide.html#config">user's guide</a> In addition,
+configuration files can be modified from the evaluator by several
+primitives.</p>
+<p><tt>(CONFIG-SET! <var>file</var> <var>var</var>
+<var>val</var>)</tt> sets <var>var</var> in <var>file</var> to have
+the value <var>val</var>.</p>
+<p><tt>(CONFIG-ADD! <var>file</var> <var>var</var>
+<var>val</var>)</tt> adds the value <var>val</var> to the binding
+of <var>var</var> specified in <var>file</var>. If <var>file</var>
+already defines <var>var</var>, <var>val</var> is just added to the
+values there. If <var>file</var> doesn't define <var>var</var>,
+<var>val</var> is added as an <em>augmentation</em>, so that it
+will be added to any existing value when the config file is
+loaded.</p>
+<p><tt>(CONFIG-RESET! <var>file</var> <var>var</var>)</tt> removes
+any values associated with <var>var</var> in <var>file</var>.</p>
+<h2><a name="i18n">Internationalization</a></h2>
+<p>FramerD and FDScript both use Unicode internally to represent
+characters, strings, and symbols. This means that programs and data
+can include characters from hundreds of national languages at the
+same time. Thus a FramerD frame can have one slot containing data
+as greek characters, another containing different data in Japanese
+Kanji, and yet another slot in the Korean Hangul character set.</p>
+<p>All of the string and character functions work with Unicode
+strings, as in:</p>
+<pre class="typescript">
+    [fdscript] (subseq "Êtes-vous parlé français?" 0 4)
+    "Êtes"
+    [fdscript] (position #\ç "Êtes-vous parlé français?")
+    20
+    [fdscript] (string-upcase "Êtes-vous parlé français?")
+    "ÊTES-VOUS PARLÉ FRANÇAIS?"
+  
+</pre>
+<p>Unmarked versions of characters can be extracted with the
+functions <tt class="symbol">CHAR-BASE</tt> <tt class=
+"symbol">CHAR-LOWER-BASE</tt>:</p>
+<pre class="typescript">
+    [fdscript] (char-base #\ç)
+    #\c
+    [fdscript] (char-lower-base #\Ê)
+    #\e
+  
+</pre>
+<p>Similar functions existing for strings</p>
+<pre class="typescript">
+    [fdscript] (string-base  "Êtes-vous parlé Français?")
+    "Etes-vous parle Francais?"
+    [fdscript] (string-lower-base  "Êtes-vous parlé Français?")
+    "etes-vous parle francais?"
+  
+</pre>
+<p>permitting canonicalization of strings from various languages.
+However, the result is not guaranteed to be an ASCII string, as
+in:</p>
+<pre class="typescript">
+    [fdscript] (string-base "I hope to döss at the Schloß")
+    "I hope to doss at the Schloß"
+  
+</pre>
+<p>FDScript also supports a diversity of external character
+encodings, allowing it to read and emit data in many different
+character sets. A character set is a mapping from some external
+character encoding into the Unicode representation used by FramerD.
+The contents of a file with a particular encoding can be converted
+into a string with the function <tt>FILESTRING</tt> whose second
+argument specifies the encoding. For example,</p>
+<pre class="typescript">
+    (filestring "xx.txt" "latin-1")
+    
+    (filestring "john1.txt" "latin-7")
+  
+</pre>
+<p>A packet (a byte vector) can be converted into a string by the
+function <tt>packet-&gt;string</tt> and converted back by the
+function <tt>string-&gt;packet</tt>, both of which require a
+character set specifier. For example, using the <tt>FILEDATA</tt>
+function to get the above file as a packet:</p>
+<pre class="typescript">
+    (packet-&gt;string (filedata "sassure1.txt"))
+    
+    (string-&gt;packet "")
+    
+    (equal? (string-&gt;packet "") "")
+    #t
+  
+</pre>
+<p>The encoding of a program source file can be specified in
+several ways:</p>
+<ul>
+<li>the second argument to <tt>load</tt> can specify a character
+set, e.g. <tt>(load "zh-parser.scm" "BIG5")</tt></li>
+<li>the file can call the function set-file-encoding! to change the
+encoding being used for the current file being loaded, e.g
+<tt>(set-file-encoding! "koi8")</tt></li>
+<li>the head of the file can include a special line of the form
+<tt>-*- text-encoding: latin-2 -*-</tt></li>
+</ul>
+<p>If the encoding of a file is not specified, a default encoding
+is used. This default encoding can be set in numerous ways:</p>
+<ul>
+<li>after an application has started, the function
+<tt>set-default-encoding!</tt> can be used, as in
+<tt>(set-default-encoding! "latin-1")</tt></li>
+<li>when an fdscript listener is started, a command line option
+such as <tt>--charset=koi8</tt> can be specified;</li>
+<li>before the application launches, the environment or config
+variable <tt>CHARSET</tt> can be set</li>
+</ul>
+<p>This default encoding is also used for interactions with the
+console, unless it is overridden by the function
+<tt>set-console-encoding!</tt>.</p>
+<p>Regardless of the character encoding in force, unicode
+characters can always be entered as <em>unicode escapes</em>
+(modelled on Java) of the form <kbd>\u<var>xxxx</var></kbd> or
+<kbd>\U<var>xxxxxxxx</var></kbd> (differing in case). Where
+<var>xxxx</var> or <var>xxxxxxxx</var> are the hexadecimal codes
+for the corresponding unicode characters. The interpretation of
+these escape sequences happens at a very low level, so they keep
+their syntactic character. Thus, the following will be parsed as a
+string:</p>
+<pre>
+    [fdscript] \u0022foo\u0022
+    "foo"
+  
+</pre>
+<p>The character sets built into FramerD include all of the
+ISO-8859 character sets as well as the KOI-8 character set for the
+Russian language. In addition, FramerD is able to read the mapping
+files provided by the <a href="http://www.unicode.org/">Unicode
+consortium</a>. These files can be found at <a href=
+"ftp://ftp.unicode.org/pub/mappings/">ftp://ftp.unicode.org/pub/mappings/</a>
+and installed with .</p>
+</div>
+<div class="section" id="threads">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">Multi-Threaded Programming</th>
+<td class="gloss">FDScript experimentally provides facilities for
+multi-threaded programming. These include procedures for starting
+parallel threads of computation and for synchronizing access to
+shared resources.</td>
+</tr>
+</table>
+<p>On some platforms, FDScript provides support for the
+implementation of multi-threaded applications. Multi-threaded
+applications can do many things at once, proceeding with one task
+while blocked on another. On machines with multiple processors,
+different tasks can be divided among the different processors,
+possibly leading to performance improvements over performing all of
+the tasks on a single processor.</p>
+<p>The support for multi-threaded programming in FDScript is
+provisional. The chief constructs for starting multiple independent
+threads are <tt>PARALLEL</tt> and <tt>SPAWN</tt>.</p>
+<dl compact>
+<dt><tt class="symbol"><a name="parallel">(parallel
+<var>expr<sub>i</sub>...</var>)</a></tt></dt>
+<dd>Evaluates each expr<sub>i</sub> in a separate thread, combining
+the returned result choices into a single set of choices. In the
+absence of side effects (including I/O), this is just equivalent to
+<tt>AMB</tt>.</dd>
+<dt><tt class="symbol"><a name="spawn">(spawn
+<var>expr<sub>i</sub>...</var>)</a></tt></dt>
+<dd>Evaluates each expr<sub>i</sub> in a separate thread, but
+returns immediately and discards any results returned by the
+individual expressions.</dd>
+<dt><tt class="symbol"><a name=
+"make-mutex">(make-mutex)</a></tt></dt>
+<dd>Returns a "mutex object" which can be used to make sure that
+separate threads do not interfere when accessing shared
+resources.</dd>
+<dt><tt class="symbol"><a name=
+"with-mutex-locked">(with-mutex-locked <var>mutex-expr</var>
+<var>expr<sub>i</sub>....</var>)</a></tt></dt>
+<dd>Evaluates <var>mutex-expr</var> and then evaluates each of the
+<var>expr<sub>i</sub>....</var> expressions while guaranteeing that
+no other thread will evaluate a <tt>with-mutex-locked</tt>
+expression referring to the same value of
+<var>mutex-expr</var>.</dd>
+</dl>
+<h2><a name="synchronized">Synchronized Procedures</a></h2>
+<p>FDScript also provides <em>synchronized procedures</em>. A
+procedure returned by <tt>SLAMBDA</tt> (which is syntatically
+identical to <tt>LAMBDA</tt>) or defined by <tt>SDEFINE</tt> (which
+is syntactically identical to <tt>DEFINE</tt>) is guaranteed to be
+running in only one thread at any moment.</p>
+<p>For example, the following server initialization (.fdz) file
+uses a synchronized lambda to control writing to a data file even
+when running on a multi-threaded server (by default, FramerD
+servers are multi-threaded on platforms where <tt>configure</tt>
+can figure out how to compile them thus).</p>
+<pre class="typescript">
+        ;; This is the file fdlog.fdz
+        (sdefine (log x)
+  (add-dtype-to-file x "log.dtype"))
+</pre>
+<p>This is also an example of a "safe" wrapper around a potentially
+dangerous function (<tt>add-dtype-to-file</tt>). External clients
+can call the defined <tt>log</tt> procedure, but cannot call
+<tt>add-dtype-to-file</tt> directly (which writes to the local
+filesystem).</p>
+</div>
+<div class="section" id="subjobs">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">Working with Subjobs</th>
+<td class="gloss">FDScript programs can run other programs as
+subjobs and read and write input from those subjobs.</td>
+</tr>
+</table>
+<p>A subjob is a separate process from the FDScript interpreter
+with which the interpreter interacts. Subjobs can be local subjobs
+(started as programs on the same machine as the interpreter) or
+remote subjobs (started by connecting to a remote socket across the
+Internet). Both of these are called subjobs because the FDScript
+process may send output to and read input from them.</p>
+<p>The simplest sort of subjob is started with the <tt>SYSTEM</tt>
+procedure, which executes a command on the local operating system.
+It takes no input (other than its command line) and its output is
+just sent to the console directly. The call to <tt>SYSTEM</tt>
+waits until the external program is done and then returns the exit
+code of the program.</p>
+<p>The <tt>SYSTEM</tt> procedure takes an argument list like those
+passed to <tt>PRINTOUT</tt> and uses them to construct a command
+line. For example:</p>
+<pre>
+[fdscript] (define filename "test.fdx")
+[fdscript] (system "chmod a+x " filename)
+1
+</pre>
+<p>The <tt>OPEN-PROCESS</tt> procedure starts a parallel
+subprocess. It's first argument is the program to start and its
+remaining arguments are converted into strings and passed to the
+program. <tt>OPEN-PROCESS</tt> starts the subprocess and
+immediately returns a <strong>subjob</strong> which FDScript
+process can interact with. This interaction occurs through regular
+I/O function addressed to particular ports associated with the
+process.</p>
+<p><tt>(SUBJOB-INPUT <var>subjob</var>)</tt> returns an output port
+which can be used to send output to the subjob. <tt>(SUBJOB-OUTPUT
+<var>subjob</var>)</tt> returns an input port which can be used to
+read the output of the subjob. Error messages from subjobs started
+by <tt>OPEN-PROCESS</tt> are sent to the console.</p>
+<p>The procedure <tt>OPEN-PROCESS-E</tt> is just like
+<tt>OPEN-PROCESS</tt> but uses its initial argument to specify
+where error messages from the process should be sent. If this first
+argument is a string, the error messages are sent to the file named
+by the string; if the first argument is false <tt>#F</tt>, errors
+are sent to a special stream which can be retrieved by the
+<tt>SUBJOB-ERRORS</tt> accessor. If the first argument is anything
+else, errors are just sent to the console.</p>
+<p>For example, this interaction shows FDScript using an inferior
+FDScript process to evaluate expressions:</p>
+<pre class="typescript">
+[fdscript] (define xx (open-process "fdscript" "-"))
+;; Nothing (void) was returned
+;; Values changed (1): XX
+[fdscript] (printout-to (subjob-input xx) '(+ 2 3 (* 4 5)) "\n")
+;; Nothing (void) was returned
+[fdscript] (readline (subjob-output xx))
+"25"
+</pre>
+<p>The accessor <tt>SUBJOB-PID</tt> returns the process ID of a
+created subjob. The procedure <tt>SUBJOB-CLOSE</tt> terminates a
+running subjob; it's second argument, when provided, indicates a
+signal with which the subjob will be closed via the <tt>kill()</tt>
+function.</p>
+<p>The procedure <tt>OPEN-SOCKET</tt> opens a TCP stream connection
+to a designated port on a particular host and returns a subjob
+structure interacting with that remote connection. The first
+argument identifies the port on the remote server: it can be either
+an integer, a service name, or a touch-tone encoded port number.
+The second argument should be a hostname. <tt>OPEN-SOCKET</tt>
+returns a subjob object on which the <tt>SUBJOB-INPUT</tt> and
+<tt>SUBJOB-OUTPUT</tt> accessors will work. There is no
+<tt>SUBJOB-ERRORS</tt> for remote subjobs. <tt>SUBJOB-CLOSE</tt>
+works on remote subjobs by closing the stream connection to the
+remote server.</p>
+<p>For example, the following fragment accesses the FramerD web
+server:</p>
+<pre>
+[fdscript] (define sock (open-socket "framerd.org" "http"))
+;; Nothing (void) was returned
+;; Values changed (1): SOCK
+[fdscript] (printout-to (subjob-input sock) "GET /\n")
+;; Nothing (void) was returned
+[fdscript] (flush-output (subjob-input sock))
+#t
+[fdscript] (readline (subjob-output sock))
+"&lt;head&gt;"
+[fdscript] (readline (subjob-output sock))
+"&lt;title&gt;FramerD&lt;/title&gt;"
+[fdscript] (readline (subjob-output sock))
+"&lt;link rel=stylesheet type=\"text/css\" href=\"fdsite.css\"&gt;"
+</pre></div>
+<div class="section" id="errorhandling">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">Error Handling</th>
+<td class="gloss">Since the world is an uncertain place, programs
+can often encounter unexpected conditions and situations. One tool
+for building robust but understandable programs is to separate out
+the routine execution of procedures from the handling of unexpected
+conditions. FDScript has several tools for supporting this sort of
+horizontal modularization.</td>
+</tr>
+</table>
+<p>The FDScript error model is based on the idea of user procedures
+or primitives <em>raising exceptions</em> to indicate an unexpected
+condition. In the current model, there is no way to handle the
+error where it occurred (by, for instance, trying an operation
+again). Instead, programs can set up contexts for catching and
+handling these errors.</p>
+<p>The easiest way to catch errors is with the procedure
+<tt>SIGNALS-ERROR?</tt> which takes a single argument. The function
+returns false (<tt>#F</tt>) if the argument was evaluated without
+raising any exceptions (and thus discards the return value);
+otherwise, the function returns an <em>error object</em> describing
+the signalled error. For example,</p>
+<pre class="typescript">
+[fdscript] (signals-error? (+ 2 3))
+#f
+[fdscript] (signals-error? (+ 2 'a))
+[#ERROR ("Type Error" "+: not an integer" A)]
+</pre>
+<p>The error object, which may also be commonly returned by remote
+function evaluations, can be tested for with the predicate
+<tt>ERROR?</tt> and its components can be accessed with the
+primitives <tt>ERROR-EXCEPTION</tt>, <tt>ERROR-DETAILS</tt>, and
+<tt>ERROR-IRRITANT</tt>. E.G.</p>
+<pre class="typescript">
+[fdscript] (define errobj (signals-error? (+ 2 'a)))
+#f
+[fdscript] errobj
+[#ERROR ("Type Error" "+: not an integer" A)]
+[fdscript] (error? errobj)
+#T
+[fdscript] (error-exception errobj)
+"Type Error"
+[fdscript] (error-details errobj)
+"+: not an integer"
+[fdscript](error-irritant errobj)
+A
+</pre>
+<p>The return value from normal evaluation is accessible by using
+<tt>SIGNALS-ERROR+?</tt>, which returns multiple values (not
+choices) indicating the values returned the evaluation. E.G.</p>
+<pre class="typescript">
+[fdscript] (signals-error+? (+ 2 3))
+#f
+;;+1: 5
+</pre>
+<p>These additional values can be accessed using
+<tt>multiple-value-bind</tt>, as in:</p>
+<pre class="typescript">
+[fdscript] (define (test-eval expr)
+             (multiple-value-bind (error? result) (signals-error+? (eval expr))
+               (if error? (lineout "Evaluating " expr " signalled " error?)
+                   (lineout "Evaluating " expr " returned " result))))
+[fdscript] (test-eval '(+ 2 3))
+Evaluating (+ 2 3) returned 5
+[fdscript] (test-eval '(+ 2 a))
+Evaluating (+ 2 A) signalled [#ERROR ("Variable is unbound" "EVAL" A)]
+[fdscript] (test-eval '(+ 2 'a))
+Evaluating (+ 2 'A) signalled [#ERROR ("Type Error" "+: not an integer" A)]
+</pre>
+<p>More sophisticated processing can be done with the special form
+<tt>ON-ERROR</tt> which evaluates its first argument and returns
+its value if no exceptions were raised. If exceptions were raised
+however, the remaining expressions in the <tt>ON-ERROR</tt> form
+are evaluated in an environment with the following bindings:</p>
+<dl>
+<dt>EXCEPTION</dt>
+<dd>a string identifying the signalled error;</dd>
+<dt>EXCEPTION-DETAILS</dt>
+<dd>a string providing additional information about the error (for
+instance a filename)</dd>
+<dt>IRRITANT</dt>
+<dd>the lisp object whose character caused the error; for instance,
+the object which happens to be the wrong type for an
+operation;</dd>
+<dt>BACKTRACE</dt>
+<dd>a string containing the backtrace of program execution, which
+may be quite long, but can be parsed to extract call context
+information</dd>
+</dl>
+<p>Another option, between these two possibilities, is the
+<tt>CATCH-ERRORS</tt> procedure which evaluates its body and
+returns the result of the final expression. If any exceptions are
+raised during the execution of the body, the <tt>CATCH-ERRORS</tt>
+form returns an <em>error object</em> describing the raised
+exception, its details, and the irritant.</p>
+<p>User FDScript code can signal an error with the form
+<tt>RAISE-EXCEPTION</tt>. It takes one to three arguments: an
+exception name (a string or symbol), a details description (a
+string), and an irritant (a lisp object).</p>
+</div>
+<div class="section" id="inthelarge">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">Programming in the Large</th>
+<td class="gloss">FDScript has a variety of functions to support
+programming in the large. These include a module system and various
+file loading routines to support the development and packaging of
+libraries. The module system allows the organization of programs
+into different non-conflicting namespaces, with explicit interfaces
+between them.</td>
+</tr>
+</table>
+<p>FDScript provides a simple module system for organizing programs
+into distinct namespaces with designated interfaces between them.
+The advantage of this organization is that the implementations of
+shared libraries or utilities do not need to worry about name
+conflicts between their internal functions. A module <tt>A</tt> can
+define a function <tt>initialize</tt> (for instance) without
+worrying about conflicts with a different <tt>initialize</tt>
+function in module <tt>B</tt>.</p>
+<p>Modules must explicitly <strong>export</strong> variable
+bindings to make them visible to other modules; those other modules
+must also explicitly <strong>use</strong> the other module to get
+access to their exported variables. These two relationships are the
+keys to the module system.</p>
+<p>There are two broad classes of modules: <dfn>unregistered
+modules</dfn> are bound to variables in some local environment;
+<dfn>registered modules</dfn> are maintained in two global
+registries distingiushed based on whether the module is judged
+"safe" (does not access readily abused system functions for file or
+network access) or "enabled". The safe modules generally provide
+language extensions that build on the core Scheme and FramerD
+functions; the enabled modules generally provide additional
+functionality for accessing the file system, network, or
+subprocesses.</p>
+<p>Registered modules are generally referred to by symbols,
+possibly including slashes to indicate a module hierarchy. An
+interactive user or program file can arrange to use the bindings of
+a module by calling the <tt>USE-MODULE</tt> procedure. Its argument
+should evaluate to either a module object or a symbol. If it is a
+symbol, the corresponding module is retrieved from the appropriate
+global registry(ies).</p>
+<p>If a named module has not been registered, FDScript will look
+for a file which implements it. For a module named
+<var>module</var>, it looks for paths of any of the forms:</p>
+<ul>
+<li><tt><var>dir</var>/<var>module</var>.fdx</tt></li>
+<li><tt><var>dir</var>/<var>module</var>.so</tt> (under Unix)</li>
+<li><tt><var>dir</var>/<var>module</var>.dll</tt> (under
+WIN32)</li>
+<li><tt><var>dir</var>/<var>module</var>/module.fdx</tt></li>
+</ul>
+<p>where <var>dir</var> can be replaced with each of the paths in
+the list of pathnames bound to <tt>MYFDPATH</tt> and then with each
+of the list of pathnames bound to <tt>%FDPATH</tt>. The
+<tt>%FDPATH</tt> variable is typically defined in the configuration
+file set up when FramerD was installed. The default directory on
+this list can also be revealed by the command <tt>fdxs
+modules</tt>.</p>
+<p>In any of the above cases, the current environment is changed to
+inherit bindings from the specified module. This means that
+subsequent expressions and definitions will be able to access the
+bindings of the specified module.</p>
+<h2>Making Modules</h2>
+<p>From FDScript itself, a program file can specify its module with
+the special form <tt>(in-module <var>module_name</var>)</tt>. If
+the first parameter is a simple symbol, an unregistered module is
+created and the variable <var>module_name</var> is bound to that
+module in two environments: the environment where
+<tt>in-module</tt> was called and the newly created environment,
+which is made current for the rest of the program file. If the
+first parameter is a more complex expression, it can either
+evaluate directly to a module (in which case that module is made
+current and subsequent expressions will be evaluated in and modify
+it) or it can evaluate to a symbol, denoting a registered
+module.</p>
+<p>This is the most common case, where evaluating the parameter
+yields a symbol (often the parameter is simply a quoted symbol). In
+this case, <tt>in-module</tt> does one of two things:</p>
+<ul>
+<li>if <var>module_name</var> is a registered module, it makes it
+current and evaluates the rest of the file inside that module;</li>
+<li>if <var>module_name</var> is not a registered module, it
+creates a new module, registers it (in the <strong>enabled</strong>
+module registry) and switches to it;</li>
+</ul>
+<p>The special form <tt>in-safe-module</tt> works just like
+<tt>in-module</tt> but will only search the "safe" module registry
+and will only create a new module in that registry.</p>
+<p>Both <tt>in-module</tt> and <tt>in-safe-module</tt> take an
+optional second argument specifying the other modules which the
+designated module should <em>use</em> (as above). This is a choice
+of either direct module pointers or symbols designating registered
+modules. The symbol <tt>SAFE</tt> has a special semantics which
+causes any newly created module to only have access to the "safe"
+system functions which don't touch the file system or open new
+network connections.</p>
+<p>Within a module, symbols are exported by the special form
+<tt>module-export!</tt>, e.g.</p>
+<pre class="typescript">
+(module-export! 'whois)
+</pre>
+<p>exports the symbol <tt>whois</tt> from the current module. The
+argument to <tt>module-export!</tt> can be a choice, as in:</p>
+<pre class="typescript">
+(module-export! '{whois whereis})
+</pre>
+<h3>Other ways to make modules</h3>
+<p>Modules can also be created by the expressions
+<tt>STANDARD-MODULE</tt> and <tt>SAFE-MODULE</tt>, each of which
+takes an arbitrary number of expressions and evaluates them in a
+newly-minted module, which is finally returned by the expression.
+<tt>STANDARD-MODULE</tt> creates a module which has access to all
+of the FDScript functions. <tt>SAFE-MODULE</tt> creates a module
+which is unable to access "risky functions" which access the local
+file system, make new network connections, or change the active
+configuration.</p>
+<p>The standard FDScript environment consists of the following
+namespaces:</p>
+<ul>
+<li>a global namespace containing most FDScript functions</li>
+<li>a "restricted" module containing functions for accessing the
+local file system, running system functions, making network
+connections, and configuring FramerD database access.</li>
+<li>an "osprims" module containing functions for many common sorts
+of operating system access</li>
+<li>an "fdinternals" module containing less common functions for
+getting at OIDs, pools, and their values</li>
+<li>an "fdmaint" module containing functions for maintaining pools
+and indices</li>
+<li>an "fdtext" module containing functions for text matching,
+searching, parsing, and other operations.</li>
+<li>an "xmlgen" module containing functions for generating XML
+documents</li>
+<li>a "htmlgen" module containing functions for generating HTML
+documents</li>
+</ul>
+<p>The startup environment for FDScript uses the restricted module
+and the text module; the html or xml generation modules can be
+included by saying <tt>(use-module 'htmlgen)</tt> <tt>(use-module
+'xmlgen)</tt> respectively. The startup environment for the
+<tt>fdcgi</tt> executable automatically uses the <tt>HTMLGEN</tt>
+and <tt>XMLGEN</tt> generation module.</p>
+<p>The module structure is used as security mechanism for FramerD
+servers. The server startup file is loaded into its own module
+which directly uses the restricted and text modules as well as a
+special module of server functions. Connections to the server are
+each given their own environment, each of which uses the module
+created at startup but does not use any other modules. In
+particular, this means that the startup module (defined by the
+<tt>.fdz</tt> file) can use restricted functions but that remote
+clients cannot call these functions directly.</p>
+<h2>Loading Functions</h2>
+<p>FDScript provides some useful loading functions for writing
+portable programs divided into multiple pieces. These can also be
+especially useful in the <tt>module.fdx</tt> files which may
+implement a singled module composed of multiple source files.</p>
+<p>The function <tt>LOAD-LIBRARY</tt> is just like <tt>LOAD</tt>
+but searches along the variable <tt>FDPATH</tt> for any relative
+paths. For example, if <tt>FDPATH</tt> were the list<br>
+<tt>("/usr/local/share/libs/" "/usr/share/libs")</tt>,<br>
+a call to <tt>(load-library "fishnet/module.fdx")</tt> would load
+the first of the following files which it could find:</p>
+<ul compact>
+<li>/usr/local/share/libs/fishnet/module.fdx</li>
+<li>/usr/share/libs/fishnet/module.fdx</li>
+</ul>
+<p>The <tt>LOAD-LIBRARY</tt> function supports the maintainence of
+common libraries of code into which newly implemented libraries can
+be placed. Often <tt>FDPATH</tt> is a system wide definition and to
+allow for personalization, <tt>LOAD-LIBRARY</tt> will first try
+using the list of directories in <tt>FDMYPATH</tt>. These may both
+be set as <a href="user-guide.html#config">configuration
+variables</a>.</p>
+<p>When a module consists of several files, the procedure
+<tt>LOAD-COMPONENT</tt> can be used to portably load the component
+files. <tt>LOAD-COMPONENT</tt> interprets relative pathnames with
+respect to the file in which <tt>LOAD-COMPONENT</tt> is being
+evaluated. For example, if the file
+"/usr/local/share/fishnet/module.fdx" contained the expression
+<tt>(load-module "analyze.fdx")</tt>, it would load the file
+"/usr/local/share/fishnet/analyze.fdx". <tt>LOAD-COMPONENT</tt>
+could be rewritten in terms of the function <tt>GET-COMPONENT</tt>,
+which generates an absolute pathname based on the file currently
+being loaded. This is useful for (among other things) referring to
+data files, so the same `module.fdx' file could say:<br>
+<tt>(use-pool (get-component "fishnet.pool"))</tt><br>
+to use the file pool "/usr/local/share/fishnet/fishnet.pool".</p>
+</div>
+<div class="section" id="text">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">The TX Text Processing Library</th>
+<td class="gloss">FDScript includes a suite of sophisticated tools
+for analyzing and parsing text in a variety of languages. This
+document describes those tools and their uses.</td>
+</tr>
+</table>
+<p style="clear: right;">The TX library is a part of FDScript with
+functions for dealing with text. It includes a powerful pattern
+matching facility together with procedures for stemming (Porter),
+hashing (MD5), and morphological analysis. It also includes
+specialized parsers for HTML XML, MIME, and RFC822 email
+messages.</p>
+<h2 class="section"><a name="matcher">The Pattern Matcher</a></h2>
+<p>The TX pattern matcher recognizes and extracts structure from
+arbitrary strings. TX is organized around matching patterns (which
+are LISP objects) against strings (which are linear sequences of
+characters). Since FramerD strings can include any Unicode
+character, these strings may contain the characters of any human
+language and most machine languages.</p>
+<p>Taken by itself, a pattern specifies a set of strings; for
+instance, the pattern <tt class="expr">(isalnum+)</tt> matches any
+sequence of alphanumeric characters, so that:</p>
+<pre class="typescript">
+[fdscript] (tx-match '(isalnum+) "haase")
+#t
+</pre>
+<p>but:</p>
+<pre class="typescript">
+[fdscript] (tx-match '(isalnum+) "haase@media")
+#f
+</pre>
+<p>since <tt>`@'</tt> isn't a letter or number. The pattern
+<tt class="expr">(isalnum+)</tt> also matches letters and numbers
+in other languages, so</p>
+<pre class="typescript">
+[fdscript] (tx-match '(isalnum+) "häse")
+#t
+</pre>
+<p><tt class="expr">(isalnum+)</tt> is called a matching operator.
+Strings and matching operators are the "basis level" for matching
+and searching: any search or match eventually gets down to either
+strings or matching operators. However, the matcher provides two
+general and powerful ways to combine these primitives.</p>
+<h2>Vector Patterns match Sequences</h2>
+<p>A vector pattern combines several patterns into a sequence,
+matching all strings consisting of a substring matched by the
+vector's first element followed by a substring matching the
+vector's second element, and so on. For example, the following
+vector pattern matches the string <tt class=
+"value">"haase@media"</tt>:</p>
+<pre class="typescript">
+[fdscript] (tx-match '#((isalnum+) "@" (isalnum+))  "haase@media")
+#t
+</pre>
+<p>since the first <tt class="expr">(isalnum+)</tt> matches
+<tt class="value">"haase"</tt>, the string <tt class=
+"value">"@"</tt> matches <tt class="value">"@"</tt> (strings always
+match themselves), and the second <tt class="expr">(isalnum+)</tt>
+matches <tt class="value">"media"</tt>. Note that this pattern
+would not, however, match a string like
+"haase%prep.ai.mit.edu".</p>
+<h2>Choices can be used as Patterns</h2>
+<p>Alternatives like this can be described by using FramerD choices
+to represent different patterns which can be matched. For example,
+we can extend the pattern above to also match <tt class=
+"value">"haase%prep.ai.mit.edu"</tt>:</p>
+<pre class="typescript">
+[fdscript] (tx-match '#((isalnum+) {"@" "%"} (isalnum+))  "haase%prep.ai.mit.edu")
+#t
+</pre>
+<p>The choices in a pattern like this need not be strings; any
+pattern can be recursively included, e.g.</p>
+<pre class="typescript">
+[fdscript] (tx-match '#((isalnum+) {"@" "%" (ispunct)} (isalnum+))  "haase-media")
+#t
+</pre>
+<h2>Named Patterns</h2>
+<p>When a symbol is used as a pattern, the value of that symbol is
+used for the matching, allowing complex patterns to be broken into
+smaller pieces. The procedure <tt>tx-closure</tt> (with
+abbreviation <tt>txc</tt>) takes a pattern and associates it with
+the current environment, so that symbol references within the
+pattern will be resolved in the corresponding environment. An
+example may make things clearer:</p>
+<pre class="typescript">
+(define user-name '(isalnum+))
+(define host-name
+  {(isalnum+)
+   #((isalnum+) "." (isalnum+) ".edu")
+   #((isalnum+) "." (isalnum+) "." (isalnum+) ".edu")
+   #((isalnum+) "." (isalnum+) "." (isalnum+) "." (isalnum+) ".edu")})
+[fdscript] (tx-match (tx-closure '#(user-name "@" host-name))
+                     "haase@media.mit.edu")
+#t
+</pre>
+<p>The use of symbols as patterns is mostly meant to provide a way
+of reducing the complexity of individual patterns and enchancing
+their readability. Technically, however, it also makes the matcher
+more powerful because it allows the specification of
+<em>recursive</em> patterns.</p>
+<h2 class="section"><a name="howto">How To Do Things With
+Patterns</a></h2>
+<p>We now know enough about patterns to look at the different ways
+patterns can be used in the TX package. Patterns can be used for
+more than matching against strings. As we saw above, the function
+<tt class="symbol">tx-extract</tt> extracts the structure of the
+match:</p>
+<pre class="typescript">
+[fdscript] (tx-extract '#((isalnum+) "@" (isalnum+))  "haase@media.mit.edu")
+#("haase" "@" "media.mit.edu")
+</pre>
+<p><tt class="symbol">tx-extract</tt> treats named patterns as
+"atoms" and doesn't expand the internal structure of their match.
+This allows something like this:</p>
+<pre class="typescript">
+[fdscript] (tx-extract (txc #(user-name "@" host-name)) "haase@media.mit.edu")
+#("haase" "@" "media.mit.edu")
+</pre>
+<p>where simple substitution would extract the substructure of the
+hostname <tt>"media.mit.edu"</tt>, rather than treating it as a
+single chunk:</p>
+<pre class="typescript">
+[fdscript] (tx-extract (vector user-name "@" host-name))
+#("haase" "@" #("media" "." "mit" ".edu"))
+</pre>
+<p>Note that in this example, we use <tt>vector</tt> to construct
+the pattern on the fly.</p>
+<p>The function <tt class="symbol">tx-search</tt> locates the first
+substring which matches a pattern, returning the integer position
+at which the substring starts. For example,</p>
+<pre class="typescript">
+[fdscript] (tx-search '(isdigit+) "My name is 007, JAMES 007")
+11
+</pre>
+<p>The function <tt class="symbol">tx-matcher</tt> returns the
+length of the substring which a pattern does match, for example</p>
+<pre class="typescript">
+[fdscript] (tx-matcher '(isdigit+) "123ABC")
+3
+</pre>
+<p>The function <tt class="symbol">tx-gather</tt> returns the
+substrings of a string which match a pattern, as in</p>
+<pre class="typescript">
+[fdscript] (tx-gather '(isdigit+) "There were 12 grapes and 66 apples")
+;; There are 2 results
+{"12" "66"}
+</pre>
+<p>The matches are returned as a choice and can then be operated on
+by other procedures. For example, using <tt>read-from-string</tt>
+would return the actual numeric values:</p>
+<pre class="typescript">
+[fdscript] (read-from-string
+             (tx-gather '(isdigit+) "There were 12 grapes and 66 apples"))
+;; There are 2 results
+{12 66}
+</pre>
+<p>The function <tt class="symbol">tx-segment</tt> breaks a larger
+string into smaller substrings at separators designated by a
+particular pattern. For instance, we can get substrings separated
+by vowels as follows:</p>
+<pre class="typescript">
+(define vowels '(+ {"a" "e" "i" "o" "u"}))
+[fdscript] (tx-segment "How long has it been?" vowels)
+("H" "w l" "ng h" "s " "t b" "n?")
+</pre>
+<p>which we could glue back together with <tt class=
+"symbol">string-append</tt>:</p>
+<pre class="typescript">
+[fdscript] (apply string-append (tx-segment "How long has it been?" vowels))
+"Hw lng hs t bn?"
+</pre>
+<p>The function <tt class="symbol">tx-fragment</tt> works much like
+<tt class="symbol">tx-segment</tt>, but it keeps the separating
+strings, so we would have:</p>
+<pre class="typescript">
+[fdscript] (tx-fragment "How long has it been?" vowels)
+("" "H" "o" "w l" "o" "ng h" "a" "s " "i" "t b" "ee" "n?")
+</pre>
+<p>Applying <tt>string-append</tt> to the results of
+<tt>tx-fragment</tt> will restore the original string, as in:</p>
+<pre class="typescript">
+[fdscript] (apply string-append
+              (tx-fragment "How long has it been?" vowels))
+"How long has it been?"
+</pre>
+<h2 class="section"><a name="record streams">Parsing Files with
+Record Streams</a></h2>
+<p>Finally, we can take files and use patterns to divide them into
+records without having to load the whole file into a string. This
+can be useful with large data files used in other databases or
+applications. One starts by creating a record stream with the
+function <tt class="symbol">open-record-stream</tt>, which takes a
+filename, a pattern, and (optionally) a text encoding (e.g.
+iso-8859/1 or BIG5).</p>
+<p>Once a record stream has been created, the function <tt class=
+"symbol">read-record</tt> sequentially returns chunks of text from
+the file which match the record pattern. The function <tt class=
+"symbol">read-spacing</tt> can read the spacing between
+records.</p>
+<h2 class="section">Review</h2>
+<p>As we've seen, patterns in TX are built out of five simple
+elements:</p>
+<ul>
+<li>strings match themselves</li>
+<li>vectors of patterns match one pattern after another</li>
+<li>choices match one of many patterns</li>
+<li>symbols match patterns defined by global variables</li>
+<li>operators (like (isalnum+)) match certain kinds of
+substrings</li>
+</ul>
+<p>Knowing how these simple pieces work and what operators are
+available, you can write and read patterns in TX. The following
+sections list the available operators. This pattern language was
+designed to more readable than standard regular expression
+languages such as those provided by the POSIX regex library or
+Perl.</p>
+<h2><a name="simple ops">Simple Operators</a></h2>
+<p>Simple operators are built-in primitives for identifying
+syntactic points (beginnings and end of lines), character
+properties (spacing, case, puncutation, etc), and some common
+patterns (mail ids, markup, etc).</p>
+<dl class="fcntable">
+<dt>(bol)</dt>
+<dd>matches either the beginning of a string or the beginning of a
+new line</dd>
+<dt class="fcn">(eol)</dt>
+<dd>matches either the end of a string or the end of a line</dd>
+<dt class="fcn">(isalpha)</dt>
+<dd>matches any alphabetic character</dd>
+<dt class="fcn">(isalpha+)</dt>
+<dd>matches any string of alphabetic characters</dd>
+<dt class="fcn">(isdigit)</dt>
+<dd>matches any base 10 digit character</dd>
+<dt class="fcn">(isdigit+)</dt>
+<dd>matches any sequence of base 10 digits</dd>
+<dt class="fcn">(isalnum)</dt>
+<dd>matches any alphanumeric character</dd>
+<dt class="fcn">(isalnum+)</dt>
+<dd>matches any string of alphanumeric characters</dd>
+<dt class="fcn">(ispunct)</dt>
+<dd>matches any punctuation character</dd>
+<dt class="fcn">(ispunct+)</dt>
+<dd>matches any string of punctuation characters</dd>
+<dt class="fcn">(isupper)</dt>
+<dd>matches any upper-case character</dd>
+<dt class="fcn">(isupper+)</dt>
+<dd>matches any string of upper-case characters</dd>
+<dt class="fcn">(islower)</dt>
+<dd>matches any lower-case character</dd>
+<dt class="fcn">(islower+)</dt>
+<dd>matches any string of lower-case characters</dd>
+<dt class="fcn">(isspace)</dt>
+<dd>matches any whitespace characters</dd>
+<dt class="fcn">(isspace+)</dt>
+<dd>matches any sequence of whitespace characters</dd>
+<dt class="fcn">(spaces)</dt>
+<dd>matches any sequence of whitespace characters</dd>
+<dt class="fcn">(lsymbol)</dt>
+<dd>matches any LISP symbol</dd>
+<dt class="fcn">(csymbol)</dt>
+<dd>matches any valid C identifier</dd>
+<dt class="fcn">(mailid)</dt>
+<dd>matches any email address or message reference</dd>
+</dl>
+<p>The primitive match operators which match more than a single
+character are <em>maximizing</em>; this means that they match the
+longest string possible. In particular, they will not match any
+substrings of a string they match. This means that an operator like
+<tt class="expr">(isalpha+)</tt> will match the substring "abc" in
+the string "abc3", but will <em>not</em> match the substring "ab".
+This makes the matching a lot faster and the more general sort of
+matching can be done by using the compound <tt class=
+"symbol">*</tt> and <tt class="symbol">+</tt> operators (e.g. as
+<tt class="expr">(+ (isalpha))</tt>.</p>
+<h2><a name="simple ops">Parameterized Operators</a></h2>
+<p><tt class="expr">(char-not chars)</tt> matches any string that
+does not contain any of the characters in chars (which is a
+string). E.G.</p>
+<pre class="typescript">
+[fdscript] (tx-match '(char-not "+-") "333.5")
+#t
+[fdscript] (tx-match '(char-not "+-") "333.5+5i")
+#f
+</pre>
+<p><tt class="expr">(char-range first-char last-char)</tt> matches
+any character whose Unicode code point lies between the characters
+first-char and last-char (inclusive). For example, we could rewrite
+<tt class="expr">(islower)</tt> with</p>
+<pre class="typescript">
+[fdscript] (tx-match '(char-range #\a #\z) "a")
+#t
+[fdscript] (tx-match '(char-range #\a #\z) "m")
+#t
+</pre>
+<p>though this would only work for ASCII characters <tt class=
+"expr">(islower)</tt> works for any Unicode character.</p>
+<h2><a name="compound ops">Compound operators</a></h2>
+<p>A compound operator takes another pattern as a parameter. Three
+of the most useful compound operators are <tt class="expr">(*
+pat)</tt>, <tt class="expr">(+ pat)</tt>, <tt class="expr">(NOT
+pat)</tt>, and <tt class="expr">(NOT&gt; pat)</tt>. <tt class=
+"expr">(* pat)</tt> matches any number (including zero) of
+consecutive sustrings matching pat; <tt class="expr">(+ pat)</tt>
+matches any number (excluding zero) of consecutive substrings
+matching pat; <tt class="expr">(not pat)</tt> matches all the
+substrings that do not contain <var>pat</var>; and <tt class=
+"expr">(not&gt; pat)</tt> matches the longest possible string
+consisting of anything BUT <strong>pat</strong>.</p>
+<p>For example, we can recognize certain nonsense words:</p>
+<pre class="typescript">
+[fdscript] (tx-match '(* {"hum" "dum" "doo" "de"}) "humdumdoodedum")
+#t
+</pre>
+<p>which uses a choices as the repeated pattern. We can even
+extract structure from this nonsense:</p>
+<pre class="typescript">
+(tx-extract '(* {"hum" "dum" "doo" "de"}) "humdumdoodedum")
+(* "hum" "dum" "doo" "de" "dum")
+</pre>
+<p>More interestingly, we can use the <tt class="expr">(* pat)</tt>
+operator to match lists of items whose length may vary, e.g.</p>
+<pre class="typescript">
+[fdscript] (tx-extract '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+                       "foo bar baz")
+(* #("foo" " ") #("bar" " ") #("baz" ""))
+[fdscript] (tx-extract '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+                       "foo, bar, baz, quux")
+(* #("foo" #("," " ")) #("bar" #("," " "))
+   #("baz" #("," " ")) #("quux" ""))
+</pre>
+<p>The <tt class="expr">(* pat)</tt> operator successfully matches
+no occurences of its pattern, so we get the somewhat confusing:</p>
+<pre class="typescript">
+[fdscript] (tx-match '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+                     "")
+#t
+</pre>
+<p>though it does have some standards:</p>
+<pre class="typescript">
+[fdscript] (tx-match '(* #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+                     ",")
+#f
+</pre>
+<p>We can use the operator <tt class="expr">(+ pat)</tt> for cases
+where there will always be at least one instance of the pattern.
+So, we get</p>
+<pre class="typescript">
+[fdscript] (tx-match '(+ #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+                     "")
+#f
+</pre>
+<p>but can still handle the single case:</p>
+<pre class="typescript">
+[fdscript] (tx-match '(+ #((isalnum+) {(eol) (isspace+) #("," (isspace+))}))
+                     "cook")
+#t
+</pre>
+<p>The <tt class="expr">(NOT pat)</tt> operator is apparently
+simple but hides some complexity. In its top level usage, it just
+reverses the behaviour of tx-match:</p>
+<pre class="typescript">
+[fdscript] (tx-match '(not (isalpha+)) "good")
+#f
+</pre>
+<h2>Matching character case</h2>
+<p>Normally the matcher ignores case when comparing strings, so you
+have</p>
+<pre class="typescript">
+(tx-match "Good" "good")
+#t
+</pre>
+<p>however, the compound operator <tt class="expr">(MATCH-CASE
+pat)</tt> causes a pattern to pay attention to case, so that you
+have</p>
+<pre class="typescript">
+[fdscript] (tx-match '(match-case "Good") "good")
+#f
+</pre>
+<p><tt class="expr">(MATCH-CASE pat)</tt> (which can be abbreviated
+MC) turns on case comparison; the complementary procedure
+<tt class="expr">(IGNORE-CASE pat)</tt> (which can be abbreviated
+IC) turns it back off. So, we can have:</p>
+<pre class="typescript">
+[fdscript] (tx-match
+            '(match-case #("Good" ", " (ignore-case "BAD") ", " "Ugly"))
+            "Good, bad, Ugly")
+#t
+</pre>
+<h2 class="section"><a name="misctext">Other Text Processing
+Functions</a></h2>
+<p>The function <tt class="symbol">MD5</tt> returns a packet
+hashing its string argument, e.g.</p>
+<pre class="typescript">
+[fdscript] (MD5 "I feel so unique")
+[#PACKET 16 0x6a145c9f21b7cc4fe8a488ad59b34267]
+</pre>
+<p>using the <tt class="symbol">MD5</tt> message digest function.
+If the string is non-ASCII, it returns the <tt class=
+"symbol">MD5</tt> of a UTF-8 encoding of the string. The <tt class=
+"symbol">MD5</tt> function can also be called on a <em>packet</em>,
+as in:</p>
+<pre class="typescript">
+[fdscript] (MD5 (write-dtype-to-packet '(SENTENCE "I am hungry")))
+[#PACKET 16 0xbf2e69fd6c8b5023c9e73510c40260f3]
+</pre>
+<p>The function <tt>(refpoints <var>string</var>)</tt><br>
+returns all the capitalized sequences of words in
+<var>string</var>, which corresponds <em>very</em> roughly to the
+significant proper names. This filters a small set of stop words
+and initial capitals.</p>
+<pre class="typescript">
+[fdscript] (refpoints "Elvis and Princess Di met at the House of Blues
+in Tusla, Oklahoma.  They listened to `Boogie-Woogie Bugle Boy' on the juke
+box.")
+{;; There are 7 results
+ "Tusla" "Princess Di" "Elvis" "Blues"
+ "House" "Boogie-Woogie Bugle Boy" "Oklahoma"}
+</pre>
+<p>The function <tt>(parse-timestring <var>string</var>)</tt><br>
+attempts to interpret <var>string</var> as a date and time with
+respect to the current time, returning a timestamp object:</p>
+<pre class="typescript">
+[fdscript] (parse-timestring "July 4, 1976 11:10 PM")
+#&lt;"1976-07-04T18:10:00GMT"&gt;
+</pre>
+<p>The function <tt>(stem-word <var>word</var>)</tt><br>
+applies the Porter stemming algorithm to render a canonical form
+for <var>word</var>. This is not the linguistic verb root, but a
+special token which may not be a word at all. For example,</p>
+<pre class="typescript">
+(stem-word "trees")
+"tree"
+(stem-word "meeting")
+"meet"
+(stem-word "meets")
+"meet"
+(stem-word "flies")
+"fli"
+(stem-word "flying")
+"fly"
+</pre>
+<p>The function <tt class="symbol">MORPHRULE</tt> implements a
+simple form of morphological analysis. It's first function is a
+string, it second argument is a set of "suffix rules" and its third
+argument is set of root forms. The function returns whichever root
+forms it can derive from the first argument from the suffix rules.
+The set of rules is a choice while the set of roots can be either a
+choice between strings of a hashset of strings (this can make it
+much faster).</p>
+<p>For example, here is a very simple English morphological
+analyzer:</p>
+<pre class="typescript">
+(define rules {
+  #("ing" "") #("ed" "") #("s" "") #("ies" "y")
+  #("nning" "n") #("nned" "n")})
+(define roots {"cook" "fly" "skin"})
+[fdscript] (morphrule "cooking" rules roots)
+"cook"
+[fdscript] (morphrule "flying" rules roots)
+"fly"
+[fdscript] (morphrule "flies" rules roots)
+"fly"
+</pre>
+<h2 class="section"><a name="XML">Parsing HTML and XML</a></h2>
+<p>FDScript contains a custom library for parsing HTML and XML
+files. The basic engine of the parser is a non-validating XML
+parser which understands the peculiarities of certain HTML tags.
+This allows it to parse both HTML and XML. The function <tt class=
+"symbol">PARSE-HTML</tt> takes a string as input and returns a
+nested list structure representing the XML/HTML structure of the
+document.</p>
+<p>Each element of the nested list structure consists of three
+items: a symbol indicating the HTML/XML tag, a list of attributes
+associated with the tag, and a list of the elements (strings and
+subexpressions) making up the item's content. For example,</p>
+<pre class="typescript">
+[fdscript] (parse-html (filestring "test.html"))
+((BODY () 
+    ("\n" 
+     (P () ("This is a test of " (STRONG () ("FramerD")) " HTML parsing\n")) 
+     (P ((ALIGN "RIGHT")) ("It has several paragraphs\n")) "\n")))
+</pre>
+<p>where the file <tt>test.html</tt> would contain the
+following:</p>
+<pre>
+&lt;body&gt;
+&lt;P&gt;This is a test of &lt;strong&gt;FramerD&lt;/strong&gt; HTML parsing
+&lt;P ALIGN=RIGHT&gt;It has several paragraphs
+&lt;/body&gt;
+</pre>
+<p>The function <tt>PARSE-XML</tt> does the same for XML files and
+prints warnings if malformed XML is encountered. On the snippet
+above, <tt>PARSE-XML</tt> nests one paragraph in the next and
+notifies the user of the unbalanced tags:</p>
+<pre class="typescript">
+[fdscript] (parse-xml (filestring "test.html"))
+[16:04:07 P entity closed with (BODY ())]
+((BODY () 
+    ("\n" 
+     (P () 
+        ("This is a test of " (STRONG () ("FramerD")) " HTML parsing\n" 
+         (P ((ALIGN "RIGHT")) ("It has several paragraphs\n")) "\n")))))
+</pre>
+<p>FDScript contains a plethora of special forms for generating XML
+and HTML (in the <tt>HTMLGEN</tt> module described <a href=
+"www-guide.html">here</a>), but the functions <tt>UNPARSE-HTML</tt>
+and <tt>UNPARSE-XML</tt> take the results of the above functions
+and regenerate the HTML or XML they describe. This process inserts
+close tags for non-empty elements like <tt>P</tt>, so that we would
+have:</p>
+<pre class="typescript">
+[fdscript] (unparse-html (parse-html (filestring "test.html")))
+&lt;BODY&gt;
+&lt;P&gt;This is a test of &lt;STRONG&gt;FramerD&lt;/STRONG&gt; HTML parsing
+&lt;/P&gt;&lt;P ALIGN="RIGHT"&gt;It has several paragraphs
+&lt;/P&gt;
+&lt;/BODY&gt;;; Nothing (void) was returned
+</pre>
+<h2 class="section"><a name="mime">Parsing MIME and
+RFC-822</a></h2>
+<p>The function <tt class="symbol">READ-MIME</tt> takes either a
+string or a packet and interprets it according to the MIME
+protocol. It returns a slotmap whose slots contain the fields of
+the message and whose <tt class="symbol">BODY</tt> slot contains
+the body of the message.</p>
+<pre class="typescript">
+[fdscript] (read-mime (filestring "test-message"))
+#[FROM "haase@media.mit.edu"
+  TO "walter@media.mit.edu"
+  CONTENT "Looks like it's going to happen
+
+-- Ken
+"]
+</pre>
+<p>If the message is multi-part (i.e. has attachments), the content
+slot will be a list of slotmaps, one for each component. The
+component slotmaps will each have slots which <tt>mime-type</tt>
+and <tt>content</tt>. The <tt>content</tt> slot will be either a
+string or a packet depending on whether its MIME type is a text
+type.</p>
+<p>The mime parser is capable of using the character encodings
+which FramerD knows about, both for body text and for message
+fields. The argument may be either a string (which will already
+have been UTF-8 encoded) or a packet (which is taken as
+latin-1).</p>
+<p><tt>(get-mailids <var>string</var>)</tt><br>
+returns all the whitespace-separated substrings of
+<var>string</var> which contain an atsign, which roughly
+corresponds to all email addresses or message references in the
+string.</p>
+<pre class="typescript">
+[fdscript] (get-mailids "I heard that fdr@whitehouse.gov thinks hitler@reich.org is a fascist.")
+{"fdr@whitehouse.gov" "hitler@reich.org"}
+</pre>
+<h2 class="section">Simple but Handy</h2>
+<p>In addition to the facilities above, the text library (or
+FDScript itself) include some handling functions for text
+strings:</p>
+<dl class="fcntable">
+<dt>(has-suffix <var>suffix</var> <var>string</var>)</dt>
+<dd>returns true if <var>string</var> ends in
+<var>suffix</var></dd>
+<dt>(has-prefix <var>prefix</var> <var>string</var>)</dt>
+<dd>returns true if <var>string</var> starts with
+<var>prefix</var></dd>
+<dt>(uppercase? <var>string</var>)</dt>
+<dd>returns true <tt class="value">#t</tt> if <var>string</var> has
+no lowercase characters</dd>
+<dt>(lowercase? <var>string</var>)</dt>
+<dd>returns true <tt class="value">#t</tt> if <var>string</var> has
+no uppercase characters</dd>
+<dt>(capitalized? <var>string</var>)</dt>
+<dd>returns true <tt class="value">#t</tt> if the first character
+of <var>string</var> is uppercase</dd>
+<dt>(multi-line? <var>string</var>)</dt>
+<dd>returns true <tt class="value">#t</tt> if <var>string</var>
+contains newlines</dd>
+<dt>(numeric? <var>string</var>)</dt>
+<dd>returns true <tt class="value">#t</tt> if <var>string</var>
+contains only numeric or punctuation characters</dd>
+<dt>(empty-string? <var>string</var>)</dt>
+<dd>returns true <tt class="value">#t</tt> if <var>string</var> has
+no characters</dd>
+<dt>(whitespace% <var>string</var>)</dt>
+<dd>returns the percentage (an integer from 0 to 99) of characters
+in <var>string</var> which are whitespace</dd>
+<dt>(alphabetic% <var>string</var>)</dt>
+<dd>returns the percentage (an integer from 0 to 99) of characters
+in <var>string</var> which are alphabetic characters</dd>
+</dl>
+</div>
+<div class="section">
+<h2><a name="scripts">Implementing new commands with
+scripts</a></h2>
+<p>New command line directives can be implemented by fdscript
+program files. Under Unix, these should be marked as executable and
+start with a line something like:</p>
+<pre class="typescript">
+#!/usr/local/bin/fdscript
+</pre>
+<p>depending on where your local copy of fdscript lives. The
+remaining lines are FDScript expressions evaluated to implement the
+specified command. If the subsequent expressions define a procedure
+<tt>main</tt>, this procedure is applied to the command line
+arguments to the script. E.G., suppose the file <tt>square.fdx</tt>
+contained the following text:</p>
+<pre class="typescript">
+#!/usr/local/bin/fdscript
+;; This is the file square.fdx
+(define (square x) (* x x))
+;; PARSE-ARG will convert a string to a number
+(define (main x) (square (parse-arg x)))
+</pre>
+<p>we could use the file as a command from the shell:</p>
+<pre class="typescript">
+sh% square.fdx 10
+100
+</pre>
+<p>providing that <tt>square.fdx</tt> were set as executable.</p>
+<p>The script can also access the arguments to the command through
+several variables:</p>
+<ul>
+<li>nargs is the number of arguments</li>
+<li>args is a list of all the arguments</li>
+<li>arg1, arg2, arg3, and arg4 are the first four arguments (if
+given)</li>
+</ul>
+<p>these arguments are generally strings, which the function
+parse-arg will convert to Lisp objects.</p>
+<p>The default FramerD installation installs a command
+<tt>fdinstall-script</tt> (which is an FDScript script) which puts
+the approriate <tt>#!</tt> line at the front of a file and makes it
+executable. When called with two filename arguments, the executable
+script is stored in the second filename and the source filename
+(the first argument) is left untouched. Thus, we could create a
+simple <tt>square</tt> command using our <tt>square.fdx</tt>
+file:</p>
+<blockquote>
+<pre class="typescript">
+sh% fdinstall-script square.fdx square
+sh% square 2000
+4000000
+</pre></blockquote>
+<p>Slighly more complex commands can provide command-line access
+FramerD databases. For instance, the following script finds WordNet
+senses based on a word and a more general word</p>
+<blockquote>
+<pre class="typescript">
+#!/usr/local/bin/fdscript
+;; This is the file find-sense.fdx
+(use-pool "brico@framerd.org") ; replace with local server
+(define (main word category)
+  (let ((candidates (find-frames "brico@framerd.org" 'words word))
+        (super-senses (find-frames "brico@framerd.org" 'words category)))
+    (do-choices (candidate (find-frames "brico@framerd.org" 'words word1))
+      (if (value-path? candidate 'hypernym super-senses)
+          (lineout candidate)))))
+</pre></blockquote>
+<p>which would work as follows:</p>
+<pre class="typescript">
+sh% fdinstall-script find-sense.fdx find-sense
+sh% find-sense dog animal
+@/brico/f902("dog" "domestic_dog" "Canis_familiaris")
+sh% find-sense dog person
+@/brico/185c6("cad" "bounder" "blackguard" "dog" "hound" "heel")
+@/brico/18651("dog")
+@/brico/18b22("frump" "dog")
+</pre></div>
+<div class="section" id="macros">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">FDScript's Dirty Macros</th>
+<td class="gloss">FDScript provides a very simple macro
+facility</td>
+</tr>
+</table>
+<p>FDScript provides a very simple macro facility for implementing
+syntactic extensions of the core FDScript language. When the value
+of a symbol is a list of the form:</p>
+<pre class="typescript">
+(macro (<var>expr</var>) <var>body</var>...)
+</pre>
+<p>the evaluator uses <var>body</var> to preprocess all expressions
+starting with the symbol. The expressions in <var>body</var> are
+evaluated in a "safe environment" where only the basic
+Scheme/FDScript functions are available and the variable
+<var>expr</var> is bound to the top level expression being
+processed. For example:</p>
+<pre class="typescript">
+(define push
+ '(macro (expr)
+   `(set! ,(caddr expr) (cons ,(cadr expr) ,(caddr expr)))))
+</pre>
+<p>defines a version of Common LISP's <tt>push</tt> macro, used
+thus:</p>
+<pre class="typescript">
+[fdscript] (define atoms '())
+[fdscript] (push 'x atoms)
+[fdscript] (push 'y atoms)
+[fdscript] atoms
+(Y X)
+[fdscript] (let ((nums '()))
+             (dotimes (i 5) (push i nums))
+             nums)
+(5 4 3 2 1)
+</pre></div>
+<div class="section" id="xmlsample">
+<table class="header" width="100%" cellpadding="0">
+<tr>
+<th class="title">An Example XML Parser</th>
+<td class="gloss">Here we use FDScript's record streams to write a
+very simple non-validating XML parser.</td>
+</tr>
+</table>
+<pre>
+(define attributes #(" " (not&gt; {"&gt;" "/"})))
+(define element-pattern
+  (tx-closure #("&lt;" {"" "/"} (isalnum+) {"" attributes} {"" "/"} "&gt;")))
+(define (empty-string? x) (= (length x) 0))
+(define (xml-parser-loop rs content-fn stack)
+  ;; Read the content and process it
+  (let ((content (read-spacing rs))) (content-fn stack content))
+  ;; Get fresh markup
+  (let* ((markup (read-record rs)))
+    (if (eof-object? markup)
+        (cond ((null? stack) 'ok)
+              (else (lineout "File ended early at " stack)
+                    stack))
+        ;; If there is some, extract it structure and branch
+        (let* ((extraction (tx-extract element-pattern markup))
+               (start-element (empty-string? (vector-ref extraction 1)))
+               (empty-element (not (empty-string? (vector-ref extraction 4))))
+               (tag (vector-ref extraction 2))
+               (attribs (vector-ref extraction 4)))
+          (cond (empty-element ;; empty elements have null content
+                 (content-fn (cons (cons tag attribs) stack) "")
+                 (xml-parser-loop rs content-fn stack))
+                (start-element ;; start elements push onto the stack
+                 (xml-parser-loop rs content-fn 
+                                  (cons (cons tag attribs) stack)))
+                ((equal? tag (car (car stack)))
+                 ;; Matching non-start non-empty elements pop the stack
+                 (xml-parser-loop rs content-fn (cdr stack)))
+                (else
+                 ;; anything else reports an error and returns the stream
+                 (lineout "Element mismatch, started with "
+                   (car (car stack)) " ended with "
+                   tag)
+                 rs))))))
+(define (xml-parser filename content-fn)
+  (let ((stream (open-record-stream filename element-pattern)))
+    (xml-parser-loop stream content-fn '())))
+(define (test-fn stack content)
+  (lineout "Stack is " stack)
+  (printout "  at content: ") (print content))
+</pre>
+<pre>
+&lt;p&gt;This is a test.  This is a &lt;strong&gt;bold&lt;/strong&gt; statement about our
+image(&lt;img/&gt;).&lt;/p&gt;
+</pre>
+<pre class="typescript">
+[17:08:30 MIT FramerD library 2.2 (C) 1994-2000, built Mar 19 2001]
+[fdscript] (load "mini-xml.fdx")
+;; Nothing (void) was returned
+;; Values changed (6): ATTRIBUTES EMPTY-STRING? ELEMENT-PATTERN XML-PARSER-LOOP XML-PARSER TEST-FN
+[fdscript] (xml-parser "mini.xml" test-fn)
+Stack is ()
+  at content: ""
+Stack is (("P" . ""))
+  at content: "This is a test.  This is a "
+Stack is (("bold" . "") ("P" . ""))
+  at content: "bold"
+Stack is (("P" . ""))
+  at content: " statement about our\nimage ("
+Stack is (("img" . "/") ("P" . ""))
+  at content: ""
+Stack is (("P" . ""))
+  at content: ")."
+Stack is ()
+  at content: "\n\n\n"
+OK
+</pre></div>
+</body>
+</html>

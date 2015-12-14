@@ -1,425 +1,421 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
-<HTML>
-<HEAD>
-<TITLE>FramerD Server Implementation Guide</TITLE>
-<LINK REL="stylesheet" TYPE="text/css" HREF="/static/framerd/documentation.css">
-</HEAD>
-<BODY>
-<TABLE ALIGN=LEFT WIDTH='100%'>
-<TR>
-<TH class=bigtitle ALIGN=LEFT WIDTH='70%'>
-FramerD Server Guide
-<BR><span class=author>Ken Haase</span>
-<TH ALIGN=RIGHT ROWSPAN=2>
-<A HREF="http://www.framerd.org/"><IMG BORDER=0 SRC="fdlogo.png"></A>
-<TR>
-</TABLE><BR CLEAR=LEFT>
-
-<P class=quickref>
-Quick ref: [<A HREF="#simple">Simple Servers</A>]&nbsp; 
-[<A HREF="#security">Security Concerns</A>]&nbsp; 
-[<A HREF="#complicated">More Complicated Servers</A>]&nbsp; 
-[<A HREF="#admin">Administering Servers</A>]&nbsp; 
-[<A HREF="#hairy">Hairy fdserver invocations</A>]&nbsp; 
-<HR>
-
-<P>If the <A HREF="concepts.html#dtypes">DType protocol</A> is the glue of
-complex FramerD applications, servers are their struts and skeleton.  Both
-FramerD data (pools of OIDs), annotations (indices), general services (natural
-language parsing, associative searching), and application services (parsing of
-particular formats, management of shared state) can be and often are
-modularized into FramerD servers.</P>
-
-<P>In addition to encouraging modular design, the packaging of
-functions into servers allows computation and data to be distributed
-according to the diversity of resources and demand.  The portability
-of FramerD's C kernel (from low end PCs and notebooks to
-multiple-processor production servers) permits processing to be
-arranged with respect to available processing, memory, and long term
-storage resources.  The accessibility of servers from very lightweight
-DType clients permits point-of-interaction applications which can
-leverage very complex remote processing.</P>
-
-<P>For instance, a FramerD application can consist of a 30K java
-applet on a palmtop accessing a server on a nearby PC connecting to a
-distant high-throughput function server on the outside of a firewall
-which synthesizes results from knowledge bases provided by several
-high-performance database servers on the inside of the firewall.  And
-this may be only one path of connectivity between these servers and
-services!  Other applications or services may connect these components
-in different ways.</P>
-
-<P>A FramerD server is essentially a remote Scheme evaluator which processes
-expressions and returns values.  This evaluator typically processes a variant
-of the Scheme language, reduced (in some ways) to enhance security and extended
-(in other ways) to provide particular functionality.  For example, servers do
-not usually provide direct access to the local file system or to other servers.
-However, most servers do provide special functions, which can range from
-managing object persistence to processing natural language to serving as
-special gateways to other network services.</P>
-
-<P>In distributed FramerD applications, two special kinds of servers
-are OID servers and index servers:
-<ul>
-<li><strong>OID servers</strong> provide access to the persistent object
-database by offering retrieval and (possibly) modification for a range of
-OIDs (object identifiers)</li>
-<li><strong>Index servers</strong> provide associational indices from
-complex structured <em>keys</em> to sets of OIDs or other objects.</li>
-</li>
-</ul>
-<P>FramerD servers are nearly always implemented by the executable
-<tt>fdserver</tt> and configured by use of a <em>server control
-file</em> described below.</P>
-
-
-<H2><a name=simple>Simple Servers</a></H2>
-
-<P>The simplest way to start a new server is to use a <em>server
-control file</em> as the single argument to the program
-<tt>fdserver</tt>.  A server control file typically has a name of the
-form <em>name<tt>.fdz</tt></em> and consists of FDScript code which is
-processed to initialize the server.  Unless overriden, the server
-evaluates the forms in the control file and then starts listening for
-remote requests at a particular <em>port name</em>.  This port name
-can either be set in the control file (by the function
-<tt>set-port-id!</tt>) or will be derived from the control file's
-<em>name</em>.  The port name is converted into a port number (what
-the network really uses) using either a system-wide database of
-service names (often found in /etc/services under Unix) or by
-<em>touch-tone encoding</em> (so "brico" corresponds to the port
-27425).</P>
-
-<P>The server control file is simply an FDScript file which
-initializes the pools, indices, and procedures which the server will
-provide.  Applications or components can be bundled with canned ".fdz"
-files for setting up a local version of the specified data or
-processing servers.</P>
-
-<P>For example, the Brico knowledge base comes bundled with the file
-<tt>brico.fdz</tt>:
-<blockquote><pre>
-#!/usr/local/bin/fdserver
-;;; This is the file brico.fdz
-
-(set-port-id! "brico")
-
-;; Just run locally if the file use-localhost exists in
-;;  the same directory as this file
-(when (file-exists? (get-component "use-localhost"))
-  (use-localhost!))
-
-(when (bound? ADMIN-SERVER)
-  (use-pool ADMIN-SERVER)
-  (use-index ADMIN-SERVER))
-
-;;; Intialize brico server
-(define brico-pool (use-pool (get-component "brico.pool")))
-(define brico-index (use-index (get-component "brico.index")))
-(define cyc-pool (use-pool (get-component "cyc/cyc.pool")))
-(define cyc-index (use-index (get-component "cyc/cyc.index")))
-
-(serve-pool brico-pool)
-(serve-index brico-index)
-
-(serve-pool cyc-pool)
-(serve-index cyc-index)
-
-(define (find-synsets word)
-  (find-frames words-index 'words word))
-(define (get-synonyms x)
-  (fget (find-synsets x) 'words))
-
-(define (help)
-  "This server provide the BRICO database and special functions
-to access it.")
-
-(module-export! '{get-synonyms help})
-</pre></blockquote></P>
-
-<P>which sets up the server to provide access the OID pools
-<tt>brico.pool</tt> and <tt>cyc.pool</tt> and to their respective
-indices as well.  Once the server is running, clients can access these
-pools and indices remotely with specifications such as <tt>(use-pool
-"brico@myhost")</tt>.  It will provide remote servers with access to
-these pools but not (for instance, the pool and index derived from
-<TT>ADMIN-SERVER</TT> (which might be used by additional procedures to
-be defined later.  This homegrown <tt>brico@myhost</tt> server can be
-accessed just like the <tt>brico@db.beingmeta.com</tt> server
-described in <A HREF="users-guide.html">the user's guide</A>.</P>
-
-<P>The particular call to <TT>set-port-id!</TT> in <tt>brico.fdz</tt>
-is redundant in this case, since <tt>fdserver</tt> would figure it out
-from the name of the configuration file.  The server will then listen
-to this port on all of the addresses currently assigned to the
-machine.  This can be modified by using a portid of the form
-<TT><em>portname</em>@<em>host</em></TT> where the server will only
-listen to the port <tt>portid</tt> on the addresses assigned to
-<em>hostname</em> (which can just be a numeric IP address in dotted
-decimal format, e.g. <TT>18.85.2.138</TT>).  For example,
-<PRE>
-(SET-PORT-ID! "brico@127.0.0.1")
-</PRE>
-would set the server up to listen only on the default localhost address.
-</P>
-
-<P>The example configuration file <tt>brico.fdz</tt> also defines the procedures
-<TT>find-synsets</TT>, <tt>get-synonyms</tt> and <tt>help</tt>.  The
-server control file implicitly creates an environment (the "server
-environment") where these procedures are defined.  At the end of the
-configuration file, the call to <tt>module-export!</tt> determines
-which of the definitions will actually be accessible by remote
-servers.  In this case, the <tt>help</tt> function and the
-<tt>get-synonyms</tt> function are available and can be called
-thus:</P>
-<blockquote>
-<pre><font size=-1>
-% dtcall brico@myhost get-synonyms "example"
-"good_example"
-"model"
-"example"
-"exemplar"
-"exercise"
-"instance"
-"specimen"
-"sample"
-"quotation"
-"representative"
-"illustration"
-"object_lesson"
-"lesson"
-"deterrent_example"
-"protoplast"
-"module"
-"ensample"
-"paradigm"
-</font></pre>
-</blockquote>
-
-<H2><a name=security>Security Concerns</a></H2>
-
-<P>Running a FramerD server allows clients on the Internet to run
-programs on the server's host machine, a potentially risky
-proposition.  This risk is reduced in fdserver by taking advantage of
-FDScript's native security model.  The design of FDScript separates
-out "risky" functions --- including access to the local filesystem,
-external program execution, establishment of network connections, etc
---- into a separate module.  The evaluator used by fdserver does not
-have access to this module but can only access "safe" functions and
-whatever functions are defined in the server configuration file(s).</P>
-
-<P>The initialization files read by <TT>fdserver</TT> are processed in
-the full FDScript environment, so the definitions they provide can
-access restricted functions.  This allows an implementor to write
-"safe" wrappers around system functions that remote users can
-access. For instance, even though proscription of <TT>fopen</TT> keeps
-anonymous clients from opening arbitrary files, a user procedure
-defined in the initialization files can still open a particular file
-and provide access to it.</P>
-
-<P>The "sandbox" provided by the limited server environment provides
-substantial protection, but additional levels of protection can be
-provided by having the server run as a limited user.  The "identity"
-of a server can be set by the <tt>SET-UID!</tt> procedure in the
-server control file.  This only works when the system is originally
-running as a privleged user (root under unix).  In order to avoid
-inadvertently running a server as root, servers started as root will
-always change their uid to the string specified by the configuration
-variable <tt>FDSERVER_USER</tt> (or <TT>"nobody"</TT> it is not
-defined) and will change their group id to the group specified by the
-string <tt>FDSERVER_GROUP</tt> (or <TT>"nogroup"</TT> if it is not
-defined).</P>
-
-<H2><a name=control>Controlling Client Access</a></H2>
-
-<P>If the initialization files for a server defines a <TT>CLIENT-OK?</TT>
-procedure in the server environment, this is called on all client addresses
-before a connection is established.  The client address will typically be in
-standard `.edu' or `.com' form or as dotted decimal addresses if the symbolic
-hostname cannot be determined.  For example, the following <TT>CLIENT-OK?</TT>
-definition permits access only from within the MIT Media Lab domain:
-<PRE>
-(define (client-ok? client-addr)
-  (has-suffix "media.mit.edu" client-addr))
-</PRE></P>
-<P>In addition, the procedure <TT>(CLIENT-ID)</TT> returns the address
-of the client being served.  This allows servers to customize their
-processing based on client identity.  For instance, the following
-definition uses two different parser servers depending on the domain
-of the client being served:
-<PRE>
-(define (parse string)
- (if (has-suffix ".media.mit.edu" (client-id))
-     (dtcall "parse@inside-parse" parse string)
-   (dtcall "parse@outside-parse" parse string)))
-</PRE></P>
-
-<H2><A HREF="maintainer">Maintainer Access</A></H2>
-
-<P>FramerD servers can provide access to an unrestricted environment
-with the <tt>maintainer</tt> procedure.  This procedure takes an
-expression and evaluates it in an unrestricted environment; however,
-it can only be called by clients on particular remote hosts.  The
-procedure <tt>MAINTAINER-OK?</tt>, which must be defined to use the
-<tt>maintainer</tt> procedure, validates a maintenance connection, as
-in:
- <PRE>
-(define (maintainer-ok? client-addr)
-  (equal? "admin.framerd.org" client-addr))
-</PRE></P>
-<P>This definition only lets connections from the host
-<tt>admin.framerd.org</tt> use <tt>maintainer</tt>.  Note that this
-particular method is subject to IP spoofing attacks.  A better
-approach would be to require that forms to be evaluated in an
-unrestricted environment be cryptographically signed (volunteers?).</P>
-
-<H2><a name=complicated>A more complicated <tt>fdserver</tt></a></H2>
-
-<P>A more complicated server control file can combines pool/index access
-together with special functions related to the data it is providing.  For
-example, the following file provides read-only access to a pool and index
-recording user comments but also provides an external function for creating a
-new comment:
-<pre>
-(define comments-pool (use-pool (get-component "comments.pool")))
-(define comments-index (use-index (get-component "comments.index")))
-
-(serve-pool comments-pool)
-(serve-pool comments-index)
-
-;; External clients can't write the pool or index
-(set-read-only!)
-
-(define (record-comment user text (time #f))
-  (let* ((tstamp (or time (timestamp)))
-	 (frame (frame-create comments-pool
-                  'user user 'comment text 'time tstamp)))
-    (index-frame comments-index frame 'user)
-    ;; This will allow free text search on the comment
-    (index-frame comments-index frame
-                'comment (stem-english-word (elts (segment text))))
-    ;; This will allow more clever searching on the user name too
-    (index-frame comments-index frame 'user (elts (segment user)))
-    ;; And the same for the timestamp; e.g. get-timekeys might
-    ;;  return something like: {JAN 2001 D5 WINTER 3AM MORNING}
-    (index-frame comments-index frame 'time
-                 (get-timekeys (get frame 'time)))
-    frame))
-
-(module-export! 'record-comment)
-</pre>
-
-<P>In this example, external clients cannot write directly to the
-database, but they can search and examine it.  They can also add to it
-in a particular, rigorous way defined by the procedure
-<tt>record-comment</tt>.  This method ensures that the frame created
-is timestamped and indexed in a useful and consistent way.</P>
-
-<H2><A HREF="admin">Administering Servers</A></H2>
-
-<P>The FramerD executable <tt>fdmanager</tt> provides a way of easily
-managing multiple servers.  Based on a <em>master control file</em>,
-<tt>fdmanager</tt> starts a set of FramerD servers, arranges for their
-standard and error output to go to specific log files, and will
-restart them if they terminate.  The master control file has multiple
-lines of the form: <PRE> [wait=<em>secs</em>] [dependent]
-&lt;<em>server control file</em>&gt; <em>fdserver args</em>...  </PRE>
-The parameter <tt>wait</tt> specifies how long <tt>fdmanager</tt>
-should wait for the server to start before moving onto the next server
-in the file.  The flag <tt>dependent</tt> indicates that this server
-is dependent on the preceding server and should be restarted if the
-preceding server is restarted.  The <em>server control file</em> is an
-<tt>.fdz</tt> file passed to <tt>fdserver</tt> and the <em>fdserver
-args</em> are passed along with it.  Additional information about
-<tt>fdmanager</tt> can be found on its man page.</P>
-
-<P>FramerD comes with an <tt>fdservers</tt> init file designed to work
-with the SYSV init scheme common on many Unix systems.  This file is a
-shell script which tags the commands <tt>start</tt>, <tt>stop</tt>,
-<tt>restart</tt>, and <tt>status</tt>.  It works by starting an
-<tt>fdmanager</tt> process using the file <tt><em>framerd
-dir</em>/servers</tt> as the control file
-(e.g. <tt>/usr/local/share/framerd/servers</tt>).</P>
-
-<P>When started from the <tt>fdservers</tt> init script or some other
-system-wide startup mechanism (for instance, <tt>/etc/rc.local</tt>),
-servers begin by running as root.  However, as mentioned above, they
-almost immediately change their user and group ids to either
-<tt>nobody</tt> or <tt>nogroup</tt> or the values of the environment
-variables <tt>FDSERVER_USER</tt> and <tt>FDSERVER_GROUP</tt> if they
-are valid user and group names.  Since the server running under these
-names will need to access the directory of the <tt>.fdz</tt> file (to
-write status files such as <tt>.pid</tt> and <tt>.nid</tt> as well as
-reading the data files there), it is usually best to have the groups
-on the files in this directory set to the FDSERVER_GROUP and to have
-appropriate group access permissions set.</P>
-
-<P>The <tt>fdservers</tt> init script sets above the environment
-variables to the user and group name <tt>fdaemon</tt>.  Creating this
-user and group (or changing the init script) is probably a good idea
-for non-experimental installations.</P>
-
-<H2><a name=hairy>Invoking <tt>fdserver</tt></a></H2>
-
-<P>Like most of the FramerD shell commands, fdserver can be paased
-configuration variables of the form <tt>VAR=VAL</tt> or <tt>VAR=+VAL</tt> on the command line.
-Additional options for invoking fdserver are listed when fdserver is passed
-the <tt>--help</tt> option:
-<pre>
-Usage: fdserver [options*] (<service_name> | <port_id> | <server_init_file>) 
-
- where options may define configuration variables, e.g.
-    FRAMERD_USER=hal9k
- or may be direct options for fdserver:
-    --local                Run the server locally (e.g. as localhost)
-    --log <filename>       Log connections and statistics to <filename>
-                           (use '-' for stdout, '--' for stderr)
-    --trace <filename>     Log transaction details to <filename>
-                           (use '-' for stdout, '--' for stderr)
-    --access (read-only | locking | run-with-scissors)
-                           Limit OID and association access according
-                           to ruleset specified
-    -c | --config <filename>    Load symbol definitions from <filename>
-    -m | --module <moduleid>    has the server use the module <moduleid>
-    -f | --file <fdscript_file>
-                           Load <fdscript_file> before starting
-    -e | --eval '<fdscript_code>'
-                           Evaluate <fdscript_code> before starting
-</pre>
-<P>The arguments to the <tt>--access</tt> option have the following meaning:
-<dl>
-<dt>read-only</dt><dd>the served pools or indices cannot be remotely modified at all</dd>
-<dt>locking</dt><dd>oid-level locking is provided for served pools</dd>
-<dt>sloppy</dt><dd>OIDs can be written but no locking is provided</dd>
-</dl>
-<P>The value of this option will have no effect if the server itself cannot
-modify one of its pools or indices; in such a case, the pool or index is
-read-only no matter what access is specified.</P>
-
-<P>For debugging purposes, two useful arguments to fdserver are
-<tt>--log</tt> and <tt>--trace</tt>.  These activiate logging and
-tracing (respectively) and send the results to a specified file.  If a
-dash (-) is specified as the file, results go to the standard output;
-if two dashes (--) are specified, results go to the standard error.
-<strong>Logging</strong> reports each connections and disconnections
-of clients with the server.  <strong>Tracing</strong> reports each
-request and the value returned.</P>
-
-<P>One can specify that a server only runs locally by passing the
-command line arguments <tt>--local yes</tt> to <tt>fdserver</tt>.  You
-can then access this server through server ids of the form
-"port@localhost".  This is useful if you are using FramerD on a
-machine which is only intermittenly connected to the network.</P>
-
-<P>Each of these options can also be specified in the server control file, by
-the following functions:
-<dl>
-<dt>set-read-only!</dt><dd>sets the server to be externally read-only</dd>
-<dt>set-sloppy!</dt><dd>sets the server to be externally writable,
-without locking</dd>
-<dt>set-log!</dt><dd>takes two stream arguments: one for connection logging,
-one for comprehensive transaction logging</dd>
-</dl>
-
-</BODY>
-</HTML>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta name="generator" content=
+	  "HTML Tidy for HTML5 for Linux version 4.9.27">
+    <title>FramerD Server Implementation Guide</title>
+    <link rel="stylesheet" type="text/css" href=
+	  "/static/framerd/documentation.css">
+  </head>
+  <body>
+    <table align="left" width='100%'>
+      <tr>
+	<th class="bigtitle" align="left" width='70%'>FramerD Server
+	  Guide<br>
+	  <span class="author">Ken Haase</span></th>
+	<th align="right" rowspan="2"><a href=
+					 "http://www.framerd.org/"><img border="0" src=
+									"fdlogo.png"></a></th>
+      </tr>
+    </table>
+    <br clear="left">
+    <p class="quickref">Quick ref: [<a href="#simple">Simple
+	Servers</a>]&nbsp; [<a href="#security">Security
+	Concerns</a>]&nbsp; [<a href="#complicated">More Complicated
+	Servers</a>]&nbsp; [<a href="#admin">Administering
+	Servers</a>]&nbsp; [<a href="#hairy">Hairy fdserver
+	invocations</a>]&nbsp;</p>
+    <hr>
+    <p>If the <a href="concepts.html#dtypes">DType protocol</a> is the
+      glue of complex FramerD applications, servers are their struts and
+      skeleton. Both FramerD data (pools of OIDs), annotations (indices),
+      general services (natural language parsing, associative searching),
+      and application services (parsing of particular formats, management
+      of shared state) can be and often are modularized into FramerD
+      servers.</p>
+    <p>In addition to encouraging modular design, the packaging of
+      functions into servers allows computation and data to be
+      distributed according to the diversity of resources and demand. The
+      portability of FramerD's C kernel (from low end PCs and notebooks
+      to multiple-processor production servers) permits processing to be
+      arranged with respect to available processing, memory, and long
+      term storage resources. The accessibility of servers from very
+      lightweight DType clients permits point-of-interaction applications
+      which can leverage very complex remote processing.</p>
+    <p>For instance, a FramerD application can consist of a 30K java
+      applet on a palmtop accessing a server on a nearby PC connecting to
+      a distant high-throughput function server on the outside of a
+      firewall which synthesizes results from knowledge bases provided by
+      several high-performance database servers on the inside of the
+      firewall. And this may be only one path of connectivity between
+      these servers and services! Other applications or services may
+      connect these components in different ways.</p>
+    <p>A FramerD server is essentially a remote Scheme evaluator which
+      processes expressions and returns values. This evaluator typically
+      processes a variant of the Scheme language, reduced (in some ways)
+      to enhance security and extended (in other ways) to provide
+      particular functionality. For example, servers do not usually
+      provide direct access to the local file system or to other servers.
+      However, most servers do provide special functions, which can range
+      from managing object persistence to processing natural language to
+      serving as special gateways to other network services.</p>
+    <p>In distributed FramerD applications, two special kinds of
+      servers are OID servers and index servers:</p>
+    <ul>
+      <li><strong>OID servers</strong> provide access to the persistent
+	object database by offering retrieval and (possibly) modification
+	for a range of OIDs (object identifiers)</li>
+      <li><strong>Index servers</strong> provide associational indices
+	from complex structured <em>keys</em> to sets of OIDs or other
+	objects.</li>
+    </ul>
+    <p>FramerD servers are nearly always implemented by the executable
+      <tt>fdserver</tt> and configured by use of a <em>server control
+	file</em> described below.</p>
+    <h2><a name="simple" id="simple">Simple Servers</a></h2>
+    <p>The simplest way to start a new server is to use a <em>server
+	control file</em> as the single argument to the program
+      <tt>fdserver</tt>. A server control file typically has a name of
+      the form <em>name<tt>.fdz</tt></em> and consists of FDScript code
+      which is processed to initialize the server. Unless overriden, the
+      server evaluates the forms in the control file and then starts
+      listening for remote requests at a particular <em>port name</em>.
+      This port name can either be set in the control file (by the
+      function <tt>set-port-id!</tt>) or will be derived from the control
+      file's <em>name</em>. The port name is converted into a port number
+      (what the network really uses) using either a system-wide database
+      of service names (often found in /etc/services under Unix) or by
+      <em>touch-tone encoding</em> (so "brico" corresponds to the port
+      27425).</p>
+    <p>The server control file is simply an FDScript file which
+      initializes the pools, indices, and procedures which the server
+      will provide. Applications or components can be bundled with canned
+      ".fdz" files for setting up a local version of the specified data
+      or processing servers.</p>
+    <p>For example, the Brico knowledge base comes bundled with the
+      file <tt>brico.fdz</tt>:</p>
+    <blockquote>
+      <pre>
+	#!/usr/local/bin/fdserver
+	;;; This is the file brico.fdz
+	
+	(set-port-id! "brico")
+	
+	;; Just run locally if the file use-localhost exists in
+	;;  the same directory as this file
+	(when (file-exists? (get-component "use-localhost"))
+	(use-localhost!))
+	
+	(when (bound? ADMIN-SERVER)
+	(use-pool ADMIN-SERVER)
+	(use-index ADMIN-SERVER))
+	
+	;;; Intialize brico server
+	(define brico-pool (use-pool (get-component "brico.pool")))
+	(define brico-index (use-index (get-component "brico.index")))
+	(define cyc-pool (use-pool (get-component "cyc/cyc.pool")))
+	(define cyc-index (use-index (get-component "cyc/cyc.index")))
+	
+	(serve-pool brico-pool)
+	(serve-index brico-index)
+	
+	(serve-pool cyc-pool)
+	(serve-index cyc-index)
+	
+	(define (find-synsets word)
+	(find-frames words-index 'words word))
+	(define (get-synonyms x)
+	(fget (find-synsets x) 'words))
+	
+	(define (help)
+	"This server provide the BRICO database and special functions
+	to access it.")
+	
+	(module-export! '{get-synonyms help})
+    </pre></blockquote>
+    <p>which sets up the server to provide access the OID pools
+      <tt>brico.pool</tt> and <tt>cyc.pool</tt> and to their respective
+      indices as well. Once the server is running, clients can access
+      these pools and indices remotely with specifications such as
+      <tt>(use-pool "brico@myhost")</tt>. It will provide remote servers
+      with access to these pools but not (for instance, the pool and
+      index derived from <tt>ADMIN-SERVER</tt> (which might be used by
+      additional procedures to be defined later. This homegrown
+      <tt>brico@myhost</tt> server can be accessed just like the
+      <tt>brico@db.beingmeta.com</tt> server described in <a href=
+							     "users-guide.html">the user's guide</a>.</p>
+    <p>The particular call to <tt>set-port-id!</tt> in
+      <tt>brico.fdz</tt> is redundant in this case, since
+      <tt>fdserver</tt> would figure it out from the name of the
+      configuration file. The server will then listen to this port on all
+      of the addresses currently assigned to the machine. This can be
+      modified by using a portid of the form
+      <tt><em>portname</em>@<em>host</em></tt> where the server will only
+      listen to the port <tt>portid</tt> on the addresses assigned to
+      <em>hostname</em> (which can just be a numeric IP address in dotted
+      decimal format, e.g. <tt>18.85.2.138</tt>). For example,</p>
+    <pre>
+      (SET-PORT-ID! "brico@127.0.0.1")
+    </pre>
+    would set the server up to listen only on the default localhost
+    address.
+    <p>The example configuration file <tt>brico.fdz</tt> also defines
+      the procedures <tt>find-synsets</tt>, <tt>get-synonyms</tt> and
+      <tt>help</tt>. The server control file implicitly creates an
+      environment (the "server environment") where these procedures are
+      defined. At the end of the configuration file, the call to
+      <tt>module-export!</tt> determines which of the definitions will
+      actually be accessible by remote servers. In this case, the
+      <tt>help</tt> function and the <tt>get-synonyms</tt> function are
+      available and can be called thus:</p>
+    <blockquote>
+      <pre>
+	<font size="-1">
+	  % dtcall brico@myhost get-synonyms "example"
+	  "good_example"
+	  "model"
+	  "example"
+	  "exemplar"
+	  "exercise"
+	  "instance"
+	  "specimen"
+	  "sample"
+	  "quotation"
+	  "representative"
+	  "illustration"
+	  "object_lesson"
+	  "lesson"
+	  "deterrent_example"
+	  "protoplast"
+	  "module"
+	  "ensample"
+	  "paradigm"
+	</font>
+    </pre></blockquote>
+    <h2><a name="security" id="security">Security Concerns</a></h2>
+    <p>Running a FramerD server allows clients on the Internet to run
+      programs on the server's host machine, a potentially risky
+      proposition. This risk is reduced in fdserver by taking advantage
+      of FDScript's native security model. The design of FDScript
+      separates out "risky" functions --- including access to the local
+      filesystem, external program execution, establishment of network
+      connections, etc --- into a separate module. The evaluator used by
+      fdserver does not have access to this module but can only access
+      "safe" functions and whatever functions are defined in the server
+      configuration file(s).</p>
+    <p>The initialization files read by <tt>fdserver</tt> are processed
+      in the full FDScript environment, so the definitions they provide
+      can access restricted functions. This allows an implementor to
+      write "safe" wrappers around system functions that remote users can
+      access. For instance, even though proscription of <tt>fopen</tt>
+      keeps anonymous clients from opening arbitrary files, a user
+      procedure defined in the initialization files can still open a
+      particular file and provide access to it.</p>
+    <p>The "sandbox" provided by the limited server environment
+      provides substantial protection, but additional levels of
+      protection can be provided by having the server run as a limited
+      user. The "identity" of a server can be set by the
+      <tt>SET-UID!</tt> procedure in the server control file. This only
+      works when the system is originally running as a privleged user
+      (root under unix). In order to avoid inadvertently running a server
+      as root, servers started as root will always change their uid to
+      the string specified by the configuration variable
+      <tt>FDSERVER_USER</tt> (or <tt>"nobody"</tt> it is not defined) and
+      will change their group id to the group specified by the string
+      <tt>FDSERVER_GROUP</tt> (or <tt>"nogroup"</tt> if it is not
+      defined).</p>
+    <h2><a name="control" id="control">Controlling Client
+	Access</a></h2>
+    <p>If the initialization files for a server defines a
+      <tt>CLIENT-OK?</tt> procedure in the server environment, this is
+      called on all client addresses before a connection is established.
+      The client address will typically be in standard `.edu' or `.com'
+      form or as dotted decimal addresses if the symbolic hostname cannot
+      be determined. For example, the following <tt>CLIENT-OK?</tt>
+      definition permits access only from within the MIT Media Lab
+      domain:</p>
+    <pre>
+      (define (client-ok? client-addr)
+      (has-suffix "media.mit.edu" client-addr))
+    </pre>
+    <p>In addition, the procedure <tt>(CLIENT-ID)</tt> returns the
+      address of the client being served. This allows servers to
+      customize their processing based on client identity. For instance,
+      the following definition uses two different parser servers
+      depending on the domain of the client being served:</p>
+    <pre>
+      (define (parse string)
+      (if (has-suffix ".media.mit.edu" (client-id))
+      (dtcall "parse@inside-parse" parse string)
+      (dtcall "parse@outside-parse" parse string)))
+    </pre>
+    <h2><a href="maintainer">Maintainer Access</a></h2>
+    <p>FramerD servers can provide access to an unrestricted
+      environment with the <tt>maintainer</tt> procedure. This procedure
+      takes an expression and evaluates it in an unrestricted
+      environment; however, it can only be called by clients on
+      particular remote hosts. The procedure <tt>MAINTAINER-OK?</tt>,
+      which must be defined to use the <tt>maintainer</tt> procedure,
+      validates a maintenance connection, as in:</p>
+    <pre>
+      (define (maintainer-ok? client-addr)
+      (equal? "admin.framerd.org" client-addr))
+    </pre>
+    <p>This definition only lets connections from the host
+      <tt>admin.framerd.org</tt> use <tt>maintainer</tt>. Note that this
+      particular method is subject to IP spoofing attacks. A better
+      approach would be to require that forms to be evaluated in an
+      unrestricted environment be cryptographically signed
+      (volunteers?).</p>
+    <h2><a name="complicated" id="complicated">A more complicated
+	<tt>fdserver</tt></a></h2>
+    <p>A more complicated server control file can combines pool/index
+      access together with special functions related to the data it is
+      providing. For example, the following file provides read-only
+      access to a pool and index recording user comments but also
+      provides an external function for creating a new comment:</p>
+    <pre>
+      (define comments-pool (use-pool (get-component "comments.pool")))
+      (define comments-index (use-index (get-component "comments.index")))
+      
+      (serve-pool comments-pool)
+      (serve-pool comments-index)
+      
+      ;; External clients can't write the pool or index
+      (set-read-only!)
+      
+      (define (record-comment user text (time #f))
+      (let* ((tstamp (or time (timestamp)))
+      (frame (frame-create comments-pool
+      'user user 'comment text 'time tstamp)))
+      (index-frame comments-index frame 'user)
+      ;; This will allow free text search on the comment
+      (index-frame comments-index frame
+      'comment (stem-english-word (elts (segment text))))
+      ;; This will allow more clever searching on the user name too
+      (index-frame comments-index frame 'user (elts (segment user)))
+      ;; And the same for the timestamp; e.g. get-timekeys might
+      ;;  return something like: {JAN 2001 D5 WINTER 3AM MORNING}
+      (index-frame comments-index frame 'time
+      (get-timekeys (get frame 'time)))
+      frame))
+      
+      (module-export! 'record-comment)
+    </pre>
+    <p>In this example, external clients cannot write directly to the
+      database, but they can search and examine it. They can also add to
+      it in a particular, rigorous way defined by the procedure
+      <tt>record-comment</tt>. This method ensures that the frame created
+      is timestamped and indexed in a useful and consistent way.</p>
+    <h2><a href="admin">Administering Servers</a></h2>
+    <p>The FramerD executable <tt>fdmanager</tt> provides a way of
+      easily managing multiple servers. Based on a <em>master control
+	file</em>, <tt>fdmanager</tt> starts a set of FramerD servers,
+      arranges for their standard and error output to go to specific log
+      files, and will restart them if they terminate. The master control
+      file has multiple lines of the form:</p>
+    <pre>
+      [wait=<em>secs</em>] [dependent]
+      &lt;<em>server control file</em>&gt; <em>fdserver args</em>...  
+    </pre>
+    The parameter <tt>wait</tt> specifies how long <tt>fdmanager</tt>
+    should wait for the server to start before moving onto the next
+    server in the file. The flag <tt>dependent</tt> indicates that this
+    server is dependent on the preceding server and should be restarted
+    if the preceding server is restarted. The <em>server control
+      file</em> is an <tt>.fdz</tt> file passed to <tt>fdserver</tt> and
+    the <em>fdserver args</em> are passed along with it. Additional
+    information about <tt>fdmanager</tt> can be found on its man page.
+    <p>FramerD comes with an <tt>fdservers</tt> init file designed to
+      work with the SYSV init scheme common on many Unix systems. This
+      file is a shell script which tags the commands <tt>start</tt>,
+      <tt>stop</tt>, <tt>restart</tt>, and <tt>status</tt>. It works by
+      starting an <tt>fdmanager</tt> process using the file
+      <tt><em>framerd dir</em>/servers</tt> as the control file (e.g.
+      <tt>/usr/local/share/framerd/servers</tt>).</p>
+    <p>When started from the <tt>fdservers</tt> init script or some
+      other system-wide startup mechanism (for instance,
+      <tt>/etc/rc.local</tt>), servers begin by running as root. However,
+      as mentioned above, they almost immediately change their user and
+      group ids to either <tt>nobody</tt> or <tt>nogroup</tt> or the
+      values of the environment variables <tt>FDSERVER_USER</tt> and
+      <tt>FDSERVER_GROUP</tt> if they are valid user and group names.
+      Since the server running under these names will need to access the
+      directory of the <tt>.fdz</tt> file (to write status files such as
+      <tt>.pid</tt> and <tt>.nid</tt> as well as reading the data files
+      there), it is usually best to have the groups on the files in this
+      directory set to the FDSERVER_GROUP and to have appropriate group
+      access permissions set.</p>
+    <p>The <tt>fdservers</tt> init script sets above the environment
+      variables to the user and group name <tt>fdaemon</tt>. Creating
+      this user and group (or changing the init script) is probably a
+      good idea for non-experimental installations.</p>
+    <h2><a name="hairy" id="hairy">Invoking <tt>fdserver</tt></a></h2>
+    <p>Like most of the FramerD shell commands, fdserver can be paased
+      configuration variables of the form <tt>VAR=VAL</tt> or
+      <tt>VAR=+VAL</tt> on the command line. Additional options for
+      invoking fdserver are listed when fdserver is passed the
+      <tt>--help</tt> option:</p>
+    <pre>
+      Usage: fdserver [options*] (&lt;service_name&gt; | %lt;port_id&gt; | &lt;server_init_file&gt;) 
+      
+      where options may define configuration variables, e.g.
+      FRAMERD_USER=hal9k
+      or may be direct options for fdserver:
+      --local                Run the server locally (e.g. as localhost)
+      --log <var>filename</var>       Log connections and statistics to <var>filename</var>
+      (use '-' for stdout, '--' for stderr)
+      --trace <var>filename</var>     Log transaction details to <var>filename</var>
+      (use '-' for stdout, '--' for stderr)
+      --access (read-only | locking | run-with-scissors)
+      Limit OID and association access according
+      to ruleset specified
+      -c | --config <var>filename</var>    Load symbol definitions from <var>filename</var>
+      -m | --module <var>moduleid</var>    has the server use the module <var>moduleid</var>
+      -f | --file <var>fdscript_file</var>
+      Load <var>fdscript_file</var> before starting
+      -e | --eval '<var>fdscript_code</var>'
+      Evaluate <var>fdscript_code</var> before starting
+    </pre>
+    <p>The arguments to the <tt>--access</tt> option have the following
+      meaning:</p>
+    <dl>
+      <dt>read-only</dt>
+      <dd>the served pools or indices cannot be remotely modified at
+	all</dd>
+      <dt>locking</dt>
+      <dd>oid-level locking is provided for served pools</dd>
+      <dt>sloppy</dt>
+      <dd>OIDs can be written but no locking is provided</dd>
+    </dl>
+    <p>The value of this option will have no effect if the server
+      itself cannot modify one of its pools or indices; in such a case,
+      the pool or index is read-only no matter what access is
+      specified.</p>
+    <p>For debugging purposes, two useful arguments to fdserver are
+      <tt>--log</tt> and <tt>--trace</tt>. These activiate logging and
+      tracing (respectively) and send the results to a specified file. If
+      a dash (-) is specified as the file, results go to the standard
+      output; if two dashes (--) are specified, results go to the
+      standard error. <strong>Logging</strong> reports each connections
+      and disconnections of clients with the server.
+      <strong>Tracing</strong> reports each request and the value
+      returned.</p>
+    <p>One can specify that a server only runs locally by passing the
+      command line arguments <tt>--local yes</tt> to <tt>fdserver</tt>.
+      You can then access this server through server ids of the form
+      "port@localhost". This is useful if you are using FramerD on a
+      machine which is only intermittenly connected to the network.</p>
+    <p>Each of these options can also be specified in the server
+      control file, by the following functions:</p>
+    <dl>
+      <dt>set-read-only!</dt>
+      <dd>sets the server to be externally read-only</dd>
+      <dt>set-sloppy!</dt>
+      <dd>sets the server to be externally writable, without locking</dd>
+      <dt>set-log!</dt>
+      <dd>takes two stream arguments: one for connection logging, one for
+	comprehensive transaction logging</dd>
+    </dl>
+  </body>
+</html>
