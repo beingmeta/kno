@@ -1,3 +1,10 @@
+framerd (3.8.3-21) unstable; urgency=low
+
+  * More fixes to dropbox module
+  * git patch version framerd-3.8.3-87
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 14 Dec 2015 16:28:46 +0000
+
 framerd (3.8.3-20) unstable; urgency=low
 
   * Fix dropbox path generation
