@@ -34,25 +34,25 @@
 (define (add-suffix string suffix)
   (if (has-suffix string suffix) string (glom string suffix)))
 
-(define (db/url base oauth path (root))
+(define (mkurl base oauth path (root))
   (glom base
     (mkpath
      (if (testopt oauth 'live)
 	 (if (getopt oauth 'live #f) "dropbox" "sandbox")
 	 dropbox-root)
-     (if (and (testopt oauth 'rootpath)
-	      (not (empty-string? (getopt oauth 'rootpath))))
-	 (mkpath (getopt oauth 'rootpath) (strip-prefix path "/"))
+     (if (and (testopt oauth 'root)
+	      (not (empty-string? (getopt oauth 'root))))
+	 (mkpath (getopt oauth 'root) (strip-prefix path "/"))
 	 (strip-prefix path "/")))))
 
 (define (dropbox/get/req oauth path (revision #f))
-  (let ((endpoint (db/url "https://api-content.dropbox.com/1/files/"
+  (let ((endpoint (mkurl "https://api-content.dropbox.com/1/files/"
 			  oauth path)))
     (if revision
 	(oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
 	(oauth/call oauth 'GET endpoint '() #f #f #t))))
 (define (dropbox/get oauth path (revision #f))
-  (let* ((endpoint (db/url "https://api-content.dropbox.com/1/files/"
+  (let* ((endpoint (mkurl "https://api-content.dropbox.com/1/files/"
 			   oauth path))
 	 (result (if revision
 		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
@@ -66,7 +66,7 @@
 	    (irritant result CALLFAILED DROPBOX/GET
 		      path " with " oauth)))))
 (define (dropbox/get+ oauth path (revision #f) (err #f))
-  (let* ((endpoint (db/url "https://api-content.dropbox.com/1/files/"
+  (let* ((endpoint (mkurl "https://api-content.dropbox.com/1/files/"
 			   oauth path))
 	 (result (if revision
 		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
@@ -98,7 +98,7 @@
 		      path " with " oauth)))))
 
 (define (dropbox/info oauth path (revision #f) (error #f))
-  (let* ((endpoint (db/url "https://api.dropbox.com/1/metadata/"
+  (let* ((endpoint (mkurl "https://api.dropbox.com/1/metadata/"
 			   oauth path))
 	 (result (if revision
 		     (oauth/call oauth 'GET endpoint `(rev ,revision) #f #f #t)
@@ -122,7 +122,7 @@
 			   path " with " oauth))))))
 
 (define (dropbox/list oauth path (revision #f))
-  (let* ((endpoint (db/url "https://api.dropbox.com/1/metadata/"
+  (let* ((endpoint (mkurl "https://api.dropbox.com/1/metadata/"
 			   oauth path))
 	 (result (if revision
 		     (oauth/call oauth 'GET endpoint
@@ -144,7 +144,7 @@
   (loginfo |DROPBOX/PUT!| "Saving " (length content) " of " ctype " to " path
 	   " given\n\t" (pprint oauth))
   (let* ((endpoint
-	  (db/url "https://api-content.dropbox.com/1/files_put/"
+	  (mkurl "https://api-content.dropbox.com/1/files_put/"
 		  oauth path))
 	 (result (oauth/call oauth 'put endpoint '() content ctype))
 	 (status (get result 'response)))
