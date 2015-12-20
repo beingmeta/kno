@@ -1,3 +1,10 @@
+framerd (3.8.3-22) unstable; urgency=low
+
+  * More dropbox fixes
+  * git patch version framerd-3.8.3-95
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 14 Dec 2015 23:17:53 +0000
+
 framerd (3.8.3-21) unstable; urgency=low
 
   * More fixes to dropbox module
