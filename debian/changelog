@@ -1,3 +1,11 @@
+framerd (3.8.3-23) unstable; urgency=low
+
+  * Simplify/fix semantics of PREF matcher
+  * Add %WM W/M aliases for within-module
+  * git patch version framerd-3.8.3-98
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 20 Dec 2015 22:26:04 +0000
+
 framerd (3.8.3-22) unstable; urgency=low
 
   * More dropbox fixes
