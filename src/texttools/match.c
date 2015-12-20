@@ -1270,43 +1270,12 @@ static fdtype match_pref
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  if (flags&(FD_MATCH_BE_GREEDY)) {
-    u8_byteoff max=-1;
-    FD_DOLIST(each,FD_CDR(pat)) {
-      fdtype answer=fd_text_domatch(each,next,env,string,off,lim,flags);
-      if (FD_EMPTY_CHOICEP(answer)) {}
-      else if (FD_ABORTP(answer)) {
-        return answer;}
-      else if (FD_FIXNUMP(answer)) {
-        u8_byteoff val=FD_FIX2INT(answer);
-        if (val>max) max=val;}
-      else if (FD_CHOICEP(answer)) {
-        FD_DO_CHOICES(a,answer)
-          if (FD_FIXNUMP(a)) {
-            u8_byteoff val=FD_FIX2INT(a);
-              if (val>max) max=val;}
-            else {
-              fdtype err=fd_err(fd_InternalMatchError,"fd_text_matcher",NULL,a);
-              fd_decref(answer); answer=err;
-              FD_STOP_DO_CHOICES;
-              break;}
-          if (FD_ABORTP(answer)) {
-            FD_STOP_DO_CHOICES;
-            return answer;}
-          else fd_decref(answer);}
-        else {
-          fd_decref(answer);
-          return fd_err(fd_InternalMatchError,"fd_text_matcher",NULL,each);}}
-    if (max<0) return FD_EMPTY_CHOICE; else return FD_INT(max);}
-  else {
-    fdtype answers=FD_EMPTY_CHOICE;
-    FD_DOLIST(epat,FD_CDR(pat)) {
-      fdtype answer=fd_text_domatch(epat,next,env,string,off,lim,flags);
-      if (FD_ABORTP(answer)) {
-        fd_decref(answers);
-        return answer;}
-      FD_ADD_TO_CHOICE(answers,answer);}
-    return answers;}
+  FD_DOLIST(epat,FD_CDR(pat)) {
+    fdtype answer=fd_text_domatch(epat,next,env,string,off,lim,flags);
+    if (FD_ABORTP(answer)) return answer;
+    else if (FD_EMPTY_CHOICEP(answer)) {}
+    else return answer;}
+  return FD_EMPTY_CHOICE;
 }
 
 static fdtype extract_pref
@@ -1317,27 +1286,9 @@ static fdtype extract_pref
   FD_DOLIST(epat,FD_CDR(pat)) {
     fdtype extractions=textract(epat,next,env,string,off,lim,flags);
     if (FD_ABORTP(extractions)) return extractions;
-    else {
-      FD_DO_CHOICES(extraction,extractions) {
-        if (FD_ABORTP(extraction)) {
-          fd_decref(answers); answers=fd_incref(extraction);
-          break;}
-        else if (FD_PAIRP(extraction)) {
-          fd_incref(extraction);
-          FD_ADD_TO_CHOICE(answers,extraction);}
-        else {
-          fd_decref(answers);
-          answers=fd_err(fd_InternalMatchError,"textract",NULL,extraction);
-          break;}}
-      if (FD_ABORTP(answers)) {
-        fd_decref(extractions);
-        return answers;}}
-    fd_decref(extractions);}
-  if ((flags&FD_MATCH_BE_GREEDY) &&
-      ((FD_CHOICEP(answers)) || (FD_ACHOICEP(answers)))) {
-    fdtype result=get_longest_extractions(answers);
-    return result;}
-  else return answers;
+    else if (FD_EMPTY_CHOICEP(extractions)) {}
+    else return extractions;}
+  return FD_EMPTY_CHOICE;
 }
 
 static int search_pref
