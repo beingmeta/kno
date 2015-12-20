@@ -654,6 +654,8 @@ FD_EXPORT void fd_init_modules_c()
 
   fd_defspecial(fd_scheme_module,"IN-MODULE",safe_in_module);
   fd_defspecial(fd_scheme_module,"WITHIN-MODULE",safe_within_module);
+  fd_defalias(fd_scheme_module,"W/M","WITHIN-MODULE");
+  fd_defalias(fd_scheme_module,"%WM","WITHIN-MODULE");
   fd_defspecial(fd_scheme_module,"ACCESSING-MODULE",safe_accessing_module);
   fd_defspecial(fd_scheme_module,"USE-MODULE",safe_use_module);
   fd_defspecial(fd_scheme_module,"MODULE-EXPORT!",module_export);
@@ -664,6 +666,8 @@ FD_EXPORT void fd_init_modules_c()
 
   fd_defspecial(fd_xscheme_module,"IN-MODULE",in_module);
   fd_defspecial(fd_xscheme_module,"WITHIN-MODULE",within_module);
+  fd_defalias(fd_xscheme_module,"W/M","WITHIN-MODULE");
+  fd_defalias(fd_xscheme_module,"%WM","WITHIN-MODULE");
   fd_defspecial(fd_xscheme_module,"ACCESSING-MODULE",accessing_module);
   fd_defspecial(fd_xscheme_module,"USE-MODULE",use_module);
   fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-MODULE",get_module,1));
