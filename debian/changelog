@@ -1,3 +1,11 @@
+framerd (3.8.3-24) unstable; urgency=low
+
+  * Fixed some JSON parsing segfaults 
+  * Fixed EC2 credentials path
+  * git patch verseion framerd-3.8.3-102
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 23 Dec 2015 16:52:46 +0000
+
 framerd (3.8.3-23) unstable; urgency=low
 
   * Simplify/fix semantics of PREF matcher
