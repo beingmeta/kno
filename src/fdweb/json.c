@@ -51,12 +51,12 @@ static int skip_whitespace(U8_INPUT *in)
   return c;
 }
 
-
 static fdtype parse_error(u8_output out,fdtype result,int report)
 {
   fd_clear_errors(report);
   fd_decref(result);
-  return fd_block_string(out->u8_outptr-out->u8_outbuf,out->u8_outbuf);
+  return fd_make_string(NULL,out->u8_outptr-out->u8_outbuf,
+                        out->u8_outbuf);
 }
 
 static fdtype convert_value(fdtype fn,fdtype val,int free,int warn)

@@ -184,7 +184,7 @@ static fdtype hashcolondollar_handler(fdtype expr,fd_lispenv env)
       fd_decref(val);
       return result;}
     else if (FD_VOIDP(val))
-      return fd_block_string(0,"");
+      return fd_make_string(NULL,0,"");
     else {
       fdtype result; struct U8_OUTPUT out;
       U8_INIT_OUTPUT(&out,64); fd_unparse(&out,val);
