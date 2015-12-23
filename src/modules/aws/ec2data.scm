@@ -82,13 +82,14 @@
 
 (define (ec2/credentials role (version "latest") (error #f))
   (if (not version) (set! version "latest"))
-  (let* ((url (glom ec2-instance-data-root version "/meta-data/iam/"
+  (let* ((url (glom ec2-instance-data-root version
+		"/meta-data/iam/security-credentials/"
 		(downcase role)))
 	 (response (urlget url))
 	 (status (get response 'response))
 	 (type (get response 'content-type)))
     (if (= status 200)
-	(jsonparse (get reponse '%content))
+	(jsonparse (get response '%content))
 	(if error
 	    (irritant response |BadEC2DataResponse| ec2/credentials)
 	    (begin (logwarn |EC2 Credentials failed| url " status " status)
@@ -96,13 +97,14 @@
 
 (define (ec2/role! role (version "latest") (error #f))
   (if (not version) (set! version "latest"))
-  (let* ((url (glom ec2-instance-data-root version "/meta-data/iam/"
+  (let* ((url (glom ec2-instance-data-root version
+		"/meta-data/iam/security-credentials/"
 		(downcase role)))
 	 (response (urlget url))
 	 (status (get response 'status))
 	 (type (get response 'content-type)))
     (if (= status 200)
-	(let ((parsed (jsonparse (get reponse '%content))))
+	(let ((parsed (jsonparse (get response '%content))))
 	  (when (test parsed 'accesskeyid)
 	    (config! 'aws:key (get parsed 'accesskeyid))
 	    (config! 'aws:secret (->secret (get parsed 'secretaccesskey)))))
