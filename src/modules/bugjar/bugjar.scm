@@ -7,7 +7,7 @@
 (use-module '{varconfig stringfmts getcontent mimetable gpath logger})
 (define %used_modules '{varconfig})
 
-(module-export! 'bugjar!)
+(module-export! '{bugjar! bugjar/saveroot bugjar/webroot})
 
 (define-init %loglevel %notice%)
 
@@ -18,46 +18,47 @@
 
 ;;; Configurable
 
-(define-init saveroot
+(define-init bugjar/saveroot
   (if (config 'logdir)
       (glom (mkpath (mkpath (config 'logdir) "framerd")
 		    "bugjar") "/")
       "/tmp/bugjar/"))
-(define-init webroot #f)
+(define-init bugjar/webroot #f)
 
 (define (urish? string)
   (and (string? string)
        (has-prefix string {"http:" "https:" "ftp:" "s3:"})))
 
 (define (bugjar-config var (val))
-  (cond ((not (bound? val)) (cons saveroot webroot))
+  (cond ((not (bound? val)) (cons bugjar/saveroot bugjar/webroot))
 	((not val)
-	 (set! saveroot #f)
-	 (set! webroot #f))
+	 (set! bugjar/saveroot #f)
+	 (set! bugjar/webroot #f))
 	((and (pair? val) (string? (car val)) (urish? (cdr val)))
-	 (set! saveroot (car val))
-	 (set! webroot (cdr val)))
+	 (set! bugjar/saveroot (car val))
+	 (set! bugjar/webroot (cdr val)))
 	((and (pair? val) (string? (cdr val)) (urish? (car val)))
-	 (set! saveroot (cdr val))
-	 (set! webroot (car val)))
+	 (set! bugjar/saveroot (cdr val))
+	 (set! bugjar/webroot (car val)))
 	((not (string? val))
 	 (error BADLOGROOT BUGJAR-CONFIG
 		"Not a valid logroot specification: " val))
 	((position #\Space val)
 	 (let ((split (segment val " ")))
 	   (if (urish? (first split))
-	       (begin (set! webroot (first split))
-		 (set! saveroot (second split)))
-	       (begin (set! webroot (second split))
-		 (set! saveroot (first split))))))
+	       (begin (set! bugjar/webroot (first split))
+		 (set! bugjar/saveroot (second split)))
+	       (begin (set! bugjar/webroot (second split))
+		 (set! bugjar/saveroot (first split))))))
 	((and (urish? val) (has-prefix val {"https:" "http:"})
 	      (has-suffix (urihost val) ".s3.amazonaws.com"))
-	 (set! webroot val)
-	 (set! saveroot
-	       (glom "s3://" (string-subst (urihost val) ".s3.amazonaws.com" "")
+	 (set! bugjar/webroot val)
+	 (set! bugjar/saveroot
+	       (glom "s3://" 
+		 (string-subst (urihost val) ".s3.amazonaws.com" "")
 		 "/" (uripath val))))
-	((urish? val) (set! webroot val))
-	(else (set! saveroot val))))
+	((urish? val) (set! bugjar/webroot val))
+	(else (set! bugjar/saveroot val))))
 (config-def! 'bugjar bugjar-config)
 
 (define bughead #f)
@@ -73,7 +74,7 @@
 			      (padnum (get date 'seconds) 2)
 			      "-" (uuid->string uuid)))))
     dir))
-(define (makelogbase uuid (root saveroot))
+(define (makelogbase uuid (root bugjar/saveroot))
   (if (or (not (string? root)) (has-prefix root "s3:")
 	  (file-directory? root)
 	  (file-directory? (dirname root)))
@@ -100,8 +101,8 @@
   (when (getopt spec 'sections)
     (set! sections (append sections (getopt spec 'sections))))
   (let* ((uuid (getopt spec 'uuid (getuuid)))
-	 (saveroot (makelogbase uuid saveroot))
-	 (webroot (and webroot (mkpath webroot (getlogbase uuid))))
+	 (bugjar/saveroot (makelogbase uuid bugjar/saveroot))
+	 (bugjar/webroot (and bugjar/webroot (mkpath bugjar/webroot (getlogbase uuid))))
 	 (reqdata (or (getopt spec 'reqdata)
 		      (req/get 'bugjar:reqdata #f)
 		      (req/get 'reqdata #f)
@@ -110,21 +111,21 @@
 	 (head (getopt spec 'head))
 	 (detailsblock #f)
 	 (irritantblock #f))
-    (debug%watch spec uuid saveroot webroot reqdata)
-    (when (string? saveroot) (mkdirs (mkpath saveroot "example")))
+    (debug%watch spec uuid bugjar/saveroot bugjar/webroot reqdata)
+    (when (string? bugjar/saveroot) (mkdirs (mkpath bugjar/saveroot "example")))
     (when reqdata
-      (dtype->gpath reqdata (gp/mkpath saveroot "request.dtype")))
+      (dtype->gpath reqdata (gp/mkpath bugjar/saveroot "request.dtype")))
     (when reqlog
-      (gp/save! (gp/mkpath saveroot "request.log") reqlog))
+      (gp/save! (gp/mkpath bugjar/saveroot "request.log") reqlog))
     (doseq (s sections)
       (when (test s 'filename)
 	(let* ((filename (get s 'filename))
-	       (saveto (gp/mkpath saveroot filename))
+	       (saveto (gp/mkpath bugjar/saveroot filename))
 	       (data (get s 'data)))
 	  (if (or (string? data) (packet? data))
 	      (gp/save! saveto data (getopt s 'type (path->mimetype filename)))
 	      (dtype->gpath data filename)))))
-    (gp/writeout (gp/mkpath saveroot "backtrace.html")
+    (gp/writeout (gp/mkpath bugjar/saveroot "backtrace.html")
 	(with/request/out
 	 (title! "Error " (uuid->string uuid) ": "
 		 (error-condition exception)
@@ -241,9 +242,9 @@
 		     ((test section 'expr)
 		      (xmlblock "PRE" ((class (downcase (get section 'id))))
 			(pprint (get section 'expr))))))))))
-    (if webroot
-	(mkpath webroot "backtrace.html")
-	(glom "file://" (gp/mkpath saveroot "backtrace.html")))))
+    (if bugjar/webroot
+	(mkpath bugjar/webroot "backtrace.html")
+	(glom "file://" (gp/mkpath bugjar/saveroot "backtrace.html")))))
 
 
 
