@@ -86,7 +86,8 @@
 		     (getopt qopts 'aws:key (or sqs-key awskey)))
     'aws:secret (getopt opts 'aws:secret
 			(getopt qopts 'aws:secret
-				(or sqs-secret secretawskey)))))
+				(or sqs-secret secretawskey)))
+    'aws:token (getopt opts 'aws:token {})))
 
 (define (sqs/get queue (opts #[])
 		 (args `#["Action" "ReceiveMessage" "AttributeName.1" "all"]))

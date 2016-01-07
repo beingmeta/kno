@@ -8,7 +8,7 @@
 
 (module-export! 
  '{awskey secretawskey awsaccount
-   aws/datesig aws/datesig/head})
+   aws/token aws/datesig aws/datesig/head})
 
 ;; Default (non-working) values from the online documentation
 ;;  Helpful for testing requests
@@ -37,6 +37,8 @@
 	       (if (bound? val)
 		   (set! awsaccount val)
 		   awsaccount)))
+
+(define aws/token #f)
 
 (define (aws/datesig (date (timestamp)) (spec #{}))
   (unless date (set! date (timestamp)))

@@ -62,10 +62,15 @@
 ;;; Doing a GET with AWS4 authentication
 
 (define (aws/v4/get req endpoint (args #[]) (headers #[]) (payload #f)
-		  (curl (getcurl)) (date (gmtimestamp)))
+		    (curl (getcurl)) (date (gmtimestamp))
+		    (token))
+  (set! token (getopt req 'aws:token aws/token))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
+  (when token
+    (lineout "TOKEN is " token)
+    (add! headers "X-Amz-Security-Token" token))
   (add! args "AWSAccessKeyId" (getopt req 'key awskey))
   (add! args "Timestamp" (get date 'isobasic))
   (unless (position #\% endpoint)
@@ -96,7 +101,7 @@
   ((if (curl-handle? curl) curlsetopt! add!)
    curl 'header
    (glom "Authorization: AWS4-HMAC-SHA256 Credential=" (getopt req 'credential) ", "
-     "SignedHeaders=" (getopt req 'signed-headers) ", "
+     "SignedHeaders=" (signed-headers req) ", "
      "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
   (info%watch "AWS/V4/get" endpoint args)
   (let* ((err (getopt req 'v4err v4err))
@@ -147,7 +152,7 @@
    curl 'header
    (glom "Authorization: AWS4-HMAC-SHA256 Credential="
      (getopt req 'credential) ", "
-     "SignedHeaders=" (getopt req 'signed-headers) ", "
+     "SignedHeaders=" (signed-headers req) ", "
      "Signature=" (downcase (packet->base16 (getopt req 'signature)))))
   (let* ((escaped (if (position #\% endpoint) endpoint
 		      (encode-uri endpoint)))
@@ -239,7 +244,6 @@
       (store! req 'credential credential)
       (store! req 'date date)
       (store! req 'host host)
-      (store! req 'signed-headers sh)
       (when debug 
 	(store! req 'creq creq)
 	(store! req 'sigkey signing-key)
