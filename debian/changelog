@@ -1,8 +1,16 @@
+framerd (3.8.3-25) unstable; urgency=low
+
+  * Various AWS module fixes
+  * Export bugjar variables
+  * git patch version framerd-3.8.3-106
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 07 Jan 2016 17:47:44 +0000
+
 framerd (3.8.3-24) unstable; urgency=low
 
   * Fixed some JSON parsing segfaults 
   * Fixed EC2 credentials path
-  * git patch verseion framerd-3.8.3-102
+  * git patch version framerd-3.8.3-102
 
  -- Ken Haase <kh@beingmeta.com>  Wed, 23 Dec 2015 16:52:46 +0000
 
