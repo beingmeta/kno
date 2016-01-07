@@ -9,13 +9,13 @@
 
 (module-export! '{ec2/opts})
 
-(define ec2-key #f)
-(varconfig! ec2:key ec2-key)
-(define ec2-secret #f)
-(varconfig! ec2:secret ec2-secret)
+(define ec2/key #f)
+(varconfig! ec2:key ec2/key)
+(define ec2/secret #f)
+(varconfig! ec2:secret ec2/secret)
 
 (define (ec2/opts (opts #[]))
   (frame-create #f
-    'aws:key (getopt opts 'aws:key (or ec2-key awskey))
-    'aws:secret (getopt opts 'aws:secret (or ec2-key secretawskey))))
+    'aws:key (getopt opts 'aws:key (or ec2/key aws/key))
+    'aws:secret (getopt opts 'aws:secret (or ec2/key aws/secret))))
 

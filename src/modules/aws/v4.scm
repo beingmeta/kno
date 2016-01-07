@@ -71,7 +71,7 @@
   (when token
     (lineout "TOKEN is " token)
     (add! headers "X-Amz-Security-Token" token))
-  (add! args "AWSAccessKeyId" (getopt req 'aws:key awskey))
+  (add! args "AWSAccessKeyId" (getopt req 'aws:key aws/key))
   (add! args "Timestamp" (get date 'isobasic))
   (unless (position #\% endpoint)
     (set! endpoint (encode-uri endpoint)))
@@ -119,11 +119,19 @@
 		   (args #[]) (headers #[]) (opts #[])
 		   (payload #f) (ptype #f)
 		   (curl (getcurl))
-		   (date (gmtimestamp)))
+		   (date (gmtimestamp))
+		   (token))
+  (set! token (getopt req 'aws:token aws/token))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
-  (add! args "AWSAccessKeyId" (getopt req 'aws:key awskey))
+  (add! req '%date date)
+  (add! headers 'date (get date 'isobasic))
+  (add! headers 'host (urihost endpoint))
+  (when token
+    (lineout "TOKEN is " token)
+    (add! headers "X-Amz-Security-Token" token))
+  (add! args "AWSAccessKeyId" (getopt req 'aws:key aws/key))
   (add! args "Timestamp" (get date 'isobasic))
   (do-choices (key (getkeys args))
     (add! req key (get args key))
@@ -142,7 +150,9 @@
   ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
   ((if (curl-handle? curl) curlsetopt! add!) curl 'method (string->symbol op))
   ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
-  (set! req  (aws/v4/prepare req op endpoint payload ptype))
+  (set! req  (aws/v4/prepare req op endpoint
+			     (if (equal? op "GET") (or payload "") payload)
+			     ptype))
   (when payload
     ((if (curl-handle? curl) curlsetopt! add!)
      curl 'header
@@ -203,7 +213,7 @@
 		       (getopt req 'service {})
 		       (get (text->frames service-pat host) 'service)
 		       default-service))
-	 (credential (glom awskey "/" (get date 'isobasicdate) "/"
+	 (credential (glom (getopt req 'aws:key aws/key) "/" (get date 'isobasicdate) "/"
 		       region "/" service "/aws4_request")))
     (unless (test req 'host) (store! req 'host host))
     (when (test req '%params "X-Amz-Algorithm")
@@ -224,9 +234,9 @@
 		       (downcase (packet->base16 (sha256 payload)))
 		       "UNSIGNED-PAYLOAD")))
 	   (string-to-sign (get-string-to-sign date region service creq))
-	   (secret (getopt req 'aws:secret secretawskey))
+	   (secret (getopt req 'aws:secret aws/secret))
 	   (signing-key (derive-key secret date region service))
-	   (awskey (getopt req 'aws:key awskey))
+	   (awskey (getopt req 'aws:key aws/key))
 	   (signature (hmac-sha256 signing-key string-to-sign)))
       (loginfo AWS/V4/PREPARE (write method) " " uri 
 	       (if (and payload (> (length payload) 0))

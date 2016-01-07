@@ -10,10 +10,10 @@
 
 (define-init %loglevel %notice%)
 
-(define ses-key #f)
-(define ses-secret #f)
-(varconfig! ses:key ses-key)
-(varconfig! ses:secret ses-secret)
+(define ses/key #f)
+(define ses/secret #f)
+(varconfig! ses:key ses/key)
+(varconfig! ses:secret ses/secret)
 
 (define default-from #f)
 (varconfig! ses:from default-from)
@@ -36,12 +36,12 @@
 	  (string-subst (string-subst (get date 'rfc822) "+0000" "GMT")
 			" 1 Jan" " 01 Jan"))
 	 (datestring (get date 'rfc822))
-	 (secret (getopt opts 'aws:secret (or ses-secret secretawskey)))
+	 (secret (getopt opts 'aws:secret (or ses/secret aws/secret)))
 	 (sig (hmac-sha256 secret datestring))
 	 (authstring
 	  (debug%watch
 	      (stringout "AWS3-HTTPS AWSAccessKeyId="
-		(getopt opts 'aws:key (or ses-key awskey)) ", "
+		(getopt opts 'aws:key (or ses/key aws/key)) ", "
 		"Signature=" (packet->base64 sig) ", "
 		"Algorithm=HmacSHA256")))
 	 (query #[])
@@ -118,12 +118,12 @@
 	  (string-subst (string-subst (get date 'rfc822) "+0000" "GMT")
 			" 1 Jan" " 01 Jan"))
 	 (datestring (get date 'rfc822))
-	 (secret (getopt opts 'aws:secret (or ses-secret secretawskey)))
+	 (secret (getopt opts 'aws:secret (or ses/secret aws/secret)))
 	 (sig (hmac-sha256 secret datestring))
 	 (authstring
 	  (debug%watch
 	      (stringout "AWS3-HTTPS AWSAccessKeyId="
-		(getopt opts 'aws:key (or ses-key awskey)) ", "
+		(getopt opts 'aws:key (or ses/key aws/key)) ", "
 		"Signature=" (packet->base64 sig) ", "
 		"Algorithm=HmacSHA256")))
 	 (query #[])

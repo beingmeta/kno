@@ -80,7 +80,9 @@
 		(begin (logwarn |Instance data failed| url " status " status)
 		  #f))))))
 
-(define (ec2/credentials role (version "latest") (error #f))
+(define-init credentials-cache (make-hashtable))
+
+(define (get-credentials role (error #f) (version "latest"))
   (if (not version) (set! version "latest"))
   (let* ((url (glom ec2-instance-data-root version
 		"/meta-data/iam/security-credentials/"
@@ -94,6 +96,21 @@
 	    (irritant response |BadEC2DataResponse| ec2/credentials)
 	    (begin (logwarn |EC2 Credentials failed| url " status " status)
 		  #f)))))
+
+(define (ec2/credentials role (error #f) (cached))
+  (set! cached (try (get credentials-cache role) #f))
+  (if (and cached (time<? (timestamp+ 10)
+			  (timestamp (get cached 'aws:expires))))
+      cached
+      (let* ((fresh (get-credentials role error))
+	     (result (tryif fresh
+		       (frame-create #f
+			 'aws:key (get fresh 'accesskeyid)
+			 'aws:secret (->secret (get fresh 'secretaccesskey))
+			 'aws:expires (timestamp (get fresh 'expiration))
+			 'aws:token (get fresh 'token)))))
+	(store! credentials-cache role result)
+	result)))
 
 (define (ec2/role! role (version "latest") (error #f))
   (if (not version) (set! version "latest"))

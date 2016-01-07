@@ -7,15 +7,15 @@
 (use-module '{logger texttools})
 
 (module-export! 
- '{awskey secretawskey awsaccount
+ '{aws/key aws/secret awsaccount
    aws/token aws/datesig aws/datesig/head})
 
 ;; Default (non-working) values from the online documentation
 ;;  Helpful for testing requests
-(define secretawskey
+(define aws/secret
   (or (getenv "AWS_SECRET_ACCESS_KEY")
       #"uV3F3YluFJax1cknvbcGwgjvx4QpvB+leU8dUj2o"))
-(define awskey
+(define aws/key
   (or (getenv "AWS_ACCESS_KEY_ID")
       "0PN5J17HBGZHT7JJ3X82"))
 (define awsaccount
@@ -25,13 +25,13 @@
 (config-def! 'aws:secret
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (set! secretawskey val)
-		   secretawskey)))
+		   (set! aws/secret val)
+		   aws/secret)))
 (config-def! 'aws:key
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (set! awskey val)
-		   awskey)))
+		   (set! aws/key val)
+		   aws/key)))
 (config-def! 'aws:account
 	     (lambda (var (val))
 	       (if (bound? val)
@@ -44,12 +44,12 @@
   (unless date (set! date (timestamp)))
   (default! method (try (get spec 'method) "HmacSHA1"))
   ((if (test spec 'algorithm "HmacSHA256") hmac-sha256 hmac-sha1)
-   (try (get spec 'secret) secretawskey)
+   (try (get spec 'secret) aws/secret)
    (get (timestamp date) 'rfc822)))
 
 (define (aws/datesig/head (date (timestamp)) (spec #{}))
   (stringout "X-Amzn-Authorization: AWS3-HTTPS"
-    " AWSAccessKeyId=" (try (get spec 'accesskey) awskey)
+    " AWSAccessKeyId=" (try (get spec 'accesskey) aws/key)
     " Algorithm=" (try (get spec 'algorithm) "HmacSHA1")
     " Signature=" (packet->base64 (aws/datesig date spec))))
 

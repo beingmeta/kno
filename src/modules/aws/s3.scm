@@ -189,8 +189,8 @@
 	   date "\n" (canonical-headers headers)
 	   (if (empty-string? bucket) "" "/") bucket
 	   path)))
-    (debug%watch (hmac-sha1 secretawskey sigstring)
-      sigstring secretawskey)))
+    (debug%watch (hmac-sha1 aws/secret sigstring)
+      sigstring aws/secret)))
 
 (define (canonicalize-header x)
   (if (pair? x)
