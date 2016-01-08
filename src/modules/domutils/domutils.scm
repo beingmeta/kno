@@ -641,10 +641,11 @@
   (for-choices elt
     (if (string? elt) #f
 	(or (test elt '%xmltag (pick sel symbol?))
-	    (if (exists? (reject sel selector?))
-		(dom/match elt (->selector sel))
-		(try (try-choices sel (or (selmatch elt sel) {}))
-		     #f))))))
+	    (exists (pick sel applicable?) elt)
+	    (try (try-choices (sel {(pick sel selector?)
+				    (->selector (pickstrings sel))})
+		   (or (selmatch elt sel) {}))
+		 #f)))))
 
 ;;; Finding using the index
 
