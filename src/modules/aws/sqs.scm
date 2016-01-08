@@ -95,7 +95,7 @@
     (store! args "WaitTimeSeconds" (getopt opts 'wait)))
   (when (getopt opts 'reserve)
     (store! args "VisibilityTimeout" (getopt opts 'reserve)))
-  (handle-sqs-response (aws/v4/get (get-queue-opts queue opts) queue args)))
+  (handle-sqs-response (aws/v4/op (get-queue-opts queue opts) "GET" queue args)))
 
 (define (sqs/send queue msg (opts #[]) (args `#["Action" "SendMessage"]))
   (store! args "MessageBody" msg)
