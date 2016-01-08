@@ -28,8 +28,8 @@
 (define fix-bad-style
   #((isalnum) (subst (spaces) "; ") (lword) ":"))
 
-(define default-style-rules {})
-(define default-class-rules {})
+(define default-stylefixes {})
+(define default-classfixes {})
 
 (define dom-cleanup-rules #[])
 (config-def! 'dom:cleanup:rules
@@ -168,21 +168,21 @@
 ;;;  single strings, calling an optional TEXTFN on each combined
 ;;;  string.  The TEXTFN can normalize whitespace or insert indents.
 
-(define (cleanup! node textfn dropfn dropempty classrules stylerules)
+(define (cleanup! node textfn dropfn unwrapfn dropempty classfixes stylefixes)
   (logdetail "Cleanup " (dom/eltref node))
   (if (or (test node '%xmltag '{pre script style})
 	  (test node 'xml:space "preserve"))
       node
       (if (test node '%content)
-	  (cleanup-content node textfn dropfn dropempty
-			   classrules stylerules)
+	  (cleanup-content node textfn dropfn unwrapfn dropempty
+			   classfixes stylefixes)
 	  ;; Fix empty tags
 	  (if (test node '%xmltag *void-tags*)
 	      node
 	      (begin (store! node '%content '())
 		node)))))
 
-(defambda (cleanup-content node textfn dropfn dropempty classrules stylerules)
+(defambda (cleanup-content node textfn dropfn unwrapfn dropempty classfixes stylefixes)
   (let ((vec (->vector (get node '%content)))
 	(newfn (and textfn
 		    (not (try (get node 'keepspace) #f))
@@ -191,17 +191,17 @@
 	(strings '())
 	(merged '()))
     (when (test node '%xmltag 'font) (fix-font-node node))
-    (when (and classrules (test node 'class))
+    (when (and classfixes (test node 'class))
       (dom/set! node 'class
-		(if (eq? classrules #t)
+		(if (eq? classfixes #t)
 		    (stdspace (get node 'class))
 		    (stdspace (textsubst (get node 'class)
-					 (qc classrules))))))
+					 (qc classfixes))))))
     (when (test node 'style)
       (let* ((style (get node 'style))
 	     (nstyle (textsubst style (qc fix-bad-style))))
-	(when stylerules
-	  (set! nstyle (dom/normstyle nstyle (qc stylerules))))
+	(when stylefixes
+	  (set! nstyle (dom/normstyle nstyle (qc stylefixes))))
 	(unless (identical? style nstyle)
 	  (logdetail "Converted " (write style) " to " (write nstyle))
 	  (dom/set! node 'style nstyle)))
@@ -213,9 +213,10 @@
 	    (else
 	     (set! child
 		   (cleanup! child textfn
-			     (qc dropfn) dropempty
-			     (qc classrules)
-			     (qc stylerules)))
+			     (qc dropfn) (qc unwrapfn)
+			     dropempty
+			     (qc classfixes)
+			     (qc stylefixes)))
 	     (when (and dropempty (test child '%xmltag *block-tags*)
 			(not (test child keep-empty-attribs))
 			(not (has-prefix (first (get child '%attribs))
@@ -227,7 +228,8 @@
 		 "Deleting empty node \n\t" (pprint child))
 	       (set! child #f))
 	     (when (null? child) (set! child #f))
-	     (when (and child dropfn (dropfn child)) (set! child #f))
+	     (when (and child (exists? dropfn) dropfn (dom/match child dropfn))
+	       (set! child #f))
 	     (when (and child (not (null? strings)))
 	       (set! merged
 		     (cons (if textfn
@@ -260,23 +262,34 @@
 	  (if (not (has-prefix (car merged) "\n"))
 	      (set-car! merged (glom "\n" (car merged))))))
     (store! node '%content merged)
-    (if (and (test node '%xmltag 'span)
-	     (fail? (get node '%attribids))
-	     (fail? (get node '%attribs)))
+    (if (or (and (exists? unwrapfn) unwrapfn (dom/match node unwrapfn))
+	    (and (test node '%xmltag 'span)
+		 (fail? (get node '%attribids))
+		 (fail? (get node '%attribs))))
 	merged
 	node)))
 
-(define (dom/cleanup! node (textfn #f) (dropfn #f) (dropempty #f)
-		      (classrules #f) (stylerules #f))
-  (if (eq? stylerules #t) (set! stylerules default-style-rules))
-  (if (eq? classrules #t) (set! classrules default-class-rules))
-  (cleanup! node textfn dropfn dropempty
-	    (and classrules
-		 (qc (get dom-cleanup-rules (pick classrules symbol?))
-		     (reject classrules symbol?)))
-	    (and stylerules
-		 (qc (get dom-cleanup-rules (pick stylerules symbol?))
-		     (reject stylerules symbol?)))))
+(define (dom/cleanup! node (opts #[])
+		      (textfn #f) (dropfn (config 'dom:drop #f)) 
+		      (unwrapfn (config 'dom:unwrap #f)) 
+		      (dropempty (config 'dom:dropempty #f))
+		      (classfixes (config 'dom:classfix #f))
+		      (stylefixes (config 'dom:stylefix #f)))
+  (set! textfn (getopt opts 'dom:textfn textfn))
+  (set! dropfn (getopt opts 'dom:drop dropfn))
+  (set! unwrapfn (getopt opts 'dom:unwrap unwrapfn))
+  (set! dropempty (getopt opts 'dom:dropempty dropempty))
+  (set! classfixes (getopt opts 'dom:classfix classfixes))
+  (set! stylefixes (getopt opts 'dom:stylefix stylefixes))
+  (if (overlaps? classfixes #t) (set+! classfixes default-classfixes))
+  (if (overlaps? stylefixes #t) (set+! stylefixes default-stylefixes))
+  (cleanup! node textfn dropfn unwrapfn dropempty
+	    (and classfixes
+		 (qc (get dom-cleanup-rules (pick classfixes symbol?))
+		     (reject classfixes symbol?)))
+	    (and stylefixes
+		 (qc (get dom-cleanup-rules (pick stylefixes symbol?))
+		     (reject stylefixes symbol?)))))
 
 (define (reverser e (result '()))
   ;; This reverses e and also insures that blocks are preceded
