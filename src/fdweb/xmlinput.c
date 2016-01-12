@@ -916,33 +916,34 @@ void *fd_walk_xml(U8_INPUT *in,
         combined_len=size+more_data+4;
       else combined_len=size+2;
       combined=u8_malloc(combined_len+1);
-      strncpy(combined,"<",1);
-      strncpy(combined+1,buf,size);
+      memcpy(combined,"<",1);
+      memcpy(combined+1,buf,size);
       if (more_data) {
-        strncpy(combined+1+size,remainder,more_data);
-        strncpy(combined+1+size+more_data,"-->",4);}
-      else strncpy(combined+1+size,">",2);
+        memcpy(combined+1+size,remainder,more_data);
+        memcpy(combined+1+size+more_data,"-->",4);
+        u8_free(remainder);}
+      else memcpy(combined+1+size,">",2);
       if (contentfn)
         contentfn(node,combined,combined_len);
-      u8_free(combined);
-      if (more_data) u8_free(remainder);}
+      u8_free(combined);}
     else if (type == xmlcdata) {
       const u8_byte *remainder=NULL; u8_byte *combined;
       int more_data=0, combined_len;
       if (strcmp((buf+size-2),"]]"))
         remainder=u8_gets_x(NULL,0,in,"]]>",&more_data);
-      if (more_data) combined_len=size+more_data+4;
+      if (more_data) combined_len=size+more_data+5;
       else combined_len=size+2;
       combined=u8_malloc(combined_len+1);
-      strncpy(combined,"<",1);
-      strncpy(combined+1,buf,size);
+      memcpy(combined,"<",1);
+      memcpy(combined+1,buf,size);
       if (more_data) {
-        strncpy(combined+1+size,">",2);
-        strncpy(combined+1+size+1,remainder,more_data);
-        strncpy(combined+1+size+1+more_data,"]]>",4);}
-      else strncpy(combined+1+size,">",2);
+        memcpy(combined+1+size,">",1);
+        memcpy(combined+1+size+1,remainder,more_data);
+        memcpy(combined+1+size+1+more_data,"]]>",4);
+        u8_free(remainder);}
+      else memcpy(combined+1+size,">",2);
       if (contentfn) contentfn(node,combined,combined_len);
-      u8_free(combined); if (more_data) u8_free(remainder);}
+      u8_free(combined);}
     else if (type == xmldoctype) {
       if (strchr(buf,'<')) {}
       else if (pifn) node=pifn(in,node,buf,size);
