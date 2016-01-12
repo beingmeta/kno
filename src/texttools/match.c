@@ -3586,7 +3586,9 @@ static const u8_byte *strsearch
     if (use_buf) {
       const u8_byte *next=strstr(scan,buf);
       if (next) {
-        cand=scan-string; scan++;}
+        cand=next-string; 
+        scan=next; 
+        u8_sgetc(&scan);}
       else return NULL;}
     else {
       c=u8_sgetc(&scan);
