@@ -213,6 +213,12 @@ dbhash32tests:
 	make FD_HASHINDEX=yes dbtests
 	make FD_HASHINDEX="(COMPRESS B32)" dbtests
 	@echo "*** Completed scheme tests to exercise hashindices with B32 reprepresentation "***""
+
+cryptotests:
+	@echo "*** Running crypto tests ***"
+	$(RUNTEST) ./fdexec@suffix@ testcrypto.scm $(TESTCONFIG)
+	@echo "*** Completed crypto tests ***"
+
 memtests: @memtest_prefix@memtests
 memschemetests: @memtest_prefix@memschemetests
 memtabletests: @memtest_prefix@memtabletests
@@ -220,6 +226,7 @@ memindextests: @memtest_prefix@memindextests
 memhashindextests: @memtest_prefix@memhashindextests
 memdbtests: @memtest_prefix@memdbtests
 memdbhashtests: @memtest_prefix@memdbhashtests
+memcryptotests: @memtest_prefix@memcryptotests
 
 vg_memtests:
 	@echo "*** Running alltests with valgrind memory debugging"
@@ -256,6 +263,9 @@ vg_memdbhashtests:
 	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbhashtests
 	@echo "*** Finished running tests on database layers with valgrind memory debugging"
 
+vg_memcryptotests:
+	make "TESTPROG=$(VALGRIND)" cryptotests
+
 builtin_memtests:
 	@echo "*** Running alltests with memory debugging"
 	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 alltests
@@ -291,6 +301,9 @@ builtin_memdbhashtests:
 	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 dbhashtests
 	@echo "*** Finished running tests on database layers with memory debugging"
 
+builtin_memcryptotests:
+	make @memtest_env@ cryptotests
+
 heaptests: @heaptest_prefix@heaptests
 heapschemetests: @heaptest_prefix@heapschemetests
 heaptabletests: @heaptest_prefix@heaptabletests
@@ -316,6 +329,9 @@ vg_heapdbtests:
 	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with valgrind heap debugging"
 
+vg_heapcryptotests:
+	make "TESTPROG=$(VALGRINDHEAP)" cryptotests
+
 builtin_heaptests:
 	@echo "*** Running alltests with gperftools memory debugging"
 	make @heaptest_env@ TESTSIZE=$(TESTSIZE)/8 alltests
@@ -335,6 +351,9 @@ builtin_heapdbtests:
 	@echo "*** Running tests on database layers with gperftools memory debugging"
 	make @heaptest_env@ TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with gperftools memory debugging"
+
+builtin_heapcryptotests:
+	make @heaptest_env@ cryptotests
 
 randomtests:
 	@echo "*** Running alltests with a really random seed"
