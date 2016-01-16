@@ -5,7 +5,7 @@
 (use-module 'crypto)
 
 (define key
-  #"g\c6isQ\ffJ\ec)\cd\ba\ab\f2\fb\e3F|\c2T\f8\1b\e8\e7\8dvZ.c3\9f\c9\9af2\0d\b71X\a3Z%]\05\17X\e9^\d4\ab\b2\cd\c6\9b\b4T\11\0e\82tA!=\dc\87")
+  #"\d9f-\e3\b5\a6\c7\b3\b0\e2W\1f\d5\0e\14]\87@ME\c4K\d6\06\98:g\dc\c00\7f\99\96\ac|KRC\ff\02%V\22\fad6X\ebv\a50:\f1\07A\89")
 (define key8 #"\0e\fe\80\df\bb\b8\aah")
 (define key16 #"_0\edx\06;\a5)\f8cZ\b3\a2j)\9a")
 (define key24 #"\b3\d3\beX\fc\b6\bbVi^\c0\92\f8\e4\99,\db\7f~0l\ee\89y")
