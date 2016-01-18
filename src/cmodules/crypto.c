@@ -51,9 +51,9 @@ static fdtype doencrypt(fdtype data,fdtype key,
     ivdata=FD_PACKET_DATA(iv);
     iv_len=FD_PACKET_LENGTH(iv);}
   else {ivdata=NULL; iv_len=0;}
-  outbuf=u8_encrypt_x(payload,payload_len,(char *)ciphername,
-                      FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
-                      ivdata,iv_len,&outlen);
+  outbuf=u8_encrypt(payload,payload_len,(char *)ciphername,
+                    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
+                    ivdata,iv_len,&outlen);
   if (outbuf) {
     if (free_payload) u8_free(payload);
     return fd_init_packet(NULL,outlen,outbuf);}
@@ -96,9 +96,9 @@ static fdtype decrypt_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
     iv_len=FD_PACKET_LENGTH(iv);}
   else {ivdata=NULL; iv_len=0;}
   payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);
-  outbuf=u8_decrypt_x(payload,payload_len,(char *)ciphername,
-                      FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
-                      ivdata,iv_len,&outlen);
+  outbuf=u8_decrypt(payload,payload_len,(char *)ciphername,
+                    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
+                    ivdata,iv_len,&outlen);
   if (outbuf)
     return fd_init_packet(NULL,outlen,outbuf);
   else return FD_ERROR_VALUE;
@@ -120,9 +120,9 @@ static fdtype decrypt2string_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv
     iv_len=FD_PACKET_LENGTH(iv);}
   else {ivdata=NULL; iv_len=0;}
   payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);
-  outbuf=u8_decrypt_x(payload,payload_len,ciphername,
-                      FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
-                      ivdata,iv_len,&outlen);
+  outbuf=u8_decrypt(payload,payload_len,ciphername,
+                    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
+                    ivdata,iv_len,&outlen);
   if (outbuf)
     return fd_init_string(NULL,outlen,outbuf);
   else return FD_ERROR_VALUE;
@@ -144,9 +144,9 @@ static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
     iv_len=FD_PACKET_LENGTH(iv);}
   else {ivdata=NULL; iv_len=0;}
   payload=FD_PACKET_DATA(data); payload_len=FD_PACKET_LENGTH(data);
-  outbuf=u8_decrypt_x(payload,payload_len,ciphername,
-                      FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
-                      ivdata,iv_len,&outlen);
+  outbuf=u8_decrypt(payload,payload_len,ciphername,
+                    FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
+                    ivdata,iv_len,&outlen);
   if (outbuf) {
     struct FD_BYTE_INPUT in; fdtype result;
     FD_INIT_BYTE_INPUT(&in,outbuf,outlen);
@@ -160,6 +160,26 @@ FD_EXPORT fdtype random_packet_prim(fdtype arg)
 {
   return fd_init_packet(NULL,FD_FIX2INT(arg),
                         u8_random_vector(FD_FIX2INT(arg)));
+}
+
+FD_EXPORT fdtype fill_packet_prim(fdtype len,fdtype init)
+{
+  fdtype result; unsigned char *bytes;
+  unsigned char byte_init, packet_len=FD_FIX2INT(len);
+  if ((FD_VOIDP(init))||(FD_FALSEP(init))||(FD_DEFAULTP(init)))
+    byte_init=0;
+  else if (FD_FALSEP(init))
+    byte_init=1;
+  else if (!(FD_FIXNUMP(init)))
+    return fd_type_error(_("Byte init value"),"fill_packet_prim",init);
+  else {
+    byte_init=FD_FIX2INT(init);
+    if ((byte_init<0)||(byte_init>=256))
+      return fd_type_error(_("Byte init value"),"fill_packet_prim",init);}
+  result=fd_init_packet(NULL,packet_len,NULL);
+  bytes=FD_PACKET_DATA(result);
+  memset(bytes,byte_init,packet_len);
+  return result;
 }
 
 FD_EXPORT int fd_init_crypto()
@@ -195,8 +215,11 @@ FD_EXPORT int fd_init_crypto()
                            -1,FD_VOID,-1,FD_VOID));
 
   fd_idefn(crypto_module,
-           fd_make_cprim1x
-           ("RANDOM-PACKET",random_packet_prim,1,fd_fixnum_type,FD_VOID));
+           fd_make_cprim1x("RANDOM-PACKET",random_packet_prim,1,
+                           fd_fixnum_type,FD_VOID));
+  fd_idefn(crypto_module,
+           fd_make_cprim2x("FILL-PACKET",fill_packet_prim,1,
+                           fd_fixnum_type,FD_VOID,-1,FD_VOID));
 
   fd_finish_module(crypto_module);
   fd_persist_module(crypto_module);
