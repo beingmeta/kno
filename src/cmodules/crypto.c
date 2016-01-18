@@ -165,7 +165,7 @@ FD_EXPORT fdtype random_packet_prim(fdtype arg)
 FD_EXPORT fdtype fill_packet_prim(fdtype len,fdtype init)
 {
   fdtype result; unsigned char *bytes;
-  unsigned char byte_init, packet_len=FD_FIX2INT(len);
+  int byte_init, packet_len=FD_FIX2INT(len);
   if ((FD_VOIDP(init))||(FD_FALSEP(init))||(FD_DEFAULTP(init)))
     byte_init=0;
   else if (FD_FALSEP(init))
@@ -177,7 +177,7 @@ FD_EXPORT fdtype fill_packet_prim(fdtype len,fdtype init)
     if ((byte_init<0)||(byte_init>=256))
       return fd_type_error(_("Byte init value"),"fill_packet_prim",init);}
   result=fd_init_packet(NULL,packet_len,NULL);
-  bytes=FD_PACKET_DATA(result);
+  bytes=(unsigned char *)FD_PACKET_DATA(result);
   memset(bytes,byte_init,packet_len);
   return result;
 }
