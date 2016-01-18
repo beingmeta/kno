@@ -315,6 +315,14 @@ is the other number")
   (apply append (cdr (textslice msg-text "\n\n" #t))))
 (applytest 185 textsearch "\n\n" msg-text)
 
+(define badpat 
+  `#((label ndashes #("--" (+ "-")) length) (not> "-") #("--" (+ "-"))))
+(define goodpat 
+  `#((label ndashes #("--" (+ "-")) ,length) (not> "-") #("--" (+ "-"))))
+(evaltest 'error (onerror (text->frames badpat "----FOO-----")
+		   (lambda (ex) 'error)))
+(applytest #[NDASHES 4] text->frames goodpat "----FOO-----")
+
 ; (testing 'rfc822-tx '(get msg 'content) msg-body)
 
 (define header-pat '(* {(char-not "\n") #("\n" (hspace))}))

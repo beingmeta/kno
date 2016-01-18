@@ -848,19 +848,21 @@ static fdtype textract(fdtype pattern,fdtype string,
   else {
     fdtype extract_results=fd_text_extract
       (pattern,NULL,FD_STRDATA(string),off,lim,0);
-    FD_DO_CHOICES(extraction,extract_results) 
-      if (FD_ABORTP(extraction)) {
-        fd_decref(results); fd_incref(extraction);
-        fd_decref(extract_results);
-        return extraction;}
-      else if (FD_PAIRP(extraction))
-        if (fd_getint(FD_CAR(extraction))==lim) {
-          fdtype extract=fd_incref(FD_CDR(extraction));
-          FD_ADD_TO_CHOICE(results,extract);}
-        else {}
-      else {}
-    fd_decref(extract_results);}
-  return results;
+    if (FD_ABORTP(extract_results)) return extract_results;
+    else {
+      FD_DO_CHOICES(extraction,extract_results) {
+        if (FD_ABORTP(extraction)) {
+          fd_decref(results); fd_incref(extraction);
+          fd_decref(extract_results);
+          return extraction;}
+        else if (FD_PAIRP(extraction))
+          if (fd_getint(FD_CAR(extraction))==lim) {
+            fdtype extract=fd_incref(FD_CDR(extraction));
+            FD_ADD_TO_CHOICE(results,extract);}
+          else {}
+        else {}}
+      fd_decref(extract_results);
+      return results;}}
 }
 
 static fdtype textgather_base(fdtype pattern,fdtype string,
@@ -1090,8 +1092,9 @@ static fdtype textsubst(fdtype string,
         fdtype match_result=
           fd_text_matcher(pattern,NULL,FD_STRDATA(string),start,lim,0);
         int end=-1;
-        {FD_DO_CHOICES(match,match_result) {
-          int point=fd_getint(match); if (point>end) end=point;}}
+        if (FD_ABORTP(match_result)) return match_result;
+        else {FD_DO_CHOICES(match,match_result) {
+            int point=fd_getint(match); if (point>end) end=point;}}
         fd_decref(match_result);
         if (end<0) {
           u8_puts(&out,data+last);
@@ -1139,17 +1142,19 @@ static fdtype textsubst(fdtype string,
                   fdtype remainder=textsubst
                     (string,pattern,replace,
                      FD_INT(new_char_off),lisp_lim);
-                  FD_DO_CHOICES(rem,remainder) {
-                    fdtype stringval;
-                    struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
-                    u8_puts(&tmpout,out.u8_outbuf);
-                    if (dorewrite(&tmpout,FD_CDR(xt))<0) {
-                      u8_free(tmpout.u8_outbuf); u8_free(out.u8_outbuf);
-                      fd_decref(results); results=FD_ERROR_VALUE;
-                      FD_STOP_DO_CHOICES; break;}
-                    u8_puts(&tmpout,FD_STRDATA(rem));
-                    stringval=fd_stream2string(&tmpout);
-                    FD_ADD_TO_CHOICE(results,stringval);}
+                  if (FD_ABORTP(remainder)) return remainder;
+                  else {
+                    FD_DO_CHOICES(rem,remainder) {
+                      fdtype stringval;
+                      struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
+                      u8_puts(&tmpout,out.u8_outbuf);
+                      if (dorewrite(&tmpout,FD_CDR(xt))<0) {
+                        u8_free(tmpout.u8_outbuf); u8_free(out.u8_outbuf);
+                        fd_decref(results); results=FD_ERROR_VALUE;
+                        FD_STOP_DO_CHOICES; break;}
+                      u8_puts(&tmpout,FD_STRDATA(rem));
+                      stringval=fd_stream2string(&tmpout);
+                      FD_ADD_TO_CHOICE(results,stringval);}}
                   fd_decref(remainder);}}
               u8_free(out.u8_outbuf);
               fd_decref(xtract);
@@ -1188,7 +1193,11 @@ static fdtype gathersubst_base(fdtype pattern,fdtype string,
       fdtype result, extract_result=
         fd_text_extract(pattern,NULL,FD_STRDATA(string),start,lim,0);
       int end=-1; fdtype longest=FD_VOID;
-      {FD_DO_CHOICES(extraction,extract_result) {
+      if (FD_ABORTP(extract_result)) {
+        fd_decref(results);
+        return extract_result;}
+      else {
+        FD_DO_CHOICES(extraction,extract_result) {
           int point=fd_getint(FD_CAR(extraction));
           if ((point>end)&&(point<=lim)) {
             end=point; longest=FD_CDR(extraction);}}}
@@ -1232,11 +1241,13 @@ static fdtype textfilter(fdtype strings,fdtype pattern)
 {
   fdtype results=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(string,strings)
-    if (FD_STRINGP(string))
-      if (fd_text_match(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0)) {
+    if (FD_STRINGP(string)) {
+      int rv=fd_text_match(pattern,NULL,FD_STRDATA(string),0,FD_STRLEN(string),0);
+      if (rv<0) return FD_ERROR_VALUE;
+      else if (rv) {
         string=fd_incref(string);
         FD_ADD_TO_CHOICE(results,string);}
-      else {}
+      else {}}
     else {
       fd_decref(results);
       return fd_type_error("string","textfiler",string);}
@@ -1545,7 +1556,8 @@ static fdtype text2frames(fdtype pattern,fdtype string,
         (pattern,NULL,FD_STRDATA(string),start,lim,0);
       fdtype longest=FD_EMPTY_CHOICE;
       int max=-1;
-      if ((FD_CHOICEP(extractions)) || (FD_ACHOICEP(extractions))) {
+      if (FD_ABORTP(extractions)) return extractions;
+      else if ((FD_CHOICEP(extractions)) || (FD_ACHOICEP(extractions))) {
         FD_DO_CHOICES(extraction,extractions) {
           int xlen=fd_getint(FD_CAR(extraction));
           if (xlen==max) {
@@ -1623,8 +1635,10 @@ static fdtype textslice(fdtype string,fdtype sep,fdtype keep_arg,
         fd_text_matcher(sep,NULL,data,scan,len,0);
       fdtype sepstring=FD_VOID, substring=FD_VOID, newpair;
       int end=-1;
-      /* Figure out how long the sep is, taking the longest result. */
-      {FD_DO_CHOICES(match,match_result) {
+      if (FD_ABORTP(match_result)) return match_result;
+      else {
+        /* Figure out how long the sep is, taking the longest result. */
+        FD_DO_CHOICES(match,match_result) {
           int point=fd_getint(match); if (point>end) end=point;}}
       fd_decref(match_result);
       /* Here's what it should look like: 
@@ -1774,8 +1788,9 @@ static fdtype lastword_prim(fdtype string,fdtype sep)
 static int match_end(fdtype sep,u8_string data,int off,int lim)
 {
   fdtype matches=fd_text_matcher(sep,NULL,data,off,lim,FD_MATCH_BE_GREEDY);
-  if (FD_EMPTY_CHOICEP(matches)) return off+1;
-  if (FD_FIXNUMP(matches)) return FD_FIX2INT(matches);
+  if (FD_ABORTP(matches)) return -1;
+  else if (FD_EMPTY_CHOICEP(matches)) return off+1;
+  else if (FD_FIXNUMP(matches)) return FD_FIX2INT(matches);
   else {
     int max=off+1; FD_DO_CHOICES(match,matches) {
       int matchlen=((FD_FIXNUMP(match))?(FD_FIX2INT(match)):(-1));
@@ -1860,7 +1875,8 @@ static fdtype apply_suffixrule
       else {fd_decref(xform); return FD_EMPTY_CHOICE;}}
     else if (FD_VECTORP(replacement)) {
       fdtype rewrites=textrewrite(replacement,string,FD_INT(0),FD_VOID);
-      if (FD_TRUEP(lexicon)) return rewrites;
+      if (FD_ABORTP(rewrites)) return rewrites;
+      else if (FD_TRUEP(lexicon)) return rewrites;
       else if (FD_CHOICEP(rewrites)) {
         fdtype accepted=FD_EMPTY_CHOICE;
         FD_DO_CHOICES(rewrite,rewrites) {
@@ -1884,7 +1900,8 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
   if (FD_VECTORP(rule)) {
     fdtype results=FD_EMPTY_CHOICE;
     fdtype candidates=textrewrite(rule,string,FD_INT(0),FD_VOID);
-    if (FD_EMPTY_CHOICEP(candidates)) {}
+    if (FD_ABORTP(candidates)) return candidates;
+    else if (FD_EMPTY_CHOICEP(candidates)) {}
     else if (FD_TRUEP(lexicon))
       return candidates;
     else {
@@ -1920,6 +1937,9 @@ static fdtype apply_morphrule(fdtype string,fdtype rule,fdtype lexicon)
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(alternate,rule) {
       fdtype result=apply_morphrule(string,alternate,lexicon);
+      if (FD_ABORTP(result)) {
+        fd_decref(results); 
+        return result;}
       FD_ADD_TO_CHOICE(results,result);}
     return results;}
   else return fd_type_error(_("morphrule"),"morphrule",rule);
@@ -1934,6 +1954,7 @@ static fdtype morphrule(fdtype string,fdtype rules,fdtype lexicon)
   else {
     FD_DOLIST(rule,rules) {
       fdtype result=apply_morphrule(string,rule,lexicon);
+      if (FD_ABORTP(result)) return result;
       if (!(FD_EMPTY_CHOICEP(result))) return result;}
     return FD_EMPTY_CHOICE;}
     
