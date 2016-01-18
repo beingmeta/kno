@@ -475,7 +475,7 @@ fdtype fd_text_domatch
     fdtype v=match_eval(pat,env);
     if (FD_VOIDP(v))
       return fd_err(fd_UnboundIdentifier,"fd_text_domatch",
-                    _("unknown match symbol"),pat);
+                    FD_SYMBOL_NAME(pat),pat);
     else {
       fdtype result=fd_text_domatch(v,next,env,string,off,lim,flags);
       fd_decref(v); return result;}}
@@ -621,7 +621,7 @@ static fdtype textract
       fdtype result=get_longest_extractions(answers);
       return result;}
     else return answers;}
-  else if (FD_CHARACTERP(pat))
+  else if (FD_CHARACTERP(pat)) {
     if (off == lim) return FD_EMPTY_CHOICE;
     else {
       u8_unichar code=FD_CHAR2CODE(pat);
@@ -632,7 +632,7 @@ static fdtype textract
         U8_INIT_FIXED_OUTPUT(&str,16,buf);
         u8_putc(&str,code);
         return fd_conspair(FD_INT(next),fdtype_string(buf));}
-      else return FD_EMPTY_CHOICE;}
+      else return FD_EMPTY_CHOICE;}}
   else if (FD_VECTORP(pat)) {
     fdtype seq_matches=extract_sequence(pat,0,next,env,string,off,lim,flags);
     if (FD_ABORTP(seq_matches)) return seq_matches;
@@ -658,7 +658,7 @@ static fdtype textract
   else if (FD_SYMBOLP(pat)) {
     fdtype v=match_eval(pat,env);
     if (FD_VOIDP(v))
-      return fd_err(fd_UnboundIdentifier,"fd_text_matcher",
+      return fd_err(fd_UnboundIdentifier,"textract",
                     FD_SYMBOL_NAME(pat),pat);
     else {
       fdtype lengths=
@@ -1149,7 +1149,10 @@ static fdtype label_extract
           if ((FD_ABORTP(parser_val))||(FD_VOIDP(parser_val))) {
             FD_STOP_DO_CHOICES;
             fd_decref(answers); fd_decref(extractions);
-            return parser_val;}
+            if (FD_VOIDP(parser_val)) 
+              return fd_err(fd_UnboundIdentifier,"label_extract/convert",
+                            FD_SYMBOL_NAME(parser),parser);
+            else return parser_val;}
           xtract=fd_make_list(4,FD_CAR(pat),sym,data,parser_val);}
         else if ((env) && (FD_PAIRP(parser))) {
           fdtype parser_val=fd_eval(parser,env);
