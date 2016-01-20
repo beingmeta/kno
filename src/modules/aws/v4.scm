@@ -64,12 +64,12 @@
 (define (aws/v4/get req endpoint (args #[]) (headers #[]) (payload #f)
 		    (curl (getcurl)) (date (gmtimestamp))
 		    (token))
+  (aws/checkok req)
   (set! token (getopt req 'aws:token aws/token))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
   (when token
-    (lineout "TOKEN is " token)
     (add! headers "X-Amz-Security-Token" token))
   (add! args "AWSAccessKeyId" (getopt req 'aws:key aws/key))
   (add! args "Timestamp" (get date 'isobasic))
@@ -116,11 +116,12 @@
 	(cons result req))))
 
 (define (aws/v4/op req op endpoint
-		   (args #[]) (headers #[]) (opts #[])
+		   (args #[]) (headers #[])
 		   (payload #f) (ptype #f)
 		   (curl (getcurl))
 		   (date (gmtimestamp))
 		   (token))
+  (aws/ok? req)
   (set! token (getopt req 'aws:token aws/token))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
@@ -129,7 +130,6 @@
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
   (when token
-    (lineout "TOKEN is " token)
     (add! headers "X-Amz-Security-Token" token))
   (add! args "AWSAccessKeyId" (getopt req 'aws:key aws/key))
   (add! args "Timestamp" (get date 'isobasic))

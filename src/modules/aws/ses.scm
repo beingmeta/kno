@@ -48,6 +48,7 @@
 	 (handle (curlopen 'header (cons "Date" datestring)
 			   'header (cons "X-Amzn-Authorization" authstring)
 			   'header (cons "Expect" "")
+			   'header (getopt opts 'aws:token aws/token)
 			   'method 'POST
 			   'verbose (getopt opts 'verbose #f))))
     (store! query "Action" (try (get args 'action) "SendEmail"))

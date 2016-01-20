@@ -11,6 +11,8 @@
 
 (module-export! '{ec2/data})
 
+(define ec2-instance-data-root "http://169.254.169.254/")
+
 (define (parse-newline-list response)
   (elts (segment (get response '%content) "\n")))
 

@@ -1167,7 +1167,7 @@
 
 (define policy-template (filestring (get-component "s3policy.json")))
 
-(define (generate-policy template loc (account awsaccount)
+(define (generate-policy template loc (account aws/account)
 			 (id (uuid->string (getuuid))))
   (when (and (string? loc) (has-prefix loc "s3:"))
     (set! loc (->s3loc loc)))
@@ -1209,7 +1209,7 @@
 	      "%bucket%" bucket "%path%" path
 	      "%id%" (uuid->string (getuuid))
 	      "%isotime%" (get (gmtimestamp 'seconds) 'iso)
-	      "%account%" awsaccount))
+	      "%account%" aws/account))
 	   (insert (get-policy-insert-point policy))
 	   (newpolicy (glom (slice policy 0 insert)
 			statement "," (slice policy insert))))

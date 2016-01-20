@@ -11,13 +11,17 @@
 
 (module-export! '{ec2/credentials ec2/role!})
 
+(define aws/role #f)
+
 (define-init credentials-cache (make-hashtable))
+
+(define aws/role-root
+  "http://169.254.169.254/latest/meta-data/iam/security-credentials/")
+(varconfig! aws/roleroot aws/role-root)
 
 (define (get-credentials role (error #f) (version "latest"))
   (if (not version) (set! version "latest"))
-  (let* ((url (glom ec2-instance-data-root version
-		"/meta-data/iam/security-credentials/"
-		(downcase role)))
+  (let* ((url (glom aws/role-root (downcase role)))
 	 (response (urlget url))
 	 (status (get response 'response))
 	 (type (get response 'content-type)))
@@ -56,10 +60,18 @@
   (let* ((creds (ec2/credentials role error)))
     (when creds
       (set! aws/role role)
-      (set! aws/key (get parsed 'aws:key))
-      (set! aws/secret (->secret (get parsed 'aws:secret)))
-      (set! aws/token (get parsed 'aws:token))
-      (set! aws/expires (get parsed 'aws:expires))
+      (set! aws/key (get creds 'aws:key))
+      (set! aws/secret (->secret (get creds 'aws:secret)))
+      (set! aws/token (get creds 'aws:token))
+      (set! aws/expires (get creds 'aws:expires))
       (set! aws/refresh (lambda () (ec2/role! role))))
     (and creds aws/key)))
+
+(config-def! 'aws:role
+	     (lambda (var (value))
+	       (if (bound? value)
+		   (and (not (equal? value aws/role))
+			(begin (when (ec2/role! value) (set! aws/role value))
+			  #t))
+		   aws/role)))
 

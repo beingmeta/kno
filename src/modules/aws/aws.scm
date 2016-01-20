@@ -6,33 +6,39 @@
 
 (use-module '{logger texttools})
 
+(define %nosubst '{aws/key aws/account aws/refresh aws/key aws/secret aws/token})
+
 (module-export! 
- '{aws/role aws/creds
-   aws/datesig aws/datesig/head
-   ec2-instance-data-root})
+ '{aws/account aws/key aws/secret aws/token aws/expires 
+   aws/ok? aws/checkok 
+   aws/datesig aws/datesig/head})
 
-(define ec2-instance-data-root "http://169.254.169.254/")
-
-(define-init default-creds #[])
-
-(define aws/role (getenv "AWS_ROLE"))
-(varconfig! aws:role aws/role)
+;; Default (non-working) values from the online documentation
+;;  Helpful for testing requests
+(define aws/secret
+  (getenv "AWS_SECRET_ACCESS_KEY"))
+(define aws/key (getenv "AWS_ACCESS_KEY_ID"))
+(define aws/account (getenv "AWS_ACCOUNT_NUMBER"))
 
 (config-def! 'aws:secret
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (store! default-creds 'aws:secret val)
-		   (test default-creds 'aws:secret))))
+		   (set! aws/secret val)
+		   aws/secret)))
 (config-def! 'aws:key
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (store! defalt-creds 'aws:key val)
-		   (try (get default-creds 'aws:key) #f))))
+		   (set! aws/key val)
+		   aws/key)))
 (config-def! 'aws:account
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (store! default-creds aws:account val)
-		   (try (get default-creds 'aws:account) #f))))
+		   (set! aws/account val)
+		   aws/account)))
+
+(define aws/token #f)
+(define aws/expires #f)
+(define aws/refresh #f)
 
 (define (aws/datesig (date (timestamp)) (spec #{}))
   (unless date (set! date (timestamp)))
@@ -47,22 +53,29 @@
     " Algorithm=" (try (get spec 'algorithm) "HmacSHA1")
     " Signature=" (packet->base64 (aws/datesig date spec))))
 
-(define (aws/creds opts)
-  (unless (or (getopt opts 'aws:secret) (test default-creds 'aws:secret))
-    (error |NoDefaultAWSCredentials|))
-  (unless (getopt opts 'aws:secret)
-    (if opts 
-	(set! opts (cons default-creds opts))
-	(set! opts default-creds)))
-  (if (getopt opts 'aws:key)
-      (if (or (not (testopt opts 'aws:expires))
-	      (time<? (timestamp+ 60) (getopt opts 'aws:expires)))
-	  opts
-	  (if (testopt opts 'aws:refresh)
-	      ((getopt opts 'aws:refresh) opts)
-	      (if (time<? (timestamp+ 1) (getopt opts 'aws:expires)) opts
-		  (error |AWSCredentialsExpired| opts))))
-      (error |NoAWSKeyValue| opts)))
+(define (aws/ok? (opts #f) (err #f))
+  (if (or (not opts) (not (getopt opts 'aws:secret)))
+      (if (not aws/secret)
+	  (and err (error |NoAWSCredentials| opts))
+	  (or (not aws/expires) (time<? aws/expires)
+	      (and aws/refresh (aws/refresh #f))
+	      (and err (error |ExpiredAWSCredentials| aws/key))))
+      (or (not (getopt opts 'aws:expires))
+	  (time<? (getopt opts 'aws:expires))
+	  (and aws/refresh (aws/refresh opts))
+	  (and err (error |ExpiredAWSCredentials| aws/key)))))
 
+(define (aws/checkok (opts #f)) (aws/ok? opts #t))
 
-
+(define (refresh-creds opts)
+  (if opts (aws/refresh opts)
+      (let ((refreshed (frame-create #f
+			 'aws:account aws/account
+			 'aws:key aws/key 'aws:secret aws/secret
+			 'aws:token aws/token)))
+	(when refreshed
+	  (set! aws/key (get refreshed 'aws:key))
+	  (set! aws/secret (get refreshed 'aws:secret))
+	  (set! aws/token (get refreshed 'aws:token))
+	  (set! aws/expires (get refreshed 'aws:expires)))
+	refreshed)))
