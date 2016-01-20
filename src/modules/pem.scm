@@ -7,7 +7,7 @@
 
 (define-init %loglevel %warn%)
 
-(module-export! '{readpem pemout pemstring})
+(module-export! '{readpem pemout ->pem})
 
 (define pem-pattern
   `(GREEDY
@@ -28,7 +28,7 @@
     (lineout (slice base64 (* lines linelen)))
     (lineout (make-string dashcount #\-) "END " header (make-string dashcount #\-))))
 
-(define (pemstring packet (header "PEM") (dashcount 5))
+(define (->pem packet (header "PEM") (dashcount 5))
   (stringout (pemout packet header dashcount)))
 
 
