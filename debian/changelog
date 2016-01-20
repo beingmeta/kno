@@ -1,3 +1,20 @@
+framerd (3.8.4-26) unstable; urgency=low
+
+  * Make dom/match able to take predicate functions as a test arg
+  * Make dom/cleanup take an options argument
+  * Let gutenberg module use local RDF database
+  * Fix off-by-one error in an XML parsing edge case
+  * Fix utf-8 bug in texttools string matching
+  * Added ezstats module
+  * Fixes to cryptographic functions, be more demanding about IV values,
+    use new u8_encrypt/u8_decrypt signatures
+  * Added a PEM parsing and generation module    
+  * Fixed some error passing bugs in texttools
+  * Added cryptographic function tests 
+  * git patch version framerd-3.8.4-1
+  
+ -- Ken Haase <kh@beingmeta.com>  Mon, 18 Jan 2016 20:37:59 +0000
+
 framerd (3.8.3-25) unstable; urgency=low
 
   * Various AWS module fixes
