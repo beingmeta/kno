@@ -312,7 +312,7 @@
 		       (dotighten (macroexpand value expr) env
 				  bound lexrefs w/rails))
 		      (else
-		       (when optdowarn
+		       (when (and optdowarn (not (test from '%nosubst head)))
 			 (codewarning (cons* 'NOTFCN expr value))
 			 (warning "The value of " head  " for "
 				  expr ", " value ","
