@@ -389,6 +389,15 @@ static fdtype lisp_load_config(fdtype arg)
          ("path or config symbol","lisp_load_config",arg);
 }
 
+static fdtype lisp_read_config(fdtype arg)
+{
+  struct U8_INPUT in; int retval;
+  U8_INIT_STRING_INPUT(&in,FD_STRLEN(arg),FD_STRDATA(arg));
+  retval=fd_read_config(&in);
+  if (n<0) return FD_ERROR_VALUE;
+  else return FD_INT2DTYPE(n);
+}
+
 /* Config config */
 
 #if FD_THREADS_ENABLED
@@ -472,6 +481,9 @@ FD_EXPORT void fd_init_load_c()
                          fd_environment_type,FD_VOID,
                          -1,FD_VOID));
 
+ fd_idefn(fd_scheme_module,
+          fd_make_cprim1x("READ-CONFIG",lisp_read_config,1,
+                          fd_string_type,FD_VOID));
  fd_idefn(fd_scheme_module,
           fd_make_cprim1x("LOAD-CONFIG",lisp_load_config,1,
                           -1,FD_VOID));
