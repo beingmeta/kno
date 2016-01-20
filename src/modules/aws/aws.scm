@@ -7,38 +7,32 @@
 (use-module '{logger texttools})
 
 (module-export! 
- '{aws/key aws/secret awsaccount
-   aws/token aws/datesig aws/datesig/head})
+ '{aws/role aws/creds
+   aws/datesig aws/datesig/head
+   ec2-instance-data-root})
 
-;; Default (non-working) values from the online documentation
-;;  Helpful for testing requests
-(define aws/secret
-  (or (getenv "AWS_SECRET_ACCESS_KEY")
-      #"uV3F3YluFJax1cknvbcGwgjvx4QpvB+leU8dUj2o"))
-(define aws/key
-  (or (getenv "AWS_ACCESS_KEY_ID")
-      "0PN5J17HBGZHT7JJ3X82"))
-(define awsaccount
-  (or (getenv "AWS_ACCOUNT_NUMBER")
-      "0PN5J17HBGZHT7JJ3X82"))
+(define ec2-instance-data-root "http://169.254.169.254/")
+
+(define-init default-creds #[])
+
+(define aws/role (getenv "AWS_ROLE"))
+(varconfig! aws:role aws/role)
 
 (config-def! 'aws:secret
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (set! aws/secret val)
-		   aws/secret)))
+		   (store! default-creds 'aws:secret val)
+		   (test default-creds 'aws:secret))))
 (config-def! 'aws:key
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (set! aws/key val)
-		   aws/key)))
+		   (store! defalt-creds 'aws:key val)
+		   (try (get default-creds 'aws:key) #f))))
 (config-def! 'aws:account
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (set! awsaccount val)
-		   awsaccount)))
-
-(define aws/token #f)
+		   (store! default-creds aws:account val)
+		   (try (get default-creds 'aws:account) #f))))
 
 (define (aws/datesig (date (timestamp)) (spec #{}))
   (unless date (set! date (timestamp)))
@@ -52,4 +46,23 @@
     " AWSAccessKeyId=" (try (get spec 'accesskey) aws/key)
     " Algorithm=" (try (get spec 'algorithm) "HmacSHA1")
     " Signature=" (packet->base64 (aws/datesig date spec))))
+
+(define (aws/creds opts)
+  (unless (or (getopt opts 'aws:secret) (test default-creds 'aws:secret))
+    (error |NoDefaultAWSCredentials|))
+  (unless (getopt opts 'aws:secret)
+    (if opts 
+	(set! opts (cons default-creds opts))
+	(set! opts default-creds)))
+  (if (getopt opts 'aws:key)
+      (if (or (not (testopt opts 'aws:expires))
+	      (time<? (timestamp+ 60) (getopt opts 'aws:expires)))
+	  opts
+	  (if (testopt opts 'aws:refresh)
+	      ((getopt opts 'aws:refresh) opts)
+	      (if (time<? (timestamp+ 1) (getopt opts 'aws:expires)) opts
+		  (error |AWSCredentialsExpired| opts))))
+      (error |NoAWSKeyValue| opts)))
+
+
 

@@ -9,9 +9,7 @@
 
 (define %loglevel %warn%)
 
-(module-export! '{ec2/data ec2/credentials ec2/role!})
-
-(define ec2-instance-data-root "http://169.254.169.254/")
+(module-export! '{ec2/data})
 
 (define (parse-newline-list response)
   (elts (segment (get response '%content) "\n")))
@@ -79,54 +77,4 @@
 		(irritant response |BadEC2DataResponse| ec2/data)
 		(begin (logwarn |Instance data failed| url " status " status)
 		  #f))))))
-
-(define-init credentials-cache (make-hashtable))
-
-(define (get-credentials role (error #f) (version "latest"))
-  (if (not version) (set! version "latest"))
-  (let* ((url (glom ec2-instance-data-root version
-		"/meta-data/iam/security-credentials/"
-		(downcase role)))
-	 (response (urlget url))
-	 (status (get response 'response))
-	 (type (get response 'content-type)))
-    (if (= status 200)
-	(jsonparse (get response '%content))
-	(if error
-	    (irritant response |BadEC2DataResponse| ec2/credentials)
-	    (begin (logwarn |EC2 Credentials failed| url " status " status)
-		  #f)))))
-
-(define (ec2/credentials role (error #f) (cached))
-  (set! cached (try (get credentials-cache role) #f))
-  (if (and cached (time<? (timestamp+ 10)
-			  (timestamp (get cached 'aws:expires))))
-      cached
-      (let* ((fresh (get-credentials role error))
-	     (result (tryif fresh
-		       (frame-create #f
-			 'aws:key (get fresh 'accesskeyid)
-			 'aws:secret (->secret (get fresh 'secretaccesskey))
-			 'aws:expires (timestamp (get fresh 'expiration))
-			 'aws:token (get fresh 'token)))))
-	(store! credentials-cache role result)
-	result)))
-
-(define (ec2/role! role (version "latest") (error #f))
-  (if (not version) (set! version "latest"))
-  (let* ((url (glom ec2-instance-data-root version
-		"/meta-data/iam/security-credentials/"
-		(downcase role)))
-	 (response (urlget url))
-	 (status (get response 'status))
-	 (type (get response 'content-type)))
-    (if (= status 200)
-	(let ((parsed (jsonparse (get response '%content))))
-	  (when (test parsed 'accesskeyid)
-	    (config! 'aws:key (get parsed 'accesskeyid))
-	    (config! 'aws:secret (->secret (get parsed 'secretaccesskey)))))
-	(irritant response |BadEC2DataResponse| ec2/data))))
-
-
-
 
