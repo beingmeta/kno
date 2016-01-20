@@ -394,8 +394,8 @@ static fdtype lisp_read_config(fdtype arg)
   struct U8_INPUT in; int retval;
   U8_INIT_STRING_INPUT(&in,FD_STRLEN(arg),FD_STRDATA(arg));
   retval=fd_read_config(&in);
-  if (n<0) return FD_ERROR_VALUE;
-  else return FD_INT2DTYPE(n);
+  if (retval<0) return FD_ERROR_VALUE;
+  else return FD_INT2DTYPE(retval);
 }
 
 /* Config config */
