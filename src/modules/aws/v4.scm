@@ -3,7 +3,7 @@
 
 (in-module 'aws/v4)
 
-(use-module '{aws fdweb texttools logger varconfig curlcache})
+(use-module '{aws opts fdweb texttools logger varconfig curlcache})
 (define %used_modules '{aws varconfig})
 
 (define-init %loglevel %notice%)
@@ -61,17 +61,21 @@
 
 ;;; Doing a GET with AWS4 authentication
 
-(define (aws/v4/get req endpoint (args #[]) (headers #[]) (payload #f)
+(define (aws/v4/get req endpoint (opts #f)
+		    (args #[]) (headers #[]) (payload #f)
 		    (curl (getcurl)) (date (gmtimestamp))
 		    (token))
   (aws/checkok req)
-  (set! token (getopt req 'aws:token aws/token))
+  (unless date (set! date (gmtimestamp)))
+  (default! token
+    (getopt req 'aws:token (getopt opts 'aws:token aws/token)))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
   (when token
     (add! headers "X-Amz-Security-Token" token))
-  (add! args "AWSAccessKeyId" (getopt req 'aws:key aws/key))
+  (add! args "AWSAccessKeyId"
+	(getopt req 'aws:key (getopt opts 'aws:key aws/key)))
   (add! args "Timestamp" (get date 'isobasic))
   (unless (position #\% endpoint)
     (set! endpoint (encode-uri endpoint)))
@@ -85,14 +89,13 @@
 	  (curlsetopt! curl 'header (glom key ": " v))
 	  (add! curl 'header (cons key (qc v))))
       (add! req key
-	    (if (and (singleton? v) (string? v)) v
-		(stringout (do-choices v
-			     (if (timestamp? v) (get v 'isobasic)
-				 (printout v)))))))
+		(if (and (singleton? v) (string? v)) v
+		    (stringout (do-choices v
+				 (if (timestamp? v) (get v 'isobasic)
+				     (printout v)))))))
       (add! req '%headers key))
   ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
-  (set! req (aws/v4/prepare req "GET" endpoint (or payload "")))
-  ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
+  (set! req (aws/v4/prepare req "GET" endpoint opts (or payload "")))
   (when payload
     ((if (curl-handle? curl) curlsetopt! add!)
      curl 'header
@@ -115,23 +118,25 @@
 		  "endpoint=" endpoint "\nurl=" url "\ncurl=" curl)
 	(cons result req))))
 
-(define (aws/v4/op req op endpoint
+(define (aws/v4/op req op endpoint (opts #f)
 		   (args #[]) (headers #[])
 		   (payload #f) (ptype #f)
+		   (date (gmtimestamp 'seconds))
 		   (curl (getcurl))
-		   (date (gmtimestamp))
 		   (token))
-  (aws/ok? req)
-  (set! token (getopt req 'aws:token aws/token))
+  (aws/checkok req)
+  (unless date (set! date (gmtimestamp 'seconds)))
+  (default! token
+    (getopt req 'aws:token (getopt opts 'aws:token aws/token)))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
-  (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
   (when token
     (add! headers "X-Amz-Security-Token" token))
-  (add! args "AWSAccessKeyId" (getopt req 'aws:key aws/key))
+  (add! args "AWSAccessKeyId"
+	(getopt req 'aws:key (getopt opts 'aws:key aws/key)))
   (add! args "Timestamp" (get date 'isobasic))
   (do-choices (key (getkeys args))
     (add! req key (get args key))
@@ -150,7 +155,7 @@
   ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
   ((if (curl-handle? curl) curlsetopt! add!) curl 'method (string->symbol op))
   ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
-  (set! req  (aws/v4/prepare req op endpoint
+  (set! req  (aws/v4/prepare req op endpoint opts
 			     (if (equal? op "GET") (or payload "") payload)
 			     ptype))
   (when payload
@@ -198,7 +203,7 @@
 
 ;;; GENERATING KEYS, ETC
 
-(define (aws/v4/prepare req method uri (payload #f) (ptype #f))
+(define (aws/v4/prepare req method uri (opts #f) (payload #f) (ptype #f))
   (logdebug AWS/V4/PREPARE method " " uri "\n  " (pprint req))
   (let* ((host (getopt req 'host (urihost uri)))
 	 (date (gmtimestamp
@@ -207,13 +212,17 @@
 				(gmtimestamp 'seconds)))))
 	 (region (try (getopt req '%region {})
 		      (getopt req 'region {})
-		      (pick aws-regions search host)
+		      (getopt opts 'region
+			      (pick aws-regions search host))
 		      default-region))
 	 (service (try (getopt req '%service {})
 		       (getopt req 'service {})
+		       (getopt opts 'service {})
 		       (get (text->frames service-pat host) 'service)
 		       default-service))
-	 (credential (glom (getopt req 'aws:key aws/key) "/" (get date 'isobasicdate) "/"
+	 (awskey (getopt req 'aws:key (getopt opts 'aws:key aws/key)))
+	 (credential (glom awskey "/"
+		       (get date 'isobasicdate) "/"
 		       region "/" service "/aws4_request")))
     (unless (test req 'host) (store! req 'host host))
     (when (test req '%params "X-Amz-Algorithm")

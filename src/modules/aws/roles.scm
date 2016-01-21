@@ -60,11 +60,11 @@
   (let* ((creds (ec2/credentials role error)))
     (when creds
       (set! aws/role role)
-      (set! aws/key (get creds 'aws:key))
-      (set! aws/secret (->secret (get creds 'aws:secret)))
-      (set! aws/token (get creds 'aws:token))
-      (set! aws/expires (get creds 'aws:expires))
-      (set! aws/refresh (lambda () (ec2/role! role))))
+      (aws/creds! (get creds 'aws:key)
+		  (->secret (get creds 'aws:secret))
+		  (get creds 'aws:token)
+		  (get creds 'aws:expires)
+		  (lambda () (ec2/role! role))))
     (and creds aws/key)))
 
 (config-def! 'aws:role

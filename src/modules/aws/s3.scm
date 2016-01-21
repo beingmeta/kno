@@ -243,8 +243,9 @@
 	     (if (null? headers) " headers=()" " headers=\n\t") headers
 	     (if (null? params) " params=()" " params=\n\t") params
 	     "\n\tendpoint:\t" endpoint)
-    (aws/v4/op (frame-create #f) op endpoint params headers opts
-	       content ctype urlparams date)))
+    (aws/v4/op (frame-create #f)
+	       op endpoint opts params headers
+	       content ctype date urlparams)))
 
 (define (headerlist->headers headerlist)
   (let ((headers (frame-create #f)))
@@ -284,6 +285,8 @@
 	 (tries 0)
 	 (wait 1)
 	 (s3result
+	  (s3op op bucket path content ctype headers opts args)
+	  #|
 	  (if (and retries (> retries 0))
 	      (onerror (s3op op bucket path content ctype headers opts args)
 		(lambda (ex)
@@ -293,7 +296,8 @@
 		  (let ((r (error-irritant ex)))
 		    (if (and (pair? r) (table? (car r)) (test (car r) 'response))
 			r ex))))
-	      (s3op op bucket path content ctype headers opts args)))
+	      (s3op op bucket path content ctype headers opts args))
+	  |#)
 	 (request (and s3result (cdr s3result)))
 	 (response (and s3result (car s3result)))
 	 (content (and response (get response '%content)))

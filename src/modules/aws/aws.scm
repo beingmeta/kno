@@ -6,11 +6,13 @@
 
 (use-module '{logger texttools})
 
-(define %nosubst '{aws/key aws/account aws/refresh aws/key aws/secret aws/token})
+(define %nosubst '{aws/account
+		   aws/key aws/secret
+		   aws/refresh aws/token})
 
 (module-export! 
  '{aws/account aws/key aws/secret aws/token aws/expires 
-   aws/ok? aws/checkok 
+   aws/ok? aws/checkok aws/creds!
    aws/datesig aws/datesig/head})
 
 ;; Default (non-working) values from the online documentation
@@ -79,3 +81,11 @@
 	  (set! aws/token (get refreshed 'aws:token))
 	  (set! aws/expires (get refreshed 'aws:expires)))
 	refreshed)))
+
+(define (aws/creds! key secret (token #f) (expires #f) (refresh #f))
+  (set! aws/key key)
+  (set! aws/secret secret)
+  (set! aws/token token)
+  (set! aws/expires expires)
+  (set! aws/refresh refresh))
+
