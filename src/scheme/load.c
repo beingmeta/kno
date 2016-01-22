@@ -236,6 +236,8 @@ void fd_restore_sourcebase(u8_string sourcebase)
 
 /* Loading config files */
 
+static int trace_config_load=0;
+
 FD_EXPORT int fd_load_config(u8_string sourceid)
 {
   struct U8_INPUT stream; int retval;
@@ -246,7 +248,12 @@ FD_EXPORT int fd_load_config(u8_string sourceid)
     outer_sourcebase=bind_sourcebase(sourcebase);}
   else outer_sourcebase=NULL;
   U8_INIT_STRING_INPUT((&stream),-1,content);
+  if ((trace_load)||(trace_config_load))
+    u8_log(LOG_NOTICE,FileLoad,
+           "Loading config %s (%d bytes)",sourcebase,u8_strlen(content));
   retval=fd_read_config(&stream);
+  if (trace_load)
+    u8_log(LOG_NOTICE,FileLoad,"Loaded config %s",sourcebase);
   if (sourcebase) {
     restore_sourcebase(outer_sourcebase);
     u8_free(sourcebase);}
@@ -499,6 +506,8 @@ FD_EXPORT void fd_init_load_c()
                     get_config_files,add_config_file,NULL);
  fd_register_config("TRACELOAD","Trace file load starts and ends",
                     fd_boolconfig_get,fd_boolconfig_set,&trace_load);
+ fd_register_config("TRACELOADCONFIG","Trace config file loading",
+                    fd_boolconfig_get,fd_boolconfig_set,&trace_config_load);
  fd_register_config("TRACELOADEVAL","Trace expressions while loading files",
                     fd_boolconfig_get,fd_boolconfig_set,&trace_load_eval);
 }
