@@ -13,8 +13,10 @@
 
 (define-init xconfig:root #f)
 (define-init xconfigs {})
+(define-init xconfig:trace #t)
 
 (varconfig! xconfig:root xconfig:root)
+(varconfig! xconfig:trace xconfig:trace config:boolean+)
 
 (define (xconfig? path)
   (or (overlaps? path xconfigs)
@@ -44,7 +46,8 @@
 	(unless (overlaps? canonical xconfigs) 
 	  (if (gp/exists? gp)
 	      (begin
-		(lognotice |XConfig| "Loading config from " canonical)
+		(when (or xconfig:trace (config 'traceconfigload))
+		  (lognotice |XConfig| "Loading " canonical))
 		(unwind-protect
 		    (begin (threadset! 'xconfig:root (gp/location gp))
 		      (read-config (->string (gp/fetch gp))))
