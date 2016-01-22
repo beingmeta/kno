@@ -623,6 +623,43 @@ static fdtype safe_get_exports_prim(fdtype arg)
   else return FD_EMPTY_CHOICE;
 }
 
+/* LOADMODULE config */
+
+static int loadmodule_sandbox=0;
+
+static int loadmodule_config_set(fdtype var,fdtype val,void *ignored)
+{
+  fdtype module=fd_find_module(val,(!(loadmodule_sandbox)),0);
+  if (FD_FALSEP(module)) {
+    u8_log(LOG_WARN,"NoModuleLoaded","Couldn't load the module %q",val);
+    return -1;}
+  else return 1;
+}
+
+static fdtype loadmodule_config_get(fdtype var,void *ignored)
+{
+  return FD_FALSE;
+}
+
+static int loadmodule_sandbox_config_set(fdtype var,fdtype val,void *ignored)
+{
+  if (FD_FALSEP(val)) {
+    if (!(loadmodule_sandbox)) return 0;
+    else fd_seterr("Can't reset LOADMODULE:SANDBOX",
+                   "loadmodule_sandbox_config_set",NULL,
+                   val);}
+  else {
+    if (loadmodule_sandbox) return 0;
+    else {
+      loadmodule_sandbox=1;
+      return 1;}}
+}
+
+static fdtype loadmodule_sandbox_config_get(fdtype var,void *ignored)
+{
+  if (loadmodule_sandbox) return FD_TRUE; else return FD_FALSE;
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_modules_c()
@@ -676,6 +713,16 @@ FD_EXPORT void fd_init_modules_c()
   fd_defalias(fd_xscheme_module,"%LS","GET-EXPORTS");
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("BRONZE-MODULE!",bronze_module,1));
+
+  fd_register_config("LOADMODULE",
+                     "Specify modules to be loaded",
+                     loadmodule_config_get,loadmodule_config_set,NULL);
+  fd_register_config("LOADMODULE:SANDBOX",
+                     "Whether LOADMODULE loads from the sandbox",
+                     loadmodule_sandbox_config_get,
+                     loadmodule_sandbox_config_set,
+                     NULL);
+
 }
 
 /* Emacs local variables
