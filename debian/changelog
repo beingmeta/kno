@@ -1,3 +1,18 @@
+framerd (3.8.4-27) unstable; urgency=low
+
+  * Added XCONFIG module
+  * Added TRACECONFIGLOAD
+  * Added LOADMODULE config
+  * Make CONFIG config use sourcepath
+  * New AWS credentials model
+  * Added aws/roles module for getting credentials from EC2 instance-data
+  * Fix optimize warnings for non-subst vars
+  * Added read-config primitive
+  * Fixes to new PEM module
+  * git patch version framerd-3.8.4-17
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 22 Jan 2016 23:12:45 +0000
+
 framerd (3.8.4-26) unstable; urgency=low
 
   * Make dom/match able to take predicate functions as a test arg
