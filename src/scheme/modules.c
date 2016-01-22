@@ -629,7 +629,7 @@ static int loadmodule_sandbox=0;
 
 static int loadmodule_config_set(fdtype var,fdtype val,void *ignored)
 {
-  fdtype module=fd_find_module(val,(!(loadmodule_sandbox)),0);
+  fdtype module=fd_find_module(val,loadmodule_sandbox,0);
   if (FD_FALSEP(module)) {
     u8_log(LOG_WARN,"NoModuleLoaded","Couldn't load the module %q",val);
     return -1;}
