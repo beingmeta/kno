@@ -422,7 +422,8 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
   if ((FD_STRINGP(val))&&(FD_STRLEN(val)>0)) {
     int retval;
     struct FD_CONFIG_RECORD on_stack, *scan, *newrec;
-    u8_string pathname=u8_abspath(FD_STRDATA(val),NULL);
+    u8_string sourcebase=fd_sourcebase();
+    u8_string pathname=u8_abspath(FD_STRDATA(val),sourcebase);
     fd_lock_mutex(&config_file_lock);
     scan=config_stack; while (scan) {
       if (strcmp(scan->source,pathname)==0) {
