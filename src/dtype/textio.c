@@ -206,7 +206,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
   const unsigned char *bytes=s->bytes;
   int i=0, len=s->length;
   if ((fd_packet_outfmt==16)||(fd_unparse_hexpacket)) {
-    u8_puts(out,"#X");
+    u8_puts(out,"#X\"");
     while (i<len) {
       int byte=bytes[i++]; char buf[16];
       if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
@@ -214,7 +214,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
         return u8_putc(out,'"');}
       sprintf(buf,"%02x",byte);
       u8_puts(out,buf);}
-    return 1;}
+    return u8_putc(out,'"');}
   else if (fd_packet_outfmt==64) {
     int n_chars=0;
     char *b64=u8_write_base64(bytes,len,&n_chars);
