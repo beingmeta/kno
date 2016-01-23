@@ -24,10 +24,12 @@
 (define password "mellon")
 ;; openssl enc -e -a -bf -in sample -K `cat key16.hex` -iv `cat iv8.hex`
 (define aes-encrypted-sample16
-  #X@"guMybKzrGs/zN2aAU8BDz4uCR/68Jh8s0r8KLOhH38U=")
+  #X@"u8H5dri2nNzUkqTO7QS2Ojf0qE5qxk90+ThFqbEhfoU=")
+(define aes-encrypted-sample32
+  #X@"I5t/w/QNf2RmAK/0w2OnKgIhzWKocD0hngSJhZDz82k=")
+
 (define bf-encrypted-sample16
   #X@"33LmggVnMlXFnYMC/phQaOItzP7WD2H3kFswc9OXLT8=")
-
 ;; Note that the bigger key examples can't be compared with the
 ;; openssl command line because the command line can't handle big hex
 ;; numbers
@@ -40,8 +42,11 @@
 (applytest #X@"T9OM7k4y8+mlD8CASAVVqkKpE6pxJgCNMHBFIg=="
 	   encrypt sample key16 "RC4")
 
-(applytest aes-encrypted-sample16 encrypt sample key16 "AES" iv8)
-(applytest sample decrypt->string aes-encrypted-sample16 key16 "AES" iv8)
+(applytest aes-encrypted-sample16 encrypt sample key16 "AES128" iv16)
+(applytest sample decrypt->string aes-encrypted-sample16 key16 "AES128" iv16)
+
+(applytest aes-encrypted-sample32 encrypt sample key32 "AES256" iv16)
+(applytest sample decrypt->string aes-encrypted-sample32 key32 "AES256" iv16)
 
 (applytest bf-encrypted-sample16 encrypt sample key16 "BF" iv8)
 (applytest sample decrypt->string bf-encrypted-sample16 key16 "BF" iv8)
