@@ -1,3 +1,11 @@
+framerd (3.8.4-28) unstable; urgency=low
+
+  * Extended packet parsing and unparsing
+  * Improved crypto tests
+  * git patch version framerd-3.8.4-28
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 23 Jan 2016 21:46:17 +0000
+
 framerd (3.8.4-27) unstable; urgency=low
 
   * Added XCONFIG module
