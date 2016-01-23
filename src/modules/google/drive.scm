@@ -82,7 +82,8 @@
 	  (store! parsed 'ctype (get parsed 'mime_type))
 	  (store! parsed 'modified (timestamp (get parsed 'modified)))
 	  (store! parsed 'length
-		  (get (text->frame #((label bytes (isdigit+) #t) (spaces) "bytes")
+		  (get (text->frame #((label bytes (isdigit+) #t) (spaces) 
+				      "bytes")
 				    (get parsed 'size))
 		       'bytes))
 	  parsed)
