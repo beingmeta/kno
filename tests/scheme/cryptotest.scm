@@ -23,21 +23,28 @@
 (define sample "Keep it secret, keep it safe")
 (define password "mellon")
 (define encrypted-sample64
-  #X"df72e68205673255c59d8302fe985068e22dccfed60f61f7905b3073d3972d3f")
+  #X@"+jE94JNmvNXQvILE2jsfnEOushT0UNKIVc4th2NHHbA=")
 (define encrypted-sample56
-  #X"df72e68205673255c59d8302fe985068e22dccfed60f61f7905b3073d3972d3f")
+  #X@"OonpoBPTU0ZlnlnLkkFwZliVv75xz9MhXn6jinAalT4=")
+;; openssl enc -e -a -bf -in sample -K `cat key16.hex` -iv `cat iv8.hex`
 (define encrypted-sample16
-  #X"df72e68205673255c59d8302fe985068e22dccfed60f61f7905b3073d3972d3f")
+  #X@"33LmggVnMlXFnYMC/phQaOItzP7WD2H3kFswc9OXLT8=")
+;; Note that the bigger key examples can't be compared with the
+;; openssl command line because the command line can't handle big hex
+;; numbers
+
 (define random-input (random-packet 2048))
 
 ;; openssl enc -rc4 -in sample -K `cat key16.hex` -a
-(applytest (b64 "T9OM7k4y8+mlD8CASAVVqkKpE6pxJgCNMHBFIg==")
+(applytest #X@"T9OM7k4y8+mlD8CASAVVqkKpE6pxJgCNMHBFIg=="
 	   encrypt sample key16 "RC4")
 
-(applytest encrypted-sample encrypt sample key64o "BF" iv8)
-(applytest encrypted-sample encrypt sample key56 "BF" iv8)
-(applytest encrypted-sample encrypt sample key16 "BF" iv8)
-(applytest sample decrypt->string encrypted-sample key56 "BF" iv8)
+(applytest encrypted-sample64 encrypt sample key64 "BF" iv8)
+(applytest encrypted-sample56 encrypt sample key56 "BF" iv8)
+(applytest encrypted-sample16 encrypt sample key16 "BF" iv8)
+(applytest sample decrypt->string encrypted-sample64 key64 "BF" iv8)
+(applytest sample decrypt->string encrypted-sample56 key56 "BF" iv8)
+(applytest sample decrypt->string encrypted-sample16 key16 "BF" iv8)
 (evaltest random-input (decrypt (encrypt random-input key56 "BF" iv8)
 				key56 "BF" iv8))
 
