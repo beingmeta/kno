@@ -285,4 +285,29 @@
 (applytest #f length>1 "a")
 (applytest #f length>1 "")
 
+;;; Packet parsing
+
+(applytest #"foobar889" string->packet "foobar889")
+(applytest #t equal? #"foobar889" #X"666F6F626172383839")
+(applytest #t equal? #"foobar889" #x"666F6F626172383839")
+(applytest #t equal? #"foobar889" #x"666f6f626172383839")
+(applytest "Zm9vYmFyODg5" packet->base64  #"foobar889")
+(applytest "666F6F626172383839" packet->base16  #"foobar889")
+(applytest #t equal? #"foobar889" #X@"Zm9vYmFyODg5")
+(applytest #t equal? #"foobar889" #x@"Zm9vYmFyODg5")
+
+(define (parsefail string)
+  (onerror (begin (string->lisp 
+		   (string-subst* string
+		     "\&ldquo;" "\""  "\&rdquo;" "\""))
+	     #f)
+    (lambda (x) #t)))
+
+;; Check that parsing fails, too
+(applytest #f parsefail "#X“33ff”")
+(applytest #t parsefail "#X“3z3ff”")
+(applytest #f parsefail "#X@“M/8=”")
+(applytest #t parsefail "#X@“M/_8=”")
+(applytest #t parsefail "#X@“_M/8=”")
+
 (message "SEQTEST successfuly completed")

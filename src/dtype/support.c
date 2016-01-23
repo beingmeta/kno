@@ -2250,10 +2250,10 @@ void fd_init_support_c()
      fd_boolconfig_get,fd_boolconfig_set,
      &fd_unparse_hexpacket);
   fd_register_config
-    ("PACKETOUTBASE",
-     _("How to dump packets to ASCII"),
+    ("PACKETFMT",
+     _("How to dump packets to ASCII (16=hex,64=base64,dflt=ascii-ish)"),
      fd_intconfig_get,fd_intconfig_set,
-     &fd_packet_outbase);
+     &fd_packet_outfmt);
 
   fd_register_config("RUNBASE",_("Path prefix for program state files"),
                      config_getrunbase,config_setrunbase,NULL);
