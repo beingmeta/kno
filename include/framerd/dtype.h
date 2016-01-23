@@ -62,7 +62,7 @@ FD_EXPORT fdtype fd_string2number(u8_string string,int base);
 FD_EXPORT int fd_output_number(u8_output output,fdtype num,int base);
 
 FD_EXPORT int fd_unparse_maxchars, fd_unparse_maxelts;
-FD_EXPORT int fd_unparse_hexpacket;
+FD_EXPORT int fd_unparse_hexpacket, fd_packet_outbase;
 
 FD_EXPORT int fd_register_record_tag
   (fdtype symbol,fdtype (*recreate)(int n,fdtype *v));

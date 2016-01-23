@@ -17,6 +17,7 @@
 
 #include <libu8/u8printf.h>
 #include <libu8/u8streamio.h>
+#include <libu8/u8convert.h>
 #include <libu8/u8crypto.h>
 
 #include <ctype.h>
@@ -45,6 +46,7 @@ fd_exception fd_NoPointerExpressions=_("no pointer expressions allowed");
 fd_exception fd_BadPointerRef=_("bad pointer reference");
 fd_exception fd_UnexpectedEOF=_("Unexpected EOF in LISP expression");
 fd_exception fd_ParseError=_("LISP expression parse error");
+fd_exception fd_UnclosedQuote=_("Unclosed quotation mark");
 fd_exception fd_ParseArgError=_("External LISP argument parse error");
 fd_exception fd_CantUnparse=_("LISP expression unparse error");
 fd_exception fd_CantParseRecord=_("Can't parse record object");
@@ -53,6 +55,7 @@ fd_exception fd_MismatchedClose=_("Expression open/close mismatch");
 int fd_unparse_maxelts=0;
 int fd_unparse_maxchars=0;
 int fd_unparse_hexpacket=0;
+int fd_packet_outbase=-1;
 
 int fd_interpret_pointers=1;
 
@@ -199,8 +202,8 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
   struct FD_STRING *s=(struct FD_STRING *)x;
   const unsigned char *bytes=s->bytes;
   int i=0, len=s->length;
-  if (fd_unparse_hexpacket) {
-    u8_puts(out,"#x\"");
+  if ((fd_packet_outbase==16)||(fd_unparse_hexpacket)) {
+    u8_puts(out,"#X");
     while (i<len) {
       int byte=bytes[i++]; char buf[16];
       if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
@@ -208,7 +211,14 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
         return u8_putc(out,'"');}
       sprintf(buf,"%02x",byte);
       u8_puts(out,buf);}
-    return u8_puts(out,"\"");}
+    return 1;}
+  else if (fd_packet_outbase==64) {
+    int n_chars=0;
+    char *b64=u8_write_base64(bytes,len,&n_chars);
+    u8_puts(out,"#X@\"");
+    u8_putn(out,b64,n_chars);
+    u8_free(b64);
+    return u8_putc(out,'"');}
   else {
     u8_puts(out,"#\"");
     if (bytes[0]=='!') {u8_puts(out,"\\!"); i++;}
@@ -750,7 +760,41 @@ static fdtype parse_string(U8_INPUT *in)
   return result;
 }
 
-static fdtype parse_packet(U8_INPUT *in)
+fdtype (*fd_regex_parser)(u8_string src,u8_string opts)=NULL;
+
+static fdtype parse_regex(U8_INPUT *in)
+{
+  fdtype result; struct U8_OUTPUT src; u8_byte buf[128];
+  u8_byte opts[16], *optwrite=opts;
+  int c=u8_getc(in); U8_INIT_OUTPUT_BUF(&src,128,buf);
+  while (c>=0) {
+    if (c=='\\') {
+      c=u8_getc(in); if (c>0) u8_putc(&src,c);}
+    else if (c!='/') u8_putc(&src,c);
+    else {
+      int mc=u8_getc(in);
+      while ((mc<128)&&(u8_isalpha(mc))) {
+        if (strchr("eils",mc)) *optwrite++=(char)mc;
+        else {
+          fd_seterr(fd_ParseError,"parse_regex",src.u8_outbuf,FD_VOID);
+          return FD_PARSE_ERROR;}
+        mc=u8_getc(in);}
+      u8_ungetc(in,mc);
+      *optwrite++='\0';
+      if (fd_regex_parser)
+        result=fd_regex_parser(src.u8_outbuf,opts);
+      else result=fd_make_nvector(3,fd_intern("NOREGEX"),
+                                  fdtype_string(src.u8_outbuf),
+                                  fdtype_string(opts));
+      u8_close((u8_stream)&src);
+      return result;}
+    c=u8_getc(in);}
+  return FD_EOF;
+}
+
+/* Packet parsing functions */
+
+static fdtype parse_ascii_packet(U8_INPUT *in)
 {
   char *data=u8_malloc(128);
   int max=128, len=0, c=u8_getc(in);
@@ -792,45 +836,20 @@ static fdtype parse_packet(U8_INPUT *in)
   else {
     u8_free(data);
     if (c<0) return FD_EOX;
-    else return FD_PARSE_ERROR;}
-}
-
-fdtype (*fd_regex_parser)(u8_string src,u8_string opts)=NULL;
-
-static fdtype parse_regex(U8_INPUT *in)
-{
-  fdtype result; struct U8_OUTPUT src; u8_byte buf[128];
-  u8_byte opts[16], *optwrite=opts;
-  int c=u8_getc(in); U8_INIT_OUTPUT_BUF(&src,128,buf);
-  while (c>=0) {
-    if (c=='\\') {
-      c=u8_getc(in); if (c>0) u8_putc(&src,c);}
-    else if (c!='/') u8_putc(&src,c);
     else {
-      int mc=u8_getc(in);
-      while ((mc<128)&&(u8_isalpha(mc))) {
-        if (strchr("eils",mc)) *optwrite++=(char)mc;
-        else {
-          fd_seterr(fd_ParseError,"parse_regex",src.u8_outbuf,FD_VOID);
-          return FD_PARSE_ERROR;}
-        mc=u8_getc(in);}
-      u8_ungetc(in,mc);
-      *optwrite++='\0';
-      if (fd_regex_parser)
-        result=fd_regex_parser(src.u8_outbuf,opts);
-      else result=fd_make_nvector(3,fd_intern("NOREGEX"),
-                                  fdtype_string(src.u8_outbuf),
-                                  fdtype_string(opts));
-      u8_close((u8_stream)&src);
-      return result;}
-    c=u8_getc(in);}
-  return FD_EOF;
+      u8_seterr(fd_UnclosedQuote,"parse_ascii_packet",NULL);
+      return FD_PARSE_ERROR;}}
 }
 
 static fdtype parse_hex_packet(U8_INPUT *in)
 {
   char *data=u8_malloc(128);
-  int max=128, len=0, c=u8_getc(in);
+  int max=128, len=0, c=u8_getc(in), delim=0;
+  if (c=='"') {delim='"'; c=u8_getc(in);}
+  else if (!(isxdigit(c))) {
+    fd_seterr(fd_ParseError,"parse_hex_packet",NULL,FD_VOID);
+    return FD_PARSE_ERROR;}
+  else {}
   while (isxdigit(c)) {
     int nc=u8_getc(in), byte=0; char xbuf[3];
     if (!(isxdigit(nc))) break;
@@ -841,11 +860,67 @@ static fdtype parse_hex_packet(U8_INPUT *in)
     byte=strtol(xbuf,NULL,16);
     data[len++]=byte;
     c=u8_getc(in);}
-  if (c=='"')
+  if ((c<0)&&(delim)) {
+    u8_free(data);
+    u8_seterr(fd_UnclosedQuote,"parse_hex_packet",NULL);
+    return FD_PARSE_ERROR;}
+  else if ((c<0)||(c==delim))
     return fd_bytes2packet(NULL,len,data);
-  u8_free(data);
-  if (c<0) return FD_EOX;
-  else return FD_PARSE_ERROR;
+  else if (delim==0) {
+    u8_ungetc(in,c);
+    return fd_bytes2packet(NULL,len,data);}
+  else {
+    u8_free(data);
+    fd_seterr(fd_ParseError,"parse_hex_packet","bad hex digit",FD_VOID);
+    return FD_PARSE_ERROR;}
+}
+
+static fdtype parse_base64_packet(U8_INPUT *in)
+{
+  char *data=u8_malloc(128);
+  int max=128, len=0, c=u8_getc(in);
+  if (c!='"') {
+    return FD_PARSE_ERROR;}
+  while ((c>=0)&&(c!='"')) {
+    if (len>=max) {
+      data=u8_realloc(data,max+128);
+      max=max+128;}
+    data[len++]=c;
+    c=u8_getc(in);}
+  if (c=='"') {
+    int n_bytes=0;
+    unsigned char *bytes=u8_read_base64(data,data+len,&n_bytes);
+    if (bytes) {
+      fdtype result=fd_make_packet(NULL,n_bytes,bytes);
+      u8_free(bytes); u8_free(data);
+      return result;}
+    else {
+      u8_free(data);
+      u8_seterr(fd_ParseError,"parse_base64_packet",NULL);
+      return FD_PARSE_ERROR;}}
+  else {
+    u8_free(data);
+    u8_seterr(fd_UnclosedQuote,"parse_base64_packet",NULL);
+    return FD_PARSE_ERROR;}
+}
+
+static fdtype parse_packet(U8_INPUT *in,int nextc)
+{
+  if (nextc<0) return FD_EOF;
+  else if (nextc=='"') 
+    return parse_ascii_packet(in);
+  else if ((nextc=='X')||(nextc=='x')) {
+    int nc=u8_getc(in);
+    if (nc=='@') return parse_base64_packet(in);
+    else if ((isxdigit(nc))||(nc=='"')) {
+      u8_ungetc(in,nc);
+      return parse_hex_packet(in);}
+    else {
+      u8_seterr(fd_ParseError,"parse_packet",NULL);
+      return FD_PARSE_ERROR;}}
+  else {
+    u8_seterr(fd_ParseError,"parse_packet",NULL);
+    return FD_PARSE_ERROR;}
 }
 
 static int copy_string(u8_input s,u8_output a)
@@ -1263,23 +1338,13 @@ fdtype fd_parser(u8_input in)
     case '{': return parse_qchoice(in);
     case '[': return parse_slotmap(in);
     case '*': {
-      int nextc=u8_getc(in); int hex=0; fdtype result;
-      if (nextc=='X') {hex=1; nextc=u8_getc(in);}
-      if (nextc!='"') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
-      if (hex)
-        result=parse_hex_packet(in);
-      else result=parse_packet(in);
-      FD_SET_CONS_TYPE(result,fd_secret_type);
+      int nextc=u8_getc(in);
+      fdtype result=parse_packet(in,nextc);
+      if (FD_PACKETP(result)) {
+        FD_SET_CONS_TYPE(result,fd_secret_type);}
       return result;}
-    case 'X': {
-      int nextc=u8_getc(in); fdtype result;
-      if (nextc!='"') {
-        fd_seterr(fd_ParseError,"fd_parser","invalid hex packet",
-                  FD_VOID);
-        return FD_PARSE_ERROR;}
-      result=parse_hex_packet(in);
-      return result;}
-    case '"': return parse_packet(in);
+    case 'X': case 'x': case '"': {
+      return parse_packet(in,ch);}
     case '/': return parse_regex(in);
     case '<':
       return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
