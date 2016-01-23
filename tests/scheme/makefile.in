@@ -29,12 +29,12 @@ exec_prefix	= @exec_prefix@
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
-#RUNENV		= LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib 
+RUNENV		= LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib 
 VALGRIND	= INVALGRIND=yes MEMCHECKING=yes valgrind --tool=memcheck --num-callers=9
 VALGRINDHEAP	= INVALGRIND=yes MEMCHECKING=yes valgrind --tool=memcheck --leak-check=yes --num-callers=9
 TESTPROG	= 
 TESTENV		= @TESTENV@
-RUNENV		= 
+#RUNENV		= 
 TESTSIZE	= 64
 TESTCONFIG	= 
 RUNTEST		= $(TESTENV) $(RUNENV)$(TESTPROG)
@@ -104,6 +104,7 @@ schemetests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) threadtest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) i18n.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) misctest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cryptotest.scm
 	@echo "*** Completed scheme tests to exercise the data/eval layer"
 
 optall:
