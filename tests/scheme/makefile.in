@@ -42,7 +42,9 @@ DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
 
 TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdservlet fdcgiexec # fdsh
 
-all: $(TESTBIN) 
+default: alltests
+
+testbin: $(TESTBIN) 
 
 %.o: %.c
 	@$(CC) $(CFLAGS) -o $@ -c $<

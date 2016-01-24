@@ -504,7 +504,7 @@ dbtestbin: libs tests/db/makefile tests/db/.gdbinit
 		-C tests/db
 schemetestbin: libs tests/scheme/makefile tests/scheme/.gdbinit src/exe/main.h
 	@make -s  XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
-		-C tests/scheme 
+		-C tests/scheme testbin
 exe: $(EXECUTABLES) exe/.gdbinit
 static-exe: $(STATIC_EXECUTABLES)
 
