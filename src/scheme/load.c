@@ -160,7 +160,7 @@ FD_EXPORT fdtype fd_load_source
                 last_expr);
       record_error_source(sourceid);
       fd_decref(result); /* This is the previous result */
-      fd_decref(last_expr); last_expr=FD_VOID;
+      last_expr=FD_VOID;
       /* This is now also the result */
       result=expr; fd_incref(expr);}
     else if (FD_ABORTP(expr)) {
