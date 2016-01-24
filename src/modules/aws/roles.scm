@@ -12,6 +12,7 @@
 (module-export! '{ec2/credentials ec2/role!})
 
 (define aws/role #f)
+(define aws/userole #f)
 
 (define-init credentials-cache (make-hashtable))
 
@@ -57,15 +58,17 @@
 
 (define (ec2/role! role (version "latest") (error #f))
   (if (not version) (set! version "latest"))
-  (let* ((creds (ec2/credentials role error)))
-    (when creds
+  (if (and aws/secret (not aws/token))
       (set! aws/role role)
-      (aws/creds! (get creds 'aws:key)
-		  (->secret (get creds 'aws:secret))
-		  (get creds 'aws:token)
-		  (get creds 'aws:expires)
-		  (lambda () (ec2/role! role))))
-    (and creds aws/key)))
+      (let* ((creds (ec2/credentials role error)))
+	(when creds
+	  (set! aws/role role)
+	  (aws/creds! (get creds 'aws:key)
+		      (->secret (get creds 'aws:secret))
+		      (get creds 'aws:token)
+		      (get creds 'aws:expires)
+		      (lambda () (ec2/role! role))))
+	(and creds aws/key))))
 
 (config-def! 'aws:role
 	     (lambda (var (value))
