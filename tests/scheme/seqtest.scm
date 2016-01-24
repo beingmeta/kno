@@ -293,8 +293,8 @@
 (applytest #t equal? #"foobar889" #x"666f6f626172383839")
 (applytest "Zm9vYmFyODg5" packet->base64  #"foobar889")
 (applytest "666F6F626172383839" packet->base16  #"foobar889")
-(applytest #t equal? #"foobar889" #X@"Zm9vYmFyODg5")
-(applytest #t equal? #"foobar889" #x@"Zm9vYmFyODg5")
+(applytest #t equal? #"foobar889" #@"Zm9vYmFyODg5")
+(applytest #t equal? #"foobar889" #@"Zm9vYmFyODg5")
 
 (define (parsefail string)
   (onerror (begin (string->lisp 
@@ -306,8 +306,8 @@
 ;; Check that parsing fails, too
 (applytest #f parsefail "#X“33ff”")
 (applytest #t parsefail "#X“3z3ff”")
-(applytest #f parsefail "#X@“M/8=”")
-(applytest #t parsefail "#X@“M/_8=”")
-(applytest #t parsefail "#X@“_M/8=”")
+(applytest #f parsefail "#@“M/8=”")
+(applytest #t parsefail "#@“M/_8=”")
+(applytest #t parsefail "#@“_M/8=”")
 
 (message "SEQTEST successfuly completed")

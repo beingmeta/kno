@@ -54,6 +54,7 @@ fd_exception fd_ParseArgError=_("External LISP argument parse error");
 fd_exception fd_CantUnparse=_("LISP expression unparse error");
 fd_exception fd_CantParseRecord=_("Can't parse record object");
 fd_exception fd_MismatchedClose=_("Expression open/close mismatch");
+fd_exception fd_UnterminatedBlockComment=_("Unterminated block (#|..|#) comment");
 
 int fd_unparse_maxelts=0;
 int fd_unparse_maxchars=0;
@@ -76,6 +77,9 @@ static int skip_whitespace(u8_input s)
     if (c==';') {
       while ((c>=0) && (c != '\n')) c=u8_getc(s);
       if (c<0) return -1;}
+    else if ((c=='#')&&(u8_peekc(s)<0)) {
+      u8_ungetc(s,c); 
+      return c;}
     else if ((c=='#') && (u8_probec(s)=='|')) {
       int bar=0; c=u8_getc(s);
       while ((c=u8_getc(s))>=0)
@@ -218,7 +222,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
   else if (fd_packet_outfmt==64) {
     int n_chars=0;
     char *b64=u8_write_base64(bytes,len,&n_chars);
-    u8_puts(out,"#X@\"");
+    u8_puts(out,"#@\"");
     u8_putn(out,b64,n_chars);
     u8_free(b64);
     return u8_putc(out,'"');}
@@ -914,13 +918,13 @@ static fdtype parse_packet(U8_INPUT *in,int nextc)
     return parse_ascii_packet(in);
   else if ((nextc=='X')||(nextc=='x')) {
     int nc=u8_getc(in);
-    if (nc=='@') {
-      nc=u8_getc(in);
-      if (nc=='"') return parse_base64_packet(in);
-      else {
-        u8_seterr(fd_MissingOpenQuote,"parse_packet",NULL);
-        return FD_PARSE_ERROR;}}
-    else if (nc=='"') return parse_hex_packet(in);
+    if (nc=='"') return parse_hex_packet(in);
+    else {
+      u8_seterr(fd_MissingOpenQuote,"parse_packet",NULL);
+      return FD_PARSE_ERROR;}}
+  else if (nextc=='@') {
+    int nc=u8_getc(in);
+    if (nc=='"') return parse_base64_packet(in);
     else {
       u8_seterr(fd_MissingOpenQuote,"parse_packet",NULL);
       return FD_PARSE_ERROR;}}
@@ -1285,7 +1289,7 @@ fdtype fd_parser(u8_input in)
   if (inchar<0) {
     if (inchar==-1) return FD_EOX;
     else return FD_PARSE_ERROR;}
-  switch (inchar) {
+  else switch (inchar) {
   case ')': case ']': case '}': {
     u8_getc(in); /* Consume the character */
     return fd_err(fd_ParseError,"unexpected terminator",
@@ -1338,19 +1342,30 @@ fdtype fd_parser(u8_input in)
     switch (ch) {
     case '(': return parse_vector(in);
     case '~': {
-      ch=u8_getc(in);
+      ch=u8_getc(in); if (ch<0) return FD_EOX;
       if (ch!='(') return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
       return parse_rail(in);}
     case '{': return parse_qchoice(in);
     case '[': return parse_slotmap(in);
+    case '|': {
+      int bar=0;
+      /* Skip block #|..|# comment */
+      while ((ch=u8_getc(in))>=0)
+        if (ch=='|') bar=1;
+        else if ((bar) && (ch=='#')) break;
+        else bar=0;
+      if (ch<0) {
+        u8_seterr(fd_UnterminatedBlockComment,"fd_parser",NULL);
+        return FD_PARSE_ERROR;}
+      else return fd_parser(in);}
     case '*': {
       int nextc=u8_getc(in);
       fdtype result=parse_packet(in,nextc);
       if (FD_PACKETP(result)) {
         FD_SET_CONS_TYPE(result,fd_secret_type);}
       return result;}
-    case 'X': case 'x': case '"': {
-      return parse_packet(in,ch);}
+    case 'X': case 'x': case '@': case '"':
+      return parse_packet(in,ch);
     case '/': return parse_regex(in);
     case '<':
       return fd_err(fd_ParseError,"fd_parser",NULL,FD_VOID);
