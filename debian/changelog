@@ -1,3 +1,12 @@
+framerd (3.8.4-29) unstable; urgency=low
+
+  * Add #@"..." base64 parsing for packets
+  * Fix double GC issue in some parse error reporting
+  * Don't override general credentials with temporary role credentials
+  * git patch version framerd-3.8.4-33
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 24 Jan 2016 21:55:48 +0000
+
 framerd (3.8.4-28) unstable; urgency=low
 
   * Extended packet parsing and unparsing
