@@ -1,3 +1,10 @@
+framerd (3.8.4-30) unstable; urgency=low
+
+  * Fix bug in LOADMODULE config
+  * git patch version framerd-3.8.4-35
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 25 Jan 2016 22:14:00 +0000
+
 framerd (3.8.4-29) unstable; urgency=low
 
   * Add #@"..." base64 parsing for packets
