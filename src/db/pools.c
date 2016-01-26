@@ -1625,12 +1625,16 @@ fd_pool fd_make_extpool(u8_string label,
 static fdtype extpool_fetch(fd_pool p,fdtype oid)
 {
   struct FD_EXTPOOL *xp=(fd_extpool)p;
-  fdtype state=xp->state, value;
-  if ((FD_VOIDP(state))||(FD_FALSEP(state)))
-    value=fd_apply(xp->fetchfn,1,&oid);
+  fdtype state=xp->state, value, fetchfn=xp->fetchfn;
+  struct FD_FUNCTION *fptr=((FD_FUNCTIONP(fetchfn))?
+                            ((struct FD_FUNCTION *)fetchfn):
+                            (NULL));
+  if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+      ((fptr)&&(fptr->arity==1)))
+    value=fd_apply(fetchfn,1,&oid);
   else {
     fdtype args[2]; args[0]=oid; args[1]=state;
-    value=fd_apply(xp->fetchfn,2,args);}
+    value=fd_apply(fetchfn,2,args);}
   if (FD_ABORTP(value)) return value;
   else if ((FD_EMPTY_CHOICEP(value))||(FD_VOIDP(value)))
     if ((p->flags)&FD_OIDHOLES_OKAY)
@@ -1647,16 +1651,20 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
   struct FD_EXTPOOL *xp=(fd_extpool)p;
   struct FD_VECTOR vstruct; fdtype vecarg;
   fdtype state=xp->state, fetchfn=xp->fetchfn, value=FD_VOID;
+  struct FD_FUNCTION *fptr=((FD_FUNCTIONP(fetchfn))?
+                            ((struct FD_FUNCTION *)fetchfn):
+                            (NULL));
   if (!(xp->flags&(FD_POOL_BATCHABLE))) return NULL;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.length=n; vstruct.data=oids;
   vstruct.freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);
-  if ((FD_VOIDP(state))||(FD_FALSEP(state)))
-    value=fd_apply(xp->fetchfn,1,&vecarg);
+  if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+      ((fptr)&&(fptr->arity==1)))
+    value=fd_apply(fetchfn,1,&vecarg);
   else {
     fdtype args[2]; args[0]=vecarg; args[1]=state;
-    value=fd_apply(xp->fetchfn,2,args);}
+    value=fd_apply(fetchfn,2,args);}
   if (FD_ABORTP(value)) return NULL;
   else if (FD_VECTORP(value)) {
     struct FD_VECTOR *vstruct=(struct FD_VECTOR *)value;
@@ -1669,7 +1677,8 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
     return results;}
   else {
     fdtype *values=u8_alloc_n(n,fdtype);
-    if ((FD_VOIDP(state))||(FD_FALSEP(state))) {
+    if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+        ((fptr)&&(fptr->arity==1))) {
       int i=0; while (i<n) {
         fdtype oid=oids[i];
         fdtype value=fd_apply(fetchfn,1,&oid);

@@ -1061,12 +1061,16 @@ fd_index fd_make_extindex
 static fdtype extindex_fetch(fd_index p,fdtype oid)
 {
   struct FD_EXTINDEX *xp=(fd_extindex)p;
-  fdtype state=xp->state, value;
-  if ((FD_VOIDP(state))||(FD_FALSEP(state)))
-    value=fd_apply(xp->fetchfn,1,&oid);
+  fdtype state=xp->state, fetchfn=xp->fetchfn, value;
+  struct FD_FUNCTION *fptr=((FD_FUNCTIONP(fetchfn))?
+                            ((struct FD_FUNCTION *)fetchfn):
+                            (NULL));
+  if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+      ((fptr)&&(fptr->arity==1)))
+    value=fd_apply(fetchfn,1,&oid);
   else {
     fdtype args[2]; args[0]=oid; args[1]=state;
-    value=fd_apply(xp->fetchfn,2,args);}
+    value=fd_apply(fetchfn,2,args);}
   return value;
 }
 
@@ -1078,11 +1082,15 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
   struct FD_EXTINDEX *xp=(fd_extindex)p;
   struct FD_VECTOR vstruct; fdtype vecarg;
   fdtype state=xp->state, fetchfn=xp->fetchfn, value=FD_VOID;
+  struct FD_FUNCTION *fptr=((FD_FUNCTIONP(fetchfn))?
+                            ((struct FD_FUNCTION *)fetchfn):
+                            (NULL));
   if (!((p->flags)&(FD_INDEX_BATCHABLE))) return NULL;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.length=n; vstruct.data=keys; vstruct.freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);
-  if ((FD_VOIDP(state))||(FD_FALSEP(state)))
+  if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+      ((fptr)&&(fptr->arity==1)))
     value=fd_apply(xp->fetchfn,1,&vecarg);
   else {
     fdtype args[2]; args[0]=vecarg; args[1]=state;
@@ -1099,7 +1107,8 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
     return results;}
   else {
     fdtype *values=u8_alloc_n(n,fdtype);
-    if (FD_VOIDP(state)) {
+    if ((FD_VOIDP(state))||(FD_FALSEP(state))||
+        ((fptr)&&(fptr->arity==1))) {
       int i=0; while (i<n) {
         fdtype key=keys[i];
         fdtype value=fd_apply(fetchfn,1,&key);
