@@ -645,9 +645,11 @@ static int loadmodule_sandbox_config_set(fdtype var,fdtype val,void *ignored)
 {
   if (FD_FALSEP(val)) {
     if (!(loadmodule_sandbox)) return 0;
-    else fd_seterr("Can't reset LOADMODULE:SANDBOX",
-                   "loadmodule_sandbox_config_set",NULL,
-                   val);}
+    else {
+      fd_seterr("Can't reset LOADMODULE:SANDBOX",
+                "loadmodule_sandbox_config_set",NULL,
+                val);
+      return -1;}}
   else {
     if (loadmodule_sandbox) return 0;
     else {
