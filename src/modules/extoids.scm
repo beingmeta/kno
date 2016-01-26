@@ -193,7 +193,8 @@
 			      (extdb/proc db query
 					  (if (getopt sqlmap '%merge) sqlmap
 					      (cons #[%merge #t] sqlmap))
-					  (pool-base pool)) cache)))
+					  (pool-base pool))
+			      cache)))
     (store! get-indices (cons pool slotid) index)
     (use-adjunct index slotid pool)))
 
