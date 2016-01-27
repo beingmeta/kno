@@ -58,17 +58,21 @@
 
 (define (ec2/role! role (version "latest") (error #f))
   (if (not version) (set! version "latest"))
-  (if (and aws/secret (not aws/token))
-      (set! aws/role role)
-      (let* ((creds (ec2/credentials role error)))
-	(when creds
-	  (set! aws/role role)
-	  (aws/set-creds! (get creds 'aws:key)
-			  (->secret (get creds 'aws:secret))
-			  (get creds 'aws:token)
-			  (get creds 'aws:expires)
-			  (lambda () (ec2/role! role))))
-	(and creds aws/key))))
+  (if (position #\| role)
+      (let ((success #f))
+	(dolist (role (segment success "|"))
+	  (unless success (set! success (ec2/role! role)))))
+      (if (and aws/secret (not aws/token))
+	  (begin (set! aws/role role) #t)
+	  (let* ((creds (ec2/credentials role error)))
+	    (when creds
+	      (set! aws/role role)
+	      (aws/set-creds! (get creds 'aws:key)
+			      (->secret (get creds 'aws:secret))
+			      (get creds 'aws:token)
+			      (get creds 'aws:expires)
+			      (lambda () (ec2/role! role))))
+	    (and creds aws/key)))))
 
 (config-def! 'aws:role
 	     (lambda (var (value))
