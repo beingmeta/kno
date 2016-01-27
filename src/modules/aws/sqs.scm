@@ -95,36 +95,36 @@
     (store! args "WaitTimeSeconds" (getopt opts 'wait)))
   (when (getopt opts 'reserve)
     (store! args "VisibilityTimeout" (getopt opts 'reserve)))
-  (handle-sqs-response (aws/v4/op (get-queue-opts queue opts) "GET" queue args)))
+  (handle-sqs-response (aws/v4/op (get-queue-opts queue opts) "GET" queue opts args)))
 
 (define (sqs/send queue msg (opts #[]) (args `#["Action" "SendMessage"]))
   (store! args "MessageBody" msg)
   (when (getopt opts 'delay) (store! args "DelaySeconds" (getopt opts 'delay)))
-  (handle-sqs-response (aws/v4/get (get-queue-opts queue opts) queue args)))
+  (handle-sqs-response (aws/v4/get (get-queue-opts queue opts) queue opts args)))
 
 (define (sqs/list (prefix #f) (args #["Action" "ListQueues"]) (opts #[]))
   (when prefix (set! args `#["Action" "ListQueues" "QueueNamePrefix" ,prefix]))
-  (handle-sqs-response (aws/v4/get (get-queue-opts #f opts) sqs-endpoint args)))
+  (handle-sqs-response (aws/v4/get (get-queue-opts #f opts) sqs-endpoint opts args)))
 
 (define (sqs/info queue
 		  (args #["Action" "GetQueueAttributes" "AttributeName.1" "All"])
 		  (opts #[]))
-  (handle-sqs-response (aws/v4/get (get-queue-opts queue opts) queue args)
+  (handle-sqs-response (aws/v4/get (get-queue-opts queue opts) queue opts args)
 		       (qc sqs-info-fields)))
 
-(define (sqs/delete message)
+(define (sqs/delete message (opts #[]))
   (handle-sqs-response
    (aws/v4/get (get-queue-opts (get message 'queue))
-	     (get message 'queue)
-	     `#["Action" "DeleteMessage" "ReceiptHandle" ,(get message 'handle)])))
+	       (get message 'queue) opts
+	       `#["Action" "DeleteMessage" "ReceiptHandle" ,(get message 'handle)])))
 
-(define (sqs/extend message secs)
+(define (sqs/extend message secs (opts #[]))
   (handle-sqs-response
    (aws/v4/get (get-queue-opts (get message 'queue))
-	     (get message 'queue)
-	     `#["Action" "ChangeMessageVisibility"
-		"ReceiptHandle" ,(get message 'handle)
-		"VisibilityTimeout" ,secs])))
+	       (get message 'queue) opts
+	       `#["Action" "ChangeMessageVisibility"
+		  "ReceiptHandle" ,(get message 'handle)
+		  "VisibilityTimeout" ,secs])))
 
 (define reqvar '_sqs)
 (define default-extension 60)
