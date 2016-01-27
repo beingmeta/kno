@@ -26,6 +26,7 @@
 (define *override-data*
   '{("text/cache-manifest" "manifest")
     ("text/html" "html" "htm")
+    ("text/config" "cfg")
     ("application/xhtml+xml" "xhtml")
     ;;("text/html" "xhtml")
     ("application/zip" "zip" "ZIP")
@@ -58,7 +59,7 @@
     ("application/epub+zip" "epub")})
 
 (define *mimetable-data*  ;; From Unix mimetable
-  '{("text/csv" "csv")		    
+  '{("text/csv" "csv")
     ("video/dl" "dl")		    
     ("video/dv" "dif" "dv")		    
     ("video/gl" "gl")		    
