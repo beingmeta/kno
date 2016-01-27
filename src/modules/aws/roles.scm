@@ -7,7 +7,7 @@
 	      ezrecords rulesets logger varconfig})
 (define %used_modules '{aws varconfig ezrecords rulesets})
 
-(define %loglevel %warn%)
+(define-init %loglevel %notice%)
 
 (module-export! '{ec2/credentials ec2/role!})
 
@@ -28,10 +28,10 @@
 	 (type (get response 'content-type)))
     (if (= status 200)
 	(debug%watch (jsonparse (get response '%content)) response)
-	(if error
+	(if (and error (not (number? error)))
 	    (irritant response |BadEC2DataResponse| ec2/credentials)
 	    (begin (logwarn |EC2 Credentials failed| url " status " status)
-		  #f)))))
+	      #f)))))
 
 (define (ec2/credentials role (error #f) (cached))
   (set! cached (try (get credentials-cache role) #f))
@@ -39,9 +39,11 @@
 	   (or (not (test cached 'aws:expires))
 	       (time<? (timestamp+ 180)
 		       (timestamp (get cached 'aws:expires)))))
-      (begin (logdebug |AWS/Credentials| 
+      (begin (logdebug |EC2/Credentials| 
 	       "Using cached credentials for '" role ",' "
-	       "expiring " (get cached 'aws:expires))
+	       "expiring in "
+	       (secs->string (difftime (get cached 'aws:expires)))
+	       " @" (get cached 'aws:expires))
 	cached)
       (let* ((fresh (get-credentials role error))
 	     (result (tryif fresh
@@ -50,9 +52,12 @@
 			 'aws:secret (->secret (get fresh 'secretaccesskey))
 			 'aws:expires (timestamp (get fresh 'expiration))
 			 'aws:token (get fresh 'token)))))
-	(loginfo |AWS/NewCredentials| 
-	  "Got new credentials for '" role "'\n "
-	  (pprint result))
+	(when (and (exists? result) result)
+	  (if (log>? %notice%)
+	      (loginfo |EC2/Credentials| 
+		"Got credentials for '" role "'\n "
+		(pprint result))
+	      (lognotice |EC2/Credentials| "Got credentials for '" role "'")))
 	(store! credentials-cache role result)
 	result)))
 
@@ -60,12 +65,27 @@
   (if (not version) (set! version "latest"))
   (if (position #\| role)
       (let ((success #f))
-	(dolist (role (segment success "|"))
+	(loginfo |EC2SearchRoles| "Searching roles " role)
+	(dolist (role (segment role "|"))
 	  (unless success (set! success (ec2/role! role)))))
       (if (and aws/secret (not aws/token))
-	  (begin (set! aws/role role) #t)
-	  (let* ((creds (ec2/credentials role error)))
+	  (begin
+	    (logwarn |EC2KeepingCredentials|
+	      "Keeping existing AWS credentials with key " aws/key)
+	    (set! aws/role role)
+	    #t)
+	  (let* ((creds (try (ec2/credentials role error) #f)))
+	    (unless creds
+	      (loginfo |AWS/ROLE| "Couldn't get credentials for " role))
 	    (when creds
+	      (if (test creds 'aws:expires)
+		  (lognotice |AWS/ROLE|
+		    "==" role "== with key " (get creds 'aws:key) " and "
+		    "token expiring in "
+		    (secs->string (difftime (get creds 'aws:expires)))
+		    " @"  (get creds 'aws:expires))
+		  (lognotice |AWS/ROLE|
+		    role " with key=" (get creds 'aws:key) ", no expiration"))
 	      (set! aws/role role)
 	      (aws/set-creds! (get creds 'aws:key)
 			      (->secret (get creds 'aws:secret))
