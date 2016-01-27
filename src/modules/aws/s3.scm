@@ -443,7 +443,7 @@
 
 ;;; Getting signed URIs
 
-(define (signeduri bucket path (scheme s3scheme)
+(define (signeduri bucket path (scheme s3scheme) (opts #f)
 		   (expires (* 17 3600))
 		   (op "GET") (headers '())
 		   (usepath))
@@ -471,7 +471,7 @@
 			   "X-Amz-Date"}
 		  %headers host
 		  "X-Amz-Expires" ,(max (inexact->exact (floor seconds)) 0)]
-	       op endpoint #f #f)))
+	       op endpoint opts #f #f)))
     (scripturl endpoint
 	"X-Amz-Credential" (get req "X-Amz-Credential") 
 	"X-Amz-SignedHeaders" (get req "X-Amz-SignedHeaders")
@@ -489,7 +489,7 @@
 	     (opts (tryif (and (table? optarg) (not (timestamp? optarg)))
 		     optarg))
 	     (s3loc (->s3loc arg)))
-	(signeduri (s3loc-bucket s3loc) (s3loc-path s3loc)
+	(signeduri (s3loc-bucket s3loc) (s3loc-path s3loc) opts
 		   (try (getopt opts 'scheme {})
 			(intersection optarg {"http://" "https://"})
 			(glom (intersection optarg {"http:" "https:"}) "//")
