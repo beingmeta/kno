@@ -466,6 +466,7 @@
 	       `#[%params {"X-Amz-Credential" 
 			   "X-Amz-SignedHeaders"
 			   "X-Amz-Algorithm"
+			   "X-Amz-Security-Token"
 			   "X-Amz-Expires"
 			   "X-Amz-Date"}
 		  %headers host
@@ -477,6 +478,7 @@
 	"X-Amz-Algorithm" (get req "X-Amz-Algorithm")
 	"X-Amz-Expires" (get req "X-Amz-Expires")
 	"X-Amz-Date" (get req "X-Amz-Date")
+	"X-Amz-Security-Token" (get req "X-Amz-Security-Token")
 	"X-Amz-Signature" 
 	(downcase (packet->base16 (get req 'signature))))))
 (define (s3/signeduri arg . args)

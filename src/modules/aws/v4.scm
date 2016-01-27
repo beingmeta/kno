@@ -221,6 +221,7 @@
 		       (get (text->frames service-pat host) 'service)
 		       default-service))
 	 (awskey (getopt req 'aws:key (getopt opts 'aws:key aws/key)))
+	 (awstoken (getopt req 'aws:token (getopt opts 'aws:token aws/token)))
 	 (credential (glom awskey "/"
 		       (get date 'isobasicdate) "/"
 		       region "/" service "/aws4_request")))
@@ -233,6 +234,8 @@
       (store! req "X-Amz-Credential" credential))
     (when (test req '%params "X-Amz-SignedHeaders")
       (store! req "X-Amz-SignedHeaders" (signed-headers req)))
+    (when (and (test req '%params "X-Amz-Security-Token") awstoken)
+      (store! req "X-Amz-Security-Token" awstoken))
     (let* ((cq (canonical-query-string req))
 	   (ch (canonical-headers req))
 	   (sh (signed-headers req))
@@ -245,7 +248,6 @@
 	   (string-to-sign (get-string-to-sign date region service creq))
 	   (secret (getopt req 'aws:secret aws/secret))
 	   (signing-key (derive-key secret date region service))
-	   (awskey (getopt req 'aws:key aws/key))
 	   (signature (hmac-sha256 signing-key string-to-sign)))
       (loginfo AWS/V4/PREPARE (write method) " " uri 
 	       (if (and payload (> (length payload) 0))
@@ -257,6 +259,7 @@
 	       "\n  req=" (write creq)
 	       "\n  sts=" (write string-to-sign))
       (store! req 'aws:key awskey)
+      (when awstoken (store! req 'aws:token awstoken))
       (store! req 'signature signature)
       (store! req 'region region)
       (store! req 'service service)
