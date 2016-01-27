@@ -4,7 +4,9 @@
 ;;; Core file for accessing Amazon Web Services
 (in-module 'aws)
 
-(use-module '{logger texttools})
+(use-module '{logger texttools fdweb})
+
+(define-init %loglevel %notice%)
 
 (define %nosubst '{aws/account
 		   aws/key aws/secret
@@ -12,7 +14,7 @@
 
 (module-export! 
  '{aws/account aws/key aws/secret aws/token aws/expires 
-   aws/ok? aws/checkok aws/creds!
+   aws/ok? aws/checkok aws/set-creds! aws/creds!
    aws/datesig aws/datesig/head})
 
 ;; Default (non-working) values from the online documentation
@@ -82,10 +84,34 @@
 	  (set! aws/expires (get refreshed 'aws:expires)))
 	refreshed)))
 
-(define (aws/creds! key secret (token #f) (expires #f) (refresh #f))
+(define (aws/set-creds! key secret (token #f) (expires #f) (refresh #f))
+  (info%watch "AWS/SET-CREDS!" key secret token expires refresh)
   (set! aws/key key)
   (set! aws/secret secret)
   (set! aws/token token)
   (set! aws/expires expires)
   (set! aws/refresh refresh))
+
+(define (aws/creds! arg)
+  (let* ((spec (if (string? arg)
+		   (if (has-prefix arg {"https:" "http:"})
+		       (urlcontent arg)
+		       (if (has-prefix arg { "/" "~/" "./"})
+			   (onerror (filestring arg)
+			     (lambda (x) (filedata arg)))
+			   arg))
+		   arg))
+	 (creds (if (string? spec) (jsonparse spec)
+		    (if (packet? spec) (packet->dtype spec)
+			spec))))
+    (aws/set-creds! (try (get creds 'aws:key) (get creds 'accesskeyid))
+		    (try (->secret (get creds 'aws:secret))
+			 (->secret (get creds 'secretaccesskey)))
+		    (try (get creds 'aws:token)
+			 (get creds 'token)
+			 #f)
+		    (try (get creds 'aws:expires) (get creds 'expiration) #f)
+		    #f)
+    creds))
+
 
