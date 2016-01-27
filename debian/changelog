@@ -1,3 +1,15 @@
+framerd (3.8.4-31) unstable; urgency=low
+
+  * Made extpools and extindices more robust in some cases
+  * Renamed lower level aws/set-creds! and use aws/creds! for higher level
+    credential selection
+  * Got signeduris to work with temporary credentials
+  * Add alternative roles (e.g. devhost|worker|fallback) for AWS
+  * Add mimetype for .cfg files
+  * git patch version framerd-3.8.4-44
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 27 Jan 2016 14:16:26 +0000
+
 framerd (3.8.4-30) unstable; urgency=low
 
   * Fix bug in LOADMODULE config
