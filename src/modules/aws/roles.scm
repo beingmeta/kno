@@ -91,7 +91,7 @@
 			      (->secret (get creds 'aws:secret))
 			      (get creds 'aws:token)
 			      (get creds 'aws:expires)
-			      (lambda () (ec2/role! role))))
+			      (lambda args (ec2/role! role))))
 	    (and creds aws/key)))))
 
 (config-def! 'aws:role
