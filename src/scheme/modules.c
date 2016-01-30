@@ -252,7 +252,8 @@ static fd_lispenv become_module
   else {
     module=module_spec;
     fd_incref(module);}
-  if ((!(create))&&(FD_VOIDP(module))) {
+  if (FD_ABORTP(module)) return NULL;
+  else if ((!(create))&&(FD_VOIDP(module))) {
     fd_seterr(fd_NoSuchModule,"become_module",NULL,module_spec);
     fd_decref(module);
     return NULL;}
@@ -274,6 +275,9 @@ static fd_lispenv become_module
     fd_store(env->exports,moduleid_symbol,module_spec);
     fd_register_module(FD_SYMBOL_NAME(module_spec),(fdtype)env,
                        ((safe) ? (FD_MODULE_SAFE) : (0)));}
+  else {
+    fd_seterr(fd_NotAModule,"use_module",NULL,module_spec);
+    return NULL;}
   fd_decref(module); fd_decref(module_spec);
   return env;
 }
