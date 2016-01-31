@@ -1,5 +1,5 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2015 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2016 beingmeta, inc.  All rights reserved.
 
 ;;; Uses the FramerD option functions but caches the default value.
 (in-module 'saveopt)

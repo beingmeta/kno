@@ -1,5 +1,5 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
-;;; Copyright (C) 2005-2015 beingmeta, inc.  All rights reserved.
+;;; Copyright (C) 2005-2016 beingmeta, inc.  All rights reserved.
 
 ;;; Natural language analysis (with textindex) of DOM nodes
 
