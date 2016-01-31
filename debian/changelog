@@ -1,8 +1,16 @@
+framerd (3.8.4-35) unstable; urgency=low
+
+  * Fixes to signeduri
+  * Bumped copyright year, changed old FDB references
+  * git patch version 3.8.4-57
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 31 Jan 2016 01:33:15 +0000
+
 framerd (3.8.4-34) unstable; urgency=low
 
   * provide better errors for module expressions
   * have s3/push handle encoding/type mismatches
-  * git patch version framerd-3.8.4052
+  * git patch version framerd-3.8.4-52
 
  -- Ken Haase <kh@beingmeta.com>  Sat, 30 Jan 2016 19:31:42 +0000
 
