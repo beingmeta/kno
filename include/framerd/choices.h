@@ -1,20 +1,20 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2015 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright
+/* Copyright (C) 2004-2016 beingmeta, inc.
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
-/* Choices in FDB/FramerD
+/* Choices in FramerD
 
-   Choices are a central datatype in FDB/FramerD and used throughout
+   Choices are a central datatype in FramerD and used throughout
    the representation, inference, and scripting components.  As data
    structures, choices are basically *sets*: unordered collections of
    elements without duplication.  They are called choices because of
    their central role in inference and non-deterministic evaluation,
    where they describe alternate compute paths.
 
-   As implemented in FDB/FramerD, there are two basic kinds of choices:
+   As implemented in FramerD, there are two basic kinds of choices:
    simple choices and accumulating choices.  Simple choices are immutable
    collections of lisp objects, represented by simple vectors;
    accumulating choices are more complex structures designed to support

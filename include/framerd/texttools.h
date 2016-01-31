@@ -1,11 +1,11 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2005-2015 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright
+/* Copyright (C) 2005-2016 beingmeta, inc.
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
-/* This file supports various text processing primitives for FDB.
+/* This file supports various text processing primitives for FramerD.
    The central piece is a text pattern matcher implemented in
    src/texttools/match.c. */
 

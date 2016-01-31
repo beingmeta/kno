@@ -7,7 +7,7 @@
    Extended exentsively by Ken Haase at beingmeta, inc.
 
    Copyright (C) 1999 Massachusetts Institute of Technology
-   Copyright (C) 1999-2015 beingmeta,inc 
+   Copyright (C) 1999-2016 beingmeta,inc 
 
 */
 
@@ -17,14 +17,14 @@
 
 /* MATCHER DOCUMENTATION
 
-   The FDB text matcher provides a powerful and versatile text
+   The FramerD text matcher provides a powerful and versatile text
    analysis facility designed to support natural readability and
    writablity and to enable and encourage the development of software
    and layered tools which are readily extensible and maintainable.
 
    TEXT PATTERNS
 
-   FDB text patterns are compound LISP objects which describe textual
+   FramerD text patterns are compound LISP objects which describe textual
    patterns and are applied against UTF-8 string representations.  The
    use of compound lisp objects simplifies both execution (since the
    pattern is pre-parsed) and readability, since tokens are clearly
@@ -104,7 +104,7 @@
 
    MATCHER INTERNALS
 
-   The matcher makes extensive use FDB's choice data structure
+   The matcher makes extensive use FramerD's choice data structure
    to represent multiple parses internally and externally.  The basic
    match and extract functions return lisp objects (type fdtype)
    in order to allow them to return ambiguous values.  For example

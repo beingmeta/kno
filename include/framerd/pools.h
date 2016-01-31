@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2015 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright
+/* Copyright (C) 2004-2016 beingmeta, inc.
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -37,7 +37,7 @@
    of possible OIDs in the pool).
 
    As mentioned above, many implementations work by identifying *buckets*
-   within the OID address space.  In FDB, for instance, there are 1024
+   within the OID address space.  In FramerD, for instance, there are 1024
    buckets, each with a capacity of 1,048,576 (2^20) OIDs.  A fixed
    vector of data structures maps each bucket into either a source pool
    or a "glue pool" which contains pointers to smaller source pools
@@ -60,7 +60,7 @@
        the string prefix syntax, e.g. @/brico/3b94 indicating
        the OID @1/3b94 when the 'brico' pool's based is @1/0.
 
-   In FDB, all pools have three additional tables associated with them:
+   In FramerD, all pools have three additional tables associated with them:
     * cache: stores values fetched for particular OIDs.
     * locks: stores values being modified for particular OIDs and locked in
        the pool's source.

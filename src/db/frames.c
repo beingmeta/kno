@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2015 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright
+/* Copyright (C) 2004-2016 beingmeta, inc.
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -362,7 +362,7 @@ static int overlay_config_set(fdtype ignored,fdtype v,void *vptr)
 
 /* How it works:
 
-    FramerD/FDB inference operations rely on a dynamic *operations
+    FramerD inference operations rely on a dynamic *operations
      stack* which serves multipe roles.  The operations stack was
      first introduced to handle the infinite recurrences which
      commonly occur when inference methods refer to one another.  It

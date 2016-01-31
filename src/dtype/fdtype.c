@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2015 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright
+/* Copyright (C) 2004-2016 beingmeta, inc.
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -110,7 +110,7 @@ FD_EXPORT void fd_init_pptrs_c(void);
 
 FD_EXPORT void fd_boot_message()
 {
-  u8_message("Copyright (C) beingmeta 2004-2015, all rights reserved");
+  u8_message("Copyright (C) beingmeta 2004-2016, all rights reserved");
   u8_message("(%s:%ld) %s %s",u8_appid(),getpid(),
              fd_getrevision(),u8_getrevision());
 }

@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2015 beingmeta, inc.
-   This file is part of beingmeta's FDB platform and is copyright
+/* Copyright (C) 2004-2016 beingmeta, inc.
+   This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
@@ -10,7 +10,7 @@
     CONSES are dynamically allocated structures used by fdb for compound
     objects.  CONSES can be any kind of structure, providing only that the
     first four bytes, an unsigned int called the "consbits," be reserved
-    for FDB's typing and reference counting information.  The lower seven
+    for FramerD's typing and reference counting information.  The lower seven
     bits of this header contain type information; the reset contain a
     reference count which is used for reclaiming structures which are no
     longer needed.

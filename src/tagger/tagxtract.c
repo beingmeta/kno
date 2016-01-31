@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* tagxtract.c
-   Copyright (C) 2005-2015 beingmeta, inc.
+   Copyright (C) 2005-2016 beingmeta, inc.
    This file implements primitives for pulling patterns out of tagged parses
 */
 

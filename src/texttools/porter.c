@@ -8,14 +8,14 @@
    Minor changes to algorithm are commented.
 
    Copyright (C) 1998, 1999 Massachusetts Institute of Technology
-   Copyright (C) 2000-2015 beingmeta, inc.
+   Copyright (C) 2000-2016 beingmeta, inc.
 
     Use, modification, and redistribution of this program is permitted
     under the terms of either (at the developer's discretion) the GNU
     General Public License (GPL) Version 2, the GNU Lesser General Public
     License.
 
-    This program has been ported to beingmeta's FDB library.
+    This program has been ported to beingmeta's FramerD library.
 */
 
 #include "framerd/fdsource.h"

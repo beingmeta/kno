@@ -1,8 +1,8 @@
 /* C Mode */
 
 /* texttools.c
-   This is the core texttools file for the FDB library
-   Copyright (C) 2005-2015 beingmeta, inc.
+   This is the core texttools file for the FramerD library
+   Copyright (C) 2005-2016 beingmeta, inc.
 */
 
 #ifndef _FILEINFO

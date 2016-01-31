@@ -3,7 +3,7 @@
 
 (in-module 'calltrack)
 
-;;; This is a simple profiling tool for the FDB scheme implementation.
+;;; This is a simple profiling tool for the FramerD scheme implementation.
 ;;;  It reads in the calltrack files written out when profiling is enabled
 ;;   and creates a database which can be interrogated to find out where
 ;;   your program is spending its time.

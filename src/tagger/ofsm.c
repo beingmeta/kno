@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* ofsm.c
-   Copyright (C) 2001-2015 beingmeta, inc.
+   Copyright (C) 2001-2016 beingmeta, inc.
    This is the main OFSM (optimizing finite state machine) engine.
 */
 
