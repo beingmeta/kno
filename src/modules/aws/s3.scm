@@ -443,12 +443,16 @@
 
 ;;; Getting signed URIs
 
-(define (signeduri bucket path (scheme s3scheme) (opts #f)
+(define (signeduri bucket path (opts #f)
 		   (expires (* 17 3600))
 		   (op "GET") (headers '())
-		   (usepath))
+		   (usepath) (scheme))
   (unless (has-prefix path "/") (set! path (glom "/" path)))
   (default! usepath (position #\. bucket))
+  (default! scheme
+    (getopt opts 'scheme
+	    (if (testopt opts '{ssl https}) "https"
+		s3scheme)))
   (unless (has-suffix scheme "://") (set! scheme (fix-scheme scheme)))
   (info%watch "SIGNEDURI" op bucket path scheme expires headers usepath)
   (let* ((endpoint (if usepath
@@ -488,23 +492,21 @@
       (let* ((optarg (and (pair? args) (car args)))
 	     (opts (tryif (and (table? optarg) (not (timestamp? optarg)))
 		     optarg))
+	     (expires
+	      (cond (opts (getopt opts 'expires (* 48 3600)))
+		    ((not optarg) (* 48 3600))
+		    ((number? optarg) (timestamp+ (car args)))
+		    ((timestamp? optarg) optarg)
+		    (else
+		     (irritant optarg |BadOptArg| s3/signeduri))))
 	     (s3loc (->s3loc arg)))
-	(signeduri (s3loc-bucket s3loc) (s3loc-path s3loc) opts
-		   (try (getopt opts 'scheme {})
-			(intersection optarg {"http://" "https://"})
-			(glom (intersection optarg {"http:" "https:"}) "//")
-			"https://")
-		   (if (not optarg) (* 48 3600)
-		       (if (number? optarg) (timestamp+ (car args))
-			   (if (timestamp? optarg) optarg
-			       (if (table? optarg)
-				   (getopt optarg 'expires (* 48 3600))
-				   (irritant optarg |BadOptArg| 
-					     s3/signeduri)))))
-		   "GET"
+	(signeduri (s3loc-bucket s3loc) (s3loc-path s3loc) 
+		   (try opts #f) expires "GET"
 		   (try (getopt opts 'headers 
 				(get (s3loc/opts s3loc) 'headers))
 			'())
+		   ;; Use 'path' syntax for dotted buckets so that you
+		   ;; can use https
 		   (position #\. (s3loc-bucket s3loc))))
       (apply signeduri arg args)))
 
@@ -802,8 +804,9 @@
       (set! outheaders 
 	    (cons (cons "content-disposition" disposition) outheaders)))
     (when (exists? encoding)
-      (set! outheaders (cons (cons "content-encoding" encoding)
-			     outheaders)))
+      (set! outheaders 
+	    (cons (cons "content-encoding" encoding)
+		  outheaders)))
     (do-choices (key (pickstrings (getkeys new)))
       (set! outheaders (cons (cons key (get new key)) outheaders)))
     (lognotice |S3/modify| "Modifying " ctype " " (s3loc->string loc)
