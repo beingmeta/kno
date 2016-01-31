@@ -9,7 +9,7 @@
 
 (define-init %loglevel %notice%)
 
-(module-export! '{ec2/credentials ec2/role!})
+(module-export! '{ec2/credentials ec2/role! ec2/role/creds!})
 
 (define aws/role #f)
 (define aws/userole #f)
@@ -60,6 +60,8 @@
 	      (lognotice |EC2/Credentials| "Got credentials for '" role "'")))
 	(store! credentials-cache role result)
 	result)))
+
+(define (ec2/rolecreds (role aws/role)) (get-credentials role))
 
 (define (ec2/role! role (version "latest") (error #f))
   (if (not version) (set! version "latest"))
