@@ -1,3 +1,11 @@
+framerd (3.8.4-36) unstable; urgency=low
+
+  * Clean up AWS API names
+  * Make runtemp notice and remove invalid directory links
+  * git patch version framerd-3.8.4-60
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 03 Feb 2016 15:23:12 +0000
+
 framerd (3.8.4-35) unstable; urgency=low
 
   * Fixes to signeduri
