@@ -13,7 +13,9 @@
   (slambda ()
     (unless runtemp/root
       (let ((tempname (runfile ".tmp")))
-	(when (or (file-exists? tempname) (readlink tempname))
+	(when (or (file-exists? tempname) 
+		  (and (readlink tempname)
+		       (file-exists? (readlink tempname))))
 	  (let* ((realtemp (realpath tempname))
 		 (existing (file-directory? realtemp))
 		 (tempdirs (and existing (getdirs realtemp))))
@@ -25,6 +27,8 @@
 		  "Removing leftover tempdir " realtemp))
 	    (when existing (remove-tree realtemp))
 	    (remove-file tempname)))
+	(when (and (readlink tempname) (not (file-exists? (readlink tempname))))
+	  (remove-file tempname))
 	(let* ((dir (tempdir))
 	       (appid (config 'appid))
 	       (tmptemp (mkpath dir (glom appid "-XXXXXXX"))))
@@ -35,8 +39,6 @@
 	  (lognotice |RUNTEMP/init|
 	    "New tempfile template " tmptemp ", "
 	    dir " linked to " tempname))))))
-
-
 
 
 
