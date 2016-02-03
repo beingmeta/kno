@@ -12,10 +12,10 @@
 
 (define-init %loglevel %notice%)
 
-(define sqs/key #f)
-(define sqs/secret #f)
-(varconfig! sqs:key sqs/key)
-(varconfig! sqs:secret sqs/secret)
+(define sqs:key #f)
+(define sqs:secret #f)
+(varconfig! sqs:key sqs:key)
+(varconfig! sqs:secret sqs:secret)
 
 (define sqs-endpoint "https://sqs.us-east-1.amazonaws.com/")
 (varconfig! sqs:endpoint sqs-endpoint)
@@ -83,10 +83,10 @@
   (frame-create #f
     '%queue (tryif queue queue)
     'aws:key (getopt opts 'aws:key
-		     (getopt qopts 'aws:key (or sqs/key aws/key)))
+		     (getopt qopts 'aws:key (or sqs:key aws:key)))
     'aws:secret (getopt opts 'aws:secret
 			(getopt qopts 'aws:secret
-				(or sqs/secret aws/secret)))
+				(or sqs:secret aws:secret)))
     'aws:token (getopt opts 'aws:token {})))
 
 (define (sqs/get queue (opts #[])

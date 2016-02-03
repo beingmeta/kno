@@ -70,10 +70,10 @@
 	(loginfo |EC2SearchRoles| "Searching roles " role)
 	(dolist (role (segment role "|"))
 	  (unless success (set! success (ec2/role! role)))))
-      (if (and aws/secret (not aws/token))
+      (if (and aws:secret (not aws:token))
 	  (begin
 	    (logwarn |EC2KeepingCredentials|
-	      "Keeping existing AWS credentials with key " aws/key)
+	      "Keeping existing AWS credentials with key " aws:key)
 	    (set! aws/role role)
 	    #t)
 	  (let* ((creds (try (ec2/credentials role error) #f)))
@@ -94,7 +94,7 @@
 			      (get creds 'aws:token)
 			      (get creds 'aws:expires)
 			      (lambda args (ec2/role! role))))
-	    (and creds aws/key)))))
+	    (and creds aws:key)))))
 
 (config-def! 'aws:role
 	     (lambda (var (value))

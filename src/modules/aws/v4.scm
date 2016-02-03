@@ -68,14 +68,14 @@
   (aws/checkok req)
   (unless date (set! date (gmtimestamp)))
   (default! token
-    (getopt req 'aws:token (getopt opts 'aws:token aws/token)))
+    (getopt req 'aws:token (getopt opts 'aws:token aws:token)))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
   (when token
     (add! headers "X-Amz-Security-Token" token))
   (add! args "AWSAccessKeyId"
-	(getopt req 'aws:key (getopt opts 'aws:key aws/key)))
+	(getopt req 'aws:key (getopt opts 'aws:key aws:key)))
   (add! args "Timestamp" (get date 'isobasic))
   (unless (position #\% endpoint)
     (set! endpoint (encode-uri endpoint)))
@@ -127,7 +127,7 @@
   (aws/checkok req)
   (unless date (set! date (gmtimestamp 'seconds)))
   (default! token
-    (getopt req 'aws:token (getopt opts 'aws:token aws/token)))
+    (getopt req 'aws:token (getopt opts 'aws:token aws:token)))
   (add! req '%date date)
   (add! headers 'date (get date 'isobasic))
   (add! headers 'host (urihost endpoint))
@@ -136,7 +136,7 @@
   (when token
     (add! headers "X-Amz-Security-Token" token))
   (add! args "AWSAccessKeyId"
-	(getopt req 'aws:key (getopt opts 'aws:key aws/key)))
+	(getopt req 'aws:key (getopt opts 'aws:key aws:key)))
   (add! args "Timestamp" (get date 'isobasic))
   (do-choices (key (getkeys args))
     (add! req key (get args key))
@@ -220,8 +220,8 @@
 		       (getopt opts 'service {})
 		       (get (text->frames service-pat host) 'service)
 		       default-service))
-	 (awskey (getopt req 'aws:key (getopt opts 'aws:key aws/key)))
-	 (awstoken (getopt req 'aws:token (getopt opts 'aws:token aws/token)))
+	 (awskey (getopt req 'aws:key (getopt opts 'aws:key aws:key)))
+	 (awstoken (getopt req 'aws:token (getopt opts 'aws:token aws:token)))
 	 (credential (glom awskey "/"
 		       (get date 'isobasicdate) "/"
 		       region "/" service "/aws4_request")))
@@ -246,7 +246,7 @@
 		       (downcase (packet->base16 (sha256 payload)))
 		       "UNSIGNED-PAYLOAD")))
 	   (string-to-sign (get-string-to-sign date region service creq))
-	   (secret (getopt req 'aws:secret aws/secret))
+	   (secret (getopt req 'aws:secret aws:secret))
 	   (signing-key (derive-key secret date region service))
 	   (signature (hmac-sha256 signing-key string-to-sign)))
       (loginfo AWS/V4/PREPARE (write method) " " uri 

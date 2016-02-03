@@ -22,10 +22,10 @@
 (define-init default-domain #f)
 (varconfig! simpledb:domain default-domain)
 
-(define-init sdb/key #f)
-(define-init sdb/secret #f)
-(varconfig! simpledb:key sdb/key)
-(varconfig! simpledb:secret sdb/secret)
+(define-init sdb:key #f)
+(define-init sdb:secret #f)
+(varconfig! simpledb:key sdb:key)
+(varconfig! simpledb:secret sdb:secret)
 
 (define-init use-json #t)
 (varconfig! sdb:json use-json)
@@ -59,10 +59,10 @@
 		(doseq (key (lexsorted (getkeys ptable) downcase))
 		  (printout key
 			    (do-choices (v (get ptable key)) (printout v)))))))
-    (hmac-sha1 (or sdb/secret aws/secret) desc)))
+    (hmac-sha1 (or sdb:secret aws:secret) desc)))
 (define (sdb/signature0 action timestamp)
   (let ((desc (stringout action (get timestamp 'iso))))
-    (hmac-sha1 (or sdb/secret aws/secret) desc)))
+    (hmac-sha1 (or sdb:secret aws:secret) desc)))
 
 (define (sdb/uri . params)
   (let ((timestamp (gmtimestamp 'seconds))
@@ -76,7 +76,7 @@
       (unless (test ptable (car p))
 	(store! ptable (car p) (cadr p))))
     (store! ptable "Timestamp" (get timestamp 'iso))
-    (store! ptable "AWSAccessKeyId" (or sdb/key aws/key))
+    (store! ptable "AWSAccessKeyId" (or sdb:key aws:key))
     (stringout simpledb-base-uri
       (do-choices (key (getkeys ptable) i)
 	(printout (if (> i 0) "&")
