@@ -62,27 +62,18 @@
       (if (not aws:secret)
 	  (and err (error |NoAWSCredentials| opts))
 	  (or (not aws/expires) (> (difftime aws/expires) 3600)
-	      (and aws/refresh (aws/refresh #f))
+	      (and aws/refresh 
+		   (begin (lognotice |RefreshToken| aws:key)
+		     (aws/refresh #f)))
 	      (and err (error |ExpiredAWSCredentials| aws:key))))
       (or (not (getopt opts 'aws:expires))
 	  (time<? (getopt opts 'aws:expires))
-	  (and aws/refresh (aws/refresh opts))
+	  (and aws/refresh 
+	       (begin (lognotice |RefreshToken| aws:key)
+		 (aws/refresh opts)))
 	  (and err (error |ExpiredAWSCredentials| aws:key)))))
 
 (define (aws/checkok (opts #f)) (aws/ok? opts #t))
-
-(define (refresh-creds opts)
-  (if opts (aws/refresh opts)
-      (let ((refreshed (frame-create #f
-			 'aws:account aws/account
-			 'aws:key aws:key 'aws:secret aws:secret
-			 'aws:token aws:token)))
-	(when refreshed
-	  (set! aws:key (get refreshed 'aws:key))
-	  (set! aws:secret (get refreshed 'aws:secret))
-	  (set! aws:token (get refreshed 'aws:token))
-	  (set! aws/expires (get refreshed 'aws:expires)))
-	refreshed)))
 
 (define (aws/set-creds! key secret (token #f) (expires #f) (refresh #f))
   (info%watch "AWS/SET-CREDS!" key secret token expires refresh)
