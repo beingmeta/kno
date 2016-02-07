@@ -248,8 +248,12 @@
 		  (when (and from (table? from))
 		    (add! env '%used_modules
 			  (pick (get from '%moduleid) symbol?))))
-		(cond ((if from (test from '{%unoptimized %volatile} head)
-			   (and env (test env '{%unoptimized %volatile} head)))
+		(cond ((if from 
+			   (test from '{%unoptimized %volatile %nosubst}
+				 head)
+			   (and env 
+				(test env '{%unoptimized %volatile %nosubst}
+				      head)))
 		       expr)
 		      ((and from (%test from '%rewrite)
 			    (%test (get from '%rewrite) head))
