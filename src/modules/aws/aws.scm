@@ -17,8 +17,7 @@
    aws/ok? aws/checkok aws/set-creds! aws/creds!
    aws/datesig aws/datesig/head})
 
-;; Default (non-working) values from the online documentation
-;;  Helpful for testing requests
+;; Default (non-working) values from the environment
 (define aws:secret
   (getenv "AWS_SECRET_ACCESS_KEY"))
 (define aws:key (getenv "AWS_ACCESS_KEY_ID"))
@@ -43,6 +42,12 @@
 (define aws:token #f)
 (define aws:expires #f)
 (define aws/refresh #f)
+
+(when (config 'aws:config)
+  (if (file-exists? (config 'aws:config))
+      (load-config (config 'aws:config))
+      (logwarn |MissingAWSConfig|
+	"The file " (config 'aws:config) "doesn't exist")))
 
 (define (aws/datesig (date (timestamp)) (spec #{}))
   (unless date (set! date (timestamp)))
