@@ -424,7 +424,9 @@ static fdtype get_config_files(fdtype var,void MAYBE_UNUSED *data)
   return result;
 }
 
-static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
+static int add_config_file_helper(fdtype var,fdtype val,
+                                  void MAYBE_UNUSED *data,
+                                  int isopt)
 {
   if ((FD_STRINGP(val))&&(FD_STRLEN(val)>0)) {
     int retval;
@@ -446,6 +448,10 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
     retval=fd_load_config(pathname);
     fd_lock_mutex(&config_file_lock);
     if (retval<0) {
+      if (isopt) {
+        u8_free(pathname); config_stack=on_stack.next;
+        fd_unlock_mutex(&config_file_lock);
+        return 0;}
       u8_free(pathname); config_stack=on_stack.next;
       fd_unlock_mutex(&config_file_lock);
       return retval;}
@@ -460,6 +466,17 @@ static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
     return 0;
   else return -1;
 }
+
+static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
+{
+  return add_config_file_helper(var,val,data,0);
+}
+
+static int add_opt_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
+{
+  return add_config_file_helper(var,val,data,1);
+}
+
 /* Initialization */
 
 FD_EXPORT void fd_init_load_c()
@@ -502,8 +519,10 @@ FD_EXPORT void fd_init_load_c()
  fd_idefn(fd_scheme_module,
           fd_make_cprim0("GET-SOURCE",lisp_get_source,0));
 
- fd_register_config("CONFIG","Add a CONFIG file or URI to process",
+ fd_register_config("CONFIG","Add a CONFIG file/URI to process",
                     get_config_files,add_config_file,NULL);
+ fd_register_config("OPTCONFIG","Add an optional CONFIG file/URI to process",
+                    get_config_files,add_opt_config_file,NULL);
  fd_register_config("TRACELOAD","Trace file load starts and ends",
                     fd_boolconfig_get,fd_boolconfig_set,&trace_load);
  fd_register_config("TRACELOADCONFIG","Trace config file loading",
