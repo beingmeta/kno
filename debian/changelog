@@ -1,3 +1,11 @@
+framerd (3.8.4-38) unstable; urgency=low
+
+  * Rename AWS globals
+  * Debugging release
+  * git patch version framerd-3.8.4-66
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 07 Feb 2016 20:18:04 +0000
+
 framerd (3.8.4-37) unstable; urgency=low
 
   * Fixes to AWS temporary credentials refresh
