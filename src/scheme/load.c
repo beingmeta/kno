@@ -243,7 +243,7 @@ FD_EXPORT int fd_load_config(u8_string sourceid)
   struct U8_INPUT stream; int retval;
   u8_string sourcebase=NULL, outer_sourcebase;
   u8_string content=fd_get_source(sourceid,NULL,&sourcebase,NULL);
-  if (content==NULL) return FD_ERROR_VALUE;
+  if (content==NULL) return -1;
   else if (sourcebase) {
     outer_sourcebase=bind_sourcebase(sourcebase);}
   else outer_sourcebase=NULL;
