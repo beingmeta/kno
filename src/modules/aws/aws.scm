@@ -8,12 +8,12 @@
 
 (define-init %loglevel %notice%)
 
-(define %nosubst '{aws/account
-		   aws:key aws:secret
+(define %nosubst '{aws:account
+		   aws:key aws:secret aws:expires
 		   aws/refresh aws:token})
 
 (module-export! 
- '{aws/account aws:key aws:secret aws:token aws/expires 
+ '{aws:account aws:key aws:secret aws:token aws:expires 
    aws/ok? aws/checkok aws/set-creds! aws/creds!
    aws/datesig aws/datesig/head})
 
@@ -22,7 +22,7 @@
 (define aws:secret
   (getenv "AWS_SECRET_ACCESS_KEY"))
 (define aws:key (getenv "AWS_ACCESS_KEY_ID"))
-(define aws/account (getenv "AWS_ACCOUNT_NUMBER"))
+(define aws:account (getenv "AWS_ACCOUNT_NUMBER"))
 
 (config-def! 'aws:secret
 	     (lambda (var (val))
@@ -37,11 +37,11 @@
 (config-def! 'aws:account
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (set! aws/account val)
-		   aws/account)))
+		   (set! aws:account val)
+		   aws:account)))
 
 (define aws:token #f)
-(define aws/expires #f)
+(define aws:expires #f)
 (define aws/refresh #f)
 
 (define (aws/datesig (date (timestamp)) (spec #{}))
@@ -61,13 +61,13 @@
   (if (or (not opts) (not (getopt opts 'aws:secret)))
       (if (not aws:secret)
 	  (and err (error |NoAWSCredentials| opts))
-	  (or (not aws/expires) (> (difftime aws/expires) 3600)
+	  (or (not aws:expires) (%wc > (%wc difftime aws:expires) 3600)
 	      (and aws/refresh 
 		   (begin (lognotice |RefreshToken| aws:key)
 		     (aws/refresh #f)))
 	      (and err (error |ExpiredAWSCredentials| aws:key))))
       (or (not (getopt opts 'aws:expires))
-	  (time<? (getopt opts 'aws:expires))
+	  (%wc > (%wc difftime (getopt opts 'aws:expires)) 3600)
 	  (and aws/refresh 
 	       (begin (lognotice |RefreshToken| aws:key)
 		 (aws/refresh opts)))
@@ -80,7 +80,7 @@
   (set! aws:key key)
   (set! aws:secret secret)
   (set! aws:token token)
-  (set! aws/expires expires)
+  (set! aws:expires expires)
   (set! aws/refresh refresh))
 
 (define (aws/creds! arg)

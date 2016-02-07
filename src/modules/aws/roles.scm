@@ -7,7 +7,7 @@
 	      ezrecords rulesets logger varconfig})
 (define %used_modules '{aws varconfig ezrecords rulesets})
 
-(define-init %loglevel %notice%)
+(define-init %loglevel %debug%)
 
 (module-export! '{ec2/credentials ec2/role! ec2/role/creds!})
 
@@ -37,8 +37,8 @@
   (set! cached (try (get credentials-cache role) #f))
   (if (and cached 
 	   (or (not (test cached 'aws:expires))
-	       (time<? (timestamp+ 180)
-		       (timestamp (get cached 'aws:expires)))))
+	       (%wc > (%wc difftime (%wc timestamp (get cached 'aws:expires)))
+		    3600)))
       (begin (logdebug |EC2/Credentials| 
 	       "Using cached credentials for '" role ",' "
 	       "expiring in "
