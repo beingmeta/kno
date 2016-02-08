@@ -64,7 +64,7 @@
 (define (aws/v4/get req endpoint (opts #f)
 		    (args #[]) (headers #[]) (payload #f)
 		    (curl (getcurl)) (date (gmtimestamp))
-		    (token))
+		    (token) (hdrset (make-hashset)))
   (aws/checkok req)
   (unless date (set! date (gmtimestamp)))
   (default! token
@@ -84,16 +84,18 @@
     (add! req key (get args key))
     (add! req '%params key))
   (do-choices (key (getkeys headers))
-    (let ((v (get headers key)))
-      (if (curl-handle? curl)
-	  (curlsetopt! curl 'header (glom key ": " v))
-	  (add! curl 'header (cons key (qc v))))
-      (add! req key
-		(if (and (singleton? v) (string? v)) v
-		    (stringout (do-choices v
-				 (if (timestamp? v) (get v 'isobasic)
-				     (printout v)))))))
-      (add! req '%headers key))
+    (unless (hashset-get hdrset (downcase key))
+      (hashset-add! hdrset (downcase key))
+      (let ((v (get headers key)))
+	(if (curl-handle? curl)
+	    (curlsetopt! curl 'header (glom key ": " v))
+	    (add! curl 'header (cons key (qc v))))
+	(add! req key
+	      (if (and (singleton? v) (string? v)) v
+		  (stringout (do-choices v
+			       (if (timestamp? v) (get v 'isobasic)
+				   (printout v))))))))
+    (add! req '%headers key))
   ;; (add! args "SignatureMethod" "AWS-HMAC-SHA256")
   (set! req (aws/v4/prepare req "GET" endpoint opts (or payload "")))
   (when payload
@@ -123,7 +125,7 @@
 		   (payload #f) (ptype #f)
 		   (date (gmtimestamp 'seconds))
 		   (curl (getcurl))
-		   (token))
+		   (token) (hdrset (make-hashset)))
   (aws/checkok req)
   (unless date (set! date (gmtimestamp 'seconds)))
   (default! token
@@ -142,15 +144,17 @@
     (add! req key (get args key))
     (add! req '%params key))
   (do-choices (key (getkeys headers))
-    (let ((v (get headers key)))
-      (if (curl-handle? curl)
-	  (curlsetopt! curl 'header (glom key ": " v))
-	  (add! curl 'header (cons key (qc v))))
-      (add! req key
-	    (if (and (singleton? v) (string? v)) v
-		(stringout (do-choices v
-			     (if (timestamp? v) (get v 'isobasic)
-				 (printout v)))))))
+    (unless (hashset-get hdrset (downcase key))
+      (hashset-add! hdrset (downcase key))
+      (let ((v (get headers key)))
+	(if (curl-handle? curl)
+	    (curlsetopt! curl 'header (glom key ": " v))
+	    (add! curl 'header (cons key (qc v))))
+	(add! req key
+	      (if (and (singleton? v) (string? v)) v
+		  (stringout (do-choices v
+			       (if (timestamp? v) (get v 'isobasic)
+				   (printout v))))))))
     (add! req '%headers key))
   ;; (add! args "Signature" (packet->base64 (getopt req 'signature)))
   ((if (curl-handle? curl) curlsetopt! add!) curl 'method (string->symbol op))
