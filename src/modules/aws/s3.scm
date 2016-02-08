@@ -1004,14 +1004,14 @@
 					    (reject strmatch has-prefix "."))
 				(exists regex/match rxmatch file)
 				(exists textmatch patmatch file))))
+		   (not (has-prefix (basename file) "."))
+		   (not (has-suffix (basename file) "~"))
 		   (or (has-suffix file strmatch)
 		       (has-prefix file (reject strmatch has-prefix "."))
 		       (has-prefix (basename file)
 				   (reject strmatch has-prefix "."))
 		       (exists regex/match rxmatch file)
-		       (exists textmatch patmatch file)
-		       (not (has-prefix (basename file) "."))
-		       (not (has-suffix (basename file) "~"))))))
+		       (exists textmatch patmatch file)))))
 	   (updated {}))
       (if match
 	  (lognotice |S3/push|
