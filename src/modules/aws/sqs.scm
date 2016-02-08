@@ -80,14 +80,7 @@
 
 (define (get-queue-opts (queue #f) (opts #[]) (qopts))
   (default! qopts (try (tryif queue (get queue-opts queue)) #[]))
-  (frame-create #f
-    '%queue (tryif queue queue)
-    'aws:key (getopt opts 'aws:key
-		     (getopt qopts 'aws:key (or sqs:key aws:key)))
-    'aws:secret (getopt opts 'aws:secret
-			(getopt qopts 'aws:secret
-				(or sqs:secret aws:secret)))
-    'aws:token (getopt opts 'aws:token {})))
+  (frame-create #f '%queue (tryif queue queue)))
 
 (define (sqs/get queue (opts #[])
 		 (args `#["Action" "ReceiveMessage" "AttributeName.1" "all"]))
@@ -95,22 +88,27 @@
     (store! args "WaitTimeSeconds" (getopt opts 'wait)))
   (when (getopt opts 'reserve)
     (store! args "VisibilityTimeout" (getopt opts 'reserve)))
-  (handle-sqs-response (aws/v4/op (get-queue-opts queue opts) "GET" queue opts args)))
+  (handle-sqs-response 
+   (aws/v4/op (get-queue-opts queue opts)
+	      "GET" queue opts args)))
 
 (define (sqs/send queue msg (opts #[]) (args `#["Action" "SendMessage"]))
   (store! args "MessageBody" msg)
   (when (getopt opts 'delay) (store! args "DelaySeconds" (getopt opts 'delay)))
-  (handle-sqs-response (aws/v4/get (get-queue-opts queue opts) queue opts args)))
+  (handle-sqs-response 
+   (aws/v4/get (get-queue-opts queue opts) queue opts args)))
 
 (define (sqs/list (prefix #f) (args #["Action" "ListQueues"]) (opts #[]))
   (when prefix (set! args `#["Action" "ListQueues" "QueueNamePrefix" ,prefix]))
-  (handle-sqs-response (aws/v4/get (get-queue-opts #f opts) sqs-endpoint opts args)))
+  (handle-sqs-response 
+   (aws/v4/get (get-queue-opts #f opts) sqs-endpoint opts args)))
 
 (define (sqs/info queue
 		  (args #["Action" "GetQueueAttributes" "AttributeName.1" "All"])
 		  (opts #[]))
-  (handle-sqs-response (aws/v4/get (get-queue-opts queue opts) queue opts args)
-		       (qc sqs-info-fields)))
+  (handle-sqs-response
+   (aws/v4/get (get-queue-opts queue opts) queue opts args)
+   (qc sqs-info-fields)))
 
 (define (sqs/delete message (opts #[]))
   (handle-sqs-response
