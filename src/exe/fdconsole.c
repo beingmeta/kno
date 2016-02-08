@@ -628,7 +628,7 @@ int main(int argc,char **argv)
   /* This is the environment the console will start in */
   fd_lispenv env=fd_working_environment();
 
-  if (getenv("FD_NODOTLOAD")) dotload=0;
+  if (getenv("FD_SKIP_DOTLOAD")) dotload=0;
 
   /* INITIALIZING MODULES */
   /* Normally, modules have initialization functions called when
