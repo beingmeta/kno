@@ -18,10 +18,10 @@
    aws/datesig aws/datesig/head})
 
 ;; Default (non-working) values from the environment
-(define aws:secret
+(define-init aws:secret
   (getenv "AWS_SECRET_ACCESS_KEY"))
-(define aws:key (getenv "AWS_ACCESS_KEY_ID"))
-(define aws:account (getenv "AWS_ACCOUNT_NUMBER"))
+(define-init aws:key (getenv "AWS_ACCESS_KEY_ID"))
+(define-init aws:account (getenv "AWS_ACCOUNT_NUMBER"))
 
 (config-def! 'aws:secret
 	     (lambda (var (val))
@@ -39,9 +39,9 @@
 		   (set! aws:account val)
 		   aws:account)))
 
-(define aws:token #f)
-(define aws:expires #f)
-(define aws/refresh #f)
+(define-init aws:token #f)
+(define-init aws:expires #f)
+(define-init aws/refresh #f)
 
 (when (config 'aws:config)
   (if (file-exists? (config 'aws:config))
@@ -66,13 +66,13 @@
   (if (or (not opts) (not (getopt opts 'aws:secret)))
       (if (not aws:secret)
 	  (and err (error |NoAWSCredentials| opts))
-	  (or (not aws:expires) (%wc > (%wc difftime aws:expires) 3600)
+	  (or (not aws:expires) (> (difftime aws:expires) 3600)
 	      (and aws/refresh 
 		   (begin (lognotice |RefreshToken| aws:key)
 		     (aws/refresh #f)))
 	      (and err (error |ExpiredAWSCredentials| aws:key))))
       (or (not (getopt opts 'aws:expires))
-	  (%wc > (%wc difftime (getopt opts 'aws:expires)) 3600)
+	  (> (difftime (getopt opts 'aws:expires)) 3600)
 	  (and aws/refresh 
 	       (begin (lognotice |RefreshToken| aws:key)
 		 (aws/refresh opts)))
