@@ -12,11 +12,6 @@
 
 (define-init %loglevel %notice%)
 
-(define sqs:key #f)
-(define sqs:secret #f)
-(varconfig! sqs:key sqs:key)
-(varconfig! sqs:secret sqs:secret)
-
 (define sqs-endpoint "https://sqs.us-east-1.amazonaws.com/")
 (varconfig! sqs:endpoint sqs-endpoint)
 
