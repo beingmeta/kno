@@ -29,7 +29,7 @@
 (module-export! '{s3/getpolicy s3/setpolicy! s3/addpolicy!
 		  s3/policy/endmarker})
 
-(define-init %loglevel %warn%)
+(define-init %loglevel %notice%)
 ;;(set! %loglevel %info%)
 ;;(logctl! 'aws/v4 %info%)
 ;;(logctl! 'gpath %info%)
@@ -810,7 +810,7 @@
     (do-choices (key (pickstrings (getkeys new)))
       (set! outheaders (cons (cons key (get new key)) outheaders)))
     (lognotice |S3/modify| "Modifying " ctype " " (s3loc->string loc)
-	       " to " outheaders)
+	       " metadata to " outheaders)
     (s3/op "PUT" (s3loc-bucket loc) (s3loc-path loc) opts "" ctype
 	   `(("x-amz-copy-source" .
 	      ,(stringout "/" (s3loc-bucket loc) 
@@ -885,6 +885,7 @@
   (let* ((req (list-chunk loc headers opts "/" next))
 	 (content (reject (elts (xmlparse (get req '%content) 'data)) string?))
 	 (next (try (get content 'nextmarker) #f)))
+    (debug%watch "S3/LIST+" content)
     (choice
      (for-choices (elt (get content 'contents))
        `#[key ,(get elt 'key) name ,(basename (get elt 'key))
@@ -892,6 +893,8 @@
 	  size ,(string->number (get elt 'size))
 	  modified ,(timestamp (get elt 'lastmodified))
 	  etag ,(slice (decode-entities (get elt 'etag)) 1 -1)
+	  content-type ,(get elt 'content-type)
+	  content-encoding ,(get elt 'content-encoding)
 	  hash ,(try (base16->packet (get req 'x-amz-meta-md5))
 		     (base16->packet
 		      (get (text->frames etag-pat (get elt 'etag)) 'hash)))])
@@ -1006,20 +1009,25 @@
 				(exists textmatch patmatch file))))
 		   (not (has-prefix (basename file) "."))
 		   (not (has-suffix (basename file) "~"))
-		   (or (has-suffix file strmatch)
+		   (or (fail? {strmatch rxmatch patmatch})
+		       (has-suffix file strmatch)
 		       (has-prefix file (reject strmatch has-prefix "."))
 		       (has-prefix (basename file)
 				   (reject strmatch has-prefix "."))
 		       (exists regex/match rxmatch file)
 		       (exists textmatch patmatch file)))))
 	   (updated {}))
-      (if match
+      (if (and (exists? match) match)
 	  (lognotice |S3/push|
 	    "Syncing " (choice-size copynames) "/" (choice-size filenames)
 	    " matching files in " (write dir)
-	    "\n to " (if (string? s3loc) s3loc) (s3loc->string s3loc))
+	    "\n to " (if (string? s3loc) s3loc (s3loc->string s3loc)))
 	  (lognotice |S3/push|
-	    "Syncing " (choice-size filenames) " files in " dir))
+	    "Syncing " (choice-size copynames) " files in " dir
+	    "\n to " (if (string? s3loc) s3loc (s3loc->string s3loc))))
+      (debug%watch "S3/PUSH!/select" 
+	nomatch match strmatch rxmatch patmatch rxmatch- patmatch-
+	"\n" filenames "\n" copynames)
       (do-choices-mt (file copynames nthreads)
 	(let* ((info (pick s3info 'name (basename file)))
 	       (loc (try (get info 'loc) (s3/mkpath s3loc (basename file))))
@@ -1036,7 +1044,12 @@
 				       (mimetype/text? mimetype)))
 			      (filestring file)
 			      (filedata file))))
-		(loginfo |S3/push| "Pushing to " loc)
+		(loginfo |S3/push| "Pushing " 
+			 (length data) 
+			 (if (mimetype/text? mimetype) 
+			     " characters "
+			     " bytes ")
+			 " to " loc)
 		(s3/write! loc data (try mimetype "application")
 			   (data-headers data encoding headers))
 		(set+! updated loc)
@@ -1052,9 +1065,9 @@
 			     (not (test info '{hash etag md5}))
 			     (overlaps? (stdhash (get info '{hash etag md5}))
 					(stdhash (md5 data))))
-			 (test info 'content-type mimetype)
-			 (or (not encoding)
-			     (test info 'content-encoding encoding)))
+			 ;; (test info 'content-type mimetype)
+			 ;; (or (not encoding) (test info 'content-encoding encoding))
+			 )
 		    (logdebug |S3/push| "Skipping unchanged " loc)
 		    (begin (loginfo |S3/push| "Pushing to " loc)
 		      (s3/write! loc data mimetype (data-headers data encoding headers))
