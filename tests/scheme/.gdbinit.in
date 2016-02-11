@@ -7,4 +7,5 @@ directory @abs_top_srcdir@/src/dtype:@abs_top_srcdir@/src/db:@abs_top_srcdir@/sr
 set env DYLD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env FD_DLOADPATH @abs_top_srcdir@/lib/framerd/%.@shared_suffix@
+set env FD_SKIP_DOTLOAD yes
 set env FD_SHOWTIME 0.0

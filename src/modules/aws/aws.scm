@@ -19,9 +19,11 @@
 
 ;; Default (non-working) values from the environment
 (define-init aws:secret
-  (getenv "AWS_SECRET_ACCESS_KEY"))
-(define-init aws:key (getenv "AWS_ACCESS_KEY_ID"))
-(define-init aws:account (getenv "AWS_ACCOUNT_NUMBER"))
+  (and (config 'dotload) (getenv "AWS_SECRET_ACCESS_KEY")))
+(define-init aws:key
+  (and (config 'dotload) (getenv "AWS_ACCESS_KEY_ID")))
+(define-init aws:account
+  (and (config 'dotload (getenv "AWS_ACCOUNT_NUMBER"))))
 
 (config-def! 'aws:secret
 	     (lambda (var (val))

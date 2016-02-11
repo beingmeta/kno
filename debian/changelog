@@ -1,3 +1,18 @@
+framerd (3.8.4-39) unstable; urgency=low
+
+  * Fix case canonicalization with aws/v4 headers
+  * Remove leftover watchpoints from debug release
+  * Remove cached credentials from SQS queue opts
+  * Fix buggy path filter clause in s3/push!
+  * Add OPTCONFIG handler for possibly non-existent config files
+  * Remove .fdconfig/.fdconsole suppression UNDERGDB, but make .gdbinit
+    set FD_NO_DOTLOAD
+  * Fix some config loading int/dtype return value mismatch
+  * Only USE shell env for AWS credentials when dotloading 
+  * git patch version framerd-3.8.4-76
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 08 Feb 2016 14:57:11 +0000
+
 framerd (3.8.4-38) unstable; urgency=low
 
   * Rename AWS globals
