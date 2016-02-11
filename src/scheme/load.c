@@ -451,6 +451,7 @@ static int add_config_file_helper(fdtype var,fdtype val,
       if (isopt) {
         u8_free(pathname); config_stack=on_stack.next;
         fd_unlock_mutex(&config_file_lock);
+        u8_pop_exception();
         return 0;}
       u8_free(pathname); config_stack=on_stack.next;
       fd_unlock_mutex(&config_file_lock);
