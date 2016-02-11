@@ -1,3 +1,10 @@
+framerd (3.8.4-41) unstable; urgency=low
+
+  * Clear errors from OPTCONFIG
+  * git patch version framerd-3.8.4-81
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 11 Feb 2016 18:12:26 +0000
+
 framerd (3.8.4-40) unstable; urgency=low
 
   * Fixes to aws/push filtering and diff determination
