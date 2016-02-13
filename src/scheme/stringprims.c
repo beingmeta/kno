@@ -782,17 +782,19 @@ static fdtype strip_suffix(fdtype string,fdtype suffix)
   else {
     fdtype result=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(s,string) {
-      int nomatch=1;
+      int max_sufflen=-1;
       FD_DO_CHOICES(sx,suffix) {
         if (has_suffix_test(s,sx)) {
-          int sufflen=FD_STRLEN(sx), len=FD_STRLEN(s);
-          fdtype stripped=fd_extract_string
-            (NULL,FD_STRDATA(s),FD_STRDATA(s)+(len-sufflen));
-          FD_ADD_TO_CHOICE(result,stripped);
-          nomatch=0;}}
-      if (nomatch) {
-        fd_incref(s); 
-        FD_ADD_TO_CHOICE(result,s);}}
+          int sufflen=FD_STRLEN(sx);
+          if (sufflen>max_sufflen) max_sufflen=sufflen;}}
+      if (max_sufflen<0) {
+        fd_incref(s);
+        FD_ADD_TO_CHOICE(result,s);}
+      else {
+        int len=FD_STRLEN(s);
+        fdtype stripped=fd_extract_string
+          (NULL,FD_STRDATA(s),FD_STRDATA(s)+(len-max_sufflen));
+        FD_ADD_TO_CHOICE(result,stripped);}}
     return result;}
 }
 
@@ -867,17 +869,20 @@ static fdtype strip_prefix(fdtype string,fdtype prefix)
     return fd_type_error("string","has_prefix/prefix",notstring);
   else {
     fdtype result=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(s,string) {
-      int nomatch=1;
-      FD_DO_CHOICES(p,prefix) {
-        if (has_prefix_test(s,p)) {
-          int preflen=FD_STRLEN(p), len=FD_STRLEN(s);
-          fdtype stripped=fd_extract_string
-            (NULL,FD_STRDATA(s)+preflen,FD_STRDATA(s)+len);
-          FD_ADD_TO_CHOICE(result,stripped);
-          nomatch=0;}}
-      if (nomatch) {
-        fd_incref(s); FD_ADD_TO_CHOICE(result,s);}}
+   FD_DO_CHOICES(s,string) {
+      int max_prelen=-1;
+      FD_DO_CHOICES(px,prefix) {
+        if (has_prefix_test(s,px)) {
+          int prelen=FD_STRLEN(px);
+          if (prelen>max_prelen) max_prelen=prelen;}}
+      if (max_prelen<0) {
+        fd_incref(s);
+        FD_ADD_TO_CHOICE(result,s);}
+      else {
+        int len=FD_STRLEN(s);
+        fdtype stripped=fd_extract_string
+          (NULL,FD_STRDATA(s)+max_prelen,FD_STRDATA(s)+len);
+        FD_ADD_TO_CHOICE(result,stripped);}}
     return result;}
 }
 
@@ -1412,9 +1417,9 @@ FD_EXPORT void fd_init_strings_c()
                            fd_string_type,FD_VOID,
                            fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("STRIP-SUFFIX",strip_suffix,2,
-                           fd_string_type,FD_VOID,
-                           fd_string_type,FD_VOID));
+           fd_make_ndprim
+           (fd_make_cprim2x("STRIP-SUFFIX",strip_suffix,2,
+                            -1,FD_VOID,-1,FD_VOID)));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim4x("YES?",yesp_prim,1,

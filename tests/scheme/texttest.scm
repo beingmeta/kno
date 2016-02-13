@@ -6,9 +6,16 @@
 
 (applytest #t has-suffix "foo.scm" ".scm")
 (applytest #f has-suffix "foo.scm" ".lsp")
+(applytest "foo" strip-suffix "foo.scm" ".scm")
+(applytest "foo.scm" strip-suffix "foo.scm" ".lsp")
+(applytest "foo" strip-suffix "foo.scm" {".scm" ".lsp"})
 
 (applytest #t has-prefix "foo.scm" "foo")
 (applytest #f has-suffix "foo.scm" "bar")
+(applytest "Darcy" strip-prefix "Mr. Darcy" "Mr. ")
+(applytest "Mr. Darcy" strip-prefix "Mr. Darcy" "Mrs. ")
+(applytest "Darcy" strip-prefix "Mr. Darcy" {"Mr. " "Mrs. "})
+(applytest "Darcy" strip-prefix "Mrs. Darcy" {"Mr. " "Mrs. "})
 
 (applytest #t empty-string? "")
 (applytest #t empty-string? "  ")
@@ -39,6 +46,10 @@
 ;(applytest #f numeric? "33.5")
 ;(applytest #f numeric? "$33.50")
 ;(applytest #f numeric? "thirty-three")
+
+;;; Suffix tests
+
+
 
 (define sample-string
   "The book was over here by the bookcase
