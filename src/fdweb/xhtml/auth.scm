@@ -295,12 +295,13 @@
       info payload sig (hmac-sha1 payload signature)
       authstring)
     (unless (equal? sig (hmac-sha1 payload signature))
-      (logwarn "Invalid signature in " authid " authstring " (write authstring)
-	       "\n\tfor " payload
-	       "\n\tor " info
-	       "\n\tbased on " signature
-	       "\n\texpecting " sig
-	       "\n\tgetting " (hmac-sha1 payload signature)))
+      (logwarn |BadSignature|
+	"Invalid signature in " authid " authstring " (write authstring)
+	"\n\tfor " payload
+	"\n\tor " info
+	"\n\tbased on " signature
+	"\n\texpecting " sig
+	"\n\tgetting " (hmac-sha1 payload signature)))
     (and sig payload info
 	 (equal? (car info) authid)
 	 (equal? sig (hmac-sha1 payload signature))
@@ -314,11 +315,12 @@
 	 (expected (hmac-sha1 payload signature)))
     (detail%watch "UNPACK-AUTHINFO" authstring info payload sig expected)
     (unless (equal? sig expected)
-      (logwarn "Invalid signature in " authid " authstring " (write authstring)
-	       "\n\tfor " payload
-	       "\n\tbased on " signature
-	       "\n\texpecting " expected
-	       "\n\tgetting " sig))
+      (logwarn |BadSignature|
+	"Invalid signature in " authid " authstring " (write authstring)
+	"\n\tfor " payload
+	"\n\tbased on " signature
+	"\n\texpecting " expected
+	"\n\tgetting " sig))
     (and sig payload info (equal? sig expected) (->vector info))))
 
 ;;;; Core functions
@@ -340,7 +342,8 @@
 	   (auth->string auth))
 	 ;; This adds token as a valid token for identity
 	 (when checktoken
-	   (lognotice "AUTH/IDENTIFY! " authid "=" identity " w/" token)
+	   (lognotice |AUTH/Identify|
+	     "AUTH/IDENTIFY! " authid "=" identity " w/" token)
 	   (checktoken identity token #t))
 	 (req/set! authid auth)
 	 (set-cookies! auth)
@@ -350,7 +353,7 @@
   (and auth
        (or (not (authinfo-expires auth))
 	   (> (authinfo-expires auth) (time))
-	   (begin (logwarn "AUTH TOKEN expired: " auth) #f))
+	   (begin (logwarn |AuthExpired| "AUTH TOKEN expired: " auth) #f))
        (if (or (not auth-refresh)
 	       ;; If our authentication is good and we're over HTTPS
 	       ;;  but there isn't an AUTHID, refresh to provide one
@@ -361,22 +364,24 @@
 
 (define (token/ok? identity token)
   (or (checktoken identity token)
-      (begin (logwarn "TOKEN/OK? failed for "
-		      identity " with " token " using " checktoken)
+      (begin (logwarn |TokenFailed|
+	       "TOKEN/OK? failed for " identity
+	       " with " token " using " checktoken)
 	#f)))
 
 (define (freshauth auth)
-  (loginfo "Refreshing auth token " auth)
+  (loginfo |AuthRefresh| "Refreshing auth token " auth)
   (and (or (not checktoken) ;; Valid token?
 	   (token/ok? (authinfo-identity auth) (authinfo-token auth)))
        ;; Check that the authorization isn't too old to refresh
        ;;  (HTTPS tokens are always good to refresh)
        (or (req/get 'https #f)
 	   (< (time) (+ (authinfo-issued auth) auth-refresh auth-grace))
-	   (begin (logwarn "Auth token older than refresh grace period: "
-			   "issued=" (authinfo-issued auth)
-			   "; refresh=" auth-refresh "; grace=" auth-grace
-			   "; auth=" auth)
+	   (begin (logwarn |RetiredAuth|
+		    "Auth token older than refresh grace period: "
+		    "issued=" (authinfo-issued auth)
+		    "; refresh=" auth-refresh "; grace=" auth-grace
+		    "; auth=" auth)
 	     #f))
        (let* ((realm (authinfo-realm auth))
 	      (identity (authinfo-identity auth))
@@ -384,7 +389,8 @@
 	      (new (cons-authinfo realm identity (authinfo-token auth)
 				  (time) (authinfo-expires auth)
 				  (authinfo-sticky? auth))))
-	 (lognotice "Fresh auth " new "\n\t replacing " auth)
+	 (lognotice |FreshAuth|
+	   "Fresh auth " new "\n\t replacing " auth)
 	 (set-cookies! new)
 	 new)))
 
