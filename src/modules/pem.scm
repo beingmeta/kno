@@ -7,7 +7,7 @@
 
 (define-init %loglevel %warn%)
 
-(module-export! '{readpem pemout ->pem})
+(module-export! '{readpem pem->packet pemout ->pem})
 
 (define pem-pattern
   `(GREEDY
@@ -18,6 +18,9 @@
 
 (define (readpem string)
   (text->frames pem-pattern string))
+
+(define (pem->packet string)
+  (get (text->frames pem-pattern string) 'body))
 
 (define (pemout packet (header "PEM") (dashcount 5) (linelen 64))
   (let* ((base64 (packet->base64 packet))
