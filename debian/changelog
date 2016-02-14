@@ -1,3 +1,13 @@
+framerd (3.8.4-42) unstable; urgency=low
+
+  * Add pem->packet
+  * Add nopad argument to ->base64 functions
+  * Made strip-suffix/prefix only strip the longest one
+  * Added JWT module
+  * git patch version framerd-3.8.4-89
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 14 Feb 2016 01:49:00 +0000
+
 framerd (3.8.4-41) unstable; urgency=low
 
   * Clear errors from OPTCONFIG
