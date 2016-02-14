@@ -48,10 +48,6 @@
    (packet->string
     (base64->packet (uridecode (string-subst* string "-" "+"  "_" "/"))))))
 
-(define (->b64 s)
-  (if jwt:pad (->base64 s)
-      (strip-suffix (->base64 s) {"=" "==" "==="})))
-
 ;;; Working with existing tokens
 
 (define (jwt/parse string (key (req/get '_jwtkey jwt:key)) (alg #f)
@@ -109,12 +105,12 @@
   (unless (test header "typ") (store! header "typ" "JWT"))
   (unless (test header "alg") (store! header "alg" alg))
   (when (table? payload) (set! payload (keys->strings payload)))
-  (set! hdr64 (->b64 (->json header)))
-  (set! pay64 (if (string? payload) (->base64 payload)
-		  (->b64 (->json payload))))
+  (set! hdr64 (->base64 (->json header) #t))
+  (set! pay64 (if (string? payload) (->base64 payload #t)
+		  (->base64 (->json payload) #t)))
   (set! sig (hmac-sha256 key (glom hdr64 "." pay64)))
   (cons-jwt header payload sig
-	    (glom hdr64 "." pay64 "." (->b64 sig))
+	    (glom hdr64 "." pay64 "." (->base64 sig #t))
 	    key #t))
 
 (define (jwt/string payload key (alg #f) (header #f) (hdr64) (pay64) (sig))
