@@ -7,39 +7,38 @@
 (use-module '{varconfig logger})
 (define %used_modules 'varconfig)
 
-(define %nosubst '{jwt:key jwt:alg jwt:pad
-		   jwt:refresh jwt:iat jwt:jti jwt:issuer})
+(define %nosubst '{jwt/key jwt/algorithm jwt/pad jwt/checker
+		   jwt/refresh})
 
-(module-export! '{jwt-header jwt-payload jwt-text jwt-signature
-		  jwt/parse jwt/check 
+(module-export! '{jwt? jwt-valid
+		  jwt-header jwt-payload jwt-text jwt-signature 
+		  jwt/parse jwt/valid? jwt/check 
 		  jwt/make jwt/string 
 		  jwt/refresh jwt/refreshed
+		  jwt/getdomain
 		  jwt/get jwt?})
 
 ;;; Default configuration
 
-(define-init jwt:key #f)
-(varconfig! jwt:key jwt:key)
+(define-init jwt:domain #f)
+(varconfig! jwt:domain jwt:domain)
 
-(define-init jwt:alg #f)
-(varconfig! jwt:alg jwt:alg)
+(define-init jwt/key #f)
+(varconfig! jwt/key jwt/key)
 
-(define-init jwt:pad #f)
-(varconfig! jwt:pad jwt:pad)
+(define-init jwt/pad #f)
+(varconfig! jwt:pad jwt/pad)
 
-(define-init jwt:issuer #f)
-(varconfig! jwt:issuer jwt:issuer)
+(define-init jwt/algorithm #f)
+(varconfig! jwt/algorithm jwt/algorithm)
 
-(define-init jwt:iat #f)
-(varconfig! jwt:iat jwt:iat )
-
-(define-init jwt:jti #f)
-(varconfig! jwt:jti jwt:jti)
+(define-init jwt/refresh 3600) ;; one hour
+(varconfig! jwt:refresh jwt/refresh)
 
 ;;; This checks the payload for validity.  It is a function
-;;;  of the form (fn payload passive err)
-;;; If passive is #t, it returns the payload unchanged,
-;;;  otherwise it may update the payload.
+;;;  of the form (fn payload update err)
+;;; If update is #t, it may return an updated payload,
+;;;  otherwise it returns the payload or #f
 ;;; Err determines whether or not an error is returned if the 
 ;;;  check fails
 (define-init jwt/checker #f)
@@ -51,25 +50,34 @@
 (config-def! 'jwt:config
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (store! config-table (get val 'iss) val)
+		   (begin
+		     (store! config-table (get val 'issuer) val)
+		     (store! config-table (get val 'cookie) val))
 		   (deep-copy (get config-table (getkeys config-table))))))
 
+
+(define (jwt/getdomain spec) (try (get config-table spec) #f))
+
+;;; Common code for handling args to JWT functions
+
 (define handle-jwt-args
-  (macro (expr)
-    (default! opts (try (get config-table (get payload 'iss))
-			(get config-table (get payload "iss"))
-			(req/get 'jwt:config)
-			#f))
-    (when (and (string? opts) (test config-table opts))
-      (set! opts (get config-table opts)))
-    (default! key (getopt opts 'key jwt:key)) 
-    (default! alg (getopt opts 'alg jwt:alg))
-    (default! checker (getopt opts 'checker jwt:checker))
-    (default! issuer (getopt opts 'issuer jwt:issuer))
-    ))
+  (macro expr
+    `(begin
+       (default! opts (and jwt:domain (get config-table jwt:domain)))
+       (when (and (string? opts) (test config-table opts))
+	 (set! opts (get config-table opts)))
+       (when (or (packet? opts) (string? opts))
+	 (set! key opts)
+	 (set! alg (or jwt/algorithm "HS256"))
+	 (set! opts #f))
+       (default! key (getopt opts 'key jwt/key)) 
+       (default! alg (getopt opts 'alg (and jwt/key jwt/algorithm)))
+       (default! checker (getopt opts 'checker jwt/checker))
+       (default! issuer (getopt opts 'issuer jwt:domain))
+       )))
 
 (defrecord jwt header payload signature text
-  (checked #f) (expiration #f))
+  (valid #f) (expiration #f))
 
 (define (jwt-body jwt (text) (dot1) (dot2))
   (set! text (jwt-text jwt))
@@ -97,46 +105,62 @@
   (handle-jwt-args)
   (set! segs (segment string "."))
   (if key
-      (let ((header (b64->json (car segs)))
-	    (payload (b64->json (cadr segs)))
-	    (signature (b64->packet (caddr segs)))
+      (let ((header (b64->json (elt segs 0)))
+	    (payload (b64->json (elt segs 1)))
+	    (signature (b64->packet (elt segs 2)))
 	    (body (glom (car segs) "." (cadr segs))))
 	(when (not alg) (set! alg (try (get header 'alg) "HS256")))
-	(if (and (test header 'alg alg)
+	(if (and (or (not alg) (test header 'alg alg))
 		 (or (not issuer) (test payload 'iss issuer))
-		 (or (and (equal? "HS256" (upcase alg))
-			  (equal? signature (hmac-sha256 key body)))
-		     ;; Include other algorithms here someday
-		     ))
-	    (if (or (not checker) (checker payload #t err))
-		(cons-jwt header payload signature string 
-			  key (try (get payload "exp") #f))
-		(and err (signal-error string key alg issuer header 
-				       payload signature body)))
+		 (test-signature signature key alg (elt segs 0) (elt segs 1)))
+	    (cons-jwt header payload signature string 
+		      key (try (get payload "exp") #f))
 	    (and err (signal-error string key alg issuer header 
 				   payload signature body))))
       (cons-jwt (b64->json (car segs)) (b64->json (cadr segs)) 
 		(b64->packet (caddr segs))
 		string)))
 
-(define (jwt/check jwt (opts) (key) (alg) (checker) (issuer))
+(define (jwt/valid? jwt (opts) (key) (alg) (checker) (issuer)
+		    (header) (payload))
   (handle-jwt-args)
-  (if (string? jwt)
-      (jwt/parse jwt opts key alg checker issuer)
-      (begin
-	(handle-jwt-args)
-	(and (test (jwt-header jwt) 'alg (upcase alg))
-	     (packet? (jwt-signature jwt))
-	     (if (or (and (equal? "HS256" (upcase alg))
-			  (equal? (jwt-signature jwt) 
-				  (hmac-sha256 key (jwt-body jwt))))
-		     ;; Include other algorithms here someday
-		     )
-		 (and (or (not checker) 
-			  (checker (jwt-payload jwt) #t #f))
-		      (cons-jwt (jwt-header jwt) (jwt-payload jwt)
-				(jwt-signature jwt) (jwt-text jwt)
-				key (try (get (jwt-payload jwt) 'exp) #f))))))))
+  (default! header (jwt-header jwt))
+  (default! payload (jwt-payload jwt))
+  (if key
+      (and (or (not alg) (test header 'alg alg))
+	   (or (not issuer) (test payload 'iss issuer))
+	   (test-signature (jwt-signature jwt) key
+			   (try (get header 'alg) 
+				(or jwt/algorithm "HS256"))
+			   (jwt-body jwt)))
+      (error |JWT/NoKey| "No key was provided to validate " jwt)))
+
+(define (jwt/check jwt (opts) (key) (alg) (checker) (issuer)
+		   (header) (payload))
+  (handle-jwt-args)
+  (set! header (jwt-header jwt))
+  (set! payload (jwt-payload jwt))
+  (if key
+      (and (or (not alg) (test header 'alg alg))
+	   (or (not issuer) (test payload 'iss issuer))
+	   (test-signature (jwt-signature jwt) key 
+			   (try (get header 'alg) 
+				(or jwt/algorithm "HS256"))
+			   (jwt-body jwt))
+	   (and (or (not checker) (checker (jwt-payload jwt)))
+		(cons-jwt (jwt-header jwt) (jwt-payload jwt)
+			  (jwt-signature jwt) (jwt-text jwt)
+			  key (try (get (jwt-payload jwt) 'exp) #f))))
+      (error |JWT/NoKey| "No key was provided to validate " jwt)))
+
+;; With three args, the third arg is header64.payload64; with four, the first
+;; is the base64 of the header and the second is the base64 of the payload
+(define (test-signature sig key alg h64 (p64 #f))
+  (and (packet? sig)
+       (or (and (equal? "HS256" (upcase alg))
+		(equal? sig (hmac-sha256 key (if p64 (glom h64 "." p64) h64))))
+	   ;; Include other algorithms here someday
+	   )))
 
 (define (signal-error string key alg issuer header payload signature body)
   (if (not (test header 'alg alg))
@@ -156,41 +180,38 @@
 ;;; Generating new tokens
 
 (define (jwt/make payload (opts) (key) (alg) (checker) (issuer)
-		  (header) (hdr64) (pay64) (sig))
+		  (header) (nopad) (hdr64) (pay64) (sig))
   (handle-jwt-args)
+  (set! nopad (not (getopt opts 'pad64 jwt/pad)))
   (if (testopt opts 'header)
       (set! header (keys->strings (getopt opts 'header)))
-      (set! header (frame-create #f)))
+      (set! header `#["typ" "JWT" "alg" ,alg]))
   (when (table? payload) (set! payload (keys->strings payload)))
   (when (and issuer (not (test payload "iss")))
     (store! payload "iss" issuer))
-  (when (and jwt:iat (not (test payload "iat")))
-    (store! payload "iat" (get (gmtimestamp) 'iso)))
-  (when (and jwt:jti (not (test payload "jti")))
-    (if (applicable? jwt:jti)
-	(store! payload "jti" (jwt:jti))
-	(store! payload "jti" (uuid->string (getuuid)))))
-  (set! hdr64 (->base64 (->json header) #t))
-  (set! pay64 (if (string? payload) (->base64 payload #t)
-		  (->base64 (->json payload) #t)))
-  (set! sig (hmac-sha256 key (glom hdr64 "." pay64)))
+  (set! hdr64 (->base64 (->json header) nopad))
+  (set! pay64 (if (string? payload) 
+		  (->base64 payload nopad)
+		  (->base64 (->json payload) nopad)))
+  (set! sig (and key (hmac-sha256 key (glom hdr64 "." pay64))))
   (cons-jwt header payload sig
 	    (glom hdr64 "." pay64 "." (->base64 sig #t))
-	    key #t))
+	    (and key #t) #t))
 
 (define (jwt/string payload (opts) (key) (alg) (checker) (issuer)
-		    (header #f) (hdr64) (pay64) (sig))
+		    (header #f) (nopad) (hdr64) (pay64) (sig))
   (handle-jwt-args)
+  (set! nopad (not (getopt opts 'pad64 jwt/pad)))
   (if (testopt opts 'header)
       (set! header (keys->strings (getopt opts 'header)))
-      (set! header (frame-create #f)))
+      (set! header `#["typ" "JWT" "alg" ,alg]))
   (when checker (set! payload (checker payload #t #t)))
   (when (table? payload) (set! payload (keys->strings payload)))
-  (set! hdr64 (->base64 (->json header)))
-  (set! pay64 (if (string? payload) (->base64 payload)
-		  (->base64 (->json payload))))
+  (set! hdr64 (->base64 (->json header) nopad))
+  (set! pay64 (if (string? payload) (->base64 payload nopad)
+		  (->base64 (->json payload) nopad)))
   (set! sig (hmac-sha256 key (glom hdr64 "." pay64)))
-  (glom hdr64 "." pay64 "." (packet->base64 sig)))
+  (glom hdr64 "." pay64 "." (packet->base64 sig nopad)))
 
 (define (keys->strings table (keys) (newtable))
   (set! keys (getkeys table))
@@ -215,30 +236,37 @@
 (define (jwt/refresh jwt (opts) (key) (alg) (checker) (issuer))
   "Refresh a JWT if needed or returns the JWT as is"
   (handle-jwt-args)
-  (and (or (jwt-checked jwt) (jwt/check jwt key alg checker))
-       (if (jwt-expiration jwt)
-	   (if (> (time) (jwt-expiration jwt)) 
+  (and (or (jwt-valid jwt) (jwt/valid? jwt key alg checker issuer))
+       (or (and (jwt-expiration jwt) (< (time) (jwt-expiration jwt)))
+	   (and (not (jwt-expiration jwt)) (not checker))
+	   (if (jwt-expiration jwt)
 	       (let ((payload (if checker 
-				  (checker (jwt-payload jwt) #t #t)
-				  (deep-copy (jwt-payload jwt)))))
-		 (when payload (store! payload 'exp (time+ threshold)))
-		 (and payload (jwt/make payload key alg checker)))
-	       jwt)
-	   jwt)))
+				  (checker (jwt-payload jwt) #t #f)
+				  (deep-copy (jwt-payload jwt))))
+		     (refresh (getopt opts 'refresh jwt/refresh)))
+		 (when payload 
+		   (if refresh
+		       (store! payload 'exp (time+ refresh))
+		       (drop! payload 'exp)))
+		 (and payload 
+		      (jwt/make payload opts key alg checker issuer)))
+	       jwt))))
 
-(define (jwt/refreshed jwt (opts) (key) (alg) (checker) (issuer)
-		       (payload))
+(define (jwt/refreshed jwt (opts) (key) (alg) (checker) (issuer))
   "Refresh a JWT if needed or fails otherwise"
-  (and (or (jwt-checked jwt) (jwt/check jwt))
-       (if (jwt-expiration jwt)
-	   (if (> (time) (jwt-expiration jwt)) 
-	       (begin (handle-jwt-args)
-		 (set! payload 
-		       (if checker 
-			   (checker (jwt-payload jwt) #t #t)
-			   (deep-copy (jwt-payload jwt))))
-		 (when payload (store! payload 'exp (time+ threshold)))
-		 (and payload (jwt/make payload key alg checker)))
-	       (fail))
-	   jwt)))
+  (and (or (jwt-valid jwt) (jwt/check jwt))
+       (if (or (and (jwt-expiration jwt) (< (time) (jwt-expiration jwt)))
+	       (and (not (jwt-expiration jwt)) (not checker)))
+	   (fail)
+	   (let ((payload (if checker 
+			      (checker (jwt-payload jwt) #t #f)
+			      (deep-copy (jwt-payload jwt))))
+		 (refresh (getopt opts 'refresh jwt/refresh)))
+	     (when payload 
+	       (if refresh
+		   (store! payload 'exp (time+ refresh))
+		   (drop! payload 'exp)))
+	     (and payload 
+		  (jwt/make payload opts key alg checker issuer))))))
+
 
