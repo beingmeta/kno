@@ -739,6 +739,66 @@ static fdtype title_handler(fdtype expr,fd_lispenv env)
     return FD_VOID;}
 }
 
+static fdtype jsout_handler(fdtype expr,fd_lispenv env)
+{
+  U8_OUTPUT out; fdtype result=FD_VOID;
+  U8_INIT_OUTPUT(&out,2048);
+  u8_puts(&out,"<script language='javascript'>\n");
+  {FD_DOBODY(x,expr,1) {
+      if (FD_STRINGP(x))
+        u8_puts(&out,FD_STRDATA(x));
+      else if ((FD_SYMBOLP(x))||(FD_PAIRP(x))||(FD_RAILP(x))) {
+        result=fd_eval(x,env);
+        if (FD_ABORTP(result)) break;
+        else if ((FD_VOIDP(result))||(FD_FALSEP(result))||
+                 (FD_EMPTY_CHOICEP(result))) {}
+        else if (FD_STRINGP(result))
+          u8_puts(&out,FD_STRDATA(result));
+        else fd_unparse(&out,result);
+        fd_decref(result); result=FD_VOID;}
+      else fd_unparse(&out,x);}}
+  u8_puts(&out,"\n</script>\n");
+  if (FD_ABORTP(result)) {
+    u8_free(out.u8_outbuf);
+    return result;}
+  else {
+    fdtype header_string=
+      fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    fd_req_push(html_headers,header_string);
+    fd_decref(header_string);
+    return FD_VOID;}
+}
+
+static fdtype cssout_handler(fdtype expr,fd_lispenv env)
+{
+  U8_OUTPUT out; fdtype result=FD_VOID;
+  U8_INIT_OUTPUT(&out,2048);
+  u8_puts(&out,"<style type='text/css'>\n");
+  {FD_DOBODY(x,expr,1) {
+      if (FD_STRINGP(x))
+        u8_puts(&out,FD_STRDATA(x));
+      else if ((FD_SYMBOLP(x))||(FD_PAIRP(x))||(FD_RAILP(x))) {
+        result=fd_eval(x,env);
+        if (FD_ABORTP(result)) break;
+        else if ((FD_VOIDP(result))||(FD_FALSEP(result))||
+                 (FD_EMPTY_CHOICEP(result))) {}
+        else if (FD_STRINGP(result))
+          u8_puts(&out,FD_STRDATA(result));
+        else fd_unparse(&out,result);
+        fd_decref(result); result=FD_VOID;}
+      else fd_unparse(&out,x);}}
+  u8_puts(&out,"\n</style>\n");
+  if (FD_ABORTP(result)) {
+    u8_free(out.u8_outbuf);
+    return result;}
+  else {
+    fdtype header_string=
+      fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    fd_req_push(html_headers,header_string);
+    fd_decref(header_string);
+    return FD_VOID;}
+}
+
 /* Generating the HTTP header */
 FD_EXPORT int fd_output_http_headers(U8_OUTPUT *out,fdtype cgidata)
 {
@@ -1236,10 +1296,16 @@ FD_EXPORT void fd_init_cgiexec_c()
 
   fd_defspecial(xhtmlout_module,"HTMLHEADER",htmlheader);
   fd_defspecial(xhtmlout_module,"TITLE!",title_handler);
+  fd_defspecial(xhtmlout_module,"JSOUT",jsout_handler);
+  fd_defspecial(xhtmlout_module,"CSSOUT",cssout_handler);
   fd_idefn(xhtmlout_module,
            fd_make_cprim2x("STYLESHEET!",add_stylesheet,1,
                            fd_string_type,FD_VOID,
                            fd_string_type,FD_VOID));
+  fd_idefn(xhtmlout_module,
+           fd_make_cprim1x("JAVASCRIPT!",add_javascript,1,
+                           fd_string_type,FD_VOID));
+
   fd_idefn(xhtmlout_module,
            fd_make_cprim1x("JAVASCRIPT!",add_javascript,1,
                            fd_string_type,FD_VOID));
