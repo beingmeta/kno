@@ -22,17 +22,28 @@
 (define (twilio/send string opts)
   (loginfo "Sending " (write string) " to " opts)
   (when (string? opts) (set! opts `#[to ,opts]))
-  (detail%watch
-   (urlpost (glom "https://api.twilio.com/2010-04-01/Accounts/"
-	      (getopt opts 'sid default-sid)
-	      "/Messages")
-	    `#[header ,(glom "Authorization: Basic "
-			 (->base64 (glom (getopt opts 'sid default-sid) ":"
-				     (getopt opts 'auth default-auth))))]
-	    "From" (getopt opts 'from default-from)
-	    "To" (getopt opts 'to)
-	    "Body" string)
-   opts string))
+  (let* ((endpoint (glom "https://api.twilio.com/2010-04-01/Accounts/"
+		     (getopt opts 'sid default-sid)
+		     "/Messages"))
+	 (to (getopt opts 'to))
+	 (from (getopt opts 'from default-from))
+	 (req (urlpost endpoint 
+		       `#[basicauth ,(glom (getopt opts 'sid default-sid) ":"
+				       (getopt opts 'auth default-auth))]
+		       "From" from
+		       "To" to
+		       "Body" string))
+	 (response (get req 'response)))
+    (info%watch "TWILIO/SEND" to from string endpoint header opts)
+    (debug%watch "TWILIO/SEND" reponse req)
+    (if (>= 299 response 200)
+	response
+	(if (getopt opts 'err)
+	    (irritant req |TwilioFailed| opts)
+	    (begin (logwarn |TwilioFailed|
+		     "For " to " from " from " with body " string ":\n"
+		     (pprint req))
+		   response)))))
 
 (define smsout
   (macro expr
