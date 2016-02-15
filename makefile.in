@@ -236,7 +236,7 @@ SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
 	src/modules/paypal/*.scm src/modules/twitter/*.scm \
 	src/modules/misc/*.scm src/modules/tests/*.scm \
 	src/modules/domutils/*.scm src/modules/knodules/*.scm \
-	src/modules/textindex/*.scm \
+	src/modules/textindex/*.scm src/modules/jwt/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
@@ -1124,7 +1124,7 @@ $(DESTDIR)@module_dir@ $(DESTDIR)@data_dir@:
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 MODULE_DIRS=aws brico bugjar facebook misc paypal tests twitter google
-SAFE_MODULE_DIRS=domutils knodules textindex
+SAFE_MODULE_DIRS=jwt domutils knodules textindex
 BEINGMETA_MODULE_DIRS= \
 	morph morph/data chopper chopper/english \
 	gnosys gnosys/utils gnosys/analyzers/text \
