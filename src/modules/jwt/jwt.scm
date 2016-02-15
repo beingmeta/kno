@@ -7,10 +7,9 @@
 (use-module '{varconfig logger})
 (define %used_modules 'varconfig)
 
-(define %nosubst '{jwt/key jwt/algorithm jwt/pad jwt/checker
-		   jwt/refresh})
+(define %nosubst '{jwt/key jwt/algorithm jwt/pad jwt/checker})
 
-(module-export! '{jwt? jwt-valid
+(module-export! '{jwt? jwt-valid jwt:domain
 		  jwt-header jwt-payload jwt-text jwt-signature 
 		  jwt/parse jwt/valid? jwt/check 
 		  jwt/make jwt/string 
@@ -24,13 +23,13 @@
 (varconfig! jwt:domain jwt:domain)
 
 (define-init jwt/key #f)
-(varconfig! jwt/key jwt/key)
+(varconfig! jwt:key jwt/key)
 
 (define-init jwt/pad #f)
 (varconfig! jwt:pad jwt/pad)
 
 (define-init jwt/algorithm #f)
-(varconfig! jwt/algorithm jwt/algorithm)
+(varconfig! jwt:algorithm jwt/algorithm)
 
 (define-init jwt/refresh 3600) ;; one hour
 (varconfig! jwt:refresh jwt/refresh)
@@ -42,7 +41,7 @@
 ;;; Err determines whether or not an error is returned if the 
 ;;;  check fails
 (define-init jwt/checker #f)
-(varconfig! jwt/checker jwt:checker)
+(varconfig! jwt:checker jwt/checker)
 
 ;;; The table for configuration options
 
