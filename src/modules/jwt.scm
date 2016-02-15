@@ -7,7 +7,7 @@
 (use-module '{varconfig logger})
 (define %used_modules 'varconfig)
 
-(define %nosubst '{jwt:pad jwt:key jwt:refresh})
+(define %nosubst '{jwt:pad jwt:key jwt:refresh jwt:iat jwt:jti jwt:issuer})
 (set+! %nosubst '{jwt:cookie jwt:cookie:key jwt:cookie:refresh
 		  jwt:cookie:grace jwt:cookie:domain
 		  jwt:cookie:path
@@ -25,6 +25,15 @@
 
 (define-init jwt:pad #f)
 (varconfig! jwt:pad jwt:pad)
+
+(define-init jwt:issuer #f)
+(varconfig! jwt:issuer jwt:issuer)
+
+(define-init jwt:iat #f)
+(varconfig! jwt:iat jwt:iat )
+
+(define-init jwt:jti #f)
+(varconfig! jwt:jti jwt:jti)
 
 (defrecord jwt header payload signature text
   (checked #f) (expiration #f))
@@ -105,6 +114,14 @@
   (unless (test header "typ") (store! header "typ" "JWT"))
   (unless (test header "alg") (store! header "alg" alg))
   (when (table? payload) (set! payload (keys->strings payload)))
+  (when (and jwt:issuer (not (test payload "iss")))
+    (store! payload "iss" jwt:issuer))
+  (when (and jwt:iat (not (test payload "iat")))
+    (store! payload "iat" (get (gmtimestamp) 'iso)))
+  (when (and jwt:jti (not (test payload "jti")))
+    (if (applicable? jwt:jti)
+	(store! payload "jti" (jwt:jti))
+	(store! payload "jti" (uuid->string (getuuid)))))
   (set! hdr64 (->base64 (->json header) #t))
   (set! pay64 (if (string? payload) (->base64 payload #t)
 		  (->base64 (->json payload) #t)))
