@@ -741,29 +741,33 @@ static fdtype title_handler(fdtype expr,fd_lispenv env)
 
 static fdtype jsout_handler(fdtype expr,fd_lispenv env)
 {
-  U8_OUTPUT out; fdtype result=FD_VOID;
-  U8_INIT_OUTPUT(&out,2048);
-  u8_puts(&out,"<script language='javascript'>\n");
+  U8_OUTPUT *prev=u8_current_output;
+  U8_OUTPUT _out, *out=&_out; fdtype result=FD_VOID;
+  U8_INIT_OUTPUT(&_out,2048);
+  u8_set_default_output(out);
+  u8_puts(&_out,"<script language='javascript'>\n");
   {FD_DOBODY(x,expr,1) {
       if (FD_STRINGP(x))
-        u8_puts(&out,FD_STRDATA(x));
+        u8_puts(&_out,FD_STRDATA(x));
       else if ((FD_SYMBOLP(x))||(FD_PAIRP(x))||(FD_RAILP(x))) {
         result=fd_eval(x,env);
         if (FD_ABORTP(result)) break;
         else if ((FD_VOIDP(result))||(FD_FALSEP(result))||
                  (FD_EMPTY_CHOICEP(result))) {}
         else if (FD_STRINGP(result))
-          u8_puts(&out,FD_STRDATA(result));
-        else fd_unparse(&out,result);
+          u8_puts(&_out,FD_STRDATA(result));
+        else fd_unparse(&_out,result);
         fd_decref(result); result=FD_VOID;}
-      else fd_unparse(&out,x);}}
-  u8_puts(&out,"\n</script>\n");
+      else fd_unparse(&_out,x);}}
+  u8_puts(&_out,"\n</script>\n");
   if (FD_ABORTP(result)) {
-    u8_free(out.u8_outbuf);
+    u8_free(_out.u8_outbuf);
+    u8_set_default_output(prev);
     return result;}
   else {
     fdtype header_string=
-      fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+      fd_init_string(NULL,_out.u8_outptr-_out.u8_outbuf,_out.u8_outbuf);
+    u8_set_default_output(prev);
     fd_req_push(html_headers,header_string);
     fd_decref(header_string);
     return FD_VOID;}
@@ -771,29 +775,33 @@ static fdtype jsout_handler(fdtype expr,fd_lispenv env)
 
 static fdtype cssout_handler(fdtype expr,fd_lispenv env)
 {
-  U8_OUTPUT out; fdtype result=FD_VOID;
-  U8_INIT_OUTPUT(&out,2048);
-  u8_puts(&out,"<style type='text/css'>\n");
+  U8_OUTPUT *prev=u8_current_output;
+  U8_OUTPUT _out, *out=&_out; fdtype result=FD_VOID;
+  U8_INIT_OUTPUT(&_out,2048);
+  u8_set_default_output(out);
+  u8_puts(&_out,"<style type='text/css'>\n");
   {FD_DOBODY(x,expr,1) {
       if (FD_STRINGP(x))
-        u8_puts(&out,FD_STRDATA(x));
+        u8_puts(&_out,FD_STRDATA(x));
       else if ((FD_SYMBOLP(x))||(FD_PAIRP(x))||(FD_RAILP(x))) {
         result=fd_eval(x,env);
         if (FD_ABORTP(result)) break;
         else if ((FD_VOIDP(result))||(FD_FALSEP(result))||
                  (FD_EMPTY_CHOICEP(result))) {}
         else if (FD_STRINGP(result))
-          u8_puts(&out,FD_STRDATA(result));
-        else fd_unparse(&out,result);
+          u8_puts(&_out,FD_STRDATA(result));
+        else fd_unparse(&_out,result);
         fd_decref(result); result=FD_VOID;}
-      else fd_unparse(&out,x);}}
-  u8_puts(&out,"\n</style>\n");
+      else fd_unparse(&_out,x);}}
+  u8_puts(&_out,"\n</style>\n");
   if (FD_ABORTP(result)) {
-    u8_free(out.u8_outbuf);
+    u8_free(_out.u8_outbuf);
+    u8_set_default_output(prev);
     return result;}
   else {
     fdtype header_string=
-      fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+      fd_init_string(NULL,_out.u8_outptr-_out.u8_outbuf,_out.u8_outbuf);
+    u8_set_default_output(prev);
     fd_req_push(html_headers,header_string);
     fd_decref(header_string);
     return FD_VOID;}
