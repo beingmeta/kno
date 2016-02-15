@@ -34,6 +34,9 @@
 (define-init jwt/refresh 3600) ;; one hour
 (varconfig! jwt:refresh jwt/refresh)
 
+(define-init jwt-verbose #f)
+(varconfig! jwt:verbose jwt-verbose)
+
 ;;; This checks the payload for validity.  It is a function
 ;;;  of the form (fn payload update err)
 ;;; If update is #t, it may return an updated payload,
@@ -75,7 +78,18 @@
        (default! issuer (getopt opts 'issuer jwt:domain))
        )))
 
-(defrecord jwt header payload signature text
+(define (jwt->string jwt (payload))
+  (set! payload (jwt-payload jwt))
+  (stringout (if (jwt-valid jwt) "#<JWT*" "#<JWT")
+    (when jwt-verbose (printout " " (jwt-text jwt)))
+    (if (table? payload)
+	(do-choices (key (getkeys payload))
+	  (printout " " key "=" (write (get payload key))))
+	payload)
+    ">"))
+
+(defrecord (jwt #[stringfn jwt->string])
+  header payload signature text
   (valid #f) (expiration #f))
 
 (define (jwt-body jwt (text) (dot1) (dot2))
