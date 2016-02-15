@@ -8,93 +8,72 @@
 (define %used_modules '{varconfig ezrecords})
 
 (define-init %loglevel %warn%)
-;;(define %loglevel %debug!)
+(set! %loglevel %debug!)
+
+(module-export! '{auth/getinfo auth/getid auth/identify! auth/update! 
+		  auth/deauthorize! auth/sticky?})
 
 ;;;; Constant and configurable variables
 
-(define auth:domain #f)
 (define-init auth-cookie 'JWT:AUTH)
 (define-init auth-cache '_JWT:AUTH)
 (define-init identity-cache '__JWT:AUTH)
-(config-def! 'auth:id
+(config-def! 'jwt:cookie
 	     (lambda (var (val))
 	       (if (bound? val)
-		   (let ((info (jwt/getdomain val)))
+		   (begin
+		     (lognotice |JWT:AUTH| "Set cookie to " val)
 		     (set! auth-cookie val)
 		     (set! auth-cache (string->symbol (glom "_" val)))
-		     (set! identity-cache (string->symbol (glom "__" val)))
-		     (when info (set! auth:domain (get info 'issuer))))
+		     (set! identity-cache (string->symbol (glom "__" val))))
 		   auth-cookie)))
-(config-def! 'auth:domain
-	     (lambda (var (val))
-	       (if (bound? val)
-		   (let ((info (jwt/getdomain val)))
-		     (when (not info)
-		       (irritant val |NoSuchDomain|
-				 "The domain " val " has not been registered with JWT"))
-		     (set! auth:domain val)
-		     (when (test info 'cookie)
-		       (set! auth-cookie (get info 'cookie))
-		       (set! auth-cache (string->symbol (glom "_" auth-cookie)))
-		       (set! identity-cache (string->symbol (glom "__" auth-cookie)))))
-		   auth:domain)))
 	     
-(define-init auth-domain #f)
-(varconfig! auth:domain auth-domain)
-(define-init auth-path "/")
-(varconfig! auth:path auth-path)
-(define-init auth-lifetime (* 7 24 3600))
-(varconfig! auth:lifetime auth-lifetime)
+(define-init cookie-host #f)
+(varconfig! jwt:cookie:host cookie-host)
+(define-init cookie-path "/")
+(varconfig! jwt:cookie:path cookie-path)
+(define-init cookie-lifetime (* 7 24 3600))
+(varconfig! jwt:cookie:lifetime cookie-lifetime)
 
 ;;;; Top level auth functions
 
-(define (auth/getinfo (domain (or auth:domain auth-cookie)) (err #f)
-		      (cookiename) (cachename))
-  (cond ((eq? domain auth-cookie)
-	 (set! cookiename auth-cookie)
-	 (set! cachename auth-cache)
-	 (set! domain auth:domain))
-	((equal? domain auth:domain)
-	 (set! cookiename auth-cookie)
-	 (set! cachename auth-cache))
-	(else (let ((info (jwt/getdomain domain)))
-		(cond (info
-		       (set! cookiename (getopt info 'cookie auth-cookie))
-		       (set! cachename (glom "_" (getopt info 'cookie auth-cookie)))
-		       (set! domain (get info 'issuer)))
-		      ((symbol? domain)
-		       (set! cookiename domain)
-		       (set! cachename (string->symbol (glom "_" domain))))
-		      (else (set! cookiename auth-cookie)
-			    (set! cachename auth-cache))))))
+(define (auth/getinfo (cookie auth-cookie) (domain jwt:domain) (err #f)
+		      (cachename))
+  (if (eq? cookie auth-cookie)
+      (set! cachename auth-cache)
+      (set! cachename (string->symbol (glom "_" cookie))))
   (req/get cachename
-	   (let ((jwt (try (jwt/parse (extract-bearer (req/get 'authorization {})) domain)
-			   (jwt/parse (req/get cookiename {}) domain))))
-	     (if (exists? jwt) (req/set! cachename jwt))
+	   (let* ((bjwt (jwt/parse (extract-bearer (req/get 'authorization {})) domain))
+		  (jwt ))
+	     (if (fail? bjwt)
+		 (set! jwt (jwt/parse (req/get cookie {}) domain))
+		 (set! jwt bjwt))
+	     (when (fail? jwt)
+	       (loginfo |JWT/AUTH/getinfo| 
+		 "Couldn't get JWT " jwt " from bearer or " cookie))
+	     (when (exists? jwt)
+	       (loginfo |JWT/AUTH/getinfo| 
+		 "Got JWT " jwt " from " 
+		 (if (exists? bjwt) "Bearer authorization" cookie))
+	       (req/set! cachename jwt))
 	     jwt)))
 (define (extract-bearer string)
   (get (text->frame #((bos) (spaces*) "Bearer" (spaces) (label token (rest)))
 		    string)
        'token))
 
-(define (auth/getid (domain (or auth:domain auth-cookie)) (err #f) 
+(define (auth/getid (cookie auth-cookie) (err #f) 
 		    (idcache))
-  (cond ((or (eq? domain auth-cookie) (eq? domain auth:domain))
-	 (set! idcache identity-cache)
-	 (set! domain auth:domain))
-	(else (let ((info (jwt/getdomain domain)))
-		(cond (info
-		       (set! idcache (glom "__" (getopt info 'cookie auth-cookie)))
-		       (set! domain (get info 'issuer)))
-		      ((symbol? domain)
-		       (set! idcache (string->symbol (glom "__" domain)))
-		       (set! domain auth:domain))
-		      (else (set! cachename auth-cache))))))
+  (if (eq? cookie auth-cookie)
+      (set! idcache identity-cache)
+      (set! idcache (string->symbol (glom "__" cookie))))
   (req/get idcache
-	   (let* ((jwt (auth/getinfo domain err))
+	   (let* ((jwt (auth/getinfo cookie err))
 		  (id (parse-arg (jwt/get jwt 'sub))))
-	     (if (exists? id) (req/set! idcache id))
-	     id)))
+	     (when (exists? id)
+	       (loginfo |JWT/AUTH/getid| "Got id " id " from " jwt)
+	       (req/set! idcache id))
+	     (try id #f))))
 
 (define (auth/sticky? (arg auth:id))
   (if (jwt? arg)
@@ -103,60 +82,47 @@
 
 ;;;; Authorize/deauthorize API
 
-(define (auth/identify! identity (domain (or auth:domain auth-cookie))
-			(sticky #t) (cookiename) (cachename) (idcache))
-  (cond ((eq? domain auth-cookie)
-	 (set! cookiename auth-cookie)
-	 (set! cachename auth-cache)
-	 (set! idcache identity-cache)
-	 (set! domain auth:domain))
-	((equal? domain auth:domain)
-	 (set! cookiename auth-cookie)
-	 (set! cachename auth-cache)
-	 (set! idcache identity-cache))
-	(else (let ((info (jwt/getdomain domain)))
-		(cond (info
-		       (set! cookiename (getopt info 'cookie auth-cookie))
-		       (set! cachename (glom "_" (getopt info 'cookie auth-cookie)))
-		       (set! idcache (glom "__" (getopt info 'cookie auth-cookie)))
-		       (set! domain (get info 'issuer)))
-		      ((symbol? domain)
-		       (set! cookiename domain)
-		       (set! cachename (string->symbol (glom "_" domain)))
-		       (set! idcache (string->symbol (glom "__" domain))))
-		      (else (set! cookiename auth-cookie)
-			    (set! cachename auth-cache)
-			    (set! idcache identity-cache))))))
+(define (auth/identify! identity (cookie auth-cookie) (domain jwt:domain)
+			(sticky #t))
   (when (and sticky (not (number? sticky))) 
-    (set! sticky auth-lifetime))
+    (set! sticky cookie-lifetime))
   (and identity
        (let* ((payload (if sticky `#["sub" ,identity "sticky" ,sticky]
 			   `#["sub" ,identity]))
 	      (jwt (jwt/make payload domain)))
+	 (lognotice |JWT/AUTH/identify!|
+	   "Setting " (if (number? sticky)
+			  (printout "sticky (" (secs->string sticky) ")")
+			  (if sticky "sticky" ""))
+	   " identity " identity " in " cookie " for " domain)
 	 (detail%watch "AUTH/IDENTIFY!" identity session expires payload jwt
 		       (auth->string auth))
-	 (req/set! cookiename (jwt-text jwt))
-	 (req/set! cachename jwt)
-	 (req/set! idcache identity)
+	 (req/set! cookie (jwt-text jwt))
+	 (req/set! (string->symbol (glom "_" cookie)) jwt)
+	 (req/set! (string->symbol (glom "__" cookie)) identity)
 	 (if sticky
-	     (set-cookie! cookiename (jwt-text jwt) auth-domain auth-path
+	     (set-cookie! cookie (jwt-text jwt) cookie-host cookie-path
 			  (time+ sticky) #t)
-	     (set-cookie! cookiename (jwt-text jwt) auth-domain auth-path
+	     (set-cookie! cookie (jwt-text jwt) cookie-host cookie-path
 			  #f #t))
 	 identity)))
 
-(define (auth/deauthorize! (authid authid))
-  (set-cookie! authid "expired" auth-domain auth-path
-	       (time- (* 7 24 3600))
-	       #t))
+(define (auth/deauthorize! (cookie auth-cookie))
+  (when (req/test cookie)
+    (set-cookie! cookie "expired" cookie-host cookie-path
+		 (time- (* 7 24 3600))
+		 #t)))
 
-(define (auth/update! (domain auth-cookie))
-  (let ((jwt (jwt/refreshed (auth/getinfo domain))))
-    (when (and (exists? jwt) jwt)
-      (set-cookie! domain (jwt-text jwt) auth-domain auth-path
-		   (and (jwt/get jwt 'sticky)
-			(time+ (jwt/get jwt 'sticky)))
-		   #t))))
+(define (auth/update! (cookie auth-cookie) (domain jwt:domain))
+  (when (req/test 'cookie)
+    (let ((jwt (jwt/refreshed (auth/getinfo cookie))))
+      (when (and (exists? jwt) jwt)
+	(lognotice |JWT/AUTH/update| "Updating JWT authorization " jwt)
+	(set-cookie! domain (jwt-text jwt) cookie-host cookie-path
+		     (and (jwt/get jwt 'sticky)
+			  (time+ (jwt/get jwt 'sticky)))
+		     #t)))))
+
 
 
 
