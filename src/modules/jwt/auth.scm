@@ -10,8 +10,10 @@
 (define-init %loglevel %warn%)
 (set! %loglevel %debug!)
 
-(module-export! '{auth/getinfo auth/getid auth/identify! auth/update! 
-		  auth/deauthorize! auth/sticky?})
+(module-export! '{auth/getinfo auth/getid 
+		  auth/identify! auth/update! 
+		  auth/deauthorize! auth/sticky?
+		  auth/maketoken})
 
 ;;;; Constant and configurable variables
 
@@ -39,6 +41,13 @@
 (varconfig! jwt:cookie:path cookie-path)
 (define-init cookie-lifetime (* 7 24 3600))
 (varconfig! jwt:cookie:lifetime cookie-lifetime)
+
+(define (auth/maketoken (length 7) (mult (microtime)))
+  (let ((sum 0) (modulus 1))
+    (dotimes (i length)
+      (set! sum (+ (* 256 sum) (random 256)))
+      (set! modulus (* modulus 256)))
+    (remainder (* sum mult) modulus)))
 
 ;;;; Top level auth functions
 
