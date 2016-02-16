@@ -15,6 +15,11 @@
 
 ;;;; Constant and configurable variables
 
+(define-init jwt/auth/domain #f)
+(varconfig! jwt:auth:domain jwt/auth/domain)
+(define-init jwt/auth/key #f)
+(varconfig! jwt:auth:key jwt/auth/key)
+
 (define-init auth-cookie 'JWT:AUTH)
 (define-init auth-cache '_JWT:AUTH)
 (define-init identity-cache '__JWT:AUTH)
@@ -37,16 +42,17 @@
 
 ;;;; Top level auth functions
 
-(define (auth/getinfo (cookie auth-cookie) (domain jwt:domain) (err #f)
+(define (auth/getinfo (cookie auth-cookie) 
+		      (jwtarg (or jwt/auth/domain jwt/auth/key)) (err #f)
 		      (cachename))
   (if (eq? cookie auth-cookie)
       (set! cachename auth-cache)
       (set! cachename (string->symbol (glom "_" cookie))))
   (req/get cachename
-	   (let* ((bjwt (jwt/parse (extract-bearer (req/get 'authorization {})) domain))
-		  (jwt ))
+	   (let* ((bjwt (jwt/parse (extract-bearer (req/get 'authorization {})) jwtarg))
+		  (jwt #f))
 	     (if (fail? bjwt)
-		 (set! jwt (jwt/parse (req/get cookie {}) domain))
+		 (set! jwt (jwt/parse (req/get cookie {}) jwtarg))
 		 (set! jwt bjwt))
 	     (when (fail? jwt)
 	       (loginfo |JWT/AUTH/getinfo| 
@@ -82,19 +88,20 @@
 
 ;;;; Authorize/deauthorize API
 
-(define (auth/identify! identity (cookie auth-cookie) (domain jwt:domain)
+(define (auth/identify! identity (cookie auth-cookie) 
+			(jwtarg (or jwt/auth/domain jwt/auth/key))
 			(sticky #t))
   (when (and sticky (not (number? sticky))) 
     (set! sticky cookie-lifetime))
   (and identity
        (let* ((payload (if sticky `#[sub ,identity sticky ,sticky]
 			   `#[sticky ,identity]))
-	      (jwt (jwt/make payload domain)))
+	      (jwt (jwt/make payload jwtarg)))
 	 (lognotice |JWT/AUTH/identify!|
 	   "Setting " (if (number? sticky)
 			  (printout "sticky (" (secs->string sticky) ")")
 			  (if sticky "sticky" ""))
-	   " identity " identity " in " cookie " for " domain)
+	   " identity " identity " in " cookie " for " jwtarg)
 	 (detail%watch "AUTH/IDENTIFY!" identity session expires payload jwt
 		       (auth->string auth))
 	 (req/set! cookie (jwt-text jwt))
@@ -113,12 +120,13 @@
 		 (time- (* 7 24 3600))
 		 #t)))
 
-(define (auth/update! (cookie auth-cookie) (domain jwt:domain))
+(define (auth/update! (cookie auth-cookie) 
+		      (jwtarg (or jwt/auth/domain jwt/auth/key)))
   (when (req/test 'cookie)
-    (let ((jwt (jwt/refreshed (auth/getinfo cookie))))
+    (let ((jwt (jwt/refreshed (auth/getinfo cookie jwtarg))))
       (when (and (exists? jwt) jwt)
 	(lognotice |JWT/AUTH/update| "Updating JWT authorization " jwt)
-	(set-cookie! domain (jwt-text jwt) cookie-host cookie-path
+	(set-cookie! cookie (jwt-text jwt) cookie-host cookie-path
 		     (and (jwt/get jwt 'sticky)
 			  (time+ (jwt/get jwt 'sticky)))
 		     #t)))))
