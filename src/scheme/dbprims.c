@@ -1985,6 +1985,26 @@ static fdtype frame_create_lexpr(int n,fdtype *args)
   return result;
 }
 
+static fdtype frame_update_lexpr(int n,fdtype *args)
+{
+  if ((n>=1)&&(FD_EMPTY_CHOICEP(args[0])))
+    return FD_EMPTY_CHOICE;
+  else if (n<3)
+    return fd_err(fd_SyntaxError,"frame_update_lexpr",NULL,FD_VOID);
+  else if (!(FD_TABLEP(args[0])))
+    return fd_err(fd_TypeError,"frame_update_lexpr","not a table",args[0]);
+  else if (n%2) {
+    fdtype result=fd_deep_copy(args[0]); int i=1;
+    while (i<n) {
+      if (fd_store(result,args[i],args[i+1])<0) {
+        fd_decref(result);
+        return FD_ERROR_VALUE;}
+      else i=i+2;}
+    return result;}
+  else return fd_err(fd_SyntaxError,"frame_update_lexpr",
+                     _("wrong number of args"),FD_VOID);
+}
+
 static fdtype seq2frame_prim
   (fdtype poolspec,fdtype values,fdtype schema,fdtype dflt)
 {
@@ -2066,11 +2086,11 @@ static fdtype modify_frame_lexpr(int n,fdtype *args)
           if (FD_PAIRP(slotid))
             if ((FD_PAIRP(FD_CDR(slotid))) &&
                 ((FD_OIDP(FD_CAR(slotid))) || (FD_SYMBOLP(FD_CAR(slotid)))) &&
-                (FD_EQ(FD_CADR(slotid),drop_symbol)))
+                ((FD_EQ(FD_CADR(slotid),drop_symbol)))) {
               if (doretract(frame,FD_CAR(slotid),args[i+1])<0) {
                 FD_STOP_DO_CHOICES;
                 return FD_ERROR_VALUE;}
-              else {}
+              else {}}
             else {
               u8_log(LOG_WARN,fd_TypeError,"frame_modify_lexpr","slotid");}
           else if ((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid)))
@@ -2738,6 +2758,8 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim
            (fd_make_cprimn("FRAME-CREATE",frame_create_lexpr,1)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprimn("FRAME-UPDATE",frame_update_lexpr,3)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("MODIFY-FRAME",modify_frame_lexpr,3)));
   fd_idefn(fd_scheme_module,
