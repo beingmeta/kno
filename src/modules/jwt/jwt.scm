@@ -67,8 +67,10 @@
 (define handle-jwt-args
   (macro expr
     `(begin
-       (default! opts (try (and jwt:default-domain (get config-table jwt:default-domain)) #f))
-       (when (test config-table opts) (set! opts (get config-table opts)))
+       (default! opts 
+	 (try (and jwt:default-domain (get config-table jwt:default-domain)) #f))
+       (when (and (or (symbol? opts) (string? opts)) (test config-table opts))
+	 (set! opts (get config-table opts)))
        (when (or (packet? opts) (string? opts))
 	 (set! key opts)
 	 (set! alg jwt/algorithm)
