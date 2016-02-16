@@ -9,6 +9,9 @@
 
 (define %nosubst '{jwt/key jwt/algorithm jwt/pad jwt/checker})
 
+(define-init %loglevel %notice%)
+(set! %loglevel %debug%)
+
 (module-export! '{jwt? jwt-valid jwt:domain
 		  jwt-header jwt-payload jwt-text jwt-signature 
 		  jwt/parse jwt/valid? jwt/check 
@@ -49,7 +52,7 @@
 ;;; The table for configuration options
 
 (define-init config-table (make-hashtable))
-(config-def! 'jwt:config
+(config-def! 'jwt:domains
 	     (lambda (var (val))
 	       (if (bound? val)
 		   (begin
@@ -72,8 +75,8 @@
 	 (set! key opts)
 	 (set! alg (or jwt/algorithm "HS256"))
 	 (set! opts #f))
-       (default! key (getopt opts 'key jwt/key)) 
-       (default! alg (getopt opts 'alg (and jwt/key jwt/algorithm)))
+       (default! key (getopt opts 'key #f)) 
+       (default! alg (getopt opts 'alg #f))
        (default! checker (getopt opts 'checker jwt/checker))
        (default! issuer (getopt opts 'issuer jwt:domain))
        )))
@@ -117,6 +120,7 @@
 		   (err #f) (segs) (header) (signature))
   (handle-jwt-args)
   (set! segs (segment string "."))
+  (debug%watch "JWT/PARSE" string key alg checker issuer opts)
   (if key
       (let ((header (b64->json (elt segs 0)))
 	    (payload (b64->json (elt segs 1)))
@@ -125,7 +129,7 @@
 	(when (not alg) (set! alg (try (get header 'alg) "HS256")))
 	(if (and (or (not alg) (test header 'alg alg))
 		 (or (not issuer) (test payload 'iss issuer))
-		 (test-signature signature key alg (elt segs 0) (elt segs 1)))
+		 (test-signature string signature key alg (elt segs 0) (elt segs 1)))
 	    (cons-jwt header payload signature string 
 		      key (try (get payload "exp") #f))
 	    (and err (signal-error string key alg issuer header 
@@ -139,10 +143,11 @@
   (handle-jwt-args)
   (default! header (jwt-header jwt))
   (default! payload (jwt-payload jwt))
+  (debug%watch "JWT/VALID?" jwt opts key alg checker issuer)
   (if key
       (and (or (not alg) (test header 'alg alg))
 	   (or (not issuer) (test payload 'iss issuer))
-	   (test-signature (jwt-signature jwt) key
+	   (test-signature jwt (jwt-signature jwt) key
 			   (try (get header 'alg) 
 				(or jwt/algorithm "HS256"))
 			   (jwt-body jwt)))
@@ -151,16 +156,17 @@
 (define (jwt/check jwt (opts) (key) (alg) (checker) (issuer)
 		   (header) (payload))
   (handle-jwt-args)
+  (debug%watch "JWT/CHECK" jwt opts key alg checker issuer)
   (set! header (jwt-header jwt))
   (set! payload (jwt-payload jwt))
   (if key
       (and (or (not alg) (test header 'alg alg))
 	   (or (not issuer) (test payload 'iss issuer))
-	   (test-signature (jwt-signature jwt) key 
+	   (test-signature jwt (jwt-signature jwt) key 
 			   (try (get header 'alg) 
 				(or jwt/algorithm "HS256"))
 			   (jwt-body jwt))
-	   (and (or (not checker) (checker (jwt-payload jwt)))
+	   (and (or (not checker) (%wc checker (jwt-payload jwt)))
 		(cons-jwt (jwt-header jwt) (jwt-payload jwt)
 			  (jwt-signature jwt) (jwt-text jwt)
 			  key (try (get (jwt-payload jwt) 'exp) #f))))
@@ -168,12 +174,18 @@
 
 ;; With three args, the third arg is header64.payload64; with four, the first
 ;; is the base64 of the header and the second is the base64 of the payload
-(define (test-signature sig key alg h64 (p64 #f))
+(define (test-signature jwt sig key alg h64 (p64 #f))
   (and (packet? sig)
        (or (and (equal? "HS256" (upcase alg))
 		(equal? sig (hmac-sha256 key (if p64 (glom h64 "." p64) h64))))
 	   ;; Include other algorithms here someday
-	   )))
+	   (begin (logwarn |SignatureFailed| 
+		    jwt " with " alg " key " key
+		    "\n given sig " sig 
+		    "\n and body " (if p64 (glom h64 "." p64) h64)
+		    "\n p64=" p64 " h64=" h64)
+	     (debug%watch "TEST-SIGNATURE" jwt sig key alg h64 p64)
+	     #f))))
 
 (define (signal-error string key alg issuer header payload signature body)
   (if (not (test header 'alg alg))
@@ -193,23 +205,28 @@
 ;;; Generating new tokens
 
 (define (jwt/make payload (opts) (key) (alg) (checker) (issuer)
-		  (header) (nopad) (hdr64) (pay64) (sig))
+		  (header) (usepay) (nopad) (hdr64) (pay64) (sig))
   (handle-jwt-args)
   (set! nopad (not (getopt opts 'pad64 jwt/pad)))
   (if (testopt opts 'header)
       (set! header (keys->strings (getopt opts 'header)))
       (set! header `#["typ" "JWT" "alg" ,alg]))
-  (when (table? payload) (set! payload (keys->strings payload)))
-  (when (and issuer (not (test payload "iss")))
-    (store! payload "iss" issuer))
+  (when checker (set! payload (checker payload #t #f)))
+  (if (table? payload) 
+      (set! usepay (keys->strings payload))
+      (set! usepay payload))
+  (when (and issuer (not (test payload 'iss)))
+    (store! usepay "iss" issuer))
   (set! hdr64 (->base64 (->json header) nopad))
-  (set! pay64 (if (string? payload) 
-		  (->base64 payload nopad)
-		  (->base64 (->json payload) nopad)))
+  (set! pay64 (if (string? usepay) 
+		  (->base64 usepay nopad)
+		  (->base64 (->json usepay) nopad)))
   (set! sig (and key (hmac-sha256 key (glom hdr64 "." pay64))))
+  (debug%watch "JWT/MAKE" payload opts key alg checker issuer)
   (cons-jwt header payload sig
-	    (glom hdr64 "." pay64 "." (->base64 sig #t))
-	    (and key #t) #t))
+	    (and sig (glom hdr64 "." pay64 "." (->base64 sig #t)))
+	    (and key #t)
+	    #t))
 
 (define (jwt/string payload (opts) (key) (alg) (checker) (issuer)
 		    (header #f) (nopad) (hdr64) (pay64) (sig))
@@ -224,7 +241,29 @@
   (set! pay64 (if (string? payload) (->base64 payload nopad)
 		  (->base64 (->json payload) nopad)))
   (set! sig (hmac-sha256 key (glom hdr64 "." pay64)))
+  (debug%watch "JWT/STRING" payload opts key alg checker issuer)
   (glom hdr64 "." pay64 "." (packet->base64 sig nopad)))
+
+(define (jwt/sign jwt (opts) (key) (alg) (checker) (issuer)
+		  (header) (nopad) (hdr64) (pay64) (sig))
+  (handle-jwt-args)
+  (set! nopad (not (getopt opts 'pad64 jwt/pad)))
+  (if (testopt opts 'header)
+      (set! header (keys->strings (getopt opts 'header)))
+      (set! header `#["typ" "JWT" "alg" ,alg]))
+  (when checker (set! payload (checker payload #t #f)))
+  (when (table? payload) (set! payload (keys->strings payload)))
+  (when (and issuer (not (test payload "iss")))
+    (store! payload "iss" issuer))
+  (set! hdr64 (->base64 (->json header) nopad))
+  (set! pay64 (if (string? payload) 
+		  (->base64 payload nopad)
+		  (->base64 (->json payload) nopad)))
+  (set! sig (and key (hmac-sha256 key (glom hdr64 "." pay64))))
+  (debug%watch "JWT/MAKE" payload opts key alg checker issuer)
+  (cons-jwt header payload sig
+	    (glom hdr64 "." pay64 "." (->base64 sig #t))
+	    (and key #t) #t))
 
 (define (keys->strings table (keys) (newtable))
   (set! keys (getkeys table))
@@ -249,6 +288,8 @@
 (define (jwt/refresh jwt (opts) (key) (alg) (checker) (issuer))
   "Refresh a JWT if needed or returns the JWT as is"
   (handle-jwt-args)
+  (debug%watch "JWT/REFRESH" 
+    jwt "EXPIRES" (jwt-expiration jwt) opts key alg checker issuer)
   (and (or (jwt-valid jwt) (jwt/valid? jwt key alg checker issuer))
        (or (and (jwt-expiration jwt) (< (time) (jwt-expiration jwt)))
 	   (and (not (jwt-expiration jwt)) (not checker))

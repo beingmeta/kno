@@ -69,7 +69,7 @@
       (set! idcache (string->symbol (glom "__" cookie))))
   (req/get idcache
 	   (let* ((jwt (auth/getinfo cookie err))
-		  (id (parse-arg (jwt/get jwt 'sub))))
+		  (id (tryif jwt (parse-arg (jwt/get jwt 'sub)))))
 	     (when (exists? id)
 	       (loginfo |JWT/AUTH/getid| "Got id " id " from " jwt)
 	       (req/set! idcache id))
@@ -87,8 +87,8 @@
   (when (and sticky (not (number? sticky))) 
     (set! sticky cookie-lifetime))
   (and identity
-       (let* ((payload (if sticky `#["sub" ,identity "sticky" ,sticky]
-			   `#["sub" ,identity]))
+       (let* ((payload (if sticky `#[sub ,identity sticky ,sticky]
+			   `#[sticky ,identity]))
 	      (jwt (jwt/make payload domain)))
 	 (lognotice |JWT/AUTH/identify!|
 	   "Setting " (if (number? sticky)
