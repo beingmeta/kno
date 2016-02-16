@@ -1,3 +1,14 @@
+framerd (3.8.4-43) unstable; urgency=low
+
+  * Added JWT and JWT/AUTH modules
+  * Added FRAME-UPDATE primitive
+  * Fix bug in secret hashing
+  * Add JSOUT and CSSOUT
+  * Improve TWILIO debugging
+  * git patch version framerd-3.8.4-106
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 16 Feb 2016 15:53:31 +0000
+
 framerd (3.8.4-42) unstable; urgency=low
 
   * Add pem->packet
