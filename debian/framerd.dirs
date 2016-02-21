@@ -11,10 +11,11 @@ usr/share/framerd/standard_modules/twitter
 usr/share/framerd/standard_modules/paypal
 usr/share/framerd/standard_modules/misc
 usr/share/framerd/standard_modules/tests
-usr/share/framerd/standard_modules/jwt
-usr/share/framerd/standard_modules/safe/domutils
+usr/share/framerd/standard_modules/safe
+usr/share/framerd/standard_modules/safe/jwt
 usr/share/framerd/standard_modules/safe/xhtml
 usr/share/framerd/standard_modules/safe/fdxml
+usr/share/framerd/standard_modules/safe/domutils
 usr/share/framerd/standard_modules/safe/knodules
 usr/share/framerd/standard_modules/safe/textindex
 usr/share/framerd/scheme_modules

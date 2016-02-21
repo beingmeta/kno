@@ -1,7 +1,7 @@
 framerd (3.8.4-44) unstable; urgency=low
 
   * Fix packaging of JWT module
-  * git patch version framerd-3.8.4-107
+  * git patch version framerd-3.8.4-108
 
  -- Ken Haase <kh@beingmeta.com>  Sun, 21 Feb 2016 22:18:37 +0000
 
