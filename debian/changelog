@@ -1,3 +1,10 @@
+framerd (3.8.4-45) unstable; urgency=medium
+
+  * Make jwt/auth more robust
+  * git patch version framerd-3.8.4-109
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 21 Feb 2016 18:09:52 -0500
+
 framerd (3.8.4-44) unstable; urgency=low
 
   * Fix packaging of JWT module
