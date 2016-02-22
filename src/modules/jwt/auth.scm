@@ -8,7 +8,7 @@
 (define %used_modules '{varconfig ezrecords})
 
 (define-init %loglevel %warn%)
-(set! %loglevel %debug!)
+;;(set! %loglevel %debug!)
 
 (module-export! '{auth/getinfo auth/getid 
 		  auth/identify! auth/update! 
@@ -52,7 +52,8 @@
 ;;;; Top level auth functions
 
 (define (auth/getinfo (cookie auth-cookie) 
-		      (jwtarg (or jwt/auth/domain jwt/auth/key)) (err #f)
+		      (jwtarg (or jwt/auth/domain jwt/auth/key)) 
+		      (err #f)
 		      (cachename))
   (if (eq? cookie auth-cookie)
       (set! cachename auth-cache)
@@ -77,13 +78,15 @@
 		    string)
        'token))
 
-(define (auth/getid (cookie auth-cookie) (err #f) 
+(define (auth/getid (cookie auth-cookie) 
+		    (jwtarg (or jwt/auth/domain jwt/auth/key))
+		    (err #f) 
 		    (idcache))
   (if (eq? cookie auth-cookie)
       (set! idcache identity-cache)
       (set! idcache (string->symbol (glom "__" cookie))))
   (req/get idcache
-	   (let* ((jwt (auth/getinfo cookie err))
+	   (let* ((jwt (auth/getinfo cookie jwtarg err))
 		  (id (tryif jwt (parse-arg (jwt/get jwt 'sub)))))
 	     (when (exists? id)
 	       (loginfo |JWT/AUTH/getid| "Got id " id " from " jwt)
@@ -139,7 +142,3 @@
 		     (and (jwt/get jwt 'sticky)
 			  (time+ (jwt/get jwt 'sticky)))
 		     #t)))))
-
-
-
-
