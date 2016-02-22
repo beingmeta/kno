@@ -1,3 +1,10 @@
+framerd (3.8.4-48) unstable; urgency=low
+
+  * Fix loglevel for jwt module
+  * git patch version framerd-3.8.4-114
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 22 Feb 2016 18:31:52 +0000
+
 framerd (3.8.4-47) unstable; urgency=low
 
   * More fixes to jwt/auth

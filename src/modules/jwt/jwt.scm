@@ -10,7 +10,7 @@
 (define %nosubst '{jwt/algorithm jwt/pad jwt/checker})
 
 (define-init %loglevel %notice%)
-(set! %loglevel %debug%)
+;;(set! %loglevel %debug%)
 
 (module-export! '{jwt? jwt:default-domain
 		  jwt-header jwt-payload jwt-text 
