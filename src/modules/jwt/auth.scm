@@ -62,7 +62,7 @@
 	   (let* ((bjwt (jwt/parse (extract-bearer (req/get 'authorization {})) jwtarg))
 		  (jwt #f))
 	     (if (fail? bjwt)
-		 (set! jwt (jwt/parse (req/get cookie {}) jwtarg))
+		 (set! jwt (jwt/parse (or (req/get cookie {}) {}) jwtarg))
 		 (set! jwt bjwt))
 	     (when (fail? jwt)
 	       (loginfo |JWT/AUTH/getinfo| 
@@ -108,22 +108,28 @@
   (and identity
        (let* ((payload (if sticky `#[sub ,identity sticky ,sticky]
 			   `#[sticky ,identity]))
-	      (jwt (jwt/make payload jwtarg)))
+	      (jwt (jwt/make payload jwtarg))
+	      (text (jwt-text jwt)))
 	 (lognotice |JWT/AUTH/identify!|
 	   "Setting " (if (number? sticky)
 			  (printout "sticky (" (secs->string sticky) ")")
 			  (if sticky "sticky" ""))
 	   " identity " identity " in " cookie " for " jwtarg)
-	 (detail%watch "AUTH/IDENTIFY!" identity session expires payload jwt
-		       (auth->string auth))
-	 (req/set! cookie (jwt-text jwt))
-	 (req/set! (string->symbol (glom "_" cookie)) jwt)
-	 (req/set! (string->symbol (glom "__" cookie)) identity)
-	 (if sticky
-	     (set-cookie! cookie (jwt-text jwt) cookie-host cookie-path
-			  (time+ sticky) #t)
-	     (set-cookie! cookie (jwt-text jwt) cookie-host cookie-path
-			  #f #t))
+	 (detail%watch "AUTH/IDENTIFY!" 
+	   identity session expires payload jwt (auth->string auth))
+	 (unless text
+	   (logwarn |JWT/MAKE/Failed| 
+	     "Couldn't sign JWT for " identity " with arg=" jwtarg
+	     ", payload=" payload ", and jwt=" jwt))
+	 (when text
+	   (req/set! cookie text)
+	   (req/set! (string->symbol (glom "_" cookie)) jwt)
+	   (req/set! (string->symbol (glom "__" cookie)) identity)
+	   (if sticky
+	       (set-cookie! cookie text cookie-host cookie-path
+			    (time+ sticky) #t)
+	       (set-cookie! cookie text cookie-host cookie-path
+			    #f #t)))
 	 identity)))
 
 (define (auth/deauthorize! (cookie auth-cookie))

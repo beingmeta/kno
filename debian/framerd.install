@@ -36,6 +36,7 @@ usr/share/framerd/fdconsole.el
 usr/share/framerd/data/hyph_en_US.dic
 usr/share/framerd/standard_modules/*.scm
 usr/share/framerd/standard_modules/safe/*.scm
+usr/share/framerd/standard_modules/safe/jwt/*.scm
 usr/share/framerd/standard_modules/safe/xhtml/*.scm
 usr/share/framerd/standard_modules/safe/fdxml/*.scm
 usr/share/framerd/standard_modules/safe/domutils/*.scm
