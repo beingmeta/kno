@@ -59,7 +59,7 @@
       (set! cachename auth-cache)
       (set! cachename (string->symbol (glom "_" cookie))))
   (req/get cachename
-	   (let* ((bjwt (jwt/parse (extract-bearer (req/get 'authorization {})) jwtarg))
+	   (let* ((bjwt (jwt/parse (get-bearer-token) jwtarg))
 		  (jwt #f))
 	     (if (fail? bjwt)
 		 (set! jwt (jwt/parse (or (req/get cookie {}) {}) jwtarg))
@@ -77,6 +77,8 @@
   (get (text->frame #((bos) (spaces*) "Bearer" (spaces) (label token (rest)))
 		    string)
        'token))
+(define (get-bearer-token)
+  (extract-bearer (req/get 'authorization {})))
 
 (define (auth/getid (cookie auth-cookie) 
 		    (jwtarg (or jwt/auth/domain jwt/auth/key))
@@ -88,6 +90,8 @@
   (req/get idcache
 	   (let* ((jwt (auth/getinfo cookie jwtarg err))
 		  (id (tryif jwt (parse-arg (jwt/get jwt 'sub)))))
+	     (when (and (exists? jwt) (fail? id))
+	       (logwarn |JWT/AUTH/noid| "Couldn't get id (sub) from " jwt))
 	     (when (exists? id)
 	       (loginfo |JWT/AUTH/getid| "Got id " id " from " jwt)
 	       (req/set! idcache id))
@@ -107,7 +111,7 @@
     (set! sticky cookie-lifetime))
   (and identity
        (let* ((payload (if sticky `#[sub ,identity sticky ,sticky]
-			   `#[sticky ,identity]))
+			   `#[sub ,identity]))
 	      (jwt (jwt/make payload jwtarg))
 	      (text (jwt-text jwt)))
 	 (lognotice |JWT/AUTH/identify!|
