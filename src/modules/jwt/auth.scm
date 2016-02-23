@@ -8,7 +8,7 @@
 (define %used_modules '{varconfig ezrecords})
 
 (define-init %loglevel %warn%)
-(set! %loglevel %debug!)
+;;(set! %loglevel %debug!)
 
 (module-export! '{auth/getinfo auth/getid 
 		  auth/identify! auth/update! 
@@ -52,13 +52,14 @@
 ;;;; Top level auth functions
 
 (define (auth/getinfo (cookie auth-cookie) 
-		      (jwtarg (or jwt/auth/domain jwt/auth/key)) (err #f)
+		      (jwtarg (or jwt/auth/domain jwt/auth/key)) 
+		      (err #f)
 		      (cachename))
   (if (eq? cookie auth-cookie)
       (set! cachename auth-cache)
       (set! cachename (string->symbol (glom "_" cookie))))
   (req/get cachename
-	   (let* ((bjwt (jwt/parse (extract-bearer (req/get 'authorization {})) jwtarg))
+	   (let* ((bjwt (jwt/parse (get-bearer-token) jwtarg))
 		  (jwt #f))
 	     (if (fail? bjwt)
 		 (set! jwt (jwt/parse (or (req/get cookie {}) {}) jwtarg))
@@ -76,15 +77,21 @@
   (get (text->frame #((bos) (spaces*) "Bearer" (spaces) (label token (rest)))
 		    string)
        'token))
+(define (get-bearer-token)
+  (extract-bearer (req/get 'authorization {})))
 
-(define (auth/getid (cookie auth-cookie) (err #f) 
+(define (auth/getid (cookie auth-cookie) 
+		    (jwtarg (or jwt/auth/domain jwt/auth/key))
+		    (err #f) 
 		    (idcache))
   (if (eq? cookie auth-cookie)
       (set! idcache identity-cache)
       (set! idcache (string->symbol (glom "__" cookie))))
   (req/get idcache
-	   (let* ((jwt (auth/getinfo cookie err))
+	   (let* ((jwt (auth/getinfo cookie jwtarg err))
 		  (id (tryif jwt (parse-arg (jwt/get jwt 'sub)))))
+	     (when (and (exists? jwt) (fail? id))
+	       (logwarn |JWT/AUTH/noid| "Couldn't get id (sub) from " jwt))
 	     (when (exists? id)
 	       (loginfo |JWT/AUTH/getid| "Got id " id " from " jwt)
 	       (req/set! idcache id))
@@ -104,7 +111,7 @@
     (set! sticky cookie-lifetime))
   (and identity
        (let* ((payload (if sticky `#[sub ,identity sticky ,sticky]
-			   `#[sticky ,identity]))
+			   `#[sub ,identity]))
 	      (jwt (jwt/make payload jwtarg))
 	      (text (jwt-text jwt)))
 	 (lognotice |JWT/AUTH/identify!|
@@ -145,7 +152,3 @@
 		     (and (jwt/get jwt 'sticky)
 			  (time+ (jwt/get jwt 'sticky)))
 		     #t)))))
-
-
-
-
