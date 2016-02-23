@@ -1,7 +1,7 @@
 framerd (3.8.4-49) unstable; urgency=medium
 
   * Fix typo in jwt/auth jwt/sticky?
-  * git patch version framerd-3.8.4-115
+  * git patch version framerd-3.8.4-117
 
  -- Ken Haase <kh@beingmeta.com>  Tue, 23 Feb 2016 07:47:59 -0500
 
