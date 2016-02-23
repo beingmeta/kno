@@ -1,3 +1,10 @@
+framerd (3.8.4-50) unstable; urgency=low
+
+  * Fixes to jwt/auth handling
+  * git patch version framerd-3.8.4-120
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 23 Feb 2016 16:15:43 +0000
+
 framerd (3.8.4-49) unstable; urgency=medium
 
   * Fix typo in jwt/auth jwt/sticky?
