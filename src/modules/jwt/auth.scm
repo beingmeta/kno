@@ -106,19 +106,21 @@
 
 (define (auth/identify! identity (cookie auth-cookie) 
 			(jwtarg (or jwt/auth/domain jwt/auth/key))
-			(sticky #t))
-  (when (and sticky (not (number? sticky))) 
-    (set! sticky cookie-lifetime))
+			(payload #t))
+  (cond ((number? payload) 
+	 (set! payload `#[sticky ,payload]))
+	((eq? payload #t)
+	 (set! payload `#[sticky ,cookie-lifetime]))
+	((not payload) (set! payload `#[]))
+	((not (table? payload)) (set! payload `#[])))
   (and identity
-       (let* ((payload (if sticky `#[sub ,identity sticky ,sticky]
-			   `#[sub ,identity]))
+       (let* ((payload (frame-update payload 'sub identity))
 	      (jwt (jwt/make payload jwtarg))
 	      (text (jwt-text jwt)))
 	 (lognotice |JWT/AUTH/identify!|
-	   "Setting " (if (number? sticky)
-			  (printout "sticky (" (secs->string sticky) ")")
-			  (if sticky "sticky" ""))
-	   " identity " identity " in " cookie " for " jwtarg)
+	   "Identity=" identity " in " cookie 
+	   " signed by " jwtarg " w/payload " 
+	   "\n" (pprint payload))
 	 (detail%watch "AUTH/IDENTIFY!" 
 	   identity session expires payload jwt (auth->string auth))
 	 (unless text
@@ -129,9 +131,9 @@
 	   (req/set! cookie text)
 	   (req/set! (string->symbol (glom "_" cookie)) jwt)
 	   (req/set! (string->symbol (glom "__" cookie)) identity)
-	   (if sticky
+	   (if (test payload 'sticky)
 	       (set-cookie! cookie text cookie-host cookie-path
-			    (time+ sticky) #t)
+			    (time+ (get payload 'sticky)) #t)
 	       (set-cookie! cookie text cookie-host cookie-path
 			    #f #t)))
 	 identity)))
