@@ -1697,7 +1697,7 @@ static fdtype uridecode_prim(fdtype string)
       else digit2=xdigit_weight(c);
       ec=(digit1)*16+digit2;
       *write++=ec;}
-    else if (c=='+') *write++=' ';
+    /* else if (c=='+') *write++=' '; */
     else *write++=c;}
   *write='\0';
   return fd_init_string(NULL,write-result,result);

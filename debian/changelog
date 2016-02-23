@@ -1,3 +1,10 @@
+framerd (3.8.4-51) unstable; urgency=low
+
+  * Remove uridecode handling of '+' escapes
+  * git patch version framer-3.8.4-121
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 23 Feb 2016 18:51:41 +0000
+
 framerd (3.8.4-50) unstable; urgency=low
 
   * Fixes to jwt/auth handling
