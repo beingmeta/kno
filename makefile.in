@@ -550,9 +550,31 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
 		src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
 		src/cmodules/sundown/sundown.c include/framerd/*.h        \
-		etc/*.in ${SRC_HEADERS}
+		etc/*.in ${SRC_HEADERS} ${SCHEME_MODULES}
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in      \
+	      tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
+	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
+	      src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
+	      src/cmodules/sundown/sundown.c include/framerd/*.h        \
+	      etc/*.in ${SRC_HEADERS}
+	@# We skip module.scm files because they are always links
+	@#  to other files (with more distinctive names).  And we
+	@#  also skip the sandbox entries because they are always
+	@#  links to other files or directories
+	@find src/modules src/fdweb/xhtml -name "*.scm" | \
+		grep -v module.scm | \
+		grep -v sandbox | \
+		xargs etags -o TAGS -a
+
+CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
+		tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
+		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
+		src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
+		src/cmodules/sundown/sundown.c include/framerd/*.h        \
+		etc/*.in ${SRC_HEADERS}
+	@echo Building C TAGS file
+	@etags -o CTAGS makefile.in configure.ac include/framerd/config.h.in      \
 	      tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
 	      src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
