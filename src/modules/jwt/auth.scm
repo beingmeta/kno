@@ -90,7 +90,7 @@
 	       (req/set! idcache id))
 	     (try id #f))))
 
-(define (auth/sticky? (arg auth:id))
+(define (auth/sticky? (arg auth-cookie))
   (if (jwt? arg)
       (try (jwt/get arg 'sticky) #f)
       (try (jwt/get (auth/getinfo arg) 'sticky) #f)))
