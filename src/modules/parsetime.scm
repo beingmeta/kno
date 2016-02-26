@@ -12,7 +12,9 @@
 
 (define-init %loglevel %notice%)
 
-(module-export! '{parsetime parsegmtime timeparser time-patterns time-pattern})
+(module-export! 
+ '{parsetime parsegmtime timeparser
+   time-patterns time-pattern})
 
 (define us-format-default #f)
 (varconfig! parsetime/usafmt us-format-default)
@@ -161,29 +163,31 @@
 	  (matches->timestamps matches (cdr fields) base))))
 
 (define (parsetime string (base #f) (us us-format-default))
-  (let ((matches
-	 (text->frames (qc (if us us-patterns terran-patterns))
-		       string)))
-    (when (test matches 'ampm '{"PM" "pm"})
-      (let ((hours (get matches 'hours)))
-	(unless (> (+ 12 hours) 24)
-	  (store! matches 'hours (+ 12 hours)))))
-    (when (test matches 'year)
-      (do-choices (year (pickstrings (get matches 'year)))
-	(if (= (length year) 2)
-	    (store! matches 'year (+ 1900 (string->number year)))
-	    (store! matches 'year (string->number year)))))
-    ;; Handle the case where people swapped the month and date according
-    ;;  to US conventions .vs. the rest of the world
-    (when (and (test matches 'month) (test matches 'date)
-	       (> (get matches 'month) 12)
-	       (<= (get matches 'date) 12))
-      (let ((m (get matches 'month)) (d (get matches 'date)))
-	(store! matches 'month d) (store! matches 'date m)))
-    (let* ((fields (getfields matches))
-	   (base (timestamp (car fields))))
-      (%debug "parsetime matches=" matches ", fields=" fields)
-      (matches->timestamps matches fields base))))
+  (if (string? string)
+      (let ((matches
+	     (text->frames (qc (if us us-patterns terran-patterns))
+			   string)))
+	(when (test matches 'ampm '{"PM" "pm"})
+	  (let ((hours (get matches 'hours)))
+	    (unless (> (+ 12 hours) 24)
+	      (store! matches 'hours (+ 12 hours)))))
+	(when (test matches 'year)
+	  (do-choices (year (pickstrings (get matches 'year)))
+	    (if (= (length year) 2)
+		(store! matches 'year (+ 1900 (string->number year)))
+		(store! matches 'year (string->number year)))))
+	;; Handle the case where people swapped the month and date according
+	;;  to US conventions .vs. the rest of the world
+	(when (and (test matches 'month) (test matches 'date)
+		   (> (get matches 'month) 12)
+		   (<= (get matches 'date) 12))
+	  (let ((m (get matches 'month)) (d (get matches 'date)))
+	    (store! matches 'month d) (store! matches 'date m)))
+	(let* ((fields (getfields matches))
+	       (base (timestamp (car fields))))
+	  (%debug "parsetime matches=" matches ", fields=" fields)
+	  (matches->timestamps matches fields base)))
+      (timestamp string)))
 
 (define (parsegmtime string (base #f) (us us-format-default))
   (parsetime string (or base (gmtimestamp)) us))
