@@ -113,6 +113,9 @@
 	 (set! payload `#[sticky ,cookie-lifetime]))
 	((not payload) (set! payload `#[]))
 	((not (table? payload)) (set! payload `#[])))
+  (when (jwt? identity)
+    (set! payload (jwt-payload identity))
+    (set! identity (get payload 'sub)))
   (and identity
        (let* ((payload (frame-update payload 'sub identity))
 	      (jwt (jwt/make payload jwtarg))
@@ -128,14 +131,23 @@
 	     "Couldn't sign JWT for " identity " with arg=" jwtarg
 	     ", payload=" payload ", and jwt=" jwt))
 	 (when text
-	   (req/set! cookie text)
-	   (req/set! (string->symbol (glom "_" cookie)) jwt)
-	   (req/set! (string->symbol (glom "__" cookie)) identity)
-	   (if (test payload 'sticky)
-	       (set-cookie! cookie text cookie-host cookie-path
-			    (time+ (get payload 'sticky)) #t)
-	       (set-cookie! cookie text cookie-host cookie-path
-			    #f #t)))
+	   (let* ((info (and (table? cookie) cookie))
+		  (name (if info
+			    (try (get info 'name) auth-cookie)
+			    cookie))
+		  (domain (if info 
+			      (try (get info 'domain) cookie-host)
+			      cookie-host))
+		  (path (if info 
+			    (try (get info 'path) cookie-path)
+			    cookie-path)))
+	     (req/set! name text)
+	     (req/set! (string->symbol (glom "_" name)) jwt)
+	     (req/set! (string->symbol (glom "__" name)) identity)
+	     (if (test payload 'sticky)
+		 (set-cookie! name text domain path
+			      (time+ (get payload 'sticky)) #t)
+		 (set-cookie! name text domain path #f #t))))
 	 identity)))
 
 (define (auth/deauthorize! (cookie auth-cookie))
