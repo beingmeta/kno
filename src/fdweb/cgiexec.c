@@ -618,7 +618,7 @@ static int handle_cookie(U8_OUTPUT *out,fdtype cgidata,fdtype cookie)
       fdtype expires=((len>4) ? (FD_VECTOR_REF(cookie,4)) : (FD_VOID));
       fdtype secure=((len>5) ? (FD_VECTOR_REF(cookie,5)) : (FD_VOID));
       if (FD_STRINGP(domain))
-        u8_printf(out,"; Domain=.%s",FD_STRDATA(domain));
+        u8_printf(out,"; Domain=%s",FD_STRDATA(domain));
       if (FD_STRINGP(path))
         u8_printf(out,"; Path=%s",FD_STRDATA(path));
       if (FD_STRINGP(expires))
