@@ -16,10 +16,10 @@
 		  jwt-header jwt-payload jwt-text 
 		  jwt-valid jwt-domain jwt-signature 
 		  jwt/parse jwt/valid? jwt/check 
-		  jwt/make jwt/string 
+		  jwt/make jwt/string jwt/sign
 		  jwt/refresh jwt/refreshed
 		  jwt/getdomain
-		  jwt/get jwt?})
+		  jwt? jwt/get jwt/test})
 
 ;;; Default configuration
 
@@ -293,6 +293,11 @@
 
 (define (jwt/get jwt slotid)
   (get (jwt-payload jwt) slotid))
+
+(define (jwt/test jwt slotid (value))
+  (if (bound? value)
+      (test (jwt-payload jwt) slotid value)
+      (test (jwt-payload jwt) slotid)))
 
 ;;; Refreshing tokens
 
