@@ -1,7 +1,9 @@
 #!/bin/sh
+TARGETS="@servlet_rundir@/ @daemon_rundir@/"
+if test "x$*" != "x"; then TARGETS="$*"; fi
 KILLWAIT=2
 KILLPAUSE=1
-for rundir in $*; do
+for rundir in ${TARGETS}; do
     for ppid in ${rundir}/*.ppid; do
 	if test `basename ${ppid}` != "*.ppid"; then
             export npid=`cat ${ppid}`;
@@ -11,7 +13,7 @@ for rundir in $*; do
     done;
 done;
 sleep ${KILLWAIT};
-for rundir in $*; do
+for rundir in ${TARGETS}; do
     for ppid in ${rundir}/*.ppid; do
 	export base=`basename ${ppid} .ppid`;
 	if test "${base}" != "*"; then
@@ -28,7 +30,7 @@ for rundir in $*; do
     done;
 done;
 sleep ${KILLWAIT};
-for rundir in $*; do
+for rundir in ${TARGETS}; do
     for pid in ${rundir}/*.pid; do
 	if test `basename ${pid}` != "*.pid"; then
 	    if test -f ${pid}; then sleep 1; fi
@@ -44,7 +46,7 @@ for rundir in $*; do
     done;
 done;
 sleep ${KILLWAIT};
-for rundir in $*; do
+for rundir in ${TARGETS}; do
     for pid in ${rundir}/*.pid; do
 	if test `basename ${pid}` != "*.pid"; then
      	    if test -f ${pid}; then 

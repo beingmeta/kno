@@ -10828,7 +10828,7 @@ if test $exec_prefix == 'NONE';
 else BINDIR="${exec_prefix}/bin";
 fi
 
-ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdsignal etc/fdstart etc/fdstartall etc/fdstopall etc/fdcleanup etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/fdserver.conf etc/framerd.conf etc/framerd.service etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.8.spec"
+ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdsignal etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/fdserver.conf etc/framerd.conf etc/framerd.service etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.8.spec"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -11538,6 +11538,7 @@ do
     "etc/fdconfig") CONFIG_FILES="$CONFIG_FILES etc/fdconfig" ;;
     "etc/fdsignal") CONFIG_FILES="$CONFIG_FILES etc/fdsignal" ;;
     "etc/fdstart") CONFIG_FILES="$CONFIG_FILES etc/fdstart" ;;
+    "etc/fdstop") CONFIG_FILES="$CONFIG_FILES etc/fdstop" ;;
     "etc/fdstartall") CONFIG_FILES="$CONFIG_FILES etc/fdstartall" ;;
     "etc/fdstopall") CONFIG_FILES="$CONFIG_FILES etc/fdstopall" ;;
     "etc/fdcleanup") CONFIG_FILES="$CONFIG_FILES etc/fdcleanup" ;;

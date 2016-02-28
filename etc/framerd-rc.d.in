@@ -27,79 +27,19 @@ STATFILE=/var/run/framerd.status
 # See how we were called.
 case "$1" in
   start)
-	if test -f @daemon_rundir@/_started;
+	if test -f @framerd_rundir@/_started;
 	then echo "FramerD daemons/servlets already started"; exit;
-	else date > @daemon_rundir@/_started;
+	else date > @framerd_rundir@/_started;
 	fi
-	for ctl in @config_dir@/daemons/*; do
-	    if test ! -f ${ctl}; then echo > /dev/null;
-	    elif (readlink ${ctl}>/dev/null);
-	    then FD_RESTART=1 \
-		 LOGFILE=@daemon_logdir@`basename ${ctl}`.log \
-		 ${FDSERVER} `readlink ${ctl}` "PORT=`basename ${ctl}`" \
-		             STATEDIR=@daemon_rundir@;
-	    else FD_RESTART=1 \
-		 LOGFILE=@daemon_logdir@`basename ${ctl}`.log \
-		 ${FDSERVER} ${ctl} "PORT=`basename ${ctl}`" \
-		             STATEDIR=@daemon_rundir@;
-	    fi;
-	done;
-	for ctl in @config_dir@/servlets/*@* @config_dir@/servlets/*:*; do
-	    if test ! -f ${ctl}; then echo > /dev/null;
-	    elif (readlink ${ctl}>/dev/null);
-	    then FD_RESTART=1 \
-		 LOGFILE=@servlet_logdir@/`basename ${ctl}`.log \
-		 ${FDSERVLET} `basename ${ctl}` "CONFIG=`readlink ${ctl}`" \
-		             STATEDIR=@servlet_rundir@;
-	    else FD_RESTART=1 \
-		 LOGFILE=@servlet_logdir@/`basename ${ctl}`.log \
-		 ${FDSERVLET} `basename ${ctl}` "CONFIG=${ctl}" \
-		             STATEDIR=@servlet_rundir@;
-	    fi;
-	done;
-	for ctl in @config_dir@/servlets/*.sock; do
-	    if test ! -f ${ctl}; then echo > /dev/null;
-	    elif (readlink ${ctl}>/dev/null);
-	    then FD_RESTART=1 \
-		 LOGFILE=@servlet_logdir@/`basename ${ctl} .sock`.log \
-		 ${FDSERVLET} `basename ${ctl}` "CONFIG=`readlink ${ctl}`" \
-		             STATEDIR=@servlet_rundir@;
-	    else FD_RESTART=1 \
-		 LOGFILE=@servlet_logdir@/`basename ${ctl} .sock`.log \
-		 ${FDSERVLET} `basename ${ctl}` "CONFIG=${ctl}" \
-		             STATEDIR=@servlet_rundir@;
-	    fi;
-	done;
+	fdstartall;
 	;;
   stop)
-	for ctl in @config_dir@/daemons/*; do
-	    ppid_file=@daemon_rundir@/`basename ${ctl}`.ppid
-	    if test ! -f ${ppid_file}; then echo > /dev/null;
-	    elif test @daemon_rundir@/_started -nt ${ppid_file};
-	    then rm ${ppid_file};
-	    else kill `cat ${ppid_file}`;
-	    fi;
-	done;
-	for ctl in @config_dir@/servlets/*@* @config_dir@/servlets/*:*; do
-	    ppid_file=@servlet_rundir@/`basename ${ctl}`.ppid
-	    if test ! -f ${ppid_file}; then echo > /dev/null;
-	    elif test @daemon_rundir@/_started -nt ${ppid_file};
-	    then rm ${ppid_file};
-	    else kill `cat ${ppid_file}`;
-	    fi;
-	done;
-	for ctl in @config_dir@/servlets/*.sock; do
-	    ppid_file=@servlet_rundir@/`basename ${ctl} .sock`.ppid
-	    if test ! -f ${ppid_file}; then echo > /dev/null;
-	    elif test @daemon_rundir@/_started -nt ${ppid_file};
-	    then rm ${ppid_file};
-	    else kill `cat ${ppid_file}`;
-	    fi;
-	done;
+	fdstopall;
 	rm  @daemon_rundir@/_started;
 	;;
   status)
-	if test -f @daemon_rundir@/_started;
+	if test -f @framerd_rundir@/_started;
+	    echo "Started: " `cat @framerd_rundir@/_started`
 	    echo -n "Daemons: "; ls @daemon_rundir@/*.ppid;
 	    echo -n "Servlets: "; ls @servlet_rundir@/*.ppid;
 	fi
