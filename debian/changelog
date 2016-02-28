@@ -1,3 +1,10 @@
+framerd (3.8.4-53) unstable; urgency=low
+
+  * Fixes to daemon/servlet management scripts
+  * git patch version framerd-3.8.4-128
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 28 Feb 2016 20:09:55 +0000
+
 framerd (3.8.4-52) unstable; urgency=low
 
   * Fix set-cookie to not automatically add dot to cookie domains
