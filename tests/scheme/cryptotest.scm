@@ -2,7 +2,7 @@
 
 (load-component "common.scm")
 
-(use-module 'crypto)
+(use-module '{crypto pem})
 
 (config! 'hexpacket #f)
 
@@ -64,16 +64,21 @@
 
 ;;; RSA tests
 
-(define rsa.pem (filedata (get-component "../data/crypto/rsa.pem")))
-(define rsa.pub (filedata (get-component "../data/crypto/rsa.pem")))
+(define rsa.pem (pem->packet (filestring (get-component "../data/crypto/rsa.pem"))))
+(define rsa.pub (pem->packet (filestring (get-component "../data/crypto/rsa.pub"))))
 
-(applytest #"foobar"
-	   (decrypt (filedata (get-component "../data/crypto/foobar.rsa"))
-		    rsa.pub "RSAPUB"))
-(applytest sample-packet
-	   (decrypt (filedata (get-component "../data/crypto/sample.rsa"))
-		    rsa.pem "RSA"))
-(applytest sample-packet
-	   (decrypt (filedata (get-component "../data/crypto/sample.rsapub"))
-		    rsa.pem "RSA"))
+(define sample.rsa (filedata (get-component "../data/crypto/sample.rsa")))
+(define sample.rsapub (filedata (get-component "../data/crypto/sample.rsapub")))
+
+(applytest #"foobar" decrypt
+	   (filedata (get-component "../data/crypto/foobar.rsa"))
+	   rsa.pub "RSAPUB")
+(applytest sample-packet decrypt
+	   (filedata (get-component "../data/crypto/sample.rsa"))
+	   rsa.pem "RSA")
+(applytest sample-packet decrypt
+	   (filedata (get-component "../data/crypto/sample.rsapub"))
+	   rsa.pem "RSA")
+(applytest sample-packet decrypt (encrypt sample rsa.pub "RSAPUB")
+	   rsa.pem "RSA")
 
