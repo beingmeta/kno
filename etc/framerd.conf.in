@@ -22,10 +22,14 @@ pre-start script
    chmod g+rwx @daemon_rundir@ @logdir@/framerd
 
    export FD_LAUNCHER=framerd.conf
-   fdstart @config_dir@/daemons/
-   fdstart @config_dir@/servlets/
+   fdstart @config_dir@/daemons/;
+   fdstart @config_dir@/servlets/;
+   date > @framerd_rundir@/_started; 
+   rm -f @framerd_rundir@/_sysv @framerd_rundir@/_systemd;
+   cp @framerd_rundir@/_started @framerd_rundir@/_upstart;
 end script
 
 post-stop script
-   fdstop @servlet_rundir@ @daemon_rundir@
+   fdstop @servlet_rundir@ @daemon_rundir@;
+   rm -f @daemon_rundir@/_started @daemon_rundir@/_sysv;
 end script

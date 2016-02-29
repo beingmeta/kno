@@ -12,8 +12,12 @@ ExecStartPre=@CHGRP@ @admin_group@ @servlet_rundir@ @servlet_logdir@
 ExecStartPre=@CHGRP@ @admin_group@ @daemon_rundir@ @daemon_logdir@
 ExecStartPre=@CHMOD@ g+rwx @servlet_rundir@  @servlet_logdir@
 ExecStartPre=@CHMOD@ g+rwx @daemon_rundir@ @daemon_logdir@
-ExecStart=@BINDIR@/fdstart "@config_dir@/daemons @config_dir@/servlets"
-ExecStop=@BINDIR@/fdstop @daemon_rundir@ @servlet_rundir@
+ExecStart=@BINDIR@/fdstart "@config_dir@/daemons @config_dir@/servlets"; \
+          date > @framerd_rundir@/_started;                              \
+          rm -f @framerd_rundir@/_sysv @framerd_rundir@/_upstart;        \
+          cp @framerd_rundir@/_started @framerd_rundir@/_systemd;
+ExecStop=@BINDIR@/fdstop @daemon_rundir@ @servlet_rundir@; \
+          rm -f @framerd_rundir@/_started @framerd_rundir@/_systemd;
 
 [Install]
 WantedBy=multi-user.target

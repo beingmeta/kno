@@ -29,13 +29,15 @@ case "$1" in
   start)
 	if test -f @framerd_rundir@/_started;
 	then echo "FramerD daemons/servlets already started"; exit;
-	else date > @framerd_rundir@/_started;
+	else date > @framerd_rundir@/_started; 
+	     rm -f @framerd_rundir@/_upstart @framerd_rundir@/_system;
+	     cp @framerd_rundir@/_started @framerd_rundir@/_sysv;
 	fi
 	fdstartall;
 	;;
   stop)
 	fdstopall;
-	rm  @daemon_rundir@/_started;
+	rm -f @daemon_rundir@/_started @daemon_rundir@/_sysv;
 	;;
   status)
 	if test -f @framerd_rundir@/_started;
