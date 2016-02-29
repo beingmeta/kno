@@ -20,6 +20,7 @@
 (define ziv16 (fill-packet 16 0))
 
 (define sample "Keep it secret, keep it safe")
+(define sample-packet (string->packet "Keep it secret, keep it safe"))
 (define password "mellon")
 ;; openssl enc -e -a -bf -in sample -K `cat key16.hex` -iv `cat iv8.hex`
 (define aes-encrypted-sample16
@@ -61,14 +62,18 @@
 (test-algorithm "AES256" key32 16)
 (test-algorithm "AES128" key16 16)
 
-
-;;;; There seemed to be compatibility issues with CommonCrypto on this case
+;;; RSA tests
 
-#|
-(define key56
-  #X"d9662de3b5a6c7b3b0e2571fd50e145d87404d45c44bd606983a67dcc0307f9996ac7c4b5243ff02255622fa643658eb76a5303af1074189")
-(define bf-encrypted-sample56
-  #@"OonpoBPTU0ZlnlnLkkFwZliVv75xz9MhXn6jinAalT4=")
-(applytest bf-encrypted-sample56 encrypt sample key56 "BF" iv8)
-(applytest sample decrypt->string bf-encrypted-sample56 key56 "BF" iv8)
-|#
+(define rsa.pem (filedata (get-component "../data/crypto/rsa.pem")))
+(define rsa.pub (filedata (get-component "../data/crypto/rsa.pem")))
+
+(applytest #"foobar"
+	   (decrypt (filedata (get-component "../data/crypto/foobar.rsa"))
+		    rsa.pub "RSAPUB"))
+(applytest sample-packet
+	   (decrypt (filedata (get-component "../data/crypto/sample.rsa"))
+		    rsa.pem "RSA"))
+(applytest sample-packet
+	   (decrypt (filedata (get-component "../data/crypto/sample.rsapub"))
+		    rsa.pem "RSA"))
+
