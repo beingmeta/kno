@@ -2244,6 +2244,42 @@ static fdtype sha256_prim(fdtype input)
 
 }
 
+static fdtype sha384_prim(fdtype input)
+{
+  unsigned char *digest=NULL;
+  if (FD_STRINGP(input))
+    digest=u8_sha384(FD_STRDATA(input),FD_STRLEN(input),NULL);
+  else if (FD_PACKETP(input))
+    digest=u8_sha384(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
+  else {
+    struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    fd_write_dtype(&out,input);
+    digest=u8_sha384(out.start,out.ptr-out.start,NULL);
+    u8_free(out.start);}
+  if (digest==NULL)
+    return FD_ERROR_VALUE;
+  else return fd_init_packet(NULL,48,digest);
+
+}
+
+static fdtype sha512_prim(fdtype input)
+{
+  unsigned char *digest=NULL;
+  if (FD_STRINGP(input))
+    digest=u8_sha512(FD_STRDATA(input),FD_STRLEN(input),NULL);
+  else if (FD_PACKETP(input))
+    digest=u8_sha512(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
+  else {
+    struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    fd_write_dtype(&out,input);
+    digest=u8_sha512(out.start,out.ptr-out.start,NULL);
+    u8_free(out.start);}
+  if (digest==NULL)
+    return FD_ERROR_VALUE;
+  else return fd_init_packet(NULL,64,digest);
+
+}
+
 static fdtype hmac_sha1_prim(fdtype key,fdtype input)
 {
   const unsigned char *data, *keydata, *digest=NULL;
@@ -2304,6 +2340,66 @@ static fdtype hmac_sha256_prim(fdtype key,fdtype input)
   else return fd_init_packet(NULL,digest_len,digest);
 }
 
+static fdtype hmac_sha384_prim(fdtype key,fdtype input)
+{
+  const unsigned char *data, *keydata, *digest=NULL;
+  int data_len, key_len, digest_len, free_key=0, free_data=0;
+  if (FD_STRINGP(input)) {
+    data=FD_STRDATA(input); data_len=FD_STRLEN(input);}
+  else if (FD_PACKETP(input)) {
+    data=FD_PACKET_DATA(input); data_len=FD_PACKET_LENGTH(input);}
+  else {
+    struct FD_BYTE_OUTPUT out;
+    FD_INIT_BYTE_OUTPUT(&out,1024);
+    fd_write_dtype(&out,input);
+    data=out.start; data_len=out.ptr-out.start; free_data=1;}
+  if (FD_STRINGP(key)) {
+    keydata=FD_STRDATA(key); key_len=FD_STRLEN(key);}
+  else if (FD_PACKETP(key)) {
+    keydata=FD_PACKET_DATA(key); key_len=FD_PACKET_LENGTH(key);}
+  else {
+    struct FD_BYTE_OUTPUT out;
+    FD_INIT_BYTE_OUTPUT(&out,1024);
+    fd_write_dtype(&out,key);
+    keydata=out.start; key_len=out.ptr-out.start; free_key=1;}
+  digest=u8_hmac_sha384(keydata,key_len,data,data_len,NULL,&digest_len);
+  if (free_data) u8_free(data);
+  if (free_key) u8_free(keydata);
+  if (digest==NULL)
+    return FD_ERROR_VALUE;
+  else return fd_init_packet(NULL,digest_len,digest);
+}
+
+static fdtype hmac_sha512_prim(fdtype key,fdtype input)
+{
+  const unsigned char *data, *keydata, *digest=NULL;
+  int data_len, key_len, digest_len, free_key=0, free_data=0;
+  if (FD_STRINGP(input)) {
+    data=FD_STRDATA(input); data_len=FD_STRLEN(input);}
+  else if (FD_PACKETP(input)) {
+    data=FD_PACKET_DATA(input); data_len=FD_PACKET_LENGTH(input);}
+  else {
+    struct FD_BYTE_OUTPUT out;
+    FD_INIT_BYTE_OUTPUT(&out,1024);
+    fd_write_dtype(&out,input);
+    data=out.start; data_len=out.ptr-out.start; free_data=1;}
+  if (FD_STRINGP(key)) {
+    keydata=FD_STRDATA(key); key_len=FD_STRLEN(key);}
+  else if (FD_PACKETP(key)) {
+    keydata=FD_PACKET_DATA(key); key_len=FD_PACKET_LENGTH(key);}
+  else {
+    struct FD_BYTE_OUTPUT out;
+    FD_INIT_BYTE_OUTPUT(&out,1024);
+    fd_write_dtype(&out,key);
+    keydata=out.start; key_len=out.ptr-out.start; free_key=1;}
+  digest=u8_hmac_sha512(keydata,key_len,data,data_len,NULL,&digest_len);
+  if (free_data) u8_free(data);
+  if (free_key) u8_free(keydata);
+  if (digest==NULL)
+    return FD_ERROR_VALUE;
+  else return fd_init_packet(NULL,digest_len,digest);
+}
+
 /* Match def */
 
 static fdtype matchdef_prim(fdtype symbol,fdtype value)
@@ -2330,8 +2426,12 @@ void fd_init_texttools()
   fd_idefn(texttools_module,fd_make_cprim1("MD5",md5_prim,1));
   fd_idefn(texttools_module,fd_make_cprim1("SHA1",sha1_prim,1));
   fd_idefn(texttools_module,fd_make_cprim1("SHA256",sha256_prim,1));
+  fd_idefn(texttools_module,fd_make_cprim1("SHA384",sha384_prim,1));
+  fd_idefn(texttools_module,fd_make_cprim1("SHA512",sha512_prim,1));
   fd_idefn(texttools_module,fd_make_cprim2("HMAC-SHA1",hmac_sha1_prim,2));
   fd_idefn(texttools_module,fd_make_cprim2("HMAC-SHA256",hmac_sha256_prim,2));
+  fd_idefn(texttools_module,fd_make_cprim2("HMAC-SHA384",hmac_sha384_prim,2));
+  fd_idefn(texttools_module,fd_make_cprim2("HMAC-SHA512",hmac_sha512_prim,2));
   fd_idefn(texttools_module,
            fd_make_cprim2x("SOUNDEX",soundex_prim,1,
                            fd_string_type,FD_VOID,
