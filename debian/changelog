@@ -1,3 +1,10 @@
+framerd (3.8.4-54) unstable; urgency=low
+
+  * Record boot handler and status in FramerD run dir
+  * git patch version framerd-3.8.4-132-g22819cc (pre commit)
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 29 Feb 2016 23:08:03 +0000
+
 framerd (3.8.4-53) unstable; urgency=low
 
   * Fixes to daemon/servlet management scripts
