@@ -47,6 +47,27 @@
 (define-init jwt/checker #f)
 (varconfig! jwt:checker jwt/checker)
 
+;;; Some constants
+
+;;; Table for PKCS#1 digest prefixes
+;;; This should probably be part of a more general
+
+(define pcks1-SHA256-prefix
+  #x"3031300d060960864801650304020105000420")
+
+(define pcks1-prefixes
+  #[MD2        #x"3020300c06082a864886f70d020205000410"
+    MD5        #x"3020300c06082a864886f70d020505000410"
+    SHA224     #x"302d300d06096086480165030402040500041c"
+    SHA512/224 #x"302d300d06096086480165030402050500041c"
+    SHA512/256 #x"3031300d060960864801650304020605000420"
+    SHA256     #x"3031300d060960864801650304020105000420"
+    SHA384     #x"3041300d060960864801650304020205000430"
+    SHA512     #x"3051d00d060960864801650304020305000440"
+    SHA1       #x"3021300906052b0e03021a05000414"])
+(do-choices (key (getkeys pcks1-prefixes))
+  (store! pcks1-prefixes (get pcks1-prefixes key) key))
+
 ;;; The table for configuration options
 
 (define-init config-table (make-hashtable))
@@ -130,7 +151,8 @@
 	(when (not alg) (set! alg (try (get header 'alg) "HS256")))
 	(if (and (or (not alg) (test header 'alg alg))
 		 (or (not issuer) (test payload 'iss issuer))
-		 (test-signature string signature key alg (elt segs 0) (elt segs 1)))
+		 (test-signature string signature key alg
+				 (elt segs 0) (elt segs 1)))
 	    (cons-jwt header payload signature string 
 		      (getopt opts 'domain issuer)
 		      (and key #t) (try (get payload "exp") #f))
@@ -181,6 +203,10 @@
   (and (packet? sig)
        (or (and (equal? "HS256" (upcase alg))
 		(equal? sig (hmac-sha256 key (if p64 (glom h64 "." p64) h64))))
+	   (and (equal? "RS256" (upcase alg))
+		(equal? (decrypt sig key "RSAPUB")
+			(append pcks1-SHA256-prefix
+				(sha256 (if p64 (glom h64 "." p64) h64)))))
 	   ;; Include other algorithms here someday
 	   (begin (logwarn |SignatureFailed| 
 		    jwt " with " alg " key " key
@@ -224,7 +250,13 @@
   (set! pay64 (if (string? usepay) 
 		  (->base64 usepay nopad)
 		  (->base64 (->json usepay) nopad)))
-  (set! sig (and key (hmac-sha256 key (glom hdr64 "." pay64))))
+  (set! sig 
+	(and key alg
+	     (or (and (eq? alg 'hs256)
+		      (hmac-sha256 key (glom hdr64 "." pay64)))
+		 (and (eq? alg 'rs256) 
+		      (encrypt (append pcks1-SHA256-prefix (sha256 (->base64 usepay)))
+			       key "RSA")))))
   (debug%watch "JWT/MAKE" payload opts key alg checker issuer)
   (cons-jwt header payload sig
 	    (and sig (glom hdr64 "." pay64 "." (->base64 sig #t)))
@@ -246,7 +278,13 @@
   (set! hdr64 (->base64 (->json header) nopad))
   (set! pay64 (if (string? payload) (->base64 payload nopad)
 		  (->base64 (->json payload) nopad)))
-  (set! sig (hmac-sha256 key (glom hdr64 "." pay64)))
+  (set! sig 
+	(and key alg
+	     (or (and (eq? alg 'hs256)
+		      (hmac-sha256 key (glom hdr64 "." pay64)))
+		 (and (eq? alg 'rs256) 
+		      (encrypt (append pcks1-SHA256-prefix (sha256 (->base64 usepay)))
+			       key "RSA")))))
   (debug%watch "JWT/STRING" payload opts key alg checker issuer)
   (glom hdr64 "." pay64 "." (packet->base64 sig nopad)))
 
@@ -269,7 +307,13 @@
   (set! pay64 (if (string? payload) 
 		  (->base64 payload nopad)
 		  (->base64 (->json payload) nopad)))
-  (set! sig (and key (hmac-sha256 key (glom hdr64 "." pay64))))
+  (set! sig 
+	(and key alg
+	     (or (and (eq? alg 'hs256)
+		      (hmac-sha256 key (glom hdr64 "." pay64)))
+		 (and (eq? alg 'rs256) 
+		      (encrypt (append pcks1-SHA256-prefix (sha256 (->base64 usepay)))
+			       key "RSA")))))
   (debug%watch "JWT/MAKE" payload opts key alg checker issuer)
   (cons-jwt header payload sig
 	    (glom hdr64 "." pay64 "." (->base64 sig #t))
