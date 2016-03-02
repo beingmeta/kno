@@ -18,7 +18,9 @@
 		  jwt/parse jwt/valid? jwt/check 
 		  jwt/make jwt/string jwt/sign
 		  jwt/refresh jwt/refreshed
-		  jwt/getdomain
+		  jwt/b64.bin jwt/b64.txt jwt/b64.json
+		  jwt/rs256/sign jwt/rs256/verify
+		  jwt/getdomain jwt/body jwt/header
 		  jwt? jwt/get jwt/test})
 
 ;;; Default configuration
@@ -46,27 +48,6 @@
 ;;;  check fails
 (define-init jwt/checker #f)
 (varconfig! jwt:checker jwt/checker)
-
-;;; Some constants
-
-;;; Table for PKCS#1 digest prefixes
-;;; This should probably be part of a more general
-
-(define pcks1-SHA256-prefix
-  #x"3031300d060960864801650304020105000420")
-
-(define pcks1-prefixes
-  #[MD2        #x"3020300c06082a864886f70d020205000410"
-    MD5        #x"3020300c06082a864886f70d020505000410"
-    SHA224     #x"302d300d06096086480165030402040500041c"
-    SHA512/224 #x"302d300d06096086480165030402050500041c"
-    SHA512/256 #x"3031300d060960864801650304020605000420"
-    SHA256     #x"3031300d060960864801650304020105000420"
-    SHA384     #x"3041300d060960864801650304020205000430"
-    SHA512     #x"3051d00d060960864801650304020305000440"
-    SHA1       #x"3021300906052b0e03021a05000414"])
-(do-choices (key (getkeys pcks1-prefixes))
-  (store! pcks1-prefixes (get pcks1-prefixes key) key))
 
 ;;; The table for configuration options
 
@@ -125,12 +106,12 @@
 
 ;;; Utility functions
 
-(define (b64->packet string)
+(define (jwt/b64.bin string)
   (base64->packet (uridecode (string-subst* string "-" "+"  "_" "/"))))
-(define (b64->string string)
+(define (jwt/b64.txt string)
   (packet->string
    (base64->packet (uridecode (string-subst* string "-" "+"  "_" "/")))))
-(define (b64->json string)
+(define (jwt/b64.json string)
   (jsonparse
    (packet->string
     (base64->packet (uridecode (string-subst* string "-" "+"  "_" "/"))))))
@@ -144,9 +125,9 @@
   (debug%watch "JWT/PARSE" 
     key alg checker issuer "STRING" string "OPTS" opts)
   (if key
-      (let ((header (b64->json (elt segs 0)))
-	    (payload (b64->json (elt segs 1)))
-	    (signature (b64->packet (elt segs 2)))
+      (let ((header (jwt/b64.json (elt segs 0)))
+	    (payload (jwt/b64.json (elt segs 1)))
+	    (signature (jwt/b64.bin (elt segs 2)))
 	    (body (glom (car segs) "." (cadr segs))))
 	(when (not alg) (set! alg (try (get header 'alg) "HS256")))
 	(if (and (or (not alg) (test header 'alg alg))
@@ -158,8 +139,8 @@
 		      (and key #t) (try (get payload "exp") #f))
 	    (and err (signal-error string key alg issuer header 
 				   payload signature body))))
-      (cons-jwt (b64->json (car segs)) (b64->json (cadr segs)) 
-		(b64->packet (caddr segs))
+      (cons-jwt (jwt/b64.json (car segs)) (jwt/b64.json (cadr segs)) 
+		(jwt/b64.bin (caddr segs))
 		string (getopt opts 'domain issuer))))
 
 (define (jwt/valid? jwt (opts) (key) (alg) (checker) (issuer)
@@ -239,25 +220,28 @@
   (set! nopad (not (getopt opts 'pad64 jwt/pad)))
   (if (testopt opts 'header)
       (set! header (keys->strings (getopt opts 'header)))
-      (set! header `#["typ" "JWT" "alg" ,alg]))
+      (set! header `#[TYP "JWT" ALG ,alg]))
   (when checker (set! payload (checker payload #t #f)))
   (if (table? payload) 
       (set! usepay (keys->strings payload))
       (set! usepay payload))
   (when (and issuer (not (test payload 'iss)))
     (store! usepay "iss" issuer))
-  (set! hdr64 (->base64 (->json header) nopad))
+  (set! hdr64 (->base64 (->json (keys->strings header)) nopad))
   (set! pay64 (if (string? usepay) 
 		  (->base64 usepay nopad)
 		  (->base64 (->json usepay) nopad)))
   (set! sig 
 	(and key alg
-	     (or (and (eq? alg 'hs256)
+	     (or (and (equal? (upcase alg) "HS256")
 		      (hmac-sha256 key (glom hdr64 "." pay64)))
-		 (and (eq? alg 'rs256) 
-		      (encrypt (append pcks1-SHA256-prefix (sha256 (->base64 usepay)))
+		 (and (equal? (upcase alg) "RS256") 
+		      (encrypt (append pcks1-SHA256-prefix
+				       (sha256 pay64))
 			       key "RSA")))))
-  (debug%watch "JWT/MAKE" payload opts key alg checker issuer)
+  (debug%watch "JWT/MAKE"
+    payload opts key alg checker issuer
+    hdr64 pay64 sig)
   (cons-jwt header payload sig
 	    (and sig (glom hdr64 "." pay64 "." (->base64 sig #t)))
 	    (getopt opts 'domain issuer) (and key #t) #t))
@@ -275,9 +259,9 @@
   (when (table? usepay) (set! usepay (keys->strings usepay)))
   (when (and issuer (not (test payload 'iss)))
     (store! usepay "iss" issuer))
-  (set! hdr64 (->base64 (->json header) nopad))
-  (set! pay64 (if (string? payload) (->base64 payload nopad)
-		  (->base64 (->json payload) nopad)))
+  (set! hdr64 (->base64 (->json (keys->strings header)) nopad))
+  (set! pay64 (if (string? usepay) (->base64 usepay nopad)
+		  (->base64 (->json usepay) nopad)))
   (set! sig 
 	(and key alg
 	     (or (and (eq? alg 'hs256)
@@ -303,10 +287,9 @@
   (when (table? payload) (set! payload (keys->strings payload)))
   (when (and issuer (not (test payload "iss")))
     (store! payload "iss" issuer))
-  (set! hdr64 (->base64 (->json header) nopad))
-  (set! pay64 (if (string? payload) 
-		  (->base64 payload nopad)
-		  (->base64 (->json payload) nopad)))
+  (set! hdr64 (->base64 (->json (keys->strings header)) nopad))
+  (set! pay64 (if (string? usepay) (->base64 usepay nopad)
+		  (->base64 (->json usepay) nopad)))
   (set! sig 
 	(and key alg
 	     (or (and (eq? alg 'hs256)
@@ -383,4 +366,54 @@
 	     (and payload 
 		  (jwt/make payload opts key alg checker issuer))))))
 
+;;;; RSA signing
+
+;;; Some constants
+
+;;; Table for PKCS#1 digest prefixes
+;;; This should probably be part of a more general
+
+(define pcks1-SHA256-prefix
+  #x"3031300d060960864801650304020105000420")
+
+(define pcks1-prefixes
+  #[MD2        #x"3020300c06082a864886f70d020205000410"
+    MD5        #x"3020300c06082a864886f70d020505000410"
+    SHA224     #x"302d300d06096086480165030402040500041c"
+    SHA512/224 #x"302d300d06096086480165030402050500041c"
+    SHA512/256 #x"3031300d060960864801650304020605000420"
+    SHA256     #x"3031300d060960864801650304020105000420"
+    SHA384     #x"3041300d060960864801650304020205000430"
+    SHA512     #x"3051d00d060960864801650304020305000440"
+    SHA1       #x"3021300906052b0e03021a05000414"])
+(do-choices (key (getkeys pcks1-prefixes))
+  (store! pcks1-prefixes (get pcks1-prefixes key) key))
+
+(define (jwt/rs256/sign body key)
+  (encrypt (append pcks1-SHA256-prefix (sha256 body))
+	   key "RSA"))
+(define (jwt/rs256/verify body key)
+  (decrypt (append pcks1-SHA256-prefix (sha256 body))
+	   key "RSAPUB"))
+
+;;; Utility functions
+
+(define (jwt/body x (parse #t))
+  (if (jwt? x) (jwt-body x)
+      (if (string? x)
+	  (let ((segs (segment x ".")))
+	    (if (< (length segs) 2)
+		(irritant x "Invalid JWT string")
+		(if parse
+		    (->json (packet->string (base64->packet (elt segs 1))))
+		    (packet->string (base64->packet (elt segs 1)))))))))
+(define (jwt/header x (parse #t))
+  (if (jwt? x) (jwt-header x)
+      (if (string? x)
+	  (let ((segs (segment x ".")))
+	    (if (< (length segs) 2)
+		(irritant x "Invalid JWT string")
+		(if parse
+		    (->json (packet->string (base64->packet (elt segs 0))))
+		    (packet->string (base64->packet (elt segs 0)))))))))
 
