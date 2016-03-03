@@ -1360,7 +1360,7 @@ static fdtype from_base64_prim(fdtype string)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype to_base64_prim(fdtype packet,fdtype nopad)
+static fdtype to_base64_prim(fdtype packet,fdtype nopad,fdtype urisafe)
 {
   const u8_byte *packet_data=FD_PACKET_DATA(packet);
   unsigned int packet_len=FD_PACKET_LENGTH(packet), ascii_len;
@@ -1369,11 +1369,17 @@ static fdtype to_base64_prim(fdtype packet,fdtype nopad)
     if (FD_TRUEP(nopad)) {
       char *scan=ascii_string+(ascii_len-1);
       while (*scan=='=') {*scan='\0'; scan--; ascii_len--;}}
+    if (FD_TRUEP(urisafe)) {
+      char *scan=ascii_string, *limit=ascii_string+ascii_len;
+      while (scan<limit)  {
+        if (*scan=='+') *scan++='-';
+        else if (*scan=='/') *scan++='_';
+        else scan++;}}
     return fd_init_string(NULL,ascii_len,ascii_string);}
   else return FD_ERROR_VALUE;
 }
 
-static fdtype any_to_base64_prim(fdtype arg,fdtype nopad)
+static fdtype any_to_base64_prim(fdtype arg,fdtype nopad,fdtype urisafe)
 {
   unsigned int data_len, ascii_len;
   const u8_byte *data; char *ascii_string;
@@ -1389,6 +1395,12 @@ static fdtype any_to_base64_prim(fdtype arg,fdtype nopad)
     if (FD_TRUEP(nopad)) {
       char *scan=ascii_string+(ascii_len-1);
       while (*scan=='=') {*scan='\0'; scan--; ascii_len--;}}
+    if (FD_TRUEP(urisafe)) {
+      char *scan=ascii_string, *limit=ascii_string+ascii_len;
+      while (scan<limit)  {
+        if (*scan=='+') *scan++='-';
+        else if (*scan=='/') *scan++='_';
+        else scan++;}}
     return fd_init_string(NULL,ascii_len,ascii_string);}
   else return FD_ERROR_VALUE;
 }
@@ -1646,9 +1658,9 @@ FD_EXPORT void fd_init_portfns_c()
            fd_make_cprim1x("BASE64->PACKET",from_base64_prim,1,
                            fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("PACKET->BASE64",to_base64_prim,1,
-                           fd_packet_type,FD_VOID,-1,FD_FALSE));
-  fd_idefn(fd_scheme_module,fd_make_cprim2("->BASE64",any_to_base64_prim,1));
+           fd_make_cprim3x("PACKET->BASE64",to_base64_prim,1,
+                           fd_packet_type,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
+  fd_idefn(fd_scheme_module,fd_make_cprim3("->BASE64",any_to_base64_prim,1));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BASE16->PACKET",from_base16_prim,1,
