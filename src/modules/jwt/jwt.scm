@@ -20,7 +20,9 @@
 		  jwt/refresh jwt/refreshed
 		  jwt/b64.bin jwt/b64.txt jwt/b64.json
 		  jwt/rs256/sign jwt/rs256/verify
-		  jwt/getdomain jwt/body jwt/header
+		  jwt/getdomain 
+		  jwt/header jwt/payload jwt/signature jwt/body
+		  jwt/header.b64 jwt/payload.b64 jwt/signature.b64
 		  jwt? jwt/get jwt/test})
 
 ;;; Default configuration
@@ -31,8 +33,12 @@
 (define-init jwt/pad #f)
 (varconfig! jwt:pad jwt/pad)
 
+(define-init jwt/urisafe #t)
+(varconfig! jwt:urisafe jwt/urisafe)
+
 (define-init jwt/algorithm "HS256")
 (varconfig! jwt:algorithm jwt/algorithm)
+(define-init jwt/algorithms {"RS256" "HS256"})
 
 (define-init jwt/refresh 3600) ;; one hour
 (varconfig! jwt:refresh jwt/refresh)
@@ -73,10 +79,16 @@
 	 (try (and jwt:default-domain (get config-table jwt:default-domain)) #f))
        (when (and (or (symbol? opts) (string? opts)) (test config-table opts))
 	 (set! opts (get config-table opts)))
-       (when (or (packet? opts) (string? opts))
-	 (set! key opts)
-	 (set! alg jwt/algorithm)
-	 (set! opts #f))
+       (if (and (string? opts) (overlaps? (upcase opts) jwt/algorithms))
+	   (if (or (packet? key) (string? key))
+	       (begin (set! alg opts) (set! opts #f))
+	       (error  |JWT/MissingAlgorithm| "Missing key"))
+	   (when (or (packet? opts) (string? opts))
+	     (if (overlaps? (upcase key) jwt/algorithms)
+		 (set! alg key)
+		 (error |JWT/MissingAlgorithm| "Key provided without algorithm"))
+	     (set! key opts)
+	     (set! opts #f)))
        (default! key (getopt opts 'key #f)) 
        (default! alg (getopt opts 'alg #f))
        (default! checker (getopt opts 'checker jwt/checker))
@@ -140,8 +152,8 @@
 	    (and err (signal-error string key alg issuer header 
 				   payload signature body))))
       (cons-jwt (jwt/b64.json (car segs)) (jwt/b64.json (cadr segs)) 
-		(jwt/b64.bin (caddr segs))
-		string (getopt opts 'domain issuer))))
+		(jwt/b64.bin (caddr segs)) string
+		(getopt opts 'domain issuer))))
 
 (define (jwt/valid? jwt (opts) (key) (alg) (checker) (issuer)
 		    (header) (payload))
@@ -181,6 +193,7 @@
 ;; With three args, the third arg is header64.payload64; with four, the first
 ;; is the base64 of the header and the second is the base64 of the payload
 (define (test-signature jwt sig key alg h64 (p64 #f))
+  (debug%watch "TEST-SIGNATURE" jwt sig key alg h64 p64)
   (and (packet? sig)
        (or (and (equal? "HS256" (upcase alg))
 		(equal? sig (hmac-sha256 key (if p64 (glom h64 "." p64) h64))))
@@ -196,6 +209,13 @@
 		    "\n p64=" p64 " h64=" h64)
 	     (debug%watch "TEST-SIGNATURE" jwt sig key alg h64 p64)
 	     #f))))
+
+(define (get-signature body key alg)
+  (and key alg
+       (or (and (equal? (upcase alg) "HS256")
+		(hmac-sha256 key body))
+	   (and (equal? (upcase alg) "RS256") 
+		(jwt/rs256/sign body key)))))
 
 (define (signal-error string key alg issuer header payload signature body)
   (if (not (test header 'alg alg))
@@ -215,9 +235,11 @@
 ;;; Generating new tokens
 
 (define (jwt/make payload (opts) (key) (alg) (checker) (issuer)
-		  (header) (usepay) (nopad) (hdr64) (pay64) (sig))
+		  (header) (usepay) (nopad) (urisafe) 
+		  (hdr64) (pay64) (body) (sig))
   (handle-jwt-args)
   (set! nopad (not (getopt opts 'pad64 jwt/pad)))
+  (set! urisafe (not (getopt opts 'urisafe jwt/urisafe)))
   (if (testopt opts 'header)
       (set! header (keys->strings (getopt opts 'header)))
       (set! header `#[TYP "JWT" ALG ,alg]))
@@ -227,29 +249,25 @@
       (set! usepay payload))
   (when (and issuer (not (test payload 'iss)))
     (store! usepay "iss" issuer))
-  (set! hdr64 (->base64 (->json (keys->strings header)) nopad))
+  (set! hdr64 (->base64 (->json (keys->strings header)) nopad urisafe))
   (set! pay64 (if (string? usepay) 
-		  (->base64 usepay nopad)
-		  (->base64 (->json usepay) nopad)))
-  (set! sig 
-	(and key alg
-	     (or (and (equal? (upcase alg) "HS256")
-		      (hmac-sha256 key (glom hdr64 "." pay64)))
-		 (and (equal? (upcase alg) "RS256") 
-		      (encrypt (append pcks1-SHA256-prefix
-				       (sha256 pay64))
-			       key "RSA")))))
+		  (->base64 usepay nopad urisafe)
+		  (->base64 (->json usepay) nopad urisafe)))
+  (set! body (glom hdr64 "." pay64))
+  (set! sig (get-signature body key alg))
   (debug%watch "JWT/MAKE"
     payload opts key alg checker issuer
     hdr64 pay64 sig)
   (cons-jwt header payload sig
-	    (and sig (glom hdr64 "." pay64 "." (->base64 sig #t)))
+	    (and sig (glom hdr64 "." pay64 "." (->base64 sig #t urisafe)))
 	    (getopt opts 'domain issuer) (and key #t) #t))
 
 (define (jwt/string payload (opts) (key) (alg) (checker) (issuer)
-		    (header #f) (usepay) (nopad) (hdr64) (pay64) (sig))
+		    (header #f) (usepay) (nopad) (urisafe)
+		    (hdr64) (pay64) (body) (sig))
   (handle-jwt-args)
   (set! nopad (not (getopt opts 'pad64 jwt/pad)))
+  (set! urisafe (not (getopt opts 'urisafe jwt/urisafe)))
   (if (testopt opts 'header)
       (set! header (keys->strings (getopt opts 'header)))
       (set! header `#["typ" "JWT" "alg" ,alg]))
@@ -259,25 +277,21 @@
   (when (table? usepay) (set! usepay (keys->strings usepay)))
   (when (and issuer (not (test payload 'iss)))
     (store! usepay "iss" issuer))
-  (set! hdr64 (->base64 (->json (keys->strings header)) nopad))
-  (set! pay64 (if (string? usepay) (->base64 usepay nopad)
-		  (->base64 (->json usepay) nopad)))
-  (set! sig 
-	(and key alg
-	     (or (and (eq? alg 'hs256)
-		      (hmac-sha256 key (glom hdr64 "." pay64)))
-		 (and (eq? alg 'rs256) 
-		      (encrypt (append pcks1-SHA256-prefix (sha256 (->base64 usepay)))
-			       key "RSA")))))
+  (set! hdr64 (->base64 (->json (keys->strings header)) nopad urisafe))
+  (set! pay64 (if (string? usepay) (->base64 usepay nopad urisafe)
+		  (->base64 (->json usepay) nopad urisafe)))
+  (set! body (glom hdr64 "." pay64))
+  (set! sig (get-signature body key alg))
   (debug%watch "JWT/STRING" payload opts key alg checker issuer)
-  (glom hdr64 "." pay64 "." (packet->base64 sig nopad)))
+  (glom hdr64 "." pay64 "." (packet->base64 sig nopad urisafe)))
 
 (define (jwt/sign jwt (opts) (key) (alg) (checker) (issuer)
-		  (payload) (header) (usepay)
-		  (nopad) (hdr64) (pay64) (sig))
+		  (payload) (header) (usepay) (nopad) (urisafe)
+		  (hdr64) (pay64) (body) (sig))
   (handle-jwt-args)
   (set! payload (jwt-payload jwt))
   (set! nopad (not (getopt opts 'pad64 jwt/pad)))
+  (set! urisafe (not (getopt opts 'urisafe jwt/urisafe)))
   (if (testopt opts 'header)
       (set! header (keys->strings (getopt opts 'header)))
       (set! header `#["typ" "JWT" "alg" ,alg]))
@@ -287,19 +301,14 @@
   (when (table? payload) (set! payload (keys->strings payload)))
   (when (and issuer (not (test payload "iss")))
     (store! payload "iss" issuer))
-  (set! hdr64 (->base64 (->json (keys->strings header)) nopad))
-  (set! pay64 (if (string? usepay) (->base64 usepay nopad)
-		  (->base64 (->json usepay) nopad)))
-  (set! sig 
-	(and key alg
-	     (or (and (eq? alg 'hs256)
-		      (hmac-sha256 key (glom hdr64 "." pay64)))
-		 (and (eq? alg 'rs256) 
-		      (encrypt (append pcks1-SHA256-prefix (sha256 (->base64 usepay)))
-			       key "RSA")))))
-  (debug%watch "JWT/MAKE" payload opts key alg checker issuer)
+  (set! hdr64 (->base64 (->json (keys->strings header)) nopad urisafe))
+  (set! pay64 (if (string? usepay) (->base64 usepay nopad urisafe)
+		  (->base64 (->json usepay) nopad urisafe)))
+  (set! body (glom hdr64 "." pay64))
+  (set! sig (get-signature body key alg))
+  (debug%watch "JWT/SIGN" payload opts key alg checker issuer)
   (cons-jwt header payload sig
-	    (glom hdr64 "." pay64 "." (->base64 sig #t))
+	    (glom hdr64 "." pay64 "." (->base64 sig #t urisafe))
 	    (getopt opts 'domain (or (jwt-domain jwt) issuer))
 	    (and key #t) #t))
 
@@ -392,14 +401,16 @@
 (define (jwt/rs256/sign body key)
   (encrypt (append pcks1-SHA256-prefix (sha256 body))
 	   key "RSA"))
-(define (jwt/rs256/verify body key)
-  (decrypt (append pcks1-SHA256-prefix (sha256 body))
-	   key "RSAPUB"))
+(define (jwt/rs256/verify body key sig)
+  (when (string? sig) (set! sig (base64->packet sig)))
+  (and (equal? (decrypt sig key "RSAPUB")
+	       (append pcks1-SHA256-prefix (sha256 body)))
+       (glom body "." (packet->base64 sig #f))))
 
 ;;; Utility functions
 
-(define (jwt/body x (parse #t))
-  (if (jwt? x) (jwt-body x)
+(define (jwt/payload x (parse #t))
+  (if (jwt? x) (jwt-payload x)
       (if (string? x)
 	  (let ((segs (segment x ".")))
 	    (if (< (length segs) 2)
@@ -407,6 +418,15 @@
 		(if parse
 		    (->json (packet->string (base64->packet (elt segs 1))))
 		    (packet->string (base64->packet (elt segs 1)))))))))
+(define (jwt/payload.b64 x (parse #t))
+  (if (jwt? x) 
+      (->base64 (->json (jwt-payload x)) #t #t)
+      (if (string? x)
+	  (let ((segs (segment x ".")))
+	    (if (< (length segs) 2)
+		(irritant x "Invalid JWT string")
+		(elt segs 1))))))
+
 (define (jwt/header x (parse #t))
   (if (jwt? x) (jwt-header x)
       (if (string? x)
@@ -416,4 +436,39 @@
 		(if parse
 		    (->json (packet->string (base64->packet (elt segs 0))))
 		    (packet->string (base64->packet (elt segs 0)))))))))
+(define (jwt/header.b64 x)
+  (if (jwt? x) 
+      (->base64 (->json (jwt-header x)) #t #t)
+      (if (string? x)
+	  (let ((segs (segment x ".")))
+	    (if (< (length segs) 2)
+		(irritant x "Invalid JWT string")
+		(elt segs 0))))))
+
+(define (jwt/signature x (parse #t))
+  (if (jwt? x) (jwt-signature x)
+      (if (string? x)
+	  (let ((segs (segment x ".")))
+	    (if (< (length segs) 2)
+		(irritant x "Invalid JWT string")
+		(if (>= (length segs) 3)
+		    (base64->packet (elt segs 2))
+		    (irritant x "Unsigned JWT string")))))))
+(define (jwt/signature.b64 x)
+  (if (jwt? x) (->base64 (jwt-signature x) #t #t)
+      (if (string? x)
+	  (let ((segs (segment x ".")))
+	    (if (< (length segs) 2)
+		(irritant x "Invalid JWT string")
+		(elt segs 2))))))
+
+(define (jwt/body x)
+  (if (jwt? x) (jwt-body x)
+      (if (string? x)
+	  (jwt-body x x)
+	  (irritant x "Not a JWT string"))))
+
+
+
+
 
