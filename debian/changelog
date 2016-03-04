@@ -1,3 +1,13 @@
+framerd (3.8.4-55) unstable; urgency=low
+
+  * Add RSA algorithm to JWT
+  * Improve and fix parts of JWT module
+  * Add third arg (urish) to ->base64 functions to use - and _
+    for + and /
+  * git patch version framerd-3.8.4-143-gdb7869b
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 04 Mar 2016 08:57:17 -0500
+
 framerd (3.8.4-54) unstable; urgency=low
 
   * Record boot handler and status in FramerD run dir
