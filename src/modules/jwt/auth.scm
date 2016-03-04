@@ -105,7 +105,7 @@
 ;;;; Authorize/deauthorize API
 
 (define (auth/identify! identity (cookie auth-cookie) 
-			(jwtarg (or jwt/auth/domain jwt/auth/key))
+			(jwtarg (or jwt/auth/domain jwt/auth/defaults))
 			(payload #t))
   (cond ((number? payload) 
 	 (set! payload `#[sticky ,payload]))
@@ -157,7 +157,7 @@
 		 #t)))
 
 (define (auth/update! (cookie auth-cookie) 
-		      (jwtarg (or jwt/auth/domain jwt/auth/key)))
+		      (jwtarg (or jwt/auth/domain jwt/auth/defaults)))
   (when (req/test 'cookie)
     (let ((jwt (jwt/refreshed (auth/getinfo cookie jwtarg))))
       (when (and (exists? jwt) jwt)
