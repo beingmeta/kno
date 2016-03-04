@@ -19,8 +19,8 @@
 
 (define-init jwt/auth/domain #f)
 (varconfig! jwt:auth:domain jwt/auth/domain)
-(define-init jwt/auth/key #f)
-(varconfig! jwt:auth:key jwt/auth/key)
+(define-init jwt/auth/defaults #[key "secret" alg "HS256"])
+(varconfig! jwt:auth:defaults jwt/auth/defaults)
 
 (define-init auth-cookie 'JWT:AUTH)
 (define-init auth-cache '_JWT:AUTH)
@@ -52,7 +52,7 @@
 ;;;; Top level auth functions
 
 (define (auth/getinfo (cookie auth-cookie) 
-		      (jwtarg (or jwt/auth/domain jwt/auth/key)) 
+		      (jwtarg (or jwt/auth/domain jwt/auth/defaults)) 
 		      (err #f)
 		      (cachename))
   (if (eq? cookie auth-cookie)
@@ -81,7 +81,7 @@
   (extract-bearer (req/get 'authorization {})))
 
 (define (auth/getid (cookie auth-cookie) 
-		    (jwtarg (or jwt/auth/domain jwt/auth/key))
+		    (jwtarg (or jwt/auth/domain jwt/auth/defaults))
 		    (err #f) 
 		    (idcache))
   (if (eq? cookie auth-cookie)

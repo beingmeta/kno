@@ -36,8 +36,6 @@
 (define-init jwt/urisafe #t)
 (varconfig! jwt:urisafe jwt/urisafe)
 
-(define-init jwt/algorithm "HS256")
-(varconfig! jwt:algorithm jwt/algorithm)
 (define-init jwt/algorithms {"RS256" "HS256"})
 
 (define-init jwt/refresh 3600) ;; one hour
@@ -80,11 +78,11 @@
        (when (and (or (symbol? opts) (string? opts)) (test config-table opts))
 	 (set! opts (get config-table opts)))
        (if (and (string? opts) (overlaps? (upcase opts) jwt/algorithms))
-	   (if (or (packet? key) (string? key))
+	   (if (and (bound? key) (or (packet? key) (string? key)))
 	       (begin (set! alg opts) (set! opts #f))
 	       (error  |JWT/MissingAlgorithm| "Missing key"))
 	   (when (or (packet? opts) (string? opts))
-	     (if (overlaps? (upcase key) jwt/algorithms)
+	     (if (and (bound? key) (overlaps? (upcase key) jwt/algorithms))
 		 (set! alg key)
 		 (error |JWT/MissingAlgorithm| "Key provided without algorithm"))
 	     (set! key opts)
@@ -164,9 +162,7 @@
   (if key
       (and (or (not alg) (test header 'alg alg))
 	   (or (not issuer) (test payload 'iss issuer))
-	   (test-signature jwt (jwt-signature jwt) key
-			   (try (get header 'alg) 
-				(or jwt/algorithm "HS256"))
+	   (test-signature jwt (jwt-signature jwt) key alg
 			   (jwt-body jwt)))
       (error |JWT/NoKey| "No key was provided to validate " jwt)))
 
@@ -179,11 +175,9 @@
   (if key
       (and (or (not alg) (test header 'alg alg))
 	   (or (not issuer) (test payload 'iss issuer))
-	   (test-signature jwt (jwt-signature jwt) key 
-			   (try (get header 'alg) 
-				(or jwt/algorithm "HS256"))
+	   (test-signature jwt (jwt-signature jwt) key alg
 			   (jwt-body jwt))
-	   (and (or (not checker) (%wc checker (jwt-payload jwt)))
+	   (and (or (not checker) (checker (jwt-payload jwt)))
 		(cons-jwt (jwt-header jwt) (jwt-payload jwt)
 			  (jwt-signature jwt) (jwt-text jwt) 
 			  (getopt opts 'domain issuer) key
