@@ -590,8 +590,7 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
     U8_OUTPUT *stream=u8_current_output;
     int priority=FD_FIX2INT(loglevel_arg);
     u8_condition condition=NULL;
-    if (priority>=0) priority=-priority;
-    if ((FD_PAIRP(body))&&(FD_SYMBOLP(FD_CAR(body)))) {
+     if ((FD_PAIRP(body))&&(FD_SYMBOLP(FD_CAR(body)))) {
       condition=FD_SYMBOL_NAME(FD_CAR(body));
       body=FD_CDR(body);}
     fd_decref(value); u8_set_default_output(out);
