@@ -1,3 +1,14 @@
+framerd (3.8.4-58) unstable; urgency=low
+
+  * Add set-procedure-args!
+  * Add functions for augmenting errors in ONERROR handlers
+  * Fixes to optimize module
+  * Wrap primitives execution in call contours to convert setmped errors
+    to return errors
+  * git patch version framerd-3.8.4-153-gcd07c91
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 14 Mar 2016 18:26:35 -0400
+
 framerd (3.8.4-57) unstable; urgency=low
 
   * Pass priority on to logger from logif+
