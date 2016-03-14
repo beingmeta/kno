@@ -19,7 +19,7 @@ static fd_exception SchemeError=_("Undistinguished Scheme Error");
 
 /* Returning errors */
 
-static fdtype return_error(fdtype expr,fd_lispenv env)
+static fdtype return_error_helper(fdtype expr,fd_lispenv env,int wrapped)
 {
   fd_exception ex=SchemeError, cxt=NULL;
   fdtype head=fd_get_arg(expr,0);
@@ -42,11 +42,24 @@ static fdtype return_error(fdtype expr,fd_lispenv env)
   {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     fd_printout_to(&out,printout_body,env);
-    fd_seterr(ex,cxt,out.u8_outbuf,FD_VOID);
-    return FD_ERROR_VALUE;}
+    if (wrapped) {
+      u8_exception ex=u8_new_exception
+	((u8_condition)ex,(u8_context)cxt,out.u8_outbuf,(void *)FD_VOID,NULL);
+      return fd_init_exception(NULL,ex);}
+    else  {
+      fd_seterr(ex,cxt,out.u8_outbuf,FD_VOID);
+      return FD_ERROR_VALUE;}}
+}
+static fdtype return_error(fdtype expr,fd_lispenv env)
+{
+  return return_error_helper(expr,env,0);
+}
+static fdtype extend_error(fdtype expr,fd_lispenv env)
+{
+  return return_error_helper(expr,env,1);
 }
 
-static fdtype return_irritant(fdtype expr,fd_lispenv env)
+static fdtype return_irritant_helper(fdtype expr,fd_lispenv env,int wrapped)
 {
   fd_exception ex=SchemeError, cxt=NULL;
   fdtype head=fd_get_arg(expr,0);
@@ -74,7 +87,20 @@ static fdtype return_irritant(fdtype expr,fd_lispenv env)
   {
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     fd_printout_to(&out,printout_body,env);
-    return fd_err(ex,cxt,out.u8_outbuf,irritant);}
+    if (wrapped) {
+      u8_exception u8ex=
+	u8_make_exception((u8_condition)ex,(u8_context)cxt,out.u8_outbuf,
+			  (void *)irritant,fd_free_exception_xdata);
+      return fd_init_exception(NULL,u8ex);}
+    else return fd_err(ex,cxt,out.u8_outbuf,irritant);}
+}
+static fdtype return_irritant(fdtype expr,fd_lispenv env)
+{
+  return return_irritant_helper(expr,env,0);
+}
+static fdtype extend_irritant(fdtype expr,fd_lispenv env)
+{
+  return return_irritant_helper(expr,env,1);
 }
 
 static fdtype onerror_handler(fdtype expr,fd_lispenv env)
@@ -89,14 +115,31 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
     u8_exception ex=u8_erreify();
     fdtype handler=fd_eval(error_handler,env);
     if (FD_ABORTP(handler)) {
-      u8_free_exception(ex,1);
+      u8_restore_exception(ex);
       return handler;}
     else if (FD_APPLICABLEP(handler)) {
       fdtype err_value=fd_init_exception(NULL,ex);
       fdtype handler_result=fd_apply(handler,1,&err_value);
       fd_exception_object exo=
-        FD_GET_CONS(err_value,fd_error_type,fd_exception_object);
-      if (FD_ABORTP(handler_result)) {
+	FD_GET_CONS(err_value,fd_error_type,fd_exception_object);
+      if (handler_result==err_value) {
+	u8_restore_exception(ex);
+        fd_decref(handler); fd_decref(value); fd_decref(err_value);
+        return FD_ERROR_VALUE;}
+      else if (FD_PRIM_TYPEP(handler_result,fd_error_type)) {
+	fd_exception_object newexo=
+	  FD_GET_CONS(handler_result,fd_error_type,fd_exception_object);
+	u8_exception newex=newexo->ex;
+	u8_push_exception(newex->u8x_cond,newex->u8x_context,
+                          newex->u8x_details,newex->u8x_xdata,
+                          newex->u8x_free_xdata);
+	newexo->ex=NULL;
+	exo->ex=NULL;
+	u8_restore_exception(ex);
+	fd_decref(handler); fd_decref(value); 
+	fd_decref(err_value); fd_decref(handler_result);
+	return FD_ERROR_VALUE;}
+      else if (FD_ABORTP(handler_result)) {
         u8_exception cur_ex=u8_current_exception;
         /* Clear this field so we can decref err_value while leaving
            the exception object current. */
@@ -353,7 +396,9 @@ FD_EXPORT void fd_init_errors_c()
   u8_register_source_file(_FILEINFO);
 
   fd_defspecial(fd_scheme_module,"ERROR",return_error);
+  fd_defspecial(fd_scheme_module,"ERROR+",extend_error);
   fd_defspecial(fd_scheme_module,"IRRITANT",return_irritant);
+  fd_defspecial(fd_scheme_module,"IRRITANT+",extend_irritant);
   fd_defspecial(fd_scheme_module,"ONERROR",onerror_handler);
   fd_defspecial(fd_scheme_module,"REPORT-ERRORS",report_errors_handler);
   fd_defspecial(fd_scheme_module,"ERREIFY",erreify_handler);
@@ -387,3 +432,10 @@ FD_EXPORT void fd_init_errors_c()
            fd_make_cprim0("CLEAR-ERRORS!",clear_errors,0));
 
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/
