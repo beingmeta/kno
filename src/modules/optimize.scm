@@ -363,18 +363,37 @@
       (threadset! 'codewarnings #{})
       (set-procedure-body!
        proc `((comment |original| ,@body)
+	      (comment |originalargs| ,@arglist)
 	      ,@(map (lambda (b)
 		       (dotighten b env bound lexrefs w/rails))
 		     body)))
+      (let ((args (procedure-args proc))
+	    (optimized-args (optimize-arglist args)))
+	(unless (equal? args optimized-args)
+	  (set-procedure-args! proc optimized-args)))
       (when (exists? (threadget 'codewarnings))
 	(warning "Errors optimizing " proc ": "
 		 (do-choices (warning (threadget 'codewarnings))
 		   (printout "\n\t" warning)))
 	(threadset! 'codewarnings #{})))))
 
+(define (optimize-arglist arglist b env bound lexrefs w/rails)
+  (if (null? arglist) '()
+      (cons
+       (if (and (pair? (car arglist)) (pair? (cdr (car arglist))))
+	   `(,(car (car arglist)) b env bound lexrefs w/rails)
+	   (car arglist))
+       (optimize-arglist (cdr arglist) b env bound lexrefs w/rails))))
+  
+(define (optimize-get-module spec)
+  (onerror (get-module spec)
+    (lambda (ex) (irritant+ spec |GetModuleFailed| optimize-module
+			    "Couldn't load module " spec))))
+
 (define (optimize-module! module (lexrefs lexrefs-dflt) (w/rails rails-dflt))
   (loginfo "Optimizing module " module)
-  (when (symbol? module) (set! module (get-module module)))
+  (when (symbol? module)
+    (set! module (optimize-get-module module)))
   (let ((bindings (module-bindings module))
 	(count 0))
     (do-choices (var bindings)
@@ -428,7 +447,7 @@
 	(cons optimize*!
 	      (map (lambda (x)
 		     (if (module-arg? x)
-			 `(get-module ,x)
+			 `(,optimize-get-module ,x)
 			 x))
 		   (cdr expr))))))
 
