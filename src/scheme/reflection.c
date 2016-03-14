@@ -143,12 +143,23 @@ static fdtype compound_procedure_args(fdtype x)
   else return fd_type_error("compound procedure","compound_procedure_args",x);
 }
 
+static fdtype set_compound_procedure_args(fdtype x,fdtype new_arglist)
+{
+  if (FD_SPROCP(x)) {
+    struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
+    fdtype arglist=proc->arglist;
+    proc->arglist=fd_incref(new_arglist);
+    fd_decref(arglist);
+    return FD_VOID;}
+  else return fd_type_error("compound procedure","set_compound_procedure_args",x);
+}
+
 static fdtype compound_procedure_env(fdtype x)
 {
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
     return (fdtype) fd_copy_env(proc->env);}
-  else return fd_type_error("compound procedure","compound_procedure_args",x);
+  else return fd_type_error("compound procedure","compound_procedure_env",x);
 }
 
 static fdtype compound_procedure_body(fdtype x)
@@ -156,7 +167,7 @@ static fdtype compound_procedure_body(fdtype x)
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
     return fd_incref(proc->body);}
-  else return fd_type_error("compound procedure","compound_procedure_args",x);
+  else return fd_type_error("compound procedure","compound_procedure_body",x);
 }
 
 static fdtype set_compound_procedure_body(fdtype x,fdtype new_body)
@@ -167,7 +178,7 @@ static fdtype set_compound_procedure_body(fdtype x,fdtype new_body)
     proc->body=fd_incref(new_body);
     fd_decref(body);
     return FD_VOID;}
-  else return fd_type_error("compound procedure","compound_procedure_args",x);
+  else return fd_type_error("compound procedure","set_compound_procedure_body",x);
 }
 
 /* Macro expand */
@@ -357,6 +368,9 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,
            fd_make_cprim2("SET-PROCEDURE-BODY!",
                           set_compound_procedure_body,1));
+  fd_idefn(module,
+           fd_make_cprim2("SET-PROCEDURE-ARGS!",
+                          set_compound_procedure_args,1));
   fd_idefn(module,fd_make_cprim2("MACROEXPAND",macroexpand,2));
 
 #if 0
