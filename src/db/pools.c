@@ -48,6 +48,8 @@ static struct FD_HASHTABLE poolid_table;
 
 static u8_condition ipeval_objfetch="OBJFETCH";
 
+static fdtype lock_symbol, unlock_symbol;
+
 fd_pool init_pool_serial_table[1024],
   *fd_pool_serial_table=init_pool_serial_table;
 int fd_pool_serial_count=0;
@@ -1703,8 +1705,23 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
 
 static int extpool_lock(fd_pool p,fdtype oids)
 {
-  FD_DO_CHOICES(oid,oids) {
-    fd_hashtable_store(&(p->locks),oids,FD_LOCKHOLDER);}
+  struct FD_EXTPOOL *xp=(struct FD_EXTPOOL *) p;
+  if (FD_APPLICABLEP(xp->lockfn)) {
+    fdtype lockfn=xp->lockfn;
+    fd_hashtable locks=&(xp->locks);
+    fd_hashtable cache=&(xp->cache);
+    FD_DO_CHOICES(oid,oids) {
+      fdtype cur=fd_hashtable_get(cache,oid,FD_VOID);
+      fdtype args[3]={lock_symbol,oid,
+                      ((cur==FD_LOCKHOLDER)?(FD_VOID):(cur))};
+      fdtype value=fd_apply(lockfn,3,args);
+      if (FD_VOIDP(value)) {
+        fd_hashtable_store(locks,oid,FD_LOCKHOLDER);}
+      else fd_hashtable_store(locks,oid,value);
+      fd_decref(cur); fd_decref(value);}}
+  else {
+    FD_DO_CHOICES(oid,oids) {
+      fd_hashtable_store(&(p->locks),oids,FD_LOCKHOLDER);}}
   return 0;
 }
 
@@ -1727,8 +1744,23 @@ static fdtype extpool_alloc(fd_pool p,int n)
 
 static int extpool_unlock(fd_pool p,fdtype oids)
 {
-  FD_DO_CHOICES(oid,oids) {
-    fd_hashtable_store(&(p->locks),oids,FD_VOID);}
+  struct FD_EXTPOOL *xp=(struct FD_EXTPOOL *) p;
+  if (FD_APPLICABLEP(xp->lockfn)) {
+    fdtype lockfn=xp->lockfn; 
+    fd_hashtable locks=&(xp->locks);
+    fd_hashtable cache=&(xp->cache);
+    FD_DO_CHOICES(oid,oids) {
+      fdtype cur=fd_hashtable_get(locks,oid,FD_VOID);
+      fdtype args[3]={unlock_symbol,oid,
+                      ((cur==FD_LOCKHOLDER)?(FD_VOID):(cur))};
+      fdtype value=fd_apply(lockfn,3,args);
+      fd_hashtable_store(locks,oid,FD_VOID);
+      if (!(FD_VOIDP(value)))
+        fd_hashtable_store(cache,oid,value);
+      fd_decref(cur); fd_decref(value);}}
+  else {
+    FD_DO_CHOICES(oid,oids) {
+      fd_hashtable_store(&(p->locks),oids,FD_VOID);}}
   return 0;
 }
 
@@ -1849,6 +1881,9 @@ FD_EXPORT void fd_init_pools_c()
   fd_raw_pool_type=fd_register_cons_type("raw pool");
 
   _fd_oid_info=_more_oid_info;
+
+  lock_symbol=fd_intern("LOCK");  
+  unlock_symbol=fd_intern("UNLOCK");
 
   {
     struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("POOL"),NULL,NULL);
