@@ -1,3 +1,11 @@
+framerd (3.8.4-59) unstable; urgency=low
+
+  * Add handling of extpool lockfn
+  * make DOM cleanup take more initiative
+  * git patch version framerd-3.8.4-156-g43cb8ea
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 19 Mar 2016 19:51:14 +0000
+
 framerd (3.8.4-58) unstable; urgency=low
 
   * Add set-procedure-args!
