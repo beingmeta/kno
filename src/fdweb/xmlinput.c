@@ -169,23 +169,57 @@ static int block_elementp(u8_string name)
 /* Reading from a stream while keeping a growing buffer around. */
 
 static u8_string readbuf
-  (U8_INPUT *in,u8_byte **bufp,int *bufsizp,int *sizep,char *eos)
+  (U8_INPUT *in,u8_byte **bufp,size_t *bufsizp,size_t *sizep,char *eos)
 {
-  u8_byte *buf=*bufp; int bufsiz=*bufsizp, sz=0;
+  u8_byte *buf=*bufp; size_t bufsiz=*bufsizp; int sz=0;
   u8_string data=u8_gets_x(buf,bufsiz,in,eos,&sz);
   if (sizep) *sizep=sz;
   if ((data==NULL)&&(sz==0)) return NULL;
   else if ((data==NULL)&&(sz<0)) return NULL;
   else if (data==NULL) {
-    int new_size=bufsiz, need_size=sz+1; u8_byte *newbuf;
+    int new_size=bufsiz, need_size=sz+1;
+    u8_string result; u8_byte *newbuf;
     while (new_size<need_size)
       if (new_size<=16384) new_size=new_size*2;
       else new_size=new_size+16384;
     u8_free(buf);
     *bufp=newbuf=u8_malloc(new_size);
     *bufsizp=new_size;
-    return u8_gets_x(newbuf,new_size,in,eos,sizep);}
+    result=u8_gets_x(newbuf,new_size,in,eos,&sz);
+    *sizep=sz;}
   else return data;
+}
+
+static u8_string read_xmltag(u8_input in,u8_byte **buf,
+                             size_t *bufsizep,size_t *sizep)
+{
+  struct U8_OUTPUT out;
+  U8_INIT_OUTPUT_BUF(&out,*bufsizep,*buf);
+  int c=u8_getc(in);
+  while (c>=0) {
+    if (c=='>') {
+      u8_ungetc(in,c);
+      break;}
+    else u8_putc(&out,c);
+    if (c=='\'') {
+      while (c=(u8_getc(in))) {
+        if ((c<0)||(c=='\'')) break;
+        else u8_putc(&out,c);}
+      if (c<0) return NULL;
+      else u8_putc(&out,c);
+      c=u8_getc(in);}
+    else if (c=='"') {
+      while (c=(u8_getc(in))) {
+          if ((c<0)||(c=='"')) break;
+          else u8_putc(&out,c);}
+        if (c<0) return NULL;
+        else u8_putc(&out,c);
+        c=u8_getc(in);}
+    else c=u8_getc(in);}
+  *buf=out.u8_outbuf;
+  *bufsizep=out.u8_outlim-out.u8_outbuf;
+  *sizep=out.u8_outptr-out.u8_outbuf;
+  return out.u8_outbuf;
 }
 
 FD_EXPORT
@@ -194,14 +228,14 @@ void *fd_walk_markup(U8_INPUT *in,
                      void *(*markupfn)(void *,u8_string),
                      void *data)
 {
-  u8_byte *buf=u8_malloc(1024); int bufsiz=1024, size=bufsiz;
+  u8_byte *buf=u8_malloc(1024); size_t bufsiz=1024, size=bufsiz;
   while (1) {
     if (readbuf(in,&buf,&bufsiz,&size,"<")==NULL) {
       data=contentfn(data,in->u8_inptr); break;}
     else
       data=contentfn(data,buf);
     if (data==NULL) break;
-    if (readbuf(in,&buf,&bufsiz,&size,">")==NULL) {
+    if (read_xmltag(in,&buf,&bufsiz,&size)==NULL) {
       data=markupfn(data,in->u8_inptr); break;}
     data=markupfn(data,buf);
     if (data==NULL) break;}
@@ -874,7 +908,7 @@ void *fd_walk_xml(U8_INPUT *in,
                   FD_XML *(*popfn)(FD_XML *),
                   FD_XML *node)
 {
-  int bufsize=1024, size=bufsize;
+  size_t bufsize=1024, size=bufsize;
   u8_byte *buf=u8_malloc(1024); const u8_byte *rbuf;
   while (1) {
     fd_xmlelt_type type;
@@ -888,7 +922,7 @@ void *fd_walk_xml(U8_INPUT *in,
       return NULL;}
     else if ((size>0)&&(contentfn)) contentfn(node,buf,size);
     else {}
-    if ((rbuf=readbuf(in,&buf,&bufsize,&size,">"))==NULL) {
+    if ((rbuf=read_xmltag(in,&buf,&bufsize,&size))==NULL) {
       fd_seterr3(fd_XMLParseError,"end of input",xmlsnip(in->u8_inptr));
       u8_free(buf);
       return NULL;}
