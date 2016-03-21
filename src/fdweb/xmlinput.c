@@ -186,7 +186,8 @@ static u8_string readbuf
     *bufp=newbuf=u8_malloc(new_size);
     *bufsizp=new_size;
     result=u8_gets_x(newbuf,new_size,in,eos,&sz);
-    *sizep=sz;}
+    *sizep=sz;
+    return result;}
   else return data;
 }
 
@@ -202,14 +203,14 @@ static u8_string read_xmltag(u8_input in,u8_byte **buf,
       break;}
     else u8_putc(&out,c);
     if (c=='\'') {
-      while (c=(u8_getc(in))) {
+      while ((c=u8_getc(in))) {
         if ((c<0)||(c=='\'')) break;
         else u8_putc(&out,c);}
       if (c<0) return NULL;
       else u8_putc(&out,c);
       c=u8_getc(in);}
     else if (c=='"') {
-      while (c=(u8_getc(in))) {
+      while ((c=u8_getc(in))) {
           if ((c<0)||(c=='"')) break;
           else u8_putc(&out,c);}
         if (c<0) return NULL;
@@ -908,7 +909,7 @@ void *fd_walk_xml(U8_INPUT *in,
                   FD_XML *(*popfn)(FD_XML *),
                   FD_XML *node)
 {
-  size_t bufsize=1024, size=bufsize;
+  ssize_t bufsize=1024, size=bufsize;
   u8_byte *buf=u8_malloc(1024); const u8_byte *rbuf;
   while (1) {
     fd_xmlelt_type type;
