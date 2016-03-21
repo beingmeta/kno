@@ -197,9 +197,7 @@ static u8_string read_xmltag(u8_input in,u8_byte **buf,
   U8_INIT_OUTPUT_BUF(&out,*bufsizep,*buf);
   int c=u8_getc(in);
   while (c>=0) {
-    if (c=='>') {
-      u8_ungetc(in,c);
-      break;}
+    if (c=='>') break;
     else u8_putc(&out,c);
     if (c=='\'') {
       while (c=(u8_getc(in))) {
