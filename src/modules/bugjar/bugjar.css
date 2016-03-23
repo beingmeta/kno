@@ -27,8 +27,11 @@ body.bugjar div.navbar span.links {
     body.bugjar { margin-top: 4em; }
     body.bugjar div.navbar span.links { white-space: normal; }}
 
-div.expands { max-height: 3em; }
-div.expands.expanded { max-height: inherit; }
+span div.expands { display: inline-block; }
+div.expands { max-height: 3em; overflow: hidden; }
+div.expanded.expands, .expanded div.expands { 
+    max-height: inherit; }
+
 
 div.bughead h1, div.bughead h2, div.bughead h3 {
     text-align: right; margin-top: 2px; margin-bottom: 2px;}
