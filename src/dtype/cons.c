@@ -92,6 +92,14 @@ fdtype fd_register_constant(u8_string name)
   return FD_CONSTANT(i);
 }
 
+static int validate_constant(fdtype x)
+{
+  int num=(FD_GET_IMMEDIATE(x,fd_constant_type));
+  if ((num>=0) && (num<fd_max_constant) &&
+      (fd_constant_names[num] != NULL))
+    return 1;
+  else return 0;
+}
 
 FD_EXPORT
 /* fd_check_immediate:
@@ -1452,6 +1460,8 @@ void fd_init_cons_c()
   i=0; while (i < FD_TYPE_MAX) fd_comparators[i++]=NULL;
   i=0; while (i<FD_TYPE_MAX) fd_hashfns[i++]=NULL;
   i=0; while (i<FD_MAX_IMMEDIATE_TYPES+4) fd_immediate_checkfns[i++]=NULL;
+
+  fd_immediate_checkfns[fd_constant_type]=validate_constant;
 
   fd_recyclers[fd_error_type]=recycle_exception;
   fd_copiers[fd_error_type]=copy_exception;
