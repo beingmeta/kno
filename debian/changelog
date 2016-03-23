@@ -1,3 +1,13 @@
+framerd (3.8.4-60) unstable; urgency=low
+
+  * Fixes to xmlparsing
+  * Fix some applytest error cases (whoops)
+  * Check irritant pointer when calling fd_err
+  * Improve backtrace CSS
+  * git patch version framerd-3.8.4-168-g8a0394e
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 23 Mar 2016 18:21:37 -0400
+
 framerd (3.8.4-59) unstable; urgency=low
 
   * Add handling of extpool lockfn
