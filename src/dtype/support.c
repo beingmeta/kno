@@ -893,9 +893,13 @@ FD_EXPORT int fd_interr(fdtype x)
 FD_EXPORT fdtype fd_err
   (fd_exception ex,u8_context cxt,u8_string details,fdtype irritant)
 {
-  if (details)
-    fd_seterr(ex,cxt,u8_strdup(details),fd_incref(irritant));
-  else fd_seterr(ex,cxt,NULL,fd_incref(irritant));
+  if (FD_CHECK_PTR(irritant)) {
+    if (details)
+      fd_seterr(ex,cxt,u8_strdup(details),fd_incref(irritant));
+    else fd_seterr(ex,cxt,NULL,fd_incref(irritant));}
+  else if (details)
+    fd_seterr(ex,cxt,u8_strdup(details),FD_VOID);
+  else fd_seterr(ex,cxt,NULL,FD_VOID);
   return FD_ERROR_VALUE;
 }
 
