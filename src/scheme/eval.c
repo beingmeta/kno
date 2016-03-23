@@ -1723,6 +1723,14 @@ static fdtype applytest(int n,fdtype *args)
       fdtype err=fd_err(TestFailed,"applytest",s,value);
       u8_free(s); fd_decref(value);
       return err;}}
+  else if (n==2) {
+    if (FD_EQUAL(args[1],args[0]))
+      return FD_TRUE;
+    else {
+      u8_string s=fd_dtype2string(args[0]);
+      fdtype err=fd_err(TestFailed,"applytest",s,args[1]);
+      u8_free(s);
+      return err;}}
   else if (FD_EQUAL(args[2],args[0]))
     return FD_TRUE;
   else {
