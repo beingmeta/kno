@@ -106,6 +106,7 @@ schemetests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) threadtest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) i18n.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) misctest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) xmltest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cryptotest.scm
 	@echo "*** Completed scheme tests to exercise the data/eval layer"
 
@@ -219,8 +220,13 @@ dbhash32tests:
 
 cryptotests:
 	@echo "*** Running crypto tests ***"
-	$(RUNTEST) ./fdexec@suffix@ testcrypto.scm $(TESTCONFIG)
+	$(RUNTEST) ./fdexec@suffix@ cryptotest.scm $(TESTCONFIG)
 	@echo "*** Completed crypto tests ***"
+
+xmltests:
+	@echo "*** Running xml tests ***"
+	$(RUNTEST) ./fdexec@suffix@ xmltests.scm $(TESTCONFIG)
+	@echo "*** Completed xml tests ***"
 
 memtests: @memtest_prefix@memtests
 memschemetests: @memtest_prefix@memschemetests
