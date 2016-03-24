@@ -174,12 +174,12 @@
   (def-opcode %GET       0xA3 2)
   (def-opcode %TEST      0xA4 3)
 
-  (def-opcode IDENTICAL?   0xC1)
-  (def-opcode OVERLAPS?    0xC2)
-  (def-opcode CONTAINS?    0xC3)
-  (def-opcode UNION        0xC4)
-  (def-opcode INTERSECTION 0xC5)
-  (def-opcode DIFFERENCE   0xC6)
+  (def-opcode IDENTICAL?   0xC0)
+  (def-opcode OVERLAPS?    0xC1)
+  (def-opcode CONTAINS?    0xC2)
+  (def-opcode UNION        0xC3)
+  (def-opcode INTERSECTION 0xC4)
+  (def-opcode DIFFERENCE   0xC5)
   )
 
 ;;; The core loop
