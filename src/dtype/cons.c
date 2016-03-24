@@ -109,8 +109,8 @@ FD_EXPORT
 */
 int fd_check_immediate(fdtype x)
 {
-  int type=FD_IMMEDIATE_TYPE_FIELD(x);
-  if (FD_IMMEDIATE_TYPECODE(type)<fd_next_immediate_type)
+  int type=FD_IMMEDIATE_TYPE(x);
+  if (type<fd_next_immediate_type)
     if (fd_immediate_checkfns[type])
       return fd_immediate_checkfns[type](x);
     else return 1;
