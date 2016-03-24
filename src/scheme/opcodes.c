@@ -5,14 +5,15 @@
 const u8_string fd_opcode_names[256]={
   /* 0x00 */
   "quote","begin","and","or","not","fail",
-  "%modref",NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  "%modref","comment",NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0x10 */
   "if","when","unless","ifelse",
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0x20 */
   "ambigp","singeltonp","failp","existsp",
-  "singleton","car","cdr","length","qchoice","choicesize",
-  "pickoids","pickstrings","pickone",NULL,NULL,NULL,
+  "singleton","car","cdr","length",
+  "qchoice","choicesize","pickoids","pickstrings",
+  "pickone","ifexists",NULL,NULL,
   /* 0x30 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -37,13 +38,16 @@ const u8_string fd_opcode_names[256]={
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0xA0 */
-  "get","test","xref","%get","%test",NULL,NULL,NULL,
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  "get","test","xref","%get",
+  "%test",NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,
+  NULL,NULL,NULL,NULL,
   /* 0xB0 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0xC0 */
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  "identicalp","overlaps","contains","union",
+  "intersection","difference",NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0xD0 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
