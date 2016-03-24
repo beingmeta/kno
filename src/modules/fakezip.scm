@@ -47,7 +47,7 @@
     (write-file fspath content)
     (unwind-protect
 	(begin (setcwd (fakezip-tmpdir fz))
-	       (apply forkwait
+	       (apply fork/wait
 		      (config 'zipbin "/usr/bin/zip")
 		      (fakezip-tmpzip fz)
 		      "-X"
@@ -64,7 +64,7 @@
     (write-file fspath content)
     (unwind-protect
 	(begin (setcwd (fakezip-tmpdir fz))
-	       (apply forkwait
+	       (apply fork/wait
 		      (config 'zipbin "/usr/bin/zip")
 		      (fakezip-tmpzip fz)
 		      "-u"

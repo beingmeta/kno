@@ -18,9 +18,9 @@
        (message (elapsed-time) " " ,@(cdr (cdr expr))))))
 
 (define tracelevel-config
-  (slambda (var (val unbound))
-	   (if (eq? val 'unbound) tracelevel
-	       (set! tracelevel val))))
+  (slambda (var (val 'unbound))
+    (if (eq? val 'unbound) tracelevel
+	(set! tracelevel val))))
 (config-def! 'tracelevel tracelevel-config)
 
 (module-export! '{tracep tracer})
