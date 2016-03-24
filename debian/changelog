@@ -1,3 +1,11 @@
+framerd (3.8.4-61) unstable; urgency=low
+
+  * Add smarter immediate type checking
+  * Fix some opcode/optimize bugs
+  * git patch version framerd-3.8.4-173-gdc93e81
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 23 Mar 2016 21:33:36 -0400
+
 framerd (3.8.4-60) unstable; urgency=low
 
   * Fixes to xmlparsing
