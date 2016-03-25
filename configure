@@ -667,6 +667,7 @@ CHMOD_DEFAULT
 MKDIR_DEFAULT
 ECHO
 binenv
+APTREPO
 GPGID
 RPMFLAGS
 RPMDIR
@@ -893,6 +894,7 @@ target_alias
 RPMDIR
 RPMFLAGS
 GPGID
+APTREPO
 CC
 CFLAGS
 LDFLAGS
@@ -1595,6 +1597,7 @@ Some influential environment variables:
   RPMDIR      "Location for writing built RPMs"
   RPMFLAGS    "Default flags for building RPMs"
   GPGID       "Default GnuPG id for signing packages"
+  APTREPO     "Location of the APT repository"
   CC          C compiler command
   CFLAGS      C compiler flags
   LDFLAGS     linker flags, e.g. -L<lib dir> if you have libraries in a
@@ -2861,6 +2864,7 @@ DATAFILES="etc/version"
 SUDO=""
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
+APTREPO=${APTREPO:-/srv/repo/apt}
 GPGID=repoman@beingmeta.com
 GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
@@ -2935,6 +2939,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 

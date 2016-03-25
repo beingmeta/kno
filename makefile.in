@@ -45,6 +45,7 @@ RPMFLAGS	= @RPMFLAGS@
 RPMDIR		= @RPMDIR@
 GPGID		= @GPGID@
 RPMGPG		= %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --no-armor --no-secmem-warning -sbo %{__signature_filename} %{__plaintext_filename}
+APTREPO		= @APTREPO@
 FDVERSION	= @FDVERSION@
 
 COMPONENT=main
@@ -924,12 +925,10 @@ dist/rpms.zip: dist/rpms.done
 
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
-	 dpkg-buildpackage -k$(GPGID) -uc -F -rfakeroot) && \
+	 dpkg-buildpackage -k$(GPGID) -uc -b -rfakeroot) && \
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
-	(cd staging; mv framerd*_@FDVERSION@*.deb               \
+	(cd staging; mv framerd*_@FDVERSION@*.*               \
 			libapache2-mod-fdserv_@FDVERSION@*.deb  \
-			framerd_@FDVERSION@*.dsc                \
-			framerd_@FDVERSION@*.changes            \
 			../dist) &&                             \
 	touch dist/debs.built;
 
@@ -952,14 +951,11 @@ dist/debs.done: dist/debs.built dist/metadebs.built
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@SUDO@ dpkg -i dist/framerd*_@FDVERSION@*.deb
 
-update-repo: dist/debs.done
-	deb-s3 upload --bucket=repo.beingmeta.com \
-		      --component=$(COMPONENT) \
-		      --codename=$(CODENAME) \
-		      --sign=$(GPGID)      \
-		dist/framerd*_@FDVERSION@*.deb \
-		dist/bm*_@FDVERSION@*.deb \
-		dist/libapache*.deb
+update-apt: dist/debs.done
+	for change in dist/*.changes; do \
+	  reprepro -Vb ${APTREPO} include beingmeta $${change} && \
+	  rm -f $${change}; \
+	done
 
 # Installation targets
 

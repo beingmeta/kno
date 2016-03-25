@@ -115,6 +115,7 @@ DATAFILES="etc/version"
 SUDO=""
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
+APTREPO=${APTREPO:-/srv/repo/apt}
 GPGID=repoman@beingmeta.com
 GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
@@ -265,9 +266,11 @@ AC_SUBST(CHGRP)
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
 AC_ARG_VAR(GPGID,"Default GnuPG id for signing packages")
+AC_ARG_VAR(APTREPO,"Location of the APT repository")
 AC_SUBST(RPMDIR)
 AC_SUBST(RPMFLAGS)
 AC_SUBST(GPGID)
+AC_SUBST(APTREPO)
 
 AC_PATH_PROG(binenv,env)
 AC_CHECK_PROG(ECHO,echo,,/bin/echo)
