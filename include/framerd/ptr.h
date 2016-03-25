@@ -395,10 +395,10 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 #define FD_LOCKHOLDER             FD_CONSTANT(19)
 #define FD_DEFAULT_VALUE          FD_CONSTANT(20)
 
-#define FD_MAX_BUILTIN_CONSTANT 20
+#define FD_N_BUILTIN_CONSTANTS 21
 
 FD_EXPORT const char *fd_constant_names[];
-FD_EXPORT int fd_max_constant;
+FD_EXPORT int fd_n_constants;
 FD_EXPORT fdtype fd_register_constant(u8_string name);
 
 #define FD_VOIDP(x) ((x) == (FD_VOID))

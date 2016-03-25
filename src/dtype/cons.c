@@ -45,7 +45,7 @@ fd_checkfn fd_immediate_checkfns[FD_MAX_IMMEDIATE_TYPES+4];
 #if FD_THREADS_ENABLED
 static u8_mutex constant_registry_lock;
 #endif
-int fd_max_constant=FD_MAX_BUILTIN_CONSTANT;
+int fd_n_constants=FD_N_BUILTIN_CONSTANTS;
 
 ssize_t fd_max_strlen=-1;
 
@@ -84,18 +84,18 @@ fdtype fd_register_constant(u8_string name)
 {
   int i=0;
   u8_lock_mutex(&constant_registry_lock);
-  while (i<fd_max_constant) {
+  while (i<fd_n_constants) {
     if (strcasecmp(name,fd_constant_names[i])==0)
       return FD_CONSTANT(i);
     else i++;}
-  fd_constant_names[fd_max_constant++]=name;
+  fd_constant_names[fd_n_constants++]=name;
   return FD_CONSTANT(i);
 }
 
 static int validate_constant(fdtype x)
 {
   int num=(FD_GET_IMMEDIATE(x,fd_constant_type));
-  if ((num>=0) && (num<fd_max_constant) &&
+  if ((num>=0) && (num<fd_n_constants) &&
       (fd_constant_names[num] != NULL))
     return 1;
   else return 0;
