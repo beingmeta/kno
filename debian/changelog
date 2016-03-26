@@ -1,3 +1,10 @@
+framerd (3.8.4-62) unstable; urgency=low
+
+  * Fix tidy5 dependencies
+  * git patch version framerd-3.8.4-176-g33eb981
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 26 Mar 2016 14:25:11 +0000
+
 framerd (3.8.4-61) unstable; urgency=low
 
   * Add smarter immediate type checking
