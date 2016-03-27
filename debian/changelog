@@ -1,3 +1,10 @@
+framerd (3.8.4-63) unstable; urgency=low
+
+  * Fix libbson/libmongoc dependencies
+  * git patch verison framerd-3.8.4-177-gdb5c379
+
+ -- Ken Haase <kh@beingmeta.com>  Sun, 27 Mar 2016 00:31:54 +0000
+
 framerd (3.8.4-62) unstable; urgency=low
 
   * Fix tidy5 dependencies
