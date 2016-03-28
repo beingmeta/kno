@@ -1,0 +1,5 @@
+bmdevstack (3.9-1) unstable; urgency=low
+
+  * Rebuild bmdevstack meta package
+
+ -- beingmeta repository manager <repoman@beingmeta.com>  Fri, 28 Mar 201617:53:00 +5000
