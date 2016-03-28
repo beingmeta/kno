@@ -39,6 +39,7 @@ fd_exception fd_InvalidPoolRange=_("pool overlaps 0x100000 boundary");
 fd_exception fd_PoolCommitError=_("can't save changes to pool");
 fd_exception fd_UnregisteredPool=_("internal error with unregistered pool");
 fd_exception fd_UnresolvedPool=_("Cannot resolve pool specification");
+fd_exception fd_UnhandledOperation=_("This pool can't handle this operation");
 
 int fd_n_pools=0;
 fd_pool fd_default_pool=NULL;
@@ -826,7 +827,10 @@ FD_EXPORT int fd_pool_load(fd_pool p)
 {
   if (p->handler->getload)
     return (p->handler->getload)(p);
-  else return -1;
+  else {
+    fd_seterr(fd_UnhandledOperation,"fd_pool_load",
+              u8_strdup(p->cid),FD_VOID);
+    return -1;}
 }
 
 FD_EXPORT void fd_pool_close(fd_pool p)
@@ -1414,7 +1418,8 @@ static fdtype raw_pool_get(fdtype arg,fdtype key,fdtype dflt)
     else {
       unsigned int offset=FD_OID_DIFFERENCE(addr,base);
       unsigned int load=fd_pool_load(p);
-      if (offset<load)
+      if (load<0) return FD_ERROR_VALUE;
+      else if (offset<load)
         return fd_fetch_oid(p,key);
       else return fd_incref(dflt);}}
   else return fd_incref(dflt);
@@ -1426,6 +1431,7 @@ static fdtype raw_pool_keys(fdtype arg)
   fd_pool p=(fd_pool)arg;
   FD_OID base=p->base;
   unsigned int i=0, load=fd_pool_load(p);
+  if (load<0) return FD_ERROR_VALUE;
   while (i<load) {
     fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
     FD_ADD_TO_CHOICE(results,each);

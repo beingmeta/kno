@@ -945,10 +945,10 @@ static fdtype random_oid(fdtype arg)
     return fd_type_error(_("pool spec"),"random_oid",arg);
   else {
     int load=fd_pool_load(p);
-    if (load) {
+    if (load>=0) {
       FD_OID base=p->base; int i=u8_random(load);
       return fd_make_oid(FD_OID_PLUS(base,i));}
-    return FD_EMPTY_CHOICE;}
+    return FD_ERROR_VALUE;}
 }
 
 static fdtype pool_vec(fdtype arg)
@@ -958,13 +958,15 @@ static fdtype pool_vec(fdtype arg)
     return fd_type_error(_("pool spec"),"pool_vec",arg);
   else {
     int i=0, lim=fd_pool_load(p);
-    fdtype result=fd_init_vector(NULL,lim,NULL);
-    FD_OID base=p->base;
     if (lim<0) return FD_ERROR_VALUE;
-    else while (i<lim) {
-      fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
-      FD_VECTOR_SET(result,i,each); i++;}
-    return result;}
+    else {
+      fdtype result=fd_init_vector(NULL,lim,NULL);
+      FD_OID base=p->base;
+      if (lim<0) return FD_ERROR_VALUE;
+      else while (i<lim) {
+          fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
+          FD_VECTOR_SET(result,i,each); i++;}
+      return result;}}
 }
 
 static fdtype cachecount(fdtype arg)
@@ -1032,7 +1034,8 @@ static fdtype validoidp(fdtype x,fdtype pool_arg)
       FD_OID base=p->base, addr=FD_OID_ADDR(x);
       unsigned int offset=FD_OID_DIFFERENCE(addr,base);
       unsigned int load=fd_pool_load(p);
-      if (offset<load) return FD_TRUE;
+      if (load<0) return FD_ERROR_VALUE;
+      else if (offset<load) return FD_TRUE;
       else return FD_FALSE;}}
   else {
     fd_pool p=fd_lisp2pool(pool_arg);
@@ -1041,7 +1044,8 @@ static fdtype validoidp(fdtype x,fdtype pool_arg)
       FD_OID base=p->base, addr=FD_OID_ADDR(x);
       unsigned int offset=FD_OID_DIFFERENCE(addr,base);
       unsigned int load=fd_pool_load(p);
-      if (offset<load) return FD_TRUE;
+      if (load<0) return FD_ERROR_VALUE;
+      else if (offset<load) return FD_TRUE;
       else return FD_FALSE;}
     else return FD_FALSE;}
 }

@@ -520,14 +520,15 @@ static fdtype ixserver_drop(fdtype ixarg,fdtype key,fdtype values)
 static fdtype server_get_load(fdtype oid_arg)
 {
   if (FD_VOIDP(oid_arg))
-    if (primary_pool)
-      return fd_pool_load(primary_pool);
+    if (primary_pool) {
+      int load=fd_pool_load(primary_pool);
+      if (load<0) return FD_ERROR_VALUE;
+      else return FD_INT(load);}
     else return fd_err(_("No primary pool"),"server_get_load",NULL,FD_VOID);
   else if (FD_OIDP(oid_arg)) {
     fd_pool p=fd_oid2pool(oid_arg);
     int load=fd_pool_load(p);
-    if (load<0)
-      return fd_err(_("No method for load"),"server_get_load",NULL,oid_arg);
+    if (load<0) return FD_ERROR_VALUE;
     else return FD_INT(load);}
   else return fd_type_error("OID","server_get_load",oid_arg);
 }
