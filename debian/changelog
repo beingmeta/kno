@@ -1,3 +1,13 @@
+framerd (3.9.0-1) unstable; urgency=low
+
+  * Fix systemd scripts
+  * Added fdstatus script
+  * Fix pool-load to set error context
+  * Fixes to opcode bugs
+  * Bumped minor release number
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 28 Mar 2016 16:55:24 -0400
+
 framerd (3.8.4-63) unstable; urgency=low
 
   * Fix libbson/libmongoc dependencies

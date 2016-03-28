@@ -84,7 +84,7 @@ TESTLDFLAGS=
 EXELDFLAGS=
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=3
-FDMINOR=8
+FDMINOR=9
 FDRELEASE=`cat etc/release`
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
@@ -1430,7 +1430,7 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
 	  etc/fdserver.conf etc/framerd.conf etc/framerd.service
 	  etc/fdservlet.conf etc/fdservlets.conf
 	  etc/fdserv.conf etc/fdserv.load
-	  etc/install-script dist/framerd-3.8.spec)
+	  etc/install-script dist/framerd-3.9.spec)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
 chmod a+x etc/fdconfig
