@@ -94,13 +94,13 @@ static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
 static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 {
   int israil=(FD_RAILP(expr));
-  fdtype body=((israil)?(FD_VOID):(FD_CDR(expr))), remainder;
+  fdtype body=((israil)?(FD_VOID):(FD_CDR(expr)));
   if (opcode>=FD_IF_OPCODE) {
     /* It's a conditional opcode */
     fdtype test_expr=fd_get_arg(expr,1), test=FD_VOID;
     if (FD_VOIDP(test_expr))
       return fd_err(fd_SyntaxError,"conditional OPCODE test",NULL,expr);
-    test=fd_eval(test_expr,env); remainder=FD_CDR(body);
+    test=fd_eval(test_expr,env);
     if (FD_ABORTP(test)) return test;
     else if (FD_VOIDP(test))
       return fd_err(fd_VoidArgument,"conditional OPCODE test",NULL,expr);
