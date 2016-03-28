@@ -1,0 +1,35 @@
+#!/bin/bash
+for name in $*; do
+    ROOT=""
+    if test -f ${name}; then
+	ROOT=`basename ${name} .pid`
+    elif test -f ${name}.pid; then
+	ROOT=`dirname ${name}``basename ${name} .pid`
+    elif test -f @daemon_rundir@/${name}.pid; then
+	ROOT=@daemon_rundir@/`basename ${name} .pid`
+    elif test -f @servlet_rundir@/${name}.pid; then
+	ROOT=@servlet_rundir@/`basename ${name} .pid`
+    else echo "fdstatus: Couldn't find task ${name}";
+    fi;
+    if test "x${ROOT}" != "x"; then
+	if test -f ${ROOT}.ppid; then
+	    echo "==" "["`cat ${ROOT}.pid`":"`cat ${ROOT}.ppid`"] ${ROOT} ========================";
+	else
+	    echo "==" "["`cat ${ROOT}.pid`"] ${ROOT} ========================";
+	fi;
+	if test -f ${ROOT}.cmd; then
+	    echo "Command:";
+	    sed -e "s/^/   /" ${ROOT}.cmd;
+	    echo;
+	fi;
+	if test -f ${ROOT}.run; then
+	    echo "Run:";
+	    sed -e "s/^/   /" ${ROOT}.run;
+	    echo;
+	fi;
+	if test -f ${ROOT}.status; then 
+	    echo "Status: ";
+	    sed -e "s/^/   /" ${ROOT}.status; 
+	fi
+    fi;
+done;

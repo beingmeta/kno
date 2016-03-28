@@ -1424,7 +1424,7 @@ fi
 AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	  tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
-	  etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdsignal
+	  etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdsignal etc/fdstatus
 	  etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	  etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d
 	  etc/fdserver.conf etc/framerd.conf etc/framerd.service
