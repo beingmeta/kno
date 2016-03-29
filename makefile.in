@@ -1278,6 +1278,8 @@ $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate $(DESTDIR)/etc/logrotate.d
 $(DESTDIR)/etc/logrotate.d:
 	@$(SYSINSTALL) -m 0755 -d $@
 
+setup-allboot: setup-sysv setup-upstart setup-systemd
+
 setup-unix: @BOOTSETUP@ setup-logrotate
 setup-linux: setup-unix
 
@@ -1293,6 +1295,9 @@ setup-osx: @data_dir@ $(DESTDIR)@rundir@/framerd \
 setup-none:
 	@echo "Not setting up a boot system"
 
+.PHONY: setup-none setup-osx setup-linux setup-unix setup-allboot setup-logrotate \
+	setup-sysv setup-upstart setup-systemd
+
 # Build setups
 
 debian-build-setup:
@@ -1302,6 +1307,8 @@ debian-build-setup:
 		dh-make devscripts dpkg-dev
 rpm-build-setup:
 	sudo rpm -Uvh libedit-devel
+
+.PHONY: debian-build-setup rpm-build-setup
 
 # The mod_fdserv module
 
@@ -1351,6 +1358,8 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 		then sudo ${APXS} -i mod_fdserv.so; \
 		else sudo ${APXS} -i mod_fdserv.la; fi
 	sleep 5; sudo apachectl start
+
+.PHONY: fdserv update-fdserv install-fdserv
 
 # Tracking revision information
 
