@@ -31,6 +31,8 @@ usr/bin/fdstart
 usr/bin/fdstop
 usr/bin/fdstartall
 usr/bin/fdstopall
+usr/bin/fdstatus
+usr/bin/fdlog
 usr/etc/framerd/servers
 usr/share/framerd/fdconsole.el
 usr/share/framerd/data/hyph_en_US.dic
