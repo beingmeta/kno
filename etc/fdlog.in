@@ -1,0 +1,29 @@
+#!/bin/bash
+name=$1
+cmd=${2:watch}
+LOGFILE=""
+if test -f ${name}; then
+    LOGFILE=`basename ${name}`
+elif test -f ${name}.log; then
+    LOGFILE=`${name}.log`
+elif test -f @daemon_logdir@/${name}.pid; then
+    LOGFILE=@daemon_logdir@/`basename ${name}`
+elif test -f @servlet_logdir@/${name}.pid; then
+    LOGFILE=@servlet_logdir@/`basename ${name}`
+else 
+    echo "fdstatus: Couldn't find activity ${name}";
+    exit;
+fi;
+if test "x${LOGFILE}" = "x"; then
+    echo "No log file for ${name}";
+    exit;
+elif test $cmd = "watch"; then    
+    exec tail -n 100 -f ${LOGFILE};
+elif test $cmd = "more"; then
+    exec less ${LOGFILE};
+elif test $cmd =~ "\[0123456789\]+" then;
+     exec tail -n $cmd ${LOGFILE};
+else
+    exec tail -n 100 -f ${LOGFILE};
+fi;
+
