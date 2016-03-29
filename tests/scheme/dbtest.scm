@@ -24,11 +24,11 @@
 		     (else (set! flags (vector flags))))
 	       (if (position 'COMPRESS (config 'hashindex #t))
 		   (begin (message "Making compressed hash index for tests")
-			  (make-hash-index (append source ".index") -500000
-					   slotids-vec (vector @17/0) #f flags))
+		     (make-hash-index (append source ".index") -500000
+				      slotids-vec (vector @17/0) #f flags))
 		   (begin (message "Making hash index for tests")
-			  (make-hash-index (append source ".index") -500000
-					   #() #() #f flags))))
+		     (make-hash-index (append source ".index") -500000
+				      #() #() #f flags))))
 	     (make-file-index (append source ".index") -500000))
 	 (set! dbsource source)
 	 (set! testpool (use-pool source))
@@ -266,6 +266,7 @@
   (swapout)
   (checkdb (config 'COUNT 200) testpool testindex)
   (swapout))
+
 
 
 

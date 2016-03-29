@@ -1,24 +1,21 @@
 (load-component "common.scm")
 
-(define (nrange start end)
+(define-tester (nrange start end)
   (let ((answer {}))
     (dotimes (i (- end start))
       (set+! answer (+ start i)))
     answer))
-(test-optimize! nrange)
 
-(define (nrange-r start end)
+(define-tester (nrange-r start end)
   (if (= start end) {}
       (choice start (nrange-r (+ start 1) end))))
-(test-optimize! nrange-r)
 
-(define (srange cstart cend)
+(define-tester (srange cstart cend)
   (let ((start (char->integer cstart)) (end (char->integer cend)))
     (let ((answer {}))
       (dotimes (i (- end start))
 	(set+! answer (string (integer->char (+ start i)))))
       answer)))
-(test-optimize! srange)
 
 (evaltest 100 (choice-size (intersection (nrange 0 300) (nrange 200 800))))
 (applytest (choice 20 21 22 23 24 25 26 27 28 29) intersection
@@ -157,7 +154,23 @@
 
 ;;; ND apply
 
-(defambda (lnd x y) (list (qc x) (qc y)))
-(applytest '({3 4} 5) apply lnd {3 4} (list 5))
+(define-amb-tester (lnd x y) (list (qc x) (qc y)))
+(applytest '({3 4} 5) apply lnd (qc {3 4}) (list 5))
 
 (message "CHOICETEST successfuly completed")
+
+;;; Set operations
+
+(define-tester (set-same? x y) (identical? (elts x) (elts y)))
+(define-tester (set-overlaps? x y) (overlaps? (elts x) (elts y)))
+
+(applytest #t set-same? '(a b c) #(a b c))
+(applytest #t set-same? '(a b c) #(b a c))
+(applytest #f set-same? '(a b d) #(a b c))
+(applytest #f set-same? '(a b d) '(a b c))
+
+(applytest #t set-overlaps? '(a b c) #(a b c d))
+(applytest #t set-overlaps? '(a b) #(b a c))
+(applytest #f set-overlaps? '(a b c) #(x y z))
+(applytest #f set-overlaps? '(a c d) '(p q r))
+(applytest #t set-overlaps? '(a c d) '(p q r d))

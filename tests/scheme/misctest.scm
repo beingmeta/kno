@@ -150,7 +150,7 @@
 
 ;(remove-file "thirtythree") 
 
-(define (nrange start end)
+(define-tester (nrange start end)
   (let ((answer {}))
     (dotimes (i (- end start))
       (set+! answer (+ start i)))
@@ -186,38 +186,38 @@
 
 (define strings (elts (segment "alpha beta gamma delta epsilon phi omega")))
 (define stringlist (segment "alpha beta gamma delta epsilon phi omega"))
-(define (runtest args)
+(define-tester (runtest args)
   (let ((results {}))
     (do-choices (string args)
       (set! string (string-subst string "a" "x"))
       (set+! results string))
     results))
-(define (runseqtest arg)
+(define-tester (runseqtest arg)
   (let ((results {}))
     (doseq (string arg)
       (set! string (string-subst string "a" "x"))
       (set+! results string))
     results))
-(define (runlisttest arg)
+(define-tester (runlisttest arg)
   (let ((results {}))
     (dolist (string arg)
       (set! string (string-subst string "a" "x"))
       (set+! results string))
     results))
 
-(define (runtest2 args)
+(define-tester (runtest2 args)
   (let ((results {}))
     (do-choices (string args)
       (set! string ((lambda (x) (string-subst string "a" "x")) string))
       (set+! results string))
     results))
-(define (runseqtest2 arg)
+(define-tester (runseqtest2 arg)
   (let ((results {}))
     (doseq (string arg)
       (set! string ((lambda (x) (string-subst string "a" "x")) string))
       (set+! results string))
     results))
-(define (runlisttest2 arg)
+(define-tester (runlisttest2 arg)
   (let ((results {}))
     (doseq (string arg)
       (set! string ((lambda (x) (string-subst string "a" "x")) string))
@@ -254,7 +254,7 @@
 (applytest {"phi" "betx" "deltx" "gxmmx" "omegx" "xlphx" "epsilon"}
 	   runlisttest2 stringlist)
 
-(define (get-expr-atoms expr)
+(define-tester (get-expr-atoms expr)
   (cond ((pair? expr)
 	 (choice (get-expr-atoms (car expr)) (get-expr-atoms (cdr expr))))
         ((vector? expr) (get-expr-atoms (elts expr)))
@@ -263,11 +263,11 @@
            (choice (get-expr-atoms keys) (get-expr-atoms (get expr keys)))))
         (else expr)))
 
-(define (get-atoms x)
+(define-tester (get-atoms x)
    (if (procedure? x) (get-expr-atoms (procedure-body x))
        (get-expr-atoms x)))
 
-(define (leaker x)
+(define-tester (leaker x)
   (let* ((atoms (get-atoms x))
          (pnames (symbol->string (pick atoms symbol?)))
          (pnamelist (sorted pnames)))
@@ -292,7 +292,7 @@
 ;;; refcount field in the string struct.
 
 (define constval "const string")
-(define (testfn x (y constval))
+(define-tester (testfn x (y constval))
   x)
 (define (testoptfree)
   (message "Running big TESTOPTFREE test")
@@ -304,7 +304,7 @@
 
 ;;; Quasiquote oddness
 
-(define (splicetest)
+(define-tester (splicetest)
   (let* ((x '(a b c))
          (y `(q ,@x d e f)))
     x))
@@ -315,7 +315,7 @@
 
 (define errors {})
 
-(define (plus3 x y z) (+ x y z))
+(define-tester (plus3 x y z) (+ x y z))
 (onerror (evaltest 27 (plus3 8 9 10))
   (lambda (ex) (set! errors ex)))
 (onerror (evaltest 27 (plus3 8 #;() 9 10))

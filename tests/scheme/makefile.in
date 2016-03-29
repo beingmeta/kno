@@ -95,9 +95,12 @@ alltests: schemetests tabletests indextests hashindextests dbtests optall
 schemetests:
 	@echo "*** Running scheme tests to exercise the data/eval layer"
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) r4rs.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMZED=yes r4rs.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) exceptions.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) choicetest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes choicetest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) seqtest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes seqtest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) picktest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cachecall.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) texttest.scm
@@ -106,6 +109,7 @@ schemetests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) threadtest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) i18n.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) misctest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes misctest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) xmltest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cryptotest.scm
 	@echo "*** Completed scheme tests to exercise the data/eval layer"
