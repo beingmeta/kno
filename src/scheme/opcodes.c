@@ -163,9 +163,13 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     case FD_BEGIN_OPCODE: 
       return eval_tail(expr,1,any_op,"BEGIN opcode",env);
     case FD_AND_OPCODE:
-      return eval_tail(expr,1,and_op,"AND opcode",env);
+      if ((israil)?(FD_RAIL_LENGTH(expr)==1):(FD_EMPTY_LISTP(FD_CDR(expr))))
+        return FD_TRUE;
+      else return eval_tail(expr,1,and_op,"AND opcode",env);
     case FD_OR_OPCODE:
-      return eval_tail(expr,1,or_op,"OR opcode",env);
+      if ((israil)?(FD_RAIL_LENGTH(expr)==1):(FD_EMPTY_LISTP(FD_CDR(expr))))
+        return FD_FALSE;
+      else return eval_tail(expr,1,or_op,"OR opcode",env);
     case FD_NOT_OPCODE: {
       fdtype arg1_expr=fd_get_arg(expr,1), arg1;
       if (FD_VOIDP(arg1_expr))
@@ -822,7 +826,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       else result=FD_FALSE;
       fd_decref(arg1); fd_decref(slotids); fd_decref(values);
       return result;}}
-  else if ((opcode>FD_SETOPS_OPCODES) &&
+  else if ((opcode>=FD_SETOPS_OPCODES) &&
 	   (opcode<=FD_DIFFERENCE_OPCODE)) {
     fdtype arg2expr=fd_get_arg(expr,2), argv[2];
     fdtype arg2=fd_eval(arg2expr,env);
