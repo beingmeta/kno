@@ -1,7 +1,7 @@
 Source: framerd
 Section: Libraries
 Priority: optional
-Maintainer: Kenneth Benfiel Haase <kh@beingmeta.com>
+Maintainer: Kenneth Benefiel Haase <kh@beingmeta.com>
 Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, sqlite3, apache2-dev, libmysqlclient-dev, libcurl4-openssl-dev,libexif-dev,tidy5,libzip-dev,libqrencode-dev,libu8-dev (>= 2.5.1),libhyphen-dev,libedit-dev,libsasl2-dev,libbson-dev,libmongoc-dev
 Standards-Version: 3.9.4
 Homepage: http://www.framerd.org/
