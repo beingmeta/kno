@@ -159,6 +159,8 @@ memtest_prefix=builtin_
 heaptest_prefix=builtin_
 use_duma_lib="no"
 custom_malloc=""
+static_libgcc="no"
+as_needed_flag="no"
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/framerd/fdsource.h include/framerd/config.h)
@@ -362,6 +364,7 @@ AC_PROG_INSTALL
 AC_PROG_RANLIB
 
 m4_include([etc/ax_pthread.m4])
+m4_include([etc/ax_check_link_flag.m4])
 
 AC_DEFINE_UNQUOTED(FD_VERSION,"$FDVERSION")
 AC_DEFINE_UNQUOTED(FD_MAJOR_VERSION,$FDMAJOR)
@@ -622,6 +625,16 @@ case $host_os in
    setup_target="setup-osx"
    ;;
 esac  
+
+AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
+AX_CHECK_LINK_FLAG("--as-needed",as_needed_flag="yes")
+
+if test "x${static_libgcc}" == "xyes"; then
+   LDFLAGS="-static-libgcc ${LDFLAGS}"
+fi
+if test "x${as_needed_flag}" == "xyes"; then
+   LDFLAGS="-Wl,--as-needed ${LDFLAGS}"
+fi
 
 dnl For specifying default -arch flags for OSX
 AC_ARG_WITH(arch,--with[out]-arch build with particular --arch flags,,with_arch="")

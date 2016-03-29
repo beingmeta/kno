@@ -9,7 +9,7 @@ EXECFLAGS=@CFLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG=@dynamic_cflag@
 CFLAGS=-I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ $(DYNAMIC_CFLAG) \
        -I./include $(XCFLAGS)  $(ARCHFLAGS)
-LDFLAGS = -Wl,--as-needed -static-libgcc -L./ -L./lib @LDFLAGS@ $(XLDFLAGS)
+LDFLAGS = -L./ -L./lib @LDFLAGS@ $(XLDFLAGS)
 EXELDFLAGS = @EXELDFLAGS@
 XLIBS=
 LIBS=$(XLIBS) @LIBS@
@@ -386,7 +386,7 @@ src/cmodules/%.o: src/cmodules/%.c
 	@$(CC) $(CFLAGS) -o $@ -c $<
 	@$(MSG) CC  $@ $<
 lib/framerd/%.so: src/cmodules/%.o ${MODULE_SO}
-	@$(MKSO) -Wl,--as-needed -L./lib -L./ -o $@ $< @LIBS@ 
+	@$(MKSO) -L./lib -L./ -o $@ $< @LIBS@ 
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/framerd/%.dylib: src/cmodules/%.o
@@ -742,7 +742,7 @@ src/cmodules/mysql.o: src/cmodules/mysql.c
 	@$(CC) @MYSQL_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(MYSQL)" $@
 lib/framerd/mysql.so: src/cmodules/mysql.o ${MODULE_SO}
-	@$(MKSO) -Wl,--as-needed -L./ -L./lib \
+	@$(MKSO) -L./ -L./lib \
 		-o $@ $< ${MODULE_SO} @MYSQL_LDFLAGS@ @LIBS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MYSQL)" $@
@@ -755,7 +755,7 @@ src/cmodules/mongodb.o: src/cmodules/mongodb.c
 	@$(CC) @MONGODB_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(MONGODB)" $@
 lib/framerd/mongodb.so: src/cmodules/mongodb.o ${MODULE_SO}
-	@$(MKSO) -Wl,--as-needed -L./ -L./lib \
+	@$(MKSO) -L./ -L./lib \
 		-o $@ $< ${MODULE_SO} @MONGODB_LDFLAGS@ @LIBS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MONGODB)" $@
@@ -768,7 +768,7 @@ src/cmodules/imagick.o: src/cmodules/imagick.c
 	@$(CC) @IMAGICK_CFLAGS@ $(CFLAGS)  -o $@ -c $<
 	@$(MSG) CC "(IMAGICK)" $@
 lib/framerd/imagick.so: src/cmodules/imagick.o ${MODULE_SO}
-	$(MKSO) -Wl,--as-needed -L./ -L./lib \
+	$(MKSO) -L./ -L./lib \
 		-o $@ $< ${MODULE_SO} @IMAGICK_LDFLAGS@ @LIBS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(IMAGICK)" $@
@@ -781,7 +781,7 @@ src/cmodules/ziptools.o: src/cmodules/ziptools.c
 	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
 	@$(MSG) CC "(ZIPTOOLS)"  $@ $<
 lib/framerd/ziptools.so: src/cmodules/ziptools.o ${MODULE_SO}
-	@$(MKSO) -Wl,--as-needed -L./ -L./lib \
+	@$(MKSO) -L./ -L./lib \
 		-o $@ $< ${MODULE_SO} @LIBZIP_LDFLAGS@ @LIBS@
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(ZIPTOOLS)"  $@ $<
@@ -791,7 +791,7 @@ lib/framerd/ziptools.dylib: src/cmodules/ziptools.o
 	@$(MSG) MACLIBTOOL "(ZIPTOOLS)" $@
 
 lib/framerd/exif.so: src/cmodules/exif.o ${MODULE_SO}
-	@$(MKSO) -Wl,--as-needed -L./ -L./lib -o $@ $^ ${MODULE_SO} $(LIBS) -lexif
+	@$(MKSO) -L./ -L./lib -o $@ $^ ${MODULE_SO} $(LIBS) -lexif
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO $@
 lib/framerd/exif.dylib: src/cmodules/exif.o
