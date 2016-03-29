@@ -1,3 +1,10 @@
+framerd (3.9.0-3) unstable; urgency=low
+
+  * Fix opcode handling bugs
+  * git patch version framerd-3.9-6-gc9661e4
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 29 Mar 2016 11:14:47 -0400
+
 framerd (3.9.0-2) unstable; urgency=low
 
   * Fix git tag and executable heralds
