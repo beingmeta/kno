@@ -1,3 +1,10 @@
+framerd (3.9.0-2) unstable; urgency=low
+
+  * Fix git tag and executable heralds
+  * git patch version framerd-3.9
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 28 Mar 2016 21:13:27 -0400
+
 framerd (3.9.0-1) unstable; urgency=low
 
   * Fix systemd scripts
