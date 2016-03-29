@@ -6,24 +6,30 @@ if test -f ${name}; then
     LOGFILE=`basename ${name}`
 elif test -f ${name}.log; then
     LOGFILE=`${name}.log`
-elif test -f @daemon_logdir@/${name}.pid; then
-    LOGFILE=@daemon_logdir@/`basename ${name}`
+elif test -f @daemon_logdir@/${name}.log; then
+    LOGFILE=@daemon_logdir@/${name}.log
 elif test -f @servlet_logdir@/${name}.pid; then
-    LOGFILE=@servlet_logdir@/`basename ${name}`
+    LOGFILE=@servlet_logdir@/${name}.log
 else 
     echo "fdstatus: Couldn't find activity ${name}";
     exit;
 fi;
-if test "x${LOGFILE}" = "x"; then
+if test "x${LOGFILE}" == "x"; then
     echo "No log file for ${name}";
     exit;
-elif test $cmd = "watch"; then    
+elif test "x${cmd}" == "x"; then
+    exec tail -n 30 -f ${LOGFILE};
+    exit;
+elif test ${cmd} == "watch"; then    
     exec tail -n 100 -f ${LOGFILE};
-elif test $cmd = "more"; then
+elif test ${cmd} == "more"; then
     exec less ${LOGFILE};
-elif test $cmd =~ "\[0123456789\]+" then;
-     exec tail -n $cmd ${LOGFILE};
+elif [[ ${cmd} =~ ^-[0123456789]+$ ]]; then
+    exec tail -f -n ${cmd:1} ${LOGFILE};
+elif [[ ${cmd} =~ ^[0123456789]+-$ ]]; then
+    exec tail -f -n ${cmd:0:-1} ${LOGFILE};
+elif [[ ${cmd} =~ ^[0123456789]+$ ]]; then
+    exec tail -n ${cmd} ${LOGFILE};
 else
-    exec tail -n 100 -f ${LOGFILE};
+    echo "Not handling unrecognized argument ${cmd}"
 fi;
-
