@@ -1250,15 +1250,15 @@ setup-upstart: $(DESTDIR)/etc/init/fdserver.conf \
 $(DESTDIR)/etc/init:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
 $(DESTDIR)/etc/init/fdserver.conf: etc/fdserver.conf $(DESTDIR)/etc/init
-	@$(MSG) Installing fdserver Upstart config
+	@$(MSG) Installing fdserver Upstart config to $(DESTDIR)/etc/init/fdserver.conf
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/fdserver.conf $(DESTDIR)/etc/init/fdserver.conf
 $(DESTDIR)/etc/init/fdservlet.conf: etc/fdservlet.conf $(DESTDIR)/etc/init
-	@$(MSG) Installing fdservlet Upstart config
+	@$(MSG) Installing fdservlet Upstart config to $(DESTDIR)/etc/init/fdservlet.conf
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/fdservlet.conf $(DESTDIR)/etc/init/fdservlet.conf
 $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
-	@$(MSG) Installing framerd Upstart config
+	@$(MSG) Installing framerd Upstart config to $(DESTDIR)/etc/init/framerd.conf
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.conf $(DESTDIR)/etc/init/framerd.conf
 
@@ -1266,7 +1266,7 @@ $(DESTDIR)@systemd_loc@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
 setup-systemd: $(DESTDIR)@systemd_loc@/framerd.service startupdirs
 $(DESTDIR)@systemd_loc@/framerd.service: $(DESTDIR)@systemd_loc@ etc/framerd.service
-	@$(MSG) Installing framerd system config
+	@$(MSG) Installing framerd systemd config to $(DESTDIR)@systemd_loc@/framerd.service
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.service $(DESTDIR)@systemd_loc@/framerd.service
 
