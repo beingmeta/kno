@@ -2,7 +2,7 @@
 
 (define (qc-wrap x) `(qc ,x))
 
-(when (config 'testoptimize #f)
+(when (config 'testoptimized #f)
   (use-module 'optimize)
   (define applytester
     (macro expr
@@ -28,7 +28,7 @@
 	  `(defambda ,@(cdr expr)))))
   (define test-optimize! optimize!))
 
-(unless (config 'testoptimize #f)
+(unless (config 'testoptimized #f)
   (define applytester applytest)
   (define evaltester evaltest)
   (define define-tester define)
