@@ -1393,6 +1393,10 @@ else
   AC_DEFINE(FD_WITH_CURL,0)
 fi
 
+AC_CHECK_HEADERS(resolv.h netinet/in.h arpa/nameser.h)
+AC_CHECK_LIB(resolv,res_query)
+AC_CHECK_FUNCS(res_query)
+
 dnl Build with primitives accessing libexif, if it is available
 AC_CHECK_LIB(exif,exif_data_new_from_data,exif_default="yes")
 AC_CHECK_HEADER(libexif/exif-data.h,exif_default=$exif_default,exif_default="no")
