@@ -597,8 +597,6 @@ FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
   ((fast) ? (FD_QCOMPARE(x,y)) : (FDTYPE_COMPARE(x,y)))
 #endif
 
-/* Pointer check functions and macros */
-
 /* Debugging support */
 
 FD_EXPORT fd_ptr_type _fd_ptr_type(fdtype x);

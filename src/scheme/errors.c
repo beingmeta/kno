@@ -357,7 +357,9 @@ static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
         return windval;}
       else {
         fdtype retval=fd_apply(doit,0,NULL);
+        u8_exception saved=u8_erreify();
         fdtype unwindval=fd_apply(unwind,0,NULL);
+        u8_restore_exception(saved);
         fd_decref(windval);
         fd_decref(wind); fd_decref(doit); fd_decref(unwind);
         if (FD_ABORTP(unwindval))
