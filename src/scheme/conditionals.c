@@ -26,7 +26,7 @@ static fdtype if_handler(fdtype expr,fd_lispenv env)
   if ((FD_VOIDP(test_expr)) || (FD_VOIDP(consequent_expr)))
     return fd_err(fd_TooFewExpressions,"IF",NULL,expr);
   test_result=fd_eval(test_expr,env);
-  if (FD_ABORTP(test_result)) return test_result;
+  if (FD_ABORTED(test_result)) return test_result;
   else if (FD_FALSEP(test_result))
     if ((FD_PAIRP(else_expr))||(FD_RAILP(else_expr)))
       return fd_tail_eval(else_expr,env);
@@ -45,7 +45,7 @@ static fdtype ifelse_handler(fdtype expr,fd_lispenv env)
   if ((FD_VOIDP(test_expr)) || (FD_VOIDP(consequent_expr)))
     return fd_err(fd_TooFewExpressions,"IFELSE",NULL,expr);
   test_result=fd_eval(test_expr,env);
-  if (FD_ABORTP(test_result)) return test_result;
+  if (FD_ABORTED(test_result)) return test_result;
   else if (FD_FALSEP(test_result)) {
     fdtype val=FD_VOID;
     FD_DOBODY(alt,expr,3) {
@@ -65,7 +65,7 @@ static fdtype tryif_handler(fdtype expr,fd_lispenv env)
   if ((FD_VOIDP(test_expr)) || (FD_VOIDP(first_consequent)))
     return fd_err(fd_TooFewExpressions,"TRYIF",NULL,expr);
   test_result=fd_eval(test_expr,env);
-  if (FD_ABORTP(test_result)) {
+  if (FD_ABORTED(test_result)) {
     fd_incref(expr); fd_push_error_context("tryif_handler",expr);
     return test_result;}
   else if ((FD_FALSEP(test_result))||(FD_EMPTY_CHOICEP(test_result)))
@@ -74,7 +74,7 @@ static fdtype tryif_handler(fdtype expr,fd_lispenv env)
     fdtype value=FD_VOID; fd_decref(test_result);
     {FD_DOBODY(clause,expr,2) {
         fd_decref(value); value=fd_eval(clause,env);
-        if (FD_ABORTP(value)) {
+        if (FD_ABORTED(value)) {
           fd_incref(clause); fd_push_error_context("TRYIF",clause);
           fd_incref(expr); fd_push_error_context("TRYIF",expr);
           return value;}
@@ -103,7 +103,7 @@ static fdtype cond_handler(fdtype expr,fd_lispenv env)
     else if (FD_EQ(FD_CAR(clause),else_symbol))
       return fd_eval_exprs(FD_CDR(clause),env);
     else test_val=fd_eval(FD_CAR(clause),env);
-    if (FD_ABORTP(test_val)) return test_val;
+    if (FD_ABORTED(test_val)) return test_val;
     else if (FD_FALSEP(test_val)) {}
     else {
       fdtype applyp=((FD_PAIRP(FD_CDR(clause))) &&
@@ -112,7 +112,7 @@ static fdtype cond_handler(fdtype expr,fd_lispenv env)
         if (FD_PAIRP(FD_CDR(FD_CDR(clause)))) {
           fdtype fnexpr=FD_CAR(FD_CDR(FD_CDR(clause)));
           fdtype fn=fd_eval(fnexpr,env);
-          if (FD_ABORTP(fn)) {
+          if (FD_ABORTED(fn)) {
             fd_decref(test_val);
             return fn;}
           else if (FD_APPLICABLEP(fn)) {
@@ -135,7 +135,7 @@ static fdtype case_handler(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(key_expr))
     return fd_err(fd_SyntaxError,"case_handler",NULL,expr);
   else keyval=fd_eval(key_expr,env);
-  if (FD_ABORTP(keyval)) return keyval;
+  if (FD_ABORTED(keyval)) return keyval;
   else {
     FD_DOLIST(clause,FD_CDR(FD_CDR(expr)))
       if (FD_PAIRP(clause))
@@ -158,7 +158,7 @@ static fdtype when_handler(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"WHEN",NULL,expr);
   else test_val=fd_eval(test_expr,env);
-  if (FD_ABORTP(test_val)) return test_val;
+  if (FD_ABORTED(test_val)) return test_val;
   else if (FD_FALSEP(test_val)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(test_val)) return FD_VOID;
   else {
@@ -172,7 +172,7 @@ static fdtype unless_handler(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"WHEN",NULL,expr);
   else test_val=fd_eval(test_expr,env);
-  if (FD_ABORTP(test_val)) return test_val;
+  if (FD_ABORTED(test_val)) return test_val;
   else if (FD_FALSEP(test_val))
     return fd_eval_exprs(FD_CDR(FD_CDR(expr)),env);
   else if (FD_EMPTY_CHOICEP(test_val)) return FD_VOID;
@@ -187,7 +187,7 @@ static fdtype and_handler(fdtype expr,fd_lispenv env)
   FD_DOLIST(clause,FD_CDR(expr)) {
     fd_decref(value);
     value=fd_eval(clause,env);
-    if (FD_ABORTP(value)) return value;
+    if (FD_ABORTED(value)) return value;
     else if (FD_FALSEP(value)) return value;}
   return value;
 }
@@ -198,7 +198,7 @@ static fdtype or_handler(fdtype expr,fd_lispenv env)
   FD_DOLIST(clause,FD_CDR(expr)) {
     fd_decref(value);
     value=fd_eval(clause,env);
-    if (FD_ABORTP(value)) return value;
+    if (FD_ABORTED(value)) return value;
     else if (!(FD_FALSEP(value))) return value;}
   return value;
 }

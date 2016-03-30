@@ -1117,7 +1117,7 @@ fdtype fd_fget(fdtype frames,fdtype slotids)
       fdtype result=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(slotid,slotids) {
         fdtype value=fd_frame_get(frames,slotid);
-        if (FD_ABORTP(value)) {
+        if (FD_ABORTED(value)) {
           fd_decref(result);
           return value;}
         FD_ADD_TO_CHOICE(result,value);}
@@ -1126,7 +1126,7 @@ fdtype fd_fget(fdtype frames,fdtype slotids)
       fdtype result=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(slotid,slotids) {
         fdtype value=fd_get(frames,slotid,FD_EMPTY_CHOICE);
-        if (FD_ABORTP(value)) {
+        if (FD_ABORTED(value)) {
           fd_decref(result);
           return value;}
         FD_ADD_TO_CHOICE(result,value);}
@@ -1153,7 +1153,7 @@ fdtype fd_fget(fdtype frames,fdtype slotids)
         if (FD_OIDP(frame)) {
           FD_DO_CHOICES(slotid,slotids) {
             fdtype v=fd_frame_get(frame,slotid);
-            if (FD_ABORTP(v)) {
+            if (FD_ABORTED(v)) {
               FD_STOP_DO_CHOICES;
               fd_decref(results);
               return v;}
@@ -1161,7 +1161,7 @@ fdtype fd_fget(fdtype frames,fdtype slotids)
         else {
           FD_DO_CHOICES(slotid,slotids) {
             fdtype v=fd_get(frame,slotid,FD_EMPTY_CHOICE);
-            if (FD_ABORTP(v)) {
+            if (FD_ABORTED(v)) {
               FD_STOP_DO_CHOICES;
               fd_decref(results);
               return v;}
@@ -1251,7 +1251,7 @@ static fdtype testp(int n,fdtype *args)
             args[2]=values;
             test_result=fd_apply(testfn,n-2,args+2);
             args[2]=testfns;
-            if (FD_ABORTP(test_result)) {
+            if (FD_ABORTED(test_result)) {
               fd_decref(values); return test_result;}
             else if (FD_TRUEP(test_result)) {
               fd_decref(values); fd_decref(test_result);
@@ -1262,7 +1262,7 @@ static fdtype testp(int n,fdtype *args)
             args[1]=values; args[2]=testfn;
             test_result=testp(n-1,args+1);
             args[1]=slotids; args[2]=testfns;
-            if (FD_ABORTP(test_result)) {
+            if (FD_ABORTED(test_result)) {
               fd_decref(values); return test_result;}
             else if (FD_TRUEP(test_result)) {
               fd_decref(values); return test_result;}
@@ -1270,7 +1270,7 @@ static fdtype testp(int n,fdtype *args)
           else if (FD_TABLEP(testfn)) {
             FD_DO_CHOICES(value,values) {
               fdtype mapsto=fd_get(testfn,value,FD_VOID);
-              if (FD_ABORTP(mapsto)) {
+              if (FD_ABORTED(mapsto)) {
                 fd_decref(values);
                 return mapsto;}
               else if (FD_VOIDP(mapsto)) {}
@@ -1310,15 +1310,15 @@ static fdtype cacheget_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"cacheget_handler",NULL,expr);
   else {
     fdtype table=fd_eval(table_arg,env), key, value;
-    if (FD_ABORTP(table)) return table;
+    if (FD_ABORTED(table)) return table;
     else if (FD_TABLEP(table)) key=fd_eval(key_arg,env);
     else return fd_type_error(_("table"),"cachget_handler",table);
-    if (FD_ABORTP(key)) {
+    if (FD_ABORTED(key)) {
       fd_decref(table); return key;}
     else value=fd_get(table,key,FD_VOID);
     if (FD_VOIDP(value)) {
       fdtype dflt=fd_eval(default_expr,env);
-      if (FD_ABORTP(dflt)) {
+      if (FD_ABORTED(dflt)) {
         fd_decref(table); fd_decref(key);
         return dflt;}
       fd_store(table,key,dflt);
@@ -1466,7 +1466,7 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
           rail[0]=f; rail[1]=val; result=fd_apply(pred,2,rail);}
       else result=fd_err(fd_TypeError,"test_selector_relation",
                          "invalid relation",pred);}
-    if (FD_ABORTP(result))
+    if (FD_ABORTED(result))
       return fd_interr(result);
     else if ((FD_FALSEP(result)) || (FD_EMPTY_CHOICEP(result)))
       return 0;
@@ -1555,7 +1555,7 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,
     else return fd_test(candidate,test,FD_VOID);}
   else if (FD_APPLICABLEP(test)) {
     fdtype v=fd_apply(test,1,&candidate);
-    if (FD_ABORTP(v)) return fd_interr(v);
+    if (FD_ABORTED(v)) return fd_interr(v);
     else if ((FD_FALSEP(v)) || (FD_EMPTY_CHOICEP(v)) || (FD_VOIDP(v)))
       return 0;
     else {fd_decref(v); return 1;}}
@@ -1571,7 +1571,7 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,
       newval=fd_err(fd_RangeError,"test_selector_relation",
                     "too many elements in test condition",FD_VOID);
     else newval=fd_apply(j,fcn,argv);
-    if (FD_ABORTP(newval)) return newval;
+    if (FD_ABORTED(newval)) return newval;
     else if ((FD_FALSEP(newval))||(FD_EMPTY_CHOICEP(newval)))
       return 0;
     else {
@@ -1923,7 +1923,7 @@ static fdtype getstar(fdtype frames,fdtype slotids)
   fdtype results=fd_incref(frames);
   FD_DO_CHOICES(slotid,slotids) {
     fdtype all=fd_inherit_values(frames,slotid,slotid);
-    if (FD_ABORTP(all)) {
+    if (FD_ABORTED(all)) {
       fd_decref(results);
       return all;}
     else {FD_ADD_TO_CHOICE(results,all);}}
@@ -2028,7 +2028,7 @@ static fdtype seq2frame_prim
       if (p==NULL)
         return fd_type_error(_("pool spec"),"seq2frame_prim",poolspec);
       oid=fd_pool_alloc(p,1);
-      if (FD_ABORTP(oid)) return oid;
+      if (FD_ABORTED(oid)) return oid;
       slotmap=fd_empty_slotmap();
       if (fd_set_oid_value(oid,slotmap)<0) {
         fd_decref(slotmap);
@@ -2343,7 +2343,7 @@ static fdtype sumframe_prim(fdtype frames,fdtype slotids)
     fdtype slotmap=fd_empty_slotmap();
     FD_DO_CHOICES(slotid,slotids) {
       fdtype value=fd_get(frame,slotid,FD_EMPTY_CHOICE);
-      if (FD_ABORTP(value)) {
+      if (FD_ABORTED(value)) {
         fd_decref(results); return value;}
       else if (fd_add(slotmap,slotid,value)<0) {
         fd_decref(results); fd_decref(value);
@@ -2371,7 +2371,7 @@ static fdtype applyfn(fdtype fn,fdtype node)
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(f,fn) {
       fdtype v=applyfn(fn,node);
-      if (FD_ABORTP(v)) {
+      if (FD_ABORTED(v)) {
         fd_decref(results);
         return v;}
       else {FD_ADD_TO_CHOICE(results,v);}}
@@ -2393,12 +2393,12 @@ static int walkgraph(fdtype fn,fdtype state,fdtype arcs,
       fd_hashset_add(seen,node);
       /* Apply the function */
       output=applyfn(fn,node);
-      if (FD_ABORTP(output)) return fd_interr(output);
+      if (FD_ABORTED(output)) return fd_interr(output);
       else if (results) {FD_ADD_TO_CHOICE(*results,output);}
       else fd_decref(output);
       /* Do the expansion */
       expand=applyfn(arcs,node);
-      if (FD_ABORTP(expand)) return fd_interr(expand);
+      if (FD_ABORTED(expand)) return fd_interr(expand);
       else {
         FD_DO_CHOICES(next,expand)
           if (!(fd_hashset_get(seen,next))) {
@@ -2630,12 +2630,12 @@ static fdtype wooverlay_handler(fdtype expr,fd_lispenv env)
   if ((fd_inhibit_overlay) || (!(fd_overlayp()))) {
     FD_DOBODY(body_elt,expr,1) {
       fd_decref(value); value=fd_eval(body_elt,env);
-      if (FD_ABORTP(value)) return value;}
+      if (FD_ABORTED(value)) return value;}
     return value;}
   fd_inhibit_overlays(1);
   {FD_DOBODY(body_elt,expr,1) {
     fd_decref(value); value=fd_eval(body_elt,env);
-    if (FD_ABORTP(value)) {
+    if (FD_ABORTED(value)) {
       fd_inhibit_overlays(0);
       return value;}}}
   fd_inhibit_overlays(0);

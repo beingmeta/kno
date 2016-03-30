@@ -373,7 +373,8 @@ void fd_add_match_operator
 /* This is for greedy matching */
 static fdtype get_longest_match(fdtype matches)
 {
-  if ((FD_CHOICEP(matches)) || (FD_ACHOICEP(matches))) {
+  if (FD_ABORTED(matches)) return matches;
+  else if ((FD_CHOICEP(matches)) || (FD_ACHOICEP(matches))) {
     u8_byteoff max=-1;
     FD_DO_CHOICES(match,matches) {
       u8_byteoff ival=fd_getint(match);
@@ -396,7 +397,9 @@ fdtype fd_text_domatch
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  if (off > lim) return FD_EMPTY_CHOICE;
+  if (FD_INTERRUPTED())
+    return FD_ERROR_VALUE;
+  else if (off > lim) return FD_EMPTY_CHOICE;
   else if (FD_EMPTY_CHOICEP(pat)) return FD_EMPTY_CHOICE;
   else if (FD_STRINGP(pat))
     if (off == lim)
@@ -414,7 +417,7 @@ fdtype fd_text_domatch
       FD_DO_CHOICES(each,pat) {
         fdtype answer=fd_text_domatch(each,next,env,string,off,lim,flags);
         if (FD_EMPTY_CHOICEP(answer)) {}
-        else if (FD_ABORTP(answer)) {
+        else if (FD_ABORTED(answer)) {
           FD_STOP_DO_CHOICES;
           return answer;}
         else if (FD_FIXNUMP(answer)) {
@@ -430,7 +433,7 @@ fdtype fd_text_domatch
               fd_decref(answer); answer=err;
               FD_STOP_DO_CHOICES;
               break;}
-          if (FD_ABORTP(answer)) {
+          if (FD_ABORTED(answer)) {
             FD_STOP_DO_CHOICES; return answer;}
           else fd_decref(answer);}
         else {
@@ -441,7 +444,7 @@ fdtype fd_text_domatch
       fdtype answers=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(epat,pat) {
         fdtype answer=fd_text_domatch(epat,next,env,string,off,lim,flags);
-        if (FD_ABORTP(answer)) {
+        if (FD_ABORTED(answer)) {
           FD_STOP_DO_CHOICES;
           fd_decref(answers);
           return answer;}
@@ -512,7 +515,7 @@ static fdtype match_sequence
     FD_DO_CHOICES(pos,state) {
       fdtype npos=
         fd_text_domatch(epat,npat,env,string,fd_getint(pos),lim,flags);
-      if (FD_ABORTP(npos)) {
+      if (FD_ABORTED(npos)) {
         fd_decref(next);
         FD_STOP_DO_CHOICES;
         return npos;}
@@ -563,7 +566,8 @@ static fdtype extract_text(u8_string string,u8_byteoff start,fdtype ends)
 
 static fdtype get_longest_extractions(fdtype extractions)
 {
-  if ((FD_CHOICEP(extractions)) || (FD_ACHOICEP(extractions))) {
+  if (FD_ABORTED(extractions)) return extractions;
+  else if ((FD_CHOICEP(extractions)) || (FD_ACHOICEP(extractions))) {
     fdtype largest=FD_EMPTY_CHOICE; u8_byteoff max=-1;
     FD_DO_CHOICES(extraction,extractions) {
       u8_byteoff ival=fd_getint(FD_CAR(extraction));
@@ -583,7 +587,9 @@ static fdtype textract
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  if (off > lim) return FD_EMPTY_CHOICE;
+  if (FD_INTERRUPTED())
+    return FD_ERROR_VALUE;
+  else if (off > lim) return FD_EMPTY_CHOICE;
   else if (FD_EMPTY_CHOICEP(pat)) return FD_EMPTY_CHOICE;
   else if (FD_STRINGP(pat))
     if ((FD_STRLEN(pat)) == 0)
@@ -600,7 +606,7 @@ static fdtype textract
     FD_DO_CHOICES(epat,pat) {
       fdtype extractions=textract(epat,next,env,string,off,lim,flags);
       FD_DO_CHOICES(extraction,extractions) {
-        if (FD_ABORTP(extraction)) {
+        if (FD_ABORTED(extraction)) {
           fd_decref(answers); answers=fd_incref(extraction);
           FD_STOP_DO_CHOICES;
           break;}
@@ -612,7 +618,7 @@ static fdtype textract
           answers=fd_err(fd_InternalMatchError,"textract",NULL,extraction);
           FD_STOP_DO_CHOICES;
           break;}}
-      if (FD_ABORTP(answers)) {
+      if (FD_ABORTED(answers)) {
         fd_decref(extractions);
         return answers;}
       fd_decref(extractions);}
@@ -635,7 +641,7 @@ static fdtype textract
       else return FD_EMPTY_CHOICE;}}
   else if (FD_VECTORP(pat)) {
     fdtype seq_matches=extract_sequence(pat,0,next,env,string,off,lim,flags);
-    if (FD_ABORTP(seq_matches)) return seq_matches;
+    if (FD_ABORTED(seq_matches)) return seq_matches;
     else {
       fdtype result=lists_to_vectors(seq_matches);
       fd_decref(seq_matches);
@@ -651,7 +657,8 @@ static fdtype textract
         return scan->extract(pat,next,env,string,off,lim,flags);
       else {
         fdtype matches=scan->matcher(pat,next,env,string,off,lim,flags);
-        fdtype answer=extract_text(string,off,matches);
+        fdtype answer=((FD_ABORTED(matches))?(matches):
+                       (extract_text(string,off,matches)));
         fd_decref(matches);
         return answer;}
     else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);}
@@ -664,16 +671,18 @@ static fdtype textract
       fdtype lengths=
         get_longest_match(fd_text_domatch(v,next,env,string,off,lim,flags));
       fdtype answers=FD_EMPTY_CHOICE;
-      FD_DO_CHOICES(l,lengths) {
-        fdtype extraction=
-          fd_conspair(l,fd_substring(string+off,string+fd_getint(l)));
-        if (FD_ABORTP(extraction)) {
-          FD_STOP_DO_CHOICES;
-          fd_decref(answers);
-          return extraction;}
-        FD_ADD_TO_CHOICE(answers,extraction);}
-      fd_decref(lengths); fd_decref(v);
-      return answers;}}
+      if (FD_ABORTED(lengths)) return lengths;
+      else {
+        FD_DO_CHOICES(l,lengths) {
+          fdtype extraction=
+            fd_conspair(l,fd_substring(string+off,string+fd_getint(l)));
+          if (FD_ABORTED(extraction)) {
+            FD_STOP_DO_CHOICES;
+            fd_decref(answers);
+            return extraction;}
+          FD_ADD_TO_CHOICE(answers,extraction);}
+        fd_decref(lengths); fd_decref(v);
+        return answers;}}}
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return textract(txc->pattern,next,txc->env,string,off,lim,flags);}
@@ -708,7 +717,7 @@ static fdtype extract_sequence
       (((pat_elt+1)==l) ? (next) : (FD_VECTOR_REF(pat,pat_elt+1)));
     fdtype sub_matches=
       textract(FD_VECTOR_REF(pat,pat_elt),nextpat,env,string,off,lim,flags);
-    if (FD_ABORTP(sub_matches)) return sub_matches;
+    if (FD_ABORTED(sub_matches)) return sub_matches;
     else {
       fdtype results=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(sub_match,sub_matches) {
@@ -716,7 +725,7 @@ static fdtype extract_sequence
           u8_byteoff noff=fd_getint(FD_CAR(sub_match));
           fdtype remainders=extract_sequence
             (pat,pat_elt+1,next,env,string,noff,lim,flags);
-          if (FD_ABORTP(remainders)) {
+          if (FD_ABORTED(remainders)) {
             FD_STOP_DO_CHOICES;
             fd_decref(sub_matches);
             fd_decref(results);
@@ -765,7 +774,7 @@ static fdtype match_repeatedly
     FD_DO_CHOICES(pos,state) {
       fdtype npos=
         fd_text_domatch(pat,next,env,string,fd_getint(pos),lim,flags);
-      if (FD_ABORTP(npos)) {
+      if (FD_ABORTED(npos)) {
         FD_STOP_DO_CHOICES;
         fd_decref(match_points);
         fd_decref(next_state);
@@ -1137,7 +1146,7 @@ static fdtype label_extract
   else {
     fdtype extractions=textract(spat,next,env,string,off,lim,flags);
     fdtype answers=FD_EMPTY_CHOICE;
-    if (FD_ABORTP(extractions)) return extractions;
+    if (FD_ABORTED(extractions)) return extractions;
     else {
       FD_DO_CHOICES(extraction,extractions) {
         fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);    
@@ -1146,7 +1155,7 @@ static fdtype label_extract
           xtract=fd_make_list(3,FD_CAR(pat),sym,data);
         else if (FD_SYMBOLP(parser)) {
           fdtype parser_val=match_eval(parser,env);
-          if ((FD_ABORTP(parser_val))||(FD_VOIDP(parser_val))) {
+          if ((FD_ABORTED(parser_val))||(FD_VOIDP(parser_val))) {
             FD_STOP_DO_CHOICES;
             fd_decref(answers); fd_decref(extractions);
             if (FD_VOIDP(parser_val)) 
@@ -1156,7 +1165,7 @@ static fdtype label_extract
           xtract=fd_make_list(4,FD_CAR(pat),sym,data,parser_val);}
         else if ((env) && (FD_PAIRP(parser))) {
           fdtype parser_val=fd_eval(parser,env);
-          if ((FD_ABORTP(parser_val))||(FD_VOIDP(parser_val))) {
+          if ((FD_ABORTED(parser_val))||(FD_VOIDP(parser_val))) {
             FD_STOP_DO_CHOICES;
             fd_decref(answers); fd_decref(extractions);
             return parser_val;}
@@ -1200,7 +1209,7 @@ static fdtype subst_extract
     return fd_err(fd_MatchSyntaxError,"subst_extract",NULL,pat);
   else {
     fdtype matches=fd_text_domatch(spat,next,env,string,off,lim,flags);
-    if (FD_ABORTP(matches)) return matches;
+    if (FD_ABORTED(matches)) return matches;
     else {
       fdtype answers=FD_EMPTY_CHOICE;
       fdtype args=FD_CDR(FD_CDR(pat));
@@ -1275,7 +1284,7 @@ static fdtype match_pref
 {
   FD_DOLIST(epat,FD_CDR(pat)) {
     fdtype answer=fd_text_domatch(epat,next,env,string,off,lim,flags);
-    if (FD_ABORTP(answer)) return answer;
+    if (FD_ABORTED(answer)) return answer;
     else if (FD_EMPTY_CHOICEP(answer)) {}
     else return answer;}
   return FD_EMPTY_CHOICE;
@@ -1288,7 +1297,7 @@ static fdtype extract_pref
   fdtype answers=FD_EMPTY_CHOICE;
   FD_DOLIST(epat,FD_CDR(pat)) {
     fdtype extractions=textract(epat,next,env,string,off,lim,flags);
-    if (FD_ABORTP(extractions)) return extractions;
+    if (FD_ABORTED(extractions)) return extractions;
     else if (FD_EMPTY_CHOICEP(extractions)) {}
     else return extractions;}
   return FD_EMPTY_CHOICE;
@@ -1349,7 +1358,7 @@ static fdtype word_match
     fdtype final_results=(FD_EMPTY_CHOICE);
     fdtype core_result=fd_text_domatch
       (wpat,next,env,string,off,lim,(flags|FD_MATCH_COLLAPSE_SPACES));
-    if (FD_ABORTP(core_result)) {
+    if (FD_ABORTED(core_result)) {
       fd_decref(final_results);
       return core_result;}
     else {
@@ -1768,7 +1777,7 @@ static fdtype extract_longest
     return fd_err(fd_MatchSyntaxError,"extract_longeset",NULL,pat);
   else {
     fdtype results=fd_text_matcher(pat_arg,env,string,off,lim,flags);
-    if (FD_ABORTP(results)) return results;
+    if (FD_ABORTED(results)) return results;
     else return get_longest_extractions(results);}
 }
 
@@ -3346,7 +3355,10 @@ static u8_byteoff hashset_search
     u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
       fdtype matches=hashset_match(pat,FD_VOID,env,string,try,lim,flags);
-      if (!(FD_EMPTY_CHOICEP(matches))) {fd_decref(matches); return try;}
+      if (FD_ABORTED(matches)) return -2;
+      else if (!(FD_EMPTY_CHOICEP(matches))) {
+        fd_decref(matches); 
+        return try;}
       else try=fd_text_search(cpat,env,string,
                               forward_char(string,try),lim,flags);}
     return try;}
@@ -3382,7 +3394,7 @@ static fdtype hashset_not_match
         fdtype origin=fd_extract_string
           (NULL,string+off,string+fd_getint(possibility));
         fdtype xformed=match_apply(xform,"HASHSET-NOT-MATCH",env,1,&origin);
-        if (FD_ABORTP(xformed)) {
+        if (FD_ABORTED(xformed)) {
           FD_STOP_DO_CHOICES;
           fd_decref(results);
           return xformed;}
@@ -3407,7 +3419,10 @@ static u8_byteoff hashset_not_search
     u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
       fdtype matches=hashset_not_match(pat,FD_VOID,env,string,try,lim,flags);
-      if (!(FD_EMPTY_CHOICEP(matches))) {fd_decref(matches); return try;}
+      if (FD_ABORTED(matches)) return -2;
+      else if (!(FD_EMPTY_CHOICEP(matches))) {
+        fd_decref(matches); 
+        return try;}
       else try=
              fd_text_search(cpat,env,string,
                             forward_char(string,try),lim,flags);}
@@ -3457,7 +3472,10 @@ static u8_byteoff applytest_search
     u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
       fdtype matches=applytest_match(pat,FD_VOID,env,string,try,lim,flags);
-      if (!(FD_EMPTY_CHOICEP(matches))) {fd_decref(matches); return try;}
+      if (FD_ABORTED(matches)) return -2;
+      else if (!(FD_EMPTY_CHOICEP(matches))) {
+        fd_decref(matches); 
+        return try;}
       else try=fd_text_search(cpat,env,string,
                               forward_char(string,try),lim,flags);}
     return try;}
@@ -3496,7 +3514,9 @@ static u8_byteoff maxlen_search
     u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
       fdtype matches=maxlen_match(pat,FD_VOID,env,string,try,lim,flags);
-      if (!(FD_EMPTY_CHOICEP(matches))) {fd_decref(matches); return try;}
+      if (FD_ABORTED(matches)) return -2;
+      else if (!(FD_EMPTY_CHOICEP(matches))) {
+        fd_decref(matches); return try;}
       else try=fd_text_search(cpat,env,string,
                               forward_char(string,try),
                               lim,flags);}
@@ -3524,7 +3544,7 @@ static fdtype minlen_match
     if (min_len<=0)
       return fd_type_error(_("positive fixnum"),"minlen_match",pat);}
   inner_results=fd_text_domatch(cpat,next,env,string,off,lim,flags);
-  if (FD_ABORTP(inner_results)) return inner_results;
+  if (FD_ABORTED(inner_results)) return inner_results;
   else if (FD_EMPTY_CHOICEP(inner_results)) return inner_results;
   else if (FD_FIXNUMP(inner_results)) {
     if ((FD_FIX2INT(inner_results)-off)<min_len)
@@ -3557,7 +3577,8 @@ static u8_byteoff minlen_search
     u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
     while ((try >= 0) && (try < lim)) {
       fdtype matches=minlen_match(pat,FD_VOID,env,string,try,lim,flags);
-      if (!(FD_EMPTY_CHOICEP(matches))) {
+      if (FD_ABORTED(matches)) return -2;
+      else if (!(FD_EMPTY_CHOICEP(matches))) {
         fd_decref(matches);
         return try;}
       else try=fd_text_search(cpat,env,string,
@@ -3618,7 +3639,8 @@ static u8_byteoff slow_search
   const u8_byte *s=string+off, *sl=string+lim;
   while (s < sl) {
     fdtype result=fd_text_matcher(pat,env,string,s-string,lim,flags);
-    if (!(FD_EMPTY_CHOICEP(result))) return s-string;
+    if (FD_ABORTED(result)) return -2;
+    else if (!(FD_EMPTY_CHOICEP(result))) return s-string;
     else if (*s < 0x80) s++;
     else s=u8_substring(s,1);}
   return -1;
@@ -3631,7 +3653,8 @@ u8_byteoff fd_text_search
   (fdtype pat,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  if (off > lim) return -1;
+  if (FD_INTERRUPTED()) return -2;
+  else if (off > lim) return -1;
   else if (FD_EMPTY_CHOICEP(pat)) return -1;
   else if (FD_STRINGP(pat)) {
     u8_byte c=string[lim]; const u8_byte *next;
@@ -3649,7 +3672,7 @@ u8_byteoff fd_text_search
     u8_byteoff start=fd_text_search(initial,env,string,off,lim,flags);
     while ((start >= 0) && (start < lim)) {
       fdtype m=fd_text_matcher(pat,env,string,start,lim,flags);
-      if (FD_ABORTP(m)) {
+      if (FD_ABORTED(m)) {
         fd_interr(m);
         return -2;}
       if (!(FD_EMPTY_CHOICEP(m))) {
@@ -3700,7 +3723,7 @@ u8_byteoff fd_text_search
       return -2;}}
   else if (FD_SYMBOLP(pat)) {
     fdtype vpat=match_eval(pat,env);
-    if (FD_ABORTP(vpat)) {
+    if (FD_ABORTED(vpat)) {
       fd_interr(vpat);
       return -2;}
     else if (FD_VOIDP(vpat)) {
@@ -3729,7 +3752,7 @@ int fd_text_match
    u8_string string,u8_byteoff off,u8_byteoff len,int flags)
 {
   fdtype extents=fd_text_matcher(pat,env,string,off,len,flags);
-  if (FD_ABORTP(extents)) 
+  if (FD_ABORTED(extents)) 
     return fd_interr(extents);
   else {
     int match=0;

@@ -101,7 +101,7 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     if (FD_VOIDP(test_expr))
       return fd_err(fd_SyntaxError,"conditional OPCODE test",NULL,expr);
     test=fd_eval(test_expr,env);
-    if (FD_ABORTP(test)) return test;
+    if (FD_ABORTED(test)) return test;
     else if (FD_VOIDP(test))
       return fd_err(fd_VoidArgument,"conditional OPCODE test",NULL,expr);
     else switch (opcode) {
@@ -120,7 +120,7 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         if (!(FD_FALSEP(test))) {
           FD_DOBODY(tmp,expr,2) {
             fdtype tmpval=fd_eval(tmp,env);
-            if (FD_ABORTP(tmpval)) return tmpval;
+            if (FD_ABORTED(tmpval)) return tmpval;
             fd_decref(tmpval);}}
         fd_decref(test);
         return FD_VOID;}
@@ -128,7 +128,7 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         if (FD_FALSEP(test)) {
           FD_DOBODY(tmp,expr,2) {
             fdtype tmpval=fd_eval(tmp,env);
-            if (FD_ABORTP(tmpval)) return tmpval;
+            if (FD_ABORTED(tmpval)) return tmpval;
             fd_decref(tmpval);}
           return FD_VOID;}
         fd_decref(test);
@@ -214,7 +214,7 @@ static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
     int i=2; while (i<n_butlast) {
       fdtype each=rail_data[i++];
       fdtype each_value=fd_eval(each,env);
-      if (FD_ABORTP(each_value)) return each_value;
+      if (FD_ABORTED(each_value)) return each_value;
       else if (op==any_op) fd_decref(each_value);
       else if ((op==and_op)&&(FD_FALSEP(each_value)))
         return each_value;
@@ -233,7 +233,7 @@ static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
     while (FD_PAIRP(next)) {
       fdtype each=FD_CAR(exprs);
       fdtype each_value=fd_eval(each,env);
-      if (FD_ABORTP(each_value)) return each_value;
+      if (FD_ABORTED(each_value)) return each_value;
       else if (op==any_op) fd_decref(each_value);
       else if ((op==and_op)&&(FD_FALSEP(each_value)))
         return each_value;
@@ -635,13 +635,13 @@ static fdtype opcode_binary_nd_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
 	     two choice loops.  So on the inside, we decref results and
 	     replace it with the error object.  We then break and
 	     do FD_STOP_DO_CHOICES (for potential cleanup). */
-	  if (FD_ABORTP(result)) {
+	  if (FD_ABORTED(result)) {
 	    fd_decref(results); results=result;
 	    FD_STOP_DO_CHOICES; break;}}}
       /* If the inner loop aborted due to an error, results is now bound
 	 to the error, so we just FD_STOP_DO_CHOICES (this time for the
 	 outer loop) and break; */
-      if (FD_ABORTP(results)) {
+      if (FD_ABORTED(results)) {
 	FD_STOP_DO_CHOICES; break;}}
     fd_decref(arg1); fd_decref(arg2);
     return results;}
@@ -688,7 +688,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
   if (!(israil)) body=FD_CDR(body);
   arg1=fd_eval(arg1_expr,env);
   /* Now, check the result of the first argument expression */
-  if (FD_ABORTP(arg1)) return arg1;
+  if (FD_ABORTED(arg1)) return arg1;
   else if (FD_VOIDP(arg1))
     return fd_err(fd_VoidArgument,"opcode eval",NULL,arg1_expr);
   /* Check the type for numeric arguments here. */
@@ -728,7 +728,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	fdtype results=FD_EMPTY_CHOICE;
 	FD_DO_CHOICES(arg,arg1) {
 	  fdtype result=opcode_unary_dispatch(opcode,arg);
-	  if (FD_ABORTP(result)) {
+	  if (FD_ABORTED(result)) {
 	    fd_decref(results); fd_decref(arg1);
 	    FD_STOP_DO_CHOICES;
 	    return result;}
@@ -756,7 +756,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     /* Binary opcodes all live beneath FD_NARY_OPCODES */ { 
     /* Binary calls start by evaluating the second argument */
     fdtype arg2=fd_eval(fd_get_arg(expr,2),env);
-    if (FD_ABORTP(arg2)) {
+    if (FD_ABORTED(arg2)) {
       fd_decref(arg1); return arg2;}
     else if (FD_VOIDP(arg2)) {
       fd_decref(arg1);
@@ -783,7 +783,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     else {
       fdtype slotid_arg=fd_get_arg(expr,2);
       fdtype slotids=fd_eval(slotid_arg,env), result;
-      if (FD_ABORTP(slotids)) return slotids;
+      if (FD_ABORTED(slotids)) return slotids;
       else if (FD_VOIDP(slotids))
 	return fd_err(fd_SyntaxError,"OPCODE fget",NULL,expr);
       if (opcode==FD_GET_OPCODE)
@@ -794,7 +794,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
           result=fd_get(arg1,slotids,FD_EMPTY_CHOICE);
         else {
           fdtype dflt=fd_eval(dflt_arg,env);
-          if (FD_ABORTP(dflt)) result=dflt;
+          if (FD_ABORTED(dflt)) result=dflt;
           else if (FD_VOIDP(dflt)) {
             result=fd_err(fd_VoidArgument,"OPCODE pget",NULL,
                           fd_get_arg(expr,3));}
@@ -808,7 +808,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       fdtype slotid_arg=fd_get_arg(expr,2);
       fdtype values_arg=fd_get_arg(expr,3);
       fdtype slotids=fd_eval(slotid_arg,env), values, result;
-      if (FD_ABORTP(slotids)) return slotids;
+      if (FD_ABORTED(slotids)) return slotids;
       else if (FD_VOIDP(slotids))
 	return fd_err(fd_SyntaxError,"OPCODE ftest",NULL,expr);
       else if (FD_EMPTY_CHOICEP(slotids)) {
@@ -816,7 +816,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       else if (FD_VOIDP(values_arg))
 	values=FD_VOID;
       else values=fd_eval(values_arg,env);
-      if (FD_ABORTP(values)) {
+      if (FD_ABORTED(values)) {
         fd_decref(arg1); fd_decref(slotids);
         return values;}
       if (opcode==FD_TEST_OPCODE)
@@ -832,7 +832,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     fdtype arg2=fd_eval(arg2expr,env);
     fdtype result=FD_ERROR_VALUE;
     argv[0]=arg1; argv[1]=arg2;
-    if (FD_ABORTP(arg2)) result=arg2;
+    if (FD_ABORTED(arg2)) result=arg2;
     else if (FD_VOIDP(arg2)) {
       result=fd_err(fd_VoidArgument,"OPCODE setop",NULL,arg2expr);}
     else switch (opcode) {
@@ -889,7 +889,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	FD_DO_CHOICES(a1,arg1)
 	  if (FD_COMPOUNDP(a1)) {
 	    fdtype result=xref_opcode(a1,FD_FIX2INT(offset_arg),type_arg);
-	    if (FD_ABORTP(result)) {
+	    if (FD_ABORTED(result)) {
               fd_decref(arg1);
 	      fd_decref(results);
 	      return result;}

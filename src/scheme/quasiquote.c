@@ -55,7 +55,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
             (FD_EMPTY_LISTP(FD_CDR(FD_CDR(obj)))))
           if (level==1) {
             fdtype splice_at_end=fd_eval(FD_CADR(obj),env);
-            if (FD_ABORTP(splice_at_end)) {
+            if (FD_ABORTED(splice_at_end)) {
               fd_decref(head);
               return splice_at_end;}
             else {
@@ -63,7 +63,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
               return head;}}
           else {
             fdtype splice_at_end=fd_quasiquote(FD_CADR(obj),env,level-1);
-            if (FD_ABORTP(splice_at_end)) {
+            if (FD_ABORTED(splice_at_end)) {
               fd_decref(head); return splice_at_end;}
             else {
               fdtype with_unquote=fd_conspair(unquote,splice_at_end);
@@ -82,15 +82,15 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
           new_elt=fd_eval(FD_CADR(elt),env);
         else {
           fdtype embed=fd_quasiquote(FD_CADR(elt),env,level-1);
-          if (FD_ABORTP(embed)) new_elt=embed;
+          if (FD_ABORTED(embed)) new_elt=embed;
           else new_elt=fd_make_list(2,unquote,embed);}
-        if (FD_ABORTP(new_elt)) {
+        if (FD_ABORTED(new_elt)) {
           fd_decref(head);
           return new_elt;}}
       else if (FD_EQ(FD_CAR(elt),unquotestar))
         if (level==1) {
           fdtype insertion=fd_eval(FD_CADR(elt),env);
-          if (FD_ABORTP(insertion)) {
+          if (FD_ABORTED(insertion)) {
               fd_decref(head);
               return insertion;}
           else if (FD_EMPTY_LISTP(insertion)) {}
@@ -132,11 +132,11 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
           continue;}
         else {
           fdtype embed=fd_quasiquote(FD_CADR(elt),env,level-1);
-          if (FD_ABORTP(embed)) new_elt=embed;
+          if (FD_ABORTED(embed)) new_elt=embed;
           else new_elt=fd_make_list(2,unquotestar,embed);}
       else new_elt=fd_quasiquote(elt,env,level);
     else new_elt=fd_quasiquote(elt,env,level);
-    if (FD_ABORTP(new_elt)) {
+    if (FD_ABORTED(new_elt)) {
       fd_decref(head); return new_elt;}
     new_tail=fd_conspair(new_elt,FD_EMPTY_LIST);
     tailcons=FD_STRIP_CONS(new_tail,fd_pair_type,struct FD_PAIR *);
@@ -144,7 +144,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
     obj=FD_CDR(obj);}
   if (!(FD_EMPTY_LISTP(obj))) {
     fdtype final=fd_quasiquote(obj,env,level);
-    if (FD_ABORTP(final)) {
+    if (FD_ABORTED(final)) {
       fd_decref(head); return final;}
     else *tail=final;}
   return head;
@@ -164,7 +164,7 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
           (FD_PAIRP(FD_CDR(elt))))
         if (level==1) {
           fdtype insertion=fd_eval(FD_CADR(elt),env); int addlen=0;
-          if (FD_ABORTP(insertion)) {
+          if (FD_ABORTED(insertion)) {
             int k=0; while (k<j) {fd_decref(newelts[k]); k++;}
             u8_free(newelts);
             return insertion;}
@@ -202,7 +202,7 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
           fd_decref(insertion);}
         else {
           fdtype new_elt=fd_quasiquote(elt,env,level-1);
-          if (FD_ABORTP(new_elt)) {
+          if (FD_ABORTED(new_elt)) {
             int k=0; while (k<j) {fd_decref(newelts[k]); k++;}
             u8_free(newelts);
             return new_elt;}
@@ -210,7 +210,7 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
           i++; j++;}
       else {
         fdtype new_elt=fd_quasiquote(elt,env,level);
-        if (FD_ABORTP(new_elt)) {
+        if (FD_ABORTED(new_elt)) {
           int k=0; while (k<j) {fd_decref(newelts[k]); k++;}
           u8_free(newelts);
           return new_elt;}
@@ -239,7 +239,7 @@ static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
     if ((FD_PAIRP(value))||(FD_VECTORP(value))||(FD_SLOTMAPP(value))||
         (FD_CHOICEP(value))||(FD_ACHOICEP(value))) {
       fdtype qval=fd_quasiquote(value,env,level);
-      if (FD_ABORTP(qval)) {
+      if (FD_ABORTED(qval)) {
         fd_decref(result); return qval;}
       fd_slotmap_store(new_slotmap,slotid,qval);
       fd_decref(qval); i++;}
@@ -254,7 +254,7 @@ static fdtype quasiquote_choice(fdtype obj,fd_lispenv env,int level)
   fdtype result=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(elt,obj) {
     fdtype transformed=fd_quasiquote(elt,env,level);
-    if (FD_ABORTP(transformed)) {
+    if (FD_ABORTED(transformed)) {
       FD_STOP_DO_CHOICES; fd_decref(result);
       return transformed;}
     FD_ADD_TO_CHOICE(result,transformed);}
@@ -264,14 +264,14 @@ static fdtype quasiquote_choice(fdtype obj,fd_lispenv env,int level)
 FD_EXPORT
 fdtype fd_quasiquote(fdtype obj,fd_lispenv env,int level)
 {
-  if (FD_ABORTP(obj)) return obj;
+  if (FD_ABORTED(obj)) return obj;
   else if (FD_PAIRP(obj))
     if (FD_BAD_UNQUOTEP(obj))
       return fd_err(fd_SyntaxError,"malformed UNQUOTE",NULL,obj);
     else if (FD_EQ(FD_CAR(obj),quasiquote))
       if (FD_PAIRP(FD_CDR(obj))) {
         fdtype embed=fd_quasiquote(FD_CADR(obj),env,level+1);
-        if (FD_ABORTP(embed)) return embed;
+        if (FD_ABORTED(embed)) return embed;
         else return fd_make_list(2,quasiquote,embed);}
       else return fd_err(fd_SyntaxError,"malformed QUASIQUOTE",NULL,obj);
     else if (FD_EQ(FD_CAR(obj),unquote))
@@ -279,7 +279,7 @@ fdtype fd_quasiquote(fdtype obj,fd_lispenv env,int level)
         return fd_eval(FD_CAR(FD_CDR(obj)),env);
       else {
         fdtype embed=fd_quasiquote(FD_CADR(obj),env,level-1);
-        if (FD_ABORTP(embed)) return embed;
+        if (FD_ABORTED(embed)) return embed;
         else return fd_make_list(2,unquote,embed);}
     else if (FD_EQ(FD_CAR(obj),unquotestar))
       return fd_err(fd_SyntaxError,"UNQUOTE* (,@) in wrong context",
@@ -299,7 +299,7 @@ static fdtype quasiquote_handler(fdtype obj,fd_lispenv env)
   if ((FD_PAIRP(FD_CDR(obj))) &&
       (FD_EMPTY_LISTP(FD_CDR(FD_CDR(obj))))) {
     fdtype result=fd_quasiquote(FD_CAR(FD_CDR(obj)),env,1);
-    if (FD_ABORTP(result))
+    if (FD_ABORTED(result))
       return result;
     else return result;}
   else return fd_err(fd_SyntaxError,"QUASIQUOTE",NULL,obj);

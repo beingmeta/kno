@@ -578,7 +578,7 @@ FD_EXPORT fdtype fd_mapseq(int n,fdtype *args)
         if ((intval<0) || (intval>=0x100))
           result_type=fd_vector_type;}
       else result_type=fd_vector_type;}
-    if (FD_ABORTP(new_elt)) {
+    if (FD_ABORTED(new_elt)) {
       int j=0; while (j<i) {fd_decref(results[j]); j++;}
       u8_free(results);
       return new_elt;}
@@ -636,7 +636,7 @@ FD_EXPORT fdtype fd_foreach(int n,fdtype *args)
         if ((intval<0) || (intval>=0x100))
           result_type=fd_vector_type;}
       else result_type=fd_vector_type;}
-    if (FD_ABORTP(new_elt)) return new_elt;
+    if (FD_ABORTED(new_elt)) return new_elt;
     else {fd_decref(new_elt); i++;}}
   return FD_VOID;
 }
@@ -670,7 +670,7 @@ FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
           if ((intval<0) || (intval>=0x100))
             result_type=fd_vector_type;}
         else result_type=fd_vector_type;}
-      if (FD_ABORTP(new_elt)) {
+      if (FD_ABORTED(new_elt)) {
         int j=0; while (j<i) {fd_decref(results[j]); j++;}
         u8_free(results);
         return new_elt;}
@@ -949,7 +949,7 @@ static fdtype slice_prim(fdtype x,fdtype start_arg,fdtype end_arg)
 {
   int start, end; char buf[32];
   fdtype result=check_range("slice_prim",x,start_arg,end_arg,&start,&end);
-  if (FD_ABORTP(result)) return result;
+  if (FD_ABORTED(result)) return result;
   else result=fd_slice(x,start,end);
   if (result == FD_TYPE_ERROR)
     return fd_type_error(_("sequence"),"slice_prim",x);
@@ -963,7 +963,7 @@ static fdtype position_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 {
   int result, start, end; char buf[32];
   fdtype check=check_range("position_prim",x,start_arg,end_arg,&start,&end);
-  if (FD_ABORTP(check)) return check;
+  if (FD_ABORTED(check)) return check;
   else result=fd_position(key,x,start,end);
   if (result>=0) return FD_INT(result);
   else if (result == -1) return FD_FALSE;
@@ -979,7 +979,7 @@ static fdtype rposition_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg
 {
   int result, start, end; char buf[32];
   fdtype check=check_range("rposition_prim",x,start_arg,end_arg,&start,&end);
-  if (FD_ABORTP(check)) return check;
+  if (FD_ABORTED(check)) return check;
   else result=fd_rposition(key,x,start,end);
   if (result>=0) return FD_INT(result);
   else if (result == -1) return FD_FALSE;
@@ -995,7 +995,7 @@ static fdtype find_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 {
   int result, start, end; char buf[32];
   fdtype check=check_range("find_prim",x,start_arg,end_arg,&start,&end);
-  if (FD_ABORTP(check)) return check;
+  if (FD_ABORTED(check)) return check;
   else result=fd_position(key,x,start,end);
   if (result>=0) return FD_TRUE;
   else if (result == -1) return FD_FALSE;
@@ -1011,7 +1011,7 @@ static fdtype search_prim(fdtype key,fdtype x,fdtype start_arg,fdtype end_arg)
 {
   int result, start, end; char buf[32];
   fdtype check=check_range("search_prim",x,start_arg,end_arg,&start,&end);
-  if (FD_ABORTP(check)) return check;
+  if (FD_ABORTED(check)) return check;
   else result=fd_search(key,x,start,end);
   if (result>=0) return FD_INT(result);
   else if (result == -1) return FD_FALSE;
@@ -1027,7 +1027,7 @@ static fdtype every_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
 {
   int start, end;
   fdtype check=check_range("every_prim",x,start_arg,end_arg,&start,&end);
-  if (FD_ABORTP(check)) return check;
+  if (FD_ABORTED(check)) return check;
   else if (!(FD_APPLICABLEP(proc)))
     return fd_type_error(_("function"),"every_prim",x);
   else if (FD_STRINGP(x)) {
@@ -1039,7 +1039,7 @@ static fdtype every_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
         fdtype lc=FD_CODE2CHAR(c);
         fdtype testval=fd_apply(proc,1,&lc);
         if (FD_FALSEP(testval)) return FD_FALSE;
-        else if (FD_ABORTP(testval)) return testval;
+        else if (FD_ABORTED(testval)) return testval;
         else {
           fd_decref(testval); i++;}}
       else return FD_TRUE;}
@@ -1048,7 +1048,7 @@ static fdtype every_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
     int i=start; while (i<end) {
       fdtype elt=fd_seq_elt(x,i);
       fdtype testval=fd_apply(proc,1,&elt);
-      if (FD_ABORTP(testval)) {
+      if (FD_ABORTED(testval)) {
         fd_decref(elt); return testval;}
       else if (FD_FALSEP(testval)) {
         fd_decref(elt); return FD_FALSE;}
@@ -1061,7 +1061,7 @@ static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
 {
   int start, end;
   fdtype check=check_range("some_prim",x,start_arg,end_arg,&start,&end);
-  if (FD_ABORTP(check)) return check;
+  if (FD_ABORTED(check)) return check;
   else if (!(FD_APPLICABLEP(proc)))
     return fd_type_error(_("function"),"some_prim",x);
   else if (FD_STRINGP(x)) {
@@ -1072,7 +1072,7 @@ static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
       else if (i< end) {
         fdtype lc=FD_CODE2CHAR(c);
         fdtype testval=fd_apply(proc,1,&lc);
-        if (FD_ABORTP(testval)) return testval;
+        if (FD_ABORTED(testval)) return testval;
         else if (FD_FALSEP(testval)) i++;
         else {
           fd_decref(testval); return FD_TRUE;}}
@@ -1082,7 +1082,7 @@ static fdtype some_prim(fdtype proc,fdtype x,fdtype start_arg,fdtype end_arg)
     int i=start; while (i<end) {
       fdtype elt=fd_seq_elt(x,i);
       fdtype testval=fd_apply(proc,1,&elt);
-      if (FD_ABORTP(testval)) {
+      if (FD_ABORTED(testval)) {
         fd_decref(elt); return testval;}
       else if ((FD_FALSEP(testval)) || (FD_EMPTY_CHOICEP(testval))) {
         fd_decref(elt); i++;}
@@ -1099,7 +1099,7 @@ static fdtype removeif_prim(fdtype test,fdtype sequence)
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(seq,sequence) {
       fdtype r=fd_removeif(test,seq,0);
-      if (FD_ABORTP(r)) {
+      if (FD_ABORTED(r)) {
         fd_decref(results); return r;}
       FD_ADD_TO_CHOICE(results,r);}
     return results;}
@@ -1113,7 +1113,7 @@ static fdtype removeifnot_prim(fdtype test,fdtype sequence)
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(seq,sequence) {
       fdtype r=fd_removeif(test,seq,1);
-      if (FD_ABORTP(r)) {
+      if (FD_ABORTED(r)) {
         fd_decref(results); return r;}
       FD_ADD_TO_CHOICE(results,r);}
     return results;}
@@ -1549,7 +1549,7 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
   fdtype check=check_range("elts_prim",x,start_arg,end_arg,&start,&end);
   fdtype results=FD_EMPTY_CHOICE;
   int ctype=FD_PTR_TYPE(x);
-  if (FD_ABORTP(check)) return check;
+  if (FD_ABORTED(check)) return check;
   else switch (ctype) {
     case fd_vector_type: case fd_rail_type: {
       fdtype *read, *limit;
@@ -1670,7 +1670,7 @@ static fdtype sortvec_primfn(fdtype vec,fdtype keyfn,int reverse,int lexsort)
     while (i<n) {
       fdtype elt=FD_VECTOR_REF(vec,i);
       fdtype value=_fd_apply_keyfn(elt,keyfn);
-      if (FD_ABORTP(value)) {
+      if (FD_ABORTED(value)) {
         int j=0; while (j<i) {fd_decref(sentries[j].value); j++;}
         u8_free(sentries); u8_free(vecdata);
         return value;}

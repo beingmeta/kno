@@ -566,7 +566,7 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
 static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
                           int static_args)
 {
-  if (FD_EXPECT_FALSE(u8_current_exception!=NULL)) {
+  if (FD_INTERRUPTED()) {
     return FD_ERROR_VALUE;}
   else if (FD_EXPECT_FALSE((f->xprim) &&  (f->handler.fnptr==NULL))) {
     int ctype=FD_CONS_TYPE(f);

@@ -1180,7 +1180,7 @@ static fdtype textif_handler(fdtype expr,fd_lispenv env)
   if (FD_VOIDP(test_expr))
     return fd_err(fd_SyntaxError,"textif_handler",NULL,FD_VOID);
   else test_val=fd_eval(test_expr,env);
-  if (FD_ABORTP(test_val)) return test_val;
+  if (FD_ABORTED(test_val)) return test_val;
   else if ((FD_FALSEP(test_val))||(FD_EMPTY_CHOICEP(test_val)))
     return fd_make_string(NULL,0,"");
   else {
@@ -1200,7 +1200,7 @@ static fdtype textif_handler(fdtype expr,fd_lispenv env)
       if (FD_PAIRP(body)) {
         FD_DOLIST(text_expr,body) {
           fdtype text=fd_eval(text_expr,env);
-          if (FD_ABORTP(text))
+          if (FD_ABORTED(text))
             return fd_err("Bad text clause","textif_handler",
                           out.u8_outbuf,text_expr);
           else if (FD_STRINGP(text))
@@ -1211,7 +1211,7 @@ static fdtype textif_handler(fdtype expr,fd_lispenv env)
         int i=0; while (i<len) {
           fdtype text_expr=fd_get_arg(body,i++);
           fdtype text=fd_eval(text_expr,env);
-          if (FD_ABORTP(text))
+          if (FD_ABORTED(text))
             return fd_err("Bad text clause","textif_handler",
                           out.u8_outbuf,text_expr);
           else if (FD_STRINGP(text))

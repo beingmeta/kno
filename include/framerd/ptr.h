@@ -425,6 +425,9 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
     (FD_GET_IMMEDIATE(x,fd_constant_type)<15)))
 #define FD_COOLP(x) (!(FD_TROUBLEP(x)))
 
+#define FD_ABORTED(x) (FD_EXPECT_FALSE(FD_ABORTP(x)))
+#define FD_INTERRUPTED() (FD_EXPECT_FALSE(u8_current_exception!=(NULL)))
+
 #define FDTYPE_CONSTANTP(x) \
   ((FD_IMMEDIATEP(x)) && ((FD_IMMEDIATE_TYPE(x))==0))
 

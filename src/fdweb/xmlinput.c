@@ -915,7 +915,10 @@ void *fd_walk_xml(U8_INPUT *in,
   u8_byte *buf=u8_malloc(1024); const u8_byte *rbuf;
   while (1) {
     fd_xmlelt_type type;
-    if ((rbuf=readbuf(in,&buf,&bufsize,&size,"<"))==NULL) {
+    if (FD_INTERRUPTED()) {
+      u8_free(buf);
+      return NULL;}
+    else if ((rbuf=readbuf(in,&buf,&bufsize,&size,"<"))==NULL) {
       if (contentfn)
         contentfn(node,in->u8_inptr,in->u8_inlim-in->u8_inptr);
       break;}

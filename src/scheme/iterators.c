@@ -53,10 +53,10 @@ static fdtype while_handler(fdtype expr,fd_lispenv env)
               (testeval(test_expr,env,&result))) {
       FD_DOBODY(iter_expr,expr,2) {
         fdtype val=fasteval(iter_expr,env);
-        if (FD_ABORTP(val))
+        if (FD_ABORTED(val))
           return val;
         fd_decref(val);}}
-  if (FD_ABORTP(result))
+  if (FD_ABORTED(result))
     return result;
   else return FD_VOID;
 }
@@ -71,9 +71,9 @@ static fdtype until_handler(fdtype expr,fd_lispenv env)
               (!(testeval(test_expr,env,&result)))) {
       FD_DOBODY(iter_expr,expr,2) {
         fdtype val=fasteval(iter_expr,env);
-        if (FD_ABORTP(val)) return val;
+        if (FD_ABORTED(val)) return val;
         else fd_decref(val);}}
-  if (FD_ABORTP(result))
+  if (FD_ABORTED(result))
     return result;
   else return FD_VOID;
 }
@@ -100,7 +100,7 @@ static fdtype parse_control_spec
       return fd_err(fd_SyntaxError,
                     _("identifier is not a symbol"),NULL,control_expr);
     val=fasteval(val_expr,env);
-    if (FD_ABORTP(val)) return val;
+    if (FD_ABORTED(val)) return val;
     *value=val; if (count_var) *count_var=ivar;
     return var;}
 }
@@ -114,7 +114,7 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
-  if (FD_ABORTP(var)) return var;
+  if (FD_ABORTED(var)) return var;
   else if (!(FD_FIXNUMP(limit_val)))
     return fd_type_error("fixnum","dotimes_handler",limit_val);
   else limit=FD_FIX2INT(limit_val);
@@ -136,7 +136,7 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
           fd_decref(vals[0]);
           fd_destroy_rwlock(&(bindings.rwlock));
           return val;}
-        else if (FD_ABORTP(val)) {
+        else if (FD_ABORTED(val)) {
           fd_push_error_context(":DOTIMES",iterenv1(limit_val,var,FD_INT(i)));
           if (envstruct.copy) fd_recycle_environment(envstruct.copy);
           fd_decref(vals[0]);
@@ -164,7 +164,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
   fdtype vars[2], vals[2], pairscan=FD_VOID;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
-  if (FD_ABORTP(var)) return var;
+  if (FD_ABORTED(var)) return var;
   else if (FD_EMPTY_CHOICEP(seq)) return FD_VOID;
   else if (!(FD_SEQUENCEP(seq)))
     return fd_type_error("sequence","doseq_handler",seq);
@@ -196,7 +196,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
           fd_decref(vals[0]); fd_decref(seq);
           fd_destroy_rwlock(&(bindings.rwlock));
           return val;}
-        else if (FD_ABORTP(val)) {
+        else if (FD_ABORTED(val)) {
           fdtype errbind;
           if (iterval) errbind=iterenv1(seq,var,elt);
           else errbind=iterenv2(seq,var,elt,count_var,FD_INT(i));
@@ -228,7 +228,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
   fdtype vars[2], vals[2], pairscan=FD_VOID;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
-  if (FD_ABORTP(var)) return var;
+  if (FD_ABORTED(var)) return var;
   else if (FD_EMPTY_CHOICEP(seq)) return FD_EMPTY_CHOICE;
   else if (FD_EMPTY_LISTP(seq)) return seq;
   else if (!(FD_SEQUENCEP(seq)))
@@ -262,7 +262,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
           fd_destroy_rwlock(&(bindings.rwlock));
           fd_decref(vals[0]); fd_decref(seq);
           return val;}
-        else if (FD_ABORTP(val)) {
+        else if (FD_ABORTED(val)) {
           fdtype errbind;
           if (iterval) errbind=iterenv1(seq,var,elt);
           else errbind=iterenv2(seq,var,elt,count_var,FD_INT(i));
@@ -297,7 +297,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
   fdtype vars[2], vals[2], pairscan=FD_VOID;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
-  if (FD_ABORTP(var)) return var;
+  if (FD_ABORTED(var)) return var;
   else if (FD_EMPTY_CHOICEP(seq)) return FD_EMPTY_CHOICE;
   else if (!(FD_SEQUENCEP(seq)))
     return fd_type_error("sequence","try_handler",seq);
@@ -335,7 +335,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
           fd_destroy_rwlock(&(bindings.rwlock));
           fd_decref(elt); fd_decref(seq);
           return val;}
-        else if (FD_ABORTP(val)) {
+        else if (FD_ABORTED(val)) {
           fdtype errbind;
           if (iterval) errbind=iterenv1(seq,var,elt);
           else errbind=iterenv2(seq,var,elt,count_var,FD_INT(i));
@@ -366,7 +366,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
   fdtype *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
-  if (FD_ABORTP(var)) return var;
+  if (FD_ABORTED(var)) return var;
   else if (FD_EMPTY_LISTP(list)) return FD_VOID;
   else if (!(FD_PAIRP(list)))
     return fd_type_error("list","dolist_handler",list);
@@ -396,7 +396,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
             fd_decref(list); fd_decref(*vloc);
             fd_destroy_rwlock(&(bindings.rwlock));
             return val;}
-          else if (FD_ABORTP(val)) {
+          else if (FD_ABORTED(val)) {
             fdtype errenv;
             if (iloc) errenv=iterenv2(list,var,elt,count_var,FD_INT(i));
             else errenv=iterenv1(list,var,elt);
@@ -428,12 +428,12 @@ static fdtype prog1_handler(fdtype prog1_expr,fd_lispenv env)
 {
   fdtype arg1=fd_get_arg(prog1_expr,1);
   fdtype results=fd_eval(arg1,env);
-  if (FD_ABORTP(results))
+  if (FD_ABORTED(results))
     return results;
   else {
     FD_DOBODY(subexpr,prog1_expr,2) {
       fdtype tmp=fd_eval(subexpr,env);
-      if (FD_ABORTP(tmp)) {
+      if (FD_ABORTED(tmp)) {
         fd_decref(results);
         return tmp;}
       fd_decref(tmp);}
@@ -454,7 +454,7 @@ static int ipeval_step(struct IPEVAL_STRUCT *s)
 {
   fdtype value=fd_eval(s->expr,s->env);
   fd_decref(s->value); s->value=value;
-  if (FD_ABORTP(value))
+  if (FD_ABORTED(value))
     return -1;
   else return 1;
 }

@@ -29,7 +29,7 @@ static fdtype parse_control_spec
     return fd_err(fd_TooFewExpressions,NULL,NULL,expr);
   else if (FD_SYMBOLP(control_expr)) {
     fdtype values=fd_eval(control_expr,env);
-    if (FD_ABORTP(values)) {
+    if (FD_ABORTED(values)) {
       *value=FD_VOID; return values;}
     *value=values; *iter_var=FD_VOID;
     return control_expr;}
@@ -47,7 +47,7 @@ static fdtype parse_control_spec
       return fd_err(fd_SyntaxError,
                     _("identifier is not a symbol"),NULL,control_expr);
     val=fasteval(val_expr,env);
-    if (FD_ABORTP(val)) {
+    if (FD_ABORTED(val)) {
       *value=val;
       return FD_VOID;}
     *value=val; if (iter_var) *iter_var=ivar;
@@ -79,11 +79,11 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
   fdtype *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
-  if (FD_ABORTP(var)) return var;
-  else if (FD_ABORTP(choices))
+  if (FD_ABORTED(var)) return var;
+  else if (FD_ABORTED(choices))
     return choices;
   else if (FD_EMPTY_CHOICEP(choices)) return FD_VOID;
-  else if (FD_ABORTP(choices)) return choices;
+  else if (FD_ABORTED(choices)) return choices;
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   if (FD_VOIDP(count_var)) {
@@ -115,7 +115,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
           fd_decref(choices);
           if (envstruct.copy) fd_recycle_environment(envstruct.copy);
           return val;}
-        else if (FD_ABORTP(val)) {
+        else if (FD_ABORTED(val)) {
           fdtype env;
           if (iloc) env=retenv2(var,elt,count_var,FD_INT(i));
           else env=retenv1(var,elt);
@@ -148,8 +148,8 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
   fdtype *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
-  if (FD_ABORTP(var)) return var;
-  else if (FD_ABORTP(choices)) {
+  if (FD_ABORTED(var)) return var;
+  else if (FD_ABORTED(choices)) {
     fd_push_error_context("trychoices_handler",expr);
     return choices;}
   else if (FD_EMPTY_CHOICEP(choices)) return FD_EMPTY_CHOICE;
@@ -184,7 +184,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
             fd_decref(choices);
             if (envstruct.copy) fd_recycle_environment(envstruct.copy);
             return val;}
-          else if (FD_ABORTP(val)) {
+          else if (FD_ABORTED(val)) {
             fdtype env;
             if (iloc) env=retenv2(var,elt,count_var,FD_INT(i));
             else env=retenv1(var,elt);
@@ -218,8 +218,8 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
   fdtype *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
-  if (FD_ABORTP(var)) return var;
-  else if (FD_ABORTP(choices))
+  if (FD_ABORTED(var)) return var;
+  else if (FD_ABORTED(choices))
     return choices;
   else if (FD_EMPTY_CHOICEP(choices))
     return FD_EMPTY_CHOICE;
@@ -256,7 +256,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
           fd_decref(results);
           FD_STOP_DO_CHOICES;
           return val;}
-        else if (FD_ABORTP(val)) {
+        else if (FD_ABORTED(val)) {
           fdtype env;
           if (iloc) env=retenv2(var,elt,count_var,FD_INT(i));
           else env=retenv1(var,elt);
@@ -291,9 +291,9 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
   fdtype test_expr=fd_get_arg(expr,2), *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2];
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
-  if (FD_ABORTP(choices))
+  if (FD_ABORTED(choices))
     return choices;
-  else if (FD_ABORTP(var)) return var;
+  else if (FD_ABORTED(var)) return var;
   else if (FD_EMPTY_CHOICEP(choices))
     return FD_EMPTY_CHOICE;
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
@@ -327,7 +327,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
         fd_decref(results);
         if (envstruct.copy) fd_recycle_environment(envstruct.copy);
         return val;}
-      else if (FD_ABORTP(val)) {
+      else if (FD_ABORTED(val)) {
         fdtype env;
         if (iloc) env=retenv2(var,elt,count_var,FD_INT(i));
         else env=retenv1(var,elt);
@@ -374,12 +374,12 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
   if (!((FD_VOIDP(count_var)) || (FD_SYMBOLP(count_var))))
     return fd_err(fd_SyntaxError,"dosubsets_handler",NULL,FD_VOID);
   bsize=fd_eval(FD_CADR(FD_CDR(control_spec)),env);
-  if (FD_ABORTP(bsize)) return bsize;
+  if (FD_ABORTED(bsize)) return bsize;
   else if (!(FD_FIXNUMP(bsize)))
     return fd_type_error("fixnum","dosubsets_handler",bsize);
   else blocksize=FD_FIX2INT(bsize);
   choices=fd_eval(FD_CADR(control_spec),env);
-  if (FD_ABORTP(choices)) return choices;
+  if (FD_ABORTED(choices)) return choices;
   else {FD_SIMPLIFY_CHOICE(choices);}
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
@@ -431,7 +431,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
           fd_decref(choices);
           if (envstruct.copy) fd_recycle_environment(envstruct.copy);
           if (free_v) fd_decref(v);}
-        else if (FD_ABORTP(val)) {
+        else if (FD_ABORTED(val)) {
           fdtype env;
           if (iloc) env=retenv2(var,v,count_var,FD_INT(i));
           else env=retenv1(var,v);
@@ -510,7 +510,7 @@ static fdtype smallest_handler(fdtype elts,fdtype magnitude)
   fdtype top=FD_EMPTY_CHOICE, top_score=FD_VOID;
   FD_DO_CHOICES(elt,elts) {
     fdtype score=getmagnitude(elt,magnitude);
-    if (FD_ABORTP(score)) return score;
+    if (FD_ABORTED(score)) return score;
     else if (FD_VOIDP(top_score))
       if (FD_EMPTY_CHOICEP(score)) {}
       else {
@@ -537,7 +537,7 @@ static fdtype largest_handler(fdtype elts,fdtype magnitude)
   fdtype top=FD_EMPTY_CHOICE, top_score=FD_VOID;
   FD_DO_CHOICES(elt,elts) {
     fdtype score=getmagnitude(elt,magnitude);
-    if (FD_ABORTP(score)) return score;
+    if (FD_ABORTED(score)) return score;
     else if (FD_VOIDP(top_score))
       if (FD_EMPTY_CHOICEP(score)) {}
       else {
@@ -610,7 +610,7 @@ static fdtype try_handler(fdtype expr,fd_lispenv env)
     int ipe_state=fd_ipeval_status();
     fd_decref(value);
     value=fd_eval(clause,env);
-    if (FD_ABORTP(value)) {
+    if (FD_ABORTED(value)) {
       fd_incref(clause); fd_push_error_context("TRY",clause);
       fd_incref(expr); fd_push_error_context("TRY",expr);
       return value;}
@@ -634,7 +634,7 @@ static fdtype ifexists_handler(fdtype expr,fd_lispenv env)
   else if (!(FD_EMPTY_LISTP(FD_CDR(FD_CDR(expr)))))
     return fd_err(fd_SyntaxError,"ifexists_handler",NULL,expr);
   else value=fd_eval(value_expr,env);
-  if (FD_ABORTP(value)) {
+  if (FD_ABORTED(value)) {
     fd_incref(expr); fd_push_error_context("ifexists_handler",expr);
     return value;}
   if (FD_EMPTY_CHOICEP(value)) return FD_VOID;
@@ -754,7 +754,7 @@ static int test_exists(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype
     fdtype val=fd_finish_call(fd_dapply((fdtype)fn,n,d_args));
     if ((FD_FALSEP(val)) || (FD_EMPTY_CHOICEP(val))) {
       return 0;}
-    else if (FD_ABORTP(val)) {
+    else if (FD_ABORTED(val)) {
       return fd_interr(val);}
     fd_decref(val);
     return 1;}
@@ -813,7 +813,7 @@ static int test_forall(struct FD_FUNCTION *fn,int i,int n,fdtype *nd_args,fdtype
       return 0;
     else if (FD_EMPTY_CHOICEP(val))
       return 1;
-    else if (FD_ABORTP(val)) {
+    else if (FD_ABORTED(val)) {
       return fd_interr(val);}
     fd_decref(val);
     return 1;}
@@ -893,7 +893,7 @@ static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start,fdtype part)
     fdtype state=fd_incref(start);
     FD_DO_CHOICES(each,choice) {
       fdtype items=get_part(each,part);
-      if (FD_ABORTP(items)) {
+      if (FD_ABORTED(items)) {
         FD_STOP_DO_CHOICES;
         fd_decref(state);
         return items;}
@@ -904,7 +904,7 @@ static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start,fdtype part)
           fdtype rail[2], next_state;
           rail[0]=item; rail[1]=state;
           next_state=fd_apply(fn,2,rail);
-          if (FD_ABORTP(next_state)) {
+          if (FD_ABORTED(next_state)) {
             fd_decref(state); fd_decref(items);
             FD_STOP_DO_CHOICES;
             return next_state;}
@@ -914,7 +914,7 @@ static fdtype reduce_choice(fdtype fn,fdtype choice,fdtype start,fdtype part)
         fdtype rail[2], next_state;
         rail[0]=item; rail[1]=state;
         next_state=fd_apply(fn,2,rail);
-        if (FD_ABORTP(next_state)) {
+        if (FD_ABORTED(next_state)) {
           fd_decref(state); fd_decref(items);
           FD_STOP_DO_CHOICES;
           return next_state;}
@@ -944,7 +944,7 @@ static fdtype xreduce_choice
     fdtype result=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(rfn,reducefn) {
       fdtype v=xreduce_choice(choice,rfn,mapfn,start);
-      if (FD_ABORTP(v)) {
+      if (FD_ABORTED(v)) {
         fd_decref(result); FD_STOP_DO_CHOICES;
         return result;}
       else {FD_ADD_TO_CHOICE(result,v);}}
@@ -953,7 +953,7 @@ static fdtype xreduce_choice
     fdtype result=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(mfn,mapfn) {
       fdtype v=xreduce_choice(choice,reducefn,mfn,start);
-      if (FD_ABORTP(v)) {
+      if (FD_ABORTED(v)) {
         fd_decref(result); FD_STOP_DO_CHOICES;
         return result;}
       else {FD_ADD_TO_CHOICE(result,v);}}
@@ -961,7 +961,7 @@ static fdtype xreduce_choice
   else if (FD_APPLICABLEP(reducefn)) {
     fdtype state=((FD_VOIDP(start))?(start):(apply_map(mapfn,start)));
     FD_DO_CHOICES(item,choice)
-      if (FD_ABORTP(state)) {
+      if (FD_ABORTED(state)) {
         FD_STOP_DO_CHOICES;
         return state;}
       else if (FD_VOIDP(state))
@@ -1063,7 +1063,7 @@ static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse,int lexsort)
     struct FD_SORT_ENTRY *sentries=u8_alloc_n(n,struct FD_SORT_ENTRY);
     FD_DO_CHOICES(elt,choices) {
       fdtype value=_fd_apply_keyfn(elt,keyfn);
-      if (FD_ABORTP(value)) {
+      if (FD_ABORTED(value)) {
         int j=0; while (j<i) {fd_decref(sentries[j].value); j++;}
         u8_free(sentries); u8_free(vecdata);
         return value;}
