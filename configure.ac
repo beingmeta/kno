@@ -160,7 +160,6 @@ heaptest_prefix=builtin_
 use_duma_lib="no"
 custom_malloc=""
 static_libgcc="no"
-as_needed_flag="no"
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/framerd/fdsource.h include/framerd/config.h)
@@ -627,13 +626,9 @@ case $host_os in
 esac  
 
 AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
-AX_CHECK_LINK_FLAG("--as-needed",as_needed_flag="yes")
 
 if test "x${static_libgcc}" == "xyes"; then
-   LDFLAGS="-static-libgcc ${LDFLAGS}"
-fi
-if test "x${as_needed_flag}" == "xyes"; then
-   LDFLAGS="-Wl,--as-needed ${LDFLAGS}"
+   LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
 fi
 
 dnl For specifying default -arch flags for OSX
