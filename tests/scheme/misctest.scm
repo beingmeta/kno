@@ -267,11 +267,11 @@
    (if (procedure? x) (get-expr-atoms (procedure-body x))
        (get-expr-atoms x)))
 
-(define-tester (leaker x)
+(define (leaker x)
   (let* ((atoms (get-atoms x))
          (pnames (symbol->string (pick atoms symbol?)))
          (pnamelist (sorted pnames)))
-     (map (lambda (x) (length x)) pnamelist)))
+    (map (lambda (x) (length x)) pnamelist)))
 
 (applytest #(5 9 6 6 4 3 4 9 6 6 14 7 1) leaker leaker)
 
