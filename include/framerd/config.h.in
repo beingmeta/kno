@@ -90,18 +90,6 @@
 /* Define if you have <signal.h> */
 #undef HAVE_SIGNAL_H
 
-/* Define if you have <netinet/in.h> */
-#undef HAVE_NETINET_IN_H
-
-/* Define if you have <arpa/nameser.h> */
-#undef HAVE_ARPA_NAMESER_H
-
-/* Define if you have <resolv.h> */
-#undef HAVE_RESOLV_H
-
-/* Define if you have res_query() */
-#undef HAVE_RES_QUERY
-
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
 #undef WORDS_BIGENDIAN

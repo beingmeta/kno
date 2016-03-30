@@ -25,8 +25,6 @@
 
 static int fdweb_init_done=0;
 
-FD_EXPORT void fd_init_dnsreq_c(void);
-
 FD_EXPORT void fd_init_fdweb()
 {
   if (fdweb_init_done) return;
@@ -42,7 +40,6 @@ FD_EXPORT void fd_init_fdweb()
     fd_init_mime_c();
     fd_init_email_c();
     fd_init_xmleval_c();
-    fd_init_dnsreq_c();
     fd_init_cgiexec_c();
     fd_init_urifns_c();
     fd_init_json_c();
