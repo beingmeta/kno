@@ -1417,7 +1417,7 @@ static fdtype raw_pool_get(fdtype arg,fdtype key,fdtype dflt)
       return fd_incref(dflt);
     else {
       unsigned int offset=FD_OID_DIFFERENCE(addr,base);
-      unsigned int load=fd_pool_load(p);
+      int load=fd_pool_load(p);
       if (load<0) return FD_ERROR_VALUE;
       else if (offset<load)
         return fd_fetch_oid(p,key);
@@ -1430,7 +1430,7 @@ static fdtype raw_pool_keys(fdtype arg)
   fdtype results=FD_EMPTY_CHOICE;
   fd_pool p=(fd_pool)arg;
   FD_OID base=p->base;
-  unsigned int i=0, load=fd_pool_load(p);
+  unsigned int i=0; int load=fd_pool_load(p);
   if (load<0) return FD_ERROR_VALUE;
   while (i<load) {
     fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
