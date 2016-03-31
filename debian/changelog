@@ -1,3 +1,11 @@
+framerd (3.9.1-5) unstable; urgency=medium
+
+  * Improve error capture and handling including interrupts
+  * Add fdstatus and fdlog commands
+  * git patch version framerd-3.9
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 31 Mar 2016 07:01:55 -0400
+
 framerd (3.9.0-4) unstable; urgency=medium
 
   * Fix build flags to remove needless dependencies
