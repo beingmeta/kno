@@ -1,3 +1,10 @@
+framerd (3.9.1-6) unstable; urgency=medium
+
+  * Repackage for alternate libmagickwand under xenial
+  * git patch version framerd-3.9.1-9-gad2c5fc
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 29 Apr 2016 13:16:58 -0400
+
 framerd (3.9.1-5) unstable; urgency=medium
 
   * Improve error capture and handling including interrupts
