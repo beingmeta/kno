@@ -49,7 +49,7 @@ Description: MongoDB interface for FramerD
 
 Package: framerd-imagetools
 Architecture: any
-Depends: framerd (= ${binary:Version}), libexif12, libmagickwand5, libqrencode3
+Depends: framerd (= ${binary:Version}), libexif12, libmagickwand (>= 5), libqrencode3
 Description: Image tools for FramerD
   Bindings to various image libraries modules for FramerD,
   including ImageMagick, QRCode generation, and EXIF extraction.
