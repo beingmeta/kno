@@ -31,6 +31,9 @@
 (defslambda (codewarning warning)
   (threadset! 'codewarnings (choice warning (threadget 'codewarnings))))
 
+(define (module? arg)
+  (and (table? arg) (not (environment? arg))))
+
 (define opcodeopt-config
   (slambda (var (val 'unbound))
     (cond ((eq? val 'unbound) useopcodes)
@@ -195,7 +198,7 @@
 	   (if lexref (if lexrefs lexref expr)
 	       (let ((module (wherefrom expr env)))
 		 (debug%watch "DOTIGHTEN/SYMBOL/module" expr module env bound)
-		 (when (and module (table? env))
+		 (when (and module (module? env))
 		   (add! env '%free_vars expr)
 		   (when (and module (table? module))
 		     (add! env '%used_modules
@@ -243,7 +246,7 @@
 		     (from (and (symbol? head)
 				(not (get-lexref head bound 0))
 				(wherefrom head env))))
-		(when (and from (table? env))
+		(when (and from (module? env))
 		  (add! env '%free_vars expr)
 		  (when (and from (table? from))
 		    (add! env '%used_modules
