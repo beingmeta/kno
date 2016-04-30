@@ -1,3 +1,10 @@
+framerd (3.9.1-7) unstable; urgency=low
+
+  * Fix bug in optimize code
+  * git patch version framerd-3.9.1-12-g99c9b27
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 30 Apr 2016 22:51:01 +0000
+
 framerd (3.9.1-6) unstable; urgency=medium
 
   * Repackage for alternate libmagickwand under xenial
