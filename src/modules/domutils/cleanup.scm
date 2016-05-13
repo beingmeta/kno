@@ -146,7 +146,7 @@
 	      (do ((scan content (cdr scan)))
 		  ((or (null? scan)
 		       (not (if (string? (car scan))
-				(empty-string? (car scan))
+				(empty-string? (car scan) #f #t)
 				(test (car scan) '%xmltag 'br))))
 		   (mergebreaks scan (cons (car content) output))))
 	      (mergebreaks (cdr content) (cons (car content) output))))))
@@ -324,7 +324,8 @@
   node)
 
 (define (empty-child? x)
-  (if (string? x) (empty-string? x)
+  (if (string? x) 
+      (empty-string? x #f #t)
       (or (test x '%xmltag 'br)
 	  (and (test x '%content)
 	       (null? (get x '%content))
@@ -333,7 +334,7 @@
 ;;; Text cleanup functions
 
 (define (mergelines string)
-  (if (empty-string? string)
+  (if (empty-string? string #f #t)
       (if (position #\newline string) "\n" " ")
       (textsubst string #("\n" (+ #((spaces*) "\n"))) "\n\n")))
 
@@ -365,11 +366,12 @@
 
 ;;; Identifying empty nodes
 
-(define (empty-text? x)
-  (and (string? x) (empty-string? (decode-entities x))))
+(define (empty-text? x (dx))
+  (and (string? x) 
+       (empty-string? (decode-entities x) #f #t)))
 
 (define (empty-node? x)
-  (or (and (string? x) (empty-string? (decode-entities x)))
+  (or (and (string? x) (empty-string? dx #f #t))
       (and (not (string? x))
 	   (every? empty-text? (get x '%content)))))
 
@@ -379,7 +381,7 @@
 
 (define (merge-strings cur in out)
   (if (null? in)
-      (if (empty-string? cur)
+      (if (empty-string? cur #f #t)
 	  (reverse (if cur (cons (fix-whitespace cur) out) out))
 	  (reverse (if cur (cons cur out) out)))
       (if (string? (car in))
@@ -387,7 +389,7 @@
 	      (merge-strings (glom cur (car in)) (cdr in) out)
 	      (merge-strings (car in) (cdr in) out))
 	  (if cur
-	      (if (empty-string? cur)
+	      (if (empty-string? cur #f #t)
 		  (merge-strings #f (cdr in)
 				 (cons* (car in) (fix-whitespace cur) out))
 		  (merge-strings #f (cdr in) (cons* (car in) cur out)))
@@ -407,7 +409,7 @@
 	(opentitle {}) (openattribs {}))
     (doseq (node content)
       (if (string? node)
-	  (if (empty-string? node)
+	  (if (empty-string? node #f #t)
 	      (if open
 		  (set! children (cons node children))
 		  (set! merged (cons node merged)))
@@ -491,7 +493,7 @@
 	(else (let ((content (->vector (get node '%content))))
 		(if (and (test node '%xmltag '{div span})
 			 (every? (lambda (x)
-				   (or (not (string? x)) (empty-string? x)))
+				   (or (not (string? x)) (empty-string? x #f #t)))
 				 content)
 			 (not (test node 'style)) (not (test node 'class))
 			 (not (test node 'id)))
@@ -536,7 +538,7 @@
   (and (exists? (get node '%content))
        (every? (lambda (child)
 		 (if (string? child)
-		     (empty-string? child)
+		     (empty-string? child #f #t)
 		     (dom/inline? child)))
 	       (get node '%content))
        (raise-spans node)))
@@ -553,12 +555,12 @@
 	       (not (or (fail? top) (ambiguous? top)
 			(equal? top '(#f . #f)))))
       (when (and (cdr top) (not (empty-string? (cdr top))))
-	(if (and (test node 'style) (not (empty-string? node 'style)))
+	(if (and (test node 'style) (not (empty-string? (get node 'style))))
 	    (dom/set! node 'style
 		      (dom/normstyle (glom (get node 'style) " " (cdr top))))
 	    (dom/set! node 'style (cdr top))))
       (when (and (car top) (not (empty-string? (car top))))
-	(if (and (test node 'class) (not (empty-string? node 'class)))
+	(if (and (test node 'class) (not (empty-string? (get node 'class))))
 	    (dom/set! node 'class (glom (get node 'class) " " (car top)))
 	    (dom/set! node 'class (car top)))))
     (store! node '%content
@@ -575,7 +577,7 @@
   (if (null? content) len
       (let ((elt (car content)))
 	(if (string? elt)
-	    (if (empty-string? elt)
+	    (if (empty-string? elt #f #t)
 		(score-styles (cdr content) spans scores len)
 		#f)
 	    (and (dom/inline? elt)
