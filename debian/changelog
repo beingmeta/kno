@@ -1,7 +1,8 @@
 framerd (3.9.1-9) unstable; urgency=low
 
   * Add libzip2 dependency to packaging
-  * git patch version framerd-3.9.1-17-g76d393d
+  * Fix FramerD systemd configuration
+  * git patch version framerd-3.9.1-18
 
  -- Ken Haase <kh@beingmeta.com>  Fri, 13 May 2016 14:47:16 +0000
 
