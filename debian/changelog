@@ -1,3 +1,10 @@
+framerd (3.9.1-8) unstable; urgency=low
+
+  * Add optional arg to empty-string? to treat non-breaking spaces as content
+  * git patch version framerd-3.9.1-15-gff06aeb
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 13 May 2016 03:51:54 +0000
+
 framerd (3.9.1-7) unstable; urgency=low
 
   * Fix bug in optimize code
