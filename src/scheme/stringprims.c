@@ -184,9 +184,11 @@ static fdtype string_phrase_length(fdtype string)
   return FD_INT(len+1);
 }
 
-static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg)
+static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg,
+                            fdtype count_nbsp_arg)
 {
   int count_vspace=(!(FD_FALSEP(count_vspace_arg)));
+  int count_nbsp=(!(FD_FALSEP(count_nbsp_arg)));
   if (!(FD_STRINGP(string))) return FD_FALSE;
   else if (FD_STRLEN(string)==0) return FD_TRUE;
   else {
@@ -195,6 +197,8 @@ static fdtype empty_stringp(fdtype string,fdtype count_vspace_arg)
       int c=u8_sgetc(&scan);
       if ((count_vspace)&&
           ((c=='\n')||(c=='\r')||(c=='\f')||(c=='\v')))
+        return FD_FALSE;
+      else if ((count_nbsp)&&(c==0x00a0))
         return FD_FALSE;
       else if (!(u8_isspace(c))) return FD_FALSE;
       else {}}
@@ -1337,8 +1341,8 @@ FD_EXPORT void fd_init_strings_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",string_downcase1,1));
 
   fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("EMPTY-STRING?",
-                           empty_stringp,1,-1,FD_VOID,-1,FD_FALSE));
+           fd_make_cprim3x("EMPTY-STRING?",empty_stringp,1,
+                           -1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("COMPOUND-STRING?",string_compoundp,1,
                            fd_string_type,FD_VOID));
