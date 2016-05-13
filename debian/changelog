@@ -1,3 +1,10 @@
+framerd (3.9.1-9) unstable; urgency=low
+
+  * Add libzip2 dependency to packaging
+  * git patch version framerd-3.9.1-17-g76d393d
+
+ -- Ken Haase <kh@beingmeta.com>  Fri, 13 May 2016 14:47:16 +0000
+
 framerd (3.9.1-8) unstable; urgency=low
 
   * Add optional arg to empty-string? to treat non-breaking spaces as content
