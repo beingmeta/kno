@@ -1261,6 +1261,12 @@ $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing framerd Upstart config to $(DESTDIR)/etc/init/framerd.conf
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.conf $(DESTDIR)/etc/init/framerd.conf
+$(DESTDIR)@conf_dir@/framerd.conf: etc/framerd.conf $(DESTDIR)@conf_dir@
+	@$(SYSINSTALL) -T -m 0644 $< $@ 
+$(DESTDIR)@conf_dir@/fdserver.conf: etc/fdserver.conf $(DESTDIR)@conf_dir@
+	@$(SYSINSTALL) -T -m 0644 $< $@ 
+$(DESTDIR)@conf_dir@/fdservlet.conf: etc/fdservlet.conf $(DESTDIR)@conf_dir@
+	@$(SYSINSTALL) -T -m 0644 $< $@ 
 
 $(DESTDIR)@systemd_loc@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
@@ -1269,14 +1275,17 @@ $(DESTDIR)@systemd_loc@/framerd.service: $(DESTDIR)@systemd_loc@ etc/framerd.ser
 	@$(MSG) Installing framerd systemd config to $(DESTDIR)@systemd_loc@/framerd.service
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.service $(DESTDIR)@systemd_loc@/framerd.service
-
+$(DESTDIR)@conf_dir@/framerd.service: etc/framerd.service $(DESTDIR)@conf_dir@
+	@$(SYSINSTALL) -T -m 0644 $< $@ 
 
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd logdirs
+$(DESTDIR)/etc/logrotate.d:
+	@$(SYSINSTALL) -m 0755 -d $@
 $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate $(DESTDIR)/etc/logrotate.d
 	@$(MSG) Installing logrotate script
 	@$(SYSINSTALL) -T -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
-$(DESTDIR)/etc/logrotate.d:
-	@$(SYSINSTALL) -m 0755 -d $@
+$(DESTDIR)@conf_dir@/logrotate: etc/logrotate $(DESTDIR)@conf_dir@
+	@$(SYSINSTALL) -T -m 0644 $< $@ 
 
 setup-allboot: setup-sysv setup-upstart setup-systemd
 

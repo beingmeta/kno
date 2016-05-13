@@ -5474,10 +5474,10 @@ if test $with_bootsystem != "none"; then
   BOOTSETUP="setup-$with_bootsystem"
 fi
 
-if test -d /usr/lib/systemd/system;
-  then default_systemd_loc=/usr/lib/systemd/system;
-elif test -d /lib/systemd/system;
+if test -d /lib/systemd/system;
   then default_systemd_loc=/lib/systemd/system;
+elif test -d /usr/lib/systemd/system;
+  then default_systemd_loc=/usr/lib/systemd/system;
 elif test -d /etc/systemd/system;
   then default_systemd_loc=/etc/systemd/system;
 else default_systemd_loc=/usr/lib/systemd/system;
