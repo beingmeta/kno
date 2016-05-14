@@ -34,7 +34,7 @@ Description: Development files for FramerD
 
 Package: framerd-mysql
 Architecture: any
-Depends: framerd (= ${binary:Version}), mysql-client-5.6
+Depends: framerd (= ${binary:Version}), libmysqlclient
 Description: MYSQL bindings for FramerD
 
 Package: framerd-sqlite

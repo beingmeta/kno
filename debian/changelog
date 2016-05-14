@@ -1,3 +1,10 @@
+framerd (3.9.1-10) unstable; urgency=low
+
+  * Fix libmysqlclient dependency
+  * git patch version framerd-3.9.1-22
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 14 May 2016 09:17:44 +0000
+
 framerd (3.9.1-9) unstable; urgency=low
 
   * Add libzip2 dependency to packaging
