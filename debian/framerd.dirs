@@ -24,6 +24,7 @@ usr/etc/framerd
 usr/etc/framerd/config
 usr/etc/framerd/daemons
 usr/etc/framerd/servlets
+usr/etc/framerd/boot
 var/run/framerd
 var/run/framerd/servlets
 var/run/framerd/daemons

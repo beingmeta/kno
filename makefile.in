@@ -461,6 +461,9 @@ $(BININSTALLDIR)/%: src/scripts/%.scm
 	@$(MSG) Installing script $@
 	@etc/install-script $<
 
+$(DESTDIR)@config_dir@/boot/%: etc/% $(DESTDIR)@config_dir@/boot
+	@$(SYSINSTALL) @install_file_opts@ $< $(DESTDIR)@config_dir@/boot
+
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
 
@@ -964,7 +967,7 @@ install: install-core install-cmodules install-data \
 	 @install_modules_target@ @setup_target@
 install-core: confdirs workdirs @INSTALLI18N@          \
 	 install-static install-shared install-headers \
-         install-exe install-scripts 
+         install-exe install-scripts install-boot
 
 $(INCINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
@@ -1079,6 +1082,11 @@ install-shell-scripts:
 install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 	@$(MSG) Installing scheme scripts
 	@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
+
+install-boot: $(DESTDIR)@config_dir@/boot/framerd.service $(DESTDIR)@config_dir@/boot/framerd-rc.d \
+	$(DESTDIR)@config_dir@/boot/framerd.conf $(DESTDIR)@config_dir@/boot/fdserver.conf \
+	$(DESTDIR)@config_dir@/boot/fdservlet.conf \
+	$(DESTDIR)@config_dir@/boot/logrotate
 
 install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
 $(BININSTALLDIR)/fdcgiexec@suffix@:
@@ -1234,6 +1242,9 @@ $(DESTDIR)@servlet_logdir@: $(DESTDIR)@framerd_logdir@
 	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
 		-d $(DESTDIR)@servlet_logdir@
 
+$(DESTDIR)@config_dir@/boot:
+	@$(SYSINSTALL) @install_dir_opts@ $@
+
 setup-sysv: $(DESTDIR)/etc/init.d/framerd statedirs
 enable-sysv: setup-sysv
 	@if which update-rc.d; then \
@@ -1261,12 +1272,6 @@ $(DESTDIR)/etc/init/framerd.conf: etc/framerd.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing framerd Upstart config to $(DESTDIR)/etc/init/framerd.conf
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.conf $(DESTDIR)/etc/init/framerd.conf
-$(DESTDIR)@conf_dir@/framerd.conf: etc/framerd.conf $(DESTDIR)@conf_dir@
-	@$(SYSINSTALL) -T -m 0644 $< $@ 
-$(DESTDIR)@conf_dir@/fdserver.conf: etc/fdserver.conf $(DESTDIR)@conf_dir@
-	@$(SYSINSTALL) -T -m 0644 $< $@ 
-$(DESTDIR)@conf_dir@/fdservlet.conf: etc/fdservlet.conf $(DESTDIR)@conf_dir@
-	@$(SYSINSTALL) -T -m 0644 $< $@ 
 
 $(DESTDIR)@systemd_loc@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
@@ -1275,8 +1280,6 @@ $(DESTDIR)@systemd_loc@/framerd.service: $(DESTDIR)@systemd_loc@ etc/framerd.ser
 	@$(MSG) Installing framerd systemd config to $(DESTDIR)@systemd_loc@/framerd.service
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.service $(DESTDIR)@systemd_loc@/framerd.service
-$(DESTDIR)@conf_dir@/framerd.service: etc/framerd.service $(DESTDIR)@conf_dir@
-	@$(SYSINSTALL) -T -m 0644 $< $@ 
 
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd logdirs
 $(DESTDIR)/etc/logrotate.d:
@@ -1284,16 +1287,13 @@ $(DESTDIR)/etc/logrotate.d:
 $(DESTDIR)/etc/logrotate.d/framerd: etc/logrotate $(DESTDIR)/etc/logrotate.d
 	@$(MSG) Installing logrotate script
 	@$(SYSINSTALL) -T -m 0644 etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd
-$(DESTDIR)@conf_dir@/logrotate: etc/logrotate $(DESTDIR)@conf_dir@
-	@$(SYSINSTALL) -T -m 0644 $< $@ 
 
 setup-allboot: setup-sysv setup-upstart setup-systemd
 
 setup-unix: @BOOTSETUP@ setup-logrotate
 setup-linux: setup-unix
 
-setup-osx: @data_dir@ $(DESTDIR)@rundir@/framerd \
-		$(DESTDIR)@logdir@/framerd
+setup-osx: @data_dir@ startupdirs statedirs logdirs 
 	@$(MSG) Setting up OSX system configuration
 	@$(SUDO) etc/setup-osx "@data_dir@" \
 		"${INSTALL} @install_dir_opts@" \

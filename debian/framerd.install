@@ -34,6 +34,7 @@ usr/bin/fdstopall
 usr/bin/fdstatus
 usr/bin/fdlog
 usr/etc/framerd/servers
+usr/etc/framerd/boot/*
 usr/share/framerd/fdconsole.el
 usr/share/framerd/data/hyph_en_US.dic
 usr/share/framerd/standard_modules/*.scm
