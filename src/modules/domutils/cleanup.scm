@@ -74,7 +74,8 @@
      `(GREEDY #((spaces*)
 		{(subst "-" "\&ndash;")
 		 (subst "--" "\&mdash;")
-		 (subst "..." "\u2026;")}
+		 (subst "---" "\&mdash;")
+		 (subst #("..." (opt ".") (opt ".") (opt ".") (opt ".")) "\u2026")}
 		{(spaces) (eos)})))
     `(GREEDY #({(islower) (ispunct)}
 	       {(subst (+ "&mdash;") ,wrapdash)
