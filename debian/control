@@ -8,7 +8,7 @@ Homepage: http://www.framerd.org/
 
 Package: framerd
 Architecture: any
-Depends: ${misc:Depends}, libu8 (>= 2.5.1), libzip4, libzip2, libssl1.0.0, libcurl3, libhyphen0, libedit2, adduser
+Depends: ${misc:Depends}, framerd-core, framerd-builtin
 Description: Scalable knowledge base development and application platform
  FramerD provides a robust and scalable object database especially
  designed and optimized for pointer-intensive semi-structured data with
@@ -22,9 +22,19 @@ Description: Scalable knowledge base development and application platform
  the Apache webserver for transparently managing persistent
  multi-threaded servlets responding to CGI requests.
 
+Package: framerd-core
+Architecture: any
+Suggests: framerd-docs
+Depends: ${misc:Depends}, libu8 (>= 2.5.1), libzip4, libzip2, libssl1.0.0, libcurl3, libhyphen0, libedit2, adduser
+
+Package: framerd-builtin
+Architecture: any
+Depends: ${misc:Depends}, framerd-core
+Provides: framerd-modules
+
 Package: libapache2-mod-fdserv
 Architecture: any
-Depends: framerd (= ${binary:Version}), apache2
+Depends: framerd-core (= ${binary:Version}), apache2
 Description: The mod_fdserv module for FramerD servlets under Apache
 
 Package: framerd-dev
@@ -34,34 +44,34 @@ Description: Development files for FramerD
 
 Package: framerd-mysql
 Architecture: any
-Depends: framerd (= ${binary:Version}), libmysqlclient | libmysqlclient20 | libmysqlclient19 | libmysqlclient18
+Depends: framerd-core (= ${binary:Version}), libmysqlclient | libmysqlclient20 | libmysqlclient19 | libmysqlclient18
 Description: MYSQL bindings for FramerD
 
 Package: framerd-sqlite
 Architecture: any
-Depends: framerd (= ${binary:Version}), sqlite
+Depends: framerd-core (= ${binary:Version}), sqlite
 Description: SQLite bindings for FramerD
 
 Package: framerd-mongodb
 Architecture: any
-Depends: framerd (= ${binary:Version}), libbson-dev, libmongoc-dev
+Depends: framerd-core (= ${binary:Version}), libbson-dev, libmongoc-dev
 Description: MongoDB interface for FramerD
 
 Package: framerd-imagetools
 Architecture: any
-Depends: framerd (= ${binary:Version}), libexif12, libmagickwand | libmagickwand5 | libmagickwand-6.q16-2, libqrencode3
+Depends: framerd-core (= ${binary:Version}), libexif12, libmagickwand | libmagickwand5 | libmagickwand-6.q16-2, libqrencode3
 Description: Image tools for FramerD
   Bindings to various image libraries modules for FramerD,
   including ImageMagick, QRCode generation, and EXIF extraction.
 
 Package: framerd-sundown
 Architecture: any
-Depends: framerd (= ${binary:Version})
+Depends: framerd-core (= ${binary:Version})
 Description: Markdown conversion (bindings) for FramerD
 
 Package: framerd-tidy
 Architecture: any
-Depends: framerd (= ${binary:Version}), tidy5
+Depends: framerd-core (= ${binary:Version}), tidy5
 Description: HTML Tidy (bindings) for FramerD
 
 Package: framerd-doc
@@ -70,30 +80,33 @@ Description: documentation for framerd
 
 Package: framerd-gnosys
 Architecture: any
-Depends: framerd
+Depends: framerd-core, framerd-modules
 Description: A document/media search and analysis toolkit in FramerD
 
 Package: framerd-morph
 Architecture: any
-Depends: framerd
+Depends: framerd-core, framerd-modules
 Description: Multi-language morphological analysis for FramerD
 
 Package: framerd-chopper
 Architecture: any
-Depends: framerd
+Depends: framerd-core, framerd-modules
 Description: Natural language processing development environment
 
 Package: framerd-upstart
 Architecture: any
-Depends: framerd
+Depends: framerd-core
+Conflicts: framerd-sysv, framerd-systemd
 Description: Upstart configuration for FramerD
 
 Package: framerd-sysv
 Architecture: any
-Depends: framerd
+Depends: framerd-core
+Conflicts: framerd-upstart, framerd-systemd
 Description: SYSV init.d configuration for FramerD
 
 Package: framerd-systemd
 Architecture: any
-Depends: framerd
+Depends: framerd-core
+Conflicts: framerd-upstart, framerd-sysv
 Description: systemd init configuration for FramerD
