@@ -960,8 +960,8 @@ update-apt: dist/debs.done
 	done
 
 upload-apt: dist/debs.done
-	for change in dist/*.changes; do \
-	  dupload -c dist/dupload.conf --to ${CODENAME} $${change} && \
+	cd dist; for change in *.changes; do \
+	  dupload -c --to ${CODENAME} $${change} && \
 	  rm -f $${change}; \
 	done
 
