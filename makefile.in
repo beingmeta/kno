@@ -953,10 +953,11 @@ dist/debs.done: dist/debs.built
 
 dist/metadebs.done: dist/metadebs.built
 	touch dist/metadebs.done
-dist/metadebs.install: dist/metadebs.built
+dist/metadebs.installed: dist/metadebs.built
 	for deb in dist/bm*.deb; do \
-	  reprepro -Vn ${APTREPO} includedeb beingmeta ${deb}; \
+	  reprepro -Vb ${APTREPO} includedeb beingmeta $${deb}; \
 	done && \
+	rm -f dist/bm*.deb && \
 	touch dist/metadebs.install
 
 
