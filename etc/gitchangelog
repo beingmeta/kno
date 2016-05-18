@@ -3,7 +3,7 @@ DISTRIBUTION=${2-:stable}
 URGENCY=medium
 DATE=`date -R`
 gitid=`git describe`
-version=`git describe | sed -e "s/-g[0123456789ABCDEFabcdef]*$//" | sed -e "s/^framerd-//"`
+version=`git describe | sed -e "s/-g[0123456789ABCDEFabcdef]*$//" | sed -e "s/^${PACKAGE}-//"`
 echo ${PACKAGE} \(${version}-${DISTRIBUTION}\) ${DISTRIBUTION}\; urgency=${URGENCY}
 echo
 echo "  * ${gitid} point release"

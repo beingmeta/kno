@@ -948,9 +948,9 @@ dist/metadebs.built:
 	(cd dist; equivs-build -f bmdevstack) &&                   \
 	(cd dist; equivs-build -f bmfakestack) &&                  \
 	touch dist/metadebs.built;
-
 dist/debs.done: dist/debs.built
 	touch dist/debs.done
+
 dist/metadebs.done: dist/metadebs.built
 	touch dist/metadebs.done
 dist/metadebs.install: dist/metadebs.built
@@ -971,9 +971,10 @@ update-apt: dist/debs.done
 
 apt-upload upload-apt: dist/debs.done
 	cd dist; for change in *.changes; do \
-	  dupload -c --to ${CODENAME} $${change} && \
+	  dupload -c --nomail --to ${CODENAME} $${change} && \
 	  rm -f $${change}; \
 	done
+
 .PHONY: apt-upload upload-apt
 
 # Installation targets
