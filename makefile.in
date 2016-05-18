@@ -953,6 +953,12 @@ dist/debs.done: dist/debs.built
 	touch dist/debs.done
 dist/metadebs.done: dist/metadebs.built
 	touch dist/metadebs.done
+dist/metadebs.install: dist/metadebs.built
+	for deb in dist/bm*.deb; do \
+	  reprepro -Vn ${APTREPO} includedeb beingmeta ${deb}; \
+	done && \
+	touch dist/metadebs.install
+
 
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@SUDO@ dpkg -i dist/framerd*_@FDVERSION@*.deb
@@ -963,11 +969,12 @@ update-apt: dist/debs.done
 	  rm -f $${change}; \
 	done
 
-upload-apt: dist/debs.done
+apt-upload upload-apt: dist/debs.done
 	cd dist; for change in *.changes; do \
 	  dupload -c --to ${CODENAME} $${change} && \
 	  rm -f $${change}; \
 	done
+.PHONY: apt-upload upload-apt
 
 # Installation targets
 
