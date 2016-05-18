@@ -1,3 +1,9 @@
+bmwebstack (3.9-2) beingmeta; urgency=low
+
+  * Rebuild bmwebstack meta package
+
+ -- beingmeta repository manager <repoman@beingmeta.com>  Wed, 18 May 2016 9:52:27 +4000
+
 bmwebstack (3.9-1) unstable; urgency=low
 
   * Rebuild bmwebstack meta package
