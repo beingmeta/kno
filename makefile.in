@@ -940,13 +940,13 @@ dist/debs.built: staging/framerd_@FDVERSION@
 	touch dist/debs.built;
 
 dist/metadebs.built:
-	(cd dist; equivs-build -f bmstack) &&                      \
-	(cd dist; equivs-build -f bmdbstack) &&                    \
-	(cd dist; equivs-build -f bmwebstack) &&                   \
-	(cd dist; equivs-build -f bmtextstack) &&                  \
-	(cd dist; equivs-build -f bmfullstack) &&                  \
-	(cd dist; equivs-build -f bmdevstack) &&                   \
-	(cd dist; equivs-build -f bmfakestack) &&                  \
+	(cd dist/stacks; equivs-build -f bmstack) &&                      \
+	(cd dist/stacks; equivs-build -f bmdbstack) &&                    \
+	(cd dist/stacks; equivs-build -f bmwebstack) &&                   \
+	(cd dist/stacks; equivs-build -f bmtextstack) &&                  \
+	(cd dist/stacks; equivs-build -f bmfullstack) &&                  \
+	(cd dist/stacks; equivs-build -f bmdevstack) &&                   \
+	(cd dist/stacks; equivs-build -f bmfakestack) &&                  \
 	touch dist/metadebs.built;
 dist/debs.done: dist/debs.built
 	touch dist/debs.done
@@ -954,11 +954,11 @@ dist/debs.done: dist/debs.built
 dist/metadebs.done: dist/metadebs.built
 	touch dist/metadebs.done
 dist/metadebs.installed: dist/metadebs.built
-	for deb in dist/bm*.deb; do \
-	  reprepro -Vb ${APTREPO} includedeb beingmeta $${deb}; \
+	for changes in dist/stacks/*.changes; do \
+	  reprepro -Vb ${APTREPO} include beingmeta $${changes}; \
 	done && \
-	rm -f dist/bm*.deb && \
-	touch dist/metadebs.install
+	rm -f dist/stacks/*.deb && \
+	touch dist/metadebs.installed
 
 
 install-debian install-debs debinstall installdebs: dist/debs.done
