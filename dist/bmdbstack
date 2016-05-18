@@ -9,7 +9,7 @@ Standards-Version: 3.9.2
 Package: bmdbstack
 Changelog: bmdbstack.changelog
 Maintainer: kh@beingmeta.com
-Depends: bmstack, framerd-sqlite, framerd-mongodb, framerd-mysql
+Depends: framerd-core, framerd-sqlite, framerd-mongodb, framerd-mysql
 # Recommends:
 # Suggests:
 # Provides:
