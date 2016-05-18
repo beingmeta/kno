@@ -869,12 +869,16 @@ staging/framerd-@FDVERSION@: \
 staging/framerd_@FDVERSION@: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	@git archive --prefix=framerd_@FDVERSION@/ \
-	            -o staging/framerd_@FDVERSION@.tar HEAD
-	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar
+	            -o staging/framerd_@FDVERSION@.tar HEAD;
+	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar;
 	$(ECHO) "#define FRAMERD_REVISION \""`git describe`"\"" \
 		> staging/framerd_@FDVERSION@/etc/revision.h;
 	cd staging; tar -czvf framerd_@FDVERSION@.orig.tar.gz \
-		framerd_@FDVERSION@
+		framerd_@FDVERSION@;
+	mv staging/framerd_@FDVERSION@/dist/debian \
+	   staging/framerd_@FDVERSION@/debian;
+	etc/gitchangelog ${CODENAME} < etc/debian/changelog \
+	   > staging/framerd_@FDVERSION@/debian/changelog;
 staging/framerd-@FDVERSION@.tar.gz: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	make staging/framerd-@FDVERSION@
@@ -928,7 +932,7 @@ dist/rpms.zip: dist/rpms.done
 
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
-	 dpkg-buildpackage -k$(GPGID) -b -rfakeroot) && \
+	 dpkg-buildpackage -jauto -k$(GPGID) -b -rfakeroot) && \
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
 	(cd staging; mv framerd*_@FDVERSION@*.*               \
 			libapache2-mod-fdserv_@FDVERSION@*.deb  \
