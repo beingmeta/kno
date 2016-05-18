@@ -877,7 +877,7 @@ staging/framerd_@FDVERSION@: \
 		framerd_@FDVERSION@;
 	mv staging/framerd_@FDVERSION@/dist/debian \
 	   staging/framerd_@FDVERSION@/debian;
-	etc/gitchangelog ${CODENAME} < dist/debian/changelog \
+	etc/gitchangelog framerd ${CODENAME} < dist/debian/changelog \
 	   > staging/framerd_@FDVERSION@/debian/changelog;
 staging/framerd-@FDVERSION@.tar.gz: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
