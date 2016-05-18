@@ -1,3 +1,9 @@
+bmtextstack (3.9-3) unstable; urgency=medium
+
+  * Change framerd dependency to framerd-core
+
+ -- Ken Haase <kh@beingmeta.com>  Wed, 18 May 2016 15:14:06 -0400
+
 bmtextstack (3.9-2) beingmeta; urgency=low
 
   * Rebuild bmtextstack meta package
