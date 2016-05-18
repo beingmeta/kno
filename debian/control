@@ -26,11 +26,15 @@ Package: framerd-core
 Architecture: any
 Suggests: framerd-docs
 Depends: ${misc:Depends}, libu8 (>= 2.5.1), libzip4, libzip2, libssl1.0.0, libcurl3, libhyphen0, libedit2, adduser
+Description: This package provides the core libraries, executables, and 
+  configuration files for FramerD applications
 
 Package: framerd-builtin
 Architecture: any
 Depends: ${misc:Depends}, framerd-core
 Provides: framerd-modules
+Description: This package directly provides hundreds of source (scheme) modules for
+  use with FramerD
 
 Package: libapache2-mod-fdserv
 Architecture: any

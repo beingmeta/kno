@@ -160,6 +160,7 @@ heaptest_prefix=builtin_
 use_duma_lib="no"
 custom_malloc=""
 static_libgcc="no"
+CODENAME=`lsb_release -cs || echo beingmeta`
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/framerd/fdsource.h include/framerd/config.h)
@@ -263,6 +264,7 @@ AC_SUBST(CHOWN)
 AC_SUBST(CHMOD)
 AC_SUBST(MKDIR)
 AC_SUBST(CHGRP)
+AC_SUBST(CODENAME)
 
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
@@ -295,6 +297,8 @@ AC_ARG_WITH(chown,--with-chown command,with_chown=$withval,with_chown=$CHOWN_DEF
 CHOWN=$with_chown
 AC_ARG_WITH(chgrp,--with-chgrp command,with_chgrp=$withval,with_chgrp=$CHGRP_DEFAULT)
 CHGRP=$with_chgrp
+AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
+CODENAME=$with_codename
 
 if test "x$VALGRIND" != "xnone"; then
   memtest_prefix=vg_

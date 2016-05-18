@@ -1,3 +1,17 @@
+framerd (3.9.1-13) unstable; urgency=medium
+
+  * Fix packaging descriptions
+  * git patch version framerd-3.9.1-31-g2af7e18
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 17 May 2016 11:11:23 -0400
+
+framerd (3.9.1-12) unstable; urgency=medium
+
+  * Split out framerd into framerd-core and framerd-builtin (which provides framerd-modules)
+  * git patch version framerd-3.9.1-29-ge3a33fa
+
+ -- Ken Haase <kh@beingmeta.com>  Tue, 17 May 2016 10:58:54 -0400
+
 framerd (3.9.1-11) unstable; urgency=low
 
   * More adjustments to libmysqlclient dependencies
