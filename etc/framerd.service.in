@@ -13,11 +13,11 @@ ExecStartPre=@CHGRP@ @admin_group@ @daemon_rundir@ @daemon_logdir@
 ExecStartPre=@CHMOD@ g+rwx @servlet_rundir@  @servlet_logdir@
 ExecStartPre=@CHMOD@ g+rwx @daemon_rundir@ @daemon_logdir@
 ExecStart=@BINDIR@/fdstart @config_dir@/daemons @config_dir@/servlets
-ExecStart=date > @framerd_rundir@/_started
-ExecStart=rm -f @framerd_rundir@/_sysv @framerd_rundir@/_upstart
-ExecStart=cp @framerd_rundir@/_started @framerd_rundir@/_systemd
+ExecStartPost=@TOUCHFILE@ @framerd_rundir@/_started
+ExecStartPost=@DELETEFILE@ -f @framerd_rundir@/_sysv @framerd_rundir@/_upstart
+ExecStartPost=@COPYFILE@ @framerd_rundir@/_started @framerd_rundir@/_systemd
 ExecStop=@BINDIR@/fdstop @daemon_rundir@ @servlet_rundir@
-ExecStop=rm -f @framerd_rundir@/_started @framerd_rundir@/_systemd
+ExecStopPost=@DELETEFILE@ -f @framerd_rundir@/_started @framerd_rundir@/_systemd
 
 [Install]
 WantedBy=multi-user.target

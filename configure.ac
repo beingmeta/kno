@@ -262,6 +262,9 @@ AC_SUBST(MSG)
 AC_SUBST(BINDIR)
 AC_SUBST(CHOWN)
 AC_SUBST(CHMOD)
+AC_SUBST(RMFILE)
+AC_SUBST(CPFILE)
+AC_SUBST(TOUCHFILE)
 AC_SUBST(MKDIR)
 AC_SUBST(CHGRP)
 AC_SUBST(CODENAME)
@@ -281,6 +284,9 @@ AC_CHECK_PROG(MKDIR_DEFAULT,mkdir,,/bin/mkdir)
 AC_CHECK_PROG(CHMOD_DEFAULT,chmod,,/bin/chmod)
 AC_CHECK_PROG(CHOWN_DEFAULT,chown,,/bin/chown)
 AC_CHECK_PROG(CHGRP_DEFAULT,chgrp,,/bin/chgrp)
+AC_CHECK_PROG(COPYFILE_DEFAULT,cp,,/bin/cp)
+AC_CHECK_PROG(DELETEFILE_DEFAULT,rm,,/bin/rm)
+AC_CHECK_PROG(TOUCHFILE_DEFAULT,touch,,/bin/touch)
 AC_PATH_PROG(VALGRIND,valgrind,none)
 AC_PATH_PROG(DUMA,duma,none)
 AC_PATH_PROG(CLANG,clang,none)
@@ -297,6 +303,14 @@ AC_ARG_WITH(chown,--with-chown command,with_chown=$withval,with_chown=$CHOWN_DEF
 CHOWN=$with_chown
 AC_ARG_WITH(chgrp,--with-chgrp command,with_chgrp=$withval,with_chgrp=$CHGRP_DEFAULT)
 CHGRP=$with_chgrp
+AC_ARG_WITH(deletefile,--with-deletefile command,with_deletefile=$withval,with_deletefile=$DELETEFILE_DEFAULT)
+DELETEFILE=$with_deletefile
+AC_ARG_WITH(copyfile,--with-copyfile command,with_copyfile=$withval,with_copyfile=$COPYFILE_DEFAULT)
+COPYFILE=$with_copyfile
+AC_ARG_WITH(touchfile,--with-touchfile command,with_touchfile=$withval,with_touchfile=$TOUCHFILE_DEFAULT)
+TOUCHFILE=$with_touchfile
+
+
 AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
 CODENAME=$with_codename
 
