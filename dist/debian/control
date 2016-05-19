@@ -11,7 +11,7 @@ Architecture: any
 Depends: ${misc:Depends}, framerd-core, framerd-builtin
 Description: Scalable knowledge base development and application platform
  FramerD provides a robust and scalable object database especially
- designed and optimized for pointer-intensive semi-structured data with
+ designed and optimized for pointer-intensive semi-structured data based on
  complex or evolving data models.  FramerD includes full support for
  Unicode in both data and programs together with powerful tools for
  text processing and linguistic analysis.
