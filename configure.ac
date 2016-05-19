@@ -1055,6 +1055,10 @@ AC_CHECK_HEADER(tidy.h,have_tidy_h="yes",have_tidy_h="no")
 if (test "x$have_tidy_h" = "xyes"); then
   AC_DEFINE(HAVE_TIDY_H,1)
 fi
+AC_CHECK_HEADER(tidybuffio.h,have_tidybuffio_h="yes",have_tidybuffio_h="no")
+if (test "x$have_tidybuffio_h" = "xyes"); then
+  AC_DEFINE(HAVE_TIDYBUFFIO_H,1)
+fi
 if (test "x$have_tidy_h" = "xno"); then
    AC_CHECK_HEADER(tidy/tidy.h,have_tidy_tidy_h="yes",have_tidy_tidy_h="no")
 fi
@@ -1062,8 +1066,8 @@ if (test "x$have_tidy_tidy_h" = "xyes"); then
   AC_DEFINE(HAVE_TIDY_TIDY_H,1)
 fi
 if ((test "x$have_tidy_h" = "xyes")||(test "x$have_tidy_tidy_h" = "xyes")); then
-  AC_CHECK_LIB(tidy5,tidyCreate)
-  AC_CHECK_LIB(tidy5,tidyCreate,have_libtidy="yes",have_libtidy="no")
+  AC_CHECK_LIB(tidy,tidyCreate)
+  AC_CHECK_LIB(tidy,tidyCreate,have_libtidy="yes",have_libtidy="no")
 fi
 if (test "x$have_libtidy" = "xyes"); then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"

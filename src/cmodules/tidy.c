@@ -14,7 +14,11 @@
 #include "framerd/eval.h"
 #include "libu8/u8logging.h"
 
-#if HAVE_TIDY_H
+#if HAVE_TIDYBUFFIO_H
+#include <tidy.h>
+#include <tidybuffio.h>
+#include <tidyenum.h>
+#elif HAVE_TIDY_H
 #include <tidy.h>
 #include <buffio.h>
 #include <tidyenum.h>

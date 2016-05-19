@@ -424,7 +424,10 @@
 /* Whether we have the tidy.h header file */
 #undef HAVE_TIDY_H
 
-/* Whether we have the tidy.h header file */
+/* Whether we have the tidybuffio.h header file */
+#undef HAVE_TIDYBUFFIO_H
+
+/* Whether we have the tidy/tidy.h header file */
 #undef HAVE_TIDY_TIDY_H
 
 /* Whether we have the waitpid function */
