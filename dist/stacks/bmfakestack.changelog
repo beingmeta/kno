@@ -1,3 +1,9 @@
+bmfakestack (3.9-3) unstable; urgency=medium
+
+  * Add better dependencies
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 21 May 2016 22:12:14 +0000
+
 bmfakestack (3.9-2) beingmeta; urgency=low
 
   * Rebuild bmfakestack meta package

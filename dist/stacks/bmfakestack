@@ -12,7 +12,8 @@ Maintainer: kh@beingmeta.com
 Depends: libu8, libu8-encodings, libu8-dev
 # Recommends:
 # Suggests:
-Provides: framerd, framerd-sqlite, framerd-imagetools, framerd-chopper, framerd-gnosys, framerd-morph, framerd-mysql, framerd-sundown, framerd-sqlite, framerd-upstart, framerd-dev, libapache2-mod-fdserv, framerd-tidy, framerd-doc, bmstack, bmdbstack, bmdevstack, bmwebstack, bmtextstack
+Provides: framerd, framerd-core, framerd-modules, framerd-sqlite, framerd-imagetools, framerd-chopper, framerd-gnosys, framerd-morph, framerd-mysql, framerd-sundown, framerd-sqlite, framerd-dev, libapache2-mod-fdserv, framerd-tidy, framerd-doc, bmstack, bmdbstack, bmdevstack, bmwebstack, bmtextstack
+Conflicts: framerd-builtin
 # Replaces:
 Architecture: all
 # Copyright: other
