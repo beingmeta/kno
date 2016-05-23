@@ -6,7 +6,7 @@
 (use-module '{fdweb xhtml texttools reflection ezrecords logger varconfig
 	      domutils domutils/styles})
 
-(define-init %loglevel %warn%)
+(define-init %loglevel %notice%)
 
 (module-export! '{dom/cleanup! dom/mergestyles! dom/unipunct!
 		  dom/cleanblocks! dom/raisespans!
@@ -225,7 +225,7 @@
 			(test child '%content)
 			(or (null? (get child '%content))
 			    (every? empty-child? (get child '%content))))
-	       (lognotice |DeleteEmpty|
+	       (loginfo |DeleteEmpty|
 		 "Deleting empty node \n\t" (pprint child))
 	       (set! child #f))
 	     (when (null? child) (set! child #f))
@@ -284,6 +284,10 @@
   (set! stylefixes (getopt opts 'dom:stylefix stylefixes))
   (if (overlaps? classfixes #t) (set+! classfixes default-classfixes))
   (if (overlaps? stylefixes #t) (set+! stylefixes default-stylefixes))
+  (notice%watch "DOM/CLEANUP!" 
+    "NODE" (dom/nodeid node)
+    dropempty classfixes stylefixes 
+    dropfn unwrapfn textfn)
   (cleanup! node textfn dropfn unwrapfn dropempty
 	    (and classfixes
 		 (qc (get dom-cleanup-rules (pick classfixes symbol?))
