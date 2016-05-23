@@ -20,6 +20,7 @@
 
 #include <libu8/libu8io.h>
 #include <libu8/u8pathfns.h>
+#include <libu8/u8filefns.h>
 
 #include <sys/types.h>
 #include <zip.h>
@@ -121,16 +122,20 @@ static fdtype zipopen(u8_string path,int zflags)
 {
   int errflag=0;
   u8_string abspath=u8_abspath(path,NULL);
-  struct zip *zip=zip_open(abspath,zflags,&errflag);
-  if (zip) {
-    struct FD_ZIPFILE *zf=u8_alloc(struct FD_ZIPFILE);
-    FD_INIT_FRESH_CONS(zf,fd_zipfile_type);
-    u8_init_mutex(&(zf->lock));
-    zf->filename=abspath; zf->flags=zflags; zf->closed=0;
-    zf->zip=zip;
-    return FDTYPE_CONS(zf);}
+  if ((!(zflags&ZIP_CREATE))&&(!(u8_file_existsp(abspath)))) {
+    fd_seterr(fd_FileNotFound,"zipopen",abspath,FD_VOID);
+    return FD_ERROR_VALUE;}
   else {
-    return znumerr("open_zipfile",errflag,abspath);}
+    struct zip *zip=zip_open(abspath,zflags,&errflag);
+    if (zip) {
+      struct FD_ZIPFILE *zf=u8_alloc(struct FD_ZIPFILE);
+      FD_INIT_FRESH_CONS(zf,fd_zipfile_type);
+      u8_init_mutex(&(zf->lock));
+      zf->filename=abspath; zf->flags=zflags; zf->closed=0;
+      zf->zip=zip;
+      return FDTYPE_CONS(zf);}
+    else {
+      return znumerr("open_zipfile",errflag,abspath);}}
 }
 static fdtype zipopen_prim(fdtype filename,fdtype create)
 {
