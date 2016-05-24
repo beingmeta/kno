@@ -56,6 +56,9 @@ for rundir in ${TARGETS}; do
 		    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill -9 ${npid} && 
 			unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo rm -f ${pid};
 		    if test -f ${pid}; then
+			sleep 1;
+			if test -f ${pid}; then sleep 1; fi
+			if test -f ${pid}; then sleep 1; fi
 			# If the file still exists, check the process
 			if sudo kill -0 ${npid} 1&>2 > /dev/null; then
 			    echo "Warning: Server ${pid} (${npid}) didn't die";
