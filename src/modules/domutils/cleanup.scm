@@ -6,7 +6,7 @@
 (use-module '{fdweb xhtml texttools reflection ezrecords logger varconfig
 	      domutils domutils/styles})
 
-(define-init %loglevel %notice%)
+(define-init %loglevel %warning%)
 
 (module-export! '{dom/cleanup! dom/mergestyles! dom/unipunct!
 		  dom/cleanblocks! dom/raisespans!
