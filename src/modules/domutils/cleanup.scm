@@ -371,12 +371,12 @@
 
 ;;; Identifying empty nodes
 
-(define (empty-text? x (dx))
+(define (empty-text? x)
   (and (string? x) 
        (empty-string? (decode-entities x) #f #t)))
 
 (define (empty-node? x)
-  (or (and (string? x) (empty-string? dx #f #t))
+  (or (and (string? x) (empty-string? x #f #t))
       (and (not (string? x))
 	   (every? empty-text? (get x '%content)))))
 
