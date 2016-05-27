@@ -136,11 +136,12 @@
 ;; BASE is the URL of the input document which is used to actually fetch things
 ;; SAVETO is the where downloaded data should be stored locally
 ;; READ is the relative path to use for local references
-(define (localref ref urlmap base saveto read options (ctype) (xform))
+(define (localref ref urlmap base saveto resources options (ctype) (xform) (absref))
   (default! ctype (getopt options 'mimetype
 			  (path->mimetype (gp/basename ref))))
   (default! xform (getopt options 'xform #f))
   (when (position #\% ref) (set! ref (uridecode ref)))
+  (default! absref (getabsref ref base))
   (try ;; non http/ftp references are untouched
    (tryif (or (empty-string? ref) (has-prefix ref "#")
 	      (has-prefix ref {"javascript:" "chrome-extension:"})
@@ -148,51 +149,52 @@
 		   (not (has-prefix ref {"http:" "https:" "ftp:"}))))
      ;; (begin (logdebug |LOCALIZE/ref| "Ignoring " ref) )
      ref)
-   (tryif (test urlmap ref)
-     (begin (logdebug |LOCALIZE/ref| "Cached " ref " ==> " (get urlmap ref))
-       (get urlmap ref)))
-   (begin (logdebug |LOCALIZE/ref| ref
-		    "\n\tfrom " base "\n\tto " saveto "\n\tfor " read)
+   (tryif (test urlmap absref)
+     (begin (logdebug |LOCALIZE/ref| "Cached " absref " ==> " (get urlmap absref))
+       (get urlmap absref)))
+   (begin (logdebug |LOCALIZE/ref| 
+	    ref " " absref "\n\tfrom " base "\n\tto " saveto "\n\tfor " resources)
      {})
    (tryif (position #\# ref)
      (let* ((baseuri (uribase ref))
 	    (hashid (urifrag ref))
-	    (lref (try (get urlmap baseuri)
+	    (lref (try (get urlmap (getabsref baseuri base))
 		       (if (overlaps? baseuri (getopt options 'amalagamate))
 			   baseuri
 			   (localref baseuri urlmap base
-				     saveto read options)))))
-       (logdebug |LOCALIZE/ref| ref
-		 "\n\tfrom " base "\n\tto " saveto "\n\tfor " read)
+				     saveto resources options)))))
+       (logdebug |LOCALIZE/ref|
+	 ref " " absref "\n\tfrom " base "\n\tto " saveto "\n\tfor " resources)
        (debug%watch baseuri hashid lref)
        (glom lref "#" hashid)))
    ;; Check the cache
-   (get urlmap ref)
+   (get urlmap absref)
    ;; don't bother localizing these references
    (tryif (exists string-starts-with? ref
 		  (getopt options 'localhosts {}))
      ref)
    ;; No easy outs, fetch the content and store it
-   (let* ((absref (getabsref ref base))
-	  (name (gp/basename ref))
+   (let* ((name (gp/basename ref))
 	  (suffix (path-suffix name))
-	  (lref (try (get urlmap ref)
-		     (get urlmap absref)
-		     (mkpath read name)))
+	  (lref (try (get urlmap absref)
+		     (mkpath resources name)))
 	  (savepath (gp/mkpath saveto name)))
      ;; We store inverse links as #(ref) keys, so this is where we detect
      ;;  conflicts
-     (when (and (fail? (get urlmap (vector lref)))
-		(exists? (get urlmap lref)))
+     (when (and (not (test urlmap lref absref))
+		(test urlmap (vector lref)))
        ;; Filename conflict
-       (set! name (glom (packet->base16 (md5 absref)) suffix))
-       (set! lref (mkpath read name))
+       (set! name (glom (if (string? absref)
+			    (packet->base16 (md5 absref))
+			    (if (and (pair? absref) (string? (cdr absref)))
+				(packet->base16 (md5 (cdr absref)))
+				(md5 (gp/string absref))))
+		    suffix))
+       (set! lref (mkpath resources name))
        (set! savepath (gp/mkpath saveto name)))
-     (store! urlmap ref lref)
-     (store! urlmap (vector lref) ref)
-     (when (string? absref)
-       (store! urlmap absref lref))
-     (debug%watch "LOCALREF" lref ref base absref saveto read
+     (store! urlmap absref lref)
+     (store! urlmap (vector lref) absref)
+     (debug%watch "LOCALREF" lref ref base absref saveto resources
 		  (get urlmap absref))
      (if (sync! ref savepath absref options urlmap)
 	 (begin
@@ -201,7 +203,6 @@
 	   ;;  same table)
 	   (store! urlmap absref lref)
 	   (store! urlmap (vector lref) absref)
-	   (when (string? absref) (store! urlmap lref absref))
 	   (logdebug |LOCALIZE/ref| "LOCALREF " ref " ==> " lref
 		     ",\n\tsynced from " base "\n\tto " saveto)
 	   lref)
@@ -222,14 +223,16 @@
   (default! doanchors (getopt options 'doanchors #f))
   (default! syncrels (getopt options 'synclinks (config 'synclinks synclinks)))
   (default! stylerules (getopt options 'stylerules {}))
-  (loginfo "Localizing references for "
-	   (try (gp/string (get dom 'source)) "source")
-	   "\n\tfrom " (write (gp/string base))
-	   "\n\tto " (write read) ", copying content to "
-	   (if (singleton? saveto) (write (gp/string saveto))
-	       (do-choices saveto
-		 (printout "\n\t\t" (write (gp/string saveto))))))
-  (debug%watch "DOM/LOCALIZE!" base saveto read doanchors)
+  (loginfo |DOM/LOCALIZE!|
+    "Localizing references for "
+    (try (gp/string (get dom 'source)) "source")
+    "\n\tfrom " (write (gp/string base))
+    "\n\tto " (write read) ", copying content to "
+    (if (singleton? saveto) (write (gp/string saveto))
+	(do-choices saveto
+	  (printout "\n\t\t" (write (gp/string saveto))))))
+  (debug%watch "DOM/LOCALIZE!" 
+    "DOM" (dom/nodeid dom) base saveto read doanchors)
   (let ((head (dom/find dom "HEAD" #f))
 	(saveslot (getopt options 'saveslot)))
     (loginfo |Localize| "Localizing [src] elements")
