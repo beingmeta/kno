@@ -112,7 +112,7 @@
   (info%watch "AWS/V4/get" endpoint args)
   (let* ((err (getopt req 'v4err v4err))
 	 (url (scripturl+ endpoint args))
-	 (result (%wc urlget url curl))
+	 (result (urlget url curl))
 	 (status (and result (try (get result 'response) #f))))
     (if (and err status (or (not (number? status)) (not (>= 299 status 200))))
 	(irritant (cons result req)
