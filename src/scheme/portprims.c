@@ -603,7 +603,7 @@ static fdtype logifplus_handler(fdtype expr,fd_lispenv env)
         return value;}
       body=FD_CDR(body);}
     u8_set_default_output(stream);
-    u8_logger(priority,condition,out->u8_outbuf);
+    u8_logger(-priority,condition,out->u8_outbuf);
     u8_close_output(out);
     return FD_VOID;}
 }
