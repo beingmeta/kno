@@ -273,7 +273,8 @@
 		   "Localizing stylesheet " (get node 'href)
 		   "\n\tfrom " base "\n\tto " saveto
 		   (when (exists? stylerules)
-		     (printout "\n\twith CSS rules " stylerules)))
+		     (printout "\n\twith CSS rules " 
+		       (pprint stylerules))))
 	  (let* ((usebase (if (position #\/ href)
 			      (gp/mkpath base (dirname href))
 			      base))
