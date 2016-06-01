@@ -3,8 +3,9 @@
 
 (in-module 'aws/roles)
 
-(use-module '{aws aws/v4 fdweb texttools mimetable regex logctl
+(use-module '{fdweb texttools mimetable regex logctl
 	      ezrecords rulesets logger varconfig})
+(use-module '{aws aws/v4 aws/ec2data})
 (define %used_modules '{aws varconfig ezrecords rulesets})
 
 (define-init %loglevel %notice%)
@@ -63,13 +64,15 @@
 
 (define (ec2/rolecreds (role aws/role)) (get-credentials role))
 
-(define (ec2/role! role (version "latest") (error #f))
+(define (ec2/role! (role #f) (version "latest") (error #f))
   (if (not version) (set! version "latest"))
+  (when (not role) (set! role (ec2/getrole)))
   (if (position #\| role)
       (let ((success #f))
 	(loginfo |EC2SearchRoles| "Searching roles " role)
 	(dolist (role (segment role "|"))
-	  (unless success (set! success (ec2/role! role)))))
+	  (unless success (set! success (ec2/role! role))))
+	success)
       (if (and aws:secret (not aws:token))
 	  (begin
 	    (logwarn |EC2KeepingCredentials|

@@ -7,9 +7,9 @@
 	      ezrecords rulesets logger varconfig})
 (define %used_modules '{aws varconfig ezrecords rulesets})
 
-(module-export! '{aws/ec2/op aws/ec2/filtered
-		  aws/ec2/instances aws/ec2/images aws/ec2/tags
-		  aws/ec2/tag!})
+(module-export! '{ec2/op ec2/filtered
+		  ec2/instances ec2/images ec2/tags
+		  ec2/tag!})
 
 (define action-methods
   #["DescribeInstances" "GET"])
@@ -36,7 +36,7 @@
     (drop! into '{%xmltag %qname}))
   into)
 
-(define (aws/ec2/op action (args #[]) (req #[]))
+(define (ec2/op action (args #[]) (req #[]))
   (store! args "Action" action)
   (store! args "Version" "2015-10-01")
   (let* ((method (getopt req 'method
@@ -58,7 +58,7 @@
 		    subnet vpc rtb igw dopt vpce acl})
     "-"))
 
-(defambda (aws/ec2/filtered action (filters '()) (args #[]) (i 1))
+(defambda (ec2/filtered action (filters '()) (args #[]) (i 1))
   (when (and (odd? (length filters))
 	     (table? (car filters)))
     (let ((init (car filters)))
@@ -96,24 +96,24 @@
 	      (store! args (glom "Filter." i ".Value." (1+ j)) v))
 	    (set! i (+ i 1))
 	    (set! filters (cddr filters)))))
-  (aws/ec2/op action args))
+  (ec2/op action args))
 
-(define (aws/ec2/instances . filters)
-  (let ((response (aws/ec2/filtered "DescribeInstances" filters)))
+(define (ec2/instances . filters)
+  (let ((response (ec2/filtered "DescribeInstances" filters)))
     (deitemize (get (get (get (get response 'reservationset)
 			      'item) 
 			 'instancesset)
 		    'item))))
 
-(define (aws/ec2/images . filters)
-  (let ((response (aws/ec2/filtered "DescribeImages" filters)))
+(define (ec2/images . filters)
+  (let ((response (ec2/filtered "DescribeImages" filters)))
     (deitemize (get (get response 'imagesset) 'item))))
 
-(define (aws/ec2/tags . filters)
-  (let ((response (aws/ec2/filtered "DescribeTags" filters)))
+(define (ec2/tags . filters)
+  (let ((response (ec2/filtered "DescribeTags" filters)))
     (deitemize (get (get response 'tagset) 'item))))
 
-(defambda (aws/ec2/tag! ids keyvals)
+(defambda (ec2/tag! ids keyvals)
   (let ((args #[]) (j 1))
     (do-choices (id ids i)
       (if (string? id)
@@ -124,7 +124,7 @@
 	(do-choices (value (get keyval key))
 	  (store! args (glom "Tag." j ".Key") key)
 	  (store! args (glom "Tag." j ".Value") value))))
-    (aws/ec2/op "CreateTags" args)))
+    (ec2/op "CreateTags" args)))
 
 
 

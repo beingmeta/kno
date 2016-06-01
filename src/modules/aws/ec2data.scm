@@ -9,7 +9,7 @@
 
 (define %loglevel %warn%)
 
-(module-export! '{ec2/data})
+(module-export! '{ec2/data ec2/getrole})
 
 (define ec2-instance-data-root "http://169.254.169.254/")
 
@@ -17,7 +17,10 @@
   (elts (segment (get response '%content) "\n")))
 
 (define prop-info
-  `#[metadata ("/meta-data/" . ,parse-newline-list)])
+  `#[metadata ("/meta-data/" . ,parse-newline-list)
+     ami ("/meta-data/ami-id" . ,string->lisp)
+     id ("/meta-data/instance-id" . ,string->lisp)
+     launch-index ("/meta-data/ami-launch-index" . ,string->lisp)])
 
 (define metadata-properties
   {
@@ -27,6 +30,7 @@
    "hostname"
    "metrics/"
    "services/domain"
+   "iam/info"
    "local-ipv4"
    "placement/availability-zone"
    "instance-id"
@@ -64,6 +68,7 @@
 	 (url (glom ec2-instance-data-root version "/" path))
 	 (response (urlget url))
 	 (status (get response 'response))
+	 (content (get response '%content))
 	 (type (get response 'content-type)))
     (debug%watch "EC2/DATA" prop propinfo path handler url type status)
     (detail%watch "EC2/DATA" response)
@@ -73,10 +78,17 @@
 		  ((equal? type "text/plain")
 		   (if (has-suffix path "/")
 		       (parse-newline-list response)
-		       (get response '%content)))
+		       (if (has-prefix content {"{" "["})
+			   (jsonparse content)
+			   content)))
+		  ((has-prefix content {"{" "["}) (jsonparse content))
 		  (else response))
 	    (if error
 		(irritant response |BadEC2DataResponse| ec2/data)
 		(begin (logwarn |Instance data failed| url " status " status)
 		  #f))))))
+
+(define (ec2/getrole)
+  (try (basename (get (jsonparse (ec2/data "meta-data/iam/info")) 'instanceprofilearn))
+       #f))
 
