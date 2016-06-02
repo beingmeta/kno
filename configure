@@ -755,9 +755,11 @@ apache_log_dir
 shared_config
 local_config
 config_dir
-standard_module_dir
+safe_builtin_module_dir
+builtin_module_dir
 safe_module_dir
 module_dir
+package_dir
 data_dir
 systemd_loc
 scheme_builtins_init
@@ -829,7 +831,6 @@ with_codename
 with_sanitize
 with_duma
 with_execwrapper
-enable_devmode
 with_optinclude
 with_bootsystem
 with_systemd
@@ -850,8 +851,9 @@ with_data_dir
 with_config_dir
 with_local_config
 with_shared_config
+with_package_dir
 with_module_dir
-with_standard_module_dir
+with_builtin_module_dir
 with_module_path
 with_safe_module_path
 with_dload_path
@@ -1523,7 +1525,6 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
---endisable-devmode Special settings for development machines (e.g. linking module files)
 --endisable-maintainer-mode doesn't do anything
 --endisable-dependency-tracking doesn't do anything
 --endisable-shared Build with/without shared libraries
@@ -1577,8 +1578,9 @@ Optional Packages:
 --with-config-dir location
 --with-local-config location
 --with-shared-config location
+--with-package-dir location
 --with-module-dir location
---with-standard-module-dir location
+--with-builtin-module-dir location
 --with-module-path location
 --with-safe-module-path location
 --with-dload-path location
@@ -2865,7 +2867,7 @@ apache_log_dir="/var/log/apache"
 apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
-standard_module_path=""
+builtin_module_path=""
 safe_module_path=""
 site_module_path=""
 safe_site_module_path=""
@@ -2956,6 +2958,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 
@@ -5512,34 +5516,9 @@ _ACEOF
 
 fi
 
-if test -h $prefix/share/framerd/standard_modules/logger.scm; then
-  devmode_default="yes";
-elif test -f $prefix/share/framerd/standard_modules/logger.scm; then
-  devmode_default="no";
-elif test -f .devmode; then
-  devmode_default="yes";
-elif test `pwd` = /src/framerd; then
-  devmode_default="yes";
-else devmode_default="no";
-fi
-
 if test -f .ipeval; then
   enable_ipeval_default="yes;
 else enable_ipeval_default="no;
-fi
-
-
-# Check whether --enable-devmode was given.
-if test "${enable_devmode+set}" = set; then :
-  enableval=$enable_devmode;
-else
-  enable_devmode=$devmode_default
-fi
-
-if test "x$enable_devmode" != "xno"; then
-  echo checking for devmode... yes
-  install_modules_target="link-modules";
-else echo checking for devmode... no;
 fi
 
 if test "x$with_duma" != "xno" && test "x$custom_malloc" != "x"; then
@@ -6987,31 +6966,42 @@ _ACEOF
 
 
 
+# Check whether --with-package_dir was given.
+if test "${with_package_dir+set}" = set; then :
+  withval=$with_package_dir;
+else
+  with_package_dir=$with_data_dir/packages
+fi
+
+package_dir=$with_package_dir
+
+
 # Check whether --with-module_dir was given.
 if test "${with_module_dir+set}" = set; then :
   withval=$with_module_dir;
 else
-  with_module_dir=$with_data_dir/scheme_modules
+  with_module_dir=$with_data_dir/modules/installed
 fi
 
 module_dir=$with_module_dir
+safe_module_dir=$with_module_dir/safe
 
 
-# Check whether --with-standard_module_dir was given.
-if test "${with_standard_module_dir+set}" = set; then :
-  withval=$with_standard_module_dir;
+# Check whether --with-builtin_module_dir was given.
+if test "${with_builtin_module_dir+set}" = set; then :
+  withval=$with_builtin_module_dir;
 else
-  with_standard_module_dir=$with_data_dir/standard_modules
+  with_builtin_module_dir=$with_data_dir/modules/builtin
 fi
 
-standard_module_dir=$with_standard_module_dir
-safe_module_dir=$standard_module_dir/safe
+builtin_module_dir=$with_builtin_module_dir
+safe_builtin_module_dir=$builtin_module_dir/safe
 
-standard_module_path=$standard_module_dir/%/module.scm:$standard_module_dir/%/%.scm:$with_standard_module_dir/%.scm
-standard_safe_module_path=$standard_module_dir/safe/%/module.scm:$standard_module_dir/safe/%/%.scm:$standard_module_dir/safe/%.scm
+builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%/%.scm:$with_builtin_module_dir/%.scm
+safe_builtin_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%/%.scm:$builtin_module_dir/safe/%.scm
 
-default_module_path=$module_dir/%/module.scm:$module_dir/%/%.scm:$module_dir/%.scm:$standard_module_path
-default_safe_module_path=$safe_module_dir/%/module.scm:$safe_module_dir/%/%.scm:$safe_module_dir/%.scm:$standard_safe_module_path
+default_module_path=$module_dir/%/module.scm:$module_dir/%/%.scm:$module_dir/%.scm:$builtin_module_path
+safe_default_module_path=$safe_module_dir/%/module.scm:$safe_module_dir/%/%.scm:$safe_module_dir/%.scm:$builtin_safe_module_path
 
 
 # Check whether --with-module_path was given.
@@ -7026,7 +7016,7 @@ fi
 if test "${with_safe_module_path+set}" = set; then :
   withval=$with_safe_module_path;
 else
-  with_safe_module_path=$default_safe_module_path
+  with_safe_module_path=$safe_default_module_path
 fi
 
 
@@ -11122,7 +11112,7 @@ if test $exec_prefix == 'NONE';
 else BINDIR="${exec_prefix}/bin";
 fi
 
-ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdstatus etc/fdlog etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/fdserver.conf etc/framerd.conf etc/framerd.service etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.9.spec"
+ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdstatus etc/fdlog src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/fdserver.conf etc/framerd.conf etc/framerd.service etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.9.spec"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -11838,6 +11828,7 @@ do
     "etc/fdsignal") CONFIG_FILES="$CONFIG_FILES etc/fdsignal" ;;
     "etc/fdstatus") CONFIG_FILES="$CONFIG_FILES etc/fdstatus" ;;
     "etc/fdlog") CONFIG_FILES="$CONFIG_FILES etc/fdlog" ;;
+    "src/scripts/fdpkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/fdpkg.scm" ;;
     "etc/OSXStartupItem/FramerD") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/FramerD" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;
     "etc/framerd-rc.d") CONFIG_FILES="$CONFIG_FILES etc/framerd-rc.d" ;;

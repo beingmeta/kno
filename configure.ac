@@ -101,7 +101,7 @@ apache_log_dir="/var/log/apache"
 apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
-standard_module_path=""
+builtin_module_path=""
 safe_module_path=""
 site_module_path=""
 safe_site_module_path=""
@@ -183,9 +183,11 @@ AC_SUBST(xdynamic_scheme_libs)
 AC_SUBST(scheme_builtins_init)
 AC_SUBST(systemd_loc)
 AC_SUBST(data_dir)
+AC_SUBST(package_dir)
 AC_SUBST(module_dir)
 AC_SUBST(safe_module_dir)
-AC_SUBST(standard_module_dir)
+AC_SUBST(builtin_module_dir)
+AC_SUBST(safe_builtin_module_dir)
 AC_SUBST(config_dir)
 AC_SUBST(local_config)
 AC_SUBST(shared_config)
@@ -401,28 +403,9 @@ if test "x$with_execwrapper" != "x"; then
   AC_DEFINE_UNQUOTED(FD_EXEC_WRAPPER,"$with_execwrapper")
 fi
 
-if test -h $prefix/share/framerd/standard_modules/logger.scm; then
-  devmode_default="yes";
-elif test -f $prefix/share/framerd/standard_modules/logger.scm; then
-  devmode_default="no";
-elif test -f .devmode; then
-  devmode_default="yes";
-elif test `pwd` = /src/framerd; then
-  devmode_default="yes";
-else devmode_default="no";
-fi
-
 if test -f .ipeval; then
   enable_ipeval_default="yes;
 else enable_ipeval_default="no;
-fi
-
-
-AC_ARG_ENABLE(devmode,--en[dis]able-devmode Special settings for development machines (e.g. linking module files),,enable_devmode=$devmode_default)
-if test "x$enable_devmode" != "xno"; then
-  echo checking for devmode... yes
-  install_modules_target="link-modules";
-else echo checking for devmode... no;
 fi
 
 if test "x$with_duma" != "xno" && test "x$custom_malloc" != "x"; then
@@ -747,21 +730,25 @@ shared_config=$with_shared_config
 
 AC_DEFINE_UNQUOTED(FD_CONFIG_FILE_PATH,"$with_local_config/%:$with_shared_config/%")
 
-AC_ARG_WITH(module_dir,--with-module-dir location,,with_module_dir=$with_data_dir/scheme_modules)
+AC_ARG_WITH(package_dir,--with-package-dir location,,with_package_dir=$with_data_dir/packages)
+package_dir=$with_package_dir
+
+AC_ARG_WITH(module_dir,--with-module-dir location,,with_module_dir=$with_data_dir/modules/installed)
 module_dir=$with_module_dir
+safe_module_dir=$with_module_dir/safe
 
-AC_ARG_WITH(standard_module_dir,--with-standard-module-dir location,,with_standard_module_dir=$with_data_dir/standard_modules)
-standard_module_dir=$with_standard_module_dir
-safe_module_dir=$standard_module_dir/safe
+AC_ARG_WITH(builtin_module_dir,--with-builtin-module-dir location,,with_builtin_module_dir=$with_data_dir/modules/builtin)
+builtin_module_dir=$with_builtin_module_dir
+safe_builtin_module_dir=$builtin_module_dir/safe
 
-standard_module_path=$standard_module_dir/%/module.scm:$standard_module_dir/%/%.scm:$with_standard_module_dir/%.scm
-standard_safe_module_path=$standard_module_dir/safe/%/module.scm:$standard_module_dir/safe/%/%.scm:$standard_module_dir/safe/%.scm
+builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%/%.scm:$with_builtin_module_dir/%.scm
+safe_builtin_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%/%.scm:$builtin_module_dir/safe/%.scm
 
-default_module_path=$module_dir/%/module.scm:$module_dir/%/%.scm:$module_dir/%.scm:$standard_module_path
-default_safe_module_path=$safe_module_dir/%/module.scm:$safe_module_dir/%/%.scm:$safe_module_dir/%.scm:$standard_safe_module_path
+default_module_path=$module_dir/%/module.scm:$module_dir/%/%.scm:$module_dir/%.scm:$builtin_module_path
+safe_default_module_path=$safe_module_dir/%/module.scm:$safe_module_dir/%/%.scm:$safe_module_dir/%.scm:$builtin_safe_module_path
 
 AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
-AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_path=$default_safe_module_path)
+AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_path=$safe_default_module_path)
 
 AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$with_module_path")
 AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$with_safe_module_path")
@@ -1457,6 +1444,7 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
 	  etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 	  etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	  etc/fdsignal etc/fdstatus etc/fdlog
+	  src/scripts/fdpkg.scm
 	  etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d
 	  etc/fdserver.conf etc/framerd.conf etc/framerd.service
 	  etc/fdservlet.conf etc/fdservlets.conf

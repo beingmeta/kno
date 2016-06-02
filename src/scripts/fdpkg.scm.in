@@ -1,0 +1,64 @@
+;;; -*- Mode: Scheme -*-
+
+(config! 'cachelevel 2)
+(use-module '{optimize aws aws/s3})
+
+(define default-target "@module_dir@")
+(define default-safe-target "@safe_module_dir@")
+
+;; fdpkg link <src> [target]
+;; Link into target directory
+;; fdpkg install <src> [target]
+;; If src is a .scm file, sames as fdpkg link
+;; If src is a directory, link it's .scm files and subdirectories
+;; Otherwise, populate a packages directory from <src> and do
+;;   an install on that directory
+;; If src is a zip file, unzip into a package directory with name
+;; If src is a git target, clone it
+;; If src is an s3 root, fetch it
+;; If src is a URL, get manifest.txt and fetch those files
+
+(define (confopt opts name (dflt #f) (confname))
+  (default! confname name)
+  (getopt opts name (if confname (config confname dflt)
+			dflt)))
+
+(define (upperbase? s) (uppercase? (basename s)))
+
+(define (make-link src dest opts (records #f))
+  (if (file-exists? dest)
+      (unless (equal? (readlink dest) src)
+	(if (confopt opts 'force #f)
+	    (begin (logwarn |OverwritePackage|
+		     "Overwriting " (write dest) " with " (write src))
+	      (if records
+		  (let ((tmp (tempdir)))
+		    (move-file dest tmp)
+		    (add! records 'replaced 
+			  (cons dest (mkpath tmp (basename dest)))))
+		  (if (file-directory? dest)
+		      (remove-tree dest)
+		      (remove-file dest)))
+	      (link-file src dest))
+	    (irritant dest |FileConflict|
+		      "The target " (write dest) " already exists")))
+      (begin (link-file src dest)
+	(when records (add! records 'added dest)))))
+
+(define (link-package dir target (opts #[]) (records #[]))
+  (do-choices (module-file (pick (getfiles package) ".scm"))
+    (link-file module-file (mkpath target (basename module-file)) opts records))
+  (do-choices (module-dir (reject (reject (getdirs package) has-prefix ".")
+				  upperbase?))
+    (link-file module-dir (mkpath target (basename module-dir)) opts records))
+  records)
+
+(define (main cmd src (dest) (pkgname))
+  (default! dest (config 'target default-target))
+  (cond ((equal? cmd "link")
+	 (make-link src dest opts))
+	((not (equal? cmd "link")))
+	((has-suffix src ".zip"))))
+
+
+
