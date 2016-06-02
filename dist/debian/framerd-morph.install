@@ -1,3 +1,3 @@
-usr/share/framerd/scheme_modules/morph/*.scm
-usr/share/framerd/scheme_modules/morph/data/*.*
+usr/share/framerd/modules/builtin/morph/*.scm
+usr/share/framerd/modules/builtin/morph/data/*.*
 
