@@ -152,11 +152,10 @@ SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/ovmerge \
 	       exe/scripts/fdpkg
 
-CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config \
-	$(DESTDIR)@data_dir@ $(DESTDIR)@module_dir@ \
-	$(DESTDIR)@builtin_module_dir@ \
-	$(DESTDIR)@safe_module_dir@ \
-	$(DESTDIR)@builtin_module_dir@/safe	
+CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@data_dir@ \
+	$(DESTDIR)@module_dir@ 	$(DESTDIR)@module_dir@/safe \
+	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_module_dir@/safe \
+	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_module_dir@/safe
 
 FRAMERD_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
@@ -362,7 +361,7 @@ dbginstall:
 
 # Make rules
 
-%.o: %.c @abs_top_srcdir@/fileinfo include/framerd/revision.h
+%.o: %.c @abs_top_srcdir@/fileinfo include/framerd/revision.h include/framerd/config.h
 	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
 	@$(MSG) CC $@ $<
 
@@ -1149,7 +1148,10 @@ workdirs: $(DESTDIR)@framerd_rundir@ $(DESTDIR)@framerd_logdir@ \
 	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@bugjar@
 
-confdirs: $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@ $(DESTDIR)@package_dir@ \
+confdirs: $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@ \
+	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@safe_local_module_dir@ \
+	  $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@safe_builtin_module_dir@ \
+	  $(DESTDIR)@package_dir@ \
 	  $(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/daemons \
 	  $(DESTDIR)@config_dir@/servlets \
 	  $(DESTDIR)@config_dir@/config
@@ -1158,14 +1160,16 @@ confdirs: $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@ $(DESTDIR)@package_
 		$(SYSINSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
-$(DESTDIR)@config_dir@:
+$(DESTDIR)@config_dir@ $(DESTDIR)@data_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets $(DESTDIR)@config_dir@/config: \
 		$(DESTDIR)@config_dir@
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@safe_builtin_module_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-$(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@ $(DESTDIR)@data_dir@:
+$(DESTDIR)@local_module_dir@ $(DESTDIR)@safe_local_module_dir@:
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+$(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@package_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
@@ -1180,20 +1184,20 @@ BEINGMETA_MODULE_DIRS= \
 	gnosys/bookmarks gnosys/funnel gnosys/metakeys \
 	gnosys/cgi gnosys/gnoweb gnosys/metakeys/cgi \
 	gnosys/webapp
-link-modules: $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@ \
-		$(DESTDIR)@module_dir@ $(DESTDIR)@data_dir@
+link-modules: $(DESTDIR)@local_module_dir@ $(DESTDIR)@safe_local_module_dir@ \
+		$(DESTDIR)@local_module_dir@ $(DESTDIR)@data_dir@
 	@$(MSG) Installing symbolic links for Scheme modules
 	@@SUDO@ln -sf $(BUILD)/etc/*.el @data_dir@
-	@@SUDO@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@module_dir@
-	@for x in $(MODULE_DIRS); do \
-	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@module_dir@; \
+	@@SUDO@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@local_module_dir@
+	@for x in $(LOCAL_MODULE_DIRS); do \
+	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@local_module_dir@; \
 	 done
-	@@SUDO@ln -sf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_module_dir@
-	@for x in $(SAFE_MODULE_DIRS); do \
-	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_module_dir@; done
-	@@SUDO@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_module_dir@
-	@@SUDO@ln -sf $(BUILD)/src/fdweb/fdxml $(DESTDIR)@safe_module_dir@
-	@@SUDO@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@module_dir@
+	@@SUDO@ln -sf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_local_module_dir@
+	@for x in $(SAFE_LOCAL_MODULE_DIRS); do \
+	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_local_module_dir@; done
+	@@SUDO@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_local_module_dir@
+	@@SUDO@ln -sf $(BUILD)/src/fdweb/fdxml $(DESTDIR)@safe_local_module_dir@
+	@@SUDO@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@local_module_dir@
 copy-modules: $(DESTDIR)@builtin_module_dir@ \
               $(DESTDIR)@safe_builtin_module_dir@ $(DESTDIR)@data_dir@
 	@$(ECHO) Copying Scheme modules to install directories

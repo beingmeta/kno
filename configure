@@ -755,6 +755,8 @@ apache_log_dir
 shared_config
 local_config
 config_dir
+safe_local_module_dir
+local_module_dir
 safe_builtin_module_dir
 builtin_module_dir
 safe_module_dir
@@ -853,6 +855,7 @@ with_local_config
 with_shared_config
 with_package_dir
 with_module_dir
+with_local_modules
 with_builtin_module_dir
 with_module_path
 with_safe_module_path
@@ -1580,6 +1583,7 @@ Optional Packages:
 --with-shared-config location
 --with-package-dir location
 --with-module-dir location
+--with-local-modules location
 --with-builtin-module-dir location
 --with-module-path location
 --with-safe-module-path location
@@ -2958,6 +2962,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 
@@ -6987,6 +6993,17 @@ module_dir=$with_module_dir
 safe_module_dir=$with_module_dir/safe
 
 
+# Check whether --with-local_modules was given.
+if test "${with_local_modules+set}" = set; then :
+  withval=$with_local_modules;
+else
+  with_local_modules=$with_data_dir/modules/local
+fi
+
+local_module_dir=$with_local_modules
+safe_local_module_dir=$with_local_modules/safe
+
+
 # Check whether --with-builtin_module_dir was given.
 if test "${with_builtin_module_dir+set}" = set; then :
   withval=$with_builtin_module_dir;
@@ -6997,11 +7014,17 @@ fi
 builtin_module_dir=$with_builtin_module_dir
 safe_builtin_module_dir=$builtin_module_dir/safe
 
-builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%/%.scm:$with_builtin_module_dir/%.scm
+builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%/%.scm:$builtin_module_dir/%.scm
 safe_builtin_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%/%.scm:$builtin_module_dir/safe/%.scm
 
-default_module_path=$module_dir/%/module.scm:$module_dir/%/%.scm:$module_dir/%.scm:$builtin_module_path
-safe_default_module_path=$safe_module_dir/%/module.scm:$safe_module_dir/%/%.scm:$safe_module_dir/%.scm:$builtin_safe_module_path
+installed_module_path=$module_dir/%/module.scm:$module_dir/%/%.scm:$module_dir/%.scm
+safe_installed_module_path=$module_dir/safe/%/module.scm:$module_dir/safe/%/%.scm:$module_dir/safe/%.scm
+
+local_module_path=$local_module_dir/%/module.scm:$local_module_dir/%/%.scm:$local_module_dir/%.scm
+safe_local_module_path=$local_module_dir/safe/%/module.scm:$local_module_dir/safe/%/%.scm:$local_module_dir/safe/%.scm
+
+default_module_path=$local_module_path:$installed_module_path:$builtin_module_path
+safe_default_module_path=$local_module_path:$installed_module_path:$safe_builtin_module_path
 
 
 # Check whether --with-module_path was given.
