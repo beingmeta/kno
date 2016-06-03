@@ -4,7 +4,8 @@
 (use-module '{optimize aws aws/s3})
 
 (define default-target "@module_dir@")
-(define default-safe-target "@safe_module_dir@")
+
+(define default-packages "@package_dir@")
 
 ;; fdpkg link <src> [target]
 ;; Link into target directory
@@ -53,12 +54,32 @@
     (link-file module-dir (mkpath target (basename module-dir)) opts records))
   records)
 
-(define (main cmd src (dest) (pkgname))
-  (default! dest (config 'target default-target))
+(define (src? arg)
+  (has-prefix arg1 {"/" "s3:" "git:" "http:" "https:"}))
+
+(define (main-install cmd arg1 (arg2 #f) . rest)
+  (tryif (equal? cmd "install")
+    (let ((source (if (src? arg1) arg1
+		      (if (src? arg2) arg2
+			  (error |NoValidSource| install 
+				 ))))))))
+
+(define (main cmd modname (source #f) (pkgname))
+  (default! pkgname
+    (config 'pkgname
+	    (or (and source (basename source #t))
+		modname)))
+  (when (has-prefix modname {"/" "s3:" "git:" "http:" "https:"})
+    )
+  (let ((pkgpath (mkpath (config 'packages default-packages)
+			 pkgname))
+	(modpath (mkpath (config 'target default-target)
+			 modname)))
+    
   (cond ((equal? cmd "link")
 	 (make-link src dest opts))
 	((not (equal? cmd "link")))
-	((has-suffix src ".zip"))))
+	((has-suffix src ".zip")))))
 
 
 
