@@ -235,8 +235,8 @@ SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
 	src/modules/facebook/*.scm src/modules/google/*.scm \
 	src/modules/paypal/*.scm src/modules/twitter/*.scm \
 	src/modules/misc/*.scm src/modules/tests/*.scm \
-	src/modules/domutils/*.scm src/modules/knodules/*.scm \
-	src/modules/textindex/*.scm src/modules/jwt/*.scm \
+	src/safe_modules/domutils/*.scm src/safe_modules/knodules/*.scm \
+	src/safe_modules/textindex/*.scm src/safe_modules/jwt/*.scm \
 	src/beingmeta/chopper/*.scm src/beingmeta/morph/*.scm \
 	src/beingmeta/gnosys/*.scm
 
@@ -562,12 +562,9 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 	      src/cmodules/sundown/sundown.c include/framerd/*.h        \
 	      etc/*.in ${SRC_HEADERS} tests/scheme/*.scm 
 	@# We skip module.scm files because they are always links
-	@#  to other files (with more distinctive names).  And we
-	@#  also skip the sandbox entries because they are always
-	@#  links to other files or directories
-	@find src/modules src/fdweb/xhtml -name "*.scm" | \
+	@#  to other files (with more distinctive names).
+	@find src/modules src/safe_modules src/fdweb/xhtml -name "*.scm" | \
 		grep -v module.scm | \
-		grep -v sandbox | \
 		xargs etags -o TAGS -a
 
 CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
@@ -591,7 +588,6 @@ SCHEMETAGS: ${SCHEME_MODULES}
 	@#  to other files (with more distinctive names)
 	@find src/modules src/fdweb/xhtml -name "*.scm" | \
 		grep -v module.scm | \
-		grep -v sandbox | \
 		xargs etags -o SCHEMETAGS -a
 	@ls -l SCHEMETAGS
 
@@ -1189,12 +1185,12 @@ link-modules: $(DESTDIR)@local_module_dir@ $(DESTDIR)@safe_local_module_dir@ \
 	@$(MSG) Installing symbolic links for Scheme modules
 	@@SUDO@ln -sf $(BUILD)/etc/*.el @data_dir@
 	@@SUDO@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@local_module_dir@
-	@for x in $(LOCAL_MODULE_DIRS); do \
+	@for x in $(MODULE_DIRS); do \
 	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@local_module_dir@; \
 	 done
-	@@SUDO@ln -sf $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_local_module_dir@
-	@for x in $(SAFE_LOCAL_MODULE_DIRS); do \
-	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@safe_local_module_dir@; done
+	@@SUDO@ln -sf $(BUILD)/src/safe_modules/*.scm $(DESTDIR)@safe_local_module_dir@
+	@for x in $(SAFE_MODULE_DIRS); do \
+	   @SUDO@ln -sf $(BUILD)/src/safe_modules/$$x $(DESTDIR)@safe_local_module_dir@; done
 	@@SUDO@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_local_module_dir@
 	@@SUDO@ln -sf $(BUILD)/src/fdweb/fdxml $(DESTDIR)@safe_local_module_dir@
 	@@SUDO@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@local_module_dir@
@@ -1210,10 +1206,10 @@ copy-modules: $(DESTDIR)@builtin_module_dir@ \
 		@SUDO@ rm -f $(DESTDIR)@builtin_module_dir@/$$x/module.scm; \
 		@SUDO@ ln -sf $$x.scm $(DESTDIR)@builtin_module_dir@/$$x/module.scm; fi; \
 	 done
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/sandbox/*.scm $(DESTDIR)@safe_builtin_module_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/safe_modules/*.scm $(DESTDIR)@safe_builtin_module_dir@
 	@for x in $(SAFE_MODULE_DIRS); do \
 	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_builtin_module_dir@/$$x; \
-	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$$x/* $(DESTDIR)@safe_builtin_module_dir@/$$x; \
+	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/safe_modules/$$x/* $(DESTDIR)@safe_builtin_module_dir@/$$x; \
 	   if test -f $(DESTDIR)@safe_builtin_module_dir@/$$x/$$x.scm; then \
 		@SUDO@ rm -f $(DESTDIR)@safe_builtin_module_dir@/$$x/module.scm; \
 		@SUDO@ ln -sf $$x.scm $(DESTDIR)@safe_builtin_module_dir@/$$x/module.scm; fi; \
