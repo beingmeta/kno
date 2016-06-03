@@ -19,6 +19,9 @@ usr/share/framerd/modules/builtin/safe/domutils
 usr/share/framerd/modules/builtin/safe/knodules
 usr/share/framerd/modules/builtin/safe/textindex
 usr/share/framerd/modules/installed
+usr/share/framerd/modules/installed/safe
+usr/share/framerd/modules/local
+usr/share/framerd/modules/local/safe
 usr/etc
 usr/etc/framerd
 usr/etc/framerd/config
