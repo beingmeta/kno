@@ -1,5 +1,5 @@
-usr/share/framerd/scheme_modules/chopper/*.scm
-usr/share/framerd/scheme_modules/chopper/english/*.scm
-usr/share/framerd/scheme_modules/chopper/english/*.data
-usr/share/framerd/scheme_modules/chopper/english/*.dtype
-usr/share/framerd/scheme_modules/chopper/english/*.table
+usr/share/framerd/modules/builtin/chopper/*.scm
+usr/share/framerd/modules/builtin/chopper/english/*.scm
+usr/share/framerd/modules/builtin/chopper/english/*.data
+usr/share/framerd/modules/builtin/chopper/english/*.dtype
+usr/share/framerd/modules/builtin/chopper/english/*.table
