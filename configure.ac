@@ -724,7 +724,11 @@ AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=$prefix/share/frame
 AC_DEFINE_UNQUOTED(FD_DATA_DIR,"$with_data_dir")
 data_dir=$with_data_dir
 
-default_config_dir=$prefix/etc/framerd;
+if test $prefix == "/usr"; then
+   default_config_dir=/etc/framerd;
+else
+   default_config_dir=$prefix/etc/framerd;
+fi
 
 AC_ARG_WITH(config_dir,--with-config-dir location,,with_config_dir=$default_config_dir)
 config_dir=$with_config_dir

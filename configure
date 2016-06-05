@@ -6940,7 +6940,11 @@ _ACEOF
 
 data_dir=$with_data_dir
 
-default_config_dir=$prefix/etc/framerd;
+if test $prefix == "/usr"; then
+   default_config_dir=/etc/framerd;
+else
+   default_config_dir=$prefix/etc/framerd;
+fi
 
 
 # Check whether --with-config_dir was given.
