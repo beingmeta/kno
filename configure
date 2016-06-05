@@ -741,7 +741,6 @@ framerd_logdir
 framerd_rundir
 logdir
 rundir
-install_modules_target
 fdaemoninstall
 fdaemon
 admininstall
@@ -755,12 +754,14 @@ apache_log_dir
 shared_config
 local_config
 config_dir
-safe_local_module_dir
+default_safe_module_path
+default_module_path
+local_safe_module_dir
 local_module_dir
-safe_builtin_module_dir
+safe_shared_module_dir
+shared_module_dir
+builtin_safe_module_dir
 builtin_module_dir
-safe_module_dir
-module_dir
 package_dir
 data_dir
 systemd_loc
@@ -2806,7 +2807,6 @@ elif (test "x${prefix}" == "x/usr/local"); then
 else localstatedir="\${prefix}/var";
 fi
 
-install_modules_target="copy-modules"
 threads_default="yes"
 checkfdtype_default="no"
 shared_default="yes"
@@ -2871,14 +2871,16 @@ apache_log_dir="/var/log/apache"
 apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
-builtin_module_path=""
+builtin_module_dir=""
+builtin_safe_module_dir=""
+shared_module_dir=""
+safe_shared_module_dir=""
+local_module_dir=""
+local_shared_module_dir=""
+default_module_path=""
+default_safe_module_path=""
+module_path=""
 safe_module_path=""
-site_module_path=""
-safe_site_module_path=""
-extra_module_path=""
-safe_extra_module_path=""
-module_load_path=""
-safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
 DATAFILES="etc/version"
@@ -2962,6 +2964,9 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
+
 
 
 
@@ -6989,8 +6994,8 @@ else
   with_module_dir=$with_data_dir/modules/installed
 fi
 
-module_dir=$with_module_dir
-safe_module_dir=$with_module_dir/safe
+shared_module_dir=$with_module_dir
+safe_shared_module_dir=$with_module_dir/safe
 
 
 # Check whether --with-local_modules was given.
@@ -7012,19 +7017,19 @@ else
 fi
 
 builtin_module_dir=$with_builtin_module_dir
-safe_builtin_module_dir=$builtin_module_dir/safe
+builtin_safe_module_dir=$builtin_module_dir/safe
 
 builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%/%.scm:$builtin_module_dir/%.scm
-safe_builtin_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%/%.scm:$builtin_module_dir/safe/%.scm
+builtin_safe_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%/%.scm:$builtin_module_dir/safe/%.scm
 
-installed_module_path=$module_dir/%/module.scm:$module_dir/%/%.scm:$module_dir/%.scm
-safe_installed_module_path=$module_dir/safe/%/module.scm:$module_dir/safe/%/%.scm:$module_dir/safe/%.scm
+shared_module_path=$shared_module_dir/%/module.scm:$shared_module_dir/%/%.scm:$shared_module_dir/%.scm
+safe_shared_module_path=$safe_shared_module_dir/%/module.scm:$safe_shared_module_dir/%/%.scm:$safe_shared_module_dir/%.scm
 
 local_module_path=$local_module_dir/%/module.scm:$local_module_dir/%/%.scm:$local_module_dir/%.scm
 safe_local_module_path=$local_module_dir/safe/%/module.scm:$local_module_dir/safe/%/%.scm:$local_module_dir/safe/%.scm
 
-default_module_path=$local_module_path:$installed_module_path:$builtin_module_path
-safe_default_module_path=$local_module_path:$installed_module_path:$safe_builtin_module_path
+default_module_path=$local_module_path:$shared_module_path:$builtin_module_path
+default_safe_module_path=$local_module_path:$safe_shared_module_path:$builtin_safe_module_path
 
 
 # Check whether --with-module_path was given.
@@ -7039,16 +7044,18 @@ fi
 if test "${with_safe_module_path+set}" = set; then :
   withval=$with_safe_module_path;
 else
-  with_safe_module_path=$safe_default_module_path
+  with_safe_module_path=$default_safe_module_path
 fi
 
+module_path=$with_module_path
+safe_module_path=$with_safe_module_path
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_LOADPATH "$with_module_path"
+#define FD_DEFAULT_LOADPATH "$module_path"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define FD_DEFAULT_SAFE_LOADPATH "$with_safe_module_path"
+#define FD_DEFAULT_SAFE_LOADPATH "$safe_module_path"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF

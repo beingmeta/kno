@@ -153,9 +153,9 @@ SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/fdpkg
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@data_dir@ \
-	$(DESTDIR)@module_dir@ 	$(DESTDIR)@module_dir@/safe \
-	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_module_dir@/safe \
-	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_module_dir@/safe
+	$(DESTDIR)@shared_module_dir@ 	$(DESTDIR)@shared_safe_module_dir@ \
+	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
+	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
 FRAMERD_HEADERS= \
        $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
@@ -531,7 +531,7 @@ uninstall-core:
 uninstall-all: uninstall-core
 	rm -rf $(DESTDIR)@data_dir@ $(DESTDIR)@config_dir@ \
 		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-		$(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@
+		$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@
 uninstall: uninstall-core
 	@if (test -d $(DESTDIR)@data_dir@); then \
 	  $(MSG) $(DESTDIR)@data_dir@ "still exists"; fi
@@ -977,7 +977,7 @@ apt-upload upload-apt: dist/debs.done
 # Installation targets
 
 install: install-core install-cmodules install-data \
-	 @install_modules_target@ @setup_target@
+	 install-modules @setup_target@
 install-core: confdirs workdirs @INSTALLI18N@          \
 	 install-static install-shared install-headers \
          install-exe install-scripts install-boot
@@ -1144,9 +1144,9 @@ workdirs: $(DESTDIR)@framerd_rundir@ $(DESTDIR)@framerd_logdir@ \
 	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@bugjar@
 
-confdirs: $(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@ \
-	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@safe_local_module_dir@ \
-	  $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@safe_builtin_module_dir@ \
+confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
+	  $(DESTDIR)@shared_module_dir@ $(DESTDIR)@shared_safe_module_dir@ \
+	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@ \
 	  $(DESTDIR)@package_dir@ \
 	  $(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/daemons \
 	  $(DESTDIR)@config_dir@/servlets \
@@ -1161,11 +1161,10 @@ $(DESTDIR)@config_dir@ $(DESTDIR)@data_dir@:
 $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets $(DESTDIR)@config_dir@/config: \
 		$(DESTDIR)@config_dir@
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@safe_builtin_module_dir@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-$(DESTDIR)@local_module_dir@ $(DESTDIR)@safe_local_module_dir@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-$(DESTDIR)@module_dir@ $(DESTDIR)@safe_module_dir@:
+
+$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
+  $(DESTDIR)@shared_module_dir@ $(DESTDIR)@shared_safe_module_dir@ \
+  $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@package_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
@@ -1180,50 +1179,64 @@ BEINGMETA_MODULE_DIRS= \
 	gnosys/bookmarks gnosys/funnel gnosys/metakeys \
 	gnosys/cgi gnosys/gnoweb gnosys/metakeys/cgi \
 	gnosys/webapp
-link-modules: $(DESTDIR)@local_module_dir@ $(DESTDIR)@safe_local_module_dir@ \
-		$(DESTDIR)@local_module_dir@ $(DESTDIR)@data_dir@
+
+install-modules: install-builtin-modules install-web-modules install-beingmeta-modules
+install-builtin-modules: install-standard-modules install-safe-modules install-support
+
+install-standard-modules: $(DESTDIR)@builtin_module_dir@
+	@$(ECHO) Copying standard Scheme modules to  @builtin_module_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.scm $(DESTDIR)@builtin_module_dir@
+	@for x in `find src/modules -type d -exec basename {} \\;`; do \
+	   if test $$x != modules; then \
+	     $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/$$x; \
+	     $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$$x/* $(DESTDIR)@builtin_module_dir@/$$x; \
+	     if test -f $(DESTDIR)@builtin_module_dir@/$$x/$$x.scm; then \
+		@SUDO@ rm -f $(DESTDIR)@builtin_module_dir@/$$x/module.scm; \
+		@SUDO@ ln -sf $$x.scm $(DESTDIR)@builtin_module_dir@/$$x/module.scm; fi; \
+	     fi; \
+	 done
+install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@
+	@$(ECHO) Copying safe Scheme modules to  @builtin_safe_module_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/safe_modules/*.scm $(DESTDIR)@builtin_safe_module_dir@
+	@for x in `find src/safe_modules -type d -exec basename {} \\;`; do \
+	   if test $$x != safe_modules; then \
+	     $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_safe_module_dir@/$$x; \
+	     $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/safe_modules/$$x/* $(DESTDIR)@builtin_safe_module_dir@/$$x; \
+	     if test -f $(DESTDIR)@builtin_safe_module_dir@/$$x/$$x.scm; then \
+		@SUDO@ rm -f $(DESTDIR)@builtin_safe_module_dir@/$$x/module.scm; \
+		@SUDO@ ln -sf $$x.scm $(DESTDIR)@builtin_safe_module_dir@/$$x/module.scm; fi; \
+	     fi; \
+	 done
+
+install-web-modules: $(DESTDIR)@builtin_safe_module_dir@
+	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_safe_module_dir@/xhtml
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/* $(DESTDIR)@builtin_safe_module_dir@/xhtml
+	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_safe_module_dir@/fdxml
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/fdxml/* $(DESTDIR)@builtin_safe_module_dir@/fdxml
+
+install-beingmeta-modules: $(DESTDIR)@builtin_module_dir@
+	@for x in $(BEINGMETA_MODULE_DIRS); do \
+	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/$$x; \
+	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/beingmeta/$$x/*.* $(DESTDIR)@builtin_module_dir@/$$x; \
+	 done
+
+install-support: $(DESTDIR)@data_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
+
+link-modules: $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@ \
+		$(DESTDIR)@data_dir@
 	@$(MSG) Installing symbolic links for Scheme modules
 	@@SUDO@ln -sf $(BUILD)/etc/*.el @data_dir@
 	@@SUDO@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@local_module_dir@
 	@for x in $(MODULE_DIRS); do \
 	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@local_module_dir@; \
 	 done
-	@@SUDO@ln -sf $(BUILD)/src/safe_modules/*.scm $(DESTDIR)@safe_local_module_dir@
+	@@SUDO@ln -sf $(BUILD)/src/safe_modules/*.scm $(DESTDIR)@local_safe_module_dir@
 	@for x in $(SAFE_MODULE_DIRS); do \
-	   @SUDO@ln -sf $(BUILD)/src/safe_modules/$$x $(DESTDIR)@safe_local_module_dir@; done
-	@@SUDO@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@safe_local_module_dir@
-	@@SUDO@ln -sf $(BUILD)/src/fdweb/fdxml $(DESTDIR)@safe_local_module_dir@
+	   @SUDO@ln -sf $(BUILD)/src/safe_modules/$$x $(DESTDIR)@local_safe_module_dir@; done
+	@@SUDO@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@local_safe_module_dir@
+	@@SUDO@ln -sf $(BUILD)/src/fdweb/fdxml $(DESTDIR)@local_safe_module_dir@
 	@@SUDO@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@local_module_dir@
-copy-modules: $(DESTDIR)@builtin_module_dir@ \
-              $(DESTDIR)@safe_builtin_module_dir@ $(DESTDIR)@data_dir@
-	@$(ECHO) Copying Scheme modules to install directories
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.scm $(DESTDIR)@builtin_module_dir@
-	@for x in $(MODULE_DIRS); do \
-	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/$$x; \
-	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$$x/* $(DESTDIR)@builtin_module_dir@/$$x; \
-	   if test -f $(DESTDIR)@builtin_module_dir@/$$x/$$x.scm; then \
-		@SUDO@ rm -f $(DESTDIR)@builtin_module_dir@/$$x/module.scm; \
-		@SUDO@ ln -sf $$x.scm $(DESTDIR)@builtin_module_dir@/$$x/module.scm; fi; \
-	 done
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/safe_modules/*.scm $(DESTDIR)@safe_builtin_module_dir@
-	@for x in $(SAFE_MODULE_DIRS); do \
-	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_builtin_module_dir@/$$x; \
-	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/safe_modules/$$x/* $(DESTDIR)@safe_builtin_module_dir@/$$x; \
-	   if test -f $(DESTDIR)@safe_builtin_module_dir@/$$x/$$x.scm; then \
-		@SUDO@ rm -f $(DESTDIR)@safe_builtin_module_dir@/$$x/module.scm; \
-		@SUDO@ ln -sf $$x.scm $(DESTDIR)@safe_builtin_module_dir@/$$x/module.scm; fi; \
-	 done
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_builtin_module_dir@/xhtml
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/* $(DESTDIR)@safe_builtin_module_dir@/xhtml
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@safe_builtin_module_dir@/fdxml
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/fdxml/* $(DESTDIR)@safe_builtin_module_dir@/fdxml
-	@for x in $(BEINGMETA_MODULE_DIRS); do \
-	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/$$x; \
-	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/beingmeta/$$x/*.* $(DESTDIR)@builtin_module_dir@/$$x; \
-	 done
-
-install-modules: @install_modules_target@
 
 logdirs: $(DESTDIR)@framerd_logdir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@daemon_logdir@

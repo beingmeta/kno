@@ -36,7 +36,6 @@ elif (test "x${prefix}" == "x/usr/local"); then
 else localstatedir="\${prefix}/var";
 fi
 
-install_modules_target="copy-modules"
 threads_default="yes"
 checkfdtype_default="no"
 shared_default="yes"
@@ -101,14 +100,16 @@ apache_log_dir="/var/log/apache"
 apache_modinfo="/etc/apache2"
 APXSFLAGS=
 A2EN="none"
-builtin_module_path=""
+builtin_module_dir=""
+builtin_safe_module_dir=""
+shared_module_dir=""
+safe_shared_module_dir=""
+local_module_dir=""
+local_shared_module_dir=""
+default_module_path=""
+default_safe_module_path=""
+module_path=""
 safe_module_path=""
-site_module_path=""
-safe_site_module_path=""
-extra_module_path=""
-safe_extra_module_path=""
-module_load_path=""
-safe_module_load_path=""
 CMODULES=""
 INSTALLCMODULES=""
 DATAFILES="etc/version"
@@ -184,12 +185,16 @@ AC_SUBST(scheme_builtins_init)
 AC_SUBST(systemd_loc)
 AC_SUBST(data_dir)
 AC_SUBST(package_dir)
-AC_SUBST(module_dir)
-AC_SUBST(safe_module_dir)
 AC_SUBST(builtin_module_dir)
-AC_SUBST(safe_builtin_module_dir)
+AC_SUBST(builtin_safe_module_dir)
+AC_SUBST(shared_module_dir)
+AC_SUBST(safe_shared_module_dir)
 AC_SUBST(local_module_dir)
-AC_SUBST(safe_local_module_dir)
+AC_SUBST(local_safe_module_dir)
+AC_SUBST(local_module_dir)
+AC_SUBST(local_safe_module_dir)
+AC_SUBST(default_module_path)
+AC_SUBST(default_safe_module_path)
 AC_SUBST(config_dir)
 AC_SUBST(local_config)
 AC_SUBST(shared_config)
@@ -203,7 +208,6 @@ AC_SUBST(admin_group)
 AC_SUBST(admininstall)
 AC_SUBST(fdaemon)
 AC_SUBST(fdaemoninstall)
-AC_SUBST(install_modules_target)
 AC_SUBST(rundir)
 AC_SUBST(logdir)
 AC_SUBST(framerd_rundir)
@@ -736,8 +740,8 @@ AC_ARG_WITH(package_dir,--with-package-dir location,,with_package_dir=$with_data
 package_dir=$with_package_dir
 
 AC_ARG_WITH(module_dir,--with-module-dir location,,with_module_dir=$with_data_dir/modules/installed)
-module_dir=$with_module_dir
-safe_module_dir=$with_module_dir/safe
+shared_module_dir=$with_module_dir
+safe_shared_module_dir=$with_module_dir/safe
 
 AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$with_data_dir/modules/local)
 local_module_dir=$with_local_modules
@@ -745,25 +749,27 @@ safe_local_module_dir=$with_local_modules/safe
 
 AC_ARG_WITH(builtin_module_dir,--with-builtin-module-dir location,,with_builtin_module_dir=$with_data_dir/modules/builtin)
 builtin_module_dir=$with_builtin_module_dir
-safe_builtin_module_dir=$builtin_module_dir/safe
+builtin_safe_module_dir=$builtin_module_dir/safe
 
 builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%/%.scm:$builtin_module_dir/%.scm
-safe_builtin_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%/%.scm:$builtin_module_dir/safe/%.scm
+builtin_safe_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%/%.scm:$builtin_module_dir/safe/%.scm
 
-installed_module_path=$module_dir/%/module.scm:$module_dir/%/%.scm:$module_dir/%.scm
-safe_installed_module_path=$module_dir/safe/%/module.scm:$module_dir/safe/%/%.scm:$module_dir/safe/%.scm
+shared_module_path=$shared_module_dir/%/module.scm:$shared_module_dir/%/%.scm:$shared_module_dir/%.scm
+safe_shared_module_path=$safe_shared_module_dir/%/module.scm:$safe_shared_module_dir/%/%.scm:$safe_shared_module_dir/%.scm
 
 local_module_path=$local_module_dir/%/module.scm:$local_module_dir/%/%.scm:$local_module_dir/%.scm
 safe_local_module_path=$local_module_dir/safe/%/module.scm:$local_module_dir/safe/%/%.scm:$local_module_dir/safe/%.scm
 
-default_module_path=$local_module_path:$installed_module_path:$builtin_module_path
-safe_default_module_path=$local_module_path:$installed_module_path:$safe_builtin_module_path
+default_module_path=$local_module_path:$shared_module_path:$builtin_module_path
+default_safe_module_path=$local_module_path:$safe_shared_module_path:$builtin_safe_module_path
 
 AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
-AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_path=$safe_default_module_path)
+AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_path=$default_safe_module_path)
+module_path=$with_module_path
+safe_module_path=$with_safe_module_path
 
-AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$with_module_path")
-AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$with_safe_module_path")
+AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$module_path")
+AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$safe_module_path")
 AC_DEFINE_UNQUOTED(FD_DLOAD_SUFFIX,"$shared_suffix")
 
 AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=$libdir/framerd/%.$shared_suffix:$libdir/lib%.$shared_suffix:$prefix/lib/framerd/%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:)
