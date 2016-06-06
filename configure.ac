@@ -391,6 +391,8 @@ AC_PROG_RANLIB
 m4_include([etc/ax_pthread.m4])
 m4_include([etc/ax_check_link_flag.m4])
 
+AC_CHECK_LIB(pthread,pthread_rwlock_wrlock)
+
 AC_DEFINE_UNQUOTED(FD_VERSION,"$FDVERSION")
 AC_DEFINE_UNQUOTED(FD_MAJOR_VERSION,$FDMAJOR)
 AC_DEFINE_UNQUOTED(FD_MINOR_VERSION,$FDMINOR)
