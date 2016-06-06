@@ -866,7 +866,7 @@ staging/framerd_@FDVERSION@: \
 	$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 	@git archive --prefix=framerd_@FDVERSION@/ \
 	            -o staging/framerd_@FDVERSION@.tar HEAD;
-	cd src/modules; git archive --prefix=framerd_@FDVERSION@/src/modules \
+	cd src/modules; git archive --prefix=framerd_@FDVERSION@/src/modules/ \
 	            -o ../../staging/framerd_modules_@FDVERSION@.tar HEAD;
 	cd staging; tar -xf framerd_@FDVERSION@.tar; rm framerd_@FDVERSION@.tar;
 	cd staging; tar -xf framerd_modules_@FDVERSION@.tar; rm framerd_modules_@FDVERSION@.tar;
