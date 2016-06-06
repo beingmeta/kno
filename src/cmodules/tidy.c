@@ -33,7 +33,7 @@
 #ifndef UNTIDY_HEADERS
 FD_EXPORT int fd_init_tidy(void) FD_LIBINIT_FN;
 fd_exception fd_TidyError=_("Tidy Error");
-static int tidy_init=0;
+static long long int tidy_init=0;
 
 /* Opt setting */
 
@@ -258,7 +258,7 @@ FD_EXPORT int fd_init_tidy()
   fdtype tidy_module;
   if (tidy_init) return 0;
 
-  tidy_init=1;
+  tidy_init=u8_millitime();
   doctype_symbol=fd_intern("DOCTYPE");
   dontfix_symbol=fd_intern("DONTFIX");
   xhtml_symbol=fd_intern("XHTML");

@@ -756,7 +756,7 @@ static time_t sqlite_time_to_xtime(const char *s,struct U8_XTIME *xtp)
 
 /* Initialization */
 
-static int sqlite_init=0;
+static long long int sqlite_init=0;
 
 static struct FD_EXTDB_HANDLER sqlite_handler=
   {"sqlite",NULL,NULL,NULL,NULL};
@@ -782,7 +782,7 @@ FD_EXPORT int fd_init_sqlite()
                                  fd_extdb_type,FD_VOID));
   fd_defn(module,fd_make_cprim1x("SQLITE/CLOSE",sqlite_close_prim,1,
                                  fd_extdb_type,FD_VOID));
-  sqlite_init=1;
+  sqlite_init=u8_millitime();
 
   merge_symbol=fd_intern("%MERGE");
   sorted_symbol=fd_intern("%SORTED");

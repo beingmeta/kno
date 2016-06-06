@@ -1151,7 +1151,7 @@ static fdtype *mongodb_pool_fetchn(fd_pool p,int n,fdtype *oids)
 /* Initialization */
 
 FD_EXPORT int fd_init_mongodb(void) FD_LIBINIT_FN;
-static int mongodb_initialized=0;
+static long long int mongodb_initialized=0;
 
 #define DEFAULT_FLAGS (FD_SHORT2DTYPE(FD_MONGODB_DEFAULTS))
 
@@ -1159,7 +1159,7 @@ FD_EXPORT int fd_init_mongodb()
 {
   fdtype module;
   if (mongodb_initialized) return 0;
-  mongodb_initialized=1;
+  mongodb_initialized=u8_millitime();
 
   module=fd_new_module("MONGODB",(FD_MODULE_SAFE));
 

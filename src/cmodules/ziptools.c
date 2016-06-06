@@ -423,14 +423,14 @@ static fdtype zipfeatures_prim()
 
 FD_EXPORT int fd_init_ziptools(void) FD_LIBINIT_FN;
 
-static int ziptools_init=0;
+static long long int ziptools_init=0;
 
 FD_EXPORT int fd_init_ziptools()
 {
   fdtype ziptools_module;
   if (ziptools_init) return 0;
 
-  ziptools_init=1;
+  ziptools_init=u8_millitime();
   ziptools_module=fd_new_module("ZIPTOOLS",(FD_MODULE_SAFE));
 
   fd_zipfile_type=fd_register_cons_type("ZIPFILE");

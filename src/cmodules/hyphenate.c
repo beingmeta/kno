@@ -33,7 +33,7 @@ static struct HYPHEN_DICTIONARY {
   char *filename; HyphenDict *dict;
   struct HYPHEN_DICTIONARY *next;} *other_dicts;
 
-static int hyphenate_init=0;
+static long long int hyphenate_init=0;
 static u8_mutex hyphen_dict_lock;
 
 static fdtype hyphenate_word_prim(fdtype string_arg)
@@ -258,7 +258,7 @@ FD_EXPORT int fd_init_hyphenate()
   fdtype hyphenate_module;
   if (hyphenate_init) return 0;
 
-  hyphenate_init=1;
+  hyphenate_init=u8_millitime();
 
   if (default_hyphenation_file)
     default_dict=hnj_hyphen_load(default_hyphenation_file);

@@ -134,14 +134,14 @@ static fdtype zlib_uncompress_prim(fdtype input_arg,fdtype text,fdtype init_fact
 
 FD_EXPORT int fd_init_zlib(void) FD_LIBINIT_FN;
 
-static int zlib_init=0;
+static long long int zlib_init=0;
 
 FD_EXPORT int fd_init_zlib()
 {
   fdtype zlib_module;
   if (zlib_init) return 0;
 
-  zlib_init=1;
+  zlib_init=u8_millitime();
   zlib_module=fd_new_module("ZLIB",(FD_MODULE_SAFE));
 
   fd_idefn(zlib_module,

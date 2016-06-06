@@ -25,7 +25,7 @@
 
 FD_EXPORT int fd_init_crypto(void) FD_LIBINIT_FN;
 
-static int crypto_init=0;
+static long long int crypto_init=0;
 
 fdtype (*unpacker)(unsigned char *,size_t len);
 
@@ -187,7 +187,7 @@ FD_EXPORT int fd_init_crypto()
   fdtype crypto_module;
   if (crypto_init) return 0;
 
-  crypto_init=1;
+  crypto_init=u8_millitime();
   crypto_module=fd_new_module("CRYPTO",(FD_MODULE_SAFE));
 
   u8_init_cryptofns();

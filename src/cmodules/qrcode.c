@@ -165,7 +165,7 @@ static fdtype qrencode_prim(fdtype string,fdtype opts)
 
 /* Initialization */
 
-static int qrencode_init=0;
+static long long int qrencode_init=0;
 
 FD_EXPORT int fd_init_qrcode()
 {
@@ -185,7 +185,7 @@ FD_EXPORT int fd_init_qrcode()
   fd_defn(module,
           fd_make_cprim2x("QRENCODE",qrencode_prim,1,
                           fd_string_type,FD_VOID,-1,FD_VOID));
-  qrencode_init=1;
+  qrencode_init=u8_millitime();
 
   fd_finish_module(module);
 
