@@ -22,8 +22,6 @@
 
 FD_EXPORT int fd_init_exif(void) FD_LIBINIT_FN;
 
-static int exif_init=0;
-
 static fdtype exif2lisp(ExifEntry *exentry)
 {
   switch (exentry->format) {
@@ -271,13 +269,15 @@ static fdtype exif_get(fdtype x,fdtype prop)
     else return FD_EMPTY_CHOICE;}
 }
 
+static long long int exif_init=0;
+
 FD_EXPORT int fd_init_exif()
 {
   fdtype exif_module;
   struct TAGINFO *scan=taginfo;
   if (exif_init) return 0;
   /* u8_register_source_file(_FILEINFO); */
-  exif_init=1;
+  exif_init=u8_millitime();
   exif_module=fd_new_module("EXIF",(FD_MODULE_SAFE));
   FD_INIT_STATIC_CONS(&exif_tagmap,fd_hashtable_type);
   fd_make_hashtable(&exif_tagmap,139);

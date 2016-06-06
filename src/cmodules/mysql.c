@@ -1336,7 +1336,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
 
 /* Initialization */
 
-static int mysql_initialized=0;
+static long long int mysql_initialized=0;
 
 static struct FD_EXTDB_HANDLER mysql_handler=
   {"mysql",NULL,NULL,NULL,NULL};
@@ -1391,7 +1391,8 @@ FD_EXPORT int fd_init_mysql()
           fd_make_cprim2x("MYSQL/REFRESH",refresh_mysqldb,1,
                           fd_extdb_type,FD_VOID,
                           -1,FD_VOID));
-  mysql_initialized=1;
+
+  mysql_initialized=u8_millitime();
 
   boolean_symbol=fd_intern("BOOLEAN");
   merge_symbol=fd_intern("%MERGE");

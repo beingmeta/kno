@@ -583,7 +583,7 @@ static fdtype imagick_getkeys(fdtype fdwand)
   else return FD_VOID;
 }
 
-static int imagick_init=0;
+static long long int imagick_init=0;
 
 static void init_symbols()
 {
@@ -604,7 +604,7 @@ int fd_init_imagick()
 {
   fdtype imagick_module;
   if (imagick_init) return 0;
-  else imagick_init=1;
+  else imagick_init=u8_millitime();
   imagick_module=fd_new_module("IMAGICK",(FD_MODULE_SAFE));
 
   fd_imagick_type=fd_register_cons_type("IMAGICK");
