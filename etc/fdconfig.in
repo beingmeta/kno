@@ -13,10 +13,18 @@ case $1 in
 	echo "@libdir@";;
     bin)
 	echo "@exec_prefix@/bin";;
-    modules)
-	echo "@module_dir@";;
-    safe)
+    builtin_modules)
+	echo "@builtin_module_dir@";;
+    builtin_safe_modules)
 	echo "@safe_module_dir@";;
+    shared_modules)
+	echo "@shared_module_dir@";;
+    shared_safe_modules)
+	echo "@shared_safe_module_dir@";;
+    local_modules)
+	echo "@local_module_dir@";;
+    local_safe_modules)
+	echo "@local_safe_module_dir@";;
     cmodules)
 	echo "@libdir@/framerd";;
     etc)
