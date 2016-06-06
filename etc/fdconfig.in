@@ -1,6 +1,14 @@
 #!/bin/sh
 prefix=@prefix@
 case $1 in
+    version)
+	echo "@FDVERSION@";;
+    major)
+	echo "@FDMAJOR@";;
+    minor)
+	echo "@FDMINOR@";;
+    release)
+	echo "@FDRELEASE@";;
     config)
 	echo "@local_config@";;
     cflags)
@@ -27,6 +35,16 @@ case $1 in
 	echo "@local_safe_module_dir@";;
     cmodules)
 	echo "@libdir@/framerd";;
+    webuser)
+	echo "@webuser@";;
+    fdaemon)
+	echo "@fdaemon@";;
+    admin_group)
+	echo "@admin_group@";;
+    rundir)
+	echo "@framerd_rundir@";;
+    logdir)
+	echo "@framerd_logdir@";;
     etc)
 	echo "@config_dir@";;
     servlets)
@@ -35,6 +53,6 @@ case $1 in
 	echo "@config_dir@/daemons/";;
     data)
 	echo "@data_dir@";;
-    else)
+    *)
 	echo "don't recognize config setting $1";;
 esac
