@@ -9,11 +9,11 @@ export DH_OPTIONS
 
 
 %:
-	dh $@  --with autotools-dev --parallel
+	dh $@ --with autotools-dev --parallel --with systemd
 
 override_dh_auto_configure:
 	dh_auto_configure -- --libdir=$(DESTDIR)/usr/lib \
-		--without-sudo --with-perftools --disable-devmode \
+		--without-sudo --with-perftools \
 		--with-bootsystem=allboot --with-systemd=/lib/systemd/system
 
 override_dh_auto_install:
