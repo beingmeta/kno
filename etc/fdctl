@@ -1,8 +1,8 @@
 OP=$1
 RAWSCRIPT=fdstartall
-if ${OP} == "stop"; then RAWSCRIPT=fdstopall; fi 
-if ! which systemctl; then
-    echo -n
+if test "x${OP}" == "xstop"; then RAWSCRIPT=fdstopall; fi 
+if ! which systemctl 2>&1 > /dev/null; then
+    echo "No systemctl";
 elif test -f /lib/systemd/system/framerd.service; then
     echo "systemctl ${OP} framerd";
     sudo systemctl ${OP} framerd;
@@ -14,8 +14,8 @@ elif test -f /usr/lib/systemd/system/framerd.service; then
 else
     echo "No systemd FramerD configuration";
 fi
-if ! which initctl; then
-    echo -n
+if ! which initctl 2>&1 > /dev/null; then
+    echo "No initcl";
 elif test -f /etc/init/framerd.conf; then
     echo initctl ${OP} framerd;
     sudo initctl ${OP} framerd;
@@ -23,6 +23,7 @@ elif test -f /etc/init/framerd.conf; then
 else
     echo No upstart FramerD configuration;
 fi
+echo "Not dead yet"
 if test -f /etc/init.d/framerd; then
     echo /etc/init.d/framerd ${OP};
     sudo /etc/init.d/framerd ${OP};
