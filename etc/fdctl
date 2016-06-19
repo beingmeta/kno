@@ -1,6 +1,11 @@
 OP=$1
 RAWSCRIPT=fdstartall
-if test "x${OP}" == "xstop"; then RAWSCRIPT=fdstopall; fi 
+if test "x${OP}" == "xstop"; then 
+   RAWSCRIPT=fdstopall; 
+elif test "x${OP}" == "xrestart"; then
+     sudo fdrestart;
+     exit;
+fi 
 if ! which systemctl 2>&1 > /dev/null; then
     echo "No systemctl";
 elif test -f /lib/systemd/system/framerd.service; then
