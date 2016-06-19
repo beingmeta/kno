@@ -29,10 +29,14 @@ usr/bin/fdsignal
 usr/bin/fdconfig
 usr/bin/fdstart
 usr/bin/fdstop
-usr/bin/fdstartall
-usr/bin/fdstopall
-usr/bin/fdstatus
+usr/bin/fdctl
 usr/bin/fdlog
+usr/bin/fdstartall
+usr/bin/fdcleanup
+usr/bin/fdstopall
+usr/bin/fdrestart
+usr/bin/fdstatus
+usr/bin/fdpkg
 etc/framerd/servers
 etc/framerd/boot/*
 usr/share/framerd/fdconsole.el
