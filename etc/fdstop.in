@@ -23,9 +23,13 @@ for rundir in ${TARGETS}; do
 	    if test -f ${rundir}/*.ppid; then sleep 4; fi
 	    if test -f ${rundir}/*.ppid; then sleep 8; fi
 	    echo "Killing stubborn manager ${pid} (${npid})";
-     	    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo  kill -9 ${npid} &&
-    		unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo  rm -f ${ppid} ${rundir}/${base}.nospawn;
-	    if test -f ${ppid}; then echo "Warning: Server manager ${ppid} (${npid}) couldn't be terminated or killed"; fi;
+     	    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
+	            sudo kill -9 ${npid} &&
+    		unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
+	            sudo rm -f ${ppid} ${rundir}/${base}.nospawn;
+	    if test -f ${ppid}; then\
+	      echo "Warning: Server manager ${ppid} (${npid}) couldn't be terminated or killed"; 
+	    fi;
 	fi;
     done;
 done;
@@ -40,7 +44,7 @@ for rundir in ${TARGETS}; do
      	    if test -f ${pid}; then 
 		export npid=`cat ${pid}`
 		echo "Terminating server ${pid} (${npid})";
-		unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo  kill ${npid}; 
+		unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill ${npid}; 
 	    else echo "Server ${pid} died naturally"; fi
 	fi;
     done;

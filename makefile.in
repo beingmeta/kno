@@ -145,8 +145,9 @@ STATIC_EXECUTABLES=static/fdexec@suffix@ static/fdconsole@suffix@ \
 	static/fdbatch@suffix@ \
 	static/fdservlet@suffix@ static/fdserver@suffix@
 SHELL_SCRIPTS=etc/fdsetconfig etc/fdgetconfig etc/fdconfig \
-	etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup \
-	etc/fdsignal etc/fdstatus  etc/fdlog etc/fdctl
+	etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall \
+	etc/fdsignal etc/fdrestart etc/fdstatus  etc/fdlog etc/fdctl \
+	etc/fdcleanup
 SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
                exe/scripts/make-hash-index \
                exe/scripts/make-oidpool \

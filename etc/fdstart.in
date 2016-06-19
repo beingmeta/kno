@@ -28,7 +28,7 @@ for TARGET in ${TARGETS}; do
     export DAEMONCFG="${LAUNCHCFG} ${COMMONCFG} STATEDIR=@daemon_rundir@ FDSTART=${TARGET}";
     for sock in $(find -L ${TARGET} -name "*.sock");
     do if (readlink -e ${sock}>/dev/null);
-       then @SUDO@ touch @servlet_rundir@/`basename ${sock}`.nospawn;
+       then sudo touch @servlet_rundir@/`basename ${sock}`.nospawn;
 	    echo "Starting servlet manager for ${sock}";
 	    ${WEBSTART} LOGFILE=@servlet_logdir@/`basename ${sock} .sock`.log \
 		 fdservlet @servlet_rundir@/`basename ${sock}` ${LAUNCHCFG} \
@@ -41,10 +41,10 @@ for TARGET in ${TARGETS}; do
     export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}";
     for cfg in $(find -L ${TARGET} -name "*.cfg");
     do if (readlink -e ${cfg}>/dev/null);
-       then @SUDO@ touch @servlet_rundir@/`basename ${cfg} .cfg`.nospawn;
+       then sudo touch @servlet_rundir@/`basename ${cfg} .cfg`.nospawn;
 	    echo "Starting servlet manager using ${cfg}";
 	    ${WEBSTART} LOGFILE=@servlet_logdir@/`basename ${cfg} .cfg`.log \
-		 fdservlet @servlet_rundir@/`basename ${cfg} .cfg` ${LAUNCHCFG} \
+		 fdservlet @servlet_rundir@/`basename ${cfg} .cfg`.sock ${LAUNCHCFG} \
 		 CONFIG=`readlink -e ${cfg}` ${SERVLETCFG} ${XARGS};
        else echo "Missing servlet controller " ${cfg} " linked to missing " `readlink -m ${cfg}`;
        fi;
@@ -54,7 +54,7 @@ for TARGET in ${TARGETS}; do
     export SERVLETCFG="${COMMONCFG} STATEDIR=@servlet_rundir@ FDSTART=${TARGET}";
     for addr in $(find -L ${TARGET} -name "*@*");
     do if (readlink -e ${addr}>/dev/null);
-       then @SUDO@ touch @servlet_rundir@/`basename ${addr}`.nospawn;
+       then sudo touch @servlet_rundir@/`basename ${addr}`.nospawn;
 	    echo "Starting servlet manager using ${addr}";
 	    ${WEBSTART} LOGFILE=@servlet_logdir@/`basename ${addr}`.log \
 		 fdservlet @servlet_rundir@/`basename ${addr}` ${LAUNCHCFG} \

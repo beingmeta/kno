@@ -1,0 +1,40 @@
+#!/bin/bash
+SIGNAL=${SIGNAL:-TERM}
+CMD="kill -s"
+
+restartworker( ) {
+  ppidfile=$1
+  pname=`echo ${ppidfile} | cut -f1 -d'.'`;
+  if test -f "${pname}.pid"; then
+    pid=`cat ${pname}.pid`;
+    sudo ${CMD} ${SIGNAL} ${pid}
+    echo "Sent ${SIGNAL} to servlet ${pid} (${pname}.pid)"; 
+  else
+    echo "No servlet ${pname}.pid for ${ppidfile}"; 
+  fi;
+}
+
+if test "$#" == "0"; then
+    for ppidfile in @servlet_rundir@/${name}.ppid; 
+      do restartworker $ppidfile; done;
+    for ppidfile in @daemon_rundir@/${name}.ppid; 
+      do restartworker $ppidfile; done;
+elif (test "x$1" == "xservlets"); then
+    for ppidfile in @servlet_rundir@/${name}.ppid; 
+      do restartworker $ppidfile; done;
+elif (test "x$1" == "xdaemons"); then
+    for ppidfile in @daemon_rundir@/${name}.ppid; 
+      do restartworker $ppidfile; done;
+else for name in $*; do
+	 if test -f ${name}; then
+	     restartworker ${name};
+	 elif test -f ${name}.ppid; then
+	     restartworker "${name}.ppid";
+	 elif test -f @daemon_rundir@/${name}.ppid; then
+	     restartworker "@daemon_rundir@/${name}.ppid";
+	 elif test -f @servlet_rundir@/${name}.ppid; then
+	     restartworker "@servlet_rundir@/${name}.ppid";
+	 else echo "fdrestart: Couldn't find task ${name}";
+	 fi;
+     done;
+fi;
