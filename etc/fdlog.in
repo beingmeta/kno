@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 name=$1
 cmd=${2:watch}
 LOGFILE=""
@@ -14,15 +14,15 @@ else
     echo "fdstatus: Couldn't find activity ${name}";
     exit;
 fi;
-if test "x${LOGFILE}" == "x"; then
+if test "x${LOGFILE}" = "x"; then
     echo "No log file for ${name}";
     exit;
-elif test "x${cmd}" == "x"; then
+elif test "x${cmd}" = "x"; then
     exec tail -n 30 -f ${LOGFILE};
     exit;
-elif test ${cmd} == "watch"; then    
+elif test ${cmd} = "watch"; then    
     exec tail -n 100 -f ${LOGFILE};
-elif test ${cmd} == "more"; then
+elif test ${cmd} = "more"; then
     exec less ${LOGFILE};
 elif [[ ${cmd} =~ ^-[0123456789]+$ ]]; then
     exec tail -f -n ${cmd:1} ${LOGFILE};

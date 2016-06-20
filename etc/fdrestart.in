@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 SIGNAL=${SIGNAL:-TERM}
 CMD="kill -s"
 
@@ -14,15 +14,15 @@ restartworker( ) {
   fi;
 }
 
-if test "$#" == "0"; then
+if test "$#" = "0"; then
     for ppidfile in @servlet_rundir@/${name}.ppid; 
       do restartworker $ppidfile; done;
     for ppidfile in @daemon_rundir@/${name}.ppid; 
       do restartworker $ppidfile; done;
-elif (test "x$1" == "xservlets"); then
+elif test "x$1" = "xservlets"; then
     for ppidfile in @servlet_rundir@/${name}.ppid; 
       do restartworker $ppidfile; done;
-elif (test "x$1" == "xdaemons"); then
+elif test "x$1" = "xdaemons"; then
     for ppidfile in @daemon_rundir@/${name}.ppid; 
       do restartworker $ppidfile; done;
 else for name in $*; do

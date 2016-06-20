@@ -1,8 +1,8 @@
 OP=$1
 RAWSCRIPT=fdstartall
-if test "x${OP}" == "xstop"; then 
+if test "x${OP}" = "xstop"; then 
    RAWSCRIPT=fdstopall; 
-elif test "x${OP}" == "xrestart"; then
+elif test "x${OP}" = "xrestart"; then
      sudo fdrestart;
      exit;
 fi 
