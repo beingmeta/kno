@@ -112,7 +112,7 @@ SCHEMEIO_OBJS=src/scheme/fileprims.o src/scheme/dbfileprims.o
 FDWEB_OBJS=src/fdweb/fdweb.o src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
 	src/fdweb/xmldata.o src/fdweb/mime.o src/fdweb/email.o          \
 	src/fdweb/uriprims.o src/fdweb/xmleval.o src/fdweb/cgiexec.o    \
-	src/fdweb/json.o @dnso@ @curlo@
+	src/fdweb/json.o @ldnso@ @curlo@
 TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 	src/texttools/porter.o src/texttools/phonetic.o
 TAGGER_OBJS= src/tagger/tagger.o src/tagger/ofsm.o src/tagger/tagxtract.o
@@ -188,7 +188,7 @@ FRAMERD_SOURCES=\
 	src/scheme/fileprims.c src/scheme/dbfileprims.c                \
 	src/scheme/timeprims.c  src/scheme/extdb.c                     \
 	src/scheme/reqstate.c                                          \
-	src/fdweb/fdweb.c src/fdweb/json.c src/fdweb/dns.c             \
+	src/fdweb/fdweb.c src/fdweb/json.c src/fdweb/ldns.c            \
 	src/fdweb/xmloutput.c src/fdweb/xmlinput.c src/fdweb/xmldata.c \
 	src/fdweb/xmleval.c src/fdweb/cgiexec.c src/fdweb/uriprims.c   \
 	src/fdweb/mime.c src/fdweb/email.c src/fdweb/curl.c            \

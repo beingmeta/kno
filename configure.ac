@@ -58,7 +58,7 @@ fdaemoninstall=""
 libc_pthreads="no"
 libc_dlopen="no"
 curlo=""
-dnso=""
+ldnso=""
 curlconfig=""
 curl_default="no"
 dns_default="no"
@@ -177,7 +177,7 @@ AC_SUBST(mshared_suffix)
 AC_SUBST(dynamic_cflag)
 AC_SUBST(curlconfig)
 AC_SUBST(curlo)
-AC_SUBST(dnso)
+AC_SUBST(ldnso)
 AC_SUBST(exifo)
 AC_SUBST(ipevalo)
 AC_SUBST(suffix)
@@ -1431,12 +1431,13 @@ dnl Build with primitives accessing DNS resolution functions, if available
 AC_CHECK_HEADERS(resolv.h)
 AC_CHECK_HEADERS(arpa/nameser.h)
 AC_CHECK_HEADERS(netinet/in.h)
-AC_CHECK_LIB(resolv,res_query,dns_default="yes")
+AC_CHECK_HEADERS(netdb.h)
+AC_CHECK_LIB(ldns,ldns_resolver_query,dns_default="yes")
 AC_ARG_WITH(dns,--with[out]-dns Use dns in fdweb,,with_dns=$dns_default)
 if test "x$with_dns" = "xyes"; then
-  AC_CHECK_LIB(resolv,res_query)
+  AC_CHECK_LIB(ldns,ldns_resolver_query)
   AC_DEFINE(FD_WITH_DNS,1)
-  dnso="src/fdweb/dns.o"
+  ldnso="src/fdweb/ldns.o"
 else
   AC_DEFINE(FD_WITH_DNS,0)
 fi

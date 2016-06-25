@@ -772,7 +772,7 @@ xstatic_exe_libs
 suffix
 ipevalo
 exifo
-dnso
+ldnso
 curlo
 curlconfig
 dynamic_cflag
@@ -2844,7 +2844,7 @@ fdaemoninstall=""
 libc_pthreads="no"
 libc_dlopen="no"
 curlo=""
-dnso=""
+ldnso=""
 curlconfig=""
 curl_default="no"
 dns_default="no"
@@ -11031,13 +11031,25 @@ fi
 
 done
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for res_query in -lresolv" >&5
-$as_echo_n "checking for res_query in -lresolv... " >&6; }
-if ${ac_cv_lib_resolv_res_query+:} false; then :
+for ac_header in netdb.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "netdb.h" "ac_cv_header_netdb_h" "$ac_includes_default"
+if test "x$ac_cv_header_netdb_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_NETDB_H 1
+_ACEOF
+
+fi
+
+done
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ldns_resolver_query in -lldns" >&5
+$as_echo_n "checking for ldns_resolver_query in -lldns... " >&6; }
+if ${ac_cv_lib_ldns_ldns_resolver_query+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lresolv  $LIBS"
+LIBS="-lldns  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -11047,27 +11059,27 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char res_query ();
+char ldns_resolver_query ();
 int
 main ()
 {
-return res_query ();
+return ldns_resolver_query ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_resolv_res_query=yes
+  ac_cv_lib_ldns_ldns_resolver_query=yes
 else
-  ac_cv_lib_resolv_res_query=no
+  ac_cv_lib_ldns_ldns_resolver_query=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_resolv_res_query" >&5
-$as_echo "$ac_cv_lib_resolv_res_query" >&6; }
-if test "x$ac_cv_lib_resolv_res_query" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ldns_ldns_resolver_query" >&5
+$as_echo "$ac_cv_lib_ldns_ldns_resolver_query" >&6; }
+if test "x$ac_cv_lib_ldns_ldns_resolver_query" = xyes; then :
   dns_default="yes"
 fi
 
@@ -11080,13 +11092,13 @@ else
 fi
 
 if test "x$with_dns" = "xyes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for res_query in -lresolv" >&5
-$as_echo_n "checking for res_query in -lresolv... " >&6; }
-if ${ac_cv_lib_resolv_res_query+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ldns_resolver_query in -lldns" >&5
+$as_echo_n "checking for ldns_resolver_query in -lldns... " >&6; }
+if ${ac_cv_lib_ldns_ldns_resolver_query+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lresolv  $LIBS"
+LIBS="-lldns  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -11096,38 +11108,38 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char res_query ();
+char ldns_resolver_query ();
 int
 main ()
 {
-return res_query ();
+return ldns_resolver_query ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_resolv_res_query=yes
+  ac_cv_lib_ldns_ldns_resolver_query=yes
 else
-  ac_cv_lib_resolv_res_query=no
+  ac_cv_lib_ldns_ldns_resolver_query=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_resolv_res_query" >&5
-$as_echo "$ac_cv_lib_resolv_res_query" >&6; }
-if test "x$ac_cv_lib_resolv_res_query" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ldns_ldns_resolver_query" >&5
+$as_echo "$ac_cv_lib_ldns_ldns_resolver_query" >&6; }
+if test "x$ac_cv_lib_ldns_ldns_resolver_query" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBRESOLV 1
+#define HAVE_LIBLDNS 1
 _ACEOF
 
-  LIBS="-lresolv $LIBS"
+  LIBS="-lldns $LIBS"
 
 fi
 
   $as_echo "#define FD_WITH_DNS 1" >>confdefs.h
 
-  dnso="src/fdweb/dns.o"
+  ldnso="src/fdweb/ldns.o"
 else
   $as_echo "#define FD_WITH_DNS 0" >>confdefs.h
 
