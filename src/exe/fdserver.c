@@ -44,6 +44,8 @@ FD_EXPORT int fd_update_file_modules(int force);
 
 static int daemonize=0, foreground=0, pidwait=1;
 
+static long long state_files_written=0;
+
 #define nobytes(in,nbytes) (FD_EXPECT_FALSE(!(fd_needs_bytes(in,nbytes))))
 #define havebytes(in,nbytes) (FD_EXPECT_TRUE(fd_needs_bytes(in,nbytes)))
 
@@ -343,18 +345,19 @@ static void write_cmd_file(int argc,char **argv)
 
 static void cleanup_state_files()
 {
-  u8_string exit_filename=fd_runbase_filename(".exit");
-  FILE *exitfile=u8_fopen(exit_filename,"w");
-  if (pid_file) u8_removefile(pid_file);
-  if (cmd_file) u8_removefile(cmd_file);
-  if (nid_file) u8_removefile(nid_file);
-  if (exitfile) {
-    struct U8_XTIME xt; struct U8_OUTPUT out;
-    char timebuf[64]; double elapsed=u8_elapsed_time();
-    u8_now(&xt); U8_INIT_FIXED_OUTPUT(&out,sizeof(timebuf),timebuf);
-    u8_xtime_to_iso8601(&out,&xt);
-    fprintf(exitfile,"%d@%s(%f)\n",getpid(),timebuf,elapsed);
-    fclose(exitfile);}
+  if (state_files_written) {
+    u8_string exit_filename=fd_runbase_filename(".exit");
+    FILE *exitfile=u8_fopen(exit_filename,"w");
+    if (pid_file) u8_removefile(pid_file);
+    if (cmd_file) u8_removefile(cmd_file);
+    if (nid_file) u8_removefile(nid_file);
+    if (exitfile) {
+      struct U8_XTIME xt; struct U8_OUTPUT out;
+      char timebuf[64]; double elapsed=u8_elapsed_time();
+      u8_now(&xt); U8_INIT_FIXED_OUTPUT(&out,sizeof(timebuf),timebuf);
+      u8_xtime_to_iso8601(&out,&xt);
+      fprintf(exitfile,"%d@%s(%f)\n",getpid(),timebuf,elapsed);
+      fclose(exitfile);}}
 }
 
 /* Core functions */
@@ -1382,6 +1385,7 @@ static void write_state_files()
         i++;}}
     else u8_log(LOG_NOTICE,Startup,"temp.socket\n");
     errno=0;}
+  state_files_written=u8_microtime();
   atexit(cleanup_state_files);
 }
 
