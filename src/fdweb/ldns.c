@@ -133,7 +133,9 @@ FD_EXPORT void fd_init_dns_c()
   module=fd_new_module("FDWEB",(0));
 
   fd_idefn(module,fd_make_cprim2x
-           ("DNS/GET",dns_query,1,fd_string_type,FD_VOID,-1,FD_VOID));
+           ("DNS/GET",dns_query,1,
+            fd_string_type,FD_VOID,
+            fd_symbol_type,FD_VOID));
 
   u8_register_source_file(_FILEINFO);
 }
