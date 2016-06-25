@@ -9,7 +9,7 @@ URL:            http://www.beingmeta.com/
 Source0:        framerd-3.9.2.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  libu8-devel curl-devel mysql-devel libtidy-devel
+BuildRequires:  libu8-devel curl-devel mysql-devel libtidy-devel libldns-devel
 Requires:       libu8 >= 2.2.0 curl >= 7.15.1
 
 %description
