@@ -772,6 +772,7 @@ xstatic_exe_libs
 suffix
 ipevalo
 exifo
+dnso
 curlo
 curlconfig
 dynamic_cflag
@@ -902,6 +903,7 @@ with_tls
 enable_ipeval
 with_global_ipeval
 with_curl
+with_dns
 with_exif
 with_qrcode
 enable_rpath
@@ -1624,6 +1626,7 @@ Optional Packages:
 --without-tls Force use of threadlocal storage
 --without-global-ipeval Use global lock and variables for ipeval
 --without-curl Use libcurl in fdweb
+--without-dns Use dns in fdweb
 --without-exif Use libexif in fdweb
 --without-qrcode Create qrcode binary module
 
@@ -2841,8 +2844,10 @@ fdaemoninstall=""
 libc_pthreads="no"
 libc_dlopen="no"
 curlo=""
+dnso=""
 curlconfig=""
 curl_default="no"
+dns_default="no"
 exifo=""
 doi18n="no"
 rpmflags=""
@@ -2976,6 +2981,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -10986,6 +10992,144 @@ done
   curlconfig="\`curl-config --libs\`"
 else
   $as_echo "#define FD_WITH_CURL 0" >>confdefs.h
+
+fi
+
+for ac_header in resolv.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "resolv.h" "ac_cv_header_resolv_h" "$ac_includes_default"
+if test "x$ac_cv_header_resolv_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_RESOLV_H 1
+_ACEOF
+
+fi
+
+done
+
+for ac_header in arpa/nameser.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "arpa/nameser.h" "ac_cv_header_arpa_nameser_h" "$ac_includes_default"
+if test "x$ac_cv_header_arpa_nameser_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_ARPA_NAMESER_H 1
+_ACEOF
+
+fi
+
+done
+
+for ac_header in netinet/in.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "netinet/in.h" "ac_cv_header_netinet_in_h" "$ac_includes_default"
+if test "x$ac_cv_header_netinet_in_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_NETINET_IN_H 1
+_ACEOF
+
+fi
+
+done
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for res_query in -lresolv" >&5
+$as_echo_n "checking for res_query in -lresolv... " >&6; }
+if ${ac_cv_lib_resolv_res_query+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lresolv  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char res_query ();
+int
+main ()
+{
+return res_query ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_resolv_res_query=yes
+else
+  ac_cv_lib_resolv_res_query=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_resolv_res_query" >&5
+$as_echo "$ac_cv_lib_resolv_res_query" >&6; }
+if test "x$ac_cv_lib_resolv_res_query" = xyes; then :
+  dns_default="yes"
+fi
+
+
+# Check whether --with-dns was given.
+if test "${with_dns+set}" = set; then :
+  withval=$with_dns;
+else
+  with_dns=$dns_default
+fi
+
+if test "x$with_dns" = "xyes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for res_query in -lresolv" >&5
+$as_echo_n "checking for res_query in -lresolv... " >&6; }
+if ${ac_cv_lib_resolv_res_query+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lresolv  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char res_query ();
+int
+main ()
+{
+return res_query ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_resolv_res_query=yes
+else
+  ac_cv_lib_resolv_res_query=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_resolv_res_query" >&5
+$as_echo "$ac_cv_lib_resolv_res_query" >&6; }
+if test "x$ac_cv_lib_resolv_res_query" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBRESOLV 1
+_ACEOF
+
+  LIBS="-lresolv $LIBS"
+
+fi
+
+  $as_echo "#define FD_WITH_DNS 1" >>confdefs.h
+
+  dnso="src/fdweb/dns.o"
+else
+  $as_echo "#define FD_WITH_DNS 0" >>confdefs.h
 
 fi
 

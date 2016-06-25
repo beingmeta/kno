@@ -58,8 +58,10 @@ fdaemoninstall=""
 libc_pthreads="no"
 libc_dlopen="no"
 curlo=""
+dnso=""
 curlconfig=""
 curl_default="no"
+dns_default="no"
 exifo=""
 doi18n="no"
 rpmflags=""
@@ -175,6 +177,7 @@ AC_SUBST(mshared_suffix)
 AC_SUBST(dynamic_cflag)
 AC_SUBST(curlconfig)
 AC_SUBST(curlo)
+AC_SUBST(dnso)
 AC_SUBST(exifo)
 AC_SUBST(ipevalo)
 AC_SUBST(suffix)
@@ -1422,6 +1425,20 @@ if test $with_curl = "yes"; then
   curlconfig="\`curl-config --libs\`"
 else
   AC_DEFINE(FD_WITH_CURL,0)
+fi
+
+dnl Build with primitives accessing DNS resolution functions, if available
+AC_CHECK_HEADERS(resolv.h)
+AC_CHECK_HEADERS(arpa/nameser.h)
+AC_CHECK_HEADERS(netinet/in.h)
+AC_CHECK_LIB(resolv,res_query,dns_default="yes")
+AC_ARG_WITH(dns,--with[out]-dns Use dns in fdweb,,with_dns=$dns_default)
+if test "x$with_dns" = "xyes"; then
+  AC_CHECK_LIB(resolv,res_query)
+  AC_DEFINE(FD_WITH_DNS,1)
+  dnso="src/fdweb/dns.o"
+else
+  AC_DEFINE(FD_WITH_DNS,0)
 fi
 
 dnl Build with primitives accessing libexif, if it is available
