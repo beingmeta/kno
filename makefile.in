@@ -1351,8 +1351,8 @@ setup-none:
 # Build setups
 
 debian-build-setup:
-	sudo apt-get install -m libcurl4-openssl-dev sqlite3 \
-		libmysqlclient-dev libexif-dev libtidy-dev \
+	sudo apt-get install -m libcurl4-openssl-dev sqlite3 libldns-dev \
+		libmysqlclient-dev libexif-dev libtidy-dev libssl-dev \
 		libzip-dev libqrencode-dev apache2-dev libedit-dev \
 		dh-make devscripts dpkg-dev
 rpm-build-setup:
@@ -1409,7 +1409,12 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 		else sudo ${APXS} -i mod_fdserv.la; fi
 	sleep 5; sudo apachectl start
 
-.PHONY: fdserv update-fdserv install-fdserv
+# Meta operations
+
+update-modules:
+	git submodule update --remote --merge --recursive
+
+.PHONY: fdserv update-fdserv install-fdserv update-modules
 
 # Tracking revision information
 
