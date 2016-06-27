@@ -1142,6 +1142,36 @@ static fdtype getdirs_prim(fdtype dirname,fdtype fullpath)
   return results;
 }
 
+static fdtype getlinks_prim(fdtype dirname,fdtype fullpath)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  u8_string *contents=
+    u8_readdir(FD_STRDATA(dirname),U8_LIST_LINKS,(!(FD_FALSEP(fullpath)))), 
+    *scan=contents;
+  if (contents==NULL) return FD_ERROR_VALUE;
+  else while (*scan) {
+    fdtype string=fd_lispstring(*scan);
+    FD_ADD_TO_CHOICE(results,string);
+    scan++;}
+  u8_free(contents);
+  return results;
+}
+
+static fdtype readdir_prim(fdtype dirname,fdtype fullpath)
+{
+  fdtype results=FD_EMPTY_CHOICE;
+  u8_string *contents=
+    u8_readdir(FD_STRDATA(dirname),0,(!(FD_FALSEP(fullpath)))), 
+    *scan=contents;
+  if (contents==NULL) return FD_ERROR_VALUE;
+  else while (*scan) {
+    fdtype string=fd_lispstring(*scan);
+    FD_ADD_TO_CHOICE(results,string);
+    scan++;}
+  u8_free(contents);
+  return results;
+}
+
 /* Reading and writing DTYPEs */
 
 static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
@@ -2407,6 +2437,12 @@ FD_EXPORT void fd_init_fileio_c()
                            fd_string_type,FD_VOID,-1,FD_TRUE));
   fd_idefn(fileio_module,
            fd_make_cprim2x("GETDIRS",getdirs_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_TRUE));
+  fd_idefn(fileio_module,
+           fd_make_cprim2x("GETLINKS",getlinks_prim,1,
+                           fd_string_type,FD_VOID,-1,FD_TRUE));
+  fd_idefn(fileio_module,
+           fd_make_cprim2x("READDIR",readdir_prim,1,
                            fd_string_type,FD_VOID,-1,FD_TRUE));
 
   fd_idefn(fileio_module,fd_make_cprim0("GETCWD",getcwd_prim,0));
