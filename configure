@@ -760,6 +760,8 @@ local_safe_module_dir
 local_module_dir
 shared_safe_module_dir
 shared_module_dir
+installed_safe_module_dir
+installed_module_dir
 builtin_safe_module_dir
 builtin_module_dir
 package_dir
@@ -857,7 +859,8 @@ with_config_dir
 with_local_config
 with_shared_config
 with_package_dir
-with_module_dir
+with_installed_module_dir
+with_shared_modules
 with_local_modules
 with_builtin_module_dir
 with_module_path
@@ -1597,7 +1600,8 @@ Optional Packages:
 --with-local-config location
 --with-shared-config location
 --with-package-dir location
---with-module-dir location
+--with-installed-module-dir location
+--with-shared-module-dir location
 --with-local-modules location
 --with-builtin-module-dir location
 --with-module-path location
@@ -2890,6 +2894,8 @@ APXSFLAGS=
 A2EN="none"
 builtin_module_dir=""
 builtin_safe_module_dir=""
+installed_module_dir=""
+installed_safe_module_dir=""
 shared_module_dir=""
 shared_safe_module_dir=""
 local_module_dir=""
@@ -2981,6 +2987,8 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
+
 
 
 
@@ -7053,15 +7061,26 @@ fi
 package_dir=$with_package_dir
 
 
-# Check whether --with-module_dir was given.
-if test "${with_module_dir+set}" = set; then :
-  withval=$with_module_dir;
+# Check whether --with-installed_module_dir was given.
+if test "${with_installed_module_dir+set}" = set; then :
+  withval=$with_installed_module_dir;
 else
-  with_module_dir=$with_data_dir/modules/shared
+  with_installed_module_dir=$with_data_dir/modules/installed
 fi
 
-shared_module_dir=$with_module_dir
-shared_safe_module_dir=$with_module_dir/safe
+installed_module_dir=$with_installed_module_dir
+installed_safe_module_dir=$with_installed_module_dir/safe
+
+
+# Check whether --with-shared_modules was given.
+if test "${with_shared_modules+set}" = set; then :
+  withval=$with_shared_modules;
+else
+  with_shared_modules=$with_data_dir/modules/shared
+fi
+
+shared_module_dir=$with_shared_modules
+shared_safe_module_dir=$with_shared_modules/safe
 
 
 # Check whether --with-local_modules was given.
@@ -7085,17 +7104,20 @@ fi
 builtin_module_dir=$with_builtin_module_dir
 builtin_safe_module_dir=$builtin_module_dir/safe
 
-builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%/%.scm:$builtin_module_dir/%.scm
-builtin_safe_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%/%.scm:$builtin_module_dir/safe/%.scm
+builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%.scm
+builtin_safe_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%.scm
 
-shared_module_path=$shared_module_dir/%/module.scm:$shared_module_dir/%/%.scm:$shared_module_dir/%.scm
-shared_safe_module_path=$shared_safe_module_dir/%/module.scm:$shared_safe_module_dir/%/%.scm:$shared_safe_module_dir/%.scm
+shared_module_path=$shared_module_dir/%/module.scm:$shared_module_dir/%.scm
+shared_safe_module_path=$shared_safe_module_dir/%/module.scm:$shared_safe_module_dir/%.scm
 
-local_module_path=$local_module_dir/%/module.scm:$local_module_dir/%/%.scm:$local_module_dir/%.scm
-local_safe_module_path=$local_safe_module_dir/%/module.scm:$local_safe_module_dir/%/%.scm:$local_safe_module_dir/%.scm
+installed_module_path=$installed_module_dir/%/module.scm:$installed_module_dir/%.scm
+installed_safe_module_path=$installed_safe_module_dir/%/module.scm:$installed_safe_module_dir/%.scm
 
-default_module_path=$local_module_path:$shared_module_path:$builtin_module_path
-default_safe_module_path=$local_safe_module_path:$shared_safe_module_path:$builtin_safe_module_path
+local_module_path=$local_module_dir/%/module.scm:$local_module_dir/%.scm
+local_safe_module_path=$local_safe_module_dir/%/module.scm:$local_safe_module_dir/%.scm
+
+default_module_path=$local_module_path:$shared_module_path:$installed_module_path:$builtin_module_path
+default_safe_module_path=$local_safe_module_path:$shared_safe_module_path:$installed_safe_module_path:$builtin_safe_module_path
 
 
 # Check whether --with-module_path was given.

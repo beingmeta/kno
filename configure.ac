@@ -104,6 +104,8 @@ APXSFLAGS=
 A2EN="none"
 builtin_module_dir=""
 builtin_safe_module_dir=""
+installed_module_dir=""
+installed_safe_module_dir=""
 shared_module_dir=""
 shared_safe_module_dir=""
 local_module_dir=""
@@ -190,6 +192,8 @@ AC_SUBST(data_dir)
 AC_SUBST(package_dir)
 AC_SUBST(builtin_module_dir)
 AC_SUBST(builtin_safe_module_dir)
+AC_SUBST(installed_module_dir)
+AC_SUBST(installed_safe_module_dir)
 AC_SUBST(shared_module_dir)
 AC_SUBST(shared_safe_module_dir)
 AC_SUBST(local_module_dir)
@@ -746,9 +750,13 @@ AC_DEFINE_UNQUOTED(FD_CONFIG_FILE_PATH,"$with_local_config/%:$with_shared_config
 AC_ARG_WITH(package_dir,--with-package-dir location,,with_package_dir=$with_data_dir/packages)
 package_dir=$with_package_dir
 
-AC_ARG_WITH(module_dir,--with-module-dir location,,with_module_dir=$with_data_dir/modules/shared)
-shared_module_dir=$with_module_dir
-shared_safe_module_dir=$with_module_dir/safe
+AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,,with_installed_module_dir=$with_data_dir/modules/installed)
+installed_module_dir=$with_installed_module_dir
+installed_safe_module_dir=$with_installed_module_dir/safe
+
+AC_ARG_WITH(shared_modules,--with-shared-module-dir location,,with_shared_modules=$with_data_dir/modules/shared)
+shared_module_dir=$with_shared_modules
+shared_safe_module_dir=$with_shared_modules/safe
 
 AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$with_data_dir/modules/local)
 local_module_dir=$with_local_modules
@@ -758,17 +766,20 @@ AC_ARG_WITH(builtin_module_dir,--with-builtin-module-dir location,,with_builtin_
 builtin_module_dir=$with_builtin_module_dir
 builtin_safe_module_dir=$builtin_module_dir/safe
 
-builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%/%.scm:$builtin_module_dir/%.scm
-builtin_safe_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%/%.scm:$builtin_module_dir/safe/%.scm
+builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%.scm
+builtin_safe_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%.scm
 
-shared_module_path=$shared_module_dir/%/module.scm:$shared_module_dir/%/%.scm:$shared_module_dir/%.scm
-shared_safe_module_path=$shared_safe_module_dir/%/module.scm:$shared_safe_module_dir/%/%.scm:$shared_safe_module_dir/%.scm
+shared_module_path=$shared_module_dir/%/module.scm:$shared_module_dir/%.scm
+shared_safe_module_path=$shared_safe_module_dir/%/module.scm:$shared_safe_module_dir/%.scm
 
-local_module_path=$local_module_dir/%/module.scm:$local_module_dir/%/%.scm:$local_module_dir/%.scm
-local_safe_module_path=$local_safe_module_dir/%/module.scm:$local_safe_module_dir/%/%.scm:$local_safe_module_dir/%.scm
+installed_module_path=$installed_module_dir/%/module.scm:$installed_module_dir/%.scm
+installed_safe_module_path=$installed_safe_module_dir/%/module.scm:$installed_safe_module_dir/%.scm
 
-default_module_path=$local_module_path:$shared_module_path:$builtin_module_path
-default_safe_module_path=$local_safe_module_path:$shared_safe_module_path:$builtin_safe_module_path
+local_module_path=$local_module_dir/%/module.scm:$local_module_dir/%.scm
+local_safe_module_path=$local_safe_module_dir/%/module.scm:$local_safe_module_dir/%.scm
+
+default_module_path=$local_module_path:$shared_module_path:$installed_module_path:$builtin_module_path
+default_safe_module_path=$local_safe_module_path:$shared_safe_module_path:$installed_safe_module_path:$builtin_safe_module_path
 
 AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
 AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_path=$default_safe_module_path)
