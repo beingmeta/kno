@@ -9,7 +9,7 @@ Standards-Version: 3.9.2
 Package: bmstack
 Changelog: bmstack.changelog
 Maintainer: kh@beingmeta.com
-Depends: libu8, libu8-encodings, framerd, framerd-sqlite, framerd-doc
+Depends: libu8, libu8-encodings, framerd, framerd-sqlite, framerd-doc, framerd-core, framerd-builtin
 # Recommends:
 # Suggests:
 # Provides:
