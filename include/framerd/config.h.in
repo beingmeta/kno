@@ -460,4 +460,14 @@
 /* What kind of sanitization (if any) is being applied */
 #undef FD_SANITIZE
 
+/* Default module dirs */
+#undef FD_LOCAL_MODULE_DIR
+#undef FD_LOCAL_SAFE_MODULE_DIR
+#undef FD_INSTALLED_MODULE_DIR
+#undef FD_INSTALLED_SAFE_MODULE_DIR
+#undef FD_SHARED_MODULE_DIR
+#undef FD_SHARED_SAFE_MODULE_DIR
+#undef FD_BUILTIN_MODULE_DIR
+#undef FD_BUILTIN_SAFE_MODULE_DIR
+
 #endif

@@ -786,8 +786,18 @@ AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_
 module_path=$with_module_path
 safe_module_path=$with_safe_module_path
 
+AC_DEFINE_UNQUOTED(FD_LOCAL_MODULE_DIR,"$local_module_dir")
+AC_DEFINE_UNQUOTED(FD_LOCAL_SAFE_MODULE_DIR,"$local_safe_module_dir")
+AC_DEFINE_UNQUOTED(FD_INSTALLED_MODULE_DIR,"$installed_module_dir")
+AC_DEFINE_UNQUOTED(FD_INSTALLED_SAFE_MODULE_DIR,"$installed_safe_module_dir")
+AC_DEFINE_UNQUOTED(FD_SHARED_MODULE_DIR,"$shared_module_dir")
+AC_DEFINE_UNQUOTED(FD_SHARED_SAFE_MODULE_DIR,"$shared_safe_module_dir")
+AC_DEFINE_UNQUOTED(FD_BUILTIN_MODULE_DIR,"$builtin_module_dir")
+AC_DEFINE_UNQUOTED(FD_BUILTIN_SAFE_MODULE_DIR,"$builtin_safe_module_dir")
+
 AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$module_path")
 AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$safe_module_path")
+
 AC_DEFINE_UNQUOTED(FD_DLOAD_SUFFIX,"$shared_suffix")
 
 AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=$libdir/framerd/%.$shared_suffix:$libdir/lib%.$shared_suffix:$prefix/lib/framerd/%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:)

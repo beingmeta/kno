@@ -7139,12 +7139,46 @@ module_path=$with_module_path
 safe_module_path=$with_safe_module_path
 
 cat >>confdefs.h <<_ACEOF
+#define FD_LOCAL_MODULE_DIR "$local_module_dir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_LOCAL_SAFE_MODULE_DIR "$local_safe_module_dir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_INSTALLED_MODULE_DIR "$installed_module_dir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_INSTALLED_SAFE_MODULE_DIR "$installed_safe_module_dir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_SHARED_MODULE_DIR "$shared_module_dir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_SHARED_SAFE_MODULE_DIR "$shared_safe_module_dir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_BUILTIN_MODULE_DIR "$builtin_module_dir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_BUILTIN_SAFE_MODULE_DIR "$builtin_safe_module_dir"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
 #define FD_DEFAULT_LOADPATH "$module_path"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define FD_DEFAULT_SAFE_LOADPATH "$safe_module_path"
 _ACEOF
+
 
 cat >>confdefs.h <<_ACEOF
 #define FD_DLOAD_SUFFIX "$shared_suffix"

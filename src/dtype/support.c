@@ -2116,6 +2116,45 @@ static int config_set_reqlogonly(fdtype var,fdtype val,void *data)
     return 1;}
 }
 
+/* Getting module locations */
+
+#define LOCAL_MODULES 1
+#define LOCAL_SAFE_MODULES 2
+#define INSTALLED_MODULES 3
+#define INSTALLED_SAFE_MODULES 4
+#define SHARED_MODULES 5
+#define SHARED_SAFE_MODULES 6
+#define BUILTIN_MODULES 7
+#define BUILTIN_SAFE_MODULES 8
+
+static fdtype config_get_module_loc(fdtype var,void *which_arg)
+{
+#if (SIZEOF_LONG_LONG == SIZEOF_VOID_P)
+  long long which = (long long) which_arg;
+#else
+  int which = (int) which_arg;
+#endif
+  switch (which) {
+  case LOCAL_MODULES:
+    return fdtype_string(FD_LOCAL_MODULE_DIR);
+  case LOCAL_SAFE_MODULES:
+    return fdtype_string(FD_LOCAL_SAFE_MODULE_DIR);
+  case INSTALLED_MODULES:
+    return fdtype_string(FD_INSTALLED_MODULE_DIR);
+  case INSTALLED_SAFE_MODULES:
+    return fdtype_string(FD_INSTALLED_SAFE_MODULE_DIR);
+  case SHARED_MODULES:
+    return fdtype_string(FD_SHARED_MODULE_DIR);
+  case SHARED_SAFE_MODULES:
+    return fdtype_string(FD_SHARED_SAFE_MODULE_DIR);
+  case BUILTIN_MODULES:
+    return fdtype_string(FD_BUILTIN_MODULE_DIR);
+  case BUILTIN_SAFE_MODULES:
+    return fdtype_string(FD_BUILTIN_SAFE_MODULE_DIR);
+  default:
+    return fd_err("Bad call","config_get_module_loc",NULL,FD_VOID);}
+}
+
 /* Initialization */
 
 void fd_init_support_c()
@@ -2337,6 +2376,27 @@ void fd_init_support_c()
   fd_register_config
     ("LOGFN",_("the default log function"),
      config_get_logfn,config_set_logfn,NULL);
+  fd_register_config
+    ("LOGFNS",_("additional log functions"),
+     config_get_logfns,config_add_logfn,NULL);
+
+  fd_register_config("LOCAL_MODULES",_("value of LOCAL_MODULES"),
+                     config_get_module_loc,NULL,(void *) LOCAL_MODULES);
+  fd_register_config("LOCAL_SAFE_MODULES",_("value of LOCAL_SAFE_MODULES"),
+                     config_get_module_loc,NULL,(void *) LOCAL_SAFE_MODULES);
+  fd_register_config("INSTALLED_MODULES",_("value of INSTALLED_MODULES"),
+                     config_get_module_loc,NULL,(void *) INSTALLED_MODULES);
+  fd_register_config("INSTALLED_SAFE_MODULES",_("value of INSTALLED_SAFE_MODULES"),
+                     config_get_module_loc,NULL,(void *) INSTALLED_SAFE_MODULES);
+  fd_register_config("SHARED_MODULES",_("value of SHARED_MODULES"),
+                     config_get_module_loc,NULL,(void *) SHARED_MODULES);
+  fd_register_config("SHARED_SAFE_MODULES",_("value of SHARED_SAFE_MODULES"),
+                     config_get_module_loc,NULL,(void *) SHARED_SAFE_MODULES);
+  fd_register_config("BUILTIN_MODULES",_("value of BUILTIN_MODULES"),
+                     config_get_module_loc,NULL,(void *) BUILTIN_MODULES);
+  fd_register_config("BUILTIN_SAFE_MODULES",_("value of BUILTIN_SAFE_MODULES"),
+                     config_get_module_loc,NULL,(void *) BUILTIN_SAFE_MODULES);
+
   fd_register_config
     ("LOGFNS",_("additional log functions"),
      config_get_logfns,config_add_logfn,NULL);
