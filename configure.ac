@@ -189,7 +189,7 @@ AC_SUBST(xdynamic_scheme_libs)
 AC_SUBST(scheme_builtins_init)
 AC_SUBST(systemd_loc)
 AC_SUBST(data_dir)
-AC_SUBST(package_dir)
+AC_SUBST(unpackage_dir)
 AC_SUBST(builtin_module_dir)
 AC_SUBST(builtin_safe_module_dir)
 AC_SUBST(installed_module_dir)
@@ -747,8 +747,8 @@ shared_config=$with_shared_config
 
 AC_DEFINE_UNQUOTED(FD_CONFIG_FILE_PATH,"$with_local_config/%:$with_shared_config/%")
 
-AC_ARG_WITH(package_dir,--with-package-dir location,,with_package_dir=$with_data_dir/packages)
-package_dir=$with_package_dir
+AC_ARG_WITH(unpackage_dir,--with-unpackage-dir location,,with_unpackage_dir=$with_data_dir/packages)
+unpackage_dir=$with_unpackage_dir
 
 AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,,with_installed_module_dir=$with_data_dir/modules/installed)
 installed_module_dir=$with_installed_module_dir
@@ -794,6 +794,7 @@ AC_DEFINE_UNQUOTED(FD_SHARED_MODULE_DIR,"$shared_module_dir")
 AC_DEFINE_UNQUOTED(FD_SHARED_SAFE_MODULE_DIR,"$shared_safe_module_dir")
 AC_DEFINE_UNQUOTED(FD_BUILTIN_MODULE_DIR,"$builtin_module_dir")
 AC_DEFINE_UNQUOTED(FD_BUILTIN_SAFE_MODULE_DIR,"$builtin_safe_module_dir")
+AC_DEFINE_UNQUOTED(FD_UNPACKAGE_DIR,"$unpackage_dir")
 
 AC_DEFINE_UNQUOTED(FD_DEFAULT_LOADPATH,"$module_path")
 AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$safe_module_path")

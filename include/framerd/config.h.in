@@ -470,4 +470,7 @@
 #undef FD_BUILTIN_MODULE_DIR
 #undef FD_BUILTIN_SAFE_MODULE_DIR
 
+/* Where packages are unpacked */
+#undef FD_UNPACKAGE_DIR
+
 #endif

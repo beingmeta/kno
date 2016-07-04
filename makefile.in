@@ -1152,7 +1152,7 @@ workdirs: $(DESTDIR)@framerd_rundir@ $(DESTDIR)@framerd_logdir@ \
 confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 	  $(DESTDIR)@shared_module_dir@ $(DESTDIR)@shared_safe_module_dir@ \
 	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@ \
-	  $(DESTDIR)@package_dir@ \
+	  $(DESTDIR)@unpackage_dir@ \
 	  $(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/daemons \
 	  $(DESTDIR)@config_dir@/servlets \
 	  $(DESTDIR)@config_dir@/config
@@ -1172,7 +1172,7 @@ $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
   $(DESTDIR)@shared_module_dir@ $(DESTDIR)@shared_safe_module_dir@ \
   $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-$(DESTDIR)@package_dir@:
+$(DESTDIR)@unpackage_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets

@@ -764,7 +764,7 @@ installed_safe_module_dir
 installed_module_dir
 builtin_safe_module_dir
 builtin_module_dir
-package_dir
+unpackage_dir
 data_dir
 systemd_loc
 scheme_builtins_init
@@ -858,7 +858,7 @@ with_data_dir
 with_config_dir
 with_local_config
 with_shared_config
-with_package_dir
+with_unpackage_dir
 with_installed_module_dir
 with_shared_modules
 with_local_modules
@@ -1599,7 +1599,7 @@ Optional Packages:
 --with-config-dir location
 --with-local-config location
 --with-shared-config location
---with-package-dir location
+--with-unpackage-dir location
 --with-installed-module-dir location
 --with-shared-module-dir location
 --with-local-modules location
@@ -7051,14 +7051,14 @@ _ACEOF
 
 
 
-# Check whether --with-package_dir was given.
-if test "${with_package_dir+set}" = set; then :
-  withval=$with_package_dir;
+# Check whether --with-unpackage_dir was given.
+if test "${with_unpackage_dir+set}" = set; then :
+  withval=$with_unpackage_dir;
 else
-  with_package_dir=$with_data_dir/packages
+  with_unpackage_dir=$with_data_dir/packages
 fi
 
-package_dir=$with_package_dir
+unpackage_dir=$with_unpackage_dir
 
 
 # Check whether --with-installed_module_dir was given.
@@ -7168,6 +7168,10 @@ _ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define FD_BUILTIN_SAFE_MODULE_DIR "$builtin_safe_module_dir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define FD_UNPACKAGE_DIR "$unpackage_dir"
 _ACEOF
 
 
