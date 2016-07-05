@@ -82,6 +82,7 @@ static int skip_whitespace(u8_input s)
       return c;}
     else if ((c=='#') && (u8_probec(s)=='|')) {
       int bar=0; c=u8_getc(s);
+      /* Read block comment */
       while ((c=u8_getc(s))>=0)
         if (c=='|') bar=1;
         else if ((bar) && (c=='#')) break;
@@ -595,16 +596,19 @@ fdtype fd_parse_atom(u8_string start,int len)
     else return fd_err
            (fd_NoPointerExpressions,"fd_parse_atom",
             u8_strdup(start),FD_VOID);}
-  else if (start[0]=='#') { /* It's a constant */
+  else if (start[0]=='#') { /* It might be a constant */
+    /* Check for constant names with values (many to one) */
     int i=0; while (constant_names[i])
                if (strcmp(start,constant_names[i]) == 0)
                  return constant_values[i];
                else i++;
+    /* Check for uniquely named constants */
     i=0; while (i<256)
            if ((fd_constant_names[i])&&
                (strcasecmp(start,fd_constant_names[i])==0))
              return FD_CONSTANT(i);
            else i++;
+    /* Number syntaxes */
     if (strchr("XxOoBbEeIiDd",start[1])) {
       fdtype result=_fd_parse_number(start,-1);
       if (!(FD_FALSEP(result))) return result;}
@@ -612,10 +616,12 @@ fdtype fd_parse_atom(u8_string start,int len)
     return FD_PARSE_ERROR;}
   else {
     fdtype result;
+    /* More numbers */
     if ((isdigit(start[0])) || (start[0]=='+') ||
         (start[0]=='-') || (start[0]=='.')) {
       result=_fd_parse_number(start,-1);
       if (!(FD_FALSEP(result))) return result;}
+    /* Otherwise, it's a symbol */
     return fd_make_symbol(start,len);}
 }
 
@@ -1385,10 +1391,13 @@ fdtype fd_parser(u8_input in)
     case '!': return parse_atom(in,inchar,ch); /* pointer reference */
     default:
       if (u8_ispunct(ch)) {
+        /* This introduced a hash-punct sequence which is used
+           for other kinds of character macros. */
         u8_byte buf[16]; struct U8_OUTPUT out; int nch;
         U8_INIT_OUTPUT_X(&out,16,buf,U8_FIXED_STREAM);
         u8_putc(&out,'#'); u8_putc(&out,ch); nch=u8_getc(in);
-        while (u8_ispunct(nch)) {
+        while ((u8_ispunct(nch))&&
+               ((nch>128)||(strchr("\"([{",nch)==NULL))) {
           u8_putc(&out,nch);
           if ((out.u8_outptr-out.u8_outbuf)>11) {
             fd_seterr(fd_ParseError,"fd_parser","invalid hash # prefix",
