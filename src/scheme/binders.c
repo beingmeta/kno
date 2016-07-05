@@ -1104,6 +1104,7 @@ FD_EXPORT void fd_init_binders_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  moduleid_symbol=fd_intern("%MODULEID");
   lambda_symbol=fd_intern("LAMBDA");
   tail_symbol=fd_intern("%TAIL");
 

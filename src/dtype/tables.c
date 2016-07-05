@@ -2916,7 +2916,6 @@ void fd_init_tables_c()
   fd_copiers[fd_slotmap_type]=copy_slotmap;
   fd_comparators[fd_slotmap_type]=compare_slotmaps;
 
-
   /* SCHEMAP */
   fd_recyclers[fd_schemap_type]=recycle_schemap;
   fd_unparsers[fd_schemap_type]=unparse_schemap;

@@ -501,6 +501,7 @@ static fdtype track_ipeval_handler(fdtype expr,fd_lispenv env)
 
 FD_EXPORT void fd_init_iterators_c()
 {
+  moduleid_symbol=fd_intern("%MODULEID");
   iter_var=fd_intern("%ITER");
 
   u8_register_source_file(_FILEINFO);

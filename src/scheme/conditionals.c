@@ -207,6 +207,7 @@ FD_EXPORT void fd_init_conditionals_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  moduleid_symbol=fd_intern("%MODULEID");
   apply_marker=fd_intern("=>");
   else_symbol=fd_intern("ELSE");
 
