@@ -1394,6 +1394,7 @@ fdtype fd_parser(u8_input in)
         /* This introduced a hash-punct sequence which is used
            for other kinds of character macros. */
         u8_byte buf[16]; struct U8_OUTPUT out; int nch;
+        fdtype punct_code, punct_code_arg;
         U8_INIT_OUTPUT_X(&out,16,buf,U8_FIXED_STREAM);
         u8_putc(&out,'#'); u8_putc(&out,ch); nch=u8_getc(in);
         while ((u8_ispunct(nch))&&
@@ -1405,8 +1406,11 @@ fdtype fd_parser(u8_input in)
             return FD_PARSE_ERROR;}
           else nch=u8_getc(in);}
         u8_ungetc(in,nch);
-        return fd_make_list(2,fd_intern(buf),fd_parser(in));}
+        punct_code=fd_intern(buf);
+        punct_code_arg=fd_parser(in);
+        return fd_make_list(2,punct_code,punct_code_arg);}
       else {
+        /* In this case, it's just an atom */
         u8_ungetc(in,ch);
         return parse_atom(in,'#',-1);}}}
   default:
