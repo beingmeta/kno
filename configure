@@ -5685,6 +5685,8 @@ fi
 
 if test -d /etc/systemd; then
   default_bootsystem="systemd";
+elif test -d /lib/systemd; then
+  default_bootsystem="systemd";
 elif test -d /etc/init; then
   default_bootsystem="upstart";
  elif test -d /etc/init.d; then
