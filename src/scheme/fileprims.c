@@ -1595,7 +1595,7 @@ static fdtype load_source_for_module
   (fdtype spec,u8_string module_filename,int safe);
 static u8_string get_module_filename(fdtype spec,int safe);
 
-static int load_source_module(fdtype spec,int safe)
+static int load_source_module(fdtype spec,int safe,void *ignored)
 {
   u8_string module_filename=get_module_filename(spec,safe);
   if (module_filename) {
@@ -1668,7 +1668,7 @@ static fdtype load_source_for_module
 static fdtype reload_module(fdtype module)
 {
   if (FD_SYMBOLP(module)) {
-    int retval=load_source_module(module,0);
+    int retval=load_source_module(module,0,NULL);
     if (retval) return FD_TRUE; else return FD_FALSE;}
   else return fd_err(fd_TypeError,"reload_module",NULL,module);
 }
@@ -1676,7 +1676,7 @@ static fdtype reload_module(fdtype module)
 static fdtype safe_reload_module(fdtype module)
 {
   if (FD_SYMBOLP(module)) {
-    int retval=load_source_module(module,0);
+    int retval=load_source_module(module,0,NULL);
     if (retval) return FD_TRUE; else return FD_FALSE;}
   else return fd_err(fd_TypeError,"reload_module",NULL,module);
 }
@@ -1853,7 +1853,7 @@ static fdtype update_module_prim(fdtype spec,fdtype force)
                 u8_strdup(_("Module does not exist")),
                 spec);
       return FD_ERROR_VALUE;}}
-  else return load_source_module(spec,0);
+  else return load_source_module(spec,0,NULL);
 }
 
 static fdtype updatemodules_config_get(fdtype var,void *ignored)
