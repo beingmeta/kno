@@ -26,7 +26,7 @@ fd_exception MissingModule=_("Loading failed to resolve module");
 fd_exception OpaqueModule=_("Can't switch to opaque module");
 
 static struct MODULE_LOADER {
-  int (*loader)(fdtype,int);
+  int (*loader)(fdtype,int,void *); void *data;
   struct MODULE_LOADER *next;} *module_loaders=NULL;
 
 #if FD_THREADS_ENABLED
@@ -111,7 +111,7 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
     if ((FD_SYMBOLP(spec)) || (FD_STRINGP(spec))) {}
     else return fd_type_error(_("module name"),"fd_find_module",spec);
     while (scan) {
-      int retval=scan->loader(spec,safe);
+      int retval=scan->loader(spec,safe,scan->data);
       if (retval>0) {
         module=fd_get_module(spec,safe);
         if (FD_VOIDP(module)) return fd_err(MissingModule,NULL,NULL,spec);
@@ -171,11 +171,12 @@ int fd_persist_module(fdtype module)
 }
 
 FD_EXPORT
-void fd_add_module_loader(int (*loader)(fdtype,int))
+void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *data)
 {
   struct MODULE_LOADER *consed=u8_alloc(struct MODULE_LOADER);
   u8_lock_mutex(&module_loaders_lock);
   consed->loader=loader;
+  consed->data=data;
   consed->next=module_loaders;
   module_loaders=consed;
   u8_unlock_mutex(&module_loaders_lock);
@@ -185,7 +186,7 @@ void fd_add_module_loader(int (*loader)(fdtype,int))
 
 static fdtype dloadpath=FD_EMPTY_LIST;
 
-static int load_dynamic_module(fdtype spec,int safe)
+static int load_dynamic_module(fdtype spec,int safe,void *data)
 {
   if (FD_SYMBOLP(spec)) {
     u8_string pname=FD_SYMBOL_NAME(spec);
@@ -677,7 +678,7 @@ FD_EXPORT void fd_init_modules_c()
   fd_init_mutex(&exports_lock);
 #endif
 
-  fd_add_module_loader(load_dynamic_module);
+  fd_add_module_loader(load_dynamic_module,NULL);
   fd_register_config("DLOADPATH",
                      "Add directories for dynamic compiled modules",
                      fd_lconfig_get,fd_lconfig_push,&dloadpath);

@@ -2492,7 +2492,7 @@ FD_EXPORT void fd_init_fileio_c()
 
   fd_init_filedb_c();
 
-  fd_add_module_loader(load_source_module);
+  fd_add_module_loader(load_source_module,NULL);
   fd_register_config
     ("UPDATEMODULES","Modules to update automatically on UPDATEMODULES",
                      updatemodules_config_get,updatemodules_config_set,NULL);
