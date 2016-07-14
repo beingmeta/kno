@@ -1339,14 +1339,23 @@ static fdtype zipfile2dtypes(fdtype filename)
 
 /* Getting file sources */
 
-static u8_string file_source_fn(u8_string filename,u8_string encname,u8_string *abspath,time_t *timep,void *ignored)
+static u8_string file_source_fn(int fetch,u8_string filename,u8_string encname,
+                                u8_string *abspath,time_t *timep,
+                                void *ignored)
 {
-  u8_string data=u8_filestring(filename,encname);
-  if (data) {
+  if (fetch) {
+    u8_string data=u8_filestring(filename,encname);
+    if (data) {
+      if (abspath) *abspath=u8_abspath(filename,NULL);
+      if (timep) *timep=u8_file_mtime(filename);
+      return data;}
+    else return NULL;}
+  else {
+    time_t mtime=u8_file_mtime(filename);
+    if (mtime<0) return NULL;
     if (abspath) *abspath=u8_abspath(filename,NULL);
-    if (timep) *timep=u8_file_mtime(filename);
-    return data;}
-  else return NULL;
+    if (timep) *timep=mtime;
+    return "exists";}
 }
 
 /* File flush function */

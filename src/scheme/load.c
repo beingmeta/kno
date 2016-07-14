@@ -47,14 +47,32 @@ FD_EXPORT u8_string fd_get_source
   struct FD_SOURCEFN *scan=sourcefns;
   while (scan) {
     u8_string basepath=NULL;
-    u8_string data=scan->getsource(path,enc,&basepath,timep,
+    u8_string data=scan->getsource(1,path,enc,&basepath,timep,
                                    scan->sourcefn_data);
-    if (data) {*basepathp=basepath; return data;}
+    if (data) {
+      *basepathp=basepath;
+      fd_clear_errors(0);
+      return data;}
     else scan=scan->next;}
   return NULL;
 }
+FD_EXPORT int fd_probe_source
+  (u8_string path,u8_string *basepathp,time_t *timep)
+{
+  struct FD_SOURCEFN *scan=sourcefns;
+  while (scan) {
+    u8_string basepath=NULL;
+    u8_string data=scan->getsource(0,path,NULL,&basepath,timep,
+                                   scan->sourcefn_data);
+    if (data) {
+      *basepathp=basepath; 
+      fd_clear_errors(0);
+      return 1;}
+    else scan=scan->next;}
+  return 0;
+}
 FD_EXPORT void fd_register_sourcefn
-(u8_string (*fn)(u8_string,u8_string,u8_string *,time_t *,void *),
+(u8_string (*fn)(int op,u8_string,u8_string,u8_string *,time_t *,void *),
  void *sourcefn_data)
 {
   struct FD_SOURCEFN *new_entry=u8_alloc(struct FD_SOURCEFN);
@@ -285,7 +303,9 @@ static fdtype load_source(fdtype expr,fd_lispenv env)
   if (FD_SYMBOLP(source)) {
     fdtype config_val=fd_config_get(FD_SYMBOL_NAME(source));
     if (FD_STRINGP(config_val)) {
-      u8_log(LOG_NOTICE,"Config","Loading %s = %s",FD_SYMBOL_NAME(source),FD_STRDATA(config_val));
+      u8_log(LOG_NOTICE,"Config","Loading %s = %s",
+             FD_SYMBOL_NAME(source),
+             FD_STRDATA(config_val));
       source=config_val;}
     else if (FD_VOIDP(config_val)) {
       return fd_err(UnconfiguredSource,"load_source",

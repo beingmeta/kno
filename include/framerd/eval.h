@@ -142,13 +142,16 @@ FD_EXPORT fdtype fd_make_sproc(u8_string name,
 /* Loading files and config data */
 
 typedef struct FD_SOURCEFN {
-  u8_string (*getsource)(u8_string,u8_string,u8_string *,time_t *timep,void *);
+  u8_string (*getsource)(int op,u8_string,u8_string,u8_string *,time_t *timep,void *);
   void *sourcefn_data;
   struct FD_SOURCEFN *next;} FD_SOURCEFN;
 typedef struct FD_SOURCEFN *fd_sourcefn;
 
 FD_EXPORT u8_string fd_get_source(u8_string,u8_string,u8_string *,time_t *);
-FD_EXPORT void fd_register_sourcefn(u8_string (*fn)(u8_string,u8_string,u8_string *,time_t *,void *), void *sourcefn_data);
+FD_EXPORT int fd_probe_source(u8_string,u8_string *,time_t *);
+FD_EXPORT void fd_register_sourcefn
+  (u8_string (*fn)(int op,u8_string,u8_string,u8_string *,time_t *,void *),
+   void *sourcefn_data);
 
 FD_EXPORT int fd_load_config(u8_string sourceid);
 FD_EXPORT fdtype fd_load_source_with_date

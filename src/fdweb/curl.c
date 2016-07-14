@@ -1203,28 +1203,56 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
 
 /* Using URLs for code source */
 
-static u8_string url_sourcefn(u8_string uri,u8_string enc,
-                              u8_string *path,time_t *timep,
-                              void *ignored)
+static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
+                               u8_string *path,time_t *timep,
+                               void *ignored)
 {
   if (((strncmp(uri,"http:",5))==0) ||
       ((strncmp(uri,"https:",6))==0) ||
       ((strncmp(uri,"ftp:",4))==0)) {
-    fdtype result=fetchurl(NULL,uri);
-    fdtype content=fd_get(result,content_symbol,FD_EMPTY_CHOICE);
-    if (FD_STRINGP(content)) {
-      fdtype eurl=fd_get(result,eurl_slotid,FD_VOID);
-      fdtype filetime=fd_get(result,filetime_slotid,FD_VOID);
-      u8_string sdata=u8_strdup(FD_STRDATA(content));
-      if (FD_STRINGP(eurl)) *path=u8_strdup(FD_STRDATA(eurl));
-      if (FD_PRIM_TYPEP(filetime,fd_timestamp_type))
-        *timep=u8_mktime(&(((fd_timestamp)filetime)->xtime));
-      fd_decref(filetime); fd_decref(eurl);
-      fd_decref(content); fd_decref(result);
-      return sdata;}
+    if (fetch)  {
+      fdtype result=fetchurl(NULL,uri);
+      fdtype content=fd_get(result,content_symbol,FD_EMPTY_CHOICE);
+      if (FD_PACKETP(content)) {
+        u8_encoding enc=
+          ((enc_name==NULL)?(u8_get_default_encoding()):
+           (strcasecmp(enc_name,"auto")==0)?
+           (u8_guess_encoding(FD_PACKET_DATA(content))):
+           (u8_get_encoding(enc_name)));
+        if (!(enc)) enc=u8_get_default_encoding();
+        u8_string string_form=u8_make_string
+          (enc,FD_PACKET_DATA(content),
+           FD_PACKET_DATA(content)+FD_PACKET_LENGTH(content));
+        fd_decref(content);
+        content=fdtype_string(string_form);}
+      if (FD_STRINGP(content)) {
+        fdtype eurl=fd_get(result,eurl_slotid,FD_VOID);
+        fdtype filetime=fd_get(result,filetime_slotid,FD_VOID);
+        u8_string sdata=u8_strdup(FD_STRDATA(content));
+        if ((FD_STRINGP(eurl))&&(path)) *path=u8_strdup(FD_STRDATA(eurl));
+        if ((FD_PRIM_TYPEP(filetime,fd_timestamp_type))&&(timep))
+          *timep=u8_mktime(&(((fd_timestamp)filetime)->xtime));
+        fd_decref(filetime); fd_decref(eurl);
+        fd_decref(content); fd_decref(result);
+        return sdata;}
+      else {
+        fd_decref(content); fd_decref(result);
+        return NULL;}}
     else {
-      fd_decref(content); fd_decref(result);
-      return NULL;}}
+      fdtype result=fetchurlhead(NULL,uri);
+      fdtype status=fd_get(result,response_code_slotid,FD_VOID);
+      if ((FD_VOIDP(status))||
+          ((FD_FIXNUMP(status))&&
+           (FD_FIX2INT(status)<200)&&
+           (FD_FIX2INT(status)>=400)))
+        return NULL;
+      else {
+        fdtype eurl=fd_get(result,eurl_slotid,FD_VOID);
+        fdtype filetime=fd_get(result,filetime_slotid,FD_VOID);
+        if ((FD_STRINGP(eurl))&&(path)) *path=u8_strdup(FD_STRDATA(eurl));
+        if ((FD_PRIM_TYPEP(filetime,fd_timestamp_type))&&(timep))
+          *timep=u8_mktime(&(((fd_timestamp)filetime)->xtime));
+        return "exists";}}}
   else return NULL;
 }
 
@@ -1403,7 +1431,7 @@ FD_EXPORT void fd_init_curl_c()
      fd_boolconfig_get,fd_boolconfig_set,&debugging_curl);
 
 
-  fd_register_sourcefn(url_sourcefn,NULL);
+  fd_register_sourcefn(url_source_fn,NULL);
 
   u8_register_source_file(_FILEINFO);
 }
