@@ -1204,7 +1204,8 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
 /* Using URLs for code source */
 
 static u8_string url_sourcefn(u8_string uri,u8_string enc,
-                              u8_string *path,time_t *timep)
+                              u8_string *path,time_t *timep,
+                              void *ignored)
 {
   if (((strncmp(uri,"http:",5))==0) ||
       ((strncmp(uri,"https:",6))==0) ||
@@ -1402,7 +1403,7 @@ FD_EXPORT void fd_init_curl_c()
      fd_boolconfig_get,fd_boolconfig_set,&debugging_curl);
 
 
-  fd_register_sourcefn(url_sourcefn);
+  fd_register_sourcefn(url_sourcefn,NULL);
 
   u8_register_source_file(_FILEINFO);
 }

@@ -47,16 +47,21 @@ FD_EXPORT u8_string fd_get_source
   struct FD_SOURCEFN *scan=sourcefns;
   while (scan) {
     u8_string basepath=NULL;
-    u8_string data=scan->getsource(path,enc,&basepath,timep);
+    u8_string data=scan->getsource(path,enc,&basepath,timep,
+                                   scan->sourcefn_data);
     if (data) {*basepathp=basepath; return data;}
     else scan=scan->next;}
   return NULL;
 }
-FD_EXPORT void fd_register_sourcefn(u8_string (*fn)(u8_string,u8_string,u8_string *,time_t *))
+FD_EXPORT void fd_register_sourcefn
+(u8_string (*fn)(u8_string,u8_string,u8_string *,time_t *,void *),
+ void *sourcefn_data)
 {
   struct FD_SOURCEFN *new_entry=u8_alloc(struct FD_SOURCEFN);
   fd_lock_mutex(&sourcefns_lock);
-  new_entry->getsource=fn; new_entry->next=sourcefns; sourcefns=new_entry;
+  new_entry->getsource=fn; new_entry->next=sourcefns; 
+  new_entry->sourcefn_data=sourcefn_data;
+  sourcefns=new_entry;
   fd_unlock_mutex(&sourcefns_lock);
 }
 

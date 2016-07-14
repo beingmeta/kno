@@ -1339,7 +1339,7 @@ static fdtype zipfile2dtypes(fdtype filename)
 
 /* Getting file sources */
 
-static u8_string file_source_fn(u8_string filename,u8_string encname,u8_string *abspath,time_t *timep)
+static u8_string file_source_fn(u8_string filename,u8_string encname,u8_string *abspath,time_t *timep,void *ignored)
 {
   u8_string data=u8_filestring(filename,encname);
   if (data) {
@@ -1639,10 +1639,13 @@ static u8_string get_module_filename(fdtype spec,int safe)
             return module_filename;}}}}
     u8_free(name);
     return module_filename;}
-  else if ((safe==0) &&
-           (FD_STRINGP(spec)) &&
-           (u8_file_existsp(FD_STRDATA(spec))))
-    return u8_strdup(FD_STRDATA(spec));
+  else if ((safe==0) && (FD_STRINGP(spec))) {
+    u8_string abspath=u8_abspath(FD_STRDATA(spec),NULL);
+    if (u8_file_existsp(FD_STRDATA(spec)))
+      return abspath;
+    else {
+      u8_free(abspath);
+      return NULL;}}
   else return NULL;
 }
 
@@ -2565,7 +2568,7 @@ FD_EXPORT void fd_init_fileio_c()
 
   fd_persist_module(fileio_module);
 
-  fd_register_sourcefn(file_source_fn);
+  fd_register_sourcefn(file_source_fn,NULL);
 }
 
 FD_EXPORT void fd_init_schemeio()
