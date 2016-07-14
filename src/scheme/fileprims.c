@@ -1641,7 +1641,7 @@ static u8_string get_module_filename(fdtype spec,int safe)
     return module_filename;}
   else if ((safe==0) && (FD_STRINGP(spec))) {
     u8_string abspath=u8_abspath(FD_STRDATA(spec),NULL);
-    if (u8_file_existsp(FD_STRDATA(spec)))
+    if (u8_file_existsp(abspath))
       return abspath;
     else {
       u8_free(abspath);
@@ -1652,17 +1652,20 @@ static u8_string get_module_filename(fdtype spec,int safe)
 static fdtype load_source_for_module
   (fdtype spec,u8_string module_filename,int safe)
 {
+  time_t mtime;
   fd_lispenv env=
     ((safe) ?
      (fd_safe_working_environment()) :
      (fd_working_environment()));
-  time_t mtime=u8_file_mtime(module_filename);
-  fdtype load_result=fd_load_source(module_filename,env,"auto");
+  fdtype load_result=fd_load_source_with_date(module_filename,env,"auto",&mtime);
   if (FD_ABORTP(load_result)) {
     if (FD_HASHTABLEP(env->bindings))
       fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
     fd_decref((fdtype)env);
     return load_result;}
+  if (FD_STRINGP(spec)) 
+    fd_register_module_x(spec,(fdtype) env,
+                         ((safe) ? (FD_MODULE_SAFE) : (0)));
   add_load_record(spec,module_filename,env,mtime);
   fd_decref(load_result);
   return (fdtype)env;

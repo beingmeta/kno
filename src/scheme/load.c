@@ -108,14 +108,14 @@ static void record_error_source(u8_string sourceid)
   fd_push_error_context("fd_load_source",entry);
 }
 
-FD_EXPORT fdtype fd_load_source
-  (u8_string sourceid,fd_lispenv env,u8_string enc_name)
+FD_EXPORT fdtype fd_load_source_with_date
+  (u8_string sourceid,fd_lispenv env,u8_string enc_name,time_t *modtime)
 {
   struct U8_INPUT stream;
   fdtype postload=FD_VOID;
   u8_string sourcebase=NULL, outer_sourcebase;
   u8_string encoding=((enc_name)?(enc_name):((u8_string)("auto")));
-  u8_string content=fd_get_source(sourceid,encoding,&sourcebase,NULL);
+  u8_string content=fd_get_source(sourceid,encoding,&sourcebase,modtime);
   const u8_byte *input=content;
   double start=u8_elapsed_time();
   if (content==NULL) return FD_ERROR_VALUE;
@@ -194,6 +194,12 @@ FD_EXPORT fdtype fd_load_source
       fd_decref(expr); fd_decref(last_expr);
       expr=FD_VOID; last_expr=FD_VOID;}
     return result;}
+}
+
+FD_EXPORT fdtype fd_load_source
+  (u8_string sourceid,fd_lispenv env,u8_string enc_name)
+{
+  return fd_load_source_with_date(sourceid,env,enc_name,NULL);
 }
 
 static u8_string get_component(u8_string spec)

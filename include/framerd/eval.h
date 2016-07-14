@@ -151,6 +151,8 @@ FD_EXPORT u8_string fd_get_source(u8_string,u8_string,u8_string *,time_t *);
 FD_EXPORT void fd_register_sourcefn(u8_string (*fn)(u8_string,u8_string,u8_string *,time_t *,void *), void *sourcefn_data);
 
 FD_EXPORT int fd_load_config(u8_string sourceid);
+FD_EXPORT fdtype fd_load_source_with_date
+  (u8_string sourceid,fd_lispenv env,u8_string enc_name,time_t *modtime);
 FD_EXPORT fdtype fd_load_source
   (u8_string sourceid,fd_lispenv env,u8_string enc_name);
 FD_EXPORT u8_string fd_sourcebase();

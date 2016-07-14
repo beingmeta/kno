@@ -1133,6 +1133,7 @@ FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
     fd_add(env->bindings,moduleid_symbol,name);}
   else if (FD_HASHTABLEP(module))
     fd_add(module,moduleid_symbol,name);
+  else {}
 
   /* Add to the appropriate default environment */
   if (flags&FD_MODULE_DEFAULT) {
