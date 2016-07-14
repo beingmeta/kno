@@ -108,7 +108,7 @@ SCHEME_OBJS=$(CORE_SCHEME_OBJS) \
 	    src/scheme/portprims.o src/scheme/timeprims.o               \
 	    src/scheme/arithprims.o src/scheme/side-effects.o           \
 	    src/scheme/regex.o src/scheme/reqstate.o src/scheme/extdb.o
-SCHEMEIO_OBJS=src/scheme/fileprims.o src/scheme/dbfileprims.o
+SCHEMEIO_OBJS=src/scheme/fileprims.o src/scheme/dbfileprims.o src/scheme/loader.o
 FDWEB_OBJS=src/fdweb/fdweb.o src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
 	src/fdweb/xmldata.o src/fdweb/mime.o src/fdweb/email.o          \
 	src/fdweb/uriprims.o src/fdweb/xmleval.o src/fdweb/cgiexec.o    \
@@ -186,6 +186,7 @@ FRAMERD_SOURCES=\
 	src/scheme/tableprims.c src/scheme/choiceprims.c               \
 	src/scheme/seqprims.c src/scheme/stringprims.c                 \
 	src/scheme/fileprims.c src/scheme/dbfileprims.c                \
+	src/scheme/loader.c                                            \
 	src/scheme/timeprims.c  src/scheme/extdb.c                     \
 	src/scheme/reqstate.c                                          \
 	src/fdweb/fdweb.c src/fdweb/json.c src/fdweb/ldns.c            \
