@@ -1343,6 +1343,8 @@ static u8_string file_source_fn(int fetch,u8_string filename,u8_string encname,
                                 u8_string *abspath,time_t *timep,
                                 void *ignored)
 {
+  if (strncmp(filename,"file:",5)==0)
+    filename=filename+5;
   if (fetch) {
     u8_string data=u8_filestring(filename,encname);
     if (data) {
@@ -1649,12 +1651,20 @@ static u8_string get_module_filename(fdtype spec,int safe)
     u8_free(name);
     return module_filename;}
   else if ((safe==0) && (FD_STRINGP(spec))) {
-    u8_string abspath=u8_abspath(FD_STRDATA(spec),NULL);
-    if (u8_file_existsp(abspath))
-      return abspath;
+    u8_string spec_data=FD_STRDATA(spec);
+    if (strchr(spec_data,':')==NULL) {
+      u8_string abspath=u8_abspath(FD_STRDATA(spec),NULL);
+      if (u8_file_existsp(abspath))
+        return abspath;
+      else {
+        u8_free(abspath);
+        return NULL;}}
     else {
-      u8_free(abspath);
-      return NULL;}}
+      u8_string use_path=NULL;
+      if (fd_probe_source(spec_data,&use_path,NULL)) {
+        if (use_path) return use_path;
+        else return u8_strdup(spec_data);}
+      else return NULL;}}
   else return NULL;
 }
 
