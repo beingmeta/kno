@@ -1,5 +1,7 @@
 /* Error styles */
 
+/* If you  edit this file, you probably also want to edit bugjar.css */
+
 body#ERRORPAGE {
   margin: 22px; margin-right: 40px;
   background-color: black; color: ivory;}
@@ -59,6 +61,10 @@ table.backtrace > tbody > tr.irritant > th {
     font-size: 90%; color: red;}
 table.backtrace > tbody > tr > td {
     text-align: left; padding-top: 2px;}
+table.backtrace > tbody > tr > td .module {
+    float: right; font-size: 75%;
+    margin-right: 0.5ex; margin-left: 1em;
+    color: blue;}
 table.backtrace > tbody.eval td.expr {
     background-color: white; color: black;}
 table.backtrace > tbody.eval div.expr {
@@ -78,7 +84,8 @@ table.backtrace > tbody.bindings > tr > td > table.bindings {
 tbody.bindings span.var {
     font-weight: bold;
     font-family: sans-serif;
-    text-decoration: underline;}
+    text-decoration: underline;
+    padding-left: 1ex;}
 tbody.bindings table.bindings { display: none;}
 tbody.bindings.expanded table.bindings { display: table;}
 

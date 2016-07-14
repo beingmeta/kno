@@ -23,6 +23,7 @@
 #include "framerd/fdweb.h"
 #include "framerd/support.h"
 
+/* If you  edit this file, you probably also want to edit bugjar.css */
 #include "backtrace_css.h"
 #include "backtrace_js.h"
 
@@ -940,6 +941,8 @@ static u8_exception get_next_frame(u8_exception ex)
   else return scan;
 }
 
+static fdtype moduleid_symbol;
+
 static void output_backtrace_entry(u8_output s,u8_exception ex)
 {
   if (ex==NULL) return;
@@ -1026,21 +1029,40 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
   else if ((ex->u8x_context) && (ex->u8x_context[0]==':')) {
     fdtype entry=exception_data(ex);
     fdtype keys=fd_getkeys(entry);
+    fdtype modinfo=fd_get(entry,moduleid_symbol,FD_EMPTY_CHOICE);
+    fdtype modname=FD_VOID, modpath=FD_VOID;
     u8_string head=((ex->u8x_details) ? ((u8_string)(ex->u8x_details)) :
                     (ex->u8x_context) ?  ((u8_string)(ex->u8x_context)) :
                     (NULL));
+    {FD_DO_CHOICES(info,modinfo) {
+        if (FD_SYMBOLP(info)) {
+          if (FD_VOIDP(modname)) modname=info;}
+        else if (FD_STRINGP(info)) {
+          if (FD_VOIDP(modpath)) modpath=info;}}}
     if (FD_ABORTP(keys)) {
       fd_decref(keys);
       u8_printf(s,"<tbody class='bindings'><tr><th>Env</th>\n<td class='odd'>\n%lk\n</td></tr></tbody>\n",entry);}
     else if ((head==NULL)&&(FD_EMPTY_CHOICEP(keys))) {}
     else {
+      fdtype allkeys=keys;
+      keys=fd_difference(allkeys,moduleid_symbol);
+      fd_decref(allkeys);
       u8_puts(s,"<tbody class='bindings'>");
       if (FD_EMPTY_CHOICEP(keys))
-        u8_printf(s,"<tr><th>Env</th><td>%k (no bindings)</td></tr>\n",head);
+        u8_puts(s,"<tr><th>Env</th><td>");
+      else u8_puts(s,"<tr><th rowspan='2'>Env</th><td>");
+      if ((FD_VOIDP(modname))&&(FD_VOIDP(modpath))) {}
+      else if (FD_VOIDP(modname)) {
+        u8_printf(s,"<tt class='module path'>%s</tt>",FD_STRDATA(modpath));}
+      else if (FD_VOIDP(modpath)) {
+        u8_printf(s,"<tt class='module name'>%s</tt>>",FD_SYMBOL_NAME(modname));}
       else {
-        if (head)
-          u8_printf(s,"<tr><th>Env</th><td>%k ",head);
-        else u8_puts(s,"<tr><th>Env</th><td>");
+        u8_printf(s,"<tt class='module name' title='%s'>%s</tt>",
+                  FD_STRDATA(modpath),FD_SYMBOL_NAME(modname));}
+      if (head) u8_puts(s,head);
+      if (FD_EMPTY_CHOICEP(keys))
+        u8_puts(s," (no bindings)</td></tr>\n");
+      else {
         {FD_DO_CHOICES(key,keys) {
             if (FD_SYMBOLP(key))
               u8_printf(s,"<span class='var'>%s</span> ",FD_SYMBOL_NAME(key));
@@ -2234,6 +2256,8 @@ FD_EXPORT void fd_init_xmloutput_c()
   estylesheet_symbol=fd_intern("%ERRORSTYLE");
   modules_symbol=fd_intern("%MODULES");
   xml_env_symbol=fd_intern("%XMLENV");
+
+  moduleid_symbol=fd_intern("%MODULEID");
 
   error_stylesheet=u8_strdup("http://static.beingmeta.com/fdjt/fdjt.css");
   fd_register_config
