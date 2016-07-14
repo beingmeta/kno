@@ -109,12 +109,16 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
   else {
     struct MODULE_LOADER *scan=module_loaders;
     if ((FD_SYMBOLP(spec)) || (FD_STRINGP(spec))) {}
-    else return fd_type_error(_("module name"),"fd_find_module",spec);
+    else {
+      clearloadlock(spec);
+      return fd_type_error(_("module name"),"fd_find_module",spec);}
     while (scan) {
       int retval=scan->loader(spec,safe,scan->data);
       if (retval>0) {
+        clearloadlock(spec);
         module=fd_get_module(spec,safe);
-        if (FD_VOIDP(module)) return fd_err(MissingModule,NULL,NULL,spec);
+        if (FD_VOIDP(module)) 
+          return fd_err(MissingModule,NULL,NULL,spec);
         fd_finish_module(module);
         return module;}
       else if (retval<0) {
