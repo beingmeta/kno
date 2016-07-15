@@ -64,55 +64,60 @@ static int log_reloads=1;
 static void add_load_record
   (fdtype spec,u8_string filename,fd_lispenv env,time_t mtime);
 static fdtype load_source_for_module
-  (fdtype spec,u8_string module_filename,int safe);
-static u8_string get_module_filename(fdtype spec,int safe);
+  (fdtype spec,u8_string module_source,int safe);
+static u8_string get_module_source(fdtype spec,int safe);
+
+static fdtype moduleid_symbol;
 
 /* Module finding */
 
 static int load_source_module(fdtype spec,int safe,void *ignored)
 {
-  u8_string module_filename=get_module_filename(spec,safe);
-  if (module_filename) {
-    fdtype load_result=load_source_for_module(spec,module_filename,safe);
+  u8_string module_source=get_module_source(spec,safe);
+  if (module_source) {
+    fdtype load_result=load_source_for_module(spec,module_source,safe);
     if (FD_ABORTP(load_result)) {
-      u8_free(module_filename); fd_decref(load_result);
+      u8_free(module_source); fd_decref(load_result);
       return -1;}
     else {
-      fdtype module_key=fdtype_string(module_filename);
-      fdtype abspath_key=
-        fd_lispstring(u8_abspath(module_filename,NULL));
-      /* Register the module under its filename too. */
+      fdtype module_key=fdtype_string(module_source);
       fd_register_module_x(module_key,load_result,safe);
-      fd_register_module_x(abspath_key,load_result,safe);
+      /* Store non symbolic specifiers as module identifiers */
+      if (FD_STRINGP(spec)) 
+	fd_add(load_result,moduleid_symbol,spec);
+      /* Register the module under its filename too. */
+      if (strchr(module_source,':')==NULL) {
+	fdtype abspath_key=fd_lispstring(u8_abspath(module_source,NULL));
+	fd_register_module_x(abspath_key,load_result,safe);
+	fd_decref(abspath_key);}
       fd_decref(module_key);
-      fd_decref(abspath_key);
-      u8_free(module_filename);
+      u8_free(module_source);
       fd_decref(load_result);
       return 1;}}
   else return 0;
 }
 
-static u8_string get_module_filename(fdtype spec,int safe)
+static u8_string get_module_source(fdtype spec,int safe)
 {
   if (FD_SYMBOLP(spec)) {
     u8_string name=u8_downcase(FD_SYMBOL_NAME(spec));
-    u8_string module_filename=NULL;
+    u8_string module_source=NULL;
     if (safe==0) {
       FD_DOLIST(elt,loadpath) {
         if (FD_STRINGP(elt)) {
-          module_filename=u8_find_file(name,FD_STRDATA(elt),NULL);
-          if (module_filename) {
+          module_source=u8_find_file(name,FD_STRDATA(elt),NULL);
+          if (module_source) {
             u8_free(name);
-            return module_filename;}}}}
-    if (module_filename==NULL)  {
+            return module_source;}}}}
+    if (module_source==NULL)  {
       FD_DOLIST(elt,safe_loadpath) {
         if (FD_STRINGP(elt)) {
-          module_filename=u8_find_file(name,FD_STRDATA(elt),NULL);
-          if (module_filename) {
+          module_source=u8_find_file(name,FD_STRDATA(elt),NULL);
+          if (module_source) {
             u8_free(name);
-            return module_filename;}}}}
+            return module_source;}}}}
     u8_free(name);
-    return module_filename;}
+    return module_source;}
   else if ((safe==0) && (FD_STRINGP(spec))) {
     u8_string spec_data=FD_STRDATA(spec);
     if (strchr(spec_data,':')==NULL) {
@@ -132,14 +137,14 @@ static u8_string get_module_filename(fdtype spec,int safe)
 }
 
 static fdtype load_source_for_module
-  (fdtype spec,u8_string module_filename,int safe)
+  (fdtype spec,u8_string module_source,int safe)
 {
   time_t mtime;
   fd_lispenv env=
     ((safe) ?
      (fd_safe_working_environment()) :
      (fd_working_environment()));
-  fdtype load_result=fd_load_source_with_date(module_filename,env,"auto",&mtime);
+  fdtype load_result=fd_load_source_with_date(module_source,env,"auto",&mtime);
   if (FD_ABORTP(load_result)) {
     if (FD_HASHTABLEP(env->bindings))
       fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
@@ -148,25 +153,67 @@ static fdtype load_source_for_module
   if (FD_STRINGP(spec)) 
     fd_register_module_x(spec,(fdtype) env,
                          ((safe) ? (FD_MODULE_SAFE) : (0)));
-  add_load_record(spec,module_filename,env,mtime);
+  add_load_record(spec,module_source,env,mtime);
   fd_decref(load_result);
   return (fdtype)env;
 }
 
 static fdtype reload_module(fdtype module)
 {
-  if (FD_SYMBOLP(module)) {
+  if (FD_STRINGP(module)) {
     int retval=load_source_module(module,0,NULL);
     if (retval) return FD_TRUE; else return FD_FALSE;}
-  else return fd_err(fd_TypeError,"reload_module",NULL,module);
+  else if (FD_SYMBOLP(module)) {
+    fdtype resolved=fd_get_module(module,0);
+    if (FD_TABLEP(resolved)) {
+      fdtype result=reload_module(resolved);
+      fd_decref(resolved);
+      return result;}
+    else return fd_err(fd_TypeError,"reload_module",
+		       "module name or path",module);}
+  else if (FD_TABLEP(module)) {
+    fdtype ids=fd_get(module,moduleid_symbol,FD_EMPTY_CHOICE), source=FD_VOID;
+    FD_DO_CHOICES(id,ids) {
+      if (FD_STRINGP(id)) {source=id; FD_STOP_DO_CHOICES; break;}}
+    if (FD_STRINGP(source)) {
+      fdtype result=reload_module(source);
+      fd_decref(ids);
+      return result;}
+    else {
+      fd_decref(ids);
+      return fd_err(fd_ReloadError,"reload_module",
+		    "Couldn't find source",module);}}
+  else return fd_err(fd_TypeError,"reload_module",
+		     "module name or path",module);
 }
 
 static fdtype safe_reload_module(fdtype module)
 {
-  if (FD_SYMBOLP(module)) {
-    int retval=load_source_module(module,0,NULL);
+  if (FD_STRINGP(module)) {
+    int retval=load_source_module(module,1,NULL);
     if (retval) return FD_TRUE; else return FD_FALSE;}
-  else return fd_err(fd_TypeError,"reload_module",NULL,module);
+  else if (FD_SYMBOLP(module)) {
+    fdtype resolved=fd_get_module(module,1);
+    if (FD_TABLEP(resolved)) {
+      fdtype result=safe_reload_module(resolved);
+      fd_decref(resolved);
+      return result;}
+    else return fd_err(fd_TypeError,"safe_reload_module",
+		       "module name or path",module);}
+  else if (FD_TABLEP(module)) {
+    fdtype ids=fd_get(module,moduleid_symbol,FD_EMPTY_CHOICE), source=FD_VOID;
+    FD_DO_CHOICES(id,ids) {
+      if (FD_STRINGP(id)) {source=id; FD_STOP_DO_CHOICES; break;}}
+    if (FD_STRINGP(source)) {
+      fdtype result=safe_reload_module(source);
+      fd_decref(ids);
+      return result;}
+    else {
+      fd_decref(ids);
+      return fd_err(fd_ReloadError,"safe_reload_module",
+		    "Couldn't find source",module);}}
+  else return fd_err(fd_TypeError,"safe_reload_module",
+		     "module name or path",module);
 }
 
 /* Automatic module reloading */
@@ -225,7 +272,11 @@ FD_EXPORT int fd_update_file_modules(int force)
     fd_lock_mutex(&load_record_lock);
     reload_time=u8_elapsed_time();
     scan=load_records; while (scan) {
-      time_t mtime=u8_file_mtime(scan->filename);
+      time_t mtime;
+      /* Don't automatically update non-local files */
+      if (strchr(scan->filename,':')==NULL) {
+	scan=scan->next; continue;}
+      else mtime=u8_file_mtime(scan->filename);
       if (mtime>scan->mtime) {
         struct MODULE_RELOAD *toreload=u8_alloc(struct MODULE_RELOAD);
         toreload->filename=scan->filename; toreload->env=scan->env;
@@ -269,15 +320,26 @@ FD_EXPORT int fd_update_file_modules(int force)
   return n_reloads;
 }
 
-FD_EXPORT int fd_update_file_module(u8_string module_filename,int force)
+FD_EXPORT int fd_update_file_module(u8_string module_source,int force)
 {
   struct FD_LOAD_RECORD *scan;
-  time_t mtime=u8_file_mtime(module_filename);
+  time_t mtime=(time_t) -1;
+  if (strchr(module_source,':')==NULL)
+    mtime=u8_file_mtime(module_source);
+  else if (strncasecmp(module_source,"file:",5)==0) 
+    mtime=u8_file_mtime(module_source+5);
+  else {
+    int rv=fd_probe_source(module_source,NULL,&mtime);
+    if (rv<0) {
+      u8_log(LOG_WARN,fd_ReloadError,
+	     "Couldn't find %s to reload it",module_source);
+      return -1;}}
+  if (mtime<0) return 0;
   fd_lock_mutex(&update_modules_lock);
   fd_lock_mutex(&load_record_lock);
   scan=load_records;
   while (scan)
-    if (strcmp(scan->filename,module_filename)==0) break;
+    if (strcmp(scan->filename,module_source)==0) break;
     else scan=scan->next;
   if ((scan)&&(scan->reloading)) {
     fd_unlock_mutex(&load_record_lock);
@@ -289,7 +351,7 @@ FD_EXPORT int fd_update_file_module(u8_string module_filename,int force)
     /* Maybe, this should load it. */
     fd_seterr(fd_ReloadError,"fd_update_file_module",
               u8_mkstring(_("The file %s has never been loaded"),
-                          module_filename),
+                          module_source),
               FD_VOID);
     return -1;}
   else if ((!(force))&&(mtime<=scan->mtime)) {
@@ -331,9 +393,9 @@ static fdtype update_modules_prim(fdtype flag)
 static fdtype update_module_prim(fdtype spec,fdtype force)
 {
   if (FD_FALSEP(force)) {
-    u8_string module_filename=get_module_filename(spec,0);
-    if (module_filename) {
-      int retval=fd_update_file_module(module_filename,0);
+    u8_string module_source=get_module_source(spec,0);
+    if (module_source) {
+      int retval=fd_update_file_module(module_source,0);
       if (retval) return FD_TRUE;
       else return FD_FALSE;}
     else {
@@ -376,6 +438,9 @@ static u8_string file_source_fn(int fetch,u8_string filename,u8_string encname,
 {
   if (strncmp(filename,"file:",5)==0)
     filename=filename+5;
+  else if (strchr(filename,':')>0)
+    return NULL;
+  else {}
   if (fetch) {
     u8_string data=u8_filestring(filename,encname);
     if (data) {
@@ -515,6 +580,7 @@ FD_EXPORT void fd_init_loader_c()
   fd_init_mutex(&update_modules_lock);
 #endif
 
+  moduleid_symbol=fd_intern("%MODULEID");
   source_symbol=fd_intern("%SOURCE");
 
   fd_register_config
@@ -558,4 +624,9 @@ FD_EXPORT void fd_init_loader_c()
   fd_persist_module(loader_module);
 }
 
-
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/
