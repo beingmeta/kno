@@ -424,10 +424,16 @@ $(LIBINSTALLDIR)/%.a: lib/%.a
 	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	@$(MSG) INSTALL $@
 
+$(LIBINSTALLDIR)/framerd/%@suffix@.so.@FDVERSION@: \
+	lib/framerd/%@suffix@.so $(LIBINSTALLDIR)/framerd
+	@echo Installing $@
+	@$(SYSINSTALL) -d $(@D)
+	@$(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@: lib/%@suffix@.so
 	@echo Installing $@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
+
 $(LIBINSTALLDIR)/%@suffix@.so.@FDMAJOR@.@FDMINOR@: \
 	$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
 	@echo Linking $< to $@
@@ -440,6 +446,11 @@ $(LIBINSTALLDIR)/%@suffix@.so: $(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
 	@echo Linking to $@
 	@@SUDO@ln -sf $(shell basename $<) $@
 
+$(LIBINSTALLDIR)/framerd/%@suffix@.@FDVERSION@.dylib: \
+	lib/framerd/%@suffix@.dylib $(LIBINSTALLDIR)/framerd
+	@echo Installing $@
+	@$(SYSINSTALL) -d $(LIBINSTALLDIR)
+	@$(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib: lib/%@suffix@.dylib
 	@echo Installing $@
 	@$(SYSINSTALL) -d $(LIBINSTALLDIR)
