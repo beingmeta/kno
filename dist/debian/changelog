@@ -1,3 +1,9 @@
+framerd (3.9.3-2) stable; urgency=medium
+
+  * Updated debian config
+
+ -- Ken Haase <kh@beingmeta.com>  Mon, 06 Jun 2016 08:35:48 -0400
+
 framerd (3.9.3-1) unstable; urgency=medium
 
   * Improved genericity of loading functions, numerous other changes
