@@ -945,7 +945,7 @@ dist/rpms.zip: dist/rpms.done
 
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
-	 dpkg-buildpackage -sa -b -rfakeroot) && \
+	 dpkg-buildpackage -sa -us -b -rfakeroot) && \
 	(cd staging; debsign --re-sign -k${GPGID} framerd_@FDVERSION@*.changes) && \
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
 	(cd staging; mv framerd*_@FDVERSION@*.*               \
