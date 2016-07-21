@@ -1,35 +1,81 @@
-#!/bin/bash
-for name in $*; do
-    ROOT=""
-    if test -f ${name}; then
-	ROOT=`basename ${name} .pid`
-    elif test -f ${name}.pid; then
-	ROOT=`dirname ${name}``basename ${name} .pid`
-    elif test -f @daemon_rundir@/${name}.pid; then
-	ROOT=@daemon_rundir@/`basename ${name} .pid`
-    elif test -f @servlet_rundir@/${name}.pid; then
-	ROOT=@servlet_rundir@/`basename ${name} .pid`
-    else echo "fdstatus: Couldn't find task ${name}";
+#!/bin/sh
+
+showusage( ) {
+    echo "Usage: fdstatus <activity> ... ";
+    echo "Usage: fdstatus --list";
+    echo "Usage: fdstatus --files";
+    echo "Usage: fdstatus --compact";
+}
+
+compactlist( ) {
+    for pidfile in *.pid @daemon_rundir@/*.pid @daemon_rundir@/*.pid \
+			 @servlet_rundir@/*.pid ; do
+	if test -f ${pidfile}; then
+	    echo -n `basename ${pidfile} .pid` "";
+	fi;
+    done;
+}    
+
+if test $# -eq 0; then
+    showusage;
+    exit;
+elif test $1 = "--list"; then
+    for pidfile in *.pid @daemon_rundir@/*.pid @daemon_rundir@/*.pid \
+			 @servlet_rundir@/*.pid ; do
+	if test -f ${pidfile}; then
+	    echo `basename ${pidfile} .pid`;
+	fi;
+    done;
+    exit;
+elif test $1 = "--files"; then
+    for pidfile in *.pid @daemon_rundir@/*.pid @servlet_rundir@/*.pid ; do
+	if test -f ${pidfile}; then
+	    printf "%-24s %s\n" `basename ${pidfile} .pid` ${pidfile};
+	fi;
+    done;
+    exit;
+elif test $1 = "--compact"; then
+    width=80;
+    if test $# -eq 2; then width=$2; fi;
+    if which fold 2>&1 > /dev/null; then
+	compactlist | fold -sw ${width};
+    else
+	compactlist;
     fi;
-    if test "x${ROOT}" != "x"; then
-	if test -f ${ROOT}.ppid; then
-	    echo "==" "["`cat ${ROOT}.pid`":"`cat ${ROOT}.ppid`"] ${ROOT} ========================";
-	else
-	    echo "==" "["`cat ${ROOT}.pid`"] ${ROOT} ========================";
-	fi;
-	if test -f ${ROOT}.cmd; then
-	    echo "COMMAND:";
-	    sed -e "s/^/   /" ${ROOT}.cmd;
-	    echo;
-	fi;
-	if test -f ${ROOT}.run; then
-	    echo "RUN:";
-	    sed -e "s/^/   /" ${ROOT}.run;
-	    echo;
-	fi;
-	if test -f ${ROOT}.status; then 
-	    echo "STATUS: ";
-	    sed -e "s/^/   /" ${ROOT}.status; 
-	fi
-    fi;
-done;
+    echo;
+    exit;
+else for name in $*; do
+	 ROOT=""
+	 if test -f ${name}; then
+	     ROOT=`basename ${name} .pid`
+	 elif test -f ${name}.pid; then
+	     ROOT=`dirname ${name}``basename ${name} .pid`
+	 elif test -f @daemon_rundir@/${name}.pid; then
+	     ROOT=@daemon_rundir@/`basename ${name} .pid`
+	 elif test -f @servlet_rundir@/${name}.pid; then
+	     ROOT=@servlet_rundir@/`basename ${name} .pid`
+	 else echo "fdstatus: Couldn't find activity ${name}";
+	 fi;
+	 if test "x${ROOT}" != "x"; then
+	     if test -f ${ROOT}.ppid; then
+		 echo "==" "["`cat ${ROOT}.pid`":"`cat ${ROOT}.ppid`"] ${ROOT} ========================";
+	     else
+		 echo "==" "["`cat ${ROOT}.pid`"] ${ROOT} ========================";
+	     fi;
+	     if test -f ${ROOT}.cmd; then
+		 echo "COMMAND:";
+		 sed -e "s/^/   /" ${ROOT}.cmd;
+		 echo;
+	     fi;
+	     if test -f ${ROOT}.run; then
+		 echo "RUN:";
+		 sed -e "s/^/   /" ${ROOT}.run;
+		 echo;
+	     fi;
+	     if test -f ${ROOT}.status; then 
+		 echo "STATUS: ";
+		 sed -e "s/^/   /" ${ROOT}.status; 
+	     fi
+	 fi;
+     done;
+fi

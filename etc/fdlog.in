@@ -1,4 +1,12 @@
 #!/bin/sh
+
+showusage ( ) {
+    echo "Usage: fdlog <activity> [tail|watch|more] [lines]"
+}
+
+if (test $# -eq 0) || (test $1 = "usage"); then
+   showusage; exit;
+fi
 name=$1
 cmd=${2:-watch}
 tailarg=${3:-500}
@@ -9,10 +17,11 @@ elif test -f ${name}.log; then
     LOGFILE=`${name}.log`
 elif test -f @daemon_logdir@/${name}.log; then
     LOGFILE=@daemon_logdir@/${name}.log
-elif test -f @servlet_logdir@/${name}.pid; then
+elif test -f @servlet_logdir@/${name}.log; then
     LOGFILE=@servlet_logdir@/${name}.log
 else 
-    echo "fdstatus: Couldn't find activity ${name}";
+    showusage;
+    echo "fdlog: Couldn't find activity ${name}";
     exit;
 fi;
 if test "x${LOGFILE}" = "x"; then
@@ -21,14 +30,16 @@ if test "x${LOGFILE}" = "x"; then
 elif test "x${cmd}" = "x"; then
     exec tail -n 200 -f ${LOGFILE};
     exit;
-elif test ${cmd} = "tail"; then    
+elif test ${cmd} = "tail"; then
     exec tail -n ${tailarg} ${LOGFILE};
 elif test ${cmd} = "watch"; then    
     exec tail -n ${tailarg} -f ${LOGFILE};
 elif test ${cmd} = "more"; then
-    exec less ${LOGFILE};
-elif test ${cmd} = "tmore"; then
-    tail -n ${tailarg} ${LOGFILE} | less;
+    if test $# -eq 3; then
+	tail -n ${tailarg} | less;
+    else 
+	exec less ${LOGFILE};
+    fi;
 else
-    echo "Not handling unrecognized argument ${cmd}"
+    showusage; exit;
 fi;
