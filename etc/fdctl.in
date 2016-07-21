@@ -67,7 +67,7 @@ elif test -f /lib/systemd/system/framerd.service; then
 elif test -f /usr/lib/systemd/system/framerd.service; then
     echo "systemctl ${OP} framerd";
     sudo systemctl ${OP} framerd;
-    if test ${CLEAN} = "yes"; the sudo cleanlogs; fi
+    if test ${CLEAN} = "yes"; then sudo cleanlogs; fi;
     exit;
 else
     echo "No systemd FramerD configuration";
