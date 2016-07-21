@@ -1,11 +1,12 @@
 [Unit]
 Description=FramerD service(s) starter
 Requires=network.target
-After=cloud-init.target
+After=cloud-final.service
 
 [Service]
 Type=forking
 Environment=FD_LAUNCHER=framerd.service
+PassEnvironment=FD_LAUNCHER
 ExecStartPre=@MKDIR@ -p @daemon_rundir@ @daemon_logdir@ @servlet_rundir@ @servlet_logdir@
 ExecStartPre=@CHOWN@ @webuser@ @servlet_rundir@ @servlet_logdir@
 ExecStartPre=@CHOWN@ @fdaemon@ @daemon_rundir@ @daemon_logdir@
