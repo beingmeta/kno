@@ -1,0 +1,95 @@
+CLEAN=no
+RAWSCRIPT=fdstartall
+TARGET=all
+if test $# -eq 0; then
+  OP=usage;
+elif test $# -eq 1; then
+  OP=$1;
+  TARGET=all;
+else
+  TARGET=$1;
+  OP=$2;
+  shift;
+  shift;
+fi
+if test $OP = "usage"; then
+  echo "Usage: fdctl (start|stop|clean|freshstart|restart)";
+  echo "Usage: fdctl [target] (restart|log|status|suspend)";
+  exit;
+elif test ${OP} = "stop"; then 
+   RAWSCRIPT=fdstopall; 
+fi
+
+cleanlogs( ) {
+  rm -f @daemon_logdir@/*;
+  rm -f @servlet_logdir@/*;
+}
+
+
+if test ${TARGET} != "all"; then
+   if test ${OP} = "restart"; then
+     exec fdrestart ${TARGET} $*;
+   elif test ${OP} = "log"; then
+     exec fdlog ${TARGET} $*;
+   elif test ${OP} = "status"; then
+     exec fdstatus ${TARGET} $*;
+   else echo "Unknown operation ${OP} on ${TARGET}";
+   fi;
+  exit;
+elif test ${OP} = "restart"; then
+     shift;
+     sudo fdrestart;
+     exit;
+elif test ${OP} = "cleanstart"; then
+     if test -f @framerd_rundir@/_started; then
+       fdctl stop;
+       sudo rm -f @framerd_rundir@/_started;
+     fi
+     OP=start;
+     sudo cleanlogs;
+elif test ${OP} = "clean"; then
+     sudo cleanlogs;
+     exit;
+elif test ${OP} = "zero"; then
+     OP=stop;
+     CLEAN=yes;
+fi 
+
+## Now, figure out what startup system is being used to run FramerD
+##  e.g. systemd, upstart, sysv, or none (just fd* scripts)
+
+if ! which systemctl 2>&1 > /dev/null; then
+    echo "No systemctl";
+elif test -f /lib/systemd/system/framerd.service; then
+    echo "systemctl ${OP} framerd";
+    sudo systemctl ${OP} framerd;
+    exit;
+elif test -f /usr/lib/systemd/system/framerd.service; then
+    echo "systemctl ${OP} framerd";
+    sudo systemctl ${OP} framerd;
+    if test ${CLEAN} = "yes"; the sudo cleanlogs; fi
+    exit;
+else
+    echo "No systemd FramerD configuration";
+fi
+
+if ! which initctl 2>&1 > /dev/null; then
+    echo "No initcl";
+elif test -f /etc/init/framerd.conf; then
+    echo initctl ${OP} framerd;
+    sudo initctl ${OP} framerd;
+    if test ${CLEAN} = "yes"; the sudo cleanlogs; fi
+    exit;
+else
+    echo No upstart FramerD configuration;
+fi
+
+if test -f /etc/init.d/framerd; then
+    echo /etc/init.d/framerd ${OP};
+    sudo /etc/init.d/framerd ${OP};
+else
+    echo ${RAWSCRIPT}
+    ${RAWSCRIPT}
+fi
+
+if test ${CLEAN} = "yes"; the sudo cleanlogs; fi

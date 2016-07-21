@@ -18,17 +18,17 @@ for name in $*; do
 	    echo "==" "["`cat ${ROOT}.pid`"] ${ROOT} ========================";
 	fi;
 	if test -f ${ROOT}.cmd; then
-	    echo "Command:";
+	    echo "COMMAND:";
 	    sed -e "s/^/   /" ${ROOT}.cmd;
 	    echo;
 	fi;
 	if test -f ${ROOT}.run; then
-	    echo "Run:";
+	    echo "RUN:";
 	    sed -e "s/^/   /" ${ROOT}.run;
 	    echo;
 	fi;
 	if test -f ${ROOT}.status; then 
-	    echo "Status: ";
+	    echo "STATUS: ";
 	    sed -e "s/^/   /" ${ROOT}.status; 
 	fi
     fi;

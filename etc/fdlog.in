@@ -1,6 +1,7 @@
 #!/bin/sh
 name=$1
-cmd=${2:watch}
+cmd=${2:-watch}
+tailarg=${3:-500}
 LOGFILE=""
 if test -f ${name}; then
     LOGFILE=`basename ${name}`
@@ -18,18 +19,16 @@ if test "x${LOGFILE}" = "x"; then
     echo "No log file for ${name}";
     exit;
 elif test "x${cmd}" = "x"; then
-    exec tail -n 30 -f ${LOGFILE};
+    exec tail -n 200 -f ${LOGFILE};
     exit;
+elif test ${cmd} = "tail"; then    
+    exec tail -n ${tailarg} ${LOGFILE};
 elif test ${cmd} = "watch"; then    
-    exec tail -n 100 -f ${LOGFILE};
+    exec tail -n ${tailarg} -f ${LOGFILE};
 elif test ${cmd} = "more"; then
     exec less ${LOGFILE};
-elif [[ ${cmd} =~ ^-[0123456789]+$ ]]; then
-    exec tail -f -n ${cmd:1} ${LOGFILE};
-elif [[ ${cmd} =~ ^[0123456789]+-$ ]]; then
-    exec tail -f -n ${cmd:0:-1} ${LOGFILE};
-elif [[ ${cmd} =~ ^[0123456789]+$ ]]; then
-    exec tail -n ${cmd} ${LOGFILE};
+elif test ${cmd} = "tmore"; then
+    tail -n ${tailarg} ${LOGFILE} | less;
 else
     echo "Not handling unrecognized argument ${cmd}"
 fi;
