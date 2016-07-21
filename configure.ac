@@ -36,6 +36,8 @@ elif (test "x${prefix}" == "x/usr/local"); then
 else localstatedir="\${prefix}/var";
 fi
 
+echo localstatedir is $localstatedir
+
 threads_default="yes"
 checkfdtype_default="no"
 shared_default="yes"
@@ -125,15 +127,15 @@ GPGID=${GPGID:-E5AFF294}
 GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$prefix/etc/framerd"
-rundir="${localstatedir}/run"
-logdir="${localstatedir}/log"
-framerd_rundir="${rundir}/framerd"
-framerd_logdir="${logdir}/framerd"
-daemon_logdir="${framerd_logdir}/daemons"
-servlet_logdir="${framerd_logdir}/servlets"
-daemon_rundir="${framerd_rundir}/daemons"
-servlet_rundir="${framerd_rundir}/servlets"
-default_bugjar="${framerd_logdir}/bugjar"
+rundir=$localstatedir/run
+logdir="$localstatedir/log"
+framerd_rundir="$rundir/framerd"
+framerd_logdir="$logdir/framerd"
+daemon_logdir="$framerd_logdir/daemons"
+servlet_logdir="$framerd_logdir/servlets"
+daemon_rundir="$framerd_rundir/daemons"
+servlet_rundir="$framerd_rundir/servlets"
+default_bugjar="$framerd_logdir/bugjar"
 archflags=""
 with_ziptools_default="yes"
 with_mysql_default="yes"
