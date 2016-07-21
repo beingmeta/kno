@@ -210,7 +210,9 @@ static int _curl_set2dtype(u8_string cxt,struct FD_CURL_HANDLE *h,
   fdtype v=fd_get(f,slotid,FD_VOID);
   if (FD_ABORTP(v))
     return fd_interr(v);
-  else if ((FD_STRINGP(v))||(FD_PRIM_TYPEP(v,fd_secret_type))) {
+  else if ((FD_STRINGP(v))||
+           (FD_PACKETP(v))||
+           (FD_PRIM_TYPEP(v,fd_secret_type))) {
     CURLcode retval=curl_easy_setopt(h->handle,option,FD_STRDATA(v));
     if (retval) {
       u8_free(h); fd_decref(v);
