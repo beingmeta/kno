@@ -752,11 +752,11 @@ static fdtype mongodb_readvec(fdtype cursor,fdtype howmany,fdtype opts_arg)
      unsigned char bytes[12];
      FD_OID addr=FD_OID_ADDR(val); bson_oid_t oid;
      unsigned int hi=FD_OID_HI(addr), lo=FD_OID_LO(addr);
-     bytes[11]=bytes[10]=bytes[9]=bytes[8]=0;
-     bytes[7]=((hi>>24)&0xFF); bytes[6]=((hi>>16)&0xFF);
-     bytes[5]=((hi>>8)&0xFF); bytes[4]=(hi&0xFF);
-     bytes[3]=((lo>>24)&0xFF); bytes[2]=((lo>>16)&0xFF);
-     bytes[1]=((lo>>8)&0xFF); bytes[0]=(lo&0xFF);
+     bytes[0]=bytes[1]=bytes[2]=bytes[3]=0;
+     bytes[4]=((hi>>24)&0xFF); bytes[5]=((hi>>16)&0xFF);
+     bytes[6]=((hi>>8)&0xFF); bytes[7]=(hi&0xFF);
+     bytes[8]=((lo>>24)&0xFF); bytes[9]=((lo>>16)&0xFF);
+     bytes[10]=((lo>>8)&0xFF); bytes[11]=(lo&0xFF);
      bson_oid_init_from_data(&oid,bytes);
      return bson_append_oid(out,key,keylen,&oid);}
    else if (FD_SYMBOLP(val))
@@ -911,7 +911,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
   case BSON_TYPE_UTF8: {
     int len=-1;
     const unsigned char *bytes=bson_iter_utf8(in,&len);
-    if ((flags&FD_MONGODB_COLONIZE)&&(strchr(":(#@",field[0])!=NULL))
+    if ((flags&FD_MONGODB_COLONIZE)&&(strchr(":(#@",bytes[0])!=NULL))
       value=fd_parse_arg((u8_string)(bytes+1));
     else if ((flags&FD_MONGODB_COLONIZE)&&(bytes[0]=='\\'))
       value=fd_make_string(NULL,((len>0)?(len-1):(-1)),
