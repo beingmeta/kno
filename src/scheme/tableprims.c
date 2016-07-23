@@ -167,6 +167,11 @@ static fdtype lispstore(fdtype table,fdtype key,fdtype val)
 {
   if (FD_EMPTY_CHOICEP(table)) return FD_VOID;
   else if (FD_EMPTY_CHOICEP(key)) return FD_VOID;
+  else if (FD_QCHOICEP(val)) {
+    struct FD_QCHOICE *qch=FD_XQCHOICE(val);
+    if (fd_store(table,key,qch->choice)<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;}
   else if (fd_store(table,key,val)<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
@@ -938,6 +943,8 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("STORE!",lispstore,3)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("GETKEYS",fd_getkeys,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("GETVALUES",fd_getvalues,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("GETASSOCS",fd_getassocs,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2x("PICK-KEYS",lisp_pick_keys,1,
                                             -1,FD_VOID,fd_fixnum_type,FD_INT(1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-SIZE",table_size,1));

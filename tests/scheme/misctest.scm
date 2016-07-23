@@ -275,6 +275,31 @@
 
 (applytest #(5 9 6 6 4 3 4 9 6 6 14 7 1) leaker leaker)
 
+;;; Various generic table functions
+
+(define slotmap (frame-create #f 'a 3 'b 4 'c {5 6} 'd {}))
+(define slotmap-literal #[a 3 b 4 c {5 6} d {}])
+
+(applytest '{a b c} getkeys slotmap)
+(applytest '{3 4 5 6} getvalues slotmap)
+(applytest '{(a . 3) (b . 4) (c . {5 6})} getassocs slotmap)
+
+(applytest '{a b c d} getkeys slotmap-literal)
+(applytest '{3 4 5 6} getvalues slotmap-literal)
+(applytest '{(a . 3) (b . 4) (c . {5 6}) (d . {})}
+	   getassocs slotmap-literal)
+
+(define hashtable
+  (let ((table (make-hashtable)))
+    (do-choices (key (getkeys slotmap-literal))
+      (store! table key (qc (get slotmap-literal key))))
+    table))
+
+(applytest '{a b c d} getkeys hashtable)
+(applytest '{3 4 5 6} getvalues hashtable)
+(applytest '{(a . 3) (b . 4) (c . {5 6}) (d . {})}
+	   getassocs hashtable)
+
 ;;; This finds an anti-leak in optional arguments
 ;;; With this bug, the passed in argument Y to break-defaults
 ;;; is GC'd one time too many.

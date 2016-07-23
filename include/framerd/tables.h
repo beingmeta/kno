@@ -53,6 +53,8 @@ FD_EXPORT int fd_add(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_drop(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_getsize(fdtype arg);
 FD_EXPORT fdtype fd_getkeys(fdtype arg);
+FD_EXPORT fdtype fd_getvalues(fdtype arg);
+FD_EXPORT fdtype fd_getassocs(fdtype arg);
 FD_EXPORT void fd_display_table(u8_output out,fdtype table,fdtype keys);
 FD_EXPORT fdtype fd_table_max(fdtype table,fdtype scope,fdtype *maxval);
 FD_EXPORT fdtype fd_table_skim(fdtype table,fdtype maxval,fdtype scope);
