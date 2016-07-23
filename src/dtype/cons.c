@@ -285,6 +285,22 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
       else return -1;
     else if (FD_NUMBER_TYPEP(ytype))
       return 1;
+    else if ((FD_ACHOICEP(x))&&(FD_ACHOICEP(y))) {
+      fdtype sx=fd_make_simple_choice(x);
+      fdtype sy=fd_make_simple_choice(y);
+      int retval=DOCOMPARE(sx,sy);
+      fd_decref(sx); fd_decref(sy);
+      return retval;}
+    else if (FD_ACHOICEP(x)) {
+      fdtype sx=fd_make_simple_choice(x);
+      int retval=DOCOMPARE(sx,y);
+      fd_decref(sx);
+      return retval;}
+    else if (FD_ACHOICEP(y)) {
+      fdtype sy=fd_make_simple_choice(y);
+      int retval=DOCOMPARE(x,sy);
+      fd_decref(sy);
+      return retval;}
     else if (xtype<ytype) return -1;
     else if (xtype>ytype) return 1;
     else if (FD_CONSP(x))
