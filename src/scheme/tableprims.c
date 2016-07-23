@@ -955,6 +955,14 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("TABLE-SKIM",table_skim,2)));
 
+  fd_idefn(fd_scheme_module,fd_make_cprim1
+           ("PLIST->TABLE",fd_plist_to_slotmap,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1
+           ("ALIST->TABLE",fd_alist_to_slotmap,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1
+           ("BLIST->TABLE",fd_blist_to_slotmap,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1
+           ("BINDINGS->TABLE",fd_blist_to_slotmap,1));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("TABLE-INCREMENT!",

@@ -615,6 +615,72 @@ static int compare_slotmaps(fdtype x,fdtype y,int quick)
   return result;
 }
 
+
+/* Lists into slotmaps */
+
+static int build_table(fdtype table,fdtype key,fdtype value)
+{
+  if (FD_EMPTY_CHOICEP(value)) {
+    if (fd_test(table,key,FD_VOID)) 
+      return fd_add(table,key,value);
+    else return fd_store(table,key,value);}
+  else return fd_add(table,key,value);
+}
+
+FD_EXPORT fdtype fd_plist_to_slotmap(fdtype plist)
+{
+  if (!(FD_PAIRP(plist)))
+    return fd_type_error(_("plist"),"fd_plist_to_slotmap",plist);
+  else {
+    fdtype scan=plist, result=fd_init_slotmap(NULL,0,NULL);
+    while ((FD_PAIRP(scan))&&(FD_PAIRP(FD_CDR(scan)))) {
+      fdtype key=FD_CAR(scan), value=FD_CADR(scan);
+      build_table(result,key,value);
+      scan=FD_CDR(scan); scan=FD_CDR(scan);}
+    if (!(FD_EMPTY_LISTP(scan))) {
+      fd_decref(result);
+      return fd_type_error(_("plist"),"fd_plist_to_slotmap",plist);}
+    else return result;}
+}
+
+FD_EXPORT fdtype fd_alist_to_slotmap(fdtype alist)
+{
+  if (!(FD_PAIRP(alist)))
+    return fd_type_error(_("alist"),"fd_alist_to_slotmap",alist);
+  else {
+    fdtype result=fd_init_slotmap(NULL,0,NULL);
+    FD_DOLIST(assoc,alist) {
+      if (!(FD_PAIRP(assoc))) {
+        fd_decref(result);
+        return fd_type_error(_("alist"),"fd_alist_to_slotmap",alist);}
+      else build_table(result,FD_CAR(assoc),FD_CDR(assoc));}
+    return result;}
+}
+
+FD_EXPORT fdtype fd_blist_to_slotmap(fdtype blist)
+{
+  if (!(FD_PAIRP(blist)))
+    return fd_type_error(_("binding list"),"fd_blist_to_slotmap",blist);
+  else {
+    fdtype result=fd_init_slotmap(NULL,0,NULL);
+    FD_DOLIST(binding,blist) {
+      if (!(FD_PAIRP(binding))) {
+        fd_decref(result);
+        return fd_type_error(_("binding list"),"fd_blist_to_slotmap",blist);}
+      else {
+        fdtype key=FD_CAR(binding), scan=FD_CDR(binding);
+        if (FD_EMPTY_LISTP(scan)) 
+          build_table(result,key,FD_EMPTY_CHOICE);
+        else while (FD_PAIRP(scan)) {
+          build_table(result,key,FD_CAR(scan));
+          scan=FD_CDR(scan);}
+        if (!(FD_EMPTY_LISTP(scan))) {
+          fd_decref(result);
+          return fd_type_error
+            (_("binding list"),"fd_blist_to_slotmap",blist);}}}
+    return result;}
+}
+
 /* Schema maps */
 
 FD_EXPORT fdtype fd_make_schemap

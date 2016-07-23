@@ -300,6 +300,13 @@
 (applytest '{(a . 3) (b . 4) (c . {5 6}) (d . {})}
 	   getassocs hashtable)
 
+(applytest slotmap-literal plist->table
+	   '(A 3 b 4 C {5 6} D {}))
+(applytest slotmap-literal alist->table
+	   '((A . 3) (b . 4) (C . {5 6}) (D . {})))
+(applytest slotmap-literal blist->table
+	   '((A 3) (b 4) (C 5 6) (D)))
+
 ;;; This finds an anti-leak in optional arguments
 ;;; With this bug, the passed in argument Y to break-defaults
 ;;; is GC'd one time too many.

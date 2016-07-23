@@ -235,6 +235,10 @@ static MAYBE_UNUSED fdtype fd_slotmap_test
 #define fd_slotmap_test _fd_slotmap_test
 #endif
 
+FD_EXPORT fdtype fd_plist_to_slotmap(fdtype plist);
+FD_EXPORT fdtype fd_alist_to_slotmap(fdtype alist);
+FD_EXPORT fdtype fd_blist_to_slotmap(fdtype binding_list);
+
 /* Schemamaps */
 
 typedef struct FD_SCHEMAP {
