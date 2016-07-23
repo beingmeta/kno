@@ -339,6 +339,62 @@ FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm)
                           (FD_CHOICE_ISCONSES))));
 }
 
+FD_EXPORT fdtype fd_slotmap_values(struct FD_SLOTMAP *sm)
+{
+  struct FD_KEYVAL *scan, *limit; int unlock=0;
+  struct FD_ACHOICE *achoice; fdtype results;
+  int size, atomic=1;
+  FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
+  if (sm->uselock) { fd_read_lock(&sm->rwlock); unlock=1;}
+  size=FD_XSLOTMAP_SIZE(sm); scan=sm->keyvals; limit=scan+size;
+  if (size==0) {
+    if (unlock) fd_rw_unlock(&sm->rwlock);
+    return FD_EMPTY_CHOICE;}
+  else if (size==1) {
+    fdtype value=fd_incref(scan->value);
+    if (unlock) fd_rw_unlock(&sm->rwlock);
+    return value;}
+  /* Otherwise, copy the keys into a choice vector. */
+  results=fd_init_achoice(NULL,7*(size),0);
+  achoice=FD_XACHOICE(results);
+  while (scan < limit) {
+    fdtype value=(scan++)->value;
+    if (FD_CONSP(value)) {fd_incref(value); atomic=0;}
+    _achoice_add(achoice,value);}
+  if (unlock) fd_rw_unlock(&sm->rwlock);
+  /* Note that we can assume that the choice is sorted because the keys are. */
+  return fd_simplify_choice(results);
+}
+
+FD_EXPORT fdtype fd_slotmap_assocs(struct FD_SLOTMAP *sm)
+{
+  struct FD_KEYVAL *scan, *limit; int unlock=0;
+  struct FD_ACHOICE *achoice; fdtype results;
+  int size;
+  FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
+  if (sm->uselock) { fd_read_lock(&sm->rwlock); unlock=1;}
+  size=FD_XSLOTMAP_SIZE(sm); scan=sm->keyvals; limit=scan+size;
+  if (size==0) {
+    if (unlock) fd_rw_unlock(&sm->rwlock);
+    return FD_EMPTY_CHOICE;}
+  else if (size==1) {
+    fdtype key=scan->key, value=scan->value;
+    fd_incref(key); fd_incref(value);
+    if (unlock) fd_rw_unlock(&sm->rwlock);
+    return fd_init_pair(NULL,key,value);}
+  /* Otherwise, copy the keys into a choice vector. */
+  results=fd_init_achoice(NULL,7*(size),0);
+  achoice=FD_XACHOICE(results);
+  while (scan < limit) {
+    fdtype key=scan->key, value=scan->value;
+    fdtype assoc=fd_init_pair(NULL,key,value);
+    fd_incref(key); fd_incref(value); scan++;
+    _achoice_add(achoice,assoc);}
+  if (unlock) fd_rw_unlock(&sm->rwlock);
+  /* Note that we can assume that the choice is sorted because the keys are. */
+  return fd_simplify_choice(results);
+}
+
 FD_EXPORT fdtype fd_slotmap_max
   (struct FD_SLOTMAP *sm,fdtype scope,fdtype *maxvalp)
 {
@@ -557,6 +613,72 @@ static int compare_slotmaps(fdtype x,fdtype y,int quick)
   if (unlockx) fd_rw_unlock_struct(smx);
   if (unlocky) fd_rw_unlock_struct(smy);
   return result;
+}
+
+
+/* Lists into slotmaps */
+
+static int build_table(fdtype table,fdtype key,fdtype value)
+{
+  if (FD_EMPTY_CHOICEP(value)) {
+    if (fd_test(table,key,FD_VOID)) 
+      return fd_add(table,key,value);
+    else return fd_store(table,key,value);}
+  else return fd_add(table,key,value);
+}
+
+FD_EXPORT fdtype fd_plist_to_slotmap(fdtype plist)
+{
+  if (!(FD_PAIRP(plist)))
+    return fd_type_error(_("plist"),"fd_plist_to_slotmap",plist);
+  else {
+    fdtype scan=plist, result=fd_init_slotmap(NULL,0,NULL);
+    while ((FD_PAIRP(scan))&&(FD_PAIRP(FD_CDR(scan)))) {
+      fdtype key=FD_CAR(scan), value=FD_CADR(scan);
+      build_table(result,key,value);
+      scan=FD_CDR(scan); scan=FD_CDR(scan);}
+    if (!(FD_EMPTY_LISTP(scan))) {
+      fd_decref(result);
+      return fd_type_error(_("plist"),"fd_plist_to_slotmap",plist);}
+    else return result;}
+}
+
+FD_EXPORT fdtype fd_alist_to_slotmap(fdtype alist)
+{
+  if (!(FD_PAIRP(alist)))
+    return fd_type_error(_("alist"),"fd_alist_to_slotmap",alist);
+  else {
+    fdtype result=fd_init_slotmap(NULL,0,NULL);
+    FD_DOLIST(assoc,alist) {
+      if (!(FD_PAIRP(assoc))) {
+        fd_decref(result);
+        return fd_type_error(_("alist"),"fd_alist_to_slotmap",alist);}
+      else build_table(result,FD_CAR(assoc),FD_CDR(assoc));}
+    return result;}
+}
+
+FD_EXPORT fdtype fd_blist_to_slotmap(fdtype blist)
+{
+  if (!(FD_PAIRP(blist)))
+    return fd_type_error(_("binding list"),"fd_blist_to_slotmap",blist);
+  else {
+    fdtype result=fd_init_slotmap(NULL,0,NULL);
+    FD_DOLIST(binding,blist) {
+      if (!(FD_PAIRP(binding))) {
+        fd_decref(result);
+        return fd_type_error(_("binding list"),"fd_blist_to_slotmap",blist);}
+      else {
+        fdtype key=FD_CAR(binding), scan=FD_CDR(binding);
+        if (FD_EMPTY_LISTP(scan)) 
+          build_table(result,key,FD_EMPTY_CHOICE);
+        else while (FD_PAIRP(scan)) {
+          build_table(result,key,FD_CAR(scan));
+          scan=FD_CDR(scan);}
+        if (!(FD_EMPTY_LISTP(scan))) {
+          fd_decref(result);
+          return fd_type_error
+            (_("binding list"),"fd_blist_to_slotmap",blist);}}}
+    return result;}
 }
 
 /* Schema maps */
@@ -1768,6 +1890,69 @@ FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
   return fd_simplify_choice(result);
 }
 
+FD_EXPORT fdtype fd_hashtable_values(struct FD_HASHTABLE *ptr)
+{
+  struct FD_KEYVAL *scan, *limit; int unlock=0;
+  struct FD_ACHOICE *achoice; fdtype results;
+  int size, atomic=1;
+  FD_CHECK_TYPE_RETDTYPE(ptr,fd_hashtable_type);
+  if (ptr->uselock) {fd_read_lock(&ptr->rwlock); unlock=1;}
+  size=ptr->n_keys;
+  /* Otherwise, copy the keys into a choice vector. */
+  results=fd_init_achoice(NULL,17*(size),0);
+  achoice=FD_XACHOICE(results);
+  {
+    struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
+    while (scan < lim)
+      if (*scan) {
+        struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+        struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+        while (kvscan<kvlimit) {
+          fdtype value=kvscan->value;
+          if ((FD_VOIDP(value))||(FD_EMPTY_CHOICEP(value))) {
+            kvscan++; continue;}
+          fd_incref(value);
+          _achoice_add(achoice,value);
+          kvscan++;}
+        scan++;}
+      else scan++;}
+  if (unlock) fd_rw_unlock(&ptr->rwlock);
+  /* Note that we can assume that the choice is sorted because the keys are. */
+  return fd_simplify_choice(results);
+}
+
+FD_EXPORT fdtype fd_hashtable_assocs(struct FD_HASHTABLE *ptr)
+{
+  struct FD_KEYVAL *scan, *limit; int unlock=0;
+  struct FD_ACHOICE *achoice; fdtype results;
+  int size;
+  FD_CHECK_TYPE_RETDTYPE(ptr,fd_hashtable_type);
+  if (ptr->uselock) {fd_read_lock(&ptr->rwlock); unlock=1;}
+  size=ptr->n_keys;
+  /* Otherwise, copy the keys into a choice vector. */
+  results=fd_init_achoice(NULL,17*(size),0);
+  achoice=FD_XACHOICE(results);
+  {
+    struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
+    while (scan < lim)
+      if (*scan) {
+        struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+        struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+        while (kvscan<kvlimit) {
+          fdtype key=kvscan->key, value=kvscan->value, assoc;
+          if (FD_VOIDP(value)) {
+            kvscan++; continue;}
+          fd_incref(key); fd_incref(value);
+          assoc=fd_init_pair(NULL,key,value);
+          _achoice_add(achoice,assoc);
+          kvscan++;}
+        scan++;}
+      else scan++;}
+  if (unlock) fd_rw_unlock(&ptr->rwlock);
+  /* Note that we can assume that the choice is sorted because the keys are. */
+  return fd_simplify_choice(results);
+}
+
 static int free_hashvec
 (struct FD_HASHENTRY **slots,int slots_to_free)
 {
@@ -2730,6 +2915,60 @@ FD_EXPORT fdtype fd_getkeys(fdtype arg)
       else return fd_err(fd_NoMethod,CantGetKeys,NULL,arg);
     else return fd_err(NotATable,"fd_getkeys",NULL,arg);
   else return fd_err(fd_BadPtr,"fd_getkeys",NULL,arg);
+}
+
+FD_EXPORT fdtype fd_getvalues(fdtype arg)
+{
+  /* Eventually, these might be fd_tablefns fields */
+  if (FD_PRIM_TYPEP(arg,fd_hashtable_type)) 
+    return fd_hashtable_values(FD_XHASHTABLE(arg));
+  else if (FD_PRIM_TYPEP(arg,fd_slotmap_type))
+    return fd_slotmap_values(FD_XSLOTMAP(arg));
+  else if (FD_CHOICEP(arg)) {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(table,arg) {
+      FD_ADD_TO_CHOICE(results,fd_getvalues(table));}
+    return results;}
+  else if (FD_PAIRP(arg))
+    return fd_cdr(arg);
+  else if (!(FD_TABLEP(arg)))
+    return fd_err(NotATable,"fd_getvalues",NULL,arg);
+  else {
+    fdtype results=FD_EMPTY_CHOICE, keys=fd_getkeys(arg);
+    FD_DO_CHOICES(key,keys) {
+      fdtype values=fd_get(arg,key,FD_VOID);
+      if (!((FD_VOIDP(values))||(FD_EMPTY_CHOICEP(values)))) {
+        FD_ADD_TO_CHOICE(results,values);}}
+    fd_decref(keys);
+    return results;}
+}
+
+FD_EXPORT fdtype fd_getassocs(fdtype arg)
+{
+  /* Eventually, these might be fd_tablefns fields */
+  if (FD_PRIM_TYPEP(arg,fd_hashtable_type)) 
+    return fd_hashtable_assocs(FD_XHASHTABLE(arg));
+  else if (FD_PRIM_TYPEP(arg,fd_slotmap_type))
+    return fd_slotmap_assocs(FD_XSLOTMAP(arg));
+  else if (FD_CHOICEP(arg)) {
+    fdtype results=FD_EMPTY_CHOICE;
+    FD_DO_CHOICES(table,arg) {
+      FD_ADD_TO_CHOICE(results,fd_getassocs(table));}
+    return results;}
+  else if (FD_PAIRP(arg))
+    return fd_incref(arg);
+  else if (!(FD_TABLEP(arg)))
+    return fd_err(NotATable,"fd_getvalues",NULL,arg);
+  else {
+    fdtype results=FD_EMPTY_CHOICE, keys=fd_getkeys(arg);
+    FD_DO_CHOICES(key,keys) {
+      fdtype values=fd_get(arg,key,FD_VOID);
+      if (!(FD_VOIDP(values))) {
+        fdtype assoc=fd_init_pair(NULL,key,values);
+        fd_incref(key); fd_incref(values);
+        FD_ADD_TO_CHOICE(results,assoc);}}
+    fd_decref(keys);
+    return results;}
 }
 
 /* Operations over tables */
