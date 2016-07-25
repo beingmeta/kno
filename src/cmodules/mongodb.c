@@ -703,7 +703,7 @@ static fdtype mongodb_readvec(fdtype cursor,fdtype howmany,fdtype opts_arg)
        struct FD_VECTOR *vec=(struct FD_VECTOR *)val;
        int i=0, lim=vec->length;
        fdtype *data=vec->data;
-       if (flags&&FD_MONGODB_CHOICEVALS) {
+       if (flags&FD_MONGODB_CHOICEVALS) {
          ok=bson_append_array_begin(out,key,keylen,&ch);
          if (ok) ok=bson_append_array_begin(&ch,"0",1,&arr);}
        else ok=bson_append_array_begin(out,key,keylen,&arr);
@@ -713,7 +713,7 @@ static fdtype mongodb_readvec(fdtype cursor,fdtype howmany,fdtype opts_arg)
            fdtype v=data[i]; sprintf(buf,"%d",i++);
            ok=bson_append_dtype(rout,buf,strlen(buf),v);
            if (!(ok)) break;}
-       if (flags&&FD_MONGODB_CHOICEVALS) {
+       if (flags&FD_MONGODB_CHOICEVALS) {
          bson_append_array_end(&ch,&arr);
          bson_append_array_end(out,&ch);}
        else bson_append_array_end(out,&arr);
