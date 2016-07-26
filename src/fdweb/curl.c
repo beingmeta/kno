@@ -309,7 +309,7 @@ struct FD_CURL_HANDLE *fd_open_curl_handle()
   if (debugging_curl) {
     FD_INTPTR ptrval=(FD_INTPTR) h->handle;
     u8_log(LOG_DEBUG,"CURL","Creating CURL handle %llx",ptrval);
-    curl_easy_setopt(h,CURLOPT_VERBOSE,1);}
+    curl_easy_setopt(h->handle,CURLOPT_VERBOSE,1);}
   /*
   memset(h->curl_errbuf,0,sizeof(h->curl_errbuf));
   curl_easy_setopt(h,CURLOPT_ERRORBUFFER,(h->curl_errbuf));
@@ -1429,7 +1429,7 @@ FD_EXPORT void fd_init_curl_c()
            (fd_make_cprim3("RESPONSE/STATUS?",testresponseprim,2)));
 
   fd_register_config
-    ("DEBUGCURL",_("Whether to debug low level CURL interaction"),
+    ("CURL:DEBUG",_("Whether to debug low level CURL interaction"),
      fd_boolconfig_get,fd_boolconfig_set,&debugging_curl);
 
 
