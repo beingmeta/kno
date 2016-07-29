@@ -26,7 +26,6 @@ static fdtype return_error_helper(fdtype expr,fd_lispenv env,int wrapped)
   fdtype arg1=fd_get_arg(expr,1);
   fdtype arg2=fd_get_arg(expr,2);
   fdtype printout_body;
-
   if ((FD_SYMBOLP(arg1)) && (FD_SYMBOLP(arg2))) {
     ex=(fd_exception)(FD_SYMBOL_NAME(arg1));
     cxt=(u8_context)(FD_SYMBOL_NAME(arg2));
@@ -59,7 +58,7 @@ static fdtype extend_error(fdtype expr,fd_lispenv env)
   return return_error_helper(expr,env,1);
 }
 
-static fdtype return_irritant_helper(fdtype expr,fd_lispenv env,int wrapped)
+static fdtype return_irritant_helper(fdtype expr,fd_lispenv env,int wrapped,int eval_args)
 {
   fd_exception ex=SchemeError, cxt=NULL;
   fdtype head=fd_get_arg(expr,0);
@@ -70,6 +69,28 @@ static fdtype return_irritant_helper(fdtype expr,fd_lispenv env,int wrapped)
 
   if (FD_VOIDP(irritant))
     return fd_err(fd_SyntaxError,"return_irritant","no irritant",expr);
+  else if (eval_args) {
+    fdtype exval=fd_eval(arg1,env), cxtval;
+    if (FD_ABORTP(exval)) 
+      ex=(fd_exception)"Recursive error on exception name";
+    else if (FD_SYMBOLP(exval))
+      ex=(fd_exception)(FD_SYMBOL_NAME(exval));
+    else if (FD_STRINGP(exval)) {
+      fdtype sym=fd_intern(FD_STRDATA(exval));
+      ex=(fd_exception)(FD_SYMBOL_NAME(sym));}
+    else ex=(fd_exception)"Bad exception condition";
+    cxtval=fd_eval(arg2,env);
+    if ((FD_FALSEP(cxtval))||(FD_EMPTY_CHOICEP(cxtval)))
+      cxt=(fd_exception)NULL;
+    else if (FD_ABORTP(cxtval)) 
+      cxt=(fd_exception)"Recursive error on exception context";
+    else if (FD_SYMBOLP(cxtval))
+      cxt=(fd_exception)(FD_SYMBOL_NAME(cxtval));
+    else if (FD_STRINGP(exval)) {
+      fdtype sym=fd_intern(FD_STRDATA(cxtval));
+      cxt=(fd_exception)(FD_SYMBOL_NAME(sym));}
+    else cxt=(fd_exception)"Bad exception condition";
+    printout_body=fd_get_body(expr,4);}
   else if ((FD_SYMBOLP(arg1)) && (FD_SYMBOLP(arg2))) {
     ex=(fd_exception)(FD_SYMBOL_NAME(arg1));
     cxt=(u8_context)(FD_SYMBOL_NAME(arg2));
@@ -96,11 +117,20 @@ static fdtype return_irritant_helper(fdtype expr,fd_lispenv env,int wrapped)
 }
 static fdtype return_irritant(fdtype expr,fd_lispenv env)
 {
-  return return_irritant_helper(expr,env,0);
+  return return_irritant_helper(expr,env,0,0);
 }
 static fdtype extend_irritant(fdtype expr,fd_lispenv env)
 {
-  return return_irritant_helper(expr,env,1);
+  return return_irritant_helper(expr,env,1,0);
+}
+
+static fdtype return_irritant_eval(fdtype expr,fd_lispenv env)
+{
+  return return_irritant_helper(expr,env,0,1);
+}
+static fdtype extend_irritant_eval(fdtype expr,fd_lispenv env)
+{
+  return return_irritant_helper(expr,env,1,1);
 }
 
 static fdtype onerror_handler(fdtype expr,fd_lispenv env)
@@ -401,6 +431,8 @@ FD_EXPORT void fd_init_errors_c()
   fd_defspecial(fd_scheme_module,"ERROR+",extend_error);
   fd_defspecial(fd_scheme_module,"IRRITANT",return_irritant);
   fd_defspecial(fd_scheme_module,"IRRITANT+",extend_irritant);
+  fd_defspecial(fd_scheme_module,"NEWERR",return_irritant_eval);
+  fd_defspecial(fd_scheme_module,"NEWERR+",extend_irritant_eval);
   fd_defspecial(fd_scheme_module,"ONERROR",onerror_handler);
   fd_defspecial(fd_scheme_module,"REPORT-ERRORS",report_errors_handler);
   fd_defspecial(fd_scheme_module,"ERREIFY",erreify_handler);

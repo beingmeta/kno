@@ -186,13 +186,9 @@ define trace_tempsrv
   set env FD_LOGLEVEL=8
 end
 
-define sbooksweb
-    set args /var/run/fdserv/$arg0.sock CONFIG=/srv/sbooks/config/servlets/$arg0.config TRACEWEB=yes
-end
-
-define sbooksdaemon
-    set args /src/sbooks/daemons/$arg0.fdz CONFIG=/src/sbooks/config/site.cfg
-end
+define useinstalledmodules
+  unset environment FD_LOADPATH
+  unset environment FD_SAFE_LOADPATH
 
 define staticweb
     set args /var/run/fdserv/static.sock
