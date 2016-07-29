@@ -2160,6 +2160,8 @@ static fdtype config_get_module_loc(fdtype var,void *which_arg)
 
 /* Initialization */
 
+static void setup_logging();
+
 void fd_init_support_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -2187,6 +2189,8 @@ void fd_init_support_c()
   fd_register_config_lookup(getenv_config_lookup,NULL);
 
   boot_config();
+
+  setup_logging();
 
   fd_register_config
     ("APPID",_("application ID used in messages and SESSIONID"),
@@ -2217,42 +2221,6 @@ void fd_init_support_c()
   fd_register_config
     ("TRACECONFIG",_("whether to trace configuration"),
      fd_boolconfig_get,fd_boolconfig_set,&trace_config);
-
-  fd_register_config
-    ("LOGLEVEL",_("Required priority for messages to be displayed"),
-     fd_intconfig_get,loglevelconfig_set,
-     &u8_loglevel);
-  fd_register_config
-    ("STDOUTLEVEL",
-     _("Required priority for messages to be displayed on stdout"),
-     fd_intconfig_get,loglevelconfig_set,
-     &u8_stdout_loglevel);
-  fd_register_config
-    ("STDERRLEVEL",
-     _("Required priority for messages to be displayed on stderr"),
-     fd_intconfig_get,loglevelconfig_set,
-     &u8_stderr_loglevel);
-  /* Default logindent for FramerD */
-  if (!(u8_logindent)) u8_logindent=u8_strdup("       ");
-  fd_register_config
-    ("LOGINDENT",_("String for indenting multi-line log messages"),
-     fd_sconfig_get,fd_sconfig_set,&u8_logindent);
-  fd_register_config
-    ("SHOWDATE",_("Whether to show the date in log messages"),
-     fd_boolconfig_get,fd_boolconfig_set,
-     &u8_log_show_date);
-  fd_register_config
-    ("LOGPROCINFO",_("Whether to show PID/appid info in messages"),
-     fd_boolconfig_get,fd_boolconfig_set,
-     &u8_log_show_procinfo);
-  fd_register_config
-    ("LOGTHREADINFO",_("Whether to show thread id info in messages"),
-     fd_boolconfig_get,fd_boolconfig_set,
-     &u8_log_show_threadinfo);
-  fd_register_config
-    ("SHOWELAPSED",_("Whether to show elapsed time in messages"),
-     fd_boolconfig_get,fd_boolconfig_set,
-     &u8_log_show_elapsed);
 
   fd_register_config
     ("RUNUSER",_("Set the user ID for this process"),
@@ -2406,6 +2374,58 @@ void fd_init_support_c()
   fd_register_config
     ("LOGFNS",_("additional log functions"),
      config_get_logfns,config_add_logfn,NULL);
+
+}
+
+void setup_logging()
+{
+
+  u8_logprefix=u8_strdup("#|");
+  u8_logsuffix=u8_strdup("|#\n");
+
+  fd_register_config
+    ("LOGLEVEL",_("Required priority for messages to be displayed"),
+     fd_intconfig_get,loglevelconfig_set,
+     &u8_loglevel);
+  fd_register_config
+    ("STDOUTLEVEL",
+     _("Required priority for messages to be displayed on stdout"),
+     fd_intconfig_get,loglevelconfig_set,
+     &u8_stdout_loglevel);
+  fd_register_config
+    ("STDERRLEVEL",
+     _("Required priority for messages to be displayed on stderr"),
+     fd_intconfig_get,loglevelconfig_set,
+     &u8_stderr_loglevel);
+
+  /* Default logindent for FramerD */
+  if (!(u8_logindent)) u8_logindent=u8_strdup("       ");
+  fd_register_config
+    ("LOGINDENT",_("String for indenting multi-line log messages"),
+     fd_sconfig_get,fd_sconfig_set,&u8_logindent);
+  fd_register_config
+    ("LOGPREFIX",_("Prefix for log messages (default '[')"),
+     fd_sconfig_get,fd_sconfig_set,&u8_logprefix);
+  fd_register_config
+    ("LOGSUFFIX",_("Suffix for log messages (default ']\\n')"),
+     fd_sconfig_get,fd_sconfig_set,&u8_logsuffix);
+  
+  fd_register_config
+    ("SHOWDATE",_("Whether to show the date in log messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_log_show_date);
+  fd_register_config
+    ("LOGPROCINFO",_("Whether to show PID/appid info in messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_log_show_procinfo);
+  fd_register_config
+    ("LOGTHREADINFO",_("Whether to show thread id info in messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_log_show_threadinfo);
+  fd_register_config
+    ("SHOWELAPSED",_("Whether to show elapsed time in messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_log_show_elapsed);
 
 }
 
