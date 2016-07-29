@@ -23,6 +23,7 @@
 #include <libu8/u8printf.h>
 #include <libu8/u8crypto.h>
 
+
 #include "framerd/fdregex.h"
 #include "framerd/mongodb.h"
 
@@ -304,7 +305,7 @@ static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
   else return FD_ERROR_VALUE;
 }
 
-static fdtype mongodb_delete(fdtype arg,fdtype obj,fdtype opts_arg)
+static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
   int flags=getflags(opts_arg,domain->flags);
@@ -317,19 +318,19 @@ static fdtype mongodb_delete(fdtype arg,fdtype obj,fdtype opts_arg)
     if (FD_TABLEP(obj)) {
       fdtype id=fd_get(obj,idsym,FD_VOID);
       if (FD_VOIDP(id))
-        return fd_err("No MongoDB _id","mongodb_delete",NULL,obj);
+        return fd_err("No MongoDB _id","mongodb_remove",NULL,obj);
       bson_append_dtype(q,"_id",3,id);
       fd_decref(id);}
     else bson_append_dtype(q,"_id",3,obj);
     if (mongoc_collection_remove
-        (collection,MONGOC_DELETE_SINGLE_REMOVE,q.doc,NULL,&error)) {
+        (collection,MONGOC_REMOVE_SINGLE_REMOVE,q.doc,NULL,&error)) {
       collection_done(collection,client,domain);
       bson_destroy(q.doc); fd_decref(opts);
       return FD_TRUE;}
     else {
       collection_done(collection,client,domain);
       bson_destroy(q.doc); fd_incref(obj); fd_decref(opts);
-      fd_seterr(fd_MongoDB_Error,"mongodb_delete",
+      fd_seterr(fd_MongoDB_Error,"mongodb_remove",
                 u8_mkstring("%s>%s>%s:%s",
                             domain->uri,domain->dbname,domain->name,
                             error.message),
@@ -1219,7 +1220,7 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprim3x("MONGODB/INSERT!",mongodb_insert,2,
                                   fd_mongo_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim3x("MONGODB/DELETE!",mongodb_delete,2,
+  fd_idefn(module,fd_make_cprim3x("MONGODB/REMOVE!",mongodb_remove,2,
                                   fd_mongo_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim4x("MONGODB/UPDATE!",mongodb_update,2,
