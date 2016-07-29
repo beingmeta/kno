@@ -49,7 +49,25 @@ static History *edithistory;
 
 #include "main.h"
 
-#define EVAL_PROMPT ";; Eval: "
+#define EVAL_PROMPT "\n#|fdconsole|# "
+static u8_string eval_prompt=EVAL_PROMPT;
+static int set_prompt(fdtype ignored,fdtype v,void *vptr)
+{
+  u8_string *ptr=vptr, core, cur=*ptr;
+  if (FD_STRINGP(v)) {
+    u8_string data=FD_STRDATA(v), scan=data;
+    int c=u8_sgetc(&scan);
+    while (u8_isspace(c)) c=u8_sgetc(&scan);
+    if (cur) u8_free(cur);
+    if ((c==';')||((c=='#')&&(*scan=='|')))
+      *ptr=u8_strdup(data);
+    else *ptr=u8_string_append("#|",data,"|# ",NULL);
+    return 1;}
+  else {
+    fd_seterr(fd_TypeError,"set_prompt",
+              u8_strdup(_("prompt is not a string")),v);
+    return -1;}
+}
 
 #include "main.c"
 
@@ -60,7 +78,7 @@ static fdtype equals_symbol;
 #if USING_EDITLINE
 static char *editline_promptfn(EditLine *ignored)
 {
-return EVAL_PROMPT;
+  return (char *) eval_prompt;
 }
 #endif
 
@@ -337,7 +355,7 @@ static int output_result(u8_output out,fdtype result,
 static fdtype stream_read(u8_input in,fd_lispenv env)
 {
   fdtype expr; int c;
-  u8_puts(outconsole,EVAL_PROMPT); u8_flush(outconsole);
+  u8_puts(outconsole,eval_prompt); u8_flush(outconsole);
   c=skip_whitespace(in);
   if (c<0) return FD_EOF;
   else if (c=='=') {
@@ -657,9 +675,13 @@ int main(int argc,char **argv)
   fd_init_fdweb();
 #endif
 
+  eval_prompt=u8_strdup(EVAL_PROMPT);
+
   /* Register configuration parameters */
   fd_register_config("SHOWTIME",_("Threshold for displaying execution time"),
                      fd_dblconfig_get,fd_dblconfig_set,&showtime_threshold);
+  fd_register_config("PROMPT",_("Eval prompt (within #||#s)"),
+                     fd_sconfig_get,set_prompt,&eval_prompt);
   fd_register_config
     ("DBGMAXCHARS",
      _("Max number of string characters to display in debug message"),
