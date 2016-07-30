@@ -49,7 +49,7 @@ static History *edithistory;
 
 #include "main.h"
 
-#define EVAL_PROMPT "\n#|fdconsole|# "
+#define EVAL_PROMPT "#|fdconsole|# "
 static u8_string eval_prompt=EVAL_PROMPT;
 static int set_prompt(fdtype ignored,fdtype v,void *vptr)
 {
