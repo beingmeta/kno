@@ -2380,8 +2380,9 @@ void fd_init_support_c()
 void setup_logging()
 {
 
-  u8_logprefix=u8_strdup("#|");
-  u8_logsuffix=u8_strdup("|#\n");
+  u8_logprefix=u8_strdup(";; ");
+  u8_logsuffix=u8_strdup("\n");
+  u8_logindent=u8_strdup(";;     ");
 
   fd_register_config
     ("LOGLEVEL",_("Required priority for messages to be displayed"),
