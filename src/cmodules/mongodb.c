@@ -383,7 +383,7 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     fdtype opts=combine_opts(opts_arg,domain->opts);
     mongoc_cursor_t *cursor; bson_error_t error;
     const bson_t *doc;
-    bson_t *q=fd_dtype2bson(query,opts,flags);
+    bson_t *q=fd_dtype2bson(query,flags,opts);
     if (q) cursor=mongoc_collection_find
              (collection,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
     if (cursor) {
@@ -409,7 +409,7 @@ static fdtype mongodb_command(fdtype arg,fdtype command,fdtype opts_arg)
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
   if (collection) {
     fdtype results=FD_EMPTY_CHOICE;
-    bson_t *cmd=fd_dtype2bson(command,opts,flags);
+    bson_t *cmd=fd_dtype2bson(command,flags,opts);
     if (cmd) {
       const bson_t *doc; bson_error_t error;
       fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
@@ -760,9 +760,19 @@ static fdtype mongodb_readvec(fdtype cursor,fdtype howmany,fdtype opts_arg)
      bytes[10]=((lo>>8)&0xFF); bytes[11]=(lo&0xFF);
      bson_oid_init_from_data(&oid,bytes);
      return bson_append_oid(out,key,keylen,&oid);}
-   else if (FD_SYMBOLP(val))
-     return bson_append_utf8
-       (out,key,keylen,FD_SYMBOL_NAME(val),-1);
+   else if (FD_SYMBOLP(val)) {
+     if (flags&FD_MONGODB_COLONIZE_OUT) {
+       u8_string pname=FD_SYMBOL_NAME(val);
+       u8_byte _buf[512], *buf=_buf;
+       size_t len=strlen(pname); 
+       if (len>510) buf=u8_malloc(len+2);
+       buf[0]=':'; strcpy(buf+1,pname);
+       if (buf!=_buf) {
+         bool rval=bson_append_utf8(out,key,keylen,buf,len+1);
+         u8_free(buf);
+         return rval;}
+       else return bson_append_utf8(out,key,keylen,buf,len+1);}
+     else return bson_append_utf8(out,key,keylen,FD_SYMBOL_NAME(val),-1);}
    else if (FD_CHARACTERP(val)) {
      int code=FD_CHARCODE(val);
      if (code<128) {
@@ -871,12 +881,12 @@ FD_EXPORT bson_t *fd_dtype2bson(fdtype obj,int flags,fdtype opts)
 /* -1 means don't slotify at all, 0 means symbolize, 1 means intern */
 static int slotcode(u8_string s)
 {
-  const u8_byte *scan=s; int c, i=0, isupper=0;
+  const u8_byte *scan=s; int c, i=0, hasupper=0;
   while ((c=u8_sgetc(&scan))>=0) {
     if (i>32) return -1;
     if (!(slotify_char(c))) return -1; else i++;
-    if (u8_isupper(c)) isupper=1;}
-  return isupper;
+    if (u8_isupper(c)) hasupper=1;}
+  return hasupper;
 }
 
 static fdtype bson_read_vector(FD_BSON_INPUT b);
@@ -913,7 +923,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     int len=-1;
     const unsigned char *bytes=bson_iter_utf8(in,&len);
     if ((flags&FD_MONGODB_COLONIZE)&&(strchr(":(#@",bytes[0])!=NULL))
-      value=fd_parse_arg((u8_string)(bytes+1));
+      value=fd_parse_arg((u8_string)(bytes));
     else if ((flags&FD_MONGODB_COLONIZE)&&(bytes[0]=='\\'))
       value=fd_make_string(NULL,((len>0)?(len-1):(-1)),
                            (unsigned char *)bytes+1);
@@ -971,7 +981,8 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     FD_INIT_CONS(ts,fd_timestamp_type);
     u8_init_xtime(&(ts->xtime),millis/1000,u8_millisecond,
                   ((millis%1000)*1000000),0,0);
-    value=(fdtype)ts;}
+    value=(fdtype)ts;
+    break;}
   case BSON_TYPE_MAXKEY:
     value=maxkey; break;
   case BSON_TYPE_MINKEY:
