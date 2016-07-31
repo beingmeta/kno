@@ -45,7 +45,7 @@ static fdtype colonize, colonizein, colonizeout, choices, nochoices;
 static fdtype skipsym, limitsym, batchsym, sortsym;
 static fdtype fieldssym, upsertsym, newsym, removesym;
 static fdtype max_clients_symbol, max_ready_symbol;
-static fdtype mongomap_symbol;
+static fdtype mongomap_symbol, mongovec_symbol;
 
 /* Handling options and flags */
 
@@ -1195,6 +1195,21 @@ static fdtype make_mongomap(fdtype table,fdtype ordered)
     return result;}
 }
 
+static fdtype mongovec_lexpr(int n,fdtype *values)
+{
+  int i=0; while (i<n) { 
+    fdtype value=values[i++]; fd_incref(value);}
+  return fd_init_compound_from_elts(NULL,mongovec_symbol,0,n,values);
+}
+
+static fdtype make_mongovec(fdtype vec)
+{
+  fdtype result=FD_VOID, *elts=FD_VECTOR_ELTS(vec);
+  int n=FD_VECTOR_LENGTH(vec), i=0;
+  while (i<n) {fdtype v=elts[i++]; fd_incref(v);}
+  return fd_init_compound_from_elts(NULL,mongovec_symbol,0,n,elts);
+}
+
 /* MongoDB pools and indices */
 
 /* Notes:
@@ -1321,6 +1336,7 @@ FD_EXPORT int fd_init_mongodb()
   removesym=fd_intern("REMOVE");
 
   mongomap_symbol=fd_intern("%MONGOMAP");
+  mongovec_symbol=fd_intern("%MONGOVEC");
 
   bsonflags=fd_intern("BSON");
   raw=fd_intern("RAW");
@@ -1397,6 +1413,9 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprimn("MONGOMAP",mongomap_lexpr,0));
   fd_idefn(module,fd_make_cprim2x("->MONGOMAP",make_mongomap,2,
                                   -1,FD_VOID,fd_vector_type,FD_VOID));
+  fd_idefn(module,fd_make_cprimn("MONGOVEC",mongovec_lexpr,0));
+  fd_idefn(module,fd_make_cprim1x("->MONGOVEC",make_mongovec,1,
+                                  fd_vector_type,FD_VOID));
 
   fd_register_config("MONGODB:FLAGS",
                      "Default flags (fixnum) for MongoDB/BSON processing",
