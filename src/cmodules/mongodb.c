@@ -153,12 +153,21 @@ static int unparse_server(struct U8_OUTPUT *out,fdtype x)
    that it won't correspond to a single mongoc_collection_t object,
    but that each use of the collection will pop a client from the pool
    and create a collection with that client. */
-static fdtype mongodb_collection(fdtype server,fdtype dbname,fdtype cname,
-                                 fdtype opts_arg)
+static fdtype mongodb_collection(fdtype server,fdtype arg2,fdtype arg3,fdtype arg4)
 {
   struct FD_MONGODB_COLLECTION *result;
   struct FD_MONGODB_SERVER *srv;
-  u8_string uri; fdtype opts=FD_VOID; int flags;
+  u8_string uri; fdtype opts=FD_VOID, opts_arg=FD_VOID; int flags;
+  u8_string db_name=NULL, collection_name=NULL; 
+  if ((!(FD_VOIDP(arg4)))&&(!(FD_STRINGP(arg3))))
+    return fd_type_error("string","mongodb_collection",arg3);
+  if ((!(FD_VOIDP(arg4)))||((FD_STRINGP(arg2))&&(FD_STRINGP(arg3)))) {
+    db_name=FD_STRDATA(arg2);
+    collection_name=FD_STRDATA(arg3);
+    opts_arg=arg4;}
+  else {
+    collection_name=FD_STRDATA(arg2);
+    opts_arg=arg3;}
   if (FD_PRIM_TYPEP(server,fd_mongo_server)) {
     srv=(struct FD_MONGODB_SERVER *)server;
     flags=getflags(opts_arg,srv->flags);
@@ -170,12 +179,14 @@ static fdtype mongodb_collection(fdtype server,fdtype dbname,fdtype cname,
     server=consed; srv=(struct FD_MONGODB_SERVER *)consed;
     flags=srv->flags; opts=srv->opts; fd_incref(opts);}
   else return fd_type_error("MongoDB client","mongodb_collection",server);
+  if (db_name==NULL)
+    db_name=mongoc_uri_get_database( srv->info );
   result=u8_alloc(struct FD_MONGODB_COLLECTION);
   FD_INIT_CONS(result,fd_mongo_collection);
   result->server=server;
   result->uri=u8_strdup(srv->uri);
-  result->dbname=u8_strdup(FD_STRDATA(dbname));
-  result->name=u8_strdup(FD_STRDATA(cname));
+  result->dbname=u8_strdup(db_name);
+  result->name=u8_strdup(collection_name);
   result->opts=opts; result->flags=flags;
   return (fdtype) result;
 }
