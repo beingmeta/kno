@@ -38,7 +38,7 @@ typedef struct FD_BSON_INPUT *fd_bson_input;
 
 typedef struct FD_MONGODB_SERVER {
   FD_CONS_HEADER;
-  u8_string uri; fdtype opts; int flags;
+  u8_string uri, dbname; fdtype opts; int flags;
   mongoc_client_pool_t *pool;
   mongoc_uri_t *info;} FD_MONGODB_SERVER;
 typedef struct FD_MONGODB_SERVER *fd_mongodb_server;

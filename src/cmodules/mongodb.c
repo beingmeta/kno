@@ -125,8 +125,13 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
   client_pool=mongoc_client_pool_new(info);
   if (client_pool) {
     struct FD_MONGODB_SERVER *srv=u8_alloc(struct FD_MONGODB_SERVER);
+    u8_string dbname=mongoc_uri_get_database(info);
     FD_INIT_CONS(srv,fd_mongo_server);
-    srv->uri=uri; srv->info=info; srv->pool=client_pool;
+    srv->uri=uri; 
+    if (dbname==NULL) 
+      srv->dbname=NULL;
+    else srv->dbname=u8_strdup(dbname);
+    srv->info=info; srv->pool=client_pool;
     srv->opts=opts; fd_incref(opts);
     srv->flags=flags;
     return (fdtype)srv;}
@@ -156,21 +161,12 @@ static int unparse_server(struct U8_OUTPUT *out,fdtype x)
    that it won't correspond to a single mongoc_collection_t object,
    but that each use of the collection will pop a client from the pool
    and create a collection with that client. */
-static fdtype mongodb_collection(fdtype server,fdtype arg2,fdtype arg3,fdtype arg4)
+static fdtype mongodb_collection(fdtype server,fdtype name_arg,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *result;
   struct FD_MONGODB_SERVER *srv;
-  u8_string uri; fdtype opts=FD_VOID, opts_arg=FD_VOID; int flags;
-  u8_string db_name=NULL, collection_name=NULL; 
-  if ((!(FD_VOIDP(arg4)))&&(!(FD_STRINGP(arg3))))
-    return fd_type_error("string","mongodb_collection",arg3);
-  if ((!(FD_VOIDP(arg4)))||((FD_STRINGP(arg2))&&(FD_STRINGP(arg3)))) {
-    db_name=FD_STRDATA(arg2);
-    collection_name=FD_STRDATA(arg3);
-    opts_arg=arg4;}
-  else {
-    collection_name=FD_STRDATA(arg2);
-    opts_arg=arg3;}
+  u8_string name=FD_STRDATA(name_arg), db_name=NULL, collection_name=NULL; 
+  fdtype opts; int flags;
   if (FD_PRIM_TYPEP(server,fd_mongo_server)) {
     srv=(struct FD_MONGODB_SERVER *)server;
     flags=getflags(opts_arg,srv->flags);
@@ -182,16 +178,23 @@ static fdtype mongodb_collection(fdtype server,fdtype arg2,fdtype arg3,fdtype ar
     fdtype consed=mongodb_open(server,opts_arg);
     if (FD_ABORTP(consed)) return consed;
     server=consed; srv=(struct FD_MONGODB_SERVER *)consed;
-    flags=srv->flags; opts=srv->opts; fd_incref(opts);}
+    flags=srv->flags; 
+    opts=combine_opts(opts_arg,srv->opts);}
   else return fd_type_error("MongoDB client","mongodb_collection",server);
-  if (db_name==NULL)
-    db_name=mongoc_uri_get_database( srv->info );
+  if (strchr(name,'/')) {
+    char *slash=strchr(name,'/');
+    collection_name=slash+1;
+    db_name=u8_slice(name,slash);}
+  else if (srv->dbname==NULL) {
+    return fd_err(_("MissingDBName"),"mongodb_open",NULL,server);}
+  else {
+    db_name=u8_strdup(srv->dbname);
+    collection_name=u8_strdup(name);}
   result=u8_alloc(struct FD_MONGODB_COLLECTION);
   FD_INIT_CONS(result,fd_mongo_collection);
   result->server=server;
   result->uri=u8_strdup(srv->uri);
-  result->dbname=u8_strdup(db_name);
-  result->name=u8_strdup(collection_name);
+  result->dbname=db_name; result->name=collection_name;
   result->opts=opts; result->flags=flags;
   return (fdtype) result;
 }
@@ -416,16 +419,19 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
 
 /* Command execution */
 
-static fdtype mongodb_command(fdtype arg,fdtype command,fdtype opts_arg)
+static fdtype collection_command(fdtype arg,fdtype command,
+                                 fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
   int flags=getflags(opts_arg,domain->flags);
   fdtype opts=combine_opts(opts_arg,domain->opts);
+  fdtype fields=fd_get(opts,fieldssym,FD_VOID);
   mongoc_client_t *client;
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
   if (collection) {
     fdtype results=FD_EMPTY_CHOICE;
     bson_t *cmd=fd_dtype2bson(command,flags,opts);
+    bson_t *flds=fd_dtype2bson(fields,flags,opts);    
     if (cmd) {
       const bson_t *doc; bson_error_t error;
       fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
@@ -436,7 +442,7 @@ static fdtype mongodb_command(fdtype arg,fdtype command,fdtype opts_arg)
          ((FD_FIXNUMP(skip_arg))?(FD_FIX2INT(skip_arg)):(0)),
          ((FD_FIXNUMP(limit_arg))?(FD_FIX2INT(limit_arg)):(500)),
          ((FD_FIXNUMP(batch_arg))?(FD_FIX2INT(batch_arg)):(0)),
-         cmd,NULL,NULL);
+         cmd,flds,NULL);
       while (mongoc_cursor_next(cursor,&doc)) {
         fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
         FD_ADD_TO_CHOICE(results,r);}
@@ -449,6 +455,52 @@ static fdtype mongodb_command(fdtype arg,fdtype command,fdtype opts_arg)
       return FD_ERROR_VALUE;}}
   else return FD_ERROR_VALUE;
 }
+
+static fdtype db_command(fdtype arg,fdtype command,
+                         fdtype opts_arg)
+{
+  struct FD_MONGODB_SERVER *srv=(struct FD_MONGODB_SERVER *)arg;
+  int flags=getflags(opts_arg,srv->flags);
+  fdtype opts=combine_opts(opts_arg,srv->opts);
+  fdtype fields=fd_get(opts,fieldssym,FD_VOID);
+  mongoc_client_t *client=mongoc_client_pool_pop(srv->pool);
+  if (client) {
+    fdtype results=FD_EMPTY_CHOICE;
+    bson_t *cmd=fd_dtype2bson(command,flags,opts);
+    bson_t *flds=fd_dtype2bson(fields,flags,opts);    
+    if (cmd) {
+      const bson_t *doc; bson_error_t error;
+      fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
+      fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
+      fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
+      mongoc_cursor_t *cursor=mongoc_client_command
+        (client,srv->dbname,MONGOC_QUERY_EXHAUST,
+         ((FD_FIXNUMP(skip_arg))?(FD_FIX2INT(skip_arg)):(0)),
+         ((FD_FIXNUMP(limit_arg))?(FD_FIX2INT(limit_arg)):(500)),
+         ((FD_FIXNUMP(batch_arg))?(FD_FIX2INT(batch_arg)):(0)),
+         cmd,flds,NULL);
+      while (mongoc_cursor_next(cursor,&doc)) {
+        fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
+        FD_ADD_TO_CHOICE(results,r);}
+      mongoc_cursor_destroy(cursor);
+      client_done(arg,client);
+      bson_destroy(cmd); fd_decref(opts);
+      return results;}
+    else {
+      return FD_ERROR_VALUE;}}
+  else return FD_ERROR_VALUE;
+}
+
+static fdtype mongodb_command(fdtype arg,fdtype command,
+                              fdtype opts_arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_mongo_server)) 
+    return db_command(arg,command,opts_arg);
+  else if (FD_PRIM_TYPEP(arg,fd_mongo_collection))
+    return collection_command(arg,command,opts_arg);
+  else return fd_type_error(_("MongoDB"),"mongodb_command",arg);
+}
+
 
 static fdtype mongodb_command_simple(fdtype arg,fdtype command,fdtype opts_arg)
 {
@@ -1299,10 +1351,9 @@ FD_EXPORT int fd_init_mongodb()
 
   fd_idefn(module,fd_make_cprim2x("MONGODB/OPEN",mongodb_open,1,
                                   -1,FD_VOID,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim4x("MONGODB/COLLECTION",mongodb_collection,1,
+  fd_idefn(module,fd_make_cprim3x("MONGODB/COLLECTION",mongodb_collection,1,
                                   -1,FD_VOID,fd_string_type,FD_VOID,
-                                  fd_string_type,FD_VOID,
-                                  -1,FD_VOID));
+                                  fd_string_type,FD_VOID));
   fd_idefn(module,fd_make_cprim3x("MONGODB/CURSOR",mongodb_cursor,2,
                                   -1,FD_VOID,-1,FD_VOID,
                                   -1,FD_VOID));
