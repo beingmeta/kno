@@ -45,6 +45,7 @@ static fdtype colonize, colonizein, colonizeout, choices, nochoices;
 static fdtype skipsym, limitsym, batchsym, sortsym;
 static fdtype fieldssym, upsertsym, newsym, removesym;
 static fdtype max_clients_symbol, max_ready_symbol;
+static fdtype mongomap_symbol;
 
 /* Handling options and flags */
 
@@ -645,171 +646,196 @@ static fdtype mongodb_readvec(fdtype cursor,fdtype howmany,fdtype opts_arg)
 
 /* BSON output functions */
 
- static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
-                               const char *key,int keylen,
-                               fdtype val)
- {
-   bson_t *out=b.doc; int flags=b.flags; bool ok=true;
-   if (FD_CONSP(val)) {
-     fd_ptr_type ctype=FD_PTR_TYPE(val);
-     switch (ctype) {
-     case fd_string_type: {
-       unsigned char _buf[64], *buf=_buf;
-       u8_string str=FD_STRDATA(val); int len=FD_STRLEN(val);
-       if ((flags&FD_MONGODB_COLONIZE)&&
-           ((isdigit(str[0]))||(strchr(":(#@",str[0])!=NULL))) {
-         if (len>62) buf=u8_malloc(len+2);
-         buf[0]='\\'; strncpy(buf+1,str,len+1);
-         ok=bson_append_utf8(out,key,keylen,buf,len+1);
-         if (buf!=_buf) u8_free(buf);}
-       else ok=bson_append_utf8(out,key,keylen,str,len);
-       break;}
-     case fd_packet_type:
-       ok=bson_append_binary(out,key,keylen,BSON_SUBTYPE_BINARY,
-                             FD_PACKET_DATA(val),FD_PACKET_LENGTH(val));
-       break;
-     case fd_double_type: {
-       double d=FD_FLONUM(val);
-       ok=bson_append_double(out,key,keylen,d);
-       break;}
-     case fd_bigint_type: {
-       fd_bigint b=FD_GET_CONS(val,fd_bigint_type,fd_bigint);
-       if (fd_bigint_fits_in_word_p(b,32,1)) {
-         long int b32=fd_bigint_to_long(b);
-         ok=bson_append_int32(out,key,keylen,b32);}
-       else if (fd_bigint_fits_in_word_p(b,65,1)) {
-         long long int b64=fd_bigint_to_long_long(b);
-         ok=bson_append_int64(out,key,keylen,b64);}
-       else {
-         u8_log(LOG_WARN,fd_MongoDB_Warning,
-                "Can't save bigint value %q",val);
-         ok=bson_append_int32(out,key,keylen,0);}
-       break;}
-     case fd_timestamp_type: {
-       struct FD_TIMESTAMP *fdt=
-         FD_GET_CONS(val,fd_timestamp_type,struct FD_TIMESTAMP* );
-       unsigned long long millis=(fdt->xtime.u8_tick*1000)+
-         ((fdt->xtime.u8_prec>u8_second)?(fdt->xtime.u8_nsecs/1000000):(0));
-       ok=bson_append_date_time(out,key,keylen,millis);
-       break;}
-     case fd_uuid_type: {
-       struct FD_UUID *uuid=FD_GET_CONS(val,fd_uuid_type,struct FD_UUID *);
-       ok=bson_append_binary(out,key,keylen,BSON_SUBTYPE_UUID,uuid->uuid,16);
-       break;}
-     case fd_choice_type: case fd_achoice_type: {
-       struct FD_BSON_OUTPUT rout;
-       bson_t arr; char buf[16]; int i=0;
-       ok=bson_append_array_begin(out,key,keylen,&arr);
-       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-       rout.doc=&arr; rout.flags=b.flags; rout.opts=b.opts;
-       if (ok) {
-         int i=0; FD_DO_CHOICES(v,val) {
-           sprintf(buf,"%d",i++);
-           ok=bson_append_dtype(rout,buf,strlen(buf),v);
-           if (!(ok)) FD_STOP_DO_CHOICES;}}
-       bson_append_document_end(out,&arr);
-       break;}
-     case fd_vector_type: case fd_rail_type: {
-       struct FD_BSON_OUTPUT rout;
-       bson_t arr, ch; char buf[16];
-       struct FD_VECTOR *vec=(struct FD_VECTOR *)val;
-       int i=0, lim=vec->length;
-       fdtype *data=vec->data;
-       int wrap_vector=((flags&FD_MONGODB_CHOICEVALS)&&(key[0]!='$'));
-         if (wrap_vector) {
-         ok=bson_append_array_begin(out,key,keylen,&ch);
-         if (ok) ok=bson_append_array_begin(&ch,"0",1,&arr);}
-       else ok=bson_append_array_begin(out,key,keylen,&arr);
-       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-       rout.doc=&arr; rout.flags=b.flags; rout.opts=b.opts;
-       if (ok) while (i<lim) {
-           fdtype v=data[i]; sprintf(buf,"%d",i++);
-           ok=bson_append_dtype(rout,buf,strlen(buf),v);
-           if (!(ok)) break;}
-       if (wrap_vector) {
-         bson_append_array_end(&ch,&arr);
-         bson_append_array_end(out,&ch);}
-       else bson_append_array_end(out,&arr);
-       break;}
-     case fd_slotmap_type: case fd_hashtable_type: {
-       struct FD_BSON_OUTPUT rout;
-       bson_t doc; char buf[16];
-       fdtype keys=fd_getkeys(val);
-       ok=bson_append_document_begin(out,key,keylen,&doc);
-       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-       rout.doc=&doc; rout.flags=b.flags; rout.opts=b.opts;
-       if (ok) {
-         FD_DO_CHOICES(key,keys) {
-           fdtype value=fd_get(val,key,FD_VOID);
-           if (!(FD_VOIDP(value))) {
-             ok=bson_append_keyval(rout,key,value);
-             fd_decref(value);
-             if (!(ok)) FD_STOP_DO_CHOICES;}}}
-       fd_decref(keys);
-       bson_append_document_end(out,&doc);
-       break;}
-     case fd_regex_type: {
-       struct FD_REGEX *fdrx=(struct FD_REGEX *)val;
-       char opts[8], *write=opts; int flags=fdrx->flags;
-       if (flags&REG_EXTENDED) *write++='x';
-       if (flags&REG_ICASE) *write++='i';
-       if (flags&REG_NEWLINE) *write++='m';
-       *write++='\0';
-       bson_append_regex(out,key,keylen,fdrx->src,opts);
-       break;}
-     default: break;}
-     return ok;}
-   else if (FD_FIXNUMP(val))
-     return bson_append_int32(out,key,keylen,FD_FIX2INT(val));
-   else if (FD_OIDP(val)) {
-     unsigned char bytes[12];
-     FD_OID addr=FD_OID_ADDR(val); bson_oid_t oid;
-     unsigned int hi=FD_OID_HI(addr), lo=FD_OID_LO(addr);
-     bytes[0]=bytes[1]=bytes[2]=bytes[3]=0;
-     bytes[4]=((hi>>24)&0xFF); bytes[5]=((hi>>16)&0xFF);
-     bytes[6]=((hi>>8)&0xFF); bytes[7]=(hi&0xFF);
-     bytes[8]=((lo>>24)&0xFF); bytes[9]=((lo>>16)&0xFF);
-     bytes[10]=((lo>>8)&0xFF); bytes[11]=(lo&0xFF);
-     bson_oid_init_from_data(&oid,bytes);
-     return bson_append_oid(out,key,keylen,&oid);}
-   else if (FD_SYMBOLP(val)) {
-     if (flags&FD_MONGODB_COLONIZE_OUT) {
-       u8_string pname=FD_SYMBOL_NAME(val);
-       u8_byte _buf[512], *buf=_buf;
-       size_t len=strlen(pname); 
-       if (len>510) buf=u8_malloc(len+2);
-       buf[0]=':'; strcpy(buf+1,pname);
-       if (buf!=_buf) {
-         bool rval=bson_append_utf8(out,key,keylen,buf,len+1);
-         u8_free(buf);
-         return rval;}
-       else return bson_append_utf8(out,key,keylen,buf,len+1);}
-     else return bson_append_utf8(out,key,keylen,FD_SYMBOL_NAME(val),-1);}
-   else if (FD_CHARACTERP(val)) {
-     int code=FD_CHARCODE(val);
-     if (code<128) {
-       char c=code;
-       return bson_append_utf8(out,key,keylen,&c,1);}
-     else {
-       struct U8_OUTPUT vout; unsigned char buf[16];
-       U8_INIT_OUTPUT_BUF(&vout,16,buf);
-       u8_putc(&vout,code);
-       return bson_append_utf8(out,key,keylen,vout.u8_outbuf,
-                               vout.u8_outptr-vout.u8_outbuf);}}
-   else switch (val) {
-     case FD_TRUE: case FD_FALSE:
-       return bson_append_bool(out,key,keylen,(val==FD_TRUE));
-     default: {
-       struct U8_OUTPUT vout; unsigned char buf[128]; bool rv;
-       U8_INIT_OUTPUT_BUF(&vout,128,buf);
-       if (flags&FD_MONGODB_COLONIZE)
-         u8_printf(&vout,":%q",val);
-       else fd_unparse(&vout,val);
-       rv=bson_append_utf8(out,key,keylen,vout.u8_outbuf,
-                           vout.u8_outptr-vout.u8_outbuf);
-       u8_close((u8_stream)&vout);
-       return rv;}}
- }
+static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
+                              const char *key,int keylen,
+                              fdtype val)
+{
+  bson_t *out=b.doc; int flags=b.flags; bool ok=true;
+  if (FD_CONSP(val)) {
+    fd_ptr_type ctype=FD_PTR_TYPE(val);
+    switch (ctype) {
+    case fd_string_type: {
+      unsigned char _buf[64], *buf=_buf;
+      u8_string str=FD_STRDATA(val); int len=FD_STRLEN(val);
+      if ((flags&FD_MONGODB_COLONIZE)&&
+          ((isdigit(str[0]))||(strchr(":(#@",str[0])!=NULL))) {
+        if (len>62) buf=u8_malloc(len+2);
+        buf[0]='\\'; strncpy(buf+1,str,len+1);
+        ok=bson_append_utf8(out,key,keylen,buf,len+1);
+        if (buf!=_buf) u8_free(buf);}
+      else ok=bson_append_utf8(out,key,keylen,str,len);
+      break;}
+    case fd_packet_type:
+      ok=bson_append_binary(out,key,keylen,BSON_SUBTYPE_BINARY,
+                            FD_PACKET_DATA(val),FD_PACKET_LENGTH(val));
+      break;
+    case fd_double_type: {
+      double d=FD_FLONUM(val);
+      ok=bson_append_double(out,key,keylen,d);
+      break;}
+    case fd_bigint_type: {
+      fd_bigint b=FD_GET_CONS(val,fd_bigint_type,fd_bigint);
+      if (fd_bigint_fits_in_word_p(b,32,1)) {
+        long int b32=fd_bigint_to_long(b);
+        ok=bson_append_int32(out,key,keylen,b32);}
+      else if (fd_bigint_fits_in_word_p(b,65,1)) {
+        long long int b64=fd_bigint_to_long_long(b);
+        ok=bson_append_int64(out,key,keylen,b64);}
+      else {
+        u8_log(LOG_WARN,fd_MongoDB_Warning,
+               "Can't save bigint value %q",val);
+        ok=bson_append_int32(out,key,keylen,0);}
+      break;}
+    case fd_timestamp_type: {
+      struct FD_TIMESTAMP *fdt=
+        FD_GET_CONS(val,fd_timestamp_type,struct FD_TIMESTAMP* );
+      unsigned long long millis=(fdt->xtime.u8_tick*1000)+
+        ((fdt->xtime.u8_prec>u8_second)?(fdt->xtime.u8_nsecs/1000000):(0));
+      ok=bson_append_date_time(out,key,keylen,millis);
+      break;}
+    case fd_uuid_type: {
+      struct FD_UUID *uuid=FD_GET_CONS(val,fd_uuid_type,struct FD_UUID *);
+      ok=bson_append_binary(out,key,keylen,BSON_SUBTYPE_UUID,uuid->uuid,16);
+      break;}
+    case fd_choice_type: case fd_achoice_type: {
+      struct FD_BSON_OUTPUT rout;
+      bson_t arr; char buf[16]; int i=0;
+      ok=bson_append_array_begin(out,key,keylen,&arr);
+      memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
+      rout.doc=&arr; rout.flags=b.flags; rout.opts=b.opts;
+      if (ok) {
+        int i=0; FD_DO_CHOICES(v,val) {
+          sprintf(buf,"%d",i++);
+          ok=bson_append_dtype(rout,buf,strlen(buf),v);
+          if (!(ok)) FD_STOP_DO_CHOICES;}}
+      bson_append_document_end(out,&arr);
+      break;}
+    case fd_vector_type: case fd_rail_type: {
+      struct FD_BSON_OUTPUT rout;
+      bson_t arr, ch; char buf[16];
+      struct FD_VECTOR *vec=(struct FD_VECTOR *)val;
+      int i=0, lim=vec->length;
+      fdtype *data=vec->data;
+      int wrap_vector=((flags&FD_MONGODB_CHOICEVALS)&&(key[0]!='$'));
+      if (wrap_vector) {
+        ok=bson_append_array_begin(out,key,keylen,&ch);
+        if (ok) ok=bson_append_array_begin(&ch,"0",1,&arr);}
+      else ok=bson_append_array_begin(out,key,keylen,&arr);
+      memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
+      rout.doc=&arr; rout.flags=b.flags; rout.opts=b.opts;
+      if (ok) while (i<lim) {
+          fdtype v=data[i]; sprintf(buf,"%d",i++);
+          ok=bson_append_dtype(rout,buf,strlen(buf),v);
+          if (!(ok)) break;}
+      if (wrap_vector) {
+        bson_append_array_end(&ch,&arr);
+        bson_append_array_end(out,&ch);}
+      else bson_append_array_end(out,&arr);
+      break;}
+    case fd_slotmap_type: case fd_hashtable_type: {
+      struct FD_BSON_OUTPUT rout;
+      bson_t doc; char buf[16];
+      fdtype keys=fd_getkeys(val);
+      ok=bson_append_document_begin(out,key,keylen,&doc);
+      memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
+      rout.doc=&doc; rout.flags=b.flags; rout.opts=b.opts;
+      if (ok) {
+        FD_DO_CHOICES(key,keys) {
+          fdtype value=fd_get(val,key,FD_VOID);
+          if (!(FD_VOIDP(value))) {
+            ok=bson_append_keyval(rout,key,value);
+            fd_decref(value);
+            if (!(ok)) FD_STOP_DO_CHOICES;}}}
+      fd_decref(keys);
+      bson_append_document_end(out,&doc);
+      break;}
+    case fd_regex_type: {
+      struct FD_REGEX *fdrx=(struct FD_REGEX *)val;
+      char opts[8], *write=opts; int flags=fdrx->flags;
+      if (flags&REG_EXTENDED) *write++='x';
+      if (flags&REG_ICASE) *write++='i';
+      if (flags&REG_NEWLINE) *write++='m';
+      *write++='\0';
+      bson_append_regex(out,key,keylen,fdrx->src,opts);
+      break;}
+    case fd_compound_type: {
+      struct FD_COMPOUND *compound=FD_XCOMPOUND(val);
+      fdtype tag=compound->tag, *elts=FD_COMPOUND_ELTS(val);
+      int len=FD_COMPOUND_LENGTH(val);
+      struct FD_BSON_OUTPUT rout;
+      bson_t doc; char buf[16];
+      ok=bson_append_document_begin(out,key,keylen,&doc);
+      memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
+      rout.doc=&doc; rout.flags=b.flags; rout.opts=b.opts;
+      if (tag==mongomap_symbol) {
+        fdtype *scan=elts, *limit=scan+len;
+        if ((len%2)==1) ok=0;
+        else while (scan<limit) {
+          fdtype key=*scan++, value=*scan++;
+          ok=bson_append_keyval(rout,key,value);
+          if (!(ok)) break;}}
+      else {
+        int i=0; 
+        ok=bson_append_dtype(rout,"%fdtag",6,tag);
+        if (ok) while (i<len) {
+            char buf[16]; sprintf(buf,"%d",i);
+            ok=bson_append_dtype(rout,buf,strlen(buf),elts[i++]);
+            if (!(ok)) break;}}
+      bson_append_document_end(out,&doc);
+      break;}
+    default: break;}
+    return ok;}
+  else if (FD_FIXNUMP(val))
+    return bson_append_int32(out,key,keylen,FD_FIX2INT(val));
+  else if (FD_OIDP(val)) {
+    unsigned char bytes[12];
+    FD_OID addr=FD_OID_ADDR(val); bson_oid_t oid;
+    unsigned int hi=FD_OID_HI(addr), lo=FD_OID_LO(addr);
+    bytes[0]=bytes[1]=bytes[2]=bytes[3]=0;
+    bytes[4]=((hi>>24)&0xFF); bytes[5]=((hi>>16)&0xFF);
+    bytes[6]=((hi>>8)&0xFF); bytes[7]=(hi&0xFF);
+    bytes[8]=((lo>>24)&0xFF); bytes[9]=((lo>>16)&0xFF);
+    bytes[10]=((lo>>8)&0xFF); bytes[11]=(lo&0xFF);
+    bson_oid_init_from_data(&oid,bytes);
+    return bson_append_oid(out,key,keylen,&oid);}
+  else if (FD_SYMBOLP(val)) {
+    if (flags&FD_MONGODB_COLONIZE_OUT) {
+      u8_string pname=FD_SYMBOL_NAME(val);
+      u8_byte _buf[512], *buf=_buf;
+      size_t len=strlen(pname); 
+      if (len>510) buf=u8_malloc(len+2);
+      buf[0]=':'; strcpy(buf+1,pname);
+      if (buf!=_buf) {
+        bool rval=bson_append_utf8(out,key,keylen,buf,len+1);
+        u8_free(buf);
+        return rval;}
+      else return bson_append_utf8(out,key,keylen,buf,len+1);}
+    else return bson_append_utf8(out,key,keylen,FD_SYMBOL_NAME(val),-1);}
+  else if (FD_CHARACTERP(val)) {
+    int code=FD_CHARCODE(val);
+    if (code<128) {
+      char c=code;
+      return bson_append_utf8(out,key,keylen,&c,1);}
+    else {
+      struct U8_OUTPUT vout; unsigned char buf[16];
+      U8_INIT_OUTPUT_BUF(&vout,16,buf);
+      u8_putc(&vout,code);
+      return bson_append_utf8(out,key,keylen,vout.u8_outbuf,
+                              vout.u8_outptr-vout.u8_outbuf);}}
+  else switch (val) {
+    case FD_TRUE: case FD_FALSE:
+      return bson_append_bool(out,key,keylen,(val==FD_TRUE));
+    default: {
+      struct U8_OUTPUT vout; unsigned char buf[128]; bool rv;
+      U8_INIT_OUTPUT_BUF(&vout,128,buf);
+      if (flags&FD_MONGODB_COLONIZE)
+        u8_printf(&vout,":%q",val);
+      else fd_unparse(&vout,val);
+      rv=bson_append_utf8(out,key,keylen,vout.u8_outbuf,
+                          vout.u8_outptr-vout.u8_outbuf);
+      u8_close((u8_stream)&vout);
+      return rv;}}
+}
 
 static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
 {
@@ -1079,6 +1105,40 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
   else return fd_err(fd_BSON_Input_Error,"fd_bson2dtype",NULL,FD_VOID);
 }
 
+/* MONGOMAPS */
+
+/* MONGOMAPs are used to describe documents whose fields are in a fixed
+   order, which is used by parts of MONGODB.  They're represented as
+   compounds with the tag %MONGOMAP. */
+
+static fdtype mongomap_lexpr(int n,fdtype *values)
+{
+  if ((n%2)==1)
+    return fd_err(fd_SyntaxError,"mongomap_lexpr","Odd number of arguments",FD_VOID);
+  else {
+    int i=0; while (i<n) { 
+      fdtype value=values[i++]; fd_incref(value);}
+    return fd_init_compound_from_elts(NULL,mongomap_symbol,0,n,values);}
+}
+
+static fdtype make_mongomap(fdtype table,fdtype ordered)
+{
+  if (!(FD_TABLEP(table)))
+    return fd_type_error("table","make_mongomap",table);
+  else {
+    fdtype result=FD_VOID;
+    int n_slots=FD_VECTOR_LENGTH(ordered), i=0;
+    fdtype *values=u8_alloc_n(n_slots*2,fdtype), *write=values;
+    while (i<n_slots) {
+      fdtype key=FD_VECTOR_REF(ordered,i);
+      fdtype value=fd_get(table,key,FD_EMPTY_CHOICE);
+      *write++=key; fd_incref(key); *write++=value;
+      i++;}
+    result=fd_init_compound_from_elts(NULL,mongomap_symbol,0,n_slots*2,values);
+    u8_free(values);
+    return result;}
+}
+
 /* MongoDB pools and indices */
 
 /* Notes:
@@ -1204,6 +1264,8 @@ FD_EXPORT int fd_init_mongodb()
   newsym=fd_intern("NEW");
   removesym=fd_intern("REMOVE");
 
+  mongomap_symbol=fd_intern("%MONGOMAP");
+
   bsonflags=fd_intern("BSON");
   raw=fd_intern("RAW");
   slotify=fd_intern("SLOTIFY");
@@ -1277,6 +1339,9 @@ FD_EXPORT int fd_init_mongodb()
                                   fd_mongo_cursor,FD_VOID,
                                   fd_fixnum_type,FD_FIXNUM_ONE,
                                   -1,FD_VOID));
+  fd_idefn(module,fd_make_cprimn("MONGOMAP",mongomap_lexpr,0));
+  fd_idefn(module,fd_make_cprim2x("->MONGOMAP",make_mongomap,2,
+                                  -1,FD_VOID,fd_vector_type,FD_VOID));
 
   fd_register_config("MONGODB:FLAGS",
                      "Default flags (fixnum) for MongoDB/BSON processing",
