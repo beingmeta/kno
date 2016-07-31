@@ -432,7 +432,7 @@ typedef struct FD_COMPOUND *fd_compound;
 #define FD_COMPOUND_ELTS(x) \
   (&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0))
 #define FD_COMPOUND_LENGTH(x) \
-  (&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->n_elts))
+  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->n_elts)
 #define FD_COMPOUND_REF(x,i)                                            \
   ((&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0))[i])
 #define FD_XCOMPOUND(x) (FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))
