@@ -1364,12 +1364,14 @@ setup-none:
 
 # Build setups
 
-debian-build-setup:
-	sudo apt-get install -m libcurl4-openssl-dev sqlite3 libldns-dev \
-		libmysqlclient-dev libexif-dev libtidy-dev libssl-dev \
-		libzip-dev libqrencode-dev apache2-dev libedit-dev \
+build-setup.debian:
+	sudo apt-get install -m libcurl4-openssl-dev libssl-dev libldns-dev \
+		libmysqlclient-dev libmongoc-dev unixodbc-dev sqlite3 \
+		libzip-dev apache2-dev libedit-dev libhyphen-dev \
+		libmagickwand-dev libqrencode-dev libexif-dev \
+		libgoogle-perftools-dev \
 		dh-make devscripts dpkg-dev
-rpm-build-setup:
+build-setup.redhat:
 	sudo rpm -Uvh libedit-devel
 
 .PHONY: debian-build-setup rpm-build-setup
