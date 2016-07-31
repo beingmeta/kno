@@ -1533,10 +1533,10 @@ static fdtype xmloid(fdtype oid_arg)
 
 /* Scripturl primitive */
 
-static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon);
+static int add_query_param(u8_output out,fdtype name,fdtype value,int nocolon);
 
 static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,
-                             fdtype *args,int nocolon)
+                             fdtype *args,int nocolon,int keep_secret)
 {
   struct U8_OUTPUT out;
   int i=0, need_qmark=((baseuri!=NULL)&&(strchr(baseuri,'?')==NULL));
@@ -1546,6 +1546,9 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,
     if (need_qmark) {u8_putc(&out,'?'); need_qmark=0;}
     if (FD_STRINGP(args[0])) 
       fd_uri_output(&out,FD_STRDATA(args[0]),FD_STRLEN(args[0]),0,NULL);
+    else if (FD_PRIM_TYPEP(args[0],fd_secret_type)) {
+      fd_uri_output(&out,FD_PACKET_DATA(args[0]),FD_PACKET_LENGTH(args[0]),0,NULL);      
+      keep_secret=1;}
     else if (FD_OIDP(args[0])) {
       FD_OID addr=FD_OID_ADDR(args[0]);
       u8_printf(&out,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));}
@@ -1558,75 +1561,99 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,
         FD_DO_CHOICES(key,keys) {
           fdtype value=fd_get(table,key,FD_VOID);
           if (need_qmark) {u8_putc(&out,'?'); need_qmark=0;}
-          add_query_param(&out,key,value,nocolon);
+          if (keep_secret)
+            add_query_param(&out,key,value,nocolon);
+          else keep_secret=add_query_param(&out,key,value,nocolon);
           fd_decref(value);}
         fd_decref(keys);}}
   while (i<n) {
     if (need_qmark) {u8_putc(&out,'?'); need_qmark=0;}
-    add_query_param(&out,args[i],args[i+1],nocolon);
+    if (keep_secret)
+      add_query_param(&out,args[i],args[i+1],nocolon);
+    else keep_secret=add_query_param(&out,args[i],args[i+1],nocolon);
     i=i+2;}
-  return fd_stream2string(&out);
+  if (keep_secret) {
+    fdtype result=fd_stream2string(&out);
+    FD_SET_CONS_TYPE(result,fd_secret_type);
+    return result;}
+  else return fd_stream2string(&out);
 }
 
 static fdtype scripturl(int n,fdtype *args)
 {
   if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
-  else if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
+  else if (!((FD_STRINGP(args[0]))||
+             (FD_FALSEP(args[0]))||
+             (FD_PRIM_TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"scripturl",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
     return fd_err(fd_SyntaxError,"scripturl",
                   strd("odd number of arguments"),FD_VOID);
   else if (FD_FALSEP(args[0]))
-    return scripturl_core(NULL,FD_VOID,n-1,args+1,1);
-  else return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,1);
+    return scripturl_core(NULL,FD_VOID,n-1,args+1,1,0);
+  else if (FD_PRIM_TYPEP(args[0],fd_secret_type))
+    return scripturl_core(NULL,FD_VOID,n-1,args+1,1,1);
+  else return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,1,0);
 }
 
 static fdtype fdscripturl(int n,fdtype *args)
 {
   if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
-  else if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
+  else if (!((FD_STRINGP(args[0]))||
+             (FD_FALSEP(args[0]))||
+             (FD_PRIM_TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"fdscripturl",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
     return fd_err(fd_SyntaxError,"fdscripturl",
                   strd("odd number of arguments"),FD_VOID);
   else if (FD_FALSEP(args[0]))
-    return scripturl_core(NULL,FD_VOID,n-1,args+1,0);
-  else return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,0);
+    return scripturl_core(NULL,FD_VOID,n-1,args+1,0,0);
+  else if (FD_PRIM_TYPEP(args[0],fd_secret_type))
+    return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,0,1);
+  else return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,0,0);
 }
 
 static fdtype scripturlplus(int n,fdtype *args)
 {
   if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
-  else if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
+  else if (!((FD_STRINGP(args[0]))||
+             (FD_FALSEP(args[0]))||
+             (FD_PRIM_TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"scripturlplus",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==1))
     return fd_err(fd_SyntaxError,"scripturlplus",
                   strd("odd number of arguments"),FD_VOID);
   else if (FD_FALSEP(args[0]))
-    return scripturl_core(NULL,args[1],n-2,args+2,1);
-  else return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,1);
+    return scripturl_core(NULL,args[1],n-2,args+2,1,0);
+  else if (FD_PRIM_TYPEP(args[0],fd_secret_type))
+    return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,1,1);
+  else return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,1,0);
 }
 
 static fdtype fdscripturlplus(int n,fdtype *args)
 {
   if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
-  else if (!((FD_STRINGP(args[0]))||(FD_FALSEP(args[0]))))
+  else if  (!((FD_STRINGP(args[0]))||
+             (FD_FALSEP(args[0]))||
+             (FD_PRIM_TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"fdscripturlplus",
                   u8_strdup("script name"),args[0]);
   else if ((n>2) && ((n%2)==1))
     return fd_err(fd_SyntaxError,"fdscripturlplus",
                   strd("odd number of arguments"),FD_VOID);
   else if (FD_FALSEP(args[0]))
-    return scripturl_core(NULL,args[1],n-2,args+2,0);
-  else return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,0);
+    return scripturl_core(NULL,args[1],n-2,args+2,0,0);
+  else if (FD_PRIM_TYPEP(args[0],fd_secret_type))
+    return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,0,1);
+  else return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,0,0);
 }
 
-static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
+static int add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
 {
-  int lastc=-1, free_varname=0, do_encode=1;
+  int lastc=-1, free_varname=0, do_encode=1, keep_secret=0;
   u8_string varname; u8_byte namebuf[256];
   if (out->u8_outbuf<out->u8_outptr) lastc=out->u8_outptr[-1];
   if (FD_STRINGP(name)) varname=FD_STRDATA(name);
@@ -1635,6 +1662,9 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
     FD_OID addr=FD_OID_ADDR(name);
     sprintf(namebuf,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));
     varname=namebuf;}
+  else if (FD_PRIM_TYPEP(name,fd_secret_type)) {
+    varname=FD_PACKET_DATA(name);
+    keep_secret=1;}
   else {
     varname=fd_dtype2string(name);
     free_varname=1;}
@@ -1649,6 +1679,11 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
         if (do_encode)
           fd_uri_output(out,FD_STRDATA(val),FD_STRLEN(val),0,NULL);
         else u8_puts(out,FD_STRDATA(val));
+      else if (FD_PRIM_TYPEP(val,fd_secret_type)) {
+        if (do_encode)
+          fd_uri_output(out,FD_PACKET_DATA(val),FD_PACKET_LENGTH(val),0,NULL);
+        else u8_puts(out,FD_PACKET_DATA(val));
+        keep_secret=1;}
       else if (FD_PACKETP(val))
         fd_uri_output(out,FD_PACKET_DATA(val),FD_PACKET_LENGTH(val),0,NULL);
       else if (FD_OIDP(val)) {
@@ -1664,6 +1699,7 @@ static void add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
           u8_free(as_string);}}
       lastc=-1;}}
   if (free_varname) u8_free(varname);
+  return keep_secret;
 }
 
 static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)

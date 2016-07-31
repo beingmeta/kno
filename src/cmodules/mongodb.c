@@ -105,20 +105,22 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
 {
   mongoc_client_pool_t *client_pool; int flags;
   mongoc_uri_t *info; u8_string uri;
-  if (FD_STRINGP(arg)) {
+  if ((FD_STRINGP(arg))||(FD_PRIM_TYPEP(arg,fd_secret_type))) {
     uri=u8_strdup(FD_STRDATA(arg));
     info=mongoc_uri_new(FD_STRDATA(arg));}
   else if (FD_SYMBOLP(arg)) {
     fdtype conf_val=fd_config_get(FD_SYMBOL_NAME(arg));
     if (FD_VOIDP(conf_val))
       return fd_type_error("MongoDB URI config","mongodb_open",arg);
-    else if (FD_STRINGP(conf_val)) {
+    else if ((FD_STRINGP(conf_val))||(FD_PRIM_TYPEP(conf_val,fd_secret_type))) {
       uri=u8_strdup(FD_STRDATA(conf_val));
       info=mongoc_uri_new(FD_STRDATA(conf_val));
       fd_decref(conf_val);}
     else return fd_type_error("MongoDB URI config val",
                               FD_SYMBOL_NAME(arg),conf_val);}
   else return fd_type_error("MongoDB URI","mongodb_open",arg);
+  if (!(info))
+    return fd_type_error("MongoDB client URI","mongodb_open",arg);
   flags=getflags(opts,mongodb_defaults);
   client_pool=mongoc_client_pool_new(info);
   if (client_pool) {
@@ -174,7 +176,9 @@ static fdtype mongodb_collection(fdtype server,fdtype arg2,fdtype arg3,fdtype ar
     flags=getflags(opts_arg,srv->flags);
     opts=combine_opts(opts_arg,srv->opts);
     fd_incref(server);}
-  else if ((FD_STRINGP(server))||(FD_SYMBOLP(server))) {
+  else if ((FD_STRINGP(server))||
+           (FD_SYMBOLP(server))||
+           (FD_PRIM_TYPEP(server,fd_secret_type))) {
     fdtype consed=mongodb_open(server,opts_arg);
     if (FD_ABORTP(consed)) return consed;
     server=consed; srv=(struct FD_MONGODB_SERVER *)consed;
@@ -1294,7 +1298,7 @@ FD_EXPORT int fd_init_mongodb()
   fd_unparsers[fd_mongo_cursor]=unparse_cursor;
 
   fd_idefn(module,fd_make_cprim2x("MONGODB/OPEN",mongodb_open,1,
-                                  fd_string_type,FD_VOID,-1,FD_VOID));
+                                  -1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim4x("MONGODB/COLLECTION",mongodb_collection,1,
                                   -1,FD_VOID,fd_string_type,FD_VOID,
                                   fd_string_type,FD_VOID,
