@@ -462,7 +462,7 @@ static fdtype db_command(fdtype arg,fdtype command,
   struct FD_MONGODB_SERVER *srv=(struct FD_MONGODB_SERVER *)arg;
   int flags=getflags(opts_arg,srv->flags);
   fdtype opts=combine_opts(opts_arg,srv->opts);
-  fdtype fields=fd_get(opts,fieldssym,FD_VOID);
+  fdtype fields=fd_getopt(opts,fieldssym,FD_VOID);
   mongoc_client_t *client=mongoc_client_pool_pop(srv->pool);
   if (client) {
     fdtype results=FD_EMPTY_CHOICE;
@@ -502,7 +502,8 @@ static fdtype mongodb_command(fdtype arg,fdtype command,
 }
 
 
-static fdtype mongodb_command_simple(fdtype arg,fdtype command,fdtype opts_arg)
+static fdtype collection_command_simple(fdtype arg,fdtype command,
+                                        fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
   int flags=getflags(opts_arg,domain->flags);
@@ -520,13 +521,14 @@ static fdtype mongodb_command_simple(fdtype arg,fdtype command,fdtype opts_arg)
         bson_destroy(cmd); fd_decref(opts);
         return result;}
       else {
+        fdtype err=fd_bson2dtype(&response,flags,opts);
         collection_done(collection,client,domain);
         bson_destroy(cmd); fd_decref(opts);
-        fd_seterr(fd_MongoDB_Error,"mongodb_update",
-                  u8_mkstring("%s>%s>%s:%s",
-                              domain->uri,domain->dbname,domain->name,
-                              error.message),
-                  command);
+        if (FD_ABORTP(err))
+          fd_seterr(fd_MongoDB_Error,
+                    "mongo_collection_command_simple",NULL,fd_incref(command));
+        else fd_seterr(fd_MongoDB_Error,"mongo_collection_command_simple",
+                       NULL,fd_init_pair(NULL,err,fd_incref(command)));
         return FD_ERROR_VALUE;}}
     else {
       bson_destroy(cmd); fd_decref(opts);
@@ -535,6 +537,51 @@ static fdtype mongodb_command_simple(fdtype arg,fdtype command,fdtype opts_arg)
     fd_decref(opts);
     return FD_ERROR_VALUE;}
 }
+
+static fdtype db_command_simple(fdtype arg,fdtype command,
+                                fdtype opts_arg)
+{
+  struct FD_MONGODB_SERVER *srv=(struct FD_MONGODB_SERVER *)arg;
+  int flags=getflags(opts_arg,srv->flags);
+  fdtype opts=combine_opts(opts_arg,srv->opts);
+  mongoc_client_t *client=mongoc_client_pool_pop(srv->pool);
+  if (client) {
+    bson_t response; bson_error_t error;
+    bson_t *cmd=fd_dtype2bson(command,flags,opts);
+    if (cmd) {
+      const bson_t *doc; bson_error_t error;
+      if (mongoc_client_command_simple
+          (client,srv->dbname,cmd,NULL,&response,&error)) {
+        fdtype result=fd_bson2dtype(&response,flags,opts);
+        client_done(arg,client);
+        bson_destroy(cmd); fd_decref(opts);
+        return result;}
+      else {
+        fdtype err=fd_bson2dtype(&response,flags,opts);
+        client_done(arg,client);
+        bson_destroy(cmd); fd_decref(opts);
+        if (FD_ABORTP(err))
+          fd_seterr(fd_MongoDB_Error,"mongodb_command_simple",NULL,FD_VOID);
+        else fd_seterr(fd_MongoDB_Error,"mongodb_command_simple",NULL,
+                       fd_init_pair(NULL,err,fd_incref(command)));
+        return FD_ERROR_VALUE;}}
+    else {
+      return FD_ERROR_VALUE;}}
+  else return FD_ERROR_VALUE;
+}
+
+static fdtype mongodb_command_simple(fdtype arg,fdtype command,
+                                     fdtype opts_arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_mongo_server)) 
+    return db_command_simple(arg,command,opts_arg);
+  else if (FD_PRIM_TYPEP(arg,fd_mongo_collection))
+    return collection_command_simple(arg,command,opts_arg);
+  else return fd_type_error(_("MongoDB"),"mongodb_command",arg);
+}
+
+
+
 
 /* Find and Modify */
 
@@ -820,7 +867,9 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       int len=FD_COMPOUND_LENGTH(val);
       struct FD_BSON_OUTPUT rout;
       bson_t doc; char buf[16];
-      ok=bson_append_document_begin(out,key,keylen,&doc);
+      if (tag==mongovec_symbol)
+        ok=bson_append_array_begin(out,key,keylen,&doc);
+      else ok=bson_append_document_begin(out,key,keylen,&doc);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
       rout.doc=&doc; rout.flags=b.flags; rout.opts=b.opts;
       if (tag==mongomap_symbol) {
@@ -830,6 +879,13 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
           fdtype key=*scan++, value=*scan++;
           ok=bson_append_keyval(rout,key,value);
           if (!(ok)) break;}}
+      else if (tag==mongovec_symbol) {
+        fdtype *scan=elts, *limit=scan+len; int i=0;
+        while (scan<limit) {
+          u8_byte buf[16]; sprintf(buf,"%d",i);
+          ok=bson_append_dtype(rout,buf,strlen(buf),*scan);
+          scan++; i++;
+          if (!(ok)) break;}}
       else {
         int i=0; 
         ok=bson_append_dtype(rout,"%fdtag",6,tag);
@@ -837,7 +893,9 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
             char buf[16]; sprintf(buf,"%d",i);
             ok=bson_append_dtype(rout,buf,strlen(buf),elts[i++]);
             if (!(ok)) break;}}
-      bson_append_document_end(out,&doc);
+      if (tag==mongovec_symbol)
+        bson_append_array_end(out,&doc);
+      else bson_append_document_end(out,&doc);
       break;}
     default: break;}
     return ok;}
@@ -935,13 +993,58 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
 
 FD_EXPORT fdtype fd_bson_output(struct FD_BSON_OUTPUT out,fdtype obj)
 {
-  fdtype keys=fd_getkeys(obj);
-  {FD_DO_CHOICES(key,keys) {
-      fdtype val=fd_get(obj,key,FD_VOID);
-      bson_append_keyval(out,key,val);
-      fd_decref(val);}}
-  fd_decref(keys);
-  return FD_VOID;
+  int ok=1;
+  if (FD_VECTORP(obj)) {
+    int i=0, len=FD_VECTOR_LENGTH(obj);
+    fdtype *elts=FD_VECTOR_ELTS(obj);
+    while (i<len) {
+      fdtype elt=elts[i]; u8_byte buf[16];
+      sprintf(buf,"%d",i++);
+      if (ok)
+        ok=bson_append_dtype(out,buf,strlen(buf),elt);}}
+  else if (FD_CHOICEP(obj)) {
+    int i=0; FD_DO_CHOICES(elt,obj) {
+      u8_byte buf[16]; sprintf(buf,"%d",i++);
+      if (ok) ok=bson_append_dtype(out,buf,strlen(buf),elt);}}
+  else if (FD_TABLEP(obj)) {
+    fdtype keys=fd_getkeys(obj);
+    {FD_DO_CHOICES(key,keys) {
+        fdtype val=fd_get(obj,key,FD_VOID);
+        if (ok) ok=bson_append_keyval(out,key,val);
+        fd_decref(val);}}
+    fd_decref(keys);}
+  else if (FD_COMPOUNDP(obj)) {
+    struct FD_COMPOUND *compound=FD_XCOMPOUND(obj);
+    fdtype tag=compound->tag, *elts=FD_COMPOUND_ELTS(obj);
+    int len=FD_COMPOUND_LENGTH(obj);
+    if (tag==mongomap_symbol) {
+      fdtype *scan=elts, *limit=scan+len;
+      if ((len%2)==1) {
+        fd_seterr(fd_SyntaxError,"fd_bson_output",
+                  u8_strdup("malformed mongomap"),
+                  fd_incref(obj));
+        ok=0;}
+      else while (scan<limit) {
+          fdtype key=*scan++, value=*scan++;
+          ok=bson_append_keyval(out,key,value);
+          if (!(ok)) break;}}
+    else if (tag==mongovec_symbol) {
+      fdtype *scan=elts, *limit=scan+len; int i=0;
+      while (scan<limit) {
+        u8_byte buf[16]; sprintf(buf,"%d",i);
+        ok=bson_append_dtype(out,buf,strlen(buf),*scan);
+        i++; scan++;
+        if (!(ok)) break;}}
+    else {
+      int i=0; 
+      ok=bson_append_dtype(out,"%fdtag",6,tag);
+      if (ok) while (i<len) {
+          char buf[16]; sprintf(buf,"%d",i);
+          ok=bson_append_dtype(out,buf,strlen(buf),elts[i++]);
+          if (!(ok)) break;}}}
+  if (!(ok))
+    return FD_ERROR_VALUE;
+  else return FD_VOID;
 }
 
 FD_EXPORT bson_t *fd_dtype2bson(fdtype obj,int flags,fdtype opts)
@@ -1125,7 +1228,7 @@ static fdtype bson_read_vector(FD_BSON_INPUT b)
 static fdtype bson_read_choice(FD_BSON_INPUT b)
 {
   struct FD_BSON_INPUT r; bson_iter_t child; int n=0;
-  fdtype result, *data=u8_alloc_n(16,fdtype), *write=data, *lim=data+16;
+  fdtype *data=u8_alloc_n(16,fdtype), *write=data, *lim=data+16;
   bson_iter_recurse(b.iter,&child);
   r.iter=&child; r.flags=b.flags; r.opts=b.opts;
   while (bson_iter_next(&child)) {
@@ -1140,11 +1243,13 @@ static fdtype bson_read_choice(FD_BSON_INPUT b)
     else {
       bson_read_step(r,FD_VOID,write);
       write++;}}
-  return fd_make_choice
-    (write-data,data,
-     FD_CHOICE_DOSORT|FD_CHOICE_COMPRESS|
-     FD_CHOICE_FREEDATA|FD_CHOICE_REALLOC);
-  return result;
+  if (write==data) {
+    u8_free(data);
+    return FD_EMPTY_CHOICE;}
+  else return fd_make_choice
+         (write-data,data,
+          FD_CHOICE_DOSORT|FD_CHOICE_COMPRESS|
+          FD_CHOICE_FREEDATA|FD_CHOICE_REALLOC);
 }
 
 FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
@@ -1390,11 +1495,9 @@ FD_EXPORT int fd_init_mongodb()
                                   fd_mongo_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim3x("MONGODB/COMMAND",mongodb_command,2,
-                                  fd_mongo_collection,FD_VOID,
-                                  -1,FD_VOID,-1,FD_VOID));
+                                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim3x("MONGODB/SIMPLE",mongodb_command_simple,2,
-                                  fd_mongo_collection,FD_VOID,
-                                  -1,FD_VOID,-1,FD_VOID));
+                                  -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
 
   fd_idefn(module,fd_make_cprim1x("MONGODB/DONE?",mongodb_donep,1,
                                   fd_mongo_cursor,FD_VOID));
