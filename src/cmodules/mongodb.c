@@ -426,15 +426,22 @@ static fdtype make_command(int n,fdtype *values)
   if ((n%2)==1)
     return fd_err(fd_SyntaxError,"mongomap_lexpr","Odd number of arguments",FD_VOID);
   else {
-    int i=0; while (i<n) { 
-      fdtype value=values[i];
-      if (FD_VECTORP(value)) {
-        fdtype mv=make_mongovec(value);
-        values[i]=mv;
-        fd_decref(value);}
-      else fd_incref(value);
-      i++;}
-    return fd_init_compound_from_elts(NULL,mongomap_symbol,0,n,values);}
+    int i=0, fix_vectors=0; while (i<n) { 
+      fdtype value=values[i++];
+      if (FD_VECTORP(value)) fix_vectors=1;
+      fd_incref(value);}
+    if (fix_vectors) {
+      fdtype result=fd_init_compound_from_elts(NULL,mongomap_symbol,0,n,values);
+      fdtype *elts=FD_COMPOUND_ELTS(result);
+      int j=0, n_elts=FD_COMPOUND_LENGTH(result);
+      while (j<n_elts) {
+        fdtype elt=elts[j];
+        if (FD_VECTORP(elt)) {
+          elts[j++]=make_mongovec(elt);
+          fd_decref(elt);}
+        else j++;}
+      return result;}
+    else return fd_init_compound_from_elts(NULL,mongomap_symbol,0,n,values);}
 }
 
 static fdtype collection_command(fdtype arg,fdtype command,
