@@ -28,7 +28,7 @@
   (FD_MONGODB_CHOICEVALS|FD_MONGODB_COLONIZE|FD_MONGODB_SLOTIFY)
 
 FD_EXPORT u8_condition fd_MongoDB_Error, fd_MongoDB_Warning;
-FD_EXPORT fd_ptr_type fd_mongo_server, fd_mongo_collection, fd_mongo_cursor;
+FD_EXPORT fd_ptr_type fd_mongoc_server, fd_mongoc_collection, fd_mongoc_cursor;
 
 typedef struct FD_BSON_OUTPUT {
   bson_t *doc; fdtype opts; int flags;} FD_BSON_OUTPUT;
@@ -36,12 +36,12 @@ typedef struct FD_BSON_INPUT {
   bson_iter_t *iter; fdtype opts; int flags;} FD_BSON_INPUT;
 typedef struct FD_BSON_INPUT *fd_bson_input;
 
-typedef struct FD_MONGODB_SERVER {
+typedef struct FD_MONGODB_DATABASE {
   FD_CONS_HEADER;
   u8_string uri, dbname; fdtype opts; int flags;
   mongoc_client_pool_t *pool;
-  mongoc_uri_t *info;} FD_MONGODB_SERVER;
-typedef struct FD_MONGODB_SERVER *fd_mongodb_server;
+  mongoc_uri_t *info;} FD_MONGODB_DATABASE;
+typedef struct FD_MONGODB_DATABASE *fd_mongodb_database;
 
 typedef struct FD_MONGODB_COLLECTION {
   FD_CONS_HEADER;
