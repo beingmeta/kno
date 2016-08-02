@@ -10,7 +10,8 @@ DYNAMIC_CFLAG=@dynamic_cflag@
 CFLAGS=-I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ @PTHREAD_LIBS@ \
 	$(DYNAMIC_CFLAG) \
        -I./include $(XCFLAGS)  $(ARCHFLAGS)
-LDFLAGS = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ $(XLDFLAGS)
+LDFLAGS = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ -rpath @exec_prefix@ $(XLDFLAGS)
+DYLIB_FLAGS = -compatibility_version @FDMAJOR@.0.0 -current_version @FDMAJOR@.@FDMINOR@.@FDRELEASE@
 EXELDFLAGS = @EXELDFLAGS@
 XLIBS=
 LIBS=$(XLIBS) @LIBS@
@@ -391,7 +392,9 @@ lib/framerd/%.so: src/cmodules/%.o ${MODULE_SO}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO  $@ $<
 lib/framerd/%.dylib: src/cmodules/%.o
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $<
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		$(DYLIB_FLAGS) -o $@ $<
 	@$(MSG) MACLIBTOOL  $@ $<
 lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
 	@ln -sf $(*F).dylib $@
@@ -415,7 +418,7 @@ lib/%@suffix@.so:
 lib/%@suffix@.@FDMAJOR@.dylib: lib/%@suffix@.dylib
 	@ln -sf $(*F).dylib $@
 lib/%@suffix@.dylib:
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $^
+	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
 	@ln -sf $(@F) $(@D)/`basename $(@F) .dylib`.@FDMAJOR@.dylib
 	@$(MSG) MACLIBTOOL $@
 
@@ -684,7 +687,7 @@ lib/libfdbserv@suffix@.dylib: $(FDBSERV_OBJS) \
 	lib/libfddbfile@suffix@.dylib         \
 	lib/libfddb@suffix@.dylib             \
 	lib/libfdtype@suffix@.dylib
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib -o $@ $^
+	@$(MACLIBTOOL) -install_name @rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib $(DYLIB_FLAGS) -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
@@ -716,7 +719,9 @@ lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 	lib/libfddbfile@suffix@.dylib     \
 	lib/libfddb@suffix@.dylib         \
         lib/libfdtype@suffix@.dylib
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name \
+		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		$(DYLIB_FLAGS) \
 		-o $@ $(FDWEB_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
@@ -730,7 +735,9 @@ lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 	lib/libfddbfile@suffix@.dylib \
 	lib/libfddb@suffix@.dylib \
 	lib/libfdtype@suffix@.dylib
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name \
+		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		$(DYLIB_FLAGS) \
 		-o $@ $(TEXTTOOLS_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
@@ -745,7 +752,9 @@ lib/libtagger@suffix@.dylib: $(TAGGER_OBJS) \
 	lib/libfddbfile@suffix@.@FDVERSION@.dylib \
 	lib/libfddb@suffix@.@FDVERSION@.dylib \
 	lib/libfdtype@suffix@.@FDVERSION@.dylib
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name \
+		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		$(DYLIB_FLAGS) \
 		-o $@ $(TAGGER_OBJS) -ltexttools
 	@$(MSG) MACLIBTOOL $@
 
@@ -758,7 +767,9 @@ lib/framerd/mysql.so: src/cmodules/mysql.o ${MODULE_SO}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MYSQL)" $@
 lib/framerd/mysql.dylib: src/cmodules/mysql.o
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		$(DYLIB_FLAGS) \
 		-o $@ src/cmodules/mysql.o @MYSQL_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(MYSQL)" $@
 
@@ -771,7 +782,9 @@ lib/framerd/mongodb.so: src/cmodules/mongodb.o ${MODULE_SO}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(MONGODB)" $@
 lib/framerd/mongodb.dylib: src/cmodules/mongodb.o
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		$(DYLIB_FLAGS) \
 		-o $@ src/cmodules/mongodb.o @MONGODB_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(MONGODB)" $@
 
@@ -784,7 +797,9 @@ lib/framerd/imagick.so: src/cmodules/imagick.o ${MODULE_SO}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(IMAGICK)" $@
 lib/framerd/imagick.dylib: src/cmodules/imagick.o
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		$(DYLIB_FLAGS) \
 		-o $@ src/cmodules/imagick.o @IMAGICK_LDFLAGS@
 	@$(MSG) MACLIBTOOL "(IMAGICK)" $@
 
@@ -797,7 +812,9 @@ lib/framerd/ziptools.so: src/cmodules/ziptools.o ${MODULE_SO}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO "(ZIPTOOLS)"  $@ $<
 lib/framerd/ziptools.dylib: src/cmodules/ziptools.o
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		$(DYLIB_FLAGS) \
 		-o $@ $<
 	@$(MSG) MACLIBTOOL "(ZIPTOOLS)" $@
 
@@ -806,7 +823,9 @@ lib/framerd/exif.so: src/cmodules/exif.o ${MODULE_SO}
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 	@$(MSG) MKSO $@
 lib/framerd/exif.dylib: src/cmodules/exif.o
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		$(DYLIB_FLAGS) \
 		-lexif -o $@ $^
 	@$(MSG) MACLIBTOOL $@
 
@@ -834,7 +853,10 @@ lib/framerd/sundown.so: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS) $(MODU
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 lib/framerd/sundown.dylib: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
-	@$(MACLIBTOOL) -install_name `basename $(@F) .dylib`.@FDMAJOR@.dylib ${CFLAGS} -o $@ src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		${CFLAGS} -o $@ $(DYLIB_FLAGS) \
+		src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
 # Internationalization stuff
