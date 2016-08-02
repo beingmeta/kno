@@ -778,6 +778,7 @@ exifo
 ldnso
 curlo
 curlconfig
+rpath
 dynamic_cflag
 mshared_suffix
 vshared_suffix
@@ -805,7 +806,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -835,6 +835,7 @@ with_chgrp
 with_deletefile
 with_copyfile
 with_touchfile
+with_rpath
 with_codename
 with_sanitize
 with_duma
@@ -910,7 +911,6 @@ with_curl
 with_dns
 with_exif
 with_qrcode
-enable_rpath
 '
       ac_precious_vars='build_alias
 host_alias
@@ -963,7 +963,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1216,15 +1215,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1362,7 +1352,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1515,7 +1505,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1564,7 +1553,6 @@ Optional Features:
 --endisable-texttools compiled-in texttools
 --endisable-htmldump write HTML backtraces
 --endisable-ipeval Enable IPEVAL
---endisable-rpath usage
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1576,6 +1564,7 @@ Optional Packages:
 --with-deletefile command
 --with-copyfile command
 --with-touchfile command
+--with-rpath dir
 --with-codename for distribution
 --with-sanitize=address*|memory|thread
 --with-duma Build with Detect Unintended Memory Access
@@ -2831,6 +2820,7 @@ threads_default="yes"
 checkfdtype_default="no"
 shared_default="yes"
 shared_suffix="so"
+rpath_default=$exec_prefix
 tls_default="no"
 global_ipeval_default="no"
 enable_ipeval_default="no"
@@ -2866,6 +2856,7 @@ scheme_builtins_init="fd_init_fdscheme()"
 definefileinfo=""
 versionsh=""
 suffix=""
+rpath=""
 daemon_identity_default="daemon"
 setup_target="setup-unix"
 DREENTRANT="-D_REENTRANT"
@@ -2874,7 +2865,7 @@ TESTENV=
 TESTLIBS=
 TESTLDFLAGS=
 EXELDFLAGS=
-RPATHFLAGS=
+RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=3
 FDMINOR=9
@@ -2963,6 +2954,10 @@ if which lsb_release 2>&1 > /dev/null; then
    CODENAME=`lsb_release -cs || echo beingmeta`
 fi
 
+if (test "$rpath_default" = "NONE") || (test "$rpath_default" = ""); then
+   rpath_default=$prefix;
+fi
+
 ac_aux_dir=
 for ac_dir in etc "$srcdir"/etc; do
   if test -f "$ac_dir/install-sh"; then
@@ -2993,6 +2988,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -3811,6 +3807,14 @@ else
 fi
 
 TOUCHFILE=$with_touchfile
+
+
+# Check whether --with-rpath was given.
+if test "${with_rpath+set}" = set; then :
+  withval=$with_rpath; rpath=$withval
+else
+  rpath=$rpath_default
+fi
 
 
 
@@ -5982,6 +5986,7 @@ case $host_os in
    mshared_suffix=$FDMAJOR.dylib
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
    CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
+   RPATHFLAGS=" -rpath \$(RPATH) "
    ifmacosx=""
    setup_target="setup-osx"
    ;;
@@ -11408,14 +11413,8 @@ fi
   INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
 fi
 
-# Check whether --enable-rpath was given.
-if test "${enable_rpath+set}" = set; then :
-  enableval=$enable_rpath;
-fi
-
-if test "x$enable_rpath" != "xno" && test "$prefix" != "/usr" && test "$prefix" != "/usr/local"; then
-  EXELDFLAGS=" $EXELDFLAGS -Wl,-rpath,\$(LIBINSTALLDIR) "
-  RPATHFLAGS=" -Wl,-rpath,\$(LIBINSTALLDIR) "
+if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
+  EXELDFLAGS=" $EXELDFLAGS \$(RPATHFLAGS) "
 fi
 
 cat >>confdefs.h <<_ACEOF

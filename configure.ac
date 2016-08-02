@@ -40,6 +40,7 @@ threads_default="yes"
 checkfdtype_default="no"
 shared_default="yes"
 shared_suffix="so"
+rpath_default=$exec_prefix
 tls_default="no"
 global_ipeval_default="no"
 enable_ipeval_default="no"
@@ -75,6 +76,7 @@ scheme_builtins_init="fd_init_fdscheme()"
 definefileinfo=""
 versionsh=""
 suffix=""
+rpath=""
 daemon_identity_default="daemon"
 setup_target="setup-unix"
 DREENTRANT="-D_REENTRANT"
@@ -83,7 +85,7 @@ TESTENV=
 TESTLIBS=
 TESTLDFLAGS=
 EXELDFLAGS=
-RPATHFLAGS=
+RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=3
 FDMINOR=9
@@ -172,6 +174,10 @@ if which lsb_release 2>&1 > /dev/null; then
    CODENAME=`lsb_release -cs || echo beingmeta`
 fi
 
+if (test "$rpath_default" = "NONE") || (test "$rpath_default" = ""); then
+   rpath_default=$prefix;
+fi
+
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/framerd/fdsource.h include/framerd/config.h)
 
@@ -182,6 +188,7 @@ AC_SUBST(shared_suffix)
 AC_SUBST(vshared_suffix)
 AC_SUBST(mshared_suffix)
 AC_SUBST(dynamic_cflag)
+AC_SUBST(rpath)
 AC_SUBST(curlconfig)
 AC_SUBST(curlo)
 AC_SUBST(ldnso)
@@ -329,6 +336,7 @@ COPYFILE=$with_copyfile
 AC_ARG_WITH(touchfile,--with-touchfile command,with_touchfile=$withval,with_touchfile=$TOUCHFILE_DEFAULT)
 TOUCHFILE=$with_touchfile
 
+AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 
 AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
 CODENAME=$with_codename
@@ -642,6 +650,7 @@ case $host_os in
    mshared_suffix=$FDMAJOR.dylib
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
    CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
+   RPATHFLAGS=" -rpath \$(RPATH) "
    ifmacosx=""
    setup_target="setup-osx"
    ;;
@@ -1495,11 +1504,8 @@ if (test "x$with_qrcode" = "xyes") && (test "x$have_png_h" = "xyes") && (test "x
   INSTALLCMODULES="install-qrcode ${INSTALLCMODULES}"
 fi
 
-dnl Enables/disables linking with RPATH
-AC_ARG_ENABLE(rpath,--en[dis]able-rpath usage)
-if test "x$enable_rpath" != "xno" && test "$prefix" != "/usr" && test "$prefix" != "/usr/local"; then
-  EXELDFLAGS=" $EXELDFLAGS -Wl,-rpath,\$(LIBINSTALLDIR) "
-  RPATHFLAGS=" -Wl,-rpath,\$(LIBINSTALLDIR) "
+if test "$rpath" != "none" && test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
+  EXELDFLAGS=" $EXELDFLAGS \$(RPATHFLAGS) "
 fi
 
 AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)
