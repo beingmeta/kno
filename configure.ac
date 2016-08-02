@@ -83,6 +83,7 @@ TESTENV=
 TESTLIBS=
 TESTLDFLAGS=
 EXELDFLAGS=
+RPATHFLAGS=
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=3
 FDMINOR=9
@@ -247,6 +248,7 @@ AC_SUBST(TESTENV)
 AC_SUBST(TESTLDFLAGS)
 AC_SUBST(TESTLIBS)
 AC_SUBST(EXELDFLAGS)
+AC_SUBST(RPATHFLAGS)
 AC_SUBST(FDVERSION)
 AC_SUBST(FDMAJOR)
 AC_SUBST(FDMINOR)
@@ -1496,7 +1498,8 @@ fi
 dnl Enables/disables linking with RPATH
 AC_ARG_ENABLE(rpath,--en[dis]able-rpath usage)
 if test "x$enable_rpath" != "xno" && test "$prefix" != "/usr" && test "$prefix" != "/usr/local"; then
-  EXELDFLAGS="${EXELDFLAGS} -Wl,-rpath,\$(LIBINSTALLDIR)"
+  EXELDFLAGS=" $EXELDFLAGS -Wl,-rpath,\$(LIBINSTALLDIR) "
+  RPATHFLAGS=" -Wl,-rpath,\$(LIBINSTALLDIR) "
 fi
 
 AC_DEFINE_UNQUOTED(FD_SCHEME_BUILTINS,$scheme_builtins_init)

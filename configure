@@ -712,6 +712,7 @@ FDRELEASE
 FDMINOR
 FDMAJOR
 FDVERSION
+RPATHFLAGS
 EXELDFLAGS
 TESTLIBS
 TESTLDFLAGS
@@ -2873,6 +2874,7 @@ TESTENV=
 TESTLIBS=
 TESTLDFLAGS=
 EXELDFLAGS=
+RPATHFLAGS=
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=3
 FDMINOR=9
@@ -2991,6 +2993,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -11411,7 +11414,8 @@ if test "${enable_rpath+set}" = set; then :
 fi
 
 if test "x$enable_rpath" != "xno" && test "$prefix" != "/usr" && test "$prefix" != "/usr/local"; then
-  EXELDFLAGS="${EXELDFLAGS} -Wl,-rpath,\$(LIBINSTALLDIR)"
+  EXELDFLAGS=" $EXELDFLAGS -Wl,-rpath,\$(LIBINSTALLDIR) "
+  RPATHFLAGS=" -Wl,-rpath,\$(LIBINSTALLDIR) "
 fi
 
 cat >>confdefs.h <<_ACEOF
