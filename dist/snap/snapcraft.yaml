@@ -1,0 +1,29 @@
+name: framerd
+version: 3
+summary: provides AI and scripting language
+description: This is my-snap's description  # a longer description for the snap
+confinement: strict
+
+parts:
+    libu8:
+        plugin: autotools
+	source: git://github.com/beingmeta/libu8
+	stage-packages:
+	  - openssl
+    framerd:
+        plugin: autotools
+	source: git://github.com/beingmeta/framerd
+	stage-packages:
+	  - libzip4
+	  - libssl
+	  - libcurl3
+	  - libhyphen0
+	  - libedit2
+	  - libldns1
+	  - libmysqlclient
+	  - sqlite
+	  - libbson-dev
+	  - libmongoc-dev
+	  - libexif12
+	  - libmagickwand
+	  - libqrencode3
