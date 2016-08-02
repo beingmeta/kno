@@ -36,8 +36,6 @@ elif (test "x${prefix}" == "x/usr/local"); then
 else localstatedir="\${prefix}/var";
 fi
 
-echo localstatedir is $localstatedir
-
 threads_default="yes"
 checkfdtype_default="no"
 shared_default="yes"
@@ -167,7 +165,11 @@ heaptest_prefix=builtin_
 use_duma_lib="no"
 custom_malloc=""
 static_libgcc="no"
-CODENAME=`lsb_release -cs || echo beingmeta`
+CODENAME="beingmeta"
+
+if which lsb_release 2>&1 > /dev/null; then
+   CODENAME=`lsb_release -cs || echo beingmeta`
+fi
 
 AC_CONFIG_AUX_DIR(etc)
 AC_CONFIG_HEADER(include/framerd/fdsource.h include/framerd/config.h)
@@ -1503,6 +1505,15 @@ if test $exec_prefix == 'NONE';
   then BINDIR="${prefix}/bin";
 else BINDIR="${exec_prefix}/bin";
 fi
+
+dnl Try to init submodules if needed and possible
+if (test ! -f src/modules/gpath.scm); then
+   if (which git 2>&1 > /dev/null) && (test -d .git); then
+     git submodule update --init;
+   else
+     echo "Can't initialize gut submmodules";
+   fi;
+fi;
 
 AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile

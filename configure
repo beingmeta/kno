@@ -2826,8 +2826,6 @@ elif (test "x${prefix}" == "x/usr/local"); then
 else localstatedir="\${prefix}/var";
 fi
 
-echo localstatedir is $localstatedir
-
 threads_default="yes"
 checkfdtype_default="no"
 shared_default="yes"
@@ -2957,7 +2955,11 @@ heaptest_prefix=builtin_
 use_duma_lib="no"
 custom_malloc=""
 static_libgcc="no"
-CODENAME=`lsb_release -cs || echo beingmeta`
+CODENAME="beingmeta"
+
+if which lsb_release 2>&1 > /dev/null; then
+   CODENAME=`lsb_release -cs || echo beingmeta`
+fi
 
 ac_aux_dir=
 for ac_dir in etc "$srcdir"/etc; do
@@ -11421,6 +11423,14 @@ if test $exec_prefix == 'NONE';
   then BINDIR="${prefix}/bin";
 else BINDIR="${exec_prefix}/bin";
 fi
+
+if (test ! -f src/modules/gpath.scm); then
+   if (which git 2>&1 > /dev/null) && (test -d .git); then
+     git submodule update --init;
+   else
+     echo "Can't initialize gut submmodules";
+   fi;
+fi;
 
 ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdrestart etc/fdstatus etc/fdlog etc/fdctl src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/fdserver.conf etc/framerd.conf etc/framerd.service etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.9.spec"
 
