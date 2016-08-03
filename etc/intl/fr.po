@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-05-21 21:58+0000\n"
+"POT-Creation-Date: 2016-08-02 09:40-0400\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -55,16 +55,16 @@ msgstr ""
 msgid "Freeing non-heap cons"
 msgstr ""
 
-#: src/dtype/cons.c:807 src/dtype/cons.c:834
+#: src/dtype/cons.c:823 src/dtype/cons.c:850
 msgid "positive byte"
 msgstr ""
 
-#: src/dtype/cons.c:1037
+#: src/dtype/cons.c:1053
 #, c-format
 msgid "#<MysteryVector 0x%x/0x%x %d elements>"
 msgstr "#<Objet Composée Mystérieux 0x%x/0x%x %d  éléments>"
 
-#: src/dtype/cons.c:1039
+#: src/dtype/cons.c:1055
 #, c-format
 msgid "#<MysteryPacket 0x%x/0x%x %d bytes>"
 msgstr "#<Paquet Mystérieux 0x%x/0x%x %d bytes>"
@@ -120,7 +120,21 @@ msgstr "constante invalide"
 msgid "Noticed %s on %lx\n"
 msgstr ""
 
-#: src/dtype/tables.c:2531
+#: src/dtype/tables.c:633 src/dtype/tables.c:642
+#, fuzzy
+msgid "plist"
+msgstr "liste"
+
+#: src/dtype/tables.c:649 src/dtype/tables.c:655
+#, fuzzy
+msgid "alist"
+msgstr "liste"
+
+#: src/dtype/tables.c:663 src/dtype/tables.c:669 src/dtype/tables.c:680
+msgid "binding list"
+msgstr ""
+
+#: src/dtype/tables.c:2716
 msgid "value is not a boolean"
 msgstr "n'est pas une boolean"
 
@@ -254,7 +268,7 @@ msgstr ""
 msgid "Unterminated block (#|..|#) comment"
 msgstr ""
 
-#: src/dtype/textio.c:404
+#: src/dtype/textio.c:405
 msgid "no handler"
 msgstr "opération pas supporté"
 
@@ -266,12 +280,12 @@ msgstr "opération pas supporté"
 msgid "oid"
 msgstr "oid"
 
-#: src/dtype/fdtype.c:61 src/dtype/support.c:524 src/scheme/eval.c:1399
+#: src/dtype/fdtype.c:61 src/dtype/support.c:524 src/scheme/eval.c:1400
 #: src/scheme/dbprims.c:1964 src/scheme/portprims.c:715
 #: src/scheme/choiceprims.c:1115 src/scheme/choiceprims.c:1119
 #: src/scheme/choiceprims.c:1120 src/scheme/seqprims.c:807
-#: src/scheme/seqprims.c:829 src/scheme/dbfileprims.c:94
-#: src/scheme/dbfileprims.c:103 src/scheme/dbfileprims.c:107
+#: src/scheme/seqprims.c:829 src/scheme/dbfileprims.c:99
+#: src/scheme/dbfileprims.c:108 src/scheme/dbfileprims.c:112
 #: src/texttools/texttools.c:2025 src/texttools/match.c:3495
 #: src/texttools/match.c:3512 src/texttools/match.c:3541
 #: src/texttools/match.c:3573 src/exe/fdservlet.c:212 src/exe/fdservlet.c:227
@@ -300,16 +314,16 @@ msgid "character"
 msgstr "caractère"
 
 # bfd
-#: src/dtype/fdtype.c:66 src/scheme/eval.c:1307 src/scheme/modules.c:431
+#: src/dtype/fdtype.c:66 src/scheme/eval.c:1308 src/scheme/modules.c:436
 #: src/scheme/reflection.c:309
 msgid "symbol"
 msgstr "symbole"
 
-#: src/dtype/fdtype.c:67 src/scheme/eval.c:1816
+#: src/dtype/fdtype.c:67 src/scheme/eval.c:1817
 msgid "lexref"
 msgstr ""
 
-#: src/dtype/fdtype.c:68 src/scheme/eval.c:1800
+#: src/dtype/fdtype.c:68 src/scheme/eval.c:1801
 msgid "opcode"
 msgstr ""
 
@@ -319,14 +333,14 @@ msgstr ""
 #: src/scheme/portprims.c:257 src/scheme/portprims.c:650
 #: src/scheme/portprims.c:720 src/scheme/stringprims.c:343
 #: src/scheme/stringprims.c:675 src/scheme/stringprims.c:696
-#: src/scheme/stringprims.c:1071 src/scheme/fileprims.c:269
-#: src/scheme/fileprims.c:696 src/scheme/fileprims.c:1170
-#: src/scheme/fileprims.c:1196 src/scheme/fileprims.c:1216
-#: src/scheme/fileprims.c:1236 src/scheme/fileprims.c:1254
-#: src/scheme/fileprims.c:1273 src/scheme/fileprims.c:1290
-#: src/scheme/fileprims.c:1307 src/scheme/dbfileprims.c:100
-#: src/fdweb/xmloutput.c:1763 src/fdweb/cgiexec.c:1232 src/fdweb/cgiexec.c:1259
-#: src/fdweb/uriprims.c:393 src/fdweb/mime.c:110 src/fdweb/curl.c:466
+#: src/scheme/stringprims.c:1071 src/scheme/fileprims.c:236
+#: src/scheme/fileprims.c:663 src/scheme/dbfileprims.c:105
+#: src/scheme/dbfileprims.c:413 src/scheme/dbfileprims.c:439
+#: src/scheme/dbfileprims.c:459 src/scheme/dbfileprims.c:479
+#: src/scheme/dbfileprims.c:497 src/scheme/dbfileprims.c:516
+#: src/scheme/dbfileprims.c:533 src/scheme/dbfileprims.c:550
+#: src/fdweb/xmloutput.c:1821 src/fdweb/cgiexec.c:1232 src/fdweb/cgiexec.c:1259
+#: src/fdweb/uriprims.c:393 src/fdweb/mime.c:110 src/fdweb/curl.c:468
 #: src/texttools/texttools.c:132 src/texttools/texttools.c:159
 #: src/texttools/texttools.c:514 src/tagger/ofsm.c:229 src/exe/fdservlet.c:194
 msgid "string"
@@ -347,7 +361,7 @@ msgid "bigint"
 msgstr "nombre entier grande"
 
 # coreutils
-#: src/dtype/fdtype.c:73 src/scheme/eval.c:1400 src/tagger/tagxtract.c:152
+#: src/dtype/fdtype.c:73 src/scheme/eval.c:1401 src/tagger/tagxtract.c:152
 msgid "pair"
 msgstr "paire"
 
@@ -364,12 +378,12 @@ msgid "achoice"
 msgstr "choix mutable"
 
 # vector
-#: src/dtype/fdtype.c:77 src/scheme/dbfileprims.c:126
+#: src/dtype/fdtype.c:77 src/scheme/dbfileprims.c:131
 msgid "vector"
 msgstr "vecteur"
 
-#: src/dtype/fdtype.c:78 src/scheme/dbfileprims.c:33
-#: src/scheme/dbfileprims.c:51
+#: src/dtype/fdtype.c:78 src/scheme/dbfileprims.c:38
+#: src/scheme/dbfileprims.c:56
 msgid "slotmap"
 msgstr "slotmap"
 
@@ -398,7 +412,7 @@ msgstr "objet mystérieux"
 msgid "quoted choice"
 msgstr "choix"
 
-#: src/dtype/fdtype.c:85 src/scheme/tableprims.c:876 src/texttools/match.c:3318
+#: src/dtype/fdtype.c:85 src/scheme/tableprims.c:881 src/texttools/match.c:3318
 #: src/texttools/match.c:3353 src/texttools/match.c:3379
 #: src/texttools/match.c:3417
 #, fuzzy
@@ -490,194 +504,238 @@ msgstr ""
 msgid "object is not a %m"
 msgstr ""
 
-#: src/dtype/support.c:2150
+#: src/dtype/support.c:2196
 msgid "application ID used in messages and SESSIONID"
 msgstr ""
 
-#: src/dtype/support.c:2153
+#: src/dtype/support.c:2199
 #, fuzzy
 msgid "unique session identifier"
 msgstr "pas une identificateur"
 
-#: src/dtype/support.c:2156
+#: src/dtype/support.c:2202
 msgid "system process ID (read-only)"
 msgstr ""
 
-#: src/dtype/support.c:2159
+#: src/dtype/support.c:2205
 msgid "parent's process ID (read-only)"
 msgstr ""
 
-#: src/dtype/support.c:2162
+#: src/dtype/support.c:2208
 msgid "warn on bad UTF-8 sequences"
 msgstr ""
 
-#: src/dtype/support.c:2165
+#: src/dtype/support.c:2211
 msgid "fail (error) on bad UTF-8 sequences"
 msgstr ""
 
-#: src/dtype/support.c:2168
+#: src/dtype/support.c:2214
 msgid "random seed used for stochastic operations"
 msgstr ""
 
-#: src/dtype/support.c:2172
+#: src/dtype/support.c:2218
 msgid "Threshold at which to use an external hashset for merging"
 msgstr ""
 
-#: src/dtype/support.c:2176
+#: src/dtype/support.c:2222
 msgid "whether to trace configuration"
 msgstr ""
 
-#: src/dtype/support.c:2180
-msgid "Required priority for messages to be displayed"
-msgstr ""
-
-#: src/dtype/support.c:2185
-msgid "Required priority for messages to be displayed on stdout"
-msgstr ""
-
-#: src/dtype/support.c:2190
-msgid "Required priority for messages to be displayed on stderr"
-msgstr ""
-
-#: src/dtype/support.c:2196
-msgid "String for indenting multi-line log messages"
-msgstr ""
-
-#: src/dtype/support.c:2199
-msgid "Whether to show the date in log messages"
-msgstr ""
-
-#: src/dtype/support.c:2203
-msgid "Whether to show PID/appid info in messages"
-msgstr ""
-
-#: src/dtype/support.c:2207
-msgid "Whether to show thread id info in messages"
-msgstr ""
-
-#: src/dtype/support.c:2211
-msgid "Whether to show elapsed time in messages"
-msgstr ""
-
-#: src/dtype/support.c:2216
+#: src/dtype/support.c:2226
 msgid "Set the user ID for this process"
 msgstr ""
 
-#: src/dtype/support.c:2219
+#: src/dtype/support.c:2229
 msgid "Set the group ID for this process"
 msgstr ""
 
-#: src/dtype/support.c:2224
+#: src/dtype/support.c:2234
 msgid "Get the FramerD version string"
 msgstr ""
 
-#: src/dtype/support.c:2227
+#: src/dtype/support.c:2237
 #, fuzzy
 msgid "Get the FramerD revision identifier"
 msgstr "pas une identificateur"
 
-#: src/dtype/support.c:2230
+#: src/dtype/support.c:2240
 msgid "Get the FramerD major version number"
 msgstr ""
 
-#: src/dtype/support.c:2233
+#: src/dtype/support.c:2243
 msgid "Get the libu8 version string"
 msgstr ""
 
-#: src/dtype/support.c:2236
+#: src/dtype/support.c:2246
 #, fuzzy
 msgid "Get the libu8 revision identifier"
 msgstr "pas une identificateur"
 
-#: src/dtype/support.c:2239
+#: src/dtype/support.c:2249
 msgid "Get the libu8 major version number"
 msgstr ""
 
-#: src/dtype/support.c:2243
+#: src/dtype/support.c:2253
 #, fuzzy
 msgid "Max number of chars to show in strings"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/dtype/support.c:2248
+#: src/dtype/support.c:2258
 msgid "Max number of elements to show in vectors/lists/choices, etc"
 msgstr ""
 
-#: src/dtype/support.c:2253
+#: src/dtype/support.c:2263
 msgid "Whether to dump packets as all hex data"
 msgstr ""
 
-#: src/dtype/support.c:2258
+#: src/dtype/support.c:2268
 msgid "How to dump packets to ASCII (16=hex,64=base64,dflt=ascii-ish)"
 msgstr ""
 
-#: src/dtype/support.c:2262
+#: src/dtype/support.c:2272
 msgid "Path prefix for program state files"
 msgstr ""
 
-#: src/dtype/support.c:2267
+#: src/dtype/support.c:2277
 msgid "Max CPU execution time limit"
 msgstr ""
 
-#: src/dtype/support.c:2272
+#: src/dtype/support.c:2282
 msgid "Max resident set (RSS) size"
 msgstr ""
 
-#: src/dtype/support.c:2277
+#: src/dtype/support.c:2287
 msgid "Max core dump size"
 msgstr ""
 
-#: src/dtype/support.c:2282
+#: src/dtype/support.c:2292
 msgid "Max number of subprocesses"
 msgstr ""
 
-#: src/dtype/support.c:2287
+#: src/dtype/support.c:2297
 msgid "Max number of open file descriptors"
 msgstr ""
 
-#: src/dtype/support.c:2292
+#: src/dtype/support.c:2302
 msgid "Max stack depth"
 msgstr ""
 
-#: src/dtype/support.c:2301
+#: src/dtype/support.c:2311
 msgid "File to store profile output from Google perftools"
 msgstr ""
 
-#: src/dtype/support.c:2308
+#: src/dtype/support.c:2318
 msgid "Root FramerD logging directories"
 msgstr ""
 
-#: src/dtype/support.c:2313
+#: src/dtype/support.c:2323
 msgid "Data directory for FramerD"
 msgstr ""
 
-#: src/dtype/support.c:2319
+#: src/dtype/support.c:2329
 msgid "Directory for looking up config entries"
 msgstr ""
 
-#: src/dtype/support.c:2324
+#: src/dtype/support.c:2334
 msgid "Registered source files"
 msgstr ""
 
-#: src/dtype/support.c:2328
+#: src/dtype/support.c:2338
 msgid "Procedures to call on exit"
 msgstr ""
 
-#: src/dtype/support.c:2332
+#: src/dtype/support.c:2342
 msgid "whether to use FramerD per-request logging"
 msgstr ""
 
-#: src/dtype/support.c:2335
+#: src/dtype/support.c:2345
 msgid "only use per-request logging (when available) for loglevels >= this"
 msgstr ""
 
-#: src/dtype/support.c:2338
+#: src/dtype/support.c:2348
 msgid "the default log function"
 msgstr ""
 
-#: src/dtype/support.c:2341
+#: src/dtype/support.c:2351 src/dtype/support.c:2375
 #, fuzzy
 msgid "additional log functions"
 msgstr "pas une fonction"
+
+#: src/dtype/support.c:2354
+msgid "value of LOCAL_MODULES"
+msgstr ""
+
+#: src/dtype/support.c:2356
+msgid "value of LOCAL_SAFE_MODULES"
+msgstr ""
+
+#: src/dtype/support.c:2358
+msgid "value of INSTALLED_MODULES"
+msgstr ""
+
+#: src/dtype/support.c:2360
+msgid "value of INSTALLED_SAFE_MODULES"
+msgstr ""
+
+#: src/dtype/support.c:2362
+msgid "value of SHARED_MODULES"
+msgstr ""
+
+#: src/dtype/support.c:2364
+msgid "value of SHARED_SAFE_MODULES"
+msgstr ""
+
+#: src/dtype/support.c:2366
+msgid "value of BUILTIN_MODULES"
+msgstr ""
+
+#: src/dtype/support.c:2368
+msgid "value of BUILTIN_SAFE_MODULES"
+msgstr ""
+
+#: src/dtype/support.c:2371
+msgid "value of UNPACKAGE_DIR"
+msgstr ""
+
+#: src/dtype/support.c:2388
+msgid "Required priority for messages to be displayed"
+msgstr ""
+
+#: src/dtype/support.c:2393
+msgid "Required priority for messages to be displayed on stdout"
+msgstr ""
+
+#: src/dtype/support.c:2398
+msgid "Required priority for messages to be displayed on stderr"
+msgstr ""
+
+#: src/dtype/support.c:2405
+msgid "String for indenting multi-line log messages"
+msgstr ""
+
+#: src/dtype/support.c:2408
+msgid "Prefix for log messages (default '[')"
+msgstr ""
+
+#: src/dtype/support.c:2411
+msgid "Suffix for log messages (default ']\\n')"
+msgstr ""
+
+#: src/dtype/support.c:2415
+msgid "Whether to show the date in log messages"
+msgstr ""
+
+#: src/dtype/support.c:2419
+msgid "Whether to show PID/appid info in messages"
+msgstr ""
+
+#: src/dtype/support.c:2423
+msgid "Whether to show thread id info in messages"
+msgstr ""
+
+#: src/dtype/support.c:2427
+msgid "Whether to show elapsed time in messages"
+msgstr ""
 
 #: src/dtype/apply.c:33
 msgid "calling a non function"
@@ -1057,7 +1115,7 @@ msgstr "conflit entre lots"
 msgid "Corrupted pool table"
 msgstr "table de lots corrompu"
 
-#: src/db/pools.c:899 src/scheme/dbfileprims.c:90 include/framerd/pools.h:340
+#: src/db/pools.c:899 src/scheme/dbfileprims.c:95 include/framerd/pools.h:340
 msgid "OID"
 msgstr "OID"
 
@@ -1310,29 +1368,29 @@ msgstr ""
 msgid "macro expansion"
 msgstr ""
 
-#: src/scheme/eval.c:1319 src/scheme/reflection.c:294
+#: src/scheme/eval.c:1320 src/scheme/reflection.c:294
 #: src/scheme/reflection.c:323
 msgid "environment"
 msgstr ""
 
-#: src/scheme/eval.c:1629
+#: src/scheme/eval.c:1630
 msgid "Server unconfigured"
 msgstr ""
 
-#: src/scheme/eval.c:1681 src/scheme/eval.c:1691
+#: src/scheme/eval.c:1682 src/scheme/eval.c:1692
 msgid "server"
 msgstr ""
 
-#: src/scheme/eval.c:1804
+#: src/scheme/eval.c:1805
 msgid "scheme environment"
 msgstr ""
 
-#: src/scheme/eval.c:1805
+#: src/scheme/eval.c:1806
 msgid "scheme special form"
 msgstr ""
 
 # gnumeric
-#: src/scheme/eval.c:1806
+#: src/scheme/eval.c:1807
 #, fuzzy
 msgid "DType server"
 msgstr "Erreur de type"
@@ -1354,7 +1412,7 @@ msgstr "expression de liaison mal formulée"
 msgid "Bad procedure defining form"
 msgstr ""
 
-#: src/scheme/binders.c:1114
+#: src/scheme/binders.c:1115
 msgid "scheme syntactic macro"
 msgstr ""
 
@@ -1363,7 +1421,7 @@ msgid "Undistinguished Scheme Error"
 msgstr ""
 
 # bfd
-#: src/scheme/errors.c:329
+#: src/scheme/errors.c:359
 #, fuzzy
 msgid "Unwind error"
 msgstr "hors limite"
@@ -1421,11 +1479,11 @@ msgstr ""
 msgid "Can't switch to opaque module"
 msgstr "ne peut repérer le module"
 
-#: src/scheme/modules.c:112
+#: src/scheme/modules.c:114
 msgid "module name"
 msgstr ""
 
-#: src/scheme/modules.c:143
+#: src/scheme/modules.c:147
 msgid "Anonymous module"
 msgstr ""
 
@@ -1506,9 +1564,9 @@ msgstr ""
 msgid "value test"
 msgstr ""
 
-#: src/scheme/dbprims.c:1315 src/scheme/tableprims.c:188
-#: src/scheme/tableprims.c:755 src/scheme/tableprims.c:772
-#: src/scheme/tableprims.c:787 src/fdweb/xmloutput.c:1778
+#: src/scheme/dbprims.c:1315 src/scheme/tableprims.c:193
+#: src/scheme/tableprims.c:760 src/scheme/tableprims.c:777
+#: src/scheme/tableprims.c:792 src/fdweb/xmloutput.c:1836
 #: src/fdweb/uriprims.c:197 src/fdweb/uriprims.c:199 src/fdweb/uriprims.c:295
 #, fuzzy
 msgid "table"
@@ -1551,15 +1609,15 @@ msgstr "L'encodage est inconnu"
 
 # discover
 #: src/scheme/portprims.c:266 src/scheme/portprims.c:276
-#: src/scheme/portprims.c:1316 src/scheme/fileprims.c:1404
-#: src/scheme/fileprims.c:1429 src/scheme/fileprims.c:1453
-#: src/scheme/fileprims.c:1477
+#: src/scheme/portprims.c:1316 src/scheme/fileprims.c:1224
+#: src/scheme/fileprims.c:1249 src/scheme/fileprims.c:1273
+#: src/scheme/fileprims.c:1297
 msgid "port"
 msgstr "port"
 
 #: src/scheme/portprims.c:288 src/scheme/portprims.c:300
 #: src/scheme/portprims.c:315 src/scheme/portprims.c:325
-#: src/scheme/fileprims.c:260
+#: src/scheme/fileprims.c:227
 msgid "output port"
 msgstr "port à la sortie"
 
@@ -1635,7 +1693,7 @@ msgstr "caractère"
 msgid "text encoding"
 msgstr "L'encodage est inconnu"
 
-#: src/scheme/fileprims.c:62
+#: src/scheme/fileprims.c:62 src/scheme/loader.c:58
 msgid "Module reload error"
 msgstr ""
 
@@ -1670,56 +1728,56 @@ msgstr ""
 msgid "Snapshot Restored"
 msgstr ""
 
-#: src/scheme/fileprims.c:364
+#: src/scheme/fileprims.c:331
 msgid "No exec wrapper to handle env args"
 msgstr ""
 
-#: src/scheme/fileprims.c:707 src/fdweb/uriprims.c:401
+#: src/scheme/fileprims.c:674 src/fdweb/uriprims.c:401
 msgid "string CONFIG var"
 msgstr ""
 
-#: src/scheme/fileprims.c:709 src/fdweb/uriprims.c:403
+#: src/scheme/fileprims.c:676 src/fdweb/uriprims.c:403
 msgid "string or string CONFIG var"
 msgstr ""
 
-#: src/scheme/fileprims.c:887
+#: src/scheme/fileprims.c:854
 msgid "Keeping temp directory"
 msgstr ""
 
-#: src/scheme/fileprims.c:890
+#: src/scheme/fileprims.c:857
 msgid "Deleting temp directory"
 msgstr ""
 
-#: src/scheme/fileprims.c:896
+#: src/scheme/fileprims.c:863
 msgid "Weird temp directory"
 msgstr ""
 
-#: src/scheme/fileprims.c:1472 src/scheme/fileprims.c:1493
+#: src/scheme/fileprims.c:1292 src/scheme/fileprims.c:1313
 msgid "offset"
 msgstr ""
 
-#: src/scheme/fileprims.c:1773
+#: src/scheme/fileprims.c:1383
+msgid "SNAPSHOT"
+msgstr ""
+
+#: src/scheme/dbfileprims.c:125
+msgid "Misaligned pool"
+msgstr ""
+
+#: src/scheme/dbfileprims.c:229 src/scheme/dbfileprims.c:269
+#: src/scheme/dbfileprims.c:280 src/scheme/dbfileprims.c:288
+#, fuzzy
+msgid "hash index"
+msgstr "index"
+
+#: src/scheme/loader.c:353
 #, c-format
 msgid "The file %s has never been loaded"
 msgstr ""
 
-#: src/scheme/fileprims.c:1823
+#: src/scheme/loader.c:403
 msgid "Module does not exist"
 msgstr ""
-
-#: src/scheme/fileprims.c:1964
-msgid "SNAPSHOT"
-msgstr ""
-
-#: src/scheme/dbfileprims.c:120
-msgid "Misaligned pool"
-msgstr ""
-
-#: src/scheme/dbfileprims.c:224 src/scheme/dbfileprims.c:264
-#: src/scheme/dbfileprims.c:275 src/scheme/dbfileprims.c:283
-#, fuzzy
-msgid "hash index"
-msgstr "index"
 
 #: src/scheme/timeprims.c:43
 msgid "Timestamp too imprecise"
@@ -1880,50 +1938,50 @@ msgstr ""
 msgid "whether direct execution of SQL strings is allowed"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:288
+#: src/fdweb/xmloutput.c:289
 #, c-format
 msgid "missing alternating attrib value for %s"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:443
+#: src/fdweb/xmloutput.c:444
 msgid "invalid XML element name"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:455
+#: src/fdweb/xmloutput.c:456
 #, fuzzy
 msgid "odd number of arguments"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/fdweb/xmloutput.c:456
+#: src/fdweb/xmloutput.c:457
 msgid "invalid XML attribute name"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:1392 src/fdweb/xmloutput.c:1460
+#: src/fdweb/xmloutput.c:1414 src/fdweb/xmloutput.c:1482
 #, fuzzy
 msgid "valid anchor target"
 msgstr "constante invalide"
 
-#: src/fdweb/xmloutput.c:1909
+#: src/fdweb/xmloutput.c:1967
 msgid "javascript function name"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:2240
+#: src/fdweb/xmloutput.c:2300
 msgid "Default style sheet for web errors"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:2245
+#: src/fdweb/xmloutput.c:2305
 msgid "How many entries in a web backtrace to indent "
 msgstr ""
 
-#: src/fdweb/xmloutput.c:2250
+#: src/fdweb/xmloutput.c:2310
 msgid "How to display OIDs for browsing in HTML/XML"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:2254
+#: src/fdweb/xmloutput.c:2314
 msgid "Default anchor URI for OID references"
 msgstr ""
 
-#: src/fdweb/xmloutput.c:2258
+#: src/fdweb/xmloutput.c:2318
 msgid "Default HTML CSS class for OID references"
 msgstr ""
 
@@ -2039,12 +2097,12 @@ msgstr ""
 msgid "Internal libcurl error"
 msgstr ""
 
-#: src/fdweb/curl.c:467
+#: src/fdweb/curl.c:469
 #, fuzzy
 msgid "Unknown CURL option"
 msgstr "erreur inconnu"
 
-#: src/fdweb/curl.c:1401
+#: src/fdweb/curl.c:1432
 msgid "Whether to debug low level CURL interaction"
 msgstr ""
 
@@ -2162,133 +2220,142 @@ msgstr ""
 msgid "compound term"
 msgstr "object composée"
 
-#: src/exe/fdconsole.c:141
+#: src/exe/fdconsole.c:68
+#, fuzzy
+msgid "prompt is not a string"
+msgstr "étiquette pour la lot n'est pas une chaîne"
+
+#: src/exe/fdconsole.c:159
 #, c-format
 msgid ";; Done in %f seconds, with %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:143
+#: src/exe/fdconsole.c:161
 #, c-format
 msgid ";; ##%d computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:145
+#: src/exe/fdconsole.c:163
 #, c-format
 msgid ";; ##%d (%ls) computed in %f seconds, %d/%d object/index loads\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:276
+#: src/exe/fdconsole.c:294
 #, c-format
 msgid "%s ;; (%d/%d items)"
 msgstr ""
 
-#: src/exe/fdconsole.c:277
+#: src/exe/fdconsole.c:295
 #, c-format
 msgid "%s ;; ##%d= (%d/%d items)"
 msgstr ""
 
-#: src/exe/fdconsole.c:280
+#: src/exe/fdconsole.c:298
 #, c-format
 msgid "%s ;; (%d items)"
 msgstr ""
 
-#: src/exe/fdconsole.c:281
+#: src/exe/fdconsole.c:299
 #, c-format
 msgid "%s ;; ##%d= (%d items)"
 msgstr ""
 
-#: src/exe/fdconsole.c:350
+#: src/exe/fdconsole.c:368
 #, fuzzy
 msgid ";; Bad assignment expression!\n"
 msgstr "expression de liaison mal formulée"
 
 # bfd
-#: src/exe/fdconsole.c:576
+#: src/exe/fdconsole.c:594
 #, fuzzy
 msgid "load error"
 msgstr "hors limite"
 
-#: src/exe/fdconsole.c:661
+#: src/exe/fdconsole.c:681
 msgid "Threshold for displaying execution time"
 msgstr ""
 
-#: src/exe/fdconsole.c:665 src/exe/fdserver.c:1055
+#: src/exe/fdconsole.c:683
+msgid "Eval prompt (within #||#s)"
+msgstr ""
+
+#: src/exe/fdconsole.c:687 src/exe/fdserver.c:1058
 msgid "Max number of string characters to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:669
+#: src/exe/fdconsole.c:691
 msgid "Max number of sequence/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/fdconsole.c:672
+#: src/exe/fdconsole.c:694
 msgid "Whether to minimize console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:676
+#: src/exe/fdconsole.c:698
 msgid "Number of characters available for pretty-printing console output"
 msgstr ""
 
-#: src/exe/fdconsole.c:680
+#: src/exe/fdconsole.c:702
 msgid "Number of elements to initially show in displaying results"
 msgstr ""
 
-#: src/exe/fdconsole.c:683
+#: src/exe/fdconsole.c:705
 msgid "Where to create directories for saving backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:686
+#: src/exe/fdconsole.c:708
 msgid "The base URL for referencing HTML backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:689
+#: src/exe/fdconsole.c:711
 msgid "The command to use to open saved backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:692
+#: src/exe/fdconsole.c:714
 msgid "Whether to dump HTML versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:695
+#: src/exe/fdconsole.c:717
 msgid "Whether to dump LISP object versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:698
+#: src/exe/fdconsole.c:720
 msgid "Whether to dump binary DTYPE versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:701
+#: src/exe/fdconsole.c:723
 msgid "Whether to plaintext versions of backtraces"
 msgstr ""
 
-#: src/exe/fdconsole.c:704
+#: src/exe/fdconsole.c:726
 msgid "Whether to always save backtraces in the history"
 msgstr ""
 
-#: src/exe/fdconsole.c:707
+#: src/exe/fdconsole.c:729
 msgid "Whether to always output backtraces to stderr"
 msgstr ""
 
-#: src/exe/fdconsole.c:710
+#: src/exe/fdconsole.c:732
 msgid "Whether load .fdconsole or other dot files"
 msgstr ""
 
-#: src/exe/fdconsole.c:721
+#: src/exe/fdconsole.c:743
 msgid "Which modules to load"
 msgstr ""
 
-#: src/exe/fdconsole.c:724
+#: src/exe/fdconsole.c:746
 msgid "Which files to load"
 msgstr ""
 
-#: src/exe/fdconsole.c:812
+#: src/exe/fdconsole.c:834
 msgid "Whether to use EDITLINE for the console"
 msgstr ""
 
-#: src/exe/fdconsole.c:835
+#: src/exe/fdconsole.c:857
 msgid ";; Bound %q\n"
 msgstr ""
 
-#: src/exe/fdconsole.c:836
+#: src/exe/fdconsole.c:858
 msgid ";; Bad command result %q\n"
 msgstr ""
 
@@ -2321,7 +2388,7 @@ msgstr ""
 msgid "Whether to append to log files"
 msgstr ""
 
-#: src/exe/fdservlet.c:63 src/exe/fdserver.c:59
+#: src/exe/fdservlet.c:63 src/exe/fdserver.c:61
 msgid "Startup"
 msgstr ""
 
@@ -2361,27 +2428,27 @@ msgstr ""
 msgid "Ports for listening for connections"
 msgstr ""
 
-#: src/exe/fdservlet.c:1786 src/exe/fdserver.c:1064
+#: src/exe/fdservlet.c:1786 src/exe/fdserver.c:1067
 msgid "Whether to run in asynchronous mode"
 msgstr ""
 
-#: src/exe/fdservlet.c:1789 src/exe/fdserver.c:997
+#: src/exe/fdservlet.c:1789 src/exe/fdserver.c:1000
 msgid "Whether to run in the foreground"
 msgstr ""
 
-#: src/exe/fdservlet.c:1791 src/exe/fdserver.c:999
+#: src/exe/fdservlet.c:1791 src/exe/fdserver.c:1002
 msgid "Whether to enable auto-restart"
 msgstr ""
 
-#: src/exe/fdservlet.c:1793 src/exe/fdserver.c:1001
+#: src/exe/fdservlet.c:1793 src/exe/fdserver.c:1004
 msgid "Whether to wait for the servlet PID file"
 msgstr ""
 
-#: src/exe/fdservlet.c:1795 src/exe/fdserver.c:1003
+#: src/exe/fdservlet.c:1795 src/exe/fdserver.c:1006
 msgid "Threshold for daemon fastfails"
 msgstr ""
 
-#: src/exe/fdservlet.c:1798 src/exe/fdserver.c:1006
+#: src/exe/fdservlet.c:1798 src/exe/fdserver.c:1009
 msgid "How long (secs) to wait after a fastfail"
 msgstr ""
 
@@ -2389,11 +2456,11 @@ msgstr ""
 msgid "Trace web transactions over N seconds"
 msgstr ""
 
-#: src/exe/fdservlet.c:1870 src/exe/fdcgiexec.c:676 src/exe/fdserver.c:1009
+#: src/exe/fdservlet.c:1870 src/exe/fdcgiexec.c:676 src/exe/fdserver.c:1012
 msgid "Number of pending connection requests allowed"
 msgstr ""
 
-#: src/exe/fdservlet.c:1872 src/exe/fdserver.c:1011
+#: src/exe/fdservlet.c:1872 src/exe/fdserver.c:1014
 msgid "Max number of requests to keep queued"
 msgstr ""
 
@@ -2401,12 +2468,12 @@ msgstr ""
 msgid "Max number of concurrent connections to allow (NYI)"
 msgstr ""
 
-#: src/exe/fdservlet.c:1878 src/exe/fdserver.c:1014
+#: src/exe/fdservlet.c:1878 src/exe/fdserver.c:1017
 msgid "Number of clients to prepare for/grow by"
 msgstr ""
 
 #: src/exe/fdservlet.c:1880 src/exe/fdservlet.c:1883 src/exe/fdcgiexec.c:678
-#: src/exe/fdserver.c:1016 src/exe/fdserver.c:1019
+#: src/exe/fdserver.c:1019 src/exe/fdserver.c:1022
 msgid "Number of threads in the thread pool"
 msgstr ""
 
@@ -2422,7 +2489,7 @@ msgstr ""
 msgid "Milliseconds (roughly) between logging status information"
 msgstr ""
 
-#: src/exe/fdservlet.c:1894 src/exe/fdserver.c:1067
+#: src/exe/fdservlet.c:1894 src/exe/fdserver.c:1070
 msgid "How long (μs) to wait for tasks during shutdown"
 msgstr ""
 
@@ -2442,11 +2509,11 @@ msgstr ""
 msgid "Timeout for the poll loop (lower bound of status updates)"
 msgstr ""
 
-#: src/exe/fdservlet.c:2007 src/exe/fdserver.c:1036
+#: src/exe/fdservlet.c:2007 src/exe/fdserver.c:1039
 msgid "Whether to have libu8 log each connection"
 msgstr ""
 
-#: src/exe/fdservlet.c:2011 src/exe/fdserver.c:1040
+#: src/exe/fdservlet.c:2011 src/exe/fdserver.c:1043
 msgid "Whether to have libu8 log each transaction"
 msgstr ""
 
@@ -2458,7 +2525,7 @@ msgstr ""
 msgid "Whether to have libu8 log data transmission/receiption"
 msgstr ""
 
-#: src/exe/fdservlet.c:2028 src/exe/fdserver.c:1050
+#: src/exe/fdservlet.c:2028 src/exe/fdserver.c:1053
 msgid "Whether to support thread-asynchronous transactions"
 msgstr ""
 
@@ -2470,109 +2537,109 @@ msgstr ""
 msgid "The socket file used by this server for use with external versions"
 msgstr ""
 
-#: src/exe/fdserver.c:56
+#: src/exe/fdserver.c:58
 msgid "Bad port spec"
 msgstr ""
 
-#: src/exe/fdserver.c:57
+#: src/exe/fdserver.c:59
 msgid "Bad client request"
 msgstr ""
 
-#: src/exe/fdserver.c:58
+#: src/exe/fdserver.c:60
 msgid "NoServers"
 msgstr ""
 
-#: src/exe/fdserver.c:60
+#: src/exe/fdserver.c:62
 msgid "FDServer/FORK"
 msgstr ""
 
-#: src/exe/fdserver.c:61
+#: src/exe/fdserver.c:63
 msgid "FDServer/ABORT"
 msgstr ""
 
-#: src/exe/fdserver.c:62
+#: src/exe/fdserver.c:64
 msgid "FDServer/SIGNAL"
 msgstr ""
 
-#: src/exe/fdserver.c:63
+#: src/exe/fdserver.c:65
 msgid "FDServer/RESTART"
 msgstr ""
 
-#: src/exe/fdserver.c:64
+#: src/exe/fdserver.c:66
 msgid "FDServer/CONFIG"
 msgstr ""
 
-#: src/exe/fdserver.c:65
+#: src/exe/fdserver.c:67
 msgid "FDServer/LOOP"
 msgstr ""
 
-#: src/exe/fdserver.c:66
+#: src/exe/fdserver.c:68
 msgid "FDServer/STARTUP"
 msgstr ""
 
-#: src/exe/fdserver.c:67
+#: src/exe/fdserver.c:69
 msgid "FDServer/SHUTDOWN"
 msgstr ""
 
-#: src/exe/fdserver.c:69
+#: src/exe/fdserver.c:71
 msgid "Incoming"
 msgstr ""
 
-#: src/exe/fdserver.c:69
+#: src/exe/fdserver.c:71
 msgid "Outgoing"
 msgstr ""
 
 # gnumeric
-#: src/exe/fdserver.c:137
+#: src/exe/fdserver.c:139
 #, fuzzy
 msgid "Log file error"
 msgstr "Erreur de type"
 
-#: src/exe/fdserver.c:1021
+#: src/exe/fdserver.c:1024
 msgid "modules to provide in the server environment"
 msgstr ""
 
-#: src/exe/fdserver.c:1023
+#: src/exe/fdserver.c:1026
 msgid "whether to provide full scheme interpreter"
 msgstr ""
 
-#: src/exe/fdserver.c:1025
+#: src/exe/fdserver.c:1028
 msgid "Whether to log each request and response"
 msgstr ""
 
-#: src/exe/fdserver.c:1027
+#: src/exe/fdserver.c:1030
 msgid "Whether to log each transaction"
 msgstr ""
 
-#: src/exe/fdserver.c:1030
+#: src/exe/fdserver.c:1033
 msgid "Whether to log errors returned by the server to clients"
 msgstr ""
 
-#: src/exe/fdserver.c:1033
+#: src/exe/fdserver.c:1036
 msgid "Whether to include a detailed backtrace when logging errors"
 msgstr ""
 
-#: src/exe/fdserver.c:1045
+#: src/exe/fdserver.c:1048
 msgid "Whether to have libu8 log all data transfers for fine-grained debugging"
 msgstr ""
 
-#: src/exe/fdserver.c:1059
+#: src/exe/fdserver.c:1062
 msgid "Max number of list/vector/choice elements to display in debug message"
 msgstr ""
 
-#: src/exe/fdserver.c:1062
+#: src/exe/fdserver.c:1065
 msgid "Where to write server pid/nid files"
 msgstr ""
 
-#: src/exe/fdserver.c:1070
+#: src/exe/fdserver.c:1073
 msgid "Whether to automatically reload changed files"
 msgstr ""
 
-#: src/exe/fdserver.c:1073
+#: src/exe/fdserver.c:1076
 msgid "Whether to disable exported FramerD DB API"
 msgstr ""
 
-#: src/exe/fdserver.c:1339
+#: src/exe/fdserver.c:1342
 msgid "port or port@host to listen on"
 msgstr ""
 
@@ -2613,7 +2680,7 @@ msgid "Can't convert value to SQL"
 msgstr ""
 
 # gnumeric
-#: src/cmodules/ziptools.c:27
+#: src/cmodules/ziptools.c:28
 #, fuzzy
 msgid "Zip file error"
 msgstr "Erreur de type"
@@ -2671,9 +2738,6 @@ msgstr "Erreur de type"
 #~ msgstr ""
 #~ ";; %f secondes pour l'exécution de %q\n"
 #~ ";;   à %q\n"
-
-#~ msgid "list"
-#~ msgstr "liste"
 
 #~ msgid "Eval: "
 #~ msgstr "Éval: "
