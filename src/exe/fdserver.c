@@ -118,9 +118,10 @@ static void kill_dependent_onexit(){
   pid_t dep=dependent; dependent=-1;
   sustaining=0;
   if (dep>0) kill(dep,SIGTERM);
-  if (u8_file_existsp(ppid_file)) {
+  if ((ppid_file)&&(u8_file_existsp(ppid_file))) {
     u8_removefile(ppid_file);
-    u8_free(ppid_file);}}
+    u8_free(ppid_file);
+    ppid_file=NULL;}}
 static void kill_dependent_onsignal(int sig){
   u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
@@ -130,9 +131,10 @@ static void kill_dependent_onsignal(int sig){
            "FDServer controller %d got signal %d, passing to %d",
            getpid(),sig,dep);
   if (dep>0) kill(dep,sig);
-  if (u8_file_existsp(ppid_file)) {
+  if ((ppid_file)&&(u8_file_existsp(ppid_file))) {
     u8_removefile(ppid_file);
-    u8_free(ppid_file);}}
+    u8_free(ppid_file);
+    ppid_file=NULL;}}
 
 /* Log files */
 
@@ -348,9 +350,15 @@ static void cleanup_state_files()
   if (state_files_written) {
     u8_string exit_filename=fd_runbase_filename(".exit");
     FILE *exitfile=u8_fopen(exit_filename,"w");
-    if (pid_file) u8_removefile(pid_file);
-    if (cmd_file) u8_removefile(cmd_file);
-    if (nid_file) u8_removefile(nid_file);
+    if (pid_file) {
+      if (u8_file_existsp(pid_file)) u8_removefile(pid_file);
+      u8_free(pid_file); pid_file=NULL;}
+    if (cmd_file) {
+      if (u8_file_existsp(cmd_file)) u8_removefile(cmd_file);
+      u8_free(cmd_file); cmd_file=NULL;}
+    if (nid_file) {
+      if (u8_file_existsp(nid_file)) u8_removefile(nid_file);
+      u8_free(nid_file); nid_file=NULL;}
     if (exitfile) {
       struct U8_XTIME xt; struct U8_OUTPUT out;
       char timebuf[64]; double elapsed=u8_elapsed_time();

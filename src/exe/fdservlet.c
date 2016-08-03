@@ -425,6 +425,7 @@ static void cleanup_pid_file()
   u8_string exit_filename=fd_runbase_filename(".exit");
   FILE *exitfile=u8_fopen(exit_filename,"w");
   if (pid_file) {
+    u8_string filename=pid_file;
     if (pid_fd>=0) {
       int lv=lock_fd(pid_fd,0,0);
       if (lv<0) {
@@ -436,8 +437,13 @@ static void cleanup_pid_file()
         fd_clear_errors(1);}
       close(pid_fd);
       pid_fd=-1;}
-    u8_removefile(pid_file);}
-  if (cmd_file) u8_removefile(cmd_file);
+    pid_file=NULL;
+    if (u8_file_existsp(filename)) u8_removefile(filename);
+    u8_free(filename);}
+  if (cmd_file) {
+    u8_string filename=cmd_file; cmd_file=NULL;
+    if (u8_file_existsp(filename)) u8_removefile(filename);
+    u8_free(filename);}
   if (exitfile) {
     struct U8_XTIME xt; struct U8_OUTPUT out;
     char timebuf[64]; double elapsed=u8_elapsed_time();
@@ -1500,12 +1506,12 @@ static void shutdown_server(u8_condition reason)
   ports=NULL; n_ports=0; max_ports=0;
   u8_unlock_mutex(&server_port_lock);
   if (pidfile) {
-    int retval=u8_removefile(pidfile);
+    u8_string filename=pidfile; pidfile=NULL;
+    int retval=(u8_file_existsp(filename))?(u8_removefile(filename)):(0);
     if (retval<0)
       u8_log(LOG_WARN,"FDServlet/shutdown",
              "Couldn't remove pid file %s",pidfile);
-    u8_free(pidfile);}
-  pidfile=NULL;
+    u8_free(filename);}
   fd_recycle_hashtable(&pagemap);
 }
 
