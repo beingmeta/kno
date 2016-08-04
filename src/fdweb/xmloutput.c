@@ -1067,7 +1067,7 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
             if (FD_SYMBOLP(key))
               u8_printf(s,"<span class='var'>%s</span> ",FD_SYMBOL_NAME(key));
             else u8_printf(s,"<span class='var'>%q</span> ",key);}}
-        u8_puts(s,"</td></tr>\n<tr><th></th><td>\n<table class='bindings'>\n");
+        u8_puts(s,"</td></tr>\n<tr><td>\n<table class='bindings'>\n");
         {FD_DO_CHOICES(key,keys) {
             fdtype val=fd_get(entry,key,FD_VOID);
             u8_puts(s,"\n\t<tr class='binding'>");
