@@ -624,6 +624,18 @@ static fdtype get_stmt_values
     else if ((n_cols==1) && (FD_TRUEP(mergefn))) {
       result=kv[0].value;
       u8_free(kv);}
+    else if ((FD_SYMBOLP(mergefn))||(FD_OIDP(mergefn))) {
+      int j=0; result=FD_EMPTY_CHOICE;
+      while (j<n_slots) {
+        if (kv[j].key == mergefn) {
+          result=kv[j].value; 
+          fd_decref(kv[j].key);
+          j++;}
+        else {
+          fd_decref(kv[j].key);
+          fd_decref(kv[j].value);
+          j++;}}
+      u8_free(kv);}
     else if ((FD_VOIDP(mergefn)) ||
              (FD_FALSEP(mergefn)) ||
              (FD_TRUEP(mergefn)))
