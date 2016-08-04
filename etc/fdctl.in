@@ -38,10 +38,6 @@ if test ${TARGET} != "all"; then
    else echo "Unknown operation ${OP} on ${TARGET}";
    fi;
   exit;
-elif test ${OP} = "restart"; then
-     shift;
-     sudo fdrestart;
-     exit;
 elif test ${OP} = "cleanstart"; then
      if test -f @framerd_rundir@/_started; then
        fdctl stop;
