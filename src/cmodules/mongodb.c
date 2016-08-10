@@ -99,6 +99,8 @@ static fdtype combine_opts(fdtype opts,fdtype clopts)
 
 /* Consing MongoDB clients, collections, and cursors */
 
+static u8_string get_connection_spec(mongoc_uri_t *info);
+
 /* This returns a MongoDB server object which wraps a MongoDB client
    pool. */
 static fdtype mongodb_open(fdtype arg,fdtype opts)
@@ -112,7 +114,8 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
     fdtype conf_val=fd_config_get(FD_SYMBOL_NAME(arg));
     if (FD_VOIDP(conf_val))
       return fd_type_error("MongoDB URI config","mongodb_open",arg);
-    else if ((FD_STRINGP(conf_val))||(FD_PRIM_TYPEP(conf_val,fd_secret_type))) {
+    else if ((FD_STRINGP(conf_val))||
+             (FD_PRIM_TYPEP(conf_val,fd_secret_type))) {
       uri=u8_strdup(FD_STRDATA(conf_val));
       info=mongoc_uri_new(FD_STRDATA(conf_val));
       fd_decref(conf_val);}
@@ -131,6 +134,7 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
     if (dbname==NULL) 
       srv->dbname=NULL;
     else srv->dbname=u8_strdup(dbname);
+    srv->spec=get_connection_spec(info);
     srv->info=info; srv->pool=client_pool;
     srv->opts=opts; fd_incref(opts);
     srv->flags=flags;
@@ -150,8 +154,20 @@ static void recycle_client(struct FD_CONS *c)
 static int unparse_server(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_MONGODB_DATABASE *srv=(struct FD_MONGODB_DATABASE *)x;
-  u8_printf(out,"#<MongoDB/Server %s>",srv->uri);
+  u8_printf(out,"#<MongoDB/Server %s/%s>",srv->spec,srv->dbname);
   return 1;
+}
+
+static u8_string get_connection_spec(mongoc_uri_t *info)
+{
+  struct U8_OUTPUT out; 
+  const mongoc_host_list_t *hosts=mongoc_uri_get_hosts(info);
+  U8_INIT_OUTPUT(&out,256);
+  u8_printf(&out,"#<MongoDB/Server //%s@%s/%s>",
+            mongoc_uri_get_username(info),
+            hosts->host_and_port,
+            mongoc_uri_get_database(info));
+  return out.u8_outbuf;
 }
 
 /* Creating collections */
@@ -221,7 +237,8 @@ mongoc_collection_t *open_collection(struct FD_MONGODB_COLLECTION *domain,
                                      mongoc_client_t **clientp,
                                      int flags)
 {
-  struct FD_MONGODB_DATABASE *server=(struct FD_MONGODB_DATABASE *)(domain->server);
+  struct FD_MONGODB_DATABASE *server=
+    (struct FD_MONGODB_DATABASE *)(domain->server);
   mongoc_client_t *client;
   if (flags&FD_MONGODB_NOBLOCK)
     client=mongoc_client_pool_try_pop(server->pool);
@@ -245,7 +262,8 @@ mongoc_collection_t *use_collection(struct FD_MONGODB_COLLECTION *domain,
                                     mongoc_client_t **clientp,
                                     fdtype *optsp,int *flagsp)
 {
-  struct FD_MONGODB_DATABASE *srv=(struct FD_MONGODB_DATABASE *)(domain->server);
+  struct FD_MONGODB_DATABASE *srv=
+    (struct FD_MONGODB_DATABASE *)(domain->server);
   int flags=getflags(opts_arg,domain->flags);
   mongoc_collection_t *collection=open_collection(domain,clientp,flags);
   if (collection) {
@@ -264,7 +282,8 @@ static void client_done(fdtype arg,mongoc_client_t *client)
     mongoc_client_pool_push(server->pool,client);}
   else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) {
     struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-    struct FD_MONGODB_DATABASE *server=(struct FD_MONGODB_DATABASE *)(domain->server);
+    struct FD_MONGODB_DATABASE *server=
+      (struct FD_MONGODB_DATABASE *)(domain->server);
     mongoc_client_pool_push(server->pool,client);}
   else {
     u8_log(LOG_WARN,"BAD client_done call","Wrong type for %q",arg);}
@@ -424,14 +443,16 @@ static fdtype make_mongovec(fdtype vec);
 static fdtype make_command(int n,fdtype *values)
 {
   if ((n%2)==1)
-    return fd_err(fd_SyntaxError,"mongomap_lexpr","Odd number of arguments",FD_VOID);
+    return fd_err(fd_SyntaxError,"mongomap_lexpr",
+                  "Odd number of arguments",FD_VOID);
   else {
     int i=0, fix_vectors=0; while (i<n) { 
       fdtype value=values[i++];
       if (FD_VECTORP(value)) fix_vectors=1;
       fd_incref(value);}
     if (fix_vectors) {
-      fdtype result=fd_init_compound_from_elts(NULL,mongomap_symbol,0,n,values);
+      fdtype result=fd_init_compound_from_elts
+        (NULL,mongomap_symbol,0,n,values);
       fdtype *elts=FD_COMPOUND_ELTS(result);
       int j=0, n_elts=FD_COMPOUND_LENGTH(result);
       while (j<n_elts) {
@@ -1304,7 +1325,8 @@ FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
 static fdtype mongomap_lexpr(int n,fdtype *values)
 {
   if ((n%2)==1)
-    return fd_err(fd_SyntaxError,"mongomap_lexpr","Odd number of arguments",FD_VOID);
+    return fd_err(fd_SyntaxError,"mongomap_lexpr",
+                  "Odd number of arguments",FD_VOID);
   else {
     int i=0; while (i<n) { 
       fdtype value=values[i++]; fd_incref(value);}
@@ -1324,7 +1346,8 @@ static fdtype make_mongomap(fdtype table,fdtype ordered)
       fdtype value=fd_get(table,key,FD_EMPTY_CHOICE);
       *write++=key; fd_incref(key); *write++=value;
       i++;}
-    result=fd_init_compound_from_elts(NULL,mongomap_symbol,0,n_slots*2,values);
+    result=fd_init_compound_from_elts
+      (NULL,mongomap_symbol,0,n_slots*2,values);
     u8_free(values);
     return result;}
 }

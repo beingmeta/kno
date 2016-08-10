@@ -29,12 +29,7 @@ AC_MSG_CHECKING([for group $1])
   AC_MSG_RESULT($found_group)])
 
 # Override the default value for localstatedir
-if (test "x${prefix}" == "x/usr"); then
-   localstatedir="/var";
-elif (test "x${prefix}" == "x/usr/local"); then
-   localstatedir="/var";
-else localstatedir="\${prefix}/var";
-fi
+AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,localstatedir=$withval,localstatedir="/var")
 
 threads_default="yes"
 checkfdtype_default="no"
@@ -129,7 +124,7 @@ GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$prefix/etc/framerd"
 rundir=$localstatedir/run
-logdir="$localstatedir/log"
+logdir=$localstatedir/log
 framerd_rundir="$rundir/framerd"
 framerd_logdir="$logdir/framerd"
 daemon_logdir="$framerd_logdir/daemons"
@@ -1531,9 +1526,10 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
 	  etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	  etc/fdsignal etc/fdrestart etc/fdstatus etc/fdlog etc/fdctl
 	  src/scripts/fdpkg.scm
-	  etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d
-	  etc/fdserver.conf etc/framerd.conf etc/framerd.service
-	  etc/fdservlet.conf etc/fdservlets.conf
+	  etc/OSXStartupItem/FramerD
+	  etc/logrotate etc/framerd-rc.d
+	  etc/framerd.conf etc/framerd.service etc/FramerD.plist
+	  etc/fdserver.conf etc/fdservlet.conf etc/fdservlets.conf
 	  etc/fdserv.conf etc/fdserv.load
 	  etc/install-script dist/framerd-3.9.spec)
 

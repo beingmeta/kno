@@ -65,7 +65,7 @@ elif test -f /lib/systemd/system/framerd.service; then
 elif test -f /usr/lib/systemd/system/framerd.service; then
     echo "systemctl ${OP} framerd";
     sudo systemctl ${OP} framerd;
-    if test ${CLEAN} = "yes"; then sudo cleanlogs; fi;
+    if test "${CLEAN}" = "yes"; then sudo cleanlogs; fi;
     exit;
 else
     echo "No systemd FramerD configuration";
@@ -76,7 +76,7 @@ if ! which initctl 2>&1 > /dev/null; then
 elif test -f /etc/init/framerd.conf; then
     echo initctl ${OP} framerd;
     sudo initctl ${OP} framerd;
-    if test ${CLEAN} = "yes"; the sudo cleanlogs; fi
+    if test "${CLEAN}" = "yes"; then sudo cleanlogs; fi
     exit;
 else
     echo No upstart FramerD configuration;
@@ -90,4 +90,4 @@ else
     ${RAWSCRIPT}
 fi
 
-if test ${CLEAN} = "yes"; the sudo cleanlogs; fi
+if test "${CLEAN}" = "yes"; the sudo cleanlogs; fi
