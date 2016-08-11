@@ -70,8 +70,9 @@ static int boolopt(fdtype opts,fdtype key)
 static u8_string stropt(fdtype opts,fdtype key,u8_string dflt)
 {
   fdtype v=fd_getopt(opts,key,FD_VOID);
-  if ((FD_VOIDP(v))||(FD_FALSEP(v)) )
-    return u8_strdup(dflt);
+  if ((FD_VOIDP(v))||(FD_FALSEP(v))) {
+    if (dflt==NULL) return dflt;
+    else return u8_strdup(dflt);}
   else if (FD_STRINGP(v)) 
     return u8_strdup(FD_STRDATA(v));
   else if (FD_PRIM_TYPEP(v,fd_secret_type))
@@ -205,10 +206,7 @@ static u8_string get_connection_spec(mongoc_uri_t *info)
   struct U8_OUTPUT out; 
   const mongoc_host_list_t *hosts=mongoc_uri_get_hosts(info);
   U8_INIT_OUTPUT(&out,256);
-  u8_printf(&out,"//%s@%s/%s>",
-            mongoc_uri_get_username(info),
-            hosts->host_and_port,
-            mongoc_uri_get_database(info));
+  u8_printf(&out,"%s@%s",mongoc_uri_get_username(info),hosts->host_and_port);
   return out.u8_outbuf;
 }
 
@@ -282,6 +280,7 @@ static fdtype mongodb_collection(fdtype server,fdtype name_arg,fdtype opts_arg)
   FD_INIT_CONS(result,fd_mongoc_collection);
   result->server=server;
   result->uri=u8_strdup(srv->uri);
+  result->server_spec=u8_strdup(srv->spec);
   result->dbname=db_name; result->name=collection_name;
   result->opts=opts; result->flags=flags;
   return (fdtype) result;
@@ -296,8 +295,8 @@ static void recycle_collection(struct FD_CONS *c)
 static int unparse_collection(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_MONGODB_COLLECTION *cl=(struct FD_MONGODB_COLLECTION *)x;
-  u8_printf(out,"#<MongoDB/Collection '%s/%s' %s>",
-            cl->dbname,cl->name,cl->uri);
+  u8_printf(out,"#<MongoDB/Collection %s/%s/%s>",
+            cl->server_spec,cl->dbname,cl->name);
   return 1;
 }
 

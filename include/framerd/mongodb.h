@@ -46,7 +46,7 @@ typedef struct FD_MONGODB_DATABASE *fd_mongodb_database;
 
 typedef struct FD_MONGODB_COLLECTION {
   FD_CONS_HEADER;
-  fdtype server; u8_string dbname, name;
+  fdtype server; u8_string dbname, name, server_spec;
   u8_string uri; fdtype opts; int flags;} FD_MONGODB_COLLECTION;
 typedef struct FD_MONGODB_COLLECTION *fd_mongodb_collection;
 
