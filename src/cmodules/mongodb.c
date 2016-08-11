@@ -23,9 +23,10 @@
 #include <libu8/u8printf.h>
 #include <libu8/u8crypto.h>
 
-
 #include "framerd/fdregex.h"
 #include "framerd/mongodb.h"
+
+#include <mongoc-ssl.h>
 
 /* Initialization */
 
@@ -33,6 +34,9 @@ u8_condition fd_MongoDB_Error=_("MongoDB error");
 u8_condition fd_BSON_Error=_("BSON conversion error");
 u8_condition fd_MongoDB_Warning=_("MongoDB warning");
 u8_condition fd_BSON_Input_Error=_("BSON input error");
+
+static fdtype sslsym;
+static int default_ssl=0;
 
 fd_ptr_type fd_mongoc_server, fd_mongoc_collection, fd_mongoc_cursor;
 
@@ -46,6 +50,37 @@ static fdtype skipsym, limitsym, batchsym, sortsym;
 static fdtype fieldssym, upsertsym, newsym, removesym;
 static fdtype max_clients_symbol, max_ready_symbol;
 static fdtype mongomap_symbol, mongovec_symbol;
+
+static void grab_mongodb_error(bson_error_t *error,u8_string caller)
+{
+  u8_condition cond=u8_strerror(error->code);
+  u8_seterr(cond,caller,u8_strdup(error->message));
+}
+
+static int boolopt(fdtype opts,fdtype key)
+{
+  fdtype v=fd_get(opts,key,FD_VOID);
+  if ((FD_VOIDP(v))||(FD_FALSEP(v)))
+    return 0;
+  else {
+    fd_decref(v);
+    return 1;}
+}
+
+static u8_string stropt(fdtype opts,fdtype key,u8_string dflt)
+{
+  fdtype v=fd_getopt(opts,key,FD_VOID);
+  if ((FD_VOIDP(v))||(FD_FALSEP(v)) )
+    return u8_strdup(dflt);
+  else if (FD_STRINGP(v)) 
+    return u8_strdup(FD_STRDATA(v));
+  else if (FD_PRIM_TYPEP(v,fd_secret_type))
+    return u8_strdup(FD_STRDATA(v));
+  else {
+    u8_log(LOG_WARN,"Invalid string option","%q=%q",key,v);
+    fd_decref(v);
+    return NULL;}
+}
 
 /* Handling options and flags */
 
@@ -100,6 +135,8 @@ static fdtype combine_opts(fdtype opts,fdtype clopts)
 /* Consing MongoDB clients, collections, and cursors */
 
 static u8_string get_connection_spec(mongoc_uri_t *info);
+static int setup_ssl(mongoc_ssl_opt_t *,mongoc_uri_t *,fdtype);
+static u8_string modify_ssl(u8_string uri,int add);
 
 /* This returns a MongoDB server object which wraps a MongoDB client
    pool. */
@@ -107,16 +144,18 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
 {
   mongoc_client_pool_t *client_pool; int flags;
   mongoc_uri_t *info; u8_string uri;
+  mongoc_ssl_opt_t ssl_opts={ 0 };
+  int add_ssl=(fd_testopt(opts,sslsym,FD_VOID))?(boolopt(opts,sslsym)):(default_ssl);
   if ((FD_STRINGP(arg))||(FD_PRIM_TYPEP(arg,fd_secret_type))) {
-    uri=u8_strdup(FD_STRDATA(arg));
-    info=mongoc_uri_new(FD_STRDATA(arg));}
+    uri=modify_ssl(FD_STRDATA(arg),add_ssl);
+    info=mongoc_uri_new(uri);}
   else if (FD_SYMBOLP(arg)) {
     fdtype conf_val=fd_config_get(FD_SYMBOL_NAME(arg));
     if (FD_VOIDP(conf_val))
       return fd_type_error("MongoDB URI config","mongodb_open",arg);
     else if ((FD_STRINGP(conf_val))||
              (FD_PRIM_TYPEP(conf_val,fd_secret_type))) {
-      uri=u8_strdup(FD_STRDATA(conf_val));
+      uri=modify_ssl(FD_STRDATA(conf_val),add_ssl);
       info=mongoc_uri_new(FD_STRDATA(conf_val));
       fd_decref(conf_val);}
     else return fd_type_error("MongoDB URI config val",
@@ -129,6 +168,9 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
   if (client_pool) {
     struct FD_MONGODB_DATABASE *srv=u8_alloc(struct FD_MONGODB_DATABASE);
     u8_string dbname=mongoc_uri_get_database(info);
+    if ((mongoc_uri_get_ssl(info))&& 
+        (setup_ssl(&ssl_opts,info,opts)))
+      mongoc_client_pool_set_ssl_opts(client_pool,&ssl_opts);
     FD_INIT_CONS(srv,fd_mongoc_server);
     srv->uri=uri; 
     if (dbname==NULL) 
@@ -163,11 +205,41 @@ static u8_string get_connection_spec(mongoc_uri_t *info)
   struct U8_OUTPUT out; 
   const mongoc_host_list_t *hosts=mongoc_uri_get_hosts(info);
   U8_INIT_OUTPUT(&out,256);
-  u8_printf(&out,"#<MongoDB/Server //%s@%s/%s>",
+  u8_printf(&out,"//%s@%s/%s>",
             mongoc_uri_get_username(info),
             hosts->host_and_port,
             mongoc_uri_get_database(info));
   return out.u8_outbuf;
+}
+
+static u8_string modify_ssl(u8_string uri,int add)
+{
+  if ((add)&&((strstr(uri,"?ssl=")==NULL)&&(strstr(uri,"&ssl=")==NULL))) {
+    if (strchr(uri,'?'))
+      return u8_string_append(uri,"&ssl=true",NULL);
+    else return u8_string_append(uri,"?ssl=true",NULL);}
+  else return u8_strdup(uri);
+  
+}
+
+static fdtype pemsym, pempwd, cafilesym, cadirsym, crlsym;
+
+static int setup_ssl(mongoc_ssl_opt_t *ssl_opts,
+                     mongoc_uri_t *info,
+                     fdtype opts)
+{
+  const mongoc_ssl_opt_t *default_opts=mongoc_ssl_opt_get_default();
+  memcpy(ssl_opts,default_opts,sizeof(mongoc_ssl_opt_t));
+  ssl_opts->pem_file=stropt(opts,pemsym,NULL);
+  ssl_opts->pem_pwd=stropt(opts,pempwd,NULL);
+  ssl_opts->ca_file=stropt(opts,cafilesym,NULL);
+  ssl_opts->ca_dir=stropt(opts,cadirsym,NULL);
+  ssl_opts->crl_file=stropt(opts,crlsym,NULL);
+  return (!((ssl_opts->pem_file==NULL)&&
+            (ssl_opts->pem_pwd==NULL)&&
+            (ssl_opts->ca_file==NULL)&&
+            (ssl_opts->ca_dir==NULL)&&
+            (ssl_opts->crl_file==NULL)));
 }
 
 /* Creating collections */
@@ -570,14 +642,9 @@ static fdtype collection_simple_command(fdtype arg,fdtype command,
         bson_destroy(cmd); fd_decref(opts);
         return result;}
       else {
-        fdtype err=fd_bson2dtype(&response,flags,opts);
+        grab_mongodb_error(&error,"collection_simple_command"); 
         collection_done(collection,client,domain);
         bson_destroy(cmd); fd_decref(opts);
-        if (FD_ABORTP(err))
-          fd_seterr(fd_MongoDB_Error,
-                    "mongo_collection_command_simple",NULL,fd_incref(command));
-        else fd_seterr(fd_MongoDB_Error,"mongo_collection_command_simple",
-                       NULL,fd_init_pair(NULL,err,fd_incref(command)));
         return FD_ERROR_VALUE;}}
     else {
       bson_destroy(cmd); fd_decref(opts);
@@ -598,7 +665,7 @@ static fdtype db_simple_command(fdtype arg,fdtype command,
     bson_t response; bson_error_t error;
     bson_t *cmd=fd_dtype2bson(command,flags,opts);
     if (cmd) {
-      const bson_t *doc; bson_error_t error;
+      const bson_t *doc;
       if (mongoc_client_command_simple
           (client,srv->dbname,cmd,NULL,&response,&error)) {
         fdtype result=fd_bson2dtype(&response,flags,opts);
@@ -606,13 +673,9 @@ static fdtype db_simple_command(fdtype arg,fdtype command,
         bson_destroy(cmd); fd_decref(opts);
         return result;}
       else {
-        fdtype err=fd_bson2dtype(&response,flags,opts);
+        grab_mongodb_error(&error,"db_simple_command"); 
         client_done(arg,client);
         bson_destroy(cmd); fd_decref(opts);
-        if (FD_ABORTP(err))
-          fd_seterr(fd_MongoDB_Error,"mongodb_command_simple",NULL,FD_VOID);
-        else fd_seterr(fd_MongoDB_Error,"mongodb_command_simple",NULL,
-                       fd_init_pair(NULL,err,fd_incref(command)));
         return FD_ERROR_VALUE;}}
     else {
       return FD_ERROR_VALUE;}}
@@ -1492,6 +1555,13 @@ FD_EXPORT int fd_init_mongodb()
   newsym=fd_intern("NEW");
   removesym=fd_intern("REMOVE");
 
+  sslsym=fd_intern("SSL");
+  pemsym=fd_intern("PEMFILE");
+  pempwd=fd_intern("PEMPWD");
+  cafilesym=fd_intern("CAFILE");
+  cadirsym=fd_intern("CADIR");
+  crlsym=fd_intern("CRLFILE");
+  
   mongomap_symbol=fd_intern("%MONGOMAP");
   mongovec_symbol=fd_intern("%MONGOVEC");
 
@@ -1547,8 +1617,8 @@ FD_EXPORT int fd_init_mongodb()
                                   fd_mongoc_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
 
-  fd_idefn(module,fd_make_cprimn("MONGODB/RESULTS",mongodb_command,3));
-  fd_idefn(module,fd_make_cprimn("MONGODB/DO",mongodb_simple_command,3));
+  fd_idefn(module,fd_make_cprimn("MONGODB/RESULTS",mongodb_command,2));
+  fd_idefn(module,fd_make_cprimn("MONGODB/DO",mongodb_simple_command,2));
 
   fd_idefn(module,fd_make_cprim1x("MONGODB/DONE?",mongodb_donep,1,
                                   fd_mongoc_cursor,FD_VOID));
