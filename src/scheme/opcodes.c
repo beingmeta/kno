@@ -1,6 +1,6 @@
 #include "framerd/dbprims.h"
 
-static fdtype op_eval(fdtype x,fd_lispenv env);
+static fdtype op_eval(fdtype x,fd_lispenv env,int tail);
 
 /* Opcode names */
 
@@ -102,7 +102,7 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     fdtype test_expr=fd_get_arg(expr,1), test=FD_VOID;
     if (FD_VOIDP(test_expr))
       return fd_err(fd_SyntaxError,"conditional OPCODE test",NULL,expr);
-    test=op_eval(test_expr,env);
+    test=op_eval(test_expr,env,0);
     if (FD_ABORTED(test)) return test;
     else if (FD_VOIDP(test))
       return fd_err(fd_VoidArgument,"conditional OPCODE test",NULL,expr);
@@ -121,7 +121,7 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       case FD_WHEN_OPCODE: {
         if (!(FD_FALSEP(test))) {
           FD_DOBODY(tmp,expr,2) {
-            fdtype tmpval=op_eval(tmp,env);
+            fdtype tmpval=op_eval(tmp,env,0);
             if (FD_ABORTED(tmpval)) return tmpval;
             fd_decref(tmpval);}}
         fd_decref(test);
@@ -129,7 +129,7 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       case FD_UNLESS_OPCODE: {
         if (FD_FALSEP(test)) {
           FD_DOBODY(tmp,expr,2) {
-            fdtype tmpval=op_eval(tmp,env);
+            fdtype tmpval=op_eval(tmp,env,0);
             if (FD_ABORTED(tmpval)) return tmpval;
             fd_decref(tmpval);}
           return FD_VOID;}
@@ -176,7 +176,7 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       fdtype arg1_expr=fd_get_arg(expr,1), arg1;
       if (FD_VOIDP(arg1_expr))
         return fd_err(fd_SyntaxError,"NOT opcode",NULL,expr);
-      else arg1=op_eval(arg1_expr,env);
+      else arg1=op_eval(arg1_expr,env,0);
       if (FD_VOIDP(arg1))
         return fd_err(fd_VoidArgument,"NOT opcode",NULL,arg1_expr);
       else if (FD_EMPTY_CHOICEP(arg1)) return arg1;
@@ -215,7 +215,7 @@ static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
     fdtype *rail_data=FD_RAIL_DATA(expr), final_expr=rail_data[n_butlast];
     int i=2; while (i<n_butlast) {
       fdtype each=rail_data[i++];
-      fdtype each_value=op_eval(each,env);
+      fdtype each_value=op_eval(each,env,0);
       if (FD_ABORTED(each_value)) return each_value;
       else if (op==any_op) fd_decref(each_value);
       else if ((op==and_op)&&(FD_FALSEP(each_value)))
@@ -226,15 +226,15 @@ static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
         return each_value;
       else fd_decref(each_value);}
     if ((FD_PAIRP(final_expr))||(FD_RAILP(final_expr)))
-      return fd_tail_eval(final_expr,env);
-    else return fasteval(final_expr,env);}
+      return op_eval(final_expr,env,1);
+    else return op_eval(final_expr,env,1);}
   else {
     fdtype exprs=expr, next=FD_CDR(expr); int i=0;
     while ((i<start)&&(FD_PAIRP(next))) {
       exprs=next; next=FD_CDR(exprs); i++;}
     while (FD_PAIRP(next)) {
       fdtype each=FD_CAR(exprs);
-      fdtype each_value=op_eval(each,env);
+      fdtype each_value=op_eval(each,env,0);
       if (FD_ABORTED(each_value)) return each_value;
       else if (op==any_op) fd_decref(each_value);
       else if ((op==and_op)&&(FD_FALSEP(each_value)))
@@ -248,8 +248,8 @@ static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
     if (FD_PAIRP(exprs)) {
       fdtype final=FD_CAR(exprs);
       if ((FD_PAIRP(final))||(FD_RAILP(final)))
-        return fd_tail_eval(final,env);
-      else return fasteval(final,env);}
+        return op_eval(final,env,1);
+      else return op_eval(final,env,1);}
     else return fd_err(fd_SyntaxError,cxt,NULL,exprs);}
 }
 
@@ -688,7 +688,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
      "advance" the body. */
   arg1_expr=fd_get_arg(expr,1);
   if (!(israil)) body=FD_CDR(body);
-  arg1=op_eval(arg1_expr,env);
+  arg1=op_eval(arg1_expr,env,0);
   /* Now, check the result of the first argument expression */
   if (FD_ABORTED(arg1)) return arg1;
   else if (FD_VOIDP(arg1))
@@ -757,7 +757,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
   else if (opcode<FD_NARY_OPCODES)
     /* Binary opcodes all live beneath FD_NARY_OPCODES */ { 
     /* Binary calls start by evaluating the second argument */
-    fdtype arg2=op_eval(fd_get_arg(expr,2),env);
+    fdtype arg2=op_eval(fd_get_arg(expr,2),env,0);
     if (FD_ABORTED(arg2)) {
       fd_decref(arg1); return arg2;}
     else if (FD_VOIDP(arg2)) {
@@ -784,7 +784,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     if (FD_EMPTY_CHOICEP(arg1)) return FD_EMPTY_CHOICE;
     else {
       fdtype slotid_arg=fd_get_arg(expr,2);
-      fdtype slotids=op_eval(slotid_arg,env), result;
+      fdtype slotids=op_eval(slotid_arg,env,0), result;
       if (FD_ABORTED(slotids)) return slotids;
       else if (FD_VOIDP(slotids))
 	return fd_err(fd_SyntaxError,"OPCODE fget",NULL,expr);
@@ -795,7 +795,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         if (FD_VOIDP(dflt_arg))
           result=fd_get(arg1,slotids,FD_EMPTY_CHOICE);
         else {
-          fdtype dflt=op_eval(dflt_arg,env);
+          fdtype dflt=op_eval(dflt_arg,env,0);
           if (FD_ABORTED(dflt)) result=dflt;
           else if (FD_VOIDP(dflt)) {
             result=fd_err(fd_VoidArgument,"OPCODE pget",NULL,
@@ -809,7 +809,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     else {
       fdtype slotid_arg=fd_get_arg(expr,2);
       fdtype values_arg=fd_get_arg(expr,3);
-      fdtype slotids=op_eval(slotid_arg,env), values, result;
+      fdtype slotids=op_eval(slotid_arg,env,0), values, result;
       if (FD_ABORTED(slotids)) return slotids;
       else if (FD_VOIDP(slotids))
 	return fd_err(fd_SyntaxError,"OPCODE ftest",NULL,expr);
@@ -817,7 +817,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         fd_decref(arg1); return FD_FALSE;}
       else if (FD_VOIDP(values_arg))
 	values=FD_VOID;
-      else values=op_eval(values_arg,env);
+      else values=op_eval(values_arg,env,0);
       if (FD_ABORTED(values)) {
         fd_decref(arg1); fd_decref(slotids);
         return values;}
@@ -831,7 +831,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
   else if ((opcode>=FD_SETOPS_OPCODES) &&
 	   (opcode<=FD_DIFFERENCE_OPCODE)) {
     fdtype arg2expr=fd_get_arg(expr,2), argv[2];
-    fdtype arg2=op_eval(arg2expr,env);
+    fdtype arg2=op_eval(arg2expr,env,0);
     fdtype result=FD_ERROR_VALUE;
     argv[0]=arg1; argv[1]=arg2;
     if (FD_ABORTED(arg2)) result=arg2;
@@ -925,7 +925,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
 }
 
-static fdtype op_eval(fdtype x,fd_lispenv env)
+FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
@@ -939,21 +939,54 @@ static fdtype op_eval(fdtype x,fd_lispenv env)
         return fd_err(fd_UnboundIdentifier,"op_eval",FD_SYMBOL_NAME(x),x);
       else return val;}
     else return x;
-  case fd_slotmap_type:
-    return fd_deep_copy(x);
-  case fd_cons_ptr_type:
-    if (FD_PTR_TYPEP(x,fd_pair_type))
+  case fd_cons_ptr_type: {
+    fd_ptr_type cons_type=FD_PTR_TYPE(x);
+    switch (cons_type) {
+    case fd_rail_type: {
+      fdtype head=FD_RAIL_REF(x,0), n=FD_RAIL_LENGTH(x);
+      fd_ptr_type head_type=FD_PTR_TYPE(head);
+      if (head_type==fd_opcode_type)
+        return opcode_dispatch(head,x,env);
+      else if (n>7)
+        if (tail)
+          return fd_tail_eval(x,env);
+        else return fd_eval(x,env);
+      else if ((head_type==fd_function_type)||
+               (head_type==fd_sproc_type)) {
+        fdtype args[7], result=FD_VOID;
+        struct FD_FUNCTION *fn=(struct FD_FUNCTION *)head;
+        int i=0, nd=0, ndcall=fn->ndcall;
+        while (i<n) {
+          fdtype e=FD_RAIL_REF(x,i), v=op_eval(e,env,0);
+          if (FD_ABORTP(v)) {
+            i--; while (i>=0) {fd_decref(args[i]); i--;}
+            return v;}
+          else if ((!(ndcall))&&(FD_EMPTY_CHOICEP(v))) {
+            i--; while (i>=0) {fd_decref(args[i]); i--;}
+            return v;}
+          if ((FD_CHOICEP(v))||(FD_ACHOICEP(v))) nd=1;
+          args[i++]=v;}
+        /* if (tail) return fd_tail_call(head,n,args); */
+        if ((head_type==fd_sproc_type)&&((nd==0)||(fn->ndcall)))
+          result=fd_apply_sproc((struct FD_SPROC *)fn,n,args);
+        else if (nd==0) 
+          result=fd_dapply(head,n,args);
+        else result=fd_apply(head,n,args);
+        i--; while (i>=0) {fd_decref(args[i]); i--;}
+        if (FD_PRIM_TYPEP(result,fd_tail_call_type))
+          result=fd_finish_call(result);
+        return result;}
+      else return fd_eval(x,env);}
+    case fd_pair_type:
       if (FD_PTR_TYPEP(FD_CAR(x),fd_opcode_type))
         return opcode_dispatch(FD_CAR(x),x,env);
       else return fd_eval(x,env);
-    else if (FD_PTR_TYPEP(x,fd_rail_type))
-      if (FD_PTR_TYPEP(FD_RAIL_REF(x,0),fd_opcode_type))
-        return opcode_dispatch(FD_RAIL_REF(x,0),x,env);
-      else return fd_eval(x,env);
-    else if ((FD_PTR_TYPEP(x,fd_choice_type)) ||
-             (FD_PTR_TYPEP(x,fd_achoice_type)))
+    case fd_choice_type: case fd_achoice_type:
       return fd_eval(x,env);
-    else return fd_incref(x);
+    case fd_slotmap_type:
+      return fd_deep_copy(x);
+    default:
+      return fd_incref(x);}}
   default: /* Never reached */
     return x;
   }
