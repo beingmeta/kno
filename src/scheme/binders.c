@@ -184,14 +184,21 @@ static fdtype sset_handler(fdtype expr,fd_lispenv env)
 
 static int check_bindexprs(fdtype bindexprs,fdtype *why_not)
 {
-  int n=0;
-  FD_DOLIST(bindexpr,bindexprs) {
-    fdtype var=fd_get_arg(bindexpr,0);
-    if (FD_VOIDP(var)) {
-      *why_not=fd_err(fd_BindSyntaxError,NULL,NULL,bindexpr);
+  if (FD_PAIRP(bindexprs)) {
+    int n=0; FD_DOLIST(bindexpr,bindexprs) {
+      fdtype var=fd_get_arg(bindexpr,0);
+      if (FD_VOIDP(var)) {
+        *why_not=fd_err(fd_BindSyntaxError,NULL,NULL,bindexpr);
+        return -1;}
+      else n++;}
+    return n;}
+  else if (FD_RAILP(bindexprs)) {
+    int len=FD_RAIL_LENGTH(bindexprs);
+    if ((len%2)==1) {
+      *why_not=fd_err(fd_BindSyntaxError,"check_bindexprs",NULL,bindexprs);
       return -1;}
-    else n++;}
-  return n;
+    else return len/2;}
+  else return -1;
 }
 
 static fd_lispenv init_static_env
@@ -252,14 +259,12 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
     else {
       inner_env=init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
       vars=_vars; vals=_vals;}
-    {FD_DOBODY(bindexpr,bindexprs,0) {
-      fdtype var=fd_get_arg(bindexpr,0);
-      fdtype val_expr=fd_get_arg(bindexpr,1);
-      fdtype value=fasteval(val_expr,env);
-      if (FD_ABORTED(value))
-        return return_error_env(value,":LET",inner_env);
-      else {
-        vars[i]=var; vals[i]=value; i++;}}}
+    {FD_DOBINDINGS(var,val_expr,bindexprs) {
+        fdtype value=fasteval(val_expr,env);
+        if (FD_ABORTED(value))
+          return return_error_env(value,":LET",inner_env);
+        else {
+          vars[i]=var; vals[i]=value; i++;}}}
     result=eval_body(":LET",expr,2,inner_env);
     free_environment(inner_env);
     return result;}
@@ -286,12 +291,9 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
     else {
       inner_env=init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
       vars=_vars; vals=_vals;}
-    {FD_DOBODY(bindexpr,bindexprs,0) {
-      fdtype var=fd_get_arg(bindexpr,0);
+    {FD_DOBINDINGS(var,val_expr,bindexprs) {
       vars[j]=var; vals[j]=FD_UNBOUND; j++;}}
-    {FD_DOBODY(bindexpr,bindexprs,0) {
-      fdtype var=fd_get_arg(bindexpr,0);
-      fdtype val_expr=fd_get_arg(bindexpr,1);
+    {FD_DOBINDINGS(var,val_expr,bindexprs) {
       fdtype value=fasteval(val_expr,inner_env);
       if (FD_ABORTED(value))
         return return_error_env(value,":LET*",inner_env);

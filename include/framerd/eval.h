@@ -334,6 +334,29 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lispenv);
            (x=FD_CAR(_tmp),_tmp=FD_CDR(_tmp),1) : 0): \
           ((off<lim)?(x=raildata[off++],1):0))
 
+/* Bindings iteration */
+
+#define FD_DOBINDINGS(var,val,bnd)		        \
+  fdtype var, val, _tmp=bnd, _elt, *raildata=NULL;	\
+  int ispair=0, off=0, lim=0;                           \
+  if (FD_PAIRP(_tmp)) {ispair=1;}			\
+  else if (FD_RAILP(_tmp)) {				\
+    ispair=0; lim=FD_RAIL_LENGTH(_tmp);			\
+    raildata=FD_RAIL_DATA(_tmp);}			\
+  while ((ispair)?                                      \
+         ((FD_PAIRP(_tmp)) ?				\
+	  (_elt=FD_CAR(_tmp),                           \
+	   ((FD_PAIRP(_elt))?                           \
+	    (var=FD_CAR(_elt),                          \
+	     ((FD_PAIRP(FD_CDR(_elt)))?                 \
+	      (val=FD_CAR(FD_CDR(_elt))):               \
+	      (val=FD_VOID))):                          \
+	    (var=FD_VOID,val=FD_VOID)),                 \
+	   _tmp=FD_CDR(_tmp),1) :                       \
+	  0):                                           \
+         ((off<lim)?                                    \
+          (var=raildata[off++],val=raildata[off++],1):0))
+
 /* Simple continuations */
 
 typedef struct FD_CONTINUATION {
