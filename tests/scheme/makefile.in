@@ -75,6 +75,8 @@ testbin: $(TESTBIN)
 	cd ../..; make lib/libtexttools@suffix@.a
 ../../lib/libfdbserv@suffix@.a:
 	cd ../..; make lib/libfdbserv@suffix@.a
+../../lib/libtagger@suffix@.a:
+	cd ../..; make lib/libtagger@suffix@.a
 
 $(TESTBIN): $(EXTRA_LIBS) \
             ../../lib/libfdscheme@suffix@.a \
