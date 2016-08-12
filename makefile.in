@@ -265,7 +265,7 @@ debugging:
 	     XLIBS="@debuglibs@ $(XLIBS)"          \
 		testbin exe cmodules etc @TAGS@
 optimizing:
-	@echo Building OPTIMIZED configuration
+	@echo Building OPTIMIZING configuration
 	@+make XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
 nitpicking:
 	@echo Building NITPICKING configuration
