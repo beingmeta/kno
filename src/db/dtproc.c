@@ -30,7 +30,7 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,int ndcall,int a
   FD_INIT_CONS(f,fd_dtproc_type);
   f->name=u8_mkstring("%s/%s",name,server); f->filename=u8_strdup(server);
   f->server=u8_strdup(server); f->fcnsym=fd_intern(name);
-  f->ndprim=ndcall; f->min_arity=min_arity; f->arity=arity; f->xprim=1;
+  f->ndcall=ndcall; f->min_arity=min_arity; f->arity=arity; f->xcall=1;
   f->typeinfo=NULL; f->defaults=NULL;
   f->handler.fnptr=NULL;
   if (minsock<0) minsock=2;

@@ -548,7 +548,7 @@ static fdtype make_sproc(u8_string name,
     s->n_vars=s->arity=n_vars;}
   else {
     n_vars++; s->n_vars=n_vars; s->arity=-1;}
-  s->min_arity=min_args; s->xprim=1; s->ndprim=nd;
+  s->min_arity=min_args; s->xcall=1; s->ndcall=nd;
   s->handler.fnptr=NULL;
   s->typeinfo=NULL;
   if (n_vars)
@@ -601,8 +601,11 @@ static int unparse_sproc(u8_output out,fdtype x)
   struct FD_SPROC *sproc=FD_GET_CONS(x,fd_sproc_type,struct FD_SPROC *);
   if (sproc->name)
     if (sproc->filename)
-      u8_printf(out,"#<PROC %s %q \"%s\" #!%x>",
-                sproc->name,sproc->arglist,sproc->filename,(unsigned long)sproc);
+      u8_printf(out,"#<%s %s %q \"%s\" #!%x>",
+                (sproc->ndcall)?("NDPROC"):("PROC"),
+                sproc->name,sproc->arglist,
+                sproc->filename,
+                (unsigned long)sproc);
     else u8_printf(out,"#<PROC %s %q #!%x>",
                    sproc->name,sproc->arglist,(unsigned long)sproc);
   else if (sproc->filename)

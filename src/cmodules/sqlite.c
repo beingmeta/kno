@@ -367,7 +367,7 @@ static fdtype sqlitemakeproc
   sqlcons->filename=sqlcons->spec=u8_strdup(dbp->spec);
   sqlcons->name=sqlcons->qtext=_memdup((u8_byte *)sql,sql_len+1); /* include NUL */
   sqlcons->n_params=n_params=sqlite3_bind_parameter_count(stmt);
-  sqlcons->ndprim=0; sqlcons->xprim=1; sqlcons->arity=-1;
+  sqlcons->ndcall=0; sqlcons->xcall=1; sqlcons->arity=-1;
   sqlcons->min_arity=n_params;
   sqlcons->handler.xcalln=sqlitecallproc;
   {

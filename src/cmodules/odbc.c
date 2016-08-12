@@ -170,7 +170,7 @@ static fdtype odbcmakeproc
     return FD_ERROR_VALUE;}
   dbproc->db=(fdtype)dbp; fd_incref(dbproc->db);
   dbproc->dbhandler=&odbc_handler;
-  dbproc->ndprim=0; dbproc->xprim=1; dbproc->arity=-1;
+  dbproc->ndcall=0; dbproc->xcall=1; dbproc->arity=-1;
   dbproc->min_arity=dbproc->n_params=n_params;
   dbproc->name=dbproc->qtext=_memdup(stmt,stmt_len+1);
   dbproc->filename=dbproc->spec=u8_strdup(dbp->spec);

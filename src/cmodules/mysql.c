@@ -840,7 +840,7 @@ static fdtype mysqlmakeproc
 
   /* Set up fields for the function object itself */
   dbproc->filename=dbproc->spec; dbproc->name=dbproc->qtext;
-  dbproc->ndprim=0; dbproc->xprim=1; dbproc->arity=-1;
+  dbproc->ndcall=0; dbproc->xcall=1; dbproc->arity=-1;
   dbproc->min_arity=0;
   dbproc->handler.xcalln=callmysqlproc;
 

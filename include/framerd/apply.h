@@ -55,7 +55,7 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
 
 #define FD_FUNCTION_FIELDS \
   FD_CONS_HEADER; u8_string name, filename;                             \
-  short ndprim, xprim;                                                  \
+  short ndcall, xcall;                                                  \
   short arity, min_arity;                                               \
   int *typeinfo; fdtype *defaults;                                      \
   union {                                                               \

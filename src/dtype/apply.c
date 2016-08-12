@@ -402,33 +402,33 @@ FD_EXPORT fdtype fd_dapply(fdtype fp,int n,fdtype *args)
 
 static fdtype dcall0(struct FD_FUNCTION *f)
 {
-  if (FD_EXPECT_FALSE(f->xprim))
+  if (FD_EXPECT_FALSE(f->xcall))
     return f->handler.xcall0(f);
   else return f->handler.call0();
 }
 static fdtype dcall1(struct FD_FUNCTION *f,fdtype arg1)
 {
-  if (FD_EXPECT_FALSE(f->xprim))
+  if (FD_EXPECT_FALSE(f->xcall))
     return f->handler.xcall1(f,arg1);
   else return f->handler.call1(arg1);
 }
 static fdtype dcall2(struct FD_FUNCTION *f,fdtype arg1,fdtype arg2)
 {
-  if (FD_EXPECT_FALSE(f->xprim))
+  if (FD_EXPECT_FALSE(f->xcall))
     return f->handler.xcall2(f,arg1,arg2);
   else return f->handler.call2(arg1,arg2);
 }
 static fdtype dcall3(struct FD_FUNCTION *f,
                       fdtype arg1,fdtype arg2,fdtype arg3)
 {
-  if (FD_EXPECT_FALSE(f->xprim))
+  if (FD_EXPECT_FALSE(f->xcall))
     return f->handler.xcall3(f,arg1,arg2,arg3);
   else return f->handler.call3(arg1,arg2,arg3);
 }
 static fdtype dcall4(struct FD_FUNCTION *f,
                       fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4)
 {
-  if (FD_EXPECT_FALSE(f->xprim))
+  if (FD_EXPECT_FALSE(f->xcall))
     return f->handler.xcall4(f,arg1,arg2,arg3,arg4);
   else return f->handler.call4(arg1,arg2,arg3,arg4);
 }
@@ -436,7 +436,7 @@ static fdtype dcall5(struct FD_FUNCTION *f,
                       fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
                       fdtype arg5)
 {
-  if (FD_EXPECT_FALSE(f->xprim))
+  if (FD_EXPECT_FALSE(f->xcall))
     return f->handler.xcall5(f,arg1,arg2,arg3,arg4,arg5);
   else return f->handler.call5(arg1,arg2,arg3,arg4,arg5);
 }
@@ -444,7 +444,7 @@ static fdtype dcall6(struct FD_FUNCTION *f,
                       fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
                       fdtype arg5,fdtype arg6)
 {
-  if (FD_EXPECT_FALSE(f->xprim))
+  if (FD_EXPECT_FALSE(f->xcall))
     return f->handler.xcall6(f,arg1,arg2,arg3,arg4,arg5,arg6);
   else return f->handler.call6(arg1,arg2,arg3,arg4,arg5,arg6);
 }
@@ -453,7 +453,7 @@ static fdtype dcall7(struct FD_FUNCTION *f,
                       fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
                       fdtype arg5,fdtype arg6,fdtype arg7)
 {
-  if (FD_EXPECT_FALSE(f->xprim))
+  if (FD_EXPECT_FALSE(f->xcall))
     return f->handler.xcall7(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7);
   else return f->handler.call7(arg1,arg2,arg3,arg4,arg5,arg6,arg7);
 }
@@ -462,7 +462,7 @@ static fdtype dcall8(struct FD_FUNCTION *f,
                      fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
                      fdtype arg5,fdtype arg6,fdtype arg7,fdtype arg8)
 {
-  if (FD_EXPECT_FALSE(f->xprim))
+  if (FD_EXPECT_FALSE(f->xcall))
     return f->handler.xcall8(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
   else return f->handler.call8(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
 }
@@ -472,7 +472,7 @@ static fdtype dcall9(struct FD_FUNCTION *f,
                      fdtype arg5,fdtype arg6,fdtype arg7,fdtype arg8,
                      fdtype arg9)
 {
-  if (FD_EXPECT_FALSE(f->xprim))
+  if (FD_EXPECT_FALSE(f->xcall))
     return f->handler.xcall9(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9);
   else return f->handler.call9(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9);
 }
@@ -493,10 +493,10 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
       if (n<(f->min_arity))
         return fd_err(fd_TooFewArgs,"fd_dapply",f->name,FDTYPE_CONS(f));
       else {
-        if (FD_EXPECT_FALSE((f->xprim) &&  (f->handler.fnptr==NULL))) {
+        if (FD_EXPECT_FALSE((f->xcall) &&  (f->handler.fnptr==NULL))) {
           int ctype=FD_CONS_TYPE(f);
           return fd_applyfns[ctype]((fdtype)f,n,argvec);}
-        else if (f->xprim)
+        else if (f->xcall)
           return f->handler.xcalln((struct FD_FUNCTION *)fp,n,argvec);
         else return f->handler.calln(n,argvec);}}
     /* Fill in the rest of the argvec */
@@ -568,7 +568,7 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
 {
   if (FD_INTERRUPTED()) {
     return FD_ERROR_VALUE;}
-  else if (FD_EXPECT_FALSE((f->xprim) &&  (f->handler.fnptr==NULL))) {
+  else if (FD_EXPECT_FALSE((f->xcall) &&  (f->handler.fnptr==NULL))) {
     int ctype=FD_CONS_TYPE(f);
     if (static_args)
       return fd_applyfns[ctype]((fdtype)f,n,args);
@@ -660,7 +660,7 @@ static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args);
 FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
 {
   struct FD_FUNCTION *f=FD_DTYPE2FCN(fp); fdtype result;
-  if (f->ndprim)
+  if (f->ndcall)
     if (!(FD_EXPECT_FALSE(contains_qchoicep(n,args))))
       result=fd_dapply((fdtype)f,n,args);
     else result=qchoice_dapply(fp,n,args);
@@ -723,7 +723,7 @@ static int unparse_function(struct U8_OUTPUT *out,fdtype x)
   else if (fn->min_arity>0)
     sprintf(args,"%d+",fn->min_arity);
   else sprintf(args,"0+");
-  if (fn->ndprim)
+  if (fn->ndcall)
     sprintf(buf,_("#<NDPrimitive %s (%s args)>"),name,args);
   else sprintf(buf,_("#<Primitive %s (%s args)>"),name,args);
   u8_puts(out,buf);
@@ -743,7 +743,7 @@ FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->name=name; f->filename=NULL; f->ndcall=0; f->xcall=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=-1; f->typeinfo=NULL; f->defaults=NULL;
   f->handler.calln=fn;
   return FDTYPE_CONS(f);
@@ -753,7 +753,7 @@ FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->name=name; f->filename=NULL; f->ndcall=0; f->xcall=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=0; f->typeinfo=NULL; f->defaults=NULL;
   f->handler.call0=fn;
   return FDTYPE_CONS(f);
@@ -763,7 +763,7 @@ FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->name=name; f->filename=NULL; f->ndcall=0; f->xcall=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=1; f->typeinfo=NULL; f->defaults=NULL;
   f->handler.call1=fn;
   return FDTYPE_CONS(f);
@@ -773,7 +773,7 @@ FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->name=name; f->filename=NULL; f->ndcall=0; f->xcall=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=2; f->typeinfo=NULL; f->defaults=NULL;
   f->handler.call2=fn;
   return FDTYPE_CONS(f);
@@ -783,7 +783,7 @@ FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->name=name; f->filename=NULL; f->ndcall=0; f->xcall=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=3; f->typeinfo=NULL; f->defaults=NULL;
   f->handler.call3=fn;
   return FDTYPE_CONS(f);
@@ -793,7 +793,7 @@ FD_EXPORT fdtype fd_make_cprim4(u8_string name,fd_cprim4 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->name=name; f->filename=NULL; f->ndcall=0; f->xcall=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=4; f->typeinfo=NULL; f->defaults=NULL;
   f->handler.call4=fn;
   return FDTYPE_CONS(f);
@@ -803,7 +803,7 @@ FD_EXPORT fdtype fd_make_cprim5(u8_string name,fd_cprim5 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->name=name; f->filename=NULL; f->ndcall=0; f->xcall=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=5; f->typeinfo=NULL; f->defaults=NULL;
   f->handler.call5=fn;
   return FDTYPE_CONS(f);
@@ -813,7 +813,7 @@ FD_EXPORT fdtype fd_make_cprim6(u8_string name,fd_cprim6 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->name=name; f->filename=NULL; f->ndcall=0; f->xcall=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=6; f->typeinfo=NULL; f->defaults=NULL;
   f->handler.call6=fn;
   return FDTYPE_CONS(f);
@@ -823,7 +823,7 @@ FD_EXPORT fdtype fd_make_cprim7(u8_string name,fd_cprim7 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->name=name; f->filename=NULL; f->ndcall=0; f->xcall=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=7; f->typeinfo=NULL; f->defaults=NULL;
   f->handler.call7=fn;
   return FDTYPE_CONS(f);
@@ -833,7 +833,7 @@ FD_EXPORT fdtype fd_make_cprim8(u8_string name,fd_cprim8 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->name=name; f->filename=NULL; f->ndcall=0; f->xcall=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=8; f->typeinfo=NULL; f->defaults=NULL;
   f->handler.call8=fn;
   return FDTYPE_CONS(f);
@@ -843,7 +843,7 @@ FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->ndprim=0; f->xprim=0; f->filename=NULL;
+  f->name=name; f->filename=NULL; f->ndcall=0; f->xcall=0; f->filename=NULL;
   f->min_arity=min_arity; f->arity=9; f->typeinfo=NULL; f->defaults=NULL;
   f->handler.call9=fn;
   return FDTYPE_CONS(f);
@@ -852,7 +852,7 @@ FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int min_arity)
 FD_EXPORT fdtype fd_make_ndprim(fdtype prim)
 {
   struct FD_FUNCTION *f=FD_XFUNCTION(prim);
-  f->ndprim=1;
+  f->ndcall=1;
   return prim;
 }
 
