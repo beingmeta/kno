@@ -291,12 +291,9 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
     else {
       inner_env=init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
       vars=_vars; vals=_vals;}
-    {FD_DOBODY(bindexpr,bindexprs,0) {
-      fdtype var=fd_get_arg(bindexpr,0);
+    {FD_DOBINDINGS(var,val_expr,bindexprs) {
       vars[j]=var; vals[j]=FD_UNBOUND; j++;}}
-    {FD_DOBODY(bindexpr,bindexprs,0) {
-      fdtype var=fd_get_arg(bindexpr,0);
-      fdtype val_expr=fd_get_arg(bindexpr,1);
+    {FD_DOBINDINGS(var,val_expr,bindexprs) {
       fdtype value=fasteval(val_expr,inner_env);
       if (FD_ABORTED(value))
         return return_error_env(value,":LET*",inner_env);
