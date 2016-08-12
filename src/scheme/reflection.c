@@ -126,6 +126,16 @@ static fdtype procedure_arity(fdtype x)
   else return fd_type_error(_("procedure"),"procedure_arity",x);
 }
 
+static fdtype non_deterministicp(fdtype x)
+{
+  if (FD_APPLICABLEP(x)) {
+    struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
+    if (f->ndcall)
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return fd_type_error(_("procedure"),"non_deterministicp",x);
+}
+
 static fdtype procedure_min_arity(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
@@ -355,6 +365,7 @@ FD_EXPORT void fd_init_reflection_c()
   fd_idefn(module,fd_make_cprim1("PROCEDURE?",procedurep,1));
 
   fd_idefn(module,fd_make_cprim1("PRIMITIVE?",primitivep,1));
+  fd_idefn(module,fd_make_cprim1("NON-DETERMINISTIC?",non_deterministicp,1));
   fd_idefn(module,fd_make_cprim1("MODULE?",modulep,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-NAME",procedure_name,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-FILENAME",procedure_filename,1));
