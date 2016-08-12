@@ -257,16 +257,18 @@ bigbricotests: ../data/brico.dump
 	@$(CC) $(CFLAGS) -o $@ -c $<
 	@echo CC $@ $<
 
+# Note that we don't add @suffix@ to these executables because they're
+# never installed
 $(TESTBIN): ../../src/db/dtypestream.o ../../lib/libfdtype@suffix@.a
-%@suffix@: %.c
+%: %.c
 	@echo MKTEST_STATIC $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # This is for making shared (dynamically linked) versions of the test programs
-%@suffix@.shared: %.c
+%.shared: %.c
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ \
-		../../src/db/dtypestream.o $(LIBS) -lfdtype $(LIBS)
+		../../src/db/dtypestream.o $(LIBS) -lfdtype@suffix@ $(LIBS)
 
 ../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype.a

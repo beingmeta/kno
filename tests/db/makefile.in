@@ -34,10 +34,9 @@ ZFILEBRICOINDEX	= /data/bg/brico.index
 BRICOPOOL	= $(FILEBRICOPOOL)
 BRICOINDEX	= $(FILEBRICOINDEX)
 
-TESTBIN=pool-get@suffix@ dtcall@suffix@ indexop@suffix@ \
-	index-get@suffix@ dbtool@suffix@
-SHAREDBIN=pool-get@suffix@.shared dtcall@suffix@.shared indexop@suffix@.shared \
-	index-get@suffix@.shared dbtool@suffix@.shared
+TESTBIN=pool-get dtcall indexop index-get dbtool
+SHAREDBIN=pool-get.shared dtcall.shared indexop.shared \
+          index-get.shared dbtool.shared
 
 all: $(TESTBIN) $(SHAREDBIN)
 
@@ -48,22 +47,24 @@ all: $(TESTBIN) $(SHAREDBIN)
 $(TESTBIN): ../../lib/libfddbfile@suffix@.a \
             ../../lib/libfddb@suffix@.a ../../lib/libfdtype@suffix@.a
 
+# Note that we don't add @suffix@ to these executables because they're
+# never installed
 %: %.c ../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
 	../../lib/libfdtype@suffix@.a
 	@echo MKTEST_STATIC $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # This is for making shared (dynamically linked) versions of the test programs
-%@suffix@.shared: %.c
+%.shared: %.c
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
-		-lfdtype -lfddb -lfddbfile $(LIBS)
+		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ $(LIBS)
 ../../lib/libfdtype@suffix@.a:
-	cd ../..; make lib/libfdtype.a
+	cd ../..; make lib/libfdtype@suffix@.a
 ../../lib/libfddb@suffix@.a:
-	cd ../..; make lib/libfddb.a
+	cd ../..; make lib/libfddb@suffix@.a
 ../../lib/libfddbfile@suffix@.a:
-	cd ../..; make lib/libfddbfile.a
+	cd ../..; make lib/libfddbfile@suffix@.a
 
 clean:
 	rm -f $(TESTBIN)

@@ -46,6 +46,8 @@ default: alltests
 
 testbin: $(TESTBIN) 
 
+# Note that we don't add @suffix@ to these executables because they're
+# never installed
 %.o: %.c
 	@$(CC) $(CFLAGS) -o $@ -c $<
 	@echo CC $@ $<
@@ -54,7 +56,8 @@ testbin: $(TESTBIN)
 %.shared: %.c
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
-		-lfdtype -lfddb -lfddbfile -lfdscheme -lfdschemeio
+		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ \
+		-lfdscheme@suffix@ -lfdschemeio@suffix@
 
 ../../lib/libfdweb@suffix@.a:
 	cd ../..; make lib/libfdweb@suffix@.a
