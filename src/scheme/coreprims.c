@@ -188,6 +188,11 @@ static fdtype vectorp(fdtype x)
   if (FD_VECTORP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
+static fdtype railp(fdtype x)
+{
+  if (FD_RAILP(x)) return FD_TRUE; else return FD_FALSE;
+}
+
 static fdtype numberp(fdtype x)
 {
   if (FD_NUMBERP(x)) return FD_TRUE; else return FD_FALSE;
@@ -733,6 +738,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("LIST?",listp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PROPER-LIST?",proper_listp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("VECTOR?",vectorp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("RAIL?",railp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CHARACTER?",characterp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("OPCODE?",opcodep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("ERROR?",errorp,1));
