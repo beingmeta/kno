@@ -1,5 +1,7 @@
 (use-module '{reflection optimize})
 
+(config! 'optimize:rails #t)
+
 (define (qc-wrap x) `(qc ,x))
 
 (when (config 'testoptimized #f)

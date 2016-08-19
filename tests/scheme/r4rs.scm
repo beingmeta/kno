@@ -209,7 +209,7 @@
 (applytester '`(list ,(+ 1 2) 4) 'quasiquote '(quasiquote (list (unquote (+ 1 2)) 4)))
 (SECTION 5 2 1)
 (define add3 (lambda (x) (+ x 3)))
-(test-optimize! sqt)
+(test-optimize! add3)
 (applytester 6 'define (add3 3))
 (define first car)
 (applytester 1 'define (first '(1 2)))
@@ -545,6 +545,7 @@
   (lambda (n1 n2)
     (= n1 (+ (* n2 (quotient n1 n2))
 	     (remainder n1 n2)))))
+(test-optimize! bigtest)
 (define (test-bignums)
   (newline)
   (display ";TESTING BIGNUMS; ")
@@ -868,6 +869,7 @@
 (applytester 17 apply + 10 (list 3 4))
 (applytester '() apply list '())
 (define compose (lambda (f g) (lambda args (f (apply g args))))) ;; ??
+(test-optimize! compose)
 (applytester 30 (compose sqt *) 12 75) ;; ??
 
 (applytester '(b e h) map cadr '((a b) (d e) (g h)))
@@ -895,6 +897,7 @@
    (do ((i 0 (1+ i))
 	(l obj (cdr l)))
        ((not (pair? l)) (and (null? l) i)))))
+(test-optimize! list-length)
 (applytester 4 list-length '(1 2 3 4))
 (applytester #f list-length '(a b . c))
 (applytester '() map cadr '())
