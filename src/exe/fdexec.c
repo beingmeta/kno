@@ -56,7 +56,7 @@ static void identify_application(int argc,char **argv,char *dflt)
     else {
       char *start=strchr(argv[i],'/'), *copy, *dot, *slash;
       if (start==NULL) start=strchr(argv[i],'\\');
-      if (start==NULL) start=argv[1];
+      if (start==NULL) start=argv[i];
       if (((*start)=='/') || ((*start)=='\\')) start++;
       if ((*start=='\0') || (argv[i][0]=='/') || (argv[i][0]=='\\'))
         start=argv[1];
