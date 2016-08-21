@@ -1,11 +1,28 @@
 #!/bin/sh
 
 showusage ( ) {
-    echo "Usage: fdlog <activity> [tail|watch|more] [lines]"
+    echo "Usage: fdlog <activity> [watch|tail|more] [lines]"
+}
+listlogs ( ) {
+    echo "Activities:"
+    for logfile in `ls -t @daemon_logdir@/*.log @servlet_logdir@/*.log 2> /dev/null`; do
+	if test -f $logfile; then
+	    echo "   " `basename $logfile .log`; 
+	fi;
+    done;
 }
 
-if (test $# -eq 0) || (test $1 = "usage"); then
-   showusage; exit;
+if (test $# -eq 0); then
+   showusage; 
+   listlogs;
+   showusage; 
+   exit;
+elif ((test "$1" = "usage") || (test "$1" = "--usage")); then
+   showusage; 
+   exit;
+elif ((test "$1" = "list") || (test "$1" = "--list")); then
+   listlogs;
+   exit;
 fi
 name=$1
 cmd=${2:-watch}
