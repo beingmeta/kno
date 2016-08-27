@@ -209,7 +209,8 @@
 (applytester '`(list ,(+ 1 2) 4) 'quasiquote '(quasiquote (list (unquote (+ 1 2)) 4)))
 (SECTION 5 2 1)
 (define add3 (lambda (x) (+ x 3)))
-(test-optimize! add3)
+;; We don't optimize add3 because it introduces exactly the error we're avoiding here
+;;(test-optimize! add3)
 (applytester 6 'define (add3 3))
 (define first car)
 (applytester 1 'define (first '(1 2)))
@@ -1090,6 +1091,27 @@
 (test-call/cc)
 (test-bignums)
 (test-inexact)
+
+;; This tests that tail calls in WHEN are evaluated
+
+(define test-flag #f)
+
+(define (set-test-flag! val)
+  (set! test-flag val))
+
+(define (bug-test (val #f))
+  (when (= 3 3)
+    (if (= 2 2)
+	(set-test-flag! val))))
+
+(define (optimized-tail-testfn)
+  (set! test-flag #f)
+  (bug-test #t)
+  test-flag)
+
+(applytest #t optimized-tail-testfn)
+
+
 
 (message "Partial R4RS tests completed")
 

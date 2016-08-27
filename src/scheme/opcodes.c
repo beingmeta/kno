@@ -213,7 +213,7 @@ static fdtype eval_tail(fdtype expr,int start,enum TAILOP op,
   if (FD_RAILP(expr)) {
     int n_elts=FD_RAIL_LENGTH(expr), n_butlast=n_elts-1;
     fdtype *rail_data=FD_RAIL_DATA(expr), final_expr=rail_data[n_butlast];
-    int i=2; while (i<n_butlast) {
+    int i=start; while (i<n_butlast) {
       fdtype each=rail_data[i++];
       fdtype each_value=op_eval(each,env,0);
       if (FD_ABORTED(each_value)) return each_value;
@@ -945,8 +945,12 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
     case fd_rail_type: {
       fdtype head=FD_RAIL_REF(x,0), n=FD_RAIL_LENGTH(x);
       fd_ptr_type head_type=FD_PTR_TYPE(head);
-      if (head_type==fd_opcode_type)
-        return opcode_dispatch(head,x,env);
+      if (head_type==fd_opcode_type) {
+        if (tail)
+          return opcode_dispatch(head,x,env);
+        else {
+          fdtype v=opcode_dispatch(head,x,env);
+          return fd_finish_call(v);}}
       else if (n>7)
         if (tail)
           return fd_tail_eval(x,env);
@@ -978,8 +982,14 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
         return result;}
       else return fd_eval(x,env);}
     case fd_pair_type:
-      if (FD_PTR_TYPEP(FD_CAR(x),fd_opcode_type))
-        return opcode_dispatch(FD_CAR(x),x,env);
+      if (FD_PTR_TYPEP(FD_CAR(x),fd_opcode_type)) {
+        if (tail)
+          return opcode_dispatch(FD_CAR(x),x,env);
+        else {
+          fdtype v=opcode_dispatch(FD_CAR(x),x,env);
+          return fd_finish_call(v);}}
+      else if (tail)
+        return fd_tail_eval(x,env);
       else return fd_eval(x,env);
     case fd_choice_type: case fd_achoice_type:
       return fd_eval(x,env);
