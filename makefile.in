@@ -1214,7 +1214,8 @@ $(DESTDIR)@unpackage_dir@:
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-MODULE_DIRS=aws brico bugjar facebook misc paypal tests twitter google
+MODULE_DIRS=aws brico bugjar facebook misc paypal tests twitter google \
+	aws/templates
 SAFE_MODULE_DIRS=jwt domutils knodules textindex
 BEINGMETA_MODULE_DIRS= \
 	morph morph/data chopper chopper/english \
@@ -1230,14 +1231,18 @@ install-standard-modules: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying standard Scheme modules to  @builtin_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.scm $(DESTDIR)@builtin_module_dir@
 	@for x in $(MODULE_DIRS); do \
-	   if test $$x != modules; then \
-	     $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/$$x; \
-	     $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$$x/* $(DESTDIR)@builtin_module_dir@/$$x; \
-	     if test -f $(DESTDIR)@builtin_module_dir@/$$x/$$x.scm; then \
-		@SUDO@ rm -f $(DESTDIR)@builtin_module_dir@/$$x/module.scm; \
-		@SUDO@ ln -sf $$x.scm $(DESTDIR)@builtin_module_dir@/$$x/module.scm; fi; \
-	     fi; \
-	 done
+	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/$$x; \
+	  rm -f $(BUILD)/src/modules/$$x/*~ $(BUILD)/src/modules/$$x/#*#; \
+	  for file in $(BUILD)/src/modules/$$x/*; do \
+	    if test -f $$file; then \
+	      $(SYSINSTALL) @install_file_opts@ $$file $(DESTDIR)@builtin_module_dir@/$$x; \
+	    fi; \
+          done; \
+	  if test -f $(DESTDIR)@builtin_module_dir@/$$x/$$x.scm; then \
+	   @SUDO@ rm -f $(DESTDIR)@builtin_module_dir@/$$x/module.scm; \
+	   @SUDO@ ln -sf $$x.scm $(DESTDIR)@builtin_module_dir@/$$x/module.scm; \
+	  fi; \
+	 done;
 install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@
 	@$(ECHO) Copying safe Scheme modules to  @builtin_safe_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/safe/*.scm $(DESTDIR)@builtin_safe_module_dir@
