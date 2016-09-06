@@ -51,6 +51,16 @@ u8_condition UnusedType=_("MYSQL unused parameter type");
    (err==ER_NEED_REPREPARE))
 #define RETVAL_OK 0
 
+#ifndef MYSQL_RESTART_SLEEP
+#define MYSQL_RESTART_SLEEP 3
+#endif
+#ifndef MYSQL_RESTART_WAIT
+#define MYSQL_RESTART_WAIT 180
+#endif
+
+static int restart_sleep=MYSQL_RESTART_SLEEP;
+static int restart_wait=MYSQL_RESTART_WAIT;
+
 #if FD_THREADS_ENABLED
 static u8_mutex mysql_connect_lock;
 #endif
@@ -132,8 +142,6 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
 
 /* Connection operations */
 
-static my_bool default_reconnect=1;
-
 static int setup_connection(struct FD_MYSQL *dbp)
 {
   fdtype options=dbp->options; char *option;
@@ -178,19 +186,25 @@ static int setup_connection(struct FD_MYSQL *dbp)
               ((FD_VOIDP(sslca))?(NULL):(FD_STRDATA(sslca))),
               ((FD_VOIDP(sslcadir))?(NULL):(FD_STRDATA(sslcadir))),
               ((FD_VOIDP(sslciphers))?(NULL):(FD_STRDATA(sslciphers))));}}
-
-  if (retval==0) {
+  if (retval==RETVAL_OK) {
+    my_bool reconnect=1;
+    retval=mysql_options(dbp->db,MYSQL_OPT_RECONNECT,&reconnect);}
+  if (retval==RETVAL_OK) {
     option="charset";
     retval=mysql_options(dbp->db,MYSQL_SET_CHARSET_NAME,"utf8");}
-  if ((retval==0)&&(ctimeout>0)) {
+  if ((retval==RETVAL_OK)&&(ctimeout>0)) {
     unsigned int v=ctimeout; option="connect timeout";
     retval=mysql_options(dbp->db,MYSQL_OPT_CONNECT_TIMEOUT,(char *)&v);}
-  if ((retval==0)&&(rtimeout>0)) {
+  if ((retval==RETVAL_OK)&&(rtimeout>0)) {
     unsigned int v=rtimeout; option="read timeout";
     retval=mysql_options(dbp->db,MYSQL_OPT_READ_TIMEOUT,(char *)&v);}
-  if ((retval==0)&&(wtimeout>0)) {
+  if ((retval==RETVAL_OK)&&(wtimeout>0)) {
     unsigned int v=wtimeout; option="write timeout";
     retval=mysql_options(dbp->db,MYSQL_OPT_WRITE_TIMEOUT,(char *)&v);}
+
+  if (retval!=RETVAL_OK) {
+    const char *errmsg=mysql_error(&(dbp->_db)); fd_incref(options);
+    fd_seterr(MySQL_Error,"open_mysql/init",u8_strdup(errmsg),options);}
   return retval;
 }
 
@@ -198,49 +212,61 @@ static int restart_connection(struct FD_MYSQL *dbp)
 {
   MYSQL *db=dbp->db;
   unsigned int old_thread_id=dbp->thread_id;
-  unsigned int retval=mysql_ping(db); unsigned int reconn=1;
+  unsigned int retval=mysql_ping(db);
   unsigned int cur_thread_id=mysql_thread_id(db);
   if ((retval==RETVAL_OK)&&(old_thread_id==cur_thread_id)) {
     u8_log(LOG_WARN,"myql/restart_connection",
-           "MYSQL connection #%d appears %s (%s) seems to be up w/id=%ld",
-           mysql_thread_id(db),dbp->spec,dbp->info);
-    return 0;}
-  u8_mutex_lock(&mysql_connect_lock);
-  retval=mysql_ping(db);
-  if (retval==RETVAL_OK) {
-    u8_log(LOG_WARN,"myql/restart_connection",
-           "MYSQL connection #%d appears %s (%s) seems to be up w/id=%ld",
-           mysql_thread_id(db),dbp->spec,dbp->info);
-    u8_mutex_unlock(&mysql_connect_lock);
-    return 0;}
-  if ((retval==RETVAL_OK)&&(old_thread_id!=cur_thread_id)) {
-    u8_log(LOG_WARN,"myql/restart_connection",
-           "The MYSQL connection with %s (%s) appears to have been reset behind FramerD's back from id %d to %d",
-           dbp->spec,dbp->info,old_thread_id,cur_thread_id);}
-  else {
-    u8_log(LOG_WARN,"myql/restarting_connection",
-           "Restart #%d for MYSQL with %s (%s), newid %d (was %d)",
-           dbp->restarts+1,dbp->spec,dbp->info,dbp->thread_id,old_thread_id);
-    mysql_options(db,MYSQL_OPT_RECONNECT,(char *)&reconn);
-    retval=mysql_ping(db);}
-  if (retval==RETVAL_OK) {
+           "MYSQL connection %s (%s) seems to still seems to be up w/id=%ld",
+           dbp->spec,dbp->info,old_thread_id);
+    return RETVAL_OK;}
+
+  if (retval != RETVAL_OK) {
+    int waited=0;
+    while ((retval != RETVAL_OK)&&(waited<restart_wait)) {
+      sleep(restart_sleep);  waited=waited+restart_sleep;
+      retval=mysql_ping(db);}
+    if (retval != RETVAL_OK) {
+      const char *msg=mysql_error(db);
+      fdtype conn=(fdtype) dbp; fd_incref(conn);
+      fd_seterr(MySQL_Error,"restart_connection",u8_strdup(msg),conn);
+      return retval;}
+    else {
+      cur_thread_id=mysql_thread_id(db);
+      u8_log(LOG_WARN,"mysql/restart_connection",
+             "Took %ds to restart MYSQL connection %s (%s) with id=%d",
+             waited,dbp->spec,dbp->info,cur_thread_id);}}
+
+  u8_mutex_lock(&mysql_connect_lock); {
+
     int i=0, n=dbp->n_procs;
-    reconn=0; mysql_options(db,MYSQL_OPT_RECONNECT,(char *)&reconn);
-    /* Some connection parameters are reset, so we reset them again */
-    setup_connection(dbp);
-    /* Flag all the procedures as needing to be reinitialized. */
     struct FD_MYSQL_PROC **procs=(FD_MYSQL_PROC **)dbp->procs;
-    while (i<n) procs[i++]->need_init=1;}
-  else {
-    const char *errmsg=mysql_error(&(dbp->_db));
-    u8_seterr(MySQL_Error,"mysql/restart_connection",u8_strdup(errmsg));}
+
+    if (retval==RETVAL_OK) {
+      u8_log(LOG_WARN,"myql/restart_connection",
+             "The MYSQL connection with %s (%s) was reset (new id %d != %d)",
+             dbp->spec,dbp->info,cur_thread_id,old_thread_id);}
+    else u8_log(LOG_WARN,"myql/restarting_connection",
+                "Restart #%d for MYSQL with %s (%s) rv=%d",
+                dbp->restarts+1,dbp->spec,dbp->info,retval);
+    
+    dbp->thread_id=cur_thread_id;
+
+    /* Flag all the sqlprocs (prepared statements) as needing to be reinitialized. */
+    while (i<n) procs[i++]->need_init=1;
+
+    /* Some connection parameters may be reset, so we set them again */
+    setup_connection(dbp);}
+
   u8_mutex_unlock(&mysql_connect_lock);
+  
   dbp->restarts++; dbp->restarted=u8_elapsed_time();
   dbp->thread_id=mysql_thread_id(dbp->db);
+
   u8_log(LOG_WARN,"myql/restarted_connection",
          "Restart #%d MYSQL connection #%d with %s (%s)",
          dbp->restarts,dbp->thread_id,dbp->spec,dbp->info);
-  return -(retval);
+
+  return retval;
 }
 
 static int open_connection(struct FD_MYSQL *dbp)
@@ -259,7 +285,12 @@ static int open_connection(struct FD_MYSQL *dbp)
     u8_free(dbp);
     return -1;}
 
-  setup_connection(dbp);
+  retval=setup_connection(dbp);
+
+  if (retval) {
+    mysql_close(dbp->db);
+    u8_free(dbp);
+    return -1;}
 
   u8_mutex_lock(&mysql_connect_lock); {
     db=mysql_real_connect
@@ -340,7 +371,11 @@ static fdtype open_mysql
 {
   const char *host, *username, *passwd, *dbstring, *sockname;
   int portno=0, flags=0, retval;
-  struct FD_MYSQL *dbp=u8_alloc(struct FD_MYSQL);
+  struct FD_MYSQL *dbp=NULL;
+  if (!((FD_STRINGP(password))||(FD_PRIM_TYPEP(password,fd_secret_type)))) 
+    return fd_type_error("string/secret","open_mysql",password);
+  else dbp=u8_alloc(struct FD_MYSQL);
+  
   /* Initialize the cons (does a memset too) */
   FD_INIT_FRESH_CONS(dbp,fd_extdb_type);
   /* Initialize the MYSQL side of things (after the memset!) */
@@ -354,7 +389,7 @@ static fdtype open_mysql
   dbstring=((FD_VOIDP(dbname)) ? (NULL) : (FD_STRDATA(dbname)));
   username=((FD_VOIDP(user)) ? (NULL) : (FD_STRDATA(user)));
   passwd=((FD_VOIDP(password)) ? (NULL) : (FD_STRDATA(password)));
-  flags=0;
+  flags=CLIENT_REMEMBER_OPTIONS;
 
   /* Initialize the other fields */
   dbp->dbhandler=&mysql_handler;
@@ -930,7 +965,11 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
     u8_log(LOG_WARN,error_phase,"%s: %s",dbproc->stmt_string,errmsg);
     if (NEED_RESTART(mysqlerrno)) {
       struct FD_MYSQL *dbp=dbproc->fdbptr;
-      restart_connection(dbp);
+      retval=restart_connection(dbp);
+      if (retval != RETVAL_OK) {
+        const char *errmsg=mysql_error(db);
+        u8_seterr(MySQL_Error,"init_mysqlproc/prepare",u8_strdup(errmsg));
+        return FD_ERROR_VALUE;}
       dbproc->stmt=mysql_stmt_init(db);
       if (dbproc->stmt)
         retval=mysql_stmt_prepare
@@ -1064,7 +1103,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
      The other x*vals* identify the retvals for particular phases, to help
      produce more helpful error messages.
      A ZERO VALUE MEANS OK. */
-  int retval=1, bretval=0, eretval=0, sretval=0;
+  int retval=mysql_ping(dbp->db), bretval=0, eretval=0, sretval=0;
   int proclock=0, dblock=0;
   volatile unsigned int mysqlerrno;
   const char *mysqlerrmsg=NULL;
@@ -1338,7 +1377,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
     else retval=restart_connection(dbp);
     if (dblock) {u8_mutex_unlock(&(dbp->lock)); dblock=0;}
     if (proclock) {u8_mutex_unlock(&(dbproc->lock)); proclock=0;}
-    if (retval<0) return FD_ERROR_VALUE;
+    if (retval!=RETVAL_OK) return FD_ERROR_VALUE;
     else return applymysqlproc(fn,n,args,reconn-1);}
   else {
     if (dblock) {u8_mutex_unlock(&(dbp->lock)); dblock=0;}
@@ -1397,7 +1436,7 @@ FD_EXPORT int fd_init_mysql()
                           fd_string_type,FD_VOID,
                           -1,FD_VOID,
                           fd_string_type,FD_VOID,
-                          fd_string_type,FD_VOID,
+                          -1,FD_VOID,
                           -1,FD_VOID));
   fd_defn(module,
           fd_make_cprim2x("MYSQL/REFRESH",refresh_mysqldb,1,
@@ -1427,11 +1466,6 @@ FD_EXPORT int fd_init_mysql()
 
   fd_finish_module(module);
 
-  fd_register_config
-    ("MYSQL:RECONNECT",
-     "whether MYSQL should try to auto-reconnect",
-     fd_boolconfig_get,fd_boolconfig_set,
-     &default_reconnect);
   fd_register_config
     ("MYSQL:LAZYPROCS",
      "whether MYSQL should delay initializing dbprocs (statements)",
