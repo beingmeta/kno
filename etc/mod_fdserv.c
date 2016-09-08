@@ -685,7 +685,9 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
   struct FDSERV_SERVER_CONFIG *sconfig=
     ap_get_module_config(parms->server->module_config,&fdserv_module);
   struct server_rec *srv=parms->server;
-  const char *fullpath=NULL, *spec=NULL;
+  const char *fullpath=NULL, *spec=NULL, *cpath=parms->path;
+
+  if (cpath==NULL) cpath="";
 
   if (arg[0]=='/') spec=fullpath=arg;
   else if ((strchr(arg,'@'))||(strchr(arg,':'))) spec=arg;
@@ -699,18 +701,16 @@ static const char *socket_spec(cmd_parms *parms,void *mconfig,const char *arg)
   
   if (!(fullpath))
     ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
-		 "For host '%s' from %s, fdserv socket=%s",
-		 srv->server_hostname,srv->defn_name,
-		 spec);
+		 "fdserv %s for '%s:%s' from %s",
+		 spec,srv->server_hostname,cpath,srv->defn_name);
   else if (!(file_writablep(parms->pool,parms->server,fullpath)))
     ap_log_error(APLOG_MARK,APLOG_CRIT,OK,parms->server,
-		 "For host '%s' from %s, fdserv socket %s=%s is unwritable",
-		 srv->server_hostname,srv->defn_name,
-		 arg,fullpath);
+		 "Unwritable fdserv %s (%s) for '%s:%s' from %s",
+		 fullpath,arg,srv->server_hostname,cpath,srv->defn_name);
   else ap_log_error(APLOG_MARK,APLOG_INFO,OK,parms->server,
-		    "For host '%s' from %s, fdserv socket %s=%s",
-		    srv->server_hostname,srv->defn_name,
-		    arg,fullpath);
+		    "fdserv %s (%s) for '%s:%s' from %s",
+		    arg,fullpath,
+		    srv->server_hostname,cpath,srv->defn_name);
   return NULL;
 }
 
