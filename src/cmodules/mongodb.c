@@ -875,7 +875,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       if ((flags&FD_MONGODB_COLONIZE)&&
           ((isdigit(str[0]))||(strchr(":(#@",str[0])!=NULL))) {
         if (len>62) buf=u8_malloc(len+2);
-        buf[0]='\\'; strncpy(buf+1,str,len+1);
+        buf[0]='\\'; strncpy(buf+1,str,len); buf[len+1]='\0';
         ok=bson_append_utf8(out,key,keylen,buf,len+1);
         if (buf!=_buf) u8_free(buf);}
       else ok=bson_append_utf8(out,key,keylen,str,len);

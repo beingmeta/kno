@@ -692,7 +692,7 @@ static fdtype default_parse_oid(u8_string start,int len)
   FD_OID oid=FD_NULL_OID_INIT;
   unsigned int hi, lo, c=start[len];
   if (len>64) buf=u8_malloc(len+1);
-  strncpy(buf,start,len);
+  strncpy(buf,start,len); buf[len]='\0';
   if ((strchr(buf,'/'))>0) {
     int items=sscanf(buf,"@%x/%x",&hi,&lo);
     if (items!=2) {
