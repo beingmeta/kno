@@ -228,6 +228,9 @@ static int restart_connection(struct FD_MYSQL *dbp)
     if (retval != RETVAL_OK) {
       const char *msg=mysql_error(db);
       fdtype conn=(fdtype) dbp; fd_incref(conn);
+      u8_log(LOG_CRIT,"mysql/restart_connection",
+             "Failed after %ds to restart MYSQL connection %s (%s)",
+             waited,dbp->spec,dbp->info);
       fd_seterr(MySQL_Error,"restart_connection",u8_strdup(msg),conn);
       return retval;}
     else {
@@ -236,8 +239,7 @@ static int restart_connection(struct FD_MYSQL *dbp)
              "Took %ds to restart MYSQL connection %s (%s) with id=%d",
              waited,dbp->spec,dbp->info,cur_thread_id);}}
 
-  u8_mutex_lock(&mysql_connect_lock); {
-
+  {
     int i=0, n=dbp->n_procs;
     struct FD_MYSQL_PROC **procs=(FD_MYSQL_PROC **)dbp->procs;
 
@@ -251,14 +253,13 @@ static int restart_connection(struct FD_MYSQL *dbp)
     
     dbp->thread_id=cur_thread_id;
 
-    /* Flag all the sqlprocs (prepared statements) as needing to be reinitialized. */
+    /* Flag all the sqlprocs (prepared statements) as needing to be
+       reinitialized. */
     while (i<n) procs[i++]->need_init=1;
 
     /* Some connection parameters may be reset, so we set them again */
     setup_connection(dbp);}
 
-  u8_mutex_unlock(&mysql_connect_lock);
-  
   dbp->restarts++; dbp->restarted=u8_elapsed_time();
   dbp->thread_id=mysql_thread_id(dbp->db);
 
@@ -301,7 +302,6 @@ static int open_connection(struct FD_MYSQL *dbp)
   if (db==NULL) {
     const char *errmsg=mysql_error(&(dbp->_db));
     u8_seterr(MySQL_Error,"open_connection",u8_strdup(errmsg));
-    u8_mutex_unlock(&mysql_connect_lock);
     return -1;}
   else dbp->db=db;
   dbp->restarts=0;
@@ -313,7 +313,6 @@ static int open_connection(struct FD_MYSQL *dbp)
     struct FD_MYSQL_PROC **procs=(FD_MYSQL_PROC **)dbp->procs;
     while (i<n) procs[i++]->need_init=1;
     u8_mutex_unlock(&(dbp->proclock));
-    u8_mutex_unlock(&mysql_connect_lock);
     return 1;}
 }
 
@@ -816,7 +815,11 @@ static fdtype mysqlexec(struct FD_MYSQL *dbp,fdtype string,
   if (retval) {
     mysqlerrno=mysql_stmt_errno(stmt);
     if ((reconn>0)&&(NEED_RESTART(mysqlerrno))) {
-      restart_connection(dbp);
+      int rv=restart_connection(dbp);
+      if (rv != RETVAL_OK) {
+        u8_mutex_unlock(&(dbp->lock));
+        fd_decref(results);
+        return FD_ERROR_VALUE;}
       u8_mutex_unlock(&(dbp->lock));
       return mysqlexec(dbp,string,colinfo_arg,reconn-1);}
     else {
@@ -965,11 +968,14 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
     u8_log(LOG_WARN,error_phase,"%s: %s",dbproc->stmt_string,errmsg);
     if (NEED_RESTART(mysqlerrno)) {
       struct FD_MYSQL *dbp=dbproc->fdbptr;
+      u8_mutex_lock(&dbp->lock);
       retval=restart_connection(dbp);
       if (retval != RETVAL_OK) {
         const char *errmsg=mysql_error(db);
         u8_seterr(MySQL_Error,"init_mysqlproc/prepare",u8_strdup(errmsg));
+        u8_mutex_unlock(&dbp->lock);
         return FD_ERROR_VALUE;}
+      u8_mutex_unlock(&dbp->lock);
       dbproc->stmt=mysql_stmt_init(db);
       if (dbproc->stmt)
         retval=mysql_stmt_prepare
@@ -1103,7 +1109,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
      The other x*vals* identify the retvals for particular phases, to help
      produce more helpful error messages.
      A ZERO VALUE MEANS OK. */
-  int retval=mysql_ping(dbp->db), bretval=0, eretval=0, sretval=0;
+  int retval=0, bretval=0, eretval=0, sretval=0;
   int proclock=0, dblock=0;
   volatile unsigned int mysqlerrno;
   const char *mysqlerrmsg=NULL;
@@ -1299,7 +1305,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
     retval=bretval=mysql_stmt_bind_param(dbproc->stmt,inbound);}
 
   if (retval==RETVAL_OK) {
-    /* Lock the connection itself before executing */
+    /* Lock the connection itself before executing. ??? Why? */
     u8_mutex_lock(&(dbp->lock)); dblock=1;
     if (dbproc->need_init) {
       /* Once more, if there's been a restart before we get the lock,
@@ -1377,7 +1383,12 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
     else retval=restart_connection(dbp);
     if (dblock) {u8_mutex_unlock(&(dbp->lock)); dblock=0;}
     if (proclock) {u8_mutex_unlock(&(dbproc->lock)); proclock=0;}
-    if (retval!=RETVAL_OK) return FD_ERROR_VALUE;
+    if (retval!=RETVAL_OK) {
+      mysqlerrno=mysql_errno(dbp->db);
+      mysqlerrmsg=mysql_error(dbp->db);
+      u8_seterr(MySQL_Error,"mysqlproc/restart",
+                u8_mkstring("%s (%d)",mysqlerrmsg,mysqlerrno));
+      return FD_ERROR_VALUE;}
     else return applymysqlproc(fn,n,args,reconn-1);}
   else {
     if (dblock) {u8_mutex_unlock(&(dbp->lock)); dblock=0;}
