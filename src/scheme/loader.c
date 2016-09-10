@@ -274,7 +274,7 @@ FD_EXPORT int fd_update_file_modules(int force)
     scan=load_records; while (scan) {
       time_t mtime;
       /* Don't automatically update non-local files */
-      if (strchr(scan->filename,':')==NULL) {
+      if (strchr(scan->filename,':')!=NULL) {
 	scan=scan->next; continue;}
       else mtime=u8_file_mtime(scan->filename);
       if (mtime>scan->mtime) {
@@ -438,7 +438,7 @@ static u8_string file_source_fn(int fetch,u8_string filename,u8_string encname,
 {
   if (strncmp(filename,"file:",5)==0)
     filename=filename+5;
-  else if (strchr(filename,':')>0)
+  else if (strchr(filename,':')!=NULL)
     return NULL;
   else {}
   if (fetch) {
