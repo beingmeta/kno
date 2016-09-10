@@ -548,7 +548,7 @@ static int check_line_length(u8_output out,int off,int max_len)
     return -1;}
 }
 
-static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
+static fdtype watchcall(fdtype expr,fd_lispenv env,int with_proc)
 {
   struct U8_OUTPUT out;
   u8_string dflt_label="%CALL", label=dflt_label, arglabel="%ARG";
@@ -587,15 +587,15 @@ static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
       if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
       u8_free(out.u8_outbuf); u8_free(errstring);
       return val;}
-    if ((FD_PAIRP(arg))||(FD_SYMBOLP(arg))) {
+    if ((i==0)&&(with_proc==0)&&(FD_SYMBOLP(arg))) {}
+    else if ((FD_PAIRP(arg))||(FD_SYMBOLP(arg))) {
       u8_printf(&out,"%q ==> %q",arg,val);
       u8_logger(-10,arglabel,out.u8_outbuf);
       out.u8_outptr=out.u8_outbuf;}
-    else if ((FD_PAIRP(arg))||(FD_SYMBOLP(arg))) {
+    else {
       u8_printf(&out,"%q",arg);
       u8_logger(-10,arglabel,out.u8_outbuf);
       out.u8_outptr=out.u8_outbuf;}
-    else {}
     rail[i++]=val;}
   if (FD_CHOICEP(rail[0])) {
     FD_DO_CHOICES(fn,rail[0]) {
@@ -621,6 +621,15 @@ static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
   if (label!=dflt_label) {u8_free(label); u8_free(arglabel);}
   u8_free(out.u8_outbuf);
   return result;
+}
+
+static fdtype watchcall_handler(fdtype expr,fd_lispenv env)
+{
+  return watchcall(expr,env,0);
+}
+static fdtype watchcall_plus_handler(fdtype expr,fd_lispenv env)
+{
+  return watchcall(expr,env,1);
 }
 
 static fdtype watched_eval(fdtype expr,fd_lispenv env)
@@ -1908,6 +1917,8 @@ static void init_localfns()
   fd_defspecial(fd_scheme_module,"PROFILE",profiled_eval);
   fd_defspecial(fd_scheme_module,"%WATCHCALL",watchcall_handler);
   fd_defalias(fd_scheme_module,"%WC","%WATCHCALL");
+  fd_defspecial(fd_scheme_module,"%WATCHCALL+",watchcall_plus_handler);
+  fd_defalias(fd_scheme_module,"%WC+","%WATCHCALL+");
   fd_defspecial(fd_scheme_module,"EVAL1",eval1);
   fd_defspecial(fd_scheme_module,"EVAL2",eval2);
   fd_defspecial(fd_scheme_module,"EVAL3",eval3);
