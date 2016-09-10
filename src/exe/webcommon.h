@@ -443,8 +443,7 @@ static int update_preloads()
 	  return fd_interr(load_result);}
 	n_reloads++; fd_decref(load_result);
 	fd_lock_mutex(&preload_lock);
-	if (mtime>scan->mtime) scan->mtime=mtime;
-	fd_unlock_mutex(&preload_lock);}
+	if (mtime>scan->mtime) scan->mtime=mtime;}
       scan=scan->next;}
     last_preload_update=u8_elapsed_time();
     fd_unlock_mutex(&preload_lock);
