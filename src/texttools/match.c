@@ -3729,7 +3729,7 @@ u8_byteoff fd_text_search
     else if (FD_VOIDP(vpat)) {
       u8_string name=FD_SYMBOL_NAME(pat);
       fd_seterr(fd_UnboundIdentifier,"fd_text_search",
-                u8_strdup(name),fd_incref(pat));
+                u8_strdup(name),pat);
       return -2;}
     else {
       u8_byteoff result=fd_text_search(vpat,env,string,off,lim,flags);
