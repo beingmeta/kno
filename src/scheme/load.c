@@ -160,7 +160,10 @@ FD_EXPORT fdtype fd_load_source_with_date
         if (FD_TROUBLEP(result)) {
           u8_exception ex=u8_current_exception;
           u8_log(LOG_ERR,ex->u8x_cond,
-                 "Error in %s while evaluating %q",sourcebase,expr);
+                 "Error (%s:%s) in %s while evaluating %q",
+                 ((ex->u8x_context)?(ex->u8x_context):((u8_string)"")),
+                 ((ex->u8x_details)?(ex->u8x_details):((u8_string)"")),
+                 sourcebase,expr);
           record_error_source(sourceid);}
         restore_sourcebase(outer_sourcebase);
         u8_free(sourcebase);
