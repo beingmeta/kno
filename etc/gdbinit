@@ -188,7 +188,9 @@ end
 
 define useinstalledmodules
   unset environment FD_LOADPATH
+  unset environment FD_DLOADPATH
   unset environment FD_SAFE_LOADPATH
+end
 
 define staticweb
     set args /var/run/fdserv/static.sock
