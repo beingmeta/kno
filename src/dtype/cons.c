@@ -775,11 +775,13 @@ FD_EXPORT fdtype fd_make_packet
   if (ptr == NULL) {
     ptr=u8_malloc(sizeof(struct FD_STRING)+len+1);
     bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
-    if (data) memcpy(bytes,data,len);
-    else memset(bytes,0,len);
+    if (data) {
+      memcpy(bytes,data,len);
+      bytes[len]='\0';}
+    else memset(bytes,0,len+1);
     freedata=0;}
   else if (data==NULL) {
-    bytes=u8_malloc(len); memset(bytes,0,len);}
+    bytes=u8_malloc(len+1); memset(bytes,0,len+1);}
   else bytes=(unsigned char *)data;
   FD_INIT_CONS(ptr,fd_packet_type);
   ptr->length=len; ptr->bytes=bytes; ptr->freedata=freedata;

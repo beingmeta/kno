@@ -807,7 +807,7 @@ static fdtype parse_regex(U8_INPUT *in)
 
 /* Packet parsing functions */
 
-static fdtype parse_ascii_packet(U8_INPUT *in)
+static fdtype parse_text_packet(U8_INPUT *in)
 {
   char *data=u8_malloc(128);
   int max=128, len=0, c=u8_getc(in);
@@ -821,27 +821,39 @@ static fdtype parse_ascii_packet(U8_INPUT *in)
       if (obuf[0]=='\n') {
         while (u8_isspace(c)) c=u8_getc(in);
         continue;}
-      else if (obuf[0]=='\\') {
-        data[len++]='\\';
-        continue;}
-      else if (c=='n') {
-        data[len++]='\n';
-        continue;}
-      else if (c=='t') {
-        data[len++]='\t';
-        continue;}
-      else if (c=='#') {
-        data[len++]='#';
-        continue;}
-      obuf[1]=c=u8_getc(in);
-      obuf[2]='\0';
-      if (c<0) {
-        u8_free(data);
-        return FD_EOX;}
-      else if ((isxdigit(obuf[0])) && (isxdigit(obuf[1]))) {
-        c=strtol(obuf,NULL,16);
-        if (c<256) data[len++]=c; else break;}
-      else break;}
+      else switch (c) {
+        case '\\':
+          data[len++]='\\'; continue;
+        case 'n':
+          data[len++]='\n'; continue;
+        case 't':
+          data[len++]='\t'; continue;
+        case 'g':
+          data[len++]='\a'; continue;
+        case 'l':
+          data[len++]='\f'; continue;
+        case 'h':
+          data[len++]='\b'; continue;
+        case 'r':
+          data[len++]='\r'; continue;
+        case 'v':
+          data[len++]='\v'; continue;
+        case 'x':
+          data[len++]=27; continue;
+        case 'z':
+          data[len++]=26; continue;
+        case '#':
+          data[len++]='#'; continue;
+        default:
+          obuf[1]=c=u8_getc(in);
+          obuf[2]='\0';
+          if (c<0) {
+            u8_free(data);
+            return FD_EOX;}
+          else if ((isxdigit(obuf[0])) && (isxdigit(obuf[1]))) {
+            c=strtol(obuf,NULL,16);
+            if (c<256) data[len++]=c; else break;}
+          else break;}}
     else data[len++]=c;
     c=u8_getc(in);}
   if (c=='"')
@@ -850,7 +862,7 @@ static fdtype parse_ascii_packet(U8_INPUT *in)
     u8_free(data);
     if (c<0) return FD_EOX;
     else {
-      u8_seterr(fd_MissingCloseQuote,"parse_ascii_packet",NULL);
+      u8_seterr(fd_MissingCloseQuote,"parse_text_packet",NULL);
       return FD_PARSE_ERROR;}}
 }
 
@@ -921,7 +933,7 @@ static fdtype parse_packet(U8_INPUT *in,int nextc)
 {
   if (nextc<0) return FD_EOF;
   else if (nextc=='"') 
-    return parse_ascii_packet(in);
+    return parse_text_packet(in);
   else if ((nextc=='X')||(nextc=='x')) {
     int nc=u8_getc(in);
     if (nc=='"') return parse_hex_packet(in);
