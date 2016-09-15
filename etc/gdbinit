@@ -8,10 +8,20 @@ set env PPROF_PATH=/usr/bin/gpprof
 set env MSAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
 set env TCMALLOC_DEBUG=3
 set env MALLOCSTATS=2
-#set HEAPPROFILE=/tmp/heap.profiles/heapprof
-#set HEAPCHECK=normal # strict|draconian
+#set env HEAPPROFILE=/tmp/heap.profiles/heapprof
+#set env HEAPCHECK=normal # strict|draconian
 #set CPUPROFILE=/tmp/cpu-profile
 set print elements 64
+define vg
+  target remote | vgdb
+end
+define vgx
+  target remote | vgdb $arg0
+end
+define heapcheck
+  set env HEAPPROFILE=/tmp/heap.profiles/heapprof
+  set env HEAPCHECK=normal # strict|draconian
+end
 define dtype
   printf "%s\n",fd_dtype2string($arg0)
 end
