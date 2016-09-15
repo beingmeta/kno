@@ -7,7 +7,7 @@ done
 XARGS=$*
 if test "x${TARGETS}" = "x"; then TARGETS=${DEFAULT_TARGETS}; fi
 export FD_LOGLEVEL=7
-export FD_LAUNCHER=${FD_LANUCHER:-fdstart} 
+export FD_LAUNCHER=${FD_LAUNCHER:-fdstart} 
 export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
 export COMMONCFG="RESTART=1 PIDWAIT=no STEALSOCKETS=yes" 
 export FDSTART="sudo -u @fdaemon@ -g @admin_group@"
