@@ -744,7 +744,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       if (FD_PAIRP(expr))
         return fd_car(FD_CDR(expr));
       else {
-        fdtype v=FD_RAIL_REF(expr,0); fd_incref(v);
+        fdtype v=FD_RAIL_REF(expr,1); fd_incref(v);
         return v;}
     else if (head == comment_symbol)
       return FD_VOID;
