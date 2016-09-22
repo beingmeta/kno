@@ -1,0 +1,24 @@
+#! /bin/sh
+#
+# Created by configure
+
+"/Library/Caches/com.apple.xbs/Sources/apache/apache-805/httpd/configure" \
+"--prefix=/usr" \
+"--enable-layout=Darwin" \
+"--with-apr=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.Internal.sdk/usr/bin/apr-1-config" \
+"--with-apr-util=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.Internal.sdk/usr/bin/apu-1-config" \
+"--with-pcre=/Library/Caches/com.apple.xbs/Sources/apache/apache-805/httpd/../" \
+"--enable-mods-shared=all" \
+"--enable-ssl" \
+"--with-ssl=/usr/local/libressl" \
+"--enable-cache" \
+"--enable-mem-cache" \
+"--enable-proxy-balancer" \
+"--enable-proxy" \
+"--enable-proxy-http" \
+"--enable-disk-cache" \
+"--with-mpm=prefork" \
+"--enable-imagemap" \
+"--enable-negotiation" \
+"--enable-slotmem-shm" \
+"$@"
