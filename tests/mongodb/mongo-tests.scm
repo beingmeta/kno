@@ -13,3 +13,15 @@
 (applytest 2 count/matches testing #[a 5])
 
 
+(define idtesting (mongodb/collection db "idtesting"))
+
+(mongodb/insert! idtesting #[_id 1 text "one"])
+(mongodb/insert! idtesting #[_id 2 text "two"])
+(mongodb/insert! idtesting #[_id 3 text "three"])
+(mongodb/insert! idtesting #[_id 4 text "four"])
+(evaltest #t (onerror (begin (mongodb/insert! idtesting #[_id 3 text "trois"])
+			#f)
+	       (lambda (ex) #t)))
+(applytest "three" mongodb/get idtesting 3)
+
+
