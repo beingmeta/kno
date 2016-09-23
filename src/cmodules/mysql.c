@@ -39,7 +39,20 @@ static fdtype boolean_symbol;
 u8_condition ServerReset=_("MYSQL server reset");
 u8_condition UnusedType=_("MYSQL unused parameter type");
 
-#define dupstring(x) ((x==NULL) ? ((u8_byte *)x) : ((u8_byte *)u8_strdup(x)))
+static u8_string dupstring(fdtype x)
+{
+  if (FD_VOIDP(x)) return NULL;
+  else if (FD_STRINGP(x)) 
+    return u8_strdup(FD_STRDATA(x));
+  else if ((FD_PACKETP(x))||(FD_PRIM_TYPEP(x,fd_secret_type))) {
+    const unsigned char *data=FD_PACKET_DATA(x);
+    int len=FD_PACKET_LENGTH(x);
+    u8_byte *dup=u8_malloc(len+1);
+    memcpy(dup,data,len);
+    dup[len]='\0';
+    return dup;}
+  else return NULL;
+}
 
 #define NEED_RESTART(err)                               \
   ((err==CR_SERVER_GONE_ERROR) ||                       \
@@ -74,8 +87,8 @@ static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args);
 
 typedef struct FD_MYSQL {
   FD_EXTDB_FIELDS;
-  char *hostname, *username, *passwd;
-  char *dbstring, *sockname;
+  const char *hostname, *username, *passwd;
+  const char *dbstring, *sockname;
   double startup; double restarted;
   int restarts;
 #if FD_THREADS_ENABLED
@@ -367,7 +380,7 @@ static fdtype open_mysql
    fdtype user,fdtype password,
    fdtype options)
 {
-  const char *host, *username, *passwd, *dbstring, *sockname;
+  const char *host, *username, *passwd, *dbstring, *sockname, *spec;
   int portno=0, flags=0, retval;
   struct FD_MYSQL *dbp=NULL;
   if (!((FD_STRINGP(password))||(FD_PRIM_TYPEP(password,fd_secret_type)))) 
@@ -380,26 +393,29 @@ static fdtype open_mysql
   /* If the hostname looks like a filename, we assume it's a Unix domain
      socket. */
   if (strchr(FD_STRDATA(hostname),'/')==NULL) {
-    host=FD_STRDATA(hostname); sockname=NULL;}
+    host=u8_strdup(FD_STRDATA(hostname)); 
+    sockname=NULL;}
   else {
-    sockname=FD_STRDATA(hostname); host=NULL;}
+    sockname=u8_strdup(FD_STRDATA(hostname)); 
+    host=NULL;}
   /* Process the other arguments */
-  dbstring=((FD_VOIDP(dbname)) ? (NULL) : (FD_STRDATA(dbname)));
-  username=((FD_VOIDP(user)) ? (NULL) : (FD_STRDATA(user)));
-  passwd=((FD_VOIDP(password)) ? (NULL) : (FD_STRDATA(password)));
+  spec=dupstring(hostname);
+  dbstring=dupstring(dbname);
+  username=dupstring(user);
+  passwd=dupstring(password);
   flags=CLIENT_REMEMBER_OPTIONS;
 
   /* Initialize the other fields */
   dbp->dbhandler=&mysql_handler;
-  dbp->hostname=dupstring(host);
-  dbp->username=dupstring(username);
-  dbp->passwd=dupstring(passwd);
-  dbp->dbstring=dupstring(dbstring);
-  dbp->sockname=dupstring(sockname);
+  dbp->hostname=host;
+  dbp->username=username;
+  dbp->passwd=passwd;
+  dbp->dbstring=dbstring;
+  dbp->sockname=sockname;
   dbp->portno=portno;
   dbp->flags=flags;
   dbp->colinfo=fd_incref(colinfo);
-  dbp->spec=u8_strdup(FD_STRDATA(hostname));
+  dbp->spec=spec;
   dbp->options=options; fd_incref(options);
 
   u8_mutex_init(&dbp->proclock);
