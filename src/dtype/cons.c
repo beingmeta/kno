@@ -761,8 +761,8 @@ FD_EXPORT fdtype fd_init_packet
     ptr->freedata=1;}
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
-    int i=0; u8_byte *consed=u8_malloc(len);
-    while (i < len) consed[i++]=0;
+    u8_byte *consed=u8_malloc(len+1);
+    memset(consed,0,len+1);
     data=consed;}
   ptr->length=len; ptr->bytes=data;
   return FDTYPE_CONS(ptr);
@@ -795,8 +795,10 @@ FD_EXPORT fdtype fd_bytes2packet
   if (ptr == NULL) {
     ptr=u8_malloc(sizeof(struct FD_STRING)+len+1);
     bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
-    if (data) memcpy(bytes,data,len);
-    else memset(bytes,0,len);
+    if (data) {
+      memcpy(bytes,data,len);
+      bytes[len]='\0';}
+    else memset(bytes,0,len+1);
     freedata=0;}
   else {
     bytes=u8_malloc(len);
