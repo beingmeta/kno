@@ -381,45 +381,49 @@ static void collection_done(mongoc_collection_t *collection,
 static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  int flags=getflags(opts_arg,domain->flags);
-  mongoc_client_t *client=NULL; bool retval;
-  mongoc_collection_t *collection=open_collection(domain,&client,flags);
-  if (collection) {
-    fdtype opts=combine_opts(opts_arg,domain->opts);
-    bson_t reply; bson_error_t error;
-    if (FD_CHOICEP(obj)) {
-      fdtype result;
-      mongoc_bulk_operation_t *bulk=
-        mongoc_collection_create_bulk_operation(collection,true,NULL);
-      FD_DO_CHOICES(elt,obj) {
-        bson_t *doc=fd_dtype2bson(elt,flags,opts);
-        if (doc) {
-          mongoc_bulk_operation_insert(bulk,doc);
-          bson_destroy(doc);}}
-      retval=mongoc_bulk_operation_execute(bulk,&reply,&error);
-      mongoc_bulk_operation_destroy(bulk);
-      result=fd_bson2dtype(&reply,flags,opts);
-      bson_destroy(&reply);
-      return result;}
-    else {
-      bson_t *doc=fd_dtype2bson(obj,flags,opts);
-      if ((doc)&&
-          (mongoc_collection_insert
-           (collection,MONGOC_INSERT_NONE,doc,NULL,&error))) {
+  if (FD_EMPTY_CHOICEP(obj)) 
+    return FD_EMPTY_CHOICE;
+  else {
+    int flags=getflags(opts_arg,domain->flags);
+    mongoc_client_t *client=NULL; bool retval;
+    mongoc_collection_t *collection=open_collection(domain,&client,flags);
+    if (collection) {
+      fdtype opts=combine_opts(opts_arg,domain->opts);
+      bson_t reply; bson_error_t error;
+      if (FD_CHOICEP(obj)) {
+        fdtype result;
+        mongoc_bulk_operation_t *bulk=
+          mongoc_collection_create_bulk_operation(collection,true,NULL);
+        FD_DO_CHOICES(elt,obj) {
+          bson_t *doc=fd_dtype2bson(elt,flags,opts);
+          if (doc) {
+            mongoc_bulk_operation_insert(bulk,doc);
+            bson_destroy(doc);}}
+        retval=mongoc_bulk_operation_execute(bulk,&reply,&error);
+        mongoc_bulk_operation_destroy(bulk);
+        result=fd_bson2dtype(&reply,flags,opts);
         collection_done(collection,client,domain);
-        if (doc) bson_destroy(doc); 
-      fd_decref(opts);
-      return FD_TRUE;}
-    collection_done(collection,client,domain);
-    if (doc) bson_destroy(doc);
-    fd_incref(obj); fd_decref(opts);
-    fd_seterr(fd_MongoDB_Error,"mongodb_insert",
-              u8_mkstring("%s>%s>%s:%s",
-                          domain->uri,domain->dbname,domain->name,
-                          error.message),
-              obj);
-    return FD_ERROR_VALUE;}}
-  else return FD_ERROR_VALUE;
+        bson_destroy(&reply);
+        return result;}
+      else {
+        bson_t *doc=fd_dtype2bson(obj,flags,opts);
+        if ((doc)&&
+            (mongoc_collection_insert
+             (collection,MONGOC_INSERT_NONE,doc,NULL,&error))) {
+          collection_done(collection,client,domain);
+          if (doc) bson_destroy(doc);
+          fd_decref(opts);
+          return FD_TRUE;}
+        collection_done(collection,client,domain);
+        if (doc) bson_destroy(doc);
+        fd_incref(obj); fd_decref(opts);
+        fd_seterr(fd_MongoDB_Error,"mongodb_insert",
+                  u8_mkstring("%s>%s>%s:%s",
+                              domain->uri,domain->dbname,domain->name,
+                              error.message),
+                  obj);
+        return FD_ERROR_VALUE;}}
+    else return FD_ERROR_VALUE;}
 }
 
 static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
@@ -435,6 +439,7 @@ static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
     if (FD_TABLEP(obj)) {
       fdtype id=fd_get(obj,idsym,FD_VOID);
       if (FD_VOIDP(id))
+        collection_done(collection,client,domain);
         return fd_err("No MongoDB _id","mongodb_remove",NULL,obj);
       bson_append_dtype(q,"_id",3,id);
       fd_decref(id);}
