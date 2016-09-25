@@ -507,16 +507,23 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     fdtype opts=combine_opts(opts_arg,domain->opts);
     mongoc_cursor_t *cursor=NULL; bson_error_t error;
     const bson_t *doc;
-    bson_t *q=fd_dtype2bson(query,flags,opts);
-    if (q) cursor=mongoc_collection_find
-             (collection,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
-    if (cursor) {
-      while (mongoc_cursor_next(cursor,&doc)) {
-        /* u8_string json=bson_as_json(doc,NULL); */
-        fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
-        FD_ADD_TO_CHOICE(results,r);}
-      mongoc_cursor_destroy(cursor);}
-    if (q) bson_destroy(q);
+    fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
+    fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
+    fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
+    if ((FD_FIXNUMP(skip_arg))&&(FD_FIXNUMP(limit_arg))&&(FD_FIXNUMP(batch_arg))) {
+      bson_t *q=fd_dtype2bson(query,flags,opts);
+      if (q) cursor=mongoc_collection_find
+               (collection,MONGOC_QUERY_NONE,
+                FD_FIX2INT(skip_arg),FD_FIX2INT(limit_arg),FD_FIX2INT(batch_arg),
+                q,NULL,NULL);
+      if (cursor) {
+        while (mongoc_cursor_next(cursor,&doc)) {
+          /* u8_string json=bson_as_json(doc,NULL); */
+          fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
+          FD_ADD_TO_CHOICE(results,r);}
+        mongoc_cursor_destroy(cursor);}
+      if (q) bson_destroy(q);}
+    else results=fd_err(fd_TypeError,"mongodb_find","bad skip/limit/batch",opts);
     fd_decref(opts);
     collection_done(collection,client,domain);
     return results;}
@@ -544,7 +551,7 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
       bson_append_dtype(out,"_id",3,query);
       q=out.doc;}
     if (q) cursor=mongoc_collection_find
-             (collection,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
+             (collection,MONGOC_QUERY_NONE,0,1,0,q,NULL,NULL);
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
       result=fd_bson2dtype((bson_t *)doc,flags,opts);}
     if (cursor) mongoc_cursor_destroy(cursor);
@@ -602,16 +609,16 @@ static fdtype collection_command(fdtype arg,fdtype command,
       fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
       fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
       fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
-      mongoc_cursor_t *cursor=mongoc_collection_command
-        (collection,MONGOC_QUERY_EXHAUST,
-         ((FD_FIXNUMP(skip_arg))?(FD_FIX2INT(skip_arg)):(0)),
-         ((FD_FIXNUMP(limit_arg))?(FD_FIX2INT(limit_arg)):(500)),
-         ((FD_FIXNUMP(batch_arg))?(FD_FIX2INT(batch_arg)):(0)),
-         cmd,flds,NULL);
-      while (mongoc_cursor_next(cursor,&doc)) {
-        fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
-        FD_ADD_TO_CHOICE(results,r);}
-      mongoc_cursor_destroy(cursor);
+      if ((FD_FIXNUMP(skip_arg))&&(FD_FIXNUMP(limit_arg))&&(FD_FIXNUMP(batch_arg))) {
+        mongoc_cursor_t *cursor=mongoc_collection_command
+          (collection,MONGOC_QUERY_EXHAUST,
+           (FD_FIX2INT(skip_arg)),(FD_FIX2INT(limit_arg)),(FD_FIX2INT(batch_arg)),
+           cmd,flds,NULL);
+        while (mongoc_cursor_next(cursor,&doc)) {
+          fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
+          FD_ADD_TO_CHOICE(results,r);}
+        mongoc_cursor_destroy(cursor);}
+      else results=fd_err(fd_TypeError,"collection_command","bad skip/limit/batch",opts);
       mongoc_collection_destroy(collection);
       client_done(arg,client);
       bson_destroy(cmd); fd_decref(opts);
@@ -638,16 +645,16 @@ static fdtype db_command(fdtype arg,fdtype command,
       fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
       fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
       fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
-      mongoc_cursor_t *cursor=mongoc_client_command
-        (client,srv->dbname,MONGOC_QUERY_EXHAUST,
-         ((FD_FIXNUMP(skip_arg))?(FD_FIX2INT(skip_arg)):(0)),
-         ((FD_FIXNUMP(limit_arg))?(FD_FIX2INT(limit_arg)):(500)),
-         ((FD_FIXNUMP(batch_arg))?(FD_FIX2INT(batch_arg)):(0)),
-         cmd,flds,NULL);
-      while (mongoc_cursor_next(cursor,&doc)) {
-        fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
-        FD_ADD_TO_CHOICE(results,r);}
-      mongoc_cursor_destroy(cursor);
+      if ((FD_FIXNUMP(skip_arg))&&(FD_FIXNUMP(limit_arg))&&(FD_FIXNUMP(batch_arg))) {
+        mongoc_cursor_t *cursor=mongoc_client_command
+          (client,srv->dbname,MONGOC_QUERY_EXHAUST,
+           (FD_FIX2INT(skip_arg)),(FD_FIX2INT(limit_arg)),(FD_FIX2INT(batch_arg)),
+           cmd,flds,NULL);
+        while (mongoc_cursor_next(cursor,&doc)) {
+          fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
+          FD_ADD_TO_CHOICE(results,r);}
+        mongoc_cursor_destroy(cursor);}
+      else results=fd_err(fd_TypeError,"collection_command","bad skip/limit/batch",opts);
       client_done(arg,client);
       bson_destroy(cmd); fd_decref(opts);
       return results;}
@@ -658,9 +665,16 @@ static fdtype db_command(fdtype arg,fdtype command,
 
 static fdtype mongodb_command(int n,fdtype *args)
 {
-  fdtype arg=args[0], opts=(n%2)?(FD_VOID):(args[1]);
-  fdtype command=(n%2)?(make_command(n-1,args+1)):(make_command(n-2,args+2));
-  fdtype result=FD_VOID;
+  fdtype arg=args[0], opts=FD_VOID, command=FD_VOID, result=FD_VOID;
+  if (n==2) {
+    command=args[1]; fd_incref(command); opts=FD_VOID;}
+  else if ((n==3)&&(FD_TABLEP(args[1]))) {
+    command=args[1]; fd_incref(command); opts=args[2];}
+  else if (n%2) {
+    command=make_command(n-1,args+1);}
+  else {
+    command=make_command(n-2,args+2);
+    opts=args[1];}
   if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) 
     result=db_command(arg,command,opts);
   else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection))
@@ -731,9 +745,16 @@ static fdtype db_simple_command(fdtype arg,fdtype command,
 
 static fdtype mongodb_simple_command(int n,fdtype *args)
 {
-  fdtype arg=args[0], opts=(n%2)?(FD_VOID):(args[1]);
-  fdtype command=(n%2)?(make_command(n-1,args+1)):(make_command(n-2,args+2));
-  fdtype result=FD_VOID;
+  fdtype arg=args[0], opts=FD_VOID, command=FD_VOID, result=FD_VOID;
+  if (n==2) {
+    command=args[1]; fd_incref(command); opts=FD_VOID;}
+  else if ((n==3)&&(FD_TABLEP(args[1]))) {
+    command=args[1]; fd_incref(command); opts=args[2];}
+  else if (n%2) {
+    command=make_command(n-1,args+1);}
+  else {
+    command=make_command(n-2,args+2);
+    opts=args[1];}
   if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) 
     result=db_simple_command(arg,command,opts);
   else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection))
