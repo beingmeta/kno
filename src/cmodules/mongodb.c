@@ -1584,7 +1584,7 @@ static fdtype *mongodb_pool_fetchn(fd_pool p,int n,fdtype *oids)
    symbol name, this table only needs to include the ones that have
    embedded uppercase letters.  */
 
-static int add_to_mongo_opmap(u8_string keystring)
+static void add_to_mongo_opmap(u8_string keystring)
 {
   fdtype key=fd_symbolize(keystring);
   struct FD_KEYVAL *entry=
@@ -1592,8 +1592,8 @@ static int add_to_mongo_opmap(u8_string keystring)
                       &mongo_opmap_size,
                       &mongo_opmap_space,
                       1);
-  if (entry) {
-    entry->value=fdtype_string(keystring);}
+  if (entry) 
+    entry->value=fdtype_string(keystring);
   else u8_log(LOG_WARN,"Couldn't add %s to the mongo opmap",keystring);
 }
 
@@ -1674,13 +1674,13 @@ static fdtype mongodb_getinfo(fdtype mongodb,fdtype field)
     FD_GET_CONS(mongodb,fd_mongoc_server,struct FD_MONGODB_DATABASE *);
   mongoc_uri_t *info=db->info;
   u8_string tmpstring;
-  if (tmpstring=mongoc_uri_get_database(info))
+  if ((tmpstring=mongoc_uri_get_database(info)))
     add_string(result,dbname_symbol,tmpstring);
-  if (tmpstring=mongoc_uri_get_username(info))
+  if ((tmpstring=mongoc_uri_get_username(info)))
     add_string(result,username_symbol,tmpstring);
-  if (tmpstring=mongoc_uri_get_auth_mechanism(info))
+  if ((tmpstring=mongoc_uri_get_auth_mechanism(info)))
     add_string(result,auth_symbol,tmpstring);
-  if (tmpstring=mongoc_uri_get_auth_source(info))
+  if ((tmpstring=mongoc_uri_get_auth_source(info)))
     add_string(result,auth_symbol,tmpstring);
   {
     const mongoc_host_list_t *scan=mongoc_uri_get_hosts(info);
