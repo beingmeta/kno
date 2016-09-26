@@ -52,7 +52,7 @@ static fdtype idsym, maxkey, minkey;
 static fdtype oidtag, mongofun, mongouser, mongomd5;
 static fdtype bsonflags, raw, slotify, slotifyin, slotifyout;
 static fdtype colonize, colonizein, colonizeout, choices, nochoices;
-static fdtype skipsym, limitsym, batchsym, sortsym;
+static fdtype skipsym, limitsym, batchsym, sortsym, sortedsym;
 static fdtype fieldssym, upsertsym, newsym, removesym;
 static fdtype max_clients_symbol, max_ready_symbol;
 static fdtype mongomap_symbol, mongovec_symbol;
@@ -87,6 +87,35 @@ static u8_string stropt(fdtype opts,fdtype key,u8_string dflt)
     u8_log(LOG_WARN,"Invalid string option","%q=%q",key,v);
     fd_decref(v);
     return NULL;}
+}
+
+static int grow_dtype_vec(fdtype **vecp,size_t n,size_t *vlenp)
+{
+  fdtype *vec=*vecp; size_t vlen=*vlenp, new_len;
+  if (n<vlen) return 1;
+  else if (vec==NULL) {
+    vec=u8_alloc_n(64,fdtype);
+    if (vec) {
+      *vlenp=64; *vecp=vec;
+      return 1;}}
+  else {
+    size_t new_len=((vlen<8192)?(vlen*2):(vlen+8192));
+    fdtype *new_vec=u8_realloc_n(vec,new_len,fdtype);
+    if (new_vec) {
+      *vecp=new_vec; *vlenp=new_len;
+      return 1;}}
+  if (vec) {
+    int i=0; while (i<n) { fd_decref(vec[i++]); }
+    u8_free(vec);}
+  return 0;
+}
+
+static void free_dtype_vec(fdtype *vec,int n)
+{
+  if (vec==NULL) return;
+  else {
+    int i=0; while (i<n) { fd_decref(vec[i++]); }
+    u8_free(vec);}
 }
 
 /* Handling options and flags */
@@ -510,6 +539,8 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
     fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
     fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
+    int sort_results=fd_testopt(opts,sortedsym,FD_VOID);
+    fdtype *vec=NULL; size_t n=0, max=0;
     if ((FD_FIXNUMP(skip_arg))&&(FD_FIXNUMP(limit_arg))&&(FD_FIXNUMP(batch_arg))) {
       bson_t *q=fd_dtype2bson(query,flags,opts);
       if (q) cursor=mongoc_collection_find
@@ -520,12 +551,33 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
         while (mongoc_cursor_next(cursor,&doc)) {
           /* u8_string json=bson_as_json(doc,NULL); */
           fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
-          FD_ADD_TO_CHOICE(results,r);}
+          if (FD_ABORTP(r)) {
+            fd_decref(results);
+            free_dtype_vec(vec,n);
+            results=FD_ERROR_VALUE;
+            sort_results=0;}
+          else if (sort_results) {
+            if (n>=max) {
+              if (!(grow_dtype_vec(&vec,n,&max))) {
+                free_dtype_vec(vec,n);
+                results=FD_ERROR_VALUE;
+                sort_results=0;
+                break;}}
+            vec[n++]=r;}
+          else {
+            FD_ADD_TO_CHOICE(results,r);}}
         mongoc_cursor_destroy(cursor);}
+      else results=fd_err(fd_MongoDB_Error,"mongodb_find","couldn't get cursor",opts);
       if (q) bson_destroy(q);}
-    else results=fd_err(fd_TypeError,"mongodb_find","bad skip/limit/batch",opts);
+    else {
+      results=fd_err(fd_TypeError,"mongodb_find","bad skip/limit/batch",opts);
+      sort_results=0;}
     fd_decref(opts);
     collection_done(collection,client,domain);
+    if (sort_results) {
+      if ((vec==NULL)||(n==0)) return fd_make_vector(0,NULL);
+      else results=fd_make_vector(n,vec);
+      if (vec) u8_free(vec);}
     return results;}
   else return FD_ERROR_VALUE;
 }
@@ -891,16 +943,38 @@ static fdtype mongodb_read(fdtype cursor,fdtype howmany,fdtype opts_arg)
   fdtype opts=c->opts;
   if (n==0) return FD_EMPTY_CHOICE;
   else {
-    fdtype results=FD_EMPTY_CHOICE;
+    fdtype results=FD_EMPTY_CHOICE, *vec=NULL, opts=c->opts;
     mongoc_cursor_t *scan=c->cursor; const bson_t *doc;
-    int flags=c->flags; fdtype opts=c->opts;
+    int flags=c->flags; size_t n=0, vlen=0;
+    int sorted=fd_testopt(opts,sortedsym,FD_VOID);
     if (!(FD_VOIDP(opts_arg))) {
       flags=getflags(opts_arg,c->flags);
-      opts=combine_opts(opts_arg,opts);}
+      opts=combine_opts(opts_arg,opts);
+      sorted=fd_testopt(opts,sortedsym,FD_VOID);}
     while ((i<n)&&(mongoc_cursor_next(scan,&doc))) {
-      fdtype dtype=fd_bson2dtype((bson_t *)doc,flags,opts);
-      FD_ADD_TO_CHOICE(results,dtype); i++;}
+      /* u8_string json=bson_as_json(doc,NULL); */
+      fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
+      if (FD_ABORTP(r)) {
+        fd_decref(results);
+        free_dtype_vec(vec,i);
+        results=FD_ERROR_VALUE;
+        sorted=0;}
+      else if (sorted) {
+        if (n>=vlen) {
+          if (!(grow_dtype_vec(&vec,n,&vlen))) {
+            free_dtype_vec(vec,n);
+            results=FD_ERROR_VALUE;
+            sorted=0;
+            break;}}
+        vec[i]=r;}
+      else {
+        FD_ADD_TO_CHOICE(results,r);}
+      i++;}
     if (!(FD_VOIDP(opts_arg))) fd_decref(opts);
+    if (sorted) {
+      if ((vec==NULL)||(n==0)) return fd_make_vector(0,NULL);
+      else results=fd_make_vector(n,vec);
+      if (vec) u8_free(vec);}
     return results;}
 }
 
@@ -1753,6 +1827,7 @@ FD_EXPORT int fd_init_mongodb()
   upsertsym=fd_intern("UPSERT");
   newsym=fd_intern("NEW");
   removesym=fd_intern("REMOVE");
+  sortedsym=fd_intern("SORTED");
 
   sslsym=fd_intern("SSL");
   pemsym=fd_intern("PEMFILE");
