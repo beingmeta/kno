@@ -1793,15 +1793,119 @@ static void init_mongo_opmap()
 
 /* Getting 'meta' information from connections */
 
-static fdtype mongodb_dbname(fdtype mongodb)
+static struct FD_MONGODB_DATABASE *getdb(fdtype arg,u8_context cxt)
 {
-  struct FD_MONGODB_DATABASE *db=
-    FD_GET_CONS(mongodb,fd_mongoc_server,struct FD_MONGODB_DATABASE *);
-  mongoc_uri_t *info=db->info;
-  u8_string result=mongoc_uri_get_database(info);
-  if (result == NULL) 
-    return FD_FALSE;
-  else return fdtype_string(result);
+  if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) {
+    return FD_GET_CONS(arg,fd_mongoc_server,struct FD_MONGODB_DATABASE *);}
+  else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) {
+    struct FD_MONGODB_COLLECTION *collection=
+      FD_GET_CONS(arg,fd_mongoc_collection,struct FD_MONGODB_COLLECTION *);
+    return (struct FD_MONGODB_DATABASE *)collection->server;}
+  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+    struct FD_MONGODB_CURSOR *cursor=
+      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
+    return (struct FD_MONGODB_DATABASE *)cursor->server;}
+  else {
+    fd_seterr(fd_TypeError,cxt,"MongoDB object",arg);
+    return NULL;}
+}
+
+static fdtype mongodb_dbname(fdtype arg)
+{
+  struct FD_MONGODB_DATABASE *db=getdb(arg,"mongodb_dbname");
+  if (db==NULL) return FD_ERROR_VALUE;
+  else return fdtype_string(db->dbname);
+}
+
+static fdtype mongodb_spec(fdtype arg)
+{
+  struct FD_MONGODB_DATABASE *db=getdb(arg,"mongodb_spec");
+  if (db==NULL) return FD_ERROR_VALUE;
+  else return fdtype_string(db->spec);
+}
+
+static fdtype mongodb_uri(fdtype arg)
+{
+  struct FD_MONGODB_DATABASE *db=getdb(arg,"mongodb_uri");
+  if (db==NULL) return FD_ERROR_VALUE;
+  else return fdtype_string(db->uri);
+}
+
+static fdtype mongodb_server(fdtype arg)
+{
+  struct FD_MONGODB_DATABASE *db=getdb(arg,"mongodb_uri");
+  if (db==NULL) return FD_ERROR_VALUE;
+  else {
+    fdtype server=(fdtype)db;
+    fd_incref(server);
+    return server;}
+}
+
+static fdtype mongodb_opts(fdtype arg)
+{
+  fdtype opts=FD_VOID;
+  if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) {
+    opts=(FD_GET_CONS(arg,fd_mongoc_server,struct FD_MONGODB_DATABASE *))->opts;}
+  else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) {
+    struct FD_MONGODB_COLLECTION *collection=
+      FD_GET_CONS(arg,fd_mongoc_collection,struct FD_MONGODB_COLLECTION *);
+    opts=collection->opts;}
+  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+    struct FD_MONGODB_CURSOR *cursor=
+      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
+    opts=cursor->opts;}
+  else {
+    fd_seterr(fd_TypeError,"mongodb_opts","MongoDB object",arg);
+    return FD_ERROR_VALUE;}
+  fd_incref(opts);
+  return opts;
+}
+
+static fdtype mongodb_collection_name(fdtype arg)
+{
+  struct FD_MONGODB_COLLECTION *collection=NULL;
+  if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) 
+    collection=FD_GET_CONS(arg,fd_mongoc_collection,struct FD_MONGODB_COLLECTION *);
+  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+    struct FD_MONGODB_CURSOR *cursor=
+      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
+    collection=(struct FD_MONGODB_COLLECTION *)cursor->domain;}
+  else return fd_type_error("MongoDB collection/cursor","mongodb_dbname",arg);
+  if (collection)
+    return fd_make_string(NULL,-1,collection->name);
+  else return FD_FALSE;
+}
+
+static fdtype mongodb_getcollection(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) 
+    return fd_incref(arg);
+  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+    struct FD_MONGODB_CURSOR *cursor=
+      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
+    return fd_incref(cursor->domain);}
+  else return fd_type_error("MongoDB collection/cursor","mongodb_dbname",arg);
+}
+
+static fdtype mongodbp(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_mongoc_server))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype mongodb_collectionp(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_mongoc_collection))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype mongodb_cursorp(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 static void add_string(fdtype result,fdtype field,u8_string value)
@@ -1864,12 +1968,12 @@ FD_EXPORT int fd_init_mongodb()
   module=fd_new_module("MONGODB",(FD_MODULE_SAFE));
 
   idsym=fd_intern("_ID");
-  maxkey=fd_register_constant("mongomax");
-  minkey=fd_register_constant("mongomin");
-  oidtag=fd_register_constant("mongoid");
-  mongofun=fd_register_constant("mongofun");
-  mongouser=fd_register_constant("mongouser");
-  mongomd5=fd_register_constant("md5hash");
+  maxkey=fd_intern("mongomax");
+  minkey=fd_intern("mongomin");
+  oidtag=fd_intern("mongoid");
+  mongofun=fd_intern("mongofun");
+  mongouser=fd_intern("mongouser");
+  mongomd5=fd_intern("md5hash");
 
   skipsym=fd_intern("SKIP");
   limitsym=fd_intern("LIMIT");
@@ -1978,11 +2082,20 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprim1x("->MONGOVEC",make_mongovec,1,
                                   fd_vector_type,FD_VOID));
 
-  fd_idefn(module,fd_make_cprim1x("MONGODB/DBNAME",mongodb_dbname,1,
-                                  fd_mongoc_server,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/NAME",mongodb_dbname,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/SPEC",mongodb_spec,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/URI",mongodb_uri,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/OPTS",mongodb_opts,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/SERVER",mongodb_server,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/GETCOLLECTION",mongodb_getcollection,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("COLLECTION/NAME",mongodb_collection_name,1,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim2x("MONGODB/INFO",mongodb_getinfo,1,
                                   fd_mongoc_server,FD_VOID,
                                   -1,FD_VOID));
+
+  fd_idefn(module,fd_make_cprim1x("MONGODB?",mongodbp,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/COLLECTION?",mongodb_collectionp,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/CURSOR?",mongodb_cursorp,1,-1,FD_VOID));
 
   fd_register_config("MONGODB:FLAGS",
                      "Default flags (fixnum) for MongoDB/BSON processing",
