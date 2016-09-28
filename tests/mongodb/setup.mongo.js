@@ -38,4 +38,7 @@ db.createUser(
       roles: [ { role: "read", db: "fdtest" } ]
   }
 )
-use admin
+use admin;
+db.shutdownServer();
+
+

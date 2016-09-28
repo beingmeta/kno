@@ -5,7 +5,6 @@ rebuild:
 dbdata:
 	mkdir dbdata
 	mongod -f mongod.conf --noauth --fork --pidfilepath `pwd`/mongo.pid && sleep 2 && mongo localhost/admin < setup.mongo.js
-	mongod -f mongod.conf --shutdown
 
 start:
 	mongod -f mongod.conf --fork

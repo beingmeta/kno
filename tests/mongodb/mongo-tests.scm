@@ -22,6 +22,6 @@
 (evaltest #t (onerror (begin (mongodb/insert! idtesting #[_id 3 text "trois"])
 			#f)
 	       (lambda (ex) #t)))
-(applytest "three" mongodb/get idtesting 3)
+(applytest #[TEXT "three" _ID 3] mongodb/get idtesting 3)
 
 
