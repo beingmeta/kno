@@ -39,7 +39,7 @@ static fdtype sslsym;
 static int default_ssl=0;
 
 static fdtype dbname_symbol, username_symbol, auth_symbol;
-static fdtype hosts_symbol, connections_symbol;
+static fdtype hosts_symbol, connections_symbol, fieldmap_symbol;
 
 static struct FD_KEYVAL *mongo_opmap=NULL;
 static int mongo_opmap_size=0, mongo_opmap_space=0;
@@ -1060,7 +1060,8 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       bson_t arr; char buf[16]; int i=0;
       ok=bson_append_array_begin(out,key,keylen,&arr);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.doc=&arr; rout.flags=b.flags; rout.opts=b.opts;
+      rout.doc=&arr; rout.flags=b.flags; 
+      rout.opts=b.opts; rout.fieldmap=b.fieldmap;
       if (ok) {
         int i=0; FD_DO_CHOICES(v,val) {
           sprintf(buf,"%d",i++);
@@ -1080,7 +1081,8 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         if (ok) ok=bson_append_array_begin(&ch,"0",1,&arr);}
       else ok=bson_append_array_begin(out,key,keylen,&arr);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.doc=&arr; rout.flags=b.flags; rout.opts=b.opts;
+      rout.doc=&arr; rout.flags=b.flags; 
+      rout.opts=b.opts; rout.fieldmap=b.fieldmap;
       if (ok) while (i<lim) {
           fdtype v=data[i]; sprintf(buf,"%d",i++);
           ok=bson_append_dtype(rout,buf,strlen(buf),v);
@@ -1096,7 +1098,8 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       fdtype keys=fd_getkeys(val);
       ok=bson_append_document_begin(out,key,keylen,&doc);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.doc=&doc; rout.flags=b.flags; rout.opts=b.opts;
+      rout.doc=&doc; rout.flags=b.flags; 
+      rout.opts=b.opts; rout.fieldmap=b.fieldmap;
       if (ok) {
         FD_DO_CHOICES(key,keys) {
           fdtype value=fd_get(val,key,FD_VOID);
@@ -1126,7 +1129,8 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         ok=bson_append_array_begin(out,key,keylen,&doc);
       else ok=bson_append_document_begin(out,key,keylen,&doc);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
-      rout.doc=&doc; rout.flags=b.flags; rout.opts=b.opts;
+      rout.doc=&doc; rout.flags=b.flags; 
+      rout.opts=b.opts; rout.fieldmap=b.fieldmap;
       if (tag==mongomap_symbol) {
         fdtype *scan=elts, *limit=scan+len;
         if ((len%2)==1) ok=0;
@@ -1211,6 +1215,7 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
   bson_t *out=b.doc; int flags=b.flags;
   struct U8_OUTPUT keyout; unsigned char buf[256];
   const char *keystring=NULL; int keylen; bool ok=true;
+  fdtype fieldmap=b.fieldmap, store_value=val;
   U8_INIT_OUTPUT_BUF(&keyout,256,buf);
   if (FD_VOIDP(val)) return 0;
   if (FD_SYMBOLP(key)) {
@@ -1230,7 +1235,19 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
         keylen=keyout.u8_outptr-keyout.u8_outbuf;}}
     else {
       keystring=FD_SYMBOL_NAME(key);
-      keylen=strlen(keystring);}}
+      keylen=strlen(keystring);}
+    if (!(FD_VOIDP(fieldmap))) {
+      fdtype mapfn=fd_get(fieldmap,key,FD_VOID);
+      if (FD_VOIDP(mapfn)) {}
+      else if (FD_APPLICABLEP(mapfn))
+        store_value=fd_apply(mapfn,1,&val);
+      else if (FD_TABLEP(mapfn))
+        store_value=fd_get(mapfn,val,FD_VOID);
+      else if (FD_TRUEP(mapfn)) {
+        struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
+        fd_unparse(&out,val);
+        store_value=fd_stream2string(&out);}
+      else {}}}
   else if (FD_STRINGP(key)) {
     keystring=FD_STRDATA(key);
     if ((flags&FD_MONGODB_SLOTIFY)&&
@@ -1248,7 +1265,11 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
     fd_unparse(&keyout,key);
     keystring=keyout.u8_outbuf;
     keylen=keyout.u8_outptr-keyout.u8_outbuf;}
-  ok=bson_append_dtype(b,keystring,keylen,val);
+  if (store_value==val)
+    ok=bson_append_dtype(b,keystring,keylen,val);
+  else {
+    ok=bson_append_dtype(b,keystring,keylen,store_value);
+    fd_decref(store_value);}
   u8_close((u8_stream)&keyout);
   return ok;
 }
@@ -1328,7 +1349,9 @@ FD_EXPORT bson_t *fd_dtype2bson(fdtype obj,int flags,fdtype opts)
     out.doc=bson_new();
     out.flags=((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
     out.opts=opts;
+    out.fieldmap=fd_getopt(opts,fieldmap_symbol,FD_VOID);
     fd_bson_output(out,obj);
+    fd_decref(out.fieldmap);
     return out.doc;}
 }
 
@@ -1450,7 +1473,8 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     if (BSON_ITER_HOLDS_DOCUMENT(in)) {
       struct FD_BSON_INPUT r; bson_iter_t child;
       bson_iter_recurse(in,&child);
-      r.iter=&child; r.flags=b.flags; r.opts=b.opts;
+      r.iter=&child; r.flags=b.flags; 
+      r.opts=b.opts; r.fieldmap=b.fieldmap;
       value=fd_init_slotmap(NULL,0,NULL);
       while (bson_iter_next(&child))
         bson_read_step(r,value,NULL);}
@@ -1463,6 +1487,28 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
       u8_log(LOGWARN,fd_BSON_Input_Error,
              "Can't handle BSON type %d",bt);
       return;}}
+  if (!(FD_VOIDP(b.fieldmap))) {
+    struct FD_STRING _tempkey;
+    fdtype tempkey=fd_init_string(&_tempkey,strlen(field),field);
+    fdtype mapfn=FD_VOID, new_value=FD_VOID;
+    fdtype fieldmap=b.fieldmap;
+    FD_INIT_STACK_CONS(tempkey,fd_string_type);
+    mapfn=fd_get(fieldmap,tempkey,FD_VOID);
+    if (FD_VOIDP(mapfn)) {}
+    else if (FD_APPLICABLEP(mapfn)) 
+      new_value=fd_apply(mapfn,1,&value);
+    else if (FD_TABLEP(mapfn))
+      new_value=fd_get(mapfn,value,FD_VOID);
+    else if ((FD_TRUEP(mapfn))&&(FD_STRINGP(value))) 
+      new_value=fd_parse(FD_STRDATA(value));
+    if (FD_ABORTP(new_value)) {
+      fd_clear_errors(1);
+      new_value=FD_VOID;}
+    else if (new_value!=FD_VOID) {
+      fdtype old_value=value; 
+      value=new_value;
+      fd_decref(old_value);}
+    else {}}
   if (!(FD_VOIDP(into))) fd_store(into,slotid,value);
   if (loc) *loc=value;
   else fd_decref(value);
@@ -1473,7 +1519,8 @@ static fdtype bson_read_vector(FD_BSON_INPUT b)
   struct FD_BSON_INPUT r; bson_iter_t child;
   fdtype result, *data=u8_alloc_n(16,fdtype), *write=data, *lim=data+16;
   bson_iter_recurse(b.iter,&child);
-  r.iter=&child; r.flags=b.flags; r.opts=b.opts;
+  r.iter=&child; r.flags=b.flags; 
+  r.opts=b.opts; r.fieldmap=b.fieldmap;
   while (bson_iter_next(&child)) {
     if (write>=lim) {
       int len=lim-data;
@@ -1492,7 +1539,8 @@ static fdtype bson_read_choice(FD_BSON_INPUT b)
   struct FD_BSON_INPUT r; bson_iter_t child; int n=0;
   fdtype *data=u8_alloc_n(16,fdtype), *write=data, *lim=data+16;
   bson_iter_recurse(b.iter,&child);
-  r.iter=&child; r.flags=b.flags; r.opts=b.opts;
+  r.iter=&child; r.flags=b.flags; 
+  r.opts=b.opts; r.fieldmap=b.fieldmap;
   while (bson_iter_next(&child)) {
     if (write>=lim) {
       int len=lim-data;
@@ -1516,14 +1564,18 @@ static fdtype bson_read_choice(FD_BSON_INPUT b)
 
 FD_EXPORT fdtype fd_bson2dtype(bson_t *in,int flags,fdtype opts)
 {
-  bson_iter_t iter; fdtype result;
+  bson_iter_t iter;
   if (flags<0) flags=getflags(opts,FD_MONGODB_DEFAULTS);
   memset(&iter,0,sizeof(bson_iter_t));
   if (bson_iter_init(&iter,in)) {
-    struct FD_BSON_INPUT b; memset(&b,0,sizeof(struct FD_BSON_INPUT));
-    b.iter=&iter; b.flags=flags; b.opts=opts;
+    fdtype result, fieldmap=fd_getopt(opts,fieldmap_symbol,FD_VOID);
+    struct FD_BSON_INPUT b;
+    memset(&b,0,sizeof(struct FD_BSON_INPUT));
+    b.iter=&iter; b.flags=flags; 
+    b.opts=opts; b.fieldmap=fieldmap;
     result=fd_init_slotmap(NULL,0,NULL);
     while (bson_iter_next(&iter)) bson_read_step(b,result,NULL);
+    fd_decref(fieldmap);
     return result;}
   else return fd_err(fd_BSON_Input_Error,"fd_bson2dtype",NULL,FD_VOID);
 }
@@ -1849,6 +1901,7 @@ FD_EXPORT int fd_init_mongodb()
   colonizeout=fd_intern("COLONIZE/OUT");
   choices=fd_intern("CHOICES");
   nochoices=fd_intern("NOCHOICES");
+  fieldmap_symbol=fd_intern("FIELDMAP");
 
   dbname_symbol=fd_intern("DBNAME");
   username_symbol=fd_intern("USERNAME");
