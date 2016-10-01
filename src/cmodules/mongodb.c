@@ -50,10 +50,10 @@ static bool bson_append_keyval(struct FD_BSON_OUTPUT,fdtype,fdtype);
 static bool bson_append_dtype(struct FD_BSON_OUTPUT,const char *,int,fdtype);
 static fdtype idsym, maxkey, minkey;
 static fdtype oidtag, mongofun, mongouser, mongomd5;
-static fdtype bsonflags, raw, slotify, slotifyin, slotifyout;
+static fdtype bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
 static fdtype colonize, colonizein, colonizeout, choices, nochoices;
-static fdtype skipsym, limitsym, batchsym, sortsym, sortedsym;
-static fdtype fieldssym, upsertsym, newsym, removesym;
+static fdtype skipsym, limitsym, batchsym, sortsym, sortedsym, writesym;
+static fdtype fieldssym, upsertsym, newsym, removesym, multisym, wtimeoutsym;
 static fdtype max_clients_symbol, max_ready_symbol;
 static fdtype mongomap_symbol, mongovec_symbol;
 
@@ -63,10 +63,12 @@ static void grab_mongodb_error(bson_error_t *error,u8_string caller)
   u8_seterr(cond,caller,u8_strdup(error->message));
 }
 
-static int boolopt(fdtype opts,fdtype key)
+static int boolopt(fdtype opts,fdtype key,int dflt)
 {
   fdtype v=fd_get(opts,key,FD_VOID);
-  if ((FD_VOIDP(v))||(FD_FALSEP(v)))
+  if (FD_VOIDP(v))
+    return dflt;
+  else if (FD_FALSEP(v))
     return 0;
   else {
     fd_decref(v);
@@ -153,6 +155,34 @@ static int getflags(fdtype opts,int dflt)
   else return dflt;
 }
 
+static int getwriteopts(fdtype opts)
+{
+  fdtype val=fd_getopt(opts,writesym,FD_VOID);
+  if (FD_VOIDP(val)) 
+    return MONGOC_WRITE_CONCERN_W_DEFAULT;
+  else if (FD_FALSEP(val))
+    return MONGOC_WRITE_CONCERN_W_UNACKNOWLEDGED;
+  else if (FD_TRUEP(val))
+    return MONGOC_WRITE_CONCERN_W_MAJORITY;
+  else if ((FD_FIXNUMP(val))&&(FD_FIX2INT(val)<0))
+    return MONGOC_WRITE_CONCERN_W_ERRORS_IGNORED;
+  else if ((FD_FIXNUMP(val))&&(FD_FIX2INT(val)>0))
+    return FD_FIX2INT(val);
+  else {
+    u8_log(LOGWARN,"mongodb/getwriteopts","Bad MongoDB write concern %q",val);
+    return MONGOC_WRITE_CONCERN_W_DEFAULT;}
+}
+
+static void usewriteopts(mongoc_write_concern_t *wc,fdtype opts)
+{
+  int w=getwriteopts(opts);
+  int wait=fd_getopt(opts,wtimeoutsym,FD_VOID);
+  mongoc_write_concern_set_w(wc,w);
+  if (FD_FIXNUMP(wait)) {
+    int msecs=FD_FIX2INT(wait);
+    mongoc_write_concern_set_wtimeout(wc,msecs);}
+}
+
 static fdtype combine_opts(fdtype opts,fdtype clopts)
 {
   if (opts==clopts) {
@@ -181,7 +211,7 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
   mongoc_client_pool_t *client_pool; int flags;
   mongoc_uri_t *info; u8_string uri;
   mongoc_ssl_opt_t ssl_opts={ 0 };
-  int add_ssl=(fd_testopt(opts,sslsym,FD_VOID))?(boolopt(opts,sslsym)):(default_ssl);
+  int add_ssl=boolopt(opts,sslsym,default_ssl);
   if ((FD_STRINGP(arg))||(FD_PRIM_TYPEP(arg,fd_secret_type))) {
     uri=modify_ssl(FD_STRDATA(arg),add_ssl);
     info=mongoc_uri_new(uri);}
@@ -433,17 +463,21 @@ static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
         result=fd_bson2dtype(&reply,flags,opts);
         collection_done(collection,client,domain);
         bson_destroy(&reply);
+        fd_decref(opts);
         return result;}
       else {
         bson_t *doc=fd_dtype2bson(obj,flags,opts);
+        mongoc_write_concern_t *wc=mongoc_write_concern_new();
+        usewriteopts(wc,opts);
         if ((doc)&&
             (mongoc_collection_insert
-             (collection,MONGOC_INSERT_NONE,doc,NULL,&error))) {
+             (collection,MONGOC_INSERT_NONE,doc,wc,&error))) {
           collection_done(collection,client,domain);
           if (doc) bson_destroy(doc);
           fd_decref(opts);
           return FD_TRUE;}
         collection_done(collection,client,domain);
+        if (wc) mongoc_write_concern_destroy(wc);
         if (doc) bson_destroy(doc);
         fd_incref(obj); fd_decref(opts);
         fd_seterr(fd_MongoDB_Error,"mongodb_insert",
@@ -464,6 +498,8 @@ static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
   if (collection) {
     struct FD_BSON_OUTPUT q; bson_error_t error;
     fdtype opts=combine_opts(opts_arg,domain->opts);
+    mongoc_write_concern_t *wc=mongoc_write_concern_new();
+    usewriteopts(wc,opts);
     q.doc=bson_new(); q.opts=opts; q.flags=flags;
     if (FD_TABLEP(obj)) {
       fdtype id=fd_get(obj,idsym,FD_VOID);
@@ -474,12 +510,14 @@ static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
       fd_decref(id);}
     else bson_append_dtype(q,"_id",3,obj);
     if (mongoc_collection_remove
-        (collection,MONGOC_REMOVE_SINGLE_REMOVE,q.doc,NULL,&error)) {
+        (collection,MONGOC_REMOVE_SINGLE_REMOVE,q.doc,wc,&error)) {
       collection_done(collection,client,domain);
+      if (wc) mongoc_write_concern_destroy(wc);
       bson_destroy(q.doc); fd_decref(opts);
       return FD_TRUE;}
     else {
       collection_done(collection,client,domain);
+      if (wc) mongoc_write_concern_destroy(wc);
       bson_destroy(q.doc); fd_incref(obj); fd_decref(opts);
       fd_seterr(fd_MongoDB_Error,"mongodb_remove",
                 u8_mkstring("%s>%s>%s:%s",
@@ -501,23 +539,37 @@ static fdtype mongodb_update(fdtype arg,fdtype query,fdtype update,
     fdtype opts=combine_opts(opts_arg,domain->opts);
     bson_t *q=fd_dtype2bson(query,flags,opts);
     bson_t *u=fd_dtype2bson(update,flags,opts);
-    bson_error_t error; int success=0;
+    mongoc_write_concern_t *wc=mongoc_write_concern_new();
+    usewriteopts(wc,opts);
+    bson_error_t error;
+    int success=0, no_error=boolopt(opts,softfailsym,0);
+    mongoc_update_flags_t update_flags=
+      (MONGOC_UPDATE_NONE) ||
+      ((boolopt(opts,upsertsym,0))?(MONGOC_UPDATE_UPSERT):(0)) ||
+      ((boolopt(opts,multisym,0))?(MONGOC_UPDATE_MULTI_UPDATE):(0));
     if ((q)&&(u)&&
-        (mongoc_collection_update
-         (collection,MONGOC_UPDATE_NONE,q,u,NULL,&error)))
+        (mongoc_collection_update(collection,update_flags,q,u,wc,&error)))
       success=1;
     collection_done(collection,client,domain);
     if (q) bson_destroy(q); 
     if (u) bson_destroy(u);
+    if (wc) mongoc_write_concern_destroy(wc);
     fd_decref(opts);
     if (success) return FD_TRUE;
+    else if (no_error) {
+      if ((q)&&(u))
+        u8_log(LOG_WARN,"mongodb_update","Error %s on %s>%s>%s with query\nquery=  %q\nupdate=  %q\nflags= %q",
+               error.message,domain->uri,domain->dbname,domain->name,query,update,opts);
+      else u8_log(LOG_WARN,"mongodb_update","Error %s on %s>%s>%s with query\nquery=  %q\nupdate=  %q\nflags= %q",
+                  error.message,domain->uri,domain->dbname,domain->name,query,update,opts);
+      return FD_FALSE;}
     else if ((q)&&(u))
-      fd_seterr(fd_MongoDB_Error,"mongodb_update",
+      fd_seterr(fd_MongoDB_Error,"mongodb_update/call",
                 u8_mkstring("%s>%s>%s:%s",
                             domain->uri,domain->dbname,domain->name,
                             error.message),
                 fd_make_pair(query,update));
-    else fd_seterr(fd_BSON_Error,"mongodb_update",
+    else fd_seterr(fd_BSON_Error,"mongodb_update/prep",
                    u8_mkstring("%s>%s>%s:%s",
                                domain->uri,domain->dbname,domain->name),
                    fd_make_pair(query,update));
@@ -1981,9 +2033,13 @@ FD_EXPORT int fd_init_mongodb()
   sortsym=fd_intern("SORT");
   fieldssym=fd_intern("FIELDS");
   upsertsym=fd_intern("UPSERT");
+  multisym=fd_intern("MULTI");
+  wtimeoutsym=fd_intern("WTIMEOUT");
+  writesym=fd_intern("WRITE");
   newsym=fd_intern("NEW");
   removesym=fd_intern("REMOVE");
   sortedsym=fd_intern("SORTED");
+  softfailsym=fd_intern("SOFTFAIL");
 
   sslsym=fd_intern("SSL");
   pemsym=fd_intern("PEMFILE");
@@ -2050,9 +2106,10 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprim3x("MONGODB/FIND",mongodb_find,2,
                                   fd_mongoc_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim4x("MONGODB/MODIFY!",mongodb_modify,3,
+  fd_idefn(module,fd_make_cprim4x("MONGODB/MODIFY",mongodb_modify,3,
                                   fd_mongoc_collection,FD_VOID,
                                   -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
+  fd_defalias(module,"MONGODB/MODIFY!","MONGODB/MODIFY");
 
   fd_idefn(module,fd_make_cprim3x("MONGODB/GET",mongodb_get,2,
                                   fd_mongoc_collection,FD_VOID,
