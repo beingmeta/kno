@@ -224,7 +224,10 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
     int n_chars=0;
     char *b64=u8_write_base64(bytes,len,&n_chars);
     u8_puts(out,"#@\"");
-    u8_putn(out,b64,n_chars);
+    if ((fd_unparse_maxchars>0) && (n_chars>=fd_unparse_maxchars)) {
+      u8_putn(out,b64,fd_unparse_maxchars);
+      output_ellipsis(out,len-fd_unparse_maxchars,"bytes");}
+    else u8_putn(out,b64,n_chars);
     u8_free(b64);
     return u8_putc(out,'"');}
   else {
