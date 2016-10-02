@@ -11,3 +11,5 @@ set env FD_LOADPATH @abs_top_srcdir@/src/modules/%.scm:@abs_top_srcdir@/src/modu
 set env FD_SAFELOADPATH @abs_top_srcdir@/src/modules/safe/%.scm:@abs_top_srcdir@/src/modules/safe/%/module.scm:@default_safe_module_path@
 set env FD_SKIP_DOTLOAD yes
 set env FD_SHOWTIME 0.0
+set env FD_DISPLAYMAXELTS=36
+set env FD_DISPLAYMAXCHARS=1024
