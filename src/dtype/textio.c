@@ -826,27 +826,27 @@ static fdtype parse_text_packet(U8_INPUT *in)
         continue;}
       else switch (c) {
         case '\\':
-          data[len++]='\\'; continue;
+          data[len++]='\\'; break;
         case 'n':
-          data[len++]='\n'; continue;
+          data[len++]='\n'; break;
         case 't':
-          data[len++]='\t'; continue;
+          data[len++]='\t'; break;
         case 'g':
-          data[len++]='\a'; continue;
+          data[len++]='\a'; break;
         case 'l':
-          data[len++]='\f'; continue;
+          data[len++]='\f'; break;
         case 'h':
-          data[len++]='\b'; continue;
+          data[len++]='\b'; break;
         case 'r':
-          data[len++]='\r'; continue;
+          data[len++]='\r'; break;
         case 'v':
-          data[len++]='\v'; continue;
+          data[len++]='\v'; break;
         case 'x':
-          data[len++]=27; continue;
+          data[len++]=27; break;
         case 'z':
-          data[len++]=26; continue;
+          data[len++]=26; break;
         case '#':
-          data[len++]='#'; continue;
+          data[len++]='#'; break;
         default:
           obuf[1]=c=u8_getc(in);
           obuf[2]='\0';
