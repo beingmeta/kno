@@ -205,12 +205,28 @@ static int unparse_string(U8_OUTPUT *out,fdtype x)
   return u8_putc(out,'"');
 }
 
-static int unparse_packet(U8_OUTPUT *out,fdtype x)
+static int get_packet_base(const unsigned char *bytes,int len)
 {
-  struct FD_STRING *s=(struct FD_STRING *)x;
-  const unsigned char *bytes=s->bytes;
-  int i=0, len=s->length;
-  if ((fd_packet_outfmt==16)||(fd_unparse_hexpacket)) {
+  if (fd_unparse_hexpacket) return 16;
+  else if ((fd_packet_outfmt==16)||
+           (fd_packet_outfmt==64)||
+           (fd_packet_outfmt==8))
+    return fd_packet_outfmt;
+  else {
+    const unsigned char *scan=bytes, *limit=bytes+len;
+    while (scan<limit) {
+      int c=*scan++;
+      if (c>=128) return 16;
+      else if (iscntrl(c)) return 16;}}
+  return 8;
+}
+
+FD_EXPORT int fd_unparse_packet(U8_OUTPUT *out,
+                                const unsigned char *bytes,size_t len,
+                                int base)
+{
+  int i=0;
+  if (base==16) {
     u8_puts(out,"#X\"");
     while (i<len) {
       int byte=bytes[i++]; char buf[16];
@@ -220,7 +236,7 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
       sprintf(buf,"%02x",byte);
       u8_puts(out,buf);}
     return u8_putc(out,'"');}
-  else if (fd_packet_outfmt==64) {
+  else if (base==64) {
     int n_chars=0;
     char *b64=u8_write_base64(bytes,len,&n_chars);
     u8_puts(out,"#@\"");
@@ -251,6 +267,13 @@ static int unparse_packet(U8_OUTPUT *out,fdtype x)
     return u8_puts(out,"\"");}
 }
 
+static int unparse_packet(U8_OUTPUT *out,fdtype x)
+{
+  struct FD_STRING *s=(struct FD_STRING *)x;
+  const unsigned char *bytes=s->bytes;
+  int len=s->length, base=get_packet_base(bytes,len);
+  return fd_unparse_packet(out,bytes,len,base);
+}
 
 static int unparse_secret(U8_OUTPUT *out,fdtype x)
 {
@@ -1288,7 +1311,14 @@ static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
       n=entry->core_slots;
     u8_printf(out,"#%%(%q",xc->tag);
     while (i<n) {
-      u8_printf(out," %q",data[i]); i++;}
+      fdtype elt=data[i++];
+      if (0) { /* (FD_PACKETP(elt)) */
+        struct FD_STRING *packet=FD_GET_CONS(elt,fd_packet_type,fd_string);
+        const unsigned char *bytes=packet->bytes; 
+        int n_bytes=packet->length;
+        u8_puts(out," ");
+        fd_unparse_packet(out,bytes,n_bytes,16);}
+      else u8_printf(out," %q",data[i]);}
     u8_printf(out,")");
     return 1;}
 }
