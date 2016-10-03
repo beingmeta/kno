@@ -38,7 +38,7 @@ u8_condition fd_BSON_Input_Error=_("BSON input error");
 static fdtype sslsym;
 static int default_ssl=0;
 
-static fdtype dbname_symbol, username_symbol, auth_symbol;
+static fdtype dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
 static fdtype hosts_symbol, connections_symbol, fieldmap_symbol;
 
 static struct FD_KEYVAL *mongo_opmap=NULL;
@@ -1529,7 +1529,9 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
       r.opts=b.opts; r.fieldmap=b.fieldmap;
       value=fd_init_slotmap(NULL,0,NULL);
       while (bson_iter_next(&child))
-        bson_read_step(r,value,NULL);}
+        bson_read_step(r,value,NULL);
+      /* if (fd_test(value,fdtag_symbol,FD_VOID)) {} */
+    }
     else if (BSON_ITER_HOLDS_ARRAY(in)) {
       unsigned int len; fdtype *data;
       int flags=b.flags, choicevals=(flags&FD_MONGODB_CHOICEVALS);
@@ -2002,6 +2004,47 @@ static fdtype mongodb_getinfo(fdtype mongodb,fdtype field)
     return v;}
 }
 
+/* MongoDB logging */
+
+static int getu8loglevel(mongoc_log_level_t l);
+static int mongodb_loglevel=-1;
+static int mongodb_ignore_loglevel=-1;
+
+void mongoc_logger(mongoc_log_level_t l,const char *d,const char *m,void *u)
+{
+  int u8l=getu8loglevel(l);
+  if (u8l<=LOG_CRIT)
+    u8_logger(u8l,d,m);
+  else if ((mongodb_ignore_loglevel >= 0)&&
+           (u8l > mongodb_ignore_loglevel))
+    return;
+  else if ((mongodb_loglevel >= 0)&&
+           (u8l <= mongodb_loglevel))
+    u8_logger(-u8l,d,m);
+  else u8_logger(u8l,d,m);
+}
+
+static int getu8loglevel(mongoc_log_level_t l)
+{
+  switch (l) {
+  case MONGOC_LOG_LEVEL_ERROR:
+    return LOG_ERR;
+  case MONGOC_LOG_LEVEL_CRITICAL:
+    return LOG_CRIT;
+  case MONGOC_LOG_LEVEL_WARNING:
+    return LOG_WARN;
+  case MONGOC_LOG_LEVEL_MESSAGE:
+    return LOG_NOTICE;
+  case MONGOC_LOG_LEVEL_INFO:
+    return LOG_INFO;
+  case MONGOC_LOG_LEVEL_DEBUG:
+    return LOG_DEBUG;
+  case MONGOC_LOG_LEVEL_TRACE:
+    return LOG_DETAIL;
+  default:
+    return LOG_WARN;}
+}
+
 /* Initialization */
 
 FD_EXPORT int fd_init_mongodb(void) FD_LIBINIT_FN;
@@ -2068,6 +2111,7 @@ FD_EXPORT int fd_init_mongodb()
   auth_symbol=fd_intern("AUTHENTICATION");
   hosts_symbol=fd_intern("HOSTS");
   connections_symbol=fd_intern("CONNECTIONS");
+  fdtag_symbol=fd_intern("%FDTAG");
 
   fd_mongoc_server=fd_register_cons_type("MongoDB client");
   fd_mongoc_collection=fd_register_cons_type("MongoDB collection");
@@ -2163,6 +2207,15 @@ FD_EXPORT int fd_init_mongodb()
 
   mongoc_init();
   atexit(mongoc_cleanup);
+
+  mongoc_log_set_handler(mongoc_logger,NULL);
+  fd_register_config("MONGODB:LOG",
+                     "Controls log levels for which messages are always shown",
+                     fd_intconfig_get,fd_intconfig_set,&mongodb_loglevel);
+  fd_register_config("MONGODB:MAXLOG",
+                     "Controls which log messages are always discarded",
+                     fd_intconfig_get,fd_intconfig_set,
+                     &mongodb_ignore_loglevel);
 
   u8_register_source_file(_FILEINFO);
 
