@@ -31,7 +31,7 @@
 
 #define PARSE_ERRORP(x) ((x==FD_EOX) || (x==FD_PARSE_ERROR) || (x==FD_OOM))
 
-#define isoctaldigit(c) ((c<'8') && (isdigit(c)))
+#define odigitp(c) ((c>='0')&&(c<='8'))
 #define spacecharp(c) ((c>0) && (c<128) && (isspace(c)))
 #define atombreakp(c) \
   ((c<=0) || ((c<128) && ((isspace(c)) || (strchr("{}()[]#\"',`",c)))))
@@ -58,8 +58,7 @@ fd_exception fd_UnterminatedBlockComment=_("Unterminated block (#|..|#) comment"
 
 int fd_unparse_maxelts=0;
 int fd_unparse_maxchars=0;
-int fd_unparse_hexpacket=0;
-int fd_packet_outfmt=-1;
+int fd_packet_outfmt=8;
 
 int fd_interpret_pointers=1;
 
@@ -191,9 +190,6 @@ static int unparse_string(U8_OUTPUT *out,fdtype x)
       case '\n': u8_puts(out,"\\n"); break;
       case '\t': u8_puts(out,"\\t"); break;
       case '\r': u8_puts(out,"\\r"); break;
-      case '\v': u8_puts(out,"\\v"); break;
-      case '\a': u8_puts(out,"\\a"); break;
-      case '\f': u8_puts(out,"\\f"); break;
       default:
         if (iscntrl(c)) {
           char buf[32]; sprintf(buf,"\\%03o",c);
@@ -207,23 +203,21 @@ static int unparse_string(U8_OUTPUT *out,fdtype x)
 
 static int get_packet_base(const unsigned char *bytes,int len)
 {
-  if (fd_unparse_hexpacket) return 16;
-  else if ((fd_packet_outfmt==16)||
-           (fd_packet_outfmt==64)||
-           (fd_packet_outfmt==8))
+  if ((fd_packet_outfmt==16)||
+      (fd_packet_outfmt==64)||
+      (fd_packet_outfmt==8))
     return fd_packet_outfmt;
   else {
-    const unsigned char *scan=bytes, *limit=bytes+len;
+    const unsigned char *scan=bytes, *limit=bytes+len; int weird=0;
     while (scan<limit) {
       int c=*scan++;
-      if (c>=128) return 16;
-      else if (iscntrl(c)) return 16;}}
-  return 8;
+      if ((c>=128)||(iscntrl(c))) weird++;}
+    if ((weird*3)>len) return 16;
+    else return 8;}
 }
 
-FD_EXPORT int fd_unparse_packet(U8_OUTPUT *out,
-                                const unsigned char *bytes,size_t len,
-                                int base)
+FD_EXPORT int fd_unparse_packet
+   (U8_OUTPUT *out,const unsigned char *bytes,size_t len,int base)
 {
   int i=0;
   if (base==16) {
@@ -248,15 +242,18 @@ FD_EXPORT int fd_unparse_packet(U8_OUTPUT *out,
     return u8_putc(out,'"');}
   else {
     u8_puts(out,"#\"");
-    if (bytes[0]=='!') {u8_puts(out,"\\!"); i++;}
     while (i < len) {
       int byte=bytes[i++]; char buf[16];
       if ((fd_unparse_maxchars>0) && (i>=fd_unparse_maxchars)) {
         u8_putc(out,' '); output_ellipsis(out,len-i,"bytes");
         return u8_putc(out,'"');}
-      if ((byte>=0x7f) || (byte<0x20) ||
-          (byte == '\\') || (byte == '"')) {
-        sprintf(buf,"\\%02x",byte);
+      if (byte == '"') u8_puts(out,"\\\"");
+      else if (byte == '\\') u8_puts(out,"\\\\");
+      else if (byte == '\n') u8_puts(out,"\\n");
+      else if (byte == '\r') u8_puts(out,"\\r");
+      else if (byte == '\t') u8_puts(out,"\\t");
+      else if ((byte>=0x7f) || (byte<0x20)) {
+        sprintf(buf,"\\%03o",byte);
         u8_puts(out,buf);}
       else {
         buf[0]=byte; buf[1]='\0';
@@ -842,7 +839,7 @@ static fdtype parse_text_packet(U8_INPUT *in)
       data=u8_realloc(data,max+128);
       max=max+128;}
     if (c == '\\') {
-      char obuf[4];
+      char obuf[8];
       obuf[0]=c=u8_getc(in);
       if (obuf[0]=='\n') {
         while (u8_isspace(c)) c=u8_getc(in);
@@ -850,16 +847,16 @@ static fdtype parse_text_packet(U8_INPUT *in)
       else switch (c) {
         case '\\':
           data[len++]='\\'; break;
+        case 'a':
+          data[len++]='\a'; break;
+        case 'f': case 'l':
+          data[len++]='\f'; break;
+        case 'h': case 'b':
+          data[len++]='\b'; break;
         case 'n':
           data[len++]='\n'; break;
         case 't':
           data[len++]='\t'; break;
-        case 'g':
-          data[len++]='\a'; break;
-        case 'l':
-          data[len++]='\f'; break;
-        case 'h':
-          data[len++]='\b'; break;
         case 'r':
           data[len++]='\r'; break;
         case 'v':
@@ -870,16 +867,30 @@ static fdtype parse_text_packet(U8_INPUT *in)
           data[len++]=26; break;
         case '#':
           data[len++]='#'; break;
-        default:
-          obuf[1]=c=u8_getc(in);
-          obuf[2]='\0';
+        case '0': case '1': case '2': case '3': {
+          int i=1; while ((i<3)&&((c=u8_getc(in))>=0)&&(odigitp(c))) {
+            obuf[i++]=c;}
+          obuf[i]='\0';
           if (c<0) {
             u8_free(data);
             return FD_EOX;}
-          else if ((isxdigit(obuf[0])) && (isxdigit(obuf[1]))) {
-            c=strtol(obuf,NULL,16);
-            if (c<256) data[len++]=c; else break;}
-          else break;}}
+          else if (!(odigitp(c))) {
+            u8_free(data);
+            u8_seterr(_("Bad octal escape"),"parse_text_packet",
+                      u8_strdup(obuf));
+            return FD_PARSE_ERROR;}
+          else {
+            c=strtol(obuf,NULL,8);
+            if (c<256) {
+              data[len++]=c; 
+              break;}
+            else {
+              u8_free(data);
+              u8_seterr(_("Bad octal escape"),"parse_text_packet",
+                        u8_strdup(obuf));
+              return FD_PARSE_ERROR;}}}
+        default: 
+          data[len++]=c;}}
     else data[len++]=c;
     c=u8_getc(in);}
   if (c=='"')
