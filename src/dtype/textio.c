@@ -859,14 +859,29 @@ static fdtype parse_text_packet(U8_INPUT *in)
           data[len++]='\t'; break;
         case 'r':
           data[len++]='\r'; break;
-        case 'v':
-          data[len++]='\v'; break;
-        case 'x':
-          data[len++]=27; break;
         case 'z':
           data[len++]=26; break;
         case '#':
           data[len++]='#'; break;
+        case 'x': {
+          int c1=u8_getc(in), c2=u8_getc(in);
+          if ((c1<0)||(c2<0)) {
+            u8_free(data);
+            return FD_EOX;}
+          if ((isxdigit(c1))&&(isxdigit(c2))) {
+            char xbuf[4];
+            xbuf[0]=(char) c1; xbuf[1]=(char) c2; xbuf[2]='\0';
+            c=strtol(xbuf,NULL,16);
+            data[len++]=c;}
+          else {
+            struct U8_OUTPUT tmpout; u8_byte buf[16];
+            U8_INIT_FIXED_OUTPUT(&tmpout,16,buf);
+            u8_putc(&tmpout,'\\'); 
+            u8_putc(&tmpout,c1); 
+            u8_putc(&tmpout,c2);
+            u8_seterr(_("Bad hex escape"),"parse_text_packet",
+                      u8_strdup(tmpout.u8_outbuf));
+            return FD_PARSE_ERROR;}}
         case '0': case '1': case '2': case '3': {
           int i=1; while ((i<3)&&((c=u8_getc(in))>=0)&&(odigitp(c))) {
             obuf[i++]=c;}
