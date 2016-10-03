@@ -11,12 +11,12 @@
 
 (define s1 "francais")
 
-(define p1 #"\cd\fe\33\ba\9c\88\33\44\5a")
+(define p1 #X"cdfe33ba9c8833445a")
 (applytest  0x33 elt p1 2)
-(applytest  #"\33\ba" subseq p1 2 4)
-(applytest  #"\5a\44\33\88\9c\ba\33\fe\cd" reverse p1)
+(applytest  #X"33ba" subseq p1 2 4)
+(applytest  #X"5a4433889cba33fecd" reverse p1)
 (applytest  2 position 51 p1)
-(applytest  3 search #"\ba\9c" p1)
+(applytest  3 search #X"ba9c" p1)
 
 (define short-vec
   (vector 0 127 256 (* 256 16) (1+ (* 256 16)) (1- (* 256 16))))
@@ -99,7 +99,7 @@
 (applytest #f search '#("b" "c" "d") '("a" "b" #f 8 "c" "d" "e" "f" "g" "h" "i" "j"))
 (applytest 27 search '".." "http://foo.bar.mit.edu/foo/../bar")
 (applytest 29 search '".." "http://foo.\u0135bar.mit\u0139.edu/foo/../bar")
-(applytest 6 search #"\00\00\00\05" #"foobar\00\00\00\05baz")
+(applytest 6 search #"\000\000\000\005" #"foobar\000\000\000\005baz")
 
 (define mixed-list
   '("b\u00c0ar"
@@ -107,7 +107,7 @@
     "alpha"  
     "real\vlylongst\aring\nreallylong\nstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstrin\fgreal\rlylon\bgstri\tngreallylongstring"
     #"reallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstring"
-    #"ab\03cd\04qnno\ffkk\cd"
+    #"ab\003cd\004qnno\377kk\315"
     #t #f #\a () 9739 -3 3.1415 -2.7127
     715919103 -715919103 2415919103 -2415919103 12345678987654321 -12345678987654321
     #"abc def gh\aa jkl"
@@ -119,7 +119,7 @@
      "alpha" 
      "real\vlylongst\aring\nreallylong\nstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstrin\fgreal\rlylon\bgstri\tngreallylongstring"
      #"reallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstring"
-     #"ab\03cd\04qnno\ffkk\cd"
+     #"ab\003cd\004qnno\377kk\315"
      #t #f #\a () 9739 -3 3.1415 -2.7127
      715919103 -715919103 2415919103 -2415919103 12345678987654321 -12345678987654321
      #"abc def gh\aa jkl"

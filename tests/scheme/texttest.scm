@@ -318,8 +318,8 @@ is the other number")
 
 (define msg-text (filestring (get-component "rfc822.txt")))
 
-(applytest #"\c0\bd\4e\c9\37\cf\d6\78\0e\a2\9c\4b\a6\cf\30\74" md5 sample-string)
-(applytest #"\44\5c\b4\03\6c\4d\fa\c7\ec\f5\1f\54\0a\af\f4\7f" md5 msg-text)
+(applytest #X"c0bd4ec937cfd6780ea29c4ba6cf3074" md5 sample-string)
+(applytest #X"445cb4036c4dfac7ecf51f540aaff47f" md5 msg-text)
 
 (define msg-headers (car (textslice msg-text "\n\n")))
 (define msg-body

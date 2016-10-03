@@ -14,7 +14,7 @@
 (define key32 
   #X"00a417997e71b5dd9f7f19d64e2c23bcbe31bb3f1076f7bade9ad2de1e5f081e")
 
-(define iv8 #"\b7\f4\88y,\f0\bd\84")
+(define iv8 #X"b7f488792cf0bd84")
 (define ziv8 (fill-packet 8 0))
 (define iv16 #X"3ea141e1fc673e017e97eadc6b968f38")
 (define ziv16 (fill-packet 16 0))

@@ -60,9 +60,9 @@
 
 ;;; Testing packets
 
-(define p1 #"\1f\03")
-(define p2 #"\c0\bd\4e\c9\37\cf\d6\78\0e\a2\9c\4b\a6\cf\30\74")
-(define p3 #"\1f\03\20")
+(define p1 #X"1f03")
+(define p2 #X"c0bd4ec937cfd6780ea29c4ba6cf3074")
+(define p3 #X"1f0320")
 
 (applytest 2 length p1)
 (applytest 16 length p2)
@@ -166,7 +166,7 @@
 ;(remove-file "thirty2fifty")
 
 (define dtype-test-obj
-  `(#[foo 3 bar 8] #"12\345\6789\abcdef123\45\6789"
+  `(#[foo 3 bar 8] #"12\0645\14789\253cdef123\105\14789"
     #t #f #\a () 9739 -3 3.1415 #\u3f4e
     ,(vector 34 35 1024)
     ,(vector 34 35 1024 150000)
