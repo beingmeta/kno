@@ -1054,7 +1054,7 @@ FD_EXPORT
 fd_index fd_make_extindex
   (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state,int reg)
 {
-  if (!(goodfunarg(fetchfn))) {
+  if (!(FD_EXPECT_TRUE(FD_APPLICABLEP(fetchfn)))) {
     fd_seterr(fd_TypeError,"fd_make_extindex","fetch function",
               fd_incref(fetchfn));
     return NULL;}

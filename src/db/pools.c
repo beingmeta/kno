@@ -1625,7 +1625,7 @@ fd_pool fd_make_extpool(u8_string label,
                         fdtype lockfn,fdtype allocfn,
                         fdtype state)
 {
-  if (!(goodfunarg(fetchfn))) {
+  if (!(FD_EXPECT_TRUE(FD_APPLICABLEP(fetchfn)))) {
     fd_seterr(fd_TypeError,"fd_make_extpool","fetch function",
               fd_incref(fetchfn));
     return NULL;}
