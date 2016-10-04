@@ -62,6 +62,8 @@ typedef struct FD_MONGODB_CURSOR *fd_mongodb_cursor;
 FD_EXPORT fdtype fd_bson_write(bson_t *out,int flags,fdtype in);
 FD_EXPORT bson_t *fd_dtype2bson(fdtype,int,fdtype);
 FD_EXPORT fdtype fd_bson2dtype(bson_t *,int,fdtype);
+FD_EXPORT fdtype fd_bson_output(struct FD_BSON_OUTPUT,fdtype);
+FD_EXPORT int fd_init_mongodb(void);
 
 typedef struct FD_MONGODB_POOL {
   FD_POOL_FIELDS;
