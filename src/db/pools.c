@@ -55,6 +55,15 @@ fd_pool init_pool_serial_table[1024],
   *fd_pool_serial_table=init_pool_serial_table;
 int fd_pool_serial_count=0;
 
+static int _goodfunarg(fdtype fn)
+{
+  if ((fn==FD_VOID)||(fn==FD_FALSE)||(FD_APPLICABLEP(fn)))
+    return 1;
+  else return 0;
+}
+
+#define goodfunarg(fn) (FD_EXPECT_TRUE(_goodfunarg(fn)))
+
 #if FD_GLOBAL_IPEVAL
 fdtype *fd_pool_delays=NULL;
 #elif FD_USE__THREAD
@@ -1616,18 +1625,35 @@ fd_pool fd_make_extpool(u8_string label,
                         fdtype lockfn,fdtype allocfn,
                         fdtype state)
 {
-  struct FD_EXTPOOL *xp=u8_alloc(struct FD_EXTPOOL);
-  memset(xp,0,sizeof(struct FD_EXTPOOL));
-  fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,label,label);
-  if (!(FD_VOIDP(savefn))) xp->read_only=0;
-  fd_register_pool((fd_pool)xp);
-  fd_incref(fetchfn); fd_incref(savefn);
-  fd_incref(lockfn); fd_incref(state);
-  xp->fetchfn=fetchfn; xp->savefn=savefn;
-  xp->lockfn=lockfn; xp->allocfn=allocfn;
-  xp->state=state;
-  xp->flags=xp->flags|FD_OIDHOLES_OKAY;
-  return (fd_pool)xp;
+  if (!(goodfunarg(fetchfn))) {
+    fd_seterr(fd_TypeError,"fd_make_extpool","fetch function",
+              fd_incref(fetchfn));
+    return NULL;}
+  else if (!(goodfunarg(savefn))) {
+    fd_seterr(fd_TypeError,"fd_make_extpool","save function",
+              fd_incref(savefn));
+    return NULL;}
+  else if (!(goodfunarg(lockfn))) {
+    fd_seterr(fd_TypeError,"fd_make_extpool","lock function",
+              fd_incref(lockfn));
+    return NULL;}
+  else if (!(goodfunarg(allocfn))) {
+    fd_seterr(fd_TypeError,"fd_make_extpool","alloc function",
+              fd_incref(allocfn));
+    return NULL;}
+  else {
+    struct FD_EXTPOOL *xp=u8_alloc(struct FD_EXTPOOL);
+    memset(xp,0,sizeof(struct FD_EXTPOOL));
+    fd_init_pool((fd_pool)xp,base,cap,&fd_extpool_handler,label,label);
+    if (!(FD_VOIDP(savefn))) xp->read_only=0;
+    fd_register_pool((fd_pool)xp);
+    fd_incref(fetchfn); fd_incref(savefn);
+    fd_incref(lockfn); fd_incref(state);
+    xp->fetchfn=fetchfn; xp->savefn=savefn;
+    xp->lockfn=lockfn; xp->allocfn=allocfn;
+    xp->state=state;
+    xp->flags=xp->flags|FD_OIDHOLES_OKAY;
+    return (fd_pool)xp;}
 }
 
 static fdtype extpool_fetch(fd_pool p,fdtype oid)

@@ -41,6 +41,15 @@ static u8_mutex background_lock;
 
 struct FD_COMPOUND_INDEX *fd_background=NULL;
 
+static int _goodfunarg(fdtype fn)
+{
+  if ((fn==FD_VOID)||(fn==FD_FALSE)||(FD_APPLICABLEP(fn)))
+    return 1;
+  else return 0;
+}
+
+#define goodfunarg(fn) (FD_EXPECT_TRUE(_goodfunarg(fn)))
+
 #if FD_GLOBAL_IPEVAL
 static fdtype *index_delays;
 #elif FD_USE__THREAD
@@ -1045,17 +1054,26 @@ FD_EXPORT
 fd_index fd_make_extindex
   (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state,int reg)
 {
-  struct FD_EXTINDEX *fetchix=u8_alloc(struct FD_EXTINDEX);
-  FD_INIT_STRUCT(fetchix,struct FD_EXTINDEX);
-  fd_init_index((fd_index)fetchix,&fd_extindex_handler,name,(!(reg)));
-  fetchix->cache_level=1;
-  fetchix->read_only=(FD_VOIDP(commitfn));
-  fetchix->fetchfn=fd_incref(fetchfn);
-  fetchix->commitfn=fd_incref(commitfn);
-  fetchix->state=fd_incref(state);
-  if (reg) fd_register_index((fd_index)fetchix);
-  else fetchix->serialno=-1;
-  return (fd_index)fetchix;
+  if (!(goodfunarg(fetchfn))) {
+    fd_seterr(fd_TypeError,"fd_make_extindex","fetch function",
+              fd_incref(fetchfn));
+    return NULL;}
+  else if (!(goodfunarg(commitfn))) {
+    fd_seterr(fd_TypeError,"fd_make_extindex","commit function",
+              fd_incref(commitfn));
+    return NULL;}
+  else {
+    struct FD_EXTINDEX *fetchix=u8_alloc(struct FD_EXTINDEX);
+    FD_INIT_STRUCT(fetchix,struct FD_EXTINDEX);
+    fd_init_index((fd_index)fetchix,&fd_extindex_handler,name,(!(reg)));
+    fetchix->cache_level=1;
+    fetchix->read_only=(FD_VOIDP(commitfn));
+    fetchix->fetchfn=fd_incref(fetchfn);
+    fetchix->commitfn=fd_incref(commitfn);
+    fetchix->state=fd_incref(state);
+    if (reg) fd_register_index((fd_index)fetchix);
+    else fetchix->serialno=-1;
+    return (fd_index)fetchix;}
 }
 
 static fdtype extindex_fetch(fd_index p,fdtype oid)
