@@ -54,7 +54,7 @@ static fdtype oidtag, mongofun, mongouser, mongomd5;
 static fdtype bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
 static fdtype colonize, colonizein, colonizeout, choices, nochoices;
 static fdtype skipsym, limitsym, batchsym, sortsym, sortedsym, writesym;
-static fdtype fieldssym, upsertsym, newsym, removesym, multisym, wtimeoutsym;
+static fdtype fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
 static fdtype max_clients_symbol, max_ready_symbol;
 static fdtype mongomap_symbol, mongovec_symbol;
 
@@ -513,7 +513,7 @@ static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
   fdtype opts=combine_opts(opts_arg,domain->opts), result=FD_VOID;
-  int flags=getflags(opts,FD_MONGODB_DEFAULTS);
+  int flags=getflags(opts,FD_MONGODB_DEFAULTS), hasid=1;
   mongoc_client_t *client=NULL;
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
   if (collection) {
@@ -524,13 +524,16 @@ static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
       fdtype id=fd_get(obj,idsym,FD_VOID);
       if (FD_VOIDP(id)) {
         q.fieldmap=fd_getopt(opts,fieldmap_symbol,FD_VOID);
-        fd_bson_output(q,obj);}
+        fd_bson_output(q,obj);
+        hasid=0;}
       else {
         bson_append_dtype(q,"_id",3,id);
         fd_decref(id);}}
     else bson_append_dtype(q,"_id",3,obj);
-    if (mongoc_collection_remove
-        (collection,MONGOC_REMOVE_SINGLE_REMOVE,q.doc,wc,&error)) {
+    if (mongoc_collection_remove(collection,
+                                 ((hasid)?(MONGOC_REMOVE_SINGLE_REMOVE):
+                                  (MONGOC_REMOVE_NONE)),
+                                 q.doc,wc,&error)) {
       result=FD_TRUE;}
     else {
       fd_seterr(fd_MongoDB_Error,"mongodb_remove",
@@ -565,7 +568,7 @@ static fdtype mongodb_update(fdtype arg,fdtype query,fdtype update,
     mongoc_update_flags_t update_flags=
       (MONGOC_UPDATE_NONE) ||
       ((boolopt(opts,upsertsym,0))?(MONGOC_UPDATE_UPSERT):(0)) ||
-      ((boolopt(opts,multisym,0))?(MONGOC_UPDATE_MULTI_UPDATE):(0));
+      ((boolopt(opts,singlesym,0))?(0):(MONGOC_UPDATE_MULTI_UPDATE));
     if ((q)&&(u))
       success=mongoc_collection_update(collection,update_flags,q,u,wc,&error);
     collection_done(collection,client,domain);
@@ -686,6 +689,52 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
     if (q) bson_destroy(q); 
     fd_decref(opts);
     collection_done(collection,client,domain);
+    return result;}
+  else {
+    fd_decref(opts);
+    return FD_ERROR_VALUE;}
+}
+
+/* Find and Modify */
+
+static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
+                             fdtype opts_arg)
+{
+  struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
+  fdtype opts=combine_opts(opts_arg,domain->opts);
+  int flags=getflags(opts,domain->flags);
+  mongoc_client_t *client;
+  mongoc_collection_t *collection=open_collection(domain,&client,flags);
+  if (collection) {
+    fdtype result=FD_VOID;
+    fdtype sort=fd_getopt(opts,sortsym,FD_VOID);
+    fdtype fields=fd_getopt(opts,fieldssym,FD_VOID);
+    fdtype upsert=fd_getopt(opts,upsertsym,FD_FALSE);
+    fdtype remove=fd_getopt(opts,removesym,FD_FALSE);
+    fdtype donew=fd_getopt(opts,newsym,FD_FALSE);
+    bson_t *q=fd_dtype2bson(query,flags,opts);
+    bson_t *u=fd_dtype2bson(update,flags,opts);
+    bson_t *reply=bson_new(); bson_error_t error;
+    if ((q==NULL)||(u==NULL)) return FD_ERROR_VALUE;
+    if (mongoc_collection_find_and_modify
+        (collection,
+         q,fd_dtype2bson(sort,flags,opts),
+         u,fd_dtype2bson(fields,flags,opts),
+         ((FD_FALSEP(remove))?(false):(true)),
+         ((FD_FALSEP(upsert))?(false):(true)),
+         ((FD_FALSEP(donew))?(false):(true)),
+         reply,&error)) {
+      result=fd_bson2dtype(reply,flags,opts);}
+    else {
+      fd_seterr(fd_MongoDB_Error,"mongodb_modify",
+                u8_mkstring("%s>%s>%s:%s",
+                            domain->uri,domain->dbname,domain->name,
+                            error.message),
+                fd_make_pair(query,update));
+      result=FD_ERROR_VALUE;}
+    bson_destroy(q); bson_destroy(u);
+    bson_destroy(reply);
+    fd_decref(opts);
     return result;}
   else {
     fd_decref(opts);
@@ -892,52 +941,6 @@ static fdtype mongodb_simple_command(int n,fdtype *args)
   else result=fd_type_error(_("MongoDB"),"mongodb_command",arg);
   fd_decref(command);
   return result;
-}
-
-/* Find and Modify */
-
-static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
-                             fdtype opts_arg)
-{
-  struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  fdtype opts=combine_opts(opts_arg,domain->opts);
-  int flags=getflags(opts,domain->flags);
-  mongoc_client_t *client;
-  mongoc_collection_t *collection=open_collection(domain,&client,flags);
-  if (collection) {
-    fdtype result=FD_VOID;
-    fdtype sort=fd_getopt(opts,sortsym,FD_VOID);
-    fdtype fields=fd_getopt(opts,fieldssym,FD_VOID);
-    fdtype upsert=fd_getopt(opts,upsertsym,FD_FALSE);
-    fdtype remove=fd_getopt(opts,removesym,FD_FALSE);
-    fdtype donew=fd_getopt(opts,newsym,FD_FALSE);
-    bson_t *q=fd_dtype2bson(query,flags,opts);
-    bson_t *u=fd_dtype2bson(update,flags,opts);
-    bson_t *reply=bson_new(); bson_error_t error;
-    if ((q==NULL)||(u==NULL)) return FD_ERROR_VALUE;
-    if (mongoc_collection_find_and_modify
-        (collection,
-         q,fd_dtype2bson(sort,flags,opts),
-         u,fd_dtype2bson(fields,flags,opts),
-         ((FD_FALSEP(remove))?(false):(true)),
-         ((FD_FALSEP(upsert))?(false):(true)),
-         ((FD_FALSEP(donew))?(false):(true)),
-         reply,&error)) {
-      result=fd_bson2dtype(reply,flags,opts);}
-    else {
-      fd_seterr(fd_MongoDB_Error,"mongodb_modify",
-                u8_mkstring("%s>%s>%s:%s",
-                            domain->uri,domain->dbname,domain->name,
-                            error.message),
-                fd_make_pair(query,update));
-      result=FD_ERROR_VALUE;}
-    bson_destroy(q); bson_destroy(u);
-    bson_destroy(reply);
-    fd_decref(opts);
-    return result;}
-  else {
-    fd_decref(opts);
-    return FD_ERROR_VALUE;}
 }
 
 /* Cursor creation */
@@ -2134,7 +2137,7 @@ FD_EXPORT int fd_init_mongodb()
   sortsym=fd_intern("SORT");
   fieldssym=fd_intern("FIELDS");
   upsertsym=fd_intern("UPSERT");
-  multisym=fd_intern("MULTI");
+  singlesym=fd_intern("SINGLE");
   wtimeoutsym=fd_intern("WTIMEOUT");
   writesym=fd_intern("WRITE");
   newsym=fd_intern("NEW");
