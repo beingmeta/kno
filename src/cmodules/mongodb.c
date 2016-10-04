@@ -34,6 +34,7 @@ u8_condition fd_MongoDB_Error=_("MongoDB error");
 u8_condition fd_BSON_Error=_("BSON conversion error");
 u8_condition fd_MongoDB_Warning=_("MongoDB warning");
 u8_condition fd_BSON_Input_Error=_("BSON input error");
+u8_condition fd_BSON_Compound_Overflow=_("BSON/FramerD compound overflow");
 
 static fdtype sslsym;
 static int default_ssl=0;
@@ -1555,8 +1556,40 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
       value=fd_init_slotmap(NULL,0,NULL);
       while (bson_iter_next(&child))
         bson_read_step(r,value,NULL);
-      /* if (fd_test(value,fdtag_symbol,FD_VOID)) {} */
-    }
+      if (fd_test(value,fdtag_symbol,FD_VOID)) {
+        fdtype tag=fd_get(value,fdtag_symbol,FD_VOID), compound;
+        struct FD_COMPOUND_ENTRY *entry=fd_lookup_compound(tag);
+        fdtype fields[16], keys=fd_getkeys(value);
+        int max=-1, i=0, n, ok=1; 
+        while (i<16) fields[i++]=FD_VOID;
+        {FD_DO_CHOICES(key,keys) {
+            if (FD_FIXNUMP(key)) {
+              int index=FD_FIX2INT(key);
+              if ((index<0) || (index>=16)) {
+                i=0; while (i<16) {
+                  fdtype value=fields[i++];
+                  fd_decref(value);}
+                u8_log(LOG_WARN,fd_BSON_Compound_Overflow,
+                       "Compound of type %q: %q",tag,value);
+                FD_STOP_DO_CHOICES;
+                ok=0;
+                break;}
+              if (index>max) max=index;
+              fields[index]=fd_get(value,key,FD_VOID);}}}
+        if (ok) {
+          n=max+1;
+          if ((entry)&&(entry->parser))
+            compound=entry->parser(n,fields,entry);
+          else {
+            struct FD_COMPOUND *c=
+              u8_malloc(sizeof(struct FD_COMPOUND)+(n*sizeof(fdtype)));
+            fdtype *cdata=&(c->elt0); fd_init_compound(c,tag,0,0);
+            c->n_elts=n;
+            memcpy(cdata,fields,n);
+            compound=FDTYPE_CONS(c);}
+          fd_decref(value); 
+          value=compound;}
+        fd_decref(keys); fd_decref(tag);}}
     else if (BSON_ITER_HOLDS_ARRAY(in)) {
       unsigned int len; fdtype *data;
       int flags=b.flags, choicevals=(flags&FD_MONGODB_CHOICEVALS);
