@@ -872,7 +872,8 @@ static fdtype parse_text_packet(U8_INPUT *in)
             char xbuf[4];
             xbuf[0]=(char) c1; xbuf[1]=(char) c2; xbuf[2]='\0';
             c=strtol(xbuf,NULL,16);
-            data[len++]=c;}
+            data[len++]=c;
+            break;}
           else {
             struct U8_OUTPUT tmpout; u8_byte buf[16];
             U8_INIT_FIXED_OUTPUT(&tmpout,16,buf);
