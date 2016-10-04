@@ -58,7 +58,7 @@ fd_exception fd_UnterminatedBlockComment=_("Unterminated block (#|..|#) comment"
 
 int fd_unparse_maxelts=0;
 int fd_unparse_maxchars=0;
-int fd_packet_outfmt=8;
+int fd_packet_outfmt=-1;
 
 int fd_interpret_pointers=1;
 
@@ -212,7 +212,7 @@ static int get_packet_base(const unsigned char *bytes,int len)
     while (scan<limit) {
       int c=*scan++;
       if ((c>=128)||(iscntrl(c))) weird++;}
-    if ((weird*3)>len) return 16;
+    if ((weird*4)>len) return 16;
     else return 8;}
 }
 
@@ -1345,7 +1345,7 @@ static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
         int n_bytes=packet->length;
         u8_puts(out," ");
         fd_unparse_packet(out,bytes,n_bytes,16);}
-      else u8_printf(out," %q",data[i]);}
+      else u8_printf(out," %q",elt);}
     u8_printf(out,")");
     return 1;}
 }
