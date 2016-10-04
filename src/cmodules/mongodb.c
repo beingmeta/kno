@@ -55,7 +55,7 @@ static fdtype bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
 static fdtype colonize, colonizein, colonizeout, choices, nochoices;
 static fdtype skipsym, limitsym, batchsym, sortsym, sortedsym, writesym;
 static fdtype fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
-static fdtype max_clients_symbol, max_ready_symbol;
+static fdtype max_clients_symbol, max_ready_symbol, returnsym;
 static fdtype mongomap_symbol, mongovec_symbol;
 
 static void grab_mongodb_error(bson_error_t *error,u8_string caller)
@@ -95,6 +95,16 @@ static u8_string stropt(fdtype opts,fdtype key,u8_string dflt)
       return NULL;}}
   else if (dflt==NULL) return dflt;
   else return u8_strdup(dflt);
+}
+
+static bson_t *get_projection(fdtype opts,int flags)
+{
+  fdtype projection=fd_getopt(opts,returnsym,FD_VOID);
+  if ((FD_CONSP(projection))&&(FD_TABLEP(projection))) {
+    bson_t *fields=fd_dtype2bson(projection,flags,opts);
+    fd_decref(projection);
+    return fields;}
+  else return NULL;
 }
 
 static int grow_dtype_vec(fdtype **vecp,size_t n,size_t *vlenp)
@@ -620,10 +630,11 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     fdtype *vec=NULL; size_t n=0, max=0;
     if ((FD_FIXNUMP(skip_arg))&&(FD_FIXNUMP(limit_arg))&&(FD_FIXNUMP(batch_arg))) {
       bson_t *q=fd_dtype2bson(query,flags,opts);
+      bson_t *fields=get_projection(opts,flags);
       if (q) cursor=mongoc_collection_find
                (collection,MONGOC_QUERY_NONE,
                 FD_FIX2INT(skip_arg),FD_FIX2INT(limit_arg),FD_FIX2INT(batch_arg),
-                q,NULL,NULL);
+                q,fields,NULL);
       if (cursor) {
         while (mongoc_cursor_next(cursor,&doc)) {
           /* u8_string json=bson_as_json(doc,NULL); */
@@ -645,7 +656,8 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
             FD_ADD_TO_CHOICE(results,r);}}
         mongoc_cursor_destroy(cursor);}
       else results=fd_err(fd_MongoDB_Error,"mongodb_find","couldn't get cursor",opts);
-      if (q) bson_destroy(q);}
+      if (q) bson_destroy(q);
+      if (fields) bson_destroy(fields);}
     else {
       results=fd_err(fd_TypeError,"mongodb_find","bad skip/limit/batch",opts);
       sort_results=0;}
@@ -671,8 +683,8 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
   if (collection) {
     mongoc_cursor_t *cursor; bson_error_t error;
     const bson_t *doc;
-    bson_t *q;
-    if (FD_TABLEP(query))
+    bson_t *q, *fields=get_projection(opts,flags);
+   if ((!(FD_OIDP(query)))&&(FD_TABLEP(query)))
       q=fd_dtype2bson(query,flags,opts);
     else {
       struct FD_BSON_OUTPUT out;
@@ -682,11 +694,12 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
       bson_append_dtype(out,"_id",3,query);
       q=out.doc;}
     if (q) cursor=mongoc_collection_find
-             (collection,MONGOC_QUERY_NONE,0,1,0,q,NULL,NULL);
+             (collection,MONGOC_QUERY_NONE,0,1,0,q,fields,NULL);
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
       result=fd_bson2dtype((bson_t *)doc,flags,opts);}
     if (cursor) mongoc_cursor_destroy(cursor);
     if (q) bson_destroy(q); 
+    if (fields) bson_destroy(fields); 
     fd_decref(opts);
     collection_done(collection,client,domain);
     return result;}
@@ -2140,6 +2153,7 @@ FD_EXPORT int fd_init_mongodb()
   singlesym=fd_intern("SINGLE");
   wtimeoutsym=fd_intern("WTIMEOUT");
   writesym=fd_intern("WRITE");
+  returnsym=fd_intern("RETURN");
   newsym=fd_intern("NEW");
   removesym=fd_intern("REMOVE");
   sortedsym=fd_intern("SORTED");
