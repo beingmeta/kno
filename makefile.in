@@ -885,8 +885,8 @@ debian deb debs: dist/debs.done
 metadebs: dist/metadebs.done
 
 cleandist cleanrpms cleandeb rpmclean debclean: 
-	rm -rf dist/rpms.done dist/rpms.ready dist/debs.done dist/debs.ready
-	rm -f dist/debs.signed dist/debs.built dist/metadebs.built
+	rm -rf dist/rpms.done dist/rpms.ready
+	rm -f dist/debs.signed dist/debs.built dist/debs.done dist/metadebs.built
 	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes
 	find dist -name "*.rpm" | xargs -r rm
 	rm -rf staging/framerd*
@@ -969,7 +969,7 @@ dist/rpms.zip: dist/rpms.done
 
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
-	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \                             \
+	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
 	touch dist/debs.built;
 dist/debs.signed: dist/debs.built
 	(cd staging; debsign --re-sign -k${GPGID} framerd_@FDVERSION@*.changes) && \
