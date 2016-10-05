@@ -330,6 +330,8 @@ AC_ARG_WITH(copyfile,--with-copyfile command,with_copyfile=$withval,with_copyfil
 COPYFILE=$with_copyfile
 AC_ARG_WITH(touchfile,--with-touchfile command,with_touchfile=$withval,with_touchfile=$TOUCHFILE_DEFAULT)
 TOUCHFILE=$with_touchfile
+AC_ARG_WITH(apxs,--with-apxs command,with_apxs=$withval,with_apxs=$APXS)
+APXS=$with_apxs
 
 AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 

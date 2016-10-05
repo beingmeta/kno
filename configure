@@ -836,6 +836,7 @@ with_chgrp
 with_deletefile
 with_copyfile
 with_touchfile
+with_apxs
 with_rpath
 with_codename
 with_sanitize
@@ -1566,6 +1567,7 @@ Optional Packages:
 --with-deletefile command
 --with-copyfile command
 --with-touchfile command
+--with-apxs command
 --with-rpath dir
 --with-codename for distribution
 --with-sanitize=address*|memory|thread
@@ -3811,6 +3813,15 @@ else
 fi
 
 TOUCHFILE=$with_touchfile
+
+# Check whether --with-apxs was given.
+if test "${with_apxs+set}" = set; then :
+  withval=$with_apxs; with_apxs=$withval
+else
+  with_apxs=$APXS
+fi
+
+APXS=$with_apxs
 
 
 # Check whether --with-rpath was given.
