@@ -969,13 +969,15 @@ dist/rpms.zip: dist/rpms.done
 
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
-	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
+	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \                             \
+	touch dist/debs.built;
+dist/debs.signed: dist/debs.built
 	(cd staging; debsign --re-sign -k${GPGID} framerd_@FDVERSION@*.changes) && \
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
 	(cd staging; mv framerd*_@FDVERSION@*.*               \
 			libapache2-mod-fdserv_@FDVERSION@*.deb  \
 			../dist) &&                             \
-	touch dist/debs.built;
+	touch dist/debs.signed;
 
 dist/metadebs.built:
 	(cd dist/stacks; equivs-build -f bmstack) &&                      \
@@ -986,7 +988,7 @@ dist/metadebs.built:
 	(cd dist/stacks; equivs-build -f bmdevstack) &&                   \
 	(cd dist/stacks; equivs-build -f bmfakestack) &&                  \
 	touch dist/metadebs.built;
-dist/debs.done: dist/debs.built
+dist/debs.done: dist/debs.signed
 	touch dist/debs.done
 
 dist/metadebs.done: dist/metadebs.built
@@ -1008,7 +1010,7 @@ update-apt: dist/debs.done
 	  rm -f $${change}; \
 	done
 
-apt-upload upload-apt: dist/debs.done
+apt-upload upload-apt upload-deb: dist/debs.done
 	cd dist; for change in *.changes; do \
 	  dupload -c --nomail --to ${CODENAME} $${change} && \
 	  rm -f $${change}; \
