@@ -1036,8 +1036,6 @@ elif test x$with_mysql = "xyes"; then
 elif test x$with_mysql != "xno"; then
   MYSQL_CFLAGS="-I$with_mysql/include"
   MYSQL_LDFLAGS="-I$with_mysql/lib"
-  AC_CHECK_HEADER(mysql/mysql.h)
-  AC_CHECK_LIB(libmysqlclient_r,my_init)
 fi
 
 if test x$with_mysql != "xno"; then
@@ -1070,8 +1068,6 @@ if test $have_sqlite3_h = "yes"; then
   CMODULES="lib/framerd/sqlite.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-sqlite ${INSTALLCMODULES}"
 fi
-
-AC_CHECK_HEADER(mysql/mysql.h,have_mysql_h="yes",have_mysql_h="no")
 
 AC_CHECK_HEADER(regex.h,have_regex_h="yes",have_regex_h="no")
 if (test "x$have_regex_h" = "xyes"); then
