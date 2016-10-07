@@ -271,9 +271,9 @@ static fdtype statinterval_get(fdtype var,void *data)
 #define STATUS_LINE_CURRENT \
   "[%*t] %d/%d/%d/%d current busy/waiting/connections/threads\t\t[@%f]\n"
 #define STATUS_LINE_AGGREGATE \
-  "[%*t] %d/%d/%d connected/requested/failed over %0.3f%s uptime\n"
+  "[%*t] %d/%d/%d accepts/requests/failures over %0.3f%s uptime\n"
 #define STATUS_LINE_TIMING \
-  "[%*t] Average %0.3f%s response (max=%0.3f%s), %0.3f%s run (max=%0.3f%s)\n"
+  "[%*t] Average %0.3f%s response (max=%0.3f%s), %0.3f%s avg cpu (max=%0.3f%s)\n"
 #define STATUS_LOG_SNAPSHOT \
   "[%*t][%f] %d/%d/%d/%d busy/waiting/connections/threads, %d/%d/%d reqs/resps/errs, response: %0.2fus, max=%ldus, run: %0.2fus, max=%ldus"
 #define STATUSLOG_LINE "%*t\t%f\t%d\t%d\t%d\t%d\t%0.2f\t%0.2f\n"
