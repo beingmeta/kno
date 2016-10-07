@@ -513,6 +513,7 @@ static fdtype fetchurl(struct FD_CURL_HANDLE *h,u8_string urltext)
     fdtype errval=
       fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
     fd_decref(result); u8_free(data.bytes);
+    if (consed_handle) {fd_decref((fdtype)h);}
     return errval;}
   handlefetchresult(h,result,&data);
   if (consed_handle) {fd_decref((fdtype)h);}
@@ -537,6 +538,7 @@ static fdtype fetchurlhead(struct FD_CURL_HANDLE *h,u8_string urltext)
     char buf[CURL_ERROR_SIZE];
     fdtype errval=fd_err(CurlError,"fetchurl",getcurlerror(buf,retval),url);
     fd_decref(result); u8_free(data.bytes);
+    if (consed_handle) {fd_decref((fdtype)h);}
     return errval;}
   handlefetchresult(h,result,&data);
   if (consed_handle) {fd_decref((fdtype)h);}
@@ -635,9 +637,9 @@ static fdtype urlget(fdtype url,fdtype curl)
   if (FD_ABORTP(conn)) return conn;
   else if (!(FD_PRIM_TYPEP(conn,fd_curl_type)))
     return fd_type_error("CURLCONN","urlget",conn);
-  else if (!((FD_STRINGP(url))||(FD_PRIM_TYPEP(url,fd_secret_type))))
-    return fd_type_error("string","urlget",url);
-  result=fetchurl((fd_curl_handle)conn,FD_STRDATA(url));
+  else if (!((FD_STRINGP(url))||(FD_PRIM_TYPEP(url,fd_secret_type)))) {
+    result=fd_type_error("string","urlget",url);}
+  else result=fetchurl((fd_curl_handle)conn,FD_STRDATA(url));
   fd_decref(conn);
   return result;
 }
@@ -649,7 +651,7 @@ static fdtype urlhead(fdtype url,fdtype curl)
   else if (!(FD_PRIM_TYPEP(conn,fd_curl_type)))
     return fd_type_error("CURLCONN","urlhead",conn);
   else if (!((FD_STRINGP(url))||(FD_PRIM_TYPEP(url,fd_secret_type))))
-    return fd_type_error("string","urlhead",url);
+    result=fd_type_error("string","urlhead",url);
   result=fetchurlhead((fd_curl_handle)conn,FD_STRDATA(url));
   fd_decref(conn);
   return result;
@@ -699,6 +701,7 @@ static fdtype urlput(fdtype url,fdtype content,fdtype ctype,fdtype curl)
     char buf[CURL_ERROR_SIZE];
     fdtype errval=fd_err(CurlError,"urlput",getcurlerror(buf,retval),url);
     fd_decref(result); u8_free(data.bytes);
+    fd_decref(conn);
     return errval;}
   else handlefetchresult(h,result,&data);
   fd_decref(conn);
@@ -712,13 +715,15 @@ static fdtype urlcontent(fdtype url,fdtype curl)
   fdtype result, conn=curl_arg(curl,"urlcontent"), content;
   if (FD_ABORTP(conn)) return conn;
   else if (!(FD_PRIM_TYPEP(conn,fd_curl_type)))
-    return fd_type_error("CURLCONN","urlcontent",conn);
-  result=fetchurl((fd_curl_handle)conn,FD_STRDATA(url));
+    result=fd_type_error("CURLCONN","urlcontent",conn);
+  else result=fetchurl((fd_curl_handle)conn,FD_STRDATA(url));
   fd_decref(conn);
-  if (FD_ABORTP(result)) return result;
-  content=fd_get(result,content_symbol,FD_EMPTY_CHOICE);
-  fd_decref(result);
-  return content;
+  if (FD_ABORTP(result)) {
+    return result;}
+  else {
+    content=fd_get(result,content_symbol,FD_EMPTY_CHOICE);
+    fd_decref(result);
+    return content;}
 }
 
 static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
@@ -749,14 +754,14 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
     char buf[CURL_ERROR_SIZE];
     fdtype errval=fd_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
     fd_decref(result); u8_free(data.bytes);
-    fd_decref(curl);
+    fd_decref(conn);
     return errval;}
   retval=curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
   if (retval!=CURLE_OK) {
     char buf[CURL_ERROR_SIZE];
     fdtype errval=fd_err(CurlError,"urlxml",getcurlerror(buf,retval),url);
     fd_decref(result); u8_free(data.bytes);
-    fd_decref(curl);
+    fd_decref(conn);
     return errval;}
   if (data.size<data.limit) data.bytes[data.size]='\0';
   else {
@@ -940,10 +945,6 @@ static fdtype curlsetopt(fdtype handle,fdtype opt,fdtype value)
       fd_add(curl_defaults,opt,value);
     else fd_store(curl_defaults,opt,value);
     return FD_TRUE;}
-  else if (FD_VOIDP(value)) {
-    struct FD_CURL_HANDLE *h=fd_open_curl_handle();
-    opt=handle; value=opt;
-    return set_curlopt(h,opt,value);}
   else if (FD_PTR_TYPEP(handle,fd_curl_type)) {
     struct FD_CURL_HANDLE *h=FD_GET_CONS(handle,fd_curl_type,fd_curl_handle);
     return set_curlopt(h,opt,value);}
@@ -959,7 +960,16 @@ static fdtype curlopen(int n,fdtype *args)
     fdtype spec=args[0], keys=fd_getkeys(spec);
     FD_DO_CHOICES(key,keys) {
       fdtype v=fd_get(spec,key,FD_VOID);
-      if (!(FD_VOIDP(v))) {set_curlopt(ch,key,v);}
+      if (!(FD_VOIDP(v))) {
+        fdtype setval=set_curlopt(ch,key,v);
+        if (FD_ABORTP(setval)) {
+          fdtype conn= (fdtype) ch;
+          FD_STOP_DO_CHOICES;
+          fd_decref(keys);
+          fd_decref(conn);
+          fd_decref(v);
+          return setval;}
+        else fd_decref(setval);}
       fd_decref(v);}
     fd_decref(keys);
     return (fdtype) ch;}
@@ -969,7 +979,11 @@ static fdtype curlopen(int n,fdtype *args)
     int i=0;
     struct FD_CURL_HANDLE *ch=fd_open_curl_handle();
     while (i<n) {
-      set_curlopt(ch,args[i],args[i+1]);
+      fdtype setv=set_curlopt(ch,args[i],args[i+1]);
+      if (FD_ABORTP(setv)) {
+        fdtype conn = (fdtype) ch;
+        fd_decref(conn);
+        return setv;}
       i=i+2;}
     return (fdtype) ch;}
 }
