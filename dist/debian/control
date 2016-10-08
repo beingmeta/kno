@@ -29,6 +29,14 @@ Depends: ${misc:Depends}, libu8 (>= 2.5.1), libzip4 | libzip2, libssl1.0.0, libc
 Description: This package provides the core libraries, executables, and 
   configuration files for FramerD applications
 
+Package: framerd-core-dbg
+Architecture: any
+Section: debug
+Depends: 
+    framerd-core (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for framerd-core
+
 Package: framerd-builtin
 Architecture: any
 Depends: ${misc:Depends}, framerd-core
@@ -51,15 +59,42 @@ Architecture: any
 Depends: framerd-core (= ${binary:Version}), libmysqlclient | libmysqlclient20 | libmysqlclient19 | libmysqlclient18
 Description: MYSQL bindings for FramerD
 
+Package: framerd-mysql-dbg
+Architecture: any
+Section: debug
+Depends: 
+    framerd-core-dbg (= ${binary:Version}),
+    framerd-mysql (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for framerd-mysql
+
 Package: framerd-sqlite
 Architecture: any
 Depends: framerd-core (= ${binary:Version}), sqlite
 Description: SQLite bindings for FramerD
 
+Package: framerd-sqlite-dbg
+Architecture: any
+Section: debug
+Depends: 
+    framerd-core-dbg (= ${binary:Version}),
+    framerd-sqlite (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for framerd-sqlite
+
 Package: framerd-mongodb
 Architecture: any
 Depends: framerd-core (= ${binary:Version}), libbson-dev, libmongoc-dev
 Description: MongoDB interface for FramerD
+
+Package: framerd-mongodb-dbg
+Architecture: any
+Section: debug
+Depends: 
+    framerd-core-dbg (= ${binary:Version}),
+    framerd-mongodb (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for framerd-mongodb
 
 Package: framerd-imagetools
 Architecture: any
@@ -68,15 +103,42 @@ Description: Image tools for FramerD
   Bindings to various image libraries modules for FramerD,
   including ImageMagick, QRCode generation, and EXIF extraction.
 
+Package: framerd-imagetools-dbg
+Architecture: any
+Section: debug
+Depends: 
+    framerd-core-dbg (= ${binary:Version}),
+    framerd-imagetools (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for framerd-imagetools
+
 Package: framerd-sundown
 Architecture: any
 Depends: framerd-core (= ${binary:Version})
 Description: Markdown conversion (bindings) for FramerD
 
+Package: framerd-sundown-dbg
+Architecture: any
+Section: debug
+Depends: 
+    framerd-core-dbg (= ${binary:Version}),
+    framerd-sundown (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for framerd-sundown
+
 Package: framerd-tidy
 Architecture: any
 Depends: framerd-core (= ${binary:Version}), tidy
 Description: HTML Tidy (bindings) for FramerD
+
+Package: framerd-tidy-dbg
+Architecture: any
+Section: debug
+Depends: 
+    framerd-core-dbg (= ${binary:Version}),
+    framerd-tidy (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for framerd-tidy
 
 Package: framerd-doc
 Architecture: any
