@@ -64,6 +64,31 @@ static void grab_mongodb_error(bson_error_t *error,u8_string caller)
   u8_seterr(cond,caller,u8_strdup(error->message));
 }
 
+#define MONGODB_CLIENT_BLOCK 1
+#define MONGODB_CLIENT_NOBLOCK 0
+
+static mongoc_client_t *get_client(FD_MONGODB_DATABASE *server,int block)
+{
+  mongoc_client_t *client;
+  if (block) {
+    u8_log(LOG_DEBUG,_("MongoDB/getclient"),
+           "Getting client from server %llx (%s)",server->pool,server->spec);
+    client=mongoc_client_pool_pop(server->pool);}
+  else client=mongoc_client_pool_try_pop(server->pool);
+  u8_log(LOG_DEBUG,_("MongoDB/gotclient"),
+         "Got client %llx from server %llx (%s)",
+         client,server->pool,server->spec);
+  return client;
+}
+
+static void release_client(FD_MONGODB_DATABASE *server,mongoc_client_t *client)
+{
+  u8_log(LOG_DEBUG,_("MongoDB/freeclient"),
+         "Releasing client %llx to server %llx (%s)",
+         client,server->pool,server->spec);
+  mongoc_client_pool_push(server->pool,client);
+}
+
 static int boolopt(fdtype opts,fdtype key,int dflt)
 {
   if (FD_TABLEP(opts)) {
@@ -403,10 +428,7 @@ mongoc_collection_t *open_collection(struct FD_MONGODB_COLLECTION *domain,
 {
   struct FD_MONGODB_DATABASE *server=
     (struct FD_MONGODB_DATABASE *)(domain->server);
-  mongoc_client_t *client;
-  if (flags&FD_MONGODB_NOBLOCK)
-    client=mongoc_client_pool_try_pop(server->pool);
-  else client=mongoc_client_pool_pop(server->pool);
+  mongoc_client_t *client=get_client(server,(!(flags&FD_MONGODB_NOBLOCK)));
   if (client) {
     mongoc_collection_t *collection=
       mongoc_client_get_collection(client,domain->dbname,domain->name);
@@ -414,7 +436,7 @@ mongoc_collection_t *open_collection(struct FD_MONGODB_COLLECTION *domain,
       *clientp=client;
       return collection;}
     else {
-      mongoc_client_pool_push(server->pool,client);
+      release_client(server,client);
       return NULL;}}
   else return NULL;
 }
@@ -443,12 +465,12 @@ static void client_done(fdtype arg,mongoc_client_t *client)
 {
   if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) {
     struct FD_MONGODB_DATABASE *server=(struct FD_MONGODB_DATABASE *)arg;
-    mongoc_client_pool_push(server->pool,client);}
+    release_client(server,client);}
   else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) {
     struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
     struct FD_MONGODB_DATABASE *server=
       (struct FD_MONGODB_DATABASE *)(domain->server);
-    mongoc_client_pool_push(server->pool,client);}
+    release_client(server,client);}
   else {
     u8_log(LOG_WARN,"BAD client_done call","Wrong type for %q",arg);}
 }
@@ -460,7 +482,7 @@ static void collection_done(mongoc_collection_t *collection,
 {
   struct FD_MONGODB_DATABASE *server=(fd_mongodb_database)domain->server;
   mongoc_collection_destroy(collection);
-  mongoc_client_pool_push(server->pool,client);
+  release_client(server,client);
 }
 
 /* Basic operations on collections */
@@ -827,7 +849,7 @@ static fdtype db_command(fdtype arg,fdtype command,
   int flags=getflags(opts_arg,srv->flags);
   fdtype opts=combine_opts(opts_arg,srv->opts);
   fdtype fields=fd_getopt(opts,fieldssym,FD_VOID);
-  mongoc_client_t *client=mongoc_client_pool_pop(srv->pool);
+  mongoc_client_t *client=get_client(srv,MONGODB_CLIENT_BLOCK);
   if (client) {
     fdtype results=FD_EMPTY_CHOICE;
     bson_t *cmd=fd_dtype2bson(command,flags,opts);
@@ -913,7 +935,7 @@ static fdtype db_simple_command(fdtype arg,fdtype command,
   struct FD_MONGODB_DATABASE *srv=(struct FD_MONGODB_DATABASE *)arg;
   int flags=getflags(opts_arg,srv->flags);
   fdtype opts=combine_opts(opts_arg,srv->opts);
-  mongoc_client_t *client=mongoc_client_pool_pop(srv->pool);
+  mongoc_client_t *client=get_client(srv,MONGODB_CLIENT_BLOCK);
   if (client) {
     bson_t response; bson_error_t error;
     bson_t *cmd=fd_dtype2bson(command,flags,opts);
@@ -994,7 +1016,7 @@ static void recycle_cursor(struct FD_CONS *c)
   struct FD_MONGODB_DATABASE *s=(struct FD_MONGODB_DATABASE *)cursor->server;
   mongoc_cursor_destroy(cursor->cursor);
   mongoc_collection_destroy(cursor->collection);
-  mongoc_client_pool_push(s->pool,cursor->connection);
+  release_client(s,cursor->connection);
   fd_decref(cursor->domain);
   fd_decref(cursor->query);
   fd_decref(cursor->opts);
