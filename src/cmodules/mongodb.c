@@ -59,6 +59,7 @@ static fdtype skipsym, limitsym, batchsym, sortsym, sortedsym, writesym, readsym
 static fdtype fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
 static fdtype max_clients_symbol, max_ready_symbol, returnsym;
 static fdtype primarysym, primarypsym, secondarysym, secondarypsym, nearestsym;
+static fdtype poolmaxsym, poolminsym;
 static fdtype mongomap_symbol, mongovec_symbol;
 
 static void grab_mongodb_error(bson_error_t *error,u8_string caller)
@@ -323,9 +324,18 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
   if (client_pool) {
     struct FD_MONGODB_DATABASE *srv=u8_alloc(struct FD_MONGODB_DATABASE);
     u8_string dbname=mongoc_uri_get_database(info);
+    fdtype poolmax=fd_getopt(opts,poolmaxsym,FD_VOID);
+    fdtype poolmin=fd_getopt(opts,poolminsym,FD_VOID);
     if ((mongoc_uri_get_ssl(info))&& 
         (setup_ssl(&ssl_opts,info,opts)))
       mongoc_client_pool_set_ssl_opts(client_pool,&ssl_opts);
+    if (FD_FIXNUMP(poolmax)) {
+      int pmax=FD_FIX2INT(poolmax);
+      mongoc_client_pool_max_size(client_pool,pmax);}
+    if (FD_FIXNUMP(poolmin)) {
+      int pmin=FD_FIX2INT(poolmin);
+      mongoc_client_pool_min_size(client_pool,pmin);}
+    fd_decref(poolmax); fd_decref(poolmin);
     FD_INIT_CONS(srv,fd_mongoc_server);
     srv->uri=uri; 
     if (dbname==NULL) 
@@ -2258,6 +2268,9 @@ FD_EXPORT int fd_init_mongodb()
   secondarysym=fd_intern("SECONDARY");
   secondarypsym=fd_intern("SECONDARY+");
   nearestsym=fd_intern("NEAREST");
+
+  poolmaxsym=fd_intern("POOLMAX");
+  poolminsym=fd_intern("POOLMIN");
 
   fd_mongoc_server=fd_register_cons_type("MongoDB client");
   fd_mongoc_collection=fd_register_cons_type("MongoDB collection");
