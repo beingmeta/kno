@@ -34,6 +34,9 @@ Architecture: any
 Section: debug
 Depends: 
     framerd-core (= ${binary:Version}),
+    libssl1.0.0-dbg,
+    libcurl3-dbg,
+    libu8-dbg,
     ${misc:Depends}
 Description: This package contains the debugging symbols for framerd-core
 
@@ -93,6 +96,8 @@ Section: debug
 Depends: 
     framerd-core-dbg (= ${binary:Version}),
     framerd-mongodb (= ${binary:Version}),
+    libmongoc-dbg,
+    libbson-dbg,
     ${misc:Depends}
 Description: This package contains the debugging symbols for framerd-mongodb
 
@@ -176,3 +181,17 @@ Architecture: any
 Depends: framerd-core
 Conflicts: framerd-upstart, framerd-sysv
 Description: systemd init configuration for FramerD
+
+Package: framerd-dbg
+Architecture: any
+Section: debug
+Depends: 
+    framerd-core-dbg (= ${binary:Version}),
+    framerd-sqlite (= ${binary:Version}),
+    framerd-imagetools-dbg (= ${binary:Version}),
+    framerd-mysql-dbg (= ${binary:Version}),
+    framerd-mongodb-dbg (= ${binary:Version}),
+    framerd-tidy-dbg (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for framerd-sqlite
+
