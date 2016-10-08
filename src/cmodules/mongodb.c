@@ -442,24 +442,6 @@ mongoc_collection_t *open_collection(struct FD_MONGODB_COLLECTION *domain,
   else return NULL;
 }
 
-/*  This combines using the collection with using an opts arg to
-    generate flags and combined opts to use.  */
-mongoc_collection_t *use_collection(struct FD_MONGODB_COLLECTION *domain,
-                                    fdtype opts_arg,
-                                    mongoc_client_t **clientp,
-                                    fdtype *optsp,int *flagsp)
-{
-  struct FD_MONGODB_DATABASE *srv=
-    (struct FD_MONGODB_DATABASE *)(domain->server);
-  int flags=getflags(opts_arg,domain->flags);
-  mongoc_collection_t *collection=open_collection(domain,clientp,flags);
-  if (collection) {
-    if (flagsp) *flagsp=flags;
-    if (optsp) *optsp=combine_opts(opts_arg,domain->opts);
-    return collection;}
-  else return NULL;
-}
-
 /* This returns a client to a client pool.  The argument can be either
    a server or a collection (which is followed to its server). */
 static void client_done(fdtype arg,mongoc_client_t *client)
@@ -768,6 +750,7 @@ static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
                             error.message),
                 fd_make_pair(query,update));
       result=FD_ERROR_VALUE;}
+    collection_done(collection,client,domain);
     bson_destroy(q); bson_destroy(u);
     bson_destroy(reply);
     fd_decref(opts);
@@ -984,11 +967,11 @@ static fdtype mongodb_simple_command(int n,fdtype *args)
 static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
-  int flags=getflags(opts_arg,domain->flags); fdtype opts=FD_VOID;
+  fdtype opts=combine_opts(opts_arg,domain->opts);
+  int flags=getflags(opts,domain->flags);
   mongoc_client_t *connection;
   bson_t *bq=NULL; mongoc_cursor_t *cursor=NULL; bson_error_t error;
-  mongoc_collection_t *collection=
-    use_collection(domain,opts_arg,&connection,&opts,NULL);
+  mongoc_collection_t *collection=open_collection(domain,&connection,flags);
   if (collection) bq=fd_dtype2bson(query,flags,opts);
   if (bq) cursor=mongoc_collection_find
            (collection,MONGOC_QUERY_NONE,0,0,0,bq,NULL,NULL);
@@ -998,7 +981,7 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
     consed->domain=arg; fd_incref(arg);
     consed->server=domain->server; fd_incref(domain->server);
     consed->query=query; fd_incref(query);
-    consed->opts=combine_opts(opts_arg,domain->opts);
+    consed->opts=opts;
     consed->flags=flags;
     consed->bsonquery=bq;
     consed->connection=connection;
