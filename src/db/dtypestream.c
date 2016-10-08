@@ -205,7 +205,7 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
     fsync(s->fd);
     if (s->flags&FD_DTSTREAM_SOCKET)
       shutdown(s->fd,SHUT_RDWR);
-    else close(s->fd);}
+    close(s->fd);}
   s->fd=-1;
   if (s->id) {
     u8_free(s->id);
