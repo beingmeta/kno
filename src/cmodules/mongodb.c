@@ -38,6 +38,7 @@ u8_condition fd_BSON_Compound_Overflow=_("BSON/FramerD compound overflow");
 
 static fdtype sslsym;
 static int default_ssl=0;
+static int client_loglevel=LOG_DEBUG;
 
 static fdtype dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
 static fdtype hosts_symbol, connections_symbol, fieldmap_symbol;
@@ -71,11 +72,11 @@ static mongoc_client_t *get_client(FD_MONGODB_DATABASE *server,int block)
 {
   mongoc_client_t *client;
   if (block) {
-    u8_log(LOG_DEBUG,_("MongoDB/getclient"),
+    u8_log(client_loglevel,_("MongoDB/getclient"),
            "Getting client from server %llx (%s)",server->pool,server->spec);
     client=mongoc_client_pool_pop(server->pool);}
   else client=mongoc_client_pool_try_pop(server->pool);
-  u8_log(LOG_DEBUG,_("MongoDB/gotclient"),
+  u8_log(client_loglevel,_("MongoDB/gotclient"),
          "Got client %llx from server %llx (%s)",
          client,server->pool,server->spec);
   return client;
@@ -83,7 +84,7 @@ static mongoc_client_t *get_client(FD_MONGODB_DATABASE *server,int block)
 
 static void release_client(FD_MONGODB_DATABASE *server,mongoc_client_t *client)
 {
-  u8_log(LOG_DEBUG,_("MongoDB/freeclient"),
+  u8_log(client_loglevel,_("MongoDB/freeclient"),
          "Releasing client %llx to server %llx (%s)",
          client,server->pool,server->spec);
   mongoc_client_pool_push(server->pool,client);
@@ -304,7 +305,7 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
     mongoc_uri_destroy(info); fd_decref(opts); u8_free(uri);
     return fd_type_error("MongoDB client URI","mongodb_open",arg);}
 }
-static void recycle_client(struct FD_CONS *c)
+static void recycle_server(struct FD_CONS *c)
 {
   struct FD_MONGODB_DATABASE *s=(struct FD_MONGODB_DATABASE *)c;
   mongoc_uri_destroy(s->info);
@@ -2111,12 +2112,12 @@ void mongoc_logger(mongoc_log_level_t l,const char *d,const char *m,void *u)
   int u8l=getu8loglevel(l);
   if (u8l<=LOG_CRIT)
     u8_logger(u8l,d,m);
-  else if ((mongodb_ignore_loglevel >= 0)&&
-           (u8l > mongodb_ignore_loglevel))
-    return;
   else if ((mongodb_loglevel >= 0)&&
            (u8l <= mongodb_loglevel))
     u8_logger(-u8l,d,m);
+  else if ((mongodb_ignore_loglevel >= 0)&&
+           (u8l > mongodb_ignore_loglevel))
+    return;
   else u8_logger(u8l,d,m);
 }
 
@@ -2214,11 +2215,11 @@ FD_EXPORT int fd_init_mongodb()
   fd_mongoc_collection=fd_register_cons_type("MongoDB collection");
   fd_mongoc_cursor=fd_register_cons_type("MongoDB cursor");
 
-  fd_type_names[fd_mongoc_server]="MongoDB client";
+  fd_type_names[fd_mongoc_server]="MongoDB server";
   fd_type_names[fd_mongoc_collection]="MongoDB collection";
   fd_type_names[fd_mongoc_cursor]="MongoDB cursor";
 
-  fd_recyclers[fd_mongoc_server]=recycle_client;
+  fd_recyclers[fd_mongoc_server]=recycle_server;
   fd_recyclers[fd_mongoc_collection]=recycle_collection;
   fd_recyclers[fd_mongoc_cursor]=recycle_cursor;
 
@@ -2299,6 +2300,10 @@ FD_EXPORT int fd_init_mongodb()
                      "Default flags (fixnum) for MongoDB/BSON processing",
                      fd_intconfig_get,fd_intconfig_set,&mongodb_defaults);
 
+  fd_register_config("MONGODB:LOGCLIENT",
+                     "Default flags (fixnum) for MongoDB/BSON processing",
+                     fd_intconfig_get,fd_intconfig_set,&client_loglevel);
+
   fd_finish_module(module);
   fd_persist_module(module);
 
@@ -2306,7 +2311,7 @@ FD_EXPORT int fd_init_mongodb()
   atexit(mongoc_cleanup);
 
   mongoc_log_set_handler(mongoc_logger,NULL);
-  fd_register_config("MONGODB:LOG",
+  fd_register_config("MONGODB:LOGLEVEL",
                      "Controls log levels for which messages are always shown",
                      fd_intconfig_get,fd_intconfig_set,&mongodb_loglevel);
   fd_register_config("MONGODB:MAXLOG",
