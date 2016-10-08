@@ -55,9 +55,10 @@ static fdtype idsym, maxkey, minkey;
 static fdtype oidtag, mongofun, mongouser, mongomd5;
 static fdtype bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
 static fdtype colonize, colonizein, colonizeout, choices, nochoices;
-static fdtype skipsym, limitsym, batchsym, sortsym, sortedsym, writesym;
+static fdtype skipsym, limitsym, batchsym, sortsym, sortedsym, writesym, readsym;
 static fdtype fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
 static fdtype max_clients_symbol, max_ready_symbol, returnsym;
+static fdtype primarysym, primarypsym, secondarysym, secondarypsym, nearestsym;
 static fdtype mongomap_symbol, mongovec_symbol;
 
 static void grab_mongodb_error(bson_error_t *error,u8_string caller)
@@ -199,9 +200,8 @@ static int getflags(fdtype opts,int dflt)
   else return dflt;
 }
 
-static int getwriteopts(fdtype opts)
+static int get_write_flags(fdtype val)
 {
-  fdtype val=fd_getopt(opts,writesym,FD_VOID);
   if (FD_VOIDP(val)) 
     return MONGOC_WRITE_CONCERN_W_DEFAULT;
   else if (FD_FALSEP(val))
@@ -213,30 +213,63 @@ static int getwriteopts(fdtype opts)
   else if ((FD_FIXNUMP(val))&&(FD_FIX2INT(val)>0))
     return FD_FIX2INT(val);
   else {
-    u8_log(LOGWARN,"mongodb/getwriteopts","Bad MongoDB write concern %q",val);
+    u8_log(LOGWARN,"mongodb/get_write_concern","Bad MongoDB write concern %q",val);
     return MONGOC_WRITE_CONCERN_W_DEFAULT;}
-}
-
-static void usewriteopts(mongoc_write_concern_t *wc,fdtype opts)
-{
-  int w=getwriteopts(opts);
-  int wait=fd_getopt(opts,wtimeoutsym,FD_VOID);
-  mongoc_write_concern_set_w(wc,w);
-  if (FD_FIXNUMP(wait)) {
-    int msecs=FD_FIX2INT(wait);
-    mongoc_write_concern_set_wtimeout(wc,msecs);}
 }
 
 static mongoc_write_concern_t *get_write_concern(fdtype opts)
 {
-  mongoc_write_concern_t *wc=mongoc_write_concern_new();
-  int w=getwriteopts(opts);
-  int wait=fd_getopt(opts,wtimeoutsym,FD_VOID);
-  mongoc_write_concern_set_w(wc,w);
-  if (FD_FIXNUMP(wait)) {
-    int msecs=FD_FIX2INT(wait);
-    mongoc_write_concern_set_wtimeout(wc,msecs);}
-  return wc;
+  fdtype val=fd_getopt(opts,writesym,FD_VOID);
+  fdtype wait=fd_getopt(opts,wtimeoutsym,FD_VOID);
+  if ((FD_VOIDP(val))&&(FD_VOIDP(wait))) return NULL;
+  else {
+    mongoc_write_concern_t *wc=mongoc_write_concern_new();
+    if (!(FD_VOIDP(val))) {
+      int w=get_write_flags(val);
+      mongoc_write_concern_set_w(wc,w);}
+    if (FD_FIXNUMP(wait)) {
+      int msecs=FD_FIX2INT(wait);
+      mongoc_write_concern_set_wtimeout(wc,msecs);}
+    fd_decref(wait);
+    fd_decref(val);
+    return wc;}
+}
+
+static int getreadmode(fdtype val)
+{
+  if (FD_EQ(val,primarysym))
+    return MONGOC_READ_PRIMARY;
+  else if (FD_EQ(val,primarypsym))
+    return MONGOC_READ_PRIMARY_PREFERRED;
+  else if (FD_EQ(val,secondarysym))
+    return MONGOC_READ_SECONDARY;
+  else if (FD_EQ(val,secondarypsym))
+    return MONGOC_READ_SECONDARY_PREFERRED;
+  else if (FD_EQ(val,nearestsym))
+    return MONGOC_READ_NEAREST;
+  else {
+    u8_log(LOGWARN,"mongodb/getreadmode","Bad MongoDB read mode %q",val);
+    return MONGOC_READ_PRIMARY;}
+}
+
+static mongoc_read_prefs_t *get_read_prefs(fdtype opts)
+{
+  fdtype spec=fd_getopt(opts,readsym,FD_VOID);
+  if (FD_VOIDP(spec)) return NULL;
+  else {
+    mongoc_read_prefs_t *rp=mongoc_read_prefs_new(MONGOC_READ_PRIMARY);
+    int flags=getflags(opts,mongodb_defaults);
+    FD_DO_CHOICES(s,spec) {
+      if (FD_SYMBOLP(s)) {
+        int p=getreadmode(s);
+        mongoc_read_prefs_set_mode(rp,p);}
+      else if (FD_TABLEP(s)) {
+        const bson_t *bson=fd_dtype2bson(s,flags,opts);
+        mongoc_read_prefs_add_tag(rp,bson);}
+      else {
+        u8_log(LOGWARN,"mongodb/getreadmode","Bad MongoDB read preference %q",s);}}
+    fd_decref(spec);
+    return rp;}
 }
 
 static fdtype combine_opts(fdtype opts,fdtype clopts)
@@ -649,12 +682,13 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     if ((FD_FIXNUMP(skip_arg))&&(FD_FIXNUMP(limit_arg))&&(FD_FIXNUMP(batch_arg))) {
       bson_t *q=fd_dtype2bson(query,flags,opts);
       bson_t *fields=get_projection(opts,flags);
+      mongoc_read_prefs_t *rp=get_read_prefs(opts);
       if ((logops)||(flags&FD_MONGODB_LOGOPS))
         u8_log(-LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
       if (q) cursor=mongoc_collection_find
                (collection,MONGOC_QUERY_NONE,
                 FD_FIX2INT(skip_arg),FD_FIX2INT(limit_arg),FD_FIX2INT(batch_arg),
-                q,fields,NULL);
+                q,fields,rp);
       if (cursor) {
         while (mongoc_cursor_next(cursor,&doc)) {
           /* u8_string json=bson_as_json(doc,NULL); */
@@ -674,6 +708,7 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
             vec[n++]=r;}
           else {
             FD_ADD_TO_CHOICE(results,r);}}
+        if (rp) mongoc_read_prefs_destroy(rp);
         mongoc_cursor_destroy(cursor);}
       else results=fd_err(fd_MongoDB_Error,"mongodb_find","couldn't get cursor",opts);
       if (q) bson_destroy(q);
@@ -704,7 +739,8 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
     mongoc_cursor_t *cursor; bson_error_t error;
     const bson_t *doc;
     bson_t *q, *fields=get_projection(opts,flags);
-   if ((!(FD_OIDP(query)))&&(FD_TABLEP(query)))
+    mongoc_read_prefs_t *rp=get_read_prefs(opts);
+    if ((!(FD_OIDP(query)))&&(FD_TABLEP(query)))
       q=fd_dtype2bson(query,flags,opts);
     else {
       struct FD_BSON_OUTPUT out;
@@ -713,13 +749,14 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
       out.opts=opts;
       bson_append_dtype(out,"_id",3,query);
       q=out.doc;}
-   if ((logops)||(flags&FD_MONGODB_LOGOPS))
-     u8_log(-LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
-   if (q) cursor=mongoc_collection_find
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_log(-LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
+    if (q) cursor=mongoc_collection_find
              (collection,MONGOC_QUERY_NONE,0,1,0,q,fields,NULL);
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
       result=fd_bson2dtype((bson_t *)doc,flags,opts);}
     if (cursor) mongoc_cursor_destroy(cursor);
+    if (rp) mongoc_read_prefs_destroy(rp); 
     if (q) bson_destroy(q); 
     if (fields) bson_destroy(fields); 
     fd_decref(opts);
@@ -2179,6 +2216,7 @@ FD_EXPORT int fd_init_mongodb()
   singlesym=fd_intern("SINGLE");
   wtimeoutsym=fd_intern("WTIMEOUT");
   writesym=fd_intern("WRITE");
+  readsym=fd_intern("READ");
   returnsym=fd_intern("RETURN");
   newsym=fd_intern("NEW");
   removesym=fd_intern("REMOVE");
@@ -2214,6 +2252,12 @@ FD_EXPORT int fd_init_mongodb()
   hosts_symbol=fd_intern("HOSTS");
   connections_symbol=fd_intern("CONNECTIONS");
   fdtag_symbol=fd_intern("%FDTAG");
+
+  primarysym=fd_intern("PRIMARY");
+  primarypsym=fd_intern("PRIMARY+");
+  secondarysym=fd_intern("SECONDARY");
+  secondarypsym=fd_intern("SECONDARY+");
+  nearestsym=fd_intern("NEAREST");
 
   fd_mongoc_server=fd_register_cons_type("MongoDB client");
   fd_mongoc_collection=fd_register_cons_type("MongoDB collection");
