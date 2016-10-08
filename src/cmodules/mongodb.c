@@ -39,6 +39,7 @@ u8_condition fd_BSON_Compound_Overflow=_("BSON/FramerD compound overflow");
 static fdtype sslsym;
 static int default_ssl=0;
 static int client_loglevel=LOG_DEBUG;
+static int logops=0;
 
 static fdtype dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
 static fdtype hosts_symbol, connections_symbol, fieldmap_symbol;
@@ -182,6 +183,7 @@ static int getflags(fdtype opts,int dflt)
     if (fd_overlapp(opts,colonizein)) flags|=FD_MONGODB_COLONIZE_IN;
     if (fd_overlapp(opts,colonizeout)) flags|=FD_MONGODB_COLONIZE_OUT;
     if (fd_overlapp(opts,choices)) flags|=FD_MONGODB_CHOICEVALS;
+    if (fd_overlapp(opts,logops)) flags|=FD_MONGODB_LOGOPS;
     if (fd_overlapp(opts,nochoices)) flags&=(~FD_MONGODB_CHOICEVALS);
     return flags;}
   else if (FD_TABLEP(opts)) {
@@ -300,6 +302,9 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
     srv->info=info; srv->pool=client_pool;
     srv->opts=opts; fd_incref(opts);
     srv->flags=flags;
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_log(-LOG_INFO,"MongoDB/open",
+             "Opened %s with %s",dbname,srv->spec);
     return (fdtype)srv;}
   else {
     mongoc_uri_destroy(info); fd_decref(opts); u8_free(uri);
@@ -483,6 +488,9 @@ static fdtype mongodb_insert(fdtype arg,fdtype obj,fdtype opts_arg)
     if (collection) {
       bson_t reply; bson_error_t error;
       mongoc_write_concern_t *wc=get_write_concern(opts);
+      if ((logops)||(flags&FD_MONGODB_LOGOPS))
+        u8_log(-LOG_INFO,"MongoDB/insert",
+               "Inserting %d items into %q",FD_CHOICE_SIZE(obj),arg);
       if (FD_CHOICEP(obj)) {
         mongoc_bulk_operation_t *bulk=
           mongoc_collection_create_bulk_operation(collection,true,wc);
@@ -545,6 +553,8 @@ static fdtype mongodb_remove(fdtype arg,fdtype obj,fdtype opts_arg)
         bson_append_dtype(q,"_id",3,id);
         fd_decref(id);}}
     else bson_append_dtype(q,"_id",3,obj);
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_log(-LOG_INFO,"MongoDB/remove","Removing %q items from %q",obj,arg);
     if (mongoc_collection_remove(collection,
                                  ((hasid)?(MONGOC_REMOVE_SINGLE_REMOVE):
                                   (MONGOC_REMOVE_NONE)),
@@ -584,6 +594,9 @@ static fdtype mongodb_update(fdtype arg,fdtype query,fdtype update,
       (MONGOC_UPDATE_NONE) ||
       ((boolopt(opts,upsertsym,0))?(MONGOC_UPDATE_UPSERT):(0)) ||
       ((boolopt(opts,singlesym,0))?(0):(MONGOC_UPDATE_MULTI_UPDATE));
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_log(-LOG_INFO,"MongoDB/update",
+             "Updating matches to %q with %q in %q",query,update,arg);
     if ((q)&&(u))
       success=mongoc_collection_update(collection,update_flags,q,u,wc,&error);
     collection_done(collection,client,domain);
@@ -636,6 +649,8 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     if ((FD_FIXNUMP(skip_arg))&&(FD_FIXNUMP(limit_arg))&&(FD_FIXNUMP(batch_arg))) {
       bson_t *q=fd_dtype2bson(query,flags,opts);
       bson_t *fields=get_projection(opts,flags);
+      if ((logops)||(flags&FD_MONGODB_LOGOPS))
+        u8_log(-LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
       if (q) cursor=mongoc_collection_find
                (collection,MONGOC_QUERY_NONE,
                 FD_FIX2INT(skip_arg),FD_FIX2INT(limit_arg),FD_FIX2INT(batch_arg),
@@ -698,7 +713,9 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
       out.opts=opts;
       bson_append_dtype(out,"_id",3,query);
       q=out.doc;}
-    if (q) cursor=mongoc_collection_find
+   if ((logops)||(flags&FD_MONGODB_LOGOPS))
+     u8_log(-LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
+   if (q) cursor=mongoc_collection_find
              (collection,MONGOC_QUERY_NONE,0,1,0,q,fields,NULL);
     if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
       result=fd_bson2dtype((bson_t *)doc,flags,opts);}
@@ -734,6 +751,9 @@ static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
     bson_t *u=fd_dtype2bson(update,flags,opts);
     bson_t *reply=bson_new(); bson_error_t error;
     if ((q==NULL)||(u==NULL)) return FD_ERROR_VALUE;
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_log(-LOG_INFO,"MongoDB/find+modify","Matches to %q using %q in %q",
+             query,update,arg);
     if (mongoc_collection_find_and_modify
         (collection,
          q,fd_dtype2bson(sort,flags,opts),
@@ -2183,6 +2203,7 @@ FD_EXPORT int fd_init_mongodb()
   colonize=fd_intern("COLONIZE");
   colonizein=fd_intern("COLONIZE/IN");
   colonizeout=fd_intern("COLONIZE/OUT");
+  logops=fd_intern("LOGOPS");
   choices=fd_intern("CHOICES");
   nochoices=fd_intern("NOCHOICES");
   fieldmap_symbol=fd_intern("FIELDMAP");
@@ -2286,6 +2307,9 @@ FD_EXPORT int fd_init_mongodb()
   fd_register_config("MONGODB:LOGCLIENT",
                      "Default flags (fixnum) for MongoDB/BSON processing",
                      fd_intconfig_get,fd_intconfig_set,&client_loglevel);
+  fd_register_config("MONGODB:LOGOPS",
+                     "Default flags (fixnum) for MongoDB/BSON processing",
+                     fd_boolconfig_get,fd_boolconfig_set,&logops);
 
   fd_finish_module(module);
   fd_persist_module(module);
