@@ -4,6 +4,7 @@ usr/share/framerd/modules/builtin/brico
 usr/share/framerd/modules/builtin/bugjar
 usr/share/framerd/modules/builtin/aws
 usr/share/framerd/modules/builtin/google
+usr/share/framerd/modules/builtin/dropbox
 usr/share/framerd/modules/builtin/facebook
 usr/share/framerd/modules/builtin/twitter
 usr/share/framerd/modules/builtin/paypal

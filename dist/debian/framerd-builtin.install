@@ -17,6 +17,7 @@ usr/share/framerd/modules/builtin/aws/*.json
 usr/share/framerd/modules/builtin/brico/*.scm
 usr/share/framerd/modules/builtin/brico/*.dtype
 usr/share/framerd/modules/builtin/brico/*.table
+usr/share/framerd/modules/builtin/dropbox/*.scm
 usr/share/framerd/modules/builtin/facebook/*.scm
 usr/share/framerd/modules/builtin/google/*.scm
 usr/share/framerd/modules/builtin/paypal/*.scm
