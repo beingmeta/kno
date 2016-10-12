@@ -38,11 +38,11 @@ u8_condition fd_BSON_Compound_Overflow=_("BSON/FramerD compound overflow");
 
 static fdtype sslsym;
 static int default_ssl=0;
-static int client_loglevel=LOG_DEBUG;
+static int client_loglevel=LOG_INFO;
 static int logops=0;
 
 static fdtype dbname_symbol, username_symbol, auth_symbol, fdtag_symbol;
-static fdtype hosts_symbol, connections_symbol, fieldmap_symbol;
+static fdtype hosts_symbol, connections_symbol, fieldmap_symbol, logopsym;
 
 static struct FD_KEYVAL *mongo_opmap=NULL;
 static int mongo_opmap_size=0, mongo_opmap_space=0;
@@ -185,7 +185,7 @@ static int getflags(fdtype opts,int dflt)
     if (fd_overlapp(opts,colonizein)) flags|=FD_MONGODB_COLONIZE_IN;
     if (fd_overlapp(opts,colonizeout)) flags|=FD_MONGODB_COLONIZE_OUT;
     if (fd_overlapp(opts,choices)) flags|=FD_MONGODB_CHOICEVALS;
-    if (fd_overlapp(opts,logops)) flags|=FD_MONGODB_LOGOPS;
+    if (fd_overlapp(opts,logopsym)) flags|=FD_MONGODB_LOGOPS;
     if (fd_overlapp(opts,nochoices)) flags&=(~FD_MONGODB_CHOICEVALS);
     return flags;}
   else if (FD_TABLEP(opts)) {
@@ -2251,7 +2251,7 @@ FD_EXPORT int fd_init_mongodb()
   colonize=fd_intern("COLONIZE");
   colonizein=fd_intern("COLONIZE/IN");
   colonizeout=fd_intern("COLONIZE/OUT");
-  logops=fd_intern("LOGOPS");
+  logopsym=fd_intern("LOGOPS");
   choices=fd_intern("CHOICES");
   nochoices=fd_intern("NOCHOICES");
   fieldmap_symbol=fd_intern("FIELDMAP");
@@ -2346,16 +2346,21 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprim1x("MONGODB/SPEC",mongodb_spec,1,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("MONGODB/URI",mongodb_uri,1,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("MONGODB/OPTS",mongodb_opts,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/SERVER",mongodb_server,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/GETCOLLECTION",mongodb_getcollection,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("COLLECTION/NAME",mongodb_collection_name,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/SERVER",
+                                  mongodb_server,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/GETCOLLECTION",
+                                  mongodb_getcollection,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("COLLECTION/NAME",
+                                  mongodb_collection_name,1,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim2x("MONGODB/INFO",mongodb_getinfo,1,
                                   fd_mongoc_server,FD_VOID,
                                   -1,FD_VOID));
 
   fd_idefn(module,fd_make_cprim1x("MONGODB?",mongodbp,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/COLLECTION?",mongodb_collectionp,1,-1,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("MONGODB/CURSOR?",mongodb_cursorp,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/COLLECTION?",
+                                  mongodb_collectionp,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/CURSOR?",
+                                  mongodb_cursorp,1,-1,FD_VOID));
 
   fd_register_config("MONGODB:FLAGS",
                      "Default flags (fixnum) for MongoDB/BSON processing",
