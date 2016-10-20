@@ -421,14 +421,17 @@
 /* Whether we have the magick_wand.h header file */
 #undef HAVE_MAGICK_WAND_H
 
+/* Whether we have the tidy/tidy.h header file */
+#undef HAVE_TIDY_TIDY_H
+
+/* Whether we have the tidybuffio.h header file */
+#undef HAVE_TIDY_TIDYBUFFIO_H
+
 /* Whether we have the tidy.h header file */
 #undef HAVE_TIDY_H
 
 /* Whether we have the tidybuffio.h header file */
 #undef HAVE_TIDYBUFFIO_H
-
-/* Whether we have the tidy/tidy.h header file */
-#undef HAVE_TIDY_TIDY_H
 
 /* Whether we have the waitpid function */
 #undef HAVE_WAITPID

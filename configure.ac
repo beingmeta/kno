@@ -1109,19 +1109,22 @@ fi
 AC_ARG_WITH(tidy,--with-tidy Build and install tidy library,,with_tidy="yes")
 
 if test "x$with_tidy" == "xyes"; then
-AC_CHECK_HEADER(tidy.h,have_tidy_h="yes",have_tidy_h="no")
-if (test "x$have_tidy_h" = "xyes"); then
-  AC_DEFINE(HAVE_TIDY_H,1)
-fi
-AC_CHECK_HEADER(tidybuffio.h,have_tidybuffio_h="yes",have_tidybuffio_h="no")
-if (test "x$have_tidybuffio_h" = "xyes"); then
-  AC_DEFINE(HAVE_TIDYBUFFIO_H,1)
-fi
-if (test "x$have_tidy_h" = "xno"); then
-   AC_CHECK_HEADER(tidy/tidy.h,have_tidy_tidy_h="yes",have_tidy_tidy_h="no")
-fi
+AC_CHECK_HEADER(tidy/tidy.h,have_tidy_tidy_h="yes",have_tidy_tidy_h="no")
 if (test "x$have_tidy_tidy_h" = "xyes"); then
   AC_DEFINE(HAVE_TIDY_TIDY_H,1)
+  AC_CHECK_HEADER(tidy/tidybuffio.h,have_tidy_tidybuffio_h="yes",have_tidy_tidybuffio_h="no")
+  if (test "x$have_tidy_tidybuffio_h" = "xyes"); then
+    AC_DEFINE(HAVE_TIDY_TIDYBUFFIO_H,1)
+  fi;
+else
+  AC_CHECK_HEADER(tidy.h,have_tidy_h="yes",have_tidy_h="no")
+  if (test "x$have_tidy_h" = "xyes"); then
+    AC_DEFINE(HAVE_TIDY_H,1)
+    AC_CHECK_HEADER(tidybuffio.h,have_tidybuffio_h="yes",have_tidybuffio_h="no")
+    if (test "x$have_tidybuffio_h" = "xyes"); then
+      AC_DEFINE(HAVE_TIDYBUFFIO_H,1)
+    fi;
+  fi;
 fi
 if ((test "x$have_tidy_h" = "xyes")||(test "x$have_tidy_tidy_h" = "xyes")); then
   AC_CHECK_LIB(tidy,tidyCreate)
