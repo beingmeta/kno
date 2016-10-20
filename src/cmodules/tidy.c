@@ -14,24 +14,22 @@
 #include "framerd/eval.h"
 #include "libu8/u8logging.h"
 
-#if HAVE_TIDY_TIDY_H
-#if HAVE_TIDYBUFFIO_H
-#include <tidy/tidy.h>
-#include <tidy/tidybuffio.h>
-#include <tidy/tidyenum.h>
-#else
-#include <tidy/tidy.h>
-#include <tidy/buffio.h>
-#include <tidy/tidyenum.h>
-#endif
-#elif HAVE_TIDY_H
+#if HAVE_TIDY_H
 #include <tidy.h>
 #if HAVE_TIDYBUFFIO_H
-#include <tidy/tidybuffio.h>
-else
+#include <tidybuffio.h>
+#else
 #include <buffio.h>
 #endif
 #include <tidyenum.h>
+#elif HAVE_TIDY_TIDY_H
+#include <tidy/tidy.h>
+#if HAVE_TIDY_TIDYBUFFIO_H
+#include <tidy/tidybuffio.h>
+#else
+#include <tidy/buffio.h>
+#endif
+#include <tidy/tidyenum.h>
 #else
 #define UNTIDY_HEADERS 1
 #endif

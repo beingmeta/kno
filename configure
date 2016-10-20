@@ -9577,14 +9577,14 @@ if (test "x$have_tidy_tidy_h" = "xyes"); then
 
   ac_fn_c_check_header_mongrel "$LINENO" "tidy/tidybuffio.h" "ac_cv_header_tidy_tidybuffio_h" "$ac_includes_default"
 if test "x$ac_cv_header_tidy_tidybuffio_h" = xyes; then :
-  have_tidybuffio_h="yes"
+  have_tidy_tidybuffio_h="yes"
 else
-  have_tidybuffio_h="no"
+  have_tidy_tidybuffio_h="no"
 fi
 
 
-  if (test "x$have_tidybuffio_h" = "xyes"); then
-    $as_echo "#define HAVE_TIDYBUFFIO_H 1" >>confdefs.h
+  if (test "x$have_tidy_tidybuffio_h" = "xyes"); then
+    $as_echo "#define HAVE_TIDY_TIDYBUFFIO_H 1" >>confdefs.h
 
   fi;
 else
