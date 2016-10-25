@@ -114,7 +114,7 @@ static int shutdown_grace=30000000; /* 30 seconds */
 
 static fdtype fallback_notfoundpage=FD_VOID;
 
-u8_string pid_file=NULL, cmd_file=NULL;
+u8_string pid_file=NULL, cmd_file=NULL, inject_file=NULL;
 
 /* When the server started, used by UPTIME */
 static struct U8_XTIME boot_time;
@@ -136,11 +136,75 @@ typedef struct FD_WEBCONN *fd_webconn;
 
 static int poll_timeout=DEFAULT_POLL_TIMEOUT;
 
-static fd_lispenv server_env;
 struct U8_SERVER fdwebserver;
 static int server_running=0;
 
 static u8_condition fdservWriteError="FDServelt write error";
+
+/* Checking for (good) injections */
+
+static int check_for_injection()
+{
+  if (server_env==NULL) return 0;
+  else if (inject_file==NULL) return 0;
+  else if (u8_file_existsp(inject_file)) {
+    u8_string temp_file=u8_string_append(inject_file,".loading",NULL);
+    int rv=u8_movefile(inject_file,temp_file);
+    if (rv<0) {
+      u8_log(LOGWARN,"FDServlet/InjectionIgnored",
+             "Can't stage injection file %s to %s",
+             inject_file,temp_file);
+      fd_clear_errors(1);
+      u8_free(temp_file);
+      return 0;}
+    else {
+      u8_string content=u8_filestring(temp_file,NULL);
+      if (content==NULL)  {
+        u8_log(LOGWARN,"FDServlet/InjectionCantRead",
+               "Can't read %s",temp_file);
+        fd_clear_errors(1);
+        u8_free(temp_file);
+        return -1;}
+      else {
+        fdtype result;
+        u8_log(LOGWARN,"FDServlet/InjectLoad",
+               "From %s\n\"%s\"",temp_file,content);
+        result=fd_load_source(temp_file,server_env,NULL);
+        if (FD_ABORTP(result)) {
+          u8_exception ex=u8_current_exception;
+          if (!(ex)) {
+            u8_log(LOGCRIT,"FDServlet/InjectError",
+                   "Unknown error processing injection from %s: \"%s\"",
+                   inject_file,content);}
+          else if ((ex->u8x_context!=NULL)&&
+                   (ex->u8x_details!=NULL))
+            u8_log(LOGCRIT,"FDServlet/InjectionError",
+                   "Error %s (%s) processing injection %s: %s\n\"%s\"",
+                   ex->u8x_cond,ex->u8x_context,inject_file,
+                   ex->u8x_details,content);
+          else if (ex->u8x_context!=NULL) 
+            u8_log(LOGCRIT,"FDServlet/InjectionError",
+                   "Error %s (%s) processing injection %s\n\"%s\"",
+                   ex->u8x_cond,ex->u8x_context,inject_file,content);
+          else u8_log(LOGCRIT,"FDServlet/InjectionError",
+                      "Error %s processing injection %s\n\"%s\"",
+                      ex->u8x_cond,inject_file,content);
+          fd_clear_errors(1);
+          return -1;}
+        else {
+          u8_log(LOGWARN,"FDServlet/InjectionDone",
+                 "Finished from %s",inject_file);}
+        rv=u8_removefile(temp_file);
+        if (rv<0) {
+          u8_log(LOGCRIT,"FDServlet/InjectionCleanup",
+                 "Error removing %s",temp_file);
+          fd_clear_errors(1);}
+        fd_decref(result);
+        u8_free(content);
+        u8_free(temp_file);
+        return 1;}}}
+  else return 0;
+}
 
 /* STATLOG config */
 
@@ -385,18 +449,23 @@ static void update_status()
     u8_free(out.u8_outbuf);}
 }
 
-static int statlog_server_update(struct U8_SERVER *server){
+static int server_loopfn(struct U8_SERVER *server)
+{
   long long now=u8_microtime();
   if ((status_interval>=0)&&(now>(last_status+status_interval))) {
     last_status=now;
+    check_for_injection();
     update_status();}
-  return 0;}
-static int statlog_client_update(struct U8_CLIENT *client){
+  return 0;
+}
+static int client_loopfn(struct U8_CLIENT *client)
+{
   long long now=u8_microtime();
   if ((status_interval>=0)&&(u8_microtime()>(last_status+status_interval))) {
     last_status=now;
     update_status();}
-  return 0;}
+  return 0;
+}
 
 static void setup_status_file()
 {
@@ -1942,6 +2011,7 @@ int main(int argc,char **argv)
 
   pid_file=fd_runbase_filename(".pid");
   cmd_file=fd_runbase_filename(".cmd");
+  inject_file=fd_runbase_filename(".inj");
 
   write_cmd_file(argc,argv);
 
@@ -1998,8 +2068,8 @@ static int launch_servlet(u8_string socket_spec)
      U8_SERVER_MAX_CLIENTS,max_conn,
      U8_SERVER_END_INIT);
 
-  fdwebserver.xserverfn=statlog_server_update;
-  fdwebserver.xclientfn=statlog_client_update;
+  fdwebserver.xserverfn=server_loopfn;
+  fdwebserver.xclientfn=client_loopfn;
 
   fd_register_config("U8LOGLISTEN",
                      _("Whether to have libu8 log each monitored address"),

@@ -11413,7 +11413,7 @@ if (test ! -f src/modules/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdrestart etc/fdstatus etc/fdlog etc/fdctl src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserver.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.9.spec"
+ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdrestart etc/fdctl src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserver.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-3.9.spec"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -12127,9 +12127,10 @@ do
     "etc/fdstopall") CONFIG_FILES="$CONFIG_FILES etc/fdstopall" ;;
     "etc/fdcleanup") CONFIG_FILES="$CONFIG_FILES etc/fdcleanup" ;;
     "etc/fdsignal") CONFIG_FILES="$CONFIG_FILES etc/fdsignal" ;;
-    "etc/fdrestart") CONFIG_FILES="$CONFIG_FILES etc/fdrestart" ;;
+    "etc/fdinject") CONFIG_FILES="$CONFIG_FILES etc/fdinject" ;;
     "etc/fdstatus") CONFIG_FILES="$CONFIG_FILES etc/fdstatus" ;;
     "etc/fdlog") CONFIG_FILES="$CONFIG_FILES etc/fdlog" ;;
+    "etc/fdrestart") CONFIG_FILES="$CONFIG_FILES etc/fdrestart" ;;
     "etc/fdctl") CONFIG_FILES="$CONFIG_FILES etc/fdctl" ;;
     "src/scripts/fdpkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/fdpkg.scm" ;;
     "etc/OSXStartupItem/FramerD") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/FramerD" ;;

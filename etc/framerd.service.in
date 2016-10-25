@@ -4,7 +4,8 @@ Requires=network.target
 After=upsource.service
 
 [Service]
-Type=forking
+Type=simple
+RemainAfterExit=true
 Environment=FD_LAUNCHER=framerd.service
 PassEnvironment=FD_LAUNCHER
 ExecStartPre=@MKDIR@ -p @daemon_rundir@ @daemon_logdir@ @servlet_rundir@ @servlet_logdir@

@@ -20,7 +20,7 @@ fi
 if test -d @daemon_rundir@; then
   rm -f @daemon_rundir@/*.sock @daemon_rundir@/*.status \
         @daemon_rundir@/*.run @daemon_rundir@/*.sock \
-        @daemon_rundir@/*.pid;
+        @daemon_rundir@/*.pid @daemon_rundir@/*.inj;
   for tmpdir in @daemon_rundir@/*.tmp;
   do if test -h ${tmpdir}; then
 	  link_target=`readlink ${tmpdir}`; \

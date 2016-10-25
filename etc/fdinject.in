@@ -1,0 +1,32 @@
+#!/bin/bash
+function usage() {
+    echo "Usage: fdinject <task> <file>";
+    echo "Usage: fdinject <task> - (read from stdin)";
+}
+if ! test $# -eq 2; then
+    usage;
+    exit;
+else
+    TARGET=$1
+    INJECT_FILE=$2
+    INJECT_INTO=
+fi
+if test "${INJECT_FILE}" = "-"; then
+    INJECT_FILE=fdinject.temp;
+    cat > ${INJECT_FILE};
+fi
+if test -f ${TARGET}; then
+  INJECT_INTO=${TARGET}.inj;
+elif test -f ${TARGET}.pid; then
+  INJECT_INTO=${TARGET}.inj;
+elif test -f @daemon_rundir@/${TARGET}.pid; then
+  INJECT_INTO=@daemon_rundir@/${TARGET}.inj;
+  OWNER=@fdaemon@;
+elif test -f @servlet_rundir@/${TARGET}.pid; then
+  INJECT_INTO=@daemon_rundir@/${TARGET}.inj;
+  OWNER=@webuser@;
+else
+    usage;
+    exit;
+fi;
+cp ${INJECT_FILE} ${INJECT_INTO};

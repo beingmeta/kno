@@ -70,9 +70,11 @@ static u8_condition ServerShutdown=_("FDServer/SHUTDOWN");
 
 static u8_condition Incoming=_("Incoming"), Outgoing=_("Outgoing");
 
+static u8_string pid_file=NULL, nid_file=NULL, cmd_file=NULL, inject_file=NULL;
+
 /* This is the global lisp environment for all servers.
    It is modified to include various modules, including dbserv. */
-static fd_lispenv server_env;
+static fd_lispenv working_env=NULL, server_env=NULL;
 
 /* This is the server struct used to establish the server. */
 static struct U8_SERVER dtype_server;
@@ -121,7 +123,11 @@ static void kill_dependent_onexit(){
   if ((ppid_file)&&(u8_file_existsp(ppid_file))) {
     u8_removefile(ppid_file);
     u8_free(ppid_file);
-    ppid_file=NULL;}}
+    ppid_file=NULL;}
+  if ((inject_file)&&(u8_file_existsp(inject_file))) {
+    u8_removefile(inject_file);
+    u8_free(inject_file);
+    inject_file=NULL;}}
 static void kill_dependent_onsignal(int sig){
   u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
@@ -134,7 +140,82 @@ static void kill_dependent_onsignal(int sig){
   if ((ppid_file)&&(u8_file_existsp(ppid_file))) {
     u8_removefile(ppid_file);
     u8_free(ppid_file);
-    ppid_file=NULL;}}
+    ppid_file=NULL;}
+  if ((inject_file)&&(u8_file_existsp(inject_file))) {
+    u8_removefile(inject_file);
+    u8_free(inject_file);
+    inject_file=NULL;}}
+
+/* Checking for (good) injections */
+
+static int check_for_injection()
+{
+  if (working_env==NULL) return 0;
+  else if (inject_file==NULL) return 0;
+  else if (u8_file_existsp(inject_file)) {
+    u8_string temp_file=u8_string_append(inject_file,".loading",NULL);
+    int rv=u8_movefile(inject_file,temp_file);
+    if (rv<0) {
+      u8_log(LOGWARN,"FDServlet/InjectionIgnored",
+             "Can't stage injection file %s to %s",
+             inject_file,temp_file);
+      fd_clear_errors(1);
+      u8_free(temp_file);
+      return 0;}
+    else {
+      u8_string content=u8_filestring(temp_file,NULL);
+      if (content==NULL)  {
+        u8_log(LOGWARN,"FDServlet/InjectionCantRead",
+               "Can't read %s",temp_file);
+        fd_clear_errors(1);
+        u8_free(temp_file);
+        return -1;}
+      else {
+        fdtype result;
+        u8_log(LOGWARN,"FDServlet/InjectLoad",
+               "From %s\n\"%s\"",temp_file,content);
+        result=fd_load_source(temp_file,working_env,NULL);
+        if (FD_ABORTP(result)) {
+          u8_exception ex=u8_current_exception;
+          if (!(ex)) {
+            u8_log(LOGCRIT,"FDServlet/InjectError",
+                   "Unknown error processing injection from %s: \"%s\"",
+                   inject_file,content);}
+          else if ((ex->u8x_context!=NULL)&&
+                   (ex->u8x_details!=NULL))
+            u8_log(LOGCRIT,"FDServlet/InjectionError",
+                   "Error %s (%s) processing injection %s: %s\n\"%s\"",
+                   ex->u8x_cond,ex->u8x_context,inject_file,
+                   ex->u8x_details,content);
+          else if (ex->u8x_context!=NULL) 
+            u8_log(LOGCRIT,"FDServlet/InjectionError",
+                   "Error %s (%s) processing injection %s\n\"%s\"",
+                   ex->u8x_cond,ex->u8x_context,inject_file,content);
+          else u8_log(LOGCRIT,"FDServlet/InjectionError",
+                      "Error %s processing injection %s\n\"%s\"",
+                      ex->u8x_cond,inject_file,content);
+          fd_clear_errors(1);
+          return -1;}
+        else {
+          u8_log(LOGWARN,"FDServlet/InjectionDone",
+                 "Finished from %s",inject_file);}
+        rv=u8_removefile(temp_file);
+        if (rv<0) {
+          u8_log(LOGCRIT,"FDServlet/InjectionCleanup",
+                 "Error removing %s",temp_file);
+          fd_clear_errors(1);}
+        fd_decref(result);
+        u8_free(content);
+        u8_free(temp_file);
+        return 1;}}}
+  else return 0;
+}
+
+static int server_loopfn(struct U8_SERVER *server)
+{
+  check_for_injection();
+  return 1;
+}
 
 /* Log files */
 
@@ -309,8 +390,6 @@ static fdtype config_get_fullscheme(fdtype var,void MAYBE_UNUSED *data)
     the server's process id, and an nid file indicating the ports on which
     the server is listening. */
 
-static u8_string pid_file=NULL, nid_file=NULL, cmd_file=NULL;
-
 #define need_escape(s) \
   ((strchr(s,'"'))||(strchr(s,'\\'))|| \
    (strchr(s,' '))||(strchr(s,'\t'))|| \
@@ -359,6 +438,10 @@ static void cleanup_state_files()
     if (nid_file) {
       if (u8_file_existsp(nid_file)) u8_removefile(nid_file);
       u8_free(nid_file); nid_file=NULL;}
+    if (inject_file) {
+      if (u8_file_existsp(inject_file)) u8_removefile(inject_file);
+      u8_free(inject_file);
+      inject_file=NULL;}
     if (exitfile) {
       struct U8_XTIME xt; struct U8_OUTPUT out;
       char timebuf[64]; double elapsed=u8_elapsed_time();
@@ -826,6 +909,7 @@ static void init_server()
      U8_SERVER_MAX_CLIENTS,max_conn,
      U8_SERVER_FLAGS,server_flags,
      U8_SERVER_END_INIT);
+  dtype_server.xserverfn=server_loopfn;
   fd_unlock_mutex(&init_server_lock);
 }
 
@@ -995,6 +1079,7 @@ int main(int argc,char **argv)
   pid_file=fd_runbase_filename(".pid");
   nid_file=fd_runbase_filename(".nid");
   cmd_file=fd_runbase_filename(".cmd");
+  inject_file=fd_runbase_filename(".inj");
 
   write_cmd_file(argc,argv);
 
@@ -1284,7 +1369,7 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
     /* The source file is loaded into a full (non sandbox environment).
        It's exports are then exposed through the server. */
     u8_string source_file=u8_abspath(server_spec,NULL);
-    fd_lispenv env=fd_working_environment();
+    fd_lispenv env=working_env=fd_working_environment();
     fdtype result=fd_load_source(source_file,env,NULL);
     if (FD_TROUBLEP(result)) {
       u8_exception e=u8_erreify();
