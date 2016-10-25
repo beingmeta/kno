@@ -493,10 +493,6 @@ int fd_parse_xmltag(u8_byte **scanner,u8_byte *end,
       /* Scan a single quoted value, waiting for an unprotected
          single quote */
       u8_byte *aend=strchr(scan+1,'\'');
-      /* Scan, ignoring escaped single quotes */
-      while ((aend)&&(aend<end))
-        if (aend[-1]=='\\') aend=strchr(aend+1,'\'');
-        else break;
       if ((aend)&&(aend<end)) scan=aend+1; /* got one */
       else if (sloppy) {
         /* Not closed, but sloppy is okay, so we just go up to the
@@ -516,9 +512,6 @@ int fd_parse_xmltag(u8_byte **scanner,u8_byte *end,
          a double quote rather than a single quote. */
       u8_byte *aend=strchr(scan+1,'"');
       /* Scan, ignoring escaped single quotes */
-      while ((aend)&&(aend<end))
-        if (aend[-1]=='\\') end=strchr(aend+1,'"');
-        else break;
       if ((aend)&&(aend<end)) scan=aend+1; /* got one */
       else if (sloppy) {
         /* Not closed, but sloppy is okay, so we just go up to the
