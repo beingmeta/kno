@@ -659,6 +659,10 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
       u8_free(oidc);
       return 1;}
     else n=write-oidv;
+    if (p->handler->lock==NULL) {
+      fd_seterr(fd_CantLockOID,"fd_pool_lock",
+                u8_strdup(p->cid),oids);
+      return -1;}
     needy=fd_init_choice(oidc,n,NULL,FD_CHOICE_ISATOMIC);
     retval=p->handler->lock(p,needy);
     if (retval<0) {
@@ -699,6 +703,10 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
       u8_free(oidc);
       return 1;}
     else n=write-oidv;
+    if (p->handler->unlock==NULL) {
+      fd_seterr(fd_CantLockOID,"fd_pool_unlock",
+                u8_strdup(p->cid),oids);
+      return -1;}
     needy=fd_init_choice(oidc,n,NULL,FD_CHOICE_ISATOMIC);
     retval=p->handler->unlock(p,needy);
     if (retval<0) {
@@ -1747,14 +1755,24 @@ static int extpool_lock(fd_pool p,fdtype oids)
       fdtype args[3]={lock_symbol,oid,
                       ((cur==FD_LOCKHOLDER)?(FD_VOID):(cur))};
       fdtype value=fd_apply(lockfn,3,args);
-      if (FD_VOIDP(value)) {
+      if (FD_ABORTP(value)) {
+        fd_decref(cur);
+        return -1;}
+      else if (FD_FALSEP(value)) {}
+      else if (FD_VOIDP(value)) {
         fd_hashtable_store(locks,oid,FD_LOCKHOLDER);}
       else fd_hashtable_store(locks,oid,value);
       fd_decref(cur); fd_decref(value);}}
+  else if (FD_FALSEP(xp->lockfn)) {
+    fd_seterr(fd_CantLockOID,"fd_pool_lock",
+              u8_strdup(p->cid),fd_incref(oids));
+    return -1;}
+  else if (FD_TRUEP(xp->lockfn)) {
+    return 0;}
   else {
     FD_DO_CHOICES(oid,oids) {
       fd_hashtable_store(&(p->locks),oids,FD_LOCKHOLDER);}}
-  return 0;
+  return 1;
 }
 
 static fdtype extpool_alloc(fd_pool p,int n)
@@ -1787,13 +1805,23 @@ static int extpool_unlock(fd_pool p,fdtype oids)
                       ((cur==FD_LOCKHOLDER)?(FD_VOID):(cur))};
       fdtype value=fd_apply(lockfn,3,args);
       fd_hashtable_store(locks,oid,FD_VOID);
-      if (!(FD_VOIDP(value)))
-        fd_hashtable_store(cache,oid,value);
+      if (FD_ABORTP(value)) {
+        fd_decref(cur);
+        return -1;}
+      else if (FD_VOIDP(value)) {}
+      else {
+        fd_hashtable_store(cache,oid,value);}
       fd_decref(cur); fd_decref(value);}}
+  else if (FD_FALSEP(xp->lockfn)) {
+    fd_seterr(fd_CantLockOID,"extpool_unlock",
+              u8_strdup(p->cid),fd_incref(oids));
+    return -1;}
+  else if (FD_TRUEP(xp->lockfn)) {
+    return 0;}
   else {
     FD_DO_CHOICES(oid,oids) {
       fd_hashtable_store(&(p->locks),oids,FD_VOID);}}
-  return 0;
+  return 1;
 }
 
 FD_EXPORT int fd_extpool_cache_value(fd_pool p,fdtype oid,fdtype value)
