@@ -18,12 +18,15 @@ FD_EXPORT fd_exception
   fd_FileIndexOverflow, fd_NotAFileIndex, fd_NoFileIndices, fd_BadIndexSpec,
   fd_IndexCommitError;
 
-#define FD_INDEX_ADD_CAPABILITY 1
-#define FD_INDEX_DROP_CAPABILITY 2
-#define FD_INDEX_SET_CAPABILITY 4
-#define FD_INDEX_IN_BACKGROUND 8
-#define FD_INDEX_NOSWAP 16
-#define FD_INDEX_BATCHABLE 32
+#define FD_INDEX_FLAG_BASE 256
+#define FD_INDEX_FLAG(n) (FD_INDEX_FLAG_BASE<<(n))
+
+#define FD_INDEX_ADD_CAPABILITY  (FD_INDEX_FLAG(1))
+#define FD_INDEX_DROP_CAPABILITY (FD_INDEX_FLAG(2))
+#define FD_INDEX_SET_CAPABILITY  (FD_INDEX_FLAG(3))
+#define FD_INDEX_IN_BACKGROUND   (FD_INDEX_FLAG(4))
+#define FD_INDEX_NOSWAP          (FD_INDEX_FLAG(5))
+#define FD_INDEX_BATCHABLE       (FD_INDEX_FLAG(6))
 
 #define FD_N_PRIMARY_INDICES 128
 

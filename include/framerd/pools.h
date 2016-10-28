@@ -114,14 +114,19 @@
 #include "defines.h"
 #include "fddb.h"
 
-#define FD_POOL_BATCHABLE 2
-
 FD_EXPORT fd_exception
   fd_CantLockOID, fd_InvalidPoolPtr,
   fd_NotAFilePool, fd_AnonymousOID, fd_UnallocatedOID,
   fd_NoFilePools, fd_NotAPool, fd_UnknownPool, fd_CorrputedPool,
   fd_BadFilePoolLabel, fd_ReadOnlyPool, fd_ExhaustedPool,
   fd_PoolCommitError, fd_UnresolvedPool;
+
+#define FD_POOL_FLAG_BASE 256
+#define FD_POOL_FLAG(n) (FD_POOL_FLAG_BASE<<(n))
+
+#define FD_POOL_BATCHABLE (FD_POOL_FLAG(1))
+#define FD_OIDHOLES_OKAY  (FD_POOL_FLAG(2))
+#define FD_POOL_LOCKFREE  (FD_POOL_FLAG(3))
 
 FD_EXPORT int fd_ignore_anonymous_oids;
 
@@ -266,6 +271,8 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock);
 FD_EXPORT void fd_pool_setcache(fd_pool p,int level);
 FD_EXPORT void fd_pool_close(fd_pool p);
 FD_EXPORT void fd_pool_swapout(fd_pool p);
+FD_EXPORT u8_string fd_pool_label(fd_pool p);
+FD_EXPORT u8_string fd_pool_id(fd_pool p);
 
 FD_EXPORT fd_pool _fd_get_poolptr(fdtype x);
 

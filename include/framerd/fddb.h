@@ -40,7 +40,6 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
 
 #define FD_EXPLICIT_SETCACHE 2
 #define FD_STICKY_CACHESIZE 4
-#define FD_OIDHOLES_OKAY 8
 
 #ifndef FDBSERV_MAX_POOLS
 #define FDBSERV_MAX_POOLS 128
