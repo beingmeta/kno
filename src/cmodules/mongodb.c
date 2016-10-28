@@ -288,6 +288,8 @@ static fdtype combine_opts(fdtype opts,fdtype clopts)
     return opts;}
 }
 
+static int mongodb_getflags(fdtype mongodb);
+
 /* Consing MongoDB clients, collections, and cursors */
 
 static u8_string get_connection_spec(mongoc_uri_t *info);
@@ -834,7 +836,7 @@ static fdtype make_mongovec(fdtype vec);
 static fdtype make_command(int n,fdtype *values)
 {
   if ((n%2)==1)
-    return fd_err(fd_SyntaxError,"mongomap_lexpr",
+    return fd_err(fd_SyntaxError,"mongomap_command",
                   "Odd number of arguments",FD_VOID);
   else {
     int i=0, fix_vectors=0; while (i<n) { 
@@ -931,7 +933,10 @@ static fdtype db_command(fdtype arg,fdtype command,
 static fdtype mongodb_command(int n,fdtype *args)
 {
   fdtype arg=args[0], opts=FD_VOID, command=FD_VOID, result=FD_VOID;
-  if (n==2) {
+  int flags=mongodb_getflags(arg);
+  if (flags<0)
+    return fd_type_error(_("MongoDB"),"mongodb_command",arg);
+  else if (n==2) {
     command=args[1]; fd_incref(command); opts=FD_VOID;}
   else if ((n==3)&&(FD_TABLEP(args[1]))) {
     command=args[1]; fd_incref(command); opts=args[2];}
@@ -940,11 +945,13 @@ static fdtype mongodb_command(int n,fdtype *args)
   else {
     command=make_command(n-2,args+2);
     opts=args[1];}
+  if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
+    u8_log(-LOG_INFO,"MongoDB/RESULTS","At %q: %q",arg,command);}
   if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) 
     result=db_command(arg,command,opts);
   else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection))
     result=collection_command(arg,command,opts);
-  else result=fd_type_error(_("MongoDB"),"mongodb_command",arg);
+  else {}
   fd_decref(command);
   return result;
 }
@@ -1011,7 +1018,9 @@ static fdtype db_simple_command(fdtype arg,fdtype command,
 static fdtype mongodb_simple_command(int n,fdtype *args)
 {
   fdtype arg=args[0], opts=FD_VOID, command=FD_VOID, result=FD_VOID;
-  if (n==2) {
+  int flags=mongodb_getflags(arg);
+  if (flags<0) return fd_type_error(_("MongoDB"),"mongodb_command",arg);
+  else if (n==2) {
     command=args[1]; fd_incref(command); opts=FD_VOID;}
   else if ((n==3)&&(FD_TABLEP(args[1]))) {
     command=args[1]; fd_incref(command); opts=args[2];}
@@ -1020,11 +1029,13 @@ static fdtype mongodb_simple_command(int n,fdtype *args)
   else {
     command=make_command(n-2,args+2);
     opts=args[1];}
+  if ((logops)||(flags&FD_MONGODB_LOGOPS)) {
+    u8_log(-LOG_INFO,"MongoDB/DO","At %q: %q",arg,command);}
   if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) 
     result=db_simple_command(arg,command,opts);
   else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection))
     result=collection_simple_command(arg,command,opts);
-  else result=fd_type_error(_("MongoDB"),"mongodb_command",arg);
+  else {}
   fd_decref(command);
   return result;
 }
@@ -1793,9 +1804,23 @@ static fdtype mongomap_lexpr(int n,fdtype *values)
     return fd_err(fd_SyntaxError,"mongomap_lexpr",
                   "Odd number of arguments",FD_VOID);
   else {
-    int i=0; while (i<n) { 
-      fdtype value=values[i++]; fd_incref(value);}
-    return fd_init_compound_from_elts(NULL,mongomap_symbol,0,n,values);}
+    int i=0, skip=0; while (i<n) { 
+      fdtype field=values[i++]; 
+      fdtype value=values[i++]; 
+      if ((FD_EMPTY_CHOICEP(field))||(FD_EMPTY_CHOICEP(value))) skip++;
+      else {fd_incref(field); fd_incref(value);}}
+    if (skip) {
+      fdtype *reduced=u8_alloc_n(n-(skip*2),fdtype), result;
+      int j=0; i=0; while (i<n) {
+        fdtype field=values[i++]; 
+        fdtype value=values[i++]; 
+        if (!((FD_EMPTY_CHOICEP(field))||(FD_EMPTY_CHOICEP(value)))) {
+          reduced[j++]=field; reduced[j++]=value;}}
+      result=fd_init_compound_from_elts(NULL,mongomap_symbol,0,j,reduced);
+      u8_free(reduced);
+      return result;}
+    else return fd_init_compound_from_elts
+           (NULL,mongomap_symbol,0,n,values);}
 }
 
 static fdtype make_mongomap(fdtype table,fdtype ordered)
@@ -2091,6 +2116,39 @@ static fdtype mongodb_collection_name(fdtype arg)
   else return FD_FALSE;
 }
 
+static fdtype mongodb_getdb(fdtype arg)
+{
+  struct FD_MONGODB_COLLECTION *collection=NULL;
+  if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) 
+    return fd_incref(arg);
+  else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) 
+    collection=FD_GET_CONS(arg,fd_mongoc_collection,struct FD_MONGODB_COLLECTION *);
+  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+    struct FD_MONGODB_CURSOR *cursor=
+      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
+    collection=(struct FD_MONGODB_COLLECTION *)cursor->domain;}
+  else return fd_type_error("MongoDB collection/cursor","mongodb_dbname",arg);
+  if (collection)
+    return fd_incref(collection->server);
+  else return FD_FALSE;
+}
+
+static int mongodb_getflags(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_mongoc_server)) {
+    struct FD_MONGODB_DATABASE *server=(struct FD_MONGODB_DATABASE *)arg;
+    return server->flags;}
+  else if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) {
+    struct FD_MONGODB_COLLECTION *collection=
+      FD_GET_CONS(arg,fd_mongoc_collection,struct FD_MONGODB_COLLECTION *);
+    return collection->flags;}
+  else if (FD_PRIM_TYPEP(arg,fd_mongoc_cursor)) {
+    struct FD_MONGODB_CURSOR *cursor=
+      FD_GET_CONS(arg,fd_mongoc_cursor,struct FD_MONGODB_CURSOR *);
+    return cursor->flags;}
+  else return -1;
+}
+
 static fdtype mongodb_getcollection(fdtype arg)
 {
   if (FD_PRIM_TYPEP(arg,fd_mongoc_collection)) 
@@ -2349,12 +2407,12 @@ FD_EXPORT int fd_init_mongodb()
                                   fd_mongoc_cursor,FD_VOID,
                                   fd_fixnum_type,FD_FIXNUM_ONE,
                                   -1,FD_VOID));
-  fd_idefn(module,fd_make_cprimn("MONGOMAP",mongomap_lexpr,0));
+  fd_idefn(module,fd_make_ndprim(fd_make_cprimn("MONGOMAP",mongomap_lexpr,0)));
   fd_idefn(module,fd_make_cprim2x("->MONGOMAP",make_mongomap,2,
                                   -1,FD_VOID,fd_vector_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1("MONGOMAP?",mongomapp,1));
 
-  fd_idefn(module,fd_make_cprimn("MONGOVEC",mongovec_lexpr,0));
+  fd_idefn(module,fd_make_ndprim(fd_make_cprimn("MONGOVEC",mongovec_lexpr,0)));
   fd_idefn(module,fd_make_cprim1x("->MONGOVEC",make_mongovec,1,
                                   fd_vector_type,FD_VOID));
   fd_idefn(module,fd_make_cprim1("MONGOVEC?",mongovecp,1));
@@ -2369,6 +2427,7 @@ FD_EXPORT int fd_init_mongodb()
                                   mongodb_getcollection,1,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("COLLECTION/NAME",
                                   mongodb_collection_name,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("MONGODB/GETDB",mongodb_getdb,1,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim2x("MONGODB/INFO",mongodb_getinfo,1,
                                   fd_mongoc_server,FD_VOID,
                                   -1,FD_VOID));
