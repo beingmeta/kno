@@ -1817,6 +1817,13 @@ static fdtype make_mongomap(fdtype table,fdtype ordered)
     return result;}
 }
 
+static fdtype mongomapp(fdtype arg)
+{
+  if (FD_COMPOUND_TYPEP(arg,mongomap_symbol))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype mongovec_lexpr(int n,fdtype *values)
 {
   int i=0; while (i<n) { 
@@ -1830,6 +1837,13 @@ static fdtype make_mongovec(fdtype vec)
   int n=FD_VECTOR_LENGTH(vec), i=0;
   while (i<n) {fdtype v=elts[i++]; fd_incref(v);}
   return fd_init_compound_from_elts(NULL,mongovec_symbol,0,n,elts);
+}
+
+static fdtype mongovecp(fdtype arg)
+{
+  if (FD_COMPOUND_TYPEP(arg,mongomap_symbol))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 /* MongoDB pools and indices */
@@ -2338,9 +2352,12 @@ FD_EXPORT int fd_init_mongodb()
   fd_idefn(module,fd_make_cprimn("MONGOMAP",mongomap_lexpr,0));
   fd_idefn(module,fd_make_cprim2x("->MONGOMAP",make_mongomap,2,
                                   -1,FD_VOID,fd_vector_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim1("MONGOMAP?",mongomapp,1));
+
   fd_idefn(module,fd_make_cprimn("MONGOVEC",mongovec_lexpr,0));
   fd_idefn(module,fd_make_cprim1x("->MONGOVEC",make_mongovec,1,
                                   fd_vector_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim1("MONGOVEC?",mongovecp,1));
 
   fd_idefn(module,fd_make_cprim1x("MONGODB/NAME",mongodb_dbname,1,-1,FD_VOID));
   fd_idefn(module,fd_make_cprim1x("MONGODB/SPEC",mongodb_spec,1,-1,FD_VOID));

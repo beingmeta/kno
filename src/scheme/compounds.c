@@ -38,6 +38,22 @@ static fdtype compound_length(fdtype x)
   return FD_BYTE2DTYPE(compound->n_elts);
 }
 
+static fdtype compound_mutablep(fdtype x)
+{
+  struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
+  if (compound->mutable)
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype compound_opaquep(fdtype x)
+{
+  struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
+  if (compound->opaque)
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype compound_ref(fdtype x,fdtype offset,fdtype tag)
 {
   struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
@@ -61,6 +77,26 @@ static fdtype compound_ref(fdtype x,fdtype offset,fdtype tag)
   else {
     fd_seterr(fd_RangeError,"compound_ref",NULL,off);
     return FD_ERROR_VALUE;}
+}
+
+static fdtype unpack_compound(fdtype x,fdtype tag)
+{
+  struct FD_COMPOUND *compound=(struct FD_COMPOUND *)x;
+  if ((!(FD_VOIDP(tag)))&&(compound->tag!=tag)) {
+    u8_string type_string=fd_dtype2string(tag);
+    fd_seterr(fd_TypeError,"compound_ref",type_string,x);
+    return FD_ERROR_VALUE;}
+  else {
+    int len=compound->n_elts;
+    fdtype *elts=&(compound->elt0), result=FD_VOID;
+    if (compound->mutable) fd_lock_struct(compound);
+    {
+      fdtype *scan=elts, *lim=elts+len; while (scan<lim) {
+        fdtype v=*scan++; fd_incref(v);}}
+    result=fd_init_pair(NULL,fd_incref(compound->tag),
+                        fd_make_vector(len,elts));
+    if (compound->mutable) fd_unlock_struct(compound);
+    return result;}
 }
 
 static fdtype compound_set(fdtype x,fdtype offset,fdtype value,fdtype tag)
@@ -164,7 +200,8 @@ static fdtype make_opaque_mutable_compound(int n,fdtype *args)
   return FDTYPE_CONS(compound);
 }
 
-static fdtype vector2compound(fdtype vector,fdtype tag,fdtype mutable,fdtype opaque)
+static fdtype vector2compound(fdtype vector,fdtype tag,
+                              fdtype mutable,fdtype opaque)
 {
   int i=0, n=FD_VECTOR_LENGTH(vector);
   struct FD_COMPOUND *compound=
@@ -325,6 +362,12 @@ FD_EXPORT void fd_init_compounds_c()
            fd_make_cprim1x("COMPOUND-LENGTH",compound_length,1,
                            fd_compound_type,FD_VOID));
   fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("COMPOUND-MUTABLE?",compound_mutablep,1,
+                           fd_compound_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("COMPOUND-OPAQUE?",compound_opaquep,1,
+                           fd_compound_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
            fd_make_cprim3x("COMPOUND-REF",compound_ref,2,
                            fd_compound_type,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
@@ -335,15 +378,21 @@ FD_EXPORT void fd_init_compounds_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprimn("MAKE-COMPOUND",make_compound,1)));
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprimn("MAKE-MUTABLE-COMPOUND",make_mutable_compound,1)));
+           fd_make_ndprim(fd_make_cprimn("MAKE-MUTABLE-COMPOUND",
+                                         make_mutable_compound,1)));
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-COMPOUND",make_opaque_compound,1)));
+           fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-COMPOUND",
+                                         make_opaque_compound,1)));
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-MUTABLE-COMPOUND",make_opaque_mutable_compound,1)));
+           fd_make_ndprim(fd_make_cprimn("MAKE-OPAQUE-MUTABLE-COMPOUND",
+                                         make_opaque_mutable_compound,1)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim4x("VECTOR->COMPOUND",vector2compound,2,
                            fd_vector_type,FD_VOID,-1,FD_VOID,
                            -1,FD_FALSE,-1,FD_FALSE));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim2x("UNPACK-COMPOUND",unpack_compound,1,
+                           fd_compound_type,FD_VOID,-1,FD_VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("COMPOUND-METATDATA",compound_metadata_prim,1,
