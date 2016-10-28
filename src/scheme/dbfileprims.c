@@ -631,7 +631,7 @@ FD_EXPORT void fd_init_filedb_c()
   fd_idefn(filedb_module,
            fd_make_cprimn("MAKE-OIDPOOL",make_oidpool,3));
 
-  fd_idefn(filedb_module,fd_make_cprim2x("LABEL-POOL!",label_file_pool,2,
+  fd_idefn(filedb_module,fd_make_cprim2x("LABEL-FILE-POOL!",label_file_pool,2,
                                          fd_string_type,FD_VOID,
                                          fd_string_type,FD_VOID));
 
