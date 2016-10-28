@@ -1227,7 +1227,6 @@ FD_EXPORT void fd_set_pool_namefn(fd_pool p,fdtype namefn)
   p->oidnamefn=namefn;
 }
 
-
 /* GLUEPOOL handler (empty) */
 
 static struct FD_POOL_HANDLER gluepool_handler={
@@ -1648,10 +1647,11 @@ fd_pool fd_make_extpool(u8_string label,
     if (!(FD_VOIDP(savefn))) xp->read_only=0;
     fd_register_pool((fd_pool)xp);
     fd_incref(fetchfn); fd_incref(savefn);
-    fd_incref(lockfn); fd_incref(state);
+    fd_incref(lockfn); fd_incref(allocfn); 
+    fd_incref(state);
     xp->fetchfn=fetchfn; xp->savefn=savefn;
     xp->lockfn=lockfn; xp->allocfn=allocfn;
-    xp->state=state;
+    xp->state=state; xp->label=label;
     xp->flags=xp->flags|FD_OIDHOLES_OKAY;
     return (fd_pool)xp;}
 }
@@ -1821,7 +1821,24 @@ struct FD_POOL_HANDLER fd_extpool_handler={
   NULL, /* metadata */
   NULL}; /* sync */
 
-
+static void recycle_raw_pool(struct FD_CONS *c)
+{
+  struct FD_POOL *p=(struct FD_POOL *)c;
+  if (p->handler==&fd_extpool_handler) {
+    struct FD_EXTPOOL *xp=(struct FD_EXTPOOL *)c;
+    fd_decref(xp->fetchfn); fd_decref(xp->savefn);
+    fd_decref(xp->lockfn); fd_decref(xp->allocfn); 
+    fd_decref(xp->state);}
+  fd_recycle_hashtable(&(p->cache));
+  fd_recycle_hashtable(&(p->locks));
+  u8_free(p->cid);
+  u8_free(p->source);
+  if (p->xid) u8_free(p->xid);
+  if (p->label) u8_free(p->label);
+  if (p->prefix) u8_free(p->prefix);
+  fd_decref(p->oidnamefn); fd_decref(p->oidnamefn);
+  u8_free(p);
+}
 /* Initialization */
 
 fd_ptr_type fd_pool_type, fd_raw_pool_type;
@@ -1929,9 +1946,11 @@ FD_EXPORT void fd_init_pools_c()
 #endif
   fd_unparsers[fd_pool_type]=unparse_pool;
   fd_unparsers[fd_raw_pool_type]=unparse_raw_pool;
-  fd_register_config("ANONYMOUSOK",_("whether value of anonymous OIDs are {} or signal an error"),
-                     config_get_anonymousok,
-                     config_set_anonymousok,NULL);
+  fd_recyclers[fd_raw_pool_type]=recycle_raw_pool;
+  fd_register_config
+    ("ANONYMOUSOK",_("whether value of anonymous OIDs are {} or signal an error"),
+     config_get_anonymousok,
+     config_set_anonymousok,NULL);
   fd_register_config("DEFAULTPOOL",_("Default location for new OID allocation"),
                      fd_poolconfig_get,fd_poolconfig_set,
                      &fd_default_pool);
