@@ -306,6 +306,36 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
             return 1;
           else scan=scan->parent;}
         return 0;}
+      else if (constype==fd_raw_pool_type) {
+        struct FD_POOL *p=(struct FD_POOL *)obj;
+        int count=0;
+        if (FD_VOIDP(p->oidnamefn))
+          count=count+count_envrefs(p->oidnamefn,env,depth);
+        if (p->handler==&fd_extpool_handler) {
+          struct FD_EXTPOOL *xp=(struct FD_EXTPOOL *)obj;
+          if (!(FD_VOIDP(xp->fetchfn)))
+            count=count+count_envrefs(xp->fetchfn,env,depth);
+          if (!(FD_VOIDP(xp->savefn)))
+            count=count+count_envrefs(xp->savefn,env,depth);
+          if (!(FD_VOIDP(xp->lockfn)))
+            count=count+count_envrefs(xp->lockfn,env,depth);
+          if (!(FD_VOIDP(xp->allocfn)))
+            count=count+count_envrefs(xp->allocfn,env,depth);
+          if (!(FD_VOIDP(xp->state)))
+            count=count+count_envrefs(xp->state,env,depth);}
+        return count;}
+      else if (constype==fd_raw_index_type) {
+        struct FD_INDEX *ix=(struct FD_INDEX *)obj;
+        int count=0;
+        if (ix->handler==&fd_extindex_handler) {
+          struct FD_EXTINDEX *xi=(struct FD_EXTINDEX *)obj;
+          if (!(FD_VOIDP(xi->fetchfn)))
+            count=count+count_envrefs(xi->fetchfn,env,depth);
+          if (!(FD_VOIDP(xi->commitfn)))
+            count=count+count_envrefs(xi->commitfn,env,depth);
+          if (!(FD_VOIDP(xi->state)))
+            count=count+count_envrefs(xi->state,env,depth);}
+        return count;}
       else return 0;}
   else return 0;
 }
