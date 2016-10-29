@@ -57,7 +57,7 @@ static fdtype bsonflags, raw, slotify, slotifyin, slotifyout, softfailsym;
 static fdtype colonize, colonizein, colonizeout, choices, nochoices;
 static fdtype skipsym, limitsym, batchsym, sortsym, sortedsym, writesym, readsym;
 static fdtype fieldssym, upsertsym, newsym, removesym, singlesym, wtimeoutsym;
-static fdtype max_clients_symbol, max_ready_symbol, returnsym;
+static fdtype max_clients_symbol, max_ready_symbol, returnsym, originalsym;
 static fdtype primarysym, primarypsym, secondarysym, secondarypsym, nearestsym;
 static fdtype poolmaxsym, poolminsym;
 static fdtype mongomap_symbol, mongovec_symbol;
@@ -781,6 +781,8 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
 
 /* Find and Modify */
 
+static int getnewopt(fdtype opts,int dflt);
+
 static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
                              fdtype opts_arg)
 {
@@ -795,7 +797,7 @@ static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
     fdtype fields=fd_getopt(opts,fieldssym,FD_VOID);
     fdtype upsert=fd_getopt(opts,upsertsym,FD_FALSE);
     fdtype remove=fd_getopt(opts,removesym,FD_FALSE);
-    fdtype donew=fd_getopt(opts,newsym,FD_FALSE);
+    fdtype donew=getnewopt(opts,1);
     bson_t *q=fd_dtype2bson(query,flags,opts);
     bson_t *u=fd_dtype2bson(update,flags,opts);
     bson_t *reply=bson_new(); bson_error_t error;
@@ -827,6 +829,22 @@ static fdtype mongodb_modify(fdtype arg,fdtype query,fdtype update,
   else {
     fd_decref(opts);
     return FD_ERROR_VALUE;}
+}
+
+static int getnewopt(fdtype opts,int dflt)
+{
+  fdtype v=fd_getopt(opts,newsym,FD_VOID);
+  if (FD_VOIDP(v)) {
+    v=fd_getopt(opts,originalsym,FD_VOID);
+    if (FD_VOIDP(v)) return dflt;
+    else if (FD_FALSEP(v)) return 1;
+    else {
+      fd_decref(v);
+      return 0;}}
+  else if (FD_FALSEP(v)) return 0;
+  else {
+    fd_decref(v);
+    return 1;}
 }
 
 /* Command execution */
@@ -2300,6 +2318,7 @@ FD_EXPORT int fd_init_mongodb()
   writesym=fd_intern("WRITE");
   readsym=fd_intern("READ");
   returnsym=fd_intern("RETURN");
+  originalsym=fd_intern("ORIGINAL");
   newsym=fd_intern("NEW");
   removesym=fd_intern("REMOVE");
   sortedsym=fd_intern("SORTED");
