@@ -1275,12 +1275,13 @@ FD_EXPORT void fd_init_choicefns_c()
     fdtype unique_prim=
       fd_make_ndprim(fd_make_cprim1("UNIQUE?",singletonp,1));
     fd_idefn(fd_scheme_module,unique_prim);
-    fd_store(fd_scheme_module,fd_intern("SINGLETON?"),unique_prim);}
+    fd_store(fd_scheme_module,fd_intern("SINGLETON?"),unique_prim);
+    fd_store(fd_scheme_module,fd_intern("SOLE?"),unique_prim);}
 
   fd_defspecial(fd_scheme_module,"QCHOICE?",qchoicep_handler);
 
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim1("AMBIGUOUS?",ambiguousp,1)));
+  fd_idefn(fd_scheme_module,fd_make_ndprim(fd_make_cprim1("AMB?",ambiguousp,1)));
+  fd_defalias(fd_scheme_module,"AMBIGUOUS?","AMB?");
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("SINGLETON",singleton,1)));
   fd_idefn(fd_scheme_module,
