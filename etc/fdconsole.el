@@ -74,6 +74,10 @@
 (put 'tryif 'scheme-indent-function 1)
 (put 'withenv 'scheme-indent-function 1)
 (put 'withenv/safe 'scheme-indent-function 1)
+(put 'error 'scheme-indent-function 2)
+(put 'error+ 'scheme-indent-function 2)
+(put 'error 'scheme-indent-function 3)
+(put 'error+ 'scheme-indent-function 3)
 
 (put 'ambda 'scheme-indent-function 1)
 (put 'sambda 'scheme-indent-function 1)
@@ -150,7 +154,7 @@
 
 (put 'mongodb/find 'scheme-indent-function 2)
 (put 'mongodb/update! 'scheme-indent-function 2)
-(put 'mongodb/insert! 'scheme-indent-function 2)
+(put 'mongodb/insert! 'scheme-indent-function 1)
 (put 'mongodb/remove! 'scheme-indent-function 2)
 (put 'mongodb/modify 'scheme-indent-function 2)
 (put 'mongodb/modify! 'scheme-indent-function 2)
