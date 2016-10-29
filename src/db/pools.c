@@ -1730,7 +1730,7 @@ fd_pool fd_make_extpool(u8_string label,
     xp->lockfn=lockfn; xp->allocfn=allocfn;
     xp->state=state; xp->label=label;
     xp->flags=xp->flags|FD_OIDHOLES_OKAY;
-    if (FD_VOIDP(lockfn))
+    if ((FD_VOIDP(lockfn))||(FD_FALSEP(lockfn)))
       xp->flags=xp->flags|FD_POOL_LOCKFREE;
     return (fd_pool)xp;}
 }
