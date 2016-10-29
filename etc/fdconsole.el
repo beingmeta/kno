@@ -148,6 +148,20 @@
 (put 'logdeluge 'scheme-indent-function 1)
 (put 'logswamp 'scheme-indent-function 1)
 
+(put 'mongodb/find 'scheme-indent-function 2)
+(put 'mongodb/update! 'scheme-indent-function 2)
+(put 'mongodb/insert! 'scheme-indent-function 2)
+(put 'mongodb/remove! 'scheme-indent-function 2)
+(put 'mongodb/modify 'scheme-indent-function 2)
+(put 'mongodb/modify! 'scheme-indent-function 2)
+
+(put 'mongodb/cursor 'scheme-indent-function 2)
+(put 'mongodb/results 'scheme-indent-function 2)
+(put 'mongodb/do 'scheme-indent-function 2)
+
+(put 'mongovec 'scheme-indent-function 'block-indenter)
+(put 'mongomap 'scheme-indent-function 'block-indenter)
+
 (put 'sig/make 'scheme-indent-function 1)
 (put 'sig/check 'scheme-indent-function 2)
 (put 'sig/check/ 'scheme-indent-function 3)
