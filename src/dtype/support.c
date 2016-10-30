@@ -14,11 +14,13 @@
 #include "framerd/numbers.h"
 #include "framerd/apply.h"
 
+#include <libu8/u8signals.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 #include <libu8/u8logging.h>
 
+#include <signal.h>
 #include <sys/types.h>
 #include <pwd.h>
 
@@ -2158,6 +2160,21 @@ static fdtype config_get_module_loc(fdtype var,void *which_arg)
     return fd_err("Bad call","config_get_module_loc",NULL,FD_VOID);}
 }
 
+/* Converting signals to exceptions */
+
+struct sigaction fd_sigaction_raise;
+
+static void siginfo_raise(int signum,siginfo_t *info,void *stuff)
+{
+  u8_contour c=u8_dynamic_contour;
+  u8_condition ex=u8_signal_name(signum);
+  if (!(c)) {
+    u8_log(LOG_CRIT,ex,"Unexpected signal");
+    exit(1);}
+  else {
+    u8_raise(ex,c->u8c_label,NULL);}
+}
+
 /* Initialization */
 
 static void setup_logging();
@@ -2422,6 +2439,16 @@ void setup_logging()
     ("SHOWELAPSED",_("Whether to show elapsed time in messages"),
      fd_boolconfig_get,fd_boolconfig_set,
      &u8_log_show_elapsed);
+
+  /* Setup sigaction handler */
+
+  memset(&fd_sigaction_raise,0,sizeof(sigaction));
+  fd_sigaction_raise.sa_sigaction=siginfo_raise;
+  fd_sigaction_raise.sa_flags=SA_SIGINFO;
+  sigemptyset(&(fd_sigaction_raise.sa_mask));
+  sigaction(SIGSEGV,&fd_sigaction_raise,NULL);
+  sigaction(SIGFPE,&fd_sigaction_raise,NULL);
+  sigaction(SIGBUS,&fd_sigaction_raise,NULL);
 
 }
 

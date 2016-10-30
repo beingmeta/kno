@@ -697,6 +697,20 @@ static fdtype lisp_getsourceinfo()
   return result;
 }
 
+/* Force some errors */
+
+static fdtype force_sigsegv()
+{
+  fdtype *values=NULL;
+  fd_incref(values[3]);
+  return values[3];
+}
+
+static fdtype force_sigfpe()
+{
+  return fd_init_double(NULL,5.0/0.0);
+}
+
 /* The init function */
 
 FD_EXPORT void fd_init_corefns_c()
@@ -805,6 +819,9 @@ FD_EXPORT void fd_init_corefns_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETSOURCEINFO",lisp_getsourceinfo,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("ALLSYMBOLS",lisp_all_symbols,0));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim0("SEGFAULT",force_sigsegv,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("FPERROR",force_sigfpe,0));
 
 }
 

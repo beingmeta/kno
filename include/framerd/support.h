@@ -159,6 +159,9 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix);
 FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);
 FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
 
+/* Signalling */
+
+FD_EXPORT struct sigaction fd_sigaction_raise;
 
 #endif /* #ifndef FRAMERD_SUPPORT_H */
 

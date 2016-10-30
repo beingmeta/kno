@@ -558,7 +558,8 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
   U8_WITH_CONTOUR(f->name,0)
     result=dcall_inner(f,n,args,static_args);
   U8_ON_EXCEPTION
-    result=FD_ERROR_VALUE;
+    U8_CLEAR_CONTOUR();
+    result = FD_ERROR_VALUE;
   U8_END_EXCEPTION;
   return result;
 }
@@ -573,30 +574,38 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
     if (static_args)
       return fd_applyfns[ctype]((fdtype)f,n,args);
     else {
-      fdtype retval=fd_applyfns[ctype]((fdtype)f,n,args);
+      fdtype result=fd_applyfns[ctype]((fdtype)f,n,args);
       u8_free(args);
-      return retval;}}
+      return result;}}
   else switch (f->arity) {
-    case 0: return dcall0(f);
-    case 1: return dcall1(f,args[0]);
-    case 2: return dcall2(f,args[0],args[1]);
-    case 3: return dcall3(f,args[0],args[1],args[2]);
-    case 4: return dcall4(f,args[0],args[1],args[2],args[3]);
-    case 5: return dcall5(f,args[0],args[1],args[2],args[3],args[4]);
-    case 6: return dcall6(f,args[0],args[1],args[2],args[3],args[4],args[5]);
-    case 7: return dcall7(f,args[0],args[1],args[2],args[3],
-                          args[4],args[5],args[6]);
-    case 8: return dcall8(f,args[0],args[1],args[2],args[3],
-                          args[4],args[5],args[6],args[7]);
-    case 9: return dcall9(f,args[0],args[1],args[2],args[3],
-                          args[4],args[5],args[6],args[7],args[8]);
+    case 0: return dcall0(f); break;
+    case 1: return dcall1(f,args[0]); break;
+    case 2: return dcall2(f,args[0],args[1]); break;
+    case 3: return dcall3(f,args[0],args[1],args[2]); break;
+    case 4: return dcall4(f,args[0],args[1],args[2],args[3]); break;
+    case 5: return dcall5(f,args[0],args[1],args[2],args[3],args[4]);  break;
+    case 6: 
+      return dcall6(f,args[0],args[1],args[2],args[3],args[4],args[5]);
+      break;
+    case 7: 
+      return dcall7(f,args[0],args[1],args[2],args[3],
+                      args[4],args[5],args[6]);
+      break;
+    case 8: 
+      return dcall8(f,args[0],args[1],args[2],args[3],
+                      args[4],args[5],args[6],args[7]);
+      break;
+    case 9: 
+      return dcall9(f,args[0],args[1],args[2],args[3],
+                      args[4],args[5],args[6],args[7],args[8]);
+      break;
     default:
       if (static_args)
         return f->handler.calln(n,args);
       else {
-        fdtype retval=f->handler.calln(n,args);
+        fdtype result=f->handler.calln(n,args);
         u8_free(args);
-        return retval;}}
+        return result;}}
 }
 
 /* Calling non-deterministically */
