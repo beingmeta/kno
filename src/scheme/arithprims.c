@@ -623,6 +623,44 @@ static fdtype cityhash128(fdtype arg)
   return fd_make_packet(NULL,16,bytes);
 }
 
+/* ITOA */
+
+static fdtype itoa_prim(fdtype arg,fdtype base_arg)
+{
+  int base=FD_FIX2INT(base_arg); char buf[32];
+  if (FD_FIXNUMP(arg)) {
+    if (base==10) u8_itoa10(FD_FIX2INT(arg),buf);
+    else if (FD_FIX2INT(arg)<0)
+      return fd_err(_("negative numbers can't be rendered as non-decimal"),
+                    "itoa_prim",NULL,fd_incref(arg));
+    else if (base==8) u8_uitoa8(FD_FIX2INT(arg),buf);
+    else if (base==16) u8_uitoa16(FD_FIX2INT(arg),buf);
+    else return fd_type_error("16,10,or 8","itoa_prim",base_arg);}
+  else if (!(FD_BIGINTP(arg))) 
+    return fd_type_error("number","itoa_prim",arg);
+  else {
+    fd_bigint bi=(fd_bigint)arg;
+    if ((base==10)&&(fd_bigint_negativep(bi))&&
+        (fd_bigint_fits(bi,63,0))) {
+      long long int n=fd_bigint_to_long_long(bi);
+      u8_itoa10(n,buf);}
+    else if ((base==10)&&(fd_bigint_fits(bi,64,0))) {
+      unsigned long long int n=fd_bigint_to_ulong_long(bi);
+      u8_uitoa10(n,buf);}
+    else if (base==10)
+      return fd_type_error("smallish bigint","itoa_prim",arg);
+    else if (fd_bigint_negativep(bi)) {
+      return fd_err(_("negative numbers can't be rendered as non-decimal"),
+                    "itoa_prim",NULL,fd_incref(arg));}
+    else if (fd_bigint_fits(bi,64,0)) {
+      unsigned long long int n=fd_bigint_to_ulong_long(bi);
+      if (base==8) u8_uitoa8(n,buf);
+      else if (base==16) u8_uitoa16(n,buf);
+      else return fd_type_error("16,10,or 8","itoa_prim",base_arg);}
+    else return fd_type_error("smallish bigint","itoa_prim",arg);}
+  return fdtype_string(buf);
+}
+
 /* Initialization */
 
 #undef arithdef
@@ -701,6 +739,9 @@ FD_EXPORT void fd_init_numeric_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CITYHASH128",cityhash128,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHPTR",hashptr_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHREF",hashref_prim,1));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("U8ITOA",itoa_prim,1,-1,FD_VOID,fd_fixnum_type,FD_INT(10)));
 }
 
 /* Emacs local variables
