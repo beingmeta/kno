@@ -270,7 +270,7 @@ $(TESTBIN): ../../src/db/dtypestream.o ../../lib/libfdtype@suffix@.a
 # This is for making shared (dynamically linked) versions of the test programs
 %.shared: %.c
 	@echo MKTEST_SHARED $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ \
+	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ \
 		../../src/db/dtypestream.o $(LIBS) -lfdtype@suffix@ $(LIBS)
 
 ../../lib/libfdtype@suffix@.a:

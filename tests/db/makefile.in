@@ -60,7 +60,7 @@ $(TESTBIN): ../../lib/libfddbfile@suffix@.a \
 # This is for making shared (dynamically linked) versions of the test programs
 %.shared: %.c
 	@echo MKTEST_SHARED $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
+	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
 		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ $(LIBS)
 ../../lib/libfdtype@suffix@.a:
 	cd ../..; make lib/libfdtype@suffix@.a
