@@ -49,7 +49,7 @@ static History *edithistory;
 
 #include "main.h"
 
-#define EVAL_PROMPT "#|fdconsole>>|# "
+#define EVAL_PROMPT "#|fdconsole>|# "
 static u8_string eval_prompt=EVAL_PROMPT;
 static int set_prompt(fdtype ignored,fdtype v,void *vptr)
 {
@@ -61,7 +61,7 @@ static int set_prompt(fdtype ignored,fdtype v,void *vptr)
     if (cur) u8_free(cur);
     if ((c==';')||((c=='#')&&(*scan=='|')))
       *ptr=u8_strdup(data);
-    else *ptr=u8_string_append("#|",data,">|# ",NULL);
+    else *ptr=u8_string_append("#|",data,"|# ",NULL);
     return 1;}
   else {
     fd_seterr(fd_TypeError,"set_prompt",
