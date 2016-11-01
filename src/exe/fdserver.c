@@ -117,7 +117,8 @@ static void init_server(void);
 
 static int sustaining=0;
 static pid_t dependent=-1;
-static void kill_dependent_onexit(){
+static void kill_dependent_onexit()
+{
   u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
   sustaining=0;
@@ -129,8 +130,11 @@ static void kill_dependent_onexit(){
   if ((inject_file)&&(u8_file_existsp(inject_file))) {
     u8_removefile(inject_file);
     u8_free(inject_file);
-    inject_file=NULL;}}
-static void kill_dependent_onsignal(int sig){
+    inject_file=NULL;}
+}
+
+static void kill_dependent_onsignal(int sig,siginfo_t *info,void *stuff)
+{
   u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
   sustaining=0;
@@ -146,7 +150,29 @@ static void kill_dependent_onsignal(int sig){
   if ((inject_file)&&(u8_file_existsp(inject_file))) {
     u8_removefile(inject_file);
     u8_free(inject_file);
-    inject_file=NULL;}}
+    inject_file=NULL;}
+}
+
+static void shutdown_server_onsignal(int,siginfo_t *,void *);
+
+static struct sigaction sigaction_ignore;
+static struct sigaction sigaction_abraham;
+static struct sigaction sigaction_shutdown;
+ 
+static void sigactions_init()
+{
+  memset(&sigaction_ignore,0,sizeof(sigaction_ignore));
+  sigaction_ignore.sa_handler=SIG_IGN;
+  
+  memset(&sigaction_abraham,0,sizeof(sigaction_ignore));
+  sigaction_abraham.sa_sigaction=kill_dependent_onsignal;
+  sigaction_abraham.sa_flags=SA_SIGINFO;
+
+  memset(&sigaction_shutdown,0,sizeof(sigaction_ignore));
+  sigaction_shutdown.sa_sigaction=kill_dependent_onsignal;
+  sigaction_shutdown.sa_flags=SA_SIGINFO;
+
+}
 
 /* Checking for (good) injections */
 
@@ -944,6 +970,7 @@ int main(int argc,char **argv)
   fd_lispenv core_env;
 
   server_sigmask=fd_default_sigmask;
+  sigactions_init();
 
   /* Close and reopen STDIN */
   close(0);  if (open("/dev/null",O_RDONLY) == -1) {
@@ -1326,13 +1353,13 @@ static int sustain_server(pid_t grandchild,
   u8_log(LOG_WARN,ServerLoop,"Monitoring %s pid=%d",server_spec,grandchild);
   atexit(kill_dependent_onexit);
 #ifdef SIGHUP
-  signal(SIGHUP,SIG_IGN);
+  sigaction(SIGHUP,&sigaction_ignore,NULL);
 #endif
 #ifdef SIGTERM
-  signal(SIGTERM,kill_dependent_onsignal);
+  sigaction(SIGTERM,&sigaction_abraham,NULL);
 #endif
 #ifdef SIGQUIT
-  signal(SIGQUIT,kill_dependent_onsignal);
+  sigaction(SIGQUIT,&sigaction_abraham,NULL);
 #endif
   while ((sustaining)&&(waitpid(grandchild,&status,0))) {
     time_t now=time(NULL);
@@ -1373,7 +1400,7 @@ static void write_state_files(void);
 static int launch_server(u8_string server_spec,fd_lispenv core_env)
 {
 #ifdef SIGHUP
-  signal(SIGHUP,shutdown_dtypeserver_onsignal);
+  sigaction(SIGHUP,&sigaction_shutdown,NULL);
 #endif
   tweak_exename("fdxerv",2,'s');
   if (u8_file_existsp(server_spec)) {
@@ -1438,10 +1465,10 @@ static int run_server(u8_string server_spec)
   /* Prepare for the end */
   atexit(shutdown_dtypeserver_onexit);
 #ifdef SIGTERM
-  signal(SIGTERM,shutdown_dtypeserver_onsignal);
+  sigaction(SIGTERM,&sigaction_shutdown,NULL);
 #endif
 #ifdef SIGQUIT
-  signal(SIGQUIT,shutdown_dtypeserver_onsignal);
+  sigaction(SIGQUIT,&sigaction_shutdown,NULL);
 #endif
   fd_register_config("PORT",_("port or port@host to listen on"),
                      config_get_ports,config_serve_port,NULL);

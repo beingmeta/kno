@@ -1603,15 +1603,18 @@ static fdtype servlet_status_string()
 
 static int sustaining=0;
 static pid_t dependent=-1;
-static void kill_dependent_onexit(){
+static void kill_dependent_onexit()
+{
   u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
   sustaining=0;
   if (dep>0) kill(dep,SIGTERM);
   if (u8_file_existsp(ppid_file)) {
     u8_removefile(ppid_file);
-    u8_free(ppid_file);}}
-static void kill_dependent_onsignal(int sig){
+    u8_free(ppid_file);}
+}
+static void kill_dependent_onsignal(int sig,siginfo_t *info,void *stuff)
+{
   u8_string ppid_file=fd_runbase_filename(".ppid");
   pid_t dep=dependent; dependent=-1;
   sustaining=0;
@@ -1622,7 +1625,17 @@ static void kill_dependent_onsignal(int sig){
   if (dep>0) kill(dep,sig);
   if (u8_file_existsp(ppid_file)) {
     u8_removefile(ppid_file);
-    u8_free(ppid_file);}}
+    u8_free(ppid_file);}
+}
+
+static struct sigaction sigaction_abraham;
+ 
+static void sigactions_init()
+{
+  memset(&sigaction_abraham,0,sizeof(sigaction_ignore));
+  sigaction_abraham.sa_sigaction=kill_dependent_onsignal;
+  sigaction_abraham.sa_flags=SA_SIGINFO;
+}
 
 /* Making sure you can write the socket file */
 
@@ -2044,7 +2057,7 @@ static int launch_servlet(u8_string socket_spec)
 {
   tweak_exename("fdxerv",2,'s');
 #ifdef SIGHUP
-  signal(SIGHUP,shutdown_on_signal);
+  sigaction(SIGHUP,&sigaction_shutdown,NULL);
 #endif
 
   setup_status_file();
@@ -2119,6 +2132,7 @@ static int launch_servlet(u8_string socket_spec)
 
   /* Now that we're running, shutdowns occur normally. */
   init_webcommon_finalize();
+  sigactions_init();
 
   update_preloads();
 
@@ -2281,13 +2295,13 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
          "Starting %s pid=%d",socket_spec,grandchild);
   atexit(kill_dependent_onexit);
 #ifdef SIGTERM
-  signal(SIGTERM,kill_dependent_onsignal);
+  sigaction(SIGTERM,&sigaction_abraham,NULL);
 #endif
 #ifdef SIGQUIT
-  signal(SIGQUIT,kill_dependent_onsignal);
+  sigaction(SIGQUIT,&sigaction_abraham,NULL);
 #endif
 #ifdef SIGHUP
-  signal(SIGHUP,SIG_IGN);
+  sigaction(SIGHUP,&sigaction_ignore,NULL);
 #endif
   while ((sustaining)&&(waitpid(grandchild,&status,0))) {
     time_t now=time(NULL);

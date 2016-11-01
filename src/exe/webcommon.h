@@ -699,11 +699,11 @@ static void webcommon_shutdown(u8_condition why)
 
 static int server_shutdown=0;
 
-static void shutdown_on_signal(int sig)
+static void shutdown_onsignal(int sig,siginfo_t *info,void *data)
 {
   char buf[64];
   if (server_shutdown) {
-    u8_log(LOG_CRIT,"shutdown_on_signal","Already shutdown but received signal %d",
+    u8_log(LOG_CRIT,"shutdown_server_onsignal","Already shutdown but received signal %d",
 	   sig);
     return;}
 #ifdef SIGHUP
@@ -728,23 +728,35 @@ static void shutdown_on_signal(int sig)
   return;  
 }
 
-static void shutdown_on_exit(){
+static struct sigaction sigaction_ignore;
+static struct sigaction sigaction_shutdown;
+
+static void shutdown_on_exit()
+{
   if (server_shutdown) return;
   server_shutdown=1;
-  shutdown_server("EXIT");}
+  shutdown_server("EXIT");
+}
 
 static void init_webcommon_finalize()
 {
   atexit(shutdown_on_exit);
 
+  memset(&sigaction_ignore,0,sizeof(sigaction_ignore));
+  sigaction_ignore.sa_handler=SIG_IGN;
+  
+  memset(&sigaction_shutdown,0,sizeof(sigaction_ignore));
+  sigaction_shutdown.sa_sigaction=shutdown_onsignal;
+  sigaction_shutdown.sa_flags=SA_SIGINFO;
+
 #ifdef SIGHUP
-  signal(SIGHUP,shutdown_on_signal);
+  sigaction(SIGHUP,&sigaction_shutdown,NULL);
 #endif
 #ifdef SIGTERM
-  signal(SIGTERM,shutdown_on_signal);
+  sigaction(SIGTERM,&sigaction_shutdown,NULL);
 #endif
 #ifdef SIGQUIT
-  signal(SIGQUIT,shutdown_on_signal);
+  sigaction(SIGQUIT,&sigaction_shutdown,NULL);
 #endif
 
   /* Set signal masks */
