@@ -118,15 +118,15 @@ static fdtype iszipfile_prim(fdtype arg)
 
 /* Creating/opening zip files */
 
-static fdtype zipopen(u8_string path,int zflags)
+static fdtype zipopen(u8_string path,int zflags,int oflags)
 {
-  int errflag=0;
+  int errflag=0, flags=zflags|oflags;
   u8_string abspath=u8_abspath(path,NULL);
-  if ((!(zflags&ZIP_CREATE))&&(!(u8_file_existsp(abspath)))) {
+  if ((!(flags&ZIP_CREATE))&&(!(u8_file_existsp(abspath)))) {
     fd_seterr(fd_FileNotFound,"zipopen",abspath,FD_VOID);
     return FD_ERROR_VALUE;}
   else {
-    struct zip *zip=zip_open(abspath,zflags,&errflag);
+    struct zip *zip=zip_open(abspath,flags,&errflag);
     if (zip) {
       struct FD_ZIPFILE *zf=u8_alloc(struct FD_ZIPFILE);
       FD_INIT_FRESH_CONS(zf,fd_zipfile_type);
@@ -140,12 +140,12 @@ static fdtype zipopen(u8_string path,int zflags)
 static fdtype zipopen_prim(fdtype filename,fdtype create)
 {
   if ((FD_FALSEP(create))||(FD_VOIDP(create)))
-    return zipopen(FD_STRDATA(filename),ZIP_CHECKCONS);
-  else return zipopen(FD_STRDATA(filename),ZIP_CREATE|ZIP_CHECKCONS);
+    return zipopen(FD_STRDATA(filename),ZIP_CHECKCONS,0);
+  else return zipopen(FD_STRDATA(filename),ZIP_CHECKCONS,ZIP_CREATE);
 }
 static fdtype zipmake_prim(fdtype filename)
 {
-  return zipopen(FD_STRDATA(filename),ZIP_CREATE|ZIP_EXCL);
+  return zipopen(FD_STRDATA(filename),0,ZIP_CREATE|ZIP_EXCL);
 }
 
 static fdtype zipfilename_prim(fdtype zipfile)
