@@ -2162,8 +2162,15 @@ static fdtype config_get_module_loc(fdtype var,void *which_arg)
 
 /* Converting signals to exceptions */
 
-struct sigaction fd_sigaction_raise, fd_sigaction_exit, fd_sigaction_default;
+struct sigaction sigaction_catch, sigaction_exit, sigaction_default;
 static sigset_t sigcatch_set, sigexit_set, sigdefault_set;
+
+static sigset_t default_sigmask;
+sigset_t *fd_default_sigmask=&default_sigmask;
+
+struct sigaction *fd_sigaction_catch=&sigaction_catch;
+struct sigaction *fd_sigaction_exit=&sigaction_catch;
+struct sigaction *fd_sigaction_default=&sigaction_catch;
 
 static void siginfo_raise(int signum,siginfo_t *info,void *stuff)
 {
@@ -2243,21 +2250,21 @@ static int sigconfig_setfn(fdtype var,fdtype val,
 static int sigconfig_catch_setfn(fdtype var,fdtype val,void *data)
 {
   sigset_t *mask=(sigset_t *)data;
-  return sigconfig_setfn(var,val,mask,&fd_sigaction_raise,
+  return sigconfig_setfn(var,val,mask,&sigaction_catch,
                          "sigconfig_catch_setfn");
 }
 
 static int sigconfig_exit_setfn(fdtype var,fdtype val,void *data)
 {
   sigset_t *mask=(sigset_t *)data;
-  return sigconfig_setfn(var,val,mask,&fd_sigaction_exit,
+  return sigconfig_setfn(var,val,mask,&sigaction_exit,
                          "sigconfig_exit_setfn");
 }
 
 static int sigconfig_default_setfn(fdtype var,fdtype val,void *data)
 {
   sigset_t *mask=(sigset_t *)data;
-  return sigconfig_setfn(var,val,mask,&fd_sigaction_default,
+  return sigconfig_setfn(var,val,mask,&sigaction_default,
                          "sigconfig_default_setfn");
 }
 
@@ -2528,26 +2535,53 @@ void setup_logging()
 
   /* Setup sigaction handler */
 
-  memset(&fd_sigaction_raise,0,sizeof(sigaction));
-  memset(&fd_sigaction_default,0,sizeof(sigaction));
-
-  /* Setup sigaction for converting signals to u8_raise (longjmp or exit) */
-  fd_sigaction_raise.sa_sigaction=siginfo_raise;
-  fd_sigaction_raise.sa_flags=SA_SIGINFO;
-  sigemptyset(&(fd_sigaction_raise.sa_mask));
-
-  /* Setup sigaction for default action */
-  fd_sigaction_exit.sa_handler=SIG_DFL;
-  sigemptyset(&(fd_sigaction_exit.sa_mask));
-
-  /* Setup sigaction for exit action */
-  fd_sigaction_exit.sa_sigaction=siginfo_exit;
-  fd_sigaction_exit.sa_flags=SA_SIGINFO;
-  sigemptyset(&(fd_sigaction_exit.sa_mask));
+  memset(&sigaction_catch,0,sizeof(sigaction));
+  memset(&sigaction_exit,0,sizeof(sigaction));
+  memset(&sigaction_default,0,sizeof(sigaction));
 
   sigemptyset(&sigcatch_set);
   sigemptyset(&sigexit_set);
   sigemptyset(&sigdefault_set);
+
+  /* Setup sigaction for converting signals to u8_raise (longjmp or exit) */
+  sigaction_catch.sa_sigaction=siginfo_raise;
+  sigaction_catch.sa_flags=SA_SIGINFO;
+  sigemptyset(&(sigaction_catch.sa_mask));
+
+  /* Setup sigaction for default action */
+  sigaction_exit.sa_handler=SIG_DFL;
+  sigemptyset(&(sigaction_exit.sa_mask));
+
+  /* Setup sigaction for exit action */
+  sigaction_exit.sa_sigaction=siginfo_exit;
+  sigaction_exit.sa_flags=SA_SIGINFO;
+  sigemptyset(&(sigaction_exit.sa_mask));
+
+  /* Default exit actions */
+
+  sigaddset(&(sigaction_exit.sa_mask),SIGSEGV);
+  sigaction(SIGSEGV,&(sigaction_exit),NULL);
+  
+  sigaddset(&(sigaction_exit.sa_mask),SIGILL);
+  sigaction(SIGILL,&(sigaction_exit),NULL);
+
+  sigaddset(&(sigaction_exit.sa_mask),SIGFPE);
+  sigaction(SIGFPE,&(sigaction_exit),NULL);
+
+#ifdef SIGBUS
+  sigaddset(&(sigaction_exit.sa_mask),SIGBUS);
+  sigaction(SIGBUS,&(sigaction_exit),NULL);
+#endif
+
+  /* The default sigmask is masking everything but synchronous
+     signals */
+  sigfillset(&default_sigmask);
+  sigaddset(&default_sigmask,SIGSEGV);
+  sigaddset(&default_sigmask,SIGILL);
+  sigaddset(&default_sigmask,SIGFPE);
+#ifdef SIGBUS
+  sigaddset(&default_sigmask,SIGBUS);
+#endif
 
   fd_register_config
     ("SIGCATCH",_("Errors to catch and return as errors"),

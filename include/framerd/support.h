@@ -11,6 +11,8 @@
 #define FRAMERD_SUPPORT_H_INFO "include/framerd/support.h"
 #endif
 
+#include <signal.h>
+
 FD_EXPORT fd_exception fd_UnknownError, fd_ConfigError, fd_OutOfMemory;
 FD_EXPORT fd_exception fd_ReadOnlyConfig;
 
@@ -161,9 +163,11 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
 
 /* Signalling */
 
-FD_EXPORT struct sigaction fd_sigaction_raise;
-FD_EXPORT struct sigaction fd_sigaction_exit;
-FD_EXPORT struct sigaction fd_sigaction_default;
+FD_EXPORT struct sigaction *fd_sigaction_catch;
+FD_EXPORT struct sigaction *fd_sigaction_exit;
+FD_EXPORT struct sigaction *fd_sigaction_default;
+
+FD_EXPORT sigset_t *fd_default_sigmask;
 
 #endif /* #ifndef FRAMERD_SUPPORT_H */
 
