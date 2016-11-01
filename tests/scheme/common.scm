@@ -31,6 +31,7 @@
   (define test-optimize! optimize!))
 
 (unless (config 'testoptimized #f)
+  (config! 'optimize:rails #t)
   (define applytester applytest)
   (define evaltester evaltest)
   (define define-tester define)

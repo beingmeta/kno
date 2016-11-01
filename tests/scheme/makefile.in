@@ -103,7 +103,7 @@ alltests: schemetests tabletests indextests hashindextests dbtests optall
 schemetests:
 	@echo "*** Running scheme tests to exercise the data/eval layer"
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) r4rs.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMZED=yes r4rs.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes r4rs.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) exceptions.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) choicetest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes choicetest.scm
@@ -121,6 +121,10 @@ schemetests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) xmltest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cryptotest.scm
 	@echo "*** Completed scheme tests to exercise the data/eval layer"
+optimizer-tests:
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes r4rs.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes choicetest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes seqtest.scm
 
 optall:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) optall.scm
