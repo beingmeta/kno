@@ -8,9 +8,12 @@ XCFLAGS=
 CFLAGS= -I../../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
 	-I../../include $(XCFLAGS)
 LDFLAGS =@LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
+RPATH   = @rpath@
+RPATHFLAGS = @RPATHFLAGS@
 BASELIBS=@LIBS@ -lm -lz
 BMLIBS=-lu8stdio -lu8io -lu8data -lu8
 LIBS=$(BASELIBS) $(BMLIBS)
+EXELDFLAGS = @EXELDFLAGS@
 
 DESTDIR		=
 prefix		= @prefix@
@@ -52,7 +55,7 @@ $(TESTBIN): ../../lib/libfddbfile@suffix@.a \
 %: %.c ../../lib/libfddbfile@suffix@.a ../../lib/libfddb@suffix@.a \
 	../../lib/libfdtype@suffix@.a
 	@echo MKTEST_STATIC $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # This is for making shared (dynamically linked) versions of the test programs
 %.shared: %.c
