@@ -2162,7 +2162,8 @@ static fdtype config_get_module_loc(fdtype var,void *which_arg)
 
 /* Converting signals to exceptions */
 
-struct sigaction fd_sigaction_raise;
+struct sigaction fd_sigaction_raise, fd_sigaction_exit, fd_sigaction_default;
+static sigset_t sigcatch_set, sigexit_set, sigdefault_set;
 
 static void siginfo_raise(int signum,siginfo_t *info,void *stuff)
 {
@@ -2173,6 +2174,91 @@ static void siginfo_raise(int signum,siginfo_t *info,void *stuff)
     exit(1);}
   else {
     u8_raise(ex,c->u8c_label,NULL);}
+}
+
+static void siginfo_exit(int signum,siginfo_t *info,void *stuff)
+{
+  u8_contour c=u8_dynamic_contour;
+  u8_condition ex=u8_signal_name(signum);
+  if (!(c)) {
+    u8_log(LOG_CRIT,ex,"Unexpected signal");}
+  else {
+    u8_raise(ex,c->u8c_label,NULL);}
+  exit(1);
+}
+
+/* Signal handling configs */
+
+static fdtype sigmask2dtype(sigset_t *mask)
+{
+  fdtype result=FD_EMPTY_CHOICE;
+  int sig=1; while (sig<32) {
+    if (sigismember(mask,sig)) {
+      FD_ADD_TO_CHOICE(result,fd_intern(u8_signal_name(sig)));}
+    sig++;}
+  return result;
+}
+
+static int arg2signum(fdtype arg)
+{
+  int sig=-1;
+  if (FD_FIXNUMP(arg)) 
+    sig=FD_FIX2INT(arg);
+  else if (FD_SYMBOLP(arg))
+    sig=u8_name2signal(FD_SYMBOL_NAME(arg));
+  else if (FD_STRINGP(arg))
+    sig=u8_name2signal(FD_STRDATA(arg));
+  else sig=-1;
+  if ((sig>1)&&(sig<32))
+    return sig;
+  else {
+    fd_seterr(fd_TypeError,"arg2signum",NULL,arg);
+    return -1;}
+}
+
+static fdtype sigconfig_getfn(fdtype var,void *data)
+{
+  sigset_t *mask=(sigset_t *)data;
+  return sigmask2dtype(mask);
+}
+
+static int sigconfig_setfn(fdtype var,fdtype val,
+                           sigset_t *mask,
+                           struct sigaction *action,
+                           u8_string caller)
+{
+  int sig=arg2signum(val);
+  if (sig<0) return sig;
+  if (sigismember(mask,sig))
+    return 0;
+  else {
+    sigaction(sig,action,NULL);
+    sigaddset(mask,sig);
+    if (mask!=&sigcatch_set) sigdelset(&sigcatch_set,sig);
+    if (mask!=&sigexit_set) sigdelset(&sigexit_set,sig);
+    if (mask!=&sigdefault_set) sigdelset(&sigdefault_set,sig);
+    return 1;}
+}
+
+static int sigconfig_catch_setfn(fdtype var,fdtype val,void *data)
+{
+  sigset_t *mask=(sigset_t *)data;
+  return sigconfig_setfn(var,val,mask,&fd_sigaction_raise,
+                         "sigconfig_catch_setfn");
+}
+
+static int sigconfig_exit_setfn(fdtype var,fdtype val,void *data)
+{
+  sigset_t *mask=(sigset_t *)data;
+  return sigconfig_setfn(var,val,mask,&fd_sigaction_exit,
+                         "sigconfig_exit_setfn");
+}
+
+static int sigconfig_default_setfn(fdtype var,fdtype val,void *data)
+{
+  sigset_t *mask=(sigset_t *)data;
+  return sigconfig_setfn(var,val,mask,&fd_sigaction_default,
+                         "sigconfig_default_setfn");
 }
 
 /* Initialization */
@@ -2443,12 +2529,38 @@ void setup_logging()
   /* Setup sigaction handler */
 
   memset(&fd_sigaction_raise,0,sizeof(sigaction));
+  memset(&fd_sigaction_default,0,sizeof(sigaction));
+
+  /* Setup sigaction for converting signals to u8_raise (longjmp or exit) */
   fd_sigaction_raise.sa_sigaction=siginfo_raise;
   fd_sigaction_raise.sa_flags=SA_SIGINFO;
   sigemptyset(&(fd_sigaction_raise.sa_mask));
-  sigaction(SIGSEGV,&fd_sigaction_raise,NULL);
-  sigaction(SIGFPE,&fd_sigaction_raise,NULL);
-  sigaction(SIGBUS,&fd_sigaction_raise,NULL);
+
+  /* Setup sigaction for default action */
+  fd_sigaction_exit.sa_handler=SIG_DFL;
+  sigemptyset(&(fd_sigaction_exit.sa_mask));
+
+  /* Setup sigaction for exit action */
+  fd_sigaction_exit.sa_sigaction=siginfo_exit;
+  fd_sigaction_exit.sa_flags=SA_SIGINFO;
+  sigemptyset(&(fd_sigaction_exit.sa_mask));
+
+  sigemptyset(&sigcatch_set);
+  sigemptyset(&sigexit_set);
+  sigemptyset(&sigdefault_set);
+
+  fd_register_config
+    ("SIGCATCH",_("Errors to catch and return as errors"),
+     sigconfig_getfn,sigconfig_catch_setfn,
+     &sigcatch_set);
+  fd_register_config
+    ("SIGEXIT",_("Errors to trigger exists"),
+     sigconfig_getfn,sigconfig_exit_setfn,
+     &sigexit_set);
+  fd_register_config
+    ("SIGDEFAULT",_("Errors to trigger exists"),
+     sigconfig_getfn,sigconfig_default_setfn,
+     &sigexit_set);
 
 }
 

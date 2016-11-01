@@ -162,6 +162,8 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
 /* Signalling */
 
 FD_EXPORT struct sigaction fd_sigaction_raise;
+FD_EXPORT struct sigaction fd_sigaction_exit;
+FD_EXPORT struct sigaction fd_sigaction_default;
 
 #endif /* #ifndef FRAMERD_SUPPORT_H */
 
