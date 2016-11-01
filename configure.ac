@@ -409,6 +409,11 @@ m4_include([etc/ax_check_link_flag.m4])
 
 AC_CHECK_LIB(pthread,pthread_rwlock_wrlock)
 
+AC_ARG_WITH(stackcheck,--with-stackcheck Build with native stack checking,with_stackcheck=$withval,with_stackcheck="yes")
+if ! test "${with_stackcheck}" = "no"; then
+   AC_DEFINE_UNQUOTED(FD_STACKCHECK,1)
+fi
+
 AC_DEFINE_UNQUOTED(FD_VERSION,"$FDVERSION")
 AC_DEFINE_UNQUOTED(FD_MAJOR_VERSION,$FDMAJOR)
 AC_DEFINE_UNQUOTED(FD_MINOR_VERSION,$FDMINOR)

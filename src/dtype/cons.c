@@ -23,7 +23,7 @@
 
 fd_exception fd_MallocFailed=_("malloc/realloc failed");
 fd_exception fd_StringOverflow=_("allocating humongous string past limit");
-fd_exception fd_StackOverflow=_("the space set for the stack overflowed");
+fd_exception fd_StackOverflow=_("Scheme stack overflow");
 fd_exception fd_TypeError=_("Type error"), fd_RangeError=_("Range error");
 fd_exception fd_BadPtr=_("bad dtype pointer");
 fd_exception fd_DoubleGC=_("Freeing already freed CONS");

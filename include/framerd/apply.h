@@ -160,6 +160,13 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
 
 #define FD_DTYPE2FCN(x) ((FD_PPTRP(x)) ? ((fd_function)(fd_pptr_ref(x))) : ((fd_function)x))
 
+/* Stack checking */
+
+FD_EXPORT ssize_t fd_stack_limit(void);
+FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit);
+FD_EXPORT int fd_stackcheck(void);
+
+
 /* Profiling */
 
 #if FD_CALLTRACK_ENABLED

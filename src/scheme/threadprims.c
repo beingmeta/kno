@@ -69,6 +69,7 @@ FD_EXPORT void recycle_thread_struct(struct FD_CONS *c)
     int i=0, n=th->applydata.n_args; fdtype *args=th->applydata.args;
     while (i<n) {fd_decref(args[i]); i++;}
     u8_free(args); fd_decref(th->applydata.fn);}
+  pthread_attr_destroy(&(th->attr));
   u8_free(th);
 }
 
@@ -248,6 +249,8 @@ static void *thread_call(void *data)
   fdtype result;
   struct FD_THREAD_STRUCT *tstruct=(struct FD_THREAD_STRUCT *)data;
 
+  U8_SET_STACK_BASE();
+
   /* Set (block) most signals */
   pthread_sigmask(SIG_SETMASK,fd_default_sigmask,NULL);
 
@@ -301,11 +304,12 @@ fd_thread_struct fd_thread_call
   else {
     tstruct->result=FD_NULL; tstruct->resultptr=&(tstruct->result);}
   tstruct->flags=0;
+  pthread_attr_init(&(tstruct->attr));
   tstruct->applydata.fn=fd_incref(fn);
   tstruct->applydata.n_args=n; tstruct->applydata.args=rail;
   /* We need to do this first, before the thread exits and recycles itself! */
   fd_incref((fdtype)tstruct);
-  pthread_create(&(tstruct->tid),pthread_attr_default,
+  pthread_create(&(tstruct->tid),&(tstruct->attr),
                  thread_call,(void *)tstruct);
   return tstruct;
 }
@@ -421,6 +425,25 @@ static fdtype threadyield_prim()
   else return FD_FALSE;
 }
 
+/* Thread information */
+
+static fdtype stack_depth_prim()
+{
+  ssize_t depth=u8_stack_depth();
+  return FD_INT2DTYPE(depth);
+}
+static fdtype stack_limit_prim()
+{
+  ssize_t limit=fd_stack_limit();
+  return FD_INT2DTYPE(limit);
+}
+static fdtype set_stack_limit_prim(fdtype arg)
+{
+  ssize_t limit=FD_FIX2INT(arg);
+  limit=fd_stack_limit_set(limit);
+  return FD_INT2DTYPE(limit);
+}
+
 #endif
 
 #if FD_THREADS_ENABLED
@@ -453,6 +476,11 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("SYNCHRO-UNLOCK",synchro_unlock,1));
   fd_defspecial(fd_scheme_module,"WITH-LOCK",with_lock_handler);
 
+
+  fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-DEPTH",stack_depth_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("STACK-LIMIT",stack_limit_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1x("STACK-LIMIT!",set_stack_limit_prim,1,
+                                            fd_fixnum_type,FD_VOID));
 
   fd_register_config("DUMPTHREADSTACK",
                      "Whether errors in threads print out full backtraces",

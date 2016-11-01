@@ -646,6 +646,8 @@ int main(int argc,char **argv)
   /* This is the environment the console will start in */
   fd_lispenv env=fd_working_environment();
 
+  U8_SET_STACK_BASE();
+
   if (getenv("FD_SKIP_DOTLOAD")) dotload=0;
 
   /* INITIALIZING MODULES */

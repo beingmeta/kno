@@ -369,8 +369,9 @@ typedef struct FD_CONTINUATION *fd_continuation;
 #define FD_THREAD_DONE 1
 #define FD_EVAL_THREAD 2
 typedef struct FD_THREAD_STRUCT {
-  FD_CONS_HEADER; int flags; pthread_t tid;
+  FD_CONS_HEADER; int flags; pthread_t tid; 
   fdtype *resultptr, result;
+  pthread_attr_t attr;
   union {
     struct {fdtype expr; fd_lispenv env;} evaldata;
     struct {fdtype fn, *args; int n_args;} applydata;};} FD_THREAD;

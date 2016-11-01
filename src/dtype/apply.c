@@ -66,6 +66,77 @@ static void out_escaped(FILE *f,u8_string name)
     else putc(c,f);}
 }
 
+/* Stack checking */
+
+#if FD_STACKCHECK
+#if HAVE_THREAD_STORAGE_CLASS
+static __thread ssize_t stack_limit=-1;
+static int stackcheck()
+{
+  if (stack_limit>16384) {
+    ssize_t depth=u8_stack_depth();
+    if (depth>stack_limit)
+      return 0;
+    else return 1;}
+  else return 1;
+}
+FD_EXPORT ssize_t fd_stack_limit()
+{
+  return stack_limit;
+}
+FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
+{
+  ssize_t oldlimit=stack_limit;
+  stack_limit=limit;
+  return oldlimit;
+}
+#else
+static u8_tld_key stack_limit_key;
+static int stackcheck()
+{
+  ssize_t stack_limit=u8_tld_get(stack_limit_key);
+  if (stack_limit>16384) {
+    ssize_t depth=u8_stack_depth();
+    if (depth>stack_limit)
+      return 0;
+    else return 1;}
+  else return 1;
+}
+FD_EXPORT size_t fd_stack_limit()
+{
+  ssize_t stack_limit=u8_tld_get(stack_limit_key);
+  if (stack_limit>16384)
+    return stack_limit;
+  else return -1;
+}
+FD_EXPORT void fd_stack_limit_set(ssize_t lim)
+{
+  ssize_t oldlimit=fd_stack_limit();
+  u8_tld_set(stack_limit_key,lim);
+  return oldlimit;
+}
+#endif
+#else
+#define stackcheck() (1)
+FD_EXPORT ssize_t fd_stack_limit()
+{
+  u8_log(LOG_WARN,"NoStackChecking",
+         "Stack checking is not enabled in this build");
+  return -1;
+}
+FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
+{
+  u8_log(LOG_WARN,"NoStackChecking",
+         "Stack checking is not enabled in this build");
+  return -1;
+}
+#endif
+
+FD_EXPORT int fd_stackcheck()
+{
+  return stackcheck();
+}
+
 /* Internal profiling support */
 
 #if FD_CALLTRACK_ENABLED
@@ -555,13 +626,18 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
 static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
 {
   fdtype result; u8_string name=((f->name!=NULL)?(f->name):((u8_string)"DCALL"));
-  U8_WITH_CONTOUR(f->name,0)
-    result=dcall_inner(f,n,args,static_args);
-  U8_ON_EXCEPTION
-    U8_CLEAR_CONTOUR();
+  if (stackcheck()) {
+    U8_WITH_CONTOUR(f->name,0)
+      result=dcall_inner(f,n,args,static_args);
+    U8_ON_EXCEPTION
+      U8_CLEAR_CONTOUR();
     result = FD_ERROR_VALUE;
-  U8_END_EXCEPTION;
-  return result;
+    U8_END_EXCEPTION;
+    return result;}
+  else {
+    u8_string limit=u8_mkstring("%lld",fd_stack_limit());
+    fdtype depth=FD_INT2DTYPE(u8_stack_depth());
+    return fd_err(fd_StackOverflow,name,limit,depth);}
 }
 
 static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,

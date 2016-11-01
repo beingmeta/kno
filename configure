@@ -842,6 +842,7 @@ with_rpath
 with_codename
 with_sanitize
 with_duma
+with_stackcheck
 with_execwrapper
 with_optinclude
 with_bootsystem
@@ -1584,6 +1585,7 @@ Optional Packages:
 --with-codename for distribution
 --with-sanitize=address*|memory|thread
 --with-duma Build with Detect Unintended Memory Access
+--with-stackcheck Build with native stack checking
 --with-execwrapper program to use when calling exec()
 --with-optinclude Use optional include directory
 --with-bootsystem Setup boot method
@@ -5456,6 +5458,21 @@ _ACEOF
 
 fi
 
+
+
+# Check whether --with-stackcheck was given.
+if test "${with_stackcheck+set}" = set; then :
+  withval=$with_stackcheck; with_stackcheck=$withval
+else
+  with_stackcheck="yes"
+fi
+
+if ! test "${with_stackcheck}" = "no"; then
+   cat >>confdefs.h <<_ACEOF
+#define FD_STACKCHECK 1
+_ACEOF
+
+fi
 
 cat >>confdefs.h <<_ACEOF
 #define FD_VERSION "$FDVERSION"
