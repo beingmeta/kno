@@ -496,14 +496,6 @@ exe/fdcgiexec@suffix@ exe/fdserver@suffix@ exe/fdservlet@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
 exe/fdcgiexec@suffix@ exe/fdservlet@suffix@: src/exe/webcommon.h
 
-# Custom rules for building fdmanager which doesn't actually use the
-# FramerD libraries
-exe/fdmanager@suffix@: src/exe/fdmanager.c
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
-		-o $@ $<                                           \
-		$(LIBS) -lu8stdio -lfdtype
-	@$(MSG) MKEXE $@
-
 # Custom rules for making include files with CSS headers
 src/fdweb/xmloutput.o: src/fdweb/backtrace_css.h src/fdweb/backtrace_js.h
 src/fdweb/backtrace_css.h: src/fdweb/backtrace.css etc/text2include
@@ -638,7 +630,6 @@ clean: tidy
 	rm -f exe/fdexec@suffix@ exe/fdbatch@suffix@
 	rm -f exe/fdservlet@suffix@ exe/fdserver@suffix@
 	rm -f exe/fdconsole@suffix@ exe/fdcgiexec@suffix@
-	rm -f exe/fdmanager@suffix@
 	rm -f TAGS
 	cd tests/dtype; make clean
 	cd tests/db; make clean

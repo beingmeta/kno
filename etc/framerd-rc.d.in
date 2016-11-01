@@ -2,10 +2,10 @@
 #
 # Startup script for FramerD servers
 # chkconfig:		- 80 80
-# processname: 		fdmanager
+# processname: 		framerd
 # pidfile: 		/var/run/framerd.pid
 ### BEGIN INIT INFO
-# Provides:		fdmanager
+# Provides:		framerd
 # Required-Start:	$local_fs $network $named $syslog
 # Required-Stop:	$local_fs $network $named $syslog
 # Default-Start:  	3 4 5
