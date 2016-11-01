@@ -2576,9 +2576,9 @@ void setup_logging()
   /* The default sigmask is masking everything but synchronous
      signals */
   sigfillset(&default_sigmask);
-  sigaddset(&default_sigmask,SIGSEGV);
-  sigaddset(&default_sigmask,SIGILL);
-  sigaddset(&default_sigmask,SIGFPE);
+  sigdelset(&default_sigmask,SIGSEGV);
+  sigdelset(&default_sigmask,SIGILL);
+  sigdelset(&default_sigmask,SIGFPE);
 #ifdef SIGBUS
   sigaddset(&default_sigmask,SIGBUS);
 #endif
