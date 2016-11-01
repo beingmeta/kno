@@ -73,6 +73,8 @@ static u8_condition DeletePID=_("Delete PID");
 
 static int daemonize=0, foreground=0, pidwait=1;
 
+static const sigset_t *server_sigmask;
+
 static time_t last_launch=(time_t)-1;
 static int fastfail_threshold=15, fastfail_wait=60;
 
@@ -855,6 +857,13 @@ static int webservefn(u8_client ucl)
   u8_output outstream=&(client->out);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
   int return_code=0, buffered=0, recovered=1, http_status=-1;
+
+  /* Set the signal mask for the current thread.  By default, this
+     only accepts synchronoyus signals. */
+  /* Note that this is called on every loop, but we're presuming it's
+     really fast. */
+  pthread_sigmask(SIG_SETMASK,server_sigmask,NULL);
+
   /* Reset the streams */
   outstream->u8_outptr=outstream->u8_outbuf;
   stream->ptr=stream->end=stream->start;
@@ -1770,6 +1779,8 @@ int main(int argc,char **argv)
   int i=1;
   u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;
   u8_string logfile=NULL;
+
+  server_sigmask=fd_default_sigmask;
 
   if (getenv("STDLOG")) {
     u8_log(LOG_WARN,Startup,"Obeying STDLOG and using stdout/stderr for logging");}

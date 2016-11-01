@@ -68,6 +68,8 @@ static u8_condition ServerLoop=_("FDServer/LOOP");
 static u8_condition ServerStartup=_("FDServer/STARTUP");
 static u8_condition ServerShutdown=_("FDServer/SHUTDOWN");
 
+static const sigset_t *server_sigmask;
+
 static u8_condition Incoming=_("Incoming"), Outgoing=_("Outgoing");
 
 static u8_string pid_file=NULL, nid_file=NULL, cmd_file=NULL, inject_file=NULL;
@@ -490,6 +492,13 @@ static int dtypeserver(u8_client ucl)
   fd_client client=(fd_client)ucl;
   fd_dtype_stream stream=&(client->stream);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
+
+  /* Set the signal mask for the current thread.  By default, this
+     only accepts synchronoyus signals. */
+  /* Note that this is called on every loop, but we're presuming it's
+     really fast. */
+  pthread_sigmask(SIG_SETMASK,server_sigmask,NULL);
+
   if (auto_reload) fd_update_file_modules(0);
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
     expr=fd_dtsread_dtype(stream);}
@@ -933,6 +942,8 @@ int main(int argc,char **argv)
      fullscheme is zero after configuration and file loading.  fullscheme can be
      set by the FULLSCHEME configuration parameter. */
   fd_lispenv core_env;
+
+  server_sigmask=fd_default_sigmask;
 
   /* Close and reopen STDIN */
   close(0);  if (open("/dev/null",O_RDONLY) == -1) {

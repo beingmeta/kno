@@ -247,6 +247,10 @@ static void *thread_call(void *data)
 {
   fdtype result;
   struct FD_THREAD_STRUCT *tstruct=(struct FD_THREAD_STRUCT *)data;
+
+  /* Set (block) most signals */
+  pthread_sigmask(SIG_SETMASK,fd_default_sigmask,NULL);
+
   /* Run any thread init functions */
   u8_threadcheck();
 
