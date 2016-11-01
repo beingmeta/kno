@@ -94,7 +94,7 @@ FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
 static u8_tld_key stack_limit_key;
 static int stackcheck()
 {
-  ssize_t stack_limit=u8_tld_get(stack_limit_key);
+  ssize_t stack_limit=(ssize_t)u8_tld_get(stack_limit_key);
   if (stack_limit>16384) {
     ssize_t depth=u8_stack_depth();
     if (depth>stack_limit)
@@ -102,17 +102,17 @@ static int stackcheck()
     else return 1;}
   else return 1;
 }
-FD_EXPORT size_t fd_stack_limit()
+FD_EXPORT ssize_t fd_stack_limit()
 {
-  ssize_t stack_limit=u8_tld_get(stack_limit_key);
+  ssize_t stack_limit=(ssize_t)u8_tld_get(stack_limit_key);
   if (stack_limit>16384)
     return stack_limit;
   else return -1;
 }
-FD_EXPORT void fd_stack_limit_set(ssize_t lim)
+FD_EXPORT ssize_t fd_stack_limit_set(ssize_t lim)
 {
   ssize_t oldlimit=fd_stack_limit();
-  u8_tld_set(stack_limit_key,lim);
+  u8_tld_set(stack_limit_key,(void *)lim);
   return oldlimit;
 }
 #endif

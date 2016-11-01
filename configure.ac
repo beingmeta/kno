@@ -904,6 +904,9 @@ fi
 # Internationalization
 AC_CHECK_HEADERS(libintl.h)
 AC_CHECK_FUNCS(gettext,[doi18n="yes"])
+if test "x$libc_gettext" != "xyes"; then
+   AC_CHECK_LIB(intl,gettext)
+fi
 
 dnl Whether to build message catalogs
 AC_ARG_WITH(i18n,--with[out]-i18n built and install message catalogs,,with_i18n="no")
