@@ -449,7 +449,8 @@ FD_EXPORT int fd_init_ziptools()
 
   fd_idefn(ziptools_module,
            fd_make_cprim1x
-           ("ZIP/CLOSE",close_zipfile,1,fd_zipfile_type,FD_VOID));
+           ("ZIP/CLOSE!",close_zipfile,1,fd_zipfile_type,FD_VOID));
+  fd_defalias(ziptools_module,"ZIP/CLOSE","ZIP/CLOSE!");
 
   fd_idefn(ziptools_module,
            fd_make_cprim5x("ZIP/ADD!",zipadd_prim,3,
