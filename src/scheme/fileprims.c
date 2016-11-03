@@ -744,8 +744,14 @@ static char *get_tmpdir()
 
 static fdtype temproot_get(fdtype sym,void *ignore)
 {
-  if (tempdir_template) return fd_lispstring(tempdir_template);
-  else return FD_EMPTY_CHOICE;
+  if (tempdir_template)
+    return fd_lispstring(tempdir_template);
+  else {
+    char *tmpdir=get_tmpdir();
+    u8_string tmp=u8_mkpath(tmpdir,"fdtempXXXXXX");
+    fdtype result=fdtype_string(tmp);
+    u8_free(tmp);
+    return result;}
 }
 
 static int temproot_set(fdtype sym,fdtype value,void *ignore)
@@ -831,9 +837,15 @@ FD_EXPORT u8_string fd_tempdir(u8_string spec,int keep)
 
 static fdtype tempdir_prim(fdtype template_arg,fdtype keep)
 {
-  u8_string dirname=tempdir_core(template_arg,(!(FD_FALSEP(keep))));
-  if (dirname==NULL) return FD_ERROR_VALUE;
-  else return fd_init_string(NULL,-1,dirname);
+  if ((FD_FALSEP(template_arg))||
+      (FD_SYMBOLP(template_arg))||
+      (FD_STRINGP(template_arg))) {
+    u8_string dirname=tempdir_core(template_arg,(!(FD_FALSEP(keep))));
+    if (dirname==NULL) return FD_ERROR_VALUE;
+    else return fd_init_string(NULL,-1,dirname);}
+  return fd_type_error("tempdir template (string, symbol, or #f)",
+                       "tempdir_prim",
+                       template_arg);
 }
 
 static fdtype tempdir_done_prim(fdtype tempdir,fdtype force_arg)
@@ -1766,14 +1778,9 @@ FD_EXPORT void fd_init_fileio_c()
            fd_make_cprim2x("MKDIRS",mkdirs_prim,1,
                            fd_string_type,FD_VOID,fd_fixnum_type,FD_VOID));
 
-#if 0
-  fd_idefn(fileio_module,
-           fd_make_cprim1x("MKTEMP",mktemp_prim,1,fd_string_type,FD_VOID));
-#endif
   fd_idefn(fileio_module,
            fd_make_cprim2x("TEMPDIR",tempdir_prim,0,
-                           fd_string_type,FD_VOID,
-                           -1,FD_FALSE));
+                           -1,FD_VOID,-1,FD_FALSE));
   fd_idefn(fileio_module,
            fd_make_cprim1x("TEMPDIR?",is_tempdir_prim,0,
                            fd_string_type,FD_VOID));
