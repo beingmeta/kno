@@ -583,6 +583,18 @@ FD_EXPORT void fd_init_loader_c()
   moduleid_symbol=fd_intern("%MODULEID");
   source_symbol=fd_intern("%SOURCE");
 
+  /* Setup load paths */
+  {
+    u8_string path=u8_getenv("FD_INIT_LOADPATH");
+    fdtype v=((path) ? (fd_lispstring(path)) :
+              (fdtype_string(FD_DEFAULT_LOADPATH)));
+    loadpath=fd_init_pair(NULL,v,loadpath);}
+  {
+    u8_string path=u8_getenv("FD_INIT_SAFE_LOADPATH");
+    fdtype v=((path) ? (fd_lispstring(path)) :
+              (fdtype_string(FD_DEFAULT_SAFE_LOADPATH)));
+    safe_loadpath=fd_init_pair(NULL,v,safe_loadpath);}
+
   fd_register_config
     ("UPDATEMODULES","Modules to update automatically on UPDATEMODULES",
                      updatemodules_config_get,updatemodules_config_set,NULL);
@@ -602,18 +614,6 @@ FD_EXPORT void fd_init_loader_c()
   fd_idefn(loader_module,
            fd_make_cprim2x("UPDATE-MODULE",update_module_prim,1,
                            -1,FD_VOID,-1,FD_FALSE));
-  {
-    u8_string path=u8_getenv("FD_LOADPATH");
-    fdtype v=((path) ? (fd_lispstring(path)) :
-              (fdtype_string(FD_DEFAULT_LOADPATH)));
-    fd_config_set("LOADPATH",v);
-    fd_decref(v);}
-  {
-    u8_string path=u8_getenv("FD_SAFE_LOADPATH");
-    fdtype v=((path) ? (fd_lispstring(path)) :
-              (fdtype_string(FD_DEFAULT_SAFE_LOADPATH)));
-    fd_config_set("SAFELOADPATH",v);
-    fd_decref(v);}
 
   fd_defspecial(loader_module,"LOAD-LATEST",load_latest);
 
