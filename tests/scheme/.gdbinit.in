@@ -7,8 +7,8 @@ directory @abs_top_srcdir@/src/dtype:@abs_top_srcdir@/src/db:@abs_top_srcdir@/sr
 set env DYLD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env FD_DLOADPATH @abs_top_srcdir@/lib/framerd/%.@shared_suffix@
-set env FD_LOADPATH @abs_top_srcdir@/src/modules/%.scm:@abs_top_srcdir@/src/modules/%/module.scm:@abs_top_srcdir@/src/modules/safe/%.scm:@abs_top_srcdir@/src/modules/safe/%/module.scm:@default_module_path@
-set env FD_SAFELOADPATH @abs_top_srcdir@/src/modules/safe/%.scm:@abs_top_srcdir@/src/modules/safe/%/module.scm:@default_safe_module_path@
+set env FD_INIT_LOADPATH @abs_top_srcdir@/src/modules/%.scm:@abs_top_srcdir@/src/modules/%/module.scm:@abs_top_srcdir@/src/modules/safe/%.scm:@abs_top_srcdir@/src/modules/safe/%/module.scm:@default_module_path@
+set env FD_INIT_SAFELOADPATH @abs_top_srcdir@/src/modules/safe/%.scm:@abs_top_srcdir@/src/modules/safe/%/module.scm:@default_safe_module_path@
 set env FD_SKIP_DOTLOAD yes
 set env FD_SHOWTIME 0.0
 set env FD_DISPLAYMAXELTS=36

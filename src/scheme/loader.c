@@ -590,7 +590,7 @@ FD_EXPORT void fd_init_loader_c()
               (fdtype_string(FD_DEFAULT_LOADPATH)));
     loadpath=fd_init_pair(NULL,v,loadpath);}
   {
-    u8_string path=u8_getenv("FD_INIT_SAFE_LOADPATH");
+    u8_string path=u8_getenv("FD_INIT_SAFELOADPATH");
     fdtype v=((path) ? (fd_lispstring(path)) :
               (fdtype_string(FD_DEFAULT_SAFE_LOADPATH)));
     safe_loadpath=fd_init_pair(NULL,v,safe_loadpath);}
