@@ -1587,7 +1587,7 @@ static fdtype bson_read_choice(FD_BSON_INPUT b);
 
 static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
 {
-  bson_iter_t *in=b.iter; int flags=b.flags;
+  bson_iter_t *in=b.iter; int flags=b.flags, symbolized=0;
   const unsigned char *field=bson_iter_key(in);
   bson_type_t bt=bson_iter_type(in);
   fdtype slotid, value=FD_VOID;
@@ -1596,7 +1596,9 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
   else if (flags&FD_MONGODB_SLOTIFY) {
     int sc=slotcode((u8_string)field);
     if (sc<0) slotid=fd_make_string(NULL,-1,(unsigned char *)field);
-    else if (sc==0) slotid=fd_symbolize((unsigned char *)field);
+    else if (sc==0) {
+      slotid=fd_symbolize((unsigned char *)field);
+      symbolized=1;}
     else slotid=fd_intern((unsigned char *)field);}
   else slotid=fd_make_string(NULL,-1,(unsigned char *)field);
   switch (bt) {
@@ -1726,7 +1728,8 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     else if (BSON_ITER_HOLDS_ARRAY(in)) {
       unsigned int len; fdtype *data;
       int flags=b.flags, choicevals=(flags&FD_MONGODB_CHOICEVALS);
-      if (choicevals) value=bson_read_choice(b);
+      if ((choicevals)&&(symbolized))
+        value=bson_read_choice(b);
       else value=bson_read_vector(b);}
     else {
       u8_log(LOGWARN,fd_BSON_Input_Error,
