@@ -1066,11 +1066,22 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
   fdtype opts=combine_opts(opts_arg,domain->opts);
   int flags=getflags(opts,domain->flags);
   mongoc_client_t *connection;
-  bson_t *bq=NULL; mongoc_cursor_t *cursor=NULL; bson_error_t error;
+  mongoc_cursor_t *cursor=NULL; bson_error_t error;
   mongoc_collection_t *collection=open_collection(domain,&connection,flags);
-  if (collection) bq=fd_dtype2bson(query,flags,opts);
-  if (bq) cursor=mongoc_collection_find
-           (collection,MONGOC_QUERY_NONE,0,0,0,bq,NULL,NULL);
+  fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
+  fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
+  fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
+  bson_t *bq=fd_dtype2bson(query,flags,opts);
+  bson_t *fields=get_projection(opts,flags);
+  mongoc_read_prefs_t *rp=get_read_prefs(opts);
+  if ((collection)&&
+      (FD_FIXNUMP(skip_arg))&&
+      (FD_FIXNUMP(limit_arg))&&
+      (FD_FIXNUMP(batch_arg))) {
+    cursor=mongoc_collection_find
+      (collection,MONGOC_QUERY_NONE,
+       FD_FIX2INT(skip_arg),FD_FIX2INT(limit_arg),FD_FIX2INT(batch_arg),
+       bq,fields,rp);}
   if (cursor) {
     struct FD_MONGODB_CURSOR *consed=u8_alloc(struct FD_MONGODB_CURSOR);
     FD_INIT_CONS(consed,fd_mongoc_cursor);
@@ -1080,6 +1091,8 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
     consed->opts=opts;
     consed->flags=flags;
     consed->bsonquery=bq;
+    consed->bsonfields=fields;
+    consed->readprefs=rp;
     consed->connection=connection;
     consed->collection=collection;
     consed->cursor=cursor;
@@ -1101,6 +1114,8 @@ static void recycle_cursor(struct FD_CONS *c)
   fd_decref(cursor->query);
   fd_decref(cursor->opts);
   bson_destroy(cursor->bsonquery);
+  if (cursor->bsonfields) bson_destroy(cursor->bsonfields);
+  if (cursor->readprefs) mongoc_read_prefs_destroy(cursor->readprefs); 
   u8_free(cursor);
 }
 static int unparse_cursor(struct U8_OUTPUT *out,fdtype x)

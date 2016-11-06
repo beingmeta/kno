@@ -57,6 +57,8 @@ typedef struct FD_MONGODB_CURSOR {
   mongoc_client_t *connection;
   mongoc_collection_t *collection;
   bson_t *bsonquery;
+  bson_t *bsonfields;
+  mongoc_read_prefs_t *readprefs;
   mongoc_cursor_t *cursor;} FD_MONGODB_CURSOR;
 typedef struct FD_MONGODB_CURSOR *fd_mongodb_cursor;
 
