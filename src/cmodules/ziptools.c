@@ -36,11 +36,6 @@ typedef struct FD_ZIPFILE {
   struct zip *zip;} FD_ZIPFILE;
 typedef struct FD_ZIPFILE *fd_zipfile;
 
-#if 0
-/* This is for adding uncompressed entries */
-static struct zip_source *zip_source_raw(struct zip *archive,unsigned char *buf,size_t len,int freep);
-#endif
-
 /* Error messages */
 
 static fdtype znumerr(u8_context cxt,int zerrno,u8_string path)
@@ -170,6 +165,13 @@ static fdtype close_zipfile(fdtype zipfile)
     zf->closed=1;
     u8_unlock_mutex(&(zf->lock));
     return FD_TRUE;}
+}
+
+static fdtype zipfile_openp(fdtype zipfile)
+{
+  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  if (zf->closed) return FD_FALSE;
+  else return FD_TRUE;
 }
 
 /* Adding to zip files */
@@ -451,6 +453,10 @@ FD_EXPORT int fd_init_ziptools()
            fd_make_cprim1x
            ("ZIP/CLOSE!",close_zipfile,1,fd_zipfile_type,FD_VOID));
   fd_defalias(ziptools_module,"ZIP/CLOSE","ZIP/CLOSE!");
+  fd_defalias(ziptools_module,"ZIP/COMMIT!","ZIP/CLOSE!");
+
+  fd_idefn(ziptools_module,
+           fd_make_cprim1x("ZIP/OPEN?",zipfile_openp,1,fd_zipfile_type,FD_VOID));
 
   fd_idefn(ziptools_module,
            fd_make_cprim5x("ZIP/ADD!",zipadd_prim,3,
