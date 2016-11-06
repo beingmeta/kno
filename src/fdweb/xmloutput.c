@@ -1044,21 +1044,25 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
       u8_printf(s,"<tbody class='bindings'><tr><th>Env</th>\n<td class='odd'>\n%lk\n</td></tr></tbody>\n",entry);}
     else if ((head==NULL)&&(FD_EMPTY_CHOICEP(keys))) {}
     else {
-      fdtype allkeys=keys;
+      fdtype allkeys=keys; u8_string mod_title=NULL;
+      if ((FD_VOIDP(modname))&&(FD_VOIDP(modpath))) {}
+      else if (FD_VOIDP(modname)) 
+        mod_title=u8_strdup(FD_STRDATA(modpath));
+      else if (FD_VOIDP(modpath))
+        mod_title=u8_strdup(FD_SYMBOL_NAME(modname));
+      else mod_title=u8_mkstring
+             ("%s: %s",FD_SYMBOL_NAME(modname),FD_STRDATA(modpath));
       keys=fd_difference(allkeys,moduleid_symbol);
       fd_decref(allkeys);
       u8_puts(s,"<tbody class='bindings'>");
-      if (FD_EMPTY_CHOICEP(keys))
-        u8_puts(s,"<tr><th>Env</th><td>");
+      if (FD_EMPTY_CHOICEP(keys)) {
+        if (mod_title)
+          u8_printf(s,"<tr><th ='%s'>Env</th><td>",mod_title);
+        else u8_puts(s,"<tr><th>Env</th><td>");}
+      else if (mod_title)
+        u8_printf(s,"<tr><th title='%s' rowspan='2'>Env</th><td>",mod_title);
       else u8_puts(s,"<tr><th rowspan='2'>Env</th><td>");
-      if ((FD_VOIDP(modname))&&(FD_VOIDP(modpath))) {}
-      else if (FD_VOIDP(modname)) {
-        u8_printf(s,"<tt class='module path'>%s</tt>",FD_STRDATA(modpath));}
-      else if (FD_VOIDP(modpath)) {
-        u8_printf(s,"<tt class='module name'>%s</tt>>",FD_SYMBOL_NAME(modname));}
-      else {
-        u8_printf(s,"<tt class='module name' title='%s'>%s</tt>",
-                  FD_STRDATA(modpath),FD_SYMBOL_NAME(modname));}
+      if (mod_title) u8_free(mod_title);
       if (head) u8_puts(s,head);
       if (FD_EMPTY_CHOICEP(keys))
         u8_puts(s," (no bindings)</td></tr>\n");
@@ -1067,6 +1071,14 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
             if (FD_SYMBOLP(key))
               u8_printf(s,"<span class='var'>%s</span> ",FD_SYMBOL_NAME(key));
             else u8_printf(s,"<span class='var'>%q</span> ",key);}}
+        if ((FD_VOIDP(modname))&&(FD_VOIDP(modpath))) {}
+        else if (FD_VOIDP(modname)) {
+          u8_printf(s,"<tt class='module path'>%s</tt>",FD_STRDATA(modpath));}
+        else if (FD_VOIDP(modpath)) {
+          u8_printf(s,"<tt class='module name'>%s</tt>>",FD_SYMBOL_NAME(modname));}
+        else {
+          u8_printf(s,"<tt class='module name' title='%s'>%s</tt>",
+                    FD_STRDATA(modpath),FD_SYMBOL_NAME(modname));}
         u8_puts(s,"</td></tr>\n<tr><td>\n<table class='bindings'>\n");
         {FD_DO_CHOICES(key,keys) {
             fdtype val=fd_get(entry,key,FD_VOID);

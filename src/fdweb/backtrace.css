@@ -62,9 +62,10 @@ table.backtrace > tbody > tr.irritant > th {
 table.backtrace > tbody > tr > td {
     text-align: left; padding-top: 2px;}
 table.backtrace > tbody > tr > td .module {
-    float: right; font-size: 75%;
-    margin-right: 0.5ex; margin-left: 1em;
-    color: blue;}
+    padding-left: 1em; color: blue;}
+table.backtrace > tbody > tr > td .module:before {
+    color: black; font-style: italic; font-size: 80%;
+    content: "module=";}
 table.backtrace > tbody.eval td.expr {
     background-color: white; color: black;}
 table.backtrace > tbody.eval div.expr {
