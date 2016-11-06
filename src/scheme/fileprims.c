@@ -1692,26 +1692,32 @@ FD_EXPORT void fd_init_fileio_c()
 #endif
 
   fd_idefn(fileio_module,fd_make_cprim1("PID?",ispid_prim,1));
-  fd_idefn(fileio_module,fd_make_cprim2("PID/KILL",pid_kill_prim,2));
+  fd_idefn(fileio_module,fd_make_cprim2("PID/KILL!",pid_kill_prim,2));
+  fd_defalias(fileio_module,"PID/KILL","PID/KILL!");
 
   fd_idefn(fileio_module,
-           fd_make_cprim2x("REMOVE-FILE",remove_file_prim,1,
+           fd_make_cprim2x("REMOVE-FILE!",remove_file_prim,1,
                            fd_string_type,FD_VOID,
                            -1,FD_VOID));
+  fd_defalias(fileio_module,"REMOVE-FILE","REMOVE-FILE!");
   fd_idefn(fileio_module,
-           fd_make_cprim3x("MOVE-FILE",move_file_prim,2,
+           fd_make_cprim3x("MOVE-FILE!",move_file_prim,2,
                            fd_string_type,FD_VOID,
                            fd_string_type,FD_VOID,
                            -1,FD_VOID));
+  fd_defalias(fileio_module,"MOVE-FILE","MOVE-FILE!");
   fd_idefn(fileio_module,
-           fd_make_cprim3x("LINK-FILE",link_file_prim,2,
+           fd_make_cprim3x("LINK-FILE!",link_file_prim,2,
                            fd_string_type,FD_VOID,
                            fd_string_type,FD_VOID,
                            -1,FD_VOID));
+  fd_defalias(fileio_module,"LINK-FILE","LINK-FILE!");
   fd_idefn(fileio_module,
-           fd_make_cprim2x("REMOVE-TREE",remove_tree_prim,1,
+           fd_make_cprim2x("REMOVE-TREE!",remove_tree_prim,1,
                            fd_string_type,FD_VOID,
                            -1,FD_VOID));
+  fd_defalias(fileio_module,"REMOVE-TREE","REMOVE-TREE!");
+
 
   fd_idefn(fileio_module,
            fd_make_cprim2x("FILESTRING",filestring_prim,1,
