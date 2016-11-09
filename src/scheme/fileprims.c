@@ -557,6 +557,19 @@ static fdtype filedata_prim(fdtype filename)
   else return FD_ERROR_VALUE;
 }
 
+static fdtype filecontent_prim(fdtype filename)
+{
+  int len=-1;
+  unsigned char *data=u8_filedata(FD_STRDATA(filename),&len);
+  if (len>=0) {
+    fdtype result;
+    if (u8_validp(data)) 
+      result=fd_make_string(NULL,len,data);
+    else result=fd_make_packet(NULL,len,data);
+    u8_free(data);
+    return result;}
+  else return FD_ERROR_VALUE;
+}
 
 /* File information */
 
@@ -1724,6 +1737,9 @@ FD_EXPORT void fd_init_fileio_c()
                            fd_string_type,FD_VOID,-1,FD_VOID));
   fd_idefn(fileio_module,
            fd_make_cprim1x("FILEDATA",filedata_prim,1,
+                           fd_string_type,FD_VOID));
+  fd_idefn(fileio_module,
+           fd_make_cprim1x("FILECONTENT",filecontent_prim,1,
                            fd_string_type,FD_VOID));
 
   fd_idefn(fileio_module,
