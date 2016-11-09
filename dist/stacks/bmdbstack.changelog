@@ -1,3 +1,9 @@
+bmdbstack (3.9-4) unstable; urgency=medium
+
+  * Bump to 3.9-4
+
+ -- beingmeta repository manager <repoman@beingmeta.com>  Wed, 09 Nov 2016 14:18:13 +7000
+
 bmdbstack (3.9-3) unstable; urgency=medium
 
   * Changed framerd dependency to framerd-core
