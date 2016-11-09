@@ -881,6 +881,7 @@ cleandist cleanrpms cleandeb rpmclean debclean:
 	rm -rf dist/rpms.done dist/rpms.ready
 	rm -f dist/debs.signed dist/debs.built dist/debs.done dist/metadebs.built
 	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes
+	rm -f dist/metadebs/*.deb dist/metadebs/*.tar dist/metadebs/*.gz dist/metadebs/*.dsc dist/metadebs/*.changes
 	find dist -name "*.rpm" | xargs -r rm
 	rm -rf staging/framerd*
 
@@ -973,26 +974,26 @@ dist/debs.signed: dist/debs.built
 	touch dist/debs.signed;
 
 dist/metadebs.built:
-	(cd dist/stacks; equivs-build -f bmstack) &&                      \
-	(cd dist/stacks; equivs-build -f bmdbstack) &&                    \
-	(cd dist/stacks; equivs-build -f bmwebstack) &&                   \
-	(cd dist/stacks; equivs-build -f bmtextstack) &&                  \
-	(cd dist/stacks; equivs-build -f bmfullstack) &&                  \
-	(cd dist/stacks; equivs-build -f bmdevstack) &&                   \
-	(cd dist/stacks; equivs-build -f bmfakestack) &&                  \
+	(cd dist/metadebs; equivs-build -f bmstack) &&                      \
+	(cd dist/metadebs; equivs-build -f bmdbstack) &&                    \
+	(cd dist/metadebs; equivs-build -f bmwebstack) &&                   \
+	(cd dist/metadebs; equivs-build -f bmtextstack) &&                  \
+	(cd dist/metadebs; equivs-build -f bmfullstack) &&                  \
+	(cd dist/metadebs; equivs-build -f bmdevstack) &&                   \
+	(cd dist/metadebs; equivs-build -f bmfakestack) &&                  \
 	touch dist/metadebs.built;
 dist/debs.done: dist/debs.signed
 	touch dist/debs.done
 
 dist/metadebs.done: dist/metadebs.built
 	touch dist/metadebs.done
-dist/metadebs.installed: dist/metadebs.built
-	for changes in dist/stacks/*.changes; do \
-	  reprepro -Vb ${APTREPO} include beingmeta $${changes}; \
+dist/metadebs.uploaded: dist/metadebs.built
+	cd dist/metadebs; for changes in *.changes; do \
+	  dupload -c --nomail --to ${CODENAME} $${change} && \
+	  rm -f $${change}; \
 	done && \
-	rm -f dist/stacks/*.deb && \
-	touch dist/metadebs.installed
-
+	rm -f *.deb && \
+	touch ../metadebs.uploaded;
 
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@SUDO@ dpkg -i dist/framerd*_@FDVERSION@*.deb
