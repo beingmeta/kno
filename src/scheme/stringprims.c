@@ -436,6 +436,21 @@ static fdtype string_startword(fdtype string)
   return fd_incref(string);
 }
 
+/* UTF8 related primitives */
+
+static fdtype utf8p_prim(fdtype packet)
+{
+  if (u8_validp(FD_PACKET_DATA(packet)))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+static fdtype utf8string_prim(fdtype packet)
+{
+  if (u8_validp(FD_PACKET_DATA(packet)))
+    return fd_make_string(NULL,FD_PACKET_LENGTH(packet),FD_PACKET_DATA(packet));
+  else return fd_incref(packet);
+}
+
 /* String comparison */
 
 static int string_compare(u8_string s1,u8_string s2)
@@ -1341,6 +1356,11 @@ FD_EXPORT void fd_init_strings_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("DOWNCASE1",string_downcase1,1));
 
   fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("UTF8?",utf8p_prim,1,fd_packet_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("UTF8STRING",utf8string_prim,1,fd_packet_type,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
            fd_make_cprim3x("EMPTY-STRING?",empty_stringp,1,
                            -1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
@@ -1412,6 +1432,7 @@ FD_EXPORT void fd_init_strings_c()
            fd_make_ndprim
            (fd_make_cprim2x("STRIP-PREFIX",strip_prefix,2,
                             -1,FD_VOID,-1,FD_VOID)));
+
   fd_idefn(fd_scheme_module,
            fd_make_ndprim
            (fd_make_cprim2x("HAS-SUFFIX",has_suffix,2,
