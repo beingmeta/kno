@@ -90,4 +90,4 @@ else
     ${RAWSCRIPT}
 fi
 
-if test "${CLEAN}" = "yes"; the sudo cleanlogs; fi
+if test "${CLEAN}" = "yes"; then sudo cleanlogs; fi
