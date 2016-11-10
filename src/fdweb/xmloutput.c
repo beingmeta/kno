@@ -1044,14 +1044,18 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
       u8_printf(s,"<tbody class='bindings'><tr><th>Env</th>\n<td class='odd'>\n%lk\n</td></tr></tbody>\n",entry);}
     else if ((head==NULL)&&(FD_EMPTY_CHOICEP(keys))) {}
     else {
-      fdtype allkeys=keys; u8_string mod_title=NULL;
-      if ((FD_VOIDP(modname))&&(FD_VOIDP(modpath))) {}
-      else if (FD_VOIDP(modname)) 
-        mod_title=u8_strdup(FD_STRDATA(modpath));
-      else if (FD_VOIDP(modpath))
-        mod_title=u8_strdup(FD_SYMBOL_NAME(modname));
-      else mod_title=u8_mkstring
-             ("%s: %s",FD_SYMBOL_NAME(modname),FD_STRDATA(modpath));
+      fdtype allkeys=keys; 
+      u8_string mod_name=NULL, mod_path=NULL, mod_title=NULL;
+      if (FD_SYMBOLP(modname)) mod_name=FD_SYMBOL_NAME(modname);
+      if (FD_STRINGP(modpath)) mod_path=FD_STRDATA(modpath);
+      if ((mod_name)&&(mod_path))
+        mod_title=u8_mkstring
+          ("%s: %s",FD_SYMBOL_NAME(modname),FD_STRDATA(modpath));
+      else if (mod_name)
+        mod_title=u8_strdup(mod_name);
+      else if (mod_path)
+        mod_title=u8_strdup(mod_path);
+      else {}
       keys=fd_difference(allkeys,moduleid_symbol);
       fd_decref(allkeys);
       u8_puts(s,"<tbody class='bindings'>");
