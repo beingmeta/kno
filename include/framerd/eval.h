@@ -370,6 +370,9 @@ typedef struct FD_CONTINUATION *fd_continuation;
 #define FD_EVAL_THREAD 2
 typedef struct FD_THREAD_STRUCT {
   FD_CONS_HEADER; int flags; pthread_t tid; 
+#if 0
+  long long started;
+#endif
   fdtype *resultptr, result;
   pthread_attr_t attr;
   union {
