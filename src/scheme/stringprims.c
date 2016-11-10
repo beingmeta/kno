@@ -19,6 +19,8 @@
 #include <libu8/libu8.h>
 #include <libu8/u8convert.h>
 
+static u8_string StrSearchKey=_("string search/key");
+
 /* Character functions */
 
 static fdtype char2integer(fdtype arg)
@@ -959,6 +961,52 @@ static fdtype yesp_prim(fdtype arg,fdtype dflt,fdtype yes,fdtype no)
   else return fd_boolstring(FD_STRDATA(arg),((FD_FALSEP(dflt))?(0):(1)));
 }
 
+/* STRSEARCH */
+
+static fdtype strmatchp_prim(fdtype pat,fdtype string,fdtype ef)
+{
+  if (FD_CHOICEP(string)) {
+    FD_DO_CHOICES(str,string) {
+      fdtype r=strmatchp_prim(pat,str,ef);
+      if (FD_ABORTP(r)) {
+        FD_STOP_DO_CHOICES;
+        return r;}
+      else if (FD_TRUEP(r)) {
+        FD_STOP_DO_CHOICES;
+        return r;}}
+    return FD_FALSE;}
+  else {
+    if (FD_PRIM_TYPEP(pat,fd_regex_type)) {
+      int off=fd_regex_op(rx_search,pat,
+                          FD_STRDATA(string),FD_STRLEN(string),
+                          FD_FIX2INT(ef));
+      if (off>=0) return FD_TRUE;
+      else return FD_FALSE;}
+    else if (FD_STRINGP(pat)) {
+      u8_string start=strstr(FD_STRDATA(string),FD_STRDATA(pat));
+      if (start) return FD_TRUE;
+      else return FD_FALSE;}
+    else if (FD_CHOICEP(pat)) {
+      FD_DO_CHOICES(p,pat) {
+        if (FD_PRIM_TYPEP(pat,fd_regex_type)) {
+          int off=fd_regex_op(rx_search,p,
+                              FD_STRDATA(string),FD_STRLEN(string),
+                              FD_FIX2INT(ef));
+          if (off>=0) {
+            FD_STOP_DO_CHOICES;
+            return FD_TRUE;}}
+        else if (FD_STRINGP(pat)) {
+          u8_string start=strstr(FD_STRDATA(string),FD_STRDATA(pat));
+          if (start) {
+            FD_STOP_DO_CHOICES;
+            return FD_TRUE;}}
+        else {
+          FD_STOP_DO_CHOICES;
+          return fd_type_error(StrSearchKey,"strmatchp_prim",p);}}
+      return FD_FALSE;}
+    else return fd_type_error(StrSearchKey,"strmatchp_prim",pat);}
+}
+
 /* Conversion */
 
 static fdtype entity_escape;
@@ -1466,6 +1514,12 @@ FD_EXPORT void fd_init_strings_c()
            fd_make_cprimn("STRING-SUBST*",string_subst_star,3));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("TRIM-SPACES",trim_spaces,1,fd_string_type,FD_VOID));
+
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim3x("STRMATCH?",strmatchp_prim,2,
+                           fd_string_type,FD_VOID,-1,FD_VOID,
+                           fd_fixnum_type,FD_FIXZERO));
+
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("GLOM",glom_lexpr,1));
   fd_defspecial(fd_scheme_module,"TEXTIF",textif_handler);
