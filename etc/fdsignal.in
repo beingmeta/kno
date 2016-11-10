@@ -1,6 +1,36 @@
 #!/bin/bash
+SIGNAL_ARG=
 SIGNAL=${SIGNAL:-TERM}
 CMD="kill -s"
+SIGNALNAMES="^(sig)?(kill|term|hup|alarm|alrm|quit|int)"
+showusage ( ) {
+    echo "Usage: fdsignal <job>*";
+    echo "Usage: fdsignal [signal] <job>*";
+}
+listpids ( ) {
+    echo "Activities:"
+    for pidfile in `ls -t @daemon_rundir@/*.pid @servlet_rundir@/*.pid 2> /dev/null`; do
+	if test -f $pidfile; then
+	    echo "   " `basename $pidfile .pid`; 
+	fi;
+    done;
+}
+signalp ( ) {
+    if echo $0 | grep -i ${SIGNALNAMES} 2&>1 > /dev/null; then
+	retval=1;
+    else
+	retval=0;
+    fi
+}
+if test $# -eq 0 || test "$1" = "usage"; then
+    showusage;
+    listpids;
+    exit;
+elif signalp $1; then
+    SIGNAL=$1; shift;
+fi;     
+echo CMD=${CMD}
+echo SIGNAL=${SIGNAL}
 for name in $*; do
     if test -f ${name}; then
 	${CMD} ${SIGNAL} `cat ${name}`;
