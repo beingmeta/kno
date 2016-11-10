@@ -20,7 +20,6 @@
 #include "framerd/frames.h"
 #include "framerd/numbers.h"
 #include "framerd/support.h"
-#include "framerd/fdregex.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8filefns.h>

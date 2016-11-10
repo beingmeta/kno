@@ -625,9 +625,10 @@ static int cons_compare(fdtype x,fdtype y)
 }
 #endif
 
-/* Choices and tables */
+/* Choices, tables, regexes */
 
 #include "choices.h"
 #include "tables.h"
+#include "fdregex.h"
 
 #endif /* ndef FRAMERD_CONS_H */

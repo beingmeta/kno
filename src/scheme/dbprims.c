@@ -24,7 +24,6 @@
 #include "framerd/sequences.h"
 #include "framerd/dbprims.h"
 #include "framerd/numbers.h"
-#include "framerd/fdregex.h"
 
 #include "libu8/u8printf.h"
 
