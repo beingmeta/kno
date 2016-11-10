@@ -1575,6 +1575,11 @@ static int loglevelconfig_set(fdtype var,fdtype val,void *data)
     return -1;}
 }
 
+FD_EXPORT int fd_loglevelconfig_set(fdtype var,fdtype val,void *data)
+{
+  return loglevelconfig_set(var,val,data);
+}
+
 /* RUNBASE */
 
 static u8_string runbase_config=NULL, runbase=NULL;

@@ -32,7 +32,10 @@
 #include <errno.h>
 
 static u8_condition ThreadReturnError=_("Thread returned with error");
+static u8_condition ThreadExit=_("Thread exited");
 static u8_condition ThreadBacktrace=_("ThreadBacktrace");
+
+static int thread_loglevel=0;
 
 /* Thread functions */
 
@@ -264,6 +267,12 @@ static void *thread_call(void *data)
                      tstruct->applydata.n_args,
                      tstruct->applydata.args);
   result=fd_finish_call(result);
+  if (thread_loglevel>=0) 
+    u8_log(thread_loglevel,ThreadExit,
+           "Thread exited (errno=%d) with result %q\n  from %q",
+           errno,result,
+           ((tstruct->flags&FD_EVAL_THREAD)?(tstruct->evaldata.expr):
+            tstruct->applydata.fn));
   u8_threadexit();
   if (FD_ABORTP(result)) {
     u8_exception ex=u8_erreify();
@@ -486,6 +495,10 @@ FD_EXPORT void fd_init_threadprims_c()
                      "Whether errors in threads print out full backtraces",
                      fd_boolconfig_get,fd_boolconfig_set,
                      &fd_threaderror_backtrace);
+  fd_register_config("THREADLOGLEVEL",
+                     "The log level to use for thread-related events",
+                     fd_intconfig_get,fd_loglevelconfig_set,
+                     &thread_loglevel);
 
   u8_register_source_file(_FILEINFO);
 }

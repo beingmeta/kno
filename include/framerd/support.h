@@ -50,6 +50,7 @@ FD_EXPORT int fd_boolconfig_set(fdtype ignored,fdtype v,void *intptr);
 FD_EXPORT fdtype fd_boolconfig_get(fdtype ignored,void *intptr);
 FD_EXPORT int fd_dblconfig_set(fdtype ignored,fdtype v,void *dblptr);
 FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *dblptr);
+FD_EXPORT int fd_loglevelconfig_set(fdtype var,fdtype val,void *data);
 
 FD_EXPORT int fd_config_assignment(u8_string assign_expr);
 FD_EXPORT int fd_argv_config(int argc,char **argv);
