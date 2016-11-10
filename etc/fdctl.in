@@ -59,11 +59,11 @@ fi
 if ! which systemctl 2>&1 > /dev/null; then
     echo "No systemctl";
 elif test -f /lib/systemd/system/framerd.service; then
-    echo "systemctl ${OP} framerd";
+    echo "fdctl >>> systemctl ${OP} framerd";
     sudo systemctl ${OP} framerd;
     exit;
 elif test -f /usr/lib/systemd/system/framerd.service; then
-    echo "systemctl ${OP} framerd";
+    echo "fdctl >>> systemctl ${OP} framerd";
     sudo systemctl ${OP} framerd;
     if test "${CLEAN}" = "yes"; then sudo cleanlogs; fi;
     exit;

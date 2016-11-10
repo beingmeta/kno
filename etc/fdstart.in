@@ -6,7 +6,7 @@ while ((test $# -ne "0") && ((test -d $1) || (test -f $1)));
 done
 XARGS=$*
 READLINK=`which readlink`
-if ${READLINK} -e /tmp 2&>1 > /dev/null; then 
+if ${READLINK} -e /tmp 2>&1 > /dev/null; then 
     READLINK="${READLINK} -e";
 fi;
 if test "x${TARGETS}" = "x"; then TARGETS=${DEFAULT_TARGETS}; fi
