@@ -2,78 +2,83 @@
 TARGETS="@servlet_rundir@/ @daemon_rundir@/"
 if test "x$*" != "x"; then TARGETS="$*"; fi
 KILLWAIT=2
-KILLPAUSE=1
+checkpid ( ) {
+    if kill -0 $0 2>&1 > /dev/null; then
+	retval=1
+    else
+	retval=0;
+    fi;}
 for rundir in ${TARGETS}; do
     for ppid in ${rundir}/*.ppid; do
 	if test `basename ${ppid}` != "*.ppid"; then
-            export npid=`cat ${ppid}`;
-            echo "Terminating manager ${ppid} (${npid})";
-     	    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill ${npid};
+            export pidnum=`cat ${ppid}`;
+            echo "fdstop: Terminating manager ${ppid} (${pidnum})";
+     	    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill ${pidnum};
 	fi;
     done;
 done;
-sleep ${KILLWAIT};
+#sleep ${KILLWAIT};
 for rundir in ${TARGETS}; do
     for ppid in ${rundir}/*.ppid; do
-	export base=`basename ${ppid} .ppid`;
-	if test "${base}" != "*"; then
-            export npid=`cat ${ppid}`;
-	    if test -f ${rundir}/*.ppid; then sleep 1; fi
-	    if test -f ${rundir}/*.ppid; then sleep 2; fi
-	    if test -f ${rundir}/*.ppid; then sleep 4; fi
-	    if test -f ${rundir}/*.ppid; then sleep 8; fi
-	    echo "Killing stubborn manager ${pid} (${npid})";
+	if test -f ${ppid}; then
+	    export base=`basename ${ppid} .ppid`;
+            export pidnum=`cat ${ppid}`;
+	    echo "fdstop: Waiting for stubborn manager ${ppid} (${pidnum})";
+	    if test -f ${ppid}; then sleep 1; fi
+	    if test -f ${ppid}; then sleep 2; fi
+	    if test -f ${ppid}; then sleep 4; fi
+	    echo "fdstop: Killing stubborn manager ${ppid} (${pidnum})";
      	    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
-	            sudo kill -9 ${npid} &&
+	            sudo kill -9 ${pidnum} &&
     		unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
 	            sudo rm -f ${ppid} ${rundir}/${base}.nospawn;
 	    if test -f ${ppid}; then\
-	      echo "Warning: Server manager ${ppid} (${npid}) couldn't be terminated or killed"; 
+	      echo "Warning: (fdstop) Server manager ${ppid} (${pidnum}) couldn't be terminated or killed"; 
 	    fi;
 	fi;
     done;
 done;
-sleep ${KILLWAIT};
+#sleep ${KILLWAIT};
 for rundir in ${TARGETS}; do
     for pid in ${rundir}/*.pid; do
-	if test `basename ${pid}` != "*.pid"; then
-	    if test -f ${pid}; then sleep 1; fi
-	    if test -f ${pid}; then sleep 2; fi
-	    if test -f ${pid}; then sleep 4; fi
-	    if test -f ${pid}; then sleep 8; fi
-     	    if test -f ${pid}; then 
-		export npid=`cat ${pid}`
-		echo "Terminating server ${pid} (${npid})";
-		unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill ${npid}; 
-	    else echo "Server ${pid} died naturally"; fi
+	if test -f ${pid};
+	   export pidnum=`cat ${pid}`
+	   echo "fdstop: Waiting for stubborn server ${pid} (${pidnum})";
+	   if test -f ${pid}; then kill ${pidnum}; sleep 1; fi
+	   if test -f ${pid} && checkpid ${pidnum}; then sleep 2; fi
+	   if test -f ${pid} && checkpid ${pidnum}; then sleep 4; fi
+     	   if test -f ${pid}; then 
+	       echo "fdstop: Terminating server ${pid} (${pidnum})";
+	       unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill ${pidnum}; 
+	   else echo "fdstop: Server ${pid} died of natural causes"; fi
 	fi;
     done;
 done;
-sleep ${KILLWAIT};
+#sleep ${KILLWAIT};
 for rundir in ${TARGETS}; do
     for pid in ${rundir}/*.pid; do
 	if test `basename ${pid}` != "*.pid"; then
      	    if test -f ${pid}; then 
-		export npid=`cat ${pid}`
-		if sudo kill -0 ${npid} 1&>2 > /dev/null; then
-		    echo "Killing stubborn server ${pid} (${npid})";
-		    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill -9 ${npid} && 
+		export pidnum=`cat ${pid}`
+		if checkpid ${pidnum}; then
+		    echo "fdstop: Killing stubborn server ${pid} (${pidnum})";
+		    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill -9 ${pidnum} && 
 			unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo rm -f ${pid};
 		    if test -f ${pid}; then
 			sleep 1;
 			if test -f ${pid}; then sleep 1; fi
 			if test -f ${pid}; then sleep 1; fi
 			# If the file still exists, check the process
-			if sudo kill -0 ${npid} 1&>2 > /dev/null; then
-			    echo "Warning: Server ${pid} (${npid}) didn't die";
-			else echo "Removing server pid file ${pid}";
+			if checkpid ${pidnum}; then
+			    echo "Warning: (fdstop) Server ${pid} (${pidnum}) didn't die";
+			else echo "fdstop: removing server pid file ${pid}";
 			     sudo rm -f ${pid};
 			fi;
 		    fi;
-		else echo "Removing leftover server pid file ${pid}";
+		else echo "fdstop: Removing leftover server pid file ${pid}";
 		     sudo rm -f ${pid};
 		fi;
-	    else echo "Server ${pid} eventually died naturally"; fi
+	    else echo "fdstop: Server ${pid} eventually died of natural causes"; fi
 	fi;
     done;
 done;
