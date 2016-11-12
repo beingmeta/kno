@@ -134,7 +134,9 @@ static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,
   else eflags=0;
   u8_lock_mutex(&(ptr->lock));
   retval=regexec(&(ptr->compiled),FD_STRDATA(string),1,results,eflags);
-  if (retval==REG_NOMATCH) return FD_FALSE;
+  if (retval==REG_NOMATCH) {
+    u8_unlock_mutex(&(ptr->lock));
+    return FD_FALSE;}
   else if (retval) {
     u8_byte buf[512];
     regerror(retval,&(ptr->compiled),buf,512);
@@ -176,7 +178,9 @@ FD_EXPORT int fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
   else eflags=0;
   u8_lock_mutex(&(ptr->lock));
   retval=regexec(&(ptr->compiled),s,1,results,eflags);
-  if (retval==REG_NOMATCH) return -1;
+  if (retval==REG_NOMATCH) {
+    u8_unlock_mutex(&(ptr->lock));
+    return -1;}
   else if (retval) {
     u8_byte buf[512];
     regerror(retval,&(ptr->compiled),buf,512);
