@@ -164,9 +164,9 @@ static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,
     default: return FD_FALSE;}
 }
 
-FD_EXPORT int fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
-                          u8_string s,size_t len,
-                          int eflags)
+FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
+                              u8_string s,size_t len,
+                              int eflags)
 {
   struct FD_REGEX *ptr=FD_GET_CONS(pat,fd_regex_type,struct FD_REGEX *);
   regmatch_t results[1];
@@ -218,17 +218,17 @@ FD_EXPORT int fd_regex_test(fdtype pat,u8_string s,ssize_t len)
      return 1;
    else return 0;
 }
-FD_EXPORT int fd_regex_search(fdtype pat,u8_string s,ssize_t len)
+FD_EXPORT off_t fd_regex_search(fdtype pat,u8_string s,ssize_t len)
 {
   if (len<0) len=strlen(s);
   return fd_regex_op(rx_search,pat,s,len,0);
 }
-FD_EXPORT int fd_regex_match(fdtype pat,u8_string s,ssize_t len)
+FD_EXPORT ssize_t fd_regex_match(fdtype pat,u8_string s,ssize_t len)
 {
   if (len<0) len=strlen(s);
   return fd_regex_op(rx_exactmatch,pat,s,len,0);
 }
-FD_EXPORT int fd_regex_matchlen(fdtype pat,u8_string s,ssize_t len)
+FD_EXPORT ssize_t fd_regex_matchlen(fdtype pat,u8_string s,ssize_t len)
 {
   if (len<0) len=strlen(s);
   return fd_regex_op(rx_matchlen,pat,s,len,0);
