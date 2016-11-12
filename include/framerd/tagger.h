@@ -77,6 +77,7 @@ typedef struct FD_GRAMMAR {
   fdtype *arcs[FD_MAX_ARCS];} *fd_grammar;
 
 typedef struct FD_PARSE_CONTEXT {
+  FD_CONS_HEADER;
   struct FD_GRAMMAR *grammar;
   struct FD_HASHTABLE *custom_lexicon;
   int flags, cumulative_inputs, cumulative_states, n_calls;
