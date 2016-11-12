@@ -2142,10 +2142,24 @@ static fdtype lexprefixp(fdtype string)
 static fdtype lexicon_prefetch(fdtype keys)
 {
   fd_grammar g=fd_default_grammar();
-  if (g==NULL)
-    return FD_ERROR_VALUE;
+  if (g==NULL) {
+    fd_seterr(NoGrammar,"lexicon_prefetch",NULL,FD_VOID);
+    return FD_ERROR_VALUE;}
+  else if (FD_VOIDP(keys)) {
+    fdtype allkeys=fd_index_keys(g->lexicon);
+    fd_index_prefetch(g->lexicon,allkeys);
+    fd_decref(allkeys);
+    allkeys=fd_index_keys(g->noun_roots);
+    fd_index_prefetch(g->noun_roots,allkeys);
+    fd_decref(allkeys);
+    allkeys=fd_index_keys(g->verb_roots);
+    fd_index_prefetch(g->noun_roots,allkeys);
+    fd_decref(allkeys);
+    return FD_VOID;}
   else {
     fd_index_prefetch(g->lexicon,keys);
+    fd_index_prefetch(g->noun_roots,keys);    
+    fd_index_prefetch(g->verb_roots,keys);
     return FD_VOID;}
 }
 
@@ -2363,7 +2377,7 @@ void fd_init_ofsm_c()
   fd_init_mutex(&parser_stats_lock);
 #endif
 
-  /* This are ndprims because the flags arguments may be a set. */
+  /* This are ndprims because the flags arguments may be a choice. */
   fd_idefn(menv,fd_make_ndprim(fd_make_cprim3("TAGTEXT",tagtext_prim,1)));
   fd_idefn(menv,fd_make_ndprim(fd_make_cprim3("TAGTEXT*",tagtextx_prim,1)));
 
@@ -2376,7 +2390,7 @@ void fd_init_ofsm_c()
   fd_idefn(menv,fd_make_cprim1("TRACE-TAGGER!",lisp_trace_tagger,1));
 
   fd_idefn(menv,fd_make_ndprim
-           (fd_make_cprim1("LEXICON-PREFETCH!",lexicon_prefetch,1)));
+           (fd_make_cprim1("LEXICON-PREFETCH!",lexicon_prefetch,0)));
   fd_idefn(menv,fd_make_cprim1("LEXWORD?",lexwordp,1));
   fd_idefn(menv,fd_make_cprim1("LEXPREFIX?",lexprefixp,1));
 
