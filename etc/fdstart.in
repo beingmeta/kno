@@ -9,7 +9,7 @@ READLINK=`which readlink`
 if ${READLINK} -e /tmp 2>&1 > /dev/null; then 
     READLINK="${READLINK} -e";
 fi;
-if test "x${TARGETS}" = "x"; then TARGETS=${DEFAULT_TARGETS}; fi
+if test -z "${TARGETS}"; then TARGETS=${DEFAULT_TARGETS}; fi
 export FD_LOGLEVEL=7
 export FD_LAUNCHER=${FD_LAUNCHER:-fdstart} 
 export LAUNCHCFG="LAUNCHER=${FD_LAUNCHER}" 
