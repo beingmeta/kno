@@ -1533,7 +1533,7 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
 	  etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 	  etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	  etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
-	   etc/fdrestart etc/fdctl
+	  etc/fdreload etc/fdrestart etc/fdctl
 	  src/scripts/fdpkg.scm
 	  etc/OSXStartupItem/FramerD
 	  etc/logrotate etc/framerd-rc.d
