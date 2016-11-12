@@ -1101,24 +1101,54 @@ static fdtype fixnuls(fdtype string)
 
 /* Simple string subst */
 
-static fdtype string_subst_prim(fdtype string,fdtype substring,fdtype with)
+static u8_string strsearch(u8_string string,fdtype pat,
+                           size_t len,size_t *matchlenp)
+{
+  if (FD_STRINGP(pat)) {
+    *matchlenp=len;
+    return strstr(string,FD_STRDATA(pat));}
+  else if (FD_PRIM_TYPEP(pat,fd_regex_type)) {
+    int off=fd_regex_op(rx_search,pat,string,len,0);
+    if (off<0) return NULL;
+    else {
+      int matchlen=fd_regex_op(rx_matchlen,pat,string+off,len-off,0);
+      if (matchlen<0) {
+        u8_string start=string+off, next=start; u8_sgetc(&next);
+        /* Not sure when this would happen, but catch it anyway. If
+           rx_matchlen fails on a result from rx_search, assume the 
+           match is just one character long, so you don't loop. 
+           Use sgetc to get the length of the utf-8 encoded character
+           at the point. */
+        *matchlenp=next-start;
+        return string+off;}
+      else {
+        *matchlenp=matchlen;
+        return string+off;}}}
+  /* Never reached */
+  else return NULL;
+}
+
+static fdtype string_subst_prim(fdtype string,fdtype pat,fdtype with)
 {
   if (FD_STRLEN(string)==0) return fd_incref(string);
-  else if (strstr(FD_STRDATA(string),FD_STRDATA(substring))==NULL)
+  else if (!((FD_STRINGP(pat))||(FD_PRIM_TYPEP(pat,fd_regex_type))))
+    return fd_type_error("string or regex","string_subst_prim",pat);
+  else if ((FD_STRINGP(pat))&&
+           (strstr(FD_STRDATA(string),FD_STRDATA(pat))==NULL))
     return fd_incref(string);
   else {
     u8_string original=FD_STRDATA(string);
-    u8_string search=FD_STRDATA(substring);
     u8_string replace=FD_STRDATA(with);
-    int searchlen=FD_STRING_LENGTH(substring);
-    int startlen=((FD_STRLEN(with)<=FD_STRLEN(substring))?
-                  (FD_STRLEN(string)+17):(FD_STRLEN(string)*2));
-    u8_string point=strstr(original,search);
+    size_t patlen=(FD_STRINGP(pat))?(FD_STRING_LENGTH(pat)):(-1);
+    size_t startlen=FD_STRLEN(string)*2;
+    size_t matchlen=-1;
+    u8_string point=strsearch(original,pat,patlen,&matchlen);
     if (point) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,startlen);
       u8_string last=original; while (point) {
         u8_putn(&out,last,point-last); u8_puts(&out,replace);
-        last=point+searchlen; point=strstr(last,search);}
+        last=point+matchlen; 
+        point=strsearch(last,pat,patlen,&matchlen);}
       u8_puts(&out,last);
       return fd_stream2string(&out);}
     else return fd_incref(string);}
@@ -1129,10 +1159,12 @@ static fdtype string_subst_star(int n,fdtype *args)
   fdtype base=args[0]; int i=1;
   if ((n%2)==0)
     return fd_err(fd_SyntaxError,"string_subst_star",NULL,FD_VOID);
-  else while (i<n)
-    if (FD_EXPECT_FALSE(!(FD_STRINGP(args[i]))))
-      return fd_type_error(_("string"),"string_subst_star",args[i]);
-    else i++;
+  else while (i<n) {
+      if (FD_EXPECT_FALSE
+          (!((FD_STRINGP(args[i]))||
+             (FD_PRIM_TYPEP(args[i],fd_regex_type)))))
+        return fd_type_error(_("string"),"string_subst_star",args[i]);
+      else i++;}
   /* In case we return it. */
   fd_incref(base); i=1;
   while (i<n) {
@@ -1507,8 +1539,7 @@ FD_EXPORT void fd_init_strings_c()
                                             fd_character_type,FD_CODE2CHAR(32)));
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("STRING-SUBST",string_subst_prim,3,
-                           fd_string_type,FD_VOID,
-                           fd_string_type,FD_VOID,
+                           fd_string_type,FD_VOID,-1,FD_VOID,
                            fd_string_type,FD_VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprimn("STRING-SUBST*",string_subst_star,3));
@@ -1516,9 +1547,10 @@ FD_EXPORT void fd_init_strings_c()
            fd_make_cprim1x("TRIM-SPACES",trim_spaces,1,fd_string_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
-           fd_make_cprim3x("STRMATCH?",strmatchp_prim,2,
-                           fd_string_type,FD_VOID,-1,FD_VOID,
-                           fd_fixnum_type,FD_FIXZERO));
+           fd_make_ndprim
+           (fd_make_cprim3x("STRMATCH?",strmatchp_prim,2,
+                            fd_string_type,FD_VOID,-1,FD_VOID,
+                            fd_fixnum_type,FD_FIXZERO)));
 
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("GLOM",glom_lexpr,1));
