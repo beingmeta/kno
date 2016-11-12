@@ -24,6 +24,7 @@
 #include <curl/curl.h>
 
 #include <ctype.h>
+#include <math.h>
 
 #if HAVE_CRYPTO_set_locking_callback
 /* we have this global to let the callback get easy access to it */
@@ -44,6 +45,10 @@ static fdtype cookiejar_symbol, authinfo_symbol, basicauth_symbol;
 static fdtype maxtime_symbol, timeout_symbol, method_symbol;
 static fdtype verifyhost_symbol, verifypeer_symbol, cainfo_symbol;
 static fdtype eurl_slotid, filetime_slotid, response_code_slotid;
+static fdtype timeout_symbol, connect_timeout_symbol, accept_timeout_symbol;
+static fdtype dns_symbol, dnsip_symbol, dns_cachelife_symbol;
+static fdtype fresh_connect_symbol, forbid_reuse_symbol, filetime_symbol;
+
 
 static fdtype text_types=FD_EMPTY_CHOICE;
 
@@ -410,14 +415,6 @@ static fdtype set_curlopt
     if (FD_STRINGP(val))
       curl_easy_setopt(ch->handle,CURLOPT_USERAGENT,FD_STRDATA(val));
     else return fd_type_error("string","set_curlopt",val);
-  else if (FD_EQ(opt,maxtime_symbol))
-    if (FD_FIXNUMP(val))
-      curl_easy_setopt(ch->handle,CURLOPT_TIMEOUT,fd_getint(val));
-    else return fd_type_error("fixnum","set_curlopt",val);
-  else if (FD_EQ(opt,timeout_symbol))
-    if (FD_FIXNUMP(val))
-      curl_easy_setopt(ch->handle,CURLOPT_CONNECTTIMEOUT,fd_getint(val));
-    else return fd_type_error("fixnum","set_curlopt",val);
   else if (FD_EQ(opt,authinfo_symbol))
     if (FD_STRINGP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_HTTPAUTH,CURLAUTH_ANY);
@@ -451,6 +448,106 @@ static fdtype set_curlopt
     else if (FD_TRUEP(val))
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYHOST,2);
     else return fd_type_error("symbol/method","set_curlopt",val);
+  else if (FD_EQ(opt,timeout_symbol)) {
+    if (FD_FIXNUMP(val)) {
+      curl_easy_setopt(ch->handle,CURLOPT_TIMEOUT,FD_FIX2INT(val));}
+    else if (FD_FLONUMP(val)) {
+      double secs=FD_FLONUM(val);
+      long int msecs=(long int)floor(secs*1000);
+      curl_easy_setopt(ch->handle,CURLOPT_TIMEOUT_MS,msecs);}
+    else return fd_type_error("seconds","set_curlopt/timeout",val);}
+  else if (FD_EQ(opt,connect_timeout_symbol)) {
+    if (FD_FIXNUMP(val)) {
+      curl_easy_setopt(ch->handle,CURLOPT_CONNECTTIMEOUT,FD_FIX2INT(val));}
+    else if (FD_FLONUMP(val)) {
+      double secs=FD_FLONUM(val);
+      long int msecs=(long int)floor(secs*1000);
+      curl_easy_setopt(ch->handle,CURLOPT_CONNECTTIMEOUT_MS,msecs);}
+    else return fd_type_error("seconds","set_curlopt/connecttimeout",val);}
+  else if (FD_EQ(opt,connect_timeout_symbol)) {
+    if (FD_FIXNUMP(val)) {
+      curl_easy_setopt(ch->handle,CURLOPT_CONNECTTIMEOUT,FD_FIX2INT(val));}
+    else if (FD_FLONUMP(val)) {
+      double secs=FD_FLONUM(val);
+      long int msecs=(long int)floor(secs*1000);
+      curl_easy_setopt(ch->handle,CURLOPT_CONNECTTIMEOUT_MS,msecs);}
+    else return fd_type_error("seconds","set_curlopt/connecttimeout",val);}
+  else if (FD_EQ(opt,accept_timeout_symbol)) {
+    if (FD_FIXNUMP(val)) {
+      curl_easy_setopt(ch->handle,CURLOPT_ACCEPTTIMEOUT_MS,
+                       (1000*FD_FIX2INT(val)));}
+    else if (FD_FLONUMP(val)) {
+      double secs=FD_FLONUM(val);
+      long int msecs=(long int)floor(secs*1000);
+      curl_easy_setopt(ch->handle,CURLOPT_ACCEPTTIMEOUT_MS,msecs);}
+    else return fd_type_error("seconds","set_curlopt/connecttimeout",val);}
+  else if (FD_EQ(opt,dns_symbol)) {
+    if ((FD_STRINGP(val))&&(FD_STRLEN(val)>0)) {
+      fd_incref(val); FD_ADD_TO_CHOICE(ch->initdata,val);
+      curl_easy_setopt(ch->handle,CURLOPT_DNS_SERVERS,
+                       FD_STRDATA(val));}
+    else if ((FD_FALSEP(val))||(FD_STRINGP(val))) {
+      curl_easy_setopt(ch->handle,CURLOPT_DNS_SERVERS,NULL);}
+    else if (FD_SYMBOLP(val)) {
+      fdtype cval=fd_config_get(FD_SYMBOL_NAME(val));
+      if (!(FD_STRINGP(cval)))
+        return fd_type_error("string config","set_curlopt/dns",val);
+      fd_incref(cval); FD_ADD_TO_CHOICE(ch->initdata,cval);
+      curl_easy_setopt(ch->handle,CURLOPT_DNS_SERVERS,
+                       FD_STRDATA(cval));}
+    else return fd_type_error("string","set_curlopt/dns",val);}
+  else if (FD_EQ(opt,dnsip_symbol)) {
+    if ((FD_STRINGP(val))&&(FD_STRLEN(val)>0)) {
+      fd_incref(val); FD_ADD_TO_CHOICE(ch->initdata,val);
+      if (strchr(FD_STRDATA(val),':')) {
+        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,
+                         FD_STRDATA(val));}
+      else { 
+        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,
+                         FD_STRDATA(val));}}
+    else if ((FD_FALSEP(val))||(FD_STRINGP(val))) {
+      curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,NULL);
+      curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,NULL);}
+    else if (FD_SYMBOLP(val)) {
+      fdtype cval=fd_config_get(FD_SYMBOL_NAME(val));
+      if (!(FD_STRINGP(cval)))
+        return fd_type_error("string config","set_curlopt/dns",val);
+      fd_incref(cval); FD_ADD_TO_CHOICE(ch->initdata,cval);
+      if (FD_STRLEN(cval)==0) {
+        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,NULL);
+        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,NULL);}
+      else if (strchr(FD_STRDATA(cval),':')) {
+        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP6,
+                         FD_STRDATA(cval));}
+      else { 
+        curl_easy_setopt(ch->handle,CURLOPT_DNS_LOCAL_IP4,
+                         FD_STRDATA(cval));}}
+    else return fd_type_error("string","set_curlopt/dns",val);}
+  else if (FD_EQ(opt,dns_cachelife_symbol)) {
+    if (FD_TRUEP(val)) {
+      curl_easy_setopt(ch->handle,CURLOPT_DNS_CACHE_TIMEOUT,-1);}
+    else if (FD_FALSEP(val)) {
+      curl_easy_setopt(ch->handle,CURLOPT_DNS_CACHE_TIMEOUT,0);}
+    else if (FD_FIXNUMP(val)) {
+      curl_easy_setopt(ch->handle,CURLOPT_DNS_CACHE_TIMEOUT,
+                       FD_FIX2INT(val));}
+    else if (FD_FLONUMP(val)) {
+      double secs=FD_FLONUM(val);
+      long int msecs=(long int)floor(secs);
+      curl_easy_setopt(ch->handle,CURLOPT_DNS_CACHE_TIMEOUT,msecs);}
+    else return fd_type_error("seconds","set_curlopt/connecttimeout",val);}
+  else if (FD_EQ(opt,fresh_connect_symbol)) {
+    if (FD_TRUEP(val)) {
+      curl_easy_setopt(ch->handle,CURLOPT_FRESH_CONNECT,1);}
+    else curl_easy_setopt(ch->handle,CURLOPT_FRESH_CONNECT,0);}
+  else if (FD_EQ(opt,forbid_reuse_symbol)) {
+    if (FD_TRUEP(val)) {
+      curl_easy_setopt(ch->handle,CURLOPT_FORBID_REUSE,1);}
+    else curl_easy_setopt(ch->handle,CURLOPT_FORBID_REUSE,0);}
+  else if (FD_EQ(opt,filetime_symbol)) {
+    if (FD_TRUEP(val)) {
+      curl_easy_setopt(ch->handle,CURLOPT_FILETIME,1);}
+    else curl_easy_setopt(ch->handle,CURLOPT_FILETIME,0);}
   else if (FD_EQ(opt,verifypeer_symbol))
     if (FD_FIXNUMP(val))
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYPEER,FD_FIX2INT(val));
@@ -1385,11 +1482,19 @@ FD_EXPORT void fd_init_curl_c()
   /* MAXTIME is the maximum time for a result, and TIMEOUT is the max time to
      establish a connection. */
   maxtime_symbol=fd_intern("MAXTIME");
-  timeout_symbol=fd_intern("TIMEOUT");
   eurl_slotid=fd_intern("EFFECTIVE-URL");
   filetime_slotid=fd_intern("FILETIME");
   response_code_slotid=fd_intern("RESPONSE");
 
+  timeout_symbol=fd_intern("TIMEOUT");
+  connect_timeout_symbol=fd_intern("CONNECT-TIMEOUT");
+  accept_timeout_symbol=fd_intern("ACCEPT-TIMEOUT");
+  dns_symbol=fd_intern("DNS");
+  dnsip_symbol=fd_intern("DNSIP");
+  dns_cachelife_symbol=fd_intern("DNSCACHELIFE");
+  fresh_connect_symbol=fd_intern("FRESHCONNECT");
+  forbid_reuse_symbol=fd_intern("NOREUSE");
+  filetime_symbol=fd_intern("FILETIME");
 
   FD_ADD_TO_CHOICE(text_types,text_symbol);
   decl_text_type("application/xml");
