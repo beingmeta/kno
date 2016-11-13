@@ -14,6 +14,7 @@
 FD_EXPORT void fd_init_tagger(void) FD_LIBINIT_FN;
 FD_EXPORT void fd_init_ofsm_c(void);
 FD_EXPORT void fd_init_tagxtract_c(void);
+FD_EXPORT void fd_init_taglink_c(void);
 
 /* Declarations for beingmeta tagger */
 

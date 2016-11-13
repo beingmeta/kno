@@ -32,6 +32,7 @@ void fd_init_tagger()
 
   fd_init_ofsm_c();
   fd_init_tagxtract_c();
+  fd_init_taglink_c();
 
   fd_finish_module(tagger_module);
   fd_persist_module(tagger_module);
