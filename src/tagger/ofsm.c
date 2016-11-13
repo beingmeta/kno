@@ -45,6 +45,8 @@ static fd_exception ParseFailed=_("Parser failed");
 static fd_exception LateConfiguration=_("LEXDATA has already been configured");
 static fd_exception NoGrammar=_("No grammar identified");
 
+fd_ptr_type fd_tagger_type;
+
 
 /* Miscellaneous defines */
 
@@ -243,10 +245,10 @@ static int config_set_lexdata(fdtype var,fdtype val,void MAYBE_UNUSED *data)
 /* Parse Contexts */
 
 FD_EXPORT
-fd_parse_context fd_init_parse_context
-  (fd_parse_context pc,struct FD_GRAMMAR *grammar)
+fd_parse_context fd_init_parse_context(fd_parse_context pc,struct FD_GRAMMAR *grammar)
 {
   unsigned int i=0;
+  memset(pc,0,sizeof(struct FD_PARSE_CONTEXT));
   pc->grammar=grammar; pc->flags=FD_TAGGER_DEFAULT_FLAGS;
   /* Initialize inter-parse fields. */
   pc->n_calls=0; pc->cumulative_inputs=0;
@@ -1777,14 +1779,17 @@ fdtype fd_analyze_text
   fdtype (*fn)(fd_parse_context,fd_parse_state,void *),
   void *data)
 {
-  int free_pcxt=0;
+  fdtype cxt;
   if (pcxt==NULL) {
     struct FD_GRAMMAR *grammar=get_default_grammar();
     if (grammar==NULL)
       return fd_err(NoGrammar,"fd_analyze_text",NULL,FD_VOID);
     pcxt=u8_alloc(struct FD_PARSE_CONTEXT);
     fd_init_parse_context(pcxt,grammar);
-    free_pcxt=1;}
+    cxt=(fdtype)pcxt;}
+  else {
+    cxt=(fdtype)pcxt;
+    fd_incref(cxt);}
   fd_parser_set_text(pcxt,text);
   if (pcxt->flags&FD_TAGGER_SPLIT_SENTENCES) {
     double full_start=u8_elapsed_time();
@@ -1812,7 +1817,7 @@ fdtype fd_analyze_text
       retval=fn(pcxt,final,data);
       procdone=u8_elapsed_time();
       if (FD_ABORTP(retval)) {
-        if (free_pcxt) fd_free_parse_context(pcxt);
+        fd_decref(cxt);
         return retval;}
       else {
         n_calls++;
@@ -1828,6 +1833,7 @@ fdtype fd_analyze_text
              "Parsed %d sentences in %f seconds; %f/%f/%f/%f lex/comp/parse/proc",
              n_calls,u8_elapsed_time()-full_start,
              lextime,comptime,parsetime,proctime);
+    fd_decref(cxt);
     return FD_INT(n_calls);}
   else {
     double start_time=u8_elapsed_time();
@@ -1839,10 +1845,8 @@ fdtype fd_analyze_text
     final=fd_run_parser(pcxt);
     pcxt->runtime=pcxt->runtime+(u8_elapsed_time()-start_time);
     retval=fn(pcxt,final,data);
-    if (FD_ABORTP(retval)) {
-      if (free_pcxt) fd_free_parse_context(pcxt);
-      return retval;}
-    else return FD_INT(1);}
+    fd_decref(cxt);
+    return FD_INT(1);}
 }
 
 /* Sentence tagging */
@@ -1869,20 +1873,22 @@ FD_EXPORT
    also uses the same parse context structure over and over again. */
 fdtype fd_tag_text(struct FD_PARSE_CONTEXT *pcxt,u8_string text)
 {
-  int free_pcxt=0;
-  fdtype result=FD_EMPTY_LIST, retval=FD_VOID;
+  fdtype result=FD_EMPTY_LIST, retval=FD_VOID, cxt;
   if (pcxt==NULL) {
     fd_grammar grammar=get_default_grammar();
     if (grammar==NULL)
       return fd_err(NoGrammar,"fd_tag_text",NULL,FD_VOID);
-    free_pcxt=1; pcxt=u8_alloc(struct FD_PARSE_CONTEXT);
-    fd_init_parse_context(pcxt,grammar);}
+    pcxt=u8_alloc(struct FD_PARSE_CONTEXT);
+    fd_init_parse_context(pcxt,grammar);
+    cxt=(fdtype)pcxt;}
+  else {
+    cxt=(fdtype)pcxt; fd_incref(cxt);}
   retval=fd_analyze_text(pcxt,text,tag_text_helper,&result);
+  fd_decref(cxt);
   if (FD_ABORTP(retval)) {
-    if (free_pcxt) {
-      fd_free_parse_context(pcxt); u8_free(pcxt);}
+    fd_decref(result);
     return retval;}
-  return result;
+  else return result;
 }
 
 
@@ -1920,9 +1926,9 @@ static int interpret_parse_flags(fdtype arg)
 
 static fdtype tagtext_prim(fdtype input,fdtype flags,fdtype custom)
 {
-  fdtype result=FD_EMPTY_LIST, retval=FD_VOID;
   struct FD_PARSE_CONTEXT parse_context;
   struct FD_GRAMMAR *grammar=get_default_grammar();
+  fdtype result=FD_EMPTY_LIST, retval=FD_VOID, cxt=(fdtype)(&parse_context);
   if (grammar==NULL)
     return fd_err(NoGrammar,"tagtext_prim",NULL,FD_VOID);
   /* First do argument checking. */
@@ -1941,6 +1947,7 @@ static fdtype tagtext_prim(fdtype input,fdtype flags,fdtype custom)
         return fd_type_error(_("text input"),"tagtext_prim",elt);}
   /* We know the argument is good, so we initialize the parse context. */
   fd_init_parse_context(&parse_context,grammar);
+  FD_INIT_STACK_CONS(&parse_context,fd_tagger_type);
   /* Now we set the custom table if provided */
   if ((FD_FALSEP(custom)) || (FD_VOIDP(custom)) ||
       (FD_EMPTY_CHOICEP(custom))) {}
@@ -1948,7 +1955,7 @@ static fdtype tagtext_prim(fdtype input,fdtype flags,fdtype custom)
     fd_incref(custom);
     parse_context.custom_lexicon=(struct FD_HASHTABLE *)custom;}
   else {
-    fd_free_parse_context(&parse_context);
+    fd_decref(cxt);
     return fd_type_error(_("hashtable"),"tagtext_prim",custom);}
   /* Now we set the flags from the argument. */
   if (!(FD_VOIDP(flags)))
@@ -1972,7 +1979,7 @@ static fdtype tagtext_prim(fdtype input,fdtype flags,fdtype custom)
             (&parse_context,FD_STRDATA(elt),tag_text_helper,&result);
           if (FD_ABORTP(retval)) break;}}
       if (FD_ABORTP(retval)) break;}}
-  fd_free_parse_context(&parse_context);
+  fd_decref(cxt);
   if (FD_ABORTP(retval)) {
     fd_seterr(ParseFailed,"",NULL,FD_VOID);
     return retval;}
@@ -1981,9 +1988,9 @@ static fdtype tagtext_prim(fdtype input,fdtype flags,fdtype custom)
 
 static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
 {
-  fdtype result=FD_EMPTY_LIST, retval=FD_VOID;
   struct FD_PARSE_CONTEXT parse_context;
   struct FD_GRAMMAR *grammar=get_default_grammar();
+  fdtype result=FD_EMPTY_LIST, retval=FD_VOID, cxt=(fdtype)(&parse_context);
   if (grammar==NULL)
     return fd_err(NoGrammar,"tagtext_prim",NULL,FD_VOID);
   /* First do argument checking. */
@@ -2002,6 +2009,7 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
         return fd_type_error(_("text input"),"tagtext_prim",elt);}
   /* We know the argument is good, so we initialize the parse context. */
   fd_init_parse_context(&parse_context,grammar);
+  FD_INIT_STACK_CONS(cxt,fd_tagger_type);
   /* Now we set the custom table if provided */
   if ((FD_FALSEP(custom))||(FD_VOIDP(custom))||
       (FD_EMPTY_CHOICEP(custom))) {}
@@ -2009,7 +2017,7 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
     fd_incref(custom);
     parse_context.custom_lexicon=(struct FD_HASHTABLE *)custom;}
   else {
-    fd_free_parse_context(&parse_context);
+    fd_decref(cxt);
     return fd_type_error(_("hashtable"),"tagtext_prim",custom);}
   /* Now we set the flags from the argument. */
   if (!(FD_VOIDP(flags)))
@@ -2034,7 +2042,7 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
           if (FD_ABORTP(retval)) break;}}
       if (FD_ABORTP(retval)) break;}}
   if (FD_ABORTP(retval)) {
-    fd_free_parse_context(&parse_context);
+    fd_decref(cxt);
     fd_seterr(ParseFailed,"",NULL,FD_VOID);
     return retval;}
   else result=fd_make_nvector
@@ -2043,8 +2051,44 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
           FD_INT(parse_context.n_states),
           fd_init_double(NULL,parse_context.runtime),
           result);
-  fd_free_parse_context(&parse_context);
+  fd_decref(cxt);
   return result;
+}
+
+
+/* Tagger object operations */
+
+static fdtype tagger_start(fdtype text,fdtype cxt)
+{
+  struct FD_PARSE_CONTEXT *pcxt;
+  if ((FD_VOIDP(cxt))||(FD_FALSEP(cxt))) {
+    struct FD_GRAMMAR *grammar=get_default_grammar();
+    pcxt=u8_alloc(struct FD_PARSE_CONTEXT);
+    fd_init_parse_context(pcxt,grammar);
+    cxt=(fdtype) pcxt;}
+  else if (FD_PRIM_TYPEP(cxt,fd_tagger_type)) {
+    pcxt=(struct FD_PARSE_CONTEXT *)cxt;
+    fd_reset_parse_context(pcxt);
+    fd_incref(cxt);}
+  else return fd_type_error("tagger","tagger_start",cxt);
+  if (FD_STRINGP(text)) {
+    fd_parser_set_text(pcxt,FD_STRDATA(text));}
+  return (fdtype) pcxt;
+}
+
+static fdtype tagger_next(fdtype cxt)
+{
+  struct FD_PARSE_CONTEXT *pcxt=(struct FD_PARSE_CONTEXT *)cxt;
+  double start_time=u8_elapsed_time();
+  fd_parse_state final;
+  fdtype result=FD_EMPTY_LIST, tags=FD_VOID;
+  if (pcxt->n_inputs==0) {
+    lexer(pcxt,pcxt->start,NULL);
+    identify_compounds(pcxt);
+    add_state(pcxt,&(pcxt->grammar->nodes[0]),0,0,-1,0,FD_VOID);}
+  final=fd_run_parser(pcxt);
+  pcxt->runtime=pcxt->runtime+(u8_elapsed_time()-start_time);
+  return fd_gather_tags(pcxt,final);
 }
 
 
@@ -2360,6 +2404,22 @@ static void init_parser_symbols()
   parse_failed_symbol=fd_intern("NOPARSE");
 }
 
+/* fd_tagger_type handlers */
+
+static void recycle_tagger(struct FD_CONS *c)
+{
+  struct FD_PARSE_CONTEXT *pcxt=(struct FD_PARSE_CONTEXT *)c;
+  fd_free_parse_context(pcxt);
+  u8_free(pcxt);
+}
+
+static int unparse_tagger(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_PARSE_CONTEXT *pcxt=(struct FD_PARSE_CONTEXT *)x;
+  u8_printf(out,"#<TAGGER 0x%llx>",x);
+  return 1;
+}
+
 /* fd_init_ofsm_c:
       Arguments: none
       Returns: nothing
@@ -2372,6 +2432,11 @@ void fd_init_ofsm_c()
 
   u8_register_source_file(_FILEINFO);
 
+  fd_tagger_type=fd_register_cons_type("tagger");
+
+  fd_unparsers[fd_tagger_type]=unparse_tagger;
+  fd_recyclers[fd_tagger_type]=recycle_tagger;
+
 #if FD_THREADS_ENABLED
   fd_init_mutex(&default_grammar_lock);
   fd_init_mutex(&parser_stats_lock);
@@ -2380,6 +2445,10 @@ void fd_init_ofsm_c()
   /* This are ndprims because the flags arguments may be a choice. */
   fd_idefn(menv,fd_make_ndprim(fd_make_cprim3("TAGTEXT",tagtext_prim,1)));
   fd_idefn(menv,fd_make_ndprim(fd_make_cprim3("TAGTEXT*",tagtextx_prim,1)));
+
+  fd_idefn(menv,fd_make_cprim2x("TAGGER/START",tagger_start,1,
+                                fd_string_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(menv,fd_make_cprim1("TAGGER/NEXT",tagger_next,1));
 
   fd_idefn(menv,fd_make_cprim3("LEXWEIGHT",lexweight_prim,1));
   fd_idefn(menv,fd_make_cprim0("LEXTAGS",lextags_prim,0));

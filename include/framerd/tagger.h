@@ -90,6 +90,8 @@ typedef struct FD_PARSE_CONTEXT {
   int n_states, max_n_states;
   int n_inputs, max_n_inputs;} *fd_parse_context;
 
+fd_ptr_type fd_tagger_type;
+
 FD_EXPORT struct FD_GRAMMAR *fd_open_grammar(u8_string spec);
 FD_EXPORT struct FD_GRAMMAR *fd_default_grammar(void);
 
