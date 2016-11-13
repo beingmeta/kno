@@ -651,6 +651,14 @@ FD_EXPORT fdtype fd_make_list(int len,...)
   return result;
 }
 
+FD_EXPORT int fd_list_length(fdtype l)
+{
+  int len=0; fdtype scan=l; while (FD_PAIRP(scan)) {
+    len++; scan=FD_CDR(scan);}
+  if (FD_EMPTY_LISTP(scan)) return len;
+  else return -len;
+}
+
 /* Vectors */
 
 FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
@@ -691,7 +699,8 @@ FD_EXPORT fdtype fd_make_nvector(int len,...)
 FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
 {
   int i=0;
-  struct FD_VECTOR *ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+  struct FD_VECTOR *ptr=
+    u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
   ptr->length=len; ptr->data=elts; ptr->freedata=0;

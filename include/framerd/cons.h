@@ -334,6 +334,7 @@ FD_EXPORT fdtype fd_init_pair(struct FD_PAIR *ptr,fdtype car,fdtype cdr);
 FD_EXPORT fdtype fd_make_pair(fdtype car,fdtype cdr);
 FD_EXPORT fdtype fd_make_list(int len,...);
 FD_EXPORT fdtype fd_pmake_list(int len,...);
+FD_EXPORT int fd_list_length(fdtype l);
 
 #define FD_XPAIR(x) (FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))
 #define fd_conspair(car,cdr) fd_init_pair(NULL,car,cdr)
