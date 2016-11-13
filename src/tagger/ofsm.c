@@ -557,7 +557,9 @@ static fdtype convert_custom(struct FD_GRAMMAR *g,fdtype custom)
 
 static fdtype get_lexinfo(fd_parse_context pcxt,fdtype key)
 {
-  fdtype custom=((pcxt->custom_lexicon) ? (fd_hashtable_get(pcxt->custom_lexicon,key,FD_VOID)) : (FD_VOID));
+  fdtype custom=((pcxt->custom_lexicon) ? 
+                 (fd_hashtable_get(pcxt->custom_lexicon,key,FD_VOID)) :
+                 (FD_VOID));
   if (FD_VOIDP(custom))
     return lexicon_fetch(pcxt->grammar->lexicon,key);
   else if (FD_PACKETP(custom)) return custom;
@@ -1591,7 +1593,8 @@ static fdtype get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid,int c
     fd_decref(normalized);
     return result;}
 }
-FD_EXPORT fdtype fd_get_root(struct FD_PARSE_CONTEXT *pcxt,fdtype base,int arcid)
+FD_EXPORT fdtype fd_get_root(struct FD_PARSE_CONTEXT *pcxt,
+                             fdtype base,int arcid)
 {
   return get_root(pcxt,base,arcid,0);
 }
@@ -1626,7 +1629,9 @@ static fdtype word2string(fdtype word)
   else return fd_incref(word);
 }
 
-static fdtype make_word_entry(fdtype word,fdtype tag,fdtype root,int distance,fdtype source,int start,int end)
+static fdtype make_word_entry(fdtype word,fdtype tag,
+                              fdtype root,int distance,
+                              fdtype source,int start,int end)
 {
   if ((FD_VOIDP(source)) && (start<0))
     return fd_make_nvector(4,word,fd_incref(tag),root,
@@ -1689,8 +1694,10 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
                 glom=fd_make_list(1,fd_incref(word));
                 glom_root=fd_make_list(1,rootstring);}
               else {
-                glom=fd_make_list(2,fd_incref(nextstate->word),fd_incref(word));
-                glom_root=fd_make_list(2,fd_incref(nextstate->word),rootstring);}
+                glom=fd_make_list
+                  (2,fd_incref(nextstate->word),fd_incref(word));
+                glom_root=fd_make_list
+                  (2,fd_incref(nextstate->word),rootstring);}
             else if ((nextstate->arc==quote_mark_tag) ||
                      (nextstate->arc==noise_tag))
               {}
@@ -1725,11 +1732,13 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
           char_end=char_start+count_chars(start,end);
           bufptr=start;}}
       if (FD_VOIDP(glom))
-        word_entry=make_word_entry(word,fd_incref(tag),rootstring,
-                                   state->distance,source,char_start,char_end);
+        word_entry=make_word_entry
+          (word,fd_incref(tag),rootstring,
+           state->distance,source,char_start,char_end);
       else {
-        word_entry=make_word_entry(glom,fd_incref(tag),glom_root,
-                                   state->distance,source,char_start,char_end);
+        word_entry=make_word_entry
+          (glom,fd_incref(tag),glom_root,
+           state->distance,source,char_start,char_end);
         fd_decref(word);}
       sentence=fd_conspair(word_entry,sentence);
       s=scan;}
@@ -1753,8 +1762,8 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
           char_end=char_start+count_chars(start,end);
           bufptr=start;}}
       word_entry=
-        make_word_entry(word,fd_incref(tag),rootstring,
-                        state->distance,source,char_start,char_end);
+        make_word_entry(word,fd_incref(tag),rootstring,state->distance,
+                        source,char_start,char_end);
       fd_decref(root);
       if (state->arc==pc->grammar->sentence_end_tag)
         if (FD_EMPTY_LISTP(sentence))
