@@ -1955,7 +1955,7 @@ static fdtype tagtext_prim(fdtype input,fdtype flags,fdtype custom)
     fd_incref(custom);
     parse_context.custom_lexicon=(struct FD_HASHTABLE *)custom;}
   else {
-    fd_decref(cxt);
+    fd_free_parse_context(&parse_context);
     return fd_type_error(_("hashtable"),"tagtext_prim",custom);}
   /* Now we set the flags from the argument. */
   if (!(FD_VOIDP(flags)))
@@ -1979,7 +1979,7 @@ static fdtype tagtext_prim(fdtype input,fdtype flags,fdtype custom)
             (&parse_context,FD_STRDATA(elt),tag_text_helper,&result);
           if (FD_ABORTP(retval)) break;}}
       if (FD_ABORTP(retval)) break;}}
-  fd_decref(cxt);
+  fd_free_parse_context(&parse_context);
   if (FD_ABORTP(retval)) {
     fd_seterr(ParseFailed,"",NULL,FD_VOID);
     return retval;}
@@ -2017,7 +2017,7 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
     fd_incref(custom);
     parse_context.custom_lexicon=(struct FD_HASHTABLE *)custom;}
   else {
-    fd_decref(cxt);
+    fd_free_parse_context(&parse_context);
     return fd_type_error(_("hashtable"),"tagtext_prim",custom);}
   /* Now we set the flags from the argument. */
   if (!(FD_VOIDP(flags)))
@@ -2042,7 +2042,7 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
           if (FD_ABORTP(retval)) break;}}
       if (FD_ABORTP(retval)) break;}}
   if (FD_ABORTP(retval)) {
-    fd_decref(cxt);
+    fd_free_parse_context(&parse_context);
     fd_seterr(ParseFailed,"",NULL,FD_VOID);
     return retval;}
   else result=fd_make_nvector
@@ -2051,7 +2051,7 @@ static fdtype tagtextx_prim(fdtype input,fdtype flags,fdtype custom)
           FD_INT(parse_context.n_states),
           fd_init_double(NULL,parse_context.runtime),
           result);
-  fd_decref(cxt);
+  fd_free_parse_context(&parse_context);
   return result;
 }
 
