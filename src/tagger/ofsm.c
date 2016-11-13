@@ -784,6 +784,7 @@ static void lexer(fd_parse_context pc,u8_string start,u8_string end)
   u8_string scan=start;
   int ch=u8_sgetc(&scan), skip_markup=(pc->flags&FD_TAGGER_SKIP_MARKUP);
   if (pc->n_inputs>0) fd_reset_parse_context(pc);
+  if (end==NULL) {end=start+strlen(start);}
   pc->start=start; pc->end=end;
   scan=start; while ((ch>=0) && (scan<end)) {
     u8_string tmp;
@@ -1779,7 +1780,7 @@ fdtype fd_analyze_text
   fdtype (*fn)(fd_parse_context,fd_parse_state,void *),
   void *data)
 {
-  fdtype cxt;
+  fdtype cxt=FD_VOID;
   if (pcxt==NULL) {
     struct FD_GRAMMAR *grammar=get_default_grammar();
     if (grammar==NULL)
@@ -1787,9 +1788,6 @@ fdtype fd_analyze_text
     pcxt=u8_alloc(struct FD_PARSE_CONTEXT);
     fd_init_parse_context(pcxt,grammar);
     cxt=(fdtype)pcxt;}
-  else {
-    cxt=(fdtype)pcxt;
-    fd_incref(cxt);}
   fd_parser_set_text(pcxt,text);
   if (pcxt->flags&FD_TAGGER_SPLIT_SENTENCES) {
     double full_start=u8_elapsed_time();
@@ -2065,6 +2063,7 @@ static fdtype tagger_start(fdtype text,fdtype cxt)
     struct FD_GRAMMAR *grammar=get_default_grammar();
     pcxt=u8_alloc(struct FD_PARSE_CONTEXT);
     fd_init_parse_context(pcxt,grammar);
+    FD_INIT_CONS(pcxt,fd_tagger_type);
     cxt=(fdtype) pcxt;}
   else if (FD_PRIM_TYPEP(cxt,fd_tagger_type)) {
     pcxt=(struct FD_PARSE_CONTEXT *)cxt;
@@ -2448,7 +2447,8 @@ void fd_init_ofsm_c()
 
   fd_idefn(menv,fd_make_cprim2x("TAGGER/START",tagger_start,1,
                                 fd_string_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(menv,fd_make_cprim1("TAGGER/NEXT",tagger_next,1));
+  fd_idefn(menv,fd_make_cprim1x("TAGGER/NEXT",tagger_next,1,
+                                fd_tagger_type,FD_VOID));
 
   fd_idefn(menv,fd_make_cprim3("LEXWEIGHT",lexweight_prim,1));
   fd_idefn(menv,fd_make_cprim0("LEXTAGS",lextags_prim,0));
