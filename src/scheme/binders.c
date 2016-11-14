@@ -584,6 +584,7 @@ FD_EXPORT fdtype fd_make_sproc(u8_string name,
 FD_EXPORT void recycle_sproc(struct FD_CONS *c)
 {
   struct FD_SPROC *sproc=(struct FD_SPROC *)c;
+  int mallocd=FD_MALLOCD_CONSP(c);
   if (sproc->name) u8_free(sproc->name);
   if (sproc->typeinfo) u8_free(sproc->typeinfo);
   if (sproc->defaults) u8_free(sproc->defaults);
@@ -595,7 +596,7 @@ FD_EXPORT void recycle_sproc(struct FD_CONS *c)
   }
   if (sproc->synchronized) fd_destroy_mutex(&(sproc->lock));
   if (sproc->filename) u8_free(sproc->filename);
-  if (FD_MALLOCD_CONSP(c)) u8_free(sproc);
+  if (mallocd) u8_free(sproc);
 }
 
 static int unparse_sproc(u8_output out,fdtype x)
