@@ -241,6 +241,49 @@ static int config_set_lexdata(fdtype var,fdtype val,void MAYBE_UNUSED *data)
     return 1;}
 }
 
+static fdtype config_get_lexicon(fdtype var,void MAYBE_UNUSED *data)
+{
+  struct FD_GRAMMAR *g=fd_default_grammar();
+  if (g==NULL) return FD_FALSE;
+  else {
+    fdtype lp=fd_index2lisp(g->lexicon);
+    return lp;}
+}
+static int config_set_lexicon(fdtype var,fdtype val,void MAYBE_UNUSED *data)
+{
+  struct FD_GRAMMAR *g=fd_default_grammar();
+  if (g==NULL) {
+    fd_seterr("No LEXDATA to modify lexicon","config_set_lexicon",NULL,FD_VOID);
+    return -1;}
+  else if ((FD_PRIM_TYPEP(val,fd_index_type))||
+           (FD_PRIM_TYPEP(val,fd_raw_index_type))) {
+    fd_index ix=fd_lisp2index(val);
+    if (ix==NULL) {
+      fd_seterr(fd_TypeError,"config_set_lexicon",
+                u8_strdup("index ref"),fd_incref(val));
+      return -1;}
+    else if (ix==g->lexicon) return 0;
+    else {
+      fdtype cur=(fdtype)(g->lexicon);
+      g->lexicon=ix; fd_incref(val); fd_decref(cur);
+      return 1;}}
+  else if (FD_STRINGP(val)) {
+    fd_index ix=fd_open_index(FD_STRDATA(val));
+    if (ix==NULL) {
+      fd_seterr(fd_TypeError,"config_set_lexicon",
+                u8_strdup("index ref"),fd_incref(val));
+      return -1;}
+    else if (ix==g->lexicon) return 0;
+    else {
+      fdtype cur=(fdtype)(g->lexicon);
+      g->lexicon=ix; fd_incref(val); fd_decref(cur);
+      return 1;}}
+  else {
+    fd_seterr(fd_TypeError,"config_set_lexicon",
+              u8_strdup("index ref"),fd_incref(val));
+    return -1;}
+}
+
 
 /* Parse Contexts */
 
@@ -2228,7 +2271,7 @@ static fd_index openindexsource(u8_string base,u8_string component)
   u8_string indexid=
     ((filebase) ? (u8_mkstring("%s/%s",base,component)) :
      (u8_mkstring("%s@%s",component,base)));
-  fd_index ix=fd_open_index(indexid);
+  fd_index ix=fd_open_index_x(indexid,1);
   u8_free(indexid);
   return ix;
 }
@@ -2472,8 +2515,12 @@ void fd_init_ofsm_c()
   fd_idefn(menv,fd_make_cprim1("LEXWORD?",lexwordp,1));
   fd_idefn(menv,fd_make_cprim1("LEXPREFIX?",lexprefixp,1));
 
-  fd_register_config("LEXDATA","The location (file/server) for the tagger lexicon",
+  fd_register_config("LEXDATA",
+                     "The location (file/server) for the tagger lexicon",
                      config_get_lexdata,config_set_lexdata,NULL);
+  fd_register_config("LEXICON",
+                     "The FramerD index (or reference) to use as a lexicon",
+                     config_get_lexicon,config_set_lexicon,NULL);
 }
 
 /* Emacs local variables
