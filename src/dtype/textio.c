@@ -933,8 +933,10 @@ static fdtype parse_hex_packet(U8_INPUT *in)
     byte=strtol(xbuf,NULL,16);
     data[len++]=byte;
     c=u8_getc(in);}
-  if (c=='"')
-    return fd_bytes2packet(NULL,len,data);
+  if (c=='"') {
+    fdtype result=fd_bytes2packet(NULL,len,data);
+    u8_free(data);
+    return result;}
   else if (c<0) return FD_EOX;
   else {
     u8_byte buf[16]; struct U8_OUTPUT tmpout;
@@ -961,10 +963,13 @@ static fdtype parse_base64_packet(U8_INPUT *in)
       u8_putc(&tmpout,c);
       u8_seterr(fd_InvalidBase64Character,"parse_base64_packet",
                 u8_strdup(tmpout.u8_outbuf));
+      u8_free(data);
       return FD_PARSE_ERROR;}
     data[len++]=c;
     c=u8_getc(in);}
-  if (c<0) return FD_EOX;
+  if (c<0) {
+    u8_free(data);
+    return FD_EOX;}
   else if (c=='"') {
     int n_bytes=0;
     unsigned char *bytes=u8_read_base64(data,data+len,&n_bytes);
