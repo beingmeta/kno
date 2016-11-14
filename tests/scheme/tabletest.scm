@@ -278,5 +278,4 @@
 		       (exit 1)))
 	    (message "Restored table is consistent")
 	    (clearcaches)))))
-
-
+(test-finished "TABLETEST")

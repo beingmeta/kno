@@ -19,6 +19,5 @@
 (applytest "quux" pick '{"quux" bar} fq3)
 (applytest 3 pick '{1 2 3} fq3)
 
-
-
+(test-finished "PICKTEST")
 

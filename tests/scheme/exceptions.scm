@@ -1,4 +1,6 @@
-;;; -*- Mode: scheme; text-encoding: latin-1; -*-
+;;; -*- Mode: scheme; text-encoding: utf-8; -*-
+
+(load-component "common.scm")
 
 (evaltest 2 (let ((count 0))
 	      (dynamic-wind
@@ -21,4 +23,4 @@
 	  (onerror (cons 8)
 		   (lambda (ex) (error-condition ex))))
 
-(message "EXCEPTIONS tests successfuly completed")
+(test-finished "EXCEPTIONS")

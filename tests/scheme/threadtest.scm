@@ -90,6 +90,4 @@
     (message "CONDVARS: sightings=touches=" touches)
     (set! var (random 100))))
 
-(message "THREADTEST successfully completed")
-
-
+(test-finished "THREADTEST")

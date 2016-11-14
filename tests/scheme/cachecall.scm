@@ -13,5 +13,5 @@
 (applytest #f eq? (identity "foo") (identity "foo"))
 (applytest #t eq? (cachecall identity "foo") (cachecall identity "foo"))
 
-(message "CACHECALL test successfuly completed")
+(test-finished "CACHECALL test successfuly completed")
 

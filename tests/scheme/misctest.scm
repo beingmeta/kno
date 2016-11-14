@@ -4,6 +4,8 @@
 
 (use-module 'reflection)
 
+(optimization-leaks)
+
 (applytest #t procedure? car)
 (applytest #f procedure? if)
 (applytest #f procedure? '())
@@ -332,7 +334,8 @@
   (dotimes (i 17000000) (testfn "bar"))
   (message "Finished big TESTOPTFREE test (whew)")
   #t)
-(unless (getenv "MEMCHECKING") (applytest #t testoptfree))
+(unless (or (getenv "MEMCHECKING") (getenv "HEAPCHECK"))
+  (applytest #t testoptfree))
 
 ;;; Quasiquote oddness
 
@@ -409,4 +412,7 @@
 		    " Errors during MISCTSEST")
 	   (error 'tests-failed))
     (message "MISCTEST successfuly completed"))
+
+(test-finished "MISCTEST")
+
 

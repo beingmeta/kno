@@ -14,3 +14,4 @@
 (applytest #t pair? (xmlparse xml-test-input-2))
 (applytest #t pair? (xmlparse xml-test-input-3))
 
+(test-finished "XMLTEST")

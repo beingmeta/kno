@@ -82,3 +82,4 @@
 (applytest sample-packet decrypt (encrypt sample rsa.pub "RSAPUB")
 	   rsa.pem "RSA")
 
+(test-finished "CRYPTOTEST")

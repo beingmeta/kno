@@ -407,4 +407,5 @@ is the other number")
 ;; This should avoid a leak warning
 (define expr-pat #f)
 
-(message "TEXTTEST successfuly completed")
+(test-finished "TEXTTEST")
+

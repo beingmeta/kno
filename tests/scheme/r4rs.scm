@@ -43,6 +43,8 @@
 
 (load-component "common.scm")
 
+(optimization-leaks)
+
 (define cur-section '())(define errs '())
 (define SECTION (lambda args
 		  (display "SECTION") (write args) (newline)
@@ -1111,7 +1113,5 @@
 
 (applytest #t optimized-tail-testfn)
 
-
-
-(message "Partial R4RS tests completed")
+(test-finished "R4RS test")
 

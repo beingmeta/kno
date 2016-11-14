@@ -1,5 +1,7 @@
 (load-component "common.scm")
 
+(optimization-leaks)
+
 (define-tester (nrange start end)
   (let ((answer {}))
     (dotimes (i (- end start))
@@ -174,3 +176,5 @@
 (applytest #f set-overlaps? '(a b c) #(x y z))
 (applytest #f set-overlaps? '(a c d) '(p q r))
 (applytest #t set-overlaps? '(a c d) '(p q r d))
+
+(test-finished "CHOICETEST")

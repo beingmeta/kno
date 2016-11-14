@@ -1,3 +1,7 @@
+;;; -*- Mode: Scheme; text-encoding: latin-1 -*-
+
+(load-component "common.scm")
+
 (use-module 'texttools)
 
 (define string-data
@@ -25,4 +29,4 @@
 (message "Anti-Warning: You can ignore the flock of UTF-8 warnings above,  \
           It was the UTF-8 stress test.")
 
-(message "i18n tests finished")
+(test-finished "i18n")

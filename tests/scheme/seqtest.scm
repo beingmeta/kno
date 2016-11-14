@@ -310,4 +310,5 @@
 (applytest #t parsefail "#@“M/_8=”")
 (applytest #t parsefail "#@“_M/8=”")
 
-(message "SEQTEST successfuly completed")
+(test-finished "SEQTEST")
+

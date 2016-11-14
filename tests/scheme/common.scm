@@ -1,21 +1,39 @@
 (use-module '{reflection optimize})
 
+(define (optimization-leaks)
+  (when (and (config 'testoptimized) 
+	     (or (getenv "MEMCHECKING") (getenv "HEAPCHECK")))
+    (exit)))
+
 (config! 'optimize:rails #t)
 
 (define (qc-wrap x) `(qc ,x))
 
+(define errors {})
+
+(define test-finished
+  (macro expr
+    (let ((name (get-arg expr 1)))
+      `(begin (deoptimize!)
+	 (if (and (bound? errors) (exists? errors))
+	     (begin (message (choice-size errors) " errors during " ,name)
+	       (error 'tests-failed))
+	     (message ,name " successfuly completed"))))))
+  
 (when (config 'testoptimized #f)
   (use-module 'optimize)
   (define applytester
     (macro expr
       `(let ((fcn (lambda () (,applytest ,@(map qc-wrap (cdr expr))))))
 	 (optimize-procedure! fcn)
-	 (fcn))))
+	 (fcn)
+	 (deoptimize-procedure! fcn))))
   (define evaltester
     (macro expr
       `(let ((fcn (lambda () (,evaltest ,@(cdr expr)))))
 	 (optimize-procedure! fcn)
-	 (fcn))))
+	 (fcn)
+	 (deoptimize-procedure! fcn))))
   (define define-tester
     (macro expr
       (if (pair? (cadr expr))
