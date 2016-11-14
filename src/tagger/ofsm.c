@@ -1705,6 +1705,18 @@ static u8_string find_end(u8_string start,u8_string lim)
   return end;
 }
 
+static fdtype fix_weights(fdtype words)
+{
+  int base=0;
+  FD_DOLIST(word,words) {
+    fdtype distance=FD_VECTOR_REF(word,3);
+    if (FD_FIXNUMP(distance)) {
+      int d=FD_FIX2INT(distance);
+      int w=d-base; base=d;
+      FD_VECTOR_SET(word,3,FD_INT2DTYPE(w));}}
+  return words;
+}
+
 FD_EXPORT
 fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
 {
@@ -1723,7 +1735,7 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
       fdtype root=get_root(pc,word,state->arc,pc->input[state->input].cap);
       fdtype rootstring=word2string(root);
       fdtype tag=FD_VECTOR_REF(arc_names,state->arc);
-      fdtype glom=FD_VOID, glom_root=FD_VOID, word_entry=FD_VOID;
+      fdtype glom=FD_VOID, glom_root=FD_VOID, word_entry=FD_VOID, last_word=FD_VOID;
       fd_parse_state scan=state->previous;
       int glom_caps=capitalizedp(word);
       if (glom_phrases)
@@ -1816,8 +1828,8 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
           sentence=fd_conspair(word_entry,FD_EMPTY_LIST);}
       else sentence=fd_conspair(word_entry,sentence);
       s=state->previous;}}
-  if (FD_EMPTY_LISTP(sentence)) return answer;
-  else return fd_conspair(sentence,answer);
+  if (FD_EMPTY_LISTP(sentence)) return fix_weights(answer);
+  else return fd_conspair(sentence,fix_weights(answer));
 }
 
 
