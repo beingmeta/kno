@@ -800,7 +800,7 @@ FD_EXPORT fdtype fd_make_packet
 FD_EXPORT fdtype fd_bytes2packet
   (struct FD_STRING *ptr,int len,const unsigned char *data)
 {
-  u8_byte *bytes=NULL; int freedata=1;
+  u8_byte *bytes=NULL; int freedata=(data!=NULL);
   if (ptr == NULL) {
     ptr=u8_malloc(sizeof(struct FD_STRING)+len+1);
     bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
@@ -815,7 +815,7 @@ FD_EXPORT fdtype fd_bytes2packet
     else memcpy(bytes,data,len);}
   FD_INIT_CONS(ptr,fd_packet_type);
   ptr->length=len; ptr->bytes=bytes; ptr->freedata=freedata;
-  if (data) u8_free(data);
+  if (freedata) u8_free(data);
   return FDTYPE_CONS(ptr);
 }
 
