@@ -1130,9 +1130,9 @@ static int unparse_tail_call(struct U8_OUTPUT *out,fdtype x)
 static void recycle_tail_call(struct FD_CONS *c)
 {
   struct FD_TAIL_CALL *tc=(struct FD_TAIL_CALL *)c;
-  fdtype *scan=&(tc->head), *limit=scan+tc->n_elts;
-  int mallocd=FD_MALLOCD_CONSP(c);
-  size_t tc_size=sizeof(struct FD_TAIL_CALL)+(sizeof(fdtype)*(tc->n_elts-1));
+  int mallocd=FD_MALLOCD_CONSP(c), n_elts=tc->n_elts;
+  fdtype *scan=&(tc->head), *limit=scan+n_elts;
+  size_t tc_size=sizeof(struct FD_TAIL_CALL)+(sizeof(fdtype)*(n_elts-1));
   if (!(tc->flags&FD_TAIL_CALL_ATOMIC_ARGS)) {
     while (scan<limit) {fd_decref(*scan); scan++;}}
   /* The head is always incref'd */
