@@ -150,7 +150,8 @@ static fdtype compound_procedure_args(fdtype x)
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
     return fd_incref(proc->arglist);}
-  else return fd_type_error("compound procedure","compound_procedure_args",x);
+  else return fd_type_error
+	 ("compound procedure","compound_procedure_args",x);
 }
 
 static fdtype set_compound_procedure_args(fdtype x,fdtype new_arglist)
@@ -161,7 +162,8 @@ static fdtype set_compound_procedure_args(fdtype x,fdtype new_arglist)
     proc->arglist=fd_incref(new_arglist);
     fd_decref(arglist);
     return FD_VOID;}
-  else return fd_type_error("compound procedure","set_compound_procedure_args",x);
+  else return fd_type_error
+	 ("compound procedure","set_compound_procedure_args",x);
 }
 
 static fdtype compound_procedure_env(fdtype x)
@@ -177,7 +179,8 @@ static fdtype compound_procedure_body(fdtype x)
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
     return fd_incref(proc->body);}
-  else return fd_type_error("compound procedure","compound_procedure_body",x);
+  else return fd_type_error
+	 ("compound procedure","compound_procedure_body",x);
 }
 
 static fdtype set_compound_procedure_body(fdtype x,fdtype new_body)
@@ -188,7 +191,8 @@ static fdtype set_compound_procedure_body(fdtype x,fdtype new_body)
     proc->body=fd_incref(new_body);
     fd_decref(body);
     return FD_VOID;}
-  else return fd_type_error("compound procedure","set_compound_procedure_body",x);
+  else return fd_type_error
+	 ("compound procedure","set_compound_procedure_body",x);
 }
 
 /* Macro expand */
