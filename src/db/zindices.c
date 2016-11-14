@@ -268,6 +268,9 @@ static fd_index open_zindex(u8_string fname,int read_only,int consed)
     fd_decref(baseoidsv);
     fd_decref(metadata);}
   fd_init_mutex(&(index->lock));
+
+  if (!(consed)) fd_register_index((fd_index)index);
+
   return (fd_index)index;
 }
 

@@ -1934,6 +1934,12 @@ static void recycle_raw_pool(struct FD_CONS *c)
   fd_decref(p->oidnamefn); fd_decref(p->oidnamefn);
   u8_free(p);
 }
+
+static fdtype copy_raw_pool(fdtype x,int deep)
+{
+  return x;
+}
+
 /* Initialization */
 
 fd_ptr_type fd_pool_type, fd_raw_pool_type;
@@ -2024,6 +2030,9 @@ FD_EXPORT void fd_init_pools_c()
   fd_pool_type=fd_register_immediate_type("pool",check_pool);
   fd_raw_pool_type=fd_register_cons_type("raw pool");
 
+  fd_type_names[fd_pool_type]=_("pool");
+  fd_type_names[fd_raw_pool_type]=_("raw pool");
+
   _fd_oid_info=_more_oid_info;
 
   lock_symbol=fd_intern("LOCK");  
@@ -2042,6 +2051,7 @@ FD_EXPORT void fd_init_pools_c()
   fd_unparsers[fd_pool_type]=unparse_pool;
   fd_unparsers[fd_raw_pool_type]=unparse_raw_pool;
   fd_recyclers[fd_raw_pool_type]=recycle_raw_pool;
+  fd_copiers[fd_raw_pool_type]=copy_raw_pool;
   fd_register_config
     ("ANONYMOUSOK",_("whether value of anonymous OIDs are {} or signal an error"),
      config_get_anonymousok,

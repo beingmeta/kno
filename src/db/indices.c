@@ -1246,6 +1246,15 @@ static void recycle_raw_index(struct FD_CONS *c)
   u8_free(ix);
 }
 
+static fdtype copy_raw_index(fdtype x,int deep)
+{
+  /* Where might this get us into trouble when not really copying the pool? */
+  fd_index ix=(fd_index)x;
+  if (ix->serialno>=0)
+    return fd_index2lisp(ix);
+  else return x;
+}
+
 /* Initialize */
 
 fd_ptr_type fd_index_type, fd_raw_index_type;
@@ -1274,6 +1283,9 @@ FD_EXPORT void fd_init_indices_c()
   fd_index_type=fd_register_immediate_type("index",check_index);
   fd_raw_index_type=fd_register_cons_type("raw index");
 
+  fd_type_names[fd_index_type]=_("index");
+  fd_type_names[fd_raw_index_type]=_("raw index");
+
   {
     struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("INDEX"),NULL,NULL);
     e->parser=index_parsefn;}
@@ -1298,6 +1310,7 @@ FD_EXPORT void fd_init_indices_c()
 
   fd_recyclers[fd_raw_index_type]=recycle_raw_index;
   fd_unparsers[fd_raw_index_type]=unparse_raw_index;
+  fd_copiers[fd_raw_index_type]=copy_raw_index;
 
   set_symbol=fd_make_symbol("SET",3);
   drop_symbol=fd_make_symbol("DROP",4);

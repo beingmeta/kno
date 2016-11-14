@@ -83,6 +83,7 @@ static fd_index open_file_index(u8_string fname,int read_only,int consed)
     fdtype slotids=file_index_fetch((fd_index)index,slotids_symbol);
     if (!(FD_EMPTY_CHOICEP(slotids)))
       index->slotids=fd_simplify_choice(slotids);}
+  if (!(consed)) fd_register_index((fd_index)index);
   return (fd_index)index;
 }
 

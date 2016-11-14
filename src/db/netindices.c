@@ -70,7 +70,8 @@ FD_EXPORT fd_index fd_open_network_index_x
   if (server_supportsp(ix,iserver_drop)) ix->capabilities|=FD_ISERVER_DROP;
   if (server_supportsp(ix,iserver_reset)) ix->capabilities|=FD_ISERVER_RESET;
 
-  if (ix) fd_register_index((fd_index)ix);
+  if ((ix)&&(!(consed))) fd_register_index((fd_index)ix);
+
   return (fd_index) ix;
 }
 
