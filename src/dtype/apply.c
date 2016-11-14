@@ -1072,8 +1072,8 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
     return FD_ERROR_VALUE;}
   else {
     int atomic=1, nd=0;
-    struct FD_TAIL_CALL *tc=
-      (struct FD_TAIL_CALL *)u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
+    struct FD_TAIL_CALL *tc=(struct FD_TAIL_CALL *)
+      u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
     fdtype *write=&(tc->head), *write_limit=write+(n+1), *read=vec;
     FD_INIT_CONS(tc,fd_tail_call_type); tc->n_elts=n+1; tc->flags=0;
     *write++=fd_incref(fcn);
@@ -1131,12 +1131,14 @@ static void recycle_tail_call(struct FD_CONS *c)
 {
   struct FD_TAIL_CALL *tc=(struct FD_TAIL_CALL *)c;
   fdtype *scan=&(tc->head), *limit=scan+tc->n_elts;
+  int mallocd=FD_MALLOCD_CONSP(c);
+  size_t tc_size=sizeof(struct FD_TAIL_CALL)+(sizeof(fdtype)*(tc->n_elts-1));
   if (!(tc->flags&FD_TAIL_CALL_ATOMIC_ARGS)) {
     while (scan<limit) {fd_decref(*scan); scan++;}}
   /* The head is always incref'd */
   else fd_decref(*scan);
-  memset(tc,0,sizeof(struct FD_TAIL_CALL));
-  if (FD_MALLOCD_CONSP(c)) u8_free(c);
+  memset(tc,0,tc_size);
+  if (mallocd) u8_free(tc);
 }
 
 /* Initializations */
