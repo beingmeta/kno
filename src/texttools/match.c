@@ -558,8 +558,9 @@ static fdtype extract_text(u8_string string,u8_byteoff start,fdtype ends)
   fdtype answers=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(each_end,ends)
     if (FD_FIXNUMP(each_end)) {
-      fdtype extraction=fd_conspair(each_end,fd_extract_string
-                                    (NULL,string+start,string+fd_getint(each_end)));
+      fdtype extraction=
+        fd_conspair(each_end,fd_extract_string
+                    (NULL,string+start,string+fd_getint(each_end)));
       FD_ADD_TO_CHOICE(answers,extraction);}
   return answers;
 }
@@ -592,8 +593,8 @@ static fdtype textract
   else if (off > lim) return FD_EMPTY_CHOICE;
   else if (FD_EMPTY_CHOICEP(pat)) return FD_EMPTY_CHOICE;
   else if (FD_STRINGP(pat))
-    if ((FD_STRLEN(pat)) == 0)
-      return fd_conspair(FD_INT(off),fdtype_string(""));
+    if ((FD_STRLEN(pat)) == 0) {
+      return fd_conspair(FD_INT(off),fdtype_string(""));}
     else if (off == lim) return FD_EMPTY_CHOICE;
     else {
       u8_byteoff mlen=
@@ -621,9 +622,11 @@ static fdtype textract
       if (FD_ABORTED(answers)) {
         fd_decref(extractions);
         return answers;}
-      fd_decref(extractions);}
+      else {fd_decref(extractions);}}
     if ((flags&FD_MATCH_BE_GREEDY) &&
         ((FD_CHOICEP(answers)) || (FD_ACHOICEP(answers)))) {
+      /* get_longest_extracts frees (decrefs) answers if it doesn't
+         return them */
       fdtype result=get_longest_extractions(answers);
       return result;}
     else return answers;}
@@ -640,7 +643,8 @@ static fdtype textract
         return fd_conspair(FD_INT(next),fdtype_string(buf));}
       else return FD_EMPTY_CHOICE;}}
   else if (FD_VECTORP(pat)) {
-    fdtype seq_matches=extract_sequence(pat,0,next,env,string,off,lim,flags);
+    fdtype seq_matches=extract_sequence
+      (pat,0,next,env,string,off,lim,flags);
     if (FD_ABORTED(seq_matches)) return seq_matches;
     else {
       fdtype result=lists_to_vectors(seq_matches);
@@ -659,7 +663,6 @@ static fdtype textract
         fdtype matches=scan->matcher(pat,next,env,string,off,lim,flags);
         fdtype answer=((FD_ABORTED(matches))?(matches):
                        (extract_text(string,off,matches)));
-        fd_decref(matches);
         return answer;}
     else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);}
   else if (FD_SYMBOLP(pat)) {
@@ -668,18 +671,14 @@ static fdtype textract
       return fd_err(fd_UnboundIdentifier,"textract",
                     FD_SYMBOL_NAME(pat),pat);
     else {
-      fdtype lengths=
-        get_longest_match(fd_text_domatch(v,next,env,string,off,lim,flags));
+      fdtype lengths=get_longest_match
+        (fd_text_domatch(v,next,env,string,off,lim,flags));
       fdtype answers=FD_EMPTY_CHOICE;
       if (FD_ABORTED(lengths)) return lengths;
       else {
         FD_DO_CHOICES(l,lengths) {
           fdtype extraction=
             fd_conspair(l,fd_substring(string+off,string+fd_getint(l)));
-          if (FD_ABORTED(extraction)) {
-            FD_STOP_DO_CHOICES;
-            fd_decref(answers);
-            return extraction;}
           FD_ADD_TO_CHOICE(answers,extraction);}
         fd_decref(lengths); fd_decref(v);
         return answers;}}}
@@ -734,8 +733,7 @@ static fdtype extract_sequence
             FD_DO_CHOICES(remainder,remainders) {
               fdtype result=
                 fd_conspair(FD_CAR(remainder),
-                            fd_conspair(
-                                        fd_incref(FD_CDR(sub_match)),
+                            fd_conspair(fd_incref(FD_CDR(sub_match)),
                                         fd_incref(FD_CDR(remainder))));
               FD_ADD_TO_CHOICE(results,result);}
             fd_decref(remainders);}}}
@@ -747,7 +745,8 @@ static fdtype lists_to_vectors(fdtype lists)
 {
   fdtype answer=FD_EMPTY_CHOICE;
   FD_DO_CHOICES(list,lists) {
-    fdtype lsize=FD_CAR(list), scan=FD_CDR(list), vec, elt; int i=0, lim=0;
+    int i=0, lim=0;
+    fdtype lsize=FD_CAR(list), scan=FD_CDR(list), vec, elt;
     while (FD_PAIRP(scan)) {lim++; scan=FD_CDR(scan);}
     vec=fd_init_vector(NULL,lim,NULL);
     scan=FD_CDR(list); while (i < lim) {
@@ -825,6 +824,7 @@ static fdtype extract_repeatedly
   if (FD_EMPTY_CHOICEP(top))
     if (zero_ok) return fd_conspair(FD_INT(off),FD_EMPTY_LIST);
     else return FD_EMPTY_CHOICE;
+  else if (FD_ABORTP(top)) return top;
   else {
     FD_DO_CHOICES(each,top)
       if ((FD_PAIRP(each)) && (FD_FIXNUMP(FD_CAR(each))) &&
@@ -833,15 +833,19 @@ static fdtype extract_repeatedly
         fdtype extraction=FD_CDR(each);
         fdtype remainders=
           extract_repeatedly(pat,next,env,string,fd_getint(size),lim,flags,1);
-        if (FD_EMPTY_CHOICEP(remainders)) {
+        if (FD_ABORTP(remainders)) {
+          fd_decref(choices);
+          return remainders;}
+        else if (FD_EMPTY_CHOICEP(remainders)) {
           fdtype last_item=
             fd_conspair(fd_incref(extraction),FD_EMPTY_LIST);
           fdtype with_size=fd_conspair(size,last_item);
           FD_ADD_TO_CHOICE(choices,with_size);}
         else {
           FD_DO_CHOICES(remainder,remainders) {
-            fdtype item=fd_conspair(fd_car(remainder),
-                                    fd_conspair(fd_incref(extraction),(fd_cdr(remainder))));
+            fdtype item=fd_conspair
+              (fd_car(remainder),
+               fd_conspair(fd_incref(extraction),(fd_cdr(remainder))));
             FD_ADD_TO_CHOICE(choices,item);}
           fd_decref(remainders);}
         if ((flags&FD_MATCH_BE_GREEDY)==0) {
@@ -1149,7 +1153,7 @@ static fdtype label_extract
     if (FD_ABORTED(extractions)) return extractions;
     else {
       FD_DO_CHOICES(extraction,extractions) {
-        fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);    
+        fdtype size=FD_CAR(extraction), data=FD_CDR(extraction);
         fdtype xtract, addval; fd_incref(data);
         if (FD_VOIDP(parser))
           xtract=fd_make_list(3,FD_CAR(pat),sym,data);
@@ -1157,8 +1161,8 @@ static fdtype label_extract
           fdtype parser_val=match_eval(parser,env);
           if ((FD_ABORTED(parser_val))||(FD_VOIDP(parser_val))) {
             FD_STOP_DO_CHOICES;
-            fd_decref(answers); fd_decref(extractions);
-            if (FD_VOIDP(parser_val)) 
+            fd_decref(extractions); fd_decref(answers); fd_decref(data);
+            if (FD_VOIDP(parser_val))
               return fd_err(fd_UnboundIdentifier,"label_extract/convert",
                             FD_SYMBOL_NAME(parser),parser);
             else return parser_val;}
