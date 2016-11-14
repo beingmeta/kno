@@ -29,6 +29,7 @@ BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
 DATAINSTALLDIR	= $(DESTDIR)@datadir@/framerd/data
 APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
+PPROF_PATH      = @GOOGLE_PPROF@
 CLEAN		= @CLEAN@
 ECHO		= @ECHO@
 MSG		= @MSG@

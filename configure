@@ -654,6 +654,7 @@ build_os
 build_vendor
 build_cpu
 build
+GOOGLE_PPROF
 LLVM_SYMBOLIZER_PATH
 LLVM_SYMBOLIZER
 CREATEREPO
@@ -806,6 +807,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -966,6 +968,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1218,6 +1221,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1355,7 +1367,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1508,6 +1520,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -3745,6 +3758,46 @@ LLVM_SYMBOLIZER_PATH=$ac_cv_path_LLVM_SYMBOLIZER_PATH
 if test -n "$LLVM_SYMBOLIZER_PATH"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $LLVM_SYMBOLIZER_PATH" >&5
 $as_echo "$LLVM_SYMBOLIZER_PATH" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "google-pprof", so it can be a program name with args.
+set dummy google-pprof; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_GOOGLE_PPROF+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $GOOGLE_PPROF in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_GOOGLE_PPROF="$GOOGLE_PPROF" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_GOOGLE_PPROF="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+GOOGLE_PPROF=$ac_cv_path_GOOGLE_PPROF
+if test -n "$GOOGLE_PPROF"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $GOOGLE_PPROF" >&5
+$as_echo "$GOOGLE_PPROF" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -9855,7 +9908,7 @@ fi
 #  debuglibs="${debuglibs} -ltcmalloc_debug"
   memtest_prefix=builtin_
   heaptest_prefix=builtin_
-  heaptest_env="RUNENV=HEAPCHECK=normal"
+  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
   memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
 elif test $with_tcmalloc = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
@@ -9905,7 +9958,7 @@ fi
 
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
-  heaptest_env="RUNENV=HEAPCHECK=normal"
+  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
   memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
 fi
 
@@ -10040,7 +10093,7 @@ done
 
   memtest_prefix=builtin_
   heaptest_prefix=builtin_
-  heaptest_env="RUNENV=HEAPCHECK=normal"
+  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
   memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
 elif test $with_perftools = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
@@ -10160,7 +10213,7 @@ done
 
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
-  heaptest_env="RUNENV=HEAPCHECK=normal"
+  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
   memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
 fi
 

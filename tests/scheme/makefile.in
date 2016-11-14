@@ -42,6 +42,7 @@ TESTSIZE	= 64
 TESTCONFIG	= 
 RUNTEST		= $(TESTENV) $(RUNENV)$(TESTPROG)
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
+PPROF_PATH      = @GOOGLE_PPROF@
 
 TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdservlet fdcgiexec # fdsh
 

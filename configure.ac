@@ -315,6 +315,7 @@ AC_CHECK_PROGS(APXS,/usr/local/bin/apxs2 /usr/local/bin/apxs /usr/bin/apxs2 /usr
 AC_CHECK_PROG(CREATEREPO,createrepo,,echo No createrepo for )
 AC_CHECK_PROGS(LLVM_SYMBOLIZER,llvm-symbolizer-3.5,llvm-symbolizer-3.4)
 AC_PATH_PROG(LLVM_SYMBOLIZER_PATH,$LLVM_SYMBOLIZER)
+AC_PATH_PROG(GOOGLE_PPROF,google-pprof)
 
 AC_ARG_WITH(mkdir,--with-mkdir command,with_mkdir=$withval,with_mkdir=$MKDIR_DEFAULT)
 MKDIR=$with_mkdir
@@ -1174,13 +1175,13 @@ if test $with_tcmalloc = "yes"; then
 #  debuglibs="${debuglibs} -ltcmalloc_debug"
   memtest_prefix=builtin_
   heaptest_prefix=builtin_
-  heaptest_env="RUNENV=HEAPCHECK=normal" 
+  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
   memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
 elif test $with_tcmalloc = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
-  heaptest_env="RUNENV=HEAPCHECK=normal" 
+  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
   memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
 fi
 
@@ -1197,7 +1198,7 @@ if test $with_perftools = "yes"; then
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
   memtest_prefix=builtin_
   heaptest_prefix=builtin_
-  heaptest_env="RUNENV=HEAPCHECK=normal" 
+  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
   memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
 elif test $with_perftools = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
@@ -1206,7 +1207,7 @@ elif test $with_perftools = "debug"; then
   AC_CHECK_HEADERS(gperftools/heap-checker.h)
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
-  heaptest_env="RUNENV=HEAPCHECK=normal" 
+  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
   memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
 fi
 
