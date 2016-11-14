@@ -882,6 +882,7 @@ static fdtype parse_text_packet(U8_INPUT *in)
             u8_putc(&tmpout,c2);
             u8_seterr(_("Bad hex escape"),"parse_text_packet",
                       u8_strdup(tmpout.u8_outbuf));
+            u8_free(data);
             return FD_PARSE_ERROR;}}
         case '0': case '1': case '2': case '3': {
           int i=1; while ((i<3)&&((c=u8_getc(in))>=0)&&(odigitp(c))) {
@@ -909,8 +910,10 @@ static fdtype parse_text_packet(U8_INPUT *in)
           data[len++]=c;}}
     else data[len++]=c;
     c=u8_getc(in);}
-  if (c=='"')
-    return fd_bytes2packet(NULL,len,data);
+  if (c=='"') {
+    fdtype packet=fd_bytes2packet(NULL,len,data);
+    u8_free(data);
+    return packet;}
   else {
     u8_free(data);
     if (c<0) return FD_EOX;
@@ -937,13 +940,16 @@ static fdtype parse_hex_packet(U8_INPUT *in)
     fdtype result=fd_bytes2packet(NULL,len,data);
     u8_free(data);
     return result;}
-  else if (c<0) return FD_EOX;
+  else if (c<0) {
+    u8_free(data);
+    return FD_EOX;}
   else {
     u8_byte buf[16]; struct U8_OUTPUT tmpout;
     U8_INIT_FIXED_OUTPUT(&tmpout,16,buf);
     u8_putc(&tmpout,c);
     u8_seterr(fd_InvalidHexCharacter,"parse_hex_packet",
               u8_strdup(tmpout.u8_outbuf));
+    u8_free(data);
     return FD_PARSE_ERROR;}
 }
 
