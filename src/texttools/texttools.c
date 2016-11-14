@@ -848,7 +848,8 @@ static fdtype textract(fdtype pattern,fdtype string,
   else {
     fdtype extract_results=fd_text_extract
       (pattern,NULL,FD_STRDATA(string),off,lim,0);
-    if (FD_ABORTP(extract_results)) return extract_results;
+    if (FD_ABORTP(extract_results))
+      return extract_results;
     else {
       FD_DO_CHOICES(extraction,extract_results) {
         if (FD_ABORTP(extraction)) {
@@ -1057,7 +1058,8 @@ static fdtype textrewrite(fdtype pattern,fdtype string,
   else {
     fdtype extract_results=fd_text_extract
       (pattern,NULL,FD_STRDATA(string),off,lim,0);
-    if (FD_ABORTP(extract_results)) return extract_results;
+    if (FD_ABORTP(extract_results)) 
+      return extract_results;
     else {
       fdtype subst_results=FD_EMPTY_CHOICE;
       FD_DO_CHOICES(extraction,extract_results)
@@ -1556,7 +1558,9 @@ static fdtype text2frames(fdtype pattern,fdtype string,
         (pattern,NULL,FD_STRDATA(string),start,lim,0);
       fdtype longest=FD_EMPTY_CHOICE;
       int max=-1;
-      if (FD_ABORTP(extractions)) return extractions;
+      if (FD_ABORTP(extractions)) {
+        fd_decref(results);
+        return extractions;}
       else if ((FD_CHOICEP(extractions)) || (FD_ACHOICEP(extractions))) {
         FD_DO_CHOICES(extraction,extractions) {
           int xlen=fd_getint(FD_CAR(extraction));
