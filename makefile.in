@@ -162,7 +162,7 @@ SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
 	       exe/scripts/ovmerge \
 	       exe/scripts/fdpkg
 
-CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@data_dir@ \
+CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_dir@ \
 	$(DESTDIR)@shared_module_dir@ 	$(DESTDIR)@shared_safe_module_dir@ \
 	$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
@@ -547,12 +547,12 @@ uninstall-core:
 	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.so" $(LIBBASE)
 	rm -rf $(DESTDIR)$(LIBINSTALLDIR)/framerd
 uninstall-all: uninstall-core
-	rm -rf $(DESTDIR)@data_dir@ $(DESTDIR)@config_dir@ \
+	rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
 		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
 		$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@
 uninstall: uninstall-core
-	@if (test -d $(DESTDIR)@data_dir@); then \
-	  $(MSG) $(DESTDIR)@data_dir@ "still exists"; fi
+	@if (test -d $(DESTDIR)@share_dir@); then \
+	  $(MSG) $(DESTDIR)@share_dir@ "still exists"; fi
 	@if (test -d $(DESTDIR)@config_dir@); then \
 	  $(MSG) $(DESTDIR)@config_dir@ "still exists"; fi
 	@if (test -d $(DESTDIR)@local_config@); then \
@@ -1200,10 +1200,11 @@ confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 		$(SYSINSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
-$(DESTDIR)@config_dir@ $(DESTDIR)@data_dir@:
+$(DESTDIR)@config_dir@ $(DESTDIR)@share_dir@ $(DESTDIR)@data_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-$(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets $(DESTDIR)@config_dir@/config: \
-		$(DESTDIR)@config_dir@
+$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+$(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@config_dir@
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
@@ -1270,13 +1271,13 @@ install-beingmeta-modules: $(DESTDIR)@builtin_module_dir@
 	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/beingmeta/$$x/*.* $(DESTDIR)@builtin_module_dir@/$$x; \
 	 done
 
-install-support: $(DESTDIR)@data_dir@
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/etc/*.el $(DESTDIR)@data_dir@
+install-support: $(DESTDIR)@share_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/etc/*.el $(DESTDIR)@share_dir@
 
 link-modules: $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@ \
-		$(DESTDIR)@data_dir@
+		$(DESTDIR)@share_dir@
 	@$(MSG) Installing symbolic links for Scheme modules
-	@@SUDO@ln -sf $(BUILD)/etc/*.el @data_dir@
+	@@SUDO@ln -sf $(BUILD)/etc/*.el @share_dir@
 	@@SUDO@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@local_module_dir@
 	@for x in $(MODULE_DIRS); do \
 	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@local_module_dir@; \
@@ -1379,9 +1380,9 @@ setup-allboot: setup-sysv setup-upstart setup-systemd
 setup-unix: @BOOTSETUP@ setup-logrotate
 setup-linux: setup-unix
 
-setup-osx: @data_dir@ startupdirs statedirs logdirs 
+setup-osx: @share_dir@ startupdirs statedirs logdirs 
 	@$(MSG) Setting up OSX system configuration
-	@$(SUDO) etc/setup-osx "@data_dir@" \
+	@$(SUDO) etc/setup-osx "@share_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \
 		"${INSTALL} @install_exe_opts@" \
