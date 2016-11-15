@@ -771,22 +771,18 @@ shared_config=$with_shared_config
 
 AC_DEFINE_UNQUOTED(FD_CONFIG_FILE_PATH,"$with_local_config/%:$with_shared_config/%")
 
-AC_ARG_WITH(unpackage_dir,--with-unpackage-dir location,,with_unpackage_dir=$with_share_dir/packages)
+AC_ARG_WITH(unpackage_dir,--with-unpackage-dir location,,with_unpackage_dir=$share_dir/packages)
 unpackage_dir=$with_unpackage_dir
 
-AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,,with_installed_module_dir=$with_share_dir/modules/installed)
+AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,,with_installed_module_dir=$share_dir/modules/installed)
 installed_module_dir=$with_installed_module_dir
 installed_safe_module_dir=$with_installed_module_dir/safe
 
-AC_ARG_WITH(shared_modules,--with-shared-module-dir location,,with_shared_modules=$with_share_dir/modules/shared)
-shared_module_dir=$with_shared_modules
-shared_safe_module_dir=$with_shared_modules/safe
-
-AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$with_share_dir/modules/local)
+AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$share_dir/modules/local)
 local_module_dir=$with_local_modules
 local_safe_module_dir=$with_local_modules/safe
 
-AC_ARG_WITH(builtin_module_dir,--with-builtin-module-dir location,,with_builtin_module_dir=$with_share_dir/modules/builtin)
+AC_ARG_WITH(builtin_module_dir,--with-builtin-module-dir location,,with_builtin_module_dir=$share_dir/modules/builtin)
 builtin_module_dir=$with_builtin_module_dir
 builtin_safe_module_dir=$builtin_module_dir/safe
 

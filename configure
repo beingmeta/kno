@@ -807,6 +807,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -867,7 +868,6 @@ with_local_config
 with_shared_config
 with_unpackage_dir
 with_installed_module_dir
-with_shared_modules
 with_local_modules
 with_builtin_module_dir
 with_module_path
@@ -968,6 +968,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1220,6 +1221,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1357,7 +1367,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1510,6 +1520,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1600,7 +1611,6 @@ Optional Packages:
 --with-shared-config location
 --with-unpackage-dir location
 --with-installed-module-dir location
---with-shared-module-dir location
 --with-local-modules location
 --with-builtin-module-dir location
 --with-module-path location
@@ -7158,7 +7168,7 @@ _ACEOF
 if test "${with_unpackage_dir+set}" = set; then :
   withval=$with_unpackage_dir;
 else
-  with_unpackage_dir=$with_share_dir/packages
+  with_unpackage_dir=$share_dir/packages
 fi
 
 unpackage_dir=$with_unpackage_dir
@@ -7168,29 +7178,18 @@ unpackage_dir=$with_unpackage_dir
 if test "${with_installed_module_dir+set}" = set; then :
   withval=$with_installed_module_dir;
 else
-  with_installed_module_dir=$with_share_dir/modules/installed
+  with_installed_module_dir=$share_dir/modules/installed
 fi
 
 installed_module_dir=$with_installed_module_dir
 installed_safe_module_dir=$with_installed_module_dir/safe
 
 
-# Check whether --with-shared_modules was given.
-if test "${with_shared_modules+set}" = set; then :
-  withval=$with_shared_modules;
-else
-  with_shared_modules=$with_share_dir/modules/shared
-fi
-
-shared_module_dir=$with_shared_modules
-shared_safe_module_dir=$with_shared_modules/safe
-
-
 # Check whether --with-local_modules was given.
 if test "${with_local_modules+set}" = set; then :
   withval=$with_local_modules;
 else
-  with_local_modules=$with_share_dir/modules/local
+  with_local_modules=$share_dir/modules/local
 fi
 
 local_module_dir=$with_local_modules
@@ -7201,7 +7200,7 @@ local_safe_module_dir=$with_local_modules/safe
 if test "${with_builtin_module_dir+set}" = set; then :
   withval=$with_builtin_module_dir;
 else
-  with_builtin_module_dir=$with_share_dir/modules/builtin
+  with_builtin_module_dir=$share_dir/modules/builtin
 fi
 
 builtin_module_dir=$with_builtin_module_dir
