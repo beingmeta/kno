@@ -28,6 +28,7 @@
 #include <libu8/libu8io.h>
 #include <libu8/u8timefns.h>
 #include <libu8/u8ctype.h>
+#include <libu8/u8stdio.h>
 
 #include <ctype.h>
 
@@ -50,7 +51,7 @@ fd_ptr_type fd_tagger_type;
 
 /* Miscellaneous defines */
 
-#define DEBUGGING 0
+#define DEBUGGING 1
 #define TRACING 1
 
 #ifndef PATH_MAX
@@ -59,73 +60,6 @@ fd_ptr_type fd_tagger_type;
 
 #define next_input(pc,i) ((pc->input)[i].next)
 #define prev_input(pc,i) ((pc->input)[i].previous)
-
-/* These were once useful? */
-#if 0
-static int hashset_strget(fd_hashset hs,u8_string data,int i)
-{
-  struct FD_STRING stringdata;
-  FD_INIT_STATIC_CONS(&stringdata,fd_string_type);
-  stringdata.bytes=data; stringdata.length=i;
-  return fd_hashset_get(hs,(fdtype)(&stringdata));
-}
-static u8_string utf8_next(u8_string s)
-{
-  if (*s < 0x80) return s+1;
-  else {
-    u8_sgetc(&s); return s;}
-}
-static int utf8_point(u8_string s)
-{
-  if (*s < 0x80) return *s;
-  else return u8_sgetc(&s);
-}
-static int textgetc(u8_string *scanner)
-{
-  int c; while ((c=u8_sgetc(scanner))>=0)
-    if (c=='&')
-      if (strncmp(*scanner,"nbsp;",5)==0) {
-        *scanner=*scanner+5;
-        return ' ';}
-      else {
-        u8_byte *end=NULL;
-        int code=u8_parse_entity(*scanner,&end);
-        if (code<=0)
-          return '&';
-        else {
-          *scanner=end;
-          return code;}}
-    else if (c=='\r') {
-      /* Convert CRLFs */
-      u8_string scan=*scanner;
-      int nextc=u8_sgetc(&scan);
-      if (nextc=='\n') {
-        *scanner=scan;
-        return '\n';}
-      else return '\r';}
-    else if (c==0x2019) /* Convert weird apostrophes */
-      return '\'';
-    else return c;
-}
-/* Takes the word which strings string and checks if it is in
-   the set words. */
-static int check_word(char *string,fd_hashset words)
-{
-  char buf[32]; int i=0; char *scan=string;
-  while ((*scan) && (!(isspace(*scan))) && (i < 32))
-    buf[i++]=tolower(*scan++);
-  if (i < 32) {
-    buf[i]='\0';
-    if (hashset_strget(words,buf,i)) return 1;
-    else return 0;}
-  else return 0;
-}
-static int atspace(u8_string s)
-{
-  int c=u8_sgetc(&s);
-  return u8_isspace(c);
-}
-#endif
 
 #define isquote(c) \
    ((c == '"') || (c == '\'') || (c == '`'))
@@ -416,7 +350,7 @@ static void grow_inputs(fd_parse_context pc)
 static void init_ofsm_data(struct FD_GRAMMAR *g,fdtype vector)
 {
   fdtype nnodes; unsigned int i=0;
-  g->arc_names=fd_incref(FD_VECTOR_REF(vector,0));
+  fdtype arcnames=g->arc_names=fd_incref(FD_VECTOR_REF(vector,0));
   g->n_arcs=FD_VECTOR_LENGTH(g->arc_names);
   nnodes=fd_incref(FD_VECTOR_REF(vector,1));
   g->n_nodes=fd_getint(nnodes);
@@ -427,21 +361,20 @@ static void init_ofsm_data(struct FD_GRAMMAR *g,fdtype vector)
     fdtype possessive_symbol=fd_intern("POSSESSIVE");
     fdtype quote_mark_symbol=fd_intern("QUOTE-MARK");
     fdtype noise_symbol=fd_intern("NOISE");
-    fdtype arcs=g->arc_names;
     int j=0, lim=g->n_arcs;
     while (j<lim)
-      if (FD_EQ(FD_VECTOR_REF(arcs,j),anything_symbol))
+      if (FD_EQ(FD_VECTOR_REF(arcnames,j),anything_symbol))
         g->anything_tag=j++;
-      else if (FD_EQ(FD_VECTOR_REF(arcs,j),punctuation_symbol))
+      else if (FD_EQ(FD_VECTOR_REF(arcnames,j),punctuation_symbol))
         g->punctuation_tag=j++;
-      else if (FD_EQ(FD_VECTOR_REF(arcs,j),possessive_symbol))
+      else if (FD_EQ(FD_VECTOR_REF(arcnames,j),possessive_symbol))
         g->possessive_tag=j++;
-      else if (FD_EQ(FD_VECTOR_REF(arcs,j),sentence_end_symbol))
+      else if (FD_EQ(FD_VECTOR_REF(arcnames,j),sentence_end_symbol))
         g->sentence_end_tag=j++;
     /* These should really be on the grammar as a noise[] vector. */
-      else if (FD_EQ(FD_VECTOR_REF(arcs,j),quote_mark_symbol))
+      else if (FD_EQ(FD_VECTOR_REF(arcnames,j),quote_mark_symbol))
         quote_mark_tag=j++;
-      else if (FD_EQ(FD_VECTOR_REF(arcs,j),noise_symbol))
+      else if (FD_EQ(FD_VECTOR_REF(arcnames,j),noise_symbol))
         noise_tag=j++;
       else j++;}
   while (i < g->n_nodes) {
@@ -450,21 +383,39 @@ static void init_ofsm_data(struct FD_GRAMMAR *g,fdtype vector)
     g->nodes[i].index=i;
     /* ASSERT(i==fd_getint(FD_VECTOR_REF(spec,1))); */
     g->nodes[i].terminal=FD_VECTOR_REF(spec,2);
+#if DEBUGGING
+    u8_fprintf(stderr,"Read %q (#%d) terminal=%q\n",
+               g->nodes[i].name,g->nodes[i].index,
+               g->nodes[i].terminal);
+#endif
     j=0; while (j < g->n_arcs) {
       fdtype arcs=FD_VECTOR_REF(spec,3+j);
       g->nodes[i].arcs[j].n_entries=0;
       if (FD_EMPTY_LISTP(arcs)) j++;
       else {
         int size=fd_getint(FD_CAR(arcs)); fdtype ptr=FD_CDR(arcs);
+#if DEBUGGING
+        u8_fprintf(stderr,"  on %q, %d expansions:\n",
+                   FD_VECTOR_REF(arcnames,j),size);
+#endif
         g->nodes[i].arcs[j].n_entries=size;
         if (size)
           g->nodes[i].arcs[j].entries=calloc(size,sizeof(struct FD_OFSM_ARC));
         else g->nodes[i].arcs[j].entries=NULL;
         {int k=0; while (k < size) {
-          fdtype head=FD_CAR(ptr); ptr=FD_CDR(ptr);
-          g->nodes[i].arcs[j].entries[k].measure=fd_getint(FD_CAR(head));
-          g->nodes[i].arcs[j].entries[k].target=
-            &(g->nodes[fd_getint(FD_CDR(head))]); k++;}}
+            fdtype head=FD_CAR(ptr); ptr=FD_CDR(ptr);
+            int target=fd_getint(FD_CDR(head));
+            int measure=fd_getint(FD_CAR(head));
+            struct FD_OFSM_NODE *node=&(g->nodes[target]);
+            g->nodes[i].arcs[j].entries[k].measure=measure;
+            g->nodes[i].arcs[j].entries[k].target=&(g->nodes[target]); 
+#if DEBUGGING
+            if (FD_NULLP(node->name))
+              u8_fprintf(stderr,"     to #%d, measure=%d\n",target,measure);
+            else u8_fprintf(stderr,"     to %q (#%d), measure=%d\n",
+                            node->name,target,measure);
+#endif
+            k++;}}
         j++;}}
       i++;}
 }
@@ -1352,12 +1303,25 @@ static void add_punct(fd_parse_context pc,u8_string spelling,
     Returns: nothing
   Prints out a representation of the transition into the state.
 */
-static void print_state(fd_parse_context pc,char *op,fd_parse_state sr,FILE *f)
+static void print_state(fd_parse_context pc,char *op,fd_parse_state sr,
+                        int distance,FILE *f)
 {
   struct FD_PARSER_STATE *s=&(pc->states[sr]);
-  u8_message("%q ==> \n%s d=%d i=%d(%q) t=%q n=%q\n",
+  int prev=s->previous;
+  if (prev>0) {
+    struct FD_PARSER_STATE *p=&(pc->states[prev]);
+    if ((p)&&(p->node)) {
+      u8_message("%q %q ==> \n%s d=%d/%d i=%d(%q) e=%d t=%q n=%q\n",
+                 FD_VECTOR_REF(pc->grammar->arc_names,s->arc),
+                 p->node->name,op,s->distance,distance,s->input,s->word,
+                 s->node->arcs[s->arc].n_entries,
+                 s->node->terminal,
+                 s->node->name);
+      return;}}
+  u8_message("%q ==> \n%s d=%d i=%d(%q) e=%d t=%q n=%q\n",
              FD_VECTOR_REF(pc->grammar->arc_names,s->arc),
-             op,s->distance,s->input,s->word,
+             op,s->distance,distance,s->input,s->word,
+             s->node->arcs[s->arc].n_entries,
              s->node->terminal,
              s->node->name);
 }
@@ -1370,26 +1334,40 @@ static void print_state(fd_parse_context pc,char *op,fd_parse_state sr,FILE *f)
 */
 static MAYBE_UNUSED void check_queue_integrity(fd_parse_context pc)
 {
-  return;
-#if 0
-  struct FD_PARSER_STATE *s; unsigned int i=0; s=pc->queue;
-  while ((i < pc->n_states*2) && (s)) {i++; s=s->qnext;};
-  if (s)
-    printf("Circularity\n");
-#endif
+  fd_parse_state sref=pc->queue;
+  struct FD_PARSER_STATE *states=pc->states;
+  struct FD_PARSER_STATE *s=(sref>=0)?&(states[sref]):
+    (struct FD_PARSER_STATE *)NULL; 
+  unsigned int i=0;
+  while ((i < pc->n_states*2) && (s)) {
+    fd_parse_state n=s->qnext;
+    if (n>=0) s=&states[n]; else s=NULL;
+    i++;;}
+  if (s) {
+    u8_log(LOGCRIT,"QueueIntegrity","Circularity in queue!");
+    return;}
+  sref=pc->queue; s=(sref>=0)?&states[sref]:(NULL); 
+  while (s) {
+    fd_parse_state nref=s->qnext;
+    struct FD_PARSER_STATE *n=(nref<0)?
+      ((struct FD_PARSER_STATE *)NULL):
+      &(states[nref]);
+    if (n==NULL) break;
+    if (s->distance>n->distance) {
+      u8_log(LOGCRIT,"QueueIntegrity","Queue integrity failure:");
+      print_state(pc,"Before",s->self,s->distance,stdout);
+      print_state(pc,"After",n->self,s->distance,stdout);}
+    s=n;}
 }
 
 /* queue_push: (static)
     Arguments: a state
     Returns: nothing
-  Adds the state to the current queue.
+  Adds the state to the current queue as ordered by distance.
 */
 static void queue_push(fd_parse_context pc,fd_parse_state new)
 {
-#if TRACING
-  if (tracing_tagger) print_state(pc,"Pushing",new,stderr);
-#endif
-  if (pc->queue == -1) pc->queue=new;
+ if (pc->queue == -1) pc->queue=new;
   else {
     fd_parse_state *last=&(pc->queue), next=pc->queue, prev=-1;
     struct FD_PARSER_STATE *elt=&((pc->states)[next]), *s=&((pc->states)[new]);
@@ -1413,10 +1391,16 @@ static void queue_push(fd_parse_context pc,fd_parse_state new)
 
 static void queue_reorder(fd_parse_context pc,fd_parse_state changed)
 {
-  if (pc->queue == changed)  return;
+  if (pc->queue == changed) return;
   else if (changed < 0) return; /* Should never be reached */
   else {
     struct FD_PARSER_STATE *s=&(pc->states[changed]);
+#if TRACING
+    if (tracing_tagger)
+      print_state(pc,"Reordering",changed,s->distance,stderr);
+#endif
+    /* Unhook the state from it's current location 
+       before pushing it back onto the queue */
     (pc->states[s->qprev]).qnext=s->qnext;
     if (s->qnext >= 0)
       (pc->states[s->qnext]).qprev=s->qprev;}
@@ -1454,7 +1438,17 @@ static void add_state
     if (distance < known->distance) {
       known->previous=origin; known->arc=arc;
       known->distance=distance; known->word=word;
-      queue_reorder(pc,kref);}}
+#if TRACING
+      if (tracing_tagger) print_state(pc,"Reordering",kref,distance,stderr);
+#endif
+      queue_reorder(pc,kref);}
+    else {
+#if TRACING
+      if (tracing_tagger)
+        print_state(pc,"Redundant",kref,distance,stderr);
+#endif
+    }
+  }
 }
 
 static int quote_stringp(u8_string s)
@@ -1536,7 +1530,7 @@ static void expand_state(fd_parse_context pc,fd_parse_state sr)
   struct FD_OFSM_NODE *n=s->node;
   unsigned int in=s->input, dist=s->distance;
 #if TRACING
-  if (tracing_tagger) print_state(pc,"Expanding",sr,stderr);
+  if (tracing_tagger) print_state(pc,"Expanding",sr,s->distance,stderr);
 #endif
   if (in < pc->n_inputs) {
     expand_state_on_word(pc,sr,((struct FD_WORD *)&(pc->input[in])));
@@ -2380,6 +2374,7 @@ struct FD_GRAMMAR *fd_open_grammar(u8_string spec)
 {
   fdtype nouns, verbs, names, heads, mods, arc_names;
   struct FD_GRAMMAR *g=u8_alloc(struct FD_GRAMMAR);
+  memset(g,0,sizeof(struct FD_GRAMMAR));
   g->id=u8_strdup(spec);
   g->lexicon=openindexsource(lexdata_source,"lexicon");
   if (g->lexicon==NULL)
