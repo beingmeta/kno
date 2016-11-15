@@ -1188,9 +1188,10 @@ workdirs: $(DESTDIR)@framerd_rundir@ $(DESTDIR)@framerd_logdir@ \
 	$(DESTDIR)@bugjar@
 
 confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
-	  $(DESTDIR)@shared_module_dir@ $(DESTDIR)@shared_safe_module_dir@ \
+	  $(DESTDIR)@installed_module_dir@ $(DESTDIR)@installed_safe_module_dir@ \
 	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@ \
 	  $(DESTDIR)@unpackage_dir@ \
+	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
 	  $(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/daemons \
 	  $(DESTDIR)@config_dir@/servlets \
 	  $(DESTDIR)@config_dir@/config

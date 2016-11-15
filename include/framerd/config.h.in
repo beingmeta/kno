@@ -302,6 +302,9 @@
 #undef HAVE_LIBEXIF_EXIF_DATA_H
 
 /* The root data directory */
+#undef FD_SHARE_DIR
+
+/* The root data directory */
 #undef FD_DATA_DIR
 
 /* The root state directory */

@@ -195,7 +195,7 @@ AC_SUBST(xstatic_scheme_libs)
 AC_SUBST(xdynamic_scheme_libs)
 AC_SUBST(scheme_builtins_init)
 AC_SUBST(systemd_loc)
-AC_SUBST(data_dir)
+AC_SUBST(share_dir)
 AC_SUBST(unpackage_dir)
 AC_SUBST(builtin_module_dir)
 AC_SUBST(builtin_safe_module_dir)
@@ -747,7 +747,11 @@ AC_ARG_WITH(extlib,
   fi
 ])
 
-AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=$prefix/share/framerd)
+AC_ARG_WITH(share_dir,--with-share-dir location,,with_share_dir=$prefix/share/framerd)
+AC_DEFINE_UNQUOTED(FD_SHARE_DIR,"$with_share_dir")
+share_dir=$with_share_dir
+
+AC_ARG_WITH(data_dir,--with-data-dir location,,with_share_dir=$share_dir/data)
 AC_DEFINE_UNQUOTED(FD_DATA_DIR,"$with_data_dir")
 data_dir=$with_data_dir
 
@@ -762,35 +766,32 @@ config_dir=$with_config_dir
 
 AC_ARG_WITH(local_config,--with-local-config location,,with_local_config=$config_dir/config)
 local_config=$with_local_config
-AC_ARG_WITH(shared_config,--with-shared-config location,,with_shared_config=$data_dir/config)
+AC_ARG_WITH(shared_config,--with-shared-config location,,with_shared_config=$share_dir/config)
 shared_config=$with_shared_config
 
 AC_DEFINE_UNQUOTED(FD_CONFIG_FILE_PATH,"$with_local_config/%:$with_shared_config/%")
 
-AC_ARG_WITH(unpackage_dir,--with-unpackage-dir location,,with_unpackage_dir=$with_data_dir/packages)
+AC_ARG_WITH(unpackage_dir,--with-unpackage-dir location,,with_unpackage_dir=$with_share_dir/packages)
 unpackage_dir=$with_unpackage_dir
 
-AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,,with_installed_module_dir=$with_data_dir/modules/installed)
+AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,,with_installed_module_dir=$with_share_dir/modules/installed)
 installed_module_dir=$with_installed_module_dir
 installed_safe_module_dir=$with_installed_module_dir/safe
 
-AC_ARG_WITH(shared_modules,--with-shared-module-dir location,,with_shared_modules=$with_data_dir/modules/shared)
+AC_ARG_WITH(shared_modules,--with-shared-module-dir location,,with_shared_modules=$with_share_dir/modules/shared)
 shared_module_dir=$with_shared_modules
 shared_safe_module_dir=$with_shared_modules/safe
 
-AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$with_data_dir/modules/local)
+AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$with_share_dir/modules/local)
 local_module_dir=$with_local_modules
 local_safe_module_dir=$with_local_modules/safe
 
-AC_ARG_WITH(builtin_module_dir,--with-builtin-module-dir location,,with_builtin_module_dir=$with_data_dir/modules/builtin)
+AC_ARG_WITH(builtin_module_dir,--with-builtin-module-dir location,,with_builtin_module_dir=$with_share_dir/modules/builtin)
 builtin_module_dir=$with_builtin_module_dir
 builtin_safe_module_dir=$builtin_module_dir/safe
 
 builtin_module_path=$builtin_module_dir/%/module.scm:$builtin_module_dir/%.scm
 builtin_safe_module_path=$builtin_module_dir/safe/%/module.scm:$builtin_module_dir/safe/%.scm
-
-shared_module_path=$shared_module_dir/%/module.scm:$shared_module_dir/%.scm
-shared_safe_module_path=$shared_safe_module_dir/%/module.scm:$shared_safe_module_dir/%.scm
 
 installed_module_path=$installed_module_dir/%/module.scm:$installed_module_dir/%.scm
 installed_safe_module_path=$installed_safe_module_dir/%/module.scm:$installed_safe_module_dir/%.scm
@@ -798,8 +799,8 @@ installed_safe_module_path=$installed_safe_module_dir/%/module.scm:$installed_sa
 local_module_path=$local_module_dir/%/module.scm:$local_module_dir/%.scm
 local_safe_module_path=$local_safe_module_dir/%/module.scm:$local_safe_module_dir/%.scm
 
-default_module_path=$local_module_path:$shared_module_path:$installed_module_path:$builtin_module_path
-default_safe_module_path=$local_safe_module_path:$shared_safe_module_path:$installed_safe_module_path:$builtin_safe_module_path
+default_module_path=$local_module_path:$installed_module_path:$builtin_module_path
+default_safe_module_path=$local_safe_module_path:$installed_safe_module_path:$builtin_safe_module_path
 
 AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
 AC_ARG_WITH(safe_module_path,--with-safe-module-path location,,with_safe_module_path=$default_safe_module_path)

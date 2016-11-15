@@ -1,6 +1,7 @@
 usr/share
 usr/share/framerd
 usr/share/framerd/data
+usr/share/framerd/config
 usr/share/framerd/modules/builtin
 usr/share/framerd/modules/builtin/brico
 usr/share/framerd/modules/builtin/bugjar
@@ -22,6 +23,7 @@ usr/share/framerd/modules/installed
 usr/share/framerd/modules/installed/safe
 usr/share/framerd/modules/local
 usr/share/framerd/modules/local/safe
+usr/share/framerd/packages
 etc
 etc/framerd
 etc/framerd/config
