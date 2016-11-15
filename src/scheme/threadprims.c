@@ -26,6 +26,7 @@
 
 #include <libu8/u8timefns.h>
 #include <libu8/u8printf.h>
+#include <libu8/u8logging.h>
 
 #include <math.h>
 #include <pthread.h>
@@ -35,13 +36,14 @@ static u8_condition ThreadReturnError=_("Thread returned with error");
 static u8_condition ThreadExit=_("Thread exited");
 static u8_condition ThreadBacktrace=_("ThreadBacktrace");
 
-static int thread_loglevel=0;
+static int thread_loglevel=LOGNOTICE;
+static int thread_trace_exit=1;
 
 /* Thread functions */
 
 #if FD_THREADS_ENABLED
 
-int fd_threaderror_backtrace=0;
+int fd_thread_backtrace=0;
 
 fd_ptr_type fd_thread_type;
 fd_ptr_type fd_condvar_type;
@@ -267,12 +269,17 @@ static void *thread_call(void *data)
                      tstruct->applydata.n_args,
                      tstruct->applydata.args);
   result=fd_finish_call(result);
-  if (thread_loglevel>=0) 
-    u8_log(thread_loglevel,ThreadExit,
-           "Thread exited (errno=%d) with result %q\n  from %q",
-           errno,result,
-           ((tstruct->flags&FD_EVAL_THREAD)?(tstruct->evaldata.expr):
-            tstruct->applydata.fn));
+  if (thread_trace_exit) {
+    if (errno)
+      u8_log(thread_loglevel,ThreadExit,
+             "Thread exited (errno=%d) with result %q\n  from %q",
+             errno,result,
+             ((tstruct->flags&FD_EVAL_THREAD)?(tstruct->evaldata.expr):
+              tstruct->applydata.fn));
+    else u8_log(thread_loglevel,ThreadExit,
+                "Thread exited with result %q\n  from %q",result,
+                ((tstruct->flags&FD_EVAL_THREAD)?(tstruct->evaldata.expr):
+                 tstruct->applydata.fn));}
   u8_threadexit();
   if (FD_ABORTP(result)) {
     u8_exception ex=u8_erreify();
@@ -283,7 +290,7 @@ static void *thread_call(void *data)
     else u8_log(LOG_WARN,ThreadReturnError,"%q ==> %s",
                 tstruct->applydata.fn,errstring);
     u8_free(errstring);
-    if (fd_threaderror_backtrace) {
+    if (fd_thread_backtrace) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,16384);
       fd_summarize_backtrace(&out,ex);
       u8_log(LOG_WARN,ThreadBacktrace,"%s",out.u8_outbuf);
@@ -491,14 +498,18 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1x("STACK-LIMIT!",set_stack_limit_prim,1,
                                             fd_fixnum_type,FD_VOID));
 
-  fd_register_config("DUMPTHREADSTACK",
+  fd_register_config("THREAD:BACKTRACE",
                      "Whether errors in threads print out full backtraces",
                      fd_boolconfig_get,fd_boolconfig_set,
-                     &fd_threaderror_backtrace);
-  fd_register_config("THREADLOGLEVEL",
+                     &fd_thread_backtrace);
+  fd_register_config("THREAD:LOGLEVEL",
                      "The log level to use for thread-related events",
                      fd_intconfig_get,fd_loglevelconfig_set,
                      &thread_loglevel);
+  fd_register_config("THREAD:TRACEEXIT",
+                     "The log level to use for thread-related events",
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &thread_trace_exit);
 
   u8_register_source_file(_FILEINFO);
 }
