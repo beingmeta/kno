@@ -3,6 +3,9 @@
 (load-component "chopper.scm")
 (load-component "chunker.scm")
 
+(use-module '{logger logctl})
+(define-init %loglevel %notice%)
+
 (define english-verb-root (get (get-module 'morph/en) 'verb-root))
 (define english-noun-root (get (get-module 'morph/en) 'noun-root))
 (define basic-verb-roots (get (get-module 'morph/en) 'irregular-verbs))
@@ -1204,25 +1207,26 @@
   (make-hash-index filename size)
   (open-index filename))
 
-(define (write-lexdata directory (with-lexicon #t))
+(define (write-lexdata directory (with-lexicon #f))
   (unless with-lexicon
-    (unless (and (file-exists? (append directory "/lexicon"))
+    (unless (and (file-exists? (mkpath directory "lexicon"))
 		 (check-arc-compatability
-		  (open-index (append directory "/lexicon"))))
+		  (open-index (mkpath directory "lexicon"))))
       (lineout "Can't use existing lexicon, regenerating...")
-      (system "rm " (append directory "/lexicon"))
-      (system "rm " (append directory "/noun-roots.index"))
-      (system "rm " (append directory "/verb-roots.index"))
+      (system "rm " (mkpath directory "lexicon"))
+      (system "rm " (mkpath directory "noun-roots.index"))
+      (system "rm " (mkpath directory "verb-roots.index"))
       (set! with-lexicon #t)))
-  (write-state-machine (append directory "/grammar")
-		       '*start-state*)
-  (write-hookup-table (append directory "/hookup"))
+  (write-state-machine (mkpath directory "grammar") '*start-state*)
+  (lognotice |WriteLexdata| "Wrote state machine into " (mkpath directory "grammar"))
+  (write-hookup-table (mkpath directory "hookup"))
+  (lognotice |WriteLexdata| "Wrote hookup data into " (mkpath directory "hookup"))
   (if with-lexicon
-      (let ((lexicon (new-index (append directory "/lexicon") 1000000))
+      (let ((lexicon (new-index (mkpath directory "lexicon") 1000000))
 	    (noun-roots
-	     (new-index (append directory "/noun-roots.index") 1000000))
+	     (new-index (mkpath directory "noun-roots.index") 1000000))
 	    (verb-roots
-	     (new-index (append directory "/verb-roots.index") 1000000)))
+	     (new-index (mkpath directory "verb-roots.index") 1000000)))
 	(write-special-entries lexicon)
 	(generate-lexicon lexicon noun-roots verb-roots)
 	(do-choices (prefix (pick (getkeys dictionary) pair?))
@@ -1237,7 +1241,9 @@
 	(store! lexicon '%names *names*)
 	(store! lexicon '%nouns *nouns*)
 	(store! lexicon '%verbs *verbs*))
-      (let ((lexicon (open-index (append directory "/lexicon"))))
+      (let ((lexicon (open-index (mkpath directory "lexicon"))))
+	(logwarn |LexiconUpdate| 
+	  "Only updating grammar and hookup rules (by request)")
 	(store! lexicon '%grammar
 		(->vector (dump-state-machine '*start-state*)))
 	(store! lexicon '%heads *glob-heads*)
