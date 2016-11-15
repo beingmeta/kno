@@ -600,14 +600,23 @@ static fdtype convert_custom(struct FD_GRAMMAR *g,fdtype custom)
 
 static fdtype get_lexinfo(fd_parse_context pcxt,fdtype key)
 {
-  fdtype custom=((pcxt->custom_lexicon) ? 
+  fdtype custom=(((pcxt)&&(pcxt->custom_lexicon)) ?
                  (fd_hashtable_get(pcxt->custom_lexicon,key,FD_VOID)) :
                  (FD_VOID));
-  if (FD_VOIDP(custom))
-    return lexicon_fetch(pcxt->grammar->lexicon,key);
+  if (FD_VOIDP(custom)) {
+    if (pcxt)
+      return lexicon_fetch(pcxt->grammar->lexicon,key);
+    else {
+      struct FD_GRAMMAR *grammar=get_default_grammar();
+      return lexicon_fetch(grammar->lexicon,key);}}
   else if (FD_PACKETP(custom)) return custom;
   else if (FD_FALSEP(custom)) return custom;
-  else return convert_custom(pcxt->grammar,custom);
+  else {
+    if (pcxt)
+      return convert_custom(pcxt->grammar,custom);
+    else {
+      struct FD_GRAMMAR *grammar=get_default_grammar();
+      return convert_custom(grammar,custom);}}
 }
 
 static fdtype get_noun_root(fd_parse_context pcxt,fdtype key)
@@ -1115,6 +1124,9 @@ static u8_string find_sentence_end(u8_string string)
 
 /* Lexicon access */
 
+static fdtype get_lexweights(fd_parse_context pc,u8_string spelling,
+                             fdtype ls,fdtype *via);
+
 /* add_input: (static)
     Arguments: a parse context and a word string
     Returns: Adds the string to the end of the current sentence.
@@ -1128,7 +1140,7 @@ static int add_input(fd_parse_context pc,u8_string spelling,
   int i, slen, ends_in_s=0;
   int oddcaps=(pc->flags&FD_TAGGER_ODDCAPS);
   struct FD_GRAMMAR *g=pc->grammar; fd_index lex=g->lexicon;
-  fdtype ls=fd_lispstring(s), value=get_lexinfo(pc,ls);
+  fdtype ls=fd_lispstring(s), value=get_lexweights(pc,spelling,ls,NULL);
   if ((word_limit > 0) && (((int)pc->n_inputs) >= word_limit))
     return fd_reterr(TooManyWords,"add_input",NULL,FD_VOID);
   if (pc->n_inputs+4 >= pc->max_n_inputs) grow_inputs(pc);
@@ -1136,49 +1148,6 @@ static int add_input(fd_parse_context pc,u8_string spelling,
   if ((s[slen-1]=='s') || (s[slen-1]=='S')) ends_in_s=1;
   /* Initialize this word's weights */
   i=0; while (i < FD_MAX_ARCS) pc->input[pc->n_inputs].weights[i++]=255;
-  if (!((FD_VECTORP(value)) || (FD_PACKETP(value)))) {
-    fd_decref(value); value=FD_EMPTY_CHOICE;}
-  if (!(FD_EMPTY_CHOICEP(value))) capitalized_in_lexicon=1;
-  /* Here are the default rules for getting POS data */
-  else if (possessivep(spelling))
-    if (capitalized)
-      if (capitalized_in_lexicon)
-        value=lexicon_fetch(lex,sproper_possessive);
-      else if (!(oddcaps))
-        value=lexicon_fetch(lex,sproper_possessive);
-      else if (possessive_namep(pc,spelling)) {
-        value=lexicon_fetch(lex,sproper_possessive);
-        capitalized_in_lexicon=1;}
-      else value=lexicon_fetch(lex,sxproper_possessive);
-    else value=lexicon_fetch(lex,spossessive);
-  else if (u8_isdigit(first_char))
-    if (strchr(spelling,'-')) value=lexicon_fetch(lex,sscore);
-    else value=lexicon_fetch(lex,snumber);
-  else if ((first_char == '$') && (u8_isdigit(u8_sgetc(&spelling))))
-    value=lexicon_fetch(lex,sdollars);
-  else if (capitalized)
-    if (oddcaps) {
-      fdtype lowered=lower_string(s);
-      fdtype lexdata=get_lexinfo(pc,lowered);
-      if (FD_EMPTY_CHOICEP(lexdata))
-        value=lexicon_fetch(lex,sproper_name);
-      else
-        value=lexicon_fetch(lex,sxproper_name);
-      fd_decref(lowered); fd_decref(lexdata);}
-    else value=lexicon_fetch(lex,sproper_name);
-  else if ((slen>2) && (strcmp(s+(slen-2),"ed")==0))
-    value=lexicon_fetch(lex,ed_word);
-  else if ((slen>2) && (strcmp(s+(slen-2),"ly")==0))
-    value=lexicon_fetch(lex,ly_word);
-  else if ((slen>3) && (strcmp(s+(slen-3),"ing")==0))
-    value=lexicon_fetch(lex,ing_word);
-  else if (ends_in_s)
-    if (strchr(spelling,'-'))
-      value=lexicon_fetch(lex,sdashed_word);
-    else value=lexicon_fetch(lex,sdashed_sword);
-  else if (strchr(spelling,'-'))
-    value=lexicon_fetch(lex,sdashed_sword);
-  else value=lexicon_fetch(lex,sstrange_word);
   if (FD_PAIRP(value)) value=FD_CAR(value);
   if ((!((FD_VECTORP(value)) || (FD_PACKETP(value)))) ||
       ((FD_VECTORP(value)) && (FD_VECTOR_LENGTH(value)<pc->grammar->n_arcs)) ||
@@ -1225,6 +1194,90 @@ static int add_input(fd_parse_context pc,u8_string spelling,
     pc->input[pc->n_inputs].weights[pc->grammar->punctuation_tag]=1;
   pc->n_inputs++;
   return 1;
+}
+
+static fdtype get_lexweights(fd_parse_context pc,u8_string spelling,
+                             fdtype ls,fdtype *via)
+{
+  struct FD_GRAMMAR *g=(pc)?(pc->grammar):(fd_default_grammar());
+  fd_index lex=g->lexicon; u8_string scan=spelling;
+  int first_char=u8_sgetc(&scan);
+  int capitalized=string_capitalizedp(spelling), capitalized_in_lexicon=0;
+  int i, slen, ends_in_s=0;
+  int oddcaps=(pc)&&(pc->flags&FD_TAGGER_ODDCAPS);
+  fdtype value=get_lexinfo(pc,ls);
+  u8_string s=FD_STRDATA(ls);
+  slen=FD_STRLEN(ls);
+  if ((s[slen-1]=='s') || (s[slen-1]=='S')) ends_in_s=1;
+  if (!((FD_VECTORP(value)) || (FD_PACKETP(value)))) {
+    fd_decref(value); value=FD_EMPTY_CHOICE;}
+  if (!(FD_EMPTY_CHOICEP(value))) capitalized_in_lexicon=1;
+  /* Here are the default rules for getting POS data */
+  else if (possessivep(spelling))
+    if (capitalized)
+      if (capitalized_in_lexicon) {
+        value=lexicon_fetch(lex,sproper_possessive);
+        if (via) *via=sproper_possessive;}
+      else if (!(oddcaps)) {
+        value=lexicon_fetch(lex,sproper_possessive);
+        if (via) *via=sproper_possessive;}
+      else if (possessive_namep(pc,spelling)) {
+        value=lexicon_fetch(lex,sproper_possessive);
+        if (via) *via=sproper_possessive;
+        capitalized_in_lexicon=1;}
+      else {
+        value=lexicon_fetch(lex,sxproper_possessive);
+        if (via) *via=sxproper_possessive;}
+    else {
+      value=lexicon_fetch(lex,spossessive);
+      if (via) *via=spossessive;}
+  else if (u8_isdigit(first_char))
+    if (strchr(spelling,'-')) {
+      value=lexicon_fetch(lex,sscore);
+      if (via) *via=sscore;}
+    else {
+      value=lexicon_fetch(lex,snumber);
+      if (via) *via=snumber;}
+  else if ((first_char == '$') && (u8_isdigit(u8_sgetc(&spelling)))) {
+    value=lexicon_fetch(lex,sdollars);
+    if (via) *via=sdollars;}
+  else if (capitalized)
+    if (oddcaps) {
+      fdtype lowered=lower_string(s);
+      fdtype lexdata=get_lexinfo(pc,lowered);
+      if (FD_EMPTY_CHOICEP(lexdata)) {
+        value=lexicon_fetch(lex,sproper_name);
+        if (via) *via=sproper_name;}
+      else {
+        value=lexicon_fetch(lex,sxproper_name);
+        if (via) *via=sxproper_name;}
+      fd_decref(lowered); fd_decref(lexdata);}
+    else {
+      value=lexicon_fetch(lex,sproper_name);
+      if (via) *via=sproper_name;}
+  else if ((slen>2) && (strcmp(s+(slen-2),"ed")==0)) {
+    value=lexicon_fetch(lex,ed_word);
+    if (via) *via=ed_word;}
+  else if ((slen>2) && (strcmp(s+(slen-2),"ly")==0)) {
+    value=lexicon_fetch(lex,ly_word);
+    if (via) *via=ly_word;}
+  else if ((slen>3) && (strcmp(s+(slen-3),"ing")==0)) {
+    value=lexicon_fetch(lex,ing_word);
+    if (via) *via=ing_word;}
+  else if (ends_in_s)
+    if (strchr(spelling,'-')) {
+      value=lexicon_fetch(lex,sdashed_word);
+      if (via) *via=sdashed_word;}
+    else {
+      value=lexicon_fetch(lex,sdashed_sword);
+      if (via) *via=sdashed_word;}
+  else if (strchr(spelling,'-')) {
+    value=lexicon_fetch(lex,sdashed_sword);
+    if (via) *via=sdashed_word;}
+  else {
+    value=lexicon_fetch(lex,sstrange_word);
+    if (via) *via=sstrange_word;}
+  return value;
 }
 
 static void bump_weights_for_capitalization(fd_parse_context pc,int word)
@@ -1824,12 +1877,12 @@ fdtype fd_gather_tags(fd_parse_context pc,fd_parse_state s)
         if (FD_EMPTY_LISTP(sentence))
           sentence=fd_conspair(word_entry,sentence);
         else {
-          answer=fd_conspair(sentence,answer);
+          answer=fd_conspair(sentence,fix_weights(answer));
           sentence=fd_conspair(word_entry,FD_EMPTY_LIST);}
       else sentence=fd_conspair(word_entry,sentence);
       s=state->previous;}}
-  if (FD_EMPTY_LISTP(sentence)) return fix_weights(answer);
-  else return fd_conspair(sentence,fix_weights(answer));
+  if (FD_EMPTY_LISTP(sentence)) return answer;
+  else return fd_conspair(fix_weights(sentence),answer);
 }
 
 
@@ -2161,7 +2214,9 @@ static fdtype lexweight_prim(fdtype string,fdtype tag,fdtype value)
 {
   fd_grammar g=fd_default_grammar();
   int i=0, lim=g->n_arcs;
-  fdtype arcs=g->arc_names, weights=lexicon_fetch(g->lexicon,string);
+  fdtype arcs=g->arc_names,
+    weights=get_lexweights(NULL,FD_STRDATA(string),string,NULL);
+  lexicon_fetch(g->lexicon,string);
   if (FD_EMPTY_CHOICEP(weights)) return FD_EMPTY_CHOICE;
   else if (FD_VOIDP(tag)) {
     fdtype results=FD_EMPTY_CHOICE;
@@ -2195,6 +2250,38 @@ static fdtype lexweight_prim(fdtype string,fdtype tag,fdtype value)
           else {}
           if (weight==255) return FD_FALSE;
           else return FD_INT(weight);}
+      else i++;
+    return FD_EMPTY_CHOICE;}
+}
+
+static fdtype lexinfo_prim(fdtype string,fdtype tag)
+{
+  fd_grammar g=fd_default_grammar();
+  int i=0, lim=g->n_arcs;
+  fdtype arcs=g->arc_names, via=FD_EMPTY_CHOICE,
+    weights=get_lexweights(NULL,FD_STRDATA(string),string,&via);
+  lexicon_fetch(g->lexicon,string);
+  if (FD_EMPTY_CHOICEP(weights)) return via;
+  else if (FD_VOIDP(tag)) {
+    fdtype results=FD_EMPTY_CHOICE;
+    while (i<lim) {
+      int weight=get_weight(weights,i);
+      if (weight<0) i++;
+      else {
+        fdtype pair=fd_conspair(fd_incref(FD_VECTOR_REF(arcs,i)),
+                                fd_incref(FD_INT(weight)));
+        FD_ADD_TO_CHOICE(results,pair); i++;}}
+    FD_ADD_TO_CHOICE(results,via);
+    return results;}
+  else {
+    while (i<lim)
+      if (FD_EQ(tag,FD_VECTOR_REF(arcs,i))) {
+        int weight=get_weight(weights,i);
+        if (weight==255) return FD_FALSE;
+        else {
+          fdtype result=via;
+          FD_ADD_TO_CHOICE(result,FD_INT(weight));
+          return result;}}
       else i++;
     return FD_EMPTY_CHOICE;}
 }
@@ -2515,6 +2602,7 @@ void fd_init_ofsm_c()
                                 fd_tagger_type,FD_VOID));
 
   fd_idefn(menv,fd_make_cprim3("LEXWEIGHT",lexweight_prim,1));
+  fd_idefn(menv,fd_make_cprim2("LEXINFO",lexinfo_prim,1));
   fd_idefn(menv,fd_make_cprim0("LEXTAGS",lextags_prim,0));
 
   fd_idefn(menv,fd_make_cprim0("NLP-STATS",lisp_get_stats,0));
