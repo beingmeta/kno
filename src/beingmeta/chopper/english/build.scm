@@ -19,8 +19,10 @@
 (define custom-data (get-component "custom.data"))
 (define pos-data (get-component "mobypos/part-of-speech.txt"))
 (define wn-name-map (file->dtype (get-component "wn-name-map.dtype")))
-(define noun-phrases (file->dtypes (get-component "phrases.dtype")))
+(define noun-phrases (file->dtypes (get-component "noun-phrases.dtype")))
 (define proper-names (file->dtypes (get-component "names.dtype")))
+
+(config! 'TRACETHREADEXIT #f)
 
 (define (likely-noun-phrase? string)
   (and (string? string)
@@ -108,7 +110,7 @@
 	    (intersection (get f 'type) '{noun verb adjective adverb}))
       (swapout f))
     (message "Updating dictionary")
-    (do-choices (key (getkeys pos-table))
+    (do-choices-mt (key (getkeys pos-table) (config 'nthreads 3) #f 10000)
       (let* ((weights (get weight-table key))
 	     (other-pos (difference (get pos-table key) (car weights)))
 	     (threshold (quotient (largest (cdr weights)) 2))
