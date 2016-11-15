@@ -63,7 +63,7 @@ fd_exception fd_OutOfMemory=_("Memory apparently exhausted");
 fd_exception fd_ExitException=_("Unhandled exception at exit");
 fd_exception fd_ReadOnlyConfig=_("Read-only config setting");
 
-static u8_string logdir=NULL, datadir=NULL;
+static u8_string logdir=NULL, sharedir=NULL, datadir=NULL;
 
 static int trace_config=0;
 
@@ -2427,12 +2427,16 @@ void fd_init_support_c()
   fd_register_config
     ("LOGDIR",_("Root FramerD logging directories"),
      fd_sconfig_get,fd_sconfig_set,&logdir);
-  if (!(datadir)) datadir=u8_strdup(FD_DATA_DIR);
 
+  if (!(sharedir)) sharedir=u8_strdup(FD_SHARE_DIR);
+  fd_register_config
+    ("SHAREDIR",_("Shared config/data directory for FramerD"),
+     fd_sconfig_get,fd_sconfig_set,&sharedir);
+
+  if (!(datadir)) datadir=u8_strdup(FD_DATA_DIR);
   fd_register_config
     ("DATADIR",_("Data directory for FramerD"),
      fd_sconfig_get,fd_sconfig_set,&datadir);
-
 
 #if FD_FILECONFIG_ENABLED
   fd_register_config

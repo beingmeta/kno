@@ -767,7 +767,7 @@ installed_module_dir
 builtin_safe_module_dir
 builtin_module_dir
 unpackage_dir
-data_dir
+share_dir
 systemd_loc
 scheme_builtins_init
 xdynamic_scheme_libs
@@ -860,6 +860,7 @@ with_bugjar
 with_arch
 with_suffix
 with_extlib
+with_share_dir
 with_data_dir
 with_config_dir
 with_local_config
@@ -1592,6 +1593,7 @@ Optional Packages:
 --without-arch build with particular --arch flags
 --with-suffix string
   --with-extlib[=DIR]       use additional lib dir
+--with-share-dir location
 --with-data-dir location
 --with-config-dir location
 --with-local-config location
@@ -7084,11 +7086,25 @@ fi
 
 
 
+# Check whether --with-share_dir was given.
+if test "${with_share_dir+set}" = set; then :
+  withval=$with_share_dir;
+else
+  with_share_dir=$prefix/share/framerd
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define FD_SHARE_DIR "$with_share_dir"
+_ACEOF
+
+share_dir=$with_share_dir
+
+
 # Check whether --with-data_dir was given.
 if test "${with_data_dir+set}" = set; then :
   withval=$with_data_dir;
 else
-  with_data_dir=$prefix/share/framerd
+  with_share_dir=$share_dir/data
 fi
 
 cat >>confdefs.h <<_ACEOF
@@ -7127,7 +7143,7 @@ local_config=$with_local_config
 if test "${with_shared_config+set}" = set; then :
   withval=$with_shared_config;
 else
-  with_shared_config=$data_dir/config
+  with_shared_config=$share_dir/config
 fi
 
 shared_config=$with_shared_config
@@ -7142,7 +7158,7 @@ _ACEOF
 if test "${with_unpackage_dir+set}" = set; then :
   withval=$with_unpackage_dir;
 else
-  with_unpackage_dir=$with_data_dir/packages
+  with_unpackage_dir=$with_share_dir/packages
 fi
 
 unpackage_dir=$with_unpackage_dir
@@ -7152,7 +7168,7 @@ unpackage_dir=$with_unpackage_dir
 if test "${with_installed_module_dir+set}" = set; then :
   withval=$with_installed_module_dir;
 else
-  with_installed_module_dir=$with_data_dir/modules/installed
+  with_installed_module_dir=$with_share_dir/modules/installed
 fi
 
 installed_module_dir=$with_installed_module_dir
@@ -7163,7 +7179,7 @@ installed_safe_module_dir=$with_installed_module_dir/safe
 if test "${with_shared_modules+set}" = set; then :
   withval=$with_shared_modules;
 else
-  with_shared_modules=$with_data_dir/modules/shared
+  with_shared_modules=$with_share_dir/modules/shared
 fi
 
 shared_module_dir=$with_shared_modules
@@ -7174,7 +7190,7 @@ shared_safe_module_dir=$with_shared_modules/safe
 if test "${with_local_modules+set}" = set; then :
   withval=$with_local_modules;
 else
-  with_local_modules=$with_data_dir/modules/local
+  with_local_modules=$with_share_dir/modules/local
 fi
 
 local_module_dir=$with_local_modules
@@ -7185,7 +7201,7 @@ local_safe_module_dir=$with_local_modules/safe
 if test "${with_builtin_module_dir+set}" = set; then :
   withval=$with_builtin_module_dir;
 else
-  with_builtin_module_dir=$with_data_dir/modules/builtin
+  with_builtin_module_dir=$with_share_dir/modules/builtin
 fi
 
 builtin_module_dir=$with_builtin_module_dir

@@ -263,7 +263,7 @@ FD_EXPORT int fd_init_hyphenate()
   if (default_hyphenation_file)
     default_dict=hnj_hyphen_load(default_hyphenation_file);
   else {
-    u8_string dictfile=u8_mkpath(FD_DATA_DIR,"data/hyph_en_US.dic");
+    u8_string dictfile=u8_mkpath(FD_DATA_DIR,"hyph_en_US.dic");
     if (u8_file_existsp(dictfile))
       default_dict=hnj_hyphen_load(dictfile);
     else u8_log(LOG_CRIT,fd_FileNotFound,
