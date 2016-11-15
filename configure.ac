@@ -80,6 +80,7 @@ TESTENV=
 TESTLIBS=
 TESTLDFLAGS=
 EXELDFLAGS=
+BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
 FDMAJOR=3
@@ -289,6 +290,7 @@ AC_SUBST(TOUCHFILE)
 AC_SUBST(MKDIR)
 AC_SUBST(CHGRP)
 AC_SUBST(CODENAME)
+AC_SUBST(BINPATH)
 
 AC_ARG_VAR(RPMDIR,"Location for writing built RPMs")
 AC_ARG_VAR(RPMFLAGS,"Default flags for building RPMs")
@@ -316,6 +318,9 @@ AC_CHECK_PROG(CREATEREPO,createrepo,,echo No createrepo for )
 AC_CHECK_PROGS(LLVM_SYMBOLIZER,llvm-symbolizer-3.5,llvm-symbolizer-3.4)
 AC_PATH_PROG(LLVM_SYMBOLIZER_PATH,$LLVM_SYMBOLIZER)
 AC_PATH_PROG(GOOGLE_PPROF,google-pprof)
+AC_PATH_PROG(XGETTEXT,xgettext)
+AC_PATH_PROG(MSGMERGE,msgmerge)
+AC_PATH_PROG(MSGFMT,msgfmt)
 
 AC_ARG_WITH(mkdir,--with-mkdir command,with_mkdir=$withval,with_mkdir=$MKDIR_DEFAULT)
 MKDIR=$with_mkdir

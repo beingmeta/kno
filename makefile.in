@@ -17,6 +17,7 @@ DYLIB_FLAGS = -compatibility_version @FDMAJOR@.0.0 -current_version @FDMAJOR@.@F
 EXELDFLAGS = @EXELDFLAGS@
 XLIBS=
 LIBS=$(XLIBS) @LIBS@
+PATH=@BINPATH@
 
 DESTDIR		=
 prefix		= @prefix@
@@ -865,11 +866,11 @@ $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
 	@$(SUDO) install -D $^ $@
 
 etc/intl/framerd.pot:
-	xgettext --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
+	@XGETTEXT@ --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 etc/intl/%.po: etc/intl/framerd.pot
-	msgmerge -U $@ $<
+	@MSGMERGE@ -U $@ $<
 etc/intl/%.gmo: etc/intl/%.po
-	msgfmt $^ -o $@ 
+	@MSGFMT@ $^ -o $@ 
 
 install-i18n: $(LOCALEDIR)/fr/LC_MESSAGES/framerd.mo   \
 		$(LOCALEDIR)/es/LC_MESSAGES/framerd.mo \
