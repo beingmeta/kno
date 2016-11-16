@@ -411,28 +411,31 @@ int fd_unparse(u8_output out,fdtype x)
     else {
       char buf[24]; sprintf(buf,"#!%lx",(unsigned long)x);
       return u8_puts(out,buf);}}
-  case fd_cons_ptr_type: {/* output cons */
-    struct FD_CONS *cons=FD_CONS_DATA(x);
-    fd_ptr_type ct=FD_CONS_TYPE(cons);
-    if ((FD_VALID_TYPEP(ct)) && (fd_unparsers[ct])) {
-      int uv=fd_unparsers[ct](out,x);
-      if (uv<0) {
+  case fd_cons_ptr_type: 
+    if (x==FD_NULL)
+      return u8_puts(out,"#null");
+    else {/* output cons */
+      struct FD_CONS *cons=FD_CONS_DATA(x);
+      fd_ptr_type ct=FD_CONS_TYPE(cons);
+      if ((FD_VALID_TYPEP(ct)) && (fd_unparsers[ct])) {
+        int uv=fd_unparsers[ct](out,x);
+        if (uv<0) {
+          char buf[128]; int retval;
+          sprintf(buf,"#!%lx (type=0x%x)",(unsigned long)x,ct);
+          u8_log(LOG_WARN,fd_CantUnparse,
+                 "fd_unparse handler failed for CONS %s",buf);
+          u8_clear_errors(1);
+          return uv;}
+        else return 1;}
+      if (fd_unparse_error)
+        return fd_unparse_error(out,x,_("no handler"));
+      else {
         char buf[128]; int retval;
-        sprintf(buf,"#!%lx (type=0x%x)",(unsigned long)x,ct);
-        u8_log(LOG_WARN,fd_CantUnparse,
-               "fd_unparse handler failed for CONS %s",buf);
-        u8_clear_errors(1);
-        return uv;}
-      else return 1;}
-    if (fd_unparse_error)
-      return fd_unparse_error(out,x,_("no handler"));
-    else {
-      char buf[128]; int retval;
-      sprintf(buf,"#!%lx",(unsigned long)x);
-      retval=u8_puts(out,buf);
-      sprintf(buf,"#!%lx (type=%d)",(unsigned long)x,ct);
-      u8_log(LOG_WARN,fd_CantUnparse,buf);
-      return retval;}}
+        sprintf(buf,"#!%lx",(unsigned long)x);
+        retval=u8_puts(out,buf);
+        sprintf(buf,"#!%lx (type=%d)",(unsigned long)x,ct);
+        u8_log(LOG_WARN,fd_CantUnparse,buf);
+        return retval;}}
   default:
     return 1;
   }
