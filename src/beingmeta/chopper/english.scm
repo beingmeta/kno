@@ -3,7 +3,7 @@
 (load-component "chopper.scm")
 (load-component "chunker.scm")
 
-(use-module '{logger logctl})
+(use-module '{logger logctl stringfmts})
 (define-init %loglevel %notice%)
 
 (define english-verb-root (get (get-module 'morph/en) 'verb-root))
@@ -1128,25 +1128,33 @@
   (append (upcase (subseq s 0 1)) (subseq s 1)))
 
 (define (generate-lexicon lex noun-roots verb-roots)
+  (lognotice |WriteLexicon| "Generating lexicon for fast tagger")
   (let* ((root-forms (pick (getkeys dictionary) string?))
 	 (compound-forms (pick (getkeys dictionary) vector?))
 	 (n-root-forms (choice-size root-forms)) (i 0)
 	 (lex-table (use-index lex)))
+    (lognotice |WriteLexicon| "Writing closed class words")
     (do-choices (closed-term (capword (pick root-forms closed-class-word?)))
       (unless (exists? (get lex closed-term))
 	(write-lexicon-entry closed-term lex)))
+    (lognotice |WriteLexicon| 
+      "Writing base and variants for " (choice-size root-forms) " roots")
     (do-choices (root root-forms)
       (unless (fail? (get dictionary root))
 	(set! i (+ i 1))
-	(when (zero? (random 100))
-	  (message "---- " i "/" n-root-forms " ---- " root))
+	(when (zero? (random 1000))
+	  (lognotice |WriteLexicon|
+	    "---- " i "/" n-root-forms " " (show% i n-root-forms)
+	    " ---- " root))
 	(write-lexicon-entries root lex-table noun-roots verb-roots)
 	(when (zero? (remainder i 10000)) (commit) (swapout))))
     (do-choices (root compound-forms)
       (unless (fail? (get dictionary root))
 	(set! i (+ i 1))
-	(when (zero? (random 100))
-	  (message "---- " i "/" n-root-forms " ---- " root))
+	(when (zero? (random 1000))
+	  (lognotice |WriteLexicon|
+	    "---- " i "/" n-compound-forms " " (show% i n-compound-forms)
+	    " ---- " root))
 	(write-lexicon-entries root lex-table noun-roots verb-roots)
 	(when (zero? (remainder i 10000)) (commit) (swapout))))))
 
@@ -1218,22 +1226,27 @@
       (system "rm " (mkpath directory "verb-roots.index"))
       (set! with-lexicon #t)))
   (write-state-machine (mkpath directory "grammar") '*start-state*)
-  (lognotice |WriteLexdata| "Wrote state machine into " (mkpath directory "grammar"))
+  (lognotice |WriteLexdata|
+    "Wrote state machine into " (mkpath directory "grammar"))
   (write-hookup-table (mkpath directory "hookup"))
-  (lognotice |WriteLexdata| "Wrote hookup data into " (mkpath directory "hookup"))
+  (lognotice |WriteLexdata|
+    "Wrote hookup data into " (mkpath directory "hookup"))
   (if with-lexicon
       (let ((lexicon (new-index (mkpath directory "lexicon") 1000000))
 	    (noun-roots
 	     (new-index (mkpath directory "noun-roots.index") 1000000))
 	    (verb-roots
 	     (new-index (mkpath directory "verb-roots.index") 1000000)))
+	(lognotice |WriteLexicon| "Writing special entries")
 	(write-special-entries lexicon)
 	(generate-lexicon lexicon noun-roots verb-roots)
+	(lognotice |WriteLexicon| "Writing compound prefixes")
 	(do-choices (prefix (pick (getkeys dictionary) pair?))
 	  (add! lexicon prefix (get dictionary prefix)))
 	;; (write-lexer-data lexicon)
 ; 	(system "cp verb-links.index "
 ; 		(stringout directory "verb-links.index"))
+	(lognotice |WriteLexicon| "Embedding grammar into lexicon")
 	(store! lexicon '%grammar
 		(->vector (dump-state-machine '*start-state*)))
 	(store! lexicon '%heads *glob-heads*)
