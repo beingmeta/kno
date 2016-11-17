@@ -1131,8 +1131,10 @@
   (lognotice |WriteLexicon| "Generating lexicon for fast tagger")
   (let* ((root-forms (pick (getkeys dictionary) string?))
 	 (compound-forms (pick (getkeys dictionary) vector?))
-	 (n-root-forms (choice-size root-forms)) (i 0)
-	 (lex-table (use-index lex)))
+	 (n-root-forms (choice-size root-forms)) 
+	 (n-compound-forms (choice-size compound-forms)) 
+	 (lex-table (use-index lex))
+	 (i 0))
     (lognotice |WriteLexicon| "Writing closed class words")
     (do-choices (closed-term (capword (pick root-forms closed-class-word?)))
       (unless (exists? (get lex closed-term))
@@ -1155,7 +1157,7 @@
 	  (lognotice |WriteLexicon|
 	    "---- " i "/" n-compound-forms " " 
 	    (show% i n-compound-forms)
-	    " ---- " root " (compound)" )))
+	    " ---- " root " (compound)" ))
 	(write-lexicon-entries root lex-table noun-roots verb-roots)
 	(when (zero? (remainder i 10000)) (commit) (swapout))))))
 
