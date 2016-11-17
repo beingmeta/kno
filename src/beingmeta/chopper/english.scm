@@ -1145,7 +1145,7 @@
 	(when (zero? (random 1000))
 	  (lognotice |WriteLexicon|
 	    "---- " i "/" n-root-forms " " (show% i n-root-forms)
-	    " ---- " root))
+	    " ---- " root " (root)"))
 	(write-lexicon-entries root lex-table noun-roots verb-roots)
 	(when (zero? (remainder i 10000)) (commit) (swapout))))
     (do-choices (root compound-forms)
@@ -1153,8 +1153,9 @@
 	(set! i (+ i 1))
 	(when (zero? (random 1000))
 	  (lognotice |WriteLexicon|
-	    "---- " i "/" n-compound-forms " " (show% i n-compound-forms)
-	    " ---- " root))
+	    "---- " i "/" n-compound-forms " " 
+	    (show% i n-compound-forms)
+	    " ---- " root " (compound)" )))
 	(write-lexicon-entries root lex-table noun-roots verb-roots)
 	(when (zero? (remainder i 10000)) (commit) (swapout))))))
 
