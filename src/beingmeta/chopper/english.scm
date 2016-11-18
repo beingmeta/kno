@@ -1131,21 +1131,19 @@
   (lognotice |WriteLexicon| "Generating lexicon for fast tagger")
   (let* ((allkeys (getkeys dictionary))
 	 (root-forms (pick allkeys string?))
-	 (compound-forms (pick allkeys vector?))
 	 (n-root-forms (choice-size root-forms)) 
-	 (n-compound-forms (choice-size compound-forms)) 
 	 (closed-terms (pick root-forms closed-class-word?))
 	 (cap-closed-terms (capword closed-terms))
-	 (lex-table (use-index lex))
+	 (lex-table (open-index lex))
 	 (i 0))
     (lognotice |WriteLexicon|
       "Writing case variants for " (choice-size closed-terms)
       " closed class words")
-    (prefetch-keys! lex (choice closed-terms cap-closed-terms))
+    (prefetch-keys! lex-table (choice closed-terms cap-closed-terms))
     (do-choices (closed-term (capword closed-terms))
-      (unless (exists? (get lex closed-term))
+      (unless (exists? (get lex-table closed-term))
 	(write-lexicon-entry closed-term lex)))
-    (commit lex)
+    (commit lex) (swapout lex)
     (lognotice |WriteLexicon| 
       "Writing base and variants for " (choice-size root-forms) " roots")
     (do-choices (root root-forms)
@@ -1155,16 +1153,6 @@
 	  (lognotice |WriteLexicon|
 	    "---- " i "/" n-root-forms " " (show% i n-root-forms)
 	    " ---- " root " (root)"))
-	(write-lexicon-entries root lex-table noun-roots verb-roots)
-	(when (zero? (remainder i 10000)) (commit) (swapout))))
-    (do-choices (root compound-forms)
-      (unless (fail? (get dictionary root))
-	(set! i (+ i 1))
-	(when (zero? (random 1000))
-	  (lognotice |WriteLexicon|
-	    "---- " i "/" n-compound-forms " " 
-	    (show% i n-compound-forms)
-	    " ---- " root " (compound)" ))
 	(write-lexicon-entries root lex-table noun-roots verb-roots)
 	(when (zero? (remainder i 10000)) (commit) (swapout))))))
 
