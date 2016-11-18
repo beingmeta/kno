@@ -1145,30 +1145,6 @@ static int add_input(fd_parse_context pc,u8_string spelling,
   return 1;
 }
 
-static int lexval(fdtype weights,int i)
-{
-  if (FD_PACKETP(weights)) return FD_PACKET_REF(weights,i);
-  else if (FD_VECTORP(weights)) {
-    fdtype wval=FD_VECTOR_REF(weights,i);
-    if (FD_FALSEP(wval)) return 255;
-    else if (FD_TRUEP(wval)) return 0;
-    else if (FD_FIXNUMP(wval))
-      return FD_INT(wval);
-    else return 255;}
-  else return 255;
-}
-
-static fdtype lexmerge(fd_parse_context pc,fdtype lex1,fdtype lex2)
-{
-  int i=0, lim=pc->grammar->n_arcs;
-  unsigned char weights[128];
-  while (i<lim) {
-    int v1=lexval(lex1,i), v2=lexval(lex2,i);
-    if (v1<v2) weights[i]=v1; else weights[i]=v2;
-    i++;}
-  return fd_make_packet(NULL,lim,weights);
-}
-
 static fdtype get_lexweights(fd_parse_context pc,u8_string spelling,
                              fdtype ls,fdtype *via)
 {
@@ -1222,10 +1198,7 @@ static fdtype get_lexweights(fd_parse_context pc,u8_string spelling,
         value=lexicon_fetch(lex,sproper_name);
         if (via) *via=sproper_name;}
       else {
-        fdtype mod=lexicon_fetch(lex,sxproper_name);
-        fdtype new_weights=lexmerge(pc,value,mod);
-        fd_decref(mod); fd_decref(value);
-        value=new_weights;
+        value=lexicon_fetch(lex,sxproper_name);
         if (via) *via=sxproper_name;}
       fd_decref(lowered); fd_decref(lexdata);}
     else {
@@ -1683,9 +1656,7 @@ static fd_parse_state queue_extend(fd_parse_context pc)
   fd_parse_state tref=pc->queue;
   struct FD_PARSER_STATE *top;
   if (tref >= 0) {
-#if TRACING
-    if (trace_tagger) log_state(pc,"<<< POPPED",tref);
-#endif
+    log_state(pc,"<<< POPPED",tref);
     top=&(pc->states[tref]); pc->last=tref; 
     pc->queue=top->qnext;}
   else return pc->last;
