@@ -920,7 +920,7 @@ static void identify_compounds(fd_parse_context pc)
       start=1; i++; continue;}
     tmp=probe_compound(pc,i,i+1,pc->n_inputs,0);
     FD_ADD_TO_CHOICE(compounds,tmp);
-    if ((u8_isupper(fc)) && (start|oddcaps|u8_isupper(c2))) {
+    if ((u8_isupper(fc)) && (start||oddcaps||u8_isupper(c2))) {
       fdtype lowered=lower_string(pc->input[i].spelling);
       fdtype lexdata=get_lexinfo(pc,lowered);
       if (FD_EMPTY_CHOICEP(lexdata)) {fd_decref(lowered);}
