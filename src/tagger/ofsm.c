@@ -51,7 +51,7 @@ fd_ptr_type fd_tagger_type;
 
 /* Miscellaneous defines */
 
-#define DEBUGGING 0
+#define DEBUGGING 1
 #define TRACING 1
 
 #ifndef PATH_MAX
@@ -273,8 +273,8 @@ void fd_reset_parse_context(fd_parse_context pcxt)
   i=0; while (i < pcxt->n_inputs) {
     fd_decref(pcxt->input[i].lstr);
     pcxt->input[i].lstr=FD_VOID;
-    fd_decref(pcxt->input[i].compounds);
-    pcxt->input[i].compounds=FD_EMPTY_CHOICE;
+    fd_decref(pcxt->input[i].alternates);
+    pcxt->input[i].alternates=FD_EMPTY_CHOICE;
     i++;}
   /* Reset the per-parse state variables */
   pcxt->n_states=0; pcxt->n_inputs=0; pcxt->runtime=0.0;
@@ -309,7 +309,7 @@ void fd_free_parse_context(fd_parse_context pcxt)
     /* Freed by fd_decref */
     /* free(pcxt->input[i].spelling); */
     fd_decref(pcxt->input[i].lstr);
-    fd_decref(pcxt->input[i].compounds);
+    fd_decref(pcxt->input[i].alternates);
     i++;}
   /* Free internal state variables */
   free(pcxt->input); free(pcxt->states);
@@ -836,7 +836,7 @@ static void add_alt(fd_parse_context pc,int i,fdtype alt)
   else if (FD_STRINGP(alt)) {
     fd_incref(alt);
     phrase=fd_conspair(alt,FD_EMPTY_LIST);}
-  FD_ADD_TO_CHOICE(pc->inputs[i].compounds,phrase);
+  FD_ADD_TO_CHOICE(pc->inputs[i].alternates,phrase);
 }
 
 static void preparsed(fd_parse_context pc,fdtype words)
@@ -908,19 +908,19 @@ static fdtype probe_compound
 
 static void bump_weights_for_capitalization(fd_parse_context,int,int);
 
-static void identify_compounds(fd_parse_context pc)
+static void identify_alternates(fd_parse_context pc)
 {
   int oddcaps=(pc->flags&FD_TAGGER_ODDCAPS);
   int allcaps=(pc->flags&FD_TAGGER_ALLCAPS);
   int at_startp=1, i=0, lim=pc->n_inputs-1;
   while (i < lim) {
-    fdtype compounds=FD_EMPTY_CHOICE, tmp;
+    fdtype alternates=FD_EMPTY_CHOICE, tmp;
     u8_string scan=pc->input[i].spelling;
     int fc=u8_sgetc(&scan), c2=u8_sgetc(&scan);
     if (strchr(".;!?:\"'`.",fc)) {
       at_startp=1; i++; continue;}
     tmp=probe_compound(pc,i,i+1,pc->n_inputs,0);
-    FD_ADD_TO_CHOICE(compounds,tmp);
+    FD_ADD_TO_CHOICE(alternates,tmp);
     if ((u8_isupper(fc)) && (at_startp||oddcaps||u8_isupper(c2))) {
       fdtype lowered=lower_string(pc->input[i].spelling);
       fdtype lexdata=get_lexinfo(pc,lowered);
@@ -929,10 +929,10 @@ static void identify_compounds(fd_parse_context pc)
         fdtype entry=fd_conspair(fd_make_list(1,lowered),lexdata);
         if (((at_startp) || (pc->input[i].cap)) && (!(allcaps)))
           bump_weights_for_capitalization(pc,i,1);
-        FD_ADD_TO_CHOICE(compounds,entry);}
+        FD_ADD_TO_CHOICE(alternates,entry);}
       tmp=probe_compound(pc,i,i+1,pc->n_inputs,1);
-      FD_ADD_TO_CHOICE(compounds,tmp);}
-    FD_ADD_TO_CHOICE(pc->input[i].compounds,compounds);
+      FD_ADD_TO_CHOICE(alternates,tmp);}
+    FD_ADD_TO_CHOICE(pc->input[i].alternates,alternates);
     at_startp=0;
     i++;}
 }
@@ -1123,7 +1123,7 @@ static int add_input(fd_parse_context pc,u8_string spelling,
   else {
     pc->input[pc->n_inputs].char_pos=0;}
   pc->input[pc->n_inputs].lstr=ls;
-  pc->input[pc->n_inputs].compounds=FD_EMPTY_CHOICE;
+  pc->input[pc->n_inputs].alternates=FD_EMPTY_CHOICE;
   pc->input[pc->n_inputs].cap=capitalized_in_lexicon;
   pc->input[pc->n_inputs].next=pc->n_inputs+1;
 #if 0
@@ -1289,7 +1289,7 @@ static void add_punct(fd_parse_context pc,u8_string spelling,
     pc->input[pc->n_inputs].char_pos=0;}
 #endif
   pc->input[pc->n_inputs].lstr=ls;
-  pc->input[pc->n_inputs].compounds=FD_EMPTY_CHOICE;
+  pc->input[pc->n_inputs].alternates=FD_EMPTY_CHOICE;
   pc->input[pc->n_inputs].next=pc->n_inputs+1;
   pc->n_inputs++;
 }
@@ -1314,8 +1314,8 @@ static void log_state(fd_parse_context pc,char *op,fd_parse_state sr)
   struct FD_OFSM_NODE *pnode=(prev)?(prev->node):(NULL);
   fdtype arc_names=pc->grammar->arc_names;
 
-  u8_message("%s %q [s%d.%d@%d_%d] %q(%q) input='%s'(#%d) fanout=%d %s",
-             op,s->node->name,s->self,node->index,s->input,s->distance,
+  u8_message("%s d=%d %q [s%d.%d@%d] %q(%q) input='%s'(#%d) fanout=%d %s",
+             op,s->distance,s->node->name,s->self,node->index,s->input,
              FD_VECTOR_REF(pc->grammar->arc_names,s->arc),s->word,
              words[s->input].spelling,s->input,
              get_fanout(pc,node),
@@ -1324,10 +1324,10 @@ static void log_state(fd_parse_context pc,char *op,fd_parse_state sr)
              ("terminal"));
 }
 
-static void show_tags(struct U8_OUTPUT *,fdtype arc_names,
-                      const unsigned char *weights,int n_arcs);
-static void show_compound_tags(struct U8_OUTPUT *,fdtype arc_names,
-                               fdtype weights,int n_arcs);
+static void show_word_tags(struct U8_OUTPUT *,fdtype arc_names,
+                           const unsigned char *weights,int n_arcs);
+static void show_lisp_tags(struct U8_OUTPUT *,fdtype arc_names,
+                           fdtype weights,int n_arcs);
 
 /* log_state: (static)
     Arguments: an operation identifer (a string), a state, and a FILE
@@ -1341,10 +1341,10 @@ static void log_word(fd_parse_context pc,struct FD_WORD *word,int i)
   int arc_i=0, n_arcs=pc->grammar->n_arcs;
   U8_INIT_FIXED_OUTPUT(&out,256,buf);
   u8_printf(&out,"'%s' (%d)",word->spelling,i);
-  show_tags(&out,arc_names,word->weights,n_arcs);
-  FD_DO_CHOICES(compound,word->compounds) {
-    if (FD_PAIRP(compound)) {
-      fdtype words=FD_CAR(compound), weights=FD_CDR(compound);
+  show_word_tags(&out,arc_names,word->weights,n_arcs);
+  FD_DO_CHOICES(alternate,word->alternates) {
+    if (FD_PAIRP(alternate)) {
+      fdtype words=FD_CAR(alternate), weights=FD_CDR(alternate);
       u8_printf(&out,"\n  alternate:");
       if (FD_STRINGP(words)) u8_printf(&out," '%s'",FD_STRDATA(words));
       else if (FD_PAIRP(words)) {
@@ -1358,13 +1358,13 @@ static void log_word(fd_parse_context pc,struct FD_WORD *word,int i)
       else {}
       u8_printf(&out,"\n    weights:");
       if (FD_PACKETP(weights))
-        show_tags(&out,arc_names,FD_PACKET_DATA(weights),n_arcs);
-      else show_compound_tags(&out,arc_names,weights,n_arcs);}}
+        show_word_tags(&out,arc_names,FD_PACKET_DATA(weights),n_arcs);
+      else show_lisp_tags(&out,arc_names,weights,n_arcs);}}
   u8_message(out.u8_outbuf);
 }
 
-static void show_tags(struct U8_OUTPUT *out,fdtype arc_names,
-                      const unsigned char *weights,int n_arcs)
+static void show_word_tags(struct U8_OUTPUT *out,fdtype arc_names,
+                           const unsigned char *weights,int n_arcs)
 {
   off_t basepos=out->u8_outptr-out->u8_outbuf;
   int arc_i=0; while (arc_i<n_arcs) {
@@ -1378,8 +1378,8 @@ static void show_tags(struct U8_OUTPUT *out,fdtype arc_names,
     arc_i++;}
 }
 
-static void show_compound_tags(struct U8_OUTPUT *out,fdtype arc_names,
-                               fdtype weights,int n_arcs)
+static void show_lisp_tags(struct U8_OUTPUT *out,fdtype arc_names,
+                           fdtype weights,int n_arcs)
 {
   int len=FD_VECTOR_LENGTH(weights); 
   off_t basepos=out->u8_outptr-out->u8_outbuf;
@@ -1453,9 +1453,10 @@ static void queue_push(fd_parse_context pc,fd_parse_state newstate)
     struct FD_PARSER_STATE *insert=&((pc->states)[newstate]);
     struct FD_PARSER_STATE *scan=&((pc->states)[next]);
     int i=0, distance=insert->distance;
-    while ((next >= 0) && (distance > scan->distance)) {
+    while ((scan) && (distance > scan->distance)) {
       last=&(scan->qnext); prev=next; next=scan->qnext;
       if (next>=0) scan=&((pc->states)[next]);
+      else scan=NULL;
       i++;}
     if (newstate == next) fprintf(stderr,"Whoops");
     if (trace_tagger) {
@@ -1463,7 +1464,7 @@ static void queue_push(fd_parse_context pc,fd_parse_state newstate)
       sprintf(namebuf,">>> Inserted @%d",i);
       log_state(pc,namebuf,newstate);}
     insert->qprev=prev; insert->qnext=next;
-    if (next >= 0) scan->qprev=newstate;
+    if (scan) scan->qprev=newstate;
     *last=newstate;
 #if DEBUGGING
   check_queue_integrity(pc);
@@ -1502,6 +1503,26 @@ static void queue_reorder(fd_parse_context pc,fd_parse_state changed)
 
 /* Expanding the queue */
 
+static fd_parse_state get_state(fd_parse_context pc,
+                                struct FD_OFSM_NODE *n,int in,
+                                fdtype word,fd_parse_state **alt)
+{
+  fd_parse_state knownref=(pc->cache[in])[n->index];
+  while (knownref>=0) {
+    struct FD_PARSER_STATE *known=&(pc->states[knownref]);
+    if (FD_EQUAL(word,known->word)) {
+      *alt=NULL;
+      return knownref;}
+    else if (known->alt>=0) {
+      knownref=known->alt;
+      known=&(pc->states[knownref]);}
+    else {
+      *alt=&(known->alt);
+      return -1;}}
+  *alt=&(pc->cache[in])[n->index];
+  return -1;
+}
+
 /* add_state: (static)
     Arguments: a node, a distance, an input index, an origin state, and an arc
     Returns: nothing
@@ -1512,8 +1533,9 @@ static void add_state
   (fd_parse_context pc, struct FD_OFSM_NODE *n,int distance,int in,
    fd_parse_state origin,int arc,fdtype word)
 {
-  fd_parse_state kref=(pc->cache[in])[n->index];
-  if (kref < 0) {
+  fd_parse_state *push;
+  fd_parse_state knownref=get_state(pc,n,in,word,&push);
+  if (knownref < 0) {
     struct FD_PARSER_STATE *new;
     if (pc->n_states >= pc->max_n_states)
       grow_table((void **)(&pc->states),&pc->max_n_states,
@@ -1522,22 +1544,23 @@ static void add_state
     new->node=n; new->distance=distance; new->input=in;
     new->previous=origin; new->arc=arc; new->word=word;
     new->self=pc->n_states; new->qnext=-1; new->qprev=-1;
-    (pc->cache[in])[n->index]=pc->n_states;
+    new->alt=-1;
+    *push=pc->n_states;
     pc->n_states++;
     queue_push(pc,new->self);}
   else {
-    struct FD_PARSER_STATE *known=&(pc->states[kref]);
+    struct FD_PARSER_STATE *known=&(pc->states[knownref]);
     if (distance < known->distance) {
       known->previous=origin; known->arc=arc;
       known->distance=distance; known->word=word;
 #if TRACING
-      if (trace_tagger) log_state(pc,"Reordering",kref);
+      if (trace_tagger) log_state(pc,"Reordering",knownref);
 #endif
-      queue_reorder(pc,kref);}
+      queue_reorder(pc,knownref);}
     else {
 #if TRACING
       if (trace_tagger)
-        log_state(pc,"Redundant",kref);
+        log_state(pc,"Redundant",knownref);
 #endif
     }
   }
@@ -1590,22 +1613,22 @@ static int get_weight(fdtype weights,int i)
   else return -1;
 }
 
-static void expand_state_on_compound
-  (fd_parse_context pc,fd_parse_state sr,fdtype compound)
+static void expand_state_on_alternate
+  (fd_parse_context pc,fd_parse_state sr,fdtype alternate)
 {
   struct FD_PARSER_STATE *s=&(pc->states[sr]);
   struct FD_OFSM_NODE *n=s->node;
   unsigned int i=1, in=s->input, dist=s->distance;
-  fdtype weights=FD_CDR(compound);
+  fdtype weights=FD_CDR(alternate);
   while (i < pc->grammar->n_arcs) {
     int weight=get_weight(weights,i);
     if ((weight>=0) && (n->arcs[i].n_entries > 0)) {
-      int j=0, limit=n->arcs[i].n_entries, len=fd_seq_length(FD_CAR(compound));
+      int j=0, limit=n->arcs[i].n_entries, len=fd_seq_length(FD_CAR(alternate));
       while (j < limit) {
         add_state
           (pc,n->arcs[i].entries[j].target,
            dist+n->arcs[i].entries[j].measure+weight,
-           in+len,sr,i,FD_CAR(compound));
+           in+len,sr,i,FD_CAR(alternate));
         j++;}
       i++;}
     else i++;}
@@ -1626,9 +1649,9 @@ static void expand_state(fd_parse_context pc,fd_parse_state sr)
 #endif
   if (in < pc->n_inputs) {
     expand_state_on_word(pc,sr,((struct FD_WORD *)&(pc->input[in])));
-    if (!(FD_EMPTY_CHOICEP(pc->input[in].compounds))) {
-      FD_DO_CHOICES(compound,pc->input[in].compounds) {
-        expand_state_on_compound(pc,sr,compound);}}
+    if (!(FD_EMPTY_CHOICEP(pc->input[in].alternates))) {
+      FD_DO_CHOICES(alternate,pc->input[in].alternates) {
+        expand_state_on_alternate(pc,sr,alternate);}}
     /* Try skipping this input */
     if (quote_stringp(pc->input[in].spelling))
       add_state(pc,n,dist,in+1,sr,pc->grammar->punctuation_tag,
@@ -1680,10 +1703,8 @@ fd_parse_state fd_run_parser(fd_parse_context pc)
   double start=u8_elapsed_time();
   while ((answer=queue_extend(pc)) < 0);
   pc->runtime=pc->runtime+(u8_elapsed_time()-start);
-  if ((answer >= 0) &&
-      ((pc->states[answer]).input == pc->n_inputs) &&
-      (!(ZEROP((pc->states[answer]).node->terminal))))
-    return answer;
+  if (answer >= 0) {
+    return answer;}
   else {
     int i=0; fprintf(stderr,"Couldn't parse:");
     while (i < pc->n_inputs)
@@ -2011,7 +2032,7 @@ fdtype fd_analyze_text
           sentence=skip_whitespace(sentence_end);
         else sentence=sentence_end;
         continue;}
-      identify_compounds(pcxt);
+      identify_alternates(pcxt);
       compdone=u8_elapsed_time();
       if (trace_tagger) {
         int input_i=0, n_inputs=pcxt->n_inputs;
@@ -2050,7 +2071,7 @@ fdtype fd_analyze_text
     fd_parse_state final;
     fdtype retval;
     lexer(pcxt,pcxt->start,NULL);
-    identify_compounds(pcxt);
+    identify_alternates(pcxt);
     add_state(pcxt,&(pcxt->grammar->nodes[0]),0,0,-1,0,FD_VOID);
     final=fd_run_parser(pcxt);
     pcxt->runtime=pcxt->runtime+(u8_elapsed_time()-start_time);
@@ -2295,7 +2316,7 @@ static fdtype tagger_next(fdtype cxt)
   fdtype result=FD_EMPTY_LIST, tags=FD_VOID;
   if (pcxt->n_inputs==0) {
     lexer(pcxt,pcxt->start,NULL);
-    identify_compounds(pcxt);
+    identify_alternates(pcxt);
     add_state(pcxt,&(pcxt->grammar->nodes[0]),0,0,-1,0,FD_VOID);}
   final=fd_run_parser(pcxt);
   pcxt->runtime=pcxt->runtime+(u8_elapsed_time()-start_time);
