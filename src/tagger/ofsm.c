@@ -863,7 +863,8 @@ static void preparsed(fd_parse_context pc,fdtype words)
 
 /* Identifying compounds */
 
-static int check_compound(fdtype compound,fd_parse_context pc,int start,int lim,int trylower)
+static int check_compound(fdtype compound,fd_parse_context pc,int start,
+                          int lim,int trylower)
 {
   int i=0, len=FD_VECTOR_LENGTH(compound);
   while (i<len) {
@@ -905,34 +906,34 @@ static fdtype probe_compound
       return results;}}
 }
 
-static void bump_weights_for_capitalization(fd_parse_context pc,int word);
+static void bump_weights_for_capitalization(fd_parse_context,int,int);
 
 static void identify_compounds(fd_parse_context pc)
 {
   int oddcaps=(pc->flags&FD_TAGGER_ODDCAPS);
   int allcaps=(pc->flags&FD_TAGGER_ALLCAPS);
-  int start=1, i=0, lim=pc->n_inputs-1;
+  int at_startp=1, i=0, lim=pc->n_inputs-1;
   while (i < lim) {
     fdtype compounds=FD_EMPTY_CHOICE, tmp;
     u8_string scan=pc->input[i].spelling;
     int fc=u8_sgetc(&scan), c2=u8_sgetc(&scan);
     if (strchr(".;!?:\"'`.",fc)) {
-      start=1; i++; continue;}
+      at_startp=1; i++; continue;}
     tmp=probe_compound(pc,i,i+1,pc->n_inputs,0);
     FD_ADD_TO_CHOICE(compounds,tmp);
-    if ((u8_isupper(fc)) && (start||oddcaps||u8_isupper(c2))) {
+    if ((u8_isupper(fc)) && (at_startp||oddcaps||u8_isupper(c2))) {
       fdtype lowered=lower_string(pc->input[i].spelling);
       fdtype lexdata=get_lexinfo(pc,lowered);
       if (FD_EMPTY_CHOICEP(lexdata)) {fd_decref(lowered);}
       else {
         fdtype entry=fd_conspair(fd_make_list(1,lowered),lexdata);
-        if (((start==0) || (pc->input[i].cap)) && (!(allcaps)))
-          bump_weights_for_capitalization(pc,i);
+        if (((at_startp) || (pc->input[i].cap)) && (!(allcaps)))
+          bump_weights_for_capitalization(pc,i,1);
         FD_ADD_TO_CHOICE(compounds,entry);}
       tmp=probe_compound(pc,i,i+1,pc->n_inputs,1);
       FD_ADD_TO_CHOICE(compounds,tmp);}
     FD_ADD_TO_CHOICE(pc->input[i].compounds,compounds);
-    start=0;
+    at_startp=0;
     i++;}
 }
 
@@ -1229,7 +1230,7 @@ static fdtype get_lexweights(fd_parse_context pc,u8_string spelling,
   return value;
 }
 
-static void bump_weights_for_capitalization(fd_parse_context pc,int word)
+static void bump_weights_for_capitalization(fd_parse_context pc,int word,int by)
 {
   /* If it was capitalized in the lexicon, don't bump it for
      capitalization. */
@@ -1239,7 +1240,7 @@ static void bump_weights_for_capitalization(fd_parse_context pc,int word)
   int i=0; while (i < pc->grammar->n_arcs) {
     unsigned char *weights=pc->input[word].weights;
     if (weights[i]==255) i++;
-    else {weights[i]=weights[i]+1; i++;}}
+    else {weights[i]=weights[i]+by; i++;}}
 }
 
 
@@ -1656,8 +1657,8 @@ static fd_parse_state queue_extend(fd_parse_context pc)
   fd_parse_state tref=pc->queue;
   struct FD_PARSER_STATE *top;
   if (tref >= 0) {
-    log_state(pc,"<<< POPPED",tref);
-    top=&(pc->states[tref]); pc->last=tref; 
+    if (trace_tagger) log_state(pc,"<<< POPPED",tref);
+    top=&(pc->states[tref]); pc->last=tref;
     pc->queue=top->qnext;}
   else return pc->last;
   if ((top->input == pc->n_inputs) && (!(ZEROP(top->node->terminal))))
