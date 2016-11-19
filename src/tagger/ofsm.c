@@ -1684,10 +1684,14 @@ static fd_parse_state queue_extend(fd_parse_context pc)
     top=&(pc->states[tref]); pc->last=tref;
     pc->queue=top->qnext;}
   else return pc->last;
-  if ((top->input == pc->n_inputs) && (!(ZEROP(top->node->terminal))))
-    return tref;
-  else if (top->input > pc->n_inputs) return -1;
-  else {expand_state(pc,tref); return -1;}
+  if ((top->input == pc->n_inputs) && (!(ZEROP(top->node->terminal)))) {
+    if ((pc->flags&FD_TAGGER_EXPAND_FINAL_STATES))
+      expand_state(pc,tref);
+    return tref;}
+  /*  else if (top->input > pc->n_inputs) return -1; */
+  else {
+    expand_state(pc,tref);
+    return queue_extend(pc);}
 }
 
 FD_EXPORT
@@ -2296,6 +2300,7 @@ static fdtype tagger_start(fdtype text,fdtype cxt)
     struct FD_GRAMMAR *grammar=get_default_grammar();
     pcxt=u8_alloc(struct FD_PARSE_CONTEXT);
     fd_init_parse_context(pcxt,grammar);
+    pcxt->flags|=FD_TAGGER_EXPAND_FINAL_STATES;
     FD_INIT_CONS(pcxt,fd_tagger_type);
     cxt=(fdtype) pcxt;}
   else if (FD_PRIM_TYPEP(cxt,fd_tagger_type)) {
@@ -2321,6 +2326,39 @@ static fdtype tagger_next(fdtype cxt)
   final=fd_run_parser(pcxt);
   pcxt->runtime=pcxt->runtime+(u8_elapsed_time()-start_time);
   return fd_gather_tags(pcxt,final);
+}
+
+static fdtype tagger_top(fdtype cxt)
+{
+  struct FD_PARSE_CONTEXT *pcxt=(struct FD_PARSE_CONTEXT *)cxt;
+  double start_time=u8_elapsed_time();
+  fd_parse_state final; struct FD_PARSER_STATE *f;
+  fdtype result=FD_EMPTY_LIST, tags=FD_VOID;
+  if (pcxt->n_inputs==0) {
+    lexer(pcxt,pcxt->start,NULL);
+    identify_alternates(pcxt);
+    add_state(pcxt,&(pcxt->grammar->nodes[0]),0,0,-1,0,FD_VOID);}
+  final=fd_run_parser(pcxt);
+  pcxt->runtime=pcxt->runtime+(u8_elapsed_time()-start_time);
+  if (final<0) return FD_EMPTY_CHOICE;
+  else {
+    struct FD_PARSER_STATE *f=&(pcxt->states[final]);
+    fdtype results=FD_EMPTY_CHOICE;
+    fd_parse_state next=f->qnext;
+    int d=f->distance;
+    while ((f)&&(f->distance==d)&&
+           (f->input==pcxt->n_inputs)&&
+           (!(ZEROP(f->node->terminal)))) {
+      fdtype tagging=fd_gather_tags(pcxt,final);
+      FD_ADD_TO_CHOICE(results,tagging);
+      if ((pcxt->flags&FD_TAGGER_EXPAND_FINAL_STATES))
+        expand_state(pcxt,final);
+      pcxt->queue=next;
+      if (next>=0)
+        f=&(pcxt->states[next]);
+      else f=NULL;
+      final=next;}
+    return results;}
 }
 
 
@@ -2716,6 +2754,8 @@ void fd_init_ofsm_c()
   fd_idefn(menv,fd_make_cprim2x("TAGGER/START",tagger_start,1,
                                 fd_string_type,FD_VOID,-1,FD_VOID));
   fd_idefn(menv,fd_make_cprim1x("TAGGER/NEXT",tagger_next,1,
+                                fd_tagger_type,FD_VOID));
+  fd_idefn(menv,fd_make_cprim1x("TAGGER/TOP",tagger_top,1,
                                 fd_tagger_type,FD_VOID));
 
   fd_idefn(menv,fd_make_cprim3("LEXWEIGHT",lexweight_prim,1));
