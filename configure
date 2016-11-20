@@ -904,6 +904,7 @@ with_hyphenate
 enable_largefiles
 with_crypto
 with_sundown
+with_x2vec
 with_profiling
 with_profiler
 enable_prefetching
@@ -1638,6 +1639,7 @@ Optional Packages:
 --with-hyphenate Build and install hyphenate bindings
 --without-crypto Compile the crypto module
 --without-sundown Compile the sundown module
+--without-x2vec Compile the x2vec module
 --with/out-profiling compile to generate profile information
 --with/out-profiler build with optional perftools profiling
 --without-tls Force use of threadlocal storage
@@ -10781,6 +10783,19 @@ fi
 if test "x$with_sundown" = "xyes"; then
   CMODULES="lib/framerd/sundown.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
+fi
+
+
+# Check whether --with-x2vec was given.
+if test "${with_x2vec+set}" = set; then :
+  withval=$with_x2vec;
+else
+  with_x2vec="yes"
+fi
+
+if test "x$with_x2vec" = "xyes"; then
+  CMODULES="lib/framerd/x2vec.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-x2vec ${INSTALLCMODULES}"
 fi
 
 

@@ -132,7 +132,7 @@ SUNDOWN_OBJS= src/cmodules/sundown/autolink.o \
 CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/modules/crypto.o src/cmodules/ldap.o \
 	     src/cmodules/dbus.o src/cmodules/mysql.o \
-	     src/cmodules/qrcode.o \
+	     src/cmodules/qrcode.o src/cmodules/x2vec.o \
 	     src/cmodules/ziptools.o src/cmodules/tidy.o \
 	     src/cmodules/zlib.o src/cmodules/imagick.o \
 	     src/cmodules/hyphenate.o \
@@ -216,7 +216,8 @@ CMODULE_SOURCES=\
 	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
 	src/cmodules/qrcode.c src/cmodules/ziptools.c                  \
 	src/cmodules/tidy.c src/cmodules/imagick.c                     \
-	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c 
+	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c        \
+	src/cmodules/x2vec.c
 
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
         lib/libfdbserv@suffix@.a lib/libfddbfile@suffix@.a     \
@@ -849,6 +850,9 @@ lib/framerd/tidy.dylib: src/cmodules/tidy.o
 lib/framerd/zlib.so: src/cmodules/zlib.o ${MODULE_SO}
 lib/framerd/zlib.dylib: src/cmodules/zlib.o
 
+lib/framerd/x2vec.so: src/cmodules/x2vec.o ${MODULE_SO}
+lib/framerd/x2vec.dylib: src/cmodules/x2vec.o
+
 lib/framerd/sundown.so: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS) $(MODULE_SO)
 	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS) $(MODULE_SO)
 	@$(MSG) MKSO  $@ $<
@@ -1149,7 +1153,7 @@ install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
 $(BININSTALLDIR)/fdcgiexec@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
 
-install-cmodules: @INSTALLCMODULES@ install-sundown
+install-cmodules: @INSTALLCMODULES@ install-sundown install-x2vec
 install-odbc: $(LIBINSTALLDIR)/framerd/odbc.@shared_suffix@ \
 	      $(LIBINSTALLDIR)/framerd/odbc.@vshared_suffix@
 install-sqlite: $(LIBINSTALLDIR)/framerd/sqlite.@shared_suffix@ \
@@ -1180,6 +1184,8 @@ install-zlib: $(LIBINSTALLDIR)/framerd/zlib.@shared_suffix@ \
 	        $(LIBINSTALLDIR)/framerd/zlib.@vshared_suffix@
 install-sundown: $(LIBINSTALLDIR)/framerd/sundown.@shared_suffix@ \
 	        $(LIBINSTALLDIR)/framerd/sundown.@vshared_suffix@
+install-x2vec: $(LIBINSTALLDIR)/framerd/x2vec.@shared_suffix@ \
+	        $(LIBINSTALLDIR)/framerd/x2vec.@vshared_suffix@
 
 # Setup targets
 
@@ -1516,6 +1522,7 @@ $(DTYPE_OBJS) $(DB_OBJS) $(DBFILE_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
 $(FDWEB_OBJS) $(TEXTTOOLS_OBJS) $(TAGGER_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
+src/cmodules/x2vec.o: include/framerd/x2vec.h
 
 # We've stopped using makedpend for the time being
 
