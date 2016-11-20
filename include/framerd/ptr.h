@@ -152,11 +152,12 @@ typedef enum FD_PTR_TYPE {
   fd_secret_type=FD_CONS_TYPECODE(25),
   /* We define these here, early, so they're treated as a constant */
   fd_sproc_type=FD_CONS_TYPECODE(26),
-  fd_regex_type=FD_CONS_TYPECODE(27)
+  fd_regex_type=FD_CONS_TYPECODE(27),
+  fd_flonum_vector_type=FD_CONS_TYPECODE(28)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 28
+#define FD_BUILTIN_CONS_TYPES 29
 #define FD_BUILTIN_IMMEDIATE_TYPES 6
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
@@ -580,7 +581,6 @@ FD_EXPORT fd_oid_info_fn _fd_oid_info;
 FD_EXPORT int fdtype_compare(fdtype x,fdtype y,int);
 FD_EXPORT int fdtype_equal(fdtype x,fdtype y);
 FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
-
 
 #define FD_EQUAL FDTYPE_EQUAL
 #if FD_PROFILING_ENABLED

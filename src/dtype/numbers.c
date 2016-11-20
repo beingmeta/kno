@@ -49,6 +49,7 @@
 #include "framerd/dtype.h"
 #include "framerd/bigints.h"
 #include "framerd/numbers.h"
+#include "framerd/hash.h"
 
 #include <libu8/u8stringfns.h>
 #include <libu8/u8printf.h>
@@ -2028,8 +2029,10 @@ static void recycle_double(struct FD_CONS *c)
 
 static int compare_double(fdtype x,fdtype y,int f)
 {
-  struct FD_DOUBLE *dx=FD_GET_CONS(x,fd_double_type,struct FD_DOUBLE *);
-  struct FD_DOUBLE *dy=FD_GET_CONS(y,fd_double_type,struct FD_DOUBLE *);
+  struct FD_DOUBLE *dx=
+    FD_GET_CONS(x,fd_double_type,struct FD_DOUBLE *);
+  struct FD_DOUBLE *dy=
+    FD_GET_CONS(y,fd_double_type,struct FD_DOUBLE *);
   if (dx->flonum < dy->flonum) return -1;
   else if (dx->flonum==dy->flonum) return 0;
   else return 1;
@@ -2037,10 +2040,12 @@ static int compare_double(fdtype x,fdtype y,int f)
 
 static int hash_double(fdtype x,unsigned int (*fn)(fdtype))
 {
-  struct FD_DOUBLE *dx=FD_GET_CONS(x,fd_double_type,struct FD_DOUBLE *);
+  struct FD_DOUBLE *dx=
+    FD_GET_CONS(x,fd_double_type,struct FD_DOUBLE *);
   int expt;
   double mantissa=frexp(fabs(dx->flonum),&expt);
-  double reformed=((expt<0) ? (ldexp(mantissa,0)) : (ldexp(mantissa,expt)));
+  double reformed=
+    ((expt<0) ? (ldexp(mantissa,0)) : (ldexp(mantissa,expt)));
   int asint=(int)reformed;
   return asint%256001281;
 }
@@ -2892,11 +2897,129 @@ fdtype fd_make_exact(fdtype x)
     fdtype realpart=FD_REALPART(x), imagpart=FD_IMAGPART(x);
     if ((FD_FLONUMP(realpart)) ||
 	(FD_FLONUMP(imagpart)))
-      return make_complex(fd_make_exact(realpart),
-			  fd_make_exact(imagpart));
+      return make_complex(fd_make_exact(realpart),fd_make_exact(imagpart));
     else return fd_incref(x);}
   else if (FD_NUMBERP(x)) return fd_incref(x);
   else return fd_type_error(_("number"),"fd_make_inexact",x);
+}
+
+
+/* Homogenous vectors */
+
+FD_EXPORT fdtype fd_init_flonum_vector
+  (struct FD_FLONUM_VECTOR *vec,int n,double *elts)
+{
+  if ((vec == NULL)&&(elts==NULL)) {
+    size_t vec_size=sizeof(struct FD_FLONUM_VECTOR)+ (n*(sizeof(double)));
+    vec = u8_malloc(vec_size);
+    memset(vec,0,vec_size);
+    FD_INIT_CONS(vec,fd_flonum_vector_type);
+    vec->length=n; vec->freedata=0;
+    vec->elts=(double *)
+      (((unsigned char *)vec)+sizeof(struct FD_FLONUM_VECTOR));
+    return (fdtype) vec;}
+  else if ((vec==NULL)&&(elts!=NULL)) {
+    vec=u8_alloc(struct FD_FLONUM_VECTOR);
+    FD_INIT_FRESH_CONS(vec,fd_flonum_vector_type);
+    vec->length=n; vec->freedata=1;
+    vec->elts=elts;
+    return (fdtype) vec;}
+  else if (elts==NULL) {
+    FD_INIT_FRESH_CONS(vec,fd_flonum_vector_type);
+    vec->length=n; vec->freedata=1;
+    vec->elts=u8_alloc_n(n,double);
+    return (fdtype) vec;}
+  else {
+    FD_INIT_FRESH_CONS(vec,fd_flonum_vector_type);
+    vec->length=n; vec->freedata=1;
+    vec->elts=elts;
+    return (fdtype) vec;}
+}
+
+FD_EXPORT fdtype fd_make_flonum_vector(int n,double *elts)
+{
+  size_t vec_size=sizeof(struct FD_FLONUM_VECTOR)+ (n*(sizeof(double)));
+  struct FD_FLONUM_VECTOR *vec=u8_malloc(vec_size);
+  memset(vec,0,vec_size);
+  FD_INIT_CONS(vec,fd_flonum_vector_type);
+  vec->length=n; vec->freedata=0;
+  vec->elts=(double *)
+    (((unsigned char *)vec)+sizeof(struct FD_FLONUM_VECTOR));
+
+  if (elts) {
+    double *values=vec->elts; int i=0; while (i<n) {
+      values[i] = elts[i];
+      i++;}}
+
+  return (fdtype) vec;
+}
+
+static void recycle_double_vector(struct FD_CONS *c)
+{
+  struct FD_FLONUM_VECTOR *v=(struct FD_FLONUM_VECTOR *)c;
+  if (v->freedata) u8_free(v->elts);
+  if (FD_MALLOCD_CONSP(c)) {
+    u8_free(c);}
+}
+
+static int compare_double_vector(fdtype x,fdtype y,int f)
+{
+  struct FD_FLONUM_VECTOR *vx=(struct FD_FLONUM_VECTOR *)x;
+  struct FD_FLONUM_VECTOR *vy=(struct FD_FLONUM_VECTOR *)y;
+  if (vx->length == vy->length) {
+    double *xvec=vx->elts, *yvec=vy->elts;
+    int i=0, lim=vx->length; while (i<lim) {
+      if (xvec[i] > yvec[i])
+        return 1;
+      else if (xvec[i] < yvec[i])
+        return -1;
+      else i++;}
+    return 0;}
+  else if (vx->length > vy->length)
+    return 1;
+  else return -1;
+}
+
+static int hash_double_vector(fdtype x,unsigned int (*fn)(fdtype))
+{
+  struct FD_FLONUM_VECTOR *vec=(struct FD_FLONUM_VECTOR *)x;
+  double *elts = vec->elts;
+  int i=0, n=vec->length; int hashval=vec->length;
+  while (i<n) {
+    double v=elts[i++]; int exp;
+    double mantissa=frexpf(v,&exp);
+    double reformed=
+      ((exp<0) ? (ldexpf(mantissa,0)) : (ldexpf(mantissa,exp)));
+    int asint=(int)reformed;
+    hashval=hash_combine(hashval,asint);}
+  return hashval;
+}
+
+static fdtype copy_double_vector(fdtype x,int deep)
+{
+  struct FD_FLONUM_VECTOR *vec=(struct FD_FLONUM_VECTOR *)x;
+  double *elts = vec->elts; int i=0, n=vec->length;
+  size_t vec_size=sizeof(struct FD_FLONUM_VECTOR)+(n*sizeof(double));
+  struct FD_FLONUM_VECTOR *copy=u8_malloc(vec_size);
+  double *newelts;
+  memset(copy,0,vec_size);
+  FD_INIT_CONS(copy,fd_flonum_vector_type);
+  copy->length=n; copy->freedata=0;
+  copy->elts=newelts=(double *)
+    (((unsigned char *)vec)+sizeof(struct FD_FLONUM_VECTOR));
+  while (i<n) {newelts[i]=elts[i]; i++;}
+  return (fdtype) copy;
+}
+
+static int unparse_double_vector(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_FLONUM_VECTOR *vec=(struct FD_FLONUM_VECTOR *)x;
+  double *elts = vec->elts;
+  int i=0, n=vec->length;
+  u8_puts(out,"#<DOUBLEVEC");
+  while (i<n) u8_printf(out," %f",elts[i++]);
+  u8_puts(out,">");
+  return 1;
 }
 
 
@@ -2911,17 +3034,22 @@ void fd_init_numbers_c()
 
   fd_unparsers[fd_rational_type]=unparse_rational;
   fd_unparsers[fd_complex_type]=unparse_complex;
+  fd_unparsers[fd_flonum_vector_type]=unparse_double_vector;
 
   fd_copiers[fd_double_type]=copy_double;
   fd_copiers[fd_bigint_type]=copy_bigint;
+  fd_copiers[fd_flonum_vector_type]=copy_double_vector;
   fd_recyclers[fd_double_type]=recycle_double;
   fd_recyclers[fd_bigint_type]=recycle_bigint;
+  fd_recyclers[fd_bigint_type]=recycle_double_vector;
   fd_comparators[fd_double_type]=compare_double;
   fd_comparators[fd_bigint_type]=compare_bigint;
+  fd_comparators[fd_bigint_type]=compare_double_vector;
   fd_dtype_writers[fd_bigint_type]=dtype_bigint;
   fd_dtype_writers[fd_double_type]=dtype_double;
   fd_hashfns[fd_bigint_type]=hash_bigint;
   fd_hashfns[fd_double_type]=hash_double;
+  fd_hashfns[fd_flonum_vector_type]=hash_double_vector;
 
   fd_register_packet_unpacker
     (dt_numeric_package,dt_double,unpack_double);

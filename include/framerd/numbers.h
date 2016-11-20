@@ -48,3 +48,21 @@ FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 #define fd_make_double(dbl) (fd_init_double(NULL,(dbl)))
 
 
+/* Floating vectors */
+
+typedef struct FD_FLONUM_VECTOR {
+  FD_CONS_HEADER;
+  unsigned int freedata:1;
+  unsigned int length:31;
+  double *elts;} FD_FLONUM_VECTOR;
+typedef struct FD_FLONUM_VECTOR *fd_float_vector;
+
+FD_EXPORT fdtype fd_make_flonum_vector(int n,double *elts);
+FD_EXPORT fdtype fd_init_flonum_vector
+  (struct FD_FLONUM_VECTOR *v,int n,double *elts);
+
+#define FD_GET_FLONUMVEC(v) \
+  (FD_STRIP_CONS(v,fd_float_vector_type,struct FD_FLONUM_VECTOR *))
+#define FD_FLONUMVEC_LENGTH(v) ((FD_GET_FLONUMVEC(v))->length)
+#define FD_FLONUMVEC_ELTS(v) ((FD_GET_FLONUMVEC(v))->elts)
+#define FD_FLONUMVEC_REF(v,i) ((FD_FLONUMVEC_ELTS(v))[i])
