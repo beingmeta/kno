@@ -350,7 +350,7 @@ typedef struct FD_VECTOR *fd_vector;
 
 #define FD_VECTORP(x) (FD_PTR_TYPEP((x),fd_vector_type))
 #define FD_VECTOR_LENGTH(x) \
-  ((FD_STRIP_CONS((x),fd_string_type,struct FD_VECTOR *))->length)
+  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->length)
 #define FD_VECTOR_DATA(x) \
   ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->data)
 #define FD_VECTOR_ELTS(x) \
