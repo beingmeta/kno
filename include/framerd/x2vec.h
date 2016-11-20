@@ -14,7 +14,7 @@ struct FD_X2VEC_WORD {
 };
 
 struct FD_X2VEC_CONTEXT {
-  FD_CONS_HEADER;
+  FD_CONS_HEADER; fdtype opts;
   struct FD_X2VEC_WORD *vocab;
   ssize_t vocab_max_size, vocab_size;
   int layer1_size;
@@ -23,7 +23,6 @@ struct FD_X2VEC_CONTEXT {
   int *table;
   ssize_t table_size;
   int bag_of_words, window, min_count, min_reduce;
-  int binary, debug_mode, num_threads;
   int hisoftmax, negative_sampling;
   long long train_words, word_count_actual, n_classes;
   int *classes;
@@ -34,7 +33,7 @@ struct FD_X2VEC_CONTEXT {
 struct FD_X2VEC_STATE {
   struct FD_X2VEC_CONTEXT *x2vcxt;
   unsigned long long random_value;
-  fdtype input;};
+  fdtype input, opts;};
 
 FD_EXPORT int fd_init_x2vec(void) FD_LIBINIT_FN;
 

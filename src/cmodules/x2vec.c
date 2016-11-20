@@ -15,6 +15,8 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
+#include "framerd/numbers.h"
+#include "framerd/sequences.h"
 #include "framerd/x2vec.h"
 
 #include <libu8/libu8.h>
@@ -54,13 +56,45 @@ static void *safe_calloc(size_t n_elts,size_t elt_size,u8_context context)
   else return result;
 }
 
+static long long getintopt(fdtype opts,fdtype sym,
+			   long long dflt)
+{
+  fdtype v=fd_getopt(opts,sym,FD_VOID);
+  if (FD_FIXNUMP(v))
+    return FD_FIX2INT(v);
+  else if ((FD_VOIDP(v))||(FD_FALSEP(v)))
+    return dflt;
+  else if (FD_BIGINTP(v)) {
+    long long intv=fd_bigint_to_long_long((struct FD_BIGINT *)v);
+    fd_decref(v);
+    return intv;}
+  else {
+    u8_log(LOG_WARN,"Bad integer option value",
+	   "The option %q was %q, which isn't an integer");
+    return dflt;}
+}
+
+static real getrealopt(fdtype opts,fdtype sym,real dflt)
+{
+  fdtype v = fd_getopt(opts,sym,FD_VOID);
+  if ((FD_VOIDP(v))||(FD_FALSEP(v)))
+    return dflt;
+  else if (FD_FLONUMP(v)) {
+    double realval=FD_FLONUM(v);
+    fd_decref(v);
+    return (real) realval;}
+  else return dflt;
+}
+
+static int default_num_threads=2;
+
 fd_ptr_type fd_x2vec_type;
 
 static fdtype layer1_size, window, min_reduce, min_count, n_classes;
 static fdtype table_size, vocab_size, vocab_hash_size, alpha, subsample;
 static fdtype negative_sampling, hisoftmax, mode, bag_of_words, skipgram;
+static fdtype vocab, weights, training;
 static fdtype num_threads;
-
 
 static int default_vocab_hash_size = 30000000;  // Maximum 30 * 0.7 = 2 1M words in the vocabulary
 
@@ -76,6 +110,9 @@ static void init_expTable(struct FD_X2VEC_CONTEXT *x2vcxt)
       expTable[i] = exp((i / (real)EXP_TABLE_SIZE * 2 - 1) * MAX_EXP);
       expTable[i] = expTable[i] / (expTable[i] + 1);}}
 }
+
+FD_EXPORT fdtype fd_set_weights(struct FD_X2VEC_CONTEXT *x2vcxt,int n,
+				real *weights);
 
 static void init_unigrams(struct FD_X2VEC_CONTEXT *x2vcxt) 
 {
@@ -130,7 +167,8 @@ static int get_vocab_id(struct FD_X2VEC_CONTEXT *x2vcxt,u8_string word)
   unsigned int hash = word_hash(x2vcxt,word);
   while (1) {
     if (vocab_hash[hash] == -1) return -1;
-    if (!strcmp(word, vocab[vocab_hash[hash]].word)) return vocab_hash[hash];
+    if (!strcmp(word, vocab[vocab_hash[hash]].word))
+      return vocab_hash[hash];
     hash = (hash + 1) % vocab_hash_size;}
   return -1;
 }
@@ -202,7 +240,9 @@ static void import_vocab(struct FD_X2VEC_CONTEXT *x2vcxt,fdtype data)
   struct FD_X2VEC_WORD *vocab = x2vcxt->vocab;
   int *vocab_hash = x2vcxt->vocab_hash;
   size_t vocab_hash_size = x2vcxt->vocab_hash_size;
-  for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
+  if (vocab_hash==NULL) {
+    x2vcxt->vocab_hash=vocab_hash=u8_alloc_n(vocab_hash_size,int);
+    for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;}
   if (FD_CHOICEP(data)) {
     FD_DO_CHOICES(entry,data) {
       if (FD_PAIRP(entry)) {
@@ -211,6 +251,41 @@ static void import_vocab(struct FD_X2VEC_CONTEXT *x2vcxt,fdtype data)
 	vocab[a].count = FD_INT(num);}
       else {
 	u8_log(LOG_WARN,"Bad Vocab import","Couldn't use %q",entry);}}}
+  else if (FD_VECTORP(data)) {
+    struct FD_VECTOR *vec=(struct FD_VECTOR *)data;
+    fdtype *elts=vec->data;
+    int i=0, len=vec->length; while (i<len) {
+      fdtype elt=elts[i];
+      if (FD_STRINGP(elt)) {
+	u8_string text = FD_STRDATA(elt);
+	i = get_vocab_id(x2vcxt,text);
+	if (i == -1) {
+	  a = vocab_add(x2vcxt,u8_strdup(text));
+	  vocab[a].count = 1;}
+	else {
+	  vocab[i].count++;}}
+      else {
+	u8_log(LOGWARN,"BadImportItem", "Bad text input item %q",elt);}
+      i++;}}
+  else if (FD_TABLEP(data)) {
+    fdtype keys=fd_getkeys(data);
+    FD_DO_CHOICES(key,keys) {
+      if (FD_STRINGP(key)) {
+	fdtype value=fd_get(data,key,FD_VOID);
+	if ((FD_FIXNUMP(value))||(FD_BIGINTP(value))) {
+	  u8_string text=FD_STRDATA(key);
+	  int a=vocab_add(x2vcxt,u8_strdup(text));
+	  if (FD_FIXNUMP(value))
+	    vocab[a].count=FD_FIX2INT(value);
+	  else {
+	    vocab[a].count= fd_bigint_to_long_long((fd_bigint)value);
+	    fd_decref(value);}}
+	else {
+	  u8_log(LOGWARN,"BadWordCount",
+		 "Invalid word count value for %q: %q",key,value);
+	  fd_decref(value);}}
+      else {}}
+    fd_decref(keys);}
   sort_vocab(x2vcxt);
 }
 
@@ -387,10 +462,12 @@ void init_nn(struct FD_X2VEC_CONTEXT *x2vcxt)
   size_t vocab_size = x2vcxt->vocab_size;
   int layer1_size = x2vcxt->layer1_size;
   real *syn0, *syn1, *syn1neg;
-  a = posix_memalign((void **)&(x2vcxt->syn0), 128,
-		     (long long)vocab_size * layer1_size * sizeof(real));
-  if ((x2vcxt->syn0) == NULL) {
-    u8_raise(fd_MallocFailed,"x2vec/init_nn",NULL);}
+  if (x2vcxt->syn0==NULL) {
+    a = posix_memalign((void **)&(x2vcxt->syn0), 128,
+		       (long long)vocab_size * layer1_size * sizeof(real));
+    if ((x2vcxt->syn0) == NULL) {
+      u8_raise(fd_MallocFailed,"x2vec/init_nn",NULL);}
+    else syn0=x2vcxt->syn0;}
   else syn0=x2vcxt->syn0;
 
   if (x2vcxt->hisoftmax) {
@@ -434,6 +511,8 @@ void *training_threadproc(void *state)
   struct FD_X2VEC_STATE *x2vs=(struct FD_X2VEC_STATE *)state;
   struct FD_X2VEC_CONTEXT *x2vcxt=x2vs->x2vcxt;
   struct FD_X2VEC_WORD *vocab = x2vcxt->vocab;
+  fdtype opts=x2vs->opts;
+  int num_threads=getintopt(opts,num_threads,default_num_threads);
   size_t vocab_size = x2vcxt->vocab_size;
   real *syn0 = x2vcxt->syn0, *syn1 = x2vcxt->syn1, *syn1neg = x2vcxt->syn1neg;
   int *table = x2vcxt->table;
@@ -495,7 +574,7 @@ void *training_threadproc(void *state)
         if (block_length >= MAX_BLOCK_LENGTH) break;}
       block_position = 0;}
     if ((vec_pos >= vec_len) &&
-	(word_count > x2vcxt->train_words / x2vcxt->num_threads))
+	(word_count > x2vcxt->train_words / num_threads))
       break;
     word = sen[block_position];
     if (word == -1) continue;
@@ -631,6 +710,7 @@ void *training_threadproc(void *state)
     /* while (vec_pos < vec_len) */}
   free(neu1);
   free(neu1e);
+  fd_decref(opts);
   pthread_exit(NULL);
 }
 
@@ -638,11 +718,14 @@ static void compute_classes(struct FD_X2VEC_CONTEXT *x2vcxt);
 
 static void train_model(struct FD_X2VEC_CONTEXT *x2vcxt,
 			fdtype training,
-			fdtype vocab)
+			fdtype vocab,
+			fdtype opts)
 {
   long a, b, c, d;
-  int num_threads = x2vcxt->num_threads;
   pthread_t *pt = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
+  fdtype xopts=(FD_VOIDP(opts))?(fd_incref(x2vcxt->opts)):
+    (fd_make_pair(opts,x2vcxt->opts));
+  int num_threads = getintopt(xopts,num_threads,default_num_threads);
   struct FD_X2VEC_STATE *thread_states =
     safe_calloc(num_threads,sizeof(struct FD_X2VEC_STATE),
 		"x2vcxt/TrainModel/threadstates");
@@ -653,7 +736,8 @@ static void train_model(struct FD_X2VEC_CONTEXT *x2vcxt,
   init_expTable(x2vcxt);
 
   if (FD_VOIDP(vocab)) {
-    init_vocab(x2vcxt,training);}
+    if (x2vcxt->vocab==NULL)
+      init_vocab(x2vcxt,training);}
   else import_vocab(x2vcxt,vocab);
 
   init_nn(x2vcxt);
@@ -666,8 +750,10 @@ static void train_model(struct FD_X2VEC_CONTEXT *x2vcxt,
   for (a = 0; a < num_threads; a++) {
     struct FD_X2VEC_STATE *tstate=&(thread_states[a]);
     tstate->x2vcxt=x2vcxt; tstate->input=training;
+    tstate->opts=xopts; fd_incref(xopts);
     tstate->random_value=a;
     pthread_create(&pt[a], NULL, training_threadproc, (void *) tstate);}
+  fd_decref(xopts);
   /* Wait for all the threads to finish */
   for (a = 0; a < num_threads; a++) {
     pthread_join(pt[a], NULL);}
@@ -727,46 +813,40 @@ static void compute_classes(struct FD_X2VEC_CONTEXT *x2vcxt)
   free(cent);
 }
 
+/* Set weights */
+
+FD_EXPORT fdtype fd_set_weights(struct FD_X2VEC_CONTEXT *x2vcxt,int n,
+				real *weights)
+{
+  long long vocab_size=x2vcxt->vocab_size, layer1_size=x2vcxt->layer1_size;
+  size_t n_weights=(long long)vocab_size * layer1_size;
+  if (n!=n_weights) {
+    return fd_err(_("Wrong number of weights"),"fd_set_weights",NULL,FD_VOID);}
+  else {
+    real *syn0; int i=0;
+    if (x2vcxt->syn0) syn0=x2vcxt->syn0;
+    else posix_memalign((void **)&(x2vcxt->syn0), 128, n_weights * sizeof(real));
+    if ((x2vcxt->syn0) == NULL) {
+      u8_raise(fd_MallocFailed,"x2vec/init_nn",NULL);}
+    else syn0=x2vcxt->syn0;
+    while (i<n) {
+      syn0[i]=weights[i]; 
+      i++;}
+    return FD_INT(n);}
+}
+
 /* Creating an X2VEC context */
 
-static long long getintopt(fdtype opts,fdtype sym,
-			   long long dflt)
-{
-  fdtype v=fd_getopt(opts,sym,FD_VOID);
-  if (FD_FIXNUMP(v))
-    return FD_FIX2INT(v);
-  else if ((FD_VOIDP(v))||(FD_FALSEP(v)))
-    return dflt;
-  else if (FD_BIGINTP(v)) {
-    long long intv=fd_bigint_to_long_long((struct FD_BIGINT *)v);
-    fd_decref(v);
-    return intv;}
-  else {
-    u8_log(LOG_WARN,"Bad integer option value",
-	   "The option %q was %q, which isn't an integer");
-    return dflt;}
-}
-
-static real getrealopt(fdtype opts,fdtype sym,real dflt)
-{
-  fdtype v = fd_getopt(opts,sym,FD_VOID);
-  if ((FD_VOIDP(v))||(FD_FALSEP(v)))
-    return dflt;
-  else if (FD_FLONUMP(v)) {
-    double realval=FD_FLONUM(v);
-    fd_decref(v);
-    return (real) realval;}
-  else return dflt;
-}
-
-
-FD_EXPORT struct FD_X2VEC_CONTEXT *fd_start_index2vec(fdtype opts)
+FD_EXPORT struct FD_X2VEC_CONTEXT *fd_start_x2vec(fdtype opts)
 {
   struct FD_X2VEC_CONTEXT *x2v = u8_alloc(struct FD_X2VEC_CONTEXT);
+  fdtype vocab=fd_getopt(opts,vocab,FD_VOID);
+  fdtype weights=fd_getopt(opts,weights,FD_VOID);
+  fdtype training_data=fd_getopt(opts,training,FD_VOID);
   FD_INIT_FRESH_CONS(x2v,fd_x2vec_type);
+  x2v->opts=opts; fd_incref(opts);
   x2v->layer1_size=getintopt(opts,layer1_size,100);
   x2v->window=getintopt(opts,window,5);
-  x2v->num_threads=getintopt(opts,num_threads,2);
   x2v->min_reduce=getintopt(opts,min_reduce,1);
   x2v->min_count=getintopt(opts,min_count,5);
   x2v->n_classes=getintopt(opts,n_classes,5);
@@ -781,14 +861,157 @@ FD_EXPORT struct FD_X2VEC_CONTEXT *fd_start_index2vec(fdtype opts)
     x2v->bag_of_words=1;
   else if (fd_testopt(opts,mode,skipgram))
     x2v->bag_of_words=0;
-  else x2v->bag_of_words=1;
+  else x2v->bag_of_words=0;
 
   if (x2v->vocab_max_size) {
     x2v->vocab = u8_alloc_n(x2v->vocab_max_size,struct FD_X2VEC_WORD);}
   if (x2v->vocab_hash_size) {
-    x2v->vocab_hash = u8_alloc_n(x2v->vocab_hash_size,int);}
+    long long a;
+    size_t vocab_hash_size = x2v->vocab_hash_size;
+    int *vocab_hash = x2v->vocab_hash = u8_alloc_n(x2v->vocab_hash_size,int);
+    for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;}
+
+  if ((FD_VECTORP(weights))||
+      (FD_PRIM_TYPEP(weights,fd_flonum_vector_type))) {
+    if ((FD_VOIDP(vocab))&&(FD_VOIDP(training))) {
+      u8_log(LOGWARN,"NoVocab","Can't use weights without a vocabulary");}
+    else {
+      int len=fd_seq_length(weights);
+      float *syn0=u8_alloc_n(len,real);
+      if (FD_NOVOIDP(vocab)) import_vocab(x2v,vocab);
+      else init_vocab(x2v,training);
+      if (FD_VECTORP(weights)) {
+	int i=0; while (i<len) {
+	  fdtype elt=FD_VECTOR_REF(weights,i);
+	  if (FD_FLONUMP(elt)) {
+	    double d=FD_FLONUM(elt);
+	    syn0[i]=(real) d;}
+	  else {
+	    u8_log(LOGWARN,"BadWeight","Invalid weight %q",elt);}
+	  i++;}
+	fd_set_weights(x2v,len,syn0);}
+      else if (FD_PRIM_TYPEP(weights,fd_flonum_vector_type)) {
+	int i=0; while (i<len) {
+	  double d=FD_FLONUMVEC_REF(weights,i);
+	  syn0[i]=(real) d;
+	  i++;}
+	fd_set_weights(x2v,len,syn0);}
+      else {}
+      if (FD_NOVOIDP(training))
+	train_model(x2v,training,FD_FALSE,opts);}}
+  else if (FD_NOVOIDP(training)) {
+    train_model(x2v,training,vocab,opts);}
+  else if (!(FD_VOIDP(vocab))) {
+    import_vocab(x2v,vocab);}
+  else {}
+
+  fd_decref(weights);
+  fd_decref(vocab);
+  fd_decref(training);
 
   return x2v;
+}
+
+static fdtype start_x2vec_prim(fdtype opts)
+{
+  struct FD_X2VEC_CONTEXT *x2v=fd_start_x2vec(opts);
+  return (fdtype) x2v;
+}
+
+/* Getting stuff out to Scheme */
+
+static fdtype x2vec_inputs_prim(fdtype arg)
+{
+  struct FD_X2VEC_CONTEXT *x2v = (struct FD_X2VEC_CONTEXT *) arg;
+  int i=0, n=x2v->vocab_size;
+  struct FD_X2VEC_WORD *words=x2v->vocab;
+  fdtype result=fd_make_vector(n,NULL);
+  while (i<n) {
+    fdtype s=fd_make_string(NULL,-1,words[i].word);
+    FD_VECTOR_SET(result,i,s);}
+  return result;
+}
+
+static fdtype x2vec_counts_prim(fdtype arg)
+{
+  struct FD_X2VEC_CONTEXT *x2v = (struct FD_X2VEC_CONTEXT *) arg;
+  int i=0, n=x2v->vocab_size;
+  struct FD_X2VEC_WORD *words=x2v->vocab;
+  fdtype result=fd_make_hashtable(NULL,n);
+  fd_hashtable h=(fd_hashtable) result;
+  while (i<n) {
+    fdtype s=fd_make_string(NULL,-1,words[i].word);
+    fdtype v=FD_INT2DTYPE(words[i].count);
+    fd_hashtable_op(h,fd_table_store_noref,s,v);
+    i++;}
+  return result;
+}
+
+static fdtype x2vec_weights_prim(fdtype arg)
+{
+  struct FD_X2VEC_CONTEXT *x2v = (struct FD_X2VEC_CONTEXT *) arg;
+  size_t weights_len=(size_t)(vocab_size * layer1_size);
+  real *syn0=x2v->syn0;
+  if (syn0==NULL)
+    return FD_EMPTY_CHOICE;
+  else {
+    fdtype result;
+    double *weights=u8_alloc_n(weights_len,double);
+    int i=0; while (i<weights_len) {
+      double dval=(double)syn0[i];
+      weights[i]=dval;
+      i++;}
+    result=fd_make_flonum_vector(weights_len,weights);
+    u8_free(weights);
+    return result;}
+}
+
+/* Handlers */
+
+static void recycle_x2vec(struct FD_CONS *c)
+{
+  struct FD_X2VEC_CONTEXT *x2v=(struct FD_X2VEC_CONTEXT *)c;
+  struct FD_X2VEC_WORD *vocab=x2v->vocab;
+  int *vocab_hash=x2v->vocab_hash;
+  int *table=x2v->table;
+  int *classes=x2v->classes;
+  real *syn0=x2v->syn0, *syn1=x2v->syn1;
+  real *syn1neg=x2v->syn1neg, *expTable=x2v->expTable;
+
+  if (vocab) {
+    int i=0, n=x2v->vocab_size; while (i<n) {
+      u8_free(vocab[i].word); i++;}
+    u8_free(vocab); x2v->vocab=NULL;}
+  if (vocab_hash) {
+    u8_free(vocab_hash);
+    x2v->vocab_hash=NULL;}
+  if (table) {
+    u8_free(table);
+    x2v->table=NULL;}
+  if (classes) {
+    u8_free(classes);
+    x2v->classes=NULL;}
+  if (syn0) {
+    u8_free(syn0);
+    x2v->syn0=NULL;}
+  if (syn1) {
+    u8_free(syn1);
+    x2v->syn1=NULL;}
+  if (syn1neg) {
+    u8_free(syn1neg);
+    x2v->syn1neg=NULL;}
+  if (expTable) {
+    u8_free(expTable);
+    x2v->expTable=NULL;}
+
+  u8_free(x2v);
+}
+
+static int unparse_x2vec(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_X2VEC_CONTEXT *x2v=(struct FD_X2VEC_CONTEXT *)x;
+  u8_printf(out,"#<X2VEC #!%llx>",(unsigned long long)x2v);
+  return 1;
 }
 
 /* Initialization */
@@ -807,12 +1030,20 @@ FD_EXPORT int fd_init_x2vec()
   x2vec_initialized=u8_millitime();
 
   fd_x2vec_type=fd_register_cons_type("X2VEC");
+  fd_recyclers[fd_x2vec_type]=recycle_x2vec;
+  fd_unparsers[fd_x2vec_type]=unparse_x2vec;
 
   init_x2vec_symbols();
 
   module=fd_new_module("X2VEC",(FD_MODULE_SAFE));
 
-
+  fd_idefn(module,fd_make_cprim1("XVEC/START",start_x2vec_prim,1));
+  fd_idefn(module,fd_make_cprim1x("XVEC/INPUTS",x2vec_inputs_prim,1,
+				  fd_x2vec_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("XVEC/COUNTS",x2vec_counts_prim,1,
+				  fd_x2vec_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("XVEC/WEIGHTS",x2vec_weights_prim,1,
+				  fd_x2vec_type,FD_VOID));
 
   u8_register_source_file(_FILEINFO);
 
@@ -841,4 +1072,7 @@ static int init_x2vec_symbols()
   FD_ADD_TO_CHOICE(bag_of_words,fd_intern("BOW"));
   skipgram=FD_EMPTY_CHOICE;
   FD_ADD_TO_CHOICE(skipgram,fd_intern("SKIPGRAM"));
+  vocab=fd_intern("VOCAB");
+  weights=fd_intern("WEIGHTS");
+  training=fd_intern("TRAINGING");
 }
