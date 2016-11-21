@@ -137,6 +137,11 @@
 (define (word-root x)
   (choice (noun-root x) (verb-root x)))
 
+(define (weight-plus weight delta)
+  (if weight
+      (+ weight delta)
+      weight))
+
 
 ;;;; Arc type definitions
 
@@ -245,10 +250,10 @@
 	     1))
       (and (not (or (zero-arc 'VERB x)
 		    (satisfied? (zero-arc 'VERB (verb-root x)))))
-	   (has-part-of-speech x 'ADJECTIVE)))
+	   (weight-plus (has-part-of-speech x 'ADJECTIVE) 1)))
   (and (not (known-word? x)) (position #\- x) 2))
 (define-word-arc-type (DANGLING-ADJECTIVE x)
-    (has-part-of-speech x 'ADJECTIVE))
+  (weight-plus (has-part-of-speech x 'ADJECTIVE) 1))
 
 (define-word-arc-type (DANGLING-ADVERB x)
   (and (capitalized? x)
