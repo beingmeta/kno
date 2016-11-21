@@ -199,9 +199,9 @@ FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end)
     else if ((start<0) || (end<start) || (start>len) || (end>len))
       return -2;
     else if (start==end) return -1;
-    else while (start<end)
-      if (keyval==data[start]) return start;
-      else start++;
+    else while (start<end) {
+        if (keyval==data[start]) return start;
+        else start++;}
     return -1;}
   case fd_flonum_vector_type:
     if (FD_FLONUMP(key)) {
@@ -209,7 +209,7 @@ FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end)
       double *elts=FD_FLONUMVEC_ELTS(x);
       size_t len=FD_FLONUMVEC_LENGTH(x);
       off_t i=0; while (i<len) {
-        if (needle=elts[i]) return i;
+        if (needle==elts[i]) return i;
         else i++;}
       return -1;}
     else if (FD_NUMBERP(key)) {
@@ -301,7 +301,7 @@ FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end)
       double *elts=FD_FLONUMVEC_ELTS(x);
       size_t len=FD_FLONUMVEC_LENGTH(x);
       off_t i=len-1; while (i>=0) {
-        if (needle=elts[i]) return i;
+        if (needle==elts[i]) return i;
         else i--;}
       return -1;}
     else if (FD_NUMBERP(key)) {
