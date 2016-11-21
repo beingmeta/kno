@@ -2440,12 +2440,17 @@ static fdtype lexinfo_prim(fdtype string,fdtype tag)
     return FD_EMPTY_CHOICE;}
 }
 
-static fdtype lextags_prim()
+static fdtype lextags_prim(fdtype tag)
 {
   fd_grammar g=fd_default_grammar();
   if (g==NULL)
     return FD_ERROR_VALUE;
-  else return fd_incref(g->arc_names);
+  else if (FD_VOIDP(tag))
+    return fd_incref(g->arc_names);
+  else {
+    int i=fd_position(tag,g->arc_names,0,-1);
+    if (i<0) return FD_EMPTY_CHOICE;
+    else return FD_INT(i);}
 }
 
 static fdtype lexwordp(fdtype string)
@@ -2759,8 +2764,9 @@ void fd_init_ofsm_c()
                                 fd_tagger_type,FD_VOID));
 
   fd_idefn(menv,fd_make_cprim3("LEXWEIGHT",lexweight_prim,1));
+  fd_defalias(menv,"LEXWEIGHTS","LEXWEIGHT");
   fd_idefn(menv,fd_make_cprim2("LEXINFO",lexinfo_prim,1));
-  fd_idefn(menv,fd_make_cprim0("LEXTAGS",lextags_prim,0));
+  fd_idefn(menv,fd_make_cprim1("LEXTAGS",lextags_prim,0));
 
   fd_idefn(menv,fd_make_cprim0("NLP-STATS",lisp_get_stats,0));
   fd_idefn(menv,fd_make_cprim0("REPORT-NLP-STATS",lisp_report_stats,0));
