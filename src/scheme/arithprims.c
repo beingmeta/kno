@@ -183,7 +183,7 @@ static double todouble(fdtype x,fdtype *whoops)
   else if (FD_BIGINTP(x))
     return (double)fd_bigint_to_double((fd_bigint)x);
   else if (FD_FLONUMP(x))
-    return (((struct FD_DOUBLE *)x)->flonum);
+    return (((struct FD_FLONUM *)x)->flonum);
   else {
     *whoops=fd_type_error("number","todouble",x);
     return 0;}

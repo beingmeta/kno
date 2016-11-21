@@ -276,6 +276,53 @@ typedef int fd_size_t;
 #define FD_INTPTR unsigned long long
 #endif
 
+/* Sized numeric types */
+
+#if (SIZEOF_INT == 8)
+typedef int fd_long;
+typedef unsigned int fd_ulong;
+#elif (SIZEOF_LONG == 8)
+typedef long fd_long;
+typedef unsigned long fd_ulong;
+#elif (SIZEOF_LONG_LONG == 8)
+typedef long long fd_long;
+typedef unsigned long long fd_ulong;
+#endif
+
+#if (SIZEOF_INT == 4)
+typedef int fd_int;
+typedef unsigned int fd_uint;
+#elif (SIZEOF_LONG == 4)
+typedef long fd_int;
+typedef unsigned long fd_uint;
+#elif (SIZEOF_LONG_LONG == 8)
+typedef long long fd_int;
+typedef unsigned long long fd_uint;
+#else
+typedef int fd_int;
+typedef unsigned int fd_uint;
+#endif
+
+#if (SIZEOF_SHORT == 2)
+typedef short fd_short;
+typedef unsigned short fd_ushort;
+#else
+typedef int fd_short;
+typedef unsigned int fd_ushort;
+#endif
+
+#if (SIZEOF_FLOAT == 32)
+typedef float fd_float;
+#else
+typedef float fd_float;
+#endif
+
+#if (SIZEOF_DOUBLE == 64)
+typedef double fd_double;
+#else
+typedef double fd_double;
+#endif
+
 /* Fastcgi configuration */
 
 #ifndef HAVE_FCGIAPP_H

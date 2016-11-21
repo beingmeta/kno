@@ -904,6 +904,7 @@ with_hyphenate
 enable_largefiles
 with_crypto
 with_sundown
+with_x2vec
 with_profiling
 with_profiler
 enable_prefetching
@@ -1638,6 +1639,7 @@ Optional Packages:
 --with-hyphenate Build and install hyphenate bindings
 --without-crypto Compile the crypto module
 --without-sundown Compile the sundown module
+--without-x2vec Compile the x2vec module
 --with/out-profiling compile to generate profile information
 --with/out-profiler build with optional perftools profiling
 --without-tls Force use of threadlocal storage
@@ -10093,7 +10095,7 @@ fi
 if test "${with_perftools+set}" = set; then :
   withval=$with_perftools;
 else
-  with_perftools="no"
+  with_perftools="yes"
 fi
 
 if test "x$with_perftools" != "xno" && test "x$custom_malloc" != "x"; then
@@ -10147,7 +10149,11 @@ _ACEOF
 
 fi
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
+  if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
+     echo "No tcmalloc, skipping further tests";
+     with_perftools="no";
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
 $as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
 if ${ac_cv_lib_profiler_ProfilerStart+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -10192,7 +10198,7 @@ _ACEOF
 
 fi
 
-  for ac_header in gperftools/profiler.h gperftools/heap-profiler.h
+    for ac_header in gperftools/profiler.h gperftools/heap-profiler.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -10205,7 +10211,7 @@ fi
 
 done
 
-  for ac_header in gperftools/heap-checker.h
+    for ac_header in gperftools/heap-checker.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-checker.h" "ac_cv_header_gperftools_heap_checker_h" "$ac_includes_default"
 if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
@@ -10217,10 +10223,11 @@ fi
 
 done
 
-  memtest_prefix=builtin_
-  heaptest_prefix=builtin_
-  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
+    memtest_prefix=builtin_
+    heaptest_prefix=builtin_
+    heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
+    memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
+  fi;
 elif test $with_perftools = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
@@ -10781,6 +10788,19 @@ fi
 if test "x$with_sundown" = "xyes"; then
   CMODULES="lib/framerd/sundown.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
+fi
+
+
+# Check whether --with-x2vec was given.
+if test "${with_x2vec+set}" = set; then :
+  withval=$with_x2vec;
+else
+  with_x2vec="yes"
+fi
+
+if test "x$with_x2vec" = "xyes"; then
+  CMODULES="lib/framerd/x2vec.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-x2vec ${INSTALLCMODULES}"
 fi
 
 

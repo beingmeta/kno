@@ -18,7 +18,7 @@
 (define nums-data (get-component "nums.dtype"))
 (define custom-data (get-component "custom.data"))
 (define pos-data (get-component "mobypos/part-of-speech.txt"))
-(define wn-name-map (file->dtype (get-component "wn-name-map.dtype")))
+;;(define wn-name-map (file->dtype (get-component "wn-name-map.dtype")))
 (define noun-phrases (file->dtypes (get-component "noun-phrases.dtype")))
 (define proper-names (file->dtypes (get-component "names.dtype")))
 
@@ -80,13 +80,15 @@
 ;; For debugging
 ;; (define freqs #f)
 
+(define use-pools {brico-pool xbrico-pool})
+
 (define (use-pos-data-from-brico)
   (message "Using BRICO for part of speech information")
   (let ((freqtable (make-hashtable))
 	(weight-table (make-hashtable))
 	(pos-table (make-hashtable)))
     (message "Using sense frequency information")
-    (do-choices-mt (f (?? 'type 'wordform 'has 'freq)
+    (do-choices-mt (f (pick (?? 'type 'wordform 'has 'freq) use-pools)
 		      (config 'nthreads 3)
 		      mt/fetchoids 20000)
       (let ((word (get f 'word)))
@@ -104,7 +106,7 @@
     (do-choices (key (getkeys freqtable))
       (add! weight-table (car key) (cons (cdr key) (get freqtable key))))
     (message "Using raw concept information")
-    (do-choices-mt (f (?? 'has 'words 'has 'sensecat)
+    (do-choices-mt (f (pick (?? 'has 'words 'has 'sensecat) use-pools)
 		      (config 'nthreads 3) mt/fetchoids 20000)
       (add! pos-table (get f 'words)
 	    (intersection (get f 'type) '{noun verb adjective adverb}))

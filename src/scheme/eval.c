@@ -249,7 +249,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
         if ((FD_CONSP(e))) {
           int etype=FD_CONS_TYPE(((struct FD_CONS *)e));
           if (!((etype==fd_string_type)||(etype==fd_packet_type)||
-                (etype==fd_bigint_type)||(etype==fd_double_type)||
+                (etype==fd_bigint_type)||(etype==fd_flonum_type)||
                 (etype==fd_complex_type)||(etype==fd_rational_type)||
                 (etype==fd_timestamp_type)||(etype==fd_uuid_type)))
             envcount=envcount+count_envrefs(e,env,depth-1);}}
@@ -263,7 +263,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
         if ((FD_CONSP(e))) {
           int etype=FD_CONS_TYPE(((struct FD_CONS *)e));
           if (!((etype==fd_string_type)||(etype==fd_packet_type)||
-                (etype==fd_bigint_type)||(etype==fd_double_type)||
+                (etype==fd_bigint_type)||(etype==fd_flonum_type)||
                 (etype==fd_complex_type)||(etype==fd_rational_type)||
                 (etype==fd_timestamp_type)||(etype==fd_uuid_type)))
             envcount=envcount+count_envrefs(e,env,depth-1);}}
@@ -465,7 +465,7 @@ static fdtype profiled_eval(fdtype expr,fd_lispenv env)
     fd_store(profile_info,tag,profile_data);}
   else {
     struct FD_PAIR *p=FD_GET_CONS(profile_data,fd_pair_type,fd_pair);
-    struct FD_DOUBLE *d=FD_GET_CONS((p->cdr),fd_double_type,fd_double);
+    struct FD_FLONUM *d=FD_GET_CONS((p->cdr),fd_flonum_type,fd_flonum);
     p->car=FD_INT(fd_getint(p->car)+1);
     d->flonum=d->flonum+(finish-start);}
   fd_decref(profile_data); fd_decref(profile_info);

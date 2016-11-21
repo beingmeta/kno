@@ -535,6 +535,18 @@
 		  (if (string? word)
 		      (smallest ((eval arc) word))
 		      (smallest ((eval arc) (seq->phrase word)))))))))
+(define (arc-entry-byte word arc)
+  (if (eq? arc 'epsilon) 0
+      (if (equal? word "") 255
+	  (if (eq? arc 'prefix)
+	      (if (has-part-of-speech word 'prefix) 0 255)
+	      (if (string? arc) (if (equal? arc word) 0 255)
+		  (let ((weight (if (string? word)
+				    (smallest ((eval arc) word))
+				    (smallest ((eval arc) (seq->phrase word))))))
+		    (if (and (number? weight) (>= 255 weight 0))
+			weight
+			(if (eq? weight #t) 0 255))))))))
 
 (define (lexicon-entry word)
   (->vector (cons* 0 (if (has-part-of-speech word 'prefix) 0 #f)
@@ -555,11 +567,14 @@
       (if (has-suffix c ".") (list (subseq c 0 -1) ".")
 	  c)))
 
-(define (write-lexicon-entry word index)
+(define (write-lexicon-entry word index (packet #t))
   ;; (lineout "Writing lexicon entry for " word)
-  (let ((vec (->vector (cons* 0 (if (has-part-of-speech word 'prefix) 0 #f)
-			      (map (lambda (arc) (arc-entry word arc))
-				   all-arcs)))))
+  (let* ((vec (->vector (cons* 0 
+			       (if (has-part-of-speech word 'prefix) 0 (if packet 255 #f))
+			       (map (if packet (lambda (arc) (arc-entry-byte word arc))
+					(lambda (arc) (arc-entry word arc)))
+				    all-arcs))))
+	 (val (if packet (->packet vec) vec)))
     (if (compound? word)
 	(let ((wordvec (words->vector word)))
 	  (store! index wordvec vec)

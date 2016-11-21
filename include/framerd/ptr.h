@@ -143,7 +143,7 @@ typedef enum FD_PTR_TYPE {
   fd_error_type=FD_CONS_TYPECODE(16),
   fd_complex_type=FD_CONS_TYPECODE(17),
   fd_rational_type=FD_CONS_TYPECODE(18),
-  fd_double_type=FD_CONS_TYPECODE(19),
+  fd_flonum_type=FD_CONS_TYPECODE(19),
   fd_timestamp_type=FD_CONS_TYPECODE(20),
   fd_dtproc_type=FD_CONS_TYPECODE(21),
   fd_tail_call_type=FD_CONS_TYPECODE(22),
@@ -152,11 +152,13 @@ typedef enum FD_PTR_TYPE {
   fd_secret_type=FD_CONS_TYPECODE(25),
   /* We define these here, early, so they're treated as a constant */
   fd_sproc_type=FD_CONS_TYPECODE(26),
-  fd_regex_type=FD_CONS_TYPECODE(27)
+  fd_regex_type=FD_CONS_TYPECODE(27),
+  fd_flonum_vector_type=FD_CONS_TYPECODE(28),
+  fd_numeric_vector_type=FD_CONS_TYPECODE(29)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 28
+#define FD_BUILTIN_CONS_TYPES 30
 #define FD_BUILTIN_IMMEDIATE_TYPES 6
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
@@ -554,7 +556,7 @@ static fdtype fd_pptr_ref(fdtype ref)
 
 #define FD_NUMBER_TYPEP(x) \
   ((x==fd_fixnum_type) || (x==fd_bigint_type) ||   \
-   (x==fd_double_type) || (x==fd_rational_type) || \
+   (x==fd_flonum_type) || (x==fd_rational_type) || \
    (x==fd_complex_type))
 #define FD_NUMBERP(x) (FD_NUMBER_TYPEP(FD_PTR_TYPE(x)))
 
@@ -580,7 +582,6 @@ FD_EXPORT fd_oid_info_fn _fd_oid_info;
 FD_EXPORT int fdtype_compare(fdtype x,fdtype y,int);
 FD_EXPORT int fdtype_equal(fdtype x,fdtype y);
 FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
-
 
 #define FD_EQUAL FDTYPE_EQUAL
 #if FD_PROFILING_ENABLED

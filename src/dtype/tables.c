@@ -14,6 +14,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/hash.h"
 #include "framerd/tables.h"
 #include "framerd/numbers.h"
 
@@ -1001,72 +1002,9 @@ static unsigned int type_multipliers[]=
   {200000093,210000067,220000073,230000059,240000083,
    250000073,260000093};
 #define N_TYPE_MULTIPLIERS 6
-#define MYSTERIOUS_MULTIPLIER 2654435769U /*  */
-#define MYSTERIOUS_MODULUS 256001281 /*  */
 
-
-#if (SIZEOF_LONG_LONG == 8)
-static unsigned int hash_mult(unsigned int x,unsigned int y)
-{
-  return ((x*y)%(MYSTERIOUS_MODULUS));
-}
-#else
-static unsigned int hash_mult(unsigned int x,unsigned int y)
-{
-  if (x == 1) return y;
-  else if (y == 1) return x;
-  else if ((x == 0) || (y == 0)) return 0;
-  else {
-    unsigned int a=(x>>16), b=(x&0xFFFF);
-    unsigned int c=(y>>16), d=(y&0xFFFF);
-    unsigned int bd=b*d, ad=a*d, bc=b*c, ac=a*c;
-    unsigned int hi=ac, lo=(bd&0xFFFF), tmp, carry, i;
-    tmp=(bd>>16)+(ad&0xFFFF)+(bc&0xFFFF);
-    lo=lo+((tmp&0xFFFF)<<16); carry=(tmp>>16);
-    hi=hi+carry+(ad>>16)+(bc>>16);
-    i=0; while (i++ < 4) {
-      hi=((hi<<8)|(lo>>24))%(MYSTERIOUS_MODULUS); lo=lo<<8;}
-    return hi;}
-}
-#endif
-
-
-#if 0
-#if (SIZEOF_LONG_LONG == 8)
-static unsigned int hash_multr(unsigned int x,unsigned int y,unsigned int r)
-{
-  return ((x*y)%(r));
-}
-#else
-static unsigned int hash_multr(unsigned int x,unsigned int y,unsigned int r)
-{
-  if (x == 1) return y;
-  else if (y == 1) return x;
-  if ((x == 0) || (y == 0)) return 0;
-  else {
-    unsigned int a=(x>>16), b=(x&0xFFFF);
-    unsigned int c=(y>>16), d=(y&0xFFFF);
-    unsigned int bd=b*d, ad=a*d, bc=b*c, ac=a*c;
-    unsigned int hi=ac, lo=(bd&0xFFFF), tmp, carry, i;
-    tmp=(bd>>16)+(ad&0xFFFF)+(bc&0xFFFF);
-    lo=lo+((tmp&0xFFFF)<<16); carry=(tmp>>16);
-    hi=hi+carry+(ad>>16)+(bc>>16);
-    i=0; while (i++ < 4) {
-      hi=((hi<<8)|(lo>>24))%(r); lo=lo<<8;}
-    return hi;}
-}
-#endif
-#endif
-
-static unsigned int hash_combine(unsigned int x,unsigned int y)
-{
-  if ((x == 0) && (y == 0)) return MYSTERIOUS_MODULUS+2;
-  else if ((x == 0) || (y == 0))
-    return x+y;
-  else return hash_mult(x,y);
-}
-
-FD_FASTOP unsigned int mult_hash_string(const unsigned char *start,int len)
+FD_FASTOP unsigned int mult_hash_string
+  (const unsigned char *start,int len)
 {
   unsigned int h=0;
   unsigned *istart=(unsigned int *)start, asint=0;
@@ -1096,7 +1034,8 @@ static unsigned int hash_lisp(fdtype x)
   if (FD_CONSP(x))
     switch (FD_PTR_TYPE(x)) {
     case fd_string_type: {
-      struct FD_STRING *s=FD_GET_CONS(x,fd_string_type,struct FD_STRING *);
+      struct FD_STRING *s=
+        FD_GET_CONS(x,fd_string_type,struct FD_STRING *);
       return mult_hash_string(s->bytes,s->length);}
     case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s=(struct FD_STRING *)x;
@@ -1106,22 +1045,28 @@ static unsigned int hash_lisp(fdtype x)
       unsigned int hcar=fd_hash_lisp(car), hcdr=fd_hash_lisp(cdr);
       return hash_mult(hcar,hcdr);}
     case fd_vector_type: {
-      struct FD_VECTOR *v=FD_GET_CONS(x,fd_vector_type,struct FD_VECTOR *);
+      struct FD_VECTOR *v=
+        FD_GET_CONS(x,fd_vector_type,struct FD_VECTOR *);
       return hash_elts(v->data,v->length);}
     case fd_compound_type: {
-      struct FD_COMPOUND *c=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
+      struct FD_COMPOUND *c=
+        FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
       if (c->opaque) {
         int ctype=FD_PTR_TYPE(x);
         if ((ctype>0) && (ctype<N_TYPE_MULTIPLIERS))
           return hash_mult(x,type_multipliers[ctype]);
         else return hash_mult(x,MYSTERIOUS_MULTIPLIER);}
-      else return hash_mult(hash_lisp(c->tag),hash_elts(&(c->elt0),c->n_elts));}
+      else return hash_mult(hash_lisp(c->tag),
+                            hash_elts(&(c->elt0),
+                                      c->n_elts));}
     case fd_slotmap_type: {
-      struct FD_SLOTMAP *sm=FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *);
+      struct FD_SLOTMAP *sm=
+        FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *);
       fdtype *kv=(fdtype *)sm->keyvals;
       return hash_elts(kv,sm->size*2);}
     case fd_choice_type: {
-      struct FD_CHOICE *ch=FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *);
+      struct FD_CHOICE *ch=
+        FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *);
       int size=FD_XCHOICE_SIZE(ch);
       return hash_elts((fdtype *)(FD_XCHOICE_DATA(ch)),size);}
     case fd_achoice_type: {
@@ -1130,7 +1075,8 @@ static unsigned int hash_lisp(fdtype x)
       fd_decref(simple);
       return hash;}
     case fd_qchoice_type: {
-      struct FD_QCHOICE *ch=FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *);
+      struct FD_QCHOICE *ch=
+        FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *);
       return hash_lisp(ch->choice);}
     default: {
       int ctype=FD_PTR_TYPE(x);
@@ -1673,7 +1619,7 @@ static int do_hashtable_op
         else if ((FD_FLONUMP(current)) &&
                  (FD_CONS_REFCOUNT(((fd_cons)current))<2) &&
                  ((FD_FIXNUMP(v)) || (FD_FLONUMP(v)))) {
-          struct FD_DOUBLE *dbl=(fd_double)current;
+          struct FD_FLONUM *dbl=(fd_flonum)current;
           if (FD_FIXNUMP(v))
             dbl->flonum=dbl->flonum+FD_FIX2INT(v);
           else dbl->flonum=dbl->flonum+FD_FLONUM(v);}
@@ -1703,7 +1649,7 @@ static int do_hashtable_op
         else if ((FD_FLONUMP(current)) &&
                  (FD_CONS_REFCOUNT(((fd_cons)current))<2) &&
                  ((FD_FIXNUMP(v)) || (FD_FLONUMP(v)))) {
-          struct FD_DOUBLE *dbl=(fd_double)current;
+          struct FD_FLONUM *dbl=(fd_flonum)current;
           if (FD_FIXNUMP(v))
             dbl->flonum=dbl->flonum*FD_FIX2INT(v);
           else dbl->flonum=dbl->flonum*FD_FLONUM(v);}

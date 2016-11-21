@@ -1187,7 +1187,7 @@ elif test $with_tcmalloc = "debug"; then
   memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
 fi
 
-AC_ARG_WITH(perftools,--with[out]-google Use the Google perftools,,with_perftools="no")
+AC_ARG_WITH(perftools,--with[out]-google Use the Google perftools,,with_perftools="yes")
 if test "x$with_perftools" != "xno" && test "x$custom_malloc" != "x"; then
   echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
   exit;
@@ -1195,13 +1195,18 @@ fi
 
 if test $with_perftools = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
-  AC_CHECK_LIB(profiler,ProfilerStart)
-  AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
-  AC_CHECK_HEADERS(gperftools/heap-checker.h)
-  memtest_prefix=builtin_
-  heaptest_prefix=builtin_
-  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
+  if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
+     echo "No tcmalloc, skipping further tests";
+     with_perftools="no";
+  else
+    AC_CHECK_LIB(profiler,ProfilerStart)
+    AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
+    AC_CHECK_HEADERS(gperftools/heap-checker.h)
+    memtest_prefix=builtin_
+    heaptest_prefix=builtin_
+    heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
+    memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
+  fi; 
 elif test $with_perftools = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)
@@ -1266,6 +1271,12 @@ AC_ARG_WITH(sundown,--with[out]-sundown Compile the sundown module,,with_sundown
 if test "x$with_sundown" = "xyes"; then
   CMODULES="lib/framerd/sundown.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
+fi
+
+AC_ARG_WITH(x2vec,--with[out]-x2vec Compile the x2vec module,,with_x2vec="yes")
+if test "x$with_x2vec" = "xyes"; then
+  CMODULES="lib/framerd/x2vec.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-x2vec ${INSTALLCMODULES}"
 fi
 
 dnl This compiles a version to be used with the GNU profiling tools

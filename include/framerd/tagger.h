@@ -35,12 +35,13 @@ FD_EXPORT void fd_init_taglink_c(void);
 #define FD_TAGGER_VERBOSE_TIMER 64
 #define FD_TAGGER_INCLUDE_SOURCE 128
 #define FD_TAGGER_INCLUDE_TEXTRANGE 256
+#define FD_TAGGER_EXPAND_FINAL_STATES 512
 
 #define FD_TAGGER_DEFAULT_FLAGS (FD_TAGGER_SKIP_MARKUP|FD_TAGGER_SPLIT_SENTENCES)
 
 struct FD_WORD {
   u8_string spelling; const u8_byte *bufptr;
-  fdtype lstr, compounds;
+  fdtype lstr, alternates;
   unsigned char weights[FD_MAX_ARCS];
   short cap, tag, d, w;
   int char_pos; /* Character position where word starts */
@@ -59,7 +60,8 @@ struct FD_PARSER_STATE {
   struct FD_OFSM_NODE *node;
   fd_parse_state self, previous, qnext, qprev;
   unsigned short distance, input;
-  unsigned char arc; fdtype word;};
+  unsigned char arc; fdtype word;
+  fd_parse_state alt;};
 
 struct FD_PARSER_STATS {
   unsigned int total_inputs, total_states, total_sentences;
