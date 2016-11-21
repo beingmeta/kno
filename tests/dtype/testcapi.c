@@ -28,7 +28,7 @@ int main(int argc,char **argv)
   int lispv=fd_init_dtypelib();
   fdtype fix1=FD_INT(33994);
   fdtype dbl1=fd_init_double(NULL,3.445);
-  fdtype dbl2=fd_init_double(u8_alloc(struct FD_DOUBLE),-3.9994);
+  fdtype dbl2=fd_init_double(u8_alloc(struct FD_FLONUM),-3.9994);
   fdtype string1=fd_make_string(NULL,3,"foo");
   fdtype string2=fd_init_string(u8_alloc(struct FD_STRING),3,u8_strdup("bar"));
   fdtype compound=

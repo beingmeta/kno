@@ -1,7 +1,7 @@
 FD_EXPORT fd_exception fd_BigIntException;
 
 FD_EXPORT fdtype fd_make_bigint(long long intval);
-FD_EXPORT fdtype fd_init_double(struct FD_DOUBLE *ptr,double flonum);
+FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
 FD_EXPORT fdtype fd_string2number(u8_string string,int base);
 FD_EXPORT int fd_output_number(u8_output out,fdtype num,int base);
 FD_EXPORT fdtype fd_make_complex(fdtype real,fdtype imag);
@@ -66,3 +66,49 @@ FD_EXPORT fdtype fd_init_flonum_vector
 #define FD_FLONUMVEC_LENGTH(v) ((FD_GET_FLONUMVEC(v))->length)
 #define FD_FLONUMVEC_ELTS(v) ((FD_GET_FLONUMVEC(v))->elts)
 #define FD_FLONUMVEC_REF(v,i) ((FD_FLONUMVEC_ELTS(v))[i])
+
+/* Numeric vectors */
+
+struct FD_NUMERIC_VECTOR {
+  FD_CONS_HEADER;
+  unsigned int freedata:1;
+  unsigned int length:31;
+  enum fd_num_elt_type { fd_int16, fd_int32, fd_int64, fd_float32, fd_float64 } elt_type;
+  union { 
+    fd_float *floats;
+    fd_double *doubles;
+    fd_short *shorts;
+    fd_int *ints;
+    fd_long *longs;}
+    elts;};
+typedef struct FD_NUMERIC_VECTOR *fd_numeric_vector;
+typedef struct FD_NUMERIC_VECTOR *fd_numvec;
+
+#define FD_NUMERIC_VECTOR(v) \
+  (FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))
+
+#define FD_NUMVEC_FLOATS(v) \
+  (((((fd_numvec)v)->elt_type)==fd_float32)?(((fd_numvec)v)->elts.floats):(NULL))
+#define FD_NUMVEC_DOUBLES(v) \
+  (((((fd_numvec)v)->elt_type)==fd_float64)?(((fd_numvec)v)->elts.doubles):(NULL))
+#define FD_NUMVEC_SHORTS(v) \
+  (((((fd_numvec)v)->elt_type)==fd_int16)?(((fd_numvec)v)->elts.shorts):(NULL))
+#define FD_NUMVEC_INTS(v) \
+  (((((fd_numvec)v)->elt_type)==fd_int32)?(((fd_numvec)v)->elts.ints):(NULL))
+#define FD_NUMVEC_LONGS(v) \
+  (((((fd_numvec)v)->elt_type)==fd_int64)?(((fd_numvec)v)->elts.longs):(NULL))
+
+#define FD_NUMVEC_FLOAT(v,i) (((fd_numvec)v)->elts.floats[i])
+#define FD_NUMVEC_DOUBLE(v,i) (((fd_numvec)v)->elts.doubles[i])
+#define FD_NUMVEC_SHORT(v,i) (((fd_numvec)v)->elts.shorts[i])
+#define FD_NUMVEC_INT(v,i) (((fd_numvec)v)->elts.ints[i])
+#define FD_NUMVEC_LONG(v,i) (((fd_numvec)v)->elts.longs[i])
+
+FD_EXPORT fdtype fd_make_long_vector(int n,fd_long *v);
+FD_EXPORT fdtype fd_make_int_vector(int n,fd_int *v);
+FD_EXPORT fdtype fd_make_short_vector(int n,fd_short *v);
+FD_EXPORT fdtype fd_make_float_vector(int n,fd_float *v);
+FD_EXPORT fdtype fd_make_double_vector(int n,fd_double *v);
+
+
+

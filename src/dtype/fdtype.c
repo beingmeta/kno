@@ -78,7 +78,7 @@ static void init_type_names()
   fd_type_names[fd_slotmap_type]=_("slotmap");
   fd_type_names[fd_schemap_type]=_("schemap");
   fd_type_names[fd_hashtable_type]=_("hashtable");
-  fd_type_names[fd_double_type]=_("flonum");
+  fd_type_names[fd_flonum_type]=_("flonum");
   fd_type_names[fd_wrapper_type]=_("wrapper");
   fd_type_names[fd_mystery_type]=_("mystery");
   fd_type_names[fd_qchoice_type]=_("quoted choice");

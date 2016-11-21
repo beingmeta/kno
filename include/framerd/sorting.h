@@ -32,10 +32,10 @@ static int _fd_sort_helper(const void *vx,const void *vy)
         if (xval<yval) return -1; else return 1;}
       else return FDTYPE_COMPARE(sx->key,sy->key);
     else if ((xtype==fd_fixnum_type) || (xtype==fd_bigint_type) ||
-              (xtype==fd_double_type) || (xtype==fd_rational_type) ||
+              (xtype==fd_flonum_type) || (xtype==fd_rational_type) ||
               (xtype==fd_complex_type))
       if ((ytype==fd_fixnum_type) || (ytype==fd_bigint_type) ||
-          (ytype==fd_double_type) || (ytype==fd_rational_type) ||
+          (ytype==fd_flonum_type) || (ytype==fd_rational_type) ||
           (ytype==fd_complex_type)) {
         int cmp=fd_numcompare(sx->key,sy->key);
         if (cmp) return cmp;
@@ -43,7 +43,7 @@ static int _fd_sort_helper(const void *vx,const void *vy)
         else return 1;}
       else return -1;
     else if ((ytype==fd_fixnum_type) || (ytype==fd_bigint_type) ||
-             (ytype==fd_double_type) || (ytype==fd_rational_type) ||
+             (ytype==fd_flonum_type) || (ytype==fd_rational_type) ||
              (ytype==fd_complex_type))
       return 1;
     else if (xtype<ytype) return -1;
@@ -74,10 +74,10 @@ static int _fd_lexsort_helper(const void *vx,const void *vy)
         return (strcoll(FD_XSYMBOL_NAME(sx->key),FD_XSYMBOL_NAME(sy->key)));
       else return FDTYPE_COMPARE(sx->key,sy->key);
     else if ((xtype==fd_fixnum_type) || (xtype==fd_bigint_type) ||
-              (xtype==fd_double_type) || (xtype==fd_rational_type) ||
+              (xtype==fd_flonum_type) || (xtype==fd_rational_type) ||
               (xtype==fd_complex_type))
       if ((ytype==fd_fixnum_type) || (ytype==fd_bigint_type) ||
-          (ytype==fd_double_type) || (ytype==fd_rational_type) ||
+          (ytype==fd_flonum_type) || (ytype==fd_rational_type) ||
           (ytype==fd_complex_type)) {
         int cmp=fd_numcompare(sx->key,sy->key);
         if (cmp) return cmp;
@@ -85,7 +85,7 @@ static int _fd_lexsort_helper(const void *vx,const void *vy)
         else return 1;}
       else return -1;
     else if ((ytype==fd_fixnum_type) || (ytype==fd_bigint_type) ||
-             (ytype==fd_double_type) || (ytype==fd_rational_type) ||
+             (ytype==fd_flonum_type) || (ytype==fd_rational_type) ||
              (ytype==fd_complex_type))
       return 1;
     else if (xtype<ytype) return -1;

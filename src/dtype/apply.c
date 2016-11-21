@@ -41,7 +41,7 @@ static fd_exception NoSuchCalltrackSensor=
 static fd_exception TooManyCalltrackSensors=
   _("Too many calltrack sensors");
 
-FD_EXPORT fdtype fd_init_double(struct FD_DOUBLE *ptr,double flonum);
+FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
 
 static int needs_escape(u8_string string)
 {

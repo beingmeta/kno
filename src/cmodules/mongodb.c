@@ -1238,7 +1238,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       ok=bson_append_binary(out,key,keylen,BSON_SUBTYPE_BINARY,
                             FD_PACKET_DATA(val),FD_PACKET_LENGTH(val));
       break;
-    case fd_double_type: {
+    case fd_flonum_type: {
       double d=FD_FLONUM(val);
       ok=bson_append_double(out,key,keylen,d);
       break;}

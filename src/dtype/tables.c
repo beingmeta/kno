@@ -1619,7 +1619,7 @@ static int do_hashtable_op
         else if ((FD_FLONUMP(current)) &&
                  (FD_CONS_REFCOUNT(((fd_cons)current))<2) &&
                  ((FD_FIXNUMP(v)) || (FD_FLONUMP(v)))) {
-          struct FD_DOUBLE *dbl=(fd_double)current;
+          struct FD_FLONUM *dbl=(fd_flonum)current;
           if (FD_FIXNUMP(v))
             dbl->flonum=dbl->flonum+FD_FIX2INT(v);
           else dbl->flonum=dbl->flonum+FD_FLONUM(v);}
@@ -1649,7 +1649,7 @@ static int do_hashtable_op
         else if ((FD_FLONUMP(current)) &&
                  (FD_CONS_REFCOUNT(((fd_cons)current))<2) &&
                  ((FD_FIXNUMP(v)) || (FD_FLONUMP(v)))) {
-          struct FD_DOUBLE *dbl=(fd_double)current;
+          struct FD_FLONUM *dbl=(fd_flonum)current;
           if (FD_FIXNUMP(v))
             dbl->flonum=dbl->flonum*FD_FIX2INT(v);
           else dbl->flonum=dbl->flonum*FD_FLONUM(v);}

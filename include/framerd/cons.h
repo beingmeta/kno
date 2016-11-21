@@ -495,13 +495,13 @@ FD_EXPORT fd_bigint fd_long_to_bigint(long);
 
 /* Doubles */
 
-typedef struct FD_DOUBLE {
+typedef struct FD_FLONUM {
   FD_CONS_HEADER;
-  double flonum;} FD_DOUBLE;
-typedef struct FD_DOUBLE *fd_double;
+  double flonum;} FD_FLONUM;
+typedef struct FD_FLONUM *fd_flonum;
 
-#define FD_FLONUMP(x) (FD_PTR_TYPEP(x,fd_double_type))
-#define FD_XFLONUM(x) (FD_GET_CONS(x,fd_double_type,struct FD_DOUBLE *))
+#define FD_FLONUMP(x) (FD_PTR_TYPEP(x,fd_flonum_type))
+#define FD_XFLONUM(x) (FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *))
 #define FD_FLONUM(x) ((FD_XFLONUM(x))->flonum)
 
 /* Rational and complex numbers */

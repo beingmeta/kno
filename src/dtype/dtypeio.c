@@ -1134,8 +1134,8 @@ static void default_unpack_complex
 
 static fdtype default_make_double(double d)
 {
-  struct FD_DOUBLE *ds=u8_alloc(struct FD_DOUBLE);
-  FD_INIT_CONS(ds,fd_double_type); ds->flonum=d;
+  struct FD_FLONUM *ds=u8_alloc(struct FD_FLONUM);
+  FD_INIT_CONS(ds,fd_flonum_type); ds->flonum=d;
   return FDTYPE_CONS(ds);
 }
 

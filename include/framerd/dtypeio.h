@@ -50,7 +50,8 @@ enum dt_numeric_subcodes {
   dt_short_int_vector=0x03, dt_int_vector=0x43,
   dt_short_short_vector=0x04, dt_short_vector=0x44,
   dt_short_float_vector=0x05, dt_float_vector=0x45,
-  dt_short_double_vector=0x06, dt_double_vector=0x46};
+  dt_short_double_vector=0x06, dt_double_vector=0x46,
+  dt_short_long_vector=0x07, dt_long_vector=0x47};
 enum dt_character_subcodes
      { dt_ascii_char=0x00, dt_unicode_char=0x01,
        dt_unicode_string=0x42, dt_unicode_short_string=0x02,

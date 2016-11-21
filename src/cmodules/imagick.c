@@ -645,7 +645,7 @@ int fd_init_imagick()
                            fd_imagick_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
-                           -1,FD_VOID,fd_double_type,FD_VOID));
+                           -1,FD_VOID,fd_flonum_type,FD_VOID));
   fd_idefn(imagick_module,
            fd_make_cprim2x("IMAGICK/FORMAT",imagick_format,2,
                            fd_imagick_type,FD_VOID,
@@ -668,22 +668,22 @@ int fd_init_imagick()
   fd_idefn(imagick_module,
            fd_make_cprim3x("IMAGICK/CHARCOAL",imagick_charcoal,3,
                            fd_imagick_type,FD_VOID,
-                           fd_double_type,FD_VOID,
-                           fd_double_type,FD_VOID));
+                           fd_flonum_type,FD_VOID,
+                           fd_flonum_type,FD_VOID));
   fd_idefn(imagick_module,
            fd_make_cprim3x("IMAGICK/EMBOSS",imagick_emboss,3,
                            fd_imagick_type,FD_VOID,
-                           fd_double_type,FD_VOID,
-                           fd_double_type,FD_VOID));
+                           fd_flonum_type,FD_VOID,
+                           fd_flonum_type,FD_VOID));
   fd_idefn(imagick_module,
            fd_make_cprim3x("IMAGICK/BLUR",imagick_blur,3,
                            fd_imagick_type,FD_VOID,
-                           fd_double_type,FD_VOID,
-                           fd_double_type,FD_VOID));
+                           fd_flonum_type,FD_VOID,
+                           fd_flonum_type,FD_VOID));
   fd_idefn(imagick_module,
            fd_make_cprim2x("IMAGICK/EDGE",imagick_edge,2,
                            fd_imagick_type,FD_VOID,
-                           fd_double_type,FD_VOID));
+                           fd_flonum_type,FD_VOID));
   fd_idefn(imagick_module,
            fd_make_cprim5x("IMAGICK/CROP",imagick_crop,3,
                            fd_imagick_type,FD_VOID,
@@ -694,7 +694,7 @@ int fd_init_imagick()
   fd_idefn(imagick_module,
            fd_make_cprim2x("IMAGICK/DESKEW",imagick_deskew,2,
                            fd_imagick_type,FD_VOID,
-                           fd_double_type,FD_VOID));
+                           fd_flonum_type,FD_VOID));
 
   fd_idefn(imagick_module,
            fd_make_cprim2x("IMAGICK/DISPLAY",imagick_display,1,

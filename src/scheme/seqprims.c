@@ -216,8 +216,8 @@ FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end)
       double *elts=FD_FLONUMVEC_ELTS(x);
       size_t len=FD_FLONUMVEC_LENGTH(x);
       off_t i=0; while (i<len) {
-        struct FD_DOUBLE dval;
-        FD_INIT_STACK_CONS(&dval,fd_double_type);
+        struct FD_FLONUM dval;
+        FD_INIT_STACK_CONS(&dval,fd_flonum_type);
         dval.flonum=elts[i];
         if (FDTYPE_EQUAL(key,((fdtype)(&dval))))
           return i;
@@ -308,8 +308,8 @@ FD_EXPORT int fd_rposition(fdtype key,fdtype x,int start,int end)
       double *elts=FD_FLONUMVEC_ELTS(x);
       size_t len=FD_FLONUMVEC_LENGTH(x);
       off_t i=len-1; while (i>=0) {
-        struct FD_DOUBLE dval;
-        FD_INIT_STACK_CONS(&dval,fd_double_type);
+        struct FD_FLONUM dval;
+        FD_INIT_STACK_CONS(&dval,fd_flonum_type);
         dval.flonum=elts[i];
         if (FD_EQUAL(key,((fdtype)&dval)))
           return i;
