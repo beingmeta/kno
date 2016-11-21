@@ -1,4 +1,5 @@
 //  Copyright 2013 Google Inc. All Rights Reserved.
+//  Copyright 2016 beingmeta, inc
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -93,7 +94,7 @@ fd_ptr_type fd_x2vec_type;
 static fdtype layer1_size, window, min_reduce, min_count, n_classes;
 static fdtype table_size, vocab_size, vocab_hash_size, alpha, subsample;
 static fdtype negative_sampling, hisoftmax, mode, bag_of_words, skipgram;
-static fdtype vocab, weights, training;
+static fdtype vocab, vecs, training;
 static fdtype num_threads;
 
 static int default_vocab_hash_size = 30000000;  // Maximum 30 * 0.7 = 2 1M words in the vocabulary
@@ -111,8 +112,7 @@ static void init_expTable(struct FD_X2VEC_CONTEXT *x2vcxt)
       expTable[i] = expTable[i] / (expTable[i] + 1);}}
 }
 
-FD_EXPORT fdtype fd_set_weights(struct FD_X2VEC_CONTEXT *x2vcxt,int n,
-				real *weights);
+FD_EXPORT fdtype fd_init_vecs(struct FD_X2VEC_CONTEXT *x2vcxt,fdtype init);
 
 static void init_unigrams(struct FD_X2VEC_CONTEXT *x2vcxt) 
 {
@@ -815,24 +815,66 @@ static void compute_classes(struct FD_X2VEC_CONTEXT *x2vcxt)
 
 /* Set weights */
 
-FD_EXPORT fdtype fd_set_weights(struct FD_X2VEC_CONTEXT *x2vcxt,int n,
-				real *weights)
+static struct FD_X2VEC_WORD *init_vocab_size(struct FD_X2VEC_CONTEXT *x2v,size_t vocab_size)
 {
-  long long vocab_size=x2vcxt->vocab_size, layer1_size=x2vcxt->layer1_size;
-  size_t n_weights=(long long)vocab_size * layer1_size;
-  if (n!=n_weights) {
-    return fd_err(_("Wrong number of weights"),"fd_set_weights",NULL,FD_VOID);}
-  else {
-    real *syn0; int i=0;
-    if (x2vcxt->syn0) syn0=x2vcxt->syn0;
-    else posix_memalign((void **)&(x2vcxt->syn0), 128, n_weights * sizeof(real));
-    if ((x2vcxt->syn0) == NULL) {
-      u8_raise(fd_MallocFailed,"x2vec/init_nn",NULL);}
-    else syn0=x2vcxt->syn0;
-    while (i<n) {
-      syn0[i]=weights[i]; 
-      i++;}
-    return FD_INT(n);}
+  size_t vocab_max_size=1000*((vocab_size/1000)+2);
+  struct FD_X2VEC_WORD *vocab=x2v->vocab=u8_alloc_n(vocab_max_size,struct FD_X2VEC_WORD);
+  x2v->vocab_max_size=vocab_max_size;
+  x2v->vocab_size=vocab_size;
+  memset(vocab,0,vocab_max_size*sizeof(struct FD_X2VEC_WORD));
+  return vocab;
+}
+
+static void init_vocab_word(struct FD_X2VEC_WORD *word,u8_string spelling,int count)
+{
+  word->word=u8_strdup(spelling);
+  word->count=count;
+}
+
+FD_EXPORT fdtype fd_init_vecs(struct FD_X2VEC_CONTEXT *x2vcxt,fdtype init)
+{
+  size_t layer1_size=x2vcxt->layer1_size;
+  int init_vocab=x2vcxt->vocab==NULL;
+  if (FD_TABLEP(init)) {
+    int i=0; fdtype keys=fd_getkeys(init);
+    size_t vocab_size=(init_vocab)?(FD_CHOICE_SIZE(keys)):(x2vcxt->vocab_size);
+    size_t syn0_size=vocab_size*layer1_size;
+    real *syn0=
+      (posix_memalign((void **)&(x2vcxt->syn0), 128, syn0_size * sizeof(real)),
+       x2vcxt->syn0);
+    struct FD_X2VEC_WORD *vocab=(init_vocab)?(init_vocab_size(x2vcxt,vocab_size)):(x2vcxt->vocab);
+    {FD_DO_CHOICES(key,keys) {
+	if (FD_STRINGP(key)) {
+	  fdtype v=fd_get(init,key,FD_VOID);
+	  if (FD_VOIDP(v)) {}
+	  else if (FD_PRIM_TYPEP(v,fd_flonum_vector_type)) {
+	    int n=FD_FLONUMVEC_LENGTH(v);
+	    double *d=FD_FLONUMVEC_ELTS(v);
+	    float *f=&syn0[i*layer1_size];
+	    int i=0; while (i<n) {
+	      f[i]=(float)d[i]; i++;}
+	    if (init_vocab) init_vocab_word(&vocab[i],FD_STRDATA(key),1);}
+	  else if (FD_PRIM_TYPEP(v,fd_vector_type)) {
+	    int n=FD_VECTOR_LENGTH(v);
+	    fdtype *elts=FD_VECTOR_ELTS(v);
+	    float *f=&syn0[i*layer1_size];
+	    int i=0; while (i<n) {
+	      fdtype elt=elts[i];
+	      if (FD_FLONUMP(elt)) {
+		f[i]=FD_FLONUM(elt);}
+	      else {
+		u8_log(LOGWARN,"BadX2VecValue","%q is not a flonum",elt);}
+	      i++;}
+	    if (init_vocab) init_vocab_word(&vocab[i],FD_STRDATA(key),1);}
+	  else {
+	    u8_log(LOGWARN,"BadX2VecValue",
+		   "%q is not a vector or float vector",v);}
+	  fd_decref(v);
+	  i++;}
+	else {}}}
+    fd_decref(keys);
+    return FD_VOID;}
+  else return FD_VOID;
 }
 
 /* Creating an X2VEC context */
@@ -840,8 +882,8 @@ FD_EXPORT fdtype fd_set_weights(struct FD_X2VEC_CONTEXT *x2vcxt,int n,
 FD_EXPORT struct FD_X2VEC_CONTEXT *fd_start_x2vec(fdtype opts)
 {
   struct FD_X2VEC_CONTEXT *x2v = u8_alloc(struct FD_X2VEC_CONTEXT);
-  fdtype vocab=fd_getopt(opts,vocab,FD_VOID);
-  fdtype weights=fd_getopt(opts,weights,FD_VOID);
+  fdtype vocab_init=fd_getopt(opts,vocab,FD_VOID);
+  fdtype vecs_init=fd_getopt(opts,vecs,FD_VOID);
   fdtype training_data=fd_getopt(opts,training,FD_VOID);
   FD_INIT_FRESH_CONS(x2v,fd_x2vec_type);
   x2v->opts=opts; fd_incref(opts);
@@ -871,42 +913,19 @@ FD_EXPORT struct FD_X2VEC_CONTEXT *fd_start_x2vec(fdtype opts)
     int *vocab_hash = x2v->vocab_hash = u8_alloc_n(x2v->vocab_hash_size,int);
     for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;}
 
-  if ((FD_VECTORP(weights))||
-      (FD_PRIM_TYPEP(weights,fd_flonum_vector_type))) {
-    if ((FD_VOIDP(vocab))&&(FD_VOIDP(training))) {
-      u8_log(LOGWARN,"NoVocab","Can't use weights without a vocabulary");}
-    else {
-      int len=fd_seq_length(weights);
-      float *syn0=u8_alloc_n(len,real);
-      if (FD_NOVOIDP(vocab)) import_vocab(x2v,vocab);
-      else init_vocab(x2v,training);
-      if (FD_VECTORP(weights)) {
-	int i=0; while (i<len) {
-	  fdtype elt=FD_VECTOR_REF(weights,i);
-	  if (FD_FLONUMP(elt)) {
-	    double d=FD_FLONUM(elt);
-	    syn0[i]=(real) d;}
-	  else {
-	    u8_log(LOGWARN,"BadWeight","Invalid weight %q",elt);}
-	  i++;}
-	fd_set_weights(x2v,len,syn0);}
-      else if (FD_PRIM_TYPEP(weights,fd_flonum_vector_type)) {
-	int i=0; while (i<len) {
-	  double d=FD_FLONUMVEC_REF(weights,i);
-	  syn0[i]=(real) d;
-	  i++;}
-	fd_set_weights(x2v,len,syn0);}
-      else {}
-      if (FD_NOVOIDP(training))
-	train_model(x2v,training,FD_FALSE,opts);}}
-  else if (FD_NOVOIDP(training)) {
-    train_model(x2v,training,vocab,opts);}
-  else if (!(FD_VOIDP(vocab))) {
-    import_vocab(x2v,vocab);}
+  if (!(FD_VOIDP(vecs_init))) {
+    if (!(FD_VOIDP(vocab_init))) import_vocab(x2v,vocab_init);
+    fd_init_vecs(x2v,vecs_init);}
+  else if (!(FD_VOIDP(vocab_init))) {
+    if (!(FD_VOIDP(training))) {
+      train_model(x2v,training,vocab_init,opts);}
+    else import_vocab(x2v,vocab_init);}
+  else if (!(FD_VOIDP(training)))
+    train_model(x2v,training,vocab_init,opts);
   else {}
 
-  fd_decref(weights);
-  fd_decref(vocab);
+  fd_decref(vecs_init);
+  fd_decref(vocab_init);
   fd_decref(training);
 
   return x2v;
@@ -947,23 +966,44 @@ static fdtype x2vec_counts_prim(fdtype arg)
   return result;
 }
 
-static fdtype x2vec_weights_prim(fdtype arg)
+static fdtype x2vec_get_prim(fdtype arg,fdtype term)
 {
   struct FD_X2VEC_CONTEXT *x2v = (struct FD_X2VEC_CONTEXT *) arg;
+  size_t vocab_size=x2v->vocab_size;
+  size_t layer1_size=x2v->layer1_size;
+  struct FD_X2VEC_WORD *vocab=x2v->vocab;
   size_t weights_len=(size_t)(vocab_size * layer1_size);
   real *syn0=x2v->syn0;
   if (syn0==NULL)
     return FD_EMPTY_CHOICE;
-  else {
-    fdtype result;
-    double *weights=u8_alloc_n(weights_len,double);
-    int i=0; while (i<weights_len) {
-      double dval=(double)syn0[i];
-      weights[i]=dval;
+  else if (FD_VOIDP(term)) {
+    struct FD_HASHTABLE *ht=(fd_hashtable)
+      fd_make_hashtable(NULL,vocab_size+vocab_size/2);
+    int i=0; while (i<vocab_size) {
+      u8_string word=vocab[i].word;
+      fdtype key=fd_make_string(NULL,-1,word), vec;
+      double *dvec=u8_malloc(layer1_size*sizeof(double));
+      int j=0; while (j<layer1_size) {
+	dvec[j]=syn0[(i*layer1_size)+j];
+	j++;}
+      vec=fd_make_flonum_vector(layer1_size,dvec);
+      u8_free(dvec);
+      fd_hashtable_store(ht,key,vec);
+      fd_decref(key); fd_decref(vec);
       i++;}
-    result=fd_make_flonum_vector(weights_len,weights);
-    u8_free(weights);
-    return result;}
+    return (fdtype)ht;}
+  else if (FD_STRINGP(term)) {
+    int i=get_vocab_id(x2v,FD_STRDATA(term));
+    if (i<0) return FD_EMPTY_CHOICE;
+    else {
+      fdtype result=FD_VOID;
+      double *dvec=u8_alloc_n(layer1_size,double);
+      float *fvec=&(syn0[i*layer1_size]);
+      int i=0; while (i<layer1_size) {dvec[i]=fvec[i]; i++;}
+      result=fd_make_flonum_vector(layer1_size,dvec);
+      u8_free(dvec);
+      return result;}}
+  else return fd_type_error(_("string"),"x2vec_get_prim",term);
 }
 
 /* Handlers */
@@ -1021,7 +1061,7 @@ static long long int x2vec_initialized=0;
 
 #define DEFAULT_FLAGS (FD_SHORT2DTYPE(FD_MONGODB_DEFAULTS))
 
-static int init_x2vec_symbols(void);
+static void init_x2vec_symbols(void);
 
 FD_EXPORT int fd_init_x2vec()
 {
@@ -1037,20 +1077,21 @@ FD_EXPORT int fd_init_x2vec()
 
   module=fd_new_module("X2VEC",(FD_MODULE_SAFE));
 
-  fd_idefn(module,fd_make_cprim1("XVEC/START",start_x2vec_prim,1));
-  fd_idefn(module,fd_make_cprim1x("XVEC/INPUTS",x2vec_inputs_prim,1,
+  fd_idefn(module,fd_make_cprim1("X2VEC/START",start_x2vec_prim,1));
+  fd_idefn(module,fd_make_cprim1x("X2VEC/INPUTS",x2vec_inputs_prim,1,
 				  fd_x2vec_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("XVEC/COUNTS",x2vec_counts_prim,1,
+  fd_idefn(module,fd_make_cprim1x("X2VEC/COUNTS",x2vec_counts_prim,1,
 				  fd_x2vec_type,FD_VOID));
-  fd_idefn(module,fd_make_cprim1x("XVEC/WEIGHTS",x2vec_weights_prim,1,
-				  fd_x2vec_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim2x("X2VEC/GET",x2vec_get_prim,1,
+				  fd_x2vec_type,FD_VOID,
+				  fd_string_type,FD_VOID));
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
 
-static int init_x2vec_symbols()
+static void init_x2vec_symbols()
 {
   layer1_size=fd_intern("LAYER1_SIZE");
   window=fd_intern("WINDOW");
@@ -1073,6 +1114,7 @@ static int init_x2vec_symbols()
   skipgram=FD_EMPTY_CHOICE;
   FD_ADD_TO_CHOICE(skipgram,fd_intern("SKIPGRAM"));
   vocab=fd_intern("VOCAB");
-  weights=fd_intern("WEIGHTS");
+  vecs=fd_intern("VECS");
   training=fd_intern("TRAINGING");
 }
+
