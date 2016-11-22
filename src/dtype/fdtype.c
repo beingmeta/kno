@@ -94,7 +94,7 @@ static void init_type_names()
   fd_type_names[fd_secret_type]=_("secret");
   fd_type_names[fd_sproc_type]=_("SCHEME procedure");
   fd_type_names[fd_regex_type]=_("regex");
-  fd_type_names[fd_flonum_vector_type]=_("flonum vector");
+  fd_type_names[fd_numeric_vector_type]=_("numeric vector");
 }
 
 static int fdtype_version=101;

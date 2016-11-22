@@ -2914,122 +2914,6 @@ fdtype fd_make_exact(fdtype x)
 
 /* Homogenous vectors */
 
-FD_EXPORT fdtype fd_init_flonum_vector
-  (struct FD_FLONUM_VECTOR *vec,int n,double *elts)
-{
-  if ((vec == NULL)&&(elts==NULL)) {
-    size_t vec_size=sizeof(struct FD_FLONUM_VECTOR)+ (n*(sizeof(double)));
-    vec = u8_malloc(vec_size);
-    memset(vec,0,vec_size);
-    FD_INIT_CONS(vec,fd_flonum_vector_type);
-    vec->length=n; vec->freedata=0;
-    vec->elts=(double *)
-      (((unsigned char *)vec)+sizeof(struct FD_FLONUM_VECTOR));
-    return (fdtype) vec;}
-  else if ((vec==NULL)&&(elts!=NULL)) {
-    vec=u8_alloc(struct FD_FLONUM_VECTOR);
-    FD_INIT_FRESH_CONS(vec,fd_flonum_vector_type);
-    vec->length=n; vec->freedata=1;
-    vec->elts=elts;
-    return (fdtype) vec;}
-  else if (elts==NULL) {
-    FD_INIT_FRESH_CONS(vec,fd_flonum_vector_type);
-    vec->length=n; vec->freedata=1;
-    vec->elts=u8_alloc_n(n,double);
-    return (fdtype) vec;}
-  else {
-    FD_INIT_FRESH_CONS(vec,fd_flonum_vector_type);
-    vec->length=n; vec->freedata=1;
-    vec->elts=elts;
-    return (fdtype) vec;}
-}
-
-FD_EXPORT fdtype fd_make_flonum_vector(int n,double *elts)
-{
-  size_t vec_size=sizeof(struct FD_FLONUM_VECTOR)+ (n*(sizeof(double)));
-  struct FD_FLONUM_VECTOR *vec=u8_malloc(vec_size);
-  memset(vec,0,vec_size);
-  FD_INIT_CONS(vec,fd_flonum_vector_type);
-  vec->length=n; vec->freedata=0;
-  vec->elts=(double *)
-    (((unsigned char *)vec)+sizeof(struct FD_FLONUM_VECTOR));
-
-  if (elts) {
-    double *values=vec->elts; int i=0; while (i<n) {
-      values[i] = elts[i];
-      i++;}}
-
-  return (fdtype) vec;
-}
-
-static void recycle_double_vector(struct FD_CONS *c)
-{
-  struct FD_FLONUM_VECTOR *v=(struct FD_FLONUM_VECTOR *)c;
-  if (v->freedata) u8_free(v->elts);
-  if (FD_MALLOCD_CONSP(c)) {
-    u8_free(c);}
-}
-
-static int compare_double_vector(fdtype x,fdtype y,int f)
-{
-  struct FD_FLONUM_VECTOR *vx=(struct FD_FLONUM_VECTOR *)x;
-  struct FD_FLONUM_VECTOR *vy=(struct FD_FLONUM_VECTOR *)y;
-  if (vx->length == vy->length) {
-    double *xvec=vx->elts, *yvec=vy->elts;
-    int i=0, lim=vx->length; while (i<lim) {
-      if (xvec[i] > yvec[i])
-        return 1;
-      else if (xvec[i] < yvec[i])
-        return -1;
-      else i++;}
-    return 0;}
-  else if (vx->length > vy->length)
-    return 1;
-  else return -1;
-}
-
-static int hash_double_vector(fdtype x,unsigned int (*fn)(fdtype))
-{
-  struct FD_FLONUM_VECTOR *vec=(struct FD_FLONUM_VECTOR *)x;
-  double *elts = vec->elts;
-  int i=0, n=vec->length; int hashval=vec->length;
-  while (i<n) {
-    double v=elts[i++]; int exp;
-    double mantissa=frexpf(v,&exp);
-    double reformed=
-      ((exp<0) ? (ldexpf(mantissa,0)) : (ldexpf(mantissa,exp)));
-    int asint=(int)reformed;
-    hashval=hash_combine(hashval,asint);}
-  return hashval;
-}
-
-static fdtype copy_double_vector(fdtype x,int deep)
-{
-  struct FD_FLONUM_VECTOR *vec=(struct FD_FLONUM_VECTOR *)x;
-  double *elts = vec->elts; int i=0, n=vec->length;
-  size_t vec_size=sizeof(struct FD_FLONUM_VECTOR)+(n*sizeof(double));
-  struct FD_FLONUM_VECTOR *copy=u8_malloc(vec_size);
-  double *newelts;
-  memset(copy,0,vec_size);
-  FD_INIT_CONS(copy,fd_flonum_vector_type);
-  copy->length=n; copy->freedata=0;
-  copy->elts=newelts=(double *)
-    (((unsigned char *)vec)+sizeof(struct FD_FLONUM_VECTOR));
-  while (i<n) {newelts[i]=elts[i]; i++;}
-  return (fdtype) copy;
-}
-
-static int unparse_double_vector(struct U8_OUTPUT *out,fdtype x)
-{
-  struct FD_FLONUM_VECTOR *vec=(struct FD_FLONUM_VECTOR *)x;
-  double *elts = vec->elts;
-  int i=0, n=vec->length;
-  u8_puts(out,"#<DOUBLEVEC");
-  while (i<n) u8_printf(out," %f",elts[i++]);
-  u8_puts(out,">");
-  return 1;
-}
-
 /* Numeric vector handlers */
 
 static void recycle_numeric_vector(struct FD_CONS *c)
@@ -3128,7 +3012,7 @@ static fdtype copy_numeric_vector(fdtype x,int deep)
   enum fd_num_elt_type elt_type=vec->elt_type;
   size_t len=vec->length;
   size_t elts_size=len*nvec_elt_size(vec->elt_type);
-  size_t vec_size=sizeof(struct FD_FLONUM_VECTOR)+elts_size;
+  size_t vec_size=sizeof(struct FD_NUMERIC_VECTOR)+elts_size;
   struct FD_NUMERIC_VECTOR *copy=u8_malloc(vec_size);
   memset(copy,0,vec_size);
   FD_INIT_CONS(copy,fd_numeric_vector_type);
@@ -3287,27 +3171,26 @@ void fd_init_numbers_c()
 
   fd_unparsers[fd_rational_type]=unparse_rational;
   fd_unparsers[fd_complex_type]=unparse_complex;
-  fd_unparsers[fd_flonum_vector_type]=unparse_double_vector;
   fd_unparsers[fd_numeric_vector_type]=unparse_numeric_vector;
 
   fd_copiers[fd_flonum_type]=copy_flonum;
   fd_copiers[fd_bigint_type]=copy_bigint;
-  fd_copiers[fd_flonum_vector_type]=copy_double_vector;
   fd_copiers[fd_numeric_vector_type]=copy_numeric_vector;
+
   fd_recyclers[fd_flonum_type]=recycle_flonum;
   fd_recyclers[fd_bigint_type]=recycle_bigint;
-  fd_recyclers[fd_bigint_type]=recycle_double_vector;
-  fd_recyclers[fd_bigint_type]=recycle_numeric_vector;
+  fd_recyclers[fd_numeric_vector_type]=recycle_numeric_vector;
+
   fd_comparators[fd_flonum_type]=compare_flonum;
   fd_comparators[fd_bigint_type]=compare_bigint;
-  fd_comparators[fd_numeric_vector_type]=compare_double_vector;
   fd_comparators[fd_numeric_vector_type]=compare_numeric_vector;
-  fd_dtype_writers[fd_bigint_type]=dtype_bigint;
-  fd_dtype_writers[fd_flonum_type]=dtype_flonum;
+
   fd_hashfns[fd_bigint_type]=hash_bigint;
   fd_hashfns[fd_flonum_type]=hash_flonum;
-  fd_hashfns[fd_flonum_vector_type]=hash_double_vector;
   fd_hashfns[fd_numeric_vector_type]=hash_numeric_vector;
+
+  fd_dtype_writers[fd_bigint_type]=dtype_bigint;
+  fd_dtype_writers[fd_flonum_type]=dtype_flonum;
 
   fd_register_packet_unpacker
     (dt_numeric_package,dt_double,unpack_flonum);

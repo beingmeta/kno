@@ -487,16 +487,6 @@ fdtype *fd_elts(fdtype seq,int *n)
       while (scan<limit) {
         vec[i]=fd_incref(*scan); i++; scan++;}
       break;}
-    case fd_flonum_vector_type: {
-      int i=0, len=FD_FLONUMVEC_LENGTH(seq);
-      double *elts=FD_FLONUMVEC_ELTS(seq);
-      double *scan=elts, *limit=elts+len;
-      while (scan<limit) {
-        double d=*scan;
-        fdtype flonum=fd_make_flonum(d);
-        vec[i]=flonum;
-        i++; scan++;}
-      break;}
     case fd_numeric_vector_type: {
       int i=0;
       switch (FD_NUMVEC_TYPE(seq)) {
@@ -575,23 +565,6 @@ fdtype fd_makeseq(fd_ptr_type ctype,int n,fdtype *v)
   case fd_rail_type: {
     int i=0; while (i < n) {fd_incref(v[i]); i++;}
     return fd_make_rail(n,v);}
-  case fd_flonum_vector_type: {
-    fdtype copy; double *delts=u8_alloc_n(n,double);
-    int i=0; while (i<n) {
-      fdtype elt=v[i];
-      if (FD_FLONUMP(elt)) {
-        delts[i]=FD_FLONUM(elt);}
-      else if (FD_FIXNUMP(elt)) {
-        delts[i]=(double)(FD_FIX2INT(elt));}
-      else if (FD_BIGINTP(elt)) {
-        delts[i]=fd_bigint_to_double((fd_bigint)elt);}
-      else {
-        u8_free(delts);
-        return fd_type_error(_("double"),"fd_makeseq",elt);}
-      i++;}
-    copy=fd_make_flonum_vector(n,delts);
-    u8_free(delts);
-    return copy;}
   case fd_pair_type:
     if (n == 0) return FD_EMPTY_LIST;
     else {
@@ -1922,43 +1895,6 @@ static fdtype recons_prim(fdtype car,fdtype cdr,fdtype orig)
     return cons;}
 }
 
-/* Flonum vectors */
-
-static fdtype make_flonum_vector(int n,fdtype *elts)
-{
-  double *delts=u8_alloc_n(n,double); int i=0; fdtype consed;
-  while (i<n) {
-    fdtype elt=elts[i];
-    if (FD_FLONUMP(elt))
-      delts[i++]=FD_FLONUM(elt);
-    else if (FD_NUMBERP(elt))
-      delts[i++]=fd_todouble(elt);
-    else {
-      u8_free(delts);
-      return fd_type_error(_("flonum element"),"make_flonum_vector",elt);}}
-  consed=fd_make_flonum_vector(n,delts);
-  u8_free(delts);
-  return consed;
-}
-
-static fdtype seq2flonumvec(fdtype arg)
-{
-  if (FD_PRIM_TYPEP(arg,fd_flonum_vector_type)) {
-    fd_incref(arg);
-    return arg;}
-  else if (FD_VECTORP(arg)) {
-    return make_flonum_vector
-      (FD_VECTOR_LENGTH(arg),FD_VECTOR_ELTS(arg));}
-  else if (FD_EMPTY_LISTP(arg))
-    return fd_make_flonum_vector(0,NULL);
-  else if (FD_SEQUENCEP(arg)) {
-    int n; fdtype *data=fd_elts(arg,&n);
-    fdtype result=make_flonum_vector(n,data);
-    u8_free(data);
-    return result;}
-  else return fd_type_error(_("sequence"),"seq2flonumvec",arg);
-}
-
 /* Numeric vectors */
 
 static fdtype make_short_vector(int n,fdtype *from_elts)
@@ -2076,7 +2012,7 @@ static fdtype make_float_vector(int n,fdtype *from_elts)
       elts[i++]=fd_todouble(elt);
     else {
       u8_free((struct FD_CONS *)vec); fd_incref(elt);
-      return fd_type_error(_("flonum element"),"make_flonum_vector",elt);}}
+      return fd_type_error(_("float element"),"make_float_vector",elt);}}
   return vec;
 }
 
@@ -2110,7 +2046,7 @@ static fdtype make_double_vector(int n,fdtype *from_elts)
       elts[i++]=fd_todouble(elt);
     else {
       u8_free((struct FD_CONS *)vec); fd_incref(elt);
-      return fd_type_error(_("flonum element"),"make_flonum_vector",elt);}}
+      return fd_type_error(_("double(float) element"),"make_double_vector",elt);}}
   return vec;
 }
 
@@ -2123,10 +2059,10 @@ static fdtype seq2doublevec(fdtype arg)
   else if (FD_VECTORP(arg))
     return make_double_vector(FD_VECTOR_LENGTH(arg),FD_VECTOR_ELTS(arg));
   else if (FD_EMPTY_LISTP(arg))
-    return fd_make_flonum_vector(0,NULL);
+    return fd_make_double_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
     int n; fdtype *data=fd_elts(arg,&n);
-    fdtype result=make_flonum_vector(n,data);
+    fdtype result=make_double_vector(n,data);
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2doublevec",arg);
@@ -2220,14 +2156,6 @@ static struct FD_SEQFNS vector_seqfns={
   fd_search,
   fd_elts,
   seqvector};
-static struct FD_SEQFNS flonumvec_seqfns={
-  fd_seq_length,
-  fd_seq_elt,
-  fd_slice,
-  fd_position,
-  fd_search,
-  fd_elts,
-  seqvector};
 static struct FD_SEQFNS numeric_vector_seqfns={
   fd_seq_length,
   fd_seq_elt,
@@ -2263,7 +2191,6 @@ FD_EXPORT void fd_init_sequences_c()
   fd_seqfns[fd_secret_type]=&secret_seqfns;
   fd_seqfns[fd_vector_type]=&vector_seqfns;
   fd_seqfns[fd_rail_type]=&rail_seqfns;
-  fd_seqfns[fd_flonum_vector_type]=&flonumvec_seqfns;
   fd_seqfns[fd_numeric_vector_type]=&numeric_vector_seqfns;
 
   u8_register_source_file(_FILEINFO);
@@ -2369,7 +2296,6 @@ FD_EXPORT void fd_init_sequences_c()
   fd_idefn(fd_scheme_module,fd_make_cprimn("LIST",list,0));
   fd_idefn(fd_scheme_module,fd_make_cprimn("VECTOR",vector,0));
   fd_idefn(fd_scheme_module,fd_make_cprimn("MAKE-RAIL",make_rail,0));
-  fd_idefn(fd_scheme_module,fd_make_cprimn("FLOATVEC",make_flonum_vector,0));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("MAKE-VECTOR",make_vector,1,
