@@ -74,8 +74,7 @@ FD_EXPORT fd_bigint fd_ulong_to_bigint(unsigned long);
 FD_EXPORT long fd_bigint_to_long(fd_bigint);
 FD_EXPORT fd_bigint fd_double_to_bigint(double);
 FD_EXPORT double fd_bigint_to_double(fd_bigint);
-FD_EXPORT int fd_bigint_fits_in_word_p
-(fd_bigint, long word_length, int twos_complement_p);
+FD_EXPORT int fd_bigint_fits_in_word_p(fd_bigint,long width,int twosc);
 FD_EXPORT unsigned long fd_bigint_length_in_bytes(fd_bigint);
 FD_EXPORT fd_bigint fd_bigint_length_in_bits(fd_bigint);
 FD_EXPORT fd_bigint fd_bigint_length_upper_limit(void);

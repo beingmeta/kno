@@ -40,7 +40,7 @@ FD_EXPORT unsigned long long fd_bigint_to_ulong_long(fd_bigint);
 FD_EXPORT unsigned long long fd_bigint2uint64(fd_bigint);
 FD_EXPORT int fd_bigint_negativep(fd_bigint);
 
-FD_EXPORT int fd_bigint_fits(fd_bigint bi,int width,int twoc);
+FD_EXPORT int fd_bigint_fits_in_word_p(fd_bigint bi,long width,int twosc);
 FD_EXPORT unsigned long fd_bigint_bytes(fd_bigint bi);
 
 FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
@@ -132,5 +132,5 @@ FD_EXPORT fdtype fd_make_short_vector(int n,fd_short *v);
 FD_EXPORT fdtype fd_make_float_vector(int n,fd_float *v);
 FD_EXPORT fdtype fd_make_double_vector(int n,fd_double *v);
 
-
+FD_EXPORT fdtype fd_make_numeric_vector(int n,enum fd_num_elt_type t);
 

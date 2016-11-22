@@ -501,7 +501,7 @@ static fdtype wang_hash32(fdtype arg)
      http://www.cris.com/~Ttwang/tech/inthash.htm */
   if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
-       (fd_bigint_fits(((fd_bigint)arg),32,0)))) {
+       (fd_bigint_fits_in_word_p(((fd_bigint)arg),32,0)))) {
     unsigned long long num=
       ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
        (fd_bigint_to_ulong_long((fd_bigint)arg)));
@@ -521,7 +521,7 @@ static fdtype wang_hash64(fdtype arg)
      http://www.cris.com/~Ttwang/tech/inthash.htm */
   if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
-       (fd_bigint_fits(((fd_bigint)arg),64,0)))) {
+       (fd_bigint_fits_in_word_p(((fd_bigint)arg),64,0)))) {
     unsigned long long int num=
       ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
        (fd_bigint_to_ulong_long((fd_bigint)arg)));
@@ -542,7 +542,7 @@ static fdtype flip32(fdtype arg)
 {
   if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
-       (fd_bigint_fits(((fd_bigint)arg),32,0)))) {
+       (fd_bigint_fits_in_word_p(((fd_bigint)arg),32,0)))) {
     unsigned int word=fd_getint(arg);
     unsigned int flipped=fd_flip_word(word);
     return FD_INT(flipped);}
@@ -555,7 +555,7 @@ static fdtype flip64(fdtype arg)
 {
   if (((FD_FIXNUMP(arg))&&((FD_FIX2INT(arg))>=0))||
       ((FD_BIGINTP(arg))&&(!(fd_bigint_negativep((fd_bigint)arg)))&&
-       (fd_bigint_fits(((fd_bigint)arg),64,0)))) {
+       (fd_bigint_fits_in_word_p(((fd_bigint)arg),64,0)))) {
     unsigned long long int word=
       ((FD_FIXNUMP(arg))?(FD_FIX2INT(arg)):
        (fd_bigint_to_ulong_long((fd_bigint)arg)));
@@ -641,10 +641,10 @@ static fdtype itoa_prim(fdtype arg,fdtype base_arg)
   else {
     fd_bigint bi=(fd_bigint)arg;
     if ((base==10)&&(fd_bigint_negativep(bi))&&
-        (fd_bigint_fits(bi,63,0))) {
+        (fd_bigint_fits_in_word_p(bi,63,0))) {
       long long int n=fd_bigint_to_long_long(bi);
       u8_itoa10(n,buf);}
-    else if ((base==10)&&(fd_bigint_fits(bi,64,0))) {
+    else if ((base==10)&&(fd_bigint_fits_in_word_p(bi,64,0))) {
       unsigned long long int n=fd_bigint_to_ulong_long(bi);
       u8_uitoa10(n,buf);}
     else if (base==10)
@@ -652,7 +652,7 @@ static fdtype itoa_prim(fdtype arg,fdtype base_arg)
     else if (fd_bigint_negativep(bi)) {
       return fd_err(_("negative numbers can't be rendered as non-decimal"),
                     "itoa_prim",NULL,fd_incref(arg));}
-    else if (fd_bigint_fits(bi,64,0)) {
+    else if (fd_bigint_fits_in_word_p(bi,64,0)) {
       unsigned long long int n=fd_bigint_to_ulong_long(bi);
       if (base==8) u8_uitoa8(n,buf);
       else if (base==16) u8_uitoa16(n,buf);
