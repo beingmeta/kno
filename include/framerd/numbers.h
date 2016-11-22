@@ -45,7 +45,10 @@ FD_EXPORT unsigned long fd_bigint_bytes(fd_bigint bi);
 
 FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 
+FD_EXPORT fdtype fd_init_flonum(struct FD_FLONUM *ptr,double flonum);
+FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
 #define fd_make_double(dbl) (fd_init_double(NULL,(dbl)))
+#define fd_make_flonum(dbl) (fd_init_flonum(NULL,(dbl)))
 
 
 /* Floating vectors */
@@ -84,6 +87,19 @@ struct FD_NUMERIC_VECTOR {
 typedef struct FD_NUMERIC_VECTOR *fd_numeric_vector;
 typedef struct FD_NUMERIC_VECTOR *fd_numvec;
 
+#define FD_NUMERIC_VECTORP(v) (FD_PRIM_TYPEP(v,fd_numeric_vector_type))
+#define FD_NUMVECP(v) (FD_PRIM_TYPEP(v,fd_numeric_vector_type))
+
+#define FD_NUMERIC_VECTOR_LENGTH(v) \
+  ((FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))->length)
+#define FD_NUMVEC_LENGTH(v) \
+  ((FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))->length)
+
+#define FD_NUMERIC_VECTOR_TYPE(v) \
+  ((FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))->elt_type)
+#define FD_NUMVEC_TYPE(v) \
+  ((FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))->elt_type)
+
 #define FD_NUMERIC_VECTOR(v) \
   (FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))
 
@@ -103,6 +119,12 @@ typedef struct FD_NUMERIC_VECTOR *fd_numvec;
 #define FD_NUMVEC_SHORT(v,i) (((fd_numvec)v)->elts.shorts[i])
 #define FD_NUMVEC_INT(v,i) (((fd_numvec)v)->elts.ints[i])
 #define FD_NUMVEC_LONG(v,i) (((fd_numvec)v)->elts.longs[i])
+
+#define FD_NUMVEC_FLOAT_SLICE(v,i) (((fd_numvec)v)->elts.floats+i)
+#define FD_NUMVEC_DOUBLE_SLICE(v,i) (((fd_numvec)v)->elts.doubles+i)
+#define FD_NUMVEC_SHORT_SLICE(v,i) (((fd_numvec)v)->elts.shorts+i)
+#define FD_NUMVEC_INT_SLICE(v,i) (((fd_numvec)v)->elts.ints+i)
+#define FD_NUMVEC_LONG_SLICE(v,i) (((fd_numvec)v)->elts.longs+i)
 
 FD_EXPORT fdtype fd_make_long_vector(int n,fd_long *v);
 FD_EXPORT fdtype fd_make_int_vector(int n,fd_int *v);

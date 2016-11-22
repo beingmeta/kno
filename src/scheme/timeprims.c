@@ -1108,7 +1108,7 @@ static fdtype loadavg_prim()
 {
   double loadavg;
   int nsamples=getloadavg(&loadavg,1);
-  if (nsamples==1) return fd_make_double(loadavg);
+  if (nsamples==1) return fd_make_flonum(loadavg);
   else return FD_FALSE;
 }
 
@@ -1116,14 +1116,14 @@ static fdtype loadavgs_prim()
 {
   double loadavg[3]; int nsamples=getloadavg(loadavg,3);
   if (nsamples==1)
-    return fd_make_nvector(1,fd_make_double(loadavg[0]));
+    return fd_make_nvector(1,fd_make_flonum(loadavg[0]));
   else if (nsamples==2)
     return fd_make_nvector
-      (2,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]));
+      (2,fd_make_flonum(loadavg[0]),fd_make_flonum(loadavg[1]));
   else if (nsamples==3)
     return fd_make_nvector
-      (3,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]),
-       fd_make_double(loadavg[2]));
+      (3,fd_make_flonum(loadavg[0]),fd_make_flonum(loadavg[1]),
+       fd_make_flonum(loadavg[2]));
   else return FD_FALSE;
 }
 
@@ -1164,17 +1164,17 @@ static fdtype rusage_prim(fdtype field)
     { /* Load average(s) */
       double loadavg[3]; int nsamples=getloadavg(loadavg,3);
       if (nsamples>0) {
-        fdtype lval=fd_make_double(loadavg[0]), lvec=FD_VOID;
+        fdtype lval=fd_make_flonum(loadavg[0]), lvec=FD_VOID;
         fd_store(result,load_symbol,lval);
         if (nsamples==1)
-          lvec=fd_make_nvector(1,fd_make_double(loadavg[0]));
+          lvec=fd_make_nvector(1,fd_make_flonum(loadavg[0]));
         else if (nsamples==2)
-          lvec=fd_make_nvector(2,fd_make_double(loadavg[0]),
-                               fd_make_double(loadavg[1]));
+          lvec=fd_make_nvector(2,fd_make_flonum(loadavg[0]),
+                               fd_make_flonum(loadavg[1]));
         else lvec=fd_make_nvector
-               (3,fd_make_double(loadavg[0]),
-                fd_make_double(loadavg[1]),
-                fd_make_double(loadavg[2]));
+               (3,fd_make_flonum(loadavg[0]),
+                fd_make_flonum(loadavg[1]),
+                fd_make_flonum(loadavg[2]));
         if (!(FD_VOIDP(lvec))) fd_store(result,loadavg_symbol,lvec);
         fd_decref(lval); fd_decref(lvec);}}
     { /* Elapsed time */
@@ -1183,11 +1183,11 @@ static fdtype rusage_prim(fdtype field)
       fd_add(result,clock_symbol,tval);
       fd_decref(tval);}
     { /* User time */
-      fdtype tval=fd_make_double(u8_dbltime(r.ru_utime));
+      fdtype tval=fd_make_flonum(u8_dbltime(r.ru_utime));
       fd_add(result,utime_symbol,tval);
       fd_decref(tval);}
     { /* System time */
-      fdtype tval=fd_make_double(u8_dbltime(r.ru_stime));
+      fdtype tval=fd_make_flonum(u8_dbltime(r.ru_stime));
       fd_add(result,stime_symbol,tval);
       fd_decref(tval);}
 
@@ -1228,25 +1228,25 @@ static fdtype rusage_prim(fdtype field)
   else if (FD_EQ(field,resident_symbol))
     return FD_INT(r.ru_maxrss);
   else if (FD_EQ(field,utime_symbol))
-    return fd_make_double(u8_dbltime(r.ru_utime));
+    return fd_make_flonum(u8_dbltime(r.ru_utime));
   else if (FD_EQ(field,stime_symbol))
-    return fd_make_double(u8_dbltime(r.ru_stime));
+    return fd_make_flonum(u8_dbltime(r.ru_stime));
   else if (FD_EQ(field,memusage_symbol))
     return FD_INT(u8_memusage());
   else if (FD_EQ(field,load_symbol)) {
     double loadavg; int nsamples=getloadavg(&loadavg,1);
-    if (nsamples>0) return fd_make_double(loadavg);
+    if (nsamples>0) return fd_make_flonum(loadavg);
     else return FD_EMPTY_CHOICE;}
   else if (FD_EQ(field,loadavg_symbol)) {
     double loadavg[3]; int nsamples=getloadavg(loadavg,3);
     if (nsamples>0) {
       if (nsamples==1)
-        return fd_make_nvector(1,fd_make_double(loadavg[0]));
+        return fd_make_nvector(1,fd_make_flonum(loadavg[0]));
       else if (nsamples==2)
-        return fd_make_nvector(2,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]));
+        return fd_make_nvector(2,fd_make_flonum(loadavg[0]),fd_make_flonum(loadavg[1]));
       else return fd_make_nvector
-             (3,fd_make_double(loadavg[0]),fd_make_double(loadavg[1]),
-              fd_make_double(loadavg[2]));}
+             (3,fd_make_flonum(loadavg[0]),fd_make_flonum(loadavg[1]),
+              fd_make_flonum(loadavg[2]));}
     else if (FD_EQ(field,pid_symbol))
       return FD_INT((unsigned long)(getpid()));
     else if (FD_EQ(field,ppid_symbol))

@@ -41,7 +41,7 @@ static fd_exception NoSuchCalltrackSensor=
 static fd_exception TooManyCalltrackSensors=
   _("Too many calltrack sensors");
 
-FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
+FD_EXPORT fdtype fd_init_flonum(struct FD_FLONUM *ptr,double flonum);
 
 static int needs_escape(u8_string string)
 {
@@ -188,7 +188,7 @@ FD_EXPORT fdtype fd_calltrack_sense(int trackall)
 {
   int n=n_calltrack_sensors+1, i=0;
   fdtype *data=u8_alloc_n(n,fdtype), *write=data+1;
-  data[0]=fd_init_double(NULL,u8_elapsed_time());
+  data[0]=fd_init_flonum(NULL,u8_elapsed_time());
   while (i<n_calltrack_sensors)
     if ((trackall==0) &&
         (calltrack_sensors[i].enabled==0))
@@ -199,7 +199,7 @@ FD_EXPORT fdtype fd_calltrack_sense(int trackall)
       write[i++]=dv;}
     else  if (calltrack_sensors[i].dblfcn) {
       double fv=calltrack_sensors[i].dblfcn();
-      fdtype dv=fd_init_double(NULL,fv);
+      fdtype dv=fd_init_flonum(NULL,fv);
       write[i++]=dv;}
     else write[i++]=(FD_FIXNUM_ZERO);
   return fd_init_vector(NULL,n,data);

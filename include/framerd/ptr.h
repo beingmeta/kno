@@ -584,6 +584,7 @@ FD_EXPORT int fdtype_equal(fdtype x,fdtype y);
 FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 
 #define FD_EQUAL FDTYPE_EQUAL
+#define FD_EQUALP FDTYPE_EQUAL
 #if FD_PROFILING_ENABLED
 #define FDTYPE_EQUAL(x,y) (fdtype_equal(x,y))
 #define FD_QCOMPARE(x,y) (fdtype_compare(x,y,1))

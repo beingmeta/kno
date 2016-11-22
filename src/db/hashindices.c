@@ -2531,8 +2531,8 @@ FD_EXPORT fdtype fd_hash_index_stats(struct FD_HASH_INDEX *hx)
   {
     double avg=(hx->n_keys*1.0)/(n_filled*1.0);
     double sd2=(n2sum*1.0)/(n_filled*n_filled*1.0);
-    fd_add(result,fd_intern("MEAN"),fd_make_double(avg));
-    fd_add(result,fd_intern("SD2"),fd_make_double(sd2));
+    fd_add(result,fd_intern("MEAN"),fd_make_flonum(avg));
+    fd_add(result,fd_intern("SD2"),fd_make_flonum(sd2));
   }
   return result;
 }

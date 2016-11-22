@@ -1966,6 +1966,14 @@ static void recycle_bigint(struct FD_CONS *c)
 
 /* Flonums */
 
+FD_EXPORT fdtype fd_init_flonum(struct FD_FLONUM *ptr,double flonum)
+{
+  if (ptr == NULL) ptr=u8_alloc(struct FD_FLONUM);
+  FD_INIT_CONS(ptr,fd_flonum_type);
+  ptr->flonum=flonum;
+  return FDTYPE_CONS(ptr);
+}
+
 FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum)
 {
   if (ptr == NULL) ptr=u8_alloc(struct FD_FLONUM);
@@ -1974,7 +1982,7 @@ FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum)
   return FDTYPE_CONS(ptr);
 }
 
-static int unparse_double(struct U8_OUTPUT *out,fdtype x)
+static int unparse_flonum(struct U8_OUTPUT *out,fdtype x)
 {
   unsigned char buf[256]; int exp;
   struct FD_FLONUM *d=FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
@@ -1987,13 +1995,13 @@ static int unparse_double(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static fdtype copy_double(fdtype x,int deep)
+static fdtype copy_flonum(fdtype x,int deep)
 {
   struct FD_FLONUM *d=FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
-  return fd_init_double(NULL,d->flonum);
+  return fd_init_flonum(NULL,d->flonum);
 }
 
-static fdtype unpack_double(unsigned int n,unsigned char *packet)
+static fdtype unpack_flonum(unsigned int n,unsigned char *packet)
 {
   unsigned char bytes[8]; double *f=(double *)&bytes;
 #if WORDS_BIGENDIAN
@@ -2002,10 +2010,10 @@ static fdtype unpack_double(unsigned int n,unsigned char *packet)
   int i=0; while (i < 8) {bytes[i]=packet[7-i]; i++;}
 #endif
   u8_free(packet);
-  return fd_init_double(NULL,*f);
+  return fd_init_flonum(NULL,*f);
 }
 
-static int dtype_double(struct FD_BYTE_OUTPUT *out,fdtype x)
+static int dtype_flonum(struct FD_BYTE_OUTPUT *out,fdtype x)
 {
   struct FD_FLONUM *d=FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
   unsigned char bytes[8]; int i=0;
@@ -2022,12 +2030,12 @@ static int dtype_double(struct FD_BYTE_OUTPUT *out,fdtype x)
   return 11;
 }
 
-static void recycle_double(struct FD_CONS *c)
+static void recycle_flonum(struct FD_CONS *c)
 {
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
-static int compare_double(fdtype x,fdtype y,int f)
+static int compare_flonum(fdtype x,fdtype y,int f)
 {
   struct FD_FLONUM *dx=
     FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
@@ -2038,7 +2046,7 @@ static int compare_double(fdtype x,fdtype y,int f)
   else return 1;
 }
 
-static int hash_double(fdtype x,unsigned int (*fn)(fdtype))
+static int hash_flonum(fdtype x,unsigned int (*fn)(fdtype))
 {
   struct FD_FLONUM *dx=
     FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
@@ -2074,7 +2082,7 @@ fdtype fd_string2number(u8_string string,int base)
       fdtype result=fd_string2number(string+2,base);
 	if (FD_EXPECT_TRUE(FD_NUMBERP(result))) {
 	  double dbl=todouble(result);
-	  fdtype inexresult=fd_init_double(NULL,dbl);
+	  fdtype inexresult=fd_init_flonum(NULL,dbl);
 	  fd_decref(result);
 	  return inexresult;}
 	else return FD_FALSE;}
@@ -2172,7 +2180,7 @@ fdtype fd_string2number(u8_string string,int base)
     double flonum; u8_byte *end=NULL;
     flonum=strtod(string,(char **)&end);
     if ((end>string) && ((end-string)==len)) 
-      return _fd_make_double(flonum);
+      return fd_make_flonum(flonum);
     else return FD_FALSE;}
   else if (strchr(string+1,'+')) return FD_FALSE;
   else if (strchr(string+1,'-')) return FD_FALSE;
@@ -2528,7 +2536,7 @@ fdtype fd_plus(fdtype x,fdtype y)
     else return (fdtype) fd_long_long_to_bigint(result);}
   else if ((xt==fd_flonum_type) && (yt==fd_flonum_type)) {
     double result=FD_FLONUM(x)+FD_FLONUM(y);
-    return fd_init_double(NULL,result);}
+    return fd_init_flonum(NULL,result);}
   else if (!(NUMBERP(x)))
     return fd_type_error(_("number"),"fd_plus",x);
   else if (!(NUMBERP(y)))
@@ -2541,7 +2549,7 @@ fdtype fd_plus(fdtype x,fdtype y)
     return make_complex(real,imag);}
   else if ((xt == fd_flonum_type) || (yt == fd_flonum_type)) {
     double dx=todoublex(x,xt), dy=todoublex(y,yt);
-    return fd_init_double(NULL,dx+dy);}
+    return fd_init_flonum(NULL,dx+dy);}
   else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
     fdtype xnum=NUMERATOR(x), xden=DENOMINATOR(x);
     fdtype ynum=NUMERATOR(y), yden=DENOMINATOR(y);
@@ -2583,7 +2591,7 @@ fdtype fd_multiply(fdtype x,fdtype y)
     else return (fdtype) fd_long_long_to_bigint(result);}
   else if ((xt==fd_flonum_type) && (yt==fd_flonum_type)) {
     double result=FD_FLONUM(x)*FD_FLONUM(y);
-    return fd_init_double(NULL,result);}
+    return fd_init_flonum(NULL,result);}
   else if (!(NUMBERP(x)))
     return fd_type_error(_("number"),"fd_multiply",x);
   else if (!(NUMBERP(y)))
@@ -2600,7 +2608,7 @@ fdtype fd_multiply(fdtype x,fdtype y)
     return result;}
   else if ((xt == fd_flonum_type) || (yt == fd_flonum_type)) {
     double dx=todoublex(x,xt), dy=todoublex(y,yt);
-    return fd_init_double(NULL,dx*dy);}
+    return fd_init_flonum(NULL,dx*dy);}
   else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
     fdtype xnum=NUMERATOR(x), xden=DENOMINATOR(x);
     fdtype ynum=NUMERATOR(y), yden=DENOMINATOR(y);
@@ -2628,7 +2636,7 @@ fdtype fd_subtract(fdtype x,fdtype y)
     else return (fdtype) fd_long_long_to_bigint(result);}
   else if ((xt==fd_flonum_type) && (yt==fd_flonum_type)) {
     double result=FD_FLONUM(x)-FD_FLONUM(y);
-    return fd_init_double(NULL,result);}
+    return fd_init_flonum(NULL,result);}
   else if (!(NUMBERP(x)))
     return fd_type_error(_("number"),"fd_subtract",x);
   else if (!(NUMBERP(y)))
@@ -2641,7 +2649,7 @@ fdtype fd_subtract(fdtype x,fdtype y)
     return make_complex(real,imag);}
   else if ((xt == fd_flonum_type) || (yt == fd_flonum_type)) {
     double dx=todoublex(x,xt), dy=todoublex(y,yt);
-    return fd_init_double(NULL,dx-dy);}
+    return fd_init_flonum(NULL,dx-dy);}
   else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
     fdtype xnum=NUMERATOR(x), xden=DENOMINATOR(x);
     fdtype ynum=NUMERATOR(y), yden=DENOMINATOR(y);
@@ -2670,7 +2678,7 @@ fdtype fd_divide(fdtype x,fdtype y)
     return fd_make_rational(x,y);
   else if ((xt==fd_flonum_type) && (yt==fd_flonum_type)) {
     double result=FD_FLONUM(x)/FD_FLONUM(y);
-    return fd_init_double(NULL,result);}
+    return fd_init_flonum(NULL,result);}
   else if (!(NUMBERP(x)))
     return fd_type_error(_("number"),"fd_divide",x);
   else if (!(NUMBERP(y)))
@@ -2693,7 +2701,7 @@ fdtype fd_divide(fdtype x,fdtype y)
     return result;}
   else if ((xt==fd_flonum_type) || (yt==fd_flonum_type)) {
     double dx=todoublex(x,xt), dy=todoublex(y,yt);
-    return fd_init_double(NULL,dx/dy);}
+    return fd_init_flonum(NULL,dx/dy);}
   else if ((xt == fd_rational_type) || (yt == fd_rational_type)) {
     fdtype xnum=NUMERATOR(x), xden=DENOMINATOR(x);
     fdtype ynum=NUMERATOR(y), yden=DENOMINATOR(y);
@@ -2715,17 +2723,17 @@ fdtype fd_inexact_divide(fdtype x,fdtype y)
       return FD_INT(result);
     else {
       double dx=x, dy=y;
-      return fd_init_double(NULL,dx/dy);}}
+      return fd_init_flonum(NULL,dx/dy);}}
   else if ((xt==fd_flonum_type) && (yt==fd_flonum_type)) {
     double result=FD_FLONUM(x)/FD_FLONUM(y);
-    return fd_init_double(NULL,result);}
+    return fd_init_flonum(NULL,result);}
   else if (!(NUMBERP(x)))
     return fd_type_error(_("number"),"fd_builtin_divinexact",x);
   else if (!(NUMBERP(y)))
     return fd_type_error(_("number"),"fd_builtin_divinexact",y);
   else {
     double dx=todoublex(x,xt), dy=todoublex(y,yt);
-    return fd_init_double(NULL,dx/dy);}
+    return fd_init_flonum(NULL,dx/dy);}
 }
 
 FD_EXPORT
@@ -2847,13 +2855,13 @@ fdtype fd_make_inexact(fdtype x)
   if (xt == fd_flonum_type)
     return fd_incref(x);
   else if (xt == fd_fixnum_type)
-    return fd_init_double(NULL,((double) (FD_FIX2INT(x))));
+    return fd_init_flonum(NULL,((double) (FD_FIX2INT(x))));
   else if (xt == fd_bigint_type)
-    return fd_init_double(NULL,((double) fd_bigint_to_double((fd_bigint)x)));
+    return fd_init_flonum(NULL,((double) fd_bigint_to_double((fd_bigint)x)));
   else if (xt == fd_rational_type) {
     double num=todouble(NUMERATOR(x));
     double den=todouble(DENOMINATOR(x));
-    return fd_init_double(NULL,num/den);}
+    return fd_init_flonum(NULL,num/den);}
   else if (xt == fd_complex_type) {
     fdtype realpart=FD_REALPART(x), imagpart=FD_IMAGPART(x);
     if ((FD_FLONUMP(realpart)) &&
@@ -3255,7 +3263,7 @@ FD_EXPORT fdtype fd_make_short_vector(int n,fd_short *v)
 void fd_init_numbers_c()
 {
   if (fd_unparsers[fd_flonum_type] == NULL)
-    fd_unparsers[fd_flonum_type]=unparse_double;
+    fd_unparsers[fd_flonum_type]=unparse_flonum;
   if (fd_unparsers[fd_bigint_type] == NULL)
     fd_unparsers[fd_bigint_type]=unparse_bigint;
 
@@ -3264,27 +3272,27 @@ void fd_init_numbers_c()
   fd_unparsers[fd_flonum_vector_type]=unparse_double_vector;
   fd_unparsers[fd_numeric_vector_type]=unparse_numeric_vector;
 
-  fd_copiers[fd_flonum_type]=copy_double;
+  fd_copiers[fd_flonum_type]=copy_flonum;
   fd_copiers[fd_bigint_type]=copy_bigint;
   fd_copiers[fd_flonum_vector_type]=copy_double_vector;
   fd_copiers[fd_numeric_vector_type]=copy_numeric_vector;
-  fd_recyclers[fd_flonum_type]=recycle_double;
+  fd_recyclers[fd_flonum_type]=recycle_flonum;
   fd_recyclers[fd_bigint_type]=recycle_bigint;
   fd_recyclers[fd_bigint_type]=recycle_double_vector;
   fd_recyclers[fd_bigint_type]=recycle_numeric_vector;
-  fd_comparators[fd_flonum_type]=compare_double;
+  fd_comparators[fd_flonum_type]=compare_flonum;
   fd_comparators[fd_bigint_type]=compare_bigint;
   fd_comparators[fd_numeric_vector_type]=compare_double_vector;
   fd_comparators[fd_numeric_vector_type]=compare_numeric_vector;
   fd_dtype_writers[fd_bigint_type]=dtype_bigint;
-  fd_dtype_writers[fd_flonum_type]=dtype_double;
+  fd_dtype_writers[fd_flonum_type]=dtype_flonum;
   fd_hashfns[fd_bigint_type]=hash_bigint;
-  fd_hashfns[fd_flonum_type]=hash_double;
+  fd_hashfns[fd_flonum_type]=hash_flonum;
   fd_hashfns[fd_flonum_vector_type]=hash_double_vector;
   fd_hashfns[fd_numeric_vector_type]=hash_numeric_vector;
 
   fd_register_packet_unpacker
-    (dt_numeric_package,dt_double,unpack_double);
+    (dt_numeric_package,dt_double,unpack_flonum);
   fd_register_packet_unpacker
     (dt_numeric_package,dt_bigint,unpack_bigint);
 

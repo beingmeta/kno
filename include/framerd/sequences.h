@@ -32,6 +32,9 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end);
 FD_EXPORT int fd_position(fdtype key,fdtype x,int start,int end);
 FD_EXPORT int fd_search(fdtype key,fdtype x,int start,int end);
 
+FD_EXPORT int fd_generic_position(fdtype key,fdtype x,int start,int end);
+FD_EXPORT int fd_generic_search(fdtype subseq,fdtype seq,int start,int end);
+
 #define FD_SEQUENCEP(x) ((FD_EMPTY_LISTP(x)) || ((fd_seqfns[FD_PTR_TYPE(x)])!=NULL))
 
 fdtype *fd_elts(fdtype seq,int *len);

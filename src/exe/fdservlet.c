@@ -636,42 +636,42 @@ static fdtype servlet_status()
 
   if (stats.tcount>0) {
     fd_store(result,fd_intern("TRANSAVG"),
-             fd_make_double(((double)stats.tsum)/
+             fd_make_flonum(((double)stats.tsum)/
                             (((double)stats.tcount))));
     fd_store(result,fd_intern("TRANSMAX"),FD_INT(stats.tmax));
     fd_store(result,fd_intern("TRANSCOUNT"),FD_INT(stats.tcount));}
 
   if (stats.qcount>0) {
     fd_store(result,fd_intern("QUEUEAVG"),
-             fd_make_double(((double)stats.qsum)/
+             fd_make_flonum(((double)stats.qsum)/
                             (((double)stats.qcount))));
     fd_store(result,fd_intern("QUEUEMAX"),FD_INT(stats.qmax));
     fd_store(result,fd_intern("QUEUECOUNT"),FD_INT(stats.qcount));}
 
   if (stats.rcount>0) {
     fd_store(result,fd_intern("READAVG"),
-             fd_make_double(((double)stats.rsum)/
+             fd_make_flonum(((double)stats.rsum)/
                             (((double)stats.rcount))));
     fd_store(result,fd_intern("READMAX"),FD_INT(stats.rmax));
     fd_store(result,fd_intern("READCOUNT"),FD_INT(stats.rcount));}
 
   if (stats.wcount>0) {
     fd_store(result,fd_intern("WRITEAVG"),
-             fd_make_double(((double)stats.wsum)/
+             fd_make_flonum(((double)stats.wsum)/
                             (((double)stats.wcount))));
     fd_store(result,fd_intern("WRITEMAX"),FD_INT(stats.wmax));
     fd_store(result,fd_intern("WRITECOUNT"),FD_INT(stats.wcount));}
 
   if (stats.xcount>0) {
     fd_store(result,fd_intern("EXECAVG"),
-             fd_make_double(((double)stats.xsum)/
+             fd_make_flonum(((double)stats.xsum)/
                             (((double)stats.xcount))));
     fd_store(result,fd_intern("EXECMAX"),FD_INT(stats.xmax));
     fd_store(result,fd_intern("EXECCOUNT"),FD_INT(stats.xcount));}
 
   if (livestats.tcount>0) {
     fd_store(result,fd_intern("LIVE/TRANSAVG"),
-             fd_make_double(((double)livestats.tsum)/
+             fd_make_flonum(((double)livestats.tsum)/
                             (((double)livestats.tcount))));
     fd_store(result,fd_intern("LIVE/TRANSMAX"),FD_INT(livestats.tmax));
     fd_store(result,fd_intern("LIVE/TRANSCOUNT"),
@@ -679,7 +679,7 @@ static fdtype servlet_status()
 
   if (livestats.qcount>0) {
     fd_store(result,fd_intern("LIVE/QUEUEAVG"),
-             fd_make_double(((double)livestats.qsum)/
+             fd_make_flonum(((double)livestats.qsum)/
                             (((double)livestats.qcount))));
     fd_store(result,fd_intern("LIVE/QUEUEMAX"),FD_INT(livestats.qmax));
     fd_store(result,fd_intern("LIVE/QUEUECOUNT"),
@@ -687,7 +687,7 @@ static fdtype servlet_status()
 
   if (livestats.rcount>0) {
     fd_store(result,fd_intern("LIVE/READAVG"),
-             fd_make_double(((double)livestats.rsum)/
+             fd_make_flonum(((double)livestats.rsum)/
                             (((double)livestats.rcount))));
     fd_store(result,fd_intern("LIVE/READMAX"),FD_INT(livestats.rmax));
     fd_store(result,fd_intern("LIVE/READCOUNT"),
@@ -695,7 +695,7 @@ static fdtype servlet_status()
 
   if (livestats.wcount>0) {
     fd_store(result,fd_intern("LIVE/WRITEAVG"),
-             fd_make_double(((double)livestats.wsum)/
+             fd_make_flonum(((double)livestats.wsum)/
                             (((double)livestats.wcount))));
     fd_store(result,fd_intern("LIVE/WRITEMAX"),FD_INT(livestats.wmax));
     fd_store(result,fd_intern("LIVE/WRITECOUNT"),
@@ -703,7 +703,7 @@ static fdtype servlet_status()
 
   if (livestats.xcount>0) {
     fd_store(result,fd_intern("LIVE/EXECAVG"),
-             fd_make_double(((double)livestats.xsum)/
+             fd_make_flonum(((double)livestats.xsum)/
                             (((double)livestats.xcount))));
     fd_store(result,fd_intern("LIVE/EXECMAX"),FD_INT(livestats.xmax));
     fd_store(result,fd_intern("LIVE/EXECCOUNT"),
@@ -711,7 +711,7 @@ static fdtype servlet_status()
 
   if (curstats.tcount>0) {
     fd_store(result,fd_intern("CUR/TRANSAVG"),
-             fd_make_double(((double)curstats.tsum)/
+             fd_make_flonum(((double)curstats.tsum)/
                             (((double)curstats.tcount))));
     fd_store(result,fd_intern("CUR/TRANSMAX"),FD_INT(curstats.tmax));
     fd_store(result,fd_intern("CUR/TRANSCOUNT"),
@@ -719,7 +719,7 @@ static fdtype servlet_status()
 
   if (curstats.qcount>0) {
     fd_store(result,fd_intern("CUR/QUEUEAVG"),
-             fd_make_double(((double)curstats.qsum)/
+             fd_make_flonum(((double)curstats.qsum)/
                             (((double)curstats.qcount))));
     fd_store(result,fd_intern("CUR/QUEUEMAX"),FD_INT(curstats.qmax));
     fd_store(result,fd_intern("CUR/QUEUECOUNT"),
@@ -727,7 +727,7 @@ static fdtype servlet_status()
 
   if (curstats.rcount>0) {
     fd_store(result,fd_intern("CUR/READAVG"),
-             fd_make_double(((double)curstats.rsum)/
+             fd_make_flonum(((double)curstats.rsum)/
                             (((double)curstats.rcount))));
     fd_store(result,fd_intern("CUR/READMAX"),FD_INT(curstats.rmax));
     fd_store(result,fd_intern("CUR/READCOUNT"),
@@ -735,7 +735,7 @@ static fdtype servlet_status()
 
   if (curstats.wcount>0) {
     fd_store(result,fd_intern("CUR/WRITEAVG"),
-             fd_make_double(((double)curstats.wsum)/
+             fd_make_flonum(((double)curstats.wsum)/
                             (((double)curstats.wcount))));
     fd_store(result,fd_intern("CUR/WRITEMAX"),FD_INT(curstats.wmax));
     fd_store(result,fd_intern("CUR/WRITECOUNT"),
@@ -743,7 +743,7 @@ static fdtype servlet_status()
 
   if (curstats.xcount>0) {
     fd_store(result,fd_intern("CUR/EXECAVG"),
-             fd_make_double(((double)curstats.xsum)/
+             fd_make_flonum(((double)curstats.xsum)/
                             (((double)curstats.xcount))));
     fd_store(result,fd_intern("CUR/EXECMAX"),FD_INT(curstats.xmax));
     fd_store(result,fd_intern("CUR/EXECCOUNT"),
