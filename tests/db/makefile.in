@@ -7,7 +7,7 @@ CC	= @CC@
 XCFLAGS=
 CFLAGS= -I../../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
 	-I../../include $(XCFLAGS)
-LDFLAGS =@LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
+LDFLAGS =-L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ -L../../lib
 RPATH   = @rpath@
 RPATHFLAGS = @RPATHFLAGS@
 BASELIBS=@LIBS@ -lm -lz
