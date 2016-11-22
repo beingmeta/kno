@@ -840,19 +840,27 @@ FD_EXPORT fdtype fd_init_vecs(struct FD_X2VEC_CONTEXT *x2vcxt,fdtype init)
     size_t vocab_size=(init_vocab)?(FD_CHOICE_SIZE(keys)):(x2vcxt->vocab_size);
     size_t syn0_size=vocab_size*layer1_size;
     real *syn0=
-      (posix_memalign((void **)&(x2vcxt->syn0), 128, syn0_size * sizeof(real)),
+      (posix_memalign((void **)&(x2vcxt->syn0), 
+		      128, syn0_size * sizeof(real)),
        x2vcxt->syn0);
-    struct FD_X2VEC_WORD *vocab=(init_vocab)?(init_vocab_size(x2vcxt,vocab_size)):(x2vcxt->vocab);
+    struct FD_X2VEC_WORD *vocab=(init_vocab)?
+      (init_vocab_size(x2vcxt,vocab_size)):
+      (x2vcxt->vocab);
     {FD_DO_CHOICES(key,keys) {
 	if (FD_STRINGP(key)) {
 	  fdtype v=fd_get(init,key,FD_VOID);
 	  if (FD_VOIDP(v)) {}
-	  else if (FD_PRIM_TYPEP(v,fd_flonum_vector_type)) {
-	    int n=FD_FLONUMVEC_LENGTH(v);
-	    double *d=FD_FLONUMVEC_ELTS(v);
-	    float *f=&syn0[i*layer1_size];
-	    int i=0; while (i<n) {
-	      f[i]=(float)d[i]; i++;}
+	  else if ((FD_PRIM_TYPEP(v,fd_numeric_vector_type))&&
+		   ((FD_NUMVEC_TYPE(v)==fd_float32)||
+		    (FD_NUMVEC_TYPE(v)==fd_float64))) {
+	    int n=FD_NUMVEC_LENGTH(v);
+	    float *write=&syn0[i*layer1_size];
+	    if (FD_NUMVEC_TYPE(v)==fd_float32) {
+	      fd_float *f=FD_NUMVEC_FLOATS(v);
+	      int i=0; while (i<n) {write[i]=f[i]; i++;}}
+	    else {
+	      fd_double *d=FD_NUMVEC_DOUBLES(v);
+	      int i=0; while (i<n) {write[i]=(float)d[i]; i++;}}
 	    if (init_vocab) init_vocab_word(&vocab[i],FD_STRDATA(key),1);}
 	  else if (FD_PRIM_TYPEP(v,fd_vector_type)) {
 	    int n=FD_VECTOR_LENGTH(v);
@@ -865,7 +873,8 @@ FD_EXPORT fdtype fd_init_vecs(struct FD_X2VEC_CONTEXT *x2vcxt,fdtype init)
 	      else {
 		u8_log(LOGWARN,"BadX2VecValue","%q is not a flonum",elt);}
 	      i++;}
-	    if (init_vocab) init_vocab_word(&vocab[i],FD_STRDATA(key),1);}
+	    if (init_vocab)
+	      init_vocab_word(&vocab[i],FD_STRDATA(key),1);}
 	  else {
 	    u8_log(LOGWARN,"BadX2VecValue",
 		   "%q is not a vector or float vector",v);}
@@ -981,13 +990,9 @@ static fdtype x2vec_get_prim(fdtype arg,fdtype term)
       fd_make_hashtable(NULL,vocab_size+vocab_size/2);
     int i=0; while (i<vocab_size) {
       u8_string word=vocab[i].word;
-      fdtype key=fd_make_string(NULL,-1,word), vec;
-      double *dvec=u8_malloc(layer1_size*sizeof(double));
-      int j=0; while (j<layer1_size) {
-	dvec[j]=syn0[(i*layer1_size)+j];
-	j++;}
-      vec=fd_make_flonum_vector(layer1_size,dvec);
-      u8_free(dvec);
+      fdtype key=fd_make_string(NULL,-1,word);
+      fdtype vec=fd_make_float_vector
+	(layer1_size,&syn0[i*layer1_size]);
       fd_hashtable_store(ht,key,vec);
       fd_decref(key); fd_decref(vec);
       i++;}
@@ -995,14 +1000,7 @@ static fdtype x2vec_get_prim(fdtype arg,fdtype term)
   else if (FD_STRINGP(term)) {
     int i=get_vocab_id(x2v,FD_STRDATA(term));
     if (i<0) return FD_EMPTY_CHOICE;
-    else {
-      fdtype result=FD_VOID;
-      double *dvec=u8_alloc_n(layer1_size,double);
-      float *fvec=&(syn0[i*layer1_size]);
-      int i=0; while (i<layer1_size) {dvec[i]=fvec[i]; i++;}
-      result=fd_make_flonum_vector(layer1_size,dvec);
-      u8_free(dvec);
-      return result;}}
+    else return fd_make_float_vector(layer1_size,&(syn0[i*layer1_size]));}
   else return fd_type_error(_("string"),"x2vec_get_prim",term);
 }
 
