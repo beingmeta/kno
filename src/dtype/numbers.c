@@ -2922,15 +2922,15 @@ static void recycle_numeric_vector(struct FD_CONS *c)
   enum fd_num_elt_type elt_type=v->elt_type;
   if (v->freedata) {
     switch(elt_type) {
-    case fd_int16:
+    case fd_short_elt:
       u8_free(v->elts.shorts); break;
-    case fd_int32:
+    case fd_int_elt:
       u8_free(v->elts.ints); break;
-    case fd_int64:
+    case fd_long_elt:
       u8_free(v->elts.longs); break;
-    case fd_float32:
+    case fd_float_elt:
       u8_free(v->elts.floats); break;
-    case fd_float64:
+    case fd_double_elt:
       u8_free(v->elts.doubles); break;}}
   if (FD_MALLOCD_CONSP(c)) {
     u8_free(c);}
@@ -2940,15 +2940,15 @@ static double double_ref(struct FD_NUMERIC_VECTOR *vec,int i)
 {
   enum fd_num_elt_type elt_type=vec->elt_type;
   switch (elt_type) {
-  case fd_int16:
+  case fd_short_elt:
     return (double) (FD_NUMVEC_SHORT(vec,i));
-  case fd_int32:
+  case fd_int_elt:
     return (double) (FD_NUMVEC_INT(vec,i));
-  case fd_int64:
+  case fd_long_elt:
     return (double) (FD_NUMVEC_LONG(vec,i));
-  case fd_float32:
+  case fd_float_elt:
     return (double) (FD_NUMVEC_FLOAT(vec,i));
-  case fd_float64:
+  case fd_double_elt:
     return (double) (FD_NUMVEC_DOUBLE(vec,i));
   default:
     return INFINITY;}
@@ -2957,15 +2957,15 @@ static double double_ref(struct FD_NUMERIC_VECTOR *vec,int i)
 static size_t nvec_elt_size(enum fd_num_elt_type elt_type)
 {
   switch (elt_type) {
-  case fd_int16:
+  case fd_short_elt:
     return sizeof(fd_short);
-  case fd_int32:
+  case fd_int_elt:
     return sizeof(fd_int);
-  case fd_int64:
+  case fd_long_elt:
     return sizeof(fd_long);
-  case fd_float32:
+  case fd_float_elt:
     return sizeof(fd_float);
-  case fd_float64:
+  case fd_double_elt:
     return sizeof(fd_double);
   default:
     return sizeof(fd_double);}
@@ -3018,23 +3018,23 @@ static fdtype copy_numeric_vector(fdtype x,int deep)
   FD_INIT_CONS(copy,fd_numeric_vector_type);
   copy->length=len; copy->freedata=0;
   switch (elt_type) {
-  case fd_int16:
+  case fd_short_elt:
     copy->elts.shorts=vec->elts.shorts;
     memcpy(copy->elts.shorts,vec->elts.shorts,elts_size); 
     break;
-  case fd_int32:
+  case fd_int_elt:
     copy->elts.ints=vec->elts.ints;
     memcpy(copy->elts.ints,vec->elts.ints,elts_size); 
     break;
-  case fd_int64:
+  case fd_long_elt:
     copy->elts.longs=vec->elts.longs;
     memcpy(copy->elts.longs,vec->elts.longs,elts_size); 
     break;
-  case fd_float32:
+  case fd_float_elt:
     copy->elts.floats=vec->elts.floats;
     memcpy(copy->elts.floats,vec->elts.floats,elts_size); 
     break;
-  case fd_float64:
+  case fd_double_elt:
     copy->elts.doubles=vec->elts.doubles;
     memcpy(copy->elts.doubles,vec->elts.doubles,elts_size); 
     break;}
@@ -3047,27 +3047,27 @@ static int unparse_numeric_vector(struct U8_OUTPUT *out,fdtype x)
   int i=0, n=vec->length; char *typename="NUMVEC";
   enum fd_num_elt_type type=vec->elt_type;
   switch (type) {
-  case fd_int16:
+  case fd_short_elt:
     typename="SHORTVEC"; break;
-  case fd_int32:
+  case fd_int_elt:
     typename="INTVEC"; break;
-  case fd_int64:
+  case fd_long_elt:
     typename="LONGVEC"; break;
-  case fd_float32:
+  case fd_float_elt:
     typename="FLOATVEC"; break;
-  case fd_float64:
+  case fd_double_elt:
     typename="DOUBLEVEC"; break;}
   u8_printf(out,"#<%s",typename);
   switch (type) {
-  case fd_int16:
+  case fd_short_elt:
     while (i<n) {u8_printf(out," %d",FD_NUMVEC_SHORT(vec,i)); i++;} break;
-  case fd_int32:
+  case fd_int_elt:
     while (i<n) {u8_printf(out," %d",FD_NUMVEC_INT(vec,i)); i++;} break;
-  case fd_int64:
+  case fd_long_elt:
     while (i<n) {u8_printf(out," %lld",FD_NUMVEC_LONG(vec,i)); i++;} break;
-  case fd_float32:
+  case fd_float_elt:
     while (i<n) {u8_printf(out," %f",(double)FD_NUMVEC_FLOAT(vec,i)); i++;} break;
-  case fd_float64:
+  case fd_double_elt:
     while (i<n) {u8_printf(out," %f",FD_NUMVEC_DOUBLE(vec,i)); i++;} break;}
   u8_puts(out,">");
   return 1;
@@ -3080,7 +3080,7 @@ FD_EXPORT fdtype fd_make_double_vector(int n,fd_double *v)
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(double)));
   FD_INIT_FRESH_CONS(nvec,fd_numeric_vector_type);
-  nvec->elt_type=fd_float64;
+  nvec->elt_type=fd_double_elt;
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(double));
@@ -3093,7 +3093,7 @@ FD_EXPORT fdtype fd_make_float_vector(int n,fd_float *v)
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(float)));
   FD_INIT_FRESH_CONS(nvec,fd_numeric_vector_type);
-  nvec->elt_type=fd_float64;
+  nvec->elt_type=fd_double_elt;
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(float));
@@ -3106,7 +3106,7 @@ FD_EXPORT fdtype fd_make_int_vector(int n,fd_int *v)
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(int)));
   FD_INIT_FRESH_CONS(nvec,fd_numeric_vector_type);
-  nvec->elt_type=fd_int32;
+  nvec->elt_type=fd_int_elt;
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(int));
@@ -3119,7 +3119,7 @@ FD_EXPORT fdtype fd_make_long_vector(int n,fd_long *v)
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(long)));
   FD_INIT_FRESH_CONS(nvec,fd_numeric_vector_type);
-  nvec->elt_type=fd_int64;
+  nvec->elt_type=fd_long_elt;
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(long));
@@ -3132,7 +3132,7 @@ FD_EXPORT fdtype fd_make_short_vector(int n,fd_short *v)
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(short)));
   FD_INIT_FRESH_CONS(nvec,fd_numeric_vector_type);
-  nvec->elt_type=fd_int64;
+  nvec->elt_type=fd_long_elt;
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(short));
@@ -3151,11 +3151,11 @@ FD_EXPORT fdtype fd_make_numeric_vector(int n,enum fd_num_elt_type vectype)
   nvec->length=n;
   memset(nvec+sizeof(struct FD_NUMERIC_VECTOR),0,n*elt_size);
   switch (vectype) {
-  case fd_int16: nvec->elts.shorts=(fd_short *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
-  case fd_int32: nvec->elts.ints=(fd_int *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
-  case fd_int64: nvec->elts.longs=(fd_long *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
-  case fd_float32: nvec->elts.floats=(fd_float *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
-  case fd_float64: nvec->elts.doubles=(fd_double *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;}
+  case fd_short_elt: nvec->elts.shorts=(fd_short *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
+  case fd_int_elt: nvec->elts.ints=(fd_int *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
+  case fd_long_elt: nvec->elts.longs=(fd_long *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
+  case fd_float_elt: nvec->elts.floats=(fd_float *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
+  case fd_double_elt: nvec->elts.doubles=(fd_double *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;}
   return (fdtype) nvec;
 }
 

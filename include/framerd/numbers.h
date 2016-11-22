@@ -56,7 +56,7 @@ struct FD_NUMERIC_VECTOR {
   FD_CONS_HEADER;
   unsigned int freedata:1;
   unsigned int length:31;
-  enum fd_num_elt_type { fd_int16, fd_int32, fd_int64, fd_float32, fd_float64 } elt_type;
+  enum fd_num_elt_type { fd_short_elt, fd_int_elt, fd_long_elt, fd_float_elt, fd_double_elt } elt_type;
   union { 
     fd_float *floats;
     fd_double *doubles;
@@ -84,15 +84,15 @@ typedef struct FD_NUMERIC_VECTOR *fd_numvec;
   (FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))
 
 #define FD_NUMVEC_FLOATS(v) \
-  (((((fd_numvec)v)->elt_type)==fd_float32)?(((fd_numvec)v)->elts.floats):(NULL))
+  (((((fd_numvec)v)->elt_type)==fd_float_elt)?(((fd_numvec)v)->elts.floats):(NULL))
 #define FD_NUMVEC_DOUBLES(v) \
-  (((((fd_numvec)v)->elt_type)==fd_float64)?(((fd_numvec)v)->elts.doubles):(NULL))
+  (((((fd_numvec)v)->elt_type)==fd_double_elt)?(((fd_numvec)v)->elts.doubles):(NULL))
 #define FD_NUMVEC_SHORTS(v) \
-  (((((fd_numvec)v)->elt_type)==fd_int16)?(((fd_numvec)v)->elts.shorts):(NULL))
+  (((((fd_numvec)v)->elt_type)==fd_short_elt)?(((fd_numvec)v)->elts.shorts):(NULL))
 #define FD_NUMVEC_INTS(v) \
-  (((((fd_numvec)v)->elt_type)==fd_int32)?(((fd_numvec)v)->elts.ints):(NULL))
+  (((((fd_numvec)v)->elt_type)==fd_int_elt)?(((fd_numvec)v)->elts.ints):(NULL))
 #define FD_NUMVEC_LONGS(v) \
-  (((((fd_numvec)v)->elt_type)==fd_int64)?(((fd_numvec)v)->elts.longs):(NULL))
+  (((((fd_numvec)v)->elt_type)==fd_long_elt)?(((fd_numvec)v)->elts.longs):(NULL))
 
 #define FD_NUMVEC_FLOAT(v,i) (((fd_numvec)v)->elts.floats[i])
 #define FD_NUMVEC_DOUBLE(v,i) (((fd_numvec)v)->elts.doubles[i])

@@ -851,11 +851,11 @@ FD_EXPORT fdtype fd_init_vecs(struct FD_X2VEC_CONTEXT *x2vcxt,fdtype init)
 	  fdtype v=fd_get(init,key,FD_VOID);
 	  if (FD_VOIDP(v)) {}
 	  else if ((FD_PRIM_TYPEP(v,fd_numeric_vector_type))&&
-		   ((FD_NUMVEC_TYPE(v)==fd_float32)||
-		    (FD_NUMVEC_TYPE(v)==fd_float64))) {
+		   ((FD_NUMVEC_TYPE(v)==fd_float_elt)||
+		    (FD_NUMVEC_TYPE(v)==fd_double_elt))) {
 	    int n=FD_NUMVEC_LENGTH(v);
 	    float *write=&syn0[i*layer1_size];
-	    if (FD_NUMVEC_TYPE(v)==fd_float32) {
+	    if (FD_NUMVEC_TYPE(v)==fd_float_elt) {
 	      fd_float *f=FD_NUMVEC_FLOATS(v);
 	      int i=0; while (i<n) {write[i]=f[i]; i++;}}
 	    else {

@@ -86,15 +86,15 @@ FD_EXPORT fdtype fd_seq_elt(fdtype x,int i)
       if (i>=FD_NUMVEC_LENGTH(x))
         return FD_RANGE_ERROR;
       else switch (FD_NUMVEC_TYPE(x)) {
-        case fd_int16:
+        case fd_short_elt:
           return FD_INT(FD_NUMVEC_SHORT(x,i));
-        case fd_int32:
+        case fd_int_elt:
           return FD_INT(FD_NUMVEC_INT(x,i));
-        case fd_int64:
+        case fd_long_elt:
           return FD_INT(FD_NUMVEC_LONG(x,i));
-        case fd_float32:
+        case fd_float_elt:
           return fd_make_flonum(FD_NUMVEC_FLOAT(x,i));
-        case fd_float64:
+        case fd_double_elt:
           return fd_make_flonum(FD_NUMVEC_DOUBLE(x,i));
         default:
           return fd_err("Corrupted numvec","fd_seq_elt",NULL,fd_incref(x));}
@@ -160,15 +160,15 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
         if (newlen<0) return FD_RANGE_ERROR;}
       else newlen=end-start;
       switch (FD_NUMVEC_TYPE(x)) {
-      case fd_int16:
+      case fd_short_elt:
         return fd_make_short_vector(newlen,FD_NUMVEC_SHORT_SLICE(x,start));
-      case fd_int32:
+      case fd_int_elt:
         return fd_make_int_vector(newlen,FD_NUMVEC_INT_SLICE(x,start));
-      case fd_int64:
+      case fd_long_elt:
         return fd_make_long_vector(newlen,FD_NUMVEC_LONG_SLICE(x,start));
-      case fd_float32:
+      case fd_float_elt:
         return fd_make_float_vector(newlen,FD_NUMVEC_FLOAT_SLICE(x,start));
-      case fd_float64:
+      case fd_double_elt:
         return fd_make_double_vector(newlen,FD_NUMVEC_DOUBLE_SLICE(x,start));
       default:
         return fd_err("Corrupted numvec","fd_seq_elt",NULL,fd_incref(x));}}
@@ -490,23 +490,23 @@ fdtype *fd_elts(fdtype seq,int *n)
     case fd_numeric_vector_type: {
       int i=0;
       switch (FD_NUMVEC_TYPE(seq)) {
-      case fd_int16: {
+      case fd_short_elt: {
         fd_short *shorts=FD_NUMVEC_SHORTS(seq);
         while (i<len) {vec[i]=FD_INT(shorts[i]); i++;}
         break;}
-      case fd_int32: {
+      case fd_int_elt: {
         fd_int *ints=FD_NUMVEC_INTS(seq);
         while (i<len) {vec[i]=FD_INT(ints[i]); i++;}
         break;}
-      case fd_int64: {
+      case fd_long_elt: {
         fd_long *longs=FD_NUMVEC_LONGS(seq);
         while (i<len) {vec[i]=FD_INT(longs[i]); i++;}
         break;}
-      case fd_float32: {
+      case fd_float_elt: {
         fd_float *floats=FD_NUMVEC_FLOATS(seq);
         while (i<len) {vec[i]=fd_make_double(floats[i]); i++;}
         break;}
-      case fd_float64: {
+      case fd_double_elt: {
         fd_double *doubles=FD_NUMVEC_DOUBLES(seq);
         while (i<len) {vec[i]=fd_make_double(doubles[i]); i++;}
         break;}}
@@ -592,15 +592,15 @@ FD_EXPORT fdtype fd_reverse(fdtype sequence)
       i=0; j=len-1; while (i < len) {tmp[j]=elts[i]; i++; j--;}}
     if (FD_PRIM_TYPEP(sequence,fd_numeric_vector_type)) {
       switch (FD_NUMVEC_TYPE(sequence)) {
-      case fd_float32:
+      case fd_float_elt:
         result=make_float_vector(len,elts); break;
-      case fd_float64:
+      case fd_double_elt:
         result=make_double_vector(len,elts); break;
-      case fd_int16:
+      case fd_short_elt:
         result=make_short_vector(len,elts); break;
-      case fd_int32:
+      case fd_int_elt:
         result=make_int_vector(len,elts); break;
-      case fd_int64:
+      case fd_long_elt:
         result=make_long_vector(len,elts); break;}}
     else result=fd_makeseq(FD_PTR_TYPE(sequence),len,tmp);
     i=0; while (i<len) {fd_decref(elts[i]); i++;}
@@ -1703,31 +1703,31 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
       int i=start, lim=((end<0)?(len+end):(end));
       if (lim>len) lim=len;
       switch (FD_NUMVEC_TYPE(x)) {
-      case fd_int16: {
+      case fd_short_elt: {
         fd_short *vec=FD_NUMVEC_SHORTS(x);
         while (i<lim) {
           fd_short num=vec[i++]; fdtype elt=FD_INT(num); 
           FD_ADD_TO_CHOICE(results,elt); 
           i++;}}
-      case fd_int32: {
+      case fd_int_elt: {
         fd_int *vec=FD_NUMVEC_INTS(x);
         while (i<lim) {
           fd_int num=vec[i++]; fdtype elt=FD_INT(num);
           FD_ADD_TO_CHOICE(results,elt);}
         break;}
-      case fd_int64: {
+      case fd_long_elt: {
         fd_long *vec=FD_NUMVEC_LONGS(x);
         while (i<lim) {
           fd_long num=vec[i++]; fdtype elt=FD_INT(num);
           FD_ADD_TO_CHOICE(results,elt);}
         break;}
-      case fd_float32: {
+      case fd_float_elt: {
         fd_float *vec=FD_NUMVEC_FLOATS(x);
         while (i<lim) {
           fd_float num=vec[i++]; fdtype elt=fd_make_flonum(num);
           FD_ADD_TO_CHOICE(results,elt);}
         break;}
-      case fd_float64: {
+      case fd_double_elt: {
         fd_double *vec=FD_NUMVEC_DOUBLES(x);
         while (i<lim) {
           fd_double num=vec[i++]; fdtype elt=fd_make_flonum(num);
@@ -1899,7 +1899,7 @@ static fdtype recons_prim(fdtype car,fdtype cdr,fdtype orig)
 
 static fdtype make_short_vector(int n,fdtype *from_elts)
 {
-  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_int16);
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_short_elt);
   fd_short *elts=FD_NUMVEC_SHORTS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
@@ -1916,7 +1916,7 @@ static fdtype make_short_vector(int n,fdtype *from_elts)
 static fdtype seq2shortvec(fdtype arg)
 {
   if ((FD_PRIM_TYPEP(arg,fd_numeric_vector_type))&&
-      (FD_NUMVEC_TYPE(arg)==fd_int16)) {
+      (FD_NUMVEC_TYPE(arg)==fd_short_elt)) {
     fd_incref(arg);
     return arg;}
   else if (FD_VECTORP(arg))
@@ -1933,7 +1933,7 @@ static fdtype seq2shortvec(fdtype arg)
 
 static fdtype make_int_vector(int n,fdtype *from_elts)
 {
-  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_int32);
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_int_elt);
   int *elts=FD_NUMVEC_INTS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
@@ -1951,7 +1951,7 @@ static fdtype make_int_vector(int n,fdtype *from_elts)
 static fdtype seq2intvec(fdtype arg)
 {
   if ((FD_PRIM_TYPEP(arg,fd_numeric_vector_type))&&
-      (FD_NUMVEC_TYPE(arg)==fd_int32)) {
+      (FD_NUMVEC_TYPE(arg)==fd_int_elt)) {
     fd_incref(arg);
     return arg;}
   else if (FD_VECTORP(arg))
@@ -1968,7 +1968,7 @@ static fdtype seq2intvec(fdtype arg)
 
 static fdtype make_long_vector(int n,fdtype *from_elts)
 {
-  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_int64);
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_long_elt);
   long *elts=FD_NUMVEC_LONGS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
@@ -1985,7 +1985,7 @@ static fdtype make_long_vector(int n,fdtype *from_elts)
 static fdtype seq2longvec(fdtype arg)
 {
   if ((FD_PRIM_TYPEP(arg,fd_numeric_vector_type))&&
-      (FD_NUMVEC_TYPE(arg)==fd_int64)) {
+      (FD_NUMVEC_TYPE(arg)==fd_long_elt)) {
     fd_incref(arg);
     return arg;}
   else if (FD_VECTORP(arg))
@@ -2002,7 +2002,7 @@ static fdtype seq2longvec(fdtype arg)
 
 static fdtype make_float_vector(int n,fdtype *from_elts)
 {
-  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_float32);
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_float_elt);
   float *elts=FD_NUMVEC_FLOATS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
@@ -2019,7 +2019,7 @@ static fdtype make_float_vector(int n,fdtype *from_elts)
 static fdtype seq2floatvec(fdtype arg)
 {
   if ((FD_PRIM_TYPEP(arg,fd_numeric_vector_type))&&
-      (FD_NUMVEC_TYPE(arg)==fd_float32)) {
+      (FD_NUMVEC_TYPE(arg)==fd_float_elt)) {
     fd_incref(arg);
     return arg;}
   else if (FD_VECTORP(arg))
@@ -2036,7 +2036,7 @@ static fdtype seq2floatvec(fdtype arg)
 
 static fdtype make_double_vector(int n,fdtype *from_elts)
 {
-  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_float64);
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_double_elt);
   double *elts=FD_NUMVEC_DOUBLES(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
@@ -2053,7 +2053,7 @@ static fdtype make_double_vector(int n,fdtype *from_elts)
 static fdtype seq2doublevec(fdtype arg)
 {
   if ((FD_PRIM_TYPEP(arg,fd_numeric_vector_type))&&
-      (FD_NUMVEC_TYPE(arg)==fd_float64)) {
+      (FD_NUMVEC_TYPE(arg)==fd_double_elt)) {
     fd_incref(arg);
     return arg;}
   else if (FD_VECTORP(arg))
