@@ -28,6 +28,12 @@
 
 #define string_start(bytes,i) ((i==0) ? (bytes) : (u8_substring(bytes,i)))
 
+static fdtype make_float_vector(int n,fdtype *from_elts);
+static fdtype make_double_vector(int n,fdtype *from_elts);
+static fdtype make_short_vector(int n,fdtype *from_elts);
+static fdtype make_int_vector(int n,fdtype *from_elts);
+static fdtype make_long_vector(int n,fdtype *from_elts);
+
 static fd_exception SequenceMismatch=_("Mismatch of sequence lengths");
 static fd_exception EmptyReduce=_("No sequence elements to reduce");
 
@@ -491,6 +497,30 @@ fdtype *fd_elts(fdtype seq,int *n)
         vec[i]=flonum;
         i++; scan++;}
       break;}
+    case fd_numeric_vector_type: {
+      int i=0;
+      switch (FD_NUMVEC_TYPE(seq)) {
+      case fd_int16: {
+        fd_short *shorts=FD_NUMVEC_SHORTS(seq);
+        while (i<len) {vec[i]=FD_INT(shorts[i]); i++;}
+        break;}
+      case fd_int32: {
+        fd_int *ints=FD_NUMVEC_INTS(seq);
+        while (i<len) {vec[i]=FD_INT(ints[i]); i++;}
+        break;}
+      case fd_int64: {
+        fd_long *longs=FD_NUMVEC_LONGS(seq);
+        while (i<len) {vec[i]=FD_INT(longs[i]); i++;}
+        break;}
+      case fd_float32: {
+        fd_float *floats=FD_NUMVEC_FLOATS(seq);
+        while (i<len) {vec[i]=fd_make_double(floats[i]); i++;}
+        break;}
+      case fd_float64: {
+        fd_double *doubles=FD_NUMVEC_DOUBLES(seq);
+        while (i<len) {vec[i]=fd_make_double(doubles[i]); i++;}
+        break;}}
+      break;}
     case fd_pair_type: {
       int i=0; FD_DOLIST(elt,seq) {
         fdtype e=fd_incref(elt); vec[i++]=e;}
@@ -587,7 +617,19 @@ FD_EXPORT fdtype fd_reverse(fdtype sequence)
     fdtype *tmp=((len) ? (u8_alloc_n(len,fdtype)) : (NULL));
     if (len) {
       i=0; j=len-1; while (i < len) {tmp[j]=elts[i]; i++; j--;}}
-    result=fd_makeseq(FD_PTR_TYPE(sequence),len,tmp);
+    if (FD_PRIM_TYPEP(sequence,fd_numeric_vector_type)) {
+      switch (FD_NUMVEC_TYPE(sequence)) {
+      case fd_float32:
+        result=make_float_vector(len,elts); break;
+      case fd_float64:
+        result=make_double_vector(len,elts); break;
+      case fd_int16:
+        result=make_short_vector(len,elts); break;
+      case fd_int32:
+        result=make_int_vector(len,elts); break;
+      case fd_int64:
+        result=make_long_vector(len,elts); break;}}
+    else result=fd_makeseq(FD_PTR_TYPE(sequence),len,tmp);
     i=0; while (i<len) {fd_decref(elts[i]); i++;}
     if (elts) u8_free(elts); if (tmp) u8_free(tmp);
     return result;}
@@ -602,6 +644,7 @@ FD_EXPORT fdtype fd_append(int n,fdtype *sequences)
     fd_ptr_type result_type=FD_PTR_TYPE(sequences[0]);
     fdtype result, **elts, *_elts[16], *combined;
     int i=0, k=0, *lengths, _lengths[16], total_length=0;
+    if (result_type==fd_numeric_vector_type) {
     if (FD_EMPTY_LISTP(sequences[0])) result_type=fd_pair_type;
     if (n>16) {
       lengths=u8_alloc_n(n,int);
@@ -613,14 +656,17 @@ FD_EXPORT fdtype fd_append(int n,fdtype *sequences)
       else if (FD_PTR_TYPE(seq) == result_type) {}
       else if ((result_type==fd_secret_type)&&
                ((FD_PTR_TYPE(seq)==fd_packet_type)||
-                (FD_PTR_TYPE(seq)==fd_string_type))) {}
+                (FD_PTR_TYPE(seq)==fd_string_type))) 
+        result_type=fd_secret_type;
       else if ((result_type==fd_packet_type)&&(FD_PTR_TYPE(seq)==fd_secret_type))
         result_type=fd_secret_type;
       else if ((result_type==fd_string_type)&&(FD_PTR_TYPE(seq)==fd_secret_type))
         result_type=fd_secret_type;
       else if ((result_type==fd_string_type)&&(FD_PTR_TYPE(seq)==fd_packet_type))
         result_type=fd_packet_type;
-      else if (FD_PTR_TYPE(seq) != result_type) result_type=fd_vector_type;
+      else if (FD_PTR_TYPE(seq) != result_type)
+        result_type=fd_vector_type;
+      else {}
       elts[i]=fd_elts(seq,&(lengths[i]));
       total_length=total_length+lengths[i];
       if (lengths[i]==0) i++;
@@ -638,7 +684,7 @@ FD_EXPORT fdtype fd_append(int n,fdtype *sequences)
     i=0; while (i<total_length) {fd_decref(combined[i]); i++;}
     if (n>16) {u8_free(lengths); u8_free(elts);}
     u8_free(combined);
-    return result;}
+    return result;}}
 }
 
 /* Mapping */
@@ -1917,7 +1963,7 @@ static fdtype seq2flonumvec(fdtype arg)
 
 static fdtype make_short_vector(int n,fdtype *from_elts)
 {
-  int i=0; fdtype vec=fd_make_numeric_vector(fd_int16,n);
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_int16);
   fd_short *elts=FD_NUMVEC_SHORTS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
@@ -1951,7 +1997,7 @@ static fdtype seq2shortvec(fdtype arg)
 
 static fdtype make_int_vector(int n,fdtype *from_elts)
 {
-  int i=0; fdtype vec=fd_make_numeric_vector(fd_int32,n);
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_int32);
   int *elts=FD_NUMVEC_INTS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
@@ -1986,7 +2032,7 @@ static fdtype seq2intvec(fdtype arg)
 
 static fdtype make_long_vector(int n,fdtype *from_elts)
 {
-  int i=0; fdtype vec=fd_make_numeric_vector(fd_int64,n);
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_int64);
   long *elts=FD_NUMVEC_LONGS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
@@ -2020,7 +2066,7 @@ static fdtype seq2longvec(fdtype arg)
 
 static fdtype make_float_vector(int n,fdtype *from_elts)
 {
-  int i=0; fdtype vec=fd_make_numeric_vector(fd_float32,n);
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_float32);
   float *elts=FD_NUMVEC_FLOATS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
@@ -2043,10 +2089,10 @@ static fdtype seq2floatvec(fdtype arg)
   else if (FD_VECTORP(arg))
     return make_float_vector(FD_VECTOR_LENGTH(arg),FD_VECTOR_ELTS(arg));
   else if (FD_EMPTY_LISTP(arg))
-    return fd_make_flonum_vector(0,NULL);
+    return fd_make_float_vector(0,NULL);
   else if (FD_SEQUENCEP(arg)) {
     int n; fdtype *data=fd_elts(arg,&n);
-    fdtype result=make_flonum_vector(n,data);
+    fdtype result=make_float_vector(n,data);
     u8_free(data);
     return result;}
   else return fd_type_error(_("sequence"),"seq2floatvec",arg);
@@ -2054,7 +2100,7 @@ static fdtype seq2floatvec(fdtype arg)
 
 static fdtype make_double_vector(int n,fdtype *from_elts)
 {
-  int i=0; fdtype vec=fd_make_numeric_vector(fd_float64,n);
+  int i=0; fdtype vec=fd_make_numeric_vector(n,fd_float64);
   double *elts=FD_NUMVEC_DOUBLES(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
@@ -2218,6 +2264,7 @@ FD_EXPORT void fd_init_sequences_c()
   fd_seqfns[fd_vector_type]=&vector_seqfns;
   fd_seqfns[fd_rail_type]=&rail_seqfns;
   fd_seqfns[fd_flonum_vector_type]=&flonumvec_seqfns;
+  fd_seqfns[fd_numeric_vector_type]=&numeric_vector_seqfns;
 
   u8_register_source_file(_FILEINFO);
 

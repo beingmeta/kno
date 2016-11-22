@@ -3176,11 +3176,11 @@ static int unparse_numeric_vector(struct U8_OUTPUT *out,fdtype x)
   u8_printf(out,"#<%s",typename);
   switch (type) {
   case fd_int16:
-    while (i<n) {u8_printf(out," %f",FD_NUMVEC_SHORT(vec,i)); i++;} break;
+    while (i<n) {u8_printf(out," %d",FD_NUMVEC_SHORT(vec,i)); i++;} break;
   case fd_int32:
-    while (i<n) {u8_printf(out," %f",FD_NUMVEC_INT(vec,i)); i++;} break;
+    while (i<n) {u8_printf(out," %d",FD_NUMVEC_INT(vec,i)); i++;} break;
   case fd_int64:
-    while (i<n) {u8_printf(out," %f",FD_NUMVEC_LONG(vec,i)); i++;} break;
+    while (i<n) {u8_printf(out," %lld",FD_NUMVEC_LONG(vec,i)); i++;} break;
   case fd_float32:
     while (i<n) {u8_printf(out," %f",(double)FD_NUMVEC_FLOAT(vec,i)); i++;} break;
   case fd_float64:
