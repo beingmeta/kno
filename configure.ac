@@ -1273,12 +1273,6 @@ if test "x$with_sundown" = "xyes"; then
   INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
 fi
 
-AC_ARG_WITH(x2vec,--with[out]-x2vec Compile the x2vec module,,with_x2vec="yes")
-if test "x$with_x2vec" = "xyes"; then
-  CMODULES="lib/framerd/x2vec.$shared_suffix ${CMODULES}"
-  INSTALLCMODULES="install-x2vec ${INSTALLCMODULES}"
-fi
-
 dnl This compiles a version to be used with the GNU profiling tools
 AC_ARG_WITH(profiling,--with/out-profiling compile to generate profile information,,with_profiling="no")
 if test $with_profiling = "yes"; then

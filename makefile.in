@@ -57,6 +57,7 @@ FDVERSION	= @FDVERSION@
 
 DTYPE_HEADERS=\
  include/framerd/fdsource.h                          \
+ include/framerd/revision.h                          \
  include/framerd/config.h                            \
  include/framerd/common.h                            \
  include/framerd/defines.h                           \
@@ -69,6 +70,7 @@ DTYPE_HEADERS=\
  include/framerd/cons.h        			     \
  include/framerd/choices.h			     \
  include/framerd/tables.h  			     \
+ include/framerd/fdregex.h  			     \
  include/framerd/apply.h                             \
  include/framerd/dtypeio.h
 DB_HEADERS=\
@@ -82,6 +84,8 @@ DB_HEADERS=\
  include/framerd/methods.h
 DBFILE_HEADERS=include/framerd/dbfile.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
+LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
+		include/framerd/mongodb.h
 # Headers which don't live in include/framerd
 SRC_HEADERS=src/dtype/biginternals.h src/scheme/eval_internals.h \
 	src/exe/webcommon.h src/cmodules/fdsqlite.h 
@@ -1089,23 +1093,21 @@ install-dylib: install-dylibv                                  \
 	$(LIBINSTALLDIR)/libtexttools@suffix@.dylib
 
 install-headers: $(INCINSTALLDIR)
-	@$(SYSINSTALL) -p @install_file_opts@              \
-		   $(DTYPE_HEADERS) $(DB_HEADERS)      \
-		   $(DBFILE_HEADERS) $(SCHEME_HEADERS) \
+	@$(SYSINSTALL) -p @install_file_opts@		\
+		   $(DTYPE_HEADERS) $(DB_HEADERS)	\
+		   $(DBFILE_HEADERS) $(SCHEME_HEADERS)	\
+		   $(LIB_HEADERS)			\
 		$(INCINSTALLDIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
-	@$(MSG) Installing executables
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
 	@cd $(BININSTALLDIR); $(SUDO) rm -f fdbserver; 	$(SUDO) ln -s fdserver fdbserver
 	@cd $(BININSTALLDIR); $(SUDO) rm -f fdserv; $(SUDO) ln -s fdservlet fdserv
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
-	@$(MSG) Installing shell scripts
 	@$(SYSINSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
 install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
-	@$(MSG) Installing scheme scripts
 	@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
 
 install-data: \
@@ -1190,8 +1192,8 @@ $(DESTDIR)@unpackage_dir@:
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 MODULE_DIRS=aws brico bugjar facebook misc paypal tests twitter dropbox google \
-	aws/templates
-SAFE_MODULE_DIRS=jwt domutils knodules textindex
+	jwt domutils knodules textindex
+MODULE_DATA_DIRS=aws/templates
 BEINGMETA_MODULE_DIRS= \
 	morph morph/data chopper chopper/english \
 	gnosys gnosys/utils gnosys/analyzers/text \
@@ -1202,51 +1204,51 @@ BEINGMETA_MODULE_DIRS= \
 install-modules: install-builtin-modules 					\
 		 install-web-modules 						\
 		 install-beingmeta-modules
-install-builtin-modules: install-standard-modules 				\
-			 install-safe-modules
+install-builtin-modules: install-standard-modules install-safe-modules
 
-install-standard-modules: $(DESTDIR)@builtin_module_dir@
+install-standard-modules: install-module-source install-module-data
+
+install-module-source: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying standard Scheme modules to @builtin_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/*.scm 		\
-		$(DESTDIR)@builtin_module_dir@
-	@for x in $(MODULE_DIRS); do \
-	  $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/$$x;  \
-	  rm -f $(BUILD)/src/modules/$$x/*~ $(BUILD)/src/modules/$$x/#*#;       \
-	  for file in $(BUILD)/src/modules/$$x/*; do                            \
-	    if test -f $$file; then                                             \
-	      $(SYSINSTALL) @install_file_opts@ $$file                          \
-		$(DESTDIR)@builtin_module_dir@/$$x; fi;                         \
-	    if test -f $(DESTDIR)@builtin_module_dir@/$$x/$$x.scm; then         \
-	   	@SUDO@ rm -f $(DESTDIR)@builtin_module_dir@/$$x/module.scm;     \
-	   	@SUDO@ ln -sf $$x.scm                                           \
-			$(DESTDIR)@builtin_module_dir@/$$x/module.scm; fi;      \
-	  done; 								\
+		$(DESTDIR)@builtin_module_dir@;
+	@for dir in $(MODULE_DIRS); do						\
+	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
+	  echo "Installing $${dir} module at $${install_dir}";			\
+	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
+	  $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/$${dir}/*.scm	\
+	      $${install_dir};							\
 	done;
-install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@
-	@$(ECHO) Copying 'safe' Scheme modules to @builtin_safe_module_dir@
+
+install-module-data: $(DESTDIR)@builtin_module_dir@
+	@$(ECHO) Copying module data to @builtin_module_dir@;
+	@for dir in $(MODULE_DATA_DIRS); do					\
+	  src_dir="$(BUILD)/src/modules/$${dir}";				\
+	  install_dir="$(DESTDIR)@builtin_module_dir@/$${dir}";			\
+	  echo Installing data from $${src_dir} to $${install_dir};		\
+	  $(SYSINSTALL) @install_dir_opts@ $${install_dir};			\
+	  $(SYSINSTALL) @install_file_opts@ $${src_dir}/* $${install_dir};	\
+	done
+
+install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ install-standard-modules
+	@$(ECHO) Linking 'safe' Scheme modules from @builtin_module_dir@ \
+			to @builtin_safe_module_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/safe/*.scm      \
 		$(DESTDIR)@builtin_safe_module_dir@
-	@for x in $(SAFE_MODULE_DIRS); do                                       \
-	   if test $$x != modules/safe; then 					\
-	     $(SYSINSTALL) @install_dir_opts@					\
-		$(DESTDIR)@builtin_safe_module_dir@/$$x; 			\
-	     $(SYSINSTALL) @install_file_opts@ 					\
-		$(BUILD)/src/modules/safe/$$x/* 				\
-		$(DESTDIR)@builtin_safe_module_dir@/$$x; fi; 			\
-	   if test -f $(DESTDIR)@builtin_safe_module_dir@/$$x/$$x.scm; then 	\
-		@SUDO@ rm -f $(DESTDIR)@builtin_safe_module_dir@/$$x/module.scm;\
-		@SUDO@ ln -sf $$x.scm 						\
-		  $(DESTDIR)@builtin_safe_module_dir@/$$x/module.scm; fi; 	\
+	@for safe_link in $(BUILD)/src/modules/safe/*; do 			\
+          ln -sf `readlink $${safe_link}` $(DESTDIR)@builtin_safe_module_dir@; 	\
 	 done
 
-install-web-modules: $(DESTDIR)@builtin_safe_module_dir@
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_safe_module_dir@/xhtml
+install-web-modules: $(DESTDIR)@builtin_module_dir@
+	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/xhtml
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/* \
-		$(DESTDIR)@builtin_safe_module_dir@/xhtml
+		$(DESTDIR)@builtin_module_dir@/xhtml;
 	@$(SYSINSTALL) @install_dir_opts@ \
-		$(DESTDIR)@builtin_safe_module_dir@/fdxml
+		$(DESTDIR)@builtin_module_dir@/fdxml;
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/fdxml/* \
-		$(DESTDIR)@builtin_safe_module_dir@/fdxml
+		$(DESTDIR)@builtin_module_dir@/fdxml;
+	ln -sf ../xhtml $(DESTDIR)@builtin_safe_module_dir@;
+	ln -sf ../fdxml $(DESTDIR)@builtin_safe_module_dir@;
 
 install-beingmeta-modules: $(DESTDIR)@builtin_module_dir@
 	@for x in $(BEINGMETA_MODULE_DIRS); do \
