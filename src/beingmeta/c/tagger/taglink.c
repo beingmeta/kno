@@ -20,7 +20,7 @@
 #include "framerd/dtypestream.h"
 #include "framerd/texttools.h"
 
-#include "framerd/tagger.h"
+#include "tagger.h"
 
 #include <libu8/libu8io.h>
 

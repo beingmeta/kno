@@ -18,7 +18,7 @@
 #include "framerd/eval.h"
 #include "framerd/numbers.h"
 #include "framerd/sequences.h"
-#include "framerd/x2vec.h"
+#include "x2vec.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>

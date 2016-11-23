@@ -22,7 +22,7 @@
 #include "framerd/numbers.h"
 #include "framerd/support.h"
 
-#include "framerd/tagger.h"
+#include "tagger.h"
 
 #include <libu8/u8filefns.h>
 #include <libu8/libu8io.h>
