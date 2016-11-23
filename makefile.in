@@ -546,7 +546,8 @@ uninstall-core:
 uninstall-all: uninstall-core
 	rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
 		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-		$(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@
+		$(DESTDIR)@builtin_module_dir@ \
+		$(DESTDIR)@builtin_safe_module_dir@
 uninstall: uninstall-core
 	@if (test -d $(DESTDIR)@share_dir@); then \
 	  $(MSG) $(DESTDIR)@share_dir@ "still exists"; fi
