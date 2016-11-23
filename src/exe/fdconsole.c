@@ -673,7 +673,6 @@ int main(int argc,char **argv)
      explicitly (since the "onload" initializers may not be invoked). */
   fd_init_schemeio();
   fd_init_texttools();
-  fd_init_tagger();
   fd_init_fdweb();
 #endif
 

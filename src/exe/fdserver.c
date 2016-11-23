@@ -1061,7 +1061,6 @@ int main(int argc,char **argv)
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (FD_TESTCONFIG))
   fd_init_schemeio();
   fd_init_texttools();
-  fd_init_tagger();
 #else
   FD_INIT_SCHEME_BUILTINS();
 #endif

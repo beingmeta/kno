@@ -1931,7 +1931,6 @@ int main(int argc,char **argv)
   fd_init_fdscheme();
   fd_init_schemeio();
   fd_init_texttools();
-  fd_init_tagger();
   /* May result in innocuous redundant calls */
   FD_INIT_SCHEME_BUILTINS();
   fd_init_fddbserv();

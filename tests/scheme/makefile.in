@@ -23,7 +23,6 @@ CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
 			../../lib/libfddb@suffix@.a     \
 			../../lib/libfdtype@suffix@.a
 EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
-		  ../../lib/libtagger@suffix@.a \
 		  ../../lib/libfdweb@suffix@.a \
 		  ../../lib/libfdschemeio@suffix@.a
 DESTDIR		=
@@ -79,8 +78,6 @@ testbin: $(TESTBIN)
 	cd ../..; make lib/libtexttools@suffix@.a
 ../../lib/libfdbserv@suffix@.a:
 	cd ../..; make lib/libfdbserv@suffix@.a
-../../lib/libtagger@suffix@.a:
-	cd ../..; make lib/libtagger@suffix@.a
 
 $(TESTBIN): $(EXTRA_LIBS) \
             ../../lib/libfdscheme@suffix@.a \

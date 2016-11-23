@@ -120,8 +120,6 @@ FDWEB_OBJS=src/fdweb/fdweb.o src/fdweb/xmloutput.o src/fdweb/xmlinput.o \
 	src/fdweb/json.o @ldnso@ @curlo@
 TEXTTOOLS_OBJS=src/texttools/texttools.o src/texttools/match.o \
 	src/texttools/porter.o src/texttools/phonetic.o
-TAGGER_OBJS= src/tagger/tagger.o src/tagger/ofsm.o             \
-	 src/tagger/tagxtract.o src/tagger/taglink.o
 SUNDOWN_OBJS= src/cmodules/sundown/autolink.o \
 	src/cmodules/sundown/buffer.o \
 	src/cmodules/sundown/houdini_href_e.o \
@@ -132,7 +130,7 @@ SUNDOWN_OBJS= src/cmodules/sundown/autolink.o \
 CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
 	     src/modules/crypto.o src/cmodules/ldap.o \
 	     src/cmodules/dbus.o src/cmodules/mysql.o \
-	     src/cmodules/qrcode.o src/cmodules/x2vec.o \
+	     src/cmodules/qrcode.o \
 	     src/cmodules/ziptools.o src/cmodules/tidy.o \
 	     src/cmodules/zlib.o src/cmodules/imagick.o \
 	     src/cmodules/hyphenate.o \
@@ -204,9 +202,6 @@ FRAMERD_SOURCES=\
 	src/fdweb/mime.c src/fdweb/email.c src/fdweb/curl.c            \
 	src/texttools/texttools.c src/texttools/match.c                \
 	src/texttools/porter.c src/texttools/phonetic.c                \
-	src/tagger/tagger.c src/tagger/ofsm.c                          \
-	src/tagger/tagxtract.c src/tagger/taglink.c                    \
-	include/framerd/tagger.h                                       \
 	src/exe/fdconsole.c                                            \
 	src/exe/fdexec.c src/exe/fdbatch.c                             \
 	src/exe/fdservlet.c src/exe/fdcgiexec.c src/exe/fdserver.c
@@ -216,14 +211,12 @@ CMODULE_SOURCES=\
 	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
 	src/cmodules/qrcode.c src/cmodules/ziptools.c                  \
 	src/cmodules/tidy.c src/cmodules/imagick.c                     \
-	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c        \
-	src/cmodules/x2vec.c
+	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c
 
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
         lib/libfdbserv@suffix@.a lib/libfddbfile@suffix@.a     \
 	lib/libfdscheme@suffix@.a lib/libfdschemeio@suffix@.a  \
-	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a      \
-	lib/libtagger@suffix@.a
+	lib/libfdweb@suffix@.a lib/libtexttools@suffix@.a
 
 SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfddb@suffix@.@shared_suffix@        		\
@@ -233,7 +226,6 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdschemeio@suffix@.@shared_suffix@  		\
 	lib/libfdweb@suffix@.@shared_suffix@       		\
 	lib/libtexttools@suffix@.@shared_suffix@		\
-	lib/libtagger@suffix@.@shared_suffix@			\
 	lib/libfdtype@suffix@.@mshared_suffix@  		\
 	lib/libfddb@suffix@.@mshared_suffix@        		\
         lib/libfddbfile@suffix@.@mshared_suffix@    		\
@@ -241,8 +233,7 @@ SHARED_LIBS=lib/libfdtype@suffix@.@shared_suffix@  		\
 	lib/libfdscheme@suffix@.@mshared_suffix@    		\
 	lib/libfdschemeio@suffix@.@mshared_suffix@  		\
 	lib/libfdweb@suffix@.@mshared_suffix@       		\
-	lib/libtexttools@suffix@.@mshared_suffix@		\
-	lib/libtagger@suffix@.@mshared_suffix@
+	lib/libtexttools@suffix@.@mshared_suffix@
 
 SCHEME_MODULES=src/modules/*.scm src/fdweb/xhtml/*.scm \
 	src/modules/aws/*.scm src/modules/brico/*.scm \
@@ -536,7 +527,7 @@ cmodules: @CMODULES@
 # Uninstall
 
 LIBBASE=libfdtype libfddb libfddbfile libfdbserv \
-	libfdscheme libfdschemeio libfdweb libtexttools libtagger
+	libfdscheme libfdschemeio libfdweb libtexttools
 
 uninstall-core:
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) fdcgiexec
@@ -571,14 +562,14 @@ uninstall: uninstall-core
 TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
-		src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
+		src/texttools/*.c src/cmodules/*.c         \
 		src/cmodules/sundown/sundown.c include/framerd/*.h        \
 		etc/*.in ${SRC_HEADERS} ${SCHEME_MODULES} tests/scheme/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in      \
 	      tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
-	      src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
+	      src/texttools/*.c src/cmodules/*.c         \
 	      src/cmodules/sundown/sundown.c include/framerd/*.h        \
 	      etc/*.in ${SRC_HEADERS} tests/scheme/*.scm 
 	@# We skip module.scm files because they are always links
@@ -590,14 +581,14 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 CTAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 		src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
-		src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
+		src/texttools/*.c src/cmodules/*.c         \
 		src/cmodules/sundown/sundown.c include/framerd/*.h        \
 		etc/*.in ${SRC_HEADERS}
 	@echo Building C TAGS file
 	@etags -o CTAGS makefile.in configure.ac include/framerd/config.h.in      \
 	      tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
 	      src/dtype/*.c src/db/*.c src/scheme/*.c src/fdweb/*.c     \
-	      src/texttools/*.c src/tagger/*.c src/cmodules/*.c         \
+	      src/texttools/*.c src/cmodules/*.c         \
 	      src/cmodules/sundown/sundown.c include/framerd/*.h        \
 	      etc/*.in ${SRC_HEADERS}
 
@@ -627,7 +618,7 @@ tidy: profile-clean
 clean: tidy
 	rm -f buildmode
 	rm -f src/dtype/*.o src/db/*.o src/scheme/*.o src/fdweb/*.o 
-	rm -f src/cmodules/*.o src/texttools/*.o src/tagger/*.o exe/*.o
+	rm -f src/cmodules/*.o src/texttools/*.o exe/*.o
 	rm -f src/cmodules/sundown/*.o
 	rm -rf etc/*.o etc/.libs
 	rm -f lib/*.a lib/*@suffix@.so lib/*.dylib
@@ -743,22 +734,6 @@ lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 		-o $@ $(TEXTTOOLS_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-lib/libtagger@suffix@.a: $(TAGGER_OBJS)
-lib/libtagger@suffix@.so: $(TAGGER_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so lib/libfdscheme@suffix@.so \
-	lib/libtexttools@suffix@.so
-lib/libtagger@suffix@.dylib: $(TAGGER_OBJS) \
-	lib/libtexttools@suffix@.@FDVERSION@.dylib \
-	lib/libfdscheme@suffix@.@FDVERSION@.dylib \
-	lib/libfddbfile@suffix@.@FDVERSION@.dylib \
-	lib/libfddb@suffix@.@FDVERSION@.dylib \
-	lib/libfdtype@suffix@.@FDVERSION@.dylib
-	@$(MACLIBTOOL) -install_name \
-		@rpath/lib/`basename $(@F) .dylib`.@FDMAJOR@.dylib \
-		$(DYLIB_FLAGS) \
-		-o $@ $(TAGGER_OBJS) -ltexttools
-	@$(MSG) MACLIBTOOL $@
 
 src/cmodules/mysql.o: src/cmodules/mysql.c
 	@$(CC) @MYSQL_CFLAGS@ $(CFLAGS)  -o $@ -c $<
@@ -849,9 +824,6 @@ lib/framerd/tidy.dylib: src/cmodules/tidy.o
 
 lib/framerd/zlib.so: src/cmodules/zlib.o ${MODULE_SO}
 lib/framerd/zlib.dylib: src/cmodules/zlib.o
-
-lib/framerd/x2vec.so: src/cmodules/x2vec.o ${MODULE_SO}
-lib/framerd/x2vec.dylib: src/cmodules/x2vec.o
 
 lib/framerd/sundown.so: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS) $(MODULE_SO)
 	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS) $(MODULE_SO)
@@ -1024,11 +996,11 @@ apt-upload upload-apt upload-deb: dist/debs.done
 
 # Installation targets
 
-install: install-core install-cmodules install-data \
-	 install-modules @setup_target@
-install-core: confdirs workdirs @INSTALLI18N@          \
-	 install-static install-shared install-headers \
-         install-exe install-scripts install-boot
+install: install-core install-cmodules install-modules @setup_target@
+install-core: confdirs workdirs @INSTALLI18N@           \
+	 install-static install-shared install-headers  \
+         install-exe install-scripts install-data 	\
+	 install-support
 
 $(INCINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
@@ -1050,8 +1022,7 @@ install-static: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libfdscheme@suffix@.a   \
 		$(LIBINSTALLDIR)/libfdschemeio@suffix@.a \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
-		$(LIBINSTALLDIR)/libtexttools@suffix@.a  \
-		$(LIBINSTALLDIR)/libtagger@suffix@.a
+		$(LIBINSTALLDIR)/libtexttools@suffix@.a
 install-shared: shared-libs $(LIBINSTALLDIR)
 	make install-@shared_suffix@
 install-data: $(DATAINSTALLDIR)
@@ -1075,9 +1046,7 @@ install-sov:                                             		\
     $(LIBINSTALLDIR)/libfdweb@suffix@.so.@FDMAJOR@       		\
     $(LIBINSTALLDIR)/libfdweb@suffix@.so.@FDVERSION@       		\
     $(LIBINSTALLDIR)/libtexttools@suffix@.so.@FDMAJOR@   		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.so.@FDVERSION@   		\
-    $(LIBINSTALLDIR)/libtagger@suffix@.so.@FDMAJOR@			\
-    $(LIBINSTALLDIR)/libtagger@suffix@.so.@FDVERSION@  
+    $(LIBINSTALLDIR)/libtexttools@suffix@.so.@FDVERSION@
 # Unversioned libraries, for development
 install-so: install-sov                                  \
     $(LIBINSTALLDIR)/libfdtype@suffix@.so                \
@@ -1087,8 +1056,7 @@ install-so: install-sov                                  \
     $(LIBINSTALLDIR)/libfdscheme@suffix@.so              \
     $(LIBINSTALLDIR)/libfdschemeio@suffix@.so            \
     $(LIBINSTALLDIR)/libfdweb@suffix@.so                 \
-    $(LIBINSTALLDIR)/libtexttools@suffix@.so             \
-    $(LIBINSTALLDIR)/libtagger@suffix@.so
+    $(LIBINSTALLDIR)/libtexttools@suffix@.so
 
 # This should probably be done differently for packaging, but that's 'todo'
 # Versioned shared libraries
@@ -1101,16 +1069,13 @@ install-dylibv:							\
 	$(LIBINSTALLDIR)/libfdschemeio@suffix@.@FDVERSION@.dylib\
 	$(LIBINSTALLDIR)/libfdweb@suffix@.@FDVERSION@.dylib     \
 	$(LIBINSTALLDIR)/libtexttools@suffix@.@FDVERSION@.dylib \
-	$(LIBINSTALLDIR)/libtagger@suffix@.@FDVERSION@.dylib	\
-	$(LIBINSTALLDIR)/libfdtype@suffix@.@FDMAJOR@.dylib    \
 	$(LIBINSTALLDIR)/libfddb@suffix@.@FDMAJOR@.dylib      \
 	$(LIBINSTALLDIR)/libfdbserv@suffix@.@FDMAJOR@.dylib   \
 	$(LIBINSTALLDIR)/libfddbfile@suffix@.@FDMAJOR@.dylib  \
 	$(LIBINSTALLDIR)/libfdscheme@suffix@.@FDMAJOR@.dylib  \
 	$(LIBINSTALLDIR)/libfdschemeio@suffix@.@FDMAJOR@.dylib\
 	$(LIBINSTALLDIR)/libfdweb@suffix@.@FDMAJOR@.dylib     \
-	$(LIBINSTALLDIR)/libtexttools@suffix@.@FDMAJOR@.dylib \
-	$(LIBINSTALLDIR)/libtagger@suffix@.@FDMAJOR@.dylib
+	$(LIBINSTALLDIR)/libtexttools@suffix@.@FDMAJOR@.dylib
 
 # Unversioned libraries, for development
 install-dylib: install-dylibv                                  \
@@ -1121,8 +1086,7 @@ install-dylib: install-dylibv                                  \
 	$(LIBINSTALLDIR)/libfdscheme@suffix@.dylib             \
 	$(LIBINSTALLDIR)/libfdschemeio@suffix@.dylib           \
 	$(LIBINSTALLDIR)/libfdweb@suffix@.dylib                \
-	$(LIBINSTALLDIR)/libtexttools@suffix@.dylib            \
-	$(LIBINSTALLDIR)/libtagger@suffix@.dylib
+	$(LIBINSTALLDIR)/libtexttools@suffix@.dylib
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@              \
@@ -1144,16 +1108,19 @@ install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 	@$(MSG) Installing scheme scripts
 	@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
 
-install-boot: $(DESTDIR)@config_dir@/boot/framerd.service $(DESTDIR)@config_dir@/boot/framerd-rc.d \
-	$(DESTDIR)@config_dir@/boot/framerd.conf $(DESTDIR)@config_dir@/boot/fdserver.conf \
-	$(DESTDIR)@config_dir@/boot/fdservlet.conf \
+install-data: \
+	$(DESTDIR)@config_dir@/boot/framerd.service	\
+	$(DESTDIR)@config_dir@/boot/framerd-rc.d 	\
+	$(DESTDIR)@config_dir@/boot/framerd.conf 	\
+	$(DESTDIR)@config_dir@/boot/fdserver.conf 	\
+	$(DESTDIR)@config_dir@/boot/fdservlet.conf 	\
 	$(DESTDIR)@config_dir@/boot/logrotate
 
 install-fastcgi: $(BININSTALLDIR)/fdcgiexec@suffix@
 $(BININSTALLDIR)/fdcgiexec@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
 
-install-cmodules: @INSTALLCMODULES@ install-sundown install-x2vec
+install-cmodules: @INSTALLCMODULES@ install-sundown
 install-odbc: $(LIBINSTALLDIR)/framerd/odbc.@shared_suffix@ \
 	      $(LIBINSTALLDIR)/framerd/odbc.@vshared_suffix@
 install-sqlite: $(LIBINSTALLDIR)/framerd/sqlite.@shared_suffix@ \
@@ -1184,8 +1151,6 @@ install-zlib: $(LIBINSTALLDIR)/framerd/zlib.@shared_suffix@ \
 	        $(LIBINSTALLDIR)/framerd/zlib.@vshared_suffix@
 install-sundown: $(LIBINSTALLDIR)/framerd/sundown.@shared_suffix@ \
 	        $(LIBINSTALLDIR)/framerd/sundown.@vshared_suffix@
-install-x2vec: $(LIBINSTALLDIR)/framerd/x2vec.@shared_suffix@ \
-	        $(LIBINSTALLDIR)/framerd/x2vec.@vshared_suffix@
 
 # Setup targets
 
@@ -1238,8 +1203,7 @@ install-modules: install-builtin-modules 					\
 		 install-web-modules 						\
 		 install-beingmeta-modules
 install-builtin-modules: install-standard-modules 				\
-			 install-safe-modules 					\
-			 install-support
+			 install-safe-modules
 
 install-standard-modules: $(DESTDIR)@builtin_module_dir@
 	@$(ECHO) Copying standard Scheme modules to @builtin_module_dir@
@@ -1294,23 +1258,10 @@ install-beingmeta-modules: $(DESTDIR)@builtin_module_dir@
 install-support: $(DESTDIR)@share_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/etc/*.el \
 		$(DESTDIR)@share_dir@
-
-link-modules: $(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@ \
-		$(DESTDIR)@share_dir@
-	@$(MSG) Installing symbolic links for Scheme modules
-	@@SUDO@ln -sf $(BUILD)/etc/*.el @share_dir@
-	@@SUDO@ln -sf $(BUILD)/src/modules/*.scm $(DESTDIR)@local_module_dir@
-	@for x in $(MODULE_DIRS); do \
-	   @SUDO@ln -sf $(BUILD)/src/modules/$$x $(DESTDIR)@local_module_dir@; \
-	 done
-	@@SUDO@ln -sf $(BUILD)/src/modules/safe/*.scm \
-		$(DESTDIR)@local_safe_module_dir@
-	@for x in $(SAFE_MODULE_DIRS); do \
-	   @SUDO@ln -sf $(BUILD)/src/modules/safe/$$x \
-		$(DESTDIR)@local_safe_module_dir@; done
-	@@SUDO@ln -sf $(BUILD)/src/fdweb/xhtml $(DESTDIR)@local_safe_module_dir@
-	@@SUDO@ln -sf $(BUILD)/src/fdweb/fdxml $(DESTDIR)@local_safe_module_dir@
-	@@SUDO@ln -sf $(BUILD)/src/beingmeta/* $(DESTDIR)@local_module_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/etc/*.el \
+		$(DESTDIR)@config_dir@
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/etc/makefile.include \
+		$(DESTDIR)@config_dir@
 
 logdirs: $(DESTDIR)@framerd_logdir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@daemon_logdir@
@@ -1517,12 +1468,10 @@ $(DBFILE_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS)
 $(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
 $(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS) ./include/framerd/fdweb.h
 $(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS) ./include/framerd/texttools.h
-$(TAGGER_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS) ./include/framerd/texttools.h ./include/framerd/tagger.h
 $(DTYPE_OBJS) $(DB_OBJS) $(DBFILE_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
-$(FDWEB_OBJS) $(TEXTTOOLS_OBJS) $(TAGGER_OBJS): buildmode
+$(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
 $(CMODULE_OBJS): buildmode
-src/cmodules/x2vec.o: include/framerd/x2vec.h
 
 # We've stopped using makedpend for the time being
 
