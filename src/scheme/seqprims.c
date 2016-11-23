@@ -24,7 +24,10 @@
 
 #include <limits.h>
 
-#define FD_EQV(x,y) ((FD_EQ(x,y)) || ((FD_NUMBERP(x)) && (FD_NUMBERP(y)) && (fd_numcompare(x,y)==0)))
+#define FD_EQV(x,y) \
+  ((FD_EQ(x,y)) || \
+   ((FD_NUMBERP(x)) && (FD_NUMBERP(y)) && \
+    (fd_numcompare(x,y)==0)))
 
 #define string_start(bytes,i) ((i==0) ? (bytes) : (u8_substring(bytes,i)))
 
@@ -222,11 +225,11 @@ FD_EXPORT int fd_position(fdtype key,fdtype seq,int start,int limit)
     case fd_vector_type: case fd_rail_type: {
       fdtype *data=FD_VECTOR_ELTS(seq);
       int i=start; while (i!=end) {
-        if (FDTYPE_EQUAL(key,data[start])) return start;
-        else if (FD_CHOICEP(data[start]))
-          if (fd_overlapp(key,data[start])) return start;
-          else start=start+delta;
-        else start=start+delta;}
+        if (FDTYPE_EQUAL(key,data[i])) return start;
+        else if (FD_CHOICEP(data[i]))
+          if (fd_overlapp(key,data[i])) return start;
+          else i=i+delta;
+        else i=i+delta;}
       return -1;}
     case fd_packet_type: case fd_secret_type: {
       int intval=(FD_FIXNUMP(key))?(FD_FIX2INT(key)):(-1);
@@ -617,7 +620,6 @@ FD_EXPORT fdtype fd_append(int n,fdtype *sequences)
     fd_ptr_type result_type=FD_PTR_TYPE(sequences[0]);
     fdtype result, **elts, *_elts[16], *combined;
     int i=0, k=0, *lengths, _lengths[16], total_length=0;
-    if (result_type==fd_numeric_vector_type) {
     if (FD_EMPTY_LISTP(sequences[0])) result_type=fd_pair_type;
     if (n>16) {
       lengths=u8_alloc_n(n,int);
@@ -631,11 +633,14 @@ FD_EXPORT fdtype fd_append(int n,fdtype *sequences)
                ((FD_PTR_TYPE(seq)==fd_packet_type)||
                 (FD_PTR_TYPE(seq)==fd_string_type))) 
         result_type=fd_secret_type;
-      else if ((result_type==fd_packet_type)&&(FD_PTR_TYPE(seq)==fd_secret_type))
+      else if ((result_type==fd_packet_type)&&
+               (FD_PTR_TYPE(seq)==fd_secret_type))
         result_type=fd_secret_type;
-      else if ((result_type==fd_string_type)&&(FD_PTR_TYPE(seq)==fd_secret_type))
+      else if ((result_type==fd_string_type)&&
+               (FD_PTR_TYPE(seq)==fd_secret_type))
         result_type=fd_secret_type;
-      else if ((result_type==fd_string_type)&&(FD_PTR_TYPE(seq)==fd_packet_type))
+      else if ((result_type==fd_string_type)&&
+               (FD_PTR_TYPE(seq)==fd_packet_type))
         result_type=fd_packet_type;
       else if (FD_PTR_TYPE(seq) != result_type)
         result_type=fd_vector_type;
@@ -657,7 +662,7 @@ FD_EXPORT fdtype fd_append(int n,fdtype *sequences)
     i=0; while (i<total_length) {fd_decref(combined[i]); i++;}
     if (n>16) {u8_free(lengths); u8_free(elts);}
     u8_free(combined);
-    return result;}}
+    return result;}
 }
 
 /* Mapping */
