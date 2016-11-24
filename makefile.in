@@ -862,13 +862,11 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 rpms: dist/rpms.done
 debian deb debs: dist/debs.done
-metadebs: dist/metadebs.done
 
 cleandist cleanrpms cleandeb rpmclean debclean: 
 	rm -rf dist/rpms.done dist/rpms.ready
-	rm -f dist/debs.signed dist/debs.built dist/debs.done dist/metadebs.built
+	rm -f dist/debs.signed dist/debs.built dist/debs.done
 	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes
-	rm -f dist/metadebs/*.deb dist/metadebs/*.tar dist/metadebs/*.gz dist/metadebs/*.dsc dist/metadebs/*.changes
 	find dist -name "*.rpm" | xargs -r rm
 	rm -rf staging/framerd*
 
@@ -960,27 +958,8 @@ dist/debs.signed: dist/debs.built
 			../dist) &&                             \
 	touch dist/debs.signed;
 
-dist/metadebs.built:
-	(cd dist/metadebs; equivs-build -f bmstack) &&                      \
-	(cd dist/metadebs; equivs-build -f bmdbstack) &&                    \
-	(cd dist/metadebs; equivs-build -f bmwebstack) &&                   \
-	(cd dist/metadebs; equivs-build -f bmtextstack) &&                  \
-	(cd dist/metadebs; equivs-build -f bmfullstack) &&                  \
-	(cd dist/metadebs; equivs-build -f bmdevstack) &&                   \
-	(cd dist/metadebs; equivs-build -f bmfakestack) &&                  \
-	touch dist/metadebs.built;
 dist/debs.done: dist/debs.signed
 	touch dist/debs.done
-
-dist/metadebs.done: dist/metadebs.built
-	touch dist/metadebs.done
-dist/metadebs.uploaded: dist/metadebs.built
-	cd dist/metadebs; for changes in *.changes; do \
-	  dupload -c --nomail --to beingmeta $${change} && \
-	  rm -f $${change}; \
-	done && \
-	rm -f *.deb && \
-	touch ../metadebs.uploaded;
 
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@SUDO@ dpkg -i dist/framerd*_@FDVERSION@*.deb
