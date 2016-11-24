@@ -32,6 +32,8 @@ case $1 in
 	echo "@LIBS@";;
     bin)
 	echo "@exec_prefix@/bin";;
+    libsuffix)
+	echo "@shared_suffix@";;
     loadpath)
 	echo "@default_module_path@";;
     safeloadpath)
