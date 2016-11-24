@@ -757,6 +757,7 @@ apache_modinfo
 apache_conf_dir
 apache_modules_dir
 apache_log_dir
+data_dir
 shared_config
 local_config
 config_dir
@@ -2915,8 +2916,6 @@ builtin_module_dir=""
 builtin_safe_module_dir=""
 installed_module_dir=""
 installed_safe_module_dir=""
-shared_module_dir=""
-shared_safe_module_dir=""
 local_module_dir=""
 local_shared_module_dir=""
 default_module_path=""
@@ -2934,6 +2933,8 @@ GPGID=${GPGID:-E5AFF294}
 GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$prefix/etc/framerd"
+local_config="\$prefix/etc/framerd"
+shared_config="\$prefix/etc/framerd"
 rundir=$localstatedir/run
 logdir=$localstatedir/log
 framerd_rundir="$rundir/framerd"
@@ -2943,6 +2944,8 @@ servlet_logdir="$framerd_logdir/servlets"
 daemon_rundir="$framerd_rundir/daemons"
 servlet_rundir="$framerd_rundir/servlets"
 default_bugjar="$framerd_logdir/bugjar"
+share_dir=""
+data_dir=""
 archflags=""
 with_ziptools_default="yes"
 with_mysql_default="yes"
@@ -3014,6 +3017,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -7240,7 +7244,7 @@ share_dir=$with_share_dir
 if test "${with_data_dir+set}" = set; then :
   withval=$with_data_dir;
 else
-  with_share_dir=$share_dir/data
+  with_data_dir=$share_dir/data
 fi
 
 cat >>confdefs.h <<_ACEOF

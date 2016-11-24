@@ -105,8 +105,6 @@ builtin_module_dir=""
 builtin_safe_module_dir=""
 installed_module_dir=""
 installed_safe_module_dir=""
-shared_module_dir=""
-shared_safe_module_dir=""
 local_module_dir=""
 local_shared_module_dir=""
 default_module_path=""
@@ -124,6 +122,8 @@ GPGID=${GPGID:-E5AFF294}
 GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
 default_config_dir="\$prefix/etc/framerd"
+local_config="\$prefix/etc/framerd"
+shared_config="\$prefix/etc/framerd"
 rundir=$localstatedir/run
 logdir=$localstatedir/log
 framerd_rundir="$rundir/framerd"
@@ -133,6 +133,8 @@ servlet_logdir="$framerd_logdir/servlets"
 daemon_rundir="$framerd_rundir/daemons"
 servlet_rundir="$framerd_rundir/servlets"
 default_bugjar="$framerd_logdir/bugjar"
+share_dir=""
+data_dir=""
 archflags=""
 with_ziptools_default="yes"
 with_mysql_default="yes"
@@ -211,6 +213,7 @@ AC_SUBST(default_safe_module_path)
 AC_SUBST(config_dir)
 AC_SUBST(local_config)
 AC_SUBST(shared_config)
+AC_SUBST(data_dir)
 AC_SUBST(apache_log_dir)
 AC_SUBST(apache_modules_dir)
 AC_SUBST(apache_conf_dir)
@@ -756,7 +759,7 @@ AC_ARG_WITH(share_dir,--with-share-dir location,,with_share_dir=$prefix/share/fr
 AC_DEFINE_UNQUOTED(FD_SHARE_DIR,"$with_share_dir")
 share_dir=$with_share_dir
 
-AC_ARG_WITH(data_dir,--with-data-dir location,,with_share_dir=$share_dir/data)
+AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=$share_dir/data)
 AC_DEFINE_UNQUOTED(FD_DATA_DIR,"$with_data_dir")
 data_dir=$with_data_dir
 
