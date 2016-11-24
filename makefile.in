@@ -1173,7 +1173,7 @@ upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 MODULE_DIRS=aws brico bugjar facebook misc paypal tests twitter dropbox google \
 	jwt domutils knodules textindex
-MODULE_DATA_DIRS=aws/templates
+MODULE_DATA_DIRS=aws/templates bugjar/websrc textindex/data brico/data
 BEINGMETA_MODULE_DIRS= \
 	morph morph/data chopper chopper/english \
 	gnosys gnosys/utils gnosys/analyzers/text \

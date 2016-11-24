@@ -6,7 +6,7 @@ usr/share/framerd/modules/builtin/bugjar/websrc/*.conf
 usr/share/framerd/modules/builtin/bugjar/websrc/*.js
 usr/share/framerd/modules/builtin/bugjar/*.css
 usr/share/framerd/modules/builtin/aws/*.scm
-usr/share/framerd/modules/builtin/aws/*.json
+usr/share/framerd/modules/builtin/aws/templates/*.json
 usr/share/framerd/modules/builtin/brico/*.scm
 usr/share/framerd/modules/builtin/brico/data/*.dtype
 usr/share/framerd/modules/builtin/brico/data/*.table
