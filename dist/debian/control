@@ -58,9 +58,9 @@ Depends: framerd (= ${binary:Version})
 Description: Development files for FramerD
 
 Package: framerd-fakedev
-Architecture: any
+Architecture: all
 Provides: framerd-dev
-Description: Development files for FramerD
+Description: Fake version of development files for FramerD
 
 Package: framerd-mysql
 Architecture: any
