@@ -59,7 +59,6 @@ Description: Development files for FramerD
 
 Package: framerd-fakedev
 Architecture: any
-Depends: framerd (= ${binary:Version})
 Provides: framerd-dev
 Description: Development files for FramerD
 
