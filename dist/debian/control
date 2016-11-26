@@ -59,7 +59,7 @@ Description: Development files for FramerD
 
 Package: framerd-fakedev
 Architecture: all
-Provides: framerd-dev
+Provides: framerd-dev, framerd-dev (= ${binary:Version})
 Description: Fake version of development files for FramerD
 
 Package: framerd-mysql
