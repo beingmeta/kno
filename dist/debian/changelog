@@ -1,3 +1,9 @@
+framerd (3.9.5-1) unstable; urgency=medium
+
+  * Bumped to 3.9.5 for repacking and other changes
+
+ -- Ken Haase <kh@beingmeta.com>  Sat, 26 Nov 2016 08:24:46 -0500
+
 framerd (3.9.4-1) unstable; urgency=medium
 
   * Improved signal handling
