@@ -26,6 +26,8 @@ src/%.o: src/%.c etc/fileinfo
 	$(CC) $(CFLAGS) -D_FILEINFO="`etc/fileinfo $<`" -o $@ -c $<
 	@$(MSG) CC $@ $<
 
+%.a:
+	$(MKSTATIC) -o $
 %.so: src/%.o
 	$(MKSO) -o $@ $<
 	@$(MSG) MKSO $@ $<
