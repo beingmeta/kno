@@ -37,7 +37,7 @@ static u8_condition ThreadExit=_("Thread exited");
 static u8_condition ThreadBacktrace=_("ThreadBacktrace");
 
 static int thread_loglevel=LOGNOTICE;
-static int thread_trace_exit=1;
+static int thread_log_exit=1;
 
 /* Thread functions */
 
@@ -269,7 +269,7 @@ static void *thread_call(void *data)
                      tstruct->applydata.n_args,
                      tstruct->applydata.args);
   result=fd_finish_call(result);
-  if (thread_trace_exit) {
+  if (thread_log_exit) {
     if (errno)
       u8_log(thread_loglevel,ThreadExit,
              "Thread exited (errno=%d) with result %q\n  from %q",
@@ -506,10 +506,10 @@ FD_EXPORT void fd_init_threadprims_c()
                      "The log level to use for thread-related events",
                      fd_intconfig_get,fd_loglevelconfig_set,
                      &thread_loglevel);
-  fd_register_config("THREAD:TRACEEXIT",
-                     "The log level to use for thread-related events",
+  fd_register_config("THREAD:LOGEXIT",
+                     "Whether to log the normal exit values of threads",
                      fd_boolconfig_get,fd_boolconfig_set,
-                     &thread_trace_exit);
+                     &thread_log_exit);
 
   u8_register_source_file(_FILEINFO);
 }
