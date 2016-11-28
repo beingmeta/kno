@@ -870,6 +870,10 @@ cleandist cleanrpms cleandeb rpmclean debclean:
 	find dist -name "*.rpm" | xargs -r rm
 	rm -rf staging/framerd*
 
+debfresh freshdeb:
+	make debclean
+	make debian
+
 # Creating staging areas from GIT
 
 staging/framerd-@FDVERSION@: \
