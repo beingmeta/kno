@@ -1,10 +1,16 @@
 # This is FramerD
 
-**FramerD** is a production-ready platform and database for
-applications and services which leverage knowledge and context to
-deliver personalized results and responses.
+**FramerD** is a platform and database for applications and services
+which leverage knowledge and context to deliver complex personalized
+results and interaction.
 
-*FramerD* consists of two main components: 
+*FramerD* databases readily include millions of searchable frames with
+multiple properties and relations.  These databases can be distributed
+over multiple networked machines. FramerD has been deployed
+commercially in contexts with high availability to tens of thousands
+of users and largely maintained by in-house sysops administrators.
+
+*FramerD* consists of four main components: 
 
 * a **portable distributed object-oriented database** designed to
   support the maintenance and sharing of knowledge bases. Unlike other
@@ -12,23 +18,111 @@ deliver personalized results and responses.
   pointer-intensive data structures used by semantic networks, frame
   systems, and many intelligent agent applications.
 
-* a flexible and performant scripting language based on **Scheme**
-  with special provisions for *Prolog*-style non-deterministic
-  programming, advanced text processing, and web application
-  development.
+* a **Scheme**-based flexible and performant scripting language with
+  special provisions for *Prolog*-style non-deterministic programming
+  and other common AI programming tropes.
 
-FramerD databases readily include millions of searchable frames and
-may be distributed over multiple networked machines.
+* a versatile text processing library for matching, search, and
+  extraction; these are augmented by utilities for natural language
+  functions such as word stemming, simple morphology, and
+  quasi-phonetic transformations such as Soundex and Metaphone.
+
+* a web application framework for implementing high performance web
+  applications and services; this is based on native C libraries for
+  parsing, generating, and transforming HTML, XML, and JSON
+  documents. In this framework, web applications use a custom Apache
+  module (`mod_fdserv`) to communicate with multi-threaded FramerD
+  *servlets* using a binary wire protocol.
 
 FramerD is implemented in ANSI C for Unix-based platforms including
-Linux and macOS.  In addition, Java libraries exist for accessing
-FramerD databases and services.
+Linux and macOS.  In addition, Java libraries have been implemented
+for accessing FramerD databases and services directly from Java
+applications.
 
-FramerD was originally developed at
-[MIT's Media Laboratory](www.media.mit.edu) by Ken Haase. The
-laboratory's support, especially from its *News In the Future*
-program, is gratefully acknowledged. The primary development of
-FramerD is currently supported by
-[beingmeta](https://www.beingmeta.com/), a developer of
-next-generation content and knowledge management tools.
+## Background
+
+The [first version](https://www.beingmeta.com/pubs/FramerD.pdf) of
+FramerD was developed at [MIT's Media Laboratory](www.media.mit.edu)
+by Ken Haase. The laboratory's support, especially from its *News In
+the Future* program, is gratefully acknowledged. This version can be
+downloaded from
+[SourceForge](https://sourceforge.net/projects/framerd/).
+
+Starting in 2005, [beingmeta](https://www.beingmeta.com/) began
+developing a new version of FramerD with a focus on scalability both
+down (to low-powered devices) and up (to multi-core high performance
+servers and workstations). This included optimizing the underlying C
+code for modern cache and pipeline-focused CPU architectures and the
+introduction of finer-grained thread locking.
+
+**beingmeta**'s FramerD implementation also provides a novel query
+  optimization technique called *iterated partial evaluation*
+  ([patent](https://www.beingmeta.com/pubs/ipeval_patent.pdf)) which
+  can optimize complex high-latency queries by up to a factor of
+  ten. The method uses progressively complete partial evaluations of a
+  query to bundle together data references to both reduce the number
+  of round trips and allow remote data sources to optimize retrieval.
+
+## Native modules
+
+FramerD provides loadable native (C-language) modules for:
+
+* cryptographic functions, including public and private key functions;
+
+* image manipulation (using the ImageMagick library), including
+  transforms, compression, and conversion;
+
+* access to MongoDB, MYSQL, SQLITE, and ODBC databases, including
+  dynamic type conversion;
+
+* QR code generation, EXIF image metadata extraction, HTML `tidy`ing,
+  Markdown rendering, text hyphenation, ZIP file manipulation, and
+  others.
+
+## "Source" modules
+
+FramerD comes bundled with modules written in it's native scripting
+language (a variant of Scheme) to provide additional functions:
+
+* access to many AWS (Amazon Web Services) APIs, including S3, SQS,
+  SES, EC2 and others;
+
+* libraries for DOM manipulation and processing, based on the
+  representations generated by FramerD's native XML/HTML parser;
+
+* a profiling library using FramerD's built-in primitives for
+  execution profiling;
+
+* many tools for accessing the BRICO semantic knowledge base;
+
+* an extensible generic pathname facility (`gpath`) for working with a
+  range of file-like data repositories (including S3, Dropbox,
+  in-memory filesystems, zip files, and web resources);
+
+* a facility for checking and generating JWTs (Javascript Web Tokens)
+  including both symmetric and asymmetric (public key) signatures;
+
+* various facilities for transforming objects to and from JSON
+  (JavaScript Object Notation);
+
+* modules for advanced parsing of times and numbers;
+
+* a lightweight implementation of records (`ezrecords`);
+
+* facilities for fine-grained logging of program activity;
+
+* a simple syntaxing/compilation engine for speeding up FramerD
+  scripts by 5-10x;
+
+* various caching facilities for improving performance against
+  resource-intensive functions or services;
+
+* support for OAuth2 authorization and API access;
+
+* HTTP access to CouchDB databases and RSS feeds;
+
+* facilities for integrating with SOAP-based web services;
+
+* interfaces to the APIs for Facebook, Gravatar, OpenLibrary,
+  LibraryThing, Twilio (SMS), PayPal, and others;
 
