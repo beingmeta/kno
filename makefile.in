@@ -28,7 +28,7 @@ INCINSTALLDIR	= $(DESTDIR)@prefix@/include/framerd
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
-DATAINSTALLDIR	= $(DESTDIR)@datadir@/framerd/data
+DATADIR		= $(DESTDIR)@datadir@/framerd/data
 APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 PPROF_PATH      = @GOOGLE_PPROF@
 CLEAN		= @CLEAN@
@@ -994,9 +994,12 @@ $(LIBINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
 $(LIBINSTALLDIR)/framerd:
 	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
-$(DATAINSTALLDIR):
-	@$(SYSINSTALL) @install_dir_opts@ $(DATAINSTALLDIR)
-
+$(DESTDIR)@config_dir@ $(DESTDIR)@share_dir@ $(DATADIR):
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+$(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@config_dir@
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 install-static: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libfdtype@suffix@.a        \
@@ -1009,9 +1012,10 @@ install-static: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libtexttools@suffix@.a
 install-shared: shared-libs $(LIBINSTALLDIR)
 	make install-@shared_suffix@
-install-data: $(DATAINSTALLDIR)
-	@$(SYSINSTALL) @install_file_opts@ docs/misc/data.README $(DATAINSTALLDIR)/README
-	@$(SYSINSTALL) @install_file_opts@ @DATAFILES@ $(DATAINSTALLDIR)
+install-data: $(DATADIR)
+	@$(SYSINSTALL) @install_file_opts@ docs/misc/data.README \
+		$(DATADIR)/README
+	@$(SYSINSTALL) @install_file_opts@ @DATAFILES@ $(DATADIR)
 
 # Versioned shared libraries
 install-sov:                                             		\
@@ -1154,13 +1158,6 @@ confdirs: $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
 		$(SYSINSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
-$(DESTDIR)@config_dir@ $(DESTDIR)@share_dir@ $(DESTDIR)@data_dir@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-$(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets: $(DESTDIR)@config_dir@
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-
 $(DESTDIR)@builtin_module_dir@ $(DESTDIR)@builtin_safe_module_dir@ \
   $(DESTDIR)@installed_module_dir@ $(DESTDIR)@installed_safe_module_dir@ \
   $(DESTDIR)@shared_module_dir@ $(DESTDIR)@shared_safe_module_dir@ \
@@ -1181,9 +1178,7 @@ BEINGMETA_MODULE_DIRS= \
 	gnosys/cgi gnosys/gnoweb gnosys/metakeys/cgi \
 	gnosys/webapp
 
-install-modules: install-builtin-modules 					\
-		 install-web-modules 						\
-		 install-beingmeta-modules
+install-modules: install-builtin-modules install-web-modules
 install-builtin-modules: install-standard-modules install-safe-modules
 
 install-standard-modules: install-module-source install-module-data
@@ -1221,21 +1216,13 @@ install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ install-standard-modul
 
 install-web-modules: $(DESTDIR)@builtin_module_dir@
 	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/xhtml
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/* \
+	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/fdxml;
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/xhtml/*.scm \
 		$(DESTDIR)@builtin_module_dir@/xhtml;
-	@$(SYSINSTALL) @install_dir_opts@ \
-		$(DESTDIR)@builtin_module_dir@/fdxml;
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/fdxml/* \
+	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/fdxml/*.scm \
 		$(DESTDIR)@builtin_module_dir@/fdxml;
 	ln -sf ../xhtml $(DESTDIR)@builtin_safe_module_dir@;
 	ln -sf ../fdxml $(DESTDIR)@builtin_safe_module_dir@;
-
-install-beingmeta-modules: $(DESTDIR)@builtin_module_dir@
-	@for x in $(BEINGMETA_MODULE_DIRS); do \
-	   $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@builtin_module_dir@/$$x; \
-	   $(SYSINSTALL) @install_file_opts@ $(BUILD)/src/beingmeta/$$x/*.* \
-		$(DESTDIR)@builtin_module_dir@/$$x; \
-	 done
 
 install-support: $(DESTDIR)@share_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/etc/*.el \
