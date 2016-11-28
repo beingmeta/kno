@@ -964,19 +964,29 @@ dist/debs.done: dist/debs.signed
 install-debian install-debs debinstall installdebs: dist/debs.done
 	@SUDO@ dpkg -i dist/framerd*_@FDVERSION@*.deb
 
-update-apt: dist/debs.done
+update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \
 	  reprepro -Vb ${APTREPO} include ${CODENAME} $${change} && \
 	  rm -f $${change}; \
 	done
 
-apt-upload upload-apt upload-deb: dist/debs.done
+update-remote-apt-repo: dist/debs.done
 	cd dist; for change in *.changes; do \
 	  dupload -c --nomail --to ${CODENAME} $${change} && \
 	  rm -f $${change}; \
 	done
 
-.PHONY: apt-upload upload-apt
+update-apt-repo: dist/debs.done
+	if test -d ${APTREPO}; then	\
+	  makeupdate-local-apt-repo;	\
+	else				\
+	  make update-remote-apt-repo;	\
+	fi;
+
+apt-upload upload-apt upload-deb: update-remote-apt-repo
+
+.PHONY: apt-upload upload-apt upload-deb
+.PHONY: update-apt-repo update-remote-apt-repo update-local-apt-repo
 
 # Installation targets
 
