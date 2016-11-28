@@ -9848,7 +9848,7 @@ fi
     fi;
   fi;
 fi
-if ((test "x$have_tidy_h" = "xyes")||(test "x$have_tidy_tidy_h" = "xyes")); then
+if ((test "$have_tidy_h" = "yes")||(test "$have_tidy_tidy_h" = "yes")); then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tidyCreate in -ltidy" >&5
 $as_echo_n "checking for tidyCreate in -ltidy... " >&6; }
 if ${ac_cv_lib_tidy_tidyCreate+:} false; then :
@@ -9937,7 +9937,96 @@ else
 fi
 
 fi
-if (test "x$have_libtidy" = "xyes"); then
+if (test "$have_libtidy" != "yes"); then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tidyCreate in -ltidys" >&5
+$as_echo_n "checking for tidyCreate in -ltidys... " >&6; }
+if ${ac_cv_lib_tidys_tidyCreate+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltidys  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char tidyCreate ();
+int
+main ()
+{
+return tidyCreate ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tidys_tidyCreate=yes
+else
+  ac_cv_lib_tidys_tidyCreate=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tidys_tidyCreate" >&5
+$as_echo "$ac_cv_lib_tidys_tidyCreate" >&6; }
+if test "x$ac_cv_lib_tidys_tidyCreate" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTIDYS 1
+_ACEOF
+
+  LIBS="-ltidys $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tidyCreate in -ltidys" >&5
+$as_echo_n "checking for tidyCreate in -ltidys... " >&6; }
+if ${ac_cv_lib_tidys_tidyCreate+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltidys  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char tidyCreate ();
+int
+main ()
+{
+return tidyCreate ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tidys_tidyCreate=yes
+else
+  ac_cv_lib_tidys_tidyCreate=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tidys_tidyCreate" >&5
+$as_echo "$ac_cv_lib_tidys_tidyCreate" >&6; }
+if test "x$ac_cv_lib_tidys_tidyCreate" = xyes; then :
+  have_libtidy="yes"
+else
+  have_libtidy="no"
+fi
+
+fi
+if (test "$have_libtidy" = "yes"); then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi

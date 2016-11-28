@@ -1140,11 +1140,15 @@ else
     fi;
   fi;
 fi
-if ((test "x$have_tidy_h" = "xyes")||(test "x$have_tidy_tidy_h" = "xyes")); then
+if ((test "$have_tidy_h" = "yes")||(test "$have_tidy_tidy_h" = "yes")); then
   AC_CHECK_LIB(tidy,tidyCreate)
   AC_CHECK_LIB(tidy,tidyCreate,have_libtidy="yes",have_libtidy="no")
 fi
-if (test "x$have_libtidy" = "xyes"); then
+if (test "$have_libtidy" != "yes"); then
+  AC_CHECK_LIB(tidys,tidyCreate)
+  AC_CHECK_LIB(tidys,tidyCreate,have_libtidy="yes",have_libtidy="no")
+fi
+if (test "$have_libtidy" = "yes"); then
   CMODULES="lib/framerd/tidy.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-tidy ${INSTALLCMODULES}"
 fi
