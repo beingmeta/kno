@@ -1170,13 +1170,8 @@ upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
 MODULE_DIRS=aws brico bugjar facebook misc paypal tests twitter dropbox google \
 	jwt domutils knodules textindex
-MODULE_DATA_DIRS=aws/templates bugjar/websrc textindex/data brico/data
-BEINGMETA_MODULE_DIRS= \
-	morph morph/data chopper chopper/english \
-	gnosys gnosys/utils gnosys/analyzers/text \
-	gnosys/bookmarks gnosys/funnel gnosys/metakeys \
-	gnosys/cgi gnosys/gnoweb gnosys/metakeys/cgi \
-	gnosys/webapp
+MODULE_DATA_DIRS=textindex/data brico/data knodules/data \
+		 aws/templates bugjar/websrc
 
 install-modules: install-builtin-modules install-web-modules
 install-builtin-modules: install-standard-modules install-safe-modules
