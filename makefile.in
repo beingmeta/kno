@@ -982,7 +982,7 @@ update-remote-apt-repo: dist/debs.done
 
 update-apt update-apt-repo: dist/debs.done
 	if test -d ${APTREPO}; then	\
-	  makeupdate-local-apt-repo;	\
+	  make update-local-apt-repo;	\
 	else				\
 	  make update-remote-apt-repo;	\
 	fi;
