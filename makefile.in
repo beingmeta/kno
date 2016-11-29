@@ -434,7 +434,7 @@ $(LIBINSTALLDIR)/%.a: lib/%.a
 	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	@$(MSG) INSTALL $@
 
-$(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: lib/%@suffix@.so
+$(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: lib/%@suffix@.@shared_suffix@
 	@echo Installing $@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
@@ -444,7 +444,7 @@ $(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshare
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
 	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
-$(LIBINSTALLDIR)/%@suffix@.so: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
+$(LIBINSTALLDIR)/%@suffix@.dylib: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
 	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 
@@ -526,10 +526,10 @@ uninstall-core:
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SHELL_SCRIPTS)
 	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SCHEME_SCRIPTS)
 	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.a" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@FDVERSION@.dylib" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.dylib" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@FDVERSION@.so" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.so" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@FDVERSION@.@shared_suffix@" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@FDMAJOR@.@shared_suffix@" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@FDMAJOR@.@FDMINOR@.@shared_suffix@" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@shared_suffix@" $(LIBBASE)
 	rm -rf $(DESTDIR)${CMODULES}
 uninstall-all: uninstall-core
 	rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
