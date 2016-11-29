@@ -938,6 +938,10 @@ dist/rpms.zip: dist/rpms.done
 
 # Rules for Debian building
 
+DEBINSTALL=framerd framerd-core framerd-builtin framerd-dev 	\
+	framerd-mysql framerd-sqlite framerd-mongodb 		\
+	 framerd-imagetools framerd-sundown
+
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
 	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
@@ -954,7 +958,11 @@ dist/debs.done: dist/debs.signed
 	touch dist/debs.done
 
 install-debian install-debs debinstall installdebs: dist/debs.done
-	@SUDO@ dpkg -i dist/framerd*_@FDVERSION@*.deb
+	for pkg in ${DEBINSTALL}; do 				\
+	  if test -f dist/$${pkg}_@FDVERSION@*.deb; then 	\
+	    @SUDO@ dpkg -i dist/$${pkg}_@FDVERSION@*.deb;	\
+	  fi;							\
+	done;
 
 update-local-apt-repo: dist/debs.done
 	for change in dist/*.changes; do \
