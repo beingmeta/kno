@@ -1169,12 +1169,11 @@ install-module-data: $(DESTDIR)@builtin_module_dir@
 	done
 
 install-safe-modules: $(DESTDIR)@builtin_safe_module_dir@ install-standard-modules
-	@$(ECHO) Linking 'safe' Scheme modules from @builtin_module_dir@ \
+	@$(ECHO) Linking 'safe' Scheme modules from @builtin_module_dir@ 	\
 			to @builtin_safe_module_dir@
-	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/modules/safe/*.scm      \
-		$(DESTDIR)@builtin_safe_module_dir@
 	@for safe_link in $(BUILD)/src/modules/safe/*; do 			\
-          ln -sf `readlink $${safe_link}` $(DESTDIR)@builtin_safe_module_dir@; 	\
+          ${SUDO} ln -sf `readlink $${safe_link}` 				\
+		          $(DESTDIR)@builtin_safe_module_dir@; 			\
 	 done
 
 install-web-modules: $(DESTDIR)@builtin_module_dir@
@@ -1184,8 +1183,8 @@ install-web-modules: $(DESTDIR)@builtin_module_dir@
 		$(DESTDIR)@builtin_module_dir@/xhtml;
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/src/fdweb/fdxml/*.scm \
 		$(DESTDIR)@builtin_module_dir@/fdxml;
-	ln -sf ../xhtml $(DESTDIR)@builtin_safe_module_dir@;
-	ln -sf ../fdxml $(DESTDIR)@builtin_safe_module_dir@;
+	${SUDO} ln -sf ../xhtml $(DESTDIR)@builtin_safe_module_dir@;
+	${SUDO} ln -sf ../fdxml $(DESTDIR)@builtin_safe_module_dir@;
 
 install-support: $(DESTDIR)@share_dir@
 	@$(SYSINSTALL) @install_file_opts@ $(BUILD)/etc/*.el \
