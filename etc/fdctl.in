@@ -13,14 +13,14 @@ else
   OP=$2;
   shift;
   shift;
-fi
+fi;
 if test $OP = "usage"; then
   echo "Usage: fdctl (start|stop|clean|reload|freshstart|restart)";
   echo "Usage: fdctl [target] (restart|log|status|suspend)";
   exit;
 elif test ${OP} = "stop"; then 
    RAWSCRIPT=fdstopall; 
-fi
+fi;
 
 cleanlogs( ) {
   rm -f @daemon_logdir@/*;
@@ -31,7 +31,7 @@ cleanlogs( ) {
 if test ${TARGET} != "all"; then
    if test ${OP} = "restart"; then
      exec fdrestart ${TARGET} $*;
-   if test ${OP} = "reload"; then
+   elif test ${OP} = "reload"; then
      exec fdreload ${TARGET} $*;
    elif test ${OP} = "log"; then
      exec fdlog ${TARGET} $*;
@@ -56,7 +56,7 @@ elif test ${OP} = "clean"; then
 elif test ${OP} = "zero"; then
      OP=stop;
      CLEAN=yes;
-fi 
+fi;
 
 ## Now, figure out what startup system is being used to run FramerD
 ##  e.g. systemd, upstart, sysv, or none (just fd* scripts)
@@ -74,7 +74,7 @@ elif test -f /usr/lib/systemd/system/framerd.service; then
     exit;
 else
     echo "No systemd FramerD configuration";
-fi
+fi;
 
 if ! which initctl 2>&1 > /dev/null; then
     echo "No initcl";
@@ -85,14 +85,16 @@ elif test -f /etc/init/framerd.conf; then
     exit;
 else
     echo No upstart FramerD configuration;
-fi
+fi;
 
 if test -f /etc/init.d/framerd; then
     echo /etc/init.d/framerd ${OP};
     sudo /etc/init.d/framerd ${OP};
 else
-    echo ${RAWSCRIPT}
-    ${RAWSCRIPT}
-fi
+    echo ${RAWSCRIPT};
+    ${RAWSCRIPT};
+fi;
 
-if test "${CLEAN}" = "yes"; then sudo cleanlogs; fi
+if test "${CLEAN}" = "yes"; then 
+    sudo cleanlogs; 
+fi;
