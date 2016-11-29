@@ -29,7 +29,7 @@ LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
 DATADIR		= $(DESTDIR)@datadir@/framerd/data
-CMODULES	= $(DESTDIR)${LIBINSTALLDIR}/framerd
+CMODULES	= ${LIBINSTALLDIR}/framerd
 APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 PPROF_PATH      = @GOOGLE_PPROF@
 CLEAN		= @CLEAN@
