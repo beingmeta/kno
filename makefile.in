@@ -29,6 +29,7 @@ LIBINSTALLDIR	= $(DESTDIR)@libdir@
 BININSTALLDIR	= $(DESTDIR)@exec_prefix@/bin
 LOCALEDIR	= $(DESTDIR)@exec_prefix@/share/locale
 DATADIR		= $(DESTDIR)@datadir@/framerd/data
+CMODULES	= $(DESTDIR)${LIBINSTALLDIR}/framerd
 APXS		= @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
 PPROF_PATH      = @GOOGLE_PPROF@
 CLEAN		= @CLEAN@
@@ -433,48 +434,35 @@ $(LIBINSTALLDIR)/%.a: lib/%.a
 	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	@$(MSG) INSTALL $@
 
-$(LIBINSTALLDIR)/framerd/%@suffix@.so.@FDVERSION@: \
-	lib/framerd/%@suffix@.so $(LIBINSTALLDIR)/framerd
+$(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: lib/%@suffix@.so
 	@echo Installing $@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
-$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@: lib/%@suffix@.so
+$(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
+	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+$(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
+	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+$(LIBINSTALLDIR)/%@suffix@.so: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
+	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(MSG)  Linking $@ to $(*F).@vshared_suffix
+
+${CMODULES}/%@suffix@.@vshared_suffix@: lib/framerd/%@suffix@.@shared_suffix@
 	@echo Installing $@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
-
-$(LIBINSTALLDIR)/%@suffix@.so.@FDMAJOR@.@FDMINOR@: \
-	$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
-	@echo Linking $< to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
-$(LIBINSTALLDIR)/%@suffix@.so.@FDMAJOR@: \
-	$(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
-	@echo Linking $< to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
-$(LIBINSTALLDIR)/%@suffix@.so: $(LIBINSTALLDIR)/%@suffix@.so.@FDVERSION@
-	@echo Linking to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
-
-$(LIBINSTALLDIR)/framerd/%@suffix@.@FDVERSION@.dylib: \
-	lib/framerd/%@suffix@.dylib $(LIBINSTALLDIR)/framerd
-	@echo Installing $@
-	@$(SYSINSTALL) -d $(LIBINSTALLDIR)
-	@$(SYSINSTALL) $< $@
-$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib: lib/%@suffix@.dylib
-	@echo Installing $@
-	@$(SYSINSTALL) -d $(LIBINSTALLDIR)
-	@$(SYSINSTALL) $< $@
-$(LIBINSTALLDIR)/%@suffix@.@FDMAJOR@.@FDMINOR@.dylib: \
-	$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
-	@echo Linking $< to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
-$(LIBINSTALLDIR)/%@suffix@.@FDMAJOR@.dylib: \
-	$(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
-	@echo Linking $< to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
-$(LIBINSTALLDIR)/%@suffix@.dylib: $(LIBINSTALLDIR)/%@suffix@.@FDVERSION@.dylib
-	@echo Linking $< to $@
-	@@SUDO@ln -sf $(shell basename $<) $@
+${CMODULES}/%@suffix@.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
+	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
+	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+${CMODULES}/%@suffix@.@shared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
+	@make ${CMODULES}/$(*F)@suffix@.@mmshared_suffix@ \
+		${CMODULES}/$(*F)@suffix@.@mshared_suffix@
+	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
+	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 
 $(BININSTALLDIR)/%: exe/%
 
@@ -542,7 +530,7 @@ uninstall-core:
 	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.dylib" $(LIBBASE)
 	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@FDVERSION@.so" $(LIBBASE)
 	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.so" $(LIBBASE)
-	rm -rf $(DESTDIR)$(LIBINSTALLDIR)/framerd
+	rm -rf $(DESTDIR)${CMODULES}
 uninstall-all: uninstall-core
 	rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
 		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
@@ -1006,8 +994,8 @@ $(BININSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(BININSTALLDIR)
 $(LIBINSTALLDIR):
 	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
-$(LIBINSTALLDIR)/framerd:
-	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)/framerd
+${CMODULES}:
+	@$(SYSINSTALL) @install_dir_opts@ ${CMODULES}
 $(DESTDIR)@config_dir@ $(DESTDIR)@share_dir@ $(DATADIR):
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
@@ -1024,71 +1012,43 @@ install-static: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libfdschemeio@suffix@.a \
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
 		$(LIBINSTALLDIR)/libtexttools@suffix@.a
-install-shared: shared-libs $(LIBINSTALLDIR)
-	make install-@shared_suffix@
+install-shared: shared-libs $(LIBINSTALLDIR) 				\
+    $(LIBINSTALLDIR)/libfdtype@suffix@.${shared_suffix}			\
+    $(LIBINSTALLDIR)/libfdtype@suffix@.${vshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdtype@suffix@.${mmshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdtype@suffix@.${mshared_suffix}		\
+    $(LIBINSTALLDIR)/libfddb@suffix@.${vshared_suffix}			\
+    $(LIBINSTALLDIR)/libfddb@suffix@.${mmshared_suffix}			\
+    $(LIBINSTALLDIR)/libfddb@suffix@.${mshared_suffix}			\
+    $(LIBINSTALLDIR)/libfddb@suffix@.${shared_suffix}			\
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.${vshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.${mmshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.${mshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.${shared_suffix}		\
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.${vshared_suffix}		\
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.${mmshared_suffix}		\
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.${mshared_suffix}		\
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.${shared_suffix}		\
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.${vshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.${mmshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.${mshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.${shared_suffix}		\
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.${vshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.${mmshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.${mshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.${shared_suffix}		\
+    $(LIBINSTALLDIR)/libfdweb@suffix@.${vshared_suffix}			\
+    $(LIBINSTALLDIR)/libfdweb@suffix@.${mmshared_suffix}		\
+    $(LIBINSTALLDIR)/libfdweb@suffix@.${mshared_suffix}			\
+    $(LIBINSTALLDIR)/libfdweb@suffix@.${shared_suffix}			\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.${vshared_suffix}		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.${mmshared_suffix}		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.${mshared_suffix}		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.${shared_suffix}
 install-data: $(DATADIR)
 	@$(SYSINSTALL) @install_file_opts@ docs/misc/data.README \
 		$(DATADIR)/README
 	@$(SYSINSTALL) @install_file_opts@ @DATAFILES@ $(DATADIR)
-
-# Versioned shared libraries
-install-sov:                                             		\
-    $(LIBINSTALLDIR)/libfdtype@suffix@.so.@FDMAJOR@      		\
-    $(LIBINSTALLDIR)/libfdtype@suffix@.so.@FDVERSION@      		\
-    $(LIBINSTALLDIR)/libfddb@suffix@.so.@FDMAJOR@        		\
-    $(LIBINSTALLDIR)/libfddb@suffix@.so.@FDVERSION@        		\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.so.@FDMAJOR@     		\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.so.@FDVERSION@     		\
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.so.@FDMAJOR@    		\
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.so.@FDVERSION@    		\
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.so.@FDMAJOR@    		\
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.so.@FDVERSION@    		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.so.@FDMAJOR@  		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.so.@FDVERSION@  		\
-    $(LIBINSTALLDIR)/libfdweb@suffix@.so.@FDMAJOR@       		\
-    $(LIBINSTALLDIR)/libfdweb@suffix@.so.@FDVERSION@       		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.so.@FDMAJOR@   		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.so.@FDVERSION@
-# Unversioned libraries, for development
-install-so: install-sov                                  \
-    $(LIBINSTALLDIR)/libfdtype@suffix@.so                \
-    $(LIBINSTALLDIR)/libfddb@suffix@.so                  \
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.so               \
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.so              \
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.so              \
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.so            \
-    $(LIBINSTALLDIR)/libfdweb@suffix@.so                 \
-    $(LIBINSTALLDIR)/libtexttools@suffix@.so
-
-# This should probably be done differently for packaging, but that's 'todo'
-# Versioned shared libraries
-install-dylibv:							\
-	$(LIBINSTALLDIR)/libfdtype@suffix@.@FDVERSION@.dylib    \
-	$(LIBINSTALLDIR)/libfddb@suffix@.@FDVERSION@.dylib      \
-	$(LIBINSTALLDIR)/libfdbserv@suffix@.@FDVERSION@.dylib   \
-	$(LIBINSTALLDIR)/libfddbfile@suffix@.@FDVERSION@.dylib  \
-	$(LIBINSTALLDIR)/libfdscheme@suffix@.@FDVERSION@.dylib  \
-	$(LIBINSTALLDIR)/libfdschemeio@suffix@.@FDVERSION@.dylib\
-	$(LIBINSTALLDIR)/libfdweb@suffix@.@FDVERSION@.dylib     \
-	$(LIBINSTALLDIR)/libtexttools@suffix@.@FDVERSION@.dylib \
-	$(LIBINSTALLDIR)/libfddb@suffix@.@FDMAJOR@.dylib      \
-	$(LIBINSTALLDIR)/libfdbserv@suffix@.@FDMAJOR@.dylib   \
-	$(LIBINSTALLDIR)/libfddbfile@suffix@.@FDMAJOR@.dylib  \
-	$(LIBINSTALLDIR)/libfdscheme@suffix@.@FDMAJOR@.dylib  \
-	$(LIBINSTALLDIR)/libfdschemeio@suffix@.@FDMAJOR@.dylib\
-	$(LIBINSTALLDIR)/libfdweb@suffix@.@FDMAJOR@.dylib     \
-	$(LIBINSTALLDIR)/libtexttools@suffix@.@FDMAJOR@.dylib
-
-# Unversioned libraries, for development
-install-dylib: install-dylibv                                  \
-        $(LIBINSTALLDIR)/libfdtype@suffix@.dylib               \
-	$(LIBINSTALLDIR)/libfddb@suffix@.dylib                 \
-	$(LIBINSTALLDIR)/libfdbserv@suffix@.dylib              \
-	$(LIBINSTALLDIR)/libfddbfile@suffix@.dylib             \
-	$(LIBINSTALLDIR)/libfdscheme@suffix@.dylib             \
-	$(LIBINSTALLDIR)/libfdschemeio@suffix@.dylib           \
-	$(LIBINSTALLDIR)/libfdweb@suffix@.dylib                \
-	$(LIBINSTALLDIR)/libtexttools@suffix@.dylib
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
@@ -1121,36 +1081,21 @@ $(BININSTALLDIR)/fdcgiexec@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ exe/fdcgiexec@suffix@ $(BININSTALLDIR)
 
 install-cmodules: @INSTALLCMODULES@ install-sundown
-install-odbc: $(LIBINSTALLDIR)/framerd/odbc.@shared_suffix@ \
-	      $(LIBINSTALLDIR)/framerd/odbc.@vshared_suffix@
-install-sqlite: $(LIBINSTALLDIR)/framerd/sqlite.@shared_suffix@ \
-	        $(LIBINSTALLDIR)/framerd/sqlite.@vshared_suffix@
-install-dbus: $(LIBINSTALLDIR)/framerd/dbus.@shared_suffix@ \
-	      $(LIBINSTALLDIR)/framerd/dbus.@vshared_suffix@
-install-ldap: $(LIBINSTALLDIR)/framerd/ldap.@shared_suffix@ \
-	      $(LIBINSTALLDIR)/framerd/ldap.@vshared_suffix@
-install-crypto: $(LIBINSTALLDIR)/framerd/crypto.@shared_suffix@ \
-	        $(LIBINSTALLDIR)/framerd/crypto.@vshared_suffix@
-install-mysql: $(LIBINSTALLDIR)/framerd/mysql.@shared_suffix@ \
-	       $(LIBINSTALLDIR)/framerd/mysql.@vshared_suffix@
-install-qrcode: $(LIBINSTALLDIR)/framerd/qrcode.@shared_suffix@ \
-	       $(LIBINSTALLDIR)/framerd/qrcode.@vshared_suffix@
-install-hyphenate: $(LIBINSTALLDIR)/framerd/hyphenate.@shared_suffix@ \
-	       $(LIBINSTALLDIR)/framerd/hyphenate.@vshared_suffix@
-install-ziptools: $(LIBINSTALLDIR)/framerd/ziptools.@shared_suffix@ \
-	         $(LIBINSTALLDIR)/framerd/ziptools.@vshared_suffix@
-install-tidy: $(LIBINSTALLDIR)/framerd/tidy.@shared_suffix@ \
-	         $(LIBINSTALLDIR)/framerd/tidy.@vshared_suffix@
-install-imagick: $(LIBINSTALLDIR)/framerd/imagick.@shared_suffix@ \
-	         $(LIBINSTALLDIR)/framerd/imagick.@vshared_suffix@
-install-mongodb: $(LIBINSTALLDIR)/framerd/mongodb.@shared_suffix@ \
-	         $(LIBINSTALLDIR)/framerd/mongodb.@vshared_suffix@
-install-exif: $(LIBINSTALLDIR)/framerd/exif.@shared_suffix@ \
-	        $(LIBINSTALLDIR)/framerd/exif.@vshared_suffix@
-install-zlib: $(LIBINSTALLDIR)/framerd/zlib.@shared_suffix@ \
-	        $(LIBINSTALLDIR)/framerd/zlib.@vshared_suffix@
-install-sundown: $(LIBINSTALLDIR)/framerd/sundown.@shared_suffix@ \
-	        $(LIBINSTALLDIR)/framerd/sundown.@vshared_suffix@
+install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
+install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
+install-dbus: ${CMODULES}/dbus.@shared_suffix@ ${CMODULES}/dbus.@vshared_suffix@
+install-ldap: ${CMODULES}/ldap.@shared_suffix@ ${CMODULES}/ldap.@vshared_suffix@
+install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
+install-mysql: ${CMODULES}/mysql.@shared_suffix@ ${CMODULES}/mysql.@vshared_suffix@
+install-qrcode: ${CMODULES}/qrcode.@shared_suffix@ ${CMODULES}/qrcode.@vshared_suffix@
+install-hyphenate: ${CMODULES}/hyphenate.@shared_suffix@ ${CMODULES}/hyphenate.@vshared_suffix@
+install-ziptools: ${CMODULES}/ziptools.@shared_suffix@ ${CMODULES}/ziptools.@vshared_suffix@
+install-tidy: ${CMODULES}/tidy.@shared_suffix@ ${CMODULES}/tidy.@vshared_suffix@
+install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshared_suffix@
+install-mongodb: ${CMODULES}/mongodb.@shared_suffix@ ${CMODULES}/mongodb.@vshared_suffix@
+install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
+install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
+install-sundown: ${CMODULES}/sundown.@shared_suffix@ ${CMODULES}/sundown.@vshared_suffix@
 
 # Setup targets
 

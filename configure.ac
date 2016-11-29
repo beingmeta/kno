@@ -90,8 +90,9 @@ FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
 RPMVERSION=${FDRELEASE}
 DEBVERSION=${FDRELEASE}
-mshared_suffix=so.$FDMAJOR
-vshared_suffix=so.$FDVERSION
+mshared_suffix=so.${FDMAJOR}
+mmshared_suffix=so.${FDMAJOR}.${FDMINOR}
+vshared_suffix=so.${FDVERSION}
 I18N=""
 INSTALLI18N=""
 WWWUSER="apache"
@@ -185,6 +186,7 @@ AC_SUBST(install_exe_opts)
 AC_SUBST(shared_suffix)
 AC_SUBST(vshared_suffix)
 AC_SUBST(mshared_suffix)
+AC_SUBST(mmshared_suffix)
 AC_SUBST(dynamic_cflag)
 AC_SUBST(rpath)
 AC_SUBST(curlconfig)
@@ -657,8 +659,9 @@ case $host_os in
    MKSTATIC="libtool -static -o "
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
-   vshared_suffix=$FDVERSION.dylib
-   mshared_suffix=$FDMAJOR.dylib
+   vshared_suffix=${FDVERSION}.dylib
+   mshared_suffix=${FDMAJOR}.dylib
+   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
    CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
    RPATHFLAGS=" -rpath \$(RPATH) "
@@ -672,6 +675,8 @@ AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
 if test "x${static_libgcc}" == "xyes"; then
    LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
 fi
+
+FD_DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 
 dnl For specifying default -arch flags for OSX
 AC_ARG_WITH(arch,--with[out]-arch build with particular --arch flags,,with_arch="")
@@ -826,7 +831,7 @@ AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$safe_module_path")
 
 AC_DEFINE_UNQUOTED(FD_DLOAD_SUFFIX,"$shared_suffix")
 
-AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=$libdir/framerd/%.$shared_suffix:$libdir/lib%.$shared_suffix:$prefix/lib/framerd/%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:)
+AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=${FD_DEFAULT_DLOADPATH})
 AC_DEFINE_UNQUOTED(FD_DEFAULT_DLOADPATH,"$with_dload_path")
 
 AC_ARG_WITH(boot_config,--with-boot-config configstring,,with_boot_config="")

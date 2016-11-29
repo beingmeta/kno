@@ -786,6 +786,7 @@ curlo
 curlconfig
 rpath
 dynamic_cflag
+mmshared_suffix
 mshared_suffix
 vshared_suffix
 shared_suffix
@@ -2901,8 +2902,9 @@ FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
 RPMVERSION=${FDRELEASE}
 DEBVERSION=${FDRELEASE}
-mshared_suffix=so.$FDMAJOR
-vshared_suffix=so.$FDVERSION
+mshared_suffix=so.${FDMAJOR}
+mmshared_suffix=so.${FDMAJOR}.${FDMINOR}
+vshared_suffix=so.${FDVERSION}
 I18N=""
 INSTALLI18N=""
 WWWUSER="apache"
@@ -3017,6 +3019,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -6197,8 +6200,9 @@ case $host_os in
    MKSTATIC="libtool -static -o "
    dynamic_cflag="-dynamic"
    shared_suffix="dylib"
-   vshared_suffix=$FDVERSION.dylib
-   mshared_suffix=$FDMAJOR.dylib
+   vshared_suffix=${FDVERSION}.dylib
+   mshared_suffix=${FDMAJOR}.dylib
+   mmshared_suffix=${FDMAJOR}.${FDMINOR}.dylib
    APXS="apxs -Wc,'-arch x86_64' -Wl,'-arch x86_64'  -a $APXSFLAGS"
    CFLAGS="-D_DARWIN_C_SOURCE $CFLAGS"
    RPATHFLAGS=" -rpath \$(RPATH) "
@@ -6249,6 +6253,8 @@ fi
 if test "x${static_libgcc}" == "xyes"; then
    LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
 fi
+
+FD_DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 
 
 # Check whether --with-arch was given.
@@ -7423,7 +7429,7 @@ _ACEOF
 if test "${with_dload_path+set}" = set; then :
   withval=$with_dload_path;
 else
-  with_dload_path=$libdir/framerd/%.$shared_suffix:$libdir/lib%.$shared_suffix:$prefix/lib/framerd/%.$shared_suffix:$prefix/lib/%.$shared_suffix:$prefix/lib/lib%.$shared_suffix:/lib/%.$shared_suffix:/lib/lib%.$shared_suffix:
+  with_dload_path=${FD_DEFAULT_DLOADPATH}
 fi
 
 cat >>confdefs.h <<_ACEOF
