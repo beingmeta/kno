@@ -446,7 +446,7 @@ $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.so: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
 	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix
+	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 
 ${CMODULES}/%@suffix@.@vshared_suffix@: lib/framerd/%@suffix@.@shared_suffix@
 	@echo Installing $@
@@ -1013,42 +1013,38 @@ install-static: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libfdweb@suffix@.a      \
 		$(LIBINSTALLDIR)/libtexttools@suffix@.a
 install-shared: shared-libs $(LIBINSTALLDIR) 				\
-    $(LIBINSTALLDIR)/libfdtype@suffix@.${shared_suffix}			\
-    $(LIBINSTALLDIR)/libfdtype@suffix@.${vshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdtype@suffix@.${mmshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdtype@suffix@.${mshared_suffix}		\
-    $(LIBINSTALLDIR)/libfddb@suffix@.${vshared_suffix}			\
-    $(LIBINSTALLDIR)/libfddb@suffix@.${mmshared_suffix}			\
-    $(LIBINSTALLDIR)/libfddb@suffix@.${mshared_suffix}			\
-    $(LIBINSTALLDIR)/libfddb@suffix@.${shared_suffix}			\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.${vshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.${mmshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.${mshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdbserv@suffix@.${shared_suffix}		\
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.${vshared_suffix}		\
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.${mmshared_suffix}		\
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.${mshared_suffix}		\
-    $(LIBINSTALLDIR)/libfddbfile@suffix@.${shared_suffix}		\
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.${vshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.${mmshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.${mshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdscheme@suffix@.${shared_suffix}		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.${vshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.${mmshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.${mshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdschemeio@suffix@.${shared_suffix}		\
-    $(LIBINSTALLDIR)/libfdweb@suffix@.${vshared_suffix}			\
-    $(LIBINSTALLDIR)/libfdweb@suffix@.${mmshared_suffix}		\
-    $(LIBINSTALLDIR)/libfdweb@suffix@.${mshared_suffix}			\
-    $(LIBINSTALLDIR)/libfdweb@suffix@.${shared_suffix}			\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.${vshared_suffix}		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.${mmshared_suffix}		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.${mshared_suffix}		\
-    $(LIBINSTALLDIR)/libtexttools@suffix@.${shared_suffix}
-install-data: $(DATADIR)
-	@$(SYSINSTALL) @install_file_opts@ docs/misc/data.README \
-		$(DATADIR)/README
-	@$(SYSINSTALL) @install_file_opts@ @DATAFILES@ $(DATADIR)
+    $(LIBINSTALLDIR)/libfdtype@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdtype@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdtype@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdtype@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libfddb@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libfddb@suffix@.@mmshared_suffix@			\
+    $(LIBINSTALLDIR)/libfddb@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libfddb@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdbserv@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libfddbfile@suffix@.@shared_suffix@		\
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdscheme@suffix@.@shared_suffix@		\
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libfdschemeio@suffix@.@shared_suffix@		\
+    $(LIBINSTALLDIR)/libfdweb@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdweb@suffix@.@mmshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdweb@suffix@.@mshared_suffix@			\
+    $(LIBINSTALLDIR)/libfdweb@suffix@.@shared_suffix@			\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@mmshared_suffix@		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@mshared_suffix@		\
+    $(LIBINSTALLDIR)/libtexttools@suffix@.@shared_suffix@
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
@@ -1056,6 +1052,11 @@ install-headers: $(INCINSTALLDIR)
 		   $(DBFILE_HEADERS) $(SCHEME_HEADERS)	\
 		   $(LIB_HEADERS)			\
 		$(INCINSTALLDIR)
+
+install-data: $(DATADIR)
+	@$(SYSINSTALL) @install_file_opts@ docs/misc/data.README \
+		$(DATADIR)/README
+	@$(SYSINSTALL) @install_file_opts@ @DATAFILES@ $(DATADIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
