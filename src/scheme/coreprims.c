@@ -282,106 +282,160 @@ static fdtype procedure_name(fdtype x)
 
 static fdtype plus_lexpr(int n,fdtype *args)
 {
-  int i=0; int floating=0, generic=0;
-  while (i < n)
-    if (FD_FIXNUMP(args[i])) i++;
-    else if (FD_FLONUMP(args[i])) {floating=1; i++;}
-    else {generic=1; i++;}
-  if ((floating==0) && (generic==0)) {
-    int fixresult=0;
-    i=0; while (i < n) {
-      int val=0;
-      if (FD_FIXNUMP(args[i])) val=fd_getint(args[i]);
-      fixresult=fixresult+val; i++;}
-    return FD_INT(fixresult);}
-  else if (generic == 0) {
-    double floresult=0.0;
-    i=0; while (i < n) {
-      double val;
-      if (FD_FIXNUMP(args[i])) val=(double)fd_getint(args[i]);
-      else if (FD_BIGINTP(args[i]))
-        val=(double)fd_bigint_to_double((fd_bigint)args[i]);
-      else val=((struct FD_FLONUM *)args[i])->flonum;
-      floresult=floresult+val;
-      i++;}
-    return fd_init_double(NULL,floresult);}
+  if (n==0)
+    return FD_FIXNUM_ZERO;
+  else if (n==1) {
+    fdtype x=args[0];
+    if (FD_FIXNUMP(x)) return x;
+    else return fd_incref(x);}
+  else if (n==2) 
+    return fd_plus(args[0],args[1]);
   else {
-    fdtype result=FD_INT(0);
-    i=0; while (i < n) {
-      fdtype newv=fd_plus(result,args[i]);
-      if (FD_ABORTP(newv)) {
-        fd_decref(result); return newv;}
-      fd_decref(result); result=newv; i++;}
-    return result;}
+    int i=0; int floating=0, generic=0, vector=0;
+    while (i < n)
+      if (FD_FIXNUMP(args[i])) i++;
+      else if (FD_FLONUMP(args[i])) {floating=1; i++;}
+      else if ((FD_VECTORP(args[i]))||(FD_NUMVECP(args[i]))) {
+        generic=1; vector=1; i++;}
+      else {generic=1; i++;}
+    if ((floating==0) && (generic==0)) {
+      int fixresult=0;
+      i=0; while (i < n) {
+        int val=0;
+        if (FD_FIXNUMP(args[i])) val=fd_getint(args[i]);
+        fixresult=fixresult+val; i++;}
+      return FD_INT(fixresult);}
+    else if (generic == 0) {
+      double floresult=0.0;
+      i=0; while (i < n) {
+        double val;
+        if (FD_FIXNUMP(args[i])) val=(double)fd_getint(args[i]);
+        else if (FD_BIGINTP(args[i]))
+          val=(double)fd_bigint_to_double((fd_bigint)args[i]);
+        else val=((struct FD_FLONUM *)args[i])->flonum;
+        floresult=floresult+val;
+        i++;}
+      return fd_init_double(NULL,floresult);}
+    else if (vector) {
+      fdtype result=fd_plus(args[0],args[1]);
+      if (FD_ABORTP(result)) return result;
+      i=2; while (i < n) {
+        fdtype newv=fd_plus(result,args[i]);
+        if (FD_ABORTP(newv)) {
+          fd_decref(result); return newv;}
+        fd_decref(result); result=newv; i++;}
+      return result;}
+    else {
+      fdtype result=FD_INT(0);
+      i=0; while (i < n) {
+        fdtype newv=fd_plus(result,args[i]);
+        if (FD_ABORTP(newv)) {
+          fd_decref(result); return newv;}
+        fd_decref(result); result=newv; i++;}
+      return result;}
+  }
 }
 
 static fdtype plus1(fdtype x)
 {
-  fdtype args[2]; args[0]=x; args[1]=FD_INT(1);
-  return plus_lexpr(2,args);
+  if (FD_FIXNUMP(x)) {
+    int iv=FD_INT(x); iv++;
+    return FD_INT2DTYPE(iv);}
+  else if (FD_FLONUMP(x)) {
+    fd_double iv=FD_FLONUM(x); iv=iv+1;
+    return fd_make_flonum(iv);}
+  else {
+    fdtype args[2]; args[0]=x; args[1]=FD_INT(1);
+    return plus_lexpr(2,args);}
 }
 static fdtype minus1(fdtype x)
 {
-  fdtype args[2]; args[0]=x; args[1]=FD_INT(-1);
-  return plus_lexpr(2,args);
+  if (FD_FIXNUMP(x)) {
+    int iv=FD_INT(x); iv--;
+    return FD_INT2DTYPE(iv);}
+  else if (FD_FLONUMP(x)) {
+    fd_double iv=FD_FLONUM(x); iv=iv-1;
+    return fd_make_flonum(iv);}
+  else {
+    fdtype args[2]; args[0]=x; args[1]=FD_INT(-1);
+    return plus_lexpr(2,args);}
 }
 
 static fdtype times_lexpr(int n,fdtype *args)
 {
   int i=0; int floating=0, generic=0;
-  while (i < n)
-    if (FD_FIXNUMP(args[i])) i++;
-    else if (FD_FLONUMP(args[i])) {floating=1; i++;}
-    else {generic=1; i++;}
-  if ((floating==0) && (generic==0)) {
-    long long fixresult=1;
-    i=0; while (i < n) {
-      long long mult=fd_getint(args[i]);
-      if (mult==0) return FD_INT(0);
-      else {
-        int q=((mult>0)?(FD_MAX_FIXNUM/mult):(FD_MIN_FIXNUM/mult));
-        if ((fixresult>0)?(fixresult>q):((-fixresult)>q)) {
-          fdtype bigresult=fd_multiply(FD_INT(fixresult),args[i]);
-          i++; while (i<n) {
-            fdtype bigprod=fd_multiply(bigresult,args[i]);
-            fd_decref(bigresult); bigresult=bigprod; i++;}
-          return bigresult;}
-        else fixresult=fixresult*mult;}
-      i++;}
-    return FD_INT(fixresult);}
-  else if (generic == 0) {
-    double floresult=1.0;
-    i=0; while (i < n) {
-      double val;
-      if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
-      else if  (FD_BIGINTP(args[i]))
-        val=(double)fd_bigint_to_double((fd_bigint)args[i]);
-      else val=((struct FD_FLONUM *)args[i])->flonum;
-      floresult=floresult*val;
-      i++;}
-    return fd_init_double(NULL,floresult);}
+  if (n==1) {
+    fdtype arg=args[0];
+    if (FD_FIXNUMP(arg)) return arg;
+    else if (FD_NUMBERP(arg))
+      return  fd_incref(arg);
+    else if ((FD_NUMVECP(arg))||(FD_VECTORP(arg)))
+      return fd_incref(arg);
+    return fd_type_error(_("number"),"times_lexpr",fd_incref(arg));}
+  else if (n==2) 
+    return fd_multiply(args[0],args[1]);
   else {
-    fdtype result=FD_INT(1);
-    i=0; while (i < n) {
-      fdtype newv=fd_multiply(result,args[i]);
-      fd_decref(result); result=newv; i++;}
-    return result;}
-}
-
-static fdtype minus_lexpr(int n,fdtype *args)
-{
-  if (n == 1)
-    if (FD_FIXNUMP(args[0]))
-      return FD_INT(-(FD_FIX2INT(args[0])));
-    else if (FD_FLONUMP(args[0]))
-      return fd_init_double(NULL,-(FD_FLONUM(args[0])));
-    else return fd_subtract(FD_INT(0),args[0]);
-  else {
-    int i=0; int floating=0, generic=0;
     while (i < n)
       if (FD_FIXNUMP(args[i])) i++;
       else if (FD_FLONUMP(args[i])) {floating=1; i++;}
       else {generic=1; i++;}
+    if ((floating==0) && (generic==0)) {
+      long long fixresult=1;
+      i=0; while (i < n) {
+        long long mult=fd_getint(args[i]);
+        if (mult==0) return FD_INT(0);
+        else {
+          int q=((mult>0)?(FD_MAX_FIXNUM/mult):(FD_MIN_FIXNUM/mult));
+          if ((fixresult>0)?(fixresult>q):((-fixresult)>q)) {
+            fdtype bigresult=fd_multiply(FD_INT(fixresult),args[i]);
+            i++; while (i<n) {
+              fdtype bigprod=fd_multiply(bigresult,args[i]);
+              fd_decref(bigresult); bigresult=bigprod; i++;}
+            return bigresult;}
+          else fixresult=fixresult*mult;}
+        i++;}
+      return FD_INT(fixresult);}
+    else if (generic == 0) {
+      double floresult=1.0;
+      i=0; while (i < n) {
+        double val;
+        if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
+        else if  (FD_BIGINTP(args[i]))
+          val=(double)fd_bigint_to_double((fd_bigint)args[i]);
+        else val=((struct FD_FLONUM *)args[i])->flonum;
+        floresult=floresult*val;
+        i++;}
+      return fd_init_double(NULL,floresult);}
+    else {
+      fdtype result=FD_INT(1);
+      i=0; while (i < n) {
+        fdtype newv=fd_multiply(result,args[i]);
+        fd_decref(result); result=newv; i++;}
+      return result;}
+  }
+}
+
+static fdtype minus_lexpr(int n,fdtype *args)
+{
+  if (n == 1) {
+    fdtype arg=args[0];
+    if (FD_FIXNUMP(arg))
+      return FD_INT(-(FD_FIX2INT(arg)));
+    else if (FD_FLONUMP(arg))
+      return fd_init_double(NULL,-(FD_FLONUM(arg)));
+    else if ((FD_VECTORP(arg))||(FD_NUMVECP(arg)))
+      return fd_multiply(arg,FD_FIX2INT(-1));
+    else return fd_subtract(FD_INT(0),arg);}
+  else if (n == 2)
+    return fd_subtract(args[0],args[1]);
+  else {
+    int i=0; int floating=0, generic=0, vector=0;
+    while (i < n) {
+      if (FD_FIXNUMP(args[i])) i++;
+      else if (FD_FLONUMP(args[i])) {floating=1; i++;}
+      else if ((FD_VECTORP(args[i]))||(FD_NUMVECP(args[i]))) {
+        vector=1; generic=1;}
+      else {generic=1; i++;}}
     if ((floating==0) && (generic==0)) {
       int fixresult=0;
       i=0; while (i < n) {
@@ -403,6 +457,12 @@ static fdtype minus_lexpr(int n,fdtype *args)
         if (i==0) floresult=val; else floresult=floresult-val;
         i++;}
       return fd_init_double(NULL,floresult);}
+    else if (vector) {
+      fdtype result=fd_subtract(args[0],args[1]);
+      i=2; while (i < n) {
+        fdtype newv=fd_subtract(result,args[i]);
+        fd_decref(result); result=newv; i++;}
+      return result;}
     else {
       fdtype result=fd_incref(args[0]);
       i=1; while (i < n) {
