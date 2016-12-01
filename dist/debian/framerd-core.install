@@ -40,9 +40,9 @@ etc/framerd/servers
 etc/framerd/boot/*
 usr/share/framerd/gdbinit
 usr/share/framerd/fdconsole.el
-usr/share/framerd/makefile.common
+usr/share/framerd/makefile.include
 etc/framerd/gdbinit
 etc/framerd/fdconsole.el
-etc/framerd/makefile.common
+etc/framerd/makefile.include
 usr/share/framerd/data/hyph_en_US.dic
 etc/logrotate.d/framerd
