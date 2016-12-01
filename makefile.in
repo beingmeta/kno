@@ -941,7 +941,7 @@ dist/rpms.zip: dist/rpms.done
 
 DEBINSTALL=framerd framerd-core framerd-builtin framerd-dev 	\
 	framerd-mysql framerd-sqlite framerd-mongodb 		\
-	 framerd-imagetools framerd-sundown
+	framerd-imagetools framerd-sundown elpa-fdconsole
 
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
