@@ -225,9 +225,9 @@ FD_EXPORT int fd_position(fdtype key,fdtype seq,int start,int limit)
     case fd_vector_type: case fd_rail_type: {
       fdtype *data=FD_VECTOR_ELTS(seq);
       int i=start; while (i!=end) {
-        if (FDTYPE_EQUAL(key,data[i])) return start;
+        if (FDTYPE_EQUAL(key,data[i])) return i;
         else if (FD_CHOICEP(data[i]))
-          if (fd_overlapp(key,data[i])) return start;
+          if (fd_overlapp(key,data[i])) return i;
           else i=i+delta;
         else i=i+delta;}
       return -1;}
@@ -236,8 +236,8 @@ FD_EXPORT int fd_position(fdtype key,fdtype seq,int start,int limit)
       if ((FD_FIXNUMP(key))&&(intval>=0)&&(intval<0x100)) {
         const unsigned char *data=FD_PACKET_DATA(seq);
         int i=start; while (i!=end) {
-          if (intval==data[start]) return start;
-          else start=start+delta;}
+          if (intval==data[i]) return i;
+          else i=i+delta;}
         return -1;}
       else return -1;}
     case fd_numeric_vector_type:
