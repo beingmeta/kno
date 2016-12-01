@@ -947,9 +947,10 @@ dist/debs.built: staging/framerd_@FDVERSION@
 	 dpkg-buildpackage -sa -us -uc -b -rfakeroot) && \
 	touch dist/debs.built;
 dist/debs.signed: dist/debs.built
-	(cd staging; debsign --re-sign -k${GPGID} framerd_@FDVERSION@*.changes) && \
+	(cd staging; debsign -p${GPG} --re-sign -k${GPGID} 	\
+		framerd_@FDVERSION@*.changes) && 		\
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
-	(cd staging; mv framerd*_@FDVERSION@*.*               \
+	(cd staging; mv framerd*_@FDVERSION@*.*               	\
 			libapache2-mod-fdserv_@FDVERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debs.signed;
@@ -1188,11 +1189,8 @@ install-web-modules: $(DESTDIR)@builtin_module_dir@
 
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
-		fdconsole.el makefile.include gdbinit 		\
+		gdbinit makefile.include fdconsole.el 		\
 		$(DESTDIR)@share_dir@
-	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
-		fdconsole.el makefile.include gdbinit 		\
-		$(DESTDIR)@config_dir@
 
 logdirs: $(DESTDIR)@framerd_logdir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@daemon_logdir@
