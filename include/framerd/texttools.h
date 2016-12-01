@@ -99,5 +99,8 @@ FD_EXPORT u8_string fd_soundex(u8_string);
 FD_EXPORT u8_string fd_metaphone(u8_string,int);
 FD_EXPORT fdtype fd_md5(fdtype string);
 
+FD_EXPORT fdtype fd_words2vector(u8_string string,int keep_punct);
+FD_EXPORT fdtype fd_words2list(u8_string string,int keep_punct);
+
 
 #endif /* FRAMERD_TEXTTOOLS_H */

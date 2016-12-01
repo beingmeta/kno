@@ -303,7 +303,7 @@ static u8_string skip_span(u8_string start,enum FD_TEXTSPAN_TYPE *type)
     *type=wordspan; return skip_word(start);}
 }
 
-static fdtype words2list(u8_string string,int keep_punct)
+FD_EXPORT fdtype fd_words2list(u8_string string,int keep_punct)
 {
   fdtype result=FD_EMPTY_LIST, *lastp=&result;
   textspantype spantype;
@@ -325,7 +325,7 @@ static fdtype words2list(u8_string string,int keep_punct)
   return result;
 }
 
-static fdtype words2vector(u8_string string,int keep_punct)
+FD_EXPORT fdtype fd_words2vector(u8_string string,int keep_punct)
 {
   int n=0, max=16; fdtype _buf[16];
   fdtype *wordsv=_buf, result=FD_VOID;
@@ -360,13 +360,13 @@ static fdtype words2vector(u8_string string,int keep_punct)
 static fdtype getwords_prim(fdtype arg,fdtype punctflag)
 {
   int keep_punct=((!(FD_VOIDP(punctflag))) && (FD_TRUEP(punctflag)));
-  return words2list(FD_STRDATA(arg),keep_punct);
+  return fd_words2list(FD_STRDATA(arg),keep_punct);
 }
 
 static fdtype getwordsv_prim(fdtype arg,fdtype punctflag)
 {
   int keep_punct=((!(FD_VOIDP(punctflag))) && (FD_TRUEP(punctflag)));
-  return words2vector(FD_STRDATA(arg),keep_punct);
+  return fd_words2vector(FD_STRDATA(arg),keep_punct);
 }
 
 /* Making fragments from word vectors */
