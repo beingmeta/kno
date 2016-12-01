@@ -97,6 +97,9 @@
 /* The number of bytes in an int.  */
 #undef SIZEOF_INT
 
+/* The number of bytes in a short.  */
+#undef SIZEOF_SHORT
+
 /* The number of bytes in a long.  */
 #undef SIZEOF_LONG
 
