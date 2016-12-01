@@ -197,13 +197,21 @@ define trace_tempsrv
 end
 
 define useinstalledmodules
-  unset environment FD_LOADPATH
-  unset environment FD_DLOADPATH
-  unset environment FD_SAFE_LOADPATH
+  unset environment FD_INIT_LOADPATH
+  unset environment FD_INIT_DLOADPATH
+  unset environment FD_INIT_SAFELOADPATH
 end
 
 define staticweb
     set args /var/run/fdserv/static.sock
+end
+
+define dotload
+  unset environment FD_SKIP_DOTLOAD
+end
+
+define dontload
+  set env FD_SKIP_DOTLOAD yes
 end
 
 # Init some tracing configurations
