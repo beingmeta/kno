@@ -953,6 +953,7 @@ dist/debs.signed: dist/debs.built
 	(cd staging; cp framerd_@FDVERSION@*.tar.?z ../dist) && \
 	(cd staging; mv framerd*_@FDVERSION@*.*               	\
 			libapache2-mod-fdserv_@FDVERSION@*.deb  \
+			elpa-fdconsole_@FDVERSION@*.deb  \
 			../dist) &&                             \
 	touch dist/debs.signed;
 
