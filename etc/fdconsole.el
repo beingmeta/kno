@@ -1,4 +1,4 @@
-;;; fdconsole.el --- emacs mode for the FramerD console   -*- Mode: elisp; lexical-binding: t; -*-
+;;; fdconsole.el --- emacs mode for the FramerD console   -*- Mode: emacs-lisp; lexical-binding: t; -*-
 
 ;; Copyright (C) 2001-2016  beingmeta, inc
 
