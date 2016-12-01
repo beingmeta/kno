@@ -939,9 +939,10 @@ dist/rpms.zip: dist/rpms.done
 
 # Rules for Debian building
 
-DEBINSTALL=framerd framerd-core framerd-builtin framerd-dev 	\
-	framerd-mysql framerd-sqlite framerd-mongodb 		\
-	framerd-imagetools framerd-sundown elpa-fdconsole
+DEBINSTALL=framerd framerd-core framerd-builtin		\
+	framerd-mysql framerd-sqlite framerd-mongodb 	\
+	framerd-imagetools framerd-sundown 		\
+	framerd-full framerd-dev elpa-fdconsole 
 
 dist/debs.built: staging/framerd_@FDVERSION@
 	(cd staging/framerd_@FDVERSION@; \
