@@ -1187,10 +1187,10 @@ install-web-modules: $(DESTDIR)@builtin_module_dir@
 	${SUDO} ln -sf ../fdxml $(DESTDIR)@builtin_safe_module_dir@;
 
 install-support: $(DESTDIR)@share_dir@
-	cd $(BUILD)/etc; @$(SYSINSTALL) @install_file_opts@ 	\
+	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
 		fdconsole.el makefile.include gdbinit 		\
 		$(DESTDIR)@share_dir@
-	cd $(BUILD)/etc; @$(SYSINSTALL) @install_file_opts@ 	\
+	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
 		fdconsole.el makefile.include gdbinit 		\
 		$(DESTDIR)@config_dir@
 
