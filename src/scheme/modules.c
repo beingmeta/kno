@@ -221,10 +221,12 @@ static int load_dynamic_module(fdtype spec,int safe,void *data)
         if (module_filename) {
           void *mod=u8_dynamic_load(module_filename);
           if (mod==NULL) {
-            u8_log(LOGWARN,"Failed to load module file %s for %q",
+            u8_log(LOGWARN,_("FailedModule"),
+                   "Failed to load module file %s for %q",
                    module_filename,spec);}
           else if (trace_dload) {
-            u8_log(LOGNOTICE,"Loading module %q from %s",spec,module_filename);}
+            u8_log(LOGNOTICE,_("FailedModule"),
+                   "Loading module %q from %s",spec,module_filename);}
           else {}
           u8_threadcheck();
           u8_free(module_filename); u8_free(name);
