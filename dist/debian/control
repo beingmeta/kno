@@ -185,8 +185,11 @@ Depends:
     ${misc:Depends}
 Description: This package contains the debugging symbols for framerd-sqlite
 
-Package: framerd-elisp
+Package: elpa-fdconsole
 Architecture: any
-Depends: emacs, framerd-core
-Description: This package an Emacs mode for interacting with fdconsole
+Depends: ${misc:Depends}, ${elpa:Depends}
+Built-Using: ${misc:Built-Using}
+Recommends: emacs (>= 46.0)
+Enhances: emacs, emacs24, emacs25
+Description: Provides an Emacs mode for interacting with fdconsole
 
