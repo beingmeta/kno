@@ -444,7 +444,7 @@ $(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshare
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
 	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
-$(LIBINSTALLDIR)/%@suffix@.dylib: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
+$(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
 	@$(SUDO) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 
