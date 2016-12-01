@@ -3,6 +3,7 @@
 CLEAN=no
 RAWSCRIPT=fdstartall
 TARGET=all
+MSG="echo `date +%T\(%a%d%b%Y\)`"
 if test $# -eq 0; then
   OP=usage;
 elif test $# -eq 1; then
@@ -37,7 +38,7 @@ if test ${TARGET} != "all"; then
      exec fdlog ${TARGET} $*;
    elif test ${OP} = "status"; then
      exec fdstatus ${TARGET} $*;
-   else echo "Unknown operation ${OP} on ${TARGET}";
+   else ${MSG} "Unknown operation ${OP} on ${TARGET}";
    fi;
   exit;
 elif test ${OP} = "cleanstart"; then
@@ -62,36 +63,38 @@ fi;
 ##  e.g. systemd, upstart, sysv, or none (just fd* scripts)
 
 if ! which systemctl 2>&1 > /dev/null; then
-    echo "No systemctl";
+    ${MSG} "No systemctl";
 elif test -f /lib/systemd/system/framerd.service; then
-    echo "fdctl >>> systemctl ${OP} framerd";
+    ${MSG} "fdctl ${OP} >>> systemctl ${OP} framerd";
     sudo systemctl ${OP} framerd;
     exit;
 elif test -f /usr/lib/systemd/system/framerd.service; then
-    echo "fdctl >>> systemctl ${OP} framerd";
+    ${MSG} "fdctl ${OP} >>> systemctl ${OP} framerd";
     sudo systemctl ${OP} framerd;
     if test "${CLEAN}" = "yes"; then sudo cleanlogs; fi;
     exit;
 else
-    echo "No systemd FramerD configuration";
+    ${MSG} "No systemd FramerD configuration";
 fi;
 
 if ! which initctl 2>&1 > /dev/null; then
-    echo "No initcl";
+    ${MSG} "No initcl";
 elif test -f /etc/init/framerd.conf; then
-    echo initctl ${OP} framerd;
+    ${MSG} "fdctl ${OP} >>> initctl ${OP} framerd";
     sudo initctl ${OP} framerd;
-    if test "${CLEAN}" = "yes"; then sudo cleanlogs; fi
+    if test "${CLEAN}" = "yes"; then
+	sudo cleanlogs; 
+    fi
     exit;
 else
-    echo No upstart FramerD configuration;
+    ${MSG} No upstart FramerD configuration;
 fi;
 
 if test -f /etc/init.d/framerd; then
-    echo /etc/init.d/framerd ${OP};
+    ${MSG} "fdctl ${OP} >>> /etc/init.d/framerd ${OP}";
     sudo /etc/init.d/framerd ${OP};
 else
-    echo ${RAWSCRIPT};
+    ${MSG} ${RAWSCRIPT};
     ${RAWSCRIPT};
 fi;
 

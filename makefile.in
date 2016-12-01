@@ -1273,6 +1273,10 @@ $(DESTDIR)@systemd_loc@/framerd.service: $(DESTDIR)@systemd_loc@ etc/framerd.ser
 	@$(MSG) Installing framerd systemd config to $(DESTDIR)@systemd_loc@/framerd.service
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.service $(DESTDIR)@systemd_loc@/framerd.service
+	if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then 	\
+	   ${MSG} systemctl daemon-reload; 			\
+	   ${SUDO} systemctl daemon-reload; 			\
+	fi
 
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/framerd logdirs
 $(DESTDIR)/etc/logrotate.d:
