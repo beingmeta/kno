@@ -339,7 +339,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
 static fdtype plus1(fdtype x)
 {
   if (FD_FIXNUMP(x)) {
-    int iv=FD_INT(x); iv++;
+    int iv=fd_getint(x); iv++;
     return FD_INT2DTYPE(iv);}
   else if (FD_FLONUMP(x)) {
     fd_double iv=FD_FLONUM(x); iv=iv+1;
@@ -351,7 +351,7 @@ static fdtype plus1(fdtype x)
 static fdtype minus1(fdtype x)
 {
   if (FD_FIXNUMP(x)) {
-    int iv=FD_INT(x); iv--;
+    int iv=fd_getint(x); iv--;
     return FD_INT2DTYPE(iv);}
   else if (FD_FLONUMP(x)) {
     fd_double iv=FD_FLONUM(x); iv=iv-1;

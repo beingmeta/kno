@@ -2609,7 +2609,7 @@ fdtype fd_multiply(fdtype x,fdtype y)
   else if (((FD_VECTORP(y))||(FD_NUMVECP(y)))&&(FD_NUMBERP(x)))
     return vector_scale(y,x);
   else if (((FD_VECTORP(x))||(FD_NUMVECP(x)))&&
-           ((FD_VECTORP(x))||(FD_NUMVECP(y)))) {
+           ((FD_VECTORP(y))||(FD_NUMVECP(y)))) {
     int x_len=numvec_length(x), y_len=numvec_length(y);
     if (x_len != y_len) {
       fd_seterr(_("Vector size mismatch"),"fd_subtract",NULL,FD_VOID);
@@ -3385,7 +3385,7 @@ static fdtype vector_dotproduct(fdtype x,fdtype y)
     struct FD_NUMERIC_VECTOR *vx=(struct FD_NUMERIC_VECTOR *)x;
     struct FD_NUMERIC_VECTOR *vy=(struct FD_NUMERIC_VECTOR *)y;
     enum fd_num_elt_type xtype=vx->elt_type;
-    enum fd_num_elt_type ytype=vx->elt_type;
+    enum fd_num_elt_type ytype=vy->elt_type;
     if (((xtype==fd_float_elt)||(xtype==fd_double_elt))&&
         ((ytype==fd_float_elt)||(ytype==fd_double_elt))) {
       /* This is the case where they're both inexact (floating) */
@@ -3459,7 +3459,8 @@ static fdtype vector_dotproduct(fdtype x,fdtype y)
       fd_decref(xelt); fd_decref(yelt);
       fd_decref(prod); fd_decref(dot);
       if (FD_ABORTP(new_sum)) return new_sum;
-      dot=new_sum;}
+      dot=new_sum;
+      i++;}
     return dot;}
 }
 static fdtype generic_vector_scale(fdtype vec,fdtype scalar)
