@@ -1273,7 +1273,7 @@ $(DESTDIR)@systemd_loc@/framerd.service: $(DESTDIR)@systemd_loc@ etc/framerd.ser
 	@$(MSG) Installing framerd systemd config to $(DESTDIR)@systemd_loc@/framerd.service
 	@$(SYSINSTALL) -m 0555 @admininstall@ \
 		   etc/framerd.service $(DESTDIR)@systemd_loc@/framerd.service
-	if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then 	\
+	@if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then 	\
 	   ${MSG} systemctl daemon-reload; 			\
 	   ${SUDO} systemctl daemon-reload; 			\
 	fi
@@ -1321,7 +1321,7 @@ build-setup.redhat:
 # The mod_fdserv module
 
 etc/mod_fdserv.so: etc/mod_fdserv.c @abs_top_srcdir@/fileinfo
-	$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo etc/mod_fdserv.c .`"\"" \
+	@$(ECHO) "#define _FILEINFO \""`@abs_top_srcdir@/fileinfo etc/mod_fdserv.c .`"\"" \
 		> etc/mod_fdserv_fileinfo.h
 	${APXS} -DUSEDTBLOCK=@USEDTBLOCK@ -DDEBUG_FDSERV=$(DEBUG_FDSERV) \
 		-c etc/mod_fdserv.c
