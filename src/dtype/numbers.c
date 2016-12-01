@@ -3084,7 +3084,7 @@ FD_EXPORT fdtype fd_make_double_vector(int n,fd_double *v)
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(double));
-  nvec->elts.doubles=(fd_double *)nvec+sizeof(struct FD_NUMERIC_VECTOR);
+  nvec->elts.doubles=(fd_double *)(nvec+sizeof(struct FD_NUMERIC_VECTOR));
   return (fdtype) nvec;
 }
 
@@ -3097,7 +3097,7 @@ FD_EXPORT fdtype fd_make_float_vector(int n,fd_float *v)
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(float));
-  nvec->elts.floats=(fd_float *)nvec+sizeof(struct FD_NUMERIC_VECTOR);
+  nvec->elts.floats=(fd_float *)(nvec+sizeof(struct FD_NUMERIC_VECTOR));
   return (fdtype) nvec;
 }
 
@@ -3110,7 +3110,7 @@ FD_EXPORT fdtype fd_make_int_vector(int n,fd_int *v)
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(int));
-  nvec->elts.ints=(fd_int *)nvec+sizeof(struct FD_NUMERIC_VECTOR);
+  nvec->elts.ints=(fd_int *)(nvec+sizeof(struct FD_NUMERIC_VECTOR));
   return (fdtype) nvec;
 }
 
@@ -3123,7 +3123,7 @@ FD_EXPORT fdtype fd_make_long_vector(int n,fd_long *v)
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(long));
-  nvec->elts.longs=(fd_long *)nvec+sizeof(struct FD_NUMERIC_VECTOR);
+  nvec->elts.longs=(fd_long *)(nvec+sizeof(struct FD_NUMERIC_VECTOR));
   return (fdtype) nvec;
 }
 
@@ -3136,7 +3136,7 @@ FD_EXPORT fdtype fd_make_short_vector(int n,fd_short *v)
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(short));
-  nvec->elts.shorts=(fd_short *)nvec+sizeof(struct FD_NUMERIC_VECTOR);
+  nvec->elts.shorts=(fd_short *)(nvec+sizeof(struct FD_NUMERIC_VECTOR));
   return (fdtype) nvec;
 }
 
