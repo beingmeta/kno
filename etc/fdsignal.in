@@ -10,8 +10,8 @@ showusage ( ) {
 listpids ( ) {
     echo "Activities:"
     for pidfile in `ls -t @daemon_rundir@/*.pid @servlet_rundir@/*.pid 2> /dev/null`; do
-	if test -f $pidfile; then
-	    echo "   " `basename $pidfile .pid`; 
+	if test -f ${pidfile}; then
+	    echo `cat ${pidfile}` "	" `basename $pidfile .pid`   ; 
 	fi;
     done;
 }
