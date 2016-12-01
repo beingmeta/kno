@@ -3093,7 +3093,7 @@ FD_EXPORT fdtype fd_make_float_vector(int n,fd_float *v)
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(float)));
   FD_INIT_FRESH_CONS(nvec,fd_numeric_vector_type);
-  nvec->elt_type=fd_double_elt;
+  nvec->elt_type=fd_float_elt;
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(float));
@@ -3132,7 +3132,7 @@ FD_EXPORT fdtype fd_make_short_vector(int n,fd_short *v)
   struct FD_NUMERIC_VECTOR *nvec=
     u8_malloc(sizeof(struct FD_NUMERIC_VECTOR)+(n*sizeof(short)));
   FD_INIT_FRESH_CONS(nvec,fd_numeric_vector_type);
-  nvec->elt_type=fd_long_elt;
+  nvec->elt_type=fd_short_elt;
   nvec->freedata=0;
   nvec->length=n;
   memcpy(nvec+sizeof(struct FD_NUMERIC_VECTOR),v,n*sizeof(short));
@@ -3151,11 +3151,26 @@ FD_EXPORT fdtype fd_make_numeric_vector(int n,enum fd_num_elt_type vectype)
   nvec->length=n;
   memset(nvec+sizeof(struct FD_NUMERIC_VECTOR),0,n*elt_size);
   switch (vectype) {
-  case fd_short_elt: nvec->elts.shorts=(fd_short *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
-  case fd_int_elt: nvec->elts.ints=(fd_int *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
-  case fd_long_elt: nvec->elts.longs=(fd_long *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
-  case fd_float_elt: nvec->elts.floats=(fd_float *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;
-  case fd_double_elt: nvec->elts.doubles=(fd_double *)(nvec+sizeof(struct FD_NUMERIC_VECTOR)); break;}
+  case fd_short_elt:
+    nvec->elts.shorts=(fd_short *)
+      (nvec+sizeof(struct FD_NUMERIC_VECTOR)); 
+    break;
+  case fd_int_elt:
+    nvec->elts.ints=(fd_int *)
+      (nvec+sizeof(struct FD_NUMERIC_VECTOR)); 
+    break;
+  case fd_long_elt:
+    nvec->elts.longs=(fd_long *)
+      (nvec+sizeof(struct FD_NUMERIC_VECTOR)); 
+    break;
+  case fd_float_elt:
+    nvec->elts.floats=(fd_float *)
+      (nvec+sizeof(struct FD_NUMERIC_VECTOR)); 
+    break;
+  case fd_double_elt: 
+    nvec->elts.doubles=(fd_double *)
+      (nvec+sizeof(struct FD_NUMERIC_VECTOR)); 
+    break;}
   return (fdtype) nvec;
 }
 
