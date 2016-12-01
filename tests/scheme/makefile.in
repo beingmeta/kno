@@ -107,6 +107,7 @@ schemetests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes choicetest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) seqtest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes seqtest.scm
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) numvecs.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) picktest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cachecall.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) texttest.scm
