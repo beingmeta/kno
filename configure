@@ -674,8 +674,9 @@ CHMOD_DEFAULT
 MKDIR_DEFAULT
 ECHO
 binenv
-APTREPO
 GPGID
+APTREPO
+GPG
 RPMFLAGS
 RPMDIR
 BINPATH
@@ -928,7 +929,7 @@ host_alias
 target_alias
 RPMDIR
 RPMFLAGS
-GPGID
+GPG
 APTREPO
 CC
 CFLAGS
@@ -1652,7 +1653,7 @@ Optional Packages:
 Some influential environment variables:
   RPMDIR      "Location for writing built RPMs"
   RPMFLAGS    "Default flags for building RPMs"
-  GPGID       "Default GnuPG id for signing packages"
+  GPG         "GPG executable"
   APTREPO     "Location of the APT repository"
   CC          C compiler command
   CFLAGS      C compiler flags
@@ -2931,6 +2932,7 @@ SUDO=""
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTREPO=${APTREPO:-/srv/repo/apt}
+GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-E5AFF294}
 GITDESCRIBE=""
 TAGS="TAGS SCHEMETAGS"
@@ -3019,6 +3021,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
