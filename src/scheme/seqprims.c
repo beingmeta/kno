@@ -1911,7 +1911,7 @@ static fdtype make_short_vector(int n,fdtype *from_elts)
     if ((FD_FIXNUMP(elt))&&
         (FD_FIX2INT(elt)<=SHRT_MAX)&&
         (FD_FIX2INT(elt)>SHRT_MIN))
-      elts[i++]=FD_FIX2INT(elt);
+      elts[i++]=(fd_short)(FD_FIX2INT(elt));
     else {
       u8_free((struct FD_CONS *)vec); fd_incref(elt);
       return fd_type_error(_("short element"),"make_short_vector",elt);}}
@@ -1939,11 +1939,11 @@ static fdtype seq2shortvec(fdtype arg)
 static fdtype make_int_vector(int n,fdtype *from_elts)
 {
   int i=0; fdtype vec=fd_make_numeric_vector(n,fd_int_elt);
-  int *elts=FD_NUMVEC_INTS(vec);
+  fd_int *elts=FD_NUMVEC_INTS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
     if (FD_FIXNUMP(elt))
-      elts[i++]=FD_FIX2INT(elt);
+      elts[i++]=((fd_int)(FD_FIX2INT(elt)));
     else if ((FD_BIGINTP(elt))&&
              (fd_bigint_fits_in_word_p((fd_bigint)elt,sizeof(fd_int),1)))
       elts[i++]=fd_bigint_to_long((fd_bigint)elt);
@@ -1974,11 +1974,11 @@ static fdtype seq2intvec(fdtype arg)
 static fdtype make_long_vector(int n,fdtype *from_elts)
 {
   int i=0; fdtype vec=fd_make_numeric_vector(n,fd_long_elt);
-  long *elts=FD_NUMVEC_LONGS(vec);
+  fd_long *elts=FD_NUMVEC_LONGS(vec);
   while (i<n) {
     fdtype elt=from_elts[i];
     if (FD_FIXNUMP(elt))
-      elts[i++]=FD_FIX2INT(elt);
+      elts[i++]=((fd_long)(FD_FIX2INT(elt)));
     else if (FD_BIGINTP(elt))
       elts[i++]=fd_bigint_to_long_long((fd_bigint)elt);
     else {
