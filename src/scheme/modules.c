@@ -35,6 +35,8 @@ static u8_mutex module_wait_lock;
 static u8_condvar module_wait;
 #endif
 
+static int trace_dload=0;
+
 /* Design for avoiding the module loading race condition */
 
 /* Have a list of modules being sought; a function fd_need_module
@@ -190,6 +192,17 @@ void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *data)
 
 static fdtype dloadpath=FD_EMPTY_LIST;
 
+static void init_dloadpath()
+{
+  u8_string tmp=u8_getenv("FD_INIT_DLOADPATH"); fdtype strval;
+  if (tmp==NULL) 
+    strval=fd_lispstring(FD_DEFAULT_DLOADPATH);
+  else {
+    strval=fd_lispstring(tmp);
+    u8_free(tmp);}
+  dloadpath=fd_init_pair(NULL,strval,dloadpath);
+}
+
 static int load_dynamic_module(fdtype spec,int safe,void *data)
 {
   if (FD_SYMBOLP(spec)) {
@@ -207,6 +220,12 @@ static int load_dynamic_module(fdtype spec,int safe,void *data)
           module_filename=u8_find_file(alt_name,FD_STRDATA(elt),NULL);
         if (module_filename) {
           void *mod=u8_dynamic_load(module_filename);
+          if (mod==NULL) {
+            u8_log(LOGWARN,"Failed to load module file %s for %q",
+                   module_filename,spec);}
+          else if (trace_dload) {
+            u8_log(LOGNOTICE,"Loading module %q from %s",spec,module_filename);}
+          else {}
           u8_threadcheck();
           u8_free(module_filename); u8_free(name);
           if (alt_name) u8_free(alt_name);
@@ -683,15 +702,16 @@ FD_EXPORT void fd_init_modules_c()
 #endif
 
   fd_add_module_loader(load_dynamic_module,NULL);
+  init_dloadpath();
   fd_register_config("DLOADPATH",
                      "Add directories for dynamic compiled modules",
                      fd_lconfig_get,fd_lconfig_push,&dloadpath);
-
-  {u8_string tmp=u8_getenv("FD_INIT_DLOADPATH");
-    if (tmp) 
-      fd_config_set_consed("DLOADPATH",fd_unistring(tmp));
-    else fd_config_set_consed
-           ("DLOADPATH",fd_lispstring(FD_DEFAULT_DLOADPATH));}
+  fd_register_config("DLOAD:PATH",
+                     "Add directories for dynamic compiled modules",
+                     fd_lconfig_get,fd_lconfig_push,&dloadpath);
+  fd_register_config("DLOAD:TRACE",
+                     "Whether to announce the loading of dynamic modules",
+                     fd_boolconfig_get,fd_boolconfig_set,&trace_dload);
 
   loadstamp_symbol=fd_intern("%LOADSTAMP");
   moduleid_symbol=fd_intern("%MODULEID");
