@@ -1,4 +1,18 @@
-;; Indentation information
+;;; fdconsole.el --- emacs mode for the FramerD console   -*- Mode: elisp; lexical-binding: t; -*-
+
+;; Copyright (C) 2001-2016  beingmeta, inc
+
+;; Author: Ken Haase <kh@beingmeta.com>
+;; Keywords: lisp framerd
+;; Version: 3.9.5
+
+;;; Commentary:
+
+;; This package provides an emacs interaction mode for fdconsole, the
+;; FramerD REPL (read-eval-print loop). It also declares various
+;; indentation rules for FramerD Scheme functions.
+
+;;; Code:
 
 (require 'cmuscheme)
 
@@ -341,4 +355,8 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
   (setq undo-limit 32)
   (font-lock-add-keywords 'scheme-mode *framerd-keywords*))
 (add-hook 'scheme-mode-hook 'fdconsole-scheme-mode-hook)
+
+
+(provide 'fdconsole)
+;;; fdconsole.el ends here
 

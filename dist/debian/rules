@@ -19,6 +19,10 @@ override_dh_auto_install:
 	make DESTDIR=$$(pwd)/debian/tmp install install-fdserv install-i18n \
 		setup-upstart setup-sysv setup-systemd setup-logrotate
 
+override_dh_install:
+                   dh_install
+                   dh_elpa --byte-compile
+
 override_dh_shlibdeps:
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
 
