@@ -3267,7 +3267,7 @@ static fdtype NUM_ELT(fdtype x,int i)
     case fd_int_elt:
       return FD_INT2DTYPE(FD_NUMVEC_INT(x,i));
     case fd_short_elt:
-      return FD_INT2DTYPE(FD_NUMVEC_SHORT(x,i));}
+      return FD_SHORT2DTYPE(FD_NUMVEC_SHORT(x,i));}
   }
 }
 static fdtype vector_add(fdtype x,fdtype y,int mult)
@@ -3283,7 +3283,10 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
     enum fd_num_elt_type ytype=vy->elt_type;
     if (((xtype==fd_float_elt)||(xtype==fd_double_elt))&&
         ((ytype==fd_float_elt)||(ytype==fd_double_elt))) {
+      /* Both arguments are inexact vectors*/
       if ((xtype==fd_float_elt)||(ytype==fd_float_elt)) {
+        /* One of them is a float vector, so return a float vector
+           (don't invent precision) */
         fdtype result; fd_float *sums=u8_alloc_n(x_len,fd_float);
         int i=0; while (i<x_len) {
           fd_float xelt=((xtype==fd_double_elt)?
@@ -3298,6 +3301,7 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
         u8_free(sums);
         return result;}
       else {
+        /* They're both double vectors, so return a double vector */
         fdtype result; fd_double *sums=u8_alloc_n(x_len,fd_double);
         int i=0; while (i<x_len) {
           fd_double xelt=(FD_NUMVEC_DOUBLE(x,i));
@@ -3309,6 +3313,8 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
         return result;}}
     else if ((xtype==fd_float_elt)||(xtype==fd_double_elt)||
              (ytype==fd_float_elt)||(ytype==fd_double_elt))  {
+      /* One of the vectors is a floating type, so return a floating
+         point vector. */
       fdtype result; fd_double *sums=u8_alloc_n(x_len,fd_double);
       int i=0; while (i<x_len) {
         fd_double xelt=(INEXACT_REF(x,xtype,i));
@@ -3319,16 +3325,18 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
       u8_free(sums);
       return result;}
     else if ((xtype==fd_long_elt)||(ytype==fd_long_elt)) {
-        fdtype result; fd_long *sums=u8_alloc_n(x_len,fd_long);
-        int i=0; while (i<x_len) {
-          fd_long xelt=EXACT_REF(x,xtype,i);
-          fd_long yelt=EXACT_REF(y,ytype,i);
-          sums[i]=xelt+(yelt*mult);
-          i++;}
-        result=fd_make_long_vector(x_len,sums);
-        u8_free(sums);
-        return result;}
+      /* One of them is a long so return a long vector. */
+      fdtype result; fd_long *sums=u8_alloc_n(x_len,fd_long);
+      int i=0; while (i<x_len) {
+        fd_long xelt=EXACT_REF(x,xtype,i);
+        fd_long yelt=EXACT_REF(y,ytype,i);
+        sums[i]=xelt+(yelt*mult);
+        i++;}
+      result=fd_make_long_vector(x_len,sums);
+      u8_free(sums);
+      return result;}
     else if ((xtype==fd_int_elt)||(ytype==fd_int_elt)) {
+      /* One of them is an int vector so return an int vector. */
       fdtype result; fd_int *sums=u8_alloc_n(x_len,fd_int);
       int i=0; while (i<x_len) {
         fd_int xelt=EXACT_REF(x,xtype,i);
@@ -3338,7 +3346,8 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
       result=fd_make_int_vector(x_len,sums);
       u8_free(sums);
       return result;}
-    else if ((xtype==fd_short_elt)||(ytype==fd_short_elt)) {
+    else {
+      /* This really means that they're both short vectors */
       fdtype result; fd_short *sums=u8_alloc_n(x_len,fd_short);
       int i=0; while (i<x_len) {
         fd_int xelt=EXACT_REF(x,xtype,i);
@@ -3347,8 +3356,7 @@ static fdtype vector_add(fdtype x,fdtype y,int mult)
         i++;}
       result=fd_make_short_vector(x_len,sums);
       u8_free(sums);
-      return result;}
-    else {}}
+      return result;}}
   else {
     fdtype *sums=u8_alloc_n(x_len,fdtype), result;
     fdtype factor=FD_INT2DTYPE(mult);
@@ -3439,15 +3447,15 @@ static fdtype vector_dotproduct(fdtype x,fdtype y)
         dot=dot+(xelt*yelt);
         i++;}
       return FD_INT2DTYPE(dot);}
-    else if ((xtype==fd_short_elt)||(ytype==fd_short_elt)) {
+    else {
+      /* They're both short vectors */
       fd_long dot=0;
       int i=0; while (i<x_len) {
         fd_int xelt=EXACT_REF(x,xtype,i);
         fd_int yelt=EXACT_REF(y,ytype,i);
         dot=dot+(xelt*yelt);
         i++;}
-      return FD_INT2DTYPE(dot);}
-    else {/* Never reached, exhausing the enums */}}
+      return FD_INT2DTYPE(dot);}}
   else {
     fdtype dot=FD_FIXNUM_ZERO;
     int i=0; while (i<x_len) {
