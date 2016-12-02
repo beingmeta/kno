@@ -527,7 +527,7 @@ dnl Specifies an admin group; files written by installation scripts will be
 dnl owned by this group and the group will have full rwX access.
 AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=$default_admin_group)
 if test $with_admin_group != "none"; then
-  install_dir_opts="-g $with_admin_group -m0776 $install_dir_opts"
+  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
   install_file_opts="-g $with_admin_group $install_file_opts"
   install_exe_opts="-g $with_admin_group $install_exe_opts"
   admin_group=$with_admin_group

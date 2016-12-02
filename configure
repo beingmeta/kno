@@ -6006,7 +6006,7 @@ else
 fi
 
 if test $with_admin_group != "none"; then
-  install_dir_opts="-g $with_admin_group -m0776 $install_dir_opts"
+  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
   install_file_opts="-g $with_admin_group $install_file_opts"
   install_exe_opts="-g $with_admin_group $install_exe_opts"
   admin_group=$with_admin_group
