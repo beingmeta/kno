@@ -1060,28 +1060,28 @@ static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse,int lexsort)
   else if (FD_CHOICEP(choices)) {
     int i=0, n=FD_CHOICE_SIZE(choices), j=0;
     fdtype *vecdata=u8_alloc_n(n,fdtype);
-    struct FD_SORT_ENTRY *sentries=u8_alloc_n(n,struct FD_SORT_ENTRY);
+    struct FD_SORT_ENTRY *entries=u8_alloc_n(n,struct FD_SORT_ENTRY);
     FD_DO_CHOICES(elt,choices) {
-      fdtype value=_fd_apply_keyfn(elt,keyfn);
-      if (FD_ABORTED(value)) {
-        int j=0; while (j<i) {fd_decref(sentries[j].value); j++;}
-        u8_free(sentries); u8_free(vecdata);
-        return value;}
-      sentries[i].value=elt;
-      sentries[i].key=value;
+      fdtype key=_fd_apply_keyfn(elt,keyfn);
+      if (FD_ABORTED(key)) {
+        int j=0; while (j<i) {fd_decref(entries[j].key); j++;}
+        u8_free(entries); u8_free(vecdata);
+        return key;}
+      entries[i].value=elt;
+      entries[i].key=key;
       i++;}
     if (lexsort)
-      qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_helper);
-    else qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
+      qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_helper);
+    else qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
     i=0; j=n-1; if (reverse) while (i < n) {
-      fd_decref(sentries[i].key);
-      vecdata[j]=fd_incref(sentries[i].value);
+      fd_decref(entries[i].key);
+      vecdata[j]=fd_incref(entries[i].value);
       i++; j--;}
     else while (i < n) {
-      fd_decref(sentries[i].key);
-      vecdata[i]=fd_incref(sentries[i].value);
+      fd_decref(entries[i].key);
+      vecdata[i]=fd_incref(entries[i].value);
       i++;}
-    u8_free(sentries);
+    u8_free(entries);
     return fd_init_vector(NULL,n,vecdata);}
   else {
     fdtype *vec=u8_alloc_n(1,fdtype);
@@ -1102,6 +1102,107 @@ static fdtype lexsorted_prim(fdtype choices,fdtype keyfn)
 static fdtype rsorted_prim(fdtype choices,fdtype keyfn)
 {
   return sorted_primfn(choices,keyfn,1,0);
+}
+
+/* Selection */
+
+static struct FD_SORT_ENTRY *sort_alloc(int k,struct FD_SORT_ENTRY **ep);
+
+static fdtype select_helper(fdtype choices,fdtype keyfn,
+                            int k,int maximize,
+                            struct FD_SORT_ENTRY **ep)
+{
+#define BETTERP(x) ((maximize)?((x)>0):((x)<0))
+#define IS_BETTER(x,y) (BETTERP(FD_COMPARE((x),(y),1)))
+  fdtype worst=FD_VOID; 
+  int worst_off=(maximize)?(0):(k-1);
+  if (FD_EMPTY_CHOICEP(choices))
+    return FD_EMPTY_CHOICE;
+  else if (k==0)
+    return FD_EMPTY_CHOICE;
+  else if (FD_CHOICEP(choices)) {
+    fdtype candidates=fd_make_simple_choice(choices);
+    int n=FD_CHOICE_SIZE(candidates);
+    if (k>=n) return candidates;
+    else {
+      struct FD_SORT_ENTRY *entries=sort_alloc(k,ep);
+      int k_len=0, sorted=0;
+      FD_DO_CHOICES(elt,choices) {
+        fdtype key=_fd_apply_keyfn(elt,keyfn);
+        if (FD_ABORTED(key)) {
+          int j=0; while (j<k_len) {fd_decref(entries[k_len].key); j++;}
+          return key;}
+        else if (k_len<k) {
+          entries[k_len].value=elt;
+          entries[k_len].key=key;
+          k_len++;}
+        else {
+          if (sorted==0) {
+            qsort(entries,k,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
+            worst=entries[worst_off].key;
+            sorted=1;}
+          if (IS_BETTER(key,worst)) {
+            fd_decref(worst);
+            entries[worst_off].value=elt;
+            entries[worst_off].key=key;
+            /* This could be done faster by either by just finding where to insert it,
+               either by iterating O(n) or binary search O(log n). */
+            qsort(entries,k,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
+            worst=entries[worst_off].key;}}}
+      return FD_VOID;}}
+  else {
+    fd_incref(choices);
+    return choices;}
+#undef BETTERP
+#undef IS_BETTER
+}
+
+static struct FD_SORT_ENTRY *sort_alloc(int k,struct FD_SORT_ENTRY **ep)
+{
+  struct FD_SORT_ENTRY *entries=u8_alloc_n(k,struct FD_SORT_ENTRY);
+  memset(entries,0,sizeof(struct FD_SORT_ENTRY)*k);
+  *ep=entries;
+  return entries;
+}
+
+static fdtype nmax_prim(fdtype choices,fdtype karg,fdtype keyfn)
+{
+  if (FD_FIXNUMP(karg)) {
+    int k=FD_FIX2INT(karg);
+    struct FD_SORT_ENTRY *entries=NULL;
+    fdtype results=select_helper(choices,keyfn,k,1,&entries);
+    if (FD_VOIDP(results)) {
+      int i=0;
+      results=FD_EMPTY_CHOICE;
+      while (i<k) {
+        fdtype elt=entries[i].value;
+        fd_decref(entries[i].key); fd_incref(elt);
+        FD_ADD_TO_CHOICE(results,elt);
+        i++;}
+      u8_free(entries);
+      return results;}
+    else return results;}
+  else return fd_type_error(_("fixnum"),"nmax_prim",karg);
+}
+
+static fdtype nmin_prim(fdtype choices,fdtype karg,fdtype keyfn)
+{
+  if (FD_FIXNUMP(karg)) {
+    int k=FD_FIX2INT(karg);
+    struct FD_SORT_ENTRY *entries=NULL;
+    fdtype results=select_helper(choices,keyfn,k,0,&entries);
+    if (FD_VOIDP(results)) {
+      int i=0;
+      results=FD_EMPTY_CHOICE;
+      while (i<k) {
+        fdtype elt=entries[i].value;
+        fd_decref(entries[i].key); fd_incref(elt);
+        FD_ADD_TO_CHOICE(results,elt);
+        i++;}
+      u8_free(entries);
+      return results;}
+    else return results;}
+  else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
 /* GETRANGE */
@@ -1334,6 +1435,16 @@ FD_EXPORT void fd_init_choicefns_c()
            fd_make_ndprim(fd_make_cprim3x("PICK-N",pickn,2,
                                           -1,FD_VOID,fd_fixnum_type,FD_VOID,
                                           fd_fixnum_type,FD_VOID)));
+
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim3x("NMAX",nmax_prim,2,
+                                          -1,FD_VOID,fd_fixnum_type,FD_VOID,
+                                          -1,FD_VOID)));
+
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim3x("NMIN",nmin_prim,2,
+                                          -1,FD_VOID,fd_fixnum_type,FD_VOID,
+                                          -1,FD_VOID)));
 }
 
 /* Emacs local variables
