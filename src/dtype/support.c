@@ -2374,6 +2374,10 @@ void fd_init_support_c()
      fd_intconfig_get,fd_intconfig_set,
      &fd_unparse_maxelts);
   fd_register_config
+    ("NUMVEC:SHOWMAX",_("Max number of elements to show in numeric vectors"),
+     fd_intconfig_get,fd_intconfig_set,
+     &fd_numvec_showmax);
+  fd_register_config
     ("PACKETFMT",
      _("How to dump packets to ASCII (16=hex,64=base64,dflt=ascii-ish)"),
      fd_intconfig_get,fd_intconfig_set,

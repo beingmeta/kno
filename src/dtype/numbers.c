@@ -83,6 +83,8 @@ static fdtype vector_add(fdtype x,fdtype y,int mult);
 static fdtype vector_dotproduct(fdtype x,fdtype y);
 static fdtype vector_scale(fdtype vec,fdtype scalar);
 
+int fd_numvec_showmax=7;
+
 
 static fd_bigint
 DEFUN (bigint_malloc, (length), int length)
@@ -3088,7 +3090,38 @@ static int unparse_numeric_vector(struct U8_OUTPUT *out,fdtype x)
   case fd_double_elt:
     typename="DOUBLEVEC"; break;}
   u8_printf(out,"#<%s",typename);
-  switch (type) {
+  if (n>fd_numvec_showmax) switch (type) {
+      case fd_short_elt: {
+        int sum=0, dot=0; while (i<n) {
+          int v=FD_NUMVEC_SHORT(vec,i);
+          sum=sum+v; dot=dot+v*v; i++;}
+        u8_printf(out," sum=%d/dot=%d/n=%d",sum,dot,n);
+        break;}
+      case fd_int_elt: {
+        long long sum=0, dot=0; while (i<n) {
+          int v=FD_NUMVEC_INT(vec,i);
+          sum=sum+v; dot=dot+v*v; i++;}
+        u8_printf(out," sum=%d/dot=%d/n=%d",sum,dot,n);
+        break;}
+      case fd_long_elt: {
+        long long sum=0, dot=0; while (i<n) {
+          int v=FD_NUMVEC_LONG(vec,i);
+          sum=sum+v; dot=dot+v*v; i++;}
+        u8_printf(out," sum=%d/dot=%d/n=%d",sum,dot,n);
+        break;}
+      case fd_float_elt: {
+        double sum=0, dot=0; while (i<n) {
+          double v=FD_NUMVEC_FLOAT(vec,i);
+          sum=sum+v; dot=dot+v*v; i++;}
+        u8_printf(out," sum=%f/dot=%f/n=%d",sum,dot,n);
+        break;}
+      case fd_double_elt: {
+        double sum=0, dot=0; while (i<n) {
+          double v=FD_NUMVEC_DOUBLE(vec,i);
+          sum=sum+v; dot=dot+v*v; i++;}
+        u8_printf(out," sum=%f/dot=%f/n=%d",sum,dot,n);
+        break;}}
+  else switch (type) {
   case fd_short_elt:
     while (i<n) {u8_printf(out," %d",FD_NUMVEC_SHORT(vec,i)); i++;} break;
   case fd_int_elt:

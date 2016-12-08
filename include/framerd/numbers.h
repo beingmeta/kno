@@ -52,6 +52,8 @@ FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
 
 /* Numeric vectors */
 
+FD_EXPORT int fd_numvec_showmax;
+
 struct FD_NUMERIC_VECTOR {
   FD_CONS_HEADER;
   unsigned int freedata:1;
