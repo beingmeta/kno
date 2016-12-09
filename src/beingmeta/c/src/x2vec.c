@@ -253,8 +253,8 @@ static void import_vocab(struct FD_X2VEC_CONTEXT *x2vcxt,fdtype data)
 	u8_log(LOG_WARN,"Bad Vocab import","Couldn't use %q",entry);}}}
   else if (FD_VECTORP(data)) {
     struct FD_VECTOR *vec=(struct FD_VECTOR *)data;
-    fdtype *elts=vec->data;
-    int i=0, len=vec->length; while (i<len) {
+    fdtype *elts=vec->fd_vecelts;
+    int i=0, len=vec->fd_veclen; while (i<len) {
       fdtype elt=elts[i];
       if (FD_STRINGP(elt)) {
 	u8_string text = FD_STRDATA(elt);
@@ -301,7 +301,7 @@ static void init_vocab(struct FD_X2VEC_CONTEXT *x2vcxt,fdtype traindata)
   if (FD_VECTORP(traindata)) {
     struct FD_VECTOR *vec =
       FD_GET_CONS(traindata,fd_vector_type,struct FD_VECTOR *);
-    fdtype *data = vec->data; int lim=vec->length;
+    fdtype *data = vec->fd_vecelts; int lim=vec->fd_veclen;
     int ref=0; while (ref<lim) {
       fdtype word=data[ref];
       if (FD_STRINGP(word)) {
@@ -525,8 +525,8 @@ void *training_threadproc(void *state)
   long long l1, l2, c, target, label;
   int layer1_size = x2vcxt->layer1_size, window = x2vcxt->window;
   struct FD_VECTOR *vec=FD_GET_CONS(input,fd_vector_type,struct FD_VECTOR *);
-  int vec_len = vec->length, vec_pos=random_value%vec_len;
-  fdtype *vec_data = vec->data;
+  int vec_len = vec->fd_veclen, vec_pos=random_value%vec_len;
+  fdtype *vec_data = vec->fd_vecelts;
   real f, g;
   clock_t now;
   real *neu1 = (real *)safe_calloc(layer1_size, sizeof(real),

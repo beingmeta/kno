@@ -1063,12 +1063,12 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
       if (schedule[j].bucket!=bucket) {
 #if HASHINDEX_PREFETCH_WINDOW
         if (hx->mmap) {
-          unsigned char *data=hx->mmap;
+          unsigned char *fd_vecelts=hx->mmap;
           int k=j+1, newbuck=schedule[j].bucket, n_prefetched=0;
           while ((k<n_entries) && (n_prefetched<4))
             if (schedule[k].bucket!=newbuck) {
               newbuck=schedule[k].bucket;
-              FD_PREFETCH(&data[schedule[k].ref.off]);
+              FD_PREFETCH(&fd_vecelts[schedule[k].ref.off]);
               n_prefetched++;}
             else k++;}
 #endif

@@ -348,22 +348,22 @@ FD_EXPORT int fd_list_length(fdtype l);
 
 typedef struct FD_VECTOR {
   FD_CONS_HEADER;
-  unsigned int freedata:1;
-  unsigned int length:31;
-  fdtype *data;} FD_VECTOR;
+  unsigned int fd_freedata:1;
+  unsigned int fd_veclen:31;
+  fdtype *fd_vecelts;} FD_VECTOR;
 typedef struct FD_VECTOR *fd_vector;
 
 #define FD_VECTORP(x) (FD_PTR_TYPEP((x),fd_vector_type))
 #define FD_VECTOR_LENGTH(x) \
-  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->length)
+  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->fd_veclen)
 #define FD_VECTOR_DATA(x) \
-  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->data)
+  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->fd_vecelts)
 #define FD_VECTOR_ELTS(x) \
-  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->data)
+  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->fd_vecelts)
 #define FD_VECTOR_REF(x,i) \
-  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->data[i])
+  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->fd_vecelts[i])
 #define FD_VECTOR_SET(x,i,v) \
-  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->data[i]=(v))
+  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->fd_vecelts[i]=(v))
 
 FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data);
 FD_EXPORT fdtype fd_make_vector(int len,fdtype *elts);
@@ -375,15 +375,15 @@ FD_EXPORT fdtype fd_make_nvector(int len,...);
 
 #define FD_RAILP(x) (FD_PTR_TYPEP((x),fd_rail_type))
 #define FD_RAIL_LENGTH(x) \
-  ((FD_STRIP_CONS((x),fd_string_type,struct FD_VECTOR *))->length)
+  ((FD_STRIP_CONS((x),fd_string_type,struct FD_VECTOR *))->fd_veclen)
 #define FD_RAIL_DATA(x) \
-  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->data)
+  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->fd_vecelts)
 #define FD_RAIL_ELTS(x) \
-  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->data)
+  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->fd_vecelts)
 #define FD_RAIL_REF(x,i) \
-  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->data[i])
+  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->fd_vecelts[i])
 #define FD_RAIL_SET(x,i,v) \
-  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->data[i]=(v))
+  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->fd_vecelts[i]=(v))
 
 FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data);
 FD_EXPORT fdtype fd_make_rail(int len,fdtype *elts);
@@ -421,26 +421,26 @@ FD_EXPORT fdtype fd_make_nrail(int len,...);
 
 typedef struct FD_COMPOUND {
   FD_CONS_HEADER;
-  fdtype tag; u8_byte mutable, opaque, n_elts;
+  fdtype fd_typetag; u8_byte fd_ismutable, fd_isopaque, fd_n_elts;
 #if FD_THREADS_ENABLED
   u8_mutex fd_lock;
 #endif
-  fdtype elt0;} FD_COMPOUND;
+  fdtype fd_elt0;} FD_COMPOUND;
 typedef struct FD_COMPOUND *fd_compound;
 
 #define FD_COMPOUNDP(x) (FD_PTR_TYPE(x) == fd_compound_type)
 #define FD_COMPOUND_TAG(x) \
-  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->tag)
+  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->fd_typetag)
 #define FD_COMPOUND_DATA(x) \
   ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0)
 #define FD_COMPOUND_TYPEP(x,tag)                        \
   ((FD_PTR_TYPE(x) == fd_compound_type) && (FD_COMPOUND_TAG(x)==tag))
 #define FD_COMPOUND_ELTS(x) \
-  (&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0))
+  (&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->fd_elt0))
 #define FD_COMPOUND_LENGTH(x) \
-  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->n_elts)
+  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->fd_n_elts)
 #define FD_COMPOUND_REF(x,i)                                            \
-  ((&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0))[i])
+  ((&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->fd_elt0))[i])
 #define FD_XCOMPOUND(x) (FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))
 
 FD_EXPORT fdtype fd_init_compound

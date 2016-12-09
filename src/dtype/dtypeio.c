@@ -294,11 +294,11 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       return len;}
     case fd_vector_type: {
       struct FD_VECTOR *v=(struct FD_VECTOR *) cons;
-      int i=0, length=v->length, dtype_len=5;
+      int i=0, length=v->fd_veclen, dtype_len=5;
       output_byte(out,dt_vector);
       output_4bytes(out,length);
       while (i < length) {
-        output_dtype(dtype_len,out,v->data[i]); i++;}
+        output_dtype(dtype_len,out,v->fd_vecelts[i]); i++;}
       return dtype_len;}
     case fd_choice_type: {
       struct FD_CHOICE *v=(struct FD_CHOICE *) cons;
@@ -703,9 +703,9 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
           return result;}
         else if ((FD_VECTORP(cdr)) && (FD_VECTOR_LENGTH(cdr)<32767)) {
           struct FD_VECTOR *vec=(struct FD_VECTOR *)cdr;
-          short n_elts=(short)(vec->length);
+          short n_elts=(short)(vec->fd_veclen);
           fdtype result=
-            fd_init_compound_from_elts(NULL,car,0,n_elts,vec->data);
+            fd_init_compound_from_elts(NULL,car,0,n_elts,vec->fd_vecelts);
           /* Note that the incref'd values are now stored in the compound,
              so we don't decref them ourselves. */
           u8_free(vec);

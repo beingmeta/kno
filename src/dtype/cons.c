@@ -172,10 +172,10 @@ void fd_recycle_cons(fd_cons c)
     break;}
   case fd_vector_type: case fd_rail_type: {
     struct FD_VECTOR *v=(struct FD_VECTOR *)c;
-    int len=v->length; fdtype *scan=v->data, *limit=scan+len;
+    int len=v->fd_veclen; fdtype *scan=v->fd_vecelts, *limit=scan+len;
     if (scan) {
       while (scan<limit) {fd_decref(*scan); scan++;}
-      if (v->freedata) u8_free(v->data);}
+      if (v->fd_freedata) u8_free(v->fd_vecelts);}
     if (mallocd) u8_free(v);
     break;}
   case fd_choice_type: {
@@ -396,7 +396,7 @@ fdtype fd_copier(fdtype x,int flags)
       return result;}
     case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
-      fdtype *olddata=v->data; int i=0, len=v->length;
+      fdtype *olddata=v->fd_vecelts; int i=0, len=v->fd_veclen;
       fdtype result=((ctype==fd_vector_type)?
                      (fd_init_vector(NULL,len,NULL)):
                      (fd_init_rail(NULL,len,NULL)));
@@ -680,7 +680,7 @@ FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
       freedata=1;}
   else elts=data;
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->length=len; ptr->data=elts; ptr->freedata=freedata;
+  ptr->fd_veclen=len; ptr->fd_vecelts=elts; ptr->fd_freedata=freedata;
   return FDTYPE_CONS(ptr);
 }
 
@@ -703,7 +703,7 @@ FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
     u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
-  ptr->length=len; ptr->data=elts; ptr->freedata=0;
+  ptr->fd_veclen=len; ptr->fd_vecelts=elts; ptr->fd_freedata=0;
   if (data) {
     while (i < len) {elts[i]=data[i]; i++;}}
   else {while (i < len) {elts[i]=FD_VOID; i++;}}
@@ -731,7 +731,7 @@ FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
     elts=data;}
   FD_INIT_CONS(ptr,fd_rail_type);
   if (data==NULL) while (i < len) elts[i++]=FD_VOID;
-  ptr->length=len; ptr->data=elts; ptr->freedata=freedata;
+  ptr->fd_veclen=len; ptr->fd_vecelts=elts; ptr->fd_freedata=freedata;
   return FDTYPE_CONS(ptr);
 }
 
@@ -753,7 +753,7 @@ FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
     (sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_rail_type);
-  ptr->length=len; ptr->data=elts; ptr->freedata=0;
+  ptr->fd_veclen=len; ptr->fd_vecelts=elts; ptr->fd_freedata=0;
   while (i < len) {elts[i]=data[i]; i++;}
   return FDTYPE_CONS(ptr);
 }
@@ -839,16 +839,16 @@ FD_EXPORT fdtype fd_init_compound
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
   if (mutable) fd_init_mutex(&(p->fd_lock));
-  p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n; p->opaque=0;
+  p->fd_typetag=fd_incref(tag); p->fd_ismutable=mutable; p->fd_n_elts=n; p->fd_isopaque=0;
   if (n>0) {
-    write=&(p->elt0); limit=write+n;
+    write=&(p->fd_elt0); limit=write+n;
     va_start(args,n);
     while (write<limit) {
       fdtype value=va_arg(args,fdtype);
       *write=value; write++;}
     va_end(args);
     if (FD_ABORTP(initfn)) {
-      write=&(p->elt0);
+      write=&(p->fd_elt0);
       while (write<limit) {fd_decref(*write); write++;}
       return initfn;}
     else return FDTYPE_CONS(p);}
@@ -866,13 +866,13 @@ FD_EXPORT fdtype fd_init_compound_from_elts
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
   if (mutable) fd_init_mutex(&(p->fd_lock));
-  p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n; p->opaque=0;
+  p->fd_typetag=fd_incref(tag); p->fd_ismutable=mutable; p->fd_n_elts=n; p->fd_isopaque=0;
   if (n>0) {
-    write=&(p->elt0); limit=write+n;
+    write=&(p->fd_elt0); limit=write+n;
     while (write<limit) {
       *write=*read++; write++;}
     if (FD_ABORTP(initfn)) {
-      write=&(p->elt0);
+      write=&(p->fd_elt0);
       while (write<limit) {fd_decref(*write); write++;}
       return initfn;}
     else return FDTYPE_CONS(p);}
@@ -882,10 +882,10 @@ FD_EXPORT fdtype fd_init_compound_from_elts
 static void recycle_compound(struct FD_CONS *c)
 {
   struct FD_COMPOUND *compound=(struct FD_COMPOUND *)c;
-  int i=0, n=compound->n_elts; fdtype *data=&(compound->elt0);
+  int i=0, n=compound->fd_n_elts; fdtype *data=&(compound->fd_elt0);
   while (i<n) {fd_decref(data[i]); i++;}
-  fd_decref(compound->tag);
-  if (compound->mutable) fd_destroy_mutex(&(compound->fd_lock));
+  fd_decref(compound->fd_typetag);
+  if (compound->fd_ismutable) fd_destroy_mutex(&(compound->fd_lock));
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -895,14 +895,14 @@ static int compare_compounds(fdtype x,fdtype y,int quick)
   struct FD_COMPOUND *yc=FD_GET_CONS(y,fd_compound_type,struct FD_COMPOUND *);
   int cmp;
   if (xc == yc) return 0;
-  else if ((xc->opaque) || (yc->opaque))
+  else if ((xc->fd_isopaque) || (yc->fd_isopaque))
     if (xc>yc) return 1; else return -1;
-  else if ((cmp=(FD_COMPARE(xc->tag,yc->tag,quick)))) return cmp;
-  else if (xc->n_elts<yc->n_elts) return -1;
-  else if (xc->n_elts>yc->n_elts) return 1;
+  else if ((cmp=(FD_COMPARE(xc->fd_typetag,yc->fd_typetag,quick)))) return cmp;
+  else if (xc->fd_n_elts<yc->fd_n_elts) return -1;
+  else if (xc->fd_n_elts>yc->fd_n_elts) return 1;
   else {
-    int i=0, len=xc->n_elts;
-    fdtype *xdata=&(xc->elt0), *ydata=&(yc->elt0);
+    int i=0, len=xc->fd_n_elts;
+    fdtype *xdata=&(xc->fd_elt0), *ydata=&(yc->fd_elt0);
     while (i<len)
       if ((cmp=(FD_COMPARE(xdata[i],ydata[i],quick)))==0)
         i++;
@@ -915,13 +915,13 @@ static int dtype_compound(struct FD_BYTE_OUTPUT *out,fdtype x)
   struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
   int n_bytes=1;
   fd_write_byte(out,dt_compound);
-  n_bytes=n_bytes+fd_write_dtype(out,xc->tag);
-  if (xc->n_elts==1)
-    n_bytes=n_bytes+fd_write_dtype(out,xc->elt0);
+  n_bytes=n_bytes+fd_write_dtype(out,xc->fd_typetag);
+  if (xc->fd_n_elts==1)
+    n_bytes=n_bytes+fd_write_dtype(out,xc->fd_elt0);
   else {
-    int i=0, n=xc->n_elts; fdtype *data=&(xc->elt0);
+    int i=0, n=xc->fd_n_elts; fdtype *data=&(xc->fd_elt0);
     fd_write_byte(out,dt_vector);
-    fd_write_4bytes(out,xc->n_elts);
+    fd_write_4bytes(out,xc->fd_n_elts);
     n_bytes=n_bytes+5;
     while (i<n) {
       int written=fd_write_dtype(out,data[i]);
@@ -934,16 +934,16 @@ static int dtype_compound(struct FD_BYTE_OUTPUT *out,fdtype x)
 static fdtype copy_compound(fdtype x,int flags)
 {
   struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
-  if (xc->opaque) {
+  if (xc->fd_isopaque) {
     fd_incref(x); return x;}
   else {
-    int i=0, n=xc->n_elts;
+    int i=0, n=xc->fd_n_elts;
     struct FD_COMPOUND *nc=u8_malloc(sizeof(FD_COMPOUND)+(n-1)*sizeof(fdtype));
-    fdtype *data=&(xc->elt0), *write=&(nc->elt0);
+    fdtype *data=&(xc->fd_elt0), *write=&(nc->fd_elt0);
     FD_INIT_CONS(nc,fd_compound_type);
-    if (xc->mutable) fd_init_mutex(&(nc->fd_lock));
-    nc->mutable=xc->mutable; nc->opaque=1;
-    nc->tag=fd_incref(xc->tag); nc->n_elts=xc->n_elts;
+    if (xc->fd_ismutable) fd_init_mutex(&(nc->fd_lock));
+    nc->fd_ismutable=xc->fd_ismutable; nc->fd_isopaque=1;
+    nc->fd_typetag=fd_incref(xc->fd_typetag); nc->fd_n_elts=xc->fd_n_elts;
     if (flags)
       while (i<n) {
         *write=fd_copier(data[i],flags); i++; write++;}
@@ -1548,7 +1548,7 @@ void fd_init_cons_c()
                                      fd_intern("STRINGFN"),fd_intern("DUMPFN"),fd_intern("RESTOREFN")),
                      FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
                      FD_FALSE,FD_FALSE);
-  ((struct FD_COMPOUND *)fd_compound_descriptor_type)->tag=fd_compound_descriptor_type;
+  ((struct FD_COMPOUND *)fd_compound_descriptor_type)->fd_typetag=fd_compound_descriptor_type;
   fd_incref(fd_compound_descriptor_type);
 }
 

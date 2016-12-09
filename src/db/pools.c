@@ -1769,8 +1769,8 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
                             (NULL));
   if (!(xp->flags&(FD_POOL_BATCHABLE))) return NULL;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
-  vstruct.length=n; vstruct.data=oids;
-  vstruct.freedata=0;
+  vstruct.fd_veclen=n; vstruct.fd_vecelts=oids;
+  vstruct.fd_freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);
   if ((FD_VOIDP(state))||(FD_FALSEP(state))||
       ((fptr)&&(fptr->arity==1)))
@@ -1782,10 +1782,10 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
   else if (FD_VECTORP(value)) {
     struct FD_VECTOR *vstruct=(struct FD_VECTOR *)value;
     fdtype *results=u8_alloc_n(n,fdtype);
-    memcpy(results,vstruct->data,sizeof(fdtype)*n);
+    memcpy(results,vstruct->fd_vecelts,sizeof(fdtype)*n);
     /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
        of values. */
-    if (vstruct->freedata) u8_free(vstruct->data);
+    if (vstruct->fd_freedata) u8_free(vstruct->fd_vecelts);
     u8_free((struct FD_CONS *)value);
     return results;}
   else {

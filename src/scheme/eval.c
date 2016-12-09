@@ -1088,7 +1088,7 @@ FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)
     return val;}
   else if (FD_RAILP(exprs)) {
     struct FD_VECTOR *v=FD_GET_CONS(exprs,fd_rail_type,fd_vector);
-    int len=v->length; fdtype *elts=v->data, val=FD_VOID;
+    int len=v->fd_veclen; fdtype *elts=v->fd_vecelts, val=FD_VOID;
     int i=0; while (i<len) {
       fd_decref(val); val=FD_VOID;
       val=fd_eval(elts[i++],env);

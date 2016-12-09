@@ -691,7 +691,7 @@ static fdtype get_compound_tag(fdtype tag)
 {
   if (FD_COMPOUND_TYPEP(tag,fd_compound_descriptor_type)) {
     struct FD_COMPOUND *c=FD_XCOMPOUND(tag);
-    return fd_incref(c->elt0);}
+    return fd_incref(c->fd_elt0);}
   else return tag;
 }
 
@@ -808,7 +808,7 @@ static void output_value(u8_output s,fdtype val,
     else if (FD_PRIM_TYPEP(val,fd_compound_type)) {
       struct FD_COMPOUND *xc=
         FD_GET_CONS(val,fd_compound_type,struct FD_COMPOUND *);
-      fdtype ctag=get_compound_tag(xc->tag);
+      fdtype ctag=get_compound_tag(xc->fd_typetag);
       struct FD_COMPOUND_ENTRY *entry=fd_lookup_compound(ctag);
       if (FD_SYMBOLP(ctag)) typename=FD_SYMBOL_NAME(ctag);
       else if (FD_STRINGP(ctag)) typename=FD_STRDATA(ctag);
@@ -819,8 +819,8 @@ static void output_value(u8_output s,fdtype val,
         entify(s,out.u8_outbuf);
         u8_printf(s,"</%s>",tag);}
       else {
-        fdtype *data=&(xc->elt0);
-        int i=0, n=xc->n_elts;
+        fdtype *data=&(xc->fd_elt0);
+        int i=0, n=xc->fd_n_elts;
         if (FD_SYMBOLP(ctag)) typename=FD_SYMBOL_NAME(ctag);
         else if (FD_STRINGP(ctag)) typename=FD_STRDATA(ctag);
         else {}

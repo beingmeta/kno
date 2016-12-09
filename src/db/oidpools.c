@@ -836,10 +836,10 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
       fdtype value;
 #if ((OIDPOOL_PREFETCH_WINDOW)>0)
       if (op->mmap) {
-        unsigned char *data=op->mmap;
+        unsigned char *fd_vecelts=op->mmap;
         int j=i, lim=(((i+OIDPOOL_PREFETCH_WINDOW)>n) ? (n) : (i+4));
         while (j<lim) {
-          FD_PREFETCH(&(data[schedule[j].location.off]));
+          FD_PREFETCH(&(fd_vecelts[schedule[j].location.off]));
           j++;}}
 #endif
       value=read_oid_value_at(op,schedule[i].location,"oidpool_fetchn");

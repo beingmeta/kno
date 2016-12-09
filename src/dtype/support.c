@@ -1479,7 +1479,7 @@ static int config_setutf8err(fdtype var,fdtype val,void *data)
 #if 0
 static u8_string google_profile=NULL;
 
-static int set_google_profile(fdtype var,fdtype val,void *data)
+static int set_google_profile(fdtype var,fdtype val,void *fd_vecelts)
 {
   if (FD_STRINGP(val)) {
     if (google_profile!=NULL) {
@@ -1499,7 +1499,7 @@ static int set_google_profile(fdtype var,fdtype val,void *data)
   else return -1;
 }
 
-static fdtype get_google_profile(fdtype var,void *data)
+static fdtype get_google_profile(fdtype var,void *fd_vecelts)
 {
   if (google_profile)
     return fdtype_string(google_profile);
@@ -1842,7 +1842,7 @@ static fdtype config_getuser(fdtype var,void *data)
   return FD_INT(ival);
 }
 #else
-static fdtype config_getuser(fdtype var,void *data)
+static fdtype config_getuser(fdtype var,void *fd_vecelts)
 {
   return FD_FALSE;
 }
@@ -1864,7 +1864,7 @@ static int config_setuser(fdtype var,fdtype val,void *data)
     return 1;}
 }
 #else
-static int config_setuser(fdtype var,fdtype val,void *data)
+static int config_setuser(fdtype var,fdtype val,void *fd_vecelts)
 {
   u8_log(LOG_CRIT,"Can't set user","Can't change user ID in this OS");
   fd_seterr("SystemCantSetUser","config_setuser",NULL,val);
@@ -1881,7 +1881,7 @@ static fdtype config_getgroup(fdtype var,void *data)
   return FD_INT(i);
 }
 #else
-static fdtype config_getgroup(fdtype var,void *data)
+static fdtype config_getgroup(fdtype var,void *fd_vecelts)
 {
   return FD_FALSE;
 }
@@ -1903,7 +1903,7 @@ static int config_setgroup(fdtype var,fdtype val,void *data)
     return 1;}
 }
 #else
-static int config_setgroup(fdtype var,fdtype val,void *data)
+static int config_setgroup(fdtype var,fdtype val,void *fd_vecelts)
 {
   u8_log(LOG_CRIT,"Can't set group","Can't change group ID in this OS");
   fd_seterr("SystemCantSetGroup","config_setgroup",NULL,val);

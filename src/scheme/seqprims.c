@@ -2103,8 +2103,8 @@ static fdtype set_cdr(fdtype pair,fdtype val)
 static fdtype vector_set(fdtype vec,fdtype index,fdtype val)
 {
   struct FD_VECTOR *v=FD_GET_CONS(vec,fd_vector_type,struct FD_VECTOR *);
-  int offset=FD_FIX2INT(index); fdtype *elts=v->data;
-  if (offset>v->length) {
+  int offset=FD_FIX2INT(index); fdtype *elts=v->fd_vecelts;
+  if (offset>v->fd_veclen) {
     char buf[256]; sprintf(buf,"%d",offset);
     return fd_err(fd_RangeError,"vector_set",buf,vec);}
   else {

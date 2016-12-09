@@ -87,7 +87,7 @@ int fd_numvec_showmax=7;
 
 
 static fd_bigint
-DEFUN (bigint_malloc, (length), int length)
+DEFUN (bigint_malloc, (fd_veclen), int length)
 {
   char * result = (malloc (sizeof(struct FD_CONS)+((length + 1) * (sizeof (bigint_digit_type)))));
   BIGINT_ASSERT (result != ((char *) 0));
@@ -96,7 +96,7 @@ DEFUN (bigint_malloc, (length), int length)
 }
 
 static fd_bigint
-DEFUN (bigint_realloc, (bigint, length),
+DEFUN (bigint_realloc, (bigint, fd_veclen),
        fd_bigint bigint AND int length)
 {
   char * result =
@@ -724,8 +724,8 @@ DEFUN (fd_bigint_fits_in_word_p, (bigint, word_length, twos_complement_p),
     fast int max_digits = (BIGINT_BITS_TO_DIGITS (n_bits));
 #if 0
     bigint_digit_type msd, max;
-    msd = (BIGINT_REF (bigint, (length - 1)));
-    max = (1L << (n_bits - ((length - 1) * BIGINT_DIGIT_LENGTH)));
+    msd = (BIGINT_REF (bigint, (fd_veclen - 1)));
+    max = (1L << (n_bits - ((fd_veclen - 1) * BIGINT_DIGIT_LENGTH)));
 #endif
     return
       ((length < max_digits) ||
@@ -1727,7 +1727,7 @@ DEFUN (bigint_digit_to_bigint, (digit, negative_p),
 /* Allocation */
 
 static fd_bigint
-DEFUN (bigint_allocate, (length, negative_p),
+DEFUN (bigint_allocate, (fd_veclen, negative_p),
        fast int length AND int negative_p)
 {
   BIGINT_ASSERT ((length >= 0) || (length < BIGINT_RADIX));
@@ -1739,7 +1739,7 @@ DEFUN (bigint_allocate, (length, negative_p),
 }
 
 static fd_bigint
-DEFUN (bigint_allocate_zeroed, (length, negative_p),
+DEFUN (bigint_allocate_zeroed, (fd_veclen, negative_p),
        fast int length AND int negative_p)
 {
   BIGINT_ASSERT ((length >= 0) || (length < BIGINT_RADIX));
@@ -1755,7 +1755,7 @@ DEFUN (bigint_allocate_zeroed, (length, negative_p),
 }
 
 static fd_bigint
-DEFUN (bigint_shorten_length, (bigint, length),
+DEFUN (bigint_shorten_length, (bigint, fd_veclen),
        fast fd_bigint bigint AND fast int length)
 {
   fast int current_length = (BIGINT_LENGTH (bigint));

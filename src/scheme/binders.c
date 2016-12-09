@@ -462,7 +462,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
           else vals[i++]=FD_VOID;}
       else if (FD_RAILP(fn->arglist)) {
         struct FD_VECTOR *v=FD_GET_CONS(fn->arglist,fd_rail_type,fd_vector);
-        int len=v->length; fdtype *dflts=v->data;
+        int len=v->fd_veclen; fdtype *dflts=v->fd_vecelts;
         while (i<len) {
           if (i<n) {
             fdtype val=args[i];

@@ -327,13 +327,13 @@ static int unparse_pair(U8_OUTPUT *out,fdtype x)
 static int unparse_vector(U8_OUTPUT *out,fdtype x)
 {
   struct FD_VECTOR *v=(struct FD_VECTOR *) x;
-  int i=0, len=v->length;
+  int i=0, len=v->fd_veclen;
   u8_puts(out,"#(");
   while (i < len) {
     if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
       u8_puts(out," "); output_ellipsis(out,len-i,"elts");
       return u8_puts(out,")");}
-    if (i>0) u8_puts(out," "); fd_unparse(out,v->data[i]);
+    if (i>0) u8_puts(out," "); fd_unparse(out,v->fd_vecelts[i]);
     i++;}
   return u8_puts(out,")");
 }
@@ -341,7 +341,7 @@ static int unparse_vector(U8_OUTPUT *out,fdtype x)
 static int unparse_rail(U8_OUTPUT *out,fdtype x)
 {
   struct FD_VECTOR *v=(struct FD_VECTOR *) x;
-  int i=0, len=v->length; fdtype *data=v->data;
+  int i=0, len=v->fd_veclen; fdtype *data=v->fd_vecelts;
   u8_puts(out,"#~(");
   while (i < len) {
     if ((fd_unparse_maxelts>0) && (i>=fd_unparse_maxelts)) {
@@ -1309,8 +1309,8 @@ static fdtype recreate_record(int n,fdtype *v)
   {
     struct FD_COMPOUND *c=
       u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
-    fdtype *data=&(c->elt0); fd_init_compound(c,v[0],0,0);
-    c->n_elts=n-1;
+    fdtype *data=&(c->fd_elt0); fd_init_compound(c,v[0],0,0);
+    c->fd_n_elts=n-1;
     i=1; while (i<n) {data[i-1]=v[i]; i++;}
     if (v) u8_free(v);
     return FDTYPE_CONS(c);}
@@ -1332,25 +1332,25 @@ static fdtype get_compound_tag(fdtype tag)
 {
   if (FD_COMPOUND_TYPEP(tag,fd_compound_descriptor_type)) {
     struct FD_COMPOUND *c=FD_XCOMPOUND(tag);
-    return fd_incref(c->elt0);}
+    return fd_incref(c->fd_elt0);}
   else return tag;
 }
 
 static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
-  fdtype tag=get_compound_tag(xc->tag);
+  fdtype tag=get_compound_tag(xc->fd_typetag);
   struct FD_COMPOUND_ENTRY *entry=fd_lookup_compound(tag);
   if ((entry) && (entry->unparser)) {
     int retval=entry->unparser(out,x,entry);
     if (retval<0) return retval;
     else if (retval) return retval;}
   {
-    fdtype *data=&(xc->elt0);
-    int i=0, n=xc->n_elts;
+    fdtype *data=&(xc->fd_elt0);
+    int i=0, n=xc->fd_n_elts;
     if ((entry)&&(entry->core_slots>0)&&(entry->core_slots<n))
       n=entry->core_slots;
-    u8_printf(out,"#%%(%q",xc->tag);
+    u8_printf(out,"#%%(%q",xc->fd_typetag);
     while (i<n) {
       fdtype elt=data[i++];
       if (0) { /* (FD_PACKETP(elt)) */

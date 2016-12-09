@@ -300,7 +300,7 @@ FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
 {
   if (FD_RAILP(expr)) {
     struct FD_VECTOR *rail=(FD_GET_CONS(expr,fd_rail_type,struct FD_VECTOR *));
-    fdtype *data=rail->data; int len=rail->length;
+    fdtype *data=rail->fd_vecelts; int len=rail->fd_veclen;
     return fd_make_rail(len-i,data+i);}
   while (FD_PAIRP(expr))
     if (i == 0) break;
