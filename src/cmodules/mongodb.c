@@ -1323,12 +1323,12 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       break;}
     case fd_regex_type: {
       struct FD_REGEX *fdrx=(struct FD_REGEX *)val;
-      char opts[8], *write=opts; int flags=fdrx->flags;
+      char opts[8], *write=opts; int flags=fdrx->fd_rxflags;
       if (flags&REG_EXTENDED) *write++='x';
       if (flags&REG_ICASE) *write++='i';
       if (flags&REG_NEWLINE) *write++='m';
       *write++='\0';
-      bson_append_regex(out,key,keylen,fdrx->src,opts);
+      bson_append_regex(out,key,keylen,fdrx->fd_rxsrc,opts);
       break;}
     case fd_compound_type: {
       struct FD_COMPOUND *compound=FD_XCOMPOUND(val);

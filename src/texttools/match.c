@@ -688,11 +688,11 @@ static fdtype textract
   else if (FD_PTR_TYPEP(pat,fd_regex_type)) {
     struct FD_REGEX *ptr=FD_GET_CONS(pat,fd_regex_type,struct FD_REGEX *);
     regmatch_t results[1]; u8_string base=base+off;
-    int retval=regexec(&(ptr->compiled),base,1,results,0);
+    int retval=regexec(&(ptr->fd_rxcompiled),base,1,results,0);
     if (retval==REG_NOMATCH) return FD_EMPTY_CHOICE;
     else if (retval) {
       u8_byte buf[512];
-      regerror(retval,&(ptr->compiled),buf,512);
+      regerror(retval,&(ptr->fd_rxcompiled),buf,512);
       u8_unlock_mutex(&(ptr->fd_lock));
       return fd_err(fd_RegexError,"fd_text_extract",
                     u8_strdup(buf),FD_VOID);}

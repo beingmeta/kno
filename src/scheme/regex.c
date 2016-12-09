@@ -34,16 +34,16 @@ FD_EXPORT fdtype fd_make_regex(u8_string src,int flags)
   FD_INIT_FRESH_CONS(ptr,fd_regex_type);
   if (flags<0) flags=default_regex_flags;
   src=u8_strdup(src);
-  retval=regcomp(&(ptr->compiled),src,flags);
+  retval=regcomp(&(ptr->fd_rxcompiled),src,flags);
   if (retval) {
     u8_byte buf[512];
-    regerror(retval,&(ptr->compiled),buf,512);
+    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
     u8_free(ptr);
     return fd_err(fd_RegexError,"fd_make_regex",u8_strdup(buf),
                   fd_init_string(NULL,-1,src));}
   else {
-    ptr->flags=flags; ptr->src=src;
-    u8_init_mutex(&(ptr->fd_lock)); ptr->active=1;
+    ptr->fd_rxflags=flags; ptr->fd_rxsrc=src;
+    u8_init_mutex(&(ptr->fd_lock)); ptr->fd_rxactive=1;
     return FDTYPE_CONS(ptr);}
 }
 
@@ -55,15 +55,15 @@ static fdtype make_regex(fdtype pat,fdtype nocase,fdtype matchnl)
   FD_INIT_FRESH_CONS(ptr,fd_regex_type);
   if (!(FD_FALSEP(nocase))) cflags=cflags|REG_ICASE;
   if (!(FD_FALSEP(matchnl))) cflags=cflags|REG_NEWLINE;
-  retval=regcomp(&(ptr->compiled),src,cflags);
+  retval=regcomp(&(ptr->fd_rxcompiled),src,cflags);
   if (retval) {
     u8_byte buf[512];
-    regerror(retval,&(ptr->compiled),buf,512);
+    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
     u8_free(ptr);
     return fd_err(fd_RegexError,"fd_make_regex",u8_strdup(buf),FD_VOID);}
   else {
-    ptr->flags=cflags; ptr->src=src;
-    u8_init_mutex(&(ptr->fd_lock)); ptr->active=1;
+    ptr->fd_rxflags=cflags; ptr->fd_rxsrc=src;
+    u8_init_mutex(&(ptr->fd_lock)); ptr->fd_rxactive=1;
     return FDTYPE_CONS(ptr);}
 }
 
@@ -77,15 +77,15 @@ static fdtype parse_regex(u8_string src_arg,u8_string opts)
   else if (strchr(opts,'c')) cflags=cflags|REG_ICASE;
   else if (strchr(opts,'m')) cflags=cflags|REG_NEWLINE;
   else {}
-  retval=regcomp(&(ptr->compiled),src,cflags);
+  retval=regcomp(&(ptr->fd_rxcompiled),src,cflags);
   if (retval) {
     u8_byte buf[512];
-    regerror(retval,&(ptr->compiled),buf,512);
+    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
     u8_free(ptr);
     return fd_err(fd_RegexError,"parse_regex",u8_strdup(buf),FD_VOID);}
   else {
-    ptr->flags=cflags; ptr->src=src;
-    u8_init_mutex(&(ptr->fd_lock)); ptr->active=1;
+    ptr->fd_rxflags=cflags; ptr->fd_rxsrc=src;
+    u8_init_mutex(&(ptr->fd_lock)); ptr->fd_rxactive=1;
     return FDTYPE_CONS(ptr);}
 }
 
@@ -98,7 +98,7 @@ static fdtype regexp_prim(fdtype x)
 static void recycle_regex(struct FD_CONS *c)
 {
   struct FD_REGEX *rx=(struct FD_REGEX *)c;
-  regfree(&(rx->compiled));
+  regfree(&(rx->fd_rxcompiled));
   u8_destroy_mutex(&(rx->fd_lock));
   u8_free(rx);
 }
@@ -106,11 +106,11 @@ static void recycle_regex(struct FD_CONS *c)
 static int unparse_regex(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_REGEX *rx=(struct FD_REGEX *)x;
-  u8_printf(out,"#/%s/%s%s%s%s",rx->src,
-            (((rx->flags)&REG_EXTENDED)?"e":""),
-            (((rx->flags)&REG_ICASE)?"i":""),
-            (((rx->flags)&REG_ICASE)?"l":""),
-            (((rx->flags)&REG_NOSUB)?"s":""));
+  u8_printf(out,"#/%s/%s%s%s%s",rx->fd_rxsrc,
+            (((rx->fd_rxflags)&REG_EXTENDED)?"e":""),
+            (((rx->fd_rxflags)&REG_ICASE)?"i":""),
+            (((rx->fd_rxflags)&REG_ICASE)?"l":""),
+            (((rx->fd_rxflags)&REG_NOSUB)?"s":""));
   return 1;
 }
 
@@ -133,13 +133,13 @@ static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,
   else if (eflags==3) eflags=REG_NOTEOL|REG_NOTBOL;
   else eflags=0;
   u8_lock_mutex(&(ptr->fd_lock));
-  retval=regexec(&(ptr->compiled),FD_STRDATA(string),1,results,eflags);
+  retval=regexec(&(ptr->fd_rxcompiled),FD_STRDATA(string),1,results,eflags);
   if (retval==REG_NOMATCH) {
     u8_unlock_mutex(&(ptr->fd_lock));
     return FD_FALSE;}
   else if (retval) {
     u8_byte buf[512];
-    regerror(retval,&(ptr->compiled),buf,512);
+    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
     u8_unlock_mutex(&(ptr->fd_lock));
     return fd_err(fd_RegexError,"regex_search",u8_strdup(buf),FD_VOID);}
   else u8_unlock_mutex(&(ptr->fd_lock));
@@ -177,13 +177,13 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
   else if (eflags==3) eflags=REG_NOTEOL|REG_NOTBOL;
   else eflags=0;
   u8_lock_mutex(&(ptr->fd_lock));
-  retval=regexec(&(ptr->compiled),s,1,results,eflags);
+  retval=regexec(&(ptr->fd_rxcompiled),s,1,results,eflags);
   if (retval==REG_NOMATCH) {
     u8_unlock_mutex(&(ptr->fd_lock));
     return -1;}
   else if (retval) {
     u8_byte buf[512];
-    regerror(retval,&(ptr->compiled),buf,512);
+    regerror(retval,&(ptr->fd_rxcompiled),buf,512);
     u8_unlock_mutex(&(ptr->fd_lock));
     fd_seterr(fd_RegexError,"fd_regex_op",u8_strdup(buf),FD_VOID);
     return -2;}

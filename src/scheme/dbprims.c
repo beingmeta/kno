@@ -1534,11 +1534,11 @@ FD_FASTOP int test_relation_regex(fdtype candidate,fdtype pred,fdtype regex)
       if (FD_STRINGP(value)) {
         regmatch_t results[1];
         u8_string data=FD_STRDATA(value);
-        int retval=regexec(&(fdrx->compiled),data,1,results,0);
+        int retval=regexec(&(fdrx->fd_rxcompiled),data,1,results,0);
         if (retval!=REG_NOMATCH) {
           if (retval) {
             u8_byte buf[512];
-            regerror(retval,&(fdrx->compiled),buf,512);
+            regerror(retval,&(fdrx->fd_rxcompiled),buf,512);
             fd_seterr(fd_RegexError,"regex_pick",u8_strdup(buf),FD_VOID);
             FD_STOP_DO_CHOICES;
             fd_decref(values);
@@ -1571,11 +1571,11 @@ FD_FASTOP int test_selector_predicate(fdtype candidate,fdtype test,
       struct FD_REGEX *fdrx=(struct FD_REGEX *)test;
       regmatch_t results[1];
       u8_string data=FD_STRDATA(candidate);
-      int retval=regexec(&(fdrx->compiled),data,1,results,0);
+      int retval=regexec(&(fdrx->fd_rxcompiled),data,1,results,0);
       if (retval==REG_NOMATCH) return 0;
       else if (retval) {
         u8_byte buf[512];
-        regerror(retval,&(fdrx->compiled),buf,512);
+        regerror(retval,&(fdrx->fd_rxcompiled),buf,512);
         fd_seterr(fd_RegexError,"regex_pick",u8_strdup(buf),FD_VOID);
         return -1;}
       else if (results[0].rm_so<0) return 0;
