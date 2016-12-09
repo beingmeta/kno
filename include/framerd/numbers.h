@@ -56,57 +56,61 @@ FD_EXPORT int fd_numvec_showmax;
 
 struct FD_NUMERIC_VECTOR {
   FD_CONS_HEADER;
-  unsigned int freedata:1;
-  unsigned int length:31;
-  enum fd_num_elt_type { fd_short_elt, fd_int_elt, fd_long_elt, fd_float_elt, fd_double_elt } elt_type;
+  unsigned int fd_freedata:1;
+  unsigned int fd_numvec_len:31;
+  enum fd_num_elt_type {
+	  fd_short_elt, fd_int_elt, fd_long_elt,
+	  fd_float_elt, fd_double_elt }
+    fd_numvec_elt_type;
   union { 
     fd_float *floats;
     fd_double *doubles;
     fd_short *shorts;
     fd_int *ints;
     fd_long *longs;}
-    elts;};
+    fd_numvec_elts;};
 typedef struct FD_NUMERIC_VECTOR *fd_numeric_vector;
 typedef struct FD_NUMERIC_VECTOR *fd_numvec;
 
 #define FD_NUMERIC_VECTORP(v) (FD_PRIM_TYPEP(v,fd_numeric_vector_type))
+#define FD_XNUMVEC(v) ((fd_numvec)(v))
 #define FD_NUMVECP(v) (FD_PRIM_TYPEP(v,fd_numeric_vector_type))
 
-#define FD_NUMERIC_VECTOR_LENGTH(v) \
-  ((FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))->length)
-#define FD_NUMVEC_LENGTH(v) \
-  ((FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))->length)
+#define FD_NUMERIC_VECTOR_LENGTH(v) ((FD_XNUMVEC(v))->fd_numvec_len)
+#define FD_NUMVEC_LENGTH(v) ((FD_XNUMVEC(v))->fd_numvec_len)
 
-#define FD_NUMERIC_VECTOR_TYPE(v) \
-  ((FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))->elt_type)
-#define FD_NUMVEC_TYPE(v) \
-  ((FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))->elt_type)
+#define FD_NUMERIC_VECTOR_TYPE(v) ((FD_XNUMVEC(v))->fd_numvec_elt_type)
+#define FD_NUMVEC_TYPE(v) ((FD_XNUMVEC(v))->fd_numvec_elt_type)
+#define FD_NUMVEC_TYPEP(v,t) (((FD_XNUMVEC(v))->fd_numvec_elt_type)==t)
 
 #define FD_NUMERIC_VECTOR(v) \
-  (FD_STRIP_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))
+  (FD_GET_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))
+#define FD_NUMVEC(v) \
+  (FD_GET_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))
+#define FD_NUMVEC_ELTS(nv,field) (((fd_numvec)nv)->fd_numvec_elts.field)
 
-#define FD_NUMVEC_FLOATS(v) \
-  (((((fd_numvec)v)->elt_type)==fd_float_elt)?(((fd_numvec)v)->elts.floats):(NULL))
+#define FD_NUMVEC_FLOATS(v)		      \
+  ((FD_NUMVEC_TYPEP(v,fd_float_elt))?(FD_NUMVEC_ELTS(v,floats)):(NULL))
 #define FD_NUMVEC_DOUBLES(v) \
-  (((((fd_numvec)v)->elt_type)==fd_double_elt)?(((fd_numvec)v)->elts.doubles):(NULL))
+  ((FD_NUMVEC_TYPEP(v,fd_double_elt))?(FD_NUMVEC_ELTS(v,doubles)):(NULL))
 #define FD_NUMVEC_SHORTS(v) \
-  (((((fd_numvec)v)->elt_type)==fd_short_elt)?(((fd_numvec)v)->elts.shorts):(NULL))
+  ((FD_NUMVEC_TYPEP(v,fd_short_elt))?(FD_NUMVEC_ELTS(v,shorts)):(NULL))
 #define FD_NUMVEC_INTS(v) \
-  (((((fd_numvec)v)->elt_type)==fd_int_elt)?(((fd_numvec)v)->elts.ints):(NULL))
+  ((FD_NUMVEC_TYPEP(v,fd_int_elt))?(FD_NUMVEC_ELTS(v,ints)):(NULL))
 #define FD_NUMVEC_LONGS(v) \
-  (((((fd_numvec)v)->elt_type)==fd_long_elt)?(((fd_numvec)v)->elts.longs):(NULL))
+  ((FD_NUMVEC_TYPEP(v,fd_long_elt))?(FD_NUMVEC_ELTS(v,longs)):(NULL))
 
-#define FD_NUMVEC_FLOAT(v,i) (((fd_numvec)v)->elts.floats[i])
-#define FD_NUMVEC_DOUBLE(v,i) (((fd_numvec)v)->elts.doubles[i])
-#define FD_NUMVEC_SHORT(v,i) (((fd_numvec)v)->elts.shorts[i])
-#define FD_NUMVEC_INT(v,i) (((fd_numvec)v)->elts.ints[i])
-#define FD_NUMVEC_LONG(v,i) (((fd_numvec)v)->elts.longs[i])
+#define FD_NUMVEC_FLOAT(v,i)  ((FD_NUMVEC_FLOATS(v))[i])
+#define FD_NUMVEC_DOUBLE(v,i) ((FD_NUMVEC_DOUBLES(v))[i])
+#define FD_NUMVEC_SHORT(v,i)  ((FD_NUMVEC_SHORTS(v))[i])
+#define FD_NUMVEC_INT(v,i)    ((FD_NUMVEC_INTS(v))[i])
+#define FD_NUMVEC_LONG(v,i)   ((FD_NUMVEC_LONGS(v))[i])
 
-#define FD_NUMVEC_FLOAT_SLICE(v,i) (((fd_numvec)v)->elts.floats+i)
-#define FD_NUMVEC_DOUBLE_SLICE(v,i) (((fd_numvec)v)->elts.doubles+i)
-#define FD_NUMVEC_SHORT_SLICE(v,i) (((fd_numvec)v)->elts.shorts+i)
-#define FD_NUMVEC_INT_SLICE(v,i) (((fd_numvec)v)->elts.ints+i)
-#define FD_NUMVEC_LONG_SLICE(v,i) (((fd_numvec)v)->elts.longs+i)
+#define FD_NUMVEC_FLOAT_SLICE(v,i)  ((FD_NUMVEC_FLOATS(v))+i)
+#define FD_NUMVEC_DOUBLE_SLICE(v,i) ((FD_NUMVEC_DOUBLES(v))+i)
+#define FD_NUMVEC_SHORT_SLICE(v,i)  ((FD_NUMVEC_SHORTS(v))+i)
+#define FD_NUMVEC_INT_SLICE(v,i)    ((FD_NUMVEC_INTS(v))+i)
+#define FD_NUMVEC_LONG_SLICE(v,i)   ((FD_NUMVEC_LONGS(v))+i)
 
 FD_EXPORT fdtype fd_make_long_vector(int n,fd_long *v);
 FD_EXPORT fdtype fd_make_int_vector(int n,fd_int *v);
