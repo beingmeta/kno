@@ -1063,23 +1063,23 @@ static fdtype copy_exception(fdtype x,int deep)
 
 static int unparse_mystery(u8_output out,fdtype x)
 {
-  struct FD_MYSTERY *d=FD_GET_CONS(x,fd_mystery_type,struct FD_MYSTERY *);
+  struct FD_MYSTERY_DTYPE *d=FD_GET_CONS(x,fd_mystery_type,struct FD_MYSTERY_DTYPE *);
   char buf[128];
-  if (d->code&0x80)
+  if (d->fd_dtcode&0x80)
     sprintf(buf,_("#<MysteryVector 0x%x/0x%x %d elements>"),
-            d->package,d->code,d->size);
+            d->fd_dtpackage,d->fd_dtcode,d->fd_dtlen);
   else sprintf(buf,_("#<MysteryPacket 0x%x/0x%x %d bytes>"),
-               d->package,d->code,d->size);
+               d->fd_dtpackage,d->fd_dtcode,d->fd_dtlen);
   u8_puts(out,buf);
   return 1;
 }
 
 static void recycle_mystery(struct FD_CONS *c)
 {
-  struct FD_MYSTERY *myst=(struct FD_MYSTERY *)c;
-  if (myst->code&0x80)
-    u8_free(myst->payload.vector);
-  else u8_free(myst->payload.packet);
+  struct FD_MYSTERY_DTYPE *myst=(struct FD_MYSTERY_DTYPE *)c;
+  if (myst->fd_dtcode&0x80)
+    u8_free(myst->fd_mystery_payload.fd_dtelts);
+  else u8_free(myst->fd_mystery_payload.fd_dtbytes);
   u8_free(myst);
 }
 

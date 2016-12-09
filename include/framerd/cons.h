@@ -541,12 +541,12 @@ FD_EXPORT fdtype (*fd_regex_parser)(u8_string src,u8_string opts);
 
 /* Mysteries */
 
-typedef struct FD_MYSTERY {
+typedef struct FD_MYSTERY_DTYPE {
   FD_CONS_HEADER;
-  unsigned char package, code; unsigned int size;
+  unsigned char fd_dtpackage, fd_dtcode; unsigned int fd_dtlen;
   union {
-    fdtype *vector; unsigned char *packet;} payload;} FD_MYSTERY;
-typedef struct FD_MYSTERY *fd_mystery;
+    fdtype *fd_dtelts; unsigned char *fd_dtbytes;} fd_mystery_payload;} FD_MYSTERY;
+typedef struct FD_MYSTERY_DTYPE *fd_mystery;
 
 /* Exceptions */
 

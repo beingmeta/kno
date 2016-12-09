@@ -110,7 +110,7 @@ static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v);
 static int write_hashset(struct FD_BYTE_OUTPUT *out,struct FD_HASHSET *v);
 static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v);
 static int write_schemap(struct FD_BYTE_OUTPUT *out,struct FD_SCHEMAP *v);
-static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY *v);
+static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY_DTYPE *v);
 
 #define output_byte(out,b) \
   if (fd_write_byte(out,b)<0) return -1; else {}
@@ -353,7 +353,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
     case fd_hashtable_type:
       return write_hashtable(out,(struct FD_HASHTABLE *) cons);
     case fd_mystery_type:
-      return write_mystery(out,(struct FD_MYSTERY *) cons);
+      return write_mystery(out,(struct FD_MYSTERY_DTYPE *) cons);
     default: {
       fd_ptr_type ctype=FD_CONS_TYPE(cons); int dtype_len;
       if ((FD_VALID_TYPEP(ctype)) && (fd_dtype_writers[ctype]))
@@ -372,26 +372,26 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
   }
 }
 
-static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY *v)
+static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY_DTYPE *v)
 {
-  int size=v->size, dtype_size=2;
-  int vectorp=(v->code)&0x80;
-  output_byte(out,v->package);
+  int size=v->fd_dtlen, dtype_size=2;
+  int vectorp=(v->fd_dtcode)&0x80;
+  output_byte(out,v->fd_dtpackage);
   if (size>256) {
-    output_byte(out,v->code|0x40);
+    output_byte(out,v->fd_dtcode|0x40);
     output_4bytes(out,size);
     dtype_size=dtype_size+4;}
   else {
-    output_byte(out,v->code&(~0x40));
+    output_byte(out,v->fd_dtcode&(~0x40));
     output_byte(out,size);
     dtype_size=dtype_size+1;}
   if (vectorp) {
-    fdtype *elts=v->payload.vector, *limit=elts+size;
+    fdtype *elts=v->fd_mystery_payload.fd_dtelts, *limit=elts+size;
     while (elts<limit) {
       output_dtype(dtype_size,out,*elts); elts++;}
     return dtype_size;}
   else {
-    output_bytes(out,v->payload.packet,size);
+    output_bytes(out,v->fd_mystery_payload.fd_dtbytes,size);
     return dtype_size+size;}
 }
 
@@ -951,8 +951,8 @@ static fdtype read_packaged_dtype
 #if 0
   case dt_framerd_package:
     if (vectorp)
-      return make_framerd_type(p,code,len,vector);
-    else return fd_make_mystery_packet(p,package,code,len,packet);
+      return make_framerd_type(p,fd_dtcode,len,fd_dtelts);
+    else return fd_make_mystery_packet(p,fd_dtpackage,fd_dtcode,len,fd_dtbytes);
 #endif
   case dt_character_package:
     if (vectorp)
@@ -1012,32 +1012,32 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
 FD_EXPORT fdtype fd_make_mystery_packet
   (int package,int typecode,unsigned int len,unsigned char *bytes)
 {
-  struct FD_MYSTERY *myst;
+  struct FD_MYSTERY_DTYPE *myst;
   int package_offset=package-0x40;
   int code_offset=(typecode&0x3F);
   if ((package_offset<0x40) && (dtype_packages[package_offset]) &&
       (dtype_packages[package_offset]->packetfns[code_offset]))
     return (dtype_packages[package_offset]->packetfns[code_offset])(len,bytes);
-  myst=u8_alloc(struct FD_MYSTERY);
+  myst=u8_alloc(struct FD_MYSTERY_DTYPE);
   FD_INIT_CONS(myst,fd_mystery_type);
-  myst->package=package; myst->code=typecode;
-  myst->payload.packet=bytes; myst->size=len;
+  myst->fd_dtpackage=package; myst->fd_dtcode=typecode;
+  myst->fd_mystery_payload.fd_dtbytes=bytes; myst->fd_dtlen=len;
   return FDTYPE_CONS(myst);
 }
 
 FD_EXPORT fdtype fd_make_mystery_vector
   (int package,int typecode,unsigned int len,fdtype *elts)
 {
-  struct FD_MYSTERY *myst;
+  struct FD_MYSTERY_DTYPE *myst;
   int package_offset=package-0x40;
   int code_offset=(typecode&0x3F);
   if ((package_offset<0x40) && (dtype_packages[package_offset]) &&
       (dtype_packages[package_offset]->vectorfns[code_offset]))
     return (dtype_packages[package_offset]->vectorfns[code_offset])(len,elts);
-  myst=u8_alloc(struct FD_MYSTERY);
+  myst=u8_alloc(struct FD_MYSTERY_DTYPE);
   FD_INIT_CONS(myst,fd_mystery_type);
-  myst->package=package; myst->code=typecode;
-  myst->payload.vector=elts; myst->size=len;
+  myst->fd_dtpackage=package; myst->fd_dtcode=typecode;
+  myst->fd_mystery_payload.fd_dtelts=elts; myst->fd_dtlen=len;
   return FDTYPE_CONS(myst);
 }
 
