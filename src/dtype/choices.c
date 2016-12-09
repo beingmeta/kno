@@ -694,20 +694,20 @@ fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice)
 {
   if (ptr==NULL) ptr=u8_alloc(struct FD_QCHOICE);
   FD_INIT_CONS(ptr,fd_qchoice_type);
-  ptr->choice=choice;
+  ptr->fd_choiceval=choice;
   return FDTYPE_CONS(ptr);
 }
 
 static int write_qchoice_dtype(struct FD_BYTE_OUTPUT *s,fdtype x)
 {
   struct FD_QCHOICE *qc=FD_XQCHOICE(x);
-  return fd_write_dtype(s,qc->choice);
+  return fd_write_dtype(s,qc->fd_choiceval);
 }
 
 static int unparse_qchoice(struct U8_OUTPUT *s,fdtype x)
 {
   struct FD_QCHOICE *qc=FD_XQCHOICE(x);
-  u8_puts(s,"#"); fd_unparse(s,qc->choice);
+  u8_puts(s,"#"); fd_unparse(s,qc->fd_choiceval);
   return 1;
 }
 
@@ -717,17 +717,17 @@ static fdtype copy_qchoice(fdtype x,int deep)
   struct FD_QCHOICE *qc=FD_XQCHOICE(x);
   FD_INIT_CONS(copied,fd_qchoice_type);
   if (deep)
-    copied->choice=fd_deep_copy(qc->choice);
+    copied->fd_choiceval=fd_deep_copy(qc->fd_choiceval);
   else {
-    fd_incref(qc->choice);
-    copied->choice=qc->choice;}
+    fd_incref(qc->fd_choiceval);
+    copied->fd_choiceval=qc->fd_choiceval;}
   return FDTYPE_CONS(copied);
 }
 
 static int compare_qchoice(fdtype x,fdtype y,int quick)
 {
   struct FD_QCHOICE *xqc=FD_XQCHOICE(x), *yqc=FD_XQCHOICE(y);
-  return (fdtype_compare(xqc->choice,yqc->choice,quick));
+  return (fdtype_compare(xqc->fd_choiceval,yqc->fd_choiceval,quick));
 }
 
 /* Set operations (intersection, union, difference) on choices */

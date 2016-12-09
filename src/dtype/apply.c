@@ -698,7 +698,7 @@ static fdtype ndapply_loop
       FD_ADD_TO_CHOICE(*results,value);}}
   else if (FD_PTR_TYPEP(nd_args[i],fd_qchoice_type)) {
     fdtype retval;
-    d_args[i]=FD_XQCHOICE(nd_args[i])->choice;
+    d_args[i]=FD_XQCHOICE(nd_args[i])->fd_choiceval;
     retval=ndapply_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
     if (FD_ABORTP(retval)) return retval;}
   else if ((!(FD_CHOICEP(nd_args[i]))) ||
@@ -785,7 +785,7 @@ static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args)
   while (read<limit)
     if (FD_QCHOICEP(*read)) {
       struct FD_QCHOICE *qc=(struct FD_QCHOICE *) (*read++);
-      *write++=qc->choice;}
+      *write++=qc->fd_choiceval;}
     else *write++=*read++;
   result=fd_dapply(fp,n,nargs);
   if (n>8) u8_free(nargs);

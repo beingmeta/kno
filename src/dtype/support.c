@@ -727,7 +727,7 @@ FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt)
         FD_STOP_DO_CHOICES; return value;}}
     return fd_incref(dflt);}
   else if (FD_QCHOICEP(opts))
-    return fd_getopt(FD_XQCHOICE(opts)->choice,key,dflt);
+    return fd_getopt(FD_XQCHOICE(opts)->fd_choiceval,key,dflt);
   else while (!(FD_VOIDP(opts))) {
       if (FD_PAIRP(opts)) {
         fdtype car=FD_CAR(opts);
@@ -800,7 +800,7 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val)
   else if (FD_VOIDP(val))
     return boolopt(opts,key);
   else if (FD_QCHOICEP(opts))
-    return fd_testopt(FD_XQCHOICE(opts)->choice,key,val);
+    return fd_testopt(FD_XQCHOICE(opts)->fd_choiceval,key,val);
   else if (FD_EMPTY_CHOICEP(opts))
     return 0;
   else while (!(FD_VOIDP(opts))) {

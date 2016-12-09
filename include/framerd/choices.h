@@ -229,7 +229,7 @@ static MAYBE_UNUSED fdtype fd_make_simple_choice(fdtype x)
 
 typedef struct FD_QCHOICE {
   FD_CONS_HEADER;
-  fdtype choice;} FD_QCHOICE;
+  fdtype fd_choiceval;} FD_QCHOICE;
 typedef struct FD_QCHOICE *fd_qchoice;
 
 FD_EXPORT fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice);
@@ -237,10 +237,10 @@ FD_EXPORT fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice);
 #define FD_QCHOICEP(x) (FD_PTR_TYPEP(x,fd_qchoice_type))
 #define FD_EMPTY_QCHOICEP(x) \
   ((FD_PTR_TYPEP(x,fd_qchoice_type)) && \
-   (((FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *))->choice) \
+   (((FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *))->fd_choiceval) \
     ==FD_EMPTY_CHOICE))
 #define FD_XQCHOICE(x) (FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *))
-#define FD_QCHOICE_SIZE(x) (FD_CHOICE_SIZE(FD_XQCHOICE(x)->choice))
+#define FD_QCHOICE_SIZE(x) (FD_CHOICE_SIZE(FD_XQCHOICE(x)->fd_choiceval))
 
 /* Generic choice operations */
 
@@ -310,9 +310,9 @@ static MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
 {
   if (FD_ATOMICP(ch)) return (x==ch);
   else {
-    struct FD_CHOICE *choice=FD_GET_CONS(ch,fd_choice_type,fd_choice);
-    int ach_size=FD_XCHOICE_SIZE(choice);
-    const fdtype *bottom=FD_XCHOICE_DATA(choice), *top=bottom+(ach_size-1);
+    struct FD_CHOICE *fd_choiceval=FD_GET_CONS(ch,fd_choice_type,fd_choice);
+    int ach_size=FD_XCHOICE_SIZE(fd_choiceval);
+    const fdtype *bottom=FD_XCHOICE_DATA(fd_choiceval), *top=bottom+(ach_size-1);
     while (top>=bottom) {
       const fdtype *middle=bottom+(top-bottom)/2;
       if (x == *middle) return 1;

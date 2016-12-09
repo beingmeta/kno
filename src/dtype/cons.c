@@ -188,7 +188,7 @@ void fd_recycle_cons(fd_cons c)
     break;}
   case fd_qchoice_type: {
     struct FD_QCHOICE *qc=(struct FD_QCHOICE *)c;
-    fd_decref(qc->choice);
+    fd_decref(qc->fd_choiceval);
     if (mallocd) u8_free(qc);
     break;}
   default: {

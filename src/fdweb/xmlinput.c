@@ -1098,7 +1098,7 @@ static fdtype xmlparse(fdtype input,fdtype options)
       FD_ADD_TO_CHOICE(results,result);}
     return results;}
   else if (FD_QCHOICEP(input))
-    return xmlparse(FD_XQCHOICE(input)->choice,options);
+    return xmlparse(FD_XQCHOICE(input)->fd_choiceval,options);
   else return xmlparse_core(input,fd_xmlparseoptions(options));
 }
 

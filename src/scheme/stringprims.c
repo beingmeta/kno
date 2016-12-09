@@ -742,7 +742,7 @@ static int has_suffix_test(fdtype string,fdtype suffix)
 static fdtype has_suffix(fdtype string,fdtype suffix)
 {
   fdtype notstring;
-  if (FD_QCHOICEP(suffix)) suffix=(FD_XQCHOICE(suffix))->choice;
+  if (FD_QCHOICEP(suffix)) suffix=(FD_XQCHOICE(suffix))->fd_choiceval;
   if ((FD_STRINGP(string))&&(FD_STRINGP(suffix))) {
     if (has_suffix_test(string,suffix))
       return FD_TRUE;
@@ -785,7 +785,7 @@ static fdtype is_suffix(fdtype suffix,fdtype string) {
 static fdtype strip_suffix(fdtype string,fdtype suffix)
 {
   fdtype notstring;
-  if (FD_QCHOICEP(suffix)) suffix=(FD_XQCHOICE(suffix))->choice;
+  if (FD_QCHOICEP(suffix)) suffix=(FD_XQCHOICE(suffix))->fd_choiceval;
   if ((FD_STRINGP(string))&&(FD_STRINGP(suffix))) {
     if (has_suffix_test(string,suffix)) {
       int sufflen=FD_STRLEN(suffix), len=FD_STRLEN(string);
@@ -834,7 +834,7 @@ static int has_prefix_test(fdtype string,fdtype prefix)
 static fdtype has_prefix(fdtype string,fdtype prefix)
 {
   fdtype notstring;
-  if (FD_QCHOICEP(prefix)) prefix=(FD_XQCHOICE(prefix))->choice;
+  if (FD_QCHOICEP(prefix)) prefix=(FD_XQCHOICE(prefix))->fd_choiceval;
   if ((FD_STRINGP(string))&&(FD_STRINGP(prefix))) {
     if (has_prefix_test(string,prefix)) return FD_TRUE;
     else return FD_FALSE;}
@@ -876,7 +876,7 @@ static fdtype is_prefix(fdtype prefix,fdtype string) {
 static fdtype strip_prefix(fdtype string,fdtype prefix)
 {
   fdtype notstring;
-  if (FD_QCHOICEP(prefix)) prefix=(FD_XQCHOICE(prefix))->choice;
+  if (FD_QCHOICEP(prefix)) prefix=(FD_XQCHOICE(prefix))->fd_choiceval;
   if ((FD_STRINGP(string))&&(FD_STRINGP(prefix))) {
     if (has_prefix_test(string,prefix)) {}
     else return fd_incref(string);}

@@ -1077,7 +1077,7 @@ static unsigned int hash_lisp(fdtype x)
     case fd_qchoice_type: {
       struct FD_QCHOICE *ch=
         FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *);
-      return hash_lisp(ch->choice);}
+      return hash_lisp(ch->fd_choiceval);}
     default: {
       int ctype=FD_PTR_TYPE(x);
       if ((ctype<FD_TYPE_MAX) && (fd_hashfns[ctype]))

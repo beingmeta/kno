@@ -896,11 +896,11 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
   else if (FD_QCHOICEP(x)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(x);
     int first_value=1;
-    if (FD_EMPTY_CHOICEP(qc->choice)) {
+    if (FD_EMPTY_CHOICEP(qc->fd_choiceval)) {
       u8_puts(out,"#{}");
       return col+3;}
     else {
-      FD_DO_CHOICES(elt,qc->choice)
+      FD_DO_CHOICES(elt,qc->fd_choiceval)
         if (first_value) {
           u8_puts(out,"#{"); col++; first_value=0;
           col=fd_pprint(out,elt,prefix,indent+2,col,maxcol,1);}
@@ -1026,7 +1026,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
   else if (FD_QCHOICEP(x)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(x);
     int first_value=1;
-    FD_DO_CHOICES(elt,qc->choice)
+    FD_DO_CHOICES(elt,qc->fd_choiceval)
       if (first_value) {
         u8_puts(out,"#{"); col++; first_value=0;
         col=fd_xpprint(out,elt,prefix,indent+2,col,maxcol,1,fn,data);}
@@ -1153,7 +1153,7 @@ static int embeddedp(fdtype focus,fdtype expr)
     return 0;}
   else if (FD_QCHOICEP(expr)) {
     struct FD_QCHOICE *qc=FD_XQCHOICE(expr);
-    FD_DO_CHOICES(elt,qc->choice)
+    FD_DO_CHOICES(elt,qc->fd_choiceval)
       if (embeddedp(focus,elt)) return 1;
     return 0;}
   else if (FD_SLOTMAPP(expr)) {

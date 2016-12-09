@@ -325,12 +325,12 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
     case fd_qchoice_type: {
       struct FD_QCHOICE *qv=(struct FD_QCHOICE *) cons;
       output_byte(out,dt_framerd_package);
-      if (FD_EMPTY_CHOICEP(qv->choice)) {
+      if (FD_EMPTY_CHOICEP(qv->fd_choiceval)) {
         output_byte(out,dt_small_qchoice);
         output_byte(out,0);
         return 3;}
       else {
-        struct FD_CHOICE *v=(struct FD_CHOICE *) (qv->choice);
+        struct FD_CHOICE *v=(struct FD_CHOICE *) (qv->fd_choiceval);
         const fdtype *data=FD_XCHOICE_DATA(v);
         int i=0, len=FD_XCHOICE_SIZE(v), dtype_len;
         if (len < 256) {
