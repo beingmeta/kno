@@ -252,57 +252,70 @@ static fd_ptr_type FD_PTR_TYPE(fdtype x)
 
 #if FD_STRUCT_OIDS
 typedef struct FD_OID {
-  unsigned int hi, lo;} FD_OID;
+  unsigned int fd_oid_hi, fd_oid_lo;} FD_OID;
 typedef struct FD_OID *fd_oid;
-#define FD_OID_HI(x) x.hi
-#define FD_OID_LO(x) x.lo
+#define FD_OID_HI(x) x.fd_oid_hi
+#define FD_OID_LO(x) x.fd_oid_lo
 FD_FASTOP FD_OID FD_OID_PLUS(FD_OID x,unsigned int increment)
 {
-  x.lo=x.lo+increment;
+  x.fd_oid_lo=x.fd_oid_lo+increment;
   return x;
 }
-#define FD_SET_OID_HI(oid,hiw) oid.hi=hiw
-#define FD_SET_OID_LO(oid,low) oid.lo=low
+#define FD_SET_OID_HI(oid,hiw) oid.fd_oid_hi=hiw
+#define FD_SET_OID_LO(oid,low) oid.fd_oid_lo=low
 #define FD_OID_COMPARE(oid1,oid2) \
-  ((oid1.hi == oid2.hi) ? \
-   ((oid1.lo == oid2.lo) ? (0) : (oid1.lo < oid2.lo) ? (-1) : (1)) :\
-   (oid1.hi < oid2.hi) ? (-1) : (1))
+  ((oid1.fd_oid_hi == oid2.fd_oid_hi) ? \
+   ((oid1.fd_oid_lo == oid2.fd_oid_lo) ? (0) : \
+    (oid1.fd_oid_lo < oid2.fd_oid_lo) ? (-1) : (1)) :		\
+   (oid1.fd_oid_hi < oid2.fd_oid_hi) ? (-1) : (1))
 #define FD_OID_DIFFERENCE(oid1,oid2) \
-  ((oid1.lo>oid2.lo) ? (oid1.lo-oid2.lo) : (oid2.lo-oid1.lo))
+  ((oid1.fd_oid_lo>oid2.fd_oid_lo) ? \
+   (oid1.fd_oid_lo-oid2.fd_oid_lo) : \
+   (oid2.fd_oid_lo-oid1.fd_oid_lo))
 #elif FD_INT_OIDS
 typedef unsigned int FD_OID;
 #define FD_OID_HI(x) ((unsigned int)((x)>>32))
 #define FD_OID_LO(x) ((unsigned int)((x)&(0xFFFFFFFFU)))
 #define FD_OID_PLUS(oid,increment) (oid+increment)
 #define FD_SET_OID_HI(oid,hi) oid=(oid&0xFFFFFFFFUL)|((hi)<<32)
-#define FD_SET_OID_LO(oid,lo) oid=((oid&0xFFFFFFFF00000000U)|(((FD_OID)lo)&0xFFFFFFFFU))
-#define FD_OID_COMPARE(oid1,oid2) ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
-#define FD_OID_DIFFERENCE(oid1,oid2) ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
+#define FD_SET_OID_LO(oid,lo) \
+  oid=((oid&0xFFFFFFFF00000000U)|(((FD_OID)lo)&0xFFFFFFFFU))
+#define FD_OID_COMPARE(oid1,oid2) \
+  ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
+#define FD_OID_DIFFERENCE(oid1,oid2) \
+  ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
 #elif FD_LONG_OIDS
 typedef unsigned long FD_OID;
 #define FD_OID_HI(x) ((unsigned int)((x)>>32))
 #define FD_OID_LO(x) ((unsigned int)((x)&(0xFFFFFFFFU)))
 #define FD_OID_PLUS(oid,increment) (oid+increment)
-#define FD_SET_OID_HI(oid,hi) oid=((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
-#define FD_SET_OID_LO(oid,lo) oid=(oid&0xFFFFFFFF00000000UL)|((lo)&0xFFFFFFFFUL)
-#define FD_OID_COMPARE(oid1,oid2) ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
-#define FD_OID_DIFFERENCE(oid1,oid2) ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
+#define FD_SET_OID_HI(oid,hi) \
+  oid=((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
+#define FD_SET_OID_LO(oid,lo) \
+  oid=(oid&0xFFFFFFFF00000000UL)|((lo)&0xFFFFFFFFUL)
+#define FD_OID_COMPARE(oid1,oid2) \
+  ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
+#define FD_OID_DIFFERENCE(oid1,oid2) \
+  ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
 #elif FD_LONG_LONG_OIDS
 typedef unsigned long long FD_OID;
 #define FD_OID_HI(x) ((unsigned int)((x)>>32))
 #define FD_OID_LO(x) ((unsigned int)((x)&(0xFFFFFFFFULL)))
 #define FD_OID_PLUS(oid,increment) (oid+increment)
-#define FD_SET_OID_HI(oid,hi) oid=((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
+#define FD_SET_OID_HI(oid,hi) \
+  oid=((FD_OID)(oid&0xFFFFFFFFU))|(((FD_OID)hi)<<32)
 #define FD_SET_OID_LO(oid,lo) \
   oid=((oid&(0xFFFFFFFF00000000ULL))|((unsigned int)((lo)&(0xFFFFFFFFULL))))
-#define FD_OID_COMPARE(oid1,oid2) ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
-#define FD_OID_DIFFERENCE(oid1,oid2) ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
+#define FD_OID_COMPARE(oid1,oid2) \
+  ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
+#define FD_OID_DIFFERENCE(oid1,oid2) \
+  ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
 #endif
 
 #if FD_STRUCT_OIDS
 FD_FASTOP FD_OID FD_MAKE_OID(unsigned int hi,unsigned int lo)
 {
-  FD_OID result; result.hi=hi; result.lo=lo;
+  FD_OID result; result.fd_oid_hi=hi; result.fd_oid_lo=lo;
   return result;
 }
 #define FD_NULL_OID_INIT {0,0}

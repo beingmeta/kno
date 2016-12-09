@@ -169,16 +169,16 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
     if (itype == fd_symbol_type) { /* output symbol */
       fdtype name=fd_symbol_names[data];
       struct FD_STRING *s=FD_GET_CONS(name,fd_string_type,struct FD_STRING *);
-      int len=s->length;
+      int len=s->fd_bytelen;
       if (((out->flags)&(FD_DTYPEV2)) && (len<256)) {
         {output_byte(out,dt_tiny_symbol);}
         {output_byte(out,len);}
-        {output_bytes(out,s->bytes,len);}
+        {output_bytes(out,s->fd_bytes,len);}
         return len+2;}
       else {
         {output_byte(out,dt_symbol);}
         {output_4bytes(out,len);}
-        {output_bytes(out,s->bytes,len);}
+        {output_bytes(out,s->fd_bytes,len);}
         return len+5;}}
     else if (itype == fd_character_type) { /* Output unicode character */
       output_byte(out,dt_character_package);
@@ -241,27 +241,27 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
     int ctype=FD_CONS_TYPE(cons);
     switch (ctype) {
     case fd_string_type: {
-      struct FD_STRING *s=(struct FD_STRING *) cons; int len=s->length;
+      struct FD_STRING *s=(struct FD_STRING *) cons; int len=s->fd_bytelen;
       if (((out->flags)&(FD_DTYPEV2)) && (len<256)) {
         output_byte(out,dt_tiny_string);
         output_byte(out,len);
-        output_bytes(out,s->bytes,len);
+        output_bytes(out,s->fd_bytes,len);
         return 2+len;}
       else {
         output_byte(out,dt_string);
         output_4bytes(out,len);
-        output_bytes(out,s->bytes,len);
+        output_bytes(out,s->fd_bytes,len);
         return 5+len;}}
     case fd_packet_type: {
       struct FD_STRING *s=(struct FD_STRING *) cons;
       output_byte(out,dt_packet);
-      output_4bytes(out,s->length);
-      output_bytes(out,s->bytes,s->length);
-      return 5+s->length;}
+      output_4bytes(out,s->fd_bytelen);
+      output_bytes(out,s->fd_bytes,s->fd_bytelen);
+      return 5+s->fd_bytelen;}
     case fd_secret_type: {
       struct FD_STRING *s=(struct FD_STRING *) cons;
-      const unsigned char *data=s->bytes;
-      unsigned int len=s->length, sz=0;
+      const unsigned char *data=s->fd_bytes;
+      unsigned int len=s->fd_bytelen, sz=0;
       output_byte(out,dt_character_package);
       if (len<256) {
         output_byte(out,dt_short_secret_packet);

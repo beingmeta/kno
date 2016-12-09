@@ -76,7 +76,7 @@ static void grow_symbol_tables()
       else {
         struct FD_SYMBOL_ENTRY *entry=old_entries[i];
         int probe=
-          mult_hash_string(entry->name.bytes,entry->name.length)%new_size;
+          mult_hash_string(entry->name.fd_bytes,entry->name.fd_bytelen)%new_size;
         while (FD_EXPECT_TRUE(new_entries[probe]!=NULL))
           if (probe >= new_size) probe=0; else probe=(probe+1)%new_size;
         new_entries[probe]=entry;
@@ -105,8 +105,8 @@ fdtype fd_make_symbol(u8_string bytes,int len)
   hash=mult_hash_string(bytes,len);
   probe=hash%size;
   while (FD_EXPECT_TRUE(entries[probe]!=NULL)) {
-    if (FD_EXPECT_TRUE(len == (entries[probe])->name.length))
-      if (FD_EXPECT_TRUE(strncmp(bytes,(entries[probe])->name.bytes,len) == 0))
+    if (FD_EXPECT_TRUE(len == (entries[probe])->name.fd_bytelen))
+      if (FD_EXPECT_TRUE(strncmp(bytes,(entries[probe])->name.fd_bytes,len) == 0))
         break;
     probe++; if (probe>=size) probe=0;}
   if (entries[probe]) {
@@ -137,8 +137,8 @@ fdtype fd_probe_symbol(u8_string bytes,int len)
   if (len < 0) len=strlen(bytes);
   probe=mult_hash_string(bytes,len)%size;
   while (entries[probe]) {
-    if (len == entries[probe]->name.length)
-      if (strncmp(bytes,entries[probe]->name.bytes,len) == 0) break;
+    if (len == entries[probe]->name.fd_bytelen)
+      if (strncmp(bytes,entries[probe]->name.fd_bytes,len) == 0) break;
     if (probe >= size) probe=0;
     else probe++;}
   if (entries[probe]) {
@@ -206,15 +206,15 @@ void fd_list_symbol_table()
   fprintf(stderr,"%d refs, %d probes\n",n_refs,n_probes);
   while (i < size)
     if (entries[i]) {
-      u8_string string=entries[i]->name.bytes;
-      int len=entries[i]->name.length, chain=0;
+      u8_string string=entries[i]->name.fd_bytes;
+      int len=entries[i]->name.fd_bytelen, chain=0;
       int hash=mult_hash_string(string,len);
       int probe=hash%size;
       fprintf(stderr,"%s\t%d\t%d\t%d",
               string,len,hash,probe);
       while (entries[probe]) {
-        if (strcmp(entries[probe]->name.bytes,string)==0) break;
-        else fprintf(stderr,"\t%s",entries[probe]->name.bytes);
+        if (strcmp(entries[probe]->name.fd_bytes,string)==0) break;
+        else fprintf(stderr,"\t%s",entries[probe]->name.fd_bytes);
         chain++;
         if (probe == (size-1)) probe=0; else probe++;}
       fprintf(stderr,"\t%d\n",chain);

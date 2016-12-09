@@ -233,7 +233,7 @@ static fdtype hashset_strget(fd_hashset h,u8_string s,u8_byteoff len)
 {
   struct FD_STRING sval;
   FD_INIT_STATIC_CONS(&sval,fd_string_type);
-  sval.length=len; sval.bytes=s;
+  sval.fd_bytelen=len; sval.fd_bytes=s;
   return fd_hashset_get(h,(fdtype)&sval);
 }
 

@@ -1862,8 +1862,8 @@ static fdtype apply_suffixrule
       u8_putn(&out,FD_STRDATA(string),(slen-sufflen));
       u8_putn(&out,FD_STRDATA(replacement),replen);
       FD_INIT_STATIC_CONS(&stack_string,fd_string_type);
-      stack_string.bytes=out.u8_outbuf;
-      stack_string.length=out.u8_outptr-out.u8_outbuf;
+      stack_string.fd_bytes=out.u8_outbuf;
+      stack_string.fd_bytelen=out.u8_outptr-out.u8_outbuf;
       result=check_string((fdtype)&stack_string,lexicon);
       if (FD_ABORTP(result)) return result;
       else if (FD_EMPTY_CHOICEP(result)) return result;

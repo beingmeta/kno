@@ -609,29 +609,29 @@ static int fast_write_dtype(fd_byte_output out,fdtype key,int v2)
     int data=FD_GET_IMMEDIATE(key,itype);
     fdtype name=fd_symbol_names[data];
     struct FD_STRING *s=FD_GET_CONS(name,fd_string_type,struct FD_STRING *);
-    int len=s->length;
+    int len=s->fd_bytelen;
     if ((v2) && (len<256)) {
       {output_byte(out,dt_tiny_symbol);}
       {output_byte(out,len);}
-      {output_bytes(out,s->bytes,len);}
+      {output_bytes(out,s->fd_bytes,len);}
       return len+2;}
     else {
       {output_byte(out,dt_symbol);}
       {output_4bytes(out,len);}
-      {output_bytes(out,s->bytes,len);}
+      {output_bytes(out,s->fd_bytes,len);}
       return len+5;}}
   else if (FD_STRINGP(key)) {
     struct FD_STRING *s=FD_GET_CONS(key,fd_string_type,struct FD_STRING *);
-    int len=s->length;
+    int len=s->fd_bytelen;
     if ((v2) && (len<256)) {
       {output_byte(out,dt_tiny_string);}
       {output_byte(out,len);}
-      {output_bytes(out,s->bytes,len);}
+      {output_bytes(out,s->fd_bytes,len);}
       return len+2;}
     else {
       {output_byte(out,dt_string);}
       {output_4bytes(out,len);}
-      {output_bytes(out,s->bytes,len);}
+      {output_bytes(out,s->fd_bytes,len);}
       return len+5;}}
   else return fd_write_dtype(out,key);
 }

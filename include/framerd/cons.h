@@ -218,19 +218,19 @@ FD_INLINE_FCN void _fd_decref(struct FD_CONS *x)
 
 struct FD_FREE_CONS {
   FD_CONS_HEADER;
-  struct FD_FREE_CONS *next;};
+  struct FD_FREE_CONS *fd_nextfree;};
 
 struct FD_WRAPPER {
   FD_CONS_HEADER;
-  void *data;};
+  void *fd_wrapped_data;};
 
 /* Strings */
 
 typedef struct FD_STRING {
   FD_CONS_HEADER;
-  unsigned int freedata:1;
-  unsigned int length:31;
-  u8_string bytes;} FD_STRING;
+  unsigned int fd_freedata:1;
+  unsigned int fd_bytelen:31;
+  u8_string fd_bytes;} FD_STRING;
 typedef struct FD_STRING *fd_string;
 
 FD_EXPORT ssize_t fd_max_strlen;
@@ -238,16 +238,16 @@ FD_EXPORT ssize_t fd_max_strlen;
 #define FD_STRINGP(x) (FD_PTR_TYPEP(x,fd_string_type))
 #define FD_STRLEN(x) \
   ((unsigned int)\
-   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->length))
+   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytelen))
 #define FD_STRDATA(x) \
-  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->bytes)
+  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytes)
 #define FD_STRING_LENGTH(x) (FD_STRLEN(x))
 #define FD_STRING_DATA(x) (FD_STRDATA(x))
 
 #define FD_XSTRING(x) (FD_GET_CONS(x,fd_string_type,struct FD_STRING *))
 #define fd_strlen(x) \
   ((unsigned int)\
-   ((FD_GET_CONS(x,fd_string_type,struct FD_STRING *))->length))
+   ((FD_GET_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytelen))
 #define fd_strdata(x) (FD_STRDATA(x))
 
 FD_EXPORT fdtype fd_extract_string
@@ -283,11 +283,11 @@ FD_EXPORT fdtype fdtype_string(u8_string string);
   ((FD_PTR_TYPE(x) == fd_packet_type)||(FD_PTR_TYPE(x) == fd_secret_type))
 #define FD_PACKET_LENGTH(x) \
   ((unsigned int)\
-   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->length))
+   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytelen))
 #define FD_PACKET_DATA(x) \
-  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->bytes)
+  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytes)
 #define FD_PACKET_REF(x,i) \
-  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->bytes[i])
+  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytes[i])
 
 FD_EXPORT fdtype fd_init_packet
   (struct FD_STRING *ptr,int len,const unsigned char *data);

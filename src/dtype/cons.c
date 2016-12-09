@@ -167,7 +167,7 @@ void fd_recycle_cons(fd_cons c)
     break;}
   case fd_string_type: case fd_packet_type: case fd_secret_type: {
     struct FD_STRING *s=(struct FD_STRING *)c;
-    if ((s->bytes)&&(s->freedata)) u8_free(s->bytes);
+    if ((s->fd_bytes)&&(s->fd_freedata)) u8_free(s->fd_bytes);
     if (mallocd) u8_free(s);
     break;}
   case fd_vector_type: case fd_rail_type: {
@@ -412,14 +412,14 @@ fdtype fd_copier(fdtype x,int flags)
       return result;}
     case fd_string_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
-      return fd_make_string(NULL,s->length,s->bytes);}
+      return fd_make_string(NULL,s->fd_bytelen,s->fd_bytes);}
     case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
       if (ctype==fd_secret_type) {
-        fdtype result=fd_make_packet(NULL,s->length,s->bytes);
+        fdtype result=fd_make_packet(NULL,s->fd_bytelen,s->fd_bytes);
         FD_SET_CONS_TYPE(result,fd_secret_type);
         return result;}
-      else return fd_make_packet(NULL,s->length,s->bytes);}
+      else return fd_make_packet(NULL,s->fd_bytelen,s->fd_bytes);}
     case fd_choice_type: {
       int n=FD_CHOICE_SIZE(x);
       struct FD_CHOICE *copy=fd_alloc_choice(n);
@@ -481,12 +481,12 @@ fdtype fd_init_string(struct FD_STRING *ptr,int slen,u8_string string)
   if (ptr == NULL) {
     ptr=u8_alloc(struct FD_STRING);
     FD_INIT_STRUCT(ptr,struct FD_STRING);
-    ptr->freedata=1;}
+    ptr->fd_freedata=1;}
   FD_INIT_CONS(ptr,fd_string_type);
   if ((len==0) && (string==NULL)) {
     u8_byte *bytes=u8_malloc(1); *bytes='\0';
     string=(u8_string)bytes;}
-  ptr->length=len; ptr->bytes=string;
+  ptr->fd_bytelen=len; ptr->fd_bytes=string;
   return FDTYPE_CONS(ptr);
 }
 
@@ -511,7 +511,7 @@ fdtype fd_extract_string(struct FD_STRING *ptr,u8_string start,u8_string end)
       freedata=0;}
     else bytes=(u8_byte *)u8_strndup(start,length+1);
     FD_INIT_CONS(ptr,fd_string_type);
-    ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
+    ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
     return FDTYPE_CONS(ptr);}
   else return fd_err(fd_StringOverflow,"fd_extract_string",NULL,FD_VOID);
 }
@@ -532,7 +532,7 @@ fdtype fd_substring(u8_string start,u8_string end)
     u8_byte *bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
     memcpy(bytes,start,length); bytes[length]='\0';
     FD_INIT_CONS(ptr,fd_string_type);
-    ptr->length=length; ptr->bytes=bytes; ptr->freedata=0;
+    ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freedata=0;
     return FDTYPE_CONS(ptr);}
   else return fd_err(fd_StringOverflow,"fd_substring",NULL,FD_VOID);
 }
@@ -559,7 +559,7 @@ fdtype fd_make_string(struct FD_STRING *ptr,int len,u8_string string)
     bytes=u8_malloc(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
+  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
   return FDTYPE_CONS(ptr);
 }
 
@@ -580,7 +580,7 @@ fdtype fd_block_string(int len,u8_string string)
   else memset(bytes,'?',length);
   bytes[length]='\0';
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->length=length; ptr->bytes=bytes; ptr->freedata=0;
+  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freedata=0;
   if (string) u8_free(string);
   return FDTYPE_CONS(ptr);
 }
@@ -606,7 +606,7 @@ fdtype fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
     bytes=u8_malloc(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
-  ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
+  ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
   /* Free the string */
   u8_free(string);
   return FDTYPE_CONS(ptr);
@@ -767,13 +767,13 @@ FD_EXPORT fdtype fd_init_packet
     return fd_make_packet(ptr,len,data);
   if (ptr == NULL) {
     ptr=u8_alloc(struct FD_STRING);
-    ptr->freedata=1;}
+    ptr->fd_freedata=1;}
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
     u8_byte *consed=u8_malloc(len+1);
     memset(consed,0,len+1);
     data=consed;}
-  ptr->length=len; ptr->bytes=data;
+  ptr->fd_bytelen=len; ptr->fd_bytes=data;
   return FDTYPE_CONS(ptr);
 }
 
@@ -793,7 +793,7 @@ FD_EXPORT fdtype fd_make_packet
     bytes=u8_malloc(len+1); memset(bytes,0,len+1);}
   else bytes=(unsigned char *)data;
   FD_INIT_CONS(ptr,fd_packet_type);
-  ptr->length=len; ptr->bytes=bytes; ptr->freedata=freedata;
+  ptr->fd_bytelen=len; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
   return FDTYPE_CONS(ptr);
 }
 
@@ -814,7 +814,7 @@ FD_EXPORT fdtype fd_bytes2packet
     if (data==NULL) memset(bytes,0,len);
     else memcpy(bytes,data,len);}
   FD_INIT_CONS(ptr,fd_packet_type);
-  ptr->length=len; ptr->bytes=bytes; ptr->freedata=freedata;
+  ptr->fd_bytelen=len; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
   if (freedata) u8_free(data);
   return FDTYPE_CONS(ptr);
 }
@@ -1441,10 +1441,10 @@ static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_entry MU e)
 {
   if (FD_PACKETP(x)) {
     struct FD_STRING *p=FD_GET_CONS(x,fd_packet_type,struct FD_STRING *);
-    if (p->length==16) {
+    if (p->fd_bytelen==16) {
       struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
       FD_INIT_CONS(uuid,fd_uuid_type);
-      memcpy(uuid->uuid,p->bytes,16);
+      memcpy(uuid->uuid,p->fd_bytes,16);
       return FDTYPE_CONS(uuid);}
     else return fd_err("Bad UUID packet","uuid_restore",
                        "UUID packet has wrong length",

@@ -170,7 +170,7 @@ static void output_ellipsis(U8_OUTPUT *out,int n,u8_string unit)
 static int unparse_string(U8_OUTPUT *out,fdtype x)
 {
   struct FD_STRING *s=(struct FD_STRING *)x; int n_chars=0;
-  u8_string scan=s->bytes, limit=s->bytes+s->length;
+  u8_string scan=s->fd_bytes, limit=s->fd_bytes+s->fd_bytelen;
   u8_putc(out,'"'); while (scan < limit) {
     u8_string chunk=scan;
     while ((scan < limit) &&
@@ -267,15 +267,15 @@ FD_EXPORT int fd_unparse_packet
 static int unparse_packet(U8_OUTPUT *out,fdtype x)
 {
   struct FD_STRING *s=(struct FD_STRING *)x;
-  const unsigned char *bytes=s->bytes;
-  int len=s->length, base=get_packet_base(bytes,len);
+  const unsigned char *bytes=s->fd_bytes;
+  int len=s->fd_bytelen, base=get_packet_base(bytes,len);
   return fd_unparse_packet(out,bytes,len,base);
 }
 
 static int unparse_secret(U8_OUTPUT *out,fdtype x)
 {
   struct FD_STRING *s=(struct FD_STRING *)x;
-  const unsigned char *bytes=s->bytes; int i=0, len=s->length;
+  const unsigned char *bytes=s->fd_bytes; int i=0, len=s->fd_bytelen;
   unsigned char hashbuf[16], *hash;
   u8_printf(out,"#*\"%d:",len);
   hash=u8_md5(bytes,len,hashbuf);
@@ -1355,8 +1355,8 @@ static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
       fdtype elt=data[i++];
       if (0) { /* (FD_PACKETP(elt)) */
         struct FD_STRING *packet=FD_GET_CONS(elt,fd_packet_type,fd_string);
-        const unsigned char *bytes=packet->bytes; 
-        int n_bytes=packet->length;
+        const unsigned char *bytes=packet->fd_bytes; 
+        int n_bytes=packet->fd_bytelen;
         u8_puts(out," ");
         fd_unparse_packet(out,bytes,n_bytes,16);}
       else u8_printf(out," %q",elt);}

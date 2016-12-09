@@ -1086,11 +1086,11 @@ static fdtype string_byte_length(fdtype string)
 static fdtype fixnuls(fdtype string)
 {
   struct FD_STRING *ss=FD_GET_CONS(string,fd_string_type,fd_string);
-  if (strlen(ss->bytes)<ss->length) {
+  if (strlen(ss->fd_bytes)<ss->fd_bytelen) {
     /* Handle embedded NUL */
     struct U8_OUTPUT out;
-    const u8_byte *scan=ss->bytes, *limit=scan+ss->length;
-    U8_INIT_OUTPUT(&out,ss->length+8);
+    const u8_byte *scan=ss->fd_bytes, *limit=scan+ss->fd_bytelen;
+    U8_INIT_OUTPUT(&out,ss->fd_bytelen+8);
     while (scan<limit) {
       if (*scan)
         u8_putc(&out,u8_sgetc(&scan));

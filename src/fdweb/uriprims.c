@@ -446,7 +446,7 @@ static fdtype datauri_prim(fdtype data,fdtype ctype_arg)
   else if (FD_STRINGP(data))
     sprintf(write,"data:text/plain;charset=UTF-8;base64,");
   else sprintf(write,"data:;base64,");
-  string->length=strlen(write)+data_len;
+  string->fd_bytelen=strlen(write)+data_len;
   strcat(write,base64); u8_free(base64);
   return result;
 }
