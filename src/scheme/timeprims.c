@@ -1652,14 +1652,14 @@ static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
         start=start+1;
       else if (isxdigit(start[0])) {}
       else return fd_type_error("UUID string","getuuid_prim",nodeid);
-      u8_parseuuid(start,(u8_uuid)&(uuid->uuid));
+      u8_parseuuid(start,(u8_uuid)&(uuid->fd_uuid16));
       return FDTYPE_CONS(uuid);}
   else if ((FD_VOIDP(tptr))&&(FD_PACKETP(nodeid)))
     if (FD_PACKET_LENGTH(nodeid)==16) {
       struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
       const unsigned char *data=FD_PACKET_DATA(nodeid);
       FD_INIT_CONS(uuid,fd_uuid_type);
-      memcpy(&(uuid->uuid),data,16);
+      memcpy(&(uuid->fd_uuid16),data,16);
       return FDTYPE_CONS(uuid);}
     else return fd_type_error("UUID (16-byte packet)","getuuid_prim",nodeid);
   else if ((FD_VOIDP(tptr))&&(FD_PRIM_TYPEP(nodeid,fd_uuid_type)))
@@ -1686,7 +1686,7 @@ static fdtype uuidtime_prim(fdtype uuid_arg)
   struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
   struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
   FD_INIT_CONS(tstamp,fd_timestamp_type);
-  if (u8_uuid_xtime(uuid->uuid,&(tstamp->xtime)))
+  if (u8_uuid_xtime(uuid->fd_uuid16,&(tstamp->xtime)))
     return FDTYPE_CONS(tstamp);
   else {
     u8_free(tstamp);
@@ -1696,7 +1696,7 @@ static fdtype uuidtime_prim(fdtype uuid_arg)
 static fdtype uuidnode_prim(fdtype uuid_arg)
 {
   struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
-  long long id= u8_uuid_nodeid(uuid->uuid);
+  long long id= u8_uuid_nodeid(uuid->fd_uuid16);
   if (id<0)
     return fd_type_error("time-based UUID","uuidnode_prim",uuid_arg);
   else return FD_INT(id);
@@ -1705,13 +1705,13 @@ static fdtype uuidnode_prim(fdtype uuid_arg)
 static fdtype uuidstring_prim(fdtype uuid_arg)
 {
   struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
-  return fd_init_string(NULL,36,u8_uuidstring(uuid->uuid,NULL));
+  return fd_init_string(NULL,36,u8_uuidstring(uuid->fd_uuid16,NULL));
 }
 
 static fdtype uuidpacket_prim(fdtype uuid_arg)
 {
   struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
-  return fd_make_packet(NULL,16,uuid->uuid);
+  return fd_make_packet(NULL,16,uuid->fd_uuid16);
 }
 
 /* Corelimit config variable */

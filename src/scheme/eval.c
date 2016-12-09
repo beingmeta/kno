@@ -467,7 +467,7 @@ static fdtype profiled_eval(fdtype expr,fd_lispenv env)
     struct FD_PAIR *p=FD_GET_CONS(profile_data,fd_pair_type,fd_pair);
     struct FD_FLONUM *d=FD_GET_CONS((p->fd_cdr),fd_flonum_type,fd_flonum);
     p->fd_car=FD_INT(fd_getint(p->fd_car)+1);
-    d->flonum=d->flonum+(finish-start);}
+    d->fd_dblval=d->fd_dblval+(finish-start);}
   fd_decref(profile_data); fd_decref(profile_info);
   return value;
 }

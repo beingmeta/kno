@@ -1377,7 +1377,7 @@ FD_EXPORT fdtype fd_cons_uuid
 {
   if (ptr == NULL) ptr=u8_alloc(struct FD_UUID);
   FD_INIT_CONS(ptr,fd_uuid_type);
-  u8_consuuid(xtime,nodeid,clockid,(u8_uuid)&(ptr->uuid));
+  u8_consuuid(xtime,nodeid,clockid,(u8_uuid)&(ptr->fd_uuid16));
   return FDTYPE_CONS(ptr);
 }
 
@@ -1385,7 +1385,7 @@ FD_EXPORT fdtype fd_fresh_uuid(struct FD_UUID *ptr)
 {
   if (ptr == NULL) ptr=u8_alloc(struct FD_UUID);
   FD_INIT_CONS(ptr,fd_uuid_type);
-  u8_getuuid((u8_uuid)&(ptr->uuid));
+  u8_getuuid((u8_uuid)&(ptr->fd_uuid16));
   return FDTYPE_CONS(ptr);
 }
 
@@ -1397,7 +1397,7 @@ static void recycle_uuid(struct FD_CONS *c)
 static int unparse_uuid(u8_output out,fdtype x)
 {
   struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
-  char buf[37]; u8_uuidstring((u8_uuid)(&(uuid->uuid)),buf);
+  char buf[37]; u8_uuidstring((u8_uuid)(&(uuid->fd_uuid16)),buf);
   u8_printf(out,"#U%s",buf);
   return 1;
 }
@@ -1407,7 +1407,7 @@ static fdtype copy_uuid(fdtype x,int deep)
   struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
   struct FD_UUID *nuuid=u8_alloc(struct FD_UUID);
   FD_INIT_CONS(nuuid,fd_uuid_type);
-  memcpy(nuuid->uuid,uuid->uuid,16);
+  memcpy(nuuid->fd_uuid16,uuid->fd_uuid16,16);
   return FDTYPE_CONS(nuuid);
 }
 
@@ -1415,7 +1415,7 @@ static int compare_uuids(fdtype x,fdtype y,int quick)
 {
   struct FD_UUID *xuuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
   struct FD_UUID *yuuid=FD_GET_CONS(y,fd_uuid_type,struct FD_UUID *);
-  return memcmp(xuuid->uuid,yuuid->uuid,16);
+  return memcmp(xuuid->fd_uuid16,yuuid->fd_uuid16,16);
 }
 
 #define MU MAYBE_UNUSED
@@ -1427,14 +1427,14 @@ static int uuid_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
   fd_write_byte(out,dt_compound);
   size=size+1+fd_write_dtype(out,uuid_symbol);
   fd_write_byte(out,dt_packet); fd_write_4bytes(out,16); size=size+5;
-  fd_write_bytes(out,uuid->uuid,16); size=size+16;
+  fd_write_bytes(out,uuid->fd_uuid16,16); size=size+16;
   return size;
 }
 
 static fdtype uuid_dump(fdtype x,fd_compound_entry MU e)
 {
   struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
-  return fd_make_packet(NULL,16,uuid->uuid);
+  return fd_make_packet(NULL,16,uuid->fd_uuid16);
 }
 
 static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_entry MU e)
@@ -1444,7 +1444,7 @@ static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_entry MU e)
     if (p->fd_bytelen==16) {
       struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
       FD_INIT_CONS(uuid,fd_uuid_type);
-      memcpy(uuid->uuid,p->fd_bytes,16);
+      memcpy(uuid->fd_uuid16,p->fd_bytes,16);
       return FDTYPE_CONS(uuid);}
     else return fd_err("Bad UUID packet","uuid_restore",
                        "UUID packet has wrong length",

@@ -1264,7 +1264,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       break;}
     case fd_uuid_type: {
       struct FD_UUID *uuid=FD_GET_CONS(val,fd_uuid_type,struct FD_UUID *);
-      ok=bson_append_binary(out,key,keylen,BSON_SUBTYPE_UUID,uuid->uuid,16);
+      ok=bson_append_binary(out,key,keylen,BSON_SUBTYPE_UUID,uuid->fd_uuid16,16);
       break;}
     case fd_choice_type: case fd_achoice_type: {
       struct FD_BSON_OUTPUT rout;
@@ -1631,7 +1631,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     if (st==BSON_SUBTYPE_UUID) {
       struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
       FD_INIT_CONS(uuid,fd_uuid_type);
-      memcpy(uuid->uuid,data,len);
+      memcpy(uuid->fd_uuid16,data,len);
       value= (fdtype) uuid;}
     else {
       fdtype packet=fd_make_packet(NULL,len,(unsigned char *)data);

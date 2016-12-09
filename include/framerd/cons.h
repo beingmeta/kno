@@ -468,7 +468,7 @@ FD_EXPORT fdtype fd_compound_descriptor_type;
 
 typedef struct FD_UUID {
   FD_CONS_HEADER;
-  unsigned char uuid[16];} FD_UUID;
+  unsigned char fd_uuid16[16];} FD_UUID;
 typedef struct FD_UUID *fd_uuid;
 
 FD_EXPORT fdtype fd_cons_uuid
@@ -502,38 +502,38 @@ FD_EXPORT fd_bigint fd_long_to_bigint(long);
 
 typedef struct FD_FLONUM {
   FD_CONS_HEADER;
-  double flonum;} FD_FLONUM;
+  double fd_dblval;} FD_FLONUM;
 typedef struct FD_FLONUM *fd_flonum;
 
 #define FD_FLONUMP(x) (FD_PTR_TYPEP(x,fd_flonum_type))
 #define FD_XFLONUM(x) (FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *))
-#define FD_FLONUM(x) ((FD_XFLONUM(x))->flonum)
+#define FD_FLONUM(x) ((FD_XFLONUM(x))->fd_dblval)
 
 /* Rational and complex numbers */
 
 typedef struct FD_RATIONAL {
   FD_CONS_HEADER;
-  fdtype numerator;
-  fdtype denominator;} FD_RATIONAL;
+  fdtype fd_numerator;
+  fdtype fd_denominator;} FD_RATIONAL;
 typedef struct FD_RATIONAL *fd_rational;
 
 #define FD_RATIONALP(x) (FD_PTR_TYPE(x) == fd_rational_type)
 #define FD_NUMERATOR(x) \
-  ((FD_GET_CONS(x,fd_rational_type,struct FD_RATIONAL *))->numerator)
+  ((FD_GET_CONS(x,fd_rational_type,struct FD_RATIONAL *))->fd_numerator)
 #define FD_DENOMINATOR(x) \
-  ((FD_GET_CONS(x,fd_rational_type,struct FD_RATIONAL *))->denominator)
+  ((FD_GET_CONS(x,fd_rational_type,struct FD_RATIONAL *))->fd_denominator)
 
 typedef struct FD_COMPLEX {
   FD_CONS_HEADER;
-  fdtype realpart;
-  fdtype imagpart;} FD_COMPLEX;
+  fdtype fd_realpart;
+  fdtype fd_imagpart;} FD_COMPLEX;
 typedef struct FD_COMPLEX *fd_complex;
 
 #define FD_COMPLEXP(x) (FD_PTR_TYPE(x) == fd_complex_type)
 #define FD_REALPART(x) \
-  ((FD_GET_CONS(x,fd_complex_type,struct FD_COMPLEX *))->realpart)
+  ((FD_GET_CONS(x,fd_complex_type,struct FD_COMPLEX *))->fd_realpart)
 #define FD_IMAGPART(x) \
-  ((FD_GET_CONS(x,fd_complex_type,struct FD_COMPLEX *))->imagpart)
+  ((FD_GET_CONS(x,fd_complex_type,struct FD_COMPLEX *))->fd_imagpart)
 
 
 /* Parsing regexes */

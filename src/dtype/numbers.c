@@ -1977,7 +1977,7 @@ FD_EXPORT fdtype fd_init_flonum(struct FD_FLONUM *ptr,double flonum)
 {
   if (ptr == NULL) ptr=u8_alloc(struct FD_FLONUM);
   FD_INIT_CONS(ptr,fd_flonum_type);
-  ptr->flonum=flonum;
+  ptr->fd_dblval=flonum;
   return FDTYPE_CONS(ptr);
 }
 
@@ -1985,7 +1985,7 @@ FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum)
 {
   if (ptr == NULL) ptr=u8_alloc(struct FD_FLONUM);
   FD_INIT_CONS(ptr,fd_flonum_type);
-  ptr->flonum=flonum;
+  ptr->fd_dblval=flonum;
   return FDTYPE_CONS(ptr);
 }
 
@@ -1994,10 +1994,10 @@ static int unparse_flonum(struct U8_OUTPUT *out,fdtype x)
   unsigned char buf[256]; int exp;
   struct FD_FLONUM *d=FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
   /* Get the exponent */
-  frexp(d->flonum,&exp);
+  frexp(d->fd_dblval,&exp);
   if ((exp<-10) || (exp>20))
-    sprintf(buf,"%e",d->flonum);
-  else sprintf(buf,"%f",d->flonum);
+    sprintf(buf,"%e",d->fd_dblval);
+  else sprintf(buf,"%f",d->fd_dblval);
   u8_puts(out,buf);
   return 1;
 }
@@ -2005,7 +2005,7 @@ static int unparse_flonum(struct U8_OUTPUT *out,fdtype x)
 static fdtype copy_flonum(fdtype x,int deep)
 {
   struct FD_FLONUM *d=FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
-  return fd_init_flonum(NULL,d->flonum);
+  return fd_init_flonum(NULL,d->fd_dblval);
 }
 
 static fdtype unpack_flonum(unsigned int n,unsigned char *packet)
@@ -2025,7 +2025,7 @@ static int dtype_flonum(struct FD_BYTE_OUTPUT *out,fdtype x)
   struct FD_FLONUM *d=FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
   unsigned char bytes[8]; int i=0;
   double *f=(double *)&bytes;
-  *f=d->flonum;
+  *f=d->fd_dblval;
   fd_write_byte(out,dt_numeric_package);
   fd_write_byte(out,dt_double);
   fd_write_byte(out,8);
@@ -2048,8 +2048,8 @@ static int compare_flonum(fdtype x,fdtype y,int f)
     FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
   struct FD_FLONUM *dy=
     FD_GET_CONS(y,fd_flonum_type,struct FD_FLONUM *);
-  if (dx->flonum < dy->flonum) return -1;
-  else if (dx->flonum==dy->flonum) return 0;
+  if (dx->fd_dblval < dy->fd_dblval) return -1;
+  else if (dx->fd_dblval==dy->fd_dblval) return 0;
   else return 1;
 }
 
@@ -2058,7 +2058,7 @@ static int hash_flonum(fdtype x,unsigned int (*fn)(fdtype))
   struct FD_FLONUM *dx=
     FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
   int expt;
-  double mantissa=frexp(fabs(dx->flonum),&expt);
+  double mantissa=frexp(fabs(dx->fd_dblval),&expt);
   double reformed=
     ((expt<0) ? (ldexp(mantissa,0)) : (ldexp(mantissa,expt)));
   int asint=(int)reformed;
@@ -2258,7 +2258,7 @@ int fd_output_number(u8_output out,fdtype num,int base)
   else if (FD_FLONUMP(num)) {
     unsigned char buf[256];
     struct FD_FLONUM *d=FD_GET_CONS(num,fd_flonum_type,struct FD_FLONUM *);
-    sprintf(buf,"%f",d->flonum);
+    sprintf(buf,"%f",d->fd_dblval);
     u8_puts(out,buf);
     return 1;}
   else if (FD_BIGINTP(num)) {
@@ -2287,7 +2287,7 @@ int fd_output_number(u8_output out,fdtype num,int base)
 
 static double todoublex(fdtype x,fd_ptr_type xt)
 {
-  if (xt == fd_flonum_type) return ((struct FD_FLONUM *)x)->flonum;
+  if (xt == fd_flonum_type) return ((struct FD_FLONUM *)x)->fd_dblval;
   else if (xt == fd_fixnum_type)
     return (double) (FD_FIX2INT(x));
   else if (xt == fd_bigint_type)
@@ -2339,7 +2339,7 @@ static fdtype make_complex(fdtype real,fdtype imag)
   else {
     struct FD_COMPLEX *result=u8_alloc(struct FD_COMPLEX);
     FD_INIT_CONS(result,fd_complex_type);
-    result->realpart=real; result->imagpart=imag;
+    result->fd_realpart=real; result->fd_imagpart=imag;
     return (fdtype) result;}
 }
 
@@ -2393,8 +2393,8 @@ static fdtype make_rational(fdtype num,fdtype denom)
   else return fd_err(_("Non integral components"),"fd_make_rational",NULL,num);
   result=u8_alloc(struct FD_RATIONAL);
   FD_INIT_CONS(result,fd_rational_type);
-  result->numerator=num;
-  result->denominator=denom;
+  result->fd_numerator=num;
+  result->fd_denominator=denom;
   return (fdtype) result;
 }
 

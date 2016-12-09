@@ -312,7 +312,7 @@ static fdtype plus_lexpr(int n,fdtype *args)
         if (FD_FIXNUMP(args[i])) val=(double)fd_getint(args[i]);
         else if (FD_BIGINTP(args[i]))
           val=(double)fd_bigint_to_double((fd_bigint)args[i]);
-        else val=((struct FD_FLONUM *)args[i])->flonum;
+        else val=((struct FD_FLONUM *)args[i])->fd_dblval;
         floresult=floresult+val;
         i++;}
       return fd_init_double(NULL,floresult);}
@@ -402,7 +402,7 @@ static fdtype times_lexpr(int n,fdtype *args)
         if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
         else if  (FD_BIGINTP(args[i]))
           val=(double)fd_bigint_to_double((fd_bigint)args[i]);
-        else val=((struct FD_FLONUM *)args[i])->flonum;
+        else val=((struct FD_FLONUM *)args[i])->fd_dblval;
         floresult=floresult*val;
         i++;}
       return fd_init_double(NULL,floresult);}
@@ -453,7 +453,7 @@ static fdtype minus_lexpr(int n,fdtype *args)
         if (FD_FIXNUMP(args[i])) val=(double)FD_FIX2INT(args[i]);
         else if  (FD_BIGINTP(args[i]))
           val=(double)fd_bigint_to_double((fd_bigint)args[i]);
-        else val=((struct FD_FLONUM *)args[i])->flonum;
+        else val=((struct FD_FLONUM *)args[i])->fd_dblval;
         if (i==0) floresult=val; else floresult=floresult-val;
         i++;}
       return fd_init_double(NULL,floresult);}
@@ -478,7 +478,7 @@ static double todouble(fdtype x)
   else if (FD_BIGINTP(x))
     return (double)fd_bigint_to_double((fd_bigint)x);
   else if (FD_FLONUMP(x))
-    return (((struct FD_FLONUM *)x)->flonum);
+    return (((struct FD_FLONUM *)x)->fd_dblval);
   else {
     /* This won't really work, but we should catch the error before
        this point.  */

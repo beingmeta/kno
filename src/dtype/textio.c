@@ -597,7 +597,7 @@ fdtype fd_parse_atom(u8_string start,int len)
   else if ((start[0]=='#')&&(start[1]=='U')) { /* It's a UUID */
     struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
     FD_INIT_CONS(uuid,fd_uuid_type);
-    if (u8_parseuuid(start+2,(u8_uuid)&(uuid->uuid)))
+    if (u8_parseuuid(start+2,(u8_uuid)&(uuid->fd_uuid16)))
       return FDTYPE_CONS(uuid);
     else {
       fd_seterr3("Invalid UUID","fd_parse_atom",u8_strdup(start));

@@ -1621,8 +1621,8 @@ static int do_hashtable_op
                  ((FD_FIXNUMP(v)) || (FD_FLONUMP(v)))) {
           struct FD_FLONUM *dbl=(fd_flonum)current;
           if (FD_FIXNUMP(v))
-            dbl->flonum=dbl->flonum+FD_FIX2INT(v);
-          else dbl->flonum=dbl->flonum+FD_FLONUM(v);}
+            dbl->fd_dblval=dbl->fd_dblval+FD_FIX2INT(v);
+          else dbl->fd_dblval=dbl->fd_dblval+FD_FLONUM(v);}
         else if (FD_NUMBERP(v)) {
           fdtype newnum=fd_plus(current,v);
           if (newnum != current) {
@@ -1651,8 +1651,8 @@ static int do_hashtable_op
                  ((FD_FIXNUMP(v)) || (FD_FLONUMP(v)))) {
           struct FD_FLONUM *dbl=(fd_flonum)current;
           if (FD_FIXNUMP(v))
-            dbl->flonum=dbl->flonum*FD_FIX2INT(v);
-          else dbl->flonum=dbl->flonum*FD_FLONUM(v);}
+            dbl->fd_dblval=dbl->fd_dblval*FD_FIX2INT(v);
+          else dbl->fd_dblval=dbl->fd_dblval*FD_FLONUM(v);}
         else if (FD_NUMBERP(v)) {
           fdtype newnum=fd_multiply(current,v);
           if (newnum != current) {
