@@ -12,13 +12,9 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 
-typedef struct FD_SYMBOL_ENTRY {
-  struct FD_STRING name; int serial;} FD_SYMBOL_ENTRY;
-typedef struct FD_SYMBOL_ENTRY *fd_symbol_entry;
-struct FD_SYMBOL_TABLE {
-  int size; struct FD_SYMBOL_ENTRY **entries;} fd_symbol_table;
 fdtype *fd_symbol_names;
 int fd_n_symbols=0, fd_max_symbols=0, fd_initial_symbols=1024;
+struct FD_SYMBOL_TABLE fd_symbol_table;
 
 #if FD_THREADS_ENABLED
 u8_mutex fd_symbol_lock;
@@ -55,7 +51,8 @@ static void init_symbol_tables()
     fdtype *new_symbol_names=u8_alloc_n(new_max,fdtype);
     int i=0, lim=new_size; while (i < lim) new_entries[i++]=NULL;
     i=0; lim=new_max; while (i < lim) new_symbol_names[i++]=FD_VOID;
-    fd_symbol_table.size=new_size; fd_symbol_table.entries=new_entries;
+    fd_symbol_table.fd_table_size=new_size; 
+    fd_symbol_table.fd_symbol_entries=new_entries;
     fd_symbol_names=new_symbol_names; fd_max_symbols=new_max;
     fd_unlock_mutex(&fd_symbol_lock);
   }
@@ -65,24 +62,26 @@ static void grow_symbol_tables()
 {
   int new_max=fd_max_symbols*2;
   int new_size=fd_get_hashtable_size(new_max*2);
-  struct FD_SYMBOL_ENTRY **old_entries=fd_symbol_table.entries;
+  struct FD_SYMBOL_ENTRY **old_entries=fd_symbol_table.fd_symbol_entries;
   struct FD_SYMBOL_ENTRY **new_entries=u8_alloc_n(new_size,fd_symbol_entry);
   fdtype *new_symbol_names=u8_alloc_n(new_max,fdtype);
   {
-    int i=0, lim=fd_symbol_table.size;
+    int i=0, lim=fd_symbol_table.fd_table_size;
     while (i < new_size) new_entries[i++]=NULL;
     i=0; while (i < lim)
       if (old_entries[i] == NULL) i++;
       else {
         struct FD_SYMBOL_ENTRY *entry=old_entries[i];
         int probe=
-          mult_hash_string(entry->name.fd_bytes,entry->name.fd_bytelen)%new_size;
+          mult_hash_string(entry->fd_pname.fd_bytes,
+                           entry->fd_pname.fd_bytelen)%new_size;
         while (FD_EXPECT_TRUE(new_entries[probe]!=NULL))
           if (probe >= new_size) probe=0; else probe=(probe+1)%new_size;
         new_entries[probe]=entry;
         i++;}
     u8_free(old_entries);
-    fd_symbol_table.entries=new_entries; fd_symbol_table.size=new_size;}
+    fd_symbol_table.fd_symbol_entries=new_entries; 
+    fd_symbol_table.fd_table_size=new_size;}
   {
     int i=0, lim=fd_n_symbols; fdtype *old_symbol_names;
     while (i < lim) {new_symbol_names[i]=fd_symbol_names[i]; i++;}
@@ -100,17 +99,18 @@ fdtype fd_make_symbol(u8_string bytes,int len)
     fd_unlock_mutex(&fd_symbol_lock);
     init_symbol_tables();
     fd_lock_mutex(&fd_symbol_lock);}
-  entries=fd_symbol_table.entries; size=fd_symbol_table.size;
+  entries=fd_symbol_table.fd_symbol_entries; 
+  size=fd_symbol_table.fd_table_size;
   if (len<0) len=strlen(bytes);
   hash=mult_hash_string(bytes,len);
   probe=hash%size;
   while (FD_EXPECT_TRUE(entries[probe]!=NULL)) {
-    if (FD_EXPECT_TRUE(len == (entries[probe])->name.fd_bytelen))
-      if (FD_EXPECT_TRUE(strncmp(bytes,(entries[probe])->name.fd_bytes,len) == 0))
+    if (FD_EXPECT_TRUE(len == (entries[probe])->fd_pname.fd_bytelen))
+      if (FD_EXPECT_TRUE(strncmp(bytes,(entries[probe])->fd_pname.fd_bytes,len) == 0))
         break;
     probe++; if (probe>=size) probe=0;}
   if (entries[probe]) {
-    int id=entries[probe]->serial;
+    int id=entries[probe]->fd_symid;
     fd_unlock_mutex(&fd_symbol_lock);
     return FD_ID2SYMBOL(id);}
   else {
@@ -121,29 +121,29 @@ fdtype fd_make_symbol(u8_string bytes,int len)
     else {
       int id=fd_n_symbols++;
       entries[probe]=u8_alloc(struct FD_SYMBOL_ENTRY);
-      entries[probe]->serial=id;
-      fd_init_string(&(entries[probe]->name),len,u8_strdup(bytes));
-      fd_symbol_names[id]=FDTYPE_CONS(&(entries[probe]->name));
+      entries[probe]->fd_symid=id;
+      fd_init_string(&(entries[probe]->fd_pname),len,u8_strdup(bytes));
+      fd_symbol_names[id]=FDTYPE_CONS(&(entries[probe]->fd_pname));
       fd_unlock_mutex(&fd_symbol_lock);
       return FD_ID2SYMBOL(id);}}
 }
 
 fdtype fd_probe_symbol(u8_string bytes,int len)
 {
-  struct FD_SYMBOL_ENTRY **entries=fd_symbol_table.entries;
-  int probe, size=fd_symbol_table.size;
+  struct FD_SYMBOL_ENTRY **entries=fd_symbol_table.fd_symbol_entries;
+  int probe, size=fd_symbol_table.fd_table_size;
   if (fd_max_symbols == 0) return FD_VOID;
   fd_lock_mutex(&fd_symbol_lock);
   if (len < 0) len=strlen(bytes);
   probe=mult_hash_string(bytes,len)%size;
   while (entries[probe]) {
-    if (len == entries[probe]->name.fd_bytelen)
-      if (strncmp(bytes,entries[probe]->name.fd_bytes,len) == 0) break;
+    if (len == entries[probe]->fd_pname.fd_bytelen)
+      if (strncmp(bytes,entries[probe]->fd_pname.fd_bytes,len) == 0) break;
     if (probe >= size) probe=0;
     else probe++;}
   if (entries[probe]) {
     fd_unlock_mutex(&fd_symbol_lock);
-    return FD_ID2SYMBOL(entries[probe]->serial);}
+    return FD_ID2SYMBOL(entries[probe]->fd_symid);}
   else {
     fd_unlock_mutex(&fd_symbol_lock);
     return FD_VOID;}

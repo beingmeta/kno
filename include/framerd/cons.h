@@ -298,6 +298,17 @@ FD_EXPORT fdtype fd_bytes2packet
 
 #define FD_XPACKET(x) (FD_GET_CONS(x,fd_packet_type,struct FD_STRING *))
 
+/* Symbol tables */
+
+typedef struct FD_SYMBOL_ENTRY {
+  struct FD_STRING fd_pname;
+  int fd_symid;} FD_SYMBOL_ENTRY;
+typedef struct FD_SYMBOL_ENTRY *fd_symbol_entry;
+struct FD_SYMBOL_TABLE {
+  int fd_table_size;
+  struct FD_SYMBOL_ENTRY **fd_symbol_entries;};
+FD_EXPORT struct FD_SYMBOL_TABLE fd_symbol_table;
+
 /* Pairs */
 
 typedef struct FD_PAIR {

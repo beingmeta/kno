@@ -458,7 +458,7 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 /* Symbols */
 
 #ifndef FD_CORE_SYMBOLS
-#define FD_CORE_SYMBOLS 4096
+#define FD_CORE_SYMBOLS 8192
 #endif
 FD_EXPORT fdtype *fd_symbol_names;
 FD_EXPORT int fd_n_symbols;

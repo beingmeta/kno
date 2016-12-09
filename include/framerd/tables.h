@@ -376,8 +376,8 @@ static MAYBE_UNUSED fdtype fd_schemap_test
 
 typedef struct FD_HASH_BUCKET {
   int fd_n_entries;
-  struct FD_KEYVAL fd_keyval0;} FD_HASHENTRY;
-typedef struct FD_HASH_BUCKET *fd_hashentry;
+  struct FD_KEYVAL fd_keyval0;} FD_HASH_BUCKET;
+typedef struct FD_HASH_BUCKET *fd_hash_bucket;
 
 typedef struct FD_HASHTABLE {
   FD_CONS_HEADER;

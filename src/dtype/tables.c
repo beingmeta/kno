@@ -2072,7 +2072,7 @@ FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
   if (ptr->fd_uselock) { fd_write_lock_struct(ptr); unlock=1; }
   {
-    struct FD_HASH_BUCKET **new_slots=u8_alloc_n(n_slots,fd_hashentry);
+    struct FD_HASH_BUCKET **new_slots=u8_alloc_n(n_slots,fd_hash_bucket);
     struct FD_HASH_BUCKET **scan=ptr->fd_buckets, **lim=scan+ptr->fd_n_buckets;
     struct FD_HASH_BUCKET **nscan=new_slots, **nlim=nscan+n_slots;
     while (nscan<nlim) *nscan++=NULL;
@@ -2142,7 +2142,7 @@ FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
   if ((n_slots == 0) || (n_keys == 0)) return 0;
   if (ptr->fd_uselock) { fd_write_lock_struct(ptr); unlock=1;}
   {
-    struct FD_HASH_BUCKET **new_slots=u8_alloc_n(n_slots,fd_hashentry);
+    struct FD_HASH_BUCKET **new_slots=u8_alloc_n(n_slots,fd_hash_bucket);
     struct FD_HASH_BUCKET **scan=ptr->fd_buckets, **lim=scan+ptr->fd_n_buckets;
     struct FD_HASH_BUCKET **nscan=new_slots, **nlim=nscan+n_slots;
     int remaining_keys=0;
@@ -2226,7 +2226,7 @@ FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
   read=slots=ptr->fd_buckets;
   read_limit=read+n_slots;
   nptr->fd_load_factor=ptr->fd_load_factor;
-  write=nptr->fd_buckets=u8_alloc_n(n_slots,fd_hashentry);
+  write=nptr->fd_buckets=u8_alloc_n(n_slots,fd_hash_bucket);
   memset(write,0,sizeof(struct FD_HASH_BUCKET *)*n_slots);
   while (read<read_limit)
     if (*read==NULL) {read++; write++;}
