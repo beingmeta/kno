@@ -2876,7 +2876,7 @@ FD_EXPORT fdtype fd_getvalues(fdtype arg)
       FD_ADD_TO_CHOICE(results,fd_getvalues(table));}
     return results;}
   else if (FD_PAIRP(arg))
-    return fd_cdr(arg);
+    return fd_refcdr(arg);
   else if (!(FD_TABLEP(arg)))
     return fd_err(NotATable,"fd_getvalues",NULL,arg);
   else {

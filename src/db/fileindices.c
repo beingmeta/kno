@@ -849,7 +849,7 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
             struct FD_PAIR *pair=
               FD_GET_CONS(key,fd_pair_type,struct FD_PAIR *);
             fd_decref(kvscan->value); kvscan->value=cached;
-            pair->car=set_symbol;}
+            pair->fd_car=set_symbol;}
           else dropkeys[n_drops++]=FD_CDR(key);}
         kvscan++;}
       scan++;}

@@ -302,33 +302,33 @@ FD_EXPORT fdtype fd_bytes2packet
 
 typedef struct FD_PAIR {
   FD_CONS_HEADER;
-  fdtype car;
-  fdtype cdr;} FD_PAIR;
+  fdtype fd_car;
+  fdtype fd_cdr;} FD_PAIR;
 typedef struct FD_PAIR *fd_pair;
 
 #define FD_PAIRP(x) (FD_PTR_TYPE(x) == fd_pair_type)
 #define FD_CAR(x) \
-  ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->car)
+  ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_car)
 #define FD_CDR(x) \
-  ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->cdr)
+  ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_cdr)
 #define FD_TRY_CAR(x) \
   ((FD_PAIRP(x)) ? \
-   ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->car) : \
+   ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_car) : \
    (FD_VOID))
 #define FD_TRY_CDR(x) \
   ((FD_PAIRP(x)) ? \
-   ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->cdr) : \
+   ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_cdr) : \
    (FD_VOID))
 #define FD_CADR(x) (FD_CAR(FD_CDR(x)))
 
-#define fd_car(x) \
-  fd_incref(((FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))->car))
-#define fd_cdr(x) \
-  fd_incref(((FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))->cdr))
+#define fd_refcar(x) \
+  fd_incref(((FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_car))
+#define fd_refcdr(x) \
+  fd_incref(((FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_cdr))
 
 /* These are not threadsafe and they don't worry about GC either */
-#define FD_RPLACA(p,x) ((struct FD_PAIR *)p)->car=x
-#define FD_RPLACD(p,x) ((struct FD_PAIR *)p)->cdr=x
+#define FD_RPLACA(p,x) ((struct FD_PAIR *)p)->fd_car=x
+#define FD_RPLACD(p,x) ((struct FD_PAIR *)p)->fd_cdr=x
 
 #define FD_DOLIST(x,list) \
   fdtype x, _tmp=list; \

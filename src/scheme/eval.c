@@ -465,8 +465,8 @@ static fdtype profiled_eval(fdtype expr,fd_lispenv env)
     fd_store(profile_info,tag,profile_data);}
   else {
     struct FD_PAIR *p=FD_GET_CONS(profile_data,fd_pair_type,fd_pair);
-    struct FD_FLONUM *d=FD_GET_CONS((p->cdr),fd_flonum_type,fd_flonum);
-    p->car=FD_INT(fd_getint(p->car)+1);
+    struct FD_FLONUM *d=FD_GET_CONS((p->fd_cdr),fd_flonum_type,fd_flonum);
+    p->fd_car=FD_INT(fd_getint(p->fd_car)+1);
     d->flonum=d->flonum+(finish-start);}
   fd_decref(profile_data); fd_decref(profile_info);
   return value;
@@ -772,7 +772,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       return opcode_dispatch(head,expr,env);
     else if (head == quote_symbol)
       if (FD_PAIRP(expr))
-        return fd_car(FD_CDR(expr));
+        return fd_refcar(FD_CDR(expr));
       else {
         fdtype v=FD_RAIL_REF(expr,1); fd_incref(v);
         return v;}

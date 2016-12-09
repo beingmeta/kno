@@ -140,7 +140,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
       fd_decref(head); return new_elt;}
     new_tail=fd_conspair(new_elt,FD_EMPTY_LIST);
     tailcons=FD_STRIP_CONS(new_tail,fd_pair_type,struct FD_PAIR *);
-    *tail=new_tail; tail=&(tailcons->cdr);
+    *tail=new_tail; tail=&(tailcons->fd_cdr);
     obj=FD_CDR(obj);}
   if (!(FD_EMPTY_LISTP(obj))) {
     fdtype final=fd_quasiquote(obj,env,level);

@@ -550,7 +550,7 @@ FD_EXPORT fdtype _fd_index_get(fd_index ix,fdtype key)
   FDTC *fdtc=fd_threadcache;
   if (fdtc) {
     FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-    tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
+    tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=key;
     cached=fd_hashtable_get(&(fdtc->indices),(fdtype)&tempkey,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
   if (ix->cache_level==0) cached=FD_VOID;
@@ -602,7 +602,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
       FD_DO_CHOICES(k,key) {
         struct FD_PAIR tempkey;
         FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-        tempkey.car=fd_index2lisp(ix); tempkey.cdr=k;
+        tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=k;
         if (fd_hashtable_probe(&(fdtc->indices),(fdtype)&tempkey)) {
           fd_hashtable_add(&(fdtc->indices),(fdtype)&tempkey,value);}}}
     fd_hashtable_iterkeys(&(ix->adds),fd_table_add,n,keys,value);
@@ -613,7 +613,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
     if ((FD_WRITETHROUGH_THREADCACHE)&&(fdtc)) {
       struct FD_PAIR tempkey;
       FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-      tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
+      tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=key;
       if (fd_hashtable_probe(&(fdtc->indices),(fdtype)&tempkey)) {
         fd_hashtable_add(&(fdtc->indices),(fdtype)&tempkey,value);}}
     fd_hashtable_add(&(ix->adds),key,value);

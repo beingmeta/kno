@@ -136,8 +136,8 @@ void fd_recycle_cons(fd_cons c)
   case fd_pair_type: {
     /* This is hairy in order to iteratively free up long lists. */
     struct FD_PAIR *p=(struct FD_PAIR *)c;
-    fdtype cdr=p->cdr;
-    fd_decref(p->car);
+    fdtype cdr=p->fd_cdr;
+    fd_decref(p->fd_car);
     if (mallocd) u8_free(p);
     if ((FD_PAIRP(cdr)) &&
         (FD_CONS_REFCOUNT((fd_pair)cdr)==1))
@@ -158,7 +158,7 @@ void fd_recycle_cons(fd_cons c)
         else if (FD_CONSBITS(x)>=0x80) {
           x->fd_conshead=(0xFFFFFF80|(x->fd_conshead&0x7F));
           FD_UNLOCK_PTR(x);
-          fd_decref(x->car); cdr=x->cdr;
+          fd_decref(x->fd_car); cdr=x->fd_cdr;
           if (FD_MALLOCD_CONSP(x)) u8_free(x);}
         else {
           FD_UNLOCK_PTR(x);
@@ -378,18 +378,18 @@ fdtype fd_copier(fdtype x,int flags)
       while (FD_PRIM_TYPEP(scan,fd_pair_type)) {
         struct FD_PAIR *p=FD_STRIP_CONS(scan,ctype,struct FD_PAIR *);
         struct FD_PAIR *newpair=u8_alloc(struct FD_PAIR);
-        fdtype car=p->car;
+        fdtype car=p->fd_car;
         FD_INIT_CONS(newpair,fd_pair_type);
         if (FD_CONSP(car)) {
           struct FD_CONS *c=(struct FD_CONS *)car;
           if ((flags&FD_FULL_COPY)||(FD_STACK_CONSP(c)))
-            newpair->car=fd_copier(car,flags);
-          else {fd_incref(car); newpair->car=car;}}
+            newpair->fd_car=fd_copier(car,flags);
+          else {fd_incref(car); newpair->fd_car=car;}}
         else {
-          fd_incref(car); newpair->car=car;}
+          fd_incref(car); newpair->fd_car=car;}
         *tail=(fdtype)newpair;
-        tail=&(newpair->cdr);
-        scan=p->cdr;}
+        tail=&(newpair->fd_cdr);
+        scan=p->fd_cdr;}
       if (FD_CONSP(scan))
         *tail=fd_copier(scan,flags);
       else *tail=scan;
@@ -629,7 +629,7 @@ FD_EXPORT fdtype fd_init_pair(struct FD_PAIR *ptr,fdtype car,fdtype cdr)
 {
   if (ptr == NULL) ptr=u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(ptr,fd_pair_type);
-  ptr->car=car; ptr->cdr=cdr;
+  ptr->fd_car=car; ptr->fd_cdr=cdr;
   return FDTYPE_CONS(ptr);
 }
 

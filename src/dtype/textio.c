@@ -1128,7 +1128,7 @@ static fdtype parse_list(U8_INPUT *in)
         fd_decref(head); return list_elt;}
       new_pair=u8_alloc(struct FD_PAIR);
       if (new_pair) {
-        scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
+        scan->fd_cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
         scan=new_pair;}
       else {
         fd_decref(head); fd_decref(list_elt);
@@ -1147,7 +1147,7 @@ static fdtype parse_list(U8_INPUT *in)
       if (FD_ABORTP(tail)) {
         fd_decref(head); return tail;}
       skip_whitespace(in); ch=u8_getc(in);
-      if (ch == ')') {scan->cdr=tail; return head;}
+      if (ch == ')') {scan->fd_cdr=tail; return head;}
       fd_decref(head); fd_decref(tail);
       return FD_PARSE_ERROR;}}
 }
@@ -1191,7 +1191,7 @@ static fdtype parse_bracket_list(U8_INPUT *in)
         fd_decref(head); return list_elt;}
       new_pair=u8_alloc(struct FD_PAIR);
       if (new_pair) {
-        scan->cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
+        scan->fd_cdr=fd_init_pair(new_pair,list_elt,FD_EMPTY_LIST);
         scan=new_pair;}
       else {
         fd_decref(head); fd_decref(list_elt);
@@ -1210,7 +1210,7 @@ static fdtype parse_bracket_list(U8_INPUT *in)
       if (FD_ABORTP(tail)) {
         fd_decref(head); return tail;}
       skip_whitespace(in); ch=u8_getc(in);
-      if (ch == ')') {scan->cdr=tail; return head;}
+      if (ch == ')') {scan->fd_cdr=tail; return head;}
       fd_decref(head); fd_decref(tail);
       return FD_PARSE_ERROR;}}
 }

@@ -1140,7 +1140,7 @@ fdtype fd_xmleval_with(U8_OUTPUT *out,fdtype xml,
   if (!(out)) out=u8_current_output;
   if ((FD_PAIRP(xml))&&(FD_ENVIRONMENTP(FD_CAR(xml)))) {
     /* This is returned by FDXML parsing */
-    scheme_env=(fd_lispenv)fd_car(xml); xml=FD_CDR(xml);}
+    scheme_env=(fd_lispenv)fd_refcar(xml); xml=FD_CDR(xml);}
   else scheme_env=fd_working_environment();
   { fdtype implicit_xml_env=fd_symeval(xml_env_symbol,scheme_env);
     if (FD_VOIDP(implicit_xml_env)) {

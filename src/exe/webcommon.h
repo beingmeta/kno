@@ -119,7 +119,7 @@ static int preflight_set(fdtype var,fdtype val,void *data)
 	      (strcmp(f->name,vf->name)==0)&&
 	      (strcmp(f->filename,vf->filename)==0)) {
 	    struct FD_PAIR *p=FD_GET_CONS(scan,fd_pair_type,struct FD_PAIR *);
-	    p->car=val; fd_incref(val); fd_decref(fn);
+	    p->fd_car=val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
 	scan=FD_CDR(scan);}}
     preflight=fd_conspair(val,preflight);
@@ -171,7 +171,7 @@ static int postflight_set(fdtype var,fdtype val,void *data)
 	      (strcmp(f->name,vf->name)==0)&&
 	      (strcmp(f->filename,vf->filename)==0)) {
 	    struct FD_PAIR *p=FD_GET_CONS(scan,fd_pair_type,struct FD_PAIR *);
-	    p->car=val; fd_incref(val); fd_decref(fn);
+	    p->fd_car=val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
 	scan=FD_CDR(scan);}}
     postflight=fd_conspair(val,postflight);
@@ -495,7 +495,7 @@ static fdtype loadcontent(fdtype path)
 	   (whitespace_stringp(FD_STRDATA(FD_CAR(parsed))))) {
       struct FD_PAIR *old_parsed=(struct FD_PAIR *)parsed;
       parsed=FD_CDR(parsed);
-      old_parsed->cdr=FD_EMPTY_LIST;}
+      old_parsed->fd_cdr=FD_EMPTY_LIST;}
     ldata=parsed;
     env=(fd_lispenv)xml->data; lenv=(fdtype)env;
     if (traceweb>0)

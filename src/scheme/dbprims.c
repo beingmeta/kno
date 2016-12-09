@@ -560,7 +560,7 @@ static fdtype extindex_cacheadd(fdtype index,fdtype key,fdtype values)
     struct FD_PAIR tempkey;
     struct FD_HASHTABLE *h=&(fdtc->indices);
     FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-    tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
+    tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=key;
     if (fd_hashtable_probe(h,(fdtype)&tempkey)) {
       fd_hashtable_store(h,(fdtype)&tempkey,FD_VOID);}}
   return FD_VOID;
@@ -584,7 +584,7 @@ static fdtype extindex_decache(fdtype index,fdtype key)
     struct FD_PAIR tempkey;
     struct FD_HASHTABLE *h=&(fdtc->indices);
     FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-    tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
+    tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=key;
     if (fd_hashtable_probe(h,(fdtype)&tempkey)) {
       fd_hashtable_store(h,(fdtype)&tempkey,FD_VOID);}}
   else if (fdtc) {

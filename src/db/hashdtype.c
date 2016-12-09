@@ -158,13 +158,13 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
     return sum;}
   else if (FD_PTR_TYPEP(x,fd_rational_type)) {
     struct FD_PAIR *p=FD_STRIP_CONS(x,fd_rational_type,struct FD_PAIR *);
-    unsigned int sum=hash_dtype1(p->car)%MAGIC_MODULUS;
-    sum=(sum<<4)+hash_dtype1(p->cdr)%MAGIC_MODULUS;
+    unsigned int sum=hash_dtype1(p->fd_car)%MAGIC_MODULUS;
+    sum=(sum<<4)+hash_dtype1(p->fd_cdr)%MAGIC_MODULUS;
     return sum%MAGIC_MODULUS;}
   else if (FD_PTR_TYPEP(x,fd_complex_type)) {
     struct FD_PAIR *p=FD_STRIP_CONS(x,fd_complex_type,struct FD_PAIR *);
-    unsigned int sum=hash_dtype1(p->car)%MAGIC_MODULUS;
-    sum=(sum<<4)+hash_dtype1(p->cdr)%MAGIC_MODULUS;
+    unsigned int sum=hash_dtype1(p->fd_car)%MAGIC_MODULUS;
+    sum=(sum<<4)+hash_dtype1(p->fd_cdr)%MAGIC_MODULUS;
     return sum%MAGIC_MODULUS;}
   else return 17;
 }
@@ -317,10 +317,10 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
       return sum;}
     case fd_rational_type: {
       struct FD_PAIR *p=FD_STRIP_CONS(x,fd_rational_type,struct FD_PAIR *);
-      return hash_combine(hash_dtype2(p->car),hash_dtype2(p->cdr));}
+      return hash_combine(hash_dtype2(p->fd_car),hash_dtype2(p->fd_cdr));}
     case fd_complex_type: {
       struct FD_PAIR *p=FD_STRIP_CONS(x,fd_complex_type,struct FD_PAIR *);
-      return hash_combine(hash_dtype2(p->car),hash_dtype2(p->cdr));}
+      return hash_combine(hash_dtype2(p->fd_car),hash_dtype2(p->fd_cdr));}
     default:
       if ((ctype<FD_TYPE_MAX) && (fd_hashfns[ctype]))
         return fd_hashfns[ctype](x,fd_hash_dtype2);
@@ -456,10 +456,10 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
       return sum;}
     case fd_rational_type: {
       struct FD_PAIR *p=FD_STRIP_CONS(x,fd_rational_type,struct FD_PAIR *);
-      return hash_combine(hash_dtype3(p->car),hash_dtype3(p->cdr));}
+      return hash_combine(hash_dtype3(p->fd_car),hash_dtype3(p->fd_cdr));}
     case fd_complex_type: {
       struct FD_PAIR *p=FD_STRIP_CONS(x,fd_complex_type,struct FD_PAIR *);
-      return hash_combine(hash_dtype3(p->car),hash_dtype3(p->cdr));}
+      return hash_combine(hash_dtype3(p->fd_car),hash_dtype3(p->fd_cdr));}
     default:
       if ((ctype<FD_TYPE_MAX) && (fd_hashfns[ctype]))
         return fd_hashfns[ctype](x,fd_hash_dtype3);

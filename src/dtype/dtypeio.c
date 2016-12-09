@@ -277,8 +277,8 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       unsigned int len=1;
       struct FD_PAIR *p=(struct FD_PAIR *) cons;
       {output_byte(out,dt_pair);}
-      {output_dtype(len,out,p->car);}
-      {output_dtype(len,out,p->cdr);}
+      {output_dtype(len,out,p->fd_car);}
+      {output_dtype(len,out,p->fd_cdr);}
       return len;}
     case fd_rational_type:  case fd_complex_type: {
       fdtype car, cdr;
@@ -1106,7 +1106,7 @@ static fdtype default_make_rational(fdtype car,fdtype cdr)
 {
   struct FD_PAIR *p=u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(p,fd_rational_type);
-  p->car=car; p->cdr=cdr;
+  p->fd_car=car; p->fd_cdr=cdr;
   return FDTYPE_CONS(p);
 }
 
@@ -1114,14 +1114,14 @@ static void default_unpack_rational
   (fdtype x,fdtype *car,fdtype *cdr)
 {
   struct FD_PAIR *p=FD_GET_CONS(x,fd_rational_type,struct FD_PAIR *);
-  *car=p->car; *cdr=p->cdr;
+  *car=p->fd_car; *cdr=p->fd_cdr;
 }
 
 static fdtype default_make_complex(fdtype car,fdtype cdr)
 {
   struct FD_PAIR *p=u8_alloc(struct FD_PAIR);
   FD_INIT_CONS(p,fd_complex_type);
-  p->car=car; p->cdr=cdr;
+  p->fd_car=car; p->fd_cdr=cdr;
   return FDTYPE_CONS(p);
 }
 
@@ -1129,7 +1129,7 @@ static void default_unpack_complex
   (fdtype x,fdtype *car,fdtype *cdr)
 {
   struct FD_PAIR *p=FD_GET_CONS(x,fd_complex_type,struct FD_PAIR *);
-  *car=p->car; *cdr=p->cdr;
+  *car=p->fd_car; *cdr=p->fd_cdr;
 }
 
 static fdtype default_make_double(double d)

@@ -844,8 +844,8 @@ static fdtype extract_repeatedly
         else {
           FD_DO_CHOICES(remainder,remainders) {
             fdtype item=fd_conspair
-              (fd_car(remainder),
-               fd_conspair(fd_incref(extraction),(fd_cdr(remainder))));
+              (fd_refcar(remainder),
+               fd_conspair(fd_incref(extraction),(fd_refcdr(remainder))));
             FD_ADD_TO_CHOICE(choices,item);}
           fd_decref(remainders);}
         if ((flags&FD_MATCH_BE_GREEDY)==0) {

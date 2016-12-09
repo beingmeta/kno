@@ -186,7 +186,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0);
     bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
-    fdtype elt=(islist)?(fd_car(pairscan)):(fd_seq_elt(seq,i));
+    fdtype elt=(islist)?(fd_refcar(pairscan)):(fd_seq_elt(seq,i));
     vals[0]=elt;
     if (iterval) *iterval=FD_INT(i);
     {FD_DOBODY(subexpr,expr,2) {
@@ -250,7 +250,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0);
     bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
-    fdtype elt=(islist)?(fd_car(pairscan)):(fd_seq_elt(seq,i));
+    fdtype elt=(islist)?(fd_refcar(pairscan)):(fd_seq_elt(seq,i));
     fdtype val=FD_VOID;
     vals[0]=elt;
     if (iterval) *iterval=FD_INT(i);
@@ -319,7 +319,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0);
     bindings.size=2; iterval=&(vals[1]);}
   while (i<lim) {
-    fdtype elt=(islist)?(fd_car(pairscan)):(fd_seq_elt(seq,i));
+    fdtype elt=(islist)?(fd_refcar(pairscan)):(fd_seq_elt(seq,i));
     if (envstruct.copy) {
       fd_set_value(var,elt,envstruct.copy);
       if (iterval)
@@ -462,7 +462,7 @@ static int ipeval_step(struct IPEVAL_STRUCT *s)
 static fdtype ipeval_handler(fdtype expr,fd_lispenv env)
 {
   struct IPEVAL_STRUCT tmp;
-  tmp.expr=fd_car(fd_cdr(expr)); tmp.env=env; tmp.value=FD_VOID;
+  tmp.expr=fd_refcar(fd_refcdr(expr)); tmp.env=env; tmp.value=FD_VOID;
   fd_ipeval_call((fd_ipevalfn)ipeval_step,&tmp);
   return tmp.value;
 }
@@ -470,7 +470,7 @@ static fdtype ipeval_handler(fdtype expr,fd_lispenv env)
 static fdtype trace_ipeval_handler(fdtype expr,fd_lispenv env)
 {
   struct IPEVAL_STRUCT tmp; int old_trace=fd_trace_ipeval;
-  tmp.expr=fd_car(fd_cdr(expr)); tmp.env=env; tmp.value=FD_VOID;
+  tmp.expr=fd_refcar(fd_refcdr(expr)); tmp.env=env; tmp.value=FD_VOID;
   fd_trace_ipeval=1;
   fd_ipeval_call((fd_ipevalfn)ipeval_step,&tmp);
   fd_trace_ipeval=old_trace;
@@ -482,7 +482,7 @@ static fdtype track_ipeval_handler(fdtype expr,fd_lispenv env)
   struct IPEVAL_STRUCT tmp;
   struct FD_IPEVAL_RECORD *records; int n_cycles; double total_time;
   fdtype *vec; int i=0;
-  tmp.expr=fd_car(fd_cdr(expr)); tmp.env=env; tmp.value=FD_VOID;
+  tmp.expr=fd_refcar(fd_refcdr(expr)); tmp.env=env; tmp.value=FD_VOID;
   fd_tracked_ipeval_call((fd_ipevalfn)ipeval_step,&tmp,&records,&n_cycles,&total_time);
   vec=u8_alloc_n(n_cycles,fdtype);
   i=0; while (i<n_cycles) {

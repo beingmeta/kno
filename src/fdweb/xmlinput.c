@@ -429,7 +429,7 @@ static void add_content(struct FD_XML *node,fdtype item)
       node->head=entry;
       node->tail=(struct FD_PAIR *)entry;}
     else {
-      node->tail->cdr=entry;
+      node->tail->fd_cdr=entry;
       node->tail=(struct FD_PAIR *)entry;}}
 }
 FD_EXPORT void fd_add_content(struct FD_XML *node,fdtype item)

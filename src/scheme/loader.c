@@ -486,8 +486,8 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
           struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
           FD_INIT_CONS(tstamp,fd_timestamp_type);
           u8_init_xtime(&(tstamp->xtime),mod_time,u8_second,0,0,0);
-          fd_decref(pair->cdr);
-          pair->cdr=FDTYPE_CONS(tstamp);
+          fd_decref(pair->fd_cdr);
+          pair->fd_cdr=FDTYPE_CONS(tstamp);
           if (log_reloads)
             u8_log(LOG_WARN,"fd_load_latest","Reloading %s",
                    FD_STRDATA(FD_CAR(entry)));
@@ -517,8 +517,8 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
           struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
           FD_INIT_CONS(tstamp,fd_timestamp_type);
           u8_init_xtime(&(tstamp->xtime),mod_time,u8_second,0,0,0);
-          fd_decref(pair->cdr);
-          pair->cdr=FDTYPE_CONS(tstamp);}}
+          fd_decref(pair->fd_cdr);
+          pair->fd_cdr=FDTYPE_CONS(tstamp);}}
       else {
         fd_seterr("Invalid load_latest record","load_latest",abspath,entry);
         fd_decref(sources); fd_decref(abspath_dtype);
