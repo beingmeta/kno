@@ -381,7 +381,7 @@ typedef struct FD_THREAD_STRUCT {
 typedef struct FD_THREAD_STRUCT *fd_thread_struct;
 
 typedef struct FD_CONSED_CONDVAR {
-  FD_CONS_HEADER; u8_mutex lock; u8_condvar cvar;} FD_CONSED_CONDVAR;
+  FD_CONS_HEADER; u8_mutex fd_cvlock; u8_condvar fd_cvar;} FD_CONSED_CONDVAR;
 typedef struct FD_CONDVAR *fd_consed_condvar;
 
 FD_EXPORT fd_ptr_type fd_thread_type;

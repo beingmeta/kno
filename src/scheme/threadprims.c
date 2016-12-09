@@ -85,11 +85,11 @@ static fdtype make_condvar()
   int rv=0;
   struct FD_CONSED_CONDVAR *cv=u8_alloc(struct FD_CONSED_CONDVAR);
   FD_INIT_FRESH_CONS(cv,fd_condvar_type);
-  rv=fd_init_mutex(&(cv->lock));
+  rv=fd_init_mutex(&(cv->fd_cvlock));
   if (rv) {
     u8_graberr(-1,"make_condvar",NULL);
     return FD_ERROR_VALUE;}
-  else rv=u8_init_condvar(&(cv->cvar));
+  else rv=u8_init_condvar(&(cv->fd_cvar));
   if (rv) {
     u8_graberr(-1,"make_condvar",NULL);
     return FD_ERROR_VALUE;}
@@ -105,7 +105,7 @@ static fdtype condvar_wait(fdtype cvar,fdtype timeout)
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
   if (FD_VOIDP(timeout))
-    if ((rv=fd_condvar_wait(&(cv->cvar),&(cv->lock)))==0)
+    if ((rv=fd_condvar_wait(&(cv->fd_cvar),&(cv->fd_cvlock)))==0)
       return FD_TRUE;
     else {
       return fd_type_error(_("valid condvar"),"condvar_wait",cvar);}
@@ -125,7 +125,7 @@ static fdtype condvar_wait(fdtype cvar,fdtype timeout)
       else return fd_type_error(_("time interval"),"condvar_wait",timeout);}
 #endif
     else return fd_type_error(_("time interval"),"condvar_wait",timeout);
-    rv=u8_condvar_timedwait(&(cv->cvar),&(cv->lock),&tm);
+    rv=u8_condvar_timedwait(&(cv->fd_cvar),&(cv->fd_cvlock),&tm);
     if (rv==0)
       return FD_TRUE;
     else if (rv==ETIMEDOUT)
@@ -141,10 +141,10 @@ static fdtype condvar_signal(fdtype cvar,fdtype broadcast)
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
   if (FD_TRUEP(broadcast))
-    if (u8_condvar_broadcast(&(cv->cvar))==0)
+    if (u8_condvar_broadcast(&(cv->fd_cvar))==0)
       return FD_TRUE;
     else return fd_type_error(_("valid condvar"),"condvar_signal",cvar);
-  else if (u8_condvar_signal(&(cv->cvar))==0)
+  else if (u8_condvar_signal(&(cv->fd_cvar))==0)
     return FD_TRUE;
   else return fd_type_error(_("valid condvar"),"condvar_signal",cvar);
 }
@@ -153,7 +153,7 @@ static fdtype condvar_lock(fdtype cvar)
 {
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-  u8_lock_mutex(&(cv->lock));
+  fd_lock_mutex(&(cv->fd_cvlock));
   return FD_TRUE;
 }
 
@@ -161,7 +161,7 @@ static fdtype condvar_unlock(fdtype cvar)
 {
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-  u8_unlock_mutex(&(cv->lock));
+  u8_unlock_mutex(&(cv->fd_cvlock));
   return FD_TRUE;
 }
 
@@ -177,7 +177,7 @@ FD_EXPORT void recycle_condvar(struct FD_CONS *c)
 {
   struct FD_CONSED_CONDVAR *cv=
     (struct FD_CONSED_CONDVAR *)c;
-  fd_destroy_mutex(&(cv->lock));  u8_destroy_condvar(&(cv->cvar));
+  u8_destroy_mutex(&(cv->fd_cvlock));  u8_destroy_condvar(&(cv->fd_cvar));
   u8_free(cv);
 }
 
@@ -189,7 +189,7 @@ static fdtype synchro_lock(fdtype lck)
   if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-    u8_lock_mutex(&(cv->lock));
+    u8_lock_mutex(&(cv->fd_cvlock));
     return FD_TRUE;}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
@@ -205,7 +205,7 @@ static fdtype synchro_unlock(fdtype lck)
   if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-    u8_unlock_mutex(&(cv->lock));
+    u8_unlock_mutex(&(cv->fd_cvlock));
     return FD_TRUE;}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
@@ -225,7 +225,7 @@ static fdtype with_lock_handler(fdtype expr,fd_lispenv env)
   if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-    u8_lock_mutex(&(cv->lock));}
+    u8_lock_mutex(&(cv->fd_cvlock));}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
     if (sp->synchronized) {
@@ -237,7 +237,7 @@ static fdtype with_lock_handler(fdtype expr,fd_lispenv env)
   if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-    u8_unlock_mutex(&(cv->lock));}
+    u8_unlock_mutex(&(cv->fd_cvlock));}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
     if (sp->synchronized) {
