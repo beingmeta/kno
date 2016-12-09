@@ -210,10 +210,10 @@ static fd_lispenv init_static_env
     vars[i]=FD_VOID; vals[i]=FD_VOID; i++;}
   FD_INIT_STATIC_CONS(envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(bindings,fd_schemap_type);
-  bindings->flags=FD_SCHEMAP_STACK_SCHEMA;
-  bindings->schema=vars;
-  bindings->values=vals;
-  bindings->size=n;
+  bindings->fd_stack_schema=1;
+  bindings->fd_schema=vars;
+  bindings->fd_values=vals;
+  bindings->fd_table_size=n;
   fd_init_rwlock(&(bindings->fd_rwlock));
   envstruct->bindings=FDTYPE_CONS((bindings));
   envstruct->exports=FD_VOID;
@@ -255,7 +255,7 @@ static fdtype let_handler(fdtype expr,fd_lispenv env)
       fdtype bindings; struct FD_SCHEMAP *sm;
       inner_env=make_dynamic_env(n,env);
       bindings=inner_env->bindings; sm=(struct FD_SCHEMAP *)bindings;
-      vars=sm->schema; vals=sm->values;}
+      vars=sm->fd_schema; vals=sm->fd_values;}
     else {
       inner_env=init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
       vars=_vars; vals=_vals;}
@@ -287,7 +287,7 @@ static fdtype letstar_handler(fdtype expr,fd_lispenv env)
       fdtype bindings; struct FD_SCHEMAP *sm;
       inner_env=make_dynamic_env(n,env);
       bindings=inner_env->bindings; sm=(struct FD_SCHEMAP *)bindings;
-      vars=sm->schema; vals=sm->values;}
+      vars=sm->fd_schema; vals=sm->fd_values;}
     else {
       inner_env=init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
       vars=_vars; vals=_vals;}
@@ -330,7 +330,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       fdtype bindings; struct FD_SCHEMAP *sm;
       inner_env=make_dynamic_env(n,env);
       bindings=inner_env->bindings; sm=(struct FD_SCHEMAP *)bindings;
-      vars=sm->schema; vals=sm->values;
+      vars=sm->fd_schema; vals=sm->fd_values;
       updaters=u8_alloc_n(n,fdtype);
       tmp=u8_alloc_n(n,fdtype);}
     else {
@@ -424,15 +424,15 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
      all the values are incref'd.  */
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
-  bindings.schema=fn->schema;
-  bindings.size=n_vars;
-  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
+  bindings.fd_schema=fn->schema;
+  bindings.fd_table_size=n_vars;
+  bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.bindings=FDTYPE_CONS(&bindings);
   envstruct.exports=FD_VOID;
   envstruct.parent=fn->env; envstruct.copy=NULL;
   if (n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
-  bindings.values=vals;
+  bindings.fd_values=vals;
   if (fn->arity>0) {
     if (n<fn->min_arity)
       return fd_err(fd_TooFewArgs,fn->name,NULL,FD_VOID);
@@ -538,7 +538,7 @@ static fdtype make_sproc(u8_string name,
                           int nd,int sync)
 {
   int i=0, n_vars=0, min_args=0;
-  fdtype scan=arglist;
+  fdtype scan=arglist, *schema=NULL;
   struct FD_SPROC *s=u8_alloc(struct FD_SPROC);
   FD_INIT_CONS(s,fd_sproc_type);
   s->name=((name) ? (u8_strdup(name)) : (NULL));
@@ -554,7 +554,7 @@ static fdtype make_sproc(u8_string name,
   s->handler.fnptr=NULL;
   s->typeinfo=NULL;
   if (n_vars)
-    s->schema=u8_alloc_n((n_vars+1),fdtype);
+    s->schema=schema=u8_alloc_n((n_vars+1),fdtype);
   else s->schema=NULL;
   s->defaults=NULL;
   s->body=fd_incref(body); s->arglist=fd_incref(arglist);
@@ -565,11 +565,11 @@ static fdtype make_sproc(u8_string name,
   scan=arglist; i=0; while (FD_PAIRP(scan)) {
     fdtype argspec=FD_CAR(scan);
     if (FD_PAIRP(argspec)) {
-      s->schema[i]=FD_CAR(argspec);}
+      schema[i]=FD_CAR(argspec);}
     else {
-      s->schema[i]=argspec;}
+      schema[i]=argspec;}
     i++; scan=FD_CDR(scan);}
-  if (i<s->n_vars) s->schema[i]=scan;
+  if (i<s->n_vars) schema[i]=scan;
   return FDTYPE_CONS(s);
 }
 
@@ -908,16 +908,15 @@ fdtype fd_xapply_sproc
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
-  bindings.schema=fn->schema;
-  bindings.size=fn->n_vars;
-  bindings.flags=0;
+  bindings.fd_schema=fn->schema;
+  bindings.fd_table_size=fn->n_vars;
   fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.bindings=FDTYPE_CONS(&bindings);
   envstruct.exports=FD_VOID;
   envstruct.parent=fn->env; envstruct.copy=NULL;
   if (fn->n_vars>=12)
-    bindings.values=vals=u8_alloc_n(fn->n_vars,fdtype);
-  else bindings.values=vals=_vals;
+    bindings.fd_values=vals=u8_alloc_n(fn->n_vars,fdtype);
+  else bindings.fd_values=vals=_vals;
   while (FD_PAIRP(arglist)) {
     fdtype argspec=FD_CAR(arglist), argname=FD_VOID, argval;
     if (FD_SYMBOLP(argspec)) argname=argspec;
@@ -1058,7 +1057,7 @@ static fdtype letq_handler(fdtype expr,fd_lispenv env)
     struct FD_ENVIRONMENT *inner_env=make_dynamic_env(n,env);
     fdtype bindings=inner_env->bindings;
     struct FD_SCHEMAP *sm=(struct FD_SCHEMAP *)bindings;
-    fdtype *vars=sm->schema, *vals=sm->values;
+    fdtype *vars=sm->fd_schema, *vals=sm->fd_values;
     int i=0; fdtype scan=bindexprs; while (i<n) {
       fdtype bind_expr=FD_CAR(scan), var=FD_CAR(bind_expr);
       vars[i]=var; vals[i]=FD_VOID; scan=FD_CDR(scan); i++;}
@@ -1086,7 +1085,7 @@ static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
     struct FD_ENVIRONMENT *inner_env=make_dynamic_env(n,env);
     fdtype bindings=inner_env->bindings;
     struct FD_SCHEMAP *sm=(struct FD_SCHEMAP *)bindings;
-    fdtype *vars=sm->schema, *vals=sm->values;
+    fdtype *vars=sm->fd_schema, *vals=sm->fd_values;
     int i=0; fdtype scan=bindexprs; while (i<n) {
       fdtype bind_expr=FD_CAR(scan), var=FD_CAR(bind_expr);
       vars[i]=var; vals[i]=FD_UNBOUND; scan=FD_CDR(scan); i++;}

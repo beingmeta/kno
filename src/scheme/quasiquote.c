@@ -229,8 +229,8 @@ static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
   struct FD_SLOTMAP *new_slotmap=FD_XSLOTMAP(result);
   while (i < len) {
     int free_slotid=0;
-    fdtype slotid=keyvals[i].key;
-    fdtype value=keyvals[i].value;
+    fdtype slotid=keyvals[i].fd_key;
+    fdtype value=keyvals[i].fd_value;
     if (FD_PAIRP(slotid)) {
       slotid=fd_quasiquote(slotid,env,level); free_slotid=1;}
     if ((FD_EMPTY_CHOICEP(slotid))||(FD_VOIDP(slotid))) {

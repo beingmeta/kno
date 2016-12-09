@@ -205,21 +205,22 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
   if (ix->read_only)
     /* This will signal an error */
     return _fd_index_add(ix,key,value);
-  else if (ix->cache.n_slots==0)
+  else if (ix->cache.fd_n_buckets==0)
     if (FD_CHOICEP(key))
       return _fd_index_add(ix,key,value);
     else {
       int retval=fd_hashtable_add(&(ix->adds),key,value);
       FDTC *fdtc=fd_threadcache;
       if (retval<0) return retval;
-      if ((FD_WRITETHROUGH_THREADCACHE)&&(fdtc)&&(fdtc->indices.n_keys)) {
+      if ((FD_WRITETHROUGH_THREADCACHE)&&(fdtc)&&
+	  (fdtc->indices.fd_n_keys)) {
         struct FD_PAIR tempkey;
         FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
         tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=key;
         if (fd_hashtable_probe(&fdtc->indices,(fdtype)&tempkey)) {
           fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}
       if ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
-          (fd_background->cache.n_keys))
+          (fd_background->cache.fd_n_keys))
         retval=fd_hashtable_op
           (&(fd_background->cache),fd_table_replace,key,FD_VOID);
       if ((!(FD_VOIDP(ix->has_slotids))) && (FD_EXPECT_TRUE(FD_PAIRP(key))) &&

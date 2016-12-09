@@ -868,11 +868,10 @@ static int compare_oidoffs(const void *p1,const void *p2)
 
 static int get_schema_id(fd_oidpool op,fdtype value)
 {
-  if ((FD_SCHEMAPP(value)) &&
-      ((FD_SCHEMAP_FLAGS(value))&(FD_SCHEMAP_SORTED))) {
+  if ( (FD_SCHEMAPP(value)) && (FD_SCHEMAP_SORTEDP(value)) ) {
     struct FD_SCHEMAP *sm=(fd_schemap)value;
-    fdtype *slotids=sm->schema, size=sm->size;
-    if ((sm->flags)&(FD_SCHEMAP_TAGGED)) {
+    fdtype *slotids=sm->fd_schema, size=sm->fd_table_size;
+    if (sm->fd_tagged) {
       fdtype pos=slotids[size];
       int intpos=fd_getint(pos);
       if ((intpos<op->n_schemas) &&
@@ -887,7 +886,7 @@ static int get_schema_id(fd_oidpool op,fdtype value)
       tmp_slotids=_tmp_slotids;
     else tmp_slotids=u8_alloc_n(size,fdtype);
     while (i<size) {
-      tmp_slotids[i]=sm->keyvals[i].key; i++;}
+      tmp_slotids[i]=sm->keyvals[i].fd_key; i++;}
     /* assert(schema_sortedp(tmp_slotids,size)); */
     if (tmp_slotids==_tmp_slotids)
       return find_schema_byval(op,tmp_slotids,size);
@@ -919,7 +918,8 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
       fd_write_zint(tmpout,schema_id+1);
       if (FD_SCHEMAPP(value)) {
         struct FD_SCHEMAP *sm=(fd_schemap)value;
-        int i=0, size=sm->size; fdtype *values=sm->values;
+        fdtype *values=sm->fd_values;
+        int i=0, size=sm->fd_table_size;
         fd_write_zint(tmpout,size);
         while (i<size) {
           fd_write_dtype(tmpout,values[se->mapout[i]]);
@@ -930,7 +930,7 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
         int i=0, size=FD_XSLOTMAP_SIZE(sm);
         fd_write_zint(tmpout,size);
         while (i<size) {
-          fd_write_dtype(tmpout,data[se->mapin[i]].value);
+          fd_write_dtype(tmpout,data[se->mapin[i]].fd_value);
           i++;}}}}
   else {
     fd_write_byte(tmpout,0);

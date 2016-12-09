@@ -49,15 +49,15 @@ static void report_on_hashtable(fdtype ht)
 }
 
 static void check_consistency
-  (unsigned int *buf,struct FD_HASHENTRY **slots,int n_slots)
+  (unsigned int *buf,struct FD_HASH_BUCKET **slots,int n_slots)
 {
   int i=0; while (i < n_slots)
     if (((buf[i]==0) && (slots[i] == NULL)) ||
         ((buf[i]) && (slots[i]) &&
-         (slots[i]->n_keyvals==buf[i])) )
+         (slots[i]->fd_n_entries==buf[i])) )
       i++;
     else {
-      int real_values=((slots[i]==NULL) ? 0 : (slots[i]->n_keyvals));
+      int real_values=((slots[i]==NULL) ? 0 : (slots[i]->fd_n_entries));
       fprintf(stderr,"Trouble in slot %d, %ud differs from %ud\n",
               i,buf[i],real_values);
       i++;}
@@ -110,7 +110,7 @@ int main(int argc,char **argv)
             "With %d slots, %f keys per bucket (max=%d), %d buckets, %d collisions\n",
             n_slots,((double)(1.0*n_keys))/n_buckets,
             max_bucket,n_buckets,n_collisions);
-    check_consistency(tmpbuf,FD_XHASHTABLE(ht)->slots,n_slots);
+    check_consistency(tmpbuf,FD_XHASHTABLE(ht)->fd_buckets,n_slots);
     best_size=n_slots; best_buckets=n_buckets;}
   {
     unsigned int n_buckets, max_bucket, n_collisions;

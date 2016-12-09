@@ -203,7 +203,7 @@ FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
     fdtype bindings=env->bindings;
     if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
       struct FD_SCHEMAP *s=(struct FD_SCHEMAP *)bindings;
-      return fd_incref(s->values[across]);}}
+      return fd_incref(s->fd_values[across]);}}
   return fd_err("Bad lexical reference","fd_lexref",NULL,FD_VOID);
 }
 FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lispenv env)

@@ -433,7 +433,7 @@ static fd_index open_file_index(u8_string filename,int consed)
 static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
 {
   struct FD_DTYPE_STREAM stream, *rstream;
-  if ((ix->adds.n_keys>0) || (ix->edits.n_keys>0)) {
+  if ((ix->adds.fd_n_keys>0) || (ix->edits.fd_n_keys>0)) {
     rstream=fd_init_dtype_file_stream
       (&stream,file,FD_DTSTREAM_CREATE,FD_FILEDB_BUFSIZE);
     if (rstream==NULL) return -1;
@@ -463,10 +463,10 @@ static fd_index open_memindex(u8_string file,int read_only,int consed)
   mix->source=mix->cid=u8_strdup(file);
   mix->commitfn=memindex_commitfn;
   mix->read_only=read_only;
-  mix->cache.n_slots=h->n_slots;
-  mix->cache.n_keys=h->n_keys;
-  mix->cache.loading=h->loading;
-  mix->cache.slots=h->slots;
+  mix->cache.fd_n_buckets=h->fd_n_buckets;
+  mix->cache.fd_n_keys=h->fd_n_keys;
+  mix->cache.fd_load_factor=h->fd_load_factor;
+  mix->cache.fd_buckets=h->fd_buckets;
   u8_free(h);
   return (fd_index)mix;
 }

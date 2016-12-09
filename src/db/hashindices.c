@@ -1465,14 +1465,14 @@ static void hash_index_setcache(fd_index ix,int level)
       else hx->offdata=buckets=newmmap+64;
 #else
       fd_dts_start_read(s);
-      buckets=u8_alloc_n(chunk_ref_size*(hx->n_buckets),unsigned int);
+      fd_buckets=u8_alloc_n(chunk_ref_size*(hx->n_buckets),unsigned int);
       fd_setpos(s,256);
-      retval=fd_dtsread_ints(s,chunk_ref_size*(hx->n_buckets),buckets);
+      retval=fd_dtsread_ints(s,chunk_ref_size*(hx->n_buckets),fd_buckets);
       if (retval<0) {
         u8_log(LOG_WARN,u8_strerror(errno),
                "hash_index_setcache:read offsets %s",hx->source);
         hx->offdata=NULL; errno=0;}
-      else hx->offdata=buckets;
+      else hx->offdata=fd_buckets;
 #endif
       fd_unlock_struct(hx);}}
   else if (level < 2) {
@@ -1791,15 +1791,15 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
                          struct COMMIT_SCHEDULE *s,int i)
 {
   fd_hashtable adds=&(hx->adds), edits=&(hx->edits), cache=&(hx->cache);
-  fdtype *drops=u8_alloc_n((edits->n_keys),fdtype), *drop_values;
+  fdtype *drops=u8_alloc_n((edits->fd_n_keys),fdtype), *drop_values;
   int j=0, n_drops=0, oddkeys=0;
-  struct FD_HASHENTRY **scan=edits->slots, **lim=scan+edits->n_slots;
+  struct FD_HASH_BUCKET **scan=edits->fd_buckets, **lim=scan+edits->fd_n_buckets;
   while (scan < lim)
     if (*scan) {
-      struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
-      struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+      struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
+      struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->key;
+        fdtype key=kvscan->fd_key;
         if (FD_PAIRP(key))
           if ((FD_CAR(key))==set_symbol) {
             fdtype real_key=FD_CDR(key);
@@ -1808,7 +1808,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
                 ((FD_OIDP(FD_CAR(real_key))) || (FD_SYMBOLP(FD_CAR(real_key))))) {
               if (get_slotid_index(hx,key)<0) oddkeys=1;}
             s[i].key=real_key;
-            s[i].values=fd_make_simple_choice(kvscan->value);
+            s[i].values=fd_make_simple_choice(kvscan->fd_value);
             s[i].replace=1; i++;}
           else if ((FD_CAR(key))==drop_symbol) {
             fdtype key_to_drop=FD_CDR(key);
@@ -1820,7 +1820,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
                 (adds,key_to_drop,FD_EMPTY_CHOICE);
               FD_ADD_TO_CHOICE(cached,added);
               s[i].key=key_to_drop;
-              s[i].values=fd_difference(cached,kvscan->value);
+              s[i].values=fd_difference(cached,kvscan->fd_value);
               s[i].replace=1;
               fd_decref(cached);
               i++;}}
@@ -1831,13 +1831,13 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
     else scan++;
   if (oddkeys) hx->hxflags=((hx->hxflags)|(FD_HASH_INDEX_ODDKEYS));
   drop_values=hash_index_fetchn_inner((fd_index)hx,n_drops,drops,1,1);
-  scan=edits->slots; lim=scan+edits->n_slots;
+  scan=edits->fd_buckets; lim=scan+edits->fd_n_buckets;
   j=0; while (scan < lim)
     if (*scan) {
-      struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
-      struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+      struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
+      struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->key;
+        fdtype key=kvscan->fd_key;
         if ((FD_PAIRP(key)) && ((FD_CAR(key))==drop_symbol)) {
           fdtype key_to_drop=FD_CDR(key);
           if ((j<n_drops) && (FD_CDR(key)==drops[j])) {
@@ -1846,7 +1846,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
               fd_hashtable_get_nolock(adds,key_to_drop,FD_EMPTY_CHOICE);
             FD_ADD_TO_CHOICE(cached,added);
             s[i].key=key_to_drop;
-            s[i].values=fd_difference(cached,kvscan->value);
+            s[i].values=fd_difference(cached,kvscan->fd_value);
             s[i].replace=1;
             fd_decref(cached);
             i++; j++;}}
@@ -1862,19 +1862,19 @@ static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
 {
   int oddkeys=((hx->hxflags)&(FD_HASH_INDEX_ODDKEYS));
   fd_hashtable adds=&(hx->adds);
-  struct FD_HASHENTRY **scan=adds->slots, **lim=scan+adds->n_slots;
+  struct FD_HASH_BUCKET **scan=adds->fd_buckets, **lim=scan+adds->fd_n_buckets;
   while (scan < lim)
     if (*scan) {
-      struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
-      struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+      struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
+      struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->key;
+        fdtype key=kvscan->fd_key;
         if (!(fd_hashset_get(taken,key))) {
           if ((oddkeys==0) && (FD_PAIRP(key)) &&
               ((FD_OIDP(FD_CAR(key))) || (FD_SYMBOLP(FD_CAR(key))))) {
             if (get_slotid_index(hx,key)<0) oddkeys=1;}
           s[i].key=key;
-          s[i].values=fd_make_simple_choice(kvscan->value);
+          s[i].values=fd_make_simple_choice(kvscan->fd_value);
           s[i].replace=0; i++;}
         kvscan++;}
       scan++;}
@@ -2087,7 +2087,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   fd_lock_struct(hx);
   fd_write_lock_struct(&(hx->adds));
   fd_write_lock_struct(&(hx->edits));
-  schedule_max=hx->adds.n_keys+hx->edits.n_keys;
+  schedule_max=hx->adds.fd_n_keys+hx->edits.fd_n_keys;
   bucket_locs=u8_alloc_n(schedule_max,struct BUCKET_REF);
   {
     int i=0, bscan=0;
@@ -2102,14 +2102,14 @@ static int hash_index_commit(struct FD_INDEX *ix)
        The 'taken' hashset contains keys that are edited.
        We process all of the edits, getting values if neccessary.
        Then we process all the adds. */
-    fd_init_hashset(&taken,3*(hx->edits.n_keys),FD_STACK_CONS);
+    fd_init_hashset(&taken,3*(hx->edits.fd_n_keys),FD_STACK_CONS);
 #if FD_DEBUG_HASHINDICES
-    u8_message("Adding %d edits to the schedule",hx->edits.n_keys);
+    u8_message("Adding %d edits to the schedule",hx->edits.fd_n_keys);
 #endif
     /* Get all the keys we need to write.  */
     schedule_size=process_edits(hx,&taken,schedule,schedule_size);
 #if FD_DEBUG_HASHINDICES
-    u8_message("Adding %d adds to the schedule",hx->adds.n_keys);
+    u8_message("Adding %d adds to the schedule",hx->adds.fd_n_keys);
 #endif
     schedule_size=process_adds(hx,&taken,schedule,schedule_size);
     fd_recycle_hashset(&taken);
@@ -2360,8 +2360,8 @@ static int update_hash_index_ondisk
       buckets[bucket*3+1]=fd_flip_word(word2);
       buckets[bucket*3+2]=fd_flip_word(word3);
 #else
-      buckets[bucket*3]=word1; buckets[bucket*3+1]=word2;
-      buckets[bucket*3+2]=word3;
+      fd_buckets[bucket*3]=word1; fd_buckets[bucket*3+1]=word2;
+      fd_buckets[bucket*3+2]=word3;
 #endif
       i++;}
   else if ((buckets) && (hx->offtype==FD_B32))
@@ -2373,7 +2373,7 @@ static int update_hash_index_ondisk
       buckets[bucket*2]=fd_flip_word(word1);
       buckets[bucket*2+1]=fd_flip_word(word2);
 #else
-      buckets[bucket*2]=word1; buckets[bucket*2+1]=word2;
+      fd_buckets[bucket*2]=word1; fd_buckets[bucket*2+1]=word2;
 #endif
       i++;}
   else if ((buckets) && (hx->offtype==FD_B40))
@@ -2384,7 +2384,7 @@ static int update_hash_index_ondisk
       buckets[bucket*2]=fd_flip_word(word1);
       buckets[bucket*2+1]=fd_flip_word(word2);
 #else
-      buckets[bucket*2]=word1; buckets[bucket*2+1]=word2;
+      fd_buckets[bucket*2]=word1; fd_buckets[bucket*2+1]=word2;
 #endif
       i++;}
   else {

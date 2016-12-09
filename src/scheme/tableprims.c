@@ -89,7 +89,7 @@ static fdtype static_hashtable(fdtype table)
 {
   struct FD_HASHTABLE *ht=(fd_hashtable)table;
   fd_write_lock_struct(ht);
-  ht->uselock=0;
+  ht->fd_uselock=0;
   fd_rw_unlock_struct(ht);
   return fd_incref(table);
 }
@@ -736,7 +736,7 @@ static fdtype hashtable_skim(fdtype table,fdtype threshold,fdtype scope)
 static fdtype hashtable_buckets(fdtype table)
 {
   fd_hashtable h=FD_GET_CONS(table,fd_hashtable_type,fd_hashtable);
-  return FD_INT(h->n_slots);
+  return FD_INT(h->fd_n_buckets);
 }
 
 static fdtype table_size(fdtype table)

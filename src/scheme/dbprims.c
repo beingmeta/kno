@@ -573,7 +573,7 @@ static fdtype extindex_decache(fdtype index,fdtype key)
   fdtype lix=fd_index2lisp(ix);
   if (ix->handler==&fd_extindex_handler)
     if (FD_VOIDP(key))
-      if (fd_reset_hashtable(&(ix->cache),ix->cache.n_slots,1)<0)
+      if (fd_reset_hashtable(&(ix->cache),ix->cache.fd_n_buckets,1)<0)
         return FD_ERROR_VALUE;
       else {}
     else if (fd_hashtable_store(&(ix->cache),key,FD_VOID)<0)
@@ -1019,10 +1019,10 @@ static fdtype cachecount(fdtype arg)
     int count=fd_index_cache_load();
     return FD_INT(count);}
   else if ((p=(fd_lisp2pool(arg)))) {
-    int count=p->cache.n_keys;
+    int count=p->cache.fd_n_keys;
     return FD_INT(count);}
   else if ((ix=(fd_indexptr(arg)))) {
-    int count=ix->cache.n_keys;
+    int count=ix->cache.fd_n_keys;
     return FD_INT(count);}
   else return fd_type_error(_("pool or index"),"cachecount",arg);
 }
@@ -1709,13 +1709,13 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
 
 static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 {
-  if (hs->n_keys==0) {
+  if (hs->fd_n_keys==0) {
     if (pick) return FD_EMPTY_CHOICE;
     else return fd_incref(candidates);}
   u8_lock_mutex(&(hs->fd_lock)); {
     fdtype simple=fd_make_simple_choice(candidates);
     int n=FD_CHOICE_SIZE(simple), isatomic=1;
-    fdtype *slots=hs->slots; int n_slots=hs->n_slots;
+    fdtype *slots=hs->fd_hashslots; int n_slots=hs->fd_n_slots;
     fdtype *keep=u8_alloc_n(n,fdtype), *write=keep;
     FD_DO_CHOICES(c,candidates) {
       int hash=fd_hash_lisp(c), probe=hash%n_slots, n_probes=0, found=0;
@@ -1746,18 +1746,18 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 
 static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
 {
-  if (ht->n_keys==0) {
+  if (ht->fd_n_keys==0) {
     if (pick) return FD_EMPTY_CHOICE;
     else return fd_hashtable_keys(ht);}
   else {
     fdtype simple=fd_make_simple_choice(candidates);
     int n=FD_CHOICE_SIZE(simple), unlock=0, isatomic=1;
     fdtype *keep=u8_alloc_n(n,fdtype), *write=keep;
-    if (ht->uselock) {fd_read_lock_struct(ht); unlock=1;}
-    {struct FD_HASHENTRY **slots=ht->slots; int n_slots=ht->n_slots;
+    if (ht->fd_uselock) {fd_read_lock_struct(ht); unlock=1;}
+    {struct FD_HASH_BUCKET **slots=ht->fd_buckets; int n_slots=ht->fd_n_buckets;
       FD_DO_CHOICES(c,candidates) {
         struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);
-        fdtype rv=((result)?(result->value):(FD_VOID));
+        fdtype rv=((result)?(result->fd_value):(FD_VOID));
         if ((FD_VOIDP(rv))||(FD_EMPTY_CHOICEP(rv))) result=NULL;
         if (((result)&&(pick))||((result==NULL)&&(!(pick)))) {
           if ((isatomic)&&(FD_CONSP(c))) isatomic=0;

@@ -655,11 +655,11 @@ FD_EXPORT void fd_decache(fdtype frame,fdtype slotid,fdtype value)
 FD_EXPORT void fd_clear_slotcaches()
 {
   fd_lock_mutex(&slotcache_lock);
-  if (slot_caches.n_keys)
+  if (slot_caches.fd_n_keys)
     fd_reset_hashtable(&slot_caches,17,1);
-  if (test_caches.n_keys)
+  if (test_caches.fd_n_keys)
     fd_reset_hashtable(&test_caches,17,1);
-  if (implications.n_keys)
+  if (implications.fd_n_keys)
     fd_reset_hashtable(&implications,17,1);
   fd_unlock_mutex(&slotcache_lock);
 }
@@ -1240,7 +1240,7 @@ static int hashtable_cachecount(fdtype key,fdtype v,void *ptr)
   if (FD_HASHTABLEP(v)) {
     fd_hashtable h=(fd_hashtable)v;
     int *count=(int *)ptr;
-    *count=*count+h->n_keys;}
+    *count=*count+h->fd_n_keys;}
   return 0;
 }
 

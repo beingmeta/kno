@@ -316,7 +316,7 @@ FD_FASTOP fdtype fd_fetch_oid(fd_pool p,fdtype oid)
     if (fd_ignore_anonymous_oids) return FD_EMPTY_CHOICE;
     else return fd_err(fd_AnonymousOID,NULL,NULL,oid);}
   if (fdtc) {
-    fdtype value=((fdtc->oids.n_keys)?
+    fdtype value=((fdtc->oids.fd_n_keys)?
                   (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
                   (FD_VOID));
     if (!(FD_VOIDP(value))) return value;}

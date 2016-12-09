@@ -223,13 +223,15 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
         count_envrefs(FD_CDR(obj),env,depth);
     case fd_vector_type: {
       int envcount=0;
-      int i=0, len=FD_VECTOR_LENGTH(obj); fdtype *elts=FD_VECTOR_DATA(obj);
+      int i=0, len=FD_VECTOR_LENGTH(obj);
+      fdtype *elts=FD_VECTOR_DATA(obj);
       while (i<len) {
         envcount=envcount+count_envrefs(elts[i],env,depth-1); i++;}
       return envcount;}
     case fd_schemap_type: {
       int envcount=0;
-      int i=0, len=FD_SCHEMAP_SIZE(obj); fdtype *elts=FD_XSCHEMAP(obj)->values;
+      int i=0, len=FD_SCHEMAP_SIZE(obj);
+      fdtype *elts=FD_XSCHEMAP(obj)->fd_values;
       while (i<len) {
         envcount=envcount+count_envrefs(elts[i],env,depth-1); i++;}
       return envcount;}
@@ -238,7 +240,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       int i=0, len=FD_SLOTMAP_SIZE(obj);
       struct FD_KEYVAL *kv=(FD_XSLOTMAP(obj))->keyvals;
       while (i<len) {
-        envcount=envcount+count_envrefs(kv[i].value,env,depth-1); i++;}
+        envcount=envcount+count_envrefs(kv[i].fd_value,env,depth-1); i++;}
       return envcount;}
     case fd_choice_type: {
       struct FD_CHOICE *ch=(struct FD_CHOICE *)obj;
@@ -271,16 +273,16 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
     case fd_hashtable_type: {
       int envcount=0;
       struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)obj;
-      int i=0, n_slots; struct FD_HASHENTRY **slots;
+      int i=0, n_slots; struct FD_HASH_BUCKET **slots;
       fd_read_lock_struct(ht);
-      n_slots=ht->n_slots; slots=ht->slots;
+      n_slots=ht->fd_n_buckets; slots=ht->fd_buckets;
       while (i<n_slots)
         if (slots[i]) {
-          struct FD_HASHENTRY *hashentry=slots[i++];
-          int j=0, n_keyvals=hashentry->n_keyvals;
-          struct FD_KEYVAL *keyvals=&(hashentry->keyval0);
+          struct FD_HASH_BUCKET *hashentry=slots[i++];
+          int j=0, n_keyvals=hashentry->fd_n_entries;
+          struct FD_KEYVAL *keyvals=&(hashentry->fd_keyval0);
           while (j<n_keyvals) {
-            envcount=envcount+count_envrefs(keyvals[j].value,env,depth-1);
+            envcount=envcount+count_envrefs(keyvals[j].fd_value,env,depth-1);
             j++;}}
         else i++;
       fd_rw_unlock_struct(ht);
@@ -503,16 +505,16 @@ static fdtype gprofile_handler(fdtype expr,fd_lispenv env)
     filename=u8_strdup(getenv("CPUPROFILE"));
   else filename=u8_mkstring("/tmp/gprof%ld.pid",(long)getpid());
   ProfilerStart(filename); {
-    fdtype value=FD_VOID;
+    fdtype fd_value=FD_VOID;
     FD_DOBODY(ex,expr,start) {
-      fd_decref(value); value=fd_eval(ex,env);
-      if (FD_ABORTED(value)) {
+      fd_decref(fd_value); fd_value=fd_eval(ex,env);
+      if (FD_ABORTED(fd_value)) {
         ProfilerStop();
-        return value;}
+        return fd_value;}
       else {}}
     ProfilerStop();
     u8_free(filename);
-    return value;}
+    return fd_value;}
 }
 
 static fdtype gprofile_stop()

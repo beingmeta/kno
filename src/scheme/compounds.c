@@ -253,7 +253,7 @@ static fdtype tag_slotdata(fdtype tag)
   else {
     struct FD_KEYVAL *keyvals=u8_alloc_n(1,struct FD_KEYVAL);
     fdtype slotmap=FD_VOID, *slotdata=&slotmap;
-    keyvals[0].key=tag_symbol; keyvals[0].key=fd_incref(tag);
+    keyvals[0].fd_key=tag_symbol; keyvals[0].fd_key=fd_incref(tag);
     slotmap=fd_init_slotmap(NULL,1,keyvals);
     fd_register_compound(tag,slotdata,NULL);
     return slotmap;}

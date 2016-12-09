@@ -27,15 +27,15 @@ static fdtype error_bindings(fd_lispenv env)
     return fd_copy(bindings);
   else if (!(FD_TABLEP(bindings))) {
     struct FD_KEYVAL *kv=u8_alloc_n(1,struct FD_KEYVAL);
-    kv[0].key=moduleid_symbol; kv[1].value=moduleid;
+    kv[0].fd_key=moduleid_symbol; kv[1].fd_value=moduleid;
     return fd_init_slotmap(NULL,1,kv);}
   else {
     fdtype vars = fd_getkeys(bindings);
     int n_vars = FD_CHOICE_SIZE(vars);
     struct FD_KEYVAL *kv = u8_alloc_n(n_vars+1,struct FD_KEYVAL), *write=kv;
-    write[0].key=moduleid_symbol; write[0].value=moduleid; write++;
+    write[0].fd_key=moduleid_symbol; write[0].fd_value=moduleid; write++;
     {FD_DO_CHOICES(var,vars){
-        write[0].key=var; write[0].value=fd_get(bindings,var,FD_VOID);
+        write[0].fd_key=var; write[0].fd_value=fd_get(bindings,var,FD_VOID);
         write++;}}
     return fd_init_slotmap(NULL,n_vars+1,kv);}
 }
@@ -53,7 +53,8 @@ static void free_environment(struct FD_ENVIRONMENT *env)
       fd_recycle_environment(env->copy);
     else {
       struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->bindings);
-      int i=0, n=FD_XSCHEMAP_SIZE(sm); fdtype *vals=sm->values;
+      int i=0, n=FD_XSCHEMAP_SIZE(sm); 
+      fdtype *vals=sm->fd_values;
       while (i < n) {
         fdtype val=vals[i++];
         if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
@@ -61,7 +62,8 @@ static void free_environment(struct FD_ENVIRONMENT *env)
       fd_recycle_environment(env->copy);}
   else {
     struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->bindings);
-    int i=0, n=FD_XSCHEMAP_SIZE(sm); fdtype *vals=sm->values;
+    int i=0, n=FD_XSCHEMAP_SIZE(sm);
+    fdtype *vals=sm->fd_values;
     while (i < n) {
       fdtype val=vals[i++];
       if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {

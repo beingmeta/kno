@@ -36,11 +36,11 @@ typedef int (*fd_table_getsize_fn)(fdtype);
 typedef fdtype (*fd_table_keys_fn)(fdtype);
 
 struct FD_TABLEFNS {
-  fdtype (*get)(fdtype obj,fdtype key,fdtype dflt);
-  int (*store)(fdtype obj,fdtype key,fdtype value);
-  int (*add)(fdtype obj,fdtype key,fdtype value);
-  int (*drop)(fdtype obj,fdtype key,fdtype value);
-  int (*test)(fdtype obj,fdtype key,fdtype value);
+  fdtype (*get)(fdtype obj,fdtype fd_key,fdtype dflt);
+  int (*store)(fdtype obj,fdtype fd_key,fdtype fd_value);
+  int (*add)(fdtype obj,fdtype fd_key,fdtype fd_value);
+  int (*drop)(fdtype obj,fdtype fd_key,fdtype fd_value);
+  int (*test)(fdtype obj,fdtype fd_key,fdtype fd_value);
   int (*getsize)(fdtype obj);
   fdtype (*keys)(fdtype obj);};
 
@@ -65,18 +65,18 @@ FD_EXPORT fdtype fd_table_skim(fdtype table,fdtype maxval,fdtype scope);
 /* Slotmaps */
 
 struct FD_KEYVAL {
-  fdtype key, value;};
+  fdtype fd_key, fd_value;};
 
 typedef int (*fd_keyvalfn)(fdtype,fdtype,void *);
 
 typedef struct FD_SLOTMAP {
   FD_CONS_HEADER;
-  unsigned int size:12;
-  unsigned int space:12;
-  unsigned int readonly:1;
-  unsigned int modified:1;
-  unsigned int uselock:1;
-  unsigned int freedata:1;
+  unsigned int fd_table_size:12;
+  unsigned int fd_table_free:12;
+  unsigned int fd_readonly:1;
+  unsigned int fd_modified:1;
+  unsigned int fd_uselock:1;
+  unsigned int fd_free_keyvals:1;
   struct FD_KEYVAL *keyvals;
   U8_RWLOCK_DECL(fd_rwlock);} FD_SLOTMAP;
 typedef struct FD_SLOTMAP *fd_slotmap;
@@ -84,16 +84,16 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define FD_SLOTMAPP(x) (FD_PTR_TYPEP(x,fd_slotmap_type))
 #define FD_XSLOTMAP(x) \
   (FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *))
-#define FD_XSLOTMAP_SIZE(sm) (sm->size)
-#define FD_XSLOTMAP_SPACE(sm) (sm->space)
-#define FD_XSLOTMAP_USELOCKP(sm) (sm->uselock)
-#define FD_XSLOTMAP_MODIFIEDP(sm) (sm->modified)
-#define FD_XSLOTMAP_READONLYP(sm) (sm->readonly)
-#define FD_XSLOTMAP_SET_READONLY(sm) (sm)->readonly=1
-#define FD_XSLOTMAP_MARK_MODIFIED(sm) (sm)->modified=1
-#define FD_XSLOTMAP_CLEAR_MODIFIED(sm) (sm)->modified=0
-#define FD_XSLOTMAP_SET_SIZE(sm,sz) (sm)->size=sz
-#define FD_XSLOTMAP_SET_SPACE(sm,sz) (sm)->space=sz
+#define FD_XSLOTMAP_SIZE(sm) ((sm)->fd_table_size)
+#define FD_XSLOTMAP_SPACE(sm) ((sm)->fd_table_free)
+#define FD_XSLOTMAP_USELOCKP(sm) ((sm)->fd_uselock)
+#define FD_XSLOTMAP_MODIFIEDP(sm) ((sm)->fd_modified)
+#define FD_XSLOTMAP_READONLYP(sm) ((sm)->fd_readonly)
+#define FD_XSLOTMAP_SET_READONLY(sm) (sm)->fd_readonly=1
+#define FD_XSLOTMAP_MARK_MODIFIED(sm) (sm)->fd_modified=1
+#define FD_XSLOTMAP_CLEAR_MODIFIED(sm) (sm)->fd_modified=0
+#define FD_XSLOTMAP_SET_SIZE(sm,sz) (sm)->fd_table_size=sz
+#define FD_XSLOTMAP_SET_SPACE(sm,sz) (sm)->fd_table_free=sz
 #define FD_SLOTMAP_SIZE(x) (FD_XSLOTMAP_SIZE(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_MODIFIEDP(x) (FD_XSLOTMAP_MODIFIEDP(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_READONLYP(x) (FD_XSLOTMAP_READONLYP(FD_XSLOTMAP(x)))
@@ -133,17 +133,17 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
 
 #if FD_INLINE_TABLES
 static struct FD_KEYVAL *fd_sortvec_get
-   (fdtype key,struct FD_KEYVAL *keyvals,int size)
+   (fdtype fd_key,struct FD_KEYVAL *keyvals,int size)
 {
   if (size<4) {
     const struct FD_KEYVAL *scan=keyvals, *limit=scan+size;
-    if (FD_ATOMICP(key))
+    if (FD_ATOMICP(fd_key))
       while (scan<limit)
-        if (scan->key==key)
+        if (scan->fd_key==fd_key)
           return (struct FD_KEYVAL *)scan;
         else scan++;
     else while (scan<limit)
-      if (FDTYPE_EQUAL(scan->key,key))
+      if (FDTYPE_EQUAL(scan->fd_key,fd_key))
         return (struct FD_KEYVAL *) scan;
       else scan++;
     return NULL;}
@@ -151,19 +151,19 @@ static struct FD_KEYVAL *fd_sortvec_get
     int found=0;
     const struct FD_KEYVAL
       *bottom=keyvals, *limit=bottom+size, *top=limit-1, *middle;
-    if (FD_ATOMICP(key))
+    if (FD_ATOMICP(fd_key))
       while (top>=bottom) {
         middle=bottom+(top-bottom)/2;
         if (middle>=limit) break;
-        else if (key==middle->key) {found=1; break;}
-        else if (FD_CONSP(middle->key)) top=middle-1;
-        else if (key<middle->key) top=middle-1;
+        else if (fd_key==middle->fd_key) {found=1; break;}
+        else if (FD_CONSP(middle->fd_key)) top=middle-1;
+        else if (fd_key<middle->fd_key) top=middle-1;
         else bottom=middle+1;}
     else while (top>=bottom) {
       int comparison;
       middle=bottom+(top-bottom)/2;
       if (middle>=limit) break;
-      comparison=cons_compare(key,middle->key);
+      comparison=cons_compare(fd_key,middle->fd_key);
       if (comparison==0) {found=1; break;}
       else if (comparison<0) top=middle-1;
       else bottom=middle+1;}
@@ -184,7 +184,7 @@ FD_EXPORT fdtype _fd_slotmap_test
 
 #if FD_INLINE_TABLES
 static MAYBE_UNUSED fdtype fd_slotmap_get
-  (struct FD_SLOTMAP *sm,fdtype key,fdtype dflt)
+  (struct FD_SLOTMAP *sm,fdtype fd_key,fdtype dflt)
 {
   unsigned int unlock=0;
   struct FD_KEYVAL *result; int size;
@@ -193,9 +193,9 @@ static MAYBE_UNUSED fdtype fd_slotmap_get
       (!(FD_XSLOTMAP_READONLYP(sm)))) {
     fd_read_lock(&sm->fd_rwlock); unlock=1;}
   size=FD_XSLOTMAP_SIZE(sm);
-  result=fd_sortvec_get(key,sm->keyvals,size);
+  result=fd_sortvec_get(fd_key,sm->keyvals,size);
   if (result) {
-    fdtype v=fd_incref(result->value);
+    fdtype v=fd_incref(result->fd_value);
     if (unlock) fd_rw_unlock(&sm->fd_rwlock);
     return v;}
   else {
@@ -203,20 +203,20 @@ static MAYBE_UNUSED fdtype fd_slotmap_get
     return fd_incref(dflt);}
 }
 static MAYBE_UNUSED fdtype fd_slotmap_test
-  (struct FD_SLOTMAP *sm,fdtype key,fdtype val)
+  (struct FD_SLOTMAP *sm,fdtype fd_key,fdtype val)
 {
   unsigned int unlock=0;
   struct FD_KEYVAL *result; int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
   if ((FD_ABORTP(val))) return fd_interr(val);
-  if ((FD_ABORTP(key))) return fd_interr(key);
+  if ((FD_ABORTP(fd_key))) return fd_interr(fd_key);
   if ((FD_XSLOTMAP_USELOCKP(sm))&&
       (!(FD_XSLOTMAP_READONLYP(sm)))) {
     fd_read_lock(&sm->fd_rwlock); unlock=1;}
   size=FD_XSLOTMAP_SIZE(sm);
-  result=fd_sortvec_get(key,sm->keyvals,size);
+  result=fd_sortvec_get(fd_key,sm->keyvals,size);
   if (result) {
-    fdtype current=result->value; int cmp;
+    fdtype current=result->fd_value; int cmp;
     if (FD_VOIDP(val)) cmp=1;
     else if (FD_EQ(val,current)) cmp=1;
     else if ((FD_CHOICEP(val)) || (FD_ACHOICEP(val)) ||
@@ -242,40 +242,41 @@ FD_EXPORT fdtype fd_blist_to_slotmap(fdtype binding_list);
 /* Schemamaps */
 
 typedef struct FD_SCHEMAP {
-  FD_CONS_HEADER; short size, flags;
-  fdtype *schema, *values;
+  FD_CONS_HEADER; 
+  short fd_table_size;
+  int fd_sorted:1, fd_stack_schema:1, fd_tagged:1;
+  int fd_readonly:1, fd_shared_schema:1, fd_modified:1;
+  fdtype *fd_schema, *fd_values;
   U8_RWLOCK_DECL(fd_rwlock);} FD_SCHEMAP;
+
+typedef struct FD_SCHEMAP *fd_schemap;
+
+#define FD_SCHEMAPP(x) (FD_PTR_TYPEP(x,fd_schemap_type))
+#define FD_XSCHEMAP(x) (FD_GET_CONS(x,fd_schemap_type,struct FD_SCHEMAP *))
+#define FD_XSCHEMAP_SIZE(sm) ((sm)->fd_table_size)
+#define FD_XSCHEMAP_SORTEDP(sm) ((sm)->fd_sorted)
+#define FD_XSCHEMAP_READONLYP(sm) ((sm)->fd_readonly)
+#define FD_XSCHEMAP_MODIFIEDP(sm) ((sm)->fd_modified)
+#define FD_XSCHEMAP_MARK_MODIFIED(sm) (sm)->fd_modified=1
+#define FD_XSCHEMAP_CLEAR_MODIFIED(sm) (sm)->fd_modified=0
+#define FD_XSCHEMAP_SET_READONLY(sm) (sm)->fd_readonly=1
+#define FD_XSCHEMAP_CLEAR_READONLY(sm) (sm)->fd_readonly=0
+#define FD_SCHEMAP_SIZE(x) (FD_XSCHEMAP_SIZE(FD_XSCHEMAP(x)))
+#define FD_SCHEMAP_SORTEDP(x) (FD_XSCHEMAP_SORTEDP(FD_XSCHEMAP(x)))
+#define FD_SCHEMAP_READONLYP(x) (FD_XSCHEMAP_READONLYP(FD_XSCHEMAP(x)))
+#define FD_SCHEMAP_MODIFIEDP(x) (FD_XSCHEMAP_MODIFIEDP(FD_XSCHEMAP(x)))
+#define FD_SCHEMAP_MARK_MODIFIED(sm) (FD_XSCHEMAP(sm))->fd_modified=1
+#define FD_SCHEMAP_CLEAR_MODIFIED(sm) (FD_XSCHEMAP(sm))->fd_modified=0
+#define FD_SCHEMAP_SET_READONLY(sm) (FD_XSCHEMAP(sm))->fd_readonly=1
+#define FD_SCHEMAP_CLEAR_READONLY(sm) (FD_XSCHEMAP(sm))->fd_readonly=0
 
 #define FD_SCHEMAP_SORTED 1
 #define FD_SCHEMAP_PRIVATE 2
 #define FD_SCHEMAP_MODIFIED 4
 #define FD_SCHEMAP_STACK_SCHEMA 8
 #define FD_SCHEMAP_READONLY 16
-/* This disallows the addition or removal of fields */
-#define FD_SCHEMAP_FIXED 32
 /* Tagged schemaps keep an integer ID in their n+1st element */
 #define FD_SCHEMAP_TAGGED 64
-
-typedef struct FD_SCHEMAP *fd_schemap;
-
-#define FD_SCHEMAPP(x) (FD_PTR_TYPEP(x,fd_schemap_type))
-#define FD_XSCHEMAP(x) (FD_GET_CONS(x,fd_schemap_type,struct FD_SCHEMAP *))
-#define FD_XSCHEMAP_SIZE(sm) ((sm)->size)
-#define FD_XSCHEMAP_FLAGS(sm) ((sm)->flags)
-#define FD_XSCHEMAP_READONLYP(sm) (((sm)->flags)&FD_SCHEMAP_READONLY)
-#define FD_XSCHEMAP_MODIFIEDP(sm) (((sm)->flags)&FD_SCHEMAP_MODIFIED)
-#define FD_XSCHEMAP_MARK_MODIFIED(sm) \
-  ((sm)->flags)=(((sm)->flags)|FD_SCHEMAP_MODIFIED)
-#define FD_XSCHEMAP_SET_READONLY(sm) \
-  ((sm)->flags)=(((sm)->flags)|FD_SCHEMAP_READONLY)
-#define FD_SCHEMAP_SIZE(x) (FD_XSCHEMAP_SIZE(FD_XSCHEMAP(x)))
-#define FD_SCHEMAP_FLAGS(x) (FD_XSCHEMAP_FLAGS(FD_XSCHEMAP(x)))
-#define FD_SCHEMAP_READONLYP(x) (FD_XSCHEMAP_READONLYP(FD_XSCHEMAP(x)))
-#define FD_SCHEMAP_MODIFIEDP(x) (FD_XSCHEMAP_MODIFIEDP(FD_XSCHEMAP(x)))
-#define FD_SCHEMAP_MARK_MODIFIED(x) \
-  FD_XSCHEMAP_MARK_MODIFIED(FD_XSCHEMAP(x))
-#define FD_SCHEMAP_SET_READONLY(x) \
-  FD_XSCHEMAP_SET_READONLY(FD_XSCHEMAP(x))
 
 FD_EXPORT fdtype fd_make_schemap
   (struct FD_SCHEMAP *ptr,short n_slots,short flags,
@@ -300,39 +301,40 @@ FD_EXPORT void fd_sort_schema(int n,fdtype *v);
 
 #if FD_INLINE_TABLES
 static MAYBE_UNUSED int _fd_get_slotno
-  (fdtype key,fdtype *schema,int size,int flags)
+  (fdtype fd_key,fdtype *schema,int size,int sorted)
 {
-  if ((flags&FD_SCHEMAP_SORTED) && (size>4)) {
+  if ((sorted) && (size>7)) {
     const fdtype *bottom=schema, *middle=bottom+size/2;
     const fdtype *hard_top=bottom+size, *top=hard_top;
     while (top>bottom) {
-      if (key==*middle) return middle-schema;
-      else if (key<*middle) {
+      if (fd_key==*middle) return middle-schema;
+      else if (fd_key<*middle) {
         top=middle-1; middle=bottom+(top-bottom)/2;}
       else {
         bottom=middle+1; middle=bottom+(top-bottom)/2;}}
-    if ((middle) && (middle<hard_top) && (key==*middle))
+    if ((middle) && (middle<hard_top) && (fd_key==*middle))
       return middle-schema;
     else return -1;}
   else {
     const fdtype *scan=schema, *limit=schema+size;
     while (scan<limit)
-      if (FD_EQ(key,*scan)) return scan-schema;
+      if (FD_EQ(fd_key,*scan)) return scan-schema;
       else scan++;
     return -1;}
 }
 static MAYBE_UNUSED fdtype fd_schemap_get
-  (struct FD_SCHEMAP *sm,fdtype key,fdtype dflt)
+  (struct FD_SCHEMAP *sm,fdtype fd_key,fdtype dflt)
 {
   int unlock=0;
-  int size, slotno;
+  int size, slotno, sorted;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
   if (!(FD_XSCHEMAP_READONLYP(sm))) {
     fd_read_lock(&(sm->fd_rwlock)); unlock=1;}
   size=FD_XSCHEMAP_SIZE(sm);
-  slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
+  sorted=FD_XSCHEMAP_SORTEDP(sm);
+  slotno=_fd_get_slotno(fd_key,sm->fd_schema,size,sorted);
   if (slotno>=0) {
-    fdtype v=fd_incref(sm->values[slotno]);
+    fdtype v=fd_incref(sm->fd_values[slotno]);
     if (unlock) fd_rw_unlock(&(sm->fd_rwlock));
     return v;}
   else {
@@ -340,7 +342,7 @@ static MAYBE_UNUSED fdtype fd_schemap_get
     return fd_incref(dflt);}
 }
 static MAYBE_UNUSED fdtype fd_schemap_test
-  (struct FD_SCHEMAP *sm,fdtype key,fdtype val)
+  (struct FD_SCHEMAP *sm,fdtype fd_key,fdtype val)
 {
   int unlock=0, size, slotno;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
@@ -349,9 +351,9 @@ static MAYBE_UNUSED fdtype fd_schemap_test
   if (!(FD_XSCHEMAP_READONLYP(sm))) {
     fd_read_lock(&(sm->fd_rwlock)); unlock=1;}
   size=FD_XSCHEMAP_SIZE(sm);
-  slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
+  slotno=_fd_get_slotno(fd_key,sm->fd_schema,size,sm->fd_sorted);
   if (slotno>=0) {
-    fdtype current=sm->values[slotno]; int cmp;
+    fdtype current=sm->fd_values[slotno]; int cmp;
     if (FD_VOIDP(val)) cmp=1;
     else if (FD_EQ(val,current)) cmp=1;
     else if ((FD_CHOICEP(val)) || (FD_ACHOICEP(val)) ||
@@ -372,16 +374,16 @@ static MAYBE_UNUSED fdtype fd_schemap_test
 
 /* Hashtables */
 
-typedef struct FD_HASHENTRY {
-  int n_keyvals;
-  struct FD_KEYVAL keyval0;} FD_HASHENTRY;
-typedef struct FD_HASHENTRY *fd_hashentry;
+typedef struct FD_HASH_BUCKET {
+  int fd_n_entries;
+  struct FD_KEYVAL fd_keyval0;} FD_HASHENTRY;
+typedef struct FD_HASH_BUCKET *fd_hashentry;
 
 typedef struct FD_HASHTABLE {
   FD_CONS_HEADER;
-  unsigned int n_slots, n_keys, loading;
-  unsigned int readonly:1, modified:1, uselock:1;
-  struct FD_HASHENTRY **slots;
+  unsigned int fd_n_buckets, fd_n_keys, fd_load_factor;
+  unsigned int fd_readonly:1, fd_modified:1, fd_uselock:1;
+  struct FD_HASH_BUCKET **fd_buckets;
   U8_RWLOCK_DECL(fd_rwlock);} FD_HASHTABLE;
 typedef struct FD_HASHTABLE *fd_hashtable;
 
@@ -389,13 +391,13 @@ typedef struct FD_HASHTABLE *fd_hashtable;
 #define FD_XHASHTABLE(x) \
   FD_GET_CONS(x,fd_hashtable_type,struct FD_HASHTABLE *)
 #define FD_HASHTABLE_SLOTS(x) \
-  ((FD_XHASHTABLE(x))->n_slots)
+  ((FD_XHASHTABLE(x))->fd_n_buckets)
 #define FD_HASHTABLE_SIZE(x) \
-  ((FD_XHASHTABLE(x))->n_keys)
+  ((FD_XHASHTABLE(x))->fd_n_keys)
 #define FD_HASHTABLE_MODIFIEDP(x) \
-  ((FD_XHASHTABLE(x))->modified)
+  ((FD_XHASHTABLE(x))->fd_modified)
 #define FD_HASHTABLE_MARK_MODIFIED(x) \
-  ((FD_XHASHTABLE(x))->modified)=1
+  ((FD_XHASHTABLE(x))->fd_modified)=1
 
 FD_EXPORT unsigned int fd_get_hashtable_size(unsigned int min);
 FD_EXPORT unsigned int fd_hash_string(u8_string string,int len);
@@ -405,9 +407,9 @@ FD_EXPORT fdtype fd_make_hashtable(fd_hashtable ptr,int n_slots);
 FD_EXPORT fdtype fd_init_hashtable
    (fd_hashtable ptr,int n_keyvals,struct FD_KEYVAL *init);
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
-FD_EXPORT struct FD_KEYVAL *fd_hashvec_get(fdtype key,struct FD_HASHENTRY **slots,int n_slots);
+FD_EXPORT struct FD_KEYVAL *fd_hashvec_get(fdtype key,struct FD_HASH_BUCKET **slots,int n_slots);
 FD_EXPORT int fd_fast_reset_hashtable(fd_hashtable ht,int n_slots,int lock,
-                                      struct FD_HASHENTRY ***,int *);
+                                      struct FD_HASH_BUCKET ***,int *);
 FD_EXPORT int fd_remove_deadwood_x(struct FD_HASHTABLE *ptr,
                                    int (*testfn)(fdtype,fdtype,void *),
                                    void *testdata);
@@ -471,14 +473,14 @@ FD_EXPORT void fd_hash_quality
    unsigned int *ncollisionsp);
 
 FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *h);
-FD_EXPORT int fd_free_hashvec(struct FD_HASHENTRY **slots,int slots_to_free);
+FD_EXPORT int fd_free_hashvec(struct FD_HASH_BUCKET **slots,int slots_to_free);
 
 /* Hashsets */
 
 typedef struct FD_HASHSET {
   FD_CONS_HEADER;
-  int n_keys, n_slots, loading, atomicp;
-  fdtype *slots;
+  int fd_n_keys, fd_n_slots, fd_load_factor, fd_isatomic;
+  fdtype *fd_hashslots;
   U8_MUTEX_DECL(fd_lock);} FD_HASHSET;
 typedef struct FD_HASHSET *fd_hashset;
 

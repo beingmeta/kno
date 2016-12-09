@@ -360,7 +360,7 @@ FD_EXPORT void fd_swapout_all()
 
 /* This stores a hashtable's data to free after it has been reset. */
 struct HASHVEC_TO_FREE {
-  struct FD_HASHENTRY **slots; int n_slots;};
+  struct FD_HASH_BUCKET **slots; int n_slots;};
 struct HASHVECS_TODO {
   struct HASHVEC_TO_FREE *to_free; int n_to_free, max_to_free;};
 
@@ -381,7 +381,7 @@ static void fast_reset_hashtable
 static int fast_swapout_index(fd_index ix,void *data)
 {
   struct HASHVECS_TODO *todo=(struct HASHVECS_TODO *)data;
-  if ((((ix->flags)&FD_INDEX_NOSWAP)==0) && (ix->cache.n_keys)) {
+  if ((((ix->flags)&FD_INDEX_NOSWAP)==0) && (ix->cache.fd_n_keys)) {
     if ((ix->flags)&(FD_STICKY_CACHESIZE))
       fast_reset_hashtable(&(ix->cache),-1,todo);
     else fast_reset_hashtable(&(ix->cache),0,todo);}
@@ -392,7 +392,7 @@ static int fast_swapout_pool(fd_pool p,void *data)
 {
   struct HASHVECS_TODO *todo=(struct HASHVECS_TODO *)data;
   fast_reset_hashtable(&(p->cache),67,todo);
-  if (p->locks.n_keys) fd_devoid_hashtable(&(p->locks));
+  if (p->locks.fd_n_keys) fd_devoid_hashtable(&(p->locks));
   return 0;
 }
 

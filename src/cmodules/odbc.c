@@ -409,8 +409,8 @@ static fdtype get_stmt_results
           if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
           fd_decref(results);
           return FD_ERROR_VALUE;}
-        kv[i].key=colnames[i];
-        kv[i].value=value;
+        kv[i].fd_key=colnames[i];
+        kv[i].fd_value=value;
         i++;}
       if ((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) || (FD_FALSEP(mergefn)))
         slotmap=fd_init_slotmap(NULL,n_cols,kv);

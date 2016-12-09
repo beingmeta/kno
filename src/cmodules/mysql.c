@@ -598,39 +598,39 @@ static fdtype get_stmt_values
       /* Convert outbound variables via colmaps if specified. */
       if (FD_EMPTY_CHOICEP(value)) /* NULL value, don't convert */
         if (noempty) {i++; continue;}
-        else kv[n_slots].value=value;
+        else kv[n_slots].fd_value=value;
       else if (FD_VOIDP(colmaps[i]))
-        kv[n_slots].value=value;
+        kv[n_slots].fd_value=value;
       else if (FD_APPLICABLEP(colmaps[i])) {
-        kv[n_slots].value=fd_apply(colmaps[i],1,&value);
+        kv[n_slots].fd_value=fd_apply(colmaps[i],1,&value);
         fd_decref(value);}
       else if (FD_OIDP(colmaps[i])) {
         if (FD_STRINGP(value)) {
-          kv[n_slots].value=fd_parse(FD_STRDATA(value));}
+          kv[n_slots].fd_value=fd_parse(FD_STRDATA(value));}
         else {
           FD_OID base=FD_OID_ADDR(colmaps[i]);
           int offset=fd_getint(value);
-          if (offset<0) kv[n_slots].value=value;
+          if (offset<0) kv[n_slots].fd_value=value;
           else if (offset==0) {
             /* Some fields with OIDS use a zero value to indicate no
                value (empty choice), so we handle that here. */
             if (noempty) {i++; continue;}
-            else kv[n_slots].value=FD_EMPTY_CHOICE;}
+            else kv[n_slots].fd_value=FD_EMPTY_CHOICE;}
           else {
             FD_OID baseplus=FD_OID_PLUS(base,offset);
-            kv[n_slots].value=fd_make_oid(baseplus);}}
+            kv[n_slots].fd_value=fd_make_oid(baseplus);}}
         fd_decref(value);}
       else if (colmaps[i]==FD_TRUE)
         if (FD_STRINGP(value)) {
           if (FD_STRLEN(value))
-            kv[n_slots].value=fd_parse(FD_STRDATA(value));
-          else kv[n_slots].value=FD_EMPTY_CHOICE;
+            kv[n_slots].fd_value=fd_parse(FD_STRDATA(value));
+          else kv[n_slots].fd_value=FD_EMPTY_CHOICE;
           fd_decref(value);}
-        else kv[n_slots].value=value;
+        else kv[n_slots].fd_value=value;
       else if (FD_PRIM_TYPEP(colmaps[i],fd_secret_type)) {
         if ((FD_STRINGP(value))||(FD_PACKETP(value)))
           FD_SET_CONS_TYPE(value,fd_secret_type);
-        kv[n_slots].value=value;}
+        kv[n_slots].fd_value=value;}
       else if (FD_PRIM_TYPEP(colmaps[i],fd_uuid_type))
         if ((FD_PACKETP(value))||(FD_STRINGP(value))) {
           struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
@@ -643,18 +643,18 @@ static fdtype get_stmt_values
           uuidbytes=uuid->fd_uuid16;
           memcpy(uuidbytes,data,16);
           fd_decref(value);
-          kv[n_slots].value=FDTYPE_CONS(uuid);}
-        else kv[n_slots].value=value;
+          kv[n_slots].fd_value=FDTYPE_CONS(uuid);}
+        else kv[n_slots].fd_value=value;
       else if (FD_EQ(colmaps[i],boolean_symbol)) {
         if (FD_FIXNUMP(value)) {
           int ival=FD_FIX2INT(value);
-          if (ival) kv[n_slots].value=FD_TRUE;
-          else kv[n_slots].value=FD_FALSE;}
-        else {kv[n_slots].value=value;}}
-      else kv[n_slots].value=value;
-      kv[n_slots].key=colnames[i];
-      if (FD_ABORTP(kv[n_slots].value)) {
-        result=kv[n_slots].value;
+          if (ival) kv[n_slots].fd_value=FD_TRUE;
+          else kv[n_slots].fd_value=FD_FALSE;}
+        else {kv[n_slots].fd_value=value;}}
+      else kv[n_slots].fd_value=value;
+      kv[n_slots].fd_key=colnames[i];
+      if (FD_ABORTP(kv[n_slots].fd_value)) {
+        result=kv[n_slots].fd_value;
         break;}
       n_slots++;
       i++;}
@@ -668,21 +668,21 @@ static fdtype get_stmt_values
       result=FD_EMPTY_CHOICE;
       if (kv) u8_free(kv);}
     else if (FD_ABORTP(result)) {
-      int j=0; while (j<n_slots) {fd_decref(kv[j].value); j++;}
+      int j=0; while (j<n_slots) {fd_decref(kv[j].fd_value); j++;}
       if (kv) u8_free(kv);}
     else if ((n_cols==1) && (FD_TRUEP(mergefn))) {
-      result=kv[0].value;
+      result=kv[0].fd_value;
       u8_free(kv);}
     else if ((FD_SYMBOLP(mergefn))||(FD_OIDP(mergefn))) {
       int j=0; result=FD_EMPTY_CHOICE;
       while (j<n_slots) {
-        if (kv[j].key == mergefn) {
-          result=kv[j].value; 
-          fd_decref(kv[j].key);
+        if (kv[j].fd_key == mergefn) {
+          result=kv[j].fd_value; 
+          fd_decref(kv[j].fd_key);
           j++;}
         else {
-          fd_decref(kv[j].key);
-          fd_decref(kv[j].value);
+          fd_decref(kv[j].fd_key);
+          fd_decref(kv[j].fd_value);
           j++;}}
       u8_free(kv);}
     else if ((FD_VOIDP(mergefn)) ||

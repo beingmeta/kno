@@ -581,11 +581,11 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
     int j=0; while (j<n_cols) {
       int coltype=sqlite3_column_type(stmt,j); fdtype value;
       if (coltype<0) {
-        int k=0; while (k<j) {fd_decref(kv[k].value);  k++;}
+        int k=0; while (k<j) {fd_decref(kv[k].fd_value);  k++;}
         u8_free(kv);
         fd_decref(results); u8_free(out.u8_outbuf);
         return FD_ERROR_VALUE;}
-      kv[j].key=colnames[j];
+      kv[j].fd_key=colnames[j];
       switch (coltype) {
       case SQLITE_INTEGER: {
         long long intval=sqlite3_column_int(stmt,j);
@@ -617,30 +617,30 @@ static fdtype sqlite_values(sqlite3 *db,sqlite3_stmt *stmt,fdtype colinfo)
       case SQLITE_NULL: default:
         value=FD_EMPTY_CHOICE; break;}
       if (FD_VOIDP(colmaps[j]))
-        kv[j].value=value;
+        kv[j].fd_value=value;
       else if (FD_APPLICABLEP(colmaps[j])) {
-        kv[j].value=fd_apply(colmaps[j],1,&value);
+        kv[j].fd_value=fd_apply(colmaps[j],1,&value);
         fd_decref(value);}
       else if (FD_OIDP(colmaps[j]))
         if (FD_STRINGP(value)) {
-          kv[j].value=fd_parse(FD_STRDATA(value));
+          kv[j].fd_value=fd_parse(FD_STRDATA(value));
           fd_decref(value);}
         else {
           FD_OID base=FD_OID_ADDR(colmaps[j]);
           int offset=fd_getint(value);
-          if (offset<0) kv[j].value=value;
+          if (offset<0) kv[j].fd_value=value;
           else {
-            kv[j].value=fd_make_oid(base+offset);
+            kv[j].fd_value=fd_make_oid(base+offset);
             fd_decref(value);}}
       else if (colmaps[j]==FD_TRUE)
         if (FD_STRINGP(value)) {
-          kv[j].value=fd_parse(FD_STRDATA(value));
+          kv[j].fd_value=fd_parse(FD_STRDATA(value));
           fd_decref(value);}
-        else kv[j].value=value;
-      else kv[j].value=value;
+        else kv[j].fd_value=value;
+      else kv[j].fd_value=value;
       j++;}
     if ((n_cols==1) && (FD_TRUEP(mergefn))) {
-      result=kv[0].value;
+      result=kv[0].fd_value;
       u8_free(kv);}
     else if ((FD_VOIDP(mergefn)) || (FD_FALSEP(mergefn)) || (FD_TRUEP(mergefn)))
       result=fd_init_slotmap(NULL,n_cols,kv);

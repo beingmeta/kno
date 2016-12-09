@@ -60,7 +60,8 @@ static int compare_slotids(const void *s1,const void *s2)
 
 static int compare_schema_ptrs(const void *v1,const void *v2)
 {
-  struct FD_SCHEMA_TABLE *s1=(struct FD_SCHEMA_TABLE *)v1, *s2=(struct FD_SCHEMA_TABLE *)v2;
+  struct FD_SCHEMA_TABLE *s1=(struct FD_SCHEMA_TABLE *)v1;
+  struct FD_SCHEMA_TABLE *s2=(struct FD_SCHEMA_TABLE *)v2;
   if (s1->schema == s2->schema) return 0;
   else if (s1->schema < s2->schema) return -1;
   else return 1;
@@ -68,7 +69,8 @@ static int compare_schema_ptrs(const void *v1,const void *v2)
 
 static int compare_schema_vals(const void *v1,const void *v2)
 {
-  struct FD_SCHEMA_TABLE *s1=(struct FD_SCHEMA_TABLE *)v1, *s2=(struct FD_SCHEMA_TABLE *)v2;
+  struct FD_SCHEMA_TABLE *s1=(struct FD_SCHEMA_TABLE *)v1;
+  struct FD_SCHEMA_TABLE *s2=(struct FD_SCHEMA_TABLE *)v2;
   if (s1->size > s2->size) return 1;
   else if (s1->size < s2->size) return -1;
   else {
@@ -80,7 +82,9 @@ static int compare_schema_vals(const void *v1,const void *v2)
     return 0;}
 }
 
-static int find_schema_index_by_ptr(fdtype *schema,struct FD_SCHEMA_TABLE *table,int n_schemas)
+static int find_schema_index_by_ptr(fdtype *schema,
+                                    struct FD_SCHEMA_TABLE *table,
+                                    int n_schemas)
 {
   if (n_schemas) {
     struct FD_SCHEMA_TABLE *bot=table, *top=bot+n_schemas, *mid=bot+(n_schemas/2);
@@ -95,7 +99,9 @@ static int find_schema_index_by_ptr(fdtype *schema,struct FD_SCHEMA_TABLE *table
   else return -1;
 }
 
-int bm_find_schema_by_vals(fdtype *schema,int n,struct FD_SCHEMA_TABLE *table,int n_schemas)
+int bm_find_schema_by_vals(fdtype *schema,int n,
+                           struct FD_SCHEMA_TABLE *table,
+                           int n_schemas)
 {
   if (n_schemas) {
     struct FD_SCHEMA_TABLE *bot=table, *top=bot+n_schemas, *mid=bot+(n_schemas/2);
@@ -367,9 +373,9 @@ int write_oid_value
   if (FD_XSCHEMAP(v)) {
     struct FD_BYTE_OUTPUT out;
     struct FD_SCHEMAP *sm=FD_XSCHEMAP(v);
-    fdtype *schema=sm->schema, *values=sm->values;
+    fdtype *schema=sm->fd_schema, *values=sm->fd_values;
     int schema_index=find_schema_index_by_ptr(schema,schemas,n_schemas);
-    int i=0, size=sm->size, retval=-1; ssize_t zlen=-1, wlen;
+    int i=0, size=sm->fd_table_size, retval=-1; ssize_t zlen=-1, wlen;
     unsigned char *zbytes;
     if (schema_index < 0) {
       int size=fd_dtswrite_zint(s,0);

@@ -153,29 +153,29 @@ static int netindex_commit(fd_index ix)
   int n_transactions=0;
   fd_write_lock_struct(&(nix->adds));
   fd_write_lock_struct(&(nix->edits));
-  if (nix->edits.n_keys) {
+  if (nix->edits.fd_n_keys) {
     int n_edits;
     struct FD_KEYVAL *kvals=fd_hashtable_keyvals(&(nix->edits),&n_edits,0);
     struct FD_KEYVAL *scan=kvals, *limit=kvals+n_edits;
     while (scan<limit) {
-      fdtype key=scan->key, result=FD_VOID;
+      fdtype key=scan->fd_key, result=FD_VOID;
       if ((FD_PAIRP(key)) && (FD_EQ(FD_CAR(key),set_symbol)))
         if (nix->capabilities&FD_ISERVER_RESET) {
           n_transactions++;
           if (FD_VOIDP(nix->xname))
-            result=fd_dtcall(nix->connpool,3,iserver_reset,FD_CDR(key),scan->value);
+            result=fd_dtcall(nix->connpool,3,iserver_reset,FD_CDR(key),scan->fd_value);
           else result=fd_dtcall_nrx(nix->connpool,3,4,
                                     ixserver_reset,nix->xname,
-                                    FD_CDR(key),scan->value);}
+                                    FD_CDR(key),scan->fd_value);}
         else u8_log(LOG_WARN,fd_NoServerMethod,
                     "Server %s doesn't support resets",ix->source);
       else if ((FD_PAIRP(key)) && (FD_EQ(FD_CAR(key),drop_symbol)))
         if (nix->capabilities&FD_ISERVER_DROP) {
           n_transactions++;
           if (FD_VOIDP(nix->xname))
-            result=fd_dtcall(nix->connpool,3,iserver_drop,FD_CDR(key),scan->value);
+            result=fd_dtcall(nix->connpool,3,iserver_drop,FD_CDR(key),scan->fd_value);
           else result=fd_dtcall_x(nix->connpool,3,4,ixserver_drop,nix->xname,
-                                  FD_CDR(key),scan->value);}
+                                  FD_CDR(key),scan->fd_value);}
         else u8_log(LOG_WARN,fd_NoServerMethod,
                     "Server %s doesn't support drops",ix->source);
       else u8_raise(_("Bad edit key in index"),"fd_netindex_commit",NULL);
@@ -186,7 +186,7 @@ static int netindex_commit(fd_index ix)
       else fd_decref(result);
       scan++;}
     scan=kvals; while (scan<kvals) {
-      fd_decref(scan->key); fd_decref(scan->value); scan++;}}
+      fd_decref(scan->fd_key); fd_decref(scan->fd_value); scan++;}}
   if (nix->capabilities&FD_ISERVER_ADDN) {
     int n_adds;
     struct FD_KEYVAL *kvals=fd_hashtable_keyvals(&(nix->adds),&n_adds,0);
@@ -209,7 +209,7 @@ static int netindex_commit(fd_index ix)
         fdtype result=FD_VOID;
         n_transactions++;
         result=fd_dtcall_nr(nix->connpool,3,
-                            iserver_add,scan->key,scan->value);
+                            iserver_add,scan->fd_key,scan->fd_value);
         if (FD_ABORTP(result)) {
           fd_rw_unlock_struct(&(nix->adds));
           fd_rw_unlock_struct(&(nix->edits));
@@ -220,7 +220,7 @@ static int netindex_commit(fd_index ix)
       fdtype result=FD_VOID;
       n_transactions++;
       result=fd_dtcall_nrx(nix->connpool,3,3,
-                           ixserver_add,xname,scan->key,scan->value);
+                           ixserver_add,xname,scan->fd_key,scan->fd_value);
       if (FD_ABORTP(result)) {
         fd_rw_unlock_struct(&(nix->adds));
         fd_rw_unlock_struct(&(nix->edits));
@@ -228,7 +228,7 @@ static int netindex_commit(fd_index ix)
       else fd_decref(result);
       scan++;}
     scan=kvals; while (scan<kvals) {
-      fd_decref(scan->key); fd_decref(scan->value); scan++;}
+      fd_decref(scan->fd_key); fd_decref(scan->fd_value); scan++;}
     u8_free(kvals);
     fd_reset_hashtable(&(nix->adds),67,0);
     fd_reset_hashtable(&(nix->edits),67,0);

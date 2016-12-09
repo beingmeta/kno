@@ -302,9 +302,9 @@ static void zindex_setcache(fd_index ix,int level)
       else fx->offsets=offsets=newmmap+2;
 #else
       fd_dts_start_read(s);
-      offsets=u8_malloc(SLOTSIZE*(fx->n_slots));
+      offsets=u8_malloc(SLOTSIZE*(fx->fd_n_buckets));
       fd_setpos(s,8);
-      fd_dtsread_ints(s,fx->n_slots,offsets);
+      fd_dtsread_ints(s,fx->fd_n_buckets,offsets);
       fx->offsets=offsets;
 #endif
       fd_unlock_struct(fx);}
@@ -946,22 +946,22 @@ static int commit_edits(struct FD_ZINDEX *f,struct KEYDATA *kdata)
   struct FD_DTYPE_STREAM *stream=&(f->stream);
   int i=0, n_edits=0, n_drops=0; fd_off_t filepos;
   fdtype *dropkeys, *dropvals;
-  struct FD_HASHENTRY **scan, **limit;
-  if (f->edits.n_keys==0) return 0;
-  dropkeys=u8_alloc_n(f->edits.n_keys,fdtype);
-  scan=f->edits.slots; limit=scan+f->edits.n_slots;
+  struct FD_HASH_BUCKET **scan, **limit;
+  if (f->edits.fd_n_keys==0) return 0;
+  dropkeys=u8_alloc_n(f->edits.fd_n_keys,fdtype);
+  scan=f->edits.fd_buckets; limit=scan+f->edits.fd_n_buckets;
   while (scan < limit)
     if (*scan) {
       /* Now we go through the edits table, finding all the drops.
          We need to retrieve their values on disk in order to write
          out a new value. */
-      struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
-      struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+      struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
+      struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->key;
+        fdtype key=kvscan->fd_key;
         if ((FD_PAIRP(key)) &&
             (FD_EQ(FD_CAR(key),drop_symbol)) &&
-            (!(FD_VOIDP(kvscan->value)))) {
+            (!(FD_VOIDP(kvscan->fd_value)))) {
           fdtype cached=fd_hashtable_get(&(f->cache),FD_CDR(key),FD_VOID);
           if (!(FD_VOIDP(cached))) {
             /* If the value of the key is cached, it will be up to date with
@@ -971,7 +971,7 @@ static int commit_edits(struct FD_ZINDEX *f,struct KEYDATA *kdata)
                it anyway. */
             struct FD_PAIR *pair=
               FD_GET_CONS(key,fd_pair_type,struct FD_PAIR *);
-            fd_decref(kvscan->value); kvscan->value=cached;
+            fd_decref(kvscan->fd_value); kvscan->fd_value=cached;
             pair->fd_car=set_symbol;}
           else dropkeys[n_drops++]=FD_CDR(key);}
         kvscan++;}
@@ -980,25 +980,25 @@ static int commit_edits(struct FD_ZINDEX *f,struct KEYDATA *kdata)
   if (n_drops) dropvals=fetchn(f,n_drops,dropkeys,0);
   else dropvals=NULL;
   filepos=fd_endpos(stream);
-  scan=f->edits.slots; limit=scan+f->edits.n_slots;
+  scan=f->edits.fd_buckets; limit=scan+f->edits.fd_n_buckets;
   while (scan < limit)
     if (*scan) {
-      struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
-      struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+      struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
+      struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->key;
-        if (FD_VOIDP(kvscan->value)) kvscan++;
+        fdtype key=kvscan->fd_key;
+        if (FD_VOIDP(kvscan->fd_value)) kvscan++;
         else if (FD_PAIRP(key)) {
           kdata[n_edits].key=FD_CDR(key); kdata[n_edits].pos=filepos;
           if (FD_EQ(FD_CAR(key),set_symbol)) {
             /* If it's a set edit, just write out the whole thing */
-            filepos=filepos+zwrite_values(stream,kvscan->value,
+            filepos=filepos+zwrite_values(stream,kvscan->fd_value,
                                           f->baseoids,f->n_baseoids,
                                           0,&(kdata[n_edits].n_values));}
           else if (FD_EQ(FD_CAR(key),drop_symbol)) {
             /* If it's a drop edit, you got the value, so compute
                the difference and write that out.*/
-            fdtype new_value=fd_difference(dropvals[i],kvscan->value);
+            fdtype new_value=fd_difference(dropvals[i],kvscan->fd_value);
             filepos=filepos+zwrite_values(stream,new_value,
                                           f->baseoids,f->n_baseoids,
                                           0,&(kdata[n_edits].n_values));
@@ -1078,18 +1078,18 @@ static int zindex_commit(struct FD_INDEX *ix)
 #endif
   {
     fd_off_t filepos;
-    int n_adds=ix->adds.n_keys, n_edits=ix->edits.n_keys;
+    int n_adds=ix->adds.fd_n_keys, n_edits=ix->edits.fd_n_keys;
     int i=0, n=0, n_changes=n_adds+n_edits, add_index;
     struct KEYDATA *kdata=u8_alloc_n(n_changes,struct KEYDATA);
     unsigned int *value_locs=
       ((n_edits) ? (u8_alloc_n(n_edits,unsigned int)) : (NULL));
-    struct FD_HASHENTRY **scan=ix->adds.slots, **limit=scan+ix->adds.n_slots;
+    struct FD_HASH_BUCKET **scan=ix->adds.fd_buckets, **limit=scan+ix->adds.fd_n_buckets;
     while (scan < limit)
       if (*scan) {
-        struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
-        struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+        struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
+        struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
-          kdata[n].key=kvscan->key;
+          kdata[n].key=kvscan->fd_key;
           /* We'll use this to sort back into the order of the adds table */
           kdata[n].serial=n;
           kdata[n].n_values=-1;
@@ -1125,14 +1125,14 @@ static int zindex_commit(struct FD_INDEX *ix)
       else kdata[i].pos=((fd_off_t)0);
       i++;}
     /* Now, scan the adds again and write the added values. */
-    scan=ix->adds.slots; limit=scan+ix->adds.n_slots;
+    scan=ix->adds.fd_buckets; limit=scan+ix->adds.fd_n_buckets;
     i=0; while (scan < limit)
       if (*scan) {
-        struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
-        struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+        struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
+        struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
           fd_off_t writepos=filepos; int new_values;
-          filepos=filepos+zwrite_values(&(fx->stream),kvscan->value,
+          filepos=filepos+zwrite_values(&(fx->stream),kvscan->fd_value,
                                         fx->baseoids,fx->n_baseoids,
                                         kdata[i].pos,&new_values);
           kdata[i].pos=writepos-pos_offset;

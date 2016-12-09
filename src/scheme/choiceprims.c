@@ -57,14 +57,14 @@ static fdtype parse_control_spec
 static fdtype retenv1(fdtype var,fdtype val)
 {
   struct FD_KEYVAL keyvals[1];
-  keyvals[0].key=var; keyvals[0].value=fd_incref(val);
+  keyvals[0].fd_key=var; keyvals[0].fd_value=fd_incref(val);
   return fd_make_slotmap(1,1,keyvals);
 }
 static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
   struct FD_KEYVAL keyvals[2];
-  keyvals[0].key=var; keyvals[0].value=fd_incref(val);
-  keyvals[1].key=xvar; keyvals[1].value=fd_incref(xval);
+  keyvals[0].fd_key=var; keyvals[0].fd_value=fd_incref(val);
+  keyvals[1].fd_key=xvar; keyvals[1].fd_value=fd_incref(xval);
   return fd_make_slotmap(2,2,keyvals);
 }
 
@@ -87,15 +87,15 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   if (FD_VOIDP(count_var)) {
-    bindings.size=1;
+    bindings.fd_table_size=1;
     vars[0]=var; vals[0]=FD_VOID;
     vloc=&(vals[0]);}
   else {
-    bindings.size=2;
+    bindings.fd_table_size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
-  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  bindings.schema=vars; bindings.values=vals;
+  bindings.fd_schema=vars; bindings.fd_values=vals;
+  bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -156,14 +156,14 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   if (FD_VOIDP(count_var)) {
-    bindings.size=1;
+    bindings.fd_table_size=1;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);}
   else {
-    bindings.size=2;
+    bindings.fd_table_size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
-  bindings.schema=vars; bindings.values=vals;
-  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
+  bindings.fd_schema=vars; bindings.fd_values=vals;
+  bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -226,14 +226,14 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   if (FD_VOIDP(count_var)) {
-    bindings.size=1;
+    bindings.fd_table_size=1;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);}
   else {
-    bindings.size=2;
+    bindings.fd_table_size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
-  bindings.schema=vars; bindings.values=vals;
-  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
+  bindings.fd_schema=vars; bindings.fd_values=vals;
+  bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -299,15 +299,15 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   if (FD_VOIDP(count_var)) {
-    bindings.size=1;
+    bindings.fd_table_size=1;
     vars[0]=var; vals[0]=FD_VOID;
     vloc=&(vals[0]);}
   else {
-    bindings.size=2;
+    bindings.fd_table_size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
-  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  bindings.schema=vars; bindings.values=vals;
+  bindings.fd_schema=vars; bindings.fd_values=vals;
+  bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -384,15 +384,15 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   if (FD_VOIDP(count_var)) {
-    bindings.size=1;
+    bindings.fd_table_size=1;
     vars[0]=var; vals[0]=FD_VOID;
     vloc=&(vals[0]);}
   else {
-    bindings.size=2;
+    bindings.fd_table_size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
-  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  bindings.schema=vars; bindings.values=vals;
+  bindings.fd_schema=vars; bindings.fd_values=vals;
+  bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;

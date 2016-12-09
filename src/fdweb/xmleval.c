@@ -518,8 +518,8 @@ FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
       struct FD_KEYVAL *kv=u8_alloc_n(2,struct FD_KEYVAL);
       /* This generates a "blank node" which generates its content
          without any container. */
-      kv[0].key=rawtag_symbol; kv[0].value=pblank_symbol;
-      kv[1].key=content_slotid; kv[1].value=content;
+      kv[0].fd_key=rawtag_symbol; kv[0].fd_value=pblank_symbol;
+      kv[1].fd_key=content_slotid; kv[1].fd_value=content;
       return fd_init_slotmap(NULL,2,kv);}}
   else {
     fdtype values=fd_get(xml,sym,FD_VOID);
@@ -1496,31 +1496,31 @@ static fdtype iter_var;
 static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
 {
   struct FD_KEYVAL *keyvals=u8_alloc_n(2,struct FD_KEYVAL);
-  keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
-  keyvals[1].key=var; keyvals[1].value=fd_incref(val);
+  keyvals[0].fd_key=iter_var; keyvals[0].fd_value=fd_incref(seq);
+  keyvals[1].fd_key=var; keyvals[1].fd_value=fd_incref(val);
   return fd_make_slotmap(2,2,keyvals);
 }
 static fdtype iterenv2
   (fdtype seq, fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
   struct FD_KEYVAL *keyvals=u8_alloc_n(3,struct FD_KEYVAL);
-  keyvals[0].key=iter_var; keyvals[0].value=fd_incref(seq);
-  keyvals[1].key=var; keyvals[1].value=fd_incref(val);
-  keyvals[2].key=xvar; keyvals[2].value=fd_incref(xval);
+  keyvals[0].fd_key=iter_var; keyvals[0].fd_value=fd_incref(seq);
+  keyvals[1].fd_key=var; keyvals[1].fd_value=fd_incref(val);
+  keyvals[2].fd_key=xvar; keyvals[2].fd_value=fd_incref(xval);
   return fd_make_slotmap(3,3,keyvals);
 }
 
 static fdtype retenv1(fdtype var,fdtype val)
 {
   struct FD_KEYVAL *keyvals=u8_alloc_n(1,struct FD_KEYVAL);
-  keyvals[0].key=var; keyvals[0].value=fd_incref(val);
+  keyvals[0].fd_key=var; keyvals[0].fd_value=fd_incref(val);
   return fd_make_slotmap(1,1,keyvals);
 }
 static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
   struct FD_KEYVAL *keyvals=u8_alloc_n(2,struct FD_KEYVAL);
-  keyvals[0].key=var; keyvals[0].value=fd_incref(val);
-  keyvals[1].key=xvar; keyvals[1].value=fd_incref(xval);
+  keyvals[0].fd_key=var; keyvals[0].fd_value=fd_incref(val);
+  keyvals[1].fd_key=xvar; keyvals[1].fd_value=fd_incref(xval);
   return fd_make_slotmap(2,2,keyvals);
 }
 
@@ -1542,8 +1542,8 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
     return FD_VOID;}
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
-  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  bindings.schema=vars; bindings.values=vals; bindings.size=1;
+  bindings.fd_schema=vars; bindings.fd_values=vals; bindings.fd_table_size=1;
+  bindings.fd_stack_schema;
   fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -1551,7 +1551,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
     vars[1]=count_var; vals[1]=FD_INT(0);
-    bindings.size=2; iterval=&(vals[1]);}
+    bindings.fd_table_size=2; iterval=&(vals[1]);}
   while (i<lim) {
     fdtype elt=fd_seq_elt(seq,i);
     if (envstruct.copy) {
@@ -1596,15 +1596,15 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   if (FD_VOIDP(count_var)) {
-    bindings.size=1;
+    bindings.fd_table_size=1;
     vars[0]=var; vals[0]=FD_VOID;
     vloc=&(vals[0]);}
   else {
-    bindings.size=2;
+    bindings.fd_table_size=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
-  bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  bindings.schema=vars; bindings.values=vals;
+  bindings.fd_schema=vars; bindings.fd_values=vals;
+  bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
@@ -1655,8 +1655,8 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
   else limit=FD_FIX2INT(limit_val);
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
-  bindings.flags=(FD_SCHEMAP_SORTED|FD_SCHEMAP_STACK_SCHEMA);
-  bindings.schema=vars; bindings.values=vals; bindings.size=1;
+  bindings.fd_schema=vars; bindings.fd_values=vals; bindings.fd_table_size=1;
+  bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
