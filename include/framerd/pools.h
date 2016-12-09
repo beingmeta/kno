@@ -403,7 +403,7 @@ typedef struct FD_MEMPOOL {
   FD_POOL_FIELDS;
   unsigned int load;
   unsigned int noswap;
-  u8_mutex lock;} FD_MEMPOOL;
+  u8_mutex fd_lock;} FD_MEMPOOL;
 typedef struct FD_MEMPOOL *fd_mempool;
 
 FD_EXPORT fd_pool fd_make_mempool

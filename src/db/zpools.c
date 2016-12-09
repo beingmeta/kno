@@ -458,7 +458,7 @@ static fd_pool open_zpool(u8_string fname,int read_only)
     fd_decref(metadata); fd_decref(schemas);}
   pool->load=load; pool->offsets=NULL;
   pool->read_only=read_only;
-  fd_init_mutex(&(pool->lock));
+  fd_init_mutex(&(pool->fd_lock));
   update_modtime(pool);
   return (fd_pool)pool;
 }

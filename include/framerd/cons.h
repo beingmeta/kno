@@ -418,7 +418,7 @@ typedef struct FD_COMPOUND {
   FD_CONS_HEADER;
   fdtype tag; u8_byte mutable, opaque, n_elts;
 #if FD_THREADS_ENABLED
-  u8_mutex lock;
+  u8_mutex fd_lock;
 #endif
   fdtype elt0;} FD_COMPOUND;
 typedef struct FD_COMPOUND *fd_compound;

@@ -96,7 +96,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
-  fd_init_rwlock(&(bindings.rwlock));
+  fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -130,7 +130,7 @@ static fdtype dochoices_handler(fdtype expr,fd_lispenv env)
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
-    fd_destroy_rwlock(&(bindings.rwlock));
+    fd_destroy_rwlock(&(bindings.fd_rwlock));
     if (envstruct.copy) fd_recycle_environment(envstruct.copy);
     return FD_VOID;}
 }
@@ -164,7 +164,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.schema=vars; bindings.values=vals;
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  fd_init_rwlock(&(bindings.rwlock));
+  fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -200,7 +200,7 @@ static fdtype trychoices_handler(fdtype expr,fd_lispenv env)
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
-    fd_destroy_rwlock(&(bindings.rwlock));
+    fd_destroy_rwlock(&(bindings.fd_rwlock));
     if (envstruct.copy) fd_recycle_environment(envstruct.copy);
     return fd_simplify_choice(results);}
 }
@@ -234,7 +234,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.schema=vars; bindings.values=vals;
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
-  fd_init_rwlock(&(bindings.rwlock));
+  fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -273,7 +273,7 @@ static fdtype forchoices_handler(fdtype expr,fd_lispenv env)
       fd_decref(*vloc); *vloc=FD_VOID;
       i++;}
     fd_decref(choices);
-    fd_destroy_rwlock(&(bindings.rwlock));
+    fd_destroy_rwlock(&(bindings.fd_rwlock));
     if (envstruct.copy) fd_recycle_environment(envstruct.copy);
     return fd_simplify_choice(results);}
 }
@@ -308,7 +308,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
-  fd_init_rwlock(&(bindings.rwlock));
+  fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -346,7 +346,7 @@ static fdtype filterchoices_handler(fdtype expr,fd_lispenv env)
       i++;}
     *vloc=FD_VOID;
     fd_decref(choices);
-    fd_destroy_rwlock(&(bindings.rwlock));
+    fd_destroy_rwlock(&(bindings.fd_rwlock));
     if (envstruct.copy) fd_recycle_environment(envstruct.copy);
     return fd_simplify_choice(results);}
 }
@@ -393,7 +393,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.flags=FD_SCHEMAP_STACK_SCHEMA;
   bindings.schema=vars; bindings.values=vals;
-  fd_init_rwlock(&(bindings.rwlock));
+  fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
   envstruct.copy=NULL;
@@ -465,7 +465,7 @@ static fdtype dosubsets_handler(fdtype expr,fd_lispenv env)
         else u8_free((struct FD_CHOICE *)v);}
       i++;}}
   fd_decref(choices);
-  fd_destroy_rwlock(&(bindings.rwlock));
+  fd_destroy_rwlock(&(bindings.fd_rwlock));
   if (envstruct.copy) fd_recycle_environment(envstruct.copy);
   return FD_VOID;
 }

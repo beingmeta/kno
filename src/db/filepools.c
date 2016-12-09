@@ -92,7 +92,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
       return NULL;}}
   pool->load=load; pool->offsets=NULL; pool->offsets_size=0;
   pool->read_only=read_only;
-  fd_init_mutex(&(pool->lock));
+  fd_init_mutex(&(pool->fd_lock));
   update_modtime(pool);
   return (fd_pool)pool;
 }

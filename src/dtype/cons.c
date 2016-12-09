@@ -838,7 +838,7 @@ FD_EXPORT fdtype fd_init_compound
     if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
-  if (mutable) fd_init_mutex(&(p->lock));
+  if (mutable) fd_init_mutex(&(p->fd_lock));
   p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n; p->opaque=0;
   if (n>0) {
     write=&(p->elt0); limit=write+n;
@@ -865,7 +865,7 @@ FD_EXPORT fdtype fd_init_compound_from_elts
     if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
-  if (mutable) fd_init_mutex(&(p->lock));
+  if (mutable) fd_init_mutex(&(p->fd_lock));
   p->tag=fd_incref(tag); p->mutable=mutable; p->n_elts=n; p->opaque=0;
   if (n>0) {
     write=&(p->elt0); limit=write+n;
@@ -885,7 +885,7 @@ static void recycle_compound(struct FD_CONS *c)
   int i=0, n=compound->n_elts; fdtype *data=&(compound->elt0);
   while (i<n) {fd_decref(data[i]); i++;}
   fd_decref(compound->tag);
-  if (compound->mutable) fd_destroy_mutex(&(compound->lock));
+  if (compound->mutable) fd_destroy_mutex(&(compound->fd_lock));
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -941,7 +941,7 @@ static fdtype copy_compound(fdtype x,int flags)
     struct FD_COMPOUND *nc=u8_malloc(sizeof(FD_COMPOUND)+(n-1)*sizeof(fdtype));
     fdtype *data=&(xc->elt0), *write=&(nc->elt0);
     FD_INIT_CONS(nc,fd_compound_type);
-    if (xc->mutable) fd_init_mutex(&(nc->lock));
+    if (xc->mutable) fd_init_mutex(&(nc->fd_lock));
     nc->mutable=xc->mutable; nc->opaque=1;
     nc->tag=fd_incref(xc->tag); nc->n_elts=xc->n_elts;
     if (flags)

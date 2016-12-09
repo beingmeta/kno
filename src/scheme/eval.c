@@ -257,7 +257,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
     case fd_achoice_type: {
       int envcount=0;
       struct FD_ACHOICE *ach=(struct FD_ACHOICE *)obj;
-      fdtype *data=ach->data, *end=ach->write;
+      fdtype *data=ach->ach_data, *end=ach->ach_write;
       while (data<end) {
         fdtype e=*data++;
         if ((FD_CONSP(e))) {

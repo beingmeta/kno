@@ -267,7 +267,7 @@ static fd_index open_zindex(u8_string fname,int read_only,int consed)
     else {index->baseoids=NULL; index->n_baseoids=0;}
     fd_decref(baseoidsv);
     fd_decref(metadata);}
-  fd_init_mutex(&(index->lock));
+  fd_init_mutex(&(index->fd_lock));
 
   if (!(consed)) fd_register_index((fd_index)index);
 
@@ -365,7 +365,7 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
       if (FD_ABORTP(thiskey)) return thiskey;
       else if (FDTYPE_EQUAL(key,thiskey))
         if (n_vals==0) {
-          fd_unlock_mutex(&fx->lock); fd_decref(thiskey);
+          fd_unlock_mutex(&fx->fd_lock); fd_decref(thiskey);
           return FD_EMPTY_CHOICE;}
         else {
           int i=0, atomicp=1;
@@ -384,14 +384,14 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
               if ((atomicp) && (FD_CONSP(v))) atomicp=0;
               values[i++]=v;}
             next_pos=fd_dtsread_zint(stream);}
-          fd_unlock_mutex(&fx->lock); fd_decref(thiskey);
+          fd_unlock_mutex(&fx->fd_lock); fd_decref(thiskey);
           return fd_init_choice(result,n_vals,NULL,
                                 (FD_CHOICE_DOSORT|
                                  ((atomicp)?(FD_CHOICE_ISATOMIC):
                                   (FD_CHOICE_ISCONSES))|
                                  FD_CHOICE_REALLOC));}
       else if (n_probes>256) {
-        fd_unlock_mutex(&fx->lock);
+        fd_unlock_mutex(&fx->fd_lock);
         return fd_err(fd_FileIndexOverflow,"zindex_fetch",
                       fx->source,FD_VOID);}
       else {
@@ -400,7 +400,7 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
         probe=(probe+chain_width)%(fx->n_slots);
         keypos=
           ((offsets) ? (offget(offsets,probe)) : (get_offset(fx,probe)));}}}
-  fd_unlock_mutex(&fx->lock);
+  fd_unlock_mutex(&fx->fd_lock);
   return FD_EMPTY_CHOICE;
 }
 
@@ -429,11 +429,11 @@ static int zindex_fetchsize(fd_index ix,fdtype key)
         fd_unlock_struct(fx);
         return n_vals;}
       else if (n_probes>256) {
-        fd_unlock_mutex(&fx->lock);
+        fd_unlock_mutex(&fx->fd_lock);
         return fd_err(fd_FileIndexOverflow,"zindex_fetchsize",
                       fx->source,FD_VOID);}
       else {n_probes++; probe=(probe+chain_width)%(fx->n_slots);}}
-    fd_unlock_mutex(&fx->lock);
+    fd_unlock_mutex(&fx->fd_lock);
     return FD_EMPTY_CHOICE;}
 }
 
@@ -699,7 +699,7 @@ static fdtype *fetchn(struct FD_ZINDEX *fx,int n,fdtype *keys,int lock_adds)
       fdtype v=values[k++];
       if (FD_ACHOICEP(v)) {
         struct FD_ACHOICE *ac=(struct FD_ACHOICE *)v;
-        ac->uselock=1;}}}
+        ac->fd_uselock=1;}}}
   u8_free(schedule);
   /* Note that we should now look at fx->edits and integrate any changes,
      but we're not doing that now. */

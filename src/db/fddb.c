@@ -314,12 +314,12 @@ static fdtype config_get_background(fdtype var,void *data)
   if (fd_background==NULL) return results;
   else {
     int i=0, n; fd_index *indices;
-    fd_lock_mutex(&(fd_background->lock));
+    fd_lock_mutex(&(fd_background->fd_lock));
     n=fd_background->n_indices; indices=fd_background->indices;
     while (i<n) {
       fdtype lix=fd_index2lisp(indices[i]); i++;
       FD_ADD_TO_CHOICE(results,lix);}
-    fd_unlock_mutex(&(fd_background->lock));
+    fd_unlock_mutex(&(fd_background->fd_lock));
     return results;}
 }
 static int config_use_index(fdtype var,fdtype spec,void *data)

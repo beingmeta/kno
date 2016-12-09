@@ -374,7 +374,7 @@ static fd_index open_hash_index(u8_string fname,int read_only,int consed)
     index->baseoid_ids=NULL;
     index->ids2baseoids=NULL;}
 
-  fd_init_mutex(&(index->lock));
+  fd_init_mutex(&(index->fd_lock));
 
   if (!(consed)) fd_register_index((fd_index)index);
 

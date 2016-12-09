@@ -201,7 +201,7 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
       result.size=-1;}
     if (error) {
       result.off=(fd_off_t)-1; result.size=(size_t)-1;}
-    fd_unlock_mutex(&p->lock);}
+    fd_unlock_mutex(&p->fd_lock);}
   return result;
 }
 
@@ -427,7 +427,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   pool->offsets=NULL; pool->offsets_size=0;
   pool->read_only=read_only;
   pool->mmap=NULL; pool->mmap_size=0;
-  fd_init_mutex(&(pool->lock));
+  fd_init_mutex(&(pool->fd_lock));
   update_modtime(pool);
   return (fd_pool)pool;
 }
@@ -1056,14 +1056,14 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
         unsigned int oidoff=saveinfo[k].oidoff;
         offsets[oidoff*3]=(saveinfo[k].chunk.off)>>32;
         offsets[oidoff*3+1]=((saveinfo[k].chunk.off)&(0xFFFFFFFF));
-        offsets[oidoff*3+2]=(saveinfo[k].chunk.size);
+        offsets[oidoff*3+2]=(saveinfo[k].chunk.ach_size);
         k++;}
       break;}
     case FD_B32: {
       int k=0; while (k<n) {
         unsigned int oidoff=saveinfo[k].oidoff;
         offsets[oidoff*2]=(saveinfo[k].chunk.off);
-        offsets[oidoff*2+1]=(saveinfo[k].chunk.size);
+        offsets[oidoff*2+1]=(saveinfo[k].chunk.ach_size);
         k++;}
       break;}
     case FD_B40: {

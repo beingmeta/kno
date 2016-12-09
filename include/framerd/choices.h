@@ -169,20 +169,21 @@ FD_EXPORT fdtype fd_init_choice
 
 typedef struct FD_ACHOICE {
   FD_CONS_HEADER;
-  unsigned int size, n_nested;
-  unsigned muddled:1, mallocd:1, atomicp:1, uselock:1;
-  fdtype *data, *write, *limit;
-  fdtype normalized; struct FD_CHOICE *nch;
+  unsigned int ach_size, ach_nested;
+  unsigned ach_muddled:1, ach_mallocd:1, ach_atomic:1, fd_uselock:1;
+  fdtype *ach_data, *ach_write, *ach_limit;
+  fdtype ach_normalized; struct FD_CHOICE *ach_normchoice;
 #if U8_THREADS_ENABLED
-  u8_mutex lock;
+  u8_mutex fd_lock;
 #endif
 } FD_ACHOICE;
 typedef struct FD_ACHOICE *fd_achoice;
 
 #define FD_ACHOICEP(x) (FD_PTR_TYPEP(x,fd_achoice_type))
 #define FD_XACHOICE(x) (FD_STRIP_CONS(x,fd_achoice_type,struct FD_ACHOICE *))
-#define FD_ACHOICE_SIZE(x) ((FD_XACHOICE(x))->size)
-#define FD_ACHOICE_LENGTH(x) (((FD_XACHOICE(x))->write)-((FD_XACHOICE(x))->data))
+#define FD_ACHOICE_SIZE(x) ((FD_XACHOICE(x))->ach_size)
+#define FD_ACHOICE_LENGTH(x) \
+  (((FD_XACHOICE(x))->ach_write)-((FD_XACHOICE(x))->ach_data))
 FD_EXPORT fdtype fd_make_achoice(fdtype x,fdtype y);
 FD_EXPORT fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock);
 FD_EXPORT fdtype _fd_add_to_choice(fdtype current,fdtype add);
@@ -255,36 +256,36 @@ static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
     nv=fd_simplify_choice(v);}
   else nv=v;
   if (FD_EMPTY_CHOICEP(nv)) return;
-  else if (ch->write>ch->data)
-    if (FD_EQ(nv,*(ch->write-1))) comparison=0;
-    else comparison=cons_compare(*(ch->write-1),nv);
+  else if (ch->ach_write>ch->ach_data)
+    if (FD_EQ(nv,*(ch->ach_write-1))) comparison=0;
+    else comparison=cons_compare(*(ch->ach_write-1),nv);
   else comparison=1;
   if (comparison==0) {fd_decref(nv); return;}
-  if (ch->uselock) fd_lock_struct(ch);
-  if (ch->write >= ch->limit) {
-    struct FD_CHOICE *nch;
-    old_size=ch->limit-ch->data; write_off=ch->write-ch->data;
+  if (ch->fd_uselock) fd_lock_struct(ch);
+  if (ch->ach_write >= ch->ach_limit) {
+    struct FD_CHOICE *ach_normchoice;
+    old_size=ch->ach_limit-ch->ach_data; write_off=ch->ach_write-ch->ach_data;
     if (old_size<0x10000) new_size=old_size*2;
     else new_size=old_size+0x20000;
-    nch=u8_realloc(ch->nch,
+    ach_normchoice=u8_realloc(ch->ach_normchoice,
                    sizeof(struct FD_CHOICE)+
                    (sizeof(fdtype)*(new_size-1)));
-    ch->nch=nch;
-    ch->data=((fdtype *)FD_XCHOICE_DATA(nch));
-    ch->write=ch->data+write_off;
-    ch->limit=ch->data+new_size;}
-  *(ch->write++)=nv;
-  fd_decref(ch->normalized); ch->normalized=FD_VOID;
-  if (comparison>0) ch->muddled=1;
+    ch->ach_normchoice=ach_normchoice;
+    ch->ach_data=((fdtype *)FD_XCHOICE_DATA(ach_normchoice));
+    ch->ach_write=ch->ach_data+write_off;
+    ch->ach_limit=ch->ach_data+new_size;}
+  *(ch->ach_write++)=nv;
+  fd_decref(ch->ach_normalized); ch->ach_normalized=FD_VOID;
+  if (comparison>0) ch->ach_muddled=1;
   if (FD_CHOICEP(nv)) {
-    ch->n_nested++; ch->muddled=1;
-    if (ch->atomicp)
-      if (!(FD_ATOMIC_CHOICEP(nv))) ch->atomicp=0;
-    ch->size=ch->size+FD_CHOICE_SIZE(nv);}
-  else if ((ch->atomicp) && (FD_CONSP(nv))) {
-    ch->size++; ch->atomicp=0;}
-  else ch->size++;
-  if (ch->uselock) fd_unlock_struct(ch);
+    ch->ach_nested++; ch->ach_muddled=1;
+    if (ch->ach_atomic)
+      if (!(FD_ATOMIC_CHOICEP(nv))) ch->ach_atomic=0;
+    ch->ach_size=ch->ach_size+FD_CHOICE_SIZE(nv);}
+  else if ((ch->ach_atomic) && (FD_CONSP(nv))) {
+    ch->ach_size++; ch->ach_atomic=0;}
+  else ch->ach_size++;
+  if (ch->fd_uselock) fd_unlock_struct(ch);
 }
 static fdtype _add_to_choice(fdtype current,fdtype new)
 {
@@ -313,8 +314,8 @@ static MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
   if (FD_ATOMICP(ch)) return (x==ch);
   else {
     struct FD_CHOICE *choice=FD_GET_CONS(ch,fd_choice_type,fd_choice);
-    int size=FD_XCHOICE_SIZE(choice);
-    const fdtype *bottom=FD_XCHOICE_DATA(choice), *top=bottom+(size-1);
+    int ach_size=FD_XCHOICE_SIZE(choice);
+    const fdtype *bottom=FD_XCHOICE_DATA(choice), *top=bottom+(ach_size-1);
     while (top>=bottom) {
       const fdtype *middle=bottom+(top-bottom)/2;
       if (x == *middle) return 1;

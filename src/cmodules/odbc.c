@@ -53,7 +53,7 @@ typedef struct FD_ODBC *fd_odbc;
 typedef struct FD_ODBC_PROC {
   FD_EXTDB_PROC_FIELDS;
 #if FD_THREADS_ENABLED
-  u8_mutex lock;
+  u8_mutex fd_lock;
 #endif
   SQLSMALLINT *sqltypes;
   SQLHSTMT stmt;} FD_ODBC_PROC;
@@ -177,7 +177,7 @@ static fdtype odbcmakeproc
   dbproc->sqltypes=sqltypes=u8_alloc_n(n_params,SQLSMALLINT);
   dbproc->handler.xcalln=callodbcproc;
 #if FD_THREADS_ENABLED
-  u8_init_mutex(&(dbproc->lock));
+  u8_init_mutex(&(dbproc->fd_lock));
 #endif
 
   if (FD_VOIDP(colinfo))
@@ -453,14 +453,14 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
   struct FD_ODBC_PROC *dbp=(struct FD_ODBC_PROC *)fn;
   int i=0, ret=-1;
-  u8_lock_mutex(&(dbp->lock));
+  u8_lock_mutex(&(dbp->fd_lock));
   while (i<n) {
     fdtype arg=args[i]; int dofree=0;
     if (!(FD_VOIDP(dbp->paramtypes[i])))
       if (FD_APPLICABLEP(dbp->paramtypes[i])) {
         arg=fd_apply(dbp->paramtypes[i],1,&arg);
         if (FD_ABORTP(arg)) {
-          u8_unlock_mutex(&(dbp->lock));
+          u8_unlock_mutex(&(dbp->fd_lock));
           return arg;}
         else dofree=1;}
     if (FD_PRIM_TYPEP(arg,fd_fixnum_type)) {
@@ -500,10 +500,10 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
     fdtype results=get_stmt_results(dbp->stmt,"odbcexec",0,dbp->colinfo);
     SQLFreeStmt(dbp->stmt,SQL_CLOSE);
     SQLFreeStmt(dbp->stmt,SQL_RESET_PARAMS);
-    u8_unlock_mutex(&(dbp->lock));
+    u8_unlock_mutex(&(dbp->fd_lock));
     return results;}
   else {
-    u8_unlock_mutex(&(dbp->lock));
+    u8_unlock_mutex(&(dbp->fd_lock));
     return stmt_error(dbp->stmt,"odbcexec",0);}
 }
 

@@ -179,7 +179,7 @@ static fdtype make_mutable_compound(int n,fdtype *args)
   int i=1; fdtype *write=&(compound->elt0);
   FD_INIT_FRESH_CONS(compound,fd_compound_type);
   compound->tag=fd_incref(args[0]); compound->n_elts=n-1; compound->mutable=1;
-  fd_init_mutex(&(compound->lock));
+  fd_init_mutex(&(compound->fd_lock));
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
   return FDTYPE_CONS(compound);
@@ -194,7 +194,7 @@ static fdtype make_opaque_mutable_compound(int n,fdtype *args)
   compound->tag=fd_incref(args[0]);
   compound->n_elts=n-1; compound->mutable=1;
   compound->opaque=1;
-  fd_init_mutex(&(compound->lock));
+  fd_init_mutex(&(compound->fd_lock));
   while (i<n) {
     fd_incref(args[i]); *write++=args[i]; i++;}
   return FDTYPE_CONS(compound);
@@ -212,7 +212,7 @@ static fdtype vector2compound(fdtype vector,fdtype tag,
   if (FD_FALSEP(mutable)) compound->mutable=0;
   else {
     compound->mutable=1;
-    fd_init_mutex(&(compound->lock));}
+    fd_init_mutex(&(compound->fd_lock));}
   if (FD_FALSEP(opaque)) compound->opaque=0;
   else {
     compound->opaque=1;}

@@ -78,7 +78,7 @@ typedef struct FD_SLOTMAP {
   unsigned int uselock:1;
   unsigned int freedata:1;
   struct FD_KEYVAL *keyvals;
-  U8_RWLOCK_DECL(rwlock);} FD_SLOTMAP;
+  U8_RWLOCK_DECL(fd_rwlock);} FD_SLOTMAP;
 typedef struct FD_SLOTMAP *fd_slotmap;
 
 #define FD_SLOTMAPP(x) (FD_PTR_TYPEP(x,fd_slotmap_type))
@@ -191,15 +191,15 @@ static MAYBE_UNUSED fdtype fd_slotmap_get
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
   if ((FD_XSLOTMAP_USELOCKP(sm))&&
       (!(FD_XSLOTMAP_READONLYP(sm)))) {
-    fd_read_lock(&sm->rwlock); unlock=1;}
+    fd_read_lock(&sm->fd_rwlock); unlock=1;}
   size=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_get(key,sm->keyvals,size);
   if (result) {
     fdtype v=fd_incref(result->value);
-    if (unlock) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->fd_rwlock);
     return v;}
   else {
-    if (unlock) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->fd_rwlock);
     return fd_incref(dflt);}
 }
 static MAYBE_UNUSED fdtype fd_slotmap_test
@@ -212,7 +212,7 @@ static MAYBE_UNUSED fdtype fd_slotmap_test
   if ((FD_ABORTP(key))) return fd_interr(key);
   if ((FD_XSLOTMAP_USELOCKP(sm))&&
       (!(FD_XSLOTMAP_READONLYP(sm)))) {
-    fd_read_lock(&sm->rwlock); unlock=1;}
+    fd_read_lock(&sm->fd_rwlock); unlock=1;}
   size=FD_XSLOTMAP_SIZE(sm);
   result=fd_sortvec_get(key,sm->keyvals,size);
   if (result) {
@@ -224,10 +224,10 @@ static MAYBE_UNUSED fdtype fd_slotmap_test
       cmp=fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp=1;
     else cmp=0;
-    if (unlock) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->fd_rwlock);
     return cmp;}
   else {
-    if (unlock) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->fd_rwlock);
     return 0;}
 }
 #else
@@ -244,7 +244,7 @@ FD_EXPORT fdtype fd_blist_to_slotmap(fdtype binding_list);
 typedef struct FD_SCHEMAP {
   FD_CONS_HEADER; short size, flags;
   fdtype *schema, *values;
-  U8_RWLOCK_DECL(rwlock);} FD_SCHEMAP;
+  U8_RWLOCK_DECL(fd_rwlock);} FD_SCHEMAP;
 
 #define FD_SCHEMAP_SORTED 1
 #define FD_SCHEMAP_PRIVATE 2
@@ -328,15 +328,15 @@ static MAYBE_UNUSED fdtype fd_schemap_get
   int size, slotno;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_schemap_type);
   if (!(FD_XSCHEMAP_READONLYP(sm))) {
-    fd_read_lock(&(sm->rwlock)); unlock=1;}
+    fd_read_lock(&(sm->fd_rwlock)); unlock=1;}
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
   if (slotno>=0) {
     fdtype v=fd_incref(sm->values[slotno]);
-    if (unlock) fd_rw_unlock(&(sm->rwlock));
+    if (unlock) fd_rw_unlock(&(sm->fd_rwlock));
     return v;}
   else {
-    if (unlock) fd_rw_unlock(&(sm->rwlock));
+    if (unlock) fd_rw_unlock(&(sm->fd_rwlock));
     return fd_incref(dflt);}
 }
 static MAYBE_UNUSED fdtype fd_schemap_test
@@ -347,7 +347,7 @@ static MAYBE_UNUSED fdtype fd_schemap_test
   if ((FD_ABORTP(val)))
     return fd_interr(val);
   if (!(FD_XSCHEMAP_READONLYP(sm))) {
-    fd_read_lock(&(sm->rwlock)); unlock=1;}
+    fd_read_lock(&(sm->fd_rwlock)); unlock=1;}
   size=FD_XSCHEMAP_SIZE(sm);
   slotno=_fd_get_slotno(key,sm->schema,size,sm->flags&FD_SCHEMAP_SORTED);
   if (slotno>=0) {
@@ -359,10 +359,10 @@ static MAYBE_UNUSED fdtype fd_schemap_test
       cmp=fd_overlapp(val,current);
     else if (FD_EQUAL(val,current)) cmp=1;
     else cmp=0;
-    if (unlock) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->fd_rwlock);
     return cmp;}
   else {
-    if (unlock) fd_rw_unlock(&sm->rwlock);
+    if (unlock) fd_rw_unlock(&sm->fd_rwlock);
     return 0;}
 }
 #else
@@ -382,7 +382,7 @@ typedef struct FD_HASHTABLE {
   unsigned int n_slots, n_keys, loading;
   unsigned int readonly:1, modified:1, uselock:1;
   struct FD_HASHENTRY **slots;
-  U8_RWLOCK_DECL(rwlock);} FD_HASHTABLE;
+  U8_RWLOCK_DECL(fd_rwlock);} FD_HASHTABLE;
 typedef struct FD_HASHTABLE *fd_hashtable;
 
 #define FD_HASHTABLEP(x) (FD_PRIM_TYPEP(x,fd_hashtable_type))
@@ -479,7 +479,7 @@ typedef struct FD_HASHSET {
   FD_CONS_HEADER;
   int n_keys, n_slots, loading, atomicp;
   fdtype *slots;
-  U8_MUTEX_DECL(lock);} FD_HASHSET;
+  U8_MUTEX_DECL(fd_lock);} FD_HASHSET;
 typedef struct FD_HASHSET *fd_hashset;
 
 #define FD_HASHSETP(x) (FD_PTR_TYPEP(x,fd_hashset_type))

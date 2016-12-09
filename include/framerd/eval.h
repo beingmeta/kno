@@ -127,7 +127,7 @@ typedef struct FD_SPROC {
   short n_vars, synchronized;
   fdtype *schema, arglist, body;
   fd_lispenv env;
-  U8_MUTEX_DECL(lock);
+  U8_MUTEX_DECL(fd_lock);
 } FD_SPROC;
 typedef struct FD_SPROC *fd_sproc;
 

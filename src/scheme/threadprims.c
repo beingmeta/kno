@@ -153,7 +153,7 @@ static fdtype condvar_lock(fdtype cvar)
 {
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-  fd_lock_struct(cv);
+  u8_lock_mutex(&(cv->lock));
   return FD_TRUE;
 }
 
@@ -161,7 +161,7 @@ static fdtype condvar_unlock(fdtype cvar)
 {
   struct FD_CONSED_CONDVAR *cv=
     FD_GET_CONS(cvar,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-  fd_unlock_struct(cv);
+  u8_unlock_mutex(&(cv->lock));
   return FD_TRUE;
 }
 
@@ -189,7 +189,7 @@ static fdtype synchro_lock(fdtype lck)
   if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-    fd_lock_struct(cv);
+    u8_lock_mutex(&(cv->lock));
     return FD_TRUE;}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
@@ -205,7 +205,7 @@ static fdtype synchro_unlock(fdtype lck)
   if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-    fd_unlock_struct(cv);
+    u8_unlock_mutex(&(cv->lock));
     return FD_TRUE;}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
@@ -225,7 +225,7 @@ static fdtype with_lock_handler(fdtype expr,fd_lispenv env)
   if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-    fd_lock_struct(cv);}
+    u8_lock_mutex(&(cv->lock));}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
     if (sp->synchronized) {
@@ -237,7 +237,7 @@ static fdtype with_lock_handler(fdtype expr,fd_lispenv env)
   if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
-    fd_unlock_struct(cv);}
+    u8_unlock_mutex(&(cv->lock));}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
     if (sp->synchronized) {

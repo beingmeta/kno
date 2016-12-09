@@ -56,7 +56,7 @@ typedef struct FD_FILE_POOL {
   time_t modtime;
   unsigned int load, *offsets, offsets_size;
   struct FD_DTYPE_STREAM stream;
-  U8_MUTEX_DECL(lock);} FD_FILE_POOL;
+  U8_MUTEX_DECL(fd_lock);} FD_FILE_POOL;
 typedef struct FD_FILE_POOL *fd_file_pool;
 
 #define FD_FILE_POOL_LOCKED(fp) (((fp)->stream.flags)&FD_DTSTREAM_LOCKED)
@@ -73,7 +73,7 @@ typedef struct FD_ZPOOL {
   int n_schemas;
   struct FD_SCHEMA_TABLE *schemas, *schemas_byptr;
   struct FD_SCHEMA_TABLE *schemas_byval;
-  U8_MUTEX_DECL(lock);} FD_ZPOOL;
+  U8_MUTEX_DECL(fd_lock);} FD_ZPOOL;
 typedef struct FD_ZPOOL *fd_zpool;
 
 /* OID Pools */
@@ -106,7 +106,7 @@ typedef struct FD_OIDPOOL {
   unsigned int load, *offsets, offsets_size;
   struct FD_DTYPE_STREAM stream;
   size_t mmap_size; unsigned char *mmap;
-  U8_MUTEX_DECL(lock);} FD_OIDPOOL;
+  U8_MUTEX_DECL(fd_lock);} FD_OIDPOOL;
 typedef struct FD_OIDPOOL *fd_oidpool;
 
 FD_EXPORT fdtype fd_read_pool_metadata(struct FD_DTYPE_STREAM *ds);
@@ -160,7 +160,7 @@ typedef struct FD_FILE_INDEX {
   unsigned int n_slots, hashv, *offsets;
   struct FD_DTYPE_STREAM stream;
   fdtype slotids;
-  U8_MUTEX_DECL(lock);} FD_FILE_INDEX;
+  U8_MUTEX_DECL(fd_lock);} FD_FILE_INDEX;
 typedef struct FD_FILE_INDEX *fd_file_index;
 
 typedef struct FD_ZINDEX {
@@ -168,7 +168,7 @@ typedef struct FD_ZINDEX {
   unsigned int n_slots, hashv, *offsets;
   struct FD_DTYPE_STREAM stream;
   fdtype slotids; FD_OID *baseoids; int n_baseoids;
-  U8_MUTEX_DECL(lock);} FD_ZINDEX;
+  U8_MUTEX_DECL(fd_lock);} FD_ZINDEX;
 typedef struct FD_ZINDEX *fd_zindex;
 
 FD_EXPORT fdtype fd_read_index_metadata(struct FD_DTYPE_STREAM *ds);
@@ -207,7 +207,7 @@ typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
 
 typedef struct FD_HASH_INDEX {
   FD_INDEX_FIELDS;
-  U8_MUTEX_DECL(lock);
+  U8_MUTEX_DECL(fd_lock);
 
   /* flags controls hash functions, compression, etc.
      hxcustom is a placeholder for a value to customize

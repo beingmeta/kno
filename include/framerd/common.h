@@ -105,12 +105,12 @@ FD_EXPORT fd_exception fd_CantOpenFile, fd_FileNotFound;
 #define fd_destroy_condvar(x) u8_destroy_condvar(x)
 #define fd_tld_get(key) (u8_tld_get(key))
 #define fd_tld_set(key,v) (u8_tld_set(key,v))
-#define fd_lock_struct(p) (u8_lock_mutex(&((p)->lock)))
-#define fd_unlock_struct(p) (u8_unlock_mutex(&((p)->lock)))
-#define fd_locked_struct(p) (u8_lock_mutex(&((p)->lock)),(p))
-#define fd_read_lock_struct(p) (u8_read_lock(&((p)->rwlock)))
-#define fd_write_lock_struct(p) (u8_write_lock(&((p)->rwlock)))
-#define fd_rw_unlock_struct(p) (u8_rw_unlock(&((p)->rwlock)))
+#define fd_lock_struct(p) (u8_lock_mutex(&((p)->fd_lock)))
+#define fd_unlock_struct(p) (u8_unlock_mutex(&((p)->fd_lock)))
+#define fd_locked_struct(p) (u8_lock_mutex(&((p)->fd_lock)),(p))
+#define fd_read_lock_struct(p) (u8_read_lock(&((p)->fd_rwlock)))
+#define fd_write_lock_struct(p) (u8_write_lock(&((p)->fd_rwlock)))
+#define fd_rw_unlock_struct(p) (u8_rw_unlock(&((p)->fd_rwlock)))
 
 #else
 typedef void *u8_tld_key;

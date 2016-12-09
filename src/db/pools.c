@@ -1535,10 +1535,10 @@ FD_EXPORT fd_pool fd_make_mempool(u8_string label,FD_OID base,
   fd_init_pool((fd_pool)mp,base,cap,&mempool_handler,label,label);
   mp->label=u8_strdup(label);
   mp->load=load; mp->read_only=0; mp->noswap=noswap;
-  u8_init_mutex(&(mp->lock));
+  u8_init_mutex(&(mp->fd_lock));
   mp->flags=mp->flags|(FD_POOL_LOCKFREE);
   if (fd_register_pool((fd_pool)mp)<0) {
-    u8_destroy_mutex(&(mp->lock));
+    u8_destroy_mutex(&(mp->fd_lock));
     u8_free(mp->source); u8_free(mp->cid);
     fd_recycle_hashtable(&(mp->cache));
     fd_recycle_hashtable(&(mp->locks));
@@ -1555,9 +1555,9 @@ static fdtype mempool_alloc(fd_pool p,int n)
   else {
     fdtype results=FD_EMPTY_CHOICE;
     int i=0;
-    u8_lock_mutex(&(mp->lock));
+    u8_lock_mutex(&(mp->fd_lock));
     if ((mp->load+n)>=mp->capacity) {
-      u8_unlock_mutex(&(mp->lock));
+      u8_unlock_mutex(&(mp->fd_lock));
       return fd_err(fd_ExhaustedPool,"mempool_alloc",mp->cid,FD_VOID);}
     else {
       FD_OID base=FD_OID_PLUS(mp->base,mp->load);
@@ -1566,7 +1566,7 @@ static fdtype mempool_alloc(fd_pool p,int n)
         FD_ADD_TO_CHOICE(results,fd_make_oid(each));
         i++;}
       mp->load=mp->load+n; mp->n_locks=mp->n_locks+n;
-      u8_unlock_mutex(&(mp->lock));
+      u8_unlock_mutex(&(mp->fd_lock));
       return fd_simplify_choice(results);}}
 }
 
@@ -1604,7 +1604,7 @@ static int mempool_load(fd_pool p)
 static int mempool_lock(fd_pool p,fdtype oids)
 {
   struct FD_MEMPOOL *mp=(fd_mempool)p;
-  u8_lock_mutex(&(mp->lock));
+  u8_lock_mutex(&(mp->fd_lock));
   mp->n_locks=mp->n_locks+FD_CHOICE_SIZE(oids);
   return 1;
 }
@@ -1612,7 +1612,7 @@ static int mempool_lock(fd_pool p,fdtype oids)
 static int mempool_unlock(fd_pool p,fdtype oids)
 {
   struct FD_MEMPOOL *mp=(fd_mempool)p;
-  u8_lock_mutex(&(mp->lock));
+  u8_lock_mutex(&(mp->fd_lock));
   mp->n_locks=mp->n_locks-FD_CHOICE_SIZE(oids);
   return 1;
 }
@@ -1681,7 +1681,7 @@ FD_EXPORT int fd_reset_mempool(fd_pool p)
        _("mempool"),fd_pool2lisp(p));
   else {
     struct FD_MEMPOOL *mp=(struct FD_MEMPOOL *)p;
-    fd_lock_mutex(&(mp->lock));
+    fd_lock_mutex(&(mp->fd_lock));
     fd_reset_hashtable(&(p->locks),-1,1);
     fd_reset_hashtable(&(p->cache),-1,1);
     mp->load=0;

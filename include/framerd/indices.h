@@ -166,7 +166,7 @@ FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
 typedef struct FD_COMPOUND_INDEX {
   FD_INDEX_FIELDS;
   unsigned int n_indices; fd_index *indices;
-  U8_MUTEX_DECL(lock);} FD_COMPOUND_INDEX;
+  U8_MUTEX_DECL(fd_lock);} FD_COMPOUND_INDEX;
 typedef struct FD_COMPOUND_INDEX *fd_compound_index;
 
 FD_EXPORT int fd_add_to_compound_index(fd_compound_index ix,fd_index add);
