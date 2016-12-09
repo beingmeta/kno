@@ -363,7 +363,7 @@ int fd_recycle_environment(fd_lispenv env)
     if (sproc_count+1==refcount) {
       fd_decref(env->bindings); fd_decref(env->exports);
       if (env->parent) fd_decref((fdtype)(env->parent));
-      env->consbits=(0xFFFFFF80|(env->consbits&0x7F));
+      env->fd_conshead=(0xFFFFFF80|(env->fd_conshead&0x7F));
       u8_free(env);
       return 1;}
     else {fd_decref((fdtype)env); return 0;}}

@@ -9,7 +9,7 @@
 
     CONSES are dynamically allocated structures used by fdb for compound
     objects.  CONSES can be any kind of structure, providing only that the
-    first four bytes, an unsigned int called the "consbits," be reserved
+    first four bytes, an unsigned int called the "fd_conshead," be reserved
     for FramerD's typing and reference counting information.  The lower seven
     bits of this header contain type information; the reset contain a
     reference count which is used for reclaiming structures which are no
@@ -20,7 +20,7 @@
     providing a simple model which an effectively scale to large memory
     spaces.
 
-    The consbits consist of a seven bit type field and 25 bit reference
+    The fd_conshead consist of a seven bit type field and 25 bit reference
     count field, which allows for about 32 million inbound references and
     this limit has not been a problem to date.  Two reference count values
     have special meanings:
@@ -32,7 +32,7 @@
          CONS has been freed and is no longer in use.  Attempting to
          increment or decrement such a reference count yields an error.
     Because the reference count is in the high 30 bits, referencing and
-    dereferencing actually increments or decrements the consbits by
+    dereferencing actually increments or decrements the fd_conshead by
     4, after checking for the boundary cases of a static CONS (zero reference
     count) or freed cons (maximal reference count).
 
@@ -49,9 +49,9 @@
     very cheap.
 
     MULTI THREADING: Reference counting is made threadsafe by using global
-    mutexes to protect access to the consbits fields.  In order to reduce
+    mutexes to protect access to the fd_conshead fields.  In order to reduce
     contention, fdb uses a strategy called "hash locking" to regulate
-    access to the consbits of CONSes.  An array of mutexes, _fd_ptr_locks,
+    access to the fd_conshead of CONSes.  An array of mutexes, _fd_ptr_locks,
     and computes an offset into that array by shifting the structure
     address right 16 bits and taking a remainder modulo the number of
     pointer locks (32 by default).  The shift size was chosen after a
@@ -81,9 +81,13 @@
 FD_EXPORT fd_exception fd_MallocFailed, fd_StringOverflow, fd_StackOverflow;
 FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
-#define FD_GET_CONS(x,typecode,typecast) \
-  ((FD_EXPECT_TRUE(FD_PTR_TYPEP(x,typecode))) ? ((typecast)(FD_CONS_DATA(x))) : \
-   ((typecast)(u8_seterr(fd_TypeError,fd_type_names[typecode],NULL),NULL)))
+#define FD_GET_CONS(x,typecode,typecast)				\
+  ((FD_EXPECT_TRUE(FD_PTR_TYPEP(x,typecode))) ?				\
+   ((typecast)(FD_CONS_DATA(x))) :					\
+   ((typecast)								\
+    (u8_seterr(fd_TypeError,fd_type_names[typecode],NULL),		\
+     NULL)))
+
 #define FD_STRIP_CONS(x,typecode,typecast) ((typecast)(FD_CONS_DATA(x)))
 #define FD_CHECK_TYPE_THROW(x,typecode) \
   if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) \
@@ -135,13 +139,14 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
 /* Reference counting GC */
 
-#define FD_CONSBITS(x) ((x)->consbits)
-#define FD_CONS_REFCOUNT(x) (((x)->consbits)>>7)
-#define FD_STACK_CONSP(x) ((((x)->consbits)>>7)==0)
-#define FD_STATIC_CONSP(x) ((((x)->consbits)>>7)==0)
-#define FD_MALLOCD_CONSP(x) ((((x)->consbits)>>7)!=0)
+#define FD_CONSBITS(x) ((x)->fd_conshead)
+#define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
+#define FD_STACK_CONSP(x) ((((x)->fd_conshead)>>7)==0)
+#define FD_STATIC_CONSP(x) ((((x)->fd_conshead)>>7)==0)
+#define FD_MALLOCD_CONSP(x) ((((x)->fd_conshead)>>7)!=0)
 
-#define FD_STACK_CONSED(x) ((FD_CONSP(x))&&((((struct FD_CONS *)x)->consbits)>>7)==0)
+#define FD_STACK_CONSED(x) \
+  ((FD_CONSP(x))&&((((struct FD_CONS *)x)->fd_conshead)>>7)==0)
 
 #define FD_MALLOCD_CONS 0
 #define FD_STACK_CONS   1
@@ -174,7 +179,7 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_CONS *x)
     if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
       u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
 #endif
-    x->consbits=x->consbits+0x80;
+    x->fd_conshead=x->fd_conshead+0x80;
     FD_UNLOCK_PTR(x);
     return (fdtype) x;}
   else {
@@ -189,10 +194,10 @@ FD_INLINE_FCN void _fd_decref(struct FD_CONS *x)
     FD_UNLOCK_PTR(x);
     u8_raise(fd_DoubleGC,"fd_decref",NULL);}
   else if (FD_CONSBITS(x)>=0x100) {
-    x->consbits=x->consbits-0x80;
+    x->fd_conshead=x->fd_conshead-0x80;
     FD_UNLOCK_PTR(x);}
   else if (FD_CONSBITS(x)>=0x80) {
-    x->consbits=(0xFFFFFF80|(x->consbits&0x7F));
+    x->fd_conshead=(0xFFFFFF80|(x->fd_conshead&0x7F));
     FD_UNLOCK_PTR(x);
     fd_recycle_cons(x);}
   else {
@@ -217,7 +222,7 @@ struct FD_FREE_CONS {
 
 struct FD_WRAPPER {
   FD_CONS_HEADER;
-  void * data;};
+  void *data;};
 
 /* Strings */
 

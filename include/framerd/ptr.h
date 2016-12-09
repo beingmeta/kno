@@ -180,7 +180,7 @@ FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn);
 #define FD_EQ(x,y) ((x)==(y))
 
 typedef unsigned int fd_consbits;
-#define FD_CONS_HEADER fd_consbits consbits
+#define FD_CONS_HEADER fd_consbits fd_conshead
 typedef struct FD_CONS { FD_CONS_HEADER; } FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
@@ -204,19 +204,19 @@ FD_FASTOP MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
     gets the cons type. */
 #define FDTYPE_CONS(ptr) ((fdtype)ptr)
 #define FD_INIT_CONS(ptr,type) \
-  ((struct FD_CONS *)ptr)->consbits=((type-0x84)|0x80)
+  ((struct FD_CONS *)ptr)->fd_conshead=((type-0x84)|0x80)
 #define FD_INIT_FRESH_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((struct FD_CONS *)ptr)->consbits=((type-0x84)|0x80)
+  ((struct FD_CONS *)ptr)->fd_conshead=((type-0x84)|0x80)
 #define FD_INIT_STACK_CONS(ptr,type) \
-  ((struct FD_CONS *)ptr)->consbits=(type-0x84)
+  ((struct FD_CONS *)ptr)->fd_conshead=(type-0x84)
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((struct FD_CONS *)ptr)->consbits=(type-0x84)
-#define FD_CONS_TYPE(x) ((((x)->consbits)&0x7F)+0x84)
+  ((struct FD_CONS *)ptr)->fd_conshead=(type-0x84)
+#define FD_CONS_TYPE(x) ((((x)->fd_conshead)&0x7F)+0x84)
 #define FD_SET_CONS_TYPE(ptr,type) \
-  ((struct FD_CONS *)ptr)->consbits=\
-    ((((struct FD_CONS *)ptr)->consbits&(~0x7F))|((type-0x84)&0x7f))
+  ((struct FD_CONS *)ptr)->fd_conshead=\
+    ((((struct FD_CONS *)ptr)->fd_conshead&(~0x7F))|((type-0x84)&0x7f))
 #define FD_NULL ((fdtype)(NULL))
 #define FD_NULLP(x) (((void *)x)==NULL)
 
@@ -617,7 +617,7 @@ FD_EXPORT int fd_check_immediate(fdtype);
    (FD_OIDP(x)) ? (((x>>2)&0x3FF)<fd_n_base_oids) : \
    (x==0) ? (0) :                                   \
    (FD_CONSP(x)) ?                                  \
-   (((((FD_CONS *)x)->consbits)<0xFFFFFF80) &&      \
+   (((((FD_CONS *)x)->fd_conshead)<0xFFFFFF80) &&      \
     (FD_CONS_TYPE((FD_CONS *)x)>3) &&               \
     (FD_CONS_TYPE((FD_CONS *)x)<fd_next_cons_type)) : \
    (fd_check_immediate(x))))

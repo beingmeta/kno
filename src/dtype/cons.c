@@ -153,10 +153,10 @@ void fd_recycle_cons(fd_cons c)
              popped in and grabbed the CDR between when we
              checked the refcount above and when we locked the
              pointer. */
-          x->consbits=x->consbits-0x80;
+          x->fd_conshead=x->fd_conshead-0x80;
           FD_UNLOCK_PTR(x);}
         else if (FD_CONSBITS(x)>=0x80) {
-          x->consbits=(0xFFFFFF80|(x->consbits&0x7F));
+          x->fd_conshead=(0xFFFFFF80|(x->fd_conshead&0x7F));
           FD_UNLOCK_PTR(x);
           fd_decref(x->car); cdr=x->cdr;
           if (FD_MALLOCD_CONSP(x)) u8_free(x);}
