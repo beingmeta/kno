@@ -159,12 +159,12 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
       else if (FD_PRIM_TYPEP(handler_result,fd_error_type)) {
 	fd_exception_object newexo=
 	  FD_GET_CONS(handler_result,fd_error_type,fd_exception_object);
-	u8_exception newex=newexo->ex;
+	u8_exception newex=newexo->fd_u8ex;
 	u8_push_exception(newex->u8x_cond,newex->u8x_context,
                           newex->u8x_details,newex->u8x_xdata,
                           newex->u8x_free_xdata);
-	newexo->ex=NULL;
-	exo->ex=NULL;
+	newexo->fd_u8ex=NULL;
+	exo->fd_u8ex=NULL;
 	u8_restore_exception(ex);
 	fd_decref(handler); fd_decref(value); 
 	fd_decref(err_value); fd_decref(handler_result);
@@ -176,7 +176,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
         u8_log(LOG_WARN,"Recursive error",
                "Error handling error during %q",toeval);
         fd_log_backtrace(cur_ex);
-        exo->ex=NULL;
+        exo->fd_u8ex=NULL;
         u8_restore_exception(ex);
         fd_decref(handler); fd_decref(value); fd_decref(err_value);
         return handler_result;}
@@ -239,7 +239,7 @@ static fdtype error_condition(fdtype x,fdtype top_arg)
   int top=(!(FD_FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_exception ex=xo->ex;
+  u8_exception ex=xo->fd_u8ex;
   u8_condition found=ex->u8x_cond;
   if (top) {
     while (ex) {
@@ -257,7 +257,7 @@ static fdtype error_context(fdtype x,fdtype top_arg)
   int top=(!(FD_FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_exception ex=xo->ex;
+  u8_exception ex=xo->fd_u8ex;
   u8_context found=ex->u8x_cond;
   if (top) {
     while (ex) {
@@ -275,7 +275,7 @@ static fdtype error_details(fdtype x,fdtype top_arg)
   int top=(!(FD_FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_exception ex=xo->ex;
+  u8_exception ex=xo->fd_u8ex;
   u8_string found=ex->u8x_details;
   if (top) {
     while (ex) {
@@ -293,7 +293,7 @@ static fdtype error_irritant(fdtype x,fdtype top_arg)
   int top=(!(FD_FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_exception ex=xo->ex;
+  u8_exception ex=xo->fd_u8ex;
   fdtype found=FD_VOID;
   if (top) {
     while (ex) {
@@ -313,7 +313,7 @@ static fdtype error_has_irritant(fdtype x,fdtype top_arg)
   int top=(!(FD_FALSEP(top_arg)));
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_exception ex=xo->ex;
+  u8_exception ex=xo->fd_u8ex;
   fdtype found=FD_VOID;
   if (top) {
     while (ex) {
@@ -332,7 +332,7 @@ static fdtype error_backtrace(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_exception ex=xo->ex;
+  u8_exception ex=xo->fd_u8ex;
   return fd_exception_backtrace(ex);
 }
 
@@ -340,7 +340,7 @@ static fdtype error_xdata(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_exception ex=xo->ex;
+  u8_exception ex=xo->fd_u8ex;
   fdtype xdata=fd_exception_xdata(ex);
   if (FD_VOIDP(xdata)) return FD_FALSE;
   else return fd_incref(xdata);

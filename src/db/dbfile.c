@@ -207,7 +207,7 @@ static void copy_timeinfo(struct U8_XTIME *tp,fdtype md,fdtype slotid)
   if (FD_PTR_TYPEP(tval,fd_timestamp_type)) {
     struct FD_TIMESTAMP *tstamp=
       FD_GET_CONS(tval,fd_timestamp_type,struct FD_TIMESTAMP *);
-    memcpy(tp,&(tstamp->xtime),sizeof(struct U8_XTIME));}
+    memcpy(tp,&(tstamp->fd_u8xtime),sizeof(struct U8_XTIME));}
   else u8_init_xtime(tp,-1,u8_second,0,0,0);
 }
 

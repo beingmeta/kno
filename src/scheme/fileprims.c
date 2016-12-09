@@ -1027,7 +1027,7 @@ static fdtype set_file_modtime(fdtype filename,fdtype timestamp)
      (FD_FIXNUMP(timestamp))?(FD_FIX2INT(timestamp)):
      (FD_BIGINTP(timestamp))?(fd_getint(timestamp)):
      (FD_PRIM_TYPEP(timestamp,fd_timestamp_type))?
-     (((struct FD_TIMESTAMP *)timestamp)->xtime.u8_tick):
+     (((struct FD_TIMESTAMP *)timestamp)->fd_u8xtime.u8_tick):
      (-1));
   if (mtime<0)
     return fd_type_error("time","set_file_modtime",timestamp);
@@ -1050,7 +1050,7 @@ static fdtype set_file_atime(fdtype filename,fdtype timestamp)
      (FD_FIXNUMP(timestamp))?(FD_FIX2INT(timestamp)):
      (FD_BIGINTP(timestamp))?(fd_getint(timestamp)):
      (FD_PRIM_TYPEP(timestamp,fd_timestamp_type))?
-     (((struct FD_TIMESTAMP *)timestamp)->xtime.u8_tick):
+     (((struct FD_TIMESTAMP *)timestamp)->fd_u8xtime.u8_tick):
      (-1));
   if (atime<0)
     return fd_type_error("time","set_file_atime",timestamp);

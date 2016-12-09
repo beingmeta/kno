@@ -1243,7 +1243,7 @@ static fdtype debugpage2html_prim(fdtype exception,fdtype where)
   else if (FD_PRIM_TYPEP(exception,fd_error_type)) {
     struct FD_EXCEPTION_OBJECT *xo=
       FD_GET_CONS(exception,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-    ex=xo->ex;}
+    ex=xo->fd_u8ex;}
   else {
     u8_log(LOG_WARN,"debugpage2html_prim","Bad exception argument %q",exception);
     ex=u8_current_exception;}
@@ -1266,7 +1266,7 @@ static fdtype backtrace2html_prim(fdtype exception,fdtype where)
   else if (FD_PRIM_TYPEP(exception,fd_error_type)) {
     struct FD_EXCEPTION_OBJECT *xo=
       FD_GET_CONS(exception,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-    ex=xo->ex;}
+    ex=xo->fd_u8ex;}
   else {
     u8_log(LOG_WARN,"backtrace2html_prim","Bad exception argument %q",exception);
     ex=u8_current_exception;}

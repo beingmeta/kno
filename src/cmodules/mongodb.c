@@ -1258,8 +1258,8 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
     case fd_timestamp_type: {
       struct FD_TIMESTAMP *fdt=
         FD_GET_CONS(val,fd_timestamp_type,struct FD_TIMESTAMP* );
-      unsigned long long millis=(fdt->xtime.u8_tick*1000)+
-        ((fdt->xtime.u8_prec>u8_second)?(fdt->xtime.u8_nsecs/1000000):(0));
+      unsigned long long millis=(fdt->fd_u8xtime.u8_tick*1000)+
+        ((fdt->fd_u8xtime.u8_prec>u8_second)?(fdt->fd_u8xtime.u8_nsecs/1000000):(0));
       ok=bson_append_date_time(out,key,keylen,millis);
       break;}
     case fd_uuid_type: {
@@ -1674,7 +1674,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
     unsigned long long millis=bson_iter_date_time(in);
     struct FD_TIMESTAMP *ts=u8_alloc(struct FD_TIMESTAMP);
     FD_INIT_CONS(ts,fd_timestamp_type);
-    u8_init_xtime(&(ts->xtime),millis/1000,u8_millisecond,
+    u8_init_xtime(&(ts->fd_u8xtime),millis/1000,u8_millisecond,
                   ((millis%1000)*1000000),0,0);
     value=(fdtype)ts;
     break;}

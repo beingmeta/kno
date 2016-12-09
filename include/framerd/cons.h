@@ -551,7 +551,7 @@ typedef struct FD_MYSTERY *fd_mystery;
 /* Exceptions */
 
 typedef struct FD_EXCEPTION_OBJECT {
-  FD_CONS_HEADER; u8_exception ex;} FD_EXCEPTION_OBJECT;
+  FD_CONS_HEADER; u8_exception fd_u8ex;} FD_EXCEPTION_OBJECT;
 typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
 
 FD_EXPORT fdtype fd_make_exception(fd_exception,u8_context,u8_string,fdtype);
@@ -563,7 +563,7 @@ FD_EXPORT fdtype fd_init_exception(fd_exception_object,u8_exception);
 
 typedef struct FD_TIMESTAMP {
   FD_CONS_HEADER;
-  struct U8_XTIME xtime;} FD_TIMESTAMP;
+  struct U8_XTIME fd_u8xtime;} FD_TIMESTAMP;
 typedef struct FD_TIMESTAMP *fd_timestamp;
 
 FD_EXPORT fdtype fd_make_timestamp(struct U8_XTIME *tm);

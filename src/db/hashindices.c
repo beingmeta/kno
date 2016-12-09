@@ -1101,7 +1101,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
             fd_size_t block_size=fd_read_zint(&keyblock);
             struct FD_CHOICE *result=fd_alloc_choice(n_vals);
             FD_SET_CONS_TYPE(result,fd_choice_type);
-            result->size=n_vals;
+            result->fd_choicesize=n_vals;
             values[schedule[j].index]=(fdtype)result;
             vsched[vsched_size].index=schedule[j].index;
             vsched[vsched_size].ref.off=block_off;
@@ -1176,7 +1176,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
                returned and not what was passed in. */
             int index=read->index, atomicp=read->atomicp;
             struct FD_CHOICE *result=(struct FD_CHOICE *)values[index];
-            int n_values=result->size;
+            int n_values=result->fd_choicesize;
             fdtype realv=fd_init_choice(result,n_values,NULL,
                                         FD_CHOICE_DOSORT|
                                         ((atomicp)?(FD_CHOICE_ISATOMIC):

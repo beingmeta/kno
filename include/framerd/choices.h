@@ -113,29 +113,25 @@ FD_EXPORT int fd_mergesort_threshold;
 
 typedef struct FD_CHOICE {
   FD_CONS_HEADER;
-  unsigned int size;
-  fdtype elt0;} FD_CHOICE;
+  unsigned int fd_choicesize:31;
+  unsigned int fd_isatomic:1;
+  fdtype fd_elt0;} FD_CHOICE;
 typedef struct FD_CHOICE *fd_choice;
 
 #define FD_CHOICE_SIZE_MASK 0x7FFFFFFF
 #define FD_CHOICEP(x) (FD_PTR_TYPEP(x,fd_choice_type))
 #define FD_XCHOICE(x) (FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *))
-#define FD_CHOICE_BITS(x) \
-  ((FD_STRIP_CONS(x,fd_choice_type,struct FD_CHOICE *))->size)
-#define FD_XCHOICE_DATA(ch) ((const fdtype *) (&(ch->elt0)))
+#define FD_XCHOICE_DATA(ch) ((const fdtype *) (&(ch->fd_elt0)))
 #define FD_CHOICE_DATA(x) \
   (FD_XCHOICE_DATA(FD_STRIP_CONS(x,fd_choice_type,struct FD_CHOICE *)))
-#define FD_XCHOICE_SIZE(ch) ((ch->size)&(FD_CHOICE_SIZE_MASK))
-#define FD_XCHOICE_FLAGS(ch) ((ch->size)&(~(FD_CHOICE_SIZE_MASK)))
-#define FD_CHOICE_FLAGS(ch) (FD_XCHOICE_FLAGS(FD_XCHOICE(ch)))
+#define FD_XCHOICE_SIZE(ch) ((ch)->fd_choicesize)
 
-#define FD_ATOMIC_CHOICE_MASK 0x80000000
-#define FD_ATOMIC_CHOICEP(x) ((FD_CHOICE_BITS(x))&(FD_ATOMIC_CHOICE_MASK))
-#define FD_XCHOICE_ATOMICP(x) ((x->size)&(FD_ATOMIC_CHOICE_MASK))
+#define FD_ATOMIC_CHOICEP(x) ((FD_XCHOICE(x))->fd_isatomic)
+#define FD_XCHOICE_ATOMICP(x) ((x)->fd_isatomic)
 
 #define FD_INIT_XCHOICE(ch,sz,atomicp) \
   FD_INIT_CONS(ch,fd_choice_type); \
-  ch->size=((sz)|((atomicp)?(FD_ATOMIC_CHOICE_MASK):(0)))
+  ch->fd_choicesize=sz; ch->fd_isatomic=atomicp
 
 #define fd_alloc_choice(n) \
   (assert(n>0),u8_malloc(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
@@ -241,7 +237,8 @@ FD_EXPORT fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice);
 #define FD_QCHOICEP(x) (FD_PTR_TYPEP(x,fd_qchoice_type))
 #define FD_EMPTY_QCHOICEP(x) \
   ((FD_PTR_TYPEP(x,fd_qchoice_type)) && \
-   (((FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *))->choice)==FD_EMPTY_CHOICE))
+   (((FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *))->choice) \
+    ==FD_EMPTY_CHOICE))
 #define FD_XQCHOICE(x) (FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *))
 #define FD_QCHOICE_SIZE(x) (FD_CHOICE_SIZE(FD_XQCHOICE(x)->choice))
 

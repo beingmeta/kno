@@ -216,7 +216,7 @@ fdtype fd_init_choice
     if (data)
       memcpy((fdtype *)FD_XCHOICE_DATA(ch),data,sizeof(fdtype)*n);
     else {
-      fdtype *write=&(ch->elt0), *writelim=write+n;
+      fdtype *write=&(ch->fd_elt0), *writelim=write+n;
       while (write<writelim) *write++=FD_VOID;}}
   else if ((data) && (data!=FD_XCHOICE_DATA(ch))) {
     if (flags&FD_CHOICE_INCREF) {

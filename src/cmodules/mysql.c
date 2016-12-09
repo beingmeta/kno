@@ -1223,7 +1223,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
         struct FD_TIMESTAMP *tm=
           FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
         MYSQL_TIME *mt=u8_alloc(MYSQL_TIME);
-        struct U8_XTIME *xt=&(tm->xtime), gmxtime; time_t tick;
+        struct U8_XTIME *xt=&(tm->fd_u8xtime), gmxtime; time_t tick;
         memset(mt,0,sizeof(MYSQL_TIME));
         if (n_mstimes<4) mstimes[n_mstimes++]=mt;
         if ((xt->u8_tzoff)||(xt->u8_dstoff)) {

@@ -180,8 +180,7 @@ void fd_recycle_cons(fd_cons c)
     break;}
   case fd_choice_type: {
     struct FD_CHOICE *cv=(struct FD_CHOICE *)c;
-    int len=(cv->size&(FD_CHOICE_SIZE_MASK)),
-      atomicp=((cv->size&(FD_ATOMIC_CHOICE_MASK)));
+    int len=cv->fd_choicesize, atomicp=cv->fd_isatomic;
     const fdtype *scan=FD_XCHOICE_DATA(cv), *limit=scan+len;
     if (scan == NULL) break;
     if (!(atomicp)) while (scan<limit) {fd_decref(*scan); scan++;}
@@ -336,8 +335,8 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
       case fd_choice_type: {
         struct FD_CHOICE *xc=FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *);
         struct FD_CHOICE *yc=FD_GET_CONS(y,fd_choice_type,struct FD_CHOICE *);
-        if ((quick) && (xc->size>yc->size)) return 1;
-        else if ((quick) && (xc->size<yc->size)) return -1;
+        if ((quick) && (xc->fd_choicesize>yc->fd_choicesize)) return 1;
+        else if ((quick) && (xc->fd_choicesize<yc->fd_choicesize)) return -1;
         else {
           int xlen=FD_XCHOICE_SIZE(xc), ylen=FD_XCHOICE_SIZE(yc);
           const fdtype *xscan=FD_XCHOICE_DATA(xc);
@@ -422,9 +421,12 @@ fdtype fd_copier(fdtype x,int flags)
       else return fd_make_packet(NULL,s->fd_bytelen,s->fd_bytes);}
     case fd_choice_type: {
       int n=FD_CHOICE_SIZE(x);
+      int flags=(FD_ATOMIC_CHOICEP(x))?
+        (FD_CHOICE_ISATOMIC):
+        (FD_CHOICE_ISCONSES);
       struct FD_CHOICE *copy=fd_alloc_choice(n);
       const fdtype *read=FD_CHOICE_DATA(x), *limit=read+n;
-      fdtype *write=(fdtype *)&(copy->elt0);
+      fdtype *write=(fdtype *)&(copy->fd_elt0);
       if (FD_ATOMIC_CHOICEP(x))
         memcpy(write,read,sizeof(fdtype)*n);
       else if (flags&FD_FULL_COPY) while (read<limit) {
@@ -437,12 +439,13 @@ fdtype fd_copier(fdtype x,int flags)
               newv=fd_copier(newv,flags);
             else fd_incref(newv);}
           *write++=newv;}
-      return fd_init_choice(copy,n,NULL,FD_CHOICE_FLAGS(x));}
+      return fd_init_choice(copy,n,NULL,flags);}
     default:
       if (fd_copiers[ctype])
         return (fd_copiers[ctype])(x,flags);
       else if (!(FD_MALLOCD_CONSP((fd_cons)x)))
-        return fd_err(fd_NoMethod,"fd_copier/static",fd_type_names[ctype],FD_VOID);
+        return fd_err(fd_NoMethod,"fd_copier/static",
+                      fd_type_names[ctype],FD_VOID);
       else if ((flags)&(FD_STRICT_COPY))
         return fd_err(fd_NoMethod,"fd_copier",fd_type_names[ctype],x);
       else {fd_incref(x); return x;}}}
@@ -958,7 +961,7 @@ FD_EXPORT fdtype fd_init_exception
    (struct FD_EXCEPTION_OBJECT *exo,u8_exception ex)
 {
   if (exo==NULL) exo=u8_alloc(struct FD_EXCEPTION_OBJECT);
-  FD_INIT_CONS(exo,fd_error_type); exo->ex=ex;
+  FD_INIT_CONS(exo,fd_error_type); exo->fd_u8ex=ex;
   return FDTYPE_CONS(exo);
 }
 
@@ -973,28 +976,28 @@ FD_EXPORT fdtype fd_make_exception
     xdata=(void *) content;
     freefn=fd_free_exception_xdata;}
   ex=u8_make_exception(c,cxt,details,xdata,freefn);
-  FD_INIT_CONS(exo,fd_error_type); exo->ex=ex;
+  FD_INIT_CONS(exo,fd_error_type); exo->fd_u8ex=ex;
   return FDTYPE_CONS(exo);
 }
 
 static void recycle_exception(struct FD_CONS *c)
 {
   struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)c;
-  if (exo->ex) {
-    u8_free_exception(exo->ex,1);
-    exo->ex=NULL;}
+  if (exo->fd_u8ex) {
+    u8_free_exception(exo->fd_u8ex,1);
+    exo->fd_u8ex=NULL;}
   u8_free(exo);
 }
 
 static int dtype_exception(struct FD_BYTE_OUTPUT *out,fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)x;
-  if (exo->ex==NULL) {
+  if (exo->fd_u8ex==NULL) {
     u8_log(LOG_CRIT,NULL,"Trying to serialize expired exception ");
     fd_write_byte(out,dt_void);
     return 1;}
   else {
-    u8_exception ex=exo->ex;
+    u8_exception ex=exo->fd_u8ex;
     fdtype irritant=fd_exception_xdata(ex);
     int veclen=((FD_VOIDP(irritant)) ? (3) : (4));
     fdtype vector=fd_init_vector(NULL,veclen,NULL);
@@ -1018,12 +1021,12 @@ static int unparse_exception(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_exception ex=xo->ex;
+  u8_exception ex=xo->fd_u8ex;
   if (ex==NULL)
     u8_printf(out,"#<!OLDEXCEPTION>");
   else {
     u8_printf(out,"#<!EXCEPTION ");
-    fd_sum_exception(out,xo->ex);
+    fd_sum_exception(out,xo->fd_u8ex);
     u8_printf(out,"!>");}
   return 1;
 }
@@ -1052,7 +1055,7 @@ static fdtype copy_exception(fdtype x,int deep)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  return fd_init_exception(NULL,copy_exception_helper(xo->ex,deep));
+  return fd_init_exception(NULL,copy_exception_helper(xo->fd_u8ex,deep));
 }
 
 
@@ -1211,8 +1214,8 @@ fdtype fd_make_timestamp(struct U8_XTIME *tm)
   memset(tstamp,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(tstamp,fd_timestamp_type);
   if (tm)
-    memcpy(&(tstamp->xtime),tm,sizeof(struct U8_XTIME));
-  else u8_now(&(tstamp->xtime));
+    memcpy(&(tstamp->fd_u8xtime),tm,sizeof(struct U8_XTIME));
+  else u8_now(&(tstamp->fd_u8xtime));
   return FDTYPE_CONS(tstamp);
 }
 
@@ -1236,11 +1239,11 @@ static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
     FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
   if (reversible_time) {
     u8_puts(out,"#T");
-    u8_xtime_to_iso8601(out,&(tm->xtime));
+    u8_xtime_to_iso8601(out,&(tm->fd_u8xtime));
     return 1;}
   else {
     u8_printf(out,"#<TIMESTAMP 0x%x \"",(unsigned int)x);
-    u8_xtime_to_iso8601(out,&(tm->xtime));
+    u8_xtime_to_iso8601(out,&(tm->fd_u8xtime));
     u8_printf(out,"\">");
     return 1;}
 }
@@ -1256,7 +1259,7 @@ static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_entry e)
   else if ((n==3) && (FD_STRINGP(args[2])))
     timestring=FD_STRDATA(args[2]);
   else return fd_err(fd_CantParseRecord,"TIMESTAMP",NULL,FD_VOID);
-  u8_iso8601_to_xtime(timestring,&(tm->xtime));
+  u8_iso8601_to_xtime(timestring,&(tm->fd_u8xtime));
   return FDTYPE_CONS(tm);
 }
 
@@ -1272,7 +1275,7 @@ static fdtype copy_timestamp(fdtype x,int deep)
   struct FD_TIMESTAMP *newtm=u8_alloc(struct FD_TIMESTAMP);
   memset(newtm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(newtm,fd_timestamp_type);
-  memcpy(&(newtm->xtime),&(tm->xtime),sizeof(struct U8_XTIME));
+  memcpy(&(newtm->fd_u8xtime),&(tm->fd_u8xtime),sizeof(struct U8_XTIME));
   return FDTYPE_CONS(newtm);
 }
 
@@ -1282,7 +1285,7 @@ static int compare_timestamps(fdtype x,fdtype y,int quick)
     FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
   struct FD_TIMESTAMP *ytm=
     FD_GET_CONS(y,fd_timestamp_type,struct FD_TIMESTAMP *);
-  double diff=u8_xtime_diff(&(xtm->xtime),&(ytm->xtime));
+  double diff=u8_xtime_diff(&(xtm->fd_u8xtime),&(ytm->fd_u8xtime));
   if (diff<0.0) return -1;
   else if (diff == 0.0) return 0;
   else return 1;
@@ -1295,15 +1298,15 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
   int size=1;
   fd_write_byte(out,dt_compound);
   size=size+fd_write_dtype(out,timestamp_symbol);
-  if ((xtm->xtime.u8_prec == u8_second) && (xtm->xtime.u8_tzoff==0)) {
-    fdtype xval=FD_INT(xtm->xtime.u8_tick);
+  if ((xtm->fd_u8xtime.u8_prec == u8_second) && (xtm->fd_u8xtime.u8_tzoff==0)) {
+    fdtype xval=FD_INT(xtm->fd_u8xtime.u8_tick);
     size=size+fd_write_dtype(out,xval);}
   else {
     fdtype vec=fd_init_vector(NULL,4,NULL);
-    int tzoff=xtm->xtime.u8_tzoff;
-    FD_VECTOR_SET(vec,0,FD_INT(xtm->xtime.u8_tick));
-    FD_VECTOR_SET(vec,1,FD_INT(xtm->xtime.u8_nsecs));
-    FD_VECTOR_SET(vec,2,FD_INT((int)xtm->xtime.u8_prec));
+    int tzoff=xtm->fd_u8xtime.u8_tzoff;
+    FD_VECTOR_SET(vec,0,FD_INT(xtm->fd_u8xtime.u8_tick));
+    FD_VECTOR_SET(vec,1,FD_INT(xtm->fd_u8xtime.u8_nsecs));
+    FD_VECTOR_SET(vec,2,FD_INT((int)xtm->fd_u8xtime.u8_prec));
     FD_VECTOR_SET(vec,3,FD_INT(tzoff));
     size=size+fd_write_dtype(out,vec);}
   return size;
@@ -1315,14 +1318,14 @@ static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_entry e)
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_init_xtime(&(tm->xtime),FD_FIX2INT(x),u8_second,0,0,0);
+    u8_init_xtime(&(tm->fd_u8xtime),FD_FIX2INT(x),u8_second,0,0,0);
     return FDTYPE_CONS(tm);}
   else if (FD_BIGINTP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     time_t tval=(time_t)(fd_bigint_to_long((fd_bigint)x));
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_init_xtime(&(tm->xtime),tval,u8_second,0,0,0);
+    u8_init_xtime(&(tm->fd_u8xtime),tval,u8_second,0,0,0);
     return FDTYPE_CONS(tm);}
   else if (FD_VECTORP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
@@ -1332,7 +1335,7 @@ static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_entry e)
     int tzoff=fd_getint(FD_VECTOR_REF(x,3));
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
     FD_INIT_CONS(tm,fd_timestamp_type);
-    u8_init_xtime(&(tm->xtime),secs,iprec,nsecs,tzoff,0);
+    u8_init_xtime(&(tm->fd_u8xtime),secs,iprec,nsecs,tzoff,0);
     return FDTYPE_CONS(tm);}
   else return fd_err(fd_DTypeError,"bad timestamp compound",NULL,x);
 }

@@ -487,8 +487,8 @@ FD_EXPORT fdtype fd_index_keys(fd_index ix)
     if (n_fetched==0) return fd_hashtable_keys(&(ix->adds));
     n_total=n_fetched+ix->adds.n_keys;
     result=fd_alloc_choice(n_total);
-    memcpy(&(result->elt0),fetched,sizeof(fdtype)*n_fetched);
-    write_start=&(result->elt0); write_at=write_start+n_fetched;
+    memcpy(&(result->fd_elt0),fetched,sizeof(fdtype)*n_fetched);
+    write_start=&(result->fd_elt0); write_at=write_start+n_fetched;
     u8_free(fetched);
     if (ix->adds.n_keys)
       fd_for_hashtable(&(ix->adds),add_key_fn,&write_at,1);
@@ -513,7 +513,7 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
     if ((n_fetched==0) && (ix->adds.n_keys)) return FD_EMPTY_CHOICE;
     else if ((ix->adds.n_keys)==0) {
       fd_choice result=fd_alloc_choice(n_fetched);
-      fdtype *write=&(result->elt0);
+      fdtype *write=&(result->fd_elt0);
       int i=0; while (i<n_fetched) {
         fdtype key=fetched[i].key, pair;
         unsigned int n_values=fetched[i].n_values;
@@ -530,7 +530,7 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
       fd_make_hashtable(&added_sizes,ix->adds.n_slots);
       fd_for_hashtable(&(ix->adds),copy_value_sizes,&added_sizes,1);
       n_total=n_fetched+ix->adds.n_keys;
-      result=fd_alloc_choice(n_total); write=&(result->elt0);
+      result=fd_alloc_choice(n_total); write=&(result->fd_elt0);
       while (i<n_fetched) {
         fdtype key=fetched[i].key, pair;
         unsigned int n_values=fetched[i].n_values;
