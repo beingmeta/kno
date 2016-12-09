@@ -70,7 +70,7 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   if (stream==NULL)
     return FD_ERROR_VALUE;
   if (FD_VOIDP(client_id)) init_client_id();
-  stream->flags=stream->flags|FD_DTSTREAM_DOSYNC;
+  stream->fd_dts_flags=stream->fd_dts_flags|FD_DTSTREAM_DOSYNC;
   request=fd_make_list(2,pool_data_symbol,fd_incref(client_id));
   /* u8_log(LOG_WARN,"GETPOOLDATA","Making request (on #%d) for %q",c,request); */
   if (fd_dtswrite_dtype(stream,request)<0) {

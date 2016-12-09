@@ -30,7 +30,7 @@ static fdtype dteval_sock(u8_socket conn,fdtype expr)
   int retval;
   struct FD_DTYPE_STREAM stream;
   fd_init_dtype_stream(&stream,conn,8192);
-  stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
+  stream.fd_dts_flags=stream.fd_dts_flags|FD_DTSTREAM_DOSYNC;
   if (log_eval_request)
     u8_log(LOG_DEBUG,"DTEVAL","On #%d: %q",conn,expr);
   retval=fd_dtswrite_dtype(&stream,expr);
@@ -62,12 +62,12 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
     retval=fd_write_byte(binout,dt_block);
     if (retval>0) retval=fd_write_4bytes(binout,0);
     if (retval>0) retval=fd_write_dtype(binout,expr);
-    dtype_len=(binout->ptr-binout->start)-5;
-    binout->ptr=binout->start+1;
+    dtype_len=(binout->fd_bufptr-binout->fd_bufstart)-5;
+    binout->fd_bufptr=binout->fd_bufstart+1;
     fd_write_4bytes(binout,dtype_len);
-    binout->ptr=binout->start+(dtype_len+5);}
+    binout->fd_bufptr=binout->fd_bufstart+(dtype_len+5);}
   else {
-    stream.flags=stream.flags|FD_DTSTREAM_DOSYNC;
+    stream.fd_dts_flags=stream.fd_dts_flags|FD_DTSTREAM_DOSYNC;
     retval=fd_dtswrite_dtype(&stream,expr);}
   if ((retval<0)||(fd_dtsflush(&stream)<0)) {
     u8_log(LOG_ERR,"DTEVAL","Error with request to %s%s#%d for: %q",

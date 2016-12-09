@@ -59,8 +59,8 @@ static fd_index open_file_index(u8_string fname,int read_only,int consed)
     fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
-  if (index->stream.flags&FD_DTSTREAM_READ_ONLY) read_only=1;
-  index->stream.mallocd=0;
+  if (index->stream.fd_dts_flags&FD_DTSTREAM_READ_ONLY) read_only=1;
+  index->stream.fd_mallocd=0;
   magicno=fd_dtsread_4bytes(s);
   index->n_slots=fd_dtsread_4bytes(s);
   if ((magicno==FD_FILE_INDEX_TO_RECOVER) ||
@@ -108,7 +108,7 @@ static void file_index_setcache(fd_index ix,int level)
 #if HAVE_MMAP
       newmmap=
         mmap(NULL,(fx->n_slots*SLOTSIZE)+8,
-             PROT_READ,MMAP_FLAGS,s->fd,0);
+             PROT_READ,MMAP_FLAGS,s->fd_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_CRIT,u8_strerror(errno),
                "file_index_setcache:mmap %s",fx->source);
@@ -1043,7 +1043,7 @@ static int file_index_commit(struct FD_INDEX *ix)
       if (new_offsets) {
         fd_off_t end=fd_endpos(stream);
         fd_movepos(stream,-(4*(fx->n_slots)));
-        retval=ftruncate(stream->fd,end-(4*(fx->n_slots)));
+        retval=ftruncate(stream->fd_fileno,end-(4*(fx->n_slots)));
         if (retval<0)
           u8_log(LOG_ERR,"file_index_commit",
                  "Trouble truncating recovery information from %s",
@@ -1091,9 +1091,9 @@ static int recover_file_index(struct FD_FILE_INDEX *fx)
   fd_setpos(s,0); magic_no=fd_dtsread_4bytes(s);
   fd_dtswrite_4bytes(s,(magic_no&(~0x20)));
   fd_dtsflush(s);
-  retval=ftruncate(s->fd,new_end);
+  retval=ftruncate(s->fd_fileno,new_end);
   if (retval<0) return retval;
-  else retval=fsync(s->fd);
+  else retval=fsync(s->fd_fileno);
   return retval;
 }
 

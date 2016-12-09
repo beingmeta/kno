@@ -62,8 +62,8 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_init_dtype_file_stream(&(pool->stream),fname,mode,FD_FILEDB_BUFSIZE);
   /* See if it ended up read only */
-  if ((((pool)->stream).flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
-  pool->stream.mallocd=0;
+  if ((((pool)->stream).fd_dts_flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
+  pool->stream.fd_mallocd=0;
   magicno=fd_dtsread_4bytes(s);
   hi=fd_dtsread_4bytes(s); lo=fd_dtsread_4bytes(s);
   FD_SET_OID_HI(base,hi); FD_SET_OID_LO(base,lo);
@@ -100,7 +100,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
 static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
 {
   if (FD_FILE_POOL_LOCKED(fp)) return 1;
-  else if ((fp->stream.flags)&(FD_DTSTREAM_READ_ONLY)) return 0;
+  else if ((fp->stream.fd_dts_flags)&(FD_DTSTREAM_READ_ONLY)) return 0;
   else {
     struct FD_DTYPE_STREAM *s=&(fp->stream);
     struct stat fileinfo;
@@ -112,7 +112,7 @@ static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
     if (fd_dtslock(s)==0) {
       fd_unlock_struct(fp);
       return 0;}
-    fstat(s->fd,&fileinfo);
+    fstat(s->fd_fileno,&fileinfo);
     if (fileinfo.st_mtime>fp->modtime) {
       /* Make sure we're up to date. */
       if (fp->offsets) reload_file_pool_cache(fp,0);
@@ -126,7 +126,7 @@ static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
 static void update_modtime(struct FD_FILE_POOL *fp)
 {
   struct stat fileinfo;
-  if ((fstat(fp->stream.fd,&fileinfo))<0)
+  if ((fstat(fp->stream.fd_fileno,&fileinfo))<0)
     fp->modtime=(time_t)-1;
   else fp->modtime=fileinfo.st_mtime;
 }
@@ -361,9 +361,9 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       /* This was overwritten with FD_FILE_POOL_TO_RECOVER by
          fd_write_file_pool_recovery_data. */
       fd_dtswrite_4bytes(stream,FD_FILE_POOL_MAGIC_NUMBER);
-      fd_dtsflush(stream); fsync(stream->fd);
+      fd_dtsflush(stream); fsync(stream->fd_fileno);
       fd_movepos(stream,-(4*(fp->capacity+1)));
-      retval=ftruncate(stream->fd,end-(4*(fp->capacity+1)));
+      retval=ftruncate(stream->fd_fileno,end-(4*(fp->capacity+1)));
       if (retval<0) {
         retcode=-1; u8_graberr(errno,"file_pool_storen",fp->cid);}}
     else fd_dtsflush(stream);
@@ -376,7 +376,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:munmap %s",fp->cid);
         fp->offsets=NULL; errno=0;}
       newmmap=mmap(NULL,(4*fp->load)+24,PROT_READ,
-                   MAP_SHARED|MAP_NORESERVE,stream->fd,0);
+                   MAP_SHARED|MAP_NORESERVE,stream->fd_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->cid);
         fp->offsets=NULL; fp->offsets_size=0; errno=0;}
@@ -427,9 +427,9 @@ static int recover_file_pool(struct FD_FILE_POOL *fp)
   fd_setpos(s,0);
   fd_dtswrite_4bytes(s,FD_FILE_POOL_MAGIC_NUMBER);
   fd_dtsflush(s); fp->load=load;
-  retval=ftruncate(s->fd,new_end);
+  retval=ftruncate(s->fd_fileno,new_end);
   if (retval<0) return retval;
-  else retval=fsync(s->fd);
+  else retval=fsync(s->fd_fileno);
   return retval;
 }
 
@@ -492,7 +492,7 @@ static void file_pool_setcache(fd_pool p,int level)
         /* When allocating an offset buffer to read, we only have to make it as
            big as the file pools load. */
         mmap(NULL,(4*fp->load)+24,PROT_READ,
-             MAP_SHARED|MAP_NORESERVE,s->fd,0);
+             MAP_SHARED|MAP_NORESERVE,s->fd_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",fp->cid);
         fp->offsets=NULL; fp->offsets_size=0; errno=0;}

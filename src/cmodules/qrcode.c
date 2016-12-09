@@ -142,7 +142,7 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
 
     u8_free(row);
 
-    return fd_init_packet(NULL,buf.ptr-buf.start,buf.start);}
+    return fd_init_packet(NULL,buf.fd_bufptr-buf.fd_bufstart,buf.fd_bufstart);}
 }
 
 static fdtype qrencode_prim(fdtype string,fdtype opts)

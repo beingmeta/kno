@@ -32,9 +32,13 @@ FD_EXPORT u8_condition fd_MongoDB_Error, fd_MongoDB_Warning;
 FD_EXPORT fd_ptr_type fd_mongoc_server, fd_mongoc_collection, fd_mongoc_cursor;
 
 typedef struct FD_BSON_OUTPUT {
-  bson_t *doc; fdtype opts, fieldmap; int flags;} FD_BSON_OUTPUT;
+  bson_t *doc;
+  fdtype opts, fieldmap; 
+  int flags;} FD_BSON_OUTPUT;
 typedef struct FD_BSON_INPUT {
-  bson_iter_t *iter; fdtype opts, fieldmap; int flags;} FD_BSON_INPUT;
+  bson_iter_t *iter; 
+  fdtype opts, fieldmap;
+  int flags;} FD_BSON_INPUT;
 typedef struct FD_BSON_INPUT *fd_bson_input;
 
 typedef struct FD_MONGODB_DATABASE {

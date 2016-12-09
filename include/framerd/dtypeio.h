@@ -127,39 +127,40 @@ typedef struct FD_BYTE_INPUT *fd_byte_input;
 #define FD_WRITE_OPAQUE    ((FD_DTYPEV2)<<1)
 
 typedef struct FD_BYTE_OUTPUT {
-  unsigned char *start, *ptr, *end;
-  int flags;
+  unsigned char *fd_bufstart, *fd_bufptr, *fd_buflim;
+  int fd_dts_flags;
   /* FD_BYTE_OUTPUT has a fillfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
-  int (*fillfn)(fd_byte_input,int);
-  int (*flushfn)(fd_byte_output);} FD_BYTE_OUTPUT;
+  int (*fd_dts_fillfn)(fd_byte_input,int);
+  int (*fd_dts_flushfn)(fd_byte_output);} FD_BYTE_OUTPUT;
 
 typedef struct FD_BYTE_INPUT {
-  const unsigned char *start, *ptr, *end; int flags;
+  const unsigned char *fd_bufstart, *fd_bufptr, *fd_buflim;
+  int fd_dts_flags;
   /* FD_BYTE_INPUT has a flushfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
-  int (*fillfn)(fd_byte_input,int);
-  int (*flushfn)(fd_byte_output);} FD_BYTE_INPUT;
+  int (*fd_dts_fillfn)(fd_byte_input,int);
+  int (*fd_dts_flushfn)(fd_byte_output);} FD_BYTE_INPUT;
 
 FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x);
 FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in);
 
 /* These are for input or output */
 #define FD_INIT_BYTE_OUTPUT(bo,sz)     \
-  (bo)->ptr=(bo)->start=u8_malloc(sz); \
-  (bo)->end=(bo)->start+sz;            \
-  (bo)->flags=FD_BYTEBUF_MALLOCD;      \
-  (bo)->fillfn=NULL; (bo)->flushfn=NULL;
+  (bo)->fd_bufptr=(bo)->fd_bufstart=u8_malloc(sz); \
+  (bo)->fd_buflim=(bo)->fd_bufstart+sz;            \
+  (bo)->fd_dts_flags=FD_BYTEBUF_MALLOCD;      \
+  (bo)->fd_dts_fillfn=NULL; (bo)->fd_dts_flushfn=NULL;
 
 #define FD_INIT_FIXED_BYTE_OUTPUT(bo,buf,sz)           \
-  (bo)->ptr=(bo)->start=buf; (bo)->end=(bo)->start+sz; \
-  (bo)->flags=0; (bo)->fillfn=NULL; (bo)->flushfn=NULL;
+  (bo)->fd_bufptr=(bo)->fd_bufstart=buf; (bo)->fd_buflim=(bo)->fd_bufstart+sz; \
+  (bo)->fd_dts_flags=0; (bo)->fd_dts_fillfn=NULL; (bo)->fd_dts_flushfn=NULL;
 
 #define FD_INIT_BYTE_INPUT(bi,b,sz)                          \
-  (bi)->ptr=(bi)->start=b; (bi)->end=b+(sz); (bi)->flags=0;  \
-  (bi)->fillfn=NULL; (bi)->flushfn=NULL
+  (bi)->fd_bufptr=(bi)->fd_bufstart=b; (bi)->fd_buflim=b+(sz); (bi)->fd_dts_flags=0;  \
+  (bi)->fd_dts_fillfn=NULL; (bi)->fd_dts_flushfn=NULL
   /* flushfn might not be used */
 
 FD_EXPORT void fd_need_bytes(struct FD_BYTE_OUTPUT *b,int size);
@@ -170,33 +171,33 @@ FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTPUT *,unsigned int);
 FD_EXPORT int _fd_write_8bytes(struct FD_BYTE_OUTPUT *,fd_8bytes);
 
 #define fd_write_byte(stream,b)                                      \
-  ((FD_EXPECT_TRUE((stream)->ptr < (stream)->end)) ? (*((stream)->ptr)++=b,1) \
+  ((FD_EXPECT_TRUE((stream)->fd_bufptr < (stream)->fd_buflim)) ? (*((stream)->fd_bufptr)++=b,1) \
    : (_fd_write_byte((stream),b)))
 
 #define fd_write_4bytes(stream,w)                  \
-  ((FD_EXPECT_TRUE((stream)->ptr+4 < (stream)->end)) ?  \
-   (*((stream)->ptr++)=((unsigned char)((w>>24)&0xFF)), \
-    *((stream)->ptr++)=((unsigned char)((w>>16)&0xFF)), \
-    *((stream)->ptr++)=((unsigned char)((w>>8)&0xFF)),  \
-    *((stream)->ptr++)=((unsigned char)((w>>0)&0xFF)),4)        \
+  ((FD_EXPECT_TRUE((stream)->fd_bufptr+4 < (stream)->fd_buflim)) ?  \
+   (*((stream)->fd_bufptr++)=((unsigned char)((w>>24)&0xFF)), \
+    *((stream)->fd_bufptr++)=((unsigned char)((w>>16)&0xFF)), \
+    *((stream)->fd_bufptr++)=((unsigned char)((w>>8)&0xFF)),  \
+    *((stream)->fd_bufptr++)=((unsigned char)((w>>0)&0xFF)),4)        \
    : (_fd_write_4bytes((stream),w)))
 
 #define fd_write_8bytes(stream,w)                       \
-  ((FD_EXPECT_TRUE((stream)->ptr+8 < (stream)->end)) ?  \
-   ((*(s->ptr++)=((w>>56)&0xFF)),                       \
-    (*(s->ptr++)=((w>>48)&0xFF)),                       \
-    (*(s->ptr++)=((w>>40)&0xFF)),                       \
-    (*(s->ptr++)=((w>>32)&0xFF)),                       \
-    (*(s->ptr++)=((w>>24)&0xFF)),                       \
-    (*(s->ptr++)=((w>>16)&0xFF)),                       \
-    (*(s->ptr++)=((w>>8)&0xFF)),                        \
-    (*(s->ptr++)=((w>>0)&0xFF))) :                      \
+  ((FD_EXPECT_TRUE((stream)->fd_bufptr+8 < (stream)->fd_buflim)) ?  \
+   ((*(s->fd_bufptr++)=((w>>56)&0xFF)),                       \
+    (*(s->fd_bufptr++)=((w>>48)&0xFF)),                       \
+    (*(s->fd_bufptr++)=((w>>40)&0xFF)),                       \
+    (*(s->fd_bufptr++)=((w>>32)&0xFF)),                       \
+    (*(s->fd_bufptr++)=((w>>24)&0xFF)),                       \
+    (*(s->fd_bufptr++)=((w>>16)&0xFF)),                       \
+    (*(s->fd_bufptr++)=((w>>8)&0xFF)),                        \
+    (*(s->fd_bufptr++)=((w>>0)&0xFF))) :                      \
    (_fd_write_8bytes((stream),w)))
 
 #define fd_write_bytes(stream,bvec,len)  \
-  ((FD_EXPECT_TRUE((stream)->ptr+len < (stream)->end)) ? \
-   (memcpy(((stream)->ptr),bvec,len),    \
-    (stream)->ptr=(stream)->ptr+len,     \
+  ((FD_EXPECT_TRUE((stream)->fd_bufptr+len < (stream)->fd_buflim)) ? \
+   (memcpy(((stream)->fd_bufptr),bvec,len),    \
+    (stream)->fd_bufptr=(stream)->fd_bufptr+len,     \
     len)                                 \
   : (_fd_write_bytes(stream,bvec,len)))
 
@@ -306,12 +307,13 @@ FD_FASTOP int fd_write_zint8(struct FD_BYTE_OUTPUT *s,fd_8bytes n)
 #define fd_get_bytes(bytes,membuf,len) \
    memcpy(bytes,membuf,len)
 
-#define _fd_needs_bytes(stream,n) \
-  (((stream)->ptr+n <= (stream)->end) ? (1) : \
-   ((stream)->fillfn) ? (((stream)->fillfn)(((fd_byte_input)stream),n)) : (0))
+#define _fd_needs_bytes(stream,n)					\
+  (((stream)->fd_bufptr+n <= (stream)->fd_buflim) ? (1) :		\
+   ((stream)->fd_dts_fillfn) ?						\
+   (((stream)->fd_dts_fillfn)(((fd_byte_input)stream),n)) : (0))
 #define fd_needs_bytes(stream,n) (FD_EXPECT_TRUE(_fd_needs_bytes(stream,n)))
 #define _fd_has_bytes(stream,n) \
-  ((stream)->ptr+n <= (stream)->end)
+  ((stream)->fd_bufptr+n <= (stream)->fd_buflim)
 #define fd_has_bytes(stream,n) (FD_EXPECT_TRUE(_fd_has_bytes(stream,n)))
 
 FD_EXPORT int _fd_read_byte(struct FD_BYTE_INPUT *stream);
@@ -325,21 +327,22 @@ FD_EXPORT fd_8bytes _fd_read_zint8(struct FD_BYTE_INPUT *stream);
 
 #if FD_INLINE_DTYPEIO
 #define fd_read_byte(stream) \
-  ((fd_needs_bytes(stream,1)) ? (*(stream->ptr++)) \
+  ((fd_needs_bytes(stream,1)) ? (*(stream->fd_bufptr++)) \
    : (-1))
 
 FD_FASTOP int fd_unread_byte(struct FD_BYTE_INPUT *stream,int byte)
 {
-  if ((stream->ptr>stream->start) && (stream->ptr[-1]==byte)) {
-    stream->ptr--; return 0;}
+  if ( (stream->fd_bufptr>stream->fd_bufstart) && 
+       (stream->fd_bufptr[-1]==byte)) {
+    stream->fd_bufptr--; return 0;}
   else return _fd_unread_byte(stream,byte);
 }
 
 FD_FASTOP fd_4bytes fd_read_4bytes(struct FD_BYTE_INPUT *stream)
 {
   if (fd_needs_bytes(stream,4)) {
-    unsigned int bytes=fd_get_4bytes(stream->ptr);
-    stream->ptr=stream->ptr+4;
+    unsigned int bytes=fd_get_4bytes(stream->fd_bufptr);
+    stream->fd_bufptr=stream->fd_bufptr+4;
     return bytes;}
   else return _fd_read_4bytes(stream);
 }
@@ -347,8 +350,8 @@ FD_FASTOP fd_4bytes fd_read_4bytes(struct FD_BYTE_INPUT *stream)
 FD_FASTOP fd_8bytes fd_read_8bytes(struct FD_BYTE_INPUT *stream)
 {
   if (fd_needs_bytes(stream,8)) {
-    unsigned int bytes=fd_get_8bytes(stream->ptr);
-    stream->ptr=stream->ptr+8;
+    unsigned int bytes=fd_get_8bytes(stream->fd_bufptr);
+    stream->fd_bufptr=stream->fd_bufptr+8;
     return bytes;}
   else return _fd_read_8bytes(stream);
 }
@@ -357,8 +360,8 @@ FD_FASTOP int fd_read_bytes
   (unsigned char *bytes,struct FD_BYTE_INPUT *stream,int len)
 {
   if (fd_needs_bytes(stream,len)) {
-    memcpy(bytes,stream->ptr,len);
-    stream->ptr=stream->ptr+len;
+    memcpy(bytes,stream->fd_bufptr,len);
+    stream->fd_bufptr=stream->fd_bufptr+len;
     return len;}
   else return -1;
 }

@@ -22,8 +22,8 @@ static void write_dtype_to_file(fdtype object,FILE *f)
   struct FD_BYTE_OUTPUT out;
   FD_INIT_BYTE_OUTPUT(&out,1024);
   fd_write_dtype(&out,object);
-  fwrite(out.start,1,out.ptr-out.start,f);
-  u8_free(out.start);
+  fwrite(out.fd_bufstart,1,out.fd_bufptr-out.fd_bufstart,f);
+  u8_free(out.fd_bufstart);
 }
 
 int main(int argc,char **argv)

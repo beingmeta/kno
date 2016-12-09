@@ -266,13 +266,13 @@ static fdtype zread_dtype(struct FD_DTYPE_STREAM *s)
   if (retval<n_bytes) {
     u8_free(bytes);
     return FD_ERROR_VALUE;}
-  in.ptr=in.start=do_uncompress(bytes,n_bytes,&dbytes);
-  if (in.start==NULL) {
+  in.fd_bufptr=in.fd_bufstart=do_uncompress(bytes,n_bytes,&dbytes);
+  if (in.fd_bufstart==NULL) {
     u8_free(bytes);
     return FD_ERROR_VALUE;}
-  in.end=in.start+dbytes; in.fillfn=NULL;
+  in.fd_buflim=in.fd_bufstart+dbytes; in.fd_dts_fillfn=NULL;
   result=fd_read_dtype(&in);
-  u8_free(bytes); u8_free(in.start);
+  u8_free(bytes); u8_free(in.fd_bufstart);
   return result;
 }
 
@@ -281,17 +281,17 @@ static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 {
   unsigned char *zbytes; ssize_t zlen=-1, size;
   struct FD_BYTE_OUTPUT out;
-  out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
+  out.fd_bufptr=out.fd_bufstart=u8_malloc(1024); out.fd_buflim=out.fd_bufstart+1024;
   if (fd_write_dtype(&out,x)<0) {
-    u8_free(out.start);
+    u8_free(out.fd_bufstart);
     return FD_ERROR_VALUE;}
-  zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
+  zbytes=do_compress(out.fd_bufstart,out.fd_bufptr-out.fd_bufstart,&zlen);
   if (zlen<0) {
-    u8_free(out.start);
+    u8_free(out.fd_bufstart);
     return FD_ERROR_VALUE;}
   size=fd_dtswrite_zint(s,zlen); size=size+zlen;
   if (fd_dtswrite_bytes(s,zbytes,zlen)<0) size=-1;
-  u8_free(zbytes); u8_free(out.start);
+  u8_free(zbytes); u8_free(out.fd_bufstart);
   return size;
 }
 
@@ -300,7 +300,7 @@ static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 {
   unsigned char *zbytes=NULL; ssize_t zlen=-1, size; int retval=0;
   struct FD_BYTE_OUTPUT out;
-  out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
+  out.fd_bufptr=out.fd_bufstart=u8_malloc(1024); out.fd_buflim=out.fd_bufstart+1024;
   if (FD_CHOICEP(x)) {
     FD_DO_CHOICES(v,x) {
       retval=fd_write_dtype(&out,v);
@@ -312,13 +312,13 @@ static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
       if (retval<0) break;}}
   else retval=fd_write_dtype(&out,x);
   if (retval>=0)
-    zbytes=do_compress(out.start,out.ptr-out.start,&zlen);
+    zbytes=do_compress(out.fd_bufstart,out.fd_bufptr-out.fd_bufstart,&zlen);
   if ((retval<0)||(zlen<0)) {
-    if (zbytes) u8_free(zbytes); u8_free(out.start);
+    if (zbytes) u8_free(zbytes); u8_free(out.fd_bufstart);
     return -1;}
   size=fd_dtswrite_zint(s,zlen); size=size+zlen;
   retval=fd_dtswrite_bytes(s,zbytes,zlen);
-  u8_free(zbytes); u8_free(out.start);
+  u8_free(zbytes); u8_free(out.fd_bufstart);
   if (retval<0) return retval;
   else return size;
 }
@@ -352,15 +352,15 @@ fdtype read_oid_value
     if (fd_dtsread_bytes(f,bytes,n_bytes)<n_bytes) {
       u8_free(bytes);
       return FD_ERROR_VALUE;}
-    in.ptr=in.start=do_uncompress(bytes,n_bytes,&dbytes);
-    if ((dbytes<0)||(in.ptr==NULL)) {
-      u8_free(bytes); u8_free(in.start);
+    in.fd_bufptr=in.fd_bufstart=do_uncompress(bytes,n_bytes,&dbytes);
+    if ((dbytes<0)||(in.fd_bufptr==NULL)) {
+      u8_free(bytes); u8_free(in.fd_bufstart);
       return FD_ERROR_VALUE;}
-    in.end=in.start+dbytes; in.fillfn=NULL;
+    in.fd_buflim=in.fd_bufstart+dbytes; in.fd_dts_fillfn=NULL;
     /* Read the values for the slotmap */
-    while ((in.ptr < in.end) && (i < n_values)) {
+    while ((in.fd_bufptr < in.fd_buflim) && (i < n_values)) {
       values[i]=fd_read_dtype(&in); i++;}
-    u8_free(bytes); u8_free(in.start);
+    u8_free(bytes); u8_free(in.fd_bufstart);
     return fd_make_schemap
       (NULL,n_values,0,schemas[schema_index].schema,values);}
   else return zread_dtype(f);
@@ -382,25 +382,25 @@ int write_oid_value
       int dsize=((size>0)?(zwrite_dtype(s,v)):(-1));
       if (dsize<0) return -1;
       else return size+dsize;}
-    out.ptr=out.start=u8_malloc(4096); out.end=out.start+4096;
+    out.fd_bufptr=out.fd_bufstart=u8_malloc(4096); out.fd_buflim=out.fd_bufstart+4096;
     wlen=fd_dtswrite_zint(s,schema_index+1);
     wlen=wlen+fd_dtswrite_zint(s,size);
     while (i < size) {
       retval=fd_write_dtype(&out,values[i]);
       if (retval<0) {
-        u8_free(out.start);
+        u8_free(out.fd_bufstart);
         return -1;}
       i++;}
-    zbytes=do_compress(out.start,out.end-out.start,&zlen);
+    zbytes=do_compress(out.fd_bufstart,out.fd_buflim-out.fd_bufstart,&zlen);
     if (zlen<0) {
-      u8_free(out.start);
+      u8_free(out.fd_bufstart);
       return FD_ERROR_VALUE;}
     retval=fd_dtswrite_bytes(s,zbytes,zlen);
     if (retval<0) {
-      u8_free(out.start); u8_free(zbytes);
+      u8_free(out.fd_bufstart); u8_free(zbytes);
       return FD_ERROR_VALUE;}
     wlen=wlen+zlen;
-    u8_free(out.start); u8_free(zbytes);
+    u8_free(out.fd_bufstart); u8_free(zbytes);
     return wlen;}
   else {
     int size=fd_dtswrite_zint(s,0);
@@ -423,8 +423,8 @@ static fd_pool open_zpool(u8_string fname,int read_only)
   FD_OID base=FD_NULL_OID_INIT;
   fd_init_dtype_file_stream(&(pool->stream),fname,mode,FD_FILEDB_BUFSIZE);
   /* See if it ended up read only */
-  if ((pool->stream.flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
-  pool->stream.mallocd=0;
+  if ((pool->stream.fd_dts_flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
+  pool->stream.fd_mallocd=0;
   magicno=fd_dtsread_4bytes(s);
   if (magicno!=FD_ZPOOL_MAGIC_NUMBER) {
     fd_seterr("Bad magic number","open_zpool",fname,FD_VOID);
@@ -472,7 +472,7 @@ static fd_pool open_zpool(u8_string fname,int read_only)
 static int lock_zpool(struct FD_ZPOOL *fp,int use_mutex)
 {
   if (FD_FILE_POOL_LOCKED(fp)) return 1;
-  else if ((fp->stream.flags)&(FD_DTSTREAM_READ_ONLY)) return 0;
+  else if ((fp->stream.fd_dts_flags)&(FD_DTSTREAM_READ_ONLY)) return 0;
   else {
     struct FD_DTYPE_STREAM *s=&(fp->stream);
     struct stat fileinfo;
@@ -484,7 +484,7 @@ static int lock_zpool(struct FD_ZPOOL *fp,int use_mutex)
     if (fd_dtslock(s)==0) {
       fd_unlock_struct(fp);
       return 0;}
-    fstat(s->fd,&fileinfo);
+    fstat(s->fd_fileno,&fileinfo);
     if (fileinfo.st_mtime>fp->modtime) {
       /* Make sure we're up to date. */
       if (fp->offsets) reload_file_pool_cache(fp,0);
@@ -498,7 +498,7 @@ static int lock_zpool(struct FD_ZPOOL *fp,int use_mutex)
 static void update_modtime(struct FD_ZPOOL *fp)
 {
   struct stat fileinfo;
-  if ((fstat(fp->stream.fd,&fileinfo))<0)
+  if ((fstat(fp->stream.fd_fileno,&fileinfo))<0)
     fp->modtime=(time_t)-1;
   else fp->modtime=fileinfo.st_mtime;
 }
@@ -652,7 +652,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     newmmap=
       mmap(NULL,(4*fp->load)+24,
            PROT_READ|PROT_WRITE,
-           MAP_SHARED,stream->fd,0);
+           MAP_SHARED,stream->fd_fileno,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
       u8_log(LOG_WARN,u8_strerror(errno),"zpool_storen:mmap %s",fp->cid);
       fp->offsets=NULL; errno=0;}
@@ -703,7 +703,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       /* When allocating an offset buffer to read, we only have to make it as
          big as the file pools load. */
       mmap(NULL,(4*fp->load)+24,
-           PROT_READ,MAP_SHARED|MAP_NORESERVE,stream->fd,0);
+           PROT_READ,MAP_SHARED|MAP_NORESERVE,stream->fd_fileno,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
       u8_log(LOG_WARN,u8_strerror(errno),"zpool_storen:mmap %s",fp->cid);
       fp->offsets=NULL; errno=0;}
@@ -719,7 +719,7 @@ static int zpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       fd_dtswrite_4bytes(stream,fp->load);
       fd_dtsflush(stream);
       update_modtime(fp);
-      fsync(stream->fd);}}
+      fsync(stream->fd_fileno);}}
   fd_unlock_struct(fp);
   return retcode;
 }
@@ -783,7 +783,7 @@ static void zpool_setcache(fd_pool p,int level)
         /* When allocating an offset buffer to read, we only have to make it as
            big as the file pools load. */
         mmap(NULL,(4*fp->load)+24,PROT_READ,
-             MAP_SHARED|MAP_NORESERVE,s->fd,0);
+             MAP_SHARED|MAP_NORESERVE,s->fd_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_WARN,u8_strerror(errno),"zpool_setcache:mmap %s",fp->cid);
         fp->offsets=NULL; errno=0;}

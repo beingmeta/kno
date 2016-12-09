@@ -26,9 +26,9 @@ static fdtype read_dtype_from_file(FILE *f)
       if (errno==EAGAIN) {}
       else u8_raise("Read error","u8recode",NULL);
     else fd_write_bytes(&out,buf,delta);}
-  FD_INIT_BYTE_INPUT(&in,out.start,out.ptr-out.start);
+  FD_INIT_BYTE_INPUT(&in,out.fd_bufstart,out.fd_bufptr-out.fd_bufstart);
   object=fd_read_dtype(&in);
-  u8_free(out.start);
+  u8_free(out.fd_bufstart);
   return object;
 }
 
@@ -37,8 +37,8 @@ static int write_dtype_to_file(fdtype object,FILE *f)
   struct FD_BYTE_OUTPUT out; int retval;
   FD_INIT_BYTE_OUTPUT(&out,1024);
   fd_write_dtype(&out,object);
-  retval=fwrite(out.start,1,out.ptr-out.start,f);
-  u8_free(out.start);
+  retval=fwrite(out.fd_bufstart,1,out.fd_bufptr-out.fd_bufstart,f);
+  u8_free(out.fd_bufstart);
   return retval;
 }
 

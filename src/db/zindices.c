@@ -71,7 +71,7 @@ static fdtype zread_value
   (struct FD_DTYPE_STREAM *s,FD_OID *baseoids,int n_baseoids)
 {
   if (fd_needs_bytes((fd_byte_input)s,1))
-    if ((*(s->ptr))<0x80) return fd_dtsread_dtype(s);
+    if ((*(s->fd_bufptr))<0x80) return fd_dtsread_dtype(s);
     else {
       int baseoff=read_baseoid_offset(s);
       FD_OID addr=baseoids[baseoff];
@@ -219,8 +219,8 @@ static fd_index open_zindex(u8_string fname,int read_only,int consed)
     fd_seterr3(fd_CantOpenFile,"open_zindex",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
-  if ((index->stream.flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
-  index->stream.mallocd=0;
+  if ((index->stream.fd_dts_flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
+  index->stream.fd_mallocd=0;
   magicno=fd_dtsread_4bytes(s);
   if (magicno == FD_ZINDEX_MAGIC_NUMBER) index->hashv=2;
   else if (magicno == FD_ZINDEX3_MAGIC_NUMBER) index->hashv=3;
@@ -295,7 +295,7 @@ static void zindex_setcache(fd_index ix,int level)
 #if HAVE_MMAP
       newmmap=
         mmap(NULL,(fx->n_slots*SLOTSIZE)+8,
-             PROT_READ,MMAP_FLAGS,s->fd,0);
+             PROT_READ,MMAP_FLAGS,s->fd_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_WARN,u8_strerror(errno),"zindex_setcache:mmap %s",fx->source);
         fx->offsets=NULL; errno=0;}
@@ -1070,7 +1070,7 @@ static int zindex_commit(struct FD_INDEX *ix)
     newmmap=
       mmap(NULL,(fx->n_slots*SLOTSIZE)+8,
            PROT_READ|PROT_WRITE,MMAP_FLAGS,
-           stream->fd,0);
+           stream->fd_fileno,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
       u8_log(LOG_WARN,u8_strerror(errno),"zindex_commit:mmap %s",fx->source);
       fx->offsets=NULL; errno=0;}
@@ -1150,7 +1150,7 @@ static int zindex_commit(struct FD_INDEX *ix)
         fx->offsets=NULL; errno=0;}
       newmmap=
         mmap(NULL,(fx->n_slots*SLOTSIZE)+8,
-             PROT_READ,MMAP_FLAGS,stream->fd,0);
+             PROT_READ,MMAP_FLAGS,stream->fd_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_WARN,u8_strerror(errno),"zindex_commit:mmap %s",fx->source);
         fx->offsets=NULL; errno=0;}
@@ -1160,7 +1160,7 @@ static int zindex_commit(struct FD_INDEX *ix)
     write_offsets(fx,n,kdata);
 #endif
     fd_dtsflush(stream);
-    fsync(stream->fd);
+    fsync(stream->fd_fileno);
     fd_unlock_struct(fx);
     fd_reset_hashtable(&(ix->adds),67,0);
     fd_rw_unlock_struct(&(ix->adds));
