@@ -1693,7 +1693,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
         bson_read_step(r,value,NULL);
       if (fd_test(value,fdtag_symbol,FD_VOID)) {
         fdtype tag=fd_get(value,fdtag_symbol,FD_VOID), compound;
-        struct FD_COMPOUND_ENTRY *entry=fd_lookup_compound(tag);
+        struct FD_COMPOUND_TYPEINFO *entry=fd_lookup_compound(tag);
         fdtype fields[16], keys=fd_getkeys(value);
         int max=-1, i=0, n, ok=1; 
         while (i<16) fields[i++]=FD_VOID;
@@ -1713,8 +1713,8 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
               fields[index]=fd_get(value,key,FD_VOID);}}}
         if (ok) {
           n=max+1;
-          if ((entry)&&(entry->parser))
-            compound=entry->parser(n,fields,entry);
+          if ((entry)&&(entry->fd_compound_parser))
+            compound=entry->fd_compound_parser(n,fields,entry);
           else {
             struct FD_COMPOUND *c=
               u8_malloc(sizeof(struct FD_COMPOUND)+(n*sizeof(fdtype)));

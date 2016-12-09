@@ -1432,7 +1432,7 @@ static int unparse_raw_pool(u8_output out,fdtype x)
   return 1;
 }
 
-static fdtype pool_parsefn(int n,fdtype *args,fd_compound_entry e)
+static fdtype pool_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
 {
   fd_pool p=NULL;
   if (n<3) return FD_VOID;
@@ -2039,8 +2039,8 @@ FD_EXPORT void fd_init_pools_c()
   unlock_symbol=fd_intern("UNLOCK");
 
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("POOL"),NULL,NULL);
-    e->parser=pool_parsefn;}
+    struct FD_COMPOUND_TYPEINFO *e=fd_register_compound(fd_intern("POOL"),NULL,NULL);
+    e->fd_compound_parser=pool_parsefn;}
 
   FD_INIT_STATIC_CONS(&poolid_table,fd_hashtable_type);
   fd_make_hashtable(&poolid_table,32);

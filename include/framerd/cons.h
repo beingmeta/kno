@@ -571,26 +571,26 @@ FD_EXPORT fdtype fd_time2timestamp(time_t moment);
 
 /* Compounds */
 
-typedef struct FD_COMPOUND_ENTRY *fd_compound_entry;
-typedef int (*fd_compound_unparsefn)(u8_output out,fdtype,fd_compound_entry);
-typedef fdtype (*fd_compound_parsefn)(int n,fdtype *,fd_compound_entry);
-typedef fdtype (*fd_compound_dumpfn)(fdtype,fd_compound_entry);
-typedef fdtype (*fd_compound_restorefn)(fdtype,fdtype,fd_compound_entry);
+typedef struct FD_COMPOUND_TYPEINFO *fd_compound_typeinfo;
+typedef int (*fd_compound_unparsefn)(u8_output out,fdtype,fd_compound_typeinfo);
+typedef fdtype (*fd_compound_parsefn)(int n,fdtype *,fd_compound_typeinfo);
+typedef fdtype (*fd_compound_dumpfn)(fdtype,fd_compound_typeinfo);
+typedef fdtype (*fd_compound_restorefn)(fdtype,fdtype,fd_compound_typeinfo);
 
-typedef struct FD_COMPOUND_ENTRY {
-  fdtype tag, data; int core_slots;
-  fd_compound_parsefn parser;
-  fd_compound_unparsefn unparser;
-  fd_compound_dumpfn dump;
-  fd_compound_restorefn restore;
-  struct FD_TABLEFNS *tablefns;
-  struct FD_COMPOUND_ENTRY *next;} FD_COMPOUND_ENTRY;
-FD_EXPORT struct FD_COMPOUND_ENTRY *fd_compound_entries;
+typedef struct FD_COMPOUND_TYPEINFO {
+  fdtype fd_typetag, fd_compound_metadata; int fd_compound_corelen;
+  fd_compound_parsefn fd_compound_parser;
+  fd_compound_unparsefn fd_compound_unparser;
+  fd_compound_dumpfn fd_compound_dumpfn;
+  fd_compound_restorefn fd_compound_restorefn;
+  struct FD_TABLEFNS *fd_compund_tablefns;
+  struct FD_COMPOUND_TYPEINFO *fd_compound_nextinfo;} FD_COMPOUND_TYPEINFO;
+FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_compound_entries;
 
 
-FD_EXPORT struct FD_COMPOUND_ENTRY *fd_lookup_compound(fdtype);
-FD_EXPORT struct FD_COMPOUND_ENTRY *fd_declare_compound(fdtype,fdtype,int);
-FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype,fdtype *,int *);
+FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_lookup_compound(fdtype);
+FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_declare_compound(fdtype,fdtype,int);
+FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_register_compound(fdtype,fdtype *,int *);
 
 /* Cons compare */
 

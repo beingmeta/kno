@@ -229,10 +229,10 @@ static fdtype consfn_symbol, stringfn_symbol, tag_symbol;
 
 static fdtype compound_corelen_prim(fdtype tag)
 {
-  struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
+  struct FD_COMPOUND_TYPEINFO *e=fd_lookup_compound(tag);
   if (e) {
-    if (e->core_slots<0) return FD_FALSE;
-    else return FD_INT(e->core_slots);}
+    if (e->fd_compound_corelen<0) return FD_FALSE;
+    else return FD_INT(e->fd_compound_corelen);}
   else return FD_EMPTY_CHOICE;
 }
 
@@ -245,11 +245,11 @@ static fdtype compound_set_corelen_prim(fdtype tag,fdtype slots_arg)
 
 static fdtype tag_slotdata(fdtype tag)
 {
-  struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
-  if ((e)&&(FD_SLOTMAPP(e->data)))
-    return fd_incref(e->data);
-  else if ((e)&&(!(FD_VOIDP(e->data))))
-    return fd_type_error("slotmap","tag_slotdata",e->data);
+  struct FD_COMPOUND_TYPEINFO *e=fd_lookup_compound(tag);
+  if ((e)&&(FD_SLOTMAPP(e->fd_compound_metadata)))
+    return fd_incref(e->fd_compound_metadata);
+  else if ((e)&&(!(FD_VOIDP(e->fd_compound_metadata))))
+    return fd_type_error("slotmap","tag_slotdata",e->fd_compound_metadata);
   else {
     struct FD_KEYVAL *keyvals=u8_alloc_n(1,struct FD_KEYVAL);
     fdtype slotmap=FD_VOID, *slotdata=&slotmap;
@@ -270,10 +270,10 @@ static fdtype compound_metadata_prim(fdtype compound,fdtype field)
   return result;
 }
 
-static fdtype cons_compound(int n,fdtype *args,fd_compound_entry e)
+static fdtype cons_compound(int n,fdtype *args,fd_compound_typeinfo e)
 {
-  if (e->data) {
-    fdtype method=fd_get(e->data,consfn_symbol,FD_VOID);
+  if (e->fd_compound_metadata) {
+    fdtype method=fd_get(e->fd_compound_metadata,consfn_symbol,FD_VOID);
     if (FD_VOIDP(method)) return FD_VOID;
     else {
       fdtype result=fd_apply(method,n,args);
@@ -281,13 +281,13 @@ static fdtype cons_compound(int n,fdtype *args,fd_compound_entry e)
       return result;}}
   else {
     int i=0; while (i<n) {fdtype elt=args[i++]; fd_incref(elt);}
-    return fd_init_compound_from_elts(NULL,e->tag,1,n,args);}
+    return fd_init_compound_from_elts(NULL,e->fd_typetag,1,n,args);}
 }
 
-static int stringify_compound(u8_output out,fdtype compound,fd_compound_entry e)
+static int stringify_compound(u8_output out,fdtype compound,fd_compound_typeinfo e)
 {
-  if (e->data) {
-    fdtype method=fd_get(e->data,stringfn_symbol,FD_VOID);
+  if (e->fd_compound_metadata) {
+    fdtype method=fd_get(e->fd_compound_metadata,stringfn_symbol,FD_VOID);
     if (FD_VOIDP(method)) return 0;
     else {
       fdtype result=fd_apply(method,1,&compound);
@@ -305,17 +305,17 @@ static fdtype compound_set_consfn_prim(fdtype tag,fdtype consfn)
   if ((FD_SYMBOLP(tag))||(FD_OIDP(tag)))
     if (FD_FALSEP(consfn)) {
       fdtype slotmap=tag_slotdata(tag);
-      struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
+      struct FD_COMPOUND_TYPEINFO *e=fd_lookup_compound(tag);
       fd_drop(slotmap,consfn_symbol,FD_VOID);
       fd_decref(slotmap);
-      e->parser=NULL;
+      e->fd_compound_parser=NULL;
       return FD_VOID;}
     else if (FD_APPLICABLEP(consfn)) {
       fdtype slotmap=tag_slotdata(tag);
-      struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
+      struct FD_COMPOUND_TYPEINFO *e=fd_lookup_compound(tag);
       fd_store(slotmap,consfn_symbol,consfn);
       fd_decref(slotmap);
-      e->parser=cons_compound;
+      e->fd_compound_parser=cons_compound;
       return FD_VOID;}
     else return fd_type_error("applicable","set_compound_consfn_prim",tag);
   else return fd_type_error("compound tag","set_compound_consfn_prim",tag);
@@ -327,17 +327,17 @@ static fdtype compound_set_stringfn_prim(fdtype tag,fdtype stringfn)
   if ((FD_SYMBOLP(tag))||(FD_OIDP(tag)))
     if (FD_FALSEP(stringfn)) {
       fdtype slotmap=tag_slotdata(tag);
-      struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
+      struct FD_COMPOUND_TYPEINFO *e=fd_lookup_compound(tag);
       fd_drop(slotmap,stringfn_symbol,FD_VOID);
       fd_decref(slotmap);
-      e->unparser=NULL;
+      e->fd_compound_unparser=NULL;
       return FD_VOID;}
     else if (FD_APPLICABLEP(stringfn)) {
       fdtype slotmap=tag_slotdata(tag);
-      struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(tag);
+      struct FD_COMPOUND_TYPEINFO *e=fd_lookup_compound(tag);
       fd_store(slotmap,stringfn_symbol,stringfn);
       fd_decref(slotmap);
-      e->unparser=stringify_compound;
+      e->fd_compound_unparser=stringify_compound;
       return FD_VOID;}
     else return fd_type_error("applicable","set_compound_stringfn_prim",tag);
   else return fd_type_error("compound tag","set_compound_stringfn_prim",tag);

@@ -1469,7 +1469,7 @@ FD_EXPORT int fd_hashtable_drop
   return 0;
 }
 
-static fdtype restore_hashtable(fdtype tag,fdtype alist,fd_compound_entry e)
+static fdtype restore_hashtable(fdtype tag,fdtype alist,fd_compound_typeinfo e)
 {
   fdtype *keys, *vals; int n=0; struct FD_HASHTABLE *new;
   if (FD_PAIRP(alist)) {
@@ -3172,8 +3172,8 @@ void fd_init_tables_c()
        CHOICES
       are foud in xtable.c */
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("HASHTABLE"),NULL,NULL);
-    e->restore=restore_hashtable;}
+    struct FD_COMPOUND_TYPEINFO *e=fd_register_compound(fd_intern("HASHTABLE"),NULL,NULL);
+    e->fd_compound_restorefn=restore_hashtable;}
 
 }
 

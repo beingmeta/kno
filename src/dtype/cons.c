@@ -1123,79 +1123,87 @@ FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn)
 
 /* Compound type information */
 
-struct FD_COMPOUND_ENTRY *fd_compound_entries=NULL;
+struct FD_COMPOUND_TYPEINFO *fd_compound_entries=NULL;
 #if FD_THREADS_ENABLED
 static u8_mutex compound_registry_lock;
 #endif
 
-FD_EXPORT struct FD_COMPOUND_ENTRY *fd_register_compound(fdtype symbol,fdtype *datap,int *corep)
+FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_register_compound(fdtype symbol,fdtype *datap,int *corep)
 {
-  struct FD_COMPOUND_ENTRY *scan, *newrec;
+  struct FD_COMPOUND_TYPEINFO *scan, *newrec;
   fd_lock_mutex(&compound_registry_lock);
   scan=fd_compound_entries;
   while (scan)
-    if (FD_EQ(scan->tag,symbol)) {
+    if (FD_EQ(scan->fd_typetag,symbol)) {
       if (datap) {
         fdtype data=*datap;
-        if (FD_VOIDP(scan->data)) {
-          fd_incref(data); scan->data=data;}
+        if (FD_VOIDP(scan->fd_compound_metadata)) {
+          fd_incref(data); scan->fd_compound_metadata=data;}
         else {
           fdtype data=*datap; fd_decref(data);
-          data=scan->data; fd_incref(data);
+          data=scan->fd_compound_metadata; fd_incref(data);
           *datap=data;}}
       if (corep) {
-        if (scan->core_slots<0) scan->core_slots=*corep;
-        else *corep=scan->core_slots;}
+        if (scan->fd_compound_corelen<0) scan->fd_compound_corelen=*corep;
+        else *corep=scan->fd_compound_corelen;}
       fd_unlock_mutex(&compound_registry_lock);
       return scan;}
-    else scan=scan->next;
-  newrec=u8_alloc(struct FD_COMPOUND_ENTRY);
-  memset(newrec,0,sizeof(struct FD_COMPOUND_ENTRY));
+    else scan=scan->fd_compound_nextinfo;
+  newrec=u8_alloc(struct FD_COMPOUND_TYPEINFO);
+  memset(newrec,0,sizeof(struct FD_COMPOUND_TYPEINFO));
   if (datap) {
-    fdtype data=*datap; fd_incref(data); newrec->data=data;}
-  else newrec->data=FD_VOID;
-  newrec->core_slots=((corep)?(*corep):(-1));
-  newrec->next=fd_compound_entries; newrec->tag=symbol;
-  newrec->parser=NULL; newrec->dump=NULL; newrec->restore=NULL;
-  newrec->tablefns=NULL;
+    fdtype data=*datap; fd_incref(data); newrec->fd_compound_metadata=data;}
+  else newrec->fd_compound_metadata=FD_VOID;
+  newrec->fd_compound_corelen=((corep)?(*corep):(-1));
+  newrec->fd_compound_nextinfo=fd_compound_entries; 
+  newrec->fd_typetag=symbol;
+  newrec->fd_compound_parser=NULL; 
+  newrec->fd_compound_dumpfn=NULL; 
+  newrec->fd_compound_restorefn=NULL;
+  newrec->fd_compund_tablefns=NULL;
   fd_compound_entries=newrec;
   fd_unlock_mutex(&compound_registry_lock);
   return newrec;
 }
 
-FD_EXPORT struct FD_COMPOUND_ENTRY *fd_declare_compound(fdtype symbol,fdtype data,int core_slots)
+FD_EXPORT struct FD_COMPOUND_TYPEINFO 
+          *fd_declare_compound(fdtype symbol,fdtype data,int core_slots)
 {
-  struct FD_COMPOUND_ENTRY *scan, *newrec;
+  struct FD_COMPOUND_TYPEINFO *scan, *newrec;
   fd_lock_mutex(&compound_registry_lock);
   scan=fd_compound_entries;
   while (scan)
-    if (FD_EQ(scan->tag,symbol)) {
+    if (FD_EQ(scan->fd_typetag,symbol)) {
       if (!(FD_VOIDP(data))) {
-        fdtype old_data=scan->data;
-        scan->data=fd_incref(data);
+        fdtype old_data=scan->fd_compound_metadata;
+        scan->fd_compound_metadata=fd_incref(data);
         fd_decref(old_data);}
-      if (core_slots>0) scan->core_slots=core_slots;
+      if (core_slots>0) scan->fd_compound_corelen=core_slots;
       fd_unlock_mutex(&compound_registry_lock);
       return scan;}
-    else scan=scan->next;
-  newrec=u8_alloc(struct FD_COMPOUND_ENTRY);
-  memset(newrec,0,sizeof(struct FD_COMPOUND_ENTRY));
-  newrec->data=data; newrec->core_slots=core_slots;
-  newrec->next=fd_compound_entries; newrec->tag=symbol;
-  newrec->parser=NULL; newrec->dump=NULL; newrec->restore=NULL;
-  newrec->tablefns=NULL;
+    else scan=scan->fd_compound_nextinfo;
+  newrec=u8_alloc(struct FD_COMPOUND_TYPEINFO);
+  memset(newrec,0,sizeof(struct FD_COMPOUND_TYPEINFO));
+  newrec->fd_compound_metadata=data;
+  newrec->fd_compound_corelen=core_slots;
+  newrec->fd_typetag=symbol;
+  newrec->fd_compound_nextinfo=fd_compound_entries; 
+  newrec->fd_compound_parser=NULL;
+  newrec->fd_compound_dumpfn=NULL;
+  newrec->fd_compound_restorefn=NULL;
+  newrec->fd_compund_tablefns=NULL;
   fd_compound_entries=newrec;
   fd_unlock_mutex(&compound_registry_lock);
   return newrec;
 }
 
-FD_EXPORT struct FD_COMPOUND_ENTRY *fd_lookup_compound(fdtype symbol)
+FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_lookup_compound(fdtype symbol)
 {
-  struct FD_COMPOUND_ENTRY *scan=fd_compound_entries;
+  struct FD_COMPOUND_TYPEINFO *scan=fd_compound_entries;
   while (scan)
-    if (FD_EQ(scan->tag,symbol)) {
+    if (FD_EQ(scan->fd_typetag,symbol)) {
       return scan;}
-    else scan=scan->next;
+    else scan=scan->fd_compound_nextinfo;
   return NULL;
 }
 
@@ -1248,7 +1256,7 @@ static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
     return 1;}
 }
 
-static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_entry e)
+static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
 {
   struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
   u8_string timestring;
@@ -1312,7 +1320,7 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
   return size;
 }
 
-static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_entry e)
+static fdtype timestamp_restore(fdtype tag,fdtype x,fd_compound_typeinfo e)
 {
   if (FD_FIXNUMP(x)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
@@ -1434,13 +1442,13 @@ static int uuid_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
   return size;
 }
 
-static fdtype uuid_dump(fdtype x,fd_compound_entry MU e)
+static fdtype uuid_dump(fdtype x,fd_compound_typeinfo MU e)
 {
   struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
   return fd_make_packet(NULL,16,uuid->fd_uuid16);
 }
 
-static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_entry MU e)
+static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_typeinfo MU e)
 {
   if (FD_PACKETP(x)) {
     struct FD_STRING *p=FD_GET_CONS(x,fd_packet_type,struct FD_STRING *);
@@ -1517,15 +1525,15 @@ void fd_init_cons_c()
   timestamp_symbol=fd_intern("TIMESTAMP");
   timestamp0_symbol=fd_intern("TIMESTAMP0");
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp_symbol,NULL,NULL);
-    e->parser=timestamp_parsefn;
-    e->dump=NULL;
-    e->restore=timestamp_restore;}
+    struct FD_COMPOUND_TYPEINFO *e=fd_register_compound(timestamp_symbol,NULL,NULL);
+    e->fd_compound_parser=timestamp_parsefn;
+    e->fd_compound_dumpfn=NULL;
+    e->fd_compound_restorefn=timestamp_restore;}
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp0_symbol,NULL,NULL);
-    e->parser=timestamp_parsefn;
-    e->dump=NULL;
-    e->restore=timestamp_restore;}
+    struct FD_COMPOUND_TYPEINFO *e=fd_register_compound(timestamp0_symbol,NULL,NULL);
+    e->fd_compound_parser=timestamp_parsefn;
+    e->fd_compound_dumpfn=NULL;
+    e->fd_compound_restorefn=timestamp_restore;}
   fd_dtype_writers[fd_timestamp_type]=dtype_timestamp;
   fd_unparsers[fd_timestamp_type]=unparse_timestamp;
   fd_copiers[fd_timestamp_type]=copy_timestamp;
@@ -1539,9 +1547,9 @@ void fd_init_cons_c()
   fd_copiers[fd_uuid_type]=copy_uuid;
   uuid_symbol=fd_intern("UUID");
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(uuid_symbol,NULL,NULL);
-    e->dump=uuid_dump;
-    e->restore=uuid_restore;}
+    struct FD_COMPOUND_TYPEINFO *e=fd_register_compound(uuid_symbol,NULL,NULL);
+    e->fd_compound_dumpfn=uuid_dump;
+    e->fd_compound_restorefn=uuid_restore;}
 
   fd_compound_descriptor_type=
     fd_init_compound(NULL,FD_VOID,9,

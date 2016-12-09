@@ -696,9 +696,9 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
       if (FD_TROUBLEP(cdr)) {fd_decref(car); return cdr;}
       switch (code) {
       case dt_compound: {
-        struct FD_COMPOUND_ENTRY *e=fd_lookup_compound(car);
-        if ((e) && (e->restore)) {
-          fdtype result=e->restore(car,cdr,e);
+        struct FD_COMPOUND_TYPEINFO *e=fd_lookup_compound(car);
+        if ((e) && (e->fd_compound_restorefn)) {
+          fdtype result=e->fd_compound_restorefn(car,cdr,e);
           fd_decref(cdr);
           return result;}
         else if ((FD_VECTORP(cdr)) && (FD_VECTOR_LENGTH(cdr)<32767)) {

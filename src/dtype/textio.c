@@ -1299,9 +1299,9 @@ static fdtype parse_qchoice(U8_INPUT *in)
 static fdtype recreate_record(int n,fdtype *v)
 {
   int i=0;
-  struct FD_COMPOUND_ENTRY *entry=fd_lookup_compound(v[0]);
-  if ((entry) && (entry->parser)) {
-    fdtype result=entry->parser(n,v,entry);
+  struct FD_COMPOUND_TYPEINFO *entry=fd_lookup_compound(v[0]);
+  if ((entry) && (entry->fd_compound_parser)) {
+    fdtype result=entry->fd_compound_parser(n,v,entry);
     if (!(FD_VOIDP(result))) {
       while (i<n) {fd_decref(v[i]); i++;}
       if (v) u8_free(v);
@@ -1340,16 +1340,16 @@ static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
   fdtype tag=get_compound_tag(xc->fd_typetag);
-  struct FD_COMPOUND_ENTRY *entry=fd_lookup_compound(tag);
-  if ((entry) && (entry->unparser)) {
-    int retval=entry->unparser(out,x,entry);
+  struct FD_COMPOUND_TYPEINFO *entry=fd_lookup_compound(tag);
+  if ((entry) && (entry->fd_compound_unparser)) {
+    int retval=entry->fd_compound_unparser(out,x,entry);
     if (retval<0) return retval;
     else if (retval) return retval;}
   {
     fdtype *data=&(xc->fd_elt0);
     int i=0, n=xc->fd_n_elts;
-    if ((entry)&&(entry->core_slots>0)&&(entry->core_slots<n))
-      n=entry->core_slots;
+    if ((entry)&&(entry->fd_compound_corelen>0)&&(entry->fd_compound_corelen<n))
+      n=entry->fd_compound_corelen;
     u8_printf(out,"#%%(%q",xc->fd_typetag);
     while (i<n) {
       fdtype elt=data[i++];

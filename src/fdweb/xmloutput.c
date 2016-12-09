@@ -809,11 +809,11 @@ static void output_value(u8_output s,fdtype val,
       struct FD_COMPOUND *xc=
         FD_GET_CONS(val,fd_compound_type,struct FD_COMPOUND *);
       fdtype ctag=get_compound_tag(xc->fd_typetag);
-      struct FD_COMPOUND_ENTRY *entry=fd_lookup_compound(ctag);
+      struct FD_COMPOUND_TYPEINFO *entry=fd_lookup_compound(ctag);
       if (FD_SYMBOLP(ctag)) typename=FD_SYMBOL_NAME(ctag);
       else if (FD_STRINGP(ctag)) typename=FD_STRDATA(ctag);
       else {}
-      if ((entry) && (entry->unparser)) {
+      if ((entry) && (entry->fd_compound_unparser)) {
         if (!(tag)) tag="span";
         open_tag(s,tag,cl,typename,(len>256));
         entify(s,out.u8_outbuf);
