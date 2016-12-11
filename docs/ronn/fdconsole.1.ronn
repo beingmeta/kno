@@ -1,0 +1,76 @@
+[comment]: # ( -*- Mode: markdown; -*- )
+fdconsole(1) -- invoke FramerD interpeter
+=========================================
+
+## SYNOPSIS
+
+`fdconsole` [<config>|<file>...]
+
+## DESCRIPTION
+
+This command launches the FramerD console/terminal program, a
+read-eval-print loop which allows you to evaluate expressions and see
+their values.
+
+The arguments to `fdconsole` are either filenames or *config* entries
+of the form `**setting**=*name*`.  The files are loaded and the config
+entries processed in order of appearance and config entries may
+specify multiple values for a setting.
+
+When normally started, `fdconsole` uses the **editline** library to
+provide simple command line editing and history functions. This can be
+suppressed by the environment variables `NO_EDITLINE` or
+`INSIDE_EMACS`.
+
+Some config entries may generate useful side-effects defined by either
+the FramerD core or loaded modules. Some useful built-in config
+settings are:
+
+* `LOADFILE=*path*`:
+  loads the file *path* during startup.
+
+* `MODULES=*module name*`:
+  loads a FramerD module into the image and the default 
+  environment.
+
+* `LOADPATH=*path*`:
+  specifies a search path for modules, as a colon
+  separated list of patterns where the '%' character is replaced by
+  the module name. For example `/opt/mods/%/module.scm:/opt/mods/%:`
+  causes the system to look for a module `foo/x` in
+  `/opt/mods/foo/x/module.scm` and `/opt/mods/foo/x.scm`. Paths can be
+  relative to the current directory by starting with '.' and can also
+  include ~home directory references.
+
+* `LOGLEVEL=*level*`:
+  specifies the default loglevel for notifications
+  where level is either a positive integer or symbolic name (like
+  `NOTICE` or `DEBUG` or `INFO`).
+
+## DIAGNOSTICS
+
+Returns 0 when exiting normally, 1 otherwise. It also displays a short
+preamble on starting and reports its time and memory usage on exit.
+
+## FILES
+
+On startup, `fdconsole` normally reads an `.fdconfig` file from the
+user's home directory (if it exists). It can include `MODULES` or
+`LOADFILE` declarations. The loading of the `.fdconfig` file can be
+suppressed via the environment variable `FD_SKIP_DOTLOAD` or the
+config variable `DOTLOAD`.
+
+## ENVIRONMENT
+
+As with most FramerD programs, config variables can be set through
+environment variables prefixed with `FD`, so `FD_LOGLEVEL` will set
+the default loglevel.
+
+# AUTHOR
+
+Ken Haase <kh@beingmeta.com>
+
+## SEE ALSO
+
+fdexec(1), framerd_config(8)
+
