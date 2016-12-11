@@ -400,6 +400,12 @@
 /* Whether we've got the sqlite3_errstr function (introduced 2012) */
 #undef HAVE_SQLITE3_ERRSTR
 
+/* Whether we have the FFI headers */
+#undef HAVE_FFI_H
+
+/* Whether we have the FFI headers */
+#undef HAVE_LIBFFI
+
 /* Whether we're linking agains the duma malloc debugging library */
 #undef HAVE_LIBDUMA
 
