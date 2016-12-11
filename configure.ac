@@ -348,6 +348,16 @@ APXS=$with_apxs
 
 AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 
+AC_CANONICAL_HOST
+AC_CANONICAL_TARGET
+AC_PROG_CC([cc gcc])
+AC_USE_SYSTEM_EXTENSIONS
+
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+
+CFLAGS="-I$prefix/include/$host/ $CFLAGS"
+
 AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
 CODENAME=$with_codename
 
@@ -411,22 +421,10 @@ AC_DEFINE_UNQUOTED(FD_SANITIZE,"$with_sanitize")
 
 AC_ARG_WITH(duma,--with-duma Build with Detect Unintended Memory Access,with_duma=$withval,with_duma="no")
 
-AC_CANONICAL_HOST
-AC_CANONICAL_TARGET
-AC_PROG_CC([cc gcc])
-AC_USE_SYSTEM_EXTENSIONS
-AC_PROG_INSTALL
-AC_PROG_RANLIB
-
-CFLAGS="-I$prefix/include/$host/ $CFLAGS"
-
 m4_include([etc/ax_pthread.m4])
 m4_include([etc/ax_check_link_flag.m4])
 
 AC_CHECK_LIB(pthread,pthread_rwlock_wrlock)
-
-AC_CHECK_HEADER(ffi.h)
-AC_CHECK_LIB(ffi,ffi_prep_cif)
 
 AC_ARG_WITH(stackcheck,--with-stackcheck Build with native stack checking,with_stackcheck=$withval,with_stackcheck="yes")
 if ! test "${with_stackcheck}" = "no"; then
@@ -683,6 +681,11 @@ AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
 if test "x${static_libgcc}" == "xyes"; then
    LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
 fi
+
+AC_CHECK_HEADERS(ffi.h)
+AC_CHECK_LIB(ffi,ffi_prep_cif)
+AC_CHECK_HEADERS(archive.h)
+AC_CHECK_LIB(archive,archive_read_new)
 
 FD_DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 

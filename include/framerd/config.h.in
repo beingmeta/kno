@@ -403,8 +403,14 @@
 /* Whether we have the FFI headers */
 #undef HAVE_FFI_H
 
-/* Whether we have the FFI headers */
+/* Whether we have the libffi library */
 #undef HAVE_LIBFFI
+
+/* Whether we have the libarchive headers */
+#undef HAVE_ARCHIVE_H
+
+/* Whether we have the libarchive library */
+#undef HAVE_LIBARCHIVE
 
 /* Whether we're linking agains the duma malloc debugging library */
 #undef HAVE_LIBDUMA
