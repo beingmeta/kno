@@ -1470,13 +1470,17 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
     fd_write_byte(&out,3); /* Assume Unix */
     /* No extra fields */
     if (FD_STRINGP(filename)) {
-      u8_string text=FD_STRDATA(filename), end=text+FD_STRLEN(filename); int len;
-      unsigned char *string=u8_localize(latin1_encoding,&text,end,'\\',0,NULL,&len);
+      u8_string text=FD_STRDATA(filename), end=text+FD_STRLEN(filename);
+      int len;
+      unsigned char *string=
+        u8_localize(latin1_encoding,&text,end,'\\',0,NULL,&len);
       fd_write_bytes(&out,string,len); fd_write_byte(&out,'\0');
       u8_free(string);}
     if (FD_STRINGP(comment)) {
-      u8_string text=FD_STRDATA(comment), end=text+FD_STRLEN(comment); int len;
-      unsigned char *string=u8_localize(latin1_encoding,&text,end,'\\',0,NULL,&len);
+      int len;
+      u8_string text=FD_STRDATA(comment), end=text+FD_STRLEN(comment);
+      unsigned char *string=
+        u8_localize(latin1_encoding,&text,end,'\\',0,NULL,&len);
       fd_write_bytes(&out,string,len); fd_write_byte(&out,'\0');
       u8_free(string);}
     /*
