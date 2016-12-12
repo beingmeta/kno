@@ -90,7 +90,7 @@ FD_EXPORT fdtype fd_seq_elt(fdtype x,int i)
         return FD_RANGE_ERROR;
       else switch (FD_NUMVEC_TYPE(x)) {
         case fd_short_elt:
-          return FD_INT(FD_NUMVEC_SHORT(x,i));
+          return FD_SHORT2FIX(FD_NUMVEC_SHORT(x,i));
         case fd_int_elt:
           return FD_INT(FD_NUMVEC_INT(x,i));
         case fd_long_elt:
@@ -495,7 +495,7 @@ fdtype *fd_elts(fdtype seq,int *n)
       switch (FD_NUMVEC_TYPE(seq)) {
       case fd_short_elt: {
         fd_short *shorts=FD_NUMVEC_SHORTS(seq);
-        while (i<len) {vec[i]=FD_INT(shorts[i]); i++;}
+        while (i<len) {vec[i]=FD_SHORT2FIX(shorts[i]); i++;}
         break;}
       case fd_int_elt: {
         fd_int *ints=FD_NUMVEC_INTS(seq);
@@ -1700,8 +1700,8 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
     case fd_packet_type: case fd_secret_type: {
       const unsigned char *read=FD_PACKET_DATA(x), *lim=read+end;
       while (read<lim) {
-        int v=*read++;
-        FD_ADD_TO_CHOICE(results,FD_INT(v));}
+        unsigned char v=*read++;
+        FD_ADD_TO_CHOICE(results,FD_SHORT2FIX(v));}
       return results;}
     case fd_numeric_vector_type: {
       int len=FD_NUMVEC_LENGTH(x);
@@ -1711,7 +1711,8 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
       case fd_short_elt: {
         fd_short *vec=FD_NUMVEC_SHORTS(x);
         while (i<lim) {
-          fd_short num=vec[i++]; fdtype elt=FD_INT(num); 
+          fd_short num=vec[i++]; 
+          fdtype elt=FD_SHORT2FIX(num); 
           FD_ADD_TO_CHOICE(results,elt); 
           i++;}}
       case fd_int_elt: {

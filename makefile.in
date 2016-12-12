@@ -74,6 +74,7 @@ DTYPE_HEADERS=\
  include/framerd/tables.h  			     \
  include/framerd/fdregex.h  			     \
  include/framerd/apply.h                             \
+ include/framerd/ffi.h                               \
  include/framerd/dtypeio.h
 DB_HEADERS=\
  include/framerd/dtypestream.h                       \
@@ -92,16 +93,20 @@ LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
 SRC_HEADERS=src/dtype/biginternals.h src/scheme/eval_internals.h \
 	src/exe/webcommon.h src/cmodules/fdsqlite.h 
 
-DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o      \
-	  src/dtype/symbols.o src/dtype/numbers.o src/dtype/apply.o \
-          src/dtype/choices.o src/dtype/tables.o                    \
-          src/dtype/dtypeio.o src/dtype/textio.o                    \
+DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o	\
+	  src/dtype/symbols.o src/dtype/numbers.o 		\
+	  src/dtype/apply.o src/dtype/ffi.o			\
+          src/dtype/choices.o src/dtype/tables.o		\
+          src/dtype/dtypeio.o src/dtype/textio.o		\
 	  src/dtype/fdtype.o src/dtype/support.o
-DB_OBJS=src/db/fddb.o src/db/dtypestream.o                                \
-	src/db/indices.o src/db/netindices.o src/db/compoundindices.o     \
-	src/db/pools.o src/db/netpools.o                                  \
-	src/db/dtproc.o src/db/dtcall.o src/db/methods.o src/db/xtables.o \
-	src/db/cachecall.o src/db/threadcache.o @ipevalo@ src/db/frames.o
+DB_OBJS=src/db/fddb.o src/db/dtypestream.o		\
+	src/db/indices.o src/db/netindices.o 		\
+	src/db/compoundindices.o     			\
+	src/db/pools.o src/db/netpools.o		\
+	src/db/dtproc.o src/db/dtcall.o 		\
+	src/db/methods.o src/db/xtables.o 		\
+	src/db/cachecall.o src/db/threadcache.o 	\
+	@ipevalo@ src/db/frames.o
 DBFILE_OBJS=src/db/dbfile.o src/db/filepools.o src/db/zpools.o        \
 	    src/db/hashdtype.o src/db/fileindices.o src/db/zindices.o \
 	    src/db/hashindices.o src/db/oidpools.o
@@ -179,7 +184,8 @@ FRAMERD_SOURCES=\
 	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c          \
         src/dtype/choices.c src/dtype/tables.c src/dtype/pptrs.c       \
         src/dtype/dtypeio.c src/dtype/textio.c                         \
-	src/dtype/fdtype.c src/dtype/support.c src/dtype/apply.c       \
+	src/dtype/fdtype.c src/dtype/support.c 				\
+	src/dtype/apply.c src/dtype/ffi.c       			\
 	src/db/fddb.c src/db/dtypestream.c  src/db/dbserv.c            \
 	src/db/indices.c src/db/netindices.c src/db/compoundindices.c  \
 	src/db/pools.c src/db/netpools.c src/db/xtables.c              \
@@ -1106,6 +1112,7 @@ install-ziptools: ${CMODULES}/ziptools.@shared_suffix@ ${CMODULES}/ziptools.@vsh
 install-tidy: ${CMODULES}/tidy.@shared_suffix@ ${CMODULES}/tidy.@vshared_suffix@
 install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshared_suffix@
 install-mongodb: ${CMODULES}/mongodb.@shared_suffix@ ${CMODULES}/mongodb.@vshared_suffix@
+install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
 install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
 install-sundown: ${CMODULES}/sundown.@shared_suffix@ ${CMODULES}/sundown.@vshared_suffix@

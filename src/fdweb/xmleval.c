@@ -1542,8 +1542,8 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
     return FD_VOID;}
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
-  bindings.fd_schema=vars; bindings.fd_values=vals; bindings.fd_table_size=1;
-  bindings.fd_stack_schema;
+  bindings.fd_schema=vars; bindings.fd_values=vals; 
+  bindings.fd_table_size=1; bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
   envstruct.parent=env;
   envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;

@@ -687,6 +687,14 @@ AC_CHECK_LIB(ffi,ffi_prep_cif)
 AC_CHECK_HEADERS(archive.h)
 AC_CHECK_LIB(archive,archive_read_new)
 
+echo have_archive_h = ${have_archive_h}
+echo have_have_libarchive = ${have_libarchive}
+if test "${ac_cv_header_archive_h}" == "yes" && \
+   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
+  CMODULES="lib/framerd/libarchive.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
+fi
+
 FD_DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 
 dnl For specifying default -arch flags for OSX

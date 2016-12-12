@@ -95,6 +95,7 @@ static void init_type_names()
   fd_type_names[fd_sproc_type]=_("SCHEME procedure");
   fd_type_names[fd_regex_type]=_("regex");
   fd_type_names[fd_numeric_vector_type]=_("numeric vector");
+  fd_type_names[fd_ffi_type]=_("foreign function");
 }
 
 static int fdtype_version=101;
@@ -107,6 +108,7 @@ FD_EXPORT void fd_init_symbols_c(void);
 FD_EXPORT void fd_init_numbers_c(void);
 FD_EXPORT void fd_init_choices_c(void);
 FD_EXPORT void fd_init_support_c(void);
+FD_EXPORT void fd_init_ffi_c(void);
 FD_EXPORT void fd_init_pptrs_c(void);
 
 FD_EXPORT void fd_boot_message()
@@ -178,6 +180,7 @@ FD_EXPORT int fd_init_dtypelib()
   fd_init_numbers_c();
   fd_init_choices_c();
   fd_init_support_c();
+  fd_init_ffi_c();
   fd_init_pptrs_c();
 
   u8_threadcheck();

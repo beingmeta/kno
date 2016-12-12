@@ -152,12 +152,13 @@ typedef enum FD_PTR_TYPE {
   fd_secret_type=FD_CONS_TYPECODE(25),
   /* We define these here, early, so they're treated as a constant */
   fd_sproc_type=FD_CONS_TYPECODE(26),
-  fd_regex_type=FD_CONS_TYPECODE(27),
-  fd_numeric_vector_type=FD_CONS_TYPECODE(28)
+  fd_ffi_type=FD_CONS_TYPECODE(27),
+  fd_regex_type=FD_CONS_TYPECODE(28),
+  fd_numeric_vector_type=FD_CONS_TYPECODE(29)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 29
+#define FD_BUILTIN_CONS_TYPES 30
 #define FD_BUILTIN_IMMEDIATE_TYPES 6
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
@@ -369,6 +370,10 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
    (fd_make_bigint(x)) :				\
    (((fdtype)(((x)>=0) ? (((x)*4)|fd_fixnum_type) :	\
 	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2))))))
+#define FD_SHORT2FIX(x)					     \
+  (((fdtype)						     \
+    ((x>=0) ? (((x)*4)|fd_fixnum_type) :		     \
+     (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2)))))
 #define FD_SHORT2DTYPE(x)			             \
   (((fdtype)						     \
     ((x>=0) ? (((x)*4)|fd_fixnum_type) :		     \
