@@ -765,9 +765,9 @@ static off_t find_substring(u8_string string,fdtype strings,
     else if (FD_PRIM_TYPEP(s,fd_regex_type)) {
       off_t starts=fd_regex_op(rx_search,s,string,len,0);
       ssize_t matched_len=(starts<0)?(-1):
-        (fd_regex_op(rx_matchlen,s,string,len,0));
-      if (starts<0) continue;
-      else if ((off>0)&&(starts<off)&&(matched_len>0)) {
+        (fd_regex_op(rx_matchlen,s,string+starts,len,0));
+      if ((starts<0)||(matched_len<=0)) continue;
+      else if ((off<0)||((starts<off)&&(matched_len>0))) {
         off=starts;
         matchlen=matched_len;}
       else {}}}
