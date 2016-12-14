@@ -271,7 +271,7 @@ static fdtype portdata(fdtype port_arg)
   if (FD_PORTP(port_arg)) {
     struct FD_PORT *port=(struct FD_PORT *)port_arg;
     if (port->out)
-      return fd_substring(port->out->u8_outbuf,port->out->u8_outptr);
+      return fd_substring(port->out->u8_outbuf,port->out->u8_write);
     else return fd_substring(port->out->u8_outbuf,port->out->u8_outlim);}
   else return fd_type_error(_("port"),"portdata",port_arg);
 }
@@ -616,7 +616,7 @@ static fdtype stringout_handler(fdtype expr,fd_lispenv env)
   if (!(FD_ABORTP(result))) {
     fd_decref(result);
     result=fd_make_string
-      (NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+      (NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
   u8_close_output(&out);
   return result;
 }
@@ -688,53 +688,12 @@ static fdtype read_prim(fdtype port)
     else return fd_type_error(_("input port"),"read_prim",port);}
 }
 
-static int find_substring(u8_string string,fdtype strings,int *lenp)
-{
-  int off=-1, matchlen=-1;
-  FD_DO_CHOICES(s,strings) {
-    u8_string next=strstr(string,FD_STRDATA(s));
-    if (next) {
-      if (off<0) {
-        off=next-string; matchlen=FD_STRLEN(s);}
-      else if ((next-string)<off) {
-        off=next-string;
-        if (matchlen<(FD_STRLEN(s))) {
-          matchlen=FD_STRLEN(s);}}
-      else {}}}
-  *lenp=matchlen;
-  return off;
-}
-static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
-{
-  int lim, off=-1, matchlen=0;
-  U8_INPUT *in=get_input_port(port);
-  if (in==NULL)
-    return fd_type_error(_("input port"),"record_reader",port);
-  if (FD_VOIDP(limit_arg)) lim=0;
-  else if (FD_FIXNUMP(limit_arg)) lim=FD_FIX2INT(limit_arg);
-  else return fd_type_error(_("fixnum"),"record_reader",limit_arg);
-  if (FD_VOIDP(ends)) {}
-  else {
-    FD_DO_CHOICES(end,ends)
-      if (!(FD_STRINGP(end)))
-        return fd_type_error(_("string"),"record_reader",end);}
-  while (1) {
-    if (FD_VOIDP(ends)) {
-      u8_string found=strstr(in->u8_inptr,"\n");
-      if (found) {off=found-in->u8_inptr; matchlen=1;}}
-    else off=find_substring(in->u8_inptr,ends,&matchlen);
-    if (off>=0) {
-      int record_len=off+matchlen;
-      u8_byte *buf=u8_malloc(record_len+1);
-      int bytes_read=u8_getn(buf,record_len,in);
-      return fd_init_string(NULL,bytes_read,buf);}
-    else if ((lim) && ((in->u8_inlim-in->u8_inptr)>lim))
-      return FD_EOF;
-    else if (in->u8_fillfn) {
-      int delta=in->u8_fillfn(in);
-      if (delta==0) return FD_EOF;}
-    else return FD_EOF;}
-}
+/* Reading records */
+
+static off_t find_substring(u8_string string,fdtype strings,
+                            ssize_t len,ssize_t *lenp);
+static ssize_t get_more_data(u8_input in,size_t lim);
+static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg);
 
 static fdtype read_record_prim(fdtype ports,fdtype ends,fdtype limit_arg)
 {
@@ -743,6 +702,98 @@ static fdtype read_record_prim(fdtype ports,fdtype ends,fdtype limit_arg)
     fdtype result=record_reader(port,ends,limit_arg);
     FD_ADD_TO_CHOICE(results,result);}
   return results;
+}
+
+static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
+{
+  U8_INPUT *in = get_input_port(port);
+  size_t lim, matchlen=0;
+  size_t search_lim = in->u8_inlim-in->u8_read;
+  off_t off=-1;
+
+  if (in==NULL)
+    return fd_type_error(_("input port"),"record_reader",port);
+  if (FD_VOIDP(limit_arg)) lim=-1;
+  else if (FD_FIXNUMP(limit_arg)) 
+    lim=FD_FIX2INT(limit_arg);
+  else return fd_type_error(_("fixnum"),"record_reader",limit_arg);
+
+  if (FD_VOIDP(ends)) {}
+  else {
+    FD_DO_CHOICES(end,ends)
+      if (!((FD_STRINGP(end))||(FD_PRIM_TYPEP(end,fd_regex_type))))
+        return fd_type_error(_("string"),"record_reader",end);}
+  while (1) {
+    if (FD_VOIDP(ends)) {
+      u8_string found=strstr(in->u8_read,"\n");
+      if (found) {
+        off=found-in->u8_read; 
+        matchlen=1;}}
+    else off=find_substring(in->u8_read,ends,
+                            in->u8_inlim-in->u8_read,
+                            &matchlen);
+    if (off>=0) {
+      size_t record_len=off+matchlen;
+      fdtype result= fd_make_string(NULL,record_len,in->u8_read);
+      in->u8_read+=record_len;
+      return result;}
+    else if ((lim) && ((in->u8_inlim-in->u8_read)>lim))
+      return FD_EOF;
+    else if (in->u8_fillfn) {
+      ssize_t more_data = get_more_data(in,lim);
+      if (more_data>0) continue;
+      else return FD_EOF;}
+    else return FD_EOF;}
+}
+
+static off_t find_substring(u8_string string,fdtype strings,
+                            ssize_t len_arg,ssize_t *lenp)
+{
+  ssize_t len=(len_arg<0)?(strlen(string)):(len_arg);
+  off_t off=-1; ssize_t matchlen=-1;
+  FD_DO_CHOICES(s,strings) {
+    if (FD_STRINGP(s)) {
+      u8_string next=strstr(string,FD_STRDATA(s));
+      if (next) {
+        if (off<0) {
+          off=next-string; matchlen=FD_STRLEN(s);}
+        else if ((next-string)<off) {
+          off=next-string;
+          if (matchlen<(FD_STRLEN(s))) {
+            matchlen=FD_STRLEN(s);}}
+        else {}}}
+    else if (FD_PRIM_TYPEP(s,fd_regex_type)) {
+      off_t starts=fd_regex_op(rx_search,s,string,len,0);
+      ssize_t matched_len=(starts<0)?(-1):
+        (fd_regex_op(rx_matchlen,s,string,len,0));
+      if (starts<0) continue;
+      else if ((off>0)&&(starts<off)&&(matched_len>0)) {
+        off=starts;
+        matchlen=matched_len;}
+      else {}}}
+  if (off<0) return off;
+  *lenp=matchlen;
+  return off;
+}
+
+static ssize_t get_more_data(u8_input in,size_t lim)
+{
+  if ((in->u8_inbuf == in->u8_read)&&
+      ((in->u8_inlim - in->u8_inbuf) == in->u8_bufsz)) {
+    /* This is the case where the buffer is full of unread data */
+   size_t bufsz = in->u8_bufsz;
+    if (bufsz>=lim) 
+      return -1;
+    else {
+      size_t new_size = ((bufsz*2)>=U8_BUF_THROTTLE_POINT)?
+        (bufsz+(U8_BUF_THROTTLE_POINT/2)):
+        (bufsz*2);
+      if (new_size>lim) new_size=lim;
+      new_size=u8_grow_input_stream(in,new_size);
+      if (new_size > bufsz) 
+        return in->u8_fillfn(in);
+      else return 0;}}
+  else return in->u8_fillfn(in);
 }
 
 /* Lisp to string */
@@ -824,7 +875,7 @@ FD_EXPORT
 int fd_pprint(u8_output out,fdtype x,u8_string prefix,
               int indent,int col,int maxcol,int is_initial)
 {
-  int startoff=out->u8_outptr-out->u8_outbuf, n_chars;
+  int startoff=out->u8_write-out->u8_outbuf, n_chars;
   if (is_initial==0) u8_putc(out,' ');
   fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
   /* If we're not going to descend, and it all fits, just return the
@@ -833,14 +884,14 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       ((PPRINT_ATOMICP(x)) && ((is_initial) || (col+n_chars<maxcol))))
     return col+n_chars;
   /* Otherwise, reset the stream pointer. */
-  out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
+  out->u8_write=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
   /* Newline and indent if you're non-initial and ran out of space. */
   if ((is_initial==0) && (col+n_chars>=maxcol)) {
     int i=indent; u8_putc(out,'\n');
     if (prefix) u8_puts(out,prefix);
     while (i>0) {u8_putc(out,' '); i--;}
     col=indent+((prefix) ? (u8_strlen(prefix)) : (0));
-    startoff=out->u8_outptr-out->u8_outbuf;}
+    startoff=out->u8_write-out->u8_outbuf;}
   else if (is_initial==0) u8_putc(out,' ');
   /* Handle quote, quasiquote and friends */
   if ((FD_PAIRP(x)) && (FD_SYMBOLP(FD_CAR(x))) &&
@@ -867,12 +918,12 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
     if (FD_EMPTY_LISTP(scan)) {
       u8_putc(out,')');  return col+1;}
     else {
-      startoff=out->u8_outptr-out->u8_outbuf;
+      startoff=out->u8_write-out->u8_outbuf;
       u8_printf(out," . %q)",scan);
       n_chars=u8_strlen(out->u8_outbuf+startoff);
       if (col+n_chars>maxcol) {
         int i=indent;
-        out->u8_outptr=out->u8_outbuf+startoff;
+        out->u8_write=out->u8_outbuf+startoff;
         out->u8_outbuf[startoff]='\0';
         u8_putc(out,'\n');
         if (prefix) u8_puts(out,prefix);
@@ -947,7 +998,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
     fd_rw_unlock_struct(sm);
     return col+1;}
   else {
-    int startoff=out->u8_outptr-out->u8_outbuf;
+    int startoff=out->u8_write-out->u8_outbuf;
     fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
     return indent+n_chars;}
 }
@@ -957,7 +1008,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
                int indent,int col,int maxcol,int is_initial,
                fd_pprintfn fn,void *data)
 {
-  int startoff=out->u8_outptr-out->u8_outbuf, n_chars;
+  int startoff=out->u8_write-out->u8_outbuf, n_chars;
   if (fn) {
     int newcol=fn(out,x,prefix,indent,col,maxcol,is_initial,data);
     if (newcol>=0) return newcol;}
@@ -968,14 +1019,14 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
   if ((PPRINT_ATOMICP(x)) && ((is_initial) || (col+n_chars<maxcol)))
     return col+n_chars;
   /* Otherwise, reset the stream pointer. */
-  out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
+  out->u8_write=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
   /* Newline and indent if you're non-initial and ran out of space. */
   if ((is_initial==0) && (col+n_chars>=maxcol)) {
     int i=indent; u8_putc(out,'\n');
     if (prefix) u8_puts(out,prefix);
     while (i>0) {u8_putc(out,' '); i--;}
     col=indent+((prefix) ? (u8_strlen(prefix)) : (0));
-    startoff=out->u8_outptr-out->u8_outbuf;}
+    startoff=out->u8_write-out->u8_outbuf;}
   else if (is_initial==0) u8_putc(out,' ');
   /* Handle quote, quasiquote and friends */
   if ((FD_PAIRP(x)) && (FD_SYMBOLP(FD_CAR(x))) &&
@@ -1000,11 +1051,11 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     if (FD_EMPTY_LISTP(scan)) {
       u8_putc(out,')');  return col+1;}
     else {
-      startoff=out->u8_outptr-out->u8_outbuf; u8_printf(out," . %q)",scan);
+      startoff=out->u8_write-out->u8_outbuf; u8_printf(out," . %q)",scan);
       n_chars=u8_strlen(out->u8_outbuf+startoff);
       if (col+n_chars>maxcol) {
         int i=indent;
-        out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
+        out->u8_write=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
         u8_putc(out,'\n');
         if (prefix) u8_puts(out,prefix);
         while (i>0) {u8_putc(out,' '); i--;}
@@ -1064,7 +1115,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     fd_rw_unlock_struct(sm);
     return col+1;}
   else {
-    int startoff=out->u8_outptr-out->u8_outbuf;
+    int startoff=out->u8_write-out->u8_outbuf;
     fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
     return indent+n_chars;}
 }
@@ -1092,10 +1143,10 @@ static int output_keyval(u8_output out,fdtype key,fdtype val,
       u8_printf(&kvout,"%q %q",key,val);
     else u8_printf(&kvout," %q %q",key,val);
     if ((kvout.u8_streaminfo&U8_STREAM_OVERFLOW)||
-        ((col+(kvout.u8_outptr-kvout.u8_outbuf))>maxcol))
+        ((col+(kvout.u8_write-kvout.u8_outbuf))>maxcol))
       return -1;
-    else u8_putn(out,kvout.u8_outbuf,kvout.u8_outptr-kvout.u8_outbuf);
-    len=len+kvout.u8_outptr-kvout.u8_outbuf;}
+    else u8_putn(out,kvout.u8_outbuf,kvout.u8_write-kvout.u8_outbuf);
+    len=len+kvout.u8_write-kvout.u8_outbuf;}
   return len;
 }
 
@@ -1108,10 +1159,10 @@ static int focus_pprint(u8_output out,fdtype x,u8_string prefix,
 {
   struct FOCUS_STRUCT *fs=(struct FOCUS_STRUCT *) data;
   if (FD_EQ(x,fs->focus)) {
-    int startoff=out->u8_outptr-out->u8_outbuf, n_chars;
+    int startoff=out->u8_write-out->u8_outbuf, n_chars;
     if (is_initial==0) u8_putc(out,' ');
     fd_unparse(out,x); n_chars=u8_strlen(out->u8_outbuf+startoff);
-    out->u8_outptr=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
+    out->u8_write=out->u8_outbuf+startoff; out->u8_outbuf[startoff]='\0';
     if (col+n_chars>=maxcol) {
       int i=indent; u8_putc(out,'\n');
       if (prefix) u8_puts(out,prefix);
@@ -1292,7 +1343,7 @@ static fdtype lisp_show_table(fdtype tables,fdtype slotids,fdtype portarg)
       u8_printf(out,"%q\n");
       {FD_DO_CHOICES(slotid,slotids) {
         fdtype values=fd_frame_get(table,slotid);
-        tmp->u8_outptr=tmp->u8_outbuf; *(tmp->u8_outbuf)='\0';
+        tmp->u8_write=tmp->u8_outbuf; *(tmp->u8_outbuf)='\0';
         u8_printf(tmp,"   %q:   %q\n",slotid,values);
         if (u8_strlen(tmp->u8_outbuf)<80) u8_puts(out,tmp->u8_outbuf);
         else {
@@ -1326,7 +1377,7 @@ static fdtype lisp_pprint(fdtype x,fdtype portarg,fdtype widtharg,fdtype margina
     u8_puts(out,tmpout.u8_outbuf); u8_free(tmpout.u8_outbuf);
     u8_flush(out);
     return FD_VOID;}
-  else return fd_init_string(NULL,tmpout.u8_outptr-tmpout.u8_outbuf,tmpout.u8_outbuf);
+  else return fd_init_string(NULL,tmpout.u8_write-tmpout.u8_outbuf,tmpout.u8_outbuf);
 }
 
 static u8_string lisp_pprintf_handler
