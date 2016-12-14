@@ -40,6 +40,15 @@ u8_condition fd_ffi_FFIError=_("Unknown libffi error");
 
 static fdtype ffi_caller(struct FD_FUNCTION *fn,int n,fdtype *args);
 
+/** Change notes: 
+
+    Make fd_make_ffi_proc take fdtypes for the return type and
+    argtypes, and convert them into ffi_types to be passed in.
+
+     
+
+**/
+
 FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
  (u8_string name,int arity,
   ffi_type *return_type,ffi_type *argtypes,
