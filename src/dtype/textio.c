@@ -661,10 +661,10 @@ static fdtype parse_character(U8_INPUT *in)
   /* First, copy an entire atom. */
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   c=u8_getc(in);
-  if ((c=='&')&&(!(atombreakp(*(in->u8_inptr))))) {
+  if ((c=='&')&&(!(atombreakp(*(in->u8_read))))) {
     int code=u8_get_entity(in);
     if (code<0)
-      if (atombreakp(*(in->u8_inptr)))
+      if (atombreakp(*(in->u8_read)))
         return FD_CODE2CHAR('&');
       else {
         fd_seterr3(fd_BadEscapeSequence,"read_escape",NULL);
@@ -752,11 +752,11 @@ static fdtype parse_oid(U8_INPUT *in)
      The buffer will almost never grow, but it might
      if we have a really long prefix id. */
   c=copy_atom(in,&tmpbuf);
-  if ((c=='"')&&((tmpbuf.u8_outptr-tmpbuf.u8_outbuf)==2)&&
+  if ((c=='"')&&((tmpbuf.u8_write-tmpbuf.u8_outbuf)==2)&&
       (buf[0]=='@')&&(ispunct(buf[1]))&&
       (strchr("(){}[]<>",buf[1])==NULL)) {
     copy_string(in,&tmpbuf); c='@';}
-  if (tmpbuf.u8_outptr<=tmpbuf.u8_outbuf)
+  if (tmpbuf.u8_write<=tmpbuf.u8_outbuf)
     return FD_EOX;
   else if (oid_parser)
     result=oid_parser(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
@@ -1385,7 +1385,7 @@ fdtype fd_parser(u8_input in)
   case ')': case ']': case '}': {
     u8_getc(in); /* Consume the character */
     return fd_err(fd_ParseError,"unexpected terminator",
-                  u8_strndup(in->u8_inptr,17),
+                  u8_strndup(in->u8_read,17),
                   FD_CODE2CHAR(inchar));}
   case '"': return parse_string(in);
   case '@': return parse_oid(in);
@@ -1486,7 +1486,7 @@ fdtype fd_parser(u8_input in)
         while ((u8_ispunct(nch))&&
                ((nch>128)||(strchr("\"([{",nch)==NULL))) {
           u8_putc(&out,nch);
-          if ((out.u8_outptr-out.u8_outbuf)>11) {
+          if ((out.u8_write-out.u8_outbuf)>11) {
             fd_seterr(fd_ParseError,"fd_parser","invalid hash # prefix",
                       fd_stream2string(&out));
             return FD_PARSE_ERROR;}
@@ -1513,7 +1513,7 @@ static fdtype parse_atom(u8_input in,int ch1,int ch2)
   if (ch1>=0) u8_putc(&tmpbuf,ch1);
   if (ch2>=0) u8_putc(&tmpbuf,ch2);
   c=copy_atom(in,&tmpbuf);
-  if (tmpbuf.u8_outptr==tmpbuf.u8_outbuf) result=FD_EOX;
+  if (tmpbuf.u8_write==tmpbuf.u8_outbuf) result=FD_EOX;
   else if (ch1 == '|')
     result=fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
   else result=fd_parse_atom(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));

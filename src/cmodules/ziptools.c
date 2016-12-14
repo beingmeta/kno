@@ -231,7 +231,7 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       fd_unparse(&out,comment);
       retval=zip_set_file_comment(zf->zip,index,out.u8_outbuf,
-                                  out.u8_outptr-out.u8_outbuf);}
+                                  out.u8_write-out.u8_outbuf);}
     if (retval<0) {
       u8_unlock_mutex(&(zf->fd_lock));
       return ziperr("zipadd/comment",zf,(fdtype)zf);}}

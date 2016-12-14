@@ -118,7 +118,7 @@ static fdtype mailout_handler(fdtype expr,fd_lispenv env)
   result=fd_printout_to(&out,body,env);
   retval=u8_smtp(mailhost,maildomain,mailfrom,
                  FD_STRDATA(dest),NULL,n_headers,&mh,
-                 out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+                 out.u8_outbuf,out.u8_write-out.u8_outbuf);
   while (n_to_free>0) {u8_free(to_free[--n_to_free]);}
   u8_free(mh); u8_free(to_free); u8_free(out.u8_outbuf);
   fd_decref(header_fields); fd_decref(headers);

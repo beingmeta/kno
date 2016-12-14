@@ -50,13 +50,13 @@ FD_EXPORT u8_string fd_soundex(u8_string string)
   u8_putc(&out,c);
   lastc=c; c=u8_sgetc(&s);
   while (c>=0) {
-    if ((out.u8_outptr-out.u8_outbuf)>=4)
+    if ((out.u8_write-out.u8_outbuf)>=4)
       return u8_strdup(out.u8_outbuf);
     c=soundex_class(u8_toupper(u8_base_char(c)));
     if ((c>0) && (c!=lastc)) u8_putc(&out,c);
     if (c>=0) lastc=c;
     c=u8_sgetc(&s);}
-  while ((out.u8_outptr-out.u8_outbuf)<4) u8_putc(&out,'0');
+  while ((out.u8_write-out.u8_outbuf)<4) u8_putc(&out,'0');
   return u8_strdup(out.u8_outbuf);
 }
 
@@ -99,7 +99,7 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
   else if (strncmp(scan,"WH",2)==0) {
     int cap=*capscan; *capscan++=cap;
     scan++; *scan='W'; }
-  lenout=out.u8_outptr-out.u8_outbuf;
+  lenout=out.u8_write-out.u8_outbuf;
   while (*scan) {
     switch (*scan) {
     case ' ': case 'F': case 'J': case 'L': case 'M': case 'N': case 'R': 
@@ -195,10 +195,10 @@ FD_EXPORT u8_string fd_metaphone(u8_string string,int sep)
     default: if (scan==start)  {
 	if (*capscan) lc=*scan; else lc=tolower(((int)(*scan)));
 	u8_putc(&out,lc);}}
-    if ((sep) && (lenout) && (lenout==(out.u8_outptr-out.u8_outbuf)) &&
+    if ((sep) && (lenout) && (lenout==(out.u8_write-out.u8_outbuf)) &&
 	(out.u8_outbuf[lenout-1]!='.'))
       u8_putc(&out,'.');
-    lenout=out.u8_outptr-out.u8_outbuf;
+    lenout=out.u8_write-out.u8_outbuf;
     scan++; capscan++;}
   if (start!=buf) u8_free(start);
   if (capstart!=capbuf) u8_free(capstart);

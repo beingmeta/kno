@@ -55,7 +55,7 @@ const u8_byte *parse_headers(fdtype s,const u8_byte *start,const u8_byte *end)
       slotid=parse_fieldname(hstart,colon);
       vstart=colon+1; while (isspace(*vstart)) vstart++;}
     else {slotid=headers_slotid; vstart=hstart;}
-    hstream.u8_outptr=hstream.u8_outbuf;
+    hstream.u8_write=hstream.u8_outbuf;
     while (1) {
       const u8_byte *line_end=strchr(vstart,'\n');
       if (line_end>end) line_end=end;
@@ -67,7 +67,7 @@ const u8_byte *parse_headers(fdtype s,const u8_byte *start,const u8_byte *end)
       else {
         fdtype slotval=
           fd_lispstring(u8_mime_convert
-                         (hstream.u8_outbuf,hstream.u8_outptr));
+                         (hstream.u8_outbuf,hstream.u8_write));
         fd_add(s,slotid,slotval); fd_decref(slotval); hstart=line_end+1;
         break;}}
     if (*hstart=='\n') return hstart+1;

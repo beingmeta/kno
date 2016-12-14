@@ -448,7 +448,7 @@ static void write_cmd_file(int argc,char **argv)
     else u8_puts(&out,argstring);
     if (argstring!=((u8_string)arg)) u8_free(argstring);}
   u8_log(LOG_INFO,"DaemonInvocation","%s",out.u8_outbuf);
-  if (fd>=0) write(fd,out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  if (fd>=0) write(fd,out.u8_outbuf,out.u8_write-out.u8_outbuf);
   u8_free(abspath); u8_close_output(&out); close(fd);
 }
 
@@ -612,7 +612,7 @@ static int dtypeserver(u8_client ucl)
                     root->u8x_cond,root->u8x_context,elapsed);
         if (logbacktrace) {
           struct U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,1024);
-          out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+          out.u8_write=out.u8_outbuf; out.u8_outbuf[0]='\0';
           fd_print_backtrace(&out,ex,120);
           u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
           if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))

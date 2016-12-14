@@ -331,11 +331,11 @@ static fdtype get_colvalue
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
   int c=u8_sgetc(&s);
-  out->u8_outptr=out->u8_outbuf;
+  out->u8_write=out->u8_outbuf;
   while (c>=0) {
     u8_putc(out,u8_toupper(c));
     c=u8_sgetc(&s);}
-  return fd_make_symbol(out->u8_outbuf,out->u8_outptr-out->u8_outbuf);
+  return fd_make_symbol(out->u8_outbuf,out->u8_write-out->u8_outbuf);
 }
 
 static fdtype merge_symbol;

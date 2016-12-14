@@ -94,11 +94,11 @@ static fdtype config_intern(u8_string start)
     else u8_putc(&nameout,u8_toupper(c));}
   if (nameout.u8_streaminfo&U8_STREAM_OWNS_BUF) {
     fdtype symbol=
-      fd_make_symbol(nameout.u8_outbuf,nameout.u8_outptr-nameout.u8_outbuf);
+      fd_make_symbol(nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
     u8_close((u8_stream)&nameout);
     return symbol;}
   else return fd_make_symbol
-         (nameout.u8_outbuf,nameout.u8_outptr-nameout.u8_outbuf);
+         (nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
 }
 
 FD_EXPORT
@@ -1051,7 +1051,7 @@ int fd_log_backtrace(u8_exception ex)
   while (scan) {
     sum_exception(&out,scan,last);
     u8_log(LOG_ERR,scan->u8x_cond,"%s",out.u8_outbuf);
-    out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+    out.u8_write=out.u8_outbuf; out.u8_outbuf[0]='\0';
     last=scan; scan=scan->u8x_prev;
     n_errs++;}
   return n_errs;

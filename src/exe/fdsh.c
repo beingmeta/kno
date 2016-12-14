@@ -86,8 +86,8 @@ static int fits_consolep(fdtype elt)
   struct U8_OUTPUT tmpout; u8_byte buf[1024];
   U8_INIT_FIXED_OUTPUT(&tmpout,1024,buf);
   fd_unparse(&tmpout,elt);
-  if (((tmpout.u8_outptr-tmpout.u8_outbuf)>=1024) ||
-      ((tmpout.u8_outptr-tmpout.u8_outbuf)>=console_width))
+  if (((tmpout.u8_write-tmpout.u8_outbuf)>=1024) ||
+      ((tmpout.u8_write-tmpout.u8_outbuf)>=console_width))
     return 0;
   else return 1;
 }
@@ -424,7 +424,7 @@ int main(int argc,char **argv)
     if (FD_ABORTP(expr)) {
       result=fd_incref(expr);
       u8_printf(out,";; Flushing input, parse error @%d\n",
-                in->u8_inptr-in->u8_inbuf);
+                in->u8_read-in->u8_inbuf);
       u8_flush_input((u8_input)in);
       u8_flush((u8_output)out);}
     else {

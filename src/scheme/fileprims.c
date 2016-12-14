@@ -162,7 +162,7 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
   else {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
     fd_unparse(&out,object);
-    bytes=out.u8_outbuf; len=out.u8_outptr-out.u8_outbuf;
+    bytes=out.u8_outbuf; len=out.u8_write-out.u8_outbuf;
     free_bytes=1;}
   if ((FD_FALSEP(enc)) || (FD_VOIDP(enc))) {
     FILE *f=u8_fopen(FD_STRDATA(filename),"w");

@@ -82,17 +82,17 @@ static fdtype hyphen_breaks_prim(fdtype string_arg)
       while (c>=0) {
         u8_putc(&out,c);
         if (hyphens[cpos]&1) {
-          fdtype s=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,
+          fdtype s=fd_make_string(NULL,out.u8_write-out.u8_outbuf,
                                   out.u8_outbuf);
           elts[seg++]=s;
-          out.u8_outptr=out.u8_outbuf;}
+          out.u8_write=out.u8_outbuf;}
         cpos=scan-string;
         c=u8_sgetc(&scan);}
-      if (out.u8_outptr!=out.u8_outbuf) {
-        fdtype s=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,
+      if (out.u8_write!=out.u8_outbuf) {
+        fdtype s=fd_make_string(NULL,out.u8_write-out.u8_outbuf,
                                 out.u8_outbuf);
         elts[seg++]=s;
-        out.u8_outptr=out.u8_outbuf;}
+        out.u8_write=out.u8_outbuf;}
       u8_free(out.u8_outbuf);
       return result;}}
 }
@@ -122,7 +122,7 @@ static fdtype shyphenate_prim(fdtype string_arg)
         if (hyphens[cpos]&1) u8_putc(&out,0xAD);
         cpos=scan-string;
         c=u8_sgetc(&scan);}
-      result=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,
+      result=fd_make_string(NULL,out.u8_write-out.u8_outbuf,
                             out.u8_outbuf);
       u8_free(out.u8_outbuf);
       return result;}}
@@ -170,31 +170,31 @@ static fdtype hyphenout_prim(fdtype string_arg,fdtype hyphen_arg)
     if (u8_isalnum(c)) {
       u8_putc(&word,c); c=u8_sgetc(&scan);}
     else if (u8_isspace(c)) {
-      if (word.u8_outptr!=word.u8_outbuf) {
+      if (word.u8_write!=word.u8_outbuf) {
         hyphenout_helper
-          (output,word.u8_outbuf,word.u8_outptr-word.u8_outbuf,
+          (output,word.u8_outbuf,word.u8_write-word.u8_outbuf,
            hyphen_char);
-        word.u8_outptr=word.u8_outbuf; word.u8_outptr[0]='\0';}
+        word.u8_write=word.u8_outbuf; word.u8_write[0]='\0';}
       while ((c>=0)&&(!(u8_isalnum(c)))) {
         u8_putc(output,c);
         c=u8_sgetc(&scan);}}
     else {
       int nc=u8_sgetc(&scan);
       if ((nc<0)||(!(u8_isalnum(nc)))) {
-        if (word.u8_outptr!=word.u8_outbuf) {
+        if (word.u8_write!=word.u8_outbuf) {
           hyphenout_helper
-            (output,word.u8_outbuf,word.u8_outptr-word.u8_outbuf,
+            (output,word.u8_outbuf,word.u8_write-word.u8_outbuf,
              hyphen_char);
-          word.u8_outptr=word.u8_outbuf; word.u8_outptr[0]='\0';}
+          word.u8_write=word.u8_outbuf; word.u8_write[0]='\0';}
         u8_putc(output,c);
         if (nc<0) break; else c=nc;
         while ((c>=0)&&(!(u8_isalnum(c)))) {
           u8_putc(output,c);
           c=u8_sgetc(&scan);}}
       else {u8_putc(&word,c); u8_putc(&word,nc); c=u8_sgetc(&scan);}}}
-  if (word.u8_outptr!=word.u8_outbuf) {
+  if (word.u8_write!=word.u8_outbuf) {
     hyphenout_helper
-      (output,word.u8_outbuf,word.u8_outptr-word.u8_outbuf,
+      (output,word.u8_outbuf,word.u8_write-word.u8_outbuf,
        hyphen_char);}
   u8_free(word.u8_outbuf);
   u8_flush(output);
@@ -220,11 +220,11 @@ static fdtype hyphenate_prim(fdtype string_arg,fdtype hyphen_arg)
     if (u8_isalnum(c)) {
       u8_putc(&word,c); c=u8_sgetc(&scan);}
     else if (u8_isspace(c)) {
-      if (word.u8_outptr!=word.u8_outbuf) {
+      if (word.u8_write!=word.u8_outbuf) {
         hyphenout_helper
-          (output,word.u8_outbuf,word.u8_outptr-word.u8_outbuf,
+          (output,word.u8_outbuf,word.u8_write-word.u8_outbuf,
            hyphen_char);
-        word.u8_outptr=word.u8_outbuf; word.u8_outptr[0]='\0';}
+        word.u8_write=word.u8_outbuf; word.u8_write[0]='\0';}
       while ((c>=0)&&(!(u8_isalnum(c)))) {
         u8_putc(output,c);
         c=u8_sgetc(&scan);}
@@ -232,23 +232,23 @@ static fdtype hyphenate_prim(fdtype string_arg,fdtype hyphen_arg)
     else {
       int nc=u8_sgetc(&scan);
       if ((nc<0)||(!(u8_isalnum(nc)))) {
-        if (word.u8_outptr!=word.u8_outbuf) {
+        if (word.u8_write!=word.u8_outbuf) {
           hyphenout_helper
-            (output,word.u8_outbuf,word.u8_outptr-word.u8_outbuf,
+            (output,word.u8_outbuf,word.u8_write-word.u8_outbuf,
              hyphen_char);
-          word.u8_outptr=word.u8_outbuf; word.u8_outptr[0]='\0';}
+          word.u8_write=word.u8_outbuf; word.u8_write[0]='\0';}
         u8_putc(output,c);
         if (nc<0) break; else c=nc;
         while ((c>=0)&&(!(u8_isalnum(c)))) {
           u8_putc(output,c);
           c=u8_sgetc(&scan);}}
       else {u8_putc(&word,c); u8_putc(&word,nc); c=u8_sgetc(&scan);}}}
-  if (word.u8_outptr!=word.u8_outbuf) {
+  if (word.u8_write!=word.u8_outbuf) {
     hyphenout_helper
-      (output,word.u8_outbuf,word.u8_outptr-word.u8_outbuf,
+      (output,word.u8_outbuf,word.u8_write-word.u8_outbuf,
        hyphen_char);}
   u8_free(word.u8_outbuf);
-  result=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  result=fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
   u8_free(out.u8_outbuf);
   return result;
 }

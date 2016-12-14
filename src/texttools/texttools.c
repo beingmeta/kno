@@ -69,7 +69,7 @@ static u8_input get_input_port(fdtype portarg)
 }
 
 /* This is for greedy matching */
-static int getlongmatch(fdtype matches)
+static size_t getlongmatch(fdtype matches)
 {
   if (FD_EMPTY_CHOICEP(matches)) return -1;
   else if ((FD_CHOICEP(matches)) || (FD_ACHOICEP(matches))) {
@@ -512,7 +512,7 @@ static fdtype seq2phrase_ndhelper
         fd_decref(elt); fd_decref(results);
         u8_free(out.u8_outbuf);
         return fd_type_error(_("string"),"seq2phrase_ndhelper",s);}
-      out.u8_outptr=out.u8_outbuf;
+      out.u8_write=out.u8_outbuf;
       u8_puts(&out,base);
       if (dospace) u8_putc(&out,' ');
       u8_puts(&out,FD_STRDATA(s));
@@ -1480,7 +1480,7 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
         retval=framify(f,&_out,content);
         if (retval<0) return -1;
         else if (out)
-          u8_putn(out,_out.u8_outbuf,_out.u8_outptr-_out.u8_outbuf);
+          u8_putn(out,_out.u8_outbuf,_out.u8_write-_out.u8_outbuf);
         if (FD_VOIDP(parser)) {
           fdtype stringval=fd_stream2string(&_out);
           fd_add(f,slotid,stringval);
@@ -1863,7 +1863,7 @@ static fdtype apply_suffixrule
       u8_putn(&out,FD_STRDATA(replacement),replen);
       FD_INIT_STATIC_CONS(&stack_string,fd_string_type);
       stack_string.fd_bytes=out.u8_outbuf;
-      stack_string.fd_bytelen=out.u8_outptr-out.u8_outbuf;
+      stack_string.fd_bytelen=out.u8_write-out.u8_outbuf;
       result=check_string((fdtype)&stack_string,lexicon);
       if (FD_ABORTP(result)) return result;
       else if (FD_EMPTY_CHOICEP(result)) return result;
@@ -2018,53 +2018,75 @@ static fdtype is_suffix_prim(fdtype suffix,fdtype string)
 
 /* Reading matches (streaming GATHER) */
 
+static ssize_t get_more_data(u8_input in,size_t lim);
+
 static fdtype read_match(fdtype port,fdtype pat,fdtype limit_arg)
 {
-  int lim;
+  ssize_t lim;
   U8_INPUT *in=get_input_port(port);
   if (in==NULL)
     return fd_type_error(_("input port"),"record_reader",port);
   if (FD_VOIDP(limit_arg)) lim=0;
   else if (FD_FIXNUMP(limit_arg)) lim=FD_FIX2INT(limit_arg);
   else return fd_type_error(_("fixnum"),"record_reader",limit_arg);
-  int buflen=in->u8_inlim-in->u8_inptr, eof=0;
-  int start=fd_text_search(pat,NULL,in->u8_inptr,0,buflen,FD_MATCH_BE_GREEDY);
+  ssize_t buflen=in->u8_inlim-in->u8_read; int eof=0;
+  off_t start=fd_text_search(pat,NULL,in->u8_read,0,buflen,FD_MATCH_BE_GREEDY);
   fdtype ends=((start>=0)?
                (fd_text_matcher
-                (pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):
+                (pat,NULL,in->u8_read,start,buflen,FD_MATCH_BE_GREEDY)):
                (FD_EMPTY_CHOICE));
-  int end=getlongmatch(ends);
+  size_t end=getlongmatch(ends);
   fd_decref(ends);
   if ((start>=0)&&(end>start)&&
       ((lim==0)|(end<lim))&&
       ((end<buflen)||(eof))) {
-    fdtype result=fd_substring(in->u8_inptr+start,in->u8_inptr+end);
-    in->u8_inptr=in->u8_inptr+end;
+    fdtype result=fd_substring(in->u8_read+start,in->u8_read+end);
+    in->u8_read=in->u8_read+end;
     return result;}
   else if ((lim)&&(end>lim))
     return FD_EOF;
   else if (in->u8_fillfn) 
     while (!((start>=0)&&(end>start)&&((end<buflen)||(eof)))) {
-      int delta=in->u8_fillfn(in); int new_end;
+      int delta=get_more_data(in,lim); size_t new_end;
       if (delta==0) {eof=1; break;}
-      buflen=in->u8_inlim-in->u8_inptr;
+      buflen=in->u8_inlim-in->u8_read;
       if (start<0)
         start=fd_text_search
-          (pat,NULL,in->u8_inptr,0,buflen,FD_MATCH_BE_GREEDY);
+          (pat,NULL,in->u8_read,0,buflen,FD_MATCH_BE_GREEDY);
       if (start<0) continue;
       ends=((start>=0)?
             (fd_text_matcher
-             (pat,NULL,in->u8_inptr,start,buflen,FD_MATCH_BE_GREEDY)):
+             (pat,NULL,in->u8_read,start,buflen,FD_MATCH_BE_GREEDY)):
             (FD_EMPTY_CHOICE));
       new_end=getlongmatch(ends);
       if ((lim>0)&&(new_end>lim)) eof=1;
       else end=new_end;
       fd_decref(ends);}
   if ((start>=0)&&(end>start)&&((end<buflen)||(eof))) {
-    fdtype result=fd_substring(in->u8_inptr+start,in->u8_inptr+end);
-    in->u8_inptr=in->u8_inptr+end;
+    fdtype result=fd_substring(in->u8_read+start,in->u8_read+end);
+    in->u8_read=in->u8_read+end;
     return result;}
   else return FD_EOF;
+}
+
+static ssize_t get_more_data(u8_input in,size_t lim)
+{
+  if ((in->u8_inbuf == in->u8_read)&&
+      ((in->u8_inlim - in->u8_inbuf) == in->u8_bufsz)) {
+    /* This is the case where the buffer is full of unread data */
+   size_t bufsz = in->u8_bufsz;
+    if (bufsz>=lim) 
+      return -1;
+    else {
+      size_t new_size = ((bufsz*2)>=U8_BUF_THROTTLE_POINT)?
+        (bufsz+(U8_BUF_THROTTLE_POINT/2)):
+        (bufsz*2);
+      if (new_size>lim) new_size=lim;
+      new_size=u8_grow_input_stream(in,new_size);
+      if (new_size > bufsz) 
+        return in->u8_fillfn(in);
+      else return 0;}}
+  else return in->u8_fillfn(in);
 }
 
 /* Character-based escaped segmentation */
@@ -2093,6 +2115,8 @@ static fdtype findsep_prim(fdtype string,fdtype sep,
       else return FD_INT(u8_charoffset(str,(pos-str)));}
     return FD_FALSE;}
 }
+
+/* Various custom parsing/extraction functions */
 
 static fdtype splitsep_prim(fdtype string,fdtype sep,
                             fdtype offset,fdtype limit,

@@ -3022,7 +3022,7 @@ FD_EXPORT void fd_display_table(u8_output out,fdtype table,fdtype keysarg)
     ((FD_VOIDP(keysarg)) ? (fd_getkeys(table)) : (fd_incref(keysarg)));
   FD_DO_CHOICES(key,keys) {
     fdtype values=fd_get(table,key,FD_EMPTY_CHOICE);
-    tmp->u8_outptr=tmp->u8_outbuf; *(tmp->u8_outbuf)='\0';
+    tmp->u8_write=tmp->u8_outbuf; *(tmp->u8_outbuf)='\0';
     u8_printf(tmp,"   %q:   %q\n",key,values);
     if (u8_strlen(tmp->u8_outbuf)<80) u8_puts(out,tmp->u8_outbuf);
     else {

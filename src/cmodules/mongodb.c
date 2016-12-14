@@ -1405,7 +1405,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       U8_INIT_OUTPUT_BUF(&vout,16,buf);
       u8_putc(&vout,code);
       return bson_append_utf8(out,key,keylen,vout.u8_outbuf,
-                              vout.u8_outptr-vout.u8_outbuf);}}
+                              vout.u8_write-vout.u8_outbuf);}}
   else switch (val) {
     case FD_TRUE: case FD_FALSE:
       return bson_append_bool(out,key,keylen,(val==FD_TRUE));
@@ -1416,7 +1416,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
         u8_printf(&vout,":%q",val);
       else fd_unparse(&vout,val);
       rv=bson_append_utf8(out,key,keylen,vout.u8_outbuf,
-                          vout.u8_outptr-vout.u8_outbuf);
+                          vout.u8_write-vout.u8_outbuf);
       u8_close((u8_stream)&vout);
       return rv;}}
 }
@@ -1443,7 +1443,7 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
         while ((c=u8_sgetc(&scan))>=0) {
           u8_putc(&keyout,u8_tolower(c));}
         keystring=keyout.u8_outbuf;
-        keylen=keyout.u8_outptr-keyout.u8_outbuf;}}
+        keylen=keyout.u8_write-keyout.u8_outbuf;}}
     else {
       keystring=FD_SYMBOL_NAME(key);
       keylen=strlen(keystring);}
@@ -1466,16 +1466,16 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
          (strchr(":(#@",keystring[0])!=NULL))) {
       u8_putc(&keyout,'\\'); u8_puts(&keyout,(u8_string)keystring);
       keystring=keyout.u8_outbuf;
-      keylen=keyout.u8_outptr-keyout.u8_outbuf;}
+      keylen=keyout.u8_write-keyout.u8_outbuf;}
     else keylen=FD_STRLEN(key);}
   else {
-    keyout.u8_outptr=keyout.u8_outbuf;
+    keyout.u8_write=keyout.u8_outbuf;
     if ((flags&FD_MONGODB_SLOTIFY)&&
         (!((FD_OIDP(key))||(FD_VECTORP(key))||(FD_PAIRP(key)))))
       u8_putc(&keyout,':');
     fd_unparse(&keyout,key);
     keystring=keyout.u8_outbuf;
-    keylen=keyout.u8_outptr-keyout.u8_outbuf;}
+    keylen=keyout.u8_write-keyout.u8_outbuf;}
   if (store_value==val)
     ok=bson_append_dtype(b,keystring,keylen,val);
   else {
