@@ -164,7 +164,7 @@ static void write_cmd_file(int argc,char **argv)
     else u8_puts(&out,argstring);
     if (argstring!=((u8_string)arg)) u8_free(argstring);}
   u8_log(LOG_INFO,"BatchInvocation","%s",out.u8_outbuf);
-  if (fd>=0) write(fd,out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  if (fd>=0) write(fd,out.u8_outbuf,out.u8_write-out.u8_outbuf);
   u8_free(abspath); u8_close_output(&out); close(fd);
 }
 

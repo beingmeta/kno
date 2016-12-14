@@ -259,12 +259,12 @@ FD_EXPORT fdtype fdtype_string(u8_string string);
 
 #define fd_stream2string(stream) \
   ((((stream)->u8_streaminfo)&(U8_STREAM_OWNS_BUF))?                    \
-   (fd_block_string((((stream)->u8_outptr)-((stream)->u8_outbuf)),      \
+   (fd_block_string((((stream)->u8_write)-((stream)->u8_outbuf)),      \
                    ((stream)->u8_outbuf))):                             \
-   (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),  \
+   (fd_make_string(NULL,(((stream)->u8_write)-((stream)->u8_outbuf)),  \
                    ((stream)->u8_outbuf))))
 #define fd_stream_string(stream) \
-  (fd_make_string(NULL,(((stream)->u8_outptr)-((stream)->u8_outbuf)),   \
+  (fd_make_string(NULL,(((stream)->u8_write)-((stream)->u8_outbuf)),   \
                   ((stream)->u8_outbuf)))
 #define fdstring(s) (fd_make_string(NULL,-1,(s)))
 

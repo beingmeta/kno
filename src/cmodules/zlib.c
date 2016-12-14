@@ -126,7 +126,7 @@ static fdtype zlib_uncompress_prim(fdtype input_arg,fdtype text,fdtype init_fact
         return fd_err("malencoded text","unzip_prim",NULL,FD_VOID);}
       else {
         u8_free(output);
-        return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}}}
+        return fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}}}
   else return fd_type_error("text encoding/#t/#f","unzip_prim",text);
 }
 

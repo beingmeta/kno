@@ -108,7 +108,7 @@ static void emit_uri_value(u8_output out,fdtype val)
     U8_INIT_OUTPUT_X(&xout,256,buf,U8_FIXED_STREAM);
     fd_unparse(&xout,val);
     u8_putn(out,"%3a",3);
-    fd_uri_output(out,xout.u8_outbuf,xout.u8_outptr-xout.u8_outbuf,0,NULL);
+    fd_uri_output(out,xout.u8_outbuf,xout.u8_write-xout.u8_outbuf,0,NULL);
     if (xout.u8_outbuf!=buf) u8_free(xout.u8_outbuf);}
 }
 
@@ -509,7 +509,7 @@ static void add_remote_info(fdtype cgidata)
             ((FD_STRINGP(remote_addr)) ? (FD_STRDATA(remote_addr)) : ((u8_string)"noaddr")),
             ((FD_STRINGP(remote_agent)) ? (FD_STRDATA(remote_agent)) : ((u8_string)"noagent")));
   remote_string=
-    fd_init_string(NULL,remote.u8_outptr-remote.u8_outbuf,
+    fd_init_string(NULL,remote.u8_write-remote.u8_outbuf,
                    remote.u8_outbuf);
   fd_store(cgidata,remote_info_symbol,remote_string);
   fd_decref(remote_user); fd_decref(remote_ident); fd_decref(remote_host);
@@ -548,7 +548,7 @@ static fdtype httpheader(fdtype expr,fd_lispenv env)
     return result;}
   else {
     fdtype header=
-      fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+      fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
     fd_req_add(http_headers,header);
     fd_decref(header);
     return FD_VOID;}
@@ -568,7 +568,7 @@ static fdtype htmlheader(fdtype expr,fd_lispenv env)
   if (FD_ABORTP(result)) {
     u8_free(out.u8_outbuf);
     return result;}
-  header_string=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  header_string=fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
   fd_req_push(html_headers,header_string);
   fd_decref(header_string);
   return FD_VOID;
@@ -701,7 +701,7 @@ static fdtype add_stylesheet(fdtype stylesheet,fdtype type)
               FD_STRDATA(stylesheet));
   else u8_printf(&out,"<link rel='stylesheet' type='%s' href='%s'/>\n",
                  FD_STRDATA(type),FD_STRDATA(stylesheet));
-  header_string=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  header_string=fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
   fd_req_push(html_headers,header_string);
   fd_decref(header_string);
   return FD_VOID;
@@ -715,7 +715,7 @@ static fdtype add_javascript(fdtype url)
             FD_STRDATA(url));
   u8_printf(&out,"  <!-- empty content for some browsers -->\n");
   u8_printf(&out,"</script>\n");
-  header_string=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  header_string=fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
   fd_req_push(html_headers,header_string);
   fd_decref(header_string);
   return FD_VOID;
@@ -733,7 +733,7 @@ static fdtype title_handler(fdtype expr,fd_lispenv env)
     return result;}
   else {
     fdtype header_string=
-      fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+      fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
     fd_req_push(html_headers,header_string);
     fd_decref(header_string);
     return FD_VOID;}
@@ -766,7 +766,7 @@ static fdtype jsout_handler(fdtype expr,fd_lispenv env)
     return result;}
   else {
     fdtype header_string=
-      fd_init_string(NULL,_out.u8_outptr-_out.u8_outbuf,_out.u8_outbuf);
+      fd_init_string(NULL,_out.u8_write-_out.u8_outbuf,_out.u8_outbuf);
     u8_set_default_output(prev);
     fd_req_push(html_headers,header_string);
     fd_decref(header_string);
@@ -800,7 +800,7 @@ static fdtype cssout_handler(fdtype expr,fd_lispenv env)
     return result;}
   else {
     fdtype header_string=
-      fd_init_string(NULL,_out.u8_outptr-_out.u8_outbuf,_out.u8_outbuf);
+      fd_init_string(NULL,_out.u8_write-_out.u8_outbuf,_out.u8_outbuf);
     u8_set_default_output(prev);
     fd_req_push(html_headers,header_string);
     fd_decref(header_string);
@@ -899,7 +899,7 @@ static fdtype attrib_merge_classes(fdtype attribs,fdtype classes)
       classes=FD_CDR(classes);}
     {fdtype old=FD_CAR(class_cons);
       FD_RPLACA(class_cons,fd_make_string
-                (NULL,classout.u8_outptr-classout.u8_outbuf,
+                (NULL,classout.u8_write-classout.u8_outbuf,
                  classout.u8_outbuf));
       fd_decref(old);
       u8_close((u8_stream)&classout);}
@@ -1086,8 +1086,8 @@ static int cgiexecstep(void *data)
   fdtype proc=call->proc, cgidata=call->cgidata;
   fdtype value;
   if (call->outlen<0)
-    call->outlen=call->cgiout->u8_outptr-call->cgiout->u8_outbuf;
-  else call->cgiout->u8_outptr=call->cgiout->u8_outbuf+call->outlen;
+    call->outlen=call->cgiout->u8_write-call->cgiout->u8_outbuf;
+  else call->cgiout->u8_write=call->cgiout->u8_outbuf+call->outlen;
   value=fd_xapply_sproc((fd_sproc)proc,(void *)cgidata,
                         (fdtype (*)(void *,fdtype))cgigetvar);
   value=fd_finish_call(value);
@@ -1167,7 +1167,7 @@ static fdtype withreqout_handler(fdtype expr,fd_lispenv env)
       result=fd_eval(ex,env);}}
   u8_set_default_output(oldout);
   fd_output_xhtml_preface(oldout,reqinfo);
-  u8_putn(oldout,_out.u8_outbuf,(_out.u8_outptr-_out.u8_outbuf));
+  u8_putn(oldout,_out.u8_outbuf,(_out.u8_write-_out.u8_outbuf));
   u8_printf(oldout,"\n</body>\n</html>\n");
   fd_decref(result);
   u8_free(_out.u8_outbuf);

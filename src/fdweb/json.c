@@ -55,7 +55,7 @@ static fdtype parse_error(u8_output out,fdtype result,int report)
 {
   fd_clear_errors(report);
   fd_decref(result);
-  return fd_make_string(NULL,out->u8_outptr-out->u8_outbuf,
+  return fd_make_string(NULL,out->u8_write-out->u8_outbuf,
                         out->u8_outbuf);
 }
 
@@ -187,7 +187,7 @@ static fdtype json_intern(U8_INPUT *in,int flags)
     if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
     return result;}
   else {
-    fdtype result=(((good_symbol)&&(out.u8_outptr-out.u8_outbuf))?
+    fdtype result=(((good_symbol)&&(out.u8_write-out.u8_outbuf))?
                    (fd_parse(out.u8_outbuf)):
                    (fd_stream_string(&out)));
     if (FD_ABORTP(result))
@@ -234,13 +234,13 @@ static fdtype json_key(U8_INPUT *in,int flags,fdtype fieldmap)
 static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap)
 {
   int n_elts=0, max_elts=16, c, i;
-  unsigned int good_pos=in->u8_inptr-in->u8_inbuf;
+  unsigned int good_pos=in->u8_read-in->u8_inbuf;
   fdtype *elts;
   if (u8_getc(in)!='[') return FD_ERROR_VALUE;
   else elts=u8_alloc_n(16,fdtype);
   c=skip_whitespace(in);
   while (c>=0) {
-    good_pos=in->u8_inptr-in->u8_inbuf;
+    good_pos=in->u8_read-in->u8_inbuf;
     if (c==']') {
       u8_getc(in); /* Absorb ] */
       return fd_init_vector(NULL,n_elts,elts);}
@@ -267,13 +267,13 @@ static fdtype json_vector(U8_INPUT *in,int flags,fdtype fieldmap)
 static fdtype json_table(U8_INPUT *in,int flags,fdtype fieldmap)
 {
   int n_elts=0, max_elts=16, c, i;
-  unsigned int good_pos=in->u8_inptr-in->u8_inbuf;
+  unsigned int good_pos=in->u8_read-in->u8_inbuf;
   struct FD_KEYVAL *kv;
   if (u8_getc(in)!='{') return FD_ERROR_VALUE;
   else kv=u8_alloc_n(16,struct FD_KEYVAL);
   c=skip_whitespace(in);
   while (c>=0) {
-    good_pos=in->u8_inptr-in->u8_inbuf;
+    good_pos=in->u8_read-in->u8_inbuf;
     if (c=='}') {
       u8_getc(in); /* Absorb ] */
       return fd_init_slotmap(NULL,n_elts,kv);}

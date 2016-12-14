@@ -986,7 +986,7 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
       int c=scan[0]<<8|scan[1]; scan=scan+2;
       u8_putc(&os,c);}
     u8_free(bytes);
-    result=fd_make_string(NULL,os.u8_outptr-os.u8_outbuf,os.u8_outbuf);
+    result=fd_make_string(NULL,os.u8_write-os.u8_outbuf,os.u8_outbuf);
     u8_close_output(&os);
     return result;}
   case dt_secret_packet: case dt_short_secret_packet: {
@@ -1001,7 +1001,7 @@ static fdtype make_character_type(int code,int len,unsigned char *bytes)
     while (scan < limit) {
       int c=scan[0]<<8|scan[1]; scan=scan+2;
       u8_putc(&os,c);}
-    sym=fd_make_symbol(os.u8_outbuf,os.u8_outptr-os.u8_outbuf);
+    sym=fd_make_symbol(os.u8_outbuf,os.u8_write-os.u8_outbuf);
     u8_free(bytes); u8_free(os.u8_outbuf);
     return sym;}
   default:

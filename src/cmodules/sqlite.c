@@ -62,11 +62,11 @@ static fdtype merge_symbol, sorted_symbol;
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
   int c=u8_sgetc(&s);
-  out->u8_outptr=out->u8_outbuf;
+  out->u8_write=out->u8_outbuf;
   while (c>=0) {
     u8_putc(out,u8_toupper(c));
     c=u8_sgetc(&s);}
-  return fd_make_symbol(out->u8_outbuf,out->u8_outptr-out->u8_outbuf);
+  return fd_make_symbol(out->u8_outbuf,out->u8_write-out->u8_outbuf);
 }
 
 static unsigned char *_memdup(unsigned char *data,int len)
@@ -505,14 +505,14 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
         (&out,&(tstamp->xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);
       ret=sqlite3_bind_text
         (dbproc->stmt,i+1,
-         out.u8_outbuf,out.u8_outptr-out.u8_outbuf,
+         out.u8_outbuf,out.u8_write-out.u8_outbuf,
          SQLITE_TRANSIENT);}
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,128);
       fd_unparse(&out,arg);
       ret=sqlite3_bind_text
         (dbproc->stmt,i+1,
-         out.u8_outbuf,out.u8_outptr-out.u8_outbuf,
+         out.u8_outbuf,out.u8_write-out.u8_outbuf,
          SQLITE_TRANSIENT);
       u8_free(out.u8_outbuf);}
     if (dofree) fd_decref(arg);

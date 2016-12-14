@@ -172,8 +172,8 @@ static int fits_consolep(fdtype elt)
   struct U8_OUTPUT tmpout; u8_byte buf[1024];
   U8_INIT_FIXED_OUTPUT(&tmpout,1024,buf);
   fd_unparse(&tmpout,elt);
-  if (((tmpout.u8_outptr-tmpout.u8_outbuf)>=1024) ||
-      ((tmpout.u8_outptr-tmpout.u8_outbuf)>=console_width))
+  if (((tmpout.u8_write-tmpout.u8_outbuf)>=1024) ||
+      ((tmpout.u8_write-tmpout.u8_outbuf)>=console_width))
     return 0;
   else return 1;
 }
@@ -372,7 +372,7 @@ static fdtype stream_read(u8_input in,fd_lispenv env)
   else u8_ungetc(in,c);
   expr=fd_parser(in);
   if ((expr==FD_EOX)||(expr==FD_EOF)) {
-    if (in->u8_inptr>in->u8_inbuf)
+    if (in->u8_read>in->u8_inbuf)
       return fd_err(fd_ParseError,"stream_read",NULL,expr);
     else return expr;}
   else {
@@ -882,7 +882,7 @@ int main(int argc,char **argv)
     if (FD_ABORTP(expr)) {
       result=fd_incref(expr);
       u8_printf(out,";; Flushing input, parse error @%d\n",
-                in->u8_inptr-in->u8_inbuf);
+                in->u8_read-in->u8_inbuf);
       u8_flush_input((u8_input)in);
       u8_flush((u8_output)out);}
     else {
@@ -922,7 +922,7 @@ int main(int argc,char **argv)
           fd_summarize_backtrace(&out,ex);
           u8_printf(&out,"\n");
           fputs(out.u8_outbuf,stderr);
-          out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+          out.u8_write=out.u8_outbuf; out.u8_outbuf[0]='\0';
           if (show_backtrace) {
             fd_print_backtrace(&out,ex,80);
             fputs(out.u8_outbuf,stderr);}
