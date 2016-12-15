@@ -27,7 +27,7 @@
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 #include <libu8/u8netfns.h>
-#include <libu8/xfiles.h>
+#include <libu8/u8xfiles.h>
 
 #include <stdlib.h>
 

@@ -21,7 +21,7 @@
 #include "framerd/sequences.h"
 #include "framerd/fileprims.h"
 
-#include <libu8/xfiles.h>
+#include <libu8/u8xfiles.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 
