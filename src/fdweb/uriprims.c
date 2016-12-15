@@ -18,7 +18,7 @@
 #include "framerd/ports.h"
 #include "framerd/fdweb.h"
 
-#include <libu8/xfiles.h>
+#include <libu8/u8xfiles.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8pathfns.h>
 

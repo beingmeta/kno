@@ -23,7 +23,7 @@
 
 #include <libu8/libu8.h>
 #include <libu8/libu8io.h>
-#include <libu8/xfiles.h>
+#include <libu8/u8xfiles.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 

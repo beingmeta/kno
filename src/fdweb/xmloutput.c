@@ -41,7 +41,7 @@ FD_EXPORT void fd_pprint_focus
   (U8_OUTPUT *out,fdtype entry,fdtype focus,u8_string prefix,
    int indent,int width,u8_string focus_prefix,u8_string focus_suffix);
 
-#include <libu8/xfiles.h>
+#include <libu8/u8xfiles.h>
 
 #define strd u8_strdup
 
