@@ -1311,7 +1311,7 @@ static int webservefn(u8_client ucl)
       else {
         u8_byte *start;
         ssize_t rv=u8_grow_stream
-          ((u8_stream)outstream,(head_len+http_len+16));
+          ((u8_stream)outstream,(head_len+http_len+U8_BUF_MIN_GROW));
         if (rv>0) {
           start=outstream->u8_outbuf;
           memmove(start+head_len+http_len,start,content_len);
