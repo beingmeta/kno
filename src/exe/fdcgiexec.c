@@ -601,10 +601,10 @@ FD_EXPORT void fd_init_dbfile(void);
 
 int main(int argc,char **argv)
 {
-  int u8_version=u8_initialize();
-  int fd_version; /* Wait to set this until we have a log file */
-  unsigned char *loadfile=NULL;
   int i=1;
+  int u8_version=u8_initialize(), fd_version;
+  unsigned int arg_mask = 0;  /* Bit map of args to skip */
+  unsigned char *loadfile=NULL;
 
   if (u8_version<0) {
     u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
@@ -682,16 +682,19 @@ int main(int argc,char **argv)
   fd_init_mutex(&log_lock);
 #endif
 
-  while (i<argc)
-    if (strchr(argv[i],'=')) {
-      u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i]);
-      fd_config_assignment(argv[i++]);}
+  while (i<argc) {
+    if (isconfig(argv[i])) {
+      u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i++]);}
     else if (loadfile) i++;
-    else loadfile=argv[i++];
+    else {
+      if (i<32) arg_mask = arg_mask | (1<<i);
+      loadfile=argv[i++];}}
 
   if (socketspec==NULL) {
     socketspec=getenv("FCGISOCK");
     if (socketspec) socketspec=u8_strdup(socketspec);}
+
+  fd_handle_argv(argc,argv,arg_mask,NULL);
 
   u8_log(LOG_DEBUG,Startup,"Updating preloads");
   /* Initial handling of preloads */

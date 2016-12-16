@@ -278,24 +278,6 @@ static int set_logfile(u8_string logfile,int exitonfail)
   return 1;
 }
 
-/*
-static fdtype config_get_logfile(fdtype var,void *state)
-{
-  if (log_filename)
-    return fdstring(log_filename);
-  else return FD_FALSE;
-}
-
-static int config_set_logfile(fdtype var,fdtype val,void *state)
-{
-  if (!(FD_STRINGP(val)))  {
-    fd_seterr(fd_TypeError,"config_set_logfile,",u8_strdup("filename"),val);
-    return -1;}
-  else if (set_logfile(FD_STRDATA(val),0)<0) return -1;
-  else return 1;
-}
-*/
-
 /* Configuration
    This uses the CONFIG facility to setup the server.  Some
     config options just set static variables which control the server,
@@ -957,9 +939,10 @@ static int run_server(u8_string source_file);
 
 int main(int argc,char **argv)
 {
-  int u8_version=u8_initialize();
-  int fd_version;
-  int i=1; u8_string server_spec=NULL, source_file=NULL, server_port=NULL;
+  int i=1; 
+  unsigned int arg_mask=0; /* Bit map of args to skip */
+  int u8_version=u8_initialize(), fd_version;
+  u8_string server_spec=NULL, source_file=NULL, server_port=NULL;
   /* This is the base of the environment used to be passed to the server.
      It is augmented by the fdbserv module, all of the modules declared by
      MODULE= configurations, and either the exports or the definitions of
@@ -986,14 +969,16 @@ int main(int argc,char **argv)
 
   set_exename(argv);
 
-  /* Find the source file (the non-config arg)
-     Also initialize the log file if needed.  */
-  while (i<argc)
-    if (strchr(argv[i],'=')) i++;
+  /* Find the server spec */
+  while (i<argc) {
+    if (isconfig(argv[i])) 
+      u8_log(LOGNOTICE,"FDServerConfig","    %s",argv[i++]);
     else if (server_spec) i++;
-    else server_spec=argv[i++];
+    else {
+      if (i<32) arg_mask = arg_mask | (1<<i);
+      server_spec=argv[i++];}} /* while (i<argc) */
   i=1;
-
+  
   if (!(server_spec)) {
     fprintf(stderr,
             "Usage: fdserver [conf=val]* (port|control_file) [conf=val]*\n");
@@ -1091,10 +1076,7 @@ int main(int argc,char **argv)
          fd_make_env(fd_incref(fd_fdbserv_module),core_env);
 
   /* Now process all the configuration arguments */
-  while (i<argc)
-    if (strchr(argv[i],'='))
-      fd_config_assignment(argv[i++]);
-    else i++;
+  fd_handle_argv(argc,argv,arg_mask,NULL);
 
   /* Store server initialization information in the configuration
      environment. */

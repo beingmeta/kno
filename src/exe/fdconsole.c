@@ -636,6 +636,7 @@ static void dotloader(u8_string file,fd_lispenv env)
 int main(int argc,char **argv)
 {
   int i=1, c;
+  unsigned int arg_mask=0; /* Bit map of args to skip */
   time_t boot_time=time(NULL);
   fdtype expr=FD_VOID, result=FD_VOID, lastval=FD_VOID;
   u8_encoding enc=u8_get_default_encoding();
@@ -763,11 +764,16 @@ int main(int argc,char **argv)
 
   /* Process config fields in the arguments,
      storing the first non config field as a source file. */
-  while (i<argc)
-    if (strchr(argv[i],'='))
-      fd_config_assignment(argv[i++]);
+  while (i<argc) {
+    if (isconfig(argv[i])) 
+      u8_log(LOGDEBUG,"Config","    %s",argv[i++]);
     else if (source_file) i++;
-    else source_file=argv[i++];
+    else {
+      if (u8_file_existsp(argv[i])) {
+        if (i<32) arg_mask = arg_mask | (1<<i);}
+      source_file=argv[i++];}}
+
+  fd_handle_argv(argc,argv,arg_mask,NULL);
 
   if (!(quiet_console)) fd_boot_message();
 
@@ -784,10 +790,11 @@ int main(int argc,char **argv)
     fd_use_pool(source_file);
     fd_use_index(source_file);
     eval_server=newstream;}
-  else {
+  else if (u8_file_existsp(source_file)) {
     fdtype sourceval=fdstring(u8_realpath(source_file,NULL));
     fd_config_set("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
+  else {}
 
   /* This is argv[0], the name of the executable by which we
      entered fdconsole. */

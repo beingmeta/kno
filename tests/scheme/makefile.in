@@ -96,7 +96,7 @@ testclean:
 	rm -f *.log *.err *.done *.finished *.pid *.died
 	rm -f temp.* utf8-temp.* testdb* memoization.index test.dtype
 	rm -f logfile thirty2fifty thirtythree 
-alltests: schemetests tabletests indextests hashindextests dbtests optall
+alltests: schemetests exectests tabletests indextests hashindextests dbtests optall
 	@echo "*** Done with alltests"
 schemetests:
 	@echo "*** Running scheme tests to exercise the data/eval layer"
@@ -242,6 +242,12 @@ xmltests:
 	@echo "*** Running xml tests ***"
 	$(RUNTEST) ./fdexec@suffix@ xmltests.scm $(TESTCONFIG)
 	@echo "*** Completed xml tests ***"
+exectests:
+	@echo "*** Running exec tests ***"
+	./fdexec ./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
+	@echo "*** Running exec test as script ***"
+	./exectest.scm a "b b" c foobar=8 quux=1/2 4 1/3 9/3 5.9 :x
+	@echo "*** Done with exec tests ***"
 
 memtests: @memtest_prefix@memtests
 memschemetests: @memtest_prefix@memschemetests
