@@ -1,6 +1,8 @@
 static fdtype moduleid_symbol;
 
-static MAYBE_UNUSED int testeval(fdtype expr,fd_lispenv env,fdtype *whoops)
+static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops) U8_MAYBE_UNUSED;
+
+static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops)
 {
   fdtype val=fasteval(expr,env);
   if (FD_ABORTP(val)) {

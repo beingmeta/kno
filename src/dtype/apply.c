@@ -351,7 +351,7 @@ void fd_calltrack_return(u8_string name)
 
 /* Calltrack configuration */
 
-static int set_calltrack(fdtype ignored,fdtype path_arg,void MAYBE_UNUSED *data)
+static int set_calltrack(fdtype ignored,fdtype path_arg,void U8_MAYBE_UNUSED *data)
 {
 #if FD_CALLTRACK_ENABLED
   if (FD_STRINGP(path_arg))
@@ -390,7 +390,7 @@ static fdtype get_calltrack(fdtype ignored,void *lval)
 static fdtype calltrack_sense, calltrack_ignore;
 
 static int config_set_calltrack_sensors(fdtype sym,fdtype value,
-                                        void MAYBE_UNUSED *data)
+                                        void U8_MAYBE_UNUSED *data)
 {
   u8_string sensor_name; fd_calltrack_sensor sensor;
   if (FD_STRINGP(value)) sensor_name=FD_STRDATA(value);
@@ -412,7 +412,7 @@ static int config_set_calltrack_sensors(fdtype sym,fdtype value,
     fd_seterr(fd_TypeError,"config_set_calltrack_sensor",NULL,value);
     return -1;}
 }
-static fdtype config_get_calltrack_sensors(fdtype sym,void MAYBE_UNUSED *data)
+static fdtype config_get_calltrack_sensors(fdtype sym,void U8_MAYBE_UNUSED *data)
 {
   if (sym==calltrack_sense) {
     fdtype results=FD_EMPTY_CHOICE; int i=0;

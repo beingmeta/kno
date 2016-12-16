@@ -1379,7 +1379,7 @@ static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
 static pthread_mutex_t *ssl_lockarray;
 
 #include <openssl/crypto.h>
-static void lock_callback(int mode, int type, char MAYBE_UNUSED *file, int MAYBE_UNUSED line)
+static void lock_callback(int mode, int type, char U8_MAYBE_UNUSED *file, int U8_MAYBE_UNUSED line)
 {
   if (mode & CRYPTO_LOCK) {
     pthread_mutex_lock(&(ssl_lockarray[type]));

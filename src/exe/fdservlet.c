@@ -890,7 +890,7 @@ static int webservefn(u8_client ucl)
         (havebytes((fd_byte_input)stream,1))&&
         ((*(stream->ptr))==dt_block)) {
       /* If we can be asynchronous, let's try */
-      int MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
+      int U8_MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
       int nbytes=fd_dtsread_4bytes(stream);
       if (fd_has_bytes(stream,nbytes)) {
         /* We can execute without waiting */}

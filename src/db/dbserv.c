@@ -323,13 +323,13 @@ static void update_server_lock_file()
   fd_unlock_mutex(&server_locks_lock);
 }
 
-static fdtype config_get_locksfile(fdtype var,void MAYBE_UNUSED *data)
+static fdtype config_get_locksfile(fdtype var,void U8_MAYBE_UNUSED *data)
 {
   if (locks_filename) return FD_FALSE;
   else return fdtype_string(locks_filename);
 }
 
-static int config_set_locksfile(fdtype var,fdtype val,void MAYBE_UNUSED *data)
+static int config_set_locksfile(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 {
   if (locks_filename)
     if ((FD_STRINGP(val)) && (strcmp(FD_STRDATA(val),locks_filename)==0))

@@ -231,7 +231,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
       return retval;}
   else return _fd_index_add(ix,key,value);
 }
-FD_FASTOP MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
+FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
 {
   if (FD_IMMEDIATEP(x)) {
     int serial=FD_GET_IMMEDIATE(x,fd_index_type);

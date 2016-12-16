@@ -96,7 +96,7 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
   if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) \
     return fd_err(fd_TypeError,fd_type_names[typecode],NULL,(fdtype)x);
 
-static MAYBE_UNUSED void *fd_ptr2cons(fdtype x,int tc)
+static U8_MAYBE_UNUSED void *fd_ptr2cons(fdtype x,int tc)
 {
   struct FD_CONS *val=(struct FD_CONS *)(fd_pptr_ref(x));
   if (tc<0) return val;

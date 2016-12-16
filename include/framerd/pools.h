@@ -346,7 +346,7 @@ FD_FASTOP fdtype fd_oid_value(fdtype oid)
   else if (FD_OIDP(oid)) return fd_fetch_oid(NULL,oid);
   else return fd_type_error(_("OID"),"fd_oid_value",oid);
 }
-FD_FASTOP MAYBE_UNUSED fd_pool fd_get_poolptr(fdtype x)
+FD_FASTOP U8_MAYBE_UNUSED fd_pool fd_get_poolptr(fdtype x)
 {
   int serial=FD_GET_IMMEDIATE(x,fd_pool_type);
   if (serial<fd_pool_serial_count)

@@ -1421,7 +1421,7 @@ fdtype fd_parser(u8_input in)
     else return fd_make_list(2,unquote_symbol,content);}
   case '|': { /* Escaped symbol */
     struct U8_OUTPUT tmpbuf; char buf[128];
-    fdtype result; MAYBE_UNUSED int c;
+    fdtype result; U8_MAYBE_UNUSED int c;
     U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
     c=copy_atom(in,&tmpbuf);
     result=fd_make_symbol(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
@@ -1508,7 +1508,7 @@ static fdtype parse_atom(u8_input in,int ch1,int ch2)
   /* Parse an atom, i.e. a printed representation which doesn't
      contain any special spaces or other special characters */
   struct U8_OUTPUT tmpbuf; char buf[128];
-  fdtype result; MAYBE_UNUSED int c;
+  fdtype result; U8_MAYBE_UNUSED int c;
   U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
   if (ch1>=0) u8_putc(&tmpbuf,ch1);
   if (ch2>=0) u8_putc(&tmpbuf,ch2);

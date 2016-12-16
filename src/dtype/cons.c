@@ -1418,7 +1418,7 @@ static int compare_uuids(fdtype x,fdtype y,int quick)
   return memcmp(xuuid->uuid,yuuid->uuid,16);
 }
 
-#define MU MAYBE_UNUSED
+#define MU U8_MAYBE_UNUSED
 
 static int uuid_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
 {

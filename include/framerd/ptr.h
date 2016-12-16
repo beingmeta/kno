@@ -187,9 +187,9 @@ typedef struct FD_CONS *fd_cons;
 #define FD_VALID_TYPEP(x) (FD_EXPECT_TRUE(((int)x)<256))
 
 #if FD_CHECKFDTYPE
-FD_FASTOP MAYBE_UNUSED fd_cons FD_CONS_DATA(fdtype x){ return (fd_cons) x;}
-FD_FASTOP MAYBE_UNUSED fdtype FDTYPE(fdtype x){ return x;}
-FD_FASTOP MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
+FD_FASTOP U8_MAYBE_UNUSED fd_cons FD_CONS_DATA(fdtype x){ return (fd_cons) x;}
+FD_FASTOP U8_MAYBE_UNUSED fdtype FDTYPE(fdtype x){ return x;}
+FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define FD_ISDTYPE(x) (FD_EXPECT_TRUE(_FD_ISDTYPE(x)))
 #else
 #define FD_CONS_DATA(x) ((fd_cons)(x))
@@ -668,7 +668,7 @@ FD_EXPORT int fd_check_immediate(fdtype);
 
 FD_EXPORT void _fd_bad_pointer(fdtype,u8_context);
 
-static MAYBE_UNUSED fdtype _fd_check_ptr(fdtype x,u8_context cxt) {
+static U8_MAYBE_UNUSED fdtype _fd_check_ptr(fdtype x,u8_context cxt) {
   if (FD_DEBUG_BADPTRP(x)) _fd_bad_pointer(x,cxt);
   return x;
 }

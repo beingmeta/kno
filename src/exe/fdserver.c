@@ -294,7 +294,7 @@ static int set_logfile(u8_string logfile,int exitonfail)
 
 static int n_ports=0;
 
-static int config_serve_port(fdtype var,fdtype val,void MAYBE_UNUSED *data)
+static int config_serve_port(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 {
   if (server_initialized==0) init_server();
   if (n_ports<0) return -1;
@@ -317,7 +317,7 @@ static int config_serve_port(fdtype var,fdtype val,void MAYBE_UNUSED *data)
     return -1;}
 }
 
-static fdtype config_get_ports(fdtype var,void MAYBE_UNUSED *data)
+static fdtype config_get_ports(fdtype var,void U8_MAYBE_UNUSED *data)
 {
   fdtype results=FD_EMPTY_CHOICE;
   int i=0, lim=dtype_server.n_servers;
@@ -382,14 +382,14 @@ static int config_set_dtype_server_flag(fdtype var,fdtype val,void *data)
 
 static int fullscheme=0;
 
-static int config_set_fullscheme(fdtype var,fdtype val,void MAYBE_UNUSED *data)
+static int config_set_fullscheme(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 {
   int oldval=fullscheme;
   if (FD_TRUEP(val))  fullscheme=1; else fullscheme=0;
   return (oldval!=fullscheme);
 }
 
-static fdtype config_get_fullscheme(fdtype var,void MAYBE_UNUSED *data)
+static fdtype config_get_fullscheme(fdtype var,void U8_MAYBE_UNUSED *data)
 {
   if (fullscheme) return FD_TRUE; else return FD_FALSE;
 }
@@ -526,7 +526,7 @@ static int dtypeserver(u8_client ucl)
     fd_dts_start_read(stream);
     if (nobytes((fd_byte_input)stream,1)) expr=FD_EOD;
     else if ((*(stream->ptr))==dt_block) {
-      int MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
+      int U8_MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
       int nbytes=fd_dtsread_4bytes(stream);
       if (fd_has_bytes(stream,nbytes))
         expr=fd_dtsread_dtype(stream);
