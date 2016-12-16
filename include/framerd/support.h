@@ -55,7 +55,7 @@ FD_EXPORT int fd_loglevelconfig_set(fdtype var,fdtype val,void *data);
 FD_EXPORT int fd_config_assignment(u8_string assign_expr);
 FD_EXPORT int fd_read_config(u8_input in);
 
-FD_EXPORT int fd_argv_config(int argc,char **argv);
+FD_EXPORT int fd_argv_config(int argc,char **argv) U8_DEPRECATED;
 FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
 				 unsigned int parse_mask,
 				 size_t *arglen_ptr);
