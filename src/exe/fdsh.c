@@ -86,8 +86,8 @@ static int fits_consolep(fdtype elt)
   struct U8_OUTPUT tmpout; u8_byte buf[1024];
   U8_INIT_FIXED_OUTPUT(&tmpout,1024,buf);
   fd_unparse(&tmpout,elt);
-  if (((tmpout.u8_outptr-tmpout.u8_outbuf)>=1024) ||
-      ((tmpout.u8_outptr-tmpout.u8_outbuf)>=console_width))
+  if (((tmpout.u8_write-tmpout.u8_outbuf)>=1024) ||
+      ((tmpout.u8_write-tmpout.u8_outbuf)>=console_width))
     return 0;
   else return 1;
 }
@@ -278,6 +278,7 @@ int main(int argc,char **argv)
   u8_output out=(u8_output)u8_open_xoutput(1,enc);
   u8_output err=(u8_output)u8_open_xoutput(2,enc);
   int i=1, c, n_chars=0;
+  unsigned int arg_mask=0;
   u8_string source_file=NULL;
 
   /* INITIALIZING MODULES */
@@ -337,11 +338,14 @@ int main(int argc,char **argv)
   setlocale(LC_ALL,"");
   that_symbol=fd_intern("THAT");
   histref_symbol=fd_intern("%HISTREF");
-  while (i<argc)
-    if (strchr(argv[i],'='))
-      fd_config_assignment(argv[i++]);
+  while (i<argc) {
+    if (isconfig(argv[i])) i++;
     else if (source_file) i++;
-    else source_file=argv[i++];
+    else {
+      if (i<32) arg_mask = arg_mask | (1<<i);
+      source_file=argv[i++];}}
+
+  fd_handle_argv(argc,argv,arg_mask,NULL);
 
   if (!(quiet_console)) fd_boot_message();
 
@@ -424,7 +428,7 @@ int main(int argc,char **argv)
     if (FD_ABORTP(expr)) {
       result=fd_incref(expr);
       u8_printf(out,";; Flushing input, parse error @%d\n",
-                in->u8_inptr-in->u8_inbuf);
+                in->u8_read-in->u8_inbuf);
       u8_flush_input((u8_input)in);
       u8_flush((u8_output)out);}
     else {

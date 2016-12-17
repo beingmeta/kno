@@ -127,11 +127,11 @@ static fdtype merge_symbol, noempty_symbol, sorted_symbol;
 static fdtype intern_upcase(u8_output out,u8_string s)
 {
   int c=u8_sgetc(&s);
-  out->u8_outptr=out->u8_outbuf;
+  out->u8_write=out->u8_outbuf;
   while (c>=0) {
     u8_putc(out,u8_toupper(c));
     c=u8_sgetc(&s);}
-  return fd_make_symbol(out->u8_outbuf,out->u8_outptr-out->u8_outbuf);
+  return fd_make_symbol(out->u8_outbuf,out->u8_write-out->u8_outbuf);
 }
 
 static unsigned char *_memdup(const unsigned char *data,int len)
@@ -1161,7 +1161,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
       else if (FD_TRUEP(ptypes[i])) {
         struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,32);
         fd_unparse(&out,arg);
-        argbuf[i]=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+        argbuf[i]=fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
       else argbuf[i]=FD_VOID;
 
       /* Set this in case it was different for a previous call. */
@@ -1282,7 +1282,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
           return FD_ERROR_VALUE;}
         else {
           u8_byte *as_string=out.u8_outbuf;
-          int stringlen=out.u8_outptr-out.u8_outbuf;
+          int stringlen=out.u8_write-out.u8_outbuf;
           inbound[i].buffer_type=MYSQL_TYPE_STRING;
           inbound[i].buffer=as_string;
           inbound[i].buffer_length=stringlen;
@@ -1340,7 +1340,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
       mysql_stmt_free_result(dbproc->stmt);}
     else {
       /* We could possibly do something with this */
-      int MAYBE_UNUSED rows=mysql_stmt_affected_rows(dbproc->stmt);
+      int U8_MAYBE_UNUSED rows=mysql_stmt_affected_rows(dbproc->stmt);
       values=FD_VOID;}}
 
   if (retval!=RETVAL_OK) {

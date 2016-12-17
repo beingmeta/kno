@@ -41,7 +41,7 @@ FD_EXPORT void fd_pprint_focus
   (U8_OUTPUT *out,fdtype entry,fdtype focus,u8_string prefix,
    int indent,int width,u8_string focus_prefix,u8_string focus_suffix);
 
-#include <libu8/xfiles.h>
+#include <libu8/u8xfiles.h>
 
 #define strd u8_strdup
 
@@ -158,7 +158,7 @@ static void emit_xmlattrib
   else if (FD_FLONUMP(value))
     u8_printf(out,"%f",FD_FLONUM(value));
   else if (tmp) {
-    tmp->u8_outptr=tmp->u8_outbuf;
+    tmp->u8_write=tmp->u8_outbuf;
     tmp->u8_streaminfo=tmp->u8_streaminfo|U8_STREAM_TACITURN;
     fd_unparse(tmp,value);
     tmp->u8_streaminfo=tmp->u8_streaminfo&(~U8_STREAM_TACITURN);
@@ -183,12 +183,12 @@ static fdtype xmlify(fdtype value)
     u8_printf(&tmp,":%40%x%2f%x",
               FD_OID_HI(FD_OID_ADDR(value)),
               FD_OID_LO(FD_OID_ADDR(value)));
-    return fd_init_string(NULL,tmp.u8_outptr-tmp.u8_outbuf,tmp.u8_outbuf);}
+    return fd_init_string(NULL,tmp.u8_write-tmp.u8_outbuf,tmp.u8_outbuf);}
   else {
     U8_OUTPUT tmp; U8_INIT_OUTPUT(&tmp,32);
     tmp.u8_streaminfo=tmp.u8_streaminfo|U8_STREAM_TACITURN;
     u8_putc(&tmp,':'); fd_unparse(&tmp,value);
-    return fd_init_string(NULL,tmp.u8_outptr-tmp.u8_outbuf,tmp.u8_outbuf);}
+    return fd_init_string(NULL,tmp.u8_write-tmp.u8_outbuf,tmp.u8_outbuf);}
 }
 
 static fdtype oid2id(fdtype oid,fdtype prefix)
@@ -211,7 +211,7 @@ static fdtype oid2id(fdtype oid,fdtype prefix)
   else {
     u8_free(tmp.u8_outbuf);
     return fd_type_error("string","oid2id",prefix);}
-  return fd_init_string(NULL,tmp.u8_outptr-tmp.u8_outbuf,tmp.u8_outbuf);
+  return fd_init_string(NULL,tmp.u8_write-tmp.u8_outbuf,tmp.u8_outbuf);
 }
 
 FD_INLINE_FCN fdtype oidunxmlify(fdtype string)
@@ -359,7 +359,7 @@ static int xmlout_helper(U8_OUTPUT *out,U8_OUTPUT *tmp,fdtype x,
     U8_OUTPUT _out; u8_byte buf[128];
     if (tmp==NULL) {
       U8_INIT_STATIC_OUTPUT_BUF(_out,64,buf); tmp=&_out;}
-    tmp->u8_outptr=tmp->u8_outbuf;
+    tmp->u8_write=tmp->u8_outbuf;
     fd_unparse(tmp,x);
     /* if (FD_OIDP(x)) output_oid(tmp,x); else {} */
     emit_xmlcontent(out,tmp->u8_outbuf);}
@@ -716,7 +716,7 @@ static void output_value(u8_output s,fdtype val,
   else {
     struct U8_OUTPUT out; int len;
     U8_INIT_OUTPUT(&out,256); fd_unparse(&out,val);
-    len=out.u8_outptr-out.u8_outbuf;
+    len=out.u8_write-out.u8_outbuf;
     if ((len<40)||(FD_IMMEDIATEP(val))||(FD_NUMBERP(val))) {
       if (!(tag)) tag="span";
       open_tag(s,tag,cl,typename,(len>256));
@@ -1134,7 +1134,7 @@ void fd_xhtmldebugpage(u8_output s,u8_exception ex)
   u8_exception e=u8_exception_root(ex);
   fdtype irritant=fd_exception_xdata(e);
   int isembedded=0, customstylesheet=0;
-  s->u8_outptr=s->u8_outbuf;
+  s->u8_write=s->u8_outbuf;
   fdtype embeddedp=fd_req_get(embedded_symbol,FD_VOID);
   fdtype estylesheet=fd_req_get(estylesheet_symbol,FD_VOID);
   if ((FD_NOVOIDP(embeddedp)) || (FD_FALSEP(embeddedp))) isembedded=1;
@@ -1193,7 +1193,7 @@ void fd_xhtmlerrorpage(u8_output s,u8_exception ex)
   u8_exception e=u8_exception_root(ex);
   fdtype irritant=fd_exception_xdata(e);
   int isembedded=0, customstylesheet=0;
-  s->u8_outptr=s->u8_outbuf;
+  s->u8_write=s->u8_outbuf;
   fdtype embeddedp=fd_req_get(embedded_symbol,FD_VOID);
   fdtype estylesheet=fd_req_get(estylesheet_symbol,FD_VOID);
   if ((FD_NOVOIDP(embeddedp)) || (FD_FALSEP(embeddedp))) isembedded=1;
@@ -1254,7 +1254,7 @@ static fdtype debugpage2html_prim(fdtype exception,fdtype where)
   else if (FD_FALSEP(where)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
     fd_xhtmldebugpage(&out,ex);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
   else return FD_FALSE;
 }
 
@@ -1277,7 +1277,7 @@ static fdtype backtrace2html_prim(fdtype exception,fdtype where)
   else if (FD_FALSEP(where)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,4096);
     output_backtrace(&out,ex);
-    return fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
   else return FD_FALSE;
 }
 
@@ -1475,7 +1475,7 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
   if (FD_STRINGP(target))
     attribs=fd_conspair(href_symbol,fd_conspair(fd_incref(target),fd_incref(attribs)));
   else if (FD_SYMBOLP(target)) {
-    tmpout.u8_outptr=tmpout.u8_outbuf;
+    tmpout.u8_write=tmpout.u8_outbuf;
     u8_printf(out,"#%s",FD_SYMBOL_NAME(target));
     attribs=fd_conspair(href_symbol,
                         fd_conspair(fd_stream2string(&tmpout),fd_incref(attribs)));}
@@ -1488,11 +1488,11 @@ static fdtype doanchor_star(fdtype expr,fd_lispenv env)
       fd_incref(attribs);
     else attribs=fd_conspair(fd_intern("CLASS"),
                              fd_conspair(fdtype_string(class),fd_incref(attribs)));
-    tmpout.u8_outptr=tmpout.u8_outbuf;
+    tmpout.u8_write=tmpout.u8_outbuf;
     u8_printf(&tmpout,"%s:@%x/%x",uri,FD_OID_HI(addr),(FD_OID_LO(addr)));
     attribs=fd_conspair
       (href_symbol,
-       fd_conspair(fd_substring(tmpout.u8_outbuf,tmpout.u8_outptr),
+       fd_conspair(fd_substring(tmpout.u8_outbuf,tmpout.u8_write),
                    attribs));
     fd_decref(browseinfo);}
   else return fd_type_error(_("valid anchor target"),"doanchor_star",target);
@@ -1671,7 +1671,7 @@ static int add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
 {
   int lastc=-1, free_varname=0, do_encode=1, keep_secret=0;
   u8_string varname; u8_byte namebuf[256];
-  if (out->u8_outbuf<out->u8_outptr) lastc=out->u8_outptr[-1];
+  if (out->u8_outbuf<out->u8_write) lastc=out->u8_write[-1];
   if (FD_STRINGP(name)) varname=FD_STRDATA(name);
   else if (FD_SYMBOLP(name)) varname=FD_SYMBOL_NAME(name);
   else if (FD_OIDP(name)) {
@@ -1741,7 +1741,7 @@ static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
   if (free_input) u8_free(input);
   if (FD_STRINGP(string)) return fd_stream2string(&out);
   else if (FD_PRIM_TYPEP(string,fd_packet_type))
-    return fd_init_packet(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    return fd_init_packet(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
   else return fd_stream2string(&out);
 }
 
@@ -2012,7 +2012,7 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lispenv env)
           tmp.u8_streaminfo=tmp.u8_streaminfo|U8_STREAM_TACITURN;
           u8_puts(out,"\":");
           fd_unparse(&tmp,val);
-          scan=tmp.u8_outbuf; while (scan<tmp.u8_outptr) {
+          scan=tmp.u8_outbuf; while (scan<tmp.u8_write) {
             int c=u8_sgetc(&scan);
             if (c<0) break;
             else if (c=='\\') {

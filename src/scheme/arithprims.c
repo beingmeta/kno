@@ -199,6 +199,43 @@ static fdtype inexact2exact(fdtype x)
   return fd_make_exact(x);
 }
 
+static fdtype toexact(fdtype x,fdtype direction)
+{
+  int dir=-1;
+  if ((FD_VOIDP(direction))||(FD_FALSEP(direction)))
+    dir=-1;
+  else if (FD_FIXNUMP(direction))
+    dir=FD_FIX2INT(direction);
+  else dir=0;
+  if (FD_FLONUMP(x)) {
+    if (dir==-1)
+      return fd_make_exact(x);
+    else {
+      double d=FD_FLONUM(x);
+      struct FD_FLONUM tmp;
+      FD_INIT_STATIC_CONS(&tmp,fd_flonum_type);
+      if (dir==1) 
+        tmp.fd_dblval=ceil(d);
+      else tmp.fd_dblval=round(d);
+      return fd_make_exact((fdtype)(&tmp));}}
+  else if (FD_COMPLEXP(x)) {
+    fdtype real=FD_REALPART(x), imag=FD_IMAGPART(x);
+    if ((FD_FLONUMP(real))||(FD_FLONUMP(imag))) {
+      struct FD_COMPLEX *num=u8_zalloc(struct FD_COMPLEX);
+      fdtype xreal=toexact(real,direction);
+      fdtype ximag=toexact(imag,direction);
+      FD_INIT_CONS(num,fd_complex_type);
+      num->fd_realpart=xreal; num->fd_imagpart=ximag;
+      return (fdtype) num;}
+    else {
+      fd_incref(x);
+      return x;}}
+  else if (FD_NUMBERP(x)) {
+    fd_incref(x);
+    return x;}
+  else return fd_type_error("number","toexact",x);
+}
+
 #define arithdef(sname,lname,cname) \
   static fdtype lname(fdtype x) { \
     fdtype err=FD_VOID; double val=todouble(x,&err); \
@@ -708,6 +745,7 @@ FD_EXPORT void fd_init_numeric_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("EXACT->INEXACT",exact2inexact,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("INEXACT->EXACT",inexact2exact,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("->EXACT",toexact,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("REAL-PART",real_part_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("IMAG-PART",imag_part_prim,1));

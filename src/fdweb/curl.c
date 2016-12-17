@@ -672,7 +672,7 @@ static fdtype handlefetchresult(struct FD_CURL_HANDLE *h,fdtype result,
           const unsigned char *scan=data->bytes;
           U8_INIT_OUTPUT(&out,data->size);
           u8_convert(enc,1,&out,&scan,data->bytes+data->size);
-          cval=fd_block_string(out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+          cval=fd_block_string(out.u8_write-out.u8_outbuf,out.u8_outbuf);}
         else if (strstr(data->bytes,"\r\n"))
           cval=fd_lispstring(u8_convert_crlfs(data->bytes));
         else cval=fd_lispstring(u8_valid_copy(data->bytes));}
@@ -881,7 +881,7 @@ static fdtype urlxml(fdtype url,fdtype xmlopt,fdtype curl)
         U8_INIT_OUTPUT(&out,data.size);
         u8_convert(enc,1,&out,&scan,data.bytes+data.size);
         u8_free(data.bytes); buf=out.u8_outbuf;
-        U8_INIT_STRING_INPUT(&in,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+        U8_INIT_STRING_INPUT(&in,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
       else {
         U8_INIT_STRING_INPUT(&in,data.size,data.bytes); buf=data.bytes;}}
     else {
@@ -1141,10 +1141,10 @@ static fdtype urlpost(int n,fdtype *args)
         else {
           if (initnameout) {
             U8_INIT_STATIC_OUTPUT_BUF(nameout,128,_buf); initnameout=0;}
-          else nameout.u8_outptr=nameout.u8_outbuf;
+          else nameout.u8_write=nameout.u8_outbuf;
           fd_unparse(&nameout,key);
           keyname=nameout.u8_outbuf;
-          keylen=(nameout.u8_outptr-nameout.u8_outbuf)+1;
+          keylen=(nameout.u8_write-nameout.u8_outbuf)+1;
           nametype=CURLFORM_COPYNAME;}
         if (keyname==NULL) {
           curl_formfree(post); fd_decref(conn);
@@ -1169,7 +1169,7 @@ static fdtype urlpost(int n,fdtype *args)
                        nametype,keyname,CURLFORM_NAMELENGTH,keylen,
                        CURLFORM_COPYCONTENTS,out.u8_outbuf,
                        CURLFORM_CONTENTSLENGTH,
-                       ((size_t)(out.u8_outptr-out.u8_outbuf)),
+                       ((size_t)(out.u8_write-out.u8_outbuf)),
                        CURLFORM_END);
           u8_free(out.u8_outbuf);}
         fd_decref(val);}
@@ -1199,10 +1199,10 @@ static fdtype urlpost(int n,fdtype *args)
         if (initnameout) {
           U8_INIT_STATIC_OUTPUT_BUF(nameout,128,_buf);
           initnameout=0;}
-        else nameout.u8_outptr=nameout.u8_outbuf;
+        else nameout.u8_write=nameout.u8_outbuf;
         fd_unparse(&nameout,key);
         keyname=nameout.u8_outbuf;
-        keylen=nameout.u8_outptr-nameout.u8_outbuf;
+        keylen=nameout.u8_write-nameout.u8_outbuf;
         nametype=CURLFORM_COPYNAME;}
       i=i+2;
       if (keyname==NULL) {
@@ -1228,7 +1228,7 @@ static fdtype urlpost(int n,fdtype *args)
                      nametype,keyname,CURLFORM_NAMELENGTH,keylen,
                      CURLFORM_COPYCONTENTS,out.u8_outbuf,
                      CURLFORM_CONTENTSLENGTH,
-                     ((size_t)(out.u8_outptr-out.u8_outbuf)),
+                     ((size_t)(out.u8_write-out.u8_outbuf)),
                      CURLFORM_END);
         u8_free(out.u8_outbuf);}}
     if (!(initnameout)) u8_close_output(&nameout);
@@ -1287,7 +1287,7 @@ static fdtype urlpostdata_handler(fdtype expr,fd_lispenv env)
 
   curl_easy_setopt(h->handle,CURLOPT_URL,FD_STRDATA(url));
 
-  rdbuf.scan=out.u8_outbuf; rdbuf.end=out.u8_outptr;
+  rdbuf.scan=out.u8_outbuf; rdbuf.end=out.u8_write;
   curl_easy_setopt(h->handle,CURLOPT_POSTFIELDS,NULL);
   curl_easy_setopt(h->handle,CURLOPT_POSTFIELDSIZE,rdbuf.end-rdbuf.scan);
   curl_easy_setopt(h->handle,CURLOPT_READFUNCTION,copy_upload_data);
@@ -1379,7 +1379,7 @@ static u8_string url_source_fn(int fetch,u8_string uri,u8_string enc_name,
 static pthread_mutex_t *ssl_lockarray;
 
 #include <openssl/crypto.h>
-static void lock_callback(int mode, int type, char MAYBE_UNUSED *file, int MAYBE_UNUSED line)
+static void lock_callback(int mode, int type, char U8_MAYBE_UNUSED *file, int U8_MAYBE_UNUSED line)
 {
   if (mode & CRYPTO_LOCK) {
     pthread_mutex_lock(&(ssl_lockarray[type]));

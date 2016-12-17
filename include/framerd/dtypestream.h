@@ -271,7 +271,7 @@ FD_FASTOP int fd_dtswrite_bytes
     memcpy(s->fd_bufptr,bytes,n); s->fd_bufptr=s->fd_bufptr+n;}
   return n;
 }
-static MAYBE_UNUSED int fd_dtswrite_zint(fd_dtype_stream s,unsigned int n)
+static U8_MAYBE_UNUSED int fd_dtswrite_zint(fd_dtype_stream s,unsigned int n)
 {
   if ((n < (1<<7))) {
     return fd_dtswrite_byte(s,n);}
@@ -298,7 +298,7 @@ static MAYBE_UNUSED int fd_dtswrite_zint(fd_dtype_stream s,unsigned int n)
     if (fd_dtswrite_byte(s,n&0x7F)<0) return -1;
     return 5;}
 }
-static MAYBE_UNUSED int fd_dtswrite_zint8(fd_dtype_stream s,fd_8bytes n)
+static U8_MAYBE_UNUSED int fd_dtswrite_zint8(fd_dtype_stream s,fd_8bytes n)
 {
   if (n < (((fd_8bytes)1)<<7)) {
     return fd_dtswrite_byte(s,n);}

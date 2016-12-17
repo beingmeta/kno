@@ -18,7 +18,7 @@
 #include "framerd/ports.h"
 #include "framerd/fdweb.h"
 
-#include <libu8/xfiles.h>
+#include <libu8/u8xfiles.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8pathfns.h>
 
@@ -51,11 +51,11 @@ static u8_string breakup_path(fdtype f,u8_string start)
       u8_putc(&eltout,inschar);
       c=u8_sgetc(&scan);}
     else if ((c<0) || (c=='?') || (c=='#') || (c=='/') || (c==';')) {
-      fdtype eltstring=fd_substring(eltout.u8_outbuf,eltout.u8_outptr);
+      fdtype eltstring=fd_substring(eltout.u8_outbuf,eltout.u8_write);
       if (c=='/') {
         fdtype eltpair=fd_conspair(eltstring,FD_EMPTY_LIST);
         *tail=eltpair; tail=&(FD_CDR(eltpair));
-        c=u8_sgetc(&scan); eltout.u8_outptr=eltout.u8_outbuf; continue;}
+        c=u8_sgetc(&scan); eltout.u8_write=eltout.u8_outbuf; continue;}
       else {
         fd_add(f,name_symbol,eltstring); fd_decref(eltstring);}
       fd_add(f,path_symbol,path);

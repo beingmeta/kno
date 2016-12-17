@@ -36,3 +36,12 @@ static void tweak_exename(char *str,int off,char altc)
     starts[off]=altc;
     *exenamep=exename;}
 }
+
+/* Identifing configs */
+
+static int isconfig(char *arg)
+{
+  char *eq=strchr(arg,'=');
+  return ( (eq != NULL) && (eq > arg) && ((*(eq-1)) != '\\') );
+}
+    

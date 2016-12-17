@@ -295,7 +295,7 @@ static void *thread_call(void *data)
       fd_summarize_backtrace(&out,ex);
       u8_log(LOG_WARN,ThreadBacktrace,"%s",out.u8_outbuf);
       if (fd_dump_backtrace) {
-        out.u8_outptr=out.u8_outbuf;
+        out.u8_write=out.u8_outbuf;
         fd_print_backtrace(&out,ex,120);
         fd_dump_backtrace(out.u8_outbuf);}
       u8_free(out.u8_outbuf);}

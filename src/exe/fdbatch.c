@@ -164,7 +164,7 @@ static void write_cmd_file(int argc,char **argv)
     else u8_puts(&out,argstring);
     if (argstring!=((u8_string)arg)) u8_free(argstring);}
   u8_log(LOG_INFO,"BatchInvocation","%s",out.u8_outbuf);
-  if (fd>=0) write(fd,out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  if (fd>=0) write(fd,out.u8_outbuf,out.u8_write-out.u8_outbuf);
   u8_free(abspath); u8_close_output(&out); close(fd);
 }
 
@@ -178,6 +178,8 @@ int main(int argc,char **argv)
   int pid_fd, log_fd=-1, err_fd=-1, chained=0;
   int logopen_flags=O_WRONLY|O_APPEND|O_CREAT;
   u8_string done_file, log_file=NULL, err_file=NULL;
+  unsigned int parse_mask=0;
+  fdtype *args=NULL; size_t n_args;
   /* We just initialize this for now. */
   u8_log_show_procinfo=1;
   fd_init_dtypelib();
@@ -185,10 +187,12 @@ int main(int argc,char **argv)
                      _("Whether to append to log files"),
                      fd_boolconfig_get,fd_boolconfig_set,
                      &newlog);
-  fd_argv_config(argc,argv);
   identify_application(argc,argv,argv[0]);
+
   if (newlog) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
+
   pid_file=get_pidfile();
+
   if (u8_file_existsp(pid_file)) {
     FILE *f=u8_fopen(pid_file,"r");
     int ival=-1, retval; pid_t pid=getpid();
@@ -214,14 +218,17 @@ int main(int argc,char **argv)
   cmd_file=get_cmdfile();
   done_file=get_donefile();
   died_file=get_diedfile();
+
   /* We only redirect stdio going to ttys. */
   if ((pid_fd=u8_open_fd(pid_file,O_WRONLY|O_CREAT,LOGMODE))<0) {
     u8_log(LOG_CRIT,fd_CantOpenFile,"Couldn't open pid file %s",pid_file);
     exit(-1);}
+  
   /* Remove any pre-existing state files. */
   if (u8_file_existsp(cmd_file)) u8_removefile(cmd_file);
   if (u8_file_existsp(done_file)) u8_removefile(done_file);
   if (u8_file_existsp(died_file)) u8_removefile(died_file);
+
   /* If either stdout or stderr are interactive, redirect them to files. */
   if (isatty(1)) {
     log_file=get_logfile();
@@ -236,7 +243,9 @@ int main(int argc,char **argv)
       close(pid_fd);
       if ((log_file)&&(log_fd>=0)) close(log_fd);
       exit(-1);}}
+  
   write_cmd_file(argc,argv);
+
   /* Now, do the fork. */
   if ((chained==0) && (fork())) exit(0);
   else if ((chained==0) && (pid=fork())) {

@@ -290,7 +290,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     u8_free_exception(ex,1);
     if ((reqlog) || (urllog))
       dolog(cgidata,result,out->u8_outbuf,u8_elapsed_time()-start_time);
-    FCGX_PutStr(out->u8_outbuf,out->u8_outptr-out->u8_outbuf,req->out);}
+    FCGX_PutStr(out->u8_outbuf,out->u8_write-out->u8_outbuf,req->out);}
   else {
     U8_OUTPUT tmp; int retval, tracep;
     fdtype content=fd_get(cgidata,content_slotid,FD_VOID);
@@ -300,17 +300,17 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     fd_output_http_headers(&tmp,cgidata);
     u8_putn(&tmp,"\r\n",2);
     if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
-    FCGX_PutStr(tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf,req->out);
-    tmp.u8_outptr=tmp.u8_outbuf;
+    FCGX_PutStr(tmp.u8_outbuf,tmp.u8_write-tmp.u8_outbuf,req->out);
+    tmp.u8_write=tmp.u8_outbuf;
     if (FD_VOIDP(content)) {
       if (write_headers) {
         write_headers=fd_output_xhtml_preface(&tmp,cgidata);
-        FCGX_PutStr(tmp.u8_outbuf,tmp.u8_outptr-tmp.u8_outbuf,req->out);}
-      retval=FCGX_PutStr(out->u8_outbuf,out->u8_outptr-out->u8_outbuf,req->out);
+        FCGX_PutStr(tmp.u8_outbuf,tmp.u8_write-tmp.u8_outbuf,req->out);}
+      retval=FCGX_PutStr(out->u8_outbuf,out->u8_write-out->u8_outbuf,req->out);
       if (write_headers) FCGX_PutS("</body>\n</html>\n",req->out);}
     else {
       output_content(req,content);
-      out->u8_outptr=out->u8_outbuf;}
+      out->u8_write=out->u8_outbuf;}
     u8_free(tmp.u8_outbuf); fd_decref(content); fd_decref(traceval);
     if ((reqlog) || (urllog))
       dolog(cgidata,result,out->u8_outbuf,u8_elapsed_time()-start_time);}
@@ -363,7 +363,7 @@ static fd_ptrbits fcgiserveloop(fd_ptrbits socket)
   else while ((retval=FCGX_Accept_r(&req))==0) {
       fcgiservefn(&req,&out);
       FCGX_Finish_r(&req);
-      out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+      out.u8_write=out.u8_outbuf; out.u8_outbuf[0]='\0';
 #if 0
       if ((retval=FCGX_InitRequest(&req,socket,0))!=0) break;
 #endif
@@ -531,7 +531,7 @@ static int simplecgi(fdtype path)
                 excond,FD_STRDATA(path),excxt,exdetails,irritant);
     fputs("Content-type: text/html; charset=utf-8\r\n\r\n",stdout);
     fd_xhtmlerrorpage(&out,ex);
-    retval=fwrite(out.u8_outbuf,1,out.u8_outptr-out.u8_outbuf,stdout);
+    retval=fwrite(out.u8_outbuf,1,out.u8_write-out.u8_outbuf,stdout);
     u8_free_exception(ex,1);}
   else {
     U8_OUTPUT tmp; int tracep;
@@ -542,13 +542,13 @@ static int simplecgi(fdtype path)
     fd_output_http_headers(&tmp,cgidata);
     u8_putn(&tmp,"\r\n",2);
     if ((cgitrace)&&(tracep)) fprintf(stderr,"%s\n",tmp.u8_outbuf);
-    retval=fwrite(tmp.u8_outbuf,1,tmp.u8_outptr-tmp.u8_outbuf,stdout);
-    tmp.u8_outptr=tmp.u8_outbuf;
+    retval=fwrite(tmp.u8_outbuf,1,tmp.u8_write-tmp.u8_outbuf,stdout);
+    tmp.u8_write=tmp.u8_outbuf;
     if (FD_VOIDP(content)) {
       if (write_headers) {
         write_headers=fd_output_xhtml_preface(&tmp,cgidata);
-        retval=fwrite(tmp.u8_outbuf,1,tmp.u8_outptr-tmp.u8_outbuf,stdout);
-        retval=fwrite(out.u8_outbuf,1,out.u8_outptr-out.u8_outbuf,stdout);}
+        retval=fwrite(tmp.u8_outbuf,1,tmp.u8_write-tmp.u8_outbuf,stdout);
+        retval=fwrite(out.u8_outbuf,1,out.u8_write-out.u8_outbuf,stdout);}
       if (write_headers) fputs("</body>\n</html>\n",stdout);}
     else {
       if (FD_STRINGP(content)) {
@@ -601,10 +601,10 @@ FD_EXPORT void fd_init_dbfile(void);
 
 int main(int argc,char **argv)
 {
-  int u8_version=u8_initialize();
-  int fd_version; /* Wait to set this until we have a log file */
-  unsigned char *loadfile=NULL;
   int i=1;
+  int u8_version=u8_initialize(), fd_version;
+  unsigned int arg_mask = 0;  /* Bit map of args to skip */
+  unsigned char *loadfile=NULL;
 
   if (u8_version<0) {
     u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
@@ -682,16 +682,19 @@ int main(int argc,char **argv)
   fd_init_mutex(&log_lock);
 #endif
 
-  while (i<argc)
-    if (strchr(argv[i],'=')) {
-      u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i]);
-      fd_config_assignment(argv[i++]);}
+  while (i<argc) {
+    if (isconfig(argv[i])) {
+      u8_log(LOG_NOTICE,"CONFIG","   %s",argv[i++]);}
     else if (loadfile) i++;
-    else loadfile=argv[i++];
+    else {
+      if (i<32) arg_mask = arg_mask | (1<<i);
+      loadfile=argv[i++];}}
 
   if (socketspec==NULL) {
     socketspec=getenv("FCGISOCK");
     if (socketspec) socketspec=u8_strdup(socketspec);}
+
+  fd_handle_argv(argc,argv,arg_mask,NULL);
 
   u8_log(LOG_DEBUG,Startup,"Updating preloads");
   /* Initial handling of preloads */

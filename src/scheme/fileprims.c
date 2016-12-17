@@ -27,7 +27,7 @@
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 #include <libu8/u8netfns.h>
-#include <libu8/xfiles.h>
+#include <libu8/u8xfiles.h>
 
 #include <stdlib.h>
 
@@ -107,7 +107,7 @@ static fdtype open_output_file(fdtype fname,fdtype encid,fdtype escape_char)
     return fd_err(fd_CantOpenFile,"OPEN-OUTPUT-FILE",NULL,fname);
   if (FD_CHARACTERP(escape_char)) {
     int escape=FD_CHAR2CODE(escape_char);
-    f->escape=escape;}
+    f->u8_xescape=escape;}
   return make_port(NULL,(u8_output)f,u8_strdup(filename));
 }
 
@@ -126,7 +126,7 @@ static fdtype extend_output_file(fdtype fname,fdtype encid,fdtype escape_char)
     return fd_err(fd_CantOpenFile,"EXTEND-OUTPUT-FILE",NULL,fname);
   if (FD_CHARACTERP(escape_char)) {
     int escape=FD_CHAR2CODE(escape_char);
-    f->escape=escape;}
+    f->u8_xescape=escape;}
   return make_port(NULL,(u8_output)f,u8_strdup(filename));
 }
 
@@ -162,7 +162,7 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
   else {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
     fd_unparse(&out,object);
-    bytes=out.u8_outbuf; len=out.u8_outptr-out.u8_outbuf;
+    bytes=out.u8_outbuf; len=out.u8_write-out.u8_outbuf;
     free_bytes=1;}
   if ((FD_FALSEP(enc)) || (FD_VOIDP(enc))) {
     FILE *f=u8_fopen(FD_STRDATA(filename),"w");
@@ -1184,17 +1184,17 @@ static fdtype close_prim(fdtype portarg)
       u8_flush(out);
       if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
         U8_XOUTPUT *xout=(U8_XOUTPUT *)out;
-        if (xout->fd<0) {}
+        if (xout->u8_xfd<0) {}
         else {
-          closed=xout->fd; fsync(xout->fd); close(xout->fd);
-          xout->fd=-1;}}}
+          closed=xout->u8_xfd; fsync(xout->u8_xfd); close(xout->u8_xfd);
+          xout->u8_xfd=-1;}}}
     if (in) {
       u8_flush(out);
       if (in->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
         U8_XINPUT *xin=(U8_XINPUT *)in;
-        if (xin->fd<0) { /* already closed. warn? */ }
-        else if (closed!=xin->fd) {
-          close(xin->fd); xin->fd=-1;}}}
+        if (xin->u8_xfd<0) { /* already closed. warn? */ }
+        else if (closed!=xin->u8_xfd) {
+          close(xin->u8_xfd); xin->u8_xfd=-1;}}}
     return FD_VOID;}
   else return fd_type_error("port","close_prim",portarg);
 }
@@ -1211,7 +1211,7 @@ static fdtype flush_prim(fdtype portarg)
     u8_flush(out);
     if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
       U8_XOUTPUT *xout=(U8_XOUTPUT *)out;
-      fsync(xout->fd);}
+      fsync(xout->u8_xfd);}
     return FD_VOID;}
 }
 

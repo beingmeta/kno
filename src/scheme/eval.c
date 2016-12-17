@@ -553,7 +553,7 @@ static fdtype timed_evalx(fdtype expr,fd_lispenv env)
 
 static int check_line_length(u8_output out,int off,int max_len)
 {
-  u8_byte *start=out->u8_outbuf, *end=out->u8_outptr, *scanner=end;
+  u8_byte *start=out->u8_outbuf, *end=out->u8_write, *scanner=end;
   int scan_off, line_len, len=end-start;
   while ((scanner>start)&&((*scanner)!='\n')) scanner--;
   line_len=end-scanner; scan_off=scanner-start;
@@ -569,13 +569,13 @@ static int check_line_length(u8_output out,int off,int max_len)
     /* The line is too long, insert a \n\t at off */
     if ((end+5)>(out->u8_outlim)) {
       /* Grow the stream if needed */
-      u8_grow_stream(out,8);
-      start=out->u8_outbuf; end=out->u8_outptr;
+      u8_grow_stream((u8_stream)out,U8_BUF_MIN_GROW);
+      start=out->u8_outbuf; end=out->u8_write;
       scanner=start+scan_off;}
     /* Use memmove because it's overlapping */
     memmove(start+off+2,start+off,len-off);
     start[off]='\n'; start[off+1]='\t';
-    out->u8_outptr=out->u8_outptr+2;
+    out->u8_write=out->u8_write+2;
     start[len+2]='\0';
     return -1;}
 }
@@ -605,7 +605,7 @@ static fdtype watchcall(fdtype expr,fd_lispenv env,int with_proc)
   U8_INIT_OUTPUT(&out,1024);
   u8_printf(&out,"Watched call %q",watch);
   u8_logger(-10,label,out.u8_outbuf);
-  out.u8_outptr=out.u8_outbuf;
+  out.u8_write=out.u8_outbuf;
   while (i<n_args) {
     fdtype arg=fd_get_arg(watch,i);
     fdtype val=fd_eval(arg,env);
@@ -623,11 +623,11 @@ static fdtype watchcall(fdtype expr,fd_lispenv env,int with_proc)
     else if ((FD_PAIRP(arg))||(FD_SYMBOLP(arg))) {
       u8_printf(&out,"%q ==> %q",arg,val);
       u8_logger(-10,arglabel,out.u8_outbuf);
-      out.u8_outptr=out.u8_outbuf;}
+      out.u8_write=out.u8_outbuf;}
     else {
       u8_printf(&out,"%q",arg);
       u8_logger(-10,arglabel,out.u8_outbuf);
-      out.u8_outptr=out.u8_outbuf;}
+      out.u8_write=out.u8_outbuf;}
     rail[i++]=val;}
   if (FD_CHOICEP(rail[0])) {
     FD_DO_CHOICES(fn,rail[0]) {

@@ -21,7 +21,7 @@
 #include "framerd/sequences.h"
 #include "framerd/fileprims.h"
 
-#include <libu8/xfiles.h>
+#include <libu8/u8xfiles.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 
@@ -362,7 +362,7 @@ static fdtype get_markup_string(fdtype xml,
     fd_decref(to_free);
     fd_decref(attribids);}
   else {}
-  cached=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+  cached=fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
   if (cache_result) fd_store(xml,raw_markup,cached);
   return cached;
 }

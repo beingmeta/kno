@@ -11,6 +11,8 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/apply.h"
+#include "framerd/ffi.h"
 #include "framerd/eval.h"
 #include "framerd/fddb.h"
 #include "framerd/pools.h"
@@ -25,53 +27,87 @@
 #include <errno.h>
 #include <math.h>
 
+u8_condition fd_ffi_BadTypeinfo=_("Bad FFI type info");
+u8_condition fd_ffi_BadABI=_("Bad FFI ABI value");
+u8_condition fd_ffi_FFIError=_("Unknown libffi error");
+
 #if HAVE_FFI_H && HAVE_LIBFFI
 #include <ffi.h>
 
+#ifndef u8_xfree
+#define u8_xfree(ptr) if (ptr) free((char *)ptr); else ptr=ptr;
+#endif
+
 static fdtype ffi_caller(struct FD_FUNCTION *fn,int n,fdtype *args);
-static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
-                             int reconn)
 
+/** Change notes: 
 
-FD_EXPORT fdtype fd_make_ffi_proc(u8_string name,int arity,ffi_type rtype,
-				  ffi_type *argtypes,fdtype *defaults)
+    Make fd_make_ffi_proc take fdtypes for the return type and
+    argtypes, and convert them into ffi_types to be passed in.
+
+     
+
+**/
+
+FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
+ (u8_string name,int arity,
+  ffi_type *return_type,ffi_type *argtypes,
+  fdtype *defaults)
 {
-  struct FD_FFI_PROC *proc=u8_alloc(struct FD_FFI_PROC);
-  memset(proc,0,sizeof struct FD_FFI_PROC);
-  FD_INIT_CONS(proc,fd_ffi_type);
+  ffi_cif *cif = u8_zalloc_for("fd_make_ffi_proc",ffi_cif);
   ffi_status rv=
-    ffi_prep_cif(&(proc->cif), FFI_DEFAULT_ABI, arity,
-		 rtype,argtypes);
+    ffi_prep_cif(cif, FFI_DEFAULT_ABI, arity,
+		 return_type,&argtypes);
   if (rv == FFI_OK) {
+    struct FD_FFI_PROC *proc=
+      u8_zalloc_for("fd_make_ffi_proc",struct FD_FFI_PROC);
+    FD_INIT_CONS(proc,fd_ffi_type);
     proc->name=u8_strdup(name); proc->filename=NULL;
+    proc->fd_ffi_arity=arity;
+    proc->fd_ffi_defaults=defaults;
+    proc->fd_ffi_rtype=return_type;
+    proc->fd_ffi_argtypes=argtypes;
+    // Set up generic function fields
     proc->ndcall=0; proc->xcall=1;
-    // Defer arity checking to ffi_caller
+    // Defer arity checking to fd_ffi_call
     proc->min_arity=0; proc->arity=-1; 
-    proc->typeinfo=argtypes; proc->defaults=defaults;
-    proc->handler.xcalln=ffi_caller;
+    proc->handler.xcalln=fd_ffi_call;
     return proc;}
   else {
-    return FD_ERROR_VALUE;}
+    u8_free(cif);
+    if (rv == FFI_BAD_TYPEDEF) 
+      u8_seterr(fd_ffi_BadTypeinfo,"fd_make_ffi_proc",NULL);
+    else if (rv == FFI_BAD_ABI)
+      u8_seterr(fd_ffi_BadABI,"fd_make_ffi_proc",NULL);
+    else u8_seterr(fd_ffi_FFIError,"fd_make_ffi_proc",NULL);
+    return NULL;}
 }
 
-static fdtype ffi_caller(struct FD_FUNCTION *fn,int n,fdtype *args)
+FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
   if (FD_CONS_TYPE(fn)==fd_ffi_type) {
     struct FD_FFI_PROC *proc=(struct FD_FFI_PROC *) fn;
     return FD_VOID;}
   else return fd_err(_("Not an foreign function interface"),
-		     "ffi_caller",u8_strdup(fn->name),
-		     NULL);
+		     "ffi_caller",u8_strdup(fn->name),FD_VOID);
 }
 
 /* Generic object methods */
 
-static void recycle_ffi(struct FD_CONS *c)
+static void recycle_ffi_proc(struct FD_CONS *c)
 {
-  struct FD_FFI_PROC *proc=(struct FD_FFI_PROC *)c;
+  struct FD_FFI_PROC *ffi=(struct FD_FFI_PROC *)c;
+  int arity=ffi->fd_ffi_arity;
+  if (ffi->fd_ffi_defaults) {
+    fdtype *values=ffi->fd_ffi_defaults;
+    int i=0; while (i<arity) {
+      fdtype v=values[i++]; fd_decref(v);}
+    u8_free(values);}
   u8_free(ffi->name); 
-  u8_free(ffi->argtypes);
-  u8_free(ffi->defaults);
+  u8_free(ffi->fd_ffi_cif); 
+  u8_free(ffi->fd_ffi_rtype); 
+  u8_free(ffi->fd_ffi_argtypes);
+  u8_xfree(ffi->fd_ffi_defaults);
   u8_free(ffi);
 }
 

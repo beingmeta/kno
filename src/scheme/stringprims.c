@@ -327,7 +327,7 @@ static fdtype string_stdcap(fdtype string)
         else if (u8_isspace(c)) {
           while (u8_isspace(c)) {
             prev=scan; c=u8_sgetc(&scan);}
-          if ((*scan)&&(out.u8_outptr>out.u8_outbuf))
+          if ((*scan)&&(out.u8_write>out.u8_outbuf))
             u8_putc(&out,' ');}
         else {
           u8_string w_start=prev, w1=scan;
@@ -376,10 +376,10 @@ static fdtype string_stdspace(fdtype string,fdtype keep_vertical_arg)
       if (white) {}
       else {u8_putc(&out,' '); white=1;}
     else {white=0; u8_putc(&out,c);}}
-  if (out.u8_outptr==out.u8_outbuf) {
+  if (out.u8_write==out.u8_outbuf) {
     u8_free(out.u8_outbuf);
     return fdtype_string("");}
-  else if (white) {out.u8_outptr[-1]='\0'; out.u8_outptr--;}
+  else if (white) {out.u8_write[-1]='\0'; out.u8_write--;}
   return fd_stream2string(&out);
 }
 
@@ -398,10 +398,10 @@ static fdtype string_stdstring(fdtype string)
         int bc=u8_base_char(c);
         bc=u8_tolower(bc); white=0;
         u8_putc(&out,bc);}}
-    if (out.u8_outptr==out.u8_outbuf) {
+    if (out.u8_write==out.u8_outbuf) {
       u8_free(out.u8_outbuf);
       return fdtype_string("");}
-    else if (white) {out.u8_outptr[-1]='\0'; out.u8_outptr--;}
+    else if (white) {out.u8_write[-1]='\0'; out.u8_write--;}
     return fd_stream2string(&out);}
   else return fd_type_error("string","string_stdstring",string);
 }
@@ -415,7 +415,7 @@ static fdtype string_basestring(fdtype string)
     while ((c=u8_sgetc(&scan))>=0) {
       int bc=u8_base_char(c);
       u8_putc(&out,bc);}
-    if (out.u8_outptr==out.u8_outbuf) {
+    if (out.u8_write==out.u8_outbuf) {
       u8_free(out.u8_outbuf);
       return fdtype_string("");}
     return fd_stream2string(&out);}
@@ -676,17 +676,17 @@ static fdtype string_trigrams(fdtype string)
   U8_INIT_FIXED_OUTPUT(&out,64,buf);
   if (FD_STRINGP(string)) {
     while ((c=get_stdchar(&in))>=0) {
-      c1=c2; c2=c3; c3=c; out.u8_outptr=out.u8_outbuf;
+      c1=c2; c2=c3; c3=c; out.u8_write=out.u8_outbuf;
       u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
-      trigram=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+      trigram=fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
       FD_ADD_TO_CHOICE(trigrams,trigram);}
-    c1=c2; c2=c3; c3=' '; out.u8_outptr=out.u8_outbuf;
+    c1=c2; c2=c3; c3=' '; out.u8_write=out.u8_outbuf;
     u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
-    trigram=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    trigram=fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
     FD_ADD_TO_CHOICE(trigrams,trigram);
-    c1=c2; c2=c3; c3=' '; out.u8_outptr=out.u8_outbuf;
+    c1=c2; c2=c3; c3=' '; out.u8_write=out.u8_outbuf;
     u8_putc(&out,c1); u8_putc(&out,c2); u8_putc(&out,c3);
-    trigram=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    trigram=fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
     FD_ADD_TO_CHOICE(trigrams,trigram);
     return trigrams;}
   else return fd_type_error(_("string"),"string_trigrams",string);
@@ -701,13 +701,13 @@ static fdtype string_bigrams(fdtype string)
   U8_INIT_FIXED_OUTPUT(&out,64,buf);
   if (FD_STRINGP(string)) {
     while ((c=get_stdchar(&in))>=0) {
-      c1=c2; c2=c; out.u8_outptr=out.u8_outbuf;
+      c1=c2; c2=c; out.u8_write=out.u8_outbuf;
       u8_putc(&out,c1); u8_putc(&out,c2);
-      bigram=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+      bigram=fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
       FD_ADD_TO_CHOICE(bigrams,bigram);}
-    c1=c2; c2=' '; out.u8_outptr=out.u8_outbuf;
+    c1=c2; c2=' '; out.u8_write=out.u8_outbuf;
     u8_putc(&out,c1); u8_putc(&out,c2);
-    bigram=fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    bigram=fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
     FD_ADD_TO_CHOICE(bigrams,bigram);
     return bigrams;}
   else return fd_type_error(_("string"),"string_bigrams",string);
@@ -1246,9 +1246,9 @@ static fdtype glom_lexpr(int n,fdtype *args)
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
       if (result_type==0) result_type=fd_string_type;
       fd_unparse(&out,args[i]);
-      sumlen=sumlen+(out.u8_outptr-out.u8_outbuf);
+      sumlen=sumlen+(out.u8_write-out.u8_outbuf);
       strings[i]=out.u8_outbuf;
-      lengths[i]=out.u8_outptr-out.u8_outbuf;
+      lengths[i]=out.u8_write-out.u8_outbuf;
       consed[i++]=1;}
   write=result_data=u8_malloc(sumlen+1);
   i=0; while (i<n) {
@@ -1317,7 +1317,7 @@ static fdtype textif_handler(fdtype expr,fd_lispenv env)
             u8_putn(&out,FD_STRDATA(text),FD_STRLEN(text));
           else fd_unparse(&out,text);
           fd_decref(text); text=FD_VOID;}}
-      return fd_block_string(out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+      return fd_block_string(out.u8_write-out.u8_outbuf,out.u8_outbuf);
     }
   }
 }

@@ -389,7 +389,7 @@ static PyObject *pylisp_str(PyObject *self)
   PyObject *pystring; 
   U8_INIT_OUTPUT_X(&out,32,buf,U8_STREAM_GROWS);
   u8_printf(&out,"framerd.ref('%q')",pw->lispval);
-  pystring=PyUTF8String(out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  pystring=PyUTF8String(out.u8_outbuf,out.u8_write-out.u8_outbuf);
   if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
   return pystring;
 }
@@ -413,7 +413,7 @@ static PyObject *choice_str(PyObject *self)
 	u8_printf(&out,"':%s'",FD_SYMBOL_NAME(elt));
       else u8_printf(&out,"'%q'",elt);}}
   u8_putc(&out,')');
-  pystring=PyUTF8String(out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  pystring=PyUTF8String(out.u8_outbuf,out.u8_write-out.u8_outbuf);
   if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
   return pystring;
 }
@@ -437,7 +437,7 @@ static PyObject *oid_str(PyObject *self)
 	u8_printf(&out,"':%s'",FD_SYMBOL_NAME(elt));
       else u8_printf(&out,"'%q'",elt);}}
   u8_putc(&out,')');
-  pystring=PyUTF8String(out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  pystring=PyUTF8String(out.u8_outbuf,out.u8_write-out.u8_outbuf);
   if (out.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(out.u8_outbuf);
   return pystring;
 }
@@ -1027,7 +1027,6 @@ static void initframerdmodule()
      explicitly (since the "onload" initializers may not be invoked). */
   fd_init_schemeio();
   fd_init_texttools();
-  fd_init_tagger();
   fd_init_fdweb();
 #endif
   pymodule=fd_new_module("PARZELTOUNGE",0);

@@ -544,7 +544,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
             ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
             xt->u8_min,xt->u8_sec,
             ((xt->u8_hour>=12)?("PM"):("AM")));
-    return fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_EQ(slotid,short_symbol)) {
     u8_byte buf[128]; struct U8_OUTPUT out;
     U8_INIT_FIXED_OUTPUT(&out,128,buf);
@@ -556,7 +556,7 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
             xt->u8_mday,month_names[xt->u8_mon],xt->u8_year,
             ((xt->u8_hour>12)?((xt->u8_hour)%12):(xt->u8_hour)),
             xt->u8_min,((xt->u8_hour>=12)?("PM"):("AM")));
-    return fd_make_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);}
+    return fd_make_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
   else if (FD_EQ(slotid,datestring_symbol))
     if (xt->u8_prec>=u8_hour)
       return use_strftime("%x",xt);
@@ -1096,7 +1096,7 @@ static fdtype hostaddrs_prim(fdtype hostname)
     while (j<addr_len) {
       u8_printf(&out,((j>0)?(".%d"):("%d")),(int)addr[j]);
       j++;}
-    string=fd_init_string(NULL,out.u8_outptr-out.u8_outbuf,out.u8_outbuf);
+    string=fd_init_string(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
     FD_ADD_TO_CHOICE(results,string);}
   u8_free(addrs);
   return results;

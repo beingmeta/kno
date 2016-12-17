@@ -444,7 +444,7 @@ static void update_status()
               rmean,rmean_units,rmax,rmax_units,
               xmean,xmean_units,xmax,xmax_units);
     u8_list_clients(&out,&fdwebserver);
-    len=out.u8_outptr-out.u8_outbuf;
+    len=out.u8_write-out.u8_outbuf;
     while ((delta=write(mon,out.u8_outbuf+written,len-written))>0)
       written=written+delta;;
     fsync(mon);
@@ -601,7 +601,7 @@ static void write_cmd_file(int argc,char **argv)
     else u8_puts(&out,argstring);
     if (argstring!=((u8_string)arg)) u8_free(argstring);}
   u8_log(LOG_INFO,"ServletInvocation","%s",out.u8_outbuf);
-  if (fd>=0) write(fd,out.u8_outbuf,out.u8_outptr-out.u8_outbuf);
+  if (fd>=0) write(fd,out.u8_outbuf,out.u8_write-out.u8_outbuf);
   u8_free(abspath); u8_close_output(&out); close(fd);
 }
 
@@ -865,7 +865,7 @@ static int webservefn(u8_client ucl)
   pthread_sigmask(SIG_SETMASK,server_sigmask,NULL);
 
   /* Reset the streams */
-  outstream->u8_outptr=outstream->u8_outbuf;
+  outstream->u8_write=outstream->u8_outbuf;
   stream->fd_bufptr=stream->fd_buflim=stream->fd_bufstart;
   /* Handle async reading (where the server buffers incoming and outgoing data) */
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
@@ -890,7 +890,7 @@ static int webservefn(u8_client ucl)
         (havebytes((fd_byte_input)stream,1))&&
         ((*(stream->fd_bufptr))==dt_block)) {
       /* If we can be asynchronous, let's try */
-      int MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
+      int U8_MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
       int nbytes=fd_dtsread_4bytes(stream);
       if (fd_has_bytes(stream,nbytes)) {
         /* We can execute without waiting */}
@@ -1171,11 +1171,11 @@ static int webservefn(u8_client ucl)
       fd_push_reqinfo(init_cgidata);
       fd_store(init_cgidata,error_symbol,err_value); fd_decref(err_value);
       fd_store(init_cgidata,reqdata_symbol,cgidata); fd_decref(cgidata);
-      if (outstream->u8_outptr>outstream->u8_outbuf) {
+      if (outstream->u8_write>outstream->u8_outbuf) {
         /* Get all the output to date as a string and store it in the
            request. */
         fdtype output=fd_make_string
-          (NULL,outstream->u8_outptr-outstream->u8_outbuf,
+          (NULL,outstream->u8_write-outstream->u8_outbuf,
            outstream->u8_outbuf);
         /* Save the output to date on the request */
         fd_store(init_cgidata,output_symbol,output);
@@ -1184,7 +1184,7 @@ static int webservefn(u8_client ucl)
       cgidata=fd_deep_copy(init_cgidata);
       fd_use_reqinfo(cgidata);
       /* Reset the output stream */
-      outstream->u8_outptr=outstream->u8_outbuf;
+      outstream->u8_write=outstream->u8_outbuf;
       /* Apply the error page object */
       result=fd_cgiexec(errorpage,cgidata);
       if (FD_ABORTP(result)) {
@@ -1270,12 +1270,12 @@ static int webservefn(u8_client ucl)
       u8_free_exception(ex,1);
       if ((reqlog) || (urllog) || (trace_cgidata))
         dolog(cgidata,result,outstream->u8_outbuf,
-              outstream->u8_outptr-outstream->u8_outbuf,
+              outstream->u8_write-outstream->u8_outbuf,
               u8_elapsed_time()-start_time);
-      content_len=content_len+(outstream->u8_outptr-outstream->u8_outbuf);
+      content_len=content_len+(outstream->u8_write-outstream->u8_outbuf);
       /* We do a hanging write in this, hoping it's not common case */
       u8_writeall(client->socket,outstream->u8_outbuf,
-                  outstream->u8_outptr-outstream->u8_outbuf);
+                  outstream->u8_write-outstream->u8_outbuf);
       return_code=-1;
       fd_decref(errorpage);
       /* And close the client for good measure */
@@ -1291,15 +1291,15 @@ static int webservefn(u8_client ucl)
       char clen_header[128]; size_t bundle_len=0;
       if (write_headers) {
         close_html=fd_output_xhtml_preface(&htmlhead,cgidata);
-        head_len=(htmlhead.u8_outptr-htmlhead.u8_outbuf);
+        head_len=(htmlhead.u8_write-htmlhead.u8_outbuf);
         if (close_html) u8_puts(outstream,"\n</body>\n</html>\n");}
-      content_len=head_len+(outstream->u8_outptr-outstream->u8_outbuf);
+      content_len=head_len+(outstream->u8_write-outstream->u8_outbuf);
       sprintf(clen_header,"Content-length: %lu\r\n\r\n",
               (unsigned long)content_len);
       u8_puts(&httphead,clen_header);
-      content_len=outstream->u8_outptr-outstream->u8_outbuf;
-      http_len=httphead.u8_outptr-httphead.u8_outbuf;
-      head_len=htmlhead.u8_outptr-htmlhead.u8_outbuf;
+      content_len=outstream->u8_write-outstream->u8_outbuf;
+      http_len=httphead.u8_write-httphead.u8_outbuf;
+      head_len=htmlhead.u8_write-htmlhead.u8_outbuf;
       bundle_len=http_len+head_len+content_len;
       if (!(async)) {
         retval=u8_writeall(client->socket,httphead.u8_outbuf,http_len);
@@ -1310,13 +1310,14 @@ static int webservefn(u8_client ucl)
         return_code=0;}
       else {
         u8_byte *start;
-        ssize_t rv=u8_grow_stream(outstream,head_len+http_len+1);
+        ssize_t rv=u8_grow_stream
+          ((u8_stream)outstream,(head_len+http_len+U8_BUF_MIN_GROW));
         if (rv>0) {
           start=outstream->u8_outbuf;
           memmove(start+head_len+http_len,start,content_len);
           strncpy(start,httphead.u8_outbuf,http_len);
           strncpy(start+http_len,htmlhead.u8_outbuf,head_len);
-          outstream->u8_outptr=start+http_len+head_len+content_len;
+          outstream->u8_write=start+http_len+head_len+content_len;
           u8_client_write(ucl,start,bundle_len,0);
           buffered=1;
           return_code=1;}
@@ -1327,7 +1328,7 @@ static int webservefn(u8_client ucl)
              fd_sendfile_header,FD_STRDATA(retfile),(unsigned long)ucl);
       /* The web server supports a sendfile header, so we use that */
       u8_printf(&httphead,"\r\n");
-      http_len=httphead.u8_outptr-httphead.u8_outbuf;
+      http_len=httphead.u8_write-httphead.u8_outbuf;
       copy=u8_strdup(httphead.u8_outbuf);
       u8_client_write_x(ucl,copy,http_len,0,U8_CLIENT_WRITE_OWNBUF);
       buffered=1; return_code=1;}
@@ -1342,7 +1343,7 @@ static int webservefn(u8_client ucl)
                FD_STRDATA(retfile),(unsigned long)ucl);
         u8_printf(&httphead,"Content-length: %ld\r\n\r\n",
                   (long int)(fileinfo.st_size));
-        http_len=httphead.u8_outptr-httphead.u8_outbuf;
+        http_len=httphead.u8_write-httphead.u8_outbuf;
         total_len=http_len+fileinfo.st_size;
         if ((async)&&(total_len<FD_FILEBUF_MAX))
           filebuf=u8_malloc(total_len+1);
@@ -1388,7 +1389,7 @@ static int webservefn(u8_client ucl)
       int bundle_len; unsigned char *outbuf=NULL;
       content_len=FD_STRLEN(content);
       u8_printf(&httphead,"Content-length: %ld\r\n\r\n",content_len);
-      http_len=httphead.u8_outptr-httphead.u8_outbuf;
+      http_len=httphead.u8_write-httphead.u8_outbuf;
       bundle_len=http_len+content_len;
       if (async) outbuf=u8_malloc(bundle_len+1);
       if (outbuf) {
@@ -1405,14 +1406,14 @@ static int webservefn(u8_client ucl)
         buffered=1; return_code=1;}
       else  {
         retval=u8_writeall(client->socket,httphead.u8_outbuf,
-                           httphead.u8_outptr-httphead.u8_outbuf);
+                           httphead.u8_write-httphead.u8_outbuf);
         if (retval>=0)
           retval=u8_writeall(client->socket,FD_STRDATA(content),FD_STRLEN(content));}}
     else if (FD_PACKETP(content)) {
       int bundle_len; unsigned char *outbuf=NULL;
       content_len=FD_PACKET_LENGTH(content);
       u8_printf(&httphead,"Content-length: %ld\r\n\r\n",content_len);
-      http_len=httphead.u8_outptr-httphead.u8_outbuf;
+      http_len=httphead.u8_write-httphead.u8_outbuf;
       bundle_len=http_len+content_len;
       if (async) outbuf=u8_malloc(bundle_len);
       if (outbuf) {
@@ -1428,7 +1429,7 @@ static int webservefn(u8_client ucl)
         buffered=1; return_code=1;}
       else {
         retval=u8_writeall(client->socket,httphead.u8_outbuf,
-                           httphead.u8_outptr-httphead.u8_outbuf);
+                           httphead.u8_write-httphead.u8_outbuf);
         if (retval>=0)
           retval=u8_writeall(client->socket,FD_PACKET_DATA(content),
                              FD_PACKET_LENGTH(content));}}
@@ -1436,7 +1437,7 @@ static int webservefn(u8_client ucl)
       /* Where the servlet has specified some particular content */
       content_len=content_len+output_content(client,content);}
     /* Reset the stream */
-    outstream->u8_outptr=outstream->u8_outbuf;
+    outstream->u8_write=outstream->u8_outbuf;
     /* If we're not still in the transaction, call u8_client_done() */
     if (!(return_code)) {u8_client_done(ucl);}
     if ((forcelog)||(traceweb>2))
@@ -1449,7 +1450,7 @@ static int webservefn(u8_client ucl)
              "Bad retval from writing data (#%lx)",(unsigned long)ucl);
     if ((reqlog) || (urllog) || (trace_cgidata) || (tracep))
       dolog(cgidata,result,client->out.u8_outbuf,
-            outstream->u8_outptr-outstream->u8_outbuf,
+            outstream->u8_write-outstream->u8_outbuf,
             u8_elapsed_time()-start_time);}
   if (fd_test(cgidata,cleanup_slotid,FD_VOID)) {
     fdtype cleanup=fd_get(cgidata,cleanup_slotid,FD_EMPTY_CHOICE);
@@ -1787,13 +1788,26 @@ static int fork_servlet(u8_string socket_spec);
 
 int main(int argc,char **argv)
 {
+  int i=1;
   int u8_version=u8_initialize();
   int fd_version; /* Wait to set this until we have a log file */
-  int i=1;
+  unsigned int arg_mask = 0;  /* Bit map of args to skip */
   u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;
   u8_string logfile=NULL;
 
   server_sigmask=fd_default_sigmask;
+
+  /* Find the socket spec (the non-config arg) */
+  i=1; while (i<argc) {
+    if (isconfig(argv[i])) 
+      u8_log(LOGNOTICE,"FDServletConfig","    %s",argv[i++]);
+    else if (socket_spec) i++;
+    else {
+      socket_spec=argv[i++];
+      if (i<32) arg_mask = arg_mask | (1<<i);
+      i++;}
+  }
+  i=1;
 
   if (getenv("STDLOG")) {
     u8_log(LOG_WARN,Startup,"Obeying STDLOG and using stdout/stderr for logging");}
@@ -1841,13 +1855,6 @@ int main(int argc,char **argv)
 
   /* Set this here, before processing any configs */
   fddb_loglevel=LOG_INFO;
-
-  /* Find the socket spec (the non-config arg) */
-  while (i<argc)
-    if (strchr(argv[i],'=')) i++;
-    else if (socket_spec) i++;
-    else socket_spec=argv[i++];
-  i=1;
 
   u8_init_mutex(&server_port_lock);
 
@@ -2010,12 +2017,8 @@ int main(int argc,char **argv)
 
   u8_log(LOG_NOTICE,Startup,"FDServlet %s",socket_spec);
 
-  /* Process the config statements */
-  while (i<argc)
-    if (strchr(argv[i],'=')) {
-      u8_log(LOG_NOTICE,ServletConfig,"   %s",argv[i]);
-      fd_config_assignment(argv[i++]);}
-    else i++;
+  /* Process the command line */
+  fd_handle_argv(argc,argv,arg_mask,NULL);
 
   u8_log(LOG_NOTICE,"SetPageNotFound","Handler=%q",default_notfoundpage);
   if (!socket_spec) {

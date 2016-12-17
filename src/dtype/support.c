@@ -56,6 +56,7 @@ extern void ProfilerFlush();
 #endif
 
 u8_condition SetRLimit=_("SetRLimit");
+u8_condition fd_ArgvConfig=_("Config (argv)");
 
 fd_exception fd_UnknownError=_("Unknown error condition");
 fd_exception fd_ConfigError=_("Configuration error");
@@ -94,11 +95,11 @@ static fdtype config_intern(u8_string start)
     else u8_putc(&nameout,u8_toupper(c));}
   if (nameout.u8_streaminfo&U8_STREAM_OWNS_BUF) {
     fdtype symbol=
-      fd_make_symbol(nameout.u8_outbuf,nameout.u8_outptr-nameout.u8_outbuf);
+      fd_make_symbol(nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
     u8_close((u8_stream)&nameout);
     return symbol;}
   else return fd_make_symbol
-         (nameout.u8_outbuf,nameout.u8_outptr-nameout.u8_outbuf);
+         (nameout.u8_outbuf,nameout.u8_write-nameout.u8_outbuf);
 }
 
 FD_EXPORT
@@ -408,11 +409,85 @@ FD_EXPORT int fd_argv_config(int argc,char **argv)
         u8_string arg=u8_fromlibc(carg);
         int retval=fd_config_assignment(arg);
         u8_free(arg);
+        u8_log(LOG_INFO,fd_ArgvConfig,"   %s",arg);
         if (retval<0) u8_clear_errors(0);
         else n++;}}
     else i++;
   return n;
 }
+
+static void set_vector_length(fdtype vector,int len);
+static fdtype exec_arg=FD_FALSE, lisp_argv=FD_FALSE, string_argv=FD_FALSE;
+static fdtype raw_argv=FD_FALSE, config_argv=FD_FALSE;
+static size_t app_argc;
+
+/* This takes an argv, argc combination and processes the argv elements
+   which are configs (var=value again) */
+FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
+                                 unsigned int arg_mask,
+                                 size_t *arglen_ptr)
+{
+  int i=0, n=0, config_i=0;
+  fdtype string_args=fd_make_vector(argc-1,NULL), string_arg=FD_VOID;
+  fdtype lisp_args=fd_make_vector(argc-1,NULL), lisp_arg=FD_VOID;
+  fdtype config_args=fd_make_vector(argc-1,NULL);
+  fdtype raw_args=fd_make_vector(argc,NULL);
+  fdtype *return_args=(arglen_ptr == NULL) ? (NULL) : (u8_alloc_n(argc-1,fdtype));
+  u8_threadcheck();
+  while (i<argc) {
+    char *carg=argv[i];
+    u8_string arg=u8_fromlibc(carg), eq=strchr(arg,'=');
+    FD_VECTOR_SET(raw_args,i,fdtype_string(arg));
+    /* Don't include argv[0] in the arglists */
+    if (i==0) {
+      i++; continue;} 
+    else if ( ( n < 32 ) && ( ( (arg_mask) & (1<<i)) !=0 ) ) {
+      i++; continue;}
+    else i++;
+    if ((eq!=NULL) && (eq>arg) && (*(eq-1)!='\\')) {
+      int retval=(arg!=NULL) ? (fd_config_assignment(arg)) : (-1);
+      FD_VECTOR_SET(config_args,config_i,fdtype_string(arg)); config_i++;
+      if (retval<0) {
+        u8_log(LOGCRIT,"FailedConfig",
+               "Couldn't handle the config argument `%s`",
+               (arg==NULL) ? ((u8_string)carg) : (arg));
+        u8_clear_errors(0);}
+      else u8_log(LOG_INFO,fd_ArgvConfig,"   %s",arg);
+      u8_free(arg);
+      continue;}
+    string_arg=fdtype_string(arg);
+    /* Note that fd_parse_arg should always return at least a lisp
+       string */
+    lisp_arg=fd_parse_arg(arg);
+    if (return_args) {
+      return_args[n]=lisp_arg; fd_incref(lisp_arg);}
+    FD_VECTOR_SET(lisp_args,n,lisp_arg);
+    FD_VECTOR_SET(string_args,n,string_arg);
+    n++;}
+  set_vector_length(lisp_args,n);
+  lisp_argv = lisp_args;
+  set_vector_length(string_args,n);
+  string_argv = string_args;
+  set_vector_length(config_args,n);
+  config_argv = config_args;
+  raw_argv = raw_args;
+  app_argc=n;
+  if (return_args) {
+    *arglen_ptr=n;
+    return return_args;}
+  else return NULL;
+}
+
+static void set_vector_length(fdtype vector,int len)
+{
+  if (FD_VECTORP(vector)) {
+    struct FD_VECTOR *vec = (struct FD_VECTOR *) vector;
+    if (len>=0) {
+      vec->fd_veclen=len;
+      return;}}
+  u8_log(LOGCRIT,"Internal/CmdArgInitVec","Not a vector! %q",
+         vector);
+} 
 
 /* This reads a config file.  It consists of a series of entries, each of which is
    either a list (var value) or an assignment var=value.
@@ -1051,7 +1126,7 @@ int fd_log_backtrace(u8_exception ex)
   while (scan) {
     sum_exception(&out,scan,last);
     u8_log(LOG_ERR,scan->u8x_cond,"%s",out.u8_outbuf);
-    out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+    out.u8_write=out.u8_outbuf; out.u8_outbuf[0]='\0';
     last=scan; scan=scan->u8x_prev;
     n_errs++;}
   return n_errs;
@@ -2310,6 +2385,29 @@ void fd_init_support_c()
   fd_register_config
     ("APPID",_("application ID used in messages and SESSIONID"),
      config_getappid,config_setappid,NULL);
+
+  fd_register_config
+    ("ARGV",
+     _("the vector of args (before parsing) to the application (no configs)"),
+     fd_lconfig_get,NULL,&raw_argv);
+  fd_register_config
+    ("RAWARGS",
+     _("the vector of args (before parsing) to the application (no configs)"),
+     fd_lconfig_get,NULL,&raw_argv);
+  fd_register_config
+    ("CMDARGS",_("the vector of parsed args to the application (no configs)"),
+     fd_lconfig_get,NULL,&lisp_argv);
+  fd_register_config
+    ("ARGS",_("the vector of parsed args to the application (no configs)"),
+     fd_lconfig_get,NULL,&lisp_argv);
+  fd_register_config
+    ("STRINGARGS",
+     _("the vector of args (before parsing) to the application (no configs)"),
+     fd_lconfig_get,NULL,&string_argv);
+  fd_register_config
+    ("CONFIGARGS",_("config arguments passed to the application (unparsed)"),
+     fd_lconfig_get,NULL,&config_argv);
+  
   fd_register_config
     ("SESSIONID",_("unique session identifier"),
      config_getsessionid,config_setsessionid,NULL);
@@ -2319,6 +2417,7 @@ void fd_init_support_c()
   fd_register_config
     ("PPID",_("parent's process ID (read-only)"),
      config_getppid,NULL,NULL);
+
   fd_register_config
     ("UTF8WARN",_("warn on bad UTF-8 sequences"),
      config_getutf8warn,config_setutf8warn,NULL);

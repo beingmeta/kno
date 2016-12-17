@@ -283,7 +283,7 @@ FD_EXPORT fdtype reqgetlog_prim()
   struct U8_OUTPUT *log=fd_reqlog(0);
   if (!(log)) return FD_FALSE;
   else {
-    int len=log->u8_outptr-log->u8_outbuf;
+    int len=log->u8_write-log->u8_outbuf;
     if (len==0) return FD_FALSE;
     else return fd_make_string(NULL,len,log->u8_outbuf);}
 }
@@ -293,7 +293,7 @@ FD_EXPORT fdtype reqloglen_prim()
   struct U8_OUTPUT *log=fd_reqlog(0);
   if (!(log)) return FD_FALSE;
   else {
-    int len=log->u8_outptr-log->u8_outbuf;
+    int len=log->u8_write-log->u8_outbuf;
     return FD_INT(len);}
 }
 

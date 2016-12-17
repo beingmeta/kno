@@ -18,7 +18,7 @@
 #include "framerd/ports.h"
 #include "framerd/fdweb.h"
 
-#include <libu8/xfiles.h>
+#include <libu8/u8xfiles.h>
 
 #include <ctype.h>
 
@@ -37,9 +37,9 @@ static u8_string xmlsnip(u8_string s)
   struct U8_OUTPUT out;
   U8_INIT_OUTPUT(&out,80);
   int c=u8_sgetc(&s);
-  while ((c>0)&&((out.u8_outlim-out.u8_outptr)<8)) {
+  while ((c>0)&&((out.u8_outlim-out.u8_write)<8)) {
     u8_putc(&out,c);}
-  return out.u8_outptr;
+  return out.u8_write;
 }
 
 static u8_string deentify(u8_string arg,u8_string lim)
@@ -220,7 +220,7 @@ static u8_string read_xmltag(u8_input in,u8_byte **buf,
     else c=u8_getc(in);}
   *buf=out.u8_outbuf;
   *bufsizep=out.u8_outlim-out.u8_outbuf;
-  *sizep=out.u8_outptr-out.u8_outbuf;
+  *sizep=out.u8_write-out.u8_outbuf;
   return out.u8_outbuf;
 }
 
@@ -233,12 +233,12 @@ void *fd_walk_markup(U8_INPUT *in,
   u8_byte *buf=u8_malloc(1024); size_t bufsiz=1024, size=bufsiz;
   while (1) {
     if (readbuf(in,&buf,&bufsiz,&size,"<")==NULL) {
-      data=contentfn(data,in->u8_inptr); break;}
+      data=contentfn(data,in->u8_read); break;}
     else
       data=contentfn(data,buf);
     if (data==NULL) break;
     if (read_xmltag(in,&buf,&bufsiz,&size)==NULL) {
-      data=markupfn(data,in->u8_inptr); break;}
+      data=markupfn(data,in->u8_read); break;}
     data=markupfn(data,buf);
     if (data==NULL) break;}
   u8_free(buf);
@@ -913,16 +913,16 @@ void *fd_walk_xml(U8_INPUT *in,
       return NULL;}
     else if ((rbuf=readbuf(in,&buf,&bufsize,&size,"<"))==NULL) {
       if (contentfn)
-        contentfn(node,in->u8_inptr,in->u8_inlim-in->u8_inptr);
+        contentfn(node,in->u8_read,in->u8_inlim-in->u8_read);
       break;}
     else if (size<0) {
-      fd_seterr3(fd_XMLParseError,"end of input",xmlsnip(in->u8_inptr));
+      fd_seterr3(fd_XMLParseError,"end of input",xmlsnip(in->u8_read));
       u8_free(buf);
       return NULL;}
     else if ((size>0)&&(contentfn)) contentfn(node,buf,size);
     else {}
     if ((rbuf=read_xmltag(in,&buf,&bufsize,&size))==NULL) {
-      fd_seterr3(fd_XMLParseError,"end of input",xmlsnip(in->u8_inptr));
+      fd_seterr3(fd_XMLParseError,"end of input",xmlsnip(in->u8_read));
       u8_free(buf);
       return NULL;}
     else type=fd_get_markup_type(buf,size,((node->bits)&FD_XML_ISHTML));
@@ -1083,7 +1083,7 @@ static fdtype xmlparse_core(fdtype input,int flags)
     fdtype result=fd_incref(object.head);
     free_node(&object,0);
     return result;}
-  errpos=_in.u8_inptr-_in.u8_inbuf;
+  errpos=_in.u8_read-_in.u8_inbuf;
   fd_seterr("XMLPARSE error","xmlparse_core",NULL,FD_INT(errpos));
   return FD_ERROR_VALUE;
 }

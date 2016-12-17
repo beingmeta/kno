@@ -172,8 +172,8 @@ static int fits_consolep(fdtype elt)
   struct U8_OUTPUT tmpout; u8_byte buf[1024];
   U8_INIT_FIXED_OUTPUT(&tmpout,1024,buf);
   fd_unparse(&tmpout,elt);
-  if (((tmpout.u8_outptr-tmpout.u8_outbuf)>=1024) ||
-      ((tmpout.u8_outptr-tmpout.u8_outbuf)>=console_width))
+  if (((tmpout.u8_write-tmpout.u8_outbuf)>=1024) ||
+      ((tmpout.u8_write-tmpout.u8_outbuf)>=console_width))
     return 0;
   else return 1;
 }
@@ -372,7 +372,7 @@ static fdtype stream_read(u8_input in,fd_lispenv env)
   else u8_ungetc(in,c);
   expr=fd_parser(in);
   if ((expr==FD_EOX)||(expr==FD_EOF)) {
-    if (in->u8_inptr>in->u8_inbuf)
+    if (in->u8_read>in->u8_inbuf)
       return fd_err(fd_ParseError,"stream_read",NULL,expr);
     else return expr;}
   else {
@@ -636,6 +636,7 @@ static void dotloader(u8_string file,fd_lispenv env)
 int main(int argc,char **argv)
 {
   int i=1, c;
+  unsigned int arg_mask=0; /* Bit map of args to skip */
   time_t boot_time=time(NULL);
   fdtype expr=FD_VOID, result=FD_VOID, lastval=FD_VOID;
   u8_encoding enc=u8_get_default_encoding();
@@ -763,11 +764,16 @@ int main(int argc,char **argv)
 
   /* Process config fields in the arguments,
      storing the first non config field as a source file. */
-  while (i<argc)
-    if (strchr(argv[i],'='))
-      fd_config_assignment(argv[i++]);
+  while (i<argc) {
+    if (isconfig(argv[i])) 
+      u8_log(LOGDEBUG,"Config","    %s",argv[i++]);
     else if (source_file) i++;
-    else source_file=argv[i++];
+    else {
+      if (u8_file_existsp(argv[i])) {
+        if (i<32) arg_mask = arg_mask | (1<<i);}
+      source_file=argv[i++];}}
+
+  fd_handle_argv(argc,argv,arg_mask,NULL);
 
   if (!(quiet_console)) fd_boot_message();
 
@@ -784,10 +790,11 @@ int main(int argc,char **argv)
     fd_use_pool(source_file);
     fd_use_index(source_file);
     eval_server=newstream;}
-  else {
+  else if (u8_file_existsp(source_file)) {
     fdtype sourceval=fdstring(u8_realpath(source_file,NULL));
     fd_config_set("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
+  else {}
 
   /* This is argv[0], the name of the executable by which we
      entered fdconsole. */
@@ -882,7 +889,7 @@ int main(int argc,char **argv)
     if (FD_ABORTP(expr)) {
       result=fd_incref(expr);
       u8_printf(out,";; Flushing input, parse error @%d\n",
-                in->u8_inptr-in->u8_inbuf);
+                in->u8_read-in->u8_inbuf);
       u8_flush_input((u8_input)in);
       u8_flush((u8_output)out);}
     else {
@@ -922,7 +929,7 @@ int main(int argc,char **argv)
           fd_summarize_backtrace(&out,ex);
           u8_printf(&out,"\n");
           fputs(out.u8_outbuf,stderr);
-          out.u8_outptr=out.u8_outbuf; out.u8_outbuf[0]='\0';
+          out.u8_write=out.u8_outbuf; out.u8_outbuf[0]='\0';
           if (show_backtrace) {
             fd_print_backtrace(&out,ex,80);
             fputs(out.u8_outbuf,stderr);}
