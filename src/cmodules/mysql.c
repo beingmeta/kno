@@ -1340,7 +1340,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
       mysql_stmt_free_result(dbproc->stmt);}
     else {
       /* We could possibly do something with this */
-      int MAYBE_UNUSED rows=mysql_stmt_affected_rows(dbproc->stmt);
+      int U8_MAYBE_UNUSED rows=mysql_stmt_affected_rows(dbproc->stmt);
       values=FD_VOID;}}
 
   if (retval!=RETVAL_OK) {

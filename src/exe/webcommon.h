@@ -12,12 +12,12 @@ static int traceweb=0;
 static int webdebug=0;
 static int weballowdebug=1;
 
-#define MU MAYBE_UNUSED
+#define MU U8_MAYBE_UNUSED
 
 static MU int cgitrace=0;
-static int trace_cgidata=0;
+static MU int trace_cgidata=0;
 
-static int use_threadcache=0;
+static MU int use_threadcache=0;
 
 /* When non-null, this overrides the document root coming from the
    server.  It is for cases where fdservlet is running on a different
@@ -605,7 +605,7 @@ static fdtype getcontent(fdtype path)
 
 /* Check threadcache */
 
-static MAYBE_UNUSED struct FD_THREAD_CACHE *checkthreadcache(fd_lispenv env)
+static MU struct FD_THREAD_CACHE *checkthreadcache(fd_lispenv env)
 {
   fdtype tcval=fd_symeval(threadcache_symbol,env);
   if (FD_FALSEP(tcval)) return NULL;

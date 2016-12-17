@@ -890,7 +890,7 @@ static int webservefn(u8_client ucl)
         (havebytes((fd_byte_input)stream,1))&&
         ((*(stream->fd_bufptr))==dt_block)) {
       /* If we can be asynchronous, let's try */
-      int MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
+      int U8_MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
       int nbytes=fd_dtsread_4bytes(stream);
       if (fd_has_bytes(stream,nbytes)) {
         /* We can execute without waiting */}
@@ -1311,7 +1311,7 @@ static int webservefn(u8_client ucl)
       else {
         u8_byte *start;
         ssize_t rv=u8_grow_stream
-          ((u8_stream)outstream,(head_len+http_len+16));
+          ((u8_stream)outstream,(head_len+http_len+U8_BUF_MIN_GROW));
         if (rv>0) {
           start=outstream->u8_outbuf;
           memmove(start+head_len+http_len,start,content_len);
@@ -1788,13 +1788,26 @@ static int fork_servlet(u8_string socket_spec);
 
 int main(int argc,char **argv)
 {
+  int i=1;
   int u8_version=u8_initialize();
   int fd_version; /* Wait to set this until we have a log file */
-  int i=1;
+  unsigned int arg_mask = 0;  /* Bit map of args to skip */
   u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;
   u8_string logfile=NULL;
 
   server_sigmask=fd_default_sigmask;
+
+  /* Find the socket spec (the non-config arg) */
+  i=1; while (i<argc) {
+    if (isconfig(argv[i])) 
+      u8_log(LOGNOTICE,"FDServletConfig","    %s",argv[i++]);
+    else if (socket_spec) i++;
+    else {
+      socket_spec=argv[i++];
+      if (i<32) arg_mask = arg_mask | (1<<i);
+      i++;}
+  }
+  i=1;
 
   if (getenv("STDLOG")) {
     u8_log(LOG_WARN,Startup,"Obeying STDLOG and using stdout/stderr for logging");}
@@ -1842,13 +1855,6 @@ int main(int argc,char **argv)
 
   /* Set this here, before processing any configs */
   fddb_loglevel=LOG_INFO;
-
-  /* Find the socket spec (the non-config arg) */
-  while (i<argc)
-    if (strchr(argv[i],'=')) i++;
-    else if (socket_spec) i++;
-    else socket_spec=argv[i++];
-  i=1;
 
   u8_init_mutex(&server_port_lock);
 
@@ -2011,12 +2017,8 @@ int main(int argc,char **argv)
 
   u8_log(LOG_NOTICE,Startup,"FDServlet %s",socket_spec);
 
-  /* Process the config statements */
-  while (i<argc)
-    if (strchr(argv[i],'=')) {
-      u8_log(LOG_NOTICE,ServletConfig,"   %s",argv[i]);
-      fd_config_assignment(argv[i++]);}
-    else i++;
+  /* Process the command line */
+  fd_handle_argv(argc,argv,arg_mask,NULL);
 
   u8_log(LOG_NOTICE,"SetPageNotFound","Handler=%q",default_notfoundpage);
   if (!socket_spec) {

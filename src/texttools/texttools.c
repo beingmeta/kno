@@ -178,7 +178,7 @@ static fdtype encode_entities(fdtype input,int nonascii,
   u8_string scan=FD_STRDATA(input);
   int c=u8_sgetc(&scan), enc=0;
   if (FD_STRLEN(input)==0) return fd_incref(input);
-  U8_INIT_OUTPUT(&out,FD_STRLEN(input));
+  U8_INIT_OUTPUT(&out,2*FD_STRLEN(input));
   if (ascii_chars==NULL) ascii_chars="<&>";
   while (c>=0) {
     if (((c>128)&&(nonascii))||
@@ -1131,7 +1131,8 @@ static fdtype textsubst(fdtype string,
                 u8_byteoff newstart=fd_getint(FD_CAR(xt));
                 if (newstart==lim) {
                   fdtype stringval;
-                  struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
+                  struct U8_OUTPUT tmpout; 
+                  U8_INIT_OUTPUT(&tmpout,512);
                   u8_puts(&tmpout,out.u8_outbuf);
                   if (dorewrite(&tmpout,FD_CDR(xt))<0) {
                     u8_free(tmpout.u8_outbuf); u8_free(out.u8_outbuf);
@@ -1148,7 +1149,8 @@ static fdtype textsubst(fdtype string,
                   else {
                     FD_DO_CHOICES(rem,remainder) {
                       fdtype stringval;
-                      struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,512);
+                      struct U8_OUTPUT tmpout; 
+                      U8_INIT_OUTPUT(&tmpout,512);
                       u8_puts(&tmpout,out.u8_outbuf);
                       if (dorewrite(&tmpout,FD_CDR(xt))<0) {
                         u8_free(tmpout.u8_outbuf); u8_free(out.u8_outbuf);
@@ -1207,7 +1209,7 @@ static fdtype gathersubst_base(fdtype pattern,fdtype string,
       fd_decref(extract_result);
       if (end<0) return results;
       else if (end>start) {
-        struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,24);
+        struct U8_OUTPUT tmpout; U8_INIT_OUTPUT(&tmpout,128);
         dorewrite(&tmpout,longest);
         result=fd_stream2string(&tmpout);
         FD_ADD_TO_CHOICE(results,result);
@@ -1476,7 +1478,7 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
       else {
         fdtype parser=fd_get_arg(xtract,3);
         struct U8_OUTPUT _out; int retval;
-        U8_INIT_OUTPUT(&_out,32);
+        U8_INIT_OUTPUT(&_out,128);
         retval=framify(f,&_out,content);
         if (retval<0) return -1;
         else if (out)
@@ -2168,7 +2170,8 @@ static fdtype unslashify_prim(fdtype string,fdtype offset,fdtype limit_arg,
   start=sdata+off; limit=sdata+lim; split1=strchr(start,'\\');
   if ((split1) && (split1<limit)) {
     const u8_byte *scan=start;
-    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,FD_STRLEN(string));
+    struct U8_OUTPUT out; 
+    U8_INIT_OUTPUT(&out,FD_STRLEN(string));
     while (scan) {
       u8_byte *split=strchr(scan,'\\');
       if ((!split) || (split>=limit)) {

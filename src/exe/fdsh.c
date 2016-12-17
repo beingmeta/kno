@@ -278,6 +278,7 @@ int main(int argc,char **argv)
   u8_output out=(u8_output)u8_open_xoutput(1,enc);
   u8_output err=(u8_output)u8_open_xoutput(2,enc);
   int i=1, c, n_chars=0;
+  unsigned int arg_mask=0;
   u8_string source_file=NULL;
 
   /* INITIALIZING MODULES */
@@ -337,11 +338,14 @@ int main(int argc,char **argv)
   setlocale(LC_ALL,"");
   that_symbol=fd_intern("THAT");
   histref_symbol=fd_intern("%HISTREF");
-  while (i<argc)
-    if (strchr(argv[i],'='))
-      fd_config_assignment(argv[i++]);
+  while (i<argc) {
+    if (isconfig(argv[i])) i++;
     else if (source_file) i++;
-    else source_file=argv[i++];
+    else {
+      if (i<32) arg_mask = arg_mask | (1<<i);
+      source_file=argv[i++];}}
+
+  fd_handle_argv(argc,argv,arg_mask,NULL);
 
   if (!(quiet_console)) fd_boot_message();
 

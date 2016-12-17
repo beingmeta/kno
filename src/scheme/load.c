@@ -447,7 +447,7 @@ static u8_mutex config_file_lock;
 
 static FD_CONFIG_RECORD *config_records=NULL, *config_stack=NULL;
 
-static fdtype get_config_files(fdtype var,void MAYBE_UNUSED *data)
+static fdtype get_config_files(fdtype var,void U8_MAYBE_UNUSED *data)
 {
   struct FD_CONFIG_RECORD *scan; fdtype result=FD_EMPTY_LIST;
   fd_lock_mutex(&config_file_lock);
@@ -459,7 +459,7 @@ static fdtype get_config_files(fdtype var,void MAYBE_UNUSED *data)
 }
 
 static int add_config_file_helper(fdtype var,fdtype val,
-                                  void MAYBE_UNUSED *data,
+                                  void U8_MAYBE_UNUSED *data,
                                   int isopt)
 {
   if ((FD_STRINGP(val))&&(FD_STRLEN(val)>0)) {
@@ -502,12 +502,12 @@ static int add_config_file_helper(fdtype var,fdtype val,
   else return -1;
 }
 
-static int add_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
+static int add_config_file(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 {
   return add_config_file_helper(var,val,data,0);
 }
 
-static int add_opt_config_file(fdtype var,fdtype val,void MAYBE_UNUSED *data)
+static int add_opt_config_file(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 {
   return add_config_file_helper(var,val,data,1);
 }

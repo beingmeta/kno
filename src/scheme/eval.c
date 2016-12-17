@@ -569,7 +569,7 @@ static int check_line_length(u8_output out,int off,int max_len)
     /* The line is too long, insert a \n\t at off */
     if ((end+5)>(out->u8_outlim)) {
       /* Grow the stream if needed */
-      u8_grow_stream((u8_stream)out,16);
+      u8_grow_stream((u8_stream)out,U8_BUF_MIN_GROW);
       start=out->u8_outbuf; end=out->u8_write;
       scanner=start+scan_off;}
     /* Use memmove because it's overlapping */
