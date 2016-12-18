@@ -62,6 +62,27 @@ testbin: $(TESTBIN)
 		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ \
 		-lfdscheme@suffix@ -lfdschemeio@suffix@
 
+%: %.c $(EXTRA_LIBS) $(CORE_LIBS)
+	@echo MKTEST_STATIC $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS) -o $@ $< 	\
+		$(EXTRA_LIBS) $(CORE_LIBS) $(LIBS) -lu8stdio
+
+# Clean targets
+
+clean: testclean
+	rm -f $(TESTBIN)
+	find . -name "vgcore.*" | xargs rm -f
+	find . -name "*.pid" | xargs rm -f
+	rm -rf mongodb/dbdata;
+
+testclean:
+	rm -f *.log *.err *.done *.finished *.pid *.died
+	rm -f temp.* utf8-temp.* testdb* memoization.index test.dtype
+	rm -f logfile thirty2fifty thirtythree 
+
+
+# Static lib targets
+
 ../../lib/libfdweb@suffix@.a:
 	cd ../..; make lib/libfdweb@suffix@.a
 ../../lib/libfdschemeio@suffix@.a:
@@ -79,25 +100,20 @@ testbin: $(TESTBIN)
 ../../lib/libfdbserv@suffix@.a:
 	cd ../..; make lib/libfdbserv@suffix@.a
 
+# Extra dependencies
+
 $(TESTBIN): $(EXTRA_LIBS) \
             ../../lib/libfdscheme@suffix@.a \
 	    ../../lib/libfddb@suffix@.a ../../lib/libfdtype@suffix@.a
 
-%: %.c $(EXTRA_LIBS) $(CORE_LIBS)
-	@echo MKTEST_STATIC $@
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS) -o $@ $< $(EXTRA_LIBS) $(CORE_LIBS) $(LIBS) -lu8stdio
 fdservlet: ../../src/exe/webcommon.h
 fdcgiexec: ../../src/exe/webcommon.h
 
-clean: testclean
-	rm -f $(TESTBIN)
+# Test targets
 
-testclean:
-	rm -f *.log *.err *.done *.finished *.pid *.died
-	rm -f temp.* utf8-temp.* testdb* memoization.index test.dtype
-	rm -f logfile thirty2fifty thirtythree 
 alltests: schemetests exectests tabletests indextests hashindextests dbtests optall
 	@echo "*** Done with alltests"
+
 schemetests:
 	@echo "*** Running scheme tests to exercise the data/eval layer"
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) r4rs.scm
