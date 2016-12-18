@@ -1183,11 +1183,11 @@ static fdtype rusage_prim(fdtype field)
       fd_add(result,clock_symbol,tval);
       fd_decref(tval);}
     { /* User time */
-      fdtype tval=fd_make_flonum(u8_dbltime(r.ru_utime));
+      fdtype tval=fd_make_flonum(u8_dbltime(r.ru_utime)/1000000);
       fd_add(result,utime_symbol,tval);
       fd_decref(tval);}
     { /* System time */
-      fdtype tval=fd_make_flonum(u8_dbltime(r.ru_stime));
+      fdtype tval=fd_make_flonum(u8_dbltime(r.ru_stime)/1000000);
       fd_add(result,stime_symbol,tval);
       fd_decref(tval);}
 
