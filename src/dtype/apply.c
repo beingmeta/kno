@@ -629,9 +629,9 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
   if (stackcheck()) {
     U8_WITH_CONTOUR(f->name,0)
       result=dcall_inner(f,n,args,static_args);
-    U8_ON_EXCEPTION
+    U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
-    result = FD_ERROR_VALUE;
+      result = FD_ERROR_VALUE;}
     U8_END_EXCEPTION;
     return result;}
   else {
