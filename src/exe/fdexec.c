@@ -117,7 +117,8 @@ static fdtype chain_prim(int n,fdtype *args)
     rv=execvp(exe_arg,cargv);
     if (rv<0) {
       u8_graberr(errno,"CHAIN",u8_strdup(file_arg));
-      return FD_ERROR_VALUE;}}
+      return FD_ERROR_VALUE;}
+    else return FD_INT(rv);}
 }
 
 static u8_string wait_for_file=NULL;
