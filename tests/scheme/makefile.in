@@ -116,6 +116,9 @@ alltests: schemetests exectests tabletests \
 	  chaintests batchtests batchchaintests
 	@echo "*** Done with alltests"
 
+cmdtests: exectests chaintests batchtests batchchaintests
+	@echo "*** Done with alltests"
+
 schemetests:
 	@echo "*** Running scheme tests to exercise the data/eval layer"
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) r4rs.scm
@@ -408,7 +411,7 @@ randomtests:
 	make "TESTCONFIG=RANDOMSEED=TIME" alltests
 	@echo "*** Finished alltests with a really random seed"
 
-chaintest:
+chaintests:
 	@echo "*** Testing scripts which call CHAIN"
 	./fdexec chaintest.scm
 	./fdexec chaintest.scm 0 30
@@ -453,6 +456,7 @@ batchtests:
          fi;
 	@rm -f countup.log countup.err countup.done countup.finished countup.died
 	@echo "*** "Done with fdbatch success test""
+	@echo "*** "Starting fdbatch failure test""
 	./fdbatch countup.scm ERROR=yes "countup.finished" 10 1;
 	@sleep 12;
 	@# This should have been deleted by the watch process
@@ -470,6 +474,7 @@ batchtests:
 		exit 1; 				\
 	 fi;
 	@echo "*** "Done with fdbatch failure test""
+	@echo "*** "Starting fdbatch kill test""
 	./fdbatch countup.scm "countup.killed" 10 1;
 	@sleep 3;
 	@kill -9 `cat countup.pid`; sleep 12
@@ -490,7 +495,7 @@ batchtests:
 	 fi;
 	@echo "*** "Done with fdbatch kill test""
 
-batchchaintest:
+batchchaintests:
 	@echo "*** Testing batch scripts which call CHAIN"
 	./fdbatch chaintest.scm
 	@echo "*** Done testing batch scripts which call CHAIN"
