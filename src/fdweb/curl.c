@@ -448,7 +448,7 @@ static fdtype set_curlopt
     else if (FD_TRUEP(val))
       curl_easy_setopt(ch->handle,CURLOPT_SSL_VERIFYHOST,2);
     else return fd_type_error("symbol/method","set_curlopt",val);
-  else if (FD_EQ(opt,timeout_symbol)) {
+  else if ((FD_EQ(opt,timeout_symbol))||(FD_EQ(opt,maxtime_symbol))) {
     if (FD_FIXNUMP(val)) {
       curl_easy_setopt(ch->handle,CURLOPT_TIMEOUT,FD_FIX2INT(val));}
     else if (FD_FLONUMP(val)) {
