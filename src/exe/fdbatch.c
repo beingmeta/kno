@@ -11,9 +11,7 @@
 
 #define FDEXEC_INCLUDED 1
 
-#define main do_main
 #include "fdexec.c"
-#undef main
 
 #if HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -175,19 +173,22 @@ static int newlog=0;
 int main(int argc,char **argv)
 {
   pid_t pid;
-  int pid_fd, log_fd=-1, err_fd=-1, chained=0;
+  int pid_fd, log_fd=-1, err_fd=-1, chained=0, i=1;
   int logopen_flags=O_WRONLY|O_APPEND|O_CREAT;
+  u8_string source_file=NULL, exe_name=NULL;
   u8_string done_file, log_file=NULL, err_file=NULL;
   unsigned int parse_mask=0;
   fdtype *args=NULL; size_t n_args;
+  
   /* We just initialize this for now. */
   u8_log_show_procinfo=1;
-  fd_init_dtypelib();
+
+  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file);
+
   fd_register_config("NEWLOG",
-                     _("Whether to append to log files"),
+                     _("Whether to truncate existing log files"),
                      fd_boolconfig_get,fd_boolconfig_set,
                      &newlog);
-  identify_application(argc,argv,argv[0]);
 
   if (newlog) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
 
@@ -275,7 +276,8 @@ int main(int argc,char **argv)
     if (err_file) {
       dup2(err_fd,2); u8_free(err_file); close(err_fd);}
     atexit(fdbatch_atexit);
-    retval=do_main(argc,argv);
+    retval=do_main(argc,argv,exe_name,source_file,
+		   args,n_args);
     if (retval>=0) {
       FILE *f=u8_fopen(done_file,"w");
       if (f) {

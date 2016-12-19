@@ -51,6 +51,8 @@ static u8_condition FileWait=_("FILEWAIT");
 static void identify_application(int argc,char **argv,char *dflt)
 {
   int i=1;
+  u8_string appid=NULL;
+
   while (i<argc)
     if (isconfig(argv[i])) i++;
     else {
@@ -65,8 +67,8 @@ static void identify_application(int argc,char **argv,char *dflt)
       slash=strrchr(copy,'/');
       if ((slash)&&(slash[1])) u8_default_appid(slash+1);
       else u8_default_appid(copy);
-      u8_free(copy);
       return;}
+  
   u8_default_appid(dflt);
 }
 
@@ -82,7 +84,7 @@ static fdtype chain_prim(int n,fdtype *args)
   if (n_configs>=MAX_CONFIGS)
     return fd_err(_("Too many configs to CHAIN"),"chain_prim",NULL,FD_VOID);
   else {
-    int i=0, cargc=0;
+    int i=0, cargc=0, rv=-1;
     /* This stream will contain the chaining message */
     struct U8_OUTPUT argstring;
     char **cargv=u8_alloc_n(n+n_configs+3,charp);
@@ -112,34 +114,100 @@ static fdtype chain_prim(int n,fdtype *args)
     u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",
            exe_arg,u8_fromlibc(file_arg),argstring.u8_outbuf);
     u8_free(argstring.u8_outbuf);
-    return execvp(exe_arg,cargv);}
+    rv=execvp(exe_arg,cargv);
+    if (rv<0) {
+      u8_graberr(errno,"CHAIN",u8_strdup(file_arg));
+      return FD_ERROR_VALUE;}}
 }
 
 static u8_string wait_for_file=NULL;
 
-int main(int argc,char **argv)
+static void print_args(int argc,char **argv)
 {
-  u8_string source_file=NULL;
-  fd_lispenv env=fd_working_environment();
-  fdtype main_proc=FD_VOID, result=FD_VOID, *args;
-  int i=1, retval=0; size_t n_args;
-  unsigned int arg_mask=0;  /* Bit map of args to skip */
+  int j=0;
+  fprintf(stderr,"-- argc=%d pid=%d\n",argc,getpid());
+  while (j<argc) {
+    fprintf(stderr,"   argv[%d]=%s\n",j,argv[j]);
+    j++;}
+}
 
+static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
+                           u8_string *exe_namep,
+                           u8_string *source_filep)
+{
+  fdtype *args=NULL;
+  u8_string tmp_string=NULL, source_file=NULL, exe_name=NULL;
+  unsigned int arg_mask=0;
+  int i=1;
+
+  if (getenv("FD_SHOWARGV")) print_args(argc,argv);
+
+  exe_arg=argv[0];
+  
+  tmp_string=u8_fromlibc(exe_arg);
+  exe_name=u8_basename(tmp_string,NULL);
+  u8_free(tmp_string); tmp_string=NULL;
+  if (exe_namep) {
+    *exe_namep=exe_name;
+    tmp_string=NULL;}
+  
   while (i<argc) {
-    char *arg=argv[i];
-    if (isconfig(arg)) i++;
-    else if (exe_arg==NULL) {
-      if (i<32) arg_mask = arg_mask | (1<<i);
-      exe_arg=u8_strdup(argv[i]);
+    if (isconfig(argv[i])) {
+      u8_log(LOG_INFO,"FDConfig","    %s",argv[i]);
+      if (n_configs >= MAX_CONFIGS) n_configs++;
+      else configs[n_configs++] = u8_strdup(argv[i]);
       i++;}
-    else i++;}
+    else if (source_file) i++;
+    else {
+      arg_mask |= (1<<i);
+      file_arg=argv[i++];
+      source_file=u8_fromlibc(file_arg);}}
+  
+ if (source_file==NULL) {
+   int i=0;
+   fprintf(stderr,"argc=%d\n",argc);
+   while (i<argc) {
+     fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
+     i++;}
+   fprintf(stderr,"Usage: %s filename [config=val]*\n",exe_name);
+   exit(EXIT_FAILURE);}
+ else if (source_filep) {
+   *source_filep=source_file;}
+ else {}
+ 
+  fd_init_dtypelib();
 
-  if (exe_arg==NULL) {
-    fprintf(stderr,"Usage: fdexec filename [config=val]*\n");
-    return -1;}
+  args = fd_handle_argv(argc,argv,arg_mask,arglenp);
+
+  if (u8_appid()==NULL) {
+    if (source_file) {
+      u8_string base=u8_basename(source_file,"*");
+      u8_default_appid(base);
+      u8_free(base);}
+    else {
+      u8_string base=u8_basename(exe_name,NULL);
+      u8_default_appid(base);
+      if (exe_namep==NULL) u8_free(exe_name);
+      u8_free(base);}}
+  
+  if (source_filep==NULL) u8_free(source_file);
+  if (exe_namep==NULL) u8_free(exe_name);
+
+  return args;
+}
+
+int do_main(int argc,char **argv,
+            u8_string exe_name,u8_string source_file,
+            fdtype *args,size_t n_args)
+{
+  fd_lispenv env=fd_working_environment();
+  fdtype main_proc=FD_VOID, result=FD_VOID;
+  int i=1, retval=0;
+
+  if (exe_name==NULL)
+    args=handle_argv(argc,argv,&n_args,&exe_name,&source_file);
 
   u8_register_source_file(_FILEINFO);
-  identify_application(argc,argv,argv[0]);
 
   fd_register_config
     ("DEBUGMAXCHARS",
@@ -163,9 +231,6 @@ int main(int argc,char **argv)
 
   setlocale(LC_ALL,"");
   /* Process command line arguments */
-#ifndef FDEXEC_INCLUDED
-  args = fd_handle_argv(argc,argv,arg_mask,&n_args);
-#endif
 
   atexit(exit_fdexec);
 
@@ -212,23 +277,6 @@ int main(int argc,char **argv)
 
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   
-  i=1; while (i<argc) {
-    if (isconfig(argv[i])) {
-      /* Record but pass command line configs */
-      u8_log(LOG_INFO,"FDConfig","    %s",argv[i]);
-      if (n_configs >= MAX_CONFIGS) n_configs++;
-      else configs[n_configs++] = u8_strdup(argv[i]);
-      i++;}
-    else if (source_file) i++;
-    else {
-      u8_string arg=u8_fromlibc(argv[i]), basename;
-      file_arg=u8_strdup(argv[i]);
-      source_file=u8_abspath(arg,NULL);
-      basename=u8_basename(source_file,NULL);
-      u8_default_appid(basename);
-      arg_mask = arg_mask | (1<<i);
-      i++;}} /* while */
-  
   if (source_file) {
     fdtype interp=fd_lispstring(u8_fromlibc(argv[0]));
     fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
@@ -243,8 +291,6 @@ int main(int argc,char **argv)
     fprintf(stderr,
             "Usage: fdexec [conf=val]* source_file (arg | [conf=val])*\n");
     return 1;}
-
-  args = fd_handle_argv(argc,argv,arg_mask,&n_args);
 
   if (!(quiet_console)) {
     double startup_time=u8_elapsed_time()-fd_load_start;
@@ -292,6 +338,14 @@ int main(int argc,char **argv)
   fd_decref(main_proc);
   return retval;
 }
+
+#ifndef FDEXEC_INCLUDED
+int main(int argc,char **argv)
+{
+  return do_main(argc,argv,NULL,NULL,NULL,0);
+}
+#endif
+  
 
 /* Emacs local variables
    ;;;  Local variables: ***
