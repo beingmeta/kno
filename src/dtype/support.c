@@ -1809,8 +1809,14 @@ static int config_atexit_set(fdtype var,fdtype val,void *data)
 FD_EXPORT void fd_doexit(fdtype arg)
 {
   struct FD_ATEXIT *scan, *tmp;
+  if (fd_argv) {
+    int i=0, n=fd_argc; while (i<n) {
+      fdtype elt=fd_argv[i++]; fd_decref(elt);}
+    u8_free(fd_argv);
+    fd_argv=NULL;
+    fd_argc=-1;}
   if (!(atexit_handlers)) {
-    u8_log(LOG_INFO,"fd_doexit","No FramerD exit handlers!");
+    u8_log(LOG_DEBUG,"fd_doexit","No FramerD exit handlers!");
     return;}
   fd_lock_mutex(&atexit_handlers_lock);
   u8_log(LOG_NOTICE,"fd_doexit","Running %d FramerD exit handlers",
@@ -1828,19 +1834,11 @@ FD_EXPORT void fd_doexit(fdtype arg)
     else fd_decref(result);
     fd_decref(handler); tmp=scan; scan=scan->next;
     u8_free(tmp);}
-#if 0
   fd_decref(exec_arg); exec_arg=FD_FALSE; 
   fd_decref(lisp_argv); lisp_argv=FD_FALSE;
   fd_decref(string_argv); string_argv=FD_FALSE;
   fd_decref(raw_argv); raw_argv=FD_FALSE;
   fd_decref(config_argv); config_argv=FD_FALSE;
-  if (fd_argv) {
-    int i=0, n=fd_argc; while (i<n) {
-      fdtype elt=fd_argv[i]; fd_decref(elt);}
-    u8_free(fd_argv);
-    fd_argv=NULL;
-    fd_argc=-1;}
-#endif
 }
 
 static void doexit_atexit(){fd_doexit(FD_FALSE);}
