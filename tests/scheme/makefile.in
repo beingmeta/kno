@@ -111,7 +111,9 @@ fdcgiexec: ../../src/exe/webcommon.h
 
 # Test targets
 
-alltests: schemetests exectests tabletests indextests hashindextests dbtests optall
+alltests: schemetests exectests tabletests \
+	  indextests hashindextests dbtests optall \
+	  chaintests batchtests batchchaintests
 	@echo "*** Done with alltests"
 
 schemetests:
@@ -408,9 +410,9 @@ randomtests:
 
 chaintest:
 	@echo "*** Testing scripts which call CHAIN"
-	fdexec chaintest.scm
-	fdexec chaintest.scm 0 30
-	fdexec chaintest.scm 10 50
+	./fdexec chaintest.scm
+	./fdexec chaintest.scm 0 30
+	./fdexec chaintest.scm 10 50
 	@echo "*** Done testing scripts which call CHAIN"
 
 batchtest:
@@ -450,5 +452,5 @@ batchtest:
 
 batchchaintest:
 	@echo "*** Testing batch scripts which call CHAIN"
-	fdbatch chaintest.scm
+	./fdbatch chaintest.scm
 	@echo "*** Done testing batch scripts which call CHAIN"
