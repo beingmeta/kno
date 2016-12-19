@@ -360,26 +360,30 @@ static u8_condition UnwindError=_("Unwind error");
 
 static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
 {
-  fdtype wind=fd_get_arg(expr,1), doit=fd_get_arg(expr,2), unwind=fd_get_arg(expr,3);
+  fdtype wind=fd_get_arg(expr,1);
+  fdtype doit=fd_get_arg(expr,2);
+  fdtype unwind=fd_get_arg(expr,3);
   if ((FD_VOIDP(wind)) || (FD_VOIDP(doit)) || (FD_VOIDP(unwind)))
     return fd_err(fd_SyntaxError,"dynamic_wind_handler",NULL,expr);
   else {
     wind=fd_eval(wind,env);
     if (FD_ABORTP(wind)) return wind;
-    doit=fd_eval(doit,env);
+    else if (!(thunkp(wind))) 
+      return fd_type_error("thunk","dynamic_wind_handler",wind);
+    else doit=fd_eval(doit,env);
     if (FD_ABORTP(doit)) {
       fd_decref(wind);
       return doit;}
-    unwind=fd_eval(unwind,env);
+    else if (!(thunkp(doit))) {
+      fd_decref(wind);
+      return fd_type_error("thunk","dynamic_wind_handler",doit);}
+    else unwind=fd_eval(unwind,env);
     if (FD_ABORTP(unwind)) {
       fd_decref(wind); fd_decref(doit);
       return unwind;}
-    if (!(thunkp(wind)))
-      return fd_type_error("thunk","dynamic_wind_handler",wind);
-    else if (!(thunkp(doit)))
-      return fd_type_error("thunk","dynamic_wind_handler",doit);
-    else if (!(thunkp(unwind)))
-      return fd_type_error("thunk","dynamic_wind_handler",unwind);
+    else if (!(thunkp(unwind))) {
+      fd_decref(wind); fd_decref(doit);
+      return fd_type_error("thunk","dynamic_wind_handler",unwind);}
     else {
       fdtype windval=fd_apply(wind,0,NULL);
       if (FD_ABORTP(windval)) {
@@ -401,16 +405,27 @@ static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
 static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
 {
   fdtype heart=fd_get_arg(uwp,1);
-  fdtype result=fd_eval(heart,env);
-  {FD_DOBODY(expr,uwp,2) {
-      fdtype uw_result=fd_eval(expr,env);
-      if (FD_ABORTP(uw_result))
-        if (FD_ABORTP(result)) {
-          fd_interr(result); fd_interr(uw_result);
-          return FD_ERROR_VALUE;}
-        else {
-          fd_decref(result); result=uw_result; break;}
-      else fd_decref(uw_result);}}
+  fdtype result;
+  {U8_WITH_CONTOUR("UNWIND-PROTECT(body)",0)
+      result=fd_eval(heart,env);
+    U8_ON_EXCEPTION {
+      U8_CLEAR_CONTOUR();
+      result=FD_ERROR_VALUE;}
+    U8_END_EXCEPTION;}
+  {U8_WITH_CONTOUR("UNWIND-PROTECT(unwind)",0)
+      {FD_DOBODY(expr,uwp,2) {
+          fdtype uw_result=fd_eval(expr,env);
+          if (FD_ABORTP(uw_result))
+            if (FD_ABORTP(result)) {
+              fd_interr(result); fd_interr(uw_result);
+              return FD_ERROR_VALUE;}
+            else {
+              fd_decref(result); result=uw_result; break;}
+          else fd_decref(uw_result);}}
+    U8_ON_EXCEPTION {
+      U8_CLEAR_CONTOUR();
+      result = FD_ERROR_VALUE;}
+    U8_END_EXCEPTION;}
   return result;
 }
 

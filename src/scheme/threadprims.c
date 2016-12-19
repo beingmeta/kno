@@ -74,6 +74,8 @@ FD_EXPORT void recycle_thread_struct(struct FD_CONS *c)
     int i=0, n=th->applydata.n_args; fdtype *args=th->applydata.args;
     while (i<n) {fd_decref(args[i]); i++;}
     u8_free(args); fd_decref(th->applydata.fn);}
+  if (th->result!=FD_NULL) fd_decref(th->result);
+  th->resultptr=NULL;
   pthread_attr_destroy(&(th->attr));
   u8_free(th);
 }
@@ -232,8 +234,14 @@ static fdtype with_lock_handler(fdtype expr,fd_lispenv env)
       fd_lock_struct(sp);}
     else return fd_type_error("lockable","synchro_lock",lck);}
   else return fd_type_error("lockable","synchro_unlock",lck);
-  FD_DOLIST(elt_expr,FD_CDR(FD_CDR(expr))) {
-    fd_decref(value); value=fd_eval(elt_expr,env);}
+  {U8_WITH_CONTOUR("WITH-LOCK",0) {
+      FD_DOLIST(elt_expr,FD_CDR(FD_CDR(expr))) {
+        fd_decref(value); value=fd_eval(elt_expr,env);}}
+    U8_ON_EXCEPTION {
+      U8_CLEAR_CONTOUR();
+      fd_decref(value);
+      value=FD_ERROR_VALUE;}
+    U8_END_EXCEPTION;}
   if (FD_PTR_TYPEP(lck,fd_condvar_type)) {
     struct FD_CONSED_CONDVAR *cv=
       FD_GET_CONS(lck,fd_condvar_type,struct FD_CONSED_CONDVAR *);
@@ -283,6 +291,7 @@ static void *thread_call(void *data)
   u8_threadexit();
   if (FD_ABORTP(result)) {
     u8_exception ex=u8_erreify();
+    fdtype exobj=fd_init_exception(NULL,ex);
     u8_string errstring=fd_errstring(ex);
     if (tstruct->flags&FD_EVAL_THREAD)
       u8_log(LOG_WARN,ThreadReturnError,
@@ -299,11 +308,16 @@ static void *thread_call(void *data)
         fd_print_backtrace(&out,ex,120);
         fd_dump_backtrace(out.u8_outbuf);}
       u8_free(out.u8_outbuf);}
-    if (tstruct->resultptr)
-      *(tstruct->resultptr)=fd_init_exception(NULL,ex);
-    else u8_free_exception(ex,1);}
-  else if (tstruct->resultptr) *(tstruct->resultptr)=result;
-  else fd_decref(result);
+    tstruct->result=exobj;
+    if (tstruct->resultptr) {
+      fd_incref(exobj);
+      *(tstruct->resultptr)=exobj;}
+    else {}}
+  else {
+    tstruct->result=result;
+    if (tstruct->resultptr) {
+      *(tstruct->resultptr)=result;
+      fd_incref(result);}}
   tstruct->flags=tstruct->flags|FD_THREAD_DONE;
   fd_decref((fdtype)tstruct);
   return NULL;
@@ -314,15 +328,22 @@ fd_thread_struct fd_thread_call
   (fdtype *resultptr,fdtype fn,int n,fdtype *rail)
 {
   struct FD_THREAD_STRUCT *tstruct=u8_alloc(struct FD_THREAD_STRUCT);
-  FD_INIT_CONS(tstruct,fd_thread_type);
+  if (tstruct==NULL) {
+    u8_seterr(u8_MallocFailed,"fd_thread_call",NULL);
+    return NULL;}
+  FD_INIT_FRESH_CONS(tstruct,fd_thread_type);
   if (resultptr) {
-    tstruct->resultptr=resultptr; tstruct->result=FD_NULL;}
+    tstruct->resultptr=resultptr; 
+    *resultptr=FD_NULL;
+    tstruct->result=FD_NULL;}
   else {
-    tstruct->result=FD_NULL; tstruct->resultptr=&(tstruct->result);}
+    tstruct->result=FD_NULL;
+    tstruct->resultptr=NULL;}
   tstruct->flags=0;
   pthread_attr_init(&(tstruct->attr));
   tstruct->applydata.fn=fd_incref(fn);
-  tstruct->applydata.n_args=n; tstruct->applydata.args=rail;
+  tstruct->applydata.n_args=n; 
+  tstruct->applydata.args=rail;
   /* We need to do this first, before the thread exits and recycles itself! */
   fd_incref((fdtype)tstruct);
   pthread_create(&(tstruct->tid),&(tstruct->attr),
@@ -334,11 +355,17 @@ FD_EXPORT
 fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
 {
   struct FD_THREAD_STRUCT *tstruct=u8_alloc(struct FD_THREAD_STRUCT);
-  FD_INIT_CONS(tstruct,fd_thread_type);
+  if (tstruct==NULL) {
+    u8_seterr(u8_MallocFailed,"fd_thread_eval",NULL);
+    return NULL;}
+  FD_INIT_FRESH_CONS(tstruct,fd_thread_type);
   if (resultptr) {
-    tstruct->resultptr=resultptr; tstruct->result=FD_NULL;}
+    tstruct->resultptr=resultptr; 
+    *resultptr=FD_NULL;
+    tstruct->result=FD_NULL;}
   else {
-    tstruct->result=FD_NULL; tstruct->resultptr=&(tstruct->result);}
+    tstruct->result=FD_NULL;
+    tstruct->resultptr=NULL;}
   tstruct->flags=FD_EVAL_THREAD;
   tstruct->evaldata.expr=fd_incref(expr);
   tstruct->evaldata.env=fd_copy_env(env);
@@ -372,6 +399,36 @@ static fdtype threadeval_handler(fdtype expr,fd_lispenv env)
       FD_ADD_TO_CHOICE(results,thread);}
     return results;}
   else return (fdtype)fd_thread_eval(NULL,to_eval,env);
+}
+
+static fdtype thread_exitedp(fdtype thread_arg)
+{
+  struct FD_THREAD_STRUCT *thread=(struct FD_THREAD_STRUCT *)thread_arg;
+  if ((thread->flags)&(FD_THREAD_DONE))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype thread_errorp(fdtype thread_arg)
+{
+  struct FD_THREAD_STRUCT *thread=(struct FD_THREAD_STRUCT *)thread_arg;
+  if ((thread->flags)&(FD_THREAD_DONE)) {
+    if (FD_ABORTP(thread->result))
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
+}
+
+static fdtype thread_result(fdtype thread_arg)
+{
+  struct FD_THREAD_STRUCT *thread=(struct FD_THREAD_STRUCT *)thread_arg;
+  if ((thread->flags)&(FD_THREAD_DONE)) {
+    if (thread->result!=FD_NULL) {
+      fdtype result=thread->result;
+      fd_incref(result);
+      return result;}
+    else return FD_EMPTY_CHOICE;}
+  else return FD_EMPTY_CHOICE;
 }
 
 static fdtype threadjoin_prim(fdtype threads)
@@ -482,6 +539,16 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("THREAD/JOIN",threadjoin_prim,1)));
   fd_defalias(fd_scheme_module,"THREADJOIN","THREAD/JOIN");
+
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("THREAD/EXITED?",thread_exitedp,1,
+                           fd_thread_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("THREAD/ERROR?",thread_errorp,1,
+                           fd_thread_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("THREAD/RESULT",thread_result,1,
+                           fd_thread_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("MAKE-CONDVAR",make_condvar,0));
   fd_idefn(fd_scheme_module,fd_make_cprim2("CONDVAR-WAIT",condvar_wait,1));

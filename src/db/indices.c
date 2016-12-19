@@ -473,7 +473,18 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 static int add_key_fn(fdtype key,fdtype val,void *data)
 {
   fdtype **write=(fdtype **)data;
-  *(*write++)=fd_incref(key);
+  *((*write)++)=fd_incref(key);
+  /* Means keep going */
+  return 0;
+}
+
+static int edit_key_fn(fdtype key,fdtype val,void *data)
+{
+  fdtype **write=(fdtype **)data;
+  if (FD_PAIRP(key)) {
+    struct FD_PAIR *pair=(struct FD_PAIR *)key;
+    if (pair->fd_car==set_symbol) {
+      *((*write)++)=pair->fd_cdr; fd_incref(pair->fd_cdr);}}
   /* Means keep going */
   return 0;
 }
@@ -481,19 +492,29 @@ static int add_key_fn(fdtype key,fdtype val,void *data)
 FD_EXPORT fdtype fd_index_keys(fd_index ix)
 {
   if (ix->handler->fetchkeys) {
-    int n_fetched=0, n_total; fd_choice result;
+    int n_fetched=0;
     fdtype *fetched=ix->handler->fetchkeys(ix,&n_fetched);
-    fdtype *write_start, *write_at;
-    if (n_fetched==0) return fd_hashtable_keys(&(ix->adds));
-    n_total=n_fetched+ix->adds.fd_n_keys;
-    result=fd_alloc_choice(n_total);
-    memcpy(&(result->fd_elt0),fetched,sizeof(fdtype)*n_fetched);
-    write_start=&(result->fd_elt0); write_at=write_start+n_fetched;
-    u8_free(fetched);
-    if (ix->adds.fd_n_keys)
-      fd_for_hashtable(&(ix->adds),add_key_fn,&write_at,1);
-    return fd_init_choice(result,write_at-write_start,NULL,
-                          FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}
+    if ((n_fetched==0) && (ix->edits.fd_n_keys == 0) &&
+        (ix->adds.fd_n_keys == 0))
+      return FD_EMPTY_CHOICE;
+    else if ((n_fetched==0) && (ix->edits.fd_n_keys == 0))
+      return fd_hashtable_keys(&(ix->adds));
+    else if ((n_fetched==0) && (ix->adds.fd_n_keys == 0))
+      return fd_hashtable_keys(&(ix->edits));
+    else {
+      fd_choice result; int n_total;
+      fdtype *write_start, *write_at;
+      n_total=n_fetched+ix->adds.fd_n_keys+ix->edits.fd_n_keys;
+      result=fd_alloc_choice(n_total);
+      memcpy(&(result->fd_elt0),fetched,sizeof(fdtype)*n_fetched);
+      write_start=&(result->fd_elt0); write_at=write_start+n_fetched;
+      if (ix->adds.fd_n_keys)
+        fd_for_hashtable(&(ix->adds),add_key_fn,&write_at,1);
+      if (ix->edits.fd_n_keys)
+        fd_for_hashtable(&(ix->edits),edit_key_fn,&write_at,1);
+      u8_free(fetched);
+      return fd_init_choice(result,write_at-write_start,NULL,
+                            FD_CHOICE_DOSORT|FD_CHOICE_REALLOC);}}
   else return fd_err(fd_NoMethod,"fd_index_keys",NULL,fd_index2lisp(ix));
 }
 

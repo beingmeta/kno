@@ -60,6 +60,9 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
 				 unsigned int parse_mask,
 				 size_t *arglen_ptr);
 
+FD_EXPORT fdtype *fd_argv;
+FD_EXPORT int fd_argc;
+
 FD_EXPORT void fd_set_thread_config(fdtype table);
 
 FD_EXPORT
