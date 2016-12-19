@@ -416,9 +416,13 @@ FD_EXPORT int fd_argv_config(int argc,char **argv)
   return n;
 }
 
+fdtype *fd_argv=NULL;
+int fd_argc=-1;
+
 static void set_vector_length(fdtype vector,int len);
 static fdtype exec_arg=FD_FALSE, lisp_argv=FD_FALSE, string_argv=FD_FALSE;
 static fdtype raw_argv=FD_FALSE, config_argv=FD_FALSE;
+static int init_argc=0;
 static size_t app_argc;
 
 /* This takes an argv, argc combination and processes the argv elements
@@ -427,55 +431,74 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
                                  unsigned int arg_mask,
                                  size_t *arglen_ptr)
 {
-  int i=0, n=0, config_i=0;
-  fdtype string_args=fd_make_vector(argc-1,NULL), string_arg=FD_VOID;
-  fdtype lisp_args=fd_make_vector(argc-1,NULL), lisp_arg=FD_VOID;
-  fdtype config_args=fd_make_vector(argc-1,NULL);
-  fdtype raw_args=fd_make_vector(argc,NULL);
-  fdtype *return_args=(arglen_ptr == NULL) ? (NULL) : (u8_alloc_n(argc-1,fdtype));
-  u8_threadcheck();
-  while (i<argc) {
-    char *carg=argv[i];
-    u8_string arg=u8_fromlibc(carg), eq=strchr(arg,'=');
-    FD_VECTOR_SET(raw_args,i,fdtype_string(arg));
-    /* Don't include argv[0] in the arglists */
-    if (i==0) {
-      i++; continue;} 
-    else if ( ( n < 32 ) && ( ( (arg_mask) & (1<<i)) !=0 ) ) {
-      i++; continue;}
-    else i++;
-    if ((eq!=NULL) && (eq>arg) && (*(eq-1)!='\\')) {
-      int retval=(arg!=NULL) ? (fd_config_assignment(arg)) : (-1);
-      FD_VECTOR_SET(config_args,config_i,fdtype_string(arg)); config_i++;
-      if (retval<0) {
-        u8_log(LOGCRIT,"FailedConfig",
-               "Couldn't handle the config argument `%s`",
-               (arg==NULL) ? ((u8_string)carg) : (arg));
-        u8_clear_errors(0);}
-      else u8_log(LOG_INFO,fd_ArgvConfig,"   %s",arg);
-      u8_free(arg);
-      continue;}
-    string_arg=fdtype_string(arg);
-    /* Note that fd_parse_arg should always return at least a lisp
-       string */
-    lisp_arg=fd_parse_arg(arg);
+  if (fd_argv!=NULL)  {
+    if ((init_argc>0) && (argc != init_argc)) 
+      u8_log(LOG_WARN,"InconsitentArgv/c",
+             "Trying to reprocess argv with a different argc (%d) length != %d",
+             argc,init_argc);
+    if (arglen_ptr) *arglen_ptr=fd_argc;
+    return fd_argv;}
+  else if (argc<=0) {
+    u8_log(LOG_CRIT,"fd_handle_arg(invalid argv)",
+           _("The argc length %d is not valid (>0)"),argc);
+    return NULL;}
+  else if (argv==NULL) {
+    u8_log(LOG_CRIT,"fd_handle_arg(invalid argv)",
+           _("The argv argument cannot be NULL!"),argc);
+    return NULL;}
+  else {
+    int i=0, n=0, config_i=0;
+    fdtype string_args=fd_make_vector(argc-1,NULL), string_arg=FD_VOID;
+    fdtype lisp_args=fd_make_vector(argc-1,NULL), lisp_arg=FD_VOID;
+    fdtype config_args=fd_make_vector(argc-1,NULL);
+    fdtype raw_args=fd_make_vector(argc,NULL);
+    fdtype *return_args=(arglen_ptr == NULL) ? (NULL) : (u8_alloc_n(argc-1,fdtype));
+    u8_threadcheck();
+    init_argc=argc;
+    while (i<argc) {
+      char *carg=argv[i];
+      u8_string arg=u8_fromlibc(carg), eq=strchr(arg,'=');
+      FD_VECTOR_SET(raw_args,i,fdtype_string(arg));
+      /* Don't include argv[0] in the arglists */
+      if (i==0) {
+        i++; continue;} 
+      else if ( ( n < 32 ) && ( ( (arg_mask) & (1<<i)) !=0 ) ) {
+        i++; continue;}
+      else i++;
+      if ((eq!=NULL) && (eq>arg) && (*(eq-1)!='\\')) {
+        int retval=(arg!=NULL) ? (fd_config_assignment(arg)) : (-1);
+        FD_VECTOR_SET(config_args,config_i,fdtype_string(arg)); config_i++;
+        if (retval<0) {
+          u8_log(LOGCRIT,"FailedConfig",
+                 "Couldn't handle the config argument `%s`",
+                 (arg==NULL) ? ((u8_string)carg) : (arg));
+          u8_clear_errors(0);}
+        else u8_log(LOG_INFO,fd_ArgvConfig,"   %s",arg);
+        u8_free(arg);
+        continue;}
+      string_arg=fdtype_string(arg);
+      /* Note that fd_parse_arg should always return at least a lisp
+         string */
+      lisp_arg=fd_parse_arg(arg);
+      if (return_args) {
+        return_args[n]=lisp_arg; fd_incref(lisp_arg);}
+      FD_VECTOR_SET(lisp_args,n,lisp_arg);
+      FD_VECTOR_SET(string_args,n,string_arg);
+      n++;}
+    set_vector_length(lisp_args,n);
+    lisp_argv = lisp_args;
+    set_vector_length(string_args,n);
+    string_argv = string_args;
+    set_vector_length(config_args,n);
+    config_argv = config_args;
+    raw_argv = raw_args;
+    app_argc=n;
+    fd_argv=return_args;
+    fd_argc=n;
     if (return_args) {
-      return_args[n]=lisp_arg; fd_incref(lisp_arg);}
-    FD_VECTOR_SET(lisp_args,n,lisp_arg);
-    FD_VECTOR_SET(string_args,n,string_arg);
-    n++;}
-  set_vector_length(lisp_args,n);
-  lisp_argv = lisp_args;
-  set_vector_length(string_args,n);
-  string_argv = string_args;
-  set_vector_length(config_args,n);
-  config_argv = config_args;
-  raw_argv = raw_args;
-  app_argc=n;
-  if (return_args) {
-    *arglen_ptr=n;
-    return return_args;}
-  else return NULL;
+      *arglen_ptr=n;
+      return return_args;}
+    else return NULL;}
 }
 
 static void set_vector_length(fdtype vector,int len)
@@ -1805,6 +1828,19 @@ FD_EXPORT void fd_doexit(fdtype arg)
     else fd_decref(result);
     fd_decref(handler); tmp=scan; scan=scan->next;
     u8_free(tmp);}
+#if 0
+  fd_decref(exec_arg); exec_arg=FD_FALSE; 
+  fd_decref(lisp_argv); lisp_argv=FD_FALSE;
+  fd_decref(string_argv); string_argv=FD_FALSE;
+  fd_decref(raw_argv); raw_argv=FD_FALSE;
+  fd_decref(config_argv); config_argv=FD_FALSE;
+  if (fd_argv) {
+    int i=0, n=fd_argc; while (i<n) {
+      fdtype elt=fd_argv[i]; fd_decref(elt);}
+    u8_free(fd_argv);
+    fd_argv=NULL;
+    fd_argc=-1;}
+#endif
 }
 
 static void doexit_atexit(){fd_doexit(FD_FALSE);}
