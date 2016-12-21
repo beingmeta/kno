@@ -395,8 +395,32 @@ FD_EXPORT int fd_config_assignment(u8_string assignment)
   else return -1;
 }
 
-/* This takes an argv, argc combination and processes the argv elements
-   which are configs (var=value again) */
+/* This takes a string of the form var=value */
+FD_EXPORT int fd_config_default_assignment(u8_string assignment)
+{
+  u8_byte *equals;
+  if ((equals=(strchr(assignment,'=')))) {
+    u8_byte _namebuf[64], *namebuf;
+    int namelen=equals-assignment, retval;
+    fdtype value=fd_parse_arg(equals+1);
+    if (FD_ABORTP(value))
+      return fd_interr(value);
+    if (namelen+1>64)
+      namebuf=u8_malloc(namelen+1);
+    else namebuf=_namebuf;
+    strncpy(namebuf,assignment,namelen); namebuf[namelen]='\0';
+    if (!(fd_test(configuration_table,config_intern(namebuf),FD_VOID)))
+      retval=fd_config_set_consed(namebuf,value);
+    if (namebuf!=_namebuf) u8_free(namebuf);
+    return retval;}
+  else return -1;
+}
+
+/* DEPRECATED!
+   Use fd_handle_argv() instead
+
+   This takes an argv, argc combination and processes the argv
+   elements which are configs (var=value again) */
 FD_EXPORT int fd_argv_config(int argc,char **argv)
 {
   int i=0, n=0;
@@ -415,6 +439,8 @@ FD_EXPORT int fd_argv_config(int argc,char **argv)
     else i++;
   return n;
 }
+
+/* Processing argc,argv */
 
 fdtype *fd_argv=NULL;
 int fd_argc=-1;
@@ -549,6 +575,45 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
       else n++;
       u8_free(buf);}
   return n;
+}
+
+/* This reads a config file.  It consists of a series of entries, each of which is
+   either a list (var value) or an assignment var=value.
+   Both # and ; are comment characters */
+FD_EXPORT int fd_read_default_config(U8_INPUT *in)
+{
+  int c, n=0, count=0; u8_string buf;
+  while ((c=u8_getc(in))>=0)
+    if (c == '#') {
+      buf=u8_gets(in); u8_free(buf);}
+    else if (c == ';') {
+      buf=u8_gets(in); u8_free(buf);}
+    else if (c == '(') {
+      fdtype entry;
+      u8_ungetc(in,c);
+      entry=fd_parser(in);
+      if (FD_ABORTP(entry))
+        return fd_interr(entry);
+      else if ((FD_PAIRP(entry)) &&
+               (FD_SYMBOLP(FD_CAR(entry))) &&
+               (FD_PAIRP(FD_CDR(entry)))) {
+        if (fd_config_default(FD_SYMBOL_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
+          fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+          return -1;}
+        else {n++; count++;}
+        fd_decref(entry);}
+      else {
+        fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+        return -1;}}
+    else if ((u8_isspace(c)) || (u8_isctrl(c))) {}
+    else {
+      u8_ungetc(in,c);
+      buf=u8_gets(in);
+      if (fd_config_default_assignment(buf)<0)
+        return fd_reterr(fd_ConfigError,"fd_read_config",buf,FD_VOID);
+      else {count++; n++;}
+      u8_free(buf);}
+  return count;
 }
 
 /* Utility configuration functions */
