@@ -1,0 +1,3 @@
+git update
+git submodule update --remote --merge --recursive
+git status -uno .
