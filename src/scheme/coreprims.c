@@ -546,8 +546,16 @@ static fdtype remainder_prim(fdtype x,fdtype m)
 
 static fdtype random_prim(fdtype maxarg)
 {
-  int max=fd_getint(maxarg), n=u8_random(max);
-  return FD_INT(n);
+  if (FD_INTEGERP(maxarg)) {
+    int max=fd_getint(maxarg), n=u8_random(max);
+    return FD_INT(n);}
+  else if (FD_FLONUMP(maxarg)) {
+    double flomax = FD_FLONUM(maxarg);
+    int intmax=(int)flomax;
+    int n=u8_random(intmax);
+    double rval=(double) n;
+    return fd_make_flonum(rval);}
+  else return fd_type_error("integer or flonum","random_prim",maxarg);
 }
 
 static fdtype quotient_prim(fdtype x,fdtype y)
