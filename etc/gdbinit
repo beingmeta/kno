@@ -81,6 +81,10 @@ define showcelt
   print/x ((&((struct FD_CHOICE *)$arg0)->elt0)[$arg1])
   showtype $  
 end
+define celt
+  printf "%s\n",fd_dtype2string(((&((struct FD_CHOICE *)$arg0)->elt0)[$arg1]))
+  print/x ((&((struct FD_CHOICE *)$arg0)->elt0)[$arg1])
+  showtype $
 define oidinfo
   printf "oidinfo: %s\n", (_fd_oid_info($arg0))
 end
@@ -93,6 +97,20 @@ define showvec
   printf "data=%d\n",(&(((struct FD_VECTOR *)$arg0)->data))
   printf "size=%d\n",(((struct FD_VECTOR *)$arg0)->length)
   print (*((struct FD_VECTOR *)$arg0))
+end
+define showvelt
+  printf "data=%d\n",(&(((struct FD_CHOICE *)$arg0)->elt0))
+  printf "size=%d\n",((((struct FD_CHOICE *)$arg0)->size)&(0x7FFFFFFF))
+  print ((((struct FD_VECTOR *)$arg0)->elts)[$arg1])
+  showtype $
+end
+define velt
+  printf "%s\n",fd_dtype2string(((((struct FD_VECTOR *)$arg0)->elts)[$arg1]))
+  print ((((struct FD_VECTOR *)$arg0)->elts)[$arg1])
+  showtype $
+end
+define showflo
+  print (((struct FD_FLONUM *)($arg0))->flonum)
 end
 define showschemap
   printf "schema=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->schema))
