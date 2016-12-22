@@ -793,6 +793,29 @@ static fdtype table_skim(fdtype tables,fdtype maxval,fdtype scope)
     return results;}
 }
 
+static fdtype table_map_size(fdtype table)
+{
+  if (FD_PRIM_TYPEP(table,fd_hashtable_type)) {
+    struct FD_HASHTABLE *ht = (struct FD_HASHTABLE *) table;
+    long long n_values=fd_hashtable_map_size(ht);
+    return FD_INT(n_values);}
+  else if (FD_PRIM_TYPEP(table,fd_hashset_type)) {
+    struct FD_HASHSET *hs = (struct FD_HASHSET *) table;
+    return FD_INT(hs->n_keys);}
+  else if (FD_TABLEP(table)) {
+    fdtype keys=fd_getkeys(table);
+    long long count=0;
+    FD_DO_CHOICES(key,keys) {
+      fdtype v=fd_get(table,key,FD_VOID);
+      if (!(FD_VOIDP(v))) {
+        int size=FD_CHOICE_SIZE(v);
+        count += size;}
+      fd_decref(v);}
+    fd_decref(keys);
+    return FD_INT(count);}
+  else return fd_type_error(_("table"),"table_map_size",table);
+}
+
 /* Mapping into tables */
 
 static fdtype map2table(fdtype keys,fdtype fn,fdtype hashp)
@@ -954,6 +977,8 @@ FD_EXPORT void fd_init_tablefns_c()
            fd_make_ndprim(fd_make_cprim2("TABLE-MAXVAL",table_maxval,1)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("TABLE-SKIM",table_skim,2)));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-MAP-SIZE",table_map_size,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1
            ("PLIST->TABLE",fd_plist_to_slotmap,1));

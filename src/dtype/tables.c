@@ -2979,6 +2979,22 @@ fdtype fd_hashtable_skim(struct FD_HASHTABLE *h,fdtype maxval,fdtype scope)
     return hmax.keys;}
 }
 
+static int hashcountfn(fdtype key,fdtype value,void *vcountp)
+{
+  long long *countp = (long long *) vcountp;
+  int n_values = FD_CHOICE_SIZE(value);
+  *countp += n_values;
+  return 0;
+}
+
+FD_EXPORT
+long long fd_hashtable_map_size(struct FD_HASHTABLE *h)
+{
+  long long count=0;
+  fd_for_hashtable(h,hashcountfn,&count,1);
+  return count;
+}
+
 
 /* Using pairs as tables functions */
 

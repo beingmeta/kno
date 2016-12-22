@@ -456,6 +456,7 @@ FD_EXPORT fdtype fd_hashtable_skim(fd_hashtable,fdtype,fdtype);
 FD_EXPORT fdtype fd_slotmap_max(fd_slotmap,fdtype,fdtype *);
 FD_EXPORT fdtype fd_slotmap_skim(fd_slotmap,fdtype,fdtype);
 
+FD_EXPORT long long fd_hashtable_map_size(struct FD_HASHTABLE *h);
 
 FD_EXPORT int fd_resize_hashtable(fd_hashtable ptr,int n_slots);
 FD_EXPORT int fd_hashtable_stats
