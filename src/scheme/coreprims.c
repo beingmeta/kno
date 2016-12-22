@@ -211,7 +211,9 @@ static fdtype isnanp(fdtype x)
     if (isnan(d))
       return FD_TRUE;
     else return FD_FALSE;}
-  else return FD_FALSE;
+  else if (FD_NUMBERP(x))
+    return FD_FALSE;
+  else return FD_TRUE;
 }
 
 static fdtype immediatep(fdtype x)
