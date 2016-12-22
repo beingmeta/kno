@@ -21,6 +21,8 @@ FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 FD_EXPORT fdtype fd_gcd(fdtype x,fdtype y);
 FD_EXPORT fdtype fd_lcm(fdtype x,fdtype y);
 
+FD_EXPORT fdtype fd_pow(fdtype x,fdtype y);
+
 FD_EXPORT fdtype fd_make_exact(fdtype);
 FD_EXPORT fdtype fd_make_inexact(fdtype);
 

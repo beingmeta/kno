@@ -2816,6 +2816,14 @@ fdtype fd_lcm(fdtype x,fdtype y)
   return int_lcm(x,y);
 }
 
+FD_EXPORT
+fdtype fd_pow(fdtype x,fdtype y)
+{
+  double dx=todouble(x), dy=todouble(y);
+  double result=pow(dx,dy);
+  return fd_make_flonum(result);
+}
+
 static int signum(fdtype x)
 {
   if (FD_FIXNUMP(x)) {

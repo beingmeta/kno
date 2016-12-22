@@ -272,6 +272,7 @@ arithdef("EXP",lexp,exp);
     else return err;}
 
 arithdef2("ATAN2",latan2,atan2);
+arithdef2("POW",lpow,pow);
 
 static fdtype min_prim(int n,fdtype *args)
 {
@@ -722,6 +723,7 @@ FD_EXPORT void fd_init_numeric_c()
   arithdef("LOG",llog,log);
   arithdef("EXP",lexp,exp);
 
+  arithdef2("POW",lpow,pow);
   arithdef2("ATAN2",latan2,atan2);
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("MIN",min_prim,1));
