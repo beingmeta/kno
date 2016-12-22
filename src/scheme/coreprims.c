@@ -197,6 +197,23 @@ static fdtype numberp(fdtype x)
   if (FD_NUMBERP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
+static fdtype flonump(fdtype x)
+{
+  if (FD_FLONUMP(x)) 
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype isnanp(fdtype x)
+{
+  if (FD_FLONUMP(x)) {
+    double d=FD_FLONUM(x);
+    if (isnan(d))
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
+}
+
 static fdtype immediatep(fdtype x)
 {
   if (FD_IMMEDIATEP(x)) return FD_TRUE; else return FD_FALSE;
@@ -824,6 +841,8 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("OPCODE?",opcodep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("ERROR?",errorp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("APPLICABLE?",applicablep,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("FLONUM?",flonump,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("NAN?",isnanp,1));
 
   fd_defalias(fd_scheme_module,"CHAR?","CHARACTER?");
   fd_idefn(fd_scheme_module,fd_make_cprim1("BOOLEAN?",booleanp,1));

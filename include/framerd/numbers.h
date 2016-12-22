@@ -52,6 +52,8 @@ FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
 #define fd_make_double(dbl) (fd_init_double(NULL,(dbl)))
 #define fd_make_flonum(dbl) (fd_init_flonum(NULL,(dbl)))
 
+#define FD_ISNAN(x) ((FD_FLONUMP(x))&&(isnan(FD_FLONUM(x))))
+
 /* Numeric vectors */
 
 FD_EXPORT int fd_numvec_showmax;
