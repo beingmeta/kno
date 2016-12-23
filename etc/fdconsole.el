@@ -22,7 +22,7 @@
 (make-variable-buffer-local 'fdconsole-module)
 
 (defvar *framerd-keywords*
-  '("\\<do-choices-mt\\>" "\\<do-seq-mt\\>"
+  '("\\<do-choices-mt\\>" "\\<do-seq-mt\\>" "\\<for-choices-mt\\>"
     "\\<do-choices\\>" "\\<for-choices\\>" "\\<filter-choices\\>"
     "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>" "\\<forseq>\\"
     "\\<lambda\\>" "\\<ambda\\>" "\\<slambda\\>" "\\<macro\\>"
@@ -30,7 +30,9 @@
     "\\<while\\>" "\\<until\\>" "\\<onerror>\\"
     "\\<find-frames\\>" "\\<pick\\>" "\\<reject\\>"
     "\\<div\\>" "\\<p\\>" "\\<p*\\>" "\\<form\\>"
-    "\\<try-choices>\\" "\\<tryseq>\\" "\\<extdb/proc>\\"))
+    "\\<try-choices>\\" "\\<tryseq>\\" "\\<extdb/proc>\\" 
+    "\\<cond>\\" "\\<if>\\" "\\<and>\\" "\\<or>\\"
+    "\\<error>\\" "\\<irritant>\\"))
 
 ;; This gets #[ and #( to do block indents
 (defun scheme-indent-function (indent-point state)
@@ -92,6 +94,7 @@
 (put 'error+ 'scheme-indent-function 2)
 (put 'error 'scheme-indent-function 3)
 (put 'error+ 'scheme-indent-function 3)
+(put 'irritant 'scheme-indent-function 2)
 
 (put 'ambda 'scheme-indent-function 1)
 (put 'sambda 'scheme-indent-function 1)
@@ -105,13 +108,14 @@
 (put 'doseq 'scheme-indent-function 1)
 (put 'dopool 'scheme-indent-function 1)
 (put 'do-choices 'scheme-indent-function 1)
-(put 'do-choices-mt 'scheme-indent-function 1)
-(put 'do-seq-mt 'scheme-indent-function 1)
 (put 'do-subsets 'scheme-indent-function 1)
 (put 'for-choices 'scheme-indent-function 1)
 (put 'forseq 'scheme-indent-function 1)
 (put 'filter-choices 'scheme-indent-function 1)
 (put 'try-choices 'scheme-indent-function 1)
+(put 'do-choices-mt 'scheme-indent-function 1)
+(put 'do-seq-mt 'scheme-indent-function 1)
+(put 'for-choices-mt 'scheme-indent-function 1)
 (put 'tryseq 'scheme-indent-function 1)
 (put 'while 'scheme-indent-function 1)
 (put 'until 'scheme-indent-function 1)
