@@ -334,8 +334,6 @@ int do_main(int argc,char **argv,
   if (FD_HASHTABLEP(env->bindings))
     fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
   fd_recycle_environment(env);
-  i=0; while (i<n_args) {fd_decref(args[i]); i++;}
-  u8_free(args);
   fd_decref(main_proc);
   return retval;
 }
