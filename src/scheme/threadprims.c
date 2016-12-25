@@ -38,6 +38,7 @@ static u8_condition ThreadBacktrace=_("ThreadBacktrace");
 
 static int thread_loglevel=LOGNOTICE;
 static int thread_log_exit=1;
+static fdtype logexit_symbol=FD_VOID;
 
 /* Thread functions */
 
@@ -387,16 +388,13 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,
 
 static fdtype threadcall_prim(int n,fdtype *args)
 {
-  int    flags  = (FD_FIXNUMP(args[0]))?(FD_FIX2INT(args[0])):(0);
-  int    n_args = (FD_FIXNUMP(args[0]))?(n-2):(n-1);
-  int    fn_off = (FD_FIXNUMP(args[0]))?(1):(0);
-  fdtype fn     = (n>fn_off) ? (args[fn_off+1]) : (FD_VOID);
+  fdtype fn = args[0];
   if (FD_APPLICABLEP(fn)) {
-    fdtype *call_args=u8_alloc_n(n_args,fdtype), thread;
-    int i=0; while (i<n_args) {
-      fdtype call_arg = args[fn_off+1]; fd_incref(call_arg);
+    fdtype *call_args=u8_alloc_n(n,fdtype), thread;
+    int i=0; while (i<n) {
+      fdtype call_arg = args[i]; fd_incref(call_arg);
       call_args[i++]=call_arg;}
-    thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args,flags);
+    thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args,0);
     return thread;}
   else if (FD_VOIDP(fn))
     return fd_err(fd_TooFewArgs,"threadcall_prim",NULL,FD_VOID);
@@ -405,33 +403,68 @@ static fdtype threadcall_prim(int n,fdtype *args)
     return fd_type_error(_("applicable"),"threadcall_prim",fn);}
 }
 
+static int threadopts(fdtype opts)
+{
+  fdtype logexit=fd_getopt(opts,logexit_symbol,FD_VOID);
+  if (FD_VOIDP(logexit)) {
+    if (thread_log_exit>0)
+      return FD_THREAD_TRACE_EXIT;
+    else return FD_THREAD_QUIET_EXIT;}
+  else if ((FD_FALSEP(logexit))||(FD_ZEROP(logexit)))
+    return FD_THREAD_QUIET_EXIT;
+  else {
+    fd_decref(logexit);
+    return FD_THREAD_TRACE_EXIT;}
+}
+
+static fdtype threadcallx_prim(int n,fdtype *args)
+{
+  fdtype opts = args[0];
+  fdtype fn   = args[1];
+  if (FD_APPLICABLEP(fn)) {
+    fdtype *call_args=u8_alloc_n(n-2,fdtype), thread;
+    int flags=threadopts(opts);
+    int i=2; while (i<n) {
+      fdtype call_arg = args[i++]; fd_incref(call_arg);
+      call_args[i-2]=call_arg;}
+    thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args,flags);
+    return thread;}
+  else if (FD_VOIDP(fn))
+    return fd_err(fd_TooFewArgs,"threadcall_prim",NULL,FD_VOID);
+  else {
+    fd_incref(fn);
+    return fd_type_error(_("applicable"),"threadcallx_prim",fn);}
+}
+
 static fdtype threadeval_handler(fdtype expr,fd_lispenv env)
 {
   fdtype to_eval=fd_get_arg(expr,1);
-  fdtype second_arg=fd_eval(fd_get_arg(expr,2),env);
-  fdtype third_arg=fd_eval(fd_get_arg(expr,3),env);
-  int flags=(FD_FIXNUMP(third_arg))?(FD_FIX2INT(third_arg)):
-    (FD_FIXNUMP(second_arg))?(FD_FIX2INT(second_arg)):
-    (FD_EVAL_THREAD);
-  if ((FD_VOIDP(second_arg))||
-        ((FD_FIXNUMP(second_arg))&&(FD_VOIDP(third_arg)))||
-        ((FD_ENVIRONMENTP(second_arg))&&
-         ((FD_VOIDP(third_arg))||(FD_FIXNUMP(third_arg))))) {
-    fd_lispenv env=((FD_ENVIRONMENTP(second_arg)))?
-      (fd_copy_env((fd_lispenv)second_arg)):
-      (fd_copy_env(env));
-    if (FD_VOIDP(to_eval)) {
-      fd_decref(second_arg); fd_decref(third_arg);
-      return fd_err(fd_SyntaxError,"threadeval_handler",NULL,expr);}
-    else {
-      fdtype results=FD_EMPTY_CHOICE, envptr=(fdtype)env;
-      FD_DO_CHOICES(thread_expr,to_eval) {
-        fdtype thread=(fdtype)fd_thread_eval(NULL,thread_expr,env,flags);
-        FD_ADD_TO_CHOICE(results,thread);}
-      fd_decref(envptr);
-      return results;}}
-  else return fd_type_error(_("fixnum(flags)"),"threadeval_handler",
-                            third_arg);
+  fdtype env_arg=fd_eval(fd_get_arg(expr,2),env);
+  fdtype opts_arg=fd_eval(fd_get_arg(expr,3),env);
+  fdtype opts=((FD_VOIDP(opts_arg))&&
+               (!(FD_ENVIRONMENTP(env_arg)))&&
+               (FD_TABLEP(env_arg)))?
+    (env_arg):
+    (opts_arg);
+  fd_lispenv use_env=
+    ((FD_VOIDP(env_arg))||(FD_FALSEP(env_arg)))?(env):
+    (FD_ENVIRONMENTP(env_arg))?((fd_lispenv)env_arg):
+    (NULL);
+  if (FD_VOIDP(to_eval)) {
+    fd_decref(opts_arg); fd_decref(env_arg);
+    return fd_err(fd_SyntaxError,"threadeval_handler",NULL,expr);}
+  else if (use_env==NULL) {
+    fd_decref(opts_arg);
+    return fd_type_error(_("lispenv"),"threadeval_handler",env_arg);}
+  else {
+    int flags=threadopts(opts)|FD_EVAL_THREAD;
+    fd_lispenv env_copy=fd_copy_env(use_env);
+    fdtype results=FD_EMPTY_CHOICE, envptr=(fdtype)env_copy;
+    FD_DO_CHOICES(thread_expr,to_eval) {
+      fdtype thread=(fdtype)fd_thread_eval(NULL,thread_expr,env_copy,flags);
+      FD_ADD_TO_CHOICE(results,thread);}
+    fd_decref(envptr); fd_decref(env_arg); fd_decref(opts_arg);
+    return results;}
 }
 
 static fdtype thread_exitedp(fdtype thread_arg)
@@ -568,6 +601,7 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_defspecial(fd_scheme_module,"SPAWN",threadeval_handler);
   fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL",threadcall_prim,1));
   fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
+  fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL+",threadcallx_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim0("THREAD/YIELD",threadyield_prim,0));
   fd_defalias(fd_scheme_module,"THREADYIELD","THREAD/YIELD");
   fd_idefn(fd_scheme_module,
@@ -583,6 +617,8 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("THREAD/RESULT",thread_result,1,
                            fd_thread_type,FD_VOID));
+
+  logexit_symbol=fd_intern("LOGEXIT");
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("MAKE-CONDVAR",make_condvar,0));
   fd_idefn(fd_scheme_module,fd_make_cprim2("CONDVAR-WAIT",condvar_wait,1));
