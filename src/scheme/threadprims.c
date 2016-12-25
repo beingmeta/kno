@@ -261,6 +261,10 @@ static void *thread_call(void *data)
 {
   fdtype result;
   struct FD_THREAD_STRUCT *tstruct=(struct FD_THREAD_STRUCT *)data;
+  int flags=tstruct->flags, log_exit=
+    ((flags)&(FD_THREAD_TRACE_EXIT)) ||
+    (((flags)&(FD_THREAD_QUIET_EXIT)) ? (0) :
+     (thread_log_exit));
 
   U8_SET_STACK_BASE();
 
@@ -277,11 +281,11 @@ static void *thread_call(void *data)
                      tstruct->applydata.n_args,
                      tstruct->applydata.args);
   result=fd_finish_call(result);
-  if (thread_log_exit) {
+  if ((FD_ABORTP(result))||(log_exit)) {
     if (errno)
       u8_log(thread_loglevel,ThreadExit,
-             "Thread exited (errno=%d) with result %q\n  from %q",
-             errno,result,
+             "Thread exited (errno=%s:%d) with result %q\n  from %q",
+             u8_strerror(errno),errno,result,
              ((tstruct->flags&FD_EVAL_THREAD)?(tstruct->evaldata.expr):
               tstruct->applydata.fn));
     else u8_log(thread_loglevel,ThreadExit,
@@ -324,8 +328,9 @@ static void *thread_call(void *data)
 }
 
 FD_EXPORT
-fd_thread_struct fd_thread_call
-  (fdtype *resultptr,fdtype fn,int n,fdtype *rail)
+fd_thread_struct fd_thread_call(fdtype *resultptr,
+                                fdtype fn,int n,fdtype *rail,
+                                int flags)
 {
   struct FD_THREAD_STRUCT *tstruct=u8_alloc(struct FD_THREAD_STRUCT);
   if (tstruct==NULL) {
@@ -339,7 +344,7 @@ fd_thread_struct fd_thread_call
   else {
     tstruct->result=FD_NULL;
     tstruct->resultptr=NULL;}
-  tstruct->flags=0;
+  tstruct->flags=flags;
   pthread_attr_init(&(tstruct->attr));
   tstruct->applydata.fn=fd_incref(fn);
   tstruct->applydata.n_args=n; 
@@ -352,7 +357,9 @@ fd_thread_struct fd_thread_call
 }
 
 FD_EXPORT
-fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
+fd_thread_struct fd_thread_eval(fdtype *resultptr,
+                                fdtype expr,fd_lispenv env,
+                                int flags)
 {
   struct FD_THREAD_STRUCT *tstruct=u8_alloc(struct FD_THREAD_STRUCT);
   if (tstruct==NULL) {
@@ -366,7 +373,7 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
   else {
     tstruct->result=FD_NULL;
     tstruct->resultptr=NULL;}
-  tstruct->flags=FD_EVAL_THREAD;
+  tstruct->flags=flags|FD_EVAL_THREAD;
   tstruct->evaldata.expr=fd_incref(expr);
   tstruct->evaldata.env=fd_copy_env(env);
   /* We need to do this first, before the thread exits and recycles itself! */
@@ -380,25 +387,51 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
 
 static fdtype threadcall_prim(int n,fdtype *args)
 {
-  fdtype *call_args=u8_alloc_n((n-1),fdtype), thread;
-  int i=1; while (i<n) {
-    call_args[i-1]=fd_incref(args[i]); i++;}
-  thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args);
-  return thread;
+  int    flags  = (FD_FIXNUMP(args[0]))?(FD_FIX2INT(args[0])):(0);
+  int    n_args = (FD_FIXNUMP(args[0]))?(n-2):(n-1);
+  int    fn_off = (FD_FIXNUMP(args[0]))?(1):(0);
+  fdtype fn     = (n>fn_off) ? (args[fn_off+1]) : (FD_VOID);
+  if (FD_APPLICABLEP(fn)) {
+    fdtype *call_args=u8_alloc_n(n_args,fdtype), thread;
+    int i=0; while (i<n_args) {
+      fdtype call_arg = args[fn_off+1]; fd_incref(call_arg);
+      call_args[i++]=call_arg;}
+    thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args,flags);
+    return thread;}
+  else if (FD_VOIDP(fn))
+    return fd_err(fd_TooFewArgs,"threadcall_prim",NULL,FD_VOID);
+  else {
+    fd_incref(fn);
+    return fd_type_error(_("applicable"),"threadcall_prim",fn);}
 }
 
 static fdtype threadeval_handler(fdtype expr,fd_lispenv env)
 {
   fdtype to_eval=fd_get_arg(expr,1);
-  if (FD_VOIDP(to_eval))
-    return fd_err(fd_SyntaxError,"threadeval_handler",NULL,expr);
-  else if (FD_CHOICEP(to_eval)) {
-    fdtype results=FD_EMPTY_CHOICE;
-    FD_DO_CHOICES(thread_expr,to_eval) {
-      fdtype thread=(fdtype)fd_thread_eval(NULL,thread_expr,env);
-      FD_ADD_TO_CHOICE(results,thread);}
-    return results;}
-  else return (fdtype)fd_thread_eval(NULL,to_eval,env);
+  fdtype second_arg=fd_eval(fd_get_arg(expr,2),env);
+  fdtype third_arg=fd_eval(fd_get_arg(expr,3),env);
+  int flags=(FD_FIXNUMP(third_arg))?(FD_FIX2INT(third_arg)):
+    (FD_FIXNUMP(second_arg))?(FD_FIX2INT(second_arg)):
+    (FD_EVAL_THREAD);
+  if ((FD_VOIDP(second_arg))||
+        ((FD_FIXNUMP(second_arg))&&(FD_VOIDP(third_arg)))||
+        ((FD_ENVIRONMENTP(second_arg))&&
+         ((FD_VOIDP(third_arg))||(FD_FIXNUMP(third_arg))))) {
+    fd_lispenv env=((FD_ENVIRONMENTP(second_arg)))?
+      (fd_copy_env((fd_lispenv)second_arg)):
+      (fd_copy_env(env));
+    if (FD_VOIDP(to_eval)) {
+      fd_decref(second_arg); fd_decref(third_arg);
+      return fd_err(fd_SyntaxError,"threadeval_handler",NULL,expr);}
+    else {
+      fdtype results=FD_EMPTY_CHOICE, envptr=(fdtype)env;
+      FD_DO_CHOICES(thread_expr,to_eval) {
+        fdtype thread=(fdtype)fd_thread_eval(NULL,thread_expr,env,flags);
+        FD_ADD_TO_CHOICE(results,thread);}
+      fd_decref(envptr);
+      return results;}}
+  else return fd_type_error(_("fixnum(flags)"),"threadeval_handler",
+                            third_arg);
 }
 
 static fdtype thread_exitedp(fdtype thread_arg)
@@ -464,7 +497,8 @@ static fdtype parallel_handler(fdtype expr,fd_lispenv env)
   else {results=_results; threads=_threads;}
   /* Start up the threads and store the pointers. */
   scan=FD_CDR(expr); while (FD_PAIRP(scan)) {
-    threads[i]=fd_thread_eval(&results[i],FD_CAR(scan),env);
+    threads[i]=fd_thread_eval(&results[i],FD_CAR(scan),env,
+                              FD_EVAL_THREAD|FD_THREAD_QUIET_EXIT);
     scan=FD_CDR(scan); i++;}
   /* Now wait for them to finish, accumulating values. */
   i=0; while (i<n_exprs) {
