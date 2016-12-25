@@ -1261,12 +1261,55 @@ static fdtype pick_oids_prim(fdtype items)
   else return results;
 }
 
+static fdtype pick_syms_prim(fdtype items)
+{
+  fdtype results=FD_EMPTY_CHOICE; int no_change=1;
+  FD_DO_CHOICES(item,items)
+    if (FD_SYMBOLP(item)) {
+      FD_ADD_TO_CHOICE(results,item);}
+    else no_change=0;
+  if (no_change) {
+    fd_decref(results);
+    return fd_incref(items);}
+  else return results;
+}
+
 static fdtype pick_strings_prim(fdtype items)
 {
   /* I don't think we need to worry about getting an ACHOICE here. */
   fdtype results=FD_EMPTY_CHOICE; int no_change=1;
   FD_DO_CHOICES(item,items)
     if (FD_STRINGP(item)) {
+      fd_incref(item);
+      FD_ADD_TO_CHOICE(results,item);}
+    else no_change=0;
+  if (no_change) {
+    fd_decref(results);
+    return fd_incref(items);}
+  else return results;
+}
+
+static fdtype pick_vecs_prim(fdtype items)
+{
+  /* I don't think we need to worry about getting an ACHOICE here. */
+  fdtype results=FD_EMPTY_CHOICE; int no_change=1;
+  FD_DO_CHOICES(item,items)
+    if (FD_VECTORP(item)) {
+      fd_incref(item);
+      FD_ADD_TO_CHOICE(results,item);}
+    else no_change=0;
+  if (no_change) {
+    fd_decref(results);
+    return fd_incref(items);}
+  else return results;
+}
+
+static fdtype pick_pairs_prim(fdtype items)
+{
+  /* I don't think we need to worry about getting an ACHOICE here. */
+  fdtype results=FD_EMPTY_CHOICE; int no_change=1;
+  FD_DO_CHOICES(item,items)
+    if (FD_PAIRP(item)) {
       fd_incref(item);
       FD_ADD_TO_CHOICE(results,item);}
     else no_change=0;
@@ -1423,6 +1466,12 @@ FD_EXPORT void fd_init_choicefns_c()
            fd_make_ndprim(fd_make_cprim1("PICKNUMS",pick_nums_prim,1)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("PICKSTRINGS",pick_strings_prim,1)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim1("PICKSYMS",pick_syms_prim,1)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim1("PICKPAIRS",pick_pairs_prim,1)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim1("PICKVECS",pick_vecs_prim,1)));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2("GETRANGE",getrange_prim,1));
