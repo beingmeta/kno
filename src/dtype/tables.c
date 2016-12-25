@@ -33,6 +33,8 @@ static u8_string CantAdd=_("Table doesn't support add");
 static u8_string CantDrop=_("Table doesn't support drop");
 static u8_string CantTest=_("Table doesn't support test");
 static u8_string CantGetKeys=_("Table doesn't support getkeys");
+static u8_string CantCheckModified=_("Can't check for modification status");
+static u8_string CantSetModified=_("Can't set modficiation status");
 static u8_string BadHashtableMethod=_("Invalid hashtable method");
 
 #define DEBUGGING 0
@@ -308,6 +310,20 @@ static int slotmap_getsize(struct FD_SLOTMAP *ptr)
 {
   FD_CHECK_TYPE_RET(ptr,fd_slotmap_type);
   return FD_XSLOTMAP_SIZE(ptr);
+}
+
+static int slotmap_modified(struct FD_SLOTMAP *ptr,int flag)
+{
+  FD_CHECK_TYPE_RET(ptr,fd_slotmap_type);
+  int modified=FD_XSLOTMAP_MODIFIEDP(ptr);
+  if (flag<0)
+    return modified;
+  else if (flag) {
+    FD_XSLOTMAP_MARK_MODIFIED(ptr);
+    return modified;}
+  else {
+    FD_XSLOTMAP_CLEAR_MODIFIED(ptr);
+    return modified;}
 }
 
 FD_EXPORT fdtype fd_slotmap_keys(struct FD_SLOTMAP *sm)
@@ -881,6 +897,20 @@ static int schemap_getsize(struct FD_SCHEMAP *ptr)
 {
   FD_CHECK_TYPE_RET(ptr,fd_schemap_type);
   return FD_XSCHEMAP_SIZE(ptr);
+}
+
+static int schemap_modified(struct FD_SCHEMAP *ptr,int flag)
+{
+  FD_CHECK_TYPE_RET(ptr,fd_schemap_type);
+  int modified=FD_XSCHEMAP_MODIFIEDP(ptr);
+  if (flag<0)
+    return modified;
+  else if (flag) {
+    ptr->flags|=FD_SCHEMAP_MODIFIED;
+    return modified;}
+  else {
+    ptr->flags|=(~FD_SCHEMAP_MODIFIED);
+    return modified;}
 }
 
 FD_EXPORT fdtype fd_schemap_keys(struct FD_SCHEMAP *sm)
@@ -1486,6 +1516,7 @@ static fdtype restore_hashtable(fdtype tag,fdtype alist,fd_compound_entry e)
   new=(struct FD_HASHTABLE *)fd_make_hashtable(NULL,n*2);
   fd_hashtable_iter(new,fd_table_add,n,keys,vals);
   u8_free(keys); u8_free(vals);
+  new->modified=0;
   return FDTYPE_CONS(new);
 }
 
@@ -1537,13 +1568,14 @@ static int do_hashtable_op
   case fd_table_replace: case fd_table_replace_novoid: case fd_table_drop:
   case fd_table_add_if_present: case fd_table_test:
   case fd_table_increment_if_present: case fd_table_multiply_if_present:
-  case fd_table_maximize_if_present: case fd_table_minimize_if_present:
+  case fd_table_maximize_if_present: case fd_table_minimize_if_present: {
     /* These are operations which can be resolved immediately if the key
        does not exist in the table.  It doesn't bother setting up the hashtable
        if it doesn't have to. */
     if (ht->n_keys == 0) return 0;
     result=fd_hashvec_get(key,ht->slots,ht->n_slots);
-    if (result==NULL) return 0; else {added=1; break;}
+    if (result==NULL) return 0; 
+    else { added=1; break; }}
   case fd_table_add: case fd_table_add_noref:
     if ((FD_EMPTY_CHOICEP(value)) &&
         ((op == fd_table_add) ||
@@ -1574,7 +1606,9 @@ static int do_hashtable_op
     fd_decref(result->value); result->value=newv;
     break;}
   case fd_table_store_noref:
-    fd_decref(result->value); result->value=value; break;
+    fd_decref(result->value); 
+    result->value=value; 
+    break;
   case fd_table_add_if_present:
     if (FD_VOIDP(result->value)) break;
   case fd_table_add: case fd_table_add_empty:
@@ -1586,28 +1620,37 @@ static int do_hashtable_op
     if (FD_VOIDP(result->value)) result->value=value;
     else {FD_ADD_TO_CHOICE(result->value,value);}
     break;
-  case fd_table_drop: {
-    fdtype newval=((FD_VOIDP(value)) ? (FD_EMPTY_CHOICE) : (fd_difference(result->value,value)));
-    fd_decref(result->value); result->value=fd_incref(newval);
-    break;}
+  case fd_table_drop: 
+    if ((FD_VOIDP(value))||(fd_overlapp(value,result->value))) {
+      fdtype newval=((FD_VOIDP(value)) ? (FD_EMPTY_CHOICE) : 
+                     (fd_difference(result->value,value)));
+      fd_decref(result->value); 
+      result->value=newval;
+      break;}
+    else return 0;
   case fd_table_test:
-    if ((FD_CHOICEP(result->value)) || (FD_ACHOICEP(result->value)) ||
-        (FD_CHOICEP(value)) || (FD_ACHOICEP(value)))
+    if ((FD_CHOICEP(result->value)) || 
+        (FD_ACHOICEP(result->value)) ||
+        (FD_CHOICEP(value)) || 
+        (FD_ACHOICEP(value)))
       return fd_overlapp(value,result->value);
     else if (FDTYPE_EQUAL(value,result->value))
       return 1;
     else return 0;
   case fd_table_default:
-    if ((FD_EMPTY_CHOICEP(result->value))||(FD_VOIDP(result->value)))
-      result->value=fd_incref(value);
+    if ((FD_EMPTY_CHOICEP(result->value)) ||
+        (FD_VOIDP(result->value))) {
+      result->value=fd_incref(value);}
     break;
   case fd_table_increment_if_present:
     if (FD_VOIDP(result->value)) break;
   case fd_table_increment:
-    if ((FD_EMPTY_CHOICEP(result->value))||(FD_VOIDP(result->value)))
-      result->value=fd_incref(value);
+    if ((FD_EMPTY_CHOICEP(result->value)) ||
+        (FD_VOIDP(result->value))) {
+      result->value=fd_incref(value);}
     else if (!(FD_NUMBERP(result->value))) {
-      fd_seterr(fd_TypeError,"fd_table_increment",u8_strdup("number"),result->value);
+      fd_seterr(fd_TypeError,"fd_table_increment",
+                u8_strdup("number"),result->value);
       return -1;}
     else {
       fdtype current=result->value;
@@ -1626,18 +1669,21 @@ static int do_hashtable_op
         else if (FD_NUMBERP(v)) {
           fdtype newnum=fd_plus(current,v);
           if (newnum != current) {
-            fd_decref(current); result->value=newnum;}}
+            fd_decref(current); 
+            result->value=newnum;}}
         else {
-          fd_seterr(fd_TypeError,"fd_table_increment",u8_strdup("number"),v);
+          fd_seterr(fd_TypeError,"fd_table_increment",
+                    u8_strdup("number"),v);
           return -1;}}
     break;
   case fd_table_multiply_if_present:
     if (FD_VOIDP(result->value)) break;
   case fd_table_multiply:
-    if ((FD_VOIDP(result->value))||(FD_EMPTY_CHOICEP(result->value)))
-      result->value=fd_incref(value);
+    if ((FD_VOIDP(result->value))||(FD_EMPTY_CHOICEP(result->value)))  {
+      result->value=fd_incref(value);}
     else if (!(FD_NUMBERP(result->value))) {
-      fd_seterr(fd_TypeError,"fd_table_multiply",u8_strdup("number"),result->value);
+      fd_seterr(fd_TypeError,"fd_table_multiply",
+                u8_strdup("number"),result->value);
       return -1;}
     else {
       fdtype current=result->value;
@@ -1656,18 +1702,22 @@ static int do_hashtable_op
         else if (FD_NUMBERP(v)) {
           fdtype newnum=fd_multiply(current,v);
           if (newnum != current) {
-            fd_decref(current); result->value=newnum;}}
+            fd_decref(current); 
+            result->value=newnum;}}
         else {
-          fd_seterr(fd_TypeError,"table_multiply_op",u8_strdup("number"),v);
+          fd_seterr(fd_TypeError,"table_multiply_op",
+                    u8_strdup("number"),v);
           return -1;}}
     break;
   case fd_table_maximize_if_present:
     if (FD_VOIDP(result->value)) break;
   case fd_table_maximize:
-    if ((FD_EMPTY_CHOICEP(result->value))||(FD_VOIDP(result->value)))
-      result->value=fd_incref(value);
+    if ((FD_EMPTY_CHOICEP(result->value)) ||
+        (FD_VOIDP(result->value))) {
+      result->value=fd_incref(value);}
     else if (!(FD_NUMBERP(result->value))) {
-      fd_seterr(fd_TypeError,"table_maximize_op",u8_strdup("number"),result->value);
+      fd_seterr(fd_TypeError,"table_maximize_op",
+                u8_strdup("number"),result->value);
       return -1;}
     else {
       fdtype current=result->value;
@@ -1676,16 +1726,18 @@ static int do_hashtable_op
           result->value=fd_incref(value);
           fd_decref(current);}}
       else {
-        fd_seterr(fd_TypeError,"table_maximize_op",u8_strdup("number"),value);
+        fd_seterr(fd_TypeError,"table_maximize_op",
+                  u8_strdup("number"),value);
         return -1;}}
     break;
   case fd_table_minimize_if_present:
     if (FD_VOIDP(result->value)) break;
   case fd_table_minimize:
-    if ((FD_EMPTY_CHOICEP(result->value))||(FD_VOIDP(result->value)))
-      result->value=fd_incref(value);
+    if ((FD_EMPTY_CHOICEP(result->value))||(FD_VOIDP(result->value))) {
+      result->value=fd_incref(value);}
     else if (!(FD_NUMBERP(result->value))) {
-      fd_seterr(fd_TypeError,"table_maximize_op",u8_strdup("number"),result->value);
+      fd_seterr(fd_TypeError,"table_maximize_op",
+                u8_strdup("number"),result->value);
       return -1;}
     else {
       fdtype current=result->value;
@@ -1694,14 +1746,15 @@ static int do_hashtable_op
           result->value=fd_incref(value);
           fd_decref(current);}}
       else {
-        fd_seterr(fd_TypeError,"table_maximize_op",u8_strdup("number"),value);
+        fd_seterr(fd_TypeError,"table_maximize_op",
+                  u8_strdup("number"),value);
         return -1;}}
     break;
   case fd_table_push:
-    if ((FD_VOIDP(result->value)) || (FD_EMPTY_CHOICEP(result->value)))
-      result->value=fd_make_pair(value,FD_EMPTY_LIST);
-    else if (FD_PAIRP(result->value))
-      result->value=fd_conspair(fd_incref(value),result->value);
+    if ((FD_VOIDP(result->value)) || (FD_EMPTY_CHOICEP(result->value))) {
+      result->value=fd_make_pair(value,FD_EMPTY_LIST);}
+    else if (FD_PAIRP(result->value)) {
+      result->value=fd_conspair(fd_incref(value),result->value);}
     else {
       fdtype tail=fd_conspair(result->value,FD_EMPTY_LIST);
       result->value=fd_conspair(fd_incref(value),tail);}
@@ -1812,6 +1865,20 @@ static int hashtable_getsize(struct FD_HASHTABLE *ptr)
 {
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
   return ptr->n_keys;
+}
+
+static int hashtable_modified(struct FD_HASHTABLE *ptr,int flag)
+{
+  FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
+  int modified=FD_XHASHTABLE_MODIFIEDP(ptr);
+  if (flag<0)
+    return modified;
+  else if (flag) {
+    FD_XHASHTABLE_MARK_MODIFIED(ptr);
+    return modified;}
+  else {
+    FD_XHASHTABLE_CLEAR_MODIFIED(ptr);
+    return modified;}
 }
 
 FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
@@ -2367,7 +2434,7 @@ FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size,int stack_con
   if (stack_cons) {
     FD_INIT_STATIC_CONS(hashset,fd_hashset_type);}
   else {FD_INIT_CONS(hashset,fd_hashset_type);}
-  hashset->n_slots=n_slots; hashset->n_keys=0;
+  hashset->n_slots=n_slots; hashset->n_keys=0; hashset->modified=0;
   hashset->atomicp=1; hashset->loading=default_hashset_loading;
   hashset->slots=slots=u8_alloc_n(n_slots,fdtype);
   while (i < n_slots) slots[i++]=0;
@@ -2470,11 +2537,26 @@ FD_EXPORT fdtype fd_hashset_elts(struct FD_HASHSET *h,int clean)
                              FD_CHOICE_REALLOC));}}
 }
 
-static fdtype hashset_getsize(struct FD_HASHSET *h)
+static int hashset_getsize(struct FD_HASHSET *h)
 {
   FD_CHECK_TYPE_RETDTYPE(h,fd_hashset_type);
   return h->n_keys;
 }
+
+static int hashset_modified(struct FD_HASHSET *ptr,int flag)
+{
+  FD_CHECK_TYPE_RET(ptr,fd_hashset_type);
+  int modified=ptr->modified;
+  if (flag<0)
+    return modified;
+  else if (flag) {
+    ptr->modified=1;
+    return modified;}
+  else {
+    ptr->modified=0;
+    return modified;}
+}
+
 
 static fdtype hashsetelts(struct FD_HASHSET *h)
 {
@@ -2536,7 +2618,8 @@ FD_EXPORT int fd_hashset_mod(struct FD_HASHSET *h,fdtype key,int add)
     return -1;}
   else if (FD_NULLP(slots[probe]))
     if (add) {
-      slots[probe]=fd_incref(key); h->n_keys++;
+      slots[probe]=fd_incref(key); 
+      h->n_keys++; h->modified=1;
       if (FD_CONSP(key)) h->atomicp=0;
       if (hashset_needs_resizep(h))
         grow_hashset(h);
@@ -2550,6 +2633,7 @@ FD_EXPORT int fd_hashset_mod(struct FD_HASHSET *h,fdtype key,int add)
     return 0;}
   else {
     fd_decref(slots[probe]); slots[probe]=FD_VOID;
+    h->n_keys++; h->modified=1;
     fd_unlock_struct(h);
     return 1;}
 }
@@ -2564,7 +2648,7 @@ FD_EXPORT int fd_hashset_add_raw(struct FD_HASHSET *h,fdtype key)
     fd_seterr(HashsetOverflow,"fd_hashset_mod",NULL,(fdtype)h);
     return -1;}
   else if (FD_NULLP(slots[probe])) {
-    slots[probe]=key; h->n_keys++;
+    slots[probe]=key; h->n_keys++; h->modified=1;
     if (FD_CONSP(key)) h->atomicp=0;
     if (FD_EXPECT_FALSE(hashset_needs_resizep(h)))
       grow_hashset(h);
@@ -2589,7 +2673,8 @@ FD_EXPORT int fd_hashset_add(struct FD_HASHSET *h,fdtype keys)
             u8_unlock_mutex(&(h->lock));
             return -1;}
           else if ((FD_NULLP(slots[probe]))||(FD_VOIDP(slots[probe]))) {
-            slots[probe]=key; h->n_keys++; n_adds++; fd_incref(key);
+            slots[probe]=key; fd_incref(key);
+            h->modified=1; h->n_keys++; n_adds++;
             if (FD_CONSP(key)) h->atomicp=0;
             if (FD_EXPECT_FALSE(hashset_needs_resizep(h))) {
               grow_hashset(h);
@@ -2633,7 +2718,7 @@ FD_EXPORT fdtype fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
   FD_INIT_CONS(hnew,fd_hashset_type);
   hnew->n_slots=h->n_slots; hnew->n_keys=h->n_keys;
   hnew->slots=newslots; hnew->atomicp=h->atomicp;
-  hnew->loading=h->loading;
+  hnew->loading=h->loading; hnew->modified=0;
   fd_unlock_struct(h);
   fd_init_mutex((&hnew->lock));
   return (fdtype) hnew;
@@ -2641,8 +2726,10 @@ FD_EXPORT fdtype fd_copy_hashset(struct FD_HASHSET *hnew,struct FD_HASHSET *h)
 
 static int unparse_hashset(u8_output out,fdtype x)
 {
-  struct FD_HASHSET *ht=((struct FD_HASHSET *)x); char buf[128];
-  sprintf(buf,"#<HASHSET %d/%d>",ht->n_keys,ht->n_slots);
+  struct FD_HASHSET *hs=((struct FD_HASHSET *)x); char buf[128];
+  sprintf(buf,"#<HASHSET%s %d/%d>",
+          ((hs->modified)?("(m)"):("")),
+          hs->n_keys,hs->n_slots);
   u8_puts(out,buf);
   return 1;
 }
@@ -2849,6 +2936,30 @@ FD_EXPORT int fd_getsize(fdtype arg)
       else return fd_err(fd_NoMethod,CantGetKeys,NULL,arg);
     else return fd_err(NotATable,"fd_getkeys",NULL,arg);
   else return fd_err(fd_BadPtr,"fd_getkeys",NULL,arg);
+}
+
+FD_EXPORT int fd_modifiedp(fdtype arg)
+{
+  fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  if (FD_VALID_TYPEP(argtype))
+    if (fd_tablefns[argtype])
+      if (fd_tablefns[argtype]->modified)
+        return (fd_tablefns[argtype]->modified)(arg,-1);
+      else return fd_err(fd_NoMethod,CantCheckModified,NULL,arg);
+    else return fd_err(NotATable,"fd_modifiedp",NULL,arg);
+  else return fd_err(fd_BadPtr,"fd_modifiedp",NULL,arg);
+}
+
+FD_EXPORT int fd_set_modified(fdtype arg,int flag)
+{
+  fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  if (FD_VALID_TYPEP(argtype))
+    if (fd_tablefns[argtype])
+      if (fd_tablefns[argtype]->modified)
+        return (fd_tablefns[argtype]->modified)(arg,flag);
+      else return fd_err(fd_NoMethod,CantSetModified,NULL,arg);
+    else return fd_err(NotATable,"fd_modifiedp",NULL,arg);
+  else return fd_err(fd_BadPtr,"fd_modifiedp",NULL,arg);
 }
 
 FD_EXPORT fdtype fd_getkeys(fdtype arg)
@@ -3128,7 +3239,7 @@ void fd_init_tables_c()
   fd_unparsers[fd_hashtable_type]=unparse_hashtable;
   fd_copiers[fd_hashtable_type]=copy_hashtable;
 
-  /* HASHET */
+  /* HASHSET */
   fd_recyclers[fd_hashset_type]=(fd_recycle_fn)fd_recycle_hashset;
   fd_unparsers[fd_hashset_type]=unparse_hashset;
   fd_copiers[fd_hashset_type]=copy_hashset;
@@ -3142,6 +3253,7 @@ void fd_init_tables_c()
   fd_tablefns[fd_hashtable_type]->test=(fd_table_test_fn)hashtable_test;
   fd_tablefns[fd_hashtable_type]->getsize=(fd_table_getsize_fn)hashtable_getsize;
   fd_tablefns[fd_hashtable_type]->keys=(fd_table_keys_fn)fd_hashtable_keys;
+  fd_tablefns[fd_hashtable_type]->modified=(fd_table_modified_fn)hashtable_modified;
 
   /* SLOTMAP table functions */
   fd_tablefns[fd_slotmap_type]=u8_alloc(struct FD_TABLEFNS);
@@ -3152,6 +3264,7 @@ void fd_init_tables_c()
   fd_tablefns[fd_slotmap_type]->test=(fd_table_test_fn)fd_slotmap_test;
   fd_tablefns[fd_slotmap_type]->getsize=(fd_table_getsize_fn)slotmap_getsize;
   fd_tablefns[fd_slotmap_type]->keys=(fd_table_keys_fn)fd_slotmap_keys;
+  fd_tablefns[fd_slotmap_type]->modified=(fd_table_modified_fn)slotmap_modified;
 
   /* SCHEMAP table functions */
   fd_tablefns[fd_schemap_type]=u8_alloc(struct FD_TABLEFNS);
@@ -3162,6 +3275,7 @@ void fd_init_tables_c()
   fd_tablefns[fd_schemap_type]->test=(fd_table_test_fn)fd_schemap_test;
   fd_tablefns[fd_schemap_type]->getsize=(fd_table_getsize_fn)schemap_getsize;
   fd_tablefns[fd_schemap_type]->keys=(fd_table_keys_fn)fd_schemap_keys;
+  fd_tablefns[fd_schemap_type]->modified=(fd_table_modified_fn)schemap_modified;
 
   /* HASHSET table functions */
   fd_tablefns[fd_hashset_type]=u8_alloc(struct FD_TABLEFNS);
@@ -3175,6 +3289,7 @@ void fd_init_tables_c()
   fd_tablefns[fd_hashset_type]->test=NULL;
   fd_tablefns[fd_hashset_type]->getsize=(fd_table_getsize_fn)hashset_getsize;
   fd_tablefns[fd_hashset_type]->keys=(fd_table_keys_fn)hashsetelts;
+  fd_tablefns[fd_hashset_type]->modified=(fd_table_modified_fn)hashset_modified;
 
   /* HASHSET table functions */
   fd_tablefns[fd_pair_type]=u8_alloc(struct FD_TABLEFNS);

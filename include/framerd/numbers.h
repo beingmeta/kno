@@ -53,6 +53,8 @@ FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
 #define fd_make_flonum(dbl) (fd_init_flonum(NULL,(dbl)))
 
 #define FD_ISNAN(x) ((FD_FLONUMP(x))&&(isnan(FD_FLONUM(x))))
+#define FD_ZEROP(x) ((FD_FIXNUMP(x))?((FD_FIX2INT(x))==0): \
+		     (FD_FLONUMP(x))?((FD_FLONUM(x))==0):(0))
 
 /* Numeric vectors */
 

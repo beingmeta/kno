@@ -33,6 +33,7 @@ typedef int (*fd_table_add_fn)(fdtype,fdtype,fdtype);
 typedef int (*fd_table_drop_fn)(fdtype,fdtype,fdtype);
 typedef int (*fd_table_store_fn)(fdtype,fdtype,fdtype);
 typedef int (*fd_table_getsize_fn)(fdtype);
+typedef int (*fd_table_modified_fn)(fdtype,int);
 typedef fdtype (*fd_table_keys_fn)(fdtype);
 
 struct FD_TABLEFNS {
@@ -42,7 +43,9 @@ struct FD_TABLEFNS {
   int (*drop)(fdtype obj,fdtype key,fdtype value);
   int (*test)(fdtype obj,fdtype key,fdtype value);
   int (*getsize)(fdtype obj);
-  fdtype (*keys)(fdtype obj);};
+  fdtype (*keys)(fdtype obj);
+  int (*modified)(fdtype obj,int);
+};
 
 FD_EXPORT struct FD_TABLEFNS *fd_tablefns[];
 
@@ -52,6 +55,8 @@ FD_EXPORT int fd_store(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_add(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_drop(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_getsize(fdtype arg);
+FD_EXPORT int fd_modifiedp(fdtype arg);
+FD_EXPORT int fd_set_modified(fdtype arg,int val);
 FD_EXPORT fdtype fd_getkeys(fdtype arg);
 FD_EXPORT fdtype fd_getvalues(fdtype arg);
 FD_EXPORT fdtype fd_getassocs(fdtype arg);
@@ -396,6 +401,20 @@ typedef struct FD_HASHTABLE *fd_hashtable;
   ((FD_XHASHTABLE(x))->modified)
 #define FD_HASHTABLE_MARK_MODIFIED(x) \
   ((FD_XHASHTABLE(x))->modified)=1
+#define FD_HASHTABLE_CLEAR_MODIFIED(x) \
+  ((FD_XHASHTABLE(x))->modified)=0
+
+#define FD_XHASHTABLE_SLOTS(x) \
+  ((x)->n_slots)
+#define FD_XHASHTABLE_SIZE(x) \
+  ((x)->n_keys)
+#define FD_XHASHTABLE_MODIFIEDP(x) \
+  ((x)->modified)
+#define FD_XHASHTABLE_MARK_MODIFIED(x) \
+  ((x)->modified)=1
+#define FD_XHASHTABLE_CLEAR_MODIFIED(x) \
+  ((x)->modified)=0
+
 
 FD_EXPORT unsigned int fd_get_hashtable_size(unsigned int min);
 FD_EXPORT unsigned int fd_hash_string(u8_string string,int len);
@@ -478,7 +497,7 @@ FD_EXPORT int fd_free_hashvec(struct FD_HASHENTRY **slots,int slots_to_free);
 
 typedef struct FD_HASHSET {
   FD_CONS_HEADER;
-  int n_keys, n_slots, loading, atomicp;
+  int n_keys, n_slots, loading, atomicp, modified;
   fdtype *slots;
   U8_MUTEX_DECL(lock);} FD_HASHSET;
 typedef struct FD_HASHSET *fd_hashset;
