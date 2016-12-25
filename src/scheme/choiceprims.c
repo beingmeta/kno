@@ -1185,6 +1185,27 @@ static fdtype nmax_prim(fdtype choices,fdtype karg,fdtype keyfn)
   else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
+static fdtype nmax2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
+{
+  if (FD_FIXNUMP(karg)) {
+    int k=FD_FIX2INT(karg);
+    struct FD_SORT_ENTRY *entries=NULL;
+    fdtype results=select_helper(choices,keyfn,k,1,&entries);
+    if (FD_VOIDP(results)) {
+      fdtype vec=fd_make_vector(k,NULL);
+      int i=0;
+      while (i<k) {
+        fdtype elt=entries[i].value;
+        int vec_off=k-1-i;
+        fd_incref(elt); fd_decref(entries[i].key);
+        FD_VECTOR_SET(vec,vec_off,elt);
+        i++;}
+      u8_free(entries);
+      return vec;}
+    else return results;}
+  else return fd_type_error(_("fixnum"),"nmax_prim",karg);
+}
+
 static fdtype nmin_prim(fdtype choices,fdtype karg,fdtype keyfn)
 {
   if (FD_FIXNUMP(karg)) {
@@ -1201,6 +1222,27 @@ static fdtype nmin_prim(fdtype choices,fdtype karg,fdtype keyfn)
         i++;}
       u8_free(entries);
       return results;}
+    else return results;}
+  else return fd_type_error(_("fixnum"),"nmax_prim",karg);
+}
+
+static fdtype nmin2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
+{
+  if (FD_FIXNUMP(karg)) {
+    int k=FD_FIX2INT(karg);
+    struct FD_SORT_ENTRY *entries=NULL;
+    fdtype results=select_helper(choices,keyfn,k,0,&entries);
+    if (FD_VOIDP(results)) {
+      fdtype vec=fd_make_vector(k,NULL);
+      int i=0;
+      while (i<k) {
+        fdtype elt=entries[i].value;
+        fd_decref(entries[i].key);
+        fd_incref(entries[i].value);
+        FD_VECTOR_SET(vec,i,entries[i].value);
+        i++;}
+      u8_free(entries);
+      return vec;}
     else return results;}
   else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
@@ -1489,9 +1531,17 @@ FD_EXPORT void fd_init_choicefns_c()
            fd_make_ndprim(fd_make_cprim3x("NMAX",nmax_prim,2,
                                           -1,FD_VOID,fd_fixnum_type,FD_VOID,
                                           -1,FD_VOID)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim3x("NMAX->VECTOR",nmax2vec_prim,2,
+                                          -1,FD_VOID,fd_fixnum_type,FD_VOID,
+                                          -1,FD_VOID)));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3x("NMIN",nmin_prim,2,
+                                          -1,FD_VOID,fd_fixnum_type,FD_VOID,
+                                          -1,FD_VOID)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim3x("NMIN->VECTOR",nmin2vec_prim,2,
                                           -1,FD_VOID,fd_fixnum_type,FD_VOID,
                                           -1,FD_VOID)));
 }
