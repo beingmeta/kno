@@ -274,6 +274,74 @@ arithdef("EXP",lexp,exp);
 arithdef2("ATAN2",latan2,atan2);
 arithdef2("POW",lpow,pow);
 
+#undef arithdef
+#undef arithdef2
+
+static fdtype pow_prim(fdtype v,fdtype n)
+{
+  if ((FD_EXACTP(v))&&
+      (FD_FIXNUMP(n))&&(FD_FIX2INT(n)>0)&&
+      (FD_FIX2INT(n)<1000000)) {
+    int i=0, how_many=FD_FIX2INT(n);
+    fdtype prod=FD_INT(1); while (i<how_many) {
+      fdtype tmp=fd_multiply(prod,v);
+      fd_decref(prod); prod=tmp;
+      i++;}
+    return prod;}
+  else {
+    fdtype err=FD_VOID;
+    fdtype dv = todouble(v,&err);
+    fdtype dn = (FD_VOIDP(err)) ? todouble(n,&err) : (0);
+    if (FD_ABORTP(err)) return err;
+    else {
+      double result=pow(dv,dn);
+      return fd_make_flonum(result);}}
+}
+
+static fdtype nthroot_prim(fdtype v,fdtype n)
+{
+  fdtype err=FD_VOID;
+  double dv = todouble(v,&err);
+  double dn = (FD_VOIDP(err)) ? (todouble(n,&err)) :(0);
+  double dexp= (FD_VOIDP(err)) ? (1/dn) : (0);
+  if (FD_ABORTP(err))
+    return err;
+  else {
+    double result = pow(dv,dexp);
+    if ((remainder(result,1.0)==0)&&
+        (FD_FIXNUMP(n))&&(FD_FIX2INT(n)<1024)&&
+        ((FD_FIXNUMP(v))||(FD_BIGINTP(v)))) {
+      long long introot=(long long) floor(result);
+      fdtype root=FD_INT(introot), prod=FD_INT(1);
+      int i=0, lim=FD_FIX2INT(n); while (i<lim) {
+        fdtype tmp=fd_multiply(prod,root);
+        fd_decref(prod); prod=tmp;
+        i++;}
+      if (fd_numcompare(v,prod)==0) {
+        fd_decref(prod);
+        return root;}
+      else {
+        fd_decref(prod);
+        return fd_make_flonum(result);}}
+    else return fd_make_flonum(result);}
+}
+
+static fdtype inexact_nthroot_prim(fdtype v,fdtype n)
+{
+  fdtype err=FD_VOID;
+  double dv = todouble(v,&err);
+  double dn = (FD_VOIDP(err)) ? (todouble(n,&err)) :(0);
+  double dexp= (FD_VOIDP(err)) ? (1/dn) : (0);
+  if (FD_ABORTP(err))
+    return err;
+  else {
+    double result = pow(dv,dexp);
+    return fd_make_flonum(result);}
+}
+
+/* Min/Max operators, etc */
+
+
 static fdtype min_prim(int n,fdtype *args)
 {
   if (n==0) return fd_err(fd_TooFewArgs,"max_prim",NULL,FD_VOID);
@@ -701,9 +769,6 @@ static fdtype itoa_prim(fdtype arg,fdtype base_arg)
 
 /* Initialization */
 
-#undef arithdef
-#undef arithdef2
-
 #define arithdef(sname,lname,cname) \
   fd_idefn(fd_scheme_module,fd_make_cprim1(sname,lname,1))
 #define arithdef2(sname,lname,cname) \
@@ -723,8 +788,12 @@ FD_EXPORT void fd_init_numeric_c()
   arithdef("LOG",llog,log);
   arithdef("EXP",lexp,exp);
 
-  arithdef2("POW",lpow,pow);
   arithdef2("ATAN2",latan2,atan2);
+  arithdef2("POW~",lpow,lpow);
+
+  fd_idefn(fd_scheme_module,fd_make_cprim2("POW",pow_prim,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("NTHROOT",nthroot_prim,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("NTHROOT~",inexact_nthroot_prim,2));
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("MIN",min_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprimn("MAX",max_prim,1));
