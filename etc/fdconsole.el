@@ -100,6 +100,7 @@
 (put 'sambda 'scheme-indent-function 1)
 (put 'slambda 'scheme-indent-function 1)
 
+(put 'irritant 'scheme-indent-function 2)
 (put 'begin 'scheme-indent-function 'block-indenter)
 
 (put 'dolist 'scheme-indent-function 1)
@@ -120,7 +121,7 @@
 (put 'while 'scheme-indent-function 1)
 (put 'until 'scheme-indent-function 1)
 (put 'with-lock 'scheme-indent-function 1)
-(put 'onerror 'scheme-indent-function 1)
+(put 'onerror 'scheme-indent-function 2)
 (put 'prog1 'scheme-indent-function 1)
 
 (put 'index-frame 'scheme-indent-function 2)
@@ -140,6 +141,7 @@
 (put 'printout-to 'scheme-indent-function 1)
 (put 'hmac-sha1 'scheme-indent-function 1)
 (put 'printout 'scheme-indent-function 'block-indenter)
+(put 'message 'scheme-indent-function 'block-indenter)
 (put 'lineout 'scheme-indent-function 'block-indenter)
 (put 'fileout 'scheme-indent-function 1)
 (put 'writeout 'scheme-indent-function 1)
