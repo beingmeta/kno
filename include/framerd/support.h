@@ -129,7 +129,7 @@ FD_EXPORT fdtype fd_exception_backtrace(u8_exception ex);
 
 FD_EXPORT int fd_report_errors_atexit;
 FD_EXPORT int fd_clear_errors(int);
-FD_EXPORT int fd_log_backtrace(u8_exception ex);
+FD_EXPORT void fd_log_exception(u8_exception ex);
 FD_EXPORT void fd_doexit(fdtype);
 
 /* Thread vars */

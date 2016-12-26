@@ -1287,6 +1287,66 @@ static u8_exception print_backtrace_entry(U8_OUTPUT *out,u8_exception ex,int wid
   return ex->u8x_prev;
 }
 
+static void log_backtrace_env(int loglevel,u8_condition label,u8_exception ex,int width)
+{
+  fdtype entry=exception_data(ex);
+  fdtype keys=fd_getkeys(entry);
+  u8_string head=((ex->u8x_details) ? ((u8_string)(ex->u8x_details)) :
+                  (ex->u8x_context) ?  ((u8_string)(ex->u8x_context)) :
+                  ((u8_string)""));
+  if (FD_ABORTP(keys)) {
+    u8_log(loglevel,label,"%s %q\n",head,entry);}
+  else {
+    struct U8_OUTPUT tmpout; u8_byte buf[16384];
+    U8_INIT_OUTPUT_BUF(&tmpout,16384,buf); {
+      FD_DO_CHOICES(key,keys) {
+        fdtype val=fd_get(entry,key,FD_VOID);
+        u8_printf(&tmpout,"> %q = %q\n",key,val);
+        fd_decref(val);}
+      u8_log(loglevel,label,"%q BINDINGS\n%s",head,tmpout.u8_outbuf);
+      u8_close_output(&tmpout);}
+    fd_decref(keys);}
+}
+
+static u8_exception log_backtrace_entry(int loglevel,u8_condition label,
+                                        u8_exception ex,int width)
+{
+  struct U8_OUTPUT tmpout; u8_byte buf[16384]; 
+  U8_INIT_OUTPUT_BUF(&tmpout,16384,buf);
+  if (ex->u8x_context==fd_eval_context) {
+    fdtype expr=exception_data(ex);
+    u8_exception innermost=get_innermost_expr(ex->u8x_prev,expr);
+    fdtype focus=((innermost) ? (exception_data(innermost)) : (FD_VOID));
+    u8_puts(&tmpout,"!>> ");
+    fd_pprint_focus(&tmpout,expr,focus,"!>> ",0,width,"!>","<!");
+    u8_log(loglevel,label,"!>> %s",tmpout.u8_outbuf);
+    u8_close_output(&tmpout);
+    if (innermost)return innermost->u8x_prev;
+    else return ex->u8x_prev;}
+  else if (ex->u8x_context==fd_apply_context) {
+    fdtype entry=exception_data(ex);
+    int i=1, lim=FD_VECTOR_LENGTH(entry);
+    fdtype fn=FD_VECTOR_REF(entry,0);
+    u8_puts(&tmpout,"<");
+    while (i < lim) {
+      fdtype arg=FD_VECTOR_REF(entry,i); i++;
+      if ((FD_SYMBOLP(arg)) || (FD_PAIRP(arg)))
+        u8_printf(&tmpout," '%q",arg);
+      else u8_printf(&tmpout," %q",arg);}
+    u8_printf(&tmpout,">");
+    u8_log(loglevel,label,"*CALL %q %s",fn,tmpout.u8_outbuf);}
+  else if ((ex->u8x_context) && (ex->u8x_context[0]==':')) {
+    log_backtrace_env(loglevel,label,ex,width);}
+  else if ((ex->u8x_context) && (ex->u8x_details))
+    u8_log(loglevel,ex->u8x_cond,"(%s) %m",(ex->u8x_context),(ex->u8x_details));
+  else if (ex->u8x_context)
+    u8_log(loglevel,ex->u8x_cond,"(%s)",(ex->u8x_context));
+  else if (ex->u8x_details)
+    u8_log(loglevel,ex->u8x_cond,"(%m)",(ex->u8x_details));
+  else u8_log(loglevel,ex->u8x_cond,_("No more information"));
+  return ex->u8x_prev;
+}
+
 FD_EXPORT
 void fd_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width)
 {
@@ -1294,6 +1354,13 @@ void fd_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width)
   while (scan) {
     u8_printf(out,";;=======================================================\n");
     scan=print_backtrace_entry(out,scan,width);}
+}
+
+FD_EXPORT void fd_log_backtrace(u8_exception ex,int level,u8_condition label,int width)
+{
+  u8_exception scan=ex;
+  while (scan) {
+    scan=log_backtrace_entry(level,label,scan,width);}
 }
 
 FD_EXPORT

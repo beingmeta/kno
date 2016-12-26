@@ -1101,6 +1101,20 @@ void fd_print_exception(U8_OUTPUT *out,u8_exception ex)
 }
 
 FD_EXPORT
+void fd_log_exception(u8_exception ex)
+{
+  if (ex->u8x_xdata) {
+    fdtype irritant=fd_exception_xdata(ex);
+    u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%q",
+           (U8ALT((ex->u8x_details),((U8S0())))),
+           (U8ALT((ex->u8x_context),((U8S0())))),
+           irritant);}
+  else u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%q",
+              (U8ALT((ex->u8x_details),((U8S0())))),
+              (U8ALT((ex->u8x_context),((U8S0())))));
+}
+
+FD_EXPORT
 fdtype fd_exception_backtrace(u8_exception ex)
 {
   fdtype result=FD_EMPTY_LIST;
@@ -1202,21 +1216,6 @@ int fd_clear_errors(int report)
     scan=scan->u8x_prev;
     n_errs++;}
   u8_free_exception(ex,1);
-  return n_errs;
-}
-
-FD_EXPORT
-int fd_log_backtrace(u8_exception ex)
-{
-  u8_exception scan=ex, last=NULL; int n_errs=0;
-  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
-  if (!(ex)) ex=u8_current_exception;
-  while (scan) {
-    sum_exception(&out,scan,last);
-    u8_log(LOG_ERR,scan->u8x_cond,"%s",out.u8_outbuf);
-    out.u8_write=out.u8_outbuf; out.u8_outbuf[0]='\0';
-    last=scan; scan=scan->u8x_prev;
-    n_errs++;}
   return n_errs;
 }
 

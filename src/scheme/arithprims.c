@@ -344,11 +344,13 @@ static fdtype inexact_nthroot_prim(fdtype v,fdtype n)
 
 static fdtype min_prim(int n,fdtype *args)
 {
-  if (n==0) return fd_err(fd_TooFewArgs,"max_prim",NULL,FD_VOID);
+  if (n==0) 
+    return fd_err(fd_TooFewArgs,"max_prim",NULL,FD_VOID);
   else {
     fdtype result=args[0]; int i=1, inexact=FD_FLONUMP(args[0]);
     while (i<n) {
       int cmp=fd_numcompare(args[i],result);
+      if (cmp>1) return FD_ERROR_VALUE;
       if (FD_FLONUMP(args[i])) inexact=1;
       if (cmp<0) result=args[i];
       i++;}
@@ -371,6 +373,7 @@ static fdtype max_prim(int n,fdtype *args)
     fdtype result=args[0]; int i=1, inexact=FD_FLONUMP(args[0]);
     while (i<n) {
       int cmp=fd_numcompare(args[i],result);
+      if (cmp>1) return FD_ERROR_VALUE;
       if (FD_FLONUMP(args[i])) inexact=1;
       if (cmp>0) result=args[i];
       i++;}

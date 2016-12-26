@@ -174,8 +174,9 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
         /* Clear this field so we can decref err_value while leaving
            the exception object current. */
         u8_log(LOG_WARN,"Recursive error",
-               "Error handling error during %q",toeval);
-        fd_log_backtrace(cur_ex);
+               "Error %m handling error during %q",
+               cur_ex->u8x_cond,toeval);
+        fd_log_backtrace(cur_ex,LOGWARN,"RecursiveError",128);
         exo->ex=NULL;
         u8_restore_exception(ex);
         fd_decref(handler); fd_decref(value); fd_decref(err_value);
@@ -216,7 +217,7 @@ static fdtype report_errors_handler(fdtype expr,fd_lispenv env)
     return value;
   else if (FD_ABORTP(value)) {
     u8_exception ex=u8_current_exception;
-    fd_log_backtrace(ex);
+    fd_log_backtrace(ex,LOG_NOTICE,"CaughtError",128);
     fd_clear_errors(0);
     return FD_FALSE;}
   else return value;
