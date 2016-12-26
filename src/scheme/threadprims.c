@@ -40,6 +40,10 @@ static int thread_loglevel=LOGNOTICE;
 static int thread_log_exit=1;
 static fdtype logexit_symbol=FD_VOID;
 
+#ifndef U8_STRING_ARG
+#define U8_STRING_ARG(s) (((s)==NULL)?((u8_string)""):((u8_string)(s)))
+#endif
+
 /* Thread functions */
 
 #if FD_THREADS_ENABLED
@@ -282,17 +286,32 @@ static void *thread_call(void *data)
                      tstruct->applydata.n_args,
                      tstruct->applydata.args);
   result=fd_finish_call(result);
-  if ((FD_ABORTP(result))||(log_exit)) {
-    if (errno)
-      u8_log(thread_loglevel,ThreadExit,
-             "Thread exited (errno=%s:%d) with result %q\n  from %q",
-             u8_strerror(errno),errno,result,
-             ((tstruct->flags&FD_EVAL_THREAD)?(tstruct->evaldata.expr):
-              tstruct->applydata.fn));
-    else u8_log(thread_loglevel,ThreadExit,
-                "Thread exited with result %q\n  from %q",result,
-                ((tstruct->flags&FD_EVAL_THREAD)?(tstruct->evaldata.expr):
-                 tstruct->applydata.fn));}
+  if ((FD_ABORTP(result))&&(errno)) {
+    u8_exception ex=u8_current_exception;
+    u8_log(thread_loglevel,ThreadExit,
+           "Thread #%lld error (errno=%s:%d) %s (%s) %s",
+           u8_threadid(),u8_strerror(errno),errno,
+           ex->u8x_cond,U8_STRING_ARG(ex->u8x_context),
+           U8_STRING_ARG(ex->u8x_details));}
+  else if (FD_ABORTP(result)) {
+    u8_exception ex=u8_current_exception;
+    u8_log(thread_loglevel,ThreadExit,
+           "Thread #%lld error %s (%s) %s",
+           u8_threadid(),ex->u8x_cond,
+           U8_STRING_ARG(ex->u8x_context),
+           U8_STRING_ARG(ex->u8x_details));}
+  else if (errno) {
+    u8_log(thread_loglevel,ThreadExit,
+           "Thread #%lld exited (errno=%s:%d) returning %s%q",
+           u8_threadid(),u8_strerror(errno),errno,
+           ((FD_CONSP(result))?("\n    "):("")),
+           result);}
+  else if (log_exit) {
+    u8_log(thread_loglevel,ThreadExit,
+           "Thread #%lld exited returning %s%q",
+           u8_threadid(),((FD_CONSP(result))?("\n    "):("")),result);}
+  else {}
+
   u8_threadexit();
   if (FD_ABORTP(result)) {
     u8_exception ex=u8_erreify();
@@ -340,7 +359,7 @@ fd_thread_struct fd_thread_call(fdtype *resultptr,
     return NULL;}
   FD_INIT_FRESH_CONS(tstruct,fd_thread_type);
   if (resultptr) {
-    tstruct->resultptr=resultptr; 
+    tstruct->resultptr=resultptr;
     *resultptr=FD_NULL;
     tstruct->result=FD_NULL;}
   else {
@@ -428,10 +447,10 @@ static fdtype threadcallx_prim(int n,fdtype *args)
     int i=2; while (i<n) {
       fdtype call_arg = args[i]; fd_incref(call_arg);
       call_args[i-2]=call_arg; i++;}
-    thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args,flags);
+    thread=(fdtype)fd_thread_call(NULL,fn,n-2,call_args,flags);
     return thread;}
   else if (FD_VOIDP(fn))
-    return fd_err(fd_TooFewArgs,"threadcall_prim",NULL,FD_VOID);
+    return fd_err(fd_TooFewArgs,"threadcallx_prim",NULL,FD_VOID);
   else {
     fd_incref(fn);
     return fd_type_error(_("applicable"),"threadcallx_prim",fn);}
