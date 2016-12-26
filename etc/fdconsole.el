@@ -103,6 +103,9 @@
 (put 'irritant 'scheme-indent-function 2)
 (put 'begin 'scheme-indent-function 'block-indenter)
 
+(put 'thread/call 'scheme-indent-function 2)
+(put 'thread/call+ 'scheme-indent-function 2)
+
 (put 'dolist 'scheme-indent-function 1)
 (put 'do-pool 'scheme-indent-function 1)
 (put 'dotimes 'scheme-indent-function 1)
