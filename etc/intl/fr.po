@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-12-20 22:04-0500\n"
+"POT-Creation-Date: 2016-12-25 16:28+0000\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -111,30 +111,38 @@ msgid "Table doesn't support getkeys"
 msgstr "«getkeys» opération pas supporté"
 
 #: src/dtype/tables.c:36
+msgid "Can't check for modification status"
+msgstr ""
+
+#: src/dtype/tables.c:37
+msgid "Can't set modficiation status"
+msgstr ""
+
+#: src/dtype/tables.c:38
 #, fuzzy
 msgid "Invalid hashtable method"
 msgstr "constante invalide"
 
-#: src/dtype/tables.c:69
+#: src/dtype/tables.c:71
 #, c-format
 msgid "Noticed %s on %lx\n"
 msgstr ""
 
-#: src/dtype/tables.c:634 src/dtype/tables.c:643
+#: src/dtype/tables.c:650 src/dtype/tables.c:659
 #, fuzzy
 msgid "plist"
 msgstr "liste"
 
-#: src/dtype/tables.c:650 src/dtype/tables.c:656
+#: src/dtype/tables.c:666 src/dtype/tables.c:672
 #, fuzzy
 msgid "alist"
 msgstr "liste"
 
-#: src/dtype/tables.c:664 src/dtype/tables.c:670 src/dtype/tables.c:681
+#: src/dtype/tables.c:680 src/dtype/tables.c:686 src/dtype/tables.c:697
 msgid "binding list"
 msgstr ""
 
-#: src/dtype/tables.c:2662
+#: src/dtype/tables.c:2749
 msgid "value is not a boolean"
 msgstr "n'est pas une boolean"
 
@@ -288,11 +296,12 @@ msgstr "opération pas supporté"
 msgid "oid"
 msgstr "oid"
 
-#: src/dtype/fdtype.c:61 src/dtype/support.c:624 src/scheme/eval.c:1439
+#: src/dtype/fdtype.c:61 src/dtype/support.c:689 src/scheme/eval.c:1439
 #: src/scheme/dbprims.c:2001 src/scheme/portprims.c:719
-#: src/scheme/choiceprims.c:1185 src/scheme/choiceprims.c:1205
-#: src/scheme/choiceprims.c:1216 src/scheme/choiceprims.c:1220
-#: src/scheme/choiceprims.c:1221 src/scheme/seqprims.c:945
+#: src/scheme/choiceprims.c:1185 src/scheme/choiceprims.c:1206
+#: src/scheme/choiceprims.c:1226 src/scheme/choiceprims.c:1247
+#: src/scheme/choiceprims.c:1258 src/scheme/choiceprims.c:1262
+#: src/scheme/choiceprims.c:1263 src/scheme/seqprims.c:945
 #: src/scheme/seqprims.c:967 src/scheme/dbfileprims.c:99
 #: src/scheme/dbfileprims.c:108 src/scheme/dbfileprims.c:112
 #: src/texttools/texttools.c:2033 src/texttools/match.c:3499
@@ -337,8 +346,8 @@ msgid "opcode"
 msgstr ""
 
 # bfd
-#: src/dtype/fdtype.c:69 src/dtype/support.c:608 src/dtype/support.c:1717
-#: src/dtype/support.c:1773 src/scheme/dbprims.c:215 src/scheme/dbprims.c:243
+#: src/dtype/fdtype.c:69 src/dtype/support.c:673 src/dtype/support.c:1782
+#: src/dtype/support.c:1838 src/scheme/dbprims.c:215 src/scheme/dbprims.c:243
 #: src/scheme/portprims.c:257 src/scheme/portprims.c:650
 #: src/scheme/portprims.c:725 src/scheme/stringprims.c:345
 #: src/scheme/stringprims.c:692 src/scheme/stringprims.c:713
@@ -421,7 +430,7 @@ msgstr "objet mystérieux"
 msgid "quoted choice"
 msgstr "choix"
 
-#: src/dtype/fdtype.c:85 src/scheme/tableprims.c:881 src/texttools/match.c:3322
+#: src/dtype/fdtype.c:85 src/scheme/tableprims.c:925 src/texttools/match.c:3322
 #: src/texttools/match.c:3357 src/texttools/match.c:3383
 #: src/texttools/match.c:3421
 #, fuzzy
@@ -429,7 +438,7 @@ msgid "hashset"
 msgstr "table de hachage"
 
 #: src/dtype/fdtype.c:86 src/scheme/reflection.c:71 src/scheme/reflection.c:86
-#: src/scheme/reflection.c:101 src/scheme/coreprims.c:278
+#: src/scheme/reflection.c:101 src/scheme/coreprims.c:297
 #: src/scheme/choiceprims.c:746 src/scheme/choiceprims.c:803
 #: src/scheme/choiceprims.c:925 src/scheme/choiceprims.c:978
 #: src/scheme/seqprims.c:1171 src/scheme/seqprims.c:1205
@@ -509,284 +518,284 @@ msgstr ""
 msgid "Read-only config setting"
 msgstr ""
 
-#: src/dtype/support.c:443
+#: src/dtype/support.c:469
 #, c-format
 msgid "The argc length %d is not valid (>0)"
 msgstr ""
 
-#: src/dtype/support.c:447
+#: src/dtype/support.c:473
 msgid "The argv argument cannot be NULL!"
 msgstr ""
 
-#: src/dtype/support.c:794
+#: src/dtype/support.c:859
 msgid "RLIMIT too high"
 msgstr ""
 
-#: src/dtype/support.c:813
+#: src/dtype/support.c:878
 msgid "Weird option specification"
 msgstr ""
 
-#: src/dtype/support.c:1015 src/dtype/support.c:1022 src/scheme/eval.c:1109
+#: src/dtype/support.c:1080 src/dtype/support.c:1087 src/scheme/eval.c:1109
 #: src/scheme/eval.c:1132
 #, c-format
 msgid "object is not a %m"
 msgstr ""
 
-#: src/dtype/support.c:2420
+#: src/dtype/support.c:2485
 msgid "application ID used in messages and SESSIONID"
 msgstr ""
 
-#: src/dtype/support.c:2425 src/dtype/support.c:2429 src/dtype/support.c:2439
+#: src/dtype/support.c:2490 src/dtype/support.c:2494 src/dtype/support.c:2504
 msgid "the vector of args (before parsing) to the application (no configs)"
 msgstr ""
 
-#: src/dtype/support.c:2432 src/dtype/support.c:2435
+#: src/dtype/support.c:2497 src/dtype/support.c:2500
 msgid "the vector of parsed args to the application (no configs)"
 msgstr ""
 
-#: src/dtype/support.c:2442
+#: src/dtype/support.c:2507
 msgid "config arguments passed to the application (unparsed)"
 msgstr ""
 
-#: src/dtype/support.c:2446
+#: src/dtype/support.c:2511
 #, fuzzy
 msgid "unique session identifier"
 msgstr "pas une identificateur"
 
-#: src/dtype/support.c:2449
+#: src/dtype/support.c:2514
 msgid "system process ID (read-only)"
 msgstr ""
 
-#: src/dtype/support.c:2452
+#: src/dtype/support.c:2517
 msgid "parent's process ID (read-only)"
 msgstr ""
 
-#: src/dtype/support.c:2456
+#: src/dtype/support.c:2521
 msgid "warn on bad UTF-8 sequences"
 msgstr ""
 
-#: src/dtype/support.c:2459
+#: src/dtype/support.c:2524
 msgid "fail (error) on bad UTF-8 sequences"
 msgstr ""
 
-#: src/dtype/support.c:2462
+#: src/dtype/support.c:2527
 msgid "random seed used for stochastic operations"
 msgstr ""
 
-#: src/dtype/support.c:2466
+#: src/dtype/support.c:2531
 msgid "Threshold at which to use an external hashset for merging"
 msgstr ""
 
-#: src/dtype/support.c:2470
+#: src/dtype/support.c:2535
 msgid "whether to trace configuration"
 msgstr ""
 
-#: src/dtype/support.c:2474
+#: src/dtype/support.c:2539
 msgid "Set the user ID for this process"
 msgstr ""
 
-#: src/dtype/support.c:2477
+#: src/dtype/support.c:2542
 msgid "Set the group ID for this process"
 msgstr ""
 
-#: src/dtype/support.c:2482
+#: src/dtype/support.c:2547
 msgid "Get the FramerD version string"
 msgstr ""
 
-#: src/dtype/support.c:2485
+#: src/dtype/support.c:2550
 #, fuzzy
 msgid "Get the FramerD revision identifier"
 msgstr "pas une identificateur"
 
-#: src/dtype/support.c:2488
+#: src/dtype/support.c:2553
 msgid "Get the FramerD major version number"
 msgstr ""
 
-#: src/dtype/support.c:2491
+#: src/dtype/support.c:2556
 msgid "Get the libu8 version string"
 msgstr ""
 
-#: src/dtype/support.c:2494
+#: src/dtype/support.c:2559
 #, fuzzy
 msgid "Get the libu8 revision identifier"
 msgstr "pas une identificateur"
 
-#: src/dtype/support.c:2497
+#: src/dtype/support.c:2562
 msgid "Get the libu8 major version number"
 msgstr ""
 
-#: src/dtype/support.c:2501
+#: src/dtype/support.c:2566
 #, fuzzy
 msgid "Max number of chars to show in strings"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/dtype/support.c:2506
+#: src/dtype/support.c:2571
 msgid "Max number of elements to show in vectors/lists/choices, etc"
 msgstr ""
 
-#: src/dtype/support.c:2510
+#: src/dtype/support.c:2575
 #, fuzzy
 msgid "Max number of elements to show in numeric vectors"
 msgstr "trop peu de arguments à «find-frames»"
 
-#: src/dtype/support.c:2515
+#: src/dtype/support.c:2580
 msgid "How to dump packets to ASCII (16=hex,64=base64,dflt=ascii-ish)"
 msgstr ""
 
-#: src/dtype/support.c:2519
+#: src/dtype/support.c:2584
 msgid "Path prefix for program state files"
 msgstr ""
 
-#: src/dtype/support.c:2524
+#: src/dtype/support.c:2589
 msgid "Max CPU execution time limit"
 msgstr ""
 
-#: src/dtype/support.c:2529
+#: src/dtype/support.c:2594
 msgid "Max resident set (RSS) size"
 msgstr ""
 
-#: src/dtype/support.c:2534
+#: src/dtype/support.c:2599
 msgid "Max core dump size"
 msgstr ""
 
-#: src/dtype/support.c:2539
+#: src/dtype/support.c:2604
 msgid "Max number of subprocesses"
 msgstr ""
 
-#: src/dtype/support.c:2544
+#: src/dtype/support.c:2609
 msgid "Max number of open file descriptors"
 msgstr ""
 
-#: src/dtype/support.c:2549
+#: src/dtype/support.c:2614
 msgid "Max stack depth"
 msgstr ""
 
-#: src/dtype/support.c:2558
+#: src/dtype/support.c:2623
 msgid "File to store profile output from Google perftools"
 msgstr ""
 
-#: src/dtype/support.c:2565
+#: src/dtype/support.c:2630
 msgid "Root FramerD logging directories"
 msgstr ""
 
-#: src/dtype/support.c:2570
+#: src/dtype/support.c:2635
 msgid "Shared config/data directory for FramerD"
 msgstr ""
 
-#: src/dtype/support.c:2575
+#: src/dtype/support.c:2640
 msgid "Data directory for FramerD"
 msgstr ""
 
-#: src/dtype/support.c:2580
+#: src/dtype/support.c:2645
 msgid "Directory for looking up config entries"
 msgstr ""
 
-#: src/dtype/support.c:2585
+#: src/dtype/support.c:2650
 msgid "Registered source files"
 msgstr ""
 
-#: src/dtype/support.c:2589
+#: src/dtype/support.c:2654
 msgid "Procedures to call on exit"
 msgstr ""
 
-#: src/dtype/support.c:2593
+#: src/dtype/support.c:2658
 msgid "whether to use FramerD per-request logging"
 msgstr ""
 
-#: src/dtype/support.c:2596
+#: src/dtype/support.c:2661
 msgid "only use per-request logging (when available) for loglevels >= this"
 msgstr ""
 
-#: src/dtype/support.c:2599
+#: src/dtype/support.c:2664
 msgid "the default log function"
 msgstr ""
 
-#: src/dtype/support.c:2602 src/dtype/support.c:2626
+#: src/dtype/support.c:2667 src/dtype/support.c:2691
 #, fuzzy
 msgid "additional log functions"
 msgstr "pas une fonction"
 
-#: src/dtype/support.c:2605
+#: src/dtype/support.c:2670
 msgid "value of LOCAL_MODULES"
 msgstr ""
 
-#: src/dtype/support.c:2607
+#: src/dtype/support.c:2672
 msgid "value of LOCAL_SAFE_MODULES"
 msgstr ""
 
-#: src/dtype/support.c:2609
+#: src/dtype/support.c:2674
 msgid "value of INSTALLED_MODULES"
 msgstr ""
 
-#: src/dtype/support.c:2611
+#: src/dtype/support.c:2676
 msgid "value of INSTALLED_SAFE_MODULES"
 msgstr ""
 
-#: src/dtype/support.c:2613
+#: src/dtype/support.c:2678
 msgid "value of SHARED_MODULES"
 msgstr ""
 
-#: src/dtype/support.c:2615
+#: src/dtype/support.c:2680
 msgid "value of SHARED_SAFE_MODULES"
 msgstr ""
 
-#: src/dtype/support.c:2617
+#: src/dtype/support.c:2682
 msgid "value of BUILTIN_MODULES"
 msgstr ""
 
-#: src/dtype/support.c:2619
+#: src/dtype/support.c:2684
 msgid "value of BUILTIN_SAFE_MODULES"
 msgstr ""
 
-#: src/dtype/support.c:2622
+#: src/dtype/support.c:2687
 msgid "value of UNPACKAGE_DIR"
 msgstr ""
 
-#: src/dtype/support.c:2639
+#: src/dtype/support.c:2704
 msgid "Required priority for messages to be displayed"
 msgstr ""
 
-#: src/dtype/support.c:2644
+#: src/dtype/support.c:2709
 msgid "Required priority for messages to be displayed on stdout"
 msgstr ""
 
-#: src/dtype/support.c:2649
+#: src/dtype/support.c:2714
 msgid "Required priority for messages to be displayed on stderr"
 msgstr ""
 
-#: src/dtype/support.c:2656
+#: src/dtype/support.c:2721
 msgid "String for indenting multi-line log messages"
 msgstr ""
 
-#: src/dtype/support.c:2659
+#: src/dtype/support.c:2724
 msgid "Prefix for log messages (default '[')"
 msgstr ""
 
-#: src/dtype/support.c:2662
+#: src/dtype/support.c:2727
 msgid "Suffix for log messages (default ']\\n')"
 msgstr ""
 
-#: src/dtype/support.c:2666
+#: src/dtype/support.c:2731
 msgid "Whether to show the date in log messages"
 msgstr ""
 
-#: src/dtype/support.c:2670
+#: src/dtype/support.c:2735
 msgid "Whether to show PID/appid info in messages"
 msgstr ""
 
-#: src/dtype/support.c:2674
+#: src/dtype/support.c:2739
 msgid "Whether to show thread id info in messages"
 msgstr ""
 
-#: src/dtype/support.c:2678
+#: src/dtype/support.c:2743
 msgid "Whether to show elapsed time in messages"
 msgstr ""
 
-#: src/dtype/support.c:2733
+#: src/dtype/support.c:2798
 msgid "Errors to catch and return as errors"
 msgstr ""
 
-#: src/dtype/support.c:2737 src/dtype/support.c:2741
+#: src/dtype/support.c:2802 src/dtype/support.c:2806
 msgid "Errors to trigger exists"
 msgstr ""
 
@@ -1527,11 +1536,21 @@ msgstr "constante invalide"
 msgid "time interval"
 msgstr ""
 
-#: src/scheme/threadprims.c:439 src/scheme/threadprims.c:525
+#: src/scheme/threadprims.c:405 src/texttools/match.c:3447
+#: src/texttools/match.c:3474
+msgid "applicable"
+msgstr ""
+
+#: src/scheme/threadprims.c:433
+#, fuzzy
+msgid "fixnum(flags)"
+msgstr "fixnum"
+
+#: src/scheme/threadprims.c:472 src/scheme/threadprims.c:559
 msgid "thread"
 msgstr ""
 
-#: src/scheme/threadprims.c:529
+#: src/scheme/threadprims.c:563
 msgid "condvar"
 msgstr ""
 
@@ -1583,8 +1602,8 @@ msgstr ""
 msgid "procedure"
 msgstr ""
 
-#: src/scheme/reflection.c:226 src/scheme/coreprims.c:632
-#: src/scheme/coreprims.c:649 src/scheme/coreprims.c:661
+#: src/scheme/reflection.c:226 src/scheme/coreprims.c:659
+#: src/scheme/coreprims.c:676 src/scheme/coreprims.c:688
 #: src/cmodules/sqlite.c:188
 msgid "string or symbol"
 msgstr "chaîne ou symbole"
@@ -1599,18 +1618,18 @@ msgid "Immutable record"
 msgstr ""
 
 # gnumeric
-#: src/scheme/coreprims.c:374
+#: src/scheme/coreprims.c:393
 #, fuzzy
 msgid "number"
 msgstr "nombre"
 
-#: src/scheme/coreprims.c:518 src/scheme/arithprims.c:390
-#: src/scheme/arithprims.c:407 src/scheme/arithprims.c:424
-#: src/scheme/arithprims.c:452
+#: src/scheme/coreprims.c:537 src/scheme/arithprims.c:459
+#: src/scheme/arithprims.c:476 src/scheme/arithprims.c:493
+#: src/scheme/arithprims.c:521
 msgid "scalar"
 msgstr ""
 
-#: src/scheme/arithprims.c:671 src/scheme/arithprims.c:690
+#: src/scheme/arithprims.c:740 src/scheme/arithprims.c:759
 msgid "negative numbers can't be rendered as non-decimal"
 msgstr ""
 
@@ -1653,9 +1672,10 @@ msgid "value test"
 msgstr ""
 
 #: src/scheme/dbprims.c:1352 src/scheme/tableprims.c:193
-#: src/scheme/tableprims.c:760 src/scheme/tableprims.c:777
-#: src/scheme/tableprims.c:792 src/fdweb/xmloutput.c:1852
-#: src/fdweb/uriprims.c:197 src/fdweb/uriprims.c:199 src/fdweb/uriprims.c:295
+#: src/scheme/tableprims.c:781 src/scheme/tableprims.c:798
+#: src/scheme/tableprims.c:813 src/scheme/tableprims.c:837
+#: src/fdweb/xmloutput.c:1852 src/fdweb/uriprims.c:197 src/fdweb/uriprims.c:199
+#: src/fdweb/uriprims.c:295
 #, fuzzy
 msgid "table"
 msgstr "table de hachage"
@@ -2292,10 +2312,6 @@ msgstr "constante invalide"
 
 #: src/texttools/match.c:473
 msgid "unknown match operator"
-msgstr ""
-
-#: src/texttools/match.c:3447 src/texttools/match.c:3474
-msgid "applicable"
 msgstr ""
 
 #: src/texttools/match.c:3549 src/texttools/match.c:3579
