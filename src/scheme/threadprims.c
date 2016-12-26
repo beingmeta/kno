@@ -32,8 +32,8 @@
 #include <pthread.h>
 #include <errno.h>
 
-static u8_condition ThreadReturnError=_("Thread returned with error");
-static u8_condition ThreadExit=_("Thread exited");
+static u8_condition ThreadReturnError=_("ThreadError");
+static u8_condition ThreadExit=_("ThreadExit");
 static u8_condition ThreadBacktrace=_("ThreadBacktrace");
 
 static int thread_loglevel=LOGNOTICE;
@@ -312,6 +312,7 @@ static void *thread_call(void *data)
         out.u8_write=out.u8_outbuf;
         fd_print_backtrace(&out,ex,120);
         fd_dump_backtrace(out.u8_outbuf);}
+      else fd_log_backtrace(ex,LOG_NOTICE,ThreadBacktrace,120);
       u8_free(out.u8_outbuf);}
     tstruct->result=exobj;
     if (tstruct->resultptr) {
@@ -391,9 +392,9 @@ static fdtype threadcall_prim(int n,fdtype *args)
   fdtype fn = args[0];
   if (FD_APPLICABLEP(fn)) {
     fdtype *call_args=u8_alloc_n(n,fdtype), thread;
-    int i=0; while (i<n) {
+    int i=1; while (i<n) {
       fdtype call_arg = args[i]; fd_incref(call_arg);
-      call_args[i++]=call_arg;}
+      call_args[i-1]=call_arg; i++;}
     thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args,0);
     return thread;}
   else if (FD_VOIDP(fn))
@@ -425,8 +426,8 @@ static fdtype threadcallx_prim(int n,fdtype *args)
     fdtype *call_args=u8_alloc_n(n-2,fdtype), thread;
     int flags=threadopts(opts);
     int i=2; while (i<n) {
-      fdtype call_arg = args[i++]; fd_incref(call_arg);
-      call_args[i-2]=call_arg;}
+      fdtype call_arg = args[i]; fd_incref(call_arg);
+      call_args[i-2]=call_arg; i++;}
     thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args,flags);
     return thread;}
   else if (FD_VOIDP(fn))
