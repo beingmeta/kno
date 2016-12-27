@@ -1,5 +1,7 @@
 (load-component "common.scm")
 
+(use-module 'mttools)
+
 (define numbers '())
 (define addnumber
   (slambda (n) (set! numbers (cons n numbers))))
@@ -42,14 +44,13 @@
     (applytest #f check-ordered numbers)
     (message "TEST-SPAWN: " numbers)))
 
-
 ;;;; CONDVAR testing
 
-(define cvar (make-condvar))
 (define touches 0)
 (define sightings 0)
 (define noisy (config 'NOISY #f))
 
+(define cvar (make-condvar))
 (define var 33)
 (define (watchv i)
   (while var
@@ -81,13 +82,27 @@
 
 (define (test-condvars)
   (let ((threads {}))
-    (dotimes (i 5) (set+! threads (spawn (watchv i))))
+    (set! var (random 100))
+    (dotimes (i 5) (set+! threads (spawn (watchv i cvar))))
     (dotimes (i 200)
       (touchv (random 9999)) (sleep (* (random 10) (* 0.1 sleep-base))))
-    (stop-condvar-test)
+    (sleep 1)
+    (stop-condvar-test cvar)
     (threadjoin threads)
     (applytest #t = sightings touches)
-    (message "CONDVARS: sightings=touches=" touches)
-    (set! var (random 100))))
+    (message "CONDVARS: sightings=touches=" touches)))
+
+(define (do-choices-mt-test)
+  (let ((ids {}))
+    (do-choices-mt (num (mt/nrange 0 2000))
+      (set+! ids (threadid)))
+    (message "DO-CHOICES-MT-TEST: " ids)
+    (applytest #t (> (choice-size ids) 1))))
+
+(test-parallel)
+(test-spawn)
+(test-threadcall)
+;;(test-condvars)
+(when (threadid) (do-choices-mt-test))
 
 (test-finished "THREADTEST")

@@ -2816,6 +2816,14 @@ fdtype fd_lcm(fdtype x,fdtype y)
   return int_lcm(x,y);
 }
 
+FD_EXPORT
+fdtype fd_pow(fdtype x,fdtype y)
+{
+  double dx=todouble(x), dy=todouble(y);
+  double result=pow(dx,dy);
+  return fd_make_flonum(result);
+}
+
 static int signum(fdtype x)
 {
   if (FD_FIXNUMP(x)) {
@@ -2941,6 +2949,20 @@ fdtype fd_make_exact(fdtype x)
     else return fd_incref(x);}
   else if (FD_NUMBERP(x)) return fd_incref(x);
   else return fd_type_error(_("number"),"fd_make_inexact",x);
+}
+
+FD_EXPORT
+int fd_exactp(fdtype x)
+{
+  fd_ptr_type xt=FD_PTR_TYPE(x);
+  if (xt == fd_flonum_type) return 0;
+  else if (xt==fd_complex_type) {
+    fdtype realpart=FD_REALPART(x), imagpart=FD_IMAGPART(x);
+    if ((FD_FLONUMP(realpart)) || (FD_FLONUMP(imagpart)))
+      return 0;
+    else return 1;}
+  else if (FD_NUMBERP(x)) return 1;
+  else return -1;
 }
 
 

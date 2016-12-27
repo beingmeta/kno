@@ -21,6 +21,8 @@ FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 FD_EXPORT fdtype fd_gcd(fdtype x,fdtype y);
 FD_EXPORT fdtype fd_lcm(fdtype x,fdtype y);
 
+FD_EXPORT fdtype fd_pow(fdtype x,fdtype y);
+
 FD_EXPORT fdtype fd_make_exact(fdtype);
 FD_EXPORT fdtype fd_make_inexact(fdtype);
 
@@ -49,6 +51,16 @@ FD_EXPORT fdtype fd_init_flonum(struct FD_FLONUM *ptr,double flonum);
 FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum);
 #define fd_make_double(dbl) (fd_init_double(NULL,(dbl)))
 #define fd_make_flonum(dbl) (fd_init_flonum(NULL,(dbl)))
+
+FD_EXPORT int fd_exactp(fdtype x);
+
+#define FD_ISNAN(x) ((FD_FLONUMP(x))&&(isnan(FD_FLONUM(x))))
+#define FD_ZEROP(x) ((FD_FIXNUMP(x))?((FD_FIX2INT(x))==0): \
+		     (FD_FLONUMP(x))?((FD_FLONUM(x))==0):(0))
+#define FD_EXACTP(x)					      \
+  ((FD_FLONUMP(x))?(0):(!(FD_NUMBERP(x)))?(-1):		      \
+   ((FD_FIXNUMP(x))||(FD_BIGINTP(x)))?(1):		      \
+   (fd_exactp(x)))
 
 /* Numeric vectors */
 

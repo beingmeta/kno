@@ -739,6 +739,7 @@ memtest_prefix
 debuglibs
 debugldflags
 debugcflags
+extra_src
 setup_target
 definefileinfo
 versionsh
@@ -857,6 +858,7 @@ with_duma
 with_stackcheck
 with_execwrapper
 with_optinclude
+with_extrasrc
 with_bootsystem
 with_systemd
 with_optlib
@@ -1601,6 +1603,7 @@ Optional Packages:
 --with-stackcheck Build with native stack checking
 --with-execwrapper program to use when calling exec()
 --with-optinclude Use optional include directory
+--with-extrasrc Configure extra source directories for gdb
 --with-bootsystem Setup boot method
 --with-systemd Specify systemd install directory
 --with-optlib Use optional library directory
@@ -2892,6 +2895,7 @@ suffix=""
 rpath=""
 daemon_identity_default="daemon"
 setup_target="setup-unix"
+extra_src=
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTENV=
@@ -3026,6 +3030,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -5972,6 +5977,18 @@ elif test -d /etc/init; then
   default_bootsystem="sysv";
  else
   default_bootsystem="none"
+fi
+
+
+# Check whether --with-extrasrc was given.
+if test "${with_extrasrc+set}" = set; then :
+  withval=$with_extrasrc;
+else
+  with_extrasrc="none"
+fi
+
+if test $with_extrasrc != "none"; then
+   extra_src=${with_extrasrc};
 fi
 
 

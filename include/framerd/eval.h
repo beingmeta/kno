@@ -154,6 +154,7 @@ FD_EXPORT void fd_register_sourcefn
    void *sourcefn_data);
 
 FD_EXPORT int fd_load_config(u8_string sourceid);
+FD_EXPORT int fd_load_default_config(u8_string sourceid);
 FD_EXPORT fdtype fd_load_source_with_date
   (u8_string sourceid,fd_lispenv env,u8_string enc_name,time_t *modtime);
 FD_EXPORT fdtype fd_load_source
@@ -368,6 +369,8 @@ typedef struct FD_CONTINUATION *fd_continuation;
 #if FD_THREADS_ENABLED
 #define FD_THREAD_DONE 1
 #define FD_EVAL_THREAD 2
+#define FD_THREAD_TRACE_EXIT 4
+#define FD_THREAD_QUIET_EXIT 8
 typedef struct FD_THREAD_STRUCT {
   FD_CONS_HEADER; int flags; pthread_t tid; 
 #if 0
@@ -386,8 +389,8 @@ typedef struct FD_CONDVAR *fd_consed_condvar;
 
 FD_EXPORT fd_ptr_type fd_thread_type;
 FD_EXPORT fd_ptr_type fd_condvar_type;
-FD_EXPORT fd_thread_struct fd_thread_call(fdtype *,fdtype,int,fdtype *);
-FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv);
+FD_EXPORT fd_thread_struct fd_thread_call(fdtype *,fdtype,int,fdtype *,int);
+FD_EXPORT fd_thread_struct fd_thread_eval(fdtype *,fdtype,fd_lispenv,int);
 #endif /* FD_THREADS_ENABLED */
 
 

@@ -1342,6 +1342,19 @@ static fdtype getppid_prim()
   return FD_INT(((unsigned long)pid));
 }
 
+static fdtype threadid_prim()
+{
+  long long tid=u8_threadid();
+  return FD_INT(tid);
+}
+
+static fdtype getprocstring_prim()
+{
+  unsigned char buf[128];
+  unsigned char *pinfo=u8_procinfo(buf);
+  return fdtype_string(pinfo);
+}
+
 static fdtype memusage_prim()
 {
   ssize_t size=u8_memusage();
@@ -2008,6 +2021,8 @@ FD_EXPORT void fd_init_timeprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETPID",getpid_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETPPID",getppid_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("THREADID",threadid_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("PROCSTRING",getprocstring_prim,0));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));

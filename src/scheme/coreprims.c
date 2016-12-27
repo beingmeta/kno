@@ -197,6 +197,25 @@ static fdtype numberp(fdtype x)
   if (FD_NUMBERP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
+static fdtype flonump(fdtype x)
+{
+  if (FD_FLONUMP(x)) 
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype isnanp(fdtype x)
+{
+  if (FD_FLONUMP(x)) {
+    double d=FD_FLONUM(x);
+    if (isnan(d))
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if (FD_NUMBERP(x))
+    return FD_FALSE;
+  else return FD_TRUE;
+}
+
 static fdtype immediatep(fdtype x)
 {
   if (FD_IMMEDIATEP(x)) return FD_TRUE; else return FD_FALSE;
@@ -546,8 +565,16 @@ static fdtype remainder_prim(fdtype x,fdtype m)
 
 static fdtype random_prim(fdtype maxarg)
 {
-  int max=fd_getint(maxarg), n=u8_random(max);
-  return FD_INT(n);
+  if (FD_INTEGERP(maxarg)) {
+    int max=fd_getint(maxarg), n=u8_random(max);
+    return FD_INT(n);}
+  else if (FD_FLONUMP(maxarg)) {
+    double flomax = FD_FLONUM(maxarg);
+    int intmax=(int)flomax;
+    int n=u8_random(intmax);
+    double rval=(double) n;
+    return fd_make_flonum(rval);}
+  else return fd_type_error("integer or flonum","random_prim",maxarg);
 }
 
 static fdtype quotient_prim(fdtype x,fdtype y)
@@ -816,6 +843,8 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("OPCODE?",opcodep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("ERROR?",errorp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("APPLICABLE?",applicablep,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("FLONUM?",flonump,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("NAN?",isnanp,1));
 
   fd_defalias(fd_scheme_module,"CHAR?","CHARACTER?");
   fd_idefn(fd_scheme_module,fd_make_cprim1("BOOLEAN?",booleanp,1));

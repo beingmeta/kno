@@ -509,6 +509,8 @@ FD_EXPORT fd_bigint fd_long_to_bigint(long);
    ((FD_PTR_TYPEP(x,fd_bigint_type)) && (fd_small_bigintp((fd_bigint)x))) ? \
    (fd_bigint2int((fd_bigint)x)) : (0))
 
+#define FD_INTEGERP(x) ((FD_FIXNUMP(x))||(FD_BIGINTP(x)))
+
 /* Doubles */
 
 typedef struct FD_FLONUM {

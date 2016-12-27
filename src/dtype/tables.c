@@ -2567,7 +2567,6 @@ static int hashset_modified(struct FD_HASHSET *ptr,int flag)
     return modified;}
 }
 
-
 static fdtype hashsetelts(struct FD_HASHSET *h)
 {
   return fd_hashset_elts(h,0);

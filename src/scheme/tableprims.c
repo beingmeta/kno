@@ -746,6 +746,27 @@ static fdtype table_size(fdtype table)
   else return FD_INT(size);
 }
 
+static fdtype table_modifiedp(fdtype table)
+{
+  int ismod=fd_modifiedp(table);
+  if (ismod == 0)
+    return FD_FALSE;
+  else if (ismod > 0)
+    return FD_TRUE;
+  else return FD_ERROR_VALUE;
+}
+
+static fdtype table_set_modified(fdtype table,fdtype flag_arg)
+{
+  int flag=((FD_FALSEP(flag_arg))||(FD_ZEROP(flag_arg)))?(0):(1);
+  int retval=fd_set_modified(table,flag);
+  if (retval == 0)
+    return FD_FALSE;
+  else if (retval > 0)
+    return FD_TRUE;
+  else return FD_ERROR_VALUE;
+}
+
 static fdtype table_max(fdtype tables,fdtype scope)
 {
   if (FD_EMPTY_CHOICEP(scope)) return scope;
@@ -791,6 +812,29 @@ static fdtype table_skim(fdtype tables,fdtype maxval,fdtype scope)
         fd_decref(results);
         return fd_type_error(_("table"),"table_skim",table);}
     return results;}
+}
+
+static fdtype table_map_size(fdtype table)
+{
+  if (FD_PRIM_TYPEP(table,fd_hashtable_type)) {
+    struct FD_HASHTABLE *ht = (struct FD_HASHTABLE *) table;
+    long long n_values=fd_hashtable_map_size(ht);
+    return FD_INT(n_values);}
+  else if (FD_PRIM_TYPEP(table,fd_hashset_type)) {
+    struct FD_HASHSET *hs = (struct FD_HASHSET *) table;
+    return FD_INT(hs->fd_n_keys);}
+  else if (FD_TABLEP(table)) {
+    fdtype keys=fd_getkeys(table);
+    long long count=0;
+    FD_DO_CHOICES(key,keys) {
+      fdtype v=fd_get(table,key,FD_VOID);
+      if (!(FD_VOIDP(v))) {
+        int size=FD_CHOICE_SIZE(v);
+        count += size;}
+      fd_decref(v);}
+    fd_decref(keys);
+    return FD_INT(count);}
+  else return fd_type_error(_("table"),"table_map_size",table);
 }
 
 /* Mapping into tables */
@@ -948,12 +992,15 @@ FD_EXPORT void fd_init_tablefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2x("PICK-KEYS",lisp_pick_keys,1,
                                             -1,FD_VOID,fd_fixnum_type,FD_INT(1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-SIZE",table_size,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-MODIFIED?",table_modifiedp,1));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("TABLE-MAX",table_max,1)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("TABLE-MAXVAL",table_maxval,1)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3("TABLE-SKIM",table_skim,2)));
+
+  fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-MAP-SIZE",table_map_size,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim1
            ("PLIST->TABLE",fd_plist_to_slotmap,1));

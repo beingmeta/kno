@@ -44,7 +44,8 @@ struct FD_TABLEFNS {
   int (*test)(fdtype obj,fdtype fd_key,fdtype value);
   int (*modified)(fdtype obj,int op);
   int (*getsize)(fdtype obj);
-  fdtype (*keys)(fdtype obj);};
+  fdtype (*keys)(fdtype obj);
+};
 
 FD_EXPORT struct FD_TABLEFNS *fd_tablefns[];
 
@@ -54,6 +55,8 @@ FD_EXPORT int fd_store(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_add(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_drop(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_getsize(fdtype arg);
+FD_EXPORT int fd_modifiedp(fdtype arg);
+FD_EXPORT int fd_set_modified(fdtype arg,int val);
 FD_EXPORT fdtype fd_getkeys(fdtype arg);
 FD_EXPORT fdtype fd_getvalues(fdtype arg);
 FD_EXPORT fdtype fd_getassocs(fdtype arg);
@@ -400,6 +403,14 @@ typedef struct FD_HASHTABLE *fd_hashtable;
   ((FD_XHASHTABLE(x))->fd_modified)
 #define FD_HASHTABLE_MARK_MODIFIED(x) \
   ((FD_XHASHTABLE(x))->fd_modified)=1
+#define FD_HASHTABLE_CLEAR_MODIFIED(x) \
+  ((FD_XHASHTABLE(x))->fd_modified)=0
+
+#define FD_XHASHTABLE_SLOTS(x) ((x)->fd_n_slots)
+#define FD_XHASHTABLE_SIZE(x)  ((x)->fd_n_keys)
+#define FD_XHASHTABLE_MODIFIEDP(x) ((x)->fd_modified)
+#define FD_XHASHTABLE_MARK_MODIFIED(x) ((x)->fd_modified)=1
+#define FD_XHASHTABLE_CLEAR_MODIFIED(x) ((x)->fd_modified)=0
 
 FD_EXPORT unsigned int fd_get_hashtable_size(unsigned int min);
 FD_EXPORT unsigned int fd_hash_string(u8_string string,int len);
@@ -460,6 +471,7 @@ FD_EXPORT fdtype fd_hashtable_skim(fd_hashtable,fdtype,fdtype);
 FD_EXPORT fdtype fd_slotmap_max(fd_slotmap,fdtype,fdtype *);
 FD_EXPORT fdtype fd_slotmap_skim(fd_slotmap,fdtype,fdtype);
 
+FD_EXPORT long long fd_hashtable_map_size(struct FD_HASHTABLE *h);
 
 FD_EXPORT int fd_resize_hashtable(fd_hashtable ptr,int n_slots);
 FD_EXPORT int fd_hashtable_stats

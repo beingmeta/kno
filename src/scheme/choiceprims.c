@@ -1185,6 +1185,27 @@ static fdtype nmax_prim(fdtype choices,fdtype karg,fdtype keyfn)
   else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
 
+static fdtype nmax2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
+{
+  if (FD_FIXNUMP(karg)) {
+    int k=FD_FIX2INT(karg);
+    struct FD_SORT_ENTRY *entries=NULL;
+    fdtype results=select_helper(choices,keyfn,k,1,&entries);
+    if (FD_VOIDP(results)) {
+      fdtype vec=fd_make_vector(k,NULL);
+      int i=0;
+      while (i<k) {
+        fdtype elt=entries[i].value;
+        int vec_off=k-1-i;
+        fd_incref(elt); fd_decref(entries[i].key);
+        FD_VECTOR_SET(vec,vec_off,elt);
+        i++;}
+      u8_free(entries);
+      return vec;}
+    else return results;}
+  else return fd_type_error(_("fixnum"),"nmax_prim",karg);
+}
+
 static fdtype nmin_prim(fdtype choices,fdtype karg,fdtype keyfn)
 {
   if (FD_FIXNUMP(karg)) {
@@ -1201,6 +1222,27 @@ static fdtype nmin_prim(fdtype choices,fdtype karg,fdtype keyfn)
         i++;}
       u8_free(entries);
       return results;}
+    else return results;}
+  else return fd_type_error(_("fixnum"),"nmax_prim",karg);
+}
+
+static fdtype nmin2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
+{
+  if (FD_FIXNUMP(karg)) {
+    int k=FD_FIX2INT(karg);
+    struct FD_SORT_ENTRY *entries=NULL;
+    fdtype results=select_helper(choices,keyfn,k,0,&entries);
+    if (FD_VOIDP(results)) {
+      fdtype vec=fd_make_vector(k,NULL);
+      int i=0;
+      while (i<k) {
+        fdtype elt=entries[i].value;
+        fd_decref(entries[i].key);
+        fd_incref(entries[i].value);
+        FD_VECTOR_SET(vec,i,entries[i].value);
+        i++;}
+      u8_free(entries);
+      return vec;}
     else return results;}
   else return fd_type_error(_("fixnum"),"nmax_prim",karg);
 }
@@ -1261,12 +1303,55 @@ static fdtype pick_oids_prim(fdtype items)
   else return results;
 }
 
+static fdtype pick_syms_prim(fdtype items)
+{
+  fdtype results=FD_EMPTY_CHOICE; int no_change=1;
+  FD_DO_CHOICES(item,items)
+    if (FD_SYMBOLP(item)) {
+      FD_ADD_TO_CHOICE(results,item);}
+    else no_change=0;
+  if (no_change) {
+    fd_decref(results);
+    return fd_incref(items);}
+  else return results;
+}
+
 static fdtype pick_strings_prim(fdtype items)
 {
   /* I don't think we need to worry about getting an ACHOICE here. */
   fdtype results=FD_EMPTY_CHOICE; int no_change=1;
   FD_DO_CHOICES(item,items)
     if (FD_STRINGP(item)) {
+      fd_incref(item);
+      FD_ADD_TO_CHOICE(results,item);}
+    else no_change=0;
+  if (no_change) {
+    fd_decref(results);
+    return fd_incref(items);}
+  else return results;
+}
+
+static fdtype pick_vecs_prim(fdtype items)
+{
+  /* I don't think we need to worry about getting an ACHOICE here. */
+  fdtype results=FD_EMPTY_CHOICE; int no_change=1;
+  FD_DO_CHOICES(item,items)
+    if (FD_VECTORP(item)) {
+      fd_incref(item);
+      FD_ADD_TO_CHOICE(results,item);}
+    else no_change=0;
+  if (no_change) {
+    fd_decref(results);
+    return fd_incref(items);}
+  else return results;
+}
+
+static fdtype pick_pairs_prim(fdtype items)
+{
+  /* I don't think we need to worry about getting an ACHOICE here. */
+  fdtype results=FD_EMPTY_CHOICE; int no_change=1;
+  FD_DO_CHOICES(item,items)
+    if (FD_PAIRP(item)) {
       fd_incref(item);
       FD_ADD_TO_CHOICE(results,item);}
     else no_change=0;
@@ -1423,6 +1508,12 @@ FD_EXPORT void fd_init_choicefns_c()
            fd_make_ndprim(fd_make_cprim1("PICKNUMS",pick_nums_prim,1)));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim1("PICKSTRINGS",pick_strings_prim,1)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim1("PICKSYMS",pick_syms_prim,1)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim1("PICKPAIRS",pick_pairs_prim,1)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim1("PICKVECS",pick_vecs_prim,1)));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2("GETRANGE",getrange_prim,1));
@@ -1440,9 +1531,17 @@ FD_EXPORT void fd_init_choicefns_c()
            fd_make_ndprim(fd_make_cprim3x("NMAX",nmax_prim,2,
                                           -1,FD_VOID,fd_fixnum_type,FD_VOID,
                                           -1,FD_VOID)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim3x("NMAX->VECTOR",nmax2vec_prim,2,
+                                          -1,FD_VOID,fd_fixnum_type,FD_VOID,
+                                          -1,FD_VOID)));
 
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim3x("NMIN",nmin_prim,2,
+                                          -1,FD_VOID,fd_fixnum_type,FD_VOID,
+                                          -1,FD_VOID)));
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim3x("NMIN->VECTOR",nmin2vec_prim,2,
                                           -1,FD_VOID,fd_fixnum_type,FD_VOID,
                                           -1,FD_VOID)));
 }
