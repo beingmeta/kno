@@ -234,3 +234,5 @@ end
 
 # Init some tracing configurations
 set env FD_TRACEWEB=yes
+# This is for OS X > Sierra
+set startup-with-shell off
