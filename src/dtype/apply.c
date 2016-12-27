@@ -641,7 +641,7 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
     U8_END_EXCEPTION;
     if (errno) {
       u8_string cond=u8_strerror(errno);
-      u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) before %s",
+      u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
              errno,cond,U8ALT(name,"primcall"));
       errno=0;}
     return result;}
