@@ -1799,7 +1799,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
       struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->fd_key;
+        fdtype key=kvscan->fd_kvkey;
         if (FD_PAIRP(key))
           if ((FD_CAR(key))==set_symbol) {
             fdtype real_key=FD_CDR(key);
@@ -1808,7 +1808,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
                 ((FD_OIDP(FD_CAR(real_key))) || (FD_SYMBOLP(FD_CAR(real_key))))) {
               if (get_slotid_index(hx,key)<0) oddkeys=1;}
             s[i].key=real_key;
-            s[i].values=fd_make_simple_choice(kvscan->fd_value);
+            s[i].values=fd_make_simple_choice(kvscan->fd_keyval);
             s[i].replace=1; i++;}
           else if ((FD_CAR(key))==drop_symbol) {
             fdtype key_to_drop=FD_CDR(key);
@@ -1820,7 +1820,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
                 (adds,key_to_drop,FD_EMPTY_CHOICE);
               FD_ADD_TO_CHOICE(cached,added);
               s[i].key=key_to_drop;
-              s[i].values=fd_difference(cached,kvscan->fd_value);
+              s[i].values=fd_difference(cached,kvscan->fd_keyval);
               s[i].replace=1;
               fd_decref(cached);
               i++;}}
@@ -1837,7 +1837,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
       struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->fd_key;
+        fdtype key=kvscan->fd_kvkey;
         if ((FD_PAIRP(key)) && ((FD_CAR(key))==drop_symbol)) {
           fdtype key_to_drop=FD_CDR(key);
           if ((j<n_drops) && (FD_CDR(key)==drops[j])) {
@@ -1846,7 +1846,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
               fd_hashtable_get_nolock(adds,key_to_drop,FD_EMPTY_CHOICE);
             FD_ADD_TO_CHOICE(cached,added);
             s[i].key=key_to_drop;
-            s[i].values=fd_difference(cached,kvscan->fd_value);
+            s[i].values=fd_difference(cached,kvscan->fd_keyval);
             s[i].replace=1;
             fd_decref(cached);
             i++; j++;}}
@@ -1868,13 +1868,13 @@ static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
       struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->fd_key;
+        fdtype key=kvscan->fd_kvkey;
         if (!(fd_hashset_get(taken,key))) {
           if ((oddkeys==0) && (FD_PAIRP(key)) &&
               ((FD_OIDP(FD_CAR(key))) || (FD_SYMBOLP(FD_CAR(key))))) {
             if (get_slotid_index(hx,key)<0) oddkeys=1;}
           s[i].key=key;
-          s[i].values=fd_make_simple_choice(kvscan->fd_value);
+          s[i].values=fd_make_simple_choice(kvscan->fd_keyval);
           s[i].replace=0; i++;}
         kvscan++;}
       scan++;}

@@ -1433,8 +1433,8 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
     if (flags&FD_MONGODB_SLOTIFY) {
       struct FD_KEYVAL *opmap=fd_sortvec_get(key,mongo_opmap,mongo_opmap_size);
       if (FD_EXPECT_FALSE(opmap!=NULL))  {
-        if (FD_STRINGP(opmap->fd_value)) {
-          fdtype mapped=opmap->fd_value;
+        if (FD_STRINGP(opmap->fd_keyval)) {
+          fdtype mapped=opmap->fd_keyval;
           keystring=FD_STRDATA(mapped);
           keylen=FD_STRLEN(mapped);}}
       if (keystring==NULL) {
@@ -2016,7 +2016,7 @@ static void add_to_mongo_opmap(u8_string keystring)
                       &mongo_opmap_space,
                       1);
   if (entry) 
-    entry->fd_value=fdtype_string(keystring);
+    entry->fd_keyval=fdtype_string(keystring);
   else u8_log(LOG_WARN,"Couldn't add %s to the mongo opmap",keystring);
 }
 

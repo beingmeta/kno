@@ -57,14 +57,14 @@ static fdtype parse_control_spec
 static fdtype retenv1(fdtype var,fdtype val)
 {
   struct FD_KEYVAL keyvals[1];
-  keyvals[0].fd_key=var; keyvals[0].fd_value=fd_incref(val);
+  keyvals[0].fd_kvkey=var; keyvals[0].fd_keyval=fd_incref(val);
   return fd_make_slotmap(1,1,keyvals);
 }
 static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
   struct FD_KEYVAL keyvals[2];
-  keyvals[0].fd_key=var; keyvals[0].fd_value=fd_incref(val);
-  keyvals[1].fd_key=xvar; keyvals[1].fd_value=fd_incref(xval);
+  keyvals[0].fd_kvkey=var; keyvals[0].fd_keyval=fd_incref(val);
+  keyvals[1].fd_kvkey=xvar; keyvals[1].fd_keyval=fd_incref(xval);
   return fd_make_slotmap(2,2,keyvals);
 }
 

@@ -1757,7 +1757,7 @@ static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
     {struct FD_HASH_BUCKET **slots=ht->fd_buckets; int n_slots=ht->fd_n_buckets;
       FD_DO_CHOICES(c,candidates) {
         struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);
-        fdtype rv=((result)?(result->fd_value):(FD_VOID));
+        fdtype rv=((result)?(result->fd_keyval):(FD_VOID));
         if ((FD_VOIDP(rv))||(FD_EMPTY_CHOICEP(rv))) result=NULL;
         if (((result)&&(pick))||((result==NULL)&&(!(pick)))) {
           if ((isatomic)&&(FD_CONSP(c))) isatomic=0;

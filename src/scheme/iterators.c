@@ -27,17 +27,17 @@ static fdtype iter_var;
 static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
 {
   struct FD_KEYVAL keyvals[2];
-  keyvals[0].fd_key=iter_var; keyvals[0].fd_value=fd_incref(seq);
-  keyvals[1].fd_key=var; keyvals[1].fd_value=fd_incref(val);
+  keyvals[0].fd_kvkey=iter_var; keyvals[0].fd_keyval=fd_incref(seq);
+  keyvals[1].fd_kvkey=var; keyvals[1].fd_keyval=fd_incref(val);
   return fd_make_slotmap(2,2,keyvals);
 }
 static fdtype iterenv2
   (fdtype seq, fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
   struct FD_KEYVAL keyvals[3];
-  keyvals[0].fd_key=iter_var; keyvals[0].fd_value=fd_incref(seq);
-  keyvals[1].fd_key=var; keyvals[1].fd_value=fd_incref(val);
-  keyvals[2].fd_key=xvar; keyvals[2].fd_value=fd_incref(xval);
+  keyvals[0].fd_kvkey=iter_var; keyvals[0].fd_keyval=fd_incref(seq);
+  keyvals[1].fd_kvkey=var; keyvals[1].fd_keyval=fd_incref(val);
+  keyvals[2].fd_kvkey=xvar; keyvals[2].fd_keyval=fd_incref(xval);
   return fd_make_slotmap(3,3,keyvals);
 }
 
@@ -453,7 +453,7 @@ struct IPEVAL_STRUCT { fdtype expr, fd_value; fd_lispenv env;};
 static int ipeval_step(struct IPEVAL_STRUCT *s)
 {
   fdtype fd_value=fd_eval(s->expr,s->env);
-  fd_decref(s->fd_value); s->fd_value=fd_value;
+  fd_decref(s->fd_keyval); s->fd_keyval=fd_value;
   if (FD_ABORTED(fd_value))
     return -1;
   else return 1;
@@ -462,19 +462,19 @@ static int ipeval_step(struct IPEVAL_STRUCT *s)
 static fdtype ipeval_handler(fdtype expr,fd_lispenv env)
 {
   struct IPEVAL_STRUCT tmp;
-  tmp.expr=fd_refcar(fd_refcdr(expr)); tmp.env=env; tmp.fd_value=FD_VOID;
+  tmp.expr=fd_refcar(fd_refcdr(expr)); tmp.env=env; tmp.fd_keyval=FD_VOID;
   fd_ipeval_call((fd_ipevalfn)ipeval_step,&tmp);
-  return tmp.fd_value;
+  return tmp.fd_keyval;
 }
 
 static fdtype trace_ipeval_handler(fdtype expr,fd_lispenv env)
 {
   struct IPEVAL_STRUCT tmp; int old_trace=fd_trace_ipeval;
-  tmp.expr=fd_refcar(fd_refcdr(expr)); tmp.env=env; tmp.fd_value=FD_VOID;
+  tmp.expr=fd_refcar(fd_refcdr(expr)); tmp.env=env; tmp.fd_keyval=FD_VOID;
   fd_trace_ipeval=1;
   fd_ipeval_call((fd_ipevalfn)ipeval_step,&tmp);
   fd_trace_ipeval=old_trace;
-  return tmp.fd_value;
+  return tmp.fd_keyval;
 }
 
 static fdtype track_ipeval_handler(fdtype expr,fd_lispenv env)
@@ -482,7 +482,7 @@ static fdtype track_ipeval_handler(fdtype expr,fd_lispenv env)
   struct IPEVAL_STRUCT tmp;
   struct FD_IPEVAL_RECORD *records; int n_cycles; double total_time;
   fdtype *vec; int i=0;
-  tmp.expr=fd_refcar(fd_refcdr(expr)); tmp.env=env; tmp.fd_value=FD_VOID;
+  tmp.expr=fd_refcar(fd_refcdr(expr)); tmp.env=env; tmp.fd_keyval=FD_VOID;
   fd_tracked_ipeval_call((fd_ipevalfn)ipeval_step,&tmp,&records,&n_cycles,&total_time);
   vec=u8_alloc_n(n_cycles,fdtype);
   i=0; while (i<n_cycles) {
@@ -491,7 +491,7 @@ static fdtype track_ipeval_handler(fdtype expr,fd_lispenv env)
       fd_make_nvector(3,FD_INT(record->delays),
                       fd_init_double(NULL,record->exec_time),
                       fd_init_double(NULL,record->fetch_time));}
-  return fd_make_nvector(3,tmp.fd_value,
+  return fd_make_nvector(3,tmp.fd_keyval,
                          fd_init_double(NULL,total_time),
                          fd_init_vector(NULL,n_cycles,vec));
 }

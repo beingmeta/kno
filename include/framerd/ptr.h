@@ -364,12 +364,14 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
   ((((x) > FD_MAX_FIXNUM) || ((x) < FD_MIN_FIXNUM)) ?			\
    (fd_make_bigint(x)) :						\
    (((fdtype)(((x)>=0) ? (((x)*4)|fd_fixnum_type) :			\
-	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2))))))
+	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|			\
+	       (((unsigned int)(-(x)))<<2))))))
 #define FD_INT(x)					\
   ((((x) > FD_MAX_FIXNUM) || ((x) < FD_MIN_FIXNUM)) ?   \
    (fd_make_bigint(x)) :				\
    (((fdtype)(((x)>=0) ? (((x)*4)|fd_fixnum_type) :	\
-	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2))))))
+	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|	\
+	       (((unsigned int)(-(x)))<<2))))))
 #define FD_SHORT2FIX(x)					     \
   (((fdtype)						     \
     ((x>=0) ? (((x)*4)|fd_fixnum_type) :		     \

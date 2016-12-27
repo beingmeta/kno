@@ -400,7 +400,7 @@ static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
   int dtype_len;
   fd_read_lock_struct(v);
   {
-    struct FD_KEYVAL *keyvals=v->keyvals;
+    struct FD_KEYVAL *keyvals=v->fd_keyvals;
     int i=0, kvsize=FD_XSLOTMAP_SIZE(v), len=kvsize*2;
     output_byte(out,dt_framerd_package);
     if (len < 256) {
@@ -412,8 +412,8 @@ static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
       output_byte(out,dt_slotmap);
       output_4bytes(out,len);}
     while (i < kvsize) {
-      if ((try_dtype_output(&dtype_len,out,keyvals[i].fd_key)>=0) &&
-          (try_dtype_output(&dtype_len,out,keyvals[i].fd_value)>=0)) {
+      if ((try_dtype_output(&dtype_len,out,keyvals[i].fd_kvkey)>=0) &&
+          (try_dtype_output(&dtype_len,out,keyvals[i].fd_keyval)>=0)) {
         i++;}
       else {
         fd_rw_unlock_struct(v);
@@ -471,10 +471,10 @@ static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
         struct FD_HASH_BUCKET *he=*scan++;
         struct FD_KEYVAL *kscan=&(he->fd_keyval0), *klimit=kscan+he->fd_n_entries;
         while (kscan < klimit) {
-          if (try_dtype_output(&dtype_len,out,kscan->fd_key)<0) {
+          if (try_dtype_output(&dtype_len,out,kscan->fd_kvkey)<0) {
             fd_rw_unlock_struct(v);
             return -1;}
-          if (try_dtype_output(&dtype_len,out,kscan->fd_value)<0) {
+          if (try_dtype_output(&dtype_len,out,kscan->fd_keyval)<0) {
             fd_rw_unlock_struct(v);
             return -1;}
           kscan++;}}
@@ -828,8 +828,8 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
           struct FD_KEYVAL *keyvals=u8_alloc_n(n_slots,struct FD_KEYVAL);
           struct FD_KEYVAL *write=keyvals, *limit=keyvals+n_slots;
           while (write<limit) {
-            write->fd_key=fd_read_dtype(in);
-            write->fd_value=fd_read_dtype(in);
+            write->fd_kvkey=fd_read_dtype(in);
+            write->fd_keyval=fd_read_dtype(in);
             write++;}
           if (n_slots<7) {
             fdtype result=fd_make_slotmap(n_slots,n_slots,keyvals);
@@ -845,16 +845,16 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
           struct FD_KEYVAL *write=keyvals, *scan=keyvals,
             *limit=keyvals+n_slots;
           while (n_read<n_slots) {
-            write->fd_key=fd_read_dtype(in);
-            write->fd_value=fd_read_dtype(in);
+            write->fd_kvkey=fd_read_dtype(in);
+            write->fd_keyval=fd_read_dtype(in);
             n_read++;
-            if (FD_EMPTY_CHOICEP(write->fd_value)) {
-              fd_decref(write->fd_key);}
+            if (FD_EMPTY_CHOICEP(write->fd_keyval)) {
+              fd_decref(write->fd_kvkey);}
             else write++;}
           limit=write;
           result=fd_init_hashtable(NULL,limit-keyvals,keyvals);
           while (scan<limit) {
-            fd_decref(scan->fd_key); fd_decref(scan->fd_value); scan++;}
+            fd_decref(scan->fd_kvkey); fd_decref(scan->fd_keyval); scan++;}
           u8_free(keyvals);
           return result;}
       case dt_hashset: case dt_small_hashset: {

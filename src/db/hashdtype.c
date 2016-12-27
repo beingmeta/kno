@@ -150,10 +150,11 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
   else if (FD_SLOTMAPP(x)) {
     unsigned int sum=0;
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
-    struct FD_KEYVAL *scan=sm->keyvals, *limit=scan+FD_XSLOTMAP_SIZE(sm);
+    const struct FD_KEYVAL *scan=sm->fd_keyvals;
+    const struct FD_KEYVAL *limit=scan+FD_XSLOTMAP_SIZE(sm);
     while (scan<limit) {
-      sum=(sum+hash_dtype1(scan->fd_key))%MAGIC_MODULUS;
-      sum=(sum+(fd_flip_word(hash_dtype1(scan->fd_value))%MAGIC_MODULUS))%MAGIC_MODULUS;
+      sum=(sum+hash_dtype1(scan->fd_kvkey))%MAGIC_MODULUS;
+      sum=(sum+(fd_flip_word(hash_dtype1(scan->fd_keyval))%MAGIC_MODULUS))%MAGIC_MODULUS;
       scan++;}
     return sum;}
   else if (FD_PTR_TYPEP(x,fd_rational_type)) {
@@ -308,10 +309,11 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
     case fd_slotmap_type: {
       unsigned int sum=0;
       struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
-      struct FD_KEYVAL *scan=sm->keyvals, *limit=scan+FD_XSLOTMAP_SIZE(sm);
+      const struct FD_KEYVAL *scan=sm->fd_keyvals;
+      const struct FD_KEYVAL *limit=scan+FD_XSLOTMAP_SIZE(sm);
       while (scan<limit) {
         unsigned int prod=
-          hash_combine(hash_dtype2(scan->fd_key),hash_dtype2(scan->fd_value));
+          hash_combine(hash_dtype2(scan->fd_kvkey),hash_dtype2(scan->fd_keyval));
         sum=(sum+prod)%(MYSTERIOUS_MODULUS);
         scan++;}
       return sum;}
@@ -447,10 +449,11 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
     case fd_slotmap_type: {
       unsigned int sum=0;
       struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
-      struct FD_KEYVAL *scan=sm->keyvals, *limit=scan+FD_XSLOTMAP_SIZE(sm);
+      const struct FD_KEYVAL *scan=sm->fd_keyvals;
+      const struct FD_KEYVAL *limit=scan+FD_XSLOTMAP_SIZE(sm);
       while (scan<limit) {
         unsigned int prod=
-          hash_combine(hash_dtype3(scan->fd_key),hash_dtype3(scan->fd_value));
+          hash_combine(hash_dtype3(scan->fd_kvkey),hash_dtype3(scan->fd_keyval));
         sum=(sum+prod)%(MYSTERIOUS_MODULUS);
         scan++;}
       return sum;}

@@ -33,14 +33,16 @@ typedef int (*fd_table_add_fn)(fdtype,fdtype,fdtype);
 typedef int (*fd_table_drop_fn)(fdtype,fdtype,fdtype);
 typedef int (*fd_table_store_fn)(fdtype,fdtype,fdtype);
 typedef int (*fd_table_getsize_fn)(fdtype);
+typedef int (*fd_table_modified_fn)(fdtype,int);
 typedef fdtype (*fd_table_keys_fn)(fdtype);
 
 struct FD_TABLEFNS {
   fdtype (*get)(fdtype obj,fdtype fd_key,fdtype dflt);
-  int (*store)(fdtype obj,fdtype fd_key,fdtype fd_value);
-  int (*add)(fdtype obj,fdtype fd_key,fdtype fd_value);
-  int (*drop)(fdtype obj,fdtype fd_key,fdtype fd_value);
-  int (*test)(fdtype obj,fdtype fd_key,fdtype fd_value);
+  int (*store)(fdtype obj,fdtype fd_key,fdtype value);
+  int (*add)(fdtype obj,fdtype fd_key,fdtype value);
+  int (*drop)(fdtype obj,fdtype fd_key,fdtype value);
+  int (*test)(fdtype obj,fdtype fd_key,fdtype value);
+  int (*modified)(fdtype obj,int op);
   int (*getsize)(fdtype obj);
   fdtype (*keys)(fdtype obj);};
 
@@ -65,7 +67,7 @@ FD_EXPORT fdtype fd_table_skim(fdtype table,fdtype maxval,fdtype scope);
 /* Slotmaps */
 
 struct FD_KEYVAL {
-  fdtype fd_key, fd_value;};
+  fdtype fd_keyval, fd_kvkey;};
 
 typedef int (*fd_keyvalfn)(fdtype,fdtype,void *);
 
@@ -77,7 +79,7 @@ typedef struct FD_SLOTMAP {
   unsigned int fd_modified:1;
   unsigned int fd_uselock:1;
   unsigned int fd_free_keyvals:1;
-  struct FD_KEYVAL *keyvals;
+  struct FD_KEYVAL *fd_keyvals;
   U8_RWLOCK_DECL(fd_rwlock);} FD_SLOTMAP;
 typedef struct FD_SLOTMAP *fd_slotmap;
 
@@ -139,11 +141,11 @@ static struct FD_KEYVAL *fd_sortvec_get
     const struct FD_KEYVAL *scan=keyvals, *limit=scan+size;
     if (FD_ATOMICP(fd_key))
       while (scan<limit)
-        if (scan->fd_key==fd_key)
+        if (scan->fd_kvkey==fd_key)
           return (struct FD_KEYVAL *)scan;
         else scan++;
     else while (scan<limit)
-      if (FDTYPE_EQUAL(scan->fd_key,fd_key))
+      if (FDTYPE_EQUAL(scan->fd_kvkey,fd_key))
         return (struct FD_KEYVAL *) scan;
       else scan++;
     return NULL;}
@@ -155,15 +157,15 @@ static struct FD_KEYVAL *fd_sortvec_get
       while (top>=bottom) {
         middle=bottom+(top-bottom)/2;
         if (middle>=limit) break;
-        else if (fd_key==middle->fd_key) {found=1; break;}
-        else if (FD_CONSP(middle->fd_key)) top=middle-1;
-        else if (fd_key<middle->fd_key) top=middle-1;
+        else if (fd_key==middle->fd_kvkey) {found=1; break;}
+        else if (FD_CONSP(middle->fd_kvkey)) top=middle-1;
+        else if (fd_key<middle->fd_kvkey) top=middle-1;
         else bottom=middle+1;}
     else while (top>=bottom) {
       int comparison;
       middle=bottom+(top-bottom)/2;
       if (middle>=limit) break;
-      comparison=cons_compare(fd_key,middle->fd_key);
+      comparison=cons_compare(fd_key,middle->fd_kvkey);
       if (comparison==0) {found=1; break;}
       else if (comparison<0) top=middle-1;
       else bottom=middle+1;}
@@ -193,9 +195,9 @@ static U8_MAYBE_UNUSED fdtype fd_slotmap_get
       (!(FD_XSLOTMAP_READONLYP(sm)))) {
     fd_read_lock(&sm->fd_rwlock); unlock=1;}
   size=FD_XSLOTMAP_SIZE(sm);
-  result=fd_sortvec_get(key,sm->keyvals,size);
+  result=fd_sortvec_get(key,sm->fd_keyvals,size);
   if (result) {
-    fdtype v=fd_incref(result->fd_value);
+    fdtype v=fd_incref(result->fd_keyval);
     if (unlock) fd_rw_unlock(&sm->fd_rwlock);
     return v;}
   else {
@@ -214,9 +216,9 @@ static U8_MAYBE_UNUSED fdtype fd_slotmap_test
       (!(FD_XSLOTMAP_READONLYP(sm)))) {
     fd_read_lock(&sm->fd_rwlock); unlock=1;}
   size=FD_XSLOTMAP_SIZE(sm);
-  result=fd_sortvec_get(key,sm->keyvals,size);
+  result=fd_sortvec_get(key,sm->fd_keyvals,size);
   if (result) {
-    fdtype current=result->fd_value; int cmp;
+    fdtype current=result->fd_keyval; int cmp;
     if (FD_VOIDP(val)) cmp=1;
     else if (FD_EQ(val,current)) cmp=1;
     else if ((FD_CHOICEP(val)) || (FD_ACHOICEP(val)) ||
@@ -479,7 +481,7 @@ FD_EXPORT int fd_free_hashvec(struct FD_HASH_BUCKET **slots,int slots_to_free);
 
 typedef struct FD_HASHSET {
   FD_CONS_HEADER;
-  int fd_n_keys, fd_n_slots, fd_load_factor, fd_isatomic;
+  int fd_n_keys, fd_n_slots, fd_load_factor, fd_allatomic, fd_modified;
   fdtype *fd_hashslots;
   U8_MUTEX_DECL(fd_lock);} FD_HASHSET;
 typedef struct FD_HASHSET *fd_hashset;

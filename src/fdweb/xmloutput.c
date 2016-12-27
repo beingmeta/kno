@@ -882,11 +882,11 @@ static int embeddedp(fdtype focus,fdtype expr)
     int slotmap_size;
     fd_read_lock_struct(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
-    scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
+    scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
     while (scan<limit)
-      if (embeddedp(focus,scan->fd_key)) {
+      if (embeddedp(focus,scan->fd_kvkey)) {
         fd_rw_unlock_struct(sm); return 1;}
-      else if (embeddedp(focus,scan->fd_value)) {
+      else if (embeddedp(focus,scan->fd_keyval)) {
         fd_rw_unlock_struct(sm); return 1;}
       else scan++;
     fd_rw_unlock_struct(sm);
