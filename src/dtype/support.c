@@ -452,7 +452,9 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
     fdtype lisp_args=fd_make_vector(argc-1,NULL), lisp_arg=FD_VOID;
     fdtype config_args=fd_make_vector(argc-1,NULL);
     fdtype raw_args=fd_make_vector(argc,NULL);
-    fdtype *return_args=(arglen_ptr == NULL) ? (NULL) : (u8_alloc_n(argc-1,fdtype));
+    fdtype *return_args=(arglen_ptr) ? (u8_alloc_n(argc-1,fdtype)) : (NULL);
+    fdtype *_fd_argv=u8_alloc_n(argc-1,fdtype);
+
     u8_threadcheck();
     init_argc=argc;
     while (i<argc) {
@@ -482,6 +484,7 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
       lisp_arg=fd_parse_arg(arg);
       if (return_args) {
         return_args[n]=lisp_arg; fd_incref(lisp_arg);}
+      _fd_argv[n]=lisp_arg; fd_incref(lisp_arg);
       FD_VECTOR_SET(lisp_args,n,lisp_arg);
       FD_VECTOR_SET(string_args,n,string_arg);
       n++;}
@@ -493,10 +496,10 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
     config_argv = config_args;
     raw_argv = raw_args;
     app_argc=n;
-    fd_argv=return_args;
-    fd_argc=n;
+    fd_argv = _fd_argv;
+    fd_argc = n;
     if (return_args) {
-      *arglen_ptr=n;
+      if (arglen_ptr) *arglen_ptr=n;
       return return_args;}
     else return NULL;}
 }
