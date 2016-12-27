@@ -205,9 +205,6 @@ int do_main(int argc,char **argv,
   fdtype main_proc=FD_VOID, result=FD_VOID;
   int i=1, retval=0;
 
-  if (exe_name==NULL)
-    args=handle_argv(argc,argv,&n_args,&exe_name,&source_file);
-
   u8_register_source_file(_FILEINFO);
 
   fd_register_config
@@ -341,7 +338,19 @@ int do_main(int argc,char **argv,
 #ifndef FDEXEC_INCLUDED
 int main(int argc,char **argv)
 {
-  return do_main(argc,argv,NULL,NULL,NULL,0);
+  u8_string source_file=NULL, exe_name=NULL;
+  fdtype *args=NULL; size_t n_args=0; 
+  int i=0, retval=0;
+
+  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file);
+
+  retval=do_main(argc,argv,exe_name,source_file,args,n_args);
+
+  i=0; while (i<n_args) {
+    fdtype arg=args[i++]; fd_decref(arg);}
+  u8_free(args);
+
+  return retval;
 }
 #endif
   
