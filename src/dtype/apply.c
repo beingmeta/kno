@@ -22,6 +22,7 @@
 #include <unistd.h>
 #endif
 
+#include <errno.h>
 #include <stdarg.h>
 
 fd_applyfn fd_applyfns[FD_TYPE_MAX];
@@ -626,6 +627,11 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
 static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
 {
   fdtype result; u8_string name=((f->name!=NULL)?(f->name):((u8_string)"DCALL"));
+  if (errno) {
+    u8_string cond=u8_strerror(errno);
+    u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) before %s",
+           errno,cond,U8ALT(name,"primcall"));
+    errno=0;}
   if (stackcheck()) {
     U8_WITH_CONTOUR(f->name,0)
       result=dcall_inner(f,n,args,static_args);
@@ -633,6 +639,11 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
       U8_CLEAR_CONTOUR();
       result = FD_ERROR_VALUE;}
     U8_END_EXCEPTION;
+    if (errno) {
+      u8_string cond=u8_strerror(errno);
+      u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) before %s",
+             errno,cond,U8ALT(name,"primcall"));
+      errno=0;}
     return result;}
   else {
     u8_string limit=u8_mkstring("%lld",fd_stack_limit());
