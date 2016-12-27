@@ -270,7 +270,7 @@ int main(int argc,char **argv)
     /* The child process redirects stdio, runs fdexec, and
        removes the pid file and writes the done file when
        when it exits normally. */
-    int retval=-1;
+    int retval=-1, free_i=0;
     if (log_file) {
       dup2(log_fd,1); u8_free(log_file); close(log_fd);}
     if (err_file) {
@@ -296,8 +296,14 @@ int main(int argc,char **argv)
         u8_fprintf(f,"%s died at %*iMSt, retval=%d",u8_appid(),retval);
         u8_fclose(f);}
       died_file=NULL;}
+    {
+      int free_i=0; while (free_i<n_args) {fd_decref(args[free_i]); i++;}
+      u8_free(args);}
     exit(retval);
     return retval;}
+  {
+    int free_i=0; while (free_i<n_args) {fd_decref(args[free_i]); i++;}
+    u8_free(args);}
   exit(0);
   return 0;
 }

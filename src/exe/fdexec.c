@@ -331,8 +331,6 @@ int do_main(int argc,char **argv,
   if (FD_HASHTABLEP(env->bindings))
     fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
   fd_recycle_environment(env);
-  i=0; while (i<n_args) {fd_decref(args[i]); i++;}
-  u8_free(args);
   fd_decref(main_proc);
   return retval;
 }
@@ -341,12 +339,18 @@ int do_main(int argc,char **argv,
 int main(int argc,char **argv)
 {
   u8_string source_file=NULL, exe_name=NULL;
-  fdtype *args=NULL; size_t n_args=0; int retval=0;
+  fdtype *args=NULL; size_t n_args=0; 
+  int i=0, retval=0;
 
-  if (exe_name==NULL)
-    args=handle_argv(argc,argv,&n_args,&exe_name,&source_file);
+  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file);
 
-  return do_main(argc,argv,exe_name,source_file,args,n_args);
+  retval = do_main(argc,argv,exe_name,source_file,args,n_args);
+
+  i=0; while (i<n_args) {
+    fdtype arg=args[i++]; fd_decref(arg);}
+  u8_free(args);
+
+  return retval;
 }
 #endif
   
