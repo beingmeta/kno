@@ -67,7 +67,7 @@ FD_EXPORT fdtype fd_table_skim(fdtype table,fdtype maxval,fdtype scope);
 /* Slotmaps */
 
 struct FD_KEYVAL {
-  fdtype fd_keyval, fd_kvkey;};
+  fdtype fd_kvkey, fd_keyval;};
 
 typedef int (*fd_keyvalfn)(fdtype,fdtype,void *);
 
