@@ -227,7 +227,7 @@ static int setup_connection(struct FD_MYSQL *dbp)
 static int restart_connection(struct FD_MYSQL *dbp)
 {
   MYSQL *db=NULL;
-  unsigned int retval=-1, waited=0, errno=0, thread_id=-1;
+  unsigned int retval=-1, waited=0, thread_id=-1;
   while ((db==NULL)&&(waited<restart_wait)) {
     u8_mutex_lock(&mysql_connect_lock); {
       db=mysql_real_connect
