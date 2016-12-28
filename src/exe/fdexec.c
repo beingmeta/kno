@@ -341,7 +341,8 @@ int main(int argc,char **argv)
   u8_string source_file=NULL, exe_name=NULL;
   fdtype *args=NULL; size_t n_args=0; 
   int i=0, retval=0;
-  int *errnop=&errno;
+
+  fd_main_errno_ptr=&errno;
 
   args=handle_argv(argc,argv,&n_args,&exe_name,&source_file);
 
