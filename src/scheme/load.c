@@ -138,6 +138,11 @@ FD_EXPORT fdtype fd_load_source_with_date
   double start=u8_elapsed_time();
   if (content==NULL) return FD_ERROR_VALUE;
   else outer_sourcebase=bind_sourcebase(sourcebase);
+  if (errno) {
+    u8_log(LOG_WARN,"UnexpectedErrno",
+           "Dangling errno value %d (%s) before loading %s",
+           errno,u8_strerror(errno),sourceid);
+    errno=0;}
   if ((trace_load) || (trace_load_eval))
     u8_log(LOG_NOTICE,FileLoad,
            "Loading %s (%d bytes)",sourcebase,u8_strlen(content));
@@ -153,6 +158,11 @@ FD_EXPORT fdtype fd_load_source_with_date
       if ((trace_load_eval) ||
           (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE))) {
         u8_log(LOG_NOTICE,LoadEval,"From %s, evaluating %q",sourcebase,expr);
+        if (errno) {
+          u8_log(LOG_WARN,"UnexpectedErrno",
+                 "Dangling errno value %d (%s) before evaluating %q",
+                 errno,u8_strerror(errno),expr);
+          errno=0;}
         start_time=u8_elapsed_time();}
       else start_time=-1.0;
       result=fd_eval(expr,env);
@@ -175,7 +185,12 @@ FD_EXPORT fdtype fd_load_source_with_date
                (fd_test(env->bindings,traceloadeval_symbol,FD_TRUE))) {
         if (start_time>0)
           u8_log(LOG_NOTICE,LoadEval,"Took %fs to evaluate %q",
-                 u8_elapsed_time()-start_time,expr);}
+                 u8_elapsed_time()-start_time,expr);
+        if (errno) {
+          u8_log(LOG_WARN,"UnexpectedErrno",
+                 "Dangling errno value %d (%s) after evaluating %q",
+                 errno,u8_strerror(errno),expr);
+          errno=0;}}
       else {}
       fd_decref(last_expr); last_expr=expr;
       expr=fd_parse_expr(&stream);}
@@ -214,6 +229,11 @@ FD_EXPORT fdtype fd_load_source_with_date
     else {
       fd_decref(expr); fd_decref(last_expr);
       expr=FD_VOID; last_expr=FD_VOID;}
+    if (errno) {
+      u8_log(LOG_WARN,"UnexpectedErrno",
+             "Dangling errno value %d (%s) after loading %s",
+             errno,u8_strerror(errno),sourceid);
+      errno=0;}
     return result;}
 }
 
