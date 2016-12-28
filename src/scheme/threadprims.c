@@ -270,6 +270,8 @@ static void *thread_call(void *data)
     ((flags)&(FD_THREAD_TRACE_EXIT)) ||
     (((flags)&(FD_THREAD_QUIET_EXIT)) ? (0) :
      (thread_log_exit));
+  
+  tstruct->errnop=&(errno);
 
   U8_SET_STACK_BASE();
 
@@ -279,6 +281,9 @@ static void *thread_call(void *data)
   /* Run any thread init functions */
   u8_threadcheck();
 
+  tstruct->started=u8_elapsed_time();
+  tstruct->finished=-1;
+
   if (tstruct->flags&FD_EVAL_THREAD)
     result=fd_eval(tstruct->evaldata.expr,tstruct->evaldata.env);
   else
@@ -286,6 +291,9 @@ static void *thread_call(void *data)
                      tstruct->applydata.n_args,
                      tstruct->applydata.args);
   result=fd_finish_call(result);
+  
+  tstruct->finished=u8_elapsed_time();
+
   if ((FD_ABORTP(result))&&(errno)) {
     u8_exception ex=u8_current_exception;
     u8_log(thread_loglevel,ThreadExit,
