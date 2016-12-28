@@ -179,6 +179,7 @@ int main(int argc,char **argv)
   u8_string done_file, log_file=NULL, err_file=NULL;
   unsigned int parse_mask=0;
   fdtype *args=NULL; size_t n_args;
+  int *errnop=&errno;
   
   /* We just initialize this for now. */
   u8_log_show_procinfo=1;

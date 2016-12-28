@@ -951,6 +951,7 @@ int main(int argc,char **argv)
      fullscheme is zero after configuration and file loading.  fullscheme can be
      set by the FULLSCHEME configuration parameter. */
   fd_lispenv core_env;
+  int *errnop=&errno;
 
   server_sigmask=fd_default_sigmask;
   sigactions_init();

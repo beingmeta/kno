@@ -1794,6 +1794,7 @@ int main(int argc,char **argv)
   unsigned int arg_mask = 0;  /* Bit map of args to skip */
   u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;
   u8_string logfile=NULL;
+  int *errnop=&errno;
 
   server_sigmask=fd_default_sigmask;
 

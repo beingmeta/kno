@@ -646,6 +646,7 @@ int main(int argc,char **argv)
   u8_string source_file=NULL; /* The file loaded, if any */
   /* This is the environment the console will start in */
   fd_lispenv env=fd_working_environment();
+  int *errnop=&errno;
 
   U8_SET_STACK_BASE();
 
