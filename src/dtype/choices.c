@@ -31,7 +31,10 @@ static void recycle_achoice(struct FD_CONS *c)
     if ((ch->atomicp==0) || (ch->n_nested))
       while (read < lim) {
         fdtype v=*read++; fd_decref(v);}
-    if (ch->mallocd) u8_free(ch->nch);}
+    if (ch->mallocd) {
+      u8_free(ch->nch);
+      ch->nch=NULL; 
+      ch->mallocd=0;}}
   fd_decref(ch->normalized);
   fd_destroy_mutex(&(ch->lock));
   u8_free(ch);
@@ -212,7 +215,9 @@ fdtype fd_init_choice
     return FD_EMPTY_CHOICE;}
   else if (ch==NULL) {
     ch=fd_alloc_choice(n);
-    if (ch==NULL) return FD_ERROR_VALUE;
+    if (ch==NULL) {
+      u8_graberr(-1,"fd_init_choice",NULL);
+      return FD_ERROR_VALUE;}
     if (data)
       memcpy((fdtype *)FD_XCHOICE_DATA(ch),data,sizeof(fdtype)*n);
     else {
@@ -241,15 +246,21 @@ fdtype fd_init_choice
     newlen=compress_choice((fdtype *)base,n,atomicp);
   else newlen=n;
   /* Free the original data vector if requested. */
-  if ((data) && (flags&FD_CHOICE_FREEDATA)) u8_free((fdtype *)data);
+  if ((data) && (flags&FD_CHOICE_FREEDATA)) {
+    u8_free((fdtype *)data);}
   if ((newlen==1) && (flags&FD_CHOICE_REALLOC)) {
     fdtype v=base[0];
     u8_free(ch);
     return v;}
   else if ((flags&FD_CHOICE_REALLOC) && (newlen<(n/2)))
     ch=u8_realloc(ch,sizeof(struct FD_CHOICE)+((newlen-1)*sizeof(fdtype)));
-  FD_INIT_XCHOICE(ch,newlen,atomicp);
-  return FDTYPE_CONS(ch);
+  else {}
+  if (ch) {
+    FD_INIT_XCHOICE(ch,newlen,atomicp);
+    return FDTYPE_CONS(ch);}
+  else {
+    u8_graberr(-1,"fd_init_choice",NULL);
+    return FD_ERROR_VALUE;}
 }
 
 FD_EXPORT
