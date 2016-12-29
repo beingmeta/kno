@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme -*-
 
 (config! 'cachelevel 2)
-(use-module '{optimize mttools})
+(use-module '{optimize mttools logger varconfig})
 
 (define (getflags)
   (choice->list
