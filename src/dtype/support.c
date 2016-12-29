@@ -509,7 +509,7 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
       lisp_arg=fd_parse_arg(arg);
       if (return_args) {
         return_args[n]=lisp_arg; fd_incref(lisp_arg);}
-      fd_argv[n]=lisp_arg; fd_incref(lisp_arg);
+      _fd_argv[n]=lisp_arg; fd_incref(lisp_arg);
       FD_VECTOR_SET(lisp_args,n,lisp_arg);
       FD_VECTOR_SET(string_args,n,string_arg);
       n++;}
