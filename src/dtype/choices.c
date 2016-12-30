@@ -213,6 +213,12 @@ fdtype fd_init_choice
   if (FD_EXPECT_FALSE((n==0) && (flags&FD_CHOICE_REALLOC))) {
     if (ch) u8_free(ch);
     return FD_EMPTY_CHOICE;}
+  else if (n==1) {
+    fdtype elt=data[0];
+    if (ch) u8_free(ch);
+    if ((data) && (flags&FD_CHOICE_FREEDATA)) u8_free(data);
+    fd_incref(elt);
+    return elt;}
   else if (ch==NULL) {
     ch=fd_alloc_choice(n);
     if (ch==NULL) {
@@ -377,7 +383,8 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
        can just use the choice you've been depositing values in,
        appropriately initialized, sorted etc.  */
     else if ((free_achoice) && (ch->n_nested==0)) {
-      struct FD_CHOICE *nch=ch->nch; int flags=FD_CHOICE_REALLOC, n=ch->size;
+      struct FD_CHOICE *nch=ch->nch; 
+      int flags=FD_CHOICE_REALLOC, n=ch->size;
       if (ch->atomicp) flags=flags|FD_CHOICE_ISATOMIC;
       else flags=flags|FD_CHOICE_ISCONSES;
       if (ch->muddled) flags=flags|FD_CHOICE_DOSORT;
@@ -985,7 +992,9 @@ fdtype fd_difference(fdtype value,fdtype remove)
         struct FD_CHOICE *vchoice=
           FD_GET_CONS(value,fd_choice_type,struct FD_CHOICE *);
         int size=FD_XCHOICE_SIZE(vchoice), atomicp=FD_XCHOICE_ATOMICP(vchoice);
-        if (size==2)
+        if (size==1) 
+          return FD_EMPTY_CHOICE;
+        else if (size==2)
           if (FDTYPE_EQUAL(remove,(FD_XCHOICE_DATA(vchoice))[0]))
             return fd_incref((FD_XCHOICE_DATA(vchoice))[1]);
           else return fd_incref((FD_XCHOICE_DATA(vchoice))[0]);
