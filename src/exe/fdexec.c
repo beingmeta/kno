@@ -134,7 +134,8 @@ static void print_args(int argc,char **argv)
 
 static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
                            u8_string *exe_namep,
-                           u8_string *source_filep)
+                           u8_string *source_filep,
+                           u8_string appid_prefix)
 {
   fdtype *args=NULL;
   u8_string tmp_string=NULL, source_file=NULL, exe_name=NULL;
@@ -187,7 +188,12 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
       u8_free(base);}
     else {
       u8_string base=u8_basename(exe_name,NULL);
-      u8_default_appid(base);
+      if (appid_prefix==NULL)
+        u8_default_appid(base);
+      else {
+        u8_string combined=u8_string_append(appid_prefix,base,NULL);
+        u8_default_appid(combined);
+        u8_free(combined);}
       if (exe_namep==NULL) u8_free(exe_name);
       u8_free(base);}}
   
@@ -344,7 +350,7 @@ int main(int argc,char **argv)
 
   fd_main_errno_ptr=&errno;
 
-  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file);
+  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);
 
   retval=do_main(argc,argv,exe_name,source_file,args,n_args);
 
