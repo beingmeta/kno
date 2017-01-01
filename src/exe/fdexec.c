@@ -145,14 +145,14 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
   if (getenv("FD_SHOWARGV")) print_args(argc,argv);
 
   exe_arg=argv[0];
-  
+
   tmp_string=u8_fromlibc(exe_arg);
   exe_name=u8_basename(tmp_string,NULL);
   u8_free(tmp_string); tmp_string=NULL;
   if (exe_namep) {
     *exe_namep=exe_name;
     tmp_string=NULL;}
-  
+
   while (i<argc) {
     if (isconfig(argv[i])) {
       u8_log(LOG_INFO,"FDConfig","    %s",argv[i]);
@@ -164,39 +164,37 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
       arg_mask |= (1<<i);
       file_arg=argv[i++];
       source_file=u8_fromlibc(file_arg);}}
-  
- if (source_file==NULL) {
-   int i=0;
-   fprintf(stderr,"argc=%d\n",argc);
-   while (i<argc) {
-     fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
-     i++;}
-   fprintf(stderr,"Usage: %s filename [config=val]*\n",exe_name);
-   exit(EXIT_FAILURE);}
- else if (source_filep) {
-   *source_filep=source_file;}
- else {}
- 
+
+  if (source_file==NULL) {
+    int i=0;
+    fprintf(stderr,"argc=%d\n",argc);
+    while (i<argc) {
+      fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
+      i++;}
+    fprintf(stderr,"Usage: %s filename [config=val]*\n",exe_name);
+    exit(EXIT_FAILURE);}
+  else if (source_filep) {
+    *source_filep=source_file;}
+  else {}
+
   fd_init_dtypelib();
 
   args = fd_handle_argv(argc,argv,arg_mask,arglenp);
 
   if (u8_appid()==NULL) {
-    if (source_file) {
-      u8_string base=u8_basename(source_file,"*");
+    u8_string base;
+    if (source_file)
+      base=u8_basename(source_file,"*");
+    else base=u8_basename(exe_name,NULL);
+    if (appid_prefix==NULL)
       u8_default_appid(base);
-      u8_free(base);}
     else {
-      u8_string base=u8_basename(exe_name,NULL);
-      if (appid_prefix==NULL)
-        u8_default_appid(base);
-      else {
-        u8_string combined=u8_string_append(appid_prefix,base,NULL);
-        u8_default_appid(combined);
-        u8_free(combined);}
-      if (exe_namep==NULL) u8_free(exe_name);
-      u8_free(base);}}
-  
+      u8_string combined=u8_string_append(appid_prefix,base,NULL);
+      u8_default_appid(combined);
+      u8_free(combined);}
+    if (exe_namep==NULL) u8_free(exe_name);
+    u8_free(base);}
+
   if (source_filep==NULL) u8_free(source_file);
   if (exe_namep==NULL) u8_free(exe_name);
 
