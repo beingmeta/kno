@@ -214,11 +214,17 @@ fdtype fd_init_choice
     if (ch) u8_free(ch);
     return FD_EMPTY_CHOICE;}
   else if (n==1) {
-    fdtype elt=data[0];
+    fdtype elt=(data!=NULL)?(data[0]):
+      (ch!=NULL)?((FD_XCHOICE_DATA(ch))[0]):
+      (FD_NULL);
     if (ch) u8_free(ch);
     if ((data) && (flags&FD_CHOICE_FREEDATA)) u8_free(data);
-    fd_incref(elt);
-    return elt;}
+    if (elt==FD_NULL) {
+      fd_seterr(_("BadInitData"),"fd_init_choice",NULL,FD_VOID);
+      return FD_ERROR_VALUE;}
+    else {
+      fd_incref(elt);
+      return elt;}}
   else if (ch==NULL) {
     ch=fd_alloc_choice(n);
     if (ch==NULL) {
