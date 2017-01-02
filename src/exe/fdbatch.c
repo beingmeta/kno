@@ -179,11 +179,13 @@ int main(int argc,char **argv)
   u8_string done_file, log_file=NULL, err_file=NULL;
   unsigned int parse_mask=0;
   fdtype *args=NULL; size_t n_args;
-  
+
+  fd_main_errno_ptr=&errno;
+
   /* We just initialize this for now. */
   u8_log_show_procinfo=1;
 
-  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file);
+  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,"fdbatch_");
 
   fd_register_config("NEWLOG",
                      _("Whether to truncate existing log files"),

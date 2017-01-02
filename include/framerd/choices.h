@@ -168,7 +168,7 @@ typedef struct FD_ACHOICE {
   unsigned int ach_size, ach_nested;
   unsigned ach_muddled:1, ach_mallocd:1, ach_atomic:1, fd_uselock:1;
   fdtype *ach_data, *ach_write, *ach_limit;
-  fdtype ach_normalized; struct FD_CHOICE *ach_normchoice;
+  fdtype ach_normalized; struct FD_CHOICE *ach_choicedata;
 #if U8_THREADS_ENABLED
   u8_mutex fd_lock;
 #endif
@@ -260,15 +260,15 @@ static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
   if (comparison==0) {fd_decref(nv); return;}
   if (ch->fd_uselock) fd_lock_struct(ch);
   if (ch->ach_write >= ch->ach_limit) {
-    struct FD_CHOICE *ach_normchoice;
+    struct FD_CHOICE *ach_choicedata;
     old_size=ch->ach_limit-ch->ach_data; write_off=ch->ach_write-ch->ach_data;
     if (old_size<0x10000) new_size=old_size*2;
     else new_size=old_size+0x20000;
-    ach_normchoice=u8_realloc(ch->ach_normchoice,
-                   sizeof(struct FD_CHOICE)+
-                   (sizeof(fdtype)*(new_size-1)));
-    ch->ach_normchoice=ach_normchoice;
-    ch->ach_data=((fdtype *)FD_XCHOICE_DATA(ach_normchoice));
+    ach_choicedata=u8_realloc(ch->ach_choicedata,
+			      sizeof(struct FD_CHOICE)+
+			      (sizeof(fdtype)*(new_size-1)));
+    ch->ach_choicedata=ach_choicedata;
+    ch->ach_data=((fdtype *)FD_XCHOICE_DATA(ach_choicedata));
     ch->ach_write=ch->ach_data+write_off;
     ch->ach_limit=ch->ach_data+new_size;}
   *(ch->ach_write++)=nv;

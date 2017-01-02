@@ -18,11 +18,12 @@
 #include <libu8/u8printf.h>
 #include <libu8/u8contour.h>
 
+#include <errno.h>
+
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
-#include <errno.h>
 #include <stdarg.h>
 
 fd_applyfn fd_applyfns[FD_TYPE_MAX];

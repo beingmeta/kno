@@ -956,6 +956,8 @@ int main(int argc,char **argv)
      set by the FULLSCHEME configuration parameter. */
   fd_lispenv core_env;
 
+  fd_main_errno_ptr=&errno;
+
   server_sigmask=fd_default_sigmask;
   sigactions_init();
 

@@ -606,6 +606,8 @@ int main(int argc,char **argv)
   unsigned int arg_mask = 0;  /* Bit map of args to skip */
   unsigned char *loadfile=NULL;
 
+  fd_main_errno_ptr=&errno;
+
   if (u8_version<0) {
     u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");
     exit(1);}

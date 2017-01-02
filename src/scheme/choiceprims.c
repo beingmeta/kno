@@ -1528,22 +1528,29 @@ FD_EXPORT void fd_init_choicefns_c()
                                           fd_fixnum_type,FD_VOID)));
 
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3x("NMAX",nmax_prim,2,
+           fd_make_ndprim(fd_make_cprim3x("PICK-MAX",nmax_prim,2,
                                           -1,FD_VOID,fd_fixnum_type,FD_VOID,
                                           -1,FD_VOID)));
-  fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3x("NMAX->VECTOR",nmax2vec_prim,2,
-                                          -1,FD_VOID,fd_fixnum_type,FD_VOID,
-                                          -1,FD_VOID)));
+  fd_defalias(fd_scheme_module,"NMAX","PICK-MAX");
 
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3x("NMIN",nmin_prim,2,
+           fd_make_ndprim(fd_make_cprim3x("MAX/SORTED",nmax2vec_prim,2,
                                           -1,FD_VOID,fd_fixnum_type,FD_VOID,
                                           -1,FD_VOID)));
+  fd_defalias(fd_scheme_module,"NMAX->VECTOR","MAX/SORTED");
+
   fd_idefn(fd_scheme_module,
-           fd_make_ndprim(fd_make_cprim3x("NMIN->VECTOR",nmin2vec_prim,2,
+           fd_make_ndprim(fd_make_cprim3x("PICK-MIN",nmin_prim,2,
                                           -1,FD_VOID,fd_fixnum_type,FD_VOID,
                                           -1,FD_VOID)));
+  fd_defalias(fd_scheme_module,"NMIN","PICK-MIN");
+
+  fd_idefn(fd_scheme_module,
+           fd_make_ndprim(fd_make_cprim3x("MIN/SORTED",nmin2vec_prim,2,
+                                          -1,FD_VOID,fd_fixnum_type,FD_VOID,
+                                          -1,FD_VOID)));
+  fd_defalias(fd_scheme_module,"NMIN->VECTOR","MIN/SORTED");
+
 }
 
 /* Emacs local variables

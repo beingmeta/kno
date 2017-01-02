@@ -207,7 +207,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
         u8_log(LOG_CRIT,fd_FileIndexError,
                "file_index_fetch %s",u8_strdup(ix->cid));
       thiskey=fd_dtsread_dtype(stream);
-      if (FDTYPE_EQUAL(key,thiskey))
+      if (FDTYPE_EQUAL(key,thiskey)) {
         if (n_vals==0) {
           fd_unlock_mutex(&fx->fd_lock); fd_decref(thiskey);
           return FD_EMPTY_CHOICE;}
@@ -227,11 +227,11 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
             values[i++]=v;
             next_pos=fd_dtsread_4bytes(stream);}
           fd_unlock_mutex(&fx->fd_lock); fd_decref(thiskey);
-          return fd_init_choice(result,n_vals,NULL,
+          return fd_init_choice(result,i,NULL,
                                 FD_CHOICE_DOSORT|
                                 ((atomicp)?(FD_CHOICE_ISATOMIC):
                                  (FD_CHOICE_ISCONSES))|
-                                FD_CHOICE_REALLOC);}
+                                FD_CHOICE_REALLOC);}}
       else if (n_probes>256) {
         fd_unlock_mutex(&fx->fd_lock);
         fd_decref(thiskey);

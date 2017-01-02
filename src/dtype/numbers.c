@@ -2186,6 +2186,7 @@ fdtype fd_string2number(u8_string string,int base)
 	   (strchr(string,'.'))) {
     double flonum; u8_byte *end=NULL;
     flonum=strtod(string,(char **)&end);
+    U8_CLEAR_ERRNO();
     if ((end>string) && ((end-string)==len)) 
       return fd_make_flonum(flonum);
     else return FD_FALSE;}
@@ -2202,6 +2203,7 @@ fdtype fd_string2number(u8_string string,int base)
     else if (base<0) base=10;
     errno=0;
     fixnum=strtol(start,(char **)&end,base);
+    U8_CLEAR_ERRNO();
     if (!((end>string) && ((end-string)==len)))
       return FD_FALSE;
     else if ((fixnum) && ((fixnum<FD_MAX_FIXNUM) && (fixnum>FD_MIN_FIXNUM))) 

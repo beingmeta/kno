@@ -373,9 +373,7 @@ typedef struct FD_CONTINUATION *fd_continuation;
 #define FD_THREAD_QUIET_EXIT 8
 typedef struct FD_THREAD_STRUCT {
   FD_CONS_HEADER; int flags; pthread_t tid; 
-#if 0
-  long long started;
-#endif
+  int *errnop; double started, finished;
   fdtype *resultptr, result;
   pthread_attr_t attr;
   union {
