@@ -180,7 +180,7 @@ static int fits_consolep(fdtype elt)
 
 static void output_element(u8_output out,fdtype elt)
 {
-  if (historicp(elt))
+  if ((historicp(elt))||(FD_STRINGP(elt))) {
     if ((console_width==0) || (fits_consolep(elt)))
       u8_printf(out,"\n  %q ;=##%d",elt,fd_histpush(elt));
     else {
@@ -190,7 +190,7 @@ static void output_element(u8_output out,fdtype elt)
       fd_pprint(&tmpout,elt,"  ",2,2,console_width,1);
       u8_puts(out,tmpout.u8_outbuf);
       u8_free(tmpout.u8_outbuf);
-      u8_flush(out);}
+      u8_flush(out);}}
   else u8_printf(out,"\n  %q",elt);
 }
 
@@ -876,7 +876,7 @@ int main(int argc,char **argv)
       if (!(FD_EQ(expr,that_symbol)))
         is_histref=1;
       histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
-    if (FD_OIDP(expr)) {
+    else if (FD_OIDP(expr)) {
       fdtype v=fd_oid_value(expr);
       if (FD_TABLEP(v)) {
         U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,4096);
@@ -911,6 +911,13 @@ int main(int argc,char **argv)
            (FD_ABORTP(result)) || (FD_FIXNUMP(result))))) {
       int ref=fd_histpush(result);
       if (ref>=0) histref=ref;}
+    else if ((FD_SYMBOLP(expr))&&
+             ((FD_CHOICEP(result))||
+              (FD_VECTORP(result))||
+              (FD_PAIRP(result)))) {
+      int ref=fd_histpush(result);
+      if (ref>=0) histref=ref;}
+    else {}
     if (FD_ABORTP(result)) stat_line=0;
     else if ((showtime_threshold>=0.0) &&
              (((finish_time-start_time)>showtime_threshold) ||
