@@ -27,6 +27,7 @@
 
 fd_exception fd_UnknownPool=_("Unknown pool");
 fd_exception fd_CantLockOID=_("Can't lock OID");
+fd_exception fd_PoolRangeError=_("the OID is out of the range of the pool");
 fd_exception fd_NoLocking=_("No locking available");
 fd_exception fd_ReadOnlyPool=_("pool is read-only");
 fd_exception fd_InvalidPoolPtr=_("Invalid pool PTR");
@@ -1509,6 +1510,40 @@ static fdtype raw_pool_get(fdtype arg,fdtype key,fdtype dflt)
   else return fd_incref(dflt);
 }
 
+static fdtype raw_pool_store(fdtype arg,fdtype key,fdtype value)
+{
+  fd_pool p=(fd_pool)arg;
+  if (FD_OIDP(key)) {
+    FD_OID addr=FD_OID_ADDR(key);
+    FD_OID base=p->base;
+    if (FD_OID_COMPARE(addr,base)<0)
+      return fd_err(fd_PoolRangeError,"raw_pool_store",
+                    u8_strdup(fd_pool_id(p)),
+                    key);
+    else {
+      unsigned int offset=FD_OID_DIFFERENCE(addr,base);
+      int load=fd_pool_load(p), cap=p->capacity, rv=-1;
+      if (offset>cap)
+        return fd_err(fd_PoolRangeError,"raw_pool_store",
+                      u8_strdup(fd_pool_id(p)),
+                      key);
+      else if ((p->flags)&(FD_POOL_LOCKFREE)) {
+        rv=fd_hashtable_store(&(p->cache),key,value);}
+      else if (fd_pool_lock(p,key)) {
+        rv=fd_hashtable_store(&(p->locks),key,value);}
+      else {
+        fd_seterr(fd_CantLockOID,"raw_pool_store",
+                  u8_strdup(fd_pool_id(p)),
+                  key);
+        return FD_ERROR_VALUE;}
+      if (rv<0) 
+        return FD_ERROR_VALUE;
+      return FD_VOID;}}
+  else return fd_err(fd_NotAnOID,"raw_pool_store",
+                     u8_strdup(fd_pool_id(p)),
+                     key);
+}
+
 static fdtype raw_pool_keys(fdtype arg)
 {
   fdtype results=FD_EMPTY_CHOICE;
@@ -2060,8 +2095,9 @@ FD_EXPORT void fd_init_pools_c()
                      fd_poolconfig_get,fd_poolconfig_set,
                      &fd_default_pool);
 
-  fd_tablefns[fd_raw_pool_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_raw_pool_type]=u8_zalloc(struct FD_TABLEFNS);
   fd_tablefns[fd_raw_pool_type]->get=(fd_table_get_fn)raw_pool_get;
+  fd_tablefns[fd_raw_pool_type]->store=(fd_table_store_fn)raw_pool_store;
   fd_tablefns[fd_raw_pool_type]->keys=(fd_table_keys_fn)raw_pool_keys;
 
 

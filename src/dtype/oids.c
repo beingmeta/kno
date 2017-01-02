@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <ctype.h>
 
+fd_exception fd_NotAnOID=_("Not an OID");
 static fd_exception OIDBaseOverflow;
 
 static FD_OID _base_oids[1024];
