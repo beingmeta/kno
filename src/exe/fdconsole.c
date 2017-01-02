@@ -7,6 +7,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/cons.h"
 #include "framerd/tables.h"
 #include "framerd/fddb.h"
 #include "framerd/eval.h"
@@ -543,21 +544,26 @@ static fdtype module_list=FD_EMPTY_LIST;
 
 static u8_string *split_string(u8_string s,u8_string seps);
 
+static u8_string get_next(u8_string pt,u8_string seps);
+
 static fdtype parse_module_spec(u8_string s)
 {
-  if ((strchr(s,' '))||(strchr(s,','))||(strchr(s,';'))) {
-    fdtype result=FD_EMPTY_CHOICE;
-    u8_string *strings=split_string(s," ,;"), *scan=strings;
-    while (*scan) {
-      FD_ADD_TO_CHOICE(result,fd_parse(*scan));
-      scan++;}
-    scan=strings; while (*scan) { u8_free(*scan); scan++;}
-    u8_free(strings);
-    return result;}
-  else return fd_parse(s);
+  if (*s) {
+    u8_string brk=get_next(s," ,;");
+    if (brk) {
+      u8_string elt=u8_slice(s,brk);
+      fdtype parsed=fd_parse(elt);
+      if (FD_ABORTP(parsed)) {
+        u8_free(elt);
+        return parsed;}
+      else return fd_init_pair(NULL,parsed,
+                               parse_module_spec(brk+1));}
+    else {
+      fdtype parsed=fd_parse(s);
+      if (FD_ABORTP(parsed)) return parsed;
+      else return fd_init_pair(NULL,parsed,FD_EMPTY_LIST);}}
+  else return FD_EMPTY_LIST;
 }
-
-static u8_string get_next(u8_string pt,u8_string seps);
 
 static u8_string *split_string(u8_string s,u8_string seps)
 {
@@ -599,19 +605,43 @@ static int module_config_set(fdtype var,fdtype vals,void *d)
   int loads=0; FD_DO_CHOICES(val,vals) {
     fdtype modname=((FD_SYMBOLP(val))?(val):
                     (FD_STRINGP(val))?
-                    (fd_parse(FD_STRDATA(val))):
+                    (parse_module_spec(FD_STRDATA(val))):
                     (FD_VOID));
     fdtype module=FD_VOID, used;
     if (FD_VOIDP(modname)) {
       fd_seterr(fd_TypeError,"module_config_set","module",val);
       return -1;}
+    else if (FD_PAIRP(modname)) {
+      int n_loaded=0;
+      FD_DOLIST(elt,modname) {
+        if (!(FD_SYMBOLP(elt))) {
+          u8_log(LOG_WARN,fd_TypeError,"module_config_set",
+                 "Not a valid module name: %q",elt);}
+        else {
+          fdtype each_module=fd_find_module(elt,0,0);
+          if (FD_VOIDP(each_module)) {
+            u8_log(LOG_WARN,fd_NoSuchModule,"module_config_set",
+                   "No module found for %q",modname);}
+          else {
+            used=fd_use_module(console_env,each_module);
+            if (FD_ABORTP(used)) {
+              u8_log(LOG_WARN,"LoadModuleError",
+                     "Error loading module %q",each_module);
+              fd_clear_errors(1);}
+            else {
+              n_loaded++;
+              fd_decref(used);}
+            used=FD_VOID;}}}
+      fd_decref(modname);
+      return n_loaded;}
     else if (!(FD_SYMBOLP(modname))) {
       fd_seterr(fd_TypeError,"module_config_set","module name",val);
       fd_decref(modname);
       return -1;}
     module=fd_find_module(modname,0,0);
     if (FD_VOIDP(module)) {
-      fd_seterr(fd_NoSuchModule,"module_config_set",FD_SYMBOL_NAME(modname),val);
+      fd_seterr(fd_NoSuchModule,"module_config_set",
+                FD_SYMBOL_NAME(modname),val);
       fd_decref(modname);
       return -1;}
     used=fd_use_module(console_env,module);
