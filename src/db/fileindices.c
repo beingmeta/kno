@@ -227,7 +227,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
             values[i++]=v;
             next_pos=fd_dtsread_4bytes(stream);}
           fd_unlock_mutex(&fx->lock); fd_decref(thiskey);
-          return fd_init_choice(result,n_vals,NULL,
+          return fd_init_choice(result,i,NULL,
                                 FD_CHOICE_DOSORT|
                                 ((atomicp)?(FD_CHOICE_ISATOMIC):
                                  (FD_CHOICE_ISCONSES))|

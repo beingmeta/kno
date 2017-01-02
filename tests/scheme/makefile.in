@@ -45,10 +45,6 @@ PPROF_PATH      = @GOOGLE_PPROF@
 
 TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdservlet fdcgiexec # fdsh
 
-default: alltests
-
-testbin: $(TESTBIN) 
-
 # Note that we don't add @suffix@ to these executables because they're
 # never installed
 %.o: %.c
@@ -66,6 +62,45 @@ testbin: $(TESTBIN)
 	@echo MKTEST_STATIC $@
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS) -o $@ $< 	\
 		$(EXTRA_LIBS) $(CORE_LIBS) $(LIBS) -lu8stdio
+
+# Base targets
+
+default: alltests
+
+testbin: $(TESTBIN) 
+
+fdcgiexec fdconsole fdexec fdserver fdservlet: main.c main.h
+
+fdcgiexec fdservlet: webcommon.h
+
+# Linking targets
+
+fdconsole.c: ../../src/exe/fdconsole.c
+	ln -s $< $@
+
+fdexec.c: ../../src/exe/fdexec.c
+	ln -s $< $@
+
+fdbatch.c: ../../src/exe/fdbatch.c
+	ln -s $< $@
+
+fdserver.c: ../../src/exe/fdserver.c
+	ln -s $< $@
+
+fdservlet.c: ../../src/exe/fdservlet.c
+	ln -s $< $@
+
+fdcgiexec.c: ../../src/exe/fdcgiexec.c
+	ln -s $< $@
+
+main.c: ../../src/exe/main.c
+	ln -s $< $@
+
+main.h: ../../src/exe/main.h
+	ln -s $< $@
+
+webcommon.h: ../../src/exe/webcommon.h
+	ln -s $< $@
 
 # Clean targets
 
@@ -420,7 +455,8 @@ chaintests:
 
 batchtests:
 	@echo "*** Testing fdbatch execution success and cleanliness"
-	@rm -f countup.log countup.err countup.done countup.finished countup.died
+	@rm -f fdbatch_countup.log fdbatch_countup.err fdbatch_countup.done
+	@rm -f  fdbatch_countup.finished fdbatch_countup.died
 	./fdbatch countup.scm "countup.finished" 10 1; sleep 3
 	@if (test ! -f countup.pid); then 	\
 		echo error; 			\
@@ -428,31 +464,31 @@ batchtests:
 	   fi; 					\
 	 sleep 12;
 	# This was written by fdbatch itself
-	@if (test ! -s countup.done); then 	\
-		echo countup.done error; 	\
-	  	exit 1; 			\
+	@if (test ! -s fdbatch_countup.done); then	\
+		echo fdbatch_countup.done error; 	\
+	  	exit 1; 				\
          fi;
 	# This was written by the script
-	@if (test ! -s countup.finished); then 		\
-	   echo fdbatch success countup.finished error; \
-	   exit 1;  					\
+	@if (test ! -s fdbatch_countup.finished); then		\
+	   echo fdbatch success fdbatch_countup.finished error;	\
+	   exit 1;  						\
 	 fi;
-	@if (test ! -f countup.err); then 		\
-		echo fdbatch success countup.err error; \
-		exit 1; 				\
+	@if (test ! -f fdbatch_countup.err); then		\
+		echo fdbatch success fdbatch_countup.err error;	\
+		exit 1; 					\
          fi;
-	@if (test ! -s countup.log); then 		\
-		echo fdbatch success countup.log error; \
-		exit 1; 				\
-	 fi;
-	# These should have been deleted on successful exit
-	@if (test -f countup.died); then 			\
-		echo fdbatch success countup.died error; 	\
+	@if (test ! -s fdbatch_countup.log); then		\
+		echo fdbatch success fdbatch_countup.log error;	\
 		exit 1; 					\
 	 fi;
-	@if (test -f countup.pid); then 		\
-		echo fdbatch success countup.pid error; \
-		exit 1; 				\
+	# These should have been deleted on successful exit
+	@if (test -f fdbatch_countup.died); then			\
+		echo fdbatch success fdbatch_countup.died error;	\
+		exit 1; 						\
+	 fi;
+	@if (test -f fdbatch_countup.pid); then			\
+		echo fdbatch success fdbatch_countup.pid error; \
+		exit 1; 					\
          fi;
 	@rm -f countup.log countup.err countup.done countup.finished countup.died
 	@echo "*** "Done with fdbatch success test""
@@ -460,38 +496,38 @@ batchtests:
 	./fdbatch countup.scm ERROR=yes "countup.finished" 10 1;
 	@sleep 12;
 	@# This should have been deleted by the watch process
-	@if (test -f countup.pid); then 		\
-		echo fdbatch failure countup.pid error; \
-		exit 1; 				\
+	@if (test -f fdbatch_countup.pid); then 		\
+		echo fdbatch failure fdbatch_countup.pid error;	\
+		exit 1; 					\
 		fi;
-	@if (test -f countup.done); then 		\
-		echo fdbatch failure countup.done error;\
-		exit 1; 				\
+	@if (test -f fdbatch_countup.done); then			\
+		echo fdbatch failure fdbatch_countup.done error;	\
+		exit 1; 						\
 	 fi;
 	# This should have been created at exit
-	@if (test ! -f countup.died); then 		\
-		echo fdbatch failure countup.died error;\
-		exit 1; 				\
+	@if (test ! -f fdbatch_countup.died); then 		\
+		echo fdbatch failure countup.died error;	\
+		exit 1; 					\
 	 fi;
 	@echo "*** "Done with fdbatch failure test""
 	@echo "*** "Starting fdbatch kill test""
-	./fdbatch countup.scm "countup.killed" 10 1;
+	./fdbatch countup.scm "fdbatch_countup.killed" 10 1;
 	@sleep 3;
-	@kill -9 `cat countup.pid`; sleep 12
+	@kill -9 `cat fdbatch_countup.pid`; sleep 12
 	@# This should have been deleted by the watch process
-	@if (test -f countup.pid); then 		\
-		echo fdbatch failure countup.pid error; \
-		exit 1; 				\
+	@if (test -f fdbatch_countup.pid); then 		\
+		echo fdbatch failure fdbatch_countup.pid error; \
+		exit 1; 					\
 	 fi;
 	@# This should have been deleted by the watch process
-	@if (test -f countup.done); then 		\
-		echo fdbatch failure countup.done error;\
-		exit 1; 				\
+	@if (test -f fdbatch_countup.done); then 		\
+		echo fdbatch failure fdbatch_countup.done error;\
+		exit 1; 					\
 	 fi;
 	@# This should have been created at exit by the watch process
-	@if (test ! -f countup.died); then 		\
-		echo fdbatch failure countup.died error;\
-		exit 1; 				\
+	@if (test ! -f fdbatch_countup.died); then 		\
+		echo fdbatch failure fdbatch_countup.died error;\
+		exit 1; 					\
 	 fi;
 	@echo "*** "Done with fdbatch kill test""
 
