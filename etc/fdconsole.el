@@ -1,4 +1,5 @@
-;;; fdconsole.el --- emacs mode for the FramerD console   -*- Mode: emacs-lisp; lexical-binding: t; -*-
+;;; -*- Mode: emacs-lisp; lexical-binding: t; -*-
+;;; fdconsole.el --- emacs mode for the FramerD console  
 
 ;; Copyright (C) 2001-2016  beingmeta, inc
 
@@ -20,6 +21,10 @@
 (make-variable-buffer-local 'undo-limit)
 ;; The name of the FramerD scheme module for a particular buffer
 (make-variable-buffer-local 'fdconsole-module)
+;; The initial code to send to the buffer
+(make-variable-buffer-local 'fdconsole-startup)
+;; The fdconsole command line
+(make-variable-buffer-local 'fdconsole-cmdline)
 
 (defvar *framerd-keywords*
   '("\\<do-choices-mt\\>" "\\<do-seq-mt\\>" "\\<for-choices-mt\\>"
@@ -322,6 +327,8 @@
 ;;; Running an fdconsole
 
 (defvar fdconsole-program "fdconsole")
+(defvar fdconsole-startup nil)
+(defvar fdconsole-cmdline nil)
 
 (autoload 'comint-check-proc "comint")
 
@@ -333,8 +340,11 @@ Runs the hooks `inferior-scheme-mode-hook' \(after the `comint-mode-hook' is
 run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
   (interactive
    (list (if current-prefix-arg
-	     (read-string "Run fdconsole: " fdconsole-program)
-	   fdconsole-program)))
+	     (read-string "Run fdconsole: "
+			  (or fdconsole-cmdline
+			      fdconsole-program))
+	   (or fdconsole-cmdline 
+	       fdconsole-program))))
   (let ((bufname (or (and scheme-buffer
 			  (get-buffer-window scheme-buffer)
 			  scheme-buffer)
@@ -354,7 +364,15 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
 	  (inferior-scheme-mode)))
     (setq scheme-program-name cmd)
     (setq scheme-buffer bufname)
-    (pop-to-buffer bufname)))
+    (setq fdconsole-cmdline cmd)
+    (pop-to-buffer bufname)
+    (message "Sending '%s'" fdconsole-startup)
+    (when fdconsole-startup
+      (comint-send-string (scheme-proc) (format "%s\n" fdconsole-startup)))))
+
+(defun fdstartup (string)
+  (interactive "sStartup expressions: ")
+  (setq-local fdconsole-startup string))
 
 ;;; Defining a mode hook to define fdconsole-sender
 
