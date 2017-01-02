@@ -1488,7 +1488,8 @@ void fd_init_cons_c()
   i=0; while (i < FD_TYPE_MAX) fd_dtype_writers[i++]=NULL;
   i=0; while (i < FD_TYPE_MAX) fd_comparators[i++]=NULL;
   i=0; while (i<FD_TYPE_MAX) fd_hashfns[i++]=NULL;
-  i=0; while (i<FD_MAX_IMMEDIATE_TYPES+4) fd_immediate_checkfns[i++]=NULL;
+  i=0; while (i<FD_MAX_IMMEDIATE_TYPES+4) 
+         fd_immediate_checkfns[i++]=NULL;
 
   fd_immediate_checkfns[fd_constant_type]=validate_constant;
 
