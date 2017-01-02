@@ -366,7 +366,7 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
     (setq scheme-buffer bufname)
     (setq fdconsole-cmdline cmd)
     (pop-to-buffer bufname)
-    (message "Sending '%s'" fdconsole-startup)
+    ;; (message "Sending '%s'" fdconsole-startup)
     (when fdconsole-startup
       (comint-send-string (scheme-proc) (format "%s\n" fdconsole-startup)))))
 
