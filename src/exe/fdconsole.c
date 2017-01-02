@@ -541,6 +541,59 @@ static fdtype backtrace_prim(fdtype arg)
 
 static fdtype module_list=FD_EMPTY_LIST;
 
+static u8_string *split_string(u8_string s,u8_string seps);
+
+static fdtype parse_module_spec(u8_string s)
+{
+  if ((strchr(s,' '))||(strchr(s,','))||(strchr(s,';'))) {
+    fdtype result=FD_EMPTY_CHOICE;
+    u8_string *strings=split_string(s," ,;"), *scan=strings;
+    while (*scan) {
+      FD_ADD_TO_CHOICE(result,fd_parse(*scan));
+      scan++;}
+    scan=strings; while (*scan) { u8_free(*scan); scan++;}
+    u8_free(strings);
+    return result;}
+  else return fd_parse(s);
+}
+
+static u8_string get_next(u8_string pt,u8_string seps);
+
+static u8_string *split_string(u8_string s,u8_string seps)
+{
+  u8_string *result=u8_alloc_n(8,u8_string); int i=0, max=8;
+  u8_string scan=s, next=get_next(scan,seps); *result=NULL;
+  while (next) {
+    if (next==scan) {
+      scan++; 
+      next=get_next(scan,seps);
+      continue;}
+    if (i>(max-3)) {
+      int new_max=max*2;
+      u8_string *new_result=u8_realloc(result,sizeof(u8_string)*new_max);
+      if (!(new_result)) return  result;
+      max=new_max; result=new_result;}
+    result[i]=u8_slice(scan,next);
+    result[i+1]=NULL;
+    scan=next+1; next=get_next(scan,seps);
+    i++;}
+  if (*scan) {
+    result[i]=u8_strdup(scan);
+    result[i+1]=NULL;}
+  return result;
+}
+
+static u8_string get_next(u8_string pt,u8_string seps)
+{
+  u8_string closest=NULL;
+  while (*seps) {
+    u8_string brk=strchr(pt,*seps);
+    if ((brk) && ((brk<closest) || (closest==NULL)))
+      closest=brk;
+    seps++;}
+  return closest;
+}
+
 static int module_config_set(fdtype var,fdtype vals,void *d)
 {
   int loads=0; FD_DO_CHOICES(val,vals) {
@@ -749,7 +802,6 @@ int main(int argc,char **argv)
   fd_register_config
     ("LOADFILE",_("Which files to load"),
      loadfile_config_get,loadfile_config_set,&loadfile_list);
-
 
   if (u8_has_suffix(argv[0],"/fdconsole",0))
     u8_default_appid("fdconsole");
