@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 
 ;;; This file implements OpenID login for FramerD
-;;; Copyright (C) 2005-2013 beingmeta, inc. All rights reserved
+;;; Copyright (C) 2005-2017 beingmeta, inc. All rights reserved
 
 (in-module 'xhtml/openid)
 
