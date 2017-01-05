@@ -1819,7 +1819,7 @@ FD_EXPORT void fd_init_timeprims_c()
 
   init_id_tables();
 
-  fd_tablefns[fd_timestamp_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_timestamp_type]=u8_zalloc(struct FD_TABLEFNS);
   fd_tablefns[fd_timestamp_type]->get=timestamp_get;
   fd_tablefns[fd_timestamp_type]->add=NULL;
   fd_tablefns[fd_timestamp_type]->drop=NULL;

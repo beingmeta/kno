@@ -3253,8 +3253,10 @@ void fd_init_tables_c()
   fd_unparsers[fd_hashset_type]=unparse_hashset;
   fd_copiers[fd_hashset_type]=copy_hashset;
 
+  memset(fd_tablefns,0,sizeof(fd_tablefns));
+
   /* HASHTABLE table functions */
-  fd_tablefns[fd_hashtable_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_hashtable_type]=u8_zalloc(struct FD_TABLEFNS);
   fd_tablefns[fd_hashtable_type]->get=(fd_table_get_fn)fd_hashtable_get;
   fd_tablefns[fd_hashtable_type]->add=(fd_table_add_fn)fd_hashtable_add;
   fd_tablefns[fd_hashtable_type]->drop=(fd_table_drop_fn)fd_hashtable_drop;
@@ -3265,7 +3267,7 @@ void fd_init_tables_c()
   fd_tablefns[fd_hashtable_type]->modified=(fd_table_modified_fn)hashtable_modified;
 
   /* SLOTMAP table functions */
-  fd_tablefns[fd_slotmap_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_slotmap_type]=u8_zalloc(struct FD_TABLEFNS);
   fd_tablefns[fd_slotmap_type]->get=(fd_table_get_fn)fd_slotmap_get;
   fd_tablefns[fd_slotmap_type]->add=(fd_table_add_fn)fd_slotmap_add;
   fd_tablefns[fd_slotmap_type]->drop=(fd_table_drop_fn)fd_slotmap_drop;
@@ -3276,7 +3278,7 @@ void fd_init_tables_c()
   fd_tablefns[fd_slotmap_type]->modified=(fd_table_modified_fn)slotmap_modified;
 
   /* SCHEMAP table functions */
-  fd_tablefns[fd_schemap_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_schemap_type]=u8_zalloc(struct FD_TABLEFNS);
   fd_tablefns[fd_schemap_type]->get=(fd_table_get_fn)fd_schemap_get;
   fd_tablefns[fd_schemap_type]->add=(fd_table_add_fn)fd_schemap_add;
   fd_tablefns[fd_schemap_type]->drop=(fd_table_drop_fn)fd_schemap_drop;
@@ -3287,7 +3289,7 @@ void fd_init_tables_c()
   fd_tablefns[fd_schemap_type]->modified=(fd_table_modified_fn)schemap_modified;
 
   /* HASHSET table functions */
-  fd_tablefns[fd_hashset_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_hashset_type]=u8_zalloc(struct FD_TABLEFNS);
   fd_tablefns[fd_hashset_type]->get=(fd_table_get_fn)hashsetget;
   fd_tablefns[fd_hashset_type]->add=(fd_table_add_fn)hashsetstore;
   /* This is a no-op because you can't drop a value from a hashset.
@@ -3301,7 +3303,7 @@ void fd_init_tables_c()
   fd_tablefns[fd_hashset_type]->modified=(fd_table_modified_fn)hashset_modified;
 
   /* HASHSET table functions */
-  fd_tablefns[fd_pair_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_pair_type]=u8_zalloc(struct FD_TABLEFNS);
   fd_tablefns[fd_pair_type]->get=pairget;
   fd_tablefns[fd_pair_type]->test=pairtest;
   fd_tablefns[fd_pair_type]->keys=pairkeys;

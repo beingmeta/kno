@@ -1311,7 +1311,7 @@ FD_EXPORT void fd_init_indices_c()
     struct FD_COMPOUND_TYPEINFO *e=fd_register_compound(fd_intern("INDEX"),NULL,NULL);
     e->fd_compound_parser=index_parsefn;}
 
-  fd_tablefns[fd_index_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_index_type]=u8_zalloc(struct FD_TABLEFNS);
   fd_tablefns[fd_index_type]->get=table_indexget;
   fd_tablefns[fd_index_type]->add=table_indexadd;
   fd_tablefns[fd_index_type]->drop=table_indexdrop;
@@ -1320,7 +1320,7 @@ FD_EXPORT void fd_init_indices_c()
   fd_tablefns[fd_index_type]->keys=table_indexkeys;
   fd_tablefns[fd_index_type]->getsize=NULL;
 
-  fd_tablefns[fd_raw_index_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_raw_index_type]=u8_zalloc(struct FD_TABLEFNS);
   fd_tablefns[fd_raw_index_type]->get=table_indexget;
   fd_tablefns[fd_raw_index_type]->add=table_indexadd;
   fd_tablefns[fd_raw_index_type]->drop=table_indexdrop;

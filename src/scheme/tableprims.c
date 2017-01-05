@@ -172,7 +172,8 @@ static fdtype lispstore(fdtype table,fdtype key,fdtype val)
     if (fd_store(table,key,qch->fd_choiceval)<0)
       return FD_ERROR_VALUE;
     else return FD_VOID;}
-  else if (fd_store(table,key,val)<0) return FD_ERROR_VALUE;
+  else if (fd_store(table,key,val)<0)
+    return FD_ERROR_VALUE;
   else return FD_VOID;
 }
 static fdtype lisptest(fdtype table,fdtype key,fdtype val)
