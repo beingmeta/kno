@@ -1,7 +1,7 @@
 [Unit]
 Description=FramerD service(s) starter
 Requires=network.target
-After=upsource.service cloud-final.service
+After=cloud-final.service upsource.service
 
 [Service]
 Type=simple
