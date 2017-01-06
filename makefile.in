@@ -1274,7 +1274,7 @@ $(DESTDIR)@systemd_loc@:
 setup-systemd: $(DESTDIR)@systemd_loc@/framerd.service startupdirs
 $(DESTDIR)@systemd_loc@/framerd.service: $(DESTDIR)@systemd_loc@ etc/framerd.service
 	@$(MSG) Installing framerd systemd config to $(DESTDIR)@systemd_loc@/framerd.service
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
+	@$(SYSINSTALL) -m 0444 @admininstall@ \
 		   etc/framerd.service $(DESTDIR)@systemd_loc@/framerd.service
 	@if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then 	\
 	   ${MSG} systemctl daemon-reload; 			\
