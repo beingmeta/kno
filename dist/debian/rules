@@ -34,6 +34,3 @@ override_dh_strip:
 	dh_strip -pframerd-sundown --dbg-package=framerd-sundown-dbg
 	dh_strip -pframerd-tidy --dbg-package=framerd-tidy-dbg
 	dh_strip -pframerd-imagetools --dbg-package=framerd-imagetools-dbg
-
-override_dh_systemd_start:
-	systemctl --no-block framerd.service
