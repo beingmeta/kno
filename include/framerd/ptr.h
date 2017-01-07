@@ -353,25 +353,30 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 
 /* Fixnums */
 
-#define FD_FIXNUM_SIGN_BIT 0x80000000
-#define FD_FIXNUM_MAGNITUDE_MASK 0x7FFFFFFF
-#define FD_MAX_FIXNUM            0x1FFFFFFF
-#define FD_MIN_FIXNUM           -0x1FFFFFFF
+#define FD_FIXNUM_BITS 30
+#define FD_FIXNUM_SIGN_BIT (((unsigned long long)1)<<(FD_FIXNUM_BITS+1))
+#define FD_FIXNUM_MAGNITUDE_MASK			\
+  (((((unsigned long long)1)<<(FD_FIXNUM_BITS+1))-1)&	\
+   (~((unsigned long long)3)))
+#define FD_MAX_FIXNUM ((((long long)1)<<FD_FIXNUM_BITS)-1)
+#define FD_MIN_FIXNUM -((((long long)1)<<FD_FIXNUM_BITS)-1)
+
+#define to64(x) ((long long)(x))
 
 #define FD_FIX2INT(x) \
-  ((int)((((int)x)>=0) ? ((x)/4) : (-((x&FD_FIXNUM_MAGNITUDE_MASK)>>2))))
+  ((int)((((int)(x))>=0) ? ((x)/4) : (-(((x)&FD_FIXNUM_MAGNITUDE_MASK)>>2))))
 #define FD_INT2DTYPE(x) \
-  ((((x) > FD_MAX_FIXNUM) || ((x) < FD_MIN_FIXNUM)) ?			\
-   (fd_make_bigint(x)) :						\
-   (((fdtype)(((x)>=0) ? (((x)*4)|fd_fixnum_type) :			\
+  ((((to64(x)) > FD_MAX_FIXNUM) || ((to64(x)) < FD_MIN_FIXNUM)) ?			\
+   (fd_make_bigint(to64(x))) :						\
+   (((fdtype)(((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :			\
 	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|			\
-	       (((unsigned int)(-(x)))<<2))))))
+	       (((unsigned int)(-(to64(x))))<<2))))))
 #define FD_INT(x)					\
-  ((((x) > FD_MAX_FIXNUM) || ((x) < FD_MIN_FIXNUM)) ?   \
-   (fd_make_bigint(x)) :				\
-   (((fdtype)(((x)>=0) ? (((x)*4)|fd_fixnum_type) :	\
+  ((((to64(x)) > FD_MAX_FIXNUM) || ((to64(x)) < FD_MIN_FIXNUM)) ?   \
+   (fd_make_bigint(to64(x))) :				\
+   (((fdtype)(((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :	\
 	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|	\
-	       (((unsigned int)(-(x)))<<2))))))
+	       (((unsigned int)(-(to64(x))))<<2))))))
 #define FD_SHORT2FIX(x)					     \
   (((fdtype)						     \
     ((x>=0) ? (((x)*4)|fd_fixnum_type) :		     \
