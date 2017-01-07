@@ -153,7 +153,7 @@ typedef int fd_size_t;
 
 #if FD_THREADS_ENABLED
 #ifndef FD_N_PTRLOCKS
-#define FD_N_PTRLOCKS 32
+#define FD_N_PTRLOCKS 64
 #endif
 #endif
 
