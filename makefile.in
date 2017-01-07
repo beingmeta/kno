@@ -316,8 +316,10 @@ configure: configure.ac etc/release
 	else echo "REBUILDING configure"; autoconf; fi
 include/framerd/config.h: include/framerd/config.h.in
 	if test -x ./config.status; then ./config.status; fi
+	touch $@
 include/framerd/fdsource.h: include/framerd/fdsource.h.in
 	if test -x ./config.status; then ./config.status; fi
+	touch $@
 
 tests/dtype/makefile: tests/dtype/makefile.in ./configure
 	./configure
@@ -379,7 +381,8 @@ dbginstall:
 
 # Make rules
 
-%.o: %.c @abs_top_srcdir@/fileinfo include/framerd/revision.h include/framerd/config.h
+%.o: %.c @abs_top_srcdir@/fileinfo include/framerd/revision.h \
+		include/framerd/config.h
 	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
 	@$(MSG) CC $@ $<
 
@@ -1278,7 +1281,7 @@ $(DESTDIR)@systemd_loc@:
 setup-systemd: $(DESTDIR)@systemd_loc@/framerd.service startupdirs
 $(DESTDIR)@systemd_loc@/framerd.service: $(DESTDIR)@systemd_loc@ etc/framerd.service
 	@$(MSG) Installing framerd systemd config to $(DESTDIR)@systemd_loc@/framerd.service
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
+	@$(SYSINSTALL) -m 0444 @admininstall@ \
 		   etc/framerd.service $(DESTDIR)@systemd_loc@/framerd.service
 	@if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then 	\
 	   ${MSG} systemctl daemon-reload; 			\
