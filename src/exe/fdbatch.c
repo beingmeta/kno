@@ -185,7 +185,7 @@ int main(int argc,char **argv)
   /* We just initialize this for now. */
   u8_log_show_procinfo=1;
 
-  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,"fdbatch_");
+  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,"_");
 
   fd_register_config("NEWLOG",
                      _("Whether to truncate existing log files"),
