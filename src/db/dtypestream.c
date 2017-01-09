@@ -838,7 +838,7 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 FD_EXPORT void fd_init_dtypestream_c()
 {
   fd_register_config
-    ("DTCHECKSIZE",_("whether to check returned and real dtype sizes"),
+    ("CHECKDTSIZE",_("whether to check returned and real dtype sizes"),
      fd_boolconfig_get,fd_boolconfig_set,&fd_check_dtsize);
 
   u8_register_source_file(_FILEINFO);
