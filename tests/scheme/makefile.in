@@ -292,7 +292,9 @@ dbhash32tests:
 oidpooltests:
 	@echo "*** Running scheme tests to exercise hashindices with B32 reprepresentation "***""
 	make FD_HASHINDEX=yes OIDPOOL=yes dbtests
-	make FD_HASHINDEX="(COMPRESS B32)" FD_OIDPOOL="FD_OIDPOOL=(B40)" dbtests
+	make FD_HASHINDEX="(B32)" FD_OIDPOOL="FD_OIDPOOL=(B40)" dbtests
+	make FD_HASHINDEX="(B40)" FD_OIDPOOL="FD_OIDPOOL=(B40)" dbtests
+	make FD_HASHINDEX="(B64)" FD_OIDPOOL="FD_OIDPOOL=(B64)" dbtests
 	make FD_HASHINDEX="(COMPRESS B32)" FD_OIDPOOL="FD_OIDPOOL=(B32)" dbtests
 	@echo "*** Completed scheme tests to exercise hashindices with B32 reprepresentation "***""
 
