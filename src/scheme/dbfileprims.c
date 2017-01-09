@@ -192,14 +192,17 @@ static int get_make_hash_index_flags(fdtype flags_arg)
 {
   if (FD_SEQUENCEP(flags_arg)) {
     int flags=0;
-    if (fd_position(fd_intern("B64"),flags_arg,0,-1)>=0)
+    if (fd_position(fd_intern("B64"),flags_arg,0,-1)>=0) 
       flags=flags|(FD_B64<<4);
     else if (fd_position(fd_intern("B32"),flags_arg,0,-1)>=0) {}
-    else if (fd_position(fd_intern("B40"),flags_arg,0,-1)>=0)
+    else if (fd_position(fd_intern("B40"),flags_arg,0,-1)>=0) 
       flags=flags|(FD_B40<<4);
     else flags=flags|(FD_B40<<4);
     if (fd_position(fd_intern("DTYPEV2"),flags_arg,0,-1)>=0)
       flags=flags|FD_HASH_INDEX_DTYPEV2;
+    else if (fd_position(fd_intern("DTYPEV1"),flags_arg,0,-1)>=0)
+      flags=flags;
+    else flags=flags; /* |FD_HASH_INDEX_DTYPEV2; */
     return flags;}
   else if (FD_EQ(flags_arg,fd_intern("DTYPEV2")))
     return FD_HASH_INDEX_DTYPEV2;
