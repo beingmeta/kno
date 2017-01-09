@@ -114,6 +114,19 @@
 #define CHECK_ENDPOS(pos,stream)
 #endif
 
+static size_t get_maxpos(fd_hash_index p)
+{
+  switch (p->offtype) {
+  case FD_B32: 
+    return ((size_t)(((size_t)1)<<32));
+  case FD_B40: 
+    return ((size_t)(((size_t)1)<<40));
+  case FD_B64: 
+    return ((size_t)(((size_t)1)<<63));
+  default:
+    return -1;}
+}
+
 #ifndef HASHINDEX_PREFETCH_WINDOW
 #ifdef FD_MMAP_PREFETCH_WINDOW
 #define HASHINDEX_PREFETCH_WINDOW FD_MMAP_PREFETCH_WINDOW
@@ -1908,7 +1921,7 @@ FD_FASTOP FD_CHUNK_REF write_value_block
  fdtype values,fdtype extra,
  fd_off_t cont_off,fd_off_t cont_size,fd_off_t startpos)
 {
-  fd_off_t endpos=startpos; FD_CHUNK_REF retval;
+  FD_CHUNK_REF retval; fd_off_t endpos=startpos;
   if (FD_CHOICEP(values)) {
     int full_size=FD_CHOICE_SIZE(values)+((FD_VOIDP(extra))?0:1);
     endpos=endpos+fd_dtswrite_zint(stream,full_size);
@@ -1935,12 +1948,15 @@ FD_FASTOP FD_CHUNK_REF write_value_block
 FD_FASTOP fd_off_t extend_keybucket
   (fd_hash_index hx,struct KEYBUCKET *kb,
    struct COMMIT_SCHEDULE *schedule,int i,int j,
-   fd_byte_output newkeys,fd_off_t endpos)
+   fd_byte_output newkeys,
+   fd_off_t endpos,fd_off_t maxpos)
 {
-  int k=i; int _keyoffs[16], _keysizes[16], *keyoffs, *keysizes;
+  int k=i, free_keyvecs=0;
+  int _keyoffs[16], _keysizes[16], *keyoffs, *keysizes;
   if (FD_EXPECT_FALSE((j-i)>16) )  {
     keyoffs=u8_alloc_n((j-i),int);
-    keysizes=u8_alloc_n((j-i),int);}
+    keysizes=u8_alloc_n((j-i),int);
+    free_keyvecs=1;}
   else {keyoffs=_keyoffs; keysizes=_keysizes;}
   while (k<j) {
     int off;
@@ -1953,7 +1969,7 @@ FD_FASTOP fd_off_t extend_keybucket
     struct KEYENTRY *ke=&(kb->elt0);
     int keysize=keysizes[k-i];
     int scan=0, n_keys=kb->n_keys, n_values;
-    while (scan<n_keys)
+    while (scan<n_keys) {
       if ((ke[scan].dtype_size)!= keysize) scan++;
       else if (memcmp(keydata,ke[scan].dtype_start,keysize)) scan++;
       else if (schedule[k].replace) {
@@ -1975,6 +1991,12 @@ FD_FASTOP fd_off_t extend_keybucket
             write_value_block(hx,&(hx->stream),schedule[k].values,FD_VOID,
                               0,0,endpos);
           endpos=ke[scan].vref.off+ke[scan].vref.size;}
+        if (endpos>=maxpos) {
+          if (free_keyvecs) {
+            u8_free(keyoffs); u8_free(keysizes);
+            u8_seterr(fd_DataFileOverflow,"extend_keybucket",
+                      u8_strdup(hx->cid));
+            return -1;}}
         scan++;
         break;}
       else {
@@ -1996,7 +2018,8 @@ FD_FASTOP fd_off_t extend_keybucket
             write_value_block(hx,&(hx->stream),schedule[k].values,current,
                               0,0,endpos);
           endpos=ke[scan].vref.off+ke[scan].vref.size;
-          ke[scan].values=FD_VOID; fd_decref(current);}
+          ke[scan].values=FD_VOID; 
+          fd_decref(current);}
         else {
           ke[scan].vref=
             write_value_block(hx,&(hx->stream),schedule[k].values,FD_VOID,
@@ -2005,8 +2028,14 @@ FD_FASTOP fd_off_t extend_keybucket
           /* We void the values field because there's a values block now. */
           ke[scan].values=FD_VOID;
           endpos=ke[scan].vref.off+ke[scan].vref.size;}
+        if (endpos>=maxpos) {
+          if (free_keyvecs) {
+            u8_free(keyoffs); u8_free(keysizes);
+            u8_seterr(fd_DataFileOverflow,"extend_keybucket",
+                      u8_strdup(hx->cid));
+            return -1;}}
         scan++;
-        break;}
+        break;}}
     /* This is the case where we are adding a new key to the bucket. */
     if (scan==n_keys) {
       ke[n_keys].dtype_size=keysize;
@@ -2019,14 +2048,23 @@ FD_FASTOP fd_off_t extend_keybucket
         ke[n_keys].vref=
           write_value_block(hx,&(hx->stream),schedule[k].values,FD_VOID,
                             0,0,endpos);
-        endpos=ke[scan].vref.off+ke[scan].vref.size;}
+        endpos=ke[scan].vref.off+ke[scan].vref.size;
+        if (endpos>=maxpos) {
+          if (free_keyvecs) {
+            u8_free(keyoffs); u8_free(keysizes);
+            u8_seterr(fd_DataFileOverflow,"extend_keybucket",
+                      u8_strdup(hx->cid));
+            return -1;}}}
       kb->n_keys++;}
     k++;}
   return endpos;
 }
 
 FD_FASTOP fd_off_t write_keybucket
-  (fd_hash_index hx,fd_dtype_stream stream,struct KEYBUCKET *kb,fd_off_t endpos)
+(fd_hash_index hx,
+ fd_dtype_stream stream,
+ struct KEYBUCKET *kb,
+ fd_off_t endpos,fd_off_t maxpos)
 {
   int i=0, n_keys=kb->n_keys;
   struct KEYENTRY *ke=&(kb->elt0);
@@ -2043,6 +2081,9 @@ FD_FASTOP fd_off_t write_keybucket
       endpos=endpos+fd_dtswrite_zint8(stream,ke[i].vref.off);
       endpos=endpos+fd_dtswrite_zint(stream,ke[i].vref.size);}
     i++;}
+  if (endpos>=maxpos) {
+    u8_seterr(fd_DataFileOverflow,"write_keybucket",u8_strdup(hx->cid));
+    return -1;}
   return endpos;
 }
 
@@ -2083,7 +2124,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(hx->stream);
   struct BUCKET_REF *bucket_locs;
-  fd_off_t endpos;
+  fd_off_t endpos, maxpos=get_maxpos(hx);
   fd_lock_struct(hx);
   fd_write_lock_struct(&(hx->adds));
   fd_write_lock_struct(&(hx->edits));
@@ -2122,7 +2163,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
       newkeys.flags=newkeys.flags|FD_DTYPEV2;}
     /* Compute all the buckets for all the keys */
 #if FD_DEBUG_HASHINDICES
-    u8_message("Computing the buckets for %d scheduled keys",schedule_size);
+    u8_message("Computing the buckets for %d scheduled keys",
+               schedule_size);
 #endif
     /* Compute the hashes and the buckets for all of the keys
        in the commit schedule. */
@@ -2134,7 +2176,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
         hash_bytes(out.start,out.ptr-out.start)%(hx->n_buckets);
       i++;}
     /* Get all the bucket locations.  It may be that we can fold this
-       into the phase above when we have the offsets table in memory. */
+       into the phase above when we have the offsets table in
+       memory. */
 #if FD_DEBUG_HASHINDICES
     u8_message("Fetching bucket locations");
 #endif
@@ -2143,18 +2186,23 @@ static int hash_index_commit(struct FD_INDEX *ix)
     i=0; bscan=0; while (i<schedule_size) {
       int bucket=schedule[i].bucket, j=i;
       bucket_locs[changed_buckets].bucket=bucket;
-      bucket_locs[changed_buckets].ref=get_chunk_ref(hx,bucket,DONT_LOCK_STREAM);
-      while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
+      bucket_locs[changed_buckets].ref=
+        get_chunk_ref(hx,bucket,DONT_LOCK_STREAM);
+      while ((j<schedule_size) && 
+             (schedule[j].bucket==bucket)) 
+        j++;
       bucket_locs[changed_buckets].max_new=j-i;
       changed_buckets++; i=j;}
-    /* Now we have all the bucket locations, which we'll read in order. */
-    /* Read all the buckets in order, reading each keyblock.
-       We may be able to combine this with extending the bucket
-       below, but that would entail moving the writing of values
-       out of the bucket extension (since both want to get at the file)
-       Could we have two pointers into the file?  */
+    /* Now we have all the bucket locations, which we'll read in
+       order. */
+    /* Read all the buckets in order, reading each keyblock.  We may
+       be able to combine this with extending the bucket below, but
+       that would entail moving the writing of values out of the
+       bucket extension (since both want to get at the file) Could we
+       have two pointers into the file?  */
 #if FD_DEBUG_HASHINDICES
-    u8_message("Reading all the %d changed buckets in order",changed_buckets);
+    u8_message("Reading all the %d changed buckets in order",
+               changed_buckets);
 #endif
     qsort(bucket_locs,changed_buckets,sizeof(struct BUCKET_REF),
           sort_br_by_off);
@@ -2164,8 +2212,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
                        bucket_locs[i].ref,bucket_locs[i].max_new);
       if ((keybuckets[i]->n_keys)==0) new_buckets++;
       i++;}
-    /* Now all the keybuckets have been read and buckets have been created
-       for keys that didn't have buckets before. */
+    /* Now all the keybuckets have been read and buckets have been
+       created for keys that didn't have buckets before. */
 #if FD_DEBUG_HASHINDICES
     u8_message("Created %d new buckets",new_buckets);
 #endif
@@ -2181,8 +2229,9 @@ static int hash_index_commit(struct FD_INDEX *ix)
                schedule_size,changed_buckets);
 #endif
     /* March along the commit schedule (keys) and keybuckets (buckets)
-       in parallel, extending each bucket.  This is where values are written
-       out and their offsets stored in the loaded bucket structure. */
+       in parallel, extending each bucket.  This is where values are
+       written out and their offsets stored in the loaded bucket
+       structure. */
     i=0; bscan=0; endpos=fd_endpos(stream);
     while (i<schedule_size) {
       struct KEYBUCKET *kb=keybuckets[bscan];
@@ -2191,13 +2240,19 @@ static int hash_index_commit(struct FD_INDEX *ix)
       while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
       cur_keys=kb->n_keys;
       /* This may write values to disk. */
-      endpos=extend_keybucket(hx,kb,schedule,i,j,&newkeys,endpos);
+      endpos=extend_keybucket
+        (hx,kb,schedule,i,j,&newkeys,endpos,maxpos);
       CHECK_POS(endpos,&(hx->stream));
       new_keys=new_keys+(kb->n_keys-cur_keys);
       {
         fd_off_t startpos=endpos;
         /* This writes the keybucket itself. */
-        endpos=write_keybucket(hx,stream,kb,endpos);
+        endpos=write_keybucket(hx,stream,kb,endpos,maxpos);
+        if (endpos<0) {
+          u8_free(bucket_locs);
+          u8_free(schedule);
+          u8_free(keybuckets);
+          return -1;}
         CHECK_POS(endpos,&(hx->stream));
         bucket_locs[bscan].ref.off=startpos;
         bucket_locs[bscan].ref.size=endpos-startpos;}
@@ -2213,10 +2268,11 @@ static int hash_index_commit(struct FD_INDEX *ix)
       if (kb->keybuf) u8_free(kb->keybuf);
       u8_free(kb);}
     u8_free(keybuckets);
-    /* Now we free the values in the schedule.
-       Note that the keys were never incref'd (they're safely in the adds or edits tables),
-       so we don't have to decref them. */
-    { int i=0; while (i<schedule_size) { fdtype v=schedule[i++].values; fd_decref(v);}}
+    /* Now we free the values in the schedule.  Note that the keys
+       were never incref'd (they're safely in the adds or edits
+       tables), so we don't have to decref them. */
+    { int i=0; while (i<schedule_size) {
+        fdtype v=schedule[i++].values; fd_decref(v);}}
     u8_free(schedule);
     u8_free(out.start);
     u8_free(newkeys.start);
@@ -2241,7 +2297,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
       fd_dtswrite_4bytes(stream,bucket_locs[i].bucket);
       i++;}
     fd_dtswrite_8bytes(stream,recovery_start);
-    fd_setpos(stream,0); fd_dtswrite_4bytes(stream,FD_HASH_INDEX_TO_RECOVER);
+    fd_setpos(stream,0); 
+    fd_dtswrite_4bytes(stream,FD_HASH_INDEX_TO_RECOVER);
     fd_dtsflush(stream); fsync(stream->fd);
   }
 #if FD_DEBUG_HASHINDICES
@@ -2255,7 +2312,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
     u8_message("Erasing old recovery information");
 #endif
     fd_dtsflush(stream); fsync(stream->fd);
-    /* Now erase the recovery information, since we don't need it anymore. */
+    /* Now erase the recovery information, since we don't need it
+       anymore. */
     /* endpos=*/fd_endpos(stream); fd_movepos(stream,-8);
     recovery_pos=fd_dtsread_8bytes(stream);
     retval=ftruncate(stream->fd,recovery_pos);
@@ -2268,12 +2326,12 @@ static int hash_index_commit(struct FD_INDEX *ix)
   if (hx->mmap) {
     int retval=munmap(hx->mmap,hx->mmap_size);
     if (retval<0) {
-      u8_log(LOG_WARN,"MUNMAP","hash_index MUNMAP failed with %s",u8_strerror(errno));
+      u8_log(LOG_WARN,"MUNMAP","hash_index MUNMAP failed with %s",
+             u8_strerror(errno));
       errno=0;}
     hx->mmap_size=u8_file_size(hx->cid);
     hx->mmap=
       mmap(NULL,hx->mmap_size,PROT_READ,MMAP_FLAGS,hx->stream.fd,0);}
-
 #if FD_DEBUG_HASHINDICES
   u8_message("Resetting tables");
 #endif

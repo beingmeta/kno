@@ -50,13 +50,17 @@ fd_exception fd_SchemaInconsistency=_("Inconsistent schema reference and value d
 
 static fd_exception InvalidOffset=_("Invalid offset in OIDPOOL");
 
+#ifndef FD_INIT_ZBUF_SIZE
+#define FD_INIT_ZBUF_SIZE 16000
+#endif
+
 #define FD_OIDPOOL_LOAD_POS      0x10
 
 #define FD_OIDPOOL_LABEL_POS             0x18
 #define FD_OIDPOOL_METADATA_POS          0x24
 #define FD_OIDPOOL_SCHEMAS_POS           0x30
 
-#define FD_OIDPOOL_FETCHBUF_SIZE 4096
+#define FD_OIDPOOL_FETCHBUF_SIZE 8000
 
 /* OIDPOOLs are the next generation of object pool data file.  While
     previous formats have all stored OIDs for years and years, OIDPOOLs
@@ -211,6 +215,19 @@ static int get_chunkref_size(fd_oidpool p)
   case FD_B32: case FD_B40: return 2;
   case FD_B64: return 3;}
   return -1;
+}
+
+static size_t get_maxpos(fd_oidpool p)
+{
+  switch (p->offtype) {
+  case FD_B32: 
+    return ((size_t)(((size_t)1)<<32));
+  case FD_B40: 
+    return ((size_t)(((size_t)1)<<40));
+  case FD_B64: 
+    return ((size_t)(((size_t)1)<<63));
+  default:
+    return -1;}
 }
 
 static int convert_FD_B40_ref(FD_CHUNK_REF ref,unsigned int *word1,
@@ -970,11 +987,14 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     u8_alloc_n(n,struct OIDPOOL_SAVEINFO);
   struct FD_DTYPE_STREAM *stream=&(op->stream);
   struct FD_BYTE_OUTPUT tmpout;
-  unsigned char *zbuf=u8_malloc(4096);
-  unsigned int i=0, zbuf_size=4096;
+  unsigned char *zbuf=u8_malloc(FD_INIT_ZBUF_SIZE);
+  unsigned int i=0, zbuf_size=FD_INIT_ZBUF_SIZE;
+  unsigned int init_buflen=2048*n;
   fd_off_t endpos, recovery_pos;
+  size_t maxpos=get_maxpos(op);
   FD_OID base=op->base;
-  FD_INIT_BYTE_OUTPUT(&tmpout,4096);
+  if (init_buflen>262144) init_buflen=262144;
+  FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
   fd_lock_struct(op); endpos=fd_endpos(stream);
   if ((op->dbflags)&(FD_OIDPOOL_DTYPEV2))
     tmpout.flags=tmpout.flags|FD_DTYPEV2;
@@ -986,10 +1006,18 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.start);
       fd_unlock_struct(op);
       return n_bytes;}
+    if ((endpos+n_bytes)>=maxpos) {
+      u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.start);
+      u8_seterr(fd_DataFileOverflow,"oidpool_storen",
+                u8_strdup(p->cid));
+      return -1;}
+
     saveinfo[i].chunk.off=endpos; saveinfo[i].chunk.size=n_bytes;
     saveinfo[i].oidoff=FD_OID_DIFFERENCE(addr,base);
-    endpos=endpos+n_bytes; 
+
+    endpos=endpos+n_bytes;
     i++;}
+
   /* Now, write recovery information, which lets the state of the pool
      be reconstructed if something goes wrong while storing the
      offsets table. */
@@ -1473,7 +1501,7 @@ FD_EXPORT void fd_init_oidpools_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
