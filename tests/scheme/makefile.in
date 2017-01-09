@@ -464,85 +464,85 @@ chaintests:
 
 batchtests:
 	@echo "*** Testing fdbatch execution success and cleanliness"
-	@rm -f fdbatch_countup.log fdbatch_countup.err fdbatch_countup.done
-	@rm -f  fdbatch_countup.finished fdbatch_countup.died fdbatch_countup.pid
-	./fdbatch countup.scm "fdbatch_countup.finished" 10 1; sleep 3
-	@if (test ! -f fdbatch_countup.pid); then 	\
+	@rm -f _countup.log _countup.err _countup.done
+	@rm -f  _countup.finished _countup.died _countup.pid
+	./fdbatch countup.scm "_countup.finished" 10 1; sleep 3
+	@if (test ! -f _countup.pid); then 	\
 		echo error; 			\
            exit 1; 				\
 	   fi; 					\
 	 sleep 12;
 	# This was written by fdbatch itself
-	@if (test ! -s fdbatch_countup.done); then	\
-		echo fdbatch_countup.done error; 	\
+	@if (test ! -s _countup.done); then	\
+		echo _countup.done error; 	\
 	  	exit 1; 				\
          fi;
 	# This was written by the script
-	@if (test ! -s fdbatch_countup.finished); then		\
-	   echo fdbatch success fdbatch_countup.finished error;	\
+	@if (test ! -s _countup.finished); then		\
+	   echo fdbatch success _countup.finished error;	\
 	   exit 1;  						\
 	 fi;
-	@if (test ! -f fdbatch_countup.err); then		\
-		echo fdbatch success fdbatch_countup.err error;	\
+	@if (test ! -f _countup.err); then		\
+		echo fdbatch success _countup.err error;	\
 		exit 1; 					\
          fi;
-	@if (test ! -s fdbatch_countup.log); then		\
-		echo fdbatch success fdbatch_countup.log error;	\
+	@if (test ! -s _countup.log); then		\
+		echo fdbatch success _countup.log error;	\
 		exit 1; 					\
 	 fi;
 	# These should have been deleted on successful exit
-	@if (test -f fdbatch_countup.died); then			\
-		echo fdbatch success fdbatch_countup.died error;	\
+	@if (test -f _countup.died); then			\
+		echo fdbatch success _countup.died error;	\
 		exit 1; 						\
 	 fi;
-	@if (test -f fdbatch_countup.pid); then			\
-		echo fdbatch success fdbatch_countup.pid error; \
+	@if (test -f _countup.pid); then			\
+		echo fdbatch success _countup.pid error; \
 		exit 1; 					\
          fi;
-	@rm -f fdbatch_countup.pid fdbatch_countup.log fdbatch_countup.err
-	@rm -f fdbatch_countup.done fdbatch_countup.finished fdbatch_countup.died
+	@rm -f _countup.pid _countup.log _countup.err
+	@rm -f _countup.done _countup.finished _countup.died
 	@echo "*** "Done with fdbatch success test""
 	@echo "*** "Starting fdbatch failure test""
-	./fdbatch countup.scm ERROR=yes "fdbatch_countup.finished" 10 1;
+	./fdbatch countup.scm ERROR=yes "_countup.finished" 10 1;
 	@sleep 12;
 	@# This should have been deleted by the watch process
-	@if (test -f fdbatch_countup.pid); then 		\
-		echo fdbatch failure fdbatch_countup.pid error;	\
+	@if (test -f _countup.pid); then 		\
+		echo fdbatch failure _countup.pid error;	\
 		exit 1; 					\
 		fi;
-	@if (test -f fdbatch_countup.done); then			\
-		echo fdbatch failure fdbatch_countup.done error;	\
+	@if (test -f _countup.done); then			\
+		echo fdbatch failure _countup.done error;	\
 		exit 1; 						\
 	 fi;
 	# This should have been created at exit
-	@if (test ! -f fdbatch_countup.died); then 		\
+	@if (test ! -f _countup.died); then 		\
 		echo fdbatch failure countup.died error;	\
 		exit 1; 					\
 	 fi;
 	@echo "*** "Done with fdbatch failure test""
 	@echo "*** "Starting fdbatch kill test""
-	./fdbatch countup.scm "fdbatch_countup.killed" 10 1;
+	./fdbatch countup.scm "_countup.killed" 10 1;
 	@sleep 3;
-	@kill -9 `cat fdbatch_countup.pid`; sleep 12
+	@kill -9 `cat _countup.pid`; sleep 12
 	@# This should have been deleted by the watch process
-	@if (test -f fdbatch_countup.pid); then 		\
-		echo fdbatch failure fdbatch_countup.pid error; \
+	@if (test -f _countup.pid); then 		\
+		echo fdbatch failure _countup.pid error; \
 		exit 1; 					\
 	 fi;
 	@# This should have been deleted by the watch process
-	@if (test -f fdbatch_countup.done); then 		\
-		echo fdbatch failure fdbatch_countup.done error;\
+	@if (test -f _countup.done); then 		\
+		echo fdbatch failure _countup.done error;\
 		exit 1; 					\
 	 fi;
 	@# This should have been created at exit by the watch process
-	@if (test ! -f fdbatch_countup.died); then 		\
-		echo fdbatch failure fdbatch_countup.died error;\
+	@if (test ! -f _countup.died); then 		\
+		echo fdbatch failure _countup.died error;\
 		exit 1; 					\
 	 fi;
 	@echo "*** "Done with fdbatch kill test""
 
 batchchaintests:
 	@echo "*** Testing batch scripts which call CHAIN"
-	@rm -f fdbatch_chaintest.*
+	@rm -f _chaintest.*
 	./fdbatch chaintest.scm
 	@echo "*** Done testing batch scripts which call CHAIN"
