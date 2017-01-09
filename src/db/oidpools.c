@@ -213,7 +213,8 @@ static int get_chunkref_size(fd_oidpool p)
   return -1;
 }
 
-static int convert_FD_B40_ref(FD_CHUNK_REF ref,unsigned int *word1,unsigned int *word2)
+static int convert_FD_B40_ref(FD_CHUNK_REF ref,unsigned int *word1,
+                              unsigned int *word2)
 {
   if (ref.size>=0x1000000) return -1;
   else if (ref.off<0x100000000LL) {
@@ -225,7 +226,8 @@ static int convert_FD_B40_ref(FD_CHUNK_REF ref,unsigned int *word1,unsigned int 
   return 0;
 }
 
-static unsigned char *read_chunk(fd_oidpool p,fd_off_t off,uint size,uchar *buf)
+static unsigned char *read_chunk(fd_oidpool p,fd_off_t off,
+                                 uint size,uchar *buf)
 {
   if (p->mmap) {
     if (buf==NULL) buf=u8_malloc(size);
@@ -248,7 +250,9 @@ static unsigned char *read_chunk(fd_oidpool p,fd_off_t off,uint size,uchar *buf)
 /* Compression functions */
 
 static unsigned char *do_zuncompress
-   (unsigned char *bytes,int n_bytes,unsigned int *dbytes,unsigned char *init_dbuf)
+   (unsigned char *bytes,int n_bytes,
+    unsigned int *dbytes,
+    unsigned char *init_dbuf)
 {
   fd_exception error=NULL; int zerror;
   unsigned long csize=n_bytes, dsize, dsize_max;
@@ -694,7 +698,9 @@ static int oidpool_load(fd_pool p)
     return load;}
 }
 
-static fdtype read_oid_value(fd_oidpool op,fd_byte_input in,const u8_string cxt)
+static fdtype read_oid_value(fd_oidpool op,
+                             fd_byte_input in,
+                             const u8_string cxt)
 {
   int zip_code;
   zip_code=fd_read_zint(in);
@@ -718,7 +724,9 @@ static fdtype read_oid_value(fd_oidpool op,fd_byte_input in,const u8_string cxt)
     else return fd_err(fd_SchemaInconsistency,cxt,op->cid,FD_VOID);}
 }
 
-static fdtype read_oid_value_at(fd_oidpool op,FD_CHUNK_REF ref,const u8_string cxt)
+static fdtype read_oid_value_at(fd_oidpool op,
+                                FD_CHUNK_REF ref,
+                                const u8_string cxt)
 {
   if (ref.off==0) return FD_VOID;
   else if ((op->compression==FD_NOCOMPRESS) && (op->mmap)) {
