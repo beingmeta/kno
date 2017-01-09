@@ -289,6 +289,13 @@ dbhash32tests:
 	make FD_HASHINDEX="(COMPRESS B32)" dbtests
 	@echo "*** Completed scheme tests to exercise hashindices with B32 reprepresentation "***""
 
+oidpooltests:
+	@echo "*** Running scheme tests to exercise hashindices with B32 reprepresentation "***""
+	make FD_HASHINDEX=yes OIDPOOL=yes dbtests
+	make FD_HASHINDEX="(COMPRESS B32)" FD_OIDPOOL="FD_OIDPOOL=(B40)" dbtests
+	make FD_HASHINDEX="(COMPRESS B32)" FD_OIDPOOL="FD_OIDPOOL=(B32)" dbtests
+	@echo "*** Completed scheme tests to exercise hashindices with B32 reprepresentation "***""
+
 cryptotests:
 	@echo "*** Running crypto tests ***"
 	$(RUNTEST) ./fdexec@suffix@ cryptotest.scm $(TESTCONFIG)
@@ -456,9 +463,9 @@ chaintests:
 batchtests:
 	@echo "*** Testing fdbatch execution success and cleanliness"
 	@rm -f fdbatch_countup.log fdbatch_countup.err fdbatch_countup.done
-	@rm -f  fdbatch_countup.finished fdbatch_countup.died
-	./fdbatch countup.scm "countup.finished" 10 1; sleep 3
-	@if (test ! -f countup.pid); then 	\
+	@rm -f  fdbatch_countup.finished fdbatch_countup.died fdbatch_countup.pid
+	./fdbatch countup.scm "fdbatch_countup.finished" 10 1; sleep 3
+	@if (test ! -f fdbatch_countup.pid); then 	\
 		echo error; 			\
            exit 1; 				\
 	   fi; 					\
@@ -490,10 +497,11 @@ batchtests:
 		echo fdbatch success fdbatch_countup.pid error; \
 		exit 1; 					\
          fi;
-	@rm -f countup.log countup.err countup.done countup.finished countup.died
+	@rm -f fdbatch_countup.pid fdbatch_countup.log fdbatch_countup.err
+	@rm -f fdbatch_countup.done fdbatch_countup.finished fdbatch_countup.died
 	@echo "*** "Done with fdbatch success test""
 	@echo "*** "Starting fdbatch failure test""
-	./fdbatch countup.scm ERROR=yes "countup.finished" 10 1;
+	./fdbatch countup.scm ERROR=yes "fdbatch_countup.finished" 10 1;
 	@sleep 12;
 	@# This should have been deleted by the watch process
 	@if (test -f fdbatch_countup.pid); then 		\
@@ -533,5 +541,6 @@ batchtests:
 
 batchchaintests:
 	@echo "*** Testing batch scripts which call CHAIN"
+	@rm -f fdbatch_chaintest.*
 	./fdbatch chaintest.scm
 	@echo "*** Done testing batch scripts which call CHAIN"
