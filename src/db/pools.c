@@ -42,6 +42,7 @@ fd_exception fd_PoolCommitError=_("can't save changes to pool");
 fd_exception fd_UnregisteredPool=_("internal error with unregistered pool");
 fd_exception fd_UnresolvedPool=_("Cannot resolve pool specification");
 fd_exception fd_UnhandledOperation=_("This pool can't handle this operation");
+fd_exception fd_DataFileOverflow=_("Data file is over implementation limit");
 
 int fd_n_pools=0;
 fd_pool fd_default_pool=NULL;
