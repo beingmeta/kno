@@ -137,19 +137,20 @@ static fdtype make_oidpool(int n,fdtype *args)
     else if (fd_position(fd_intern("B40"),flags_arg,0,-1)>=0)
       flags=flags|FD_B40;
     else flags=flags|FD_B40;
-
+    
     if (fd_position(fd_intern("NOCOMPRESS"),flags_arg,0,-1)>=0) {}
     else if (fd_position(fd_intern("ZLIB"),flags_arg,0,-1)>=0)
       flags=flags|((FD_ZLIB)<<3);
     else if (fd_position(fd_intern("BZ2"),flags_arg,0,-1)>=0)
       flags=flags|((FD_BZ2)<<3);
-
+    
     if (fd_position(fd_intern("DTYPEV2"),flags_arg,0,-1)>=0)
       flags=flags|FD_OIDPOOL_DTYPEV2;
-
+    
     if (fd_position(fd_intern("READONLY"),flags_arg,0,-1)>=0)
       flags=flags|FD_OIDPOOL_READONLY;}
-
+  else flags=FD_B40;
+  
   retval=fd_make_oidpool(filename,label,
                          base,cap,load,flags,
                          schemas,metadata,
