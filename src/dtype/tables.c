@@ -2754,11 +2754,19 @@ static int hashsetstore(fdtype x,fdtype key,fdtype val)
 
 struct FD_TABLEFNS *fd_tablefns[FD_TYPE_MAX];
 
+#define FD_TABLE_CHECKPTR(arg,cxt)             \
+  if (FD_EXPECT_FALSE((!(FD_CHECK_PTR(arg))))) \
+    _fd_bad_pointer(arg,cxt); else {}
+
 FD_EXPORT fdtype fd_get(fdtype arg,fdtype key,fdtype dflt)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
-  if (FD_EMPTY_CHOICEP(arg)) return arg;
-  else if (FD_VALID_TYPEP(argtype))
+  FD_TABLE_CHECKPTR(arg,"fd_get/table");
+  FD_TABLE_CHECKPTR(key,"fd_get/key");
+  FD_TABLE_CHECKPTR(key,"fd_get/dflt");
+  if (FD_EMPTY_CHOICEP(arg)) 
+    return FD_EMPTY_CHOICE;
+  else if (FD_VALID_TYPEP(argtype)) {
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->get!=NULL))
         if (FD_CHOICEP(key)) {
@@ -2773,13 +2781,16 @@ FD_EXPORT fdtype fd_get(fdtype arg,fdtype key,fdtype dflt)
           else return results;}
         else return (fd_tablefns[argtype]->get)(arg,key,dflt);
       else return fd_err(fd_NoMethod,CantGet,NULL,arg);
-    else return fd_err(NotATable,"fd_get",NULL,arg);
+    else return fd_err(NotATable,"fd_get",NULL,arg);}
   else return fd_err(fd_BadPtr,"fd_get",NULL,arg);
 }
 
 FD_EXPORT int fd_store(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_store/table");
+  FD_TABLE_CHECKPTR(key,"fd_store/key");
+  FD_TABLE_CHECKPTR(value,"fd_store/value");
   if (FD_VALID_TYPEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->store!=NULL))
@@ -2798,10 +2809,14 @@ FD_EXPORT int fd_store(fdtype arg,fdtype key,fdtype value)
 FD_EXPORT int fd_add(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_add/table");
+  FD_TABLE_CHECKPTR(key,"fd_add/key");
+  FD_TABLE_CHECKPTR(value,"fd_add/value");
   if (FD_VALID_TYPEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->add!=NULL))
-        if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_CHOICEP(key))))
+        if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || 
+                            (FD_EMPTY_CHOICEP(key))))
           return 0;
         else if (FD_CHOICEP(key)) {
           int (*addfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->add;
@@ -2812,7 +2827,8 @@ FD_EXPORT int fd_add(fdtype arg,fdtype key,fdtype value)
         else return (fd_tablefns[argtype]->add)(arg,key,value);
       else if ((fd_tablefns[argtype]->store) &&
                (fd_tablefns[argtype]->get))
-        if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_CHOICEP(key))))
+        if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || 
+                            (FD_EMPTY_CHOICEP(key))))
           return 0;
         else {
           int (*storefn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->store;
@@ -2834,6 +2850,9 @@ FD_EXPORT int fd_add(fdtype arg,fdtype key,fdtype value)
 FD_EXPORT int fd_drop(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_drop/table");
+  FD_TABLE_CHECKPTR(key,"fd_drop/key");
+  FD_TABLE_CHECKPTR(value,"fd_drop/value");
   if (FD_EMPTY_CHOICEP(arg)) return 0;
   if (FD_VALID_TYPEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
@@ -2850,8 +2869,8 @@ FD_EXPORT int fd_drop(fdtype arg,fdtype key,fdtype value)
         else return (fd_tablefns[argtype]->drop)(arg,key,value);
       else if ((fd_tablefns[argtype]->store) &&
                (fd_tablefns[argtype]->get))
-        if (FD_EXPECT_FALSE
-            ((FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_CHOICEP(key))))
+        if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || 
+                            (FD_EMPTY_CHOICEP(key))))
           return 0;
         else if (FD_VOIDP(value)) {
           int retval;
@@ -2881,12 +2900,15 @@ FD_EXPORT int fd_drop(fdtype arg,fdtype key,fdtype value)
 FD_EXPORT int fd_test(fdtype arg,fdtype key,fdtype value)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_test/table");
+  FD_TABLE_CHECKPTR(key,"fd_test/key");
+  FD_TABLE_CHECKPTR(value,"fd_test/value");
   if (FD_EMPTY_CHOICEP(arg)) return 0;
   if (FD_VALID_TYPEP(argtype))
     if (FD_EXPECT_TRUE(fd_tablefns[argtype]!=NULL))
       if (FD_EXPECT_TRUE(fd_tablefns[argtype]->test!=NULL))
-        if (FD_EXPECT_FALSE
-            ((FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_CHOICEP(key))))
+        if (FD_EXPECT_FALSE((FD_EMPTY_CHOICEP(value)) || 
+                            (FD_EMPTY_CHOICEP(key))))
           return 0;
         else if (FD_CHOICEP(key)) {
           int (*testfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->test;
@@ -2895,8 +2917,8 @@ FD_EXPORT int fd_test(fdtype arg,fdtype key,fdtype value)
           return 0;}
         else return (fd_tablefns[argtype]->test)(arg,key,value);
       else if (fd_tablefns[argtype]->get)
-        if (FD_EXPECT_FALSE
-            ((FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_CHOICEP(key))))
+        if (FD_EXPECT_FALSE ((FD_EMPTY_CHOICEP(value)) || 
+                             (FD_EMPTY_CHOICEP(key))))
           return 0;
         else {
           fdtype (*getfn)(fdtype,fdtype,fdtype)=fd_tablefns[argtype]->get;
@@ -2921,6 +2943,7 @@ FD_EXPORT int fd_test(fdtype arg,fdtype key,fdtype value)
 FD_EXPORT int fd_getsize(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_getsize/table");
   if (FD_VALID_TYPEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->getsize)
@@ -2941,6 +2964,7 @@ FD_EXPORT int fd_getsize(fdtype arg)
 FD_EXPORT int fd_modifiedp(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_modifiedp/table");
   if (FD_VALID_TYPEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->modified)
@@ -2953,6 +2977,7 @@ FD_EXPORT int fd_modifiedp(fdtype arg)
 FD_EXPORT int fd_set_modified(fdtype arg,int flag)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_set_modified/table");
   if (FD_VALID_TYPEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->modified)
@@ -2965,6 +2990,7 @@ FD_EXPORT int fd_set_modified(fdtype arg,int flag)
 FD_EXPORT fdtype fd_getkeys(fdtype arg)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_getkeys/table");
   if (FD_VALID_TYPEP(argtype))
     if (fd_tablefns[argtype])
       if (fd_tablefns[argtype]->keys)
@@ -2976,6 +3002,7 @@ FD_EXPORT fdtype fd_getkeys(fdtype arg)
 
 FD_EXPORT fdtype fd_getvalues(fdtype arg)
 {
+  FD_TABLE_CHECKPTR(arg,"fd_getvalues/table");
   /* Eventually, these might be fd_tablefns fields */
   if (FD_PRIM_TYPEP(arg,fd_hashtable_type)) 
     return fd_hashtable_values(FD_XHASHTABLE(arg));
@@ -3002,6 +3029,7 @@ FD_EXPORT fdtype fd_getvalues(fdtype arg)
 
 FD_EXPORT fdtype fd_getassocs(fdtype arg)
 {
+  FD_TABLE_CHECKPTR(arg,"fd_getassocs/table");
   /* Eventually, these might be fd_tablefns fields */
   if (FD_PRIM_TYPEP(arg,fd_hashtable_type)) 
     return fd_hashtable_assocs(FD_XHASHTABLE(arg));
@@ -3305,7 +3333,8 @@ void fd_init_tables_c()
        CHOICES
       are foud in xtable.c */
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(fd_intern("HASHTABLE"),NULL,NULL);
+    struct FD_COMPOUND_ENTRY *e=
+      fd_register_compound(fd_intern("HASHTABLE"),NULL,NULL);
     e->restore=restore_hashtable;}
 
 }
