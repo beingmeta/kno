@@ -129,28 +129,32 @@ static double format_secs(double secs,char **units)
 FD_EXPORT void fd_status_message()
 {
   struct rusage usage;
-  int pagesize=u8_getpagesize();
   int retval=u8_getrusage(0,&usage);
-  /* long membytes=(usage.ru_idrss+usage.ru_isrss); double memsize; */
-  ssize_t heapbytes=u8_memusage(); double heapsize;
-  char *stu="s", *utu="s", *etu="s", *heapu="KB";
-  double elapsed=format_secs(u8_elapsed_time(),&etu);
-  double usertime=format_secs
-    (usage.ru_utime.tv_sec+(((double)usage.ru_utime.tv_usec)/1000000),
-     &utu);
-  double systime=format_secs
-    (usage.ru_stime.tv_sec+(((double)usage.ru_stime.tv_usec)/1000000),
-     &stu);
-  if (heapbytes>10000000000) {
-    heapsize=floor(((double)heapbytes)/1000000000); heapu="GB";}
-  else if (heapbytes>1500000) {
-    heapsize=floor(((double)heapbytes)/1000000); heapu="MB";}
-  else {heapsize=floor(((double)heapbytes)/1000); heapu="KB";}
-  u8_message
-    ("%s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s",
-     FRAMERD_REVISION,u8_appid(),getpid(),
-     elapsed,etu,usertime,utu,systime,stu,
-     heapsize,heapu);
+  if (retval<0) {
+    u8_log(LOGCRIT,_("RUSAGE Failed"),
+           "During a call to fd_status_message");
+    return;}
+  else {
+    /* long membytes=(usage.ru_idrss+usage.ru_isrss); double memsize; */
+    ssize_t heapbytes=u8_memusage(); double heapsize;
+    char *stu="s", *utu="s", *etu="s", *heapu="KB";
+    double elapsed=format_secs(u8_elapsed_time(),&etu);
+    double usertime=format_secs
+      (usage.ru_utime.tv_sec+(((double)usage.ru_utime.tv_usec)/1000000),
+       &utu);
+    double systime=format_secs
+      (usage.ru_stime.tv_sec+(((double)usage.ru_stime.tv_usec)/1000000),
+       &stu);
+    if (heapbytes>10000000000) {
+      heapsize=floor(((double)heapbytes)/1000000000); heapu="GB";}
+    else if (heapbytes>1500000) {
+      heapsize=floor(((double)heapbytes)/1000000); heapu="MB";}
+    else {heapsize=floor(((double)heapbytes)/1000); heapu="KB";}
+    u8_message
+      ("%s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s",
+       FRAMERD_REVISION,u8_appid(),getpid(),
+       elapsed,etu,usertime,utu,systime,stu,
+       heapsize,heapu);}
 }
 
 FD_EXPORT int fd_init_dtypelib()
