@@ -891,6 +891,7 @@ enable_dtblock
 with_i18n
 enable_checkptrs
 enable_threads
+with_ptrlocks
 enable_mmap_prefetch
 with_editline
 with_libu8
@@ -1628,6 +1629,7 @@ Optional Packages:
 --with-dload-path location
 --with-boot-config configstring
 --without-i18n built and install message catalogs
+--with-ptrlocks Sets the number of bits used for pointer hash locks
 --without-editline Use the editline with fdconsole
 --without-libu8 Use libu8 includes
 --without-sudo use sudo with install
@@ -2848,6 +2850,7 @@ fi
 
 
 threads_default="yes"
+ptrlocks_default=6
 checkfdtype_default="no"
 shared_default="yes"
 shared_suffix="so"
@@ -6295,6 +6298,19 @@ elif test $with_arch = "allppc"; then
 else archflags=$with_arch
 fi
 
+# Check whether to use an architecture specific library directory
+if test "x${libdir}" != "x\${exec_prefix}/lib"; then
+  echo Checking libdir, using explicit libdir ${libdir};
+elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
+  libdir=${prefix}/lib32;
+  echo Checking libdir, using 32-bit libdir ${libdir};
+elif test ${ac_cv_sizeof_long} -eq 8 && test -d ${prefix}/lib64; then
+  libdir=${prefix}/lib64;
+  echo Checking libdir, using 64-bit libdir ${libdir};
+else
+  echo Checking libdir, using default libdir ${libdir};
+fi
+
 $as_echo "#define FD_WORDS_ARE_ALIGNED 1" >>confdefs.h
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uid_t in sys/types.h" >&5
@@ -6889,19 +6905,6 @@ _ACEOF
 
 fi
 
-
-# Check whether to use an architecture specific library directory
-if test "x${libdir}" != "x\${exec_prefix}/lib"; then
-  echo Checking libdir, using explicit libdir ${libdir};
-elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
-  libdir=${prefix}/lib32;
-  echo Checking libdir, using 32-bit libdir ${libdir};
-elif test ${ac_cv_sizeof_long} -eq 8 && test -d ${prefix}/lib64; then
-  libdir=${prefix}/lib64;
-  echo Checking libdir, using 64-bit libdir ${libdir};
-else
-  echo Checking libdir, using default libdir ${libdir};
-fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ANSI C header files" >&5
 $as_echo_n "checking for ANSI C header files... " >&6; }
@@ -8984,6 +8987,22 @@ else
   $as_echo "#define FD_THREADS_ENABLED 0" >>confdefs.h
 
 fi
+
+
+# Check whether --with-ptrlocks was given.
+if test "${with_ptrlocks+set}" = set; then :
+  withval=$with_ptrlocks;
+else
+  with_ptrlocks=$ptrlocks_default
+fi
+
+if test $with_ptrlocks = "yes" || test $with_ptrlocks = "no"; then
+   with_ptrlocks=$with_ptrlocks;
+fi
+cat >>confdefs.h <<_ACEOF
+#define FD_PTRLOCK_BITS $with_ptrlocks
+_ACEOF
+
 
 # Check whether --enable-mmap_prefetch was given.
 if test "${enable_mmap_prefetch+set}" = set; then :

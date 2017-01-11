@@ -32,6 +32,7 @@ AC_MSG_CHECKING([for group $1])
 AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,localstatedir=$withval,localstatedir="/var")
 
 threads_default="yes"
+ptrlocks_default=6
 checkfdtype_default="no"
 shared_default="yes"
 shared_suffix="so"
@@ -700,6 +701,19 @@ elif test $with_arch = "allppc"; then
 else archflags=$with_arch
 fi
 
+# Check whether to use an architecture specific library directory
+if test "x${libdir}" != "x\${exec_prefix}/lib"; then
+  echo Checking libdir, using explicit libdir ${libdir};
+elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
+  libdir=${prefix}/lib32;
+  echo Checking libdir, using 32-bit libdir ${libdir};
+elif test ${ac_cv_sizeof_long} -eq 8 && test -d ${prefix}/lib64; then
+  libdir=${prefix}/lib64;
+  echo Checking libdir, using 64-bit libdir ${libdir};
+else
+  echo Checking libdir, using default libdir ${libdir};
+fi
+
 AC_DEFINE(FD_WORDS_ARE_ALIGNED,1)
 AC_TYPE_UID_T
 AC_TYPE_OFF_T
@@ -715,19 +729,6 @@ AC_CHECK_SIZEOF(time_t,8)
 AC_CHECK_SIZEOF(off_t,8)
 AC_CHECK_SIZEOF(size_t,8)
 AC_CHECK_TYPES(uchar)
-
-# Check whether to use an architecture specific library directory
-if test "x${libdir}" != "x\${exec_prefix}/lib"; then
-  echo Checking libdir, using explicit libdir ${libdir};
-elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
-  libdir=${prefix}/lib32;
-  echo Checking libdir, using 32-bit libdir ${libdir};
-elif test ${ac_cv_sizeof_long} -eq 8 && test -d ${prefix}/lib64; then
-  libdir=${prefix}/lib64;
-  echo Checking libdir, using 64-bit libdir ${libdir};
-else
-  echo Checking libdir, using default libdir ${libdir};
-fi
 
 AC_HEADER_STDC
 AC_HEADER_STAT
@@ -967,6 +968,15 @@ if test $enable_threads = "yes"; then
 else
   AC_DEFINE(FD_THREADS_ENABLED,0)
 fi
+
+dnl If possible, compile for multi-threaded execution.  This both makes
+dnl  the library threadsafe and enables Scheme primitives for spawning threads
+dnl  and parallel execution
+AC_ARG_WITH(ptrlocks,--with-ptrlocks Sets the number of bits used for pointer hash locks,,with_ptrlocks=$ptrlocks_default)
+if test $with_ptrlocks = "yes" || test $with_ptrlocks = "no"; then
+   with_ptrlocks=$with_ptrlocks;
+fi
+AC_DEFINE_UNQUOTED(FD_PTRLOCK_BITS,$with_ptrlocks)
 
 dnl Specify the prefetch window for memory-mapped databases; when
 dnl  accessing a series of blocks, this indicates the number of blocks
