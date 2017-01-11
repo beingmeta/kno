@@ -105,7 +105,8 @@ static void atomic_sort(fdtype *v,int n)
     for (i = 0, j = n; ; ) {
       do --j; while (v[j] > v[0]);
       do ++i; while (i < j && v[i] < v[0]);
-      if (i >= j) break; swap(&v[i], &v[j]);}
+      if (i >= j) break; else {}
+      swap(&v[i], &v[j]);}
     swap(&v[j], &v[0]);
     ln = j;
     rn = n - ++j;
@@ -122,7 +123,8 @@ static void cons_sort(fdtype *v,int n)
     for (i = 0, j = n; ; ) {
       do --j; while (cons_compare(v[j],v[0])>0);
       do ++i; while (i < j && (cons_compare(v[i],v[0])<0));
-      if (i >= j) break; swap(&v[i], &v[j]);}
+      if (i >= j) break; else {}
+      swap(&v[i], &v[j]);}
     swap(&v[j], &v[0]);
     ln = j;
     rn = n - ++j;

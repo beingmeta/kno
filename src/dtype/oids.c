@@ -109,7 +109,7 @@ FD_EXPORT char *fd_ulonglong_to_b32(unsigned long long offset,
   int buflen=((len)?(*len):((sizeof(unsigned long long)/5)+1));
   char *write=tmpbuf, *read, *limit=tmpbuf+buflen; 
   while (rem>0) {
-    char digit=rem&0x1F, ch=b32_chars[digit];
+    char digit=rem&0x1F, ch=b32_chars[(int)digit];
     if (write<limit) *write=ch; 
     else outlen=(write-tmpbuf);
     write++; rem=rem>>5;}

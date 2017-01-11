@@ -29,12 +29,8 @@ FD_EXPORT int fd_init_hyphenate(void) FD_LIBINIT_FN;
 
 static u8_string default_hyphenation_file=NULL;
 static HyphenDict *default_dict=NULL;
-static struct HYPHEN_DICTIONARY {
-  char *filename; HyphenDict *dict;
-  struct HYPHEN_DICTIONARY *next;} *other_dicts;
 
 static long long int hyphenate_init=0;
-static u8_mutex hyphen_dict_lock;
 
 static fdtype hyphenate_word_prim(fdtype string_arg)
 {
@@ -140,7 +136,6 @@ static int hyphenout_helper(U8_OUTPUT *out,
     u8_free(hyphens);
     return -1;}
   else {
-    fdtype result=FD_VOID;
     const u8_byte *scan=string;
     int cpos=0, c=u8_sgetc(&scan), n_hyphens=0;
     while (c>=0) {

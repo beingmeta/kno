@@ -1875,8 +1875,6 @@ static fdtype obj2html_prim(fdtype obj,fdtype tag)
 
 /* XMLEVAL primitives */
 
-static fdtype do_xmleval(fdtype xml,fdtype scheme_env,fdtype xml_env);
-
 static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
 {
   fdtype xmlarg=fd_get_arg(expr,1);
@@ -1985,7 +1983,8 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lispenv env)
     else u8_printf(out,"%s(",FD_STRDATA(head));
     {FD_DOELTS(elt,body,count) {
         fdtype val;
-        if (i>0) u8_putc(out,','); i++;
+        if (i>0) u8_putc(out,','); 
+        i++;
         if (FD_NEED_EVALP(elt))
           val=fd_eval(elt,env);
         else val=fd_incref(elt);

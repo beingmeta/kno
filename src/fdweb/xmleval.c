@@ -1017,7 +1017,6 @@ static FD_XML *handle_fdxml_pi
 
 static FD_XML *handle_eval_pi(u8_input in,FD_XML *xml,u8_string content,int len)
 {
-  fd_lispenv env=(fd_lispenv)(xml->data), xml_env=NULL;
   int pioff=((strncmp(content,"?eval ",6)==0)?(6):
              (strncmp(content,"?=",2)==0)?(2):
              (0));

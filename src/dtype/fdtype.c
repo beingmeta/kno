@@ -133,7 +133,7 @@ FD_EXPORT void fd_status_message()
   int retval=u8_getrusage(0,&usage);
   /* long membytes=(usage.ru_idrss+usage.ru_isrss); double memsize; */
   ssize_t heapbytes=u8_memusage(); double heapsize;
-  char *stu="s", *utu="s", *etu="s", *memu="KB", *heapu="KB";
+  char *stu="s", *utu="s", *etu="s", *heapu="KB";
   double elapsed=format_secs(u8_elapsed_time(),&etu);
   double usertime=format_secs
     (usage.ru_utime.tv_sec+(((double)usage.ru_utime.tv_usec)/1000000),

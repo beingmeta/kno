@@ -173,11 +173,10 @@ static int newlog=0;
 int main(int argc,char **argv)
 {
   pid_t pid;
-  int pid_fd, log_fd=-1, err_fd=-1, chained=0, i=1;
+  int pid_fd, log_fd=-1, err_fd=-1, chained=0;
   int logopen_flags=O_WRONLY|O_APPEND|O_CREAT;
   u8_string source_file=NULL, exe_name=NULL;
   u8_string done_file, log_file=NULL, err_file=NULL;
-  unsigned int parse_mask=0;
   fdtype *args=NULL; size_t n_args;
 
   fd_main_errno_ptr=&errno;

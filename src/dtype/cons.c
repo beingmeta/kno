@@ -572,8 +572,8 @@ FD_EXPORT
 */
 fdtype fd_block_string(int len,u8_string string)
 {
+  u8_byte *bytes=NULL;
   int length=((len>=0)?(len):(strlen(string)));
-  u8_byte *bytes=NULL; int freedata=1;
   struct FD_STRING *ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
   bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
   if (string) memcpy(bytes,string,length);

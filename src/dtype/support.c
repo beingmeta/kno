@@ -2136,7 +2136,6 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
   fdtype logfns=fd_make_simple_choice(framerd_logfns);
   char *level=((abs_loglevel>MAX_LOGLEVEL)?(NULL):
                (loglevel_names[abs_loglevel]));
-  double elapsed=u8_elapsed_time();
   if (reqout) {
     struct U8_XTIME xt;
     u8_local_xtime(&xt,-1,u8_nanosecond,0);

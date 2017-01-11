@@ -205,7 +205,7 @@ static fdtype encode_entities_prim(fdtype input,fdtype chars,fdtype nonascii)
   else if (FD_VOIDP(chars))
     return encode_entities(input,na,"<&>",FD_EMPTY_CHOICE);
   else {
-    fdtype other_chars=FD_EMPTY_CHOICE, result=FD_VOID;
+    fdtype other_chars=FD_EMPTY_CHOICE;
     struct U8_OUTPUT ascii_chars; u8_byte buf[128];
     U8_INIT_FIXED_OUTPUT(&ascii_chars,128,buf); buf[0]='\0';
     {FD_DO_CHOICES(xch,chars) {
@@ -433,7 +433,8 @@ static fdtype vector2frags_prim(fdtype vec,fdtype window,fdtype with_affix)
     int end=n-1; while (end>=0) {
       fdtype frag=FD_EMPTY_LIST;
       int i=end; int lim=end-maxspan;
-      if (lim<0) lim=-1; while (i>lim) {
+      if (lim<0) lim=-1;
+      while (i>lim) {
         fdtype elt=data[i]; fd_incref(elt);
         frag=fd_conspair(elt,frag);
         if ((1+(end-i))>=minspan) {

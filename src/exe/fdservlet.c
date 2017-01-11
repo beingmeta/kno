@@ -60,15 +60,12 @@
 
 #include "main.c"
 
-static u8_condition Startup=_("Startup");
 static u8_condition ServletStartup=_("FDServlet/STARTUP");
 static u8_condition ServletLoop=_("FDServlet/LOOP");
 static u8_condition ServletRestart=_("FDServlet/RESTART");
-static u8_condition ServletConfig=_("FDServlet/CONFIG");
 static u8_condition ServletAbort=_("FDServlet/ABORT");
 static u8_condition ServletFork=_("FDServlet/FORK");
 static u8_condition NoServers=_("No servers configured");
-static u8_condition DeletePID=_("Delete PID");
 #define Startup ServletStartup
 
 static int daemonize=0, foreground=0, pidwait=1;
@@ -1553,8 +1550,6 @@ static int reuse_webclient(u8_client ucl)
 {
   fd_webconn client=(fd_webconn)ucl;
   fdtype cgidata=client->cgidata;
-  int refcount=((FD_CONSP(cgidata))?
-                (FD_CONS_REFCOUNT((fd_cons)cgidata)):(0));
   u8_log(LOG_INFO,"FDServlet/reuse","Reusing web client %s (#%lx)",
          ucl->idstring,ucl);
   fd_decref(cgidata); client->cgidata=FD_VOID;
@@ -1670,7 +1665,7 @@ static int check_socket_path(u8_string sockname)
 static int add_server(u8_string spec)
 {
   int file_socket=((strchr(spec,'/'))!=NULL);
-  int len=strlen(spec), retval;
+  int retval;
   if (spec[0]==':') spec=spec+1;
   /* else if (spec[len-1]=='@') spec[len-1]='\0'; */
   else {}

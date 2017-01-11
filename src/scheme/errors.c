@@ -42,9 +42,9 @@ static fdtype return_error_helper(fdtype expr,fd_lispenv env,int wrapped)
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     fd_printout_to(&out,printout_body,env);
     if (wrapped) {
-      u8_exception ex=u8_new_exception
+      u8_exception sub_ex=u8_new_exception
 	((u8_condition)ex,(u8_context)cxt,out.u8_outbuf,(void *)FD_VOID,NULL);
-      return fd_init_exception(NULL,ex);}
+      return fd_init_exception(NULL,sub_ex);}
     else  {
       fd_seterr(ex,cxt,out.u8_outbuf,FD_VOID);
       return FD_ERROR_VALUE;}}

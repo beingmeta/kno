@@ -1523,7 +1523,7 @@ static fdtype raw_pool_store(fdtype arg,fdtype key,fdtype value)
                     key);
     else {
       unsigned int offset=FD_OID_DIFFERENCE(addr,base);
-      int load=fd_pool_load(p), cap=p->capacity, rv=-1;
+      int cap=p->capacity, rv=-1;
       if (offset>cap)
         return fd_err(fd_PoolRangeError,"raw_pool_store",
                       u8_strdup(fd_pool_id(p)),
@@ -1884,7 +1884,6 @@ static int extpool_lock(fd_pool p,fdtype oids)
 
 static fdtype extpool_alloc(fd_pool p,int n)
 {
-  fdtype results=FD_EMPTY_CHOICE, request;
   struct FD_EXTPOOL *ep=(struct FD_EXTPOOL *)p;
   if (FD_VOIDP(ep->allocfn))
     return fd_err(_("No OID alloc method"),"extpool_alloc",NULL,

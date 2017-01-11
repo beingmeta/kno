@@ -59,7 +59,6 @@ static U8_XINPUT u8stdin;
 static U8_XOUTPUT u8stdout;
 static U8_XOUTPUT u8stderr;
 
-static fd_exception fd_ReloadError=_("Module reload error");
 static fd_exception NoSuchFile=_("file does not exist");
 static fd_exception RemoveFailed=_("File removal failed");
 static fd_exception LinkFailed=_("File link failed");
@@ -310,7 +309,7 @@ static fdtype exec_helper(u8_context caller,int flags,int n,fdtype *args)
   else {
     char **argv;
     u8_byte *arg1=(u8_byte *)FD_STRDATA(args[0]);
-    u8_byte *filename=NULL, *argcopy=NULL;
+    u8_byte *filename=NULL;
     int i=1, argc=0, max_argc=n+2, retval=0; pid_t pid;
     if (strchr(arg1,' ')) {
       const char *scan=arg1; while (scan) {
@@ -663,7 +662,7 @@ static fdtype path_dirname(fdtype arg)
 
 static fdtype path_location(fdtype arg)
 {
-  u8_string path=FD_STRDATA(arg); size_t len=FD_STRLEN(arg);
+  u8_string path=FD_STRDATA(arg);
   u8_string slash=strrchr(path,'/');
   if (slash[1]=='\0') return fd_incref(arg);
   else return fd_substring(path,slash+1);

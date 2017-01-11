@@ -290,7 +290,7 @@ static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 }
 
 /* This reads a non frame value with compression. */
-static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
+static int U8_MAYBE_UNUSED zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 {
   unsigned char *zbytes=NULL; ssize_t zlen=-1, size; int retval=0;
   struct FD_BYTE_OUTPUT out;

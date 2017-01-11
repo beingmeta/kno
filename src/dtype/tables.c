@@ -92,7 +92,8 @@ static void atomic_sort_keyvals(struct FD_KEYVAL *v,int n)
     for (i = 0, j = n; ; ) {
       do --j; while (v[j].key > v[0].key);
       do ++i; while (i < j && (v[i].key<v[0].key));
-      if (i >= j) break; swap_keyvals(&v[i], &v[j]);}
+      if (i >= j) break; else {}
+      swap_keyvals(&v[i], &v[j]);}
     swap_keyvals(&v[j], &v[0]);
     ln = j;
     rn = n - ++j;
@@ -109,7 +110,8 @@ static void cons_sort_keyvals(struct FD_KEYVAL *v,int n)
     for (i = 0, j = n; ; ) {
       do --j; while (cons_compare(v[j].key,v[0].key)>0);
       do ++i; while (i < j && ((cons_compare(v[i].key,v[0].key))<0));
-      if (i >= j) break; swap_keyvals(&v[i], &v[j]);}
+      if (i >= j) break; else {}
+      swap_keyvals(&v[i], &v[j]);}
     swap_keyvals(&v[j], &v[0]);
     ln = j;
     rn = n - ++j;
@@ -360,7 +362,7 @@ FD_EXPORT fdtype fd_slotmap_values(struct FD_SLOTMAP *sm)
 {
   struct FD_KEYVAL *scan, *limit; int unlock=0;
   struct FD_ACHOICE *achoice; fdtype results;
-  int size, atomic=1;
+  int size;
   FD_CHECK_TYPE_RETDTYPE(sm,fd_slotmap_type);
   if (sm->uselock) { fd_read_lock(&sm->rwlock); unlock=1;}
   size=FD_XSLOTMAP_SIZE(sm); scan=sm->keyvals; limit=scan+size;
@@ -376,7 +378,7 @@ FD_EXPORT fdtype fd_slotmap_values(struct FD_SLOTMAP *sm)
   achoice=FD_XACHOICE(results);
   while (scan < limit) {
     fdtype value=(scan++)->value;
-    if (FD_CONSP(value)) {fd_incref(value); atomic=0;}
+    if (FD_CONSP(value)) {fd_incref(value);}
     _achoice_add(achoice,value);}
   if (unlock) fd_rw_unlock(&sm->rwlock);
   /* Note that we can assume that the choice is sorted because the keys are. */
@@ -735,7 +737,8 @@ FD_EXPORT void fd_sort_schema(int n,fdtype *v)
     for (i = 0, j = n; ; ) {
       do --j; while (v[j] > v[0]);
       do ++i; while (i < j && v[i] < v[0]);
-      if (i >= j) break; lispv_swap(&v[i], &v[j]);}
+      if (i >= j) break; else {}
+      lispv_swap(&v[i], &v[j]);}
     lispv_swap(&v[j], &v[0]);
     ln = j;
     rn = n - ++j;
@@ -1905,9 +1908,9 @@ FD_EXPORT fdtype fd_hashtable_keys(struct FD_HASHTABLE *ptr)
 
 FD_EXPORT fdtype fd_hashtable_values(struct FD_HASHTABLE *ptr)
 {
-  struct FD_KEYVAL *scan, *limit; int unlock=0;
+  int unlock=0;
   struct FD_ACHOICE *achoice; fdtype results;
-  int size, atomic=1;
+  int size;
   FD_CHECK_TYPE_RETDTYPE(ptr,fd_hashtable_type);
   if (ptr->uselock) {fd_read_lock(&ptr->rwlock); unlock=1;}
   size=ptr->n_keys;
@@ -1936,7 +1939,7 @@ FD_EXPORT fdtype fd_hashtable_values(struct FD_HASHTABLE *ptr)
 
 FD_EXPORT fdtype fd_hashtable_assocs(struct FD_HASHTABLE *ptr)
 {
-  struct FD_KEYVAL *scan, *limit; int unlock=0;
+  int unlock=0;
   struct FD_ACHOICE *achoice; fdtype results;
   int size;
   FD_CHECK_TYPE_RETDTYPE(ptr,fd_hashtable_type);

@@ -687,7 +687,7 @@ static fdtype textract
     return textract(txc->pattern,next,txc->env,string,off,lim,flags);}
   else if (FD_PTR_TYPEP(pat,fd_regex_type)) {
     struct FD_REGEX *ptr=FD_GET_CONS(pat,fd_regex_type,struct FD_REGEX *);
-    regmatch_t results[1]; u8_string base=base+off;
+    regmatch_t results[1]; u8_string base=FD_STRDATA(string)+off;
     int retval=regexec(&(ptr->compiled),base,1,results,0);
     if (retval==REG_NOMATCH) return FD_EMPTY_CHOICE;
     else if (retval) {
@@ -1298,7 +1298,6 @@ static fdtype extract_pref
   (fdtype pat,fdtype next,fd_lispenv env,
    u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
 {
-  fdtype answers=FD_EMPTY_CHOICE;
   FD_DOLIST(epat,FD_CDR(pat)) {
     fdtype extractions=textract(epat,next,env,string,off,lim,flags);
     if (FD_ABORTED(extractions)) return extractions;
@@ -3661,7 +3660,7 @@ u8_byteoff fd_text_search
   else if (off > lim) return -1;
   else if (FD_EMPTY_CHOICEP(pat)) return -1;
   else if (FD_STRINGP(pat)) {
-    u8_byte c=string[lim]; const u8_byte *next;
+    const u8_byte *next;
     if (flags&(FD_MATCH_SPECIAL))
       next=strsearch(flags,FD_STRDATA(pat),FD_STRLEN(pat),
                      string,off,lim);

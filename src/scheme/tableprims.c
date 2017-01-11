@@ -759,7 +759,8 @@ static fdtype table_modifiedp(fdtype table)
 
 static fdtype table_set_modified(fdtype table,fdtype flag_arg)
 {
-  int flag=((FD_FALSEP(flag_arg))||(FD_ZEROP(flag_arg)))?(0):(1);
+  int flag=((FD_FALSEP(flag_arg))||(FD_ZEROP(flag_arg)))?(0):
+    (FD_VOIDP(flag))?(0):(1);
   int retval=fd_set_modified(table,flag);
   if (retval == 0)
     return FD_FALSE;
@@ -994,6 +995,9 @@ FD_EXPORT void fd_init_tablefns_c()
                                             -1,FD_VOID,fd_fixnum_type,FD_INT(1)));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-SIZE",table_size,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TABLE-MODIFIED?",table_modifiedp,1));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim2("TABLE-MODIFIED!",table_set_modified,1));
+
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2("TABLE-MAX",table_max,1)));
   fd_idefn(fd_scheme_module,

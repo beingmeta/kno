@@ -48,30 +48,6 @@ static int n_configs=0;
 
 static u8_condition FileWait=_("FILEWAIT");
 
-static void identify_application(int argc,char **argv,char *dflt)
-{
-  int i=1;
-  u8_string appid=NULL;
-
-  while (i<argc)
-    if (isconfig(argv[i])) i++;
-    else {
-      char *start=strchr(argv[i],'/'), *copy, *dot, *slash;
-      if (start==NULL) start=strchr(argv[i],'\\');
-      if (start==NULL) start=argv[i];
-      if (((*start)=='/') || ((*start)=='\\')) start++;
-      if ((*start=='\0') || (argv[i][0]=='/') || (argv[i][0]=='\\'))
-        start=argv[1];
-      copy=u8_strdup(start); dot=strchr(copy,'.');
-      if (dot) *dot='\0';
-      slash=strrchr(copy,'/');
-      if ((slash)&&(slash[1])) u8_default_appid(slash+1);
-      else u8_default_appid(copy);
-      return;}
-  
-  u8_default_appid(dflt);
-}
-
 static void exit_fdexec()
 {
   if (!(quiet_console)) fd_status_message();
@@ -207,7 +183,7 @@ int do_main(int argc,char **argv,
 {
   fd_lispenv env=fd_working_environment();
   fdtype main_proc=FD_VOID, result=FD_VOID;
-  int i=1, retval=0;
+  int retval=0;
 
   u8_register_source_file(_FILEINFO);
 

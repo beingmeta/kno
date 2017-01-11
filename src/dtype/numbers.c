@@ -2416,8 +2416,10 @@ fdtype fd_make_rational(fdtype num,fdtype denom)
 static int fix_gcd (int x, int y)
 {
   int a;
-  if (x < 0) x=-x; if (y < 0) y=-y;
-  a= y; while (a != 0) { y = a; a = x % a; x = y; }
+  if (x < 0) x=-x; else {};
+  if (y < 0) y=-y; else {};
+  a= y; while (a != 0) {
+    y = a; a = x % a; x = y; }
   return x;
 }
 
@@ -3033,7 +3035,6 @@ static int compare_numeric_vector(fdtype x,fdtype y,int f)
   struct FD_NUMERIC_VECTOR *vy=(struct FD_NUMERIC_VECTOR *)y;
   if (vx->length == vy->length) {
     int i=0, n=vx->length; 
-    enum fd_num_elt_type xt=vx->elt_type, yt=vy->elt_type;
     while (i<n) {
       double xelt=double_ref(vx,i);
       double yelt=double_ref(vy,i);
@@ -3303,7 +3304,8 @@ static fd_double INEXACT_REF(fdtype x,enum fd_num_elt_type xtype,int i)
   case fd_int_elt:
     return ((fd_double)(FD_NUMVEC_INT(x,i)));
   case fd_short_elt:
-    return ((fd_double)(FD_NUMVEC_SHORT(x,i)));}
+    return ((fd_double)(FD_NUMVEC_SHORT(x,i)));
+  default: return 0.0;}
 }
 static fdtype NUM_ELT(fdtype x,int i)
 {
@@ -3324,7 +3326,11 @@ static fdtype NUM_ELT(fdtype x,int i)
     case fd_int_elt:
       return FD_INT2DTYPE(FD_NUMVEC_INT(x,i));
     case fd_short_elt:
-      return FD_SHORT2DTYPE(FD_NUMVEC_SHORT(x,i));}
+      return FD_SHORT2DTYPE(FD_NUMVEC_SHORT(x,i));
+    default: {
+      fd_incref(x);
+      return fd_err(_("NotAVector"),"NUM_ELT",NULL,x);}
+    }
   }
 }
 static fdtype vector_add(fdtype x,fdtype y,int mult)
@@ -3578,7 +3584,7 @@ static fdtype vector_scale(fdtype vec,fdtype scalar)
       u8_free(scaled);
       return result;}
     else {
-      fd_long mult=fd_getint(scalar), max, min;
+      fd_long max, min;
       fdtype *scaled=u8_alloc_n(vlen,fdtype);
       int i=0; while (i<vlen) {
         fdtype elt=NUM_ELT(vec,i);

@@ -129,8 +129,6 @@ static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
   int rc=-1;
   TidyDoc tdoc=tidyCreate();
   fdtype for_real=((do_fixes)?(FD_TRUE):(FD_FALSE));
-  fdtype for_xml=((xhtml<0)?(testopt(opts,xhtml_symbol,0)):
-                  ((xhtml)?(FD_TRUE):(FD_FALSE)));
   tidyBufInit(&outbuf);
   tidyBufInit(&errbuf);
   rc=tidySetErrorBuffer(tdoc,&errbuf);

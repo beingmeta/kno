@@ -420,7 +420,7 @@ int fd_unparse(u8_output out,fdtype x)
       if ((FD_VALID_TYPEP(ct)) && (fd_unparsers[ct])) {
         int uv=fd_unparsers[ct](out,x);
         if (uv<0) {
-          char buf[128]; int retval;
+          char buf[128];
           sprintf(buf,"#!%lx (type=0x%x)",(unsigned long)x,ct);
           u8_log(LOG_WARN,fd_CantUnparse,
                  "fd_unparse handler failed for CONS %s",buf);
@@ -716,7 +716,7 @@ static fdtype default_parse_oid(u8_string start,int len)
 {
   u8_byte _buf[64], *buf=_buf;
   FD_OID oid=FD_NULL_OID_INIT;
-  unsigned int hi, lo, c=start[len];
+  unsigned int hi, lo;
   if (len>64) buf=u8_malloc(len+1);
   strncpy(buf,start,len); buf[len]='\0';
   if ((strchr(buf,'/'))>0) {
@@ -928,7 +928,7 @@ static fdtype parse_text_packet(U8_INPUT *in)
 static fdtype parse_hex_packet(U8_INPUT *in)
 {
   char *data=u8_malloc(128);
-  int max=128, len=0, c=u8_getc(in), delim=0;
+  int max=128, len=0, c=u8_getc(in);
   while (isxdigit(c)) {
     int nc=u8_getc(in), byte=0; char xbuf[3];
     if (!(isxdigit(nc))) {c=nc; break;}

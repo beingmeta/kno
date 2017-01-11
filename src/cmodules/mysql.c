@@ -160,7 +160,7 @@ static fdtype merge_colinfo(FD_MYSQL *dbp,fdtype colinfo)
 
 static int setup_connection(struct FD_MYSQL *dbp)
 {
-  fdtype options=dbp->options; char *option;
+  fdtype options=dbp->options;  char *option=NULL;
   int retval=0;
   int timeout=-1, ctimeout=-1, rtimeout=-1, wtimeout=-1;
   if (!(FD_VOIDP(options))) {
@@ -982,7 +982,6 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
         (dbproc->stmt,dbproc->stmt_string,dbproc->stmt_len);}}
 
   if (retval) {
-    int mysqlerrno=mysql_stmt_errno(dbproc->stmt);
     const char *errmsg=mysql_stmt_error(dbproc->stmt);
     u8_log(LOG_WARN,error_phase,"%s: %s",dbproc->stmt_string,errmsg);
     return retval;}

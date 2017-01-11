@@ -462,13 +462,12 @@ int fd_parse_xmltag(u8_byte **scanner,u8_byte *end,
                      const u8_byte **attribs,int max_attribs,
                      int sloppy)
 {
-  int n_attribs=0, is_open=1;
+  int n_attribs=0;
   u8_byte *scan=*scanner, *elt_start=scan;
   /* Accumulate the tag attribs (including the tag name) */
   if ((*scan=='/') || (*scan=='?') || (*scan=='!')) {
     /* Skip post < character */
-    scan++; elt_start=scan;
-    is_open=0;}
+    scan++; elt_start=scan;}
   while (scan<end) 
     /* Scan to set scan at the end */
     if (isspace(*scan)) {

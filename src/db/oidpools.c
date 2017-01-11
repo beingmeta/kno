@@ -354,7 +354,8 @@ static void sort_schema(fdtype *v,int n)
     for (i = 0, j = n; ; ) {
       do --j; while (v[j] > v[0]);
       do ++i; while (i < j && v[i] < v[0]);
-      if (i >= j) break; lispv_swap(&v[i], &v[j]);}
+      if (i >= j) break; else {}
+      lispv_swap(&v[i], &v[j]);}
     lispv_swap(&v[j], &v[0]);
     ln = j;
     rn = n - ++j;
