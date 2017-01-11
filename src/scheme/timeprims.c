@@ -1135,6 +1135,7 @@ static fdtype load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
 static fdtype memusage_symbol, n_cpus_symbol, pagesize_symbol;
 static fdtype physical_pages_symbol, available_pages_symbol;
 static fdtype physical_memory_symbol, available_memory_symbol;
+static fdtype nptrlocks_symbol;
 
 static int pagesize=-1;
 static int get_n_cpus(void);
@@ -1159,6 +1160,7 @@ static fdtype rusage_prim(fdtype field)
     fd_add(result,shared_symbol,FD_INT(r.ru_ixrss));
     fd_add(result,resident_symbol,FD_INT(r.ru_maxrss));
     fd_add(result,memusage_symbol,FD_INT(mem));
+    fd_add(result,nptrlocks_symbol,FD_INT(FD_N_PTRLOCKS));
     fd_add(result,pid_symbol,FD_INT(pid));
     fd_add(result,ppid_symbol,FD_INT(ppid));
     { /* Load average(s) */
@@ -1233,6 +1235,8 @@ static fdtype rusage_prim(fdtype field)
     return fd_make_flonum(u8_dbltime(r.ru_stime));
   else if (FD_EQ(field,memusage_symbol))
     return FD_INT(u8_memusage());
+  else if (FD_EQ(field,nptrlocks_symbol))
+    return FD_INT(FD_N_PTRLOCKS);
   else if (FD_EQ(field,load_symbol)) {
     double loadavg; int nsamples=getloadavg(&loadavg,1);
     if (nsamples>0) return fd_make_flonum(loadavg);
