@@ -2338,7 +2338,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
