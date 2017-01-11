@@ -485,7 +485,7 @@
 /* Where packages are unpacked */
 #undef FD_UNPACKAGE_DIR
 
-/* The number of bits to use for hashed pointer locks */
-#undef FD_PTR_LOCKBITS
+/* The number of pointer locks to use */
+#undef FD_N_PTRLOCKS
 
 #endif

@@ -151,11 +151,9 @@ typedef int fd_size_t;
 #define FD_THREADS_ENABLED 1
 #endif
 
-#ifndef FD_PTR_LOCKBITS
-#define FD_PTR_LOCKBITS 6
+#ifndef FD_N_PTRLOCKS
+#define FD_N_PTRLOCKS 64
 #endif
-
-#define FD_N_PTRLOCKS (1<<FD_PTR_LOCKBITS)
 
 #if FD_THREADS_ENABLED
 #if HAVE_PTHREAD_H
