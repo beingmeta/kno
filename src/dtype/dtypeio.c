@@ -41,9 +41,9 @@ static u8_mutex dtype_unpacker_lock;
 
 static int grow_output_buffer(struct FD_BYTE_OUTPUT *b,int delta)
 {
-  unsigned int current_size=b->ptr-b->start;
-  unsigned int current_limit=b->end-b->start, new_limit=current_limit;
-  unsigned int need_size=current_size+delta;
+  size_t current_size=b->ptr-b->start;
+  size_t current_limit=b->end-b->start, new_limit=current_limit;
+  size_t need_size=current_size+delta;
   unsigned char *new;
   while (new_limit < need_size)
     if (new_limit>=0x40000) new_limit=new_limit+0x40000;
@@ -68,7 +68,9 @@ FD_EXPORT int fd_needs_space(struct FD_BYTE_OUTPUT *b,size_t delta)
 
 FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTPUT *b,unsigned char byte)
 {
-  if (fd_needs_space(b,1)) {*(b->ptr++)=byte; return 1;}
+  if (fd_needs_space(b,1)) {
+    *(b->ptr++)=byte; 
+    return 1;}
   else return -1;
 }
 
@@ -118,10 +120,10 @@ static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY *v);
   if (fd_write_4bytes(out,w)<0) return -1; else {}
 #define output_bytes(out,bytes,n)                               \
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
-static int try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
+static size_t try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
 {
-  int olen=out->ptr-out->start;
-  int dlen=fd_write_dtype(out,x);
+  size_t olen=out->ptr-out->start;
+  size_t dlen=fd_write_dtype(out,x);
   if (dlen<0)
     return -1;
   else if ((out->flushfn==NULL) &&
@@ -274,7 +276,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       output_bytes(out,data,len);
       return sz+len;}
     case fd_pair_type: {
-      unsigned int len=1;
+      int len=1;
       struct FD_PAIR *p=(struct FD_PAIR *) cons;
       {output_byte(out,dt_pair);}
       {output_dtype(len,out,p->car);}
@@ -516,8 +518,10 @@ static int write_hashset(struct FD_BYTE_OUTPUT *out,struct FD_HASHSET *v)
 static int validate_dtype(int pos,const unsigned char *ptr,
                           const unsigned char *lim)
 {
-  if (pos < 0) return pos;
-  else if (ptr+pos >= lim) return -1;
+  if (pos < 0) 
+    return pos;
+  else if (ptr+pos >= lim) 
+    return -1;
   else {
     int code=ptr[pos];
     switch (code) {

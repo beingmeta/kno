@@ -267,8 +267,8 @@ static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n)
   if (n>df->bufsiz) {
     int new_size=df->bufsiz;
     unsigned char *newbuf;
-    unsigned int end_pos=df->end-df->start;
-    unsigned int ptr_pos=df->ptr-df->start;
+    size_t end_pos=df->end-df->start;
+    size_t ptr_pos=df->ptr-df->start;
     while (new_size<n)
       if (new_size>=0x40000) new_size=new_size+0x40000;
       else new_size=new_size*2;
