@@ -59,7 +59,6 @@ FDVERSION	= @FDVERSION@
 
 DTYPE_HEADERS=\
  include/framerd/fdsource.h                          \
- include/framerd/revision.h                          \
  include/framerd/config.h                            \
  include/framerd/common.h                            \
  include/framerd/defines.h                           \
@@ -88,9 +87,12 @@ DBFILE_HEADERS=include/framerd/dbfile.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
 LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
 		include/framerd/mongodb.h
+
 # Headers which don't live in include/framerd
 SRC_HEADERS=src/dtype/biginternals.h src/scheme/eval_internals.h \
 	src/exe/webcommon.h src/cmodules/fdsqlite.h 
+
+REVISION_H=include/framerd/revision.h
 
 DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o      \
 	  src/dtype/symbols.o src/dtype/numbers.o src/dtype/apply.o \
@@ -839,7 +841,8 @@ $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
 	@$(SUDO) install -D $^ $@
 
 etc/intl/framerd.pot:
-	@XGETTEXT@ --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
+	@XGETTEXT@ --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ \
+		$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 etc/intl/%.po: etc/intl/framerd.pot
 	@MSGMERGE@ -U $@ $<
 etc/intl/%.gmo: etc/intl/%.po
@@ -1395,18 +1398,21 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 	else 								\
 	  echo "Revision changed to "`@GITDESCRIBE@`; 			\
 	  mv $@ etc/old_revision.h; 					\
-	  mv etc/use_revision.h $@; 					\
+	  mv etc/use_revision.h $@;					\
 	fi
 
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode
 #$(STATIC_LIBS) $(SHARED_LIBS): buildmode
-$(DTYPE_OBJS): $(DTYPE_HEADERS)
-$(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS)
-$(DBFILE_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS)
-$(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
-$(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS) ./include/framerd/fdweb.h
-$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS) ./include/framerd/texttools.h
+$(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
+$(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(REVISION_H)
+$(DBFILE_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(REVISION_H)
+$(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) \
+	$(SCHEME_HEADERS) $(REVISION_H)
+$(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) \
+	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
+$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) \
+	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
 $(DTYPE_OBJS) $(DB_OBJS) $(DBFILE_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
 $(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
