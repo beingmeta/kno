@@ -2746,9 +2746,9 @@ void setup_logging()
 
   /* Setup sigaction handler */
 
-  memset(&sigaction_catch,0,sizeof(sigaction));
-  memset(&sigaction_exit,0,sizeof(sigaction));
-  memset(&sigaction_default,0,sizeof(sigaction));
+  memset(&sigaction_catch,0,sizeof(struct sigaction));
+  memset(&sigaction_exit,0,sizeof(struct sigaction));
+  memset(&sigaction_default,0,sizeof(struct sigaction));
 
   sigemptyset(&sigcatch_set);
   sigemptyset(&sigexit_set);
