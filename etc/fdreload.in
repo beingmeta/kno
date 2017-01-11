@@ -12,33 +12,43 @@ fi;
 if test -z "${RUNDIRS}"; then RUNDIRS=${DEFAULT_RUNDIRS}; fi
 
 checkpid ( ) {
-    if kill -0 $0 2>&1 > /dev/null; then
+    if ps -p $0 2>&1 > /dev/null; then
 	retval=1
     else
 	retval=0;
-    fi;}
+    fi;
+}
 killpid ( ) {
     pid=$1
     count=${2:-1}
     sleep=${3:-1}
     live=1
     while test ${live} -eq 1 && test ${count} -gt 0; do
-	live=`kill -0 ${pid} 2>&1 > /dev/null`;
-	if test ${live} -eq 1; then sleep ${sleep}; fi
+	if ! ps -p ${pid} 2>&1 > /dev/null; then
+	    live=1;
+	else
+	    sleep ${sleep};
+	fi;
 	count=$((${count}-1));
     done;
-    retval=${live};}
+    retval=${live};
+}
 livepid ( ) {
     pid=$1
     count=${2:-1}
     sleep=${3:-1}
     live=1
     while test ${live} -eq 1 && test ${count} -gt 0; do
-	live=`kill -0 ${pid} 2>&1 > /dev/null`;
-	if test ${live} -eq 1; then sleep ${sleep}; fi
+	if ! ps -p ${pid} 2>&1 > /dev/null; then
+	    live=1;
+	else
+	    sleep ${sleep};
+	fi;
 	count=$((${count}-1));
     done;
-    retval=${live};}
+    retval=${live};
+}
+
 waitfile ( ) {
     filename=$1
     count=${2:-1}
@@ -51,10 +61,23 @@ waitfile ( ) {
 	    count=$((${count}-1));
 	done;
     else exists=1;
-    retval=${exists};}
+    retval=${exists};
+}
+
+checkpidfile ( ) {
+    pidfile=$1
+    if test -f ${pidfile};
+       pid=`cat ${pidfile}`;
+       if ! ps -p ${pid} > /dev/null; then
+	   rm -f ${pidfile};
+       fi;
+    fi;
+}
 
 for rundir in ${RUNDIRS}; do
     for ppidfile in ${rundir}/*.ppid; do
+	# Remove the ppidfile if it's pid isn't live
+	checkpidfile ${ppidfile};
 	if test -f ${ppidfile}; then
 	    dirname=`dirname ${ppidfile}`;
 	    basename=`basename ${ppidfile} .ppid`;
@@ -62,14 +85,19 @@ for rundir in ${RUNDIRS}; do
 	    pidfile="${dirname}/${basename}.pid";
 	    sleep=1;
 	    count=7;
+	    # Remove the ppidfile if it's pid isn't live
+	    checkpidfile ${pidfile};
 	    if test -f ${pidfile}; then
 		pidnum=`cat ${pidfile}`;
 		kill -HUP ${ppidnum};
 		if livepid ${pidnum} ${count} ${sleep}; then
 		    echo "fdreload: forced kill (-9) of ${pidile} (${pidnum})";
-		    kill -9 ${ppidnum}; rm -f ${pidfile}; fi;
-
-	    else kill -HUP ${ppidnum}; fi
+		    kill -9 ${ppidnum}; 
+		    rm -f ${pidfile}; 
+		fi;
+	    else
+		kill -HUP ${ppidnum}; 
+	    fi
 	    if waitfile ${pidfile} ${count} ${sleep}; then
 		echo "fdreload: Gave up waiting for ${pidile} to exist"; fi;
 	fi;

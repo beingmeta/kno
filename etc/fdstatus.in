@@ -45,6 +45,11 @@ elif test $1 = "--compact"; then
     echo;
     exit;
 else for name in $*; do
+	 base=`basename ${name}`;
+	 if test "${name}" = "${base}"; then
+	     name=`basename ${name} .`;
+	     name=`basename ${name} .scm`;
+	 fi;
 	 ROOT=""
 	 if test -f ${name}; then
 	     ROOT=`basename ${name} .pid`

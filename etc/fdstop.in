@@ -3,7 +3,7 @@ TARGETS="@servlet_rundir@/ @daemon_rundir@/"
 if test $# -gt 0; then TARGETS="$*"; fi
 KILLWAIT=2
 checkpid ( ) {
-    if kill -0 $0 2>&1 > /dev/null; then
+    if ps -p $0 2>&1 > /dev/null; then
 	retval=1
     else
 	retval=0;
@@ -49,7 +49,8 @@ for rundir in ${TARGETS}; do
 	   if test -f ${pid} && checkpid ${pidnum}; then sleep 4; fi
      	   if test -f ${pid}; then 
 	       echo "fdstop: Terminating server ${pid} (${pidnum})";
-	       unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill ${pidnum}; 
+	       unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
+	         sudo kill ${pidnum}; 
 	   else echo "fdstop: Server ${pid} died of natural causes"; fi
 	fi;
     done;
@@ -62,8 +63,10 @@ for rundir in ${TARGETS}; do
 		export pidnum=`cat ${pid}`
 		if checkpid ${pidnum}; then
 		    echo "fdstop: Killing stubborn server ${pid} (${pidnum})";
-		    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo kill -9 ${pidnum} && 
-			unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; sudo rm -f ${pid};
+		    unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
+		      sudo kill -9 ${pidnum} && 
+			  unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; \
+		            sudo rm -f ${pid};
 		    if test -f ${pid}; then
 			sleep 1;
 			if test -f ${pid}; then sleep 1; fi

@@ -4,7 +4,6 @@ SIGNAL=${SIGNAL:-TERM}
 CMD="kill -s"
 SIGNALNAMES="^(sig)?(kill|term|hup|alarm|alrm|quit|int)"
 showusage ( ) {
-    echo "Usage: fdsignal <job>*";
     echo "Usage: fdsignal [signal] <job>*";
 }
 listpids ( ) {
@@ -25,15 +24,25 @@ signalp ( ) {
 if test $# -eq 0 || test "$1" = "usage"; then
     showusage;
     listpids;
+    showusage;
     exit;
 elif signalp $1; then
     SIGNAL=$1; shift;
 fi;     
 for name in $*; do
+    base=`basename ${name}`;
+    if test "${name}" = "${base}"; then
+       name=`basename ${name} .`;
+       name=`basename ${name} .scm`;
+    fi;
     if test -f ${name}; then
 	${CMD} ${SIGNAL} `cat ${name}`;
     elif test -f ${name}.pid; then
 	${CMD} ${SIGNAL} `cat ${name}.pid`;
+    elif test -f _${name}.pid; then
+	${CMD} ${SIGNAL} `cat _${name}.pid`;
+    elif test -f _${name}pid; then
+	${CMD} ${SIGNAL} `cat _${name}pid`;
     elif test -f @daemon_rundir@/${name}.pid; then
 	${CMD} ${SIGNAL} `cat @daemon_rundir@/${name}.pid`;
     elif test -f @servlet_rundir@/${name}.pid; then
