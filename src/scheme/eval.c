@@ -708,7 +708,8 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
             else u8_printf(&out," // %s=",lbl+1);}
           else oneout=1;
           fd_pprint(&out,wval,"   ",0,3,100,0);
-          u8_puts(&out,"\n"); off=0;}
+          if (FD_PAIRP(scan)) {
+            u8_puts(&out,"\n"); off=0;}}
         else {
           if (oneout) u8_puts(&out," // "); else oneout=1;
           u8_printf(&out,"%s=%q",FD_STRDATA(label),wval);
@@ -724,7 +725,6 @@ static fdtype watched_eval(fdtype expr,fd_lispenv env)
           oneout=1;}
         off=check_line_length(&out,off,50);
         fd_decref(wval); wval=FD_VOID;}}
-    off=check_line_length(&out,off,50);
     u8_logger(-10,label,out.u8_outbuf);
     u8_free(out.u8_outbuf);}
   start=u8_elapsed_time();
