@@ -63,7 +63,7 @@ static fdtype chain_prim(int n,fdtype *args)
     int i=0, cargc=0, rv=-1;
     /* This stream will contain the chaining message */
     struct U8_OUTPUT argstring;
-    char **cargv=u8_alloc_n(n+n_configs+3,charp);
+    char **cargv=u8_alloc_n(n+n_configs+4,charp);
     U8_INIT_STATIC_OUTPUT(argstring,512);
     cargv[cargc++]=exe_arg;
     cargv[cargc++]=file_arg;
@@ -79,6 +79,8 @@ static fdtype chain_prim(int n,fdtype *args)
         u8_free(as_string);
         cargv[cargc]=libc_string;
         i++; cargc++;}
+    u8_puts(&argstring,"LOGAPPEND=yes ");
+    cargv[cargc++]=u8_strdup("LOGAPPEND=yes");
     i=0; while (i<n_configs) {
       u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
       cargv[cargc++]=configs[i++];}

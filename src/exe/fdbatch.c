@@ -168,7 +168,7 @@ static void write_cmd_file(int argc,char **argv)
 
 /* The main event */
 
-static int newlog=0;
+static int logappend=0;
 
 int main(int argc,char **argv)
 {
@@ -186,12 +186,12 @@ int main(int argc,char **argv)
 
   args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,"_");
 
-  fd_register_config("NEWLOG",
+  fd_register_config("LOGAPPEND",
                      _("Whether to truncate existing log files"),
                      fd_boolconfig_get,fd_boolconfig_set,
-                     &newlog);
+                     &logappend);
 
-  if (newlog) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
+  if (!(logappend)) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
 
   pid_file=get_pidfile();
 
