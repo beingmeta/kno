@@ -24,34 +24,47 @@ elif ((test "$1" = "list") || (test "$1" = "--list")); then
    listlogs;
    exit;
 fi
-name=$1
+name=$1;
+base=`basename ${name}`;
+if test "${name}" = "${base}"; then
+   name=`basename ${name} .`;
+   name=`basename ${name} .scm`;
+fi
 cmd=${2:-watch}
 tailarg=${3:-500}
 LOGFILE=""
 if test -f ${name}; then
-    LOGFILE=`basename ${name}`
+    LOGFILE=${name};
 elif test -f ${name}.log; then
-    LOGFILE=`${name}.log`
+    LOGFILE=${name}.log;
+elif test -f _${name}.log; then
+    LOGFILE=_${name}.log;
+elif test -f ${name}log; then
+    LOGFILE=${name}log;
+elif test -f _${name}log; then
+    LOGFILE=_${name}log;
+elif test -f ${name}.log; then
+    LOGFILE=`${name}.log`;
 elif test -f @daemon_logdir@/${name}.log; then
-    LOGFILE=@daemon_logdir@/${name}.log
+    LOGFILE=@daemon_logdir@/${name}.log;
 elif test -f @servlet_logdir@/${name}.log; then
-    LOGFILE=@servlet_logdir@/${name}.log
+    LOGFILE=@servlet_logdir@/${name}.log;
 else 
     showusage;
     echo "fdlog: Couldn't find activity ${name}";
     exit;
 fi;
-if test "x${LOGFILE}" = "x"; then
+if test -z "${LOGFILE}"; then
     echo "No log file for ${name}";
     exit;
-elif test "x${cmd}" = "x"; then
+elif test -z "${cmd}"; then
     exec tail -n 200 -f ${LOGFILE};
     exit;
-elif test ${cmd} = "tail"; then
+elif test "${cmd}" = "tail"; then
     exec tail -n ${tailarg} ${LOGFILE};
-elif test ${cmd} = "watch"; then    
+elif test "${cmd}" = "watch"; then    
     exec tail -n ${tailarg} -f ${LOGFILE};
-elif test ${cmd} = "more"; then
+elif test "${cmd}" = "more"; then
     if test $# -eq 3; then
 	tail -n ${tailarg} | less;
     else 

@@ -1236,7 +1236,6 @@ static fdtype nmin2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
       fdtype vec=fd_make_vector(k,NULL);
       int i=0;
       while (i<k) {
-        fdtype elt=entries[i].value;
         fd_decref(entries[i].key);
         fd_incref(entries[i].value);
         FD_VECTOR_SET(vec,i,entries[i].value);
@@ -1555,7 +1554,7 @@ FD_EXPORT void fd_init_choicefns_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

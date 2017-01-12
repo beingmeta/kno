@@ -48,30 +48,6 @@ static int n_configs=0;
 
 static u8_condition FileWait=_("FILEWAIT");
 
-static void identify_application(int argc,char **argv,char *dflt)
-{
-  int i=1;
-  u8_string appid=NULL;
-
-  while (i<argc)
-    if (isconfig(argv[i])) i++;
-    else {
-      char *start=strchr(argv[i],'/'), *copy, *dot, *slash;
-      if (start==NULL) start=strchr(argv[i],'\\');
-      if (start==NULL) start=argv[i];
-      if (((*start)=='/') || ((*start)=='\\')) start++;
-      if ((*start=='\0') || (argv[i][0]=='/') || (argv[i][0]=='\\'))
-        start=argv[1];
-      copy=u8_strdup(start); dot=strchr(copy,'.');
-      if (dot) *dot='\0';
-      slash=strrchr(copy,'/');
-      if ((slash)&&(slash[1])) u8_default_appid(slash+1);
-      else u8_default_appid(copy);
-      return;}
-  
-  u8_default_appid(dflt);
-}
-
 static void exit_fdexec()
 {
   if (!(quiet_console)) fd_status_message();
@@ -87,7 +63,7 @@ static fdtype chain_prim(int n,fdtype *args)
     int i=0, cargc=0, rv=-1;
     /* This stream will contain the chaining message */
     struct U8_OUTPUT argstring;
-    char **cargv=u8_alloc_n(n+n_configs+3,charp);
+    char **cargv=u8_alloc_n(n+n_configs+4,charp);
     U8_INIT_STATIC_OUTPUT(argstring,512);
     cargv[cargc++]=exe_arg;
     cargv[cargc++]=file_arg;
@@ -103,6 +79,8 @@ static fdtype chain_prim(int n,fdtype *args)
         u8_free(as_string);
         cargv[cargc]=libc_string;
         i++; cargc++;}
+    u8_puts(&argstring,"LOGAPPEND=yes ");
+    cargv[cargc++]=u8_strdup("LOGAPPEND=yes");
     i=0; while (i<n_configs) {
       u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
       cargv[cargc++]=configs[i++];}
@@ -207,7 +185,7 @@ int do_main(int argc,char **argv,
 {
   fd_lispenv env=fd_working_environment();
   fdtype main_proc=FD_VOID, result=FD_VOID;
-  int i=1, retval=0;
+  int retval=0;
 
   u8_register_source_file(_FILEINFO);
 
@@ -363,7 +341,7 @@ int main(int argc,char **argv)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

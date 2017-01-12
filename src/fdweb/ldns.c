@@ -86,7 +86,6 @@ static fdtype dns_query(fdtype domain_arg,fdtype type_arg)
   ldns_rdf *domain = ldns_dname_new_frm_str( FD_STRDATA(domain_arg) );
   ldns_status s = ldns_resolver_new_frm_file( &res, NULL );
   ldns_pkt *p = ldns_resolver_query ( res, domain, rr_type, LDNS_RR_CLASS_IN, LDNS_RD );
-  ldns_rr_list *result_list;
 
   if (!(p)) {}
   else {
@@ -99,7 +98,6 @@ static fdtype dns_query(fdtype domain_arg,fdtype type_arg)
           ldns_rr *record = records[i++];
           size_t n_fields = record->_rd_count;
           ldns_rdf **fields = record->_rdata_fields;
-          fdtype oneval=FD_VOID, *vecval=NULL;
           if (n_fields == 0)  {} /* does this ever happen? */
           else if (n_fields == 1)  {
             fdtype value = rdf2dtype( fields[0] );
@@ -142,7 +140,7 @@ FD_EXPORT void fd_init_dns_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

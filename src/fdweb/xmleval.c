@@ -1017,7 +1017,6 @@ static FD_XML *handle_fdxml_pi
 
 static FD_XML *handle_eval_pi(u8_input in,FD_XML *xml,u8_string content,int len)
 {
-  fd_lispenv env=(fd_lispenv)(xml->data), xml_env=NULL;
   int pioff=((strncmp(content,"?eval ",6)==0)?(6):
              (strncmp(content,"?=",2)==0)?(2):
              (0));
@@ -1854,7 +1853,7 @@ FD_EXPORT void fd_init_xmleval_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

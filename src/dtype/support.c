@@ -2139,7 +2139,6 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
   fdtype logfns=fd_make_simple_choice(framerd_logfns);
   char *level=((abs_loglevel>MAX_LOGLEVEL)?(NULL):
                (loglevel_names[abs_loglevel]));
-  double elapsed=u8_elapsed_time();
   if (reqout) {
     struct U8_XTIME xt;
     u8_local_xtime(&xt,-1,u8_nanosecond,0);
@@ -2750,9 +2749,9 @@ void setup_logging()
 
   /* Setup sigaction handler */
 
-  memset(&sigaction_catch,0,sizeof(sigaction));
-  memset(&sigaction_exit,0,sizeof(sigaction));
-  memset(&sigaction_default,0,sizeof(sigaction));
+  memset(&sigaction_catch,0,sizeof(struct sigaction));
+  memset(&sigaction_exit,0,sizeof(struct sigaction));
+  memset(&sigaction_default,0,sizeof(struct sigaction));
 
   sigemptyset(&sigcatch_set);
   sigemptyset(&sigexit_set);
@@ -2815,7 +2814,7 @@ void setup_logging()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

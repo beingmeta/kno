@@ -30,7 +30,7 @@ static struct U8_XTIME boot_time;
 /* Files that may be used */
 static char *portfile=NULL;
 static char *pidfile=NULL;
-static int pid_fd=-1;
+static int U8_MAYBE_UNUSED pid_fd=-1;
 
 #define FD_REQERRS 1 /* records only transactions which return errors */
 #define FD_ALLREQS 2 /* records all requests */

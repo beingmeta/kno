@@ -168,16 +168,15 @@ static void write_cmd_file(int argc,char **argv)
 
 /* The main event */
 
-static int newlog=0;
+static int logappend=0;
 
 int main(int argc,char **argv)
 {
   pid_t pid;
-  int pid_fd, log_fd=-1, err_fd=-1, chained=0, i=1;
+  int pid_fd, log_fd=-1, err_fd=-1, chained=0;
   int logopen_flags=O_WRONLY|O_APPEND|O_CREAT;
   u8_string source_file=NULL, exe_name=NULL;
   u8_string done_file, log_file=NULL, err_file=NULL;
-  unsigned int parse_mask=0;
   fdtype *args=NULL; size_t n_args;
 
   fd_main_errno_ptr=&errno;
@@ -185,14 +184,14 @@ int main(int argc,char **argv)
   /* We just initialize this for now. */
   u8_log_show_procinfo=1;
 
-  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,"fdbatch_");
+  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,"_");
 
-  fd_register_config("NEWLOG",
+  fd_register_config("LOGAPPEND",
                      _("Whether to truncate existing log files"),
                      fd_boolconfig_get,fd_boolconfig_set,
-                     &newlog);
+                     &logappend);
 
-  if (newlog) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
+  if (!(logappend)) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
 
   pid_file=get_pidfile();
 
@@ -299,12 +298,14 @@ int main(int argc,char **argv)
         u8_fclose(f);}
       died_file=NULL;}
     {
-      int free_i=0; while (free_i<n_args) {fd_decref(args[free_i]); i++;}
+      int free_i=0; while (free_i<n_args) {
+	fd_decref(args[free_i]); free_i++;}
       u8_free(args);}
     exit(retval);
     return retval;}
   {
-    int free_i=0; while (free_i<n_args) {fd_decref(args[free_i]); i++;}
+    int free_i=0; while (free_i<n_args) {
+      fd_decref(args[free_i]); free_i++;}
     u8_free(args);}
   exit(0);
   return 0;

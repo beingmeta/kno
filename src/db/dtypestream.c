@@ -269,8 +269,8 @@ static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n)
   if (n>df->fd_bufsiz) {
     int new_size=df->fd_bufsiz;
     unsigned char *newbuf;
-    unsigned int end_pos=df->fd_buflim-df->fd_bufstart;
-    unsigned int ptr_pos=df->fd_bufptr-df->fd_bufstart;
+    size_t end_pos=df->fd_buflim-df->fd_bufstart;
+    size_t ptr_pos=df->fd_bufptr-df->fd_bufstart;
     while (new_size<n)
       if (new_size>=0x40000) new_size=new_size+0x40000;
       else new_size=new_size*2;
@@ -839,13 +839,17 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 
 FD_EXPORT void fd_init_dtypestream_c()
 {
+  fd_register_config
+    ("CHECKDTSIZE",_("whether to check returned and real dtype sizes"),
+     fd_boolconfig_get,fd_boolconfig_set,&fd_check_dtsize);
+
   u8_register_source_file(_FILEINFO);
 }
 
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

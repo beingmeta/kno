@@ -985,6 +985,15 @@ else
   AC_DEFINE(FD_THREADS_ENABLED,0)
 fi
 
+dnl If possible, compile for multi-threaded execution.  This both makes
+dnl  the library threadsafe and enables Scheme primitives for spawning threads
+dnl  and parallel execution
+AC_ARG_WITH(nptrlocks,--with-nptrlocks Sets the number of pointer hash locks to use)
+if test ! -z $with_nptrlocks; then
+   AC_DEFINE_UNQUOTED(FD_N_PTRLOCKS,$with_nptrlocks)
+fi
+
+
 dnl Specify the prefetch window for memory-mapped databases; when
 dnl  accessing a series of blocks, this indicates the number of blocks
 dnl  to prefetch ahead.  This assumes that the built-in memory prefetching

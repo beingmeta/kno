@@ -708,7 +708,6 @@ static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
 {
   U8_INPUT *in = get_input_port(port);
   size_t lim, matchlen=0;
-  size_t search_lim = in->u8_inlim-in->u8_read;
   off_t off=-1;
 
   if (in==NULL)
@@ -1802,7 +1801,7 @@ FD_EXPORT void fd_init_portfns_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

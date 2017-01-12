@@ -54,7 +54,7 @@ static History *edithistory;
 static u8_string eval_prompt=EVAL_PROMPT;
 static int set_prompt(fdtype ignored,fdtype v,void *vptr)
 {
-  u8_string *ptr=vptr, core, cur=*ptr;
+  u8_string *ptr=vptr, cur=*ptr;
   if (FD_STRINGP(v)) {
     u8_string data=FD_STRDATA(v), scan=data;
     int c=u8_sgetc(&scan);
@@ -163,7 +163,6 @@ static u8_string stats_message_w_history=
 static u8_string stats_message_w_history_and_sym=
    _(";; ##%d (%ls) computed in %f seconds, %d/%d object/index loads\n");
 
-static double startup_time=-1.0;
 static double run_start=-1.0;
 
 static int console_width=80, quiet_console=0, show_elts=5;
@@ -222,8 +221,6 @@ static int random_symbol_tries=7;
 static fdtype random_symbol()
 {
   int tries=0;
-  int l1=(random())%26, l2=(random())%26, l3=(random())%26;
-  fdtype symbol;
   while (tries<random_symbol_tries) {
     char buf[4]; fdtype sym;
     int l1=(random())%26, l2=(random())%26, l3=(random())%26;
@@ -542,8 +539,6 @@ static fdtype backtrace_prim(fdtype arg)
 
 static fdtype module_list=FD_EMPTY_LIST;
 
-static u8_string *split_string(u8_string s,u8_string seps);
-
 static u8_string get_next(u8_string pt,u8_string seps);
 
 static fdtype parse_module_spec(u8_string s)
@@ -563,30 +558,6 @@ static fdtype parse_module_spec(u8_string s)
       if (FD_ABORTP(parsed)) return parsed;
       else return fd_init_pair(NULL,parsed,FD_EMPTY_LIST);}}
   else return FD_EMPTY_LIST;
-}
-
-static u8_string *split_string(u8_string s,u8_string seps)
-{
-  u8_string *result=u8_alloc_n(8,u8_string); int i=0, max=8;
-  u8_string scan=s, next=get_next(scan,seps); *result=NULL;
-  while (next) {
-    if (next==scan) {
-      scan++; 
-      next=get_next(scan,seps);
-      continue;}
-    if (i>(max-3)) {
-      int new_max=max*2;
-      u8_string *new_result=u8_realloc(result,sizeof(u8_string)*new_max);
-      if (!(new_result)) return  result;
-      max=new_max; result=new_result;}
-    result[i]=u8_slice(scan,next);
-    result[i+1]=NULL;
-    scan=next+1; next=get_next(scan,seps);
-    i++;}
-  if (*scan) {
-    result[i]=u8_strdup(scan);
-    result[i+1]=NULL;}
-  return result;
 }
 
 static u8_string get_next(u8_string pt,u8_string seps)
@@ -718,7 +689,7 @@ static void dotloader(u8_string file,fd_lispenv env)
 
 int main(int argc,char **argv)
 {
-  int i=1, c;
+  int i=1;
   unsigned int arg_mask=0; /* Bit map of args to skip */
   time_t boot_time=time(NULL);
   fdtype expr=FD_VOID, result=FD_VOID, lastval=FD_VOID;
@@ -1096,7 +1067,7 @@ int main(int argc,char **argv)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

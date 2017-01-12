@@ -42,6 +42,7 @@ fd_exception fd_PoolCommitError=_("can't save changes to pool");
 fd_exception fd_UnregisteredPool=_("internal error with unregistered pool");
 fd_exception fd_UnresolvedPool=_("Cannot resolve pool specification");
 fd_exception fd_UnhandledOperation=_("This pool can't handle this operation");
+fd_exception fd_DataFileOverflow=_("Data file is over implementation limit");
 
 int fd_n_pools=0;
 fd_pool fd_default_pool=NULL;
@@ -1522,7 +1523,7 @@ static fdtype raw_pool_store(fdtype arg,fdtype key,fdtype value)
                     key);
     else {
       unsigned int offset=FD_OID_DIFFERENCE(addr,base);
-      int load=fd_pool_load(p), cap=p->capacity, rv=-1;
+      int cap=p->capacity, rv=-1;
       if (offset>cap)
         return fd_err(fd_PoolRangeError,"raw_pool_store",
                       u8_strdup(fd_pool_id(p)),
@@ -1883,7 +1884,6 @@ static int extpool_lock(fd_pool p,fdtype oids)
 
 static fdtype extpool_alloc(fd_pool p,int n)
 {
-  fdtype results=FD_EMPTY_CHOICE, request;
   struct FD_EXTPOOL *ep=(struct FD_EXTPOOL *)p;
   if (FD_VOIDP(ep->allocfn))
     return fd_err(_("No OID alloc method"),"extpool_alloc",NULL,
@@ -2111,7 +2111,7 @@ FD_EXPORT void fd_init_pools_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

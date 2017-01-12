@@ -119,7 +119,7 @@ fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
   fd_NotAFilePool, fd_AnonymousOID, fd_UnallocatedOID,
   fd_NoFilePools, fd_NotAPool, fd_UnknownPool, fd_CorrputedPool,
   fd_BadFilePoolLabel, fd_ReadOnlyPool, fd_ExhaustedPool,
-  fd_PoolCommitError, fd_UnresolvedPool;
+  fd_PoolCommitError, fd_UnresolvedPool, fd_DataFileOverflow;
 
 #define FD_POOL_FLAG_BASE 256
 #define FD_POOL_FLAG(n) (FD_POOL_FLAG_BASE<<(n))

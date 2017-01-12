@@ -16,9 +16,10 @@
 #define _FILEINFO __FILE__
 #endif
 
+static fdtype moduleid_symbol;
+
 #define GETSPECFORM(x) \
   ((FD_PPTRP(x)) ? ((fd_special_form)(fd_pptr_ref(x))) : ((fd_special_form)x))
-
 
 static fdtype macrop(fdtype x)
 {
@@ -253,11 +254,17 @@ static fdtype module_bindings(fdtype arg)
 
 static fdtype modulep(fdtype arg)
 {
-  if ((FD_ENVIRONMENTP(arg)) ||
-      (FD_HASHTABLEP(arg)) || (FD_SLOTMAPP(arg)) ||
-      (FD_SCHEMAPP(arg)))
-    return FD_TRUE;
-  else return FD_TRUE;
+  if (FD_ENVIRONMENTP(arg)) {
+    struct FD_ENVIRONMENT *env=
+      FD_GET_CONS(arg,fd_environment_type,struct FD_ENVIRONMENT *);
+    if (fd_test(env->bindings,moduleid_symbol,FD_VOID))
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if ((FD_HASHTABLEP(arg)) || (FD_SLOTMAPP(arg)) || (FD_SCHEMAPP(arg))) {
+    if (fd_test(arg,moduleid_symbol,FD_VOID))
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
 }
 
 static fdtype module_exports(fdtype arg)
@@ -324,8 +331,6 @@ static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
 }
 
 /* Finding all the modules used from an environment */
-
-static fdtype moduleid_symbol;
 
 static fdtype getmodules_handler(fdtype expr,fd_lispenv call_env)
 {
@@ -408,3 +413,10 @@ FD_EXPORT void fd_init_reflection_c()
   fd_finish_module(module);
   fd_persist_module(module);
 }
+
+/* Emacs local variables
+   ;;;  Local variables: ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  indent-tabs-mode: nil ***
+   ;;;  End: ***
+*/

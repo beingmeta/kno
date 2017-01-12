@@ -556,7 +556,6 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args);
 
 FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 {
-  fdtype result=FD_VOID;
   fd_ptr_type ftype=FD_PRIM_TYPE(fp);
   if (FD_PPTRP(fp)) fp=fd_pptr_ref(fp);
   if (fd_functionp[ftype]) {
@@ -597,7 +596,6 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
       else args=argvec;
       /* Check typeinfo */
       if (FD_EXPECT_FALSE((f->typeinfo!=NULL))) {
-        fdtype result=FD_VOID;
         /* Check typeinfo */
         int *typeinfo=f->typeinfo;
         int i=0;
@@ -1232,7 +1230,7 @@ FD_EXPORT void fd_init_apply_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

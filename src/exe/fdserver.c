@@ -153,8 +153,6 @@ static void kill_dependent_onsignal(int sig,siginfo_t *info,void *stuff)
     inject_file=NULL;}
 }
 
-static void shutdown_server_onsignal(int,siginfo_t *,void *);
-
 static struct sigaction sigaction_ignore;
 static struct sigaction sigaction_abraham;
 static struct sigaction sigaction_shutdown;
@@ -700,24 +698,6 @@ static int config_use_module(fdtype var,fdtype val,void *data)
 }
 
 /* Handling signals, etc. */
-
-static void shutdown_dtypeserver_onsignal(int sig)
-{
-  if (sig==SIGHUP) {
-    fd_update_file_modules(1);
-    return;}
-  u8_log(LOG_CRIT,ServerShutdown,"Shutting down server on signal %d",sig);
-  u8_server_shutdown(&dtype_server,shutdown_grace);
-  if (FD_APPLICABLEP(shutdown_proc)) {
-    fdtype sigval=FD_INT(sig), value;
-    u8_log(LOG_WARNING,ServerShutdown,"Calling shutdown procedure %q",
-           shutdown_proc);
-    value=fd_apply(shutdown_proc,1,&sigval);
-    fd_decref(value);}
-  cleanup_state_files();
-  fd_doexit(FD_INT(sig));
-  u8_log(LOG_CRIT,ServerShutdown,"Done shutting down server");
-}
 
 static void shutdown_dtypeserver_onexit()
 {
@@ -1509,7 +1489,7 @@ static void write_state_files()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
