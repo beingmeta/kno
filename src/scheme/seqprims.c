@@ -90,7 +90,7 @@ FD_EXPORT fdtype fd_seq_elt(fdtype x,int i)
         return FD_RANGE_ERROR;
       else switch (FD_NUMVEC_TYPE(x)) {
         case fd_short_elt:
-          return FD_SHORT2FIX(FD_NUMVEC_SHORT(x,i));
+          return FD_SHORT2DTYPE(FD_NUMVEC_SHORT(x,i));
         case fd_int_elt:
           return FD_INT(FD_NUMVEC_INT(x,i));
         case fd_long_elt:
@@ -495,7 +495,7 @@ fdtype *fd_elts(fdtype seq,int *n)
       switch (FD_NUMVEC_TYPE(seq)) {
       case fd_short_elt: {
         fd_short *shorts=FD_NUMVEC_SHORTS(seq);
-        while (i<len) {vec[i]=FD_SHORT2FIX(shorts[i]); i++;}
+        while (i<len) {vec[i]=FD_SHORT2DTYPE(shorts[i]); i++;}
         break;}
       case fd_int_elt: {
         fd_int *ints=FD_NUMVEC_INTS(seq);
@@ -1711,8 +1711,7 @@ static fdtype elts_prim(fdtype x,fdtype start_arg,fdtype end_arg)
       case fd_short_elt: {
         fd_short *vec=FD_NUMVEC_SHORTS(x);
         while (i<lim) {
-          fd_short num=vec[i++]; 
-          fdtype elt=FD_SHORT2FIX(num); 
+          fd_short num=vec[i++]; fdtype elt=FD_SHORT2DTYPE(num); 
           FD_ADD_TO_CHOICE(results,elt); 
           i++;}}
       case fd_int_elt: {
