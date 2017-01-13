@@ -85,7 +85,8 @@ static fdtype chain_prim(int n,fdtype *args)
       char *config=configs[i];
       if (strncmp(config,"LOGAPPEND=",10)) {
         u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
-        cargv[cargc++]=configs[i++];}}
+        cargv[cargc++]=configs[i++];}
+      else i++;}
     cargv[cargc++]=NULL;
     fflush(stdout); fflush(stderr);
     u8_log(LOG_INFO,"CHAIN","Closing pools and indices");
