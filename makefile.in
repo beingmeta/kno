@@ -289,7 +289,7 @@ CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
 	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
 	src/cmodules/qrcode.c src/cmodules/ziptools.c                  \
-	src/cmodules/tidy.c src/cmodules/imagick.c                     \
+	src/cmodules/tidy5/tidy.c src/cmodules/imagick.c               \
 	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c
 
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
