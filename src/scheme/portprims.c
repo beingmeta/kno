@@ -708,7 +708,6 @@ static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
 {
   U8_INPUT *in = get_input_port(port);
   size_t lim, matchlen=0;
-  size_t search_lim = in->u8_inlim-in->u8_read;
   off_t off=-1;
 
   if (in==NULL)
@@ -976,10 +975,10 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
         u8_printf(out,"#[]"); return col+3;}
       else {u8_printf(out," #[]"); return col+4;}}
     fd_read_lock_struct(sm);
-    scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
+    scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
-      fdtype key=scan->fd_key, val=scan->fd_value;
+      fdtype key=scan->fd_kvkey, val=scan->fd_keyval;
       int newcol=output_keyval(out,key,val,col,maxcol,first_kv);
       if (newcol>=0) {
         col=newcol; scan++; first_kv=0;
@@ -989,9 +988,9 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
         if (prefix) u8_puts(out,prefix);
         while (i>0) {u8_putc(out,' '); i--;}
         col=indent+((prefix) ? (u8_strlen(prefix)) : (0));}
-      col=fd_pprint(out,scan->fd_key,prefix,indent+2,col,maxcol,first_kv);
+      col=fd_pprint(out,scan->fd_kvkey,prefix,indent+2,col,maxcol,first_kv);
       u8_putc(out,' '); col++;
-      col=fd_pprint(out,scan->fd_value,prefix,indent+4,col,maxcol,0);
+      col=fd_pprint(out,scan->fd_keyval,prefix,indent+4,col,maxcol,0);
       first_kv=0;
       scan++;}
     u8_puts(out,"]");
@@ -1102,12 +1101,12 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
       if (is_initial) {
         u8_printf(out," #[]"); return 3;}
       else {u8_printf(out," #[]"); return 4;}}
-    scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
+    scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
-      col=fd_xpprint(out,scan->fd_key,prefix,
+      col=fd_xpprint(out,scan->fd_kvkey,prefix,
                      indent+2,col,maxcol,first_pair,fn,data);
-      col=fd_xpprint(out,scan->fd_value,
+      col=fd_xpprint(out,scan->fd_keyval,
                      prefix,indent+4,col,maxcol,0,fn,data);
       first_pair=0;
       scan++;}
@@ -1213,11 +1212,11 @@ static int embeddedp(fdtype focus,fdtype expr)
     int slotmap_size;
     fd_read_lock_struct(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
-    scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
+    scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
     while (scan<limit)
-      if (embeddedp(focus,scan->fd_key)) {
+      if (embeddedp(focus,scan->fd_kvkey)) {
         fd_rw_unlock_struct(sm); return 1;}
-      else if (embeddedp(focus,scan->fd_value)) {
+      else if (embeddedp(focus,scan->fd_keyval)) {
         fd_rw_unlock_struct(sm); return 1;}
       else scan++;
     fd_rw_unlock_struct(sm);
@@ -1287,6 +1286,66 @@ static u8_exception print_backtrace_entry(U8_OUTPUT *out,u8_exception ex,int wid
   return ex->u8x_prev;
 }
 
+static void log_backtrace_env(int loglevel,u8_condition label,u8_exception ex,int width)
+{
+  fdtype entry=exception_data(ex);
+  fdtype keys=fd_getkeys(entry);
+  u8_string head=((ex->u8x_details) ? ((u8_string)(ex->u8x_details)) :
+                  (ex->u8x_context) ?  ((u8_string)(ex->u8x_context)) :
+                  ((u8_string)""));
+  if (FD_ABORTP(keys)) {
+    u8_log(loglevel,label,"%s %q\n",head,entry);}
+  else {
+    struct U8_OUTPUT tmpout; u8_byte buf[16384];
+    U8_INIT_OUTPUT_BUF(&tmpout,16384,buf); {
+      FD_DO_CHOICES(key,keys) {
+        fdtype val=fd_get(entry,key,FD_VOID);
+        u8_printf(&tmpout,"> %q = %q\n",key,val);
+        fd_decref(val);}
+      u8_log(loglevel,label,"%q BINDINGS\n%s",head,tmpout.u8_outbuf);
+      u8_close_output(&tmpout);}
+    fd_decref(keys);}
+}
+
+static u8_exception log_backtrace_entry(int loglevel,u8_condition label,
+                                        u8_exception ex,int width)
+{
+  struct U8_OUTPUT tmpout; u8_byte buf[16384]; 
+  U8_INIT_OUTPUT_BUF(&tmpout,16384,buf);
+  if (ex->u8x_context==fd_eval_context) {
+    fdtype expr=exception_data(ex);
+    u8_exception innermost=get_innermost_expr(ex->u8x_prev,expr);
+    fdtype focus=((innermost) ? (exception_data(innermost)) : (FD_VOID));
+    u8_puts(&tmpout,"!>> ");
+    fd_pprint_focus(&tmpout,expr,focus,"!>> ",0,width,"!>","<!");
+    u8_log(loglevel,label,"!>> %s",tmpout.u8_outbuf);
+    u8_close_output(&tmpout);
+    if (innermost)return innermost->u8x_prev;
+    else return ex->u8x_prev;}
+  else if (ex->u8x_context==fd_apply_context) {
+    fdtype entry=exception_data(ex);
+    int i=1, lim=FD_VECTOR_LENGTH(entry);
+    fdtype fn=FD_VECTOR_REF(entry,0);
+    u8_puts(&tmpout,"<");
+    while (i < lim) {
+      fdtype arg=FD_VECTOR_REF(entry,i); i++;
+      if ((FD_SYMBOLP(arg)) || (FD_PAIRP(arg)))
+        u8_printf(&tmpout," '%q",arg);
+      else u8_printf(&tmpout," %q",arg);}
+    u8_printf(&tmpout,">");
+    u8_log(loglevel,label,"*CALL %q %s",fn,tmpout.u8_outbuf);}
+  else if ((ex->u8x_context) && (ex->u8x_context[0]==':')) {
+    log_backtrace_env(loglevel,label,ex,width);}
+  else if ((ex->u8x_context) && (ex->u8x_details))
+    u8_log(loglevel,ex->u8x_cond,"(%s) %m",(ex->u8x_context),(ex->u8x_details));
+  else if (ex->u8x_context)
+    u8_log(loglevel,ex->u8x_cond,"(%s)",(ex->u8x_context));
+  else if (ex->u8x_details)
+    u8_log(loglevel,ex->u8x_cond,"(%m)",(ex->u8x_details));
+  else u8_log(loglevel,ex->u8x_cond,_("No more information"));
+  return ex->u8x_prev;
+}
+
 FD_EXPORT
 void fd_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width)
 {
@@ -1294,6 +1353,13 @@ void fd_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width)
   while (scan) {
     u8_printf(out,";;=======================================================\n");
     scan=print_backtrace_entry(out,scan,width);}
+}
+
+FD_EXPORT void fd_log_backtrace(u8_exception ex,int level,u8_condition label,int width)
+{
+  u8_exception scan=ex;
+  while (scan) {
+    scan=log_backtrace_entry(level,label,scan,width);}
 }
 
 FD_EXPORT
@@ -1735,7 +1801,7 @@ FD_EXPORT void fd_init_portfns_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

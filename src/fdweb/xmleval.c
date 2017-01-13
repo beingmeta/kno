@@ -518,8 +518,8 @@ FD_EXPORT fdtype fdxml_get(fdtype xml,fdtype sym,fd_lispenv env)
       struct FD_KEYVAL *kv=u8_alloc_n(2,struct FD_KEYVAL);
       /* This generates a "blank node" which generates its content
          without any container. */
-      kv[0].fd_key=rawtag_symbol; kv[0].fd_value=pblank_symbol;
-      kv[1].fd_key=content_slotid; kv[1].fd_value=content;
+      kv[0].fd_kvkey=rawtag_symbol; kv[0].fd_keyval=pblank_symbol;
+      kv[1].fd_kvkey=content_slotid; kv[1].fd_keyval=content;
       return fd_init_slotmap(NULL,2,kv);}}
   else {
     fdtype values=fd_get(xml,sym,FD_VOID);
@@ -1017,7 +1017,6 @@ static FD_XML *handle_fdxml_pi
 
 static FD_XML *handle_eval_pi(u8_input in,FD_XML *xml,u8_string content,int len)
 {
-  fd_lispenv env=(fd_lispenv)(xml->data), xml_env=NULL;
   int pioff=((strncmp(content,"?eval ",6)==0)?(6):
              (strncmp(content,"?=",2)==0)?(2):
              (0));
@@ -1496,31 +1495,31 @@ static fdtype iter_var;
 static fdtype iterenv1(fdtype seq,fdtype var,fdtype val)
 {
   struct FD_KEYVAL *keyvals=u8_alloc_n(2,struct FD_KEYVAL);
-  keyvals[0].fd_key=iter_var; keyvals[0].fd_value=fd_incref(seq);
-  keyvals[1].fd_key=var; keyvals[1].fd_value=fd_incref(val);
+  keyvals[0].fd_kvkey=iter_var; keyvals[0].fd_keyval=fd_incref(seq);
+  keyvals[1].fd_kvkey=var; keyvals[1].fd_keyval=fd_incref(val);
   return fd_make_slotmap(2,2,keyvals);
 }
 static fdtype iterenv2
   (fdtype seq, fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
   struct FD_KEYVAL *keyvals=u8_alloc_n(3,struct FD_KEYVAL);
-  keyvals[0].fd_key=iter_var; keyvals[0].fd_value=fd_incref(seq);
-  keyvals[1].fd_key=var; keyvals[1].fd_value=fd_incref(val);
-  keyvals[2].fd_key=xvar; keyvals[2].fd_value=fd_incref(xval);
+  keyvals[0].fd_kvkey=iter_var; keyvals[0].fd_keyval=fd_incref(seq);
+  keyvals[1].fd_kvkey=var; keyvals[1].fd_keyval=fd_incref(val);
+  keyvals[2].fd_kvkey=xvar; keyvals[2].fd_keyval=fd_incref(xval);
   return fd_make_slotmap(3,3,keyvals);
 }
 
 static fdtype retenv1(fdtype var,fdtype val)
 {
   struct FD_KEYVAL *keyvals=u8_alloc_n(1,struct FD_KEYVAL);
-  keyvals[0].fd_key=var; keyvals[0].fd_value=fd_incref(val);
+  keyvals[0].fd_kvkey=var; keyvals[0].fd_keyval=fd_incref(val);
   return fd_make_slotmap(1,1,keyvals);
 }
 static fdtype retenv2(fdtype var,fdtype val,fdtype xvar,fdtype xval)
 {
   struct FD_KEYVAL *keyvals=u8_alloc_n(2,struct FD_KEYVAL);
-  keyvals[0].fd_key=var; keyvals[0].fd_value=fd_incref(val);
-  keyvals[1].fd_key=xvar; keyvals[1].fd_value=fd_incref(xval);
+  keyvals[0].fd_kvkey=var; keyvals[0].fd_keyval=fd_incref(val);
+  keyvals[1].fd_kvkey=xvar; keyvals[1].fd_keyval=fd_incref(xval);
   return fd_make_slotmap(2,2,keyvals);
 }
 
@@ -1854,7 +1853,7 @@ FD_EXPORT void fd_init_xmleval_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

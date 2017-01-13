@@ -207,7 +207,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
         u8_log(LOG_CRIT,fd_FileIndexError,
                "file_index_fetch %s",u8_strdup(ix->cid));
       thiskey=fd_dtsread_dtype(stream);
-      if (FDTYPE_EQUAL(key,thiskey))
+      if (FDTYPE_EQUAL(key,thiskey)) {
         if (n_vals==0) {
           fd_unlock_mutex(&fx->fd_lock); fd_decref(thiskey);
           return FD_EMPTY_CHOICE;}
@@ -227,11 +227,11 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
             values[i++]=v;
             next_pos=fd_dtsread_4bytes(stream);}
           fd_unlock_mutex(&fx->fd_lock); fd_decref(thiskey);
-          return fd_init_choice(result,n_vals,NULL,
+          return fd_init_choice(result,i,NULL,
                                 FD_CHOICE_DOSORT|
                                 ((atomicp)?(FD_CHOICE_ISATOMIC):
                                  (FD_CHOICE_ISCONSES))|
-                                FD_CHOICE_REALLOC);}
+                                FD_CHOICE_REALLOC);}}
       else if (n_probes>256) {
         fd_unlock_mutex(&fx->fd_lock);
         fd_decref(thiskey);
@@ -835,10 +835,10 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
       struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->fd_key;
+        fdtype key=kvscan->fd_kvkey;
         if ((FD_PAIRP(key)) &&
             (FD_EQ(FD_CAR(key),drop_symbol)) &&
-            (!(FD_VOIDP(kvscan->fd_value)))) {
+            (!(FD_VOIDP(kvscan->fd_keyval)))) {
           fdtype cached=fd_hashtable_get(&(f->cache),FD_CDR(key),FD_VOID);
           if (!(FD_VOIDP(cached))) {
             /* If the value of the key is cached, it will be up to date with
@@ -848,7 +848,7 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
                it anyway. */
             struct FD_PAIR *pair=
               FD_GET_CONS(key,fd_pair_type,struct FD_PAIR *);
-            fd_decref(kvscan->fd_value); kvscan->fd_value=cached;
+            fd_decref(kvscan->fd_keyval); kvscan->fd_keyval=cached;
             pair->fd_car=set_symbol;}
           else dropkeys[n_drops++]=FD_CDR(key);}
         kvscan++;}
@@ -863,20 +863,20 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
       struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
       while (kvscan<kvlimit) {
-        fdtype key=kvscan->fd_key;
-        if (FD_VOIDP(kvscan->fd_value)) kvscan++;
+        fdtype key=kvscan->fd_kvkey;
+        if (FD_VOIDP(kvscan->fd_keyval)) kvscan++;
         else if (FD_PAIRP(key)) {
           kdata[n_edits].key=FD_CDR(key); kdata[n_edits].pos=filepos;
           if (FD_EQ(FD_CAR(key),set_symbol)) {
             /* If it's a set edit, just write out the whole thing */
-            if (FD_EMPTY_CHOICEP(kvscan->fd_value)) {
+            if (FD_EMPTY_CHOICEP(kvscan->fd_keyval)) {
               kdata[n_edits].n_values=0; kdata[n_edits].pos=0;}
-            else filepos=filepos+write_values(stream,kvscan->fd_value,0,
+            else filepos=filepos+write_values(stream,kvscan->fd_keyval,0,
                                               &(kdata[n_edits].n_values));}
           else if (FD_EQ(FD_CAR(key),drop_symbol)) {
             /* If it's a drop edit, you got the value, so compute
                the difference and write that out.*/
-            fdtype new_value=fd_difference(dropvals[i],kvscan->fd_value);
+            fdtype new_value=fd_difference(dropvals[i],kvscan->fd_keyval);
             if (FD_EMPTY_CHOICEP(new_value)) {
               kdata[n_edits].n_values=0; kdata[n_edits].pos=0;}
             else filepos=filepos+write_values(stream,new_value,0,
@@ -967,7 +967,7 @@ static int file_index_commit(struct FD_INDEX *ix)
         struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
         struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
-          fdtype key=kvscan->fd_key;
+          fdtype key=kvscan->fd_kvkey;
           /* It would be nice to update slotids here, but we'll
              decline for now and require that those be managed
              manually. */
@@ -1017,7 +1017,7 @@ static int file_index_commit(struct FD_INDEX *ix)
         while (kvscan<kvlimit) {
           fd_off_t writepos=filepos; int new_values;
           filepos=filepos+
-            write_values(&(fx->stream),kvscan->fd_value,kdata[i].pos,
+            write_values(&(fx->stream),kvscan->fd_keyval,kdata[i].pos,
                          &new_values);
           kdata[i].pos=writepos-pos_offset;
           kdata[i].n_values=kdata[i].n_values+new_values;
@@ -1168,7 +1168,7 @@ FD_EXPORT void fd_init_fileindices_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

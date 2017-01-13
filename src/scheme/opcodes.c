@@ -959,24 +959,27 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
                (head_type==fd_sproc_type)) {
         fdtype args[7], result=FD_VOID;
         struct FD_FUNCTION *fn=(struct FD_FUNCTION *)head;
-        int i=0, nd=0, ndcall=fn->ndcall;
-        while (i<n) {
-          fdtype e=FD_RAIL_REF(x,i), v=op_eval(e,env,0);
+        int rail_i=1, arg_i=0, nd=0, ndcall=fn->ndcall;
+        while (rail_i<n) {
+          fdtype e=FD_RAIL_REF(x,rail_i), v=op_eval(e,env,0); 
           if (FD_ABORTP(v)) {
-            i--; while (i>=0) {fd_decref(args[i]); i--;}
+            arg_i--; while (arg_i>=0) {
+              fd_decref(args[arg_i]); arg_i--;}
             return v;}
           else if ((!(ndcall))&&(FD_EMPTY_CHOICEP(v))) {
-            i--; while (i>=0) {fd_decref(args[i]); i--;}
+            arg_i--; while (arg_i>=0) {
+              fd_decref(args[arg_i]); arg_i--;}
             return v;}
           if ((FD_CHOICEP(v))||(FD_ACHOICEP(v))) nd=1;
-          args[i++]=v;}
+          args[arg_i++]=v;
+          rail_i++;}
         /* if (tail) return fd_tail_call(head,n,args); */
         if ((head_type==fd_sproc_type)&&((nd==0)||(fn->ndcall)))
-          result=fd_apply_sproc((struct FD_SPROC *)fn,n,args);
+          result=fd_apply_sproc((struct FD_SPROC *)fn,arg_i,args);
         else if (nd==0) 
           result=fd_dapply(head,n,args);
         else result=fd_apply(head,n,args);
-        i--; while (i>=0) {fd_decref(args[i]); i--;}
+        arg_i--; while (arg_i>=0) {fd_decref(args[arg_i]); arg_i--;}
         if (FD_PRIM_TYPEP(result,fd_tail_call_type))
           result=fd_finish_call(result);
         return result;}
@@ -1004,7 +1007,7 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

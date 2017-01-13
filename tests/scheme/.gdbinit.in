@@ -1,5 +1,5 @@
 source @abs_top_srcdir@/etc/gdbinit
-directory @abs_top_srcdir@/src/dtype:@abs_top_srcdir@/src/db:@abs_top_srcdir@/src/scheme:@abs_top_srcdir@/src/texttools:@abs_top_srcdir@/src/fdweb:@abs_top_srcdir@/src/tagger:@abs_top_srcdir@/src/cmodules:@abs_top_srcdir@/include/framerd
+directory @abs_top_srcdir@/src/dtype:@abs_top_srcdir@/src/db:@abs_top_srcdir@/src/scheme:@abs_top_srcdir@/src/texttools:@abs_top_srcdir@/src/fdweb:@abs_top_srcdir@/src/cmodules:@abs_top_srcdir@/include/framerd:@extra_src@
 #set env FD_POOLS /data/bg/brico.pool
 #set env FD_INDICES /data/bg/brico.index
 #set env FD_POOLS bground@localhost

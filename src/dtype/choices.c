@@ -31,7 +31,10 @@ static void recycle_achoice(struct FD_CONS *c)
     if ((ch->ach_atomic==0) || (ch->ach_nested))
       while (read < lim) {
         fdtype v=*read++; fd_decref(v);}
-    if (ch->ach_mallocd) u8_free(ch->ach_normchoice);}
+    if (ch->ach_mallocd) {
+      u8_free(ch->ach_choicedata);
+      ch->ach_choicedata=NULL; 
+      ch->ach_mallocd=0;}}
   fd_decref(ch->ach_normalized);
   fd_destroy_mutex(&(ch->fd_lock));
   u8_free(ch);
@@ -102,7 +105,8 @@ static void atomic_sort(fdtype *v,int n)
     for (i = 0, j = n; ; ) {
       do --j; while (v[j] > v[0]);
       do ++i; while (i < j && v[i] < v[0]);
-      if (i >= j) break; swap(&v[i], &v[j]);}
+      if (i >= j) break; else {}
+      swap(&v[i], &v[j]);}
     swap(&v[j], &v[0]);
     ln = j;
     rn = n - ++j;
@@ -119,7 +123,8 @@ static void cons_sort(fdtype *v,int n)
     for (i = 0, j = n; ; ) {
       do --j; while (cons_compare(v[j],v[0])>0);
       do ++i; while (i < j && (cons_compare(v[i],v[0])<0));
-      if (i >= j) break; swap(&v[i], &v[j]);}
+      if (i >= j) break; else {}
+      swap(&v[i], &v[j]);}
     swap(&v[j], &v[0]);
     ln = j;
     rn = n - ++j;
@@ -210,9 +215,23 @@ fdtype fd_init_choice
   if (FD_EXPECT_FALSE((n==0) && (flags&FD_CHOICE_REALLOC))) {
     if (ch) u8_free(ch);
     return FD_EMPTY_CHOICE;}
+  else if (n==1) {
+    fdtype elt=(data!=NULL)?(data[0]):
+      (ch!=NULL)?((FD_XCHOICE_DATA(ch))[0]):
+      (FD_NULL);
+    if (ch) u8_free(ch);
+    if ((data) && (flags&FD_CHOICE_FREEDATA)) u8_free(data);
+    if (elt==FD_NULL) {
+      fd_seterr(_("BadInitData"),"fd_init_choice",NULL,FD_VOID);
+      return FD_ERROR_VALUE;}
+    else {
+      fd_incref(elt);
+      return elt;}}
   else if (ch==NULL) {
     ch=fd_alloc_choice(n);
-    if (ch==NULL) return FD_ERROR_VALUE;
+    if (ch==NULL) {
+      u8_graberr(-1,"fd_init_choice",NULL);
+      return FD_ERROR_VALUE;}
     if (data)
       memcpy((fdtype *)FD_XCHOICE_DATA(ch),data,sizeof(fdtype)*n);
     else {
@@ -241,15 +260,21 @@ fdtype fd_init_choice
     newlen=compress_choice((fdtype *)base,n,atomicp);
   else newlen=n;
   /* Free the original data vector if requested. */
-  if ((data) && (flags&FD_CHOICE_FREEDATA)) u8_free((fdtype *)data);
+  if ((data) && (flags&FD_CHOICE_FREEDATA)) {
+    u8_free((fdtype *)data);}
   if ((newlen==1) && (flags&FD_CHOICE_REALLOC)) {
     fdtype v=base[0];
     u8_free(ch);
     return v;}
   else if ((flags&FD_CHOICE_REALLOC) && (newlen<(n/2)))
     ch=u8_realloc(ch,sizeof(struct FD_CHOICE)+((newlen-1)*sizeof(fdtype)));
-  FD_INIT_XCHOICE(ch,newlen,atomicp);
-  return FDTYPE_CONS(ch);
+  else {}
+  if (ch) {
+    FD_INIT_XCHOICE(ch,newlen,atomicp);
+    return FDTYPE_CONS(ch);}
+  else {
+    u8_graberr(-1,"fd_init_choice",NULL);
+    return FD_ERROR_VALUE;}
 }
 
 FD_EXPORT
@@ -265,8 +290,8 @@ fdtype fd_make_achoice(fdtype x,fdtype y)
   struct FD_ACHOICE *ch=u8_alloc(struct FD_ACHOICE);
   fdtype nx=fd_simplify_choice(x), ny=fd_simplify_choice(y);
   FD_INIT_CONS(ch,fd_achoice_type);
-  ch->ach_normchoice=fd_alloc_choice(64);
-  ch->ach_write=ch->ach_data=(fdtype *)FD_XCHOICE_DATA(ch->ach_normchoice);
+  ch->ach_choicedata=fd_alloc_choice(64);
+  ch->ach_write=ch->ach_data=(fdtype *)FD_XCHOICE_DATA(ch->ach_choicedata);
   ch->ach_limit=ch->ach_data+64; ch->ach_normalized=FD_VOID;
   ch->ach_mallocd=1; ch->ach_nested=0; ch->ach_muddled=0;
   ch->ach_size=FD_CHOICE_SIZE(nx)+FD_CHOICE_SIZE(ny);
@@ -301,8 +326,8 @@ fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock)
 {
   if (ch==NULL) ch=u8_alloc(struct FD_ACHOICE);
   FD_INIT_CONS(ch,fd_achoice_type);
-  ch->ach_normchoice=fd_alloc_choice(lim);
-  ch->ach_write=ch->ach_data=(fdtype *)FD_XCHOICE_DATA(ch->ach_normchoice);
+  ch->ach_choicedata=fd_alloc_choice(lim);
+  ch->ach_write=ch->ach_data=(fdtype *)FD_XCHOICE_DATA(ch->ach_choicedata);
   ch->ach_limit=ch->ach_data+lim; ch->ach_size=0;
   ch->ach_nested=0; ch->ach_muddled=0; ch->ach_atomic=1; ch->ach_mallocd=1;
   ch->ach_normalized=FD_VOID;
@@ -366,7 +391,8 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
        can just use the choice you've been depositing values in,
        appropriately initialized, sorted etc.  */
     else if ((free_achoice) && (ch->ach_nested==0)) {
-      struct FD_CHOICE *nch=ch->ach_normchoice; int flags=FD_CHOICE_REALLOC, n=ch->ach_size;
+      struct FD_CHOICE *nch=ch->ach_choicedata;
+      int flags=FD_CHOICE_REALLOC, n=ch->ach_size;
       if (ch->ach_atomic) flags=flags|FD_CHOICE_ISATOMIC;
       else flags=flags|FD_CHOICE_ISCONSES;
       if (ch->ach_muddled) flags=flags|FD_CHOICE_DOSORT;
@@ -974,7 +1000,9 @@ fdtype fd_difference(fdtype value,fdtype remove)
         struct FD_CHOICE *vchoice=
           FD_GET_CONS(value,fd_choice_type,struct FD_CHOICE *);
         int size=FD_XCHOICE_SIZE(vchoice), atomicp=FD_XCHOICE_ATOMICP(vchoice);
-        if (size==2)
+        if (size==1) 
+          return FD_EMPTY_CHOICE;
+        else if (size==2)
           if (FDTYPE_EQUAL(remove,(FD_XCHOICE_DATA(vchoice))[0]))
             return fd_incref((FD_XCHOICE_DATA(vchoice))[1]);
           else return fd_incref((FD_XCHOICE_DATA(vchoice))[0]);
@@ -1090,7 +1118,7 @@ void fd_init_choices_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

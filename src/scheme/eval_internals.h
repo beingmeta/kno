@@ -29,15 +29,17 @@ static fdtype error_bindings(fd_lispenv env)
     return fd_copy(bindings);
   else if (!(FD_TABLEP(bindings))) {
     struct FD_KEYVAL *kv=u8_alloc_n(1,struct FD_KEYVAL);
-    kv[0].fd_key=moduleid_symbol; kv[1].fd_value=moduleid;
+    kv[0].fd_kvkey=moduleid_symbol; kv[1].fd_keyval=moduleid;
     return fd_init_slotmap(NULL,1,kv);}
   else {
     fdtype vars = fd_getkeys(bindings);
     int n_vars = FD_CHOICE_SIZE(vars);
     struct FD_KEYVAL *kv = u8_alloc_n(n_vars+1,struct FD_KEYVAL), *write=kv;
-    write[0].fd_key=moduleid_symbol; write[0].fd_value=moduleid; write++;
+    write[0].fd_kvkey=moduleid_symbol; 
+    write[0].fd_keyval=moduleid; write++;
     {FD_DO_CHOICES(var,vars){
-        write[0].fd_key=var; write[0].fd_value=fd_get(bindings,var,FD_VOID);
+        write[0].fd_kvkey=var; 
+        write[0].fd_keyval=fd_get(bindings,var,FD_VOID);
         write++;}}
     return fd_init_slotmap(NULL,n_vars+1,kv);}
 }
@@ -118,7 +120,7 @@ FD_FASTOP fdtype eval_exprs(fdtype body,fd_lispenv inner_env)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

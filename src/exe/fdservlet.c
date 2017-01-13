@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -60,15 +60,12 @@
 
 #include "main.c"
 
-static u8_condition Startup=_("Startup");
 static u8_condition ServletStartup=_("FDServlet/STARTUP");
 static u8_condition ServletLoop=_("FDServlet/LOOP");
 static u8_condition ServletRestart=_("FDServlet/RESTART");
-static u8_condition ServletConfig=_("FDServlet/CONFIG");
 static u8_condition ServletAbort=_("FDServlet/ABORT");
 static u8_condition ServletFork=_("FDServlet/FORK");
 static u8_condition NoServers=_("No servers configured");
-static u8_condition DeletePID=_("Delete PID");
 #define Startup ServletStartup
 
 static int daemonize=0, foreground=0, pidwait=1;
@@ -1553,8 +1550,6 @@ static int reuse_webclient(u8_client ucl)
 {
   fd_webconn client=(fd_webconn)ucl;
   fdtype cgidata=client->cgidata;
-  int refcount=((FD_CONSP(cgidata))?
-                (FD_CONS_REFCOUNT((fd_cons)cgidata)):(0));
   u8_log(LOG_INFO,"FDServlet/reuse","Reusing web client %s (#%lx)",
          ucl->idstring,ucl);
   fd_decref(cgidata); client->cgidata=FD_VOID;
@@ -1670,7 +1665,7 @@ static int check_socket_path(u8_string sockname)
 static int add_server(u8_string spec)
 {
   int file_socket=((strchr(spec,'/'))!=NULL);
-  int len=strlen(spec), retval;
+  int retval;
   if (spec[0]==':') spec=spec+1;
   /* else if (spec[len-1]=='@') spec[len-1]='\0'; */
   else {}
@@ -1795,6 +1790,8 @@ int main(int argc,char **argv)
   u8_string socket_spec=NULL, load_source=NULL, load_config=NULL;
   u8_string logfile=NULL;
 
+  fd_main_errno_ptr=&errno;
+
   server_sigmask=fd_default_sigmask;
 
   /* Find the socket spec (the non-config arg) */
@@ -1880,7 +1877,7 @@ int main(int argc,char **argv)
              socket_spec,out.u8_outbuf);
       u8_close((U8_STREAM *)&out);}
     else u8_log(LOG_WARN,Startup,"Starting beingmeta fdservlet %s",socket_spec);
-    u8_log(LOG_WARN,Startup,"Copyright (C) beingmeta 2004-2016, all rights reserved");}
+    u8_log(LOG_WARN,Startup,"Copyright (C) beingmeta 2004-2017, all rights reserved");}
 
   if (socket_spec) {
     ports=u8_malloc(sizeof(u8_string)*8);
@@ -2146,7 +2143,7 @@ static int launch_servlet(u8_string socket_spec)
          "FramerD (%s) FDServlet running, %d/%d pools/indices",
          FRAMERD_REVISION,fd_n_pools,
          fd_n_primary_indices+fd_n_secondary_indices);
-  u8_message("beingmeta FramerD, (C) beingmeta 2004-2016, all rights reserved");
+  u8_message("beingmeta FramerD, (C) beingmeta 2004-2017, all rights reserved");
   if (fdwebserver.n_servers>0) {
     u8_log(LOG_WARN,ServletStartup,"Listening on %d addresses",
            fdwebserver.n_servers);
@@ -2341,7 +2338,7 @@ static int sustain_servlet(pid_t grandchild,u8_string socket_spec)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

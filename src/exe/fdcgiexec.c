@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -431,7 +431,7 @@ static int start_fcgi_server(char *socketspec)
         "FramerD (%s) fdcgiexec servlet running, %d/%d pools/indices",
         FRAMERD_REVISION,fd_n_pools,
         fd_n_primary_indices+fd_n_secondary_indices);
- u8_message("beingmeta FramerD, (C) beingmeta 2004-2016, all rights reserved");
+ u8_message("beingmeta FramerD, (C) beingmeta 2004-2017, all rights reserved");
  each_thread=0; while (each_thread<servlet_threads) {
    void *threadval;
    int retval=pthread_join(threads[each_thread],(void **)&threadval);
@@ -605,6 +605,8 @@ int main(int argc,char **argv)
   int u8_version=u8_initialize(), fd_version;
   unsigned int arg_mask = 0;  /* Bit map of args to skip */
   unsigned char *loadfile=NULL;
+
+  fd_main_errno_ptr=&errno;
 
   if (u8_version<0) {
     u8_log(LOG_ERROR,"STARTUP","Can't initialize LIBU8");

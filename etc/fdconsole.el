@@ -1,4 +1,5 @@
-;;; fdconsole.el --- emacs mode for the FramerD console   -*- Mode: emacs-lisp; lexical-binding: t; -*-
+;;; -*- Mode: emacs-lisp; lexical-binding: t; -*-
+;;; fdconsole.el --- emacs mode for the FramerD console  
 
 ;; Copyright (C) 2001-2016  beingmeta, inc
 
@@ -20,9 +21,13 @@
 (make-variable-buffer-local 'undo-limit)
 ;; The name of the FramerD scheme module for a particular buffer
 (make-variable-buffer-local 'fdconsole-module)
+;; The initial code to send to the buffer
+(make-variable-buffer-local 'fdconsole-startup)
+;; The fdconsole command line
+(make-variable-buffer-local 'fdconsole-cmdline)
 
 (defvar *framerd-keywords*
-  '("\\<do-choices-mt\\>" "\\<do-seq-mt\\>"
+  '("\\<do-choices-mt\\>" "\\<do-seq-mt\\>" "\\<for-choices-mt\\>"
     "\\<do-choices\\>" "\\<for-choices\\>" "\\<filter-choices\\>"
     "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>" "\\<forseq>\\"
     "\\<lambda\\>" "\\<ambda\\>" "\\<slambda\\>" "\\<macro\\>"
@@ -30,7 +35,9 @@
     "\\<while\\>" "\\<until\\>" "\\<onerror>\\"
     "\\<find-frames\\>" "\\<pick\\>" "\\<reject\\>"
     "\\<div\\>" "\\<p\\>" "\\<p*\\>" "\\<form\\>"
-    "\\<try-choices>\\" "\\<tryseq>\\" "\\<extdb/proc>\\"))
+    "\\<try-choices>\\" "\\<tryseq>\\" "\\<extdb/proc>\\" 
+    "\\<cond>\\" "\\<if>\\" "\\<and>\\" "\\<or>\\"
+    "\\<error>\\" "\\<irritant>\\"))
 
 ;; This gets #[ and #( to do block indents
 (defun scheme-indent-function (indent-point state)
@@ -92,12 +99,17 @@
 (put 'error+ 'scheme-indent-function 2)
 (put 'error 'scheme-indent-function 3)
 (put 'error+ 'scheme-indent-function 3)
+(put 'irritant 'scheme-indent-function 2)
 
 (put 'ambda 'scheme-indent-function 1)
 (put 'sambda 'scheme-indent-function 1)
 (put 'slambda 'scheme-indent-function 1)
 
+(put 'irritant 'scheme-indent-function 2)
 (put 'begin 'scheme-indent-function 'block-indenter)
+
+(put 'thread/call 'scheme-indent-function 2)
+(put 'thread/call+ 'scheme-indent-function 2)
 
 (put 'dolist 'scheme-indent-function 1)
 (put 'do-pool 'scheme-indent-function 1)
@@ -105,18 +117,19 @@
 (put 'doseq 'scheme-indent-function 1)
 (put 'dopool 'scheme-indent-function 1)
 (put 'do-choices 'scheme-indent-function 1)
-(put 'do-choices-mt 'scheme-indent-function 1)
-(put 'do-seq-mt 'scheme-indent-function 1)
 (put 'do-subsets 'scheme-indent-function 1)
 (put 'for-choices 'scheme-indent-function 1)
 (put 'forseq 'scheme-indent-function 1)
 (put 'filter-choices 'scheme-indent-function 1)
 (put 'try-choices 'scheme-indent-function 1)
+(put 'do-choices-mt 'scheme-indent-function 1)
+(put 'do-seq-mt 'scheme-indent-function 1)
+(put 'for-choices-mt 'scheme-indent-function 1)
 (put 'tryseq 'scheme-indent-function 1)
 (put 'while 'scheme-indent-function 1)
 (put 'until 'scheme-indent-function 1)
 (put 'with-lock 'scheme-indent-function 1)
-(put 'onerror 'scheme-indent-function 1)
+(put 'onerror 'scheme-indent-function 2)
 (put 'prog1 'scheme-indent-function 1)
 
 (put 'index-frame 'scheme-indent-function 2)
@@ -136,6 +149,7 @@
 (put 'printout-to 'scheme-indent-function 1)
 (put 'hmac-sha1 'scheme-indent-function 1)
 (put 'printout 'scheme-indent-function 'block-indenter)
+(put 'message 'scheme-indent-function 'block-indenter)
 (put 'lineout 'scheme-indent-function 'block-indenter)
 (put 'fileout 'scheme-indent-function 1)
 (put 'writeout 'scheme-indent-function 1)
@@ -313,6 +327,8 @@
 ;;; Running an fdconsole
 
 (defvar fdconsole-program "fdconsole")
+(defvar fdconsole-startup nil)
+(defvar fdconsole-cmdline nil)
 
 (autoload 'comint-check-proc "comint")
 
@@ -324,8 +340,11 @@ Runs the hooks `inferior-scheme-mode-hook' \(after the `comint-mode-hook' is
 run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
   (interactive
    (list (if current-prefix-arg
-	     (read-string "Run fdconsole: " fdconsole-program)
-	   fdconsole-program)))
+	     (read-string "Run fdconsole: "
+			  (or fdconsole-cmdline
+			      fdconsole-program))
+	   (or fdconsole-cmdline 
+	       fdconsole-program))))
   (let ((bufname (or (and scheme-buffer
 			  (get-buffer-window scheme-buffer)
 			  scheme-buffer)
@@ -345,7 +364,15 @@ run). \(Type \\[describe-mode] in the process buffer for a list of commands.)"
 	  (inferior-scheme-mode)))
     (setq scheme-program-name cmd)
     (setq scheme-buffer bufname)
-    (pop-to-buffer bufname)))
+    (setq fdconsole-cmdline cmd)
+    (pop-to-buffer bufname)
+    ;; (message "Sending '%s'" fdconsole-startup)
+    (when fdconsole-startup
+      (comint-send-string (scheme-proc) (format "%s\n" fdconsole-startup)))))
+
+(defun fdstartup (string)
+  (interactive "sStartup expressions: ")
+  (setq-local fdconsole-startup string))
 
 ;;; Defining a mode hook to define fdconsole-sender
 

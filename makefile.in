@@ -1,5 +1,5 @@
 # -*- Mode: Makefile; -*-
-# Copyright (C) 2004-2016 beingmeta, inc
+# Copyright (C) 2004-2017 beingmeta, inc
 # This file is a part of beingmeta's FramerD implementation
 
 CC	= @CC@
@@ -59,7 +59,6 @@ FDVERSION	= @FDVERSION@
 
 DTYPE_HEADERS=\
  include/framerd/fdsource.h                          \
- include/framerd/revision.h                          \
  include/framerd/config.h                            \
  include/framerd/common.h                            \
  include/framerd/defines.h                           \
@@ -89,6 +88,7 @@ DBFILE_HEADERS=include/framerd/dbfile.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
 LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
 		include/framerd/mongodb.h
+
 # Headers which don't live in include/framerd
 SRC_HEADERS=src/dtype/biginternals.h src/scheme/eval_internals.h \
 	src/exe/webcommon.h src/cmodules/fdsqlite.h 
@@ -99,6 +99,9 @@ DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o	\
           src/dtype/choices.o src/dtype/tables.o		\
           src/dtype/dtypeio.o src/dtype/textio.o		\
 	  src/dtype/fdtype.o src/dtype/support.o
+
+REVISION_H=include/framerd/revision.h
+
 DB_OBJS=src/db/fddb.o src/db/dtypestream.o		\
 	src/db/indices.o src/db/netindices.o 		\
 	src/db/compoundindices.o     			\
@@ -316,8 +319,10 @@ configure: configure.ac etc/release
 	else echo "REBUILDING configure"; autoconf; fi
 include/framerd/config.h: include/framerd/config.h.in
 	if test -x ./config.status; then ./config.status; fi
+	touch $@
 include/framerd/fdsource.h: include/framerd/fdsource.h.in
 	if test -x ./config.status; then ./config.status; fi
+	touch $@
 
 tests/dtype/makefile: tests/dtype/makefile.in ./configure
 	./configure
@@ -379,7 +384,8 @@ dbginstall:
 
 # Make rules
 
-%.o: %.c @abs_top_srcdir@/fileinfo include/framerd/revision.h include/framerd/config.h
+%.o: %.c @abs_top_srcdir@/fileinfo include/framerd/revision.h \
+		include/framerd/config.h
 	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
 	@$(MSG) CC $@ $<
 
@@ -842,7 +848,8 @@ $(LOCALEDIR)/%/LC_MESSAGES/framerd.mo: etc/intl/%.gmo
 	@$(SUDO) install -D $^ $@
 
 etc/intl/framerd.pot:
-	@XGETTEXT@ --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ $(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
+	@XGETTEXT@ --from-code=utf-8 -dfdb -oetc/intl/framerd.pot -k_ \
+		$(FRAMERD_SOURCES) $(CMODULE_SOURCES) $(FRAMERD_HEADERS)
 etc/intl/%.po: etc/intl/framerd.pot
 	@MSGMERGE@ -U $@ $<
 etc/intl/%.gmo: etc/intl/%.po
@@ -1278,7 +1285,7 @@ $(DESTDIR)@systemd_loc@:
 setup-systemd: $(DESTDIR)@systemd_loc@/framerd.service startupdirs
 $(DESTDIR)@systemd_loc@/framerd.service: $(DESTDIR)@systemd_loc@ etc/framerd.service
 	@$(MSG) Installing framerd systemd config to $(DESTDIR)@systemd_loc@/framerd.service
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
+	@$(SYSINSTALL) -m 0444 @admininstall@ \
 		   etc/framerd.service $(DESTDIR)@systemd_loc@/framerd.service
 	@if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then 	\
 	   ${MSG} systemctl daemon-reload; 			\
@@ -1399,18 +1406,21 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 	else 								\
 	  echo "Revision changed to "`@GITDESCRIBE@`; 			\
 	  mv $@ etc/old_revision.h; 					\
-	  mv etc/use_revision.h $@; 					\
+	  mv etc/use_revision.h $@;					\
 	fi
 
 # Depending on the buildmode
 $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode
 #$(STATIC_LIBS) $(SHARED_LIBS): buildmode
-$(DTYPE_OBJS): $(DTYPE_HEADERS)
-$(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS)
-$(DBFILE_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS)
-$(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS)
-$(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS) ./include/framerd/fdweb.h
-$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(SCHEME_HEADERS) ./include/framerd/texttools.h
+$(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
+$(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(REVISION_H)
+$(DBFILE_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) $(REVISION_H)
+$(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) \
+	$(SCHEME_HEADERS) $(REVISION_H)
+$(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) \
+	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
+$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBFILE_HEADERS) \
+	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
 $(DTYPE_OBJS) $(DB_OBJS) $(DBFILE_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
 $(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode

@@ -74,6 +74,7 @@ suffix=""
 rpath=""
 daemon_identity_default="daemon"
 setup_target="setup-unix"
+extra_src=
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTENV=
@@ -240,6 +241,7 @@ AC_SUBST(archflags)
 AC_SUBST(versionsh)
 AC_SUBST(definefileinfo)
 AC_SUBST(setup_target)
+AC_SUBST(extra_src)
 AC_SUBST(debugcflags)
 AC_SUBST(debugldflags)
 AC_SUBST(debuglibs)
@@ -483,6 +485,11 @@ elif test -d /etc/init; then
   default_bootsystem="sysv";
  else
   default_bootsystem="none"
+fi
+
+AC_ARG_WITH(extrasrc,--with-extrasrc Configure extra source directories for gdb,,with_extrasrc="none")
+if test $with_extrasrc != "none"; then
+   extra_src=${with_extrasrc};
 fi
 
 AC_ARG_WITH(bootsystem,--with-bootsystem Setup boot method,,with_bootsystem=$default_bootsystem)
@@ -977,6 +984,15 @@ if test $enable_threads = "yes"; then
 else
   AC_DEFINE(FD_THREADS_ENABLED,0)
 fi
+
+dnl If possible, compile for multi-threaded execution.  This both makes
+dnl  the library threadsafe and enables Scheme primitives for spawning threads
+dnl  and parallel execution
+AC_ARG_WITH(nptrlocks,--with-nptrlocks Sets the number of pointer hash locks to use)
+if test ! -z $with_nptrlocks; then
+   AC_DEFINE_UNQUOTED(FD_N_PTRLOCKS,$with_nptrlocks)
+fi
+
 
 dnl Specify the prefetch window for memory-mapped databases; when
 dnl  accessing a series of blocks, this indicates the number of blocks

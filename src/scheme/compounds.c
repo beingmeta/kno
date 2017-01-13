@@ -253,7 +253,7 @@ static fdtype tag_slotdata(fdtype tag)
   else {
     struct FD_KEYVAL *keyvals=u8_alloc_n(1,struct FD_KEYVAL);
     fdtype slotmap=FD_VOID, *slotdata=&slotmap;
-    keyvals[0].fd_key=tag_symbol; keyvals[0].fd_key=fd_incref(tag);
+    keyvals[0].fd_kvkey=tag_symbol; keyvals[0].fd_kvkey=fd_incref(tag);
     slotmap=fd_init_slotmap(NULL,1,keyvals);
     fd_register_compound(tag,slotdata,NULL);
     return slotmap;}
@@ -418,7 +418,7 @@ FD_EXPORT void fd_init_compounds_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

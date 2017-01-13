@@ -53,7 +53,9 @@ FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *dblptr);
 FD_EXPORT int fd_loglevelconfig_set(fdtype var,fdtype val,void *data);
 
 FD_EXPORT int fd_config_assignment(u8_string assign_expr);
+FD_EXPORT int fd_default_config_assignment(u8_string assign_expr);
 FD_EXPORT int fd_read_config(u8_input in);
+FD_EXPORT int fd_read_default_config(u8_input in);
 
 FD_EXPORT int fd_argv_config(int argc,char **argv) U8_DEPRECATED;
 FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
@@ -127,7 +129,7 @@ FD_EXPORT fdtype fd_exception_backtrace(u8_exception ex);
 
 FD_EXPORT int fd_report_errors_atexit;
 FD_EXPORT int fd_clear_errors(int);
-FD_EXPORT int fd_log_backtrace(u8_exception ex);
+FD_EXPORT void fd_log_exception(u8_exception ex);
 FD_EXPORT void fd_doexit(fdtype);
 
 /* Thread vars */

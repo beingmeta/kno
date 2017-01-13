@@ -124,10 +124,21 @@ static U8_MAYBE_UNUSED void *fd_ptr2cons(fdtype x,int tc)
 
 /* Hash locking for pointers */
 
+#if (SIZEOF_VOID_P == 8)
+#define FD_PTRHASH_CONSTANT 11400714819323198549ul
+#else
+#define FD_PTRHASH_CONSTANT 2654435761
+#endif
+
+U8_INLINE U8_MAYBE_UNUSED u8_int8 hashptrval(void *ptr,unsigned int mod) 
+{
+  u8_wideint intrep = (u8_wideint) ptr;
+  return (intrep * FD_PTRHASH_CONSTANT) % mod;
+}
+
 #if FD_THREADS_ENABLED
 FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
-#define FD_PTR_LOCK_OFFSET(ptr) \
- ((((unsigned long)ptr)>>16)%FD_N_PTRLOCKS)
+#define FD_PTR_LOCK_OFFSET(ptr) (hashptrval((ptr),FD_N_PTRLOCKS))
 #define FD_LOCK_PTR(ptr) \
   fd_lock_mutex(&_fd_ptr_locks[FD_PTR_LOCK_OFFSET(ptr)])
 #define FD_UNLOCK_PTR(ptr) \
@@ -508,6 +519,8 @@ FD_EXPORT fd_bigint fd_long_to_bigint(long);
   ((FD_FIXNUMP(x)) ? (FD_FIX2INT(x)) : \
    ((FD_PTR_TYPEP(x,fd_bigint_type)) && (fd_small_bigintp((fd_bigint)x))) ? \
    (fd_bigint2int((fd_bigint)x)) : (0))
+
+#define FD_INTEGERP(x) ((FD_FIXNUMP(x))||(FD_BIGINTP(x)))
 
 /* Doubles */
 

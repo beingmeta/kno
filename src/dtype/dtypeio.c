@@ -41,9 +41,9 @@ static u8_mutex dtype_unpacker_lock;
 
 static int grow_output_buffer(struct FD_BYTE_OUTPUT *b,int delta)
 {
-  unsigned int current_size=b->fd_bufptr-b->fd_bufstart;
-  unsigned int current_limit=b->fd_buflim-b->fd_bufstart, new_limit=current_limit;
-  unsigned int need_size=current_size+delta;
+  size_t current_size=b->fd_bufptr-b->fd_bufstart;
+  size_t current_limit=b->fd_buflim-b->fd_bufstart, new_limit=current_limit;
+  size_t need_size=current_size+delta;
   unsigned char *new;
   while (new_limit < need_size)
     if (new_limit>=0x40000) new_limit=new_limit+0x40000;
@@ -68,7 +68,9 @@ FD_EXPORT int fd_needs_space(struct FD_BYTE_OUTPUT *b,size_t delta)
 
 FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTPUT *b,unsigned char byte)
 {
-  if (fd_needs_space(b,1)) {*(b->fd_bufptr++)=byte; return 1;}
+  if (fd_needs_space(b,1)) {
+    *(b->fd_bufptr++)=byte; 
+    return 1;}
   else return -1;
 }
 
@@ -118,10 +120,10 @@ static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY_DTYPE *v);
   if (fd_write_4bytes(out,w)<0) return -1; else {}
 #define output_bytes(out,bytes,n)                               \
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
-static int try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
+static size_t try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
 {
-  int olen=out->fd_bufptr-out->fd_bufstart;
-  int dlen=fd_write_dtype(out,x);
+  size_t olen=out->fd_bufptr-out->fd_bufstart;
+  size_t dlen=fd_write_dtype(out,x);
   if (dlen<0)
     return -1;
   else if ((out->fd_dts_flushfn==NULL) &&
@@ -274,7 +276,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       output_bytes(out,data,len);
       return sz+len;}
     case fd_pair_type: {
-      unsigned int len=1;
+      int len=1;
       struct FD_PAIR *p=(struct FD_PAIR *) cons;
       {output_byte(out,dt_pair);}
       {output_dtype(len,out,p->fd_car);}
@@ -400,7 +402,7 @@ static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
   int dtype_len;
   fd_read_lock_struct(v);
   {
-    struct FD_KEYVAL *keyvals=v->keyvals;
+    struct FD_KEYVAL *keyvals=v->fd_keyvals;
     int i=0, kvsize=FD_XSLOTMAP_SIZE(v), len=kvsize*2;
     output_byte(out,dt_framerd_package);
     if (len < 256) {
@@ -412,8 +414,8 @@ static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
       output_byte(out,dt_slotmap);
       output_4bytes(out,len);}
     while (i < kvsize) {
-      if ((try_dtype_output(&dtype_len,out,keyvals[i].fd_key)>=0) &&
-          (try_dtype_output(&dtype_len,out,keyvals[i].fd_value)>=0)) {
+      if ((try_dtype_output(&dtype_len,out,keyvals[i].fd_kvkey)>=0) &&
+          (try_dtype_output(&dtype_len,out,keyvals[i].fd_keyval)>=0)) {
         i++;}
       else {
         fd_rw_unlock_struct(v);
@@ -471,10 +473,10 @@ static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
         struct FD_HASH_BUCKET *he=*scan++;
         struct FD_KEYVAL *kscan=&(he->fd_keyval0), *klimit=kscan+he->fd_n_entries;
         while (kscan < klimit) {
-          if (try_dtype_output(&dtype_len,out,kscan->fd_key)<0) {
+          if (try_dtype_output(&dtype_len,out,kscan->fd_kvkey)<0) {
             fd_rw_unlock_struct(v);
             return -1;}
-          if (try_dtype_output(&dtype_len,out,kscan->fd_value)<0) {
+          if (try_dtype_output(&dtype_len,out,kscan->fd_keyval)<0) {
             fd_rw_unlock_struct(v);
             return -1;}
           kscan++;}}
@@ -516,8 +518,10 @@ static int write_hashset(struct FD_BYTE_OUTPUT *out,struct FD_HASHSET *v)
 static int validate_dtype(int pos,const unsigned char *ptr,
                           const unsigned char *lim)
 {
-  if (pos < 0) return pos;
-  else if (ptr+pos >= lim) return -1;
+  if (pos < 0) 
+    return pos;
+  else if (ptr+pos >= lim) 
+    return -1;
   else {
     int code=ptr[pos];
     switch (code) {
@@ -828,8 +832,8 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
           struct FD_KEYVAL *keyvals=u8_alloc_n(n_slots,struct FD_KEYVAL);
           struct FD_KEYVAL *write=keyvals, *limit=keyvals+n_slots;
           while (write<limit) {
-            write->fd_key=fd_read_dtype(in);
-            write->fd_value=fd_read_dtype(in);
+            write->fd_kvkey=fd_read_dtype(in);
+            write->fd_keyval=fd_read_dtype(in);
             write++;}
           if (n_slots<7) {
             fdtype result=fd_make_slotmap(n_slots,n_slots,keyvals);
@@ -845,16 +849,16 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INPUT *in)
           struct FD_KEYVAL *write=keyvals, *scan=keyvals,
             *limit=keyvals+n_slots;
           while (n_read<n_slots) {
-            write->fd_key=fd_read_dtype(in);
-            write->fd_value=fd_read_dtype(in);
+            write->fd_kvkey=fd_read_dtype(in);
+            write->fd_keyval=fd_read_dtype(in);
             n_read++;
-            if (FD_EMPTY_CHOICEP(write->fd_value)) {
-              fd_decref(write->fd_key);}
+            if (FD_EMPTY_CHOICEP(write->fd_keyval)) {
+              fd_decref(write->fd_kvkey);}
             else write++;}
           limit=write;
           result=fd_init_hashtable(NULL,limit-keyvals,keyvals);
           while (scan<limit) {
-            fd_decref(scan->fd_key); fd_decref(scan->fd_value); scan++;}
+            fd_decref(scan->fd_kvkey); fd_decref(scan->fd_keyval); scan++;}
           u8_free(keyvals);
           return result;}
       case dt_hashset: case dt_small_hashset: {
@@ -1225,7 +1229,7 @@ FD_EXPORT void fd_init_dtypeio_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

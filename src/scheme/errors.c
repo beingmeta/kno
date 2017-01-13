@@ -42,9 +42,9 @@ static fdtype return_error_helper(fdtype expr,fd_lispenv env,int wrapped)
     U8_OUTPUT out; U8_INIT_OUTPUT(&out,256);
     fd_printout_to(&out,printout_body,env);
     if (wrapped) {
-      u8_exception ex=u8_new_exception
+      u8_exception sub_ex=u8_new_exception
 	((u8_condition)ex,(u8_context)cxt,out.u8_outbuf,(void *)FD_VOID,NULL);
-      return fd_init_exception(NULL,ex);}
+      return fd_init_exception(NULL,sub_ex);}
     else  {
       fd_seterr(ex,cxt,out.u8_outbuf,FD_VOID);
       return FD_ERROR_VALUE;}}
@@ -174,8 +174,9 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
         /* Clear this field so we can decref err_value while leaving
            the exception object current. */
         u8_log(LOG_WARN,"Recursive error",
-               "Error handling error during %q",toeval);
-        fd_log_backtrace(cur_ex);
+               "Error %m handling error during %q",
+               cur_ex->u8x_cond,toeval);
+        fd_log_backtrace(cur_ex,LOGWARN,"RecursiveError",128);
         exo->fd_u8ex=NULL;
         u8_restore_exception(ex);
         fd_decref(handler); fd_decref(value); fd_decref(err_value);
@@ -216,7 +217,7 @@ static fdtype report_errors_handler(fdtype expr,fd_lispenv env)
     return value;
   else if (FD_ABORTP(value)) {
     u8_exception ex=u8_current_exception;
-    fd_log_backtrace(ex);
+    fd_log_backtrace(ex,LOG_NOTICE,"CaughtError",128);
     fd_clear_errors(0);
     return FD_FALSE;}
   else return value;
@@ -484,7 +485,7 @@ FD_EXPORT void fd_init_errors_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

@@ -1,7 +1,7 @@
 ;;; -*- Mode: Scheme -*-
 
 (config! 'cachelevel 2)
-(use-module 'tighten)
+(use-module '{optimize varconfig logger mttools})
 
 (define (interval-string secs (precise #t))
   (let* ((days (inexact->exact (floor (/ secs (* 3600 24)))))
@@ -108,3 +108,7 @@
 	(repack-index in tmpfile)
 	(rename-file in (string-append in ".old"))
 	(rename-file tmpfile in))))
+
+(when (config 'optimize #t) (optimize!))
+
+

@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
 
    This file is part of beingmeta's FramerD implementation of FramerD and
    is copyright and a valuable trade secret of beingmeta, inc.  */
@@ -496,5 +496,8 @@
 
 /* Where packages are unpacked */
 #undef FD_UNPACKAGE_DIR
+
+/* The number of pointer locks to use */
+#undef FD_N_PTRLOCKS
 
 #endif

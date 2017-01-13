@@ -294,13 +294,6 @@ static fdtype capitalize1(fdtype string)
   else return fd_type_error(_("string or character"),"capitalize1",string);
 }
 
-static u8_string skip_space(u8_string s)
-{
-  u8_string last=s, scan=s; int c=u8_sgetc(&scan);
-  while (u8_isspace(c)) {last=scan; c=u8_sgetc(&scan);}
-  return last;
-}
-
 static fdtype string_stdcap(fdtype string)
 {
   if (FD_STRINGP(string)) {
@@ -1579,7 +1572,7 @@ FD_EXPORT void fd_init_strings_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

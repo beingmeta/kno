@@ -1,5 +1,7 @@
 (use-module 'fileio)
 
+(config! 'CHECKDTSIZE #t)
+
 (define dbsource #f)
 (define testpool #f)
 (define testindex #f)
@@ -16,7 +18,13 @@
 	 (set! testpool (use-pool source))
 	 (set! testindex (open-index source)))
 	(else
-	 (make-file-pool (append source ".pool") @17/0 64000)
+	 (if (config 'oidpool)
+	     (let ((flags (config 'oidpool #())))
+	       (cond ((or (null? flags) (pair? flags) (vector? flags)))
+		     ((ambiguous? flags) (set! flags (choice->vector flags)))
+		     (else (set! flags (vector flags))))
+	       (make-oidpool (append source ".pool") @17/0 64000 0 flags))
+	     (make-file-pool (append source ".pool") @17/0 64000))
 	 (if (config 'hashindex #f)
 	     (let ((flags (config 'hashindex #())))
 	       (cond ((or (null? flags) (pair? flags) (vector? flags)))
@@ -25,7 +33,7 @@
 	       (if (position 'COMPRESS (config 'hashindex #t))
 		   (begin (message "Making compressed hash index for tests")
 		     (make-hash-index (append source ".index") -500000
-				      slotids-vec (vector @17/0) #f flags))
+				 slotids-vec (vector @17/0) #f flags))
 		   (begin (message "Making hash index for tests")
 		     (make-hash-index (append source ".index") -500000
 				      #() #() #f flags))))

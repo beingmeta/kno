@@ -217,7 +217,8 @@ static fdtype use_pool(fdtype arg1,fdtype arg2)
     fdtype results=FD_EMPTY_CHOICE;
     u8_byte *copy=u8_strdup(FD_STRDATA(arg1));
     u8_byte *start=copy, *end=strchr(start,';');
-    if (end) *end='\0'; while (start) {
+    if (end) *end='\0'; 
+    while (start) {
       if (strchr(start,'@')) {
         fdtype temp;
         if (fd_use_pool(start)==NULL) {
@@ -1757,7 +1758,7 @@ static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
     {struct FD_HASH_BUCKET **slots=ht->fd_buckets; int n_slots=ht->fd_n_buckets;
       FD_DO_CHOICES(c,candidates) {
         struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);
-        fdtype rv=((result)?(result->fd_value):(FD_VOID));
+        fdtype rv=((result)?(result->fd_keyval):(FD_VOID));
         if ((FD_VOIDP(rv))||(FD_EMPTY_CHOICEP(rv))) result=NULL;
         if (((result)&&(pick))||((result==NULL)&&(!(pick)))) {
           if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
@@ -2312,7 +2313,7 @@ static fdtype oidplus(FD_OID base,int delta)
 
 static fdtype hex2oid_prim(fdtype arg,fdtype base_arg)
 {
-  char buf[64]; long offset; FD_OID base;
+  long offset;
   if (FD_STRINGP(arg))
     offset=strtol(FD_STRDATA(arg),NULL,16);
   else if (FD_FIXNUMP(arg))
@@ -2334,8 +2335,7 @@ static fdtype hex2oid_prim(fdtype arg,fdtype base_arg)
 
 static fdtype b32oid_prim(fdtype arg,fdtype base_arg)
 {
-  char buf[64]; long long offset; 
-  FD_OID base; 
+  long long offset; 
   if (FD_STRINGP(arg)) {
     offset=fd_b32_to_longlong(FD_STRDATA(arg));
     if (offset<0) {
@@ -3009,7 +3009,7 @@ FD_EXPORT void fd_init_dbfns_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

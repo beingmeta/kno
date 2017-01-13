@@ -395,8 +395,32 @@ FD_EXPORT int fd_config_assignment(u8_string assignment)
   else return -1;
 }
 
-/* This takes an argv, argc combination and processes the argv elements
-   which are configs (var=value again) */
+/* This takes a string of the form var=value */
+FD_EXPORT int fd_config_default_assignment(u8_string assignment)
+{
+  u8_byte *equals;
+  if ((equals=(strchr(assignment,'=')))) {
+    u8_byte _namebuf[64], *namebuf;
+    int namelen=equals-assignment, retval;
+    fdtype value=fd_parse_arg(equals+1);
+    if (FD_ABORTP(value))
+      return fd_interr(value);
+    if (namelen+1>64)
+      namebuf=u8_malloc(namelen+1);
+    else namebuf=_namebuf;
+    strncpy(namebuf,assignment,namelen); namebuf[namelen]='\0';
+    if (!(fd_test(configuration_table,config_intern(namebuf),FD_VOID)))
+      retval=fd_config_set_consed(namebuf,value);
+    if (namebuf!=_namebuf) u8_free(namebuf);
+    return retval;}
+  else return -1;
+}
+
+/* DEPRECATED!
+   Use fd_handle_argv() instead
+
+   This takes an argv, argc combination and processes the argv
+   elements which are configs (var=value again) */
 FD_EXPORT int fd_argv_config(int argc,char **argv)
 {
   int i=0, n=0;
@@ -415,6 +439,8 @@ FD_EXPORT int fd_argv_config(int argc,char **argv)
     else i++;
   return n;
 }
+
+/* Processing argc,argv */
 
 fdtype *fd_argv=NULL;
 int fd_argc=-1;
@@ -452,9 +478,13 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
     fdtype lisp_args=fd_make_vector(argc-1,NULL), lisp_arg=FD_VOID;
     fdtype config_args=fd_make_vector(argc-1,NULL);
     fdtype raw_args=fd_make_vector(argc,NULL);
-    fdtype *return_args=(arglen_ptr == NULL) ? (NULL) : (u8_alloc_n(argc-1,fdtype));
+    fdtype *return_args=(arglen_ptr) ? (u8_alloc_n(argc-1,fdtype)) : (NULL);
+    fdtype *_fd_argv=u8_alloc_n(argc-1,fdtype);
+
     u8_threadcheck();
+
     init_argc=argc;
+
     while (i<argc) {
       char *carg=argv[i];
       u8_string arg=u8_fromlibc(carg), eq=strchr(arg,'=');
@@ -482,6 +512,7 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
       lisp_arg=fd_parse_arg(arg);
       if (return_args) {
         return_args[n]=lisp_arg; fd_incref(lisp_arg);}
+      _fd_argv[n]=lisp_arg; fd_incref(lisp_arg);
       FD_VECTOR_SET(lisp_args,n,lisp_arg);
       FD_VECTOR_SET(string_args,n,string_arg);
       n++;}
@@ -493,10 +524,10 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
     config_argv = config_args;
     raw_argv = raw_args;
     app_argc=n;
-    fd_argv=return_args;
-    fd_argc=n;
+    fd_argv = _fd_argv;
+    fd_argc = n;
     if (return_args) {
-      *arglen_ptr=n;
+      if (arglen_ptr) *arglen_ptr=n;
       return return_args;}
     else return NULL;}
 }
@@ -549,6 +580,45 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
       else n++;
       u8_free(buf);}
   return n;
+}
+
+/* This reads a config file.  It consists of a series of entries, each of which is
+   either a list (var value) or an assignment var=value.
+   Both # and ; are comment characters */
+FD_EXPORT int fd_read_default_config(U8_INPUT *in)
+{
+  int c, n=0, count=0; u8_string buf;
+  while ((c=u8_getc(in))>=0)
+    if (c == '#') {
+      buf=u8_gets(in); u8_free(buf);}
+    else if (c == ';') {
+      buf=u8_gets(in); u8_free(buf);}
+    else if (c == '(') {
+      fdtype entry;
+      u8_ungetc(in,c);
+      entry=fd_parser(in);
+      if (FD_ABORTP(entry))
+        return fd_interr(entry);
+      else if ((FD_PAIRP(entry)) &&
+               (FD_SYMBOLP(FD_CAR(entry))) &&
+               (FD_PAIRP(FD_CDR(entry)))) {
+        if (fd_config_default(FD_SYMBOL_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
+          fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+          return -1;}
+        else {n++; count++;}
+        fd_decref(entry);}
+      else {
+        fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
+        return -1;}}
+    else if ((u8_isspace(c)) || (u8_isctrl(c))) {}
+    else {
+      u8_ungetc(in,c);
+      buf=u8_gets(in);
+      if (fd_config_default_assignment(buf)<0)
+        return fd_reterr(fd_ConfigError,"fd_read_config",buf,FD_VOID);
+      else {count++; n++;}
+      u8_free(buf);}
+  return count;
 }
 
 /* Utility configuration functions */
@@ -1036,6 +1106,20 @@ void fd_print_exception(U8_OUTPUT *out,u8_exception ex)
 }
 
 FD_EXPORT
+void fd_log_exception(u8_exception ex)
+{
+  if (ex->u8x_xdata) {
+    fdtype irritant=fd_exception_xdata(ex);
+    u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%q",
+           (U8ALT((ex->u8x_details),((U8S0())))),
+           (U8ALT((ex->u8x_context),((U8S0())))),
+           irritant);}
+  else u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%q",
+              (U8ALT((ex->u8x_details),((U8S0())))),
+              (U8ALT((ex->u8x_context),((U8S0())))));
+}
+
+FD_EXPORT
 fdtype fd_exception_backtrace(u8_exception ex)
 {
   fdtype result=FD_EMPTY_LIST;
@@ -1137,21 +1221,6 @@ int fd_clear_errors(int report)
     scan=scan->u8x_prev;
     n_errs++;}
   u8_free_exception(ex,1);
-  return n_errs;
-}
-
-FD_EXPORT
-int fd_log_backtrace(u8_exception ex)
-{
-  u8_exception scan=ex, last=NULL; int n_errs=0;
-  struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);
-  if (!(ex)) ex=u8_current_exception;
-  while (scan) {
-    sum_exception(&out,scan,last);
-    u8_log(LOG_ERR,scan->u8x_cond,"%s",out.u8_outbuf);
-    out.u8_write=out.u8_outbuf; out.u8_outbuf[0]='\0';
-    last=scan; scan=scan->u8x_prev;
-    n_errs++;}
   return n_errs;
 }
 
@@ -2070,7 +2139,6 @@ static int fd_logger(int loglevel,u8_condition c,u8_string message)
   fdtype logfns=fd_make_simple_choice(framerd_logfns);
   char *level=((abs_loglevel>MAX_LOGLEVEL)?(NULL):
                (loglevel_names[abs_loglevel]));
-  double elapsed=u8_elapsed_time();
   if (reqout) {
     struct U8_XTIME xt;
     u8_local_xtime(&xt,-1,u8_nanosecond,0);
@@ -2681,9 +2749,9 @@ void setup_logging()
 
   /* Setup sigaction handler */
 
-  memset(&sigaction_catch,0,sizeof(sigaction));
-  memset(&sigaction_exit,0,sizeof(sigaction));
-  memset(&sigaction_default,0,sizeof(sigaction));
+  memset(&sigaction_catch,0,sizeof(struct sigaction));
+  memset(&sigaction_exit,0,sizeof(struct sigaction));
+  memset(&sigaction_default,0,sizeof(struct sigaction));
 
   sigemptyset(&sigcatch_set);
   sigemptyset(&sigexit_set);
@@ -2746,7 +2814,7 @@ void setup_logging()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

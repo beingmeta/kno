@@ -575,8 +575,8 @@ FD_EXPORT
 */
 fdtype fd_block_string(int len,u8_string string)
 {
+  u8_byte *bytes=NULL;
   int length=((len>=0)?(len):(strlen(string)));
-  u8_byte *bytes=NULL; int freedata=1;
   struct FD_STRING *ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
   bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
   if (string) memcpy(bytes,string,length);
@@ -1499,7 +1499,8 @@ void fd_init_cons_c()
   i=0; while (i < FD_TYPE_MAX) fd_dtype_writers[i++]=NULL;
   i=0; while (i < FD_TYPE_MAX) fd_comparators[i++]=NULL;
   i=0; while (i<FD_TYPE_MAX) fd_hashfns[i++]=NULL;
-  i=0; while (i<FD_MAX_IMMEDIATE_TYPES+4) fd_immediate_checkfns[i++]=NULL;
+  i=0; while (i<FD_MAX_IMMEDIATE_TYPES+4) 
+         fd_immediate_checkfns[i++]=NULL;
 
   fd_immediate_checkfns[fd_constant_type]=validate_constant;
 
@@ -1568,7 +1569,7 @@ void fd_init_cons_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

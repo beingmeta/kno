@@ -64,7 +64,7 @@ static void grow_symbol_tables()
   int new_size=fd_get_hashtable_size(new_max*2);
   struct FD_SYMBOL_ENTRY **old_entries=fd_symbol_table.fd_symbol_entries;
   struct FD_SYMBOL_ENTRY **new_entries=u8_alloc_n(new_size,fd_symbol_entry);
-  fdtype *new_symbol_names=u8_alloc_n(new_max,fdtype);
+  fdtype *new_symbol_names=u8_zalloc_n(new_max,fdtype);
   {
     int i=0, lim=fd_symbol_table.fd_table_size;
     while (i < new_size) new_entries[i++]=NULL;
@@ -225,7 +225,7 @@ void fd_list_symbol_table()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

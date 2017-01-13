@@ -409,8 +409,8 @@ static fdtype get_stmt_results
           if (free_stmt) SQLFreeHandle(SQL_HANDLE_STMT,stmt);
           fd_decref(results);
           return FD_ERROR_VALUE;}
-        kv[i].fd_key=colnames[i];
-        kv[i].fd_value=value;
+        kv[i].fd_kvkey=colnames[i];
+        kv[i].fd_keyval=value;
         i++;}
       if ((FD_VOIDP(mergefn)) || (FD_TRUEP(mergefn)) || (FD_FALSEP(mergefn)))
         slotmap=fd_init_slotmap(NULL,n_cols,kv);
@@ -549,7 +549,7 @@ FD_EXPORT int fd_init_odbc()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

@@ -872,7 +872,7 @@ static fdtype attrib_merge_classes(fdtype attribs,fdtype classes)
 {
   if (!(FD_PAIRP(classes))) return attribs;
   else if (FD_PAIRP(attribs)) {
-    fdtype scan=attribs, scan_classes=classes;
+    fdtype scan=attribs;
     struct U8_OUTPUT classout; fdtype class_cons=FD_VOID;
     u8_byte _classbuf[256]; int i=0;
     while (FD_PAIRP(scan)) {
@@ -910,7 +910,8 @@ static fdtype attrib_merge_classes(fdtype attribs,fdtype classes)
     U8_INIT_STATIC_OUTPUT_BUF(classout,sizeof(_classbuf),_classbuf);
     {FD_DOLIST(class,classes) {
         if (FD_STRINGP(class)) {
-          if (i>0) u8_putc(&classout,' '); i++;
+          if (i>0) u8_putc(&classout,' ');
+          i++;
           u8_puts(&classout,FD_STRDATA(class));}}}
     return fd_conspair(class_symbol,
                        fd_conspair(fd_stream_string(&classout),attribs));}
@@ -1080,7 +1081,7 @@ struct CGICALL {
   struct U8_OUTPUT *cgiout; int outlen;
   fdtype result;};
 
-static int cgiexecstep(void *data)
+static int U8_MAYBE_UNUSED cgiexecstep(void *data)
 {
   struct CGICALL *call=(struct CGICALL *)data;
   fdtype proc=call->proc, cgidata=call->cgidata;
@@ -1412,7 +1413,7 @@ FD_EXPORT void fd_init_cgiexec_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

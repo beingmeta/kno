@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -48,30 +48,6 @@ static int n_configs=0;
 
 static u8_condition FileWait=_("FILEWAIT");
 
-static void identify_application(int argc,char **argv,char *dflt)
-{
-  int i=1;
-  u8_string appid=NULL;
-
-  while (i<argc)
-    if (isconfig(argv[i])) i++;
-    else {
-      char *start=strchr(argv[i],'/'), *copy, *dot, *slash;
-      if (start==NULL) start=strchr(argv[i],'\\');
-      if (start==NULL) start=argv[i];
-      if (((*start)=='/') || ((*start)=='\\')) start++;
-      if ((*start=='\0') || (argv[i][0]=='/') || (argv[i][0]=='\\'))
-        start=argv[1];
-      copy=u8_strdup(start); dot=strchr(copy,'.');
-      if (dot) *dot='\0';
-      slash=strrchr(copy,'/');
-      if ((slash)&&(slash[1])) u8_default_appid(slash+1);
-      else u8_default_appid(copy);
-      return;}
-  
-  u8_default_appid(dflt);
-}
-
 static void exit_fdexec()
 {
   if (!(quiet_console)) fd_status_message();
@@ -87,7 +63,7 @@ static fdtype chain_prim(int n,fdtype *args)
     int i=0, cargc=0, rv=-1;
     /* This stream will contain the chaining message */
     struct U8_OUTPUT argstring;
-    char **cargv=u8_alloc_n(n+n_configs+3,charp);
+    char **cargv=u8_alloc_n(n+n_configs+4,charp);
     U8_INIT_STATIC_OUTPUT(argstring,512);
     cargv[cargc++]=exe_arg;
     cargv[cargc++]=file_arg;
@@ -103,9 +79,14 @@ static fdtype chain_prim(int n,fdtype *args)
         u8_free(as_string);
         cargv[cargc]=libc_string;
         i++; cargc++;}
+    u8_puts(&argstring,"LOGAPPEND=yes ");
+    cargv[cargc++]=u8_strdup("LOGAPPEND=yes");
     i=0; while (i<n_configs) {
-      u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
-      cargv[cargc++]=configs[i++];}
+      char *config=configs[i];
+      if (strncmp(config,"LOGAPPEND=",10)) {
+        u8_printf(&argstring," %s",u8_fromlibc(configs[i]));
+        cargv[cargc++]=configs[i++];}
+      else i++;}
     cargv[cargc++]=NULL;
     fflush(stdout); fflush(stderr);
     u8_log(LOG_INFO,"CHAIN","Closing pools and indices");
@@ -134,7 +115,8 @@ static void print_args(int argc,char **argv)
 
 static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
                            u8_string *exe_namep,
-                           u8_string *source_filep)
+                           u8_string *source_filep,
+                           u8_string appid_prefix)
 {
   fdtype *args=NULL;
   u8_string tmp_string=NULL, source_file=NULL, exe_name=NULL;
@@ -144,14 +126,14 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
   if (getenv("FD_SHOWARGV")) print_args(argc,argv);
 
   exe_arg=argv[0];
-  
+
   tmp_string=u8_fromlibc(exe_arg);
   exe_name=u8_basename(tmp_string,NULL);
   u8_free(tmp_string); tmp_string=NULL;
   if (exe_namep) {
     *exe_namep=exe_name;
     tmp_string=NULL;}
-  
+
   while (i<argc) {
     if (isconfig(argv[i])) {
       u8_log(LOG_INFO,"FDConfig","    %s",argv[i]);
@@ -163,34 +145,37 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
       arg_mask |= (1<<i);
       file_arg=argv[i++];
       source_file=u8_fromlibc(file_arg);}}
-  
- if (source_file==NULL) {
-   int i=0;
-   fprintf(stderr,"argc=%d\n",argc);
-   while (i<argc) {
-     fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
-     i++;}
-   fprintf(stderr,"Usage: %s filename [config=val]*\n",exe_name);
-   exit(EXIT_FAILURE);}
- else if (source_filep) {
-   *source_filep=source_file;}
- else {}
- 
+
+  if (source_file==NULL) {
+    int i=0;
+    fprintf(stderr,"argc=%d\n",argc);
+    while (i<argc) {
+      fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
+      i++;}
+    fprintf(stderr,"Usage: %s filename [config=val]*\n",exe_name);
+    exit(EXIT_FAILURE);}
+  else if (source_filep) {
+    *source_filep=source_file;}
+  else {}
+
   fd_init_dtypelib();
 
   args = fd_handle_argv(argc,argv,arg_mask,arglenp);
 
   if (u8_appid()==NULL) {
-    if (source_file) {
-      u8_string base=u8_basename(source_file,"*");
+    u8_string base;
+    if (source_file)
+      base=u8_basename(source_file,"*");
+    else base=u8_basename(exe_name,NULL);
+    if (appid_prefix==NULL)
       u8_default_appid(base);
-      u8_free(base);}
     else {
-      u8_string base=u8_basename(exe_name,NULL);
-      u8_default_appid(base);
-      if (exe_namep==NULL) u8_free(exe_name);
-      u8_free(base);}}
-  
+      u8_string combined=u8_string_append(appid_prefix,base,NULL);
+      u8_default_appid(combined);
+      u8_free(combined);}
+    if (exe_namep==NULL) u8_free(exe_name);
+    u8_free(base);}
+
   if (source_filep==NULL) u8_free(source_file);
   if (exe_namep==NULL) u8_free(exe_name);
 
@@ -203,10 +188,7 @@ int do_main(int argc,char **argv,
 {
   fd_lispenv env=fd_working_environment();
   fdtype main_proc=FD_VOID, result=FD_VOID;
-  int i=1, retval=0;
-
-  if (exe_name==NULL)
-    args=handle_argv(argc,argv,&n_args,&exe_name,&source_file);
+  int retval=0;
 
   u8_register_source_file(_FILEINFO);
 
@@ -334,8 +316,6 @@ int do_main(int argc,char **argv,
   if (FD_HASHTABLEP(env->bindings))
     fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
   fd_recycle_environment(env);
-  i=0; while (i<n_args) {fd_decref(args[i]); i++;}
-  u8_free(args);
   fd_decref(main_proc);
   return retval;
 }
@@ -343,14 +323,28 @@ int do_main(int argc,char **argv,
 #ifndef FDEXEC_INCLUDED
 int main(int argc,char **argv)
 {
-  return do_main(argc,argv,NULL,NULL,NULL,0);
+  u8_string source_file=NULL, exe_name=NULL;
+  fdtype *args=NULL; size_t n_args=0; 
+  int i=0, retval=0;
+
+  fd_main_errno_ptr=&errno;
+
+  args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);
+
+  retval = do_main(argc,argv,exe_name,source_file,args,n_args);
+
+  i=0; while (i<n_args) {
+    fdtype arg=args[i++]; fd_decref(arg);}
+  u8_free(args);
+
+  return retval;
 }
 #endif
   
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

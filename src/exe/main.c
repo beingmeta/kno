@@ -23,13 +23,13 @@ FD_EXPORT int _fd_showenv(fd_lispenv env)
 
 static char **exenamep, *exename;
 
-static void set_exename(char **argv)
+static void U8_MAYBE_UNUSED set_exename(char **argv)
 {
   exenamep=&(argv[0]);
   exename=*exenamep;
 }
 
-static void tweak_exename(char *str,int off,char altc)
+static void U8_MAYBE_UNUSED tweak_exename(char *str,int off,char altc)
 {
   char *starts=strstr(exename,str);
   if (starts) {

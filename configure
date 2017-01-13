@@ -739,6 +739,7 @@ memtest_prefix
 debuglibs
 debugldflags
 debugcflags
+extra_src
 setup_target
 definefileinfo
 versionsh
@@ -818,6 +819,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -856,6 +858,7 @@ with_duma
 with_stackcheck
 with_execwrapper
 with_optinclude
+with_extrasrc
 with_bootsystem
 with_systemd
 with_optlib
@@ -892,6 +895,7 @@ enable_dtblock
 with_i18n
 enable_checkptrs
 enable_threads
+with_nptrlocks
 enable_mmap_prefetch
 with_editline
 with_libu8
@@ -978,6 +982,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1230,6 +1235,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1367,7 +1381,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1520,6 +1534,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1589,6 +1604,7 @@ Optional Packages:
 --with-stackcheck Build with native stack checking
 --with-execwrapper program to use when calling exec()
 --with-optinclude Use optional include directory
+--with-extrasrc Configure extra source directories for gdb
 --with-bootsystem Setup boot method
 --with-systemd Specify systemd install directory
 --with-optlib Use optional library directory
@@ -1618,6 +1634,7 @@ Optional Packages:
 --with-dload-path location
 --with-boot-config configstring
 --without-i18n built and install message catalogs
+--with-nptrlocks Sets the number of pointer hash locks to use
 --without-editline Use the editline with fdconsole
 --without-libu8 Use libu8 includes
 --without-sudo use sudo with install
@@ -2880,6 +2897,7 @@ suffix=""
 rpath=""
 daemon_identity_default="daemon"
 setup_target="setup-unix"
+extra_src=
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r -o"
 TESTENV=
@@ -3014,6 +3032,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -5960,6 +5979,18 @@ elif test -d /etc/init; then
   default_bootsystem="sysv";
  else
   default_bootsystem="none"
+fi
+
+
+# Check whether --with-extrasrc was given.
+if test "${with_extrasrc+set}" = set; then :
+  withval=$with_extrasrc;
+else
+  with_extrasrc="none"
+fi
+
+if test $with_extrasrc != "none"; then
+   extra_src=${with_extrasrc};
 fi
 
 
@@ -9125,6 +9156,20 @@ else
   $as_echo "#define FD_THREADS_ENABLED 0" >>confdefs.h
 
 fi
+
+
+# Check whether --with-nptrlocks was given.
+if test "${with_nptrlocks+set}" = set; then :
+  withval=$with_nptrlocks;
+fi
+
+if test ! -z $with_nptrlocks; then
+   cat >>confdefs.h <<_ACEOF
+#define FD_N_PTRLOCKS $with_nptrlocks
+_ACEOF
+
+fi
+
 
 # Check whether --enable-mmap_prefetch was given.
 if test "${enable_mmap_prefetch+set}" = set; then :

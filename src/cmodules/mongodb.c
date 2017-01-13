@@ -138,7 +138,7 @@ static bson_t *get_projection(fdtype opts,int flags)
 
 static int grow_dtype_vec(fdtype **vecp,size_t n,size_t *vlenp)
 {
-  fdtype *vec=*vecp; size_t vlen=*vlenp, new_len;
+  fdtype *vec=*vecp; size_t vlen=*vlenp;
   if (n<vlen) return 1;
   else if (vec==NULL) {
     vec=u8_alloc_n(64,fdtype);
@@ -684,7 +684,7 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
   if (collection) {
     fdtype results=FD_EMPTY_CHOICE;
-    mongoc_cursor_t *cursor=NULL; bson_error_t error;
+    mongoc_cursor_t *cursor=NULL;
     const bson_t *doc;
     fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
     fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
@@ -748,7 +748,7 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
   mongoc_client_t *client=NULL;
   mongoc_collection_t *collection=open_collection(domain,&client,flags);
   if (collection) {
-    mongoc_cursor_t *cursor; bson_error_t error;
+    mongoc_cursor_t *cursor;
     const bson_t *doc;
     bson_t *q, *fields=get_projection(opts,flags);
     mongoc_read_prefs_t *rp=get_read_prefs(opts);
@@ -890,7 +890,7 @@ static fdtype collection_command(fdtype arg,fdtype command,
     bson_t *cmd=fd_dtype2bson(command,flags,opts);
     bson_t *flds=fd_dtype2bson(fields,flags,opts);
     if (cmd) {
-      const bson_t *doc; bson_error_t error;
+      const bson_t *doc;
       fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
       fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
       fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
@@ -926,7 +926,7 @@ static fdtype db_command(fdtype arg,fdtype command,
     bson_t *cmd=fd_dtype2bson(command,flags,opts);
     bson_t *flds=fd_dtype2bson(fields,flags,opts);    
     if (cmd) {
-      const bson_t *doc; bson_error_t error;
+      const bson_t *doc;
       fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
       fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
       fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
@@ -1016,7 +1016,6 @@ static fdtype db_simple_command(fdtype arg,fdtype command,
     bson_t response; bson_error_t error;
     bson_t *cmd=fd_dtype2bson(command,flags,opts);
     if (cmd) {
-      const bson_t *doc;
       if (mongoc_client_command_simple
           (client,srv->dbname,cmd,NULL,&response,&error)) {
         fdtype result=fd_bson2dtype(&response,flags,opts);
@@ -1066,7 +1065,7 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
   fdtype opts=combine_opts(opts_arg,domain->opts);
   int flags=getflags(opts,domain->flags);
   mongoc_client_t *connection;
-  mongoc_cursor_t *cursor=NULL; bson_error_t error;
+  mongoc_cursor_t *cursor=NULL;
   mongoc_collection_t *collection=open_collection(domain,&connection,flags);
   fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
   fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
@@ -1151,7 +1150,6 @@ static fdtype mongodb_read(fdtype cursor,fdtype howmany,fdtype opts_arg)
 {
   struct FD_MONGODB_CURSOR *c=(struct FD_MONGODB_CURSOR *)cursor;
   int n=FD_FIX2INT(howmany), i=0;
-  fdtype opts=c->opts;
   if (n==0) return FD_EMPTY_CHOICE;
   else {
     fdtype results=FD_EMPTY_CHOICE, *vec=NULL, opts=c->opts;
@@ -1193,7 +1191,6 @@ static fdtype mongodb_readvec(fdtype cursor,fdtype howmany,fdtype opts_arg)
 {
   struct FD_MONGODB_CURSOR *c=(struct FD_MONGODB_CURSOR *)cursor;
   int n=FD_FIX2INT(howmany), i=0;
-  fdtype opts=c->opts;
   if (n==0) return fd_make_vector(0,NULL);
   else {
     fdtype result=fd_make_vector(n,NULL);
@@ -1268,7 +1265,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       break;}
     case fd_choice_type: case fd_achoice_type: {
       struct FD_BSON_OUTPUT rout;
-      bson_t arr; char buf[16]; int i=0;
+      bson_t arr; char buf[16];
       ok=bson_append_array_begin(out,key,keylen,&arr);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
       rout.doc=&arr; rout.flags=b.flags; 
@@ -1305,7 +1302,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       break;}
     case fd_slotmap_type: case fd_hashtable_type: {
       struct FD_BSON_OUTPUT rout;
-      bson_t doc; char buf[16];
+      bson_t doc;
       fdtype keys=fd_getkeys(val);
       ok=bson_append_document_begin(out,key,keylen,&doc);
       memset(&rout,0,sizeof(struct FD_BSON_OUTPUT));
@@ -1335,7 +1332,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       fdtype tag=compound->fd_typetag, *elts=FD_COMPOUND_ELTS(val);
       int len=FD_COMPOUND_LENGTH(val);
       struct FD_BSON_OUTPUT rout;
-      bson_t doc; char buf[16];
+      bson_t doc;
       if (tag==mongovec_symbol)
         ok=bson_append_array_begin(out,key,keylen,&doc);
       else ok=bson_append_document_begin(out,key,keylen,&doc);
@@ -1423,7 +1420,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
 
 static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
 {
-  bson_t *out=b.doc; int flags=b.flags;
+  int flags=b.flags;
   struct U8_OUTPUT keyout; unsigned char buf[256];
   const char *keystring=NULL; int keylen; bool ok=true;
   fdtype fieldmap=b.fieldmap, store_value=val;
@@ -1433,8 +1430,8 @@ static bool bson_append_keyval(FD_BSON_OUTPUT b,fdtype key,fdtype val)
     if (flags&FD_MONGODB_SLOTIFY) {
       struct FD_KEYVAL *opmap=fd_sortvec_get(key,mongo_opmap,mongo_opmap_size);
       if (FD_EXPECT_FALSE(opmap!=NULL))  {
-        if (FD_STRINGP(opmap->fd_value)) {
-          fdtype mapped=opmap->fd_value;
+        if (FD_STRINGP(opmap->fd_keyval)) {
+          fdtype mapped=opmap->fd_keyval;
           keystring=FD_STRDATA(mapped);
           keylen=FD_STRLEN(mapped);}}
       if (keystring==NULL) {
@@ -1660,6 +1657,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
         (((((bytes[4]<<8)|(bytes[5]))<<8)|(bytes[6]))<<8)|(bytes[7]);
       unsigned int lo=
         (((((bytes[8]<<8)|(bytes[9]))<<8)|(bytes[10]))<<8)|(bytes[11]);
+      memset(&dtoid,0,sizeof(dtoid));
       FD_SET_OID_HI(dtoid,hi); FD_SET_OID_LO(dtoid,lo);
       value=fd_make_oid(dtoid);}
     else {
@@ -1726,7 +1724,6 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
           value=compound;}
         fd_decref(keys); fd_decref(tag);}}
     else if (BSON_ITER_HOLDS_ARRAY(in)) {
-      unsigned int len; fdtype *data;
       int flags=b.flags, choicevals=(flags&FD_MONGODB_CHOICEVALS);
       if ((choicevals)&&(symbolized))
         value=bson_read_choice(b);
@@ -1784,7 +1781,7 @@ static fdtype bson_read_vector(FD_BSON_INPUT b)
 
 static fdtype bson_read_choice(FD_BSON_INPUT b)
 {
-  struct FD_BSON_INPUT r; bson_iter_t child; int n=0;
+  struct FD_BSON_INPUT r; bson_iter_t child;
   fdtype *data=u8_alloc_n(16,fdtype), *write=data, *lim=data+16;
   bson_iter_recurse(b.iter,&child);
   r.iter=&child; r.flags=b.flags; 
@@ -1894,7 +1891,7 @@ static fdtype mongovec_lexpr(int n,fdtype *values)
 
 static fdtype make_mongovec(fdtype vec)
 {
-  fdtype result=FD_VOID, *elts=FD_VECTOR_ELTS(vec);
+  fdtype *elts=FD_VECTOR_ELTS(vec);
   int n=FD_VECTOR_LENGTH(vec), i=0;
   while (i<n) {fdtype v=elts[i++]; fd_incref(v);}
   return fd_init_compound_from_elts(NULL,mongovec_symbol,0,n,elts);
@@ -2016,7 +2013,7 @@ static void add_to_mongo_opmap(u8_string keystring)
                       &mongo_opmap_space,
                       1);
   if (entry) 
-    entry->fd_value=fdtype_string(keystring);
+    entry->fd_keyval=fdtype_string(keystring);
   else u8_log(LOG_WARN,"Couldn't add %s to the mongo opmap",keystring);
 }
 
@@ -2508,7 +2505,7 @@ FD_EXPORT int fd_init_mongodb()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

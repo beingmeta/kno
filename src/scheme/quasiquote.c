@@ -224,13 +224,13 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
 static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
 {
   int i=0, len=FD_SLOTMAP_SIZE(obj);
-  struct FD_KEYVAL *keyvals=FD_XSLOTMAP(obj)->keyvals;
+  struct FD_KEYVAL *keyvals=FD_XSLOTMAP(obj)->fd_keyvals;
   fdtype result=fd_empty_slotmap();
   struct FD_SLOTMAP *new_slotmap=FD_XSLOTMAP(result);
   while (i < len) {
     int free_slotid=0;
-    fdtype slotid=keyvals[i].fd_key;
-    fdtype value=keyvals[i].fd_value;
+    fdtype slotid=keyvals[i].fd_kvkey;
+    fdtype value=keyvals[i].fd_keyval;
     if (FD_PAIRP(slotid)) {
       slotid=fd_quasiquote(slotid,env,level); free_slotid=1;}
     if ((FD_EMPTY_CHOICEP(slotid))||(FD_VOIDP(slotid))) {
@@ -319,7 +319,7 @@ FD_EXPORT void fd_init_quasiquote_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

@@ -882,11 +882,11 @@ static int embeddedp(fdtype focus,fdtype expr)
     int slotmap_size;
     fd_read_lock_struct(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
-    scan=sm->keyvals; limit=sm->keyvals+slotmap_size;
+    scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
     while (scan<limit)
-      if (embeddedp(focus,scan->fd_key)) {
+      if (embeddedp(focus,scan->fd_kvkey)) {
         fd_rw_unlock_struct(sm); return 1;}
-      else if (embeddedp(focus,scan->fd_value)) {
+      else if (embeddedp(focus,scan->fd_keyval)) {
         fd_rw_unlock_struct(sm); return 1;}
       else scan++;
     fd_rw_unlock_struct(sm);
@@ -1875,8 +1875,6 @@ static fdtype obj2html_prim(fdtype obj,fdtype tag)
 
 /* XMLEVAL primitives */
 
-static fdtype do_xmleval(fdtype xml,fdtype scheme_env,fdtype xml_env);
-
 static fdtype xmleval_handler(fdtype expr,fd_lispenv env)
 {
   fdtype xmlarg=fd_get_arg(expr,1);
@@ -1985,7 +1983,8 @@ static fdtype output_javascript(u8_output out,fdtype args,fd_lispenv env)
     else u8_printf(out,"%s(",FD_STRDATA(head));
     {FD_DOELTS(elt,body,count) {
         fdtype val;
-        if (i>0) u8_putc(out,','); i++;
+        if (i>0) u8_putc(out,','); 
+        i++;
         if (FD_NEED_EVALP(elt))
           val=fd_eval(elt,env);
         else val=fd_incref(elt);
@@ -2344,7 +2343,7 @@ FD_EXPORT void fd_init_xmloutput_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

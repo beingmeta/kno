@@ -50,13 +50,17 @@ fd_exception fd_SchemaInconsistency=_("Inconsistent schema reference and value d
 
 static fd_exception InvalidOffset=_("Invalid offset in OIDPOOL");
 
+#ifndef FD_INIT_ZBUF_SIZE
+#define FD_INIT_ZBUF_SIZE 16000
+#endif
+
 #define FD_OIDPOOL_LOAD_POS      0x10
 
 #define FD_OIDPOOL_LABEL_POS             0x18
 #define FD_OIDPOOL_METADATA_POS          0x24
 #define FD_OIDPOOL_SCHEMAS_POS           0x30
 
-#define FD_OIDPOOL_FETCHBUF_SIZE 4096
+#define FD_OIDPOOL_FETCHBUF_SIZE 8000
 
 /* OIDPOOLs are the next generation of object pool data file.  While
     previous formats have all stored OIDs for years and years, OIDPOOLs
@@ -76,7 +80,7 @@ static fd_exception InvalidOffset=_("Invalid offset in OIDPOOL");
    Header consists of
 
    0x00 XXXX     Magic number
-   0x04 XXXX     Base OID of pool (8 bytes
+   0x04 XXXX     Base OID of pool (8 bytes)
         XXXX
    0x0c XXXX     Capacity of pool
    0x10 XXXX     Load of pool
@@ -109,7 +113,7 @@ static fd_exception InvalidOffset=_("Invalid offset in OIDPOOL");
      0x001c      Compression function for blocks:
                     0= no compression
                     1= libz compression
-                    2= libbz2 compression
+                    2= libbz2 compression -- Not yet implemented
                     3-7 reserved for future use
      0x0020      Set if this pool is intended to be read-only
 
@@ -213,7 +217,21 @@ static int get_chunkref_size(fd_oidpool p)
   return -1;
 }
 
-static int convert_FD_B40_ref(FD_CHUNK_REF ref,unsigned int *word1,unsigned int *word2)
+static size_t get_maxpos(fd_oidpool p)
+{
+  switch (p->offtype) {
+  case FD_B32: 
+    return ((size_t)(((size_t)1)<<32));
+  case FD_B40: 
+    return ((size_t)(((size_t)1)<<40));
+  case FD_B64: 
+    return ((size_t)(((size_t)1)<<63));
+  default:
+    return -1;}
+}
+
+static int convert_FD_B40_ref(FD_CHUNK_REF ref,unsigned int *word1,
+                              unsigned int *word2)
 {
   if (ref.size>=0x1000000) return -1;
   else if (ref.off<0x100000000LL) {
@@ -225,7 +243,8 @@ static int convert_FD_B40_ref(FD_CHUNK_REF ref,unsigned int *word1,unsigned int 
   return 0;
 }
 
-static unsigned char *read_chunk(fd_oidpool p,fd_off_t off,uint size,uchar *buf)
+static unsigned char *read_chunk(fd_oidpool p,fd_off_t off,
+                                 uint size,uchar *buf)
 {
   if (p->mmap) {
     if (buf==NULL) buf=u8_malloc(size);
@@ -248,7 +267,9 @@ static unsigned char *read_chunk(fd_oidpool p,fd_off_t off,uint size,uchar *buf)
 /* Compression functions */
 
 static unsigned char *do_zuncompress
-   (unsigned char *bytes,int n_bytes,unsigned int *dbytes,unsigned char *init_dbuf)
+   (unsigned char *bytes,int n_bytes,
+    unsigned int *dbytes,
+    unsigned char *init_dbuf)
 {
   fd_exception error=NULL; int zerror;
   unsigned long csize=n_bytes, dsize, dsize_max;
@@ -295,7 +316,7 @@ static unsigned char *do_zcompress
     if (zerror == Z_MEM_ERROR) {
       error=_("ZLIB ran out of memory"); break;}
     else if (zerror == Z_BUF_ERROR) {
-      /* We don't use realloc because there's not point in copying
+      /* We don't use realloc because there's no point in copying
          the data and we hope the overhead of free/malloc beats
          realloc when we're doubling the buffer size. */
       if (cbuf!=init_cbuf) u8_free(cbuf);
@@ -333,7 +354,8 @@ static void sort_schema(fdtype *v,int n)
     for (i = 0, j = n; ; ) {
       do --j; while (v[j] > v[0]);
       do ++i; while (i < j && v[i] < v[0]);
-      if (i >= j) break; lispv_swap(&v[i], &v[j]);}
+      if (i >= j) break; else {}
+      lispv_swap(&v[i], &v[j]);}
     lispv_swap(&v[j], &v[0]);
     ln = j;
     rn = n - ++j;
@@ -695,7 +717,9 @@ static int oidpool_load(fd_pool p)
     return load;}
 }
 
-static fdtype read_oid_value(fd_oidpool op,fd_byte_input in,const u8_string cxt)
+static fdtype read_oid_value(fd_oidpool op,
+                             fd_byte_input in,
+                             const u8_string cxt)
 {
   int zip_code;
   zip_code=fd_read_zint(in);
@@ -719,7 +743,9 @@ static fdtype read_oid_value(fd_oidpool op,fd_byte_input in,const u8_string cxt)
     else return fd_err(fd_SchemaInconsistency,cxt,op->cid,FD_VOID);}
 }
 
-static fdtype read_oid_value_at(fd_oidpool op,FD_CHUNK_REF ref,const u8_string cxt)
+static fdtype read_oid_value_at(fd_oidpool op,
+                                FD_CHUNK_REF ref,
+                                const u8_string cxt)
 {
   if (ref.off==0) return FD_VOID;
   else if ((op->compression==FD_NOCOMPRESS) && (op->mmap)) {
@@ -887,7 +913,7 @@ static int get_schema_id(fd_oidpool op,fdtype value)
       tmp_slotids=_tmp_slotids;
     else tmp_slotids=u8_alloc_n(size,fdtype);
     while (i<size) {
-      tmp_slotids[i]=sm->keyvals[i].fd_key; i++;}
+      tmp_slotids[i]=sm->fd_keyvals[i].fd_kvkey; i++;}
     /* assert(schema_sortedp(tmp_slotids,size)); */
     if (tmp_slotids==_tmp_slotids)
       return find_schema_byval(op,tmp_slotids,size);
@@ -927,11 +953,11 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
           i++;}}
       else {
         struct FD_SLOTMAP *sm=(fd_slotmap)value;
-        struct FD_KEYVAL *data=sm->keyvals;
+        struct FD_KEYVAL *data=sm->fd_keyvals;
         int i=0, size=FD_XSLOTMAP_SIZE(sm);
         fd_write_zint(tmpout,size);
         while (i<size) {
-          fd_write_dtype(tmpout,data[se->mapin[i]].fd_value);
+          fd_write_dtype(tmpout,data[se->mapin[i]].fd_keyval);
           i++;}}}}
   else {
     fd_write_byte(tmpout,0);
@@ -963,11 +989,14 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     u8_alloc_n(n,struct OIDPOOL_SAVEINFO);
   struct FD_DTYPE_STREAM *stream=&(op->stream);
   struct FD_BYTE_OUTPUT tmpout;
-  unsigned char *zbuf=u8_malloc(4096);
-  unsigned int i=0, zbuf_size=4096;
+  unsigned char *zbuf=u8_malloc(FD_INIT_ZBUF_SIZE);
+  unsigned int i=0, zbuf_size=FD_INIT_ZBUF_SIZE;
+  unsigned int init_buflen=2048*n;
   fd_off_t endpos, recovery_pos;
+  size_t maxpos=get_maxpos(op);
   FD_OID base=op->base;
-  FD_INIT_BYTE_OUTPUT(&tmpout,4096);
+  if (init_buflen>262144) init_buflen=262144;
+  FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
   fd_lock_struct(op); endpos=fd_endpos(stream);
   if ((op->dbflags)&(FD_OIDPOOL_DTYPEV2))
     tmpout.fd_dts_flags=tmpout.fd_dts_flags|FD_DTYPEV2;
@@ -979,12 +1008,38 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.fd_bufstart);
       fd_unlock_struct(op);
       return n_bytes;}
+    if ((endpos+n_bytes)>=maxpos) {
+      u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.fd_bufstart);
+      u8_seterr(fd_DataFileOverflow,"oidpool_storen",
+                u8_strdup(p->cid));
+      return -1;}
+
     saveinfo[i].chunk.off=endpos; saveinfo[i].chunk.size=n_bytes;
     saveinfo[i].oidoff=FD_OID_DIFFERENCE(addr,base);
-    endpos=endpos+n_bytes; i++;}
+
+    endpos=endpos+n_bytes;
+    i++;}
+
+  /* Now, write recovery information, which lets the state of the pool
+     be reconstructed if something goes wrong while storing the
+     offsets table. */
+
+  /* The recovery information is a block with the following format:
+      #### load (4 bytes)
+      #### number of changed OIDs (4 bytes)
+      #### changed oid offset from base (4 bytes)
+      #### location of new value block (8 bytes)
+      ####
+      #### length of new value block (8 bytes)
+      ####
+      #### file offset for the beginning of the recovery block
+      ####
+
+      When the recovery block is active, the file id (first four
+      bytes) is changed to FD_OIDPOOL_TO_RECOVER.
+  */
   recovery_pos=endpos;
   qsort(saveinfo,n,sizeof(struct OIDPOOL_SAVEINFO),compare_oidoffs);
-  /* Now, write recovery information */
   fd_dtswrite_4bytes(stream,op->load);
   fd_dtswrite_4bytes(stream,n);
   i=0; while (i<n) {
@@ -1045,9 +1100,10 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
 #else
     int i=0, refsize=get_chunkref_size(fp), offsize=fp->offsets_size;
     unsigned int *offsets=
-      u8_realloc(fp->offsets,refsize*fp->load,unsigned int);
+      u8_realloc(fp->offsets,(refsize*(fp->load)*sizeof(u8_int4)));
     if (offsets) {
-      fp->offsets=offsets; fp->offsets_size=refsize*fp->load;}
+      fp->offsets=offsets;
+      fp->offsets_size=refsize*fp->load;}
     else {
       u8_log(LOG_WARN,"Realloc failed","When writing offsets");
       return -1;}
@@ -1340,7 +1396,9 @@ static void reload_offsets(fd_oidpool fp,int lock,int write)
       fd_hashtable_op(&(fp->cache),fd_table_replace,changed_oid,FD_VOID);
       oscan++; nscan++;}
   u8_free(fp->offsets);
-  fp->offsets=offsets; fp->load=new_load; fp->offsets_size=new_load*get_chunkref_size(fp);
+  fp->offsets=offsets;
+  fp->load=new_load;
+  fp->offsets_size=new_load*get_chunkref_size(fp);
   update_modtime(fp);
   if (lock) fd_unlock_struct(fp);
 #endif
@@ -1445,7 +1503,7 @@ FD_EXPORT void fd_init_oidpools_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

@@ -18,6 +18,8 @@
 #include <libu8/u8printf.h>
 #include <libu8/u8contour.h>
 
+#include <errno.h>
+
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -554,7 +556,6 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args);
 
 FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 {
-  fdtype result=FD_VOID;
   fd_ptr_type ftype=FD_PRIM_TYPE(fp);
   if (FD_PPTRP(fp)) fp=fd_pptr_ref(fp);
   if (fd_functionp[ftype]) {
@@ -595,7 +596,6 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
       else args=argvec;
       /* Check typeinfo */
       if (FD_EXPECT_FALSE((f->typeinfo!=NULL))) {
-        fdtype result=FD_VOID;
         /* Check typeinfo */
         int *typeinfo=f->typeinfo;
         int i=0;
@@ -626,6 +626,11 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
 static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
 {
   fdtype result; u8_string name=((f->name!=NULL)?(f->name):((u8_string)"DCALL"));
+  if (errno) {
+    u8_string cond=u8_strerror(errno);
+    u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) before %s",
+           errno,cond,U8ALT(name,"primcall"));
+    errno=0;}
   if (stackcheck()) {
     U8_WITH_CONTOUR(f->name,0)
       result=dcall_inner(f,n,args,static_args);
@@ -633,6 +638,11 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
       U8_CLEAR_CONTOUR();
       result = FD_ERROR_VALUE;}
     U8_END_EXCEPTION;
+    if (errno) {
+      u8_string cond=u8_strerror(errno);
+      u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
+             errno,cond,U8ALT(name,"primcall"));
+      errno=0;}
     return result;}
   else {
     u8_string limit=u8_mkstring("%lld",fd_stack_limit());
@@ -1220,7 +1230,7 @@ FD_EXPORT void fd_init_apply_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

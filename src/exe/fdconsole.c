@@ -1,12 +1,13 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/cons.h"
 #include "framerd/tables.h"
 #include "framerd/fddb.h"
 #include "framerd/eval.h"
@@ -53,7 +54,7 @@ static History *edithistory;
 static u8_string eval_prompt=EVAL_PROMPT;
 static int set_prompt(fdtype ignored,fdtype v,void *vptr)
 {
-  u8_string *ptr=vptr, core, cur=*ptr;
+  u8_string *ptr=vptr, cur=*ptr;
   if (FD_STRINGP(v)) {
     u8_string data=FD_STRDATA(v), scan=data;
     int c=u8_sgetc(&scan);
@@ -162,7 +163,6 @@ static u8_string stats_message_w_history=
 static u8_string stats_message_w_history_and_sym=
    _(";; ##%d (%ls) computed in %f seconds, %d/%d object/index loads\n");
 
-static double startup_time=-1.0;
 static double run_start=-1.0;
 
 static int console_width=80, quiet_console=0, show_elts=5;
@@ -180,7 +180,7 @@ static int fits_consolep(fdtype elt)
 
 static void output_element(u8_output out,fdtype elt)
 {
-  if (historicp(elt))
+  if ((historicp(elt))||(FD_STRINGP(elt))) {
     if ((console_width==0) || (fits_consolep(elt)))
       u8_printf(out,"\n  %q ;=##%d",elt,fd_histpush(elt));
     else {
@@ -190,7 +190,7 @@ static void output_element(u8_output out,fdtype elt)
       fd_pprint(&tmpout,elt,"  ",2,2,console_width,1);
       u8_puts(out,tmpout.u8_outbuf);
       u8_free(tmpout.u8_outbuf);
-      u8_flush(out);}
+      u8_flush(out);}}
   else u8_printf(out,"\n  %q",elt);
 }
 
@@ -221,8 +221,6 @@ static int random_symbol_tries=7;
 static fdtype random_symbol()
 {
   int tries=0;
-  int l1=(random())%26, l2=(random())%26, l3=(random())%26;
-  fdtype symbol;
   while (tries<random_symbol_tries) {
     char buf[4]; fdtype sym;
     int l1=(random())%26, l2=(random())%26, l3=(random())%26;
@@ -541,24 +539,80 @@ static fdtype backtrace_prim(fdtype arg)
 
 static fdtype module_list=FD_EMPTY_LIST;
 
+static u8_string get_next(u8_string pt,u8_string seps);
+
+static fdtype parse_module_spec(u8_string s)
+{
+  if (*s) {
+    u8_string brk=get_next(s," ,;");
+    if (brk) {
+      u8_string elt=u8_slice(s,brk);
+      fdtype parsed=fd_parse(elt);
+      if (FD_ABORTP(parsed)) {
+        u8_free(elt);
+        return parsed;}
+      else return fd_init_pair(NULL,parsed,
+                               parse_module_spec(brk+1));}
+    else {
+      fdtype parsed=fd_parse(s);
+      if (FD_ABORTP(parsed)) return parsed;
+      else return fd_init_pair(NULL,parsed,FD_EMPTY_LIST);}}
+  else return FD_EMPTY_LIST;
+}
+
+static u8_string get_next(u8_string pt,u8_string seps)
+{
+  u8_string closest=NULL;
+  while (*seps) {
+    u8_string brk=strchr(pt,*seps);
+    if ((brk) && ((brk<closest) || (closest==NULL)))
+      closest=brk;
+    seps++;}
+  return closest;
+}
+
 static int module_config_set(fdtype var,fdtype vals,void *d)
 {
   int loads=0; FD_DO_CHOICES(val,vals) {
     fdtype modname=((FD_SYMBOLP(val))?(val):
                     (FD_STRINGP(val))?
-                    (fd_parse(FD_STRDATA(val))):
+                    (parse_module_spec(FD_STRDATA(val))):
                     (FD_VOID));
     fdtype module=FD_VOID, used;
     if (FD_VOIDP(modname)) {
       fd_seterr(fd_TypeError,"module_config_set","module",val);
       return -1;}
+    else if (FD_PAIRP(modname)) {
+      int n_loaded=0;
+      FD_DOLIST(elt,modname) {
+        if (!(FD_SYMBOLP(elt))) {
+          u8_log(LOG_WARN,fd_TypeError,"module_config_set",
+                 "Not a valid module name: %q",elt);}
+        else {
+          fdtype each_module=fd_find_module(elt,0,0);
+          if (FD_VOIDP(each_module)) {
+            u8_log(LOG_WARN,fd_NoSuchModule,"module_config_set",
+                   "No module found for %q",modname);}
+          else {
+            used=fd_use_module(console_env,each_module);
+            if (FD_ABORTP(used)) {
+              u8_log(LOG_WARN,"LoadModuleError",
+                     "Error loading module %q",each_module);
+              fd_clear_errors(1);}
+            else {
+              n_loaded++;
+              fd_decref(used);}
+            used=FD_VOID;}}}
+      fd_decref(modname);
+      return n_loaded;}
     else if (!(FD_SYMBOLP(modname))) {
       fd_seterr(fd_TypeError,"module_config_set","module name",val);
       fd_decref(modname);
       return -1;}
     module=fd_find_module(modname,0,0);
     if (FD_VOIDP(module)) {
-      fd_seterr(fd_NoSuchModule,"module_config_set",FD_SYMBOL_NAME(modname),val);
+      fd_seterr(fd_NoSuchModule,"module_config_set",
+                FD_SYMBOL_NAME(modname),val);
       fd_decref(modname);
       return -1;}
     used=fd_use_module(console_env,module);
@@ -635,7 +689,7 @@ static void dotloader(u8_string file,fd_lispenv env)
 
 int main(int argc,char **argv)
 {
-  int i=1, c;
+  int i=1;
   unsigned int arg_mask=0; /* Bit map of args to skip */
   time_t boot_time=time(NULL);
   fdtype expr=FD_VOID, result=FD_VOID, lastval=FD_VOID;
@@ -646,6 +700,8 @@ int main(int argc,char **argv)
   u8_string source_file=NULL; /* The file loaded, if any */
   /* This is the environment the console will start in */
   fd_lispenv env=fd_working_environment();
+
+  fd_main_errno_ptr=&errno;
 
   U8_SET_STACK_BASE();
 
@@ -747,7 +803,6 @@ int main(int argc,char **argv)
   fd_register_config
     ("LOADFILE",_("Which files to load"),
      loadfile_config_get,loadfile_config_set,&loadfile_list);
-
 
   if (u8_has_suffix(argv[0],"/fdconsole",0))
     u8_default_appid("fdconsole");
@@ -874,7 +929,7 @@ int main(int argc,char **argv)
       if (!(FD_EQ(expr,that_symbol)))
         is_histref=1;
       histref=FD_FIX2INT(FD_CAR(FD_CDR(expr)));}
-    if (FD_OIDP(expr)) {
+    else if (FD_OIDP(expr)) {
       fdtype v=fd_oid_value(expr);
       if (FD_TABLEP(v)) {
         U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,4096);
@@ -909,6 +964,13 @@ int main(int argc,char **argv)
            (FD_ABORTP(result)) || (FD_FIXNUMP(result))))) {
       int ref=fd_histpush(result);
       if (ref>=0) histref=ref;}
+    else if ((FD_SYMBOLP(expr))&&
+             ((FD_CHOICEP(result))||
+              (FD_VECTORP(result))||
+              (FD_PAIRP(result)))) {
+      int ref=fd_histpush(result);
+      if (ref>=0) histref=ref;}
+    else {}
     if (FD_ABORTP(result)) stat_line=0;
     else if ((showtime_threshold>=0.0) &&
              (((finish_time-start_time)>showtime_threshold) ||
@@ -1005,7 +1067,7 @@ int main(int argc,char **argv)
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

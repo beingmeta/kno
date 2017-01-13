@@ -2186,6 +2186,7 @@ fdtype fd_string2number(u8_string string,int base)
 	   (strchr(string,'.'))) {
     double flonum; u8_byte *end=NULL;
     flonum=strtod(string,(char **)&end);
+    U8_CLEAR_ERRNO();
     if ((end>string) && ((end-string)==len)) 
       return fd_make_flonum(flonum);
     else return FD_FALSE;}
@@ -2202,6 +2203,7 @@ fdtype fd_string2number(u8_string string,int base)
     else if (base<0) base=10;
     errno=0;
     fixnum=strtol(start,(char **)&end,base);
+    U8_CLEAR_ERRNO();
     if (!((end>string) && ((end-string)==len)))
       return FD_FALSE;
     else if ((fixnum) && ((fixnum<FD_MAX_FIXNUM) && (fixnum>FD_MIN_FIXNUM))) 
@@ -2414,8 +2416,10 @@ fdtype fd_make_rational(fdtype num,fdtype denom)
 static int fix_gcd (int x, int y)
 {
   int a;
-  if (x < 0) x=-x; if (y < 0) y=-y;
-  a= y; while (a != 0) { y = a; a = x % a; x = y; }
+  if (x < 0) x=-x; else {};
+  if (y < 0) y=-y; else {};
+  a= y; while (a != 0) {
+    y = a; a = x % a; x = y; }
   return x;
 }
 
@@ -2816,6 +2820,14 @@ fdtype fd_lcm(fdtype x,fdtype y)
   return int_lcm(x,y);
 }
 
+FD_EXPORT
+fdtype fd_pow(fdtype x,fdtype y)
+{
+  double dx=todouble(x), dy=todouble(y);
+  double result=pow(dx,dy);
+  return fd_make_flonum(result);
+}
+
 static int signum(fdtype x)
 {
   if (FD_FIXNUMP(x)) {
@@ -2943,6 +2955,20 @@ fdtype fd_make_exact(fdtype x)
   else return fd_type_error(_("number"),"fd_make_inexact",x);
 }
 
+FD_EXPORT
+int fd_exactp(fdtype x)
+{
+  fd_ptr_type xt=FD_PTR_TYPE(x);
+  if (xt == fd_flonum_type) return 0;
+  else if (xt==fd_complex_type) {
+    fdtype realpart=FD_REALPART(x), imagpart=FD_IMAGPART(x);
+    if ((FD_FLONUMP(realpart)) || (FD_FLONUMP(imagpart)))
+      return 0;
+    else return 1;}
+  else if (FD_NUMBERP(x)) return 1;
+  else return -1;
+}
+
 
 /* Homogenous vectors */
 
@@ -3009,7 +3035,6 @@ static int compare_numeric_vector(fdtype x,fdtype y,int f)
   struct FD_NUMERIC_VECTOR *vy=(struct FD_NUMERIC_VECTOR *)y;
   if (vx->fd_numvec_len == vy->fd_numvec_len) {
     int i=0, n=vx->fd_numvec_len; 
-    enum fd_num_elt_type xt=vx->fd_numvec_elt_type, yt=vy->fd_numvec_elt_type;
     while (i<n) {
       double xelt=double_ref(vx,i);
       double yelt=double_ref(vy,i);
@@ -3279,7 +3304,8 @@ static fd_double INEXACT_REF(fdtype x,enum fd_num_elt_type xtype,int i)
   case fd_int_elt:
     return ((fd_double)(FD_NUMVEC_INT(x,i)));
   case fd_short_elt:
-    return ((fd_double)(FD_NUMVEC_SHORT(x,i)));}
+    return ((fd_double)(FD_NUMVEC_SHORT(x,i)));
+  default: return 0.0;}
 }
 static fdtype NUM_ELT(fdtype x,int i)
 {
@@ -3300,7 +3326,11 @@ static fdtype NUM_ELT(fdtype x,int i)
     case fd_int_elt:
       return FD_INT2DTYPE(FD_NUMVEC_INT(x,i));
     case fd_short_elt:
-      return FD_SHORT2DTYPE(FD_NUMVEC_SHORT(x,i));}
+      return FD_SHORT2DTYPE(FD_NUMVEC_SHORT(x,i));
+    default: {
+      fd_incref(x);
+      return fd_err(_("NotAVector"),"NUM_ELT",NULL,x);}
+    }
   }
 }
 static fdtype vector_add(fdtype x,fdtype y,int mult)
@@ -3554,7 +3584,7 @@ static fdtype vector_scale(fdtype vec,fdtype scalar)
       u8_free(scaled);
       return result;}
     else {
-      fd_long mult=fd_getint(scalar), max, min;
+      fd_long max, min;
       fdtype *scaled=u8_alloc_n(vlen,fdtype);
       int i=0; while (i<vlen) {
         fdtype elt=NUM_ELT(vec,i);
@@ -3662,7 +3692,7 @@ void fd_init_numbers_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

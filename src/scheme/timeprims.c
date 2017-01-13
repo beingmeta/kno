@@ -1135,6 +1135,7 @@ static fdtype load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
 static fdtype memusage_symbol, n_cpus_symbol, pagesize_symbol;
 static fdtype physical_pages_symbol, available_pages_symbol;
 static fdtype physical_memory_symbol, available_memory_symbol;
+static fdtype nptrlocks_symbol;
 
 static int pagesize=-1;
 static int get_n_cpus(void);
@@ -1159,6 +1160,7 @@ static fdtype rusage_prim(fdtype field)
     fd_add(result,shared_symbol,FD_INT(r.ru_ixrss));
     fd_add(result,resident_symbol,FD_INT(r.ru_maxrss));
     fd_add(result,memusage_symbol,FD_INT(mem));
+    fd_add(result,nptrlocks_symbol,FD_INT(FD_N_PTRLOCKS));
     fd_add(result,pid_symbol,FD_INT(pid));
     fd_add(result,ppid_symbol,FD_INT(ppid));
     { /* Load average(s) */
@@ -1233,6 +1235,8 @@ static fdtype rusage_prim(fdtype field)
     return fd_make_flonum(u8_dbltime(r.ru_stime));
   else if (FD_EQ(field,memusage_symbol))
     return FD_INT(u8_memusage());
+  else if (FD_EQ(field,nptrlocks_symbol))
+    return FD_INT(FD_N_PTRLOCKS);
   else if (FD_EQ(field,load_symbol)) {
     double loadavg; int nsamples=getloadavg(&loadavg,1);
     if (nsamples>0) return fd_make_flonum(loadavg);
@@ -1340,6 +1344,19 @@ static fdtype getppid_prim()
 {
   pid_t pid=getppid();
   return FD_INT(((unsigned long)pid));
+}
+
+static fdtype threadid_prim()
+{
+  long long tid=u8_threadid();
+  return FD_INT(tid);
+}
+
+static fdtype getprocstring_prim()
+{
+  unsigned char buf[128];
+  unsigned char *pinfo=u8_procinfo(buf);
+  return fdtype_string(pinfo);
 }
 
 static fdtype memusage_prim()
@@ -1806,7 +1823,7 @@ FD_EXPORT void fd_init_timeprims_c()
 
   init_id_tables();
 
-  fd_tablefns[fd_timestamp_type]=u8_alloc(struct FD_TABLEFNS);
+  fd_tablefns[fd_timestamp_type]=u8_zalloc(struct FD_TABLEFNS);
   fd_tablefns[fd_timestamp_type]->get=timestamp_get;
   fd_tablefns[fd_timestamp_type]->add=NULL;
   fd_tablefns[fd_timestamp_type]->drop=NULL;
@@ -1936,6 +1953,7 @@ FD_EXPORT void fd_init_timeprims_c()
   ppid_symbol=fd_intern("PPID");
   memusage_symbol=fd_intern("MEMUSAGE");
   n_cpus_symbol=fd_intern("NCPUS");
+  nptrlocks_symbol=fd_intern("PTRLOCKS");
   pagesize_symbol=fd_intern("PAGESIZE");
   physical_pages_symbol=fd_intern("PHYSICAL-PAGES");
   available_pages_symbol=fd_intern("AVAILABLE-PAGES");
@@ -2008,6 +2026,8 @@ FD_EXPORT void fd_init_timeprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETPID",getpid_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETPPID",getppid_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("THREADID",threadid_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("PROCSTRING",getprocstring_prim,0));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("CT/SENSORS",calltrack_sensors,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CT/SENSE",calltrack_sense,0));
@@ -2079,7 +2099,7 @@ FD_EXPORT void fd_init_timeprims_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */

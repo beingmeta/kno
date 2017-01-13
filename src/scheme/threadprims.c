@@ -32,12 +32,17 @@
 #include <pthread.h>
 #include <errno.h>
 
-static u8_condition ThreadReturnError=_("Thread returned with error");
-static u8_condition ThreadExit=_("Thread exited");
+static u8_condition ThreadReturnError=_("ThreadError");
+static u8_condition ThreadExit=_("ThreadExit");
 static u8_condition ThreadBacktrace=_("ThreadBacktrace");
 
 static int thread_loglevel=LOGNOTICE;
 static int thread_log_exit=1;
+static fdtype logexit_symbol=FD_VOID;
+
+#ifndef U8_STRING_ARG
+#define U8_STRING_ARG(s) (((s)==NULL)?((u8_string)""):((u8_string)(s)))
+#endif
 
 /* Thread functions */
 
@@ -261,6 +266,12 @@ static void *thread_call(void *data)
 {
   fdtype result;
   struct FD_THREAD_STRUCT *tstruct=(struct FD_THREAD_STRUCT *)data;
+  int flags=tstruct->flags, log_exit=
+    ((flags)&(FD_THREAD_TRACE_EXIT)) ||
+    (((flags)&(FD_THREAD_QUIET_EXIT)) ? (0) :
+     (thread_log_exit));
+  
+  tstruct->errnop=&(errno);
 
   U8_SET_STACK_BASE();
 
@@ -270,6 +281,9 @@ static void *thread_call(void *data)
   /* Run any thread init functions */
   u8_threadcheck();
 
+  tstruct->started=u8_elapsed_time();
+  tstruct->finished=-1;
+
   if (tstruct->flags&FD_EVAL_THREAD)
     result=fd_eval(tstruct->evaldata.expr,tstruct->evaldata.env);
   else
@@ -277,17 +291,35 @@ static void *thread_call(void *data)
                      tstruct->applydata.n_args,
                      tstruct->applydata.args);
   result=fd_finish_call(result);
-  if (thread_log_exit) {
-    if (errno)
-      u8_log(thread_loglevel,ThreadExit,
-             "Thread exited (errno=%d) with result %q\n  from %q",
-             errno,result,
-             ((tstruct->flags&FD_EVAL_THREAD)?(tstruct->evaldata.expr):
-              tstruct->applydata.fn));
-    else u8_log(thread_loglevel,ThreadExit,
-                "Thread exited with result %q\n  from %q",result,
-                ((tstruct->flags&FD_EVAL_THREAD)?(tstruct->evaldata.expr):
-                 tstruct->applydata.fn));}
+  
+  tstruct->finished=u8_elapsed_time();
+
+  if ((FD_ABORTP(result))&&(errno)) {
+    u8_exception ex=u8_current_exception;
+    u8_log(thread_loglevel,ThreadExit,
+           "Thread #%lld error (errno=%s:%d) %s (%s) %s",
+           u8_threadid(),u8_strerror(errno),errno,
+           ex->u8x_cond,U8_STRING_ARG(ex->u8x_context),
+           U8_STRING_ARG(ex->u8x_details));}
+  else if (FD_ABORTP(result)) {
+    u8_exception ex=u8_current_exception;
+    u8_log(thread_loglevel,ThreadExit,
+           "Thread #%lld error %s (%s) %s",
+           u8_threadid(),ex->u8x_cond,
+           U8_STRING_ARG(ex->u8x_context),
+           U8_STRING_ARG(ex->u8x_details));}
+  else if (errno) {
+    u8_log(thread_loglevel,ThreadExit,
+           "Thread #%lld exited (errno=%s:%d) returning %s%q",
+           u8_threadid(),u8_strerror(errno),errno,
+           ((FD_CONSP(result))?("\n    "):("")),
+           result);}
+  else if (log_exit) {
+    u8_log(thread_loglevel,ThreadExit,
+           "Thread #%lld exited returning %s%q",
+           u8_threadid(),((FD_CONSP(result))?("\n    "):("")),result);}
+  else {}
+
   u8_threadexit();
   if (FD_ABORTP(result)) {
     u8_exception ex=u8_erreify();
@@ -307,6 +339,7 @@ static void *thread_call(void *data)
         out.u8_write=out.u8_outbuf;
         fd_print_backtrace(&out,ex,120);
         fd_dump_backtrace(out.u8_outbuf);}
+      else fd_log_backtrace(ex,LOG_NOTICE,ThreadBacktrace,120);
       u8_free(out.u8_outbuf);}
     tstruct->result=exobj;
     if (tstruct->resultptr) {
@@ -324,8 +357,9 @@ static void *thread_call(void *data)
 }
 
 FD_EXPORT
-fd_thread_struct fd_thread_call
-  (fdtype *resultptr,fdtype fn,int n,fdtype *rail)
+fd_thread_struct fd_thread_call(fdtype *resultptr,
+                                fdtype fn,int n,fdtype *rail,
+                                int flags)
 {
   struct FD_THREAD_STRUCT *tstruct=u8_alloc(struct FD_THREAD_STRUCT);
   if (tstruct==NULL) {
@@ -333,13 +367,13 @@ fd_thread_struct fd_thread_call
     return NULL;}
   FD_INIT_FRESH_CONS(tstruct,fd_thread_type);
   if (resultptr) {
-    tstruct->resultptr=resultptr; 
+    tstruct->resultptr=resultptr;
     *resultptr=FD_NULL;
     tstruct->result=FD_NULL;}
   else {
     tstruct->result=FD_NULL;
     tstruct->resultptr=NULL;}
-  tstruct->flags=0;
+  tstruct->flags=flags;
   pthread_attr_init(&(tstruct->attr));
   tstruct->applydata.fn=fd_incref(fn);
   tstruct->applydata.n_args=n; 
@@ -352,7 +386,9 @@ fd_thread_struct fd_thread_call
 }
 
 FD_EXPORT
-fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
+fd_thread_struct fd_thread_eval(fdtype *resultptr,
+                                fdtype expr,fd_lispenv env,
+                                int flags)
 {
   struct FD_THREAD_STRUCT *tstruct=u8_alloc(struct FD_THREAD_STRUCT);
   if (tstruct==NULL) {
@@ -366,7 +402,7 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
   else {
     tstruct->result=FD_NULL;
     tstruct->resultptr=NULL;}
-  tstruct->flags=FD_EVAL_THREAD;
+  tstruct->flags=flags|FD_EVAL_THREAD;
   tstruct->evaldata.expr=fd_incref(expr);
   tstruct->evaldata.env=fd_copy_env(env);
   /* We need to do this first, before the thread exits and recycles itself! */
@@ -380,25 +416,83 @@ fd_thread_struct fd_thread_eval(fdtype *resultptr,fdtype expr,fd_lispenv env)
 
 static fdtype threadcall_prim(int n,fdtype *args)
 {
-  fdtype *call_args=u8_alloc_n((n-1),fdtype), thread;
-  int i=1; while (i<n) {
-    call_args[i-1]=fd_incref(args[i]); i++;}
-  thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args);
-  return thread;
+  fdtype fn = args[0];
+  if (FD_APPLICABLEP(fn)) {
+    fdtype *call_args=u8_alloc_n(n,fdtype), thread;
+    int i=1; while (i<n) {
+      fdtype call_arg = args[i]; fd_incref(call_arg);
+      call_args[i-1]=call_arg; i++;}
+    thread=(fdtype)fd_thread_call(NULL,args[0],n-1,call_args,0);
+    return thread;}
+  else if (FD_VOIDP(fn))
+    return fd_err(fd_TooFewArgs,"threadcall_prim",NULL,FD_VOID);
+  else {
+    fd_incref(fn);
+    return fd_type_error(_("applicable"),"threadcall_prim",fn);}
+}
+
+static int threadopts(fdtype opts)
+{
+  fdtype logexit=fd_getopt(opts,logexit_symbol,FD_VOID);
+  if (FD_VOIDP(logexit)) {
+    if (thread_log_exit>0)
+      return FD_THREAD_TRACE_EXIT;
+    else return FD_THREAD_QUIET_EXIT;}
+  else if ((FD_FALSEP(logexit))||(FD_ZEROP(logexit)))
+    return FD_THREAD_QUIET_EXIT;
+  else {
+    fd_decref(logexit);
+    return FD_THREAD_TRACE_EXIT;}
+}
+
+static fdtype threadcallx_prim(int n,fdtype *args)
+{
+  fdtype opts = args[0];
+  fdtype fn   = args[1];
+  if (FD_APPLICABLEP(fn)) {
+    fdtype *call_args=u8_alloc_n(n-2,fdtype), thread;
+    int flags=threadopts(opts);
+    int i=2; while (i<n) {
+      fdtype call_arg = args[i]; fd_incref(call_arg);
+      call_args[i-2]=call_arg; i++;}
+    thread=(fdtype)fd_thread_call(NULL,fn,n-2,call_args,flags);
+    return thread;}
+  else if (FD_VOIDP(fn))
+    return fd_err(fd_TooFewArgs,"threadcallx_prim",NULL,FD_VOID);
+  else {
+    fd_incref(fn);
+    return fd_type_error(_("applicable"),"threadcallx_prim",fn);}
 }
 
 static fdtype threadeval_handler(fdtype expr,fd_lispenv env)
 {
   fdtype to_eval=fd_get_arg(expr,1);
-  if (FD_VOIDP(to_eval))
-    return fd_err(fd_SyntaxError,"threadeval_handler",NULL,expr);
-  else if (FD_CHOICEP(to_eval)) {
-    fdtype results=FD_EMPTY_CHOICE;
+  fdtype env_arg=fd_eval(fd_get_arg(expr,2),env);
+  fdtype opts_arg=fd_eval(fd_get_arg(expr,3),env);
+  fdtype opts=((FD_VOIDP(opts_arg))&&
+               (!(FD_ENVIRONMENTP(env_arg)))&&
+               (FD_TABLEP(env_arg)))?
+    (env_arg):
+    (opts_arg);
+  fd_lispenv use_env=
+    ((FD_VOIDP(env_arg))||(FD_FALSEP(env_arg)))?(env):
+    (FD_ENVIRONMENTP(env_arg))?((fd_lispenv)env_arg):
+    (NULL);
+  if (FD_VOIDP(to_eval)) {
+    fd_decref(opts_arg); fd_decref(env_arg);
+    return fd_err(fd_SyntaxError,"threadeval_handler",NULL,expr);}
+  else if (use_env==NULL) {
+    fd_decref(opts_arg);
+    return fd_type_error(_("lispenv"),"threadeval_handler",env_arg);}
+  else {
+    int flags=threadopts(opts)|FD_EVAL_THREAD;
+    fd_lispenv env_copy=fd_copy_env(use_env);
+    fdtype results=FD_EMPTY_CHOICE, envptr=(fdtype)env_copy;
     FD_DO_CHOICES(thread_expr,to_eval) {
-      fdtype thread=(fdtype)fd_thread_eval(NULL,thread_expr,env);
+      fdtype thread=(fdtype)fd_thread_eval(NULL,thread_expr,env_copy,flags);
       FD_ADD_TO_CHOICE(results,thread);}
+    fd_decref(envptr); fd_decref(env_arg); fd_decref(opts_arg);
     return results;}
-  else return (fdtype)fd_thread_eval(NULL,to_eval,env);
 }
 
 static fdtype thread_exitedp(fdtype thread_arg)
@@ -464,7 +558,8 @@ static fdtype parallel_handler(fdtype expr,fd_lispenv env)
   else {results=_results; threads=_threads;}
   /* Start up the threads and store the pointers. */
   scan=FD_CDR(expr); while (FD_PAIRP(scan)) {
-    threads[i]=fd_thread_eval(&results[i],FD_CAR(scan),env);
+    threads[i]=fd_thread_eval(&results[i],FD_CAR(scan),env,
+                              FD_EVAL_THREAD|FD_THREAD_QUIET_EXIT);
     scan=FD_CDR(scan); i++;}
   /* Now wait for them to finish, accumulating values. */
   i=0; while (i<n_exprs) {
@@ -534,6 +629,7 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_defspecial(fd_scheme_module,"SPAWN",threadeval_handler);
   fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL",threadcall_prim,1));
   fd_defalias(fd_scheme_module,"THREADCALL","THREAD/CALL");
+  fd_idefn(fd_scheme_module,fd_make_cprimn("THREAD/CALL+",threadcallx_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim0("THREAD/YIELD",threadyield_prim,0));
   fd_defalias(fd_scheme_module,"THREADYIELD","THREAD/YIELD");
   fd_idefn(fd_scheme_module,
@@ -549,6 +645,8 @@ FD_EXPORT void fd_init_threadprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("THREAD/RESULT",thread_result,1,
                            fd_thread_type,FD_VOID));
+
+  logexit_symbol=fd_intern("LOGEXIT");
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("MAKE-CONDVAR",make_condvar,0));
   fd_idefn(fd_scheme_module,fd_make_cprim2("CONDVAR-WAIT",condvar_wait,1));
@@ -590,7 +688,7 @@ FD_EXPORT void fd_init_threadprims_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then cd ../..; make debug; fi;" ***
+   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
