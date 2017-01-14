@@ -1,10 +1,10 @@
 [Unit]
 Description=FramerD service(s) starter
-Requires=network.target
+Requires=network.target local-fs.target
 After=upsource.service
 
 [Service]
-Type=simple
+Type=forking
 RemainAfterExit=true
 Environment=FD_LAUNCHER=framerd.service
 PassEnvironment=FD_LAUNCHER
