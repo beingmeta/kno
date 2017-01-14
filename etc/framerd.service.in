@@ -1,7 +1,7 @@
 [Unit]
 Description=FramerD service(s) starter
 Requires=network.target local-fs.target
-After=upsource.service
+After=upsource.target
 
 [Service]
 Type=forking
@@ -23,4 +23,4 @@ ExecStop=@BINDIR@/fdstop @daemon_rundir@ @servlet_rundir@
 ExecStopPost=@DELETEFILE@ -f @framerd_rundir@/_started @framerd_rundir@/_systemd
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
