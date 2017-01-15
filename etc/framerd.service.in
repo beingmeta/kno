@@ -1,7 +1,7 @@
 [Unit]
 Description=FramerD service(s) starter
 Requires=network.target local-fs.target
-After=upsource.target cloud-final.service
+After=upsource.target
 
 [Service]
 Type=forking
