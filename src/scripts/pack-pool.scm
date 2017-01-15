@@ -11,7 +11,7 @@
 	   (tryif (config 'B64 #f) 'B64)
 	   (tryif (config 'ZLIB #f) 'ZLIB))))
 
-(define default-schematize #f)
+(define default-schematize #t)
 
 (define (get-schemas old)
   (and (or (and default-schematize (not (config 'NOSCHEMAS #f)))
@@ -23,8 +23,10 @@
 	     (message "Using existing schemas from " (config 'schemafile #f))
 	     (file->dtype (config 'schemafile #f)))
 	   (let ((table (make-hashtable)))
-	     (message "Identifying schemas from " (pool-load old) " OIDs in " (or (pool-source old) old))
-	     (do-choices-mt (f (pool-elts old) (config 'nthreads 4)
+	     (message "Identifying schemas from " (pool-load old) " OIDs "
+	       "in " (or (pool-source old) old))
+	     (do-choices-mt (f (pool-elts old) 
+			       (mt/threadcount (config 'nthreads 0.7))
 			       (lambda (oids done)
 				 (when done (clearcaches))
 				 (unless done (file-pool-prefetch! old oids)))
@@ -33,9 +35,11 @@
 	       (hashtable-increment! table (sorted (getkeys (get old f)))))
 	     (let* ((threshold 2)
 		    (schemas (getkeys table))
-		    (picked (table-skim table threshold)))
-	       (message "Identified " (choice-size picked) " repeated schemas out of "
-			(choice-size schemas))
+		    (picked (table-skim table threshold))
+		    (sum (reduce-choice + picked 0 table)))
+	       (message "Identified " (choice-size picked) 
+		 " repeated schemas covering " sum " objects out of "
+		 (choice-size schemas) " overall")
 	       (if (config 'schemafile #t)
 		   (let ((schemas (rsorted (getkeys table) table)))
 		     (when (and (config 'schemafile #f)
