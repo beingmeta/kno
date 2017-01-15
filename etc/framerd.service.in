@@ -1,10 +1,10 @@
 [Unit]
 Description=FramerD service(s) starter
-Requires=network.target
-After=upsource.service
+Requires=network.target local-fs.target
+After=upsource.target cloud-config.target
 
 [Service]
-Type=simple
+Type=forking
 RemainAfterExit=true
 Environment=FD_LAUNCHER=framerd.service
 PassEnvironment=FD_LAUNCHER
@@ -23,4 +23,4 @@ ExecStop=@BINDIR@/fdstop @daemon_rundir@ @servlet_rundir@
 ExecStopPost=@DELETEFILE@ -f @framerd_rundir@/_started @framerd_rundir@/_systemd
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
