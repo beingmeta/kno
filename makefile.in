@@ -1155,7 +1155,7 @@ install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
 		   $(DTYPE_HEADERS) $(DB_HEADERS)	\
 		   $(DBFILE_HEADERS) $(SCHEME_HEADERS)	\
-		   $(LIB_HEADERS)			\
+		   $(LIB_HEADERS) $(REVISION_H)		\
 		$(INCINSTALLDIR)
 
 install-data: $(DATADIR)
