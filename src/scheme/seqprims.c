@@ -216,7 +216,7 @@ FD_EXPORT fdtype fd_slice(fdtype x,int start,int end)
 FD_EXPORT int fd_position(fdtype key,fdtype seq,int start,int limit)
 {
   int ctype=FD_PTR_TYPE(seq), len=fd_seq_length(seq);
-  int end=(limit<0)?(len+limit):(limit>len)?(len):(limit);
+  int end=(limit<0)?(len+limit+1):(limit>len)?(len):(limit);
   int delta=(start<end)?(1):(-1);
   int min=((start<end)?(start):(end)), max=((start<end)?(end):(start));
   if ((start<0)||(end<0)) return -2;

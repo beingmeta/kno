@@ -141,14 +141,6 @@ SUNDOWN_OBJS= src/cmodules/sundown/autolink.o \
 	src/cmodules/sundown/html.o src/cmodules/sundown/html_smartypants.o \
 	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
 	src/cmodules/sundown/sundown.o
-CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
-	     src/modules/crypto.o src/cmodules/ldap.o \
-	     src/cmodules/dbus.o src/cmodules/mysql.o \
-	     src/cmodules/qrcode.o \
-	     src/cmodules/ziptools.o src/cmodules/tidy.o \
-	     src/cmodules/zlib.o src/cmodules/imagick.o \
-	     src/cmodules/hyphenate.o \
-	     ${SUNDOWN_OBJS}
 
 SUNDOWN_OBJECTS=src/cmodules/sundown/autolink.o src/cmodules/sundown/buffer.o \
 	src/cmodules/sundown/markdown.o src/cmodules/sundown/stack.o \
@@ -158,6 +150,85 @@ SUNDOWN_H_FILES=src/cmodules/sundown/autolink.h src/cmodules/sundown/buffer.h \
 	src/cmodules/sundown/markdown.h src/cmodules/sundown/stack.h \
 	src/cmodules/sundown/html_blocks.h src/cmodules/sundown/html.h \
 	src/cmodules/sundown/houdini.h
+
+TIDY_OBJECTS=\
+	src/cmodules/tidy5/access.o 	\
+	src/cmodules/tidy5/alloc.o 	\
+	src/cmodules/tidy5/attrask.o 	\
+	src/cmodules/tidy5/attrdict.o 	\
+	src/cmodules/tidy5/attrget.o 	\
+	src/cmodules/tidy5/attrs.o 	\
+	src/cmodules/tidy5/buffio.o 	\
+	src/cmodules/tidy5/charsets.o 	\
+	src/cmodules/tidy5/clean.o 	\
+	src/cmodules/tidy5/config.o 	\
+	src/cmodules/tidy5/entities.o 	\
+	src/cmodules/tidy5/fileio.o 	\
+	src/cmodules/tidy5/gdoc.o 	\
+	src/cmodules/tidy5/iconvtc.o 	\
+	src/cmodules/tidy5/istack.o 	\
+	src/cmodules/tidy5/language.o 	\
+	src/cmodules/tidy5/lexer.o 	\
+	src/cmodules/tidy5/mappedio.o 	\
+	src/cmodules/tidy5/message.o 	\
+	src/cmodules/tidy5/parser.o 	\
+	src/cmodules/tidy5/pprint.o 	\
+	src/cmodules/tidy5/sprtf.o 	\
+	src/cmodules/tidy5/streamio.o 	\
+	src/cmodules/tidy5/tagask.o 	\
+	src/cmodules/tidy5/tags.o 	\
+	src/cmodules/tidy5/tidylib.o 	\
+	src/cmodules/tidy5/tmbstr.o 	\
+	src/cmodules/tidy5/utf8.o 	\
+	src/cmodules/tidy5/win32tc.o
+
+TIDY_H_FILES=\
+	src/cmodules/tidy5/access.h 	\
+	src/cmodules/tidy5/attrdict.h 	\
+	src/cmodules/tidy5/attrs.h 	\
+	src/cmodules/tidy5/buffio.h 	\
+	src/cmodules/tidy5/charsets.h 	\
+	src/cmodules/tidy5/clean.h 	\
+	src/cmodules/tidy5/config.h 	\
+	src/cmodules/tidy5/entities.h 	\
+	src/cmodules/tidy5/fileio.h 	\
+	src/cmodules/tidy5/forward.h 	\
+	src/cmodules/tidy5/gdoc.h 	\
+	src/cmodules/tidy5/iconvtc.h 	\
+	src/cmodules/tidy5/language_en_gb.h 	\
+	src/cmodules/tidy5/language_en.h 	\
+	src/cmodules/tidy5/language_es.h 	\
+	src/cmodules/tidy5/language_es_mx.h 	\
+	src/cmodules/tidy5/language_fr.h 	\
+	src/cmodules/tidy5/language.h 	\
+	src/cmodules/tidy5/language_zh_cn.h 	\
+	src/cmodules/tidy5/lexer.h 	\
+	src/cmodules/tidy5/mappedio.h 	\
+	src/cmodules/tidy5/message.h 	\
+	src/cmodules/tidy5/parser.h 	\
+	src/cmodules/tidy5/platform.h 	\
+	src/cmodules/tidy5/pprint.h 	\
+	src/cmodules/tidy5/sprtf.h 	\
+	src/cmodules/tidy5/streamio.h 	\
+	src/cmodules/tidy5/tags.h 	\
+	src/cmodules/tidy5/tidybuffio.h 	\
+	src/cmodules/tidy5/tidyenum.h 	\
+	src/cmodules/tidy5/tidy.h 	\
+	src/cmodules/tidy5/tidy-int.h 	\
+	src/cmodules/tidy5/tidyplatform.h 	\
+	src/cmodules/tidy5/tmbstr.h 	\
+	src/cmodules/tidy5/utf8.h 	\
+	src/cmodules/tidy5/version.h 	\
+	src/cmodules/tidy5/win32tc.h
+
+CMODULE_OBJS=src/cmodules/odbc.o src/cmodules/sqlite.o \
+	     src/modules/crypto.o src/cmodules/ldap.o \
+	     src/cmodules/dbus.o src/cmodules/mysql.o \
+	     src/cmodules/qrcode.o \
+	     src/cmodules/ziptools.o \
+	     src/cmodules/zlib.o src/cmodules/imagick.o \
+	     src/cmodules/hyphenate.o \
+	     ${SUNDOWN_OBJS} ${TIDY_OBJECTS}
 
 EXECUTABLES=exe/fdexec@suffix@ exe/fdconsole@suffix@ exe/fdbatch@suffix@  \
 	    exe/fdservlet@suffix@ exe/fdserver@suffix@
@@ -225,7 +296,7 @@ CMODULE_SOURCES=\
 	src/cmodules/odbc.c src/cmodules/sqlite.c src/cmodules/ldap.c  \
 	src/cmodules/crypto.c src/cmodules/dbus.c src/cmodules/mysql.c \
 	src/cmodules/qrcode.c src/cmodules/ziptools.c                  \
-	src/cmodules/tidy.c src/cmodules/imagick.c                     \
+	src/cmodules/tidy5/tidy.c src/cmodules/imagick.c               \
 	src/cmodules/hyphenate.c src/cmodules/sundown/sundown.c
 
 STATIC_LIBS=lib/libfdtype@suffix@.a lib/libfddb@suffix@.a      \
@@ -492,6 +563,10 @@ dist/%.changelog: dist/equivs.changelog
 src/cmodules/sundown/%.o: src/cmodules/sundown/%.c $(SUNDOWN_H_FILES)
 	@$(CC) $(CFLAGS) -I./src/cmodules/sundown/ -o $@ -c $<
 	@$(MSG) CC "(SUNDOWN)" $@
+
+src/cmodules/tidy5/%.o: src/cmodules/tidy5/%.c $(SUNDOWN_H_FILES)
+	@$(CC) $(CFLAGS) -I./src/cmodules/tidy5/ -o $@ -c $<
+	@$(MSG) CC "(TIDY5)" $@
 
 exe/fdexec@suffix@ exe/fdbatch@suffix@ exe/fdconsole@suffix@: \
 	$(STATIC_LIBS) $(SHARED_LIBS)
@@ -825,14 +900,13 @@ lib/framerd/sqlite.dylib: src/cmodules/sqlite.o
 lib/framerd/qrcode.so: src/cmodules/qrcode.o ${MODULE_SO}
 lib/framerd/qrcode.dylib: src/cmodules/qrcode.o
 
-lib/framerd/tidy.so: src/cmodules/tidy.o ${MODULE_SO}
-lib/framerd/tidy.dylib: src/cmodules/tidy.o
-
 lib/framerd/zlib.so: src/cmodules/zlib.o ${MODULE_SO}
 lib/framerd/zlib.dylib: src/cmodules/zlib.o
 
-lib/framerd/sundown.so: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS) $(MODULE_SO)
-	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS) $(MODULE_SO)
+lib/framerd/sundown.so: src/cmodules/sundown/sundown.c \
+		$(SUNDOWN_OBJECTS) $(MODULE_SO)
+	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/sundown/sundown.c \
+		$(SUNDOWN_OBJECTS) $(MODULE_SO)
 	@$(MSG) MKSO  $@ $<
 	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
 lib/framerd/sundown.dylib: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
@@ -840,6 +914,19 @@ lib/framerd/sundown.dylib: src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
 		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
 		${CFLAGS} -o $@ $(DYLIB_FLAGS) \
 		src/cmodules/sundown/sundown.c $(SUNDOWN_OBJECTS)
+	@$(MSG) MACLIBTOOL  $@ $<
+
+lib/framerd/tidy.so: src/cmodules/tidy5/tidy.c \
+			$(TIDY_OBJECTS) $(MODULE_SO)
+	@$(MKSO) $(CFLAGS) -o $@ src/cmodules/tidy5/tidy.c \
+		$(TIDY_OBJECTS) $(MODULE_SO)
+	@$(MSG) MKSO  $@ $<
+	@ln -sf $(@F) $(@D)/$(@F).@FDMAJOR@
+lib/framerd/tidy.dylib: src/cmodules/tidy5/tidy.c $(TIDY_OBJECTS)
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@FDMAJOR@.dylib \
+		${CFLAGS} -o $@ $(DYLIB_FLAGS) \
+		src/cmodules/tidy5/tidy.c $(TIDY_OBJECTS)
 	@$(MSG) MACLIBTOOL  $@ $<
 
 # Internationalization stuff
@@ -1075,7 +1162,7 @@ install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
 		   $(DTYPE_HEADERS) $(DB_HEADERS)	\
 		   $(DBFILE_HEADERS) $(SCHEME_HEADERS)	\
-		   $(LIB_HEADERS)			\
+		   $(LIB_HEADERS) $(REVISION_H)		\
 		$(INCINSTALLDIR)
 
 install-data: $(DATADIR)
