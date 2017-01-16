@@ -757,7 +757,7 @@ static char *get_tmpdir()
 static fdtype temproot_get(fdtype sym,void *ignore)
 {
   if (tempdir_template)
-    return fd_lispstring(tempdir_template);
+    return fdtype_string(tempdir_template);
   else {
     char *tmpdir=get_tmpdir();
     u8_string tmp=u8_mkpath(tmpdir,"fdtempXXXXXX");
