@@ -549,6 +549,22 @@ static fdtype get_module(fdtype modname)
   return module;
 }
 
+static fdtype get_loaded_module(fdtype modname)
+{
+  fdtype module=fd_get_module(modname,0);
+  if (FD_VOIDP(module))
+    return FD_FALSE;
+  else return module;
+}
+
+static fdtype safe_get_loaded_module(fdtype modname)
+{
+  fdtype module=fd_get_module(modname,1);
+  if (FD_VOIDP(module))
+    return FD_FALSE;
+  else return module;
+}
+
 FD_EXPORT
 fdtype fd_use_module(fd_lispenv env,fdtype module)
 {
@@ -732,6 +748,7 @@ FD_EXPORT void fd_init_modules_c()
   fd_defspecial(fd_scheme_module,"USE-MODULE",safe_use_module);
   fd_defspecial(fd_scheme_module,"MODULE-EXPORT!",module_export);
   fd_idefn(fd_scheme_module,fd_make_cprim1("GET-MODULE",safe_get_module,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("GET-LOADED-MODULE",safe_get_loaded_module,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("GET-EXPORTS",safe_get_exports_prim,1));
   fd_defalias(fd_scheme_module,"%LS","GET-EXPORTS");
@@ -743,6 +760,7 @@ FD_EXPORT void fd_init_modules_c()
   fd_defspecial(fd_xscheme_module,"ACCESSING-MODULE",accessing_module);
   fd_defspecial(fd_xscheme_module,"USE-MODULE",use_module);
   fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-MODULE",get_module,1));
+  fd_idefn(fd_xscheme_module,fd_make_cprim1("GET-LOADED-MODULE",get_loaded_module,1));
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1("GET-EXPORTS",get_exports_prim,1));
   fd_defalias(fd_xscheme_module,"%LS","GET-EXPORTS");
