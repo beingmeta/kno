@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-01-16 20:25+0000\n"
+"POT-Creation-Date: 2017-01-17 13:18-0500\n"
 "PO-Revision-Date: 2005-03-05 16:06-0500\n"
 "Last-Translator: Kenneth Haase <kh@beingmeta.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -340,7 +340,7 @@ msgid "character"
 msgstr "caractère"
 
 # bfd
-#: src/dtype/fdtype.c:66 src/scheme/eval.c:1347 src/scheme/modules.c:457
+#: src/dtype/fdtype.c:66 src/scheme/eval.c:1347 src/scheme/modules.c:455
 #: src/scheme/reflection.c:330
 msgid "symbol"
 msgstr "symbole"
@@ -1604,7 +1604,7 @@ msgstr ""
 msgid "Anonymous module"
 msgstr ""
 
-#: src/scheme/modules.c:224 src/scheme/modules.c:228
+#: src/scheme/modules.c:222 src/scheme/modules.c:226
 msgid "FailedModule"
 msgstr ""
 
