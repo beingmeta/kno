@@ -288,7 +288,10 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
 
 FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 {
-  if (FD_RAILP(expr)) return FD_RAIL_REF(expr,i);
+  if (FD_RAILP(expr)) {
+    if (FD_EXPECT_TRUE(i<FD_RAIL_LENGTH(expr)))
+      return FD_RAIL_REF(expr,i);
+    else return FD_VOID;}
   while (FD_PAIRP(expr))
     if ((FD_PAIRP(FD_CAR(expr))) &&
         (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))

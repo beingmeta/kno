@@ -1233,7 +1233,7 @@ static fdtype setbuf_prim(fdtype portarg,fdtype insize,fdtype outsize)
       if ((out) && (out->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
         u8_xoutput_setbuf((struct U8_XOUTPUT *)out,FD_FIX2INT(outsize));}}
     return FD_VOID;}
-  else return fd_type_error("port/stream","setbuf",portarg);
+  else return fd_type_error("port/stream","setbuf_prim",portarg);
 }
 
 static fdtype getpos_prim(fdtype portarg)
@@ -1283,7 +1283,7 @@ static fdtype endpos_prim(fdtype portarg)
     if (pos<0) return FD_ERROR_VALUE;
     else if (pos<FD_MAX_FIXNUM) return FD_INT(pos);
     else return fd_make_bigint(pos);}
-  else return fd_type_error("port or stream","getpos_prim",portarg);
+  else return fd_type_error("port or stream","endpos_prim",portarg);
 }
 
 static fdtype file_progress_prim(fdtype portarg)
@@ -1295,7 +1295,7 @@ static fdtype file_progress_prim(fdtype portarg)
     result=u8_getprogress((struct U8_STREAM *)(p->in));
   else if (p->out)
     result=u8_getprogress((struct U8_STREAM *)(p->out));
-  else return fd_type_error(_("port"),"getpos_prim",portarg);
+  else return fd_type_error(_("port"),"file_progress_prim",portarg);
   if (result<0)
     return FD_ERROR_VALUE;
   else return fd_init_double(NULL,result);
@@ -1340,7 +1340,7 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
     if (result<0) return FD_ERROR_VALUE;
     else if (result<FD_MAX_FIXNUM) return FD_INT(result);
     else return fd_make_bigint(result);}
-  else return fd_type_error("port or stream","getpos_prim",portarg);
+  else return fd_type_error("port or stream","setpos_prim",portarg);
 }
 
 /* File system info */
