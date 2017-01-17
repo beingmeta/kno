@@ -529,7 +529,7 @@ static fdtype get_config_files(fdtype var,void U8_MAYBE_UNUSED *data)
 
 static int add_config_file_helper(fdtype var,fdtype val,
                                   void U8_MAYBE_UNUSED *data,
-                                  int isopt)
+                                  int isopt,int isdflt)
 {
   if (!(FD_STRINGP(val))) return -1;
   else if (FD_STRLEN(val)==0) return 0;
@@ -550,7 +550,9 @@ static int add_config_file_helper(fdtype var,fdtype val,
     on_stack.next=config_stack;
     config_stack=&on_stack;
     fd_unlock_mutex(&config_file_lock);
-    retval=fd_load_default_config(pathname);
+    if (isdflt)
+      retval=fd_load_default_config(pathname);
+    else retval=fd_load_config(pathname);
     fd_lock_mutex(&config_file_lock);
     if (retval<0) {
       if (isopt) {
@@ -572,12 +574,17 @@ static int add_config_file_helper(fdtype var,fdtype val,
 
 static int add_config_file(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 {
-  return add_config_file_helper(var,val,data,0);
+  return add_config_file_helper(var,val,data,0,0);
 }
 
 static int add_opt_config_file(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
 {
-  return add_config_file_helper(var,val,data,1);
+  return add_config_file_helper(var,val,data,1,0);
+}
+
+static int add_default_config_file(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data)
+{
+  return add_config_file_helper(var,val,data,1,1);
 }
 
 /* Initialization */
@@ -628,6 +635,8 @@ FD_EXPORT void fd_init_load_c()
 
  fd_register_config("CONFIG","Add a CONFIG file/URI to process",
                     get_config_files,add_config_file,NULL);
+ fd_register_config("DEFAULTS","Add a CONFIG file/URI to process as defaults",
+                    get_config_files,add_default_config_file,NULL);
  fd_register_config("OPTCONFIG","Add an optional CONFIG file/URI to process",
                     get_config_files,add_opt_config_file,NULL);
  fd_register_config("TRACELOAD","Trace file load starts and ends",
