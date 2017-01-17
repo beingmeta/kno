@@ -780,8 +780,8 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s)
 static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 {
   unsigned char *zbytes; ssize_t zlen=-1, size;
-  struct FD_BYTE_OUTPUT out;
-  out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
+  struct FD_BYTE_OUTPUT out; 
+  out.ptr=out.start=u8_malloc(2048); out.end=out.start+2048;
   if (fd_write_dtype(&out,x)<0) {
     u8_free(out.start);
     return FD_ERROR_VALUE;}
@@ -791,6 +791,7 @@ static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
     return FD_ERROR_VALUE;}
   size=fd_dtswrite_zint(s,zlen); size=size+zlen;
   if (fd_dtswrite_bytes(s,zbytes,zlen)<0) size=-1;
+  fd_dtsflush(s);
   u8_free(zbytes); u8_free(out.start);
   return size;
 }
