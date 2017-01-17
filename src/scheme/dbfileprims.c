@@ -445,7 +445,8 @@ static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz)
     u8_free(temp_name);
     return FD_INT(bytes);}
   else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
-    struct FD_DTSTREAM *out=FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+    struct FD_DTSTREAM *out=
+      FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
     int bytes=fd_zwrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
     else return FD_INT(bytes);}
