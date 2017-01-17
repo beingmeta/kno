@@ -1205,13 +1205,16 @@ static fdtype flush_prim(fdtype portarg)
       FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
     fd_dtsflush(dts->dt_stream);
     return FD_VOID;}
-  else {
+  else if (FD_PRIM_TYPEP(portarg,fd_port_type)) {
     U8_OUTPUT *out=get_output_port(portarg);
     u8_flush(out);
     if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
       U8_XOUTPUT *xout=(U8_XOUTPUT *)out;
       fsync(xout->u8_xfd);}
     return FD_VOID;}
+  else if (FD_FALSEP(portarg))
+    return FD_VOID;
+  else return fd_type_error(_("port or stream"),"flush_prim",portarg);
 }
 
 static fdtype setbuf_prim(fdtype portarg,fdtype insize,fdtype outsize)
