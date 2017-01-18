@@ -729,6 +729,8 @@ src/scheme/eval.o: src/scheme/eval.c src/scheme/opcodes.c \
 src/scheme/binders.o src/scheme/conditionals.o src/scheme/iterators.o: \
 	src/scheme/eval_internals.h
 
+src/dtype/dtypeio.o src/dtype/apply.o : XCFLAGS="-O3"
+src/db/dtypestream.o : XCFLAGS="-O3"
 src/scheme/eval.o src/scheme/binders.o : XCFLAGS="-O3"
 src/scheme/conditionals.o src/scheme/iterators.o : XCFLAGS="-O3"
 src/scheme/opcodes.o : XCFLAGS="-O3"

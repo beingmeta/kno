@@ -64,8 +64,9 @@ FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
 #define FD_DTSCLOSE_FULL 2
 FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd);
 
-FD_EXPORT fdtype fd_file2dtype(u8_string filename,int zip_arg);
-FD_EXPORT int fd_dtype2file(u8_string filename,int zip_arg);
+FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename);
+FD_EXPORT int fd_write_dtype_to_file(fdtype obj,u8_string filename);
+FD_EXPORT int fd_add_dtype_to_file(fdtype obj,u8_string filename);
 
 /* Structure functions and macros */
 
