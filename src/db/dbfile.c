@@ -428,6 +428,26 @@ static fd_index open_file_index(u8_string filename,int consed)
       return NULL;}}
 }
 
+FD_EXPORT
+int fd_file_indexp(u8_string filename)
+{
+  FILE *f=u8_fopen(filename,"rb");
+  unsigned int i=0, word=0, read_only=0; unsigned char byte;
+  if (f==NULL) return 0;
+  byte=getc(f); word=word|(byte<<24);
+  byte=getc(f); word=word|(byte<<16);
+  byte=getc(f); word=word|(byte<<8);
+  byte=getc(f); word=word|(byte<<0);
+  fclose(f);
+  i=0; while (i < n_index_openers)
+         if (((index_openers[i].initial_word&0xFF)==0) ?
+             (index_openers[i].initial_word == (word&0xFFFFFF00)) :
+             (index_openers[i].initial_word == word))
+           return 1;
+         else i++;
+  return 0;
+}
+
 /* Reading memindices from disk */
 
 static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
