@@ -851,11 +851,15 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
     struct FD_DTYPE_STREAM *opened=
       fd_init_dtype_file_stream(stream,filename,FD_DTSTREAM_READ,bufsize);
     if (opened) {
+      fdtype result=FD_VOID;
       int byte1=fd_dtsread_byte(opened);
       int zip=(byte1>=0x80);
-      fdtype result=((zip)?
-                     (zread_dtype(opened)):
-                     (fd_dtsread_dtype(opened)));
+      if (opened->ptr > opened->start) 
+        opened->ptr--;
+      else fd_setpos(opened,0);
+      if (zip)
+        result=zread_dtype(opened);
+      else result=fd_dtsread_dtype(opened);
       fd_dtsclose(opened,1);
       return result;}
     else {

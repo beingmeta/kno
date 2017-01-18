@@ -505,18 +505,8 @@ static fdtype zipfile2dtype(fdtype filename);
 
 static fdtype file2dtype(fdtype filename)
 {
-  if ((FD_STRINGP(filename))&&
-      ((u8_has_suffix(FD_STRDATA(filename),".ztype",1))||
-       (u8_has_suffix(FD_STRDATA(filename),".gz",1)))) {
-    return zipfile2dtype(filename);}
-  else if (FD_STRINGP(filename)) {
-    struct FD_DTYPE_STREAM *in;
-    fdtype object=FD_VOID;
-    in=fd_dtsopen(FD_STRDATA(filename),FD_DTSTREAM_READ);
-    if (in==NULL) return FD_ERROR_VALUE;
-    else object=fd_dtsread_dtype(in);
-    fd_dtsclose(in,FD_DTSCLOSE_FULL);
-    return object;}
+  if (FD_STRINGP(filename)) 
+    return fd_read_dtype_from_file(FD_STRDATA(filename));
   else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *in=
       FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
