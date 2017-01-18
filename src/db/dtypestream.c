@@ -834,6 +834,34 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
   return zwrite_dtypes(s,x);
 }
 
+/* Files 2 dtypes */
+
+FD_EXPORT int fd_file2dtype(u8_string filename,int zip_arg)
+{
+  struct FD_DTYPE_STREAM *stream=u8_alloc(struct FD_DTYPE_STREAM);
+  ssize_t filesize=u8_file_size(filename);
+  int zip=((zip_arg>=0)?(zip_arg):
+           ( (u8_has_suffix(filename,".ztype",1)) ||
+             (u8_has_suffix(filename,".ztypes",1))));
+  ssize_t bufsize=((zip)?(2*(filesize+1024)):(filesize+1024));
+  if (filesize<0) {
+    fd_seterr(fd_FileNotFound,"fd_file2dtype",u8_strdup(filename),FD_VOID);
+    return -1;}
+  else {
+    struct FD_DTYPE_STREAM *opened=
+      fd_init_dtype_file_stream(stream,filename,FD_DTSTREAM_READ,bufsize);
+    if (opened) {
+      fdtype result=((zip)?
+                     (zread_dtype(opened)):
+                     (fd_dtsread_dtype(opened)));
+      fd_dtsclose(opened,1);
+      u8_free(stream);
+      return result;}
+    else {
+      u8_free(stream);
+      return -1;}}
+}
+
 /* Initialization of file */
 
 FD_EXPORT void fd_init_dtypestream_c()
