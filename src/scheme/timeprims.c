@@ -1953,7 +1953,7 @@ FD_EXPORT void fd_init_timeprims_c()
   ppid_symbol=fd_intern("PPID");
   memusage_symbol=fd_intern("MEMUSAGE");
   n_cpus_symbol=fd_intern("NCPUS");
-  nptrlocks_symbol=fd_intern("PTRLOCKS");
+  nptrlocks_symbol=fd_intern("NPTRLOCKS");
   pagesize_symbol=fd_intern("PAGESIZE");
   physical_pages_symbol=fd_intern("PHYSICAL-PAGES");
   available_pages_symbol=fd_intern("AVAILABLE-PAGES");
