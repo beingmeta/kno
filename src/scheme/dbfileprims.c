@@ -489,13 +489,13 @@ static fdtype add_dtype2zipfile(fdtype object,fdtype filename)
     else out=fd_dtsopen(FD_STRDATA(filename),FD_DTSTREAM_CREATE);
     if (out==NULL) return FD_ERROR_VALUE;
     fd_endpos(out);
-    bytes=fd_dtswrite_dtype(out,object);
+    bytes=fd_zwrite_dtype(out,object);
     fd_dtsclose(out,FD_DTSCLOSE_FULL);
     return FD_INT(bytes);}
   else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *out=
       FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
-    int bytes=fd_dtswrite_dtype(out->dt_stream,object);
+    int bytes=fd_zwrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
     else return FD_INT(bytes);}
   else return fd_type_error(_("string"),"add_dtype2zipfile",filename);
