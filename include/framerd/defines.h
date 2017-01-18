@@ -151,8 +151,16 @@ typedef int fd_size_t;
 #define FD_THREADS_ENABLED 1
 #endif
 
+/* This can be configured with --with-nptrlocks.
+
+   Larger values for this are useful when you're being more
+   multi-threaded, since it avoids locking conflicts during reference
+   count updates. Smaller values will reduce resources, but possibly
+   not by much.
+
+*/
 #ifndef FD_N_PTRLOCKS
-#define FD_N_PTRLOCKS 64
+#define FD_N_PTRLOCKS 512
 #endif
 
 #if FD_THREADS_ENABLED
