@@ -1212,8 +1212,6 @@ static fdtype flush_prim(fdtype portarg)
       U8_XOUTPUT *xout=(U8_XOUTPUT *)out;
       fsync(xout->u8_xfd);}
     return FD_VOID;}
-  else if (FD_FALSEP(portarg))
-    return FD_VOID;
   else return fd_type_error(_("port or stream"),"flush_prim",portarg);
 }
 
