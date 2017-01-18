@@ -148,6 +148,10 @@ define inchoicep
   showtype $
 end
 
+define fullstring
+  call (void)puts($arg0)
+end
+
 set breakpoint pending on
 #set disable-randomization off
 set overload-resolution off
