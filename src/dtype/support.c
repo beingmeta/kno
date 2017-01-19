@@ -458,9 +458,11 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
                                  size_t *arglen_ptr)
 {
   if (argc>0) {
-    fdtype interp=fd_lispstring(u8_fromlibc(argv[0]));
+    u8_string exe_name=u8_fromlibc(argv[0]);
+    fdtype interp=fd_lispstring(exe_name);
     fd_config_set("INTERPRETER",interp);
     fd_config_set("EXE",interp);
+    u8_free(exe_name);
     fd_decref(interp);}
 
   if (fd_argv!=NULL)  {
@@ -494,9 +496,9 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
       FD_VECTOR_SET(raw_args,i,fdtype_string(arg));
       /* Don't include argv[0] in the arglists */
       if (i==0) {
-        i++; continue;} 
+        i++; u8_free(arg); continue;} 
       else if ( ( n < 32 ) && ( ( (arg_mask) & (1<<i)) !=0 ) ) {
-        i++; continue;}
+        i++; u8_free(arg); continue;}
       else i++;
       if ((eq!=NULL) && (eq>arg) && (*(eq-1)!='\\')) {
         int retval=(arg!=NULL) ? (fd_config_assignment(arg)) : (-1);
@@ -518,6 +520,7 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
       _fd_argv[n]=lisp_arg; fd_incref(lisp_arg);
       FD_VECTOR_SET(lisp_args,n,lisp_arg);
       FD_VECTOR_SET(string_args,n,string_arg);
+      u8_free(arg);
       n++;}
     set_vector_length(lisp_args,n);
     lisp_argv = lisp_args;

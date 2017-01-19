@@ -131,9 +131,7 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
   tmp_string=u8_fromlibc(exe_arg);
   exe_name=u8_basename(tmp_string,NULL);
   u8_free(tmp_string); tmp_string=NULL;
-  if (exe_namep) {
-    *exe_namep=exe_name;
-    tmp_string=NULL;}
+  if (exe_namep) *exe_namep=exe_name;
 
   while (i<argc) {
     if (isconfig(argv[i])) {
@@ -174,7 +172,6 @@ static fdtype *handle_argv(int argc,char **argv,size_t *arglenp,
       u8_string combined=u8_string_append(appid_prefix,base,NULL);
       u8_default_appid(combined);
       u8_free(combined);}
-    if (exe_namep==NULL) u8_free(exe_name);
     u8_free(base);}
 
   if (source_filep==NULL) u8_free(source_file);
@@ -286,7 +283,8 @@ int do_main(int argc,char **argv,
                fd_n_primary_indices+fd_n_secondary_indices);}
 
   if (!(FD_ABORTP(result))) {
-    main_proc=fd_symeval(fd_intern("MAIN"),env);
+    fdtype main_symbol=fd_intern("MAIN");
+    main_proc=fd_symeval(main_symbol,env);
     if (FD_APPLICABLEP(main_proc)) {
       int ctype=FD_PRIM_TYPE(main_proc);
       fd_decref(result);
@@ -335,6 +333,9 @@ int main(int argc,char **argv)
   i=0; while (i<n_args) {
     fdtype arg=args[i++]; fd_decref(arg);}
   u8_free(args);
+
+  if (exe_name) u8_free(exe_name);
+  if (source_file) u8_free(source_file);
 
   return retval;
 }
