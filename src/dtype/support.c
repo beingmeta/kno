@@ -457,9 +457,15 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
                                  unsigned int arg_mask,
                                  size_t *arglen_ptr)
 {
+  if (argc>0) {
+    fdtype interp=fd_lispstring(u8_fromlibc(argv[0]));
+    fd_config_set("INTERPRETER",interp);
+    fd_config_set("EXE",interp);
+    fd_decref(interp);}
+
   if (fd_argv!=NULL)  {
     if ((init_argc>0) && (argc != init_argc)) 
-      u8_log(LOG_WARN,"InconsitentArgv/c",
+      u8_log(LOG_WARN,"InconsistentArgv/c",
              "Trying to reprocess argv with a different argc (%d) length != %d",
              argc,init_argc);
     if (arglen_ptr) *arglen_ptr=fd_argc;

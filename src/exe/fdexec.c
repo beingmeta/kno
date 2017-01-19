@@ -261,14 +261,12 @@ int do_main(int argc,char **argv,
   fd_idefn((fdtype)env,fd_make_cprimn("CHAIN",chain_prim,0));
   
   if (source_file) {
-    fdtype interp=fd_lispstring(u8_fromlibc(argv[0]));
     fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
     result=fd_load_source(source_file,env,NULL);
 
-    fd_config_set("INTERPRETER",interp);
     fd_config_set("SOURCE",src);
     
-    fd_decref(src); fd_decref(interp); u8_free(source_file);
+    fd_decref(src); u8_free(source_file);
     source_file=NULL;}
   else {
     fprintf(stderr,
