@@ -49,6 +49,8 @@ fd_exception fd_UnderSeek=_("Seeking before the beginning of the file");
 
 #define FD_DEBUG_DTYPEIO 0
 
+static fdtype zread_dtype(struct FD_DTYPE_STREAM *s);
+
 static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n);
 
 static u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
@@ -228,9 +230,13 @@ FD_EXPORT void fd_dtsbufsize(fd_dtype_stream s,int bufsiz)
 
 FD_EXPORT fdtype fd_dtsread_dtype(fd_dtype_stream s)
 {
+  int first_byte;
   if ((s->flags&FD_DTSTREAM_READING) == 0)
     if (fd_set_read(s,1)<0) return FD_ERROR_VALUE;
-  return fd_read_dtype((struct FD_BYTE_INPUT *)s);
+  first_byte=fd_dtsprobe_byte(s);
+  if (first_byte>=0x80) /* Probably compressed */
+    return zread_dtype(s);
+  else return fd_read_dtype((struct FD_BYTE_INPUT *)s);
 }
 FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x)
 {
@@ -508,6 +514,15 @@ FD_EXPORT int _fd_dtsread_byte(fd_dtype_stream s)
     if (fd_set_read(s,1)<0) return -1;
   if (fd_needs_bytes((fd_byte_input)s,1))
     return (*(s->ptr++));
+  else return -1;
+}
+
+FD_EXPORT int _fd_dtsprobe_byte(fd_dtype_stream s)
+{
+  if (((s->flags)&FD_DTSTREAM_READING) == 0)
+    if (fd_set_read(s,1)<0) return -1;
+  if (fd_needs_bytes((fd_byte_input)s,1))
+    return (*(s->ptr));
   else return -1;
 }
 
