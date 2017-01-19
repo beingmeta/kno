@@ -58,6 +58,7 @@ FD_EXPORT int fd_read_escape(u8_input in);
 
 FD_EXPORT int fd_unparse(u8_output,fdtype);
 FD_EXPORT u8_string fd_dtype2string(fdtype x);
+FD_EXPORT u8_string fd_dtype2buf(fdtype x,size_t n,u8_byte *buf);
 
 FD_EXPORT fdtype fd_string2number(u8_string string,int base);
 FD_EXPORT int fd_output_number(u8_output output,fdtype num,int base);

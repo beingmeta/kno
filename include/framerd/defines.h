@@ -238,6 +238,10 @@ typedef int fd_size_t;
 #define FD_PTR_TYPE_MACRO 1
 #endif
 
+#ifndef FD_DEBUG_OUTBUF_SIZE
+#define FD_DEBUG_OUTBUF_SIZE 1024
+#endif
+
 #ifndef FD_SCHEME_BUILTINS
 #define FD_INIT_SCHEME_BUILTINS() fd_init_fdscheme()
 #else

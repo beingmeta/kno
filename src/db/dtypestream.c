@@ -51,6 +51,8 @@ fd_exception fd_UnderSeek=_("Seeking before the beginning of the file");
 
 static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n);
 
+static u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
+
 /* Locking functions */
 
 #if WIN32
@@ -240,15 +242,20 @@ FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x)
   if ((fd_check_dtsize) && (start>=0)) {
     fd_off_t end=fd_getpos(s);
     if ((end-start)!= n_bytes)
-      u8_log((((s->flags)&(FD_DTSTREAM_CANSEEK)) ? (LOG_CRIT) : (LOG_ERR)),
+      u8_log((((s->flags)&(FD_DTSTREAM_CANSEEK)) ? 
+              (LOG_CRIT) : (LOG_ERR)),
              fd_InconsistentDTypeSize,
-             "Inconsistent dtype length %d/%d for %q",n_bytes,end-start,x);
+             "Inconsistent dtype length %d/%d for: %s",
+             n_bytes,end-start,
+             fd_dtype2buf(x,FD_DEBUG_OUTBUF_SIZE,_dbg_outbuf));
     else {
       fd_dtsflush(s); end=fd_getpos(s);
       if ((end-start)!= n_bytes)
         u8_log((((s->flags)&(FD_DTSTREAM_CANSEEK)) ? (LOG_CRIT) : (LOG_ERR)),
                fd_InconsistentDTypeSize,
-               "Inconsistent dtype length (on disk) %d/%d for %q",n_bytes,end-start,x);}}
+               "Inconsistent dtype length (on disk) %d/%d for: %s",
+               n_bytes,end-start,
+               fd_dtype2buf(x,FD_DEBUG_OUTBUF_SIZE,_dbg_outbuf));}}
   if ((s->ptr-s->start)*4>=(s->bufsiz*3)) fd_dtsflush(s);
   return n_bytes;
 }
