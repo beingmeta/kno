@@ -1210,6 +1210,7 @@ if test $with_tcmalloc = "yes"; then
   heaptest_prefix=builtin_
   heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
   memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
+  CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
 elif test $with_tcmalloc = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
   heaptest_prefix=builtin_
@@ -1224,6 +1225,7 @@ if test "x$with_perftools" != "xno" && test "x$custom_malloc" != "x"; then
   exit;
 fi
 
+
 if test $with_perftools = "yes"; then
   AC_CHECK_LIB(tcmalloc,malloc)
   if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
@@ -1235,6 +1237,7 @@ if test $with_perftools = "yes"; then
     AC_CHECK_HEADERS(gperftools/heap-checker.h)
     memtest_prefix=builtin_
     heaptest_prefix=builtin_
+    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
     heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
     memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
   fi; 

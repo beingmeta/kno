@@ -10204,6 +10204,7 @@ fi
   heaptest_prefix=builtin_
   heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
   memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
+  CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
 elif test $with_tcmalloc = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
@@ -10268,6 +10269,7 @@ if test "x$with_perftools" != "xno" && test "x$custom_malloc" != "x"; then
   echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
   exit;
 fi
+
 
 if test $with_perftools = "yes"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
@@ -10391,6 +10393,7 @@ done
 
     memtest_prefix=builtin_
     heaptest_prefix=builtin_
+    CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
     heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
     memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
   fi;
