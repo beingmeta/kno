@@ -921,9 +921,11 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
 {
   struct U8_OUTPUT out;
   int precision=((FD_FIXNUMP(prec_arg)) ? (FD_FIX2INT(prec_arg)) :
-                 (FD_FALSEP(prec_arg)) ? (-1) : (0));
+                 (FD_FALSEP(prec_arg)) ? 
+                 (-1) : 
+                 (0));
   int elts=0;
-  double seconds;
+  double seconds, reduce;
   int years, months, weeks, days, hours, minutes;
   if (FD_FIXNUMP(secs))
     seconds=(double)FD_FIX2INT(secs);
@@ -932,19 +934,20 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
   else return fd_type_error(_("seconds"),"secs2string",secs);
   U8_INIT_OUTPUT(&out,64);
   if (seconds<0) {
-    u8_printf(&out,"negative "); seconds=-seconds;}
-  years=(int)floor(seconds/(365*24*3600));
-  seconds=seconds-years*(365*24*3600);
-  months=(int)floor(seconds/(30*24*3600));
-  seconds=seconds-months*(30*24*3600);
-  weeks=(int)floor(seconds/(7*24*3600));
-  seconds=seconds-weeks*(7*24*3600);
-  days=(int)floor(seconds/(24*3600));
-  seconds=seconds-days*(3600*24);
-  hours=(int)floor(seconds/(3600));
-  seconds=seconds-hours*(3600);
-  minutes=floor(seconds/60);
-  seconds=seconds-minutes*60;
+    u8_printf(&out,"negative "); reduce=-seconds;}
+  else reduce=seconds;
+  years=(int)floor(reduce/(365*24*3600));
+  reduce=reduce-years*(365*24*3600);
+  months=(int)floor(reduce/(30*24*3600));
+  reduce=reduce-months*(30*24*3600);
+  weeks=(int)floor(reduce/(7*24*3600));
+  reduce=reduce-weeks*(7*24*3600);
+  days=(int)floor(reduce/(24*3600));
+  reduce=reduce-days*(3600*24);
+  hours=(int)floor(reduce/(3600));
+  reduce=reduce-hours*(3600);
+  minutes=floor(reduce/60);
+  reduce=reduce-minutes*60;
 
   if ((precision>0) && (elts>=precision)) {}
   else if (years>0) {
@@ -1008,18 +1011,23 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
 
   if ((precision>0) && (elts>=precision)) {}
   else if (seconds==0) {}
-  else if ((precision==0) && (elts>0) &&
-           (FD_FLONUMP(secs)) && (seconds>1)) {
-    /* This is the case where we round the seconds */
+  else if (precision<0) {
     if (elts>0) u8_puts(&out,", ");
-    u8_printf(&out,_("%d seconds"),(int)floor(seconds));}
-  else if (FD_FLONUMP(secs)) {
+    u8_printf(&out,_("%f seconds"),reduce);}
+  else if (!(FD_FLONUMP(secs)))  {
     if (elts>0) u8_puts(&out,", ");
-    u8_printf(&out,_("%f seconds"),seconds);}
-  else {
+    u8_printf(&out,_("%d seconds"),(int)floor(reduce));}
+  else if (precision>0) {
+    int more_precision=precision-elts;
     if (elts>0) u8_puts(&out,", ");
-    u8_printf(&out,_("%d seconds"),(int)floor(seconds));}
-
+    if (more_precision>3)
+      u8_printf(&out,_("%f seconds"),reduce);
+    else if (more_precision>2)
+      u8_printf(&out,_("%.3f seconds"),reduce);
+    else if (more_precision>1)
+      u8_printf(&out,_("%.2f seconds"),reduce);
+    else u8_printf(&out,_("%.1f seconds"),reduce);}
+  else u8_printf(&out,_("%.1f seconds"),reduce);
   return fd_stream2string(&out);
 }
 
@@ -2006,7 +2014,7 @@ FD_EXPORT void fd_init_timeprims_c()
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("SECS->STRING",secs2string,1,
-                           -1,FD_VOID,-1,FD_FALSE));
+                           -1,FD_VOID,-1,FD_INT(3)));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETHOSTNAME",hostname_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HOSTADDRS",hostaddrs_prim,0));
