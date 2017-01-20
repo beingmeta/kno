@@ -138,7 +138,8 @@ FD_EXPORT struct FD_DTYPE_STREAM *fd_init_dtype_stream
       bufsiz=bufsiz/2; buf=u8_malloc(bufsiz);}
     if (buf==NULL) bufsiz=0;
     /* Initialize the on-demand reader */
-    FD_INIT_BYTE_INPUT(s,buf,bufsiz); s->end=s->ptr; s->bufsiz=bufsiz;
+    FD_INIT_BYTE_INPUT(s,buf,bufsiz); 
+    s->end=s->ptr; s->bufsiz=bufsiz;
     s->mallocd=0; s->fd=sock; s->filepos=-1; s->maxpos=-1; s->id=NULL;
     s->fillfn=fill_dtype_stream; s->flushfn=NULL;
     s->flags|=FD_DTSTREAM_READING|FD_BYTEBUF_MALLOCD;
@@ -783,7 +784,9 @@ static fdtype zread_dtype(struct FD_DTYPE_STREAM *s)
   if (retval<n_bytes) {
     u8_free(bytes);
     return FD_ERROR_VALUE;}
+  memset(&in,0,sizeof(in));
   in.ptr=in.start=do_uncompress(bytes,n_bytes,&dbytes);
+  in.flags=FD_BYTEBUF_MALLOCD;
   if (in.start==NULL) {
     u8_free(bytes);
     return FD_ERROR_VALUE;}
@@ -802,8 +805,10 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s)
 static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 {
   unsigned char *zbytes; ssize_t zlen=-1, size;
-  struct FD_BYTE_OUTPUT out; 
-  out.ptr=out.start=u8_malloc(2048); out.end=out.start+2048;
+  struct FD_BYTE_OUTPUT out; memset(&out,0,sizeof(out));
+  out.ptr=out.start=u8_malloc(2048); 
+  out.end=out.start+2048;
+  out.flags=FD_BYTEBUF_MALLOCD;
   if (fd_write_dtype(&out,x)<0) {
     u8_free(out.start);
     return FD_ERROR_VALUE;}
@@ -827,8 +832,10 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 {
   unsigned char *zbytes=NULL; ssize_t zlen=-1, size; int retval=0;
-  struct FD_BYTE_OUTPUT out;
-  out.ptr=out.start=u8_malloc(1024); out.end=out.start+1024;
+  struct FD_BYTE_OUTPUT out; memset(&out,0,sizeof(out));
+  out.ptr=out.start=u8_malloc(2048);
+  out.end=out.start+2048;
+  out.flags=FD_BYTEBUF_MALLOCD;
   if (FD_CHOICEP(x)) {
     FD_DO_CHOICES(v,x) {
       retval=fd_write_dtype(&out,v);
