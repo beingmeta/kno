@@ -397,6 +397,8 @@ typedef struct FD_HASHTABLE *fd_hashtable;
   ((FD_XHASHTABLE(x))->n_slots)
 #define FD_HASHTABLE_SIZE(x) \
   ((FD_XHASHTABLE(x))->n_keys)
+#define FD_HASHTABLE_READONLYP(x) \
+  ((FD_XHASHTABLE(x))->readonly)
 #define FD_HASHTABLE_MODIFIEDP(x) \
   ((FD_XHASHTABLE(x))->modified)
 #define FD_HASHTABLE_MARK_MODIFIED(x) \
@@ -492,6 +494,8 @@ FD_EXPORT void fd_hash_quality
 
 FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *h);
 FD_EXPORT int fd_free_hashvec(struct FD_HASHENTRY **slots,int slots_to_free);
+
+FD_EXPORT int fd_hashtable_set_readonly(FD_HASHTABLE *ht,int readonly);
 
 /* Hashsets */
 
