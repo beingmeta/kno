@@ -1495,7 +1495,7 @@ include/framerd/revision.h: $(FRAMERD_SOURCES) $(FRAMERD_HEADERS) makefile
 	fi
 
 # Depending on the buildmode
-$(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode
+$(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
 #$(STATIC_LIBS) $(SHARED_LIBS): buildmode
 $(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
 $(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(REVISION_H)
