@@ -264,7 +264,7 @@ int do_main(int argc,char **argv,
 
     fd_config_set("SOURCE",src);
     
-    fd_decref(src); u8_free(source_file);
+    fd_decref(src);
     source_file=NULL;}
   else {
     fprintf(stderr,
