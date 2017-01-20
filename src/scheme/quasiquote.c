@@ -48,7 +48,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
   while (FD_PAIRP(obj)) {
     fdtype elt=FD_CAR(obj), new_elt, new_tail;
     struct FD_PAIR *tailcons;
-    if (FD_ATOMICP(elt))
+    if (FD_ATOMICP(elt)) {
       /* This handles the case of a dotted unquote. */
       if (FD_EQ(elt,unquote)) {
         if ((FD_PAIRP(FD_CDR(obj))) &&
@@ -64,7 +64,8 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
           else {
             fdtype splice_at_end=fd_quasiquote(FD_CADR(obj),env,level-1);
             if (FD_ABORTED(splice_at_end)) {
-              fd_decref(head); return splice_at_end;}
+              fd_decref(head); 
+              return splice_at_end;}
             else {
               fdtype with_unquote=fd_conspair(unquote,splice_at_end);
               *tail=with_unquote;
@@ -72,7 +73,7 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
         else {
           fd_decref(head);
           return fd_err(fd_SyntaxError,"malformed UNQUOTE",NULL,obj);}}
-      else new_elt=elt;
+      else new_elt=elt;}
     else if (FD_PAIRP(elt))
       if (FD_BAD_UNQUOTEP(elt)) {
         fd_decref(head);
@@ -117,7 +118,8 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
               fdtype insert_elt=FD_VECTOR_REF(insertion,i);
               fdtype new_pair=fd_conspair(insert_elt,FD_EMPTY_LIST);
               *tail=new_pair; tail=&(FD_CDR(new_pair));
-              fd_incref(insert_elt); i++;}}
+              fd_incref(insert_elt); 
+              i++;}}
           else {
             u8_string details_string=u8_mkstring("RESULT=%q",elt);
             fdtype err;
@@ -145,7 +147,8 @@ static fdtype quasiquote_list(fdtype obj,fd_lispenv env,int level)
   if (!(FD_EMPTY_LISTP(obj))) {
     fdtype final=fd_quasiquote(obj,env,level);
     if (FD_ABORTED(final)) {
-      fd_decref(head); return final;}
+      fd_decref(head); 
+      return final;}
     else *tail=final;}
   return head;
 }
