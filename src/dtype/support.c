@@ -462,7 +462,6 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
     fdtype interp=fd_lispstring(exe_name);
     fd_config_set("INTERPRETER",interp);
     fd_config_set("EXE",interp);
-    u8_free(exe_name);
     fd_decref(interp);}
 
   if (fd_argv!=NULL)  {
