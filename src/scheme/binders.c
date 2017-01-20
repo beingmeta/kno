@@ -434,10 +434,12 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   if (n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
   bindings.values=vals;
   if (fn->arity>0) {
-    if (n<fn->min_arity)
-      return fd_err(fd_TooFewArgs,fn->name,NULL,FD_VOID);
-    else if (n>fn->arity)
-      return fd_err(fd_TooManyArgs,fn->name,NULL,FD_VOID);
+    if (n<fn->min_arity) {
+      fd_destroy_rwlock(&(bindings.rwlock));
+      return fd_err(fd_TooFewArgs,fn->name,NULL,FD_VOID);}
+    else if (n>fn->arity) {
+      fd_destroy_rwlock(&(bindings.rwlock));
+      return fd_err(fd_TooManyArgs,fn->name,NULL,FD_VOID);}
     else {
       /* This code handles argument defaults for sprocs */
       int i=0;
@@ -517,7 +519,6 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
     u8_current_exception->u8x_details=u8_strdup(fn->name);
   /* If we're synchronized, unlock the mutex. */
   if (fn->synchronized) fd_unlock_struct(fn);
-  fd_destroy_rwlock(&(bindings.rwlock));
   fd_decref(lexpr_arg);
   if (envstruct.copy) {
     fd_recycle_environment(envstruct.copy);
