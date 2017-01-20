@@ -49,7 +49,11 @@ fd_exception fd_UnderSeek=_("Seeking before the beginning of the file");
 
 #define FD_DEBUG_DTYPEIO 0
 
+static fdtype zread_dtype(struct FD_DTYPE_STREAM *s);
+
 static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n);
+
+static u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
 
 /* Locking functions */
 
@@ -228,9 +232,13 @@ FD_EXPORT void fd_dtsbufsize(fd_dtype_stream s,int bufsiz)
 
 FD_EXPORT fdtype fd_dtsread_dtype(fd_dtype_stream s)
 {
+  int first_byte;
   if ((s->fd_dts_flags&FD_DTSTREAM_READING) == 0)
     if (fd_set_read(s,1)<0) return FD_ERROR_VALUE;
-  return fd_read_dtype((struct FD_BYTE_INPUT *)s);
+  first_byte=fd_dtsprobe_byte(s);
+  if (first_byte>=0x80) /* Probably compressed */
+    return zread_dtype(s);
+  else return fd_read_dtype((struct FD_BYTE_INPUT *)s);
 }
 FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x)
 {
@@ -242,16 +250,24 @@ FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x)
   if ((fd_check_dtsize) && (start>=0)) {
     fd_off_t end=fd_getpos(s);
     if ((end-start)!= n_bytes)
-      u8_log((((s->fd_dts_flags)&(FD_DTSTREAM_CANSEEK)) ? (LOG_CRIT) : (LOG_ERR)),
+      u8_log((((s->fd_dts_flags)&(FD_DTSTREAM_CANSEEK)) ?
+              (LOG_CRIT) :
+              (LOG_ERR)),
              fd_InconsistentDTypeSize,
-             "Inconsistent dtype length %d/%d for %q",n_bytes,end-start,x);
+             "Inconsistent dtype length %d/%d for: %s",
+             n_bytes,end-start,
+             fd_dtype2buf(x,FD_DEBUG_OUTBUF_SIZE,_dbg_outbuf));
     else {
       fd_dtsflush(s); end=fd_getpos(s);
       if ((end-start)!= n_bytes)
         u8_log((((s->fd_dts_flags)&(FD_DTSTREAM_CANSEEK)) ? (LOG_CRIT) : (LOG_ERR)),
                fd_InconsistentDTypeSize,
+               "Inconsistent dtype length (on disk) %d/%d for: %s",
+               n_bytes,end-start,
+               fd_dtype2buf(x,FD_DEBUG_OUTBUF_SIZE,_dbg_outbuf));}}
                "Inconsistent dtype length (on disk) %d/%d for %q",n_bytes,end-start,x);}}
-  if ((s->fd_bufptr-s->fd_bufstart)*4>=(s->fd_bufsiz*3)) fd_dtsflush(s);
+  if ((s->fd_bufptr-s->fd_bufstart)*4>=(s->fd_bufsiz*3))
+    fd_dtsflush(s);
   return n_bytes;
 }
 
@@ -503,6 +519,15 @@ FD_EXPORT int _fd_dtsread_byte(fd_dtype_stream s)
     if (fd_set_read(s,1)<0) return -1;
   if (fd_needs_bytes((fd_byte_input)s,1))
     return (*(s->fd_bufptr++));
+  else return -1;
+}
+
+FD_EXPORT int _fd_dtsprobe_byte(fd_dtype_stream s)
+{
+  if (((s->flags)&FD_DTSTREAM_READING) == 0)
+    if (fd_set_read(s,1)<0) return -1;
+  if (fd_needs_bytes((fd_byte_input)s,1))
+    return (*(s->ptr));
   else return -1;
 }
 
@@ -783,7 +808,8 @@ static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 {
   unsigned char *zbytes; ssize_t zlen=-1, size;
   struct FD_BYTE_OUTPUT out;
-  out.fd_bufptr=out.fd_bufstart=u8_malloc(1024); out.fd_buflim=out.fd_bufstart+1024;
+  out.fd_bufptr=out.fd_bufstart=u8_malloc(2048);
+  out.fd_buflim=out.fd_bufstart+2048;
   if (fd_write_dtype(&out,x)<0) {
     u8_free(out.fd_bufstart);
     return FD_ERROR_VALUE;}
@@ -793,7 +819,9 @@ static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
     return FD_ERROR_VALUE;}
   size=fd_dtswrite_zint(s,zlen); size=size+zlen;
   if (fd_dtswrite_bytes(s,zbytes,zlen)<0) size=-1;
-  u8_free(zbytes); u8_free(out.fd_bufstart);
+  fd_dtsflush(s);
+  u8_free(zbytes);
+  u8_free(out.fd_bufstart);
   return size;
 }
 
@@ -833,6 +861,39 @@ static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 FD_EXPORT int fd_zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 {
   return zwrite_dtypes(s,x);
+}
+
+/* Files 2 dtypes */
+
+FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
+{
+  struct FD_DTYPE_STREAM *stream=u8_alloc(struct FD_DTYPE_STREAM);
+  ssize_t filesize=u8_file_size(filename);
+  ssize_t bufsize=(filesize+1024);
+  if (filesize<0) {
+    fd_seterr(fd_FileNotFound,"fd_file2dtype",u8_strdup(filename),FD_VOID);
+    return FD_ERROR_VALUE;}
+  else if (filesize==0) {
+    fd_seterr("Zero-length file","fd_file2dtype",u8_strdup(filename),FD_VOID);
+    return FD_ERROR_VALUE;}
+  else {
+    struct FD_DTYPE_STREAM *opened=
+      fd_init_dtype_file_stream(stream,filename,FD_DTSTREAM_READ,bufsize);
+    if (opened) {
+      fdtype result=FD_VOID;
+      int byte1=fd_dtsread_byte(opened);
+      int zip=(byte1>=0x80);
+      if (opened->ptr > opened->start) 
+        opened->ptr--;
+      else fd_setpos(opened,0);
+      if (zip)
+        result=zread_dtype(opened);
+      else result=fd_dtsread_dtype(opened);
+      fd_dtsclose(opened,1);
+      return result;}
+    else {
+      u8_free(stream);
+      return FD_ERROR_VALUE;}}
 }
 
 /* Initialization of file */

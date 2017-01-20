@@ -7,7 +7,7 @@ set env DUMA_ALIGNMENT=4
 set env PPROF_PATH=/usr/bin/gpprof
 set env MSAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
 set env TCMALLOC_DEBUG=3
-set env MALLOCSTATS=2
+#set env MALLOCSTATS=2
 #set env HEAPPROFILE=/tmp/heap.profiles/heapprof
 #set env HEAPCHECK=normal # strict|draconian
 #set CPUPROFILE=/tmp/cpu-profile
@@ -146,6 +146,10 @@ end
 define inchoicep
   print _fd_find_elt($arg0,&(((struct FD_CHOICE *)$arg1)->elt0),((((struct FD_CHOICE *)$arg1)->size)&(0x7FFFFFFF)))
   showtype $
+end
+
+define fullstring
+  call (void)puts($arg0)
 end
 
 set breakpoint pending on

@@ -768,6 +768,29 @@ static fdtype thread_add(fdtype var,fdtype val)
   else return FD_VOID;
 }
 
+static fdtype thread_ref(fdtype expr,fd_lispenv env)
+{
+  fdtype sym_arg=fd_get_arg(expr,1), sym, val;
+  fdtype dflt_expr=fd_get_arg(expr,2);
+  if ((FD_VOIDP(sym_arg))||(FD_VOIDP(dflt_expr)))
+    return fd_err(fd_SyntaxError,"thread_ref",NULL,FD_VOID);
+  sym=fd_eval(sym_arg,env);
+  if (FD_ABORTP(sym)) return sym;
+  else if (!(FD_SYMBOLP(sym))) 
+    return fd_err(fd_TypeError,"thread_ref",u8_strdup("symbol"),sym);
+  else val=fd_thread_get(sym);
+  if (FD_ABORTP(val)) return val;
+  else if (FD_VOIDP(val)) {
+    fdtype useval=fd_eval(dflt_expr,env); int rv;
+    if (FD_ABORTP(useval)) return useval;
+    rv=fd_thread_set(sym,useval);
+    if (rv<0) {
+      fd_decref(useval);
+      return FD_ERROR_VALUE;}
+    return useval;}
+  else return val;
+}
+
 /* GETSOURCEIDS */
 
 static void add_sourceid(u8_string s,void *vp)
@@ -894,6 +917,8 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("THREADGET",thread_get,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("THREADSET!",thread_set,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("THREADADD!",thread_add,2));
+  fd_defspecial(fd_scheme_module,"THREADREF",thread_ref);
+
   fd_idefn(fd_scheme_module,fd_make_cprim1("INTERN",lisp_intern,1));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("SYMBOL->STRING",lisp_symbol2string,1,

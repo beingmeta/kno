@@ -977,8 +977,8 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
         if ((head_type==fd_sproc_type)&&((nd==0)||(fn->ndcall)))
           result=fd_apply_sproc((struct FD_SPROC *)fn,arg_i,args);
         else if (nd==0) 
-          result=fd_dapply(head,n,args);
-        else result=fd_apply(head,n,args);
+          result=fd_dapply(head,n-1,args);
+        else result=fd_apply(head,n-1,args);
         arg_i--; while (arg_i>=0) {fd_decref(args[arg_i]); arg_i--;}
         if (FD_PRIM_TYPEP(result,fd_tail_call_type))
           result=fd_finish_call(result);

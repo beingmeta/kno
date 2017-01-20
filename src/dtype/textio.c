@@ -456,6 +456,26 @@ u8_string fd_dtype2string(fdtype x)
   return out.u8_outbuf;
 }
 
+FD_EXPORT
+/* fd_dtype2buf:
+     Arguments: a lisp object
+     Arguments: a length in bytes
+     Arguments: a (possibly NULL) buffer
+     Returns: a UTF-8 encoding string
+
+     Writes a text representation of the object into a fixed length
+     string.
+
+*/
+u8_string fd_dtype2buf(fdtype x,size_t n,u8_byte *buf)
+{
+  struct U8_OUTPUT out;
+  if (buf==NULL) buf=u8_malloc(n+7);
+  U8_INIT_FIXED_OUTPUT(&out,n,buf);
+  fd_unparse(&out,x);
+  return out.u8_outbuf;
+}
+
 /* Parsing */
 
 static int parse_unicode_escape(u8_string arg)

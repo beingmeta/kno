@@ -196,10 +196,8 @@ static void init_dloadpath()
 {
   u8_string tmp=u8_getenv("FD_INIT_DLOADPATH"); fdtype strval;
   if (tmp==NULL) 
-    strval=fd_lispstring(FD_DEFAULT_DLOADPATH);
-  else {
-    strval=fd_lispstring(tmp);
-    u8_free(tmp);}
+    strval=fdtype_string(FD_DEFAULT_DLOADPATH);
+  else strval=fd_lispstring(tmp);
   dloadpath=fd_init_pair(NULL,strval,dloadpath);
 }
 

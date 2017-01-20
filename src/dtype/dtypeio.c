@@ -37,6 +37,8 @@ static fdtype error_symbol;
 static u8_mutex dtype_unpacker_lock;
 #endif
 
+static u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
+
 /* Byte output */
 
 static int grow_output_buffer(struct FD_BYTE_OUTPUT *b,int delta)
@@ -129,7 +131,10 @@ static size_t try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
   else if ((out->fd_dts_flushfn==NULL) &&
            ((olen+dlen) != (out->fd_bufptr-out->fd_bufstart)))
     /* If you're writing straight to memory, check dtype size argument */
-    u8_log(LOG_WARN,"","inconsistent dtype size");
+    u8_log(LOG_WARN,fd_InconsistentDTypeSize,
+           "Call returned %lld, buffer got %lld for %s",
+           dlen,((out->ptr-out->start)-olen),
+           fd_dtype2buf(x,FD_DEBUG_OUTBUF_SIZE,_dbg_outbuf));
   *len=*len+dlen;
   return dlen;
 }

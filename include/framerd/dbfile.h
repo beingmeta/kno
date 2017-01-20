@@ -155,6 +155,8 @@ typedef struct FD_INDEX_OPENER *fd_index_opener;
 #define FD_HASH_INDEX_MAGIC_NUMBER 0x8011308
 #define FD_HASH_INDEX_TO_RECOVER 0x8011328
 
+FD_EXPORT int fd_file_indexp(u8_string filename);
+
 typedef struct FD_FILE_INDEX {
   FD_INDEX_FIELDS;
   unsigned int n_slots, hashv, *offsets;

@@ -983,7 +983,7 @@ static fdtype random_oid(fdtype arg)
     return fd_type_error(_("pool spec"),"random_oid",arg);
   else {
     int load=fd_pool_load(p);
-    if (load>=0) {
+    if (load>0) {
       FD_OID base=p->base; int i=u8_random(load);
       return fd_make_oid(FD_OID_PLUS(base,i));}
     return FD_ERROR_VALUE;}

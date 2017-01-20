@@ -65,6 +65,10 @@ FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
 #define FD_DTSCLOSE_FULL 2
 FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd);
 
+FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename);
+FD_EXPORT int fd_write_dtype_to_file(fdtype obj,u8_string filename);
+FD_EXPORT int fd_add_dtype_to_file(fdtype obj,u8_string filename);
+
 /* Structure functions and macros */
 
 FD_EXPORT fd_off_t _fd_getpos(fd_dtype_stream s);
@@ -104,6 +108,7 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s);
 FD_EXPORT int fd_zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x);
 
 FD_EXPORT int _fd_dtsread_byte(struct FD_DTYPE_STREAM *stream);
+FD_EXPORT int _fd_dtsprobe_byte(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT fd_4bytes _fd_dtsread_4bytes(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT fd_8bytes _fd_dtsread_8bytes(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT int _fd_dtsread_bytes
@@ -125,6 +130,14 @@ FD_FASTOP int fd_dtsread_byte(fd_dtype_stream s)
   fd_dts_start_read(s);
   if (fd_needs_bytes((fd_byte_input)s,1))
     return (*(s->fd_bufptr++));
+  else return -1;
+}
+
+FD_FASTOP int fd_dtsprobe_byte(fd_dtype_stream s)
+{
+  fd_dts_start_read(s);
+  if (fd_needs_bytes((fd_byte_input)s,1))
+    return (*(s->ptr));
   else return -1;
 }
 
@@ -365,6 +378,7 @@ static U8_MAYBE_UNUSED int fd_dtswrite_zint8(fd_dtype_stream s,fd_8bytes n)
 }
 #else /* FD_INLINE_DTYPEIO */
 #define fd_dtsread_byte   _fd_dtsread_byte
+#define fd_dtprobe_byte   _fd_dtsprobe_byte
 #define fd_dtsread_4bytes _fd_dtsread_4bytes
 #define fd_dtsread_bytes  _fd_dtsread_bytes
 #define fd_dtsread_zint  _fd_dtsread_zint

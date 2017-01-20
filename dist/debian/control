@@ -96,8 +96,8 @@ Section: debug
 Depends: 
     framerd-core-dbg (= ${binary:Version}),
     framerd-mongodb (= ${binary:Version}),
-    libmongoc-dbg,
-    libbson-dbg,
+    libmongoc-dev,
+    libbson-dev,
     ${misc:Depends}
 Description: This package contains the debugging symbols for framerd-mongodb
 

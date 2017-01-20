@@ -6,6 +6,7 @@
 */
 
 #include "framerd/fdsource.h"
+#include "framerd/defines.h"
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
 #include "framerd/support.h"

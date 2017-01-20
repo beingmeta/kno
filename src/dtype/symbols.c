@@ -47,7 +47,7 @@ static void init_symbol_tables()
   else {
     int new_max=((fd_max_symbols) ? (fd_max_symbols) : (fd_initial_symbols));
     int new_size=fd_get_hashtable_size(new_max*2);
-    struct FD_SYMBOL_ENTRY **new_entries=u8_alloc_n(new_size,fd_symbol_entry);
+    struct FD_SYMBOL_ENTRY **new_entries=u8_zalloc_n(new_size,fd_symbol_entry);
     fdtype *new_symbol_names=u8_alloc_n(new_max,fdtype);
     int i=0, lim=new_size; while (i < lim) new_entries[i++]=NULL;
     i=0; lim=new_max; while (i < lim) new_symbol_names[i++]=FD_VOID;
@@ -120,9 +120,10 @@ fdtype fd_make_symbol(u8_string bytes,int len)
       return fd_make_symbol(bytes,len);}
     else {
       int id=fd_n_symbols++;
+      u8_string pname=u8_strdup(bytes);
       entries[probe]=u8_alloc(struct FD_SYMBOL_ENTRY);
       entries[probe]->fd_symid=id;
-      fd_init_string(&(entries[probe]->fd_pname),len,u8_strdup(bytes));
+      fd_init_string(&(entries[probe]->fd_pname),len,pname);
       fd_symbol_names[id]=FDTYPE_CONS(&(entries[probe]->fd_pname));
       fd_unlock_mutex(&fd_symbol_lock);
       return FD_ID2SYMBOL(id);}}

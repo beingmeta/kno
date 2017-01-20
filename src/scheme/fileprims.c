@@ -757,7 +757,7 @@ static char *get_tmpdir()
 static fdtype temproot_get(fdtype sym,void *ignore)
 {
   if (tempdir_template)
-    return fd_lispstring(tempdir_template);
+    return fdtype_string(tempdir_template);
   else {
     char *tmpdir=get_tmpdir();
     u8_string tmp=u8_mkpath(tmpdir,"fdtempXXXXXX");
@@ -1205,19 +1205,21 @@ static fdtype flush_prim(fdtype portarg)
       FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
     fd_dtsflush(dts->dt_stream);
     return FD_VOID;}
-  else {
+  else if (FD_PRIM_TYPEP(portarg,fd_port_type)) {
     U8_OUTPUT *out=get_output_port(portarg);
     u8_flush(out);
     if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
       U8_XOUTPUT *xout=(U8_XOUTPUT *)out;
       fsync(xout->u8_xfd);}
     return FD_VOID;}
+  else return fd_type_error(_("port or stream"),"flush_prim",portarg);
 }
 
 static fdtype setbuf_prim(fdtype portarg,fdtype insize,fdtype outsize)
 {
   if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
-    struct FD_DTSTREAM *dts=FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
+    struct FD_DTSTREAM *dts=
+      FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
     fd_dtsbufsize(dts->dt_stream,FD_FIX2INT(insize));
     return FD_VOID;}
   else if (FD_PORTP(portarg)) {
@@ -1233,7 +1235,7 @@ static fdtype setbuf_prim(fdtype portarg,fdtype insize,fdtype outsize)
       if ((out) && (out->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
         u8_xoutput_setbuf((struct U8_XOUTPUT *)out,FD_FIX2INT(outsize));}}
     return FD_VOID;}
-  else return fd_type_error("port/stream","setbuf",portarg);
+  else return fd_type_error("port/stream","setbuf_prim",portarg);
 }
 
 static fdtype getpos_prim(fdtype portarg)
@@ -1283,7 +1285,7 @@ static fdtype endpos_prim(fdtype portarg)
     if (pos<0) return FD_ERROR_VALUE;
     else if (pos<FD_MAX_FIXNUM) return FD_INT(pos);
     else return fd_make_bigint(pos);}
-  else return fd_type_error("port or stream","getpos_prim",portarg);
+  else return fd_type_error("port or stream","endpos_prim",portarg);
 }
 
 static fdtype file_progress_prim(fdtype portarg)
@@ -1295,7 +1297,7 @@ static fdtype file_progress_prim(fdtype portarg)
     result=u8_getprogress((struct U8_STREAM *)(p->in));
   else if (p->out)
     result=u8_getprogress((struct U8_STREAM *)(p->out));
-  else return fd_type_error(_("port"),"getpos_prim",portarg);
+  else return fd_type_error(_("port"),"file_progress_prim",portarg);
   if (result<0)
     return FD_ERROR_VALUE;
   else return fd_init_double(NULL,result);
@@ -1340,7 +1342,7 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
     if (result<0) return FD_ERROR_VALUE;
     else if (result<FD_MAX_FIXNUM) return FD_INT(result);
     else return fd_make_bigint(result);}
-  else return fd_type_error("port or stream","getpos_prim",portarg);
+  else return fd_type_error("port or stream","setpos_prim",portarg);
 }
 
 /* File system info */
@@ -1678,8 +1680,9 @@ FD_EXPORT void fd_init_fileio_c()
            fd_make_cprim3("EXTEND-OUTPUT-FILE",extend_output_file,1));
   fd_idefn(fileio_module,
            fd_make_cprim2("OPEN-INPUT-FILE",open_input_file,1));
-  fd_idefn(fileio_module,fd_make_cprim3x("SETBUF",setbuf_prim,2,
+  fd_idefn(fileio_module,fd_make_cprim3x("SETBUF!",setbuf_prim,2,
                                          -1,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
+  fd_defalias(fileio_module,"SETBUF","SETBUF!");
 
   fd_idefn(fileio_module,
            fd_make_cprim3x("WRITE-FILE",writefile_prim,2,
