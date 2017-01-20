@@ -36,6 +36,24 @@ static u8_condvar module_wait;
 #endif
 
 static int trace_dload=0;
+static int auto_bronze_modules=0;
+static int auto_bronze_exports=0;
+static int auto_lock_modules=0;
+static int auto_lock_exports=0;
+
+static int readonly_tablep(fdtype arg)
+{
+  fd_ptr_type type=FD_PTR_TYPE(arg);
+  switch (type) {
+  case fd_hashtable_type:
+    return FD_HASHTABLE_READONLYP(arg);
+  case fd_slotmap_type:
+    return FD_SLOTMAP_READONLYP(arg);
+  case fd_schemap_type:
+    return FD_SCHEMAP_READONLYP(arg);
+  default:
+    return 0;}
+}
 
 /* Design for avoiding the module loading race condition */
 
@@ -137,7 +155,57 @@ fdtype fd_find_module(fdtype spec,int safe,int err)
 FD_EXPORT
 int fd_finish_module(fdtype module)
 {
-  if (FD_TABLEP(module)) {
+  if (FD_TABLEP(module))
+    if (readonly_tablep(module))
+      return 0;
+    else {
+      struct U8_XTIME xtptr; fdtype timestamp;
+      fdtype cur_timestamp=fd_get(module,loadstamp_symbol,FD_VOID);
+      fdtype moduleid=fd_get(module,moduleid_symbol,FD_VOID);
+      u8_init_xtime(&xtptr,-1,u8_second,0,0,0);
+      timestamp=fd_make_timestamp(&xtptr);
+      fd_store(module,loadstamp_symbol,timestamp);
+      fd_decref(timestamp);
+      if (FD_VOIDP(moduleid))
+        u8_log(LOG_WARN,_("Anonymous module"),
+               "The module %q doesn't have an id",module);
+      /* In this case, the module was already finished,
+         so the loadlock would have been cleared. */
+      else if (cur_timestamp) {}
+      else clearloadlock(moduleid);
+      fd_decref(moduleid);
+      fd_decref(cur_timestamp);
+      if (FD_ENVIRONMENTP(module)) {
+        fd_lispenv env=(fd_lispenv) module;
+        fdtype exports=env->exports;
+        if (FD_HASHTABLEP(env->bindings)) {
+          if (auto_bronze_modules)
+            fd_persist_module(env->bindings);
+          if (auto_lock_modules)
+            fd_hashtable_set_readonly((fd_hashtable)env->bindings,1);}
+        if (FD_HASHTABLEP(exports)) {
+          if (auto_bronze_exports)
+            fd_persist_module(exports);
+          if (auto_lock_exports)
+            fd_hashtable_set_readonly((fd_hashtable)exports,1);}}
+      else if (FD_HASHTABLEP(module)) {
+        if ( (auto_bronze_modules) || (auto_bronze_exports) )
+          fd_persist_module(module);
+        if ( (auto_lock_modules) || (auto_lock_exports) )
+          fd_hashtable_set_readonly((fd_hashtable)module,1);}
+      return 1;}
+  else {
+    fd_seterr(fd_NotAModule,"fd_finish_module",NULL,module);
+    return -1;}
+}
+
+FD_EXPORT
+int fd_module_finished(fdtype module,int flags)
+{
+  if (!(FD_TABLEP(module))) {
+    fd_seterr(fd_NotAModule,"fd_finish_module",NULL,module);
+    return -1;}
+  else {
     struct U8_XTIME xtptr; fdtype timestamp;
     fdtype cur_timestamp=fd_get(module,loadstamp_symbol,FD_VOID);
     fdtype moduleid=fd_get(module,moduleid_symbol,FD_VOID);
@@ -154,10 +222,26 @@ int fd_finish_module(fdtype module)
     else clearloadlock(moduleid);
     fd_decref(moduleid);
     fd_decref(cur_timestamp);
+    if (FD_ENVIRONMENTP(module)) {
+      fd_lispenv env=(fd_lispenv) module;
+      fdtype exports=env->exports;
+      if (FD_HASHTABLEP(env->bindings)) {
+        if (flags&(FD_SEAL_MODULE))
+          fd_persist_module(env->bindings);
+        if (flags&(FD_LOCK_MODULE))
+          fd_hashtable_set_readonly((fd_hashtable)(env->bindings),1);}
+      if (FD_HASHTABLEP(exports)) {
+        if (flags&(FD_SEAL_EXPORTS))
+          fd_persist_module(exports);
+        if (flags&(FD_LOCK_EXPORTS))
+          fd_hashtable_set_readonly((fd_hashtable)exports,1);}}
+    else if (FD_HASHTABLEP(module)) {
+      if ( flags & ( FD_SEAL_EXPORTS | FD_SEAL_MODULE) )
+        fd_persist_module(module);
+      if (flags&(FD_LOCK_EXPORTS|FD_LOCK_MODULE)) 
+        fd_lock_exports(module);}
+    else {}
     return 1;}
-  else {
-    fd_seterr(fd_NotAModule,"fd_finish_module",NULL,module);
-    return -1;}
 }
 
 FD_EXPORT
@@ -166,6 +250,8 @@ int fd_persist_module(fdtype module)
   if (FD_HASHTABLEP(module)) {
     int conversions=0;
     struct FD_HASHTABLE *ht=(fd_hashtable)module;
+    /* Don't persist it if the module is readonly */
+    if (ht->readonly) return 0;
     conversions=conversions+fd_persist_hashtable(ht,fd_sproc_type);
     conversions=conversions+fd_persist_hashtable(ht,fd_function_type);
     conversions=conversions+fd_persist_hashtable(ht,fd_specform_type);
@@ -174,6 +260,22 @@ int fd_persist_module(fdtype module)
   else {
     fd_seterr(fd_NotAModule,"fd_persist_module",NULL,module);
     return -1;}
+}
+
+FD_EXPORT
+int fd_lock_exports(fdtype module)
+{
+  if (FD_HASHTABLEP(module)) 
+    return fd_hashtable_set_readonly((struct FD_HASHTABLE *) module, 1);
+  else if (FD_ENVIRONMENTP(module)) {
+    fd_lispenv env=(fd_lispenv) module;
+    fdtype exports=env->exports;
+    if (FD_HASHTABLEP(exports)) 
+      return fd_hashtable_set_readonly((struct FD_HASHTABLE *) exports, 1);
+    else return 0;}
+  else {
+    fd_incref(module);
+    return fd_reterr(_("not a module"),"fd_lock_exports",NULL,module);}
 }
 
 FD_EXPORT
@@ -296,6 +398,11 @@ static fd_lispenv become_module
   else if (FD_VOIDP(module)) {
     if (!(FD_HASHTABLEP(env->exports)))
       env->exports=fd_make_hashtable(NULL,0);
+    else if (FD_HASHTABLE_READONLYP(env->exports)) {
+      fd_seterr(_("Can't reload a read-only module"),
+                "become_module",NULL,module_spec);
+      return NULL;}
+    else {}
     fd_store(env->exports,moduleid_symbol,module_spec);
     fd_register_module(FD_SYMBOL_NAME(module_spec),(fdtype)env,
                        ((safe) ? (FD_MODULE_SAFE) : (0)));}
@@ -764,6 +871,23 @@ FD_EXPORT void fd_init_modules_c()
   fd_defalias(fd_xscheme_module,"%LS","GET-EXPORTS");
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("BRONZE-MODULE!",bronze_module,1));
+
+  fd_register_config("LOCKEXPORTS",
+                     "Lock the exports of modules when loaded",
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &auto_lock_exports);
+  fd_register_config("LOCKMODULES",
+                     "Lock bindings of source modules after they are loaded",
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &auto_lock_modules);
+  fd_register_config("SEALEXPORTS",
+                     "Convert exported function references into persistent pointers",
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &auto_bronze_exports);
+  fd_register_config("SEALMODULES",
+                     "Convert module function references into persistent pointers",
+                     fd_boolconfig_get,fd_boolconfig_set,
+                     &auto_bronze_modules);
 
   fd_register_config("LOADMODULE",
                      "Specify modules to be loaded",

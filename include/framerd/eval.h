@@ -106,8 +106,12 @@ FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags);
 FD_EXPORT fdtype fd_register_module(u8_string name,fdtype module,int flags);
 FD_EXPORT fdtype fd_get_module(fdtype name,int safe);
 FD_EXPORT int fd_discard_module(fdtype name,int safe);
+
+FD_EXPORT int fd_module_finished(fdtype module,int flags);
 FD_EXPORT int fd_finish_module(fdtype module);
 FD_EXPORT int fd_persist_module(fdtype module);
+FD_EXPORT int fd_lock_exports(fdtype module);
+
 
 FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn);
 FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn);
@@ -119,6 +123,12 @@ FD_EXPORT fdtype fd_use_module(fd_lispenv env,fdtype module);
 
 
 FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *);
+
+#define FD_LOCK_EXPORTS 0x01
+#define FD_SEAL_EXPORTS 0x02
+#define FD_LOCK_MODULE 0x04
+#define FD_SEAL_MODULE 0x08
+#define FD_OPTIMIZE_EXPORTS 0x03
 
 /* SPROCs */
 
