@@ -853,6 +853,7 @@ with_sanitize
 with_duma
 with_stackcheck
 with_execwrapper
+enable_thread_debug
 with_optinclude
 with_extrasrc
 with_bootsystem
@@ -1562,6 +1563,7 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+--enable-thread-debug Use libu8 thread tracing and debugging
 --endisable-maintainer-mode doesn't do anything
 --endisable-dependency-tracking doesn't do anything
 --endisable-shared Build with/without shared libraries
@@ -5907,6 +5909,19 @@ done
 
   TESTENV="DUMA_ALIGNMENT=4 $TESTENV";
   custom_malloc="DUMA";
+fi
+
+# Check whether --enable-thread_debug was given.
+if test "${enable_thread_debug+set}" = set; then :
+  enableval=$enable_thread_debug; enable_thread_debug=$enableval
+else
+  enable_thread_debug="no"
+fi
+
+
+if test "${enable_thread_debug}" != "no"; then
+   $as_echo "#define U8_THREAD_DEBUG 1" >>confdefs.h
+
 fi
 
 

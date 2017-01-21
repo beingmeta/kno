@@ -465,6 +465,12 @@ elif test "x$with_duma" != "xno"; then
   custom_malloc="DUMA";
 fi
 
+AC_ARG_ENABLE(thread_debug,--enable-thread-debug Use libu8 thread tracing and debugging,enable_thread_debug=$enableval,enable_thread_debug="no")
+
+if test "${enable_thread_debug}" != "no"; then
+   AC_DEFINE(U8_THREAD_DEBUG,1)
+fi
+
 AC_ARG_WITH(optinclude,--with-optinclude Use optional include directory,,with_optinclude="none")
 if test $with_optinclude != "none"; then
   CPPFLAGS="$CPPFLAGS -I$with_optinclude"
