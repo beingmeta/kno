@@ -387,7 +387,7 @@ int fd_unparse(u8_output out,fdtype x)
       sprintf(buf,"@%x/%x",hi,lo);
       return u8_puts(out,buf);}
   case fd_fixnum_ptr_type: { /* output fixnum */
-    int val=FD_FIX2INT(x); char buf[128]; sprintf(buf,"%d",val);
+    long long val=FD_FIX2INT(x); char buf[128]; sprintf(buf,"%lld",val);
     return u8_puts(out,buf);}
   case fd_immediate_type: { /* output constant */
     fd_ptr_type itype=FD_IMMEDIATE_TYPE(x);

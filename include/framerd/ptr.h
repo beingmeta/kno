@@ -354,47 +354,40 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 /* Fixnums */
 
 #define FD_FIXNUM_BITS 30
-#define FD_FIXNUM_SIGN_BIT (((unsigned long long)1)<<(FD_FIXNUM_BITS+1))
-#define FD_FIXNUM_MAGNITUDE_MASK			\
-  (((((unsigned long long)1)<<(FD_FIXNUM_BITS+1))-1)&	\
-   (~((unsigned long long)3)))
 #define FD_MAX_FIXNUM ((((long long)1)<<FD_FIXNUM_BITS)-1)
 #define FD_MIN_FIXNUM -((((long long)1)<<FD_FIXNUM_BITS)-1)
 
 #define to64(x) ((long long)(x))
 #define to64u(x) ((unsigned long long)(x))
 
-#define FD_FIX2INT(x) \
-  ((int)((((int)(x))>=0) ? ((x)/4) : (-(((x)&FD_FIXNUM_MAGNITUDE_MASK)>>2))))
+#define FD_FIX2INT(x)		      \
+  ((long long)((((to64(x))>=0) ? ((x)/4) : (-((to64(-(x)))>>2)))))
 #define FD_INT2DTYPE(x) \
-  ((((to64(x)) > FD_MAX_FIXNUM) || ((to64(x)) < FD_MIN_FIXNUM)) ?	\
+  ((((to64(x)) > (to64(FD_MAX_FIXNUM))) || ((to64(x)) < (to64(FD_MIN_FIXNUM)))) ? \
    (fd_make_bigint(to64(x))) :						\
    (((fdtype)(((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
-	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|			\
-	       (((unsigned int)(-(to64(x))))<<2))))))
+	      (-( fd_fixnum_type | ((to64(-(x)))<<2)))))))
 
 #define FD_INT(x)					\
   ((((to64(x)) > FD_MAX_FIXNUM) || ((to64(x)) < FD_MIN_FIXNUM)) ?   \
    (fd_make_bigint(to64(x))) :				\
    (((fdtype)(((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :	\
-	      (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|	\
-	       (((unsigned int)(-(to64u(x))))<<2))))))
+	      (-( fd_fixnum_type | ((to64(-(x)))<<2)))))))
 
 #define FD_SHORT2FIX(x)					     \
-  (((fdtype)						     \
-    ((x>=0) ? (((x)*4)|fd_fixnum_type) :		     \
-     (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2)))))
+  ((fdtype)(((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :	\
+	    (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
 
 #define FD_SHORT2DTYPE(x)			             \
-  (((fdtype)						     \
-    ((x>=0) ? (((x)*4)|fd_fixnum_type) :		     \
-     (FD_FIXNUM_SIGN_BIT|fd_fixnum_type|((-(x))<<2)))))
+  ((fdtype)(((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :	\
+	    (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
+
 
 #define FD_USHORT2DTYPE(x) ((fdtype)(fd_fixnum_type|((x&0xFFFF)<<2)))
 #define FD_BYTE2DTYPE(x)((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
 #define FD_BYTE2LISP(x)((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
-#define FD_FIXNUM_MAGNITUDE(x) (x&FD_FIXNUM_MAGNITUDE_MASK)
-#define FD_FIXNUM_NEGATIVEP(x) (x&FD_FIXNUM_SIGN_BIT)
+#define FD_FIXNUM_MAGNITUDE(x) ((x<0)?((-(x))>>2):(x>>2))
+#define FD_FIXNUM_NEGATIVEP(x) (x<0)
 
 #define FD_FIXZERO         (FD_SHORT2DTYPE(0))
 #define FD_FIXNUM_ZERO     (FD_SHORT2DTYPE(0))

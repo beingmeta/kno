@@ -838,7 +838,7 @@ static fdtype number2locale(fdtype x,fdtype precision)
     else return fd_type_error("fixnum","inexact2string",precision);
   else if (FD_FIXNUMP(x)) {
     char buf[128];
-    sprintf(buf,"%'d",FD_FIX2INT(x));
+    sprintf(buf,"%'lld",FD_FIX2INT(x));
     return fdtype_string(buf);}
   else return lisp2string(x);
 }

@@ -1846,9 +1846,9 @@ FD_EXPORT fdtype fd_make_bigint(long long intval)
   if ((intval>FD_MAX_FIXNUM) || (intval<FD_MIN_FIXNUM))
     return (fdtype) fd_long_long_to_bigint(intval);
   else if (intval>=0)
-    return (fd_fixnum_type|((intval)<<2));
+    return (fd_fixnum_type|(intval*4));
   else
-    return (fd_fixnum_type|FD_FIXNUM_SIGN_BIT|((-(intval))<<2));
+    return (fd_fixnum_type|(intval*4));
 }
 
 static fdtype copy_bigint(fdtype x,int deep)

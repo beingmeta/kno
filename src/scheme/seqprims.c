@@ -948,7 +948,7 @@ static fdtype seqelt_prim(fdtype x,fdtype offset)
   if (result == FD_TYPE_ERROR)
     return fd_type_error(_("sequence"),"seqelt_prim",x);
   else if (result == FD_RANGE_ERROR) {
-    sprintf(buf,"%d",fd_getint(offset));
+    sprintf(buf,"%lld",fd_getint(offset));
     return fd_err(fd_RangeError,"seqelt_prim",u8_strdup(buf),x);}
   else return result;
 }

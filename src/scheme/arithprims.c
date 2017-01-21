@@ -391,10 +391,13 @@ static fdtype max_prim(int n,fdtype *args)
 
 static fdtype abs_prim(fdtype x)
 {
-  if (FD_FIXNUMP(x))
-    if (FD_FIX2INT(x)<0)
-      return FD_INT(-(FD_FIX2INT(x)));
-    else return x;
+  if (FD_FIXNUMP(x)) {
+    long long ival=FD_FIX2INT(x);
+    assert((ival<0)==((FD_FIX2INT(x))<0));
+    if (ival<0) {
+      long long aval=-ival;
+      return FD_INT(aval);}
+    else return x;}
   else if (fd_numcompare(x,FD_INT(0))<0)
     return fd_subtract(FD_INT(0),x);
   else return fd_incref(x);

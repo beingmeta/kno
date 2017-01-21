@@ -473,14 +473,14 @@ static fdtype seq2phrase_prim(fdtype arg,fdtype start_arg,fdtype end_arg)
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
     if (start<0) start=len+start;
     if ((start<0) || (start>len)) {
-      char buf[32]; sprintf(buf,"%d",FD_FIX2INT(start_arg));
+      char buf[32]; sprintf(buf,"%lld",FD_FIX2INT(start_arg));
       return fd_err(fd_RangeError,"seq2phrase_prim",buf,arg);}
     if (!(FD_FIXNUMP(end_arg))) end=len;
     else {
       end=FD_FIX2INT(end_arg);
       if (end<0) end=len+end;
       if ((end<0) || (end>len)) {
-        char buf[32]; sprintf(buf,"%d",FD_FIX2INT(end_arg));
+        char buf[32]; sprintf(buf,"%lld",FD_FIX2INT(end_arg));
         return fd_err(fd_RangeError,"seq2phrase_prim",buf,arg);}}
     while (start<end) {
       fdtype word=fd_seq_elt(arg,start);
