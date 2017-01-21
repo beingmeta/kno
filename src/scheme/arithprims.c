@@ -588,6 +588,19 @@ static fdtype hashref_prim(fdtype x)
   return fd_make_string(NULL,-1,buf);
 }
 
+static fdtype ptrlock_prim(fdtype x,fdtype mod)
+{
+  unsigned long long intval=(unsigned long long)x;
+  int modval=((FD_VOIDP(mod))?
+              (FD_N_PTRLOCKS):
+              (FD_FIX2INT(mod)));
+  if (modval==0) 
+    return (fdtype)fd_ulong_long_to_bigint(intval);
+  else {
+    unsigned long long hashval=hashptrval((void *)x,modval);
+    return FD_INT(hashval);}
+}
+
 /* Integer hashing etc. */
 
 static fdtype knuth_hash(fdtype arg)
@@ -851,6 +864,9 @@ FD_EXPORT void fd_init_numeric_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("CITYHASH128",cityhash128,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHPTR",hashptr_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HASHREF",hashref_prim,1));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim2x("PTRLOCK",ptrlock_prim,1,
+                           -1,FD_VOID,fd_fixnum_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2x
            ("U8ITOA",itoa_prim,1,-1,FD_VOID,fd_fixnum_type,FD_INT(10)));

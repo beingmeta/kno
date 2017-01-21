@@ -128,7 +128,7 @@ static U8_MAYBE_UNUSED void *fd_ptr2cons(fdtype x,int tc)
 
 U8_INLINE U8_MAYBE_UNUSED u8_int8 hashptrval(void *ptr,unsigned int mod) 
 {
-  u8_wideint intrep = (u8_wideint) ptr;
+  u8_wideint intrep = ((u8_wideint) ptr)>>4;
   return (intrep * FD_PTRHASH_CONSTANT) % mod;
 }
 
