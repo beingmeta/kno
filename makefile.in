@@ -92,7 +92,8 @@ LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
 SRC_HEADERS=src/dtype/biginternals.h src/scheme/eval_internals.h \
 	src/exe/webcommon.h src/cmodules/fdsqlite.h 
 
-REVISION_H=include/framerd/revision.h
+REVISION_H =include/framerd/revision.h
+CONFIG_H   =include/framerd/config.h
 
 DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o      \
 	  src/dtype/symbols.o src/dtype/numbers.o src/dtype/apply.o \
@@ -448,8 +449,7 @@ dbginstall:
 
 # Make rules
 
-%.o: %.c @abs_top_srcdir@/fileinfo include/framerd/revision.h \
-		include/framerd/config.h
+%.o: %.c @abs_top_srcdir@/fileinfo ${REVISION_H} ${CONFIG_H}
 	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
 	@$(MSG) CC $@ $<
 
@@ -458,7 +458,7 @@ exe/scripts/%: src/scripts/%.scm
 	@chmod a+x $@
 	@$(MSG) MAKESCRIPT $@ $<
 
-exe/%@suffix@: src/exe/%.c
+exe/%@suffix@: src/exe/%.c ${REVISION_H} ${CONFIG_H}
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXELDFLAGS)                   \
 		-o $@ $<                                           \
 		-lfdbserv@suffix@                 	 	   \
@@ -468,7 +468,7 @@ exe/%@suffix@: src/exe/%.c
 	        -lu8stdio $(LIBS)
 	@$(MSG) MKEXE $@ $<
 
-src/cmodules/%.o: src/cmodules/%.c
+src/cmodules/%.o: src/cmodules/%.c ${REVISION_H} ${CONFIG_H}
 	@$(CC) $(CFLAGS) -o $@ -c $<
 	@$(MSG) CC  $@ $<
 lib/framerd/%.so: src/cmodules/%.o ${MODULE_SO}
@@ -485,7 +485,7 @@ lib/framerd/%.@FDMAJOR@.dylib: lib/framerd/%.dylib
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typicall run as daemons
-static/%@suffix@: src/exe/%.c $(STATIC_LIBS)
+static/%@suffix@: src/exe/%.c $(STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
 	@$(CC) $(EXECFLAGS) -o $@ $^ -lu8stdio -lu8syslog $(LIBS)
 	@$(MSG) MKEXE_STATIC $@
 

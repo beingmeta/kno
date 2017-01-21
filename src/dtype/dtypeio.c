@@ -122,10 +122,10 @@ static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY *v);
   if (fd_write_4bytes(out,w)<0) return -1; else {}
 #define output_bytes(out,bytes,n)                               \
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
-static size_t try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
+static ssize_t try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
 {
-  size_t olen=out->ptr-out->start;
-  size_t dlen=fd_write_dtype(out,x);
+  ssize_t olen=out->ptr-out->start;
+  ssize_t dlen=fd_write_dtype(out,x);
   if (dlen<0)
     return -1;
   else if ((out->flushfn==NULL) &&
