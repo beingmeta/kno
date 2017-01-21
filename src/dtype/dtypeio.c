@@ -122,7 +122,7 @@ static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY_DTYPE *v);
   if (fd_write_4bytes(out,w)<0) return -1; else {}
 #define output_bytes(out,bytes,n)                               \
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
-static size_t try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
+static ssize_t try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
 {
   size_t olen=out->fd_bufptr-out->fd_bufstart;
   size_t dlen=fd_write_dtype(out,x);
@@ -133,7 +133,7 @@ static size_t try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
     /* If you're writing straight to memory, check dtype size argument */
     u8_log(LOG_WARN,fd_InconsistentDTypeSize,
            "Call returned %lld, buffer got %lld for %s",
-           dlen,((out->ptr-out->start)-olen),
+           dlen,((out->fd_bufptr-out->fd_bufstart)-olen),
            fd_dtype2buf(x,FD_DEBUG_OUTBUF_SIZE,_dbg_outbuf));
   *len=*len+dlen;
   return dlen;

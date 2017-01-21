@@ -137,7 +137,7 @@ FD_FASTOP int fd_dtsprobe_byte(fd_dtype_stream s)
 {
   fd_dts_start_read(s);
   if (fd_needs_bytes((fd_byte_input)s,1))
-    return (*(s->ptr));
+    return (*(s->fd_bufptr));
   else return -1;
 }
 

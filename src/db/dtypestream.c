@@ -138,10 +138,10 @@ FD_EXPORT struct FD_DTYPE_STREAM *fd_init_dtype_stream
       bufsiz=bufsiz/2; buf=u8_malloc(bufsiz);}
     if (buf==NULL) bufsiz=0;
     /* Initialize the on-demand reader */
-    FD_INIT_BYTE_INPUT(s,buf,bufsiz); 
+    FD_INIT_BYTE_INPUT(s,buf,bufsiz);
     s->fd_buflim=s->fd_bufptr; s->fd_bufsiz=bufsiz;
     s->fd_mallocd=0; s->fd_fileno=sock; s->fd_dtsid=NULL;
-    s->fd_filepos=-1; s->fd_maxpos=-1; 
+    s->fd_filepos=-1; s->fd_maxpos=-1;
     s->fd_dts_fillfn=fill_dtype_stream; s->fd_dts_flushfn=NULL;
     s->fd_dts_flags|=FD_DTSTREAM_READING|FD_BYTEBUF_MALLOCD;
     return s;}
@@ -265,7 +265,6 @@ FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x)
                "Inconsistent dtype length (on disk) %d/%d for: %s",
                n_bytes,end-start,
                fd_dtype2buf(x,FD_DEBUG_OUTBUF_SIZE,_dbg_outbuf));}}
-               "Inconsistent dtype length (on disk) %d/%d for %q",n_bytes,end-start,x);}}
   if ((s->fd_bufptr-s->fd_bufstart)*4>=(s->fd_bufsiz*3))
     fd_dtsflush(s);
   return n_bytes;
@@ -524,10 +523,10 @@ FD_EXPORT int _fd_dtsread_byte(fd_dtype_stream s)
 
 FD_EXPORT int _fd_dtsprobe_byte(fd_dtype_stream s)
 {
-  if (((s->flags)&FD_DTSTREAM_READING) == 0)
+  if (((s->fd_dts_flags)&FD_DTSTREAM_READING) == 0)
     if (fd_set_read(s,1)<0) return -1;
   if (fd_needs_bytes((fd_byte_input)s,1))
-    return (*(s->ptr));
+    return (*(s->fd_bufptr));
   else return -1;
 }
 
@@ -788,7 +787,9 @@ static fdtype zread_dtype(struct FD_DTYPE_STREAM *s)
   if (retval<n_bytes) {
     u8_free(bytes);
     return FD_ERROR_VALUE;}
+  memset(&in,0,sizeof(in));
   in.fd_bufptr=in.fd_bufstart=do_uncompress(bytes,n_bytes,&dbytes);
+  in.fd_dts_flags=FD_BYTEBUF_MALLOCD;
   if (in.fd_bufstart==NULL) {
     u8_free(bytes);
     return FD_ERROR_VALUE;}
@@ -807,9 +808,10 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_DTYPE_STREAM *s)
 static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 {
   unsigned char *zbytes; ssize_t zlen=-1, size;
-  struct FD_BYTE_OUTPUT out;
+  struct FD_BYTE_OUTPUT out; memset(&out,0,sizeof(out));
   out.fd_bufptr=out.fd_bufstart=u8_malloc(2048);
   out.fd_buflim=out.fd_bufstart+2048;
+  out.fd_dts_flags=FD_BYTEBUF_MALLOCD;
   if (fd_write_dtype(&out,x)<0) {
     u8_free(out.fd_bufstart);
     return FD_ERROR_VALUE;}
@@ -834,8 +836,10 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
 static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 {
   unsigned char *zbytes=NULL; ssize_t zlen=-1, size; int retval=0;
-  struct FD_BYTE_OUTPUT out;
-  out.fd_bufptr=out.fd_bufstart=u8_malloc(1024); out.fd_buflim=out.fd_bufstart+1024;
+  struct FD_BYTE_OUTPUT out; memset(&out,0,sizeof(out));
+  out.fd_bufptr=out.fd_bufstart=u8_malloc(2048);
+  out.fd_buflim=out.fd_bufstart+2048;
+  out.fd_dts_flags=FD_BYTEBUF_MALLOCD;
   if (FD_CHOICEP(x)) {
     FD_DO_CHOICES(v,x) {
       retval=fd_write_dtype(&out,v);
@@ -883,8 +887,8 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
       fdtype result=FD_VOID;
       int byte1=fd_dtsread_byte(opened);
       int zip=(byte1>=0x80);
-      if (opened->ptr > opened->start) 
-        opened->ptr--;
+      if (opened->fd_bufptr > opened->fd_bufstart) 
+        opened->fd_bufptr--;
       else fd_setpos(opened,0);
       if (zip)
         result=zread_dtype(opened);

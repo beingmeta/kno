@@ -484,6 +484,9 @@
 /* What kind of sanitization (if any) is being applied */
 #undef FD_STACKCHECK
 
+/* Whether to enable libu8's lock debugging */
+#undef U8_THREAD_DEBUG
+
 /* Default module dirs */
 #undef FD_LOCAL_MODULE_DIR
 #undef FD_LOCAL_SAFE_MODULE_DIR
@@ -499,5 +502,6 @@
 
 /* The number of pointer locks to use */
 #undef FD_N_PTRLOCKS
+
 
 #endif

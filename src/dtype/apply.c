@@ -1076,6 +1076,7 @@ FD_EXPORT fdtype fd_make_cprim9x
 
 FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
 {
+  if (FD_PPTRP(fcn)) fcn=fd_pptr_ref(fcn);
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)fcn;
   if (FD_EXPECT_FALSE(((f->arity)>=0) && (n>(f->arity)))) {
     fd_seterr(fd_TooManyArgs,"fd_tail_call",u8_mkstring("%d",n),fcn);

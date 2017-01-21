@@ -1153,6 +1153,13 @@ static int get_available_pages(void);
 static long long get_physical_memory(void);
 static long long get_available_memory(void);
 
+static void add_intval(fdtype table,fdtype symbol,long long ival)
+{
+  fdtype iptr=FD_INT(ival);
+  fd_add(table,symbol,iptr);
+  if (FD_CONSP(iptr)) fd_decref(iptr);
+}
+
 static fdtype rusage_prim(fdtype field)
 {
   struct rusage r;
@@ -1163,14 +1170,14 @@ static fdtype rusage_prim(fdtype field)
     fdtype result=fd_empty_slotmap();
     pid_t pid=getpid(), ppid=getppid();
     size_t mem=u8_memusage();
-    fd_add(result,data_symbol,FD_INT(r.ru_idrss));
-    fd_add(result,stack_symbol,FD_INT(r.ru_isrss));
-    fd_add(result,shared_symbol,FD_INT(r.ru_ixrss));
-    fd_add(result,resident_symbol,FD_INT(r.ru_maxrss));
-    fd_add(result,memusage_symbol,FD_INT(mem));
-    fd_add(result,nptrlocks_symbol,FD_INT(FD_N_PTRLOCKS));
-    fd_add(result,pid_symbol,FD_INT(pid));
-    fd_add(result,ppid_symbol,FD_INT(ppid));
+    add_intval(result,data_symbol,r.ru_idrss);
+    add_intval(result,stack_symbol,r.ru_isrss);
+    add_intval(result,shared_symbol,r.ru_ixrss);
+    add_intval(result,resident_symbol,r.ru_maxrss);
+    add_intval(result,memusage_symbol,mem);
+    add_intval(result,nptrlocks_symbol,FD_N_PTRLOCKS);
+    add_intval(result,pid_symbol,pid);
+    add_intval(result,ppid_symbol,ppid);
     { /* Load average(s) */
       double loadavg[3]; int nsamples=getloadavg(loadavg,3);
       if (nsamples>0) {

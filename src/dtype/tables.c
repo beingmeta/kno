@@ -2351,6 +2351,30 @@ static int unparse_hashtable(u8_output out,fdtype x)
   return 1;
 }
 
+/* This makes a hashtable readonly and disables it's mutex.  The
+   advantage of this is that it avoids lock contention but, of course,
+   the table is read only.
+ */
+
+FD_EXPORT int fd_hashtable_set_readonly(FD_HASHTABLE *ht,int readonly)
+{
+  if (readonly) {
+    if ((ht->fd_readonly) && (ht->fd_uselock==0))
+      return 0;
+    else if ((!(ht->fd_readonly)) && (ht->fd_uselock==0)) {
+      fd_seterr("Can't lock modifiable which isn't currently locking",
+                "fd_lock_hashtable",NULL,FD_VOID);
+      return -1;}
+    fd_read_lock_struct(ht);
+    ht->fd_readonly=1; ht->fd_uselock=0;
+    return 1;}
+  else {
+    if (ht->fd_uselock) return 0;
+    ht->fd_uselock=1; ht->fd_readonly=0;
+    fd_rw_unlock_struct(ht);
+    return 1;}
+}
+
 FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
 {
   struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)c;

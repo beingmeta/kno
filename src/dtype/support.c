@@ -2754,6 +2754,26 @@ void setup_logging()
     ("SHOWELAPSED",_("Whether to show elapsed time in messages"),
      fd_boolconfig_get,fd_boolconfig_set,
      &u8_log_show_elapsed);
+#if U8_THREAD_DEBUG
+  fd_register_config
+    ("THREAD_DEBUG",_("Whether to output thread debug messages"),
+     fd_boolconfig_get,fd_boolconfig_set,
+     &u8_thread_log_enabled);
+  fd_register_config
+    ("THREAD_LOGLEVEL",_("Loglevel to use for thread debug messages"),
+     fd_intconfig_get,loglevelconfig_set,
+     &u8_thread_debug_loglevel);
+#else
+  /* If THREAD_DEBUG isn't enabled, these config variables can't be
+     set */
+  fd_register_config
+    ("THREAD_DEBUG",_("Whether to output thread debug messages"),
+     fd_boolconfig_get,NULL,&u8_thread_log_enabled);
+  fd_register_config
+    ("THREAD_LOGLEVEL",_("Loglevel to use for thread debug messages"),
+     fd_intconfig_get,NULL,&u8_thread_debug_loglevel);
+#endif
+
 
   /* Setup sigaction handler */
 
