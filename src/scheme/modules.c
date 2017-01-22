@@ -301,6 +301,9 @@ static void init_dloadpath()
     strval=fdtype_string(FD_DEFAULT_DLOADPATH);
   else strval=fd_lispstring(tmp);
   dloadpath=fd_init_pair(NULL,strval,dloadpath);
+  if ((tmp)||(trace_dload)||(getenv("FD_DLOAD:TRACE")))
+    u8_log(-LOGNOTICE,"DynamicLoadPath","Initialized to %q",
+           dloadpath);
 }
 
 static int load_dynamic_module(fdtype spec,int safe,void *data)
@@ -325,8 +328,8 @@ static int load_dynamic_module(fdtype spec,int safe,void *data)
                    "Failed to load module file %s for %q",
                    module_filename,spec);}
           else if (trace_dload) {
-            u8_log(LOGNOTICE,_("FailedModule"),
-                   "Loading module %q from %s",spec,module_filename);}
+            u8_log(LOGNOTICE,_("DynamicLoad"),
+                   "Loaded module %q from %s",spec,module_filename);}
           else {}
           u8_threadcheck();
           u8_free(module_filename); u8_free(name);

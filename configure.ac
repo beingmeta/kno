@@ -287,6 +287,7 @@ AC_SUBST(LIBZIP_LDFLAGS)
 AC_SUBST(IMAGICK_CFLAGS)
 AC_SUBST(IMAGICK_LDFLAGS)
 AC_SUBST(DEFAULTISASYNC)
+AC_SUBST(DEFAULT_DLOAD_PATH)
 AC_SUBST(USEDTBLOCK)
 AC_SUBST(MSG)
 AC_SUBST(BINDIR)
@@ -708,7 +709,7 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
   INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
 fi
 
-FD_DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
+DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 
 dnl For specifying default -arch flags for OSX
 AC_ARG_WITH(arch,--with[out]-arch build with particular --arch flags,,with_arch="")
@@ -864,7 +865,7 @@ AC_DEFINE_UNQUOTED(FD_DEFAULT_SAFE_LOADPATH,"$safe_module_path")
 
 AC_DEFINE_UNQUOTED(FD_DLOAD_SUFFIX,"$shared_suffix")
 
-AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=${FD_DEFAULT_DLOADPATH})
+AC_ARG_WITH(dload_path,--with-dload-path location,,with_dload_path=${DEFAULT_DLOADPATH})
 AC_DEFINE_UNQUOTED(FD_DEFAULT_DLOADPATH,"$with_dload_path")
 
 AC_ARG_WITH(boot_config,--with-boot-config configstring,,with_boot_config="")
@@ -1595,7 +1596,7 @@ fi;
 AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	  tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
-	  etc/fdsetconfig etc/fdgetconfig etc/fdconfig
+	  etc/gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 	  etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	  etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
 	  etc/fdreload etc/fdrestart etc/fdctl

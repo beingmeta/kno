@@ -695,6 +695,7 @@ CHOWN
 BINDIR
 MSG
 USEDTBLOCK
+DEFAULT_DLOAD_PATH
 DEFAULTISASYNC
 IMAGICK_LDFLAGS
 IMAGICK_CFLAGS
@@ -3034,6 +3035,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/framerd/fdsource.h include/framerd/config.h"
+
 
 
 
@@ -6461,7 +6463,7 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
   INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
 fi
 
-FD_DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
+DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 
 
 # Check whether --with-arch was given.
@@ -7669,7 +7671,7 @@ _ACEOF
 if test "${with_dload_path+set}" = set; then :
   withval=$with_dload_path;
 else
-  with_dload_path=${FD_DEFAULT_DLOADPATH}
+  with_dload_path=${DEFAULT_DLOADPATH}
 fi
 
 cat >>confdefs.h <<_ACEOF
@@ -11960,7 +11962,7 @@ if (test ! -f src/modules/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserver.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/makefile.include etc/install-script dist/framerd-3.9.spec"
+ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserver.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/makefile.include etc/install-script dist/framerd-3.9.spec"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -12665,6 +12667,7 @@ do
     "tests/dtype/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/dtype/.gdbinit" ;;
     "tests/db/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/db/.gdbinit" ;;
     "tests/scheme/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/scheme/.gdbinit" ;;
+    "etc/gdbinit") CONFIG_FILES="$CONFIG_FILES etc/gdbinit" ;;
     "etc/fdsetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdsetconfig" ;;
     "etc/fdgetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdgetconfig" ;;
     "etc/fdconfig") CONFIG_FILES="$CONFIG_FILES etc/fdconfig" ;;

@@ -1,3 +1,4 @@
+directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@abs_top_srcdir@/../aikit/c:@extra_src@
 set env UNDERGDB=yes
 set env STDLOG=yes
 set env FD_FOREGROUND=yes
@@ -238,5 +239,6 @@ end
 
 # Init some tracing configurations
 set env FD_TRACEWEB=yes
+set env FD_DLOAD:TRACE=yes
 # This is for OS X > Sierra
 set startup-with-shell off
