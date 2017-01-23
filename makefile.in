@@ -353,6 +353,9 @@ nitpicking:
 
 all: testbin exe cmodules etc i18n @TAGS@
 
+fresh: clean
+	make update
+
 # Handy targets
 
 debug:
