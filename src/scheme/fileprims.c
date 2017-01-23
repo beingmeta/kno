@@ -1868,7 +1868,8 @@ FD_EXPORT void fd_init_fileio_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("GETPOS",getpos_prim,1,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
-           fd_make_cprim2x("SETPOS",setpos_prim,2,-1,FD_VOID,-1,FD_VOID));
+           fd_make_cprim2x("SETPOS!",setpos_prim,2,-1,FD_VOID,-1,FD_VOID));
+  fd_defalias(fd_scheme_module,"SETPOS","SETPOS!");
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("ENDPOS",endpos_prim,1,-1,FD_VOID));
   fd_idefn(fd_scheme_module,
