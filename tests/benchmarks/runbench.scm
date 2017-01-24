@@ -1,5 +1,6 @@
 #!/usr/bin/fdexec
-(use-module 'tighten)
+
+(use-module 'optimize)
 
 (define plist-table (make-hashtable))
 (define (pget sym field)
