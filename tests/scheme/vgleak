@@ -1,0 +1,2 @@
+CMD=$1; shift;
+exec valgrind valgrind --tool=memcheck --vgdb=full --vgdb-error=0 --leak-check=full --num-callers=9 ${CMD} INVALGRIND=yes MEMCHECKING=yes $*

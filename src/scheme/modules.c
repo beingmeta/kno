@@ -331,6 +331,11 @@ static int load_dynamic_module(fdtype spec,int safe,void *data)
             u8_log(LOGNOTICE,_("DynamicLoad"),
                    "Loaded module %q from %s",spec,module_filename);}
           else {}
+          if (errno) {
+            u8_log(LOGWARN,u8_UnexpectedErrno,
+                   "Leftover errno %d (%s) from loading %s",
+                   errno,u8_strerror(errno),pname);
+            errno=0;}
           u8_threadcheck();
           u8_free(module_filename); u8_free(name);
           if (alt_name) u8_free(alt_name);

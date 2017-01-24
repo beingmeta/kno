@@ -583,10 +583,12 @@ static fdtype open_dtype_file(fdtype fname)
   if (u8_file_existsp(filename))
     dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_MODIFY);
   else dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_CREATE);
-  if (dts->dt_stream)
-    return FDTYPE_CONS(dts);
+  if (dts->dt_stream) {
+    U8_CLEAR_ERRNO();
+    return FDTYPE_CONS(dts);}
   else {
     u8_free(dts);
+    u8_graberr(-1,"open_dtype_file",u8_strdup(filename));
     return FD_ERROR_VALUE;}
 }
 
@@ -599,10 +601,12 @@ static fdtype extend_dtype_file(fdtype fname)
     dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_MODIFY);
   else dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_CREATE);
   if (dts->dt_stream) {
+    U8_CLEAR_ERRNO();
     fd_endpos(dts->dt_stream);
     return FDTYPE_CONS(dts);}
   else {
     u8_free(dts);
+    u8_graberr(-1,"extend_dtype_file",u8_strdup(filename));
     return FD_ERROR_VALUE;}
 }
 

@@ -1,0 +1,1 @@
+exec valgrind INVALGRIND=yes MEMCHECKING=yes valgrind --vgdb=full --vgdb-error=0 --tool=memcheck --num-callers=9 $*

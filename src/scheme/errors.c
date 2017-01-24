@@ -337,6 +337,44 @@ static fdtype error_backtrace(fdtype x)
   return fd_exception_backtrace(ex);
 }
 
+static fdtype error_summary(fdtype x,fdtype with_irritant)
+{
+  struct FD_EXCEPTION_OBJECT *xo=
+    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
+  u8_exception ex=xo->ex;
+  u8_condition cond=ex->u8x_cond;
+  u8_context cxt=ex->u8x_context;
+  u8_string details=ex->u8x_details;
+  fdtype irritant=(fdtype)(ex->u8x_xdata);
+  int irritated=
+    (!((FD_VOIDP(with_irritant))||
+       (FD_FALSEP(with_irritant))||
+       (FD_VOIDP(irritant))));
+  u8_string summary;
+  fdtype return_value;
+  if ((cond)&&(cxt)&&(details)&&(irritated))
+    summary=u8_mkstring("#@%%! %s [%s] (%s): %q",
+                        cond,cxt,details,irritant);
+  else if ((cond)&&(cxt)&&(details))
+    summary=u8_mkstring("#@%%! %s [%s] (%s)",cond,cxt,details);
+  else if ((cond)&&(cxt)&&(irritated))
+    summary=u8_mkstring("#@%%! %s [%s]: %q",cond,cxt,irritant);
+  else if ((cond)&&(details)&&(irritated))
+    summary=u8_mkstring("#@%%! %s (%s): %q",cond,details,irritant);
+  else if ((cond)&&(cxt))
+    summary=u8_mkstring("#@%%! %s [%s]",cond,cxt);
+  else if ((cond)&&(details))
+    summary=u8_mkstring("#@%%! %s (%s)",cond,details);
+  else if ((cond)&&(irritated))
+    summary=u8_mkstring("#@%%! %s: %q",cond,irritant);
+  else if (cond)
+    summary=u8_mkstring("#@%%! %s",cond);
+  else summary=u8_mkstring("#@%%! %s","Weird anonymous error");
+  return_value=fdtype_string(summary);
+  u8_free(summary);
+  return return_value;
+}
+
 static fdtype error_xdata(fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
@@ -471,6 +509,9 @@ FD_EXPORT void fd_init_errors_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("ERROR-XDATA",error_xdata,1,
                            fd_error_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim2x("ERROR-SUMMARY",error_summary,1,
+                           fd_error_type,FD_VOID,-1,FD_FALSE));
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("ERROR-BACKTRACE",error_backtrace,1,
                            fd_error_type,FD_VOID));

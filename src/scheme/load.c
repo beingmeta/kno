@@ -139,7 +139,7 @@ FD_EXPORT fdtype fd_load_source_with_date
   if (content==NULL) return FD_ERROR_VALUE;
   else outer_sourcebase=bind_sourcebase(sourcebase);
   if (errno) {
-    u8_log(LOG_WARN,"UnexpectedErrno",
+    u8_log(LOG_WARN,u8_UnexpectedErrno,
            "Dangling errno value %d (%s) before loading %s",
            errno,u8_strerror(errno),sourceid);
     errno=0;}
