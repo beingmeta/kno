@@ -812,7 +812,7 @@ int main(int argc,char **argv)
   else if (u8_has_suffix(argv[0],"/fdshell",0))
     u8_default_appid("fdshell");
   else u8_default_appid(argv[0]);
-  fd_config_set("OIDDISPLAY",FD_INT(3));
+  fd_set_config("OIDDISPLAY",FD_INT(3));
   setlocale(LC_ALL,"");
   that_symbol=fd_intern("THAT");
   histref_symbol=fd_intern("%HISTREF");
@@ -848,7 +848,7 @@ int main(int argc,char **argv)
     eval_server=newstream;}
   else if (u8_file_existsp(source_file)) {
     fdtype sourceval=fdstring(u8_realpath(source_file,NULL));
-    fd_config_set("SOURCE",sourceval); fd_decref(sourceval);
+    fd_set_config("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
   else {}
 
@@ -856,13 +856,13 @@ int main(int argc,char **argv)
      entered fdconsole. */
   {
     fdtype interpval=fd_lispstring(u8_fromlibc(argv[0]));
-    fd_config_set("INTERPRETER",interpval); fd_decref(interpval);}
+    fd_set_config("INTERPRETER",interpval); fd_decref(interpval);}
 
   fd_idefn((fdtype)env,fd_make_cprim1("BACKTRACE",backtrace_prim,0));
   fd_defalias((fdtype)env,"%","BACKTRACE");
 
   /* Announce preamble, suppressed by quiet_config */
-  fd_config_set("BOOTED",fd_time2timestamp(boot_time));
+  fd_set_config("BOOTED",fd_time2timestamp(boot_time));
   run_start=u8_elapsed_time();
 
   if (!(quiet_console)) {

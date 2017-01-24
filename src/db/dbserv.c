@@ -334,11 +334,11 @@ static int config_set_locksfile(fdtype var,fdtype val,void U8_MAYBE_UNUSED *data
   if (locks_filename)
     if ((FD_STRINGP(val)) && (strcmp(FD_STRDATA(val),locks_filename)==0))
       return 0;
-    else return fd_reterr(_("Locks file already set"),"fd_config_set",NULL,val);
+    else return fd_reterr(_("Locks file already set"),"fd_set_config",NULL,val);
   else if (FD_STRINGP(val)) {
     open_server_lock_stream(FD_STRDATA(val));
     return 1;}
-  else return fd_reterr(fd_TypeError,"fd_config_set",u8_strdup("string"),val);
+  else return fd_reterr(fd_TypeError,"fd_set_config",u8_strdup("string"),val);
 }
 
 /** OID Access API **/

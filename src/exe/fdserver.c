@@ -1071,12 +1071,12 @@ int main(int argc,char **argv)
   if (source_file) {
     fdtype interpreter=fd_lispstring(u8_fromlibc(argv[0]));
     fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
-    fd_config_set("INTERPRETER",interpreter);
-    fd_config_set("SOURCE",src);
+    fd_set_config("INTERPRETER",interpreter);
+    fd_set_config("SOURCE",src);
     fd_decref(interpreter); fd_decref(src);}
   if (server_port) {
     fdtype sval=fdstring(server_port);
-    fd_config_set("PORT",sval);
+    fd_set_config("PORT",sval);
     fd_decref(sval);}
 
   fd_boot_message();

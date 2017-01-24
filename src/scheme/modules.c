@@ -36,8 +36,8 @@ static u8_condvar module_wait;
 #endif
 
 static int trace_dload=0;
-static int auto_bronze_modules=0;
-static int auto_bronze_exports=0;
+static int auto_fix_modules=0;
+static int auto_fix_exports=0;
 static int auto_lock_modules=0;
 static int auto_lock_exports=0;
 
@@ -179,17 +179,17 @@ int fd_finish_module(fdtype module)
         fd_lispenv env=(fd_lispenv) module;
         fdtype exports=env->exports;
         if (FD_HASHTABLEP(env->bindings)) {
-          if (auto_bronze_modules)
+          if (auto_fix_modules)
             fd_persist_module(env->bindings);
           if (auto_lock_modules)
             fd_hashtable_set_readonly((fd_hashtable)env->bindings,1);}
         if (FD_HASHTABLEP(exports)) {
-          if (auto_bronze_exports)
+          if (auto_fix_exports)
             fd_persist_module(exports);
           if (auto_lock_exports)
             fd_hashtable_set_readonly((fd_hashtable)exports,1);}}
       else if (FD_HASHTABLEP(module)) {
-        if ( (auto_bronze_modules) || (auto_bronze_exports) )
+        if ( (auto_fix_modules) || (auto_fix_exports) )
           fd_persist_module(module);
         if ( (auto_lock_modules) || (auto_lock_exports) )
           fd_hashtable_set_readonly((fd_hashtable)module,1);}
@@ -226,17 +226,17 @@ int fd_module_finished(fdtype module,int flags)
       fd_lispenv env=(fd_lispenv) module;
       fdtype exports=env->exports;
       if (FD_HASHTABLEP(env->bindings)) {
-        if (flags&(FD_SEAL_MODULE))
+        if (flags&(FD_FIX_MODULES))
           fd_persist_module(env->bindings);
         if (flags&(FD_LOCK_MODULE))
           fd_hashtable_set_readonly((fd_hashtable)(env->bindings),1);}
       if (FD_HASHTABLEP(exports)) {
-        if (flags&(FD_SEAL_EXPORTS))
+        if (flags&(FD_FIX_EXPORTS))
           fd_persist_module(exports);
         if (flags&(FD_LOCK_EXPORTS))
           fd_hashtable_set_readonly((fd_hashtable)exports,1);}}
     else if (FD_HASHTABLEP(module)) {
-      if ( flags & ( FD_SEAL_EXPORTS | FD_SEAL_MODULE) )
+      if ( flags & ( FD_FIX_EXPORTS | FD_FIX_MODULES) )
         fd_persist_module(module);
       if (flags&(FD_LOCK_EXPORTS|FD_LOCK_MODULE)) 
         fd_lock_exports(module);}
@@ -708,7 +708,7 @@ fdtype fd_use_module(fd_lispenv env,fdtype module)
   return FD_VOID;
 }
 
-static fdtype bronze_module(fdtype module)
+static fdtype fix_module(fdtype module)
 {
   if (FD_HASHTABLEP(module)) {
     int conversions=fd_persist_module(module);
@@ -729,7 +729,7 @@ static fdtype bronze_module(fdtype module)
     fdtype module_val=fd_find_module(module,0,0);
     if (FD_ABORTP(module_val)) return module_val;
     else {
-      fdtype result=bronze_module(module_val);
+      fdtype result=fix_module(module_val);
       fd_decref(module_val);
       return result;}}
 }
@@ -878,7 +878,7 @@ FD_EXPORT void fd_init_modules_c()
            fd_make_cprim1("GET-EXPORTS",get_exports_prim,1));
   fd_defalias(fd_xscheme_module,"%LS","GET-EXPORTS");
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("BRONZE-MODULE!",bronze_module,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("FIX-MODULE!",fix_module,1));
 
   fd_register_config("LOCKEXPORTS",
                      "Lock the exports of modules when loaded",
@@ -888,14 +888,14 @@ FD_EXPORT void fd_init_modules_c()
                      "Lock bindings of source modules after they are loaded",
                      fd_boolconfig_get,fd_boolconfig_set,
                      &auto_lock_modules);
-  fd_register_config("SEALEXPORTS",
+  fd_register_config("FIXEXPORTS",
                      "Convert exported function references into persistent pointers",
                      fd_boolconfig_get,fd_boolconfig_set,
-                     &auto_bronze_exports);
-  fd_register_config("SEALMODULES",
+                     &auto_fix_exports);
+  fd_register_config("FIXMODULES",
                      "Convert module function references into persistent pointers",
                      fd_boolconfig_get,fd_boolconfig_set,
-                     &auto_bronze_modules);
+                     &auto_fix_modules);
 
   fd_register_config("LOADMODULE",
                      "Specify modules to be loaded",

@@ -319,7 +319,7 @@ int main(int argc,char **argv)
      _("Max number of sequence/choice elements to display in debug message"),
      fd_intconfig_get,fd_intconfig_set,
      &debug_maxelts);
-  fd_config_set("BOOTED",fd_time2timestamp(boot_time));
+  fd_set_config("BOOTED",fd_time2timestamp(boot_time));
   inconsole=in;
   outconsole=out;
   errconsole=err;
@@ -334,7 +334,7 @@ int main(int argc,char **argv)
     u8_default_appid("fdshell");
   else u8_default_appid(argv[0]);
 
-  fd_config_set("OIDDISPLAY",FD_INT(3));
+  fd_set_config("OIDDISPLAY",FD_INT(3));
   setlocale(LC_ALL,"");
   that_symbol=fd_intern("THAT");
   histref_symbol=fd_intern("%HISTREF");
@@ -364,11 +364,11 @@ int main(int argc,char **argv)
     eval_server=newstream;}
   else {
     fdtype sourceval=fdstring(u8_realpath(source_file,NULL));
-    fd_config_set("SOURCE",sourceval); fd_decref(sourceval);
+    fd_set_config("SOURCE",sourceval); fd_decref(sourceval);
     fd_load_source(source_file,env,NULL);}
   {
     fdtype interpval=fd_lispstring(u8_fromlibc(argv[0]));
-    fd_config_set("INTERPRETER",interpval); fd_decref(interpval);}
+    fd_set_config("INTERPRETER",interpval); fd_decref(interpval);}
   fd_histinit(0);
   if (!(quiet_console)) {
     double startup_time=u8_elapsed_time()-fd_load_start;
