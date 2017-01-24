@@ -125,9 +125,9 @@ FD_EXPORT fdtype fd_use_module(fd_lispenv env,fdtype module);
 FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *);
 
 #define FD_LOCK_EXPORTS 0x01
-#define FD_SEAL_EXPORTS 0x02
+#define FD_FIX_EXPORTS 0x02
 #define FD_LOCK_MODULE 0x04
-#define FD_SEAL_MODULE 0x08
+#define FD_FIX_MODULES 0x08
 #define FD_OPTIMIZE_EXPORTS 0x03
 
 /* SPROCs */
