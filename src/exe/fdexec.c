@@ -262,7 +262,7 @@ int do_main(int argc,char **argv,
     fdtype src=fd_lispstring(u8_realpath(source_file,NULL));
     result=fd_load_source(source_file,env,NULL);
 
-    fd_config_set("SOURCE",src);
+    fd_set_config("SOURCE",src);
     
     fd_decref(src);
     source_file=NULL;}

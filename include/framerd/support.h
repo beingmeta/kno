@@ -32,9 +32,12 @@ typedef struct FD_CONFIG_LOOKUPS {
 typedef struct FD_CONFIG_LOOKUPS *fd_config_lookups;
 
 FD_EXPORT fdtype fd_config_get(u8_string var);
-FD_EXPORT int fd_config_set(u8_string var,fdtype val);
-FD_EXPORT int fd_config_default(u8_string var,fdtype val);
-FD_EXPORT int fd_config_set_consed(u8_string var,fdtype val);
+FD_EXPORT int fd_set_config(u8_string var,fdtype val);
+FD_EXPORT int fd_default_config(u8_string var,fdtype val);
+FD_EXPORT int fd_set_config_consed(u8_string var,fdtype val);
+#define fd_config_set(var,val) fd_set_config(var,val)
+#define fd_config_set_consed(var,val) fd_set_config_consed(var,val)
+#define fd_default_config(var,val) fd_default_config(var,val)
 
 FD_EXPORT int fd_readonly_config_set(fdtype ignored,fdtype v,void *p);
 

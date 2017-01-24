@@ -148,7 +148,7 @@ static fdtype getenv_config_lookup(fdtype symbol,void *ignored)
   return result;
 }
 
-int config_set(u8_string var,fdtype val)
+int set_config(u8_string var,fdtype val)
 {
   fdtype symbol=config_intern(var);
   fdtype current=fd_get(configuration_table,symbol,FD_VOID);
@@ -223,7 +223,7 @@ FD_EXPORT fdtype fd_config_get(u8_string var)
   return config_get(var);
 }
 
-FD_EXPORT int fd_config_set(u8_string var,fdtype val)
+FD_EXPORT int fd_set_config(u8_string var,fdtype val)
 {
   fdtype symbol=config_intern(var); int retval=0;
   struct FD_CONFIG_HANDLER *scan=config_handlers;
@@ -240,7 +240,7 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
   if ((!(scan))&&(trace_config))
     u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
            var,FD_SYMBOL_NAME(symbol),val);
-  config_set(var,val);
+  set_config(var,val);
   if (retval<0) {
     u8_string errsum=fd_errstring(NULL);
     u8_log(LOG_WARN,fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
@@ -248,7 +248,7 @@ FD_EXPORT int fd_config_set(u8_string var,fdtype val)
   return retval;
 }
 
-FD_EXPORT int fd_config_default(u8_string var,fdtype val)
+FD_EXPORT int fd_default_config(u8_string var,fdtype val)
 {
   fdtype symbol=config_intern(var); int retval=1;
   struct FD_CONFIG_HANDLER *scan=config_handlers;
@@ -268,7 +268,7 @@ FD_EXPORT int fd_config_default(u8_string var,fdtype val)
     if ((!(scan))&&(trace_config))
       u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
              var,FD_SYMBOL_NAME(symbol),val);
-    retval=config_set(var,val);}
+    retval=set_config(var,val);}
   if (retval<0) {
     u8_string errsum=fd_errstring(NULL);
     u8_log(LOG_WARN,fd_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
@@ -276,9 +276,9 @@ FD_EXPORT int fd_config_default(u8_string var,fdtype val)
   return retval;
 }
 
-FD_EXPORT int fd_config_set_consed(u8_string var,fdtype val)
+FD_EXPORT int fd_set_config_consed(u8_string var,fdtype val)
 {
-  int retval=fd_config_set(var,val);
+  int retval=fd_set_config(var,val);
   if (retval<0) return retval;
   fd_decref(val);
   return retval;
@@ -389,14 +389,14 @@ FD_EXPORT int fd_config_assignment(u8_string assignment)
       namebuf=u8_malloc(namelen+1);
     else namebuf=_namebuf;
     strncpy(namebuf,assignment,namelen); namebuf[namelen]='\0';
-    retval=fd_config_set_consed(namebuf,value);
+    retval=fd_set_config_consed(namebuf,value);
     if (namebuf!=_namebuf) u8_free(namebuf);
     return retval;}
   else return -1;
 }
 
 /* This takes a string of the form var=value */
-FD_EXPORT int fd_config_default_assignment(u8_string assignment)
+FD_EXPORT int fd_default_config_assignment(u8_string assignment)
 {
   u8_byte *equals;
   if ((equals=(strchr(assignment,'=')))) {
@@ -410,7 +410,7 @@ FD_EXPORT int fd_config_default_assignment(u8_string assignment)
     else namebuf=_namebuf;
     strncpy(namebuf,assignment,namelen); namebuf[namelen]='\0';
     if (!(fd_test(configuration_table,config_intern(namebuf),FD_VOID)))
-      retval=fd_config_set_consed(namebuf,value);
+      retval=fd_set_config_consed(namebuf,value);
     if (namebuf!=_namebuf) u8_free(namebuf);
     return retval;}
   else return -1;
@@ -460,8 +460,8 @@ FD_EXPORT fdtype *fd_handle_argv(int argc,char **argv,
   if (argc>0) {
     u8_string exe_name=u8_fromlibc(argv[0]);
     fdtype interp=fd_lispstring(exe_name);
-    fd_config_set("INTERPRETER",interp);
-    fd_config_set("EXE",interp);
+    fd_set_config("INTERPRETER",interp);
+    fd_set_config("EXE",interp);
     fd_decref(interp);}
 
   if (fd_argv!=NULL)  {
@@ -568,7 +568,7 @@ FD_EXPORT int fd_read_config(U8_INPUT *in)
       else if ((FD_PAIRP(entry)) &&
                (FD_SYMBOLP(FD_CAR(entry))) &&
                (FD_PAIRP(FD_CDR(entry)))) {
-        if (fd_config_set(FD_SYMBOL_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
+        if (fd_set_config(FD_SYMBOL_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
           fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
           return -1;}
         fd_decref(entry);
@@ -607,7 +607,7 @@ FD_EXPORT int fd_read_default_config(U8_INPUT *in)
       else if ((FD_PAIRP(entry)) &&
                (FD_SYMBOLP(FD_CAR(entry))) &&
                (FD_PAIRP(FD_CDR(entry)))) {
-        if (fd_config_default(FD_SYMBOL_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
+        if (fd_default_config(FD_SYMBOL_NAME(FD_CAR(entry)),(FD_CADR(entry)))<0) {
           fd_seterr(fd_ConfigError,"fd_read_config",NULL,entry);
           return -1;}
         else {n++; count++;}
@@ -619,7 +619,7 @@ FD_EXPORT int fd_read_default_config(U8_INPUT *in)
     else {
       u8_ungetc(in,c);
       buf=u8_gets(in);
-      if (fd_config_default_assignment(buf)<0)
+      if (fd_default_config_assignment(buf)<0)
         return fd_reterr(fd_ConfigError,"fd_read_config",buf,FD_VOID);
       else {count++; n++;}
       u8_free(buf);}
@@ -632,12 +632,12 @@ FD_EXPORT int fd_read_default_config(U8_INPUT *in)
 FD_EXPORT int fd_readonly_config_set(fdtype ignored,fdtype v,void *vptr)
 {
   if (FD_SYMBOLP(v))
-    return fd_reterr(fd_ReadOnlyConfig,"fd_config_set",
+    return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",
                      FD_SYMBOL_NAME(v),FD_VOID);
   else if (FD_STRINGP(v))
-    return fd_reterr(fd_ReadOnlyConfig,"fd_config_set",
+    return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",
                      FD_STRDATA(v),FD_VOID);
-  else return fd_reterr(fd_ReadOnlyConfig,"fd_config_set",NULL,FD_VOID);
+  else return fd_reterr(fd_ReadOnlyConfig,"fd_set_config",NULL,FD_VOID);
 }
 
 /* For configuration variables which get/set dtype value. */

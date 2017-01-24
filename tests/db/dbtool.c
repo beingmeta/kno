@@ -50,7 +50,7 @@ int main(int argc,char **argv)
 {
   int fd_version=fd_init_dbfile();
   if (fd_version<0) exit(1);
-  fd_config_set("OIDDISPLAY",FD_INT(3));
+  fd_set_config("OIDDISPLAY",FD_INT(3));
   if (argc==2) {
     fdtype frames=fd_qparse(argv[1]);
     FD_DO_CHOICES(frame,frames)

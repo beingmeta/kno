@@ -1487,7 +1487,7 @@ int fd_snapback(fd_lispenv env,u8_string filename)
         FD_DO_CHOICES(config_entry,v)
           if ((FD_PAIRP(config_entry)) &&
               (FD_SYMBOLP(FD_CAR(config_entry))))
-            if (fd_config_set(FD_SYMBOL_NAME(FD_CAR(config_entry)),
+            if (fd_set_config(FD_SYMBOL_NAME(FD_CAR(config_entry)),
                               FD_CDR(config_entry)) <0) {
               fd_decref(v); fd_decref(keys); fd_decref(slotmap);
               return -1;}
