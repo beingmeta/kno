@@ -360,32 +360,28 @@ FD_EXPORT long long fd_b32_to_longlong(const char *digits);
 #define to64(x) ((long long)(x))
 #define to64u(x) ((unsigned long long)(x))
 
-#define FD_FIX2INT(x)		      \
+#define FD_FIX2INT(x)   \
   ((long long)((((to64(x))>=0) ? ((x)/4) : (-((to64(-(x)))>>2)))))
+
 #define FD_INT2DTYPE(x) \
-  ((((to64(x)) > (to64(FD_MAX_FIXNUM))) || ((to64(x)) < (to64(FD_MIN_FIXNUM)))) ? \
-   (fd_make_bigint(to64(x))) :						\
-   (((fdtype)(((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
-	      (-( fd_fixnum_type | ((to64(-(x)))<<2)))))))
+  ((((to64(x)) > (to64(FD_MAX_FIXNUM))) ||			\
+    ((to64(x)) < (to64(FD_MIN_FIXNUM)))) ?			\
+   (fd_make_bigint(to64(x))) :					\
+   ((fdtype)							\
+    (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :		\
+	      (- ( fd_fixnum_type | ((to64u(-(x)))<<2)) ))))
+#define FD_INT(x) (FD_INT2DTYPE(x))
 
-#define FD_INT(x)					\
-  ((((to64(x)) > FD_MAX_FIXNUM) || ((to64(x)) < FD_MIN_FIXNUM)) ?   \
-   (fd_make_bigint(to64(x))) :				\
-   (((fdtype)(((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :	\
-	      (-( fd_fixnum_type | ((to64(-(x)))<<2)))))))
+#define FD_SHORT2DTYPE(x)				\
+  ((fdtype)						\
+   (((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :	\
+    (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
 
-#define FD_SHORT2FIX(x)					     \
-  ((fdtype)(((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :	\
-	    (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
+#define FD_SHORT2FIX(x)	(FD_SHORT2DTYPE(x))
 
-#define FD_SHORT2DTYPE(x)			             \
-  ((fdtype)(((to64(x))>=0) ? (((to64(x))*4)|fd_fixnum_type) :	\
-	    (- ( fd_fixnum_type | ((to64(-(x)))<<2)))))
-
-
-#define FD_USHORT2DTYPE(x) ((fdtype)(fd_fixnum_type|((x&0xFFFF)<<2)))
-#define FD_BYTE2DTYPE(x)((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
-#define FD_BYTE2LISP(x)((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
+#define FD_USHORT2DTYPE(x)     ((fdtype)(fd_fixnum_type|((x&0xFFFF)<<2)))
+#define FD_BYTE2DTYPE(x)       ((fdtype) (fd_fixnum_type|((x&0xFF)<<2)))
+#define FD_BYTE2LISP(x)        (FD_BYTE2DTYPE(x))
 #define FD_FIXNUM_MAGNITUDE(x) ((x<0)?((-(x))>>2):(x>>2))
 #define FD_FIXNUM_NEGATIVEP(x) (x<0)
 

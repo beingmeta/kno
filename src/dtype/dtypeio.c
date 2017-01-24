@@ -124,8 +124,8 @@ static int write_mystery(struct FD_BYTE_OUTPUT *out,struct FD_MYSTERY_DTYPE *v);
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
 static ssize_t try_dtype_output(int *len,struct FD_BYTE_OUTPUT *out,fdtype x)
 {
-  size_t olen=out->fd_bufptr-out->fd_bufstart;
-  size_t dlen=fd_write_dtype(out,x);
+  ssize_t olen=out->fd_bufptr-out->fd_bufstart;
+  ssize_t dlen=fd_write_dtype(out,x);
   if (dlen<0)
     return -1;
   else if ((out->fd_dts_flushfn==NULL) &&

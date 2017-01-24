@@ -341,7 +341,7 @@ static fdtype error_summary(fdtype x,fdtype with_irritant)
 {
   struct FD_EXCEPTION_OBJECT *xo=
     FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
-  u8_exception ex=xo->ex;
+  u8_exception ex=xo->fd_u8ex;
   u8_condition cond=ex->u8x_cond;
   u8_context cxt=ex->u8x_context;
   u8_string details=ex->u8x_details;

@@ -2583,12 +2583,12 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
       else return FD_FALSE;}
     else if ((FD_POOLP(arg1))||(FD_PRIM_TYPEP(arg1,fd_raw_pool_type))) {
       fd_pool p=fd_lisp2pool(arg1);
-      if (p->locks.n_keys)
+      if (p->locks.fd_n_keys)
         return FD_TRUE;
       else return FD_FALSE;}
     else if ((FD_INDEXP(arg1))||(FD_PRIM_TYPEP(arg1,fd_raw_index_type))) {
       fd_index ix=fd_lisp2index(arg1);
-      if ((ix->edits.n_keys) || (ix->adds.n_keys))
+      if ((ix->edits.fd_n_keys) || (ix->adds.fd_n_keys))
         return FD_TRUE;
       else return FD_FALSE;}
     else if (FD_TABLEP(arg1)) {
