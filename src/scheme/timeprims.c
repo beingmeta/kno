@@ -1060,7 +1060,9 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
   else if (precision>0) {
     int more_precision=precision-elts;
     if (elts>0) u8_puts(&out,", ");
-    if (more_precision>3)
+    if ((elts==0)&&(reduce<1)) 
+      u8_printf(&out,_("%f seconds"),reduce);
+    else if (more_precision>3)
       u8_printf(&out,_("%f seconds"),reduce);
     else if (more_precision>2)
       u8_printf(&out,_("%.3f seconds"),reduce);
