@@ -610,6 +610,13 @@ static fdtype extend_dtype_file(fdtype fname)
     return FD_ERROR_VALUE;}
 }
 
+static fdtype dtype_streamp(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_dtstream_type))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 /* The init function */
 
 static int scheme_filedb_initialized=0;
@@ -667,23 +674,28 @@ FD_EXPORT void fd_init_filedb_c()
   fd_idefn(filedb_module,fd_make_cprim1x("OPEN-FILE-POOL",open_file_pool,1,
                                          fd_string_type,FD_VOID));
   fd_idefn(filedb_module,
-           fd_make_ndprim(fd_make_cprim2x("FILE-POOL-PREFETCH!",file_pool_prefetch,2,
-                                          fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
+           fd_make_ndprim
+           (fd_make_cprim2x("FILE-POOL-PREFETCH!",file_pool_prefetch,2,
+                            fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
+  
 
-
-  fd_idefn(filedb_module,fd_make_cprim4x("POPULATE-HASH-INDEX",populate_hash_index,2,
-                                         -1,FD_VOID,-1,FD_VOID,
-                                         fd_fixnum_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(filedb_module,fd_make_cprim6x("MAKE-HASH-INDEX",make_hash_index,2,
-                                         fd_string_type,FD_VOID,
-                                         fd_fixnum_type,FD_VOID,
-                                         -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
-                                         -1,FD_FALSE));
-  fd_idefn(filedb_module,fd_make_cprim3x("HASH-INDEX-BUCKET",hash_index_bucket,2,
-                                         -1,FD_VOID,-1,FD_VOID));
+  fd_idefn(filedb_module,
+           fd_make_cprim4x("POPULATE-HASH-INDEX",populate_hash_index,2,
+                           -1,FD_VOID,-1,FD_VOID,
+                           fd_fixnum_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(filedb_module,
+           fd_make_cprim6x("MAKE-HASH-INDEX",make_hash_index,2,
+                           fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+                           -1,FD_FALSE));
+  fd_idefn(filedb_module,
+           fd_make_cprim3x("HASH-INDEX-BUCKET",hash_index_bucket,2,
+                           -1,FD_VOID,-1,FD_VOID));
   fd_idefn(filedb_module,
            fd_make_cprim1("HASH-INDEX-SLOTIDS",hash_index_slotids,1));
-  fd_idefn(filedb_module,fd_make_cprim1("HASH-INDEX-STATS",hash_index_stats,1));
+  fd_idefn(filedb_module,
+           fd_make_cprim1("HASH-INDEX-STATS",hash_index_stats,1));
 
 
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));
@@ -701,6 +713,7 @@ FD_EXPORT void fd_init_filedb_c()
            fd_make_ndprim(fd_make_cprim3("DTYPE->ZFILE",dtype2zipfile,2)));
   fd_idefn(filedb_module,
            fd_make_ndprim(fd_make_cprim2("DTYPE->ZFILE+",add_dtype2zipfile,2)));
+
   /* We make these aliases because the output file isn't really a zip
      file, but we don't want to break code which uses the old
      names. */
@@ -721,7 +734,10 @@ FD_EXPORT void fd_init_filedb_c()
   fd_idefn(filedb_module,
            fd_make_cprim1x("EXTEND-DTYPE-FILE",extend_dtype_file,1,
                            fd_string_type,FD_VOID));
-  
+
+  fd_idefn(filedb_module,
+           fd_make_cprim1("DTYPE-STREAM?",dtype_streamp,1));
+
   fd_finish_module(filedb_module);
   fd_persist_module(filedb_module);
 }

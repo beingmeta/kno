@@ -158,7 +158,10 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
   else return pt;
 }
 
-#define FD_DTYPE2FCN(x) ((FD_PPTRP(x)) ? ((fd_function)(fd_pptr_ref(x))) : ((fd_function)x))
+#define FD_DTYPE2FCN(x)		     \
+  ((FD_PPTRP(x)) ?		     \
+   ((fd_function)(fd_pptr_ref(x))) : \
+   ((fd_function)x))
 
 /* Stack checking */
 
