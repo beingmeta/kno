@@ -972,6 +972,9 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
   U8_INIT_OUTPUT(&out,64);
   if (seconds<0) {
     u8_printf(&out,"negative "); reduce=-seconds;}
+  else if (seconds=0) {
+    u8_free(out.u8_outbuf);
+    return fdtype_string("0 seconds");}
   else reduce=seconds;
   years=(int)floor(reduce/(365*24*3600));
   reduce=reduce-years*(365*24*3600);
