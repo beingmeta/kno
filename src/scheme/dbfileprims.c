@@ -612,8 +612,28 @@ static fdtype extend_dtype_file(fdtype fname)
 
 static fdtype dtype_streamp(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_dtstream_type))
+  if (FD_PRIM_TYPEP(arg,fd_dtstream_type)) 
     return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype dtype_inputp(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_dtstream_type)) {
+    struct FD_DTSTREAM *dts=(fd_dtstream)arg;
+    if (U8_BITP(dts->dt_stream->flags,FD_DTSTREAM_READING))
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
+}
+
+static fdtype dtype_outputp(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_dtstream_type)) {
+    struct FD_DTSTREAM *dts=(fd_dtstream)arg;
+    if (U8_BITP(dts->dt_stream->flags,FD_DTSTREAM_READING))
+      return FD_FALSE;
+    else return FD_TRUE;}
   else return FD_FALSE;
 }
 
@@ -735,8 +755,9 @@ FD_EXPORT void fd_init_filedb_c()
            fd_make_cprim1x("EXTEND-DTYPE-FILE",extend_dtype_file,1,
                            fd_string_type,FD_VOID));
 
-  fd_idefn(filedb_module,
-           fd_make_cprim1("DTYPE-STREAM?",dtype_streamp,1));
+  fd_idefn(filedb_module,fd_make_cprim1("DTYPE-STREAM?",dtype_streamp,1));
+  fd_idefn(filedb_module,fd_make_cprim1("DTYPE-INPUT?",dtype_inputp,1));
+  fd_idefn(filedb_module,fd_make_cprim1("DTYPE-OUTPUT?",dtype_outputp,1));
 
   fd_finish_module(filedb_module);
   fd_persist_module(filedb_module);
