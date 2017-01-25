@@ -334,6 +334,43 @@ static fdtype timestamp_lesser(fdtype timestamp1,fdtype timestamp2)
     if (diff<0) return FD_TRUE; else return FD_FALSE;}
 }
 
+FD_EXPORT
+int fd_cmp_now(fdtype timestamp,double thresh)
+{
+  int free_t=0;
+  struct FD_TIMESTAMP *t=get_timestamp(timestamp,&free_t);
+  if (t==NULL)
+    return FD_ERROR_VALUE;
+  else {
+    double diff; struct U8_XTIME now; u8_now(&now);
+    diff=u8_xtime_diff((&(t->xtime)),&now);
+    if (free_t) u8_free(t);
+    if (diff > thresh)
+      return 1;
+    else if (diff < (-thresh))
+      return -1;
+    else return 0;}
+}
+
+static fdtype futurep(fdtype timestamp,fdtype thresh_arg)
+{
+  int thresh=(FD_FLONUMP(thresh_arg)) ?
+    (FD_FLONUM(thresh_arg)) :
+    (0.0);
+  if (fd_cmp_now(timestamp,thresh)>0)
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype pastp(fdtype timestamp,fdtype thresh_arg)
+{
+  int thresh=(FD_FLONUMP(thresh_arg)) ?
+    (FD_FLONUM(thresh_arg)) :
+    (0.0);
+  if (fd_cmp_now(timestamp,thresh)<0)
+    return FD_TRUE;
+  else return FD_FALSE;
+}
 
 /* Lisp access */
 
@@ -1998,6 +2035,10 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_defalias(fd_scheme_module,"TIME-","TIMESTAMP-");
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIME-UNTIL",time_until,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TIME-SINCE",time_since,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("FUTURE?",futurep,1,-1,FD_VOID,fd_flonum_type,FD_VOID));
+  fd_idefn(fd_scheme_module,fd_make_cprim2x
+           ("PAST?",pastp,1,-1,FD_VOID,fd_flonum_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprimn("MKTIME",mktime_lexpr,0));
 
