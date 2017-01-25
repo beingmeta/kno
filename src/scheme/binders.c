@@ -460,27 +460,25 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
             /* This code handles argument defaults for sprocs */
             fdtype default_expr=FD_CADR(arg);
             fdtype default_value=fd_eval(default_expr,fn->env);
-            vals[i]=default_value; i++;}
+            vals[i]=default_value;
+            i++;}
           else vals[i++]=FD_VOID;}
       else if (FD_RAILP(fn->arglist)) {
         struct FD_VECTOR *v=FD_GET_CONS(fn->arglist,fd_rail_type,fd_vector);
         int len=v->length; fdtype *dflts=v->data;
         while (i<len) {
-          if (i<n) {
-            fdtype val=args[i];
-            if ((val==FD_DEFAULT_VALUE)&&(dflts))  {
-              fdtype default_expr=dflts[i];
-              fdtype default_value=fd_eval(default_expr,fn->env);
-              if (FD_VOIDP(default_value)) vals[i]=val;
-              else vals[i]=default_value;
-              i++;}
-          else if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val)))
-            vals[i]=fd_incref(val);
+          fdtype val=args[i];
+          if ((val==FD_DEFAULT_VALUE)&&(dflts))  {
+            fdtype default_expr=dflts[i];
+            fdtype default_value=fd_eval(default_expr,fn->env);
+            if (FD_VOIDP(default_value)) vals[i]=val;
+            else vals[i]=default_value;}
+          else if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
+            vals[i]=fd_incref(val);}
           else vals[i]=val;
-            i++;}}}
-      else {}
-      while (i<n_vars) vals[i++]=FD_VOID;
-      assert(i==fn->n_vars);}}
+          i++;}
+        while (i<n_vars) vals[i++]=FD_VOID;
+        assert(i==fn->n_vars);}}}
   else if (fn->arity==0) {}
   else { /* We have a lexpr */
     int i=0, j=n-1;
@@ -619,6 +617,47 @@ static int unparse_sproc(u8_output out,fdtype x)
                  sproc->arglist,(unsigned long)sproc);
   return 1;
 }
+
+static int *copy_intvec(int *vec,int n,int *into)
+{
+  int *dest=(into)?(into):(u8_alloc_n(n,int));
+  int i=0; while (i<n) {
+    dest[i]=vec[i]; i++;}
+  return dest;
+}
+
+FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
+{
+  struct FD_SPROC *sproc=(struct FD_SPROC *)c;
+  struct FD_SPROC *fresh=u8_alloc(struct FD_SPROC);
+  int n_args=sproc->n_vars+1, arity=sproc->arity;
+  memcpy(fresh,sproc,sizeof(struct FD_SPROC));
+
+  /* This sets a new reference count or declares it static */
+  FD_INIT_CONS(fresh,fd_sproc_type);
+
+  if (sproc->name) fresh->name=u8_strdup(sproc->name);
+  if (sproc->filename)
+    fresh->filename=u8_strdup(sproc->filename);
+  if (sproc->typeinfo)
+    fresh->typeinfo=copy_intvec(sproc->typeinfo,arity,NULL);
+
+  fresh->arglist=fd_copier(sproc->arglist,flags);
+  fresh->body=fd_copier(sproc->body,flags);
+  if (sproc->schema)
+    fresh->schema=fd_copy_vec(sproc->schema,n_args,NULL,flags);
+  if (sproc->defaults)
+    fresh->defaults=fd_copy_vec(sproc->defaults,arity,NULL,flags);
+
+  if (fresh->synchronized) fd_init_mutex(&(fresh->lock));
+
+  if (U8_BITP(flags,FD_STATIC_COPY)) {
+    FD_MAKE_CONS_STATIC(fresh);}
+
+  return (fdtype) fresh;
+}
+
+
 
 /* Macros */
 

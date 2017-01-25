@@ -184,6 +184,8 @@ typedef unsigned int fd_consbits;
 typedef struct FD_CONS { FD_CONS_HEADER; } FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
+#define FD_CONS_TYPE_MASK (0x7f)
+
 #define FD_VALID_TYPEP(x) (FD_EXPECT_TRUE(((int)x)<256))
 
 #if FD_CHECKFDTYPE
@@ -213,10 +215,11 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
   ((struct FD_CONS *)ptr)->consbits=(type-0x84)
-#define FD_CONS_TYPE(x) ((((x)->consbits)&0x7F)+0x84)
+#define FD_CONS_TYPE(x) (( ((x)->consbits) & (FD_CONS_TYPE_MASK) )+0x84)
 #define FD_SET_CONS_TYPE(ptr,type) \
-  ((struct FD_CONS *)ptr)->consbits=\
-    ((((struct FD_CONS *)ptr)->consbits&(~0x7F))|((type-0x84)&0x7f))
+  ((struct FD_CONS *)ptr)->consbits=				\
+    ((((struct FD_CONS *)ptr)->consbits&(~FD_CONS_TYPE_MASK)) | \
+     ( (type-0x84) & (FD_CONS_TYPE_MASK) ))
 #define FD_NULL ((fdtype)(NULL))
 #define FD_NULLP(x) (((void *)x)==NULL)
 
@@ -247,6 +250,14 @@ static fd_ptr_type FD_PTR_TYPE(fdtype x)
 #endif
 
 #define FD_PTR_TYPEP(x,type) ((FD_PTR_TYPE(x)) == type)
+
+#define FD_MAKE_STATIC(ptr)  \
+  if (FD_CONSP(ptr))						\
+    (((struct FD_CONS *)ptr)->consbits)&=(FD_CONS_TYPE_MASK);	\
+    else {}
+
+#define FD_MAKE_CONS_STATIC(ptr)  \
+  (ptr)->consbits&=FD_CONS_TYPE_MASK;
 
 /* OIDs */
 

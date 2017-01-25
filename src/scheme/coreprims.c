@@ -53,6 +53,11 @@ static fdtype deepcopy(fdtype x)
   return fd_deep_copy(x);
 }
 
+static fdtype staticcopy(fdtype x)
+{
+  return fd_copier(x,FD_DEEP_COPY|FD_FULL_COPY|FD_STATIC_COPY);
+}
+
 static fdtype get_refcount(fdtype x,fdtype delta)
 {
   if (FD_CONSP(x)) {
@@ -842,6 +847,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim2("COMPARE",comparefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim2("FASTCOMPARE",fastcomparefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DEEP-COPY",deepcopy,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("STATIC-COPY",staticcopy,1));
   fd_idefn(fd_scheme_module,
            fd_make_ndprim(fd_make_cprim2x("REFCOUNT",get_refcount,1,-1,FD_VOID,
                                           fd_fixnum_type,FD_INT(0))));

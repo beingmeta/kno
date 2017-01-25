@@ -110,6 +110,7 @@ FD_EXPORT int fd_discard_module(fdtype name,int safe);
 FD_EXPORT int fd_module_finished(fdtype module,int flags);
 FD_EXPORT int fd_finish_module(fdtype module);
 FD_EXPORT int fd_persist_module(fdtype module);
+FD_EXPORT int fd_static_module(fdtype module);
 FD_EXPORT int fd_lock_exports(fdtype module);
 
 
@@ -126,8 +127,10 @@ FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *);
 
 #define FD_LOCK_EXPORTS 0x01
 #define FD_FIX_EXPORTS 0x02
-#define FD_LOCK_MODULE 0x04
-#define FD_FIX_MODULES 0x08
+#define FD_STATIC_EXPORTS 0x04
+#define FD_LOCK_MODULES 0x08
+#define FD_FIX_MODULES 0x10
+#define FD_STATIC_MODULES 0x20
 #define FD_OPTIMIZE_EXPORTS 0x03
 
 /* SPROCs */

@@ -2072,6 +2072,35 @@ FD_EXPORT int fd_persist_hashtable(struct FD_HASHTABLE *ptr,int type)
   return n_conversions;
 }
 
+FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
+{
+  int n_conversions=0; fd_ptr_type keeptype=(fd_ptr_type)type;
+  FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
+  fd_write_lock(&ptr->rwlock);
+  {
+    struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
+    while (scan < lim)
+      if (*scan) {
+        struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+        struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+        while (kvscan<kvlimit) {
+          if ((FD_CONSP(kvscan->value)) &&
+              ((type<0) || (FD_PTR_TYPEP(kvscan->value,keeptype)))) {
+            fdtype value=kvscan->value;
+            fdtype static_value=fd_static_copy(value);
+            if (static_value==value) {
+              fd_decref(static_value);
+              static_value=fd_pptr_register(kvscan->value);}
+            kvscan->value=static_value;
+            fd_decref(kvscan->value); 
+            n_conversions++;}
+          kvscan++;}
+        scan++;}
+      else scan++;}
+  fd_rw_unlock(&ptr->rwlock);
+  return n_conversions;
+}
+
 FD_EXPORT fdtype fd_make_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 {
   if (n_slots == 0) {

@@ -435,6 +435,7 @@ FD_EXPORT int fd_remove_deadwood_x(struct FD_HASHTABLE *ptr,
 FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr);
 FD_EXPORT int fd_devoid_hashtable(fd_hashtable ht);
 FD_EXPORT int fd_persist_hashtable(struct FD_HASHTABLE *ptr,int);
+FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int);
 
 FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr);
 

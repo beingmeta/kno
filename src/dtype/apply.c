@@ -561,13 +561,15 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
   if (fd_functionp[ftype]) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
     fdtype argbuf[8], *args;
-    if (FD_EXPECT_FALSE(f->arity<0)) {
+    if (FD_EXPECT_FALSE(f->arity<0)) { /* Is a LEXPR */
       if (n<(f->min_arity))
         return fd_err(fd_TooFewArgs,"fd_dapply",f->name,FDTYPE_CONS(f));
       else {
         if (FD_EXPECT_FALSE((f->xcall) &&  (f->handler.fnptr==NULL))) {
+          /* There's no explicit method for this type */
           int ctype=FD_CONS_TYPE(f);
           return fd_applyfns[ctype]((fdtype)f,n,argvec);}
+        /* Use the explicit handler */
         else if (f->xcall)
           return f->handler.xcalln((struct FD_FUNCTION *)fp,n,argvec);
         else return f->handler.calln(n,argvec);}}
@@ -588,6 +590,7 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
           else args[i]=a;
           i++;}
         if (defaults)
+          /* If there are defaults, use them (they'll cover the rest of the args) */
           while (i<f->arity) {
             fdtype d=defaults[i];
             args[i]=d; fd_incref(d);
