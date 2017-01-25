@@ -727,7 +727,7 @@ int fd_init_imagick()
   MagickWandGenesis();
   atexit(magickwand_atexit);
 
-  U8_OK_ERRNO(2);
+  U8_DISCARD_ERRNO(2);
 
   return 1;
 
