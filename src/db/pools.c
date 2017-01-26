@@ -1,4 +1,4 @@
-/* -*- Mode: C; Character-encoding: utf-8; -*- */
+ /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2016 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
@@ -738,6 +738,8 @@ FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
 FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
 {
   struct FD_HASHTABLE *locks=&(p->locks);
+  u8_log(fddb_loglevel,"Unlock","Unlocking %d oids in pool %s",
+         FD_CHOICE_SIZE(oids),p->cid);
   if (p->handler->unlock==NULL) {
     if ((p->flags)&(FD_POOL_LOCKFREE)) {
       return 0;}
@@ -751,6 +753,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
     fdtype needy; int retval, n;
     struct FD_CHOICE *oidc=fd_alloc_choice(FD_CHOICE_SIZE(oids));
     fdtype *oidv=(fdtype *)FD_XCHOICE_DATA(oidc), *write=oidv;
+    u8_log(fddb_loglevel,"Unlock","Cleaning up locks table for %s",p->cid);
     FD_DO_CHOICES(o,oids)
       if (fd_hashtable_probe_novoid(locks,o)) *write++=o;
     if (write==oidv) {
@@ -761,13 +764,17 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
       fd_seterr(fd_CantLockOID,"fd_pool_unlock",
                 u8_strdup(p->cid),oids);
       return -1;}
+    u8_log(fddb_loglevel,"Unlock","Running custom unlock for %s",p->cid);
     needy=fd_init_choice(oidc,n,NULL,FD_CHOICE_ISATOMIC);
     retval=p->handler->unlock(p,needy);
     if (retval<0) {
       fd_decref(needy);
       return -1;}
     else if (retval) {
+      u8_log(fddb_loglevel,"Unlock",
+             "Voiding lock table entries for %s",p->cid);
       fd_hashtable_iterkeys(locks,fd_table_replace,n,oidv,FD_VOID);
+      u8_log(fddb_loglevel,"Unlock","Devoiding lock table for %s",p->cid);
       if (fd_devoid_hashtable(locks)<0) {
         fd_decref(needy);
         return -1;}
@@ -800,6 +807,9 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
 {
   struct FD_HASHTABLE *locks=&(p->locks);
   double start_time=u8_elapsed_time();
+  u8_log(fddb_loglevel,"DBCommit",
+         "Commiting %d oids in pool %s, unlock=%d",
+         FD_CHOICE_SIZE(oids),p->cid,unlock);
   if (p->handler->storen==NULL) {
     if ((unlock) && (p->handler->unlock))
       p->handler->unlock(p,oids);
@@ -809,46 +819,50 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       return -1;}
     return 0;}
   init_cache_level(p);
+  u8_log(fddb_loglevel,"PoolCommit/Started","For %s",p->cid);
   if (FD_CHOICEP(oids)) {
     int n_oids=FD_CHOICE_SIZE(oids), retval, n;
     struct FD_CHOICE *oidc=fd_alloc_choice(n_oids);
     fdtype *oidv=(fdtype *)FD_XCHOICE_DATA(oidc), *owrite=oidv;
     fdtype *values=u8_alloc_n(n_oids,fdtype), *vwrite=values;
     FD_DO_CHOICES(o,oids) {
-      fdtype v=fd_hashtable_get(locks,o,FD_VOID);
+      fdtype v=fd_hashtable_get(locks,o,FD_VOID); int save=0;
       if (FD_VOIDP(v)) {}
       /* Skip saving OIDs which have been locked but not set */
       else if (v==FD_LOCKHOLDER) {}
-      else if (FD_SLOTMAPP(v))
+      else if (FD_SLOTMAPP(v)) {
         if (FD_SLOTMAP_MODIFIEDP(v)) {
-          *owrite++=o; *vwrite++=v;}
-        else fd_decref(v);
-      else if (FD_SCHEMAPP(v))
+          *owrite++=o; *vwrite++=v; save=1;}}
+      else if (FD_SCHEMAPP(v)) {
         if (FD_SCHEMAP_MODIFIEDP(v)) {
-          *owrite++=o; *vwrite++=v;}
-        else fd_decref(v);
-      else if (FD_HASHTABLEP(v))
+          *owrite++=o; *vwrite++=v; save=1;}}
+      else if (FD_HASHTABLEP(v)) {
         if (FD_HASHTABLE_MODIFIEDP(v)) {
-          *owrite++=o; *vwrite++=v;}
-        else fd_decref(v);
-      else {*owrite++=o; *vwrite++=v;}}
+          *owrite++=o; *vwrite++=v; save=1;}}
+      else {*owrite++=o; *vwrite++=v; save=1;}}
     if (owrite==oidv) {
       u8_free(oidc); u8_free(values);
       return 1;}
     else n=owrite-oidv;
+    u8_log(fddb_loglevel,"PoolCommit/Sorted",
+           "Found %d to save of %d OIDs in %s",
+           n,FD_CHOICE_SIZE(oids),p->cid);
     retval=p->handler->storen(p,n,oidv,values);
+    u8_log(fddb_loglevel,"PoolCommit/Written",
+           "For %d OIDs in %s",n,p->cid);
     if (retval<0)
       u8_seterr(fd_PoolCommitError,"fd_pool_commit",u8_strdup(p->cid));
     /* Free the values pointers, and clear the modified flags */
     {
       fdtype *scan=values;
-      while (scan<vwrite){
+      while (scan<vwrite) {
         if (FD_SLOTMAPP(*scan)) {
           fdtype v=*scan; FD_SLOTMAP_CLEAR_MODIFIED(v);}
         fd_decref(*scan);
         scan++;}
       u8_free(values);
     }
+    u8_log(fddb_loglevel,"PoolCommit","Freed cache values in %s",p->cid);
     if ((retval>0) && (unlock)) {
       fdtype needy=fd_init_choice(oidc,n,oidv,FD_CHOICE_ISATOMIC);
       if (p->handler->unlock(p,needy))
@@ -862,6 +876,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     else u8_log(fddb_loglevel,fd_Commitment,
                 "Saved %d OIDs from %s in %f secs",n,p->cid,
                 u8_elapsed_time()-start_time);
+    u8_log(fddb_loglevel,"PoolCommit","Unlocked OIDS in %s",p->cid);
     return retval;}
   else {
     int retcode;
@@ -919,7 +934,11 @@ FD_EXPORT void fd_pool_close(fd_pool p)
 
 FD_EXPORT void fd_pool_swapout(fd_pool p)
 {
-  if (p->handler->swapout) p->handler->swapout(p,FD_VOID);
+  u8_log(fddb_loglevel,"PoolDB","Swapping out pool %s",p->cid);
+  if (p->handler->swapout) {
+    p->handler->swapout(p,FD_VOID);
+    u8_log(fddb_loglevel,"PoolDB",
+           "Finished custom swapout for pool %s",p->cid);}
   if (p) {
     if ((p->flags)&(FD_STICKY_CACHESIZE))
       fd_reset_hashtable(&(p->cache),-1,1);
@@ -1188,7 +1207,8 @@ static int do_commit(fd_pool p,void *data)
   int retval=fd_pool_unlock_all(p,1);
   if (retval<0)
     if (data) {
-      u8_log(LOG_CRIT,"POOL_COMMIT_FAIL","Error when commiting pool %s",p->cid);
+      u8_log(LOG_CRIT,"POOL_COMMIT_FAIL",
+             "Error when commiting pool %s",p->cid);
       return 0;}
     else return -1;
   else return 0;
@@ -1486,7 +1506,7 @@ FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval)
       u8_log(LOG_NOTICE,ipeval_objfetch,"Fetched %d oids from %s",
-      FD_CHOICE_SIZE(todo),p->cid);
+             FD_CHOICE_SIZE(todo),p->cid);
 #endif
     return 0;}
 }
