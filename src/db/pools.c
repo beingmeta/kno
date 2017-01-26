@@ -837,21 +837,24 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     fdtype *oidv=(fdtype *)FD_XCHOICE_DATA(oidc), *owrite=oidv;
     fdtype *values=u8_alloc_n(n_oids,fdtype), *vwrite=values;
     FD_DO_CHOICES(o,oids) {
-      fdtype v=fd_hashtable_get(locks,o,FD_VOID); 
-      int save=0;
-      if ((FD_VOIDP(v))||(v==FD_LOCKHOLDER)) {}
-      else if (FD_SLOTMAPP(v)) {
-        if (FD_SLOTMAP_MODIFIEDP(v)) save=1;}
-      else if (FD_SCHEMAPP(v)) {
-        if (FD_SCHEMAP_MODIFIEDP(v)) save=1;}
-      else if (FD_HASHTABLEP(v)) {
-        if (FD_HASHTABLE_MODIFIEDP(v)) save=1;}
-      else save=1;
-      if (save) {*owrite++=o; *vwrite++=v;}}
+      fd_pool oidpool=fd_oid2pool(o);
+      if (p==oidpool) {
+        fdtype v=fd_hashtable_get(locks,o,FD_VOID); 
+        int save=0;
+        if ((FD_VOIDP(v))||(v==FD_LOCKHOLDER)) {}
+        else if (FD_SLOTMAPP(v)) {
+          if (FD_SLOTMAP_MODIFIEDP(v)) save=1;}
+        else if (FD_SCHEMAPP(v)) {
+          if (FD_SCHEMAP_MODIFIEDP(v)) save=1;}
+        else if (FD_HASHTABLEP(v)) {
+          if (FD_HASHTABLE_MODIFIEDP(v)) save=1;}
+        else save=1;
+        if (save) {*owrite++=o; *vwrite++=v;}}}
     if (owrite==oidv) {
       u8_free(oidc); u8_free(values);
       return 1;}
     else n=owrite-oidv;
+
     u8_log(fddb_loglevel,"PoolCommit/Sorted",
            "Found %d/%d OIDs to save in %s",
            n,FD_CHOICE_SIZE(oids),p->cid);
