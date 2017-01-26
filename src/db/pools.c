@@ -27,6 +27,7 @@
 
 fd_exception fd_UnknownPool=_("Unknown pool");
 fd_exception fd_CantLockOID=_("Can't lock OID");
+fd_exception fd_CantUnlockOID=_("Can't unlock OID");
 fd_exception fd_PoolRangeError=_("the OID is out of the range of the pool");
 fd_exception fd_NoLocking=_("No locking available");
 fd_exception fd_ReadOnlyPool=_("pool is read-only");
@@ -852,13 +853,22 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
       return 1;}
     else n=owrite-oidv;
     u8_log(fddb_loglevel,"PoolCommit/Sorted",
-           "Found %d to save of %d OIDs in %s",
+           "Found %d/%d OIDs to save in %s",
            n,FD_CHOICE_SIZE(oids),p->cid);
-    if (unlock) {
-      fd_hashtable_iterkeys(locks,fd_table_replace,owrite-oidv,oidv,FD_VOID);
-      fd_devoid_hashtable(locks);
-      u8_log(fddb_loglevel,"PoolCommit/Unlock",
-             "Unlocked %d OIDs in %s",n,p->cid);}
+
+    if ( (unlock) && (p->handler->unlock) ) {
+      if ( (p->handler->unlock(p,(fdtype)oidc) >= 0) ) {
+        fd_hashtable_iterkeys(locks,fd_table_replace,owrite-oidv,oidv,FD_VOID);
+        fd_devoid_hashtable(locks);
+        u8_log(fddb_loglevel,"PoolCommit/Unlock",
+               "Unlocked %d OIDs in %s",n,p->cid);}
+      else {
+        /* This should probably restore the locked values, so 
+           they can be unlocked later. */
+        u8_log(LOGWARN,fd_CantUnlockOID,
+               "Unable to unlock %d OIDs in %s",n,p->cid);
+        u8_free(values); u8_free(oidc);
+        return -1;}}
 
     retval=p->handler->storen(p,n,oidv,values);
 
