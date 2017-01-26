@@ -2126,6 +2126,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   struct BUCKET_REF *bucket_locs;
   fd_off_t endpos, maxpos=get_maxpos(hx);
   fd_lock_struct(hx);
+  fd_lock_struct(stream);
   fd_write_lock_struct(&(hx->adds));
   fd_write_lock_struct(&(hx->edits));
   schedule_max=hx->adds.n_keys+hx->edits.n_keys;
@@ -2154,6 +2155,13 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #endif
     schedule_size=process_adds(hx,&taken,schedule,schedule_size);
     fd_recycle_hashset(&taken);
+
+    /* Release the modifications hashtables */
+    fd_reset_hashtable(&(ix->adds),67,0);
+    fd_rw_unlock_struct(&(ix->adds));
+    fd_reset_hashtable(&(ix->edits),67,0);
+    fd_rw_unlock_struct(&(ix->edits));
+
     /* The commit schedule is now filled and we start generating a bucket schedule. */
     /* We're going to write keys and values, so we create streams to do so. */
     FD_INIT_BYTE_OUTPUT(&out,1024);
@@ -2314,7 +2322,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
     fd_dtsflush(stream); fsync(stream->fd);
     /* Now erase the recovery information, since we don't need it
        anymore. */
-    /* endpos=*/fd_endpos(stream); fd_movepos(stream,-8);
+    /* endpos=*/fd_endpos(stream); 
+    fd_movepos(stream,-8);
     recovery_pos=fd_dtsread_8bytes(stream);
     retval=ftruncate(stream->fd,recovery_pos);
     if (retval<0)
@@ -2336,14 +2345,10 @@ static int hash_index_commit(struct FD_INDEX *ix)
   u8_message("Resetting tables");
 #endif
 
-  /* And reset the modifications */
-  fd_reset_hashtable(&(ix->adds),67,0);
-  fd_rw_unlock_struct(&(ix->adds));
-  fd_reset_hashtable(&(ix->edits),67,0);
-  fd_rw_unlock_struct(&(ix->edits));
   u8_free(bucket_locs);
 
   /* And unlock all the locks. */
+  fd_unlock_struct(stream);
   fd_unlock_struct(hx);
 
 #if FD_DEBUG_HASHINDICES
