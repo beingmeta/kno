@@ -46,7 +46,8 @@ typedef struct FD_DTYPE_STREAM {
   int (*fillfn)(struct FD_DTYPE_STREAM *,int);
   int (*flushfn)(struct FD_DTYPE_STREAM *);
   u8_string id; int mallocd, bufsiz;
-  fd_off_t filepos, maxpos; int fd;} FD_DTYPE_STREAM;
+  fd_off_t filepos, maxpos; int fd;
+  u8_mutex lock;} FD_DTYPE_STREAM;
 typedef struct FD_DTYPE_STREAM *fd_dtype_stream;
 
 FD_EXPORT struct FD_DTYPE_STREAM *fd_init_dtype_stream

@@ -996,7 +996,8 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   FD_OID base=op->base;
   if (init_buflen>262144) init_buflen=262144;
   FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
-  fd_lock_struct(op); endpos=fd_endpos(stream);
+  fd_lock_struct(stream);
+  endpos=fd_endpos(stream);
   if ((op->dbflags)&(FD_OIDPOOL_DTYPEV2))
     tmpout.flags=tmpout.flags|FD_DTYPEV2;
   while (i<n) {
@@ -1005,7 +1006,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     int n_bytes=oidpool_write_value(value,stream,op,&tmpout,&zbuf,&zbuf_size);
     if (n_bytes<0) {
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.start);
-      fd_unlock_struct(op);
+      fd_unlock_struct(stream);
       return n_bytes;}
     if ((endpos+n_bytes)>=maxpos) {
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.start);
@@ -1053,8 +1054,9 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   oidpool_finalize(op,stream,n,saveinfo,op->load);
   fd_setpos(stream,0);
   fd_dtswrite_4bytes(stream,FD_OIDPOOL_MAGIC_NUMBER);
-  fd_dtsflush(stream); fsync(stream->fd);
-  fd_unlock_struct(op);
+  fd_dtsflush(stream); 
+  fsync(stream->fd);
+  fd_unlock_struct(stream);
   return n;
 }
 

@@ -143,6 +143,7 @@ FD_EXPORT struct FD_DTYPE_STREAM *fd_init_dtype_stream
     s->mallocd=0; s->fd=sock; s->filepos=-1; s->maxpos=-1; s->id=NULL;
     s->fillfn=fill_dtype_stream; s->flushfn=NULL;
     s->flags|=FD_DTSTREAM_READING|FD_BYTEBUF_MALLOCD;
+    u8_init_mutex(&(s->lock));
     return s;}
 }
 
@@ -175,6 +176,7 @@ FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
     if (writing == 0) stream->flags=stream->flags|FD_DTSTREAM_READ_ONLY;
     stream->maxpos=lseek(fd,0,SEEK_END);
     stream->filepos=lseek(fd,0,SEEK_SET);
+    u8_init_mutex(&(stream->lock));
     u8_free(localname);
     return stream;}
   else {
@@ -200,7 +202,11 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
   /* Already closed */
   if (s->fd<0) return;
   /* Flush data */
-  if ((s->flags&FD_DTSTREAM_READING) == 0) fd_dtsflush(s);
+  if ((s->flags&FD_DTSTREAM_READING) == 0) 
+    fd_dtsflush(s);
+  
+  u8_lock_mutex(&(s->lock));
+  
   if (s->start) {
     u8_free(s->start);
     s->start=s->ptr=s->end=NULL;}
@@ -215,6 +221,7 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
   if (s->id) {
     u8_free(s->id);
     s->id=NULL;}
+  u8_destroy_mutex(&(s->lock));
   if (s->mallocd) u8_free(s);
 }
 
@@ -307,6 +314,7 @@ static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n)
 
 FD_EXPORT int fd_dtsflush(fd_dtype_stream s)
 {
+  fd_lock_struct(s);
   if (s->flags&FD_DTSTREAM_READING) {
     /* When flushing a read stream, we just discard whatever
        is in the input buffer. */
@@ -317,6 +325,7 @@ FD_EXPORT int fd_dtsflush(fd_dtype_stream s)
       s->filepos=s->filepos+(s->end-s->start);
     /* Reset the buffer pointers */
     s->end=s->ptr=s->start;
+    fd_unlock_struct(s);
     return leftover;}
   else {
     int bytes_written=writeall(s->fd,s->start,s->ptr-s->start);
@@ -325,7 +334,9 @@ FD_EXPORT int fd_dtsflush(fd_dtype_stream s)
            "Wrote %d bytes to %s#%d, %d/%d bytes in buffer",
            bytes_written,s->id,s->fd,s->ptr-s->start,s->end-s->start);
 #endif
-    if (bytes_written<0) return -1;
+    if (bytes_written<0) {
+      fd_unlock_struct(s);
+      return -1;}
     if ((s->flags)&FD_DTSTREAM_DOSYNC) fsync(s->fd);
     if ((s->flags&FD_DTSTREAM_CANSEEK) && (s->filepos>=0))
       s->filepos=s->filepos+bytes_written;
@@ -334,6 +345,7 @@ FD_EXPORT int fd_dtsflush(fd_dtype_stream s)
       s->maxpos=s->filepos;
     /* Reset the buffer pointers */
     s->ptr=s->start;
+    fd_unlock_struct(s);
     return bytes_written;}
 }
 
