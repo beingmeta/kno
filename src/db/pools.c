@@ -747,7 +747,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
       fd_seterr(fd_NoLocking,"fd_pool_lock",u8_strdup(fd_pool_id(p)),FD_VOID);
       return -1;}}
   if (commit) {
-    if (fd_pool_commit(p,oids,0)<0) return -1;
+    if (fd_pool_commit(p,oids,1)<0) return -1;
     else {}}
   if (FD_CHOICEP(oids)) {
     fdtype needy; int retval, n;
@@ -811,8 +811,18 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
          "Commiting %d oids in pool %s, unlock=%d",
          FD_CHOICE_SIZE(oids),p->cid,unlock);
   if (p->handler->storen==NULL) {
-    if ((unlock) && (p->handler->unlock))
-      p->handler->unlock(p,oids);
+    if ((unlock) && (p->handler->unlock)) {
+      fdtype choice=fd_make_simple_choice(oids);
+      int choice_size=FD_CHOICE_SIZE(choice);
+      if (choice_size>1) {
+        const fdtype *oids=FD_CHOICE_DATA(oids);
+        fd_hashtable_iterkeys(&(p->locks),fd_table_replace,
+                              choice_size,oids,FD_VOID);
+        fd_devoid_hashtable(&(p->locks));}
+      else if (choice_size==1) {
+        fd_hashtable_store(&(p->locks),choice,FD_VOID);}
+      else {}
+      p->handler->unlock(p,choice);}
     else if ((unlock)&&(!((p->flags)&(FD_POOL_LOCKFREE)))) {
       fd_seterr(fd_NoLocking,"fd_pool_commit",
                 u8_strdup(fd_pool_id(p)),FD_VOID);
@@ -826,20 +836,17 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     fdtype *oidv=(fdtype *)FD_XCHOICE_DATA(oidc), *owrite=oidv;
     fdtype *values=u8_alloc_n(n_oids,fdtype), *vwrite=values;
     FD_DO_CHOICES(o,oids) {
-      fdtype v=fd_hashtable_get(locks,o,FD_VOID); int save=0;
-      if (FD_VOIDP(v)) {}
-      /* Skip saving OIDs which have been locked but not set */
-      else if (v==FD_LOCKHOLDER) {}
+      fdtype v=fd_hashtable_get(locks,o,FD_VOID); 
+      int save=0;
+      if ((FD_VOIDP(v))||(v==FD_LOCKHOLDER)) {}
       else if (FD_SLOTMAPP(v)) {
-        if (FD_SLOTMAP_MODIFIEDP(v)) {
-          *owrite++=o; *vwrite++=v; save=1;}}
+        if (FD_SLOTMAP_MODIFIEDP(v)) save=1;}
       else if (FD_SCHEMAPP(v)) {
-        if (FD_SCHEMAP_MODIFIEDP(v)) {
-          *owrite++=o; *vwrite++=v; save=1;}}
+        if (FD_SCHEMAP_MODIFIEDP(v)) save=1;}
       else if (FD_HASHTABLEP(v)) {
-        if (FD_HASHTABLE_MODIFIEDP(v)) {
-          *owrite++=o; *vwrite++=v; save=1;}}
-      else {*owrite++=o; *vwrite++=v; save=1;}}
+        if (FD_HASHTABLE_MODIFIEDP(v)) save=1;}
+      else save=1;
+      if (save) {*owrite++=o; *vwrite++=v;}}
     if (owrite==oidv) {
       u8_free(oidc); u8_free(values);
       return 1;}
@@ -847,36 +854,42 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
     u8_log(fddb_loglevel,"PoolCommit/Sorted",
            "Found %d to save of %d OIDs in %s",
            n,FD_CHOICE_SIZE(oids),p->cid);
+    if (unlock) {
+      fd_hashtable_iterkeys(locks,fd_table_replace,owrite-oidv,oidv,FD_VOID);
+      fd_devoid_hashtable(locks);
+      u8_log(fddb_loglevel,"PoolCommit/Unlock",
+             "Unlocked %d OIDs in %s",n,p->cid);}
+
     retval=p->handler->storen(p,n,oidv,values);
-    u8_log(fddb_loglevel,"PoolCommit/Written",
-           "For %d OIDs in %s",n,p->cid);
+
     if (retval<0)
       u8_seterr(fd_PoolCommitError,"fd_pool_commit",u8_strdup(p->cid));
+
     /* Free the values pointers, and clear the modified flags */
     {
       fdtype *scan=values;
       while (scan<vwrite) {
-        if (FD_SLOTMAPP(*scan)) {
-          fdtype v=*scan; FD_SLOTMAP_CLEAR_MODIFIED(v);}
-        fd_decref(*scan);
-        scan++;}
-      u8_free(values);
-    }
+        fdtype v=*scan++;
+        if (!(unlock)) {
+          if (FD_SLOTMAPP(v)) {FD_SLOTMAP_CLEAR_MODIFIED(v);}
+          else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_CLEAR_MODIFIED(v);}
+          else if (FD_HASHTABLEP(v)) {FD_HASHTABLE_CLEAR_MODIFIED(v);}
+          else {}}
+        fd_decref(v);}
+      u8_free(values);}
     u8_log(fddb_loglevel,"PoolCommit","Freed cache values in %s",p->cid);
     if ((retval>0) && (unlock)) {
       fdtype needy=fd_init_choice(oidc,n,oidv,FD_CHOICE_ISATOMIC);
-      if (p->handler->unlock(p,needy))
-        fd_hashtable_iterkeys(locks,fd_table_replace,n,oidv,FD_VOID);
+      retval=p->handler->unlock(p,needy);
       fd_decref(needy);}
     else u8_free(oidc);
     if (retval<0)
       u8_log(LOG_CRIT,fd_Commitment,
-             "Error saving %d OIDs from %s in %f secs",n,p->cid,
+             "Error unlocking %d OIDs from %s in %f secs",n,p->cid,
              u8_elapsed_time()-start_time);
     else u8_log(fddb_loglevel,fd_Commitment,
-                "Saved %d OIDs from %s in %f secs",n,p->cid,
+                "Unlocekd %d OIDs from %s in %f secs",n,p->cid,
                 u8_elapsed_time()-start_time);
-    u8_log(fddb_loglevel,"PoolCommit","Unlocked OIDS in %s",p->cid);
     return retval;}
   else {
     int retcode;
