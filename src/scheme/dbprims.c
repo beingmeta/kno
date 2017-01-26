@@ -738,6 +738,22 @@ static fdtype commit_lexpr(int n,fdtype *args)
   else return fd_err(fd_TooManyArgs,"commit",NULL,FD_VOID);
 }
 
+static fdtype commit_oids(fdtype oids,fdtype pool,fdtype unlock_arg)
+{
+  int unlock=(!(FD_FALSEP(unlock_arg)));
+  if (FD_VOIDP(pool)) {
+    int rv=fd_commit_oids(oids,unlock);
+    if (rv<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;}
+  else {
+    fd_pool p = fd_lisp2pool(pool);
+    int rv=fd_pool_commit(p,oids,unlock);
+    if (rv<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;}
+}
+
 static fdtype clear_slotcache(fdtype arg)
 {
   if (FD_VOIDP(arg)) fd_clear_slotcaches();
@@ -2948,6 +2964,12 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim(fd_make_cprimn("SWAPOUT",swapout_lexpr,0)));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("COMMIT",commit_lexpr,0));
+  fd_idefn(fd_xscheme_module,
+           fd_make_ndprim(fd_make_cprim3x("COMMIT-OIDS",commit_oids,1,
+                                          -1,FD_VOID,
+                                          -1,fd_pool_type,
+                                          -1,FD_TRUE)));
+
   fd_idefn(fd_xscheme_module,fd_make_cprim1("POOL-CLOSE",pool_close_prim,1));
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1("CLEAR-SLOTCACHE!",clear_slotcache,0));
