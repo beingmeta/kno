@@ -901,7 +901,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock)
              "Error unlocking %d OIDs from %s in %f secs",n,p->cid,
              u8_elapsed_time()-start_time);
     else u8_log(fddb_loglevel,fd_Commitment,
-                "Unlocekd %d OIDs from %s in %f secs",n,p->cid,
+                "Unlocked %d OIDs from %s in %f secs",n,p->cid,
                 u8_elapsed_time()-start_time);
     return retval;}
   else {
