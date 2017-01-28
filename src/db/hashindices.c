@@ -2022,7 +2022,7 @@ FD_FASTOP fd_off_t extend_keybucket
             write_value_block(hx,&(hx->stream),schedule[k].values,current,
                               0,0,endpos);
           endpos=ke[scan].vref.off+ke[scan].vref.size;
-          ke[scan].values=FD_VOID; 
+          ke[scan].values=FD_VOID;
           fd_decref(current);}
         else {
           ke[scan].vref=
@@ -2252,8 +2252,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
       cur_keys=kb->n_keys;
       /* This may write values to disk. */
-      endpos=extend_keybucket
-        (hx,kb,schedule,i,j,&newkeys,endpos,maxpos);
+      endpos=extend_keybucket(hx,kb,schedule,i,j,&newkeys,endpos,maxpos);
       CHECK_POS(endpos,&(hx->stream));
       new_keys=new_keys+(kb->n_keys-cur_keys);
       {
@@ -2280,12 +2279,10 @@ static int hash_index_commit(struct FD_INDEX *ix)
       if (kb->keybuf) u8_free(kb->keybuf);
       u8_free(kb);}
     u8_free(keybuckets);
-    /* Now we free the values in the schedule.  Note that the keys
-       were never incref'd (they're safely in the adds or edits
-       tables), so we don't have to decref them. */
+    /* Now we free the keys and values in the schedule. */
     { int i=0; while (i<schedule_size) {
         fdtype key=schedule[i].key;
-        fdtype v=schedule[i].values; 
+        fdtype v=schedule[i].values;
         fd_decref(key);
         fd_decref(v);
         i++;}}
@@ -2313,7 +2310,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       fd_dtswrite_4bytes(stream,bucket_locs[i].bucket);
       i++;}
     fd_dtswrite_8bytes(stream,recovery_start);
-    fd_setpos(stream,0); 
+    fd_setpos(stream,0);
     fd_dtswrite_4bytes(stream,FD_HASH_INDEX_TO_RECOVER);
     fd_dtsflush(stream); fsync(stream->fd);
   }

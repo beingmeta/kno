@@ -228,7 +228,8 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
                           (FD_SYMBOLP(FD_CAR(key))))) &&
           (FD_EXPECT_FALSE
            (!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))))) {
-        fd_decref(ix->has_slotids); ix->has_slotids=FD_VOID;}
+	fd_decref(ix->has_slotids);
+	ix->has_slotids=FD_VOID;}
       return retval;}
   else return _fd_index_add(ix,key,value);
 }
