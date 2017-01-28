@@ -419,6 +419,10 @@ typedef struct FD_HASHTABLE *fd_hashtable;
   ((FD_XHASHTABLE(x))->modified)=1
 #define FD_HASHTABLE_CLEAR_MODIFIED(x) \
   ((FD_XHASHTABLE(x))->modified)=0
+#define FD_HASHTABLE_SET_READONLY(x) \
+  ((FD_XHASHTABLE(x))->readonly)=1
+#define FD_HASHTABLE_CLEAR_READONLY(x) \
+  ((FD_XHASHTABLE(x))->readonly)=0
 
 #define FD_XHASHTABLE_SLOTS(x) \
   ((x)->n_slots)
