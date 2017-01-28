@@ -701,10 +701,61 @@ FD_EXPORT int fd_swapout_oids(fdtype oids)
           fd_hashtable_iterkeys
             (&(p->cache),fd_table_replace,
              FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),FD_VOID);
+          /* These are values we can unlock */
+          fd_pool_commit(p,oids,FD_POOL_COMMIT_UNLOCK|FD_POOL_COMMIT_FINISHED);
           fd_devoid_hashtable(&(p->locks));}
         fd_decref(oids);}
       i++;}}
   return n_pools;
+}
+
+static fd_pool guesspool(fdtype oids)
+{
+  if (FD_OIDP(oids)) return fd_oid2pool(oids);
+  else if ((FD_CHOICEP(oids))||(FD_ACHOICEP(oids))) {
+    fd_pool p=NULL;
+    FD_DO_CHOICES(oid,oids) {
+      if (FD_OIDP(oid)) p=fd_oid2pool(oids);
+      if (p) {
+        FD_STOP_DO_CHOICES;
+        return p;}}
+    return p;}
+  else return NULL;
+}
+
+FD_EXPORT int fd_finish_oids(fdtype oids,fd_pool poolarg)
+{
+  fd_pool p=(poolarg)?(poolarg):(guesspool(oids));
+  if (!(p))
+    return fd_reterr(fd_UnknownPool,"fd_finish_oids",NULL,FD_VOID);
+  else {
+    fd_hashtable locks=&(p->locks);
+    int n_oids=FD_CHOICE_SIZE(oids), finished=0;
+    if (n_oids < 7) {
+      FD_DO_CHOICES(oid,oids) {
+        if (!(FD_OIDP(oid))) {
+          u8_log(LOGWARN,"fd_finish_oids",
+                 "The argument %q is not an OID",oid);}
+        else {
+          fdtype v=fd_hashtable_get(locks,oid,FD_VOID);
+          if ((FD_VOIDP(v))||(v==FD_LOCKHOLDER)) {}
+          else if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v); finished++;}
+          else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v); finished++;}
+          else if (FD_HASHTABLEP(v)) {FD_HASHTABLE_SET_READONLY(v); finished++;}
+          else {}
+          fd_decref(v);}}}
+    else {
+      fd_write_lock_struct(locks);
+      FD_DO_CHOICES(oid,oids) {
+        if (FD_OIDP(oid)) {
+          fdtype v=fd_hashtable_get_nolockref(locks,oid,FD_VOID);
+          if (!(FD_CONSP(v))) {}
+          else if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v); finished++;}
+          else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v); finished++;}
+          else if (FD_HASHTABLEP(v)) {FD_HASHTABLE_SET_READONLY(v); finished++;}
+          else {}}}
+      fd_rw_unlock_struct(locks);}
+    return finished;}
 }
 
 FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
@@ -1098,7 +1149,10 @@ FD_EXPORT void fd_pool_swapout(fd_pool p)
     if ((p->flags)&(FD_STICKY_CACHESIZE))
       fd_reset_hashtable(&(p->cache),-1,1);
     else fd_reset_hashtable(&(p->cache),67,1);}
-  if (p) fd_devoid_hashtable(&(p->locks));
+  if (p) {
+    /* Commit and unlock all of the finished OIDs */
+    fd_pool_commit(p,FD_VOID,FD_POOL_COMMIT_UNLOCK|FD_POOL_COMMIT_FINISHED);
+    fd_devoid_hashtable(&(p->locks));}
 }
 
 /* Callable versions of simple functions */
@@ -1381,8 +1435,10 @@ FD_EXPORT int fd_commit_oids(fdtype oids,fd_pool_commit_flags flags)
                    FD_ADD_TO_CHOICE(pool2oids[j].oids,oid); i++;}
                  else j++;
       if (n_pool2oids==32)
-        return fd_reterr(_("Too many pools for commit"),"fd_commit_oids",NULL,oids);
-      pool2oids[n_pool2oids].pool=p; pool2oids[n_pool2oids].oids=oid; n_pool2oids++;}
+        return fd_reterr(_("Too many pools for commit"),"fd_commit_oids",
+                         NULL,oids);
+      pool2oids[n_pool2oids].pool=p;
+      pool2oids[n_pool2oids].oids=oid; n_pool2oids++;}
     else return fd_reterr(_("No pool for OID"),"fd_commit_oids",NULL,oid);}
   while (i<n_pool2oids) {
     fdtype simple=fd_simplify_choice(pool2oids[i].oids);
