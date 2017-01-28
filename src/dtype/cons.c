@@ -645,12 +645,12 @@ fdtype fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
   int length=((len>0)?(len):(strlen(string)));
   u8_byte *bytes=NULL; int freedata=1;
   if (ptr == NULL) {
-    ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
+    ptr=u8_mallocz(sizeof(struct FD_STRING)+length+1);
     bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
     memcpy(bytes,string,length); bytes[length]='\0';
     freedata=0;}
   else {
-    bytes=u8_malloc(length+1);
+    bytes=u8_mallocz(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
   ptr->length=length; ptr->bytes=bytes; ptr->freedata=freedata;
@@ -713,16 +713,16 @@ FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
   fdtype *elts; int freedata=1;
   if ((ptr == NULL)&&(data==NULL)) {
     int i=0;
-    ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    ptr=u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
     /* This might be weird on non byte-addressed architectures */
     elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
     while (i < len) elts[i++]=FD_VOID;
     freedata=0;}
   else if (ptr==NULL) {
-    ptr=u8_alloc(struct FD_VECTOR);
+    ptr=u8_zalloc(struct FD_VECTOR);
     elts=data;}
   else if (data==NULL) {
-      int i=0; elts=u8_malloc(sizeof(fdtype)*len);
+      int i=0; elts=u8_mallocz(sizeof(fdtype)*len);
       while (i<len) elts[i]=FD_VOID;
       freedata=1;}
   else elts=data;
@@ -747,7 +747,7 @@ FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
 {
   int i=0;
   struct FD_VECTOR *ptr=
-    u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
   ptr->length=len; ptr->data=elts; ptr->freedata=0;
@@ -763,14 +763,14 @@ FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
 {
   fdtype *elts; int i=0, freedata=1;
   if ((ptr == NULL)&&(data==NULL)) {
-    ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    ptr=u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
     elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
     freedata=0;}
   else if (ptr==NULL) {
     ptr=u8_alloc(struct FD_VECTOR);
     elts=data;}
   else if (data==NULL) {
-      int i=0; elts=u8_malloc(sizeof(fdtype)*len);
+      int i=0; elts=u8_zalloc(sizeof(fdtype)*len);
       while (i<len) elts[i]=FD_VOID;
       freedata=1;}
   else {
@@ -796,7 +796,7 @@ FD_EXPORT fdtype fd_make_nrail(int len,...)
 FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
 {
   int i=0;
-  struct FD_VECTOR *ptr=u8_malloc
+  struct FD_VECTOR *ptr=u8_mallocz
     (sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_rail_type);
@@ -817,7 +817,7 @@ FD_EXPORT fdtype fd_init_packet
     ptr->freedata=1;}
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
-    u8_byte *consed=u8_malloc(len+1);
+    u8_byte *consed=u8_mallocz(len+1);
     memset(consed,0,len+1);
     data=consed;}
   ptr->length=len; ptr->bytes=data;
@@ -829,7 +829,7 @@ FD_EXPORT fdtype fd_make_packet
 {
   u8_byte *bytes=NULL; int freedata=1;
   if (ptr == NULL) {
-    ptr=u8_malloc(sizeof(struct FD_STRING)+len+1);
+    ptr=u8_mallocz(sizeof(struct FD_STRING)+len+1);
     bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
     if (data) {
       memcpy(bytes,data,len);
@@ -837,7 +837,7 @@ FD_EXPORT fdtype fd_make_packet
     else memset(bytes,0,len+1);
     freedata=0;}
   else if (data==NULL) {
-    bytes=u8_malloc(len+1); memset(bytes,0,len+1);}
+    bytes=u8_malloc(len+1);}
   else bytes=(unsigned char *)data;
   FD_INIT_CONS(ptr,fd_packet_type);
   ptr->length=len; ptr->bytes=bytes; ptr->freedata=freedata;
@@ -849,7 +849,7 @@ FD_EXPORT fdtype fd_bytes2packet
 {
   u8_byte *bytes=NULL; int freedata=(data!=NULL);
   if (ptr == NULL) {
-    ptr=u8_malloc(sizeof(struct FD_STRING)+len+1);
+    ptr=u8_mallocz(sizeof(struct FD_STRING)+len+1);
     bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
     if (data) {
       memcpy(bytes,data,len);
