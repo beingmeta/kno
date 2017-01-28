@@ -917,6 +917,7 @@ FD_EXPORT fdtype fd_reduce(fdtype fn,fdtype sequence,fdtype result)
     rail[0]=elt; rail[1]=result;
     new_result=fd_apply(fn,2,rail);
     fd_decref(result); fd_decref(elt);
+    if (FD_ABORTP(new_result)) return new_result;
     result=new_result;
     i++;}
   return result;
