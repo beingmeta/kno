@@ -2229,12 +2229,13 @@ FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr)
 }
 
 
-FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
+FD_EXPORT int fd_devoid_hashtable_x(struct FD_HASHTABLE *ptr,int locked)
 {
   int n_slots=ptr->n_slots, n_keys=ptr->n_keys; int unlock=0;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
   if ((n_slots == 0) || (n_keys == 0)) return 0;
-  if (ptr->uselock) { fd_write_lock_struct(ptr); unlock=1;}
+  if ((locked<0)?(ptr->uselock):(!(locked))) {
+    fd_write_lock_struct(ptr); unlock=1;}
   {
     struct FD_HASHENTRY **new_slots=u8_alloc_n(n_slots,fd_hashentry);
     struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
@@ -2252,7 +2253,8 @@ FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
           if (FD_VOIDP(kvscan->value)) {
             fd_decref(kvscan->key); kvscan++;}
           else {
-            struct FD_KEYVAL *nkv=fd_hashvec_insert(kvscan->key,new_slots,n_slots,NULL);
+            struct FD_KEYVAL *nkv=fd_hashvec_insert
+              (kvscan->key,new_slots,n_slots,NULL);
             nkv->value=kvscan->value; kvscan->value=FD_VOID;
             fd_decref(kvscan->key); kvscan++; remaining_keys++;}
         u8_free(e);}
@@ -2262,6 +2264,11 @@ FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
     ptr->n_keys=remaining_keys;}
   if (unlock) fd_rw_unlock_struct(ptr);
   return n_slots;
+}
+
+FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
+{
+  return fd_devoid_hashtable_x(ptr,-1);
 }
 
 FD_EXPORT int fd_hashtable_stats
@@ -3055,6 +3062,32 @@ FD_EXPORT int fd_modifiedp(fdtype arg)
 }
 
 FD_EXPORT int fd_set_modified(fdtype arg,int flag)
+{
+  fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_set_modified/table");
+  if (FD_VALID_TYPEP(argtype))
+    if (fd_tablefns[argtype])
+      if (fd_tablefns[argtype]->modified)
+        return (fd_tablefns[argtype]->modified)(arg,flag);
+      else return fd_err(fd_NoMethod,CantSetModified,NULL,arg);
+    else return fd_err(NotATable,"fd_modifiedp",NULL,arg);
+  else return fd_err(fd_BadPtr,"fd_modifiedp",NULL,arg);
+}
+
+FD_EXPORT int fd_readonlyp(fdtype arg)
+{
+  fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_modifiedp/table");
+  if (FD_VALID_TYPEP(argtype))
+    if (fd_tablefns[argtype])
+      if (fd_tablefns[argtype]->readonly)
+        return (fd_tablefns[argtype]->readonly)(arg,-1);
+      else return fd_err(fd_NoMethod,CantCheckModified,NULL,arg);
+    else return fd_err(NotATable,"fd_modifiedp",NULL,arg);
+  else return fd_err(fd_BadPtr,"fd_modifiedp",NULL,arg);
+}
+
+FD_EXPORT int fd_set_readonly(fdtype arg,int flag)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   FD_TABLE_CHECKPTR(arg,"fd_set_modified/table");

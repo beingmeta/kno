@@ -45,6 +45,7 @@ struct FD_TABLEFNS {
   int (*getsize)(fdtype obj);
   fdtype (*keys)(fdtype obj);
   int (*modified)(fdtype obj,int);
+  int (*readonly)(fdtype obj,int);
 };
 
 FD_EXPORT struct FD_TABLEFNS *fd_tablefns[];
@@ -57,6 +58,7 @@ FD_EXPORT int fd_drop(fdtype obj,fdtype key,fdtype value);
 FD_EXPORT int fd_getsize(fdtype arg);
 FD_EXPORT int fd_modifiedp(fdtype arg);
 FD_EXPORT int fd_set_modified(fdtype arg,int val);
+FD_EXPORT int fd_set_readonly(fdtype arg,int val);
 FD_EXPORT fdtype fd_getkeys(fdtype arg);
 FD_EXPORT fdtype fd_getvalues(fdtype arg);
 FD_EXPORT fdtype fd_getassocs(fdtype arg);
@@ -96,6 +98,7 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define FD_XSLOTMAP_MODIFIEDP(sm) (sm->modified)
 #define FD_XSLOTMAP_READONLYP(sm) (sm->readonly)
 #define FD_XSLOTMAP_SET_READONLY(sm) (sm)->readonly=1
+#define FD_XSLOTMAP_CLEAR_READONLY(sm) (sm)->readonly=0
 #define FD_XSLOTMAP_MARK_MODIFIED(sm) (sm)->modified=1
 #define FD_XSLOTMAP_CLEAR_MODIFIED(sm) (sm)->modified=0
 #define FD_XSLOTMAP_SET_SIZE(sm,sz) (sm)->size=sz
@@ -106,6 +109,8 @@ typedef struct FD_SLOTMAP *fd_slotmap;
 #define FD_SLOTMAP_USELOCKP(x) (FD_XSLOTMAP_USELOCKP(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_SET_READONLY(x) \
   FD_XSLOTMAP_SET_READONLY(FD_XSLOTMAP(x))
+#define FD_SLOTMAP_CLEAR_READONLY(x) \
+  FD_XSLOTMAP_CLEAR_READONLY(FD_XSLOTMAP(x))
 #define FD_SLOTMAP_MARK_MODIFIED(x) \
   FD_XSLOTMAP_MARK_MODIFIED(FD_XSLOTMAP(x))
 #define FD_SLOTMAP_CLEAR_MODIFIED(x) \
@@ -442,6 +447,7 @@ FD_EXPORT int fd_remove_deadwood_x(struct FD_HASHTABLE *ptr,
                                    int (*testfn)(fdtype,fdtype,void *),
                                    void *testdata);
 FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr);
+FD_EXPORT int fd_devoid_hashtable_x(fd_hashtable ht,int locked);
 FD_EXPORT int fd_devoid_hashtable(fd_hashtable ht);
 FD_EXPORT int fd_persist_hashtable(struct FD_HASHTABLE *ptr,int);
 FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int);
