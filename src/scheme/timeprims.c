@@ -1305,17 +1305,13 @@ static fdtype rusage_prim(fdtype field)
       if (n_cpus>0) fd_add(result,n_cpus_symbol,FD_INT(n_cpus));
       if (pagesize>0) fd_add(result,pagesize_symbol,FD_INT(pagesize));
       if (physical_pages>0)
-        fd_add(result,physical_pages_symbol,
-               FD_INT(physical_pages));
+        add_intval(result,physical_pages_symbol,physical_pages);
       if (available_pages>0)
-        fd_add(result,available_pages_symbol,
-               FD_INT(available_pages));
+        add_intval(result,available_pages_symbol,available_pages);
       if (physical_memory>0)
-        fd_add(result,physical_memory_symbol,
-               FD_INT(physical_memory));
+        add_intval(result,physical_memory_symbol,physical_memory);
       if (available_memory>0)
-        fd_add(result,available_memory_symbol,
-               FD_INT(available_memory));}
+        add_intval(result,available_memory_symbol,available_memory);}
 
     return result;}
   else if (FD_EQ(field,data_symbol))
