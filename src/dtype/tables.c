@@ -2481,6 +2481,30 @@ FD_EXPORT int fd_for_hashtable
   return ht->n_slots;
 }
 
+FD_EXPORT int fd_for_hashtable_kv
+  (struct FD_HASHTABLE *ht,fd_kvfn f,void *data,int lock)
+{
+  int unlock=0;
+  FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
+  if (ht->n_keys == 0) return 0;
+  if ((lock)&&(ht->uselock)) {fd_write_lock_struct(ht); unlock=1;}
+  if (ht->n_slots) {
+    struct FD_HASHENTRY **scan=ht->slots, **lim=scan+ht->n_slots;
+    while (scan < lim)
+      if (*scan) {
+        struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+        struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+        while (kvscan<kvlimit) {
+          if (f(kvscan,data)) {
+            if (lock) fd_rw_unlock_struct(ht);
+            return ht->n_slots;}
+          else kvscan++;}
+        scan++;}
+      else scan++;}
+  if (unlock) fd_rw_unlock_struct(ht);
+  return ht->n_slots;
+}
+
 /* Hashsets */
 
 FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size,int stack_cons)

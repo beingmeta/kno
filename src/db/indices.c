@@ -735,11 +735,42 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
     else fd_hashtable_op(&(fd_background->cache),fd_table_replace,key,FD_VOID);}
   return 1;
 }
+
 static int table_indexstore(fdtype ixarg,fdtype key,fdtype value)
 {
   fd_index ix=fd_indexptr(ixarg);
   if (ix) return fd_index_store(ix,key,value);
   else return -1;
+}
+
+static int merge_kv_into_adds(struct FD_KEYVAL *kv,void *data)
+{
+  struct FD_HASHTABLE *adds=(fd_hashtable) data;
+  fd_hashtable_add(adds,kv->key,kv->value);
+  return 0;
+}
+
+FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
+{
+  /* Ignoring this for now */
+  int in_background=
+    ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
+     (fd_background->cache.n_keys));
+  fdtype keys=FD_EMPTY_CHOICE;
+  fd_hashtable adds=&(ix->adds);
+  if (ix->read_only) {
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
+              u8_strdup(ix->cid),FD_VOID);
+    return -1;}
+  else init_cache_level(ix);
+  fd_read_lock_struct(adds);
+  fd_write_lock_struct(table);
+  adds->uselock=0;
+  fd_for_hashtable_kv(table,merge_kv_into_adds,(void *)(&ix->adds),0);
+  adds->uselock=1;
+  fd_rw_unlock_struct(table);
+  fd_rw_unlock_struct(adds);
+  return 1;
 }
 
 static fdtype table_indexkeys(fdtype ixarg)

@@ -89,6 +89,7 @@ FD_EXPORT void fd_register_index(fd_index ix);
 
 FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value);
+FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table);
 FD_EXPORT int fd_index_commit(fd_index ix);
 FD_EXPORT void fd_index_close(fd_index ix);
 FD_EXPORT fd_index _fd_indexptr(fdtype x);

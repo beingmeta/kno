@@ -73,6 +73,7 @@ struct FD_KEYVAL {
   fdtype key, value;};
 
 typedef int (*fd_keyvalfn)(fdtype,fdtype,void *);
+typedef int (*fd_kvfn)(struct FD_KEYVAL *,void *);
 
 typedef struct FD_SLOTMAP {
   FD_CONS_HEADER;
@@ -479,6 +480,8 @@ FD_EXPORT struct FD_KEYVAL *fd_hashtable_keyvals
   (fd_hashtable ht,int *sizep,int lock);
 FD_EXPORT int fd_for_hashtable
   (fd_hashtable ht,fd_keyvalfn f,void *data,int lock);
+FD_EXPORT int fd_for_hashtable_kv
+  (struct FD_HASHTABLE *ht,fd_kvfn f,void *data,int lock);
 
 FD_EXPORT fdtype fd_hashtable_max(fd_hashtable,fdtype,fdtype *);
 FD_EXPORT fdtype fd_hashtable_skim(fd_hashtable,fdtype,fdtype);
