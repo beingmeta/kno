@@ -925,6 +925,20 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
 }
 
+static void unwrap_qchoices(fdtype *args,int n)
+{
+  int j=0; while (j<n) {
+    fdtype v=args[j];
+    if (FD_EMPTY_QCHOICEP(v)) {
+      args[j++]=FD_EMPTY_CHOICE;}
+    else if (FD_QCHOICEP(v)) {
+      struct FD_QCHOICE *qc=(fd_qchoice)v;
+      fd_incref(qc->choice);
+      args[j++]=qc->choice;
+      fd_decref(v);}
+    else j++;}
+}
+
 FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
@@ -959,7 +973,7 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
                (head_type==fd_sproc_type)) {
         fdtype args[7], result=FD_VOID;
         struct FD_FUNCTION *fn=(struct FD_FUNCTION *)head;
-        int rail_i=1, arg_i=0, nd=0, ndcall=fn->ndcall;
+        int rail_i=1, arg_i=0, nd=0, qchoices=0, ndcall=fn->ndcall;
         while (rail_i<n) {
           fdtype e=FD_RAIL_REF(x,rail_i), v=op_eval(e,env,0); 
           if (FD_ABORTP(v)) {
@@ -970,15 +984,24 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
             arg_i--; while (arg_i>=0) {
               fd_decref(args[arg_i]); arg_i--;}
             return v;}
-          if ((FD_CHOICEP(v))||(FD_ACHOICEP(v))) nd=1;
+          if ((FD_CHOICEP(v))||(FD_ACHOICEP(v))) nd++;
+          if ((FD_EMPTY_QCHOICEP(v))||(FD_QCHOICEP(v)))
+            qchoices++;
           args[arg_i++]=v;
           rail_i++;}
         /* if (tail) return fd_tail_call(head,n,args); */
-        if ((head_type==fd_sproc_type)&&((nd==0)||(fn->ndcall)))
-          result=fd_apply_sproc((struct FD_SPROC *)fn,arg_i,args);
-        else if (nd==0) 
-          result=fd_dapply(head,n-1,args);
-        else result=fd_apply(head,n-1,args);
+        if ((nd)&&(!(fn->ndcall))&&(fn->arity>=0))
+          result=FD_EMPTY_CHOICE;
+        else if (fn->ndcall) {
+          if (qchoices) unwrap_qchoices(args,arg_i);
+          if (head_type==fd_sproc_type)
+            result=fd_apply_sproc((struct FD_SPROC *)fn,arg_i,args);
+          else result=fd_dapply(head,n-1,args);}
+        else {
+          if (qchoices) unwrap_qchoices(args,arg_i);
+          if (head_type==fd_sproc_type)
+            result=fd_apply_sproc((struct FD_SPROC *)fn,arg_i,args);
+          else result=fd_dapply(head,n-1,args);}
         arg_i--; while (arg_i>=0) {fd_decref(args[arg_i]); arg_i--;}
         if (FD_PRIM_TYPEP(result,fd_tail_call_type))
           result=fd_finish_call(result);
