@@ -271,6 +271,7 @@ FD_EXPORT int fd_unlock_oids(fdtype oids,int commit);
 FD_EXPORT int fd_unlock_oid(fdtype oid,int commit);
 FD_EXPORT int fd_swapout_oid(fdtype oid);
 FD_EXPORT int fd_swapout_oids(fdtype oids);
+FD_EXPORT int fd_finish_oids(fdtype oids,fd_pool poolarg);
 FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids);
 FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit);
 FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,fd_pool_commit_flags flags);

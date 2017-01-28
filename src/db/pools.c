@@ -731,30 +731,18 @@ FD_EXPORT int fd_finish_oids(fdtype oids,fd_pool poolarg)
   else {
     fd_hashtable locks=&(p->locks);
     int n_oids=FD_CHOICE_SIZE(oids), finished=0;
-    if (n_oids < 7) {
-      FD_DO_CHOICES(oid,oids) {
-        if (!(FD_OIDP(oid))) {
-          u8_log(LOGWARN,"fd_finish_oids",
-                 "The argument %q is not an OID",oid);}
-        else {
-          fdtype v=fd_hashtable_get(locks,oid,FD_VOID);
-          if ((FD_VOIDP(v))||(v==FD_LOCKHOLDER)) {}
-          else if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v); finished++;}
-          else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v); finished++;}
-          else if (FD_HASHTABLEP(v)) {FD_HASHTABLE_SET_READONLY(v); finished++;}
-          else {}
-          fd_decref(v);}}}
-    else {
-      fd_write_lock_struct(locks);
-      FD_DO_CHOICES(oid,oids) {
-        if (FD_OIDP(oid)) {
-          fdtype v=fd_hashtable_get_nolockref(locks,oid,FD_VOID);
-          if (!(FD_CONSP(v))) {}
-          else if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v); finished++;}
-          else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v); finished++;}
-          else if (FD_HASHTABLEP(v)) {FD_HASHTABLE_SET_READONLY(v); finished++;}
-          else {}}}
-      fd_rw_unlock_struct(locks);}
+    FD_DO_CHOICES(oid,oids) {
+      if (!(FD_OIDP(oid))) {
+        u8_log(LOGWARN,"fd_finish_oids",
+               "The argument %q is not an OID",oid);}
+      else {
+        fdtype v=fd_hashtable_get(locks,oid,FD_VOID);
+        if ((FD_VOIDP(v))||(v==FD_LOCKHOLDER)) {}
+        else if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v); finished++;}
+        else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v); finished++;}
+        else if (FD_HASHTABLEP(v)) {FD_HASHTABLE_SET_READONLY(v); finished++;}
+        else {}
+        fd_decref(v);}}
     return finished;}
 }
 
@@ -922,18 +910,22 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
                              fd_pool_commit_flags flags)
 {
   double start_time=u8_elapsed_time();
-  struct FD_POOL_WRITES writes=
-    ((FD_CONSP(oids))&&((FD_CHOICEP(oids))||(FD_ACHOICEP(oids))))?
+  int explicit_oids=(FD_CONSP(oids))&&((FD_CHOICEP(oids))||(FD_ACHOICEP(oids)));
+  struct FD_POOL_WRITES writes=(explicit_oids)?
     (choice2writes(p,oids,flags)):
     (locks2writes(p,flags));
   int unlock=U8_BITP(flags,FD_POOL_COMMIT_UNLOCK), retval=-1;
 
   init_cache_level(p);
 
-  u8_log(fddb_loglevel,"PoolCommit/Sorted",
-         "Saving%s %d/%d OIDs in %s",
-         ((unlock)?("/unlocking"):("")),
-         writes.len,FD_CHOICE_SIZE(oids),p->cid);
+  if (explicit_oids) 
+    u8_log(fddb_loglevel,"PoolCommit/Sorted",
+           "Saving%s %d/%d OIDs in %s",
+           ((unlock)?("/unlocking"):("")),
+           writes.len,FD_CHOICE_SIZE(oids),p->cid);
+  else u8_log(fddb_loglevel,"PoolCommit/Sorted",
+              "Saving%s %d OIDs in %s",
+              ((unlock)?("/unlocking"):("")),writes.len,p->cid);
 
   retval=p->handler->storen(p,writes.len,writes.oids,writes.values);
 
@@ -999,6 +991,7 @@ struct FD_POOL_WRITES locks2writes(fd_pool p,fd_pool_commit_flags flags)
     fdtype choice, *oidv, *values;
     size_t max_writes=locks->n_keys;
     struct FD_CHOICE *xchoice=fd_alloc_choice(max_writes);
+    FD_INIT_FRESH_CONS(xchoice,fd_choice_type);
     writes.len=max_writes;
     writes.choice=choice=(fdtype)xchoice;
     writes.oids=oidv=(fdtype *)FD_XCHOICE_DATA(xchoice);
