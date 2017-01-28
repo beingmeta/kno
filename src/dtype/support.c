@@ -55,6 +55,8 @@ extern void ProfilerFlush();
 #include <grp.h>
 #endif
 
+int fd_exiting=0;
+
 u8_condition SetRLimit=_("SetRLimit");
 u8_condition fd_ArgvConfig=_("Config (argv)");
 
@@ -1883,6 +1885,7 @@ static int config_atexit_set(fdtype var,fdtype val,void *data)
 FD_EXPORT void fd_doexit(fdtype arg)
 {
   struct FD_ATEXIT *scan, *tmp;
+  fd_exiting=1;
   if (fd_argv) {
     int i=0, n=fd_argc; while (i<n) {
       fdtype elt=fd_argv[i++]; fd_decref(elt);}
