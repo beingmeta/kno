@@ -746,7 +746,7 @@ static int table_indexstore(fdtype ixarg,fdtype key,fdtype value)
 static int merge_kv_into_adds(struct FD_KEYVAL *kv,void *data)
 {
   struct FD_HASHTABLE *adds=(fd_hashtable) data;
-  fd_hashtable_add(adds,kv->key,kv->value);
+  fd_hashtable_op_nolock(adds,fd_table_add,kv->key,kv->value);
   return 0;
 }
 
@@ -763,11 +763,9 @@ FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
               u8_strdup(ix->cid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
-  fd_read_lock_struct(adds);
-  fd_write_lock_struct(table);
-  adds->uselock=0;
-  fd_for_hashtable_kv(table,merge_kv_into_adds,(void *)(&ix->adds),0);
-  adds->uselock=1;
+  fd_write_lock_struct(adds);
+  fd_read_lock_struct(table);
+  fd_for_hashtable_kv(table,merge_kv_into_adds,(void *)adds,0);
   fd_rw_unlock_struct(table);
   fd_rw_unlock_struct(adds);
   return 1;
