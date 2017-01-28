@@ -1818,7 +1818,8 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
             fdtype real_key=FD_CDR(key);
             fd_hashset_add(taken,real_key);
             if ((oddkeys==0) && (FD_PAIRP(real_key)) &&
-                ((FD_OIDP(FD_CAR(real_key))) || (FD_SYMBOLP(FD_CAR(real_key))))) {
+                ((FD_OIDP(FD_CAR(real_key))) ||
+                 (FD_SYMBOLP(FD_CAR(real_key))))) {
               if (get_slotid_index(hx,key)<0) oddkeys=1;}
             s[i].key=real_key;
             s[i].values=fd_make_simple_choice(kvscan->value);
@@ -1829,12 +1830,12 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
             if (FD_VOIDP(cached))
               drops[n_drops++]=FD_CDR(key);
             else {
-              fdtype added=fd_hashtable_get_nolock
-                (adds,key_to_drop,FD_EMPTY_CHOICE);
+              fdtype added=fd_hashtable_get_nolock(adds,key_to_drop,FD_EMPTY_CHOICE);
               FD_ADD_TO_CHOICE(cached,added);
               s[i].key=key_to_drop;
               s[i].values=fd_difference(cached,kvscan->value);
               s[i].replace=1;
+              fd_incref(key_to_drop);
               fd_decref(cached);
               i++;}}
           else {}
@@ -1861,6 +1862,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
             s[i].key=key_to_drop;
             s[i].values=fd_difference(cached,kvscan->value);
             s[i].replace=1;
+            fd_incref(key_to_drop);
             fd_decref(cached);
             i++; j++;}}
         kvscan++;}
@@ -1888,7 +1890,9 @@ static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
             if (get_slotid_index(hx,key)<0) oddkeys=1;}
           s[i].key=key;
           s[i].values=fd_make_simple_choice(kvscan->value);
-          s[i].replace=0; i++;}
+          s[i].replace=0; 
+          fd_incref(key);
+          i++;}
         kvscan++;}
       scan++;}
     else scan++;
@@ -2156,7 +2160,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
     schedule_size=process_adds(hx,&taken,schedule,schedule_size);
     fd_recycle_hashset(&taken);
 
-    /* Release the modifications hashtables */
+    /* Release the modification hashtables, which let's other threads
+       start writing to the index again. */
     fd_reset_hashtable(&(ix->adds),67,0);
     fd_rw_unlock_struct(&(ix->adds));
     fd_reset_hashtable(&(ix->edits),67,0);
@@ -2171,8 +2176,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       newkeys.flags=newkeys.flags|FD_DTYPEV2;}
     /* Compute all the buckets for all the keys */
 #if FD_DEBUG_HASHINDICES
-    u8_message("Computing the buckets for %d scheduled keys",
-               schedule_size);
+    u8_message("Computing the buckets for %d scheduled keys",schedule_size);
 #endif
     /* Compute the hashes and the buckets for all of the keys
        in the commit schedule. */
@@ -2280,7 +2284,11 @@ static int hash_index_commit(struct FD_INDEX *ix)
        were never incref'd (they're safely in the adds or edits
        tables), so we don't have to decref them. */
     { int i=0; while (i<schedule_size) {
-        fdtype v=schedule[i++].values; fd_decref(v);}}
+        fdtype key=schedule[i].key;
+        fdtype v=schedule[i].values; 
+        fd_decref(key);
+        fd_decref(v);
+        i++;}}
     u8_free(schedule);
     u8_free(out.start);
     u8_free(newkeys.start);
