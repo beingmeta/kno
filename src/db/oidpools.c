@@ -924,8 +924,8 @@ static int get_schema_id(fd_oidpool op,fdtype value)
   else return -1;
 }
 
-static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
-                               struct FD_BYTE_OUTPUT *tmpout,
+static int oidpool_write_value(fdtype value,fd_dtype_stream stream,
+                               fd_oidpool p,struct FD_BYTE_OUTPUT *tmpout,
                                unsigned char **zbuf,int *zbuf_size)
 {
   if ((p->compression==FD_NOCOMPRESS) && (p->n_schemas==0)) {
@@ -967,12 +967,14 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
   else if (p->compression==FD_ZLIB) {
     unsigned char _cbuf[FD_OIDPOOL_FETCHBUF_SIZE], *cbuf;
     int cbuf_size=FD_OIDPOOL_FETCHBUF_SIZE;
-    cbuf=do_zcompress(tmpout->start,tmpout->ptr-tmpout->start,&cbuf_size,_cbuf,9);
+    cbuf=do_zcompress(tmpout->start,tmpout->ptr-tmpout->start,
+                      &cbuf_size,_cbuf,9);
     fd_dtswrite_bytes(stream,cbuf,cbuf_size);
     if (cbuf!=_cbuf) u8_free(cbuf);
     return cbuf_size;}
   else {
-    u8_log(LOG_WARN,_("Out of luck"),"Compressed oidpools are not yet supported");
+    u8_log(LOG_WARN,_("Out of luck"),
+           "Compressed oidpools of this type are not yet yet supported");
     exit(-1);}
 }
 
@@ -1019,6 +1021,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 
     endpos=endpos+n_bytes;
     i++;}
+  u8_free(tmpout.start);
 
   /* Now, write recovery information, which lets the state of the pool
      be reconstructed if something goes wrong while storing the
@@ -1052,6 +1055,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_dtswrite_4bytes(stream,FD_OIDPOOL_TO_RECOVER);
   fd_dtsflush(stream); fsync(stream->fd);
   oidpool_finalize(op,stream,n,saveinfo,op->load);
+  u8_free(saveinfo);
   fd_setpos(stream,0);
   fd_dtswrite_4bytes(stream,FD_OIDPOOL_MAGIC_NUMBER);
   fd_dtsflush(stream); 
