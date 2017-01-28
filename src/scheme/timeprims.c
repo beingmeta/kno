@@ -271,16 +271,27 @@ static fdtype timestamp_minus(fdtype arg1,fdtype arg2)
 
 static fdtype timestamp_diff(fdtype timestamp1,fdtype timestamp2)
 {
-  int free1=0, free2=0;
-  struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
-  struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free2);
-  if ((t1 == NULL) || (t2 == NULL)) {
-    if (free1) u8_free(t1); if (free2) u8_free(t2);
-    return FD_ERROR_VALUE;}
+  if ((FD_FLONUMP(timestamp1))&&(FD_VOIDP(timestamp2))) {
+    double then=FD_FLONUM(timestamp1);
+    double now=u8_elapsed_time();
+    double diff=now-then;
+    return fd_make_flonum(diff);}
+  else if ((FD_FLONUMP(timestamp1))&&(FD_FLONUMP(timestamp2))) {
+    double t1=FD_FLONUM(timestamp1);
+    double t2=FD_FLONUM(timestamp2);
+    double diff=t1-t2;
+    return fd_make_flonum(diff);}
   else {
-    double diff=u8_xtime_diff(&(t1->xtime),&(t2->xtime));
-    if (free1) u8_free(t1); if (free2) u8_free(t2);
-    return fd_init_double(NULL,diff);}
+    int free1=0, free2=0;
+    struct FD_TIMESTAMP *t1=get_timestamp(timestamp1,&free1);
+    struct FD_TIMESTAMP *t2=get_timestamp(timestamp2,&free2);
+    if ((t1 == NULL) || (t2 == NULL)) {
+      if (free1) u8_free(t1); if (free2) u8_free(t2);
+      return FD_ERROR_VALUE;}
+    else {
+      double diff=u8_xtime_diff(&(t1->xtime),&(t2->xtime));
+      if (free1) u8_free(t1); if (free2) u8_free(t2);
+      return fd_init_double(NULL,diff);}}
 }
 
 static fdtype time_until(fdtype arg)
@@ -958,8 +969,8 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
 {
   struct U8_OUTPUT out;
   int precision=((FD_FIXNUMP(prec_arg)) ? (FD_FIX2INT(prec_arg)) :
-                 (FD_FALSEP(prec_arg)) ? 
-                 (-1) : 
+                 (FD_FALSEP(prec_arg)) ?
+                 (-1) :
                  (0));
   int elts=0;
   double seconds, reduce;
@@ -1050,6 +1061,7 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
     elts++;}
 
   if ((precision>0) && (elts>=precision)) {}
+  else if (reduce==0) {}
   else if (seconds==0) {}
   else if (precision<0) {
     if (elts>0) u8_puts(&out,", ");
@@ -1070,6 +1082,40 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
       u8_printf(&out,_("%.2f seconds"),reduce);
     else u8_printf(&out,_("%.1f seconds"),reduce);}
   else u8_printf(&out,_("%.1f seconds"),reduce);
+  return fd_stream2string(&out);
+}
+
+static fdtype secs2short(fdtype secs)
+{
+  struct U8_OUTPUT out;
+  int elts=0;
+  double seconds, reduce;
+  int days, hours, minutes;
+  if (FD_FIXNUMP(secs))
+    seconds=(double)FD_FIX2INT(secs);
+  else if (FD_FLONUMP(secs))
+    seconds=FD_FLONUM(secs);
+  else return fd_type_error(_("seconds"),"secs2string",secs);
+  U8_INIT_OUTPUT(&out,64);
+  if (seconds<0) {
+    u8_printf(&out,"negative "); reduce=-seconds;}
+  else if (seconds==0) {
+    u8_free(out.u8_outbuf);
+    return fdtype_string("0 seconds");}
+  else reduce=seconds;
+  days=(int)floor(reduce/(24*3600));
+  reduce=reduce-days*(3600*24);
+  hours=(int)floor(reduce/(3600));
+  reduce=reduce-hours*(3600);
+  minutes=floor(reduce/60);
+  reduce=reduce-minutes*60;
+
+  if (days>0) u8_printf(&out,"%dd-");
+  if ((days==0)&&(hours==0)&&(minutes==0))
+    u8_printf(&out,"%.2d:%0.2d:%f",hours,minutes,reduce);
+  else if ((days)||(hours)||(minutes))
+    u8_printf(&out,"%.2d:%0.2d:%.3f",hours,minutes,reduce);
+  else u8_printf(&out,"%.2d:%0.2d:%0.2d",hours,minutes,(int)floor(reduce));
   return fd_stream2string(&out);
 }
 
@@ -2068,6 +2114,8 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("SECS->STRING",secs2string,1,
                            -1,FD_VOID,-1,FD_INT(3)));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("SECS->SHORT",secs2short,1,-1,FD_VOID));
 
   fd_idefn(fd_scheme_module,fd_make_cprim0("GETHOSTNAME",hostname_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("HOSTADDRS",hostaddrs_prim,0));
