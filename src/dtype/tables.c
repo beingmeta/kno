@@ -39,6 +39,8 @@ static u8_string BadHashtableMethod=_("Invalid hashtable method");
 
 #define DEBUGGING 0
 
+static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int locked);
+
 #if DEBUGGING
 #include <stdio.h>
 #endif
@@ -1795,6 +1797,21 @@ FD_EXPORT int fd_hashtable_op
   return added;
 }
 
+FD_EXPORT int fd_hashtable_op_nolock
+   (struct FD_HASHTABLE *ht,fd_tableop op,fdtype key,fdtype value)
+{
+  int added;
+  if (FD_EMPTY_CHOICEP(key)) return 0;
+  KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
+  added=do_hashtable_op(ht,op,key,value);
+  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+    /* We resize when n_keys/n_slots < loading/4;
+       at this point, the new size is > loading/2 (a bigger number). */
+    int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
+    resize_hashtable(ht,new_size,1);}
+  return added;
+}
+
 FD_EXPORT int fd_hashtable_iter
    (struct FD_HASHTABLE *ht,fd_tableop op,int n,
     const fdtype *keys,const fdtype *values)
@@ -2160,11 +2177,13 @@ FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,int n_keyvals,
   return FDTYPE_CONS(ptr);
 }
 
-FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
+static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int locked)
 {
   int unlock=0;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
-  if (ptr->uselock) { fd_write_lock_struct(ptr); unlock=1; }
+  if ((!(locked))&&(ptr->uselock)) {
+    fd_write_lock_struct(ptr);
+    unlock=1; }
   {
     struct FD_HASHENTRY **new_slots=u8_alloc_n(n_slots,fd_hashentry);
     struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
@@ -2175,7 +2194,8 @@ FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
         struct FD_HASHENTRY *e=*scan++; int n_keyvals=e->n_keyvals;
         struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
-          struct FD_KEYVAL *nkv=fd_hashvec_insert(kvscan->key,new_slots,n_slots,NULL);
+          struct FD_KEYVAL *nkv=fd_hashvec_insert
+            (kvscan->key,new_slots,n_slots,NULL);
           nkv->value=kvscan->value; kvscan->value=FD_VOID;
           fd_decref(kvscan->key); kvscan++;}
         u8_free(e);}
@@ -2185,6 +2205,12 @@ FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
   if (unlock) fd_rw_unlock_struct(ptr);
   return n_slots;
 }
+
+FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
+{
+  return resize_hashtable(ptr,n_slots,0);
+}
+
 
 /* VOIDs all values which only have one incoming pointer (from the table
    itself).  This is helpful in conjunction with fd_devoid_hashtable, which
@@ -2503,7 +2529,7 @@ FD_EXPORT int fd_for_hashtable_kv
         struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
           if (f(kvscan,data)) {
-            if (lock) fd_rw_unlock_struct(ht);
+            if (unlock) fd_rw_unlock_struct(ht);
             return ht->n_slots;}
           else kvscan++;}
         scan++;}

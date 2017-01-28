@@ -460,6 +460,8 @@ FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr);
 
 FD_EXPORT int fd_hashtable_op
    (fd_hashtable ht,fd_tableop op,fdtype key,fdtype value);
+FD_EXPORT int fd_hashtable_op_nolock
+   (fd_hashtable ht,fd_tableop op,fdtype key,fdtype value);
 FD_EXPORT int fd_hashtable_iter
    (fd_hashtable ht,fd_tableop op,int n,
     const fdtype *keys,const fdtype *values);
