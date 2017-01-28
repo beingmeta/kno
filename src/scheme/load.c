@@ -205,7 +205,10 @@ FD_EXPORT fdtype fd_load_source_with_date
       /* This is now also the result */
       result=expr; fd_incref(expr);}
     else if (FD_ABORTP(expr)) {
-      result=expr; fd_incref(expr); expr=FD_VOID;}
+      fd_decref(result);
+      result=expr; 
+      fd_incref(expr); 
+      expr=FD_VOID;}
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_NOTICE,FileDone,"Loaded %s in %f seconds",
              sourcebase,u8_elapsed_time()-start);
