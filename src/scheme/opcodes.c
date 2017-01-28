@@ -632,19 +632,20 @@ static fdtype opcode_binary_nd_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(a1,arg1) {
       {FD_DO_CHOICES(a2,arg2) {
-	  fdtype result=opcode_binary_dispatch(opcode,a1,a2);
-	  /* If we need to abort due to an error, we need to pop out of
-	     two choice loops.  So on the inside, we decref results and
-	     replace it with the error object.  We then break and
-	     do FD_STOP_DO_CHOICES (for potential cleanup). */
-	  if (FD_ABORTED(result)) {
-	    fd_decref(results); results=result;
-	    FD_STOP_DO_CHOICES; break;}}}
+          fdtype result=opcode_binary_dispatch(opcode,a1,a2);
+          /* If we need to abort due to an error, we need to pop out of
+             two choice loops.  So on the inside, we decref results and
+             replace it with the error object.  We then break and
+             do FD_STOP_DO_CHOICES (for potential cleanup). */
+          if (FD_ABORTED(result)) {
+            fd_decref(results); results=result;
+            FD_STOP_DO_CHOICES; break;}
+          else {FD_ADD_TO_CHOICE(results,result);}}}
       /* If the inner loop aborted due to an error, results is now bound
-	 to the error, so we just FD_STOP_DO_CHOICES (this time for the
-	 outer loop) and break; */
+         to the error, so we just FD_STOP_DO_CHOICES (this time for the
+         outer loop) and break; */
       if (FD_ABORTED(results)) {
-	FD_STOP_DO_CHOICES; break;}}
+        FD_STOP_DO_CHOICES; break;}}
     fd_decref(arg1); fd_decref(arg2);
     return results;}
 }
