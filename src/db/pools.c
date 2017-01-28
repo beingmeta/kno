@@ -702,7 +702,8 @@ FD_EXPORT int fd_swapout_oids(fdtype oids)
             (&(p->cache),fd_table_replace,
              FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),FD_VOID);
           /* These are values we can unlock */
-          fd_pool_commit(p,oids,FD_POOL_COMMIT_UNLOCK|FD_POOL_COMMIT_FINISHED);
+          fd_pool_commit(p,oids,
+                         (FD_POOL_COMMIT_UNLOCK|FD_POOL_COMMIT_FINISHED));
           fd_devoid_hashtable(&(p->locks));}
         fd_decref(oids);}
       i++;}}
@@ -871,12 +872,19 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,
   struct FD_HASHTABLE *locks=&(p->locks);
   if (FD_EMPTY_CHOICEP(oids))
     return 0;
-  else if (p->handler->storen==NULL) {
+  fd_write_lock_struct(locks);
+  if (p->handler->storen==NULL) {
     u8_log(fddb_loglevel,"DBCommit","Unlocking OIDs in %s",p->cid);
-    return just_unlock(p,oids,flags);}
-  else if (FD_OIDP(oids))
-    return commit_one_oid(p,oids,flags);
-  else return pool_block_commit(p,locks,oids,flags);
+    int rv=just_unlock(p,oids,flags);
+    fd_rw_unlock_struct(locks);
+    return rv;}
+  else if (FD_OIDP(oids)) {
+    int rv=commit_one_oid(p,oids,flags);
+    fd_rw_unlock_struct(locks);
+    return rv;}
+  else {
+    u8_log(fddb_loglevel,"DBCommit","Committing oids in %s",p->cid);
+    return pool_block_commit(p,locks,oids,flags);}
 }
 
 FD_EXPORT int fd_pool_commit_all(fd_pool p,int unlock)
@@ -974,11 +982,14 @@ struct FD_POOL_WRITES choice2writes(fd_pool p,fdtype oids,
         fdtype v=fd_hashtable_get(locks,o,FD_VOID);
         if (savep(v,flags)) {
           *oidv++=o;
-          *values++=v;}
+          *values++=v;
+          if (unlock) 
+            fd_hashtable_store(locks,o,FD_VOID);}
         else fd_decref(v);}}}
   n_writes=oidv-writes.oids;
   writes.len=n_writes;
   xchoice->size=(n_writes|FD_ATOMIC_CHOICE_MASK);
+  fd_rw_unlock_struct(locks);
   return writes;
 }
 
@@ -987,33 +998,35 @@ struct FD_POOL_WRITES locks2writes(fd_pool p,fd_pool_commit_flags flags)
   struct FD_POOL_WRITES writes; u8_zero_struct(writes);
   int unlock = U8_BITP(flags,FD_POOL_COMMIT_UNLOCK);
   fd_hashtable locks=&(p->locks);
-  fd_write_lock_struct(locks); {
-    fdtype choice, *oidv, *values;
-    size_t max_writes=locks->n_keys;
-    struct FD_CHOICE *xchoice=fd_alloc_choice(max_writes);
-    FD_INIT_FRESH_CONS(xchoice,fd_choice_type);
-    writes.len=max_writes;
-    writes.choice=choice=(fdtype)xchoice;
-    writes.oids=oidv=(fdtype *)FD_XCHOICE_DATA(xchoice);
-    writes.values=values=u8_zalloc_n(max_writes,fdtype);
-    if (locks->n_slots) {
-      struct FD_HASHENTRY **scan=locks->slots, **lim=scan+locks->n_slots;
-      while (scan < lim)
-        if (*scan) {
-          struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
-          struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
-          while (kvscan<kvlimit) {
-            fdtype o=kvscan->key, v=kvscan->value;
+  fdtype choice, *oidv, *values;
+  size_t max_writes=locks->n_keys;
+  struct FD_CHOICE *xchoice=fd_alloc_choice(max_writes);
+  FD_INIT_FRESH_CONS(xchoice,fd_choice_type);
+  writes.len=max_writes;
+  writes.choice=choice=(fdtype)xchoice;
+  writes.oids=oidv=(fdtype *)FD_XCHOICE_DATA(xchoice);
+  writes.values=values=u8_zalloc_n(max_writes,fdtype);
+  if (locks->n_slots) {
+    struct FD_HASHENTRY **scan=locks->slots, **lim=scan+locks->n_slots;
+    while (scan < lim)
+      if (*scan) {
+        struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+        struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+        while (kvscan<kvlimit) {
+          fdtype o=kvscan->key, v=kvscan->value;
+          if (U8_EXPECT_TRUE(FD_OIDP(o))) {
             if (savep(v,flags)) {
               *oidv++=o;
-              *values++=v;}
-            if (unlock) {
-              kvscan->value=FD_VOID;}
-            else fd_incref(v);
+              *values++=v;
+              if (unlock) {
+                kvscan->value=FD_VOID;}
+              else fd_incref(v);}
             kvscan++;}
-          scan++;}
-        else scan++;}
-    else writes.len=0;}
+          else kvscan++;
+          scan++;}}
+      else scan++;
+    writes.len=oidv-writes.oids;}
+  else writes.len=0;
   if ((unlock)&&(writes.len)) fd_devoid_hashtable_x(locks,1);
   fd_rw_unlock_struct(locks);
   return writes;
@@ -1026,7 +1039,7 @@ static int just_unlock(fd_pool p,fdtype oids,fd_pool_commit_flags flags)
      and discard changes. */
   if (FD_EMPTY_CHOICEP(oids))
     return 0;
-  else if ((U8_BITP(flags,FD_POOL_COMMIT_UNLOCK)) && 
+  else if ((U8_BITP(flags,FD_POOL_COMMIT_UNLOCK)) &&
            (p->handler->unlock)) {
     fd_hashtable locks=&(p->locks);
     fdtype choice=((FD_CHOICEP(oids))||(FD_ACHOICEP(oids)))?
