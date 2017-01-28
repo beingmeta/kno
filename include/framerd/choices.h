@@ -138,7 +138,7 @@ typedef struct FD_CHOICE *fd_choice;
   ch->size=((sz)|((atomicp)?(FD_ATOMIC_CHOICE_MASK):(0)))
 
 #define fd_alloc_choice(n) \
-  (assert(n>0),u8_malloc(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
+  (assert(n>0),u8_mallocz(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
 #define fd_realloc_choice(ch,n)                                         \
   (assert(n>0),u8_realloc((ch),sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
 
