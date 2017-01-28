@@ -1022,6 +1022,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     endpos=endpos+n_bytes;
     i++;}
   u8_free(tmpout.start);
+  u8_free(zbuf);
 
   /* Now, write recovery information, which lets the state of the pool
      be reconstructed if something goes wrong while storing the
