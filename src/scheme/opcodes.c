@@ -694,8 +694,11 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
   if (FD_ABORTED(arg1)) return arg1;
   else if (FD_VOIDP(arg1))
     return fd_err(fd_VoidArgument,"opcode eval",NULL,arg1_expr);
+  else if (FD_ACHOICEP(arg1))
+    arg1=fd_simplify_choice(arg1);
+  else {}
   /* Check the type for numeric arguments here. */
-  else if (FD_EXPECT_FALSE
+  if (FD_EXPECT_FALSE
 	   (((opcode>=FD_NUMERIC2_OPCODES) &&
 	     (opcode<FD_BINARY_OPCODES)) &&
 	    (!(numeric_argp(arg1))))) {
@@ -789,6 +792,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       if (FD_ABORTED(slotids)) return slotids;
       else if (FD_VOIDP(slotids))
 	return fd_err(fd_SyntaxError,"OPCODE fget",NULL,expr);
+      else slotids=fd_simplify_choice(slotids);
       if (opcode==FD_GET_OPCODE)
 	result=fd_fget(arg1,slotids);
       else {
@@ -816,7 +820,10 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	return fd_err(fd_SyntaxError,"OPCODE ftest",NULL,expr);
       else if (FD_EMPTY_CHOICEP(slotids)) {
         fd_decref(arg1); return FD_FALSE;}
-      else if (FD_VOIDP(values_arg))
+      else if (FD_ACHOICEP(slotids)) 
+        slotids=fd_simplify_choice(slotids);
+      else {}
+      if (FD_VOIDP(values_arg))
 	values=FD_VOID;
       else values=op_eval(values_arg,env,0);
       if (FD_ABORTED(values)) {
@@ -834,6 +841,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     fdtype arg2expr=fd_get_arg(expr,2), argv[2];
     fdtype arg2=op_eval(arg2expr,env,0);
     fdtype result=FD_ERROR_VALUE;
+    if (FD_ACHOICEP(arg2)) arg2=fd_simplify_choice(arg2);
     argv[0]=arg1; argv[1]=arg2;
     if (FD_ABORTED(arg2)) result=arg2;
     else if (FD_VOIDP(arg2)) {
