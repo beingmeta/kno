@@ -1463,6 +1463,21 @@ static int add_to_hashtable(fd_hashtable ht,fdtype key,fdtype value)
   return added;
 }
 
+static int check_hashtable_size(fd_hashtable ht,ssize_t delta)
+{
+  int loading=ht->loading;
+  size_t n_keys=ht->n_keys, n_slots=ht->n_slots; 
+  size_t need_keys=(delta<0) ? (n_keys+7) : (n_keys+delta+7);
+  if (n_slots==0) {
+    setup_hashtable(ht,fd_get_hashtable_size(need_keys));
+    return ht->n_slots;}
+  else if (need_keys>n_slots) {
+    size_t new_size=fd_get_hashtable_size(need_keys*2);
+    resize_hashtable(ht,new_size,1);
+    return ht->n_slots;}
+  else return 0;
+}
+
 FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
 {
   struct FD_KEYVAL *result;
@@ -1476,19 +1491,19 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
   else if ((FD_ABORTP(value)))
     return fd_interr(value);
   fd_write_lock_struct(ht);
-  if (ht->n_slots == 0) setup_hashtable(ht,17);
+  if (!(FD_CONSP(key)))
+    check_hashtable_size(ht,3);
+  else if (FD_CHOICEP(key))
+    check_hashtable_size(ht,FD_CHOICE_SIZE(key));
+  else if (FD_ACHOICEP(key))
+    check_hashtable_size(ht,FD_ACHOICE_SIZE(key));
+  else check_hashtable_size(ht,3);
   n_keys=ht->n_keys;
   if ( (FD_CHOICEP(key)) || (FD_ACHOICEP(key)) ) {
     FD_DO_CHOICES(eachkey,key) {
       added+=add_to_hashtable(ht,key,value);}}
   else added=add_to_hashtable(ht,key,value);
   fd_rw_unlock_struct(ht);
-  if ( (ht->n_keys>n_keys) &&
-       (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) ) {
-    /* We resize when n_keys/n_slots < loading/4;
-       at this point, the new size is > loading/2 (a bigger number). */
-    int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
-    fd_resize_hashtable(ht,new_size);}
   return added;
 }
 
