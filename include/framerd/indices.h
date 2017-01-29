@@ -18,6 +18,8 @@ FD_EXPORT fd_exception
   fd_FileIndexOverflow, fd_NotAFileIndex, fd_NoFileIndices, fd_BadIndexSpec,
   fd_IndexCommitError;
 
+FD_EXPORT u8_condition fd_IndexCommit;
+
 #define FD_INDEX_FLAG_BASE 256
 #define FD_INDEX_FLAG(n) (FD_INDEX_FLAG_BASE<<(n))
 

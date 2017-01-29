@@ -121,6 +121,8 @@ fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
   fd_BadFilePoolLabel, fd_ReadOnlyPool, fd_ExhaustedPool,
   fd_PoolCommitError, fd_UnresolvedPool, fd_DataFileOverflow;
 
+FD_EXPORT u8_condition fd_PoolCommit;
+
 #define FD_POOL_FLAG_BASE 256
 #define FD_POOL_FLAG(n) (FD_POOL_FLAG_BASE<<(n))
 

@@ -28,6 +28,8 @@ fd_exception fd_NoFileIndices=_("file indices are not supported");
 fd_exception fd_NotAFileIndex=_("not a file index");
 fd_exception fd_BadIndexSpec=_("bad index specification");
 fd_exception fd_IndexCommitError=_("can't save changes to index");
+
+u8_condition fd_IndexCommit=_("Index/Commit");
 static u8_condition ipeval_ixfetch="IXFETCH";
 
 fd_index (*fd_file_index_opener)(u8_string,int)=NULL;
@@ -784,6 +786,8 @@ FD_EXPORT int fd_index_commit(fd_index ix)
   else init_cache_level(ix);
   if ((ix->adds.n_slots) || (ix->edits.n_slots)) {
     int n_keys=ix->adds.n_keys+ix->edits.n_keys, retval=0;
+    u8_log(fddb_loglevel+1,fd_IndexCommit,
+           "####### Saving %d updates to %s",n_keys,ix->cid);
     double start_time=u8_elapsed_time();
     if (ix->cache_level<0) {
       ix->cache_level=fd_default_cache_level;
@@ -791,12 +795,12 @@ FD_EXPORT int fd_index_commit(fd_index ix)
         ix->handler->setcache(ix,fd_default_cache_level);}
     retval=ix->handler->commit(ix);
     if (retval<0)
-      u8_log(LOG_CRIT,fd_Commitment,
-             _("Error saving %d keys to %s after %f secs"),
+      u8_log(LOG_CRIT,fd_IndexCommitError,
+             _("!!!!!!! Error saving %d keys to %s after %f secs"),
              n_keys,ix->cid,u8_elapsed_time()-start_time);
     else if (retval>0)
-      u8_log(fddb_loglevel,fd_Commitment,
-             _("Saved %d keys to %s in %f secs"),
+      u8_log(fddb_loglevel,fd_IndexCommit,
+             _("####### Saved %d updated keys to %s in %f secs"),
              retval,ix->cid,u8_elapsed_time()-start_time);
     else {}
     if (retval<0)

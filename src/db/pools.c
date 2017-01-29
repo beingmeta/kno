@@ -45,6 +45,8 @@ fd_exception fd_UnresolvedPool=_("Cannot resolve pool specification");
 fd_exception fd_UnhandledOperation=_("This pool can't handle this operation");
 fd_exception fd_DataFileOverflow=_("Data file is over implementation limit");
 
+u8_condition fd_PoolCommit=_("Pool/Commit");
+
 int fd_n_pools=0;
 fd_pool fd_default_pool=NULL;
 struct FD_POOL *fd_top_pools[1024];
@@ -810,7 +812,8 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
       fd_seterr(fd_NoLocking,"fd_pool_lock",u8_strdup(fd_pool_id(p)),FD_VOID);
       return -1;}}
   if (commit) {
-    if (fd_pool_commit(p,oids,1)<0) return -1;
+    if (fd_pool_commit(p,oids,FD_POOL_COMMIT_UNLOCK)<0) 
+      return -1;
     else {}}
   if (FD_CHOICEP(oids)) {
     fdtype needy; int retval, n;
@@ -870,21 +873,33 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,
                              fd_pool_commit_flags flags)
 {
   struct FD_HASHTABLE *locks=&(p->locks);
-  if (FD_EMPTY_CHOICEP(oids))
-    return 0;
+  double start=u8_elapsed_time();
+
   fd_write_lock_struct(locks);
-  if (p->handler->storen==NULL) {
-    u8_log(fddb_loglevel,"DBCommit","Unlocking OIDs in %s",p->cid);
+
+  if (locks->n_keys==0) {
+    u8_log(fddb_loglevel+1,fd_PoolCommit,"####### No locked oids in %s",p->cid);
+    fd_rw_unlock_struct(locks);
+    return 0;}
+  else if (p->handler->storen==NULL) {
+    u8_log(fddb_loglevel,fd_PoolCommit,"####### Unlocking OIDs in %s",p->cid);
     int rv=just_unlock(p,oids,flags);
     fd_rw_unlock_struct(locks);
     return rv;}
   else if (FD_OIDP(oids)) {
     int rv=commit_one_oid(p,oids,flags);
     fd_rw_unlock_struct(locks);
+    if (rv>0)
+      u8_log(fddb_loglevel,fd_PoolCommit,
+             "####### Committed one OIDs in %s",p->cid);
+    else if (rv==0)
+      u8_log(fddb_loglevel+1,fd_PoolCommit,
+             "####### No modified OIDs in %s",p->cid);
+    else {}
     return rv;}
-  else {
-    u8_log(fddb_loglevel,"DBCommit","Committing oids in %s",p->cid);
-    return pool_block_commit(p,locks,oids,flags);}
+  else if (FD_EMPTY_CHOICEP(oids))
+    return 0;
+  else return pool_block_commit(p,locks,oids,flags);
 }
 
 FD_EXPORT int fd_pool_commit_all(fd_pool p,int unlock)
@@ -917,8 +932,22 @@ static int savep(fdtype v,fd_pool_commit_flags flags)
 static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
                              fd_pool_commit_flags flags)
 {
-  double start_time=u8_elapsed_time();
-  int explicit_oids=(FD_CONSP(oids))&&((FD_CHOICEP(oids))||(FD_ACHOICEP(oids)));
+  double start_time=u8_elapsed_time(), last_report=start_time;
+  int explicit_oids=
+    (FD_CONSP(oids))&&((FD_CHOICEP(oids))||(FD_ACHOICEP(oids)));
+
+  if (explicit_oids)
+    u8_log(fddb_loglevel,fd_PoolCommit,
+           "####### Committing%s %d %sOIDS from %s",
+           FD_CHOICE_SIZE(oids),
+           ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?(" up to"):("")),
+           ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?("unneeded "):("")),
+           p->cid);
+  else u8_log(fddb_loglevel,fd_PoolCommit,
+              "####### Committing %sOIDS from %s",
+              ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?("unneeded "):("")),
+              p->cid);
+
   struct FD_POOL_WRITES writes=(explicit_oids)?
     (choice2writes(p,oids,flags)):
     (locks2writes(p,flags));
@@ -926,39 +955,46 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
 
   init_cache_level(p);
 
-  if (explicit_oids) 
-    u8_log(fddb_loglevel,"PoolCommit/Sorted",
-           "Saving%s %d/%d OIDs in %s",
+  if (explicit_oids)
+    u8_log(fddb_loglevel+1,"PoolCommit/Sorted",
+           "####### Saving%s %d/%d OIDs in %s",
            ((unlock)?("/unlocking"):("")),
            writes.len,FD_CHOICE_SIZE(oids),p->cid);
-  else u8_log(fddb_loglevel,"PoolCommit/Sorted",
-              "Saving%s %d OIDs in %s",
+  else u8_log(fddb_loglevel+1,"PoolCommit/Sorted",
+              "####### Saving%s %d OIDs in %s",
               ((unlock)?("/unlocking"):("")),writes.len,p->cid);
 
   retval=p->handler->storen(p,writes.len,writes.oids,writes.values);
 
   if (retval<0) {
+    u8_log(LOGCRIT,fd_PoolCommitError,
+           "Error %d (%s) saving oids to %s",
+           errno,u8_strerror(errno),p->cid);
     u8_seterr(fd_PoolCommitError,"fd_pool_commit",u8_strdup(p->cid));
     if (unlock) restore_locks(locks,&writes);}
   else {
-    u8_log(fddb_loglevel,fd_Commitment,
-           "Saved %d OIDs to %s in %f secs",writes.len,p->cid,
+    u8_log(fddb_loglevel,fd_PoolCommit,
+           "####### Saved %d OIDs to %s in %f secs",writes.len,p->cid,
            u8_elapsed_time()-start_time);
-    start_time=u8_elapsed_time();
+    last_report=u8_elapsed_time();
     if (unlock) {
       int unlocked=p->handler->unlock(p,writes.choice);
       if (unlocked<0) {
-        u8_log(LOG_CRIT,fd_Commitment,
+        u8_log(LOG_CRIT,fd_PoolCommit,
                "Error unlocking %d OIDs from %s after %f secs",
-               writes.len,p->cid,u8_elapsed_time()-start_time);
+               writes.len,p->cid,u8_elapsed_time()-last_report);
         restore_locks(locks,&writes);
         return unlocked;}
-      u8_log(fddb_loglevel,fd_Commitment,
-             "Unlocked %d OIDs from %s in %f secs",
-             writes.len,p->cid,u8_elapsed_time()-start_time);}
+      if ((u8_elapsed_time()-last_report)>1) {
+        u8_log(fddb_loglevel,fd_PoolCommit,
+               "Unlocked %d OIDs from %s in %f secs",
+               writes.len,p->cid,u8_elapsed_time()-start_time);}}
     cleanup_values(writes.len,writes.values);
     u8_free(writes.values);
     fd_decref(writes.choice);
+    u8_log(fddb_loglevel,fd_PoolCommit,
+           "####### Committed %d OIDs to %s in %f secs",
+           writes.len,p->cid,u8_elapsed_time()-start_time);
     return retval;}
 }
 
@@ -986,7 +1022,7 @@ struct FD_POOL_WRITES choice2writes(fd_pool p,fdtype oids,
         if (savep(v,flags)) {
           *oidv++=o;
           *values++=v;
-          if (unlock) 
+          if (unlock)
             fd_hashtable_store(locks,o,FD_VOID);}
         else fd_decref(v);}}}
   n_writes=oidv-writes.oids;
@@ -1093,7 +1129,7 @@ static int commit_one_oid(fd_pool p,fdtype oid,fd_pool_commit_flags flags)
       int unlocked=p->handler->unlock(p,oid);
       if (unlocked>=0) {
         fd_hashtable_op(locks,fd_table_store,oid,FD_VOID);
-        u8_log(fddb_loglevel,fd_Commitment,
+        u8_log(fddb_loglevel,fd_PoolCommit,
                "[%*t] Saved one OID from %s in %f secs",
                p->cid,u8_elapsed_time()-start_time);
         return 1;}
