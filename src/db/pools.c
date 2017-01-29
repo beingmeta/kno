@@ -718,7 +718,7 @@ static fd_pool guesspool(fdtype oids)
   else if ((FD_CHOICEP(oids))||(FD_ACHOICEP(oids))) {
     fd_pool p=NULL;
     FD_DO_CHOICES(oid,oids) {
-      if (FD_OIDP(oid)) p=fd_oid2pool(oids);
+      if (FD_OIDP(oid)) p=fd_oid2pool(oid);
       if (p) {
         FD_STOP_DO_CHOICES;
         return p;}}
