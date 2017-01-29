@@ -1231,7 +1231,7 @@ static fdtype load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
 static fdtype memusage_symbol, n_cpus_symbol, pagesize_symbol;
 static fdtype physical_pages_symbol, available_pages_symbol;
 static fdtype physical_memory_symbol, available_memory_symbol;
-static fdtype nptrlocks_symbol;
+static fdtype nptrlocks_symbol, cpusage_symbol, tcpusage_symbol;
 
 static int pagesize=-1;
 static int get_n_cpus(void);
@@ -1248,6 +1248,13 @@ static void add_intval(fdtype table,fdtype symbol,long long ival)
   if (FD_CONSP(iptr)) fd_decref(iptr);
 }
 
+static void add_flonum(fdtype table,fdtype symbol,double fval)
+{
+  fdtype flonum=fd_make_flonum(fval);
+  fd_add(table,symbol,flonum);
+  fd_decref(flonum);
+}
+
 static fdtype rusage_prim(fdtype field)
 {
   struct rusage r;
@@ -1258,6 +1265,7 @@ static fdtype rusage_prim(fdtype field)
     fdtype result=fd_empty_slotmap();
     pid_t pid=getpid(), ppid=getppid();
     size_t mem=u8_memusage();
+    size_t n_cpus=get_n_cpus();
     add_intval(result,data_symbol,r.ru_idrss);
     add_intval(result,stack_symbol,r.ru_isrss);
     add_intval(result,shared_symbol,r.ru_ixrss);
@@ -1284,20 +1292,18 @@ static fdtype rusage_prim(fdtype field)
         fd_decref(lval); fd_decref(lvec);}}
     { /* Elapsed time */
       double elapsed=u8_elapsed_time();
-      fdtype tval=fd_init_double(NULL,elapsed);
-      fd_add(result,clock_symbol,tval);
-      fd_decref(tval);}
-    { /* User time */
-      fdtype tval=fd_make_flonum(u8_dbltime(r.ru_utime)/1000000);
-      fd_add(result,utime_symbol,tval);
-      fd_decref(tval);}
-    { /* System time */
-      fdtype tval=fd_make_flonum(u8_dbltime(r.ru_stime)/1000000);
-      fd_add(result,stime_symbol,tval);
-      fd_decref(tval);}
+      double cpusage=
+        ((u8_dbltime(r.ru_utime)+u8_dbltime(r.ru_stime))/1000000)/elapsed;
+      double tcpusage=cpusage/n_cpus;
+      add_flonum(result,clock_symbol,elapsed);
+      add_flonum(result,cpusage_symbol,cpusage);
+      add_flonum(result,tcpusage_symbol,tcpusage);}
+
+    add_flonum(result,utime_symbol,u8_dbltime(r.ru_utime)/1000000);
+    add_flonum(result,stime_symbol,u8_dbltime(r.ru_stime)/1000000);
 
     { /* SYSCONF information */
-      int n_cpus=get_n_cpus(), pagesize=get_pagesize();
+      int pagesize=get_pagesize();
       int physical_pages=get_physical_pages();
       int available_pages=get_available_pages();
       long long physical_memory=get_physical_memory();
@@ -2058,6 +2064,8 @@ FD_EXPORT void fd_init_timeprims_c()
   available_pages_symbol=fd_intern("AVAILABLE-PAGES");
   physical_memory_symbol=fd_intern("PHYSICAL-MEMORY");
   available_memory_symbol=fd_intern("AVAILABLE-MEMORY");
+  cpusage_symbol=fd_intern("CPU%");
+  tcpusage_symbol=fd_intern("CPU%/CPU");
 
   load_symbol=fd_intern("LOAD");
   loadavg_symbol=fd_intern("LOADAVG");
