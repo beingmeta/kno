@@ -31,7 +31,7 @@ exec_prefix	= @exec_prefix@
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
-RUNENV		= LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib 
+RUNENV		= LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib FD_DLOADPATH=../../lib/framerd
 VALGRIND	= INVALGRIND=yes MEMCHECKING=yes valgrind --tool=memcheck --num-callers=9
 VALGRINDHEAP	= INVALGRIND=yes MEMCHECKING=yes valgrind --tool=memcheck --leak-check=yes --num-callers=9
 TESTPROG	= 
