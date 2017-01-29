@@ -10,6 +10,7 @@
 #endif
 
 #define FD_PROVIDE_FASTEVAL 1
+#define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1
 #define FD_INLINE_PPTRS 1
 
