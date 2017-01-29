@@ -1281,7 +1281,9 @@ FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid)
 
 FD_EXPORT fdtype fd_pool2lisp(fd_pool p)
 {
-  if (p->serialno<0)
+  if (p==NULL)
+    return FD_ERROR_VALUE;
+  else if (p->serialno<0)
     return fd_err(fd_UnregisteredPool,"fd_pool2lisp",p->cid,FD_VOID);
   else return FDTYPE_IMMEDIATE(fd_pool_type,p->serialno);
 }

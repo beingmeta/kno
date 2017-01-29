@@ -575,7 +575,7 @@ static fdtype zipfile2dtypes(fdtype filename)
   else return fd_type_error(_("string"),"zipfile2dtypes",filename);;
 }
 
-static fdtype open_dtype_file(fdtype fname)
+static fdtype open_dtype_output_file(fdtype fname)
 {
   u8_string filename=FD_STRDATA(fname);
   struct FD_DTSTREAM *dts=u8_alloc(struct FD_DTSTREAM);
@@ -588,8 +588,29 @@ static fdtype open_dtype_file(fdtype fname)
     return FDTYPE_CONS(dts);}
   else {
     u8_free(dts);
-    u8_graberr(-1,"open_dtype_file",u8_strdup(filename));
+    u8_graberr(-1,"open_dtype_output_file",u8_strdup(filename));
     return FD_ERROR_VALUE;}
+}
+
+static fdtype open_dtype_input_file(fdtype fname)
+{
+  u8_string filename=FD_STRDATA(fname);
+  if (!(u8_file_existsp(filename))) {
+    fd_seterr(fd_FileNotFound,"open_dtype_input_file",
+              u8_strdup(filename),FD_VOID);
+    return FD_ERROR_VALUE;}
+  else {
+    struct FD_DTSTREAM *dts=u8_alloc(struct FD_DTSTREAM);
+    FD_INIT_CONS(dts,fd_dtstream_type); dts->owns_socket=1;
+    dts->dt_stream=fd_dtsopen
+      (filename,FD_DTSTREAM_READ_ONLY|FD_DTSTREAM_READING);
+    if (dts->dt_stream) {
+      U8_CLEAR_ERRNO();
+      return FDTYPE_CONS(dts);}
+    else {
+      u8_free(dts);
+      u8_graberr(-1,"open_dtype_input_file",u8_strdup(filename));
+      return FD_ERROR_VALUE;}}
 }
 
 static fdtype extend_dtype_file(fdtype fname)
@@ -749,7 +770,13 @@ FD_EXPORT void fd_init_filedb_c()
   fd_defalias(filedb_module,"ZIPFILE->DTYPES","ZFILE->DTYPES");
 
   fd_idefn(filedb_module,
-           fd_make_cprim1x("OPEN-DTYPE-FILE",open_dtype_file,1,
+           fd_make_cprim1x("OPEN-DTYPE-FILE",open_dtype_input_file,1,
+                           fd_string_type,FD_VOID));
+  fd_idefn(filedb_module,
+           fd_make_cprim1x("OPEN-DTYPE-INPUT",open_dtype_input_file,1,
+                           fd_string_type,FD_VOID));
+  fd_idefn(filedb_module,
+           fd_make_cprim1x("OPEN-DTYPE-OUTPUT",open_dtype_output_file,1,
                            fd_string_type,FD_VOID));
   fd_idefn(filedb_module,
            fd_make_cprim1x("EXTEND-DTYPE-FILE",extend_dtype_file,1,

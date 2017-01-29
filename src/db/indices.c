@@ -140,13 +140,16 @@ FD_EXPORT void fd_register_index(fd_index ix)
 
 FD_EXPORT fdtype fd_index2lisp(fd_index ix)
 {
-  if (ix->serialno>=0)
+  if (ix==NULL)
+    return FD_ERROR_VALUE;
+  else if (ix->serialno>=0)
     return FDTYPE_IMMEDIATE(fd_index_type,ix->serialno);
   else return fd_incref((fdtype)ix);
 }
 FD_EXPORT fd_index fd_lisp2index(fdtype lix)
 {
-  if (FD_PTR_TYPEP(lix,fd_index_type)) {
+  if (FD_ABORTP(lix)) return NULL;
+  else if (FD_PTR_TYPEP(lix,fd_index_type)) {
     int serial=FD_GET_IMMEDIATE(lix,fd_index_type);
     if (serial<FD_N_PRIMARY_INDICES) return fd_primary_indices[serial];
     else return fd_secondary_indices[serial-FD_N_PRIMARY_INDICES];}
