@@ -19,6 +19,8 @@
 #define FD_FILEDB_BUFSIZE 256*1024
 #endif
 
+FD_EXPORT size_t fd_filedb_bufsize;
+
 FD_EXPORT int fd_acid_files;
 
 FD_EXPORT int fd_init_dbfile(void) FD_LIBINIT_FN;

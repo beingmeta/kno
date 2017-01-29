@@ -60,7 +60,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
   u8_string rname=u8_realpath(fname,NULL);
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_dtype_file_stream(&(pool->stream),fname,mode,FD_FILEDB_BUFSIZE);
+  fd_init_dtype_file_stream(&(pool->stream),fname,mode,fd_filedb_bufsize);
   /* See if it ended up read only */
   if ((((pool)->stream).flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
   pool->stream.mallocd=0;

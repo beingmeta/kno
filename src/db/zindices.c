@@ -49,7 +49,7 @@ static fd_dtype_stream reopen_stream(fd_file_pool fp)
   fd_dtstream_mode mode=
     ((fp->read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_lock_struct(fp);
-  fd_init_dtype_file_stream(&(fp->stream),fp->source,mode,FD_FILEDB_BUFSIZE);
+  fd_init_dtype_file_stream(&(fp->stream),fp->source,mode,fd_filedb_bufsize);
   fd_unlock_struct(fp);
   return &(fp->stream);
 }
@@ -214,7 +214,7 @@ static fd_index open_zindex(u8_string fname,int read_only,int consed)
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_init_index((fd_index)index,&zindex_handler,fname,consed);
-  if (fd_init_dtype_file_stream(s,fname,mode,FD_FILEDB_BUFSIZE)==NULL) {
+  if (fd_init_dtype_file_stream(s,fname,mode,fd_filedb_bufsize)==NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_zindex",u8_strdup(fname));
     return NULL;}

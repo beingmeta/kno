@@ -51,7 +51,7 @@ fd_exception fd_SchemaInconsistency=_("Inconsistent schema reference and value d
 static fd_exception InvalidOffset=_("Invalid offset in OIDPOOL");
 
 #ifndef FD_INIT_ZBUF_SIZE
-#define FD_INIT_ZBUF_SIZE 16000
+#define FD_INIT_ZBUF_SIZE 24000
 #endif
 
 #define FD_OIDPOOL_LOAD_POS      0x10
@@ -388,7 +388,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   u8_string rname=u8_realpath(fname,NULL);
-  fd_init_dtype_file_stream(stream,fname,mode,FD_FILEDB_BUFSIZE);
+  fd_init_dtype_file_stream(stream,fname,mode,fd_filedb_bufsize);
   /* See if it ended up read only */
   if ((stream->flags)&(FD_DTSTREAM_READ_ONLY)) read_only=1;
   pool->stream.mallocd=0;
@@ -403,7 +403,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   if ((read_only==0) && ((flags)&(FD_OIDPOOL_READONLY))) {
     /* If the pool is intrinsically read-only make it so. */
     read_only=1; fd_dtsclose(stream,1);
-    fd_init_dtype_file_stream(stream,fname,FD_DTSTREAM_READ,FD_FILEDB_BUFSIZE);
+    fd_init_dtype_file_stream(stream,fname,FD_DTSTREAM_READ,fd_filedb_bufsize);
     fd_setpos(stream,FD_OIDPOOL_LABEL_POS);}
   pool->offtype=(fd_offset_type)((flags)&(FD_OIDPOOL_OFFMODE));
   pool->compression=
