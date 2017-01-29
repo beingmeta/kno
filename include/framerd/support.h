@@ -41,18 +41,20 @@ FD_EXPORT int fd_set_config_consed(u8_string var,fdtype val);
 
 FD_EXPORT int fd_readonly_config_set(fdtype ignored,fdtype v,void *p);
 
-FD_EXPORT int fd_lconfig_push(fdtype ignored,fdtype v,void *lispp);
-FD_EXPORT int fd_lconfig_add(fdtype ignored,fdtype v,void *lispp);
-FD_EXPORT int fd_lconfig_set(fdtype ignored,fdtype v,void *lispp);
-FD_EXPORT fdtype fd_lconfig_get(fdtype ignored,void *lispp);
-FD_EXPORT int fd_sconfig_set(fdtype ignored,fdtype v,void *stringptr);
-FD_EXPORT fdtype fd_sconfig_get(fdtype ignored,void *stringptr);
-FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *intptr);
-FD_EXPORT fdtype fd_intconfig_get(fdtype ignored,void *intptr);
-FD_EXPORT int fd_boolconfig_set(fdtype ignored,fdtype v,void *intptr);
-FD_EXPORT fdtype fd_boolconfig_get(fdtype ignored,void *intptr);
-FD_EXPORT int fd_dblconfig_set(fdtype ignored,fdtype v,void *dblptr);
-FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *dblptr);
+FD_EXPORT int fd_lconfig_push(fdtype,fdtype v,void *lispp);
+FD_EXPORT int fd_lconfig_add(fdtype,fdtype v,void *lispp);
+FD_EXPORT int fd_lconfig_set(fdtype,fdtype v,void *lispp);
+FD_EXPORT fdtype fd_lconfig_get(fdtype,void *lispp);
+FD_EXPORT int fd_sconfig_set(fdtype,fdtype v,void *stringptr);
+FD_EXPORT fdtype fd_sconfig_get(fdtype,void *stringptr);
+FD_EXPORT int fd_intconfig_set(fdtype,fdtype v,void *intptr);
+FD_EXPORT fdtype fd_intconfig_get(fdtype,void *intptr);
+FD_EXPORT int fd_sizeconfig_set(fdtype,fdtype v,void *intptr);
+FD_EXPORT fdtype fd_sizeconfig_get(fdtype,void *intptr);
+FD_EXPORT int fd_boolconfig_set(fdtype,fdtype v,void *intptr);
+FD_EXPORT fdtype fd_boolconfig_get(fdtype,void *intptr);
+FD_EXPORT int fd_dblconfig_set(fdtype,fdtype v,void *dblptr);
+FD_EXPORT fdtype fd_dblconfig_get(fdtype,void *dblptr);
 FD_EXPORT int fd_loglevelconfig_set(fdtype var,fdtype val,void *data);
 
 FD_EXPORT int fd_config_assignment(u8_string assign_expr);

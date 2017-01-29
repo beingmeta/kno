@@ -701,6 +701,32 @@ FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *vptr)
          fd_reterr(fd_TypeError,"fd_intconfig_set",u8_strdup(_("fixnum")),v);
 }
 
+/* For configuration variables which get/set ints. */
+FD_EXPORT fdtype fd_sizeconfig_get(fdtype ignored,void *vptr)
+{
+  ssize_t *ptr=vptr;
+  ssize_t sz=*ptr;
+  return FD_INT(sz);
+}
+FD_EXPORT int fd_sizeconfig_set(fdtype ignored,fdtype v,void *vptr)
+{
+  ssize_t *ptr=vptr;
+  if (FD_FIXNUMP(v)) {
+    *ptr=FD_FIX2INT(v);
+    return 1;}
+  else if (FD_BIGINTP(v)) {
+    struct FD_BIGINT *bi=(fd_bigint)v;
+    if (fd_bigint_fits_in_word_p(bi,8,1)) {
+      long long ullv=fd_bigint_to_long_long(bi);
+      *ptr=(ssize_t)ullv;}
+    else return fd_reterr
+           (fd_RangeError,"fd_sizeconfig_set",
+            u8_strdup(_("size_t sized value")),v);}
+  else return fd_reterr
+         (fd_TypeError,"fd_sizeconfig_set",
+          u8_strdup(_("size_t sized value")),v);
+}
+
 /* Double config methods */
 FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *vptr)
 {
