@@ -939,8 +939,8 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
   if (explicit_oids)
     u8_log(fddb_loglevel,fd_PoolCommit,
            "####### Committing%s %d %sOIDS from %s",
-           FD_CHOICE_SIZE(oids),
            ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?(" up to"):("")),
+           FD_CHOICE_SIZE(oids),
            ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?("unneeded "):("")),
            p->cid);
   else u8_log(fddb_loglevel,fd_PoolCommit,

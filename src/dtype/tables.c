@@ -1441,9 +1441,32 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   return added;
 }
 
+static int add_to_hashtable(fd_hashtable ht,fdtype key,fdtype value)
+{
+  struct FD_KEYVAL *result;
+  int added=0, n_keys=ht->n_keys;
+  fdtype newv=fd_incref(value);
+  if (FD_ABORTP(newv)) {
+    fd_rw_unlock_struct(ht);
+    return fd_interr(newv);}
+  else result=fd_hashvec_insert(key,ht->slots,ht->n_slots,&(ht->n_keys));
+  if (ht->n_keys>n_keys) added=1; else added=0;
+  if (FD_VOIDP(result->value))
+    result->value=newv;
+  else {FD_ADD_TO_CHOICE(result->value,newv);}
+  /* If the value is an achoice, it doesn't need to be locked because
+     it will be protected by the hashtable's lock.  However this requires
+     that we always normalize the choice when we return it.  */
+  if (FD_ACHOICEP(result->value)) {
+    struct FD_ACHOICE *ch=FD_XACHOICE(result->value);
+    if (ch->uselock) ch->uselock=0;}
+  return added;
+}
+
 FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
 {
-  struct FD_KEYVAL *result; int n_keys, added; fdtype newv;
+  struct FD_KEYVAL *result;
+  int n_keys, added=0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->readonly) {
     fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_add",NULL,key);
@@ -1455,24 +1478,13 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
   fd_write_lock_struct(ht);
   if (ht->n_slots == 0) setup_hashtable(ht,17);
   n_keys=ht->n_keys;
-  result=fd_hashvec_insert
-    (key,ht->slots,ht->n_slots,&(ht->n_keys));
-  ht->modified=1; if (ht->n_keys>n_keys) added=1; else added=0;
-  newv=fd_incref(value);
-  if (FD_ABORTP(newv)) {
-    fd_rw_unlock_struct(ht);
-    return fd_interr(newv);}
-  else if (FD_VOIDP(result->value))
-    result->value=newv;
-  else {FD_ADD_TO_CHOICE(result->value,newv);}
-  /* If the value is an achoice, it doesn't need to be locked because
-     it will be protected by the hashtable's lock.  However this requires
-     that we always normalize the choice when we return it.  */
-  if (FD_ACHOICEP(result->value)) {
-    struct FD_ACHOICE *ch=FD_XACHOICE(result->value);
-    if (ch->uselock) ch->uselock=0;}
+  if ( (FD_CHOICEP(key)) || (FD_ACHOICEP(key)) ) {
+    FD_DO_CHOICES(eachkey,key) {
+      added+=add_to_hashtable(ht,key,value);}}
+  else added=add_to_hashtable(ht,key,value);
   fd_rw_unlock_struct(ht);
-  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+  if ( (ht->n_keys>n_keys) &&
+       (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) ) {
     /* We resize when n_keys/n_slots < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));

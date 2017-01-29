@@ -613,44 +613,43 @@ static void extend_slotids(fd_index ix,const fdtype *keys,int n)
 FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
 {
   FDTC *fdtc=fd_threadcache;
+  fd_hashtable adds=&(ix->adds), cache=&(ix->cache);
   if (ix->read_only) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->cid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
-  if (FD_EMPTY_CHOICEP(value)) {}
-  else if (FD_CHOICEP(key)) {
-    const fdtype *keys=FD_CHOICE_DATA(key);
-    unsigned int n=FD_CHOICE_SIZE(key);
-    if ((FD_WRITETHROUGH_THREADCACHE)&&(fdtc)) {
-      FD_DO_CHOICES(k,key) {
-        struct FD_PAIR tempkey;
-        FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-        tempkey.car=fd_index2lisp(ix); tempkey.cdr=k;
-        if (fd_hashtable_probe(&(fdtc->indices),(fdtype)&tempkey)) {
-          fd_hashtable_add(&(fdtc->indices),(fdtype)&tempkey,value);}}}
-    fd_hashtable_iterkeys(&(ix->adds),fd_table_add,n,keys,value);
-    if (!(FD_VOIDP(ix->has_slotids))) extend_slotids(ix,keys,n);
+  if (FD_EMPTY_CHOICEP(value)) return 0;
+  if ((FD_CHOICEP(key)) || (FD_ACHOICEP(key))) {
+    fdtype keys=fd_make_simple_choice(key);
+    const fdtype *keyv=FD_CHOICE_DATA(keys);
+    unsigned int n=FD_CHOICE_SIZE(keys);
+    fd_hashtable_iterkeys(adds,fd_table_add,n,keyv,value);
     if (ix->cache_level>0)
-      fd_hashtable_iterkeys(&(ix->cache),fd_table_add_if_present,n,keys,value);}
+      fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keyv,value);
+    fd_decref(keys);}
   else {
-    if ((FD_WRITETHROUGH_THREADCACHE)&&(fdtc)) {
+    fd_hashtable_add(adds,key,value);
+    fd_hashtable_op(cache,fd_table_add_if_present,key,value);}
+
+  if ((fdtc)&&(FD_WRITETHROUGH_THREADCACHE)) {
+    FD_DO_CHOICES(k,key) {
       struct FD_PAIR tempkey;
       FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-      tempkey.car=fd_index2lisp(ix); tempkey.cdr=key;
+      tempkey.car=fd_index2lisp(ix); tempkey.cdr=k;
       if (fd_hashtable_probe(&(fdtc->indices),(fdtype)&tempkey)) {
-        fd_hashtable_add(&(fdtc->indices),(fdtype)&tempkey,value);}}
-    fd_hashtable_add(&(ix->adds),key,value);
-    if (ix->cache_level>0)
-      fd_hashtable_op(&(ix->cache),fd_table_add_if_present,key,value);}
+        fd_hashtable_add(&(fdtc->indices),(fdtype)&tempkey,value);}}}
+
   if ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->cache.n_keys)) {
+    fd_hashtable bgcache=&(fd_background->cache);
     if (FD_CHOICEP(key)) {
       const fdtype *keys=FD_CHOICE_DATA(key);
       unsigned int n=FD_CHOICE_SIZE(key);
-      fd_hashtable_iterkeys
-        (&(fd_background->cache),fd_table_replace,n,keys,FD_VOID);}
-    else fd_hashtable_op(&(fd_background->cache),fd_table_replace,key,FD_VOID);}
+      fd_hashtable_iterkeys(bgcache,fd_table_replace,n,keys,FD_VOID);}
+    else fd_hashtable_op(bgcache,fd_table_replace,key,FD_VOID);}
+
   if (!(FD_VOIDP(ix->has_slotids))) extend_slotids(ix,&key,1);
+
   return 1;
 }
 static int table_indexadd(fdtype ixarg,fdtype key,fdtype value)
