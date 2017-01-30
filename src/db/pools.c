@@ -25,6 +25,8 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8printf.h>
 
+#define COMMIT_FINISHED (FD_POOL_COMMIT_UNLOCK|FD_POOL_COMMIT_FINISHED)
+
 fd_exception fd_UnknownPool=_("Unknown pool");
 fd_exception fd_CantLockOID=_("Can't lock OID");
 fd_exception fd_CantUnlockOID=_("Can't unlock OID");
@@ -704,8 +706,7 @@ FD_EXPORT int fd_swapout_oids(fdtype oids)
             (&(p->cache),fd_table_replace,
              FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),FD_VOID);
           /* These are values we can unlock */
-          fd_pool_commit(p,oids,
-                         (FD_POOL_COMMIT_UNLOCK|FD_POOL_COMMIT_FINISHED));
+          fd_pool_commit(p,oids,COMMIT_FINISHED);
           fd_devoid_hashtable(&(p->locks));}
         fd_decref(oids);}
       i++;}}
@@ -897,15 +898,17 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,
              "####### No modified OIDs in %s",p->cid);
     else {}
     return rv;}
-  else if (FD_EMPTY_CHOICEP(oids))
-    return 0;
+  else if (FD_EMPTY_CHOICEP(oids)) {
+    fd_rw_unlock_struct(locks);
+    return 0;}
   else return pool_block_commit(p,locks,oids,flags);
 }
 
 FD_EXPORT int fd_pool_commit_all(fd_pool p,int unlock)
 {
-  return fd_pool_commit
-    (p,FD_EMPTY_CHOICE,((unlock)?(FD_POOL_COMMIT_UNLOCK):(0)));
+  fd_pool_commit_flags flags=
+    ((unlock)?(FD_POOL_COMMIT_UNLOCK):(0));
+  return fd_pool_commit(p,FD_VOID,flags);
 }
 
 /* Support for commitment */
@@ -1065,7 +1068,8 @@ struct FD_POOL_WRITES locks2writes(fd_pool p,fd_pool_commit_flags flags)
       else scan++;
     writes.len=oidv-writes.oids;}
   else writes.len=0;
-  if ((unlock)&&(writes.len)) fd_devoid_hashtable_x(locks,1);
+  if ((unlock)&&(writes.len))
+    fd_devoid_hashtable_x(locks,1);
   fd_rw_unlock_struct(locks);
   return writes;
 }
@@ -1195,7 +1199,7 @@ FD_EXPORT void fd_pool_swapout(fd_pool p)
     else fd_reset_hashtable(&(p->cache),67,1);}
   if (p) {
     /* Commit and unlock all of the finished OIDs */
-    fd_pool_commit(p,FD_VOID,FD_POOL_COMMIT_UNLOCK|FD_POOL_COMMIT_FINISHED);
+    fd_pool_commit(p,FD_VOID,COMMIT_FINISHED);
     fd_devoid_hashtable(&(p->locks));}
 }
 
