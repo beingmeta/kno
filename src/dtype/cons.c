@@ -1352,7 +1352,8 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
     FD_VECTOR_SET(vec,1,FD_INT(xtm->xtime.u8_nsecs));
     FD_VECTOR_SET(vec,2,FD_INT((int)xtm->xtime.u8_prec));
     FD_VECTOR_SET(vec,3,FD_INT(tzoff));
-    size=size+fd_write_dtype(out,vec);}
+    size=size+fd_write_dtype(out,vec);
+    fd_decref(vec);}
   return size;
 }
 
