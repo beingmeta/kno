@@ -73,8 +73,10 @@ FD_EXPORT int fd_add_dtype_to_file(fdtype obj,u8_string filename);
 
 FD_EXPORT fd_off_t _fd_getpos(fd_dtype_stream s);
 #define fd_getpos(s) \
-  ((((s)->flags)&FD_DTSTREAM_CANSEEK) ? \
-   ((((s)->filepos)>=0) ? (((s)->filepos)+(((s)->ptr)-((s)->start))) : (_fd_getpos(s))) \
+  ((((s)->flags)&FD_DTSTREAM_CANSEEK) ?		 \
+   ((((s)->filepos)>=0) ?			 \
+    (((s)->filepos)+(((s)->ptr)-((s)->start))) : \
+    (_fd_getpos(s)))				 \
    : (-1))
 FD_EXPORT fd_off_t fd_setpos(fd_dtype_stream s,fd_off_t pos);
 FD_EXPORT fd_off_t fd_movepos(fd_dtype_stream s,int delta);

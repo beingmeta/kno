@@ -1321,7 +1321,7 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
       result=u8_setpos((struct U8_STREAM *)(p->in),off);
     else if (p->out)
       result=u8_setpos((struct U8_STREAM *)(p->out),off);
-    else return fd_type_error(_("port"),"getpos",portarg);
+    else return fd_type_error(_("port"),"setpos_prim",portarg);
     if (result<0)
       return FD_ERROR_VALUE;
     else if (result<FD_MAX_FIXNUM)

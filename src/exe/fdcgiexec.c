@@ -242,7 +242,8 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
   else if (FD_PAIRP(proc)) {
     fdtype xml=FD_CAR(proc), lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_ENVIRONMENTP(lenv)) ?
-                     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
+                     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,
+				  fd_environment)) :
                      (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
@@ -489,7 +490,8 @@ static int simplecgi(fdtype path)
   else if (FD_PAIRP(proc)) {
     fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
     fd_lispenv base=((FD_ENVIRONMENTP(lenv)) ?
-                     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
+                     (FD_GET_CONS(FD_CDR(proc),fd_environment_type,
+				  fd_environment)) :
                      (NULL));
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     if (base) fd_load_latest(NULL,base,NULL);
