@@ -2,7 +2,7 @@
 
 /* texttools.c
    This is the core texttools file for the FramerD library
-   Copyright (C) 2005-2016 beingmeta, inc.
+   Copyright (C) 2005-2017 beingmeta, inc.
 */
 
 #ifndef _FILEINFO
