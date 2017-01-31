@@ -30,9 +30,18 @@ static fdtype lambda_symbol;
 
 static u8_string sproc_id(struct FD_SPROC *fn)
 {
-  if (fn->name)
+  if ((fn->name)&&(fn->filename))
     return u8_mkstring("%s:%s",fn->name,fn->filename);
-  else return u8_mkstring("LAMBDA:%s",fn->filename);
+  else if (fn->name)
+    return u8_strdup(fn->name);
+  else if (fn->filename)
+    return u8_mkstring("λ%lx:%s",
+                       ((unsigned long)
+                        (((unsigned long long)fn)&0xFFFFFFFF)),
+                       fn->filename);
+  else return u8_mkstring("λ%lx",
+                          ((unsigned long)
+                           (((unsigned long long)fn)&0xFFFFFFFF)));
 }
 
 /* Set operations */
@@ -511,10 +520,9 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   result=eval_body(":SPROC",fn->body,0,&envstruct);
   if (fn->synchronized) result=fd_finish_call(result);
   if (FD_THROWP(result)) {}
-  else if ((FD_ABORTED(result)) && (fn->filename))
+  else if (FD_ABORTED(result))
     u8_current_exception->u8x_details=sproc_id(fn);
-  else if ((FD_ABORTED(result)) && (fn->name))
-    u8_current_exception->u8x_details=u8_strdup(fn->name);
+  else {}
   /* If we're synchronized, unlock the mutex. */
   if (fn->synchronized) fd_unlock_struct(fn);
   fd_decref(lexpr_arg);

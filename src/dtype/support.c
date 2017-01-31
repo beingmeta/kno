@@ -1254,7 +1254,7 @@ FD_EXPORT
 void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
 {
   u8_exception root=u8_exception_root(ex);
-  int show_top=4, show_bottom=7;
+  int show_top=8, show_bottom=32;
   int stacklen=u8_exception_stacklen(ex);
   int stackfoot=stacklen-show_bottom;
   int depth=0, elided=0, skipped=0;

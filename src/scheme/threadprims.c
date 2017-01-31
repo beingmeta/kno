@@ -325,12 +325,12 @@ static void *thread_call(void *data)
     u8_exception ex=u8_erreify();
     fdtype exobj=fd_init_exception(NULL,ex);
     u8_string errstring=fd_errstring(ex);
-    u8_log(LOG_WARN,ThreadReturnError,"#%d %s",u8_threadid(),errstring);
-    if (tstruct->flags&FD_EVAL_THREAD) 
-      u8_log(LOG_WARN,ThreadReturnError,
-             "From evaluating %q",tstruct->evaldata.expr);
-      else u8_log(LOG_WARN,ThreadReturnError,
-                  "From applying %q",tstruct->applydata.fn);
+    u8_log(LOG_WARN,ThreadReturnError,"Thread #%d %s",u8_threadid(),errstring);
+    if (tstruct->flags&FD_EVAL_THREAD)
+      u8_log(LOG_WARN,ThreadReturnError,"Thread #%d wasevaluating %q",
+             u8_threadid(),tstruct->evaldata.expr);
+      else u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was applying %q",
+                  u8_threadid(),tstruct->applydata.fn);
     u8_free(errstring);
     if (fd_thread_backtrace) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,16384);
