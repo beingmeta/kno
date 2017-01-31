@@ -1227,10 +1227,13 @@ static fdtype loadavgs_prim()
 
 static fdtype data_symbol, stack_symbol, shared_symbol, private_symbol;
 static fdtype memusage_symbol, vmemusage_symbol, pagesize_symbol, rss_symbol;
+static fdtype datakb_symbol, stackkb_symbol, sharedkb_symbol;
+static fdtype rsskb_symbol, privatekb_symbol;
 static fdtype utime_symbol, stime_symbol, cpusage_symbol, clock_symbol;
 static fdtype load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
 static fdtype physical_pages_symbol, available_pages_symbol;
 static fdtype physical_memory_symbol, available_memory_symbol;
+static fdtype physicalmb_symbol, availablemb_symbol;
 static fdtype nptrlocks_symbol, cpusage_symbol, tcpusage_symbol;
 static fdtype n_cpus_symbol;
 
@@ -1269,11 +1272,17 @@ static fdtype rusage_prim(fdtype field)
     size_t mem=u8_memusage();
     size_t vmem=u8_vmemusage();
     size_t n_cpus=get_n_cpus();
-    add_intval(result,data_symbol,((r.ru_idrss*pagesize)/1024));
-    add_intval(result,stack_symbol,((r.ru_isrss*pagesize)/1024));
-    add_intval(result,private_symbol,(((r.ru_idrss+r.ru_isrss)*pagesize)/1024));
-    add_intval(result,shared_symbol,((r.ru_ixrss*pagesize)/1024));
-    add_intval(result,rss_symbol,((r.ru_maxrss*pagesize)/1024));
+    add_intval(result,datakb_symbol,((r.ru_idrss*pagesize)/1024));
+    add_intval(result,stackkb_symbol,((r.ru_isrss*pagesize)/1024));
+    add_intval(result,privatekb_symbol,
+               (((r.ru_idrss+r.ru_isrss)*pagesize)/1024));
+    add_intval(result,sharedkb_symbol,((r.ru_ixrss*pagesize)/1024));
+    add_intval(result,rsskb_symbol,((r.ru_maxrss*pagesize)/1024));
+    add_intval(result,data_symbol,(r.ru_idrss*pagesize));
+    add_intval(result,stack_symbol,(r.ru_isrss*pagesize));
+    add_intval(result,private_symbol,((r.ru_idrss+r.ru_isrss)*pagesize));
+    add_intval(result,shared_symbol,(r.ru_ixrss*pagesize));
+    add_intval(result,rss_symbol,(r.ru_maxrss*pagesize));
     add_intval(result,memusage_symbol,mem);
     add_intval(result,vmemusage_symbol,vmem);
     add_intval(result,nptrlocks_symbol,FD_N_PTRLOCKS);
@@ -1318,26 +1327,40 @@ static fdtype rusage_prim(fdtype field)
         add_intval(result,physical_pages_symbol,physical_pages);
       if (available_pages>0)
         add_intval(result,available_pages_symbol,available_pages);
-      if (physical_memory>0)
-        add_intval(result,physical_memory_symbol,physical_memory);
-      if (available_memory>0)
-        add_intval(result,available_memory_symbol,available_memory);}
+      if (physical_memory>0) {
+        add_intval(result,physicalmb_symbol,physical_memory/(1024*1024));
+        add_intval(result,physical_memory_symbol,physical_memory);}
+      if (available_memory>0) {
+        add_intval(result,availablemb_symbol,available_memory/(1024*1024));
+        add_intval(result,available_memory_symbol,available_memory);}}
 
     return result;}
-  else if (FD_EQ(field,data_symbol))
-    return FD_INT(r.ru_idrss);
   else if (FD_EQ(field,cpusage_symbol)) {
     double elapsed=u8_elapsed_time()*1000000.0;
     double stime=u8_dbltime(r.ru_stime);
     double utime=u8_dbltime(r.ru_utime);
     double cpusage=(stime+utime)*100.0/elapsed;
     return fd_init_double(NULL,cpusage);}
+  else if (FD_EQ(field,data_symbol))
+    return FD_INT((r.ru_idrss*pagesize));
   else if (FD_EQ(field,stack_symbol))
-    return FD_INT(r.ru_isrss);
+    return FD_INT((r.ru_isrss*pagesize));
+  else if (FD_EQ(field,private_symbol))
+    return FD_INT((r.ru_idrss+r.ru_isrss)*pagesize);
   else if (FD_EQ(field,shared_symbol))
-    return FD_INT(r.ru_ixrss);
+    return FD_INT((r.ru_ixrss*pagesize));
   else if (FD_EQ(field,rss_symbol))
-    return FD_INT(r.ru_maxrss);
+    return FD_INT((r.ru_maxrss*pagesize));
+  else if (FD_EQ(field,datakb_symbol))
+    return FD_INT((r.ru_idrss*pagesize)/1024);
+  else if (FD_EQ(field,stackkb_symbol))
+    return FD_INT((r.ru_isrss*pagesize)/1024);
+  else if (FD_EQ(field,privatekb_symbol))
+    return FD_INT(((r.ru_idrss+r.ru_isrss)*pagesize)/1024);
+  else if (FD_EQ(field,sharedkb_symbol))
+    return FD_INT((r.ru_ixrss*pagesize)/1024);
+  else if (FD_EQ(field,rsskb_symbol))
+    return FD_INT((r.ru_maxrss*pagesize)/1024);
   else if (FD_EQ(field,utime_symbol))
     return fd_make_flonum(u8_dbltime(r.ru_utime));
   else if (FD_EQ(field,stime_symbol))
@@ -1402,9 +1425,23 @@ static fdtype rusage_prim(fdtype field)
     else {
       u8_graberr(-1,"rusage_prim/PHYSICAL_MEMORY",NULL);
       return FD_ERROR_VALUE;}}
+  else if (FD_EQ(field,physicalmb_symbol)) {
+    long long physical_memory=get_physical_memory();
+    if (physical_memory>0) return FD_INT(physical_memory/(1024*1024));
+    else if (physical_memory==0) return FD_EMPTY_CHOICE;
+    else {
+      u8_graberr(-1,"rusage_prim/PHYSICAL_MEMORY",NULL);
+      return FD_ERROR_VALUE;}}
   else if (FD_EQ(field,available_memory_symbol)) {
     long long available_memory=get_available_memory();
     if (available_memory>0) return FD_INT(available_memory);
+    else if (available_memory==0) return FD_EMPTY_CHOICE;
+    else {
+      u8_graberr(-1,"rusage_prim/AVAILABLE_MEMORY",NULL);
+      return FD_ERROR_VALUE;}}
+  else if (FD_EQ(field,availablemb_symbol)) {
+    long long available_memory=get_available_memory();
+    if (available_memory>0) return FD_INT(available_memory/(1024*1024));
     else if (available_memory==0) return FD_EMPTY_CHOICE;
     else {
       u8_graberr(-1,"rusage_prim/AVAILABLE_MEMORY",NULL);
@@ -1480,6 +1517,16 @@ static fdtype vmemusage_prim()
 {
   ssize_t size=u8_vmemusage();
   return FD_INT(size);
+}
+
+static fdtype physmem_prim(fdtype total)
+{
+  if ((FD_VOIDP(total))||(FD_DEFAULTP(total))||(FD_FALSEP(total))) {
+    ssize_t size=u8_avphysmem();
+    return FD_INT(size);}
+  else {
+    ssize_t size=u8_physmem();
+    return FD_INT(size);}
 }
 
 static fdtype usertime_prim()
@@ -2059,10 +2106,15 @@ FD_EXPORT void fd_init_timeprims_c()
   gmt_symbol=fd_intern("GMT");
 
   data_symbol=fd_intern("DATA");
+  datakb_symbol=fd_intern("DATAKB");
   stack_symbol=fd_intern("STACK");
+  stackkb_symbol=fd_intern("STACKKB");
   shared_symbol=fd_intern("SHARED");
+  sharedkb_symbol=fd_intern("SHAREDKB");
   private_symbol=fd_intern("PRIVATE");
+  privatekb_symbol=fd_intern("PRIVATEKB");
   rss_symbol=fd_intern("RESIDENT");
+  rsskb_symbol=fd_intern("RESIDENTKB");
   utime_symbol=fd_intern("UTIME");
   stime_symbol=fd_intern("STIME");
   clock_symbol=fd_intern("CLOCK");
@@ -2078,6 +2130,8 @@ FD_EXPORT void fd_init_timeprims_c()
   available_pages_symbol=fd_intern("AVAILABLE-PAGES");
   physical_memory_symbol=fd_intern("PHYSICAL-MEMORY");
   available_memory_symbol=fd_intern("AVAILABLE-MEMORY");
+  physicalmb_symbol=fd_intern("PHYSMB");
+  availablemb_symbol=fd_intern("AVAILMB");
   cpusage_symbol=fd_intern("CPU%");
   tcpusage_symbol=fd_intern("CPU%/CPU");
 
@@ -2144,6 +2198,7 @@ FD_EXPORT void fd_init_timeprims_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("VMEMUSAGE",vmemusage_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("PHYSMEM",physmem_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("USERTIME",usertime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("SYSTIME",systime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CPUSAGE",cpusage_prim,0));
