@@ -1228,13 +1228,16 @@ static fdtype loadavgs_prim()
 static fdtype data_symbol, stack_symbol, shared_symbol, resident_symbol;
 static fdtype utime_symbol, stime_symbol, cpusage_symbol, clock_symbol;
 static fdtype load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
-static fdtype memusage_symbol, n_cpus_symbol, pagesize_symbol;
+static fdtype memusage_symbol, vmemusage_symbol, pagesize_symbol;
+static fdtype n_cpus_symbol, max_cpus_symbol;
 static fdtype physical_pages_symbol, available_pages_symbol;
 static fdtype physical_memory_symbol, available_memory_symbol;
+static fdtype memload_symbol, vmemload_symbol;
 static fdtype nptrlocks_symbol;
 
 static int pagesize=-1;
 static int get_n_cpus(void);
+static int get_max_cpus(void);
 static int get_pagesize(void);
 static int get_physical_pages(void);
 static int get_available_pages(void);
@@ -1248,6 +1251,13 @@ static void add_intval(fdtype table,fdtype symbol,long long ival)
   if (FD_CONSP(iptr)) fd_decref(iptr);
 }
 
+static void add_floval(fdtype table,fdtype symbol,double fval)
+{
+  fdtype flonum=fd_make_flonum(fval);
+  fd_add(table,symbol,flonum);
+  fd_decref(flonum);
+}
+
 static fdtype rusage_prim(fdtype field)
 {
   struct rusage r;
@@ -1257,12 +1267,16 @@ static fdtype rusage_prim(fdtype field)
   else if (FD_VOIDP(field)) {
     fdtype result=fd_empty_slotmap();
     pid_t pid=getpid(), ppid=getppid();
-    size_t mem=u8_memusage();
+    ssize_t mem=u8_memusage() ,vmem=u8_vmemusage();
+    double memload=u8_memload() ,vmemload=u8_vmemload();
     add_intval(result,data_symbol,r.ru_idrss);
     add_intval(result,stack_symbol,r.ru_isrss);
     add_intval(result,shared_symbol,r.ru_ixrss);
     add_intval(result,resident_symbol,r.ru_maxrss);
     add_intval(result,memusage_symbol,mem);
+    add_intval(result,vmemusage_symbol,vmem);
+    add_floval(result,memload_symbol,memload);
+    add_floval(result,vmemload_symbol,vmemload);
     add_intval(result,nptrlocks_symbol,FD_N_PTRLOCKS);
     add_intval(result,pid_symbol,pid);
     add_intval(result,ppid_symbol,ppid);
@@ -1297,12 +1311,14 @@ static fdtype rusage_prim(fdtype field)
       fd_decref(tval);}
 
     { /* SYSCONF information */
-      int n_cpus=get_n_cpus(), pagesize=get_pagesize();
+      int n_cpus=get_n_cpus(), max_cpus=get_max_cpus();
+      int pagesize=get_pagesize();
       int physical_pages=get_physical_pages();
       int available_pages=get_available_pages();
       long long physical_memory=get_physical_memory();
       long long available_memory=get_available_memory();
-      if (n_cpus>0) fd_add(result,n_cpus_symbol,FD_INT(n_cpus));
+      fd_add(result,n_cpus_symbol,FD_INT(n_cpus));
+      fd_add(result,max_cpus_symbol,FD_INT(max_cpus));
       if (pagesize>0) fd_add(result,pagesize_symbol,FD_INT(pagesize));
       if (physical_pages>0)
         add_intval(result,physical_pages_symbol,physical_pages);
@@ -1361,6 +1377,13 @@ static fdtype rusage_prim(fdtype field)
     else if (n_cpus==0) return FD_EMPTY_CHOICE;
     else {
       u8_graberr(-1,"rusage_prim/N_CPUS",NULL);
+      return FD_ERROR_VALUE;}}
+  else if (FD_EQ(field,max_cpus_symbol)) {
+    int max_cpus=get_max_cpus();
+    if (max_cpus>0) return FD_INT(max_cpus);
+    else if (max_cpus==0) return FD_EMPTY_CHOICE;
+    else {
+      u8_graberr(-1,"rusage_prim/MAX_CPUS",NULL);
       return FD_ERROR_VALUE;}}
   else if (FD_EQ(field,pagesize_symbol)) {
     int pagesize=get_pagesize();
@@ -1464,6 +1487,24 @@ static fdtype memusage_prim()
   return FD_INT(size);
 }
 
+static fdtype vmemusage_prim()
+{
+  ssize_t size=u8_vmemusage();
+  return FD_INT(size);
+}
+
+static fdtype memload_prim()
+{
+  double load=u8_memload();
+  return fd_make_flonum(load);
+}
+
+static fdtype vmemload_prim()
+{
+  double vload=u8_vmemload();
+  return fd_make_flonum(vload);
+}
+
 static fdtype usertime_prim()
 {
   struct rusage r;
@@ -1509,6 +1550,19 @@ static fdtype cpusage_prim(fdtype arg)
       else return fd_type_error(_("rusage"),"getcpusage",arg);}}
 }
 
+static int get_max_cpus()
+{
+  int retval=0;
+#if ((HAVE_SYSCONF)&&(defined(_SC_NPROCESSORS_CONF)))
+  retval=sysconf(_SC_NPROCESSORS_CONF);
+  if (retval>0) return retval;
+  if (retval<0) fd_clear_errors(1);
+  return 1;
+#else
+  return 1;
+#endif
+}
+
 static int get_n_cpus()
 {
   int retval=0;
@@ -1516,8 +1570,12 @@ static int get_n_cpus()
   retval=sysconf(_SC_NPROCESSORS_ONLN);
   if (retval>0) return retval;
   if (retval<0) fd_clear_errors(1);
+  return 1;
+#elif (HAVE_SYSCONF)
+  return get_max_cpus();
+#else
+  return 1;
 #endif
-  return 0;
 }
 
 static int get_pagesize()
@@ -1652,6 +1710,11 @@ static double stime_sensor()
 static long memusage_sensor()
 {
   ssize_t usage=u8_memusage();
+  return (long)usage;
+}
+static long vmemusage_sensor()
+{
+  ssize_t usage=u8_vmemusage();
   return (long)usage;
 }
 #if HAVE_STRUCT_RUSAGE_RU_INBLOCK
@@ -1863,7 +1926,7 @@ static int corelimit_set(fdtype symbol,fdtype value,void *vptr)
 /* Google profiling tools */
 
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
-static fdtype gprof_heap_profile(fdtype arg)
+static fdtype gperf_heap_profile(fdtype arg)
 {
   int running=IsHeapProfilerRunning();
   if (FD_FALSEP(arg)) {
@@ -1880,14 +1943,14 @@ static fdtype gprof_heap_profile(fdtype arg)
     return FD_TRUE;}
 }
 
-static fdtype gprof_profiling_heap(fdtype arg)
+static fdtype gperf_profiling_heap(fdtype arg)
 {
   if (IsHeapProfilerRunning())
     return FD_TRUE;
   else return FD_FALSE;
 }
 
-static fdtype gprof_dump_heap(fdtype arg)
+static fdtype gperf_dump_heap(fdtype arg)
 {
   int running=IsHeapProfilerRunning();
   if (running) {
@@ -1898,14 +1961,14 @@ static fdtype gprof_dump_heap(fdtype arg)
 #endif
 
 #if HAVE_GPERFTOOLS_PROFILER_H
-static fdtype gprof_startstop(fdtype arg)
+static fdtype gperf_startstop(fdtype arg)
 {
   if (FD_STRINGP(arg))
     ProfilerStart(FD_STRDATA(arg));
   else ProfilerStop();
   return FD_VOID;
 }
-static fdtype gprof_flush(fdtype arg)
+static fdtype gperf_flush(fdtype arg)
 {
   ProfilerFlush();
   return FD_VOID;
@@ -2051,7 +2114,11 @@ FD_EXPORT void fd_init_timeprims_c()
   pid_symbol=fd_intern("PID");
   ppid_symbol=fd_intern("PPID");
   memusage_symbol=fd_intern("MEMUSAGE");
+  vmemusage_symbol=fd_intern("VMEMUSAGE");
+  memload_symbol=fd_intern("MEMLOAD");
+  vmemload_symbol=fd_intern("VMEMLOAD");
   n_cpus_symbol=fd_intern("NCPUS");
+  max_cpus_symbol=fd_intern("MAXCPUS");
   nptrlocks_symbol=fd_intern("NPTRLOCKS");
   pagesize_symbol=fd_intern("PAGESIZE");
   physical_pages_symbol=fd_intern("PHYSICAL-PAGES");
@@ -2121,6 +2188,9 @@ FD_EXPORT void fd_init_timeprims_c()
 
   fd_idefn(fd_scheme_module,fd_make_cprim1("RUSAGE",rusage_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("MEMUSAGE",memusage_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("VMEMUSAGE",vmemusage_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("MEMLOAD",memload_prim,0));
+  fd_idefn(fd_scheme_module,fd_make_cprim0("VMEMLOAD",vmemload_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("USERTIME",usertime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim0("SYSTIME",systime_prim,0));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CPUSAGE",cpusage_prim,0));
@@ -2143,18 +2213,18 @@ FD_EXPORT void fd_init_timeprims_c()
 
 #if HAVE_GPERFTOOLS_HEAP_PROFILER_H
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPROF/HEAP/PROFILE!",gprof_heap_profile,0));
+           fd_make_cprim1("GPERF/HEAP/PROFILE!",gperf_heap_profile,0));
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim0("GPROF/HEAP?",gprof_profiling_heap,0));
+           fd_make_cprim0("GPERF/HEAP?",gperf_profiling_heap,0));
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPROF/DUMPHEAP",gprof_dump_heap,1));
+           fd_make_cprim1("GPERF/DUMPHEAP",gperf_dump_heap,1));
 #endif
 
 #if HAVE_GPERFTOOLS_PROFILER_H
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPROF/PROFILE!",gprof_startstop,0));
+           fd_make_cprim1("GPERF/PROFILE!",gperf_startstop,0));
   fd_idefn(fd_xscheme_module,
-           fd_make_cprim1("GPROF/FLUSH",gprof_flush,1));
+           fd_make_cprim1("GPERF/FLUSH",gperf_flush,1));
 #endif
 
 
@@ -2169,6 +2239,9 @@ FD_EXPORT void fd_init_timeprims_c()
   {
     fd_calltrack_sensor cts=fd_get_calltrack_sensor("MEMUSAGE",1);
     cts->enabled=0; cts->intfcn=memusage_sensor;}
+  {
+    fd_calltrack_sensor cts=fd_get_calltrack_sensor("VMEMUSAGE",1);
+    cts->enabled=0; cts->intfcn=vmemusage_sensor;}
 #if HAVE_STRUCT_RUSAGE_RU_INBLOCK
   {
     fd_calltrack_sensor cts=fd_get_calltrack_sensor("INBLOCK",1);
