@@ -930,6 +930,7 @@ static int savep(fdtype v,fd_pool_commit_flags flags)
     if (FD_HASHTABLE_MODIFIEDP(v)) {
       if ((saveall)||(FD_HASHTABLE_READONLYP(v))) return 1;}}
   else return 1;
+  return saveall;
 }
 
 static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,

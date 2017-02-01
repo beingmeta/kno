@@ -712,13 +712,16 @@ FD_EXPORT int fd_sizeconfig_set(fdtype ignored,fdtype v,void *vptr)
 {
   ssize_t *ptr=vptr;
   if (FD_FIXNUMP(v)) {
+    if ((*ptr)==(FD_FIX2INT(v))) return 0;
     *ptr=FD_FIX2INT(v);
     return 1;}
   else if (FD_BIGINTP(v)) {
     struct FD_BIGINT *bi=(fd_bigint)v;
     if (fd_bigint_fits_in_word_p(bi,8,1)) {
       long long ullv=fd_bigint_to_long_long(bi);
-      *ptr=(ssize_t)ullv;}
+      if ((*ptr)==((ssize_t)ullv)) return 0;
+      *ptr=(ssize_t)ullv;
+      return 1;}
     else return fd_reterr
            (fd_RangeError,"fd_sizeconfig_set",
             u8_strdup(_("size_t sized value")),v);}
