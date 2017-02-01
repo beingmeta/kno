@@ -33,7 +33,7 @@
 			       (config 'blocksize (quotient (pool-load old) 10))
 			       (mt/custom-progress "Identifying schemas"))
 	       (hashtable-increment! table (sorted (getkeys (get old f)))))
-	     (let* ((threshold 2)
+	     (let* ((threshold (config 'schemathresh (max (quotient (table-maxval table) 4) 2)))
 		    (schemas (getkeys table))
 		    (picked (table-skim table threshold))
 		    (sum (reduce-choice + picked 0 table)))
