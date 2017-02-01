@@ -66,8 +66,10 @@ FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
 FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd);
 
 FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename);
-FD_EXPORT int fd_write_dtype_to_file(fdtype obj,u8_string filename);
-FD_EXPORT int fd_add_dtype_to_file(fdtype obj,u8_string filename);
+FD_EXPORT ssize_t _fd_write_dtype_to_file(fdtype,u8_string,size_t,int);
+FD_EXPORT ssize_t fd_write_dtype_to_file(fdtype obj,u8_string filename);
+FD_EXPORT ssize_t fd_write_ztype_to_file(fdtype obj,u8_string filename);
+FD_EXPORT ssize_t fd_add_dtype_to_file(fdtype obj,u8_string filename);
 
 /* Structure functions and macros */
 

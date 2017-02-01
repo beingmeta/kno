@@ -908,6 +908,33 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
       return FD_ERROR_VALUE;}}
 }
 
+FD_EXPORT ssize_t _fd_write_dtype_to_file(fdtype object,
+                                          u8_string filename,
+                                          size_t bufsize,
+                                          int zip)
+{
+  struct FD_DTYPE_STREAM *stream=u8_alloc(struct FD_DTYPE_STREAM);
+  struct FD_DTYPE_STREAM *opened=
+    fd_init_dtype_file_stream(stream,filename,FD_DTSTREAM_WRITE,bufsize);
+  if (opened) {
+    size_t len=(zip)?
+      (zwrite_dtype(opened,object)):
+      (fd_dtswrite_dtype(opened,object));
+    fd_dtsclose(opened,1);
+    return len;}
+  else return -1;
+}
+
+FD_EXPORT ssize_t fd_write_dtype_to_file(fdtype object,u8_string filename)
+{
+  return _fd_write_dtype_to_file(object,filename,1024*64,0);
+}
+
+FD_EXPORT ssize_t fd_write_zdtype_to_file(fdtype object,u8_string filename)
+{
+  return _fd_write_dtype_to_file(object,filename,1024*64,1);
+}
+
 /* Initialization of file */
 
 FD_EXPORT void fd_init_dtypestream_c()
