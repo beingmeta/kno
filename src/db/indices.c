@@ -788,7 +788,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
   else init_cache_level(ix);
   if ((ix->adds.n_slots) || (ix->edits.n_slots)) {
     int n_keys=ix->adds.n_keys+ix->edits.n_keys, retval=0;
-    u8_log(fddb_loglevel+1,fd_IndexCommit,
+    u8_log(fddb_loglevel,fd_IndexCommit,
            "####### Saving %d updates to %s",n_keys,ix->cid);
     double start_time=u8_elapsed_time();
     if (ix->cache_level<0) {
