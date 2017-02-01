@@ -1467,7 +1467,7 @@ static int do_commit(fd_pool p,void *data)
   if (retval<0)
     if (data) {
       u8_log(LOG_CRIT,"POOL_COMMIT_FAIL",
-             "Error when commiting pool %s",p->cid);
+             "Error when committing pool %s",p->cid);
       return 0;}
     else return -1;
   else return 0;

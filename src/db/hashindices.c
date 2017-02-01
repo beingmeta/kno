@@ -1517,7 +1517,7 @@ static void hash_index_setcache(fd_index ix,int level)
 struct POP_SCHEDULE {
   fdtype key; unsigned int size, bucket;};
 struct BUCKET_REF {
-  /* max_new is only used when commiting. */
+  /* max_new is only used when committing. */
   unsigned int bucket, max_new; FD_CHUNK_REF ref;};
 
 static int sort_ps_by_bucket(const void *p1,const void *p2)
