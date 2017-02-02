@@ -20,6 +20,13 @@ FD_EXPORT fd_exception
 
 FD_EXPORT u8_condition fd_IndexCommit;
 
+#define FD_INDEX_CACHE_INIT 73
+#define FD_INDEX_EDITS_INIT 73
+#define FD_INDEX_ADDS_INIT 123
+FD_EXPORT int fd_index_cache_init;
+FD_EXPORT int fd_index_edits_init;
+FD_EXPORT int fd_index_adds_init;
+
 #define FD_INDEX_FLAG_BASE 256
 #define FD_INDEX_FLAG(n) (FD_INDEX_FLAG_BASE<<(n))
 
@@ -86,6 +93,7 @@ FD_EXPORT int fd_for_indices(int (*fcn)(fd_index,void *),void *data);
 
 FD_EXPORT void fd_init_index
   (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,int consed);
+FD_EXPORT void fd_reset_index_tables(fd_index ix,ssize_t csize,ssize_t esize,ssize_t asize);
 
 FD_EXPORT void fd_register_index(fd_index ix);
 

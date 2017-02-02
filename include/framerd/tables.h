@@ -69,6 +69,12 @@ FD_EXPORT fdtype fd_table_skim(fdtype table,fdtype maxval,fdtype scope);
 
 #define FD_TABLEP(x) ((fd_tablefns[FD_PTR_TYPE(x)])!=NULL)
 
+#define FD_INIT_SMAP_SIZE 7
+#define FD_INIT_HASH_SIZE 73
+
+FD_EXPORT short fd_init_smap_size;
+FD_EXPORT int   fd_init_hash_size;
+
 /* Slotmaps */
 
 struct FD_KEYVAL {

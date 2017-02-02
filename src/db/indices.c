@@ -34,6 +34,10 @@ static u8_condition ipeval_ixfetch="IXFETCH";
 
 fd_index (*fd_file_index_opener)(u8_string,int)=NULL;
 
+int fd_index_cache_init  = FD_INDEX_CACHE_INIT;
+int fd_index_edits_init  = FD_INDEX_EDITS_INIT;
+int fd_index_adds_init   = FD_INDEX_ADDS_INIT;
+
 fd_index fd_primary_indices[FD_N_PRIMARY_INDICES], *fd_secondary_indices=NULL;
 int fd_n_primary_indices=0, fd_n_secondary_indices=0;
 
@@ -837,7 +841,7 @@ FD_EXPORT void fd_init_index
   FD_INIT_STATIC_CONS(&(ix->cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(ix->adds),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(ix->edits),fd_hashtable_type);
-  fd_make_hashtable(&(ix->cache),0);
+  fd_make_hashtable(&(ix->cache),fd_index_cache_init);
   fd_make_hashtable(&(ix->adds),0);
   fd_make_hashtable(&(ix->edits),0);
   ix->handler=h;
@@ -845,6 +849,19 @@ FD_EXPORT void fd_init_index
   ix->source=u8_strdup(source);
   ix->xid=NULL;
   ix->has_slotids=FD_VOID;
+}
+
+FD_EXPORT void fd_reset_index_tables(fd_index ix,ssize_t csize,ssize_t esize,ssize_t asize)
+{
+  int readonly=ix->read_only;
+  fd_hashtable cache=&(ix->cache), edits=&(ix->edits), adds=&(ix->adds);
+  fd_reset_hashtable(cache,((csize==0)?(fd_index_cache_init):(csize)),1);
+  if (edits->n_keys==0) {
+    ssize_t level=(readonly)?(0):(esize==0)?(fd_index_edits_init):(esize);
+    fd_reset_hashtable(edits,level,1);}
+  if (adds->n_keys==0) {
+    ssize_t level=(readonly)?(0):(asize==0)?(fd_index_adds_init):(asize);
+    fd_reset_hashtable(adds,level,1);}
 }
 
 static int unparse_index(u8_output out,fdtype x)
@@ -1262,8 +1279,8 @@ static int extindex_commit(fd_index ix)
     argv[3]=exi->state;
     result=fd_apply(exi->commitfn,((FD_VOIDP(exi->state))?(3):(4)),argv);
     fd_decref(argv[0]); fd_decref(argv[1]); fd_decref(argv[2]);
-    fd_reset_hashtable(&(exi->adds),67,0);
-    fd_reset_hashtable(&(exi->edits),67,0);
+    fd_reset_hashtable(&(exi->adds),fd_index_adds_init,0);
+    fd_reset_hashtable(&(exi->edits),fd_index_edits_init,0);
     fd_rw_unlock_struct(&(exi->adds));
     fd_rw_unlock_struct(&(exi->edits));
     if (FD_ABORTP(result)) return -1;

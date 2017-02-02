@@ -49,6 +49,9 @@ fd_exception fd_DataFileOverflow=_("Data file is over implementation limit");
 
 u8_condition fd_PoolCommit=_("Pool/Commit");
 
+int fd_pool_cache_init = FD_POOL_CACHE_INIT;
+int fd_pool_lock_init  = FD_POOL_LOCKS_INIT;
+
 int fd_n_pools=0;
 fd_pool fd_default_pool=NULL;
 struct FD_POOL *fd_top_pools[1024];
@@ -166,6 +169,19 @@ static void init_cache_level(fd_pool p)
     p->cache_level=fd_default_cache_level;
     if (p->handler->setcache)
       p->handler->setcache(p,fd_default_cache_level);}
+}
+
+FD_EXPORT
+void fd_reset_pool_tables(fd_pool p,
+                          ssize_t cacheval,
+                          ssize_t locksval)
+{
+  int read_only=p->read_only;
+  fd_hashtable cache=&(p->cache), locks=&(p->locks);
+  fd_reset_hashtable(cache,((cacheval==0)?(fd_pool_cache_init):(cacheval)),1);
+  if (locks->n_keys==0) {
+    ssize_t level=(read_only)?(0):(locksval==0)?(fd_pool_lock_init):(locksval);
+    fd_reset_hashtable(locks,level,1);}
 }
 
 /* Registering pools */
@@ -975,7 +991,8 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
            "Error %d (%s) saving oids to %s",
            errno,u8_strerror(errno),p->cid);
     u8_seterr(fd_PoolCommitError,"fd_pool_commit",u8_strdup(p->cid));
-    if (unlock) restore_locks(locks,&writes);}
+    if (unlock) restore_locks(locks,&writes);
+    return retval;}
   else {
     u8_log(fddb_loglevel,fd_PoolCommit,
            "####### Saved %d OIDs to %s in %f secs",writes.len,p->cid,
@@ -1197,7 +1214,7 @@ FD_EXPORT void fd_pool_swapout(fd_pool p)
   if (p) {
     if ((p->flags)&(FD_STICKY_CACHESIZE))
       fd_reset_hashtable(&(p->cache),-1,1);
-    else fd_reset_hashtable(&(p->cache),67,1);}
+    else fd_reset_hashtable(&(p->cache),fd_pool_cache_init,1);}
   if (p) {
     /* Commit and unlock all of the finished OIDs */
     fd_pool_commit(p,FD_VOID,COMMIT_FINISHED);
@@ -1569,8 +1586,8 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   p->flags=((h->fetchn)?(FD_POOL_BATCHABLE):(0));
   FD_INIT_STATIC_CONS(&(p->cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(p->locks),fd_hashtable_type);
-  fd_make_hashtable(&(p->cache),64);
-  fd_make_hashtable(&(p->locks),0);
+  fd_make_hashtable(&(p->cache),fd_pool_cache_init);
+  fd_make_hashtable(&(p->locks),fd_pool_lock_init);
   p->max_adjuncts=0; p->n_adjuncts=0; p->adjuncts=NULL;
   p->op_handlers=NULL;
   p->n_locks=0;
@@ -1945,7 +1962,7 @@ static int mempool_swapout(fd_pool p,fdtype oidvals)
   struct FD_MEMPOOL *mp=(fd_mempool)p;
   if (mp->noswap) return 0;
   else if (FD_VOIDP(oidvals)) {
-    fd_reset_hashtable(&(p->locks),1024,1);
+    fd_reset_hashtable(&(p->locks),fd_pool_lock_init,1);
     return 1;}
   else {
     fdtype oids=fd_make_simple_choice(oidvals);
@@ -2360,7 +2377,7 @@ FD_EXPORT void fd_init_pools_c()
     e->parser=pool_parsefn;}
 
   FD_INIT_STATIC_CONS(&poolid_table,fd_hashtable_type);
-  fd_make_hashtable(&poolid_table,32);
+  fd_make_hashtable(&poolid_table,-1);
 
 #if (FD_USE_TLS)
   u8_new_threadkey(&fd_pool_delays_key,NULL);

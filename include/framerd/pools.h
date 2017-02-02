@@ -123,6 +123,11 @@ fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
 
 FD_EXPORT u8_condition fd_PoolCommit;
 
+#define FD_POOL_CACHE_INIT 123
+#define FD_POOL_LOCKS_INIT 73
+FD_EXPORT int fd_pool_cache_init;
+FD_EXPORT int fd_pool_lock_init;
+
 #define FD_POOL_FLAG_BASE 256
 #define FD_POOL_FLAG(n) (FD_POOL_FLAG_BASE<<(n))
 
@@ -147,7 +152,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   FD_CONS_HEADER;                                          \
   FD_OID base;                                             \
   unsigned int capacity, read_only;                        \
-  int serialno; int cache_level, flags;                    \
+  int serialno; int cache_level, flags;			   \
   u8_string label, source, cid, xid, prefix;               \
   int n_adjuncts, max_adjuncts;                            \
   struct FD_ADJUNCT *adjuncts;                             \
@@ -289,6 +294,8 @@ FD_EXPORT int fd_pool_unlock_all(fd_pool p,int commit);
 FD_EXPORT int fd_pool_commit_all(fd_pool p,int unlock);
 
 FD_EXPORT int fd_pool_load(fd_pool p);
+
+FD_EXPORT void fd_reset_pool_tables(fd_pool p,ssize_t cacheval,ssize_t locksval);
 
 FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value);
 FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid);

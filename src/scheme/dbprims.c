@@ -1505,7 +1505,8 @@ static fdtype indexkeysvec(fdtype ixarg)
 static fdtype indexmerge(fdtype ixarg,fdtype addstable)
 {
   fd_index ix=fd_indexptr(ixarg);
-  if (ix==NULL) fd_type_error("index","indexmerge",ixarg);
+  if (ix==NULL) 
+    return fd_type_error("index","indexmerge",ixarg);
   else {
     int rv=fd_index_merge(ix,(fd_hashtable)addstable);
     return FD_INT(rv);}
@@ -1514,7 +1515,8 @@ static fdtype indexmerge(fdtype ixarg,fdtype addstable)
 static fdtype indexsource(fdtype ix_arg)
 {
   fd_index ix=fd_indexptr(ix_arg);
-  if (ix==NULL) fd_type_error("index","indexsource",ix_arg);
+  if (ix==NULL) 
+    return fd_type_error("index","indexsource",ix_arg);
   return fdtype_string(ix->source);
 }
 

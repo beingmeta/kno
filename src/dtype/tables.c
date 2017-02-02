@@ -63,6 +63,10 @@ static int numcompare(fdtype x,fdtype y)
   else return fd_numcompare(x,y);
 }
 
+short fd_init_smap_size = FD_INIT_SMAP_SIZE;
+int fd_init_hash_size   = FD_INIT_HASH_SIZE;
+
+
 /* Debugging tools */
 
 #if DEBUGGING
@@ -501,6 +505,7 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
   struct FD_KEYVAL *kv=
     ((struct FD_KEYVAL *)(((unsigned char *)ptr)+sizeof(struct FD_SLOTMAP)));
   int i=0;
+  if (len<1) len=fd_init_smap_size;
   FD_INIT_STRUCT(ptr,struct FD_SLOTMAP);
   FD_INIT_CONS(ptr,fd_slotmap_type);
   ptr->space=space; ptr->size=len;
@@ -1417,7 +1422,7 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
     fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_store",NULL,key);
     return -1;}
   fd_write_lock_struct(ht);
-  if (ht->n_slots == 0) setup_hashtable(ht,17);
+  if (ht->n_slots == 0) setup_hashtable(ht,fd_init_hash_size);
   n_keys=ht->n_keys;
   result=fd_hashvec_insert
     (key,ht->slots,ht->n_slots,&(ht->n_keys));
@@ -1467,7 +1472,9 @@ static int check_hashtable_size(fd_hashtable ht,ssize_t delta)
 {
   int loading=ht->loading;
   size_t n_keys=ht->n_keys, n_slots=ht->n_slots; 
-  size_t need_keys=(delta<0) ? (n_keys+7) : (n_keys+delta+7);
+  size_t need_keys=(delta<0) ? 
+    (n_keys+fd_init_hash_size+3) : 
+    (n_keys+delta+fd_init_hash_size);
   if (n_slots==0) {
     setup_hashtable(ht,fd_get_hashtable_size(need_keys));
     return ht->n_slots;}
@@ -1617,7 +1624,7 @@ static int do_hashtable_op
          (op == fd_table_drop)))
       return 0;
   default:
-    if (ht->n_slots == 0) setup_hashtable(ht,17);
+    if (ht->n_slots == 0) setup_hashtable(ht,fd_init_hash_size);
     result=fd_hashvec_insert(key,ht->slots,ht->n_slots,&(ht->n_keys));}
   if ((!(result))&&
       ((op==fd_table_drop)||
@@ -2585,7 +2592,7 @@ FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size,int stack_con
 FD_EXPORT fdtype fd_make_hashset()
 {
   struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
-  fd_init_hashset(h,17,FD_MALLOCD_CONS);
+  fd_init_hashset(h,fd_init_hash_size,FD_MALLOCD_CONS);
   FD_INIT_CONS(h,fd_hashset_type);
   return FDTYPE_CONS(h);
 }
