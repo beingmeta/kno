@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -738,6 +738,68 @@ static fdtype commit_lexpr(int n,fdtype *args)
   else return fd_err(fd_TooManyArgs,"commit",NULL,FD_VOID);
 }
 
+fd_pool_commit_flags get_commit_flags(fdtype opts)
+{
+  fd_pool_commit_flags flags=0;
+
+  if (!(FD_TABLEP(opts))||(FD_SYMBOLP(opts)))
+    return FD_POOL_COMMIT_UNLOCK|FD_POOL_COMMIT_FINISHED;
+  else if (fd_testopt(opts,fd_intern("UNLOCK"),FD_VOID)) {
+    flags|=FD_POOL_COMMIT_UNLOCK;}
+  else if (fd_testopt(opts,fd_intern("KEEP"),FD_VOID)) {}
+  else if (fd_testopt(opts,fd_intern("FINAL"),FD_VOID)) {
+    flags|=FD_POOL_COMMIT_UNLOCK;}
+  else flags|=FD_POOL_COMMIT_UNLOCK;
+
+  if (fd_testopt(opts,fd_intern("FINISHED"),FD_VOID)) {
+    flags|=FD_POOL_COMMIT_FINISHED;}
+  else if (fd_testopt(opts,fd_intern("FORCE"),FD_VOID)) {}
+  else if (fd_testopt(opts,fd_intern("ALL"),FD_VOID)) {}
+  else flags|=FD_POOL_COMMIT_FINISHED;
+
+  return flags;
+}
+
+static fdtype commit_oids(fdtype oids,fdtype pool,fdtype opts)
+{
+  fd_pool_commit_flags flags=get_commit_flags(opts);
+  if (FD_VOIDP(pool)) {
+    int rv=fd_commit_oids(oids,flags);
+    if (rv<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;}
+  else {
+    fd_pool p = fd_lisp2pool(pool);
+    int rv=fd_pool_commit(p,oids,flags);
+    if (rv<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;}
+}
+
+static fdtype finish_oids(fdtype oids,fdtype pool)
+{
+  fd_pool p = (FD_VOIDP(pool))? (NULL) : (fd_lisp2pool(pool));
+  if (FD_EMPTY_CHOICEP(oids)) return FD_VOID;
+  else {
+    int rv = fd_finish_oids(oids,p);
+    if (rv<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;}
+}
+
+static fdtype commit_pool(fdtype pool,fdtype opts)
+{
+  fd_pool_commit_flags flags=get_commit_flags(opts);
+  fd_pool p=fd_lisp2pool(pool);
+  if (!(p))
+    return fd_type_error("pool","commit_pool",pool);
+  else {
+    int rv=fd_pool_commit(p,FD_VOID,flags);
+    if (rv<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;}
+}
+
 static fdtype clear_slotcache(fdtype arg)
 {
   if (FD_VOIDP(arg)) fd_clear_slotcaches();
@@ -1440,10 +1502,21 @@ static fdtype indexkeysvec(fdtype ixarg)
   else return fd_index_keys(ix);
 }
 
+static fdtype indexmerge(fdtype ixarg,fdtype addstable)
+{
+  fd_index ix=fd_indexptr(ixarg);
+  if (ix==NULL) 
+    return fd_type_error("index","indexmerge",ixarg);
+  else {
+    int rv=fd_index_merge(ix,(fd_hashtable)addstable);
+    return FD_INT(rv);}
+}
+
 static fdtype indexsource(fdtype ix_arg)
 {
   fd_index ix=fd_indexptr(ix_arg);
-  if (ix==NULL) fd_type_error("index","indexsource",ix_arg);
+  if (ix==NULL) 
+    return fd_type_error("index","indexsource",ix_arg);
   return fdtype_string(ix->source);
 }
 
@@ -2948,6 +3021,19 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,
            fd_make_ndprim(fd_make_cprimn("SWAPOUT",swapout_lexpr,0)));
   fd_idefn(fd_xscheme_module,fd_make_cprimn("COMMIT",commit_lexpr,0));
+  fd_idefn(fd_xscheme_module,
+           fd_make_ndprim(fd_make_cprim2x("FINISH-OIDS",finish_oids,1,
+                                          -1,FD_VOID,
+                                          fd_pool_type,FD_VOID)));
+  fd_idefn(fd_xscheme_module,
+           fd_make_ndprim(fd_make_cprim3x("COMMIT-OIDS",commit_oids,1,
+                                          -1,FD_VOID,
+                                          -1,fd_pool_type,
+                                          -1,FD_TRUE)));
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim2x("COMMIT-POOL",commit_pool,1,
+                           fd_pool_type,FD_VOID,-1,FD_VOID));
+
   fd_idefn(fd_xscheme_module,fd_make_cprim1("POOL-CLOSE",pool_close_prim,1));
   fd_idefn(fd_xscheme_module,
            fd_make_cprim1("CLEAR-SLOTCACHE!",clear_slotcache,0));
@@ -2982,8 +3068,12 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-KEYSVEC",indexkeysvec,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SIZES",indexsizes,1));
   fd_idefn(fd_xscheme_module,fd_make_cprim1("INDEX-SOURCE",indexsource,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1x("SUGGEST-HASH-SIZE",suggest_hash_size,1,
-                                            fd_fixnum_type,FD_VOID));
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim2x("INDEX-MERGE!",indexmerge,2,-1,FD_VOID,
+                           fd_hashtable_type,FD_VOID));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1x("SUGGEST-HASH-SIZE",suggest_hash_size,1,
+                           fd_fixnum_type,FD_VOID));
   fd_idefn(fd_xscheme_module,fd_make_cprim3("INDEX-DECACHE",indexdecache,2));
   fd_idefn(fd_xscheme_module,fd_make_cprim2("BGDECACHE",bgdecache,1));
   fd_idefn(fd_xscheme_module,

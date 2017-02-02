@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -121,6 +121,13 @@ fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
   fd_BadFilePoolLabel, fd_ReadOnlyPool, fd_ExhaustedPool,
   fd_PoolCommitError, fd_UnresolvedPool, fd_DataFileOverflow;
 
+FD_EXPORT u8_condition fd_PoolCommit;
+
+#define FD_POOL_CACHE_INIT 123
+#define FD_POOL_LOCKS_INIT 73
+FD_EXPORT int fd_pool_cache_init;
+FD_EXPORT int fd_pool_lock_init;
+
 #define FD_POOL_FLAG_BASE 256
 #define FD_POOL_FLAG(n) (FD_POOL_FLAG_BASE<<(n))
 
@@ -130,6 +137,13 @@ fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
 
 FD_EXPORT int fd_ignore_anonymous_oids;
 
+typedef unsigned int fd_pool_commit_flags;
+#define FD_POOL_COMMIT_UNLOCK 1
+#define FD_POOL_COMMIT_FINISHED 2
+#define FD_POOL_COMMIT_UNMODIFIED 4
+
+#define FD_POOL_COMMIT_FINAL (FD_POOL_COMMIT_UNLOCK)
+
 typedef struct FD_ADJUNCT {
   struct FD_POOL *pool; fdtype slotid; fdtype table;} FD_ADJUNCT;
 typedef struct FD_ADJUNCT *fd_adjunct;
@@ -138,7 +152,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   FD_CONS_HEADER;                                          \
   FD_OID base;                                             \
   unsigned int capacity, read_only;                        \
-  int serialno; int cache_level, flags;                    \
+  int serialno; int cache_level, flags;			   \
   u8_string label, source, cid, xid, prefix;               \
   int n_adjuncts, max_adjuncts;                            \
   struct FD_ADJUNCT *adjuncts;                             \
@@ -159,7 +173,6 @@ FD_EXPORT fdtype fd_all_pools(void);
 
 FD_EXPORT fd_pool *fd_pool_serial_table;
 FD_EXPORT int fd_pool_serial_count;
-
 
 /* Pool handlers */
 
@@ -265,9 +278,10 @@ FD_EXPORT int fd_unlock_oids(fdtype oids,int commit);
 FD_EXPORT int fd_unlock_oid(fdtype oid,int commit);
 FD_EXPORT int fd_swapout_oid(fdtype oid);
 FD_EXPORT int fd_swapout_oids(fdtype oids);
+FD_EXPORT int fd_finish_oids(fdtype oids,fd_pool poolarg);
 FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids);
 FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit);
-FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,int unlock);
+FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,fd_pool_commit_flags flags);
 FD_EXPORT void fd_pool_setcache(fd_pool p,int level);
 FD_EXPORT void fd_pool_close(fd_pool p);
 FD_EXPORT void fd_pool_swapout(fd_pool p);
@@ -281,6 +295,8 @@ FD_EXPORT int fd_pool_commit_all(fd_pool p,int unlock);
 
 FD_EXPORT int fd_pool_load(fd_pool p);
 
+FD_EXPORT void fd_reset_pool_tables(fd_pool p,ssize_t cacheval,ssize_t locksval);
+
 FD_EXPORT int fd_set_oid_value(fdtype oid,fdtype value);
 FD_EXPORT fdtype fd_locked_oid_value(fd_pool p,fdtype oid);
 
@@ -292,7 +308,7 @@ FD_EXPORT int fd_unlock_pools(int);
 FD_EXPORT long fd_object_cache_load(void);
 FD_EXPORT fdtype fd_cached_oids(fd_pool p);
 
-FD_EXPORT int fd_commit_oids(fdtype oids,int unlock);
+FD_EXPORT int fd_commit_oids(fdtype oids,fd_pool_commit_flags flags);
 
 #if FD_INLINE_POOLS
 FD_FASTOP fd_pool fd_oid2pool(fdtype oid)

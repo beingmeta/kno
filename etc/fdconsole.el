@@ -27,7 +27,7 @@
 (make-variable-buffer-local 'fdconsole-cmdline)
 
 (defvar *framerd-keywords*
-  '("\\<do-choices-mt\\>" "\\<do-seq-mt\\>" "\\<for-choices-mt\\>"
+  '("\\<do-choices-mt\\>" "\\<do-vector-mt\\>" "\\<for-choices-mt\\>"
     "\\<do-choices\\>" "\\<for-choices\\>" "\\<filter-choices\\>"
     "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>" "\\<forseq>\\"
     "\\<lambda\\>" "\\<ambda\\>" "\\<slambda\\>" "\\<macro\\>"
@@ -123,7 +123,7 @@
 (put 'filter-choices 'scheme-indent-function 1)
 (put 'try-choices 'scheme-indent-function 1)
 (put 'do-choices-mt 'scheme-indent-function 1)
-(put 'do-seq-mt 'scheme-indent-function 1)
+(put 'do-vector-mt 'scheme-indent-function 1)
 (put 'for-choices-mt 'scheme-indent-function 1)
 (put 'tryseq 'scheme-indent-function 1)
 (put 'while 'scheme-indent-function 1)

@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2005-2016 beingmeta, inc.
+/* Copyright (C) 2005-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -44,7 +44,8 @@ FD_EXPORT int fd_xpprint
    fd_pprintfn fn,void *data);
 
 FD_EXPORT void fd_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width);
-FD_EXPORT void fd_log_backtrace(u8_exception ex,int loglevel,u8_condition label,int width);
+FD_EXPORT void fd_log_backtrace(u8_exception ex,int loglevel,
+				u8_condition label,int width);
 FD_EXPORT void fd_summarize_backtrace(U8_OUTPUT *out,u8_exception ex);
 
 FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT_FN;

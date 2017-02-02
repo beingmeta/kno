@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -205,7 +205,10 @@ FD_EXPORT fdtype fd_load_source_with_date
       /* This is now also the result */
       result=expr; fd_incref(expr);}
     else if (FD_ABORTP(expr)) {
-      result=expr; fd_incref(expr); expr=FD_VOID;}
+      fd_decref(result);
+      result=expr; 
+      fd_incref(expr); 
+      expr=FD_VOID;}
     if ((trace_load) || (trace_load_eval))
       u8_log(LOG_NOTICE,FileDone,"Loaded %s in %f seconds",
              sourcebase,u8_elapsed_time()-start);

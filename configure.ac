@@ -147,7 +147,7 @@ with_hyphenate_default="no"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
-CFLAGS=" -DLIBU8_SOURCE -fno-strict-aliasing -g "
+CFLAGS="-DLIBU8_SOURCE -DFRAMERD_SOURCE"
 MYSQL_CFLAGS=
 MYSQL_LDFLAGS=
 MONGODB_CFLAGS=
@@ -424,6 +424,16 @@ AC_DEFINE_UNQUOTED(FD_SANITIZE,"$with_sanitize")
 
 AC_ARG_WITH(duma,--with-duma Build with Detect Unintended Memory Access,with_duma=$withval,with_duma="no")
 
+AC_CANONICAL_HOST
+AC_PROG_CC([cc gcc])
+AC_USE_SYSTEM_EXTENSIONS
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+
+if test "${GCC}" = "yes"; then
+   CFLAGS="${CFLAGS} -fno-strict-aliasing -g3 -ggdb "
+fi;
+
 m4_include([etc/ax_pthread.m4])
 m4_include([etc/ax_check_link_flag.m4])
 
@@ -668,11 +678,10 @@ AC_DEFINE_UNQUOTED(FD_BUGJAR_ROOT,"$bugjar")
 
 AC_AIX
 
-gcc_version=`gcc -dumpversion`
-
-if test "x$CC" == "xcc" || test  "x$CC" == "xgcc"; then
-  dynamic_cflag="-rdynamic"
-fi
+if test "${GCC}" = "yes"; then
+   gcc_version=`gcc -dumpversion`;
+   dynamic_cflag="-rdynamic";
+fi;
 
 case $host_os in
   darwin*)

@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -93,6 +93,35 @@ static u8_input get_input_port(fdtype portarg)
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
     return p->in;}
   else return NULL;
+}
+
+static fdtype portp(fdtype arg)
+{
+  if (FD_PORTP(arg))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype input_portp(fdtype arg)
+{
+  if (FD_PORTP(arg)) {
+    struct FD_PORT *p=
+      FD_GET_CONS(arg,fd_port_type,struct FD_PORT *);
+    if (p->in)
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
+}
+
+static fdtype output_portp(fdtype arg)
+{
+  if (FD_PORTP(arg)) {
+    struct FD_PORT *p=
+      FD_GET_CONS(arg,fd_port_type,struct FD_PORT *);
+    if (p->out)
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
 }
 
 /* Identifying end of file */
@@ -537,10 +566,12 @@ static fdtype logif_handler(fdtype expr,fd_lispenv env)
   fdtype test_expr=fd_get_arg(expr,1), value=FD_FALSE;
   if (FD_ABORTP(test_expr)) return test_expr;
   else if (FD_EXPECT_FALSE(FD_STRINGP(test_expr)))
-    return fd_reterr(fd_SyntaxError,"logif_handler",_("LOGIF condition expression cannot be a string"),expr);
+    return fd_reterr(fd_SyntaxError,"logif_handler",
+                     _("LOGIF condition expression cannot be a string"),expr);
   else value=fasteval(test_expr,env);
   if (FD_ABORTP(value)) return value;
-  else if ((FD_FALSEP(value)) || (FD_VOIDP(value)) || (FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_LISTP(value)))
+  else if ( (FD_FALSEP(value)) || (FD_VOIDP(value)) ||
+            (FD_EMPTY_CHOICEP(value)) || (FD_EMPTY_LISTP(value)) )
     return FD_VOID;
   else {
     fdtype body=fd_get_body(expr,2);
@@ -1689,6 +1720,12 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("OPEN-INPUT-STRING",open_input_string,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PORTDATA",portdata,1));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1("PORT?",input_portp,1));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1("INPUT-PORT?",input_portp,1));
+  fd_idefn(fd_scheme_module,
+           fd_make_cprim1("OUTPUT-PORT?",output_portp,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("WRITE",write_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("DISPLAY",display_prim,1));

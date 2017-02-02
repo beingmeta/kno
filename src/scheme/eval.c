@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -10,6 +10,7 @@
 #endif
 
 #define FD_PROVIDE_FASTEVAL 1
+#define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1
 #define FD_INLINE_PPTRS 1
 
@@ -157,7 +158,7 @@ static fd_lispenv dynamic_environment(fd_lispenv env)
   if (env->copy) return env->copy;
   else {
     struct FD_ENVIRONMENT *newenv=u8_alloc(struct FD_ENVIRONMENT);
-    FD_INIT_CONS(newenv,fd_environment_type);
+    FD_INIT_FRESH_CONS(newenv,fd_environment_type);
     if (env->parent)
       newenv->parent=copy_environment(env->parent);
     else newenv->parent=NULL;
@@ -198,6 +199,7 @@ static void recycle_environment(struct FD_CONS *envp)
   struct FD_ENVIRONMENT *env=(struct FD_ENVIRONMENT *)envp;
   fd_decref(env->bindings); fd_decref(env->exports);
   if (env->parent) fd_decref((fdtype)(env->parent));
+  memset(env,0,sizeof(*env));
   u8_free(env);
 }
 
@@ -891,7 +893,8 @@ FD_EXPORT fdtype _fd_eval(fdtype expr,fd_lispenv env)
 static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
 {
   int n_args=0, i=0, gc_args=0;
-  fdtype _argv[FD_STACK_ARGS], *argv, arglist=FD_CDR(expr), results=FD_EMPTY_CHOICE;
+  fdtype _argv[FD_STACK_ARGS], *argv, arglist=FD_CDR(expr);
+  fdtype results=FD_EMPTY_CHOICE;
   {FD_DOLIST(elt,arglist)
       if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
         n_args++;}
@@ -1113,7 +1116,7 @@ FD_EXPORT fd_lispenv fd_make_env(fdtype bindings,fd_lispenv parent)
     return NULL;}
   else {
     struct FD_ENVIRONMENT *e=u8_alloc(struct FD_ENVIRONMENT);
-    FD_INIT_CONS(e,fd_environment_type);
+    FD_INIT_FRESH_CONS(e,fd_environment_type);
     e->bindings=bindings; e->exports=FD_VOID;
     e->parent=fd_copy_env(parent);
     e->copy=e;
@@ -1136,7 +1139,7 @@ fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent)
     return NULL;}
   else {
     struct FD_ENVIRONMENT *e=u8_alloc(struct FD_ENVIRONMENT);
-    FD_INIT_CONS(e,fd_environment_type);
+    FD_INIT_FRESH_CONS(e,fd_environment_type);
     e->bindings=fd_incref(exports); e->exports=fd_incref(e->bindings);
     e->parent=fd_copy_env(parent);
     e->copy=e;

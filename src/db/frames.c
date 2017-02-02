@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -1125,35 +1125,46 @@ int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
 
 /* Indexing frames */
 
+#define FD_LOOP_BREAK() FD_STOP_DO_CHOICES; break
+
 FD_EXPORT
-int fd_index_frame(fd_index ix,fdtype frame,fdtype slotid,fdtype values)
+int fd_index_frame(fd_index ix,fdtype frames,fdtype slotids,fdtype values)
 {
-  fdtype features;
-  if (FD_CHOICEP(slotid)) {
-    FD_DO_CHOICES(sl,slotid) {
-      int retval=fd_index_frame(ix,frame,sl,values);
-      if (retval<0) return retval;}
-    return 1;}
-  else if ((FD_VOIDP(values)) && (FD_CHOICEP(frame))) {
-    FD_DO_CHOICES(f,frame) {
-      FD_DO_CHOICES(sl,slotid) {
-        int retval=fd_index_frame(ix,f,sl,values);
-        if (retval<0) return retval;}}
-    return 1;}
-  else if (FD_VOIDP(values))
-    values=fd_frame_get(frame,slotid);
-  else fd_incref(values);
-  if (FD_ABORTP(values))
-    return fd_interr(values);
-  else features=make_features(slotid,values);
-  {FD_DO_CHOICES(feature,features) {
-    int retval=fd_index_add(ix,feature,frame);
-    if (retval<0) {
-      fd_decref(features); fd_decref(values);
-      return retval;}}}
-  fd_decref(values);
-  fd_decref(features);
-  return 1;
+  if (FD_VOIDP(values)) {
+    int rv=0, sum=0;
+    FD_DO_CHOICES(f,frames) {
+      fdtype frame_features=FD_EMPTY_CHOICE;
+      FD_DO_CHOICES(slotid,slotids) {
+        fdtype values=fd_frame_get(f,slotid);
+        if (FD_ABORTP(values)) {
+          frame_features=values; rv=-1;
+          /* break from iterating over slotids */
+          FD_LOOP_BREAK();}
+        else {
+          fdtype features=make_features(slotid,values);
+          FD_ADD_TO_CHOICE(frame_features,features);
+          fd_decref(values);}}
+      if (rv>=0) {
+        rv = fd_index_add(ix,frame_features,f);
+        if (rv>0) sum=sum+rv;}
+      fd_decref(frame_features);}
+    if (rv<0) return rv;
+    else return sum;}
+  else {
+    int rv=0, sum=0;
+    fdtype features=make_features(slotids,values);
+    if (FD_CHOICEP(frames)) {
+      FD_DO_CHOICES(f,frames) {
+        rv = fd_index_add(ix,features,f);
+        if (rv<0) {
+          FD_LOOP_BREAK();}
+        else sum=sum+rv;}}
+    else {
+      rv=fd_index_add(ix,features,frames);
+      if (rv>0) sum=rv;}
+    fd_decref(features);
+    if (rv<0) return rv;
+    else return sum;}
 }
 
 

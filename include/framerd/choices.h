@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -134,7 +134,7 @@ typedef struct FD_CHOICE *fd_choice;
   ch->fd_choicesize=sz; ch->fd_isatomic=atomicp
 
 #define fd_alloc_choice(n) \
-  (assert(n>0),u8_malloc(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
+  (assert(n>0),u8_mallocz(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
 #define fd_realloc_choice(ch,n)                                         \
   (assert(n>0),u8_realloc((ch),sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
 

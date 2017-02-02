@@ -632,19 +632,20 @@ static fdtype opcode_binary_nd_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
     fdtype results=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(a1,arg1) {
       {FD_DO_CHOICES(a2,arg2) {
-	  fdtype result=opcode_binary_dispatch(opcode,a1,a2);
-	  /* If we need to abort due to an error, we need to pop out of
-	     two choice loops.  So on the inside, we decref results and
-	     replace it with the error object.  We then break and
-	     do FD_STOP_DO_CHOICES (for potential cleanup). */
-	  if (FD_ABORTED(result)) {
-	    fd_decref(results); results=result;
-	    FD_STOP_DO_CHOICES; break;}}}
+          fdtype result=opcode_binary_dispatch(opcode,a1,a2);
+          /* If we need to abort due to an error, we need to pop out of
+             two choice loops.  So on the inside, we decref results and
+             replace it with the error object.  We then break and
+             do FD_STOP_DO_CHOICES (for potential cleanup). */
+          if (FD_ABORTED(result)) {
+            fd_decref(results); results=result;
+            FD_STOP_DO_CHOICES; break;}
+          else {FD_ADD_TO_CHOICE(results,result);}}}
       /* If the inner loop aborted due to an error, results is now bound
-	 to the error, so we just FD_STOP_DO_CHOICES (this time for the
-	 outer loop) and break; */
+         to the error, so we just FD_STOP_DO_CHOICES (this time for the
+         outer loop) and break; */
       if (FD_ABORTED(results)) {
-	FD_STOP_DO_CHOICES; break;}}
+        FD_STOP_DO_CHOICES; break;}}
     fd_decref(arg1); fd_decref(arg2);
     return results;}
 }
@@ -693,8 +694,11 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
   if (FD_ABORTED(arg1)) return arg1;
   else if (FD_VOIDP(arg1))
     return fd_err(fd_VoidArgument,"opcode eval",NULL,arg1_expr);
+  else if (FD_ACHOICEP(arg1))
+    arg1=fd_simplify_choice(arg1);
+  else {}
   /* Check the type for numeric arguments here. */
-  else if (FD_EXPECT_FALSE
+  if (FD_EXPECT_FALSE
 	   (((opcode>=FD_NUMERIC2_OPCODES) &&
 	     (opcode<FD_BINARY_OPCODES)) &&
 	    (!(numeric_argp(arg1))))) {
@@ -788,6 +792,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
       if (FD_ABORTED(slotids)) return slotids;
       else if (FD_VOIDP(slotids))
 	return fd_err(fd_SyntaxError,"OPCODE fget",NULL,expr);
+      else slotids=fd_simplify_choice(slotids);
       if (opcode==FD_GET_OPCODE)
 	result=fd_fget(arg1,slotids);
       else {
@@ -815,7 +820,10 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 	return fd_err(fd_SyntaxError,"OPCODE ftest",NULL,expr);
       else if (FD_EMPTY_CHOICEP(slotids)) {
         fd_decref(arg1); return FD_FALSE;}
-      else if (FD_VOIDP(values_arg))
+      else if (FD_ACHOICEP(slotids)) 
+        slotids=fd_simplify_choice(slotids);
+      else {}
+      if (FD_VOIDP(values_arg))
 	values=FD_VOID;
       else values=op_eval(values_arg,env,0);
       if (FD_ABORTED(values)) {
@@ -833,6 +841,7 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     fdtype arg2expr=fd_get_arg(expr,2), argv[2];
     fdtype arg2=op_eval(arg2expr,env,0);
     fdtype result=FD_ERROR_VALUE;
+    if (FD_ACHOICEP(arg2)) arg2=fd_simplify_choice(arg2);
     argv[0]=arg1; argv[1]=arg2;
     if (FD_ABORTED(arg2)) result=arg2;
     else if (FD_VOIDP(arg2)) {
@@ -925,6 +934,20 @@ static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
     return fd_err(fd_SyntaxError,"opcode eval",NULL,expr);}
 }
 
+static void unwrap_qchoices(fdtype *args,int n)
+{
+  int j=0; while (j<n) {
+    fdtype v=args[j];
+    if (FD_EMPTY_QCHOICEP(v)) {
+      args[j++]=FD_EMPTY_CHOICE;}
+    else if (FD_QCHOICEP(v)) {
+      struct FD_QCHOICE *qc=(fd_qchoice)v;
+      fd_incref(qc->choice);
+      args[j++]=qc->choice;
+      fd_decref(v);}
+    else j++;}
+}
+
 FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
 {
   switch (FD_PTR_MANIFEST_TYPE(x)) {
@@ -959,7 +982,7 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
                (head_type==fd_sproc_type)) {
         fdtype args[7], result=FD_VOID;
         struct FD_FUNCTION *fn=(struct FD_FUNCTION *)head;
-        int rail_i=1, arg_i=0, nd=0, ndcall=fn->ndcall;
+        int rail_i=1, arg_i=0, nd=0, qchoices=0, ndcall=fn->ndcall;
         while (rail_i<n) {
           fdtype e=FD_RAIL_REF(x,rail_i), v=op_eval(e,env,0); 
           if (FD_ABORTP(v)) {
@@ -970,15 +993,24 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
             arg_i--; while (arg_i>=0) {
               fd_decref(args[arg_i]); arg_i--;}
             return v;}
-          if ((FD_CHOICEP(v))||(FD_ACHOICEP(v))) nd=1;
+          if ((FD_CHOICEP(v))||(FD_ACHOICEP(v))) nd++;
+          if ((FD_EMPTY_QCHOICEP(v))||(FD_QCHOICEP(v)))
+            qchoices++;
           args[arg_i++]=v;
           rail_i++;}
         /* if (tail) return fd_tail_call(head,n,args); */
-        if ((head_type==fd_sproc_type)&&((nd==0)||(fn->ndcall)))
-          result=fd_apply_sproc((struct FD_SPROC *)fn,arg_i,args);
-        else if (nd==0) 
-          result=fd_dapply(head,n-1,args);
-        else result=fd_apply(head,n-1,args);
+        if ((nd)&&(!(fn->ndcall))&&(fn->arity>=0))
+          result=FD_EMPTY_CHOICE;
+        else if (fn->ndcall) {
+          if (qchoices) unwrap_qchoices(args,arg_i);
+          if (head_type==fd_sproc_type)
+            result=fd_apply_sproc((struct FD_SPROC *)fn,arg_i,args);
+          else result=fd_dapply(head,n-1,args);}
+        else {
+          if (qchoices) unwrap_qchoices(args,arg_i);
+          if (head_type==fd_sproc_type)
+            result=fd_apply_sproc((struct FD_SPROC *)fn,arg_i,args);
+          else result=fd_dapply(head,n-1,args);}
         arg_i--; while (arg_i>=0) {fd_decref(args[arg_i]); arg_i--;}
         if (FD_PRIM_TYPEP(result,fd_tail_call_type))
           result=fd_finish_call(result);

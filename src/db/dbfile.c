@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -24,6 +24,7 @@
 static fdtype rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
 
 int fd_acid_files=1;
+size_t fd_filedb_bufsize=FD_FILEDB_BUFSIZE;
 
 /* Opening file pools */
 
@@ -455,7 +456,7 @@ static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
   struct FD_DTYPE_STREAM stream, *rstream;
   if ((ix->adds.fd_n_keys>0) || (ix->edits.fd_n_keys>0)) {
     rstream=fd_init_dtype_file_stream
-      (&stream,file,FD_DTSTREAM_CREATE,FD_FILEDB_BUFSIZE);
+      (&stream,file,FD_DTSTREAM_CREATE,fd_filedb_bufsize);
     if (rstream==NULL) return -1;
     stream.fd_mallocd=0;
     fd_set_read(&stream,0);
@@ -471,7 +472,7 @@ static fd_index open_memindex(u8_string file,int read_only,int consed)
   fdtype lispval; struct FD_HASHTABLE *h;
   struct FD_DTYPE_STREAM stream;
   fd_init_dtype_file_stream
-    (&stream,file,FD_DTSTREAM_READ,FD_FILEDB_BUFSIZE);
+    (&stream,file,FD_DTSTREAM_READ,fd_filedb_bufsize);
   stream.fd_mallocd=0;
   lispval=fd_read_dtype((fd_byte_input)&stream);
   fd_dtsclose(&stream,1);
@@ -542,6 +543,9 @@ FD_EXPORT int fd_init_dbfile()
 
   fd_register_config("ACIDFILES","Maintain acidity of individual file pools and indices",
                      fd_boolconfig_get,fd_boolconfig_set,&fd_acid_files);
+  fd_register_config("DBFILEBUFSIZE",
+                     "The size of file streams used in database files",
+                     fd_sizeconfig_get,fd_sizeconfig_set,&fd_filedb_bufsize);
 
 
   return fddbfile_initialized;

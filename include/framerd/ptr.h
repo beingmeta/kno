@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 
@@ -185,6 +185,9 @@ typedef unsigned int fd_consbits;
 typedef struct FD_CONS { FD_CONS_HEADER; } FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
+#define FD_CONS_TYPE_MASK (0x7f)
+#define FD_CONS_TYPE_OFF ((FD_CONS_TYPE_OFF))
+
 #define FD_VALID_TYPEP(x) (FD_EXPECT_TRUE(((int)x)<256))
 
 #if FD_CHECKFDTYPE
@@ -205,19 +208,21 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
     gets the cons type. */
 #define FDTYPE_CONS(ptr) ((fdtype)ptr)
 #define FD_INIT_CONS(ptr,type) \
-  ((struct FD_CONS *)ptr)->fd_conshead=((type-0x84)|0x80)
+  ((struct FD_CONS *)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
 #define FD_INIT_FRESH_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((struct FD_CONS *)ptr)->fd_conshead=((type-0x84)|0x80)
+  ((struct FD_CONS *)ptr)->fd_conshead=((type-(FD_CONS_TYPE_OFF))|0x80)
 #define FD_INIT_STACK_CONS(ptr,type) \
-  ((struct FD_CONS *)ptr)->fd_conshead=(type-0x84)
+  ((struct FD_CONS *)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
-  ((struct FD_CONS *)ptr)->fd_conshead=(type-0x84)
-#define FD_CONS_TYPE(x) ((((x)->fd_conshead)&0x7F)+0x84)
+  ((struct FD_CONS *)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
+#define FD_CONS_TYPE(x) (( ((x)->fd_conshead) & (FD_CONS_TYPE_MASK) )+(FD_CONS_TYPE_OFF))
 #define FD_SET_CONS_TYPE(ptr,type) \
   ((struct FD_CONS *)ptr)->fd_conshead=\
-    ((((struct FD_CONS *)ptr)->fd_conshead&(~0x7F))|((type-0x84)&0x7f))
+    ((((struct FD_CONS *)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
+    ((type-(FD_CONS_TYPE_OFF))&0x7f)
+
 #define FD_NULL ((fdtype)(NULL))
 #define FD_NULLP(x) (((void *)x)==NULL)
 
@@ -248,6 +253,14 @@ static fd_ptr_type FD_PTR_TYPE(fdtype x)
 #endif
 
 #define FD_PTR_TYPEP(x,type) ((FD_PTR_TYPE(x)) == type)
+
+#define FD_MAKE_STATIC(ptr)  \
+  if (FD_CONSP(ptr))						\
+    (((struct FD_CONS *)ptr)->consbits)&=(FD_CONS_TYPE_MASK);	\
+    else {}
+
+#define FD_MAKE_CONS_STATIC(ptr)  \
+  (ptr)->consbits&=FD_CONS_TYPE_MASK;
 
 /* OIDs */
 

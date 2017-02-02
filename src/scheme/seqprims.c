@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -220,7 +220,7 @@ FD_EXPORT int fd_position(fdtype key,fdtype seq,int start,int limit)
   int delta=(start<end)?(1):(-1);
   int min=((start<end)?(start):(end)), max=((start<end)?(end):(start));
   if ((start<0)||(end<0)) return -2;
-  else if (start==end) return -1;
+  else if (start>end) return -1;
   else switch (ctype) {
     case fd_vector_type: case fd_rail_type: {
       fdtype *data=FD_VECTOR_ELTS(seq);
@@ -339,7 +339,7 @@ FD_EXPORT int fd_generic_position(fdtype key,fdtype x,int start,int end)
   else {}
   if ((start<0)||(end<0))
     return FD_RANGE_ERROR;
-  else if (start==end) 
+  else if (start>end) 
     return -1;
   else {
     int delta=(start<end)?(1):(-1);
@@ -361,7 +361,8 @@ static int vector_search(fdtype subseq,fdtype seq,int start,int end);
 
 FD_EXPORT int fd_search(fdtype subseq,fdtype seq,int start,int end)
 {
-  if ((FD_STRINGP(subseq)) && (FD_STRINGP(seq))) {
+  if (start>=end) return -1;
+  else if ((FD_STRINGP(subseq)) && (FD_STRINGP(seq))) {
     const u8_byte *starts=string_start(FD_STRDATA(seq),start), *found;
     if (starts == NULL) return -2;
     found=strstr(starts,FD_STRDATA(subseq));
@@ -917,6 +918,7 @@ FD_EXPORT fdtype fd_reduce(fdtype fn,fdtype sequence,fdtype result)
     rail[0]=elt; rail[1]=result;
     new_result=fd_apply(fn,2,rail);
     fd_decref(result); fd_decref(elt);
+    if (FD_ABORTP(new_result)) return new_result;
     result=new_result;
     i++;}
   return result;

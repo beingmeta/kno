@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -18,6 +18,8 @@
 #ifndef FD_FILEDB_BUFSIZE
 #define FD_FILEDB_BUFSIZE 256*1024
 #endif
+
+FD_EXPORT size_t fd_filedb_bufsize;
 
 FD_EXPORT int fd_acid_files;
 

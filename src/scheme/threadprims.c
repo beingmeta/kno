@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -325,11 +325,12 @@ static void *thread_call(void *data)
     u8_exception ex=u8_erreify();
     fdtype exobj=fd_init_exception(NULL,ex);
     u8_string errstring=fd_errstring(ex);
+    u8_log(LOG_WARN,ThreadReturnError,"Thread #%d %s",u8_threadid(),errstring);
     if (tstruct->flags&FD_EVAL_THREAD)
-      u8_log(LOG_WARN,ThreadReturnError,
-             "%q ==> %s",tstruct->evaldata.expr,errstring);
-    else u8_log(LOG_WARN,ThreadReturnError,"%q ==> %s",
-                tstruct->applydata.fn,errstring);
+      u8_log(LOG_WARN,ThreadReturnError,"Thread #%d wasevaluating %q",
+             u8_threadid(),tstruct->evaldata.expr);
+      else u8_log(LOG_WARN,ThreadReturnError,"Thread #%d was applying %q",
+                  u8_threadid(),tstruct->applydata.fn);
     u8_free(errstring);
     if (fd_thread_backtrace) {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,16384);

@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -39,6 +39,8 @@ static u8_string BadHashtableMethod=_("Invalid hashtable method");
 
 #define DEBUGGING 0
 
+static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int locked);
+
 #if DEBUGGING
 #include <stdio.h>
 #endif
@@ -60,6 +62,10 @@ static int numcompare(fdtype x,fdtype y)
     else return 0;
   else return fd_numcompare(x,y);
 }
+
+short fd_init_smap_size = FD_INIT_SMAP_SIZE;
+int fd_init_hash_size   = FD_INIT_HASH_SIZE;
+
 
 /* Debugging tools */
 
@@ -499,6 +505,7 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
   struct FD_KEYVAL *kv=
     ((struct FD_KEYVAL *)(((unsigned char *)ptr)+sizeof(struct FD_SLOTMAP)));
   int i=0;
+  if (len<1) len=fd_init_smap_size;
   FD_INIT_STRUCT(ptr,struct FD_SLOTMAP);
   FD_INIT_CONS(ptr,fd_slotmap_type);
   ptr->fd_table_free=space; ptr->fd_table_size=len;
@@ -1423,7 +1430,7 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
     fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_store",NULL,key);
     return -1;}
   fd_write_lock_struct(ht);
-  if (ht->fd_n_buckets == 0) setup_hashtable(ht,17);
+  if (ht->fd_n_buckets == 0) setup_hashtable(ht,fd_init_hash_size);
   n_keys=ht->fd_n_keys;
   result=fd_hashvec_insert
     (key,ht->fd_buckets,ht->fd_n_buckets,&(ht->fd_n_keys));
@@ -1447,11 +1454,65 @@ FD_EXPORT int fd_hashtable_store(fd_hashtable ht,fdtype key,fdtype value)
   return added;
 }
 
+static int add_to_hashtable(fd_hashtable ht,fdtype key,fdtype value)
+{
+  struct FD_KEYVAL *result;
+  int added=0, n_keys=ht->n_keys;
+  if (FD_ABORTP(value)) {
+    fd_rw_unlock_struct(ht);
+    return fd_interr(newv);}
+  else if (ht->fd_readonly) {
+    fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_add",NULL,key);
+    return -1;}
+  else if (FD_EXPECT_FALSE(FD_EMPTY_CHOICEP(value)))
+    return 0;
+  else fd_incref(value);
+  KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
+  else if (FD_EXPECT_FALSE(FD_ABORTP(value)))
+    return fd_interr(value);
+  fd_write_lock_struct(ht);
+  if (ht->fd_n_buckets == 0) setup_hashtable(ht,fd_hash_size_init);
+  n_keys=ht->fd_n_keys;
+  result=fd_hashvec_insert(key,ht->slots,ht->n_slots,&(ht->n_keys));
+  if (ht->n_keys>n_keys) {
+    added=1; 
+    ht->modified=1;}
+  if (FD_VOIDP(result->value))
+    result->value=newv;
+  else {FD_ADD_TO_CHOICE(result->value,newv);}
+  /* If the value is an achoice, it doesn't need to be locked because
+     it will be protected by the hashtable's lock.  However this requires
+     that we always normalize the choice when we return it.  */
+  if (FD_ACHOICEP(result->value)) {
+    struct FD_ACHOICE *ch=FD_XACHOICE(result->value);
+    if (ch->uselock) ch->uselock=0;}
+  fd_rw_unlock_struct(ht);
+  return added;
+}
+
+static int check_hashtable_size(fd_hashtable ht,ssize_t delta)
+{
+  int loading=ht->loading;
+  size_t n_keys=ht->n_keys, n_slots=ht->n_slots; 
+  size_t need_keys=(delta<0) ? 
+    (n_keys+fd_init_hash_size+3) : 
+    (n_keys+delta+fd_init_hash_size);
+  if (n_slots==0) {
+    setup_hashtable(ht,fd_get_hashtable_size(need_keys));
+    return ht->n_slots;}
+  else if (need_keys>n_slots) {
+    size_t new_size=fd_get_hashtable_size(need_keys*2);
+    resize_hashtable(ht,new_size,1);
+    return ht->n_slots;}
+  else return 0;
+}
+
 FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
 {
-  struct FD_KEYVAL *result; int n_keys, added; fdtype newv;
+  struct FD_KEYVAL *result;
+  int n_keys, added=0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
-  if (ht->fd_readonly) {
+  if (ht->readonly) {
     fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_add",NULL,key);
     return -1;}
   if (FD_EXPECT_FALSE(FD_EMPTY_CHOICEP(value)))
@@ -1459,30 +1520,19 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
   else if ((FD_ABORTP(value)))
     return fd_interr(value);
   fd_write_lock_struct(ht);
-  if (ht->fd_n_buckets == 0) setup_hashtable(ht,17);
-  n_keys=ht->fd_n_keys;
-  result=fd_hashvec_insert
-    (key,ht->fd_buckets,ht->fd_n_buckets,&(ht->fd_n_keys));
-  ht->fd_modified=1; if (ht->fd_n_keys>n_keys) added=1; else added=0;
-  newv=fd_incref(value);
-  if (FD_ABORTP(newv)) {
-    fd_rw_unlock_struct(ht);
-    return fd_interr(newv);}
-  else if (FD_VOIDP(result->fd_keyval))
-    result->fd_keyval=newv;
-  else {FD_ADD_TO_CHOICE(result->fd_keyval,newv);}
-  /* If the value is an achoice, it doesn't need to be locked because
-     it will be protected by the hashtable's lock.  However this requires
-     that we always normalize the choice when we return it.  */
-  if (FD_ACHOICEP(result->fd_keyval)) {
-    struct FD_ACHOICE *ch=FD_XACHOICE(result->fd_keyval);
-    if (ch->fd_uselock) ch->fd_uselock=0;}
+  if (!(FD_CONSP(key)))
+    check_hashtable_size(ht,3);
+  else if (FD_CHOICEP(key))
+    check_hashtable_size(ht,FD_CHOICE_SIZE(key));
+  else if (FD_ACHOICEP(key))
+    check_hashtable_size(ht,FD_ACHOICE_SIZE(key));
+  else check_hashtable_size(ht,3);
+  n_keys=ht->n_keys;
+  if ( (FD_CHOICEP(key)) || (FD_ACHOICEP(key)) ) {
+    FD_DO_CHOICES(eachkey,key) {
+      added+=add_to_hashtable(ht,key,value);}}
+  else added=add_to_hashtable(ht,key,value);
   fd_rw_unlock_struct(ht);
-  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
-    /* We resize when n_keys/n_slots < loading/4;
-       at this point, the new size is > loading/2 (a bigger number). */
-    int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
-    fd_resize_hashtable(ht,new_size);}
   return added;
 }
 
@@ -1596,7 +1646,7 @@ static int do_hashtable_op
          (op == fd_table_drop)))
       return 0;
   default:
-    if (ht->fd_n_buckets == 0) setup_hashtable(ht,17);
+    if (ht->fd_n_buckets == 0) setup_hashtable(ht,fd_init_hash_size);
     result=fd_hashvec_insert(key,ht->fd_buckets,ht->fd_n_buckets,&(ht->fd_n_keys));}
   if ((!(result))&&
       ((op==fd_table_drop)||
@@ -1800,6 +1850,21 @@ FD_EXPORT int fd_hashtable_op
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
     fd_resize_hashtable(ht,new_size);}
+  return added;
+}
+
+FD_EXPORT int fd_hashtable_op_nolock
+   (struct FD_HASHTABLE *ht,fd_tableop op,fdtype key,fdtype value)
+{
+  int added;
+  if (FD_EMPTY_CHOICEP(key)) return 0;
+  KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
+  added=do_hashtable_op(ht,op,key,value);
+  if (FD_EXPECT_FALSE(hashtable_needs_resizep(ht))) {
+    /* We resize when n_keys/n_slots < loading/4;
+       at this point, the new size is > loading/2 (a bigger number). */
+    int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
+    resize_hashtable(ht,new_size,1);}
   return added;
 }
 
@@ -2080,6 +2145,35 @@ FD_EXPORT int fd_persist_hashtable(struct FD_HASHTABLE *ptr,int type)
   return n_conversions;
 }
 
+FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
+{
+  int n_conversions=0; fd_ptr_type keeptype=(fd_ptr_type)type;
+  FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
+  fd_write_lock(&ptr->rwlock);
+  {
+    struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
+    while (scan < lim)
+      if (*scan) {
+        struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+        struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+        while (kvscan<kvlimit) {
+          if ((FD_CONSP(kvscan->value)) &&
+              ((type<0) || (FD_PTR_TYPEP(kvscan->value,keeptype)))) {
+            fdtype value=kvscan->value;
+            fdtype static_value=fd_static_copy(value);
+            if (static_value==value) {
+              fd_decref(static_value);
+              static_value=fd_pptr_register(kvscan->value);}
+            kvscan->value=static_value;
+            fd_decref(kvscan->value); 
+            n_conversions++;}
+          kvscan++;}
+        scan++;}
+      else scan++;}
+  fd_rw_unlock(&ptr->rwlock);
+  return n_conversions;
+}
+
 FD_EXPORT fdtype fd_make_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 {
   if (n_slots == 0) {
@@ -2139,11 +2233,13 @@ FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,int fd_n_entries,
   return FDTYPE_CONS(ptr);
 }
 
-FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
+static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int locked)
 {
   int unlock=0;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
-  if (ptr->fd_uselock) { fd_write_lock_struct(ptr); unlock=1; }
+  if ( (locked) && (ptr->fd_uselock) ) { 
+    fd_write_lock_struct(ptr); 
+    unlock=1; }
   {
     struct FD_HASH_BUCKET **new_slots=u8_alloc_n(n_slots,fd_hash_bucket);
     struct FD_HASH_BUCKET **scan=ptr->fd_buckets, **lim=scan+ptr->fd_n_buckets;
@@ -2154,7 +2250,8 @@ FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
         struct FD_HASH_BUCKET *e=*scan++; int fd_n_entries=e->fd_n_entries;
         struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+fd_n_entries;
         while (kvscan<kvlimit) {
-          struct FD_KEYVAL *nkv=fd_hashvec_insert(kvscan->fd_kvkey,new_slots,n_slots,NULL);
+          struct FD_KEYVAL *nkv=fd_hashvec_insert
+            (kvscan->fd_kvkey,new_slots,n_slots,NULL);
           nkv->fd_keyval=kvscan->fd_keyval; kvscan->fd_keyval=FD_VOID;
           fd_decref(kvscan->fd_kvkey); kvscan++;}
         u8_free(e);}
@@ -2164,6 +2261,12 @@ FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
   if (unlock) fd_rw_unlock_struct(ptr);
   return n_slots;
 }
+
+FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
+{
+  return resize_hashtable(ptr,n_slots,0);
+}
+
 
 /* VOIDs all values which only have one incoming pointer (from the table
    itself).  This is helpful in conjunction with fd_devoid_hashtable, which
@@ -2208,12 +2311,14 @@ FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr)
 }
 
 
-FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
+FD_EXPORT int fd_devoid_hashtable_x(struct FD_HASHTABLE *ptr,int locked)
 {
   int n_slots=ptr->fd_n_buckets, n_keys=ptr->fd_n_keys; int unlock=0;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
   if ((n_slots == 0) || (n_keys == 0)) return 0;
-  if (ptr->fd_uselock) { fd_write_lock_struct(ptr); unlock=1;}
+  if ((locked<0)?(ptr->uselock):(!(locked))) { 
+    fd_write_lock_struct(ptr); 
+    unlock=1;}
   {
     struct FD_HASH_BUCKET **new_slots=u8_alloc_n(n_slots,fd_hash_bucket);
     struct FD_HASH_BUCKET **scan=ptr->fd_buckets, **lim=scan+ptr->fd_n_buckets;
@@ -2231,9 +2336,12 @@ FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
           if (FD_VOIDP(kvscan->fd_keyval)) {
             fd_decref(kvscan->fd_kvkey); kvscan++;}
           else {
-            struct FD_KEYVAL *nkv=fd_hashvec_insert(kvscan->fd_kvkey,new_slots,n_slots,NULL);
+            struct FD_KEYVAL *nkv=fd_hashvec_insert
+              (kvscan->fd_kvkey,new_slots,n_slots,NULL);
             nkv->fd_keyval=kvscan->fd_keyval; kvscan->fd_keyval=FD_VOID;
-            fd_decref(kvscan->fd_kvkey); kvscan++; remaining_keys++;}
+            fd_decref(kvscan->fd_kvkey); 
+            remaining_keys++;
+            kvscan++;}
         u8_free(e);}
       else scan++;
     u8_free(ptr->fd_buckets);
@@ -2241,6 +2349,11 @@ FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
     ptr->fd_n_keys=remaining_keys;}
   if (unlock) fd_rw_unlock_struct(ptr);
   return n_slots;
+}
+
+FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
+{
+  return fd_devoid_hashtable_x(ptr,-1);
 }
 
 FD_EXPORT int fd_hashtable_stats
@@ -2462,6 +2575,30 @@ FD_EXPORT int fd_for_hashtable
   return ht->fd_n_buckets;
 }
 
+FD_EXPORT int fd_for_hashtable_kv
+  (struct FD_HASHTABLE *ht,fd_kvfn f,void *data,int lock)
+{
+  int unlock=0;
+  FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
+  if (ht->n_keys == 0) return 0;
+  if ((lock)&&(ht->uselock)) {fd_write_lock_struct(ht); unlock=1;}
+  if (ht->n_slots) {
+    struct FD_HASHENTRY **scan=ht->slots, **lim=scan+ht->n_slots;
+    while (scan < lim)
+      if (*scan) {
+        struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
+        struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+        while (kvscan<kvlimit) {
+          if (f(kvscan,data)) {
+            if (unlock) fd_rw_unlock_struct(ht);
+            return ht->n_slots;}
+          else kvscan++;}
+        scan++;}
+      else scan++;}
+  if (unlock) fd_rw_unlock_struct(ht);
+  return ht->n_slots;
+}
+
 /* Hashsets */
 
 FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size,int stack_cons)
@@ -2482,7 +2619,7 @@ FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size,int stack_con
 FD_EXPORT fdtype fd_make_hashset()
 {
   struct FD_HASHSET *h=u8_alloc(struct FD_HASHSET);
-  fd_init_hashset(h,17,FD_MALLOCD_CONS);
+  fd_init_hashset(h,fd_init_hash_size,FD_MALLOCD_CONS);
   FD_INIT_CONS(h,fd_hashset_type);
   return FDTYPE_CONS(h);
 }
@@ -3011,6 +3148,32 @@ FD_EXPORT int fd_modifiedp(fdtype arg)
 }
 
 FD_EXPORT int fd_set_modified(fdtype arg,int flag)
+{
+  fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_set_modified/table");
+  if (FD_VALID_TYPEP(argtype))
+    if (fd_tablefns[argtype])
+      if (fd_tablefns[argtype]->modified)
+        return (fd_tablefns[argtype]->modified)(arg,flag);
+      else return fd_err(fd_NoMethod,CantSetModified,NULL,arg);
+    else return fd_err(NotATable,"fd_modifiedp",NULL,arg);
+  else return fd_err(fd_BadPtr,"fd_modifiedp",NULL,arg);
+}
+
+FD_EXPORT int fd_readonlyp(fdtype arg)
+{
+  fd_ptr_type argtype=FD_PTR_TYPE(arg);
+  FD_TABLE_CHECKPTR(arg,"fd_modifiedp/table");
+  if (FD_VALID_TYPEP(argtype))
+    if (fd_tablefns[argtype])
+      if (fd_tablefns[argtype]->readonly)
+        return (fd_tablefns[argtype]->readonly)(arg,-1);
+      else return fd_err(fd_NoMethod,CantCheckModified,NULL,arg);
+    else return fd_err(NotATable,"fd_modifiedp",NULL,arg);
+  else return fd_err(fd_BadPtr,"fd_modifiedp",NULL,arg);
+}
+
+FD_EXPORT int fd_set_readonly(fdtype arg,int flag)
 {
   fd_ptr_type argtype=FD_PTR_TYPE(arg);
   FD_TABLE_CHECKPTR(arg,"fd_set_modified/table");

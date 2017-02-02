@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -47,7 +47,9 @@ typedef struct FD_DTYPE_STREAM {
   int (*fd_dts_flushfn)(struct FD_DTYPE_STREAM *);
   u8_string fd_dtsid; int fd_mallocd, fd_bufsiz;
   fd_off_t fd_filepos, fd_maxpos; 
+  u8_mutex fd_lock;
   int fd_fileno;} FD_DTYPE_STREAM;
+
 typedef struct FD_DTYPE_STREAM *fd_dtype_stream;
 
 FD_EXPORT struct FD_DTYPE_STREAM *fd_init_dtype_stream
@@ -66,15 +68,19 @@ FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
 FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd);
 
 FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename);
-FD_EXPORT int fd_write_dtype_to_file(fdtype obj,u8_string filename);
-FD_EXPORT int fd_add_dtype_to_file(fdtype obj,u8_string filename);
+FD_EXPORT ssize_t _fd_write_dtype_to_file(fdtype,u8_string,size_t,int);
+FD_EXPORT ssize_t fd_write_dtype_to_file(fdtype obj,u8_string filename);
+FD_EXPORT ssize_t fd_write_ztype_to_file(fdtype obj,u8_string filename);
+FD_EXPORT ssize_t fd_add_dtype_to_file(fdtype obj,u8_string filename);
 
 /* Structure functions and macros */
 
 FD_EXPORT fd_off_t _fd_getpos(fd_dtype_stream s);
 #define fd_getpos(s) \
-  ((((s)->fd_dts_flags)&FD_DTSTREAM_CANSEEK) ? \
-   ((((s)->fd_filepos)>=0) ? (((s)->fd_filepos)+(((s)->fd_bufptr)-((s)->fd_bufstart))) : (_fd_getpos(s))) \
+  ((((s)->fd_dts_flags)&FD_DTSTREAM_CANSEEK) ?	\
+   ((((s)->fd_filepos)>=0) ? \
+    (((s)->fd_filepos)+(((s)->fd_bufptr)-((s)->fd_bufstart))) : \
+    (_fd_getpos(s)))						\
    : (-1))
 FD_EXPORT fd_off_t fd_setpos(fd_dtype_stream s,fd_off_t pos);
 FD_EXPORT fd_off_t fd_movepos(fd_dtype_stream s,int delta);

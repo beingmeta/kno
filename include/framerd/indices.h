@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -17,6 +17,15 @@
 FD_EXPORT fd_exception
   fd_FileIndexOverflow, fd_NotAFileIndex, fd_NoFileIndices, fd_BadIndexSpec,
   fd_IndexCommitError;
+
+FD_EXPORT u8_condition fd_IndexCommit;
+
+#define FD_INDEX_CACHE_INIT 73
+#define FD_INDEX_EDITS_INIT 73
+#define FD_INDEX_ADDS_INIT 123
+FD_EXPORT int fd_index_cache_init;
+FD_EXPORT int fd_index_edits_init;
+FD_EXPORT int fd_index_adds_init;
 
 #define FD_INDEX_FLAG_BASE 256
 #define FD_INDEX_FLAG(n) (FD_INDEX_FLAG_BASE<<(n))
@@ -84,11 +93,13 @@ FD_EXPORT int fd_for_indices(int (*fcn)(fd_index,void *),void *data);
 
 FD_EXPORT void fd_init_index
   (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,int consed);
+FD_EXPORT void fd_reset_index_tables(fd_index ix,ssize_t csize,ssize_t esize,ssize_t asize);
 
 FD_EXPORT void fd_register_index(fd_index ix);
 
 FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value);
+FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table);
 FD_EXPORT int fd_index_commit(fd_index ix);
 FD_EXPORT void fd_index_close(fd_index ix);
 FD_EXPORT fd_index _fd_indexptr(fdtype x);
@@ -202,35 +213,62 @@ FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
 }
 FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
 {
+  int rv=-1;
+  FDTC *fdtc=(FD_WRITETHROUGH_THREADCACHE)?(fd_threadcache):(NULL);
+  fd_hashtable adds=&(ix->adds);
+  fd_hashtable cache=&(ix->cache);
   if (ix->read_only)
     /* This will signal an error */
     return _fd_index_add(ix,key,value);
-  else if (ix->cache.fd_n_buckets==0)
-    if (FD_CHOICEP(key))
-      return _fd_index_add(ix,key,value);
-    else {
-      int retval=fd_hashtable_add(&(ix->adds),key,value);
-      FDTC *fdtc=fd_threadcache;
-      if (retval<0) return retval;
-      if ((FD_WRITETHROUGH_THREADCACHE)&&(fdtc)&&
-	  (fdtc->indices.fd_n_keys)) {
-        struct FD_PAIR tempkey;
-        FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-        tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=key;
-        if (fd_hashtable_probe(&fdtc->indices,(fdtype)&tempkey)) {
-          fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}
-      if ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
-          (fd_background->cache.fd_n_keys))
-        retval=fd_hashtable_op
-          (&(fd_background->cache),fd_table_replace,key,FD_VOID);
-      if ((!(FD_VOIDP(ix->has_slotids))) && (FD_EXPECT_TRUE(FD_PAIRP(key))) &&
-          (FD_EXPECT_TRUE((FD_OIDP(FD_CAR(key))) ||
-                          (FD_SYMBOLP(FD_CAR(key))))) &&
-          (FD_EXPECT_FALSE
-           (!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))))) {
-        fd_decref(ix->has_slotids); ix->has_slotids=FD_VOID;}
-      return retval;}
-  else return _fd_index_add(ix,key,value);
+  else if (FD_CHOICEP(key)) {
+    const fdtype *keys=FD_CHOICE_DATA(key);
+    unsigned int n=FD_CHOICE_SIZE(key);
+    rv=fd_hashtable_iterkeys(adds,fd_table_add,n,keys,value);
+    if (rv<0) return rv;
+    else if (ix->cache_level>0)
+      rv=fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keys,value);}
+  else if (FD_ACHOICEP(key)) {
+    fdtype normchoice=fd_make_simple_choice(key);
+    const fdtype *keys=FD_CHOICE_DATA(key);
+    unsigned int n=FD_CHOICE_SIZE(key);
+    rv=fd_hashtable_iterkeys(adds,fd_table_add,n,keys,value);
+    if (rv<0) return rv;
+    else if (ix->cache_level>0)
+      rv=fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keys,value);
+    fd_decref(normchoice);}
+  else {
+    rv=fd_hashtable_add(adds,key,value);
+    if (rv<0) return rv;
+    rv=fd_hashtable_op(cache,fd_table_add_if_present,key,value);}
+  if (rv<0) return rv;
+  if ( (fdtc) && (fdtc->indices.n_keys) ) {
+    FD_DO_CHOICES(akey,key) {
+      struct FD_PAIR tempkey;
+      FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
+      tempkey.car=fd_index2lisp(ix); tempkey.cdr=akey;
+      if (fd_hashtable_probe(&fdtc->indices,(fdtype)&tempkey)) {
+	fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}}
+
+  if ((ix->flags&FD_INDEX_IN_BACKGROUND) && (fd_background->cache.n_keys)) {
+    fd_hashtable bgcache=(&(fd_background->cache));
+    if (FD_CHOICEP(key)) {
+      const fdtype *keys=FD_CHOICE_DATA(key);
+      unsigned int n=FD_CHOICE_SIZE(key);
+      /* This will force it to be re-read from the source indices */
+      rv=fd_hashtable_iterkeys(bgcache,fd_table_replace,n,keys,FD_VOID);}
+    else rv=fd_hashtable_op(bgcache,fd_table_replace,key,FD_VOID);}
+
+  if (rv<0) return rv;
+
+  if ((!(FD_VOIDP(ix->has_slotids))) &&
+      (FD_EXPECT_TRUE(FD_PAIRP(key))) &&
+      (FD_EXPECT_TRUE((FD_OIDP(FD_CAR(key))) ||
+		      (FD_SYMBOLP(FD_CAR(key)))))) {
+    if (!(atomic_choice_containsp(FD_CAR(key),ix->has_slotids))) {
+      fd_decref(ix->has_slotids);
+      ix->has_slotids=FD_VOID;}}
+
+  return rv;
 }
 FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
 {

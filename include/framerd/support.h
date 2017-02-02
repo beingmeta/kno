@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -41,18 +41,20 @@ FD_EXPORT int fd_set_config_consed(u8_string var,fdtype val);
 
 FD_EXPORT int fd_readonly_config_set(fdtype ignored,fdtype v,void *p);
 
-FD_EXPORT int fd_lconfig_push(fdtype ignored,fdtype v,void *lispp);
-FD_EXPORT int fd_lconfig_add(fdtype ignored,fdtype v,void *lispp);
-FD_EXPORT int fd_lconfig_set(fdtype ignored,fdtype v,void *lispp);
-FD_EXPORT fdtype fd_lconfig_get(fdtype ignored,void *lispp);
-FD_EXPORT int fd_sconfig_set(fdtype ignored,fdtype v,void *stringptr);
-FD_EXPORT fdtype fd_sconfig_get(fdtype ignored,void *stringptr);
-FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *intptr);
-FD_EXPORT fdtype fd_intconfig_get(fdtype ignored,void *intptr);
-FD_EXPORT int fd_boolconfig_set(fdtype ignored,fdtype v,void *intptr);
-FD_EXPORT fdtype fd_boolconfig_get(fdtype ignored,void *intptr);
-FD_EXPORT int fd_dblconfig_set(fdtype ignored,fdtype v,void *dblptr);
-FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *dblptr);
+FD_EXPORT int fd_lconfig_push(fdtype,fdtype v,void *lispp);
+FD_EXPORT int fd_lconfig_add(fdtype,fdtype v,void *lispp);
+FD_EXPORT int fd_lconfig_set(fdtype,fdtype v,void *lispp);
+FD_EXPORT fdtype fd_lconfig_get(fdtype,void *lispp);
+FD_EXPORT int fd_sconfig_set(fdtype,fdtype v,void *stringptr);
+FD_EXPORT fdtype fd_sconfig_get(fdtype,void *stringptr);
+FD_EXPORT int fd_intconfig_set(fdtype,fdtype v,void *intptr);
+FD_EXPORT fdtype fd_intconfig_get(fdtype,void *intptr);
+FD_EXPORT int fd_sizeconfig_set(fdtype,fdtype v,void *intptr);
+FD_EXPORT fdtype fd_sizeconfig_get(fdtype,void *intptr);
+FD_EXPORT int fd_boolconfig_set(fdtype,fdtype v,void *intptr);
+FD_EXPORT fdtype fd_boolconfig_get(fdtype,void *intptr);
+FD_EXPORT int fd_dblconfig_set(fdtype,fdtype v,void *dblptr);
+FD_EXPORT fdtype fd_dblconfig_get(fdtype,void *dblptr);
 FD_EXPORT int fd_loglevelconfig_set(fdtype var,fdtype val,void *data);
 
 FD_EXPORT int fd_config_assignment(u8_string assign_expr);
@@ -130,6 +132,8 @@ FD_EXPORT fd_exception fd_retcode_to_exception(fdtype err);
 
 FD_EXPORT fdtype fd_exception_backtrace(u8_exception ex);
 
+/* Whether the executable is exiting */
+FD_EXPORT int fd_exiting;
 FD_EXPORT int fd_report_errors_atexit;
 FD_EXPORT int fd_clear_errors(int);
 FD_EXPORT void fd_log_exception(u8_exception ex);

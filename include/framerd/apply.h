@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -158,7 +158,10 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
   else return pt;
 }
 
-#define FD_DTYPE2FCN(x) ((FD_PPTRP(x)) ? ((fd_function)(fd_pptr_ref(x))) : ((fd_function)x))
+#define FD_DTYPE2FCN(x)		     \
+  ((FD_PPTRP(x)) ?		     \
+   ((fd_function)(fd_pptr_ref(x))) : \
+   ((fd_function)x))
 
 /* Stack checking */
 

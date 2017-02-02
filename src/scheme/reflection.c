@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -134,6 +134,18 @@ static fdtype non_deterministicp(fdtype x)
     if (f->ndcall)
       return FD_TRUE;
     else return FD_FALSE;}
+  else return fd_type_error(_("procedure"),"non_deterministicp",x);
+}
+
+static fdtype synchronizedp(fdtype x)
+{
+  if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
+    fd_sproc f=(fd_sproc)x;
+    if (f->synchronized)
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else if (FD_APPLICABLEP(x))
+    return FD_FALSE;
   else return fd_type_error(_("procedure"),"non_deterministicp",x);
 }
 
@@ -375,6 +387,7 @@ FD_EXPORT void fd_init_reflection_c()
 
   fd_idefn(module,fd_make_cprim1("PRIMITIVE?",primitivep,1));
   fd_idefn(module,fd_make_cprim1("NON-DETERMINISTIC?",non_deterministicp,1));
+  fd_idefn(module,fd_make_cprim1("SYNCHRONIZED?",synchronizedp,1));
   fd_idefn(module,fd_make_cprim1("MODULE?",modulep,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-NAME",procedure_name,1));
   fd_idefn(module,fd_make_cprim1("PROCEDURE-FILENAME",procedure_filename,1));

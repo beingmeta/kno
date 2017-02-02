@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -51,7 +51,7 @@ fd_exception fd_SchemaInconsistency=_("Inconsistent schema reference and value d
 static fd_exception InvalidOffset=_("Invalid offset in OIDPOOL");
 
 #ifndef FD_INIT_ZBUF_SIZE
-#define FD_INIT_ZBUF_SIZE 16000
+#define FD_INIT_ZBUF_SIZE 24000
 #endif
 
 #define FD_OIDPOOL_LOAD_POS      0x10
@@ -388,7 +388,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   u8_string rname=u8_realpath(fname,NULL);
-  fd_init_dtype_file_stream(stream,fname,mode,FD_FILEDB_BUFSIZE);
+  fd_init_dtype_file_stream(stream,fname,mode,fd_filedb_bufsize);
   /* See if it ended up read only */
   if ((stream->fd_dts_flags)&(FD_DTSTREAM_READ_ONLY)) read_only=1;
   pool->stream.fd_mallocd=0;
@@ -403,7 +403,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   if ((read_only==0) && ((flags)&(FD_OIDPOOL_READONLY))) {
     /* If the pool is intrinsically read-only make it so. */
     read_only=1; fd_dtsclose(stream,1);
-    fd_init_dtype_file_stream(stream,fname,FD_DTSTREAM_READ,FD_FILEDB_BUFSIZE);
+    fd_init_dtype_file_stream(stream,fname,FD_DTSTREAM_READ,fd_filedb_bufsize);
     fd_setpos(stream,FD_OIDPOOL_LABEL_POS);}
   pool->offtype=(fd_offset_type)((flags)&(FD_OIDPOOL_OFFMODE));
   pool->compression=
@@ -924,8 +924,8 @@ static int get_schema_id(fd_oidpool op,fdtype value)
   else return -1;
 }
 
-static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
-                               struct FD_BYTE_OUTPUT *tmpout,
+static int oidpool_write_value(fdtype value,fd_dtype_stream stream,
+                               fd_oidpool p,struct FD_BYTE_OUTPUT *tmpout,
                                unsigned char **zbuf,int *zbuf_size)
 {
   if ((p->compression==FD_NOCOMPRESS) && (p->n_schemas==0)) {
@@ -968,12 +968,14 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,fd_oidpool p,
   else if (p->compression==FD_ZLIB) {
     unsigned char _cbuf[FD_OIDPOOL_FETCHBUF_SIZE], *cbuf;
     int cbuf_size=FD_OIDPOOL_FETCHBUF_SIZE;
-    cbuf=do_zcompress(tmpout->fd_bufstart,tmpout->fd_bufptr-tmpout->fd_bufstart,&cbuf_size,_cbuf,9);
+    cbuf=do_zcompress(tmpout->fd_bufstart,tmpout->fd_bufptr-tmpout->fd_bufstart,
+                      &cbuf_size,_cbuf,9);
     fd_dtswrite_bytes(stream,cbuf,cbuf_size);
     if (cbuf!=_cbuf) u8_free(cbuf);
     return cbuf_size;}
   else {
-    u8_log(LOG_WARN,_("Out of luck"),"Compressed oidpools are not yet supported");
+    u8_log(LOG_WARN,_("Out of luck"),
+           "Compressed oidpools of this type are not yet yet supported");
     exit(-1);}
 }
 
@@ -997,7 +999,8 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   FD_OID base=op->base;
   if (init_buflen>262144) init_buflen=262144;
   FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
-  fd_lock_struct(op); endpos=fd_endpos(stream);
+  fd_lock_struct(stream);
+  endpos=fd_endpos(stream);
   if ((op->dbflags)&(FD_OIDPOOL_DTYPEV2))
     tmpout.fd_dts_flags=tmpout.fd_dts_flags|FD_DTYPEV2;
   while (i<n) {
@@ -1005,8 +1008,13 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     fdtype value=values[i];
     int n_bytes=oidpool_write_value(value,stream,op,&tmpout,&zbuf,&zbuf_size);
     if (n_bytes<0) {
+<<<<<<< HEAD
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.fd_bufstart);
       fd_unlock_struct(op);
+=======
+      u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.start);
+      fd_unlock_struct(stream);
+>>>>>>> master
       return n_bytes;}
     if ((endpos+n_bytes)>=maxpos) {
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.fd_bufstart);
@@ -1019,6 +1027,8 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 
     endpos=endpos+n_bytes;
     i++;}
+  u8_free(tmpout.start);
+  u8_free(zbuf);
 
   /* Now, write recovery information, which lets the state of the pool
      be reconstructed if something goes wrong while storing the
@@ -1052,10 +1062,17 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_dtswrite_4bytes(stream,FD_OIDPOOL_TO_RECOVER);
   fd_dtsflush(stream); fsync(stream->fd_fileno);
   oidpool_finalize(op,stream,n,saveinfo,op->load);
+  u8_free(saveinfo);
   fd_setpos(stream,0);
   fd_dtswrite_4bytes(stream,FD_OIDPOOL_MAGIC_NUMBER);
+<<<<<<< HEAD
   fd_dtsflush(stream); fsync(stream->fd_fileno);
   fd_unlock_struct(op);
+=======
+  fd_dtsflush(stream); 
+  fsync(stream->fd);
+  fd_unlock_struct(stream);
+>>>>>>> master
   return n;
 }
 

@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -54,6 +54,8 @@ extern void ProfilerFlush();
 #if HAVE_GRP_H
 #include <grp.h>
 #endif
+
+int fd_exiting=0;
 
 u8_condition SetRLimit=_("SetRLimit");
 u8_condition fd_ArgvConfig=_("Config (argv)");
@@ -702,6 +704,35 @@ FD_EXPORT int fd_intconfig_set(fdtype ignored,fdtype v,void *vptr)
          fd_reterr(fd_TypeError,"fd_intconfig_set",u8_strdup(_("fixnum")),v);
 }
 
+/* For configuration variables which get/set ints. */
+FD_EXPORT fdtype fd_sizeconfig_get(fdtype ignored,void *vptr)
+{
+  ssize_t *ptr=vptr;
+  ssize_t sz=*ptr;
+  return FD_INT(sz);
+}
+FD_EXPORT int fd_sizeconfig_set(fdtype ignored,fdtype v,void *vptr)
+{
+  ssize_t *ptr=vptr;
+  if (FD_FIXNUMP(v)) {
+    if ((*ptr)==(FD_FIX2INT(v))) return 0;
+    *ptr=FD_FIX2INT(v);
+    return 1;}
+  else if (FD_BIGINTP(v)) {
+    struct FD_BIGINT *bi=(fd_bigint)v;
+    if (fd_bigint_fits_in_word_p(bi,8,1)) {
+      long long ullv=fd_bigint_to_long_long(bi);
+      if ((*ptr)==((ssize_t)ullv)) return 0;
+      *ptr=(ssize_t)ullv;
+      return 1;}
+    else return fd_reterr
+           (fd_RangeError,"fd_sizeconfig_set",
+            u8_strdup(_("size_t sized value")),v);}
+  else return fd_reterr
+         (fd_TypeError,"fd_sizeconfig_set",
+          u8_strdup(_("size_t sized value")),v);
+}
+
 /* Double config methods */
 FD_EXPORT fdtype fd_dblconfig_get(fdtype ignored,void *vptr)
 {
@@ -1163,7 +1194,6 @@ fdtype fd_exception_backtrace(u8_exception ex)
   return result;
 }
 
-FD_EXPORT
 void sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
 {
   if (!(ex)) {
@@ -1174,7 +1204,7 @@ void sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
   if ((bg==NULL) || ((bg->u8x_context) != (ex->u8x_context)))
     u8_printf(out," <%s>",ex->u8x_context);
   if ((bg==NULL) || ((bg->u8x_details) != (ex->u8x_details)))
-    u8_printf(out," %m",ex->u8x_details);
+    u8_printf(out," (%m)",ex->u8x_details);
   if (ex->u8x_xdata) {
     fdtype irritant=fd_exception_xdata(ex);
     if ((bg==NULL) || (bg->u8x_xdata==NULL))
@@ -1185,14 +1215,74 @@ void sum_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg)
         u8_printf(out," -- %q",irritant);}}
 }
 
+int compact_exception(U8_OUTPUT *out,u8_exception ex,u8_exception bg,
+                      int depth,int skipped)
+{
+  if (!(ex)) return 0;
+  else {
+    u8_condition cond=ex->u8x_cond;
+    u8_context context=ex->u8x_context;
+    u8_string details=ex->u8x_details;
+    if (bg) {
+      if ( (cond) && (bg->u8x_cond==cond) ) cond=NULL;
+      if ( (context) &&
+           ( (bg->u8x_context==context) ||
+             ( (bg->u8x_context) &&
+               ( strcmp(bg->u8x_context,context) == 0 )) ) )
+        context=NULL;
+      if ( (details) && (bg->u8x_details) &&
+           ( (bg->u8x_details==details) ||
+             (strcmp(bg->u8x_details,details)==0)) )
+        details=NULL;}
+    if ( (depth) && ((cond) || (context) || (details)) ) {
+      if (skipped)
+        u8_printf(out," << %d… << ",skipped);
+      else u8_puts(out," << ");}
+    if ((cond) && (context) && (details))
+      u8_printf(out,"%m <%s> (%s)",cond,context,details);
+    else if ((cond) && (context))
+      u8_printf(out,"%m <%s>",cond,context);
+    else if ((cond) && (details))
+      u8_printf(out,"%m (%s)",cond,details);
+    else if ((context) && (details))
+      u8_printf(out,"<%s> (%s)",context,details);
+    else if (cond)
+      u8_printf(out,"%m",cond);
+    else if (context)
+      u8_printf(out,"<%s>",context);
+    else if (details)
+      u8_printf(out,"(%s)",details);
+    else return 0;
+    return 1;}
+}
+
 FD_EXPORT
 void fd_sum_exception(U8_OUTPUT *out,u8_exception ex)
 {
   u8_exception root=u8_exception_root(ex);
+  int show_top=8, show_bottom=32;
   int stacklen=u8_exception_stacklen(ex);
-
+  int stackfoot=stacklen-show_bottom;
+  int depth=0, elided=0, skipped=0;
+  u8_exception scan=ex, prev=NULL;
   sum_exception(out,root,NULL);
-  u8_printf(out," << %d calls << ",stacklen);
+  while (scan) {
+    if (depth==0) u8_puts(out,"\n");
+    if ((depth<show_top)||(depth>stackfoot)) {
+      if (compact_exception(out,scan,prev,depth,skipped))
+        skipped=0;
+      else skipped++;}
+    else if (elided) {}
+    else if ((stacklen-(show_bottom+show_top))==0) {
+      elided=1; prev=NULL;}
+    else {
+      u8_printf(out," << %d/%d calls... ",
+                stacklen-(show_bottom+show_top),
+                stacklen);
+      skipped=0;
+      elided=1;}
+    prev=scan; scan=prev->u8x_prev;
+    depth++;}
   sum_exception(out,ex,root);
 }
 
@@ -1886,6 +1976,7 @@ static int config_atexit_set(fdtype var,fdtype val,void *data)
 FD_EXPORT void fd_doexit(fdtype arg)
 {
   struct FD_ATEXIT *scan, *tmp;
+  fd_exiting=1;
   if (fd_argv) {
     int i=0, n=fd_argc; while (i<n) {
       fdtype elt=fd_argv[i++]; fd_decref(elt);}

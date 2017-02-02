@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -303,7 +303,7 @@ static fd_index open_hash_index(u8_string fname,int read_only,int consed)
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_init_index((fd_index)index,&hash_index_handler,fname,consed);
-  if (fd_init_dtype_file_stream(s,fname,mode,FD_FILEDB_BUFSIZE)
+  if (fd_init_dtype_file_stream(s,fname,mode,fd_filedb_bufsize)
       == NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_hash_index",u8_strdup(fname));
@@ -1517,7 +1517,7 @@ static void hash_index_setcache(fd_index ix,int level)
 struct POP_SCHEDULE {
   fdtype key; unsigned int size, bucket;};
 struct BUCKET_REF {
-  /* max_new is only used when commiting. */
+  /* max_new is only used when committing. */
   unsigned int bucket, max_new; FD_CHUNK_REF ref;};
 
 static int sort_ps_by_bucket(const void *p1,const void *p2)
@@ -1818,7 +1818,8 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
             fdtype real_key=FD_CDR(key);
             fd_hashset_add(taken,real_key);
             if ((oddkeys==0) && (FD_PAIRP(real_key)) &&
-                ((FD_OIDP(FD_CAR(real_key))) || (FD_SYMBOLP(FD_CAR(real_key))))) {
+                ((FD_OIDP(FD_CAR(real_key))) ||
+                 (FD_SYMBOLP(FD_CAR(real_key))))) {
               if (get_slotid_index(hx,key)<0) oddkeys=1;}
             s[i].key=real_key;
             s[i].values=fd_make_simple_choice(kvscan->fd_keyval);
@@ -1829,12 +1830,12 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
             if (FD_VOIDP(cached))
               drops[n_drops++]=FD_CDR(key);
             else {
-              fdtype added=fd_hashtable_get_nolock
-                (adds,key_to_drop,FD_EMPTY_CHOICE);
+              fdtype added=fd_hashtable_get_nolock(adds,key_to_drop,FD_EMPTY_CHOICE);
               FD_ADD_TO_CHOICE(cached,added);
               s[i].key=key_to_drop;
               s[i].values=fd_difference(cached,kvscan->fd_keyval);
               s[i].replace=1;
+              fd_incref(key_to_drop);
               fd_decref(cached);
               i++;}}
           else {}
@@ -1861,6 +1862,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
             s[i].key=key_to_drop;
             s[i].values=fd_difference(cached,kvscan->fd_keyval);
             s[i].replace=1;
+            fd_incref(key_to_drop);
             fd_decref(cached);
             i++; j++;}}
         kvscan++;}
@@ -1888,7 +1890,9 @@ static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
             if (get_slotid_index(hx,key)<0) oddkeys=1;}
           s[i].key=key;
           s[i].values=fd_make_simple_choice(kvscan->fd_keyval);
-          s[i].replace=0; i++;}
+          s[i].replace=0; 
+          fd_incref(key);
+          i++;}
         kvscan++;}
       scan++;}
     else scan++;
@@ -2018,7 +2022,7 @@ FD_FASTOP fd_off_t extend_keybucket
             write_value_block(hx,&(hx->stream),schedule[k].values,current,
                               0,0,endpos);
           endpos=ke[scan].vref.off+ke[scan].vref.size;
-          ke[scan].values=FD_VOID; 
+          ke[scan].values=FD_VOID;
           fd_decref(current);}
         else {
           ke[scan].vref=
@@ -2126,6 +2130,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
   struct BUCKET_REF *bucket_locs;
   fd_off_t endpos, maxpos=get_maxpos(hx);
   fd_lock_struct(hx);
+  fd_lock_struct(stream);
   fd_write_lock_struct(&(hx->adds));
   fd_write_lock_struct(&(hx->edits));
   schedule_max=hx->adds.fd_n_keys+hx->edits.fd_n_keys;
@@ -2154,6 +2159,14 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #endif
     schedule_size=process_adds(hx,&taken,schedule,schedule_size);
     fd_recycle_hashset(&taken);
+
+    /* Release the modification hashtables, which let's other threads
+       start writing to the index again. */
+    fd_reset_hashtable(&(ix->adds),67,0);
+    fd_rw_unlock_struct(&(ix->adds));
+    fd_reset_hashtable(&(ix->edits),67,0);
+    fd_rw_unlock_struct(&(ix->edits));
+
     /* The commit schedule is now filled and we start generating a bucket schedule. */
     /* We're going to write keys and values, so we create streams to do so. */
     FD_INIT_BYTE_OUTPUT(&out,1024);
@@ -2163,8 +2176,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       newkeys.fd_dts_flags=newkeys.fd_dts_flags|FD_DTYPEV2;}
     /* Compute all the buckets for all the keys */
 #if FD_DEBUG_HASHINDICES
-    u8_message("Computing the buckets for %d scheduled keys",
-               schedule_size);
+    u8_message("Computing the buckets for %d scheduled keys",schedule_size);
 #endif
     /* Compute the hashes and the buckets for all of the keys
        in the commit schedule. */
@@ -2240,8 +2252,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       while ((j<schedule_size) && (schedule[j].bucket==bucket)) j++;
       cur_keys=kb->n_keys;
       /* This may write values to disk. */
-      endpos=extend_keybucket
-        (hx,kb,schedule,i,j,&newkeys,endpos,maxpos);
+      endpos=extend_keybucket(hx,kb,schedule,i,j,&newkeys,endpos,maxpos);
       CHECK_POS(endpos,&(hx->stream));
       new_keys=new_keys+(kb->n_keys-cur_keys);
       {
@@ -2268,11 +2279,13 @@ static int hash_index_commit(struct FD_INDEX *ix)
       if (kb->keybuf) u8_free(kb->keybuf);
       u8_free(kb);}
     u8_free(keybuckets);
-    /* Now we free the values in the schedule.  Note that the keys
-       were never incref'd (they're safely in the adds or edits
-       tables), so we don't have to decref them. */
+    /* Now we free the keys and values in the schedule. */
     { int i=0; while (i<schedule_size) {
-        fdtype v=schedule[i++].values; fd_decref(v);}}
+        fdtype key=schedule[i].key;
+        fdtype v=schedule[i].values;
+        fd_decref(key);
+        fd_decref(v);
+        i++;}}
     u8_free(schedule);
     u8_free(out.fd_bufstart);
     u8_free(newkeys.fd_bufstart);
@@ -2297,7 +2310,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       fd_dtswrite_4bytes(stream,bucket_locs[i].bucket);
       i++;}
     fd_dtswrite_8bytes(stream,recovery_start);
-    fd_setpos(stream,0); 
+    fd_setpos(stream,0);
     fd_dtswrite_4bytes(stream,FD_HASH_INDEX_TO_RECOVER);
     fd_dtsflush(stream); fsync(stream->fd_fileno);
   }
@@ -2314,7 +2327,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
     fd_dtsflush(stream); fsync(stream->fd_fileno);
     /* Now erase the recovery information, since we don't need it
        anymore. */
-    /* endpos=*/fd_endpos(stream); fd_movepos(stream,-8);
+    /* endpos=*/fd_endpos(stream); 
+    fd_movepos(stream,-8);
     recovery_pos=fd_dtsread_8bytes(stream);
     retval=ftruncate(stream->fd_fileno,recovery_pos);
     if (retval<0)
@@ -2336,14 +2350,10 @@ static int hash_index_commit(struct FD_INDEX *ix)
   u8_message("Resetting tables");
 #endif
 
-  /* And reset the modifications */
-  fd_reset_hashtable(&(ix->adds),67,0);
-  fd_rw_unlock_struct(&(ix->adds));
-  fd_reset_hashtable(&(ix->edits),67,0);
-  fd_rw_unlock_struct(&(ix->edits));
   u8_free(bucket_locs);
 
   /* And unlock all the locks. */
+  fd_unlock_struct(stream);
   fd_unlock_struct(hx);
 
 #if FD_DEBUG_HASHINDICES

@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -421,7 +421,7 @@ static fd_pool open_zpool(u8_string fname,int read_only)
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   FD_OID base=FD_NULL_OID_INIT;
-  fd_init_dtype_file_stream(&(pool->stream),fname,mode,FD_FILEDB_BUFSIZE);
+  fd_init_dtype_file_stream(&(pool->stream),fname,mode,fd_filedb_bufsize);
   /* See if it ended up read only */
   if ((pool->stream.fd_dts_flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
   pool->stream.fd_mallocd=0;

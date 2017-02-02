@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -197,6 +197,16 @@ void fd_recycle_cons(fd_cons c)
 }
 
 FD_EXPORT
+/* Frees a vector of LISP pointers */
+void fd_free_vec(fdtype *vec,int n,int free_vec)
+{
+  int i=0; while (i<n) {
+    fdtype elt=vec[i++];
+    fd_decref(elt);}
+  if (free_vec) u8_free(vec);
+}
+
+FD_EXPORT
 /* fdtype_equal:
     Arguments: two dtype pointers
     Returns: 1 or 0 (an int)
@@ -368,6 +378,7 @@ FD_EXPORT
   This returns a copy of its argument, recurring to sub objects. */
 fdtype fd_copier(fdtype x,int flags)
 {
+  int static_copy=U8_BITP(flags,FD_STATIC_COPY);
   if (FD_ATOMICP(x)) return x;
   else {
     fd_ptr_type ctype=FD_CONS_TYPE(FD_CONS_DATA(x));
@@ -379,9 +390,10 @@ fdtype fd_copier(fdtype x,int flags)
         struct FD_PAIR *newpair=u8_alloc(struct FD_PAIR);
         fdtype car=p->fd_car;
         FD_INIT_CONS(newpair,fd_pair_type);
+        if (static_copy) {FD_MAKE_STATIC(result);}
         if (FD_CONSP(car)) {
           struct FD_CONS *c=(struct FD_CONS *)car;
-          if ((flags&FD_FULL_COPY)||(FD_STACK_CONSP(c)))
+          if ( U8_BITP(flags,FD_FULL_COPY) || FD_STACK_CONSP(c) )
             newpair->fd_car=fd_copier(car,flags);
           else {fd_incref(car); newpair->fd_car=car;}}
         else {
@@ -392,6 +404,7 @@ fdtype fd_copier(fdtype x,int flags)
       if (FD_CONSP(scan))
         *tail=fd_copier(scan,flags);
       else *tail=scan;
+      if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
     case fd_vector_type: case fd_rail_type: {
       struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
@@ -408,17 +421,23 @@ fdtype fd_copier(fdtype x,int flags)
               newv=fd_copier(newv,flags);
             else fd_incref(newv);}
           newdata[i++]=newv;}
+      if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
     case fd_string_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
-      return fd_make_string(NULL,s->fd_bytelen,s->fd_bytes);}
+      fdtype result=fd_make_string(NULL,s->fd_bytelen,s->fd_bytes);
+      if (static_copy) {FD_MAKE_STATIC(result);}
+      return result;}
     case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
+      fdtype result;
       if (ctype==fd_secret_type) {
-        fdtype result=fd_make_packet(NULL,s->fd_bytelen,s->fd_bytes);
+        result=fd_make_packet(NULL,s->fd_bytelength,s->fd_bytes);
         FD_SET_CONS_TYPE(result,fd_secret_type);
         return result;}
-      else return fd_make_packet(NULL,s->fd_bytelen,s->fd_bytes);}
+      else result=fd_make_packet(NULL,s->fdbytelen,s->fd_bytes);
+      if (static_copy) {FD_MAKE_STATIC(result);}
+      return result;}
     case fd_choice_type: {
       int n=FD_CHOICE_SIZE(x);
       int flags=(FD_ATOMIC_CHOICEP(x))?
@@ -439,10 +458,14 @@ fdtype fd_copier(fdtype x,int flags)
               newv=fd_copier(newv,flags);
             else fd_incref(newv);}
           *write++=newv;}
-      return fd_init_choice(copy,n,NULL,flags);}
+      result=fd_init_choice(copy,n,NULL,FD_CHOICE_FLAGS(x));
+      if (static_copy) {FD_MAKE_STATIC(result);}
+      return result;}
     default:
-      if (fd_copiers[ctype])
-        return (fd_copiers[ctype])(x,flags);
+      if (fd_copiers[ctype]) {
+        fdtype copy=(fd_copiers[ctype])(x,flags);
+        if ((static_copy)&&(copy!=x)) {FD_MAKE_STATIC(copy);}
+        return copy;}
       else if (!(FD_MALLOCD_CONSP((fd_cons)x)))
         return fd_err(fd_NoMethod,"fd_copier/static",
                       fd_type_names[ctype],FD_VOID);
@@ -450,9 +473,33 @@ fdtype fd_copier(fdtype x,int flags)
         return fd_err(fd_NoMethod,"fd_copier",fd_type_names[ctype],x);
       else {fd_incref(x); return x;}}}
 }
+
+FD_EXPORT
 fdtype fd_deep_copy(fdtype x)
 {
-  return fd_copier(x,(FD_DEEP_COPY));
+  return fd_copier(x,(FD_DEEP_COPY|FD_FULL_COPY));
+}
+
+FD_EXPORT
+fdtype fd_static_copy(fdtype x)
+{
+  return fd_copier(x,(FD_DEEP_COPY|FD_FULL_COPY|FD_STATIC_COPY));
+}
+
+FD_EXPORT
+/* Copies a vector of LISP pointers */
+fdtype *fd_copy_vec(fdtype *vec,int n,fdtype *into,int flags)
+{
+  fdtype *dest=(into==NULL)?(u8_alloc_n(n,fdtype)):(into);
+  int i=0; while (i<n) {
+    fdtype elt=vec[i];
+    if (U8_BITP(flags,FD_DEEP_COPY))
+      into[i]=fd_copier(elt,flags);
+    else {
+      into[i]=elt;
+      fd_incref(elt);}
+    i++;}
+  return dest;
 }
 
 FD_EXPORT
@@ -601,12 +648,12 @@ fdtype fd_conv_string(struct FD_STRING *ptr,int len,u8_string string)
   int length=((len>0)?(len):(strlen(string)));
   u8_byte *bytes=NULL; int freedata=1;
   if (ptr == NULL) {
-    ptr=u8_malloc(sizeof(struct FD_STRING)+length+1);
+    ptr=u8_mallocz(sizeof(struct FD_STRING)+length+1);
     bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
     memcpy(bytes,string,length); bytes[length]='\0';
     freedata=0;}
   else {
-    bytes=u8_malloc(length+1);
+    bytes=u8_mallocz(length+1);
     memcpy(bytes,string,length); bytes[length]='\0';}
   FD_INIT_CONS(ptr,fd_string_type);
   ptr->fd_bytelen=length; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
@@ -669,16 +716,16 @@ FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data)
   fdtype *elts; int freedata=1;
   if ((ptr == NULL)&&(data==NULL)) {
     int i=0;
-    ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    ptr=u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
     /* This might be weird on non byte-addressed architectures */
     elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
     while (i < len) elts[i++]=FD_VOID;
     freedata=0;}
   else if (ptr==NULL) {
-    ptr=u8_alloc(struct FD_VECTOR);
+    ptr=u8_zalloc(struct FD_VECTOR);
     elts=data;}
   else if (data==NULL) {
-      int i=0; elts=u8_malloc(sizeof(fdtype)*len);
+      int i=0; elts=u8_mallocz(sizeof(fdtype)*len);
       while (i<len) elts[i]=FD_VOID;
       freedata=1;}
   else elts=data;
@@ -703,7 +750,7 @@ FD_EXPORT fdtype fd_make_vector(int len,fdtype *data)
 {
   int i=0;
   struct FD_VECTOR *ptr=
-    u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_vector_type);
   ptr->fd_veclen=len; ptr->fd_vecelts=elts; ptr->fd_freedata=0;
@@ -719,14 +766,14 @@ FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data)
 {
   fdtype *elts; int i=0, freedata=1;
   if ((ptr == NULL)&&(data==NULL)) {
-    ptr=u8_malloc(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
+    ptr=u8_mallocz(sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
     elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
     freedata=0;}
   else if (ptr==NULL) {
     ptr=u8_alloc(struct FD_VECTOR);
     elts=data;}
   else if (data==NULL) {
-      int i=0; elts=u8_malloc(sizeof(fdtype)*len);
+      int i=0; elts=u8_zalloc(sizeof(fdtype)*len);
       while (i<len) elts[i]=FD_VOID;
       freedata=1;}
   else {
@@ -752,7 +799,7 @@ FD_EXPORT fdtype fd_make_nrail(int len,...)
 FD_EXPORT fdtype fd_make_rail(int len,fdtype *data)
 {
   int i=0;
-  struct FD_VECTOR *ptr=u8_malloc
+  struct FD_VECTOR *ptr=u8_mallocz
     (sizeof(struct FD_VECTOR)+(sizeof(fdtype)*len));
   fdtype *elts=((fdtype *)(((unsigned char *)ptr)+sizeof(struct FD_VECTOR)));
   FD_INIT_CONS(ptr,fd_rail_type);
@@ -773,7 +820,7 @@ FD_EXPORT fdtype fd_init_packet
     ptr->fd_freedata=1;}
   FD_INIT_CONS(ptr,fd_packet_type);
   if (data == NULL) {
-    u8_byte *consed=u8_malloc(len+1);
+    u8_byte *consed=u8_mallocz(len+1);
     memset(consed,0,len+1);
     data=consed;}
   ptr->fd_bytelen=len; ptr->fd_bytes=data;
@@ -785,7 +832,7 @@ FD_EXPORT fdtype fd_make_packet
 {
   u8_byte *bytes=NULL; int freedata=1;
   if (ptr == NULL) {
-    ptr=u8_malloc(sizeof(struct FD_STRING)+len+1);
+    ptr=u8_mallocz(sizeof(struct FD_STRING)+len+1);
     bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
     if (data) {
       memcpy(bytes,data,len);
@@ -793,7 +840,7 @@ FD_EXPORT fdtype fd_make_packet
     else memset(bytes,0,len+1);
     freedata=0;}
   else if (data==NULL) {
-    bytes=u8_malloc(len+1); memset(bytes,0,len+1);}
+    bytes=u8_malloc(len+1);}
   else bytes=(unsigned char *)data;
   FD_INIT_CONS(ptr,fd_packet_type);
   ptr->fd_bytelen=len; ptr->fd_bytes=bytes; ptr->fd_freedata=freedata;
@@ -805,7 +852,7 @@ FD_EXPORT fdtype fd_bytes2packet
 {
   u8_byte *bytes=NULL; int freedata=(data!=NULL);
   if (ptr == NULL) {
-    ptr=u8_malloc(sizeof(struct FD_STRING)+len+1);
+    ptr=u8_mallocz(sizeof(struct FD_STRING)+len+1);
     bytes=((u8_byte *)ptr)+sizeof(struct FD_STRING);
     if (data) {
       memcpy(bytes,data,len);
@@ -1316,7 +1363,8 @@ static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
     FD_VECTOR_SET(vec,1,FD_INT(xtm->fd_u8xtime.u8_nsecs));
     FD_VECTOR_SET(vec,2,FD_INT((int)xtm->fd_u8xtime.u8_prec));
     FD_VECTOR_SET(vec,3,FD_INT(tzoff));
-    size=size+fd_write_dtype(out,vec);}
+    size=size+fd_write_dtype(out,vec);
+    fd_decref(vec);}
   return size;
 }
 

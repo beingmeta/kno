@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -575,7 +575,7 @@ static fdtype zipfile2dtypes(fdtype filename)
   else return fd_type_error(_("string"),"zipfile2dtypes",filename);;
 }
 
-static fdtype open_dtype_file(fdtype fname)
+static fdtype open_dtype_output_file(fdtype fname)
 {
   u8_string filename=FD_STRDATA(fname);
   struct FD_DTSTREAM *dts=u8_alloc(struct FD_DTSTREAM);
@@ -588,8 +588,29 @@ static fdtype open_dtype_file(fdtype fname)
     return FDTYPE_CONS(dts);}
   else {
     u8_free(dts);
-    u8_graberr(-1,"open_dtype_file",u8_strdup(filename));
+    u8_graberr(-1,"open_dtype_output_file",u8_strdup(filename));
     return FD_ERROR_VALUE;}
+}
+
+static fdtype open_dtype_input_file(fdtype fname)
+{
+  u8_string filename=FD_STRDATA(fname);
+  if (!(u8_file_existsp(filename))) {
+    fd_seterr(fd_FileNotFound,"open_dtype_input_file",
+              u8_strdup(filename),FD_VOID);
+    return FD_ERROR_VALUE;}
+  else {
+    struct FD_DTSTREAM *dts=u8_alloc(struct FD_DTSTREAM);
+    FD_INIT_CONS(dts,fd_dtstream_type); dts->owns_socket=1;
+    dts->dt_stream=fd_dtsopen
+      (filename,FD_DTSTREAM_READ_ONLY|FD_DTSTREAM_READING);
+    if (dts->dt_stream) {
+      U8_CLEAR_ERRNO();
+      return FDTYPE_CONS(dts);}
+    else {
+      u8_free(dts);
+      u8_graberr(-1,"open_dtype_input_file",u8_strdup(filename));
+      return FD_ERROR_VALUE;}}
 }
 
 static fdtype extend_dtype_file(fdtype fname)
@@ -608,6 +629,33 @@ static fdtype extend_dtype_file(fdtype fname)
     u8_free(dts);
     u8_graberr(-1,"extend_dtype_file",u8_strdup(filename));
     return FD_ERROR_VALUE;}
+}
+
+static fdtype dtype_streamp(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_dtstream_type)) 
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
+static fdtype dtype_inputp(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_dtstream_type)) {
+    struct FD_DTSTREAM *dts=(fd_dtstream)arg;
+    if (U8_BITP(dts->dt_stream->flags,FD_DTSTREAM_READING))
+      return FD_TRUE;
+    else return FD_FALSE;}
+  else return FD_FALSE;
+}
+
+static fdtype dtype_outputp(fdtype arg)
+{
+  if (FD_PRIM_TYPEP(arg,fd_dtstream_type)) {
+    struct FD_DTSTREAM *dts=(fd_dtstream)arg;
+    if (U8_BITP(dts->dt_stream->flags,FD_DTSTREAM_READING))
+      return FD_FALSE;
+    else return FD_TRUE;}
+  else return FD_FALSE;
 }
 
 /* The init function */
@@ -667,23 +715,28 @@ FD_EXPORT void fd_init_filedb_c()
   fd_idefn(filedb_module,fd_make_cprim1x("OPEN-FILE-POOL",open_file_pool,1,
                                          fd_string_type,FD_VOID));
   fd_idefn(filedb_module,
-           fd_make_ndprim(fd_make_cprim2x("FILE-POOL-PREFETCH!",file_pool_prefetch,2,
-                                          fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
+           fd_make_ndprim
+           (fd_make_cprim2x("FILE-POOL-PREFETCH!",file_pool_prefetch,2,
+                            fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
+  
 
-
-  fd_idefn(filedb_module,fd_make_cprim4x("POPULATE-HASH-INDEX",populate_hash_index,2,
-                                         -1,FD_VOID,-1,FD_VOID,
-                                         fd_fixnum_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(filedb_module,fd_make_cprim6x("MAKE-HASH-INDEX",make_hash_index,2,
-                                         fd_string_type,FD_VOID,
-                                         fd_fixnum_type,FD_VOID,
-                                         -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
-                                         -1,FD_FALSE));
-  fd_idefn(filedb_module,fd_make_cprim3x("HASH-INDEX-BUCKET",hash_index_bucket,2,
-                                         -1,FD_VOID,-1,FD_VOID));
+  fd_idefn(filedb_module,
+           fd_make_cprim4x("POPULATE-HASH-INDEX",populate_hash_index,2,
+                           -1,FD_VOID,-1,FD_VOID,
+                           fd_fixnum_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(filedb_module,
+           fd_make_cprim6x("MAKE-HASH-INDEX",make_hash_index,2,
+                           fd_string_type,FD_VOID,
+                           fd_fixnum_type,FD_VOID,
+                           -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
+                           -1,FD_FALSE));
+  fd_idefn(filedb_module,
+           fd_make_cprim3x("HASH-INDEX-BUCKET",hash_index_bucket,2,
+                           -1,FD_VOID,-1,FD_VOID));
   fd_idefn(filedb_module,
            fd_make_cprim1("HASH-INDEX-SLOTIDS",hash_index_slotids,1));
-  fd_idefn(filedb_module,fd_make_cprim1("HASH-INDEX-STATS",hash_index_stats,1));
+  fd_idefn(filedb_module,
+           fd_make_cprim1("HASH-INDEX-STATS",hash_index_stats,1));
 
 
   fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));
@@ -701,6 +754,7 @@ FD_EXPORT void fd_init_filedb_c()
            fd_make_ndprim(fd_make_cprim3("DTYPE->ZFILE",dtype2zipfile,2)));
   fd_idefn(filedb_module,
            fd_make_ndprim(fd_make_cprim2("DTYPE->ZFILE+",add_dtype2zipfile,2)));
+
   /* We make these aliases because the output file isn't really a zip
      file, but we don't want to break code which uses the old
      names. */
@@ -716,12 +770,22 @@ FD_EXPORT void fd_init_filedb_c()
   fd_defalias(filedb_module,"ZIPFILE->DTYPES","ZFILE->DTYPES");
 
   fd_idefn(filedb_module,
-           fd_make_cprim1x("OPEN-DTYPE-FILE",open_dtype_file,1,
+           fd_make_cprim1x("OPEN-DTYPE-FILE",open_dtype_input_file,1,
+                           fd_string_type,FD_VOID));
+  fd_idefn(filedb_module,
+           fd_make_cprim1x("OPEN-DTYPE-INPUT",open_dtype_input_file,1,
+                           fd_string_type,FD_VOID));
+  fd_idefn(filedb_module,
+           fd_make_cprim1x("OPEN-DTYPE-OUTPUT",open_dtype_output_file,1,
                            fd_string_type,FD_VOID));
   fd_idefn(filedb_module,
            fd_make_cprim1x("EXTEND-DTYPE-FILE",extend_dtype_file,1,
                            fd_string_type,FD_VOID));
-  
+
+  fd_idefn(filedb_module,fd_make_cprim1("DTYPE-STREAM?",dtype_streamp,1));
+  fd_idefn(filedb_module,fd_make_cprim1("DTYPE-INPUT?",dtype_inputp,1));
+  fd_idefn(filedb_module,fd_make_cprim1("DTYPE-OUTPUT?",dtype_outputp,1));
+
   fd_finish_module(filedb_module);
   fd_persist_module(filedb_module);
 }

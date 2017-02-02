@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -150,7 +150,7 @@ static fdtype load_source_for_module
       fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
     fd_decref((fdtype)env);
     return load_result;}
-  if (FD_STRINGP(spec)) 
+  if (FD_STRINGP(spec))
     fd_register_module_x(spec,(fdtype) env,
                          ((safe) ? (FD_MODULE_SAFE) : (0)));
   add_load_record(spec,module_source,env,mtime);

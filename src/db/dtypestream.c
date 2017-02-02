@@ -1,6 +1,6 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2016 beingmeta, inc.
+/* Copyright (C) 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -144,6 +144,7 @@ FD_EXPORT struct FD_DTYPE_STREAM *fd_init_dtype_stream
     s->fd_filepos=-1; s->fd_maxpos=-1;
     s->fd_dts_fillfn=fill_dtype_stream; s->fd_dts_flushfn=NULL;
     s->fd_dts_flags|=FD_DTSTREAM_READING|FD_BYTEBUF_MALLOCD;
+    u8_init_mutex(&(s->fd_lock));
     return s;}
 }
 
@@ -176,6 +177,7 @@ FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
     if (writing == 0) stream->fd_dts_flags=stream->fd_dts_flags|FD_DTSTREAM_READ_ONLY;
     stream->fd_maxpos=lseek(fd,0,SEEK_END);
     stream->fd_filepos=lseek(fd,0,SEEK_SET);
+    u8_init_mutex(&(stream->lock));
     u8_free(localname);
     return stream;}
   else {
@@ -201,12 +203,15 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
   /* Already closed */
   if (s->fd_fileno<0) return;
   /* Flush data */
-  if ((s->fd_dts_flags&FD_DTSTREAM_READING) == 0) fd_dtsflush(s);
+  if ((s->fd_dts_flags&FD_DTSTREAM_READING) == 0)
+    fd_dtsflush(s);
+
+  fd_lock_struct(s);
+
   if (s->fd_bufstart) {
     u8_free(s->fd_bufstart);
     s->fd_bufstart=s->fd_bufptr=s->fd_buflim=NULL;}
-  else {
-    /* Redundant close.  Warn? */}
+  else {/* Redundant close.  Warn? */}
   if (close_fd>0) {
     fsync(s->fd_fileno);
     if (s->fd_dts_flags&FD_DTSTREAM_SOCKET)
@@ -216,6 +221,7 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
   if (s->fd_dtsid) {
     u8_free(s->fd_dtsid);
     s->fd_dtsid=NULL;}
+  u8_destroy_mutex(&(s->fd_lock));
   if (s->fd_mallocd) u8_free(s);
 }
 
@@ -310,6 +316,7 @@ static int fill_dtype_stream(struct FD_DTYPE_STREAM *df,int n)
 
 FD_EXPORT int fd_dtsflush(fd_dtype_stream s)
 {
+  fd_lock_struct(s);
   if (s->fd_dts_flags&FD_DTSTREAM_READING) {
     /* When flushing a read stream, we just discard whatever
        is in the input buffer. */
@@ -320,6 +327,7 @@ FD_EXPORT int fd_dtsflush(fd_dtype_stream s)
       s->fd_filepos=s->fd_filepos+(s->fd_buflim-s->fd_bufstart);
     /* Reset the buffer pointers */
     s->fd_buflim=s->fd_bufptr=s->fd_bufstart;
+    fd_unlock_struct(s);
     return leftover;}
   else {
     int bytes_written=writeall(s->fd_fileno,s->fd_bufstart,s->fd_bufptr-s->fd_bufstart);
@@ -328,15 +336,24 @@ FD_EXPORT int fd_dtsflush(fd_dtype_stream s)
            "Wrote %d bytes to %s#%d, %d/%d bytes in buffer",
            bytes_written,s->fd_dtsid,s->fd_fileno,s->fd_bufptr-s->fd_bufstart,s->fd_buflim-s->fd_bufstart);
 #endif
-    if (bytes_written<0) return -1;
+    if (bytes_written<0) {
+      fd_unlock_struct(s);
+      return -1;}
     if ((s->fd_dts_flags)&FD_DTSTREAM_DOSYNC) fsync(s->fd_fileno);
     if ((s->fd_dts_flags&FD_DTSTREAM_CANSEEK) && (s->fd_filepos>=0))
       s->fd_filepos=s->fd_filepos+bytes_written;
+    if (bytes_written<0) {
+
+      return -1;}
+    if ((s->flags)&FD_DTSTREAM_DOSYNC) fsync(s->fd);
+    if ((s->flags&FD_DTSTREAM_CANSEEK) && (s->filepos>=0))
+      s->filepos=s->filepos+bytes_written;
     /* Reset maxpos if neccessary. */
     if ((s->fd_maxpos>=0) && (s->fd_filepos>s->fd_maxpos))
       s->fd_maxpos=s->fd_filepos;
     /* Reset the buffer pointers */
     s->fd_bufptr=s->fd_bufstart;
+    fd_unlock_struct(s);
     return bytes_written;}
 }
 
@@ -898,6 +915,33 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
     else {
       u8_free(stream);
       return FD_ERROR_VALUE;}}
+}
+
+FD_EXPORT ssize_t _fd_write_dtype_to_file(fdtype object,
+                                          u8_string filename,
+                                          size_t bufsize,
+                                          int zip)
+{
+  struct FD_DTYPE_STREAM *stream=u8_alloc(struct FD_DTYPE_STREAM);
+  struct FD_DTYPE_STREAM *opened=
+    fd_init_dtype_file_stream(stream,filename,FD_DTSTREAM_WRITE,bufsize);
+  if (opened) {
+    size_t len=(zip)?
+      (zwrite_dtype(opened,object)):
+      (fd_dtswrite_dtype(opened,object));
+    fd_dtsclose(opened,1);
+    return len;}
+  else return -1;
+}
+
+FD_EXPORT ssize_t fd_write_dtype_to_file(fdtype object,u8_string filename)
+{
+  return _fd_write_dtype_to_file(object,filename,1024*64,0);
+}
+
+FD_EXPORT ssize_t fd_write_zdtype_to_file(fdtype object,u8_string filename)
+{
+  return _fd_write_dtype_to_file(object,filename,1024*64,1);
 }
 
 /* Initialization of file */
