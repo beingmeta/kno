@@ -670,7 +670,8 @@ static fdtype xref_opcode(fdtype x,int i,fdtype tag)
 static fdtype opcode_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
 {
   int israil=(FD_RAILP(expr));
-  fdtype body=((israil)?(FD_VOID):(FD_CDR(expr))), arg1_expr, arg1; 
+  fdtype body=((israil)?(FD_VOID):(FD_CDR(expr)));
+  fdtype arg1_expr, arg1;
   if (opcode<FD_UNARY_ND_OPCODES)
     /* These handle the raw expression without evaluation */
     return opcode_special_dispatch(opcode,expr,env);

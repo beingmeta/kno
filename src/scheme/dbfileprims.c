@@ -214,7 +214,8 @@ static int get_make_hash_index_flags(fdtype flags_arg)
 }
 
 static fdtype make_hash_index(fdtype fname,fdtype size,
-                              fdtype slotids,fdtype baseoids,fdtype metadata,
+                              fdtype slotids,fdtype baseoids,
+                              fdtype metadata,
                               fdtype flags_arg)
 {
   int retval=
