@@ -247,7 +247,7 @@ FD_EXPORT fdtype fd_dtsread_dtype(fd_dtype_stream s)
     return zread_dtype(s);}
   else if (first_byte>=0x80) {
     /* Probably compressed */
-    fd_seterr("NYI","fd_dtsread_type/zip",s->id,FD_VOID);
+    fd_seterr("NYI","fd_dtsread_type/zip",s->fd_dtsid,FD_VOID);
     return FD_ERROR_VALUE;}
   else return fd_read_dtype((struct FD_BYTE_INPUT *)s);
 }
