@@ -64,7 +64,7 @@ static int numcompare(fdtype x,fdtype y)
 }
 
 short fd_init_smap_size = FD_INIT_SMAP_SIZE;
-int fd_init_hash_size   = FD_INIT_HASH_SIZE;
+int   fd_init_hash_size = FD_INIT_HASH_SIZE;
 
 
 /* Debugging tools */
@@ -505,7 +505,6 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
   struct FD_KEYVAL *kv=
     ((struct FD_KEYVAL *)(((unsigned char *)ptr)+sizeof(struct FD_SLOTMAP)));
   int i=0;
-  if (len<1) len=fd_init_smap_size;
   FD_INIT_STRUCT(ptr,struct FD_SLOTMAP);
   FD_INIT_CONS(ptr,fd_slotmap_type);
   ptr->fd_table_free=space; ptr->fd_table_size=len;
