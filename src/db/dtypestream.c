@@ -242,8 +242,13 @@ FD_EXPORT fdtype fd_dtsread_dtype(fd_dtype_stream s)
   if ((s->flags&FD_DTSTREAM_READING) == 0)
     if (fd_set_read(s,1)<0) return FD_ERROR_VALUE;
   first_byte=fd_dtsprobe_byte(s);
-  if (first_byte>=0x80) /* Probably compressed */
-    return zread_dtype(s);
+  if (first_byte==dt_ztype) {
+    fd_dtsread_byte(s);
+    return zread_dtype(s);}
+  else if (first_byte>=0x80) {
+    /* Probably compressed */
+    fd_seterr("NYI","fd_dtsread_type/zip",s->id,FD_VOID);
+    return FD_ERROR_VALUE;}
   else return fd_read_dtype((struct FD_BYTE_INPUT *)s);
 }
 FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x)
@@ -828,6 +833,7 @@ static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
   if (zlen<0) {
     u8_free(out.start);
     return FD_ERROR_VALUE;}
+  fd_dtswrite_byte(s,dt_ztype);
   size=fd_dtswrite_zint(s,zlen); size=size+zlen;
   if (fd_dtswrite_bytes(s,zbytes,zlen)<0) size=-1;
   fd_dtsflush(s);
@@ -840,7 +846,6 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
   return zwrite_dtype(s,x);
 }
 
-/* This reads a non frame value with compression. */
 static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
 {
   unsigned char *zbytes=NULL; ssize_t zlen=-1, size; int retval=0;
@@ -863,7 +868,8 @@ static int zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
   if ((retval<0)||(zlen<0)) {
     if (zbytes) u8_free(zbytes); u8_free(out.start);
     return -1;}
-  size=fd_dtswrite_zint(s,zlen); size=size+zlen;
+  fd_dtswrite_byte(s,dt_ztype);
+  size=1+fd_dtswrite_zint(s,zlen); size=size+zlen;
   retval=fd_dtswrite_bytes(s,zbytes,zlen);
   u8_free(zbytes); u8_free(out.start);
   if (retval<0) return retval;
