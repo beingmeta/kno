@@ -1309,7 +1309,7 @@ static fdtype rusage_prim(fdtype field)
         if (!(FD_VOIDP(lvec))) fd_store(result,loadavg_symbol,lvec);
         fd_decref(lval); fd_decref(lvec);}}
     { /* Elapsed time */
-      double elapsed=u8_elapsed_time();
+      double elapsed=u8_elapsed_time()*1000000.0;
       double utime=u8_dbltime(r.ru_utime);
       double stime=u8_dbltime(r.ru_stime);
       double cpusage=((utime+stime)*100)/elapsed;
