@@ -39,7 +39,10 @@ typedef enum dt_type_code {
 
   dt_character_package = 0x40,
   dt_numeric_package = 0x41,
-  dt_framerd_package = 0x42
+  dt_framerd_package = 0x42,
+
+  dt_ztype = 0x70
+
 } dt_type_code;
 
 typedef unsigned char dt_subcode;
