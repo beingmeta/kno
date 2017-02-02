@@ -177,7 +177,7 @@ FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
     if (writing == 0) stream->fd_dts_flags=stream->fd_dts_flags|FD_DTSTREAM_READ_ONLY;
     stream->fd_maxpos=lseek(fd,0,SEEK_END);
     stream->fd_filepos=lseek(fd,0,SEEK_SET);
-    u8_init_mutex(&(stream->lock));
+    u8_init_mutex(&(stream->fd_lock));
     u8_free(localname);
     return stream;}
   else {
@@ -345,9 +345,9 @@ FD_EXPORT int fd_dtsflush(fd_dtype_stream s)
     if (bytes_written<0) {
 
       return -1;}
-    if ((s->flags)&FD_DTSTREAM_DOSYNC) fsync(s->fd);
-    if ((s->flags&FD_DTSTREAM_CANSEEK) && (s->filepos>=0))
-      s->filepos=s->filepos+bytes_written;
+    if ((s->fd_dts_flags)&FD_DTSTREAM_DOSYNC) fsync(s->fd_fileno);
+    if ((s->fd_dts_flags&FD_DTSTREAM_CANSEEK) && (s->fd_filepos>=0))
+      s->fd_filepos=s->fd_filepos+bytes_written;
     /* Reset maxpos if neccessary. */
     if ((s->fd_maxpos>=0) && (s->fd_filepos>s->fd_maxpos))
       s->fd_maxpos=s->fd_filepos;

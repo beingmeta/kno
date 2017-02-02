@@ -241,15 +241,16 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
     if (rv<0) return rv;
     rv=fd_hashtable_op(cache,fd_table_add_if_present,key,value);}
   if (rv<0) return rv;
-  if ( (fdtc) && (fdtc->indices.n_keys) ) {
+  if ( (fdtc) && (fdtc->indices.fd_n_keys) ) {
     FD_DO_CHOICES(akey,key) {
       struct FD_PAIR tempkey;
       FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
-      tempkey.car=fd_index2lisp(ix); tempkey.cdr=akey;
+      tempkey.fd_car=fd_index2lisp(ix); tempkey.fd_cdr=akey;
       if (fd_hashtable_probe(&fdtc->indices,(fdtype)&tempkey)) {
 	fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}}
 
-  if ((ix->flags&FD_INDEX_IN_BACKGROUND) && (fd_background->cache.n_keys)) {
+  if ((ix->flags&FD_INDEX_IN_BACKGROUND) && 
+      (fd_background->cache.fd_n_keys)) {
     fd_hashtable bgcache=(&(fd_background->cache));
     if (FD_CHOICEP(key)) {
       const fdtype *keys=FD_CHOICE_DATA(key);

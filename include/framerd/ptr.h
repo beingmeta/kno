@@ -186,7 +186,7 @@ typedef struct FD_CONS { FD_CONS_HEADER; } FD_CONS;
 typedef struct FD_CONS *fd_cons;
 
 #define FD_CONS_TYPE_MASK (0x7f)
-#define FD_CONS_TYPE_OFF ((FD_CONS_TYPE_OFF))
+#define FD_CONS_TYPE_OFF  (0x84)
 
 #define FD_VALID_TYPEP(x) (FD_EXPECT_TRUE(((int)x)<256))
 
@@ -254,13 +254,13 @@ static fd_ptr_type FD_PTR_TYPE(fdtype x)
 
 #define FD_PTR_TYPEP(x,type) ((FD_PTR_TYPE(x)) == type)
 
-#define FD_MAKE_STATIC(ptr)  \
-  if (FD_CONSP(ptr))						\
-    (((struct FD_CONS *)ptr)->consbits)&=(FD_CONS_TYPE_MASK);	\
-    else {}
+#define FD_MAKE_STATIC(ptr) \
+  if (FD_CONSP(ptr))							\
+    (((struct FD_CONS *)ptr)->fd_conshead)&=(FD_CONS_TYPE_MASK);	\
+  else {}
 
 #define FD_MAKE_CONS_STATIC(ptr)  \
-  (ptr)->consbits&=FD_CONS_TYPE_MASK;
+  (ptr)->fd_conshead &= FD_CONS_TYPE_MASK
 
 /* OIDs */
 

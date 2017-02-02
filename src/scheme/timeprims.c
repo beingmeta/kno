@@ -354,7 +354,7 @@ int fd_cmp_now(fdtype timestamp,double thresh)
     return FD_ERROR_VALUE;
   else {
     double diff; struct U8_XTIME now; u8_now(&now);
-    diff=u8_xtime_diff((&(t->xtime)),&now);
+    diff=u8_xtime_diff((&(t->fd_u8xtime)),&now);
     if (free_t) u8_free(t);
     if (diff > thresh)
       return 1;

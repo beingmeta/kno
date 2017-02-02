@@ -642,7 +642,7 @@ static fdtype dtype_inputp(fdtype arg)
 {
   if (FD_PRIM_TYPEP(arg,fd_dtstream_type)) {
     struct FD_DTSTREAM *dts=(fd_dtstream)arg;
-    if (U8_BITP(dts->dt_stream->flags,FD_DTSTREAM_READING))
+    if (U8_BITP(dts->dt_stream->fd_dts_flags,FD_DTSTREAM_READING))
       return FD_TRUE;
     else return FD_FALSE;}
   else return FD_FALSE;
@@ -652,7 +652,7 @@ static fdtype dtype_outputp(fdtype arg)
 {
   if (FD_PRIM_TYPEP(arg,fd_dtstream_type)) {
     struct FD_DTSTREAM *dts=(fd_dtstream)arg;
-    if (U8_BITP(dts->dt_stream->flags,FD_DTSTREAM_READING))
+    if (U8_BITP(dts->dt_stream->fd_dts_flags,FD_DTSTREAM_READING))
       return FD_FALSE;
     else return FD_TRUE;}
   else return FD_FALSE;

@@ -1008,13 +1008,8 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     fdtype value=values[i];
     int n_bytes=oidpool_write_value(value,stream,op,&tmpout,&zbuf,&zbuf_size);
     if (n_bytes<0) {
-<<<<<<< HEAD
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.fd_bufstart);
-      fd_unlock_struct(op);
-=======
-      u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.start);
       fd_unlock_struct(stream);
->>>>>>> master
       return n_bytes;}
     if ((endpos+n_bytes)>=maxpos) {
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.fd_bufstart);
@@ -1027,7 +1022,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 
     endpos=endpos+n_bytes;
     i++;}
-  u8_free(tmpout.start);
+  u8_free(tmpout.fd_bufstart);
   u8_free(zbuf);
 
   /* Now, write recovery information, which lets the state of the pool
@@ -1065,14 +1060,8 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   u8_free(saveinfo);
   fd_setpos(stream,0);
   fd_dtswrite_4bytes(stream,FD_OIDPOOL_MAGIC_NUMBER);
-<<<<<<< HEAD
   fd_dtsflush(stream); fsync(stream->fd_fileno);
-  fd_unlock_struct(op);
-=======
-  fd_dtsflush(stream); 
-  fsync(stream->fd);
   fd_unlock_struct(stream);
->>>>>>> master
   return n;
 }
 

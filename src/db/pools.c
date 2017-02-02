@@ -179,7 +179,7 @@ void fd_reset_pool_tables(fd_pool p,
   int read_only=p->read_only;
   fd_hashtable cache=&(p->cache), locks=&(p->locks);
   fd_reset_hashtable(cache,((cacheval==0)?(fd_pool_cache_init):(cacheval)),1);
-  if (locks->n_keys==0) {
+  if (locks->fd_n_keys==0) {
     ssize_t level=(read_only)?(0):(locksval==0)?(fd_pool_lock_init):(locksval);
     fd_reset_hashtable(locks,level,1);}
 }
@@ -894,7 +894,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,
 
   fd_write_lock_struct(locks);
 
-  if (locks->n_keys==0) {
+  if (locks->fd_n_keys==0) {
     u8_log(fddb_loglevel+1,fd_PoolCommit,"####### No locked oids in %s",p->cid);
     fd_rw_unlock_struct(locks);
     return 0;}
@@ -1048,7 +1048,7 @@ struct FD_POOL_WRITES choice2writes(fd_pool p,fdtype oids,
         else fd_decref(v);}}}
   n_writes=oidv-writes.oids;
   writes.len=n_writes;
-  xchoice->size=(n_writes|FD_ATOMIC_CHOICE_MASK);
+  xchoice->fd_choicesize=n_writes;
   return writes;
 }
 
@@ -1058,27 +1058,28 @@ struct FD_POOL_WRITES locks2writes(fd_pool p,fd_pool_commit_flags flags)
   int unlock = U8_BITP(flags,FD_POOL_COMMIT_UNLOCK);
   fd_hashtable locks=&(p->locks);
   fdtype choice, *oidv, *values;
-  size_t max_writes=locks->n_keys;
+  size_t max_writes=locks->fd_n_keys;
   struct FD_CHOICE *xchoice=fd_alloc_choice(max_writes);
   FD_INIT_FRESH_CONS(xchoice,fd_choice_type);
   writes.len=max_writes;
   writes.choice=choice=(fdtype)xchoice;
   writes.oids=oidv=(fdtype *)FD_XCHOICE_DATA(xchoice);
   writes.values=values=u8_zalloc_n(max_writes,fdtype);
-  if (locks->n_slots) {
-    struct FD_HASHENTRY **scan=locks->slots, **lim=scan+locks->n_slots;
+  if (locks->fd_n_buckets) {
+    struct FD_HASH_BUCKET **scan=locks->fd_buckets;
+    struct FD_HASH_BUCKET **lim=scan+locks->fd_n_buckets;
     while (scan < lim)
       if (*scan) {
-        struct FD_HASHENTRY *e=*scan; int n_keyvals=e->n_keyvals;
-        struct FD_KEYVAL *kvscan=&(e->keyval0), *kvlimit=kvscan+n_keyvals;
+        struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
+        struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
-          fdtype o=kvscan->key, v=kvscan->value;
+          fdtype o=kvscan->fd_kvkey, v=kvscan->fd_keyval;
           if (U8_EXPECT_TRUE(FD_OIDP(o))) {
             if (savep(v,flags)) {
               *oidv++=o;
               *values++=v;
               if (unlock) {
-                kvscan->value=FD_VOID;}
+                kvscan->fd_keyval=FD_VOID;}
               else fd_incref(v);}
             kvscan++;}
           else kvscan++;

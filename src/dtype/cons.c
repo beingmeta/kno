@@ -432,10 +432,10 @@ fdtype fd_copier(fdtype x,int flags)
       struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
       fdtype result;
       if (ctype==fd_secret_type) {
-        result=fd_make_packet(NULL,s->fd_bytelength,s->fd_bytes);
+        result=fd_make_packet(NULL,s->fd_bytelen,s->fd_bytes);
         FD_SET_CONS_TYPE(result,fd_secret_type);
         return result;}
-      else result=fd_make_packet(NULL,s->fdbytelen,s->fd_bytes);
+      else result=fd_make_packet(NULL,s->fd_bytelen,s->fd_bytes);
       if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
     case fd_choice_type: {
@@ -446,6 +446,7 @@ fdtype fd_copier(fdtype x,int flags)
       struct FD_CHOICE *copy=fd_alloc_choice(n);
       const fdtype *read=FD_CHOICE_DATA(x), *limit=read+n;
       fdtype *write=(fdtype *)&(copy->fd_elt0);
+      fdtype result;
       if (FD_ATOMIC_CHOICEP(x))
         memcpy(write,read,sizeof(fdtype)*n);
       else if (flags&FD_FULL_COPY) while (read<limit) {
@@ -458,7 +459,7 @@ fdtype fd_copier(fdtype x,int flags)
               newv=fd_copier(newv,flags);
             else fd_incref(newv);}
           *write++=newv;}
-      result=fd_init_choice(copy,n,NULL,FD_CHOICE_FLAGS(x));
+      result=fd_init_choice(copy,n,NULL,flags);
       if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
     default:

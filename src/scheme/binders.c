@@ -677,7 +677,7 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
     if (sproc->defaults)
       fresh->defaults=fd_copy_vec(sproc->defaults,arity,NULL,flags);
 
-    if (fresh->synchronized) fd_init_mutex(&(fresh->lock));
+    if (fresh->synchronized) fd_init_mutex(&(fresh->fd_lock));
 
     if (U8_BITP(flags,FD_STATIC_COPY)) {
       FD_MAKE_CONS_STATIC(fresh);}

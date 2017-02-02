@@ -249,7 +249,7 @@ int fd_static_module(fdtype module)
     int conversions=0;
     struct FD_HASHTABLE *ht=(fd_hashtable)module;
     /* Don't persist it if the module is readonly */
-    if (ht->readonly) return 0;
+    if (ht->fd_readonly) return 0;
     conversions=conversions+fd_static_hashtable(ht,fd_sproc_type);
     conversions=conversions+fd_static_hashtable(ht,fd_function_type);
     conversions=conversions+fd_static_hashtable(ht,fd_specform_type);
