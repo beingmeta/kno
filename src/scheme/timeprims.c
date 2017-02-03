@@ -1309,10 +1309,11 @@ static fdtype rusage_prim(fdtype field)
         if (!(FD_VOIDP(lvec))) fd_store(result,loadavg_symbol,lvec);
         fd_decref(lval); fd_decref(lvec);}}
     { /* Elapsed time */
-      double elapsed=u8_elapsed_time()*1000000.0;
+      double elapsed=u8_elapsed_time();
+      double usecs=elapsed*1000000.0;
       double utime=u8_dbltime(r.ru_utime);
       double stime=u8_dbltime(r.ru_stime);
-      double cpusage=((utime+stime)*100)/elapsed;
+      double cpusage=((utime+stime)*100)/usecs;
       double tcpusage=cpusage/n_cpus;
       add_flonum(result,clock_symbol,elapsed);
       add_flonum(result,cpusage_symbol,cpusage);
@@ -1351,6 +1352,8 @@ static fdtype rusage_prim(fdtype field)
     return fd_init_double(NULL,cpusage);}
   else if (FD_EQ(field,data_symbol))
     return FD_INT((r.ru_idrss*pagesize));
+  else if (FD_EQ(field,clock_symbol))
+    return fd_make_flonum(u8_elapsed_time());
   else if (FD_EQ(field,stack_symbol))
     return FD_INT((r.ru_isrss*pagesize));
   else if (FD_EQ(field,private_symbol))
