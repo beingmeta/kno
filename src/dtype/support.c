@@ -57,6 +57,8 @@ extern void ProfilerFlush();
 
 int fd_exiting=0;
 
+ssize_t fd_default_stack_limit=-1;
+
 u8_condition SetRLimit=_("SetRLimit");
 u8_condition fd_ArgvConfig=_("Config (argv)");
 
@@ -2862,6 +2864,9 @@ void setup_logging()
      fd_intconfig_get,NULL,&u8_thread_debug_loglevel);
 #endif
 
+  fd_register_config
+    ("STACKLIMIT",_("Size of the stack (in bytes)"),
+     fd_sizeconfig_get,fd_sizeconfig_set,&fd_default_stack_limit);
 
   /* Setup sigaction handler */
 

@@ -178,6 +178,17 @@ FD_EXPORT u8_string fd_runbase_filename(u8_string suffix);
 FD_EXPORT fdtype fd_getopt(fdtype opts,fdtype key,fdtype dflt);
 FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
 
+/* Initializing the stack */
+
+FD_EXPORT ssize_t fd_default_stack_limit;
+
+#define FD_INIT_STACK() \
+  if ( u8_stack_base() == NULL ) {U8_SET_STACK_BASE();}			\
+  if ( ( fd_default_stack_limit > 0 ) && ( fd_get_stack_limit() <= 0) )	\
+    fd_stack_limit_set(fd_default_stack_limit);				\
+ else {}
+    
+
 /* Signalling */
 
 FD_EXPORT struct sigaction *fd_sigaction_catch;

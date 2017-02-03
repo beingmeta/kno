@@ -180,6 +180,7 @@ int main(int argc,char **argv)
   fdtype *args=NULL; size_t n_args;
 
   fd_main_errno_ptr=&errno;
+  FD_INIT_STACK();
 
   /* We just initialize this for now. */
   u8_log_show_procinfo=1;

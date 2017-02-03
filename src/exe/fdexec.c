@@ -325,6 +325,7 @@ int main(int argc,char **argv)
   int i=0, retval=0;
 
   fd_main_errno_ptr=&errno;
+  FD_INIT_STACK();
 
   args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,NULL);
 

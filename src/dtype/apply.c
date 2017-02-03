@@ -71,7 +71,34 @@ static void out_escaped(FILE *f,u8_string name)
 /* Stack checking */
 
 #if FD_STACKCHECK
-#if HAVE_THREAD_STORAGE_CLASS
+#if (!(FD_THREADS_ENABLED))
+static ssize_t stack_limit=-1;
+static int stackcheck()
+{
+  if (stack_limit>16384) {
+    ssize_t depth=u8_stack_depth();
+    if (depth>stack_limit)
+      return 0;
+    else return 1;}
+  else return 1;
+}
+FD_EXPORT ssize_t fd_stack_limit()
+{
+  return stack_limit;
+}
+FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
+{
+  if (limit<65536) {
+    char *detailsbuf = u8_malloc(64);
+    u8_seterr("StackLimitTooSmall","fd_stack_limit_set",
+              u8_write_long_long(limit,detailsbuf,64));
+    return -1;}
+  else {
+    ssize_t oldlimit=stack_limit;
+    stack_limit=limit;
+    return oldlimit;}
+}
+#elif HAVE_THREAD_STORAGE_CLASS
 static __thread ssize_t stack_limit=-1;
 static int stackcheck()
 {
@@ -88,9 +115,15 @@ FD_EXPORT ssize_t fd_stack_limit()
 }
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
 {
-  ssize_t oldlimit=stack_limit;
-  stack_limit=limit;
-  return oldlimit;
+  if (limit<65536) {
+    u8_string detailsbuf = u8_malloc(50);
+    u8_seterr("StackLimitTooSmall","fd_stack_limit_set",
+              u8_write_long_long(limit,detailsbuf,64));
+    return -1;}
+  else {
+    ssize_t oldlimit=stack_limit;
+    stack_limit=limit;
+    return oldlimit;}
 }
 #else
 static u8_tld_key stack_limit_key;
@@ -113,17 +146,26 @@ FD_EXPORT ssize_t fd_stack_limit()
 }
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t lim)
 {
-  ssize_t oldlimit=fd_stack_limit();
-  u8_tld_set(stack_limit_key,(void *)lim);
-  return oldlimit;
+  if ( lim < 65536 ) {
+    char *detailsbuf = u8_malloc(50);
+    u8_seterr("StackLimitTooSmall","fd_stack_limit_set",
+              u8_write_long_long(lim,detailsbuf,64));
+    return -1;}
+  else {
+    ssize_t oldlimit=fd_stack_limit();
+    u8_tld_set(stack_limit_key,(void *)lim);
+    return oldlimit;}
 }
 #endif
 #else
+static int youve_been_warned=0;
 #define stackcheck() (1)
 FD_EXPORT ssize_t fd_stack_limit()
 {
+  if (youve_been_warned) return -1;
   u8_log(LOG_WARN,"NoStackChecking",
          "Stack checking is not enabled in this build");
+  youve_been_warned=1;
   return -1;
 }
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
