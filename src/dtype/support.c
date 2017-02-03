@@ -2548,6 +2548,59 @@ static int sigconfig_default_setfn(fdtype var,fdtype val,void *data)
                          "sigconfig_default_setfn");
 }
 
+/* Initialize stack limits */
+
+#if FD_THREADS_ENABLED
+FD_EXPORT ssize_t fd_init_stack()
+{
+  pthread_attr_t tattr;
+  pthread_t self = pthread_self();
+  int rv = pthread_getattr_np( self, &tattr );
+  if (rv) {
+    u8_log(LOGWARN,_("NoThreadAttr"),
+           "Couldn't get thread attribute for stack limit, errno=%d (%s)",
+           errno,u8_strerror(errno));
+    return 0;}
+  else {
+    ssize_t size;
+    if ( fd_default_stack_limit > 0 )
+      rv=pthread_attr_setstacksize( &tattr, fd_default_stack_limit);
+    if (rv) {
+      u8_log(LOGWARN,"SetStackSizeError",
+             "Couldn't set stack size to %lld, errno=%d (%s)",
+             (long long) fd_default_stack_limit,
+             errno,u8_strerror(errno));
+      U8_CLEAR_ERRNO();}
+    rv = pthread_attr_getstacksize( &tattr, &size );
+    if (rv) {
+      u8_log(LOGWARN,_("StackSizeError"),
+             "Couldn't get get stack size to initialize FramerD stack limit, errno=%d (%s)",
+             errno,u8_strerror(errno));
+      U8_CLEAR_ERRNO();}
+    else {
+      size_t margin = size/8;
+      fd_stack_limit_set(size-margin);
+      pthread_attr_destroy( &tattr );
+      return 0;}}
+  pthread_attr_destroy( &tattr );
+  if (fd_default_stack_limit > 0)
+    fd_stack_limit_set( fd_default_stack_limit );
+  return -1;
+}
+#else
+FD_EXPORT ssize_t fd_init_stack()
+{
+  if (fd_default_stack_limit > 0)
+    fd_stack_limit_set( fd_default_stack_limit );
+}
+#endif
+
+static int init_thread_stack_limit()
+{
+  fd_init_stack();
+}
+
+
 /* Initialization */
 
 static void setup_logging();
@@ -2868,6 +2921,8 @@ void setup_logging()
     ("STACKLIMIT",_("Size of the stack (in bytes)"),
      fd_sizeconfig_get,fd_sizeconfig_set,&fd_default_stack_limit);
 
+  u8_register_threadinit(init_thread_stack_limit);
+
   /* Setup sigaction handler */
 
   memset(&sigaction_catch,0,sizeof(struct sigaction));
@@ -2896,7 +2951,7 @@ void setup_logging()
 
   sigaddset(&(sigaction_exit.sa_mask),SIGSEGV);
   sigaction(SIGSEGV,&(sigaction_exit),NULL);
-  
+
   sigaddset(&(sigaction_exit.sa_mask),SIGILL);
   sigaction(SIGILL,&(sigaction_exit),NULL);
 

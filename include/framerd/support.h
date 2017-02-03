@@ -181,13 +181,11 @@ FD_EXPORT int fd_testopt(fdtype opts,fdtype key,fdtype val);
 /* Initializing the stack */
 
 FD_EXPORT ssize_t fd_default_stack_limit;
+FD_EXPORT ssize_t fd_init_stack(void);
 
 #define FD_INIT_STACK() \
-  if ( u8_stack_base() == NULL ) {U8_SET_STACK_BASE();}			\
-  if ( ( fd_default_stack_limit > 0 ) && ( fd_get_stack_limit() <= 0) )	\
-    fd_stack_limit_set(fd_default_stack_limit);				\
- else {}
-    
+  U8_SET_STACK_BASE();	\
+  fd_init_stack()
 
 /* Signalling */
 

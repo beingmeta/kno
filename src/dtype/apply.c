@@ -116,7 +116,7 @@ FD_EXPORT ssize_t fd_stack_limit()
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
 {
   if (limit<65536) {
-    u8_string detailsbuf = u8_malloc(50);
+    char *detailsbuf = u8_malloc(50);
     u8_seterr("StackLimitTooSmall","fd_stack_limit_set",
               u8_write_long_long(limit,detailsbuf,64));
     return -1;}
@@ -1241,7 +1241,8 @@ FD_EXPORT void fd_init_apply_c()
 
   u8_register_source_file(_FILEINFO);
   u8_register_source_file(FRAMERD_APPLY_H_INFO);
-  fd_register_config("CALLTRACK",_("File used for calltrack profiling (#f disables calltrack)"),
+  fd_register_config("CALLTRACK",
+                     _("File used for calltrack profiling (#f disables calltrack)"),
                      get_calltrack,set_calltrack,NULL);
 
 #if ((FD_THREADS_ENABLED) && (FD_USE_TLS))
