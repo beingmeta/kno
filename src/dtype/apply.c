@@ -88,7 +88,7 @@ FD_EXPORT ssize_t fd_stack_limit()
 }
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
 {
-  if (limit<65536) {
+  if (limit<8192) { /* Arbitrarily chosen */
     char *detailsbuf = u8_malloc(64);
     u8_seterr("StackLimitTooSmall","fd_stack_limit_set",
               u8_write_long_long(limit,detailsbuf,64));
@@ -715,18 +715,18 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
     case 3: return dcall3(f,args[0],args[1],args[2]); break;
     case 4: return dcall4(f,args[0],args[1],args[2],args[3]); break;
     case 5: return dcall5(f,args[0],args[1],args[2],args[3],args[4]);  break;
-    case 6: 
+    case 6:
       return dcall6(f,args[0],args[1],args[2],args[3],args[4],args[5]);
       break;
-    case 7: 
+    case 7:
       return dcall7(f,args[0],args[1],args[2],args[3],
                       args[4],args[5],args[6]);
       break;
-    case 8: 
+    case 8:
       return dcall8(f,args[0],args[1],args[2],args[3],
                       args[4],args[5],args[6],args[7]);
       break;
-    case 9: 
+    case 9:
       return dcall9(f,args[0],args[1],args[2],args[3],
                       args[4],args[5],args[6],args[7],args[8]);
       break;
