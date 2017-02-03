@@ -1229,7 +1229,7 @@ static fdtype data_symbol, stack_symbol, shared_symbol, private_symbol;
 static fdtype memusage_symbol, vmemusage_symbol, pagesize_symbol, rss_symbol;
 static fdtype datakb_symbol, stackkb_symbol, sharedkb_symbol;
 static fdtype rsskb_symbol, privatekb_symbol;
-static fdtype utime_symbol, stime_symbol, cpusage_symbol, clock_symbol;
+static fdtype utime_symbol, stime_symbol, clock_symbol;
 static fdtype load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
 static fdtype memusage_symbol, vmemusage_symbol, pagesize_symbol;
 static fdtype n_cpus_symbol, max_cpus_symbol;
@@ -1310,8 +1310,10 @@ static fdtype rusage_prim(fdtype field)
         fd_decref(lval); fd_decref(lvec);}}
     { /* Elapsed time */
       double elapsed=u8_elapsed_time();
-      double cpusage=
-        ((u8_dbltime(r.ru_utime)+u8_dbltime(r.ru_stime))/1000000)/elapsed;
+      double usecs=elapsed*1000000.0;
+      double utime=u8_dbltime(r.ru_utime);
+      double stime=u8_dbltime(r.ru_stime);
+      double cpusage=((utime+stime)*100)/usecs;
       double tcpusage=cpusage/n_cpus;
       add_flonum(result,clock_symbol,elapsed);
       add_flonum(result,cpusage_symbol,cpusage);
@@ -1350,6 +1352,8 @@ static fdtype rusage_prim(fdtype field)
     return fd_init_double(NULL,cpusage);}
   else if (FD_EQ(field,data_symbol))
     return FD_INT((r.ru_idrss*pagesize));
+  else if (FD_EQ(field,clock_symbol))
+    return fd_make_flonum(u8_elapsed_time());
   else if (FD_EQ(field,stack_symbol))
     return FD_INT((r.ru_isrss*pagesize));
   else if (FD_EQ(field,private_symbol))

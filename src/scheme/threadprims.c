@@ -273,7 +273,7 @@ static void *thread_call(void *data)
   
   tstruct->errnop=&(errno);
 
-  U8_SET_STACK_BASE();
+  FD_INIT_STACK();
 
   /* Set (block) most signals */
   pthread_sigmask(SIG_SETMASK,fd_default_sigmask,NULL);

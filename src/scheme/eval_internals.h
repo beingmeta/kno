@@ -96,6 +96,8 @@ FD_FASTOP fdtype eval_body(u8_context cxt,fdtype expr,int offset,
       result=_fd_finish_call(result);
     if (FD_ABORTP(result)) {
       if (FD_THROWP(result)) return result;
+      else if ( u8_current_exception->u8x_cond == fd_StackOverflow )
+        return result;
       else {
         fd_push_error_context(cxt,error_bindings(inner_env));
         return result;}}

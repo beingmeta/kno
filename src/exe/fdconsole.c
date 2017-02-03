@@ -703,8 +703,7 @@ int main(int argc,char **argv)
   fd_lispenv env=fd_working_environment();
 
   fd_main_errno_ptr=&errno;
-
-  U8_SET_STACK_BASE();
+  FD_INIT_STACK();
 
   if (getenv("FD_SKIP_DOTLOAD")) dotload=0;
 
