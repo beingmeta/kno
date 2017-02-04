@@ -206,18 +206,26 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
   if ((s->fd_dts_flags&FD_DTSTREAM_READING) == 0)
     fd_dtsflush(s);
 
+  /* Lock before closing */
   fd_lock_struct(s);
 
   if (s->fd_bufstart) {
     u8_free(s->fd_bufstart);
     s->fd_bufstart=s->fd_bufptr=s->fd_buflim=NULL;}
   else {/* Redundant close.  Warn? */}
+
   if (close_fd>0) {
     fsync(s->fd_fileno);
     if (s->fd_dts_flags&FD_DTSTREAM_SOCKET)
       shutdown(s->fd_fileno,SHUT_RDWR);
     close(s->fd_fileno);}
+
   s->fd_fileno=-1;
+}
+
+FD_EXPORT void fd_dtsfree(fd_dtype_stream s,int close_fd)
+{
+  fd_dtsclose(s,close_fd);
   if (s->fd_dtsid) {
     u8_free(s->fd_dtsid);
     s->fd_dtsid=NULL;}

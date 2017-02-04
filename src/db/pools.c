@@ -958,14 +958,14 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
 
   if (explicit_oids)
     u8_log(fddb_loglevel,fd_PoolCommit,
-           "####### Committing%s %d %sOIDS from %s",
+           "####### Committing%s %d %sOIDs from %s",
            ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?(" up to"):("")),
            FD_CHOICE_SIZE(oids),
-           ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?("unneeded "):("")),
+           ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?("updated "):("")),
            p->cid);
   else u8_log(fddb_loglevel,fd_PoolCommit,
-              "####### Committing %sOIDS from %s",
-              ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?("unneeded "):("")),
+              "####### Committing %sOIDs from %s",
+              ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?("updated "):("")),
               p->cid);
 
   struct FD_POOL_WRITES writes=(explicit_oids)?
@@ -984,7 +984,9 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
               "####### Saving%s %d OIDs in %s",
               ((unlock)?("/unlocking"):("")),writes.len,p->cid);
 
-  retval=p->handler->storen(p,writes.len,writes.oids,writes.values);
+  if (writes.len)
+    retval=p->handler->storen(p,writes.len,writes.oids,writes.values);
+  else retval=0;
 
   if (retval<0) {
     u8_log(LOGCRIT,fd_PoolCommitError,
@@ -994,9 +996,10 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
     if (unlock) restore_locks(locks,&writes);
     return retval;}
   else {
-    u8_log(fddb_loglevel,fd_PoolCommit,
-           "####### Saved %d OIDs to %s in %f secs",writes.len,p->cid,
-           u8_elapsed_time()-start_time);
+    if (writes.len)
+      u8_log(fddb_loglevel,fd_PoolCommit,
+             "####### Saved %d OIDs to %s in %f secs",writes.len,p->cid,
+             u8_elapsed_time()-start_time);
     last_report=u8_elapsed_time();
     if (unlock) {
       int unlocked=p->handler->unlock(p,writes.choice);

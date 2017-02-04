@@ -1526,11 +1526,11 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
     check_hashtable_size(ht,FD_ACHOICE_SIZE(key));
   else check_hashtable_size(ht,3);
   n_keys=ht->fd_n_keys;
+  /* These calls unlock the hashtable */
   if ( (FD_CHOICEP(key)) || (FD_ACHOICEP(key)) ) {
     FD_DO_CHOICES(eachkey,key) {
       added+=add_to_hashtable(ht,key,value);}}
   else added=add_to_hashtable(ht,key,value);
-  fd_rw_unlock_struct(ht);
   return added;
 }
 

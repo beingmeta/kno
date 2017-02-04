@@ -1,4 +1,4 @@
-(use-module 'fileio)
+(use-module '{fileio logger})
 
 (config! 'CHECKDTSIZE #t)
 
@@ -19,28 +19,29 @@
 	 (set! testindex (open-index source)))
 	(else
 	 (if (config 'oidpool)
-	     (let ((flags (config 'oidpool #())))
-	       (cond ((or (null? flags) (pair? flags) (vector? flags)))
-		     ((ambiguous? flags) (set! flags (choice->vector flags)))
-		     (else (set! flags (vector flags))))
+	     (let ((flags (fix-flags (config 'oidpool #()))))
 	       (make-oidpool (append source ".pool") @17/0 64000 0 flags))
 	     (make-file-pool (append source ".pool") @17/0 64000))
 	 (if (config 'hashindex #f)
-	     (let ((flags (config 'hashindex #())))
-	       (cond ((or (null? flags) (pair? flags) (vector? flags)))
-		     ((ambiguous? flags) (set! flags (choice->vector flags)))
-		     (else (set! flags (vector flags))))
-	       (if (position 'COMPRESS (config 'hashindex #t))
+	     (let ((flags (fix-flags (config 'hashindex #()))))
+	       (if (position 'COMPRESS flags)
 		   (begin (message "Making compressed hash index for tests")
 		     (make-hash-index (append source ".index") -500000
-				 slotids-vec (vector @17/0) #f flags))
+				      slotids-vec (vector @17/0) #f flags))
 		   (begin (message "Making hash index for tests")
 		     (make-hash-index (append source ".index") -500000
 				      #() #() #f flags))))
 	     (make-file-index (append source ".index") -500000))
 	 (set! dbsource source)
 	 (set! testpool (use-pool source))
-	 (set! testindex (open-index source)))))
+	 (set! testindex (open-index source))))
+  (logwarn |Pool| testpool)
+  (logwarn |Index| testindex))
+
+(defambda (fix-flags flags)
+  (cond ((or (null? flags) (pair? flags) (vector? flags)) flags)
+	((ambiguous? flags) (choice->vector flags))
+	(else (vector flags))))
 
 (define (get-contents-as-list file)
   (let* ((elts '())

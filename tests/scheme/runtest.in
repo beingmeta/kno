@@ -1,0 +1,2 @@
+echo "Running test" $*
+@TESTENV@ @RUNENV@ exec ./fdexec $*

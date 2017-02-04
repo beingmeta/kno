@@ -1605,6 +1605,7 @@ fi;
 AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	  tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
+	  tests/scheme/runtest
 	  etc/gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 	  etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	  etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
