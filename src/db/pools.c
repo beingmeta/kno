@@ -958,14 +958,14 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
 
   if (explicit_oids)
     u8_log(fddb_loglevel,fd_PoolCommit,
-           "####### Committing%s %d %sOIDS from %s",
+           "####### Committing%s %d %sOIDs from %s",
            ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?(" up to"):("")),
            FD_CHOICE_SIZE(oids),
-           ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?("unneeded "):("")),
+           ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?("updated "):("")),
            p->cid);
   else u8_log(fddb_loglevel,fd_PoolCommit,
-              "####### Committing %sOIDS from %s",
-              ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?("unneeded "):("")),
+              "####### Committing %sOIDs from %s",
+              ((U8_BITP(flags,FD_POOL_COMMIT_FINISHED))?("updated "):("")),
               p->cid);
 
   struct FD_POOL_WRITES writes=(explicit_oids)?
