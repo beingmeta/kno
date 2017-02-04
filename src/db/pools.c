@@ -984,7 +984,9 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
               "####### Saving%s %d OIDs in %s",
               ((unlock)?("/unlocking"):("")),writes.len,p->cid);
 
-  retval=p->handler->storen(p,writes.len,writes.oids,writes.values);
+  if (writes.len)
+    retval=p->handler->storen(p,writes.len,writes.oids,writes.values);
+  else retval=0;
 
   if (retval<0) {
     u8_log(LOGCRIT,fd_PoolCommitError,
@@ -994,9 +996,10 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
     if (unlock) restore_locks(locks,&writes);
     return retval;}
   else {
-    u8_log(fddb_loglevel,fd_PoolCommit,
-           "####### Saved %d OIDs to %s in %f secs",writes.len,p->cid,
-           u8_elapsed_time()-start_time);
+    if (writes.len)
+      u8_log(fddb_loglevel,fd_PoolCommit,
+             "####### Saved %d OIDs to %s in %f secs",writes.len,p->cid,
+             u8_elapsed_time()-start_time);
     last_report=u8_elapsed_time();
     if (unlock) {
       int unlocked=p->handler->unlock(p,writes.choice);

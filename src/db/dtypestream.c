@@ -138,7 +138,7 @@ FD_EXPORT struct FD_DTYPE_STREAM *fd_init_dtype_stream
       bufsiz=bufsiz/2; buf=u8_malloc(bufsiz);}
     if (buf==NULL) bufsiz=0;
     /* Initialize the on-demand reader */
-    FD_INIT_BYTE_INPUT(s,buf,bufsiz); 
+    FD_INIT_BYTE_INPUT(s,buf,bufsiz);
     s->end=s->ptr; s->bufsiz=bufsiz;
     s->mallocd=0; s->fd=sock; s->filepos=-1; s->maxpos=-1; s->id=NULL;
     s->fillfn=fill_dtype_stream; s->flushfn=NULL;
@@ -202,11 +202,11 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
   /* Already closed */
   if (s->fd<0) return;
   /* Flush data */
-  if ((s->flags&FD_DTSTREAM_READING) == 0) 
+  if ((s->flags&FD_DTSTREAM_READING) == 0)
     fd_dtsflush(s);
-  
+
   u8_lock_mutex(&(s->lock));
-  
+
   if (s->start) {
     u8_free(s->start);
     s->start=s->ptr=s->end=NULL;}
@@ -218,6 +218,11 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
       shutdown(s->fd,SHUT_RDWR);
     close(s->fd);}
   s->fd=-1;
+}
+
+FD_EXPORT void fd_dtsfree(fd_dtype_stream s,int close_fd)
+{
+  fd_dtsclose(s,close_fd);
   if (s->id) {
     u8_free(s->id);
     s->id=NULL;}

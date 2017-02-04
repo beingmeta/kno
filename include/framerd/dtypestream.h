@@ -42,7 +42,7 @@ typedef enum FD_DTSTREAM_MODE {
 } fd_dtstream_mode;
 
 typedef struct FD_DTYPE_STREAM {
-  unsigned char *start, *ptr, *end;  int flags;
+  unsigned char *start, *ptr, *end; int flags;
   int (*fillfn)(struct FD_DTYPE_STREAM *,int);
   int (*flushfn)(struct FD_DTYPE_STREAM *);
   u8_string id; int mallocd, bufsiz;
@@ -63,6 +63,7 @@ FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
   fd_open_dtype_file_x(filename,mode,FD_DTSTREAM_BUFSIZ_DEFAULT)
 #define FD_DTSCLOSE_FD 1
 #define FD_DTSCLOSE_FULL 2
+FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd);
 FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd);
 
 FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename);
