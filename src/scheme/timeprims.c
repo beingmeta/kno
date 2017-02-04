@@ -1248,6 +1248,11 @@ static int get_available_pages(void);
 static long long get_physical_memory(void);
 static long long get_available_memory(void);
 
+/* We store the usage at startup because exec() calls will sometimes
+   include time values running before exec() was called and we usually
+   want only user and system time *after* exec was called. */
+static struct rusage init_rusage;
+
 static void add_intval(fdtype table,fdtype symbol,long long ival)
 {
   fdtype iptr=FD_INT(ival);
@@ -1311,16 +1316,18 @@ static fdtype rusage_prim(fdtype field)
     { /* Elapsed time */
       double elapsed=u8_elapsed_time();
       double usecs=elapsed*1000000.0;
-      double utime=u8_dbltime(r.ru_utime);
-      double stime=u8_dbltime(r.ru_stime);
+      double utime=u8_dbldifftime(r.ru_utime,init_rusage.ru_utime);
+      double stime=u8_dbldifftime(r.ru_stime,init_rusage.ru_stime);
       double cpusage=((utime+stime)*100)/usecs;
       double tcpusage=cpusage/n_cpus;
       add_flonum(result,clock_symbol,elapsed);
       add_flonum(result,cpusage_symbol,cpusage);
       add_flonum(result,tcpusage_symbol,tcpusage);}
 
-    add_flonum(result,utime_symbol,u8_dbltime(r.ru_utime)/1000000);
-    add_flonum(result,stime_symbol,u8_dbltime(r.ru_stime)/1000000);
+    add_flonum(result,utime_symbol,
+               (u8_dbldifftime(r.ru_utime,init_rusage.ru_utime))/1000000);
+    add_flonum(result,stime_symbol,
+               (u8_dbldifftime(r.ru_stime,init_rusage.ru_stime))/1000000);
 
     { /* SYSCONF information */
       int n_cpus=get_n_cpus(), max_cpus=get_max_cpus();
@@ -1539,12 +1546,8 @@ static fdtype vmemusage_prim()
 
 static fdtype physmem_prim(fdtype total)
 {
-  if ((FD_VOIDP(total))||(FD_DEFAULTP(total))||(FD_FALSEP(total))) {
-    ssize_t size=u8_avphysmem();
-    return FD_INT(size);}
-  else {
-    ssize_t size=u8_physmem();
-    return FD_INT(size);}
+  ssize_t size=u8_physmem();
+  return FD_INT(size);
 }
 
 static fdtype memload_prim()
@@ -1565,8 +1568,12 @@ static fdtype usertime_prim()
   memset(&r,0,sizeof(r));
   if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return FD_ERROR_VALUE;
-  else return fd_init_double
-         (NULL,(r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0));
+  else {
+    double msecs=
+      (r.ru_utime.tv_sec*1000000.0+r.ru_utime.tv_usec*1.0)-
+      (init_rusage.ru_utime.tv_sec*1000000.0+
+       init_rusage.ru_utime.tv_usec*1.0);
+    return fd_init_double(NULL,msecs);}
 }
 
 static fdtype systime_prim()
@@ -1575,8 +1582,12 @@ static fdtype systime_prim()
   memset(&r,0,sizeof(r));
   if (u8_getrusage(RUSAGE_SELF,&r)<0)
     return FD_ERROR_VALUE;
-  else return fd_init_double
-         (NULL,(r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0));
+  else {
+    double msecs=
+      (r.ru_stime.tv_sec*1000000.0+r.ru_stime.tv_usec*1.0)-
+      (init_rusage.ru_stime.tv_sec*1000000.0+
+       init_rusage.ru_stime.tv_usec*1.0);
+    return fd_init_double(NULL,msecs);}
 }
 
 static fdtype cpusage_prim(fdtype arg)
@@ -2034,6 +2045,8 @@ static fdtype gperf_flush(fdtype arg)
 FD_EXPORT void fd_init_timeprims_c()
 {
   u8_register_source_file(_FILEINFO);
+
+  u8_getrusage(RUSAGE_SELF,&init_rusage);
 
   tzset();
 
