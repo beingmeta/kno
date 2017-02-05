@@ -188,7 +188,7 @@ unsigned int fd_hash_dtype_rep(fdtype x);
 
 #define MYSTERIOUS_MODULUS 2000239099 /* 256000001 */
 
-#define FD_HASH_INDEX_FN_MASK 0xF
+#define FD_HASH_INDEX_FN_MASK 0x0F
 #define FD_HASH_OFFTYPE_MASK  0x30
 #define FD_HASH_INDEX_DTYPEV2 0x40
 /* This determines if the hash index only has pair keys
