@@ -840,7 +840,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
     fdtype needy; int retval, n;
     struct FD_CHOICE *oidc=fd_alloc_choice(FD_CHOICE_SIZE(oids));
     fdtype *oidv=(fdtype *)FD_XCHOICE_DATA(oidc), *write=oidv;
-    u8_log(fddb_loglevel,"Unlock","Cleaning up locks table for %s",p->cid);
+    u8_log(fddb_loglevel+1,"Unlock","Cleaning up locks table for %s",p->cid);
     FD_DO_CHOICES(o,oids)
       if (fd_hashtable_probe_novoid(locks,o)) *write++=o;
     if (write==oidv) {
@@ -851,7 +851,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
       fd_seterr(fd_CantLockOID,"fd_pool_unlock",
                 u8_strdup(p->cid),oids);
       return -1;}
-    u8_log(fddb_loglevel,"Unlock","Running custom unlock for %s",p->cid);
+    u8_log(fddb_loglevel+1,"Unlock","Running custom unlock for %s",p->cid);
     needy=fd_init_choice(oidc,n,NULL,FD_CHOICE_ISATOMIC);
     retval=p->handler->unlock(p,needy);
     if (retval<0) {
@@ -861,7 +861,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
       u8_log(fddb_loglevel,"Unlock",
              "Voiding lock table entries for %s",p->cid);
       fd_hashtable_iterkeys(locks,fd_table_replace,n,oidv,FD_VOID);
-      u8_log(fddb_loglevel,"Unlock","Devoiding lock table for %s",p->cid);
+      u8_log(fddb_loglevel+1,"Unlock","Devoiding lock table for %s",p->cid);
       if (fd_devoid_hashtable(locks)<0) {
         fd_decref(needy);
         return -1;}
@@ -903,7 +903,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,
     fd_rw_unlock_struct(locks);
     return 0;}
   else if (p->handler->storen==NULL) {
-    u8_log(fddb_loglevel,fd_PoolCommit,"####### Unlocking OIDs in %s",p->cid);
+    u8_log(fddb_loglevel+1,fd_PoolCommit,"####### Unlocking OIDs in %s",p->cid);
     int rv=just_unlock(p,oids,flags);
     fd_rw_unlock_struct(locks);
     return rv;}
@@ -911,7 +911,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,
     int rv=commit_one_oid(p,oids,flags);
     fd_rw_unlock_struct(locks);
     if (rv>0)
-      u8_log(fddb_loglevel,fd_PoolCommit,
+      u8_log(fddb_loglevel+1,fd_PoolCommit,
              "####### Committed one OIDs in %s",p->cid);
     else if (rv==0)
       u8_log(fddb_loglevel+1,fd_PoolCommit,
@@ -1002,19 +1002,20 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
   else {
     if (writes.len)
       u8_log(fddb_loglevel,fd_PoolCommit,
-             "####### Saved %d OIDs to %s in %f secs",writes.len,p->cid,
-             u8_elapsed_time()-start_time);
+             "####### Saved %d OIDs to %s in %f secs",
+             writes.len,p->cid,u8_elapsed_time()-start_time);
     last_report=u8_elapsed_time();
     if (unlock) {
       int unlocked=p->handler->unlock(p,writes.choice);
       if (unlocked<0) {
         u8_log(LOG_CRIT,fd_PoolCommit,
                "Error unlocking %d OIDs from %s after %f secs",
-               writes.len,p->cid,u8_elapsed_time()-last_report);
+               writes.len,p->cid,
+               u8_elapsed_time()-last_report);
         restore_locks(locks,&writes);
         return unlocked;}
       if ((u8_elapsed_time()-last_report)>1) {
-        u8_log(fddb_loglevel,fd_PoolCommit,
+        u8_log(fddb_loglevel+1,fd_PoolCommit,
                "Unlocked %d OIDs from %s in %f secs",
                writes.len,p->cid,u8_elapsed_time()-start_time);}}
     cleanup_values(writes.len,writes.values);
@@ -1216,7 +1217,7 @@ FD_EXPORT void fd_pool_swapout(fd_pool p)
   u8_log(fddb_loglevel,"PoolDB","Swapping out pool %s",p->cid);
   if (p->handler->swapout) {
     p->handler->swapout(p,FD_VOID);
-    u8_log(fddb_loglevel,"PoolDB",
+    u8_log(fddb_loglevel+1,"PoolDB",
            "Finished custom swapout for pool %s",p->cid);}
   if (p) {
     if ((p->flags)&(FD_STICKY_CACHESIZE))
