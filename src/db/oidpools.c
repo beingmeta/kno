@@ -271,7 +271,7 @@ static unsigned char *read_chunk(fd_oidpool p,fd_off_t off,
       return NULL;}
     else {
       fd_dtype_stream stream=&(p->stream);
-      int rv=fd_setpos(&(p->stream),off);
+      fd_off_t rv=fd_setpos(&(p->stream),off);
       int bytes_read = (rv<0) ? (-1) :
         fd_dtsread_bytes(stream,buf, (int) size);
       if (bytes_read<0) {
