@@ -576,9 +576,9 @@ static fdtype xtime_get(struct U8_XTIME *xt,fdtype slotid,int reterr)
   else if (FD_EQ(slotid,string_symbol))
     if (xt->u8_prec>=u8_second)
       return use_strftime("%c",xt);
-        else if (reterr)
-          return fd_err(fd_ImpreciseTimestamp,"xtime_get",
-                        FD_SYMBOL_NAME(slotid),FD_VOID);
+    else if (reterr)
+      return fd_err(fd_ImpreciseTimestamp,"xtime_get",
+                    FD_SYMBOL_NAME(slotid),FD_VOID);
     else return FD_EMPTY_CHOICE;
   else if (FD_EQ(slotid,shortstring_symbol)) {
     u8_byte buf[128]; struct U8_OUTPUT out;
@@ -1112,9 +1112,9 @@ static fdtype secs2short(fdtype secs)
 
   if (days>0) u8_printf(&out,"%dd-");
   if ((days==0)&&(hours==0)&&(minutes==0))
-    u8_printf(&out,"%.2d:%0.2d:%f",hours,minutes,reduce);
-  else if ((days)||(hours)||(minutes))
-    u8_printf(&out,"%.2d:%0.2d:%.3f",hours,minutes,reduce);
+    if (reduce>=10)
+      u8_printf(&out,"%.2d:%0.2d:%f",hours,minutes,reduce);
+    else u8_printf(&out,"%.2d:%0.2d:0%f",hours,minutes,reduce);
   else u8_printf(&out,"%.2d:%0.2d:%0.2d",hours,minutes,(int)floor(reduce));
   return fd_stream2string(&out);
 }
