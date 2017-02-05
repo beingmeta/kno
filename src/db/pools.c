@@ -745,25 +745,29 @@ static fd_pool guesspool(fdtype oids)
 
 FD_EXPORT int fd_finish_oids(fdtype oids,fd_pool poolarg)
 {
-  fd_pool p=(poolarg)?(poolarg):(guesspool(oids));
-  if (!(p))
-    return fd_reterr(fd_UnknownPool,"fd_finish_oids",NULL,FD_VOID);
-  else {
-    fd_hashtable locks=&(p->locks);
-    int n_oids=FD_CHOICE_SIZE(oids), finished=0;
-    FD_DO_CHOICES(oid,oids) {
-      if (!(FD_OIDP(oid))) {
-        u8_log(LOGWARN,"fd_finish_oids",
-               "The argument %q is not an OID",oid);}
-      else {
-        fdtype v=fd_hashtable_get(locks,oid,FD_VOID);
-        if ((FD_VOIDP(v))||(v==FD_LOCKHOLDER)) {}
-        else if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v); finished++;}
-        else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v); finished++;}
-        else if (FD_HASHTABLEP(v)) {FD_HASHTABLE_SET_READONLY(v); finished++;}
-        else {}
-        fd_decref(v);}}
-    return finished;}
+  if (FD_EMPTY_CHOICEP(oids)) return 0;
+  else if ((FD_OIDP(oids))||
+           ((FD_CONSP(oids))&&((FD_CHOICEP(oids))||(FD_ACHOICEP(oids))))) {
+    fd_pool p=(poolarg)?(poolarg):(guesspool(oids));
+    if (!(p))
+      return fd_reterr(fd_UnknownPool,"fd_finish_oids",NULL,FD_VOID);
+    else {
+      fd_hashtable locks=&(p->locks);
+      int n_oids=FD_CHOICE_SIZE(oids), finished=0;
+      FD_DO_CHOICES(oid,oids) {
+        if (!(FD_OIDP(oid))) {
+          u8_log(LOGWARN,"fd_finish_oids",
+                 "The argument %q is not an OID",oid);}
+        else {
+          fdtype v=fd_hashtable_get(locks,oid,FD_VOID);
+          if ((FD_VOIDP(v))||(v==FD_LOCKHOLDER)) {}
+          else if (FD_SLOTMAPP(v)) {FD_SLOTMAP_SET_READONLY(v); finished++;}
+          else if (FD_SCHEMAPP(v)) {FD_SCHEMAP_SET_READONLY(v); finished++;}
+          else if (FD_HASHTABLEP(v)) {FD_HASHTABLE_SET_READONLY(v); finished++;}
+          else {}
+          fd_decref(v);}}
+      return finished;}}
+    else return 0;
 }
 
 FD_EXPORT int fd_pool_lock(fd_pool p,fdtype oids)
