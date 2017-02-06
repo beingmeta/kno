@@ -2757,9 +2757,9 @@ static int grow_hashset(struct FD_HASHSET *h)
 FD_EXPORT ssize_t fd_grow_hashset(struct FD_HASHSET *h,size_t target)
 {
   int new_size=fd_get_hashtable_size(target);
-  u8_lock_mutex(&(h->lock)); {
-    int i=0, lim=h->n_slots;
-    const fdtype *slots=h->slots;
+  u8_lock_mutex(&(h->fd_lock)); {
+    int i=0, lim=h->fd_n_slots;
+    const fdtype *slots=h->fd_hashslots;
     fdtype *newslots=u8_zalloc_n(new_size,fdtype);
     while (i<new_size) newslots[i++]=FD_NULL;
     i=0; while (i < lim)
