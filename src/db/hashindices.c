@@ -239,8 +239,8 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_HASH_INDEX *ix,
 static int get_chunk_ref_size(fd_hash_index ix)
 {
   switch (ix->offtype) {
-  case FD_B32: case FD_B40: return 2;
-  case FD_B64: return 3;}
+  case FD_B32: case FD_B40: return 8;
+  case FD_B64: return 12;}
   return -1;
 }
 
@@ -1480,7 +1480,7 @@ static void hash_index_setcache(fd_index ix,int level)
         return;}
 #if HAVE_MMAP
       newmmap=
-        mmap(NULL,(n_buckets*SIZEOF_INT*chunk_ref_size)+256,
+        mmap(NULL,(n_buckets*chunk_ref_size)+256,
              PROT_READ,MMAP_FLAGS,s->fd_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_WARN,u8_strerror(errno),
@@ -1491,7 +1491,7 @@ static void hash_index_setcache(fd_index ix,int level)
       fd_dts_start_read(s);
       fd_buckets=u8_alloc_n(chunk_ref_size*(hx->n_buckets),unsigned int);
       fd_setpos(s,256);
-      retval=fd_dtsread_ints(s,chunk_ref_size*(hx->n_buckets),fd_buckets);
+      retval=fd_dtsread_ints(s,(chunk_ref_size/4)*(hx->n_buckets),fd_buckets);
       if (retval<0) {
         u8_log(LOG_WARN,u8_strerror(errno),
                "hash_index_setcache:read offsets %s",hx->source);
@@ -1508,7 +1508,7 @@ static void hash_index_setcache(fd_index ix,int level)
         fd_unlock_struct(hx);
         return;}
 #if HAVE_MMAP
-      retval=munmap((hx->offdata)-64,((hx->n_buckets)*SIZEOF_INT*chunk_ref_size)+256);
+      retval=munmap((hx->offdata)-64,((hx->n_buckets)*chunk_ref_size)+256);
       if (retval<0) {
         u8_log(LOG_WARN,u8_strerror(errno),
                "hash_index_setcache:munmap %s",hx->source);
@@ -2378,13 +2378,14 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #if HAVE_MMAP
 static int make_offsets_writable(fd_hash_index hx)
 {
-  unsigned int *newmmap, n_buckets=hx->n_buckets, chunk_ref_size=get_chunk_ref_size(hx);
-  int retval=munmap(hx->offdata-64,(n_buckets*SIZEOF_INT*chunk_ref_size)+256);
+  unsigned int *newmmap, n_buckets=hx->n_buckets;
+  size_t chunk_ref_size=get_chunk_ref_size(hx);
+  int retval=munmap(hx->offdata-64,(n_buckets*chunk_ref_size)+256);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "hash_index/make_offsets_writable:munmap %s",hx->source);
     return retval;}
-  newmmap=mmap(NULL,(n_buckets*SIZEOF_INT*chunk_ref_size)+256,
+  newmmap=mmap(NULL,(n_buckets*chunk_ref_size)+256,
                PROT_READ|PROT_WRITE,MMAP_FLAGS,hx->stream.fd_fileno,0);
   if ((newmmap==NULL) || (newmmap==((void *)-1))) {
     u8_log(LOG_WARN,u8_strerror(errno),
@@ -2396,20 +2397,21 @@ static int make_offsets_writable(fd_hash_index hx)
 
 static int make_offsets_unwritable(fd_hash_index hx)
 {
-  unsigned int *newmmap, n_buckets=hx->n_buckets, chunk_ref_size=get_chunk_ref_size(hx);
-  int retval=msync(hx->offdata-64,(n_buckets*SIZEOF_INT*chunk_ref_size)+256,
+  unsigned int *newmmap, n_buckets=hx->n_buckets;
+  size_t chunk_ref_size=get_chunk_ref_size(hx);
+  int retval=msync(hx->offdata-64,(n_buckets*chunk_ref_size)+256,
                    MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "hash_index/make_offsets_unwritable:msync %s",hx->source);
     return retval;}
   retval=munmap(hx->offdata-64,
-                (n_buckets*SIZEOF_INT*chunk_ref_size)+256);
+                (n_buckets*chunk_ref_size)+256);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
            "hash_index/make_offsets_unwritable:munmap %s",hx->source);
     return retval;}
-  newmmap=mmap(NULL,(n_buckets*SIZEOF_INT*chunk_ref_size)+256,
+  newmmap=mmap(NULL,(n_buckets*chunk_ref_size)+256,
                PROT_READ,MMAP_FLAGS,hx->stream.fd_fileno,0);
   if ((newmmap==NULL) || (newmmap==((void *)-1))) {
     u8_log(LOG_WARN,u8_strerror(errno),
@@ -2539,8 +2541,7 @@ static void hash_index_close(fd_index ix)
   if (hx->offdata) {
 #if HAVE_MMAP
     int retval=
-      munmap(hx->offdata-64,
-             (SIZEOF_INT*chunk_ref_size*hx->n_buckets)+256);
+      munmap(hx->offdata-64,(chunk_ref_size*hx->n_buckets)+256);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
              "hash_index_close:munmap %s",hx->source);

@@ -866,12 +866,13 @@ static fdtype defslambda_handler(fdtype expr,fd_lispenv env)
     return fd_err(fd_BadDefineForm,"DEFINE-SYNCHRONIZED",NULL,expr);
   else if (FD_PAIRP(var)) {
     fdtype fn_name=FD_CAR(var), args=FD_CDR(var);
-    fdtype body=fd_get_body(expr,2);
     if (!(FD_SYMBOLP(fn_name)))
       return fd_err(fd_NotAnIdentifier,"DEFINE-SYNCHRONIZED",NULL,fn_name);
     else {
+      fdtype body=fd_get_body(expr,2);
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,1);
-      if (FD_ABORTED(value)) return value;
+      if (FD_ABORTED(value))
+        return value;
       else if (fd_bind_value(fn_name,value,env)) {
         if (FD_SPROCP(value)) {
           struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
