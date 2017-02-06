@@ -1183,8 +1183,8 @@ FD_EXPORT struct FD_KEYVAL *fd_hashentry_insert
       /* We don't need to use size+1 here because FD_HASHENTRY includes
          one value. */
       u8_realloc(he,
-                 sizeof(struct FD_HASHENTRY)+
-                 (size)*sizeof(struct FD_KEYVAL));
+                  sizeof(struct FD_HASHENTRY)+
+                  (size)*sizeof(struct FD_KEYVAL));
     memset((((unsigned char *)new_hashentry)+
             (sizeof(struct FD_HASHENTRY))+
             ((size-1)*sizeof(struct FD_KEYVAL))),
@@ -1204,7 +1204,7 @@ FD_EXPORT struct FD_KEYVAL *fd_hashvec_insert
   unsigned int hash=fd_hash_lisp(key), offset=compute_offset(hash,n_slots);
   struct FD_HASHENTRY *he=slots[offset];
   if (he == NULL) {
-    he=u8_alloc(struct FD_HASHENTRY);
+    he=u8_zalloc(struct FD_HASHENTRY);
     FD_INIT_STRUCT(he,struct FD_HASHENTRY);
     he->n_keyvals=1; he->keyval0.key=fd_incref(key);
     he->keyval0.value=FD_EMPTY_CHOICE;
@@ -2195,8 +2195,7 @@ FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,int n_keyvals,
   ptr->n_slots=n_slots; ptr->n_keys=n_keyvals;
   ptr->loading=default_hashtable_loading;
   ptr->modified=0; ptr->readonly=0; ptr->uselock=1;
-  ptr->slots=slots=u8_alloc_n(n_slots,struct FD_HASHENTRY *);
-  memset(slots,0,sizeof(struct FD_HASHENTRY *)*n_slots);
+  ptr->slots=slots=u8_zalloc_n(n_slots,struct FD_HASHENTRY *);
   i=0; while (i<n_keyvals) {
     struct FD_KEYVAL *ki=&(inits[i]);
     struct FD_KEYVAL *hv=fd_hashvec_insert(ki->key,slots,n_slots,&n_keys);
@@ -2218,10 +2217,9 @@ static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int locked)
     fd_write_lock_struct(ptr);
     unlock=1; }
   {
-    struct FD_HASHENTRY **new_slots=u8_alloc_n(n_slots,fd_hashentry);
+    struct FD_HASHENTRY **new_slots=u8_zalloc_n(n_slots,fd_hashentry);
     struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
     struct FD_HASHENTRY **nscan=new_slots, **nlim=nscan+n_slots;
-    while (nscan<nlim) *nscan++=NULL;
     while (scan < lim)
       if (*scan) {
         struct FD_HASHENTRY *e=*scan++; int n_keyvals=e->n_keyvals;
@@ -2296,7 +2294,7 @@ FD_EXPORT int fd_devoid_hashtable_x(struct FD_HASHTABLE *ptr,int locked)
   if ((locked<0)?(ptr->uselock):(!(locked))) {
     fd_write_lock_struct(ptr); unlock=1;}
   {
-    struct FD_HASHENTRY **new_slots=u8_alloc_n(n_slots,fd_hashentry);
+    struct FD_HASHENTRY **new_slots=u8_zalloc_n(n_slots,fd_hashentry);
     struct FD_HASHENTRY **scan=ptr->slots, **lim=scan+ptr->n_slots;
     struct FD_HASHENTRY **nscan=new_slots, **nlim=nscan+n_slots;
     int remaining_keys=0;
@@ -2714,8 +2712,7 @@ static int grow_hashset(struct FD_HASHSET *h)
   int i=0, lim=h->n_slots;
   int new_size=fd_get_hashtable_size(hashset_resize_target(h));
   const fdtype *slots=h->slots;
-  fdtype *newslots=u8_alloc_n(new_size,fdtype);
-  while (i<new_size) newslots[i++]=FD_NULL;
+  fdtype *newslots=u8_zalloc_n(new_size,fdtype);
   i=0; while (i < lim) {
     if (slots[i]==0) i++;
     else if (FD_VOIDP(slots[i])) i++;
@@ -2735,7 +2732,7 @@ FD_EXPORT ssize_t fd_grow_hashset(struct FD_HASHSET *h,size_t target)
   u8_lock_mutex(&(h->lock)); {
     int i=0, lim=h->n_slots;
     const fdtype *slots=h->slots;
-    fdtype *newslots=u8_alloc_n(new_size,fdtype);
+    fdtype *newslots=u8_zalloc_n(new_size,fdtype);
     while (i<new_size) newslots[i++]=FD_NULL;
     i=0; while (i < lim)
            if (slots[i]==0) i++;

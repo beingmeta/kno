@@ -833,7 +833,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
       fd_seterr(fd_NoLocking,"fd_pool_lock",u8_strdup(fd_pool_id(p)),FD_VOID);
       return -1;}}
   if (commit) {
-    if (fd_pool_commit(p,oids,FD_POOL_COMMIT_UNLOCK)<0) 
+    if (fd_pool_commit(p,oids,FD_POOL_COMMIT_UNLOCK)<0)
       return -1;
     else {}}
   if (FD_CHOICEP(oids)) {
