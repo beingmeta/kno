@@ -742,7 +742,7 @@ fd_pool_commit_flags get_commit_flags(fdtype opts)
 {
   fd_pool_commit_flags flags=0;
 
-  if (!(FD_TABLEP(opts))||(FD_SYMBOLP(opts)))
+  if (!((FD_TABLEP(opts))||(FD_SYMBOLP(opts))))
     return FD_POOL_COMMIT_UNLOCK|FD_POOL_COMMIT_FINISHED;
   else if (fd_testopt(opts,fd_intern("UNLOCK"),FD_VOID)) {
     flags|=FD_POOL_COMMIT_UNLOCK;}
