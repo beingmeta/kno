@@ -933,24 +933,51 @@ FD_EXPORT int fd_pool_commit_all(fd_pool p,int unlock)
 
 /* Support for commitment */
 
+#define FD_COMMIT_OID 1
+#define FD_UNLOCK_OID 2
+#define FD_COMMIT_AND_UNLOCK 3
+
 static int savep(fdtype v,fd_pool_commit_flags flags)
 {
   int saveall=(!(U8_BITP(flags,FD_POOL_COMMIT_FINISHED)));
-  if ((FD_VOIDP(v))||(v==FD_LOCKHOLDER))
-    return 0;
-  else if (U8_BITP(flags,FD_POOL_COMMIT_UNMODIFIED))
-    return 1;
+  int unlock=(!(U8_BITP(flags,FD_POOL_COMMIT_UNLOCK)));
+  if ((FD_VOIDP(v))||(v==FD_LOCKHOLDER)) {
+    if (unlock)
+      return FD_UNLOCK_OID;
+    else return 0;}
   else if (FD_SLOTMAPP(v)) {
     if (FD_SLOTMAP_MODIFIEDP(v)) {
-      if ((saveall)||(FD_SLOTMAP_READONLYP(v))) return 1;}}
+      if ((saveall)||(FD_SLOTMAP_READONLYP(v))) {
+        if (unlock)
+          return FD_COMMIT_AND_UNLOCK;
+        else return FD_COMMIT_OID;}
+      else return 0;}
+    else if (unlock)
+      return FD_UNLOCK_OID;
+    else return 0;}
   else if (FD_SCHEMAPP(v)) {
     if (FD_SCHEMAP_MODIFIEDP(v)) {
-      if ((saveall)||(FD_SCHEMAP_READONLYP(v))) return 1;}}
+      if ((saveall)||(FD_SCHEMAP_READONLYP(v))) {
+        if (unlock)
+          return FD_COMMIT_AND_UNLOCK;
+        else return FD_COMMIT_OID;}
+      else return 0;}
+    else if (unlock)
+      return FD_UNLOCK_OID;
+    else return 0;}
   else if (FD_HASHTABLEP(v)) {
     if (FD_HASHTABLE_MODIFIEDP(v)) {
-      if ((saveall)||(FD_HASHTABLE_READONLYP(v))) return 1;}}
-  else return 1;
-  return saveall;
+      if ((saveall)||(FD_HASHTABLE_READONLYP(v))) {
+        if (unlock)
+          return FD_COMMIT_AND_UNLOCK;
+        else return FD_COMMIT_OID;}
+      else return 0;}
+    else if (unlock)
+      return FD_UNLOCK_OID;
+    else return 0;}
+  else if (unlock)
+    return FD_COMMIT_AND_UNLOCK;
+  else return saveall;
 }
 
 static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
@@ -1022,8 +1049,9 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
     u8_free(writes.values);
     fd_decref(writes.choice);
     u8_log(fddb_loglevel,fd_PoolCommit,
-           "####### Committed %d OIDs to %s in %f secs",
-           writes.len,p->cid,u8_elapsed_time()-start_time);
+           "####### Committed %d OIDs to %s (leaving %d locked) in %f secs",
+           writes.len,p->cid,locks->n_keys,
+           u8_elapsed_time()-start_time);
     return retval;}
 }
 
@@ -1048,15 +1076,18 @@ struct FD_POOL_WRITES choice2writes(fd_pool p,fdtype oids,
       fd_pool pool=fd_oid2pool(o);
       if (p==pool) {
         fdtype v=fd_hashtable_get(locks,o,FD_VOID);
-        if (savep(v,flags)) {
+        int save=savep(v,flags);
+        if (U8_BITP(save,FD_COMMIT_OID)) {
           *oidv++=o;
-          *values++=v;
-          if (unlock)
-            fd_hashtable_store(locks,o,FD_VOID);}
-        else fd_decref(v);}}}
+          *values++=v;}
+        else fd_decref(v);
+        if (U8_BITP(save,FD_UNLOCK_OID)) {
+          fd_hashtable_store(locks,o,FD_VOID);}}}}
   n_writes=oidv-writes.oids;
   writes.len=n_writes;
   xchoice->size=(n_writes|FD_ATOMIC_CHOICE_MASK);
+  if ((unlock)&&(writes.len))
+    fd_devoid_hashtable_x(locks,1);
   return writes;
 }
 
