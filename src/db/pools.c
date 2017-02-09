@@ -896,20 +896,15 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,
   struct FD_HASHTABLE *locks=&(p->locks);
   double start=u8_elapsed_time();
 
-  fd_write_lock_struct(locks);
-
   if (locks->n_keys==0) {
     u8_log(fddb_loglevel+1,fd_PoolCommit,"####### No locked oids in %s",p->cid);
-    fd_rw_unlock_struct(locks);
     return 0;}
   else if (p->handler->storen==NULL) {
     u8_log(fddb_loglevel+1,fd_PoolCommit,"####### Unlocking OIDs in %s",p->cid);
     int rv=just_unlock(p,oids,flags);
-    fd_rw_unlock_struct(locks);
     return rv;}
   else if (FD_OIDP(oids)) {
     int rv=commit_one_oid(p,oids,flags);
-    fd_rw_unlock_struct(locks);
     if (rv>0)
       u8_log(fddb_loglevel+1,fd_PoolCommit,
              "####### Committed one OIDs in %s",p->cid);
@@ -919,9 +914,10 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,
     else {}
     return rv;}
   else if (FD_EMPTY_CHOICEP(oids)) {
-    fd_rw_unlock_struct(locks);
     return 0;}
-  else return pool_block_commit(p,locks,oids,flags);
+  else {
+    fd_write_lock_struct(locks);
+    return pool_block_commit(p,locks,oids,flags);}
 }
 
 FD_EXPORT int fd_pool_commit_all(fd_pool p,int unlock)
