@@ -84,6 +84,7 @@ FD_EXPORT fd_off_t _fd_getpos(fd_dtype_stream s);
 FD_EXPORT fd_off_t fd_setpos(fd_dtype_stream s,fd_off_t pos);
 FD_EXPORT fd_off_t fd_movepos(fd_dtype_stream s,int delta);
 FD_EXPORT fd_off_t fd_endpos(fd_dtype_stream s);
+FD_EXPORT fd_off_t fd_rawpos(int fd);
 
 FD_EXPORT int fd_set_read(fd_dtype_stream s,int read);
 FD_EXPORT int fd_dtsflush(fd_dtype_stream s);
