@@ -604,7 +604,7 @@ static int lock_oidpool_file(struct FD_OIDPOOL *fp,int use_mutex)
       if (use_mutex) fd_unlock_struct(fp);
       return 1;}
     LOCK_POOLSTREAM(fp,"lock_oidpool_file");
-    if (fd_dtslock(s)==0) {
+    if (fd_dts_lockfile(s)==0) {
       if (use_mutex) fd_unlock_struct(fp);
       UNLOCK_POOLSTREAM(fp);
       return 0;}
@@ -1310,7 +1310,7 @@ static int oidpool_unlock(fd_pool p,fdtype oids)
   else fp->n_locks--;
   if (fp->n_locks == 0) {
     /* This unlocks the underlying file, not the stream itself */
-    fd_dtsunlock(&(fp->stream));
+    fd_dts_unlockfile(&(fp->stream));
     fd_reset_hashtable(&(fp->locks),0,1);}
   return 1;
 }

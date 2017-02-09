@@ -1278,7 +1278,8 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   if (hx->offdata) fd_unlock_struct(hx);
   while (i<n_buckets) {
     FD_CHUNK_REF ref=get_chunk_ref(hx,i,DONT_LOCK_STREAM);
-    if (ref.size) buckets[n_to_fetch++]=ref;
+    if (ref.size) 
+      buckets[n_to_fetch++]=ref;
     i++;}
   /* If we didn't unlock it earlier, do so now. */
   if (hx->offdata==NULL) fd_unlock_struct(hx);
