@@ -362,7 +362,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
          fd_write_file_pool_recovery_data. */
       fd_dtswrite_4bytes(stream,FD_FILE_POOL_MAGIC_NUMBER);
       fd_dtsflush(stream); fsync(stream->fd);
-      fd_movepos(stream,-(4*(fp->capacity+1)));
+      fd_endpos(stream); fd_movepos(stream,-(4*(fp->capacity+1)));
       retval=ftruncate(stream->fd,end-(4*(fp->capacity+1)));
       if (retval<0) {
         retcode=-1; u8_graberr(errno,"file_pool_storen",fp->cid);}}
