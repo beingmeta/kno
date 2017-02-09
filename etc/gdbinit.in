@@ -36,6 +36,12 @@ end
 define dtypeout
   call _fd_dtype2stderr($arg0)
 end
+define dtout
+  call _fd_dtype2stderr($arg0)
+end
+define dt
+  call _fd_dtype2stderr($arg0)
+end
 define refcount
   if (($arg0)&3)
   print "not a cons" 
@@ -151,6 +157,9 @@ end
 define inchoicep
   print _fd_find_elt($arg0,&(((struct FD_CHOICE *)$arg1)->elt0),((((struct FD_CHOICE *)$arg1)->size)&(0x7FFFFFFF)))
   showtype $
+end
+define rawpos
+  print u8_rawpos($arg0)
 end
 
 define fullstring
