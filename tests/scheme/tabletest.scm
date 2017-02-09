@@ -277,5 +277,6 @@
 		(begin (message "Table is inconsistent")
 		       (exit 1)))
 	    (message "Restored table is consistent")
-	    (clearcaches)))))
-(test-finished "TABLETEST")
+	    (clearcaches))))
+  (test-finished "TABLETEST"))
+
