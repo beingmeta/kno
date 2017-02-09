@@ -25,6 +25,7 @@
 #include "framerd/dtypestream.h"
 #include "framerd/dbfile.h"
 
+#include <libu8/libu8.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
 
@@ -192,7 +193,7 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
   else {
     int error=0;
     fd_dtype_stream stream=&(p->stream);
-    fd_lock_struct(stream);
+    LOCK_POOLSTREAM(p,"get_chunk_ref");
     switch (p->offtype) {
     case FD_B32:
       if (fd_setpos(stream,256+offset*8)<0) error=1;
@@ -219,7 +220,7 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_OIDPOOL *p,unsigned int offset)
       result.size=-1;} /* switch (p->offtype) */
     if (error) {
       result.off=(fd_off_t)-1; result.size=(size_t)-1;}
-    fd_unlock_struct(stream);}
+    UNLOCK_POOLSTREAM(p);}
   return result;
 }
 
@@ -602,8 +603,10 @@ static int lock_oidpool_file(struct FD_OIDPOOL *fp,int use_mutex)
       /* Another thread got here first */
       if (use_mutex) fd_unlock_struct(fp);
       return 1;}
+    LOCK_POOLSTREAM(fp,"lock_oidpool_file");
     if (fd_dtslock(s)==0) {
       if (use_mutex) fd_unlock_struct(fp);
+      UNLOCK_POOLSTREAM(fp);
       return 0;}
     fstat(s->fd,&fileinfo);
     if ( (fileinfo.st_mtime) > (fp->modtime) ) {
@@ -615,6 +618,7 @@ static int lock_oidpool_file(struct FD_OIDPOOL *fp,int use_mutex)
         fd_reset_hashtable(&(fp->cache),-1,1);
         fd_reset_hashtable(&(fp->locks),32,1);}}
     if (use_mutex) fd_unlock_struct(fp);
+    UNLOCK_POOLSTREAM(fp);
     return 1;}
 }
 
@@ -856,7 +860,9 @@ static fdtype oidpool_fetch(fd_pool p,fdtype oid)
       return FD_EMPTY_CHOICE;
     else {
       fdtype value;
+      fd_lock_struct(&(op->stream));
       value=read_oid_value_at(op,ref,"oidpool_fetch");
+      fd_unlock_struct(&(op->stream));
       return value;}}
 }
 struct OIDPOOL_FETCH_SCHEDULE {
@@ -883,6 +889,7 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
   else {
     struct OIDPOOL_FETCH_SCHEDULE *schedule=
       u8_alloc_n(n,struct OIDPOOL_FETCH_SCHEDULE);
+    fd_lock_struct(&(op->stream));
     int i=0;
     while (i<n) {
       fdtype oid=oids[i]; FD_OID addr=FD_OID_ADDR(oid);
@@ -892,6 +899,7 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
       if (schedule[i].location.off<0) {
         fd_seterr(InvalidOffset,"oidpool_fetchn",p->cid,oid);
         u8_free(schedule); u8_free(values);
+        fd_unlock_struct(&(op->stream));
         return NULL;}
       else i++;}
     /* Note that we sort even if we're mmaped in order to take
@@ -913,9 +921,11 @@ static fdtype *oidpool_fetchn(fd_pool p,int n,fdtype *oids)
         int j=0; while (j<i) { fd_decref(values[j]); j++;}
         u8_free(schedule); u8_free(values);
         fd_push_error_context("oidpool_fetchn/read",oids[schedule[i].value_at]);
+        fd_unlock_struct(&(op->stream));
         return NULL;}
       else values[schedule[i].value_at]=value;
       i++;}
+    fd_unlock_struct(&(op->stream));
     u8_free(schedule);
     return values;}
 }
@@ -1028,7 +1038,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_oidpool op=(fd_oidpool)p;
   struct FD_DTYPE_STREAM *stream=&(op->stream);
   fd_lock_struct(op);
-  fd_lock_struct(stream);
+  LOCK_POOLSTREAM(op,"oidpool_storen");
   double started=u8_elapsed_time();
   u8_log(fddb_loglevel+1,"OIDPoolStore",
          "Storing %d oid values in oidpool %s",n,p->cid);
@@ -1052,13 +1062,13 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     int n_bytes=oidpool_write_value(value,stream,op,&tmpout,&zbuf,&zbuf_size);
     if (n_bytes<0) {
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.start);
-      fd_unlock_struct(stream);
+      UNLOCK_POOLSTREAM(op);
       return n_bytes;}
     if ((endpos+n_bytes)>=maxpos) {
       u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.start);
       u8_seterr(fd_DataFileOverflow,"oidpool_storen",
                 u8_strdup(p->cid));
-      fd_unlock_struct(stream);
+      UNLOCK_POOLSTREAM(op);
       return -1;}
 
     saveinfo[i].chunk.off=endpos; saveinfo[i].chunk.size=n_bytes;
@@ -1109,7 +1119,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   u8_log(fddb_loglevel,"OIDPoolStore",
          "Stored %d oid values in oidpool %s in %f seconds",
          n,p->cid,u8_elapsed_time()-started);
-  fd_unlock_struct(stream);
+  UNLOCK_POOLSTREAM(op);
   fd_unlock_struct(op);
   return n;
 }
@@ -1375,6 +1385,7 @@ static void oidpool_setcache(fd_pool p,int level)
   if ( (LOCK_POOLSTREAM(fp,"oidpool_setcache")) < 0) {
     u8_log(LOGWARN,"PoolStreamClosed",
            "During oidpool_setcache for %s",fp->cid);
+    UNLOCK_POOLSTREAM(fp);
     fd_unlock_struct(fp);
     return;}
 
@@ -1405,6 +1416,7 @@ static void oidpool_setcache(fd_pool p,int level)
         u8_log(LOG_WARN,u8_strerror(errno),
                "oidpool u8_file_size for mmap %s",fp->source);
         errno=0;
+        UNLOCK_POOLSTREAM(fp);
         fd_unlock_struct(fp);
         return;}
       mmapped=mmap(NULL,mmap_size,PROT_READ,MMAP_FLAGS,fp->stream.fd,0);
@@ -1423,7 +1435,7 @@ static void oidpool_setcache(fd_pool p,int level)
 #endif /* HAVE_MMAP */
 }
 
-/* Write values: 
+/* Write values:
   * 0: just for reading, open up to the *load* of the pool
   * 1: for writing, open up to the capcity of the pool
   * -1: for reading, but sync before remapping
@@ -1435,6 +1447,7 @@ static void reload_offsets(fd_oidpool fp,int lock,int write)
      and mapping a new one with the new load. */
   int retval=0, chunk_ref_size=get_chunk_ref_size(fp);
   if (lock) fd_lock_struct(fp);
+
   if (write<0)
     retval=msync(fp->offsets-64,fp->offsets_size+256,MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
@@ -1472,6 +1485,12 @@ static void reload_offsets(fd_oidpool fp,int lock,int write)
   unsigned int new_load, *offsets, *nscan, *oscan, *olim;
   struct FD_DTYPE_STREAM *s=&(fp->stream);
   if (lock) fd_lock_struct(fp);
+  if ( (LOCK_POOLSTREAM(fp,"oidpool/reload_offsets")) < 0) {
+    u8_log(LOGWARN,"PoolStreamClosed",
+           "During oidpool_reload_offsets for %s",fp->cid);
+    UNLOCK_POOLSTREAM(fp)
+    fd_unlock_struct(fp);
+    return;}
   oscan=fp->offsets; olim=oscan+(fp->offsets_size/4);
   fd_setpos(s,0x10); new_load=fd_dtsread_4bytes(s);
   nscan=offsets=u8_alloc_n(new_load,unsigned int);
@@ -1489,6 +1508,7 @@ static void reload_offsets(fd_oidpool fp,int lock,int write)
   fp->load=new_load;
   fp->offsets_size=new_load*get_chunk_ref_size(fp);
   update_modtime(fp);
+  UNLOCK_POOLSTREAM(fp)
   if (lock) fd_unlock_struct(fp);
 #endif
 }
