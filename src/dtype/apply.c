@@ -72,19 +72,21 @@ static void out_escaped(FILE *f,u8_string name)
 
 #if FD_STACKCHECK
 #if (!(FD_THREADS_ENABLED))
-static ssize_t stack_limit=-1;
+static ssize_t apply_stack_limit=-1;
 static int stackcheck()
 {
-  if (stack_limit>16384) {
+  if (apply_stack_limit>16384) {
     ssize_t depth=u8_stack_depth();
-    if (depth>stack_limit)
+    if (depth>apply_stack_limit)
       return 0;
     else return 1;}
   else return 1;
 }
 FD_EXPORT ssize_t fd_stack_limit()
 {
-  return stack_limit;
+  if (apply_stack_limit<0)
+    return u8_stacksize();
+  else return apply_stack_limit;
 }
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
 {
@@ -94,35 +96,37 @@ FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
               u8_write_long_long(limit,detailsbuf,64));
     return -1;}
   else {
-    ssize_t oldlimit=stack_limit;
-    stack_limit=limit;
+    ssize_t oldlimit=apply_stack_limit;
+    apply_stack_limit=limit;
     return oldlimit;}
 }
 #elif HAVE_THREAD_STORAGE_CLASS
-static __thread ssize_t stack_limit=-1;
+static __thread ssize_t apply_stack_limit=-1;
 static int stackcheck()
 {
-  if (stack_limit>16384) {
+  if (apply_stack_limit>16384) {
     ssize_t depth=u8_stack_depth();
-    if (depth>stack_limit)
+    if (depth>apply_stack_limit)
       return 0;
     else return 1;}
   else return 1;
 }
 FD_EXPORT ssize_t fd_stack_limit()
 {
-  return stack_limit;
+  if (apply_stack_limit<0)
+    return u8_stacksize();
+  return apply_stack_limit;
 }
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
 {
   if (limit<65536) {
     char *detailsbuf = u8_malloc(50);
     u8_seterr("StackLimitTooSmall","fd_stack_limit_set",
-              u8_write_long_long(limit,detailsbuf,64));
+              u8_write_long_long(limit,detailsbuf,50));
     return -1;}
   else {
-    ssize_t oldlimit=stack_limit;
-    stack_limit=limit;
+    ssize_t oldlimit=apply_stack_limit;
+    apply_stack_limit=limit;
     return oldlimit;}
 }
 #else
@@ -142,7 +146,7 @@ FD_EXPORT ssize_t fd_stack_limit()
   ssize_t stack_limit=(ssize_t)u8_tld_get(stack_limit_key);
   if (stack_limit>16384)
     return stack_limit;
-  else return -1;
+  else return u8_stacksize();
 }
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t lim)
 {
