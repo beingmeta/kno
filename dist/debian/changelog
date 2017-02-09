@@ -1,3 +1,9 @@
+framerd (3.10.1-1) stable; urgency=medium
+
+  * Updated to new version/branch
+
+ -- Ken Haase <kh@beingmeta.com>  Thu, 09 Feb 2017 21:44:55 +0000
+
 framerd (3.9.5-3) stable; urgency=medium
 
   * Moved to using it's own libtidy-html library rather than relying on
