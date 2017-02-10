@@ -664,7 +664,8 @@ static int reserve_slotno(struct RESERVATIONS *r,unsigned int slotno)
     This finds where all the keys are, reserving slots for them if neccessary.
     It also fetches the current number of values and the valuepos.
    Returns the number of new keys or -1 on error. */
-static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n,unsigned int *offsets)
+static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n,
+                         unsigned int *offsets)
 {
   struct RESERVATIONS reserved;
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
@@ -1027,7 +1028,8 @@ static int file_index_commit(struct FD_INDEX *ix)
     write_keys(fx,n,kdata,new_offsets);
     /* Write recovery information which can be used to restore the
        offsets table. */
-    if ((fd_acid_files) && (new_offsets)) write_file_index_recovery_data(fx,new_offsets);
+    if ((fd_acid_files) && (new_offsets))
+      write_file_index_recovery_data(fx,new_offsets);
     /* Now, start writing the offsets themsleves */
     write_offsets(fx,n,kdata,new_offsets);
     if (fd_acid_files) {
@@ -1059,7 +1061,8 @@ static int file_index_commit(struct FD_INDEX *ix)
     return n;}
 }
 
-static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx,unsigned int *offsets)
+static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx,
+                                           unsigned int *offsets)
 {
   struct FD_DTYPE_STREAM *stream=&(fx->stream);
   int i=0, n_slots=fx->n_slots; unsigned int magic_no;

@@ -481,7 +481,7 @@ static int lock_zpool(struct FD_ZPOOL *fp,int use_mutex)
     if (FD_FILE_POOL_LOCKED(fp)) {
       if (use_mutex) fd_unlock_struct(fp);
       return 1;}
-    if (fd_dtslock(s)==0) {
+    if (fd_dts_lockfile(s)==0) {
       fd_unlock_struct(fp);
       return 0;}
     fstat(s->fd_fileno,&fileinfo);
@@ -761,7 +761,7 @@ static int zpool_unlock(fd_pool p,fdtype oids)
   else if (FD_EMPTY_CHOICEP(oids)) {}
   else fp->n_locks--;
   if (fp->n_locks == 0) {
-    fd_dtsunlock(&(fp->stream));
+    fd_dts_unlockfile(&(fp->stream));
     fd_reset_hashtable(&(fp->locks),0,1);}
   return 1;
 }

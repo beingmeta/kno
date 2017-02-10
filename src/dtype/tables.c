@@ -1257,7 +1257,9 @@ FD_EXPORT fdtype fd_hashtable_get
   struct FD_KEYVAL *result; int unlock=0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RETDTYPE(ht,fd_hashtable_type);
   if (ht->fd_n_keys == 0) return fd_incref(dflt);
-  if (ht->fd_uselock) { fd_read_lock_struct(ht); unlock=1; }
+  if (ht->fd_uselock) { 
+    fd_read_lock_struct(ht); 
+    unlock=1; }
   if (ht->fd_n_keys == 0) {
     if (unlock) fd_rw_unlock_struct(ht);
     return fd_incref(dflt);}

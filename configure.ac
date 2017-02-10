@@ -1617,7 +1617,7 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
 	  etc/fdserver.conf etc/fdservlet.conf etc/fdservlets.conf
 	  etc/fdserv.conf etc/fdserv.load
 	  etc/makefile.include
-	  etc/install-script dist/framerd-3.9.spec)
+	  etc/install-script dist/framerd-3.10.spec)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
 chmod a+x etc/fdconfig
