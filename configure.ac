@@ -84,8 +84,8 @@ EXELDFLAGS=
 BINPATH=${PATH}
 RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
 SHARED_LIB_TARGET=shared-libs
-FDMAJOR=3
-FDMINOR=9
+FDMAJOR=4
+FDMINOR=0
 FDRELEASE=`cat etc/release`
 FDVERSION=${FDMAJOR}.${FDMINOR}.${FDRELEASE}
 VERSION=$FDVERSION
@@ -1617,7 +1617,7 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
 	  etc/fdserver.conf etc/fdservlet.conf etc/fdservlets.conf
 	  etc/fdserv.conf etc/fdserv.load
 	  etc/makefile.include
-	  etc/install-script dist/framerd-3.10.spec)
+	  etc/install-script dist/framerd-4.0.spec)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
 chmod a+x etc/fdconfig

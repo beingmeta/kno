@@ -1125,7 +1125,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fsync(stream->fd_fileno);
   u8_log(fddb_loglevel,"OIDPoolStore",
          "Stored %d oid values in oidpool %s in %f seconds",
-         n,p->fdcid,u8_elapsed_time()-started);
+         n,p->cid,u8_elapsed_time()-started);
   UNLOCK_POOLSTREAM(op);
   fd_unlock_struct(op);
   return n;

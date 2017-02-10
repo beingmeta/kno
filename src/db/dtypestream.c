@@ -207,13 +207,13 @@ FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd)
   /* Lock before closing */
   fd_lock_struct(s);
 
+  /* Flush data */
+  dtsflush(s);
+
   if (s->fd_bufstart) {
     u8_free(s->fd_bufstart);
     s->fd_bufstart=s->fd_bufptr=s->fd_buflim=NULL;}
   else {/* Redundant close.  Warn? */}
-
-  /* Flush data */
-  dtsflush(s);
 
   if (s->fd_bufstart) {
     u8_free(s->fd_bufstart);
