@@ -77,12 +77,12 @@ FD_EXPORT ssize_t fd_add_dtype_to_file(fdtype obj,u8_string filename);
 
 FD_EXPORT fd_off_t _fd_getpos(fd_dtype_stream s);
 #define fd_getpos(s) \
-  ((((s)->flags)&FD_DTSTREAM_CANSEEK) ?			\
-   ((((s)->filepos)>=0) ?				\
-    ((FD_DTS_ISREADING(s)) ?				\
-     (((s)->filepos)-(((s)->end)-((s)->ptr))) :		\
-     (((s)->filepos)+(((s)->ptr)-((s)->start)))) :	\
-    (_fd_getpos(s)))					\
+  ((((s)->fd_dts_flags)&FD_DTSTREAM_CANSEEK) ?				\
+   ((((s)->fd_filepos)>=0) ?						\
+    ((FD_DTS_ISREADING(s)) ?						\
+     (((s)->fd_filepos)-(((s)->fd_buflim)-((s)->fd_bufptr))) :		\
+     (((s)->fd_filepos)+(((s)->fd_bufptr)-((s)->fd_bufstart)))) :	\
+    (_fd_getpos(s)))							\
    : (-1))
 FD_EXPORT fd_off_t fd_setpos(fd_dtype_stream s,fd_off_t pos);
 FD_EXPORT fd_off_t fd_movepos(fd_dtype_stream s,int delta);
@@ -96,9 +96,9 @@ FD_EXPORT int fd_dts_unlockfile(fd_dtype_stream s);
 
 FD_EXPORT int fd_dts_flush(fd_dtype_stream s);
 
-#define FD_DTS_ISREADING(s) (U8_BITP((s->flags),(FD_DTSTREAM_READING)))
-#define FD_DTS_ISWRITING(s) (!(U8_BITP((s->flags),(FD_DTSTREAM_READING))))
-#define FD_DTS_CANSEEK(s) (!(U8_BITP((s->flags),(FD_DTSTREAM_CANSEEK))))
+#define FD_DTS_ISREADING(s) (U8_BITP((s->fd_dts_flags),(FD_DTSTREAM_READING)))
+#define FD_DTS_ISWRITING(s) (!(U8_BITP((s->fd_dts_flags),(FD_DTSTREAM_READING))))
+#define FD_DTS_CANSEEK(s) (!(U8_BITP((s->fd_dts_flags),(FD_DTSTREAM_CANSEEK))))
 
 FD_EXPORT void fd_dtsbufsize(fd_dtype_stream s,int bufsiz);
 

@@ -1062,7 +1062,7 @@ struct FD_POOL_WRITES choice2writes(fd_pool p,fdtype oids,
   struct FD_CHOICE *xchoice=fd_alloc_choice(max_writes);
   fd_hashtable locks=&(p->locks);
   fdtype choice, *oidv, *values;
-  /* We're going to go through the locks, so we're going to release
+  /* We're going to go through the locks, so we're going to release 
      this one. */
   fd_rw_unlock_struct(locks);
   FD_INIT_FRESH_CONS(xchoice,fd_choice_type);
