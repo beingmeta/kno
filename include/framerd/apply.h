@@ -54,10 +54,10 @@ typedef fdtype (*fd_xprim9)(fd_function,fdtype,fdtype,
 typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
 
 #define FD_FUNCTION_FIELDS \
-  FD_CONS_HEADER; u8_string name, filename;                             \
-  short fdf_ndcall, fdf_xcall;                                                  \
-  short fdf_arity, fdf_min_arity;                                               \
-  int *fdf_typeinfo; fdtype *fdf_defaults;                                      \
+  FD_CONS_HEADER; u8_string fdfn_name, fdfn_filename;                             \
+  short fdfn_ndcall, fdfn_xcall;                                                  \
+  short fdfn_arity, fdfn_min_arity;                                               \
+  int *fdfn_typeinfo; fdtype *fdfn_defaults;                                      \
   union {                                                               \
     fd_cprim0 call0; fd_cprim1 call1; fd_cprim2 call2;                  \
     fd_cprim3 call3; fd_cprim4 call4; fd_cprim5 call5;                  \
@@ -68,7 +68,7 @@ typedef fdtype (*fd_xprimn)(fd_function,int n,fdtype *);
     fd_xprim6 xcall6; fd_xprim7 xcall7; fd_xprim8 xcall8;               \
     fd_xprim9 xcall9; fd_xprimn xcalln;                                 \
     void *fnptr;}                                                       \
-  fdf_handler
+  fdfn_handler
 
 struct FD_FUNCTION {
   FD_FUNCTION_FIELDS;
@@ -109,7 +109,7 @@ FD_EXPORT fdtype fd_make_cprim9x(u8_string name,fd_cprim9 fn,int mina,...);
    ((struct FD_FUNCTION *)(u8_raise(fd_TypeError,"function",NULL),NULL)))
 #define FD_FUNCTION_ARITY(x)  \
   ((FD_FUNCTIONP(x)) ? \
-   (((struct FD_FUNCTION *)(FD_CONS_DATA(fd_pptr_ref(x))))->fdf_arity) : \
+   (((struct FD_FUNCTION *)(FD_CONS_DATA(fd_pptr_ref(x))))->fdfn_arity) : \
    (0))
 
 /* #define FD_XFUNCTION(x) (FD_GET_CONS(x,fd_function_type,struct FD_FUNCTION *)) */

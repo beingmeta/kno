@@ -198,15 +198,15 @@ int fd_module_finished(fdtype module,int flags)
     fd_decref(cur_timestamp);
     if (FD_ENVIRONMENTP(module)) {
       fd_lispenv env=(fd_lispenv) module;
-      fdtype exports=env->exports;
-      if (FD_HASHTABLEP(env->bindings)) {
+      fdtype exports=env->fdenv_exports;
+      if (FD_HASHTABLEP(env->fdenv_bindings)) {
         if (U8_BITP(flags,FD_STATIC_MODULES))
-          fd_static_module(env->bindings);
+          fd_static_module(env->fdenv_bindings);
         else if (U8_BITP(flags,FD_FIX_MODULES))
-          fd_persist_module(env->bindings);
+          fd_persist_module(env->fdenv_bindings);
         else {}
         if (U8_BITP(flags,FD_LOCK_MODULES))
-          fd_hashtable_set_readonly((fd_hashtable)(env->bindings),1);}
+          fd_hashtable_set_readonly((fd_hashtable)(env->fdenv_bindings),1);}
       if (FD_HASHTABLEP(exports)) {
         if (U8_BITP(flags,FD_STATIC_EXPORTS)) fd_static_module(exports);
         else if (U8_BITP(flags,FD_FIX_MODULES)) fd_persist_module(exports);
@@ -267,7 +267,7 @@ int fd_lock_exports(fdtype module)
     return fd_hashtable_set_readonly((struct FD_HASHTABLE *) module, 1);
   else if (FD_ENVIRONMENTP(module)) {
     fd_lispenv env=(fd_lispenv) module;
-    fdtype exports=env->exports;
+    fdtype exports=env->fdenv_exports;
     if (FD_HASHTABLEP(exports)) 
       return fd_hashtable_set_readonly((struct FD_HASHTABLE *) exports, 1);
     else return 0;}
@@ -397,19 +397,19 @@ static fd_lispenv become_module
     FD_ENVIRONMENT *menv=
       FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
     if (menv != env) {
-      fd_decref(((fdtype)(env->parent)));
-      env->parent=(fd_lispenv)fd_incref((fdtype)menv->parent);
-      fd_decref(env->bindings); env->bindings=fd_incref(menv->bindings);
-      fd_decref(env->exports); env->exports=fd_incref(menv->exports);}}
+      fd_decref(((fdtype)(env->fdenv_parent)));
+      env->fdenv_parent=(fd_lispenv)fd_incref((fdtype)menv->fdenv_parent);
+      fd_decref(env->fdenv_bindings); env->fdenv_bindings=fd_incref(menv->fdenv_bindings);
+      fd_decref(env->fdenv_exports); env->fdenv_exports=fd_incref(menv->fdenv_exports);}}
   else if (FD_VOIDP(module)) {
-    if (!(FD_HASHTABLEP(env->exports)))
-      env->exports=fd_make_hashtable(NULL,0);
-    else if (FD_HASHTABLE_READONLYP(env->exports)) {
+    if (!(FD_HASHTABLEP(env->fdenv_exports)))
+      env->fdenv_exports=fd_make_hashtable(NULL,0);
+    else if (FD_HASHTABLE_READONLYP(env->fdenv_exports)) {
       fd_seterr(_("Can't reload a read-only module"),
                 "become_module",NULL,module_spec);
       return NULL;}
     else {}
-    fd_store(env->exports,moduleid_symbol,module_spec);
+    fd_store(env->fdenv_exports,moduleid_symbol,module_spec);
     fd_register_module(FD_SYMBOL_NAME(module_spec),(fdtype)env,
                        ((safe) ? (FD_MODULE_SAFE) : (0)));}
   else {
@@ -483,7 +483,7 @@ static fd_lispenv make_hybrid_env(fd_lispenv base,fdtype module_spec,int safe)
   else if (FD_ENVIRONMENTP(module)) {
     FD_ENVIRONMENT *menv=
       FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
-    fd_lispenv result=fd_make_env(fd_incref(base->bindings),menv);
+    fd_lispenv result=fd_make_env(fd_incref(base->fdenv_bindings),menv);
     fd_decref(module);
     return result;}
   else if (FD_VOIDP(module)) {
@@ -541,13 +541,13 @@ static u8_mutex exports_lock;
 static fd_hashtable get_exports(fd_lispenv env)
 {
   fd_hashtable exports;
-  fdtype moduleid=fd_get(env->bindings,moduleid_symbol,FD_VOID);
+  fdtype moduleid=fd_get(env->fdenv_bindings,moduleid_symbol,FD_VOID);
   fd_lock_mutex(&exports_lock);
-  if (FD_HASHTABLEP(env->exports)) {
+  if (FD_HASHTABLEP(env->fdenv_exports)) {
     fd_unlock_mutex(&exports_lock);
     fd_decref(moduleid);
-    return (fd_hashtable) env->exports;}
-  exports=(fd_hashtable)(env->exports=fd_make_hashtable(NULL,16));
+    return (fd_hashtable) env->fdenv_exports;}
+  exports=(fd_hashtable)(env->fdenv_exports=fd_make_hashtable(NULL,16));
   if (!(FD_VOIDP(moduleid)))
     fd_hashtable_store(exports,moduleid_symbol,moduleid);
   fd_unlock_mutex(&exports_lock);
@@ -566,11 +566,11 @@ static fdtype module_export(fdtype expr,fd_lispenv env)
       if (!(FD_SYMBOLP(symbol))) {
         fd_decref(symbols);
         return fd_type_error(_("symbol"),"module_export",symbol);}}
-  if (FD_HASHTABLEP(env->exports))
-    exports=(fd_hashtable)env->exports;
+  if (FD_HASHTABLEP(env->fdenv_exports))
+    exports=(fd_hashtable)env->fdenv_exports;
   else exports=get_exports(env);
   {FD_DO_CHOICES(symbol,symbols) {
-    fdtype val=fd_get(env->bindings,symbol,FD_VOID);
+    fdtype val=fd_get(env->fdenv_bindings,symbol,FD_VOID);
     fd_hashtable_store(exports,symbol,val);
     fd_decref(val);}}
   fd_decref(symbols);
@@ -583,8 +583,8 @@ static int uses_bindings(fd_lispenv env,fdtype bindings)
 {
   fd_lispenv scan=env;
   while (scan)
-    if (scan->bindings==bindings) return 1;
-    else scan=scan->parent;
+    if (scan->fdenv_bindings==bindings) return 1;
+    else scan=scan->fdenv_parent;
   return 0;
 }
 
@@ -602,16 +602,16 @@ static fdtype safe_use_module(fdtype expr,fd_lispenv env)
         return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,module_name);
       else if (FD_HASHTABLEP(module)) {
         if (!(uses_bindings(env,module))) {
-          fd_lispenv oldp=env->parent;
-          env->parent=fd_make_export_env(module,oldp);
+          fd_lispenv oldp=env->fdenv_parent;
+          env->fdenv_parent=fd_make_export_env(module,oldp);
           if (oldp) fd_decref((fdtype)(oldp));}}
       else {
         fd_lispenv expenv=
           FD_GET_CONS(module,fd_environment_type,fd_environment);
         fdtype expval=(fdtype)get_exports(expenv);
         if (!(uses_bindings(env,expval))) {
-          fd_lispenv oldp=env->parent;
-          env->parent=fd_make_export_env(expval,oldp);
+          fd_lispenv oldp=env->fdenv_parent;
+          env->fdenv_parent=fd_make_export_env(expval,oldp);
           if (oldp) fd_decref((fdtype)(oldp));}}}
     fd_decref(module_names);
     return FD_VOID;}
@@ -638,16 +638,16 @@ static fdtype use_module(fdtype expr,fd_lispenv env)
         return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,module_name);
       else if (FD_HASHTABLEP(module)) {
         if (!(uses_bindings(env,module))) {
-          fd_lispenv oldp=env->parent;
-          env->parent=fd_make_export_env(module,oldp);
+          fd_lispenv oldp=env->fdenv_parent;
+          env->fdenv_parent=fd_make_export_env(module,oldp);
           if (oldp) fd_decref((fdtype)(oldp));}}
       else {
         fd_lispenv expenv=
           FD_GET_CONS(module,fd_environment_type,fd_environment);
         fdtype expval=(fdtype)get_exports(expenv);
         if (!(uses_bindings(env,expval))) {
-          fd_lispenv oldp=env->parent;
-          env->parent=fd_make_export_env(expval,oldp);
+          fd_lispenv oldp=env->fdenv_parent;
+          env->fdenv_parent=fd_make_export_env(expval,oldp);
           if (oldp) fd_decref((fdtype)(oldp));}}
       fd_decref(module);}
     fd_decref(module_names);
@@ -684,13 +684,13 @@ fdtype fd_use_module(fd_lispenv env,fdtype module)
     module=get_module(module); free_module=1;}
   if (FD_HASHTABLEP(module)) {
     if (!(uses_bindings(env,module))) {
-      fd_lispenv oldp=env->parent;
-      env->parent=fd_make_export_env(module,oldp);
+      fd_lispenv oldp=env->fdenv_parent;
+      env->fdenv_parent=fd_make_export_env(module,oldp);
       fd_decref((fdtype)(oldp));}}
   else if (FD_SLOTMAPP(module)) {
     if (!(uses_bindings(env,module))) {
-      fd_lispenv oldp=env->parent;
-      env->parent=fd_make_env(module,oldp);
+      fd_lispenv oldp=env->fdenv_parent;
+      env->fdenv_parent=fd_make_env(module,oldp);
       fd_incref(module);
       fd_decref((fdtype)(oldp));}}
   else if (FD_ENVIRONMENTP(module)) {
@@ -698,8 +698,8 @@ fdtype fd_use_module(fd_lispenv env,fdtype module)
       FD_GET_CONS(module,fd_environment_type,fd_environment);
     fdtype expval=(fdtype)get_exports(expenv);
     if (!(uses_bindings(env,expval))) {
-      fd_lispenv oldp=env->parent;
-      env->parent=fd_make_export_env(expval,oldp);
+      fd_lispenv oldp=env->fdenv_parent;
+      env->fdenv_parent=fd_make_export_env(expval,oldp);
       if (oldp) fd_decref((fdtype)(oldp));}}
   else return fd_type_error("module","fd_use_module",module);
   if (free_module) fd_decref(module);
@@ -715,12 +715,12 @@ static fdtype fix_module(fdtype module)
   else if (FD_ENVIRONMENTP(module)) {
     fd_lispenv env=(fd_lispenv) module;
     int conversions=0, delta=0;
-    if (FD_HASHTABLEP(env->bindings))
-      delta=fd_persist_module(env->bindings);
+    if (FD_HASHTABLEP(env->fdenv_bindings))
+      delta=fd_persist_module(env->fdenv_bindings);
     if (conversions<0) return FD_ERROR_VALUE;
     else conversions=conversions+delta;
-    if ((env->exports) && (FD_HASHTABLEP(env->exports)))
-      delta=fd_persist_module(env->exports);
+    if ((env->fdenv_exports) && (FD_HASHTABLEP(env->fdenv_exports)))
+      delta=fd_persist_module(env->fdenv_exports);
     if (conversions<0) return FD_ERROR_VALUE;
     else return FD_INT(conversions+delta);}
   else {
@@ -741,12 +741,12 @@ static fdtype static_module(fdtype module)
   else if (FD_ENVIRONMENTP(module)) {
     fd_lispenv env=(fd_lispenv) module;
     int conversions=0, delta=0;
-    if (FD_HASHTABLEP(env->bindings))
-      delta=fd_static_module(env->bindings);
+    if (FD_HASHTABLEP(env->fdenv_bindings))
+      delta=fd_static_module(env->fdenv_bindings);
     if (conversions<0) return FD_ERROR_VALUE;
     else conversions=conversions+delta;
-    if ((env->exports) && (FD_HASHTABLEP(env->exports)))
-      delta=fd_static_module(env->exports);
+    if ((env->fdenv_exports) && (FD_HASHTABLEP(env->fdenv_exports)))
+      delta=fd_static_module(env->fdenv_exports);
     if (conversions<0) return FD_ERROR_VALUE;
     else return FD_INT(conversions+delta);}
   else {

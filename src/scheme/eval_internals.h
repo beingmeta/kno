@@ -14,16 +14,16 @@ static int testeval(fdtype expr,fd_lispenv env,fdtype *whoops)
 static fdtype find_module_id( fd_lispenv env )
 {
   if (!(env)) return FD_VOID;
-  else if (FD_HASHTABLEP(env->bindings)) 
-    return fd_get(env->bindings,moduleid_symbol,FD_VOID);
-  else if (env->copy)
-    return find_module_id(env->copy->parent);
-  else return find_module_id(env->parent);
+  else if (FD_HASHTABLEP(env->fdenv_bindings)) 
+    return fd_get(env->fdenv_bindings,moduleid_symbol,FD_VOID);
+  else if (env->fdenv_copy)
+    return find_module_id(env->fdenv_copy->fdenv_parent);
+  else return find_module_id(env->fdenv_parent);
 }
 
 static fdtype error_bindings(fd_lispenv env)
 {
-  fdtype bindings = (env->copy) ? (env->copy->bindings) : (env->bindings);
+  fdtype bindings = (env->fdenv_copy) ? (env->fdenv_copy->fdenv_bindings) : (env->fdenv_bindings);
   fdtype moduleid = find_module_id ( env );
   if (FD_VOIDP(moduleid))
     return fd_copy(bindings);
@@ -47,16 +47,16 @@ static fdtype error_bindings(fd_lispenv env)
 static void free_environment(struct FD_ENVIRONMENT *env)
 {
   /* There are three cases:
-        a simple static environment (env->copy==NULL)
+        a simple static environment (env->fdenv_copy==NULL)
         a static environment copied into a dynamic environment
-          (env->copy!=env)
-        a dynamic environment (env->copy==env->copy)
+          (env->fdenv_copy!=env)
+        a dynamic environment (env->fdenv_copy==env->fdenv_copy)
   */
-  if (env->copy)
-    if (env==env->copy)
-      fd_recycle_environment(env->copy);
+  if (env->fdenv_copy)
+    if (env==env->fdenv_copy)
+      fd_recycle_environment(env->fdenv_copy);
     else {
-      struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->bindings);
+      struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->fdenv_bindings);
       int i=0, n=FD_XSCHEMAP_SIZE(sm); 
       fdtype *vals=sm->fd_values;
       while (i < n) {
@@ -64,9 +64,9 @@ static void free_environment(struct FD_ENVIRONMENT *env)
         if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
           fd_decref(val);}}
       fd_destroy_rwlock(&(sm->fd_rwlock));
-      fd_recycle_environment(env->copy);}
+      fd_recycle_environment(env->fdenv_copy);}
   else {
-    struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->bindings);
+    struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->fdenv_bindings);
     int i=0, n=FD_XSCHEMAP_SIZE(sm);
     fdtype *vals=sm->fd_values;
     while (i < n) {

@@ -892,10 +892,11 @@ static fdtype mysqlmakeproc
   dbproc->stmt_len=stmt_len;
 
   /* Set up fields for the function object itself */
-  dbproc->filename=dbproc->spec; dbproc->name=dbproc->qtext;
-  dbproc->fdf_ndcall=0; dbproc->fdf_xcall=1; dbproc->fdf_arity=-1;
-  dbproc->fdf_min_arity=0;
-  dbproc->fdf_handler.xcalln=callmysqlproc;
+  dbproc->fdfn_filename=dbproc->spec; 
+  dbproc->fdfn_name=dbproc->qtext;
+  dbproc->fdfn_ndcall=0; dbproc->fdfn_xcall=1; dbproc->fdfn_arity=-1;
+  dbproc->fdfn_min_arity=0;
+  dbproc->fdfn_handler.xcalln=callmysqlproc;
 
   /* Register the procedure on the database's list */
   fd_register_extdb_proc((struct FD_EXTDB_PROC *)dbproc);
@@ -903,7 +904,7 @@ static fdtype mysqlmakeproc
   /* This indicates that the procedure hasn't been initialized */
   dbproc->n_cols=-1;
 
-  dbproc->fdf_n_params=n; {
+  dbproc->fdfn_n_params=n; {
     fdtype *init_ptypes=u8_alloc_n(n,fdtype);
     int i=0; while (i<n) {
       init_ptypes[i]=fd_incref(ptypes[i]); i++;}
@@ -995,10 +996,10 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
 
   n_params=mysql_stmt_param_count(dbproc->stmt);
 
-  if (n_params==dbproc->fdf_n_params) {}
+  if (n_params==dbproc->fdfn_n_params) {}
   else {
     fdtype *init_ptypes=dbproc->paramtypes, *ptypes=u8_alloc_n(n_params,fdtype);
-    int i=0, init_n=dbproc->fdf_n_params; while ((i<init_n)&&(i<n_params)) {
+    int i=0, init_n=dbproc->fdfn_n_params; while ((i<init_n)&&(i<n_params)) {
       ptypes[i]=init_ptypes[i]; i++;}
     while (i<n_params) ptypes[i++]=FD_VOID;
     while (i<init_n) {
@@ -1010,7 +1011,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
       else u8_log(LOG_WARN,UnusedType,
                   "Parameter type %hq is not used for %s",ptype,dbproc->qtext);
       fd_decref(ptype);}
-    dbproc->paramtypes=ptypes; dbproc->fdf_n_params=n_params;
+    dbproc->paramtypes=ptypes; dbproc->fdfn_n_params=n_params;
     if (init_ptypes) u8_free(init_ptypes);}
 
   /* Check that the number of returned columns has not changed
@@ -1023,7 +1024,7 @@ static int init_mysqlproc(FD_MYSQL *dbp,struct FD_MYSQL_PROC *dbproc)
 
   /* Check that the number of parameters has not changed
      (this might happen if there were schema changes) */
-  dbproc->fdf_min_arity=n_params;
+  dbproc->fdfn_min_arity=n_params;
 
   if (n_params) {
     dbproc->inbound=u8_alloc_n(n_params,MYSQL_BIND);
@@ -1067,7 +1068,7 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
     u8_free(dbproc->outbound);}
 
   if (dbproc->paramtypes) {
-    i=0; lim=dbproc->fdf_n_params; while (i< lim) {
+    i=0; lim=dbproc->fdfn_n_params; while (i< lim) {
       fd_decref(dbproc->paramtypes[i]); i++;}
     u8_free(dbproc->paramtypes);}
 
@@ -1094,7 +1095,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
   struct FD_MYSQL_PROC *dbproc=(struct FD_MYSQL_PROC *)fn;
   struct FD_MYSQL *dbp=
     FD_GET_CONS(dbproc->db,fd_extdb_type,struct FD_MYSQL *);
-  int n_params=dbproc->fdf_n_params;
+  int n_params=dbproc->fdfn_n_params;
   MYSQL_BIND *inbound=dbproc->inbound;
   union BINDBUF *bindbuf=dbproc->bindbuf;
   int retry=0, reterr=0;
@@ -1128,7 +1129,7 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
     retval=iretval=init_mysqlproc(dbp,dbproc);
     u8_unlock_mutex(&(dbp->fd_lock));}
   if (retval==RETVAL_OK) {
-    n_params=dbproc->fdf_n_params;
+    n_params=dbproc->fdfn_n_params;
     inbound=dbproc->inbound;
     bindbuf=dbproc->bindbuf;
     ptypes=dbproc->paramtypes;
@@ -1138,8 +1139,8 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
     if (n!=n_params) {
       u8_unlock_mutex(&(dbproc->fd_lock));
       if (n<n_params)
-        return fd_err(fd_TooFewArgs,"fd_dapply",fn->name,FD_VOID);
-      else return fd_err(fd_TooManyArgs,"fd_dapply",fn->name,FD_VOID);}
+        return fd_err(fd_TooFewArgs,"fd_dapply",fn->fdfn_name,FD_VOID);
+      else return fd_err(fd_TooManyArgs,"fd_dapply",fn->fdfn_name,FD_VOID);}
 
     if (n_params>4) argbuf=u8_alloc_n(n_params,fdtype);
     /* memset(argbuf,0,sizeof(fdtype)*n_params); */

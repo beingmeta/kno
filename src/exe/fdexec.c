@@ -310,8 +310,8 @@ int do_main(int argc,char **argv,
      working_environment contains procedures which are closed in the
      working environment, it will not be GC'd because of those
      circular pointers. */
-  if (FD_HASHTABLEP(env->bindings))
-    fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
+  if (FD_HASHTABLEP(env->fdenv_bindings))
+    fd_reset_hashtable((fd_hashtable)(env->fdenv_bindings),0,1);
   fd_recycle_environment(env);
   fd_decref(main_proc);
   return retval;

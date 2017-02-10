@@ -573,7 +573,7 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,
   if (FD_PTR_TYPEP(fn,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=
       FD_GET_CONS(fn,fd_specform_type,fd_special_form);
-    result=sf->eval(xml,scheme_env);}
+    result=sf->fexpr_handler(xml,scheme_env);}
   else if (FD_SPROCP(fn))
     result=fd_xapply_sproc((struct FD_SPROC *)fn,&cxt,xmlgetarg);
   else {
@@ -880,14 +880,14 @@ static FD_XML *handle_fdxml_pi
           return NULL;}
         else xml_env=get_xml_env(xml);
         u8_free(arg); u8_free(filename);
-        if (FD_TABLEP(env->exports)) {
+        if (FD_TABLEP(env->fdenv_exports)) {
           fd_lispenv new_xml_env=
-            fd_make_export_env(env->exports,xml_env);
+            fd_make_export_env(env->fdenv_exports,xml_env);
           set_xml_env(xml,new_xml_env);
           fd_decref((fdtype)new_xml_env);}
         else {
           fd_lispenv new_xml_env=
-            fd_make_export_env(env->bindings,xml_env);
+            fd_make_export_env(env->fdenv_bindings,xml_env);
           set_xml_env(xml,new_xml_env);
           fd_decref((fdtype)new_xml_env);}
         if (xml_env) fd_decref((fdtype)xml_env);
@@ -924,8 +924,8 @@ static FD_XML *handle_fdxml_pi
         fd_lispenv xml_env=get_xml_env(xml);
         u8_free(arg); fd_decref(module_name);
         if ((FD_ENVIRONMENTP(module)) &&
-            (FD_TABLEP(((fd_environment)module)->exports))) {
-          fdtype exports=((fd_environment)module)->exports;
+            (FD_TABLEP(((fd_environment)module)->fdenv_exports))) {
+          fdtype exports=((fd_environment)module)->fdenv_exports;
           fd_lispenv new_xml_env=fd_make_export_env(exports,xml_env);
           set_xml_env(xml,new_xml_env);
           fd_decref((fdtype)new_xml_env);}
@@ -951,11 +951,11 @@ static FD_XML *handle_fdxml_pi
         fd_lispenv scheme_env=(fd_lispenv)(xml->fdxml_data);
         u8_free(arg); fd_decref(module_name);
         if ((FD_ENVIRONMENTP(module)) &&
-            (FD_TABLEP(((fd_environment)module)->exports))) {
-          fdtype exports=((fd_environment)module)->exports;
-          scheme_env->parent=fd_make_export_env(exports,scheme_env->parent);}
+            (FD_TABLEP(((fd_environment)module)->fdenv_exports))) {
+          fdtype exports=((fd_environment)module)->fdenv_exports;
+          scheme_env->fdenv_parent=fd_make_export_env(exports,scheme_env->fdenv_parent);}
         else if (FD_TABLEP(module)) {
-          scheme_env->parent=fd_make_export_env(module,scheme_env->parent);}
+          scheme_env->fdenv_parent=fd_make_export_env(module,scheme_env->fdenv_parent);}
         i++;}
       else if ((strncmp(attribs[i],"piescape=",9))==0) {
         fdtype arg=fd_lispstring(get_pi_string(attribs[i]+9));
@@ -1544,19 +1544,19 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
   bindings.fd_schema=vars; bindings.fd_values=vals; 
   bindings.fd_table_size=1; bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
-  envstruct.parent=env;
-  envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
-  envstruct.copy=NULL;
+  envstruct.fdenv_parent=env;
+  envstruct.fdenv_bindings=(fdtype)(&bindings); envstruct.fdenv_exports=FD_VOID;
+  envstruct.fdenv_copy=NULL;
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
     vars[1]=count_var; vals[1]=FD_INT(0);
     bindings.fd_table_size=2; iterval=&(vals[1]);}
   while (i<lim) {
     fdtype elt=fd_seq_elt(seq,i);
-    if (envstruct.copy) {
-      fd_set_value(var,elt,envstruct.copy);
+    if (envstruct.fdenv_copy) {
+      fd_set_value(var,elt,envstruct.fdenv_copy);
       if (iterval)
-        fd_set_value(count_var,FD_INT(i),envstruct.copy);}
+        fd_set_value(count_var,FD_INT(i),envstruct.fdenv_copy);}
     else {
       vals[0]=elt;
       if (iterval) *iterval=FD_INT(i);}
@@ -1567,14 +1567,14 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
         if (iterval) errbind=iterenv1(seq,var,elt);
         else errbind=iterenv2(seq,var,elt,count_var,FD_INT(i));
         fd_destroy_rwlock(&(bindings.fd_rwlock));
-        if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+        if (envstruct.fdenv_copy) fd_recycle_environment(envstruct.fdenv_copy);
         fd_decref(elt); fd_decref(seq);
         fd_push_error_context(":FDXMLSEQ",errbind);
         return val;}
       fd_decref(val);}}
-    if (envstruct.copy) {
-      fd_recycle_environment(envstruct.copy);
-      envstruct.copy=NULL;}
+    if (envstruct.fdenv_copy) {
+      fd_recycle_environment(envstruct.fdenv_copy);
+      envstruct.fdenv_copy=NULL;}
     fd_decref(vals[0]);
     i++;}
   fd_decref(seq);
@@ -1605,18 +1605,18 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
   bindings.fd_schema=vars; bindings.fd_values=vals;
   bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
-  envstruct.parent=env;
-  envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
-  envstruct.copy=NULL;
+  envstruct.fdenv_parent=env;
+  envstruct.fdenv_bindings=(fdtype)(&bindings); envstruct.fdenv_exports=FD_VOID;
+  envstruct.fdenv_copy=NULL;
   if (FD_EMPTY_CHOICEP(choices)) return FD_VOID;
   else if (FD_ABORTP(choices))
     return choices;
   else {
     int i=0; FD_DO_CHOICES(elt,choices) {
       fd_incref(elt);
-      if (envstruct.copy) {
-        fd_set_value(var,elt,envstruct.copy);
-        if (iloc) fd_set_value(count_var,FD_INT(i),envstruct.copy);}
+      if (envstruct.fdenv_copy) {
+        fd_set_value(var,elt,envstruct.fdenv_copy);
+        if (iloc) fd_set_value(count_var,FD_INT(i),envstruct.fdenv_copy);}
       else {
         *vloc=elt;
         if (iloc) *iloc=FD_INT(i);}
@@ -1627,17 +1627,17 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
           if (iloc) env=retenv2(var,elt,count_var,FD_INT(i));
           else env=retenv1(var,elt);
           fd_decref(choices);
-          if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+          if (envstruct.fdenv_copy) fd_recycle_environment(envstruct.fdenv_copy);
           fd_push_error_context(":FDXMLCHOICE",env);
           return val;}
         fd_decref(val);}}
-      if (envstruct.copy) {
-        fd_recycle_environment(envstruct.copy);
-        envstruct.copy=NULL;}
+      if (envstruct.fdenv_copy) {
+        fd_recycle_environment(envstruct.fdenv_copy);
+        envstruct.fdenv_copy=NULL;}
       fd_decref(*vloc);
       i++;}
     fd_decref(choices);
-    if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+    if (envstruct.fdenv_copy) fd_recycle_environment(envstruct.fdenv_copy);
     return FD_VOID;}
 }
 
@@ -1657,28 +1657,28 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
   bindings.fd_schema=vars; bindings.fd_values=vals; bindings.fd_table_size=1;
   bindings.fd_stack_schema=1;
   fd_init_rwlock(&(bindings.fd_rwlock));
-  envstruct.parent=env;
-  envstruct.bindings=(fdtype)(&bindings); envstruct.exports=FD_VOID;
-  envstruct.copy=NULL;
+  envstruct.fdenv_parent=env;
+  envstruct.fdenv_bindings=(fdtype)(&bindings); envstruct.fdenv_exports=FD_VOID;
+  envstruct.fdenv_copy=NULL;
   vars[0]=var; vals[0]=FD_INT(0);
   while (i < limit) {
-    if (envstruct.copy)
-      fd_set_value(var,FD_INT(i),envstruct.copy);
+    if (envstruct.fdenv_copy)
+      fd_set_value(var,FD_INT(i),envstruct.fdenv_copy);
     else vals[0]=FD_INT(i);
     {FD_DOELTS(expr,body,count) {
       fdtype val=fd_xmleval(out,expr,&envstruct);
       if (FD_ABORTP(val)) {
         fd_push_error_context(":FXMLRANGE",iterenv1(limit_val,var,FD_INT(i)));
         fd_destroy_rwlock(&(bindings.fd_rwlock));
-        if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+        if (envstruct.fdenv_copy) fd_recycle_environment(envstruct.fdenv_copy);
         return val;}
       fd_decref(val);}}
-    if (envstruct.copy) {
-      fd_recycle_environment(envstruct.copy);
-      envstruct.copy=NULL;}
+    if (envstruct.fdenv_copy) {
+      fd_recycle_environment(envstruct.fdenv_copy);
+      envstruct.fdenv_copy=NULL;}
     i++;}
   fd_destroy_rwlock(&(bindings.fd_rwlock));
-  if (envstruct.copy) fd_recycle_environment(envstruct.copy);
+  if (envstruct.fdenv_copy) fd_recycle_environment(envstruct.fdenv_copy);
   return FD_VOID;
 }
 

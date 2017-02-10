@@ -61,13 +61,13 @@ static fdtype procedure_name(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
-    if (f->name)
-      return fdtype_string(f->name);
+    if (f->fdfn_name)
+      return fdtype_string(f->fdfn_name);
     else return FD_FALSE;}
   else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
-    if (sf->name)
-      return fdtype_string(sf->name);
+    if (sf->fexpr_name)
+      return fdtype_string(sf->fexpr_name);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_name",x);
 }
@@ -76,13 +76,13 @@ static fdtype procedure_filename(fdtype x)
 {
   if (FD_FUNCTIONP(x)) {
     struct FD_FUNCTION *f=FD_XFUNCTION(x);
-    if (f->filename)
-      return fdtype_string(f->filename);
+    if (f->fdfn_filename)
+      return fdtype_string(f->fdfn_filename);
     else return FD_FALSE;}
   else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
-    if (sf->filename)
-      return fdtype_string(sf->filename);
+    if (sf->fexpr_filename)
+      return fdtype_string(sf->fexpr_filename);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_filename",x);
 }
@@ -91,13 +91,13 @@ static fdtype procedure_symbol(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
-    if (f->name)
-      return fd_intern(f->name);
+    if (f->fdfn_name)
+      return fd_intern(f->fdfn_name);
     else return FD_FALSE;}
   else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
-    if (sf->name)
-      return fd_intern(sf->name);
+    if (sf->fexpr_name)
+      return fd_intern(sf->fexpr_name);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_symbol",x);
 }
@@ -106,13 +106,13 @@ static fdtype procedure_id(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
-    if (f->name)
-      return fd_intern(f->name);
+    if (f->fdfn_name)
+      return fd_intern(f->fdfn_name);
     else return fd_incref(x);}
   else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
-    if (sf->name)
-      return fd_intern(sf->name);
+    if (sf->fexpr_name)
+      return fd_intern(sf->fexpr_name);
     else return fd_incref(x);}
   else return fd_incref(x);
 }
@@ -121,7 +121,7 @@ static fdtype procedure_arity(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
-    int arity=f->fdf_arity;
+    int arity=f->fdfn_arity;
     if (arity<0) return FD_FALSE;
     else return FD_INT(arity);}
   else return fd_type_error(_("procedure"),"procedure_arity",x);
@@ -131,7 +131,7 @@ static fdtype non_deterministicp(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
-    if (f->fdf_ndcall)
+    if (f->fdfn_ndcall)
       return FD_TRUE;
     else return FD_FALSE;}
   else return fd_type_error(_("procedure"),"non_deterministicp",x);
@@ -153,7 +153,7 @@ static fdtype procedure_min_arity(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
-    int arity=f->fdf_min_arity;
+    int arity=f->fdfn_min_arity;
     return FD_INT(arity);}
   else return fd_type_error(_("procedure"),"procedure_min_arity",x);
 }
@@ -215,16 +215,17 @@ static fdtype macroexpand(fdtype expander,fdtype expr)
   if (FD_PAIRP(expr)) {
     if (FD_PRIM_TYPEP(expander,fd_macro_type)) {
       struct FD_MACRO *macrofn=(struct FD_MACRO *)fd_pptr_ref(expander);
-      fd_ptr_type xformer_type=FD_PTR_TYPE(macrofn->transformer);
+      fd_ptr_type xformer_type=FD_PTR_TYPE(macrofn->fd_macro_transformer);
       if (fd_applyfns[xformer_type]) {
         /* These are special forms which do all the evaluating themselves */
         fdtype new_expr=
-          (fd_applyfns[xformer_type])(fd_pptr_ref(macrofn->transformer),1,&expr);
+          (fd_applyfns[xformer_type])
+          (fd_pptr_ref(macrofn->fd_macro_transformer),1,&expr);
         new_expr=fd_finish_call(new_expr);
         if (FD_ABORTP(new_expr))
           return fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
         else return new_expr;}
-      else return fd_err(fd_InvalidMacro,NULL,macrofn->name,expr);}
+      else return fd_err(fd_InvalidMacro,NULL,macrofn->fd_macro_name,expr);}
     else return fd_type_error("macro","macroexpand",expander);}
   else return fd_incref(expr);
 }
@@ -250,7 +251,7 @@ static fdtype module_bindings(fdtype arg)
 {
   if (FD_ENVIRONMENTP(arg)) {
     fd_lispenv envptr=FD_GET_CONS(arg,fd_environment_type,fd_lispenv);
-    return fd_getkeys(envptr->bindings);}
+    return fd_getkeys(envptr->fdenv_bindings);}
   else if (FD_TABLEP(arg))
     return fd_getkeys(arg);
   else if (FD_SYMBOLP(arg)) {
@@ -269,7 +270,7 @@ static fdtype modulep(fdtype arg)
   if (FD_ENVIRONMENTP(arg)) {
     struct FD_ENVIRONMENT *env=
       FD_GET_CONS(arg,fd_environment_type,struct FD_ENVIRONMENT *);
-    if (fd_test(env->bindings,moduleid_symbol,FD_VOID))
+    if (fd_test(env->fdenv_bindings,moduleid_symbol,FD_VOID))
       return FD_TRUE;
     else return FD_FALSE;}
   else if ((FD_HASHTABLEP(arg)) || (FD_SLOTMAPP(arg)) || (FD_SCHEMAPP(arg))) {
@@ -283,7 +284,7 @@ static fdtype module_exports(fdtype arg)
 {
   if (FD_ENVIRONMENTP(arg)) {
     fd_lispenv envptr=FD_GET_CONS(arg,fd_environment_type,fd_lispenv);
-    return fd_getkeys(envptr->exports);}
+    return fd_getkeys(envptr->fdenv_exports);}
   else if (FD_TABLEP(arg))
     return fd_getkeys(arg);
   else if (FD_SYMBOLP(arg)) {
@@ -299,11 +300,11 @@ static fdtype module_exports(fdtype arg)
 
 static fdtype local_bindings_handler(fdtype expr,fd_lispenv env)
 {
-  if (env->copy)
-    return fd_incref(env->copy->bindings);
+  if (env->fdenv_copy)
+    return fd_incref(env->fdenv_copy->fdenv_bindings);
   else {
     fd_lispenv copied=fd_copy_env(env);
-    fdtype bindings=copied->bindings;
+    fdtype bindings=copied->fdenv_bindings;
     fd_incref(bindings);
     fd_decref((fdtype)copied);
     return bindings;}
@@ -325,18 +326,18 @@ static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
     else if (FD_PRIM_TYPEP(env_arg,fd_environment_type))
       env=FD_GET_CONS(env_arg,fd_environment_type,fd_lispenv);
     else return fd_type_error(_("environment"),"wherefrom",env_arg);
-    if (env->copy) env=env->copy;
+    if (env->fdenv_copy) env=env->fdenv_copy;
     while (env) {
-      if (fd_test(env->bindings,symbol,FD_VOID)) {
-        fdtype bindings=env->bindings;
+      if (fd_test(env->fdenv_bindings,symbol,FD_VOID)) {
+        fdtype bindings=env->fdenv_bindings;
         if ((FD_CONSP(bindings)) &&
             (FD_MALLOCD_CONSP((fd_cons)bindings)))
-          return fd_incref(env->bindings);
+          return fd_incref(env->fdenv_bindings);
         else {
           fd_decref(env_arg);
           return FD_FALSE;}}
-      env=env->parent;
-      if ((env) && (env->copy)) env=env->copy;}
+      env=env->fdenv_parent;
+      if ((env) && (env->fdenv_copy)) env=env->fdenv_copy;}
     fd_decref(env_arg);
     return FD_FALSE;}
   else return fd_type_error(_("symbol"),"wherefrom",symbol);
@@ -352,17 +353,17 @@ static fdtype getmodules_handler(fdtype expr,fd_lispenv call_env)
   else if (FD_PRIM_TYPEP(env_arg,fd_environment_type))
     env=FD_GET_CONS(env_arg,fd_environment_type,fd_lispenv);
   else return fd_type_error(_("environment"),"wherefrom",env_arg);
-  if (env->copy) env=env->copy;
+  if (env->fdenv_copy) env=env->fdenv_copy;
   while (env) {
-    if (fd_test(env->bindings,moduleid_symbol,FD_VOID)) {
-      fdtype ids=fd_get(env->bindings,moduleid_symbol,FD_VOID);
+    if (fd_test(env->fdenv_bindings,moduleid_symbol,FD_VOID)) {
+      fdtype ids=fd_get(env->fdenv_bindings,moduleid_symbol,FD_VOID);
       if ((FD_CHOICEP(ids))||(FD_ACHOICEP(ids))) {
         FD_DO_CHOICES(id,ids) {
           if (FD_SYMBOLP(id)) {FD_ADD_TO_CHOICE(modules,id);}}}
       else if (FD_SYMBOLP(ids)) {FD_ADD_TO_CHOICE(modules,ids);}
       else {}}
-    env=env->parent;
-    if ((env) && (env->copy)) env=env->copy;}
+    env=env->fdenv_parent;
+    if ((env) && (env->fdenv_copy)) env=env->fdenv_copy;}
   fd_decref(env_arg);
   return modules;
 }

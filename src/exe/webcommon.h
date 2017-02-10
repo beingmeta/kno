@@ -109,15 +109,15 @@ static int preflight_set(fdtype var,fdtype val,void *data)
     return fd_reterr(fd_TypeError,"preflight_set",u8_strdup("applicable"),val);
   if (FD_FUNCTIONP(val)) {
     vf=FD_DTYPE2FCN(val);
-    if ((vf)&&(vf->name)&&(vf->filename)) {
+    if ((vf)&&(vf->fdfn_name)&&(vf->fdfn_filename)) {
       fdtype scan=preflight; while (FD_PAIRP(scan)) {
 	fdtype fn=FD_CAR(scan);
 	if (val==fn) return 0;
 	else if (FD_FUNCTIONP(fn)) {
 	  struct FD_FUNCTION *f=FD_DTYPE2FCN(fn);
-	  if ((f->name)&&(f->filename)&&
-	      (strcmp(f->name,vf->name)==0)&&
-	      (strcmp(f->filename,vf->filename)==0)) {
+	  if ((f->fdfn_name)&&(f->fdfn_filename)&&
+	      (strcmp(f->fdfn_name,vf->fdfn_name)==0)&&
+	      (strcmp(f->fdfn_filename,vf->fdfn_filename)==0)) {
 	    struct FD_PAIR *p=FD_GET_CONS(scan,fd_pair_type,struct FD_PAIR *);
 	    p->fd_car=val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
@@ -161,15 +161,15 @@ static int postflight_set(fdtype var,fdtype val,void *data)
     return fd_reterr(fd_TypeError,"postflight_set",u8_strdup("applicable"),val);
   if (FD_FUNCTIONP(val)) {
     vf=FD_DTYPE2FCN(val);
-    if ((vf)&&(vf->name)&&(vf->filename)) {
+    if ((vf)&&(vf->fdfn_name)&&(vf->fdfn_filename)) {
       fdtype scan=postflight; while (FD_PAIRP(scan)) {
 	fdtype fn=FD_CAR(scan);
 	if (val==fn) return 0;
 	else if (FD_FUNCTIONP(fn)) {
 	  struct FD_FUNCTION *f=FD_DTYPE2FCN(fn);
-	  if ((f->name)&&(f->filename)&&
-	      (strcmp(f->name,vf->name)==0)&&
-	      (strcmp(f->filename,vf->filename)==0)) {
+	  if ((f->fdfn_name)&&(f->fdfn_filename)&&
+	      (strcmp(f->fdfn_name,vf->fdfn_name)==0)&&
+	      (strcmp(f->fdfn_filename,vf->fdfn_filename)==0)) {
 	    struct FD_PAIR *p=FD_GET_CONS(scan,fd_pair_type,struct FD_PAIR *);
 	    p->fd_car=val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
@@ -372,8 +372,9 @@ static void dolog
 /* Preloads */
 
 struct FD_PRELOAD_LIST {
-  u8_string filename; time_t mtime;
-  struct FD_PRELOAD_LIST *next;} *preloads=NULL;
+  u8_string preload_filename; 
+  time_t preload_mtime;
+  struct FD_PRELOAD_LIST *next_preload;} *preloads=NULL;
 
 #if FD_THREADS_ENABLED
 static u8_mutex preload_lock;
@@ -384,8 +385,8 @@ static fdtype preload_get(fdtype var,void *ignored)
   fdtype results=FD_EMPTY_LIST; struct FD_PRELOAD_LIST *scan;
   fd_lock_mutex(&preload_lock);
   scan=preloads; while (scan) {
-    results=fd_conspair(fdtype_string(scan->filename),results);
-    scan=scan->next;}
+    results=fd_conspair(fdtype_string(scan->preload_filename),results);
+    scan=scan->next_preload;}
   fd_unlock_mutex(&preload_lock);
   return results;
 }
@@ -405,17 +406,17 @@ static int preload_set(fdtype var,fdtype val,void *ignored)
 		       u8_strdup(filename),FD_VOID);
     fd_lock_mutex(&preload_lock);
     scan=preloads; while (scan) {
-      if (strcmp(filename,scan->filename)==0) {
+      if (strcmp(filename,scan->preload_filename)==0) {
 	mtime=u8_file_mtime(filename);
-	if (mtime>scan->mtime) break;
+	if (mtime>scan->preload_mtime) break;
 	fd_unlock_mutex(&preload_lock);
 	return 0;}
-      else scan=scan->next;}
+      else scan=scan->next_preload;}
     if (server_env==NULL) server_env=fd_working_environment();
     scan=u8_alloc(struct FD_PRELOAD_LIST);
-    scan->filename=u8_strdup(filename);
-    scan->mtime=(time_t)-1;
-    scan->next=preloads;
+    scan->preload_filename=u8_strdup(filename);
+    scan->preload_mtime=(time_t)-1;
+    scan->next_preload=preloads;
     preloads=scan;
     fd_unlock_mutex(&preload_lock);
     return 1;}
@@ -433,17 +434,19 @@ static int update_preloads()
       fd_unlock_mutex(&preload_lock);
       return 0;}
     scan=preloads; while (scan) {
-      time_t mtime=u8_file_mtime(scan->filename);
-      if (mtime>scan->mtime) {
+      time_t mtime=u8_file_mtime(scan->preload_filename);
+      if (mtime>scan->preload_mtime) {
 	fdtype load_result;
 	fd_unlock_mutex(&preload_lock);
-	load_result=fd_load_source(scan->filename,server_env,"auto");
+	load_result=fd_load_source(scan->preload_filename,server_env,"auto");
 	if (FD_ABORTP(load_result)) {
 	  return fd_interr(load_result);}
-	n_reloads++; fd_decref(load_result);
+	n_reloads++;
+	fd_decref(load_result);
 	fd_lock_mutex(&preload_lock);
-	if (mtime>scan->mtime) scan->mtime=mtime;}
-      scan=scan->next;}
+	if (mtime>scan->preload_mtime) 
+	  scan->preload_mtime=mtime;}
+      scan=scan->next_preload;}
     last_preload_update=u8_elapsed_time();
     fd_unlock_mutex(&preload_lock);
     return n_reloads;}
@@ -586,8 +589,8 @@ static fdtype getcontent(fdtype path)
 	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&
 	    (FD_PRIM_TYPEP((FD_CDR(FD_CDR(value))),fd_environment_type))) {
 	  fd_lispenv env=(fd_lispenv)(FD_CDR(FD_CDR(value)));
-	  if (FD_HASHTABLEP(env->bindings))
-	    fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);}
+	  if (FD_HASHTABLEP(env->fdenv_bindings))
+	    fd_reset_hashtable((fd_hashtable)(env->fdenv_bindings),0,1);}
 	fd_decref(value);
 	return new_content;}
       else {

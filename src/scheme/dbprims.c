@@ -1559,7 +1559,7 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
     if ((FD_SPROCP(pred)) ||
         (FD_PRIM_TYPEP(pred,fd_function_type))) {
       fd_function fcn=FD_DTYPE2FCN(pred);
-      if (fcn->fdf_min_arity==1) {
+      if (fcn->fdfn_min_arity==1) {
         fdtype value=fd_apply(pred,1,&f); int retval=-1;
         if (FD_EMPTY_CHOICEP(value)) return 0;
         else if (fd_overlapp(value,val)) retval=1;
@@ -1573,7 +1573,7 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
         else retval=0;
         fd_decref(value);
         return retval;}
-      else if (fcn->fdf_min_arity==2) {
+      else if (fcn->fdfn_min_arity==2) {
           rail[0]=f; rail[1]=val; result=fd_apply(pred,2,rail);}
       else result=fd_err(fd_TypeError,"test_selector_relation",
                          "invalid relation",pred);}

@@ -976,12 +976,12 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
         FD_GET_CONS(head,fd_function_type,struct FD_FUNCTION *);
       u8_puts(s,"<tbody class='call'><tr><th>Call</th><td>");
       u8_printf(s,"<span class='primitive %s%s operator'>%k",
-                ((fn->fdf_ndcall)?("nondeterministic "):("")),
-                ((fn->fdf_xcall)?("extended "):("")),
-                ((fn->name)?(fn->name):((u8_string)"ANONYMOUS")));
-      if (fn->filename)
+                ((fn->fdfn_ndcall)?("nondeterministic "):("")),
+                ((fn->fdfn_xcall)?("extended "):("")),
+                ((fn->fdfn_name)?(fn->fdfn_name):((u8_string)"ANONYMOUS")));
+      if (fn->fdfn_filename)
         u8_printf(s," <span class='filename'>%k</span></div>",
-                  fn->filename);
+                  fn->fdfn_filename);
       else u8_puts(s,"</span>");
       while (i<len) {
         u8_puts(s,"\n\t");
@@ -994,12 +994,12 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
       fdtype *schema=sproc->fd_schema; short n_args=sproc->fd_n_vars;
       u8_puts(s,"<tbody class='call'><tr><th>Call</th><td>");
       u8_printf(s,"<span class='%s%sprocedure operator'>%k",
-                ((sproc->fdf_ndcall)?("nondterministic "):("")),
+                ((sproc->fdfn_ndcall)?("nondterministic "):("")),
                 ((sproc->fd_synchronized)?("synchronized "):("")),
-                ((sproc->name)?(sproc->name):((u8_string)"LAMBDA")));
-      if (sproc->filename)
+                ((sproc->fdfn_name)?(sproc->fdfn_name):((u8_string)"LAMBDA")));
+      if (sproc->fdfn_filename)
         u8_printf(s," <span class='filename'>%k</span></td></tr>t",
-                  sproc->filename);
+                  sproc->fdfn_filename);
       else u8_puts(s,"</span>");
       while (i<len) {
         fdtype argname=FD_VOID; int isopt=0;

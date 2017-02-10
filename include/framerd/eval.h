@@ -49,8 +49,10 @@ FD_EXPORT void (*fd_dump_backtrace)(u8_string bt);
 
 typedef struct FD_ENVIRONMENT {
   FD_CONS_HEADER;
-  fdtype bindings, exports;
-  struct FD_ENVIRONMENT *parent, *copy;} FD_ENVIRONMENT;
+  fdtype fdenv_bindings;
+  fdtype fdenv_exports;
+  struct FD_ENVIRONMENT *fdenv_parent;
+  struct FD_ENVIRONMENT *fdenv_copy;} FD_ENVIRONMENT;
 typedef struct FD_ENVIRONMENT *fd_environment;
 typedef struct FD_ENVIRONMENT *fd_lispenv;
 
@@ -72,8 +74,8 @@ typedef fdtype (*fd_evalfn)(fdtype expr,struct FD_ENVIRONMENT *);
 
 typedef struct FD_SPECIAL_FORM {
   FD_CONS_HEADER;
-  u8_string name, filename;
-  fd_evalfn eval;} FD_SPECIAL_FORM;
+  u8_string fexpr_name, fexpr_filename;
+  fd_evalfn fexpr_handler;} FD_SPECIAL_FORM;
 typedef struct FD_SPECIAL_FORM *fd_special_form;
 
 FD_EXPORT fdtype fd_make_special_form(u8_string name,fd_evalfn fn);
@@ -81,8 +83,8 @@ FD_EXPORT void fd_defspecial(fdtype mod,u8_string name,fd_evalfn fn);
 
 typedef struct FD_MACRO {
   FD_CONS_HEADER;
-  u8_string name;
-  fdtype transformer;} FD_MACRO;
+  u8_string fd_macro_name;
+  fdtype fd_macro_transformer;} FD_MACRO;
 typedef struct FD_MACRO *fd_macro;
 
 /* DT servers */
@@ -91,7 +93,7 @@ FD_EXPORT fd_ptr_type fd_dtserver_type;
 
 typedef struct FD_DTSERVER {
   FD_CONS_HEADER;
-  u8_string server, addr;
+  u8_string fd_serverid, fd_server_address;
   struct U8_CONNPOOL *fd_connpool;} FD_DTSERVER;
 typedef struct FD_DTSERVER *fd_dtserver;
 
@@ -210,11 +212,11 @@ FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
   int code=FD_GET_IMMEDIATE(lexref,fd_lexref_type);
   int up=code/32, across=code%32;
   while ((env) && (up)) {
-    if (env->copy) env=env->copy;
-    env=env->parent; up--;}
-  if (env->copy) env=env->copy;
+    if (env->fdenv_copy) env=env->fdenv_copy;
+    env=env->fdenv_parent; up--;}
+  if (env->fdenv_copy) env=env->fdenv_copy;
   if (FD_EXPECT_TRUE(env!=NULL)) {
-    fdtype bindings=env->bindings;
+    fdtype bindings=env->fdenv_bindings;
     if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
       struct FD_SCHEMAP *s=(struct FD_SCHEMAP *)bindings;
       return fd_incref(s->fd_values[across]);}}
@@ -223,13 +225,13 @@ FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
 FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lispenv env)
 {
   if (env==NULL) return FD_VOID;
-  if (env->copy) env=env->copy;
+  if (env->fdenv_copy) env=env->fdenv_copy;
   while (env) {
-    fdtype val=fastget(env->bindings,symbol);
+    fdtype val=fastget(env->fdenv_bindings,symbol);
     if (val==FD_UNBOUND)
-      env=env->parent;
+      env=env->fdenv_parent;
     else return val;
-    if ((env) && (env->copy)) env=env->copy;}
+    if ((env) && (env->fdenv_copy)) env=env->fdenv_copy;}
   return FD_VOID;
 }
 

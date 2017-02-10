@@ -164,7 +164,7 @@ static int unparse_extdb_proc(u8_output out,fdtype x)
 static fdtype callextdbproc(struct FD_FUNCTION *xdbproc,int n,fdtype *args)
 {
   struct FD_EXTDB_PROC *dbp=(struct FD_EXTDB_PROC *)xdbproc;
-  return dbp->fdf_handler.xcalln(xdbproc,n,args);
+  return dbp->fdfn_handler.xcalln(xdbproc,n,args);
 }
 
 /* EXTDB primitives */
@@ -226,7 +226,7 @@ static fdtype extdb_proc_plus(int n,fdtype *args)
   u8_string base_qtext=extdbproc->qtext, new_qtext=
     u8_string_append(base_qtext," ",FD_STRDATA(args[1]),NULL);
   fdtype colinfo=extdbproc->colinfo;
-  int n_base_params=extdbproc->fdf_n_params, n_params=(n-2)+n_base_params;
+  int n_base_params=extdbproc->fdfn_n_params, n_params=(n-2)+n_base_params;
   fdtype *params=((n_params)?(u8_alloc_n(n_params,fdtype)):(NULL));
   fdtype *base_params=extdbproc->paramtypes, param_count=0;
   int i=n-1; while (i>=2) {
@@ -276,7 +276,7 @@ static fdtype extdb_proc_params(fdtype extdb)
 {
   struct FD_EXTDB_PROC *xdbp=FD_GET_CONS
     (extdb,fd_extdb_proc_type,struct FD_EXTDB_PROC *);
-  int n=xdbp->fdf_n_params;
+  int n=xdbp->fdfn_n_params;
   fdtype *paramtypes=xdbp->paramtypes;
   fdtype result=fd_make_vector(n,NULL);
   int i=0; while (i<n) {

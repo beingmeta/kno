@@ -258,45 +258,52 @@ FD_EXPORT fdtype fd_calltrack_sense(int trackall)
 #if (FD_USE_TLS)
 static u8_tld_key calltrack_log_key;
 struct CALLTRACK_DATA {
-  FILE *f; char *filename;};
+  FILE *calltrack_output;
+  char *calltrack_filename;};
 
 static void free_calltrack_log(void *ptr)
 {
   struct CALLTRACK_DATA *data=ptr;
   if (data) {
-    fclose(data->f); u8_free(data->filename); u8_free(data);}
+    fclose(data->calltrack_output);
+    u8_free(data->calltrack_filename); 
+    u8_free(data);}
 }
 FD_FASTOP FILE *get_calltrack_logfile()
 {
   struct CALLTRACK_DATA *cd=u8_tld_get(calltrack_log_key);
-  if (cd) return cd->f; else return NULL;
+  if (cd)
+    return cd->calltrack_output;
+  else return NULL;
 }
 FD_EXPORT int fd_start_calltrack(u8_string filename)
 {
   struct CALLTRACK_DATA *cd=u8_tld_get(calltrack_log_key);
   int current=0;
-  FILE *f;
+  FILE *output;
   if (cd) {
-    current=1; fclose(cd->f);
-    u8_free(cd->filename);
+    current=1; 
+    fclose(cd->calltrack_output);
+    u8_free(cd->calltrack_filename);
     u8_free(cd); cd=NULL;
     u8_tld_set(calltrack_log_key,NULL);}
   if (filename==NULL) return 1;
   if (*filename=='+')
-    f=fopen(filename+1,"a+");
-  else f=fopen(filename,"w+");
-  if (f) {
-    fprintf(f,"# Calltrack start\n");
+    output=fopen(filename+1,"a+");
+  else output=fopen(filename,"w+");
+  if (output) {
+    fprintf(output,"# Calltrack start\n");
     cd=u8_alloc(struct CALLTRACK_DATA);
-    cd->f=f; cd->filename=u8_strdup(filename);
-    fprintf(f,":TIME");
+    cd->calltrack_output=output; 
+    cd->calltrack_filename=u8_strdup(filename);
+    fprintf(output,":TIME");
     {int i=0; while (i<n_calltrack_sensors)
       if (calltrack_sensors[i].enabled)
-        fprintf(f," %s",calltrack_sensors[i++].name);
+        fprintf(output," %s",calltrack_sensors[i++].name);
       else i++;
-    fprintf(f,"\n");
-    u8_tld_set(calltrack_log_key,cd);
-    return current;}}
+      fprintf(output,"\n");
+      u8_tld_set(calltrack_log_key,cd);
+      return current;}}
   else {
     u8_graberr(-1,"fd_start_calltrack",u8_strdup(filename));
     return -1;}
@@ -307,7 +314,7 @@ static FD_THREADVAR char *calltrack_logfilename;
 #define get_calltrack_logfile() (calltrack_logfile)
 FD_EXPORT int fd_start_calltrack(u8_string filename)
 {
-  int retval=0; FILE *f;
+  int retval=0; FILE *output;
   if ((calltrack_logfilename) &&
       (filename) &&
       (strcmp(filename,calltrack_logfilename)==0)) {
@@ -321,18 +328,18 @@ FD_EXPORT int fd_start_calltrack(u8_string filename)
     calltrack_logfile=NULL;
     return 1;}
   if (*filename=='+')
-    f=fopen(filename+1,"a+");
-  else f=fopen(filename,"w");
+    output=fopen(filename+1,"a+");
+  else output=fopen(filename,"w");
   if (f) {
     fprintf(f,"# Calltrack start\n");
     calltrack_logfilename=u8_strdup(filename);
-    calltrack_logfile=f;
+    calltrack_logfile=output;
     fprintf(f,":TIME");
     {int i=0; while (i<n_calltrack_sensors)
       if (calltrack_sensors[i].enabled)
         fprintf(f," %s",calltrack_sensors[i++].name);
       else i++;}
-    fprintf(f,"\n");
+    fprintf(output,"\n");
     return retval;}
   else {
     u8_graberr(-1,"fd_start_calltrack",u8_strdup(filename));
@@ -341,43 +348,43 @@ FD_EXPORT int fd_start_calltrack(u8_string filename)
 #endif
 static void calltrack_call(u8_string name)
 {
-  FILE *f=get_calltrack_logfile();
-  if (f) {
+  FILE *output=get_calltrack_logfile();
+  if (output) {
     double timer=u8_elapsed_time(); int i=0;
     if (needs_escape(name)) {
-      fprintf(f,"> \"");
-      out_escaped(f,name);
-      fprintf(f,"\" %f",timer);}
-    else fprintf(f,"> %s %f",name,timer);
+      fprintf(output,"> \"");
+      out_escaped(output,name);
+      fprintf(output,"\" %f",timer);}
+    else fprintf(output,"> %s %f",name,timer);
     while (i<n_calltrack_sensors)
       if (calltrack_sensors[i].enabled)
         if (calltrack_sensors[i].dblfcn)
-          fprintf(f," %f",calltrack_sensors[i++].dblfcn());
+          fprintf(output," %f",calltrack_sensors[i++].dblfcn());
         else if (calltrack_sensors[i].intfcn)
-          fprintf(f," %ld",calltrack_sensors[i++].intfcn());
-        else fprintf(f," 0");
+          fprintf(output," %ld",calltrack_sensors[i++].intfcn());
+        else fprintf(output," 0");
       else i++;
-    fprintf(f,"\n");}
+    fprintf(output,"\n");}
 }
 static void calltrack_return(u8_string name)
 {
-  FILE *f=get_calltrack_logfile();
-  if (f) {
+  FILE *output=get_calltrack_logfile();
+  if (output) {
     double timer=u8_elapsed_time(); int i=0;
     if (needs_escape(name)) {
-      fprintf(f,"< \"");
-      out_escaped(f,name);
-      fprintf(f,"\" %f",timer);}
-    else fprintf(f,"< %s %f",name,timer);
+      fprintf(output,"< \"");
+      out_escaped(output,name);
+      fprintf(output,"\" %f",timer);}
+    else fprintf(output,"< %s %f",name,timer);
     while (i<n_calltrack_sensors)
       if (calltrack_sensors[i].enabled)
         if (calltrack_sensors[i].dblfcn)
-          fprintf(f," %f",calltrack_sensors[i++].dblfcn());
+          fprintf(output," %f",calltrack_sensors[i++].dblfcn());
         else if (calltrack_sensors[i].intfcn)
-          fprintf(f," %ld",calltrack_sensors[i++].intfcn());
-        else fprintf(f," 0");
+          fprintf(output," %ld",calltrack_sensors[i++].intfcn());
+        else fprintf(output," 0");
       else i++;
-    fprintf(f,"\n");}
+    fprintf(output,"\n");}
 }
 FD_EXPORT
 void fd_calltrack_call(u8_string name)
@@ -423,7 +430,7 @@ static fdtype get_calltrack(fdtype ignored,void *lval)
 #if FD_CALLTRACK_ENABLED
 #if FD_USE_TLS
   struct CALLTRACK_DATA *info=u8_tld_get(calltrack_log_key);
-  if (info) return fdtype_string(info->filename);
+  if (info) return fdtype_string(info->calltrack_filename);
   else return FD_EMPTY_CHOICE;
 #else
   if (calltrack_logfilename)
@@ -495,16 +502,16 @@ FD_EXPORT fdtype fd_dapply(fdtype fp,int n,fdtype *args)
 {
   struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
   fdtype result; u8_byte buf[64]; u8_string name;
-  if (f->name==NULL) {
+  if (f->fdfn_name==NULL) {
     sprintf(buf,"FN%lx",(unsigned long int)f); name=buf;}
-  else name=f->name;
+  else name=f->fdfn_name;
   calltrack_call(name);
   result=_fd_dapply_ct((fdtype)f,n,args);
   /* If we don't compile with calltrack, we don't get pointer checking.
      We may want to change this at some point and move the pointer checking
      into the FD_DAPPLY (fd_dapply_ct/fd_dapply) code. */
   if (!(FD_CHECK_PTR(result)))
-    return fd_err(fd_BadPtr,"fd_dapply",f->name,(fdtype)f);
+    return fd_err(fd_BadPtr,"fd_dapply",f->fdfn_name,(fdtype)f);
   else if (FD_TROUBLEP(result))
     if (u8_current_exception==NULL) {
       fd_exception ex=fd_retcode_to_exception(result);
@@ -521,69 +528,69 @@ FD_EXPORT fdtype fd_dapply(fdtype fp,int n,fdtype *args)
 
 static fdtype dcall0(struct FD_FUNCTION *f)
 {
-  if (FD_EXPECT_FALSE(f->fdf_xcall))
-    return f->fdf_handler.xcall0(f);
-  else return f->fdf_handler.call0();
+  if (FD_EXPECT_FALSE(f->fdfn_xcall))
+    return f->fdfn_handler.xcall0(f);
+  else return f->fdfn_handler.call0();
 }
 static fdtype dcall1(struct FD_FUNCTION *f,fdtype arg1)
 {
-  if (FD_EXPECT_FALSE(f->fdf_xcall))
-    return f->fdf_handler.xcall1(f,arg1);
-  else return f->fdf_handler.call1(arg1);
+  if (FD_EXPECT_FALSE(f->fdfn_xcall))
+    return f->fdfn_handler.xcall1(f,arg1);
+  else return f->fdfn_handler.call1(arg1);
 }
 static fdtype dcall2(struct FD_FUNCTION *f,fdtype arg1,fdtype arg2)
 {
-  if (FD_EXPECT_FALSE(f->fdf_xcall))
-    return f->fdf_handler.xcall2(f,arg1,arg2);
-  else return f->fdf_handler.call2(arg1,arg2);
+  if (FD_EXPECT_FALSE(f->fdfn_xcall))
+    return f->fdfn_handler.xcall2(f,arg1,arg2);
+  else return f->fdfn_handler.call2(arg1,arg2);
 }
 static fdtype dcall3(struct FD_FUNCTION *f,
                       fdtype arg1,fdtype arg2,fdtype arg3)
 {
-  if (FD_EXPECT_FALSE(f->fdf_xcall))
-    return f->fdf_handler.xcall3(f,arg1,arg2,arg3);
-  else return f->fdf_handler.call3(arg1,arg2,arg3);
+  if (FD_EXPECT_FALSE(f->fdfn_xcall))
+    return f->fdfn_handler.xcall3(f,arg1,arg2,arg3);
+  else return f->fdfn_handler.call3(arg1,arg2,arg3);
 }
 static fdtype dcall4(struct FD_FUNCTION *f,
                       fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4)
 {
-  if (FD_EXPECT_FALSE(f->fdf_xcall))
-    return f->fdf_handler.xcall4(f,arg1,arg2,arg3,arg4);
-  else return f->fdf_handler.call4(arg1,arg2,arg3,arg4);
+  if (FD_EXPECT_FALSE(f->fdfn_xcall))
+    return f->fdfn_handler.xcall4(f,arg1,arg2,arg3,arg4);
+  else return f->fdfn_handler.call4(arg1,arg2,arg3,arg4);
 }
 static fdtype dcall5(struct FD_FUNCTION *f,
                       fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
                       fdtype arg5)
 {
-  if (FD_EXPECT_FALSE(f->fdf_xcall))
-    return f->fdf_handler.xcall5(f,arg1,arg2,arg3,arg4,arg5);
-  else return f->fdf_handler.call5(arg1,arg2,arg3,arg4,arg5);
+  if (FD_EXPECT_FALSE(f->fdfn_xcall))
+    return f->fdfn_handler.xcall5(f,arg1,arg2,arg3,arg4,arg5);
+  else return f->fdfn_handler.call5(arg1,arg2,arg3,arg4,arg5);
 }
 static fdtype dcall6(struct FD_FUNCTION *f,
                       fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
                       fdtype arg5,fdtype arg6)
 {
-  if (FD_EXPECT_FALSE(f->fdf_xcall))
-    return f->fdf_handler.xcall6(f,arg1,arg2,arg3,arg4,arg5,arg6);
-  else return f->fdf_handler.call6(arg1,arg2,arg3,arg4,arg5,arg6);
+  if (FD_EXPECT_FALSE(f->fdfn_xcall))
+    return f->fdfn_handler.xcall6(f,arg1,arg2,arg3,arg4,arg5,arg6);
+  else return f->fdfn_handler.call6(arg1,arg2,arg3,arg4,arg5,arg6);
 }
 
 static fdtype dcall7(struct FD_FUNCTION *f,
                       fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
                       fdtype arg5,fdtype arg6,fdtype arg7)
 {
-  if (FD_EXPECT_FALSE(f->fdf_xcall))
-    return f->fdf_handler.xcall7(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7);
-  else return f->fdf_handler.call7(arg1,arg2,arg3,arg4,arg5,arg6,arg7);
+  if (FD_EXPECT_FALSE(f->fdfn_xcall))
+    return f->fdfn_handler.xcall7(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7);
+  else return f->fdfn_handler.call7(arg1,arg2,arg3,arg4,arg5,arg6,arg7);
 }
 
 static fdtype dcall8(struct FD_FUNCTION *f,
                      fdtype arg1,fdtype arg2,fdtype arg3,fdtype arg4,
                      fdtype arg5,fdtype arg6,fdtype arg7,fdtype arg8)
 {
-  if (FD_EXPECT_FALSE(f->fdf_xcall))
-    return f->fdf_handler.xcall8(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
-  else return f->fdf_handler.call8(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
+  if (FD_EXPECT_FALSE(f->fdfn_xcall))
+    return f->fdfn_handler.xcall8(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
+  else return f->fdfn_handler.call8(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
 }
 
 static fdtype dcall9(struct FD_FUNCTION *f,
@@ -591,9 +598,9 @@ static fdtype dcall9(struct FD_FUNCTION *f,
                      fdtype arg5,fdtype arg6,fdtype arg7,fdtype arg8,
                      fdtype arg9)
 {
-  if (FD_EXPECT_FALSE(f->fdf_xcall))
-    return f->fdf_handler.xcall9(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9);
-  else return f->fdf_handler.call9(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9);
+  if (FD_EXPECT_FALSE(f->fdfn_xcall))
+    return f->fdfn_handler.xcall9(f,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9);
+  else return f->fdfn_handler.call9(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9);
 }
 
 /* Generic calling function */
@@ -607,25 +614,25 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
   if (fd_functionp[ftype]) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
     fdtype argbuf[8], *args;
-    if (FD_EXPECT_FALSE(f->fdf_arity<0)) { /* Is a LEXPR */
-      if (n<(f->fdf_min_arity))
-        return fd_err(fd_TooFewArgs,"fd_dapply",f->name,FDTYPE_CONS(f));
+    if (FD_EXPECT_FALSE(f->fdfn_arity<0)) { /* Is a LEXPR */
+      if (n<(f->fdfn_min_arity))
+        return fd_err(fd_TooFewArgs,"fd_dapply",f->fdfn_name,FDTYPE_CONS(f));
       else {
-        if (FD_EXPECT_FALSE((f->fdf_xcall) &&  (f->fdf_handler.fnptr==NULL))) {
+        if (FD_EXPECT_FALSE((f->fdfn_xcall) &&  (f->fdfn_handler.fnptr==NULL))) {
           /* There's no explicit method for this type */
           int ctype=FD_CONS_TYPE(f);
           return fd_applyfns[ctype]((fdtype)f,n,argvec);}
         /* Use the explicit handler */
-        else if (f->fdf_xcall)
-          return f->fdf_handler.xcalln((struct FD_FUNCTION *)fp,n,argvec);
-        else return f->fdf_handler.calln(n,argvec);}}
+        else if (f->fdfn_xcall)
+          return f->fdfn_handler.xcalln((struct FD_FUNCTION *)fp,n,argvec);
+        else return f->fdfn_handler.calln(n,argvec);}}
     /* Fill in the rest of the argvec */
-    if (FD_EXPECT_TRUE((n <= f->fdf_arity) && (n>=f->fdf_min_arity))) {
-      if (FD_EXPECT_FALSE(n<f->fdf_arity)) {
+    if (FD_EXPECT_TRUE((n <= f->fdfn_arity) && (n>=f->fdfn_min_arity))) {
+      if (FD_EXPECT_FALSE(n<f->fdfn_arity)) {
         /* Fill in defaults */
-        int i=0; fdtype *defaults=f->fdf_defaults;
-        if (f->fdf_arity<=8) args=argbuf;
-        else args=u8_alloc_n((f->fdf_arity),fdtype);
+        int i=0; fdtype *defaults=f->fdfn_defaults;
+        if (f->fdfn_arity<=8) args=argbuf;
+        else args=u8_alloc_n((f->fdfn_arity),fdtype);
         while (i<n) {
           fdtype a=argvec[i];
           if (a==FD_DEFAULT_VALUE) {
@@ -637,16 +644,16 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
           i++;}
         if (defaults)
           /* If there are defaults, use them (they'll cover the rest of the args) */
-          while (i<f->fdf_arity) {
+          while (i<f->fdfn_arity) {
             fdtype d=defaults[i];
             args[i]=d; fd_incref(d);
             i++;}
-        else while (i<f->fdf_arity) {args[i]=FD_VOID; i++;}}
+        else while (i<f->fdfn_arity) {args[i]=FD_VOID; i++;}}
       else args=argvec;
       /* Check typeinfo */
-      if (FD_EXPECT_FALSE((f->fdf_typeinfo!=NULL))) {
+      if (FD_EXPECT_FALSE((f->fdfn_typeinfo!=NULL))) {
         /* Check typeinfo */
-        int *typeinfo=f->fdf_typeinfo;
+        int *typeinfo=f->fdfn_typeinfo;
         int i=0;
         while (i<n)
           if (typeinfo[i]>=0)
@@ -657,13 +664,13 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
               u8_string type_name=
                 ((typeinfo[i]<256) ? (fd_type_names[typeinfo[i]]) : (NULL));
               if (type_name)
-                return fd_type_error(type_name,f->name,args[i]);
-              else return fd_type_error(type_name,f->name,args[i]);}
+                return fd_type_error(type_name,f->fdfn_name,args[i]);
+              else return fd_type_error(type_name,f->fdfn_name,args[i]);}
           else i++;}
       return dcall(f,n,args,((args==argbuf)||(args==argvec)));}
     else {
-      fd_exception ex=((n>f->fdf_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
-      return fd_err(ex,"fd_dapply",f->name,FDTYPE_CONS(f));}}
+      fd_exception ex=((n>f->fdfn_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
+      return fd_err(ex,"fd_dapply",f->fdfn_name,FDTYPE_CONS(f));}}
   else if (fd_applyfns[ftype])
     return fd_applyfns[ftype](fp,n,argvec);
   else return fd_type_error("applicable","DAPPLY",fp);
@@ -674,14 +681,14 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
 
 static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
 {
-  fdtype result; u8_string name=((f->name!=NULL)?(f->name):((u8_string)"DCALL"));
+  fdtype result; u8_string name=((f->fdfn_name!=NULL)?(f->fdfn_name):((u8_string)"DCALL"));
   if (errno) {
     u8_string cond=u8_strerror(errno);
     u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) before %s",
            errno,cond,U8ALT(name,"primcall"));
     errno=0;}
   if (stackcheck()) {
-    U8_WITH_CONTOUR(f->name,0)
+    U8_WITH_CONTOUR(f->fdfn_name,0)
       result=dcall_inner(f,n,args,static_args);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
@@ -704,7 +711,7 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
 {
   if (FD_INTERRUPTED()) {
     return FD_ERROR_VALUE;}
-  else if (FD_EXPECT_FALSE((f->fdf_xcall) &&  (f->fdf_handler.fnptr==NULL))) {
+  else if (FD_EXPECT_FALSE((f->fdfn_xcall) &&  (f->fdfn_handler.fnptr==NULL))) {
     int ctype=FD_CONS_TYPE(f);
     if (static_args)
       return fd_applyfns[ctype]((fdtype)f,n,args);
@@ -712,7 +719,7 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
       fdtype result=fd_applyfns[ctype]((fdtype)f,n,args);
       u8_free(args);
       return result;}}
-  else switch (f->fdf_arity) {
+  else switch (f->fdfn_arity) {
     case 0: return dcall0(f); break;
     case 1: return dcall1(f,args[0]); break;
     case 2: return dcall2(f,args[0],args[1]); break;
@@ -736,9 +743,9 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
       break;
     default:
       if (static_args)
-        return f->fdf_handler.calln(n,args);
+        return f->fdfn_handler.calln(n,args);
       else {
-        fdtype result=f->fdf_handler.calln(n,args);
+        fdtype result=f->fdfn_handler.calln(n,args);
         u8_free(args);
         return result;}}
 }
@@ -777,13 +784,13 @@ static fdtype ndapply_loop
 FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
 {
   struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
-  if ((f->fdf_arity < 0) || ((n <= f->fdf_arity) && (n>=f->fdf_min_arity))) {
+  if ((f->fdfn_arity < 0) || ((n <= f->fdfn_arity) && (n>=f->fdfn_min_arity))) {
     fdtype argbuf[6], *d_args;
     fdtype retval, results=FD_EMPTY_CHOICE;
     /* Initialize the d_args vector */
     if (n>6) d_args=u8_alloc_n(n,fdtype);
     else d_args=argbuf;
-    retval=ndapply_loop(f,&results,f->fdf_typeinfo,0,n,args,d_args);
+    retval=ndapply_loop(f,&results,f->fdfn_typeinfo,0,n,args,d_args);
     if (FD_ABORTP(retval)) {
       fd_decref(results);
       if (d_args!=argbuf) u8_free(d_args);
@@ -792,8 +799,8 @@ FD_EXPORT fdtype fd_ndapply(fdtype fp,int n,fdtype *args)
       if (d_args!=argbuf) u8_free(d_args);
       return fd_simplify_choice(results);}}
   else {
-    fd_exception ex=((n>f->fdf_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
-    return fd_err(ex,"fd_ndapply",f->name,FDTYPE_CONS(f));}
+    fd_exception ex=((n>f->fdfn_arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
+    return fd_err(ex,"fd_ndapply",f->fdfn_name,FDTYPE_CONS(f));}
 }
 
 /* The default apply function */
@@ -804,7 +811,7 @@ static fdtype qchoice_dapply(fdtype fp,int n,fdtype *args);
 FD_EXPORT fdtype fd_apply(fdtype fp,int n,fdtype *args)
 {
   struct FD_FUNCTION *f=FD_DTYPE2FCN(fp); fdtype result;
-  if (f->fdf_ndcall)
+  if (f->fdfn_ndcall)
     if (!(FD_EXPECT_FALSE(contains_qchoicep(n,args))))
       result=fd_dapply((fdtype)f,n,args);
     else result=qchoice_dapply(fp,n,args);
@@ -856,18 +863,18 @@ static int unparse_function(struct U8_OUTPUT *out,fdtype x)
   struct FD_FUNCTION *fn=
     FD_GET_CONS(x,fd_function_type,struct FD_FUNCTION *);
   char buf[512], name[512], args[512];
-  if (fn->filename)
-    sprintf(name,_("%s:%s"),fn->name,fn->filename);
-  else if (fn->name) sprintf(name,_("%s"),fn->name);
+  if (fn->fdfn_filename)
+    sprintf(name,_("%s:%s"),fn->fdfn_name,fn->fdfn_filename);
+  else if (fn->fdfn_name) sprintf(name,_("%s"),fn->fdfn_name);
   else sprintf(name,"anon");
-  if (fn->fdf_arity>=0)
-    if (fn->fdf_min_arity!=fn->fdf_arity)
-      sprintf(args,"%d-%d",fn->fdf_min_arity,fn->fdf_arity);
-    else sprintf(args,"%d",fn->fdf_arity);
-  else if (fn->fdf_min_arity>0)
-    sprintf(args,"%d+",fn->fdf_min_arity);
+  if (fn->fdfn_arity>=0)
+    if (fn->fdfn_min_arity!=fn->fdfn_arity)
+      sprintf(args,"%d-%d",fn->fdfn_min_arity,fn->fdfn_arity);
+    else sprintf(args,"%d",fn->fdfn_arity);
+  else if (fn->fdfn_min_arity>0)
+    sprintf(args,"%d+",fn->fdfn_min_arity);
   else sprintf(args,"0+");
-  if (fn->fdf_ndcall)
+  if (fn->fdfn_ndcall)
     sprintf(buf,_("#<NDPrimitive %s (%s args)>"),name,args);
   else sprintf(buf,_("#<Primitive %s (%s args)>"),name,args);
   u8_puts(out,buf);
@@ -876,8 +883,8 @@ static int unparse_function(struct U8_OUTPUT *out,fdtype x)
 static void recycle_function(struct FD_CONS *c)
 {
   struct FD_FUNCTION *fn=(struct FD_FUNCTION *)c;
-  if (fn->fdf_typeinfo) u8_free(fn->fdf_typeinfo);
-  if (fn->fdf_defaults) u8_free(fn->fdf_defaults);
+  if (fn->fdfn_typeinfo) u8_free(fn->fdfn_typeinfo);
+  if (fn->fdfn_defaults) u8_free(fn->fdfn_defaults);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -887,9 +894,9 @@ FD_EXPORT fdtype fd_make_cprimn(u8_string name,fd_cprimn fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->fdf_ndcall=0; f->fdf_xcall=0; f->filename=NULL;
-  f->fdf_min_arity=min_arity; f->fdf_arity=-1; f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
-  f->fdf_handler.calln=fn;
+  f->fdfn_name=name; f->fdfn_filename=NULL; f->fdfn_ndcall=0; f->fdfn_xcall=0;
+  f->fdfn_min_arity=min_arity; f->fdfn_arity=-1; f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
+  f->fdfn_handler.calln=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -897,9 +904,9 @@ FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->fdf_ndcall=0; f->fdf_xcall=0; f->filename=NULL;
-  f->fdf_min_arity=min_arity; f->fdf_arity=0; f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
-  f->fdf_handler.call0=fn;
+  f->fdfn_name=name; f->fdfn_filename=NULL; f->fdfn_ndcall=0; f->fdfn_xcall=0;
+  f->fdfn_min_arity=min_arity; f->fdfn_arity=0; f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
+  f->fdfn_handler.call0=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -907,9 +914,9 @@ FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->fdf_ndcall=0; f->fdf_xcall=0; f->filename=NULL;
-  f->fdf_min_arity=min_arity; f->fdf_arity=1; f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
-  f->fdf_handler.call1=fn;
+  f->fdfn_name=name; f->fdfn_filename=NULL; f->fdfn_ndcall=0; f->fdfn_xcall=0;
+  f->fdfn_min_arity=min_arity; f->fdfn_arity=1; f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
+  f->fdfn_handler.call1=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -917,9 +924,9 @@ FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->fdf_ndcall=0; f->fdf_xcall=0; f->filename=NULL;
-  f->fdf_min_arity=min_arity; f->fdf_arity=2; f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
-  f->fdf_handler.call2=fn;
+  f->fdfn_name=name; f->fdfn_filename=NULL; f->fdfn_ndcall=0; f->fdfn_xcall=0;
+  f->fdfn_min_arity=min_arity; f->fdfn_arity=2; f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
+  f->fdfn_handler.call2=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -927,9 +934,9 @@ FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->fdf_ndcall=0; f->fdf_xcall=0; f->filename=NULL;
-  f->fdf_min_arity=min_arity; f->fdf_arity=3; f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
-  f->fdf_handler.call3=fn;
+  f->fdfn_name=name; f->fdfn_filename=NULL; f->fdfn_ndcall=0; f->fdfn_xcall=0;
+  f->fdfn_min_arity=min_arity; f->fdfn_arity=3; f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
+  f->fdfn_handler.call3=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -937,9 +944,9 @@ FD_EXPORT fdtype fd_make_cprim4(u8_string name,fd_cprim4 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->fdf_ndcall=0; f->fdf_xcall=0; f->filename=NULL;
-  f->fdf_min_arity=min_arity; f->fdf_arity=4; f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
-  f->fdf_handler.call4=fn;
+  f->fdfn_name=name; f->fdfn_filename=NULL; f->fdfn_ndcall=0; f->fdfn_xcall=0;
+  f->fdfn_min_arity=min_arity; f->fdfn_arity=4; f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
+  f->fdfn_handler.call4=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -947,9 +954,9 @@ FD_EXPORT fdtype fd_make_cprim5(u8_string name,fd_cprim5 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->fdf_ndcall=0; f->fdf_xcall=0; f->filename=NULL;
-  f->fdf_min_arity=min_arity; f->fdf_arity=5; f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
-  f->fdf_handler.call5=fn;
+  f->fdfn_name=name; f->fdfn_filename=NULL; f->fdfn_ndcall=0; f->fdfn_xcall=0;
+  f->fdfn_min_arity=min_arity; f->fdfn_arity=5; f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
+  f->fdfn_handler.call5=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -957,9 +964,9 @@ FD_EXPORT fdtype fd_make_cprim6(u8_string name,fd_cprim6 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->fdf_ndcall=0; f->fdf_xcall=0; f->filename=NULL;
-  f->fdf_min_arity=min_arity; f->fdf_arity=6; f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
-  f->fdf_handler.call6=fn;
+  f->fdfn_name=name; f->fdfn_filename=NULL; f->fdfn_ndcall=0; f->fdfn_xcall=0;
+  f->fdfn_min_arity=min_arity; f->fdfn_arity=6; f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
+  f->fdfn_handler.call6=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -967,9 +974,9 @@ FD_EXPORT fdtype fd_make_cprim7(u8_string name,fd_cprim7 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->fdf_ndcall=0; f->fdf_xcall=0; f->filename=NULL;
-  f->fdf_min_arity=min_arity; f->fdf_arity=7; f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
-  f->fdf_handler.call7=fn;
+  f->fdfn_name=name; f->fdfn_filename=NULL; f->fdfn_ndcall=0; f->fdfn_xcall=0;
+  f->fdfn_min_arity=min_arity; f->fdfn_arity=7; f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
+  f->fdfn_handler.call7=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -977,9 +984,9 @@ FD_EXPORT fdtype fd_make_cprim8(u8_string name,fd_cprim8 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->fdf_ndcall=0; f->fdf_xcall=0; f->filename=NULL;
-  f->fdf_min_arity=min_arity; f->fdf_arity=8; f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
-  f->fdf_handler.call8=fn;
+  f->fdfn_name=name; f->fdfn_filename=NULL; f->fdfn_ndcall=0; f->fdfn_xcall=0;
+  f->fdfn_min_arity=min_arity; f->fdfn_arity=8; f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
+  f->fdfn_handler.call8=fn;
   return FDTYPE_CONS(f);
 }
 
@@ -987,16 +994,16 @@ FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int min_arity)
 {
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_function_type);
-  f->name=name; f->filename=NULL; f->fdf_ndcall=0; f->fdf_xcall=0; f->filename=NULL;
-  f->fdf_min_arity=min_arity; f->fdf_arity=9; f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
-  f->fdf_handler.call9=fn;
+  f->fdfn_name=name; f->fdfn_filename=NULL; f->fdfn_ndcall=0; f->fdfn_xcall=0;
+  f->fdfn_min_arity=min_arity; f->fdfn_arity=9; f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
+  f->fdfn_handler.call9=fn;
   return FDTYPE_CONS(f);
 }
 
 FD_EXPORT fdtype fd_make_ndprim(fdtype prim)
 {
   struct FD_FUNCTION *f=FD_XFUNCTION(prim);
-  f->fdf_ndcall=1;
+  f->fdfn_ndcall=1;
   return prim;
 }
 
@@ -1004,13 +1011,13 @@ FD_EXPORT fdtype fd_make_ndprim(fdtype prim)
 
 static void init_fn_info(struct FD_FUNCTION *f,va_list args)
 {
-  int *typeinfo=u8_alloc_n(f->fdf_arity,int), i=0;
-  fdtype *defaults=u8_alloc_n(f->fdf_arity,fdtype);
-  while (i < f->fdf_arity) {
+  int *typeinfo=u8_alloc_n(f->fdfn_arity,int), i=0;
+  fdtype *defaults=u8_alloc_n(f->fdfn_arity,fdtype);
+  while (i < f->fdfn_arity) {
     int tcode=va_arg(args,int); fdtype dflt=va_arg(args,fdtype);
     typeinfo[i]=tcode; defaults[i]=dflt; i++;}
-  f->filename=NULL;
-  f->fdf_typeinfo=typeinfo; f->fdf_defaults=defaults;
+  f->fdfn_filename=NULL;
+  f->fdfn_typeinfo=typeinfo; f->fdfn_defaults=defaults;
 }
 
 FD_EXPORT fdtype fd_make_cprim1x
@@ -1127,7 +1134,7 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
 {
   if (FD_PPTRP(fcn)) fcn=fd_pptr_ref(fcn);
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)fcn;
-  if (FD_EXPECT_FALSE(((f->fdf_arity)>=0) && (n>(f->fdf_arity)))) {
+  if (FD_EXPECT_FALSE(((f->fdfn_arity)>=0) && (n>(f->fdfn_arity)))) {
     fd_seterr(fd_TooManyArgs,"fd_tail_call",u8_mkstring("%d",n),fcn);
     return FD_ERROR_VALUE;}
   else {
@@ -1213,14 +1220,14 @@ static u8_condition DefnFailed=_("Definition Failed");
 FD_EXPORT void fd_defn(fdtype table,fdtype fcn)
 {
   struct FD_FUNCTION *f=FD_GET_CONS(fcn,fd_function_type,struct FD_FUNCTION *);
-  if (fd_store(table,fd_intern(f->name),fcn)<0)
+  if (fd_store(table,fd_intern(f->fdfn_name),fcn)<0)
     u8_raise(DefnFailed,"fd_defn",NULL);
 }
 
 FD_EXPORT void fd_idefn(fdtype table,fdtype fcn)
 {
   struct FD_FUNCTION *f=FD_GET_CONS(fcn,fd_function_type,struct FD_FUNCTION *);
-  if (fd_store(table,fd_intern(f->name),fcn)<0)
+  if (fd_store(table,fd_intern(f->fdfn_name),fcn)<0)
     u8_raise(DefnFailed,"fd_defn",NULL);
   fd_decref(fcn);
 }

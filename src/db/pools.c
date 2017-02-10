@@ -2116,7 +2116,7 @@ static fdtype extpool_fetch(fd_pool p,fdtype oid)
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
   if ((FD_VOIDP(state))||(FD_FALSEP(state))||
-      ((fptr)&&(fptr->fdf_arity==1)))
+      ((fptr)&&(fptr->fdfn_arity==1)))
     value=fd_apply(fetchfn,1,&oid);
   else {
     fdtype args[2]; args[0]=oid; args[1]=state;
@@ -2146,7 +2146,7 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
   vstruct.fd_freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);
   if ((FD_VOIDP(state))||(FD_FALSEP(state))||
-      ((fptr)&&(fptr->fdf_arity==1)))
+      ((fptr)&&(fptr->fdfn_arity==1)))
     value=fd_apply(fetchfn,1,&vecarg);
   else {
     fdtype args[2]; args[0]=vecarg; args[1]=state;
@@ -2164,7 +2164,7 @@ static fdtype *extpool_fetchn(fd_pool p,int n,fdtype *oids)
   else {
     fdtype *values=u8_alloc_n(n,fdtype);
     if ((FD_VOIDP(state))||(FD_FALSEP(state))||
-        ((fptr)&&(fptr->fdf_arity==1))) {
+        ((fptr)&&(fptr->fdfn_arity==1))) {
       int i=0; while (i<n) {
         fdtype oid=oids[i];
         fdtype value=fd_apply(fetchfn,1,&oid);

@@ -146,8 +146,8 @@ static fdtype load_source_for_module
      (fd_working_environment()));
   fdtype load_result=fd_load_source_with_date(module_source,env,"auto",&mtime);
   if (FD_ABORTP(load_result)) {
-    if (FD_HASHTABLEP(env->bindings))
-      fd_reset_hashtable((fd_hashtable)(env->bindings),0,1);
+    if (FD_HASHTABLEP(env->fdenv_bindings))
+      fd_reset_hashtable((fd_hashtable)(env->fdenv_bindings),0,1);
     fd_decref((fdtype)env);
     return load_result;}
   if (FD_STRINGP(spec))
@@ -476,7 +476,7 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
   if (filename==NULL) {
     int loads=0; fd_lispenv scan=env; fdtype result=FD_VOID;
     while (scan) {
-      fdtype sources=fd_get(scan->bindings,source_symbol,FD_EMPTY_CHOICE);
+      fdtype sources=fd_get(scan->fdenv_bindings,source_symbol,FD_EMPTY_CHOICE);
       FD_DO_CHOICES(entry,sources) {
         struct FD_TIMESTAMP *loadstamp=
           FD_GET_CONS(FD_CDR(entry),fd_timestamp_type,struct FD_TIMESTAMP *);
@@ -497,12 +497,12 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
             return fd_interr(result);}
           else fd_decref(result);
           loads++;}}
-      scan=scan->parent;}
+      scan=scan->fdenv_parent;}
     return loads;}
   else {
     u8_string abspath=u8_abspath(filename,base);
     fdtype abspath_dtype=fdtype_string(abspath);
-    fdtype sources=fd_get(env->bindings,source_symbol,FD_EMPTY_CHOICE);
+    fdtype sources=fd_get(env->fdenv_bindings,source_symbol,FD_EMPTY_CHOICE);
     fdtype entry=get_entry(abspath_dtype,sources);
     fdtype result=FD_VOID;
     if (FD_PAIRP(entry))

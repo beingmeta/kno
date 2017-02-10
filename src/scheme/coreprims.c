@@ -291,13 +291,13 @@ static fdtype procedure_name(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
-    if (f->name)
-      return fdtype_string(f->name);
+    if (f->fdfn_name)
+      return fdtype_string(f->fdfn_name);
     else return FD_FALSE;}
   else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
-    if (sf->name)
-      return fdtype_string(sf->name);
+    if (sf->fexpr_name)
+      return fdtype_string(sf->fexpr_name);
     else return FD_FALSE;}
   else return fd_type_error(_("function"),"procedure_name",x);
 }
