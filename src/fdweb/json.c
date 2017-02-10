@@ -320,7 +320,7 @@ static fdtype jsonparseprim(fdtype in,fdtype flags_arg,fdtype fieldmap)
   else return fd_type_error("int","jsonparseprim",flags_arg);
   if (FD_PORTP(in)) {
     struct FD_PORT *p=FD_GET_CONS(in,fd_port_type,struct FD_PORT *);
-    U8_INPUT *in=p->in;
+    U8_INPUT *in=p->fd_inport;
     return json_parse(in,flags,fieldmap);}
   else if (FD_STRINGP(in)) {
     struct U8_INPUT inport;

@@ -1984,7 +1984,7 @@ static fdtype *mongodb_pool_fetchn(fd_pool p,int n,fdtype *oids)
 
   cursor=mongoc_collection_find(domain,MONGOC_QUERY_NONE,0,0,0,q,NULL,NULL);
 
-  fdtype value=fd_dtcall(np->connpool,2,fetch_oids_symbol,oidvec);
+  fdtype value=fd_dtcall(np->fd_connpool,2,fetch_oids_symbol,oidvec);
   fd_decref(oidvec);
   if (FD_VECTORP(value)) {
     fdtype *values=u8_alloc_n(n,fdtype);

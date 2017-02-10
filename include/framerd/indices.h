@@ -37,7 +37,7 @@ FD_EXPORT int fd_index_adds_init;
 
 #define FD_INDEX_FIELDS \
   FD_CONS_HEADER;                                \
-  int serialno, fd_read_only, fd_cache_level, fdb_flags;   \
+  int fdx_serialno, fd_read_only, fd_cache_level, fdb_flags;   \
   u8_string fd_source, fd_cid, fd_xid;                    \
   struct FD_INDEX_HANDLER *handler;              \
   struct FD_HASHTABLE fd_cache, fdx_adds, fdx_edits;        \
@@ -133,7 +133,7 @@ typedef struct FD_NETWORK_INDEX {
   FD_INDEX_FIELDS;
   int sock; fdtype xname;
   int capabilities;
-  struct U8_CONNPOOL *connpool;} FD_NETWORK_INDEX;
+  struct U8_CONNPOOL *fd_connpool;} FD_NETWORK_INDEX;
 typedef struct FD_NETWORK_INDEX *fd_network_index;
 
 FD_EXPORT fd_index fd_open_network_index

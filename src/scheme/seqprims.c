@@ -1853,22 +1853,22 @@ static fdtype sortvec_primfn(fdtype vec,fdtype keyfn,int reverse,int lexsort)
       fdtype elt=FD_VECTOR_REF(vec,i);
       fdtype value=_fd_apply_keyfn(elt,keyfn);
       if (FD_ABORTED(value)) {
-        int j=0; while (j<i) {fd_decref(sentries[j].value); j++;}
+        int j=0; while (j<i) {fd_decref(sentries[j].fd_sortval); j++;}
         u8_free(sentries); u8_free(vecdata);
         return value;}
-      sentries[i].value=elt;
-      sentries[i].key=value;
+      sentries[i].fd_sortval=elt;
+      sentries[i].fd_sortkey=value;
       i++;}
     if (lexsort)
       qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_helper);
     else qsort(sentries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
     i=0; j=n-1; if (reverse) while (i < n) {
-      fd_decref(sentries[i].key);
-      vecdata[j]=fd_incref(sentries[i].value);
+      fd_decref(sentries[i].fd_sortkey);
+      vecdata[j]=fd_incref(sentries[i].fd_sortval);
       i++; j--;}
     else while (i < n) {
-      fd_decref(sentries[i].key);
-      vecdata[i]=fd_incref(sentries[i].value);
+      fd_decref(sentries[i].fd_sortkey);
+      vecdata[i]=fd_incref(sentries[i].fd_sortval);
       i++;}
     u8_free(sentries);
     return result;}

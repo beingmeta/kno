@@ -92,7 +92,7 @@ FD_EXPORT fd_ptr_type fd_dtserver_type;
 typedef struct FD_DTSERVER {
   FD_CONS_HEADER;
   u8_string server, addr;
-  struct U8_CONNPOOL *connpool;} FD_DTSERVER;
+  struct U8_CONNPOOL *fd_connpool;} FD_DTSERVER;
 typedef struct FD_DTSERVER *fd_dtserver;
 
 /* Modules */
@@ -137,9 +137,9 @@ FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *);
 
 typedef struct FD_SPROC {
   FD_FUNCTION_FIELDS;
-  short n_vars, synchronized;
-  fdtype *schema, arglist, body;
-  fd_lispenv env;
+  short fd_n_vars, fd_synchronized;
+  fdtype *fd_schema, fd_arglist, fd_body;
+  fd_lispenv fd_procenv;
   U8_MUTEX_DECL(fd_lock);
 } FD_SPROC;
 typedef struct FD_SPROC *fd_sproc;
@@ -155,9 +155,9 @@ FD_EXPORT fdtype fd_make_sproc(u8_string name,
 /* Loading files and config data */
 
 typedef struct FD_SOURCEFN {
-  u8_string (*getsource)(int op,u8_string,u8_string,u8_string *,time_t *timep,void *);
-  void *sourcefn_data;
-  struct FD_SOURCEFN *next;} FD_SOURCEFN;
+  u8_string (*fd_getsource)(int op,u8_string,u8_string,u8_string *,time_t *timep,void *);
+  void *fd_getsource_data;
+  struct FD_SOURCEFN *fd_next_sourcefn;} FD_SOURCEFN;
 typedef struct FD_SOURCEFN *fd_sourcefn;
 
 FD_EXPORT u8_string fd_get_source(u8_string,u8_string,u8_string *,time_t *);

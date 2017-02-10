@@ -489,15 +489,15 @@ static fdtype loadcontent(fdtype path)
 	u8_seterr("BadFDXML","loadconfig/fdxml",u8_strdup(pathname));}
       u8_log(LOG_CRIT,Startup,"ERROR","Error parsing %s",pathname);
       return FD_ERROR_VALUE;}
-    parsed=xml->head;
-    while ((FD_PAIRP(parsed)) && 
+    parsed=xml->fdxml_head;
+    while ((FD_PAIRP(parsed)) &&
 	   (FD_STRINGP(FD_CAR(parsed))) &&
 	   (whitespace_stringp(FD_STRDATA(FD_CAR(parsed))))) {
       struct FD_PAIR *old_parsed=(struct FD_PAIR *)parsed;
       parsed=FD_CDR(parsed);
       old_parsed->fd_cdr=FD_EMPTY_LIST;}
     ldata=parsed;
-    env=(fd_lispenv)xml->data; lenv=(fdtype)env;
+    env=(fd_lispenv)xml->fdxml_data; lenv=(fdtype)env;
     if (traceweb>0)
       u8_log(LOG_NOTICE,"LOADED","Loaded %s in %f secs",
 		pathname,u8_elapsed_time()-load_start);

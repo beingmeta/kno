@@ -125,19 +125,19 @@ static void init_cache_level(fd_index ix)
 
 FD_EXPORT void fd_register_index(fd_index ix)
 {
-  if (ix->serialno<0) {
+  if (ix->fdx_serialno<0) {
     fd_lock_mutex(&indices_lock);
-    if (ix->serialno>=0) { /* Handle race condition */
+    if (ix->fdx_serialno>=0) { /* Handle race condition */
       fd_unlock_mutex(&indices_lock); return;}
     if (fd_n_primary_indices<FD_N_PRIMARY_INDICES) {
-      ix->serialno=fd_n_primary_indices;
+      ix->fdx_serialno=fd_n_primary_indices;
       fd_primary_indices[fd_n_primary_indices++]=ix;}
     else {
       if (fd_secondary_indices)
         fd_secondary_indices=u8_realloc_n
           (fd_secondary_indices,fd_n_secondary_indices+1,fd_index);
       else fd_secondary_indices=u8_alloc_n(1,fd_index);
-      ix->serialno=fd_n_secondary_indices+FD_N_PRIMARY_INDICES;
+      ix->fdx_serialno=fd_n_secondary_indices+FD_N_PRIMARY_INDICES;
       fd_secondary_indices[fd_n_secondary_indices++]=ix;}
     fd_unlock_mutex(&indices_lock);}
 }
@@ -146,8 +146,8 @@ FD_EXPORT fdtype fd_index2lisp(fd_index ix)
 {
   if (ix==NULL)
     return FD_ERROR_VALUE;
-  else if (ix->serialno>=0)
-    return FDTYPE_IMMEDIATE(fd_index_type,ix->serialno);
+  else if (ix->fdx_serialno>=0)
+    return FDTYPE_IMMEDIATE(fd_index_type,ix->fdx_serialno);
   else return fd_incref((fdtype)ix);
 }
 FD_EXPORT fd_index fd_lisp2index(fdtype lix)
@@ -222,7 +222,7 @@ FD_EXPORT fd_index fd_open_index(u8_string spec)
 FD_EXPORT int fd_add_to_background(fd_index ix)
 {
   if (ix==NULL) return 0;
-  if (ix->serialno<0) {
+  if (ix->fdx_serialno<0) {
     fdtype lix=(fdtype)ix; fd_incref(lix);
     fd_seterr(fd_TypeError,"fd_add_to_background","static index",lix);
     return -1;}
@@ -311,7 +311,7 @@ FD_EXPORT fdtype fd_index_fetch(fd_index ix,fdtype key)
 static void delay_index_fetch(fd_index ix,fdtype keys)
 {
   struct FD_HASHTABLE *cache=&(ix->fd_cache); int delay_count=0;
-  fdtype *delays=get_index_delays(), *delayp=&(delays[ix->serialno]);
+  fdtype *delays=get_index_delays(), *delayp=&(delays[ix->fdx_serialno]);
   FD_DO_CHOICES(key,keys) {
     if (fd_hashtable_probe(cache,key)) {}
     else {
@@ -330,8 +330,8 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
 {
   FDTC *fdtc=((FD_USE_THREADCACHE)?(fd_threadcache):(NULL));
   fdtype *keyvec=NULL, *values=NULL;
-  fdtype lix=((ix->serialno>=0)?
-              (FDTYPE_IMMEDIATE(fd_index_type,ix->serialno)):
+  fdtype lix=((ix->fdx_serialno>=0)?
+              (FDTYPE_IMMEDIATE(fd_index_type,ix->fdx_serialno)):
               ((fdtype)ix));
   int free_keys=0, n_fetched=0, cachelevel=0;
   if (ix == NULL) return -1;
@@ -847,7 +847,7 @@ FD_EXPORT void fd_init_index
 {
   if (consed) {FD_INIT_CONS(ix,fd_raw_index_type);}
   else {FD_INIT_STATIC_CONS(ix,fd_raw_index_type);}
-  ix->serialno=-1; ix->fd_cache_level=-1; ix->fd_read_only=1;
+  ix->fdx_serialno=-1; ix->fd_cache_level=-1; ix->fd_read_only=1;
   ix->fdb_flags=((h->fetchn)?(FDB_BATCHABLE):(0));
   FD_INIT_STATIC_CONS(&(ix->fd_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(ix->fdx_adds),fd_hashtable_type);
@@ -1026,13 +1026,13 @@ fdtype fd_cached_keys(fd_index ix)
 FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
 {
   fdtype *delays=get_index_delays();
-  fdtype todo=delays[ix->serialno];
+  fdtype todo=delays[ix->fdx_serialno];
   if (FD_EMPTY_CHOICEP(todo)) return 0;
   else {
     int retval=-1;
     /* fd_lock_mutex(&(fd_ipeval_lock)); */
-    todo=delays[ix->serialno];
-    delays[ix->serialno]=FD_EMPTY_CHOICE;
+    todo=delays[ix->fdx_serialno];
+    delays[ix->fdx_serialno]=FD_EMPTY_CHOICE;
     /* fd_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL
     if (fd_trace_ipeval>1)
@@ -1156,7 +1156,7 @@ fd_index fd_make_extindex
     fetchix->commitfn=fd_incref(commitfn);
     fetchix->state=fd_incref(state);
     if (reg) fd_register_index((fd_index)fetchix);
-    else fetchix->serialno=-1;
+    else fetchix->fdx_serialno=-1;
     return (fd_index)fetchix;}
 }
 
@@ -1334,7 +1334,7 @@ static fdtype copy_raw_index(fdtype x,int deep)
 {
   /* Where might this get us into trouble when not really copying the pool? */
   fd_index ix=(fd_index)x;
-  if (ix->serialno>=0)
+  if (ix->fdx_serialno>=0)
     return fd_index2lisp(ix);
   else return x;
 }

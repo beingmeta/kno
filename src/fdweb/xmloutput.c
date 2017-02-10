@@ -991,11 +991,11 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
     else if (htype==fd_sproc_type) {
       struct FD_SPROC *sproc=
         FD_GET_CONS(head,fd_sproc_type,struct FD_SPROC *);
-      fdtype *schema=sproc->schema; short n_args=sproc->n_vars;
+      fdtype *schema=sproc->fd_schema; short n_args=sproc->fd_n_vars;
       u8_puts(s,"<tbody class='call'><tr><th>Call</th><td>");
       u8_printf(s,"<span class='%s%sprocedure operator'>%k",
                 ((sproc->fdf_ndcall)?("nondterministic "):("")),
-                ((sproc->synchronized)?("synchronized "):("")),
+                ((sproc->fd_synchronized)?("synchronized "):("")),
                 ((sproc->name)?(sproc->name):((u8_string)"LAMBDA")));
       if (sproc->filename)
         u8_printf(s," <span class='filename'>%k</span></td></tr>t",

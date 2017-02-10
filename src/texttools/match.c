@@ -356,17 +356,17 @@ void fd_add_match_operator
 {
   fdtype sym=fd_intern(label);
   struct FD_TEXTMATCH_OPERATOR *scan=match_operators, *limit=scan+n_match_operators;
-  while (scan < limit) if (FD_EQ(scan->symbol,sym)) break; else scan++;
-  if (scan < limit) {scan->matcher=matcher; return;}
+  while (scan < limit) if (FD_EQ(scan->fd_matchop,sym)) break; else scan++;
+  if (scan < limit) {scan->fd_matcher=matcher; return;}
   if (n_match_operators >= limit_match_operators) {
     match_operators=u8_realloc_n
       (match_operators,(limit_match_operators)*2,
        struct FD_TEXTMATCH_OPERATOR);
     limit_match_operators=limit_match_operators*2;}
-  match_operators[n_match_operators].symbol=sym;
-  match_operators[n_match_operators].matcher=matcher;
-  match_operators[n_match_operators].searcher=searcher;
-  match_operators[n_match_operators].extract=extract;
+  match_operators[n_match_operators].fd_matchop=sym;
+  match_operators[n_match_operators].fd_matcher=matcher;
+  match_operators[n_match_operators].fd_searcher=searcher;
+  match_operators[n_match_operators].fd_extractor=extract;
   n_match_operators++;
 }
 
@@ -466,9 +466,9 @@ fdtype fd_text_domatch
     struct FD_TEXTMATCH_OPERATOR
       *scan=match_operators, *limit=scan+n_match_operators;
     while (scan < limit)
-      if (FD_EQ(scan->symbol,head)) break; else scan++; 
+      if (FD_EQ(scan->fd_matchop,head)) break; else scan++; 
     if (scan < limit)
-      result=scan->matcher(pat,next,env,string,off,lim,flags);
+      result=scan->fd_matcher(pat,next,env,string,off,lim,flags);
     else return fd_err(fd_MatchSyntaxError,"fd_text_domatch",
                        _("unknown match operator"),pat);
     if ((FD_CHOICEP(result)) && (flags&(FD_MATCH_BE_GREEDY)))
@@ -484,7 +484,7 @@ fdtype fd_text_domatch
       fd_decref(v); return result;}}
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
-    return fd_text_matcher(txc->pattern,txc->env,string,off,lim,flags);}
+    return fd_text_matcher(txc->fd_txpattern,txc->fd_txenv,string,off,lim,flags);}
   else if (FD_PTR_TYPEP(pat,fd_regex_type)) {
     int retval=fd_regex_op(rx_matchlen,pat,string+off,lim-off,0);
     if (retval<-1) 
@@ -655,12 +655,12 @@ static fdtype textract
     struct FD_TEXTMATCH_OPERATOR
       *scan=match_operators, *limit=scan+n_match_operators;
     while (scan < limit)
-      if (FD_EQ(scan->symbol,head)) break; else scan++; 
+      if (FD_EQ(scan->fd_matchop,head)) break; else scan++; 
     if (scan < limit)
-      if (scan->extract)
-        return scan->extract(pat,next,env,string,off,lim,flags);
+      if (scan->fd_extractor)
+        return scan->fd_extractor(pat,next,env,string,off,lim,flags);
       else {
-        fdtype matches=scan->matcher(pat,next,env,string,off,lim,flags);
+        fdtype matches=scan->fd_matcher(pat,next,env,string,off,lim,flags);
         fdtype answer=((FD_ABORTED(matches))?(matches):
                        (extract_text(string,off,matches)));
         return answer;}
@@ -684,7 +684,7 @@ static fdtype textract
         return answers;}}}
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
-    return textract(txc->pattern,next,txc->env,string,off,lim,flags);}
+    return textract(txc->fd_txpattern,next,txc->fd_txenv,string,off,lim,flags);}
   else if (FD_PTR_TYPEP(pat,fd_regex_type)) {
     struct FD_REGEX *ptr=FD_GET_CONS(pat,fd_regex_type,struct FD_REGEX *);
     regmatch_t results[1]; u8_string base=FD_STRDATA(string)+off;
@@ -3716,10 +3716,10 @@ u8_byteoff fd_text_search
     struct FD_TEXTMATCH_OPERATOR
       *scan=match_operators, *limit=scan+n_match_operators;
     while (scan < limit)
-      if (FD_EQ(scan->symbol,head)) break; else scan++; 
+      if (FD_EQ(scan->fd_matchop,head)) break; else scan++; 
     if (scan < limit)
-      if (scan->searcher)
-        return scan->searcher(pat,env,string,off,lim,flags);
+      if (scan->fd_searcher)
+        return scan->fd_searcher(pat,env,string,off,lim,flags);
       else return slow_search(pat,env,string,off,lim,flags);
     else {
       fd_seterr(fd_MatchSyntaxError,"fd_text_search",NULL,fd_incref(pat));
@@ -3739,7 +3739,7 @@ u8_byteoff fd_text_search
       fd_decref(vpat); return result;}}
   else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)(pat);
-    return fd_text_search(txc->pattern,txc->env,string,off,lim,flags);}
+    return fd_text_search(txc->fd_txpattern,txc->fd_txenv,string,off,lim,flags);}
   else if (FD_PTR_TYPEP(pat,fd_regex_type))  {
     int retval=fd_regex_op(rx_search,pat,string+off,lim-off,0);
     if (retval<0) return retval;
@@ -3772,21 +3772,21 @@ fdtype fd_textclosure(fdtype expr,fd_lispenv env)
 {
   struct FD_TXCLOSURE *txc=u8_alloc(struct FD_TXCLOSURE);
   FD_INIT_CONS(txc,fd_txclosure_type);
-  txc->pattern=fd_incref(expr); txc->env=fd_copy_env(env);
+  txc->fd_txpattern=fd_incref(expr); txc->fd_txenv=fd_copy_env(env);
   return (fdtype) txc;
 }
 
 static int unparse_txclosure(u8_output ss,fdtype x)
 {
   struct FD_TXCLOSURE *txc=(fd_txclosure)x;
-  u8_printf(ss,"#<TX-CLOSURE %q>",txc->pattern);
+  u8_printf(ss,"#<TX-CLOSURE %q>",txc->fd_txpattern);
   return 1;
 }
 
 static void recycle_txclosure(FD_CONS *c)
 {
   struct FD_TXCLOSURE *txc=(fd_txclosure)c;
-  fd_decref(txc->pattern); fd_decref((fdtype)(txc->env));
+  fd_decref(txc->fd_txpattern); fd_decref((fdtype)(txc->fd_txenv));
   u8_free(txc);
 }
 

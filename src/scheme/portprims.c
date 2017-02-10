@@ -38,16 +38,16 @@ fd_ptr_type fd_port_type;
 static int unparse_port(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_PORT *p=FD_GET_CONS(x,fd_port_type,fd_port);
-  if ((p->in) && (p->out) && (p->id))
-    u8_printf(out,"#<I/O Port (%s) #!%x>",p->id,x);
-  else if ((p->in) && (p->out))
+  if ((p->fd_inport) && (p->fd_outport) && (p->fd_portid))
+    u8_printf(out,"#<I/O Port (%s) #!%x>",p->fd_portid,x);
+  else if ((p->fd_inport) && (p->fd_outport))
     u8_printf(out,"#<I/O Port #!%x>",x);
-  else if ((p->in)&&(p->id))
-    u8_printf(out,"#<Input Port (%s) #!%x>",p->id,x);
-  else if (p->in)
+  else if ((p->fd_inport)&&(p->fd_portid))
+    u8_printf(out,"#<Input Port (%s) #!%x>",p->fd_portid,x);
+  else if (p->fd_inport)
     u8_printf(out,"#<Input Port #!%x>",x);
-  else if (p->id)
-    u8_printf(out,"#<Output Port (%s) #!%x>",p->id,x);
+  else if (p->fd_portid)
+    u8_printf(out,"#<Output Port (%s) #!%x>",p->fd_portid,x);
   else u8_printf(out,"#<Output Port #!%x>",x);
   return 1;
 }
@@ -55,11 +55,11 @@ static int unparse_port(struct U8_OUTPUT *out,fdtype x)
 static void recycle_port(struct FD_CONS *c)
 {
   struct FD_PORT *p=(struct FD_PORT *)c;
-  if (p->in) {
-    u8_close_input(p->in);}
-  if (p->out) {
-    u8_close_output(p->out);}
-  if (p->id) u8_free(p->id);
+  if (p->fd_inport) {
+    u8_close_input(p->fd_inport);}
+  if (p->fd_outport) {
+    u8_close_output(p->fd_outport);}
+  if (p->fd_portid) u8_free(p->fd_portid);
  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -69,7 +69,7 @@ static fdtype make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct FD_PORT *port=u8_alloc(struct FD_PORT);
   FD_INIT_CONS(port,fd_port_type);
-  port->in=in; port->out=out; port->id=id;
+  port->fd_inport=in; port->fd_outport=out; port->fd_portid=id;
   return FDTYPE_CONS(port);
 }
 
@@ -80,7 +80,7 @@ static u8_output get_output_port(fdtype portarg)
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
-    return p->out;}
+    return p->fd_outport;}
   else return NULL;
 }
 
@@ -91,7 +91,7 @@ static u8_input get_input_port(fdtype portarg)
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
       FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
-    return p->in;}
+    return p->fd_inport;}
   else return NULL;
 }
 
@@ -107,7 +107,7 @@ static fdtype input_portp(fdtype arg)
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
       FD_GET_CONS(arg,fd_port_type,struct FD_PORT *);
-    if (p->in)
+    if (p->fd_inport)
       return FD_TRUE;
     else return FD_FALSE;}
   else return FD_FALSE;
@@ -118,7 +118,7 @@ static fdtype output_portp(fdtype arg)
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
       FD_GET_CONS(arg,fd_port_type,struct FD_PORT *);
-    if (p->out)
+    if (p->fd_outport)
       return FD_TRUE;
     else return FD_FALSE;}
   else return FD_FALSE;
@@ -143,9 +143,9 @@ static int unparse_dtstream(struct U8_OUTPUT *out,fdtype x)
 
 static void recycle_dtstream(struct FD_CONS *c)
 {
-  struct FD_DTSTREAM *p=(struct FD_DTSTREAM *)c;
-  if (p->dt_stream) {
-    fd_dtsclose(p->dt_stream,p->owns_socket);}
+  struct FD_DTSTREAM *ds=(struct FD_DTSTREAM *)c;
+  if (ds->dt_stream) {
+    fd_dtsclose(ds->dt_stream,ds->fd_owns_socket);}
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -290,7 +290,7 @@ static fdtype portid(fdtype port_arg)
 {
   if (FD_PORTP(port_arg)) {
     struct FD_PORT *port=(struct FD_PORT *)port_arg;
-    if (port->id) return fdtype_string(port->id);
+    if (port->fd_portid) return fdtype_string(port->fd_portid);
     else return FD_FALSE;}
   else return fd_type_error(_("port"),"portid",port_arg);
 }
@@ -299,9 +299,9 @@ static fdtype portdata(fdtype port_arg)
 {
   if (FD_PORTP(port_arg)) {
     struct FD_PORT *port=(struct FD_PORT *)port_arg;
-    if (port->out)
-      return fd_substring(port->out->u8_outbuf,port->out->u8_write);
-    else return fd_substring(port->out->u8_outbuf,port->out->u8_outlim);}
+    if (port->fd_outport)
+      return fd_substring(port->fd_outport->u8_outbuf,port->fd_outport->u8_write);
+    else return fd_substring(port->fd_outport->u8_outbuf,port->fd_outport->u8_outlim);}
   else return fd_type_error(_("port"),"portdata",port_arg);
 }
 

@@ -1064,22 +1064,22 @@ static fdtype sorted_primfn(fdtype choices,fdtype keyfn,int reverse,int lexsort)
     FD_DO_CHOICES(elt,choices) {
       fdtype key=_fd_apply_keyfn(elt,keyfn);
       if (FD_ABORTED(key)) {
-        int j=0; while (j<i) {fd_decref(entries[j].key); j++;}
+        int j=0; while (j<i) {fd_decref(entries[j].fd_sortkey); j++;}
         u8_free(entries); u8_free(vecdata);
         return key;}
-      entries[i].value=elt;
-      entries[i].key=key;
+      entries[i].fd_sortval=elt;
+      entries[i].fd_sortkey=key;
       i++;}
     if (lexsort)
       qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_lexsort_helper);
     else qsort(entries,n,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
     i=0; j=n-1; if (reverse) while (i < n) {
-      fd_decref(entries[i].key);
-      vecdata[j]=fd_incref(entries[i].value);
+      fd_decref(entries[i].fd_sortkey);
+      vecdata[j]=fd_incref(entries[i].fd_sortval);
       i++; j--;}
     else while (i < n) {
-      fd_decref(entries[i].key);
-      vecdata[i]=fd_incref(entries[i].value);
+      fd_decref(entries[i].fd_sortkey);
+      vecdata[i]=fd_incref(entries[i].fd_sortval);
       i++;}
     u8_free(entries);
     return fd_init_vector(NULL,n,vecdata);}
@@ -1130,25 +1130,25 @@ static fdtype select_helper(fdtype choices,fdtype keyfn,
       FD_DO_CHOICES(elt,choices) {
         fdtype key=_fd_apply_keyfn(elt,keyfn);
         if (FD_ABORTED(key)) {
-          int j=0; while (j<k_len) {fd_decref(entries[k_len].key); j++;}
+          int j=0; while (j<k_len) {fd_decref(entries[k_len].fd_sortkey); j++;}
           return key;}
         else if (k_len<k) {
-          entries[k_len].value=elt;
-          entries[k_len].key=key;
+          entries[k_len].fd_sortval=elt;
+          entries[k_len].fd_sortkey=key;
           k_len++;}
         else {
           if (sorted==0) {
             qsort(entries,k,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
-            worst=entries[worst_off].key;
+            worst=entries[worst_off].fd_sortkey;
             sorted=1;}
           if (IS_BETTER(key,worst)) {
             fd_decref(worst);
-            entries[worst_off].value=elt;
-            entries[worst_off].key=key;
+            entries[worst_off].fd_sortval=elt;
+            entries[worst_off].fd_sortkey=key;
             /* This could be done faster by either by just finding where to insert it,
                either by iterating O(n) or binary search O(log n). */
             qsort(entries,k,sizeof(struct FD_SORT_ENTRY),_fd_sort_helper);
-            worst=entries[worst_off].key;}}}
+            worst=entries[worst_off].fd_sortkey;}}}
       return FD_VOID;}}
   else {
     fd_incref(choices);
@@ -1175,8 +1175,8 @@ static fdtype nmax_prim(fdtype choices,fdtype karg,fdtype keyfn)
       int i=0;
       results=FD_EMPTY_CHOICE;
       while (i<k) {
-        fdtype elt=entries[i].value;
-        fd_decref(entries[i].key); fd_incref(elt);
+        fdtype elt=entries[i].fd_sortval;
+        fd_decref(entries[i].fd_sortkey); fd_incref(elt);
         FD_ADD_TO_CHOICE(results,elt);
         i++;}
       u8_free(entries);
@@ -1195,9 +1195,9 @@ static fdtype nmax2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
       fdtype vec=fd_make_vector(k,NULL);
       int i=0;
       while (i<k) {
-        fdtype elt=entries[i].value;
+        fdtype elt=entries[i].fd_sortval;
         int vec_off=k-1-i;
-        fd_incref(elt); fd_decref(entries[i].key);
+        fd_incref(elt); fd_decref(entries[i].fd_sortkey);
         FD_VECTOR_SET(vec,vec_off,elt);
         i++;}
       u8_free(entries);
@@ -1216,8 +1216,8 @@ static fdtype nmin_prim(fdtype choices,fdtype karg,fdtype keyfn)
       int i=0;
       results=FD_EMPTY_CHOICE;
       while (i<k) {
-        fdtype elt=entries[i].value;
-        fd_decref(entries[i].key); fd_incref(elt);
+        fdtype elt=entries[i].fd_sortval;
+        fd_decref(entries[i].fd_sortkey); fd_incref(elt);
         FD_ADD_TO_CHOICE(results,elt);
         i++;}
       u8_free(entries);
@@ -1236,9 +1236,9 @@ static fdtype nmin2vec_prim(fdtype choices,fdtype karg,fdtype keyfn)
       fdtype vec=fd_make_vector(k,NULL);
       int i=0;
       while (i<k) {
-        fd_decref(entries[i].key);
-        fd_incref(entries[i].value);
-        FD_VECTOR_SET(vec,i,entries[i].value);
+        fd_decref(entries[i].fd_sortkey);
+        fd_incref(entries[i].fd_sortval);
+        FD_VECTOR_SET(vec,i,entries[i].fd_sortval);
         i++;}
       u8_free(entries);
       return vec;}

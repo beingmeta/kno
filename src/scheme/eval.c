@@ -304,7 +304,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
         else return 0;}
       else if (constype==fd_sproc_type) {
         struct FD_SPROC *sp=FD_STRIP_CONS(obj,fd_sproc_type,struct FD_SPROC *);
-        struct FD_ENVIRONMENT *scan=sp->env;
+        struct FD_ENVIRONMENT *scan=sp->fd_procenv;
         while (scan) {
           if ((scan==env)||(scan->copy==env))
             return 1;
@@ -1700,10 +1700,10 @@ FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
   /* Otherwise, close the socket */
   else close(socket);
   /* And create a connection pool */
-  dts->connpool=u8_open_connpool(dts->server,2,4,1);
+  dts->fd_connpool=u8_open_connpool(dts->server,2,4,1);
   /* If creating the connection pool fails for some reason,
      cleanup and return an error value. */
-  if (dts->connpool==NULL) {
+  if (dts->fd_connpool==NULL) {
     u8_free(dts->server); u8_free(dts->addr); u8_free(dts);
     return FD_ERROR_VALUE;}
   /* Otherwise, returh a dtserver object */
@@ -1715,12 +1715,12 @@ static fdtype dteval(fdtype server,fdtype expr)
 {
   if (FD_PRIM_TYPEP(server,fd_dtserver_type))  {
     struct FD_DTSERVER *dtsrv=FD_GET_CONS(server,fd_dtserver_type,fd_dtserver);
-    return fd_dteval(dtsrv->connpool,expr);}
+    return fd_dteval(dtsrv->fd_connpool,expr);}
   else if (FD_STRINGP(server)) {
     fdtype s=fd_open_dtserver(FD_STRDATA(server),-1);
     if (FD_ABORTED(s)) return s;
     else {
-      fdtype result=fd_dteval(((fd_dtserver)s)->connpool,expr);
+      fdtype result=fd_dteval(((fd_dtserver)s)->fd_connpool,expr);
       fd_decref(s);
       return result;}}
   else return fd_type_error(_("server"),"dteval",server);
@@ -1741,7 +1741,7 @@ static fdtype dtcall(int n,fdtype *args)
       request=fd_conspair(fd_make_list(2,quote_symbol,param),request);
     else request=fd_conspair(param,request);
     fd_incref(param); i--;}
-  result=fd_dteval(((fd_dtserver)server)->connpool,request);
+  result=fd_dteval(((fd_dtserver)server)->fd_connpool,request);
   fd_decref(request);
   fd_decref(server);
   return result;

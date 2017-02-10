@@ -202,7 +202,7 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
       cix->indices=u8_realloc_n(cix->indices,cix->n_indices+1,fd_index);
     else cix->indices=u8_alloc_n(1,fd_index);
     cix->indices[cix->n_indices++]=add;
-    if (add->serialno<0) {
+    if (add->fdx_serialno<0) {
       fdtype alix=(fdtype)add; fd_incref(alix);}
     if ((cix->fd_cid) || (cix->fd_source)) {
       if ((cix->fd_cid)==(cix->fd_source)) {

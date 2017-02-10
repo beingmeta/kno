@@ -24,20 +24,25 @@
 
 static fdtype quote_symbol;
 
-FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,int ndcall,int arity,int min_arity,int minsock,int maxsock,int initsock)
+FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,
+                                int ndcall,int arity,int min_arity,
+                                int minsock,int maxsock,int initsock)
 {
   struct FD_DTPROC *f=u8_alloc(struct FD_DTPROC);
   FD_INIT_CONS(f,fd_dtproc_type);
-  f->name=u8_mkstring("%s/%s",name,server); f->filename=u8_strdup(server);
-  f->server=u8_strdup(server); f->fcnsym=fd_intern(name);
-  f->fdf_ndcall=ndcall; f->fdf_min_arity=min_arity; f->fdf_arity=arity; f->fdf_xcall=1;
+  f->name=u8_mkstring("%s/%s",name,server);
+  f->filename=u8_strdup(server);
+  f->fd_dtprocserver=u8_strdup(server);
+  f->fd_dtprocname=fd_intern(name);
+  f->fdf_ndcall=ndcall; f->fdf_min_arity=min_arity;
+  f->fdf_arity=arity; f->fdf_xcall=1;
   f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
   f->fdf_handler.fnptr=NULL;
   if (minsock<0) minsock=2;
   if (maxsock<0) maxsock=minsock+3;
   if (initsock<0) initsock=1;
-  f->connpool=u8_open_connpool(f->server,minsock,maxsock,initsock);
-  if (f->connpool==NULL) {
+  f->fd_connpool=u8_open_connpool(f->fd_dtprocserver,minsock,maxsock,initsock);
+  if (f->fd_connpool==NULL) {
     u8_free(f->name); u8_free(f->filename); u8_free(f);
     return FD_ERROR_VALUE;}
   else return FDTYPE_CONS(f);
@@ -46,14 +51,14 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,int ndcall,int a
 static int unparse_dtproc(u8_output out,fdtype x)
 {
   struct FD_DTPROC *f=FD_GET_CONS(x,fd_dtproc_type,fd_dtproc);
-  u8_printf(out,"#<!DTPROC %s using %s>",f->name,f->server);
+  u8_printf(out,"#<!DTPROC %s using %s>",f->name,f->fd_dtprocserver);
   return 1;
 }
 
 static void recycle_dtproc(FD_CONS *c)
 {
   struct FD_DTPROC *f=(fd_dtproc)c;
-  u8_free(f->name); u8_free(f->filename); u8_free(f->server);
+  u8_free(f->name); u8_free(f->filename); u8_free(f->fd_dtprocserver);
   if (f->fdf_typeinfo) u8_free(f->fdf_typeinfo);
   if (f->fdf_defaults) u8_free(f->fdf_defaults);
   u8_free(f);
@@ -62,7 +67,7 @@ static void recycle_dtproc(FD_CONS *c)
 static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
 {
   struct FD_DTYPE_STREAM stream;
-  u8_connpool cpool=dtp->connpool;
+  u8_connpool cpool=dtp->fd_connpool;
   fdtype expr=FD_EMPTY_LIST, result; int i=n-1;
   u8_socket conn=u8_get_connection(cpool);
   if (conn<0) return FD_ERROR_VALUE;
@@ -73,7 +78,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
                        expr);
     else expr=fd_conspair(fd_incref(args[i]),expr);
     i--;}
-  expr=fd_conspair(dtp->fcnsym,expr);
+  expr=fd_conspair(dtp->fd_dtprocname,expr);
   /* u8_log(LOG_DEBUG,"DTPROC","Using connection %d",conn); */
   if ((fd_dtswrite_dtype(&stream,expr)<0) ||
       (fd_dtsflush(&stream)<0)) {
@@ -92,7 +97,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
     else result=fd_dtsread_dtype(&stream);
     if (FD_EQ(result,FD_EOD)) {
       if (conn>0) u8_discard_connection(cpool,conn);
-      return fd_err(fd_UnexpectedEOD,"",dtp->server,expr);}}
+      return fd_err(fd_UnexpectedEOD,"",dtp->fd_dtprocserver,expr);}}
   /* u8_log(LOG_DEBUG,"DTPROC","Freeing %d",conn); */
   u8_return_connection(cpool,conn);
   return result;

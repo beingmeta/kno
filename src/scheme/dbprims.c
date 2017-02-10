@@ -417,7 +417,7 @@ static fdtype make_compound_index(int n,fdtype *args)
         if (n_sources>=max_sources) {
           sources=u8_realloc_n(sources,max_sources+8,fd_index);
           max_sources=max_sources+8;}
-        if (ix->serialno<0) {fdtype lix=(fdtype)ix; fd_incref(lix);}
+        if (ix->fdx_serialno<0) {fdtype lix=(fdtype)ix; fd_incref(lix);}
         sources[n_sources++]=ix;}
       else {
         u8_free(sources);
@@ -544,7 +544,7 @@ static fdtype cons_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
      ((FD_FALSEP(state))?(FD_VOID):(state)),
      0);
   if (FD_FALSEP(usecache)) fd_index_setcache(ix,0);
-  if (ix->serialno>=0) return fd_index2lisp(ix);
+  if (ix->fdx_serialno>=0) return fd_index2lisp(ix);
   else return (fdtype)ix;
 }
 

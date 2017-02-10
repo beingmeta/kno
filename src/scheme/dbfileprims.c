@@ -582,7 +582,7 @@ static fdtype open_dtype_output_file(fdtype fname)
 {
   u8_string filename=FD_STRDATA(fname);
   struct FD_DTSTREAM *dts=u8_alloc(struct FD_DTSTREAM);
-  FD_INIT_CONS(dts,fd_dtstream_type); dts->owns_socket=1;
+  FD_INIT_CONS(dts,fd_dtstream_type); dts->fd_owns_socket=1;
   if (u8_file_existsp(filename))
     dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_MODIFY);
   else dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_CREATE);
@@ -604,7 +604,7 @@ static fdtype open_dtype_input_file(fdtype fname)
     return FD_ERROR_VALUE;}
   else {
     struct FD_DTSTREAM *dts=u8_alloc(struct FD_DTSTREAM);
-    FD_INIT_CONS(dts,fd_dtstream_type); dts->owns_socket=1;
+    FD_INIT_CONS(dts,fd_dtstream_type); dts->fd_owns_socket=1;
     dts->dt_stream=fd_dtsopen
       (filename,FD_DTSTREAM_READ_ONLY|FD_DTSTREAM_READING);
     if (dts->dt_stream) {
@@ -620,7 +620,7 @@ static fdtype extend_dtype_file(fdtype fname)
 {
   u8_string filename=FD_STRDATA(fname);
   struct FD_DTSTREAM *dts=u8_alloc(struct FD_DTSTREAM);
-  FD_INIT_CONS(dts,fd_dtstream_type); dts->owns_socket=1;
+  FD_INIT_CONS(dts,fd_dtstream_type); dts->fd_owns_socket=1;
   if (u8_file_existsp(filename))
     dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_MODIFY);
   else dts->dt_stream=fd_dtsopen(filename,FD_DTSTREAM_CREATE);

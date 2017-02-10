@@ -141,7 +141,7 @@ static fdtype synchronizedp(fdtype x)
 {
   if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
     fd_sproc f=(fd_sproc)x;
-    if (f->synchronized)
+    if (f->fd_synchronized)
       return FD_TRUE;
     else return FD_FALSE;}
   else if (FD_APPLICABLEP(x))
@@ -162,7 +162,7 @@ static fdtype compound_procedure_args(fdtype x)
 {
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
-    return fd_incref(proc->arglist);}
+    return fd_incref(proc->fd_arglist);}
   else return fd_type_error
 	 ("compound procedure","compound_procedure_args",x);
 }
@@ -171,8 +171,8 @@ static fdtype set_compound_procedure_args(fdtype x,fdtype new_arglist)
 {
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
-    fdtype arglist=proc->arglist;
-    proc->arglist=fd_incref(new_arglist);
+    fdtype arglist=proc->fd_arglist;
+    proc->fd_arglist=fd_incref(new_arglist);
     fd_decref(arglist);
     return FD_VOID;}
   else return fd_type_error
@@ -183,7 +183,7 @@ static fdtype compound_procedure_env(fdtype x)
 {
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
-    return (fdtype) fd_copy_env(proc->env);}
+    return (fdtype) fd_copy_env(proc->fd_procenv);}
   else return fd_type_error("compound procedure","compound_procedure_env",x);
 }
 
@@ -191,7 +191,7 @@ static fdtype compound_procedure_body(fdtype x)
 {
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
-    return fd_incref(proc->body);}
+    return fd_incref(proc->fd_body);}
   else return fd_type_error
 	 ("compound procedure","compound_procedure_body",x);
 }
@@ -200,8 +200,8 @@ static fdtype set_compound_procedure_body(fdtype x,fdtype new_body)
 {
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
-    fdtype body=proc->body;
-    proc->body=fd_incref(new_body);
+    fdtype body=proc->fd_body;
+    proc->fd_body=fd_incref(new_body);
     fd_decref(body);
     return FD_VOID;}
   else return fd_type_error

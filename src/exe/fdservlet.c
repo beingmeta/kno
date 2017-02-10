@@ -1061,8 +1061,8 @@ static int webservefn(u8_client ucl)
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);
-    base_env=sp->env;
-    threadcache=checkthreadcache(sp->env);
+    base_env=sp->fd_procenv;
+    threadcache=checkthreadcache(sp->fd_procenv);
     result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc))&&
            (FD_SPROCP((FD_CAR(proc))))) {
@@ -1070,10 +1070,10 @@ static int webservefn(u8_client ucl)
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);
-    threadcache=checkthreadcache(sp->env);
+    threadcache=checkthreadcache(sp->fd_procenv);
     /* This should possibly put the CDR of proc into the environment chain,
        but it no longer does. ?? */
-    base_env=sp->env;
+    base_env=sp->fd_procenv;
     result=fd_cgiexec(FD_CAR(proc),cgidata);}
   else if (FD_PAIRP(proc)) {
     /* This is handling FDXML */

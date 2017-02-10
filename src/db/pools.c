@@ -192,11 +192,11 @@ FD_EXPORT int fd_register_pool(fd_pool p)
 {
   unsigned int capacity=p->fdp_capacity, serial_no;
   int baseindex=fd_get_oid_base_index(p->fdp_base,1);
-  if (p->serialno>=0) return 0;
+  if (p->fdp_serialno>=0) return 0;
   else if (baseindex<0) return baseindex;
   fd_lock_mutex(&pool_registry_lock);
   /* Set up the serial number */
-  serial_no=p->serialno=fd_pool_serial_count++; fd_n_pools++;
+  serial_no=p->fdp_serialno=fd_pool_serial_count++; fd_n_pools++;
   fd_pool_serial_table[serial_no]=p;
   if ((capacity>=FD_TOP_POOL_SIZE) && ((p->fdp_base)%FD_TOP_POOL_SIZE)) {
     fd_seterr(fd_InvalidPoolRange,"fd_register_pool",u8_strdup(p->fd_cid),FD_VOID);
@@ -253,7 +253,7 @@ static struct FD_GLUEPOOL *make_gluepool(FD_OID base)
 {
   struct FD_GLUEPOOL *pool=u8_alloc(struct FD_GLUEPOOL);
   pool->fdp_base=base; pool->fdp_capacity=0; pool->fd_read_only=1;
-  pool->serialno=fd_get_oid_base_index(base,1);
+  pool->fdp_serialno=fd_get_oid_base_index(base,1);
   pool->label="gluepool"; pool->fd_source=NULL;
   pool->n_subpools=0; pool->subpools=NULL;
   pool->handler=&gluepool_handler;
@@ -299,10 +299,10 @@ static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p)
     if (write == ipoint) *write=p;
     /* Finally, update the structures.  Note that we are explicitly
        leaking the old subpools because we're avoiding locking on lookup. */
-    p->serialno=((gp->serialno)<<10)+(gp->n_subpools+1);
+    p->fdp_serialno=((gp->fdp_serialno)<<10)+(gp->n_subpools+1);
     gp->subpools=new; gp->n_subpools++;}
-  p->serialno=fd_pool_serial_count++;
-  fd_pool_serial_table[p->serialno]=p;
+  p->fdp_serialno=fd_pool_serial_count++;
+  fd_pool_serial_table[p->fdp_serialno]=p;
   return 1;
 }
 
@@ -410,7 +410,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
   /* if (p->fd_cache_level<1) return 0; */
   if ( (p->handler->fetchn==NULL) || (!(p->fdb_flags&(FDB_BATCHABLE))) ) {
     if (fd_ipeval_delay(FD_CHOICE_SIZE(oids))) {
-      FD_ADD_TO_CHOICE(fd_pool_delays[p->serialno],oids);
+      FD_ADD_TO_CHOICE(fd_pool_delays[p->fdp_serialno],oids);
       return 0;}
     else {
       int n_fetches=0;
@@ -425,7 +425,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
   if (fd_ipeval_status()) {
     FD_HASHTABLE *cache=&(p->fd_cache); int n_to_fetch=0;
     /* fdtype oidschoice=fd_make_simple_choice(oids); */
-    fdtype *delays=&(fd_pool_delays[p->serialno]);
+    fdtype *delays=&(fd_pool_delays[p->fdp_serialno]);
     FD_DO_CHOICES(oid,oids)
       if (fd_hashtable_probe_novoid(cache,oid)) {}
       else {
@@ -1298,7 +1298,7 @@ FD_EXPORT fdtype _fd_fetch_oid(fd_pool p,fdtype oid)
   else value=FD_VOID;
   if (FD_VOIDP(value)) {
     if (fd_ipeval_delay(1)) {
-      FD_ADD_TO_CHOICE(fd_pool_delays[p->serialno],oid);
+      FD_ADD_TO_CHOICE(fd_pool_delays[p->fdp_serialno],oid);
       return FD_EMPTY_CHOICE;}
     else value=fd_pool_fetch(p,oid);}
   if (FD_ABORTP(value)) return value;
@@ -1343,9 +1343,9 @@ FD_EXPORT fdtype fd_pool2lisp(fd_pool p)
 {
   if (p==NULL)
     return FD_ERROR_VALUE;
-  else if (p->serialno<0)
+  else if (p->fdp_serialno<0)
     return fd_err(fd_UnregisteredPool,"fd_pool2lisp",p->fd_cid,FD_VOID);
-  else return FDTYPE_IMMEDIATE(fd_pool_type,p->serialno);
+  else return FDTYPE_IMMEDIATE(fd_pool_type,p->fdp_serialno);
 }
 FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
 {
@@ -1620,7 +1620,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
 {
   FD_INIT_CONS(p,fd_raw_pool_type);
   p->fdp_base=base; p->fdp_capacity=capacity;
-  p->serialno=-1; p->fd_cache_level=-1; p->fd_read_only=1;
+  p->fdp_serialno=-1; p->fd_cache_level=-1; p->fd_read_only=1;
   p->fdb_flags=((h->fetchn)?(FDB_BATCHABLE):(0));
   FD_INIT_STATIC_CONS(&(p->fd_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(p->fdp_locks),fd_hashtable_type);
@@ -1803,12 +1803,12 @@ static int config_set_anonymousok(fdtype var,fdtype val,void *data)
 
 FD_EXPORT int fd_execute_pool_delays(fd_pool p,void *data)
 {
-  fdtype todo=fd_pool_delays[p->serialno];
+  fdtype todo=fd_pool_delays[p->fdp_serialno];
   if (FD_EMPTY_CHOICEP(todo)) return 0;
   else {
     /* fd_lock_mutex(&(fd_ipeval_lock)); */
-    todo=fd_pool_delays[p->serialno];
-    fd_pool_delays[p->serialno]=FD_EMPTY_CHOICE;
+    todo=fd_pool_delays[p->fdp_serialno];
+    fd_pool_delays[p->fdp_serialno]=FD_EMPTY_CHOICE;
     todo=fd_simplify_choice(todo);
     /* fd_unlock_mutex(&(fd_ipeval_lock)); */
 #if FD_TRACE_IPEVAL

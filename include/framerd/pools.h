@@ -147,7 +147,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   FD_CONS_HEADER;                                          \
   FD_OID fdp_base;                                             \
   unsigned int fdp_capacity, fd_read_only;                        \
-  int serialno; int fd_cache_level, fdb_flags;			   \
+  int fdp_serialno; int fd_cache_level, fdb_flags;			   \
   u8_string label, fd_source, fd_cid, fd_xid, prefix;               \
   int fdp_n_adjuncts, fdp_max_adjuncts;                            \
   struct FD_ADJUNCT *fdp_adjuncts;                             \
@@ -344,7 +344,7 @@ FD_FASTOP fdtype fd_fetch_oid(fd_pool p,fdtype oid)
   else value=FD_VOID;
   if (FD_VOIDP(value)) {
     if (fd_ipeval_delay(1)) {
-      FD_ADD_TO_CHOICE(fd_pool_delays[p->serialno],oid);
+      FD_ADD_TO_CHOICE(fd_pool_delays[p->fdp_serialno],oid);
       return FD_EMPTY_CHOICE;}
     else value=fd_pool_fetch(p,oid);}
   if (FD_ABORTP(value)) return value;
@@ -384,7 +384,7 @@ typedef struct FD_GPOOL *fd_gpool;
 
 typedef struct FD_NETWORK_POOL {
   FD_POOL_FIELDS;
-  struct U8_CONNPOOL *connpool;
+  struct U8_CONNPOOL *fd_connpool;
   int bulk_commitp;} FD_NETWORK_POOL;
 typedef struct FD_NETWORK_POOL *fd_network_pool;
 
