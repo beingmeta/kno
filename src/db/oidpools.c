@@ -1115,7 +1115,8 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fd_dtswrite_8bytes(stream,recovery_pos);
   fd_setpos(stream,0);
   fd_dtswrite_4bytes(stream,FD_OIDPOOL_TO_RECOVER);
-  fd_dtsflush(stream); fsync(stream->fd_fileno);
+  fd_dtsflush(stream);
+  fsync(stream->fd_fileno);
   oidpool_finalize(op,stream,n,saveinfo,op->load);
   u8_free(saveinfo);
   fd_setpos(stream,0);
@@ -1124,7 +1125,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   fsync(stream->fd_fileno);
   u8_log(fddb_loglevel,"OIDPoolStore",
          "Stored %d oid values in oidpool %s in %f seconds",
-         n,p->cid,u8_elapsed_time()-started);
+         n,p->fdcid,u8_elapsed_time()-started);
   UNLOCK_POOLSTREAM(op);
   fd_unlock_struct(op);
   return n;

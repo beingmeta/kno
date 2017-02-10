@@ -247,7 +247,8 @@ FD_EXPORT void fd_dtsbufsize(fd_dtype_stream s,int bufsiz)
   u8_lock_mutex(&(s->fd_lock));
   dtsflush(s);
   {
-    unsigned int ptroff=s->fd_bufptr-s->fd_bufstart, endoff=s->fd_buflim-s->fd_bufstart;
+    unsigned int ptroff=s->fd_bufptr-s->fd_bufstart;
+    unsigned int endoff=s->fd_buflim-s->fd_bufstart;
     s->fd_bufstart=u8_realloc(s->fd_bufstart,bufsiz);
     s->fd_bufptr=s->fd_bufstart+ptroff; s->fd_buflim=s->fd_bufstart+endoff;
     s->fd_bufsiz=bufsiz;
