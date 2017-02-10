@@ -178,8 +178,8 @@ FD_EXPORT u8_string fd_bind_sourcebase(u8_string sourcebase);
 FD_EXPORT void fd_restore_sourcebase(u8_string sourcebase);
 
 typedef struct FD_CONFIG_RECORD {
-  u8_string source;
-  struct FD_CONFIG_RECORD *next;} FD_CONFIG_RECORD;
+  u8_string fd_config_source;
+  struct FD_CONFIG_RECORD *fd_config_next;} FD_CONFIG_RECORD;
 
 /* The Evaluator */
 

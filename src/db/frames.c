@@ -1116,7 +1116,7 @@ int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
         fdtype key=fd_conspair(slotid,value);
         keyv[n_keys++]=key;}}
     valuev=(ix->handler->fetchn)(ix,n_keys,keyv);
-    fd_hashtable_iter(&(ix->cache),fd_table_add_empty_noref,
+    fd_hashtable_iter(&(ix->fd_cache),fd_table_add_empty_noref,
                       n_keys,keyv,valuev);
     u8_free(keyv); u8_free(valuev);
     return 1;}

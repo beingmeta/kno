@@ -68,10 +68,10 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     proc->fd_ffi_rtype=return_type;
     proc->fd_ffi_argtypes=argtypes;
     // Set up generic function fields
-    proc->ndcall=0; proc->xcall=1;
+    proc->fdf_ndcall=0; proc->fdf_xcall=1;
     // Defer arity checking to fd_ffi_call
-    proc->min_arity=0; proc->arity=-1; 
-    proc->handler.xcalln=fd_ffi_call;
+    proc->fdf_min_arity=0; proc->fdf_arity=-1; 
+    proc->fdf_handler.xcalln=fd_ffi_call;
     return proc;}
   else {
     u8_free(cif);

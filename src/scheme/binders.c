@@ -442,11 +442,11 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   envstruct.parent=fn->env; envstruct.copy=NULL;
   if (n_vars>6) vals=u8_alloc_n(fn->n_vars,fdtype);
   bindings.fd_values=vals;
-  if (fn->arity>0) {
-    if (n<fn->min_arity) {
+  if (fn->fdf_arity>0) {
+    if (n<fn->fdf_min_arity) {
       fd_destroy_rwlock(&(bindings.fd_rwlock));
       return fd_err(fd_TooFewArgs,fn->name,NULL,FD_VOID);}
-    else if (n>fn->arity) {
+    else if (n>fn->fdf_arity) {
       fd_destroy_rwlock(&(bindings.fd_rwlock));
       return fd_err(fd_TooManyArgs,fn->name,NULL,FD_VOID);}
     else {
@@ -488,7 +488,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
           i++;}
         while (i<n_vars) vals[i++]=FD_VOID;
         assert(i==fn->n_vars);}}}
-  else if (fn->arity==0) {}
+  else if (fn->fdf_arity==0) {}
   else { /* We have a lexpr */
     int i=0, j=n-1;
     {FD_DOLIST(arg,fn->arglist)
@@ -555,16 +555,16 @@ static fdtype _make_sproc(u8_string name,
     n_vars++; scan=FD_CDR(scan);
     if (FD_SYMBOLP(argspec)) min_args=n_vars;}
   if (FD_EMPTY_LISTP(scan)) {
-    s->n_vars=s->arity=n_vars;}
+    s->n_vars=s->fdf_arity=n_vars;}
   else {
-    n_vars++; s->n_vars=n_vars; s->arity=-1;}
-  s->min_arity=min_args; s->xcall=1; s->ndcall=nd;
-  s->handler.fnptr=NULL;
-  s->typeinfo=NULL;
+    n_vars++; s->n_vars=n_vars; s->fdf_arity=-1;}
+  s->fdf_min_arity=min_args; s->fdf_xcall=1; s->fdf_ndcall=nd;
+  s->fdf_handler.fnptr=NULL;
+  s->fdf_typeinfo=NULL;
   if (n_vars)
     s->schema=schema=u8_alloc_n((n_vars+1),fdtype);
   else s->schema=NULL;
-  s->defaults=NULL; s->filename=NULL;
+  s->fdf_defaults=NULL; s->filename=NULL;
   if (incref) {
     s->body=fd_incref(body); s->arglist=fd_incref(arglist);}
   else {
@@ -608,8 +608,8 @@ FD_EXPORT void recycle_sproc(struct FD_CONS *c)
   struct FD_SPROC *sproc=(struct FD_SPROC *)c;
   int mallocd=FD_MALLOCD_CONSP(c);
   if (sproc->name) u8_free(sproc->name);
-  if (sproc->typeinfo) u8_free(sproc->typeinfo);
-  if (sproc->defaults) u8_free(sproc->defaults);
+  if (sproc->fdf_typeinfo) u8_free(sproc->fdf_typeinfo);
+  if (sproc->fdf_defaults) u8_free(sproc->fdf_defaults);
   fd_decref(sproc->arglist); fd_decref(sproc->body);
   u8_free(sproc->schema);
   if (sproc->env->copy) {
@@ -627,7 +627,7 @@ static int unparse_sproc(u8_output out,fdtype x)
   if (sproc->name)
     if (sproc->filename)
       u8_printf(out,"#<%s %s %q \"%s\" #!%x>",
-                (sproc->ndcall)?("NDPROC"):("PROC"),
+                (sproc->fdf_ndcall)?("NDPROC"):("PROC"),
                 sproc->name,sproc->arglist,
                 sproc->filename,
                 (unsigned long)sproc);
@@ -658,7 +658,7 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
     return sp;}
   else {
     struct FD_SPROC *fresh=u8_alloc(struct FD_SPROC);
-    int n_args=sproc->n_vars+1, arity=sproc->arity;
+    int n_args=sproc->n_vars+1, arity=sproc->fdf_arity;
     memcpy(fresh,sproc,sizeof(struct FD_SPROC));
 
     /* This sets a new reference count or declares it static */
@@ -667,15 +667,15 @@ FD_EXPORT fdtype copy_sproc(struct FD_CONS *c,int flags)
     if (sproc->name) fresh->name=u8_strdup(sproc->name);
     if (sproc->filename)
       fresh->filename=u8_strdup(sproc->filename);
-    if (sproc->typeinfo)
-      fresh->typeinfo=copy_intvec(sproc->typeinfo,arity,NULL);
+    if (sproc->fdf_typeinfo)
+      fresh->fdf_typeinfo=copy_intvec(sproc->fdf_typeinfo,arity,NULL);
 
     fresh->arglist=fd_copier(sproc->arglist,flags);
     fresh->body=fd_copier(sproc->body,flags);
     if (sproc->schema)
       fresh->schema=fd_copy_vec(sproc->schema,n_args,NULL,flags);
-    if (sproc->defaults)
-      fresh->defaults=fd_copy_vec(sproc->defaults,arity,NULL,flags);
+    if (sproc->fdf_defaults)
+      fresh->fdf_defaults=fd_copy_vec(sproc->fdf_defaults,arity,NULL,flags);
 
     if (fresh->synchronized) fd_init_mutex(&(fresh->fd_lock));
 

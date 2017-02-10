@@ -932,8 +932,8 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
   struct FD_FUNCTION *fcn=FD_PTR2CONS(fn,-1,struct FD_FUNCTION *);
   fdtype _argv[FD_STACK_ARGS], *argv;
   int arg_count=0, n_args=0, args_need_gc=0, free_argv=0;
-  int nd_args=0, prune=0, nd_prim=fcn->ndcall;
-  int max_arity=fcn->arity, min_arity=fcn->min_arity;
+  int nd_args=0, prune=0, nd_prim=fcn->fdf_ndcall;
+  int max_arity=fcn->fdf_arity, min_arity=fcn->fdf_min_arity;
   int n_params=max_arity, argv_length=max_arity;
   /* First, count the arguments */
   {FD_DOBODY(arg,expr,1) {
@@ -993,12 +993,12 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
       /* This could extend the backtrace */
       return result;
     else return FD_EMPTY_CHOICE;}
-  if ((n_params<0) || (fcn->xcall)) {}
+  if ((n_params<0) || (fcn->fdf_xcall)) {}
   /* Don't fill anything in for lexprs or non primitives.  */
   else if (arg_count != argv_length) {
-    if (fcn->defaults)
+    if (fcn->fdf_defaults)
       while (arg_count<argv_length) {
-        argv[arg_count]=fd_incref(fcn->defaults[arg_count]); arg_count++;}
+        argv[arg_count]=fd_incref(fcn->fdf_defaults[arg_count]); arg_count++;}
     else while (arg_count<argv_length) argv[arg_count++]=FD_VOID;}
   else {}
   if ((fd_optimize_tail_calls) && (FD_SPROCP(fn)))
@@ -1550,9 +1550,9 @@ static fdtype callcc (fdtype proc)
   struct FD_CONTINUATION *f=u8_alloc(struct FD_CONTINUATION);
   FD_INIT_CONS(f,fd_function_type);
   f->name="continuation"; f->filename=NULL;
-  f->ndcall=1; f->xcall=1; f->arity=1; f->min_arity=1;
-  f->typeinfo=NULL; f->defaults=NULL;
-  f->handler.xcall1=call_continuation; f->retval=FD_VOID;
+  f->fdf_ndcall=1; f->fdf_xcall=1; f->fdf_arity=1; f->fdf_min_arity=1;
+  f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
+  f->fdf_handler.xcall1=call_continuation; f->retval=FD_VOID;
   continuation=FDTYPE_CONS(f);
   value=fd_apply(proc,1,&continuation);
   if ((value==FD_THROW_VALUE) && (!(FD_VOIDP(f->retval)))) {

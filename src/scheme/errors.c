@@ -390,8 +390,8 @@ static int thunkp(fdtype x)
   if (!(FD_APPLICABLEP(x))) return 0;
   else {
     struct FD_FUNCTION *f=(fd_function)x;
-    if (f->arity==0) return 1;
-    else if ((f->arity<0) && (f->min_arity==0)) return 1;
+    if (f->fdf_arity==0) return 1;
+    else if ((f->fdf_arity<0) && (f->fdf_min_arity==0)) return 1;
     else return 0;}
 }
 

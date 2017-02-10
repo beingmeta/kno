@@ -524,8 +524,8 @@ static fdtype get_config_files(fdtype var,void U8_MAYBE_UNUSED *data)
   struct FD_CONFIG_RECORD *scan; fdtype result=FD_EMPTY_LIST;
   fd_lock_mutex(&config_file_lock);
   scan=config_records; while (scan) {
-    result=fd_conspair(fdtype_string(scan->source),result);
-    scan=scan->next;}
+    result=fd_conspair(fdtype_string(scan->fd_config_source),result);
+    scan=scan->fd_config_next;}
   fd_unlock_mutex(&config_file_lock);
   return result;
 }
@@ -543,14 +543,14 @@ static int add_config_file_helper(fdtype var,fdtype val,
     u8_string pathname=u8_abspath(FD_STRDATA(val),sourcebase);
     fd_lock_mutex(&config_file_lock);
     scan=config_stack; while (scan) {
-      if (strcmp(scan->source,pathname)==0) {
+      if (strcmp(scan->fd_config_source,pathname)==0) {
         fd_unlock_mutex(&config_file_lock);
         u8_free(pathname);
         return 0;}
-      else scan=scan->next;}
+      else scan=scan->fd_config_next;}
     memset(&on_stack,0,sizeof(struct FD_CONFIG_RECORD));
-    on_stack.source=pathname;
-    on_stack.next=config_stack;
+    on_stack.fd_config_source=pathname;
+    on_stack.fd_config_next=config_stack;
     config_stack=&on_stack;
     fd_unlock_mutex(&config_file_lock);
     if (isdflt)
@@ -559,18 +559,18 @@ static int add_config_file_helper(fdtype var,fdtype val,
     fd_lock_mutex(&config_file_lock);
     if (retval<0) {
       if (isopt) {
-        u8_free(pathname); config_stack=on_stack.next;
+        u8_free(pathname); config_stack=on_stack.fd_config_next;
         fd_unlock_mutex(&config_file_lock);
         u8_pop_exception();
         return 0;}
-      u8_free(pathname); config_stack=on_stack.next;
+      u8_free(pathname); config_stack=on_stack.fd_config_next;
       fd_unlock_mutex(&config_file_lock);
       return retval;}
     newrec=u8_alloc(struct FD_CONFIG_RECORD);
-    newrec->source=pathname;
-    newrec->next=config_records;
+    newrec->fd_config_source=pathname;
+    newrec->fd_config_next=config_records;
     config_records=newrec;
-    config_stack=on_stack.next;
+    config_stack=on_stack.fd_config_next;
     fd_unlock_mutex(&config_file_lock);
     return retval;}
 }

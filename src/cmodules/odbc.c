@@ -170,12 +170,12 @@ static fdtype odbcmakeproc
     return FD_ERROR_VALUE;}
   dbproc->db=(fdtype)dbp; fd_incref(dbproc->db);
   dbproc->dbhandler=&odbc_handler;
-  dbproc->ndcall=0; dbproc->xcall=1; dbproc->arity=-1;
-  dbproc->min_arity=dbproc->n_params=n_params;
+  dbproc->fdf_ndcall=0; dbproc->fdf_xcall=1; dbproc->fdf_arity=-1;
+  dbproc->fdf_min_arity=dbproc->fdf_n_params=n_params;
   dbproc->name=dbproc->qtext=_memdup(stmt,stmt_len+1);
   dbproc->filename=dbproc->spec=u8_strdup(dbp->spec);
   dbproc->sqltypes=sqltypes=u8_alloc_n(n_params,SQLSMALLINT);
-  dbproc->handler.xcalln=callodbcproc;
+  dbproc->fdf_handler.xcalln=callodbcproc;
 #if FD_THREADS_ENABLED
   u8_init_mutex(&(dbproc->fd_lock));
 #endif

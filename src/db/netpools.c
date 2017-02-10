@@ -52,7 +52,7 @@ static void init_network_pool
   capacity=fd_getint(FD_CAR(scan)); scan=FD_CDR(scan);
   fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,spec,cid);
   /* Network pool specific stuff */
-  p->read_only=FD_FALSEP(FD_CAR(scan)); scan=FD_CDR(scan);
+  p->fd_read_only=FD_FALSEP(FD_CAR(scan)); scan=FD_CDR(scan);
   if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan))))
     label=FD_STRDATA(FD_CAR(scan));
   else label=NULL;
@@ -94,7 +94,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
     u8_free(np); u8_free(cid);
     return NULL;}
   if (FD_VOIDP(client_id)) init_client_id();
-  np->cid=cid; np->xid=xid;
+  np->fd_cid=cid; np->fd_xid=xid;
   np->connpool=
     u8_open_connpool(spec,fd_dbconn_reserve_default,
                      fd_dbconn_cap_default,fd_dbconn_init_default);
@@ -122,7 +122,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
       if (n_pools==0) p=np;
       else p=u8_alloc(struct FD_NETWORK_POOL);
       init_network_pool(p,pd,spec,cid);
-      p->xid=xid; p->connpool=np->connpool;
+      p->fd_xid=xid; p->connpool=np->connpool;
       n_pools++;}}
   else init_network_pool(np,pooldata,spec,cid);
   u8_free(cid);
@@ -135,7 +135,7 @@ static int network_pool_load(fd_pool p)
 {
   struct FD_NETWORK_POOL *np=(struct FD_NETWORK_POOL *)p;
   fdtype value;
-  value=fd_dtcall(np->connpool,2,get_load_symbol,fd_make_oid(p->base));
+  value=fd_dtcall(np->connpool,2,get_load_symbol,fd_make_oid(p->fdp_base));
   if (FD_FIXNUMP(value)) return FD_FIX2INT(value);
   else if (FD_ABORTP(value))
     return fd_interr(value);
@@ -164,7 +164,7 @@ static fdtype *network_pool_fetchn(fd_pool p,int n,fdtype *oids)
     return values;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-              u8_strdup(np->cid),fd_incref(value));
+              u8_strdup(np->fd_cid),fd_incref(value));
     return NULL;}
 }
 
@@ -177,7 +177,7 @@ static int network_pool_lock(fd_pool p,fdtype oid)
   else if (FD_ABORTP(value))
     return fd_interr(value);
   else {
-    fd_hashtable_store(&(p->cache),oid,value);
+    fd_hashtable_store(&(p->fd_cache),oid,value);
     fd_decref(value);
     return 1;}
 }

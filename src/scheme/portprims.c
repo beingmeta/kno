@@ -1817,7 +1817,7 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim3x("PACKET->BASE64",to_base64_prim,1,
                            fd_packet_type,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
-  fd_idefn(fd_scheme_module,fd_make_cprim3("->BASE64",any_to_base64_prim,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim3("->FDP_BASE64",any_to_base64_prim,1));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BASE16->PACKET",from_base16_prim,1,

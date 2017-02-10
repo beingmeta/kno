@@ -121,7 +121,7 @@ static fdtype procedure_arity(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
-    int arity=f->arity;
+    int arity=f->fdf_arity;
     if (arity<0) return FD_FALSE;
     else return FD_INT(arity);}
   else return fd_type_error(_("procedure"),"procedure_arity",x);
@@ -131,7 +131,7 @@ static fdtype non_deterministicp(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
-    if (f->ndcall)
+    if (f->fdf_ndcall)
       return FD_TRUE;
     else return FD_FALSE;}
   else return fd_type_error(_("procedure"),"non_deterministicp",x);
@@ -153,7 +153,7 @@ static fdtype procedure_min_arity(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(x);
-    int arity=f->min_arity;
+    int arity=f->fdf_min_arity;
     return FD_INT(arity);}
   else return fd_type_error(_("procedure"),"procedure_min_arity",x);
 }

@@ -56,12 +56,12 @@ typedef struct FD_POOL_OPENER *fd_pool_opener;
 typedef struct FD_FILE_POOL {
   FD_POOL_FIELDS;
   time_t modtime;
-  unsigned int load, *offsets, offsets_size;
-  struct FD_DTYPE_STREAM stream;
+  unsigned int fdp_load, *fd_offsets, fd_offsets_size;
+  struct FD_DTYPE_STREAM fd_stream;
   U8_MUTEX_DECL(fd_lock);} FD_FILE_POOL;
 typedef struct FD_FILE_POOL *fd_file_pool;
 
-#define FD_FILE_POOL_LOCKED(fp) (((fp)->stream.fd_dts_flags)&FD_DTSTREAM_LOCKED)
+#define FD_FILE_POOL_LOCKED(fp) (((fp)->fd_stream.fd_dts_flags)&FD_DTSTREAM_LOCKED)
 
 typedef struct FD_SCHEMA_TABLE {
   int schema_index; int size; fdtype *schema;} FD_SCHEMA_TABLE;
@@ -70,11 +70,11 @@ typedef struct FD_SCHEMA_TABLE *fd_schema_table;
 typedef struct FD_ZPOOL {
   FD_POOL_FIELDS;
   time_t modtime;
-  unsigned int load, *offsets, offsets_size;
-  struct FD_DTYPE_STREAM stream;
-  int n_schemas;
-  struct FD_SCHEMA_TABLE *schemas, *schemas_byptr;
-  struct FD_SCHEMA_TABLE *schemas_byval;
+  unsigned int fdp_load, *fd_offsets, fd_offsets_size;
+  struct FD_DTYPE_STREAM fd_stream;
+  int fdp_n_schemas;
+  struct FD_SCHEMA_TABLE *fdp_schemas, *fdp_fdp_schemas_byptr;
+  struct FD_SCHEMA_TABLE *fdp_schemas_byval;
   U8_MUTEX_DECL(fd_lock);} FD_ZPOOL;
 typedef struct FD_ZPOOL *fd_zpool;
 
@@ -99,15 +99,15 @@ typedef struct FD_SCHEMA_LOOKUOP *fd_schema_lookup;
 typedef struct FD_OIDPOOL {
   FD_POOL_FIELDS;
   unsigned int dbflags;
-  fd_offset_type offtype;
+  fd_offset_type fdp_offtype;
   fd_compression_type compression;
   time_t modtime;
-  int n_schemas, max_slotids;
-  struct FD_SCHEMA_ENTRY *schemas;
-  struct FD_SCHEMA_LOOKUP *schbyval;
-  unsigned int load, *offsets, offsets_size;
-  struct FD_DTYPE_STREAM stream;
-  size_t mmap_size; unsigned char *mmap;
+  int fdp_n_schemas, fdp_max_slotids;
+  struct FD_SCHEMA_ENTRY *fdp_schemas;
+  struct FD_SCHEMA_LOOKUP *fdp_schbyval;
+  unsigned int fdp_load, *fd_offsets, fd_offsets_size;
+  struct FD_DTYPE_STREAM fd_stream;
+  size_t fd_mmap_size; unsigned char *fd_mmap;
   U8_MUTEX_DECL(fd_lock);} FD_OIDPOOL;
 typedef struct FD_OIDPOOL *fd_oidpool;
 
@@ -161,17 +161,17 @@ FD_EXPORT int fd_file_indexp(u8_string filename);
 
 typedef struct FD_FILE_INDEX {
   FD_INDEX_FIELDS;
-  unsigned int n_slots, hashv, *offsets;
-  struct FD_DTYPE_STREAM stream;
+  unsigned int fd_n_slots, fd_hashv, *fd_offsets;
+  struct FD_DTYPE_STREAM fd_stream;
   fdtype slotids;
   U8_MUTEX_DECL(fd_lock);} FD_FILE_INDEX;
 typedef struct FD_FILE_INDEX *fd_file_index;
 
 typedef struct FD_ZINDEX {
   FD_INDEX_FIELDS;
-  unsigned int n_slots, hashv, *offsets;
-  struct FD_DTYPE_STREAM stream;
-  fdtype slotids; FD_OID *baseoids; int n_baseoids;
+  unsigned int fd_n_slots, fd_hashv, *fd_offsets;
+  struct FD_DTYPE_STREAM fd_stream;
+  fdtype slotids; FD_OID *fdx_baseoids; int fdx_n_baseoids;
   U8_MUTEX_DECL(fd_lock);} FD_ZINDEX;
 typedef struct FD_ZINDEX *fd_zindex;
 
@@ -216,24 +216,24 @@ typedef struct FD_HASH_INDEX {
   /* flags controls hash functions, compression, etc.
      hxcustom is a placeholder for a value to customize
      the hash function. */
-  unsigned int hxflags, hxcustom, n_keys;
-  fd_offset_type offtype;
+  unsigned int fdx_flags, fdx_custom, fd_n_keys;
+  fd_offset_type fdx_offtype;
 
   /* This is used to store compressed keys and values. */
-  int n_slotids, new_slotids; fdtype *slotids;
+  int fdx_n_slotids, fdx_new_slotids; fdtype *fdx_slotids;
   struct FD_SLOTID_LOOKUP *slotid_lookup;
-  int n_baseoids, new_baseoids;
-  unsigned int *baseoid_ids;
-  short *ids2baseoids;
+  int fdx_n_baseoids, fdx_new_baseoids;
+  unsigned int *fdx_baseoid_ids;
+  short *fdx_ids2baseoids;
 
   /* Pointers into keyblocks for the hashtable */
-  unsigned int *offdata; int n_buckets;
+  unsigned int *fdx_offdata; int fdx_n_buckets;
 
   /* The stream accessing the file.  This is only used
      for modification if the file is memmaped. */
-  struct FD_DTYPE_STREAM stream;
+  struct FD_DTYPE_STREAM fd_stream;
   /* When non-null, a memmapped pointer to the file contents. */
-  size_t mmap_size; unsigned char *mmap;} FD_HASH_INDEX;
+  size_t fd_mmap_size; unsigned char *fd_mmap;} FD_HASH_INDEX;
 typedef struct FD_HASH_INDEX *fd_hash_index;
 
 FD_EXPORT int fd_populate_hash_index

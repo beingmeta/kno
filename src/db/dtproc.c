@@ -30,9 +30,9 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,int ndcall,int a
   FD_INIT_CONS(f,fd_dtproc_type);
   f->name=u8_mkstring("%s/%s",name,server); f->filename=u8_strdup(server);
   f->server=u8_strdup(server); f->fcnsym=fd_intern(name);
-  f->ndcall=ndcall; f->min_arity=min_arity; f->arity=arity; f->xcall=1;
-  f->typeinfo=NULL; f->defaults=NULL;
-  f->handler.fnptr=NULL;
+  f->fdf_ndcall=ndcall; f->fdf_min_arity=min_arity; f->fdf_arity=arity; f->fdf_xcall=1;
+  f->fdf_typeinfo=NULL; f->fdf_defaults=NULL;
+  f->fdf_handler.fnptr=NULL;
   if (minsock<0) minsock=2;
   if (maxsock<0) maxsock=minsock+3;
   if (initsock<0) initsock=1;
@@ -54,8 +54,8 @@ static void recycle_dtproc(FD_CONS *c)
 {
   struct FD_DTPROC *f=(fd_dtproc)c;
   u8_free(f->name); u8_free(f->filename); u8_free(f->server);
-  if (f->typeinfo) u8_free(f->typeinfo);
-  if (f->defaults) u8_free(f->defaults);
+  if (f->fdf_typeinfo) u8_free(f->fdf_typeinfo);
+  if (f->fdf_defaults) u8_free(f->fdf_defaults);
   u8_free(f);
 }
 

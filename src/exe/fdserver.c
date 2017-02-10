@@ -465,7 +465,7 @@ static void cleanup_state_files()
 /* This represents a live client connection and its environment. */
 typedef struct FD_CLIENT {
   U8_CLIENT_FIELDS;
-  struct FD_DTYPE_STREAM stream;
+  struct FD_DTYPE_STREAM fd_clientstream;
   time_t lastlive; double elapsed;
   fd_lispenv env;} FD_CLIENT;
 typedef struct FD_CLIENT *fd_client;
@@ -475,15 +475,14 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
                                struct sockaddr *addr,size_t len)
 {
   fd_client client=(fd_client)
-    u8_client_init(NULL,sizeof(FD_CLIENT),
-                   addr,len,sock,srv);
-  fd_init_dtype_stream(&(client->stream),sock,4096);
+    u8_client_init(NULL,sizeof(FD_CLIENT),addr,len,sock,srv);
+  fd_init_dtype_stream(&(client->fd_clientstream),sock,4096);
   /* To help debugging, move the client->idstring (libu8)
      into the stream's id (fdb). */
-  if (client->stream.fd_dtsid==NULL) {
+  if (client->fd_clientstream.fd_dtsid==NULL) {
     if (client->idstring)
-      client->stream.fd_dtsid=u8_strdup(client->idstring);
-    else client->stream.fd_dtsid=u8_strdup("fdserver/dtypestream");}
+      client->fd_clientstream.fd_dtsid=u8_strdup(client->idstring);
+    else client->fd_clientstream.fd_dtsid=u8_strdup("fdserver/dtypestream");}
   client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
   client->elapsed=0; client->lastlive=((time_t)(-1));
   u8_set_nodelay(sock,1);
@@ -497,7 +496,7 @@ static int dtypeserver(u8_client ucl)
 {
   fdtype expr;
   fd_client client=(fd_client)ucl;
-  fd_dtype_stream stream=&(client->stream);
+  fd_dtype_stream stream=&(client->fd_clientstream);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
 
   /* Set the signal mask for the current thread.  By default, this
@@ -647,7 +646,7 @@ static int dtypeserver(u8_client ucl)
 static int close_fdclient(u8_client ucl)
 {
   fd_client client=(fd_client)ucl;
-  fd_dtsclose(&(client->stream),2);
+  fd_dtsclose(&(client->fd_clientstream),2);
   fd_decref((fdtype)((fd_client)ucl)->env);
   ucl->socket=-1;
   return 1;

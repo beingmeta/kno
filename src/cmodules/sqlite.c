@@ -366,10 +366,10 @@ static fdtype sqlitemakeproc
   u8_init_mutex(&(sqlcons->plock));
   sqlcons->filename=sqlcons->spec=u8_strdup(dbp->spec);
   sqlcons->name=sqlcons->qtext=_memdup((u8_byte *)sql,sql_len+1); /* include NUL */
-  sqlcons->n_params=n_params=sqlite3_bind_parameter_count(stmt);
-  sqlcons->ndcall=0; sqlcons->xcall=1; sqlcons->arity=-1;
-  sqlcons->min_arity=n_params;
-  sqlcons->handler.xcalln=sqlitecallproc;
+  sqlcons->fdf_n_params=n_params=sqlite3_bind_parameter_count(stmt);
+  sqlcons->fdf_ndcall=0; sqlcons->fdf_xcall=1; sqlcons->fdf_arity=-1;
+  sqlcons->fdf_min_arity=n_params;
+  sqlcons->fdf_handler.xcalln=sqlitecallproc;
   {
     fdtype *paramtypes=u8_alloc_n(n_params,fdtype);
     int j=0; while (j<n_params) {
@@ -434,7 +434,7 @@ static void recycle_fdsqliteproc(struct FD_EXTDB_PROC *c)
   close_fdsqliteproc(dbp);
   fd_decref(dbp->colinfo);
   u8_free(dbp->spec); u8_free(dbp->qtext);
-  {int j=0, lim=dbp->n_params;; while (j<lim) {
+  {int j=0, lim=dbp->fdf_n_params;; while (j<lim) {
     fd_decref(dbp->paramtypes[j]); j++;}}
   u8_free(dbp->sqltypes); u8_free(dbp->paramtypes);
   fd_decref(dbp->db); dbp->db=FD_VOID;

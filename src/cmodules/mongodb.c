@@ -1931,7 +1931,7 @@ static fdtype mongovecp(fdtype arg)
 static fdtype mongodb_pool_fetch(fd_pool p,fdtype oid)
 {
   struct FD_MONGODB_POOL *mp=(struct FD_MONGODB_POOL *)p;
-  FD_OID base=mp->base, addr=FD_OID_ADDR(oid);
+  FD_OID base=mp->fdp_base, addr=FD_OID_ADDR(oid);
   mongoc_client_t *client=mongoc_client_pool_pop(mp->clients);
   mongoc_collection_t *domain=
     mongoc_client_get_collection(client,mp->dbname,mp->collection);
@@ -1960,7 +1960,7 @@ static fdtype *mongodb_pool_fetchn(fd_pool p,int n,fdtype *oids)
   bson_t *q=bson_new(); const bson_t doc, ids, *response;
 
   fdtype fetched=fd_init_vector(NULL,n,NULL);
-  FD_OID base=mp->base; int i=0;
+  FD_OID base=mp->fdp_base; int i=0;
   char keybuf[32];
 
   mongodb_append_document_begin(q,"_id",3,&doc);
@@ -1992,7 +1992,7 @@ static fdtype *mongodb_pool_fetchn(fd_pool p,int n,fdtype *oids)
     return values;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-              u8_strdup(np->cid),fd_incref(value));
+              u8_strdup(np->fd_cid),fd_incref(value));
     return NULL;}
 }
 */
