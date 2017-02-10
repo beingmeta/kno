@@ -84,7 +84,7 @@ static u8_mutex config_register_lock;
 static u8_mutex atexit_handlers_lock;
 #endif
 
-static struct FD_CONFIG_LOOKUPS *config_lookupfns=NULL;
+static struct FD_CONFIG_FINDER *config_lookupfns=NULL;
 
 static fdtype config_intern(u8_string start)
 {
@@ -109,12 +109,12 @@ static fdtype config_intern(u8_string start)
 FD_EXPORT
 void fd_register_config_lookup(fdtype (*fn)(fdtype,void *),void *ldata)
 {
-  struct FD_CONFIG_LOOKUPS *entry=
-    u8_alloc(struct FD_CONFIG_LOOKUPS);
+  struct FD_CONFIG_FINDER *entry=
+    u8_alloc(struct FD_CONFIG_FINDER);
   fd_lock_mutex(&config_lookup_lock);
   entry->fdcfg_lookup=fn;
   entry->fdcfg_lookup_data=ldata;
-  entry->next=config_lookupfns;
+  entry->fd_next_finder=config_lookupfns;
   config_lookupfns=entry;
   fd_unlock_mutex(&config_lookup_lock);
 }
@@ -126,10 +126,10 @@ static fdtype config_get(u8_string var)
   /* This lookups configuration information using various methods */
   if (FD_VOIDP(probe)) {
     fdtype value=FD_VOID;
-    struct FD_CONFIG_LOOKUPS *scan=config_lookupfns;
+    struct FD_CONFIG_FINDER *scan=config_lookupfns;
     while (scan) {
       value=scan->fdcfg_lookup(symbol,scan->fdcfg_lookup_data);
-      if (FD_VOIDP(value)) scan=scan->next; else break;}
+      if (FD_VOIDP(value)) scan=scan->fd_next_finder; else break;}
     fd_store(configuration_table,symbol,value);
     return value;}
   else return probe;
@@ -219,11 +219,11 @@ FD_EXPORT fdtype fd_config_get(u8_string var)
   fdtype symbol=config_intern(var);
   struct FD_CONFIG_HANDLER *scan=config_handlers;
   while (scan)
-    if (FD_EQ(scan->var,symbol)) {
+    if (FD_EQ(scan->fd_configname,symbol)) {
       fdtype val;
-      val=scan->config_get_method(symbol,scan->data);
+      val=scan->fd_config_get_method(symbol,scan->fd_configdata);
       return val;}
-    else scan=scan->next;
+    else scan=scan->fd_nextconfig;
   return config_get(var);
 }
 
@@ -232,15 +232,15 @@ FD_EXPORT int fd_set_config(u8_string var,fdtype val)
   fdtype symbol=config_intern(var); int retval=0;
   struct FD_CONFIG_HANDLER *scan=config_handlers;
   while (scan)
-    if (FD_EQ(scan->var,symbol)) {
-      scan->flags=scan->flags|FD_CONFIG_ALREADY_MODIFIED;
-      retval=scan->config_set_method(symbol,val,scan->data);
+    if (FD_EQ(scan->fd_configname,symbol)) {
+      scan->fd_configflags=scan->fd_configflags|FD_CONFIG_ALREADY_MODIFIED;
+      retval=scan->fd_config_set_method(symbol,val,scan->fd_configdata);
       if (trace_config)
         u8_log(LOG_WARN,"ConfigSet",
                "Using handler to configure %s (%s) with %q",
                var,FD_SYMBOL_NAME(symbol),val);
       break;}
-    else scan=scan->next;
+    else scan=scan->fd_nextconfig;
   if ((!(scan))&&(trace_config))
     u8_log(LOG_WARN,"ConfigSet","Configuring %s (%s) with %q",
            var,FD_SYMBOL_NAME(symbol),val);
@@ -257,16 +257,16 @@ FD_EXPORT int fd_default_config(u8_string var,fdtype val)
   fdtype symbol=config_intern(var); int retval=1;
   struct FD_CONFIG_HANDLER *scan=config_handlers;
   while (scan)
-    if (FD_EQ(scan->var,symbol)) {
-      if ((scan->flags)&(FD_CONFIG_ALREADY_MODIFIED)) return 0;
-      scan->flags=scan->flags|FD_CONFIG_ALREADY_MODIFIED;
-      retval=scan->config_set_method(symbol,val,scan->data);
+    if (FD_EQ(scan->fd_configname,symbol)) {
+      if ((scan->fd_configflags)&(FD_CONFIG_ALREADY_MODIFIED)) return 0;
+      scan->fd_configflags=scan->fd_configflags|FD_CONFIG_ALREADY_MODIFIED;
+      retval=scan->fd_config_set_method(symbol,val,scan->fd_configdata);
       if (trace_config)
         u8_log(LOG_WARN,"ConfigSet",
                "Using handler to configure default %s (%s) with %q",
                var,FD_SYMBOL_NAME(symbol),val);
       break;}
-    else scan=scan->next;
+    else scan=scan->fd_nextconfig;
   if (fd_test(configuration_table,symbol,FD_VOID)) return 0;
   else {
     if ((!(scan))&&(trace_config))
@@ -302,28 +302,28 @@ FD_EXPORT int fd_register_config_x
   fd_lock_mutex(&config_register_lock);
   scan=config_handlers;
   while (scan)
-    if (FD_EQ(scan->var,symbol)) {
+    if (FD_EQ(scan->fd_configname,symbol)) {
       if (reuse) reuse(scan);
       if (doc) {
         /* We don't override a real doc with a NULL doc.
            Possibly not the right thing. */
-        if (scan->doc) u8_free(scan->doc);
-        scan->doc=u8_strdup(doc);}
-      scan->config_get_method=getfn;
-      scan->config_set_method=setfn;
-      scan->data=data;
+        if (scan->fd_configdoc) u8_free(scan->fd_configdoc);
+        scan->fd_configdoc=u8_strdup(doc);}
+      scan->fd_config_get_method=getfn;
+      scan->fd_config_set_method=setfn;
+      scan->fd_configdata=data;
       break;}
-    else scan=scan->next;
+    else scan=scan->fd_nextconfig;
   if (scan==NULL) {
     current=config_get(var);
     scan=u8_alloc(struct FD_CONFIG_HANDLER);
-    scan->var=symbol;
-    if (doc) scan->doc=u8_strdup(doc); else scan->doc=NULL;
-    scan->flags=0;
-    scan->config_get_method=getfn;
-    scan->config_set_method=setfn;
-    scan->data=data;
-    scan->next=config_handlers;
+    scan->fd_configname=symbol;
+    if (doc) scan->fd_configdoc=u8_strdup(doc); else scan->fd_configdoc=NULL;
+    scan->fd_configflags=0;
+    scan->fd_config_get_method=getfn;
+    scan->fd_config_set_method=setfn;
+    scan->fd_configdata=data;
+    scan->fd_nextconfig=config_handlers;
     config_handlers=scan;}
   fd_unlock_mutex(&config_register_lock);
   if (FD_ABORTP(current)) {
@@ -366,13 +366,15 @@ FD_EXPORT fdtype fd_all_configs(int with_docs)
   fd_lock_mutex(&config_register_lock); {
     scan=config_handlers;
     while (scan) {
-      fdtype var=scan->var;
+      fdtype var=scan->fd_configname;
       if (with_docs) {
-        fdtype doc=((scan->doc)?(fdstring(scan->doc)):(FD_EMPTY_LIST));
+        fdtype doc=((scan->fd_configdoc)?
+                    (fdstring(scan->fd_configdoc)):
+                    (FD_EMPTY_LIST));
         fdtype pair=fd_conspair(var,doc); fd_incref(var);
         FD_ADD_TO_CHOICE(results,pair);}
       else {fd_incref(var); FD_ADD_TO_CHOICE(results,var);}
-      scan=scan->next;}}
+      scan=scan->fd_nextconfig;}}
   fd_unlock_mutex(&config_register_lock);
   return results;
 }
@@ -1949,7 +1951,8 @@ static int config_add_source_file(fdtype var,fdtype val,void *data)
 /* Termination */
 
 static struct FD_ATEXIT {
-  fdtype handler; struct FD_ATEXIT *next;} *atexit_handlers=NULL;
+  fdtype fd_exit_handler;
+  struct FD_ATEXIT *fd_next_atexit;} *atexit_handlers=NULL;
 static int n_atexit_handlers=0;
 
 static fdtype config_atexit_get(fdtype var,void *data)
@@ -1958,9 +1961,9 @@ static fdtype config_atexit_get(fdtype var,void *data)
   fd_lock_mutex(&atexit_handlers_lock);
   result=fd_make_vector(n_atexit_handlers,NULL);
   scan=atexit_handlers; while (scan) {
-    fdtype handler=scan->handler; fd_incref(handler);
+    fdtype handler=scan->fd_exit_handler; fd_incref(handler);
     FD_VECTOR_SET(result,i,handler);
-    scan=scan->next; i++;}
+    scan=scan->fd_next_atexit; i++;}
   fd_unlock_mutex(&atexit_handlers_lock);
   return result;
 }
@@ -1972,7 +1975,8 @@ static int config_atexit_set(fdtype var,fdtype val,void *data)
     fd_type_error("applicable","config_atexit",val);
     return -1;}
   fd_lock_mutex(&atexit_handlers_lock);
-  fresh->next=atexit_handlers; fresh->handler=val; fd_incref(val);
+  fresh->fd_next_atexit=atexit_handlers; fresh->fd_exit_handler=val;
+  fd_incref(val);
   n_atexit_handlers++; atexit_handlers=fresh;
   fd_unlock_mutex(&atexit_handlers_lock);
   return 1;
@@ -1997,7 +2001,7 @@ FD_EXPORT void fd_doexit(fdtype arg)
   scan=atexit_handlers; atexit_handlers=NULL;
   fd_unlock_mutex(&atexit_handlers_lock);
   while (scan) {
-    fdtype handler=scan->handler, result=FD_VOID;
+    fdtype handler=scan->fd_exit_handler, result=FD_VOID;
     u8_log(LOG_INFO,"fd_doexit","Running FramerD exit handler %q",handler);
     if ((FD_FUNCTIONP(handler))&&(FD_FUNCTION_ARITY(handler)))
       result=fd_apply(handler,1,&arg);
@@ -2005,9 +2009,11 @@ FD_EXPORT void fd_doexit(fdtype arg)
     if (FD_ABORTP(result)) {
       fd_clear_errors(1);}
     else fd_decref(result);
-    fd_decref(handler); tmp=scan; scan=scan->next;
+    fd_decref(handler);
+    tmp=scan;
+    scan=scan->fd_next_atexit;
     u8_free(tmp);}
-  fd_decref(exec_arg); exec_arg=FD_FALSE; 
+  fd_decref(exec_arg); exec_arg=FD_FALSE;
   fd_decref(lisp_argv); lisp_argv=FD_FALSE;
   fd_decref(string_argv); string_argv=FD_FALSE;
   fd_decref(raw_argv); raw_argv=FD_FALSE;

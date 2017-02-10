@@ -128,12 +128,7 @@ FD_EXPORT u8_condition fd_PoolCommit;
 FD_EXPORT int fd_pool_cache_init;
 FD_EXPORT int fd_pool_lock_init;
 
-#define FD_POOL_FLAG_BASE 256
-#define FD_POOL_FLAG(n) (FD_POOL_FLAG_BASE<<(n))
-
-#define FD_POOL_BATCHABLE (FD_POOL_FLAG(1))
-#define FD_OIDHOLES_OKAY  (FD_POOL_FLAG(2))
-#define FD_POOL_LOCKFREE  (FD_POOL_FLAG(3))
+#define FD_OIDHOLES_OKAY  (FDB_POOL_FLAG(1))
 
 FD_EXPORT int fd_ignore_anonymous_oids;
 
@@ -152,7 +147,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   FD_CONS_HEADER;                                          \
   FD_OID fdp_base;                                             \
   unsigned int fdp_capacity, fd_read_only;                        \
-  int serialno; int fd_cache_level, flags;			   \
+  int serialno; int fd_cache_level, fdb_flags;			   \
   u8_string label, fd_source, fd_cid, fd_xid, prefix;               \
   int fdp_n_adjuncts, fdp_max_adjuncts;                            \
   struct FD_ADJUNCT *fdp_adjuncts;                             \

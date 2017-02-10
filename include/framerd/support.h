@@ -19,17 +19,20 @@ FD_EXPORT fd_exception fd_ReadOnlyConfig;
 #define FD_CONFIG_ALREADY_MODIFIED 1
 
 typedef struct FD_CONFIG_HANDLER {
-  fdtype var; void *data; int flags; u8_string doc;
-  fdtype (*config_get_method)(fdtype var,void *data);
-  int (*config_set_method)(fdtype var,fdtype val,void *data);
-  struct FD_CONFIG_HANDLER *next;} FD_CONFIG_HANDLER;
+  fdtype fd_configname; 
+  void *fd_configdata; 
+  int fd_configflags; 
+  u8_string fd_configdoc;
+  fdtype (*fd_config_get_method)(fdtype var,void *data);
+  int (*fd_config_set_method)(fdtype var,fdtype val,void *data);
+  struct FD_CONFIG_HANDLER *fd_nextconfig;} FD_CONFIG_HANDLER;
 typedef struct FD_CONFIG_HANDLER *fd_config_handler;
 
-typedef struct FD_CONFIG_LOOKUPS {
+typedef struct FD_CONFIG_FINDER {
   fdtype (*fdcfg_lookup)(fdtype var,void *data);
   void *fdcfg_lookup_data;
-  struct FD_CONFIG_LOOKUPS *next;} FD_CONFIG_LOOKUPS;
-typedef struct FD_CONFIG_LOOKUPS *fd_config_lookups;
+  struct FD_CONFIG_FINDER *fd_next_finder;} FD_CONFIG_FINDER;
+typedef struct FD_CONFIG_FINDER *fd_config_finders;
 
 FD_EXPORT fdtype fd_config_get(u8_string var);
 FD_EXPORT int fd_set_config(u8_string var,fdtype val);

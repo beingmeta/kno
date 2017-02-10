@@ -62,8 +62,8 @@ static int compare_schema_ptrs(const void *v1,const void *v2)
 {
   struct FD_SCHEMA_TABLE *s1=(struct FD_SCHEMA_TABLE *)v1;
   struct FD_SCHEMA_TABLE *s2=(struct FD_SCHEMA_TABLE *)v2;
-  if (s1->schema == s2->schema) return 0;
-  else if (s1->schema < s2->schema) return -1;
+  if (s1->fdst_schema == s2->fdst_schema) return 0;
+  else if (s1->fdst_schema < s2->fdst_schema) return -1;
   else return 1;
 }
 
@@ -71,11 +71,11 @@ static int compare_schema_vals(const void *v1,const void *v2)
 {
   struct FD_SCHEMA_TABLE *s1=(struct FD_SCHEMA_TABLE *)v1;
   struct FD_SCHEMA_TABLE *s2=(struct FD_SCHEMA_TABLE *)v2;
-  if (s1->size > s2->size) return 1;
-  else if (s1->size < s2->size) return -1;
+  if (s1->fdst_nslots > s2->fdst_nslots) return 1;
+  else if (s1->fdst_nslots < s2->fdst_nslots) return -1;
   else {
-    fdtype *slotids1=s1->schema, *slotids2=s2->schema;
-    int i=0, n=s1->size; while (i < n)
+    fdtype *slotids1=s1->fdst_schema, *slotids2=s2->fdst_schema;
+    int i=0, n=s1->fdst_nslots; while (i < n)
       if ((slotids1[i]) > (slotids2[i])) return 1;
       else if (slotids1[i] < slotids2[i]) return -1;
       else i++;
@@ -89,12 +89,12 @@ static int find_schema_index_by_ptr(fdtype *schema,
   if (n_schemas) {
     struct FD_SCHEMA_TABLE *bot=table, *top=bot+n_schemas, *mid=bot+(n_schemas/2);
     while (top >= bot)
-      if (mid->schema == schema) return mid->schema_index;
-      else if (schema > mid->schema) {
+      if (mid->fdst_schema == schema) return mid->fdst_index;
+      else if (schema > mid->fdst_schema) {
         bot=mid+1; mid=bot+(top-bot)/2;}
       else {
         top=mid-1; mid=bot+(top-bot)/2;}
-    if (mid->schema == schema) return mid->schema_index;
+    if (mid->fdst_schema == schema) return mid->fdst_index;
     else return -1;}
   else return -1;
 }
@@ -107,19 +107,19 @@ int bm_find_schema_by_vals(fdtype *schema,int n,
     struct FD_SCHEMA_TABLE *bot=table, *top=bot+n_schemas, *mid=bot+(n_schemas/2);
     struct FD_SCHEMA_TABLE probe; fdtype *copy=u8_alloc_n(n,fdtype);
     int i=0, comparison=0; while (i < n) {copy[i]=schema[i]; i++;}
-    probe.size=n; probe.schema=copy;
+    probe.fdst_nslots=n; probe.fdst_schema=copy;
     if (n) qsort(copy,n,sizeof(fdtype),compare_slotids);
     while (top >= bot) {
       comparison=compare_schema_vals((const void *)&probe,(const void *)mid);
       if (comparison == 0) {
         u8_free(copy);
-        return mid->schema_index;}
+        return mid->fdst_index;}
       else if (comparison > 0) {
         bot=mid+1; mid=bot+(top-bot)/2;}
       else {
         top=mid-1; mid=bot+(top-bot)/2;}}
     u8_free(copy);
-    if (comparison == 0) return mid->schema_index;
+    if (comparison == 0) return mid->fdst_index;
     else return -1;}
   else return -1;
 }
@@ -184,15 +184,15 @@ void init_zpool_schemas(struct FD_ZPOOL *zp,fdtype vector)
       sorted[j]=FD_VECTOR_REF(schema_vec,j);
       j++;}
     if (schema_len) qsort(sorted,schema_len,sizeof(fdtype),compare_slotids);
-    zp->fdp_schemas[i].schema_index=i;
-    zp->fdp_schemas[i].size=schema_len;
-    zp->fdp_schemas[i].schema=schema;
-    zp->fdp_fdp_schemas_byptr[i].schema_index=i;
-    zp->fdp_fdp_schemas_byptr[i].size=schema_len;
-    zp->fdp_fdp_schemas_byptr[i].schema=schema;
-    zp->fdp_schemas_byval[i].schema_index=i;
-    zp->fdp_schemas_byval[i].size=schema_len;
-    zp->fdp_schemas_byval[i].schema=sorted;
+    zp->fdp_schemas[i].fdst_index=i;
+    zp->fdp_schemas[i].fdst_nslots=schema_len;
+    zp->fdp_schemas[i].fdst_schema=schema;
+    zp->fdp_fdp_schemas_byptr[i].fdst_index=i;
+    zp->fdp_fdp_schemas_byptr[i].fdst_nslots=schema_len;
+    zp->fdp_fdp_schemas_byptr[i].fdst_schema=schema;
+    zp->fdp_schemas_byval[i].fdst_index=i;
+    zp->fdp_schemas_byval[i].fdst_nslots=schema_len;
+    zp->fdp_schemas_byval[i].fdst_schema=sorted;
     i++;}
   if (n_schemas) {
     qsort(zp->fdp_fdp_schemas_byptr,n_schemas,
@@ -343,7 +343,7 @@ fdtype read_oid_value
     ssize_t n_bytes=fd_dtsread_zint(f), dbytes=-1;
     unsigned char *bytes;
     fdtype *values;
-    if (n_values == schemas[schema_index].size)
+    if (n_values == schemas[schema_index].fdst_nslots)
       values=u8_alloc_n(n_values,fdtype);
     else return fd_err(_("Schema inconsistency"),"read_oid_value",
                        NULL,FD_VOID);
@@ -362,7 +362,7 @@ fdtype read_oid_value
       values[i]=fd_read_dtype(&in); i++;}
     u8_free(bytes); u8_free(in.fd_bufstart);
     return fd_make_schemap
-      (NULL,n_values,0,schemas[schema_index].schema,values);}
+      (NULL,n_values,0,schemas[schema_index].fdst_schema,values);}
   else return zread_dtype(f);
 }
 
@@ -485,7 +485,7 @@ static int lock_zpool(struct FD_ZPOOL *fp,int use_mutex)
       fd_unlock_struct(fp);
       return 0;}
     fstat(s->fd_fileno,&fileinfo);
-    if (fileinfo.st_mtime>fp->modtime) {
+    if (fileinfo.st_mtime>fp->fd_modtime) {
       /* Make sure we're up to date. */
       if (fp->fd_offsets) reload_file_pool_cache(fp,0);
       else {
@@ -499,8 +499,8 @@ static void update_modtime(struct FD_ZPOOL *fp)
 {
   struct stat fileinfo;
   if ((fstat(fp->fd_stream.fd_fileno,&fileinfo))<0)
-    fp->modtime=(time_t)-1;
-  else fp->modtime=fileinfo.st_mtime;
+    fp->fd_modtime=(time_t)-1;
+  else fp->fd_modtime=fileinfo.st_mtime;
 }
 
 static int zpool_load(fd_pool p)

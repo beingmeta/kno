@@ -747,8 +747,8 @@ static fdtype config_def(fdtype var,fdtype handler,fdtype docstring)
   return FD_VOID;
 }
 static int reuse_lconfig(struct FD_CONFIG_HANDLER *e){
-  if (e->data) {
-    fd_decref((fdtype)(e->data));
+  if (e->fd_configdata) {
+    fd_decref((fdtype)(e->fd_configdata));
     return 1;}
   else return 0;}
 

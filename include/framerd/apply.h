@@ -145,7 +145,9 @@ FD_EXPORT fdtype fd_dapply(fdtype,int n,fdtype *args);
 
 struct FD_TAIL_CALL {
   FD_CONS_HEADER;
-  int n_elts, flags; fdtype head;};
+  int fd_tail_flags;
+  int fd_tail_length;
+  fdtype fd_tail_head;};
 
 FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec);
 FD_EXPORT fdtype fd_step_call(fdtype c);

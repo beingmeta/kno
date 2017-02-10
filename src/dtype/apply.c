@@ -1134,8 +1134,10 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
     int atomic=1, nd=0;
     struct FD_TAIL_CALL *tc=(struct FD_TAIL_CALL *)
       u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
-    fdtype *write=&(tc->head), *write_limit=write+(n+1), *read=vec;
-    FD_INIT_CONS(tc,fd_tail_call_type); tc->n_elts=n+1; tc->flags=0;
+    fdtype *write=&(tc->fd_tail_head), *write_limit=write+(n+1), *read=vec;
+    FD_INIT_CONS(tc,fd_tail_call_type); 
+    tc->fd_tail_length=n+1; 
+    tc->fd_tail_flags=0;
     *write++=fd_incref(fcn);
     while (write<write_limit) {
       fdtype v=*read++;
@@ -1145,8 +1147,8 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
         else if (FD_QCHOICEP(v)) nd=1;
         *write++=fd_incref(v);}
       else *write++=v;}
-    if (atomic) tc->flags=tc->flags|FD_TAIL_CALL_ATOMIC_ARGS;
-    if (nd) tc->flags=tc->flags|FD_TAIL_CALL_ND_ARGS;
+    if (atomic) tc->fd_tail_flags=tc->fd_tail_flags|FD_TAIL_CALL_ATOMIC_ARGS;
+    if (nd) tc->fd_tail_flags=tc->fd_tail_flags|FD_TAIL_CALL_ND_ARGS;
     return FDTYPE_CONS(tc);}
 }
 
@@ -1155,9 +1157,9 @@ FD_EXPORT fdtype fd_step_call(fdtype c)
   struct FD_TAIL_CALL *tc=
     FD_GET_CONS(c,fd_tail_call_type,struct FD_TAIL_CALL *);
   fdtype result=
-    ((tc->flags&FD_TAIL_CALL_ND_ARGS)?
-     (fd_apply(tc->head,tc->n_elts-1,(&(tc->head))+1)):
-     (fd_dapply(tc->head,tc->n_elts-1,(&(tc->head))+1)));
+    ((tc->fd_tail_flags&FD_TAIL_CALL_ND_ARGS)?
+     (fd_apply(tc->fd_tail_head,tc->fd_tail_length-1,(&(tc->fd_tail_head))+1)):
+     (fd_dapply(tc->fd_tail_head,tc->fd_tail_length-1,(&(tc->fd_tail_head))+1)));
   fd_decref(c);
   return result;
 }
@@ -1169,9 +1171,11 @@ FD_EXPORT fdtype _fd_finish_call(fdtype pt)
   while (FD_PTR_TYPEP(pt,fd_tail_call_type)) {
     struct FD_TAIL_CALL *tc=
       FD_GET_CONS(pt,fd_tail_call_type,struct FD_TAIL_CALL *);
-    fdtype result=((tc->flags&FD_TAIL_CALL_ND_ARGS) ?
-                   (fd_apply(tc->head,tc->n_elts-1,(&(tc->head))+1)) :
-                   (fd_dapply(tc->head,tc->n_elts-1,(&(tc->head))+1)));
+    fdtype result=((tc->fd_tail_flags&FD_TAIL_CALL_ND_ARGS) ?
+                   (fd_apply(tc->fd_tail_head,tc->fd_tail_length-1,
+                             (&(tc->fd_tail_head))+1)) :
+                   (fd_dapply(tc->fd_tail_head,tc->fd_tail_length-1,
+                              (&(tc->fd_tail_head))+1)));
     if (FD_CONS_REFCOUNT(tc)==1)
       recycle_tail_call((struct FD_CONS *)tc);
     else fd_decref(pt);
@@ -1181,19 +1185,20 @@ FD_EXPORT fdtype _fd_finish_call(fdtype pt)
 
 static int unparse_tail_call(struct U8_OUTPUT *out,fdtype x)
 {
-  struct FD_TAIL_CALL *fn=
+  struct FD_TAIL_CALL *tc=
     FD_GET_CONS(x,fd_tail_call_type,struct FD_TAIL_CALL *);
-  u8_printf(out,"#<TAILCALL %q on %d args>",fn->head,fn->n_elts);
+  u8_printf(out,"#<TAILCALL %q on %d args>",
+            tc->fd_tail_head,tc->fd_tail_length);
   return 1;
 }
 
 static void recycle_tail_call(struct FD_CONS *c)
 {
   struct FD_TAIL_CALL *tc=(struct FD_TAIL_CALL *)c;
-  int mallocd=FD_MALLOCD_CONSP(c), n_elts=tc->n_elts;
-  fdtype *scan=&(tc->head), *limit=scan+n_elts;
+  int mallocd=FD_MALLOCD_CONSP(c), n_elts=tc->fd_tail_length;
+  fdtype *scan=&(tc->fd_tail_head), *limit=scan+n_elts;
   size_t tc_size=sizeof(struct FD_TAIL_CALL)+(sizeof(fdtype)*(n_elts-1));
-  if (!(tc->flags&FD_TAIL_CALL_ATOMIC_ARGS)) {
+  if (!(tc->fd_tail_flags&FD_TAIL_CALL_ATOMIC_ARGS)) {
     while (scan<limit) {fd_decref(*scan); scan++;}}
   /* The head is always incref'd */
   else fd_decref(*scan);

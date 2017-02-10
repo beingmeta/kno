@@ -55,7 +55,7 @@ typedef struct FD_POOL_OPENER *fd_pool_opener;
 
 typedef struct FD_FILE_POOL {
   FD_POOL_FIELDS;
-  time_t modtime;
+  time_t fd_modtime;
   unsigned int fdp_load, *fd_offsets, fd_offsets_size;
   struct FD_DTYPE_STREAM fd_stream;
   U8_MUTEX_DECL(fd_lock);} FD_FILE_POOL;
@@ -64,12 +64,14 @@ typedef struct FD_FILE_POOL *fd_file_pool;
 #define FD_FILE_POOL_LOCKED(fp) (((fp)->fd_stream.fd_dts_flags)&FD_DTSTREAM_LOCKED)
 
 typedef struct FD_SCHEMA_TABLE {
-  int schema_index; int size; fdtype *schema;} FD_SCHEMA_TABLE;
+  int fdst_index;
+  int fdst_nslots;
+  fdtype *fdst_schema;} FD_SCHEMA_TABLE;
 typedef struct FD_SCHEMA_TABLE *fd_schema_table;
 
 typedef struct FD_ZPOOL {
   FD_POOL_FIELDS;
-  time_t modtime;
+  time_t fd_modtime;
   unsigned int fdp_load, *fd_offsets, fd_offsets_size;
   struct FD_DTYPE_STREAM fd_stream;
   int fdp_n_schemas;
@@ -80,28 +82,31 @@ typedef struct FD_ZPOOL *fd_zpool;
 
 /* OID Pools */
 
-#define FD_OIDPOOL_OFFMODE 0x07
+#define FD_OIDPOOL_OFFMODE     0x07
 #define FD_OIDPOOL_COMPRESSION 0x78
-#define FD_OIDPOOL_READONLY 0x80
-#define FD_OIDPOOL_DTYPEV2 0x100
+#define FD_OIDPOOL_READ_ONLY   0x80
+#define FD_OIDPOOL_DTYPEV2     0x100
 
 #define FD_OIDPOOL_LOCKED(x) (FD_FILE_POOL_LOCKED(x))
 
 typedef struct FD_SCHEMA_ENTRY {
-  int n_slotids, id; fdtype *slotids, normal;
-  unsigned int *mapin, *mapout;}  FD_SCHEMA_ENTRY;
+  int fd_nslots, fd_schema_id;
+  fdtype *fd_slotids, normal;
+  unsigned int *fd_slotmapin;
+  unsigned int *fd_slotmapout;}  FD_SCHEMA_ENTRY;
 typedef struct FD_SCHEMA_ENTRY *fd_schema_entry;
 
 typedef struct FD_SCHEMA_LOOKUP {
-  int id, n_slotids; fdtype *slotids;}  FD_SCHEMA_LOOKUP;
+  int fd_schema_id, fd_nslots;
+  fdtype *fd_slotids;}  FD_SCHEMA_LOOKUP;
 typedef struct FD_SCHEMA_LOOKUOP *fd_schema_lookup;
 
 typedef struct FD_OIDPOOL {
   FD_POOL_FIELDS;
-  unsigned int dbflags;
-  fd_offset_type fdp_offtype;
-  fd_compression_type compression;
-  time_t modtime;
+  unsigned int fdb_xformat;
+  fd_offset_type fdb_offtype;
+  fd_compression_type fd_compression;
+  time_t fd_modtime;
   int fdp_n_schemas, fdp_max_slotids;
   struct FD_SCHEMA_ENTRY *fdp_schemas;
   struct FD_SCHEMA_LOOKUP *fdp_schbyval;
@@ -188,12 +193,10 @@ unsigned int fd_hash_dtype_rep(fdtype x);
 
 #define MYSTERIOUS_MODULUS 2000239099 /* 256000001 */
 
-#define FD_HASH_INDEX_FN_MASK 0x0F
-#define FD_HASH_OFFTYPE_MASK  0x30
-#define FD_HASH_INDEX_DTYPEV2 0x40
-/* This determines if the hash index only has pair keys
-   whose cars are in its slotids.  */
-#define FD_HASH_INDEX_ODDKEYS (FD_HASH_INDEX_DTYPEV2<<1)
+#define FD_HASH_INDEX_FN_MASK       0x0F
+#define FD_HASH_INDEX_OFFTYPE_MASK  0x30
+#define FD_HASH_INDEX_DTYPEV2       0x40
+#define FD_HASH_INDEX_ODDKEYS       (FD_HASH_INDEX_DTYPEV2<<1)
 
 /* Full sized chunk refs, usually passed and returned but not
    directly stored on disk. */
@@ -216,8 +219,8 @@ typedef struct FD_HASH_INDEX {
   /* flags controls hash functions, compression, etc.
      hxcustom is a placeholder for a value to customize
      the hash function. */
-  unsigned int fdx_flags, fdx_custom, fd_n_keys;
-  fd_offset_type fdx_offtype;
+  unsigned int fdb_xformat, fdx_custom, fd_n_keys;
+  fd_offset_type fdb_offtype;
 
   /* This is used to store compressed keys and values. */
   int fdx_n_slotids, fdx_new_slotids; fdtype *fdx_slotids;

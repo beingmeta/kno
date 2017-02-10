@@ -381,8 +381,8 @@ static void fast_reset_hashtable
 static int fast_swapout_index(fd_index ix,void *data)
 {
   struct HASHVECS_TODO *todo=(struct HASHVECS_TODO *)data;
-  if ((((ix->flags)&FD_INDEX_NOSWAP)==0) && (ix->fd_cache.fd_n_keys)) {
-    if ((ix->flags)&(FD_STICKY_CACHESIZE))
+  if ((((ix->fdb_flags)&FD_INDEX_NOSWAP)==0) && (ix->fd_cache.fd_n_keys)) {
+    if ((ix->fdb_flags)&(FD_STICKY_CACHESIZE))
       fast_reset_hashtable(&(ix->fd_cache),-1,todo);
     else fast_reset_hashtable(&(ix->fd_cache),0,todo);}
   return 0;

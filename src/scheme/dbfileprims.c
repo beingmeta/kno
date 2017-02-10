@@ -148,7 +148,7 @@ static fdtype make_oidpool(int n,fdtype *args)
       flags=flags|FD_OIDPOOL_DTYPEV2;
     
     if (fd_position(fd_intern("READONLY"),flags_arg,0,-1)>=0)
-      flags=flags|FD_OIDPOOL_READONLY;}
+      flags=flags|FD_OIDPOOL_READ_ONLY;}
   else flags=FD_B40;
   
   retval=fd_make_oidpool(filename,label,
@@ -202,7 +202,7 @@ static int get_make_hash_index_flags(fdtype flags_arg)
       flags=flags|FD_HASH_INDEX_DTYPEV2;
     else if (fd_position(fd_intern("DTYPEV1"),flags_arg,0,-1)>=0)
       flags=flags;
-    else flags=flags; /* |FD_HASH_INDEX_DTYPEV2; */
+    else flags=flags; /* |FDB_DTYPEV2; */
     return flags;}
   else if (FD_EQ(flags_arg,fd_intern("DTYPEV2")))
     return FD_HASH_INDEX_DTYPEV2;

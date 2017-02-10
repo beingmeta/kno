@@ -113,7 +113,7 @@ static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
       fd_unlock_struct(fp);
       return 0;}
     fstat(s->fd_fileno,&fileinfo);
-    if (fileinfo.st_mtime>fp->modtime) {
+    if (fileinfo.st_mtime>fp->fd_modtime) {
       /* Make sure we're up to date. */
       if (fp->fd_offsets) reload_file_pool_cache(fp,0);
       else {
@@ -127,8 +127,8 @@ static void update_modtime(struct FD_FILE_POOL *fp)
 {
   struct stat fileinfo;
   if ((fstat(fp->fd_stream.fd_fileno,&fileinfo))<0)
-    fp->modtime=(time_t)-1;
-  else fp->modtime=fileinfo.st_mtime;
+    fp->fd_modtime=(time_t)-1;
+  else fp->fd_modtime=fileinfo.st_mtime;
 }
 
 static int file_pool_load(fd_pool p)

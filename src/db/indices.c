@@ -109,7 +109,7 @@ FD_EXPORT void fd_index_setcache(fd_index ix,int level)
 {
   if (ix->handler->setcache) ix->handler->setcache(ix,level);
   ix->fd_cache_level=level;
-  ix->flags=ix->flags|FD_EXPLICIT_SETCACHE;
+  ix->fdb_flags=ix->fdb_flags|FDB_CACHELEVEL_SET;
 }
 
 static void init_cache_level(fd_index ix)
@@ -227,7 +227,7 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
     fd_seterr(fd_TypeError,"fd_add_to_background","static index",lix);
     return -1;}
   fd_lock_mutex(&background_lock);
-  ix->flags=ix->flags|FD_INDEX_IN_BACKGROUND;
+  ix->fdb_flags=ix->fdb_flags|FD_INDEX_IN_BACKGROUND;
   if (fd_background)
     fd_add_to_compound_index(fd_background,ix);
   else {
@@ -342,7 +342,7 @@ FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys)
       delay_index_fetch(ix,keys);
       return 0;}
     else return ix->handler->prefetch(ix,keys);
-  else if ((ix->handler->fetchn==NULL)||(!((ix->flags)&(FD_INDEX_BATCHABLE)))) {
+  else if ((ix->handler->fetchn==NULL)||(!((ix->fdb_flags)&(FDB_BATCHABLE)))) {
     if (fd_ipeval_status()) {
       delay_index_fetch(ix,keys);
       return 0;}
@@ -655,7 +655,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
       if (fd_hashtable_probe(&(fdtc->indices),(fdtype)&tempkey)) {
         fd_hashtable_add(&(fdtc->indices),(fdtype)&tempkey,value);}}}
 
-  if ( (ix->flags&FD_INDEX_IN_BACKGROUND) &&
+  if ( (ix->fdb_flags&FD_INDEX_IN_BACKGROUND) &&
        (fd_background->fd_cache.fd_n_keys) && 
          (fd_background->fd_cache.fd_n_keys) ) {
     fd_hashtable bgcache=&(fd_background->fd_cache);
@@ -702,7 +702,7 @@ FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
     if (ix->fd_cache_level>0)
       fd_hashtable_drop(&(ix->fd_cache),key,value);
     fd_decref(set_key); fd_decref(drop_key);}
-  if ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
+  if ((ix->fdb_flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->fd_cache.fd_n_keys)) {
     if (FD_CHOICEP(key)) {
       const fdtype *keys=FD_CHOICE_DATA(key);
@@ -744,7 +744,7 @@ FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
       fd_hashtable_store(&(ix->fd_cache),key,value);
       fd_hashtable_op(&(ix->fdx_adds),fd_table_replace,key,FD_VOID);}
     fd_decref(set_key); fd_decref(drop_key);}
-  if ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
+  if ((ix->fdb_flags&FD_INDEX_IN_BACKGROUND) &&
       (fd_background->fd_cache.fd_n_keys)) {
     if (FD_CHOICEP(key)) {
       const fdtype *keys=FD_CHOICE_DATA(key);
@@ -773,7 +773,7 @@ FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
 {
   /* Ignoring this for now */
   int in_background=
-    ((ix->flags&FD_INDEX_IN_BACKGROUND) &&
+    ((ix->fdb_flags&FD_INDEX_IN_BACKGROUND) &&
      (fd_background->fd_cache.fd_n_keys));
   fdtype keys=FD_EMPTY_CHOICE;
   fd_hashtable adds=&(ix->fdx_adds);
@@ -828,8 +828,8 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 
 FD_EXPORT void fd_index_swapout(fd_index ix)
 {
-  if ((((ix->flags)&FD_INDEX_NOSWAP)==0) && (ix->fd_cache.fd_n_keys)) {
-    if ((ix->flags)&(FD_STICKY_CACHESIZE))
+  if ((((ix->fdb_flags)&FD_INDEX_NOSWAP)==0) && (ix->fd_cache.fd_n_keys)) {
+    if ((ix->fdb_flags)&(FD_STICKY_CACHESIZE))
       fd_reset_hashtable(&(ix->fd_cache),-1,1);
     else fd_reset_hashtable(&(ix->fd_cache),0,1);}
 }
@@ -848,7 +848,7 @@ FD_EXPORT void fd_init_index
   if (consed) {FD_INIT_CONS(ix,fd_raw_index_type);}
   else {FD_INIT_STATIC_CONS(ix,fd_raw_index_type);}
   ix->serialno=-1; ix->fd_cache_level=-1; ix->fd_read_only=1;
-  ix->flags=((h->fetchn)?(FD_INDEX_BATCHABLE):(0));
+  ix->fdb_flags=((h->fetchn)?(FDB_BATCHABLE):(0));
   FD_INIT_STATIC_CONS(&(ix->fd_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(ix->fdx_adds),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(ix->fdx_edits),fd_hashtable_type);
@@ -1127,7 +1127,7 @@ fd_index fd_make_mem_index(int consed)
   struct FD_MEM_INDEX *mix=u8_alloc(struct FD_MEM_INDEX);
   FD_INIT_STRUCT(mix,struct FD_MEM_INDEX);
   fd_init_index((fd_index)mix,&memindex_handler,"ephemeral",consed);
-  mix->fd_cache_level=1; mix->fd_read_only=0; mix->flags=FD_INDEX_NOSWAP;
+  mix->fd_cache_level=1; mix->fd_read_only=0; mix->fdb_flags=FD_INDEX_NOSWAP;
   fd_register_index((fd_index)mix);
   return (fd_index)mix;
 }
@@ -1187,7 +1187,7 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
   struct FD_FUNCTION *fptr=((FD_FUNCTIONP(fetchfn))?
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
-  if (!((p->flags)&(FD_INDEX_BATCHABLE))) return NULL;
+  if (!((p->fdb_flags)&(FDB_BATCHABLE))) return NULL;
   FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
   vstruct.fd_veclen=n; vstruct.fd_vecelts=keys; vstruct.fd_freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);

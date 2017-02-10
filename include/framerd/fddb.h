@@ -38,8 +38,29 @@ FD_EXPORT int fd_swapcheck(void);
 FD_EXPORT u8_mutex fd_swapcheck_lock;
 #endif
 
-#define FD_EXPLICIT_SETCACHE 2
-#define FD_STICKY_CACHESIZE 4
+/* 
+   FramerD database objects have a 32-bit wide fdb_flags field.  The
+   first 12 bits are reserved for generic flags (any database), the
+   next 8 bits are for flags applicable to any pool or index and the
+   remaining 12 bits are for flags for particular implementations.
+*/
+
+#define FDB_ISPOOL_FLAG        0x01
+#define FDB_ISINDEX_FLAG       0x02
+#define FDB_READ_ONLY          0x04
+#define FDB_BATCHABLE          0x08
+#define FDB_LOCKFREE           0x10  /* Whether the pool needs to have
+					a mutex locked */
+#define FDB_CACHELEVEL_SET     0x20  /* Whether the cachelevel was
+					explicitly set */
+#define FD_STICKY_CACHESIZE    0x40  /* Whether to keep the size of
+					cache tables when resetting a
+					pool or index */
+#define FD_POOLINDEX_INIT_BIT  0x1000
+#define FD_IMPLEMENTATION_BIT  0x100000
+
+#define FDB_INDEX_FLAG(n)          ((0x1000)<<n)
+#define FDB_POOL_FLAG(n)           ((0x1000)<<n)
 
 #ifndef FDBSERV_MAX_POOLS
 #define FDBSERV_MAX_POOLS 128

@@ -27,21 +27,17 @@ FD_EXPORT int fd_index_cache_init;
 FD_EXPORT int fd_index_edits_init;
 FD_EXPORT int fd_index_adds_init;
 
-#define FD_INDEX_FLAG_BASE 256
-#define FD_INDEX_FLAG(n) (FD_INDEX_FLAG_BASE<<(n))
-
-#define FD_INDEX_ADD_CAPABILITY  (FD_INDEX_FLAG(1))
-#define FD_INDEX_DROP_CAPABILITY (FD_INDEX_FLAG(2))
-#define FD_INDEX_SET_CAPABILITY  (FD_INDEX_FLAG(3))
-#define FD_INDEX_IN_BACKGROUND   (FD_INDEX_FLAG(4))
-#define FD_INDEX_NOSWAP          (FD_INDEX_FLAG(5))
-#define FD_INDEX_BATCHABLE       (FD_INDEX_FLAG(6))
+#define FD_INDEX_ADD_CAPABILITY  (FDB_INDEX_FLAG(1))
+#define FD_INDEX_DROP_CAPABILITY (FDB_INDEX_FLAG(2))
+#define FD_INDEX_SET_CAPABILITY  (FDB_INDEX_FLAG(3))
+#define FD_INDEX_IN_BACKGROUND   (FDB_INDEX_FLAG(4))
+#define FD_INDEX_NOSWAP          (FDB_INDEX_FLAG(5))
 
 #define FD_N_PRIMARY_INDICES 128
 
 #define FD_INDEX_FIELDS \
   FD_CONS_HEADER;                                \
-  int serialno, fd_read_only, fd_cache_level, flags;   \
+  int serialno, fd_read_only, fd_cache_level, fdb_flags;   \
   u8_string fd_source, fd_cid, fd_xid;                    \
   struct FD_INDEX_HANDLER *handler;              \
   struct FD_HASHTABLE fd_cache, fdx_adds, fdx_edits;        \
@@ -249,7 +245,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
       if (fd_hashtable_probe(&fdtc->indices,(fdtype)&tempkey)) {
 	fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}}
 
-  if ((ix->flags&FD_INDEX_IN_BACKGROUND) && 
+  if ((ix->fdb_flags&FD_INDEX_IN_BACKGROUND) && 
       (fd_background->fd_cache.fd_n_keys)) {
     fd_hashtable bgcache=(&(fd_background->fd_cache));
     if (FD_CHOICEP(key)) {
