@@ -88,7 +88,7 @@ static void init_webcommon_symbols()
   forcelog_slotid=fd_intern("FORCELOG");
   webdebug_symbol=fd_intern("WEBDEBUG");
   errorpage_symbol=fd_intern("ERRORPAGE");
-  crisispage_symbol=fd_intern("CRISISPAGE");  
+  crisispage_symbol=fd_intern("CRISISPAGE");
   output_symbol=fd_intern("OUTPUT");
   error_symbol=fd_intern("REQERROR");
   reqdata_symbol=fd_intern("REQDATA");
@@ -105,7 +105,7 @@ static fdtype preflight=FD_EMPTY_LIST;
 static int preflight_set(fdtype var,fdtype val,void *data)
 {
   struct FD_FUNCTION *vf;
-  if (!(FD_APPLICABLEP(val))) 
+  if (!(FD_APPLICABLEP(val)))
     return fd_reterr(fd_TypeError,"preflight_set",u8_strdup("applicable"),val);
   if (FD_FUNCTIONP(val)) {
     vf=FD_DTYPE2FCN(val);
@@ -157,7 +157,7 @@ static fdtype postflight=FD_EMPTY_LIST;
 static int postflight_set(fdtype var,fdtype val,void *data)
 {
   struct FD_FUNCTION *vf;
-  if (!(FD_APPLICABLEP(val))) 
+  if (!(FD_APPLICABLEP(val)))
     return fd_reterr(fd_TypeError,"postflight_set",u8_strdup("applicable"),val);
   if (FD_FUNCTIONP(val)) {
     vf=FD_DTYPE2FCN(val);
@@ -343,7 +343,7 @@ static void dolog
 	if (ex==NULL)
 	  tmp=u8_mkstring("!%s\n@%*lt %g/%g (mystery error)\n",FD_STRDATA(uri),
 			  exectime,u8_elapsed_time());
-	
+
 	else if (ex->u8x_context)
 	  tmp=u8_mkstring("!%s\n@%*lt %g/%g %s %s\n",FD_STRDATA(uri),
 			  exectime,u8_elapsed_time(),
@@ -362,7 +362,7 @@ static void dolog
       u8_string tmp=u8_mkstring("<%s\n@%*lt %ld %g/%g\n",FD_STRDATA(uri),
 				len,exectime,u8_elapsed_time());
       fputs(tmp,urllog); u8_free(tmp);}
-    if ((reqlog) && (reqloglevel>2)) 
+    if ((reqlog) && (reqloglevel>2))
       fd_store(cgidata,response_symbol,fdtype_string(response));
     if ((reqlog) && (reqloglevel>1))
       fd_dtswrite_dtype(reqlog,cgidata);}
@@ -372,7 +372,7 @@ static void dolog
 /* Preloads */
 
 struct FD_PRELOAD_LIST {
-  u8_string preload_filename; 
+  u8_string preload_filename;
   time_t preload_mtime;
   struct FD_PRELOAD_LIST *next_preload;} *preloads=NULL;
 
@@ -401,7 +401,7 @@ static int preload_set(fdtype var,fdtype val,void *ignored)
   else {
     struct FD_PRELOAD_LIST *scan;
     u8_string filename=FD_STRDATA(val); time_t mtime;
-    if (!(u8_file_existsp(filename))) 
+    if (!(u8_file_existsp(filename)))
       return fd_reterr(fd_FileNotFound,"preload_config_set",
 		       u8_strdup(filename),FD_VOID);
     fd_lock_mutex(&preload_lock);
@@ -444,7 +444,7 @@ static int update_preloads()
 	n_reloads++;
 	fd_decref(load_result);
 	fd_lock_mutex(&preload_lock);
-	if (mtime>scan->preload_mtime) 
+	if (mtime>scan->preload_mtime)
 	  scan->preload_mtime=mtime;}
       scan=scan->next_preload;}
     last_preload_update=u8_elapsed_time();

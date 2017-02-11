@@ -226,9 +226,12 @@ static u8_mutex update_modules_lock;
 #endif
 
 struct FD_LOAD_RECORD {
-  u8_string filename; fd_lispenv env; fdtype spec;
-  time_t mtime; int reloading:1;
-  struct FD_LOAD_RECORD *next;} *load_records=NULL;
+  fdtype fd_loadspec;
+  u8_string fd_loadfile;
+  fd_lispenv fd_loadenv;
+  time_t fd_modtime;
+  int fd_reloading:1;
+  struct FD_LOAD_RECORD *fd_next_reload;} *load_records=NULL;
 
 static void add_load_record
   (fdtype spec,u8_string filename,fd_lispenv env,time_t mtime)
@@ -236,29 +239,33 @@ static void add_load_record
   struct FD_LOAD_RECORD *scan;
   fd_lock_mutex(&load_record_lock);
   scan=load_records; while (scan)
-    if ((strcmp(filename,scan->filename))==0) {
-      if (env!=scan->env) {
+    if ((strcmp(filename,scan->fd_loadfile))==0) {
+      if (env!=scan->fd_loadenv) {
         fd_incref((fdtype)env);
-        fd_decref((fdtype)(scan->env));
-        scan->env=env;}
-      scan->mtime=mtime;
+        fd_decref((fdtype)(scan->fd_loadenv));
+        scan->fd_loadenv=env;}
+      scan->fd_modtime=mtime;
       fd_unlock_mutex(&load_record_lock);
       return;}
-    else scan=scan->next;
+    else scan=scan->fd_next_reload;
   scan=u8_alloc(struct FD_LOAD_RECORD);
-  scan->filename=u8_strdup(filename);
-  scan->mtime=mtime; scan->reloading=0;
-  scan->env=(fd_lispenv)fd_incref((fdtype)env);
-  scan->spec=fd_incref(spec);
-  scan->next=load_records; load_records=scan;
+  scan->fd_loadfile=u8_strdup(filename);
+  scan->fd_modtime=mtime; scan->fd_reloading=0;
+  scan->fd_loadenv=(fd_lispenv)fd_incref((fdtype)env);
+  scan->fd_loadspec=fd_incref(spec);
+  scan->fd_next_reload=load_records;
+  load_records=scan;
   fd_unlock_mutex(&load_record_lock);
 }
 
-typedef struct MODULE_RELOAD {
-  u8_string filename; fd_lispenv env; fdtype spec;
-  struct FD_LOAD_RECORD *record; time_t mtime;
-  struct MODULE_RELOAD *next;} RELOAD_MODULE;
-typedef struct MODULE_RELOAD *module_reload;
+typedef struct FD_MODULE_RELOAD {
+  u8_string fd_loadfile;
+  fd_lispenv fd_loadenv;
+  fdtype fd_loadspec;
+  struct FD_LOAD_RECORD *fd_load_record;
+  time_t fd_modtime;
+  struct FD_MODULE_RELOAD *fd_next_reload;} RELOAD_MODULE;
+typedef struct FD_MODULE_RELOAD *module_reload;
 
 FD_EXPORT int fd_update_file_modules(int force)
 {
@@ -274,45 +281,48 @@ FD_EXPORT int fd_update_file_modules(int force)
     scan=load_records; while (scan) {
       time_t mtime;
       /* Don't automatically update non-local files */
-      if (strchr(scan->filename,':')!=NULL) {
-	scan=scan->next; continue;}
-      else mtime=u8_file_mtime(scan->filename);
-      if (mtime>scan->mtime) {
-        struct MODULE_RELOAD *toreload=u8_alloc(struct MODULE_RELOAD);
-        toreload->filename=scan->filename; toreload->env=scan->env;
-        toreload->spec=scan->spec;
-        toreload->record=scan; toreload->mtime=-1;
-        toreload->next=reloads;
+      if (strchr(scan->fd_loadfile,':')!=NULL) {
+        scan=scan->fd_next_reload; continue;}
+      else mtime=u8_file_mtime(scan->fd_loadfile);
+      if (mtime>scan->fd_modtime) {
+        struct FD_MODULE_RELOAD *toreload=u8_alloc(struct FD_MODULE_RELOAD);
+        toreload->fd_loadfile=scan->fd_loadfile;
+        toreload->fd_loadenv=scan->fd_loadenv;
+        toreload->fd_loadspec=scan->fd_loadspec;
+        toreload->fd_load_record=scan;
+        toreload->fd_modtime=-1;
+        toreload->fd_next_reload=reloads;
         rscan=reloads=toreload;
-        scan->reloading=1;}
-      scan=scan->next;}
+        scan->fd_reloading=1;}
+      scan=scan->fd_next_reload;}
     fd_unlock_mutex(&load_record_lock);
     rscan=reloads; while (rscan) {
       module_reload this=rscan; fdtype load_result;
-      u8_string filename=this->filename;
-      fd_lispenv env=this->env; rscan=this->next;
-      time_t mtime=u8_file_mtime(this->filename);
+      u8_string filename=this->fd_loadfile;
+      fd_lispenv env=this->fd_loadenv;
+      time_t mtime=u8_file_mtime(this->fd_loadfile);
+      rscan=this->fd_next_reload;
       if (log_reloads)
         u8_log(LOG_WARN,"fd_update_file_modules","Reloading %q from %s",
-               this->spec,filename);
+               this->fd_loadspec,filename);
       load_result=fd_load_source(filename,env,"auto");
       if (FD_ABORTP(load_result)) {
         u8_log(LOG_CRIT,"update_file_modules","Error reloading %q from %s",
-               this->spec,filename);
+               this->fd_loadspec,filename);
         fd_clear_errors(1);}
       else {
         if (log_reloads)
           u8_log(LOG_WARN,"fd_update_file_modules","Reloaded %q from %s",
-                 this->spec,filename);
+                 this->fd_loadspec,filename);
         fd_decref(load_result); n_reloads++;
-        this->mtime=mtime;}}
+        this->fd_modtime=mtime;}}
     fd_lock_mutex(&load_record_lock);
     rscan=reloads; while (rscan) {
       module_reload this=rscan;
-      if (this->mtime>0) {
-        this->record->mtime=this->mtime;}
-      this->record->reloading=0;
-      rscan=this->next;
+      if (this->fd_modtime>0) {
+        this->fd_load_record->fd_modtime=this->fd_modtime;}
+      this->fd_load_record->fd_reloading=0;
+      rscan=this->fd_next_reload;
       u8_free(this);}
     fd_unlock_mutex(&load_record_lock);
     last_reload=reload_time;
@@ -326,22 +336,22 @@ FD_EXPORT int fd_update_file_module(u8_string module_source,int force)
   time_t mtime=(time_t) -1;
   if (strchr(module_source,':')==NULL)
     mtime=u8_file_mtime(module_source);
-  else if (strncasecmp(module_source,"file:",5)==0) 
+  else if (strncasecmp(module_source,"file:",5)==0)
     mtime=u8_file_mtime(module_source+5);
   else {
     int rv=fd_probe_source(module_source,NULL,&mtime);
     if (rv<0) {
-      u8_log(LOG_WARN,fd_ReloadError,
-	     "Couldn't find %s to reload it",module_source);
+      u8_log(LOG_WARN,fd_ReloadError,"Couldn't find %s to reload it",
+             module_source);
       return -1;}}
   if (mtime<0) return 0;
   fd_lock_mutex(&update_modules_lock);
   fd_lock_mutex(&load_record_lock);
   scan=load_records;
   while (scan)
-    if (strcmp(scan->filename,module_source)==0) break;
-    else scan=scan->next;
-  if ((scan)&&(scan->reloading)) {
+    if (strcmp(scan->fd_loadfile,module_source)==0) break;
+    else scan=scan->fd_next_reload;
+  if ((scan)&&(scan->fd_reloading)) {
     fd_unlock_mutex(&load_record_lock);
     fd_unlock_mutex(&update_modules_lock);
     return 0;}
@@ -354,29 +364,31 @@ FD_EXPORT int fd_update_file_module(u8_string module_source,int force)
                           module_source),
               FD_VOID);
     return -1;}
-  else if ((!(force))&&(mtime<=scan->mtime)) {
+  else if ((!(force))&&(mtime<=scan->fd_modtime)) {
     fd_unlock_mutex(&load_record_lock);
     fd_unlock_mutex(&update_modules_lock);
     return 0;}
-  scan->reloading=1;
+  scan->fd_reloading=1;
   fd_unlock_mutex(&load_record_lock);
-  if ((force) || (mtime>scan->mtime)) {
+  if ((force) || (mtime>scan->fd_modtime)) {
     fdtype load_result;
     if (log_reloads)
-      u8_log(LOG_WARN,"fd_update_file_module","Reloading %s",scan->filename);
-    load_result=fd_load_source(scan->filename,scan->env,"auto");
+      u8_log(LOG_WARN,"fd_update_file_module","Reloading %s",
+             scan->fd_loadfile);
+    load_result=fd_load_source
+      (scan->fd_loadfile,scan->fd_loadenv,"auto");
     if (FD_ABORTP(load_result)) {
       fd_seterr(fd_ReloadError,"fd_reload_modules",
-                u8_strdup(scan->filename),load_result);
+                u8_strdup(scan->fd_loadfile),load_result);
       fd_lock_mutex(&load_record_lock);
-      scan->reloading=0;
+      scan->fd_reloading=0;
       fd_unlock_mutex(&load_record_lock);
       fd_unlock_mutex(&update_modules_lock);
       return -1;}
     else {
       fd_decref(load_result);
       fd_lock_mutex(&load_record_lock);
-      scan->mtime=mtime; scan->reloading=0;
+      scan->fd_modtime=mtime; scan->fd_reloading=0;
       fd_unlock_mutex(&load_record_lock);
       fd_unlock_mutex(&update_modules_lock);
       return 1;}}

@@ -62,20 +62,23 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
     struct FD_FFI_PROC *proc=
       u8_zalloc_for("fd_make_ffi_proc",struct FD_FFI_PROC);
     FD_INIT_CONS(proc,fd_ffi_type);
-    proc->fdfn_name=u8_strdup(name); proc->filename=NULL;
+    /* Set up generic function fields */
+    proc->fdfn_name=u8_strdup(name);
+    proc->fdfn_filename=NULL;
     proc->fd_ffi_arity=arity;
     proc->fd_ffi_defaults=defaults;
     proc->fd_ffi_rtype=return_type;
     proc->fd_ffi_argtypes=argtypes;
-    // Set up generic function fields
-    proc->fdfn_ndcall=0; proc->fdfn_xcall=1;
+    proc->fdfn_ndcall=0;
+    proc->fdfn_xcall=1;
     // Defer arity checking to fd_ffi_call
-    proc->fdfn_min_arity=0; proc->fdfn_arity=-1; 
+    proc->fdfn_min_arity=0;
+    proc->fdfn_arity=-1;
     proc->fdfn_handler.xcalln=fd_ffi_call;
     return proc;}
   else {
     u8_free(cif);
-    if (rv == FFI_BAD_TYPEDEF) 
+    if (rv == FFI_BAD_TYPEDEF)
       u8_seterr(fd_ffi_BadTypeinfo,"fd_make_ffi_proc",NULL);
     else if (rv == FFI_BAD_ABI)
       u8_seterr(fd_ffi_BadABI,"fd_make_ffi_proc",NULL);

@@ -86,7 +86,8 @@ FD_EXPORT int fd_bind_value(fdtype sym,fdtype val,fd_lispenv env)
       fd_seterr(fd_CantBind,"fd_bind_value",NULL,sym);
       return -1;}
     if (FD_HASHTABLEP(env->fdenv_exports))
-      fd_hashtable_op((fd_hashtable)(env->fdenv_exports),fd_table_replace,sym,val);
+      fd_hashtable_op((fd_hashtable)(env->fdenv_exports),
+                      fd_table_replace,sym,val);
     return 1;}
   else return 0;
 }

@@ -330,14 +330,14 @@ FD_EXPORT int fd_start_calltrack(u8_string filename)
   if (*filename=='+')
     output=fopen(filename+1,"a+");
   else output=fopen(filename,"w");
-  if (f) {
-    fprintf(f,"# Calltrack start\n");
+  if (output) {
+    fprintf(output,"# Calltrack start\n");
     calltrack_logfilename=u8_strdup(filename);
     calltrack_logfile=output;
-    fprintf(f,":TIME");
+    fprintf(output,":TIME");
     {int i=0; while (i<n_calltrack_sensors)
       if (calltrack_sensors[i].enabled)
-        fprintf(f," %s",calltrack_sensors[i++].name);
+        fprintf(output," %s",calltrack_sensors[i++].name);
       else i++;}
     fprintf(output,"\n");
     return retval;}
