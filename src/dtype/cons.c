@@ -490,12 +490,16 @@ fdtype *fd_copy_vec(fdtype *vec,int n,fdtype *into,int flags)
   fdtype *dest=(into==NULL)?(u8_alloc_n(n,fdtype)):(into);
   int i=0; while (i<n) {
     fdtype elt=vec[i];
-    if (U8_BITP(flags,FD_DEEP_COPY))
-      into[i]=fd_copier(elt,flags);
-    else {
-      into[i]=elt;
-      fd_incref(elt);}
+    if (elt==FD_NULL)
+      break;
+    else if (!(FD_CONSP(elt)))
+      dest[i]=elt;
+    else if (U8_BITP(flags,FD_DEEP_COPY)) {
+      dest[i]=fd_copier(elt,flags);}
+    else
+      dest[i]=fd_incref(elt);
     i++;}
+  while (i<n) dest[i++]=FD_NULL;
   return dest;
 }
 
@@ -1536,7 +1540,7 @@ void fd_init_cons_c()
   i=0; while (i < FD_TYPE_MAX) fd_dtype_writers[i++]=NULL;
   i=0; while (i < FD_TYPE_MAX) fd_comparators[i++]=NULL;
   i=0; while (i<FD_TYPE_MAX) fd_hashfns[i++]=NULL;
-  i=0; while (i<FD_MAX_IMMEDIATE_TYPES+4) 
+  i=0; while (i<FD_MAX_IMMEDIATE_TYPES+4)
          fd_immediate_checkfns[i++]=NULL;
 
   fd_immediate_checkfns[fd_constant_type]=validate_constant;
@@ -1563,12 +1567,14 @@ void fd_init_cons_c()
   timestamp_symbol=fd_intern("TIMESTAMP");
   timestamp0_symbol=fd_intern("TIMESTAMP0");
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp_symbol,NULL,NULL);
+    struct FD_COMPOUND_ENTRY *e=
+      fd_register_compound(timestamp_symbol,NULL,NULL);
     e->parser=timestamp_parsefn;
     e->dump=NULL;
     e->restore=timestamp_restore;}
   {
-    struct FD_COMPOUND_ENTRY *e=fd_register_compound(timestamp0_symbol,NULL,NULL);
+    struct FD_COMPOUND_ENTRY *e=
+      fd_register_compound(timestamp0_symbol,NULL,NULL);
     e->parser=timestamp_parsefn;
     e->dump=NULL;
     e->restore=timestamp_restore;}
@@ -1590,14 +1596,17 @@ void fd_init_cons_c()
     e->restore=uuid_restore;}
 
   fd_compound_descriptor_type=
-    fd_init_compound(NULL,FD_VOID,9,
-                     fd_intern("COMPOUNDTYPE"),FD_INT(9),
-                     fd_make_nvector(9,fd_intern("TAG"),fd_intern("LENGTH"),fd_intern("FIELDS"),
-                                     fd_intern("INITFN"),fd_intern("FREEFN"),fd_intern("COMPAREFN"),
-                                     fd_intern("STRINGFN"),fd_intern("DUMPFN"),fd_intern("RESTOREFN")),
-                     FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
-                     FD_FALSE,FD_FALSE);
-  ((struct FD_COMPOUND *)fd_compound_descriptor_type)->tag=fd_compound_descriptor_type;
+    fd_init_compound
+    (NULL,FD_VOID,9,
+     fd_intern("COMPOUNDTYPE"),FD_INT(9),
+     fd_make_nvector(9,fd_intern("TAG"),fd_intern("LENGTH"),
+                     fd_intern("FIELDS"),fd_intern("INITFN"),
+                     fd_intern("FREEFN"),fd_intern("COMPAREFN"),
+                     fd_intern("STRINGFN"),fd_intern("DUMPFN"),
+                     fd_intern("RESTOREFN")),
+     FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
+     FD_FALSE,FD_FALSE);
+  ((fd_compound)fd_compound_descriptor_type)->tag=fd_compound_descriptor_type;
   fd_incref(fd_compound_descriptor_type);
 }
 
