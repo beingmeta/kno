@@ -1242,14 +1242,14 @@ if test $with_tcmalloc = "yes"; then
   memtest_prefix=builtin_
   heaptest_prefix=builtin_
   heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
   CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
 elif test $with_tcmalloc = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
   heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\"" 
 fi
 
 AC_ARG_WITH(perftools,--with[out]-google Use the Google perftools,,with_perftools="yes")
@@ -1272,7 +1272,7 @@ if test $with_perftools = "yes"; then
     heaptest_prefix=builtin_
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
     heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-    memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
+    memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
   fi; 
 elif test $with_perftools = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
@@ -1282,7 +1282,7 @@ elif test $with_perftools = "debug"; then
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
   heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\"" 
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\"" 
 fi
 
 AC_ARG_WITH(hyphenate,--with-hyphenate Build and install hyphenate bindings,,with_hyphenate="yes")

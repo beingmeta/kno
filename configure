@@ -10836,7 +10836,7 @@ fi
   memtest_prefix=builtin_
   heaptest_prefix=builtin_
   heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
   CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
 elif test $with_tcmalloc = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
@@ -10887,7 +10887,7 @@ fi
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
   heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
 fi
 
 
@@ -11028,7 +11028,7 @@ done
     heaptest_prefix=builtin_
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
     heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-    memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
+    memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
   fi;
 elif test $with_perftools = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
@@ -11149,7 +11149,7 @@ done
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
   heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5 MALLOCSTATS=5\""
+  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
 fi
 
 
