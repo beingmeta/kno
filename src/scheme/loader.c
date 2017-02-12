@@ -633,7 +633,6 @@ FD_EXPORT void fd_init_loader_c()
   fd_register_sourcefn(file_source_fn,NULL);
 
   fd_finish_module(loader_module);
-  fd_persist_module(loader_module);
 }
 
 /* Emacs local variables

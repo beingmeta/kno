@@ -11,7 +11,7 @@
 
 #define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_TABLES 1
-#define FD_INLINE_PPTRS 1
+#define FD_INLINE_FCNIDS 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"

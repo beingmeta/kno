@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_PPTRS 1
+#define FD_INLINE_FCNIDS 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -674,7 +674,7 @@ FD_EXPORT fdtype fd_mapseq(int n,fdtype *args)
   fdtype fn=args[0], *sequences=args+1, firstseq=sequences[0];
   fdtype result, *results, _argvec[8], *argvec=NULL;
   fd_ptr_type result_type=FD_PTR_TYPE(firstseq);
-  if (FD_PPTRP(fn)) fn=fd_pptr_ref(fn);
+  if (FD_FCNIDP(fn)) fn=fd_fcnid_ref(fn);
   if ((FD_TABLEP(fn)) || (FD_ATOMICP(fn))) {
     if (n_seqs>1)
       return fd_err(fd_TooManyArgs,"fd_foreach",NULL,fn);

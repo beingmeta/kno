@@ -119,7 +119,7 @@ typedef enum FD_PTR_TYPE {
   fd_constant_type=FD_IMMEDIATE_TYPECODE(0),
   fd_character_type=FD_IMMEDIATE_TYPECODE(1),
   fd_symbol_type=FD_IMMEDIATE_TYPECODE(2),
-  fd_pptr_type=FD_IMMEDIATE_TYPECODE(3),
+  fd_fcnid_type=FD_IMMEDIATE_TYPECODE(3),
   /* Reserved as constants for an evaluator */
   fd_lexref_type=FD_IMMEDIATE_TYPECODE(4),
   fd_opcode_type=FD_IMMEDIATE_TYPECODE(5),
@@ -510,58 +510,57 @@ FD_EXPORT fdtype fd_all_symbols(void);
    persistent pointers are not subject to GC, so they can
    be passed much more quickly and without thread contention. */
 
-#define FD_PPTRP(x) \
+#define FD_FCNIDP(x) \
   ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-   (FD_IMMEDIATE_TYPE(x)==fd_pptr_type))
+   (FD_IMMEDIATE_TYPE(x)==fd_fcnid_type))
 
-FD_EXPORT struct FD_CONS **_fd_pptrs[];
-FD_EXPORT int _fd_npptrs;
+FD_EXPORT struct FD_CONS **_fd_fcnids[];
+FD_EXPORT int _fd_fcnid_count;
 #if FD_THREADS_ENABLED
-FD_EXPORT u8_mutex _fd_pptr_lock;
+FD_EXPORT u8_mutex _fd_fcnid_lock;
 #endif
 
-#ifndef FD_PPTR_BLOCKSIZE
-#define FD_PPTR_BLOCKSIZE 256
+#ifndef FD_FCNID_BLOCKSIZE
+#define FD_FCNID_BLOCKSIZE 256
 #endif
 
-#ifndef FD_PPTR_NBLOCKS
-#define FD_PPTR_NBLOCKS 256
+#ifndef FD_FCNID_NBLOCKS
+#define FD_FCNID_NBLOCKS 256
 #endif
 
-#ifndef FD_INLINE_PPTRS
-#define FD_INLINE_PPTRS 0
+#ifndef FD_INLINE_FCNIDS
+#define FD_INLINE_FCNIDS 0
 #endif
 
-FD_EXPORT fdtype _fd_pptr_ref(fdtype ref);
-FD_EXPORT fdtype fd_pptr_register(fdtype obj);
+FD_EXPORT fdtype fd_resolve_fcnid(fdtype ref);
+FD_EXPORT fdtype fd_register_fcnid(fdtype obj);
+FD_EXPORT fdtype fd_set_fcnid(fdtype ref,fdtype newval);
 
 FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
 
-FD_EXPORT fd_exception fd_InvalidPPtr, fd_PPtrOverflow;
+FD_EXPORT fd_exception fd_InvalidFCNID, fd_FCNIDOverflow;
 
-#if FD_INLINE_PPTRS
-static fdtype fd_pptr_ref(fdtype ref)
+#if FD_INLINE_FCNIDS
+static fdtype _fd_fcnid_ref(fdtype ref)
 {
-  if (FD_PTR_TYPEP(ref,fd_pptr_type)) {
-    int serialno=FD_GET_IMMEDIATE(ref,fd_pptr_type);
-    if (FD_EXPECT_FALSE(serialno>_fd_npptrs))
-      return fd_err(fd_InvalidPPtr,"_fd_pptr_ref",NULL,ref);
-    else return (fdtype) _fd_pptrs[serialno/FD_PPTR_BLOCKSIZE][serialno%FD_PPTR_BLOCKSIZE];}
+  if (FD_PTR_TYPEP(ref,fd_fcnid_type)) {
+    int serialno=FD_GET_IMMEDIATE(ref,fd_fcnid_type);
+    if (FD_EXPECT_FALSE(serialno>_fd_fcnid_count))
+      return fd_err(fd_InvalidFCNID,"_fd_fcnid_ref",NULL,ref);
+    else return (fdtype) _fd_fcnids
+	   [serialno/FD_FCNID_BLOCKSIZE]
+	   [serialno%FD_FCNID_BLOCKSIZE];}
   else return ref;
 }
+#define fd_fcnid_ref(x) ((FD_FCNIDP(x))?(_fd_fcnid_ref(x)):(x))
 #else
-#define fd_pptr_ref _fd_pptr_ref
+#define fd_fcnid_ref(x) ((FD_FCNIDP(x))?(fd_resolve_fcnid(x)):(x))
 #endif
 
-#define FD_PRIM_TYPEP(x,tp) \
-  (((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-    (FD_IMMEDIATE_TYPE(x)==fd_pptr_type)) ? \
-   (FD_PTR_TYPEP((fd_pptr_ref(x)),tp)) : (FD_PTR_TYPEP(x,tp)))
-
-#define FD_PRIM_TYPE(x) \
-  (((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) && \
-    (FD_IMMEDIATE_TYPE(x)==fd_pptr_type)) ? \
-    (FD_PTR_TYPE(fd_pptr_ref(x))) : (FD_PTR_TYPE(x)))
+#define FD_PRIM_TYPEP(x,tp)     (FD_PTR_TYPEP(x,tp))
+#define FD_PRIM_TYPE(x)         (FD_PTR_TYPE(x))
+#define FD_FCNID_TYPEP(x,tp)    (FD_PTR_TYPEP(fd_fcnid_ref(x),tp))
+#define FD_FCNID_TYPE(x)        (FD_PTR_TYPE(fd_fcnid_ref(x)))
 
 /* Opcodes */
 

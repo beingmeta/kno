@@ -969,7 +969,7 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
     fdtype entry=exception_data(ex);
     int i=1, len=FD_VECTOR_LENGTH(entry);
     fdtype head=FD_VECTOR_REF(entry,0); fd_ptr_type htype;
-    if (FD_PPTRP(head)) head=fd_pptr_ref(head);
+    if (FD_FCNIDP(head)) head=fd_fcnid_ref(head);
     htype=FD_PTR_TYPE(head);
     if (htype==fd_function_type) {
       struct FD_FUNCTION *fn=

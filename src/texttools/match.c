@@ -1171,7 +1171,9 @@ static fdtype label_extract
           fdtype parser_val=fd_eval(parser,env);
           if ((FD_ABORTED(parser_val))||(FD_VOIDP(parser_val))) {
             FD_STOP_DO_CHOICES;
-            fd_decref(answers); fd_decref(extractions);
+            fd_decref(answers);
+            fd_decref(extractions);
+            fd_decref(data);
             return parser_val;}
           xtract=fd_make_list(4,FD_CAR(pat),sym,data,parser_val);}
         else {

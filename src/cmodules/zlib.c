@@ -152,7 +152,6 @@ FD_EXPORT int fd_init_zlib()
                            fd_packet_type,FD_VOID,-1,FD_FALSE,-1,FD_FALSE));
 
   fd_finish_module(zlib_module);
-  fd_persist_module(zlib_module);
 
   u8_register_source_file(_FILEINFO);
 

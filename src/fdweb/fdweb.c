@@ -48,10 +48,7 @@ FD_EXPORT void fd_init_fdweb()
 #endif
     fd_finish_module(safe_fdweb_module);
     fd_finish_module(fdweb_module);
-    fd_finish_module(xhtml_module);
-    fd_persist_module(safe_fdweb_module);
-    fd_persist_module(fdweb_module);
-    fd_persist_module(xhtml_module);}
+    fd_finish_module(xhtml_module);}
 
   u8_threadcheck();
 

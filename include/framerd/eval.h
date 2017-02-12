@@ -111,7 +111,6 @@ FD_EXPORT int fd_discard_module(fdtype name,int safe);
 
 FD_EXPORT int fd_module_finished(fdtype module,int flags);
 FD_EXPORT int fd_finish_module(fdtype module);
-FD_EXPORT int fd_persist_module(fdtype module);
 FD_EXPORT int fd_static_module(fdtype module);
 FD_EXPORT int fd_lock_exports(fdtype module);
 

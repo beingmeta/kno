@@ -285,7 +285,6 @@ FD_EXPORT int fd_init_tidy()
                            -1,FD_VOID));
 
   fd_finish_module(tidy_module);
-  fd_persist_module(tidy_module);
 
   u8_register_source_file(_FILEINFO);
 

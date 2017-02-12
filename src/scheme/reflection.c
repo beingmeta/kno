@@ -6,7 +6,7 @@
 */
 
 #define FD_PROVIDE_FASTEVAL 1
-#define FD_INLINE_PPTRS 1
+#define FD_INLINE_FCNIDS 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -18,8 +18,7 @@
 
 static fdtype moduleid_symbol;
 
-#define GETSPECFORM(x) \
-  ((FD_PPTRP(x)) ? ((fd_special_form)(fd_pptr_ref(x))) : ((fd_special_form)x))
+#define GETSPECFORM(x) ((fd_special_form)(fd_fcnid_ref(x)))
 
 static fdtype macrop(fdtype x)
 {
@@ -158,19 +157,21 @@ static fdtype procedure_min_arity(fdtype x)
   else return fd_type_error(_("procedure"),"procedure_min_arity",x);
 }
 
-static fdtype compound_procedure_args(fdtype x)
+static fdtype compound_procedure_args(fdtype arg)
 {
+  fdtype x=fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
+    struct FD_SPROC *proc=(fd_sproc)x;
     return fd_incref(proc->fd_arglist);}
   else return fd_type_error
 	 ("compound procedure","compound_procedure_args",x);
 }
 
-static fdtype set_compound_procedure_args(fdtype x,fdtype new_arglist)
+static fdtype set_compound_procedure_args(fdtype arg,fdtype new_arglist)
 {
+  fdtype x=fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
+    struct FD_SPROC *proc=(fd_sproc)fd_fcnid_ref(x);
     fdtype arglist=proc->fd_arglist;
     proc->fd_arglist=fd_incref(new_arglist);
     fd_decref(arglist);
@@ -179,27 +180,30 @@ static fdtype set_compound_procedure_args(fdtype x,fdtype new_arglist)
 	 ("compound procedure","set_compound_procedure_args",x);
 }
 
-static fdtype compound_procedure_env(fdtype x)
+static fdtype compound_procedure_env(fdtype arg)
 {
+  fdtype x=fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
+    struct FD_SPROC *proc=(fd_sproc)fd_fcnid_ref(x);
     return (fdtype) fd_copy_env(proc->fd_procenv);}
   else return fd_type_error("compound procedure","compound_procedure_env",x);
 }
 
-static fdtype compound_procedure_body(fdtype x)
+static fdtype compound_procedure_body(fdtype arg)
 {
+  fdtype x=fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
+    struct FD_SPROC *proc=(fd_sproc)fd_fcnid_ref(x);
     return fd_incref(proc->fd_body);}
   else return fd_type_error
 	 ("compound procedure","compound_procedure_body",x);
 }
 
-static fdtype set_compound_procedure_body(fdtype x,fdtype new_body)
+static fdtype set_compound_procedure_body(fdtype arg,fdtype new_body)
 {
+  fdtype x=fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
-    struct FD_SPROC *proc=(fd_sproc)fd_pptr_ref(x);
+    struct FD_SPROC *proc=(fd_sproc)fd_fcnid_ref(x);
     fdtype body=proc->fd_body;
     proc->fd_body=fd_incref(new_body);
     fd_decref(body);
@@ -208,19 +212,40 @@ static fdtype set_compound_procedure_body(fdtype x,fdtype new_body)
 	 ("compound procedure","set_compound_procedure_body",x);
 }
 
+/* Function IDs */
+
+static fdtype fcnid_refprim(fdtype arg)
+{
+  fdtype result=fd_fcnid_ref(arg);
+  fd_incref(result);
+  return result;
+}
+
+static fdtype fcnid_registerprim(fdtype value)
+{
+  if (FD_FCNIDP(value))
+    return value;
+  else return fd_register_fcnid(value);
+}
+
+static fdtype fcnid_setprim(fdtype arg,fdtype value)
+{
+  return fd_set_fcnid(arg,value);
+}
+
 /* Macro expand */
 
 static fdtype macroexpand(fdtype expander,fdtype expr)
 {
   if (FD_PAIRP(expr)) {
     if (FD_PRIM_TYPEP(expander,fd_macro_type)) {
-      struct FD_MACRO *macrofn=(struct FD_MACRO *)fd_pptr_ref(expander);
+      struct FD_MACRO *macrofn=(struct FD_MACRO *)fd_fcnid_ref(expander);
       fd_ptr_type xformer_type=FD_PTR_TYPE(macrofn->fd_macro_transformer);
       if (fd_applyfns[xformer_type]) {
         /* These are special forms which do all the evaluating themselves */
         fdtype new_expr=
           (fd_applyfns[xformer_type])
-          (fd_pptr_ref(macrofn->fd_macro_transformer),1,&expr);
+          (fd_fcnid_ref(macrofn->fd_macro_transformer),1,&expr);
         new_expr=fd_finish_call(new_expr);
         if (FD_ABORTP(new_expr))
           return fd_err(fd_SyntaxError,_("macro expansion"),NULL,new_expr);
@@ -407,13 +432,12 @@ FD_EXPORT void fd_init_reflection_c()
                           set_compound_procedure_args,1));
   fd_idefn(module,fd_make_cprim2("MACROEXPAND",macroexpand,2));
 
-#if 0
-  fd_idefn(module,fd_make_cprim1("FCN?",procedurep,1));
-  fd_idefn(module,fd_make_cprim1("FCN-NAME",procedure_name,1));
-  fd_idefn(module,fd_make_cprim1("FCN-FILENAME",procedure_filename,1));
-  fd_idefn(module,fd_make_cprim1("FCN-ARITY",procedure_arity,1));
-  fd_idefn(module,fd_make_cprim1("FCN-MIN-ARITY",procedure_min_arity,1));
-#endif
+  fd_idefn(module,fd_make_cprim1x
+           ("FCNID/REF",fcnid_refprim,1,fd_fcnid_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x
+           ("FCNID/REGISTER",fcnid_registerprim,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim2x
+           ("FCNID/SET!",fcnid_setprim,1,fd_fcnid_type,FD_VOID,-1,FD_VOID));
 
   fd_idefn(module,fd_make_cprim1("MODULE-BINDINGS",module_bindings,1));
   fd_idefn(module,fd_make_cprim1("MODULE-EXPORTS",module_exports,1));
@@ -425,7 +449,6 @@ FD_EXPORT void fd_init_reflection_c()
   fd_defspecial(module,"GETMODULES",getmodules_handler);
 
   fd_finish_module(module);
-  fd_persist_module(module);
 }
 
 /* Emacs local variables

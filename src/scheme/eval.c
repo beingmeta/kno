@@ -12,7 +12,7 @@
 #define FD_PROVIDE_FASTEVAL 1
 #define FD_INLINE_CHOICES 1
 #define FD_INLINE_TABLES 1
-#define FD_INLINE_PPTRS 1
+#define FD_INLINE_FCNIDS 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -787,8 +787,8 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
     else {
       fdtype headval=fasteval(head,env), result=FD_VOID;
       int headtype=FD_PTR_TYPE(headval), gchead=1;
-      if (headtype==fd_pptr_type) {
-        fdtype realval=fd_pptr_ref(headval);
+      if (headtype==fd_fcnid_type) {
+        fdtype realval=fd_fcnid_ref(headval);
         headtype=FD_PTR_TYPE(realval);
         /* headval=realval; */
         gchead=0;}
@@ -796,8 +796,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
         result=apply_function(headval,expr,env);
       else if (FD_PRIM_TYPEP(headval,fd_specform_type)) {
         /* These are special forms which do all the evaluating themselves */
-        struct FD_SPECIAL_FORM *handler=
-          FD_PTR2CONS(headval,fd_specform_type,struct FD_SPECIAL_FORM *);
+        struct FD_SPECIAL_FORM *handler=(fd_special_form)headval;
         /* fd_calltrack_call(handler->name); */
         /* fd_calltrack_return(handler->name); */
         result=handler->fexpr_handler(expr,env);}
@@ -841,8 +840,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
         else {
           fdtype results=FD_EMPTY_CHOICE;
           FD_DO_CHOICES(hv,headval) {
-            struct FD_SPECIAL_FORM *handler=
-              FD_PTR2CONS(hv,fd_specform_type,struct FD_SPECIAL_FORM *);
+            struct FD_SPECIAL_FORM *handler=(fd_special_form)hv;
             /* fd_calltrack_call(handler->name); */
             /* fd_calltrack_return(handler->name); */
             fdtype one_result=handler->fexpr_handler(expr,env);
@@ -931,7 +929,7 @@ static fdtype apply_functions(fdtype fns,fdtype expr,fd_lispenv env)
 static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
 {
   fdtype result=FD_VOID;
-  struct FD_FUNCTION *fcn=FD_PTR2CONS(fn,-1,struct FD_FUNCTION *);
+  struct FD_FUNCTION *fcn=(fd_function)fn;
   fdtype _argv[FD_STACK_ARGS], *argv;
   int arg_count=0, n_args=0, args_need_gc=0, free_argv=0;
   int nd_args=0, prune=0, nd_prim=fcn->fdfn_ndcall;
@@ -2060,9 +2058,6 @@ static void init_core_builtins()
 
   fd_finish_module(fd_scheme_module);
   fd_finish_module(fd_xscheme_module);
-
-  fd_persist_module(fd_scheme_module);
-  fd_persist_module(fd_xscheme_module);
 }
 
 FD_EXPORT int fd_load_fdscheme()

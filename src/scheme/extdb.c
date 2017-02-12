@@ -343,8 +343,6 @@ FD_EXPORT void fd_init_extdbi_c()
                      fd_boolconfig_get,fd_boolconfig_set,NULL);
 
   fd_finish_module(extdb_module);
-  fd_persist_module(extdb_module);
-
 }
 
 

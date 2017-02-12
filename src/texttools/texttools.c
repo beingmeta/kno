@@ -1498,7 +1498,8 @@ static int framify(fdtype f,u8_output out,fdtype xtract)
         else if (FD_TRUEP(parser)) {
           fdtype parsed_val=fd_parse(_out.u8_outbuf);
           fd_add(f,slotid,parsed_val);
-          fd_decref(parsed_val); u8_free(_out.u8_outbuf);}
+          fd_decref(parsed_val);
+          u8_free(_out.u8_outbuf);}
         else {
           fdtype stringval=fd_stream2string(&_out);
           fd_add(f,slotid,stringval);
@@ -2727,7 +2728,6 @@ void fd_init_texttools()
   u8_threadcheck();
 
   fd_finish_module(texttools_module);
-  fd_persist_module(texttools_module);
 }
 
 /* Emacs local variables

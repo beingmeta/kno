@@ -100,26 +100,13 @@ FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
   if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) \
     return fd_err(fd_TypeError,fd_type_names[typecode],NULL,(fdtype)x);
 
-static U8_MAYBE_UNUSED void *fd_ptr2cons(fdtype x,int tc)
-{
-  struct FD_CONS *val=(struct FD_CONS *)(fd_pptr_ref(x));
-  if (tc<0) return val;
-  else if (FD_CONS_TYPE(val)==tc)
-    return val;
-  else {
-    u8_raise(fd_TypeError,fd_type_names[tc],NULL);
-    return NULL;}
-}
-
 #define type2name(tc) \
    ((tc<0)?((u8_string)"oddtype"):(fd_type_names[(short)tc]))
 
 #define FD_PTR2CONS(x,typecode,typecast)                                \
-  ((FD_PTR_MANIFEST_TYPE(x)==fd_immediate_ptr_type) ?                   \
-   ((typecast)(fd_ptr2cons(x,typecode))) :                              \
-   ((typecode<0) || (FD_PTR_TYPEP(x,typecode))) ?                       \
-    ((typecast)(FD_CONS_DATA(x))) :                                     \
-    ((typecast)(u8_raise(fd_TypeError,type2name(typecode),NULL),        \
+  (((typecode<0) || (FD_PTR_TYPEP(x,typecode))) ?                       \
+   ((typecast)(FD_CONS_DATA(x))) :					\
+   ((typecast)(u8_raise(fd_TypeError,type2name(typecode),NULL),		\
                 NULL)))
 
 /* Hash locking for pointers */

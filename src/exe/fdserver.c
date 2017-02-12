@@ -1182,7 +1182,6 @@ static fd_lispenv init_core_env()
   fd_init_fddbserv();
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_fdbserv_module);
-  fd_persist_module(fd_fdbserv_module);
 
   /* We add some special functions */
   fd_defspecial((fdtype)core_env,"BOUND?",boundp_handler);

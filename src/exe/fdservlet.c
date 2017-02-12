@@ -1947,7 +1947,6 @@ int main(int argc,char **argv)
   /* This is the module where the data-access API lives */
   fd_register_module("FDBSERV",fd_incref(fd_fdbserv_module),FD_MODULE_SAFE);
   fd_finish_module(fd_fdbserv_module);
-  fd_persist_module(fd_fdbserv_module);
 
   fd_init_fdweb();
   fd_init_dbfile();

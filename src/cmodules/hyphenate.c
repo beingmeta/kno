@@ -289,7 +289,6 @@ FD_EXPORT int fd_init_hyphenate()
                              fd_character_type,FD_CODE2CHAR(0xAD)));
 
   fd_finish_module(hyphenate_module);
-  fd_persist_module(hyphenate_module);
 
   u8_register_source_file(_FILEINFO);
 

@@ -827,8 +827,9 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       fdtype value=fd_eval(val_expr,env);
       if (FD_ABORTED(value)) return value;
       else if (fd_bind_value(var,value,env)) {
-        if (FD_SPROCP(value)) {
-          struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
+        fdtype fvalue=(FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
+        if (FD_SPROCP(fvalue)) {
+          struct FD_SPROC *s=(fd_sproc) fvalue;
           if (s->fdfn_filename==NULL) {
             u8_string sourcebase=fd_sourcebase();
             if (sourcebase) s->fdfn_filename=u8_strdup(sourcebase);}}
@@ -846,8 +847,9 @@ static fdtype define_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,0,0);
       if (FD_ABORTED(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-        if (FD_SPROCP(value)) {
-          struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
+        fdtype fvalue=(FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
+        if (FD_SPROCP(fvalue)) {
+          struct FD_SPROC *s=(fd_sproc)fvalue;
           if (s->fdfn_filename==NULL) {
             u8_string sourcebase=fd_sourcebase();
             if (sourcebase) s->fdfn_filename=u8_strdup(sourcebase);}}
@@ -876,8 +878,9 @@ static fdtype defslambda_handler(fdtype expr,fd_lispenv env)
       if (FD_ABORTED(value))
         return value;
       else if (fd_bind_value(fn_name,value,env)) {
-        if (FD_SPROCP(value)) {
-          struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
+        fdtype opvalue=(FD_FCNIDP(value))?(fd_fcnid_ref(value)):(value);
+        if (FD_SPROCP(opvalue)) {
+          struct FD_SPROC *s=(fd_sproc)opvalue;
           if (s->fdfn_filename==NULL) {
             u8_string sourcebase=fd_sourcebase();
             if (sourcebase) s->fdfn_filename=u8_strdup(sourcebase);}}
@@ -906,8 +909,9 @@ static fdtype defambda_handler(fdtype expr,fd_lispenv env)
       fdtype value=make_sproc(FD_SYMBOL_NAME(fn_name),args,body,env,1,0);
       if (FD_ABORTED(value)) return value;
       else if (fd_bind_value(fn_name,value,env)) {
-        if (FD_SPROCP(value)) {
-          struct FD_SPROC *s=(fd_sproc)fd_pptr_ref(value);
+        fdtype opvalue=fd_fcnid_ref(value);
+        if (FD_SPROCP(opvalue)) {
+          struct FD_SPROC *s=(fd_sproc)opvalue;
           if (s->fdfn_filename==NULL) {
             u8_string sourcebase=fd_sourcebase();
             if (sourcebase) s->fdfn_filename=u8_strdup(sourcebase);}}

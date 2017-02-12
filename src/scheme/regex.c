@@ -299,7 +299,6 @@ FD_EXPORT int fd_init_regex_c()
                            fd_fixnum_type,FD_FIXZERO));
 
   fd_finish_module(regex_module);
-  fd_persist_module(regex_module);
 
   u8_register_source_file(_FILEINFO);
 

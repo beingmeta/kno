@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_PPTRS 1
+#define FD_INLINE_FCNIDS 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
@@ -610,7 +610,9 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args);
 FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 {
   fd_ptr_type ftype=FD_PRIM_TYPE(fp);
-  if (FD_PPTRP(fp)) fp=fd_pptr_ref(fp);
+  if (FD_FCNIDP(fp)) {
+    fp=fd_fcnid_ref(fp);
+    ftype=FD_PTR_TYPE(fp);}
   if (fd_functionp[ftype]) {
     struct FD_FUNCTION *f=FD_DTYPE2FCN(fp);
     fdtype argbuf[8], *args;
@@ -1132,7 +1134,8 @@ FD_EXPORT fdtype fd_make_cprim9x
 
 FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
 {
-  if (FD_PPTRP(fcn)) fcn=fd_pptr_ref(fcn);
+  if (FD_FCNIDP(fcn))
+    fcn=fd_fcnid_ref(fcn);
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)fcn;
   if (FD_EXPECT_FALSE(((f->fdfn_arity)>=0) && (n>(f->fdfn_arity)))) {
     fd_seterr(fd_TooManyArgs,"fd_tail_call",u8_mkstring("%d",n),fcn);
@@ -1142,8 +1145,8 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
     struct FD_TAIL_CALL *tc=(struct FD_TAIL_CALL *)
       u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
     fdtype *write=&(tc->fd_tail_head), *write_limit=write+(n+1), *read=vec;
-    FD_INIT_CONS(tc,fd_tail_call_type); 
-    tc->fd_tail_length=n+1; 
+    FD_INIT_CONS(tc,fd_tail_call_type);
+    tc->fd_tail_length=n+1;
     tc->fd_tail_flags=0;
     *write++=fd_incref(fcn);
     while (write<write_limit) {
@@ -1254,6 +1257,8 @@ FD_EXPORT void fd_init_apply_c()
 {
   int i=0; while (i < FD_TYPE_MAX) fd_applyfns[i++]=NULL;
   i=0; while (i < FD_TYPE_MAX) fd_functionp[i++]=0;
+
+  fd_functionp[fd_fcnid_type]=1;
 
   u8_register_source_file(_FILEINFO);
   u8_register_source_file(FRAMERD_APPLY_H_INFO);

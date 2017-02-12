@@ -2375,11 +2375,11 @@ FD_EXPORT fdtype fd_poolconfig_get(fdtype var,void *vptr)
 }
 FD_EXPORT int fd_poolconfig_set(fdtype ignored,fdtype v,void *vptr)
 {
-  fd_pool *pptr=(fd_pool *)vptr;
-  if (FD_POOLP(v)) *pptr=fd_lisp2pool(v);
+  fd_pool *ppid=(fd_pool *)vptr;
+  if (FD_POOLP(v)) *ppid=fd_lisp2pool(v);
   else if (FD_STRINGP(v)) {
     fd_pool p=fd_use_pool(FD_STRDATA(v));
-    if (p) *pptr=p; else return -1;}
+    if (p) *ppid=p; else return -1;}
   else return fd_type_error(_("pool spec"),"pool_config_set",v);
   return 1;
 }

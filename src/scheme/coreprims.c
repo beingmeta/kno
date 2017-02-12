@@ -254,6 +254,13 @@ static fdtype applicablep(fdtype x)
   else return FD_FALSE;
 }
 
+static fdtype fcnidp(fdtype x)
+{
+  if (FD_FCNIDP(x))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
+
 static fdtype opcodep(fdtype x)
 {
   if (FD_OPCODEP(x)) return FD_TRUE; else return FD_FALSE;
@@ -292,8 +299,7 @@ static fdtype typeof_prim(fdtype x)
   else return fdtype_string("??");
 }
 
-#define GETSPECFORM(x) \
-  ((FD_PPTRP(x)) ? ((fd_special_form)(fd_pptr_ref(x))) : ((fd_special_form)x))
+#define GETSPECFORM(x) ((fd_special_form)(fd_fcnid_ref(x)))
 static fdtype procedure_name(fdtype x)
 {
   if (FD_APPLICABLEP(x)) {
@@ -876,6 +882,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("VECTOR?",vectorp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("RAIL?",railp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CHARACTER?",characterp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("FCNID?",opcodep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("OPCODE?",opcodep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("ERROR?",errorp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("APPLICABLE?",applicablep,1));

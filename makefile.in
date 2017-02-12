@@ -92,7 +92,7 @@ LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
 SRC_HEADERS=src/dtype/biginternals.h src/scheme/eval_internals.h \
 	src/exe/webcommon.h src/cmodules/fdsqlite.h 
 
-DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/pptrs.o	\
+DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/fcnids.o	\
 	  src/dtype/symbols.o src/dtype/numbers.o 		\
 	  src/dtype/apply.o src/dtype/ffi.o			\
           src/dtype/choices.o src/dtype/tables.o		\
@@ -256,7 +256,7 @@ FRAMERD_HEADERS= \
 
 FRAMERD_SOURCES=\
 	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c          \
-        src/dtype/choices.c src/dtype/tables.c src/dtype/pptrs.c       \
+        src/dtype/choices.c src/dtype/tables.c src/dtype/fcnids.c       \
         src/dtype/dtypeio.c src/dtype/textio.c                         \
 	src/dtype/fdtype.c src/dtype/support.c 				\
 	src/dtype/apply.c src/dtype/ffi.c       			\

@@ -105,11 +105,11 @@ FD_EXPORT fdtype fd_make_cprim9x(u8_string name,fd_cprim9 fn,int mina,...);
 #define FD_FUNCTIONP(x) (fd_functionp[FD_PRIM_TYPE(x)])
 #define FD_XFUNCTION(x) \
   ((FD_FUNCTIONP(x)) ? \
-   ((struct FD_FUNCTION *)(FD_CONS_DATA(fd_pptr_ref(x)))) : \
+   ((struct FD_FUNCTION *)(FD_CONS_DATA(fd_fcnid_ref(x)))) : \
    ((struct FD_FUNCTION *)(u8_raise(fd_TypeError,"function",NULL),NULL)))
 #define FD_FUNCTION_ARITY(x)  \
   ((FD_FUNCTIONP(x)) ? \
-   (((struct FD_FUNCTION *)(FD_CONS_DATA(fd_pptr_ref(x))))->fdfn_arity) : \
+   (((struct FD_FUNCTION *)(FD_CONS_DATA(fd_fcnid_ref(x))))->fdfn_arity) : \
    (0))
 
 /* #define FD_XFUNCTION(x) (FD_GET_CONS(x,fd_function_type,struct FD_FUNCTION *)) */
@@ -136,7 +136,10 @@ FD_EXPORT fdtype fd_apply(fdtype,int n,fdtype *args);
 FD_EXPORT fdtype fd_ndapply(fdtype,int n,fdtype *args);
 FD_EXPORT fdtype fd_dapply(fdtype,int n,fdtype *args);
 
-#define FD_APPLICABLEP(x) ((fd_applyfns[FD_PRIM_TYPE(x)])!=NULL)
+#define FD_APPLICABLEP(x) \
+  ((FD_PRIM_TYPEP(x,fd_fcnid_type)) ?		\
+   ((fd_applyfns[FD_FCNID_TYPE(x)])!=NULL) :	\
+   ((fd_applyfns[FD_PRIM_TYPE(x)])!=NULL))
 
 /* Tail calls */
 
@@ -161,8 +164,8 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
 }
 
 #define FD_DTYPE2FCN(x)		     \
-  ((FD_PPTRP(x)) ?		     \
-   ((fd_function)(fd_pptr_ref(x))) : \
+  ((FD_FCNIDP(x)) ?		     \
+   ((fd_function)(fd_fcnid_ref(x))) : \
    ((fd_function)x))
 
 /* Stack checking */

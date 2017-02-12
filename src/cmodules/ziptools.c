@@ -530,7 +530,6 @@ FD_EXPORT int fd_init_ziptools()
                            fd_zipfile_type,FD_VOID));
 
   fd_finish_module(ziptools_module);
-  fd_persist_module(ziptools_module);
 
   u8_register_source_file(_FILEINFO);
 

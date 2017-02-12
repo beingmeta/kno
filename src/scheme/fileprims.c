@@ -1915,9 +1915,6 @@ FD_EXPORT void fd_init_fileio_c()
      stackdump_config_get,stackdump_config_set,NULL);
 
   fd_finish_module(fileio_module);
-
-  fd_persist_module(fileio_module);
-
 }
 
 FD_EXPORT void fd_init_schemeio()

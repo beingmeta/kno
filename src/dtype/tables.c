@@ -2119,45 +2119,24 @@ FD_EXPORT int fd_fast_reset_hashtable
   *slotsptr=ht->fd_buckets; *slots_to_free=ht->fd_n_buckets;
   /* Now initialize the structure.  */
   if (n_slots == 0) {
-    ht->fd_n_buckets=ht->fd_n_keys=0; ht->fd_load_factor=default_hashtable_loading;
+    ht->fd_n_buckets=ht->fd_n_keys=0;
+    ht->fd_load_factor=default_hashtable_loading;
     ht->fd_buckets=NULL;}
   else {
     int i=0; struct FD_HASH_BUCKET **slotvec;
-    ht->fd_n_buckets=n_slots; ht->fd_n_keys=0; ht->fd_load_factor=default_hashtable_loading;
+    ht->fd_n_keys=0;
+    ht->fd_n_buckets=n_slots;
+    ht->fd_load_factor=default_hashtable_loading;
     ht->fd_buckets=slotvec=u8_alloc_n(n_slots,struct FD_HASH_BUCKET *);
     while (i < n_slots) slotvec[i++]=NULL;}
   /* Free the lock, letting other processes use this hashtable. */
   if ((lock) && (ht->fd_uselock)) fd_rw_unlock_struct(ht);
   return n_slots;
 }
-
-FD_EXPORT int fd_persist_hashtable(struct FD_HASHTABLE *ptr,int type)
-{
-  int n_conversions=0; fd_ptr_type keeptype=(fd_ptr_type)type;
-  FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
-  fd_write_lock(&ptr->fd_rwlock);
-  {
-    struct FD_HASH_BUCKET **scan=ptr->fd_buckets, **lim=scan+ptr->fd_n_buckets;
-    while (scan < lim)
-      if (*scan) {
-        struct FD_HASH_BUCKET *e=*scan; int fd_n_entries=e->fd_n_entries;
-        struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+fd_n_entries;
-        while (kvscan<kvlimit) {
-          if ((FD_CONSP(kvscan->fd_keyval)) &&
-              ((type<0) || (FD_PTR_TYPEP(kvscan->fd_keyval,keeptype)))) {
-            fdtype ppval=fd_pptr_register(kvscan->fd_keyval);
-            fd_decref(kvscan->fd_keyval); n_conversions++;
-            kvscan->fd_keyval=ppval;}
-          kvscan++;}
-        scan++;}
-      else scan++;}
-  fd_rw_unlock(&ptr->fd_rwlock);
-  return n_conversions;
-}
-
 FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
 {
-  int n_conversions=0; fd_ptr_type keeptype=(fd_ptr_type)type;
+  int n_conversions=0;
+  fd_ptr_type keeptype=(fd_ptr_type) type;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
   fd_write_lock(&ptr->fd_rwlock);
   {
@@ -2173,9 +2152,9 @@ FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
             fdtype static_value=fd_static_copy(value);
             if (static_value==value) {
               fd_decref(static_value);
-              static_value=fd_pptr_register(kvscan->fd_keyval);}
+              static_value=fd_register_fcnid(kvscan->fd_keyval);}
             kvscan->fd_keyval=static_value;
-            fd_decref(kvscan->fd_keyval); 
+            fd_decref(kvscan->fd_keyval);
             n_conversions++;}
           kvscan++;}
         scan++;}

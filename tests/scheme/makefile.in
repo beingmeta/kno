@@ -1,9 +1,7 @@
 # -*- Mode: Makefile; -*-
 # Copyright (C) 2004, 2005 beingmeta, inc.
 # This file is a part of beingmeta's FramerD implementation, EFramerD.
-MAKEFILE_VERSION="$Id$"
 
-# different random comment
 CC	= @CC@
 XCFLAGS=  
 CFLAGS=-I../../include @CFLAGS@ @PROFILING@ @DREENTRANT@ @dynamic_cflag@ \
@@ -16,7 +14,6 @@ BMLIBS=-lu8io -lu8data -lu8
 XLIBS=
 LIBS=$(XLIBS) $(BMLIBS) $(BASELIBS)
 EXELDFLAGS = @EXELDFLAGS@
-
 CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
 	  	  	../../lib/libfdbserv@suffix@.a  \
 	 		../../lib/libfddbfile@suffix@.a \
@@ -25,22 +22,28 @@ CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
 EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
 		  ../../lib/libfdweb@suffix@.a \
 		  ../../lib/libfdschemeio@suffix@.a
+
+FD_DLOADPATH=../../lib/framerd
+export FD_DLOADPATH
+LD_LIBRARY_PATH=../../lib
+export LD_LIBRARY_PATH
+DYLD_LIBRARY_PATH=../../lib
+export DYLD_LIBRARY_PATH
+
 DESTDIR		=
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
 LIBINSTALLDIR	= $(DESTDIR)@libdir@
 CLEAN		= @CLEAN@
 INSTALL		= @INSTALL@
-RUNENV		= LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib FD_DLOADPATH=../../lib/framerd
 VALGRIND	= INVALGRIND=yes MEMCHECKING=yes valgrind --tool=memcheck --num-callers=9
 VALGRINDHEAP	= INVALGRIND=yes MEMCHECKING=yes valgrind --tool=memcheck --leak-check=yes --num-callers=9
 TESTPROG	= 
 TESTENV		= @TESTENV@
-#RUNENV		= 
 TESTSIZE	= 512
 SMALLTESTSIZE	= 64
 TESTCONFIG	= 
-RUNTEST		= $(TESTENV) $(RUNENV)$(TESTPROG)
+RUNTEST		= $(TESTENV) $(TESTPROG)
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
 PPROF_PATH      = @GOOGLE_PPROF@
 

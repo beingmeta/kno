@@ -62,7 +62,6 @@ FD_EXPORT void fd_init_side_effects_c()
   u8_register_source_file(_FILEINFO);
 
   fd_finish_module(module);
-  fd_persist_module(module);
 }
 
 /* Emacs local variables

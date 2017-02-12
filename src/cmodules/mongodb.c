@@ -2422,7 +2422,6 @@ FD_EXPORT int fd_init_mongodb()
                      fd_boolconfig_get,fd_boolconfig_set,&logops);
 
   fd_finish_module(module);
-  fd_persist_module(module);
 
   mongoc_init();
   atexit(mongoc_cleanup);
