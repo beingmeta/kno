@@ -150,14 +150,12 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 
 /* Reference counting GC */
 
-#define FD_CONSBITS(x) ((x)->fd_conshead)
+#define FD_CONSBITS(x)      ((x)->fd_conshead)
 #define FD_CONS_REFCOUNT(x) (((x)->fd_conshead)>>7)
-#define FD_STACK_CONSP(x) ((((x)->fd_conshead)>>7)==0)
-#define FD_STATIC_CONSP(x) ((((x)->fd_conshead)>>7)==0)
-#define FD_MALLOCD_CONSP(x) ((((x)->fd_conshead)>>7)!=0)
+#define FD_STATIC_CONSP(x)  ((FD_CONSBITS(x)&0x80)==0)
+#define FD_MALLOCD_CONSP(x) ((FD_CONSBITS(x))>=0x80)
 
-#define FD_STACK_CONSED(x) \
-  ((FD_CONSP(x))&&((((struct FD_CONS *)x)->fd_conshead)>>7)==0)
+#define FD_STATICP(x) ((!(FD_CONSP(x)))||(FD_STATIC_CONSP((fd_cons)x)))
 
 #define FD_MALLOCD_CONS 0
 #define FD_STACK_CONS   1
@@ -179,7 +177,16 @@ FD_EXPORT void fd_free_vec(fdtype *vec,int n,int free_vec);
 /*  Defining this causes a warning to be issued whenever a
      reference count passes HUGE_REFCOUNT.  This is helpful
      for rare occasions of reference count debugging.
-    #define HUGE_REFCOUNT 0x4000
+*/
+#ifndef HUGE_REFCOUNT
+#define HUGE_REFCOUNT 0
+#endif
+
+/* The consheader is a 32 bit value:
+   The lower 7 bits are a cons typecode
+   The remaining bits are a reference count, which is always >0
+   A zero reference count indicates a static CONS, which
+   is never reference counted.
 */
 
 #if (!(FD_NO_GC))
@@ -190,17 +197,37 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_CONS *x)
     FD_UNLOCK_PTR(x);
     u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
     return (fdtype)NULL;}
-  else if (FD_CONSBITS(x)>=0x80) {
-#ifdef HUGE_REFCOUNT
+  else if ((FD_CONSBITS(x)&(~0x7F)) == 0) {
+    /* Static cons */
+    return (fdtype) x;}
+  else {
+#if HUGE_REFCOUNT
     if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
       u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
 #endif
     x->fd_conshead=x->fd_conshead+0x80;
     FD_UNLOCK_PTR(x);
     return (fdtype) x;}
-  else {
+}
+
+FD_INLINE_FCN fdtype _fd_getref(struct FD_CONS *x)
+{
+  FD_LOCK_PTR(x);
+  if (FD_CONSBITS(x)>0xFFFFFF80) {
     FD_UNLOCK_PTR(x);
-    return fd_copy((fdtype)x);}
+    u8_raise(fd_UsingFreedCons,"fd_incref",NULL);
+    return (fdtype)NULL;}
+  else if ((FD_CONSBITS(x)&(~0x7F)) == 0) {
+    /* Static cons */
+    return fd_deep_copy((fdtype)x);}
+  else {
+#if HUGE_REFCOUNT
+    if ((FD_CONS_REFCOUNT(x))==HUGE_REFCOUNT)
+      u8_log(LOG_WARN,"HUGEREFCOUNT","Huge refcount for %lx",x);
+#endif
+    x->fd_conshead=x->fd_conshead+0x80;
+    FD_UNLOCK_PTR(x);
+    return (fdtype) x;}
 }
 
 FD_INLINE_FCN void _fd_decref(struct FD_CONS *x)
@@ -209,16 +236,15 @@ FD_INLINE_FCN void _fd_decref(struct FD_CONS *x)
   if (FD_CONSBITS(x)>=0xFFFFFF80) {
     FD_UNLOCK_PTR(x);
     u8_raise(fd_DoubleGC,"fd_decref",NULL);}
+  else if ((FD_CONSBITS(x)&(~0x7F)) == 0) {
+    /* Static cons */}
   else if (FD_CONSBITS(x)>=0x100) {
     x->fd_conshead=x->fd_conshead-0x80;
     FD_UNLOCK_PTR(x);}
   else if (FD_CONSBITS(x)>=0x80) {
-    x->fd_conshead=(0xFFFFFF80|(x->fd_conshead&0x7F));
     FD_UNLOCK_PTR(x);
     fd_recycle_cons(x);}
-  else {
-    FD_UNLOCK_PTR(x);
-    u8_raise(fd_FreeingNonHeapCons,"fd_decref",NULL);}
+  else {}
 }
 
 #define fd_incref(x) \

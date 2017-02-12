@@ -5,8 +5,6 @@
 	     (or (getenv "MEMCHECKING") (getenv "HEAPCHECK")))
     (exit)))
 
-(config! 'optimize:rails #t)
-
 (define (qc-wrap x) `(qc ,x))
 
 (define errors {})

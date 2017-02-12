@@ -163,7 +163,7 @@ static fd_lispenv dynamic_environment(fd_lispenv env)
     if (env->fdenv_parent)
       newenv->fdenv_parent=copy_environment(env->fdenv_parent);
     else newenv->fdenv_parent=NULL;
-    if (FD_STACK_CONSP(FD_CONS_DATA(env->fdenv_bindings)))
+    if (FD_STATIC_CONSP(FD_CONS_DATA(env->fdenv_bindings)))
       newenv->fdenv_bindings=fd_copy(env->fdenv_bindings);
     else newenv->fdenv_bindings=fd_incref(env->fdenv_bindings);
     newenv->fdenv_exports=fd_incref(env->fdenv_exports);
@@ -200,8 +200,9 @@ static void recycle_environment(struct FD_CONS *envp)
   struct FD_ENVIRONMENT *env=(struct FD_ENVIRONMENT *)envp;
   fd_decref(env->fdenv_bindings); fd_decref(env->fdenv_exports);
   if (env->fdenv_parent) fd_decref((fdtype)(env->fdenv_parent));
-  memset(env,0,sizeof(*env));
-  u8_free(env);
+  if (!(FD_STATIC_CONSP(envp))) {
+    memset(env,0,sizeof(env));
+    u8_free(envp);}
 }
 
 static int env_recycle_depth=2;
@@ -1533,7 +1534,7 @@ FD_EXPORT void recycle_specform(struct FD_CONS *c)
 {
   struct FD_SPECIAL_FORM *sf=(struct FD_SPECIAL_FORM *)c;
   u8_free(sf->fexpr_name);
-  u8_free(c);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 /* Call/cc */

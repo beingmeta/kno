@@ -40,6 +40,6 @@ int main(int argc,char **argv)
   result=fd_dtsread_dtype(&ds);
   u8_fprintf(stderr,_("Result is: %q\n"),result);
   fd_decref(expr); fd_decref(result);
-  fd_dtsclose(&ds,1);
+  fd_dtsclose(&ds,FD_DTSCLOSE_FULL);
   return 0;
 }

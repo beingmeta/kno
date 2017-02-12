@@ -37,14 +37,14 @@ static void recycle_achoice(struct FD_CONS *c)
       ch->ach_mallocd=0;}}
   fd_decref(ch->ach_normalized);
   fd_destroy_mutex(&(ch->fd_lock));
-  u8_free(ch);
+  if (!(FD_STATIC_CONSP(ch))) u8_free(ch);
 }
 
 static void recycle_achoice_wrapper(struct FD_ACHOICE *ch)
 {
   fd_decref(ch->ach_normalized);
   fd_destroy_mutex(&(ch->fd_lock));
-  u8_free(ch);
+  if (!(FD_STATIC_CONSP(ch))) u8_free(ch);
 }
 static int write_achoice_dtype(struct FD_BYTE_OUTPUT *s,fdtype x)
 {
@@ -225,7 +225,6 @@ fdtype fd_init_choice
       fd_seterr(_("BadInitData"),"fd_init_choice",NULL,FD_VOID);
       return FD_ERROR_VALUE;}
     else {
-      fd_incref(elt);
       return elt;}}
   else if (ch==NULL) {
     ch=fd_alloc_choice(n);

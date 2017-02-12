@@ -111,7 +111,7 @@ static void recycle_ffi_proc(struct FD_CONS *c)
   u8_free(ffi->fd_ffi_rtype); 
   u8_free(ffi->fd_ffi_argtypes);
   u8_xfree(ffi->fd_ffi_defaults);
-  u8_free(ffi);
+  if (!(FD_STATIC_CONSP(ffi))) u8_free(ffi);
 }
 
 static int unparse_ffi_proc(u8_output out,fdtype x)

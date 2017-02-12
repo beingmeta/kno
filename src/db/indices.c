@@ -1327,7 +1327,7 @@ static void recycle_raw_index(struct FD_CONS *c)
   fd_recycle_hashtable(&(ix->fdx_edits));
   u8_free(ix->fd_cid);
   u8_free(ix->fd_source);
-  u8_free(ix);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 static fdtype copy_raw_index(fdtype x,int deep)

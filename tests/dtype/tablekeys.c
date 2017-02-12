@@ -20,7 +20,8 @@ int main(int argc,char **argv)
   fdtype ht, keys;
   FD_DO_LIBINIT(fd_init_dtypelib);
   in=fd_dtsopen(argv[1],FD_DTSTREAM_READ);
-  ht=fd_dtsread_dtype(in); fd_dtsclose(in,1);
+  ht=fd_dtsread_dtype(in);
+  fd_dtsclose(in,FD_DTSCLOSE_FULL);
   keys=fd_hashtable_keys(FD_XHASHTABLE(ht));
   fprintf(stderr,_("Found %d keys\n"),FD_CHOICE_SIZE(keys));
   out=fd_dtsopen(argv[2],FD_DTSTREAM_CREATE);

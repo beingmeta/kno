@@ -226,9 +226,16 @@ static fdtype immediatep(fdtype x)
   if (FD_IMMEDIATEP(x)) return FD_TRUE; else return FD_FALSE;
 }
 
-static fdtype consedp(fdtype x)
+static fdtype consp(fdtype x)
 {
   if (FD_CONSP(x)) return FD_TRUE; else return FD_FALSE;
+}
+
+static fdtype staticp(fdtype x)
+{
+  if (FD_STATICP(x))
+    return FD_TRUE;
+  else return FD_FALSE;
 }
 
 static fdtype characterp(fdtype x)
@@ -881,7 +888,9 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("FALSE?",falsep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("NUMBER?",numberp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("IMMEDIATE?",immediatep,1));
-  fd_idefn(fd_scheme_module,fd_make_cprim1("CONSED?",consedp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("STATIC?",staticp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CONS?",consp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CONSED?",consp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TYPEOF",typeof_prim,1));
 
   fd_idefn(fd_scheme_module,

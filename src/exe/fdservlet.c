@@ -1542,7 +1542,7 @@ static int close_webclient(u8_client ucl)
   u8_log(LOG_INFO,"FDServlet/close","Closing web client %s (#%lx#%d.%d)",
          ucl->idstring,ucl,ucl->clientid,ucl->socket);
   fd_decref(client->cgidata); client->cgidata=FD_VOID;
-  fd_dtsclose(&(client->in),2);
+  fd_dtsclose(&(client->in),0);
   u8_close((u8_stream)&(client->out));
   return 1;
 }

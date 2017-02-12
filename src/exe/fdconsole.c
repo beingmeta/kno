@@ -1047,7 +1047,8 @@ int main(int argc,char **argv)
         (!(FD_ABORTP(lastval))) &&
         (!(FDTYPE_CONSTANTP(lastval))))
       fd_bind_value(that_symbol,lastval,env);}
-  if (eval_server) fd_dtsclose(eval_server,1);
+  if (eval_server)
+    fd_dtsclose(eval_server,FD_DTS_FREE);
   u8_free(eval_server);
   fd_decref(lastval);
   fd_decref(result);

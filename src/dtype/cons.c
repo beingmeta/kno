@@ -127,73 +127,69 @@ FD_EXPORT
 void fd_recycle_cons(fd_cons c)
 {
   int ctype=FD_CONS_TYPE(c);
-  int mallocd=(FD_MALLOCD_CONSP(c));
   switch (ctype) {
-  case fd_rational_type:
-  case fd_complex_type:
-    if (fd_recyclers[ctype]) {
-      fd_recyclers[ctype](c); return;}
-  case fd_pair_type: {
-    /* This is hairy in order to iteratively free up long lists. */
-    struct FD_PAIR *p=(struct FD_PAIR *)c;
-    fdtype cdr=p->fd_cdr;
-    fd_decref(p->fd_car);
-    if (mallocd) u8_free(p);
-    if ((FD_PAIRP(cdr)) &&
-        (FD_CONS_REFCOUNT((fd_pair)cdr)==1))
-      while ((FD_PAIRP(cdr)) &&
-             (FD_CONS_REFCOUNT((fd_pair)cdr)==1)) {
-        struct FD_PAIR *x=(struct FD_PAIR *)cdr;
-        FD_LOCK_PTR(x);
-        if (FD_CONSBITS(x)>=0xFFFFFF80) {
-          FD_UNLOCK_PTR(x);
-          u8_raise(fd_DoubleGC,"fd_decref",NULL);}
-        else if (FD_CONSBITS(x)>=0x100) {
-          /* This is a weird case, probably when another thread
-             popped in and grabbed the CDR between when we
-             checked the refcount above and when we locked the
-             pointer. */
-          x->fd_conshead=x->fd_conshead-0x80;
-          FD_UNLOCK_PTR(x);}
-        else if (FD_CONSBITS(x)>=0x80) {
-          x->fd_conshead=(0xFFFFFF80|(x->fd_conshead&0x7F));
-          FD_UNLOCK_PTR(x);
-          fd_decref(x->fd_car); cdr=x->fd_cdr;
-          if (FD_MALLOCD_CONSP(x)) u8_free(x);}
-        else {
-          FD_UNLOCK_PTR(x);
-          u8_raise(fd_FreeingNonHeapCons,"fd_decref",NULL);}}
-    fd_decref(cdr);
-    break;}
-  case fd_string_type: case fd_packet_type: case fd_secret_type: {
-    struct FD_STRING *s=(struct FD_STRING *)c;
-    if ((s->fd_bytes)&&(s->fd_freedata)) u8_free(s->fd_bytes);
-    if (mallocd) u8_free(s);
-    break;}
-  case fd_vector_type: case fd_rail_type: {
-    struct FD_VECTOR *v=(struct FD_VECTOR *)c;
-    int len=v->fd_veclen; fdtype *scan=v->fd_vecelts, *limit=scan+len;
-    if (scan) {
-      while (scan<limit) {fd_decref(*scan); scan++;}
-      if (v->fd_freedata) u8_free(v->fd_vecelts);}
-    if (mallocd) u8_free(v);
-    break;}
-  case fd_choice_type: {
-    struct FD_CHOICE *cv=(struct FD_CHOICE *)c;
-    int len=cv->fd_choicesize, atomicp=cv->fd_isatomic;
-    const fdtype *scan=FD_XCHOICE_DATA(cv), *limit=scan+len;
-    if (scan == NULL) break;
-    if (!(atomicp)) while (scan<limit) {fd_decref(*scan); scan++;}
-    if (mallocd) u8_free(cv);
-    break;}
-  case fd_qchoice_type: {
-    struct FD_QCHOICE *qc=(struct FD_QCHOICE *)c;
-    fd_decref(qc->fd_choiceval);
-    if (mallocd) u8_free(qc);
-    break;}
-  default: {
-    if (fd_recyclers[ctype]) fd_recyclers[ctype](c);}
-  }
+    case fd_rational_type:
+    case fd_complex_type:
+      if (fd_recyclers[ctype]) {
+        fd_recyclers[ctype](c);
+        return;}
+    case fd_pair_type: {
+      /* This is hairy in order to iteratively free up long lists. */
+      struct FD_PAIR *p=(struct FD_PAIR *)c;
+      fdtype cdr=p->fd_cdr;
+      fd_decref(p->fd_car);
+      if (!(FD_STATIC_CONSP(p))) u8_free(p);
+      if ( (FD_PAIRP(cdr)) && (FD_CONS_REFCOUNT((fd_pair)cdr)==1) )
+        while ( (FD_PAIRP(cdr)) && (FD_CONS_REFCOUNT((fd_pair)cdr)==1) ) {
+          struct FD_PAIR *xcdr=(struct FD_PAIR *)cdr;
+          FD_LOCK_PTR(xcdr);
+          if (FD_CONSBITS(xcdr)>=0xFFFFFF80) {
+            FD_UNLOCK_PTR(xcdr);
+            u8_raise(fd_DoubleGC,"fd_decref",NULL);}
+          else if (FD_CONSBITS(xcdr)>=0x100) {
+            /* This is a rare case, where the refcount is now > 1.
+               This can happen, for example when another thread
+               pops in and grabs the CDR between when we
+               checked the refcount above and when we locked the
+               pointer. */
+            xcdr->fd_conshead=xcdr->fd_conshead-0x80;
+            FD_UNLOCK_PTR(xcdr);}
+          else {
+            xcdr->fd_conshead=(0xFFFFFF80|(xcdr->fd_conshead&0x7F));
+            FD_UNLOCK_PTR(xcdr);
+            fd_decref(xcdr->fd_car); cdr=xcdr->fd_cdr;
+            if (!(FD_STATIC_CONSP(xcdr))) u8_free(xcdr);}}
+      fd_decref(cdr);
+      break;}
+    case fd_string_type: case fd_packet_type: case fd_secret_type: {
+      struct FD_STRING *s=(struct FD_STRING *)c;
+      if ((s->fd_bytes)&&(s->fd_freedata)) u8_free(s->fd_bytes);
+      if (!(FD_STATIC_CONSP(s))) u8_free(s);
+      break;}
+    case fd_vector_type: case fd_rail_type: {
+      struct FD_VECTOR *v=(struct FD_VECTOR *)c;
+      int len=v->fd_veclen; fdtype *scan=v->fd_vecelts, *limit=scan+len;
+      if (scan) {
+        while (scan<limit) {fd_decref(*scan); scan++;}
+        if (v->fd_freedata) u8_free(v->fd_vecelts);}
+      if (!(FD_STATIC_CONSP(v))) u8_free(v);
+      break;}
+    case fd_choice_type: {
+      struct FD_CHOICE *cv=(struct FD_CHOICE *)c;
+      int len=cv->fd_choicesize, atomicp=cv->fd_isatomic;
+      const fdtype *scan=FD_XCHOICE_DATA(cv), *limit=scan+len;
+      if (scan == NULL) break;
+      if (!(atomicp)) while (scan<limit) {fd_decref(*scan); scan++;}
+      if (!(FD_STATIC_CONSP(cv))) u8_free(cv);
+      break;}
+    case fd_qchoice_type: {
+      struct FD_QCHOICE *qc=(struct FD_QCHOICE *)c;
+      fd_decref(qc->fd_choiceval);
+      if (!(FD_STATIC_CONSP(qc))) u8_free(qc);
+      break;}
+    default: {
+      if (fd_recyclers[ctype]) fd_recyclers[ctype](c);}
+    }
 }
 
 FD_EXPORT
@@ -393,7 +389,7 @@ fdtype fd_copier(fdtype x,int flags)
         if (static_copy) {FD_MAKE_STATIC(result);}
         if (FD_CONSP(car)) {
           struct FD_CONS *c=(struct FD_CONS *)car;
-          if ( U8_BITP(flags,FD_FULL_COPY) || FD_STACK_CONSP(c) )
+          if ( U8_BITP(flags,FD_FULL_COPY) || FD_STATIC_CONSP(c) )
             newpair->fd_car=fd_copier(car,flags);
           else {fd_incref(car); newpair->fd_car=car;}}
         else {
@@ -417,7 +413,7 @@ fdtype fd_copier(fdtype x,int flags)
           fdtype v=olddata[i], newv=v;
           if (FD_CONSP(v)) {
             struct FD_CONS *c=(struct FD_CONS *)newv;
-            if ((flags&FD_FULL_COPY)||(FD_STACK_CONSP(c)))
+            if ((flags&FD_FULL_COPY)||(FD_STATIC_CONSP(c)))
               newv=fd_copier(newv,flags);
             else fd_incref(newv);}
           newdata[i++]=newv;}
@@ -455,7 +451,7 @@ fdtype fd_copier(fdtype x,int flags)
           fdtype v=*read++, newv=v;
           if (FD_CONSP(newv)) {
             struct FD_CONS *c=(struct FD_CONS *)newv;
-            if (FD_STACK_CONSP(c))
+            if (FD_STATIC_CONSP(c))
               newv=fd_copier(newv,flags);
             else fd_incref(newv);}
           *write++=newv;}
@@ -1038,7 +1034,7 @@ static void recycle_exception(struct FD_CONS *c)
   if (exo->fd_u8ex) {
     u8_free_exception(exo->fd_u8ex,1);
     exo->fd_u8ex=NULL;}
-  u8_free(exo);
+  if (!(FD_STATIC_CONSP(exo))) u8_free(exo);
 }
 
 static int dtype_exception(struct FD_BYTE_OUTPUT *out,fdtype x)
@@ -1132,7 +1128,7 @@ static void recycle_mystery(struct FD_CONS *c)
   if (myst->fd_dtcode&0x80)
     u8_free(myst->fd_mystery_payload.fd_dtelts);
   else u8_free(myst->fd_mystery_payload.fd_dtbytes);
-  u8_free(myst);
+  if (!(FD_STATIC_CONSP(myst))) u8_free(myst);
 }
 
 /* Registering new primitive types */
@@ -1325,7 +1321,7 @@ static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
 
 static void recycle_timestamp(struct FD_CONS *c)
 {
-  u8_free(c);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 static fdtype copy_timestamp(fdtype x,int deep)
@@ -1455,7 +1451,7 @@ FD_EXPORT fdtype fd_fresh_uuid(struct FD_UUID *ptr)
 
 static void recycle_uuid(struct FD_CONS *c)
 {
-  u8_free(c);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 static int unparse_uuid(u8_output out,fdtype x)

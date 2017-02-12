@@ -245,7 +245,7 @@
 	(when (file-exists? "edit.dtype") (remove-file "edit.dtype"))
 	(set! intable table)
 	(message "Generating table for " size " items")
-	(fill-table! table (* 64 8) atomicp)
+	(fill-table! table size atomicp)
 	(table-report table)
 	(message "Checking consistency....")
 	(unless (check-table table atomicp)

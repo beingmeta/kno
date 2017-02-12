@@ -65,7 +65,7 @@ static void recycle_dtproc(FD_CONS *c)
   u8_free(f->fd_dtprocserver);
   if (f->fdfn_typeinfo) u8_free(f->fdfn_typeinfo);
   if (f->fdfn_defaults) u8_free(f->fdfn_defaults);
-  u8_free(f);
+  if (!(FD_STATIC_CONSP(f))) u8_free(f);
 }
 
 static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)

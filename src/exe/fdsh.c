@@ -514,7 +514,8 @@ int main(int argc,char **argv)
       fd_bind_value(that_symbol,lastval,env);
     /* u8_printf(out,EVAL_PROMPT); */
     u8_flush(out);}
-  if (eval_server) fd_dtsclose(eval_server,1);
+  if (eval_server) 
+    fd_dtsclose(eval_server,FD_DTSFREE);
   u8_free(eval_server);
   fd_decref(lastval);
   fd_decref(result);

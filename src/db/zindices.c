@@ -1173,7 +1173,7 @@ static void zindex_close(fd_index ix)
 {
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
   fd_lock_struct(fx);
-  fd_dtsclose(&(fx->fd_stream),1);
+  fd_dtsfree(&(fx->fd_stream),1);
   if (fx->fd_offsets) {
 #if HAVE_MMAP
     int retval=munmap(fx->fd_offsets-2,(SLOTSIZE*fx->fd_n_slots)+8);

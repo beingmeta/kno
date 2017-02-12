@@ -82,7 +82,7 @@ FD_EXPORT void recycle_thread_struct(struct FD_CONS *c)
   if (th->result!=FD_NULL) fd_decref(th->result);
   th->resultptr=NULL;
   pthread_attr_destroy(&(th->attr));
-  u8_free(th);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 /* CONDVAR support */
@@ -185,7 +185,7 @@ FD_EXPORT void recycle_condvar(struct FD_CONS *c)
   struct FD_CONSED_CONDVAR *cv=
     (struct FD_CONSED_CONDVAR *)c;
   u8_destroy_mutex(&(cv->fd_cvlock));  u8_destroy_condvar(&(cv->fd_cvar));
-  u8_free(cv);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 /* These functions generically access the locks on CONDVARs

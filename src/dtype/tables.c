@@ -537,10 +537,10 @@ static fdtype copy_slotmap(fdtype smap,int flags)
     if (cur->fd_uselock) {fd_read_lock_struct(cur); unlock=1;}
     while (i<len) {
       fdtype key=kvals[i].fd_kvkey, val=kvals[i].fd_keyval;
-      if ((flags&FD_FULL_COPY)||(FD_STACK_CONSED(key)))
+      if ((flags&FD_FULL_COPY)||(FD_STATICP(key)))
         kvals[i].fd_kvkey=fd_copier(key,flags);
       else fd_incref(key);
-      if ((flags&FD_FULL_COPY)||(FD_STACK_CONSED(val)))
+      if ((flags&FD_FULL_COPY)||(FD_STATICP(val)))
         kvals[i].fd_keyval=fd_copier(val,flags);
       else fd_incref(val);
       i++;}
@@ -565,7 +565,7 @@ static fdtype copy_slotmap(fdtype smap,int flags)
       if (FD_CONSP(val))
         if (FD_ACHOICEP(val))
           write->fd_keyval=fd_make_simple_choice(val);
-        else if ((flags&FD_FULL_COPY)||(FD_STACK_CONSED(val)))
+        else if ((flags&FD_FULL_COPY)||(FD_STATICP(val)))
           write->fd_keyval=fd_copier(val,flags);
         else write->fd_keyval=fd_incref(val);
       else write->fd_keyval=val;
@@ -592,7 +592,7 @@ static void recycle_slotmap(struct FD_CONS *c)
     if (sm->fd_free_keyvals) u8_free(sm->fd_keyvals);
     fd_rw_unlock_struct(sm);
     fd_destroy_rwlock(&(sm->fd_rwlock));
-    u8_free(sm);
+    if (!(FD_STATIC_CONSP(sm))) u8_free(sm);
   }
 }
 static int unparse_slotmap(u8_output out,fdtype x)
@@ -773,33 +773,43 @@ static fdtype copy_schemap(fdtype schemap,int flags)
     FD_GET_CONS(schemap,fd_schemap_type,struct FD_SCHEMAP *);
   struct FD_SCHEMAP *nptr=u8_alloc(struct FD_SCHEMAP);
   int i=0, size=FD_XSCHEMAP_SIZE(ptr);
-  fdtype *ovalues=ptr->fd_values, *values=((size==0) ? (NULL) : (u8_alloc_n(size,fdtype)));
+  fdtype *ovalues=ptr->fd_values;
+  fdtype *values=((size==0) ? (NULL) : (u8_alloc_n(size,fdtype)));
   fdtype *schema=ptr->fd_schema, *nschema=NULL;
   FD_INIT_STRUCT(nptr,struct FD_SCHEMAP);
   FD_INIT_CONS(nptr,fd_schemap_type);
   if (ptr->fd_stack_schema)
     nptr->fd_schema=nschema=u8_alloc_n(size,fdtype);
   else nptr->fd_schema=schema;
-  if ( (ptr->fd_stack_schema) || (!(ptr->fd_shared_schema)) )
+  if ( (nptr->fd_schema != schema) )
     while (i < size) {
       fdtype val=ovalues[i];
-      nschema[i]=schema[i];
       if (FD_CONSP(val))
         if (FD_ACHOICEP(val))
           values[i]=fd_make_simple_choice(val);
-        else if ((flags&FD_FULL_COPY)||(FD_STACK_CONSED(val)))
+        else if ((flags&FD_FULL_COPY)||(FD_STATICP(val)))
           values[i]=fd_copier(val,flags);
         else values[i]=fd_incref(val);
       else values[i]=val;
+      nschema[i]=schema[i];
       i++;}
-  else if (flags) while (i < size) {
-      values[i]=fd_copier(ovalues[i],flags); i++;}
+  else if (flags) {
+    fdtype val=ovalues[i];
+    if (FD_CONSP(val))
+      if (FD_ACHOICEP(val))
+        values[i]=fd_make_simple_choice(val);
+      else if ((flags&FD_FULL_COPY)||(FD_STATICP(val)))
+        values[i]=fd_copier(val,flags);
+      else values[i]=fd_incref(val);
+    else values[i]=val;
+    i++;}
   else while (i < size) {
-      values[i]=fd_incref(ovalues[i]); i++;}
+      values[i]=fd_incref(ovalues[i]);
+      i++;}
   nptr->fd_values=values;
   nptr->fd_table_size=size;
-  if ( (ptr->fd_stack_schema) || (!(ptr->fd_shared_schema)) )
-    nptr->fd_shared_schema=1;
+  if  ( ptr->fd_schema == nptr->fd_schema ) {
+    ptr->fd_shared_schema=nptr->fd_shared_schema=1;}
   fd_init_rwlock(&(nptr->fd_rwlock));
   return FDTYPE_CONS(nptr);
 }
@@ -959,7 +969,7 @@ static void recycle_schemap(struct FD_CONS *c)
     if (sm->fd_values) u8_free(sm->fd_values);
     fd_rw_unlock_struct(sm);
     fd_destroy_rwlock(&(sm->fd_rwlock));
-    u8_free(sm);
+    if (!(FD_STATIC_CONSP(sm))) u8_free(sm);
   }
 }
 static int unparse_schemap(u8_output out,fdtype x)
@@ -2430,7 +2440,7 @@ FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
         if (FD_CONSP(val))
           if (FD_ACHOICEP(val))
             kvwrite->fd_keyval=fd_make_simple_choice(val);
-          else if (FD_STACK_CONSED(val))
+          else if (FD_STATICP(val))
             kvwrite->fd_keyval=fd_copy(val);
           else {fd_incref(val); kvwrite->fd_keyval=val;}
         else kvwrite->fd_keyval=val;
@@ -2496,7 +2506,7 @@ FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
   if (ht->fd_n_buckets==0) {
     fd_rw_unlock_struct(ht);
     fd_destroy_rwlock(&(ht->fd_rwlock));
-    if (!(FD_STACK_CONSP(ht))) u8_free(ht);
+    if (!(FD_STATIC_CONSP(ht))) u8_free(ht);
     return 0;}
   if (ht->fd_n_buckets) {
     struct FD_HASH_BUCKET **scan=ht->fd_buckets, **lim=scan+ht->fd_n_buckets;
@@ -2515,7 +2525,7 @@ FD_EXPORT int fd_recycle_hashtable(struct FD_HASHTABLE *c)
   ht->fd_buckets=NULL; ht->fd_n_buckets=0; ht->fd_n_keys=0;
   fd_rw_unlock_struct(ht);
   fd_destroy_rwlock(&(ht->fd_rwlock));
-  if (!(FD_STACK_CONSP(ht))) u8_free(ht);
+  if (!(FD_STATIC_CONSP(ht))) u8_free(ht);
   return 0;
 }
 
@@ -2872,7 +2882,7 @@ FD_EXPORT int fd_recycle_hashset(struct FD_HASHSET *h)
   u8_free(h->fd_hashslots);
   fd_unlock_struct(h);
   fd_destroy_mutex(&(h->fd_lock));
-  if (!(FD_STACK_CONSP(h))) u8_free(h);
+  if (!(FD_STATIC_CONSP(h))) u8_free(h);
   return 1;
 }
 

@@ -73,7 +73,7 @@ static void recycle_zipfile(struct FD_CONS *c)
   zf->closed=1;
   u8_destroy_mutex(&(zf->fd_lock));
   u8_free(zf->filename);
-  u8_free(zf);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 static int unparse_zipfile(struct U8_OUTPUT *out,fdtype x)

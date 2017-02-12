@@ -100,7 +100,7 @@ static void recycle_regex(struct FD_CONS *c)
   struct FD_REGEX *rx=(struct FD_REGEX *)c;
   regfree(&(rx->fd_rxcompiled));
   u8_destroy_mutex(&(rx->fd_lock));
-  u8_free(rx);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 static int unparse_regex(struct U8_OUTPUT *out,fdtype x)

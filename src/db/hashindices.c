@@ -2560,7 +2560,7 @@ static void hash_index_close(fd_index ix)
 #endif
     hx->fdx_offdata=NULL;
     hx->fd_cache_level=-1;}
-  fd_dtsclose(&(hx->fd_stream),1);
+  fd_dtsfree(&(hx->fd_stream),1);
   u8_log(LOG_DEBUG,"HASHINDEX","Closed hash index %s",ix->fd_cid);
   fd_unlock_struct(hx);
 }

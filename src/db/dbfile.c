@@ -281,7 +281,7 @@ int fd_make_file_pool
   if (stream==NULL) return -1;
   else if ((stream->fd_dts_flags)&FD_DTSTREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_pool",u8_strdup(filename));
-    fd_dtsclose(stream,1);
+    fd_dtsclose(stream,FD_DTS_FREE);
     return -1;}
   stream->fd_mallocd=0;
   fd_setpos(stream,0);
@@ -300,7 +300,7 @@ int fd_make_file_pool
   if (FD_VOIDP(metadata))
     metadata=fd_empty_slotmap();
   fd_write_pool_metadata(stream,metadata);
-  fd_dtsclose(stream,1);
+  fd_dtsclose(stream,FD_DTS_FREE);
   fd_decref(metadata);
   return 1;
 }
@@ -322,7 +322,7 @@ int fd_make_file_index
   if (stream==NULL) return -1;
   else if ((stream->fd_dts_flags)&FD_DTSTREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(filename));
-    fd_dtsclose(stream,1);
+    fd_dtsclose(stream,FD_DTS_FREE);
     return -1;}
   stream->fd_mallocd=0;
   if (n_slots_arg<0) n_slots=-n_slots_arg;
@@ -339,7 +339,7 @@ int fd_make_file_index
     metadata=fd_empty_slotmap();
   fd_write_index_metadata(stream,metadata);
   fd_decref(metadata);
-  fd_dtsclose(stream,1);
+  fd_dtsclose(stream,FD_DTS_FREE);
   return 1;
 }
 
@@ -461,7 +461,7 @@ static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
     stream.fd_mallocd=0;
     fd_set_read(&stream,0);
     fd_write_dtype((fd_byte_output)&stream,(fdtype)&(ix->fd_cache));
-    fd_dtsclose(&stream,1);
+    fd_dtsclose(&stream,FD_DTS_FREE);
     return 1;}
   else return 0;
 }
@@ -475,7 +475,7 @@ static fd_index open_memindex(u8_string file,int read_only,int consed)
     (&stream,file,FD_DTSTREAM_READ,fd_filedb_bufsize);
   stream.fd_mallocd=0;
   lispval=fd_read_dtype((fd_byte_input)&stream);
-  fd_dtsclose(&stream,1);
+  fd_dtsclose(&stream,FD_DTS_FREE);
   if (FD_HASHTABLEP(lispval)) h=(fd_hashtable)lispval;
   else {
     fd_decref(lispval);

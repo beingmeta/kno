@@ -1547,7 +1547,7 @@ static void oidpool_close(fd_pool p)
       u8_log(LOG_WARN,u8_strerror(errno),"oidpool_close:munmap %s",op->fd_cid);
       errno=0;}}
 #endif
-  fd_dtsclose(&(op->fd_stream),1);
+  fd_dtsfree(&(op->fd_stream),1);
   fd_unlock_struct(op);
 }
 

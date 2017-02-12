@@ -37,7 +37,8 @@ VALGRINDHEAP	= INVALGRIND=yes MEMCHECKING=yes valgrind --tool=memcheck --leak-ch
 TESTPROG	= 
 TESTENV		= @TESTENV@
 #RUNENV		= 
-TESTSIZE	= 64
+TESTSIZE	= 512
+SMALLTESTSIZE	= 64
 TESTCONFIG	= 
 RUNTEST		= $(TESTENV) $(RUNENV)$(TESTPROG)
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
@@ -325,37 +326,37 @@ memcryptotests: @memtest_prefix@memcryptotests
 
 vg_memtests:
 	@echo "*** Running alltests with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 alltests
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) alltests
 	@echo "*** Finished running alltests with valgrind memory debugging"
 
 vg_memschemetests:
 	@echo "*** Running tests on data/eval layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 schemetests
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) schemetests
 	@echo "*** Finished running tests on data/eval layers with valgrind memory debugging"
 
 vg_memtabletests:
 	@echo "*** Running tests on table/index layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 tabletests
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) tabletests
 	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
 
 vg_memindextests:
 	@echo "*** Running tests on table/index layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 indextests
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) indextests
 	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
 
 vg_memhashindextests:
 	@echo "*** Running tests on table/index layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 hashindextests
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) hashindextests
 	@echo "*** Finished running tests on table/index layers with valgrind memory debugging"
 
 vg_memdbtests:
 	@echo "*** Running tests on database layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with valgrind memory debugging"
 
 vg_memdbhashtests:
 	@echo "*** Running tests on database layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(TESTSIZE)/8 dbhashtests
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) dbhashtests
 	@echo "*** Finished running tests on database layers with valgrind memory debugging"
 
 vg_memcryptotests:
@@ -402,26 +403,32 @@ builtin_memcryptotests:
 heaptests: @heaptest_prefix@heaptests
 heapschemetests: @heaptest_prefix@heapschemetests
 heaptabletests: @heaptest_prefix@heaptabletests
+heapindextests: @heaptest_prefix@heapindextests
 heapdbtests: @heaptest_prefix@heapdbtests
 
 vg_heaptests:
 	@echo "*** Running alltests with valgrind heap debugging"
-	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 alltests
+	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) alltests
 	@echo "*** Finished running alltests with valgrind heap debugging"
 
 vg_heapschemetests:
 	@echo "*** Running tests on data/eval layers with valgrind heap debugging"
-	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 schemetests
+	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) schemetests
 	@echo "*** Finished running tests on data/eval layers with valgrind heap debugging"
 
 vg_heaptabletests:
 	@echo "*** Running tests on table/index layers with valgrind heap debugging"
-	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 tabletests
+	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) tabletests
+	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
+
+vg_heapindextests:
+	@echo "*** Running tests on table/index layers with valgrind heap debugging"
+	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indextests
 	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
 
 vg_heapdbtests:
 	@echo "*** Running tests on database layers with valgrind heap debugging"
-	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
+	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with valgrind heap debugging"
 
 vg_heapcryptotests:
@@ -429,22 +436,27 @@ vg_heapcryptotests:
 
 builtin_heaptests:
 	@echo "*** Running alltests with gperftools memory debugging"
-	make @heaptest_env@ TESTSIZE=$(TESTSIZE)/8 alltests
+	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) alltests
 	@echo "*** Finished running alltests with gperftools memory debugging"
 
 builtin_heapschemetests:
 	@echo "*** Running tests on data/eval layers with gperftools memory debugging"
-	make @heaptest_env@ TESTSIZE=$(TESTSIZE)/8 schemetests
+	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) schemetests
 	@echo "*** Finished running tests on data/eval layers with gperftools memory debugging"
 
 builtin_heaptabletests:
 	@echo "*** Running tests on table/index layers with gperftools memory debugging"
-	make @heaptest_env@ TESTSIZE=$(TESTSIZE)/8 tabletests
+	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) tabletests
+	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
+
+builtin_heapindextests:
+	@echo "*** Running tests on table/index layers with gperftools memory debugging"
+	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) indextests
 	@echo "*** Finished running tests on table/index layers with gperftools memory debugging"
 
 builtin_heapdbtests:
 	@echo "*** Running tests on database layers with gperftools memory debugging"
-	make @heaptest_env@ TESTSIZE=$(TESTSIZE)/8 dbtests dbhashtests
+	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with gperftools memory debugging"
 
 builtin_heapcryptotests:

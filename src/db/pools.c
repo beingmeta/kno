@@ -2304,7 +2304,7 @@ static void recycle_raw_pool(struct FD_CONS *c)
   if (p->label) u8_free(p->label);
   if (p->prefix) u8_free(p->prefix);
   fd_decref(p->oidnamefn); fd_decref(p->oidnamefn);
-  u8_free(p);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 static fdtype copy_raw_pool(fdtype x,int deep)

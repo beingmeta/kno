@@ -3787,7 +3787,7 @@ static void recycle_txclosure(FD_CONS *c)
 {
   struct FD_TXCLOSURE *txc=(fd_txclosure)c;
   fd_decref(txc->fd_txpattern); fd_decref((fdtype)(txc->fd_txenv));
-  u8_free(txc);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 /* Defining match symbols */

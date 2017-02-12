@@ -148,7 +148,7 @@ static void recycle_imagick(struct FD_CONS *c)
 {
   struct FD_IMAGICK *wrapper=(struct FD_IMAGICK *)c;
   DestroyMagickWand(wrapper->wand);
-  u8_free(c);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
 fdtype file2imagick(fdtype arg)

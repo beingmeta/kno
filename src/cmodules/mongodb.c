@@ -361,7 +361,7 @@ static void recycle_server(struct FD_CONS *c)
   mongoc_uri_destroy(s->dburi_info);
   mongoc_client_pool_destroy(s->dbclients);
   fd_decref(s->dbopts);
-  u8_free(c);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 static int unparse_server(struct U8_OUTPUT *out,fdtype x)
 {
@@ -457,7 +457,7 @@ static void recycle_collection(struct FD_CONS *c)
   struct FD_MONGODB_COLLECTION *collection=(struct FD_MONGODB_COLLECTION *)c;
   fd_decref(collection->domain_db);
   fd_decref(collection->domain_opts);
-  u8_free(collection);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 static int unparse_collection(struct U8_OUTPUT *out,fdtype x)
 {
@@ -1139,7 +1139,7 @@ static void recycle_cursor(struct FD_CONS *c)
     bson_destroy(cursor->cursor_fields_bson);
   if (cursor->cursor_readprefs)
     mongoc_read_prefs_destroy(cursor->cursor_readprefs);
-  u8_free(cursor);
+  if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 static int unparse_cursor(struct U8_OUTPUT *out,fdtype x)
 {

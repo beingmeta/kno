@@ -62,10 +62,13 @@ FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
   (u8_string filename,fd_dtstream_mode mode,int bufsiz);
 #define fd_dtsopen(filename,mode) \
   fd_open_dtype_file_x(filename,mode,FD_DTSTREAM_BUFSIZ_DEFAULT)
-#define FD_DTSCLOSE_FD 1
-#define FD_DTSCLOSE_FULL 2
-FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd);
-FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int close_fd);
+
+#define FD_DTS_FREE    1
+#define FD_DTS_NOCLOSE 2
+#define FD_DTS_NOFLUSH 4
+#define FD_DTSCLOSE_FULL FD_DTS_FREE
+FD_EXPORT void fd_dtsclose(fd_dtype_stream s,int flags);
+FD_EXPORT void fd_dtsfree(fd_dtype_stream s,int flags);
 
 FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename);
 FD_EXPORT ssize_t _fd_write_dtype_to_file(fdtype,u8_string,size_t,int);

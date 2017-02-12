@@ -559,7 +559,7 @@ static void file_pool_close(fd_pool p)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   fd_lock_struct(fp);
-  fd_dtsclose(&(fp->fd_stream),1);
+  fd_dtsfree(&(fp->fd_stream),1);
   if (fp->fd_offsets) {
 #if HAVE_MMAP
     /* Since we were just reading, the buffer was only as big
