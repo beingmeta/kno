@@ -382,13 +382,13 @@ static fdtype sqlitemakeproc
   fd_incref(sqlcons->extdbptr);
   sqlcons->sqlitedb=db; sqlcons->stmt=stmt;
   u8_init_mutex(&(sqlcons->plock));
-  sqlcons->fdfn_filename=sqlcons->extdb_spec=u8_strdup(dbp->extdb_spec);
+  sqlcons->fcn_filename=sqlcons->extdb_spec=u8_strdup(dbp->extdb_spec);
   /* include NUL */
-  sqlcons->fdfn_name=sqlcons->extdb_qtext=_memdup((u8_byte *)sql,sql_len+1);
-  sqlcons->fdfn_n_params=n_params=sqlite3_bind_parameter_count(stmt);
-  sqlcons->fdfn_ndcall=0; sqlcons->fdfn_xcall=1; sqlcons->fdfn_arity=-1;
-  sqlcons->fdfn_min_arity=n_params;
-  sqlcons->fdfn_handler.xcalln=sqlitecallproc;
+  sqlcons->fcn_name=sqlcons->extdb_qtext=_memdup((u8_byte *)sql,sql_len+1);
+  sqlcons->fcn_n_params=n_params=sqlite3_bind_parameter_count(stmt);
+  sqlcons->fcn_ndcall=0; sqlcons->fcn_xcall=1; sqlcons->fcn_arity=-1;
+  sqlcons->fcn_min_arity=n_params;
+  sqlcons->fcn_handler.xcalln=sqlitecallproc;
   {
     fdtype *paramtypes=u8_alloc_n(n_params,fdtype);
     int j=0; while (j<n_params) {
@@ -457,7 +457,7 @@ static void recycle_fdsqliteproc(struct FD_EXTDB_PROC *c)
   close_fdsqliteproc(dbp);
   fd_decref(dbp->extdb_colinfo);
   u8_free(dbp->extdb_spec); u8_free(dbp->extdb_qtext);
-  {int j=0, lim=dbp->fdfn_n_params;; while (j<lim) {
+  {int j=0, lim=dbp->fcn_n_params;; while (j<lim) {
     fd_decref(dbp->extdb_paramtypes[j]); j++;}}
   u8_free(dbp->sqltypes); u8_free(dbp->extdb_paramtypes);
   fd_decref(dbp->extdbptr); dbp->extdbptr=FD_VOID;

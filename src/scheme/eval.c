@@ -81,12 +81,12 @@ static int unparse_lexref(u8_output out,fdtype lexref)
 FD_EXPORT int fd_bind_value(fdtype sym,fdtype val,fd_lispenv env)
 {
   if (env) {
-    if (fd_store(env->fdenv_bindings,sym,val)<0) {
+    if (fd_store(env->env_bindings,sym,val)<0) {
       fd_poperr(NULL,NULL,NULL,NULL);
       fd_seterr(fd_CantBind,"fd_bind_value",NULL,sym);
       return -1;}
-    if (FD_HASHTABLEP(env->fdenv_exports))
-      fd_hashtable_op((fd_hashtable)(env->fdenv_exports),
+    if (FD_HASHTABLEP(env->env_exports))
+      fd_hashtable_op((fd_hashtable)(env->env_exports),
                       fd_table_replace,sym,val);
     return 1;}
   else return 0;
@@ -94,7 +94,7 @@ FD_EXPORT int fd_bind_value(fdtype sym,fdtype val,fd_lispenv env)
 
 static int bound_in_envp(fdtype symbol,fd_lispenv env)
 {
-  fdtype bindings=env->fdenv_bindings;
+  fdtype bindings=env->env_bindings;
   if (FD_HASHTABLEP(bindings))
     return fd_hashtable_probe((fd_hashtable)bindings,symbol);
   else if (FD_SLOTMAPP(bindings))
@@ -106,19 +106,19 @@ static int bound_in_envp(fdtype symbol,fd_lispenv env)
 
 FD_EXPORT int fd_set_value(fdtype symbol,fdtype value,fd_lispenv env)
 {
-  if (env->fdenv_copy) env=env->fdenv_copy;
+  if (env->env_copy) env=env->env_copy;
   while (env) {
     if (!(bound_in_envp(symbol,env))) {
-      env=env->fdenv_parent;
-      if ((env) && (env->fdenv_copy)) env=env->fdenv_copy;}
-    else if ((env->fdenv_bindings) == (env->fdenv_exports))
+      env=env->env_parent;
+      if ((env) && (env->env_copy)) env=env->env_copy;}
+    else if ((env->env_bindings) == (env->env_exports))
       /* This is the kind of environment produced by using a module,
          so it's read only. */
       return fd_reterr(fd_ReadOnlyEnv,"fd_set_value",NULL,symbol);
     else {
-      fd_store(env->fdenv_bindings,symbol,value);
-      if (FD_HASHTABLEP(env->fdenv_exports))
-        fd_hashtable_op((fd_hashtable)(env->fdenv_exports),
+      fd_store(env->env_bindings,symbol,value);
+      if (FD_HASHTABLEP(env->env_exports))
+        fd_hashtable_op((fd_hashtable)(env->env_exports),
                         fd_table_replace,symbol,value);
       return 1;}}
   return 0;
@@ -136,18 +136,18 @@ FD_EXPORT fdtype _fd_lexref(fdtype lexref,fd_lispenv env)
 
 FD_EXPORT int fd_add_value(fdtype symbol,fdtype value,fd_lispenv env)
 {
-  if (env->fdenv_copy) env=env->fdenv_copy;
+  if (env->env_copy) env=env->env_copy;
   while (env) {
     if (!(bound_in_envp(symbol,env))) {
-      env=env->fdenv_parent;
-      if ((env) && (env->fdenv_copy)) env=env->fdenv_copy;}
-    else if ((env->fdenv_bindings) == (env->fdenv_exports))
+      env=env->env_parent;
+      if ((env) && (env->env_copy)) env=env->env_copy;}
+    else if ((env->env_bindings) == (env->env_exports))
       return fd_reterr(fd_ReadOnlyEnv,"fd_set_value",NULL,symbol);
     else {
-      fd_add(env->fdenv_bindings,symbol,value);
-      if ((FD_HASHTABLEP(env->fdenv_exports)) &&
-          (fd_hashtable_probe((fd_hashtable)(env->fdenv_exports),symbol)))
-        fd_add(env->fdenv_exports,symbol,value);
+      fd_add(env->env_bindings,symbol,value);
+      if ((FD_HASHTABLEP(env->env_exports)) &&
+          (fd_hashtable_probe((fd_hashtable)(env->env_exports),symbol)))
+        fd_add(env->env_exports,symbol,value);
       return 1;}}
   return 0;
 }
@@ -156,24 +156,24 @@ static fd_lispenv copy_environment(fd_lispenv env);
 
 static fd_lispenv dynamic_environment(fd_lispenv env)
 {
-  if (env->fdenv_copy) return env->fdenv_copy;
+  if (env->env_copy) return env->env_copy;
   else {
     struct FD_ENVIRONMENT *newenv=u8_alloc(struct FD_ENVIRONMENT);
     FD_INIT_FRESH_CONS(newenv,fd_environment_type);
-    if (env->fdenv_parent)
-      newenv->fdenv_parent=copy_environment(env->fdenv_parent);
-    else newenv->fdenv_parent=NULL;
-    if (FD_STATIC_CONSP(FD_CONS_DATA(env->fdenv_bindings)))
-      newenv->fdenv_bindings=fd_copy(env->fdenv_bindings);
-    else newenv->fdenv_bindings=fd_incref(env->fdenv_bindings);
-    newenv->fdenv_exports=fd_incref(env->fdenv_exports);
-    env->fdenv_copy=newenv; newenv->fdenv_copy=newenv;
+    if (env->env_parent)
+      newenv->env_parent=copy_environment(env->env_parent);
+    else newenv->env_parent=NULL;
+    if (FD_STATIC_CONSP(FD_CONS_DATA(env->env_bindings)))
+      newenv->env_bindings=fd_copy(env->env_bindings);
+    else newenv->env_bindings=fd_incref(env->env_bindings);
+    newenv->env_exports=fd_incref(env->env_exports);
+    env->env_copy=newenv; newenv->env_copy=newenv;
     return newenv;}
 }
 
 static fd_lispenv copy_environment(fd_lispenv env)
 {
-  fd_lispenv dynamic=((env->fdenv_copy) ? (env->fdenv_copy) : (dynamic_environment(env)));
+  fd_lispenv dynamic=((env->env_copy) ? (env->env_copy) : (dynamic_environment(env)));
   return (fd_lispenv) fd_incref((fdtype)dynamic);
 }
 
@@ -185,10 +185,10 @@ static fdtype lisp_copy_environment(fdtype env,int deep)
 FD_EXPORT fd_lispenv fd_copy_env(fd_lispenv env)
 {
   if (env==NULL) return env;
-  else if (env->fdenv_copy) {
-    fdtype existing=(fdtype)env->fdenv_copy;
+  else if (env->env_copy) {
+    fdtype existing=(fdtype)env->env_copy;
     fd_incref(existing);
-    return env->fdenv_copy;}
+    return env->env_copy;}
   else {
     fd_lispenv fresh=dynamic_environment(env);
     fdtype ref=(fdtype)fresh; fd_incref(ref);
@@ -198,8 +198,8 @@ FD_EXPORT fd_lispenv fd_copy_env(fd_lispenv env)
 static void recycle_environment(struct FD_CONS *envp)
 {
   struct FD_ENVIRONMENT *env=(struct FD_ENVIRONMENT *)envp;
-  fd_decref(env->fdenv_bindings); fd_decref(env->fdenv_exports);
-  if (env->fdenv_parent) fd_decref((fdtype)(env->fdenv_parent));
+  fd_decref(env->env_bindings); fd_decref(env->env_exports);
+  if (env->env_parent) fd_decref((fdtype)(env->env_parent));
   if (!(FD_STATIC_CONSP(envp))) {
     memset(env,0,sizeof(env));
     u8_free(envp);}
@@ -295,9 +295,9 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       if (constype==fd_environment_type) {
         fd_lispenv scan=FD_STRIP_CONS(obj,fd_environment_type,fd_lispenv);
         while (scan)
-          if ((scan==env)||(scan->fdenv_copy==env))
+          if ((scan==env)||(scan->env_copy==env))
             return 1;
-          else scan=scan->fdenv_parent;
+          else scan=scan->env_parent;
         return 0;}
       else if (constype==fd_macro_type) {
         struct FD_MACRO *m=FD_STRIP_CONS(cons,fd_macro_type,struct FD_MACRO *);
@@ -308,9 +308,9 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
         struct FD_SPROC *sp=FD_STRIP_CONS(obj,fd_sproc_type,struct FD_SPROC *);
         struct FD_ENVIRONMENT *scan=sp->fd_procenv;
         while (scan) {
-          if ((scan==env)||(scan->fdenv_copy==env))
+          if ((scan==env)||(scan->env_copy==env))
             return 1;
-          else scan=scan->fdenv_parent;}
+          else scan=scan->env_parent;}
         return 0;}
       else if (constype==fd_raw_pool_type) {
         struct FD_POOL *p=(struct FD_POOL *)obj;
@@ -365,10 +365,10 @@ int fd_recycle_environment(fd_lispenv env)
     fd_decref((fdtype)env);
     return 1;}
   else {
-    int sproc_count=count_envrefs(env->fdenv_bindings,env,env_recycle_depth);
+    int sproc_count=count_envrefs(env->env_bindings,env,env_recycle_depth);
     if (sproc_count+1==refcount) {
-      fd_decref(env->fdenv_bindings); fd_decref(env->fdenv_exports);
-      if (env->fdenv_parent) fd_decref((fdtype)(env->fdenv_parent));
+      fd_decref(env->env_bindings); fd_decref(env->env_exports);
+      if (env->env_parent) fd_decref((fdtype)(env->env_parent));
       env->fd_conshead=(0xFFFFFF80|(env->fd_conshead&0x7F));
       u8_free(env);
       return 1;}
@@ -932,8 +932,8 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
   struct FD_FUNCTION *fcn=(fd_function)fn;
   fdtype _argv[FD_STACK_ARGS], *argv;
   int arg_count=0, n_args=0, args_need_gc=0, free_argv=0;
-  int nd_args=0, prune=0, nd_prim=fcn->fdfn_ndcall;
-  int max_arity=fcn->fdfn_arity, min_arity=fcn->fdfn_min_arity;
+  int nd_args=0, prune=0, nd_prim=fcn->fcn_ndcall;
+  int max_arity=fcn->fcn_arity, min_arity=fcn->fcn_min_arity;
   int n_params=max_arity, argv_length=max_arity;
   /* First, count the arguments */
   {FD_DOBODY(arg,expr,1) {
@@ -944,9 +944,9 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
   if (max_arity<0) argv_length=n_args;
   /* Check if there are too many arguments. */
   else if (FD_EXPECT_FALSE(n_args>max_arity))
-    return fd_err(fd_TooManyArgs,"apply_function",fcn->fdfn_name,expr);
+    return fd_err(fd_TooManyArgs,"apply_function",fcn->fcn_name,expr);
   else if (FD_EXPECT_FALSE((min_arity>=0) && (n_args<min_arity)))
-    return fd_err(fd_TooFewArgs,"apply_function",fcn->fdfn_name,expr);
+    return fd_err(fd_TooFewArgs,"apply_function",fcn->fcn_name,expr);
   if (argv_length>FD_STACK_ARGS) {
     /* If there are more than _FD_STACK_ARGS, malloc a vector for them. */
     argv=u8_alloc_n(argv_length,fdtype);
@@ -963,7 +963,7 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
       /* Break if one of the arguments returns an error */
       result=argval; break;}
     if (FD_VOIDP(argval)) {
-      result=fd_err(fd_VoidArgument,"apply_function",fcn->fdfn_name,elt);
+      result=fd_err(fd_VoidArgument,"apply_function",fcn->fcn_name,elt);
       break;}
     if ((FD_EMPTY_CHOICEP(argval)) && (!(nd_prim))) {
       /* Break if the method isn't non-deterministic and one of the
@@ -993,12 +993,12 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
       /* This could extend the backtrace */
       return result;
     else return FD_EMPTY_CHOICE;}
-  if ((n_params<0) || (fcn->fdfn_xcall)) {}
+  if ((n_params<0) || (fcn->fcn_xcall)) {}
   /* Don't fill anything in for lexprs or non primitives.  */
   else if (arg_count != argv_length) {
-    if (fcn->fdfn_defaults)
+    if (fcn->fcn_defaults)
       while (arg_count<argv_length) {
-        argv[arg_count]=fd_incref(fcn->fdfn_defaults[arg_count]); arg_count++;}
+        argv[arg_count]=fd_incref(fcn->fcn_defaults[arg_count]); arg_count++;}
     else while (arg_count<argv_length) argv[arg_count++]=FD_VOID;}
   else {}
   if ((fd_optimize_tail_calls) && (FD_SPROCP(fn)))
@@ -1015,12 +1015,12 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
        up in an environment on the backtrace. */
     fdtype *avec=u8_alloc_n((arg_count+1),fdtype);
     memcpy(avec+1,argv,sizeof(fdtype)*(arg_count));
-    if (fcn->fdfn_filename)
-      if (fcn->fdfn_name)
-        avec[0]=fd_conspair(fd_intern(fcn->fdfn_name),
-                            fdtype_string(fcn->fdfn_filename));
-      else avec[0]=fd_conspair(fd_intern("LAMBDA"),fdtype_string(fcn->fdfn_filename));
-    else if (fcn->fdfn_name) avec[0]=fd_intern(fcn->fdfn_name);
+    if (fcn->fcn_filename)
+      if (fcn->fcn_name)
+        avec[0]=fd_conspair(fd_intern(fcn->fcn_name),
+                            fdtype_string(fcn->fcn_filename));
+      else avec[0]=fd_conspair(fd_intern("LAMBDA"),fdtype_string(fcn->fcn_filename));
+    else if (fcn->fcn_name) avec[0]=fd_intern(fcn->fcn_name);
     else avec[0]=fd_intern("LAMBDA");
     if (free_argv) u8_free(argv);
     fd_push_error_context
@@ -1117,9 +1117,9 @@ FD_EXPORT fd_lispenv fd_make_env(fdtype bindings,fd_lispenv parent)
   else {
     struct FD_ENVIRONMENT *e=u8_alloc(struct FD_ENVIRONMENT);
     FD_INIT_FRESH_CONS(e,fd_environment_type);
-    e->fdenv_bindings=bindings; e->fdenv_exports=FD_VOID;
-    e->fdenv_parent=fd_copy_env(parent);
-    e->fdenv_copy=e;
+    e->env_bindings=bindings; e->env_exports=FD_VOID;
+    e->env_parent=fd_copy_env(parent);
+    e->env_copy=e;
     return e;}
 }
 
@@ -1140,9 +1140,9 @@ fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent)
   else {
     struct FD_ENVIRONMENT *e=u8_alloc(struct FD_ENVIRONMENT);
     FD_INIT_FRESH_CONS(e,fd_environment_type);
-    e->fdenv_bindings=fd_incref(exports); e->fdenv_exports=fd_incref(e->fdenv_bindings);
-    e->fdenv_parent=fd_copy_env(parent);
-    e->fdenv_copy=e;
+    e->env_bindings=fd_incref(exports); e->env_exports=fd_incref(e->env_bindings);
+    e->env_parent=fd_copy_env(parent);
+    e->env_copy=e;
     return e;}
 }
 
@@ -1174,7 +1174,7 @@ FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
   /* Set the module ID*/
   if (FD_ENVIRONMENTP(module)) {
     fd_environment env=(fd_environment)module;
-    fd_add(env->fdenv_bindings,moduleid_symbol,name);}
+    fd_add(env->env_bindings,moduleid_symbol,name);}
   else if (FD_HASHTABLEP(module))
     fd_add(module,moduleid_symbol,name);
   else {}
@@ -1185,19 +1185,19 @@ FD_EXPORT fdtype fd_register_module_x(fdtype name,fdtype module,int flags)
     if (flags&FD_MODULE_SAFE) {
       scan=safe_default_env;
       while (scan)
-        if (FD_EQ(scan->fdenv_bindings,module))
+        if (FD_EQ(scan->env_bindings,module))
           /* It's okay to return now, because if it's in the safe module
              defaults it's also in the risky module defaults. */
           return module;
-        else scan=scan->fdenv_parent;
-      safe_default_env->fdenv_parent=
-        fd_make_env(fd_incref(module),safe_default_env->fdenv_parent);}
+        else scan=scan->env_parent;
+      safe_default_env->env_parent=
+        fd_make_env(fd_incref(module),safe_default_env->env_parent);}
     scan=default_env;
     while (scan)
-      if (FD_EQ(scan->fdenv_bindings,module)) return module;
-      else scan=scan->fdenv_parent;
-    default_env->fdenv_parent=
-      fd_make_env(fd_incref(module),default_env->fdenv_parent);}
+      if (FD_EQ(scan->env_bindings,module)) return module;
+      else scan=scan->env_parent;
+    default_env->env_parent=
+      fd_make_env(fd_incref(module),default_env->env_parent);}
   return module;
 }
 
@@ -1227,8 +1227,8 @@ FD_EXPORT fdtype fd_new_module(char *name,int flags)
   else fd_decref(as_stored);
   if (flags&FD_MODULE_DEFAULT) {
     if (flags&FD_MODULE_SAFE)
-      safe_default_env->fdenv_parent=fd_make_env(module,safe_default_env->fdenv_parent);
-    default_env->fdenv_parent=fd_make_env(module,default_env->fdenv_parent);}
+      safe_default_env->env_parent=fd_make_env(module,safe_default_env->env_parent);
+    default_env->env_parent=fd_make_env(module,default_env->env_parent);}
   return module;
 }
 
@@ -1516,8 +1516,8 @@ static int unparse_environment(u8_output out,fdtype x)
 {
   struct FD_ENVIRONMENT *env=
     FD_GET_CONS(x,fd_environment_type,struct FD_ENVIRONMENT *);
-  if (FD_HASHTABLEP(env->fdenv_bindings)) {
-    fdtype ids=fd_get(env->fdenv_bindings,moduleid_symbol,FD_EMPTY_CHOICE);
+  if (FD_HASHTABLEP(env->env_bindings)) {
+    fdtype ids=fd_get(env->env_bindings,moduleid_symbol,FD_EMPTY_CHOICE);
     fdtype mid=FD_VOID;
     FD_DO_CHOICES(id,ids) {
       if (FD_SYMBOLP(id)) mid=id;}
@@ -1553,10 +1553,10 @@ static fdtype callcc (fdtype proc)
   fdtype continuation, value;
   struct FD_CONTINUATION *f=u8_alloc(struct FD_CONTINUATION);
   FD_INIT_CONS(f,fd_function_type);
-  f->fdfn_name="continuation"; f->fdfn_filename=NULL;
-  f->fdfn_ndcall=1; f->fdfn_xcall=1; f->fdfn_arity=1; f->fdfn_min_arity=1;
-  f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
-  f->fdfn_handler.xcall1=call_continuation; f->retval=FD_VOID;
+  f->fcn_name="continuation"; f->fcn_filename=NULL;
+  f->fcn_ndcall=1; f->fcn_xcall=1; f->fcn_arity=1; f->fcn_min_arity=1;
+  f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_handler.xcall1=call_continuation; f->retval=FD_VOID;
   continuation=FDTYPE_CONS(f);
   value=fd_apply(proc,1,&continuation);
   if ((value==FD_THROW_VALUE) && (!(FD_VOIDP(f->retval)))) {

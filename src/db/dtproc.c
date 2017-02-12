@@ -30,21 +30,21 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,
 {
   struct FD_DTPROC *f=u8_alloc(struct FD_DTPROC);
   FD_INIT_CONS(f,fd_dtproc_type);
-  f->fdfn_name=u8_mkstring("%s/%s",name,server);
-  f->fdfn_filename=u8_strdup(server);
+  f->fcn_name=u8_mkstring("%s/%s",name,server);
+  f->fcn_filename=u8_strdup(server);
   f->fd_dtprocserver=u8_strdup(server);
   f->fd_dtprocname=fd_intern(name);
-  f->fdfn_ndcall=ndcall; f->fdfn_min_arity=min_arity;
-  f->fdfn_arity=arity; f->fdfn_xcall=1;
-  f->fdfn_typeinfo=NULL; f->fdfn_defaults=NULL;
-  f->fdfn_handler.fnptr=NULL;
+  f->fcn_ndcall=ndcall; f->fcn_min_arity=min_arity;
+  f->fcn_arity=arity; f->fcn_xcall=1;
+  f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_handler.fnptr=NULL;
   if (minsock<0) minsock=2;
   if (maxsock<0) maxsock=minsock+3;
   if (initsock<0) initsock=1;
   f->fd_connpool=u8_open_connpool(f->fd_dtprocserver,minsock,maxsock,initsock);
   if (f->fd_connpool==NULL) {
-    u8_free(f->fdfn_name);
-    u8_free(f->fdfn_filename); 
+    u8_free(f->fcn_name);
+    u8_free(f->fcn_filename); 
     u8_free(f);
     return FD_ERROR_VALUE;}
   else return FDTYPE_CONS(f);
@@ -53,18 +53,18 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,
 static int unparse_dtproc(u8_output out,fdtype x)
 {
   struct FD_DTPROC *f=FD_GET_CONS(x,fd_dtproc_type,fd_dtproc);
-  u8_printf(out,"#<!DTPROC %s using %s>",f->fdfn_name,f->fd_dtprocserver);
+  u8_printf(out,"#<!DTPROC %s using %s>",f->fcn_name,f->fd_dtprocserver);
   return 1;
 }
 
 static void recycle_dtproc(FD_CONS *c)
 {
   struct FD_DTPROC *f=(fd_dtproc)c;
-  u8_free(f->fdfn_name); 
-  u8_free(f->fdfn_filename); 
+  u8_free(f->fcn_name); 
+  u8_free(f->fcn_filename); 
   u8_free(f->fd_dtprocserver);
-  if (f->fdfn_typeinfo) u8_free(f->fdfn_typeinfo);
-  if (f->fdfn_defaults) u8_free(f->fdfn_defaults);
+  if (f->fcn_typeinfo) u8_free(f->fcn_typeinfo);
+  if (f->fcn_defaults) u8_free(f->fcn_defaults);
   if (!(FD_STATIC_CONSP(f))) u8_free(f);
 }
 

@@ -172,14 +172,14 @@ static fdtype odbcmakeproc
     return FD_ERROR_VALUE;}
   dbproc->extdbptr=(fdtype)dbp; fd_incref(dbproc->extdbptr);
   dbproc->extdb_handler=&odbc_handler;
-  dbproc->fdfn_ndcall=0;
-  dbproc->fdfn_xcall=1;
-  dbproc->fdfn_arity=-1;
-  dbproc->fdfn_min_arity=dbproc->fdfn_n_params=n_params;
-  dbproc->fdfn_name=dbproc->extdb_qtext=_memdup(stmt,stmt_len+1);
-  dbproc->fdfn_filename=dbproc->extdb_spec=u8_strdup(dbp->extdb_spec);
+  dbproc->fcn_ndcall=0;
+  dbproc->fcn_xcall=1;
+  dbproc->fcn_arity=-1;
+  dbproc->fcn_min_arity=dbproc->fcn_n_params=n_params;
+  dbproc->fcn_name=dbproc->extdb_qtext=_memdup(stmt,stmt_len+1);
+  dbproc->fcn_filename=dbproc->extdb_spec=u8_strdup(dbp->extdb_spec);
   dbproc->sqltypes=sqltypes=u8_alloc_n(n_params,SQLSMALLINT);
-  dbproc->fdfn_handler.xcalln=callodbcproc;
+  dbproc->fcn_handler.xcalln=callodbcproc;
 #if FD_THREADS_ENABLED
   u8_init_mutex(&(dbproc->fd_lock));
 #endif

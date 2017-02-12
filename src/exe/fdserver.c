@@ -677,9 +677,9 @@ static int config_use_module(fdtype var,fdtype val,void *data)
   else if (FD_ENVIRONMENTP(module)) {
     FD_ENVIRONMENT *env=
       FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
-    if (FD_HASHTABLEP(env->fdenv_exports))
+    if (FD_HASHTABLEP(env->env_exports))
       exposed_environment=
-        fd_make_env(fd_incref(env->fdenv_exports),exposed_environment);}
+        fd_make_env(fd_incref(env->env_exports),exposed_environment);}
   module=fd_find_module(val,0,1);
   if (FD_EQ(module,safe_module))
     if (FD_VOIDP(module)) return 0;
@@ -690,9 +690,9 @@ static int config_use_module(fdtype var,fdtype val,void *data)
   else if (FD_ENVIRONMENTP(module)) {
     FD_ENVIRONMENT *env=
       FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
-    if (FD_HASHTABLEP(env->fdenv_exports))
+    if (FD_HASHTABLEP(env->env_exports))
       exposed_environment=
-        fd_make_env(fd_incref(env->fdenv_exports),exposed_environment);}
+        fd_make_env(fd_incref(env->env_exports),exposed_environment);}
   module_list=fd_conspair(fd_incref(val),module_list);
   return 1;
 }
@@ -1394,13 +1394,13 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
          Otherwise, expose all the definitions in the init file.  Note that the clients
          won't be able to get at the unsafe "empowered" environment but that the
          procedures defined are closed in that environment. */
-      if (FD_HASHTABLEP(env->fdenv_exports))
-        server_env=fd_make_env(fd_incref(env->fdenv_exports),exposed_environment);
-      else server_env=fd_make_env(fd_incref(env->fdenv_bindings),exposed_environment);
+      if (FD_HASHTABLEP(env->env_exports))
+        server_env=fd_make_env(fd_incref(env->env_exports),exposed_environment);
+      else server_env=fd_make_env(fd_incref(env->env_bindings),exposed_environment);
       if (fullscheme==0) {
         /* Cripple the core environment if requested */
-        fd_decref((fdtype)(core_env->fdenv_parent));
-        core_env->fdenv_parent=NULL;}
+        fd_decref((fdtype)(core_env->env_parent));
+        core_env->env_parent=NULL;}
       if (FD_VOIDP(startup_proc)) {}
       else {
         FD_DO_CHOICES(p,startup_proc) {

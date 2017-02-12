@@ -525,8 +525,8 @@ int main(int argc,char **argv)
      working_environment contains procedures which are closed in the
      working environment, it will not be GC'd because of those
      circular pointers. */
-  if (FD_HASHTABLEP(env->fdenv_bindings))
-    fd_reset_hashtable((fd_hashtable)(env->fdenv_bindings),0,1);
+  if (FD_HASHTABLEP(env->env_bindings))
+    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);
   /* Freed as console_env */
   /* fd_recycle_environment(env); */
   return 0;

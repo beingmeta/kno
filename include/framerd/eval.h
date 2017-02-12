@@ -49,10 +49,10 @@ FD_EXPORT void (*fd_dump_backtrace)(u8_string bt);
 
 typedef struct FD_ENVIRONMENT {
   FD_CONS_HEADER;
-  fdtype fdenv_bindings;
-  fdtype fdenv_exports;
-  struct FD_ENVIRONMENT *fdenv_parent;
-  struct FD_ENVIRONMENT *fdenv_copy;} FD_ENVIRONMENT;
+  fdtype env_bindings;
+  fdtype env_exports;
+  struct FD_ENVIRONMENT *env_parent;
+  struct FD_ENVIRONMENT *env_copy;} FD_ENVIRONMENT;
 typedef struct FD_ENVIRONMENT *fd_environment;
 typedef struct FD_ENVIRONMENT *fd_lispenv;
 
@@ -211,11 +211,11 @@ FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
   int code=FD_GET_IMMEDIATE(lexref,fd_lexref_type);
   int up=code/32, across=code%32;
   while ((env) && (up)) {
-    if (env->fdenv_copy) env=env->fdenv_copy;
-    env=env->fdenv_parent; up--;}
-  if (env->fdenv_copy) env=env->fdenv_copy;
+    if (env->env_copy) env=env->env_copy;
+    env=env->env_parent; up--;}
+  if (env->env_copy) env=env->env_copy;
   if (FD_EXPECT_TRUE(env!=NULL)) {
-    fdtype bindings=env->fdenv_bindings;
+    fdtype bindings=env->env_bindings;
     if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
       struct FD_SCHEMAP *s=(struct FD_SCHEMAP *)bindings;
       return fd_incref(s->fd_values[across]);}}
@@ -224,13 +224,13 @@ FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
 FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lispenv env)
 {
   if (env==NULL) return FD_VOID;
-  if (env->fdenv_copy) env=env->fdenv_copy;
+  if (env->env_copy) env=env->env_copy;
   while (env) {
-    fdtype val=fastget(env->fdenv_bindings,symbol);
+    fdtype val=fastget(env->env_bindings,symbol);
     if (val==FD_UNBOUND)
-      env=env->fdenv_parent;
+      env=env->env_parent;
     else return val;
-    if ((env) && (env->fdenv_copy)) env=env->fdenv_copy;}
+    if ((env) && (env->env_copy)) env=env->env_copy;}
   return FD_VOID;
 }
 

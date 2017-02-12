@@ -983,7 +983,7 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
                (head_type==fd_sproc_type)) {
         fdtype args[7], result=FD_VOID;
         struct FD_FUNCTION *fn=(struct FD_FUNCTION *)head;
-        int rail_i=1, arg_i=0, nd=0, qchoices=0, ndcall=fn->fdfn_ndcall;
+        int rail_i=1, arg_i=0, nd=0, qchoices=0, ndcall=fn->fcn_ndcall;
         while (rail_i<n) {
           fdtype e=FD_RAIL_REF(x,rail_i), v=op_eval(e,env,0); 
           if (FD_ABORTP(v)) {
@@ -1000,9 +1000,9 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
           args[arg_i++]=v;
           rail_i++;}
         /* if (tail) return fd_tail_call(head,n,args); */
-        if ((nd)&&(!(fn->fdfn_ndcall))&&(fn->fdfn_arity>=0))
+        if ((nd)&&(!(fn->fcn_ndcall))&&(fn->fcn_arity>=0))
           result=FD_EMPTY_CHOICE;
-        else if (fn->fdfn_ndcall) {
+        else if (fn->fcn_ndcall) {
           if (qchoices) unwrap_qchoices(args,arg_i);
           if (head_type==fd_sproc_type)
             result=fd_apply_sproc((struct FD_SPROC *)fn,arg_i,args);

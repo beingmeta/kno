@@ -157,7 +157,7 @@ FD_EXPORT fdtype fd_load_source_with_date
     while (!((FD_ABORTP(expr)) || (FD_EOFP(expr)))) {
       fd_decref(result);
       if ((trace_load_eval) ||
-          (fd_test(env->fdenv_bindings,traceloadeval_symbol,FD_TRUE))) {
+          (fd_test(env->env_bindings,traceloadeval_symbol,FD_TRUE))) {
         u8_log(LOG_NOTICE,LoadEval,"From %s, evaluating %q",sourcebase,expr);
         if (errno) {
           u8_log(LOG_WARN,"UnexpectedErrno",
@@ -183,7 +183,7 @@ FD_EXPORT fdtype fd_load_source_with_date
         fd_decref(expr);
         return result;}
       else if ((trace_load_eval) ||
-               (fd_test(env->fdenv_bindings,traceloadeval_symbol,FD_TRUE))) {
+               (fd_test(env->env_bindings,traceloadeval_symbol,FD_TRUE))) {
         if (start_time>0)
           u8_log(LOG_NOTICE,LoadEval,"Took %fs to evaluate %q",
                  u8_elapsed_time()-start_time,expr);
@@ -373,7 +373,7 @@ static fdtype load_source(fdtype expr,fd_lispenv env)
   else if (FD_SYMBOLP(encval))
     encname=FD_SYMBOL_NAME(encval);
   else encname=NULL;
-  while (!(FD_HASHTABLEP(env->fdenv_bindings))) env=env->fdenv_parent;
+  while (!(FD_HASHTABLEP(env->env_bindings))) env=env->env_parent;
   result=fd_load_source(FD_STRDATA(source),env,encname);
   fd_decref(source); fd_decref(encval);
   return result;
@@ -424,7 +424,7 @@ static fdtype load_component(fdtype expr,fd_lispenv env)
   else if (FD_SYMBOLP(encval))
     encname=FD_SYMBOL_NAME(encval);
   else encname=NULL;
-  while (!(FD_HASHTABLEP(env->fdenv_bindings))) env=env->fdenv_parent;
+  while (!(FD_HASHTABLEP(env->env_bindings))) env=env->env_parent;
   {
     u8_string abspath=get_component(FD_STRDATA(source));
     result=fd_load_source(abspath,env,encname);

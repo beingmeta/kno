@@ -1168,7 +1168,7 @@ static fdtype extindex_fetch(fd_index p,fdtype oid)
                             ((struct FD_FUNCTION *)fetchfn):
                             (NULL));
   if ((FD_VOIDP(state))||(FD_FALSEP(state))||
-      ((fptr)&&(fptr->fdfn_arity==1)))
+      ((fptr)&&(fptr->fcn_arity==1)))
     value=fd_apply(fetchfn,1,&oid);
   else {
     fdtype args[2]; args[0]=oid; args[1]=state;
@@ -1192,7 +1192,7 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
   vstruct.fd_veclen=n; vstruct.fd_vecelts=keys; vstruct.fd_freedata=0;
   vecarg=FDTYPE_CONS(&vstruct);
   if ((FD_VOIDP(state))||(FD_FALSEP(state))||
-      ((fptr)&&(fptr->fdfn_arity==1)))
+      ((fptr)&&(fptr->fcn_arity==1)))
     value=fd_apply(xp->fetchfn,1,&vecarg);
   else {
     fdtype args[2]; args[0]=vecarg; args[1]=state;
@@ -1210,7 +1210,7 @@ static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
   else {
     fdtype *values=u8_alloc_n(n,fdtype);
     if ((FD_VOIDP(state))||(FD_FALSEP(state))||
-        ((fptr)&&(fptr->fdfn_arity==1))) {
+        ((fptr)&&(fptr->fcn_arity==1))) {
       int i=0; while (i<n) {
         fdtype key=keys[i];
         fdtype value=fd_apply(fetchfn,1,&key);

@@ -63,18 +63,18 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
       u8_zalloc_for("fd_make_ffi_proc",struct FD_FFI_PROC);
     FD_INIT_CONS(proc,fd_ffi_type);
     /* Set up generic function fields */
-    proc->fdfn_name=u8_strdup(name);
-    proc->fdfn_filename=NULL;
+    proc->fcn_name=u8_strdup(name);
+    proc->fcn_filename=NULL;
     proc->fd_ffi_arity=arity;
     proc->fd_ffi_defaults=defaults;
     proc->fd_ffi_rtype=return_type;
     proc->fd_ffi_argtypes=argtypes;
-    proc->fdfn_ndcall=0;
-    proc->fdfn_xcall=1;
+    proc->fcn_ndcall=0;
+    proc->fcn_xcall=1;
     // Defer arity checking to fd_ffi_call
-    proc->fdfn_min_arity=0;
-    proc->fdfn_arity=-1;
-    proc->fdfn_handler.xcalln=fd_ffi_call;
+    proc->fcn_min_arity=0;
+    proc->fcn_arity=-1;
+    proc->fcn_handler.xcalln=fd_ffi_call;
     return proc;}
   else {
     u8_free(cif);
@@ -92,7 +92,7 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
     struct FD_FFI_PROC *proc=(struct FD_FFI_PROC *) fn;
     return FD_VOID;}
   else return fd_err(_("Not an foreign function interface"),
-		     "ffi_caller",u8_strdup(fn->fdfn_name),FD_VOID);
+		     "ffi_caller",u8_strdup(fn->fcn_name),FD_VOID);
 }
 
 /* Generic object methods */
@@ -106,7 +106,7 @@ static void recycle_ffi_proc(struct FD_CONS *c)
     int i=0; while (i<arity) {
       fdtype v=values[i++]; fd_decref(v);}
     u8_free(values);}
-  u8_free(ffi->fdfn_name); 
+  u8_free(ffi->fcn_name); 
   u8_free(ffi->fd_ffi_cif); 
   u8_free(ffi->fd_ffi_rtype); 
   u8_free(ffi->fd_ffi_argtypes);
@@ -117,7 +117,7 @@ static void recycle_ffi_proc(struct FD_CONS *c)
 static int unparse_ffi_proc(u8_output out,fdtype x)
 {
   struct FD_FFI_PROC *ffi=(struct FD_FFI_PROC *)x;
-  u8_printf(out,"#<FFI '%s' #!%llx>",ffi->fdfn_name,(long long) ffi);
+  u8_printf(out,"#<FFI '%s' #!%llx>",ffi->fcn_name,(long long) ffi);
   return 1;
 }
 

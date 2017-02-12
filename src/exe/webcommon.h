@@ -109,15 +109,15 @@ static int preflight_set(fdtype var,fdtype val,void *data)
     return fd_reterr(fd_TypeError,"preflight_set",u8_strdup("applicable"),val);
   if (FD_FUNCTIONP(val)) {
     vf=FD_DTYPE2FCN(val);
-    if ((vf)&&(vf->fdfn_name)&&(vf->fdfn_filename)) {
+    if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
       fdtype scan=preflight; while (FD_PAIRP(scan)) {
 	fdtype fn=FD_CAR(scan);
 	if (val==fn) return 0;
 	else if (FD_FUNCTIONP(fn)) {
 	  struct FD_FUNCTION *f=FD_DTYPE2FCN(fn);
-	  if ((f->fdfn_name)&&(f->fdfn_filename)&&
-	      (strcmp(f->fdfn_name,vf->fdfn_name)==0)&&
-	      (strcmp(f->fdfn_filename,vf->fdfn_filename)==0)) {
+	  if ((f->fcn_name)&&(f->fcn_filename)&&
+	      (strcmp(f->fcn_name,vf->fcn_name)==0)&&
+	      (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
 	    struct FD_PAIR *p=FD_GET_CONS(scan,fd_pair_type,struct FD_PAIR *);
 	    p->fd_car=val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
@@ -161,15 +161,15 @@ static int postflight_set(fdtype var,fdtype val,void *data)
     return fd_reterr(fd_TypeError,"postflight_set",u8_strdup("applicable"),val);
   if (FD_FUNCTIONP(val)) {
     vf=FD_DTYPE2FCN(val);
-    if ((vf)&&(vf->fdfn_name)&&(vf->fdfn_filename)) {
+    if ((vf)&&(vf->fcn_name)&&(vf->fcn_filename)) {
       fdtype scan=postflight; while (FD_PAIRP(scan)) {
 	fdtype fn=FD_CAR(scan);
 	if (val==fn) return 0;
 	else if (FD_FUNCTIONP(fn)) {
 	  struct FD_FUNCTION *f=FD_DTYPE2FCN(fn);
-	  if ((f->fdfn_name)&&(f->fdfn_filename)&&
-	      (strcmp(f->fdfn_name,vf->fdfn_name)==0)&&
-	      (strcmp(f->fdfn_filename,vf->fdfn_filename)==0)) {
+	  if ((f->fcn_name)&&(f->fcn_filename)&&
+	      (strcmp(f->fcn_name,vf->fcn_name)==0)&&
+	      (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
 	    struct FD_PAIR *p=FD_GET_CONS(scan,fd_pair_type,struct FD_PAIR *);
 	    p->fd_car=val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
@@ -589,8 +589,8 @@ static fdtype getcontent(fdtype path)
 	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&
 	    (FD_PRIM_TYPEP((FD_CDR(FD_CDR(value))),fd_environment_type))) {
 	  fd_lispenv env=(fd_lispenv)(FD_CDR(FD_CDR(value)));
-	  if (FD_HASHTABLEP(env->fdenv_bindings))
-	    fd_reset_hashtable((fd_hashtable)(env->fdenv_bindings),0,1);}
+	  if (FD_HASHTABLEP(env->env_bindings))
+	    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);}
 	fd_decref(value);
 	return new_content;}
       else {
