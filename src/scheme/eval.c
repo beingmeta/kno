@@ -201,7 +201,7 @@ static void recycle_environment(struct FD_CONS *envp)
   fd_decref(env->env_bindings); fd_decref(env->env_exports);
   if (env->env_parent) fd_decref((fdtype)(env->env_parent));
   if (!(FD_STATIC_CONSP(envp))) {
-    memset(env,0,sizeof(env));
+    memset(env,0,sizeof(struct FD_ENVIRONMENT));
     u8_free(envp);}
 }
 

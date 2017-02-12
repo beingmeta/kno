@@ -619,7 +619,7 @@ FD_EXPORT void recycle_sproc(struct FD_CONS *c)
   if (sproc->fd_synchronized) fd_destroy_mutex(&(sproc->fd_lock));
   if (sproc->fcn_filename) u8_free(sproc->fcn_filename);
   if (mallocd) {
-    memset(sproc,0,sizeof(sproc));
+    memset(sproc,0,sizeof(struct FD_SPROC));
     u8_free(sproc);}
 }
 
