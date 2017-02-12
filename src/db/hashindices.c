@@ -175,12 +175,12 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_HASH_INDEX *ix,
                                   unsigned int bucket,
                                   int dolock)
 {
-  if (ix->fdx_offdata) {
+  if (ix->index_offdata) {
     FD_CHUNK_REF result;
     if (FD_EXPECT_FALSE(ix->fdb_offtype==FD_B64)) {
-      unsigned long long word1=(ix->fdx_offdata)[bucket*3];
-      unsigned long long word2=(ix->fdx_offdata)[bucket*3+1];
-      unsigned int word3=(ix->fdx_offdata)[bucket*3+2];
+      unsigned long long word1=(ix->index_offdata)[bucket*3];
+      unsigned long long word2=(ix->index_offdata)[bucket*3+1];
+      unsigned int word3=(ix->index_offdata)[bucket*3+2];
 #if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
       word1=fd_flip_word(word1); word2=fd_flip_word(word2);
       word3=fd_flip_word(word3);
@@ -189,8 +189,8 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_HASH_INDEX *ix,
       result.size=(size_t) word3;}
     else {
       unsigned int word1, word2;
-      word1=(ix->fdx_offdata)[bucket*2];
-      word2=(ix->fdx_offdata)[bucket*2+1];
+      word1=(ix->index_offdata)[bucket*2];
+      word2=(ix->index_offdata)[bucket*2+1];
 #if ((HAVE_MMAP) && (!(WORDS_BIGENDIAN)))
       word1=fd_flip_word(word1);
       word2=fd_flip_word(word2);
@@ -227,7 +227,7 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_HASH_INDEX *ix,
       break;
     default:
       u8_log(LOG_WARN,CorruptedHashIndex,"Invalid offset type for %s: 0x%x",
-              ix->fd_cid,ix->fdb_offtype);
+              ix->index_cid,ix->fdb_offtype);
       result.off=-1;
       result.size=-1;}
     if (error) {
@@ -275,7 +275,7 @@ FD_FASTOP fd_byte_input open_block
       retval=fd_dtsread_bytes(&(hx->fd_stream),buf,size);
     if (dolock) fd_unlock_struct(hx);
     if (retval<0) {
-      u8_log(LOG_CRIT,"Read failed","reading from %s",hx->fd_cid);
+      u8_log(LOG_CRIT,"Read failed","reading from %s",hx->index_cid);
       return NULL;}
     FD_INIT_BYTE_INPUT(bi,buf,size);
     return bi;}
@@ -316,12 +316,12 @@ static fd_index open_hash_index(u8_string fname,int read_only,int consed)
   index->fd_stream.fd_mallocd=0;
   index->fd_mmap=NULL;
   magicno=fd_dtsread_4bytes(s);
-  index->fdx_n_buckets=fd_dtsread_4bytes(s);
+  index->index_n_buckets=fd_dtsread_4bytes(s);
   if (magicno==FD_HASH_INDEX_TO_RECOVER) {
     u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the hash index %s",fname);
     recover_hash_index(index);
     magicno=magicno&(~0x20);}
-  index->fdx_offdata=NULL; index->fd_read_only=read_only;
+  index->index_offdata=NULL; index->index_read_only=read_only;
   index->fdb_xformat=fd_dtsread_4bytes(s);
 
   if (((index->fdb_xformat)&(FD_HASH_INDEX_FN_MASK))!=0) {
@@ -332,7 +332,7 @@ static fd_index open_hash_index(u8_string fname,int read_only,int consed)
   index->fdb_offtype=(fd_offset_type)
     (((index->fdb_xformat)&(FD_HASH_INDEX_OFFTYPE_MASK))>>4);
 
-  index->fdx_custom=fd_dtsread_4bytes(s);
+  index->index_custom=fd_dtsread_4bytes(s);
 
   index->fd_n_keys=n_keys=fd_dtsread_4bytes(s); /* Currently ignored */
 
@@ -349,8 +349,8 @@ static fd_index open_hash_index(u8_string fname,int read_only,int consed)
   if (slotids_size) {
     fdtype slotids_vector=read_dtype_at_pos(s,slotids_pos);
     if (FD_VOIDP(slotids_vector)) {
-      index->fdx_n_slotids=0; index->fdx_new_slotids=0;
-      index->fdx_slotids=NULL;
+      index->index_n_slotids=0; index->index_new_slotids=0;
+      index->index_slotids=NULL;
       index->slotid_lookup=NULL;}
     else if (FD_VECTORP(slotids_vector)) {
       init_slotids(index,
@@ -364,17 +364,17 @@ static fd_index open_hash_index(u8_string fname,int read_only,int consed)
       u8_free(index);
       return NULL;}}
   else {
-    index->fdx_n_slotids=0; index->fdx_new_slotids=0;
-    index->fdx_slotids=NULL;
+    index->index_n_slotids=0; index->index_new_slotids=0;
+    index->index_slotids=NULL;
     index->slotid_lookup=NULL;}
 
   /* Initialize the baseoids field used for compressed OID values */
   if (baseoids_size) {
     fdtype baseoids_vector=read_dtype_at_pos(s,baseoids_pos);
     if (FD_VOIDP(baseoids_vector)) {
-      index->fdx_n_baseoids=0; index->fdx_new_baseoids=0;
-      index->fdx_baseoid_ids=NULL;
-      index->fdx_ids2baseoids=NULL;}
+      index->index_n_baseoids=0; index->index_new_baseoids=0;
+      index->index_baseoid_ids=NULL;
+      index->index_ids2baseoids=NULL;}
     else if (FD_VECTORP(baseoids_vector)) {
       init_baseoids(index,
                     FD_VECTOR_LENGTH(baseoids_vector),
@@ -387,9 +387,9 @@ static fd_index open_hash_index(u8_string fname,int read_only,int consed)
       u8_free(index);
       return NULL;}}
   else {
-    index->fdx_n_baseoids=0; index->fdx_new_baseoids=0;
-    index->fdx_baseoid_ids=NULL;
-    index->fdx_ids2baseoids=NULL;}
+    index->index_n_baseoids=0; index->index_new_baseoids=0;
+    index->index_baseoid_ids=NULL;
+    index->index_ids2baseoids=NULL;}
 
   fd_init_mutex(&(index->fd_lock));
 
@@ -410,10 +410,10 @@ static int init_slotids(fd_hash_index hx,int n_slotids,fdtype *slotids_init)
 {
   struct FD_SLOTID_LOOKUP *lookup; int i=0;
   fdtype *slotids, slotids_choice=FD_EMPTY_CHOICE;
-  hx->fdx_slotids=slotids=u8_alloc_n(n_slotids,fdtype);
+  hx->index_slotids=slotids=u8_alloc_n(n_slotids,fdtype);
   hx->slotid_lookup=lookup=
     u8_alloc_n(n_slotids,FD_SLOTID_LOOKUP);
-  hx->fdx_n_slotids=n_slotids; hx->fdx_new_slotids=0;
+  hx->index_n_slotids=n_slotids; hx->index_new_slotids=0;
   if ((hx->fdb_xformat)&(FD_HASH_INDEX_ODDKEYS))
     slotids_choice=FD_VOID;
   while (i<n_slotids) {
@@ -429,7 +429,7 @@ static int init_slotids(fd_hash_index hx,int n_slotids,fdtype *slotids_init)
     i++;}
   qsort(lookup,n_slotids,sizeof(FD_SLOTID_LOOKUP),sort_by_slotid);
   if (!(FD_VOIDP(slotids_choice)))
-    hx->fdx_has_slotids=fd_simplify_choice(slotids_choice);
+    hx->index_has_slotids=fd_simplify_choice(slotids_choice);
   return 0;
 }
 
@@ -444,17 +444,17 @@ static int sort_by_baseoid(const void *p1,const void *p2)
 static int init_baseoids(fd_hash_index hx,int n_baseoids,fdtype *baseoids_init)
 {
   int i=0;
-  unsigned int *fdx_baseoid_ids=u8_alloc_n(n_baseoids,unsigned int);
-  short *fdx_ids2baseoids=u8_alloc_n(1024,short);
-  memset(fdx_baseoid_ids,0,SIZEOF_INT*n_baseoids);
-  i=0; while (i<1024) fdx_ids2baseoids[i++]=-1;
-  hx->fdx_n_baseoids=n_baseoids; hx->fdx_new_baseoids=0;
-  hx->fdx_baseoid_ids=fdx_baseoid_ids;
-  hx->fdx_ids2baseoids=fdx_ids2baseoids;
+  unsigned int *index_baseoid_ids=u8_alloc_n(n_baseoids,unsigned int);
+  short *index_ids2baseoids=u8_alloc_n(1024,short);
+  memset(index_baseoid_ids,0,SIZEOF_INT*n_baseoids);
+  i=0; while (i<1024) index_ids2baseoids[i++]=-1;
+  hx->index_n_baseoids=n_baseoids; hx->index_new_baseoids=0;
+  hx->index_baseoid_ids=index_baseoid_ids;
+  hx->index_ids2baseoids=index_ids2baseoids;
   i=0; while (i<n_baseoids) {
     fdtype baseoid=baseoids_init[i];
-    fdx_baseoid_ids[i]=FD_OID_BASE_ID(baseoid);
-    fdx_ids2baseoids[FD_OID_BASE_ID(baseoid)]=i;
+    index_baseoid_ids[i]=FD_OID_BASE_ID(baseoid);
+    index_ids2baseoids[FD_OID_BASE_ID(baseoid)]=i;
     i++;}
   return 0;
 }
@@ -609,7 +609,7 @@ FD_FASTOP unsigned int hash_bytes(unsigned char *start,int len)
 
 FD_FASTOP int get_slotid_index(fd_hash_index hx,fdtype slotid)
 {
-  const int size=hx->fdx_n_slotids;
+  const int size=hx->index_n_slotids;
   fd_slotid_lookup bottom=hx->slotid_lookup, middle=bottom+size/2;
   fd_slotid_lookup hard_top=bottom+size, top=hard_top;
   while (top>bottom) {
@@ -751,10 +751,10 @@ FD_FASTOP fdtype read_zkey(fd_hash_index hx,fd_byte_input in)
 {
   int code=fd_read_zint(in);
   if (code==0) return fast_read_dtype(in);
-  else if ((code-1)<hx->fdx_n_slotids) {
+  else if ((code-1)<hx->index_n_slotids) {
     fdtype cdr=fast_read_dtype(in);
     if (FD_ABORTP(cdr)) return cdr;
-    else return fd_conspair(hx->fdx_slotids[code-1],cdr);}
+    else return fd_conspair(hx->index_slotids[code-1],cdr);}
   else return fd_err(CorruptedHashIndex,"read_zkey",NULL,FD_VOID);
 }
 
@@ -767,7 +767,7 @@ FD_EXPORT int fd_hash_index_bucket(struct FD_HASH_INDEX *hx,fdtype key,int modul
     out.fd_dts_flags=out.fd_dts_flags|FD_DTYPEV2;
   dtype_len=write_zkey(hx,&out,key);
   hashval=hash_bytes(out.fd_bufstart,dtype_len);
-  if (modulate) return hashval%(hx->fdx_n_buckets);
+  if (modulate) return hashval%(hx->index_n_buckets);
   else return hashval;
 }
 
@@ -777,7 +777,7 @@ FD_FASTOP fdtype write_zvalue(fd_hash_index hx,fd_byte_output out,fdtype value)
 {
   if (FD_OIDP(value)) {
     int base=FD_OID_BASE_ID(value);
-    short baseoid_index=hx->fdx_ids2baseoids[base];
+    short baseoid_index=hx->index_ids2baseoids[base];
     if (baseoid_index<0) {
       int bytes_written; fd_write_byte(out,0);
       bytes_written=fd_write_dtype(out,value);
@@ -799,7 +799,7 @@ FD_FASTOP fdtype dtswrite_zvalue(fd_hash_index hx,fd_dtype_stream out,fdtype val
 {
   if (FD_OIDP(value)) {
     int base=FD_OID_BASE_ID(value);
-    short baseoid_index=((hx->fdx_ids2baseoids) ? (hx->fdx_ids2baseoids[base]) : (-1));
+    short baseoid_index=((hx->index_ids2baseoids) ? (hx->index_ids2baseoids[base]) : (-1));
     if (baseoid_index<0) {
       int bytes_written; fd_dtswrite_byte(out,0);
       bytes_written=fd_dtswrite_dtype(out,value);
@@ -822,7 +822,7 @@ FD_FASTOP fdtype read_zvalue(fd_hash_index hx,fd_byte_input in)
   int prefix=fd_read_zint(in);
   if (prefix==0) return fd_read_dtype(in);
   else {
-    unsigned int base=hx->fdx_baseoid_ids[prefix-1];
+    unsigned int base=hx->index_baseoid_ids[prefix-1];
     unsigned int offset=fd_read_zint(in);
     return FD_CONSTRUCT_OID(base,offset);}
 }
@@ -840,7 +840,7 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
   FD_CHUNK_REF keyblock;
   FD_INIT_FIXED_BYTE_OUTPUT(&out,buf,64);
 #if FD_DEBUG_HASHINDICES
-  /* u8_message("Fetching the key %q from %s",key,hx->fd_cid); */
+  /* u8_message("Fetching the key %q from %s",key,hx->index_cid); */
 #endif
   /* If the index doesn't have oddkeys and you're looking up some feature (pair)
      whose slotid isn't in the slotids, the key isn't in the table. */
@@ -849,14 +849,14 @@ static fdtype hash_index_fetch(fd_index ix,fdtype key)
     if (((FD_SYMBOLP(slotid)) || (FD_OIDP(slotid))) &&
         (get_slotid_index(hx,slotid)<0)) {
 #if FD_DEBUG_HASHINDICES
-      u8_message("The slotid %q isn't indexed in %s, returning {}",slotid,hx->fd_cid);
+      u8_message("The slotid %q isn't indexed in %s, returning {}",slotid,hx->index_cid);
 #endif
       return FD_EMPTY_CHOICE;}}
   if ((hx->fdb_xformat)&(FD_HASH_INDEX_DTYPEV2))
     out.fd_dts_flags=out.fd_dts_flags|FD_DTYPEV2;
   dtype_len=write_zkey(hx,&out,key);
   hashval=hash_bytes(out.fd_bufstart,dtype_len);
-  bucket=hashval%(hx->fdx_n_buckets);
+  bucket=hashval%(hx->index_n_buckets);
   keyblock=get_chunk_ref(hx,bucket,LOCK_STREAM);
   if (keyblock.size==0) {
     if ((out.fd_dts_flags)&(FD_BYTEBUF_MALLOCD)) u8_free(out.fd_bufstart);
@@ -955,7 +955,7 @@ static int hash_index_fetchsize(fd_index ix,fdtype key)
     out.fd_dts_flags=out.fd_dts_flags|FD_DTYPEV2;
   dtype_len=write_zkey(hx,&out,key);
   hashval=hash_bytes(out.fd_bufstart,dtype_len);
-  bucket=hashval%(hx->fdx_n_buckets);
+  bucket=hashval%(hx->index_n_buckets);
   keyblock=get_chunk_ref(hx,bucket,LOCK_STREAM);
   if (keyblock.size==0) return 0;
   if (keyblock.size==0) return FD_EMPTY_CHOICE;
@@ -1025,7 +1025,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
   int i=0, n_entries=0, vsched_size=0;
   int oddkeys=((hx->fdb_xformat)&(FD_HASH_INDEX_ODDKEYS));
 #if FD_DEBUG_HASHINDICES
-  u8_message("Reading %d keys from %s",n,hx->fd_cid);
+  u8_message("Reading %d keys from %s",n,hx->index_cid);
 #endif
   FD_INIT_BYTE_OUTPUT(&out,n*16);
   if ((hx->fdb_xformat)&(FD_HASH_INDEX_DTYPEV2))
@@ -1050,8 +1050,8 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
     dt_size=(out.fd_bufptr-out.fd_bufstart)-dt_start;
     schedule[n_entries].size=dt_size;
     schedule[n_entries].fd_bucketno=bucket=
-      hash_bytes(out.fd_bufstart+dt_start,dt_size)%(hx->fdx_n_buckets);
-    if (hx->fdx_offdata) {
+      hash_bytes(out.fd_bufstart+dt_start,dt_size)%(hx->index_n_buckets);
+    if (hx->index_offdata) {
       /* Because we have an offsets table, get_chunk_ref won't ever
          actually need to lock the stream. */
       schedule[n_entries].ref=get_chunk_ref(hx,bucket,dolock);
@@ -1064,7 +1064,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
       else n_entries++;}
     else n_entries++;
     i++;}
-  if (hx->fdx_offdata==NULL) {
+  if (hx->index_offdata==NULL) {
     int write_at=0;
     /* When fetching bucket references, we sort the schedule first, so that
        we're accessing them in order in the file. */
@@ -1214,7 +1214,7 @@ static fdtype *fetchn(struct FD_HASH_INDEX *hx,int n,fdtype *keys,int stream_loc
     if (vbuf) u8_free(vbuf);}
   u8_free(vsched);
 #if FD_DEBUG_HASHINDICES
-  u8_message("Finished reading %d keys from %s",n,hx->fd_cid);
+  u8_message("Finished reading %d keys from %s",n,hx->index_cid);
 #endif
   u8_free(out.fd_bufstart);
   return values;
@@ -1227,19 +1227,19 @@ static fdtype *hash_index_fetchn_inner(fd_index ix,int n,fdtype *keys,int stream
   results=fetchn(hx,n,keys,stream_locked);
   if (results) {
     int i=0;
-    if (adds_locked==0) fd_read_lock_struct(&(hx->fdx_adds));
+    if (adds_locked==0) fd_read_lock_struct(&(hx->index_adds));
     while (i<n) {
-      fdtype v=fd_hashtable_get_nolock(&(hx->fdx_adds),keys[i],FD_EMPTY_CHOICE);
+      fdtype v=fd_hashtable_get_nolock(&(hx->index_adds),keys[i],FD_EMPTY_CHOICE);
       if (FD_ABORTP(v)) {
         int j=0; while (j<n) { fd_decref(results[j]); j++;}
         u8_free(results);
-        if (adds_locked) fd_rw_unlock_struct(&(hx->fdx_adds));
+        if (adds_locked) fd_rw_unlock_struct(&(hx->index_adds));
         fd_interr(v);
         return NULL;}
       else if (FD_EMPTY_CHOICEP(v)) i++;
       else {
         FD_ADD_TO_CHOICE(results[i],v); i++;}}
-    if (adds_locked==0) fd_rw_unlock_struct(&(hx->fdx_adds));}
+    if (adds_locked==0) fd_rw_unlock_struct(&(hx->index_adds));}
   return results;
 }
 
@@ -1265,7 +1265,7 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   fdtype *results=NULL;
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   fd_dtype_stream s=&(hx->fd_stream);
-  int i=0, n_buckets=(hx->fdx_n_buckets), n_to_fetch=0;
+  int i=0, n_buckets=(hx->index_n_buckets), n_to_fetch=0;
   int total_keys=0, key_count=0;
   unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
   FD_CHUNK_REF *buckets;
@@ -1278,14 +1278,14 @@ static fdtype *hash_index_fetchkeys(fd_index ix,int *n)
   results=u8_alloc_n(total_keys,fdtype);
   /* If we don't have chunk offsets in memory, we keep the stream
      locked while we get them. */
-  if (hx->fdx_offdata) fd_unlock_struct(hx);
+  if (hx->index_offdata) fd_unlock_struct(hx);
   while (i<n_buckets) {
     FD_CHUNK_REF ref=get_chunk_ref(hx,i,DONT_LOCK_STREAM);
     if (ref.size) 
       buckets[n_to_fetch++]=ref;
     i++;}
   /* If we didn't unlock it earlier, do so now. */
-  if (hx->fdx_offdata==NULL) fd_unlock_struct(hx);
+  if (hx->index_offdata==NULL) fd_unlock_struct(hx);
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
   i=0; while (i<n_to_fetch) {
     struct FD_BYTE_INPUT keyblock; int j=0, n_keys;
@@ -1331,7 +1331,7 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   fd_dtype_stream s=&(hx->fd_stream);
-  int i=0, n_buckets=(hx->fdx_n_buckets), total_keys;
+  int i=0, n_buckets=(hx->index_n_buckets), total_keys;
   int n_to_fetch=0, key_count=0, keybuf_size=-1;
   struct FD_KEY_SIZE *sizes; FD_CHUNK_REF *buckets;
   unsigned char _keybuf[512], *keybuf=NULL;
@@ -1340,13 +1340,13 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
   buckets=u8_alloc_n(total_keys,FD_CHUNK_REF);
   sizes=u8_alloc_n(total_keys,FD_KEY_SIZE);
   /* If we don't have chunk offsets in memory, we keep the stream locked while we get them. */
-  if (hx->fdx_offdata) fd_unlock_struct(hx);
+  if (hx->index_offdata) fd_unlock_struct(hx);
   while (i<n_buckets) {
     FD_CHUNK_REF ref=get_chunk_ref(hx,i,DONT_LOCK_STREAM);
     if (ref.size) buckets[n_to_fetch++]=ref;
     i++;}
   /* Now we actually unlock it if we kept it locked. */
-  if (hx->fdx_offdata==NULL) fd_unlock_struct(hx);
+  if (hx->index_offdata==NULL) fd_unlock_struct(hx);
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
   i=0; while (i<n_to_fetch) {
     struct FD_BYTE_INPUT keyblock; int j=0, n_keys;
@@ -1394,21 +1394,21 @@ static struct FD_KEY_SIZE *hash_index_fetchsizes(fd_index ix,int *n)
 static void hash_index_getstats(struct FD_HASH_INDEX *hx,int *nf,int *max,int *singles,int *n2sum)
 {
   fd_dtype_stream s=&(hx->fd_stream);
-  int i=0, n_buckets=(hx->fdx_n_buckets), n_to_fetch=0, total_keys=0;
+  int i=0, n_buckets=(hx->index_n_buckets), n_to_fetch=0, total_keys=0;
   unsigned char _keybuf[512], *keybuf=NULL; int keybuf_size=-1;
   FD_CHUNK_REF *buckets;
   fd_lock_struct(hx);
   fd_setpos(s,16); total_keys=fd_dtsread_4bytes(s);
   buckets=u8_alloc_n(total_keys,FD_CHUNK_REF);
   /* If we don't have chunk offsets in memory, we keep the stream locked while we get them. */
-  if (hx->fdx_offdata) fd_unlock_struct(hx);
+  if (hx->index_offdata) fd_unlock_struct(hx);
   while (i<n_buckets) {
     FD_CHUNK_REF ref=get_chunk_ref(hx,i,DONT_LOCK_STREAM);
     if (ref.size) buckets[n_to_fetch++]=ref;
     i++;}
   *nf=n_to_fetch;
   /* Now we actually unlock it if we kept it locked. */
-  if (hx->fdx_offdata==NULL) fd_unlock_struct(hx);
+  if (hx->index_offdata==NULL) fd_unlock_struct(hx);
   qsort(buckets,n_to_fetch,sizeof(FD_CHUNK_REF),sort_blockrefs_by_off);
   i=0; while (i<n_to_fetch) {
     struct FD_BYTE_INPUT keyblock; int n_keys;
@@ -1449,17 +1449,17 @@ static void hash_index_setcache(fd_index ix,int level)
     if (hx->fd_mmap) {
       fd_unlock_struct(hx);
       return;}
-    mmap_size=u8_file_size(hx->fd_cid);
+    mmap_size=u8_file_size(hx->index_cid);
     if (mmap_size>=0) {
       hx->fd_mmap_size=(size_t)mmap_size;
       hx->fd_mmap=
         mmap(NULL,hx->fd_mmap_size,PROT_READ,MMAP_FLAGS,hx->fd_stream.fd_fileno,0);}
     else {
-      u8_log(LOG_WARN,"FailedMMAPSize","Couldn't get mmap size for hash index %s",hx->fd_cid);
+      u8_log(LOG_WARN,"FailedMMAPSize","Couldn't get mmap size for hash index %s",hx->index_cid);
       hx->fd_mmap_size=0; hx->fd_mmap=NULL;}
     if (hx->fd_mmap==NULL) {
       u8_log(LOG_WARN,u8_strerror(errno),
-             "hash_index_setcache:mmap %s",hx->fd_source);
+             "hash_index_setcache:mmap %s",hx->index_source);
       hx->fd_mmap=NULL; errno=0;}
     fd_unlock_struct(hx);}
   if ((level<3) && (hx->fd_mmap)) {
@@ -1468,18 +1468,18 @@ static void hash_index_setcache(fd_index ix,int level)
     retval=munmap(hx->fd_mmap,hx->fd_mmap_size);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
-             "hash_index_setcache:munmap %s",hx->fd_source);
+             "hash_index_setcache:munmap %s",hx->index_source);
       hx->fd_mmap=NULL; errno=0;}
     fd_unlock_struct(hx);}
 #endif
   if (level >= 2) {
-    if (hx->fdx_offdata) return;
+    if (hx->index_offdata) return;
     else {
       fd_dtype_stream s=&(hx->fd_stream);
-      unsigned int n_buckets=hx->fdx_n_buckets;
+      unsigned int n_buckets=hx->index_n_buckets;
       unsigned int *buckets, *newmmap;
       fd_lock_struct(hx);
-      if (hx->fdx_offdata) {
+      if (hx->index_offdata) {
         fd_unlock_struct(hx);
         return;}
 #if HAVE_MMAP
@@ -1488,39 +1488,39 @@ static void hash_index_setcache(fd_index ix,int level)
              PROT_READ,MMAP_FLAGS,s->fd_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_WARN,u8_strerror(errno),
-               "hash_index_setcache:mmap %s",hx->fd_source);
-        hx->fdx_offdata=NULL; errno=0;}
-      else hx->fdx_offdata=buckets=newmmap+64;
+               "hash_index_setcache:mmap %s",hx->index_source);
+        hx->index_offdata=NULL; errno=0;}
+      else hx->index_offdata=buckets=newmmap+64;
 #else
       fd_dts_start_read(s);
-      fd_buckets=u8_alloc_n(chunk_ref_size*(hx->fdx_n_buckets),unsigned int);
+      fd_buckets=u8_alloc_n(chunk_ref_size*(hx->index_n_buckets),unsigned int);
       fd_setpos(s,256);
-      retval=fd_dtsread_ints(s,(chunk_ref_size/4)*(hx->fdx_n_buckets),fd_buckets);
+      retval=fd_dtsread_ints(s,(chunk_ref_size/4)*(hx->index_n_buckets),fd_buckets);
       if (retval<0) {
         u8_log(LOG_WARN,u8_strerror(errno),
-               "hash_index_setcache:read offsets %s",hx->fd_source);
-        hx->fdx_offdata=NULL; errno=0;}
-      else hx->fdx_offdata=fd_buckets;
+               "hash_index_setcache:read offsets %s",hx->index_source);
+        hx->index_offdata=NULL; errno=0;}
+      else hx->index_offdata=fd_buckets;
 #endif
       fd_unlock_struct(hx);}}
   else if (level < 2) {
-    if (hx->fdx_offdata == NULL) return;
+    if (hx->index_offdata == NULL) return;
     else {
       int retval;
       fd_lock_struct(hx);
-      if (hx->fdx_offdata==NULL) {
+      if (hx->index_offdata==NULL) {
         fd_unlock_struct(hx);
         return;}
 #if HAVE_MMAP
-      retval=munmap((hx->fdx_offdata)-64,((hx->fdx_n_buckets)*chunk_ref_size)+256);
+      retval=munmap((hx->index_offdata)-64,((hx->index_n_buckets)*chunk_ref_size)+256);
       if (retval<0) {
         u8_log(LOG_WARN,u8_strerror(errno),
-               "hash_index_setcache:munmap %s",hx->fd_source);
-        hx->fdx_offdata=NULL; errno=0;}
+               "hash_index_setcache:munmap %s",hx->index_source);
+        hx->index_offdata=NULL; errno=0;}
 #else
-      u8_free(hx->fdx_offdata);
+      u8_free(hx->index_offdata);
 #endif
-      hx->fdx_offdata=NULL;
+      hx->index_offdata=NULL;
       fd_unlock_struct(hx);}}
 }
 
@@ -1529,18 +1529,18 @@ static void hash_index_setcache(fd_index ix,int level)
    This writes data into the hashtable but ignores what is already there.
    It is commonly used when initializing a hash index. */
 
-struct FDX_POP_SCHEDULE {
+struct INDEX_POP_SCHEDULE {
   fdtype key; unsigned int fd_bucketno;
   unsigned int size;};
-struct FDX_BUCKET_REF {
+struct INDEX_BUCKET_REF {
   /* max_new is only used when committing. */
   unsigned int fd_bucketno, max_new;
   FD_CHUNK_REF ref;};
 
 static int sort_ps_by_bucket(const void *p1,const void *p2)
 {
-  struct FDX_POP_SCHEDULE *ps1=(struct FDX_POP_SCHEDULE *)p1;
-  struct FDX_POP_SCHEDULE *ps2=(struct FDX_POP_SCHEDULE *)p2;
+  struct INDEX_POP_SCHEDULE *ps1=(struct INDEX_POP_SCHEDULE *)p1;
+  struct INDEX_POP_SCHEDULE *ps2=(struct INDEX_POP_SCHEDULE *)p2;
   if (ps1->fd_bucketno<ps2->fd_bucketno) return -1;
   else if (ps1->fd_bucketno>ps2->fd_bucketno) return 1;
   else return 0;
@@ -1548,8 +1548,8 @@ static int sort_ps_by_bucket(const void *p1,const void *p2)
 
 static int sort_br_by_bucket(const void *p1,const void *p2)
 {
-  struct FDX_BUCKET_REF *ps1=(struct FDX_BUCKET_REF *)p1;
-  struct FDX_BUCKET_REF *ps2=(struct FDX_BUCKET_REF *)p2;
+  struct INDEX_BUCKET_REF *ps1=(struct INDEX_BUCKET_REF *)p1;
+  struct INDEX_BUCKET_REF *ps2=(struct INDEX_BUCKET_REF *)p2;
   if (ps1->fd_bucketno<ps2->fd_bucketno) return -1;
   else if (ps1->fd_bucketno>ps2->fd_bucketno) return 1;
   else return 0;
@@ -1557,15 +1557,15 @@ static int sort_br_by_bucket(const void *p1,const void *p2)
 
 static int sort_br_by_off(const void *p1,const void *p2)
 {
-  struct FDX_BUCKET_REF *ps1=(struct FDX_BUCKET_REF *)p1;
-  struct FDX_BUCKET_REF *ps2=(struct FDX_BUCKET_REF *)p2;
+  struct INDEX_BUCKET_REF *ps1=(struct INDEX_BUCKET_REF *)p1;
+  struct INDEX_BUCKET_REF *ps2=(struct INDEX_BUCKET_REF *)p2;
   if (ps1->ref.off<ps2->ref.off) return -1;
   else if (ps1->ref.off>ps2->ref.off) return 1;
   else return 0;
 }
 
 static int populate_prefetch
-   (struct FDX_POP_SCHEDULE *psched,fd_index ix,int i,int blocksize,int n_keys)
+   (struct INDEX_POP_SCHEDULE *psched,fd_index ix,int i,int blocksize,int n_keys)
 {
   fdtype prefetch=FD_EMPTY_CHOICE;
   int k=i, lim=k+blocksize, final_bckt;
@@ -1590,13 +1590,13 @@ FD_EXPORT int fd_populate_hash_index
 {
   /* This overwrites all the data in *hx* with the key/value mappings
      in the table *from* for the keys *keys*. */
-  int i=0, n_buckets=hx->fdx_n_buckets;
+  int i=0, n_buckets=hx->index_n_buckets;
   int filled_buckets=0, bucket_count=0, fetch_max=-1;
   int cycle_buckets=0, cycle_keys=0, cycle_max=0;
   int overall_buckets=0, overall_keys=0, overall_max=0;
-  struct FDX_POP_SCHEDULE *psched=u8_alloc_n(n_keys,struct FDX_POP_SCHEDULE);
+  struct INDEX_POP_SCHEDULE *psched=u8_alloc_n(n_keys,struct INDEX_POP_SCHEDULE);
   struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,8192);
-  struct FDX_BUCKET_REF *bucket_refs; fd_index ix=NULL;
+  struct INDEX_BUCKET_REF *bucket_refs; fd_index ix=NULL;
   fd_dtype_stream stream=&(hx->fd_stream);
   fd_off_t endpos=fd_endpos(stream);
   double start_time=u8_elapsed_time();
@@ -1617,7 +1617,7 @@ FD_EXPORT int fd_populate_hash_index
     out.fd_dts_flags=out.fd_dts_flags|FD_DTYPEV2;
 
   /* Fill the key schedule and count the number of buckets used */
-  memset(psched,0,n_keys*sizeof(struct FDX_POP_SCHEDULE));
+  memset(psched,0,n_keys*sizeof(struct INDEX_POP_SCHEDULE));
   {
     int cur_bucket=-1;
     const fdtype *keyscan=keys, *keylim=keys+n_keys;
@@ -1633,10 +1633,10 @@ FD_EXPORT int fd_populate_hash_index
       if (bucket!=cur_bucket) {cur_bucket=bucket; filled_buckets++;}
       i++;}
     /* Allocate the bucket_refs */
-    bucket_refs=u8_alloc_n(filled_buckets,struct FDX_BUCKET_REF);}
+    bucket_refs=u8_alloc_n(filled_buckets,struct INDEX_BUCKET_REF);}
 
   /* Sort the key schedule by bucket */
-  qsort(psched,n_keys,sizeof(struct FDX_POP_SCHEDULE),sort_ps_by_bucket);
+  qsort(psched,n_keys,sizeof(struct INDEX_POP_SCHEDULE),sort_ps_by_bucket);
 
   i=0; while (i<n_keys) {
     struct FD_BYTE_OUTPUT keyblock; int retval;
@@ -1668,7 +1668,7 @@ FD_EXPORT int fd_populate_hash_index
         if (cycle_max>overall_max) overall_max=cycle_max;
         cycle_keys=cycle_buckets=cycle_max=0;
         u8_message("Processed %d of %d keys (%.2f%%) from %s in %.2f secs, ~%.2f secs to go (~%.2f secs total)",
-                   i,n_keys,percent,ix->fd_cid,elapsed,togo,total);}
+                   i,n_keys,percent,ix->index_cid,elapsed,togo,total);}
       if (i>0)
         u8_message("Overall, distributed %d keys over %d buckets, averaging %.2f keys per bucket (%d keys max)",
                    overall_keys,overall_buckets,
@@ -1676,7 +1676,7 @@ FD_EXPORT int fd_populate_hash_index
                    overall_max);
       fetch_max=populate_prefetch(psched,ix,i,blocksize,n_keys);
       u8_message("Prefetched %d keys from %s in %.3f seconds",
-                 fetch_max-i,ix->fd_cid,u8_elapsed_time()-fetch_start);}
+                 fetch_max-i,ix->index_cid,u8_elapsed_time()-fetch_start);}
 
     while (i<j) {
       fdtype key=psched[i].key, values=fd_get(from,key,FD_EMPTY_CHOICE);
@@ -1730,7 +1730,7 @@ FD_EXPORT int fd_populate_hash_index
     endpos=endpos+retval;
     CHECK_POS(endpos,stream);
     bucket_count++;}
-  qsort(bucket_refs,bucket_count,sizeof(struct FDX_BUCKET_REF),sort_br_by_bucket);
+  qsort(bucket_refs,bucket_count,sizeof(struct INDEX_BUCKET_REF),sort_br_by_bucket);
   /* This would probably be faster if we put it all in a huge vector and wrote it
      out all at once.  */
   i=0; while (i<bucket_count) {
@@ -1787,7 +1787,7 @@ FD_EXPORT int fd_populate_hash_index
 
 */
 
-struct FDX_COMMIT_SCHEDULE {
+struct INDEX_COMMIT_SCHEDULE {
   fdtype key, values; short replace;
   int fd_bucketno;};
 
@@ -1804,8 +1804,8 @@ struct FD_KEYBUCKET {
 
 static int sort_cs_by_bucket(const void *k1,const void *k2)
 {
-  struct FDX_COMMIT_SCHEDULE *ks1=(struct FDX_COMMIT_SCHEDULE *)k1;
-  struct FDX_COMMIT_SCHEDULE *ks2=(struct FDX_COMMIT_SCHEDULE *)k2;
+  struct INDEX_COMMIT_SCHEDULE *ks1=(struct INDEX_COMMIT_SCHEDULE *)k1;
+  struct INDEX_COMMIT_SCHEDULE *ks2=(struct INDEX_COMMIT_SCHEDULE *)k2;
   if (ks1->fd_bucketno<ks2->fd_bucketno) return -1;
   else if (ks1->fd_bucketno>ks2->fd_bucketno) return 1;
   else return 0;
@@ -1821,9 +1821,9 @@ static int sort_kb_by_bucket(const void *k1,const void *k2)
 }
 
 static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
-                         struct FDX_COMMIT_SCHEDULE *s,int i)
+                         struct INDEX_COMMIT_SCHEDULE *s,int i)
 {
-  fd_hashtable adds=&(hx->fdx_adds), edits=&(hx->fdx_edits), cache=&(hx->fd_cache);
+  fd_hashtable adds=&(hx->index_adds), edits=&(hx->index_edits), cache=&(hx->index_cache);
   fdtype *drops=u8_alloc_n((edits->fd_n_keys),fdtype), *drop_values;
   int j=0, n_drops=0, oddkeys=0;
   struct FD_HASH_BUCKET **scan=edits->fd_buckets, **lim=scan+edits->fd_n_buckets;
@@ -1893,10 +1893,10 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
 }
 
 static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
-                        struct FDX_COMMIT_SCHEDULE *s,int i)
+                        struct INDEX_COMMIT_SCHEDULE *s,int i)
 {
   int oddkeys=((hx->fdb_xformat)&(FD_HASH_INDEX_ODDKEYS));
-  fd_hashtable adds=&(hx->fdx_adds);
+  fd_hashtable adds=&(hx->index_adds);
   struct FD_HASH_BUCKET **scan=adds->fd_buckets, **lim=scan+adds->fd_n_buckets;
   while (scan < lim)
     if (*scan) {
@@ -1971,7 +1971,7 @@ FD_FASTOP FD_CHUNK_REF write_value_block
    file where neccessary (more than one value). */
 FD_FASTOP fd_off_t extend_keybucket
   (fd_hash_index hx,struct FD_KEYBUCKET *kb,
-   struct FDX_COMMIT_SCHEDULE *schedule,int i,int j,
+   struct INDEX_COMMIT_SCHEDULE *schedule,int i,int j,
    fd_byte_output newkeys,
    fd_off_t endpos,ssize_t maxpos)
 {
@@ -2019,7 +2019,7 @@ FD_FASTOP fd_off_t extend_keybucket
           if (free_keyvecs) {
             u8_free(keyoffs); u8_free(keysizes);
             u8_seterr(fd_DataFileOverflow,"extend_keybucket",
-                      u8_mkstring("%s: %lld >= %lld",hx->fd_cid,endpos,maxpos));
+                      u8_mkstring("%s: %lld >= %lld",hx->index_cid,endpos,maxpos));
             return -1;}}
         scan++;
         break;}
@@ -2056,7 +2056,7 @@ FD_FASTOP fd_off_t extend_keybucket
           if (free_keyvecs) {
             u8_free(keyoffs); u8_free(keysizes);
             u8_seterr(fd_DataFileOverflow,"extend_keybucket",
-                      u8_mkstring("%s: %lld >= %lld",hx->fd_cid,endpos,maxpos));
+                      u8_mkstring("%s: %lld >= %lld",hx->index_cid,endpos,maxpos));
             return -1;}}
         scan++;
         break;}}
@@ -2077,7 +2077,7 @@ FD_FASTOP fd_off_t extend_keybucket
           if (free_keyvecs) {
             u8_free(keyoffs); u8_free(keysizes);
             u8_seterr(fd_DataFileOverflow,"extend_keybucket",
-                      u8_mkstring("%s: %lld >= %lld",hx->fd_cid,endpos,maxpos));
+                      u8_mkstring("%s: %lld >= %lld",hx->index_cid,endpos,maxpos));
             return -1;}}}
       kb->fd_n_keys++;}
     k++;}
@@ -2107,7 +2107,7 @@ FD_FASTOP fd_off_t write_keybucket
     i++;}
   if (endpos>=maxpos) {
     u8_seterr(fd_DataFileOverflow,"write_keybucket",
-              u8_mkstring("%s: %lld >= %lld",hx->fd_cid,endpos,maxpos));
+              u8_mkstring("%s: %lld >= %lld",hx->index_cid,endpos,maxpos));
     return -1;}
   return endpos;
 }
@@ -2139,7 +2139,7 @@ FD_FASTOP struct FD_KEYBUCKET *read_keybucket
 
 static int update_hash_index_ondisk
   (fd_hash_index hx,unsigned int flags,unsigned int new_keys,
-   unsigned int changed_buckets,struct FDX_BUCKET_REF *bucket_locs);
+   unsigned int changed_buckets,struct INDEX_BUCKET_REF *bucket_locs);
 
 
 static int hash_index_commit(struct FD_INDEX *ix)
@@ -2148,19 +2148,19 @@ static int hash_index_commit(struct FD_INDEX *ix)
   int schedule_max, changed_buckets=0, total_keys=0;
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(hx->fd_stream);
-  struct FDX_BUCKET_REF *bucket_locs;
+  struct INDEX_BUCKET_REF *bucket_locs;
   ssize_t endpos, maxpos=get_maxpos(hx);
   fd_lock_struct(hx);
   fd_lock_struct(stream);
-  fd_write_lock_struct(&(hx->fdx_adds));
-  fd_write_lock_struct(&(hx->fdx_edits));
-  schedule_max=hx->fdx_adds.fd_n_keys+hx->fdx_edits.fd_n_keys;
-  bucket_locs=u8_alloc_n(schedule_max,struct FDX_BUCKET_REF);
+  fd_write_lock_struct(&(hx->index_adds));
+  fd_write_lock_struct(&(hx->index_edits));
+  schedule_max=hx->index_adds.fd_n_keys+hx->index_edits.fd_n_keys;
+  bucket_locs=u8_alloc_n(schedule_max,struct INDEX_BUCKET_REF);
   {
     int i=0, bscan=0;
     int schedule_size=0;
-    struct FDX_COMMIT_SCHEDULE *schedule=
-      u8_alloc_n(schedule_max,struct FDX_COMMIT_SCHEDULE);
+    struct INDEX_COMMIT_SCHEDULE *schedule=
+      u8_alloc_n(schedule_max,struct INDEX_COMMIT_SCHEDULE);
     struct FD_KEYBUCKET **keybuckets=
       u8_alloc_n(schedule_max,struct FD_KEYBUCKET *);
     struct FD_HASHSET taken;
@@ -2169,24 +2169,24 @@ static int hash_index_commit(struct FD_INDEX *ix)
        The 'taken' hashset contains keys that are edited.
        We process all of the edits, getting values if neccessary.
        Then we process all the adds. */
-    fd_init_hashset(&taken,3*(hx->fdx_edits.fd_n_keys),FD_STACK_CONS);
+    fd_init_hashset(&taken,3*(hx->index_edits.fd_n_keys),FD_STACK_CONS);
 #if FD_DEBUG_HASHINDICES
-    u8_message("Adding %d edits to the schedule",hx->fdx_edits.fd_n_keys);
+    u8_message("Adding %d edits to the schedule",hx->index_edits.fd_n_keys);
 #endif
     /* Get all the keys we need to write.  */
     schedule_size=process_edits(hx,&taken,schedule,schedule_size);
 #if FD_DEBUG_HASHINDICES
-    u8_message("Adding %d adds to the schedule",hx->fdx_adds.fd_n_keys);
+    u8_message("Adding %d adds to the schedule",hx->index_adds.fd_n_keys);
 #endif
     schedule_size=process_adds(hx,&taken,schedule,schedule_size);
     fd_recycle_hashset(&taken);
 
     /* Release the modification hashtables, which let's other threads
        start writing to the index again. */
-    fd_reset_hashtable(&(ix->fdx_adds),67,0);
-    fd_rw_unlock_struct(&(ix->fdx_adds));
-    fd_reset_hashtable(&(ix->fdx_edits),67,0);
-    fd_rw_unlock_struct(&(ix->fdx_edits));
+    fd_reset_hashtable(&(ix->index_adds),67,0);
+    fd_rw_unlock_struct(&(ix->index_adds));
+    fd_reset_hashtable(&(ix->index_edits),67,0);
+    fd_rw_unlock_struct(&(ix->index_edits));
 
     /* The commit schedule is now filled and we start generating a bucket schedule. */
     /* We're going to write keys and values, so we create streams to do so. */
@@ -2206,7 +2206,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       out.fd_bufptr=out.fd_bufstart;
       write_zkey(hx,&out,key);
       schedule[i].fd_bucketno=bucket=
-        hash_bytes(out.fd_bufstart,out.fd_bufptr-out.fd_bufstart)%(hx->fdx_n_buckets);
+        hash_bytes(out.fd_bufstart,out.fd_bufptr-out.fd_bufstart)%(hx->index_n_buckets);
       i++;}
     /* Get all the bucket locations.  It may be that we can fold this
        into the phase above when we have the offsets table in
@@ -2214,7 +2214,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #if FD_DEBUG_HASHINDICES
     u8_message("Fetching bucket locations");
 #endif
-    qsort(schedule,schedule_size,sizeof(struct FDX_COMMIT_SCHEDULE),
+    qsort(schedule,schedule_size,sizeof(struct INDEX_COMMIT_SCHEDULE),
           sort_cs_by_bucket);
     i=0; bscan=0; while (i<schedule_size) {
       int bucket=schedule[i].fd_bucketno, j=i;
@@ -2237,7 +2237,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
     u8_message("Reading all the %d changed buckets in order",
                changed_buckets);
 #endif
-    qsort(bucket_locs,changed_buckets,sizeof(struct FDX_BUCKET_REF),
+    qsort(bucket_locs,changed_buckets,sizeof(struct INDEX_BUCKET_REF),
           sort_br_by_off);
     i=0; while (i<changed_buckets) {
       keybuckets[i]=
@@ -2251,11 +2251,11 @@ static int hash_index_commit(struct FD_INDEX *ix)
     u8_message("Created %d new buckets",new_buckets);
 #endif
     /* bucket_locs should still be sorted by bucket. */
-    qsort(schedule,schedule_size,sizeof(struct FDX_COMMIT_SCHEDULE),
+    qsort(schedule,schedule_size,sizeof(struct INDEX_COMMIT_SCHEDULE),
           sort_cs_by_bucket);
     qsort(keybuckets,changed_buckets,sizeof(struct FD_KEYBUCKET *),
           sort_kb_by_bucket);
-    qsort(bucket_locs,changed_buckets,sizeof(struct FDX_BUCKET_REF),
+    qsort(bucket_locs,changed_buckets,sizeof(struct INDEX_BUCKET_REF),
           sort_br_by_bucket);
 #if FD_DEBUG_HASHINDICES
     u8_message("Extending for %d keys over %d buckets",
@@ -2357,7 +2357,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
     if (retval<0)
       u8_log(LOG_ERR,"hash_index_commit",
              "Trouble truncating recovery information for %s",
-             hx->fd_cid);}
+             hx->index_cid);}
 
   /* Remap the file */
   if (hx->fd_mmap) {
@@ -2366,7 +2366,7 @@ static int hash_index_commit(struct FD_INDEX *ix)
       u8_log(LOG_WARN,"MUNMAP","hash_index MUNMAP failed with %s",
              u8_strerror(errno));
       errno=0;}
-    hx->fd_mmap_size=u8_file_size(hx->fd_cid);
+    hx->fd_mmap_size=u8_file_size(hx->index_cid);
     hx->fd_mmap=
       mmap(NULL,hx->fd_mmap_size,PROT_READ,MMAP_FLAGS,hx->fd_stream.fd_fileno,0);}
 #if FD_DEBUG_HASHINDICES
@@ -2389,58 +2389,58 @@ static int hash_index_commit(struct FD_INDEX *ix)
 #if HAVE_MMAP
 static int make_offsets_writable(fd_hash_index hx)
 {
-  unsigned int *newmmap, n_buckets=hx->fdx_n_buckets;
+  unsigned int *newmmap, n_buckets=hx->index_n_buckets;
   size_t chunk_ref_size=get_chunk_ref_size(hx);
-  int retval=munmap(hx->fdx_offdata-64,(n_buckets*chunk_ref_size)+256);
+  int retval=munmap(hx->index_offdata-64,(n_buckets*chunk_ref_size)+256);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
-           "hash_index/make_offsets_writable:munmap %s",hx->fd_source);
+           "hash_index/make_offsets_writable:munmap %s",hx->index_source);
     return retval;}
   newmmap=mmap(NULL,(n_buckets*chunk_ref_size)+256,
                PROT_READ|PROT_WRITE,MMAP_FLAGS,hx->fd_stream.fd_fileno,0);
   if ((newmmap==NULL) || (newmmap==((void *)-1))) {
     u8_log(LOG_WARN,u8_strerror(errno),
-           "hash_index/make_offsets_writable:mmap %s",hx->fd_source);
-    hx->fdx_offdata=NULL; errno=0;}
-  else hx->fdx_offdata=newmmap+64;
+           "hash_index/make_offsets_writable:mmap %s",hx->index_source);
+    hx->index_offdata=NULL; errno=0;}
+  else hx->index_offdata=newmmap+64;
   return retval;
 }
 
 static int make_offsets_unwritable(fd_hash_index hx)
 {
-  unsigned int *newmmap, n_buckets=hx->fdx_n_buckets;
+  unsigned int *newmmap, n_buckets=hx->index_n_buckets;
   size_t chunk_ref_size=get_chunk_ref_size(hx);
-  int retval=msync(hx->fdx_offdata-64,(n_buckets*chunk_ref_size)+256,
+  int retval=msync(hx->index_offdata-64,(n_buckets*chunk_ref_size)+256,
                    MS_SYNC|MS_INVALIDATE);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
-           "hash_index/make_offsets_unwritable:msync %s",hx->fd_source);
+           "hash_index/make_offsets_unwritable:msync %s",hx->index_source);
     return retval;}
-  retval=munmap(hx->fdx_offdata-64,
+  retval=munmap(hx->index_offdata-64,
                 (n_buckets*chunk_ref_size)+256);
   if (retval<0) {
     u8_log(LOG_WARN,u8_strerror(errno),
-           "hash_index/make_offsets_unwritable:munmap %s",hx->fd_source);
+           "hash_index/make_offsets_unwritable:munmap %s",hx->index_source);
     return retval;}
   newmmap=mmap(NULL,(n_buckets*chunk_ref_size)+256,
                PROT_READ,MMAP_FLAGS,hx->fd_stream.fd_fileno,0);
   if ((newmmap==NULL) || (newmmap==((void *)-1))) {
     u8_log(LOG_WARN,u8_strerror(errno),
-           "hash_index/make_offsets_unwritable:mmap %s",hx->fd_source);
-    hx->fdx_offdata=NULL; errno=0;}
-  else hx->fdx_offdata=newmmap+64;
+           "hash_index/make_offsets_unwritable:mmap %s",hx->index_source);
+    hx->index_offdata=NULL; errno=0;}
+  else hx->index_offdata=newmmap+64;
   return retval;
 }
 #endif
 
 static int update_hash_index_ondisk
   (fd_hash_index hx,unsigned int flags,unsigned int cur_keys,
-   unsigned int changed_buckets,struct FDX_BUCKET_REF *bucket_locs)
+   unsigned int changed_buckets,struct INDEX_BUCKET_REF *bucket_locs)
 {
   struct FD_DTYPE_STREAM *stream=&(hx->fd_stream);
-  int i=0; unsigned int *buckets=hx->fdx_offdata;
+  int i=0; unsigned int *buckets=hx->index_offdata;
 #if (HAVE_MMAP)
-  if (buckets) {make_offsets_writable(hx); buckets=hx->fdx_offdata;}
+  if (buckets) {make_offsets_writable(hx); buckets=hx->index_offdata;}
 #endif
   if ((buckets) && (hx->fdb_offtype==FD_B64))
     while (i<changed_buckets) {
@@ -2500,16 +2500,16 @@ static int update_hash_index_ondisk
         fd_dtswrite_4bytes(stream,word1);
         fd_dtswrite_4bytes(stream,word2);
         i++;}}
-  if (hx->fdx_offdata) {
+  if (hx->index_offdata) {
 #if (HAVE_MMAP)
     make_offsets_unwritable(hx);
 #else
     fd_setpos(stream,256);
     if (hx->fdb_offtype==FD_B64)
-      fd_dtswrite_ints(stream,3*SIZEOF_INT*(hx->fdx_n_buckets),
-                       hx->fdx_offdata);
-    else fd_dtswrite_ints(stream,2*SIZEOF_INT*(hx->fdx_n_buckets),
-                          hx->fdx_offdata);
+      fd_dtswrite_ints(stream,3*SIZEOF_INT*(hx->index_n_buckets),
+                       hx->index_offdata);
+    else fd_dtswrite_ints(stream,2*SIZEOF_INT*(hx->index_n_buckets),
+                          hx->index_offdata);
 #endif
   }
   /* Write any changed flags */
@@ -2522,14 +2522,14 @@ static int update_hash_index_ondisk
 static int recover_hash_index(struct FD_HASH_INDEX *hx)
 {
   struct FD_DTYPE_STREAM *s=&(hx->fd_stream); fd_off_t recovery_pos;
-  struct FDX_BUCKET_REF *bucket_locs;
+  struct INDEX_BUCKET_REF *bucket_locs;
   unsigned int i=0, flags, cur_keys, n_buckets, retval;
   fd_endpos(s); fd_movepos(s,-8);
   recovery_pos=fd_dtsread_8bytes(s);
   fd_setpos(s,recovery_pos);
   flags=fd_dtsread_4bytes(s); cur_keys=fd_dtsread_4bytes(s);
   n_buckets=fd_dtsread_4bytes(s);
-  bucket_locs=u8_alloc_n(n_buckets,struct FDX_BUCKET_REF);
+  bucket_locs=u8_alloc_n(n_buckets,struct INDEX_BUCKET_REF);
   while (i<n_buckets) {
     bucket_locs[i].fd_bucketno=fd_dtsread_4bytes(s);
     bucket_locs[i].ref.off=fd_dtsread_8bytes(s);
@@ -2547,23 +2547,23 @@ static void hash_index_close(fd_index ix)
 {
   struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
   unsigned int chunk_ref_size=get_chunk_ref_size(hx);
-  u8_log(LOG_DEBUG,"HASHINDEX","Closing hash index %s",ix->fd_cid);
+  u8_log(LOG_DEBUG,"HASHINDEX","Closing hash index %s",ix->index_cid);
   fd_lock_struct(hx);
-  if (hx->fdx_offdata) {
+  if (hx->index_offdata) {
 #if HAVE_MMAP
     int retval=
-      munmap(hx->fdx_offdata-64,(chunk_ref_size*hx->fdx_n_buckets)+256);
+      munmap(hx->index_offdata-64,(chunk_ref_size*hx->index_n_buckets)+256);
     if (retval<0) {
       u8_log(LOG_WARN,u8_strerror(errno),
-             "hash_index_close:munmap %s",hx->fd_source);
+             "hash_index_close:munmap %s",hx->index_source);
       errno=0;}
 #else
-    u8_free(hx->fdx_offdata);
+    u8_free(hx->index_offdata);
 #endif
-    hx->fdx_offdata=NULL;
-    hx->fd_cache_level=-1;}
+    hx->index_offdata=NULL;
+    hx->index_cache_level=-1;}
   fd_dtsfree(&(hx->fd_stream),1);
-  u8_log(LOG_DEBUG,"HASHINDEX","Closed hash index %s",ix->fd_cid);
+  u8_log(LOG_DEBUG,"HASHINDEX","Closed hash index %s",ix->index_cid);
   fd_unlock_struct(hx);
 }
 
@@ -2604,17 +2604,17 @@ static struct FD_INDEX_HANDLER hash_index_handler={
 
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix)
 {
-  return (ix->handler==&hash_index_handler);
+  return (ix->index_handler==&hash_index_handler);
 }
 
 FD_EXPORT fdtype fd_hash_index_stats(struct FD_HASH_INDEX *hx)
 {
   fdtype result=fd_empty_slotmap();
   int n_filled=0, maxk=0, n_singles=0, n2sum=0;
-  fd_add(result,fd_intern("NBUCKETS"),FD_INT(hx->fdx_n_buckets));
+  fd_add(result,fd_intern("NBUCKETS"),FD_INT(hx->index_n_buckets));
   fd_add(result,fd_intern("NKEYS"),FD_INT(hx->fd_n_keys));
-  fd_add(result,fd_intern("NBASEOIDS"),FD_INT(hx->fdx_n_baseoids));
-  fd_add(result,fd_intern("NSLOTIDS"),FD_INT(hx->fdx_n_slotids));
+  fd_add(result,fd_intern("NBASEOIDS"),FD_INT(hx->index_n_baseoids));
+  fd_add(result,fd_intern("NSLOTIDS"),FD_INT(hx->index_n_slotids));
   hash_index_getstats(hx,&n_filled,&maxk,&n_singles,&n2sum);
   fd_add(result,fd_intern("NFILLED"),FD_INT(n_filled));
   fd_add(result,fd_intern("NSINGLES"),FD_INT(n_singles));

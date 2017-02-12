@@ -418,10 +418,10 @@ static fd_index open_file_index(u8_string filename,int consed)
         break;}
       else i++;
     if (ix) {
-      if (ix->fd_cid) {
-        u8_free(ix->fd_cid); ix->fd_cid=NULL;}
-      ix->fd_cid=index_filename;
-      ix->fd_xid=u8_realpath(index_filename,NULL);
+      if (ix->index_cid) {
+        u8_free(ix->index_cid); ix->index_cid=NULL;}
+      ix->index_cid=index_filename;
+      ix->index_xid=u8_realpath(index_filename,NULL);
       fd_register_index(ix);
       return ix;}
     else {
@@ -454,13 +454,13 @@ int fd_file_indexp(u8_string filename)
 static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
 {
   struct FD_DTYPE_STREAM stream, *rstream;
-  if ((ix->fdx_adds.fd_n_keys>0) || (ix->fdx_edits.fd_n_keys>0)) {
+  if ((ix->index_adds.fd_n_keys>0) || (ix->index_edits.fd_n_keys>0)) {
     rstream=fd_init_dtype_file_stream
       (&stream,file,FD_DTSTREAM_CREATE,fd_filedb_bufsize);
     if (rstream==NULL) return -1;
     stream.fd_mallocd=0;
     fd_set_read(&stream,0);
-    fd_write_dtype((fd_byte_output)&stream,(fdtype)&(ix->fd_cache));
+    fd_write_dtype((fd_byte_output)&stream,(fdtype)&(ix->index_cache));
     fd_dtsclose(&stream,FD_DTS_FREE);
     return 1;}
   else return 0;
@@ -480,14 +480,14 @@ static fd_index open_memindex(u8_string file,int read_only,int consed)
   else {
     fd_decref(lispval);
     return NULL;}
-  if (mix->fd_cid) u8_free(mix->fd_cid);
-  mix->fd_source=mix->fd_cid=u8_strdup(file);
+  if (mix->index_cid) u8_free(mix->index_cid);
+  mix->index_source=mix->index_cid=u8_strdup(file);
   mix->commitfn=memindex_commitfn;
-  mix->fd_read_only=read_only;
-  mix->fd_cache.fd_n_buckets=h->fd_n_buckets;
-  mix->fd_cache.fd_n_keys=h->fd_n_keys;
-  mix->fd_cache.fd_load_factor=h->fd_load_factor;
-  mix->fd_cache.fd_buckets=h->fd_buckets;
+  mix->index_read_only=read_only;
+  mix->index_cache.fd_n_buckets=h->fd_n_buckets;
+  mix->index_cache.fd_n_keys=h->fd_n_keys;
+  mix->index_cache.fd_load_factor=h->fd_load_factor;
+  mix->index_cache.fd_buckets=h->fd_buckets;
   u8_free(h);
   return (fd_index)mix;
 }

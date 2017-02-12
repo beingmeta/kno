@@ -242,8 +242,8 @@ static fdtype populate_hash_index
   else if (FD_VOIDP(keys)) {
     if ((FD_INDEXP(from))||(FD_PRIM_TYPEP(from,fd_raw_index_type))) {
       fd_index ix=fd_indexptr(from);
-      if (ix->handler->fetchkeys!=NULL) {
-        consed_keyvec=ix->handler->fetchkeys(ix,&n_keys);
+      if (ix->index_handler->fetchkeys!=NULL) {
+        consed_keyvec=ix->index_handler->fetchkeys(ix,&n_keys);
         keyvec=consed_keyvec;}
       else keys_choice=fd_getkeys(from);}
     else keys_choice=fd_getkeys(from);
@@ -295,9 +295,9 @@ static fdtype hash_index_slotids(fdtype ix_arg)
     return fd_type_error(_("hash index"),"hash_index_slotids",ix_arg);
   else {
     struct FD_HASH_INDEX *hx=(fd_hash_index)ix;
-    fdtype *elts=u8_alloc_n(hx->fdx_n_slotids,fdtype);
-    fdtype *slotids=hx->fdx_slotids;
-    int i=0, n=hx->fdx_n_slotids;
+    fdtype *elts=u8_alloc_n(hx->index_n_slotids,fdtype);
+    fdtype *slotids=hx->index_slotids;
+    int i=0, n=hx->index_n_slotids;
     while (i< n) {elts[i]=slotids[i]; i++;}
     return fd_init_vector(NULL,n,elts);}
 }
@@ -316,26 +316,29 @@ static unsigned int load_cache(unsigned int *cache,int length)
 
 static int load_pool_cache(fd_pool p,void *ignored)
 {
-  if ((p->handler==NULL) || (p->handler->name==NULL)) return 0;
-  else if (strcmp(p->handler->name,"file_pool")==0) {
+  if ((p->pool_handler==NULL) ||
+      (p->pool_handler->name==NULL))
+    return 0;
+  else if (strcmp(p->pool_handler->name,"file_pool")==0) {
     struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
     if (fp->fd_offsets) load_cache(fp->fd_offsets,fp->fd_offsets_size);}
-  else if (strcmp(p->handler->name,"oidpool")==0) {
+  else if (strcmp(p->pool_handler->name,"oidpool")==0) {
     struct FD_OIDPOOL *fp=(struct FD_OIDPOOL *)p;
-    if (fp->fd_offsets) load_cache(fp->fd_offsets,fp->fd_offsets_size);}
+    if (fp->fd_offsets)
+      load_cache(fp->fd_offsets,fp->fd_offsets_size);}
   return 0;
 }
 
 static int load_index_cache(fd_index ix,void *ignored)
 {
-  if ((ix->handler==NULL) || (ix->handler->name==NULL)) return 0;
-  else if (strcmp(ix->handler->name,"file_index")==0) {
+  if ((ix->index_handler==NULL) || (ix->index_handler->name==NULL)) return 0;
+  else if (strcmp(ix->index_handler->name,"file_index")==0) {
     struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
     if (fx->fd_offsets) load_cache(fx->fd_offsets,fx->fd_n_slots);}
-  else if (strcmp(ix->handler->name,"hash_index")==0) {
+  else if (strcmp(ix->index_handler->name,"hash_index")==0) {
     struct FD_HASH_INDEX *hx=(struct FD_HASH_INDEX *)ix;
-    if (hx->fdx_offdata)
-      load_cache(hx->fdx_offdata,hx->fdx_n_buckets*2);}
+    if (hx->index_offdata)
+      load_cache(hx->index_offdata,hx->index_n_buckets*2);}
   return 0;
 }
 

@@ -1097,7 +1097,7 @@ FD_EXPORT fdtype fd_find_frames(fdtype indices,...)
 FD_EXPORT
 int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
 {
-  if ((ix->handler->fetchn)==NULL) {
+  if ((ix->index_handler->fetchn)==NULL) {
     fdtype keys=FD_EMPTY_CHOICE;
     FD_DO_CHOICES(slotid,slotids) {
       FD_DO_CHOICES(value,values) {
@@ -1115,8 +1115,8 @@ int fd_find_prefetch(fd_index ix,fdtype slotids,fdtype values)
       FD_DO_CHOICES(value,values) {
         fdtype key=fd_conspair(slotid,value);
         keyv[n_keys++]=key;}}
-    valuev=(ix->handler->fetchn)(ix,n_keys,keyv);
-    fd_hashtable_iter(&(ix->fd_cache),fd_table_add_empty_noref,
+    valuev=(ix->index_handler->fetchn)(ix,n_keys,keyv);
+    fd_hashtable_iter(&(ix->index_cache),fd_table_add_empty_noref,
                       n_keys,keyv,valuev);
     u8_free(keyv); u8_free(valuev);
     return 1;}

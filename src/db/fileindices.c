@@ -76,7 +76,7 @@ static fd_index open_file_index(u8_string fname,int read_only,int consed)
     fd_seterr3(fd_NotAFileIndex,"open_file_index",u8_strdup(fname));
     u8_free(index);
     return NULL;}
-  index->fd_offsets=NULL; index->fd_read_only=read_only;
+  index->fd_offsets=NULL; index->index_read_only=read_only;
   fd_init_mutex(&(index->fd_lock));
   index->slotids=FD_VOID;
   {
@@ -111,7 +111,7 @@ static void file_index_setcache(fd_index ix,int level)
              PROT_READ,MMAP_FLAGS,s->fd_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_CRIT,u8_strerror(errno),
-               "file_index_setcache:mmap %s",fx->fd_source);
+               "file_index_setcache:mmap %s",fx->index_source);
         fx->fd_offsets=NULL; errno=0;}
       else fx->fd_offsets=offsets=newmmap+2;
 #else
@@ -131,7 +131,7 @@ static void file_index_setcache(fd_index ix,int level)
       retval=munmap(fx->fd_offsets-2,(fx->fd_n_slots*SLOTSIZE)+8);
       if (retval<0) {
         u8_log(LOG_CRIT,u8_strerror(errno),
-               "file_index_setcache:munmap %s",fx->fd_source);
+               "file_index_setcache:munmap %s",fx->index_source);
         fx->fd_offsets=NULL; errno=0;}
 #else
       u8_free(fx->fd_offsets);
@@ -150,7 +150,7 @@ FD_FASTOP unsigned int file_index_hash(struct FD_FILE_INDEX *fx,fdtype x)
   case 3:
     return fd_hash_dtype3(x);
   default:
-    u8_raise(_("Bad hash version"),"file_index_hash",fx->fd_cid);}
+    u8_raise(_("Bad hash version"),"file_index_hash",fx->index_cid);}
   /* Never reached */
   return -1;
 }
@@ -205,7 +205,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
       val_start=fd_dtsread_4bytes(stream);
       if (FD_EXPECT_FALSE((n_vals==0) && (val_start)))
         u8_log(LOG_CRIT,fd_FileIndexError,
-               "file_index_fetch %s",u8_strdup(ix->fd_cid));
+               "file_index_fetch %s",u8_strdup(ix->index_cid));
       thiskey=fd_dtsread_dtype(stream);
       if (FDTYPE_EQUAL(key,thiskey)) {
         if (n_vals==0) {
@@ -220,7 +220,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
             fdtype v;
             if (FD_EXPECT_FALSE(i>=n_vals))
               u8_raise(_("inconsistent file index"),
-                       "file_index_fetch",u8_strdup(ix->fd_cid));
+                       "file_index_fetch",u8_strdup(ix->index_cid));
             if (next_pos>1) fd_setpos(stream,next_pos+pos_offset);
             v=fd_dtsread_dtype(stream);
             if ((atomicp) && (FD_CONSP(v))) atomicp=0;
@@ -236,7 +236,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
         fd_unlock_mutex(&fx->fd_lock);
         fd_decref(thiskey);
         return fd_err(fd_FileIndexOverflow,"file_index_fetch",
-                      u8_strdup(fx->fd_source),thiskey);}
+                      u8_strdup(fx->index_source),thiskey);}
       else {
         n_probes++;
         fd_decref(thiskey);
@@ -274,7 +274,7 @@ static int file_index_fetchsize(fd_index ix,fdtype key)
         fd_unlock_mutex(&fx->fd_lock);
         return fd_err(fd_FileIndexOverflow,
                       "file_index_fetchsize",
-                      u8_strdup(fx->fd_source),FD_VOID);}
+                      u8_strdup(fx->index_source),FD_VOID);}
       else {n_probes++; probe=(probe+chain_width)%(fx->fd_n_slots);}}
     fd_unlock_mutex(&fx->fd_lock);
     return FD_EMPTY_CHOICE;}
@@ -506,7 +506,7 @@ static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
   union SCHEDULE *schedule=u8_alloc_n(n,union SCHEDULE);
   fdtype *values=u8_alloc_n(n,fdtype);
   int i=0, schedule_size=0, init_schedule_size; while (i < n) {
-    fdtype key=keys[i], cached=fd_hashtable_get(&(fx->fd_cache),key,FD_VOID);
+    fdtype key=keys[i], cached=fd_hashtable_get(&(fx->index_cache),key,FD_VOID);
     if (redundantp(fx,key))
       values[i++]=FD_EMPTY_CHOICE;
     else if (FD_VOIDP(cached)) {
@@ -524,11 +524,11 @@ static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
       ksched->chain_width=hashcode%(fx->fd_n_slots-2)+1;
       if (ksched->filepos)
         if (lock_adds)
-          values[i]=fd_hashtable_get(&(fx->fdx_adds),key,FD_VOID);
-        else values[i]=fd_hashtable_get_nolock(&(fx->fdx_adds),key,FD_VOID);
+          values[i]=fd_hashtable_get(&(fx->index_adds),key,FD_VOID);
+        else values[i]=fd_hashtable_get_nolock(&(fx->index_adds),key,FD_VOID);
       else if (lock_adds)
-        values[i]=fd_hashtable_get(&(fx->fdx_adds),key,FD_EMPTY_CHOICE);
-      else values[i]=fd_hashtable_get_nolock(&(fx->fdx_adds),key,FD_EMPTY_CHOICE);
+        values[i]=fd_hashtable_get(&(fx->index_adds),key,FD_EMPTY_CHOICE);
+      else values[i]=fd_hashtable_get_nolock(&(fx->index_adds),key,FD_EMPTY_CHOICE);
       i++; schedule_size++;}
     else values[i++]=cached;}
   init_schedule_size=schedule_size;
@@ -537,7 +537,7 @@ static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
     schedule_size=run_schedule(fx,schedule_size,schedule,offsets,values);
     if (schedule_size<=0) break;
     qsort(schedule,schedule_size,sizeof(struct FETCH_SCHEDULE),sort_by_filepos);}
-  /* Note that we should now look at fx->fdx_edits and integrate any changes,
+  /* Note that we should now look at fx->index_edits and integrate any changes,
      but we're not doing that now. */
   if (schedule_size<0) {
     int k=0; while (k<init_schedule_size) {
@@ -770,7 +770,7 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n,
     if (max==i)
       if (chain_length>256) {
         if (offsets == NULL) u8_free(reserved.slotnos);
-        return fd_reterr(fd_FileIndexOverflow,"fetch_keydata",u8_strdup(fx->fd_cid),FD_VOID);}
+        return fd_reterr(fd_FileIndexOverflow,"fetch_keydata",u8_strdup(fx->index_cid),FD_VOID);}
       else chain_length++;
     else chain_length=0;
     max=i;}
@@ -825,9 +825,9 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
   int i=0, n_edits=0, n_drops=0; fd_off_t filepos;
   fdtype *dropkeys, *dropvals;
   struct FD_HASH_BUCKET **scan, **limit;
-  if (f->fdx_edits.fd_n_keys==0) return 0;
-  dropkeys=u8_alloc_n(f->fdx_edits.fd_n_keys,fdtype);
-  scan=f->fdx_edits.fd_buckets; limit=scan+f->fdx_edits.fd_n_buckets;
+  if (f->index_edits.fd_n_keys==0) return 0;
+  dropkeys=u8_alloc_n(f->index_edits.fd_n_keys,fdtype);
+  scan=f->index_edits.fd_buckets; limit=scan+f->index_edits.fd_n_buckets;
   while (scan < limit)
     if (*scan) {
       /* Now we go through the edits table, finding all the drops.
@@ -840,7 +840,7 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
         if ((FD_PAIRP(key)) &&
             (FD_EQ(FD_CAR(key),drop_symbol)) &&
             (!(FD_VOIDP(kvscan->fd_keyval)))) {
-          fdtype cached=fd_hashtable_get(&(f->fd_cache),FD_CDR(key),FD_VOID);
+          fdtype cached=fd_hashtable_get(&(f->index_cache),FD_CDR(key),FD_VOID);
           if (!(FD_VOIDP(cached))) {
             /* If the value of the key is cached, it will be up to date with
                these drops, so we just convert the key to a "set" key
@@ -858,7 +858,7 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
   if (n_drops) dropvals=fetchn(f,n_drops,dropkeys,0);
   else dropvals=NULL;
   filepos=fd_endpos(stream);
-  scan=f->fdx_edits.fd_buckets; limit=scan+f->fdx_edits.fd_n_buckets;
+  scan=f->index_edits.fd_buckets; limit=scan+f->index_edits.fd_n_buckets;
   while (scan < limit)
     if (*scan) {
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -935,8 +935,8 @@ static int file_index_commit(struct FD_INDEX *ix)
   struct FD_DTYPE_STREAM *stream=&(fx->fd_stream);
   unsigned int *new_offsets=NULL, gc_new_offsets=0;
   int pos_offset=fx->fd_n_slots*4, newcount;
-  fd_write_lock_struct(&(ix->fdx_adds));
-  fd_write_lock_struct(&(ix->fdx_edits));
+  fd_write_lock_struct(&(ix->index_adds));
+  fd_write_lock_struct(&(ix->index_edits));
   fd_lock_struct(fx);
   fd_dts_start_write(stream);
   /* Get the current offsets from the index */
@@ -957,12 +957,12 @@ static int file_index_commit(struct FD_INDEX *ix)
 #endif
   {
     fd_off_t filepos;
-    int n_adds=ix->fdx_adds.fd_n_keys, n_edits=ix->fdx_edits.fd_n_keys;
+    int n_adds=ix->index_adds.fd_n_keys, n_edits=ix->index_edits.fd_n_keys;
     int i=0, n=0, n_changes=n_adds+n_edits, add_index;
     struct KEYDATA *kdata=u8_alloc_n(n_changes,struct KEYDATA);
     unsigned int *value_locs=
       ((n_edits) ? (u8_alloc_n(n_edits,unsigned int)) : (NULL));
-    struct FD_HASH_BUCKET **scan=ix->fdx_adds.fd_buckets, **limit=scan+ix->fdx_adds.fd_n_buckets;
+    struct FD_HASH_BUCKET **scan=ix->index_adds.fd_buckets, **limit=scan+ix->index_adds.fd_n_buckets;
     while (scan < limit)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -996,8 +996,8 @@ static int file_index_commit(struct FD_INDEX *ix)
       u8_free(kdata);
       if (value_locs) u8_free(value_locs);
       if (gc_new_offsets) u8_free(new_offsets);
-      fd_rw_unlock_struct((&(ix->fdx_adds)));
-      fd_rw_unlock_struct((&(ix->fdx_edits)));
+      fd_rw_unlock_struct((&(ix->index_adds)));
+      fd_rw_unlock_struct((&(ix->index_edits)));
       fd_unlock_struct(fx);
       return newcount;}
     filepos=fd_endpos(stream);
@@ -1010,7 +1010,7 @@ static int file_index_commit(struct FD_INDEX *ix)
       else kdata[i].pos=((fd_off_t)0);
       i++;}
     /* Now, scan the adds again and write the added values. */
-    scan=ix->fdx_adds.fd_buckets; limit=scan+ix->fdx_adds.fd_n_buckets;
+    scan=ix->index_adds.fd_buckets; limit=scan+ix->index_adds.fd_n_buckets;
     i=0; while (scan < limit)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -1049,15 +1049,15 @@ static int file_index_commit(struct FD_INDEX *ix)
         if (retval<0)
           u8_log(LOG_ERR,"file_index_commit",
                  "Trouble truncating recovery information from %s",
-                 fx->fd_cid);}}
+                 fx->index_cid);}}
     fd_unlock_struct(fx);
     if (value_locs) u8_free(value_locs);
     u8_free(kdata);
     if (gc_new_offsets) u8_free(new_offsets);
-    fd_reset_hashtable(&(ix->fdx_adds),67,0);
-    fd_rw_unlock_struct(&(ix->fdx_adds));
-    fd_reset_hashtable(&(ix->fdx_edits),67,0);
-    fd_rw_unlock_struct(&(ix->fdx_edits));
+    fd_reset_hashtable(&(ix->index_adds),67,0);
+    fd_rw_unlock_struct(&(ix->index_adds));
+    fd_reset_hashtable(&(ix->index_edits),67,0);
+    fd_rw_unlock_struct(&(ix->index_edits));
     return n;}
 }
 
@@ -1110,13 +1110,13 @@ static void file_index_close(fd_index ix)
     int retval=munmap(fx->fd_offsets-2,(SLOTSIZE*fx->fd_n_slots)+8);
     if (retval<0) {
       u8_log(LOG_CRIT,u8_strerror(errno),
-             "[%d:%d] file_index_close:munmap %s",retval,errno,fx->fd_source);
+             "[%d:%d] file_index_close:munmap %s",retval,errno,fx->index_source);
       errno=0;}
 #else
     u8_free(fx->fd_offsets);
 #endif
     fx->fd_offsets=NULL;
-    fx->fd_cache_level=-1;}
+    fx->index_cache_level=-1;}
   fd_unlock_struct(fx);
 }
 

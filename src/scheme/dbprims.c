@@ -417,7 +417,7 @@ static fdtype make_compound_index(int n,fdtype *args)
         if (n_sources>=max_sources) {
           sources=u8_realloc_n(sources,max_sources+8,fd_index);
           max_sources=max_sources+8;}
-        if (ix->fdx_serialno<0) {fdtype lix=(fdtype)ix; fd_incref(lix);}
+        if (ix->index_serialno<0) {fdtype lix=(fdtype)ix; fd_incref(lix);}
         sources[n_sources++]=ix;}
       else {
         u8_free(sources);
@@ -544,7 +544,7 @@ static fdtype cons_extindex(fdtype label,fdtype fetchfn,fdtype commitfn,
      ((FD_FALSEP(state))?(FD_VOID):(state)),
      0);
   if (FD_FALSEP(usecache)) fd_index_setcache(ix,0);
-  if (ix->fdx_serialno>=0) return fd_index2lisp(ix);
+  if (ix->index_serialno>=0) return fd_index2lisp(ix);
   else return (fdtype)ix;
 }
 
@@ -552,8 +552,8 @@ static fdtype extindex_cacheadd(fdtype index,fdtype key,fdtype values)
 {
   FDTC *fdtc=fd_threadcache;
   fd_index ix=fd_indexptr(index);
-  if (ix->handler==&fd_extindex_handler)
-    if (fd_hashtable_add(&(ix->fd_cache),key,values)<0)
+  if (ix->index_handler==&fd_extindex_handler)
+    if (fd_hashtable_add(&(ix->index_cache),key,values)<0)
       return FD_ERROR_VALUE;
     else {}
   else return fd_type_error("extindex","extindex_cacheadd",index);
@@ -572,12 +572,12 @@ static fdtype extindex_decache(fdtype index,fdtype key)
   FDTC *fdtc=fd_threadcache;
   fd_index ix=fd_indexptr(index);
   fdtype lix=fd_index2lisp(ix);
-  if (ix->handler==&fd_extindex_handler)
+  if (ix->index_handler==&fd_extindex_handler)
     if (FD_VOIDP(key))
-      if (fd_reset_hashtable(&(ix->fd_cache),ix->fd_cache.fd_n_buckets,1)<0)
+      if (fd_reset_hashtable(&(ix->index_cache),ix->index_cache.fd_n_buckets,1)<0)
         return FD_ERROR_VALUE;
       else {}
-    else if (fd_hashtable_store(&(ix->fd_cache),key,FD_VOID)<0)
+    else if (fd_hashtable_store(&(ix->index_cache),key,FD_VOID)<0)
       return FD_ERROR_VALUE;
     else {}
   else return fd_type_error("extindex","extindex_decache",index);
@@ -604,7 +604,7 @@ return FD_VOID;
 static fdtype extindex_fetchfn(fdtype index)
 {
   fd_index ix=fd_indexptr(index);
-  if (ix->handler==&fd_extindex_handler) {
+  if (ix->index_handler==&fd_extindex_handler) {
     struct FD_EXTINDEX *eix=(struct FD_EXTINDEX *)ix;
     return fd_incref(eix->fetchfn);}
   else return fd_type_error("extindex","extindex_fetchfn",index);
@@ -613,7 +613,7 @@ static fdtype extindex_fetchfn(fdtype index)
 static fdtype extindex_commitfn(fdtype index)
 {
   fd_index ix=fd_indexptr(index);
-  if (ix->handler==&fd_extindex_handler) {
+  if (ix->index_handler==&fd_extindex_handler) {
     struct FD_EXTINDEX *eix=(struct FD_EXTINDEX *)ix;
     return fd_incref(eix->commitfn);}
   else return fd_type_error("extindex","extindex_commitfn",index);
@@ -622,7 +622,7 @@ static fdtype extindex_commitfn(fdtype index)
 static fdtype extindex_state(fdtype index)
 {
   fd_index ix=fd_indexptr(index);
-  if (ix->handler==&fd_extindex_handler) {
+  if (ix->index_handler==&fd_extindex_handler) {
     struct FD_EXTINDEX *eix=(struct FD_EXTINDEX *)ix;
     return fd_incref(eix->state);}
   else return fd_type_error("extindex","extindex_state",index);
@@ -1085,7 +1085,7 @@ static fdtype cachecount(fdtype arg)
     int count=p->pool_cache.fd_n_keys;
     return FD_INT(count);}
   else if ((ix=(fd_indexptr(arg)))) {
-    int count=ix->fd_cache.fd_n_keys;
+    int count=ix->index_cache.fd_n_keys;
     return FD_INT(count);}
   else return fd_type_error(_("pool or index"),"cachecount",arg);
 }
@@ -1459,10 +1459,10 @@ static fdtype indexdecache(fdtype ixarg,fdtype key,fdtype value)
   fd_index ix=fd_indexptr(ixarg);
   if (ix==NULL) return FD_ERROR_VALUE;
   if (FD_VOIDP(value))
-    fd_hashtable_op(&(ix->fd_cache),fd_table_replace,key,FD_VOID);
+    fd_hashtable_op(&(ix->index_cache),fd_table_replace,key,FD_VOID);
   else {
     fdtype keypair=fd_conspair(fd_incref(key),fd_incref(value));
-    fd_hashtable_op(&(ix->fd_cache),fd_table_replace,keypair,FD_VOID);
+    fd_hashtable_op(&(ix->index_cache),fd_table_replace,keypair,FD_VOID);
     fd_decref(keypair);}
   return FD_VOID;
 }
@@ -1472,10 +1472,10 @@ static fdtype bgdecache(fdtype key,fdtype value)
   fd_index ix=(fd_index)fd_background;
   if (ix==NULL) return FD_ERROR_VALUE;
   if (FD_VOIDP(value))
-    fd_hashtable_op(&(ix->fd_cache),fd_table_replace,key,FD_VOID);
+    fd_hashtable_op(&(ix->index_cache),fd_table_replace,key,FD_VOID);
   else {
     fdtype keypair=fd_conspair(fd_incref(key),fd_incref(value));
-    fd_hashtable_op(&(ix->fd_cache),fd_table_replace,keypair,FD_VOID);
+    fd_hashtable_op(&(ix->index_cache),fd_table_replace,keypair,FD_VOID);
     fd_decref(keypair);}
   return FD_VOID;
 }
@@ -1498,9 +1498,9 @@ static fdtype indexkeysvec(fdtype ixarg)
 {
   fd_index ix=fd_indexptr(ixarg);
   if (ix==NULL) fd_type_error("index","indexkeysvec",ixarg);
-  if (ix->handler->fetchkeys) {
+  if (ix->index_handler->fetchkeys) {
     fdtype *keys; unsigned int n_keys;
-    keys=ix->handler->fetchkeys(ix,&n_keys);
+    keys=ix->index_handler->fetchkeys(ix,&n_keys);
     return fd_init_vector(NULL,n_keys,keys);}
   else return fd_index_keys(ix);
 }
@@ -1520,7 +1520,7 @@ static fdtype indexsource(fdtype ix_arg)
   fd_index ix=fd_indexptr(ix_arg);
   if (ix==NULL) 
     return fd_type_error("index","indexsource",ix_arg);
-  return fdtype_string(ix->fd_source);
+  return fdtype_string(ix->index_source);
 }
 
 static fdtype suggest_hash_size(fdtype size)
@@ -2590,14 +2590,14 @@ static fdtype dbloadedp(fdtype arg1,fdtype arg2)
       else if (fd_hashtable_probe(&(p->pool_cache),arg1))
         return FD_TRUE;
       else return FD_FALSE;}
-    else if (fd_hashtable_probe(&(fd_background->fd_cache),arg1))
+    else if (fd_hashtable_probe(&(fd_background->index_cache),arg1))
       return FD_TRUE;
     else return FD_FALSE;
   else if ((FD_INDEXP(arg2))||(FD_PRIM_TYPEP(arg2,fd_raw_index_type))) {
     fd_index ix=fd_indexptr(arg2);
     if (ix==NULL)
       return fd_type_error("index","loadedp",arg2);
-    else if (fd_hashtable_probe(&(ix->fd_cache),arg1))
+    else if (fd_hashtable_probe(&(ix->index_cache),arg1))
       return FD_TRUE;
     else return FD_FALSE;}
   else if (FD_POOLP(arg2))
@@ -2623,7 +2623,7 @@ static fdtype dbloadedp(fdtype arg1,fdtype arg2)
     else ix=fd_indexptr(arg2);
     if (ix==NULL)
       return fd_type_error("pool/index","loadedp",arg2);
-    else if (fd_hashtable_probe(&(ix->fd_cache),arg1))
+    else if (fd_hashtable_probe(&(ix->index_cache),arg1))
       return FD_TRUE;
     else return FD_FALSE;}
   else return fd_type_error("pool/index","loadedp",arg2);
@@ -2664,7 +2664,7 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
       else return FD_FALSE;}
     else if ((FD_INDEXP(arg1))||(FD_PRIM_TYPEP(arg1,fd_raw_index_type))) {
       fd_index ix=fd_lisp2index(arg1);
-      if ((ix->fdx_edits.fd_n_keys) || (ix->fdx_adds.fd_n_keys))
+      if ((ix->index_edits.fd_n_keys) || (ix->index_adds.fd_n_keys))
         return FD_TRUE;
       else return FD_FALSE;}
     else if (FD_TABLEP(arg1)) {
@@ -2679,8 +2679,8 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
     fd_index ix=fd_indexptr(arg2);
     if (ix==NULL)
       return fd_type_error("index","loadedp",arg2);
-    else if ((fd_hashtable_probe(&(ix->fdx_adds),arg1)) ||
-             (fd_hashtable_probe(&(ix->fdx_edits),arg1)))
+    else if ((fd_hashtable_probe(&(ix->index_adds),arg1)) ||
+             (fd_hashtable_probe(&(ix->index_edits),arg1)))
       return FD_TRUE;
     else return FD_FALSE;}
   else if (FD_POOLP(arg2))
@@ -2701,8 +2701,8 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
     else ix=fd_indexptr(arg2);
     if (ix==NULL)
       return fd_type_error("pool/index","loadedp",arg2);
-    else if ((fd_hashtable_probe(&(ix->fdx_adds),arg1)) ||
-             (fd_hashtable_probe(&(ix->fdx_edits),arg1)))
+    else if ((fd_hashtable_probe(&(ix->index_adds),arg1)) ||
+             (fd_hashtable_probe(&(ix->index_edits),arg1)))
       return FD_TRUE;
     else return FD_FALSE;}
   else return fd_type_error("pool/index","loadedp",arg2);

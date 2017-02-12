@@ -176,7 +176,7 @@ typedef struct FD_ZINDEX {
   FD_INDEX_FIELDS;
   unsigned int fd_n_slots, fd_hashv, *fd_offsets;
   struct FD_DTYPE_STREAM fd_stream;
-  fdtype slotids; FD_OID *fdx_baseoids; int fdx_n_baseoids;
+  fdtype slotids; FD_OID *index_baseoids; int index_n_baseoids;
   U8_MUTEX_DECL(fd_lock);} FD_ZINDEX;
 typedef struct FD_ZINDEX *fd_zindex;
 
@@ -219,18 +219,18 @@ typedef struct FD_HASH_INDEX {
   /* flags controls hash functions, compression, etc.
      hxcustom is a placeholder for a value to customize
      the hash function. */
-  unsigned int fdb_xformat, fdx_custom, fd_n_keys;
+  unsigned int fdb_xformat, index_custom, fd_n_keys;
   fd_offset_type fdb_offtype;
 
   /* This is used to store compressed keys and values. */
-  int fdx_n_slotids, fdx_new_slotids; fdtype *fdx_slotids;
+  int index_n_slotids, index_new_slotids; fdtype *index_slotids;
   struct FD_SLOTID_LOOKUP *slotid_lookup;
-  int fdx_n_baseoids, fdx_new_baseoids;
-  unsigned int *fdx_baseoid_ids;
-  short *fdx_ids2baseoids;
+  int index_n_baseoids, index_new_baseoids;
+  unsigned int *index_baseoid_ids;
+  short *index_ids2baseoids;
 
   /* Pointers into keyblocks for the hashtable */
-  unsigned int *fdx_offdata; int fdx_n_buckets;
+  unsigned int *index_offdata; int index_n_buckets;
 
   /* The stream accessing the file.  This is only used
      for modification if the file is memmaped. */

@@ -111,7 +111,7 @@ static int gpool_lock(fd_pool p,fdtype oid)
   else if (FD_ABORTP(value))
     return fd_interr(value);
   else {
-    fd_hashtable_store(&(p->fd_cache),oid,value);
+    fd_hashtable_store(&(p->index_cache),oid,value);
     fd_decref(value);
     return 1;}
 }

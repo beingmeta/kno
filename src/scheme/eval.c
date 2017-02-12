@@ -333,7 +333,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       else if (constype==fd_raw_index_type) {
         struct FD_INDEX *ix=(struct FD_INDEX *)obj;
         int count=0;
-        if (ix->handler==&fd_extindex_handler) {
+        if (ix->index_handler==&fd_extindex_handler) {
           struct FD_EXTINDEX *xi=(struct FD_EXTINDEX *)obj;
           if (!(FD_VOIDP(xi->fetchfn)))
             count=count+count_envrefs(xi->fetchfn,env,depth);

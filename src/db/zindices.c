@@ -229,7 +229,7 @@ static fd_index open_zindex(u8_string fname,int read_only,int consed)
     u8_free(index);
     return NULL;}
   index->fd_n_slots=fd_dtsread_4bytes(s);
-  index->fd_offsets=NULL; index->fd_read_only=read_only;
+  index->fd_offsets=NULL; index->index_read_only=read_only;
   {
     fdtype metadata, slotids, baseoidsv; int i=0, probe; fd_off_t md_loc;
     fd_setpos(s,8+index->fd_n_slots*4); probe=fd_dtsread_4bytes(s);
@@ -251,7 +251,7 @@ static fd_index open_zindex(u8_string fname,int read_only,int consed)
     if (FD_VECTORP(baseoidsv)) {
       int n_baseoids=FD_VECTOR_LENGTH(baseoidsv);
       if (n_baseoids==0) {
-        index->fdx_baseoids=NULL; index->fdx_n_baseoids=0;}
+        index->index_baseoids=NULL; index->index_n_baseoids=0;}
       else {
         FD_OID *baseoids=u8_alloc_n(n_baseoids,FD_OID);
         int i=0; while (i < n_baseoids) {
@@ -262,9 +262,9 @@ static fd_index open_zindex(u8_string fname,int read_only,int consed)
             u8_free(index);
             return NULL;}
           i++;}
-        index->fdx_baseoids=baseoids;
-        index->fdx_n_baseoids=n_baseoids;}}
-    else {index->fdx_baseoids=NULL; index->fdx_n_baseoids=0;}
+        index->index_baseoids=baseoids;
+        index->index_n_baseoids=n_baseoids;}}
+    else {index->index_baseoids=NULL; index->index_n_baseoids=0;}
     fd_decref(baseoidsv);
     fd_decref(metadata);}
   fd_init_mutex(&(index->fd_lock));
@@ -297,7 +297,7 @@ static void zindex_setcache(fd_index ix,int level)
         mmap(NULL,(fx->fd_n_slots*SLOTSIZE)+8,
              PROT_READ,MMAP_FLAGS,s->fd_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-        u8_log(LOG_WARN,u8_strerror(errno),"zindex_setcache:mmap %s",fx->fd_source);
+        u8_log(LOG_WARN,u8_strerror(errno),"zindex_setcache:mmap %s",fx->index_source);
         fx->fd_offsets=NULL; errno=0;}
       else fx->fd_offsets=offsets=newmmap+2;
 #else
@@ -316,7 +316,7 @@ static void zindex_setcache(fd_index ix,int level)
 #if HAVE_MMAP
       retval=munmap(fx->fd_offsets-2,(fx->fd_n_slots*SLOTSIZE)+8);
       if (retval<0) {
-        u8_log(LOG_WARN,u8_strerror(errno),"zindex_setcache:munnmap %s",fx->fd_source);
+        u8_log(LOG_WARN,u8_strerror(errno),"zindex_setcache:munnmap %s",fx->index_source);
         fx->fd_offsets=NULL; errno=0;}
 #else
       u8_free(fx->fd_offsets);
@@ -335,7 +335,7 @@ FD_FASTOP unsigned int zindex_hash(struct FD_ZINDEX *fx,fdtype x)
   case 3:
     return fd_hash_dtype3(x);
   default:
-    u8_raise(_("Bad hash version"),"file_index_hash",fx->fd_cid);}
+    u8_raise(_("Bad hash version"),"file_index_hash",fx->index_cid);}
   /* Never reached */
   return -1;
 }
@@ -360,8 +360,8 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
       n_vals=fd_dtsread_zint(stream);
       val_start=fd_dtsread_zint(stream);
       if (FD_EXPECT_FALSE((n_vals==0) && (val_start)))
-        u8_log(LOG_WARN,fd_FileIndexError,"zindex_fetch %s",u8_strdup(ix->fd_cid));
-      thiskey=zread_key(stream,fx->slotids,fx->fdx_baseoids,fx->fdx_n_baseoids);
+        u8_log(LOG_WARN,fd_FileIndexError,"zindex_fetch %s",u8_strdup(ix->index_cid));
+      thiskey=zread_key(stream,fx->slotids,fx->index_baseoids,fx->index_n_baseoids);
       if (FD_ABORTP(thiskey)) return thiskey;
       else if (FDTYPE_EQUAL(key,thiskey))
         if (n_vals==0) {
@@ -378,9 +378,9 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
             n_values=fd_dtsread_zint(stream);
             if (FD_EXPECT_FALSE((i+n_values)>n_vals))
               u8_raise(_("inconsistent file index"),"zindex_fetch",
-                       u8_strdup(ix->fd_cid));
+                       u8_strdup(ix->index_cid));
             while (i<n_values) {
-              fdtype v=zread_value(stream,fx->fdx_baseoids,fx->fdx_n_baseoids);
+              fdtype v=zread_value(stream,fx->index_baseoids,fx->index_n_baseoids);
               if ((atomicp) && (FD_CONSP(v))) atomicp=0;
               values[i++]=v;}
             next_pos=fd_dtsread_zint(stream);}
@@ -393,7 +393,7 @@ static fdtype zindex_fetch(fd_index ix,fdtype key)
       else if (n_probes>256) {
         fd_unlock_mutex(&fx->fd_lock);
         return fd_err(fd_FileIndexOverflow,"zindex_fetch",
-                      fx->fd_source,FD_VOID);}
+                      fx->index_source,FD_VOID);}
       else {
         n_probes++;
         fd_decref(thiskey);
@@ -424,14 +424,14 @@ static int zindex_fetchsize(fd_index ix,fdtype key)
       fd_setpos(stream,keypos+(fx->fd_n_slots)*4);
       n_vals=fd_dtsread_4bytes(stream);
       /* val_start=*/ fd_dtsread_4bytes(stream);
-      thiskey=zread_key(stream,fx->slotids,fx->fdx_baseoids,fx->fdx_n_baseoids);
+      thiskey=zread_key(stream,fx->slotids,fx->index_baseoids,fx->index_n_baseoids);
       if (FDTYPE_EQUAL(key,thiskey)) {
         fd_unlock_struct(fx);
         return n_vals;}
       else if (n_probes>256) {
         fd_unlock_mutex(&fx->fd_lock);
         return fd_err(fd_FileIndexOverflow,"zindex_fetchsize",
-                      fx->fd_source,FD_VOID);}
+                      fx->index_source,FD_VOID);}
       else {n_probes++; probe=(probe+chain_width)%(fx->fd_n_slots);}}
     fd_unlock_mutex(&fx->fd_lock);
     return FD_EMPTY_CHOICE;}
@@ -466,7 +466,7 @@ static fdtype *zindex_fetchkeys(fd_index ix,int *n)
       fdtype key;
       fd_setpos(stream,pos_offset+offsets[i]);
       fd_dtsread_zint(&(fx->fd_stream)); fd_dtsread_zint(&(fx->fd_stream));
-      key=zread_key(&(fx->fd_stream),fx->slotids,fx->fdx_baseoids,fx->fdx_n_baseoids);
+      key=zread_key(&(fx->fd_stream),fx->slotids,fx->index_baseoids,fx->index_n_baseoids);
       result[j++]=key;
       i++;}
     else i++;
@@ -506,7 +506,7 @@ static struct FD_KEY_SIZE *zindex_fetchsizes(fd_index ix,int *n)
     fd_setpos(stream,pos_offset+offsets[i]);
     size=fd_dtsread_zint(&(fx->fd_stream));
     /* vpos=*/ fd_dtsread_zint(&(fx->fd_stream));
-    key=zread_key(&(fx->fd_stream),fx->slotids,fx->fdx_baseoids,fx->fdx_n_baseoids);
+    key=zread_key(&(fx->fd_stream),fx->slotids,fx->index_baseoids,fx->index_n_baseoids);
     sizes[i].fdks_key=key; sizes[i].fdks_nvals=size;
     i++;}
   *n=n_keys;
@@ -589,7 +589,7 @@ static int run_schedule(struct FD_ZINDEX *fx,int n,
       fd_setpos(&(fx->fd_stream),schedule[i].fs.filepos+pos_offset);
       n_values=fd_dtsread_zint(&(fx->fd_stream));
       vpos=(fd_off_t)fd_dtsread_zint(&(fx->fd_stream));
-      key=zread_key(&(fx->fd_stream),fx->slotids,fx->fdx_baseoids,fx->fdx_n_baseoids);
+      key=zread_key(&(fx->fd_stream),fx->slotids,fx->index_baseoids,fx->index_n_baseoids);
       if (FD_ABORTP(key)) return fd_interr(key);
       else if (FDTYPE_EQUAL(key,schedule[i].fs.key)) {
         /* If you found the key, morph the entry into a value
@@ -641,7 +641,7 @@ static int run_schedule(struct FD_ZINDEX *fx,int n,
       while (next==1) {
         int i=0, n_values=fd_dtsread_zint(&(fx->fd_stream));
         while (i < n_values) {
-          fdtype val=zread_value(&(fx->fd_stream),fx->fdx_baseoids,fx->fdx_n_baseoids);
+          fdtype val=zread_value(&(fx->fd_stream),fx->index_baseoids,fx->index_n_baseoids);
           if (FD_ABORTP(val)) return fd_interr(val);
           FD_ADD_TO_CHOICE(values[index],val); i++;}
         next=fd_dtsread_zint(&(fx->fd_stream));}
@@ -657,7 +657,7 @@ static fdtype *fetchn(struct FD_ZINDEX *fx,int n,fdtype *keys,int lock_adds)
   union SCHEDULE *schedule=u8_alloc_n(n,union SCHEDULE);
   fdtype *values=u8_alloc_n(n,fdtype);
   int i=0, schedule_size=0, init_schedule_size; while (i < n) {
-    fdtype key=keys[i], cached=fd_hashtable_get(&(fx->fd_cache),key,FD_VOID);
+    fdtype key=keys[i], cached=fd_hashtable_get(&(fx->index_cache),key,FD_VOID);
     if (FD_VOIDP(cached)) {
       struct KEY_FETCH_SCHEDULE *ksched=
         (struct KEY_FETCH_SCHEDULE *)&(schedule[schedule_size]);
@@ -673,11 +673,11 @@ static fdtype *fetchn(struct FD_ZINDEX *fx,int n,fdtype *keys,int lock_adds)
       ksched->chain_width=hashcode%(fx->fd_n_slots-2)+1;
       if (ksched->filepos)
         if (lock_adds)
-          values[i]=fd_hashtable_get(&(fx->fdx_adds),key,FD_VOID);
-        else values[i]=fd_hashtable_get_nolock(&(fx->fdx_adds),key,FD_VOID);
+          values[i]=fd_hashtable_get(&(fx->index_adds),key,FD_VOID);
+        else values[i]=fd_hashtable_get_nolock(&(fx->index_adds),key,FD_VOID);
       else if (lock_adds)
-        values[i]=fd_hashtable_get(&(fx->fdx_adds),key,FD_EMPTY_CHOICE);
-      else values[i]=fd_hashtable_get_nolock(&(fx->fdx_adds),key,FD_EMPTY_CHOICE);
+        values[i]=fd_hashtable_get(&(fx->index_adds),key,FD_EMPTY_CHOICE);
+      else values[i]=fd_hashtable_get_nolock(&(fx->index_adds),key,FD_EMPTY_CHOICE);
       i++; schedule_size++;}
     else  values[i++]=cached;}
   init_schedule_size=schedule_size;
@@ -701,7 +701,7 @@ static fdtype *fetchn(struct FD_ZINDEX *fx,int n,fdtype *keys,int lock_adds)
         struct FD_ACHOICE *ac=(struct FD_ACHOICE *)v;
         ac->fd_uselock=1;}}}
   u8_free(schedule);
-  /* Note that we should now look at fx->fdx_edits and integrate any changes,
+  /* Note that we should now look at fx->index_edits and integrate any changes,
      but we're not doing that now. */
   return values;
 }
@@ -888,7 +888,7 @@ static int fetch_keydata(struct FD_ZINDEX *fx,struct KEYDATA *kdata,int n)
         unsigned int n_vals, vpos; fdtype key;
         n_vals=fd_dtsread_4bytes(stream);
         vpos=fd_dtsread_4bytes(stream);
-        key=zread_key(stream,fx->slotids,fx->fdx_baseoids,fx->fdx_n_baseoids);
+        key=zread_key(stream,fx->slotids,fx->index_baseoids,fx->index_n_baseoids);
         if (FDTYPE_EQUAL(key,kdata[i].key)) {
           kdata[i].pos=vpos; kdata[i].chain_width=-1;
           if (kdata[i].n_values<0) kdata[i].n_values=n_vals;}
@@ -921,7 +921,7 @@ static int fetch_keydata(struct FD_ZINDEX *fx,struct KEYDATA *kdata,int n)
     if (max==i)
       if (chain_length>256) {
         if (offsets == NULL) u8_free(reserved.slotnos);
-        return fd_reterr(fd_FileIndexOverflow,"fetch_keydata",u8_strdup(fx->fd_cid),FD_VOID);}
+        return fd_reterr(fd_FileIndexOverflow,"fetch_keydata",u8_strdup(fx->index_cid),FD_VOID);}
       else chain_length++;
     else chain_length=0;
     max=i;}
@@ -947,9 +947,9 @@ static int commit_edits(struct FD_ZINDEX *f,struct KEYDATA *kdata)
   int i=0, n_edits=0, n_drops=0; fd_off_t filepos;
   fdtype *dropkeys, *dropvals;
   struct FD_HASH_BUCKET **scan, **limit;
-  if (f->fdx_edits.fd_n_keys==0) return 0;
-  dropkeys=u8_alloc_n(f->fdx_edits.fd_n_keys,fdtype);
-  scan=f->fdx_edits.fd_buckets; limit=scan+f->fdx_edits.fd_n_buckets;
+  if (f->index_edits.fd_n_keys==0) return 0;
+  dropkeys=u8_alloc_n(f->index_edits.fd_n_keys,fdtype);
+  scan=f->index_edits.fd_buckets; limit=scan+f->index_edits.fd_n_buckets;
   while (scan < limit)
     if (*scan) {
       /* Now we go through the edits table, finding all the drops.
@@ -962,7 +962,7 @@ static int commit_edits(struct FD_ZINDEX *f,struct KEYDATA *kdata)
         if ((FD_PAIRP(key)) &&
             (FD_EQ(FD_CAR(key),drop_symbol)) &&
             (!(FD_VOIDP(kvscan->fd_keyval)))) {
-          fdtype cached=fd_hashtable_get(&(f->fd_cache),FD_CDR(key),FD_VOID);
+          fdtype cached=fd_hashtable_get(&(f->index_cache),FD_CDR(key),FD_VOID);
           if (!(FD_VOIDP(cached))) {
             /* If the value of the key is cached, it will be up to date with
                these drops, so we just convert the key to a "set" key
@@ -980,7 +980,7 @@ static int commit_edits(struct FD_ZINDEX *f,struct KEYDATA *kdata)
   if (n_drops) dropvals=fetchn(f,n_drops,dropkeys,0);
   else dropvals=NULL;
   filepos=fd_endpos(stream);
-  scan=f->fdx_edits.fd_buckets; limit=scan+f->fdx_edits.fd_n_buckets;
+  scan=f->index_edits.fd_buckets; limit=scan+f->index_edits.fd_n_buckets;
   while (scan < limit)
     if (*scan) {
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -993,14 +993,14 @@ static int commit_edits(struct FD_ZINDEX *f,struct KEYDATA *kdata)
           if (FD_EQ(FD_CAR(key),set_symbol)) {
             /* If it's a set edit, just write out the whole thing */
             filepos=filepos+zwrite_values(stream,kvscan->fd_keyval,
-                                          f->fdx_baseoids,f->fdx_n_baseoids,
+                                          f->index_baseoids,f->index_n_baseoids,
                                           0,&(kdata[n_edits].n_values));}
           else if (FD_EQ(FD_CAR(key),drop_symbol)) {
             /* If it's a drop edit, you got the value, so compute
                the difference and write that out.*/
             fdtype new_value=fd_difference(dropvals[i],kvscan->fd_keyval);
             filepos=filepos+zwrite_values(stream,new_value,
-                                          f->fdx_baseoids,f->fdx_n_baseoids,
+                                          f->index_baseoids,f->index_n_baseoids,
                                           0,&(kdata[n_edits].n_values));
             fd_decref(new_value);}
           n_edits++; kvscan++;}
@@ -1016,7 +1016,7 @@ static int commit_edits(struct FD_ZINDEX *f,struct KEYDATA *kdata)
 static void write_keys(struct FD_ZINDEX *fx,int n,struct KEYDATA *kdata)
 {
   unsigned int *offsets=fx->fd_offsets, pos_offset=fx->fd_n_slots*4;
-  FD_OID *baseoids=fx->fdx_baseoids; int n_baseoids=fx->fdx_n_baseoids;
+  FD_OID *baseoids=fx->index_baseoids; int n_baseoids=fx->index_n_baseoids;
   fdtype slotids=fx->slotids;
   struct FD_DTYPE_STREAM *stream=&(fx->fd_stream);
   fd_off_t pos=fd_endpos(stream);
@@ -1056,8 +1056,8 @@ static int zindex_commit(struct FD_INDEX *ix)
   struct FD_ZINDEX *fx=(struct FD_ZINDEX *)ix;
   struct FD_DTYPE_STREAM *stream=&(fx->fd_stream);
   int pos_offset=fx->fd_n_slots*4, newcount;
-  fd_write_lock_struct(&(ix->fdx_adds));
-  fd_write_lock_struct(&(ix->fdx_edits));
+  fd_write_lock_struct(&(ix->index_adds));
+  fd_write_lock_struct(&(ix->index_edits));
   fd_lock_struct(fx);
   fd_dts_start_write(stream);
 #if HAVE_MMAP
@@ -1065,25 +1065,25 @@ static int zindex_commit(struct FD_INDEX *ix)
     int retval=munmap(fx->fd_offsets-2,(SLOTSIZE*fx->fd_n_slots)+8);
     unsigned int *newmmap;
     if (retval<0) {
-      u8_log(LOG_WARN,u8_strerror(errno),"zindex_commit:munnmap %s",fx->fd_source);
+      u8_log(LOG_WARN,u8_strerror(errno),"zindex_commit:munnmap %s",fx->index_source);
       fx->fd_offsets=NULL; errno=0;}
     newmmap=
       mmap(NULL,(fx->fd_n_slots*SLOTSIZE)+8,
            PROT_READ|PROT_WRITE,MMAP_FLAGS,
            stream->fd_fileno,0);
     if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-      u8_log(LOG_WARN,u8_strerror(errno),"zindex_commit:mmap %s",fx->fd_source);
+      u8_log(LOG_WARN,u8_strerror(errno),"zindex_commit:mmap %s",fx->index_source);
       fx->fd_offsets=NULL; errno=0;}
     else fx->fd_offsets=newmmap+2;}
 #endif
   {
     fd_off_t filepos;
-    int n_adds=ix->fdx_adds.fd_n_keys, n_edits=ix->fdx_edits.fd_n_keys;
+    int n_adds=ix->index_adds.fd_n_keys, n_edits=ix->index_edits.fd_n_keys;
     int i=0, n=0, n_changes=n_adds+n_edits, add_index;
     struct KEYDATA *kdata=u8_alloc_n(n_changes,struct KEYDATA);
     unsigned int *value_locs=
       ((n_edits) ? (u8_alloc_n(n_edits,unsigned int)) : (NULL));
-    struct FD_HASH_BUCKET **scan=ix->fdx_adds.fd_buckets, **limit=scan+ix->fdx_adds.fd_n_buckets;
+    struct FD_HASH_BUCKET **scan=ix->index_adds.fd_buckets, **limit=scan+ix->index_adds.fd_n_buckets;
     while (scan < limit)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -1112,8 +1112,8 @@ static int zindex_commit(struct FD_INDEX *ix)
     if (newcount<0) {
       u8_free(kdata);
       if (value_locs) u8_free(value_locs);
-      fd_rw_unlock_struct(&(ix->fdx_adds));
-      fd_rw_unlock_struct(&(ix->fdx_edits));
+      fd_rw_unlock_struct(&(ix->index_adds));
+      fd_rw_unlock_struct(&(ix->index_edits));
       fd_unlock_struct(fx);
       return newcount;}
     filepos=fd_endpos(stream);
@@ -1125,7 +1125,7 @@ static int zindex_commit(struct FD_INDEX *ix)
       else kdata[i].pos=((fd_off_t)0);
       i++;}
     /* Now, scan the adds again and write the added values. */
-    scan=ix->fdx_adds.fd_buckets; limit=scan+ix->fdx_adds.fd_n_buckets;
+    scan=ix->index_adds.fd_buckets; limit=scan+ix->index_adds.fd_n_buckets;
     i=0; while (scan < limit)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -1133,7 +1133,7 @@ static int zindex_commit(struct FD_INDEX *ix)
         while (kvscan<kvlimit) {
           fd_off_t writepos=filepos; int new_values;
           filepos=filepos+zwrite_values(&(fx->fd_stream),kvscan->fd_keyval,
-                                        fx->fdx_baseoids,fx->fdx_n_baseoids,
+                                        fx->index_baseoids,fx->index_n_baseoids,
                                         kdata[i].pos,&new_values);
           kdata[i].pos=writepos-pos_offset;
           kdata[i].n_values=kdata[i].n_values+new_values;
@@ -1146,13 +1146,13 @@ static int zindex_commit(struct FD_INDEX *ix)
       int retval=munmap(fx->fd_offsets-2,(SLOTSIZE*fx->fd_n_slots)+8);
       unsigned int *newmmap;
       if (retval<0) {
-        u8_log(LOG_WARN,u8_strerror(errno),"zindex_commit:munmap %s",fx->fd_source);
+        u8_log(LOG_WARN,u8_strerror(errno),"zindex_commit:munmap %s",fx->index_source);
         fx->fd_offsets=NULL; errno=0;}
       newmmap=
         mmap(NULL,(fx->fd_n_slots*SLOTSIZE)+8,
              PROT_READ,MMAP_FLAGS,stream->fd_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-        u8_log(LOG_WARN,u8_strerror(errno),"zindex_commit:mmap %s",fx->fd_source);
+        u8_log(LOG_WARN,u8_strerror(errno),"zindex_commit:mmap %s",fx->index_source);
         fx->fd_offsets=NULL; errno=0;}
       else fx->fd_offsets=newmmap+2;}
     else write_offsets(fx,n,kdata);
@@ -1162,10 +1162,10 @@ static int zindex_commit(struct FD_INDEX *ix)
     fd_dtsflush(stream);
     fsync(stream->fd_fileno);
     fd_unlock_struct(fx);
-    fd_reset_hashtable(&(ix->fdx_adds),67,0);
-    fd_rw_unlock_struct(&(ix->fdx_adds));
-    fd_reset_hashtable(&(ix->fdx_edits),67,0);
-    fd_rw_unlock_struct(&(ix->fdx_edits));
+    fd_reset_hashtable(&(ix->index_adds),67,0);
+    fd_rw_unlock_struct(&(ix->index_adds));
+    fd_reset_hashtable(&(ix->index_edits),67,0);
+    fd_rw_unlock_struct(&(ix->index_edits));
     return n;}
 }
 
@@ -1178,13 +1178,13 @@ static void zindex_close(fd_index ix)
 #if HAVE_MMAP
     int retval=munmap(fx->fd_offsets-2,(SLOTSIZE*fx->fd_n_slots)+8);
     if (retval<0) {
-      u8_log(LOG_WARN,u8_strerror(errno),"zindex_close:munnmap %s",fx->fd_source);
+      u8_log(LOG_WARN,u8_strerror(errno),"zindex_close:munnmap %s",fx->index_source);
       errno=0;}
 #else
     u8_free(fx->fd_offsets);
 #endif
     fx->fd_offsets=NULL;
-    fx->fd_cache_level=-1;}
+    fx->index_cache_level=-1;}
   fd_unlock_struct(fx);
 }
 

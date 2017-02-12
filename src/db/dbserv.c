@@ -790,7 +790,7 @@ static int serve_index(fdtype var,fdtype val,void *data)
       return 0;}
   else {}
   if (ix) {
-    u8_log(LOG_NOTICE,"SERVE_INDEX","Serving index %s",ix->fd_cid);
+    u8_log(LOG_NOTICE,"SERVE_INDEX","Serving index %s",ix->index_cid);
     fd_add_to_compound_index(primary_index,ix);
     return 1;}
   else return fd_reterr(fd_BadIndexSpec,"serve_index",NULL,val);

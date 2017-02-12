@@ -29,15 +29,15 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
   while (i < lim) {
     fd_index eix=cix->indices[i++];
     fdtype value;
-    if (eix->fd_cache_level<0) {
-      eix->fd_cache_level=fd_default_cache_level;
-      if (eix->handler->setcache)
-        eix->handler->setcache(eix,fd_default_cache_level);}
-    if (fd_hashtable_probe(&(eix->fd_cache),key))
-      value=fd_hashtable_get(&(eix->fd_cache),key,FD_EMPTY_CHOICE);
-    else if ((eix->fdx_adds.fd_n_keys) || (eix->fdx_edits.fd_n_keys))
+    if (eix->index_cache_level<0) {
+      eix->index_cache_level=fd_default_cache_level;
+      if (eix->index_handler->setcache)
+        eix->index_handler->setcache(eix,fd_default_cache_level);}
+    if (fd_hashtable_probe(&(eix->index_cache),key))
+      value=fd_hashtable_get(&(eix->index_cache),key,FD_EMPTY_CHOICE);
+    else if ((eix->index_adds.fd_n_keys) || (eix->index_edits.fd_n_keys))
       value=fd_index_get(eix,key);
-    else value=eix->handler->fetch(eix,key);
+    else value=eix->index_handler->fetch(eix,key);
     if (FD_ABORTP(value)) {
       fd_decref(combined); fd_unlock_struct(cix);
       return value;}
@@ -53,7 +53,7 @@ static int compound_prefetch(fd_index ix,fdtype keys)
   fdtype *keyv=u8_alloc_n(n,fdtype);
   fdtype *valuev=u8_alloc_n(n,fdtype);
   FD_DO_CHOICES(key,keys)
-    if (!(fd_hashtable_probe(&(cix->fd_cache),key))) {
+    if (!(fd_hashtable_probe(&(cix->index_cache),key))) {
       keyv[n_fetches]=key; valuev[n_fetches]=FD_EMPTY_CHOICE; n_fetches++;}
   if (n_fetches==0) {
     u8_free(keyv); u8_free(valuev);
@@ -63,7 +63,7 @@ static int compound_prefetch(fd_index ix,fdtype keys)
   while (i < lim) {
     int j=0; fd_index eix=cix->indices[i];
     fdtype *values=
-      eix->handler->fetchn(eix,n_fetches,keyv);
+      eix->index_handler->fetchn(eix,n_fetches,keyv);
     if (values==NULL) {
       u8_free(keyv); u8_free(valuev);
       fd_unlock_struct(cix);
@@ -79,7 +79,7 @@ static int compound_prefetch(fd_index ix,fdtype keys)
     else i++;
   /* The operation fd_table_add_empty_noref will create an entry even if the value
      is the empty choice. */
-  fd_hashtable_iter(&(cix->fd_cache),fd_table_add_empty_noref,n_fetches,keyv,valuev);
+  fd_hashtable_iter(&(cix->index_cache),fd_table_add_empty_noref,n_fetches,keyv,valuev);
   u8_free(keyv); u8_free(valuev);
   return n_fetches;
 }
@@ -94,13 +94,13 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
   fdtype *scan=keys, *limit=keys+n;
   while (scan<limit) {
     int off=scan-keys; fdtype key=*scan++;
-    if (!(fd_hashtable_probe(&(cix->fd_cache),key))) {
+    if (!(fd_hashtable_probe(&(cix->index_cache),key))) {
       keyv[n_fetches]=key;
       valuev[n_fetches]=FD_EMPTY_CHOICE;
       posmap[n_fetches]=off;
       n_fetches++;}
     else valuev[scan-keys]=
-           fd_hashtable_get(&(cix->fd_cache),key,FD_EMPTY_CHOICE);}
+           fd_hashtable_get(&(cix->index_cache),key,FD_EMPTY_CHOICE);}
   if (n_fetches==0) {
     u8_free(keyv); u8_free(posmap);
     return valuev;}
@@ -109,7 +109,7 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
   while (i < lim) {
     int j=0; fd_index eix=cix->indices[i];
     fdtype *values=
-      eix->handler->fetchn(eix,n_fetches,keyv);
+      eix->index_handler->fetchn(eix,n_fetches,keyv);
     if (values==NULL) {
       u8_free(keyv); u8_free(posmap); u8_free(valuev);
       fd_unlock_struct(cix);
@@ -173,7 +173,7 @@ static u8_string get_compound_id(int n,fd_index *indices)
     U8_INIT_OUTPUT(&out,80);
     while (i < n) {
       if (i) u8_puts(&out,"|"); else u8_puts(&out,"{");
-      u8_puts(&out,indices[i]->fd_cid); i++;}
+      u8_puts(&out,indices[i]->index_cid); i++;}
     u8_puts(&out,"}");
     return out.u8_outbuf;}
   else return u8_strdup("compound");
@@ -192,7 +192,7 @@ FD_EXPORT fd_index fd_make_compound_index(int n_indices,fd_index *indices)
 
 FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
 {
-  if (cix->handler == &compoundindex_handler) {
+  if (cix->index_handler == &compoundindex_handler) {
     int i=0, n=cix->n_indices;
     while (i < n)
       if (cix->indices[i] == add) {
@@ -202,16 +202,16 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
       cix->indices=u8_realloc_n(cix->indices,cix->n_indices+1,fd_index);
     else cix->indices=u8_alloc_n(1,fd_index);
     cix->indices[cix->n_indices++]=add;
-    if (add->fdx_serialno<0) {
+    if (add->index_serialno<0) {
       fdtype alix=(fdtype)add; fd_incref(alix);}
-    if ((cix->fd_cid) || (cix->fd_source)) {
-      if ((cix->fd_cid)==(cix->fd_source)) {
-        u8_free(cix->fd_cid); cix->fd_cid=cix->fd_source=NULL;}
+    if ((cix->index_cid) || (cix->index_source)) {
+      if ((cix->index_cid)==(cix->index_source)) {
+        u8_free(cix->index_cid); cix->index_cid=cix->index_source=NULL;}
       else {
-        if (cix->fd_cid) {u8_free(cix->fd_cid); cix->fd_cid=NULL;}
-        if (cix->fd_source) {u8_free(cix->fd_source); cix->fd_source=NULL;}}}
-    cix->fd_cid=cix->fd_source=get_compound_id(cix->n_indices,cix->indices);
-    fd_reset_hashtable(&(cix->fd_cache),-1,1);
+        if (cix->index_cid) {u8_free(cix->index_cid); cix->index_cid=NULL;}
+        if (cix->index_source) {u8_free(cix->index_source); cix->index_source=NULL;}}}
+    cix->index_cid=cix->index_source=get_compound_id(cix->n_indices,cix->indices);
+    fd_reset_hashtable(&(cix->index_cache),-1,1);
     return 1;}
   else return fd_reterr(fd_TypeError,("compound_index"),NULL,FD_VOID);
 }

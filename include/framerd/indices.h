@@ -36,12 +36,13 @@ FD_EXPORT int fd_index_adds_init;
 #define FD_N_PRIMARY_INDICES 128
 
 #define FD_INDEX_FIELDS \
-  FD_CONS_HEADER;                                \
-  int fdx_serialno, fd_read_only, fd_cache_level, fdb_flags;   \
-  u8_string fd_source, fd_cid, fd_xid;                    \
-  struct FD_INDEX_HANDLER *handler;              \
-  struct FD_HASHTABLE fd_cache, fdx_adds, fdx_edits;        \
-  fdtype fdx_has_slotids
+  FD_CONS_HEADER;						   \
+  int index_serialno, index_read_only;				   \
+  int index_cache_level, index_flags;				   \
+  u8_string index_source, index_cid, index_xid;                    \
+  struct FD_INDEX_HANDLER *index_handler;              \
+  struct FD_HASHTABLE index_cache, index_adds, index_edits;        \
+  fdtype index_has_slotids
 
 typedef struct FD_INDEX {FD_INDEX_FIELDS;} FD_INDEX;
 typedef struct FD_INDEX *fd_index;
@@ -195,11 +196,11 @@ FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
     cached=fd_hashtable_get(&(fdtc->indices),(fdtype)&tempkey,FD_VOID);
     if (!(FD_VOIDP(cached))) return cached;}
 #endif
-  if (ix->fd_cache_level==0) cached=FD_VOID;
-  else if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->fdx_has_slotids))) &&
-      (!(atomic_choice_containsp(FD_CAR(key),ix->fdx_has_slotids))))
+  if (ix->index_cache_level==0) cached=FD_VOID;
+  else if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->index_has_slotids))) &&
+      (!(atomic_choice_containsp(FD_CAR(key),ix->index_has_slotids))))
     return FD_EMPTY_CHOICE;
-  else cached=fd_hashtable_get(&(ix->fd_cache),key,FD_VOID);
+  else cached=fd_hashtable_get(&(ix->index_cache),key,FD_VOID);
   if (FD_VOIDP(cached)) cached=fd_index_fetch(ix,key);
 #if FD_USE_THREADCACHE
   if (fdtc) {
@@ -211,9 +212,9 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
 {
   int rv=-1;
   FDTC *fdtc=(FD_WRITETHROUGH_THREADCACHE)?(fd_threadcache):(NULL);
-  fd_hashtable adds=&(ix->fdx_adds);
-  fd_hashtable cache=&(ix->fd_cache);
-  if (ix->fd_read_only)
+  fd_hashtable adds=&(ix->index_adds);
+  fd_hashtable cache=&(ix->index_cache);
+  if (ix->index_read_only)
     /* This will signal an error */
     return _fd_index_add(ix,key,value);
   else if (FD_CHOICEP(key)) {
@@ -221,7 +222,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
     unsigned int n=FD_CHOICE_SIZE(key);
     rv=fd_hashtable_iterkeys(adds,fd_table_add,n,keys,value);
     if (rv<0) return rv;
-    else if (ix->fd_cache_level>0)
+    else if (ix->index_cache_level>0)
       rv=fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keys,value);}
   else if (FD_ACHOICEP(key)) {
     fdtype normchoice=fd_make_simple_choice(key);
@@ -229,7 +230,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
     unsigned int n=FD_CHOICE_SIZE(key);
     rv=fd_hashtable_iterkeys(adds,fd_table_add,n,keys,value);
     if (rv<0) return rv;
-    else if (ix->fd_cache_level>0)
+    else if (ix->index_cache_level>0)
       rv=fd_hashtable_iterkeys(cache,fd_table_add_if_present,n,keys,value);
     fd_decref(normchoice);}
   else {
@@ -245,9 +246,9 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
       if (fd_hashtable_probe(&fdtc->indices,(fdtype)&tempkey)) {
 	fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}}
 
-  if ((ix->fdb_flags&FD_INDEX_IN_BACKGROUND) && 
-      (fd_background->fd_cache.fd_n_keys)) {
-    fd_hashtable bgcache=(&(fd_background->fd_cache));
+  if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) && 
+      (fd_background->index_cache.fd_n_keys)) {
+    fd_hashtable bgcache=(&(fd_background->index_cache));
     if (FD_CHOICEP(key)) {
       const fdtype *keys=FD_CHOICE_DATA(key);
       unsigned int n=FD_CHOICE_SIZE(key);
@@ -257,13 +258,13 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
 
   if (rv<0) return rv;
 
-  if ((!(FD_VOIDP(ix->fdx_has_slotids))) &&
+  if ((!(FD_VOIDP(ix->index_has_slotids))) &&
       (FD_EXPECT_TRUE(FD_PAIRP(key))) &&
       (FD_EXPECT_TRUE((FD_OIDP(FD_CAR(key))) ||
 		      (FD_SYMBOLP(FD_CAR(key)))))) {
-    if (!(atomic_choice_containsp(FD_CAR(key),ix->fdx_has_slotids))) {
-      fd_decref(ix->fdx_has_slotids);
-      ix->fdx_has_slotids=FD_VOID;}}
+    if (!(atomic_choice_containsp(FD_CAR(key),ix->index_has_slotids))) {
+      fd_decref(ix->index_has_slotids);
+      ix->index_has_slotids=FD_VOID;}}
 
   return rv;
 }

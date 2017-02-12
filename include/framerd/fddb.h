@@ -39,7 +39,7 @@ FD_EXPORT u8_mutex fd_swapcheck_lock;
 #endif
 
 /* 
-   FramerD database objects have a 32-bit wide fdb_flags field.  The
+   FramerD database objects have a 32-bit wide index_flags field.  The
    first 12 bits are reserved for generic flags (any database), the
    next 8 bits are for flags applicable to any pool or index and the
    remaining 12 bits are for flags for particular implementations.
