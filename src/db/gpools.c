@@ -50,11 +50,11 @@ fd_pool fd_make_gpool(FD_OID base,int cap,u8_string id,
     return fd_type_error("fd_make_gpool","pool load (fixnum)",loadval);
   else load=FD_FIX2INT(loadval);
   fd_init_pool((fd_pool)gp,base,cap,&gpool_handler,id,id);
-  gp->fdp_load=load;
+  gp->pool_load=load;
   fd_incref(fetchfn); fd_incref(loadfn);
   fd_incref(allocfn); fd_incref(savefn);
   fd_incref(lockfn); fd_incref(state);
-  gp->fetchfn=fetchfn; gp->fdp_loadfn=loadfn;
+  gp->fetchfn=fetchfn; gp->pool_loadfn=loadfn;
   gp->allocfn=allocfn;  gp->savefn=savefn;
   gp->lockfn=lockfn; gp->state=state;
   return gp;
@@ -64,7 +64,7 @@ static int gpool_load(fd_pool p)
 {
   struct FD_GPOOL *np=(struct FD_GPOOL *)p;
   fdtype value;
-  value=fd_dtcall(np->fd_connpool,2,get_load_symbol,fd_make_oid(p->fdp_base));
+  value=fd_dtcall(np->fd_connpool,2,get_load_symbol,fd_make_oid(p->pool_base));
   if (FD_FIXNUMP(value)) return FD_FIX2INT(value);
   else if (FD_ABORTP(value))
     return fd_interr(value);
@@ -98,7 +98,7 @@ static fdtype *gpool_fetchn(fd_pool p,int n,fdtype *oids)
     return results;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-              u8_strdup(np->fd_cid),fd_incref(value));
+              u8_strdup(np->pool_cid),fd_incref(value));
     return NULL;}
 }
 

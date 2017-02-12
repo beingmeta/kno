@@ -56,7 +56,7 @@ typedef struct FD_POOL_OPENER *fd_pool_opener;
 typedef struct FD_FILE_POOL {
   FD_POOL_FIELDS;
   time_t fd_modtime;
-  unsigned int fdp_load, *fd_offsets, fd_offsets_size;
+  unsigned int pool_load, *fd_offsets, fd_offsets_size;
   struct FD_DTYPE_STREAM fd_stream;
   U8_MUTEX_DECL(fd_lock);} FD_FILE_POOL;
 typedef struct FD_FILE_POOL *fd_file_pool;
@@ -72,11 +72,11 @@ typedef struct FD_SCHEMA_TABLE *fd_schema_table;
 typedef struct FD_ZPOOL {
   FD_POOL_FIELDS;
   time_t fd_modtime;
-  unsigned int fdp_load, *fd_offsets, fd_offsets_size;
+  unsigned int pool_load, *fd_offsets, fd_offsets_size;
   struct FD_DTYPE_STREAM fd_stream;
-  int fdp_n_schemas;
-  struct FD_SCHEMA_TABLE *fdp_schemas, *fdp_fdp_schemas_byptr;
-  struct FD_SCHEMA_TABLE *fdp_schemas_byval;
+  int pool_n_schemas;
+  struct FD_SCHEMA_TABLE *pool_schemas, *pool_pool_schemas_byptr;
+  struct FD_SCHEMA_TABLE *pool_schemas_byval;
   U8_MUTEX_DECL(fd_lock);} FD_ZPOOL;
 typedef struct FD_ZPOOL *fd_zpool;
 
@@ -107,10 +107,10 @@ typedef struct FD_OIDPOOL {
   fd_offset_type fdb_offtype;
   fd_compression_type fd_compression;
   time_t fd_modtime;
-  int fdp_n_schemas, fdp_max_slotids;
-  struct FD_SCHEMA_ENTRY *fdp_schemas;
-  struct FD_SCHEMA_LOOKUP *fdp_schbyval;
-  unsigned int fdp_load, *fd_offsets, fd_offsets_size;
+  int pool_n_schemas, pool_max_slotids;
+  struct FD_SCHEMA_ENTRY *pool_schemas;
+  struct FD_SCHEMA_LOOKUP *pool_schbyval;
+  unsigned int pool_load, *fd_offsets, fd_offsets_size;
   struct FD_DTYPE_STREAM fd_stream;
   size_t fd_mmap_size; unsigned char *fd_mmap;
   U8_MUTEX_DECL(fd_lock);} FD_OIDPOOL;

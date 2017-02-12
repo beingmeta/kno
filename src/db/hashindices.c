@@ -437,7 +437,7 @@ static int init_slotids(fd_hash_index hx,int n_slotids,fdtype *slotids_init)
 static int sort_by_baseoid(const void *p1,const void *p2)
 {
   const fd_baseoid_lookup l1=(fd_baseoid_lookup)p1, l2=(fd_baseoid_lookup)p2;
-  return (FD_OID_COMPARE((l1->fdp_baseoid),(l2->fdp_baseoid)));
+  return (FD_OID_COMPARE((l1->pool_baseoid),(l2->pool_baseoid)));
 }
 #endif
 
@@ -2284,6 +2284,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
           u8_free(bucket_locs);
           u8_free(schedule);
           u8_free(keybuckets);
+          fd_unlock_struct(hx);
+          fd_unlock_struct(stream);
           return -1;}
         CHECK_POS(endpos,&(hx->fd_stream));
         bucket_locs[bscan].ref.off=startpos;

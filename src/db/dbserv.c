@@ -557,15 +557,15 @@ static fdtype server_fetch_oids(fdtype oidvec)
   else if ((p=(fd_oid2pool(elts[0]))))
     if (served_poolp(p)) {
       fdtype *results=u8_alloc_n(n,fdtype);
-      if (p->handler->fetchn) {
+      if (p->pool_handler->fetchn) {
         fdtype *fetch=u8_alloc_n(n,fdtype);
-        fd_hashtable cache=&(p->fd_cache), locks=&(p->fdp_locks);
+        fd_hashtable cache=&(p->pool_cache), locks=&(p->pool_changes);
         int i=0; while (i<n)
                    if ((fd_hashtable_probe_novoid(cache,elts[i])==0) &&
                        (fd_hashtable_probe_novoid(locks,elts[i])==0))
                      fetch[fetchn++]=elts[i++];
                    else i++;
-        p->handler->fetchn(p,fetchn,fetch);
+        p->pool_handler->fetchn(p,fetchn,fetch);
         i=0; while (i<n) {
           results[i]=fd_fetch_oid(p,elts[i]); i++;}
         return fd_init_vector(NULL,n,results);}
@@ -583,11 +583,12 @@ static fdtype server_pool_data(fdtype session_id)
   fdtype *elts=u8_alloc_n(len,fdtype);
   int i=0; while (i<len) {
     fd_pool p=served_pools[i];
-    fdtype base=fd_make_oid(p->fdp_base);
-    fdtype capacity=FD_INT(p->fdp_capacity);
-    fdtype ro=((p->fd_read_only) ? (FD_FALSE) : (FD_TRUE));
+    fdtype base=fd_make_oid(p->pool_base);
+    fdtype capacity=FD_INT(p->pool_capacity);
+    fdtype ro=((p->pool_read_only) ? (FD_FALSE) : (FD_TRUE));
     elts[i++]=
-      ((p->label) ? (fd_make_list(4,base,capacity,ro,fdtype_string(p->label))) :
+      ((p->pool_label) ?
+       (fd_make_list(4,base,capacity,ro,fdtype_string(p->pool_label))) :
        (fd_make_list(3,base,capacity,ro)));}
   return fd_init_vector(NULL,len,elts);
 }
@@ -735,7 +736,7 @@ static int serve_pool(fdtype var,fdtype val,void *data)
       fd_seterr(_("too many pools to serve"),"serve_pool",NULL,val);
       return -1;}
     else {
-      u8_log(LOG_INFO,"SERVE_POOL","Serving objects from %s",p->fd_cid);
+      u8_log(LOG_INFO,"SERVE_POOL","Serving objects from %s",p->pool_cid);
       served_pools[n_served_pools++]=p;
       return n_served_pools;}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);

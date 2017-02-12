@@ -357,7 +357,7 @@ static fdtype lockoid(fdtype o,fdtype soft)
 static fdtype oidlockedp(fdtype arg)
 {
   fd_pool p=fd_oid2pool(arg);
-  if (fd_hashtable_probe_novoid(&(p->fdp_locks),arg))
+  if (fd_hashtable_probe_novoid(&(p->pool_changes),arg))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -373,7 +373,7 @@ static fdtype lockoids(fdtype oids)
 static fdtype lockedoids(fdtype pool)
 {
   fd_pool p=fd_lisp2pool(pool);
-  return fd_hashtable_keys(&(p->fdp_locks));
+  return fd_hashtable_keys(&(p->pool_changes));
 }
 
 static fdtype unlockoids(fdtype oids,fdtype commitp)
@@ -486,7 +486,7 @@ static fdtype extpool_setcache(fdtype pool,fdtype oid,fdtype value)
 static fdtype extpool_fetchfn(fdtype pool)
 {
   fd_pool p=fd_lisp2pool(pool);
-  if (p->handler==&fd_extpool_handler) {
+  if (p->pool_handler==&fd_extpool_handler) {
     struct FD_EXTPOOL *ep=(struct FD_EXTPOOL *)p;
     return fd_incref(ep->fetchfn);}
   else return fd_type_error("extpool","extpool_fetchfn",pool);
@@ -495,7 +495,7 @@ static fdtype extpool_fetchfn(fdtype pool)
 static fdtype extpool_savefn(fdtype pool)
 {
   fd_pool p=fd_lisp2pool(pool);
-  if (p->handler==&fd_extpool_handler) {
+  if (p->pool_handler==&fd_extpool_handler) {
     struct FD_EXTPOOL *ep=(struct FD_EXTPOOL *)p;
     return fd_incref(ep->savefn);}
   else return fd_type_error("extpool","extpool_savefn",pool);
@@ -504,7 +504,7 @@ static fdtype extpool_savefn(fdtype pool)
 static fdtype extpool_lockfn(fdtype pool)
 {
   fd_pool p=fd_lisp2pool(pool);
-  if (p->handler==&fd_extpool_handler) {
+  if (p->pool_handler==&fd_extpool_handler) {
     struct FD_EXTPOOL *ep=(struct FD_EXTPOOL *)p;
     return fd_incref(ep->lockfn);}
   else return fd_type_error("extpool","extpool_lockfn",pool);
@@ -513,7 +513,7 @@ static fdtype extpool_lockfn(fdtype pool)
 static fdtype extpool_state(fdtype pool)
 {
   fd_pool p=fd_lisp2pool(pool);
-  if (p->handler==&fd_extpool_handler) {
+  if (p->pool_handler==&fd_extpool_handler) {
     struct FD_EXTPOOL *ep=(struct FD_EXTPOOL *)p;
     return fd_incref(ep->state);}
   else return fd_type_error("extpool","extpool_state",pool);
@@ -854,7 +854,7 @@ static fdtype pool_capacity(fdtype arg)
   fd_pool p=arg2pool(arg);
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_capacity",arg);
-  else return FD_INT(p->fdp_capacity);
+  else return FD_INT(p->pool_capacity);
 }
 
 static fdtype pool_base(fdtype arg)
@@ -862,7 +862,7 @@ static fdtype pool_base(fdtype arg)
   fd_pool p=arg2pool(arg);
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_base",arg);
-  else return fd_make_oid(p->fdp_base);
+  else return fd_make_oid(p->pool_base);
 }
 
 static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
@@ -873,7 +873,7 @@ static fdtype pool_elts(fdtype arg,fdtype start,fdtype count)
   else {
     int i=0, lim=fd_pool_load(p);
     fdtype result=FD_EMPTY_CHOICE;
-    FD_OID base=p->fdp_base;
+    FD_OID base=p->pool_base;
     if (lim<0) return FD_ERROR_VALUE;
     if (FD_VOIDP(start)) {}
     else if (FD_FIXNUMP(start))
@@ -915,11 +915,11 @@ static fdtype pool_label(fdtype arg,fdtype use_source)
   fd_pool p=arg2pool(arg);
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_label",arg);
-  else if (p->label)
-    return fdtype_string(p->label);
+  else if (p->pool_label)
+    return fdtype_string(p->pool_label);
   else if (FD_FALSEP(use_source)) return FD_FALSE;
-  else if (p->fd_source)
-    return fdtype_string(p->fd_source);
+  else if (p->pool_source)
+    return fdtype_string(p->pool_source);
   else return FD_FALSE;
 }
 
@@ -928,8 +928,8 @@ static fdtype pool_cid(fdtype arg)
   fd_pool p=arg2pool(arg);
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_cid",arg);
-  else if (p->fd_cid)
-    return fdtype_string(p->fd_cid);
+  else if (p->pool_cid)
+    return fdtype_string(p->pool_cid);
   else return FD_FALSE;
 }
 
@@ -938,8 +938,8 @@ static fdtype pool_xid(fdtype arg)
   fd_pool p=arg2pool(arg);
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_xid",arg);
-  else if (p->fd_xid)
-    return fdtype_string(p->fd_xid);
+  else if (p->pool_xid)
+    return fdtype_string(p->pool_xid);
   else return FD_FALSE;
 }
 
@@ -948,16 +948,16 @@ static fdtype pool_id(fdtype arg)
   fd_pool p=arg2pool(arg);
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_xid",arg);
-  else if (p->label)
-    return fdtype_string(p->label);
-  else if (p->fd_xid)
-    return fdtype_string(p->fd_xid);
-  else if (p->fd_cid)
-    return fdtype_string(p->fd_cid);
-  else if (p->fd_source)
-    return fdtype_string(p->fd_source);
-  else if (p->prefix)
-    return fdtype_string(p->prefix);
+  else if (p->pool_label)
+    return fdtype_string(p->pool_label);
+  else if (p->pool_xid)
+    return fdtype_string(p->pool_xid);
+  else if (p->pool_cid)
+    return fdtype_string(p->pool_cid);
+  else if (p->pool_source)
+    return fdtype_string(p->pool_source);
+  else if (p->pool_prefix)
+    return fdtype_string(p->pool_prefix);
   else return FD_FALSE;
 }
 
@@ -966,8 +966,8 @@ static fdtype pool_prefix(fdtype arg)
   fd_pool p=arg2pool(arg);
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_label",arg);
-  else if (p->prefix)
-    return fdtype_string(p->prefix);
+  else if (p->pool_prefix)
+    return fdtype_string(p->pool_prefix);
   else return FD_FALSE;
 }
 
@@ -977,16 +977,16 @@ static fdtype set_pool_prefix(fdtype arg,fdtype prefix_arg)
   u8_string prefix=FD_STRDATA(prefix_arg);
   if (p==NULL)
     return fd_type_error(_("pool spec"),"set_pool_prefix",arg);
-  else if ((p->prefix)&&(strcmp(p->prefix,prefix)==0))
+  else if ((p->pool_prefix)&&(strcmp(p->pool_prefix,prefix)==0))
     return FD_FALSE;
-  else if (p->prefix) {
+  else if (p->pool_prefix) {
     u8_string copy=u8_strdup(prefix);
-    u8_string cur=p->prefix;
-    p->prefix=copy;
+    u8_string cur=p->pool_prefix;
+    p->pool_prefix=copy;
     return fd_init_string(NULL,-1,cur);}
   else {
     u8_string copy=u8_strdup(prefix);
-    p->prefix=copy;
+    p->pool_prefix=copy;
     return FD_TRUE;}
 }
 
@@ -995,10 +995,10 @@ static fdtype pool_source(fdtype arg)
   fd_pool p=arg2pool(arg);
   if (p==NULL)
     return fd_type_error(_("pool spec"),"pool_label",arg);
-  else if (p->fd_source)
-    return fdtype_string(p->fd_source);
-  else if (p->fd_cid)
-    return fdtype_string(p->fd_source);
+  else if (p->pool_source)
+    return fdtype_string(p->pool_source);
+  else if (p->pool_cid)
+    return fdtype_string(p->pool_source);
   else return FD_FALSE;
 }
 
@@ -1046,7 +1046,7 @@ static fdtype random_oid(fdtype arg)
   else {
     int load=fd_pool_load(p);
     if (load>0) {
-      FD_OID base=p->fdp_base; int i=u8_random(load);
+      FD_OID base=p->pool_base; int i=u8_random(load);
       return fd_make_oid(FD_OID_PLUS(base,i));}
     return FD_ERROR_VALUE;}
 }
@@ -1061,7 +1061,7 @@ static fdtype pool_vec(fdtype arg)
     if (lim<0) return FD_ERROR_VALUE;
     else {
       fdtype result=fd_init_vector(NULL,lim,NULL);
-      FD_OID base=p->fdp_base;
+      FD_OID base=p->pool_base;
       if (lim<0) return FD_ERROR_VALUE;
       else while (i<lim) {
           fdtype each=fd_make_oid(FD_OID_PLUS(base,i));
@@ -1082,7 +1082,7 @@ static fdtype cachecount(fdtype arg)
     int count=fd_index_cache_load();
     return FD_INT(count);}
   else if ((p=(fd_lisp2pool(arg)))) {
-    int count=p->fd_cache.fd_n_keys;
+    int count=p->pool_cache.fd_n_keys;
     return FD_INT(count);}
   else if ((ix=(fd_indexptr(arg)))) {
     int count=ix->fd_cache.fd_n_keys;
@@ -1131,7 +1131,7 @@ static fdtype validoidp(fdtype x,fdtype pool_arg)
     fd_pool p=fd_oid2pool(x);
     if (p==NULL) return FD_FALSE;
     else {
-      FD_OID base=p->fdp_base, addr=FD_OID_ADDR(x);
+      FD_OID base=p->pool_base, addr=FD_OID_ADDR(x);
       unsigned int offset=FD_OID_DIFFERENCE(addr,base);
       int load=fd_pool_load(p);
       if (load<0) return FD_ERROR_VALUE;
@@ -1141,7 +1141,7 @@ static fdtype validoidp(fdtype x,fdtype pool_arg)
     fd_pool p=fd_lisp2pool(pool_arg);
     fd_pool op=fd_oid2pool(x);
     if (p == op) {
-      FD_OID base=p->fdp_base, addr=FD_OID_ADDR(x);
+      FD_OID base=p->pool_base, addr=FD_OID_ADDR(x);
       unsigned int offset=FD_OID_DIFFERENCE(addr,base);
       int load=fd_pool_load(p);
       if (load<0) return FD_ERROR_VALUE;
@@ -1405,8 +1405,11 @@ static fdtype getpathstar_prim(int n,fdtype *args)
 
 static fdtype cacheget_handler(fdtype expr,fd_lispenv env)
 {
-  fdtype table_arg=fd_get_arg(expr,1), key_arg=fd_get_arg(expr,2), default_expr=fd_get_arg(expr,3);
-  if (FD_EXPECT_FALSE((FD_VOIDP(table_arg)) || (FD_VOIDP(key_arg)) || (FD_VOIDP(default_expr))))
+  fdtype table_arg=fd_get_arg(expr,1), key_arg=fd_get_arg(expr,2);
+  fdtype default_expr=fd_get_arg(expr,3);
+  if (FD_EXPECT_FALSE((FD_VOIDP(table_arg)) ||
+                      (FD_VOIDP(key_arg)) ||
+                      (FD_VOIDP(default_expr))))
     return fd_err(fd_SyntaxError,"cacheget_handler",NULL,expr);
   else {
     fdtype table=fd_eval(table_arg,env), key, value;
@@ -2235,11 +2238,11 @@ static fdtype oid_offset_prim(fdtype oidarg,fdtype against)
     base=FD_OID_ADDR(against);}
   else if (FD_POOLP(against)) {
     fd_pool p=fd_lisp2pool(against);
-    if (p) {base=p->fdp_base; cap=p->fdp_capacity;}
+    if (p) {base=p->pool_base; cap=p->pool_capacity;}
     else return FD_ERROR_VALUE;}
   else if ((FD_VOIDP(against)) || (FD_FALSEP(against))) {
     fd_pool p=fd_oid2pool(oidarg);
-    if (p) {base=p->fdp_base; cap=p->fdp_capacity;}
+    if (p) {base=p->pool_base; cap=p->pool_capacity;}
     else return FD_INT((FD_OID_LO(oid))%0x100000);}
   else return fd_type_error(_("offset base"),"oid_offset_prim",against);
   if ((FD_OID_HI(oid))==(FD_OID_HI(base))) {
@@ -2337,13 +2340,13 @@ static fdtype oidhex_prim(fdtype oid,fdtype base_arg)
   if ((FD_VOIDP(base_arg)) || (FD_FALSEP(base_arg))) {
     fd_pool p=fd_oid2pool(oid);
     if (p) {
-      FD_OID base=p->fdp_base;
+      FD_OID base=p->pool_base;
       offset=FD_OID_DIFFERENCE(addr,base);}
     else offset=(FD_OID_LO(addr))%0x100000;}
   else if (FD_POOLP(base_arg)) {
     fd_pool p=fd_get_poolptr(base_arg);
     if (p) {
-      FD_OID base=p->fdp_base;
+      FD_OID base=p->pool_base;
       offset=FD_OID_DIFFERENCE(addr,base);}
     else offset=(FD_OID_LO(addr))%0x100000;}
   else if (FD_OIDP(base_arg)) {
@@ -2361,13 +2364,13 @@ static fdtype oidb32_prim(fdtype oid,fdtype base_arg)
   if ((FD_VOIDP(base_arg)) || (FD_FALSEP(base_arg))) {
     fd_pool p=fd_oid2pool(oid);
     if (p) {
-      FD_OID base=p->fdp_base;
+      FD_OID base=p->pool_base;
       offset=FD_OID_DIFFERENCE(addr,base);}
     else offset=(FD_OID_LO(addr))%0x100000;}
   else if (FD_POOLP(base_arg)) {
     fd_pool p=fd_get_poolptr(base_arg);
     if (p) {
-      FD_OID base=p->fdp_base;
+      FD_OID base=p->pool_base;
       offset=FD_OID_DIFFERENCE(addr,base);}
     else offset=(FD_OID_LO(addr))%0x100000;}
   else if (FD_OIDP(base_arg)) {
@@ -2398,10 +2401,10 @@ static fdtype hex2oid_prim(fdtype arg,fdtype base_arg)
     return oidplus(base,offset);}
   else if (FD_POOLP(base_arg)) {
     fd_pool p=fd_get_poolptr(base_arg);
-    return oidplus(p->fdp_base,offset);}
+    return oidplus(p->pool_base,offset);}
   else if (FD_STRINGP(base_arg)) {
     fd_pool p=fd_name2pool(FD_STRDATA(base_arg));
-    if (p) return oidplus(p->fdp_base,offset);
+    if (p) return oidplus(p->pool_base,offset);
     else return fd_type_error("pool id","hex2oid_prim",base_arg);}
   else return fd_type_error("pool id","hex2oid_prim",base_arg);
 }
@@ -2423,10 +2426,10 @@ static fdtype b32oid_prim(fdtype arg,fdtype base_arg)
     return oidplus(base,offset);}
   else if (FD_POOLP(base_arg)) {
     fd_pool p=fd_get_poolptr(base_arg);
-    return oidplus(p->fdp_base,offset);}
+    return oidplus(p->pool_base,offset);}
   else if (FD_STRINGP(base_arg)) {
     fd_pool p=fd_name2pool(FD_STRDATA(base_arg));
-    if (p) return oidplus(p->fdp_base,offset);
+    if (p) return oidplus(p->pool_base,offset);
     else return fd_type_error("pool id","hex2oid_prim",base_arg);}
   else return fd_type_error("pool id","hex2oid_prim",base_arg);
 }
@@ -2579,12 +2582,12 @@ static fdtype dbloadedp(fdtype arg1,fdtype arg2)
   if (FD_VOIDP(arg2))
     if (FD_OIDP(arg1)) {
       fd_pool p=fd_oid2pool(arg1);
-      if (fd_hashtable_probe(&(p->fdp_locks),arg1)) {
-        fdtype v=fd_hashtable_probe(&(p->fdp_locks),arg1);
+      if (fd_hashtable_probe(&(p->pool_changes),arg1)) {
+        fdtype v=fd_hashtable_probe(&(p->pool_changes),arg1);
         if ((v!=FD_VOID) || (v!=FD_LOCKHOLDER)) {
           fd_decref(v); return FD_TRUE;}
         else return FD_FALSE;}
-      else if (fd_hashtable_probe(&(p->fd_cache),arg1))
+      else if (fd_hashtable_probe(&(p->pool_cache),arg1))
         return FD_TRUE;
       else return FD_FALSE;}
     else if (fd_hashtable_probe(&(fd_background->fd_cache),arg1))
@@ -2602,19 +2605,19 @@ static fdtype dbloadedp(fdtype arg1,fdtype arg2)
       fd_pool p=fd_lisp2pool(arg2);
       if (p==NULL)
         return fd_type_error("pool","loadedp",arg2);
-      if (fd_hashtable_probe(&(p->fdp_locks),arg1)) {
-        fdtype v=fd_hashtable_probe(&(p->fdp_locks),arg1);
+      if (fd_hashtable_probe(&(p->pool_changes),arg1)) {
+        fdtype v=fd_hashtable_probe(&(p->pool_changes),arg1);
         if ((v!=FD_VOID) || (v!=FD_LOCKHOLDER)) {
           fd_decref(v); return FD_TRUE;}
         else return FD_FALSE;}
-      else if (fd_hashtable_probe(&(p->fd_cache),arg1))
+      else if (fd_hashtable_probe(&(p->pool_cache),arg1))
         return FD_TRUE;
       else return FD_FALSE;}
     else return FD_FALSE;
   else if ((FD_STRINGP(arg2)) && (FD_OIDP(arg1))) {
     fd_pool p=fd_lisp2pool(arg2); fd_index ix;
     if (p)
-      if (fd_hashtable_probe(&(p->fd_cache),arg1))
+      if (fd_hashtable_probe(&(p->pool_cache),arg1))
         return FD_TRUE;
       else return FD_FALSE;
     else ix=fd_indexptr(arg2);
@@ -2628,8 +2631,8 @@ static fdtype dbloadedp(fdtype arg1,fdtype arg2)
 
 static int oidmodifiedp(fd_pool p,fdtype oid)
 {
-  if (fd_hashtable_probe(&(p->fdp_locks),oid)) {
-    fdtype v=fd_hashtable_get(&(p->fdp_locks),oid,FD_VOID);
+  if (fd_hashtable_probe(&(p->pool_changes),oid)) {
+    fdtype v=fd_hashtable_get(&(p->pool_changes),oid,FD_VOID);
     int modified=1;
     if ((FD_VOIDP(v)) || (v==FD_LOCKHOLDER))
       modified=0;
@@ -2656,7 +2659,7 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
       else return FD_FALSE;}
     else if ((FD_POOLP(arg1))||(FD_PRIM_TYPEP(arg1,fd_raw_pool_type))) {
       fd_pool p=fd_lisp2pool(arg1);
-      if (p->fdp_locks.fd_n_keys)
+      if (p->pool_changes.fd_n_keys)
         return FD_TRUE;
       else return FD_FALSE;}
     else if ((FD_INDEXP(arg1))||(FD_PRIM_TYPEP(arg1,fd_raw_index_type))) {

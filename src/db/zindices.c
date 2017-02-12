@@ -49,7 +49,7 @@ static fd_dtype_stream reopen_stream(fd_file_pool fp)
   fd_dtstream_mode mode=
     ((fp->fd_read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_lock_struct(fp);
-  fd_init_dtype_file_stream(&(fp->fd_stream),fp->fd_source,mode,fd_filedb_bufsize);
+  fd_init_dtype_file_stream(&(fp->fd_stream),fp->pool_source,mode,fd_filedb_bufsize);
   fd_unlock_struct(fp);
   return &(fp->fd_stream);
 }

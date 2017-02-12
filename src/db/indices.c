@@ -803,6 +803,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
   else init_cache_level(ix);
   if ((ix->fdx_adds.fd_n_buckets) || (ix->fdx_edits.fd_n_buckets)) {
     int n_keys=ix->fdx_adds.fd_n_keys+ix->fdx_edits.fd_n_keys, retval=0;
+    if (n_keys==0) return 0;
     u8_log(fddb_loglevel,fd_IndexCommit,
            "####### Saving %d updates to %s",n_keys,ix->fd_cid);
     double start_time=u8_elapsed_time();

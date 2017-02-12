@@ -124,7 +124,7 @@ fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
 FD_EXPORT u8_condition fd_PoolCommit;
 
 #define FD_POOL_CACHE_INIT 123
-#define FD_POOL_LOCKS_INIT 73
+#define FD_POOL_CHANGES_INIT 73
 FD_EXPORT int fd_pool_cache_init;
 FD_EXPORT int fd_pool_lock_init;
 
@@ -144,17 +144,19 @@ typedef struct FD_ADJUNCT {
 typedef struct FD_ADJUNCT *fd_adjunct;
 
 #define FD_POOL_FIELDS \
-  FD_CONS_HEADER;                                          \
-  FD_OID fdp_base;                                             \
-  unsigned int fdp_capacity, fd_read_only;                        \
-  int fdp_serialno; int fd_cache_level, fdb_flags;			   \
-  u8_string label, fd_source, fd_cid, fd_xid, prefix;               \
-  int fdp_n_adjuncts, fdp_max_adjuncts;                            \
-  struct FD_ADJUNCT *fdp_adjuncts;                             \
-  struct FD_HASHTABLE *op_handlers;                        \
-  struct FD_POOL_HANDLER *handler;                         \
-  fdtype oidnamefn;                                        \
-  struct FD_HASHTABLE fd_cache, fdp_locks; int fdp_n_locks
+  FD_CONS_HEADER;					\
+  FD_OID pool_base;					\
+  unsigned int pool_capacity, pool_read_only;		\
+  int pool_serialno, pool_cache_level, pool_flags;	\
+  u8_string pool_label, pool_prefix;			\
+  u8_string pool_source, pool_cid, pool_xid;		\
+  int pool_n_adjuncts, pool_max_adjuncts;		\
+  struct FD_ADJUNCT *pool_adjuncts;			\
+  struct FD_HASHTABLE *oid_handlers;			\
+  struct FD_POOL_HANDLER *pool_handler;			\
+  fdtype pool_namefn;					\
+  struct FD_HASHTABLE pool_cache, pool_changes;		\
+  int pool_n_locked
 
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
 typedef struct FD_POOL *fd_pool;
@@ -312,8 +314,8 @@ FD_FASTOP fd_pool fd_oid2pool(fdtype oid)
   int baseoff=FD_OID_BASE_OFFSET(oid);
   struct FD_POOL *top=fd_top_pools[baseid];
   if (top==NULL) return top;
-  else if (baseoff<top->fdp_capacity) return top;
-  else if (top->fdp_capacity) {
+  else if (baseoff<top->pool_capacity) return top;
+  else if (top->pool_capacity) {
     u8_raise(_("Corrupted pool table"),"fd_oid2pool",NULL);
     return NULL;}
   else return fd_find_subpool((struct FD_GLUEPOOL *)top,oid);
@@ -331,20 +333,20 @@ FD_FASTOP fdtype fd_fetch_oid(fd_pool p,fdtype oid)
                   (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
                   (FD_VOID));
     if (!(FD_VOIDP(value))) return value;}
-  if (p->fdp_n_locks)
-    if (fd_hashtable_probe_novoid(&(p->fdp_locks),oid)) {
-      value=fd_hashtable_get(&(p->fdp_locks),oid,FD_VOID);
+  if (p->pool_n_locked)
+    if (fd_hashtable_probe_novoid(&(p->pool_changes),oid)) {
+      value=fd_hashtable_get(&(p->pool_changes),oid,FD_VOID);
       if (value == FD_LOCKHOLDER) {
         value=fd_pool_fetch(p,oid);
-        fd_hashtable_store(&(p->fdp_locks),oid,value);
+        fd_hashtable_store(&(p->pool_changes),oid,value);
         return value;}
       else return value;}
-  if (p->fd_cache_level)
-    value=fd_hashtable_get(&(p->fd_cache),oid,FD_VOID);
+  if (p->pool_cache_level)
+    value=fd_hashtable_get(&(p->pool_cache),oid,FD_VOID);
   else value=FD_VOID;
   if (FD_VOIDP(value)) {
     if (fd_ipeval_delay(1)) {
-      FD_ADD_TO_CHOICE(fd_pool_delays[p->fdp_serialno],oid);
+      FD_ADD_TO_CHOICE(fd_pool_delays[p->pool_serialno],oid);
       return FD_EMPTY_CHOICE;}
     else value=fd_pool_fetch(p,oid);}
   if (FD_ABORTP(value)) return value;
@@ -384,7 +386,7 @@ typedef struct FD_GPOOL *fd_gpool;
 
 typedef struct FD_NETWORK_POOL {
   FD_POOL_FIELDS;
-  struct U8_CONNPOOL *fd_connpool;
+  struct U8_CONNPOOL *pool_connpool;
   int bulk_commitp;} FD_NETWORK_POOL;
 typedef struct FD_NETWORK_POOL *fd_network_pool;
 
@@ -412,9 +414,9 @@ FD_EXPORT struct FD_POOL_HANDLER fd_extpool_handler;
 
 typedef struct FD_MEMPOOL {
   FD_POOL_FIELDS;
-  unsigned int fdp_load;
+  unsigned int pool_load;
   unsigned int noswap;
-  u8_mutex fd_lock;} FD_MEMPOOL;
+  u8_mutex pool_lock;} FD_MEMPOOL;
 typedef struct FD_MEMPOOL *fd_mempool;
 
 FD_EXPORT fd_pool fd_make_mempool

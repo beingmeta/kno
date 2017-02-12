@@ -315,9 +315,9 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       else if (constype==fd_raw_pool_type) {
         struct FD_POOL *p=(struct FD_POOL *)obj;
         int count=0;
-        if (FD_VOIDP(p->oidnamefn))
-          count=count+count_envrefs(p->oidnamefn,env,depth);
-        if (p->handler==&fd_extpool_handler) {
+        if (FD_VOIDP(p->pool_namefn))
+          count=count+count_envrefs(p->pool_namefn,env,depth);
+        if (p->pool_handler==&fd_extpool_handler) {
           struct FD_EXTPOOL *xp=(struct FD_EXTPOOL *)obj;
           if (!(FD_VOIDP(xp->fetchfn)))
             count=count+count_envrefs(xp->fetchfn,env,depth);

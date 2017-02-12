@@ -104,7 +104,7 @@ static fdtype better_parse_oid(u8_string start,int len)
     if (start[1]=='/') {
       fd_pool p=fd_find_pool_by_prefix(prefix);
       if (p==NULL) return FD_VOID;
-      else base=p->fdp_base;}
+      else base=p->pool_base;}
     else {
       unsigned int hi;
       if (sscanf(prefix,"%x",&hi)<1) return FD_PARSE_ERROR;
@@ -123,12 +123,12 @@ static fdtype oid_name_slotids=FD_EMPTY_LIST;
 
 static fdtype default_get_oid_name(fd_pool p,fdtype oid)
 {
-  if (FD_APPLICABLEP(p->oidnamefn)) return FD_VOID;
+  if (FD_APPLICABLEP(p->pool_namefn)) return FD_VOID;
   else {
     fdtype ov=fd_oid_value(oid);
-    if (((FD_OIDP(p->oidnamefn)) || (FD_SYMBOLP(p->oidnamefn))) &&
+    if (((FD_OIDP(p->pool_namefn)) || (FD_SYMBOLP(p->pool_namefn))) &&
         (!(FD_CHOICEP(ov))) && (FD_TABLEP(ov))) {
-      fdtype probe=fd_frame_get(oid,p->oidnamefn);
+      fdtype probe=fd_frame_get(oid,p->pool_namefn);
       if (FD_EMPTY_CHOICEP(probe)) {}
       else if (FD_ABORTP(probe)) {fd_decref(probe);}
       else {fd_decref(ov); return probe;}}
@@ -208,21 +208,21 @@ static int better_unparse_oid(u8_output out,fdtype x)
     return 1;}
   else {
     fd_pool p=fd_oid2pool(x);
-    if ((p == NULL) || (p->prefix==NULL)) {
+    if ((p == NULL) || (p->pool_prefix==NULL)) {
       FD_OID addr=FD_OID_ADDR(x); char buf[128];
       unsigned int hi=FD_OID_HI(addr), lo=FD_OID_LO(addr);
       sprintf(buf,"@%x/%x",hi,lo);
       u8_puts(out,buf);}
     else {
       FD_OID addr=FD_OID_ADDR(x); char buf[128];
-      unsigned int off=FD_OID_DIFFERENCE(addr,p->fdp_base);
-      sprintf(buf,"@/%s/%x",p->prefix,off);
+      unsigned int off=FD_OID_DIFFERENCE(addr,p->pool_base);
+      sprintf(buf,"@/%s/%x",p->pool_prefix,off);
       u8_puts(out,buf);}
     if (p == NULL) return 1;
     else if (fd_oid_display_level<2) return 1;
     else if ((fd_oid_display_level<3) &&
-             (!(fd_hashtable_probe_novoid(&(p->fd_cache),x))) &&
-             (!(fd_hashtable_probe_novoid(&(p->fdp_locks),x))))
+             (!(fd_hashtable_probe_novoid(&(p->pool_cache),x))) &&
+             (!(fd_hashtable_probe_novoid(&(p->pool_changes),x))))
       return 1;
     else {
       fdtype name=fd_get_oid_name(p,x);
@@ -391,8 +391,8 @@ static int fast_swapout_index(fd_index ix,void *data)
 static int fast_swapout_pool(fd_pool p,void *data)
 {
   struct HASHVECS_TODO *todo=(struct HASHVECS_TODO *)data;
-  fast_reset_hashtable(&(p->fd_cache),67,todo);
-  if (p->fdp_locks.fd_n_keys) fd_devoid_hashtable(&(p->fdp_locks));
+  fast_reset_hashtable(&(p->pool_cache),67,todo);
+  if (p->pool_changes.fd_n_keys) fd_devoid_hashtable(&(p->pool_changes));
   return 0;
 }
 
