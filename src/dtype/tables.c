@@ -39,7 +39,7 @@ static u8_string BadHashtableMethod=_("Invalid hashtable method");
 
 #define DEBUGGING 0
 
-static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int locked);
+static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int need_lock);
 
 #if DEBUGGING
 #include <stdio.h>
@@ -1512,7 +1512,7 @@ static int check_hashtable_size(fd_hashtable ht,ssize_t delta)
     return ht->fd_n_buckets;}
   else if (need_keys>n_slots) {
     size_t new_size=fd_get_hashtable_size(need_keys*2);
-    resize_hashtable(ht,new_size,1);
+    resize_hashtable(ht,new_size,0);
     return ht->fd_n_buckets;}
   else return 0;
 }
@@ -1874,7 +1874,7 @@ FD_EXPORT int fd_hashtable_op_nolock
     /* We resize when n_keys/n_slots < loading/4;
        at this point, the new size is > loading/2 (a bigger number). */
     int new_size=fd_get_hashtable_size(hashtable_resize_target(ht));
-    resize_hashtable(ht,new_size,1);}
+    resize_hashtable(ht,new_size,0);}
   return added;
 }
 
@@ -2222,12 +2222,12 @@ FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,int fd_n_entries,
   return FDTYPE_CONS(ptr);
 }
 
-static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int locked)
+static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int need_lock)
 {
   int unlock=0;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
-  if ( (locked) && (ptr->fd_uselock) ) { 
-    fd_write_lock_struct(ptr); 
+  if ( (need_lock) && (ptr->fd_uselock) ) {
+    fd_write_lock_struct(ptr);
     unlock=1; }
   {
     struct FD_HASH_BUCKET **new_slots=u8_zalloc_n(n_slots,fd_hash_bucket);
@@ -2253,7 +2253,7 @@ static int resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots,int locked)
 
 FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 {
-  return resize_hashtable(ptr,n_slots,0);
+  return resize_hashtable(ptr,n_slots,1);
 }
 
 
