@@ -1087,7 +1087,7 @@ struct FD_POOL_WRITES choice2writes(fd_pool p,fdtype oids,
           fd_hashtable_store(locks,o,FD_VOID);}}}}
   n_writes=oidv-writes.oids;
   writes.len=n_writes;
-  xchoice->fd_choicesize=n_writes;
+  xchoice->choice_size=n_writes;
   if ((unlock)&&(writes.len))
     fd_devoid_hashtable_x(locks,1);
   return writes;

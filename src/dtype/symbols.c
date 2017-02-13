@@ -51,7 +51,7 @@ static void init_symbol_tables()
     fdtype *new_symbol_names=u8_alloc_n(new_max,fdtype);
     int i=0, lim=new_size; while (i < lim) new_entries[i++]=NULL;
     i=0; lim=new_max; while (i < lim) new_symbol_names[i++]=FD_VOID;
-    fd_symbol_table.fd_table_size=new_size; 
+    fd_symbol_table.table_size=new_size; 
     fd_symbol_table.fd_symbol_entries=new_entries;
     fd_symbol_names=new_symbol_names; fd_max_symbols=new_max;
     fd_unlock_mutex(&fd_symbol_lock);
@@ -66,7 +66,7 @@ static void grow_symbol_tables()
   struct FD_SYMBOL_ENTRY **new_entries=u8_alloc_n(new_size,fd_symbol_entry);
   fdtype *new_symbol_names=u8_zalloc_n(new_max,fdtype);
   {
-    int i=0, lim=fd_symbol_table.fd_table_size;
+    int i=0, lim=fd_symbol_table.table_size;
     while (i < new_size) new_entries[i++]=NULL;
     i=0; while (i < lim)
       if (old_entries[i] == NULL) i++;
@@ -81,7 +81,7 @@ static void grow_symbol_tables()
         i++;}
     u8_free(old_entries);
     fd_symbol_table.fd_symbol_entries=new_entries; 
-    fd_symbol_table.fd_table_size=new_size;}
+    fd_symbol_table.table_size=new_size;}
   {
     int i=0, lim=fd_n_symbols; fdtype *old_symbol_names;
     while (i < lim) {new_symbol_names[i]=fd_symbol_names[i]; i++;}
@@ -100,7 +100,7 @@ fdtype fd_make_symbol(u8_string bytes,int len)
     init_symbol_tables();
     fd_lock_mutex(&fd_symbol_lock);}
   entries=fd_symbol_table.fd_symbol_entries; 
-  size=fd_symbol_table.fd_table_size;
+  size=fd_symbol_table.table_size;
   if (len<0) len=strlen(bytes);
   hash=mult_hash_string(bytes,len);
   probe=hash%size;
@@ -132,7 +132,7 @@ fdtype fd_make_symbol(u8_string bytes,int len)
 fdtype fd_probe_symbol(u8_string bytes,int len)
 {
   struct FD_SYMBOL_ENTRY **entries=fd_symbol_table.fd_symbol_entries;
-  int probe, size=fd_symbol_table.fd_table_size;
+  int probe, size=fd_symbol_table.table_size;
   if (fd_max_symbols == 0) return FD_VOID;
   fd_lock_mutex(&fd_symbol_lock);
   if (len < 0) len=strlen(bytes);

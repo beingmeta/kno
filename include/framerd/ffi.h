@@ -22,7 +22,7 @@ typedef struct FD_FFI_PROC {
   ffi_type *fd_ffi_argtypes;
   fdtype *fd_ffi_defaults; 
   int fd_ffi_arity; 
-  int fd_uselock;
+  int table_uselock;
   U8_MUTEX_DECL(lock);
 } FD_FFI_PROC;
 typedef struct FD_FFI_PROC *fd_ffi_proc;

@@ -1560,7 +1560,7 @@ FD_FASTOP int test_selector_relation(fdtype f,fdtype pred,fdtype val,int datalev
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */
     if ((FD_SPROCP(pred)) ||
-        (FD_PRIM_TYPEP(pred,fd_function_type))) {
+        (FD_PRIM_TYPEP(pred,fd_primfcn_type))) {
       fd_function fcn=FD_DTYPE2FCN(pred);
       if (fcn->fcn_min_arity==1) {
         fdtype value=fd_apply(pred,1,&f); int retval=-1;
@@ -1830,7 +1830,7 @@ static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
     fdtype simple=fd_make_simple_choice(candidates);
     int n=FD_CHOICE_SIZE(simple), unlock=0, isatomic=1;
     fdtype *keep=u8_alloc_n(n,fdtype), *write=keep;
-    if (ht->fd_uselock) {fd_read_lock_table(ht); unlock=1;}
+    if (ht->table_uselock) {fd_read_lock_table(ht); unlock=1;}
     {struct FD_HASH_BUCKET **slots=ht->fd_buckets; int n_slots=ht->ht_n_buckets;
       FD_DO_CHOICES(c,candidates) {
         struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);

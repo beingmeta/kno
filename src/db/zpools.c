@@ -373,9 +373,9 @@ int write_oid_value
   if (FD_XSCHEMAP(v)) {
     struct FD_BYTE_OUTPUT out;
     struct FD_SCHEMAP *sm=FD_XSCHEMAP(v);
-    fdtype *schema=sm->fd_schema, *values=sm->fd_values;
+    fdtype *schema=sm->table_schema, *values=sm->schema_values;
     int schema_index=find_schema_index_by_ptr(schema,schemas,n_schemas);
-    int i=0, size=sm->fd_table_size, retval=-1; ssize_t zlen=-1, wlen;
+    int i=0, size=sm->table_size, retval=-1; ssize_t zlen=-1, wlen;
     unsigned char *zbytes;
     if (schema_index < 0) {
       int size=fd_dtswrite_zint(s,0);

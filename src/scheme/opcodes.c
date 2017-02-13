@@ -653,13 +653,13 @@ static fdtype opcode_binary_nd_dispatch(fdtype opcode,fdtype arg1,fdtype arg2)
 static fdtype xref_opcode(fdtype x,int i,fdtype tag)
 {
   struct FD_COMPOUND *c=(fd_compound)x;
-  if ((FD_VOIDP(tag)) || ((c->fd_typetag)==tag))
+  if ((FD_VOIDP(tag)) || ((c->compound_typetag)==tag))
     if (i<c->fd_n_elts) {
-      fdtype *values=&(c->fd_elt0), value;
-      if (c->fd_ismutable) fd_lock_struct(c);
+      fdtype *values=&(c->compound_0), value;
+      if (c->compound_ismutable) fd_lock_struct(c);
       value=values[i];
       fd_incref(value);
-      if (c->fd_ismutable) fd_unlock_struct(c);
+      if (c->compound_ismutable) fd_unlock_struct(c);
       return value;}
     else {
       fd_seterr(fd_RangeError,"xref",NULL,x);
@@ -979,7 +979,7 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
         if (tail)
           return fd_tail_eval(x,env);
         else return fd_eval(x,env);
-      else if ((head_type==fd_function_type)||
+      else if ((head_type==fd_primfcn_type)||
                (head_type==fd_sproc_type)) {
         fdtype args[7], result=FD_VOID;
         struct FD_FUNCTION *fn=(struct FD_FUNCTION *)head;

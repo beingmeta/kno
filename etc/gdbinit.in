@@ -89,19 +89,19 @@ define showvelt
    showtype $
 end
 define showcelt
-  print/x ((&((struct FD_CHOICE *)$arg0)->fd_elt0)[$arg1])
+  print/x ((&((struct FD_CHOICE *)$arg0)->choice_0)[$arg1])
   showtype $  
 end
 define celt
-  printf "%s\n",fd_dtype2string(((&((struct FD_CHOICE *)$arg0)->fd_elt0)[$arg1]))
-  print/x ((&((struct FD_CHOICE *)$arg0)->fd_elt0)[$arg1])
+  printf "%s\n",fd_dtype2string(((&((struct FD_CHOICE *)$arg0)->choice_0)[$arg1]))
+  print/x ((&((struct FD_CHOICE *)$arg0)->choice_0)[$arg1])
   showtype $
 define oidinfo
   printf "oidinfo: %s\n", (_fd_oid_info($arg0))
 end
 define showchoice
-  printf "data=%d\n",(&(((struct FD_CHOICE *)$arg0)->fd_elt0))
-  printf "size=%d\n",((((struct FD_CHOICE *)$arg0)->fd_choicesize)&(0x7FFFFFFF))
+  printf "data=%d\n",(&(((struct FD_CHOICE *)$arg0)->choice_0))
+  printf "size=%d\n",((((struct FD_CHOICE *)$arg0)->choice_size)&(0x7FFFFFFF))
   print (*((struct FD_CHOICE *)$arg0))
 end
 define showvec
@@ -125,8 +125,8 @@ define showflo
 end
 define showschemap
   printf "schema=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->fd_schema))
-  printf "values=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->fd_values))
-  printf "size=%d\n",(((struct FD_SCHEMAP *)$arg0)->fd_table_size)
+  printf "values=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->schema_values))
+  printf "size=%d\n",(((struct FD_SCHEMAP *)$arg0)->table_size)
   print (*((struct FD_SCHEMAP *)$arg0))
 end
 define showschemapk
@@ -134,20 +134,20 @@ define showschemapk
   showtype $
 end
 define showschemapv
-  print (((struct FD_SCHEMAP *)$arg0)->fd_values)[$arg1]
+  print (((struct FD_SCHEMAP *)$arg0)->schema_values)[$arg1]
   showtype $
 end
 define showslotmap
-  printf "keyvals=%d\n",(&(((struct FD_SLOTMAP *)$arg0)->fd_keyvals))
-  printf "size=%d\n",((((struct FD_SLOTMAP *)$arg0)->fd_table_size)&0x3FFFFFFF)
+  printf "keyvals=%d\n",(&(((struct FD_SLOTMAP *)$arg0)->sm_keyvals))
+  printf "size=%d\n",((((struct FD_SLOTMAP *)$arg0)->table_size)&0x3FFFFFFF)
   print (*((struct FD_SLOTMAP *)$arg0))
 end
 define showslotmapk
-  print ((((fd_slotmap)($arg0))->fd_keyvals)[($arg1)].fd_kvkey)
+  print ((((fd_slotmap)($arg0))->sm_keyvals)[($arg1)].fd_kvkey)
   showtype $
 end
 define showslotmapv
-  print ((((fd_slotmap)$arg0)->fd_keyvals)[($arg1)].fd_keyval)
+  print ((((fd_slotmap)$arg0)->sm_keyvals)[($arg1)].fd_keyval)
   showtype $
 end
 define findelt
@@ -155,7 +155,7 @@ define findelt
   showtype $
 end
 define inchoicep
-  print _fd_find_elt($arg0,&(((struct FD_CHOICE *)$arg1)->fd_elt0),(((struct FD_CHOICE *)$arg1)->fd_choice_size))
+  print _fd_find_elt($arg0,&(((struct FD_CHOICE *)$arg1)->choice_0),(((struct FD_CHOICE *)$arg1)->fd_choice_size))
   showtype $
 end
 define rawpos

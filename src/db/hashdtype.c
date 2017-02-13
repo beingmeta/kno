@@ -150,7 +150,7 @@ FD_FASTOP unsigned int hash_dtype1(fdtype x)
   else if (FD_SLOTMAPP(x)) {
     unsigned int sum=0;
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
-    const struct FD_KEYVAL *scan=sm->fd_keyvals;
+    const struct FD_KEYVAL *scan=sm->sm_keyvals;
     const struct FD_KEYVAL *limit=scan+FD_XSLOTMAP_SIZE(sm);
     while (scan<limit) {
       sum=(sum+hash_dtype1(scan->fd_kvkey))%MAGIC_MODULUS;
@@ -309,7 +309,7 @@ FD_FASTOP unsigned int hash_dtype2(fdtype x)
     case fd_slotmap_type: {
       unsigned int sum=0;
       struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
-      const struct FD_KEYVAL *scan=sm->fd_keyvals;
+      const struct FD_KEYVAL *scan=sm->sm_keyvals;
       const struct FD_KEYVAL *limit=scan+FD_XSLOTMAP_SIZE(sm);
       while (scan<limit) {
         unsigned int prod=
@@ -449,7 +449,7 @@ FD_FASTOP unsigned int hash_dtype3(fdtype x)
     case fd_slotmap_type: {
       unsigned int sum=0;
       struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
-      const struct FD_KEYVAL *scan=sm->fd_keyvals;
+      const struct FD_KEYVAL *scan=sm->sm_keyvals;
       const struct FD_KEYVAL *limit=scan+FD_XSLOTMAP_SIZE(sm);
       while (scan<limit) {
         unsigned int prod=

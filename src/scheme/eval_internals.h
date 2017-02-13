@@ -23,7 +23,9 @@ static fdtype find_module_id( fd_lispenv env )
 
 static fdtype error_bindings(fd_lispenv env)
 {
-  fdtype bindings = (env->env_copy) ? (env->env_copy->env_bindings) : (env->env_bindings);
+  fdtype bindings = (env->env_copy) ?
+    (env->env_copy->env_bindings) :
+    (env->env_bindings);
   fdtype moduleid = find_module_id ( env );
   if (FD_VOIDP(moduleid))
     return fd_copy(bindings);
@@ -58,7 +60,7 @@ static void free_environment(struct FD_ENVIRONMENT *env)
     else {
       struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->env_bindings);
       int i=0, n=FD_XSCHEMAP_SIZE(sm); 
-      fdtype *vals=sm->fd_values;
+      fdtype *vals=sm->schema_values;
       while (i < n) {
         fdtype val=vals[i++];
         if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
@@ -68,7 +70,7 @@ static void free_environment(struct FD_ENVIRONMENT *env)
   else {
     struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->env_bindings);
     int i=0, n=FD_XSCHEMAP_SIZE(sm);
-    fdtype *vals=sm->fd_values;
+    fdtype *vals=sm->schema_values;
     while (i < n) {
       fdtype val=vals[i++];
       if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {

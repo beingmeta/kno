@@ -21,29 +21,32 @@ int fd_mergesort_threshold=FD_MERGESORT_THRESHOLD;
 
 static fdtype normalize_choice(fdtype x,int free_achoice);
 
+#define lock_achoice(ach) u8_lock_mutex(&((ach)->achoice_lock))
+#define unlock_achoice(ach) u8_unlock_mutex(&((ach)->achoice_lock))
+
 /* Basic operations on ACHOICES */
 
 static void recycle_achoice(struct FD_CONS *c)
 {
   struct FD_ACHOICE *ch=(struct FD_ACHOICE *)c;
-  if (ch->ach_data) {
-    const fdtype *read=ch->ach_data, *lim=ch->ach_write;
-    if ((ch->ach_atomic==0) || (ch->ach_nested))
+  if (ch->achoice_data) {
+    const fdtype *read=ch->achoice_data, *lim=ch->achoice_write;
+    if ((ch->achoice_atomic==0) || (ch->achoice_nested))
       while (read < lim) {
         fdtype v=*read++; fd_decref(v);}
-    if (ch->ach_mallocd) {
-      u8_free(ch->ach_choicedata);
-      ch->ach_choicedata=NULL; 
-      ch->ach_mallocd=0;}}
-  fd_decref(ch->ach_normalized);
-  fd_destroy_mutex(&(ch->fd_lock));
+    if (ch->achoice_mallocd) {
+      u8_free(ch->achoice_choicedata);
+      ch->achoice_choicedata=NULL;
+      ch->achoice_mallocd=0;}}
+  fd_decref(ch->achoice_normalized);
+  fd_destroy_mutex(&(ch->achoice_lock));
   if (!(FD_STATIC_CONSP(ch))) u8_free(ch);
 }
 
 static void recycle_achoice_wrapper(struct FD_ACHOICE *ch)
 {
-  fd_decref(ch->ach_normalized);
-  fd_destroy_mutex(&(ch->fd_lock));
+  fd_decref(ch->achoice_normalized);
+  fd_destroy_mutex(&(ch->achoice_lock));
   if (!(FD_STATIC_CONSP(ch))) u8_free(ch);
 }
 static int write_achoice_dtype(struct FD_BYTE_OUTPUT *s,fdtype x)
@@ -234,7 +237,7 @@ fdtype fd_init_choice
     if (data)
       memcpy((fdtype *)FD_XCHOICE_DATA(ch),data,sizeof(fdtype)*n);
     else {
-      fdtype *write=&(ch->fd_elt0), *writelim=write+n;
+      fdtype *write=&(ch->choice_0), *writelim=write+n;
       while (write<writelim) *write++=FD_VOID;}}
   else if ((data) && (data!=FD_XCHOICE_DATA(ch))) {
     if (flags&FD_CHOICE_INCREF) {
@@ -289,27 +292,27 @@ fdtype fd_make_achoice(fdtype x,fdtype y)
   struct FD_ACHOICE *ch=u8_alloc(struct FD_ACHOICE);
   fdtype nx=fd_simplify_choice(x), ny=fd_simplify_choice(y);
   FD_INIT_CONS(ch,fd_achoice_type);
-  ch->ach_choicedata=fd_alloc_choice(64);
-  ch->ach_write=ch->ach_data=(fdtype *)FD_XCHOICE_DATA(ch->ach_choicedata);
-  ch->ach_limit=ch->ach_data+64; ch->ach_normalized=FD_VOID;
-  ch->ach_mallocd=1; ch->ach_nested=0; ch->ach_muddled=0;
-  ch->ach_size=FD_CHOICE_SIZE(nx)+FD_CHOICE_SIZE(ny);
-  if (FD_CHOICEP(nx)) ch->ach_nested++;
-  if (FD_CHOICEP(ny)) ch->ach_nested++;
-  if (ch->ach_nested) {
-    ch->ach_write[0]=nx; ch->ach_write[1]=ny; ch->ach_muddled=1;}
+  ch->achoice_choicedata=fd_alloc_choice(64);
+  ch->achoice_write=ch->achoice_data=(fdtype *)FD_XCHOICE_DATA(ch->achoice_choicedata);
+  ch->achoice_limit=ch->achoice_data+64; ch->achoice_normalized=FD_VOID;
+  ch->achoice_mallocd=1; ch->achoice_nested=0; ch->achoice_muddled=0;
+  ch->achoice_size=FD_CHOICE_SIZE(nx)+FD_CHOICE_SIZE(ny);
+  if (FD_CHOICEP(nx)) ch->achoice_nested++;
+  if (FD_CHOICEP(ny)) ch->achoice_nested++;
+  if (ch->achoice_nested) {
+    ch->achoice_write[0]=nx; ch->achoice_write[1]=ny; ch->achoice_muddled=1;}
   else if (cons_compare(nx,ny)<1) {
-    ch->ach_write[0]=nx; ch->ach_write[1]=ny;}
-  else {ch->ach_write[0]=ny; ch->ach_write[1]=nx;}
-  ch->ach_atomic=1;
+    ch->achoice_write[0]=nx; ch->achoice_write[1]=ny;}
+  else {ch->achoice_write[0]=ny; ch->achoice_write[1]=nx;}
+  ch->achoice_atomic=1;
   if (FD_CONSP(nx)) {
     if ((FD_CHOICEP(nx)) && (FD_ATOMIC_CHOICEP(nx))) {}
-    else ch->ach_atomic=0;}
+    else ch->achoice_atomic=0;}
   if (FD_CONSP(ny)) {
     if ((FD_CHOICEP(ny)) && (FD_ATOMIC_CHOICEP(ny))) {}
-    else ch->ach_atomic=0;}
-  ch->ach_write=ch->ach_write+2;
-  ch->fd_uselock=1; fd_init_mutex(&(ch->fd_lock));
+    else ch->achoice_atomic=0;}
+  ch->achoice_write=ch->achoice_write+2;
+  ch->achoice_uselock=1; fd_init_mutex(&(ch->achoice_lock));
   return FDTYPE_CONS(ch);
 }
 
@@ -325,13 +328,13 @@ fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock)
 {
   if (ch==NULL) ch=u8_alloc(struct FD_ACHOICE);
   FD_INIT_CONS(ch,fd_achoice_type);
-  ch->ach_choicedata=fd_alloc_choice(lim);
-  ch->ach_write=ch->ach_data=(fdtype *)FD_XCHOICE_DATA(ch->ach_choicedata);
-  ch->ach_limit=ch->ach_data+lim; ch->ach_size=0;
-  ch->ach_nested=0; ch->ach_muddled=0; ch->ach_atomic=1; ch->ach_mallocd=1;
-  ch->ach_normalized=FD_VOID;
-  ch->fd_uselock=uselock;
-  fd_init_mutex(&(ch->fd_lock));
+  ch->achoice_choicedata=fd_alloc_choice(lim);
+  ch->achoice_write=ch->achoice_data=(fdtype *)FD_XCHOICE_DATA(ch->achoice_choicedata);
+  ch->achoice_limit=ch->achoice_data+lim; ch->achoice_size=0;
+  ch->achoice_nested=0; ch->achoice_muddled=0; ch->achoice_atomic=1; ch->achoice_mallocd=1;
+  ch->achoice_normalized=FD_VOID;
+  ch->achoice_uselock=uselock;
+  fd_init_mutex(&(ch->achoice_lock));
   return FDTYPE_CONS(ch);
 }
 
@@ -366,52 +369,52 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
     if (free_achoice) {
       if (FD_CONS_REFCOUNT(ch)>1) {
         free_achoice=0; fd_decref(x);}}
-    if (ch->fd_uselock) fd_lock_struct(ch);
+    if (ch->achoice_uselock) lock_achoice(ch);
     /* If you have a normalized value, use it. */
-    if (!(FD_VOIDP(ch->ach_normalized))) {
-      fdtype v=fd_incref(ch->ach_normalized);
-      if (ch->fd_uselock) fd_unlock_struct(ch);
+    if (!(FD_VOIDP(ch->achoice_normalized))) {
+      fdtype v=fd_incref(ch->achoice_normalized);
+      if (ch->achoice_uselock) unlock_achoice(ch);
       if (free_achoice) fd_decref(x);
       return v;}
     /* If it's really empty, just return the empty choice. */
-    else if ((ch->ach_write-ch->ach_data) == 0) {
-      if (ch->fd_uselock) fd_unlock_struct(ch);
+    else if ((ch->achoice_write-ch->achoice_data) == 0) {
+      if (ch->achoice_uselock) unlock_achoice(ch);
       if (free_achoice) recycle_achoice((struct FD_CONS *)ch);
-      else ch->ach_normalized=FD_EMPTY_CHOICE;
+      else ch->achoice_normalized=FD_EMPTY_CHOICE;
       return FD_EMPTY_CHOICE;}
     /* If it's only got one value, return it. */
-    else if ((ch->ach_write-ch->ach_data) == 1) {
-      fdtype value=fd_incref(*(ch->ach_data));
-      if (ch->fd_uselock) fd_unlock_struct(ch);
+    else if ((ch->achoice_write-ch->achoice_data) == 1) {
+      fdtype value=fd_incref(*(ch->achoice_data));
+      if (ch->achoice_uselock) unlock_achoice(ch);
       if (free_achoice) recycle_achoice((struct FD_CONS *)ch);
-      ch->ach_normalized=fd_incref(value);
+      ch->achoice_normalized=fd_incref(value);
       return value;}
     /* If you're going to free the achoice and it's not nested, you
        can just use the choice you've been depositing values in,
        appropriately initialized, sorted etc.  */
-    else if ((free_achoice) && (ch->ach_nested==0)) {
-      struct FD_CHOICE *nch=ch->ach_choicedata;
-      int flags=FD_CHOICE_REALLOC, n=ch->ach_size;
-      if (ch->ach_atomic) flags=flags|FD_CHOICE_ISATOMIC;
+    else if ((free_achoice) && (ch->achoice_nested==0)) {
+      struct FD_CHOICE *nch=ch->achoice_choicedata;
+      int flags=FD_CHOICE_REALLOC, n=ch->achoice_size;
+      if (ch->achoice_atomic) flags=flags|FD_CHOICE_ISATOMIC;
       else flags=flags|FD_CHOICE_ISCONSES;
-      if (ch->ach_muddled) flags=flags|FD_CHOICE_DOSORT;
+      if (ch->achoice_muddled) flags=flags|FD_CHOICE_DOSORT;
       else flags=flags|FD_CHOICE_COMPRESS;
-      if (ch->fd_uselock) fd_unlock_struct(ch);
+      if (ch->achoice_uselock) unlock_achoice(ch);
       recycle_achoice_wrapper(ch);
       return fd_init_choice(nch,n,NULL,flags);}
-    else if (ch->ach_nested==0) {
+    else if (ch->achoice_nested==0) {
       /* If it's not nested, we can mostly just call fd_make_choice. */
-      int flags=0, n_elts=ch->ach_write-ch->ach_data; fdtype result;
-      if (ch->ach_atomic) flags=flags|FD_CHOICE_ISATOMIC; else {
+      int flags=0, n_elts=ch->achoice_write-ch->achoice_data; fdtype result;
+      if (ch->achoice_atomic) flags=flags|FD_CHOICE_ISATOMIC; else {
         /* Incref everything */
-        const fdtype *scan=ch->ach_data, *write=ch->ach_write;
+        const fdtype *scan=ch->achoice_data, *write=ch->achoice_write;
         while (scan<write) {fd_incref(*scan); scan++;}
         flags=flags|FD_CHOICE_ISCONSES;}
-      if (ch->ach_muddled) flags=flags|FD_CHOICE_DOSORT;
+      if (ch->achoice_muddled) flags=flags|FD_CHOICE_DOSORT;
       else flags=flags|FD_CHOICE_COMPRESS;
-      result=fd_make_choice(n_elts,ch->ach_data,flags);
-      ch->ach_normalized=fd_incref(result);
-      if (ch->fd_uselock) fd_unlock_struct(ch);
+      result=fd_make_choice(n_elts,ch->achoice_data,flags);
+      ch->achoice_normalized=fd_incref(result);
+      if (ch->achoice_uselock) unlock_achoice(ch);
       return result;}
     else if (1) { /* (ch->size<fd_mergesort_threshold)  */
       /* If the choice is small enough, we can call convert_achoice,
@@ -421,24 +424,24 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
          sort the huge vector. */
       fdtype converted=convert_achoice(ch,free_achoice);
       if (free_achoice) {
-        if (ch->fd_uselock) fd_unlock_struct(ch);
+        if (ch->achoice_uselock) unlock_achoice(ch);
         fd_decref(x);
         return converted;}
       else {
-        ch->ach_normalized=fd_incref(converted);
-        if (ch->fd_uselock) fd_unlock_struct(ch);
+        ch->achoice_normalized=fd_incref(converted);
+        if (ch->achoice_uselock) unlock_achoice(ch);
         return converted;}}
     else {
       /* This is the hairy case, where you are actually merging a bunch
          of choices.  You create a tmp_choice of all the non choices
          and merge this with all the choice elements.*/
       struct FD_CHOICE **choices, *_choices[16], *tmp_choice;
-      const fdtype *scan=ch->ach_data, *lim=ch->ach_write; fdtype result;
+      const fdtype *scan=ch->achoice_data, *lim=ch->achoice_write; fdtype result;
       fdtype *write;
-      int n_entries=ch->ach_write-ch->ach_data, n_vals=n_entries-ch->ach_nested;
+      int n_entries=ch->achoice_write-ch->achoice_data, n_vals=n_entries-ch->achoice_nested;
       int i=0, n_choices;
       /* Figure out how many choices we need to merge. */
-      if (n_vals) n_choices=ch->ach_nested+1; else n_choices=ch->ach_nested;
+      if (n_vals) n_choices=ch->achoice_nested+1; else n_choices=ch->achoice_nested;
       /* We try to use a stack mallocd choices vector. */
       if (n_choices>16)
         choices=u8_alloc_n(n_choices,struct FD_CHOICE *);
@@ -468,12 +471,12 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       if ((n_vals)&&(result!=((fdtype)tmp_choice)))
         u8_free((struct FD_CHOICE *)tmp_choice);
       if (n_choices>16) u8_free(choices);
-      if (ch->fd_uselock) fd_unlock_struct(ch);
+      if (ch->achoice_uselock) unlock_achoice(ch);
       if (free_achoice) {
         recycle_achoice((struct FD_CONS *)ch);
         return result;}
       else {
-        ch->ach_normalized=result;
+        ch->achoice_normalized=result;
         return fd_incref(result);}}}
   else return x;
 }
@@ -654,22 +657,22 @@ static
    sorting the resulting choice isn't a big deal. */
 fdtype convert_achoice(struct FD_ACHOICE *ch,int freeing_achoice)
 {
-  struct FD_CHOICE *result=fd_alloc_choice(ch->ach_size);
+  struct FD_CHOICE *result=fd_alloc_choice(ch->achoice_size);
   fdtype *base=(fdtype *)FD_XCHOICE_DATA(result);
-  fdtype *write=base, *write_limit=base+(ch->ach_size);
-  fdtype *scan=ch->ach_data, *limit=ch->ach_write;
+  fdtype *write=base, *write_limit=base+(ch->achoice_size);
+  fdtype *scan=ch->achoice_data, *limit=ch->achoice_write;
   while (scan < limit) {
     fdtype v=*scan;
     if (write>=write_limit) {
       u8_log(LOG_WARN,"achoice_inconsistency",
-              "total size is more than the recorded %d",ch->ach_size);
+              "total size is more than the recorded %d",ch->achoice_size);
       abort();}
     else if (FD_CHOICEP(v)) {
       struct FD_CHOICE *each=(struct FD_CHOICE *)v;
       int freed=((freeing_achoice) && (FD_CONS_REFCOUNT(each)==1));
       if (write+FD_XCHOICE_SIZE(each)>write_limit) {
         u8_log(LOG_WARN,"achoice_inconsistency",
-                "total size is more than the recorded %d",ch->ach_size);
+                "total size is more than the recorded %d",ch->achoice_size);
         abort();}
       else if (FD_XCHOICE_ATOMICP(each)) {
         memcpy(write,FD_XCHOICE_DATA(each),
@@ -696,7 +699,7 @@ fdtype convert_achoice(struct FD_ACHOICE *ch,int freeing_achoice)
   if ((write-base)>1)
     return fd_init_choice(result,write-base,NULL,
                           (FD_CHOICE_DOSORT|
-                           ((ch->ach_atomic)?(FD_CHOICE_ISATOMIC):
+                           ((ch->achoice_atomic)?(FD_CHOICE_ISATOMIC):
                             (FD_CHOICE_ISCONSES))));
   else {
     fdtype v=base[0];

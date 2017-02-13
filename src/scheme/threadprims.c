@@ -200,8 +200,8 @@ static fdtype synchro_lock(fdtype lck)
     return FD_TRUE;}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
-    if (sp->fd_synchronized) {
-      fd_lock_struct(sp);}
+    if (sp->sproc_synchronized) {
+      u8_lock_mutex(&(sp->sproc_lock));}
     else return fd_type_error("lockable","synchro_lock",lck);
     return FD_TRUE;}
   else return fd_type_error("lockable","synchro_lock",lck);
@@ -216,8 +216,8 @@ static fdtype synchro_unlock(fdtype lck)
     return FD_TRUE;}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
-    if (sp->fd_synchronized) {
-      fd_unlock_struct(sp);}
+    if (sp->sproc_synchronized) {
+      u8_lock_mutex(&(sp->sproc_lock));}
     else return fd_type_error("lockable","synchro_lock",lck);
     return FD_TRUE;}
   else return fd_type_error("lockable","synchro_unlock",lck);
@@ -235,8 +235,8 @@ static fdtype with_lock_handler(fdtype expr,fd_lispenv env)
     u8_lock_mutex(&(cv->fd_cvlock));}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
-    if (sp->fd_synchronized) {
-      fd_lock_struct(sp);}
+    if (sp->sproc_synchronized) {
+      u8_lock_mutex(&(sp->sproc_lock));}
     else return fd_type_error("lockable","synchro_lock",lck);}
   else return fd_type_error("lockable","synchro_unlock",lck);
   {U8_WITH_CONTOUR("WITH-LOCK",0) {
@@ -253,8 +253,8 @@ static fdtype with_lock_handler(fdtype expr,fd_lispenv env)
     u8_unlock_mutex(&(cv->fd_cvlock));}
   else if (FD_SPROCP(lck)) {
     struct FD_SPROC *sp=FD_GET_CONS(lck,fd_sproc_type,struct FD_SPROC *);
-    if (sp->fd_synchronized) {
-      fd_unlock_struct(sp);}
+    if (sp->sproc_synchronized) {
+      u8_unlock_mutex(&(sp->sproc_lock));}
     else return fd_type_error("lockable","synchro_lock",lck);}
   else return fd_type_error("lockable","synchro_unlock",lck);
   return value;

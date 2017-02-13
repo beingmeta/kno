@@ -1409,7 +1409,7 @@ static fdtype get_reqinfo()
   else {
     fdtype newinfo=fd_empty_slotmap();
     fd_slotmap sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
-    u8_write_lock(&(sm->table_rwlock)); sm->fd_uselock=0;
+    u8_write_lock(&(sm->table_rwlock)); sm->table_uselock=0;
     u8_tld_set(reqinfo_key,(void *)newinfo);
     return newinfo;}
 }
@@ -1434,7 +1434,7 @@ static fdtype get_reqinfo()
   else {
     fdtype newinfo=fd_empty_slotmap();
     fd_slotmap sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
-    u8_write_lock(&(sm->table_rwlock)); sm->fd_uselock=0;
+    u8_write_lock(&(sm->table_rwlock)); sm->table_uselock=0;
     reqinfo=newinfo;
     return newinfo;}
 }
@@ -1505,13 +1505,13 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
   if ((FD_TRUEP(newinfo))&&(FD_TABLEP(curinfo))) return;
   if (FD_SLOTMAPP(curinfo)) {
     fd_slotmap sm=FD_GET_CONS(curinfo,fd_slotmap_type,fd_slotmap);
-    if (sm->fd_uselock==0) {
-      sm->fd_uselock=1;
+    if (sm->table_uselock==0) {
+      sm->table_uselock=1;
       u8_rw_unlock(&(sm->table_rwlock));}}
   else if (FD_HASHTABLEP(curinfo)) {
     fd_hashtable ht=FD_GET_CONS(curinfo,fd_hashtable_type,fd_hashtable);
-    if (ht->fd_uselock==0) {
-      ht->fd_uselock=1;
+    if (ht->table_uselock==0) {
+      ht->table_uselock=1;
       u8_rw_unlock(&(ht->table_rwlock));}}
   else {}
   if ((FD_FALSEP(newinfo))||
@@ -1523,7 +1523,7 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
   else if (FD_TRUEP(newinfo)) {
     fd_slotmap sm; newinfo=fd_empty_slotmap();
     sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
-    u8_write_lock(&(sm->table_rwlock)); sm->fd_uselock=0;}
+    u8_write_lock(&(sm->table_rwlock)); sm->table_uselock=0;}
   else if ((FD_SLOTMAPP(newinfo))||(FD_SLOTMAPP(curinfo)))
     fd_incref(newinfo);
   else {
@@ -1531,15 +1531,15 @@ FD_EXPORT void fd_use_reqinfo(fdtype newinfo)
            "USE_REQINFO arg isn't slotmap or table: %q",newinfo);
     fd_slotmap sm; newinfo=fd_empty_slotmap();
     sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
-    u8_write_lock(&(sm->table_rwlock)); sm->fd_uselock=0;}
+    u8_write_lock(&(sm->table_rwlock)); sm->table_uselock=0;}
   if (FD_SLOTMAPP(newinfo)) {
     fd_slotmap sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
     u8_write_lock(&(sm->table_rwlock));
-    sm->fd_uselock=0;}
+    sm->table_uselock=0;}
   else if (FD_HASHTABLEP(newinfo)) {
     fd_hashtable ht=FD_GET_CONS(newinfo,fd_hashtable_type,fd_hashtable);
     u8_write_lock(&(ht->table_rwlock));
-    ht->fd_uselock=0;}
+    ht->table_uselock=0;}
   set_reqinfo(newinfo);
   fd_decref(curinfo);
 }
@@ -1550,13 +1550,13 @@ FD_EXPORT fdtype fd_push_reqinfo(fdtype newinfo)
   if (curinfo==newinfo) return curinfo;
   if (FD_SLOTMAPP(curinfo)) {
     fd_slotmap sm=FD_GET_CONS(curinfo,fd_slotmap_type,fd_slotmap);
-    if (sm->fd_uselock==0) {
-      sm->fd_uselock=1;
+    if (sm->table_uselock==0) {
+      sm->table_uselock=1;
       u8_rw_unlock(&(sm->table_rwlock));}}
   else if (FD_HASHTABLEP(curinfo)) {
     fd_hashtable ht=FD_GET_CONS(curinfo,fd_hashtable_type,fd_hashtable);
-    if (ht->fd_uselock==0) {
-      ht->fd_uselock=1;
+    if (ht->table_uselock==0) {
+      ht->table_uselock=1;
       u8_rw_unlock(&(ht->table_rwlock));}}
   if ((FD_FALSEP(newinfo))||
       (FD_VOIDP(newinfo))||
@@ -1573,11 +1573,11 @@ FD_EXPORT fdtype fd_push_reqinfo(fdtype newinfo)
   if (FD_SLOTMAPP(newinfo)) {
     fd_slotmap sm=FD_GET_CONS(newinfo,fd_slotmap_type,fd_slotmap);
     u8_write_lock(&(sm->table_rwlock));
-    sm->fd_uselock=0;}
+    sm->table_uselock=0;}
   else if (FD_HASHTABLEP(newinfo)) {
     fd_hashtable ht=FD_GET_CONS(newinfo,fd_hashtable_type,fd_hashtable);
     u8_write_lock(&(ht->table_rwlock));
-    ht->fd_uselock=0;}
+    ht->table_uselock=0;}
   set_reqinfo(newinfo);
   return curinfo;
 }

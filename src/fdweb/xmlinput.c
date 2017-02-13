@@ -708,8 +708,8 @@ static void cleanup_attribs(fdtype table)
   if (FD_SLOTMAPP(table)) {
     struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)table;
     struct FD_KEYVAL *scan, *limit; int unlock=0, size;
-    if (sm->fd_uselock) { fd_read_lock(&sm->table_rwlock); unlock=1;}
-    size=FD_XSLOTMAP_SIZE(sm); scan=sm->fd_keyvals; limit=scan+size;
+    if (sm->table_uselock) { fd_read_lock(&sm->table_rwlock); unlock=1;}
+    size=FD_XSLOTMAP_SIZE(sm); scan=sm->sm_keyvals; limit=scan+size;
     if (size==0) {
       if (unlock) fd_rw_unlock(&sm->table_rwlock);
       return;}

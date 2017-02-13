@@ -334,7 +334,7 @@ typedef struct FD_SYMBOL_ENTRY {
   int fd_symid;} FD_SYMBOL_ENTRY;
 typedef struct FD_SYMBOL_ENTRY *fd_symbol_entry;
 struct FD_SYMBOL_TABLE {
-  int fd_table_size;
+  int table_size;
   struct FD_SYMBOL_ENTRY **fd_symbol_entries;};
 FD_EXPORT struct FD_SYMBOL_TABLE fd_symbol_table;
 
@@ -461,26 +461,27 @@ FD_EXPORT fdtype fd_make_nrail(int len,...);
 
 typedef struct FD_COMPOUND {
   FD_CONS_HEADER;
-  fdtype fd_typetag; u8_byte fd_ismutable, fd_isopaque, fd_n_elts;
+  fdtype compound_typetag;
+  u8_byte compound_ismutable, compound_isopaque, fd_n_elts;
 #if FD_THREADS_ENABLED
   u8_mutex fd_lock;
 #endif
-  fdtype fd_elt0;} FD_COMPOUND;
+  fdtype compound_0;} FD_COMPOUND;
 typedef struct FD_COMPOUND *fd_compound;
 
 #define FD_COMPOUNDP(x) (FD_PTR_TYPE(x) == fd_compound_type)
 #define FD_COMPOUND_TAG(x) \
-  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->fd_typetag)
+  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->compound_typetag)
 #define FD_COMPOUND_DATA(x) \
   ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0)
 #define FD_COMPOUND_TYPEP(x,tag)                        \
   ((FD_PTR_TYPE(x) == fd_compound_type) && (FD_COMPOUND_TAG(x)==tag))
 #define FD_COMPOUND_ELTS(x) \
-  (&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->fd_elt0))
+  (&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->compound_0))
 #define FD_COMPOUND_LENGTH(x) \
   ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->fd_n_elts)
 #define FD_COMPOUND_REF(x,i)                                            \
-  ((&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->fd_elt0))[i])
+  ((&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->compound_0))[i])
 #define FD_XCOMPOUND(x) (FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))
 
 FD_EXPORT fdtype fd_init_compound
@@ -620,7 +621,7 @@ typedef fdtype (*fd_compound_dumpfn)(fdtype,fd_compound_typeinfo);
 typedef fdtype (*fd_compound_restorefn)(fdtype,fdtype,fd_compound_typeinfo);
 
 typedef struct FD_COMPOUND_TYPEINFO {
-  fdtype fd_typetag, fd_compound_metadata; int fd_compound_corelen;
+  fdtype compound_typetag, fd_compound_metadata; int fd_compound_corelen;
   fd_compound_parsefn fd_compound_parser;
   fd_compound_unparsefn fd_compound_unparser;
   fd_compound_dumpfn fd_compound_dumpfn;

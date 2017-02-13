@@ -46,7 +46,7 @@ static fdtype special_formp(fdtype x)
 
 static fdtype primitivep(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_function_type)) return FD_TRUE;
+  if (FD_PRIM_TYPEP(x,fd_primfcn_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -140,7 +140,7 @@ static fdtype synchronizedp(fdtype x)
 {
   if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
     fd_sproc f=(fd_sproc)x;
-    if (f->fd_synchronized)
+    if (f->sproc_synchronized)
       return FD_TRUE;
     else return FD_FALSE;}
   else if (FD_APPLICABLEP(x))
@@ -162,7 +162,7 @@ static fdtype compound_procedure_args(fdtype arg)
   fdtype x=fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)x;
-    return fd_incref(proc->fd_arglist);}
+    return fd_incref(proc->sproc_arglist);}
   else return fd_type_error
 	 ("compound procedure","compound_procedure_args",x);
 }
@@ -172,8 +172,8 @@ static fdtype set_compound_procedure_args(fdtype arg,fdtype new_arglist)
   fdtype x=fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_fcnid_ref(x);
-    fdtype arglist=proc->fd_arglist;
-    proc->fd_arglist=fd_incref(new_arglist);
+    fdtype arglist=proc->sproc_arglist;
+    proc->sproc_arglist=fd_incref(new_arglist);
     fd_decref(arglist);
     return FD_VOID;}
   else return fd_type_error
@@ -185,7 +185,7 @@ static fdtype compound_procedure_env(fdtype arg)
   fdtype x=fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_fcnid_ref(x);
-    return (fdtype) fd_copy_env(proc->fd_procenv);}
+    return (fdtype) fd_copy_env(proc->sproc_env);}
   else return fd_type_error("compound procedure","compound_procedure_env",x);
 }
 
@@ -194,7 +194,7 @@ static fdtype compound_procedure_body(fdtype arg)
   fdtype x=fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_fcnid_ref(x);
-    return fd_incref(proc->fd_body);}
+    return fd_incref(proc->sproc_body);}
   else return fd_type_error
 	 ("compound procedure","compound_procedure_body",x);
 }
@@ -204,8 +204,8 @@ static fdtype set_compound_procedure_body(fdtype arg,fdtype new_body)
   fdtype x=fd_fcnid_ref(arg);
   if (FD_SPROCP(x)) {
     struct FD_SPROC *proc=(fd_sproc)fd_fcnid_ref(x);
-    fdtype body=proc->fd_body;
-    proc->fd_body=fd_incref(new_body);
+    fdtype body=proc->sproc_body;
+    proc->sproc_body=fd_incref(new_body);
     fd_decref(body);
     return FD_VOID;}
   else return fd_type_error

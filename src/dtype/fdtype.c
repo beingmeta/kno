@@ -83,7 +83,7 @@ static void init_type_names()
   fd_type_names[fd_mystery_type]=_("mystery");
   fd_type_names[fd_qchoice_type]=_("quoted choice");
   fd_type_names[fd_hashset_type]=_("hashset");
-  fd_type_names[fd_function_type]=_("function");
+  fd_type_names[fd_primfcn_type]=_("function");
   fd_type_names[fd_error_type]=_("error");
   fd_type_names[fd_complex_type]=_("complex");
   fd_type_names[fd_rational_type]=_("rational");

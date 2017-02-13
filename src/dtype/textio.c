@@ -1329,7 +1329,7 @@ static fdtype recreate_record(int n,fdtype *v)
   {
     struct FD_COMPOUND *c=
       u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));
-    fdtype *data=&(c->fd_elt0); fd_init_compound(c,v[0],0,0);
+    fdtype *data=&(c->compound_0); fd_init_compound(c,v[0],0,0);
     c->fd_n_elts=n-1;
     i=1; while (i<n) {data[i-1]=v[i]; i++;}
     if (v) u8_free(v);
@@ -1352,25 +1352,25 @@ static fdtype get_compound_tag(fdtype tag)
 {
   if (FD_COMPOUND_TYPEP(tag,fd_compound_descriptor_type)) {
     struct FD_COMPOUND *c=FD_XCOMPOUND(tag);
-    return fd_incref(c->fd_elt0);}
+    return fd_incref(c->compound_typetag);}
   else return tag;
 }
 
 static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
-  fdtype tag=get_compound_tag(xc->fd_typetag);
+  fdtype tag=get_compound_tag(xc->compound_typetag);
   struct FD_COMPOUND_TYPEINFO *entry=fd_lookup_compound(tag);
   if ((entry) && (entry->fd_compound_unparser)) {
     int retval=entry->fd_compound_unparser(out,x,entry);
     if (retval<0) return retval;
     else if (retval) return retval;}
   {
-    fdtype *data=&(xc->fd_elt0);
+    fdtype *data=&(xc->compound_0);
     int i=0, n=xc->fd_n_elts;
     if ((entry)&&(entry->fd_compound_corelen>0)&&(entry->fd_compound_corelen<n))
       n=entry->fd_compound_corelen;
-    u8_printf(out,"#%%(%q",xc->fd_typetag);
+    u8_printf(out,"#%%(%q",xc->compound_typetag);
     while (i<n) {
       fdtype elt=data[i++];
       if (0) { /* (FD_PACKETP(elt)) */

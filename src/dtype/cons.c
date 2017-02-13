@@ -176,7 +176,7 @@ void fd_recycle_cons(fd_cons c)
       break;}
     case fd_choice_type: {
       struct FD_CHOICE *cv=(struct FD_CHOICE *)c;
-      int len=cv->fd_choicesize, atomicp=cv->fd_isatomic;
+      int len=cv->choice_size, atomicp=cv->choice_isatomic;
       const fdtype *scan=FD_XCHOICE_DATA(cv), *limit=scan+len;
       if (scan == NULL) break;
       if (!(atomicp)) while (scan<limit) {fd_decref(*scan); scan++;}
@@ -341,8 +341,8 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
       case fd_choice_type: {
         struct FD_CHOICE *xc=FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *);
         struct FD_CHOICE *yc=FD_GET_CONS(y,fd_choice_type,struct FD_CHOICE *);
-        if ((quick) && (xc->fd_choicesize>yc->fd_choicesize)) return 1;
-        else if ((quick) && (xc->fd_choicesize<yc->fd_choicesize)) return -1;
+        if ((quick) && (xc->choice_size>yc->choice_size)) return 1;
+        else if ((quick) && (xc->choice_size<yc->choice_size)) return -1;
         else {
           int xlen=FD_XCHOICE_SIZE(xc), ylen=FD_XCHOICE_SIZE(yc);
           const fdtype *xscan=FD_XCHOICE_DATA(xc);
@@ -441,7 +441,7 @@ fdtype fd_copier(fdtype x,int flags)
         (FD_CHOICE_ISCONSES);
       struct FD_CHOICE *copy=fd_alloc_choice(n);
       const fdtype *read=FD_CHOICE_DATA(x), *limit=read+n;
-      fdtype *write=(fdtype *)&(copy->fd_elt0);
+      fdtype *write=(fdtype *)&(copy->choice_0);
       fdtype result;
       if (FD_ATOMIC_CHOICEP(x))
         memcpy(write,read,sizeof(fdtype)*n);
@@ -890,16 +890,16 @@ FD_EXPORT fdtype fd_init_compound
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
   if (mutable) fd_init_mutex(&(p->fd_lock));
-  p->fd_typetag=fd_incref(tag); p->fd_ismutable=mutable; p->fd_n_elts=n; p->fd_isopaque=0;
+  p->compound_typetag=fd_incref(tag); p->compound_ismutable=mutable; p->fd_n_elts=n; p->compound_isopaque=0;
   if (n>0) {
-    write=&(p->fd_elt0); limit=write+n;
+    write=&(p->compound_0); limit=write+n;
     va_start(args,n);
     while (write<limit) {
       fdtype value=va_arg(args,fdtype);
       *write=value; write++;}
     va_end(args);
     if (FD_ABORTP(initfn)) {
-      write=&(p->fd_elt0);
+      write=&(p->compound_0);
       while (write<limit) {fd_decref(*write); write++;}
       return initfn;}
     else return FDTYPE_CONS(p);}
@@ -911,19 +911,22 @@ FD_EXPORT fdtype fd_init_compound_from_elts
 {
   fdtype *write, *limit, *read=elts, initfn=FD_FALSE;
   if (FD_EXPECT_FALSE((n<0) || (n>=256)))
-    return fd_type_error(_("positive byte"),"fd_init_compound_from_elts",FD_SHORT2DTYPE(n));
+    return fd_type_error(_("positive byte"),"fd_init_compound_from_elts",
+                         FD_SHORT2DTYPE(n));
   else if (p==NULL) {
     if (n==0) p=u8_malloc(sizeof(struct FD_COMPOUND));
     else p=u8_malloc(sizeof(struct FD_COMPOUND)+(n-1)*sizeof(fdtype));}
   FD_INIT_CONS(p,fd_compound_type);
   if (mutable) fd_init_mutex(&(p->fd_lock));
-  p->fd_typetag=fd_incref(tag); p->fd_ismutable=mutable; p->fd_n_elts=n; p->fd_isopaque=0;
+  p->compound_typetag=fd_incref(tag);
+  p->compound_ismutable=mutable;
+  p->fd_n_elts=n; p->compound_isopaque=0;
   if (n>0) {
-    write=&(p->fd_elt0); limit=write+n;
+    write=&(p->compound_0); limit=write+n;
     while (write<limit) {
       *write=*read++; write++;}
     if (FD_ABORTP(initfn)) {
-      write=&(p->fd_elt0);
+      write=&(p->compound_0);
       while (write<limit) {fd_decref(*write); write++;}
       return initfn;}
     else return FDTYPE_CONS(p);}
@@ -933,10 +936,10 @@ FD_EXPORT fdtype fd_init_compound_from_elts
 static void recycle_compound(struct FD_CONS *c)
 {
   struct FD_COMPOUND *compound=(struct FD_COMPOUND *)c;
-  int i=0, n=compound->fd_n_elts; fdtype *data=&(compound->fd_elt0);
+  int i=0, n=compound->fd_n_elts; fdtype *data=&(compound->compound_0);
   while (i<n) {fd_decref(data[i]); i++;}
-  fd_decref(compound->fd_typetag);
-  if (compound->fd_ismutable) fd_destroy_mutex(&(compound->fd_lock));
+  fd_decref(compound->compound_typetag);
+  if (compound->compound_ismutable) fd_destroy_mutex(&(compound->fd_lock));
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -946,14 +949,15 @@ static int compare_compounds(fdtype x,fdtype y,int quick)
   struct FD_COMPOUND *yc=FD_GET_CONS(y,fd_compound_type,struct FD_COMPOUND *);
   int cmp;
   if (xc == yc) return 0;
-  else if ((xc->fd_isopaque) || (yc->fd_isopaque))
+  else if ((xc->compound_isopaque) || (yc->compound_isopaque))
     if (xc>yc) return 1; else return -1;
-  else if ((cmp=(FD_COMPARE(xc->fd_typetag,yc->fd_typetag,quick)))) return cmp;
+  else if ((cmp=(FD_COMPARE(xc->compound_typetag,yc->compound_typetag,quick))))
+    return cmp;
   else if (xc->fd_n_elts<yc->fd_n_elts) return -1;
   else if (xc->fd_n_elts>yc->fd_n_elts) return 1;
   else {
     int i=0, len=xc->fd_n_elts;
-    fdtype *xdata=&(xc->fd_elt0), *ydata=&(yc->fd_elt0);
+    fdtype *xdata=&(xc->compound_0), *ydata=&(yc->compound_0);
     while (i<len)
       if ((cmp=(FD_COMPARE(xdata[i],ydata[i],quick)))==0)
         i++;
@@ -966,11 +970,11 @@ static int dtype_compound(struct FD_BYTE_OUTPUT *out,fdtype x)
   struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
   int n_bytes=1;
   fd_write_byte(out,dt_compound);
-  n_bytes=n_bytes+fd_write_dtype(out,xc->fd_typetag);
+  n_bytes=n_bytes+fd_write_dtype(out,xc->compound_typetag);
   if (xc->fd_n_elts==1)
-    n_bytes=n_bytes+fd_write_dtype(out,xc->fd_elt0);
+    n_bytes=n_bytes+fd_write_dtype(out,xc->compound_0);
   else {
-    int i=0, n=xc->fd_n_elts; fdtype *data=&(xc->fd_elt0);
+    int i=0, n=xc->fd_n_elts; fdtype *data=&(xc->compound_0);
     fd_write_byte(out,dt_vector);
     fd_write_4bytes(out,xc->fd_n_elts);
     n_bytes=n_bytes+5;
@@ -985,16 +989,16 @@ static int dtype_compound(struct FD_BYTE_OUTPUT *out,fdtype x)
 static fdtype copy_compound(fdtype x,int flags)
 {
   struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
-  if (xc->fd_isopaque) {
+  if (xc->compound_isopaque) {
     fd_incref(x); return x;}
   else {
     int i=0, n=xc->fd_n_elts;
     struct FD_COMPOUND *nc=u8_malloc(sizeof(FD_COMPOUND)+(n-1)*sizeof(fdtype));
-    fdtype *data=&(xc->fd_elt0), *write=&(nc->fd_elt0);
+    fdtype *data=&(xc->compound_0), *write=&(nc->compound_0);
     FD_INIT_CONS(nc,fd_compound_type);
-    if (xc->fd_ismutable) fd_init_mutex(&(nc->fd_lock));
-    nc->fd_ismutable=xc->fd_ismutable; nc->fd_isopaque=1;
-    nc->fd_typetag=fd_incref(xc->fd_typetag); nc->fd_n_elts=xc->fd_n_elts;
+    if (xc->compound_ismutable) fd_init_mutex(&(nc->fd_lock));
+    nc->compound_ismutable=xc->compound_ismutable; nc->compound_isopaque=1;
+    nc->compound_typetag=fd_incref(xc->compound_typetag); nc->fd_n_elts=xc->fd_n_elts;
     if (flags)
       while (i<n) {
         *write=fd_copier(data[i],flags); i++; write++;}
@@ -1182,7 +1186,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_register_compound(fdtype symbol,fdtype
   fd_lock_mutex(&compound_registry_lock);
   scan=fd_compound_entries;
   while (scan)
-    if (FD_EQ(scan->fd_typetag,symbol)) {
+    if (FD_EQ(scan->compound_typetag,symbol)) {
       if (datap) {
         fdtype data=*datap;
         if (FD_VOIDP(scan->fd_compound_metadata)) {
@@ -1204,7 +1208,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_register_compound(fdtype symbol,fdtype
   else newrec->fd_compound_metadata=FD_VOID;
   newrec->fd_compound_corelen=((corep)?(*corep):(-1));
   newrec->fd_compound_nextinfo=fd_compound_entries; 
-  newrec->fd_typetag=symbol;
+  newrec->compound_typetag=symbol;
   newrec->fd_compound_parser=NULL; 
   newrec->fd_compound_dumpfn=NULL; 
   newrec->fd_compound_restorefn=NULL;
@@ -1221,7 +1225,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO
   fd_lock_mutex(&compound_registry_lock);
   scan=fd_compound_entries;
   while (scan)
-    if (FD_EQ(scan->fd_typetag,symbol)) {
+    if (FD_EQ(scan->compound_typetag,symbol)) {
       if (!(FD_VOIDP(data))) {
         fdtype old_data=scan->fd_compound_metadata;
         scan->fd_compound_metadata=fd_incref(data);
@@ -1234,7 +1238,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO
   memset(newrec,0,sizeof(struct FD_COMPOUND_TYPEINFO));
   newrec->fd_compound_metadata=data;
   newrec->fd_compound_corelen=core_slots;
-  newrec->fd_typetag=symbol;
+  newrec->compound_typetag=symbol;
   newrec->fd_compound_nextinfo=fd_compound_entries; 
   newrec->fd_compound_parser=NULL;
   newrec->fd_compound_dumpfn=NULL;
@@ -1249,7 +1253,7 @@ FD_EXPORT struct FD_COMPOUND_TYPEINFO *fd_lookup_compound(fdtype symbol)
 {
   struct FD_COMPOUND_TYPEINFO *scan=fd_compound_entries;
   while (scan)
-    if (FD_EQ(scan->fd_typetag,symbol)) {
+    if (FD_EQ(scan->compound_typetag,symbol)) {
       return scan;}
     else scan=scan->fd_compound_nextinfo;
   return NULL;
@@ -1614,7 +1618,7 @@ void fd_init_cons_c()
                      fd_intern("RESTOREFN")),
      FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
      FD_FALSE,FD_FALSE);
-  ((fd_compound)fd_compound_descriptor_type)->fd_typetag=fd_compound_descriptor_type;
+  ((fd_compound)fd_compound_descriptor_type)->compound_typetag=fd_compound_descriptor_type;
   fd_incref(fd_compound_descriptor_type);
 }
 

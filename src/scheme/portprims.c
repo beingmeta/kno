@@ -1006,7 +1006,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
         u8_printf(out,"#[]"); return col+3;}
       else {u8_printf(out," #[]"); return col+4;}}
     fd_read_lock_table(sm);
-    scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
+    scan=sm->sm_keyvals; limit=sm->sm_keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
       fdtype key=scan->fd_kvkey, val=scan->fd_keyval;
@@ -1132,7 +1132,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
       if (is_initial) {
         u8_printf(out," #[]"); return 3;}
       else {u8_printf(out," #[]"); return 4;}}
-    scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
+    scan=sm->sm_keyvals; limit=sm->sm_keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
       col=fd_xpprint(out,scan->fd_kvkey,prefix,
@@ -1243,7 +1243,7 @@ static int embeddedp(fdtype focus,fdtype expr)
     int slotmap_size;
     fd_read_lock_table(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
-    scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
+    scan=sm->sm_keyvals; limit=sm->sm_keyvals+slotmap_size;
     while (scan<limit)
       if (embeddedp(focus,scan->fd_kvkey)) {
         fd_unlock_table(sm); return 1;}

@@ -89,7 +89,7 @@ static fdtype static_hashtable(fdtype table)
 {
   struct FD_HASHTABLE *ht=(fd_hashtable)table;
   fd_write_lock_table(ht);
-  ht->fd_uselock=0;
+  ht->table_uselock=0;
   fd_unlock_table(ht);
   return fd_incref(table);
 }

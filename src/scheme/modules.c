@@ -226,7 +226,7 @@ int fd_static_module(fdtype module)
     int conversions=0;
     struct FD_HASHTABLE *ht=(fd_hashtable)module;
     conversions=conversions+fd_static_hashtable(ht,fd_sproc_type);
-    conversions=conversions+fd_static_hashtable(ht,fd_function_type);
+    conversions=conversions+fd_static_hashtable(ht,fd_primfcn_type);
     conversions=conversions+fd_static_hashtable(ht,fd_specform_type);
     return conversions;}
   else if (FD_TABLEP(module)) return 0;

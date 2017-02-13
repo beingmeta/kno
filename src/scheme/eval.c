@@ -235,14 +235,14 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
     case fd_schemap_type: {
       int envcount=0;
       int i=0, len=FD_SCHEMAP_SIZE(obj);
-      fdtype *elts=FD_XSCHEMAP(obj)->fd_values;
+      fdtype *elts=FD_XSCHEMAP(obj)->schema_values;
       while (i<len) {
         envcount=envcount+count_envrefs(elts[i],env,depth-1); i++;}
       return envcount;}
     case fd_slotmap_type: {
       int envcount=0;
       int i=0, len=FD_SLOTMAP_SIZE(obj);
-      struct FD_KEYVAL *kv=(FD_XSLOTMAP(obj))->fd_keyvals;
+      struct FD_KEYVAL *kv=(FD_XSLOTMAP(obj))->sm_keyvals;
       while (i<len) {
         envcount=envcount+count_envrefs(kv[i].fd_keyval,env,depth-1); i++;}
       return envcount;}
@@ -263,7 +263,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
     case fd_achoice_type: {
       int envcount=0;
       struct FD_ACHOICE *ach=(struct FD_ACHOICE *)obj;
-      fdtype *data=ach->ach_data, *end=ach->ach_write;
+      fdtype *data=ach->achoice_data, *end=ach->achoice_write;
       while (data<end) {
         fdtype e=*data++;
         if ((FD_CONSP(e))) {
@@ -306,7 +306,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
         else return 0;}
       else if (constype==fd_sproc_type) {
         struct FD_SPROC *sp=FD_STRIP_CONS(obj,fd_sproc_type,struct FD_SPROC *);
-        struct FD_ENVIRONMENT *scan=sp->fd_procenv;
+        struct FD_ENVIRONMENT *scan=sp->sproc_env;
         while (scan) {
           if ((scan==env)||(scan->env_copy==env))
             return 1;
@@ -1552,7 +1552,7 @@ static fdtype callcc (fdtype proc)
 {
   fdtype continuation, value;
   struct FD_CONTINUATION *f=u8_alloc(struct FD_CONTINUATION);
-  FD_INIT_CONS(f,fd_function_type);
+  FD_INIT_CONS(f,fd_primfcn_type);
   f->fcn_name="continuation"; f->fcn_filename=NULL;
   f->fcn_ndcall=1; f->fcn_xcall=1; f->fcn_arity=1; f->fcn_min_arity=1;
   f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;

@@ -1354,7 +1354,7 @@ static bool bson_append_dtype(struct FD_BSON_OUTPUT b,
       break;}
     case fd_compound_type: {
       struct FD_COMPOUND *compound=FD_XCOMPOUND(val);
-      fdtype tag=compound->fd_typetag, *elts=FD_COMPOUND_ELTS(val);
+      fdtype tag=compound->compound_typetag, *elts=FD_COMPOUND_ELTS(val);
       int len=FD_COMPOUND_LENGTH(val);
       struct FD_BSON_OUTPUT rout;
       bson_t doc;
@@ -1531,7 +1531,7 @@ FD_EXPORT fdtype fd_bson_output(struct FD_BSON_OUTPUT out,fdtype obj)
     fd_decref(keys);}
   else if (FD_COMPOUNDP(obj)) {
     struct FD_COMPOUND *compound=FD_XCOMPOUND(obj);
-    fdtype tag=compound->fd_typetag, *elts=FD_COMPOUND_ELTS(obj);
+    fdtype tag=compound->compound_typetag, *elts=FD_COMPOUND_ELTS(obj);
     int len=FD_COMPOUND_LENGTH(obj);
     if (tag==mongomap_symbol) {
       fdtype *scan=elts, *limit=scan+len;
@@ -1741,7 +1741,7 @@ static void bson_read_step(FD_BSON_INPUT b,fdtype into,fdtype *loc)
           else {
             struct FD_COMPOUND *c=
               u8_malloc(sizeof(struct FD_COMPOUND)+(n*sizeof(fdtype)));
-            fdtype *cdata=&(c->fd_elt0); fd_init_compound(c,tag,0,0);
+            fdtype *cdata=&(c->compound_0); fd_init_compound(c,tag,0,0);
             c->fd_n_elts=n;
             memcpy(cdata,fields,n);
             compound=FDTYPE_CONS(c);}

@@ -552,7 +552,7 @@ static fdtype *fetchn(struct FD_FILE_INDEX *fx,int n,fdtype *keys,int lock_adds)
       fdtype v=values[k++];
       if (FD_ACHOICEP(v)) {
         struct FD_ACHOICE *ac=(struct FD_ACHOICE *)v;
-        ac->fd_uselock=1;}}
+        ac->achoice_uselock=1;}}
     u8_free(schedule);
     return values;}
 }

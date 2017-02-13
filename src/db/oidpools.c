@@ -949,8 +949,8 @@ static int get_schema_id(fd_oidpool op,fdtype value)
 {
   if ( (FD_SCHEMAPP(value)) && (FD_SCHEMAP_SORTEDP(value)) ) {
     struct FD_SCHEMAP *sm=(fd_schemap)value;
-    fdtype *slotids=sm->fd_schema, size=sm->fd_table_size;
-    if (sm->fd_tagged) {
+    fdtype *slotids=sm->table_schema, size=sm->table_size;
+    if (sm->schemap_tagged) {
       fdtype pos=slotids[size];
       int intpos=fd_getint(pos);
       if ((intpos<op->pool_n_schemas) &&
@@ -965,7 +965,7 @@ static int get_schema_id(fd_oidpool op,fdtype value)
       tmp_slotids=_tmp_slotids;
     else tmp_slotids=u8_alloc_n(size,fdtype);
     while (i<size) {
-      tmp_slotids[i]=sm->fd_keyvals[i].fd_kvkey; i++;}
+      tmp_slotids[i]=sm->sm_keyvals[i].fd_kvkey; i++;}
     /* assert(schema_sortedp(tmp_slotids,size)); */
     if (tmp_slotids==_tmp_slotids)
       return find_schema_byval(op,tmp_slotids,size);
@@ -997,15 +997,15 @@ static int oidpool_write_value(fdtype value,fd_dtype_stream stream,
       fd_write_zint(tmpout,schema_id+1);
       if (FD_SCHEMAPP(value)) {
         struct FD_SCHEMAP *sm=(fd_schemap)value;
-        fdtype *values=sm->fd_values;
-        int i=0, size=sm->fd_table_size;
+        fdtype *values=sm->schema_values;
+        int i=0, size=sm->table_size;
         fd_write_zint(tmpout,size);
         while (i<size) {
           fd_write_dtype(tmpout,values[se->fd_slotmapout[i]]);
           i++;}}
       else {
         struct FD_SLOTMAP *sm=(fd_slotmap)value;
-        struct FD_KEYVAL *data=sm->fd_keyvals;
+        struct FD_KEYVAL *data=sm->sm_keyvals;
         int i=0, size=FD_XSLOTMAP_SIZE(sm);
         fd_write_zint(tmpout,size);
         while (i<size) {
@@ -1185,14 +1185,14 @@ static int oidpool_finalize(struct FD_OIDPOOL *fp,fd_dtype_stream stream,
         unsigned int oidoff=saveinfo[k].oidoff;
         offsets[oidoff*3]=(saveinfo[k].chunk.off)>>32;
         offsets[oidoff*3+1]=((saveinfo[k].chunk.off)&(0xFFFFFFFF));
-        offsets[oidoff*3+2]=(saveinfo[k].chunk.ach_size);
+        offsets[oidoff*3+2]=(saveinfo[k].chunk.achoice_size);
         k++;}
       break;}
     case FD_B32: {
       int k=0; while (k<n) {
         unsigned int oidoff=saveinfo[k].oidoff;
         offsets[oidoff*2]=(saveinfo[k].chunk.off);
-        offsets[oidoff*2+1]=(saveinfo[k].chunk.ach_size);
+        offsets[oidoff*2+1]=(saveinfo[k].chunk.achoice_size);
         k++;}
       break;}
     case FD_B40: {

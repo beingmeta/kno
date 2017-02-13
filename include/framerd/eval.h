@@ -138,10 +138,10 @@ FD_EXPORT void fd_add_module_loader(int (*loader)(fdtype,int,void *),void *);
 
 typedef struct FD_SPROC {
   FD_FUNCTION_FIELDS;
-  short fd_n_vars, fd_synchronized;
-  fdtype *fd_schema, fd_arglist, fd_body;
-  fd_lispenv fd_procenv;
-  U8_MUTEX_DECL(fd_lock);
+  short sproc_n_vars, sproc_synchronized;
+  fdtype *sproc_vars, sproc_arglist, sproc_body;
+  fd_lispenv sproc_env;
+  U8_MUTEX_DECL(sproc_lock);
 } FD_SPROC;
 typedef struct FD_SPROC *fd_sproc;
 
@@ -218,7 +218,7 @@ FD_FASTOP fdtype fd_lexref(fdtype lexref,fd_lispenv env)
     fdtype bindings=env->env_bindings;
     if (FD_EXPECT_TRUE(FD_SCHEMAPP(bindings))) {
       struct FD_SCHEMAP *s=(struct FD_SCHEMAP *)bindings;
-      return fd_incref(s->fd_values[across]);}}
+      return fd_incref(s->schema_values[across]);}}
   return fd_err("Bad lexical reference","fd_lexref",NULL,FD_VOID);
 }
 FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lispenv env)

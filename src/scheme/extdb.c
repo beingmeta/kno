@@ -131,6 +131,13 @@ FD_EXPORT int fd_release_extdb_proc(struct FD_EXTDB_PROC *proc)
 
 /* EXTDB handlers */
 
+static int unparse_extdb(u8_output out,fdtype x)
+{
+  struct FD_EXTDB *dbp=(struct FD_EXTDB *)x;
+  u8_printf(out,"#<EXTDB/%s %s>",dbp->extdb_handler->name,dbp->extdb_info);
+  return 1;
+}
+
 static void recycle_extdb(struct FD_CONS *c)
 {
   struct FD_EXTDB *dbp=(struct FD_EXTDB *)c;
@@ -138,10 +145,11 @@ static void recycle_extdb(struct FD_CONS *c)
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
-static int unparse_extdb(u8_output out,fdtype x)
+static int unparse_extdb_proc(u8_output out,fdtype x)
 {
-  struct FD_EXTDB *dbp=(struct FD_EXTDB *)x;
-  u8_printf(out,"#<EXTDB/%s %s>",dbp->extdb_handler->name,dbp->extdb_info);
+  struct FD_EXTDB_PROC *dbp=(struct FD_EXTDB_PROC *)x;
+  u8_printf(out,"#<DBλ/%s %s: %s>",
+            dbp->extdb_handler->name,dbp->extdb_spec,dbp->extdb_qtext);
   return 1;
 }
 
@@ -156,13 +164,6 @@ static void recycle_extdb_proc(struct FD_CONS *c)
               _("No recycle method for %s database procs"),
               dbproc->extdb_handler->name);
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
-}
-
-static int unparse_extdb_proc(u8_output out,fdtype x)
-{
-  struct FD_EXTDB_PROC *dbp=(struct FD_EXTDB_PROC *)x;
-  u8_printf(out,"#<DBPROC/%s %s: %s>",dbp->extdb_handler->name,dbp->extdb_spec,dbp->extdb_qtext);
-  return 1;
 }
 
 static fdtype callextdbproc(struct FD_FUNCTION *xdbproc,int n,fdtype *args)

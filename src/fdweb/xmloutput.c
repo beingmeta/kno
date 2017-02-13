@@ -691,7 +691,7 @@ static fdtype get_compound_tag(fdtype tag)
 {
   if (FD_COMPOUND_TYPEP(tag,fd_compound_descriptor_type)) {
     struct FD_COMPOUND *c=FD_XCOMPOUND(tag);
-    return fd_incref(c->fd_elt0);}
+    return fd_incref(c->compound_0);}
   else return tag;
 }
 
@@ -808,7 +808,7 @@ static void output_value(u8_output s,fdtype val,
     else if (FD_PRIM_TYPEP(val,fd_compound_type)) {
       struct FD_COMPOUND *xc=
         FD_GET_CONS(val,fd_compound_type,struct FD_COMPOUND *);
-      fdtype ctag=get_compound_tag(xc->fd_typetag);
+      fdtype ctag=get_compound_tag(xc->compound_typetag);
       struct FD_COMPOUND_TYPEINFO *entry=fd_lookup_compound(ctag);
       if (FD_SYMBOLP(ctag)) typename=FD_SYMBOL_NAME(ctag);
       else if (FD_STRINGP(ctag)) typename=FD_STRDATA(ctag);
@@ -819,7 +819,7 @@ static void output_value(u8_output s,fdtype val,
         entify(s,out.u8_outbuf);
         u8_printf(s,"</%s>",tag);}
       else {
-        fdtype *data=&(xc->fd_elt0);
+        fdtype *data=&(xc->compound_0);
         int i=0, n=xc->fd_n_elts;
         if (FD_SYMBOLP(ctag)) typename=FD_SYMBOL_NAME(ctag);
         else if (FD_STRINGP(ctag)) typename=FD_STRDATA(ctag);
@@ -882,7 +882,7 @@ static int embeddedp(fdtype focus,fdtype expr)
     int slotmap_size;
     fd_read_lock_table(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
-    scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
+    scan=sm->sm_keyvals; limit=sm->sm_keyvals+slotmap_size;
     while (scan<limit)
       if (embeddedp(focus,scan->fd_kvkey)) {
         fd_unlock_table(sm); return 1;}
@@ -971,9 +971,9 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
     fdtype head=FD_VECTOR_REF(entry,0); fd_ptr_type htype;
     if (FD_FCNIDP(head)) head=fd_fcnid_ref(head);
     htype=FD_PTR_TYPE(head);
-    if (htype==fd_function_type) {
+    if (htype==fd_primfcn_type) {
       struct FD_FUNCTION *fn=
-        FD_GET_CONS(head,fd_function_type,struct FD_FUNCTION *);
+        FD_GET_CONS(head,fd_primfcn_type,struct FD_FUNCTION *);
       u8_puts(s,"<tbody class='call'><tr><th>Call</th><td>");
       u8_printf(s,"<span class='primitive %s%s operator'>%k",
                 ((fn->fcn_ndcall)?("nondeterministic "):("")),
@@ -991,11 +991,11 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
     else if (htype==fd_sproc_type) {
       struct FD_SPROC *sproc=
         FD_GET_CONS(head,fd_sproc_type,struct FD_SPROC *);
-      fdtype *schema=sproc->fd_schema; short n_args=sproc->fd_n_vars;
+      fdtype *schema=sproc->sproc_vars; short n_args=sproc->sproc_n_vars;
       u8_puts(s,"<tbody class='call'><tr><th>Call</th><td>");
       u8_printf(s,"<span class='%s%sprocedure operator'>%k",
                 ((sproc->fcn_ndcall)?("nondterministic "):("")),
-                ((sproc->fd_synchronized)?("synchronized "):("")),
+                ((sproc->sproc_synchronized)?("synchronized "):("")),
                 ((sproc->fcn_name)?(sproc->fcn_name):((u8_string)"LAMBDA")));
       if (sproc->fcn_filename)
         u8_printf(s," <span class='filename'>%k</span></td></tr>t",

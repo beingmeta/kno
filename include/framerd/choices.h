@@ -113,25 +113,25 @@ FD_EXPORT int fd_mergesort_threshold;
 
 typedef struct FD_CHOICE {
   FD_CONS_HEADER;
-  unsigned int fd_choicesize:31;
-  unsigned int fd_isatomic:1;
-  fdtype fd_elt0;} FD_CHOICE;
+  unsigned int choice_size:31;
+  unsigned int choice_isatomic:1;
+  fdtype choice_0;} FD_CHOICE;
 typedef struct FD_CHOICE *fd_choice;
 
 #define FD_CHOICE_SIZE_MASK 0x7FFFFFFF
 #define FD_CHOICEP(x) (FD_PTR_TYPEP(x,fd_choice_type))
 #define FD_XCHOICE(x) (FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *))
-#define FD_XCHOICE_DATA(ch) ((const fdtype *) (&(ch->fd_elt0)))
+#define FD_XCHOICE_DATA(ch) ((const fdtype *) (&(ch->choice_0)))
 #define FD_CHOICE_DATA(x) \
   (FD_XCHOICE_DATA(FD_STRIP_CONS(x,fd_choice_type,struct FD_CHOICE *)))
-#define FD_XCHOICE_SIZE(ch) ((ch)->fd_choicesize)
+#define FD_XCHOICE_SIZE(ch) ((ch)->choice_size)
 
-#define FD_ATOMIC_CHOICEP(x) ((FD_XCHOICE(x))->fd_isatomic)
-#define FD_XCHOICE_ATOMICP(x) ((x)->fd_isatomic)
+#define FD_ATOMIC_CHOICEP(x) ((FD_XCHOICE(x))->choice_isatomic)
+#define FD_XCHOICE_ATOMICP(x) ((x)->choice_isatomic)
 
 #define FD_INIT_XCHOICE(ch,sz,atomicp) \
   FD_INIT_CONS(ch,fd_choice_type); \
-  ch->fd_choicesize=sz; ch->fd_isatomic=atomicp
+  ch->choice_size=sz; ch->choice_isatomic=atomicp
 
 #define fd_alloc_choice(n) \
   (assert(n>0),u8_mallocz(sizeof(struct FD_CHOICE)+((n-1)*sizeof(fdtype))))
@@ -165,21 +165,23 @@ FD_EXPORT fdtype fd_init_choice
 
 typedef struct FD_ACHOICE {
   FD_CONS_HEADER;
-  unsigned int ach_size, ach_nested;
-  unsigned ach_muddled:1, ach_mallocd:1, ach_atomic:1, fd_uselock:1;
-  fdtype *ach_data, *ach_write, *ach_limit;
-  fdtype ach_normalized; struct FD_CHOICE *ach_choicedata;
+  unsigned int achoice_size, achoice_nested;
+  unsigned int achoice_muddled:1, achoice_mallocd:1,
+    achoice_atomic:1, achoice_uselock:1;
+  fdtype *achoice_data, *achoice_write, *achoice_limit;
+  fdtype achoice_normalized;
+  struct FD_CHOICE *achoice_choicedata;
 #if U8_THREADS_ENABLED
-  u8_mutex fd_lock;
+  u8_mutex achoice_lock;
 #endif
 } FD_ACHOICE;
 typedef struct FD_ACHOICE *fd_achoice;
 
 #define FD_ACHOICEP(x) (FD_PTR_TYPEP(x,fd_achoice_type))
 #define FD_XACHOICE(x) (FD_STRIP_CONS(x,fd_achoice_type,struct FD_ACHOICE *))
-#define FD_ACHOICE_SIZE(x) ((FD_XACHOICE(x))->ach_size)
+#define FD_ACHOICE_SIZE(x) ((FD_XACHOICE(x))->achoice_size)
 #define FD_ACHOICE_LENGTH(x) \
-  (((FD_XACHOICE(x))->ach_write)-((FD_XACHOICE(x))->ach_data))
+  (((FD_XACHOICE(x))->achoice_write)-((FD_XACHOICE(x))->achoice_data))
 FD_EXPORT fdtype fd_make_achoice(fdtype x,fdtype y);
 FD_EXPORT fdtype fd_init_achoice(struct FD_ACHOICE *ch,int lim,int uselock);
 FD_EXPORT fdtype _fd_add_to_choice(fdtype current,fdtype add);
@@ -253,36 +255,38 @@ static void _achoice_add(struct FD_ACHOICE *ch,fdtype v)
     nv=fd_simplify_choice(v);}
   else nv=v;
   if (FD_EMPTY_CHOICEP(nv)) return;
-  else if (ch->ach_write>ch->ach_data)
-    if (FD_EQ(nv,*(ch->ach_write-1))) comparison=0;
-    else comparison=cons_compare(*(ch->ach_write-1),nv);
+  else if (ch->achoice_write>ch->achoice_data)
+    if (FD_EQ(nv,*(ch->achoice_write-1))) comparison=0;
+    else comparison=cons_compare(*(ch->achoice_write-1),nv);
   else comparison=1;
   if (comparison==0) {fd_decref(nv); return;}
-  if (ch->fd_uselock) fd_lock_struct(ch);
-  if (ch->ach_write >= ch->ach_limit) {
-    struct FD_CHOICE *ach_choicedata;
-    old_size=ch->ach_limit-ch->ach_data; write_off=ch->ach_write-ch->ach_data;
+  if (ch->achoice_uselock) u8_lock_mutex(&(ch->achoice_lock));
+  if (ch->achoice_write >= ch->achoice_limit) {
+    struct FD_CHOICE *achoice_choicedata;
+    old_size=ch->achoice_limit-ch->achoice_data;
+    write_off=ch->achoice_write-ch->achoice_data;
     if (old_size<0x10000) new_size=old_size*2;
     else new_size=old_size+0x20000;
-    ach_choicedata=u8_realloc(ch->ach_choicedata,
+    achoice_choicedata=u8_realloc(ch->achoice_choicedata,
 			      sizeof(struct FD_CHOICE)+
 			      (sizeof(fdtype)*(new_size-1)));
-    ch->ach_choicedata=ach_choicedata;
-    ch->ach_data=((fdtype *)FD_XCHOICE_DATA(ach_choicedata));
-    ch->ach_write=ch->ach_data+write_off;
-    ch->ach_limit=ch->ach_data+new_size;}
-  *(ch->ach_write++)=nv;
-  fd_decref(ch->ach_normalized); ch->ach_normalized=FD_VOID;
-  if (comparison>0) ch->ach_muddled=1;
+    ch->achoice_choicedata=achoice_choicedata;
+    ch->achoice_data=((fdtype *)FD_XCHOICE_DATA(achoice_choicedata));
+    ch->achoice_write=ch->achoice_data+write_off;
+    ch->achoice_limit=ch->achoice_data+new_size;}
+  *(ch->achoice_write++)=nv;
+  fd_decref(ch->achoice_normalized); ch->achoice_normalized=FD_VOID;
+  if (comparison>0) ch->achoice_muddled=1;
   if (FD_CHOICEP(nv)) {
-    ch->ach_nested++; ch->ach_muddled=1;
-    if (ch->ach_atomic)
-      if (!(FD_ATOMIC_CHOICEP(nv))) ch->ach_atomic=0;
-    ch->ach_size=ch->ach_size+FD_CHOICE_SIZE(nv);}
-  else if ((ch->ach_atomic) && (FD_CONSP(nv))) {
-    ch->ach_size++; ch->ach_atomic=0;}
-  else ch->ach_size++;
-  if (ch->fd_uselock) fd_unlock_struct(ch);
+    ch->achoice_nested++; ch->achoice_muddled=1;
+    if (ch->achoice_atomic)
+      if (!(FD_ATOMIC_CHOICEP(nv))) ch->achoice_atomic=0;
+    ch->achoice_size=ch->achoice_size+FD_CHOICE_SIZE(nv);}
+  else if ((ch->achoice_atomic) && (FD_CONSP(nv))) {
+    ch->achoice_size++; ch->achoice_atomic=0;}
+  else ch->achoice_size++;
+  if (ch->achoice_uselock)
+    u8_unlock_mutex(&(ch->achoice_lock));
 }
 static fdtype _add_to_choice(fdtype current,fdtype new)
 {
@@ -311,8 +315,8 @@ static U8_MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
   if (FD_ATOMICP(ch)) return (x==ch);
   else {
     struct FD_CHOICE *fd_choiceval=FD_GET_CONS(ch,fd_choice_type,fd_choice);
-    int ach_size=FD_XCHOICE_SIZE(fd_choiceval);
-    const fdtype *bottom=FD_XCHOICE_DATA(fd_choiceval), *top=bottom+(ach_size-1);
+    int achoice_size=FD_XCHOICE_SIZE(fd_choiceval);
+    const fdtype *bottom=FD_XCHOICE_DATA(fd_choiceval), *top=bottom+(achoice_size-1);
     while (top>=bottom) {
       const fdtype *middle=bottom+(top-bottom)/2;
       if (x == *middle) return 1;

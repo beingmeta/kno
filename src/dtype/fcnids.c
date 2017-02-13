@@ -99,8 +99,33 @@ FD_EXPORT fdtype fd_set_fcnid(fdtype id,fdtype value)
 static int unparse_fcnid(u8_output out,fdtype x)
 {
   fdtype lp=fd_fcnid_ref(x);
-  u8_printf(out,"#~%q",lp);
-  return 1;
+  if (FD_PRIM_TYPEP(lp,fd_primfcn_type)) {
+    struct FD_FUNCTION *fcn=(fd_function)lp;
+    u8_string name=fcn->fcn_name;
+    u8_string filename=fcn->fcn_filename;
+    u8_byte arity[16]=""; u8_byte codes[16]="";
+    if ((filename)&&(filename[0]=='\0')) filename=NULL;
+    if (name==NULL) name=fcn->fcn_name;
+    if (fcn->fcn_ndcall) strcat(codes,"∀");
+    if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
+      strcat(arity,"…");
+    else if (fcn->fcn_arity==fcn->fcn_min_arity)
+      sprintf(arity,"[%d]",fcn->fcn_min_arity);
+    else if (fcn->fcn_arity<0)
+      sprintf(arity,"[%d,…]",fcn->fcn_min_arity);
+    else sprintf(arity,"[%d,%d]",fcn->fcn_min_arity,fcn->fcn_arity);
+    if (name)
+      u8_printf(out,"#<~%d<Φ%s%s%s%s%s%s>>",
+                FD_GET_IMMEDIATE(x,fd_fcnid_type),
+                codes,name,arity,U8OPTSTR("'",filename,"'"));
+    else u8_printf(out,"#<~%d<Φ%s%s #!0x%llx%s%s%s>>",
+                   FD_GET_IMMEDIATE(x,fd_fcnid_type),codes,arity,
+                   (unsigned long long) fcn,
+                   U8OPTSTR(" '",filename,"'"));
+    return 1;}
+  else {
+    u8_printf(out,"#<~%ld %q>",FD_GET_IMMEDIATE(x,fd_fcnid_type),lp);
+    return 1;}
 }
 
 FD_EXPORT void fd_init_fcnids_c()

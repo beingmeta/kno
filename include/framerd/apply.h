@@ -114,8 +114,8 @@ FD_EXPORT fdtype fd_make_cprim9x(u8_string name,fd_cprim9 fn,int mina,...);
    (((struct FD_FUNCTION *)(FD_CONS_DATA(fd_fcnid_ref(x))))->fcn_arity) : \
    (0))
 
-/* #define FD_XFUNCTION(x) (FD_GET_CONS(x,fd_function_type,struct FD_FUNCTION *)) */
-#define FD_PRIMITIVEP(x) (FD_PTR_TYPEP(x,fd_function_type))
+/* #define FD_XFUNCTION(x) (FD_GET_CONS(x,fd_primfcn_type,struct FD_FUNCTION *)) */
+#define FD_PRIMITIVEP(x) (FD_PTR_TYPEP(x,fd_primfcn_type))
 
 /* We define SPROC here because it's part of the big pointer type enum */
 #define FD_SPROCP(x) (FD_PRIM_TYPEP((x),fd_sproc_type))
@@ -176,6 +176,11 @@ FD_EXPORT ssize_t fd_stack_limit(void);
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit);
 FD_EXPORT int fd_stackcheck(void);
 
+
+/* Unparsing */
+
+FD_EXPORT int fd_unparse_function
+  (u8_output out,fdtype x,u8_string name,u8_string before,u8_string after);
 
 /* Profiling */
 

@@ -407,7 +407,7 @@ static int write_slotmap(struct FD_BYTE_OUTPUT *out,struct FD_SLOTMAP *v)
   int dtype_len;
   fd_read_lock_table(v);
   {
-    struct FD_KEYVAL *keyvals=v->fd_keyvals;
+    struct FD_KEYVAL *keyvals=v->sm_keyvals;
     int i=0, kvsize=FD_XSLOTMAP_SIZE(v), len=kvsize*2;
     output_byte(out,dt_framerd_package);
     if (len < 256) {
@@ -434,7 +434,7 @@ static int write_schemap(struct FD_BYTE_OUTPUT *out,struct FD_SCHEMAP *v)
   int dtype_len;
   fd_read_lock_table(v);
   {
-    fdtype *schema=v->fd_schema, *values=v->fd_values;
+    fdtype *schema=v->table_schema, *values=v->schema_values;
     int i=0, schemasize=FD_XSCHEMAP_SIZE(v), len=schemasize*2;
     output_byte(out,dt_framerd_package);
     if (len < 256) {
