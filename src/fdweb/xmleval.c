@@ -1543,7 +1543,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.fd_schema=vars; bindings.fd_values=vals; 
   bindings.fd_table_size=1; bindings.fd_stack_schema=1;
-  fd_init_rwlock(&(bindings.fd_rwlock));
+  fd_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent=env;
   envstruct.env_bindings=(fdtype)(&bindings); envstruct.env_exports=FD_VOID;
   envstruct.env_copy=NULL;
@@ -1566,7 +1566,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
         fdtype errbind;
         if (iterval) errbind=iterenv1(seq,var,elt);
         else errbind=iterenv2(seq,var,elt,count_var,FD_INT(i));
-        fd_destroy_rwlock(&(bindings.fd_rwlock));
+        fd_destroy_rwlock(&(bindings.table_rwlock));
         if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
         fd_decref(elt); fd_decref(seq);
         fd_push_error_context(":FDXMLSEQ",errbind);
@@ -1578,7 +1578,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
     fd_decref(vals[0]);
     i++;}
   fd_decref(seq);
-  fd_destroy_rwlock(&(bindings.fd_rwlock));
+  fd_destroy_rwlock(&(bindings.table_rwlock));
   return FD_VOID;
 }
 
@@ -1604,7 +1604,7 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.fd_schema=vars; bindings.fd_values=vals;
   bindings.fd_stack_schema=1;
-  fd_init_rwlock(&(bindings.fd_rwlock));
+  fd_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent=env;
   envstruct.env_bindings=(fdtype)(&bindings); envstruct.env_exports=FD_VOID;
   envstruct.env_copy=NULL;
@@ -1656,7 +1656,7 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.fd_schema=vars; bindings.fd_values=vals; bindings.fd_table_size=1;
   bindings.fd_stack_schema=1;
-  fd_init_rwlock(&(bindings.fd_rwlock));
+  fd_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent=env;
   envstruct.env_bindings=(fdtype)(&bindings); envstruct.env_exports=FD_VOID;
   envstruct.env_copy=NULL;
@@ -1669,7 +1669,7 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
       fdtype val=fd_xmleval(out,expr,&envstruct);
       if (FD_ABORTP(val)) {
         fd_push_error_context(":FXMLRANGE",iterenv1(limit_val,var,FD_INT(i)));
-        fd_destroy_rwlock(&(bindings.fd_rwlock));
+        fd_destroy_rwlock(&(bindings.table_rwlock));
         if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
         return val;}
       fd_decref(val);}}
@@ -1677,7 +1677,7 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
       fd_recycle_environment(envstruct.env_copy);
       envstruct.env_copy=NULL;}
     i++;}
-  fd_destroy_rwlock(&(bindings.fd_rwlock));
+  fd_destroy_rwlock(&(bindings.table_rwlock));
   if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
   return FD_VOID;
 }

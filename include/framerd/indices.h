@@ -40,7 +40,7 @@ FD_EXPORT int fd_index_adds_init;
   int index_serialno, index_read_only;				   \
   int index_cache_level, index_flags;				   \
   u8_string index_source, index_cid, index_xid;                    \
-  struct FD_INDEX_HANDLER *index_handler;              \
+  struct FD_INDEX_HANDLER *index_handler;			   \
   struct FD_HASHTABLE index_cache, index_adds, index_edits;        \
   fdtype index_has_slotids
 
@@ -51,7 +51,7 @@ FD_EXPORT fd_index fd_primary_indices[], *fd_secondary_indices;
 FD_EXPORT int fd_n_primary_indices, fd_n_secondary_indices;
 
 typedef struct FD_KEY_SIZE {
-  fdtype fdks_key; unsigned int fdks_nvals;} FD_KEY_SIZE;
+  fdtype keysizekey; unsigned int keysizenvals;} FD_KEY_SIZE;
 typedef struct FD_KEY_SIZE *fd_key_size;
 
 typedef struct FD_INDEX_HANDLER {
@@ -238,7 +238,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
     if (rv<0) return rv;
     rv=fd_hashtable_op(cache,fd_table_add_if_present,key,value);}
   if (rv<0) return rv;
-  if ( (fdtc) && (fdtc->indices.fd_n_keys) ) {
+  if ( (fdtc) && (fdtc->indices.table_n_keys) ) {
     FD_DO_CHOICES(akey,key) {
       struct FD_PAIR tempkey;
       FD_INIT_STATIC_CONS(&tempkey,fd_pair_type);
@@ -247,7 +247,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
 	fd_hashtable_add(&fdtc->indices,(fdtype)&tempkey,value);}}}
 
   if ((ix->index_flags&FD_INDEX_IN_BACKGROUND) && 
-      (fd_background->index_cache.fd_n_keys)) {
+      (fd_background->index_cache.table_n_keys)) {
     fd_hashtable bgcache=(&(fd_background->index_cache));
     if (FD_CHOICEP(key)) {
       const fdtype *keys=FD_CHOICE_DATA(key);

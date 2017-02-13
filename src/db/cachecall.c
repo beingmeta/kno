@@ -100,7 +100,7 @@ FD_EXPORT fdtype fd_xcachecall
 
 FD_EXPORT void fd_clear_callcache(fdtype arg)
 {
-  if (fcn_caches.fd_n_keys==0) return;
+  if (fcn_caches.table_n_keys==0) return;
   if (FD_VOIDP(arg)) fd_reset_hashtable(&fcn_caches,128,1);
   else if ((FD_VECTORP(arg)) && (FD_VECTOR_LENGTH(arg)>0)) {
     fdtype fcn=FD_VECTOR_REF(arg,0);
@@ -126,7 +126,7 @@ static int hashtable_cachecount(fdtype key,fdtype v,void *ptr)
   if (FD_HASHTABLEP(v)) {
     fd_hashtable h=(fd_hashtable)v;
     int *count=(int *)ptr;
-    *count=*count+h->fd_n_keys;}
+    *count=*count+h->table_n_keys;}
   return 0;
 }
 

@@ -88,9 +88,9 @@ static fdtype reset_hashtable(fdtype table,fdtype n_slots)
 static fdtype static_hashtable(fdtype table)
 {
   struct FD_HASHTABLE *ht=(fd_hashtable)table;
-  fd_write_lock_struct(ht);
+  fd_write_lock_table(ht);
   ht->fd_uselock=0;
-  fd_rw_unlock_struct(ht);
+  fd_unlock_table(ht);
   return fd_incref(table);
 }
 
@@ -737,7 +737,7 @@ static fdtype hashtable_skim(fdtype table,fdtype threshold,fdtype scope)
 static fdtype hashtable_buckets(fdtype table)
 {
   fd_hashtable h=FD_GET_CONS(table,fd_hashtable_type,fd_hashtable);
-  return FD_INT(h->fd_n_buckets);
+  return FD_INT(h->ht_n_buckets);
 }
 
 static fdtype table_size(fdtype table)
@@ -824,7 +824,7 @@ static fdtype table_map_size(fdtype table)
     return FD_INT(n_values);}
   else if (FD_PRIM_TYPEP(table,fd_hashset_type)) {
     struct FD_HASHSET *hs = (struct FD_HASHSET *) table;
-    return FD_INT(hs->fd_n_keys);}
+    return FD_INT(hs->hs_n_elts);}
   else if (FD_TABLEP(table)) {
     fdtype keys=fd_getkeys(table);
     long long count=0;

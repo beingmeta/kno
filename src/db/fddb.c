@@ -381,7 +381,7 @@ static void fast_reset_hashtable
 static int fast_swapout_index(fd_index ix,void *data)
 {
   struct HASHVECS_TODO *todo=(struct HASHVECS_TODO *)data;
-  if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) && (ix->index_cache.fd_n_keys)) {
+  if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) && (ix->index_cache.table_n_keys)) {
     if ((ix->index_flags)&(FD_STICKY_CACHESIZE))
       fast_reset_hashtable(&(ix->index_cache),-1,todo);
     else fast_reset_hashtable(&(ix->index_cache),0,todo);}
@@ -392,7 +392,7 @@ static int fast_swapout_pool(fd_pool p,void *data)
 {
   struct HASHVECS_TODO *todo=(struct HASHVECS_TODO *)data;
   fast_reset_hashtable(&(p->pool_cache),67,todo);
-  if (p->pool_changes.fd_n_keys) fd_devoid_hashtable(&(p->pool_changes));
+  if (p->pool_changes.table_n_keys) fd_devoid_hashtable(&(p->pool_changes));
   return 0;
 }
 

@@ -116,9 +116,9 @@ static void file_index_setcache(fd_index ix,int level)
       else fx->fd_offsets=offsets=newmmap+2;
 #else
       fd_dts_start_read(s);
-      offsets=u8_malloc(SLOTSIZE*(fx->fd_n_buckets));
+      offsets=u8_malloc(SLOTSIZE*(fx->ht_n_buckets));
       fd_setpos(s,8);
-      fd_dtsread_ints(s,fx->fd_n_buckets,offsets);
+      fd_dtsread_ints(s,fx->ht_n_buckets,offsets);
       fx->fd_offsets=offsets;
 #endif
       fd_unlock_struct(fx);}
@@ -352,7 +352,7 @@ static struct FD_KEY_SIZE *file_index_fetchsizes(fd_index ix,int *n)
     size=fd_dtsread_4bytes(stream);
     /* vpos=*/ fd_dtsread_4bytes(stream);
     key=fd_dtsread_dtype(stream);
-    sizes[i].fdks_key=key; sizes[i].fdks_nvals=size;
+    sizes[i].keysizekey=key; sizes[i].keysizenvals=size;
     i++;}
   *n=n_keys;
   u8_free(offsets);
@@ -825,9 +825,9 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
   int i=0, n_edits=0, n_drops=0; fd_off_t filepos;
   fdtype *dropkeys, *dropvals;
   struct FD_HASH_BUCKET **scan, **limit;
-  if (f->index_edits.fd_n_keys==0) return 0;
-  dropkeys=u8_alloc_n(f->index_edits.fd_n_keys,fdtype);
-  scan=f->index_edits.fd_buckets; limit=scan+f->index_edits.fd_n_buckets;
+  if (f->index_edits.table_n_keys==0) return 0;
+  dropkeys=u8_alloc_n(f->index_edits.table_n_keys,fdtype);
+  scan=f->index_edits.fd_buckets; limit=scan+f->index_edits.ht_n_buckets;
   while (scan < limit)
     if (*scan) {
       /* Now we go through the edits table, finding all the drops.
@@ -858,7 +858,7 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
   if (n_drops) dropvals=fetchn(f,n_drops,dropkeys,0);
   else dropvals=NULL;
   filepos=fd_endpos(stream);
-  scan=f->index_edits.fd_buckets; limit=scan+f->index_edits.fd_n_buckets;
+  scan=f->index_edits.fd_buckets; limit=scan+f->index_edits.ht_n_buckets;
   while (scan < limit)
     if (*scan) {
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -935,8 +935,8 @@ static int file_index_commit(struct FD_INDEX *ix)
   struct FD_DTYPE_STREAM *stream=&(fx->fd_stream);
   unsigned int *new_offsets=NULL, gc_new_offsets=0;
   int pos_offset=fx->fd_n_slots*4, newcount;
-  fd_write_lock_struct(&(ix->index_adds));
-  fd_write_lock_struct(&(ix->index_edits));
+  fd_write_lock_table(&(ix->index_adds));
+  fd_write_lock_table(&(ix->index_edits));
   fd_lock_struct(fx);
   fd_dts_start_write(stream);
   /* Get the current offsets from the index */
@@ -953,16 +953,16 @@ static int file_index_commit(struct FD_INDEX *ix)
   if (fx->fd_offsets) {
     new_offsets=fx->fd_offsets;
     fd_setpos(stream,8);
-    fd_dtsread_ints(stream,fx->fd_n_buckets,new_offsets);}
+    fd_dtsread_ints(stream,fx->ht_n_buckets,new_offsets);}
 #endif
   {
     fd_off_t filepos;
-    int n_adds=ix->index_adds.fd_n_keys, n_edits=ix->index_edits.fd_n_keys;
+    int n_adds=ix->index_adds.table_n_keys, n_edits=ix->index_edits.table_n_keys;
     int i=0, n=0, n_changes=n_adds+n_edits, add_index;
     struct KEYDATA *kdata=u8_alloc_n(n_changes,struct KEYDATA);
     unsigned int *value_locs=
       ((n_edits) ? (u8_alloc_n(n_edits,unsigned int)) : (NULL));
-    struct FD_HASH_BUCKET **scan=ix->index_adds.fd_buckets, **limit=scan+ix->index_adds.fd_n_buckets;
+    struct FD_HASH_BUCKET **scan=ix->index_adds.fd_buckets, **limit=scan+ix->index_adds.ht_n_buckets;
     while (scan < limit)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -996,8 +996,8 @@ static int file_index_commit(struct FD_INDEX *ix)
       u8_free(kdata);
       if (value_locs) u8_free(value_locs);
       if (gc_new_offsets) u8_free(new_offsets);
-      fd_rw_unlock_struct((&(ix->index_adds)));
-      fd_rw_unlock_struct((&(ix->index_edits)));
+      fd_unlock_table((&(ix->index_adds)));
+      fd_unlock_table((&(ix->index_edits)));
       fd_unlock_struct(fx);
       return newcount;}
     filepos=fd_endpos(stream);
@@ -1010,7 +1010,7 @@ static int file_index_commit(struct FD_INDEX *ix)
       else kdata[i].pos=((fd_off_t)0);
       i++;}
     /* Now, scan the adds again and write the added values. */
-    scan=ix->index_adds.fd_buckets; limit=scan+ix->index_adds.fd_n_buckets;
+    scan=ix->index_adds.fd_buckets; limit=scan+ix->index_adds.ht_n_buckets;
     i=0; while (scan < limit)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -1055,9 +1055,9 @@ static int file_index_commit(struct FD_INDEX *ix)
     u8_free(kdata);
     if (gc_new_offsets) u8_free(new_offsets);
     fd_reset_hashtable(&(ix->index_adds),67,0);
-    fd_rw_unlock_struct(&(ix->index_adds));
+    fd_unlock_table(&(ix->index_adds));
     fd_reset_hashtable(&(ix->index_edits),67,0);
-    fd_rw_unlock_struct(&(ix->index_edits));
+    fd_unlock_table(&(ix->index_edits));
     return n;}
 }
 

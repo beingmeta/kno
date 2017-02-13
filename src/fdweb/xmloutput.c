@@ -880,16 +880,16 @@ static int embeddedp(fdtype focus,fdtype expr)
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(expr);
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size;
-    fd_read_lock_struct(sm);
+    fd_read_lock_table(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
     while (scan<limit)
       if (embeddedp(focus,scan->fd_kvkey)) {
-        fd_rw_unlock_struct(sm); return 1;}
+        fd_unlock_table(sm); return 1;}
       else if (embeddedp(focus,scan->fd_keyval)) {
-        fd_rw_unlock_struct(sm); return 1;}
+        fd_unlock_table(sm); return 1;}
       else scan++;
-    fd_rw_unlock_struct(sm);
+    fd_unlock_table(sm);
     return 0;}
   else return 0;
 }

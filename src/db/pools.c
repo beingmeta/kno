@@ -180,7 +180,7 @@ void fd_reset_pool_tables(fd_pool p,
   int read_only=p->pool_read_only;
   fd_hashtable cache=&(p->pool_cache), locks=&(p->pool_changes);
   fd_reset_hashtable(cache,((cacheval==0)?(fd_pool_cache_init):(cacheval)),1);
-  if (locks->fd_n_keys==0) {
+  if (locks->table_n_keys==0) {
     ssize_t level=(read_only)?(0):(locksval==0)?(fd_pool_lock_init):(locksval);
     fd_reset_hashtable(locks,level,1);}
 }
@@ -439,7 +439,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     int n=FD_CHOICE_SIZE(oids), some_locked=0;
     struct FD_HASHTABLE *cache=&(p->pool_cache), *locks=&(p->pool_changes);
     fdtype *values, *oidv=u8_alloc_n(n,fdtype), *write=oidv;
-    int nolocks=((p->pool_flags)&(FDB_LOCKFREE))||(locks->fd_n_keys==0);
+    int nolocks=((p->pool_flags)&(FDB_LOCKFREE))||(locks->table_n_keys==0);
     FD_DO_CHOICES(o,oids)
       if (((oidcache==NULL)||(fd_hashtable_probe_novoid(oidcache,o)==0))&&
           (fd_hashtable_probe_novoid(cache,o)==0) &&
@@ -897,7 +897,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,
   struct FD_HASHTABLE *locks=&(p->pool_changes);
   double start=u8_elapsed_time();
 
-  if (locks->fd_n_keys==0) {
+  if (locks->table_n_keys==0) {
     u8_log(fddb_loglevel+1,fd_PoolCommit,"####### No locked oids in %s",p->pool_cid);
     return 0;}
   else if (p->pool_handler->storen==NULL) {
@@ -917,7 +917,7 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,
   else if (FD_EMPTY_CHOICEP(oids)) {
     return 0;}
   else {
-    fd_write_lock_struct(locks);
+    fd_write_lock_table(locks);
     return pool_block_commit(p,locks,oids,flags);}
 }
 
@@ -984,8 +984,8 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
   int explicit_oids=
     (FD_CONSP(oids))&&((FD_CHOICEP(oids))||(FD_ACHOICEP(oids)));
 
-  if ((FD_EMPTY_CHOICEP(oids))||(p->pool_changes.fd_n_keys==0)) {
-    fd_rw_unlock_struct(&(p->pool_changes));
+  if ((FD_EMPTY_CHOICEP(oids))||(p->pool_changes.table_n_keys==0)) {
+    fd_unlock_table(&(p->pool_changes));
     return 0;}
 
   if (explicit_oids)
@@ -1052,7 +1052,7 @@ static int pool_block_commit(fd_pool p,fd_hashtable locks,fdtype oids,
   if (writes.len)
     u8_log(fddb_loglevel,fd_PoolCommit,
            "####### Committed %d OIDs to %s (leaving %d locked) in %f secs",
-           writes.len,p->pool_cid,locks->fd_n_keys,
+           writes.len,p->pool_cid,locks->table_n_keys,
            u8_elapsed_time()-start_time);
   return retval;
 }
@@ -1068,7 +1068,7 @@ struct FD_POOL_WRITES choice2writes(fd_pool p,fdtype oids,
   fdtype choice, *oidv, *values;
   /* We're going to go through the locks, so we're going to release 
      this one. */
-  fd_rw_unlock_struct(locks);
+  fd_unlock_table(locks);
   FD_INIT_FRESH_CONS(xchoice,fd_choice_type);
   writes.len=max_writes;
   writes.choice=choice=(fdtype)xchoice;
@@ -1099,16 +1099,16 @@ struct FD_POOL_WRITES locks2writes(fd_pool p,fd_pool_commit_flags flags)
   int unlock = U8_BITP(flags,FD_POOL_COMMIT_UNLOCK);
   fd_hashtable locks=&(p->pool_changes);
   fdtype choice, *oidv, *values;
-  size_t max_writes=locks->fd_n_keys;
+  size_t max_writes=locks->table_n_keys;
   struct FD_CHOICE *xchoice=fd_alloc_choice(max_writes);
   FD_INIT_FRESH_CONS(xchoice,fd_choice_type);
   writes.len=max_writes;
   writes.choice=choice=(fdtype)xchoice;
   writes.oids=oidv=(fdtype *)FD_XCHOICE_DATA(xchoice);
   writes.values=values=u8_zalloc_n(max_writes,fdtype);
-  if (locks->fd_n_buckets) {
+  if (locks->ht_n_buckets) {
     struct FD_HASH_BUCKET **scan=locks->fd_buckets;
-    struct FD_HASH_BUCKET **lim=scan+locks->fd_n_buckets;
+    struct FD_HASH_BUCKET **lim=scan+locks->ht_n_buckets;
     while (scan < lim)
       if (*scan) {
         struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -1130,7 +1130,7 @@ struct FD_POOL_WRITES locks2writes(fd_pool p,fd_pool_commit_flags flags)
   else writes.len=0;
   if ((unlock)&&(writes.len))
     fd_devoid_hashtable_x(locks,1);
-  fd_rw_unlock_struct(locks);
+  fd_unlock_table(locks);
   return writes;
 }
 
@@ -1282,7 +1282,7 @@ FD_EXPORT fdtype _fd_fetch_oid(fd_pool p,fdtype oid)
   FDTC *fdtc=((FD_USE_THREADCACHE)?(fd_threadcache):(NULL));
   fdtype value;
   if (fdtc) {
-    fdtype value=((fdtc->oids.fd_n_keys)?
+    fdtype value=((fdtc->oids.table_n_keys)?
                   (fd_hashtable_get(&(fdtc->oids),oid,FD_VOID)):
                   (FD_VOID));
     if (!(FD_VOIDP(value))) return value;}
@@ -1582,7 +1582,7 @@ FD_EXPORT int fd_unlock_pools(int commitp)
 static int accumulate_cachecount(fd_pool p,void *ptr)
 {
   int *count=(int *)ptr;
-  *count=*count+p->pool_cache.fd_n_keys;
+  *count=*count+p->pool_cache.table_n_keys;
   return 0;
 }
 
@@ -2047,7 +2047,7 @@ FD_EXPORT int fd_clean_mempool(fd_pool p)
     fd_devoid_hashtable(&(p->pool_changes));
     fd_remove_deadwood(&(p->pool_cache));
     fd_devoid_hashtable(&(p->pool_cache));
-    return p->pool_cache.fd_n_keys+p->pool_changes.fd_n_keys;}
+    return p->pool_cache.table_n_keys+p->pool_changes.table_n_keys;}
 }
 
 FD_EXPORT int fd_reset_mempool(fd_pool p)

@@ -223,7 +223,7 @@ FD_FASTOP fd_lispenv init_static_env
   bindings->fd_schema=vars;
   bindings->fd_values=vals;
   bindings->fd_table_size=n;
-  fd_init_rwlock(&(bindings->fd_rwlock));
+  fd_init_rwlock(&(bindings->table_rwlock));
   envstruct->env_bindings=FDTYPE_CONS((bindings));
   envstruct->env_exports=FD_VOID;
   envstruct->env_parent=parent;
@@ -436,7 +436,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   bindings.fd_schema=fn->fd_schema;
   bindings.fd_table_size=n_vars;
   bindings.fd_stack_schema=1;
-  fd_init_rwlock(&(bindings.fd_rwlock));
+  fd_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_bindings=FDTYPE_CONS(&bindings);
   envstruct.env_exports=FD_VOID;
   envstruct.env_parent=fn->fd_procenv; envstruct.env_copy=NULL;
@@ -444,10 +444,10 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   bindings.fd_values=vals;
   if (fn->fcn_arity>0) {
     if (n<fn->fcn_min_arity) {
-      fd_destroy_rwlock(&(bindings.fd_rwlock));
+      fd_destroy_rwlock(&(bindings.table_rwlock));
       return fd_err(fd_TooFewArgs,fn->fcn_name,NULL,FD_VOID);}
     else if (n>fn->fcn_arity) {
-      fd_destroy_rwlock(&(bindings.fd_rwlock));
+      fd_destroy_rwlock(&(bindings.table_rwlock));
       return fd_err(fd_TooManyArgs,fn->fcn_name,NULL,FD_VOID);}
     else {
       /* This code handles argument defaults for sprocs */
@@ -1001,7 +1001,7 @@ fdtype fd_xapply_sproc
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.fd_schema=fn->fd_schema;
   bindings.fd_table_size=fn->fd_n_vars;
-  fd_init_rwlock(&(bindings.fd_rwlock));
+  fd_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_bindings=FDTYPE_CONS(&bindings);
   envstruct.env_exports=FD_VOID;
   envstruct.env_parent=fn->fd_procenv; envstruct.env_copy=NULL;
@@ -1056,7 +1056,7 @@ fdtype fd_xapply_sproc
   else {}
   /* If we're synchronized, unlock the mutex. */
   if (fn->fd_synchronized) fd_unlock_struct(fn);
-  fd_destroy_rwlock(&(bindings.fd_rwlock));
+  fd_destroy_rwlock(&(bindings.table_rwlock));
   if (envstruct.env_copy) {
     fd_recycle_environment(envstruct.env_copy);
     envstruct.env_copy=NULL;}

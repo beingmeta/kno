@@ -63,7 +63,7 @@ static void free_environment(struct FD_ENVIRONMENT *env)
         fdtype val=vals[i++];
         if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
           fd_decref(val);}}
-      fd_destroy_rwlock(&(sm->fd_rwlock));
+      fd_destroy_rwlock(&(sm->table_rwlock));
       fd_recycle_environment(env->env_copy);}
   else {
     struct FD_SCHEMAP *sm=FD_XSCHEMAP(env->env_bindings);
@@ -73,7 +73,7 @@ static void free_environment(struct FD_ENVIRONMENT *env)
       fdtype val=vals[i++];
       if ((FD_CONSP(val))&&(FD_MALLOCD_CONSP((fd_cons)val))) {
         fd_decref(val);}}
-    fd_destroy_rwlock(&(sm->fd_rwlock));}
+    fd_destroy_rwlock(&(sm->table_rwlock));}
 }
 
 FD_INLINE_FCN fdtype return_error_env

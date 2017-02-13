@@ -574,7 +574,7 @@ static fdtype extindex_decache(fdtype index,fdtype key)
   fdtype lix=fd_index2lisp(ix);
   if (ix->index_handler==&fd_extindex_handler)
     if (FD_VOIDP(key))
-      if (fd_reset_hashtable(&(ix->index_cache),ix->index_cache.fd_n_buckets,1)<0)
+      if (fd_reset_hashtable(&(ix->index_cache),ix->index_cache.ht_n_buckets,1)<0)
         return FD_ERROR_VALUE;
       else {}
     else if (fd_hashtable_store(&(ix->index_cache),key,FD_VOID)<0)
@@ -1082,10 +1082,10 @@ static fdtype cachecount(fdtype arg)
     int count=fd_index_cache_load();
     return FD_INT(count);}
   else if ((p=(fd_lisp2pool(arg)))) {
-    int count=p->pool_cache.fd_n_keys;
+    int count=p->pool_cache.table_n_keys;
     return FD_INT(count);}
   else if ((ix=(fd_indexptr(arg)))) {
-    int count=ix->index_cache.fd_n_keys;
+    int count=ix->index_cache.table_n_keys;
     return FD_INT(count);}
   else return fd_type_error(_("pool or index"),"cachecount",arg);
 }
@@ -1786,13 +1786,13 @@ static fdtype pick_helper(fdtype candidates,int n,fdtype *tests,int datalevel)
 
 static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 {
-  if (hs->fd_n_keys==0) {
+  if (hs->hs_n_elts==0) {
     if (pick) return FD_EMPTY_CHOICE;
     else return fd_incref(candidates);}
-  u8_lock_mutex(&(hs->fd_lock)); {
+  u8_lock_mutex(&(hs->hs_lock)); {
     fdtype simple=fd_make_simple_choice(candidates);
     int n=FD_CHOICE_SIZE(simple), isatomic=1;
-    fdtype *slots=hs->fd_hashslots; int n_slots=hs->fd_n_slots;
+    fdtype *slots=hs->hs_slots; int n_slots=hs->hs_n_slots;
     fdtype *keep=u8_alloc_n(n,fdtype), *write=keep;
     FD_DO_CHOICES(c,candidates) {
       int hash=fd_hash_lisp(c), probe=hash%n_slots, n_probes=0, found=0;
@@ -1806,7 +1806,7 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
       if (((found)&&(pick))||((!(found))&&((!pick)))) {
         if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
         *write++=c; fd_incref(c);}}
-    u8_unlock_mutex(&(hs->fd_lock));
+    u8_unlock_mutex(&(hs->hs_lock));
     fd_decref(simple);
     if (write==keep) {
       u8_free(keep); return FD_EMPTY_CHOICE;}
@@ -1823,15 +1823,15 @@ static fdtype hashset_filter(fdtype candidates,fd_hashset hs,int pick)
 
 static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
 {
-  if (ht->fd_n_keys==0) {
+  if (ht->table_n_keys==0) {
     if (pick) return FD_EMPTY_CHOICE;
     else return fd_hashtable_keys(ht);}
   else {
     fdtype simple=fd_make_simple_choice(candidates);
     int n=FD_CHOICE_SIZE(simple), unlock=0, isatomic=1;
     fdtype *keep=u8_alloc_n(n,fdtype), *write=keep;
-    if (ht->fd_uselock) {fd_read_lock_struct(ht); unlock=1;}
-    {struct FD_HASH_BUCKET **slots=ht->fd_buckets; int n_slots=ht->fd_n_buckets;
+    if (ht->fd_uselock) {fd_read_lock_table(ht); unlock=1;}
+    {struct FD_HASH_BUCKET **slots=ht->fd_buckets; int n_slots=ht->ht_n_buckets;
       FD_DO_CHOICES(c,candidates) {
         struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);
         fdtype rv=((result)?(result->fd_keyval):(FD_VOID));
@@ -1839,7 +1839,7 @@ static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
         if (((result)&&(pick))||((result==NULL)&&(!(pick)))) {
           if ((isatomic)&&(FD_CONSP(c))) isatomic=0;
           *write++=c; fd_incref(c);}}
-      if (unlock) fd_rw_unlock(&(ht->fd_rwlock));
+      if (unlock) fd_rw_unlock(&(ht->table_rwlock));
       fd_decref(simple);
       if (write==keep) {
         u8_free(keep); return FD_EMPTY_CHOICE;}
@@ -2659,12 +2659,12 @@ static fdtype dbmodifiedp(fdtype arg1,fdtype arg2)
       else return FD_FALSE;}
     else if ((FD_POOLP(arg1))||(FD_PRIM_TYPEP(arg1,fd_raw_pool_type))) {
       fd_pool p=fd_lisp2pool(arg1);
-      if (p->pool_changes.fd_n_keys)
+      if (p->pool_changes.table_n_keys)
         return FD_TRUE;
       else return FD_FALSE;}
     else if ((FD_INDEXP(arg1))||(FD_PRIM_TYPEP(arg1,fd_raw_index_type))) {
       fd_index ix=fd_lisp2index(arg1);
-      if ((ix->index_edits.fd_n_keys) || (ix->index_adds.fd_n_keys))
+      if ((ix->index_edits.table_n_keys) || (ix->index_adds.table_n_keys))
         return FD_TRUE;
       else return FD_FALSE;}
     else if (FD_TABLEP(arg1)) {

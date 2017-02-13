@@ -35,7 +35,7 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
         eix->index_handler->setcache(eix,fd_default_cache_level);}
     if (fd_hashtable_probe(&(eix->index_cache),key))
       value=fd_hashtable_get(&(eix->index_cache),key,FD_EMPTY_CHOICE);
-    else if ((eix->index_adds.fd_n_keys) || (eix->index_edits.fd_n_keys))
+    else if ((eix->index_adds.table_n_keys) || (eix->index_edits.table_n_keys))
       value=fd_index_get(eix,key);
     else value=eix->index_handler->fetch(eix,key);
     if (FD_ABORTP(value)) {

@@ -1005,7 +1005,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       if (is_initial) {
         u8_printf(out,"#[]"); return col+3;}
       else {u8_printf(out," #[]"); return col+4;}}
-    fd_read_lock_struct(sm);
+    fd_read_lock_table(sm);
     scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
     u8_puts(out,"#["); col=col+2;
     while (scan<limit) {
@@ -1025,7 +1025,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
       first_kv=0;
       scan++;}
     u8_puts(out,"]");
-    fd_rw_unlock_struct(sm);
+    fd_unlock_table(sm);
     return col+1;}
   else {
     int startoff=out->u8_write-out->u8_outbuf;
@@ -1125,9 +1125,9 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size, first_pair=1;
-    fd_read_lock_struct(sm);
+    fd_read_lock_table(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
-    if (slotmap_size==0) fd_rw_unlock_struct(sm);
+    if (slotmap_size==0) fd_unlock_table(sm);
     if (slotmap_size==0) {
       if (is_initial) {
         u8_printf(out," #[]"); return 3;}
@@ -1142,7 +1142,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
       first_pair=0;
       scan++;}
     u8_puts(out,"]");
-    fd_rw_unlock_struct(sm);
+    fd_unlock_table(sm);
     return col+1;}
   else {
     int startoff=out->u8_write-out->u8_outbuf;
@@ -1241,16 +1241,16 @@ static int embeddedp(fdtype focus,fdtype expr)
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(expr);
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size;
-    fd_read_lock_struct(sm);
+    fd_read_lock_table(sm);
     slotmap_size=FD_XSLOTMAP_SIZE(sm);
     scan=sm->fd_keyvals; limit=sm->fd_keyvals+slotmap_size;
     while (scan<limit)
       if (embeddedp(focus,scan->fd_kvkey)) {
-        fd_rw_unlock_struct(sm); return 1;}
+        fd_unlock_table(sm); return 1;}
       else if (embeddedp(focus,scan->fd_keyval)) {
-        fd_rw_unlock_struct(sm); return 1;}
+        fd_unlock_table(sm); return 1;}
       else scan++;
-    fd_rw_unlock_struct(sm);
+    fd_unlock_table(sm);
     return 0;}
   else return 0;
 }

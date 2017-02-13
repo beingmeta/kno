@@ -151,9 +151,9 @@ static int netindex_commit(fd_index ix)
 {
   struct FD_NETWORK_INDEX *nix=(struct FD_NETWORK_INDEX *)ix;
   int n_transactions=0;
-  fd_write_lock_struct(&(nix->index_adds));
-  fd_write_lock_struct(&(nix->index_edits));
-  if (nix->index_edits.fd_n_keys) {
+  fd_write_lock_table(&(nix->index_adds));
+  fd_write_lock_table(&(nix->index_edits));
+  if (nix->index_edits.table_n_keys) {
     int n_edits;
     struct FD_KEYVAL *kvals=fd_hashtable_keyvals(&(nix->index_edits),&n_edits,0);
     struct FD_KEYVAL *scan=kvals, *limit=kvals+n_edits;
@@ -180,8 +180,8 @@ static int netindex_commit(fd_index ix)
                     "Server %s doesn't support drops",ix->index_source);
       else u8_raise(_("Bad edit key in index"),"fd_netindex_commit",NULL);
       if (FD_ABORTP(result)) {
-        fd_rw_unlock_struct(&(nix->index_adds));
-        fd_rw_unlock_struct(&(nix->index_edits));
+        fd_unlock_table(&(nix->index_adds));
+        fd_unlock_table(&(nix->index_edits));
         return -1;}
       else fd_decref(result);
       scan++;}
@@ -195,8 +195,8 @@ static int netindex_commit(fd_index ix)
       result=fd_dtcall_nr(nix->fd_connpool,2,iserver_addn,vector);
     else result=fd_dtcall_nrx(nix->fd_connpool,3,3,ixserver_addn,nix->xname,vector);
     if (FD_ABORTP(result)) {
-      fd_rw_unlock_struct(&(nix->index_adds));
-      fd_rw_unlock_struct(&(nix->index_edits));
+      fd_unlock_table(&(nix->index_adds));
+      fd_unlock_table(&(nix->index_edits));
       return -1;}
     else fd_decref(result);
     return n_transactions+1;}
@@ -211,8 +211,8 @@ static int netindex_commit(fd_index ix)
         result=fd_dtcall_nr(nix->fd_connpool,3,
                             iserver_add,scan->fd_kvkey,scan->fd_keyval);
         if (FD_ABORTP(result)) {
-          fd_rw_unlock_struct(&(nix->index_adds));
-          fd_rw_unlock_struct(&(nix->index_edits));
+          fd_unlock_table(&(nix->index_adds));
+          fd_unlock_table(&(nix->index_edits));
           return -1;}
         else fd_decref(result);
         scan++;}
@@ -222,8 +222,8 @@ static int netindex_commit(fd_index ix)
       result=fd_dtcall_nrx(nix->fd_connpool,3,3,
                            ixserver_add,xname,scan->fd_kvkey,scan->fd_keyval);
       if (FD_ABORTP(result)) {
-        fd_rw_unlock_struct(&(nix->index_adds));
-        fd_rw_unlock_struct(&(nix->index_edits));
+        fd_unlock_table(&(nix->index_adds));
+        fd_unlock_table(&(nix->index_edits));
         return -1;}
       else fd_decref(result);
       scan++;}
@@ -232,8 +232,8 @@ static int netindex_commit(fd_index ix)
     u8_free(kvals);
     fd_reset_hashtable(&(nix->index_adds),67,0);
     fd_reset_hashtable(&(nix->index_edits),67,0);
-    fd_rw_unlock_struct(&(nix->index_adds));
-    fd_rw_unlock_struct(&(nix->index_edits));
+    fd_unlock_table(&(nix->index_adds));
+    fd_unlock_table(&(nix->index_edits));
     return n_transactions;}
 }
 
