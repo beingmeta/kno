@@ -603,14 +603,25 @@ static fdtype stack_depth_prim()
 }
 static fdtype stack_limit_prim()
 {
-  ssize_t limit=fd_stack_limit();
+  ssize_t limit=fd_stack_limit;
   return FD_INT2DTYPE(limit);
 }
 static fdtype set_stack_limit_prim(fdtype arg)
 {
-  ssize_t limit=FD_FIX2INT(arg);
-  limit=fd_stack_limit_set(limit);
-  return FD_INT2DTYPE(limit);
+  if (FD_FLONUMP(arg)) {
+    ssize_t result=fd_stack_resize(FD_FLONUM(arg));
+    if (result<0)
+      return FD_ERROR_VALUE;
+    else return FD_INT2DTYPE(result);}
+  else if ( (FD_FIXNUMP(arg)) || (FD_BIGINTP(arg)) ) {
+    ssize_t limit=(ssize_t) fd_getint(arg);
+    ssize_t result=(limit)?(fd_stack_setsize(limit)):(-1);
+    if (limit) {
+      if (result<0)
+        return FD_ERROR_VALUE;
+      else return FD_INT2DTYPE(result);}
+    else return fd_type_error("stacksize","set_stack_limit_prim",arg);}
+  else return fd_type_error("stacksize","set_stack_limit_prim",arg);
 }
 
 #endif

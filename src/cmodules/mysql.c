@@ -349,8 +349,8 @@ static void recycle_mysqldb(struct FD_EXTDB *c)
   u8_free(dbp->procs);
   fd_decref(dbp->colinfo); fd_decref(dbp->options);
   u8_free(dbp->spec); u8_free(dbp->info);
-  u8_mutex_destroy(&(dbp->proclock));
-  u8_mutex_destroy(&(dbp->lock));
+  u8_destroy_mutex(&(dbp->proclock));
+  u8_destroy_mutex(&(dbp->lock));
 
   mysql_close(dbp->db);
 
@@ -418,8 +418,8 @@ static fdtype open_mysql
   dbp->spec=spec;
   dbp->options=options; fd_incref(options);
 
-  u8_mutex_init(&dbp->proclock);
-  u8_mutex_init(&dbp->lock);
+  u8_init_mutex(&dbp->proclock);
+  u8_init_mutex(&dbp->lock);
 
   /* Prep the structure */
   retval=open_connection(dbp);
@@ -883,7 +883,7 @@ static fdtype mysqlmakeproc
   dbproc->spec=u8_strdup(dbp->spec);
   dbproc->qtext=_memdup(stmt,stmt_len+1); /* include space for NUL */
   colinfo=dbproc->colinfo=merge_colinfo(dbp,colinfo);
-  u8_mutex_init(&(dbproc->lock));
+  u8_init_mutex(&(dbproc->lock));
 
   /* Set up MYSQL specific fields */
   dbproc->mysqldb=db;
@@ -1075,7 +1075,7 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
   u8_free(dbproc->qtext);
   u8_free(dbproc->stmt_string);
 
-  u8_mutex_destroy(&(dbproc->lock));
+  u8_destroy_mutex(&(dbproc->lock));
 
   fd_decref(dbproc->db);
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
@@ -1442,7 +1442,7 @@ FD_EXPORT int fd_init_mysql()
   module=fd_new_module("MYSQL",0);
 
 #if FD_THREADS_ENABLED
-  u8_mutex_init(&mysql_connect_lock);
+  u8_init_mutex(&mysql_connect_lock);
 #endif
 
   mysql_handler.execute=mysqlexechandler;

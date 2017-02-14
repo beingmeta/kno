@@ -242,6 +242,10 @@ typedef int fd_size_t;
 #define FD_DEBUG_OUTBUF_SIZE 1024
 #endif
 
+#ifndef FD_MIN_STACKSIZE
+#define FD_MIN_STACKSIZE 0x10000
+#endif
+
 #ifndef FD_SCHEME_BUILTINS
 #define FD_INIT_SCHEME_BUILTINS() fd_init_fdscheme()
 #else

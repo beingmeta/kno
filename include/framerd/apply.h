@@ -165,10 +165,21 @@ FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
 
 /* Stack checking */
 
-FD_EXPORT ssize_t fd_stack_limit(void);
-FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit);
-FD_EXPORT int fd_stackcheck(void);
+#if ((FD_THREADS_ENABLED)&&(FD_USE_TLS))
+FD_EXPORT u8_tld_key fd_stack_limit_key;
+#define fd_stack_limit ((ssize_t)u8_tld_get(stack_limit_key))
+#define fd_set_stack_limit(sz) u8_tld_set(stack_limit_key,(void *)(sz))
+#elif ((FD_THREADS_ENABLED)&&(HAVE_THREAD_STORAGE_CLASS))
+FD_EXPORT __thread ssize_t fd_stack_limit;
+#define fd_set_stack_limit(sz) fd_stack_limit=(sz)
+#else
+FD_EXPORT ssize_t stack_limit;
+#define fd_set_stack_limit(sz) fd_stack_limit=(sz)
+#endif
 
+FD_EXPORT ssize_t fd_stack_setsize(ssize_t limit);
+FD_EXPORT ssize_t fd_stack_resize(double factor);
+FD_EXPORT int fd_stackcheck(void);
 
 /* Profiling */
 
