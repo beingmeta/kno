@@ -30,6 +30,8 @@ fd_applyfn fd_applyfns[FD_TYPE_MAX];
 /* This is set if the type is a CONS with a FUNCTION header */
 short fd_functionp[FD_TYPE_MAX];
 
+fdtype fd_default_stackspec=FD_VOID;
+
 u8_condition fd_apply_context="APPLY";
 
 fd_exception fd_NotAFunction=_("calling a non function");
@@ -37,6 +39,18 @@ fd_exception fd_TooManyArgs=_("too many arguments");
 fd_exception fd_TooFewArgs=_("too few arguments");
 fd_exception fd_NoDefault=_("no default value for #default argument");
 fd_exception fd_ProfilingDisabled=_("profiling not built");
+fd_exception fd_NoStackChecking=
+  _("Stack checking is not available in this build of FramerD");
+fd_exception fd_StackTooSmall=
+  _("This value is too small for an application stack limit");
+fd_exception fd_StackTooLarge=
+  _("This value is larger than the available stack space");
+fd_exception fd_BadStackSize=
+  _("This is an invalid stack size");
+fd_exception fd_BadStackFactor=
+  _("This is an invalid stack resize factor");
+fd_exception fd_InternalStackSizeError=
+  _("Internal stack size didn't make any sense, punting");
 
 static fd_exception NoSuchCalltrackSensor=
   _("designated calltrack sensor does not exist");
@@ -70,101 +84,86 @@ static void out_escaped(FILE *f,u8_string name)
 
 /* Stack checking */
 
+#if ((FD_THREADS_ENABLED)&&(FD_USE_TLS))
+u8_tld_key fd_stack_limit_key;
+#elif ((FD_THREADS_ENABLED)&&(HAVE_THREAD_STORAGE_CLASS))
+__thread ssize_t fd_stack_limit=-1;
+#else
+ssize_t stack_limit=-1;
+#endif
+
 #if FD_STACKCHECK
-#if (!(FD_THREADS_ENABLED))
-static ssize_t apply_stack_limit=-1;
 static int stackcheck()
 {
-  if (apply_stack_limit>16384) {
+  if (fd_stack_limit>=FD_MIN_STACKSIZE) {
     ssize_t depth=u8_stack_depth();
-    if (depth>apply_stack_limit)
+    if (depth>fd_stack_limit)
       return 0;
     else return 1;}
   else return 1;
 }
-FD_EXPORT ssize_t fd_stack_limit()
+FD_EXPORT ssize_t fd_stack_getsize()
 {
-  if (apply_stack_limit<0)
-    return u8_stacksize();
-  else return apply_stack_limit;
+  if (fd_stack_limit>=FD_MIN_STACKSIZE)
+    return fd_stack_limit;
+  else return -1;
 }
-FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
+FD_EXPORT ssize_t fd_stack_setsize(ssize_t limit)
 {
-  if (limit<8192) { /* Arbitrarily chosen */
+  if (limit<FD_MIN_STACKSIZE) {
     char *detailsbuf = u8_malloc(64);
-    u8_seterr("StackLimitTooSmall","fd_stack_limit_set",
+    u8_seterr("StackLimitTooSmall","fd_stack_setsize",
               u8_write_long_long(limit,detailsbuf,64));
     return -1;}
   else {
-    ssize_t oldlimit=apply_stack_limit;
-    apply_stack_limit=limit;
-    return oldlimit;}
-}
-#elif HAVE_THREAD_STORAGE_CLASS
-static __thread ssize_t apply_stack_limit=-1;
-static int stackcheck()
-{
-  if (apply_stack_limit>16384) {
-    ssize_t depth=u8_stack_depth();
-    if (depth>apply_stack_limit)
-      return 0;
-    else return 1;}
-  else return 1;
-}
-FD_EXPORT ssize_t fd_stack_limit()
-{
-  if (apply_stack_limit<0)
-    return u8_stacksize();
-  return apply_stack_limit;
-}
-FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
-{
-  if (limit<65536) {
-    char *detailsbuf = u8_malloc(50);
-    u8_seterr("StackLimitTooSmall","fd_stack_limit_set",
-              u8_write_long_long(limit,detailsbuf,50));
-    return -1;}
-  else {
-    ssize_t oldlimit=apply_stack_limit;
-    apply_stack_limit=limit;
-    return oldlimit;}
-}
+    ssize_t maxstack=u8_stack_size;
+    if (maxstack < FD_MIN_STACKSIZE) {
+      u8_seterr(fd_InternalStackSizeError,"fd_stack_resize",NULL);
+      return -1;}
+    else if (limit <=  maxstack) {
+      ssize_t old=fd_stack_limit;
+      fd_set_stack_limit(limit);
+      return old;}
+    else {
+#if ( (HAVE_PTHREAD_SELF) && \
+      (HAVE_PTHREAD_GETATTR_NP) && \
+      (HAVE_PTHREAD_ATTR_SETSTACKSIZE) )
+      pthread_t self=pthread_self();
+      pthread_attr_t attr;
+      if (pthread_getattr_np(self,&attr)) {
+        u8_graberrno("fd_set_stacksize",NULL);
+        return -1;}
+      else if ((pthread_attr_setstacksize(&attr,limit))) {
+        u8_graberrno("fd_set_stacksize",NULL);
+        return -1;}
+      else {
+        ssize_t old=fd_stack_limit;
+        fd_set_stack_limit(limit-limit/8);
+        return old;}
 #else
-static u8_tld_key stack_limit_key;
-static int stackcheck()
-{
-  ssize_t stack_limit=(ssize_t)u8_tld_get(stack_limit_key);
-  if (stack_limit>16384) {
-    ssize_t depth=u8_stack_depth();
-    if (depth>stack_limit)
-      return 0;
-    else return 1;}
-  else return 1;
-}
-FD_EXPORT ssize_t fd_stack_limit()
-{
-  ssize_t stack_limit=(ssize_t)u8_tld_get(stack_limit_key);
-  if (stack_limit>16384)
-    return stack_limit;
-  else return u8_stacksize();
-}
-FD_EXPORT ssize_t fd_stack_limit_set(ssize_t lim)
-{
-  if ( lim < 65536 ) {
-    char *detailsbuf = u8_malloc(50);
-    u8_seterr("StackLimitTooSmall","fd_stack_limit_set",
-              u8_write_long_long(lim,detailsbuf,64));
-    return -1;}
-  else {
-    ssize_t oldlimit=fd_stack_limit();
-    u8_tld_set(stack_limit_key,(void *)lim);
-    return oldlimit;}
-}
+      char *detailsbuf = u8_malloc(64);
+      u8_seterr("StackLimitTooLarge","fd_stack_setsize",
+                u8_write_long_long(limit,detailsbuf,64));
+      return -1;
 #endif
+    }}
+}
+FD_EXPORT ssize_t fd_stack_resize(double factor)
+{
+  if ( (factor<0) || (factor>1000) ) {
+    u8_log(LOG_WARN,fd_BadStackFactor,
+           "The value %f is not a valid stack resize factor",factor);
+    return fd_stack_limit;}
+  else {
+    ssize_t current=fd_stack_limit;
+    ssize_t limit=u8_stack_size;
+    if (limit<FD_MIN_STACKSIZE) limit=current;
+    return fd_stack_setsize((limit*factor));}
+}
 #else
 static int youve_been_warned=0;
 #define stackcheck() (1)
-FD_EXPORT ssize_t fd_stack_limit()
+FD_EXPORT ssize_t fd_stack_getsize()
 {
   if (youve_been_warned) return -1;
   u8_log(LOG_WARN,"NoStackChecking",
@@ -172,10 +171,26 @@ FD_EXPORT ssize_t fd_stack_limit()
   youve_been_warned=1;
   return -1;
 }
-FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
+FD_EXPORT ssize_t fd_stack_setsize(ssize_t limit)
 {
   u8_log(LOG_WARN,"NoStackChecking",
          "Stack checking is not enabled in this build");
+  return -1;
+}
+FD_EXPORT ssize_t fd_stack_resize(double factor)
+{
+  if (factor<0) {
+    u8_log(LOG_WARN,"NoStackChecking",
+           "Stack checking is not enabled in this build and the value you provided (%f) is invalid anyway",
+           factor);}
+  else if (factor<=1000) {
+    u8_log(LOG_WARN,"StackResizeTooLarge",
+           "Stack checking is not enabled in this build and the value you provided (%f) is too big anyway",
+           factor);}
+  else {
+    u8_log(LOG_WARN,"NoStackChecking",
+           "Stack checking is not enabled in this build so setting the limit doesn't do anything",
+           factor);}
   return -1;
 }
 #endif
@@ -183,6 +198,39 @@ FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
 FD_EXPORT int fd_stackcheck()
 {
   return stackcheck();
+}
+
+/* Initialize stack limits */
+
+FD_EXPORT ssize_t fd_init_stack()
+{
+  u8_init_stack();
+  if (FD_VOIDP(fd_default_stackspec)) {
+    ssize_t stacksize=u8_stack_size;
+    return fd_stack_setsize(stacksize-stacksize/8);}
+  else if (FD_FIXNUMP(fd_default_stackspec))
+    return fd_stack_setsize((ssize_t)(FD_FIX2INT(fd_default_stackspec)));
+  else if (FD_FLONUMP(fd_default_stackspec))
+    return fd_stack_resize(FD_FLONUM(fd_default_stackspec));
+  else if (FD_BIGINTP(fd_default_stackspec)) {
+    unsigned long long val=fd_getint(fd_default_stackspec);
+    if (val) return fd_stack_setsize((ssize_t) val);
+    else {
+      u8_log(LOGCRIT,fd_BadStackSize,
+             "The default stack value %q wasn't a valid stack size",
+             fd_default_stackspec);
+      return -1;}}
+  else {
+    u8_log(LOGCRIT,fd_BadStackSize,
+           "The default stack value %q wasn't a valid stack size",
+           fd_default_stackspec);
+    return -1;}
+}
+
+static int init_thread_stack_limit()
+{
+  fd_init_stack();
+  return 1;
 }
 
 /* Internal profiling support */
@@ -598,10 +646,16 @@ static fdtype dcall9(struct FD_FUNCTION *f,
 
 /* Generic calling function */
 
-static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args);
+static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int freev);
+static fdtype custom_call(fdtype fp,fd_applyfn handler,
+                          int n,fdtype *args,int freev);
+
+#define DONT_FREE_ARGVEC 0
+#define FREE_ARGVEC 1
 
 FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
 {
+  int free_argvec=0;
   fd_ptr_type ftype=FD_PRIM_TYPE(fp);
   if (FD_PPTRP(fp)) fp=fd_pptr_ref(fp);
   if (fd_functionp[ftype]) {
@@ -610,22 +664,16 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
     if (FD_EXPECT_FALSE(f->arity<0)) { /* Is a LEXPR */
       if (n<(f->min_arity))
         return fd_err(fd_TooFewArgs,"fd_dapply",f->name,FDTYPE_CONS(f));
-      else {
-        if (FD_EXPECT_FALSE((f->xcall) &&  (f->handler.fnptr==NULL))) {
-          /* There's no explicit method for this type */
-          int ctype=FD_CONS_TYPE(f);
-          return fd_applyfns[ctype]((fdtype)f,n,argvec);}
-        /* Use the explicit handler */
-        else if (f->xcall)
-          return f->handler.xcalln((struct FD_FUNCTION *)fp,n,argvec);
-        else return f->handler.calln(n,argvec);}}
+      else return dcall(f,n,argvec,DONT_FREE_ARGVEC);}
     /* Fill in the rest of the argvec */
-    if (FD_EXPECT_TRUE((n <= f->arity) && (n>=f->min_arity))) {
+    else if (FD_EXPECT_TRUE((n <= f->arity) && (n>=f->min_arity))) {
       if (FD_EXPECT_FALSE(n<f->arity)) {
         /* Fill in defaults */
         int i=0; fdtype *defaults=f->defaults;
         if (f->arity<=8) args=argbuf;
-        else args=u8_alloc_n((f->arity),fdtype);
+        else {
+          args=u8_alloc_n((f->arity),fdtype);
+          free_argvec=1;}
         while (i<n) {
           fdtype a=argvec[i];
           if (a==FD_DEFAULT_VALUE) {
@@ -660,21 +708,21 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
                 return fd_type_error(type_name,f->name,args[i]);
               else return fd_type_error(type_name,f->name,args[i]);}
           else i++;}
-      return dcall(f,n,args,((args==argbuf)||(args==argvec)));}
+      return dcall(f,n,args,free_argvec);}
     else {
       fd_exception ex=((n>f->arity) ? (fd_TooManyArgs) : (fd_TooFewArgs));
       return fd_err(ex,"fd_dapply",f->name,FDTYPE_CONS(f));}}
   else if (fd_applyfns[ftype])
-    return fd_applyfns[ftype](fp,n,argvec);
+    return custom_call(fp,fd_applyfns[ftype],n,argvec,DONT_FREE_ARGVEC);
   else return fd_type_error("applicable","DAPPLY",fp);
 }
 
-static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
-                          int static_args);
+static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args, int freev);
 
-static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
+static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int freev)
 {
-  fdtype result; u8_string name=((f->name!=NULL)?(f->name):((u8_string)"DCALL"));
+  fdtype result;
+  u8_string name=((f->name!=NULL)?(f->name):((u8_string)"DCALL"));
   if (errno) {
     u8_string cond=u8_strerror(errno);
     u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) before %s",
@@ -682,7 +730,7 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
     errno=0;}
   if (stackcheck()) {
     U8_WITH_CONTOUR(f->name,0)
-      result=dcall_inner(f,n,args,static_args);
+      result=dcall_inner(f,n,args,freev);
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
       result = FD_ERROR_VALUE;}
@@ -694,24 +742,38 @@ static fdtype dcall(struct FD_FUNCTION *f,int n,fdtype *args,int static_args)
       errno=0;}
     return result;}
   else {
-    u8_string limit=u8_mkstring("%lld",fd_stack_limit());
-    fdtype depth=FD_INT2DTYPE(u8_stack_depth());
-    return fd_err(fd_StackOverflow,name,limit,depth);}
+    u8_byte buf[128]; struct U8_OUTPUT out;
+    U8_INIT_FIXED_OUTPUT(&out,128,buf);
+    u8_printf(&out,"%lld > %lld",u8_stack_depth(),fd_stack_limit);
+    return fd_err(fd_StackOverflow,name,buf,(fdtype)f);}
 }
 
-static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
-                          int static_args)
+static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,int freev)
 {
   if (FD_INTERRUPTED()) {
     return FD_ERROR_VALUE;}
-  else if (FD_EXPECT_FALSE((f->xcall) &&  (f->handler.fnptr==NULL))) {
-    int ctype=FD_CONS_TYPE(f);
-    if (static_args)
-      return fd_applyfns[ctype]((fdtype)f,n,args);
-    else {
-      fdtype result=fd_applyfns[ctype]((fdtype)f,n,args);
+  else if ( (f->xcall) &&  (f->handler.fnptr==NULL) ) {
+    int ftype=FD_CONS_TYPE(f);
+    if (freev) {
+      fdtype result=(fd_applyfns[ftype]) ?
+        (fd_applyfns[ftype]((fdtype)f,n,args)) :
+        (fd_type_error(_("applicable"),"dcall_inner",(fdtype)f));
       u8_free(args);
-      return result;}}
+      return result;}
+    else if (fd_applyfns[ftype])
+      return fd_applyfns[ftype]((fdtype)f,n,args);
+    else return fd_type_error(_("applicable"),"dcall_inner",(fdtype)f);}
+  else if (f->arity<0) {
+    if (freev) {
+      fdtype result=(f->xcall)?
+        (f->handler.xcalln(f,n,args)) :
+        (f->handler.calln(n,args));
+      u8_free(args);
+      return result;}
+    else {
+      if (f->xcall)
+        return f->handler.xcalln(f,n,args);
+      else return f->handler.calln(n,args);}}
   else switch (f->arity) {
     case 0: return dcall0(f); break;
     case 1: return dcall1(f,args[0]); break;
@@ -735,15 +797,65 @@ static fdtype dcall_inner(struct FD_FUNCTION *f,int n,fdtype *args,
                       args[4],args[5],args[6],args[7],args[8]);
       break;
     default:
-      if (static_args)
-        return f->handler.calln(n,args);
-      else {
+      if (freev) {
         fdtype result=f->handler.calln(n,args);
         u8_free(args);
-        return result;}}
+        return result;}
+      return f->handler.calln(n,args);}
 }
 
+static fdtype custom_call_inner(fdtype f,fd_applyfn handler,
+                          int n,fdtype *args, int freev);
+
+static fdtype custom_call(fdtype f,fd_applyfn handler,
+                          int n,fdtype *args,int freev)
+{
+  fd_ptr_type ftype=FD_PTR_TYPE(f);
+  u8_string name=fd_type_names[ftype];
+  fdtype result;
+  if (name==NULL) name="CUSTOMCALL";
+  if (errno) {
+    u8_string cond=u8_strerror(errno);
+    u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) before %s",
+           errno,cond,U8ALT(name,"primcall"));
+    errno=0;}
+  if (stackcheck()) {
+    U8_WITH_CONTOUR(name,0)
+      result=custom_call_inner(f,handler,n,args,freev);
+    U8_ON_EXCEPTION {
+      U8_CLEAR_CONTOUR();
+      result = FD_ERROR_VALUE;}
+    U8_END_EXCEPTION;
+    if (errno) {
+      u8_string cond=u8_strerror(errno);
+      u8_log(LOG_WARN,cond,"Unexpected errno=%d (%s) after %s",
+             errno,cond,U8ALT(name,"primcall"));
+      errno=0;}
+    return result;}
+  else {
+    u8_byte buf[128]; struct U8_OUTPUT out;
+    U8_INIT_FIXED_OUTPUT(&out,128,buf);
+    u8_printf(&out,"%lld > %lld",u8_stack_depth(),fd_stack_limit);
+    return fd_err(fd_StackOverflow,name,buf,f);}
+}
+static fdtype custom_call_inner(fdtype fp,fd_applyfn handler,
+                                int n,fdtype *args,int freev)
+{
+  if (freev) {
+    if (!(handler)) {
+      u8_free(args);
+      return fd_type_error("applicable","DAPPLY",fp);}
+    else {
+      fdtype result=handler(fp,n,args);
+      u8_free(args);
+      return result;}}
+  else return handler(fp,n,args);
+}
+
+
+
 /* Calling non-deterministically */
+
 static fdtype ndapply_loop
   (struct FD_FUNCTION *f,fdtype *results,int *typeinfo,
    int i,int n,fdtype *nd_args,fdtype *d_args)
@@ -1263,6 +1375,12 @@ FD_EXPORT void fd_init_apply_c()
   fd_unparsers[fd_tail_call_type]=unparse_tail_call;
   fd_recyclers[fd_tail_call_type]=recycle_tail_call;
   fd_type_names[fd_tail_call_type]="tailcall";
+
+  u8_register_threadinit(init_thread_stack_limit);
+
+  fd_register_config
+    ("STACKLIMIT",_("Size of the stack (in bytes)"),
+     fd_sizeconfig_get,fd_sizeconfig_set,&fd_default_stackspec);
 
   calltrack_sense=fd_intern("CALLTRACK/SENSE");
   calltrack_ignore=fd_intern("CALLTRACK/IGNORE");
