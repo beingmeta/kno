@@ -111,7 +111,7 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         fdtype consequent_expr=FD_VOID;
         if (FD_EMPTY_CHOICEP(test))
           return FD_EMPTY_CHOICE;
-        else if (FD_FALSEP(test)) 
+        else if (FD_FALSEP(test))
           consequent_expr=fd_get_arg(expr,3);
         else consequent_expr=fd_get_arg(expr,2);
         fd_decref(test);

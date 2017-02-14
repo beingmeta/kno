@@ -1228,7 +1228,7 @@ static int unparse_extended_fcnid(u8_output out,fdtype x)
 {
   fdtype lp=fd_fcnid_ref(x);
   if (FD_PRIM_TYPEP(lp,fd_sproc_type)) {
-    struct FD_SPROC *sproc=FD_GET_CONS(x,fd_sproc_type,struct FD_SPROC *);
+    struct FD_SPROC *sproc=FD_GET_CONS(lp,fd_sproc_type,struct FD_SPROC *);
     unsigned long long addr=(unsigned long long) sproc;
     fdtype arglist=sproc->sproc_arglist;
     u8_string codes=

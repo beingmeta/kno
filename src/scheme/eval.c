@@ -1083,7 +1083,7 @@ FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)
     while (FD_PAIRP(exprs)) {
       fd_decref(val); val=FD_VOID;
       if (FD_EMPTY_LISTP(next))
-        return fd_eval(FD_CAR(exprs),env);
+        return fd_tail_eval(FD_CAR(exprs),env);
       else {
         val=fd_eval(FD_CAR(exprs),env);
         if (FD_ABORTED(val)) return val;
@@ -1094,8 +1094,11 @@ FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)
     struct FD_VECTOR *v=FD_GET_CONS(exprs,fd_rail_type,fd_vector);
     int len=v->fd_veclen; fdtype *elts=v->fd_vecelts, val=FD_VOID;
     int i=0; while (i<len) {
+      fdtype expr=elts[i++];
       fd_decref(val); val=FD_VOID;
-      val=fd_eval(elts[i++],env);
+      if (i==len)
+        return fd_eval(expr,env);
+      else val=fd_eval(expr,env);
       if (FD_ABORTED(val)) return val;}
     return val;}
   else return FD_VOID;
