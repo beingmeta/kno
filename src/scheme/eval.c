@@ -25,6 +25,8 @@
 #include "framerd/ports.h"
 #include "framerd/dtcall.h"
 
+#include "eval_internals.h"
+
 #include <libu8/u8timefns.h>
 #include <libu8/u8printf.h>
 

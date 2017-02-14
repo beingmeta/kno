@@ -146,7 +146,7 @@ typedef enum FD_PTR_TYPE {
   fd_flonum_type=FD_CONS_TYPECODE(19),
   fd_timestamp_type=FD_CONS_TYPECODE(20),
   fd_dtproc_type=FD_CONS_TYPECODE(21),
-  fd_tail_call_type=FD_CONS_TYPECODE(22),
+  fd_tailcall_type=FD_CONS_TYPECODE(22),
   fd_uuid_type=FD_CONS_TYPECODE(23),
   fd_rail_type=FD_CONS_TYPECODE(24),
   fd_secret_type=FD_CONS_TYPECODE(25),
@@ -217,7 +217,8 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define FD_INIT_STATIC_CONS(ptr,type) \
   memset(ptr,0,sizeof(*(ptr))); \
   ((struct FD_CONS *)ptr)->fd_conshead=(type-(FD_CONS_TYPE_OFF))
-#define FD_CONS_TYPE(x) (( ((x)->fd_conshead) & (FD_CONS_TYPE_MASK) )+(FD_CONS_TYPE_OFF))
+#define FD_CONS_TYPE(x) \
+  (( ((x)->fd_conshead) & (FD_CONS_TYPE_MASK) )+(FD_CONS_TYPE_OFF))
 #define FD_SET_CONS_TYPE(ptr,type) \
   ((struct FD_CONS *)ptr)->fd_conshead=\
     ((((struct FD_CONS *)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
@@ -252,6 +253,7 @@ static fd_ptr_type FD_PTR_TYPE(fdtype x)
 }
 #endif
 
+#define FD_CONS_TYPEP(x,type) ( (FD_CONSP(x)) && ((FD_CONS_TYPE(x)) == type) )
 #define FD_PTR_TYPEP(x,type) ((FD_PTR_TYPE(x)) == type)
 
 #define FD_MAKE_STATIC(ptr) \

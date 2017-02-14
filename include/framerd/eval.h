@@ -237,7 +237,7 @@ FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lispenv env)
 FD_FASTOP fdtype fd_eval(fdtype x,fd_lispenv env)
 {
   fdtype result=fd_tail_eval(x,env);
-  if (FD_PTR_TYPEP(result,fd_tail_call_type))
+  if (FD_PTR_TYPEP(result,fd_tailcall_type))
     return _fd_finish_call(result);
   else return result;
 }

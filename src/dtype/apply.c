@@ -1146,18 +1146,17 @@ FD_EXPORT fdtype fd_make_cprim9x
 
 FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
 {
-  if (FD_FCNIDP(fcn))
-    fcn=fd_fcnid_ref(fcn);
+  if (FD_FCNIDP(fcn)) fcn=fd_fcnid_ref(fcn);
   struct FD_FUNCTION *f=(struct FD_FUNCTION *)fcn;
   if (FD_EXPECT_FALSE(((f->fcn_arity)>=0) && (n>(f->fcn_arity)))) {
     fd_seterr(fd_TooManyArgs,"fd_tail_call",u8_mkstring("%d",n),fcn);
     return FD_ERROR_VALUE;}
   else {
     int atomic=1, nd=0;
-    struct FD_TAIL_CALL *tc=(struct FD_TAIL_CALL *)
-      u8_malloc(sizeof(struct FD_TAIL_CALL)+sizeof(fdtype)*n);
+    struct FD_TAILCALL *tc=(struct FD_TAILCALL *)
+      u8_malloc(sizeof(struct FD_TAILCALL)+sizeof(fdtype)*n);
     fdtype *write=&(tc->tailcall_head), *write_limit=write+(n+1), *read=vec;
-    FD_INIT_CONS(tc,fd_tail_call_type);
+    FD_INIT_CONS(tc,fd_tailcall_type);
     tc->tailcall_arity=n+1;
     tc->tailcall_flags=0;
     *write++=fd_incref(fcn);
@@ -1174,46 +1173,96 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec)
           if (FD_CHOICEP(v)) nd=1;
           *write++=fd_incref(v);}}
       else *write++=v;}
-    if (atomic) tc->tailcall_flags=tc->tailcall_flags|FD_TAIL_CALL_ATOMIC_ARGS;
-    if (nd) tc->tailcall_flags=tc->tailcall_flags|FD_TAIL_CALL_ND_ARGS;
+    if (atomic) tc->tailcall_flags=tc->tailcall_flags|FD_TAILCALL_ATOMIC_ARGS;
+    if (nd) tc->tailcall_flags=tc->tailcall_flags|FD_TAILCALL_ND_ARGS;
+    return FDTYPE_CONS(tc);}
+}
+FD_EXPORT fdtype fd_void_tail_call(fdtype fcn,int n,fdtype *vec)
+{
+  if (FD_FCNIDP(fcn)) fcn=fd_fcnid_ref(fcn);
+  struct FD_FUNCTION *f=(struct FD_FUNCTION *)fcn;
+  if (FD_EXPECT_FALSE(((f->fcn_arity)>=0) && (n>(f->fcn_arity)))) {
+    fd_seterr(fd_TooManyArgs,"fd_void_tail_call",u8_mkstring("%d",n),fcn);
+    return FD_ERROR_VALUE;}
+  else {
+    int atomic=1, nd=0;
+    struct FD_TAILCALL *tc=(struct FD_TAILCALL *)
+      u8_malloc(sizeof(struct FD_TAILCALL)+sizeof(fdtype)*n);
+    fdtype *write=&(tc->tailcall_head), *write_limit=write+(n+1), *read=vec;
+    FD_INIT_CONS(tc,fd_tailcall_type);
+    tc->tailcall_arity=n+1;
+    tc->tailcall_flags=FD_TAILCALL_VOID_VALUE;
+    *write++=fd_incref(fcn);
+    while (write<write_limit) {
+      fdtype v=*read++;
+      if (FD_CONSP(v)) {
+        atomic=0;
+        if (FD_QCHOICEP(v)) {
+          struct FD_QCHOICE *qc=(fd_qchoice)v;
+          fdtype cv=qc->fd_choiceval;
+          fd_incref(cv);
+          *write++=cv;}
+        else {
+          if (FD_CHOICEP(v)) nd=1;
+          *write++=fd_incref(v);}}
+      else *write++=v;}
+    if (atomic) tc->tailcall_flags|=FD_TAILCALL_ATOMIC_ARGS;
+    if (nd) tc->tailcall_flags|=FD_TAILCALL_ND_ARGS;
     return FDTYPE_CONS(tc);}
 }
 
 FD_EXPORT fdtype fd_step_call(fdtype c)
 {
-  struct FD_TAIL_CALL *tc=
-    FD_GET_CONS(c,fd_tail_call_type,struct FD_TAIL_CALL *);
+  struct FD_TAILCALL *tc=
+    FD_GET_CONS(c,fd_tailcall_type,struct FD_TAILCALL *);
+  int discard=U8_BITP(tc->tailcall_flags,FD_TAILCALL_VOID_VALUE);
   fdtype result=
-    ((tc->tailcall_flags&FD_TAIL_CALL_ND_ARGS)?
+    ((tc->tailcall_flags&FD_TAILCALL_ND_ARGS)?
      (fd_apply(tc->tailcall_head,tc->tailcall_arity-1,(&(tc->tailcall_head))+1)):
      (fd_dapply(tc->tailcall_head,tc->tailcall_arity-1,(&(tc->tailcall_head))+1)));
   fd_decref(c);
-  return result;
+  if (discard) {
+    if (FD_TAILCALLP(result))
+      return result;
+    fd_decref(result);
+    return FD_VOID;}
+  else return result;
 }
 
 static void recycle_tail_call(struct FD_CONS *c);
 
 FD_EXPORT fdtype _fd_finish_call(fdtype pt)
 {
-  while (FD_PTR_TYPEP(pt,fd_tail_call_type)) {
-    struct FD_TAIL_CALL *tc=
-      FD_GET_CONS(pt,fd_tail_call_type,struct FD_TAIL_CALL *);
-    fdtype result=((tc->tailcall_flags&FD_TAIL_CALL_ND_ARGS) ?
+  if (FD_TAILCALLP(pt)) {
+    fdtype result=FD_VOID;
+    while (1) {
+      struct FD_TAILCALL *tc=
+        FD_GET_CONS(pt,fd_tailcall_type,struct FD_TAILCALL *);
+      fdtype next=((tc->tailcall_flags&FD_TAILCALL_ND_ARGS) ?
                    (fd_apply(tc->tailcall_head,tc->tailcall_arity-1,
                              (&(tc->tailcall_head))+1)) :
                    (fd_dapply(tc->tailcall_head,tc->tailcall_arity-1,
                               (&(tc->tailcall_head))+1)));
-    if (FD_CONS_REFCOUNT(tc)==1)
-      recycle_tail_call((struct FD_CONS *)tc);
-    else fd_decref(pt);
-    pt=result;}
-  return pt;
+      int finished=(!((FD_CONSP(next))&&
+                      (FD_PRIM_TYPEP(next,fd_tailcall_type))));
+      if (finished) {
+        if (U8_BITP(tc->tailcall_flags,FD_TAILCALL_VOID_VALUE)) {
+          fd_decref(next);
+          result=FD_VOID;}
+        else result=next;}
+      if (FD_CONS_REFCOUNT(tc)==1)
+        recycle_tail_call((struct FD_CONS *)tc);
+      else fd_decref(pt);
+      if (finished)
+        break;
+      else pt=next;}
+    return result;}
+  else return pt;
 }
-
 static int unparse_tail_call(struct U8_OUTPUT *out,fdtype x)
 {
-  struct FD_TAIL_CALL *tc=
-    FD_GET_CONS(x,fd_tail_call_type,struct FD_TAIL_CALL *);
+  struct FD_TAILCALL *tc=
+    FD_GET_CONS(x,fd_tailcall_type,struct FD_TAILCALL *);
   u8_printf(out,"#<TAILCALL %q on %d args>",
             tc->tailcall_head,tc->tailcall_arity);
   return 1;
@@ -1221,11 +1270,11 @@ static int unparse_tail_call(struct U8_OUTPUT *out,fdtype x)
 
 static void recycle_tail_call(struct FD_CONS *c)
 {
-  struct FD_TAIL_CALL *tc=(struct FD_TAIL_CALL *)c;
+  struct FD_TAILCALL *tc=(struct FD_TAILCALL *)c;
   int mallocd=FD_MALLOCD_CONSP(c), n_elts=tc->tailcall_arity;
   fdtype *scan=&(tc->tailcall_head), *limit=scan+n_elts;
-  size_t tc_size=sizeof(struct FD_TAIL_CALL)+(sizeof(fdtype)*(n_elts-1));
-  if (!(tc->tailcall_flags&FD_TAIL_CALL_ATOMIC_ARGS)) {
+  size_t tc_size=sizeof(struct FD_TAILCALL)+(sizeof(fdtype)*(n_elts-1));
+  if (!(tc->tailcall_flags&FD_TAILCALL_ATOMIC_ARGS)) {
     while (scan<limit) {fd_decref(*scan); scan++;}}
   /* The head is always incref'd */
   else fd_decref(*scan);
@@ -1294,9 +1343,9 @@ FD_EXPORT void fd_init_apply_c()
   fd_unparsers[fd_primfcn_type]=unparse_primitive;
   fd_recyclers[fd_primfcn_type]=recycle_primitive;
 
-  fd_unparsers[fd_tail_call_type]=unparse_tail_call;
-  fd_recyclers[fd_tail_call_type]=recycle_tail_call;
-  fd_type_names[fd_tail_call_type]="tailcall";
+  fd_unparsers[fd_tailcall_type]=unparse_tail_call;
+  fd_recyclers[fd_tailcall_type]=recycle_tail_call;
+  fd_type_names[fd_tailcall_type]="tailcall";
 
   calltrack_sense=fd_intern("CALLTRACK/SENSE");
   calltrack_ignore=fd_intern("CALLTRACK/IGNORE");

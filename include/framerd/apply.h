@@ -145,22 +145,25 @@ FD_EXPORT fdtype fd_dapply(fdtype,int n,fdtype *args);
 
 /* Tail calls */
 
-#define FD_TAIL_CALL_ND_ARGS     1
-#define FD_TAIL_CALL_ATOMIC_ARGS 2
+#define FD_TAILCALL_ND_ARGS     1
+#define FD_TAILCALL_ATOMIC_ARGS 2
+#define FD_TAILCALL_VOID_VALUE  4
 
-struct FD_TAIL_CALL {
+typedef struct FD_TAILCALL {
   FD_CONS_HEADER;
   int tailcall_flags;
   int tailcall_arity;
-  fdtype tailcall_head;};
+  fdtype tailcall_head;} *fd_tailcall;
 
 FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec);
 FD_EXPORT fdtype fd_step_call(fdtype c);
 FD_EXPORT fdtype _fd_finish_call(fdtype);
 
+#define FD_TAILCALLP(x) (FD_PTR_TYPEP((x),fd_tailcall_type))
+
 FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
 {
-  if (FD_PTR_TYPEP(pt,fd_tail_call_type))
+  if (FD_TAILCALLP(pt))
     return _fd_finish_call(pt);
   else return pt;
 }

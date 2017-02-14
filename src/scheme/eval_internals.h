@@ -94,7 +94,7 @@ FD_FASTOP fdtype eval_body(u8_context cxt,fdtype expr,int offset,
 {
   fdtype result=FD_VOID;
   FD_DOBODY(bodyexpr,expr,offset) {
-    if (FD_PRIM_TYPEP(result,fd_tail_call_type))
+    if (FD_PRIM_TYPEP(result,fd_tailcall_type))
       result=_fd_finish_call(result);
     if (FD_ABORTP(result)) {
       if (FD_THROWP(result)) return result;
@@ -116,13 +116,28 @@ FD_FASTOP fdtype eval_exprs(fdtype body,fd_lispenv inner_env)
 {
   fdtype result=FD_VOID;
   FD_DOLIST(bodyexpr,body) {
-    if (FD_PRIM_TYPEP(result,fd_tail_call_type))
+    if (FD_PRIM_TYPEP(result,fd_tailcall_type))
       result=_fd_finish_call(result);
     if (FD_ABORTP(result)) return result;
     else {fd_decref(result);}
     result=fd_tail_eval(bodyexpr,inner_env);}
   return result;
 }
+
+#define FD_VOID_RESULT(result)                          \
+  if (FD_ABORTP(result)) return result;                 \
+  else if (FD_PRIM_TYPEP(result,fd_tailcall_type)) {    \
+    struct FD_TAILCALL *tc=(fd_tailcall)result;         \
+    tc->tailcall_flags|=FD_TAILCALL_VOID_VALUE;}        \
+  else { fd_decref(result); result=FD_VOID; }
+
+#define FD_DISCARD_RESULT(result)        \
+  if (FD_ABORTP(result)) return result;  \
+  result=fd_finish_call(result);         \
+  if (FD_ABORTP(result)) return result;         \
+  else { fd_decref(result); result=FD_VOID;}
+
+
 
 /* Emacs local variables
    ;;;  Local variables: ***

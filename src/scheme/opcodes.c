@@ -120,21 +120,26 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
         else return fasteval(consequent_expr,env);}
       case FD_WHEN_OPCODE: {
         if (!(FD_FALSEP(test))) {
+          fdtype tmpval=FD_VOID;
           FD_DOBODY(tmp,expr,2) {
-            fdtype tmpval=op_eval(tmp,env,0);
-            if (FD_ABORTED(tmpval)) return tmpval;
-            fd_decref(tmpval);}}
-        fd_decref(test);
-        return FD_VOID;}
+            FD_DISCARD_RESULT(tmpval);
+            tmpval=op_eval(tmp,env,1);}
+          FD_VOID_RESULT(tmpval);
+          return tmpval;}
+        else {
+          fd_decref(test);
+          return FD_VOID;}}
       case FD_UNLESS_OPCODE: {
         if (FD_FALSEP(test)) {
+          fdtype tmpval=FD_VOID;
           FD_DOBODY(tmp,expr,2) {
-            fdtype tmpval=op_eval(tmp,env,0);
-            if (FD_ABORTED(tmpval)) return tmpval;
-            fd_decref(tmpval);}
-          return FD_VOID;}
-        fd_decref(test);
-        return FD_VOID;}
+            FD_DISCARD_RESULT(tmpval);
+            tmpval=op_eval(tmp,env,1);}
+          FD_VOID_RESULT(tmpval);
+          return tmpval;}
+        else {
+          fd_decref(test);
+          return FD_VOID;}}
       case FD_IFELSE_OPCODE: {
         if (FD_EMPTY_CHOICEP(test))
           return FD_EMPTY_CHOICE;
@@ -1013,7 +1018,7 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
             result=fd_apply_sproc((struct FD_SPROC *)fn,arg_i,args);
           else result=fd_dapply(head,n-1,args);}
         arg_i--; while (arg_i>=0) {fd_decref(args[arg_i]); arg_i--;}
-        if (FD_PRIM_TYPEP(result,fd_tail_call_type))
+        if (FD_PRIM_TYPEP(result,fd_tailcall_type))
           result=fd_finish_call(result);
         return result;}
       else return fd_eval(x,env);}
