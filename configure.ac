@@ -1223,6 +1223,10 @@ if test x$with_mongodb = "xyes"; then
   INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}"
 fi
 
+if test "${with_mongodb}" = "yes"; then
+   AC_CHECK_FUNCS(mongoc_collection_find_with_opts)
+fi	
+
 AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
 if test "x$with_fileinfo" = "xyes" ; then
    definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""

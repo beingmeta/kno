@@ -10766,6 +10766,20 @@ if test x$with_mongodb = "xyes"; then
   INSTALLCMODULES="install-mongodb ${INSTALLCMODULES}"
 fi
 
+if test "${with_mongodb}" = "yes"; then
+   for ac_func in mongoc_collection_find_with_opts
+do :
+  ac_fn_c_check_func "$LINENO" "mongoc_collection_find_with_opts" "ac_cv_func_mongoc_collection_find_with_opts"
+if test "x$ac_cv_func_mongoc_collection_find_with_opts" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_MONGOC_COLLECTION_FIND_WITH_OPTS 1
+_ACEOF
+
+fi
+done
+
+fi
+
 
 # Check whether --with-fileinfo was given.
 if test "${with_fileinfo+set}" = set; then :

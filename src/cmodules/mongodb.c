@@ -288,6 +288,39 @@ static fdtype combine_opts(fdtype opts,fdtype clopts)
     return opts;}
 }
 
+static bson_t *getfindopts(fdtype opts,int flags)
+{
+  fdtype skip_arg=fd_getopt(opts,skipsym,FD_FIXZERO);
+  fdtype limit_arg=fd_getopt(opts,limitsym,FD_FIXZERO);
+  fdtype batch_arg=fd_getopt(opts,batchsym,FD_FIXZERO);
+  fdtype projection=fd_getopt(opts,returnsym,FD_VOID);
+  struct FD_BSON_OUTPUT out; bson_t *doc=bson_new();
+  out.bson_doc=doc;
+  out.bson_opts=opts;
+  out.bson_flags=flags;
+  out.bson_fieldmap=fd_getopt(opts,fieldmap_symbol,FD_VOID);
+  if (FD_FIXNUMP(skip_arg))
+    bson_append_dtype(out,"skip",4,skip_arg);
+  else fd_decref(skip_arg);
+  if (FD_FIXNUMP(limit_arg))
+    bson_append_dtype(out,"limit",5,limit_arg);
+  else fd_decref(limit_arg);
+  if (FD_FIXNUMP(batch_arg))
+    bson_append_dtype(out,"batchSize",9,batch_arg);
+  else fd_decref(batch_arg);
+  if ((FD_CONSP(projection))&&(FD_TABLEP(projection))) {
+    struct FD_BSON_OUTPUT fields; bson_t proj;
+    int ok=bson_append_document_begin(doc,"projection",10,&proj);
+    fields.bson_doc=&proj;
+    fields.bson_flags=((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
+    fields.bson_opts=opts;
+    fields.bson_fieldmap=out.bson_fieldmap;
+    fd_bson_output(fields,projection);
+    bson_append_document_end(doc,&proj);}
+  fd_decref(out.bson_fieldmap);
+  return out.bson_doc;
+}
+
 static int mongodb_getflags(fdtype mongodb);
 
 /* Consing MongoDB clients, collections, and cursors */
@@ -691,6 +724,65 @@ static fdtype mongodb_update(fdtype arg,fdtype query,fdtype update,
     return FD_ERROR_VALUE;}
 }
 
+#if HAVE_MONGOC_COLLECTION_FIND_WITH_OPTS
+static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
+{
+  struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
+  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
+  mongoc_client_t *client=NULL;
+  mongoc_collection_t *collection=open_collection(domain,&client,flags);
+  if (collection) {
+    fdtype results=FD_EMPTY_CHOICE;
+    mongoc_cursor_t *cursor=NULL;
+    const bson_t *doc;
+    bson_t *q=fd_dtype2bson(query,flags,opts);
+    bson_t *findopts=getfindopts(opts,flags);
+    mongoc_read_prefs_t *readprefs=get_read_prefs(opts);
+    fdtype *vec=NULL; size_t n=0, max=0;
+    int sort_results=fd_testopt(opts,sortedsym,FD_VOID);
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_log(-LOG_INFO,"MongoDB/find","Matches to %q in %q",query,arg);
+    if (q)
+      cursor=mongoc_collection_find_with_opts(collection,q,findopts,readprefs);
+    if (cursor) {
+      while (mongoc_cursor_next(cursor,&doc)) {
+        /* u8_string json=bson_as_json(doc,NULL); */
+        fdtype r=fd_bson2dtype((bson_t *)doc,flags,opts);
+        if (FD_ABORTP(r)) {
+          fd_decref(results);
+          free_dtype_vec(vec,n);
+          results=FD_ERROR_VALUE;
+          sort_results=0;}
+        else if (sort_results) {
+          if (n>=max) {
+            if (!(grow_dtype_vec(&vec,n,&max))) {
+              free_dtype_vec(vec,n);
+              results=FD_ERROR_VALUE;
+              sort_results=0;
+              break;}}
+          vec[n++]=r;}
+        else {
+          FD_ADD_TO_CHOICE(results,r);}}
+      if (findopts) bson_destroy(findopts);
+      if (readprefs) mongoc_read_prefs_destroy(rp);
+      mongoc_cursor_destroy(cursor);}
+    else results=fd_err(fd_MongoDB_Error,"mongodb_find","couldn't get cursor",opts);
+    if (q) bson_destroy(q);
+    if (findopts) bson_destroy(findopts);
+    collection_done(collection,client,domain);
+    fd_decref(opts);
+    if (sort_results) {
+      if ((vec==NULL)||(n==0)) return fd_make_vector(0,NULL);
+      else results=fd_make_vector(n,vec);
+      if (vec) u8_free(vec);}
+    return results;}
+  else {
+    fd_decref(opts);
+    return FD_ERROR_VALUE;}
+}
+#else
 static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
@@ -756,7 +848,50 @@ static fdtype mongodb_find(fdtype arg,fdtype query,fdtype opts_arg)
     fd_decref(opts);
     return FD_ERROR_VALUE;}
 }
+#endif
 
+#if HAVE_MONGOC_COLLECTION_FIND_WITH_OPTS
+static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
+{
+  fdtype result=FD_EMPTY_CHOICE;
+  struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
+  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
+  mongoc_client_t *client=NULL;
+  mongoc_collection_t *collection=open_collection(domain,&client,flags);
+  if (collection) {
+    mongoc_cursor_t *cursor;
+    const bson_t *doc;
+    bson_t *q, *findopts=getfindopts(opts,flags);
+    mongoc_read_prefs_t *readprefs=get_read_prefs(opts);
+    if ((!(FD_OIDP(query)))&&(FD_TABLEP(query)))
+      q=fd_dtype2bson(query,flags,opts);
+    else {
+      struct FD_BSON_OUTPUT out;
+      out.bson_doc=bson_new();
+      out.bson_flags=((flags<0)?(getflags(opts,FD_MONGODB_DEFAULTS)):(flags));
+      out.bson_opts=opts;
+      bson_append_dtype(out,"_id",3,query);
+      q=out.bson_doc;}
+    if ((logops)||(flags&FD_MONGODB_LOGOPS))
+      u8_log(-LOG_INFO,"MongoDB/get","Matches to %q in %q",query,arg);
+    if (q) cursor=mongoc_collection_find_with_opts(collection,q,findopts,readprefs);
+    if ((cursor)&&(mongoc_cursor_next(cursor,&doc))) {
+      result=fd_bson2dtype((bson_t *)doc,flags,opts);}
+    if (cursor) mongoc_cursor_destroy(cursor);
+    if (rp) mongoc_read_prefs_destroy(rp);
+    if (findopts) bson_destroy(findopts);
+    if (q) bson_destroy(q);
+    if (fields) bson_destroy(fields);
+    fd_decref(opts);
+    collection_done(collection,client,domain);
+    return result;}
+  else {
+    fd_decref(opts);
+    return FD_ERROR_VALUE;}
+}
+#else
 static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
 {
   fdtype result=FD_EMPTY_CHOICE;
@@ -797,6 +932,7 @@ static fdtype mongodb_get(fdtype arg,fdtype query,fdtype opts_arg)
     fd_decref(opts);
     return FD_ERROR_VALUE;}
 }
+#endif
 
 /* Find and Modify */
 
@@ -1080,6 +1216,44 @@ static fdtype mongodb_simple_command(int n,fdtype *args)
 
 /* Cursor creation */
 
+#if HAVE_MONGOC_COLLECTION_FIND_WITH_OPTS
+static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
+{
+  struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
+  struct FD_MONGODB_DATABASE *db=DOMAIN2DB(domain);
+  int flags=getflags(opts_arg,domain->domain_flags);
+  fdtype opts=combine_opts(opts_arg,domain->domain_opts);
+  mongoc_client_t *connection;
+  mongoc_cursor_t *cursor=NULL;
+  mongoc_collection_t *collection=open_collection(domain,&connection,flags);
+  bson_t *bq=fd_dtype2bson(query,flags,opts);
+  bson_t findopts=getfindopts(opts,flags);
+  mongoc_read_prefs_t *readprefs=get_read_prefs(opts);
+  if (collection) {
+    cursor=mongoc_collection_find_with_opts(collection,bq,findopts,readprefs);}
+  if (cursor) {
+    struct FD_MONGODB_CURSOR *consed=u8_alloc(struct FD_MONGODB_CURSOR);
+    FD_INIT_CONS(consed,fd_mongoc_cursor);
+    consed->cursor_domain=arg; fd_incref(arg);
+    consed->cursor_db=domain->domain_db;
+    fd_incref(domain->domain_db);
+    consed->cursor_query=query; fd_incref(query);
+    consed->cursor_query_bson=bq;
+    consed->cursor_readprefs=rp;
+    consed->cursor_opts=findopts;
+    consed->cursor_connection=connection;
+    consed->cursor_collection=collection;
+    consed->mongoc_cursor=cursor;
+   return (fdtype) consed;}
+  else {
+    fd_decref(opts);
+    if (findopts) bson_destroy(findopts);
+    if (readprefs) mongoc_read_prefs_destroy(readprefs);
+    if (bq) bson_destroy(bq);
+    if (collection) collection_done(collection,connection,domain);
+    return FD_ERROR_VALUE;}
+}
+#else
 static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
 {
   struct FD_MONGODB_COLLECTION *domain=(struct FD_MONGODB_COLLECTION *)arg;
@@ -1111,7 +1285,7 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
     fd_incref(domain->domain_db);
     consed->cursor_query=query; fd_incref(query);
     consed->cursor_query_bson=bq;
-    consed->cursor_fields_bson=fields;
+    consed->cursor_opts_bson=fields;
     consed->cursor_readprefs=rp;
     consed->cursor_connection=connection;
     consed->cursor_collection=collection;
@@ -1123,6 +1297,8 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
     if (collection) collection_done(collection,connection,domain);
     return FD_ERROR_VALUE;}
 }
+#endif
+
 static void recycle_cursor(struct FD_CONS *c)
 {
   struct FD_MONGODB_CURSOR *cursor= (struct FD_MONGODB_CURSOR *)c;
@@ -1135,8 +1311,8 @@ static void recycle_cursor(struct FD_CONS *c)
   fd_decref(cursor->cursor_query);
   fd_decref(cursor->cursor_opts);
   bson_destroy(cursor->cursor_query_bson);
-  if (cursor->cursor_fields_bson)
-    bson_destroy(cursor->cursor_fields_bson);
+  if (cursor->cursor_opts_bson)
+    bson_destroy(cursor->cursor_opts_bson);
   if (cursor->cursor_readprefs)
     mongoc_read_prefs_destroy(cursor->cursor_readprefs);
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
@@ -2439,6 +2615,8 @@ FD_EXPORT int fd_init_mongodb()
 
   return 1;
 }
+
+/* Future code */
 
 /* Emacs local variables
    ;;;  Local variables: ***
