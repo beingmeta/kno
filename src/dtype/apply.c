@@ -86,7 +86,7 @@ static int stackcheck()
 FD_EXPORT ssize_t fd_stack_limit()
 {
   if (apply_stack_limit<0)
-    return u8_stacksize();
+    return u8_stack_size;
   else return apply_stack_limit;
 }
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
@@ -115,7 +115,7 @@ static int stackcheck()
 FD_EXPORT ssize_t fd_stack_limit()
 {
   if (apply_stack_limit<0)
-    return u8_stacksize();
+    return u8_stack_size;
   return apply_stack_limit;
 }
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t limit)
@@ -147,7 +147,7 @@ FD_EXPORT ssize_t fd_stack_limit()
   ssize_t stack_limit=(ssize_t)u8_tld_get(stack_limit_key);
   if (stack_limit>16384)
     return stack_limit;
-  else return u8_stacksize();
+  else return u8_stack_size;
 }
 FD_EXPORT ssize_t fd_stack_limit_set(ssize_t lim)
 {
