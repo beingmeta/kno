@@ -785,13 +785,12 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
     else if (head == comment_symbol)
       return FD_VOID;
     else {
-      fdtype headval=fasteval(head,env), result=FD_VOID;
-      int headtype=FD_PTR_TYPE(headval), gchead=1;
-      if (headtype==fd_fcnid_type) {
-        fdtype realval=fd_fcnid_ref(headval);
-        headtype=FD_PTR_TYPE(realval);
-        /* headval=realval; */
-        gchead=0;}
+      fdtype result=FD_VOID;
+      fdtype headval = (FD_FCNIDP(head))?
+        (fd_fcnid_ref(head)) :
+        (fasteval(head,env));
+      int gchead=((FD_CONSP(head))||(FD_SYMBOLP(head)));
+      int headtype=FD_PTR_TYPE(headval);
       if (fd_applyfns[headtype])
         result=apply_function(headval,expr,env);
       else if (FD_PRIM_TYPEP(headval,fd_specform_type)) {
