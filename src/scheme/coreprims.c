@@ -875,6 +875,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("FALSE?",falsep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("NUMBER?",numberp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("IMMEDIATE?",immediatep,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("CONS?",consedp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("CONSED?",consedp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("TYPEOF",typeof_prim,1));
 
