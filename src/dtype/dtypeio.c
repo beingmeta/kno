@@ -282,13 +282,15 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       return sz+len;}
     case fd_pair_type: {
       int len=0; fdtype scan=x;
-      while (FD_PAIRP(scan)) {
+      while (1) {
         struct FD_PAIR *p=(struct FD_PAIR *) scan;
         fdtype cdr=p->fd_cdr;
         {output_byte(out,dt_pair); len++;}
         {output_dtype(len,out,p->fd_car);}
         if (FD_PAIRP(cdr)) scan=cdr;
-        else {output_dtype(len,out,cdr);}}
+        else {
+          output_dtype(len,out,cdr);
+          return len;}}
       return len;}
     case fd_rational_type:  case fd_complex_type: {
       fdtype car, cdr;
