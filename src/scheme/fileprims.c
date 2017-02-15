@@ -237,7 +237,8 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
     return fd_type_error(_("string"),"simple_fileout",filename_val);}
   oldf=u8_current_output;
   u8_set_default_output(f);
-  {FD_DOBODY(ex,expr,2)  {
+  {fdtype body=fd_get_body(expr,2);
+    FD_DOLIST(ex,body)  {
       fdtype value=fasteval(ex,env);
       if (printout_helper(f,value)) fd_decref(value);
       else {
@@ -257,8 +258,9 @@ static fdtype simple_system(fdtype expr,fd_lispenv env)
 {
   struct U8_OUTPUT out; int result;
   U8_INIT_OUTPUT(&out,256);
-  {FD_DOBODY(subexpr,expr,1) {
-      fdtype value=fasteval(subexpr,env);
+  {fdtype string_exprs=fd_get_body(expr,1);
+    FD_DOLIST(string_expr,string_exprs) {
+      fdtype value=fasteval(string_expr,env);
       if (FD_ABORTP(value)) return value;
       else if (FD_VOIDP(value)) continue;
       else if (FD_STRINGP(value))

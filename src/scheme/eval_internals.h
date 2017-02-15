@@ -92,8 +92,8 @@ FD_INLINE_FCN fdtype return_error_env
 FD_FASTOP fdtype eval_body(u8_context cxt,fdtype expr,int offset,
                            fd_lispenv inner_env)
 {
-  fdtype result=FD_VOID;
-  FD_DOBODY(bodyexpr,expr,offset) {
+  fdtype result=FD_VOID, body=fd_get_body(expr,offset);
+  FD_DOLIST(bodyexpr,body) {
     if (FD_TYPEP(result,fd_tailcall_type))
       result=_fd_finish_call(result);
     if (FD_ABORTP(result)) {

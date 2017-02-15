@@ -302,10 +302,6 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
 
 FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 {
-  if (FD_RAILP(expr)) {
-    if (FD_EXPECT_TRUE(i<FD_RAIL_LENGTH(expr)))
-      return FD_RAIL_REF(expr,i);
-    else return FD_VOID;}
   while (FD_PAIRP(expr))
     if ((FD_PAIRP(FD_CAR(expr))) &&
         (FD_EQ(FD_CAR(FD_CAR(expr)),_fd_comment_symbol)))
@@ -316,10 +312,6 @@ FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 }
 FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
 {
-  if (FD_RAILP(expr)) {
-    struct FD_VECTOR *rail=(fd_consptr(struct FD_VECTOR *,expr,fd_rail_type));
-    fdtype *data=rail->fd_vecelts; int len=rail->fd_veclen;
-    return fd_make_rail(len-i,data+i);}
   while (FD_PAIRP(expr))
     if (i == 0) break;
     else if ((FD_PAIRP(FD_CAR(expr))) &&
@@ -339,41 +331,29 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lispenv);
 
 /* Body iteration */
 
-#define FD_DOBODY(x,list,start)                 \
-  fdtype x, _tmp=list, *raildata=NULL;          \
-  int ispair=0, off=start, lim=0;               \
-  if (FD_PAIRP(_tmp)) {                         \
-    ispair=1; _tmp=fd_get_body(_tmp,off);}      \
-  else if (FD_RAILP(_tmp)) {                    \
-     ispair=0; lim=FD_RAIL_LENGTH(_tmp);        \
-     raildata=FD_RAIL_DATA(_tmp);}              \
-   while ((ispair)?                             \
-          ((FD_PAIRP(_tmp)) ?                   \
-           (x=FD_CAR(_tmp),_tmp=FD_CDR(_tmp),1) : 0): \
-          ((off<lim)?(x=raildata[off++],1):0))
-
 /* Bindings iteration */
 
-#define FD_DOBINDINGS(var,val,bnd)		        \
-  fdtype var, val, _tmp=bnd, _elt, *raildata=NULL;	\
-  int ispair=0, off=0, lim=0;                           \
-  if (FD_PAIRP(_tmp)) {ispair=1;}			\
-  else if (FD_RAILP(_tmp)) {				\
-    ispair=0; lim=FD_RAIL_LENGTH(_tmp);			\
-    raildata=FD_RAIL_DATA(_tmp);}			\
-  while ((ispair)?                                      \
-         ((FD_PAIRP(_tmp)) ?				\
-	  (_elt=FD_CAR(_tmp),                           \
-	   ((FD_PAIRP(_elt))?                           \
-	    (var=FD_CAR(_elt),                          \
-	     ((FD_PAIRP(FD_CDR(_elt)))?                 \
-	      (val=FD_CAR(FD_CDR(_elt))):               \
-	      (val=FD_VOID))):                          \
-	    (var=FD_VOID,val=FD_VOID)),                 \
-	   _tmp=FD_CDR(_tmp),1) :                       \
-	  0):                                           \
-         ((off<lim)?                                    \
-          (var=raildata[off++],val=raildata[off++],1):0))
+#define FD_UNPACK_BINDING(pair,var,val)		\
+  if (FD_PAIRP(pair)) {				\
+    fdtype _cdr=FD_CDR(pair);			\
+    var=FD_CAR(pair);				\
+    if (FD_PAIRP(_cdr)) val=FD_CAR(_cdr);	\
+    else val=FD_VOID;}				\
+  else {}
+
+#define FD_DOBINDINGS(var,val,bindings)					\
+  fdtype var, val, _scan=bindings, _binding=FD_VOID;			\
+  for (_scan=bindings,							\
+	 _binding=FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),		\
+	 var=FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),		\
+	 val=((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?	\
+	      (FD_CAR(FD_CDR(_binding))):(FD_VOID));			\
+       FD_PAIRP(_scan);							\
+       _scan=FD_CDR(_scan),						\
+	 _binding=FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),		\
+	 var=FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),		\
+	 val=((FD_PAIRP(_binding)&&(FD_PAIRP(FD_CDR(_binding))))?	\
+	      (FD_CAR(FD_CDR(_binding))):(FD_VOID)) )
 
 /* Simple continuations */
 
@@ -431,9 +411,11 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_UNLESS_OPCODE     FD_OPCODE(0x12)
 #define FD_IFELSE_OPCODE     FD_OPCODE(0x13)
 #define FD_TRYIF_OPCODE      FD_OPCODE(0x14) /* NYI */
+/* More to come */
+#define FD_MAX_FEXPR_OPCODE  FD_OPCODE(0x20)
 
-#define FD_UNARY_ND_OPCODES  FD_OPCODE(0x20)
 /* Unary primitives which handle their own non-determinism. */
+#define FD_ND1_OPCODES        FD_OPCODE(0x20)
 #define FD_AMBIGP_OPCODE      FD_OPCODE(0x20)
 #define FD_SINGLETONP_OPCODE  FD_OPCODE(0x21)
 #define FD_FAILP_OPCODE       FD_OPCODE(0x22)
@@ -448,9 +430,11 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_PICKSTRINGS_OPCODE FD_OPCODE(0x2B)
 #define FD_PICKONE_OPCODE     FD_OPCODE(0x2C)
 #define FD_IFEXISTS_OPCODE    FD_OPCODE(0x2D)
+/* More to come */
+#define FD_MAX_ND1_OPCODE     FD_OPCODE(0x40)
 
-#define FD_UNARY_OPCODES     FD_OPCODE(0x40)
 /* Unary primitives which don't handle their own non-determinism. */
+#define FD_UNARY_OPCODES     FD_OPCODE(0x40)
 #define FD_MINUS1_OPCODE     FD_OPCODE(0x40)
 #define FD_PLUS1_OPCODE      FD_OPCODE(0x41)
 #define FD_NUMBERP_OPCODE    FD_OPCODE(0x42)
@@ -465,9 +449,11 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_SECOND_OPCODE     FD_OPCODE(0x4B)
 #define FD_THIRD_OPCODE      FD_OPCODE(0x4C)
 #define FD_TONUMBER_OPCODE   FD_OPCODE(0x4D)
+/* More to come */
+#define FD_MAX_UNARY_OPCODE  FD_OPCODE(0x60)
 
-#define FD_NUMERIC2_OPCODES   FD_OPCODE(0x60)
 /* Arithmetic primitives with two arguments */
+#define FD_NUM2_OPCODES      FD_OPCODE(0x60)
 #define FD_NUMEQ_OPCODE      FD_OPCODE(0x60)
 #define FD_GT_OPCODE         FD_OPCODE(0x61)
 #define FD_GTE_OPCODE        FD_OPCODE(0x62)
@@ -477,6 +463,7 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_MINUS_OPCODE      FD_OPCODE(0x66)
 #define FD_TIMES_OPCODE      FD_OPCODE(0x67)
 #define FD_FLODIV_OPCODE     FD_OPCODE(0x68)
+#define FD_MAX_NUM2_OPCODES  FD_OPCODE(0x80)
 
 #define FD_BINARY_OPCODES    FD_OPCODE(0x80)
 /* Other primitives with two arguments that automatically
@@ -486,6 +473,7 @@ FD_EXPORT int fd_opcode_table_len;
 #define FD_EQUAL_OPCODE      FD_OPCODE(0x82)
 #define FD_ELT_OPCODE        FD_OPCODE(0x83)
 
+#define FD_MAX_BINARY_OPCODE      FD_OPCODE(0xA0)
 #define FD_NARY_OPCODES      FD_OPCODE(0xA0)
 /* Other primitives with more than two arguments */
 #define FD_GET_OPCODE        FD_OPCODE(0xA0)

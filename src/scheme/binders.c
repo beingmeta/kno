@@ -346,7 +346,7 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       inner_env=init_static_env(n,env,&bindings,&envstruct,_vars,_vals);
       vars=_vars; vals=_vals; updaters=_updaters; tmp=_tmp;}
     /* Do the initial bindings */
-    {FD_DOBODY(bindexpr,bindexprs,0) {
+    {FD_DOLIST(bindexpr,bindexprs) {
       fdtype var=fd_get_arg(bindexpr,0);
       fdtype value_expr=fd_get_arg(bindexpr,1);
       fdtype update_expr=fd_get_arg(bindexpr,2);
@@ -366,9 +366,9 @@ static fdtype do_handler(fdtype expr,fd_lispenv env)
       return return_error_env(testval,":DO",inner_env);}
     /* The iteration itself */
     while (FD_FALSEP(testval)) {
-      int i=0;
+      int i=0; fdtype body=fd_get_body(expr,3);
       /* Execute the body */
-      FD_DOBODY(bodyexpr,expr,3) {
+      FD_DOLIST(bodyexpr,body) {
         fdtype result=fasteval(bodyexpr,inner_env);
         if (FD_ABORTED(result)) {
           if (n>16) {u8_free(tmp); u8_free(updaters);}
@@ -1182,7 +1182,8 @@ static fdtype letq_handler(fdtype expr,fd_lispenv env)
     if (ipeval_let_binding(n,vals,bindexprs,env)<0) {
       fdtype errobj=FD_ERROR_VALUE;
       return return_error_env(errobj,":LETQ",env);}
-    {FD_DOBODY(bodyexpr,expr,2) {
+    {fdtype body=fd_get_body(expr,2);
+     FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
       result=fasteval(bodyexpr,inner_env);
       if (FD_ABORTED(result))
@@ -1210,7 +1211,8 @@ static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
     if (ipeval_letstar_binding(n,vals,bindexprs,inner_env,inner_env)<0) {
       fdtype errobj=FD_ERROR_VALUE;
       return return_error_env(errobj,":LETQ*",inner_env);}
-    {FD_DOBODY(bodyexpr,expr,2) {
+    {fdtype body=fd_get_body(expr,2);
+     FD_DOLIST(bodyexpr,body) {
       fd_decref(result);
       result=fasteval(bodyexpr,inner_env);
       if (FD_ABORTED(result)) {

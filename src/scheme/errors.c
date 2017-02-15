@@ -452,7 +452,8 @@ static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
       result=FD_ERROR_VALUE;}
     U8_END_EXCEPTION;}
   {U8_WITH_CONTOUR("UNWIND-PROTECT(unwind)",0)
-      {FD_DOBODY(expr,uwp,2) {
+      {fdtype unwinds=fd_get_body(uwp,2);
+        FD_DOLIST(expr,unwinds) {
           fdtype uw_result=fd_eval(expr,env);
           if (FD_ABORTP(uw_result))
             if (FD_ABORTP(result)) {

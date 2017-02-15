@@ -746,7 +746,8 @@ static fdtype jsout_handler(fdtype expr,fd_lispenv env)
   U8_INIT_OUTPUT(&_out,2048);
   u8_set_default_output(out);
   u8_puts(&_out,"<script language='javascript'>\n");
-  {FD_DOBODY(x,expr,1) {
+  {fdtype body=fd_get_body(expr,1);
+    FD_DOLIST(x,body) {
       if (FD_STRINGP(x))
         u8_puts(&_out,FD_STRDATA(x));
       else if ((FD_SYMBOLP(x))||(FD_PAIRP(x))||(FD_RAILP(x))) {
@@ -776,11 +777,12 @@ static fdtype jsout_handler(fdtype expr,fd_lispenv env)
 static fdtype cssout_handler(fdtype expr,fd_lispenv env)
 {
   U8_OUTPUT *prev=u8_current_output;
-  U8_OUTPUT _out, *out=&_out; fdtype result=FD_VOID;
+  U8_OUTPUT _out, *out=&_out;
+  fdtype result=FD_VOID, body=fd_get_body(expr,1);
   U8_INIT_OUTPUT(&_out,2048);
   u8_set_default_output(out);
   u8_puts(&_out,"<style type='text/css'>\n");
-  {FD_DOBODY(x,expr,1) {
+  {FD_DOLIST(x,body) {
       if (FD_STRINGP(x))
         u8_puts(&_out,FD_STRDATA(x));
       else if ((FD_SYMBOLP(x))||(FD_PAIRP(x))||(FD_RAILP(x))) {

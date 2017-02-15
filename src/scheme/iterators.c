@@ -46,12 +46,13 @@ static fdtype iterenv2
 static fdtype while_handler(fdtype expr,fd_lispenv env)
 {
   fdtype test_expr=fd_get_arg(expr,1);
+  fdtype body=fd_get_body(expr,1);
   fdtype result=FD_VOID;
   if (FD_VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"WHILE",NULL,expr);
   else while ((FD_VOIDP(result)) &&
               (testeval(test_expr,env,&result))) {
-      FD_DOBODY(iter_expr,expr,2) {
+      FD_DOLIST(iter_expr,body) {
         fdtype val=fasteval(iter_expr,env);
         if (FD_ABORTED(val))
           return val;
@@ -64,12 +65,13 @@ static fdtype while_handler(fdtype expr,fd_lispenv env)
 static fdtype until_handler(fdtype expr,fd_lispenv env)
 {
   fdtype test_expr=fd_get_arg(expr,1);
+  fdtype body=fd_get_body(expr,1);
   fdtype result=FD_VOID;
   if (FD_VOIDP(test_expr))
     return fd_err(fd_TooFewExpressions,"UNTIL",NULL,expr);
   else while ((FD_VOIDP(result)) &&
               (!(testeval(test_expr,env,&result)))) {
-      FD_DOBODY(iter_expr,expr,2) {
+      FD_DOLIST(iter_expr,body) {
         fdtype val=fasteval(iter_expr,env);
         if (FD_ABORTED(val)) return val;
         else fd_decref(val);}}
@@ -112,6 +114,7 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
   int i=0, limit;
   fdtype limit_val, var=parse_control_spec(expr,&limit_val,NULL,env);
   fdtype vars[2], vals[2];
+  fdtype body=fd_get_body(expr,2);
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTED(var)) return var;
@@ -129,7 +132,7 @@ static fdtype dotimes_handler(fdtype expr,fd_lispenv env)
   vars[0]=var; vals[0]=FD_INT(0);
   while (i < limit) {
     vals[0]=FD_INT(i);
-    {FD_DOBODY(subexpr,expr,2) {
+    {FD_DOLIST(subexpr,body) {
         fdtype val=fasteval(subexpr,&envstruct);
         if (FD_THROWP(val)) {
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
@@ -161,6 +164,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
   int i=0, lim, islist=0;
   fdtype seq, count_var=FD_VOID, *iterval=NULL;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
+  fdtype body=fd_get_body(expr,2);
   fdtype vars[2], vals[2], pairscan=FD_VOID;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
@@ -189,7 +193,7 @@ static fdtype doseq_handler(fdtype expr,fd_lispenv env)
     fdtype elt=(islist)?(fd_refcar(pairscan)):(fd_seq_elt(seq,i));
     vals[0]=elt;
     if (iterval) *iterval=FD_INT(i);
-    {FD_DOBODY(subexpr,expr,2) {
+    {FD_DOLIST(subexpr,body) {
         fdtype val=fasteval(subexpr,&envstruct);
         if (FD_THROWP(val)) {
           if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
@@ -225,6 +229,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
   int i=0, lim, islist=0;
   fdtype seq, count_var=FD_VOID, *iterval=NULL, *results, result;
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
+  fdtype body=fd_get_body(expr,2);
   fdtype vars[2], vals[2], pairscan=FD_VOID;
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
@@ -254,7 +259,7 @@ static fdtype forseq_handler(fdtype expr,fd_lispenv env)
     fdtype val=FD_VOID;
     vals[0]=elt;
     if (iterval) *iterval=FD_INT(i);
-    {FD_DOBODY(subexpr,expr,2) {
+    {FD_DOLIST(subexpr,body) {
         fd_decref(val);
         val=fasteval(subexpr,&envstruct);
         if (FD_THROWP(val)) {
@@ -295,6 +300,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
   fdtype var=parse_control_spec(expr,&seq,&count_var,env);
   fdtype val=FD_EMPTY_CHOICE;
   fdtype vars[2], vals[2], pairscan=FD_VOID;
+  fdtype body=fd_get_body(expr,2);
   struct FD_SCHEMAP bindings;
   struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTED(var)) return var;
@@ -327,7 +333,7 @@ static fdtype tryseq_handler(fdtype expr,fd_lispenv env)
     else {
       vals[0]=elt;
       if (iterval) *iterval=FD_INT(i);}
-    {FD_DOBODY(subexpr,expr,2) {
+    {FD_DOLIST(subexpr,body) {
         fd_decref(val);
         val=fasteval(subexpr,&envstruct);
         if (FD_THROWP(val)) {
@@ -365,6 +371,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
     parse_control_spec(expr,&list,&count_var,env);
   fdtype *vloc=NULL, *iloc=NULL;
   fdtype vars[2], vals[2];
+  fdtype body=fd_get_body(expr,2);
   struct FD_SCHEMAP bindings; struct FD_ENVIRONMENT envstruct;
   if (FD_ABORTED(var)) return var;
   else if (FD_EMPTY_LISTP(list)) return FD_VOID;
@@ -389,7 +396,7 @@ static fdtype dolist_handler(fdtype expr,fd_lispenv env)
   envstruct.env_copy=NULL;
   {int i=0; FD_DOLIST(elt,list) {
       *vloc=elt; fd_incref(elt); if (iloc) *iloc=FD_INT(i);
-      {FD_DOBODY(subexpr,expr,2) {
+      {FD_DOLIST(subexpr,body) {
           fdtype val=fasteval(subexpr,&envstruct);
           if (FD_THROWP(val)) {
             if (envstruct.env_copy) fd_recycle_environment(envstruct.env_copy);
@@ -427,17 +434,18 @@ static fdtype begin_handler(fdtype begin_expr,fd_lispenv env)
 static fdtype prog1_handler(fdtype prog1_expr,fd_lispenv env)
 {
   fdtype arg1=fd_get_arg(prog1_expr,1);
-  fdtype results=fd_eval(arg1,env);
-  if (FD_ABORTED(results))
-    return results;
+  fdtype result=fd_eval(arg1,env);
+  if (FD_ABORTED(result))
+    return result;
   else {
-    FD_DOBODY(subexpr,prog1_expr,2) {
+    fdtype prog1_body=fd_get_body(prog1_expr,2);
+    FD_DOLIST(subexpr,prog1_body) {
       fdtype tmp=fd_eval(subexpr,env);
       if (FD_ABORTED(tmp)) {
-        fd_decref(results);
+        fd_decref(result);
         return tmp;}
       fd_decref(tmp);}
-    return results;}
+    return result;}
 }
 
 static fdtype comment_handler(fdtype comment_expr,fd_lispenv env)

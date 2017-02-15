@@ -445,8 +445,6 @@ static fdtype quote_handler(fdtype obj,fd_lispenv env)
   if ((FD_PAIRP(obj)) && (FD_PAIRP(FD_CDR(obj))) &&
       ((FD_CDR(FD_CDR(obj)))==FD_EMPTY_LIST))
     return fd_incref(FD_CAR(FD_CDR(obj)));
-  else if ((FD_RAILP(obj)) && (FD_RAIL_LENGTH(obj)==2))
-    return fd_incref(FD_RAIL_REF(obj,1));
   else return fd_err(fd_SyntaxError,"QUOTE",NULL,obj);
 }
 
@@ -512,7 +510,8 @@ static fdtype gprofile_handler(fdtype expr,fd_lispenv env)
   else filename=u8_mkstring("/tmp/gprof%ld.pid",(long)getpid());
   ProfilerStart(filename); {
     fdtype fd_value=FD_VOID;
-    FD_DOBODY(ex,expr,start) {
+    fdtype body=fd_get_body(expr,start);
+    FD_DOLIST(ex,body) {
       fd_decref(fd_value); fd_value=fd_eval(ex,env);
       if (FD_ABORTED(fd_value)) {
         ProfilerStop();
@@ -774,8 +773,8 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       return fd_err(fd_UnboundIdentifier,"fd_eval",
                     FD_SYMBOL_NAME(expr),expr);
     else return val;}
-  case fd_pair_type: case fd_rail_type: {
-    fdtype head=((FD_PAIRP(expr))?(FD_CAR(expr)):(FD_RAIL_REF(expr,0)));
+  case fd_pair_type: {
+    fdtype head=(FD_CAR(expr));
     if (FD_OPCODEP(head))
       return opcode_dispatch(head,expr,env);
     else if (head == quote_symbol)
@@ -865,6 +864,8 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
         return result;}
       if (gchead) fd_decref(headval);
       return result;}}
+  case fd_rail_type:
+    return fd_rail_eval(FD_RAIL_LENGTH(expr)-1,FD_RAIL_DATA(expr)+1,env);
   case fd_slotmap_type:
     return fd_deep_copy(expr);
   case fd_choice_type: case fd_achoice_type: {
@@ -937,7 +938,8 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
   int max_arity=fcn->fcn_arity, min_arity=fcn->fcn_min_arity;
   int n_params=max_arity, argv_length=max_arity;
   /* First, count the arguments */
-  {FD_DOBODY(arg,expr,1) {
+  {fdtype body=fd_get_body(expr,1);
+    FD_DOLIST(arg,body) {
       if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol))))
         n_args++;}}
     /* If the max_arity is less than zero, it's a lexpr, so the
@@ -955,30 +957,31 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
   /* Otherwise, just use the stack vector */
   else argv=_argv;
   /* Now we evaluate each of the subexpressions to fill the arg vector */
-  {FD_DOBODY(elt,expr,1) {
-    fdtype argval;
-    if ((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol)))
-      continue;
-    argval=fasteval(elt,env);
-    if (FD_ABORTED(argval)) {
-      /* Break if one of the arguments returns an error */
-      result=argval; break;}
-    if (FD_VOIDP(argval)) {
-      result=fd_err(fd_VoidArgument,"apply_function",fcn->fcn_name,elt);
-      break;}
-    if ((FD_EMPTY_CHOICEP(argval)) && (!(nd_prim))) {
-      /* Break if the method isn't non-deterministic and one of the
-         arguments returns an empty choice. */
-      prune=1; break;}
-    /* Convert the argument to a simple choice (or non choice) */
-    argval=fd_simplify_choice(argval);
-    if (FD_CONSP(argval)) args_need_gc=1;
-    /* Keep track of whether there are non-deterministic args
-       which would require calling fd_ndapply. */
-    if (FD_CHOICEP(argval)) nd_args=1;
-    else if (FD_QCHOICEP(argval)) nd_args=1;
-    /* Fill in the slot */
-    argv[arg_count++]=argval;}}
+  {fdtype arg_exprs=fd_get_body(expr,1);
+    FD_DOLIST(elt,arg_exprs) {
+      fdtype argval;
+      if ((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol)))
+        continue;
+      argval=fasteval(elt,env);
+      if (FD_ABORTED(argval)) {
+        /* Break if one of the arguments returns an error */
+        result=argval; break;}
+      if (FD_VOIDP(argval)) {
+        result=fd_err(fd_VoidArgument,"apply_function",fcn->fcn_name,elt);
+        break;}
+      if ((FD_EMPTY_CHOICEP(argval)) && (!(nd_prim))) {
+        /* Break if the method isn't non-deterministic and one of the
+           arguments returns an empty choice. */
+        prune=1; break;}
+      /* Convert the argument to a simple choice (or non choice) */
+      argval=fd_simplify_choice(argval);
+      if (FD_CONSP(argval)) args_need_gc=1;
+      /* Keep track of whether there are non-deterministic args
+         which would require calling fd_ndapply. */
+      if (FD_CHOICEP(argval)) nd_args=1;
+      else if (FD_QCHOICEP(argval)) nd_args=1;
+      /* Fill in the slot */
+      argv[arg_count++]=argval;}}
   /* Now, check if we need to exit, either because some argument returned
      an error (or throw) or because the call is being pruned. */
   if ((prune) || (FD_ABORTED(result))) {
@@ -1039,7 +1042,8 @@ static fdtype apply_weird_function(fdtype fn,fdtype expr,fd_lispenv env)
   fdtype result=FD_VOID;
   fdtype _argv[FD_STACK_ARGS], *argv;
   int i=0, n_args=0, args_need_gc=0, free_argv=0;
-  {FD_DOBODY(elt,expr,1) {
+  fdtype arg_exprs=fd_get_body(expr,1);
+  {FD_DOLIST(elt,arg_exprs) {
       if (!((FD_PAIRP(elt)) && (FD_EQ(FD_CAR(elt),comment_symbol))))
         n_args++;}}
   if (n_args>FD_STACK_ARGS) {
@@ -1048,20 +1052,20 @@ static fdtype apply_weird_function(fdtype fn,fdtype expr,fd_lispenv env)
     free_argv=1;}
   /* Otherwise, just use the stack vector */
   else argv=_argv;
-  FD_DOBODY(arg,expr,1)
-    if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol)))) {
-      fdtype argval=fd_eval(arg,env);
-      if ((FD_ABORTED(argval)) || (FD_EMPTY_CHOICEP(argval)) ||
-          (FD_VOIDP(argval))) {
-        if (args_need_gc) {
-          int j=0; while (j<i) {fdtype arg=argv[j++]; fd_decref(arg);}}
-        if (free_argv) u8_free(argv);
-        if (FD_VOIDP(argval)) {
-          fd_seterr(fd_VoidArgument,"apply_weird_function",NULL,expr);
-          return FD_ERROR_VALUE;}
-        else return argval;}
-      else {
-        argv[i++]=argval; if (FD_CONSP(argval)) args_need_gc=1;}}
+  {FD_DOLIST(arg,arg_exprs)
+      if (!((FD_PAIRP(arg)) && (FD_EQ(FD_CAR(arg),comment_symbol)))) {
+        fdtype argval=fd_eval(arg,env);
+        if ((FD_ABORTED(argval)) || (FD_EMPTY_CHOICEP(argval)) ||
+            (FD_VOIDP(argval))) {
+          if (args_need_gc) {
+            int j=0; while (j<i) {fdtype arg=argv[j++]; fd_decref(arg);}}
+          if (free_argv) u8_free(argv);
+          if (FD_VOIDP(argval)) {
+            fd_seterr(fd_VoidArgument,"apply_weird_function",NULL,expr);
+            return FD_ERROR_VALUE;}
+          else return argval;}
+        else {
+          argv[i++]=argval; if (FD_CONSP(argval)) args_need_gc=1;}}}
   result=fd_apply(fn,n_args,argv);
   if (args_need_gc) {
     i=0; while (i<n_args) {
@@ -1414,7 +1418,8 @@ static fdtype withenv(fdtype expr,fd_lispenv env,
   else return fd_err(fd_SyntaxError,cxt,NULL,expr);
   /* Execute the body */ {
     fdtype result=FD_VOID;
-    FD_DOBODY(elt,expr,2) {
+    fdtype body=fd_get_body(expr,2);
+    FD_DOLIST(elt,body) {
       fd_decref(result);
       result=fd_eval(elt,consed_env);
       if (FD_ABORTED(result)) {

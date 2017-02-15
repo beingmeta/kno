@@ -48,7 +48,8 @@ static fdtype ifelse_handler(fdtype expr,fd_lispenv env)
   if (FD_ABORTED(test_result)) return test_result;
   else if (FD_FALSEP(test_result)) {
     fdtype val=FD_VOID;
-    FD_DOBODY(alt,expr,3) {
+    fdtype alt_body=fd_get_body(expr,3);
+    FD_DOLIST(alt,alt_body) {
       fd_decref(val); val=fd_eval(alt,env);}
     return val;}
   else {
@@ -72,7 +73,8 @@ static fdtype tryif_handler(fdtype expr,fd_lispenv env)
     return FD_EMPTY_CHOICE;
   else {
     fdtype value=FD_VOID; fd_decref(test_result);
-    {FD_DOBODY(clause,expr,2) {
+    {fdtype try_clauses=fd_get_body(expr,2);
+      FD_DOLIST(clause,try_clauses) {
         fd_decref(value); value=fd_eval(clause,env);
         if (FD_ABORTED(value)) {
           fd_incref(clause); fd_push_error_context("TRYIF",clause);

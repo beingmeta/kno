@@ -2755,16 +2755,18 @@ static fdtype wooverlay_handler(fdtype expr,fd_lispenv env)
 {
   fdtype value=FD_VOID;
   if ((fd_inhibit_overlay) || (!(fd_overlayp()))) {
-    FD_DOBODY(body_elt,expr,1) {
+    fdtype body=fd_get_body(expr,1);
+    FD_DOLIST(body_elt,body) {
       fd_decref(value); value=fd_eval(body_elt,env);
       if (FD_ABORTED(value)) return value;}
     return value;}
   fd_inhibit_overlays(1);
-  {FD_DOBODY(body_elt,expr,1) {
-    fd_decref(value); value=fd_eval(body_elt,env);
-    if (FD_ABORTED(value)) {
-      fd_inhibit_overlays(0);
-      return value;}}}
+  {fdtype body=fd_get_body(expr,1);
+    FD_DOLIST(body_elt,body) {
+      fd_decref(value); value=fd_eval(body_elt,env);
+      if (FD_ABORTED(value)) {
+        fd_inhibit_overlays(0);
+        return value;}}}
   fd_inhibit_overlays(0);
   return value;
 }
