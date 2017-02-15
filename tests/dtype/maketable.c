@@ -33,13 +33,13 @@ double get_elapsed()
       (now.tv_usec-start.tv_usec)*0.000001;}
 }
 
-#define SLOTMAP(x) (FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *))
-#define HASHTABLE(x) (FD_GET_CONS(x,fd_hashtable_type,struct FD_HASHTABLE *))
+#define SLOTMAP(x) (FD_GET_CONS(struct FD_SLOTMAP *,x,fd_slotmap_type))
+#define HASHTABLE(x) (FD_GET_CONS(struct FD_HASHTABLE *,x,fd_slotmap_type))
 
 static void report_on_hashtable(fdtype ht)
 {
   int n_slots, n_keys, n_buckets, n_collisions, max_bucket, n_vals, max_vals;
-  fd_hashtable_stats(FD_GET_CONS(ht,fd_hashtable_type,struct FD_HASHTABLE *),
+  fd_hashtable_stats(fd_consptr(struct FD_HASHTABLE *,ht,fd_hashtable_type),
                      &n_slots,&n_keys,&n_buckets,&n_collisions,&max_bucket,
                      &n_vals,&max_vals);
   u8_fprintf
@@ -77,7 +77,7 @@ int main(int argc,char **argv)
     if (FD_PAIRP(item)) {
       fd_decref(key); key=fd_incref(item);}
     else fd_hashtable_add
-           (FD_GET_CONS(ht,fd_hashtable_type,struct FD_HASHTABLE *),
+	   (fd_consptr(struct FD_HASHTABLE *,ht,fd_hashtable_type),
             key,item);
     fd_decref(item); item=fd_dtsread_dtype(in);
     i=i+1;}

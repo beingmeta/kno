@@ -482,10 +482,10 @@ fdtype fd_text_domatch
     else {
       fdtype result=fd_text_domatch(v,next,env,string,off,lim,flags);
       fd_decref(v); return result;}}
-  else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
+  else if (FD_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return fd_text_matcher(txc->fd_txpattern,txc->fd_txenv,string,off,lim,flags);}
-  else if (FD_PTR_TYPEP(pat,fd_regex_type)) {
+  else if (FD_TYPEP(pat,fd_regex_type)) {
     int retval=fd_regex_op(rx_matchlen,pat,string+off,lim-off,0);
     if (retval<-1) 
       return fd_err(fd_InternalMatchError,"fd_text_domatch",NULL,pat);
@@ -682,11 +682,11 @@ static fdtype textract
           FD_ADD_TO_CHOICE(answers,extraction);}
         fd_decref(lengths); fd_decref(v);
         return answers;}}}
-  else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
+  else if (FD_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)pat;
     return textract(txc->fd_txpattern,next,txc->fd_txenv,string,off,lim,flags);}
-  else if (FD_PTR_TYPEP(pat,fd_regex_type)) {
-    struct FD_REGEX *ptr=FD_GET_CONS(pat,fd_regex_type,struct FD_REGEX *);
+  else if (FD_TYPEP(pat,fd_regex_type)) {
+    struct FD_REGEX *ptr=fd_consptr(struct FD_REGEX *,pat,fd_regex_type);
     regmatch_t results[1]; u8_string base=FD_STRDATA(string)+off;
     int retval=regexec(&(ptr->fd_rxcompiled),base,1,results,0);
     if (retval==REG_NOMATCH) return FD_EMPTY_CHOICE;
@@ -3305,7 +3305,7 @@ static u8_byteoff anumber_search
 
 static fd_hashset to_hashset(fdtype arg)
 {
-  if (FD_PTR_TYPEP(arg,fd_hashset_type)) 
+  if (FD_TYPEP(arg,fd_hashset_type)) 
     return (fd_hashset)arg;
   else return NULL;
 }
@@ -3319,7 +3319,7 @@ static fdtype hashset_match
   fdtype xform=fd_get_arg(pat,3);
   if ((FD_VOIDP(hs)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_match",NULL,pat);
-  else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
+  else if (!(FD_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_match",pat);
   if (FD_VOIDP(xform)) {
     fd_hashset h=to_hashset(hs);
@@ -3354,7 +3354,7 @@ static u8_byteoff hashset_search
   fdtype cpat=fd_get_arg(pat,2);
   if ((FD_VOIDP(hs)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_search",NULL,pat);
-  else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
+  else if (!(FD_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_search",pat);
   else {
     u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
@@ -3380,7 +3380,7 @@ static fdtype hashset_not_match
   fdtype xform=fd_get_arg(pat,3);
   if ((FD_VOIDP(hs)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_not_match",NULL,pat);
-  else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
+  else if (!(FD_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_not_match",pat);
   if (FD_VOIDP(xform)) {
     fd_hashset h=to_hashset(hs);
@@ -3418,7 +3418,7 @@ static u8_byteoff hashset_not_search
   fdtype cpat=fd_get_arg(pat,2);
   if ((FD_VOIDP(hs)) || (FD_VOIDP(cpat)))
     return fd_err(fd_MatchSyntaxError,"hashset_not_search",NULL,pat);
-  else if (!(FD_PTR_TYPEP(hs,fd_hashset_type)))
+  else if (!(FD_TYPEP(hs,fd_hashset_type)))
     return fd_type_error(_("hashset"),"hashset_not_search",pat);
   else {
     u8_byteoff try=fd_text_search(cpat,env,string,off,lim,flags);
@@ -3739,10 +3739,10 @@ u8_byteoff fd_text_search
     else {
       u8_byteoff result=fd_text_search(vpat,env,string,off,lim,flags);
       fd_decref(vpat); return result;}}
-  else if (FD_PTR_TYPEP(pat,fd_txclosure_type)) {
+  else if (FD_TYPEP(pat,fd_txclosure_type)) {
     struct FD_TXCLOSURE *txc=(fd_txclosure)(pat);
     return fd_text_search(txc->fd_txpattern,txc->fd_txenv,string,off,lim,flags);}
-  else if (FD_PTR_TYPEP(pat,fd_regex_type))  {
+  else if (FD_TYPEP(pat,fd_regex_type))  {
     int retval=fd_regex_op(rx_search,pat,string+off,lim-off,0);
     if (retval<0) return retval;
     else return retval;}

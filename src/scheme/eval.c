@@ -295,19 +295,19 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       return envcount;}
     default:
       if (constype==fd_environment_type) {
-        fd_lispenv scan=FD_STRIP_CONS(obj,fd_environment_type,fd_lispenv);
+        fd_lispenv scan=FD_CONSPTR(fd_lispenv,obj);
         while (scan)
           if ((scan==env)||(scan->env_copy==env))
             return 1;
           else scan=scan->env_parent;
         return 0;}
       else if (constype==fd_macro_type) {
-        struct FD_MACRO *m=FD_STRIP_CONS(cons,fd_macro_type,struct FD_MACRO *);
-        if ((m)&&(FD_PRIM_TYPEP((m->fd_macro_transformer),fd_sproc_type)))
+        struct FD_MACRO *m=FD_CONSPTR(fd_macro,cons);
+        if ((m)&&(FD_TYPEP((m->fd_macro_transformer),fd_sproc_type)))
           return count_cons_envrefs(m->fd_macro_transformer,env,depth);
         else return 0;}
       else if (constype==fd_sproc_type) {
-        struct FD_SPROC *sp=FD_STRIP_CONS(obj,fd_sproc_type,struct FD_SPROC *);
+        struct FD_SPROC *sp=FD_CONSPTR(fd_sproc,obj);
         struct FD_ENVIRONMENT *scan=sp->sproc_env;
         while (scan) {
           if ((scan==env)||(scan->env_copy==env))
@@ -472,8 +472,8 @@ static fdtype profiled_eval(fdtype expr,fd_lispenv env)
     profile_data=fd_conspair(FD_INT(1),time);
     fd_store(profile_info,tag,profile_data);}
   else {
-    struct FD_PAIR *p=FD_GET_CONS(profile_data,fd_pair_type,fd_pair);
-    struct FD_FLONUM *d=FD_GET_CONS((p->fd_cdr),fd_flonum_type,fd_flonum);
+    struct FD_PAIR *p=fd_consptr(fd_pair,profile_data,fd_pair_type);
+    struct FD_FLONUM *d=fd_consptr(fd_flonum,(p->fd_cdr),fd_flonum_type);
     p->fd_car=FD_INT(fd_getint(p->fd_car)+1);
     d->fd_dblval=d->fd_dblval+(finish-start);}
   fd_decref(profile_data); fd_decref(profile_info);
@@ -795,16 +795,16 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       int headtype=FD_PTR_TYPE(headval);
       if (fd_applyfns[headtype])
         result=apply_function(headval,expr,env);
-      else if (FD_PRIM_TYPEP(headval,fd_specform_type)) {
+      else if (FD_TYPEP(headval,fd_specform_type)) {
         /* These are special forms which do all the evaluating themselves */
         struct FD_SPECIAL_FORM *handler=(fd_special_form)headval;
         /* fd_calltrack_call(handler->name); */
         /* fd_calltrack_return(handler->name); */
         result=handler->fexpr_handler(expr,env);}
-      else if (FD_PRIM_TYPEP(headval,fd_macro_type)) {
+      else if (FD_TYPEP(headval,fd_macro_type)) {
         /* These are special forms which do all the evaluating themselves */
         struct FD_MACRO *macrofn=
-          FD_GET_CONS(headval,fd_macro_type,struct FD_MACRO *);
+          fd_consptr(struct FD_MACRO *,headval,fd_macro_type);
         fdtype xformer=macrofn->fd_macro_transformer;
         int xformer_type=FD_PRIM_TYPE(xformer);
         if (fd_applyfns[xformer_type]) {
@@ -880,7 +880,7 @@ FD_EXPORT fdtype fd_tail_eval(fdtype expr,fd_lispenv env)
       return result;}
     else return fd_tail_eval(exprs,env);}
   default:
-    if (FD_PRIM_TYPEP(expr,fd_lexref_type))
+    if (FD_TYPEP(expr,fd_lexref_type))
       return fd_lexref(expr,env);
     else return fd_incref(expr);}
 }
@@ -1093,7 +1093,7 @@ FD_EXPORT fdtype fd_eval_exprs(fdtype exprs,fd_lispenv env)
         if (FD_PAIRP(exprs)) next=FD_CDR(exprs);}}
     return val;}
   else if (FD_RAILP(exprs)) {
-    struct FD_VECTOR *v=FD_GET_CONS(exprs,fd_rail_type,fd_vector);
+    struct FD_VECTOR *v=fd_consptr(fd_vector,exprs,fd_rail_type);
     int len=v->fd_veclen; fdtype *elts=v->fd_vecelts, val=FD_VOID;
     int i=0; while (i<len) {
       fdtype expr=elts[i++];
@@ -1512,14 +1512,14 @@ static int lispenv_store(fdtype e,fdtype s,fdtype v)
 static int unparse_specform(u8_output out,fdtype x)
 {
   struct FD_SPECIAL_FORM *s=
-    FD_GET_CONS(x,fd_specform_type,struct FD_SPECIAL_FORM *);
+    fd_consptr(struct FD_SPECIAL_FORM *,x,fd_specform_type);
   u8_printf(out,"#<Special Form %s>",s->fexpr_name);
   return 1;
 }
 static int unparse_environment(u8_output out,fdtype x)
 {
   struct FD_ENVIRONMENT *env=
-    FD_GET_CONS(x,fd_environment_type,struct FD_ENVIRONMENT *);
+    fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type);
   if (FD_HASHTABLEP(env->env_bindings)) {
     fdtype ids=fd_get(env->env_bindings,moduleid_symbol,FD_EMPTY_CHOICE);
     fdtype mid=FD_VOID;
@@ -1727,9 +1727,9 @@ FD_EXPORT fdtype fd_open_dtserver(u8_string server,int bufsiz)
 
 static fdtype dteval(fdtype server,fdtype expr)
 {
-  if (FD_PRIM_TYPEP(server,fd_dtserver_type))  {
+  if (FD_TYPEP(server,fd_dtserver_type))  {
     struct FD_DTSERVER *dtsrv=
-      FD_GET_CONS(server,fd_dtserver_type,fd_dtserver);
+      fd_consptr(fd_dtserver,server,fd_dtserver_type);
     return fd_dteval(dtsrv->fd_connpool,expr);}
   else if (FD_STRINGP(server)) {
     fdtype s=fd_open_dtserver(FD_STRDATA(server),-1);
@@ -1745,7 +1745,7 @@ static fdtype dtcall(int n,fdtype *args)
 {
   fdtype server; fdtype request=FD_EMPTY_LIST, result; int i=n-1;
   if (n<2) return fd_err(fd_SyntaxError,"dtcall",NULL,FD_VOID);
-  if (FD_PRIM_TYPEP(args[0],fd_dtserver_type))
+  if (FD_TYPEP(args[0],fd_dtserver_type))
     server=fd_incref(args[0]);
   else if (FD_STRINGP(args[0])) server=fd_open_dtserver(FD_STRDATA(args[0]),-1);
   else return fd_type_error(_("server"),"eval/dtcall",args[0]);

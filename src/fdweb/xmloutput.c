@@ -805,9 +805,9 @@ static void output_value(u8_output s,fdtype val,
       u8_puts(s,"\n\t</table>\n");
       if (tag) u8_printf(s,"</%s>\n",tag);
       fd_decref(keys);}
-    else if (FD_PRIM_TYPEP(val,fd_compound_type)) {
+    else if (FD_TYPEP(val,fd_compound_type)) {
       struct FD_COMPOUND *xc=
-        FD_GET_CONS(val,fd_compound_type,struct FD_COMPOUND *);
+        fd_consptr(struct FD_COMPOUND *,val,fd_compound_type);
       fdtype ctag=get_compound_tag(xc->compound_typetag);
       struct FD_COMPOUND_TYPEINFO *entry=fd_lookup_compound(ctag);
       if (FD_SYMBOLP(ctag)) typename=FD_SYMBOL_NAME(ctag);
@@ -973,7 +973,7 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
     htype=FD_PTR_TYPE(head);
     if (htype==fd_primfcn_type) {
       struct FD_FUNCTION *fn=
-        FD_GET_CONS(head,fd_primfcn_type,struct FD_FUNCTION *);
+        fd_consptr(struct FD_FUNCTION *,head,fd_primfcn_type);
       u8_puts(s,"<tbody class='call'><tr><th>Call</th><td>");
       u8_printf(s,"<span class='primitive %s%s operator'>%k",
                 ((fn->fcn_ndcall)?("nondeterministic "):("")),
@@ -990,7 +990,7 @@ static void output_backtrace_entry(u8_output s,u8_exception ex)
       u8_puts(s,"\n</td></tr></tbody>\n");}
     else if (htype==fd_sproc_type) {
       struct FD_SPROC *sproc=
-        FD_GET_CONS(head,fd_sproc_type,struct FD_SPROC *);
+        fd_consptr(fd_sproc,head,fd_sproc_type);
       fdtype *schema=sproc->sproc_vars; short n_args=sproc->sproc_n_vars;
       u8_puts(s,"<tbody class='call'><tr><th>Call</th><td>");
       u8_printf(s,"<span class='%s%sprocedure operator'>%k",
@@ -1240,9 +1240,9 @@ static fdtype debugpage2html_prim(fdtype exception,fdtype where)
   u8_exception ex;
   if ((FD_VOIDP(exception))||(FD_FALSEP(exception)))
     ex=u8_current_exception;
-  else if (FD_PRIM_TYPEP(exception,fd_error_type)) {
+  else if (FD_TYPEP(exception,fd_error_type)) {
     struct FD_EXCEPTION_OBJECT *xo=
-      FD_GET_CONS(exception,fd_error_type,struct FD_EXCEPTION_OBJECT *);
+      fd_consptr(struct FD_EXCEPTION_OBJECT *,exception,fd_error_type);
     ex=xo->fd_u8ex;}
   else {
     u8_log(LOG_WARN,"debugpage2html_prim","Bad exception argument %q",exception);
@@ -1263,9 +1263,9 @@ static fdtype backtrace2html_prim(fdtype exception,fdtype where)
   u8_exception ex;
   if ((FD_VOIDP(exception))||(FD_FALSEP(exception)))
     ex=u8_current_exception;
-  else if (FD_PRIM_TYPEP(exception,fd_error_type)) {
+  else if (FD_TYPEP(exception,fd_error_type)) {
     struct FD_EXCEPTION_OBJECT *xo=
-      FD_GET_CONS(exception,fd_error_type,struct FD_EXCEPTION_OBJECT *);
+      fd_consptr(struct FD_EXCEPTION_OBJECT *,exception,fd_error_type);
     ex=xo->fd_u8ex;}
   else {
     u8_log(LOG_WARN,"backtrace2html_prim","Bad exception argument %q",exception);
@@ -1562,7 +1562,7 @@ static fdtype scripturl_core(u8_string baseuri,fdtype params,int n,
     if (need_qmark) {u8_putc(&out,'?'); need_qmark=0;}
     if (FD_STRINGP(args[0])) 
       fd_uri_output(&out,FD_STRDATA(args[0]),FD_STRLEN(args[0]),0,NULL);
-    else if (FD_PRIM_TYPEP(args[0],fd_secret_type)) {
+    else if (FD_TYPEP(args[0],fd_secret_type)) {
       fd_uri_output(&out,FD_PACKET_DATA(args[0]),FD_PACKET_LENGTH(args[0]),0,NULL);      
       keep_secret=1;}
     else if (FD_OIDP(args[0])) {
@@ -1600,7 +1600,7 @@ static fdtype scripturl(int n,fdtype *args)
   if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
   else if (!((FD_STRINGP(args[0]))||
              (FD_FALSEP(args[0]))||
-             (FD_PRIM_TYPEP(args[0],fd_secret_type))))
+             (FD_TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"scripturl",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
@@ -1608,7 +1608,7 @@ static fdtype scripturl(int n,fdtype *args)
                   strd("odd number of arguments"),FD_VOID);
   else if (FD_FALSEP(args[0]))
     return scripturl_core(NULL,FD_VOID,n-1,args+1,1,0);
-  else if (FD_PRIM_TYPEP(args[0],fd_secret_type))
+  else if (FD_TYPEP(args[0],fd_secret_type))
     return scripturl_core(NULL,FD_VOID,n-1,args+1,1,1);
   else return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,1,0);
 }
@@ -1618,7 +1618,7 @@ static fdtype fdscripturl(int n,fdtype *args)
   if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
   else if (!((FD_STRINGP(args[0]))||
              (FD_FALSEP(args[0]))||
-             (FD_PRIM_TYPEP(args[0],fd_secret_type))))
+             (FD_TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"fdscripturl",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==0))
@@ -1626,7 +1626,7 @@ static fdtype fdscripturl(int n,fdtype *args)
                   strd("odd number of arguments"),FD_VOID);
   else if (FD_FALSEP(args[0]))
     return scripturl_core(NULL,FD_VOID,n-1,args+1,0,0);
-  else if (FD_PRIM_TYPEP(args[0],fd_secret_type))
+  else if (FD_TYPEP(args[0],fd_secret_type))
     return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,0,1);
   else return scripturl_core(FD_STRDATA(args[0]),FD_VOID,n-1,args+1,0,0);
 }
@@ -1636,7 +1636,7 @@ static fdtype scripturlplus(int n,fdtype *args)
   if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
   else if (!((FD_STRINGP(args[0]))||
              (FD_FALSEP(args[0]))||
-             (FD_PRIM_TYPEP(args[0],fd_secret_type))))
+             (FD_TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"scripturlplus",
                   u8_strdup("script name or #f"),args[0]);
   else if ((n>2) && ((n%2)==1))
@@ -1644,7 +1644,7 @@ static fdtype scripturlplus(int n,fdtype *args)
                   strd("odd number of arguments"),FD_VOID);
   else if (FD_FALSEP(args[0]))
     return scripturl_core(NULL,args[1],n-2,args+2,1,0);
-  else if (FD_PRIM_TYPEP(args[0],fd_secret_type))
+  else if (FD_TYPEP(args[0],fd_secret_type))
     return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,1,1);
   else return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,1,0);
 }
@@ -1654,7 +1654,7 @@ static fdtype fdscripturlplus(int n,fdtype *args)
   if (FD_EMPTY_CHOICEP(args[0])) return FD_EMPTY_CHOICE;
   else if  (!((FD_STRINGP(args[0]))||
              (FD_FALSEP(args[0]))||
-             (FD_PRIM_TYPEP(args[0],fd_secret_type))))
+             (FD_TYPEP(args[0],fd_secret_type))))
     return fd_err(fd_TypeError,"fdscripturlplus",
                   u8_strdup("script name"),args[0]);
   else if ((n>2) && ((n%2)==1))
@@ -1662,7 +1662,7 @@ static fdtype fdscripturlplus(int n,fdtype *args)
                   strd("odd number of arguments"),FD_VOID);
   else if (FD_FALSEP(args[0]))
     return scripturl_core(NULL,args[1],n-2,args+2,0,0);
-  else if (FD_PRIM_TYPEP(args[0],fd_secret_type))
+  else if (FD_TYPEP(args[0],fd_secret_type))
     return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,0,1);
   else return scripturl_core(FD_STRDATA(args[0]),args[1],n-2,args+2,0,0);
 }
@@ -1678,7 +1678,7 @@ static int add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
     FD_OID addr=FD_OID_ADDR(name);
     sprintf(namebuf,":@%x/%x",FD_OID_HI(addr),FD_OID_LO(addr));
     varname=namebuf;}
-  else if (FD_PRIM_TYPEP(name,fd_secret_type)) {
+  else if (FD_TYPEP(name,fd_secret_type)) {
     varname=FD_PACKET_DATA(name);
     keep_secret=1;}
   else {
@@ -1695,7 +1695,7 @@ static int add_query_param(u8_output out,fdtype name,fdtype value,int nocolon)
         if (do_encode)
           fd_uri_output(out,FD_STRDATA(val),FD_STRLEN(val),0,NULL);
         else u8_puts(out,FD_STRDATA(val));
-      else if (FD_PRIM_TYPEP(val,fd_secret_type)) {
+      else if (FD_TYPEP(val,fd_secret_type)) {
         if (do_encode)
           fd_uri_output(out,FD_PACKET_DATA(val),FD_PACKET_LENGTH(val),0,NULL);
         else u8_puts(out,FD_PACKET_DATA(val));
@@ -1740,7 +1740,7 @@ static fdtype uriencode_prim(fdtype string,fdtype escape,fdtype uparg)
   else fd_uri_output(&out,input,-1,upper,FD_STRDATA(escape));
   if (free_input) u8_free(input);
   if (FD_STRINGP(string)) return fd_stream2string(&out);
-  else if (FD_PRIM_TYPEP(string,fd_packet_type))
+  else if (FD_TYPEP(string,fd_packet_type))
     return fd_init_packet(NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
   else return fd_stream2string(&out);
 }

@@ -205,9 +205,9 @@ fdtype fd_read_index_metadata(struct FD_DTYPE_STREAM *ds)
 static void copy_timeinfo(struct U8_XTIME *tp,fdtype md,fdtype slotid)
 {
   fdtype tval=fd_get(md,slotid,FD_VOID);
-  if (FD_PTR_TYPEP(tval,fd_timestamp_type)) {
+  if (FD_TYPEP(tval,fd_timestamp_type)) {
     struct FD_TIMESTAMP *tstamp=
-      FD_GET_CONS(tval,fd_timestamp_type,struct FD_TIMESTAMP *);
+      fd_consptr(struct FD_TIMESTAMP *,tval,fd_timestamp_type);
     memcpy(tp,&(tstamp->fd_u8xtime),sizeof(struct U8_XTIME));}
   else u8_init_xtime(tp,-1,u8_second,0,0,0);
 }

@@ -86,7 +86,7 @@ static u8_output get_output_port(fdtype portarg)
     return u8_current_output;
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
-      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+      fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     return p->fd_outport;}
   else return NULL;
 }
@@ -221,7 +221,7 @@ static fdtype simple_fileout(fdtype expr,fd_lispenv env)
   U8_OUTPUT *f, *oldf; int doclose;
   if (FD_ABORTP(filename_val)) return filename_val;
   else if (FD_PORTP(filename_val)) {
-    FD_PORT *port=FD_GET_CONS(filename_val,fd_port_type,FD_PORT *);
+    FD_PORT *port=fd_consptr(FD_PORT *,filename_val,fd_port_type);
     if (port->fd_outport) {f=port->fd_outport; doclose=0;}
     else {
       fd_decref(filename_val);
@@ -1027,7 +1027,7 @@ static fdtype set_file_modtime(fdtype filename,fdtype timestamp)
     ((FD_VOIDP(timestamp))?(time(NULL)):
      (FD_FIXNUMP(timestamp))?(FD_FIX2INT(timestamp)):
      (FD_BIGINTP(timestamp))?(fd_getint(timestamp)):
-     (FD_PRIM_TYPEP(timestamp,fd_timestamp_type))?
+     (FD_TYPEP(timestamp,fd_timestamp_type))?
      (((struct FD_TIMESTAMP *)timestamp)->fd_u8xtime.u8_tick):
      (-1));
   if (mtime<0)
@@ -1050,7 +1050,7 @@ static fdtype set_file_atime(fdtype filename,fdtype timestamp)
     ((FD_VOIDP(timestamp))?(time(NULL)):
      (FD_FIXNUMP(timestamp))?(FD_FIX2INT(timestamp)):
      (FD_BIGINTP(timestamp))?(fd_getint(timestamp)):
-     (FD_PRIM_TYPEP(timestamp,fd_timestamp_type))?
+     (FD_TYPEP(timestamp,fd_timestamp_type))?
      (((struct FD_TIMESTAMP *)timestamp)->fd_u8xtime.u8_tick):
      (-1));
   if (atime<0)
@@ -1170,16 +1170,16 @@ static fdtype readdir_prim(fdtype dirname,fdtype fullpath)
 
 static fdtype close_prim(fdtype portarg)
 {
-  if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
+  if (FD_TYPEP(portarg,fd_dtstream_type)) {
     struct FD_DTSTREAM *dts=
-      FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
+      fd_consptr(struct FD_DTSTREAM *,portarg,fd_dtstream_type);
     if (dts->dt_stream) {
       fd_dtsclose(dts->dt_stream,1);
       dts->dt_stream=NULL;}
     return FD_VOID;}
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
-      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+      fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     U8_OUTPUT *out=p->fd_outport; U8_INPUT *in=p->fd_inport; int closed=-1;
     if (out) {
       u8_flush(out);
@@ -1202,12 +1202,12 @@ static fdtype close_prim(fdtype portarg)
 
 static fdtype flush_prim(fdtype portarg)
 {
-  if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
+  if (FD_TYPEP(portarg,fd_dtstream_type)) {
     struct FD_DTSTREAM *dts=
-      FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
+      fd_consptr(struct FD_DTSTREAM *,portarg,fd_dtstream_type);
     fd_dtsflush(dts->dt_stream);
     return FD_VOID;}
-  else if (FD_PRIM_TYPEP(portarg,fd_port_type)) {
+  else if (FD_TYPEP(portarg,fd_port_type)) {
     U8_OUTPUT *out=get_output_port(portarg);
     u8_flush(out);
     if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
@@ -1219,14 +1219,14 @@ static fdtype flush_prim(fdtype portarg)
 
 static fdtype setbuf_prim(fdtype portarg,fdtype insize,fdtype outsize)
 {
-  if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
+  if (FD_TYPEP(portarg,fd_dtstream_type)) {
     struct FD_DTSTREAM *dts=
-      FD_GET_CONS(portarg,fd_dtstream_type,struct FD_DTSTREAM *);
+      fd_consptr(struct FD_DTSTREAM *,portarg,fd_dtstream_type);
     fd_dtsbufsize(dts->dt_stream,FD_FIX2INT(insize));
     return FD_VOID;}
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
-      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+      fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     if (FD_FIXNUMP(insize)) {
       U8_INPUT *in=p->fd_inport;
       if ((in) && (in->u8_streaminfo&U8_STREAM_OWNS_XBUF)) {
@@ -1244,7 +1244,7 @@ static fdtype getpos_prim(fdtype portarg)
 {
   if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
-      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+      fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     fd_off_t result=-1;
     if (p->fd_inport)
       result=u8_getpos((struct U8_STREAM *)(p->fd_inport));
@@ -1256,8 +1256,8 @@ static fdtype getpos_prim(fdtype portarg)
     else if (result<FD_MAX_FIXNUM)
       return FD_INT(result);
     else return fd_make_bigint(result);}
-  else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
-    fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
+  else if (FD_TYPEP(portarg,fd_dtstream_type)) {
+    fd_dtstream ds=fd_consptr(fd_dtstream,portarg,fd_dtstream_type);
     fd_off_t pos=fd_getpos(ds->dt_stream);
     if (pos<0) return FD_ERROR_VALUE;
     else if (pos<FD_MAX_FIXNUM) return FD_INT(pos);
@@ -1269,7 +1269,7 @@ static fdtype endpos_prim(fdtype portarg)
 {
   if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
-      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+      fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     fd_off_t result=-1;
     if (p->fd_inport)
       result=u8_endpos((struct U8_STREAM *)(p->fd_inport));
@@ -1281,8 +1281,8 @@ static fdtype endpos_prim(fdtype portarg)
     else if (result<FD_MAX_FIXNUM)
       return FD_INT(result);
     else return fd_make_bigint(result);}
-  else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
-    fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
+  else if (FD_TYPEP(portarg,fd_dtstream_type)) {
+    fd_dtstream ds=fd_consptr(fd_dtstream,portarg,fd_dtstream_type);
     fd_off_t pos=fd_endpos(ds->dt_stream);
     if (pos<0) return FD_ERROR_VALUE;
     else if (pos<FD_MAX_FIXNUM) return FD_INT(pos);
@@ -1294,7 +1294,7 @@ static fdtype file_progress_prim(fdtype portarg)
 {
   double result=-1.0;
   struct FD_PORT *p=
-    FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+    fd_consptr(struct FD_PORT *,portarg,fd_port_type);
   if (p->fd_inport)
     result=u8_getprogress((struct U8_STREAM *)(p->fd_inport));
   else if (p->fd_outport)
@@ -1310,7 +1310,7 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
   if (FD_PORTP(portarg)) {
     fd_off_t off, result;
     struct FD_PORT *p=
-      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+      fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
     else if (FD_BIGINTP(off_arg))
 #if (_FILE_OFFSET_BITS==64)
@@ -1329,8 +1329,8 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
     else if (result<FD_MAX_FIXNUM)
       return FD_INT(off);
     else return fd_make_bigint(result);}
-  else if (FD_PRIM_TYPEP(portarg,fd_dtstream_type)) {
-    fd_dtstream ds=FD_GET_CONS(portarg,fd_dtstream_type,fd_dtstream);
+  else if (FD_TYPEP(portarg,fd_dtstream_type)) {
+    fd_dtstream ds=fd_consptr(fd_dtstream,portarg,fd_dtstream_type);
     fd_off_t off, result;
     if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
     else if (FD_BIGINTP(off_arg))

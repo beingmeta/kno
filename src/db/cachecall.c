@@ -33,8 +33,8 @@ static struct FD_HASHTABLE *get_fcn_cache(fdtype fcn,int create)
   if (FD_VOIDP(cache)) {
     cache=fd_make_hashtable(NULL,512);
     fd_hashtable_store(&fcn_caches,fcn,cache);
-    return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);}
-  else return FD_GET_CONS(cache,fd_hashtable_type,struct FD_HASHTABLE *);
+    return fd_consptr(struct FD_HASHTABLE *,cache,fd_hashtable_type);}
+  else return fd_consptr(struct FD_HASHTABLE *,cache,fd_hashtable_type);
 }
 
 FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)

@@ -52,7 +52,7 @@ FD_EXPORT fdtype fd_make_dtproc(u8_string name,u8_string server,
 
 static int unparse_dtproc(u8_output out,fdtype x)
 {
-  struct FD_DTPROC *f=FD_GET_CONS(x,fd_dtproc_type,fd_dtproc);
+  struct FD_DTPROC *f=fd_consptr(fd_dtproc,x,fd_dtproc_type);
   u8_printf(out,"#<!DTPROC %s using %s>",f->fcn_name,f->fd_dtprocserver);
   return 1;
 }

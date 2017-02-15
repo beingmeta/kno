@@ -1353,7 +1353,7 @@ FD_EXPORT fdtype fd_pool2lisp(fd_pool p)
 }
 FD_EXPORT fd_pool fd_lisp2pool(fdtype lp)
 {
-  if (FD_PTR_TYPEP(lp,fd_pool_type)) {
+  if (FD_TYPEP(lp,fd_pool_type)) {
     int serial=FD_GET_IMMEDIATE(lp,fd_pool_type);
     if (serial<fd_pool_serial_count)
       return fd_pool_serial_table[serial];

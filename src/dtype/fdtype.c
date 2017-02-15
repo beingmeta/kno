@@ -66,6 +66,7 @@ static void init_type_names()
   fd_type_names[fd_symbol_type]=_("symbol");
   fd_type_names[fd_lexref_type]=_("lexref");
   fd_type_names[fd_opcode_type]=_("opcode");
+  fd_type_names[fd_cdrcode_type]=_("cdrcode");
   fd_type_names[fd_string_type]=_("string");
   fd_type_names[fd_packet_type]=_("packet");
   fd_type_names[fd_secret_type]=_("secret");
@@ -93,9 +94,10 @@ static void init_type_names()
   fd_type_names[fd_rail_type]=_("rail");
   fd_type_names[fd_secret_type]=_("secret");
   fd_type_names[fd_sproc_type]=_("SCHEME procedure");
+  fd_type_names[fd_ffi_type]=_("foreign function");
   fd_type_names[fd_regex_type]=_("regex");
   fd_type_names[fd_numeric_vector_type]=_("numeric vector");
-  fd_type_names[fd_ffi_type]=_("foreign function");
+  fd_type_names[fd_consblock_type]=_("consblock");
 }
 
 static int fdtype_version=101;

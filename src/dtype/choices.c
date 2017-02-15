@@ -364,7 +364,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
 {
   if (FD_ACHOICEP(x)) {
     struct FD_ACHOICE *ch=
-      FD_GET_CONS(x,fd_achoice_type,struct FD_ACHOICE *);
+      fd_consptr(struct FD_ACHOICE *,x,fd_achoice_type);
     /* Double check that it's really okay to free it. */
     if (free_achoice) {
       if (FD_CONS_REFCOUNT(ch)>1) {
@@ -1000,7 +1000,7 @@ fdtype fd_difference(fdtype value,fdtype remove)
     if (!(FD_CHOICEP(remove)))
       if (fd_choice_containsp(remove,value)) {
         struct FD_CHOICE *vchoice=
-          FD_GET_CONS(value,fd_choice_type,struct FD_CHOICE *);
+          fd_consptr(struct FD_CHOICE *,value,fd_choice_type);
         int size=FD_XCHOICE_SIZE(vchoice), atomicp=FD_XCHOICE_ATOMICP(vchoice);
         if (size==1) 
           return FD_EMPTY_CHOICE;
@@ -1019,8 +1019,8 @@ fdtype fd_difference(fdtype value,fdtype remove)
           return fd_init_choice(new_choice,size-1,newv,flags);}}
       else return fd_incref(value);
     else return compute_choice_difference
-           (FD_GET_CONS(value,fd_choice_type,struct FD_CHOICE *),
-            FD_GET_CONS(remove,fd_choice_type,struct FD_CHOICE *));
+           (fd_consptr(struct FD_CHOICE *,value,fd_choice_type),
+            fd_consptr(struct FD_CHOICE *,remove,fd_choice_type));
   else if (FD_CHOICEP(remove))
     if (fd_choice_containsp(value,remove))
       return FD_EMPTY_CHOICE;

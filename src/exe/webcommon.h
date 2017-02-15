@@ -118,7 +118,7 @@ static int preflight_set(fdtype var,fdtype val,void *data)
 	  if ((f->fcn_name)&&(f->fcn_filename)&&
 	      (strcmp(f->fcn_name,vf->fcn_name)==0)&&
 	      (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
-	    struct FD_PAIR *p=FD_GET_CONS(scan,fd_pair_type,struct FD_PAIR *);
+	    struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
 	    p->fd_car=val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
 	scan=FD_CDR(scan);}}
@@ -170,7 +170,7 @@ static int postflight_set(fdtype var,fdtype val,void *data)
 	  if ((f->fcn_name)&&(f->fcn_filename)&&
 	      (strcmp(f->fcn_name,vf->fcn_name)==0)&&
 	      (strcmp(f->fcn_filename,vf->fcn_filename)==0)) {
-	    struct FD_PAIR *p=FD_GET_CONS(scan,fd_pair_type,struct FD_PAIR *);
+	    struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,scan,fd_pair_type);
 	    p->fd_car=val; fd_incref(val); fd_decref(fn);
 	    return 0;}}
 	scan=FD_CDR(scan);}}
@@ -567,7 +567,7 @@ static fdtype getcontent(fdtype path)
     else {
       fdtype tval=FD_CAR(value), cval=FD_CDR(value);
       struct FD_TIMESTAMP *lmtime=
-	FD_GET_CONS(tval,fd_timestamp_type,FD_TIMESTAMP *);
+	fd_consptr(fd_timestamp,tval,fd_timestamp_type);
       struct stat fileinfo;
       char *lpath=u8_localpath(FD_STRDATA(path));
       if (stat(lpath,&fileinfo)<0) {
@@ -587,7 +587,7 @@ static fdtype getcontent(fdtype path)
 	fd_hashtable_store(&pagemap,path,content_record);
 	u8_free(lpath); fd_decref(content_record);
 	if ((FD_PAIRP(value)) && (FD_PAIRP(FD_CDR(value))) &&
-	    (FD_PRIM_TYPEP((FD_CDR(FD_CDR(value))),fd_environment_type))) {
+	    (FD_TYPEP((FD_CDR(FD_CDR(value))),fd_environment_type))) {
 	  fd_lispenv env=(fd_lispenv)(FD_CDR(FD_CDR(value)));
 	  if (FD_HASHTABLEP(env->env_bindings))
 	    fd_reset_hashtable((fd_hashtable)(env->env_bindings),0,1);}

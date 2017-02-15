@@ -491,7 +491,7 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
       fdtype sources=fd_get(scan->env_bindings,source_symbol,FD_EMPTY_CHOICE);
       FD_DO_CHOICES(entry,sources) {
         struct FD_TIMESTAMP *loadstamp=
-          FD_GET_CONS(FD_CDR(entry),fd_timestamp_type,struct FD_TIMESTAMP *);
+          fd_consptr(fd_timestamp,FD_CDR(entry),fd_timestamp_type);
         time_t mod_time=u8_file_mtime(FD_STRDATA(FD_CAR(entry)));
         if (mod_time>loadstamp->fd_u8xtime.u8_tick) {
           struct FD_PAIR *pair=(struct FD_PAIR *)entry;
@@ -518,9 +518,9 @@ FD_EXPORT int fd_load_latest(u8_string filename,fd_lispenv env,u8_string base)
     fdtype entry=get_entry(abspath_dtype,sources);
     fdtype result=FD_VOID;
     if (FD_PAIRP(entry))
-      if (FD_PTR_TYPEP(FD_CDR(entry),fd_timestamp_type)) {
+      if (FD_TYPEP(FD_CDR(entry),fd_timestamp_type)) {
         struct FD_TIMESTAMP *curstamp=
-          FD_GET_CONS(FD_CDR(entry),fd_timestamp_type,struct FD_TIMESTAMP *);
+          fd_consptr(fd_timestamp,FD_CDR(entry),fd_timestamp_type);
         time_t last_loaded=curstamp->fd_u8xtime.u8_tick;
         time_t mod_time=u8_file_mtime(FD_STRDATA(abspath_dtype));
         if (mod_time<=last_loaded) return 0;

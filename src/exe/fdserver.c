@@ -675,8 +675,7 @@ static int config_use_module(fdtype var,fdtype val,void *data)
     exposed_environment=
       fd_make_env(fd_incref(module),exposed_environment);
   else if (FD_ENVIRONMENTP(module)) {
-    FD_ENVIRONMENT *env=
-      FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
+    FD_ENVIRONMENT *env=FD_CONSPTR(fd_environment,module);
     if (FD_HASHTABLEP(env->env_exports))
       exposed_environment=
         fd_make_env(fd_incref(env->env_exports),exposed_environment);}
@@ -688,8 +687,7 @@ static int config_use_module(fdtype var,fdtype val,void *data)
     exposed_environment=
       fd_make_env(fd_incref(module),exposed_environment);
   else if (FD_ENVIRONMENTP(module)) {
-    FD_ENVIRONMENT *env=
-      FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
+    FD_ENVIRONMENT *env=FD_CONSPTR(fd_environment,module);
     if (FD_HASHTABLEP(env->env_exports))
       exposed_environment=
         fd_make_env(fd_incref(env->env_exports),exposed_environment);}

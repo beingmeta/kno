@@ -175,7 +175,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
     int data=FD_GET_IMMEDIATE(x,itype), retval=0;
     if (itype == fd_symbol_type) { /* output symbol */
       fdtype name=fd_symbol_names[data];
-      struct FD_STRING *s=FD_GET_CONS(name,fd_string_type,struct FD_STRING *);
+      struct FD_STRING *s=fd_consptr(struct FD_STRING *,name,fd_string_type);
       int len=s->fd_bytelen;
       if (((out->fd_dts_flags)&(FD_DTYPEV2)) && (len<256)) {
         {output_byte(out,dt_tiny_symbol);}
@@ -1127,7 +1127,7 @@ static fdtype default_make_rational(fdtype car,fdtype cdr)
 static void default_unpack_rational
   (fdtype x,fdtype *car,fdtype *cdr)
 {
-  struct FD_PAIR *p=FD_GET_CONS(x,fd_rational_type,struct FD_PAIR *);
+  struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,x,fd_rational_type);
   *car=p->fd_car; *cdr=p->fd_cdr;
 }
 
@@ -1142,7 +1142,7 @@ static fdtype default_make_complex(fdtype car,fdtype cdr)
 static void default_unpack_complex
   (fdtype x,fdtype *car,fdtype *cdr)
 {
-  struct FD_PAIR *p=FD_GET_CONS(x,fd_complex_type,struct FD_PAIR *);
+  struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,x,fd_complex_type);
   *car=p->fd_car; *cdr=p->fd_cdr;
 }
 

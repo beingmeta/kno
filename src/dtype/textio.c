@@ -1358,7 +1358,7 @@ static fdtype get_compound_tag(fdtype tag)
 
 static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
 {
-  struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
+  struct FD_COMPOUND *xc=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
   fdtype tag=get_compound_tag(xc->compound_typetag);
   struct FD_COMPOUND_TYPEINFO *entry=fd_lookup_compound(tag);
   if ((entry) && (entry->fd_compound_unparser)) {
@@ -1374,7 +1374,7 @@ static int unparse_compound(struct U8_OUTPUT *out,fdtype x)
     while (i<n) {
       fdtype elt=data[i++];
       if (0) { /* (FD_PACKETP(elt)) */
-        struct FD_STRING *packet=FD_GET_CONS(elt,fd_packet_type,fd_string);
+        struct FD_STRING *packet=fd_consptr(fd_string,elt,fd_packet_type);
         const unsigned char *bytes=packet->fd_bytes; 
         int n_bytes=packet->fd_bytelen;
         u8_puts(out," ");

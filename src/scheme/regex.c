@@ -91,7 +91,7 @@ static fdtype parse_regex(u8_string src_arg,u8_string opts)
 
 static fdtype regexp_prim(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_regex_type)) return FD_TRUE;
+  if (FD_TYPEP(x,fd_regex_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -123,7 +123,7 @@ static fdtype getcharoff(u8_string s,int byteoff)
 static fdtype regex_searchop(enum FD_REGEX_OP op,fdtype pat,fdtype string,
                              int eflags)
 {
-  struct FD_REGEX *ptr=FD_GET_CONS(pat,fd_regex_type,struct FD_REGEX *);
+  struct FD_REGEX *ptr=fd_consptr(struct FD_REGEX *,pat,fd_regex_type);
   regmatch_t results[1];
   int retval, len=FD_STRLEN(string);
   u8_string s=FD_STRDATA(string);
@@ -168,7 +168,7 @@ FD_EXPORT ssize_t fd_regex_op(enum FD_REGEX_OP op,fdtype pat,
                               u8_string s,size_t len,
                               int eflags)
 {
-  struct FD_REGEX *ptr=FD_GET_CONS(pat,fd_regex_type,struct FD_REGEX *);
+  struct FD_REGEX *ptr=fd_consptr(struct FD_REGEX *,pat,fd_regex_type);
   regmatch_t results[1];
   int retval;
   /* Convert numeric eflags value to correct flags field */

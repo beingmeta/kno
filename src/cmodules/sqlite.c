@@ -210,7 +210,7 @@ static fdtype sqlite_open_prim(fdtype filename,fdtype colinfo,fdtype options)
 
 static fdtype sqlite_reopen_prim(fdtype db)
 {
-  struct FD_EXTDB *extdb=FD_GET_CONS(db,fd_extdb_type,struct FD_EXTDB *);
+  struct FD_EXTDB *extdb=fd_consptr(struct FD_EXTDB *,db,fd_extdb_type);
   if (extdb->extdb_handler!=&sqlite_handler)
     return fd_type_error("Not a SQLITE DB","sqlite_close_prim",db);
   else {
@@ -235,7 +235,7 @@ static void close_fdsqlite(struct FD_SQLITE *dbp,int lock)
 
 static fdtype sqlite_close_prim(fdtype db)
 {
-  struct FD_EXTDB *extdb=FD_GET_CONS(db,fd_extdb_type,struct FD_EXTDB *);
+  struct FD_EXTDB *extdb=fd_consptr(struct FD_EXTDB *,db,fd_extdb_type);
   if (extdb->extdb_handler!=&sqlite_handler)
     return fd_type_error("Not a SQLITE DB","sqlite_close_prim",db);
   close_fdsqlite((struct FD_SQLITE *)extdb,1);
@@ -493,16 +493,16 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
         else dofree=1;}
     if (FD_EMPTY_CHOICEP(arg)) {
       ret=sqlite3_bind_null(dbproc->stmt,i+1);}
-    else if (FD_PRIM_TYPEP(arg,fd_fixnum_type)) {
+    else if (FD_TYPEP(arg,fd_fixnum_type)) {
       int intval=FD_FIX2INT(arg);
       ret=sqlite3_bind_int(dbproc->stmt,i+1,intval);}
     else if (FD_FLONUMP(arg)) {
       double floval=FD_FLONUM(arg);
       ret=sqlite3_bind_double(dbproc->stmt,i+1,floval);}
-    else if (FD_PRIM_TYPEP(arg,fd_string_type))
+    else if (FD_TYPEP(arg,fd_string_type))
       ret=sqlite3_bind_text
         (dbproc->stmt,i+1,FD_STRDATA(arg),FD_STRLEN(arg),SQLITE_TRANSIENT);
-    else if (FD_PRIM_TYPEP(arg,fd_packet_type))
+    else if (FD_TYPEP(arg,fd_packet_type))
       ret=sqlite3_bind_blob
         (dbproc->stmt,i+1,
          FD_PACKET_DATA(arg),FD_PACKET_LENGTH(arg),
@@ -516,10 +516,10 @@ static fdtype sqlitecallproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       else {
         FD_OID addr=FD_OID_ADDR(arg);
         ret=sqlite3_bind_int64(dbproc->stmt,i+1,addr);}}
-    else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
+    else if (FD_TYPEP(arg,fd_timestamp_type)) {
       struct U8_OUTPUT out; u8_byte buf[64]; U8_INIT_FIXED_OUTPUT(&out,64,buf);
       struct FD_TIMESTAMP *tstamp=
-        FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
+        fd_consptr(struct FD_TIMESTAMP *,arg,fd_timestamp_type);
       if ((tstamp->fd_u8xtime.u8_tzoff)||(tstamp->fd_u8xtime.u8_dstoff)) {
         u8_xtime_to_iso8601_x
           (&out,&(tstamp->fd_u8xtime),U8_ISO8601_NOZONE|U8_ISO8601_UTC);

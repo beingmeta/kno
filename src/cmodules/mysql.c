@@ -44,7 +44,7 @@ static u8_string dupstring(fdtype x)
   if (FD_VOIDP(x)) return NULL;
   else if (FD_STRINGP(x))
     return u8_strdup(FD_STRDATA(x));
-  else if ((FD_PACKETP(x))||(FD_PRIM_TYPEP(x,fd_secret_type))) {
+  else if ((FD_PACKETP(x))||(FD_TYPEP(x,fd_secret_type))) {
     const unsigned char *data=FD_PACKET_DATA(x);
     int len=FD_PACKET_LENGTH(x);
     u8_byte *dup=u8_malloc(len+1);
@@ -83,7 +83,7 @@ static u8_mutex mysql_connect_lock;
 
 FD_EXPORT int fd_init_mysql(void) FD_LIBINIT_FN;
 static struct FD_EXTDB_HANDLER mysql_handler;
-static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args);
+static fdtype callmysqlproc(fd_function fn,int n,fdtype *args);
 
 typedef struct FD_MYSQL {
   FD_EXTDB_FIELDS;
@@ -388,7 +388,7 @@ static fdtype open_mysql
   const char *host, *username, *passwd, *dbstring, *sockname, *spec;
   int portno=0, flags=0, retval;
   struct FD_MYSQL *dbp=NULL;
-  if (!((FD_STRINGP(password))||(FD_PRIM_TYPEP(password,fd_secret_type))))
+  if (!((FD_STRINGP(password))||(FD_TYPEP(password,fd_secret_type))))
     return fd_type_error("string/secret","open_mysql",password);
   else dbp=u8_alloc(struct FD_MYSQL);
 
@@ -632,11 +632,11 @@ static fdtype get_stmt_values
           else kv[n_slots].fd_keyval=FD_EMPTY_CHOICE;
           fd_decref(value);}
         else kv[n_slots].fd_keyval=value;
-      else if (FD_PRIM_TYPEP(colmaps[i],fd_secret_type)) {
+      else if (FD_TYPEP(colmaps[i],fd_secret_type)) {
         if ((FD_STRINGP(value))||(FD_PACKETP(value)))
           FD_SET_CONS_TYPE(value,fd_secret_type);
         kv[n_slots].fd_keyval=value;}
-      else if (FD_PRIM_TYPEP(colmaps[i],fd_uuid_type))
+      else if (FD_TYPEP(colmaps[i],fd_uuid_type))
         if ((FD_PACKETP(value))||(FD_STRINGP(value))) {
           struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
           const unsigned char *data=
@@ -1089,13 +1089,12 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
 
 /* Actually calling a MYSQL proc */
 
-static fdtype applymysqlproc(struct FD_FUNCTION *,int,fdtype *,int);
+static fdtype applymysqlproc(fd_function f,int n,fdtype *args,int reconn);
 
-static fdtype callmysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args){
+static fdtype callmysqlproc(fd_function fn,int n,fdtype *args){
   return applymysqlproc(fn,n,args,7);}
 
-static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
-                             int reconn)
+static fdtype applymysqlproc(fd_function fn,int n,fdtype *args,int reconn)
 {
   struct FD_MYSQL_PROC *dbproc=(struct FD_MYSQL_PROC *)fn;
   struct FD_MYSQL *dbp=
@@ -1218,15 +1217,14 @@ static fdtype applymysqlproc(struct FD_FUNCTION *fn,int n,fdtype *args,
         inbound[i].buffer=(u8_byte *)FD_PACKET_DATA(arg);
         inbound[i].buffer_length=FD_PACKET_LENGTH(arg);
         inbound[i].length=&(inbound[i].buffer_length);}
-      else if (FD_PRIM_TYPEP(arg,fd_uuid_type)) {
-        struct FD_UUID *uuid=FD_GET_CONS(arg,fd_uuid_type,struct FD_UUID *);
+      else if (FD_TYPEP(arg,fd_uuid_type)) {
+        struct FD_UUID *uuid=FD_CONSPTR(fd_uuid,arg);
         inbound[i].buffer_type=MYSQL_TYPE_BLOB;
         inbound[i].buffer=&(uuid->fd_uuid16);
         inbound[i].buffer_length=16;
         inbound[i].length=NULL;}
-      else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
-        struct FD_TIMESTAMP *tm=
-          FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);
+      else if (FD_TYPEP(arg,fd_timestamp_type)) {
+        struct FD_TIMESTAMP *tm=FD_CONSPTR(fd_timestamp,arg);
         MYSQL_TIME *mt=u8_alloc(MYSQL_TIME);
         struct U8_XTIME *xt=&(tm->fd_u8xtime), gmxtime; time_t tick;
         memset(mt,0,sizeof(MYSQL_TIME));

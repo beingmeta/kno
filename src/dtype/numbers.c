@@ -1853,7 +1853,7 @@ FD_EXPORT fdtype fd_make_bigint(long long intval)
 
 static fdtype copy_bigint(fdtype x,int deep)
 {
-  fd_bigint bi=FD_GET_CONS(x,fd_bigint_type,fd_bigint);
+  fd_bigint bi=fd_consptr(fd_bigint,x,fd_bigint_type);
   return FDTYPE_CONS(bigint_copy(bi));
 }
 
@@ -1881,7 +1881,7 @@ static int output_bigint(struct U8_OUTPUT *out,fd_bigint bi,int base)
 }
 static int unparse_bigint(struct U8_OUTPUT *out,fdtype x)
 {
-  fd_bigint bi=FD_GET_CONS(x,fd_bigint_type,fd_bigint);
+  fd_bigint bi=fd_consptr(fd_bigint,x,fd_bigint_type);
   output_bigint(out,bi,10);
   return 1;
 }
@@ -1892,7 +1892,7 @@ static void output_bigint_byte(unsigned char **scan,int digit)
 }
 static int dtype_bigint(struct FD_BYTE_OUTPUT *out,fdtype x)
 {
-  fd_bigint bi=FD_GET_CONS(x,fd_bigint_type,fd_bigint);
+  fd_bigint bi=fd_consptr(fd_bigint,x,fd_bigint_type);
   if (fd_bigint_fits_in_word_p(bi,32,1)) {
     long fixed=fd_bigint_to_long(bi);
     fd_write_byte(out,dt_fixnum);
@@ -1925,8 +1925,8 @@ static int dtype_bigint(struct FD_BYTE_OUTPUT *out,fdtype x)
 
 static int compare_bigint(fdtype x,fdtype y,int f)
 {
-  fd_bigint bx=FD_GET_CONS(x,fd_bigint_type,fd_bigint);
-  fd_bigint by=FD_GET_CONS(y,fd_bigint_type,fd_bigint);
+  fd_bigint bx=fd_consptr(fd_bigint,x,fd_bigint_type);
+  fd_bigint by=fd_consptr(fd_bigint,y,fd_bigint_type);
   enum fd_bigint_comparison cmp=fd_bigint_compare(bx,by);
   switch (cmp) {
   case fd_bigint_greater: return 1;
@@ -1992,7 +1992,7 @@ FD_EXPORT fdtype fd_init_double(struct FD_FLONUM *ptr,double flonum)
 static int unparse_flonum(struct U8_OUTPUT *out,fdtype x)
 {
   unsigned char buf[256]; int exp;
-  struct FD_FLONUM *d=FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
+  struct FD_FLONUM *d=fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
   /* Get the exponent */
   frexp(d->fd_dblval,&exp);
   if ((exp<-10) || (exp>20))
@@ -2004,7 +2004,7 @@ static int unparse_flonum(struct U8_OUTPUT *out,fdtype x)
 
 static fdtype copy_flonum(fdtype x,int deep)
 {
-  struct FD_FLONUM *d=FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
+  struct FD_FLONUM *d=fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
   return fd_init_flonum(NULL,d->fd_dblval);
 }
 
@@ -2022,7 +2022,7 @@ static fdtype unpack_flonum(unsigned int n,unsigned char *packet)
 
 static int dtype_flonum(struct FD_BYTE_OUTPUT *out,fdtype x)
 {
-  struct FD_FLONUM *d=FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
+  struct FD_FLONUM *d=fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
   unsigned char bytes[8]; int i=0;
   double *f=(double *)&bytes;
   *f=d->fd_dblval;
@@ -2045,9 +2045,9 @@ static void recycle_flonum(struct FD_CONS *c)
 static int compare_flonum(fdtype x,fdtype y,int f)
 {
   struct FD_FLONUM *dx=
-    FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
+    fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
   struct FD_FLONUM *dy=
-    FD_GET_CONS(y,fd_flonum_type,struct FD_FLONUM *);
+    fd_consptr(struct FD_FLONUM *,y,fd_flonum_type);
   if (dx->fd_dblval < dy->fd_dblval) return -1;
   else if (dx->fd_dblval==dy->fd_dblval) return 0;
   else return 1;
@@ -2056,7 +2056,7 @@ static int compare_flonum(fdtype x,fdtype y,int f)
 static int hash_flonum(fdtype x,unsigned int (*fn)(fdtype))
 {
   struct FD_FLONUM *dx=
-    FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *);
+    fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
   int expt;
   double mantissa=frexp(fabs(dx->fd_dblval),&expt);
   double reformed=
@@ -2259,12 +2259,12 @@ int fd_output_number(u8_output out,fdtype num,int base)
     return 1;}
   else if (FD_FLONUMP(num)) {
     unsigned char buf[256];
-    struct FD_FLONUM *d=FD_GET_CONS(num,fd_flonum_type,struct FD_FLONUM *);
+    struct FD_FLONUM *d=fd_consptr(struct FD_FLONUM *,num,fd_flonum_type);
     sprintf(buf,"%f",d->fd_dblval);
     u8_puts(out,buf);
     return 1;}
   else if (FD_BIGINTP(num)) {
-    fd_bigint bi=FD_GET_CONS(num,fd_bigint_type,fd_bigint);
+    fd_bigint bi=fd_consptr(fd_bigint,num,fd_bigint_type);
     output_bigint(out,bi,base);
     return 1;}
   else return 0;
@@ -2273,11 +2273,11 @@ int fd_output_number(u8_output out,fdtype num,int base)
 /* Utility fucntions and macros. */
 
 
-#define COMPLEXP(x) (FD_PTR_TYPEP((x),fd_complex_type))
+#define COMPLEXP(x) (FD_TYPEP((x),fd_complex_type))
 #define REALPART(x) ((COMPLEXP(x)) ? (FD_REALPART(x)) : (x))
 #define IMAGPART(x) ((COMPLEXP(x)) ? (FD_IMAGPART(x)) : (FD_INT(0)))
 
-#define RATIONALP(x) (FD_PTR_TYPEP((x),fd_rational_type))
+#define RATIONALP(x) (FD_TYPEP((x),fd_rational_type))
 #define NUMERATOR(x) ((RATIONALP(x)) ? (FD_NUMERATOR(x)) : (x))
 #define DENOMINATOR(x) ((RATIONALP(x)) ? (FD_DENOMINATOR(x)) : (FD_INT(1)))
 

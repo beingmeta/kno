@@ -114,11 +114,11 @@ FD_EXPORT fdtype fd_make_cprim9x(u8_string name,fd_cprim9 fn,int mina,...);
    (((struct FD_FUNCTION *)(FD_CONS_DATA(fd_fcnid_ref(x))))->fcn_arity) : \
    (0))
 
-/* #define FD_XFUNCTION(x) (FD_GET_CONS(x,fd_primfcn_type,struct FD_FUNCTION *)) */
-#define FD_PRIMITIVEP(x) (FD_PTR_TYPEP(x,fd_primfcn_type))
+/* #define FD_XFUNCTION(x) (fd_consptr(struct FD_FUNCTION *,x,fd_primfcn_type)) */
+#define FD_PRIMITIVEP(x) (FD_TYPEP(x,fd_primfcn_type))
 
 /* We define SPROC here because it's part of the big pointer type enum */
-#define FD_SPROCP(x) (FD_PRIM_TYPEP((x),fd_sproc_type))
+#define FD_SPROCP(x) (FD_TYPEP((x),fd_sproc_type))
 
 FD_EXPORT fdtype fd_make_ndprim(fdtype prim);
 
@@ -139,7 +139,7 @@ FD_EXPORT fdtype fd_ndapply(fdtype,int n,fdtype *args);
 FD_EXPORT fdtype fd_dapply(fdtype,int n,fdtype *args);
 
 #define FD_APPLICABLEP(x) \
-  ((FD_PRIM_TYPEP(x,fd_fcnid_type)) ?		\
+  ((FD_TYPEP(x,fd_fcnid_type)) ?		\
    ((fd_applyfns[FD_FCNID_TYPE(x)])!=NULL) :	\
    ((fd_applyfns[FD_PRIM_TYPE(x)])!=NULL))
 
@@ -159,7 +159,7 @@ FD_EXPORT fdtype fd_tail_call(fdtype fcn,int n,fdtype *vec);
 FD_EXPORT fdtype fd_step_call(fdtype c);
 FD_EXPORT fdtype _fd_finish_call(fdtype);
 
-#define FD_TAILCALLP(x) (FD_PTR_TYPEP((x),fd_tailcall_type))
+#define FD_TAILCALLP(x) (FD_TYPEP((x),fd_tailcall_type))
 
 FD_INLINE_FCN fdtype fd_finish_call(fdtype pt)
 {

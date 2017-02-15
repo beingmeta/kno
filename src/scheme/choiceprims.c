@@ -1032,7 +1032,7 @@ static fdtype pickn(fdtype x,fdtype count,fdtype offset)
     else start=u8_random(n-howmany);
     if (n) {
       struct FD_CHOICE *base=
-        (FD_GET_CONS(normal,fd_choice_type,struct FD_CHOICE *));
+        (fd_consptr(struct FD_CHOICE *,normal,fd_choice_type));
       struct FD_CHOICE *result=fd_alloc_choice(howmany);
       const fdtype *read=FD_XCHOICE_DATA(base)+start;
       fdtype *write=(fdtype *)FD_XCHOICE_DATA(result);

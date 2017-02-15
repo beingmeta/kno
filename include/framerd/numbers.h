@@ -84,9 +84,9 @@ struct FD_NUMERIC_VECTOR {
 typedef struct FD_NUMERIC_VECTOR *fd_numeric_vector;
 typedef struct FD_NUMERIC_VECTOR *fd_numvec;
 
-#define FD_NUMERIC_VECTORP(v) (FD_PRIM_TYPEP(v,fd_numeric_vector_type))
+#define FD_NUMERIC_VECTORP(v) (FD_TYPEP(v,fd_numeric_vector_type))
 #define FD_XNUMVEC(v) ((fd_numvec)(v))
-#define FD_NUMVECP(v) (FD_PRIM_TYPEP(v,fd_numeric_vector_type))
+#define FD_NUMVECP(v) (FD_TYPEP(v,fd_numeric_vector_type))
 
 #define FD_NUMERIC_VECTOR_LENGTH(v) ((FD_XNUMVEC(v))->fd_numvec_len)
 #define FD_NUMVEC_LENGTH(v) ((FD_XNUMVEC(v))->fd_numvec_len)
@@ -96,9 +96,9 @@ typedef struct FD_NUMERIC_VECTOR *fd_numvec;
 #define FD_NUMVEC_TYPEP(v,t) (((FD_XNUMVEC(v))->fd_numvec_elt_type)==t)
 
 #define FD_NUMERIC_VECTOR(v) \
-  (FD_GET_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))
+  (fd_consptr(struct FD_NUMERIC_VECTOR *,v,fd_numeric_vector_type))
 #define FD_NUMVEC(v) \
-  (FD_GET_CONS(v,fd_numeric_vector_type,struct FD_NUMERIC_VECTOR *))
+  (fd_consptr(struct FD_NUMERIC_VECTOR *,v,fd_numeric_vector_type))
 #define FD_NUMVEC_ELTS(nv,field) (((fd_numvec)nv)->fd_numvec_elts.field)
 
 #define FD_NUMVEC_FLOATS(v)		      \

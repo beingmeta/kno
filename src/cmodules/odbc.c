@@ -254,7 +254,7 @@ static fdtype odbcintattr(struct FD_ODBC *dbp,int attrid)
 
 static fdtype odbcattr(fdtype conn,fdtype attr)
 {
-  struct FD_ODBC *dbp=FD_GET_CONS(conn,fd_extdb_type,struct FD_ODBC *);
+  struct FD_ODBC *dbp=fd_consptr(struct FD_ODBC *,conn,fd_extdb_type);
   char *attr_name=FD_SYMBOL_NAME(attr);
   if (strcmp(attr_name,"DBMS")==0)
     return odbcstringattr(dbp,SQL_DBMS_NAME);
@@ -467,7 +467,7 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
           u8_unlock_mutex(&(dbp->fd_lock));
           return arg;}
         else dofree=1;}
-    if (FD_PRIM_TYPEP(arg,fd_fixnum_type)) {
+    if (FD_TYPEP(arg,fd_fixnum_type)) {
       int intval=FD_FIX2INT(arg);
       SQLBindParameter(dbp->stmt,i+1,
                        SQL_PARAM_INPUT,SQL_C_SLONG,
@@ -477,7 +477,7 @@ static fdtype callodbcproc(struct FD_FUNCTION *fn,int n,fdtype *args)
       SQLBindParameter(dbp->stmt,i+1,
                        SQL_PARAM_INPUT,SQL_C_DOUBLE,
                        dbp->sqltypes[i],0,0,&floval,0,NULL);}
-    else if (FD_PRIM_TYPEP(arg,fd_string_type)) {
+    else if (FD_TYPEP(arg,fd_string_type)) {
       SQLBindParameter(dbp->stmt,i+1,
                        SQL_PARAM_INPUT,SQL_C_CHAR,
                        dbp->sqltypes[i],0,0,

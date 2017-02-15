@@ -570,9 +570,9 @@ static fdtype xmlapply(u8_output out,fdtype fn,fdtype xml,
 {
   struct XMLAPPLY cxt; cxt.xml=xml; cxt.env=scheme_env;
   fdtype bind=fd_get(xml,id_symbol,FD_VOID), result=FD_VOID;
-  if (FD_PTR_TYPEP(fn,fd_specform_type)) {
+  if (FD_TYPEP(fn,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=
-      FD_GET_CONS(fn,fd_specform_type,fd_special_form);
+      fd_consptr(fd_special_form,fn,fd_specform_type);
     result=sf->fexpr_handler(xml,scheme_env);}
   else if (FD_SPROCP(fn))
     result=fd_xapply_sproc((struct FD_SPROC *)fn,&cxt,xmlgetarg);

@@ -736,7 +736,7 @@ static fdtype hashtable_skim(fdtype table,fdtype threshold,fdtype scope)
 
 static fdtype hashtable_buckets(fdtype table)
 {
-  fd_hashtable h=FD_GET_CONS(table,fd_hashtable_type,fd_hashtable);
+  fd_hashtable h=fd_consptr(fd_hashtable,table,fd_hashtable_type);
   return FD_INT(h->ht_n_buckets);
 }
 
@@ -818,11 +818,11 @@ static fdtype table_skim(fdtype tables,fdtype maxval,fdtype scope)
 
 static fdtype table_map_size(fdtype table)
 {
-  if (FD_PRIM_TYPEP(table,fd_hashtable_type)) {
+  if (FD_TYPEP(table,fd_hashtable_type)) {
     struct FD_HASHTABLE *ht = (struct FD_HASHTABLE *) table;
     long long n_values=fd_hashtable_map_size(ht);
     return FD_INT(n_values);}
-  else if (FD_PRIM_TYPEP(table,fd_hashset_type)) {
+  else if (FD_TYPEP(table,fd_hashset_type)) {
     struct FD_HASHSET *hs = (struct FD_HASHSET *) table;
     return FD_INT(hs->hs_n_elts);}
   else if (FD_TABLEP(table)) {
@@ -877,7 +877,7 @@ static fdtype map2table(fdtype keys,fdtype fn,fdtype hashp)
 
 static fdtype hashsetp(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_hashset_type))
+  if (FD_TYPEP(x,fd_hashset_type))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -923,7 +923,7 @@ static fdtype hashsetdrop(fdtype hs,fdtype key)
 static fdtype hashsettest(fdtype hs,fdtype key)
 {
   FD_DO_CHOICES(hset,hs) {
-    if (!(FD_PRIM_TYPEP(hset,fd_hashset_type)))
+    if (!(FD_TYPEP(hset,fd_hashset_type)))
       return fd_type_error(_("hashset"),"hashsettest",hset);
     else if (fd_hashset_get((fd_hashset)hs,key)) {
       FD_STOP_DO_CHOICES;

@@ -37,7 +37,7 @@ fd_ptr_type fd_port_type;
 
 static int unparse_port(struct U8_OUTPUT *out,fdtype x)
 {
-  struct FD_PORT *p=FD_GET_CONS(x,fd_port_type,fd_port);
+  struct FD_PORT *p=fd_consptr(fd_port,x,fd_port_type);
   if ((p->fd_inport) && (p->fd_outport) && (p->fd_portid))
     u8_printf(out,"#<I/O Port (%s) #!%x>",p->fd_portid,x);
   else if ((p->fd_inport) && (p->fd_outport))
@@ -79,7 +79,7 @@ static u8_output get_output_port(fdtype portarg)
     return u8_current_output;
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
-      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+      fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     return p->fd_outport;}
   else return NULL;
 }
@@ -90,7 +90,7 @@ static u8_input get_input_port(fdtype portarg)
     return NULL; /* get_default_output(); */
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
-      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+      fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     return p->fd_inport;}
   else return NULL;
 }
@@ -106,7 +106,7 @@ static fdtype input_portp(fdtype arg)
 {
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
-      FD_GET_CONS(arg,fd_port_type,struct FD_PORT *);
+      fd_consptr(struct FD_PORT *,arg,fd_port_type);
     if (p->fd_inport)
       return FD_TRUE;
     else return FD_FALSE;}
@@ -117,7 +117,7 @@ static fdtype output_portp(fdtype arg)
 {
   if (FD_PORTP(arg)) {
     struct FD_PORT *p=
-      FD_GET_CONS(arg,fd_port_type,struct FD_PORT *);
+      fd_consptr(struct FD_PORT *,arg,fd_port_type);
     if (p->fd_outport)
       return FD_TRUE;
     else return FD_FALSE;}
@@ -152,7 +152,7 @@ static void recycle_dtstream(struct FD_CONS *c)
 static fdtype read_dtype(fdtype stream)
 {
   struct FD_DTSTREAM *ds=
-    FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
   fdtype object=fd_dtsread_dtype(ds->dt_stream);
   if (object == FD_EOD) return FD_EOF;
   else return object;
@@ -161,7 +161,7 @@ static fdtype read_dtype(fdtype stream)
 static fdtype write_dtype(fdtype object,fdtype stream)
 {
   struct FD_DTSTREAM *ds=
-    FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
   int bytes=fd_dtswrite_dtype(ds->dt_stream,object);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
@@ -170,7 +170,7 @@ static fdtype write_dtype(fdtype object,fdtype stream)
 static fdtype write_bytes(fdtype object,fdtype stream)
 {
   struct FD_DTSTREAM *ds=
-    FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
   if (FD_STRINGP(object)) {
     fd_dtswrite_bytes(ds->dt_stream,FD_STRDATA(object),FD_STRLEN(object));
     return FD_STRLEN(object);}
@@ -207,7 +207,7 @@ static fdtype dtype2packet(fdtype object,fdtype initsize)
 static fdtype read_int(fdtype stream)
 {
   struct FD_DTSTREAM *ds=
-    FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
   unsigned int ival=fd_dtsread_4bytes(ds->dt_stream);
   return FD_INT(ival);
 }
@@ -215,7 +215,7 @@ static fdtype read_int(fdtype stream)
 static fdtype write_int(fdtype object,fdtype stream)
 {
   struct FD_DTSTREAM *ds=
-    FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
   int ival=fd_getint(object);
   int bytes=fd_dtswrite_4bytes(ds->dt_stream,ival);
   if (bytes<0) return FD_ERROR_VALUE;
@@ -225,7 +225,7 @@ static fdtype write_int(fdtype object,fdtype stream)
 static fdtype zread_dtype(fdtype stream)
 {
   struct FD_DTSTREAM *ds=
-    FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
   fdtype object=fd_zread_dtype(ds->dt_stream);
   if (object == FD_EOD) return FD_EOF;
   else return object;
@@ -234,7 +234,7 @@ static fdtype zread_dtype(fdtype stream)
 static fdtype zwrite_dtype(fdtype object,fdtype stream)
 {
   struct FD_DTSTREAM *ds=
-    FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
   int bytes=fd_zwrite_dtype(ds->dt_stream,object);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
@@ -243,7 +243,7 @@ static fdtype zwrite_dtype(fdtype object,fdtype stream)
 static fdtype zwrite_dtypes(fdtype object,fdtype stream)
 {
   struct FD_DTSTREAM *ds=
-    FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
   int bytes=fd_zwrite_dtypes(ds->dt_stream,object);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
@@ -252,7 +252,7 @@ static fdtype zwrite_dtypes(fdtype object,fdtype stream)
 static fdtype zread_int(fdtype stream)
 {
   struct FD_DTSTREAM *ds=
-    FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
   unsigned int ival=fd_dtsread_zint(ds->dt_stream);
   return FD_INT(ival);
 }
@@ -260,7 +260,7 @@ static fdtype zread_int(fdtype stream)
 static fdtype zwrite_int(fdtype object,fdtype stream)
 {
   struct FD_DTSTREAM *ds=
-    FD_GET_CONS(stream,fd_dtstream_type,struct FD_DTSTREAM *);
+    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
   int ival=fd_getint(object);
   int bytes=fd_dtswrite_zint(ds->dt_stream,ival);
   if (bytes<0) return FD_ERROR_VALUE;
@@ -751,7 +751,7 @@ static fdtype record_reader(fdtype port,fdtype ends,fdtype limit_arg)
   if (FD_VOIDP(ends)) {}
   else {
     FD_DO_CHOICES(end,ends)
-      if (!((FD_STRINGP(end))||(FD_PRIM_TYPEP(end,fd_regex_type))))
+      if (!((FD_STRINGP(end))||(FD_TYPEP(end,fd_regex_type))))
         return fd_type_error(_("string"),"record_reader",end);}
   while (1) {
     if (FD_VOIDP(ends)) {
@@ -792,7 +792,7 @@ static off_t find_substring(u8_string string,fdtype strings,
           if (matchlen<(FD_STRLEN(s))) {
             matchlen=FD_STRLEN(s);}}
         else {}}}
-    else if (FD_PRIM_TYPEP(s,fd_regex_type)) {
+    else if (FD_TYPEP(s,fd_regex_type)) {
       off_t starts=fd_regex_op(rx_search,s,string,len,0);
       ssize_t matched_len=(starts<0)?(-1):
         (fd_regex_op(rx_matchlen,s,string+starts,len,0));
@@ -1533,7 +1533,7 @@ static fdtype any_to_base64_prim(fdtype arg,fdtype nopad,fdtype urisafe)
   if (FD_PACKETP(arg)) {
     data=FD_PACKET_DATA(arg);
     data_len=FD_PACKET_LENGTH(arg);}
-  else if ((FD_STRINGP(arg))||(FD_PRIM_TYPEP(arg,fd_secret_type))) {
+  else if ((FD_STRINGP(arg))||(FD_TYPEP(arg,fd_secret_type))) {
     data=FD_STRDATA(arg);
     data_len=FD_STRLEN(arg);}
   else return fd_type_error("packet or string","any_to_base64_prim",arg);

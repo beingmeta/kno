@@ -250,7 +250,7 @@ static fdtype characterp(fdtype x)
 
 static fdtype errorp(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_error_type)) return FD_TRUE; else return FD_FALSE;
+  if (FD_TYPEP(x,fd_error_type)) return FD_TRUE; else return FD_FALSE;
 }
 
 static fdtype applicablep(fdtype x)
@@ -312,7 +312,7 @@ static fdtype procedure_name(fdtype x)
     if (f->fcn_name)
       return fdtype_string(f->fcn_name);
     else return FD_FALSE;}
-  else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
+  else if (FD_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
     if (sf->fexpr_name)
       return fdtype_string(sf->fexpr_name);
@@ -724,7 +724,7 @@ static fdtype find_configs(fdtype pat,fdtype raw)
     u8_string keystring=
       ((FD_STRINGP(key))?(FD_STRDATA(key)):(FD_SYMBOL_NAME(key)));
     if ((FD_STRINGP(pat))?(strcasestr(keystring,FD_STRDATA(pat))!=NULL):
-        (FD_PRIM_TYPEP(pat,fd_regex_type))?(fd_regex_test(pat,keystring,-1)):
+        (FD_TYPEP(pat,fd_regex_type))?(fd_regex_test(pat,keystring,-1)):
         (0)) {
       FD_ADD_TO_CHOICE(results,config); fd_incref(config);}}
   return results;

@@ -123,6 +123,7 @@ typedef enum FD_PTR_TYPE {
   /* Reserved as constants for an evaluator */
   fd_lexref_type=FD_IMMEDIATE_TYPECODE(4),
   fd_opcode_type=FD_IMMEDIATE_TYPECODE(5),
+  fd_cdrcode_type=FD_IMMEDIATE_TYPECODE(6),
 
   fd_string_type=FD_CONS_TYPECODE(0),
   fd_packet_type=FD_CONS_TYPECODE(1),
@@ -154,12 +155,13 @@ typedef enum FD_PTR_TYPE {
   fd_sproc_type=FD_CONS_TYPECODE(26),
   fd_ffi_type=FD_CONS_TYPECODE(27),
   fd_regex_type=FD_CONS_TYPECODE(28),
-  fd_numeric_vector_type=FD_CONS_TYPECODE(29)
+  fd_numeric_vector_type=FD_CONS_TYPECODE(29),
+  fd_consblock_type=FD_CONS_TYPECODE(30)
 
   } fd_ptr_type;
 
-#define FD_BUILTIN_CONS_TYPES 30
-#define FD_BUILTIN_IMMEDIATE_TYPES 6
+#define FD_BUILTIN_CONS_TYPES 31
+#define FD_BUILTIN_IMMEDIATE_TYPES 7
 FD_EXPORT unsigned int fd_next_cons_type;
 FD_EXPORT unsigned int fd_next_immediate_type;
 
@@ -171,7 +173,7 @@ FD_EXPORT int fd_register_immediate_type(char *name,fd_checkfn fn);
 
 /* In the type field, 0 means an integer, 1 means an oid, 2 means
    an immediate constant, and 3 means a cons. */
-#define FD_PTR_MANIFEST_TYPE(x) ((x)&0x3)
+#define FD_PTR_MANIFEST_TYPE(x) ((x)&(0x3))
 #define FD_CONSP(x) ((FD_PTR_MANIFEST_TYPE(x))==fd_cons_ptr_type)
 #define FD_ATOMICP(x) ((FD_PTR_MANIFEST_TYPE(x))!=fd_cons_ptr_type)
 #define FD_FIXNUMP(x) ((FD_PTR_MANIFEST_TYPE(x))==fd_fixnum_ptr_type)
@@ -223,6 +225,23 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
   ((struct FD_CONS *)ptr)->fd_conshead=\
     ((((struct FD_CONS *)ptr)->fd_conshead&(~(FD_CONS_TYPE_MASK)))) | \
     ((type-(FD_CONS_TYPE_OFF))&0x7f)
+#define FD_CONSPTR_TYPE(x) (FD_CONS_TYPE((fd_cons)x))
+
+#define FD_CONSPTR(cast,x) ((cast)((fd_cons)x))
+#define fd_consptr(cast,x,typecode)					\
+  ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ? ((cast)((fd_cons)(x))) :	\
+   (((FD_CHECK_PTR(x))?							\
+     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x)):		\
+     (fd_seterr(fd_BadPtr,fd_type_names[typecode],NULL,x))),		\
+    ((cast)NULL)))
+#define fd_xconsptr(cast,x,typecode)					\
+  ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ? ((cast)((fd_cons)(x))) :	\
+   (((FD_CHECK_PTR(x))?							\
+     (fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,x),		\
+      (_fd_bad_pointer(x,fd_type_names[typecode]))) :			\
+     (fd_seterr(fd_BadPtr,fd_type_names[typecode],NULL,x),		\
+      u8_raise(fd_TypeError,fd_type_names[typecode],NULL))),		\
+    ((cast)NULL)))
 
 #define FD_NULL ((fdtype)(NULL))
 #define FD_NULLP(x) (((void *)x)==NULL)
@@ -232,6 +251,7 @@ FD_FASTOP U8_MAYBE_UNUSED int _FD_ISDTYPE(fdtype x){ return 1;}
 #define FD_GET_IMMEDIATE(x,tcode) (((FDTYPE(x))>>2)&0x7FFFFF)
 #define FD_IMMEDIATE_TYPE_FIELD(x) (((FDTYPE(x))>>25)&0x7F)
 #define FD_IMMEDIATE_TYPE(x) ((((FDTYPE(x))>>25)&0x7F)+0x4)
+#define FD_IMM_TYPE(x) ((((FDTYPE(x))>>25)&0x7F)+0x4)
 
 #if FD_PTR_TYPE_MACRO
 #define FD_PTR_TYPE(x) \
@@ -252,9 +272,16 @@ static fd_ptr_type FD_PTR_TYPE(fdtype x)
   }
 }
 #endif
+#define FD_PRIM_TYPE(x)         (FD_PTR_TYPE(x))
 
+#define FD_TYPEP(ptr,type)						      \
+  ((type >= 0x84) ? ( (FD_CONSP(ptr)) && (FD_CONSPTR_TYPE(ptr) == type) ) :   \
+   (type >= 0x04) ? ( (FD_IMMEDIATEP(ptr)) && (FD_IMM_TYPE(ptr) == type ) ) : \
+   ( ( (ptr) & (0x3) ) == type) )
+/* Other variants */
 #define FD_CONS_TYPEP(x,type) ( (FD_CONSP(x)) && ((FD_CONS_TYPE(x)) == type) )
 #define FD_PTR_TYPEP(x,type) ((FD_PTR_TYPE(x)) == type)
+#define FD_PRIM_TYPEP(x,tp)     (FD_TYPEP(x,tp))
 
 #define FD_MAKE_STATIC(ptr) \
   if (FD_CONSP(ptr))							\
@@ -452,11 +479,11 @@ FD_EXPORT fdtype fd_register_constant(u8_string name);
 #define FD_THROWP(result) ((result)==(FD_THROW_VALUE))
 
 #define FD_ABORTP(x) \
-  (((FD_PTR_TYPEP(x,fd_constant_type)) && \
+  (((FD_TYPEP(x,fd_constant_type)) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)<=15)))
 #define FD_TROUBLEP(x) \
-  (((FD_PTR_TYPEP(x,fd_constant_type)) && \
+  (((FD_TYPEP(x,fd_constant_type)) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)>6) && \
     (FD_GET_IMMEDIATE(x,fd_constant_type)<15)))
 #define FD_COOLP(x) (!(FD_TROUBLEP(x)))
@@ -545,7 +572,7 @@ FD_EXPORT fd_exception fd_InvalidFCNID, fd_FCNIDOverflow;
 #if FD_INLINE_FCNIDS
 static fdtype _fd_fcnid_ref(fdtype ref)
 {
-  if (FD_PTR_TYPEP(ref,fd_fcnid_type)) {
+  if (FD_TYPEP(ref,fd_fcnid_type)) {
     int serialno=FD_GET_IMMEDIATE(ref,fd_fcnid_type);
     if (FD_EXPECT_FALSE(serialno>_fd_fcnid_count))
       return fd_err(fd_InvalidFCNID,"_fd_fcnid_ref",NULL,ref);
@@ -559,9 +586,7 @@ static fdtype _fd_fcnid_ref(fdtype ref)
 #define fd_fcnid_ref(x) ((FD_FCNIDP(x))?(fd_resolve_fcnid(x)):(x))
 #endif
 
-#define FD_PRIM_TYPEP(x,tp)     (FD_PTR_TYPEP(x,tp))
-#define FD_PRIM_TYPE(x)         (FD_PTR_TYPE(x))
-#define FD_FCNID_TYPEP(x,tp)    (FD_PTR_TYPEP(fd_fcnid_ref(x),tp))
+#define FD_FCNID_TYPEP(x,tp)    (FD_TYPEP(fd_fcnid_ref(x),tp))
 #define FD_FCNID_TYPE(x)        (FD_PTR_TYPE(fd_fcnid_ref(x)))
 
 /* Opcodes */
@@ -581,7 +606,7 @@ static fdtype _fd_fcnid_ref(fdtype ref)
 
 /* Lexrefs */
 
-#define FD_LEXREFP(x) (FD_PRIM_TYPEP(x,fd_lexref_type))
+#define FD_LEXREFP(x) (FD_TYPEP(x,fd_lexref_type))
 #define FD_LEXREF_UP(x) ((FD_GET_IMMEDIATE((x),fd_lexref_type))/32)
 #define FD_LEXREF_ACROSS(x) ((FD_GET_IMMEDIATE((x),fd_lexref_type))%32)
 

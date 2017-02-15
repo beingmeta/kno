@@ -63,7 +63,7 @@ static u8_input get_input_port(fdtype portarg)
     return NULL; /* get_default_output(); */
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
-      FD_GET_CONS(portarg,fd_port_type,struct FD_PORT *);
+      fd_consptr(struct FD_PORT *,portarg,fd_port_type);
     return p->fd_inport;}
   else return NULL;
 }
@@ -1822,7 +1822,7 @@ static int has_suffix(fdtype string,fdtype suffix)
 static fdtype check_string(fdtype string,fdtype lexicon)
 {
   if (FD_TRUEP(lexicon)) return string;
-  else if (FD_PTR_TYPEP(lexicon,fd_hashset_type))
+  else if (FD_TYPEP(lexicon,fd_hashset_type))
     if (fd_hashset_get((fd_hashset)lexicon,string))
       return string;
     else return FD_EMPTY_CHOICE;
@@ -1985,7 +1985,7 @@ static fdtype textclosure_handler(fdtype expr,fd_lispenv env)
 
 static fdtype textclosurep(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_txclosure_type))
+  if (FD_TYPEP(arg,fd_txclosure_type))
     return FD_TRUE;
   else return FD_FALSE;
 }

@@ -660,7 +660,7 @@ FD_EXPORT fdtype FD_DAPPLY(fdtype fp,int n,fdtype *argvec)
         int i=0;
         while (i<n)
           if (typeinfo[i]>=0)
-            if (FD_PTR_TYPEP(args[i],typeinfo[i])) i++;
+            if (FD_TYPEP(args[i],typeinfo[i])) i++;
         /* Don't signal errors on unspecified (VOID) args. */
             else if (FD_VOIDP(args[i])) i++;
             else {
@@ -765,7 +765,7 @@ static fdtype ndapply_loop
       value=fd_finish_call(value);
       if (FD_ABORTP(value)) return value;
       FD_ADD_TO_CHOICE(*results,value);}}
-  else if (FD_PTR_TYPEP(nd_args[i],fd_qchoice_type)) {
+  else if (FD_TYPEP(nd_args[i],fd_qchoice_type)) {
     fdtype retval;
     d_args[i]=FD_XQCHOICE(nd_args[i])->fd_choiceval;
     retval=ndapply_loop(f,results,typeinfo,i+1,n,nd_args,d_args);
@@ -1214,7 +1214,7 @@ FD_EXPORT fdtype fd_void_tail_call(fdtype fcn,int n,fdtype *vec)
 FD_EXPORT fdtype fd_step_call(fdtype c)
 {
   struct FD_TAILCALL *tc=
-    FD_GET_CONS(c,fd_tailcall_type,struct FD_TAILCALL *);
+    fd_consptr(struct FD_TAILCALL *,c,fd_tailcall_type);
   int discard=U8_BITP(tc->tailcall_flags,FD_TAILCALL_VOID_VALUE);
   fdtype result=
     ((tc->tailcall_flags&FD_TAILCALL_ND_ARGS)?
@@ -1237,14 +1237,14 @@ FD_EXPORT fdtype _fd_finish_call(fdtype pt)
     fdtype result=FD_VOID;
     while (1) {
       struct FD_TAILCALL *tc=
-        FD_GET_CONS(pt,fd_tailcall_type,struct FD_TAILCALL *);
+        fd_consptr(struct FD_TAILCALL *,pt,fd_tailcall_type);
       fdtype next=((tc->tailcall_flags&FD_TAILCALL_ND_ARGS) ?
                    (fd_apply(tc->tailcall_head,tc->tailcall_arity-1,
                              (&(tc->tailcall_head))+1)) :
                    (fd_dapply(tc->tailcall_head,tc->tailcall_arity-1,
                               (&(tc->tailcall_head))+1)));
       int finished=(!((FD_CONSP(next))&&
-                      (FD_PRIM_TYPEP(next,fd_tailcall_type))));
+                      (FD_TYPEP(next,fd_tailcall_type))));
       if (finished) {
         if (U8_BITP(tc->tailcall_flags,FD_TAILCALL_VOID_VALUE)) {
           fd_decref(next);
@@ -1262,7 +1262,7 @@ FD_EXPORT fdtype _fd_finish_call(fdtype pt)
 static int unparse_tail_call(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_TAILCALL *tc=
-    FD_GET_CONS(x,fd_tailcall_type,struct FD_TAILCALL *);
+    fd_consptr(struct FD_TAILCALL *,x,fd_tailcall_type);
   u8_printf(out,"#<TAILCALL %q on %d args>",
             tc->tailcall_head,tc->tailcall_arity);
   return 1;
@@ -1288,14 +1288,14 @@ static u8_condition DefnFailed=_("Definition Failed");
 
 FD_EXPORT void fd_defn(fdtype table,fdtype fcn)
 {
-  struct FD_FUNCTION *f=FD_GET_CONS(fcn,fd_primfcn_type,struct FD_FUNCTION *);
+  struct FD_FUNCTION *f=fd_consptr(struct FD_FUNCTION *,fcn,fd_primfcn_type);
   if (fd_store(table,fd_intern(f->fcn_name),fcn)<0)
     u8_raise(DefnFailed,"fd_defn",NULL);
 }
 
 FD_EXPORT void fd_idefn(fdtype table,fdtype fcn)
 {
-  struct FD_FUNCTION *f=FD_GET_CONS(fcn,fd_primfcn_type,struct FD_FUNCTION *);
+  struct FD_FUNCTION *f=fd_consptr(struct FD_FUNCTION *,fcn,fd_primfcn_type);
   if (fd_store(table,fd_intern(f->fcn_name),fcn)<0)
     u8_raise(DefnFailed,"fd_defn",NULL);
   fd_decref(fcn);

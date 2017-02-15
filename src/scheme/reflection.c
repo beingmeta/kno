@@ -22,7 +22,7 @@ static fdtype moduleid_symbol;
 
 static fdtype macrop(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_macro_type)) return FD_TRUE;
+  if (FD_TYPEP(x,fd_macro_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -40,13 +40,13 @@ static fdtype applicablep(fdtype x)
 
 static fdtype special_formp(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_specform_type)) return FD_TRUE;
+  if (FD_TYPEP(x,fd_specform_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
 static fdtype primitivep(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_primfcn_type)) return FD_TRUE;
+  if (FD_TYPEP(x,fd_primfcn_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -63,7 +63,7 @@ static fdtype procedure_name(fdtype x)
     if (f->fcn_name)
       return fdtype_string(f->fcn_name);
     else return FD_FALSE;}
-  else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
+  else if (FD_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
     if (sf->fexpr_name)
       return fdtype_string(sf->fexpr_name);
@@ -78,7 +78,7 @@ static fdtype procedure_filename(fdtype x)
     if (f->fcn_filename)
       return fdtype_string(f->fcn_filename);
     else return FD_FALSE;}
-  else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
+  else if (FD_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
     if (sf->fexpr_filename)
       return fdtype_string(sf->fexpr_filename);
@@ -93,7 +93,7 @@ static fdtype procedure_symbol(fdtype x)
     if (f->fcn_name)
       return fd_intern(f->fcn_name);
     else return FD_FALSE;}
-  else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
+  else if (FD_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
     if (sf->fexpr_name)
       return fd_intern(sf->fexpr_name);
@@ -108,7 +108,7 @@ static fdtype procedure_id(fdtype x)
     if (f->fcn_name)
       return fd_intern(f->fcn_name);
     else return fd_incref(x);}
-  else if (FD_PRIM_TYPEP(x,fd_specform_type)) {
+  else if (FD_TYPEP(x,fd_specform_type)) {
     struct FD_SPECIAL_FORM *sf=GETSPECFORM(x);
     if (sf->fexpr_name)
       return fd_intern(sf->fexpr_name);
@@ -138,7 +138,7 @@ static fdtype non_deterministicp(fdtype x)
 
 static fdtype synchronizedp(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_sproc_type)) {
+  if (FD_TYPEP(x,fd_sproc_type)) {
     fd_sproc f=(fd_sproc)x;
     if (f->sproc_synchronized)
       return FD_TRUE;
@@ -238,7 +238,7 @@ static fdtype fcnid_setprim(fdtype arg,fdtype value)
 static fdtype macroexpand(fdtype expander,fdtype expr)
 {
   if (FD_PAIRP(expr)) {
-    if (FD_PRIM_TYPEP(expander,fd_macro_type)) {
+    if (FD_TYPEP(expander,fd_macro_type)) {
       struct FD_MACRO *macrofn=(struct FD_MACRO *)fd_fcnid_ref(expander);
       fd_ptr_type xformer_type=FD_PTR_TYPE(macrofn->fd_macro_transformer);
       if (fd_applyfns[xformer_type]) {
@@ -275,7 +275,7 @@ static fdtype apropos_prim(fdtype arg)
 static fdtype module_bindings(fdtype arg)
 {
   if (FD_ENVIRONMENTP(arg)) {
-    fd_lispenv envptr=FD_GET_CONS(arg,fd_environment_type,fd_lispenv);
+    fd_lispenv envptr=fd_consptr(fd_lispenv,arg,fd_environment_type);
     return fd_getkeys(envptr->env_bindings);}
   else if (FD_TABLEP(arg))
     return fd_getkeys(arg);
@@ -294,7 +294,7 @@ static fdtype modulep(fdtype arg)
 {
   if (FD_ENVIRONMENTP(arg)) {
     struct FD_ENVIRONMENT *env=
-      FD_GET_CONS(arg,fd_environment_type,struct FD_ENVIRONMENT *);
+      fd_consptr(struct FD_ENVIRONMENT *,arg,fd_environment_type);
     if (fd_test(env->env_bindings,moduleid_symbol,FD_VOID))
       return FD_TRUE;
     else return FD_FALSE;}
@@ -308,7 +308,7 @@ static fdtype modulep(fdtype arg)
 static fdtype module_exports(fdtype arg)
 {
   if (FD_ENVIRONMENTP(arg)) {
-    fd_lispenv envptr=FD_GET_CONS(arg,fd_environment_type,fd_lispenv);
+    fd_lispenv envptr=fd_consptr(fd_lispenv,arg,fd_environment_type);
     return fd_getkeys(envptr->env_exports);}
   else if (FD_TABLEP(arg))
     return fd_getkeys(arg);
@@ -348,8 +348,8 @@ static fdtype wherefrom_handler(fdtype expr,fd_lispenv call_env)
   if (FD_SYMBOLP(symbol)) {
     fdtype env_arg=fd_eval(fd_get_arg(expr,2),call_env); fd_lispenv env;
     if (FD_VOIDP(env_arg)) env=call_env;
-    else if (FD_PRIM_TYPEP(env_arg,fd_environment_type))
-      env=FD_GET_CONS(env_arg,fd_environment_type,fd_lispenv);
+    else if (FD_TYPEP(env_arg,fd_environment_type))
+      env=fd_consptr(fd_lispenv,env_arg,fd_environment_type);
     else return fd_type_error(_("environment"),"wherefrom",env_arg);
     if (env->env_copy) env=env->env_copy;
     while (env) {
@@ -375,8 +375,8 @@ static fdtype getmodules_handler(fdtype expr,fd_lispenv call_env)
   fdtype env_arg=fd_eval(fd_get_arg(expr,1),call_env), modules=FD_EMPTY_CHOICE;
   fd_lispenv env=call_env;
   if (FD_VOIDP(env_arg)) {}
-  else if (FD_PRIM_TYPEP(env_arg,fd_environment_type))
-    env=FD_GET_CONS(env_arg,fd_environment_type,fd_lispenv);
+  else if (FD_TYPEP(env_arg,fd_environment_type))
+    env=fd_consptr(fd_lispenv,env_arg,fd_environment_type);
   else return fd_type_error(_("environment"),"wherefrom",env_arg);
   if (env->env_copy) env=env->env_copy;
   while (env) {

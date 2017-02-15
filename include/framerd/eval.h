@@ -61,10 +61,10 @@ FD_EXPORT int fd_add_value(fdtype,fdtype,fd_lispenv);
 FD_EXPORT int fd_bind_value(fdtype,fdtype,fd_lispenv);
 
 #define FD_XENV(x) \
-  (FD_GET_CONS(x,fd_environment_type,struct FD_ENVIRONMENT *))
+  (fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type))
 #define FD_XENVIRONMENT(x) \
- (FD_GET_CONS(x,fd_environment_type,struct FD_ENVIRONMENT *))
-#define FD_ENVIRONMENTP(x) (FD_PTR_TYPEP(x,fd_environment_type))
+  (fd_consptr(struct FD_ENVIRONMENT *,x,fd_environment_type))
+#define FD_ENVIRONMENTP(x) (FD_TYPEP(x,fd_environment_type))
 
 FD_EXPORT int fd_recycle_environment(fd_lispenv env);
 
@@ -237,7 +237,7 @@ FD_FASTOP fdtype fd_symeval(fdtype symbol,fd_lispenv env)
 FD_FASTOP fdtype fd_eval(fdtype x,fd_lispenv env)
 {
   fdtype result=fd_tail_eval(x,env);
-  if (FD_PTR_TYPEP(result,fd_tailcall_type))
+  if (FD_TYPEP(result,fd_tailcall_type))
     return _fd_finish_call(result);
   else return result;
 }
@@ -248,7 +248,7 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
     return x;
   case fd_immediate_ptr_type:
-    if (FD_PRIM_TYPEP(x,fd_lexref_type))
+    if (FD_TYPEP(x,fd_lexref_type))
       return fd_lexref(x,env);
     else if (FD_SYMBOLP(x)) {
       fdtype val=fd_symeval(x,env);
@@ -259,10 +259,10 @@ FD_FASTOP fdtype fasteval(fdtype x,fd_lispenv env)
   case fd_slotmap_type:
     return fd_deep_copy(x);
   case fd_cons_ptr_type:
-    if ((FD_PTR_TYPEP(x,fd_pair_type)) ||
-        (FD_PTR_TYPEP(x,fd_rail_type)) ||
-        (FD_PTR_TYPEP(x,fd_choice_type)) ||
-        (FD_PTR_TYPEP(x,fd_achoice_type)))
+    if ((FD_TYPEP(x,fd_pair_type)) ||
+        (FD_TYPEP(x,fd_rail_type)) ||
+        (FD_TYPEP(x,fd_choice_type)) ||
+        (FD_TYPEP(x,fd_achoice_type)))
       return fd_eval(x,env);
     else return fd_incref(x);
   default: /* Never reached */
@@ -276,7 +276,7 @@ FD_FASTOP fdtype fast_tail_eval(fdtype x,fd_lispenv env)
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
     return x;
   case fd_immediate_ptr_type:
-    if (FD_PRIM_TYPEP(x,fd_lexref_type))
+    if (FD_TYPEP(x,fd_lexref_type))
       return fd_lexref(x,env);
     else if (FD_SYMBOLP(x)) {
       fdtype val=fd_symeval(x,env);
@@ -317,7 +317,7 @@ FD_FASTOP fdtype fd_get_arg(fdtype expr,int i)
 FD_FASTOP fdtype fd_get_body(fdtype expr,int i)
 {
   if (FD_RAILP(expr)) {
-    struct FD_VECTOR *rail=(FD_GET_CONS(expr,fd_rail_type,struct FD_VECTOR *));
+    struct FD_VECTOR *rail=(fd_consptr(struct FD_VECTOR *,expr,fd_rail_type));
     fdtype *data=rail->fd_vecelts; int len=rail->fd_veclen;
     return fd_make_rail(len-i,data+i);}
   while (FD_PAIRP(expr))

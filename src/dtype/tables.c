@@ -526,7 +526,7 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data)
 
 static fdtype copy_slotmap(fdtype smap,int flags)
 {
-  struct FD_SLOTMAP *cur=FD_GET_CONS(smap,fd_slotmap_type,fd_slotmap);
+  struct FD_SLOTMAP *cur=fd_consptr(fd_slotmap,smap,fd_slotmap_type);
   struct FD_SLOTMAP *fresh; int unlock=0;
   if (!(cur->sm_free_keyvals)) {
     fdtype copy; struct FD_SLOTMAP *consed; struct FD_KEYVAL *kvals;
@@ -770,7 +770,7 @@ FD_EXPORT fdtype *fd_register_schema(int n,fdtype *schema)
 static fdtype copy_schemap(fdtype schemap,int flags)
 {
   struct FD_SCHEMAP *ptr=
-    FD_GET_CONS(schemap,fd_schemap_type,struct FD_SCHEMAP *);
+    fd_consptr(struct FD_SCHEMAP *,schemap,fd_schemap_type);
   struct FD_SCHEMAP *nptr=u8_alloc(struct FD_SCHEMAP);
   int i=0, size=FD_XSCHEMAP_SIZE(ptr);
   fdtype *ovalues=ptr->schema_values;
@@ -1092,7 +1092,7 @@ static unsigned int hash_lisp(fdtype x)
     switch (FD_PTR_TYPE(x)) {
     case fd_string_type: {
       struct FD_STRING *s=
-        FD_GET_CONS(x,fd_string_type,struct FD_STRING *);
+        fd_consptr(struct FD_STRING *,x,fd_string_type);
       return mult_hash_string(s->fd_bytes,s->fd_bytelen);}
     case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s=(struct FD_STRING *)x;
@@ -1103,11 +1103,11 @@ static unsigned int hash_lisp(fdtype x)
       return hash_mult(hcar,hcdr);}
     case fd_vector_type: {
       struct FD_VECTOR *v=
-        FD_GET_CONS(x,fd_vector_type,struct FD_VECTOR *);
+        fd_consptr(struct FD_VECTOR *,x,fd_vector_type);
       return hash_elts(v->fd_vecelts,v->fd_veclen);}
     case fd_compound_type: {
       struct FD_COMPOUND *c=
-        FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
+        fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
       if (c->compound_isopaque) {
         int ctype=FD_PTR_TYPE(x);
         if ((ctype>0) && (ctype<N_TYPE_MULTIPLIERS))
@@ -1118,12 +1118,12 @@ static unsigned int hash_lisp(fdtype x)
               hash_elts(&(c->compound_0),c->fd_n_elts));}
     case fd_slotmap_type: {
       struct FD_SLOTMAP *sm=
-        FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *);
+        fd_consptr(struct FD_SLOTMAP *,x,fd_slotmap_type);
       fdtype *kv=(fdtype *)sm->sm_keyvals;
       return hash_elts(kv,sm->table_size*2);}
     case fd_choice_type: {
       struct FD_CHOICE *ch=
-        FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *);
+        fd_consptr(struct FD_CHOICE *,x,fd_choice_type);
       int size=FD_XCHOICE_SIZE(ch);
       return hash_elts((fdtype *)(FD_XCHOICE_DATA(ch)),size);}
     case fd_achoice_type: {
@@ -1133,7 +1133,7 @@ static unsigned int hash_lisp(fdtype x)
       return hash;}
     case fd_qchoice_type: {
       struct FD_QCHOICE *ch=
-        FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *);
+        fd_consptr(struct FD_QCHOICE *,x,fd_qchoice_type);
       return hash_lisp(ch->fd_choiceval);}
     default: {
       int ctype=FD_PTR_TYPE(x);
@@ -2147,7 +2147,7 @@ FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int type)
         struct FD_KEYVAL *kvscan=&(e->fd_keyval0), *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
           if ((FD_CONSP(kvscan->fd_keyval)) &&
-              ((type<0) || (FD_PTR_TYPEP(kvscan->fd_keyval,keeptype)))) {
+              ((type<0) || (FD_TYPEP(kvscan->fd_keyval,keeptype)))) {
             fdtype value=kvscan->fd_keyval;
             fdtype static_value=fd_static_copy(value);
             if (static_value==value) {
@@ -2433,14 +2433,14 @@ FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr)
 
 static fdtype copy_hashtable(fdtype table,int deep)
 {
-  struct FD_HASHTABLE *ptr=FD_GET_CONS(table,fd_hashtable_type,fd_hashtable);
+  struct FD_HASHTABLE *ptr=fd_consptr(fd_hashtable,table,fd_hashtable_type);
   struct FD_HASHTABLE *nptr=u8_alloc(struct FD_HASHTABLE);
   return fd_copy_hashtable(nptr,ptr);
 }
 
 static fdtype copy_hashset(fdtype table,int deep)
 {
-  struct FD_HASHSET *ptr=FD_GET_CONS(table,fd_hashset_type,fd_hashset);
+  struct FD_HASHSET *ptr=fd_consptr(fd_hashset,table,fd_hashset_type);
   struct FD_HASHSET *nptr=u8_alloc(struct FD_HASHSET);
   return fd_copy_hashset(nptr,ptr);
 }
@@ -2903,13 +2903,13 @@ static int unparse_hashset(u8_output out,fdtype x)
 
 static fdtype hashsetget(fdtype x,fdtype key)
 {
-  struct FD_HASHSET *h=FD_GET_CONS(x,fd_hashset_type,struct FD_HASHSET *);
+  struct FD_HASHSET *h=fd_consptr(struct FD_HASHSET *,x,fd_hashset_type);
   if (fd_hashset_get(h,key)) return FD_TRUE;
   else return FD_FALSE;
 }
 static int hashsetstore(fdtype x,fdtype key,fdtype val)
 {
-  struct FD_HASHSET *h=FD_GET_CONS(x,fd_hashset_type,struct FD_HASHSET *);
+  struct FD_HASHSET *h=fd_consptr(struct FD_HASHSET *,x,fd_hashset_type);
   if (FD_TRUEP(val)) return fd_hashset_mod(h,key,1);
   else if (FD_FALSEP(val)) return fd_hashset_mod(h,key,0);
   else {
@@ -3197,9 +3197,9 @@ FD_EXPORT fdtype fd_getvalues(fdtype arg)
 {
   FD_TABLE_CHECKPTR(arg,"fd_getvalues/table");
   /* Eventually, these might be fd_tablefns fields */
-  if (FD_PRIM_TYPEP(arg,fd_hashtable_type)) 
+  if (FD_TYPEP(arg,fd_hashtable_type)) 
     return fd_hashtable_values(FD_XHASHTABLE(arg));
-  else if (FD_PRIM_TYPEP(arg,fd_slotmap_type))
+  else if (FD_TYPEP(arg,fd_slotmap_type))
     return fd_slotmap_values(FD_XSLOTMAP(arg));
   else if (FD_CHOICEP(arg)) {
     fdtype results=FD_EMPTY_CHOICE;
@@ -3224,9 +3224,9 @@ FD_EXPORT fdtype fd_getassocs(fdtype arg)
 {
   FD_TABLE_CHECKPTR(arg,"fd_getassocs/table");
   /* Eventually, these might be fd_tablefns fields */
-  if (FD_PRIM_TYPEP(arg,fd_hashtable_type)) 
+  if (FD_TYPEP(arg,fd_hashtable_type)) 
     return fd_hashtable_assocs(FD_XHASHTABLE(arg));
-  else if (FD_PRIM_TYPEP(arg,fd_slotmap_type))
+  else if (FD_TYPEP(arg,fd_slotmap_type))
     return fd_slotmap_assocs(FD_XSLOTMAP(arg));
   else if (FD_CHOICEP(arg)) {
     fdtype results=FD_EMPTY_CHOICE;

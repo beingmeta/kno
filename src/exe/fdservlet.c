@@ -1051,13 +1051,13 @@ static int webservefn(u8_client ucl)
              (FD_VOIDP(precheck))||
              (FD_EMPTY_CHOICEP(precheck))))
     result=precheck;
-  else if (FD_PRIM_TYPEP(proc,fd_primfcn_type)) {
+  else if (FD_TYPEP(proc,fd_primfcn_type)) {
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with primitive procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);
     result=fd_apply(proc,0,NULL);}
   else if (FD_SPROCP(proc)) {
-    struct FD_SPROC *sp=FD_GET_CONS(proc,fd_sproc_type,fd_sproc);
+    struct FD_SPROC *sp=FD_CONSPTR(fd_sproc,proc);
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);
@@ -1066,7 +1066,7 @@ static int webservefn(u8_client ucl)
     result=fd_cgiexec(proc,cgidata);}
   else if ((FD_PAIRP(proc))&&
            (FD_SPROCP((FD_CAR(proc))))) {
-    struct FD_SPROC *sp=FD_GET_CONS(FD_CAR(proc),fd_sproc_type,fd_sproc);
+    struct FD_SPROC *sp=FD_CONSPTR(fd_sproc,FD_CAR(proc));
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START","Handling %q with Scheme procedure %q (#%lx)",
              path,proc,(unsigned long)ucl);
@@ -1078,10 +1078,7 @@ static int webservefn(u8_client ucl)
   else if (FD_PAIRP(proc)) {
     /* This is handling FDXML */
     fdtype lenv=FD_CDR(proc), setup_proc=FD_VOID;
-    fd_lispenv base=
-      ((FD_ENVIRONMENTP(lenv)) ?
-       (FD_GET_CONS(FD_CDR(proc),fd_environment_type,fd_environment)) :
-       (NULL));
+    fd_lispenv base=fd_consptr(fd_environment,FD_CDR(proc),fd_environment_type);
     fd_lispenv runenv=fd_make_env(fd_incref(cgidata),base);
     base_env=base;
     if (base) fd_load_latest(NULL,base,NULL);

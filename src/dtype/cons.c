@@ -1,6 +1,6 @@
-/* -*- Mode: C; Character-encoding: utf-8; -*- */
+/* Mode: C; Character-encoding: utf-8; -*- */
 
-/* Copyright (C) 2004-2017 beingmeta, inc.
+/* Copyright 2004-2017 beingmeta, inc.
    This file is part of beingmeta's FramerD platform and is copyright
    and a valuable trade secret of beingmeta, inc.
 */
@@ -220,7 +220,7 @@ int fdtype_equal(fdtype x,fdtype y)
     if (convert_x) fd_decref(cx);
     if (convert_y) fd_decref(cy);
     return result;}
-  else if (!(FD_PTR_TYPEP(y,FD_PTR_TYPE(x))))
+  else if (!(FD_TYPEP(y,FD_PTR_TYPE(x))))
     if ((FD_PACKETP(x))&&(FD_PACKETP(y)))
       if ((FD_PACKET_LENGTH(x)) != (FD_PACKET_LENGTH(y))) return 0;
       else if (memcmp(FD_PACKET_DATA(x),FD_PACKET_DATA(y),FD_PACKET_LENGTH(x))==0)
@@ -339,8 +339,8 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
           else return 0;
         else return 0;}
       case fd_choice_type: {
-        struct FD_CHOICE *xc=FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *);
-        struct FD_CHOICE *yc=FD_GET_CONS(y,fd_choice_type,struct FD_CHOICE *);
+        struct FD_CHOICE *xc=fd_consptr(struct FD_CHOICE *,x,fd_choice_type);
+        struct FD_CHOICE *yc=fd_consptr(struct FD_CHOICE *,y,fd_choice_type);
         if ((quick) && (xc->choice_size>yc->choice_size)) return 1;
         else if ((quick) && (xc->choice_size<yc->choice_size)) return -1;
         else {
@@ -381,8 +381,8 @@ fdtype fd_copier(fdtype x,int flags)
     switch (ctype) {
     case fd_pair_type: {
       fdtype result=FD_EMPTY_LIST, *tail=&result, scan=x;
-      while (FD_PRIM_TYPEP(scan,fd_pair_type)) {
-        struct FD_PAIR *p=FD_STRIP_CONS(scan,ctype,struct FD_PAIR *);
+      while (FD_TYPEP(scan,fd_pair_type)) {
+        struct FD_PAIR *p=FD_CONSPTR(fd_pair,scan);
         struct FD_PAIR *newpair=u8_alloc(struct FD_PAIR);
         fdtype car=p->fd_car;
         FD_INIT_CONS(newpair,fd_pair_type);
@@ -403,7 +403,7 @@ fdtype fd_copier(fdtype x,int flags)
       if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
     case fd_vector_type: case fd_rail_type: {
-      struct FD_VECTOR *v=FD_STRIP_CONS(x,ctype,struct FD_VECTOR *);
+      struct FD_VECTOR *v=FD_CONSPTR(fd_vector,x);
       fdtype *olddata=v->fd_vecelts; int i=0, len=v->fd_veclen;
       fdtype result=((ctype==fd_vector_type)?
                      (fd_init_vector(NULL,len,NULL)):
@@ -420,12 +420,12 @@ fdtype fd_copier(fdtype x,int flags)
       if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
     case fd_string_type: {
-      struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
+      struct FD_STRING *s=FD_CONSPTR(fd_string,x);
       fdtype result=fd_make_string(NULL,s->fd_bytelen,s->fd_bytes);
       if (static_copy) {FD_MAKE_STATIC(result);}
       return result;}
     case fd_packet_type: case fd_secret_type: {
-      struct FD_STRING *s=FD_STRIP_CONS(x,ctype,struct FD_STRING *);
+      struct FD_STRING *s=FD_CONSPTR(fd_string,x);
       fdtype result;
       if (ctype==fd_secret_type) {
         result=fd_make_packet(NULL,s->fd_bytelen,s->fd_bytes);
@@ -945,8 +945,8 @@ static void recycle_compound(struct FD_CONS *c)
 
 static int compare_compounds(fdtype x,fdtype y,int quick)
 {
-  struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
-  struct FD_COMPOUND *yc=FD_GET_CONS(y,fd_compound_type,struct FD_COMPOUND *);
+  struct FD_COMPOUND *xc=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
+  struct FD_COMPOUND *yc=fd_consptr(struct FD_COMPOUND *,y,fd_compound_type);
   int cmp;
   if (xc == yc) return 0;
   else if ((xc->compound_isopaque) || (yc->compound_isopaque))
@@ -967,7 +967,7 @@ static int compare_compounds(fdtype x,fdtype y,int quick)
 
 static int dtype_compound(struct FD_BYTE_OUTPUT *out,fdtype x)
 {
-  struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
+  struct FD_COMPOUND *xc=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
   int n_bytes=1;
   fd_write_byte(out,dt_compound);
   n_bytes=n_bytes+fd_write_dtype(out,xc->compound_typetag);
@@ -988,7 +988,7 @@ static int dtype_compound(struct FD_BYTE_OUTPUT *out,fdtype x)
 
 static fdtype copy_compound(fdtype x,int flags)
 {
-  struct FD_COMPOUND *xc=FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *);
+  struct FD_COMPOUND *xc=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
   if (xc->compound_isopaque) {
     fd_incref(x); return x;}
   else {
@@ -1072,7 +1072,7 @@ static int dtype_exception(struct FD_BYTE_OUTPUT *out,fdtype x)
 static int unparse_exception(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *xo=
-    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
+    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   u8_exception ex=xo->fd_u8ex;
   if (ex==NULL)
     u8_printf(out,"#<!OLDEXCEPTION>");
@@ -1106,7 +1106,7 @@ static u8_exception copy_exception_helper(u8_exception ex,int flags)
 static fdtype copy_exception(fdtype x,int deep)
 {
   struct FD_EXCEPTION_OBJECT *xo=
-    FD_GET_CONS(x,fd_error_type,struct FD_EXCEPTION_OBJECT *);
+    fd_consptr(struct FD_EXCEPTION_OBJECT *,x,fd_error_type);
   return fd_init_exception(NULL,copy_exception_helper(xo->fd_u8ex,deep));
 }
 
@@ -1115,7 +1115,7 @@ static fdtype copy_exception(fdtype x,int deep)
 
 static int unparse_mystery(u8_output out,fdtype x)
 {
-  struct FD_MYSTERY_DTYPE *d=FD_GET_CONS(x,fd_mystery_type,struct FD_MYSTERY_DTYPE *);
+  struct FD_MYSTERY_DTYPE *d=fd_consptr(struct FD_MYSTERY_DTYPE *,x,fd_mystery_type);
   char buf[128];
   if (d->fd_dtcode&0x80)
     sprintf(buf,_("#<MysteryVector 0x%x/0x%x %d elements>"),
@@ -1296,7 +1296,7 @@ static int reversible_time=1;
 static int unparse_timestamp(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_TIMESTAMP *tm=
-    FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
+    fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
   if (reversible_time) {
     u8_puts(out,"#T");
     u8_xtime_to_iso8601(out,&(tm->fd_u8xtime));
@@ -1331,7 +1331,7 @@ static void recycle_timestamp(struct FD_CONS *c)
 static fdtype copy_timestamp(fdtype x,int deep)
 {
   struct FD_TIMESTAMP *tm=
-    FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
+    fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
   struct FD_TIMESTAMP *newtm=u8_alloc(struct FD_TIMESTAMP);
   memset(newtm,0,sizeof(struct FD_TIMESTAMP));
   FD_INIT_CONS(newtm,fd_timestamp_type);
@@ -1342,9 +1342,9 @@ static fdtype copy_timestamp(fdtype x,int deep)
 static int compare_timestamps(fdtype x,fdtype y,int quick)
 {
   struct FD_TIMESTAMP *xtm=
-    FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
+    fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
   struct FD_TIMESTAMP *ytm=
-    FD_GET_CONS(y,fd_timestamp_type,struct FD_TIMESTAMP *);
+    fd_consptr(struct FD_TIMESTAMP *,y,fd_timestamp_type);
   double diff=u8_xtime_diff(&(xtm->fd_u8xtime),&(ytm->fd_u8xtime));
   if (diff<0.0) return -1;
   else if (diff == 0.0) return 0;
@@ -1354,7 +1354,7 @@ static int compare_timestamps(fdtype x,fdtype y,int quick)
 static int dtype_timestamp(struct FD_BYTE_OUTPUT *out,fdtype x)
 {
   struct FD_TIMESTAMP *xtm=
-    FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
+    fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
   int size=1;
   fd_write_byte(out,dt_compound);
   size=size+fd_write_dtype(out,timestamp_symbol);
@@ -1412,7 +1412,7 @@ FD_EXPORT fd_cons fd_cons_data(fdtype x)
 
 FD_EXPORT struct FD_PAIR *fd_pair_data(fdtype x)
 {
-  return FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *);
+  return FD_CONSPTR(fd_pair,x);
 }
 
 FD_EXPORT int _fd_find_elt(fdtype x,fdtype *v,int n)
@@ -1460,7 +1460,7 @@ static void recycle_uuid(struct FD_CONS *c)
 
 static int unparse_uuid(u8_output out,fdtype x)
 {
-  struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
+  struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   char buf[37]; u8_uuidstring((u8_uuid)(&(uuid->fd_uuid16)),buf);
   u8_printf(out,"#U%s",buf);
   return 1;
@@ -1468,7 +1468,7 @@ static int unparse_uuid(u8_output out,fdtype x)
 
 static fdtype copy_uuid(fdtype x,int deep)
 {
-  struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
+  struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   struct FD_UUID *nuuid=u8_alloc(struct FD_UUID);
   FD_INIT_CONS(nuuid,fd_uuid_type);
   memcpy(nuuid->fd_uuid16,uuid->fd_uuid16,16);
@@ -1477,8 +1477,8 @@ static fdtype copy_uuid(fdtype x,int deep)
 
 static int compare_uuids(fdtype x,fdtype y,int quick)
 {
-  struct FD_UUID *xuuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
-  struct FD_UUID *yuuid=FD_GET_CONS(y,fd_uuid_type,struct FD_UUID *);
+  struct FD_UUID *xuuid=fd_consptr(struct FD_UUID *,x,fd_uuid_type);
+  struct FD_UUID *yuuid=fd_consptr(struct FD_UUID *,y,fd_uuid_type);
   return memcmp(xuuid->fd_uuid16,yuuid->fd_uuid16,16);
 }
 
@@ -1487,7 +1487,7 @@ static int compare_uuids(fdtype x,fdtype y,int quick)
 static int uuid_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
 {
   int size=0;
-  struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
+  struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   fd_write_byte(out,dt_compound);
   size=size+1+fd_write_dtype(out,uuid_symbol);
   fd_write_byte(out,dt_packet); fd_write_4bytes(out,16); size=size+5;
@@ -1497,14 +1497,14 @@ static int uuid_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
 
 static fdtype uuid_dump(fdtype x,fd_compound_typeinfo MU e)
 {
-  struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
+  struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   return fd_make_packet(NULL,16,uuid->fd_uuid16);
 }
 
 static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_typeinfo MU e)
 {
   if (FD_PACKETP(x)) {
-    struct FD_STRING *p=FD_GET_CONS(x,fd_packet_type,struct FD_STRING *);
+    struct FD_STRING *p=fd_consptr(struct FD_STRING *,x,fd_packet_type);
     if (p->fd_bytelen==16) {
       struct FD_UUID *uuid=u8_alloc(struct FD_UUID);
       FD_INIT_CONS(uuid,fd_uuid_type);

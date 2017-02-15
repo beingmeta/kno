@@ -119,11 +119,11 @@ typedef struct FD_CHOICE {
 typedef struct FD_CHOICE *fd_choice;
 
 #define FD_CHOICE_SIZE_MASK 0x7FFFFFFF
-#define FD_CHOICEP(x) (FD_PTR_TYPEP(x,fd_choice_type))
-#define FD_XCHOICE(x) (FD_GET_CONS(x,fd_choice_type,struct FD_CHOICE *))
+#define FD_CHOICEP(x) (FD_TYPEP(x,fd_choice_type))
+#define FD_XCHOICE(x) (fd_consptr(struct FD_CHOICE *,x,fd_choice_type))
 #define FD_XCHOICE_DATA(ch) ((const fdtype *) (&(ch->choice_0)))
 #define FD_CHOICE_DATA(x) \
-  (FD_XCHOICE_DATA(FD_STRIP_CONS(x,fd_choice_type,struct FD_CHOICE *)))
+  (FD_XCHOICE_DATA(FD_CONSPTR(fd_choice,x)))
 #define FD_XCHOICE_SIZE(ch) ((ch)->choice_size)
 
 #define FD_ATOMIC_CHOICEP(x) ((FD_XCHOICE(x))->choice_isatomic)
@@ -177,8 +177,8 @@ typedef struct FD_ACHOICE {
 } FD_ACHOICE;
 typedef struct FD_ACHOICE *fd_achoice;
 
-#define FD_ACHOICEP(x) (FD_PTR_TYPEP(x,fd_achoice_type))
-#define FD_XACHOICE(x) (FD_STRIP_CONS(x,fd_achoice_type,struct FD_ACHOICE *))
+#define FD_ACHOICEP(x) (FD_TYPEP(x,fd_achoice_type))
+#define FD_XACHOICE(x) (FD_CONSPTR(fd_achoice,x))
 #define FD_ACHOICE_SIZE(x) ((FD_XACHOICE(x))->achoice_size)
 #define FD_ACHOICE_LENGTH(x) \
   (((FD_XACHOICE(x))->achoice_write)-((FD_XACHOICE(x))->achoice_data))
@@ -236,12 +236,12 @@ typedef struct FD_QCHOICE *fd_qchoice;
 
 FD_EXPORT fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice);
 
-#define FD_QCHOICEP(x) (FD_PTR_TYPEP(x,fd_qchoice_type))
+#define FD_QCHOICEP(x) (FD_TYPEP(x,fd_qchoice_type))
 #define FD_EMPTY_QCHOICEP(x) \
-  ((FD_PTR_TYPEP(x,fd_qchoice_type)) && \
-   (((FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *))->fd_choiceval) \
+  ((FD_TYPEP(x,fd_qchoice_type)) && \
+   (((fd_consptr(struct FD_QCHOICE *,x,fd_qchoice_type))->fd_choiceval) \
     ==FD_EMPTY_CHOICE))
-#define FD_XQCHOICE(x) (FD_GET_CONS(x,fd_qchoice_type,struct FD_QCHOICE *))
+#define FD_XQCHOICE(x) (fd_consptr(struct FD_QCHOICE *,x,fd_qchoice_type))
 #define FD_QCHOICE_SIZE(x) (FD_CHOICE_SIZE(FD_XQCHOICE(x)->fd_choiceval))
 
 /* Generic choice operations */
@@ -314,7 +314,7 @@ static U8_MAYBE_UNUSED int atomic_choice_containsp(fdtype x,fdtype ch)
 {
   if (FD_ATOMICP(ch)) return (x==ch);
   else {
-    struct FD_CHOICE *fd_choiceval=FD_GET_CONS(ch,fd_choice_type,fd_choice);
+    struct FD_CHOICE *fd_choiceval=fd_consptr(fd_choice,ch,fd_choice_type);
     int achoice_size=FD_XCHOICE_SIZE(fd_choiceval);
     const fdtype *bottom=FD_XCHOICE_DATA(fd_choiceval), *top=bottom+(achoice_size-1);
     while (top>=bottom) {

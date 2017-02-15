@@ -107,7 +107,7 @@ static fdtype zipreopen(struct FD_ZIPFILE *zf,int locked)
 
 static fdtype iszipfile_prim(fdtype arg)
 {
-  if (FD_PTR_TYPEP(arg,fd_zipfile_type)) return FD_TRUE;
+  if (FD_TYPEP(arg,fd_zipfile_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -145,13 +145,13 @@ static fdtype zipmake_prim(fdtype filename)
 
 static fdtype zipfilename_prim(fdtype zipfile)
 {
-  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  struct FD_ZIPFILE *zf=fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   return fdtype_string(zf->filename);
 }
 
 static fdtype close_zipfile(fdtype zipfile)
 {
-  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  struct FD_ZIPFILE *zf=fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   int retval;
   u8_lock_mutex(&(zf->fd_lock));
   if (zf->closed) {
@@ -169,7 +169,7 @@ static fdtype close_zipfile(fdtype zipfile)
 
 static fdtype zipfile_openp(fdtype zipfile)
 {
-  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  struct FD_ZIPFILE *zf=fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   if (zf->closed) return FD_FALSE;
   else return FD_TRUE;
 }
@@ -189,7 +189,7 @@ static long long int zipadd
 static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
                           fdtype comment,fdtype compress)
 {
-  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  struct FD_ZIPFILE *zf=fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname=FD_STRDATA(filename);
   unsigned char *data=NULL; size_t datalen=0;
   struct zip_source *zsource;
@@ -257,7 +257,7 @@ static fdtype zipadd_prim(fdtype zipfile,fdtype filename,fdtype value,
 
 static fdtype zipdrop_prim(fdtype zipfile,fdtype filename)
 {
-  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  struct FD_ZIPFILE *zf=fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname=FD_STRDATA(filename);
   int index; int retval;
   if ((fname[0]=='.')&&(fname[1]=='/')) fname=fname+2;
@@ -292,7 +292,7 @@ static int istext(u8_byte *buf,int size)
 
 static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype isbinary)
 {
-  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  struct FD_ZIPFILE *zf=fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname=FD_STRDATA(filename);
   struct zip_stat zstat; int zret;
   struct zip_file *zfile;
@@ -338,7 +338,7 @@ static fdtype zipget_prim(fdtype zipfile,fdtype filename,fdtype isbinary)
 
 static fdtype zipexists_prim(fdtype zipfile,fdtype filename)
 {
-  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  struct FD_ZIPFILE *zf=fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname=FD_STRDATA(filename); int index;
   if ((fname[0]=='.')&&(fname[1]=='/')) fname=fname+2;
   u8_lock_mutex(&(zf->fd_lock));
@@ -358,7 +358,7 @@ static fdtype zipexists_prim(fdtype zipfile,fdtype filename)
 
 static fdtype zipmodtime_prim(fdtype zipfile,fdtype filename)
 {
-  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  struct FD_ZIPFILE *zf=fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname=FD_STRDATA(filename);
   struct zip_stat zstat; int zret;
   int index;
@@ -385,7 +385,7 @@ static fdtype zipmodtime_prim(fdtype zipfile,fdtype filename)
 
 static fdtype zipgetsize_prim(fdtype zipfile,fdtype filename)
 {
-  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  struct FD_ZIPFILE *zf=fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_string fname=FD_STRDATA(filename);
   struct zip_stat zstat; int zret;
   int index;
@@ -412,7 +412,7 @@ static fdtype zipgetsize_prim(fdtype zipfile,fdtype filename)
 
 static fdtype zipgetfiles_prim(fdtype zipfile)
 {
-  struct FD_ZIPFILE *zf=FD_GET_CONS(zipfile,fd_zipfile_type,fd_zipfile);
+  struct FD_ZIPFILE *zf=fd_consptr(fd_zipfile,zipfile,fd_zipfile_type);
   u8_lock_mutex(&(zf->fd_lock));
   if (zf->closed) {
     fdtype errval=zipreopen(zf,1);

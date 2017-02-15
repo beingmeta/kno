@@ -970,7 +970,7 @@ static int commit_edits(struct FD_ZINDEX *f,struct KEYDATA *kdata)
                hashtable, but it doesn't matter because we're going to reset
                it anyway. */
             struct FD_PAIR *pair=
-              FD_GET_CONS(key,fd_pair_type,struct FD_PAIR *);
+              fd_consptr(struct FD_PAIR *,key,fd_pair_type);
             fd_decref(kvscan->fd_keyval); kvscan->fd_keyval=cached;
             pair->fd_car=set_symbol;}
           else dropkeys[n_drops++]=FD_CDR(key);}

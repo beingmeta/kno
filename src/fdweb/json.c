@@ -319,7 +319,7 @@ static fdtype jsonparseprim(fdtype in,fdtype flags_arg,fdtype fieldmap)
     flags=FD_FIX2INT(flags_arg);
   else return fd_type_error("int","jsonparseprim",flags_arg);
   if (FD_PORTP(in)) {
-    struct FD_PORT *p=FD_GET_CONS(in,fd_port_type,struct FD_PORT *);
+    struct FD_PORT *p=fd_consptr(struct FD_PORT *,in,fd_port_type);
     U8_INPUT *in=p->fd_inport;
     return json_parse(in,flags,fieldmap);}
   else if (FD_STRINGP(in)) {
@@ -450,9 +450,9 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
       json_unparse(out,e,flags,slotfn,oidfn,miscfn);
       elt_count++;}
     u8_putc(out,']');}
-  else if (FD_PRIM_TYPEP(x,fd_timestamp_type)) {
+  else if (FD_TYPEP(x,fd_timestamp_type)) {
     struct FD_TIMESTAMP *tm=
-      FD_GET_CONS(x,fd_timestamp_type,struct FD_TIMESTAMP *);
+      fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
     if (flags&FD_JSON_TICKS)
       if (tm->fd_u8xtime.u8_tick<0)  u8_puts(out,"-1"); /* Invalid time */
       else if (flags&FD_JSON_TICKLETS) {
@@ -466,8 +466,8 @@ static void json_unparse(u8_output out,fdtype x,int flags,fdtype slotfn,fdtype o
       u8_printf(out,"\":#T%iSXGt\"",&(tm->fd_u8xtime));
     else if (tm->fd_u8xtime.u8_tick<0)  u8_puts(out,"\"invalid time\""); /* Invalid time */
     else u8_printf(out,"\"%iSXGt\"",&(tm->fd_u8xtime));}
-  else if (FD_PRIM_TYPEP(x,fd_uuid_type)) {
-    struct FD_UUID *uuid=FD_GET_CONS(x,fd_uuid_type,struct FD_UUID *);
+  else if (FD_TYPEP(x,fd_uuid_type)) {
+    struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,x,fd_uuid_type);
     char buf[64]; u8_uuidstring((u8_uuid)(&(uuid->fd_uuid16)),buf);
     if ((flags)&(FD_JSON_COLONIZE))
       u8_printf(out,"\":#U%s\"",buf);

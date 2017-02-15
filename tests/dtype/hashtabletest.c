@@ -42,9 +42,8 @@ static int write_dtype_to_file(fdtype object,FILE *f)
   return retval;
 }
 
-
-#define SLOTMAP(x) (FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *))
-#define HASHTABLE(x) (FD_GET_CONS(x,fd_hashtable_type,struct FD_HASHTABLE *))
+#define SLOTMAP(x) (fd_consptr(struct FD_SLOTMAP *,x,fd_slotmap_type))
+#define HASHTABLE(x) (fd_consptr(struct FD_HASHTABLE *,x,fd_hashtable_type))
 
 #define free_var(var) fd_decref(var); var=FD_VOID
 

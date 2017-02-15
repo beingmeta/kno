@@ -82,7 +82,7 @@ static enum u8_timestamp_precision get_precision(fdtype sym)
 
 static fdtype timestampp(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_timestamp_type))
+  if (FD_TYPEP(arg,fd_timestamp_type))
     return FD_TRUE;
   else return FD_FALSE;
 }
@@ -111,7 +111,7 @@ static fdtype timestamp_prim(fdtype arg)
   else if (FD_FIXNUMP(arg)) {
     u8_local_xtime(&(tm->fd_u8xtime),(time_t)(FD_FIX2INT(arg)),u8_second,-1);
     return FDTYPE_CONS(tm);}
-  else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
+  else if (FD_TYPEP(arg,fd_timestamp_type)) {
     struct FD_TIMESTAMP *fdt=(struct FD_TIMESTAMP *)arg;
     u8_local_xtime(&(tm->fd_u8xtime),
                    fdt->fd_u8xtime.u8_tick,fdt->fd_u8xtime.u8_prec,
@@ -144,8 +144,8 @@ static fdtype gmtimestamp_prim(fdtype arg)
   if (FD_VOIDP(arg)) {
     u8_init_xtime(&(tm->fd_u8xtime),-1,u8_nanosecond,0,0,0);
     return FDTYPE_CONS(tm);}
-  else if (FD_PRIM_TYPEP(arg,fd_timestamp_type)) {
-    struct FD_TIMESTAMP *ftm=FD_GET_CONS(arg,fd_timestamp_type,fd_timestamp);
+  else if (FD_TYPEP(arg,fd_timestamp_type)) {
+    struct FD_TIMESTAMP *ftm=fd_consptr(fd_timestamp,arg,fd_timestamp_type);
     if ((ftm->fd_u8xtime.u8_tzoff==0)&&(ftm->fd_u8xtime.u8_dstoff==0)) {
       u8_free(tm); return fd_incref(arg);}
     else {
@@ -199,9 +199,9 @@ static fdtype gmtimestamp_prim(fdtype arg)
 
 static struct FD_TIMESTAMP *get_timestamp(fdtype arg,int *freeit)
 {
-  if (FD_PTR_TYPEP(arg,fd_timestamp_type)) {
+  if (FD_TYPEP(arg,fd_timestamp_type)) {
     *freeit=0;
-    return FD_GET_CONS(arg,fd_timestamp_type,struct FD_TIMESTAMP *);}
+    return fd_consptr(struct FD_TIMESTAMP *,arg,fd_timestamp_type);}
   else if (FD_STRINGP(arg)) {
     struct FD_TIMESTAMP *tm=u8_alloc(struct FD_TIMESTAMP);
     memset(tm,0,sizeof(struct FD_TIMESTAMP));
@@ -846,7 +846,7 @@ static int xtime_set(struct U8_XTIME *xt,fdtype slotid,fdtype value)
 static fdtype timestamp_get(fdtype timestamp,fdtype slotid,fdtype dflt)
 {
   struct FD_TIMESTAMP *tms=
-    FD_GET_CONS(timestamp,fd_timestamp_type,struct FD_TIMESTAMP *);
+    fd_consptr(struct FD_TIMESTAMP *,timestamp,fd_timestamp_type);
   if (FD_VOIDP(dflt))
     return xtime_get(&(tms->fd_u8xtime),slotid,1);
   else {
@@ -858,7 +858,7 @@ static fdtype timestamp_get(fdtype timestamp,fdtype slotid,fdtype dflt)
 static int timestamp_store(fdtype timestamp,fdtype slotid,fdtype val)
 {
   struct FD_TIMESTAMP *tms=
-    FD_GET_CONS(timestamp,fd_timestamp_type,struct FD_TIMESTAMP *);
+    fd_consptr(struct FD_TIMESTAMP *,timestamp,fd_timestamp_type);
   return xtime_set(&(tms->fd_u8xtime),slotid,val);
 }
 
@@ -875,13 +875,13 @@ static fdtype modtime_prim(fdtype slotmap,fdtype base,fdtype togmt)
     return fd_type_error("table","modtime_prim",slotmap);
   else if (FD_VOIDP(base))
     result=timestamp_prim(FD_VOID);
-  else if (FD_PTR_TYPEP(base,fd_timestamp_type))
+  else if (FD_TYPEP(base,fd_timestamp_type))
     result=fd_deep_copy(base);
   else result=timestamp_prim(base);
   if (FD_ABORTP(result)) return result;
   else {
     struct U8_XTIME *xt=
-      &((FD_GET_CONS(result,fd_timestamp_type,struct FD_TIMESTAMP *))->fd_u8xtime);
+      &((fd_consptr(struct FD_TIMESTAMP *,result,fd_timestamp_type))->fd_u8xtime);
     int tzoff=xt->u8_tzoff;
     fdtype keys=fd_getkeys(slotmap);
     FD_DO_CHOICES(key,keys) {
@@ -905,7 +905,7 @@ static fdtype mktime_lexpr(int n,fdtype *args)
   fdtype base; struct U8_XTIME *xt; int scan=0;
   if (n%2) {
     fdtype spec=args[0]; scan=1;
-    if (FD_PRIM_TYPEP(spec,fd_timestamp_type))
+    if (FD_TYPEP(spec,fd_timestamp_type))
       base=fd_deep_copy(spec);
     else if ((FD_FIXNUMP(spec))||(FD_BIGINTP(spec))) {
       time_t moment=(time_t)
@@ -1874,7 +1874,7 @@ static fdtype calltrack_sense(fdtype all)
 
 static fdtype uuidp_prim(fdtype x)
 {
-  if (FD_PRIM_TYPEP(x,fd_uuid_type)) return FD_TRUE;
+  if (FD_TYPEP(x,fd_uuid_type)) return FD_TRUE;
   else return FD_FALSE;
 }
 
@@ -1906,15 +1906,15 @@ static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
       memcpy(&(uuid->fd_uuid16),data,16);
       return FDTYPE_CONS(uuid);}
     else return fd_type_error("UUID (16-byte packet)","getuuid_prim",nodeid);
-  else if ((FD_VOIDP(tptr))&&(FD_PRIM_TYPEP(nodeid,fd_uuid_type)))
+  else if ((FD_VOIDP(tptr))&&(FD_TYPEP(nodeid,fd_uuid_type)))
     return fd_incref(nodeid);
-  else if ((FD_VOIDP(tptr))&&(FD_PRIM_TYPEP(nodeid,fd_timestamp_type))) {
+  else if ((FD_VOIDP(tptr))&&(FD_TYPEP(nodeid,fd_timestamp_type))) {
     fdtype tmp=tptr; tptr=nodeid; nodeid=tmp;}
   if ((FD_VOIDP(tptr))&&(FD_VOIDP(nodeid)))
     return fd_fresh_uuid(NULL);
-  if (FD_PRIM_TYPEP(tptr,fd_timestamp_type)) {
+  if (FD_TYPEP(tptr,fd_timestamp_type)) {
     struct FD_TIMESTAMP *tstamp=
-      FD_GET_CONS(tptr,fd_timestamp_type,struct FD_TIMESTAMP *);
+      fd_consptr(struct FD_TIMESTAMP *,tptr,fd_timestamp_type);
     xt=&(tstamp->fd_u8xtime);}
   if (FD_FIXNUMP(nodeid))
     id=((long long)(FD_FIX2INT(nodeid)));
@@ -1927,7 +1927,7 @@ static fdtype getuuid_prim(fdtype nodeid,fdtype tptr)
 
 static fdtype uuidtime_prim(fdtype uuid_arg)
 {
-  struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
+  struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
   struct FD_TIMESTAMP *tstamp=u8_alloc(struct FD_TIMESTAMP);
   FD_INIT_CONS(tstamp,fd_timestamp_type);
   if (u8_uuid_xtime(uuid->fd_uuid16,&(tstamp->fd_u8xtime)))
@@ -1939,7 +1939,7 @@ static fdtype uuidtime_prim(fdtype uuid_arg)
 
 static fdtype uuidnode_prim(fdtype uuid_arg)
 {
-  struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
+  struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
   long long id= u8_uuid_nodeid(uuid->fd_uuid16);
   if (id<0)
     return fd_type_error("time-based UUID","uuidnode_prim",uuid_arg);
@@ -1948,13 +1948,13 @@ static fdtype uuidnode_prim(fdtype uuid_arg)
 
 static fdtype uuidstring_prim(fdtype uuid_arg)
 {
-  struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
+  struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
   return fd_init_string(NULL,36,u8_uuidstring(uuid->fd_uuid16,NULL));
 }
 
 static fdtype uuidpacket_prim(fdtype uuid_arg)
 {
-  struct FD_UUID *uuid=FD_GET_CONS(uuid_arg,fd_uuid_type,struct FD_UUID *);
+  struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,uuid_arg,fd_uuid_type);
   return fd_make_packet(NULL,16,uuid->fd_uuid16);
 }
 
@@ -1977,7 +1977,7 @@ static int corelimit_set(fdtype symbol,fdtype value,void *vptr)
     limit.rlim_cur=limit.rlim_max=FD_FIX2INT(value);
   else if (FD_TRUEP(value))
     limit.rlim_cur=limit.rlim_max=RLIM_INFINITY;
-  else if (FD_PRIM_TYPEP(value,fd_bigint_type))
+  else if (FD_TYPEP(value,fd_bigint_type))
     limit.rlim_cur=limit.rlim_max=fd_bigint_to_long_long
       ((struct FD_BIGINT *)(value));
   else {

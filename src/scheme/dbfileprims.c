@@ -240,7 +240,7 @@ static fdtype populate_hash_index
   else if (FD_VECTORP(keys)) {
     keyvec=FD_VECTOR_DATA(keys); n_keys=FD_VECTOR_LENGTH(keys);}
   else if (FD_VOIDP(keys)) {
-    if ((FD_INDEXP(from))||(FD_PRIM_TYPEP(from,fd_raw_index_type))) {
+    if ((FD_INDEXP(from))||(FD_TYPEP(from,fd_raw_index_type))) {
       fd_index ix=fd_indexptr(from);
       if (ix->index_handler->fetchkeys!=NULL) {
         consed_keyvec=ix->index_handler->fetchkeys(ix,&n_keys);
@@ -347,9 +347,9 @@ static fdtype load_caches_prim(fdtype arg)
   if (FD_VOIDP(arg)) {
     fd_for_pools(load_pool_cache,NULL);
     fd_for_indices(load_index_cache,NULL);}
-  else if (FD_PRIM_TYPEP(arg,fd_index_type))
+  else if (FD_TYPEP(arg,fd_index_type))
     load_index_cache(fd_indexptr(arg),NULL);
-  else if (FD_PRIM_TYPEP(arg,fd_pool_type))
+  else if (FD_TYPEP(arg,fd_pool_type))
     load_pool_cache(fd_lisp2pool(arg),NULL);
   else {}
   return FD_VOID;
@@ -423,9 +423,9 @@ static fdtype dtype2file(fdtype object,fdtype filename,fdtype bufsiz)
     u8_movefile(temp_name,FD_STRDATA(filename));
     u8_free(temp_name);
     return FD_INT(bytes);}
-  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+  else if (FD_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *out=
-      FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+      fd_consptr(struct FD_DTSTREAM *,filename,fd_dtstream_type);
     int bytes=fd_dtswrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
     else return FD_INT(bytes);}
@@ -450,9 +450,9 @@ static fdtype dtype2zipfile(fdtype object,fdtype filename,fdtype bufsiz)
     u8_movefile(temp_name,FD_STRDATA(filename));
     u8_free(temp_name);
     return FD_INT(bytes);}
-  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+  else if (FD_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *out=
-      FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+      fd_consptr(struct FD_DTSTREAM *,filename,fd_dtstream_type);
     int bytes=fd_zwrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
     else return FD_INT(bytes);}
@@ -477,9 +477,9 @@ static fdtype add_dtype2file(fdtype object,fdtype filename)
     bytes=fd_dtswrite_dtype(out,object);
     fd_dtsfree(out,FD_DTSCLOSE_FULL);
     return FD_INT(bytes);}
-  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+  else if (FD_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *out=
-      FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+      fd_consptr(struct FD_DTSTREAM *,filename,fd_dtstream_type);
     int bytes=fd_dtswrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
     else return FD_INT(bytes);}
@@ -498,9 +498,9 @@ static fdtype add_dtype2zipfile(fdtype object,fdtype filename)
     bytes=fd_zwrite_dtype(out,object);
     fd_dtsfree(out,FD_DTSCLOSE_FULL);
     return FD_INT(bytes);}
-  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+  else if (FD_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *out=
-      FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+      fd_consptr(struct FD_DTSTREAM *,filename,fd_dtstream_type);
     int bytes=fd_zwrite_dtype(out->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
     else return FD_INT(bytes);}
@@ -513,9 +513,9 @@ static fdtype file2dtype(fdtype filename)
 {
   if (FD_STRINGP(filename)) 
     return fd_read_dtype_from_file(FD_STRDATA(filename));
-  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+  else if (FD_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *in=
-      FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+      fd_consptr(struct FD_DTSTREAM *,filename,fd_dtstream_type);
     fdtype object=fd_dtsread_dtype(in->dt_stream);
     if (object == FD_EOD) return FD_EOF;
     else return object;}
@@ -532,9 +532,9 @@ static fdtype zipfile2dtype(fdtype filename)
     else object=fd_zread_dtype(in);
     fd_dtsfree(in,FD_DTSCLOSE_FULL);
     return object;}
-  else if (FD_PRIM_TYPEP(filename,fd_dtstream_type)) {
+  else if (FD_TYPEP(filename,fd_dtstream_type)) {
     struct FD_DTSTREAM *in=
-      FD_GET_CONS(filename,fd_dtstream_type,struct FD_DTSTREAM *);
+      fd_consptr(struct FD_DTSTREAM *,filename,fd_dtstream_type);
     fdtype object=fd_zread_dtype(in->dt_stream);
     if (object == FD_EOD) return FD_EOF;
     else return object;}
@@ -639,14 +639,14 @@ static fdtype extend_dtype_file(fdtype fname)
 
 static fdtype dtype_streamp(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_dtstream_type)) 
+  if (FD_TYPEP(arg,fd_dtstream_type)) 
     return FD_TRUE;
   else return FD_FALSE;
 }
 
 static fdtype dtype_inputp(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_dtstream_type)) {
+  if (FD_TYPEP(arg,fd_dtstream_type)) {
     struct FD_DTSTREAM *dts=(fd_dtstream)arg;
     if (U8_BITP(dts->dt_stream->fd_dts_flags,FD_DTSTREAM_READING))
       return FD_TRUE;
@@ -656,7 +656,7 @@ static fdtype dtype_inputp(fdtype arg)
 
 static fdtype dtype_outputp(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_dtstream_type)) {
+  if (FD_TYPEP(arg,fd_dtstream_type)) {
     struct FD_DTSTREAM *dts=(fd_dtstream)arg;
     if (U8_BITP(dts->dt_stream->fd_dts_flags,FD_DTSTREAM_READING))
       return FD_FALSE;

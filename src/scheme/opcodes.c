@@ -204,9 +204,7 @@ static fdtype opcode_special_dispatch(fdtype opcode,fdtype expr,fd_lispenv env)
                              "MODREF opcode",module);
       else if (FD_EXPECT_FALSE((!(FD_SYMBOLP(symbol)))))
         return fd_type_error("symbol","MODREF opcode",symbol);
-      else return fd_hashtable_get
-             (FD_STRIP_CONS(module,fd_hashtable_type,fd_hashtable),
-              symbol,FD_UNBOUND);}
+      else return fd_hashtable_get(FD_CONSPTR(fd_hashtable,module),symbol,FD_UNBOUND);}
     case FD_COMMENT_OPCODE: return FD_VOID;
     default:
       return fd_err(_("Invalid opcode"),"opcode eval",NULL,expr);}
@@ -960,7 +958,7 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
   case fd_oid_ptr_type: case fd_fixnum_ptr_type:
     return x;
   case fd_immediate_ptr_type:
-    if (FD_PRIM_TYPEP(x,fd_lexref_type))
+    if (FD_TYPEP(x,fd_lexref_type))
       return fd_lexref(x,env);
     else if (FD_SYMBOLP(x)) {
       fdtype val=fd_symeval(x,env);
@@ -1018,12 +1016,12 @@ FD_FASTOP fdtype op_eval(fdtype x,fd_lispenv env,int tail)
             result=fd_apply_sproc((struct FD_SPROC *)fn,arg_i,args);
           else result=fd_dapply(head,n-1,args);}
         arg_i--; while (arg_i>=0) {fd_decref(args[arg_i]); arg_i--;}
-        if (FD_PRIM_TYPEP(result,fd_tailcall_type))
+        if (FD_TYPEP(result,fd_tailcall_type))
           result=fd_finish_call(result);
         return result;}
       else return fd_eval(x,env);}
     case fd_pair_type:
-      if (FD_PTR_TYPEP(FD_CAR(x),fd_opcode_type)) {
+      if (FD_TYPEP(FD_CAR(x),fd_opcode_type)) {
         if (tail)
           return opcode_dispatch(FD_CAR(x),x,env);
         else {

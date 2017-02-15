@@ -634,7 +634,7 @@ static int fast_write_dtype(fd_byte_output out,fdtype key,int v2)
   else if (FD_SYMBOLP(key)) {
     int data=FD_GET_IMMEDIATE(key,itype);
     fdtype name=fd_symbol_names[data];
-    struct FD_STRING *s=FD_GET_CONS(name,fd_string_type,struct FD_STRING *);
+    struct FD_STRING *s=fd_consptr(struct FD_STRING *,name,fd_string_type);
     int len=s->fd_bytelen;
     if ((v2) && (len<256)) {
       {output_byte(out,dt_tiny_symbol);}
@@ -647,7 +647,7 @@ static int fast_write_dtype(fd_byte_output out,fdtype key,int v2)
       {output_bytes(out,s->fd_bytes,len);}
       return len+5;}}
   else if (FD_STRINGP(key)) {
-    struct FD_STRING *s=FD_GET_CONS(key,fd_string_type,struct FD_STRING *);
+    struct FD_STRING *s=fd_consptr(struct FD_STRING *,key,fd_string_type);
     int len=s->fd_bytelen;
     if ((v2) && (len<256)) {
       {output_byte(out,dt_tiny_string);}
@@ -1606,7 +1606,7 @@ FD_EXPORT int fd_populate_hash_index
     fd_seterr(fd_MallocFailed,"populuate_hash_index",NULL,FD_VOID);
     return -1;}
 
-  if ((FD_INDEXP(from))||(FD_PRIM_TYPEP(from,fd_raw_index_type)))
+  if ((FD_INDEXP(from))||(FD_TYPEP(from,fd_raw_index_type)))
     ix=fd_indexptr(from);
 
   /* Population doesn't leave any odd keys */

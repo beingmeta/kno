@@ -969,7 +969,7 @@ static fdtype strmatchp_prim(fdtype pat,fdtype string,fdtype ef)
         return r;}}
     return FD_FALSE;}
   else {
-    if (FD_PRIM_TYPEP(pat,fd_regex_type)) {
+    if (FD_TYPEP(pat,fd_regex_type)) {
       int off=fd_regex_op(rx_search,pat,
                           FD_STRDATA(string),FD_STRLEN(string),
                           FD_FIX2INT(ef));
@@ -981,7 +981,7 @@ static fdtype strmatchp_prim(fdtype pat,fdtype string,fdtype ef)
       else return FD_FALSE;}
     else if (FD_CHOICEP(pat)) {
       FD_DO_CHOICES(p,pat) {
-        if (FD_PRIM_TYPEP(pat,fd_regex_type)) {
+        if (FD_TYPEP(pat,fd_regex_type)) {
           int off=fd_regex_op(rx_search,p,
                               FD_STRDATA(string),FD_STRLEN(string),
                               FD_FIX2INT(ef));
@@ -1032,9 +1032,9 @@ static fdtype string2packet(fdtype string,fdtype encoding,fdtype escape)
 
 static fdtype x2secret_prim(fdtype arg)
 {
-  if (FD_PRIM_TYPEP(arg,fd_secret_type))
+  if (FD_TYPEP(arg,fd_secret_type))
     return fd_incref(arg);
-  else if (FD_PRIM_TYPEP(arg,fd_packet_type)) {
+  else if (FD_TYPEP(arg,fd_packet_type)) {
     fdtype result=fd_make_packet
       (NULL,FD_PACKET_LENGTH(arg),FD_PACKET_DATA(arg));
     FD_SET_CONS_TYPE(result,fd_secret_type);
@@ -1078,7 +1078,7 @@ static fdtype string_byte_length(fdtype string)
 
 static fdtype fixnuls(fdtype string)
 {
-  struct FD_STRING *ss=FD_GET_CONS(string,fd_string_type,fd_string);
+  struct FD_STRING *ss=fd_consptr(fd_string,string,fd_string_type);
   if (strlen(ss->fd_bytes)<ss->fd_bytelen) {
     /* Handle embedded NUL */
     struct U8_OUTPUT out;
@@ -1100,7 +1100,7 @@ static u8_string strsearch(u8_string string,fdtype pat,
   if (FD_STRINGP(pat)) {
     *matchlenp=len;
     return strstr(string,FD_STRDATA(pat));}
-  else if (FD_PRIM_TYPEP(pat,fd_regex_type)) {
+  else if (FD_TYPEP(pat,fd_regex_type)) {
     int off=fd_regex_op(rx_search,pat,string,len,0);
     if (off<0) return NULL;
     else {
@@ -1124,7 +1124,7 @@ static u8_string strsearch(u8_string string,fdtype pat,
 static fdtype string_subst_prim(fdtype string,fdtype pat,fdtype with)
 {
   if (FD_STRLEN(string)==0) return fd_incref(string);
-  else if (!((FD_STRINGP(pat))||(FD_PRIM_TYPEP(pat,fd_regex_type))))
+  else if (!((FD_STRINGP(pat))||(FD_TYPEP(pat,fd_regex_type))))
     return fd_type_error("string or regex","string_subst_prim",pat);
   else if ((FD_STRINGP(pat))&&
            (strstr(FD_STRDATA(string),FD_STRDATA(pat))==NULL))
@@ -1155,7 +1155,7 @@ static fdtype string_subst_star(int n,fdtype *args)
   else while (i<n) {
       if (FD_EXPECT_FALSE
           (!((FD_STRINGP(args[i]))||
-             (FD_PRIM_TYPEP(args[i],fd_regex_type)))))
+             (FD_TYPEP(args[i],fd_regex_type)))))
         return fd_type_error(_("string"),"string_subst_star",args[i]);
       else i++;}
   /* In case we return it. */
@@ -1226,7 +1226,7 @@ static fdtype glom_lexpr(int n,fdtype *args)
       sumlen=sumlen+FD_PACKET_LENGTH(args[i]);
       strings[i]=FD_PACKET_DATA(args[i]);
       lengths[i]=FD_PACKET_LENGTH(args[i]);
-      if (FD_PRIM_TYPEP(args[i],fd_secret_type))
+      if (FD_TYPEP(args[i],fd_secret_type))
         result_type=fd_secret_type;
       else if (result_type!=fd_secret_type)
         result_type=fd_packet_type;

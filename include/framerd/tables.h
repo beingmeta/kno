@@ -105,9 +105,9 @@ typedef struct FD_SLOTMAP {
   U8_RWLOCK_DECL(table_rwlock);} FD_SLOTMAP;
 typedef struct FD_SLOTMAP *fd_slotmap;
 
-#define FD_SLOTMAPP(x) (FD_PTR_TYPEP(x,fd_slotmap_type))
+#define FD_SLOTMAPP(x) (FD_TYPEP(x,fd_slotmap_type))
 #define FD_XSLOTMAP(x) \
-  (FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *))
+  (fd_consptr(struct FD_SLOTMAP *,x,fd_slotmap_type))
 #define FD_XSLOTMAP_SIZE(sm) (sm->table_size)
 #define FD_XSLOTMAP_SPACE(sm) (sm->table_freespace)
 #define FD_XSLOTMAP_USELOCKP(sm) (sm->table_uselock)
@@ -288,8 +288,8 @@ typedef struct FD_SCHEMAP {
 
 typedef struct FD_SCHEMAP *fd_schemap;
 
-#define FD_SCHEMAPP(x) (FD_PTR_TYPEP(x,fd_schemap_type))
-#define FD_XSCHEMAP(x) (FD_GET_CONS(x,fd_schemap_type,struct FD_SCHEMAP *))
+#define FD_SCHEMAPP(x) (FD_TYPEP(x,fd_schemap_type))
+#define FD_XSCHEMAP(x) (fd_consptr(struct FD_SCHEMAP *,x,fd_schemap_type))
 #define FD_XSCHEMAP_SIZE(sm) ((sm)->table_size)
 #define FD_XSCHEMAP_SORTEDP(sm) ((sm)->schemap_sorted)
 #define FD_XSCHEMAP_READONLYP(sm) ((sm)->table_readonly)
@@ -422,9 +422,9 @@ typedef struct FD_HASHTABLE {
   U8_RWLOCK_DECL(table_rwlock);} FD_HASHTABLE;
 typedef struct FD_HASHTABLE *fd_hashtable;
 
-#define FD_HASHTABLEP(x) (FD_PRIM_TYPEP(x,fd_hashtable_type))
+#define FD_HASHTABLEP(x) (FD_TYPEP(x,fd_hashtable_type))
 #define FD_XHASHTABLE(x) \
-  FD_GET_CONS(x,fd_hashtable_type,struct FD_HASHTABLE *)
+  fd_consptr(struct FD_HASHTABLE *,x,fd_hashtable_type)
 
 #define FD_HASHTABLE_SLOTS(x) \
   ((FD_XHASHTABLE(x))->ht_n_buckets)
@@ -544,9 +544,9 @@ typedef struct FD_HASHSET {
   U8_MUTEX_DECL(hs_lock);} FD_HASHSET;
 typedef struct FD_HASHSET *fd_hashset;
 
-#define FD_HASHSETP(x) (FD_PTR_TYPEP(x,fd_hashset_type))
+#define FD_HASHSETP(x) (FD_TYPEP(x,fd_hashset_type))
 #define FD_XHASHSET(x) \
-  FD_GET_CONS(x,fd_hashset_type,struct FD_HASHSET *)
+  fd_consptr(struct FD_HASHSET *,x,fd_hashset_type)
 
 FD_EXPORT int fd_hashset_get(fd_hashset h,fdtype key);
 FD_EXPORT int fd_hashset_mod(fd_hashset h,fdtype key,int add);

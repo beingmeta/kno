@@ -30,8 +30,8 @@ double get_elapsed()
       (now.tv_usec-start.tv_usec)*0.000001;}
 }
 
-#define SLOTMAP(x) (FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *))
-#define HASHTABLE(x) (FD_GET_CONS(x,fd_hashtable_type,struct FD_HASHTABLE *))
+#define SLOTMAP(x)   (fd_constpr(struct FD_SLOTMAP *,x,fd_slotmap_type))
+#define HASHTABLE(x) (fd_consptr(,struct FD_HASHTABLE *,x,fd_hashtable_type))
 
 static void report_on_hashtable(fdtype ht)
 {

@@ -594,7 +594,7 @@ FD_EXPORT fdtype fd_reverse(fdtype sequence)
     fdtype *tmp=((len) ? (u8_alloc_n(len,fdtype)) : (NULL));
     if (len) {
       i=0; j=len-1; while (i < len) {tmp[j]=elts[i]; i++; j--;}}
-    if (FD_PRIM_TYPEP(sequence,fd_numeric_vector_type)) {
+    if (FD_TYPEP(sequence,fd_numeric_vector_type)) {
       switch (FD_NUMVEC_TYPE(sequence)) {
       case fd_float_elt:
         result=make_float_vector(len,elts); break;
@@ -708,7 +708,7 @@ FD_EXPORT fdtype fd_mapseq(int n,fdtype *args)
     else new_elt=fd_get(elt,fn,elt);
     fd_decref(elt);
     if (result_type == fd_string_type) {
-      if (!(FD_PTR_TYPEP(new_elt,fd_character_type)))
+      if (!(FD_TYPEP(new_elt,fd_character_type)))
         result_type=fd_vector_type;}
     else if ((result_type == fd_packet_type)||
              (result_type == fd_secret_type)) {
@@ -766,7 +766,7 @@ FD_EXPORT fdtype fd_foreach(int n,fdtype *args)
     else new_elt=fd_get(elt,fn,elt);
     fd_decref(elt);
     if (result_type == fd_string_type) {
-      if (!(FD_PTR_TYPEP(new_elt,fd_character_type)))
+      if (!(FD_TYPEP(new_elt,fd_character_type)))
         result_type=fd_vector_type;}
     else if ((result_type == fd_packet_type)||
              (result_type == fd_secret_type)) {
@@ -800,7 +800,7 @@ FD_EXPORT fdtype fd_map2choice(fdtype fn,fdtype sequence)
       else new_elt=fd_get(elt,fn,elt);
       fd_decref(elt);
       if (result_type == fd_string_type) {
-        if (!(FD_PTR_TYPEP(new_elt,fd_character_type)))
+        if (!(FD_TYPEP(new_elt,fd_character_type)))
           result_type=fd_vector_type;}
       else if ((result_type == fd_packet_type)||
                (result_type == fd_secret_type)) {
@@ -1923,7 +1923,7 @@ static fdtype make_short_vector(int n,fdtype *from_elts)
 
 static fdtype seq2shortvec(fdtype arg)
 {
-  if ((FD_PRIM_TYPEP(arg,fd_numeric_vector_type))&&
+  if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg)==fd_short_elt)) {
     fd_incref(arg);
     return arg;}
@@ -1958,7 +1958,7 @@ static fdtype make_int_vector(int n,fdtype *from_elts)
 
 static fdtype seq2intvec(fdtype arg)
 {
-  if ((FD_PRIM_TYPEP(arg,fd_numeric_vector_type))&&
+  if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg)==fd_int_elt)) {
     fd_incref(arg);
     return arg;}
@@ -1992,7 +1992,7 @@ static fdtype make_long_vector(int n,fdtype *from_elts)
 
 static fdtype seq2longvec(fdtype arg)
 {
-  if ((FD_PRIM_TYPEP(arg,fd_numeric_vector_type))&&
+  if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg)==fd_long_elt)) {
     fd_incref(arg);
     return arg;}
@@ -2026,7 +2026,7 @@ static fdtype make_float_vector(int n,fdtype *from_elts)
 
 static fdtype seq2floatvec(fdtype arg)
 {
-  if ((FD_PRIM_TYPEP(arg,fd_numeric_vector_type))&&
+  if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg)==fd_float_elt)) {
     fd_incref(arg);
     return arg;}
@@ -2060,7 +2060,7 @@ static fdtype make_double_vector(int n,fdtype *from_elts)
 
 static fdtype seq2doublevec(fdtype arg)
 {
-  if ((FD_PRIM_TYPEP(arg,fd_numeric_vector_type))&&
+  if ((FD_TYPEP(arg,fd_numeric_vector_type))&&
       (FD_NUMVEC_TYPE(arg)==fd_double_elt)) {
     fd_incref(arg);
     return arg;}
@@ -2089,7 +2089,7 @@ static fdtype make_rail(int n,fdtype *elts)
 
 static fdtype set_car(fdtype pair,fdtype val)
 {
-  struct FD_PAIR *p=FD_GET_CONS(pair,fd_pair_type,struct FD_PAIR *);
+  struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,pair,fd_pair_type);
   fdtype oldv=p->fd_car; p->fd_car=fd_incref(val);
   fd_decref(oldv);
   return FD_VOID;
@@ -2097,7 +2097,7 @@ static fdtype set_car(fdtype pair,fdtype val)
 
 static fdtype set_cdr(fdtype pair,fdtype val)
 {
-  struct FD_PAIR *p=FD_GET_CONS(pair,fd_pair_type,struct FD_PAIR *);
+  struct FD_PAIR *p=fd_consptr(struct FD_PAIR *,pair,fd_pair_type);
   fdtype oldv=p->fd_cdr; p->fd_cdr=fd_incref(val);
   fd_decref(oldv);
   return FD_VOID;
@@ -2105,7 +2105,7 @@ static fdtype set_cdr(fdtype pair,fdtype val)
 
 static fdtype vector_set(fdtype vec,fdtype index,fdtype val)
 {
-  struct FD_VECTOR *v=FD_GET_CONS(vec,fd_vector_type,struct FD_VECTOR *);
+  struct FD_VECTOR *v=fd_consptr(struct FD_VECTOR *,vec,fd_vector_type);
   int offset=FD_FIX2INT(index); fdtype *elts=v->fd_vecelts;
   if (offset>v->fd_veclen) {
     char buf[256]; sprintf(buf,"%d",offset);

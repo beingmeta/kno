@@ -110,6 +110,8 @@ FD_EXPORT fdtype fd_exception_xdata(u8_exception e);
 
 FD_EXPORT U8_NOINLINE void fd_seterr
   (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
+FD_EXPORT U8_NOINLINE void fd_xseterr
+  (u8_condition c,u8_context cxt,u8_string details,fdtype irritant);
 
 #define fd_seterr3(c,cxt,details) \
    fd_seterr(c,cxt,details,FD_VOID)

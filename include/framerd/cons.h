@@ -81,30 +81,31 @@
 FD_EXPORT fd_exception fd_MallocFailed, fd_StringOverflow, fd_StackOverflow;
 FD_EXPORT fd_exception fd_DoubleGC, fd_UsingFreedCons, fd_FreeingNonHeapCons;
 
-#define FD_GET_CONS(x,typecode,typecast)				\
-  ((FD_EXPECT_TRUE(FD_PTR_TYPEP(x,typecode))) ?				\
-   ((typecast)(FD_CONS_DATA(x))) :					\
-   ((typecast)								\
-    (u8_seterr(fd_TypeError,fd_type_names[typecode],NULL),		\
-     NULL)))
+#define FD_GET_CONS(x,typecode,cast)					\
+  ((FD_EXPECT_TRUE(FD_TYPEP(x,typecode))) ?				\
+   ((cast)(FD_CONS_DATA(x))) :						\
+   ((cast)(fd_err(fd_TypeError,fd_type_names[typecode],NULL,x),NULL)))
 
 #define FD_STRIP_CONS(x,typecode,typecast) ((typecast)(FD_CONS_DATA(x)))
-#define FD_CHECK_TYPE_THROW(x,typecode) \
+
+#define FD_CHECK_TYPE_THROW(x,typecode)			 \
   if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) \
     u8_raise(fd_TypeError,fd_type_names[typecode],NULL)
-#define FD_CHECK_TYPE_RET(x,typecode) \
-  if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) { \
-    fd_seterr(fd_TypeError,fd_type_names[typecode],NULL,(fdtype)x); \
+
+#define FD_CHECK_TYPE_RET(x,typecode)				    \
+  if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) {	    \
+    fd_xseterr(fd_TypeError,fd_type_names[typecode],NULL,(fdtype)x); \
     return -1;}
-#define FD_CHECK_TYPE_RETDTYPE(x,typecode) \
-  if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode))) \
+
+#define FD_CHECK_TYPE_RETDTYPE(x,typecode)				\
+  if (FD_EXPECT_FALSE(!((FD_CONS_TYPE(x)) == typecode)))		\
     return fd_err(fd_TypeError,fd_type_names[typecode],NULL,(fdtype)x);
 
 #define type2name(tc) \
    ((tc<0)?((u8_string)"oddtype"):(fd_type_names[(short)tc]))
 
 #define FD_PTR2CONS(x,typecode,typecast)                                \
-  (((typecode<0) || (FD_PTR_TYPEP(x,typecode))) ?                       \
+  (((typecode<0) || (FD_TYPEP(x,typecode))) ?                       \
    ((typecast)(FD_CONS_DATA(x))) :					\
    ((typecast)(u8_raise(fd_TypeError,type2name(typecode),NULL),		\
                 NULL)))
@@ -264,20 +265,16 @@ typedef struct FD_STRING *fd_string;
 
 FD_EXPORT ssize_t fd_max_strlen;
 
-#define FD_STRINGP(x) (FD_PTR_TYPEP(x,fd_string_type))
-#define FD_STRLEN(x) \
-  ((unsigned int)\
-   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytelen))
-#define FD_STRDATA(x) \
-  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytes)
+#define FD_STRINGP(x) (FD_TYPEP(x,fd_string_type))
+#define FD_STRLEN(x) ((unsigned int) ((FD_CONSPTR(fd_string,x))->fd_bytelen))
+#define FD_STRDATA(x) ((FD_CONSPTR(fd_string,x))->fd_bytes)
 #define FD_STRING_LENGTH(x) (FD_STRLEN(x))
 #define FD_STRING_DATA(x) (FD_STRDATA(x))
 
-#define FD_XSTRING(x) (FD_GET_CONS(x,fd_string_type,struct FD_STRING *))
-#define fd_strlen(x) \
-  ((unsigned int)\
-   ((FD_GET_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytelen))
-#define fd_strdata(x) (FD_STRDATA(x))
+#define FD_XSTRING(x) (fd_consptr(fd_string,x,fd_string_type))
+#define fd_xstring(x) (fd_consptr(fd_string,x,fd_string_type))
+#define fd_strlen(x)  (FD_STRLEN(fd_xstring(x)))
+#define fd_strdata(x) (FD_STRDATA(fd_xstring(x)))
 
 FD_EXPORT fdtype fd_extract_string
   (struct FD_STRING *ptr,u8_string start,u8_string end);
@@ -311,12 +308,9 @@ FD_EXPORT fdtype fdtype_string(u8_string string);
 #define FD_PACKETP(x) \
   ((FD_PTR_TYPE(x) == fd_packet_type)||(FD_PTR_TYPE(x) == fd_secret_type))
 #define FD_PACKET_LENGTH(x) \
-  ((unsigned int)\
-   ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytelen))
-#define FD_PACKET_DATA(x) \
-  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytes)
-#define FD_PACKET_REF(x,i) \
-  ((FD_STRIP_CONS(x,fd_string_type,struct FD_STRING *))->fd_bytes[i])
+  ((unsigned int) ((FD_CONSPTR(fd_string,x))->fd_bytelen))
+#define FD_PACKET_DATA(x) ((FD_CONSPTR(fd_string,x))->fd_bytes)
+#define FD_PACKET_REF(x,i) ((FD_CONSPTR(fd_string,x))->fd_bytes[i])
 
 FD_EXPORT fdtype fd_init_packet
   (struct FD_STRING *ptr,int len,const unsigned char *data);
@@ -325,7 +319,7 @@ FD_EXPORT fdtype fd_make_packet
 FD_EXPORT fdtype fd_bytes2packet
   (struct FD_STRING *ptr,int len,const unsigned char *data);
 
-#define FD_XPACKET(x) (FD_GET_CONS(x,fd_packet_type,struct FD_STRING *))
+#define FD_XPACKET(x) (fd_consptr(struct FD_STRING *,x,fd_packet_type))
 
 /* Symbol tables */
 
@@ -347,24 +341,19 @@ typedef struct FD_PAIR {
 typedef struct FD_PAIR *fd_pair;
 
 #define FD_PAIRP(x) (FD_PTR_TYPE(x) == fd_pair_type)
-#define FD_CAR(x) \
-  ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_car)
-#define FD_CDR(x) \
-  ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_cdr)
+#define FD_CAR(x) ((FD_CONSPTR(FD_PAIR *,x))->fd_car)
+#define FD_CDR(x) ((FD_CONSPTR(FD_PAIR *,x))->fd_cdr)
 #define FD_TRY_CAR(x) \
-  ((FD_PAIRP(x)) ? \
-   ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_car) : \
-   (FD_VOID))
+  ((FD_PAIRP(x)) ? ((FD_CONSPTR(FD_PAIR *,x))->fd_car) : (FD_VOID))
 #define FD_TRY_CDR(x) \
-  ((FD_PAIRP(x)) ? \
-   ((FD_STRIP_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_cdr) : \
+  ((FD_PAIRP(x)) ? ((FD_CONSPTR(fd_pair,x))->fd_cdr) :	\
    (FD_VOID))
 #define FD_CADR(x) (FD_CAR(FD_CDR(x)))
 
 #define fd_refcar(x) \
-  fd_incref(((FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_car))
+  fd_incref(((fd_consptr(struct FD_PAIR *,x,fd_pair_type))->fd_car))
 #define fd_refcdr(x) \
-  fd_incref(((FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))->fd_cdr))
+  fd_incref(((fd_consptr(struct FD_PAIR *,x,fd_pair_type))->fd_cdr))
 
 /* These are not threadsafe and they don't worry about GC either */
 #define FD_RPLACA(p,x) ((struct FD_PAIR *)p)->fd_car=x
@@ -381,7 +370,7 @@ FD_EXPORT fdtype fd_make_list(int len,...);
 FD_EXPORT fdtype fd_pmake_list(int len,...);
 FD_EXPORT int fd_list_length(fdtype l);
 
-#define FD_XPAIR(x) (FD_GET_CONS(x,fd_pair_type,struct FD_PAIR *))
+#define FD_XPAIR(x) (fd_consptr(struct FD_PAIR *,x,fd_pair_type))
 #define fd_conspair(car,cdr) fd_init_pair(NULL,car,cdr)
 
 /* Vectors */
@@ -393,43 +382,43 @@ typedef struct FD_VECTOR {
   fdtype *fd_vecelts;} FD_VECTOR;
 typedef struct FD_VECTOR *fd_vector;
 
-#define FD_VECTORP(x) (FD_PTR_TYPEP((x),fd_vector_type))
+#define FD_VECTORP(x) (FD_TYPEP((x),fd_vector_type))
 #define FD_VECTOR_LENGTH(x) \
-  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->fd_veclen)
+  ((FD_CONSPTR(fd_vector,(x)))->fd_veclen)
 #define FD_VECTOR_DATA(x) \
-  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->fd_vecelts)
+  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts)
 #define FD_VECTOR_ELTS(x) \
-  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->fd_vecelts)
+  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts)
 #define FD_VECTOR_REF(x,i) \
-  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->fd_vecelts[i])
+  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts[i])
 #define FD_VECTOR_SET(x,i,v) \
-  ((FD_STRIP_CONS((x),fd_vector_type,struct FD_VECTOR *))->fd_vecelts[i]=(v))
+  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts[i]=(v))
 
 FD_EXPORT fdtype fd_init_vector(struct FD_VECTOR *ptr,int len,fdtype *data);
 FD_EXPORT fdtype fd_make_vector(int len,fdtype *elts);
 FD_EXPORT fdtype fd_make_nvector(int len,...);
 
-#define FD_XVECTOR(x) (FD_GET_CONS(x,fd_vector_type,struct FD_VECTOR *))
+#define FD_XVECTOR(x) (fd_consptr(struct FD_VECTOR *,x,fd_vector_type))
 
 /* Rails are basically vectors but used for executable code */
 
-#define FD_RAILP(x) (FD_PTR_TYPEP((x),fd_rail_type))
+#define FD_RAILP(x) (FD_TYPEP((x),fd_rail_type))
 #define FD_RAIL_LENGTH(x) \
-  ((FD_STRIP_CONS((x),fd_string_type,struct FD_VECTOR *))->fd_veclen)
+  ((FD_CONSPTR(fd_vector,(x)))->fd_veclen)
 #define FD_RAIL_DATA(x) \
-  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->fd_vecelts)
+  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts)
 #define FD_RAIL_ELTS(x) \
-  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->fd_vecelts)
+  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts)
 #define FD_RAIL_REF(x,i) \
-  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->fd_vecelts[i])
+  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts[i])
 #define FD_RAIL_SET(x,i,v) \
-  ((FD_STRIP_CONS((x),fd_rail_type,struct FD_VECTOR *))->fd_vecelts[i]=(v))
+  ((FD_CONSPTR(fd_vector,(x)))->fd_vecelts[i]=(v))
 
 FD_EXPORT fdtype fd_init_rail(struct FD_VECTOR *ptr,int len,fdtype *data);
 FD_EXPORT fdtype fd_make_rail(int len,fdtype *elts);
 FD_EXPORT fdtype fd_make_nrail(int len,...);
 
-#define FD_XRAIL(x) (FD_GET_CONS(x,fd_rail_type,struct FD_VECTOR *))
+#define FD_XRAIL(x) (fd_consptr(struct FD_VECTOR *,x,fd_rail_type))
 
 /* Generic-ish iteration macro */
 
@@ -471,18 +460,18 @@ typedef struct FD_COMPOUND *fd_compound;
 
 #define FD_COMPOUNDP(x) (FD_PTR_TYPE(x) == fd_compound_type)
 #define FD_COMPOUND_TAG(x) \
-  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->compound_typetag)
+  ((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_typetag)
 #define FD_COMPOUND_DATA(x) \
-  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->elt0)
+  ((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->elt0)
 #define FD_COMPOUND_TYPEP(x,tag)                        \
   ((FD_PTR_TYPE(x) == fd_compound_type) && (FD_COMPOUND_TAG(x)==tag))
 #define FD_COMPOUND_ELTS(x) \
-  (&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->compound_0))
+  (&((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_0))
 #define FD_COMPOUND_LENGTH(x) \
-  ((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->fd_n_elts)
+  ((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->fd_n_elts)
 #define FD_COMPOUND_REF(x,i)                                            \
-  ((&((FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))->compound_0))[i])
-#define FD_XCOMPOUND(x) (FD_GET_CONS(x,fd_compound_type,struct FD_COMPOUND *))
+  ((&((fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))->compound_0))[i])
+#define FD_XCOMPOUND(x) (fd_consptr(struct FD_COMPOUND *,x,fd_compound_type))
 
 FD_EXPORT fdtype fd_init_compound
   (struct FD_COMPOUND *ptr,fdtype tag,u8_byte mutable,short n,...);
@@ -519,7 +508,7 @@ FD_EXPORT fdtype fd_fresh_uuid(struct FD_UUID *ptr);
 
 /* BIG INTs */
 
-#define FD_BIGINTP(x) (FD_PTR_TYPEP(x,fd_bigint_type))
+#define FD_BIGINTP(x) (FD_TYPEP(x,fd_bigint_type))
 
 typedef struct FD_BIGINT *fd_bigint;
 
@@ -536,7 +525,7 @@ FD_EXPORT fd_bigint fd_long_to_bigint(long);
 
 #define fd_getint(x) \
   ((FD_FIXNUMP(x)) ? (FD_FIX2INT(x)) : \
-   ((FD_PTR_TYPEP(x,fd_bigint_type)) && (fd_small_bigintp((fd_bigint)x))) ? \
+   ((FD_TYPEP(x,fd_bigint_type)) && (fd_small_bigintp((fd_bigint)x))) ? \
    (fd_bigint2int((fd_bigint)x)) : (0))
 
 #define FD_INTEGERP(x) ((FD_FIXNUMP(x))||(FD_BIGINTP(x)))
@@ -548,8 +537,8 @@ typedef struct FD_FLONUM {
   double fd_dblval;} FD_FLONUM;
 typedef struct FD_FLONUM *fd_flonum;
 
-#define FD_FLONUMP(x) (FD_PTR_TYPEP(x,fd_flonum_type))
-#define FD_XFLONUM(x) (FD_GET_CONS(x,fd_flonum_type,struct FD_FLONUM *))
+#define FD_FLONUMP(x) (FD_TYPEP(x,fd_flonum_type))
+#define FD_XFLONUM(x) (fd_consptr(struct FD_FLONUM *,x,fd_flonum_type))
 #define FD_FLONUM(x) ((FD_XFLONUM(x))->fd_dblval)
 
 /* Rational and complex numbers */
@@ -562,9 +551,9 @@ typedef struct FD_RATIONAL *fd_rational;
 
 #define FD_RATIONALP(x) (FD_PTR_TYPE(x) == fd_rational_type)
 #define FD_NUMERATOR(x) \
-  ((FD_GET_CONS(x,fd_rational_type,struct FD_RATIONAL *))->fd_numerator)
+  ((fd_consptr(struct FD_RATIONAL *,x,fd_rational_type))->fd_numerator)
 #define FD_DENOMINATOR(x) \
-  ((FD_GET_CONS(x,fd_rational_type,struct FD_RATIONAL *))->fd_denominator)
+  ((fd_consptr(struct FD_RATIONAL *,x,fd_rational_type))->fd_denominator)
 
 typedef struct FD_COMPLEX {
   FD_CONS_HEADER;
@@ -574,9 +563,9 @@ typedef struct FD_COMPLEX *fd_complex;
 
 #define FD_COMPLEXP(x) (FD_PTR_TYPE(x) == fd_complex_type)
 #define FD_REALPART(x) \
-  ((FD_GET_CONS(x,fd_complex_type,struct FD_COMPLEX *))->fd_realpart)
+  ((fd_consptr(struct FD_COMPLEX *,x,fd_complex_type))->fd_realpart)
 #define FD_IMAGPART(x) \
-  ((FD_GET_CONS(x,fd_complex_type,struct FD_COMPLEX *))->fd_imagpart)
+  ((fd_consptr(struct FD_COMPLEX *,x,fd_complex_type))->fd_imagpart)
 
 
 /* Parsing regexes */
@@ -600,7 +589,7 @@ typedef struct FD_EXCEPTION_OBJECT *fd_exception_object;
 FD_EXPORT fdtype fd_make_exception(fd_exception,u8_context,u8_string,fdtype);
 FD_EXPORT fdtype fd_init_exception(fd_exception_object,u8_exception);
 
-#define FD_EXCEPTIONP(x) (FD_PTR_TYPEP(x,fd_error_type))
+#define FD_EXCEPTIONP(x) (FD_TYPEP(x,fd_error_type))
 
 /* Timestamps */
 

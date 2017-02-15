@@ -370,7 +370,7 @@ static fd_lispenv become_module
     return NULL;}
   else if (FD_ENVIRONMENTP(module)) {
     FD_ENVIRONMENT *menv=
-      FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
+      fd_consptr(FD_ENVIRONMENT *,module,fd_environment_type);
     if (menv != env) {
       fd_decref(((fdtype)(env->env_parent)));
       env->env_parent=(fd_lispenv)fd_incref((fdtype)menv->env_parent);
@@ -457,7 +457,7 @@ static fd_lispenv make_hybrid_env(fd_lispenv base,fdtype module_spec,int safe)
     return NULL;}
   else if (FD_ENVIRONMENTP(module)) {
     FD_ENVIRONMENT *menv=
-      FD_GET_CONS(module,fd_environment_type,FD_ENVIRONMENT *);
+      fd_consptr(FD_ENVIRONMENT *,module,fd_environment_type);
     fd_lispenv result=fd_make_env(fd_incref(base->env_bindings),menv);
     fd_decref(module);
     return result;}
@@ -582,7 +582,7 @@ static fdtype safe_use_module(fdtype expr,fd_lispenv env)
           if (oldp) fd_decref((fdtype)(oldp));}}
       else {
         fd_lispenv expenv=
-          FD_GET_CONS(module,fd_environment_type,fd_environment);
+          fd_consptr(fd_environment,module,fd_environment_type);
         fdtype expval=(fdtype)get_exports(expenv);
         if (!(uses_bindings(env,expval))) {
           fd_lispenv oldp=env->env_parent;
@@ -618,7 +618,7 @@ static fdtype use_module(fdtype expr,fd_lispenv env)
           if (oldp) fd_decref((fdtype)(oldp));}}
       else {
         fd_lispenv expenv=
-          FD_GET_CONS(module,fd_environment_type,fd_environment);
+          fd_consptr(fd_environment,module,fd_environment_type);
         fdtype expval=(fdtype)get_exports(expenv);
         if (!(uses_bindings(env,expval))) {
           fd_lispenv oldp=env->env_parent;
@@ -670,7 +670,7 @@ fdtype fd_use_module(fd_lispenv env,fdtype module)
       fd_decref((fdtype)(oldp));}}
   else if (FD_ENVIRONMENTP(module)) {
     fd_lispenv expenv=
-      FD_GET_CONS(module,fd_environment_type,fd_environment);
+      fd_consptr(fd_environment,module,fd_environment_type);
     fdtype expval=(fdtype)get_exports(expenv);
     if (!(uses_bindings(env,expval))) {
       fd_lispenv oldp=env->env_parent;
@@ -720,9 +720,9 @@ static fdtype get_exports_prim(fdtype arg)
     fdtype keys=fd_getkeys(module);
     fd_decref(module);
     return keys;}
-  else if (FD_PRIM_TYPEP(module,fd_environment_type)) {
+  else if (FD_TYPEP(module,fd_environment_type)) {
     fd_lispenv expenv=
-      FD_GET_CONS(module,fd_environment_type,fd_environment);
+      fd_consptr(fd_environment,module,fd_environment_type);
     fdtype expval=(fdtype)get_exports(expenv);
     if (FD_ABORTP(expval)) return expval;
     fdtype keys=fd_getkeys(expval);
@@ -744,9 +744,9 @@ static fdtype safe_get_exports_prim(fdtype arg)
     fdtype keys=fd_getkeys(module);
     fd_decref(module);
     return keys;}
-  else if (FD_PRIM_TYPEP(module,fd_environment_type)) {
+  else if (FD_TYPEP(module,fd_environment_type)) {
     fd_lispenv expenv=
-      FD_GET_CONS(module,fd_environment_type,fd_environment);
+      fd_consptr(fd_environment,module,fd_environment_type);
     fdtype expval=(fdtype)get_exports(expenv);
     if (FD_ABORTP(expval)) return expval;
     fdtype keys=fd_getkeys(expval);

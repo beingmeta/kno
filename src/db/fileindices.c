@@ -798,7 +798,7 @@ static int write_values(struct FD_DTYPE_STREAM *stream,fdtype values,
     *n_valuesp=0; return 0;}
   else if (FD_CHOICEP(realval)) {
     struct FD_CHOICE *ch=
-      FD_STRIP_CONS(realval,fd_choice_type,struct FD_CHOICE *);
+      FD_CONSPTR(fd_choice,realval);
     int size=0;
     const fdtype *scan=FD_XCHOICE_DATA(ch), *limit=scan+FD_XCHOICE_SIZE(ch);
     while (scan < limit) {
@@ -848,7 +848,7 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
                hashtable, but it doesn't matter because we're going to reset
                it anyway. */
             struct FD_PAIR *pair=
-              FD_GET_CONS(key,fd_pair_type,struct FD_PAIR *);
+              fd_consptr(struct FD_PAIR *,key,fd_pair_type);
             fd_decref(kvscan->fd_keyval); kvscan->fd_keyval=cached;
             pair->fd_car=set_symbol;}
           else dropkeys[n_drops++]=FD_CDR(key);}

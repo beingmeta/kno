@@ -44,7 +44,7 @@ static int write_dtype_to_file(fdtype object,FILE *f)
 
 #define free_val(x) fd_decref(x); x=FD_VOID
 
-#define SLOTMAP(x) (FD_GET_CONS(x,fd_slotmap_type,struct FD_SLOTMAP *))
+#define SLOTMAP(x) (fd_consptr(struct FD_SLOTMAP *,x,fd_slotmap_type))
 
 int main(int argc,char **argv)
 {

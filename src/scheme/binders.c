@@ -473,7 +473,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
             i++;}
           else vals[i++]=FD_VOID;}
       else if (FD_RAILP(fn->sproc_arglist)) {
-        struct FD_VECTOR *v=FD_GET_CONS(fn->sproc_arglist,fd_rail_type,fd_vector);
+        struct FD_VECTOR *v=fd_consptr(fd_vector,fn->sproc_arglist,fd_rail_type);
         int len=v->fd_veclen; fdtype *dflts=v->fd_vecelts;
         while (i<len) {
           fdtype val=args[i];
@@ -536,7 +536,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
 
 static fdtype sproc_applier(fdtype f,int n,fdtype *args)
 {
-  struct FD_SPROC *s=FD_GET_CONS(f,fd_sproc_type,struct FD_SPROC *);
+  struct FD_SPROC *s=fd_consptr(fd_sproc,f,fd_sproc_type);
   return fd_apply_sproc(s,n,args);
 }
 
@@ -627,7 +627,7 @@ FD_EXPORT void recycle_sproc(struct FD_CONS *c)
 
 static int unparse_sproc(u8_output out,fdtype x)
 {
-  struct FD_SPROC *sproc=FD_GET_CONS(x,fd_sproc_type,struct FD_SPROC *);
+  struct FD_SPROC *sproc=fd_consptr(fd_sproc,x,fd_sproc_type);
   fdtype arglist=sproc->sproc_arglist;
   unsigned long long addr=(unsigned long long) sproc;
   u8_string codes=
@@ -753,7 +753,7 @@ FD_EXPORT void recycle_macro(struct FD_CONS *c)
 
 static int unparse_macro(u8_output out,fdtype x)
 {
-  struct FD_MACRO *mproc=FD_GET_CONS(x,fd_macro_type,struct FD_MACRO *);
+  struct FD_MACRO *mproc=fd_consptr(struct FD_MACRO *,x,fd_macro_type);
   if (mproc->fd_macro_name)
     u8_printf(out,"#<MACRO %s #!%x>",
               mproc->fd_macro_name,(unsigned long)mproc);
@@ -1100,7 +1100,7 @@ static fdtype tablegetval(void *obj,fdtype var)
 
 static fdtype xapply_prim(fdtype proc,fdtype obj)
 {
-  struct FD_SPROC *sproc=FD_GET_CONS(proc,fd_sproc_type,struct FD_SPROC *);
+  struct FD_SPROC *sproc=fd_consptr(fd_sproc,proc,fd_sproc_type);
   if (!(FD_TABLEP(obj)))
     return fd_type_error("table","xapply_prim",obj);
   return fd_xapply_sproc(sproc,(void *)obj,tablegetval);
@@ -1227,8 +1227,8 @@ static fdtype letqstar_handler(fdtype expr,fd_lispenv env)
 static int unparse_extended_fcnid(u8_output out,fdtype x)
 {
   fdtype lp=fd_fcnid_ref(x);
-  if (FD_PRIM_TYPEP(lp,fd_sproc_type)) {
-    struct FD_SPROC *sproc=FD_GET_CONS(lp,fd_sproc_type,struct FD_SPROC *);
+  if (FD_TYPEP(lp,fd_sproc_type)) {
+    struct FD_SPROC *sproc=fd_consptr(fd_sproc,lp,fd_sproc_type);
     unsigned long long addr=(unsigned long long) sproc;
     fdtype arglist=sproc->sproc_arglist;
     u8_string codes=
@@ -1271,7 +1271,7 @@ static int unparse_extended_fcnid(u8_output out,fdtype x)
       u8_printf(out," '%s'>>",sproc->fcn_filename);
     else u8_puts(out,">>");
     return 1;}
-  else if (FD_PRIM_TYPEP(lp,fd_primfcn_type)) {
+  else if (FD_TYPEP(lp,fd_primfcn_type)) {
       struct FD_FUNCTION *fcn=(fd_function)lp;
       unsigned long long addr=(unsigned long long) fcn;
       u8_string name=fcn->fcn_name;

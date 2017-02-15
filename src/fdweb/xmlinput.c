@@ -1066,7 +1066,7 @@ static fdtype xmlparse_core(fdtype input,int flags)
   unsigned int errpos;
   if (flags<0) return FD_ERROR_VALUE;
   if (FD_PORTP(input)) {
-    struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
+    struct FD_PORT *p=fd_consptr(struct FD_PORT *,input,fd_port_type);
     in=p->fd_inport;}
   else if (FD_STRINGP(input)) {
     U8_INIT_STRING_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
@@ -1111,7 +1111,7 @@ static fdtype fdxml_load(fdtype input,fdtype sloppy)
   struct U8_INPUT *in, _in;
   if (flags<0) return FD_ERROR_VALUE;
   if (FD_PORTP(input)) {
-    struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
+    struct FD_PORT *p=fd_consptr(struct FD_PORT *,input,fd_port_type);
     in=p->fd_inport;}
   else if (FD_STRINGP(input)) {
     U8_INIT_STRING_INPUT(&_in,FD_STRLEN(input),FD_STRDATA(input));
@@ -1141,7 +1141,7 @@ static fdtype fdxml_read(fdtype input,fdtype sloppy)
   struct U8_INPUT *in, _in;
   if (flags<0) return FD_ERROR_VALUE;
   if (FD_PORTP(input)) {
-    struct FD_PORT *p=FD_GET_CONS(input,fd_port_type,struct FD_PORT *);
+    struct FD_PORT *p=fd_consptr(struct FD_PORT *,input,fd_port_type);
     in=p->fd_inport;}
   else if ((FD_STRINGP(input))&&(strchr(FD_STRDATA(input),'<')==NULL))
     return fdxml_load(input,sloppy);
