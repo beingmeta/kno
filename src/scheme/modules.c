@@ -563,33 +563,51 @@ static int uses_bindings(fd_lispenv env,fdtype bindings)
   return 0;
 }
 
-static fdtype safe_use_module(fdtype expr,fd_lispenv env)
+static fdtype use_module_handler(fdtype expr,fd_lispenv env,int safe)
 {
   fdtype module_names=fd_eval(fd_get_arg(expr,1),env);
+  fd_lispenv modify_env=env;
   if (FD_VOIDP(module_names))
     return fd_err(fd_TooFewExpressions,"USE-MODULE",NULL,expr);
   else {
     FD_DO_CHOICES(module_name,module_names) {
-      fdtype module=fd_find_module(module_name,1,1);
+      fdtype module;
+      module=fd_find_module(module_name,safe,1);
       if (FD_ABORTP(module))
         return module;
       else if (FD_VOIDP(module))
         return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,module_name);
       else if (FD_HASHTABLEP(module)) {
         if (!(uses_bindings(env,module))) {
-          fd_lispenv oldp=env->env_parent;
-          env->env_parent=fd_make_export_env(module,oldp);
-          if (oldp) fd_decref((fdtype)(oldp));}}
+          fd_lispenv old_parent;
+          /* Use a dynamic copy if the enviroment is static, so it
+             gets freed. */
+          if (env->env_copy != env) modify_env=fd_copy_env(env);
+          old_parent=modify_env->env_parent;
+          modify_env->env_parent=fd_make_export_env(module,old_parent);
+          /* We decref this because 'env' is no longer pointing to it
+             and fd_make_export_env incref'd it again. */
+          if (old_parent) fd_decref((fdtype)(old_parent));}}
       else {
         fd_lispenv expenv=
           fd_consptr(fd_environment,module,fd_environment_type);
         fdtype expval=(fdtype)get_exports(expenv);
         if (!(uses_bindings(env,expval))) {
-          fd_lispenv oldp=env->env_parent;
-          env->env_parent=fd_make_export_env(expval,oldp);
-          if (oldp) fd_decref((fdtype)(oldp));}}}
+          if (env->env_copy != env) modify_env=fd_copy_env(env);
+          fd_lispenv old_parent=modify_env->env_parent;
+          modify_env->env_parent=fd_make_export_env(expval,old_parent);
+          /* We decref this because 'env' is no longer pointing to it
+             and fd_make_export_env incref'd it again. */
+          if (old_parent) fd_decref((fdtype)(old_parent));}}
+      fd_decref(module);}
     fd_decref(module_names);
+    if (modify_env!=env) {fd_decref((fdtype)modify_env);}
     return FD_VOID;}
+}
+
+static fdtype safe_use_module(fdtype expr,fd_lispenv env)
+{
+  return use_module_handler(expr,env,1);
 }
 
 static fdtype safe_get_module(fdtype modname)
@@ -600,33 +618,7 @@ static fdtype safe_get_module(fdtype modname)
 
 static fdtype use_module(fdtype expr,fd_lispenv env)
 {
-  fdtype module_names=fd_eval(fd_get_arg(expr,1),env);
-  if (FD_VOIDP(module_names))
-    return fd_err(fd_TooFewExpressions,"USE-MODULE",NULL,expr);
-  else {
-    FD_DO_CHOICES(module_name,module_names) {
-      fdtype module;
-      module=fd_find_module(module_name,0,1);
-      if (FD_ABORTP(module))
-        return module;
-      else if (FD_VOIDP(module))
-        return fd_err(fd_NoSuchModule,"USE-MODULE",NULL,module_name);
-      else if (FD_HASHTABLEP(module)) {
-        if (!(uses_bindings(env,module))) {
-          fd_lispenv oldp=env->env_parent;
-          env->env_parent=fd_make_export_env(module,oldp);
-          if (oldp) fd_decref((fdtype)(oldp));}}
-      else {
-        fd_lispenv expenv=
-          fd_consptr(fd_environment,module,fd_environment_type);
-        fdtype expval=(fdtype)get_exports(expenv);
-        if (!(uses_bindings(env,expval))) {
-          fd_lispenv oldp=env->env_parent;
-          env->env_parent=fd_make_export_env(expval,oldp);
-          if (oldp) fd_decref((fdtype)(oldp));}}
-      fd_decref(module);}
-    fd_decref(module_names);
-    return FD_VOID;}
+  return use_module_handler(expr,env,0);
 }
 
 static fdtype get_module(fdtype modname)
