@@ -29,6 +29,26 @@
 
 /* Standard predicates */
 
+/***FDDOC[2]** SCHEME EQUAL?
+ * *x* an object
+ * *y* an object
+
+ Returns true if *x* and *y* are the same, based
+ on a recursive comparison on all builtin object types
+ except for hashtables and hashsets.
+
+ Numeric objects are compared numerically, so '(equal? 0 0.0)'
+
+ 'EQUAL?' is not comprehensive, so if called on choices, it may
+ return both #t and #f or fail altogether.
+
+ 'EQUAL?' calls the fdtype_compare to do it's work, returning #t for a
+ return value of 0.
+
+ For custom types, this calls the 'fd_comparefn' found in
+ 'fd_comparators[*typecode*]', which should return -1, 0, or 1.
+
+*/
 static fdtype equalp(fdtype x,fdtype y)
 {
   if (FD_EQ(x,y)) return FD_TRUE;
@@ -36,23 +56,96 @@ static fdtype equalp(fdtype x,fdtype y)
   else return FD_FALSE;
 }
 
+/***FDDOC[2]** SCHEME COMPARE
+ * *x* an object
+ * *y* an object
+
+ Returns -1, 0, or 1 depending on the natural 'sort order' of *x* and
+ *y*.
+
+ This does a recursive descent and returns the first comparision which
+ is non-zero. Numeric values are compared numerically by magnitude.
+ Other values are compared first by type code.
+
+ Sequences of the same type are compared element by element low to high.
+
+ Tables are compared first by the number of keys, then by the keys
+ themselves (in their natural sort order). If they have identical
+ keys, then their values are compared following the natural sort order
+ of the keys.
+
+ For custom types, this calls the 'fd_comparefn' found in
+ 'fd_comparators[*typecode*]'.
+
+ All other objects (especially custom types without compare methods),
+ are compared based on their integer pointer values.
+
+*/
 static fdtype comparefn(fdtype x,fdtype y)
 {
   int n=FDTYPE_COMPARE(x,y);
   return FD_INT(n);
 }
 
-static fdtype fastcomparefn(fdtype x,fdtype y)
+/***FDDOC[2]** SCHEME COMPARE/QUICK
+ * *x* an object
+ * *y* an object
+
+ Returns -1, 0, or 1 depending on a variant of the natural 'sort
+ order' of *x* and *y*. For example, '(COMPARE 4 3)' returns 0,
+ '(COMPARE 3 4)' returns -1, and '(COMPARE 4 4)' returns 0.
+
+ This is often faster than 'COMPARE' by returning a consistent sort order
+ with varies from the **natural** sort order in several ways:
+ * sequences are compared by length first; shorter sequences always precede
+   longer sequences;
+ * numbers of different implementation types are compared based on their typecodes;
+ * for custom types, this passes a third argument of 1 (for quick) to the
+   'fd_comparefn' found in 'fd_comparators[*typecode*]'.
+
+ All other objects (especially custom types without compare methods),
+ are compared based on their integer pointer values.
+
+*/
+static fdtype quickcomparefn(fdtype x,fdtype y)
 {
   int n=FD_QCOMPARE(x,y);
   return FD_INT(n);
 }
 
+/***FDDOC[2]** SCHEME DEEP-COPY
+ * *x* an object
+
+ Returns a recursive copy of *x* where all consed objects (and their
+ consed descendants) are reallocated if possible.
+
+ Custom objects are duplicated using the 'fd_copyfn' handler in
+ 'fd_copiers[*typecode*]. These methods have the option of simply
+ incrementing the reference count rather than copying the pointers.
+
+*/
 static fdtype deepcopy(fdtype x)
 {
   return fd_deep_copy(x);
 }
 
+/***FDDOC[2]** SCHEME STATIC-COPY
+ * *x* an object
+
+ Returns a recursive copy of *x* where all consed objects (and their
+ consed descendants) are reallocated if possible. In addition, the
+ newly consed objects are declared *static* meaning they are exempt
+ from garbage collection. This will probably cause leaks but can
+ sometimes improve performance.
+
+ Custom objects are duplicated using the 'fd_copyfn' handler in
+ 'fd_copiers[*typecode*]. These methods have the option of simply
+ incrementing the reference count rather than copying the pointers.
+
+ If the custom copier declines to return a new object, the existing
+ object will not be delcared static.
+
+*/
 static fdtype staticcopy(fdtype x)
 {
   return fd_static_copy(x);
@@ -63,6 +156,15 @@ static fdtype dontopt(fdtype x)
   return fd_incref(x);
 }
 
+/***FDDOC[2]** SCHEME REFCOUNT
+ * *x* an object
+
+ Returns the number of references in the current application to the
+ designated object. If the object isn't a CONS, it returns #f. This
+ returns 0 for all *static* conses which are exempt from reference
+ counting or garbage collection.
+
+*/
 static fdtype get_refcount(fdtype x,fdtype delta)
 {
   if (FD_CONSP(x)) {
@@ -78,6 +180,16 @@ static fdtype get_refcount(fdtype x,fdtype delta)
   else return FD_FALSE;
 }
 
+/***FDDOC[2]** SCHEME EQ?
+ * *x* an object
+ * *y* an object
+
+ Returns #t if x and y are the exact same object (if their pointers
+ are the same).
+
+ Note that because 
+
+*/
 static fdtype eqp(fdtype x,fdtype y)
 {
   if (x==y) return FD_TRUE;
@@ -863,7 +975,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_defalias(fd_scheme_module,"⊆?","CONTAINS?");
   fd_defalias(fd_scheme_module,"⊆","CONTAINS?");
   fd_idefn(fd_scheme_module,fd_make_cprim2("COMPARE",comparefn,2));
-  fd_idefn(fd_scheme_module,fd_make_cprim2("FASTCOMPARE",fastcomparefn,2));
+  fd_idefn(fd_scheme_module,fd_make_cprim2("COMPARE/QUICK",quickcomparefn,2));
   fd_idefn(fd_scheme_module,fd_make_cprim1("DEEP-COPY",deepcopy,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("STATIC-COPY",staticcopy,1));
   fd_idefn(fd_scheme_module,
