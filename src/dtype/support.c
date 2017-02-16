@@ -1356,6 +1356,12 @@ FD_EXPORT void fd_reset_threadvars()
   u8_tld_set(threadtable_key,(void*)new_table);
   if (table) fd_decref(table);
 }
+static void recycle_thread_table()
+{
+  fdtype table=(fdtype)u8_tld_get(threadtable_key);
+  u8_tld_set(threadtable_key,(void*)NULL);
+  if (table) fd_decref(table);
+}
 #elif FD_THREADS_ENABLED
 static fdtype __thread thread_table=FD_VOID;
 static fdtype get_threadtable()
@@ -1369,6 +1375,12 @@ FD_EXPORT void fd_reset_threadvars()
   thread_table=fd_empty_slotmap();
   fd_decref(table);
 }
+static void recycle_thread_table()
+{
+  fdtype table=thread_table;
+  thread_table=FD_VOID;
+  if (table) fd_decref(table);
+}
 #else
 static fdtype thread_table=FD_VOID;
 static fdtype get_threadtable()
@@ -1381,6 +1393,12 @@ FD_EXPORT void fd_reset_threadvars()
   fdtype table=thread_table;
   thread_table=fd_empty_slotmap();
   fd_decref(table);
+}
+static void recycle_thread_table()
+{
+  fdtype table=thread_table;
+  thread_table=FD_VOID;
+  if (table) fd_decref(table);
 }
 #endif
 
@@ -2962,6 +2980,8 @@ void setup_logging()
 #ifdef SIGBUS
   sigaddset(&default_sigmask,SIGBUS);
 #endif
+
+  u8_register_threadexit(recycle_thread_table);
 
   fd_register_config
     ("SIGCATCH",_("Errors to catch and return as errors"),
