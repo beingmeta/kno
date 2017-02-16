@@ -656,14 +656,17 @@ static fdtype textract
       *scan=match_operators, *limit=scan+n_match_operators;
     while (scan < limit)
       if (FD_EQ(scan->fd_matchop,head)) break; else scan++; 
-    if (scan < limit)
+    if (scan < limit) {
       if (scan->fd_extractor)
         return scan->fd_extractor(pat,next,env,string,off,lim,flags);
       else {
         fdtype matches=scan->fd_matcher(pat,next,env,string,off,lim,flags);
-        fdtype answer=((FD_ABORTED(matches))?(matches):
-                       (extract_text(string,off,matches)));
-        return answer;}
+        if (FD_ABORTED(matches))
+          return matches;
+        else {
+          fdtype answer=extract_text(string,off,matches);
+          fd_decref(matches);
+          return answer;}}}
     else return fd_err(fd_MatchSyntaxError,"textract",NULL,pat);}
   else if (FD_SYMBOLP(pat)) {
     fdtype v=match_eval(pat,env);
@@ -673,9 +676,11 @@ static fdtype textract
     else {
       fdtype lengths=get_longest_match
         (fd_text_domatch(v,next,env,string,off,lim,flags));
-      fdtype answers=FD_EMPTY_CHOICE;
-      if (FD_ABORTED(lengths)) return lengths;
+      if (FD_ABORTED(lengths)) {
+        fd_decref(v);
+        return lengths;}
       else {
+        fdtype answers=FD_EMPTY_CHOICE;
         FD_DO_CHOICES(l,lengths) {
           fdtype extraction=
             fd_conspair(l,fd_substring(string+off,string+fd_getint(l)));
