@@ -407,7 +407,7 @@ static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
   else {
     wind=fd_eval(wind,env);
     if (FD_ABORTP(wind)) return wind;
-    else if (!(thunkp(wind))) 
+    else if (!(thunkp(wind)))
       return fd_type_error("thunk","dynamic_wind_handler",wind);
     else doit=fd_eval(doit,env);
     if (FD_ABORTP(doit)) {
@@ -424,21 +424,27 @@ static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
       fd_decref(wind); fd_decref(doit);
       return fd_type_error("thunk","dynamic_wind_handler",unwind);}
     else {
-      fdtype windval=fd_apply(wind,0,NULL);
-      if (FD_ABORTP(windval)) {
-        fd_decref(wind); fd_decref(doit); fd_decref(unwind);
-        return windval;}
+      fdtype retval=fd_apply(wind,0,NULL);
+      if (FD_ABORTP(retval)) {}
       else {
-        fdtype retval=fd_apply(doit,0,NULL);
-        u8_exception saved=u8_erreify();
-        fdtype unwindval=fd_apply(unwind,0,NULL);
-        u8_restore_exception(saved);
-        fd_decref(windval);
-        fd_decref(wind); fd_decref(doit); fd_decref(unwind);
-        if (FD_ABORTP(unwindval))
-          u8_log(LOG_WARN,UnwindError,"DYNAMIC-WIND: %q",unwindval);
-        fd_decref(unwindval);
-        return retval;}}}
+        fd_decref(retval);
+        retval=fd_apply(doit,0,NULL);
+        if (FD_ABORTP(retval)) {
+          u8_exception saved=u8_erreify();
+          fdtype unwindval=fd_apply(unwind,0,NULL);
+          u8_restore_exception(saved);
+          if (FD_ABORTP(unwindval)) {
+            fd_decref(retval);
+            retval=unwindval;}
+          else fd_decref(unwindval);}
+        else {
+          fdtype unwindval=fd_apply(unwind,0,NULL);
+          if (FD_ABORTP(unwindval)) {
+            fd_decref(retval);
+            retval=unwindval;}
+          else fd_decref(unwindval);}}
+      fd_decref(wind); fd_decref(doit); fd_decref(unwind);
+      return retval;}}
 }
 
 static fdtype unwind_protect_handler(fdtype uwp,fd_lispenv env)
