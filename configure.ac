@@ -1264,7 +1264,7 @@ fi
 
 
 if test $with_perftools = "yes"; then
-  AC_CHECK_LIB(tcmalloc,malloc)
+  AC_CHECK_LIB(tcmalloc,malloc,HeapProfile)
   if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
      echo "No tcmalloc, skipping further tests";
      with_perftools="no";

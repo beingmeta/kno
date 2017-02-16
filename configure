@@ -10956,12 +10956,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
 $as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
 if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC 1
-_ACEOF
-
-  LIBS="-ltcmalloc $LIBS"
-
+  HeapProfile
 fi
 
   if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
