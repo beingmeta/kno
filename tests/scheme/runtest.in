@@ -1,2 +1,22 @@
 echo "Running test" $*
-@TESTENV@ @RUNENV@ exec ./fdexec $*
+FD_LOADPATH=../../src/modules/%/module.scm:../../src/modules/%.scm:
+export FD_LOADPATH
+FD_DLOADPATH=../../lib/framerd
+export FD_DLOADPATH
+LD_LIBRARY_PATH=../../lib
+export LD_LIBRARY_PATH
+DYLD_LIBRARY_PATH=../../lib
+export DYLD_LIBRARY_PATH
+PPROF_PATH      = @GOOGLE_PPROF@
+export PPROF_PATH
+FD_SKIP_DOTLOAD=yes
+export FD_SKIP_DOTLOAD
+FD_DLOAD:TRACE=yes
+export FD_DLOAD:TRACE
+FD_SHOWTIME=0.0
+export FD_SHOWTIME
+FD_DISPLAYMAXELTS=36=
+export FD_DISPLAYMAXELTS=36
+FD_DISPLAYMAXCHARS=1024=
+export FD_DISPLAYMAXCHARS=1024
+@TESTENV@ exec ./fdexec $*
