@@ -1237,34 +1237,31 @@ FD_EXPORT fdtype fd_step_call(fdtype c)
 
 static void recycle_tail_call(struct FD_CONS *c);
 
-FD_EXPORT fdtype _fd_finish_call(fdtype pt)
+FD_EXPORT fdtype _fd_finish_call(fdtype call)
 {
-  if (FD_TAILCALLP(pt)) {
+  if (FD_TAILCALLP(call)) {
     fdtype result=FD_VOID;
     while (1) {
       struct FD_TAILCALL *tc=
-        fd_consptr(struct FD_TAILCALL *,pt,fd_tailcall_type);
-      fdtype next=((tc->tailcall_flags&FD_TAILCALL_ND_ARGS) ?
+        fd_consptr(struct FD_TAILCALL *,call,fd_tailcall_type);
+      int flags=tc->tailcall_flags;
+      int voidval=(U8_BITP(flags,FD_TAILCALL_VOID_VALUE));
+      fdtype next=((U8_BITP(flags,FD_TAILCALL_ND_ARGS)) ?
                    (fd_apply(tc->tailcall_head,tc->tailcall_arity-1,
                              (&(tc->tailcall_head))+1)) :
                    (fd_dapply(tc->tailcall_head,tc->tailcall_arity-1,
                               (&(tc->tailcall_head))+1)));
-      int finished=(!((FD_CONSP(next))&&
-                      (FD_TYPEP(next,fd_tailcall_type))));
+      int finished=(!(FD_TYPEP(next,fd_tailcall_type)));
+      fd_decref(call); call=next;
       if (finished) {
-        if (U8_BITP(tc->tailcall_flags,FD_TAILCALL_VOID_VALUE)) {
+        if (voidval) {
           fd_decref(next);
           result=FD_VOID;}
-        else result=next;}
-      if (FD_CONS_REFCOUNT(tc)==1)
-        recycle_tail_call((struct FD_CONS *)tc);
-      else fd_decref(pt);
-      if (finished)
-        break;
-      else pt=next;}
+        else result=next;
+        break;}}
     return result;}
-  else return pt;
-}
+  else return call;
+} 
 static int unparse_tail_call(struct U8_OUTPUT *out,fdtype x)
 {
   struct FD_TAILCALL *tc=
