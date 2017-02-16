@@ -1107,7 +1107,7 @@ struct FD_POOL_WRITES locks2writes(fd_pool p,fd_pool_commit_flags flags)
   writes.oids=oidv=(fdtype *)FD_XCHOICE_DATA(xchoice);
   writes.values=values=u8_zalloc_n(max_writes,fdtype);
   if (locks->ht_n_buckets) {
-    struct FD_HASH_BUCKET **scan=locks->fd_buckets;
+    struct FD_HASH_BUCKET **scan=locks->ht_buckets;
     struct FD_HASH_BUCKET **lim=scan+locks->ht_n_buckets;
     while (scan < lim)
       if (*scan) {

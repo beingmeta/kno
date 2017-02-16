@@ -467,7 +467,7 @@ static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
   fd_read_lock_table(v);
   {
     int size=v->table_n_keys;
-    struct FD_HASH_BUCKET **scan=v->fd_buckets, **limit=scan+v->ht_n_buckets;
+    struct FD_HASH_BUCKET **scan=v->ht_buckets, **limit=scan+v->ht_n_buckets;
     output_byte(out,dt_framerd_package);
     if (size < 128) {
       dtype_len=3;
@@ -477,7 +477,7 @@ static int write_hashtable(struct FD_BYTE_OUTPUT *out,struct FD_HASHTABLE *v)
       dtype_len=6;
       output_byte(out,dt_hashtable);
       output_4bytes(out,size*2);}
-    scan=v->fd_buckets; limit=scan+v->ht_n_buckets;
+    scan=v->ht_buckets; limit=scan+v->ht_n_buckets;
     while (scan < limit)
       if (*scan) {
         struct FD_HASH_BUCKET *he=*scan++;

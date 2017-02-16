@@ -411,8 +411,7 @@ static int init_slotids(fd_hash_index hx,int n_slotids,fdtype *slotids_init)
   struct FD_SLOTID_LOOKUP *lookup; int i=0;
   fdtype *slotids, slotids_choice=FD_EMPTY_CHOICE;
   hx->index_slotids=slotids=u8_alloc_n(n_slotids,fdtype);
-  hx->slotid_lookup=lookup=
-    u8_alloc_n(n_slotids,FD_SLOTID_LOOKUP);
+  hx->slotid_lookup=lookup=u8_alloc_n(n_slotids,FD_SLOTID_LOOKUP);
   hx->index_n_slotids=n_slotids; hx->index_new_slotids=0;
   if ((hx->fdb_xformat)&(FD_HASH_INDEX_ODDKEYS))
     slotids_choice=FD_VOID;
@@ -1493,14 +1492,15 @@ static void hash_index_setcache(fd_index ix,int level)
       else hx->index_offdata=buckets=newmmap+64;
 #else
       fd_dts_start_read(s);
-      fd_buckets=u8_alloc_n(chunk_ref_size*(hx->index_n_buckets),unsigned int);
+      ht_buckets=u8_alloc_n(chunk_ref_size*(hx->index_n_buckets),unsigned int);
       fd_setpos(s,256);
-      retval=fd_dtsread_ints(s,(chunk_ref_size/4)*(hx->index_n_buckets),fd_buckets);
+      retval=fd_dtsread_ints
+        (s,(chunk_ref_size/4)*(hx->index_n_buckets),ht_buckets);
       if (retval<0) {
         u8_log(LOG_WARN,u8_strerror(errno),
                "hash_index_setcache:read offsets %s",hx->index_source);
         hx->index_offdata=NULL; errno=0;}
-      else hx->index_offdata=fd_buckets;
+      else hx->index_offdata=ht_buckets;
 #endif
       fd_unlock_struct(hx);}}
   else if (level < 2) {
@@ -1826,7 +1826,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
   fd_hashtable adds=&(hx->index_adds), edits=&(hx->index_edits), cache=&(hx->index_cache);
   fdtype *drops=u8_alloc_n((edits->table_n_keys),fdtype), *drop_values;
   int j=0, n_drops=0, oddkeys=0;
-  struct FD_HASH_BUCKET **scan=edits->fd_buckets, **lim=scan+edits->ht_n_buckets;
+  struct FD_HASH_BUCKET **scan=edits->ht_buckets, **lim=scan+edits->ht_n_buckets;
   while (scan < lim)
     if (*scan) {
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -1865,7 +1865,7 @@ static int process_edits(struct FD_HASH_INDEX *hx,fd_hashset taken,
     else scan++;
   if (oddkeys) hx->fdb_xformat=((hx->fdb_xformat)|(FD_HASH_INDEX_ODDKEYS));
   drop_values=hash_index_fetchn_inner((fd_index)hx,n_drops,drops,1,1);
-  scan=edits->fd_buckets; lim=scan+edits->ht_n_buckets;
+  scan=edits->ht_buckets; lim=scan+edits->ht_n_buckets;
   j=0; while (scan < lim)
     if (*scan) {
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -1897,7 +1897,7 @@ static int process_adds(struct FD_HASH_INDEX *hx,fd_hashset taken,
 {
   int oddkeys=((hx->fdb_xformat)&(FD_HASH_INDEX_ODDKEYS));
   fd_hashtable adds=&(hx->index_adds);
-  struct FD_HASH_BUCKET **scan=adds->fd_buckets, **lim=scan+adds->ht_n_buckets;
+  struct FD_HASH_BUCKET **scan=adds->ht_buckets, **lim=scan+adds->ht_n_buckets;
   while (scan < lim)
     if (*scan) {
       struct FD_HASH_BUCKET *e=*scan; int n_keyvals=e->fd_n_entries;
@@ -2453,8 +2453,8 @@ static int update_hash_index_ondisk
       buckets[bucket*3+1]=fd_flip_word(word2);
       buckets[bucket*3+2]=fd_flip_word(word3);
 #else
-      fd_buckets[bucket*3]=word1; fd_buckets[bucket*3+1]=word2;
-      fd_buckets[bucket*3+2]=word3;
+      ht_buckets[bucket*3]=word1; ht_buckets[bucket*3+1]=word2;
+      ht_buckets[bucket*3+2]=word3;
 #endif
       i++;}
   else if ((buckets) && (hx->fdb_offtype==FD_B32))
@@ -2466,7 +2466,7 @@ static int update_hash_index_ondisk
       buckets[bucket*2]=fd_flip_word(word1);
       buckets[bucket*2+1]=fd_flip_word(word2);
 #else
-      fd_buckets[bucket*2]=word1; fd_buckets[bucket*2+1]=word2;
+      ht_buckets[bucket*2]=word1; ht_buckets[bucket*2+1]=word2;
 #endif
       i++;}
   else if ((buckets) && (hx->fdb_offtype==FD_B40))
@@ -2477,7 +2477,7 @@ static int update_hash_index_ondisk
       buckets[bucket*2]=fd_flip_word(word1);
       buckets[bucket*2+1]=fd_flip_word(word2);
 #else
-      fd_buckets[bucket*2]=word1; fd_buckets[bucket*2+1]=word2;
+      ht_buckets[bucket*2]=word1; ht_buckets[bucket*2+1]=word2;
 #endif
       i++;}
   else {

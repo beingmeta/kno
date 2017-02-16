@@ -271,8 +271,8 @@ FD_EXPORT fdtype fd_blist_to_slotmap(fdtype binding_list);
 typedef struct FD_SCHEMAP {
   FD_CONS_HEADER; 
   short table_size;
-  int schemap_sorted:1, schemap_onstack:1, schemap_tagged:1;
-  int table_readonly:1, schemap_shared:1, table_modified:1;
+  unsigned int schemap_sorted:1, schemap_onstack:1, schemap_tagged:1;
+  unsigned int table_readonly:1, schemap_shared:1, table_modified:1;
   fdtype *table_schema, *schema_values;
   U8_RWLOCK_DECL(table_rwlock);} FD_SCHEMAP;
 
@@ -418,7 +418,7 @@ typedef struct FD_HASHTABLE {
   FD_CONS_HEADER;
   unsigned int ht_n_buckets, table_n_keys, table_load_factor;
   unsigned int table_readonly:1, table_modified:1, table_uselock:1;
-  struct FD_HASH_BUCKET **fd_buckets;
+  struct FD_HASH_BUCKET **ht_buckets;
   U8_RWLOCK_DECL(table_rwlock);} FD_HASHTABLE;
 typedef struct FD_HASHTABLE *fd_hashtable;
 

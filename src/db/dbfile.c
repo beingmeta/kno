@@ -487,7 +487,7 @@ static fd_index open_memindex(u8_string file,int read_only,int consed)
   mix->index_cache.ht_n_buckets=h->ht_n_buckets;
   mix->index_cache.table_n_keys=h->table_n_keys;
   mix->index_cache.table_load_factor=h->table_load_factor;
-  mix->index_cache.fd_buckets=h->fd_buckets;
+  mix->index_cache.ht_buckets=h->ht_buckets;
   u8_free(h);
   return (fd_index)mix;
 }

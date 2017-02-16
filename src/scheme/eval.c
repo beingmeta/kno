@@ -281,7 +281,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       struct FD_HASHTABLE *ht=(struct FD_HASHTABLE *)obj;
       int i=0, n_slots; struct FD_HASH_BUCKET **slots;
       fd_read_lock_table(ht);
-      n_slots=ht->ht_n_buckets; slots=ht->fd_buckets;
+      n_slots=ht->ht_n_buckets; slots=ht->ht_buckets;
       while (i<n_slots)
         if (slots[i]) {
           struct FD_HASH_BUCKET *hashentry=slots[i++];
@@ -1148,7 +1148,8 @@ fd_lispenv fd_make_export_env(fdtype exports,fd_lispenv parent)
   else {
     struct FD_ENVIRONMENT *e=u8_alloc(struct FD_ENVIRONMENT);
     FD_INIT_FRESH_CONS(e,fd_environment_type);
-    e->env_bindings=fd_incref(exports); e->env_exports=fd_incref(e->env_bindings);
+    e->env_bindings=fd_incref(exports);
+    e->env_exports=fd_incref(e->env_bindings);
     e->env_parent=fd_copy_env(parent);
     e->env_copy=e;
     return e;}

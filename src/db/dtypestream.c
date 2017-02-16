@@ -641,7 +641,9 @@ FD_EXPORT fd_off_t _fd_dtsread_off_t(fd_dtype_stream s)
   else return ((fd_off_t)(-1));
 }
 
-FD_EXPORT int dts_read_ints(fd_dtype_stream s,int len,unsigned int *words,int unlock)
+FD_EXPORT int dts_read_ints(fd_dtype_stream s,
+                            int n_words,unsigned int *words,
+                            int unlock)
 {
   if (((s->fd_dts_flags)&FD_DTSTREAM_READING) == 0)
     if (dts_set_read(s,1,FD_DTS_LOCKED)<0) {
@@ -650,7 +652,7 @@ FD_EXPORT int dts_read_ints(fd_dtype_stream s,int len,unsigned int *words,int un
   /* This is special because we ignore the buffer if we can. */
   if ((s->fd_dts_flags)&FD_DTSTREAM_CANSEEK) {
     fd_off_t real_pos=fd_getpos(s);
-    int bytes_read=0, bytes_needed=len*4;
+    int bytes_read=0, bytes_needed=n_words*4;
     lseek(s->fd_fileno,real_pos,SEEK_SET);
     while (bytes_read<bytes_needed) {
       int delta=read(s->fd_fileno,words+bytes_read,bytes_needed-bytes_read);
@@ -663,25 +665,27 @@ FD_EXPORT int dts_read_ints(fd_dtype_stream s,int len,unsigned int *words,int un
         s->fd_filepos=s->fd_filepos+delta;
         bytes_read+=delta;}}
 #if (!(WORDS_BIGENDIAN))
-    {int i=0; while (i < len) {
+    {int i=0; while (i < n_words) {
         words[i]=fd_host_order(words[i]); i++;}}
 #endif
     if (unlock) unlock_stream(s);
     return bytes_read;}
-  else if (fd_needs_bytes((fd_byte_input)s,len*4)) {
-    int i=0; while (i<len) {
+  else if (fd_needs_bytes((fd_byte_input)s,n_words*4)) {
+    int i=0; while (i<n_words) {
       int word=fd_dtsread_4bytes(s);
       words[i++]=word;}
     if (unlock) unlock_stream(s);
-    return len*4;}
+    return n_words*4;}
   else {
     if (unlock) unlock_stream(s);
     return -1;}
 }
-FD_EXPORT int fd_dtsread_ints(fd_dtype_stream s,int len,unsigned int *words)
+FD_EXPORT int fd_dtsread_ints(fd_dtype_stream s,
+                              int n_words,
+                              unsigned int *words)
 {
   lock_stream(s);
-  return dts_read_ints(s,len,words,FD_DTS_UNLOCK);
+  return dts_read_ints(s,n_words,words,FD_DTS_UNLOCK);
 }
 
 /* Write functions */
