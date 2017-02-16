@@ -10895,7 +10895,7 @@ _ACEOF
 
 fi
 
-    for ac_header in gperftoolstools/profiler.h gperftoolstools/heap-profiler.h
+    for ac_header in gperftools/profiler.h gperftools/heap-profiler.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -10908,12 +10908,12 @@ fi
 
 done
 
-    for ac_header in gperftoolstools/heap-checker.h
+    for ac_header in gperftools/heap-checker.h
 do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftoolstools/heap-checker.h" "ac_cv_header_gperftoolstools_heap_checker_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftoolstools_heap_checker_h" = xyes; then :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-checker.h" "ac_cv_header_gperftools_heap_checker_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLSTOOLS_HEAP_CHECKER_H 1
+#define HAVE_GPERFTOOLS_HEAP_CHECKER_H 1
 _ACEOF
 
 fi
@@ -10923,8 +10923,8 @@ done
     memtest_prefix=builtin_
     heaptest_prefix=builtin_
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
-    heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-    memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
+    heaptest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
+    memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\""
   fi;
 elif test $with_gperftools = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
@@ -11017,7 +11017,7 @@ _ACEOF
 
 fi
 
-  for ac_header in gperftoolstools/profiler.h gperftoolstools/heap-profiler.h
+  for ac_header in gperftools/profiler.h gperftools/heap-profiler.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -11030,12 +11030,12 @@ fi
 
 done
 
-  for ac_header in gperftoolstools/heap-checker.h
+  for ac_header in gperftools/heap-checker.h
 do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftoolstools/heap-checker.h" "ac_cv_header_gperftoolstools_heap_checker_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftoolstools_heap_checker_h" = xyes; then :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-checker.h" "ac_cv_header_gperftools_heap_checker_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLSTOOLS_HEAP_CHECKER_H 1
+#define HAVE_GPERFTOOLS_HEAP_CHECKER_H 1
 _ACEOF
 
 fi
@@ -11044,8 +11044,8 @@ done
 
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
-  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
+  heaptest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
+  memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\""
 fi
 
 
@@ -12277,7 +12277,7 @@ if (test ! -f src/modules/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit tests/scheme/runtest etc/gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserver.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/makefile.include etc/install-script dist/framerd-4.0.spec"
+ac_config_files="$ac_config_files makefile exe/.gdbinit DIY/makefile etc/version tests/dtype/makefile tests/db/makefile tests/scheme/makefile tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit tests/scheme/runtest tests/scheme/gheaptest tests/scheme/vgheaptest tests/scheme/vgleaktest etc/gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserver.conf etc/fdservlet.conf etc/fdservlets.conf etc/fdserv.conf etc/fdserv.load etc/makefile.include etc/install-script dist/framerd-4.0.spec"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -12983,6 +12983,9 @@ do
     "tests/db/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/db/.gdbinit" ;;
     "tests/scheme/.gdbinit") CONFIG_FILES="$CONFIG_FILES tests/scheme/.gdbinit" ;;
     "tests/scheme/runtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/runtest" ;;
+    "tests/scheme/gheaptest") CONFIG_FILES="$CONFIG_FILES tests/scheme/gheaptest" ;;
+    "tests/scheme/vgheaptest") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgheaptest" ;;
+    "tests/scheme/vgleaktest") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgleaktest" ;;
     "etc/gdbinit") CONFIG_FILES="$CONFIG_FILES etc/gdbinit" ;;
     "etc/fdsetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdsetconfig" ;;
     "etc/fdgetconfig") CONFIG_FILES="$CONFIG_FILES etc/fdgetconfig" ;;
@@ -13602,7 +13605,11 @@ fi
 
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
-chmod a+x etc/fdconfig
+chmod a+x etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
+chmod a+x etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog
+chmod a+x etc/fdconfig etc/fdreload etc/fdrestart etc/fdctl
+chmod a+x tests/scheme/runtest tests/scheme/gheaptest
+chmod a+x tests/scheme/vgheaptest tests/scheme/vgleaktest
 
 if test "$enable_ipeval" == "yes"; then
    echo "+++ You've configured FramerD to use iterated partial evaluation";

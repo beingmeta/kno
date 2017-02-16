@@ -110,7 +110,7 @@ int main(int argc,char **argv)
             "With %d slots, %f keys per bucket (max=%d), %d buckets, %d collisions\n",
             n_slots,((double)(1.0*n_keys))/n_buckets,
             max_bucket,n_buckets,n_collisions);
-    check_consistency(tmpbuf,FD_XHASHTABLE(ht)->fd_buckets,n_slots);
+    check_consistency(tmpbuf,FD_XHASHTABLE(ht)->ht_buckets,n_slots);
     best_size=n_slots; best_buckets=n_buckets;}
   {
     unsigned int n_buckets, max_bucket, n_collisions;

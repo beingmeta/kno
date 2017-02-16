@@ -1,2 +1,11 @@
 #!/bin/bash
-PPROF_PATH=/usr/bin/google-pprof HEAPCHECK=normal exec $*
+CMD=$1; shift; ARGS=$*;
+echo "Running test for ${CMD} given ${ARGS}";
+FD_LOADPATH=../../src/modules/%/module.scm:../../src/modules/%.scm: \
+	   LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib    \
+	   HEAPCHECK=normal PPROF_PATH=/usr/bin/google-pprof        \
+	   exec ${CMD}                                              \
+	     DLOADPATH=../../lib/framerd DLOAD:TRACE=yes            \
+	     DISPLAYMAXELTS=36 DISPLAYMAXCHARS=1024                 \
+	     SKIP_DOTLOAD=yes SHOWTIME=0.0                          \
+	        ${ARGS}

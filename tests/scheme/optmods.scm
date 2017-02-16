@@ -22,7 +22,7 @@
 		 hashfs hashstats histogram hostinfo i18n
 		 ice isbn jsonout logctl logger
 		 meltcache mergeutils mimeout mimetable
-		 mttools oauth openlibrary optimize
+		 mttools oauth openlibrary ;; optimize
 		 opts packetfns parsetime bugjar
 		 pump readcsv rulesets samplefns
 		 savecontent saveopt signature speling ;; soap
@@ -56,7 +56,7 @@
 
 (define (have-brico)
   (and (config 'bricosource)
-       (onerror (begin (use-module 'brico) #t) #f)))
+       (onerror (begin (get-module 'brico) #t) #f)))
 
 (when (have-brico)
   (check-modules '{brico brico/dterms brico/indexing brico/lookup

@@ -1244,23 +1244,23 @@ if test $with_gperftools = "yes"; then
      with_gperftools="no";
   else
     AC_CHECK_LIB(profiler,ProfilerStart)
-    AC_CHECK_HEADERS(gperftoolstools/profiler.h gperftoolstools/heap-profiler.h)
-    AC_CHECK_HEADERS(gperftoolstools/heap-checker.h)
+    AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
+    AC_CHECK_HEADERS(gperftools/heap-checker.h)
     memtest_prefix=builtin_
     heaptest_prefix=builtin_
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
-    heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-    memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
+    heaptest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
+    memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\""
   fi; 
 elif test $with_gperftools = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)
-  AC_CHECK_HEADERS(gperftoolstools/profiler.h gperftoolstools/heap-profiler.h)
-  AC_CHECK_HEADERS(gperftoolstools/heap-checker.h)
+  AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
+  AC_CHECK_HEADERS(gperftools/heap-checker.h)
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
-  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\"" 
+  heaptest_env="TESTENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
+  memtest_env="TESTENV=\"TCMALLOC_DEBUG=5\"" 
 fi
 
 AC_ARG_WITH(hyphenate,--with-hyphenate Build and install hyphenate bindings,,with_hyphenate="yes")
@@ -1574,7 +1574,8 @@ fi;
 AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
           tests/dtype/makefile tests/db/makefile tests/scheme/makefile
 	  tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
-	  tests/scheme/runtest
+	  tests/scheme/runtest tests/scheme/gheaptest 
+	  tests/scheme/vgheaptest tests/scheme/vgleaktest
 	  etc/gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig
 	  etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
 	  etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
@@ -1589,7 +1590,11 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
 	  etc/install-script dist/framerd-4.0.spec)
 
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
-chmod a+x etc/fdconfig
+chmod a+x etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
+chmod a+x etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
+chmod a+x etc/fdconfig etc/fdreload etc/fdrestart etc/fdctl
+chmod a+x tests/scheme/runtest tests/scheme/gheaptest 
+chmod a+x tests/scheme/vgheaptest tests/scheme/vgleaktest
 
 if test "$enable_ipeval" == "yes"; then
    echo "+++ You've configured FramerD to use iterated partial evaluation";
