@@ -1831,7 +1831,7 @@ static fdtype hashtable_filter(fdtype candidates,fd_hashtable ht,int pick)
     int n=FD_CHOICE_SIZE(simple), unlock=0, isatomic=1;
     fdtype *keep=u8_alloc_n(n,fdtype), *write=keep;
     if (ht->table_uselock) {fd_read_lock_table(ht); unlock=1;}
-    {struct FD_HASH_BUCKET **slots=ht->fd_buckets; int n_slots=ht->ht_n_buckets;
+    {struct FD_HASH_BUCKET **slots=ht->ht_buckets; int n_slots=ht->ht_n_buckets;
       FD_DO_CHOICES(c,candidates) {
         struct FD_KEYVAL *result=fd_hashvec_get(c,slots,n_slots);
         fdtype rv=((result)?(result->fd_keyval):(FD_VOID));

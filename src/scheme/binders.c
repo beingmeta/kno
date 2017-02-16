@@ -566,7 +566,8 @@ static fdtype _make_sproc(u8_string name,
   else s->sproc_vars=NULL;
   s->fcn_defaults=NULL; s->fcn_filename=NULL;
   if (incref) {
-    s->sproc_body=fd_incref(body); s->sproc_arglist=fd_incref(arglist);}
+    s->sproc_body=fd_incref(body);
+    s->sproc_arglist=fd_incref(arglist);}
   else {
     s->sproc_body=body; s->sproc_arglist=arglist;}
   if (env==NULL)
