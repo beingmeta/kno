@@ -154,7 +154,7 @@ fdcgiexec: ../../src/exe/webcommon.h
 # Test targets
 
 alltests: schemetests exectests tabletests \
-	  indextests hashindextests dbtests optall \
+	  indextests hashindextests dbtests optmods \
 	  chaintests batchtests batchchaintests
 	@echo "*** Done with alltests"
 
@@ -188,8 +188,10 @@ optimizer-tests:
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes choicetest.scm
 	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes seqtest.scm
 
-optall:
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) optall.scm
+loadmods: optmods
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) loadmods.scm
+optmods:
+	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) optmods.scm
 
 tabletests:
 	@echo "*** Running scheme tests to exercise the table/index layer"
@@ -411,34 +413,40 @@ heapschemetests: @heaptest_prefix@heapschemetests
 heaptabletests: @heaptest_prefix@heaptabletests
 heapindextests: @heaptest_prefix@heapindextests
 heapdbtests: @heaptest_prefix@heapdbtests
+heapoptmods: @heaptest_prefix@heapoptmods
 
 vg_heaptests:
 	@echo "*** Running alltests with valgrind heap debugging"
-	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) alltests
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) alltests
 	@echo "*** Finished running alltests with valgrind heap debugging"
 
 vg_heapschemetests:
 	@echo "*** Running tests on data/eval layers with valgrind heap debugging"
-	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) schemetests
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) schemetests
 	@echo "*** Finished running tests on data/eval layers with valgrind heap debugging"
 
 vg_heaptabletests:
 	@echo "*** Running tests on table/index layers with valgrind heap debugging"
-	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) tabletests
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) tabletests
 	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
 
 vg_heapindextests:
 	@echo "*** Running tests on table/index layers with valgrind heap debugging"
-	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indextests
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) indextests
 	@echo "*** Finished running tests on table/index layers with valgrind heap debugging"
 
 vg_heapdbtests:
 	@echo "*** Running tests on database layers with valgrind heap debugging"
-	make "TESTPROG=$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) dbtests dbhashtests
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) dbtests dbhashtests
 	@echo "*** Finished running tests on database layers with valgrind heap debugging"
 
 vg_heapcryptotests:
-	make "TESTPROG=$(VALGRINDHEAP)" cryptotests
+	make TESTPROG="$(VALGRINDHEAP)" cryptotests
+
+vg_heapoptmods:
+	@echo "*** Running tests on data/eval layers with valgrind heap debugging"
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) optmods
+	@echo "*** Finished running tests on optimization with valgrind heap debugging"
 
 builtin_heaptests:
 	@echo "*** Running alltests with gperftools memory debugging"
@@ -467,6 +475,9 @@ builtin_heapdbtests:
 
 builtin_heapcryptotests:
 	make @heaptest_env@ cryptotests
+
+builtin_heapoptmods:
+	make @heaptest_env@ optmods
 
 randomtests:
 	@echo "*** Running alltests with a really random seed"
