@@ -1480,7 +1480,7 @@ update-fdserv: etc/mod_fdserv.so $(DESTDIR)@apache_modinfo@ \
 # Meta operations
 
 update-modules:
-	git submodule update --remote --merge --recursive
+	git submodule update --remote --merge src/modules
 
 .PHONY: fdserv update-fdserv install-fdserv update-modules
 

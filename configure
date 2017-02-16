@@ -910,7 +910,7 @@ with_tidy
 with_imagick
 with_mongodb
 with_fileinfo
-with_gperf
+with_gperftools
 with_hyphenate
 enable_largefiles
 with_crypto
@@ -6335,7 +6335,7 @@ if test -f .ipeval; then
 else enable_ipeval_default="no;
 fi
 
-if test "$with_duma" != "xno" && test "x$custom_malloc" != ""; then
+if test "$with_duma" != "no" && test "$custom_malloc" != ""; then
   echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
   with_duma="no";
 elif test "$with_duma" != "xno" && test "x$DUMA" = "none"; then
@@ -10788,19 +10788,19 @@ if test "$with_fileinfo" = "yes" ; then
 fi
 
 
-# Check whether --with-gperf was given.
-if test "${with_gperf+set}" = set; then :
-  withval=$with_gperf;
+# Check whether --with-gperftools was given.
+if test "${with_gperftools+set}" = set; then :
+  withval=$with_gperftools;
 else
-  with_gperf="yes"
+  with_gperftools="yes"
 fi
 
-if test "$with_gperf" != "no" && test "$custom_malloc" != ""; then
+if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
   echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
   exit;
 fi
 
-if test $with_gperf = "yes"; then
+if test $with_gperftools = "yes"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
 $as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
 if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
@@ -10848,7 +10848,7 @@ fi
 
   if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
      echo "No tcmalloc, skipping further tests";
-     with_gperf="no";
+     with_gperftools="no";
   else
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
 $as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
@@ -10895,7 +10895,7 @@ _ACEOF
 
 fi
 
-    for ac_header in gperftools/profiler.h gperftools/heap-profiler.h
+    for ac_header in gperftoolstools/profiler.h gperftoolstools/heap-profiler.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -10908,12 +10908,12 @@ fi
 
 done
 
-    for ac_header in gperftools/heap-checker.h
+    for ac_header in gperftoolstools/heap-checker.h
 do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-checker.h" "ac_cv_header_gperftools_heap_checker_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftoolstools/heap-checker.h" "ac_cv_header_gperftoolstools_heap_checker_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftoolstools_heap_checker_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLS_HEAP_CHECKER_H 1
+#define HAVE_GPERFTOOLSTOOLS_HEAP_CHECKER_H 1
 _ACEOF
 
 fi
@@ -10926,7 +10926,7 @@ done
     heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
     memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
   fi;
-elif test $with_gperf = "debug"; then
+elif test $with_gperftools = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
 if ${ac_cv_lib_tcmalloc_debug_malloc+:} false; then :
@@ -11017,7 +11017,7 @@ _ACEOF
 
 fi
 
-  for ac_header in gperftools/profiler.h gperftools/heap-profiler.h
+  for ac_header in gperftoolstools/profiler.h gperftoolstools/heap-profiler.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -11030,12 +11030,12 @@ fi
 
 done
 
-  for ac_header in gperftools/heap-checker.h
+  for ac_header in gperftoolstools/heap-checker.h
 do :
-  ac_fn_c_check_header_mongrel "$LINENO" "gperftools/heap-checker.h" "ac_cv_header_gperftools_heap_checker_h" "$ac_includes_default"
-if test "x$ac_cv_header_gperftools_heap_checker_h" = xyes; then :
+  ac_fn_c_check_header_mongrel "$LINENO" "gperftoolstools/heap-checker.h" "ac_cv_header_gperftoolstools_heap_checker_h" "$ac_includes_default"
+if test "x$ac_cv_header_gperftoolstools_heap_checker_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_GPERFTOOLS_HEAP_CHECKER_H 1
+#define HAVE_GPERFTOOLSTOOLS_HEAP_CHECKER_H 1
 _ACEOF
 
 fi

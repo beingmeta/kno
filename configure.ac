@@ -467,7 +467,7 @@ if test -f .ipeval; then
 else enable_ipeval_default="no;
 fi
 
-if test "$with_duma" != "xno" && test "x$custom_malloc" != ""; then
+if test "$with_duma" != "no" && test "$custom_malloc" != ""; then
   echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
   with_duma="no";
 elif test "$with_duma" != "xno" && test "x$DUMA" = "none"; then
