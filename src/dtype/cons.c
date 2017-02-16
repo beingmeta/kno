@@ -136,30 +136,25 @@ void fd_recycle_cons(fd_cons c)
     case fd_pair_type: {
       /* This is hairy in order to iteratively free up long lists. */
       struct FD_PAIR *p=(struct FD_PAIR *)c;
-      fdtype cdr=p->fd_cdr;
-      fd_decref(p->fd_car);
-      if (!(FD_STATIC_CONSP(p))) u8_free(p);
-      if ( (FD_PAIRP(cdr)) && (FD_CONS_REFCOUNT((fd_pair)cdr)==1) )
-        while ( (FD_PAIRP(cdr)) && (FD_CONS_REFCOUNT((fd_pair)cdr)==1) ) {
+      fdtype cdr=p->fd_cdr, car=p->fd_car;
+      u8_free(p); fd_decref(car);
+      if (FD_CONSP(cdr)) {
+        if (FD_PAIRP(cdr)) {
           struct FD_PAIR *xcdr=(struct FD_PAIR *)cdr;
           FD_LOCK_PTR(xcdr);
-          if (FD_CONSBITS(xcdr)>=0xFFFFFF80) {
+          while (FD_CONS_REFCOUNT(xcdr)==1) {
+            car=xcdr->fd_car; cdr=xcdr->fd_cdr;
+            u8_free(xcdr);
             FD_UNLOCK_PTR(xcdr);
-            u8_raise(fd_DoubleGC,"fd_decref",NULL);}
-          else if (FD_CONSBITS(xcdr)>=0x100) {
-            /* This is a rare case, where the refcount is now > 1.
-               This can happen, for example when another thread
-               pops in and grabs the CDR between when we
-               checked the refcount above and when we locked the
-               pointer. */
-            xcdr->fd_conshead=xcdr->fd_conshead-0x80;
-            FD_UNLOCK_PTR(xcdr);}
-          else {
-            xcdr->fd_conshead=(0xFFFFFF80|(xcdr->fd_conshead&0x7F));
-            FD_UNLOCK_PTR(xcdr);
-            fd_decref(xcdr->fd_car); cdr=xcdr->fd_cdr;
-            if (!(FD_STATIC_CONSP(xcdr))) u8_free(xcdr);}}
-      fd_decref(cdr);
+            fd_decref(car);
+            if (FD_PAIRP(cdr)) {
+              xcdr=(fd_pair)cdr;
+              FD_LOCK_PTR(xcdr);
+              continue;}
+            else {xcdr=NULL; break;}}
+          if (xcdr) FD_UNLOCK_PTR(xcdr);
+          fd_decref(cdr);}
+        else fd_decref(cdr);}
       break;}
     case fd_string_type: case fd_packet_type: case fd_secret_type: {
       struct FD_STRING *s=(struct FD_STRING *)c;
@@ -266,8 +261,11 @@ FD_EXPORT
   Returns a function corresponding to a generic sort of two dtype pointers. */
 int fdtype_compare(fdtype x,fdtype y,int quick)
 {
+
+  /* This is just defined for this function */
 #define DOCOMPARE(x,y) \
   ((quick) ? (FD_QCOMPARE(x,y)) : (FDTYPE_COMPARE(x,y)))
+
   if (x == y) return 0;
   else if ((quick) && (FD_ATOMICP(x)))
     if (FD_ATOMICP(y))
