@@ -364,18 +364,18 @@ CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 AC_ARG_WITH(codename,--with-codename for distribution,with_codename=$withval,with_codename=$CODENAME)
 CODENAME=$with_codename
 
-if test "x$VALGRIND" != "xnone"; then
+if test "$VALGRIND" != "none"; then
   memtest_prefix=vg_
   heaptest_prefix=vg_
 fi
 
 AC_ARG_WITH(sanitize,--with-sanitize[=address*|memory|thread],with_sanitize=$withval,with_sanitize="none")
 
-if test "x$with_sanitize" = "xnone"; then
-   echo "Configuring normal (no sanitization) build";
-elif test "x$with_sanitize" = "xaddress" ||
-     test "x$with_sanitize" = "x" ||
-     test "x$with_sanitize" = "xyes"; then
+if test "$with_sanitize" = "none"; then
+   echo -n;
+elif test "$with_sanitize" = "address" ||
+     test "$with_sanitize" = "" ||
+     test "$with_sanitize" = "yes"; then
    CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
    LDFLAGS="-g -fsanitize=address $LDFLAGS"
    build_static=""
@@ -385,7 +385,7 @@ elif test "x$with_sanitize" = "xaddress" ||
    memtest_prefix=builtin_
    heaptest_prefix=builtin_
    TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=yes $TESTENV";
-elif test "x$with_sanitize" = "xleak"; then
+elif test "$with_sanitize" = "leak"; then
    CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
    LDFLAGS="-g -fsanitize=leak $LDFLAGS"
    build_static=""
@@ -395,10 +395,10 @@ elif test "x$with_sanitize" = "xleak"; then
    memtest_prefix=builtin_
    heaptest_prefix=builtin_
    TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $TESTENV";
-elif test "x$CLANG" = "xnone"; then
+elif test "$CLANG" = "none"; then
   echo "No clang for sanitizing $with_sanitize";
   exit;
-elif test "x$with_sanitize" = "xmemory"; then
+elif test "$with_sanitize" = "memory"; then
    CC=$CLANG
    CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -g -fno-omit-frame-pointer $CFLAGS"
    LD=$CLANG
@@ -408,7 +408,7 @@ elif test "x$with_sanitize" = "xmemory"; then
    install_static=""
    custom_malloc="msan-full"
    TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
-elif test "x$with_sanitize" = "xthread"; then
+elif test "$with_sanitize" = "thread"; then
    CC=$CLANG
    CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
    LD=$CLANG
@@ -458,7 +458,7 @@ AC_CHECK_USER(default_daemon,xdaemon fdaemon _fdaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
 
 AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)
-if test "x$with_execwrapper" != "x"; then
+if test "$with_execwrapper" != ""; then
   AC_DEFINE_UNQUOTED(FD_EXEC_WRAPPER,"$with_execwrapper")
 fi
 
@@ -467,13 +467,13 @@ if test -f .ipeval; then
 else enable_ipeval_default="no;
 fi
 
-if test "x$with_duma" != "xno" && test "x$custom_malloc" != "x"; then
+if test "$with_duma" != "xno" && test "x$custom_malloc" != ""; then
   echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
   with_duma="no";
-elif test "x$with_duma" != "xno" && test "x$DUMA" = "xnone"; then
+elif test "$with_duma" != "xno" && test "x$DUMA" = "none"; then
   echo "No DUMA executable";
   with_duma="no";
-elif test "x$with_duma" != "xno"; then
+elif test "$with_duma" != "no"; then
   AC_CHECK_LIB(duma,malloc)
   AC_CHECK_HEADERS(duma.h)
   TESTENV="DUMA_ALIGNMENT=4 $TESTENV";
@@ -527,7 +527,7 @@ fi
 AC_ARG_WITH(systemd,--with-systemd Specify systemd install directory,,with_systemd=$default_systemd_loc)
 systemd_loc=$with_systemd
 
-if test "x$prefix" != "x/user"; then
+if test "$prefix" != "x/ser"; then
   CFLAGS="$CFLAGS -I$prefix/include"
   CPPFLAGS="$CPPFLAGS -I$prefix/include"
   LDFLAGS="$LDFLAGS -L$prefix/lib"
@@ -701,7 +701,7 @@ esac
 
 AX_CHECK_LINK_FLAG("-static-libgcc",static_libgcc="yes")
 
-if test "x${static_libgcc}" == "xyes"; then
+if test "${static_libgcc}" == "yes"; then
    LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
 fi
 
@@ -710,8 +710,6 @@ AC_CHECK_LIB(ffi,ffi_prep_cif)
 AC_CHECK_HEADERS(archive.h)
 AC_CHECK_LIB(archive,archive_read_new)
 
-echo have_archive_h = ${have_archive_h}
-echo have_have_libarchive = ${have_libarchive}
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   CMODULES="lib/framerd/libarchive.$shared_suffix ${CMODULES}"
@@ -750,7 +748,7 @@ AC_CHECK_SIZEOF(size_t,8)
 AC_CHECK_TYPES(uchar)
 
 # Check whether to use an architecture specific library directory
-if test "x${libdir}" != "x\${exec_prefix}/lib"; then
+if test "${libdir}" != "x\${exec_prefix}/ib"; then
   echo Checking libdir, using explicit libdir ${libdir};
 elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
   libdir=${prefix}/lib32;
@@ -936,7 +934,7 @@ fi
 dnl Enable async I/O features
 AC_ARG_ENABLE(async,--en[dis]able-async Enable async I/O features)
 
-if test "x$enable_async" = "xyes"; then
+if test "$enable_async" = "yes"; then
   DEFAULTISASYNC=1
   AC_DEFINE(FD_DEFAULT_ASYNC,1)
 else
@@ -947,7 +945,7 @@ fi
 dnl Enable dtblock for improved performance
 AC_ARG_ENABLE(dtblock,--en[dis]able-dtblock DTBlock dtype for net I/O,,enable_dtblock=$use_dtblock_default)
 
-if test "x$enable_dtblock" = "xyes"; then
+if test "$enable_dtblock" = "yes"; then
   USEDTBLOCK=1
   AC_DEFINE(FD_USE_DTBLOCK,1)
 else
@@ -958,7 +956,7 @@ fi
 # Internationalization
 AC_CHECK_HEADERS(libintl.h)
 AC_CHECK_FUNCS(gettext,[doi18n="yes"])
-if test "x$libc_gettext" != "xyes"; then
+if test "$libc_gettext" != "yes"; then
    AC_CHECK_LIB(intl,gettext)
 fi
 
@@ -981,7 +979,7 @@ AX_PTHREAD
 AX_PTHREAD(threads_default="yes",threads_default="no")
 
 AC_ARG_ENABLE(checkptrs,--en[dis]able-checkfdtype Enable compile-time checking for fdtype pointers,,enable_checkfdtype=$checkfdtype_default)
-if test "x$enable_checkfdtype" = "xyes"; then
+if test "$enable_checkfdtype" = "yes"; then
   AC_DEFINE(FD_DEFAULT_CHECKFDTYPE,1)
 else
   AC_DEFINE(FD_DEFAULT_CHECKFDTYPE,0)
@@ -1025,7 +1023,7 @@ fi
 
 dnl Use the editline library from fdconsole
 AC_ARG_WITH(editline,--with[out]-editline Use the editline with fdconsole,,with_editline="yes")
-if test "x$with_editline" = "xyes"; then
+if test "$with_editline" = "yes"; then
   AC_CHECK_HEADERS(editline/readline.h histedit.h)
   AC_CHECK_LIB(edit,el_init)
   AC_DEFINE(FD_WITH_EDITLINE,1)
@@ -1035,7 +1033,7 @@ fi
 
 dnl Use a different directory for libu8
 AC_ARG_WITH(libu8,--with[out]-libu8 Use libu8 includes,,with_libu8="")
-if test "x$with_libu8" != "x"; then
+if test "$with_libu8" != ""; then
   CFLAGS="-I$with_libu8/include $CFLAGS"
   LDFLAGS="-L$with_libu8/lib $LDFLAGS"
   EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
@@ -1043,20 +1041,20 @@ fi
 
 dnl Use sudo for installations in makefile
 AC_ARG_WITH(sudo,--with[out]-sudo use sudo with install,,with_sudo="yes")
-if test "x$with_sudo" == "xyes"; then
+if test "$with_sudo" == "yes"; then
   AC_CHECK_PROGS(sudo_program,sudo,"na")
-  if test "x$sudoprogram" == "xna"; then
+  if test "$sudoprogram" == "na"; then
     SUDO=""
   else 
     SUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program "
   fi
-elif test "x$with_sudo" != "xno"; then
+elif test "$with_sudo" != "no"; then
   SUDO="$with_sudo "
 fi
 
 with_fastcgi="yes";
 AC_ARG_WITH(fastcgi,--with[out]-fastcgi Use fastcgi,with_fastcgi=no,[AC_DEFINE(WITH_FASTCGI,1)])
-if test "x$with_fastcgi" != "xno"; then
+if test "$with_fastcgi" != "no"; then
   AC_CHECK_HEADERS(fcgiapp.h)
   AC_CHECK_LIB(fcgi,FCGX_Init)
 fi
@@ -1116,16 +1114,16 @@ fi
 
 AC_ARG_WITH(odbc,--with[out]-odbc Build odbc libraries,,with_odbc="yes")
 
-if test "x$with_odbc" == "xyes"; then
+if test "$with_odbc" == "yes"; then
 AC_CHECK_HEADER(sql.h,have_sql_h="yes",have_sql_h="no")
-if test "x$have_sql_h" = "xyes"; then
+if test "$have_sql_h" = "yes"; then
   AC_CHECK_LIB(iodbc,SQLNumResultCols)
   CMODULES="lib/framerd/odbc.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-odbc ${INSTALLCMODULES}"
 fi
 fi
 
-if test "x$have_sql_h" = "xyes"; then
+if test "$have_sql_h" = "yes"; then
   AC_CHECK_LIB(odbc,SQLNumResultCols)
 fi
 
@@ -1141,19 +1139,19 @@ if test $have_sqlite3_h = "yes"; then
 fi
 
 AC_CHECK_HEADER(regex.h,have_regex_h="yes",have_regex_h="no")
-if (test "x$have_regex_h" = "xyes"); then
+if (test "$have_regex_h" = "yes"); then
   AC_CHECK_FUNC(regcomp,have_regcomp="yes",have_regcomp="no")
 fi
-if (test "x$have_regex_h" = "xyes") && (test "x$have_regcomp" = "xno"); then
+if (test "$have_regex_h" = "xyes") && (test "x$have_regcomp" = "no"); then
   AC_CHECK_LIB(regex,regcomp,have_regcomp="yes",have_regcomp="no")
 fi
 
 AC_CHECK_HEADER(zlib.h,have_zlib_h="yes",have_zlib_h="no")
-if (test "x$have_zlib_h" = "xyes"); then
+if (test "$have_zlib_h" = "yes"); then
   AC_CHECK_LIB(z,compress2,have_libz="yes",have_libz="no")
 fi
 
-if (test "x$have_libz" = "xyes"); then
+if (test "$have_libz" = "yes"); then
   CMODULES="lib/framerd/zlib.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-zlib ${INSTALLCMODULES}"
 fi
@@ -1161,17 +1159,17 @@ fi
 
 AC_ARG_WITH(ziptools,--with-ziptools Build and install ziptools,,with_ziptools=$with_ziptools_default)
 
-if test "x$with_ziptools" == "xyes"; then
+if test "$with_ziptools" == "yes"; then
   CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
   CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
   LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
   AC_CHECK_HEADER(zip.h,have_zip_h="yes",have_zip_h="no")
-  if (test "x$have_zip_h" = "xyes"); then
+  if (test "$have_zip_h" = "yes"); then
     AC_CHECK_LIB(zip,zip_add)
     AC_CHECK_LIB(zip,zip_add,have_libzip="yes",have_libzip="no")
     AC_CHECK_FUNCS(zip_set_file_compression zip_set_file_comment zip_set_file_extra)
   fi
-  if (test "x$have_zip_h" = "xyes") && (test "x$have_libzip" = "xyes"); then
+  if (test "$have_zip_h" = "xyes") && (test "x$have_libzip" = "yes"); then
     CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
     INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
   fi
@@ -1179,20 +1177,20 @@ fi
 
 AC_ARG_WITH(tidy,--with-tidy Build and install tidy library,,with_tidy="yes")
 
-if test "x$with_tidy" == "xyes"; then
+if test "$with_tidy" == "yes"; then
 AC_CHECK_HEADER(tidy/tidy.h,have_tidy_tidy_h="yes",have_tidy_tidy_h="no")
-if (test "x$have_tidy_tidy_h" = "xyes"); then
+if (test "$have_tidy_tidy_h" = "yes"); then
   AC_DEFINE(HAVE_TIDY_TIDY_H,1)
   AC_CHECK_HEADER(tidy/tidybuffio.h,have_tidy_tidybuffio_h="yes",have_tidy_tidybuffio_h="no")
-  if (test "x$have_tidy_tidybuffio_h" = "xyes"); then
+  if (test "$have_tidy_tidybuffio_h" = "yes"); then
     AC_DEFINE(HAVE_TIDY_TIDYBUFFIO_H,1)
   fi;
 else
   AC_CHECK_HEADER(tidy.h,have_tidy_h="yes",have_tidy_h="no")
-  if (test "x$have_tidy_h" = "xyes"); then
+  if (test "$have_tidy_h" = "yes"); then
     AC_DEFINE(HAVE_TIDY_H,1)
     AC_CHECK_HEADER(tidybuffio.h,have_tidybuffio_h="yes",have_tidybuffio_h="no")
-    if (test "x$have_tidybuffio_h" = "xyes"); then
+    if (test "$have_tidybuffio_h" = "yes"); then
       AC_DEFINE(HAVE_TIDYBUFFIO_H,1)
     fi;
   fi;
@@ -1228,61 +1226,37 @@ if test "${with_mongodb}" = "yes"; then
 fi	
 
 AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
-if test "x$with_fileinfo" = "xyes" ; then
+if test "$with_fileinfo" = "yes" ; then
    definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
    versionsh="include/framerd/versions.h"
 fi
 
-dnl When available, use the thread-optimized tcmalloc functions from
-dnl   Google perftools
-AC_ARG_WITH(tcmalloc,--with[out]-tcmalloc Use the Google malloc library,,with_tcmalloc="no")
-if test "x$with_tcmalloc" != "xno" && test "x$custom_malloc" != "x"; then
-  echo "Sorry, tcmalloc is inconsistent with custom malloc $custom_malloc";
-  exit;
-fi
-if test $with_tcmalloc = "yes"; then
-  AC_CHECK_LIB(tcmalloc,malloc,HeapProfile)
-#  debuglibs="${debuglibs} -ltcmalloc_debug"
-  memtest_prefix=builtin_
-  heaptest_prefix=builtin_
-  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
-  CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
-elif test $with_tcmalloc = "debug"; then
-  AC_CHECK_LIB(tcmalloc_debug,malloc)
-  heaptest_prefix=builtin_
-  memtest_prefix=builtin_
-  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\"" 
-fi
-
-AC_ARG_WITH(perftools,--with[out]-google Use the Google perftools,,with_perftools="yes")
-if test "x$with_perftools" != "xno" && test "x$custom_malloc" != "x"; then
+AC_ARG_WITH(gperftools,--with[out]-google Use the Google perftools,,with_gperftools="yes")
+if test "$with_gperftools" != "no" && test "$custom_malloc" != ""; then
   echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
   exit;
 fi
 
-
-if test $with_perftools = "yes"; then
-  AC_CHECK_LIB(tcmalloc,malloc,HeapProfile)
+if test $with_gperftools = "yes"; then
+  AC_CHECK_LIB(tcmalloc,malloc)
   if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
      echo "No tcmalloc, skipping further tests";
-     with_perftools="no";
+     with_gperftools="no";
   else
     AC_CHECK_LIB(profiler,ProfilerStart)
-    AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
-    AC_CHECK_HEADERS(gperftools/heap-checker.h)
+    AC_CHECK_HEADERS(gperftoolstools/profiler.h gperftoolstools/heap-profiler.h)
+    AC_CHECK_HEADERS(gperftoolstools/heap-checker.h)
     memtest_prefix=builtin_
     heaptest_prefix=builtin_
     CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
     heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
     memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
   fi; 
-elif test $with_perftools = "debug"; then
+elif test $with_gperftools = "debug"; then
   AC_CHECK_LIB(tcmalloc_debug,malloc)
   AC_CHECK_LIB(profiler,ProfilerStart)
-  AC_CHECK_HEADERS(gperftools/profiler.h gperftools/heap-profiler.h)
-  AC_CHECK_HEADERS(gperftools/heap-checker.h)
+  AC_CHECK_HEADERS(gperftoolstools/profiler.h gperftoolstools/heap-profiler.h)
+  AC_CHECK_HEADERS(gperftoolstools/heap-checker.h)
   heaptest_prefix=builtin_
   memtest_prefix=builtin_
   heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\"" 
@@ -1294,9 +1268,9 @@ if test x$with_hyphenate = "xyes"; then
   AC_CHECK_HEADERS(hyphen.h)
   AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2)
 fi
-if test "x$with_hyphenate" = "xyes" &&
+if test "$with_hyphenate" = "xyes" &&
    test "x$ac_cv_header_hyphen_h" = "xyes" &&
-   test "x$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "xyes"; then
+   test "x$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "yes"; then
   CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
@@ -1339,7 +1313,7 @@ if test $with_crypto = "yes"; then
 fi
 
 AC_ARG_WITH(sundown,--with[out]-sundown Compile the sundown module,,with_sundown="yes")
-if test "x$with_sundown" = "xyes"; then
+if test "$with_sundown" = "yes"; then
   CMODULES="lib/framerd/sundown.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
 fi
@@ -1353,17 +1327,8 @@ else
   PROFILING=""
 fi
 
-dnl This compiles a version to be used with the GNU profiling tools
-AC_ARG_WITH(profiler,--with/out-profiler build with optional perftools profiling,,with_profiler="no")
-if test $with_profiler = "yes"; then
-   AC_DEFINE(FD_WITH_PROFILER,1)
-   AC_CHECK_HEADERS(google/profiler.h)
-   LIBS="-lprofiler $LIBS"
-fi
-
-
 dnl This is used to disable the simplest automatic database prefetches.
-dnl This is almost only used to configure for benchmarking prefetch mechanisms
+dnl This is typically used to configure for benchmarking prefetch mechanisms
 dnl against the base case of no prefetches at all.
 AC_ARG_ENABLE(prefetching,--en[dis]able-prefetching make frame operations prefetch when they can,,enable_prefetching="yes")
 if test $enable_prefetching = "yes"; then
@@ -1555,7 +1520,7 @@ AC_CHECK_HEADERS(netinet/in.h)
 AC_CHECK_HEADERS(netdb.h)
 AC_CHECK_LIB(ldns,ldns_resolver_query,dns_default="yes")
 AC_ARG_WITH(dns,--with[out]-dns Use dns in fdweb,,with_dns=$dns_default)
-if test "x$with_dns" = "xyes"; then
+if test "$with_dns" = "yes"; then
   AC_CHECK_LIB(ldns,ldns_resolver_query)
   AC_DEFINE(FD_WITH_DNS,1)
   ldnso="src/fdweb/ldns.o"
@@ -1567,7 +1532,7 @@ dnl Build with primitives accessing libexif, if it is available
 AC_CHECK_LIB(exif,exif_data_new_from_data,exif_default="yes")
 AC_CHECK_HEADER(libexif/exif-data.h,exif_default=$exif_default,exif_default="no")
 AC_ARG_WITH(exif,--with[out]-exif Use libexif in fdweb,,with_exif=$exif_default)
-if test "x$with_exif" = "xyes"; then
+if test "$with_exif" = "yes"; then
   AC_CHECK_HEADERS(libexif/exif-data.h)
   CMODULES="lib/framerd/exif.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-exif ${INSTALLCMODULES}"
@@ -1579,7 +1544,7 @@ AC_CHECK_HEADER(qrencode.h,have_qrencode_h="yes",have_qrencode_h="no")
 
 AC_ARG_WITH(qrcode,--with[out]-qrcode Create qrcode binary module,,with_qrcode="yes")
 
-if (test "x$with_qrcode" = "xyes") && (test "x$have_png_h" = "xyes") && (test "x$have_qrencode_h" = "xyes"); then
+if (test "$with_qrcode" = "xyes") && (test "x$have_png_h" = "xyes") && (test "x$have_qrencode_h" = "yes"); then
   AC_CHECK_LIB(png,png_create_write_struct)
   AC_CHECK_LIB(qrencode,QRcode_encodeString8bit)
   CMODULES="lib/framerd/qrcode.$shared_suffix ${CMODULES}"
@@ -1626,7 +1591,7 @@ AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
 chmod a+x etc/fdconfig
 
-if test "x$enable_ipeval" == "xyes"; then
+if test "$enable_ipeval" == "yes"; then
    echo "+++ You've configured FramerD to use iterated partial evaluation";
    echo "+++ Use of the resulting software may be restricted by patent law. ";
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";

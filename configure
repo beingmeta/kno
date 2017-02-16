@@ -910,14 +910,12 @@ with_tidy
 with_imagick
 with_mongodb
 with_fileinfo
-with_tcmalloc
-with_perftools
+with_gperf
 with_hyphenate
 enable_largefiles
 with_crypto
 with_sundown
 with_profiling
-with_profiler
 enable_prefetching
 enable_calltrack
 enable_fileconfig
@@ -1649,13 +1647,11 @@ Optional Packages:
 --with-imagick Build and install imagemagick library
 --with-mongodb Build and install MongoDB library
 --without-fileinfo record fileinfo
---without-tcmalloc Use the Google malloc library
 --without-google Use the Google perftools
 --with-hyphenate Build and install hyphenate bindings
 --without-crypto Compile the crypto module
 --without-sundown Compile the sundown module
 --with/out-profiling compile to generate profile information
---with/out-profiler build with optional perftools profiling
 --without-tls Force use of threadlocal storage
 --without-global-ipeval Use global lock and variables for ipeval
 --without-curl Use libcurl in fdweb
@@ -5404,7 +5400,7 @@ fi
 
 CODENAME=$with_codename
 
-if test "x$VALGRIND" != "xnone"; then
+if test "$VALGRIND" != "none"; then
   memtest_prefix=vg_
   heaptest_prefix=vg_
 fi
@@ -5418,11 +5414,11 @@ else
 fi
 
 
-if test "x$with_sanitize" = "xnone"; then
-   echo "Configuring normal (no sanitization) build";
-elif test "x$with_sanitize" = "xaddress" ||
-     test "x$with_sanitize" = "x" ||
-     test "x$with_sanitize" = "xyes"; then
+if test "$with_sanitize" = "none"; then
+   echo -n;
+elif test "$with_sanitize" = "address" ||
+     test "$with_sanitize" = "" ||
+     test "$with_sanitize" = "yes"; then
    CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O0 -g $CFLAGS"
    LDFLAGS="-g -fsanitize=address $LDFLAGS"
    build_static=""
@@ -5432,7 +5428,7 @@ elif test "x$with_sanitize" = "xaddress" ||
    memtest_prefix=builtin_
    heaptest_prefix=builtin_
    TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=yes $TESTENV";
-elif test "x$with_sanitize" = "xleak"; then
+elif test "$with_sanitize" = "leak"; then
    CFLAGS="-fsanitize=leak -fno-omit-frame-pointer -O0 -g $CFLAGS"
    LDFLAGS="-g -fsanitize=leak $LDFLAGS"
    build_static=""
@@ -5442,10 +5438,10 @@ elif test "x$with_sanitize" = "xleak"; then
    memtest_prefix=builtin_
    heaptest_prefix=builtin_
    TESTENV="MEMCHECKING=yes ASAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH ASAN_OPTIONS=detect_leaks=1 $TESTENV";
-elif test "x$CLANG" = "xnone"; then
+elif test "$CLANG" = "none"; then
   echo "No clang for sanitizing $with_sanitize";
   exit;
-elif test "x$with_sanitize" = "xmemory"; then
+elif test "$with_sanitize" = "memory"; then
    CC=$CLANG
    CFLAGS="-fsanitize=memory -fsanitize-memory-track-origins -fPIE -g -fno-omit-frame-pointer $CFLAGS"
    LD=$CLANG
@@ -5455,7 +5451,7 @@ elif test "x$with_sanitize" = "xmemory"; then
    install_static=""
    custom_malloc="msan-full"
    TESTENV="MEMCHECKING=yes MSAN_SYMBOLIZER_PATH=$LLVM_SYMBOLIZER_PATH $TESTENV";
-elif test "x$with_sanitize" = "xthread"; then
+elif test "$with_sanitize" = "thread"; then
    CC=$CLANG
    CFLAGS="-fsanitize=thread -g -fno-omit-frame-pointer $CFLAGS"
    LD=$CLANG
@@ -6327,7 +6323,7 @@ else
   with_execwrapper=$binenv
 fi
 
-if test "x$with_execwrapper" != "x"; then
+if test "$with_execwrapper" != ""; then
   cat >>confdefs.h <<_ACEOF
 #define FD_EXEC_WRAPPER "$with_execwrapper"
 _ACEOF
@@ -6339,13 +6335,13 @@ if test -f .ipeval; then
 else enable_ipeval_default="no;
 fi
 
-if test "x$with_duma" != "xno" && test "x$custom_malloc" != "x"; then
+if test "$with_duma" != "xno" && test "x$custom_malloc" != ""; then
   echo "Can't use DUMA with other custom MALLOC libraries ($custom_malloc)";
   with_duma="no";
-elif test "x$with_duma" != "xno" && test "x$DUMA" = "xnone"; then
+elif test "$with_duma" != "xno" && test "x$DUMA" = "none"; then
   echo "No DUMA executable";
   with_duma="no";
-elif test "x$with_duma" != "xno"; then
+elif test "$with_duma" != "no"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -lduma" >&5
 $as_echo_n "checking for malloc in -lduma... " >&6; }
 if ${ac_cv_lib_duma_malloc+:} false; then :
@@ -6489,7 +6485,7 @@ fi
 
 systemd_loc=$with_systemd
 
-if test "x$prefix" != "x/user"; then
+if test "$prefix" != "x/ser"; then
   CFLAGS="$CFLAGS -I$prefix/include"
   CPPFLAGS="$CPPFLAGS -I$prefix/include"
   LDFLAGS="$LDFLAGS -L$prefix/lib"
@@ -6782,7 +6778,7 @@ else
 fi
 
 
-if test "x${static_libgcc}" == "xyes"; then
+if test "${static_libgcc}" == "yes"; then
    LDFLAGS="-static-libgcc -Wl,--as-needed ${LDFLAGS}"
 fi
 
@@ -6901,8 +6897,6 @@ _ACEOF
 fi
 
 
-echo have_archive_h = ${have_archive_h}
-echo have_have_libarchive = ${have_libarchive}
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   CMODULES="lib/framerd/libarchive.$shared_suffix ${CMODULES}"
@@ -7526,7 +7520,7 @@ fi
 
 
 # Check whether to use an architecture specific library directory
-if test "x${libdir}" != "x\${exec_prefix}/lib"; then
+if test "${libdir}" != "x\${exec_prefix}/ib"; then
   echo Checking libdir, using explicit libdir ${libdir};
 elif test ${ac_cv_sizeof_long} -eq 4 && test -d ${prefix}/lib32; then
   libdir=${prefix}/lib32;
@@ -8561,7 +8555,7 @@ if test "${enable_async+set}" = set; then :
 fi
 
 
-if test "x$enable_async" = "xyes"; then
+if test "$enable_async" = "yes"; then
   DEFAULTISASYNC=1
   $as_echo "#define FD_DEFAULT_ASYNC 1" >>confdefs.h
 
@@ -8579,7 +8573,7 @@ else
 fi
 
 
-if test "x$enable_dtblock" = "xyes"; then
+if test "$enable_dtblock" = "yes"; then
   USEDTBLOCK=1
   $as_echo "#define FD_USE_DTBLOCK 1" >>confdefs.h
 
@@ -8613,7 +8607,7 @@ _ACEOF
 fi
 done
 
-if test "x$libc_gettext" != "xyes"; then
+if test "$libc_gettext" != "yes"; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for gettext in -lintl" >&5
 $as_echo_n "checking for gettext in -lintl... " >&6; }
 if ${ac_cv_lib_intl_gettext+:} false; then :
@@ -9582,7 +9576,7 @@ else
   enable_checkfdtype=$checkfdtype_default
 fi
 
-if test "x$enable_checkfdtype" = "xyes"; then
+if test "$enable_checkfdtype" = "yes"; then
   $as_echo "#define FD_DEFAULT_CHECKFDTYPE 1" >>confdefs.h
 
 else
@@ -9662,7 +9656,7 @@ else
   with_editline="yes"
 fi
 
-if test "x$with_editline" = "xyes"; then
+if test "$with_editline" = "yes"; then
   for ac_header in editline/readline.h histedit.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
@@ -9736,7 +9730,7 @@ else
   with_libu8=""
 fi
 
-if test "x$with_libu8" != "x"; then
+if test "$with_libu8" != ""; then
   CFLAGS="-I$with_libu8/include $CFLAGS"
   LDFLAGS="-L$with_libu8/lib $LDFLAGS"
   EXELDFLAGS="$EXELDFLAGS -L$with_libu8/lib"
@@ -9750,7 +9744,7 @@ else
   with_sudo="yes"
 fi
 
-if test "x$with_sudo" == "xyes"; then
+if test "$with_sudo" == "yes"; then
   for ac_prog in sudo
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
@@ -9794,12 +9788,12 @@ fi
 done
 test -n "$sudo_program" || sudo_program=""na""
 
-  if test "x$sudoprogram" == "xna"; then
+  if test "$sudoprogram" == "na"; then
     SUDO=""
   else
     SUDO="unset LD_LIBRARY_PATH; unset DYLD_LIBRARY_PATH; $sudo_program "
   fi
-elif test "x$with_sudo" != "xno"; then
+elif test "$with_sudo" != "no"; then
   SUDO="$with_sudo "
 fi
 
@@ -9813,7 +9807,7 @@ else
 
 fi
 
-if test "x$with_fastcgi" != "xno"; then
+if test "$with_fastcgi" != "no"; then
   for ac_header in fcgiapp.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "fcgiapp.h" "ac_cv_header_fcgiapp_h" "$ac_includes_default"
@@ -10038,7 +10032,7 @@ else
 fi
 
 
-if test "x$with_odbc" == "xyes"; then
+if test "$with_odbc" == "yes"; then
 ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
 if test "x$ac_cv_header_sql_h" = xyes; then :
   have_sql_h="yes"
@@ -10047,7 +10041,7 @@ else
 fi
 
 
-if test "x$have_sql_h" = "xyes"; then
+if test "$have_sql_h" = "yes"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLNumResultCols in -liodbc" >&5
 $as_echo_n "checking for SQLNumResultCols in -liodbc... " >&6; }
 if ${ac_cv_lib_iodbc_SQLNumResultCols+:} false; then :
@@ -10098,7 +10092,7 @@ fi
 fi
 fi
 
-if test "x$have_sql_h" = "xyes"; then
+if test "$have_sql_h" = "yes"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLNumResultCols in -lodbc" >&5
 $as_echo_n "checking for SQLNumResultCols in -lodbc... " >&6; }
 if ${ac_cv_lib_odbc_SQLNumResultCols+:} false; then :
@@ -10256,7 +10250,7 @@ else
 fi
 
 
-if (test "x$have_regex_h" = "xyes"); then
+if (test "$have_regex_h" = "yes"); then
   ac_fn_c_check_func "$LINENO" "regcomp" "ac_cv_func_regcomp"
 if test "x$ac_cv_func_regcomp" = xyes; then :
   have_regcomp="yes"
@@ -10265,7 +10259,7 @@ else
 fi
 
 fi
-if (test "x$have_regex_h" = "xyes") && (test "x$have_regcomp" = "xno"); then
+if (test "$have_regex_h" = "xyes") && (test "x$have_regcomp" = "no"); then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for regcomp in -lregex" >&5
 $as_echo_n "checking for regcomp in -lregex... " >&6; }
 if ${ac_cv_lib_regex_regcomp+:} false; then :
@@ -10318,7 +10312,7 @@ else
 fi
 
 
-if (test "x$have_zlib_h" = "xyes"); then
+if (test "$have_zlib_h" = "yes"); then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for compress2 in -lz" >&5
 $as_echo_n "checking for compress2 in -lz... " >&6; }
 if ${ac_cv_lib_z_compress2+:} false; then :
@@ -10363,7 +10357,7 @@ fi
 
 fi
 
-if (test "x$have_libz" = "xyes"); then
+if (test "$have_libz" = "yes"); then
   CMODULES="lib/framerd/zlib.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-zlib ${INSTALLCMODULES}"
 fi
@@ -10378,7 +10372,7 @@ else
 fi
 
 
-if test "x$with_ziptools" == "xyes"; then
+if test "$with_ziptools" == "yes"; then
   CFLAGS="${CFLAGS} ${LIBZIP_CFLAGS}"
   CPPFLAGS="${CPPFLAGS} ${LIBZIP_CFLAGS}"
   LDFLAGS="${LDFLAGS} ${LIBZIP_LDFLAGS}"
@@ -10390,7 +10384,7 @@ else
 fi
 
 
-  if (test "x$have_zip_h" = "xyes"); then
+  if (test "$have_zip_h" = "yes"); then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip_add in -lzip" >&5
 $as_echo_n "checking for zip_add in -lzip... " >&6; }
 if ${ac_cv_lib_zip_zip_add+:} false; then :
@@ -10491,7 +10485,7 @@ fi
 done
 
   fi
-  if (test "x$have_zip_h" = "xyes") && (test "x$have_libzip" = "xyes"); then
+  if (test "$have_zip_h" = "xyes") && (test "x$have_libzip" = "yes"); then
     CMODULES="lib/framerd/ziptools.$shared_suffix ${CMODULES}"
     INSTALLCMODULES="install-ziptools ${INSTALLCMODULES}"
   fi
@@ -10506,7 +10500,7 @@ else
 fi
 
 
-if test "x$with_tidy" == "xyes"; then
+if test "$with_tidy" == "yes"; then
 ac_fn_c_check_header_mongrel "$LINENO" "tidy/tidy.h" "ac_cv_header_tidy_tidy_h" "$ac_includes_default"
 if test "x$ac_cv_header_tidy_tidy_h" = xyes; then :
   have_tidy_tidy_h="yes"
@@ -10515,7 +10509,7 @@ else
 fi
 
 
-if (test "x$have_tidy_tidy_h" = "xyes"); then
+if (test "$have_tidy_tidy_h" = "yes"); then
   $as_echo "#define HAVE_TIDY_TIDY_H 1" >>confdefs.h
 
   ac_fn_c_check_header_mongrel "$LINENO" "tidy/tidybuffio.h" "ac_cv_header_tidy_tidybuffio_h" "$ac_includes_default"
@@ -10526,7 +10520,7 @@ else
 fi
 
 
-  if (test "x$have_tidy_tidybuffio_h" = "xyes"); then
+  if (test "$have_tidy_tidybuffio_h" = "yes"); then
     $as_echo "#define HAVE_TIDY_TIDYBUFFIO_H 1" >>confdefs.h
 
   fi;
@@ -10539,7 +10533,7 @@ else
 fi
 
 
-  if (test "x$have_tidy_h" = "xyes"); then
+  if (test "$have_tidy_h" = "yes"); then
     $as_echo "#define HAVE_TIDY_H 1" >>confdefs.h
 
     ac_fn_c_check_header_mongrel "$LINENO" "tidybuffio.h" "ac_cv_header_tidybuffio_h" "$ac_includes_default"
@@ -10550,7 +10544,7 @@ else
 fi
 
 
-    if (test "x$have_tidybuffio_h" = "xyes"); then
+    if (test "$have_tidybuffio_h" = "yes"); then
       $as_echo "#define HAVE_TIDYBUFFIO_H 1" >>confdefs.h
 
     fi;
@@ -10788,137 +10782,25 @@ else
   with_fileinfo="yes"
 fi
 
-if test "x$with_fileinfo" = "xyes" ; then
+if test "$with_fileinfo" = "yes" ; then
    definefileinfo="-D_FILEINFO=\"\\\"\`./fileinfo ./$< .\`\\\"\""
    versionsh="include/framerd/versions.h"
 fi
 
 
-# Check whether --with-tcmalloc was given.
-if test "${with_tcmalloc+set}" = set; then :
-  withval=$with_tcmalloc;
+# Check whether --with-gperf was given.
+if test "${with_gperf+set}" = set; then :
+  withval=$with_gperf;
 else
-  with_tcmalloc="no"
+  with_gperf="yes"
 fi
 
-if test "x$with_tcmalloc" != "xno" && test "x$custom_malloc" != "x"; then
-  echo "Sorry, tcmalloc is inconsistent with custom malloc $custom_malloc";
-  exit;
-fi
-if test $with_tcmalloc = "yes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
-$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
-if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_malloc=yes
-else
-  ac_cv_lib_tcmalloc_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
-  HeapProfile
-fi
-
-#  debuglibs="${debuglibs} -ltcmalloc_debug"
-  memtest_prefix=builtin_
-  heaptest_prefix=builtin_
-  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
-  CFLAGS="${CFLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free";
-elif test $with_tcmalloc = "debug"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
-$as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
-if ${ac_cv_lib_tcmalloc_debug_malloc+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltcmalloc_debug  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char malloc ();
-int
-main ()
-{
-return malloc ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tcmalloc_debug_malloc=yes
-else
-  ac_cv_lib_tcmalloc_debug_malloc=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_debug_malloc" >&5
-$as_echo "$ac_cv_lib_tcmalloc_debug_malloc" >&6; }
-if test "x$ac_cv_lib_tcmalloc_debug_malloc" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTCMALLOC_DEBUG 1
-_ACEOF
-
-  LIBS="-ltcmalloc_debug $LIBS"
-
-fi
-
-  heaptest_prefix=builtin_
-  memtest_prefix=builtin_
-  heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
-  memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
-fi
-
-
-# Check whether --with-perftools was given.
-if test "${with_perftools+set}" = set; then :
-  withval=$with_perftools;
-else
-  with_perftools="yes"
-fi
-
-if test "x$with_perftools" != "xno" && test "x$custom_malloc" != "x"; then
+if test "$with_gperf" != "no" && test "$custom_malloc" != ""; then
   echo "Sorry, Google perftools are inconsistent with custom malloc $custom_malloc";
   exit;
 fi
 
-
-if test $with_perftools = "yes"; then
+if test $with_gperf = "yes"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
 $as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
 if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
@@ -10956,12 +10838,17 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
 $as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
 if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
-  HeapProfile
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTCMALLOC 1
+_ACEOF
+
+  LIBS="-ltcmalloc $LIBS"
+
 fi
 
   if test ! "${ac_cv_lib_tcmalloc_malloc}" = "yes"; then
      echo "No tcmalloc, skipping further tests";
-     with_perftools="no";
+     with_gperf="no";
   else
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ProfilerStart in -lprofiler" >&5
 $as_echo_n "checking for ProfilerStart in -lprofiler... " >&6; }
@@ -11039,7 +10926,7 @@ done
     heaptest_env="RUNENV=\"HEAPCHECK=normal PPROF_PATH=${GOOGLE_PPROF}\""
     memtest_env="RUNENV=\"TCMALLOC_DEBUG=5\""
   fi;
-elif test $with_perftools = "debug"; then
+elif test $with_gperf = "debug"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_debug" >&5
 $as_echo_n "checking for malloc in -ltcmalloc_debug... " >&6; }
 if ${ac_cv_lib_tcmalloc_debug_malloc+:} false; then :
@@ -11228,9 +11115,9 @@ _ACEOF
 fi
 
 fi
-if test "x$with_hyphenate" = "xyes" &&
+if test "$with_hyphenate" = "xyes" &&
    test "x$ac_cv_header_hyphen_h" = "xyes" &&
-   test "x$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "xyes"; then
+   test "x$ac_cv_lib_hyphen_hnj_hyphen_hyphenate2" = "yes"; then
   CMODULES="lib/framerd/hyphenate.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-hyphenate ${INSTALLCMODULES}"
   DATAFILES="src/cmodules/hyph_en_US.dic ${DATAFILES}"
@@ -11596,7 +11483,7 @@ else
   with_sundown="yes"
 fi
 
-if test "x$with_sundown" = "xyes"; then
+if test "$with_sundown" = "yes"; then
   CMODULES="lib/framerd/sundown.$shared_suffix ${CMODULES}"
   INSTALLCMODULES="install-sundown ${INSTALLCMODULES}"
 fi
@@ -11616,33 +11503,6 @@ if test $with_profiling = "yes"; then
 else
   PROFILING=""
 fi
-
-
-# Check whether --with-profiler was given.
-if test "${with_profiler+set}" = set; then :
-  withval=$with_profiler;
-else
-  with_profiler="no"
-fi
-
-if test $with_profiler = "yes"; then
-   $as_echo "#define FD_WITH_PROFILER 1" >>confdefs.h
-
-   for ac_header in google/profiler.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "google/profiler.h" "ac_cv_header_google_profiler_h" "$ac_includes_default"
-if test "x$ac_cv_header_google_profiler_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_GOOGLE_PROFILER_H 1
-_ACEOF
-
-fi
-
-done
-
-   LIBS="-lprofiler $LIBS"
-fi
-
 
 # Check whether --enable-prefetching was given.
 if test "${enable_prefetching+set}" = set; then :
@@ -12147,7 +12007,7 @@ else
   with_dns=$dns_default
 fi
 
-if test "x$with_dns" = "xyes"; then
+if test "$with_dns" = "yes"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ldns_resolver_query in -lldns" >&5
 $as_echo_n "checking for ldns_resolver_query in -lldns... " >&6; }
 if ${ac_cv_lib_ldns_ldns_resolver_query+:} false; then :
@@ -12257,7 +12117,7 @@ else
   with_exif=$exif_default
 fi
 
-if test "x$with_exif" = "xyes"; then
+if test "$with_exif" = "yes"; then
   for ac_header in libexif/exif-data.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "libexif/exif-data.h" "ac_cv_header_libexif_exif_data_h" "$ac_includes_default"
@@ -12300,7 +12160,7 @@ else
 fi
 
 
-if (test "x$with_qrcode" = "xyes") && (test "x$have_png_h" = "xyes") && (test "x$have_qrencode_h" = "xyes"); then
+if (test "$with_qrcode" = "xyes") && (test "x$have_png_h" = "xyes") && (test "x$have_qrencode_h" = "yes"); then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for png_create_write_struct in -lpng" >&5
 $as_echo_n "checking for png_create_write_struct in -lpng... " >&6; }
 if ${ac_cv_lib_png_png_create_write_struct+:} false; then :
@@ -13744,7 +13604,7 @@ fi
 chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
 chmod a+x etc/fdconfig
 
-if test "x$enable_ipeval" == "xyes"; then
+if test "$enable_ipeval" == "yes"; then
    echo "+++ You've configured FramerD to use iterated partial evaluation";
    echo "+++ Use of the resulting software may be restricted by patent law. ";
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";
