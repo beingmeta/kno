@@ -1,6 +1,17 @@
 # -*- Mode: Makefile; -*-
-# Copyright (C) 2004, 2005 beingmeta, inc.
-# This file is a part of beingmeta's FramerD implementation, EFramerD.
+# Copyright (C) 2004-2017 beingmeta, inc.
+# This file is a part of beingmeta's FramerD implementation
+
+FD_LOADPATH=../../src/modules/%/module.scm:../../src/modules/%.scm:
+export FD_LOADPATH
+FD_DLOADPATH=../../lib/framerd
+export FD_DLOADPATH
+LD_LIBRARY_PATH=../../lib
+export LD_LIBRARY_PATH
+DYLD_LIBRARY_PATH=../../lib
+export DYLD_LIBRARY_PATH
+PPROF_PATH      = @GOOGLE_PPROF@
+export PPROF_PATH
 
 CC	= @CC@
 XCFLAGS=  
@@ -23,15 +34,6 @@ EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
 		  ../../lib/libfdweb@suffix@.a \
 		  ../../lib/libfdschemeio@suffix@.a
 
-FD_LOADPATH=../../src/modules/%/module.scm:../../src/modules/%.scm:
-export FD_LOADPATH
-FD_DLOADPATH=../../lib/framerd
-export FD_DLOADPATH
-LD_LIBRARY_PATH=../../lib
-export LD_LIBRARY_PATH
-DYLD_LIBRARY_PATH=../../lib
-export DYLD_LIBRARY_PATH
-
 DESTDIR		=
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
@@ -47,7 +49,6 @@ SMALLTESTSIZE	= 64
 TESTCONFIG	= 
 RUNTEST		= $(TESTENV) $(TESTPROG)
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
-PPROF_PATH      = @GOOGLE_PPROF@
 
 TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdservlet fdcgiexec # fdsh
 
