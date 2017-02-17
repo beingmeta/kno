@@ -712,9 +712,18 @@ AC_CHECK_LIB(archive,archive_read_new)
 
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/framerd/libarchive.$shared_suffix ${CMODULES}"
+  CMODULES="lib/framerd/libarchive.${shared_suffix} ${CMODULES}"
   INSTALLCMODULES="install-libarchive ${INSTALLCMODULES}"
 fi
+
+AC_CHECK_HEADERS(leveldb/c.h)
+AC_CHECK_LIB(leveldb,leveldb_open)
+if test "${ac_cv_header_leveldb_c_h}" == "yes" && \
+   test "${ac_cv_lib_leveldb_leveldb_open}" == "yes"; then
+  CMODULES="lib/framerd/leveldb.${shared_suffix} ${CMODULES}"
+  INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
+fi
+
 
 DEFAULT_DLOADPATH="${prefix}/lib/framerd/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/framerd/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/framerd/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/framerd/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/lib%.${shared_suffix}:"
 
@@ -1224,6 +1233,12 @@ fi
 if test "${with_mongodb}" = "yes"; then
    AC_CHECK_FUNCS(mongoc_collection_find_with_opts)
 fi	
+
+AC_ARG_WITH(leveldb,--with-leveldb Build and install LevelDB library,,with_leveldb=$with_leveldb_default)
+if test x$with_leveldb = "xyes"; then
+  CMODULES="lib/framerd/leveldb.$shared_suffix ${CMODULES}"
+  INSTALLCMODULES="install-leveldb ${INSTALLCMODULES}"
+fi
 
 AC_ARG_WITH(fileinfo,--with[out]-fileinfo record fileinfo,,with_fileinfo="yes")
 if test "$with_fileinfo" = "yes" ; then

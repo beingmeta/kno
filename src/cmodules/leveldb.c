@@ -26,12 +26,12 @@
 #include "framerd/fdregex.h"
 #include "framerd/leveldb.h"
 
-#include <leveldb/c.h>
-
 fd_ptr_type fd_leveldb_type;
 
 static ssize_t default_writebuf_size=-1;
+static ssize_t default_cache_size=-1;
 static ssize_t default_block_size=-1;
+static int default_maxfiles=-1;
 static int default_restart_interval=-1;
 static int default_compression=0;
 
@@ -40,9 +40,10 @@ static int default_compression=0;
 /* Initialization */
 
 FD_EXPORT int fd_init_leveldb(void) FD_LIBINIT_FN;
+
 static leveldb_options_t *get_leveldb_options(fdtype opts);
-static leveldb_options_t *get_leveldb_cache(fdtype opts);
-static leveldb_options_t *get_leveldb_env(fdtype opts);
+static leveldb_cache_t *get_leveldb_cache(leveldb_options_t *,fdtype opts);
+static leveldb_env_t *get_leveldb_env(leveldb_options_t *,fdtype opts);
 
 static long long int leveldb_initialized=0;
 
@@ -68,6 +69,12 @@ static fdtype leveldb_open_prim(fdtype path,fdtype opts)
     leveldb_options_destroy(options);
     return FD_ERROR_VALUE;}
 }
+static int unparse_leveldb(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_LEVELDB *db=(fd_leveldb)x;
+  u8_printf(out,"#<LevelDB %s>",db->ldb_path);
+  return 1;
+}
 static void recycle_leveldb(struct FD_CONS *c)
 {
   struct FD_LEVELDB *db=(fd_leveldb)c;
@@ -77,29 +84,34 @@ static void recycle_leveldb(struct FD_CONS *c)
   leveldb_options_destroy(db->cldb_options);
   u8_free(c);
 }
-
+static fdtype leveldbp_prim(fdtype arg)
+{
+  if (FD_TYPEP(arg,fd_leveldb_type))
+    return FD_TRUE;
+  else return FD_FALSE;
+}
 
 static fdtype leveldb_close_prim(fdtype leveldb)
 {
   struct FD_LEVELDB *db=(fd_leveldb)leveldb;
-  leveldb_close(db->ldbptr);
-  db->closed=1;
-  leveldb_free(db->ldbptr);
-  db->ldbptr=NULL;
+  leveldb_close(db->cldb_ptr);
+  db->ldb_closed=1;
+  leveldb_free(db->cldb_ptr);
+  db->cldb_ptr=NULL;
   return FD_TRUE;
 }
 
 static fdtype leveldb_reopen_prim(fdtype leveldb)
 {
   struct FD_LEVELDB *db=(fd_leveldb)leveldb;
-  if (db->closed) {
+  if (db->ldb_closed) {
     char *errmsg;
     leveldb_t *fresh=leveldb_open(db->cldb_options,db->ldb_path,&errmsg);
     if (fresh) {
       db->cldb_ptr=fresh;
-      db->closed=0;}
+      db->ldb_closed=0;}
     else {
-      fd_seterr("OpenFailed","leveldb_reopen_prim",errmsg,opts);
+      fd_seterr("OpenFailed","leveldb_reopen_prim",errmsg,FD_VOID);
       return FD_ERROR_VALUE;}}
   fd_incref(leveldb);
   return leveldb;
@@ -124,7 +136,7 @@ static leveldb_options_t *get_leveldb_options(fdtype opts)
   if (FD_FIXNUMP(bufsize_spec))
     leveldb_options_set_write_buffer_size(ldbopts,FD_FIX2INT(bufsize_spec));
   else if (default_writebuf_size>0)
-    leveldb_options_set_write_buffer_size(ldbopts,default_leveldb_writebuf);
+    leveldb_options_set_write_buffer_size(ldbopts,default_writebuf_size);
   else {}
   if (FD_FIXNUMP(maxfiles_spec))
     leveldb_options_set_max_open_files(ldbopts,FD_FIX2INT(maxfiles_spec));
@@ -149,7 +161,7 @@ static leveldb_options_t *get_leveldb_options(fdtype opts)
   return ldbopts;
 }
 
-static leveldb_cache_t *get_leveldb_cache(leveldb_options_t *o,fdtype opts)
+static leveldb_cache_t *get_leveldb_cache(leveldb_options_t *ldbopts,fdtype opts)
 {
   fdtype cache_size=fd_getopt(opts,SYM("CACHESIZE"),FD_VOID);
   leveldb_cache_t *cache=NULL;
@@ -158,11 +170,11 @@ static leveldb_cache_t *get_leveldb_cache(leveldb_options_t *o,fdtype opts)
   else if (default_cache_size>0)
       cache=leveldb_cache_create_lru(default_cache_size);
   else cache=NULL;
-  if (cache) leveldb_options_set_cache(o,cache);
+  if (cache) leveldb_options_set_cache(ldbopts,cache);
   return cache;
 }
 
-static leveldb_env_t *get_leveldb_env(leveldb_options_t *o,fdtype opts)
+static leveldb_env_t *get_leveldb_env(leveldb_options_t *ldbopts,fdtype opts)
 {
   leveldb_env_t *env=leveldb_create_default_env();
   leveldb_options_set_env(ldbopts,env);
@@ -178,7 +190,7 @@ static leveldb_readoptions_t *get_read_options(struct FD_LEVELDB *db,fdtype opts
   else if (FD_VOIDP(db->ldb_options))
     opts=opts_arg;
   else {
-    opts=fd_make_pair(NULL,opts_arg,db->dlb_opts);
+    opts=fd_make_pair(opts_arg,db->ldb_options);
     free_opts=1;}
   leveldb_readoptions_t *readopts=leveldb_readoptions_create();
   if (free_opts) fd_decref(opts);
@@ -194,7 +206,7 @@ static leveldb_writeoptions_t *get_write_options(struct FD_LEVELDB *db,fdtype op
   else if (FD_VOIDP(db->ldb_options))
     opts=opts_arg;
   else {
-    opts=fd_make_pair(NULL,opts_arg,db->ldb_options);
+    opts=fd_make_pair(opts_arg,db->ldb_options);
     free_opts=1;}
   leveldb_writeoptions_t *writeopts=leveldb_writeoptions_create();
   if (free_opts) fd_decref(opts);
@@ -211,7 +223,7 @@ static fdtype leveldb_get_prim(fdtype leveldb,fdtype key,fdtype opts)
   if (FD_PACKETP(key)) {
     ssize_t binary_size;
     unsigned char *binary_data=
-      leveldb_get(db,readopts,
+      leveldb_get(db->cldb_ptr,readopts,
 		  FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
 		  &binary_size,&errmsg);
     if (readopts) leveldb_readoptions_destroy(readopts);
@@ -224,9 +236,11 @@ static fdtype leveldb_get_prim(fdtype leveldb,fdtype key,fdtype opts)
     struct FD_BYTE_OUTPUT keyout; FD_INIT_BYTE_OUTPUT(&keyout,1024);
     if (fd_write_dtype(&keyout,key)>0) {
       fdtype result=FD_VOID;
+      ssize_t binary_size;
       unsigned char *binary_data=
-	leveldb_get(db,readopts,
-		    keyout.bs_outbuf,keyout.bs_outptr-keyout.bs_outbuf,
+	leveldb_get(db->cldb_ptr,readopts,
+		    keyout.bs_bufstart,
+		    keyout.bs_bufptr-keyout.bs_bufstart,
 		    &binary_size,&errmsg);
       u8_free(keyout.bs_bufstart);
       if (binary_data==NULL) {
@@ -254,7 +268,7 @@ static fdtype leveldb_put_prim(fdtype leveldb,fdtype key,fdtype value,
   leveldb_writeoptions_t *writeopts=get_write_options(db,opts);
   if ((FD_PACKETP(key))&&(FD_PACKETP(value))) {
     ssize_t binary_size;
-    leveldb_put(db,writeopts,
+    leveldb_put(db->cldb_ptr,writeopts,
 		FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
 		FD_PACKET_DATA(value),FD_PACKET_LENGTH(value),
 		&errmsg);
@@ -270,16 +284,18 @@ static fdtype leveldb_put_prim(fdtype leveldb,fdtype key,fdtype value,
       u8_free(keyout.bs_bufstart);
       u8_free(valout.bs_bufstart);
       return FD_ERROR_VALUE;}
-    else if (fd_write_dtype(&valout,key)<0) {
+    else if (fd_write_dtype(&valout,value)<0) {
       if (writeopts) leveldb_writeoptions_destroy(writeopts);
       u8_free(keyout.bs_bufstart);
       u8_free(valout.bs_bufstart);
       return FD_ERROR_VALUE;}
     else {
-      leveldb_put(db,writeopts,
+      leveldb_put(db->cldb_ptr,writeopts,
 		  keyout.bs_bufstart,keyout.bs_bufptr-keyout.bs_bufstart,
 		  valout.bs_bufstart,valout.bs_bufptr-valout.bs_bufstart,
 		  &errmsg);
+      u8_free(keyout.bs_bufstart);
+      u8_free(valout.bs_bufstart);
       if (writeopts) leveldb_writeoptions_destroy(writeopts);
       if (errmsg)
 	return fd_err("LevelDBError","leveldb_put_prim",errmsg,FD_VOID);
@@ -294,9 +310,55 @@ FD_EXPORT int fd_init_leveldb()
   if (leveldb_initialized) return 0;
   leveldb_initialized=u8_millitime();
 
+  fd_leveldb_type=fd_register_cons_type("leveldb");
+  fd_unparsers[fd_leveldb_type]=unparse_leveldb;
+  fd_recyclers[fd_leveldb_type]=recycle_leveldb;
+  fd_type_names[fd_leveldb_type]="LevelDB";
+
   module=fd_new_module("LEVELDB",0);
 
-  fd_leveldb_type=fd_register_cons_type("leveldb");
+  fd_idefn(module,fd_make_cprim2x("LEVELDB/OPEN",leveldb_open_prim,1,
+				  fd_string_type,FD_VOID,
+				  -1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("LEVELDB?",leveldbp_prim,1,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("LEVELDB/CLOSE",leveldb_close_prim,1,
+				  fd_leveldb_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim1x("LEVELDB/REOPEN",leveldb_reopen_prim,1,
+				  fd_leveldb_type,FD_VOID));
+  fd_idefn(module,fd_make_cprim3x("LEVELDB/GET",leveldb_get_prim,2,
+				  fd_leveldb_type,FD_VOID,
+				  -1,FD_VOID,-1,FD_VOID));
+  fd_idefn(module,fd_make_cprim4x("LEVELDB/PUT!",leveldb_put_prim,3,
+				  fd_leveldb_type,FD_VOID,
+				  -1,FD_VOID,-1,FD_VOID,
+				  -1,FD_VOID));
+  fd_register_config("LEVELDB:WRITEBUF",
+                     "Default writebuf size for leveldb",
+                     fd_sizeconfig_get,fd_sizeconfig_set,
+		     &default_writebuf_size);
+  fd_register_config("LEVELDB:BLOCKSIZE",
+                     "Default block size for leveldb",
+                     fd_sizeconfig_get,fd_sizeconfig_set,
+		     &default_block_size);
+  fd_register_config("LEVELDB:CACHESIZE",
+                     "Default block size for leveldb",
+                     fd_sizeconfig_get,fd_sizeconfig_set,
+		     &default_cache_size);
+  fd_register_config("LEVELDB:MAXFILES",
+                     "The maximnum number of file descriptions LevelDB may open",
+                     fd_intconfig_get,fd_intconfig_set,
+		     &default_maxfiles);
+  fd_register_config("LEVELDB:COMPRESS",
+                     "Whether to compress data stored in leveldb",
+                     fd_boolconfig_get,fd_boolconfig_set,
+		     &default_compression);
+  fd_register_config("LEVELDB:RESTART",
+                     "The restart interval for leveldb",
+                     fd_intconfig_get,fd_intconfig_set,
+		     &default_restart_interval);
+
+  fd_finish_module(module);
+
   u8_register_source_file(_FILEINFO);
 
   return 1;

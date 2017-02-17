@@ -86,7 +86,7 @@ DB_HEADERS=\
 DBFILE_HEADERS=include/framerd/dbfile.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
 LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
-		include/framerd/mongodb.h
+		include/framerd/mongodb.h include/framerd/leveldb.h
 
 # Headers which don't live in include/framerd
 SRC_HEADERS=src/dtype/biginternals.h src/scheme/eval_internals.h \
@@ -900,17 +900,25 @@ src/cmodules/crypto.o: src/cmodules/crypto.c
 lib/framerd/crypto.so: src/cmodules/crypto.o ${MODULE_SO}
 lib/framerd/crypto.dylib: src/cmodules/crypto.o
 
+lib/framerd/odbc.o: src/cmodules/odbc.c
 lib/framerd/odbc.so: src/cmodules/odbc.o ${MODULE_SO}
 lib/framerd/odbc.dylib: src/cmodules/odbc.o
 
+lib/framerd/sqlite.o: src/cmodules/sqlite.c
 lib/framerd/sqlite.so: src/cmodules/sqlite.o ${MODULE_SO}
 lib/framerd/sqlite.dylib: src/cmodules/sqlite.o
 
+lib/framerd/qrcode.o: src/cmodules/qrcode.c
 lib/framerd/qrcode.so: src/cmodules/qrcode.o ${MODULE_SO}
 lib/framerd/qrcode.dylib: src/cmodules/qrcode.o
 
+lib/framerd/zlib.o: src/cmodules/zlib.c
 lib/framerd/zlib.so: src/cmodules/zlib.o ${MODULE_SO}
 lib/framerd/zlib.dylib: src/cmodules/zlib.o
+
+lib/framerd/leveldb.o: src/cmodules/leveldb.c
+lib/framerd/leveldb.so: src/cmodules/leveldb.o ${MODULE_SO}
+lib/framerd/leveldb.dylib: src/cmodules/leveldb.o
 
 lib/framerd/sundown.so: src/cmodules/sundown/sundown.c \
 		$(SUNDOWN_OBJECTS) $(MODULE_SO)
@@ -1215,6 +1223,7 @@ install-ziptools: ${CMODULES}/ziptools.@shared_suffix@ ${CMODULES}/ziptools.@vsh
 install-tidy: ${CMODULES}/tidy.@shared_suffix@ ${CMODULES}/tidy.@vshared_suffix@
 install-imagick: ${CMODULES}/imagick.@shared_suffix@ ${CMODULES}/imagick.@vshared_suffix@
 install-mongodb: ${CMODULES}/mongodb.@shared_suffix@ ${CMODULES}/mongodb.@vshared_suffix@
+install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
 install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
 install-exif: ${CMODULES}/exif.@shared_suffix@ ${CMODULES}/exif.@vshared_suffix@
 install-zlib: ${CMODULES}/zlib.@shared_suffix@ ${CMODULES}/zlib.@vshared_suffix@
