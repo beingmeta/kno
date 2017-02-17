@@ -41,13 +41,13 @@ typedef enum FD_DTSTREAM_MODE {
 } fd_dtstream_mode;
 
 typedef struct FD_DTYPE_STREAM {
-  unsigned char *fd_bufstart, *fd_bufptr, *fd_buflim;
-  int fd_dts_flags;
-  int (*fd_dts_fillfn)(struct FD_DTYPE_STREAM *,int);
-  int (*fd_dts_flushfn)(struct FD_DTYPE_STREAM *);
-  u8_string fd_dtsid; int fd_mallocd, fd_bufsiz;
-  fd_off_t fd_filepos, fd_maxpos; 
-  u8_mutex fd_lock;
+  unsigned char *bs_bufstart, *bs_bufptr, *bs_buflim;
+  int bs_flags;
+  int (*bs_fillfn)(struct FD_DTYPE_STREAM *,int);
+  int (*bs_flushfn)(struct FD_DTYPE_STREAM *);
+  u8_string dts_idstring; int dts_mallocd, dts_bufsiz;
+  fd_off_t dts_diskpos, dts_maxpos;
+  u8_mutex stream_lock;
   int fd_fileno;} FD_DTYPE_STREAM;
 typedef struct FD_DTYPE_STREAM *fd_dtype_stream;
 
@@ -64,7 +64,7 @@ FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
   fd_open_dtype_file_x(filename,mode,FD_DTSTREAM_BUFSIZ_DEFAULT)
 
 #define FD_DTS_UNLOCK 1
-#define FD_DTS_LOCKED 0
+#define FD_STREAM_LOCKED 0
 
 #define FD_DTS_FREE    1
 #define FD_DTS_NOCLOSE 2
@@ -84,19 +84,19 @@ FD_EXPORT ssize_t fd_add_dtype_to_file(fdtype obj,u8_string filename);
 FD_EXPORT fd_off_t _fd_getpos(fd_dtype_stream s);
 FD_EXPORT fd_off_t _dts_getpos(fd_dtype_stream s,int unlock);
 #define fd_getpos(s) \
-  ((((s)->fd_dts_flags)&FD_DTSTREAM_CANSEEK) ?				\
-   ((((s)->fd_filepos)>=0) ?						\
+  ((((s)->bs_flags)&FD_DTSTREAM_CANSEEK) ?				\
+   ((((s)->dts_diskpos)>=0) ?						\
     ((FD_DTS_ISREADING(s)) ?						\
-     (((s)->fd_filepos)-(((s)->fd_buflim)-((s)->fd_bufptr))) :		\
-     (((s)->fd_filepos)+(((s)->fd_bufptr)-((s)->fd_bufstart)))) :	\
+     (((s)->dts_diskpos)-(((s)->bs_buflim)-((s)->bs_bufptr))) :		\
+     (((s)->dts_diskpos)+(((s)->bs_bufptr)-((s)->bs_bufstart)))) :	\
     (_fd_getpos(s)))							\
    : (-1))
 #define dts_getpos(s,unlock)						\
-  ((((s)->fd_dts_flags)&FD_DTSTREAM_CANSEEK) ?				\
-   ((((s)->fd_filepos)>=0) ?						\
+  ((((s)->bs_flags)&FD_DTSTREAM_CANSEEK) ?				\
+   ((((s)->dts_diskpos)>=0) ?						\
     ((FD_DTS_ISREADING(s)) ?						\
-     (((s)->fd_filepos)-(((s)->fd_buflim)-((s)->fd_bufptr))) :		\
-     (((s)->fd_filepos)+(((s)->fd_bufptr)-((s)->fd_bufstart)))) :	\
+     (((s)->dts_diskpos)-(((s)->bs_buflim)-((s)->bs_bufptr))) :		\
+     (((s)->dts_diskpos)+(((s)->bs_bufptr)-((s)->bs_bufstart)))) :	\
     (_dts_getpos(s,unlock)))						\
    : (-1))
 
@@ -117,23 +117,23 @@ FD_EXPORT void dts_unlock(struct FD_DTYPE_STREAM *s);
 FD_EXPORT int fd_dts_lockfile(fd_dtype_stream s);
 FD_EXPORT int fd_dts_unlockfile(fd_dtype_stream s);
 
-#define FD_DTS_ISREADING(s) (U8_BITP((s->fd_dts_flags),(FD_DTSTREAM_READING)))
-#define FD_DTS_ISWRITING(s) (!(U8_BITP((s->fd_dts_flags),(FD_DTSTREAM_READING))))
-#define FD_DTS_CANSEEK(s) (!(U8_BITP((s->fd_dts_flags),(FD_DTSTREAM_CANSEEK))))
+#define FD_DTS_ISREADING(s) (U8_BITP((s->bs_flags),(FD_DTSTREAM_READING)))
+#define FD_DTS_ISWRITING(s) (!(U8_BITP((s->bs_flags),(FD_DTSTREAM_READING))))
+#define FD_DTS_CANSEEK(s) (!(U8_BITP((s->bs_flags),(FD_DTSTREAM_CANSEEK))))
 
 FD_EXPORT void fd_dtsbufsize(fd_dtype_stream s,int bufsiz);
 
 #define fd_dts_start_read(s)			      \
-  if ((((s)->fd_dts_flags)&FD_DTSTREAM_READING) == 0) \
+  if ((((s)->bs_flags)&FD_DTSTREAM_READING) == 0) \
     if (fd_set_read(s,1)<0) return -1;
 #define fd_dts_start_write(s)		       \
-  if (((s)->fd_dts_flags)&FD_DTSTREAM_READING) \
+  if (((s)->bs_flags)&FD_DTSTREAM_READING) \
     if (fd_set_read(s,0)<0) return -1;
 #define dts_start_read(s,unlock)			      \
-  if ((((s)->fd_dts_flags)&FD_DTSTREAM_READING) == 0) \
+  if ((((s)->bs_flags)&FD_DTSTREAM_READING) == 0) \
     if (dts_set_read(s,1,unlock)<0) return -1;
 #define dts_start_write(s,unlock)		       \
-  if (((s)->fd_dts_flags)&FD_DTSTREAM_READING) \
+  if (((s)->bs_flags)&FD_DTSTREAM_READING) \
     if (dts_set_read(s,0,unlock)<0) return -1;
 
 /* Readers and writers */
@@ -188,7 +188,7 @@ FD_FASTOP int fd_dtsread_byte(fd_dtype_stream s)
 {
   fd_dts_start_read(s);
   if (fd_needs_bytes((fd_byte_input)s,1))
-    return (*(s->fd_bufptr++));
+    return (*(s->bs_bufptr++));
   else return -1;
 }
 
@@ -196,7 +196,7 @@ FD_FASTOP int fd_dtsprobe_byte(fd_dtype_stream s)
 {
   fd_dts_start_read(s);
   if (fd_needs_bytes((fd_byte_input)s,1))
-    return (*(s->fd_bufptr));
+    return (*(s->bs_bufptr));
   else return -1;
 }
 
@@ -204,8 +204,8 @@ FD_FASTOP unsigned int fd_dtsread_4bytes(fd_dtype_stream s)
 {
   fd_dts_start_read(s);
   if (fd_needs_bytes((fd_byte_input)s,4)) {
-    unsigned int bytes=fd_get_4bytes(s->fd_bufptr);
-    s->fd_bufptr=s->fd_bufptr+4;
+    unsigned int bytes=fd_get_4bytes(s->bs_bufptr);
+    s->bs_bufptr=s->bs_bufptr+4;
     return bytes;}
   else {
     fd_whoops(fd_UnexpectedEOD);
@@ -216,8 +216,8 @@ FD_FASTOP fd_8bytes fd_dtsread_8bytes(fd_dtype_stream s)
 {
   fd_dts_start_read(s);
   if (fd_needs_bytes((fd_byte_input)s,8)) {
-    fd_8bytes bytes=fd_get_8bytes(s->fd_bufptr);
-    s->fd_bufptr=s->fd_bufptr+8;
+    fd_8bytes bytes=fd_get_8bytes(s->bs_bufptr);
+    s->bs_bufptr=s->bs_bufptr+8;
     return bytes;}
   else {
     fd_whoops(fd_UnexpectedEOD);
@@ -231,20 +231,20 @@ FD_FASTOP int fd_dtsread_bytes
   /* This is special because we don't use the intermediate buffer
      if the data isn't fully buffered. */
   if (fd_has_bytes(s,len)) {
-    memcpy(bytes,s->fd_bufptr,len);
-    s->fd_bufptr=s->fd_bufptr+len;
+    memcpy(bytes,s->bs_bufptr,len);
+    s->bs_bufptr=s->bs_bufptr+len;
     return len;}
    else return _fd_dtsread_bytes(s,bytes,len);
 }
 FD_FASTOP int dts_read_bytes
    (fd_dtype_stream s,unsigned char *bytes,int len,u8_mutex *unlock)
 {
-  dts_start_read(s,FD_DTS_LOCKED);
+  dts_start_read(s,FD_STREAM_LOCKED);
   /* This is special because we don't use the intermediate buffer
      if the data isn't fully buffered. */
   if (fd_has_bytes(s,len)) {
-    memcpy(bytes,s->fd_bufptr,len);
-    s->fd_bufptr=s->fd_bufptr+len;
+    memcpy(bytes,s->bs_bufptr,len);
+    s->bs_bufptr=s->bs_bufptr+len;
     if (unlock) u8_unlock_mutex(unlock);
     return len;}
   else return _dts_read_bytes(s,bytes,len,unlock);
@@ -254,8 +254,8 @@ FD_FASTOP fd_off_t fd_dtsread_off_t(fd_dtype_stream s)
 {
   fd_dts_start_read(s);
   if (fd_needs_bytes((fd_byte_input)s,4)) {
-    unsigned int bytes=fd_get_4bytes(s->fd_bufptr);
-    s->fd_bufptr=s->fd_bufptr+4;
+    unsigned int bytes=fd_get_4bytes(s->bs_bufptr);
+    s->bs_bufptr=s->bs_bufptr+4;
     return (fd_off_t) bytes;}
   else return (fd_off_t) -1;
 }
@@ -283,37 +283,37 @@ FD_FASTOP fd_8bytes fd_dtsread_zint8(fd_dtype_stream s)
 FD_FASTOP int fd_dtswrite_byte(fd_dtype_stream s,int b)
 {
   fd_dts_start_write(s);
-  if (s->fd_bufptr>=s->fd_buflim)
+  if (s->bs_bufptr>=s->bs_buflim)
     if (fd_dtsflush(s)<0) return -1;
-  *(s->fd_bufptr++)=b;
+  *(s->bs_bufptr++)=b;
   return 1;
 }
 
 FD_FASTOP int fd_dtswrite_4bytes(fd_dtype_stream s,unsigned int w)
 {
   fd_dts_start_write(s);
-  if (s->fd_bufptr+4>=s->fd_buflim)
+  if (s->bs_bufptr+4>=s->bs_buflim)
     if (fd_dtsflush(s)<0) return -1;
-  *(s->fd_bufptr++)=w>>24;
-  *(s->fd_bufptr++)=((w>>16)&0xFF);
-  *(s->fd_bufptr++)=((w>>8)&0xFF);
-  *(s->fd_bufptr++)=((w>>0)&0xFF);
+  *(s->bs_bufptr++)=w>>24;
+  *(s->bs_bufptr++)=((w>>16)&0xFF);
+  *(s->bs_bufptr++)=((w>>8)&0xFF);
+  *(s->bs_bufptr++)=((w>>0)&0xFF);
   return 4;
 }
 
 FD_FASTOP int fd_dtswrite_8bytes(fd_dtype_stream s,unsigned long long w)
 {
   fd_dts_start_write(s);
-  if (s->fd_bufptr+8>=s->fd_buflim)
+  if (s->bs_bufptr+8>=s->bs_buflim)
     if (fd_dtsflush(s)<0) return -1;
-  *(s->fd_bufptr++)=((w>>56)&0xFF);
-  *(s->fd_bufptr++)=((w>>48)&0xFF);
-  *(s->fd_bufptr++)=((w>>40)&0xFF);
-  *(s->fd_bufptr++)=((w>>32)&0xFF);
-  *(s->fd_bufptr++)=((w>>24)&0xFF);
-  *(s->fd_bufptr++)=((w>>16)&0xFF);
-  *(s->fd_bufptr++)=((w>>8)&0xFF);
-  *(s->fd_bufptr++)=((w>>0)&0xFF);
+  *(s->bs_bufptr++)=((w>>56)&0xFF);
+  *(s->bs_bufptr++)=((w>>48)&0xFF);
+  *(s->bs_bufptr++)=((w>>40)&0xFF);
+  *(s->bs_bufptr++)=((w>>32)&0xFF);
+  *(s->bs_bufptr++)=((w>>24)&0xFF);
+  *(s->bs_bufptr++)=((w>>16)&0xFF);
+  *(s->bs_bufptr++)=((w>>8)&0xFF);
+  *(s->bs_bufptr++)=((w>>0)&0xFF);
   return 8;
 }
 
@@ -321,12 +321,12 @@ FD_FASTOP int dts_write_bytes
   (fd_dtype_stream s,const unsigned char *bytes,int n)
 {
   fd_dts_start_write(s);
-  if (s->fd_bufptr+n>=s->fd_buflim)
+  if (s->bs_bufptr+n>=s->bs_buflim)
     if (fd_dtsflush(s)<0) return -1;
-  if (s->fd_bufptr+n>=s->fd_buflim)
+  if (s->bs_bufptr+n>=s->bs_buflim)
     return _dts_write_bytes(s,bytes,n);
   else {
-    memcpy(s->fd_bufptr,bytes,n); s->fd_bufptr=s->fd_bufptr+n;}
+    memcpy(s->bs_bufptr,bytes,n); s->bs_bufptr=s->bs_bufptr+n;}
   return n;
 }
 static U8_MAYBE_UNUSED int fd_dtswrite_zint(fd_dtype_stream s,unsigned int n)

@@ -864,12 +864,12 @@ static int webservefn(u8_client ucl)
 
   /* Reset the streams */
   outstream->u8_write=outstream->u8_outbuf;
-  stream->fd_bufptr=stream->fd_buflim=stream->fd_bufstart;
+  stream->bs_bufptr=stream->bs_buflim=stream->bs_bufstart;
   /* Handle async reading (where the server buffers incoming and outgoing data) */
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
     /* We got the whole payload, set up the stream
        for reading it without waiting.  */
-    stream->fd_buflim=stream->fd_bufstart+client->len;}
+    stream->bs_buflim=stream->bs_bufstart+client->len;}
   else if (client->reading>0)
     /* We shouldn't get here, but just in case.... */
     return 1;
@@ -886,7 +886,7 @@ static int webservefn(u8_client ucl)
     fd_dts_start_read(stream);
     if ((async)&&
         (havebytes((fd_byte_input)stream,1))&&
-        ((*(stream->fd_bufptr))==dt_block)) {
+        ((*(stream->bs_bufptr))==dt_block)) {
       /* If we can be asynchronous, let's try */
       int U8_MAYBE_UNUSED dtcode=fd_dtsread_byte(stream);
       int nbytes=fd_dtsread_4bytes(stream);
@@ -895,15 +895,15 @@ static int webservefn(u8_client ucl)
       else {
         int need_size=5+nbytes;
         /* Allocate enough space for what we need to read */
-        if (stream->fd_bufsiz<need_size) {
+        if (stream->dts_bufsiz<need_size) {
           fd_grow_byte_input((fd_byte_input)stream,need_size);
-          stream->fd_bufsiz=need_size;}
+          stream->dts_bufsiz=need_size;}
         /* Set up the client for async input */
-        if (u8_client_read(ucl,stream->fd_bufstart,5+nbytes,
-                           (stream->fd_buflim-stream->fd_bufstart))) {
+        if (u8_client_read(ucl,stream->bs_bufstart,5+nbytes,
+                           (stream->bs_buflim-stream->bs_bufstart))) {
           /* We got the whole payload, set up the stream
              for reading it without waiting.  */
-          stream->fd_buflim=stream->fd_bufstart+client->len;}
+          stream->bs_buflim=stream->bs_bufstart+client->len;}
         else return 1;}}
     else {}}
   /* Do this ASAP to avoid session leakage */

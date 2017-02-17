@@ -56,13 +56,14 @@ typedef struct FD_POOL_OPENER *fd_pool_opener;
 
 typedef struct FD_FILE_POOL {
   FD_POOL_FIELDS;
-  time_t fd_modtime;
-  unsigned int pool_load, *fd_offsets, fd_offsets_size;
-  struct FD_DTYPE_STREAM fd_stream;
-  U8_MUTEX_DECL(fd_lock);} FD_FILE_POOL;
+  time_t pool_modtime;
+  unsigned int pool_load, *pool_offsets, pool_offsets_size;
+  struct FD_DTYPE_STREAM pool_stream;
+  U8_MUTEX_DECL(pool_lock);} FD_FILE_POOL;
 typedef struct FD_FILE_POOL *fd_file_pool;
 
-#define FD_FILE_POOL_LOCKED(fp) (((fp)->fd_stream.fd_dts_flags)&FD_DTSTREAM_LOCKED)
+#define FD_FILE_POOL_LOCKED(fp) \
+  (((fp)->pool_stream.bs_flags)&FD_DTSTREAM_LOCKED)
 
 typedef struct FD_SCHEMA_TABLE {
   int fdst_index;
@@ -72,13 +73,13 @@ typedef struct FD_SCHEMA_TABLE *fd_schema_table;
 
 typedef struct FD_ZPOOL {
   FD_POOL_FIELDS;
-  time_t fd_modtime;
-  unsigned int pool_load, *fd_offsets, fd_offsets_size;
-  struct FD_DTYPE_STREAM fd_stream;
+  time_t pool_modtime;
+  unsigned int pool_load, *pool_offsets, pool_offsets_size;
+  struct FD_DTYPE_STREAM pool_stream;
   int pool_n_schemas;
   struct FD_SCHEMA_TABLE *pool_schemas, *pool_pool_schemas_byptr;
   struct FD_SCHEMA_TABLE *pool_schemas_byval;
-  U8_MUTEX_DECL(fd_lock);} FD_ZPOOL;
+  U8_MUTEX_DECL(pool_lock);} FD_ZPOOL;
 typedef struct FD_ZPOOL *fd_zpool;
 
 /* OID Pools */
@@ -104,17 +105,17 @@ typedef struct FD_SCHEMA_LOOKUOP *fd_schema_lookup;
 
 typedef struct FD_OIDPOOL {
   FD_POOL_FIELDS;
-  unsigned int fdb_xformat;
-  fd_offset_type fdb_offtype;
-  fd_compression_type fd_compression;
-  time_t fd_modtime;
+  unsigned int pool_xformat;
+  fd_offset_type pool_offtype;
+  fd_compression_type pool_compression;
+  time_t pool_modtime;
   int pool_n_schemas, pool_max_slotids;
   struct FD_SCHEMA_ENTRY *pool_schemas;
   struct FD_SCHEMA_LOOKUP *pool_schbyval;
-  unsigned int pool_load, *fd_offsets, fd_offsets_size;
-  struct FD_DTYPE_STREAM fd_stream;
-  size_t fd_mmap_size; unsigned char *fd_mmap;
-  U8_MUTEX_DECL(fd_lock);} FD_OIDPOOL;
+  unsigned int pool_load, *pool_offsets, pool_offsets_size;
+  struct FD_DTYPE_STREAM pool_stream;
+  size_t pool_mmap_size; unsigned char *pool_mmap;
+  U8_MUTEX_DECL(pool_lock);} FD_OIDPOOL;
 typedef struct FD_OIDPOOL *fd_oidpool;
 
 FD_EXPORT fdtype fd_read_pool_metadata(struct FD_DTYPE_STREAM *ds);
@@ -167,18 +168,18 @@ FD_EXPORT int fd_file_indexp(u8_string filename);
 
 typedef struct FD_FILE_INDEX {
   FD_INDEX_FIELDS;
-  unsigned int fd_n_slots, fd_hashv, *fd_offsets;
-  struct FD_DTYPE_STREAM fd_stream;
+  unsigned int index_n_slots, index_hashv, *index_offsets;
+  struct FD_DTYPE_STREAM index_stream;
   fdtype slotids;
-  U8_MUTEX_DECL(fd_lock);} FD_FILE_INDEX;
+  U8_MUTEX_DECL(index_lock);} FD_FILE_INDEX;
 typedef struct FD_FILE_INDEX *fd_file_index;
 
 typedef struct FD_ZINDEX {
   FD_INDEX_FIELDS;
-  unsigned int fd_n_slots, fd_hashv, *fd_offsets;
-  struct FD_DTYPE_STREAM fd_stream;
+  unsigned int index_n_slots, index_hashv, *index_offsets;
+  struct FD_DTYPE_STREAM index_stream;
   fdtype slotids; FD_OID *index_baseoids; int index_n_baseoids;
-  U8_MUTEX_DECL(fd_lock);} FD_ZINDEX;
+  U8_MUTEX_DECL(index_lock);} FD_ZINDEX;
 typedef struct FD_ZINDEX *fd_zindex;
 
 FD_EXPORT fdtype fd_read_index_metadata(struct FD_DTYPE_STREAM *ds);
@@ -215,13 +216,13 @@ typedef struct FD_BASEOID_LOOKUP *fd_baseoid_lookup;
 
 typedef struct FD_HASH_INDEX {
   FD_INDEX_FIELDS;
-  U8_MUTEX_DECL(fd_lock);
+  U8_MUTEX_DECL(index_lock);
 
   /* flags controls hash functions, compression, etc.
      hxcustom is a placeholder for a value to customize
      the hash function. */
   unsigned int fdb_xformat, index_custom, table_n_keys;
-  fd_offset_type fdb_offtype;
+  fd_offset_type index_offtype;
 
   /* This is used to store compressed keys and values. */
   int index_n_slotids, index_new_slotids; fdtype *index_slotids;
@@ -235,9 +236,9 @@ typedef struct FD_HASH_INDEX {
 
   /* The stream accessing the file.  This is only used
      for modification if the file is memmaped. */
-  struct FD_DTYPE_STREAM fd_stream;
+  struct FD_DTYPE_STREAM index_stream;
   /* When non-null, a memmapped pointer to the file contents. */
-  size_t fd_mmap_size; unsigned char *fd_mmap;} FD_HASH_INDEX;
+  size_t index_mmap_size; unsigned char *index_mmap;} FD_HASH_INDEX;
 typedef struct FD_HASH_INDEX *fd_hash_index;
 
 FD_EXPORT int fd_populate_hash_index

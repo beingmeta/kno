@@ -157,23 +157,23 @@ static fdtype read_metadata(struct FD_DTYPE_STREAM *ds,fd_off_t mdblockpos)
     fd_store(metadata,rev_symbol,FD_INT(rev));
     return metadata;}
   else if (mdversion!=0xFFFFFFFE)
-    return fd_err(fd_BadMetaData,NULL,u8_strdup(ds->fd_dtsid),FD_VOID);
+    return fd_err(fd_BadMetaData,NULL,u8s(ds->dts_idstring),FD_VOID);
   fd_dtsread_4bytes(ds); /* meta data length */
   rev=fd_dtsread_4bytes(ds);
   timehi=fd_dtsread_4bytes(ds);
   timelo=fd_dtsread_4bytes(ds);
   if (timehi)
-    return fd_err(fd_BadMetaData,"time warp",u8_strdup(ds->fd_dtsid),FD_VOID);
+    return fd_err(fd_BadMetaData,"time warp",u8s(ds->dts_idstring),FD_VOID);
   u8_init_xtime(&_gentime,timelo,u8_second,0,0,0);
   timehi=fd_dtsread_4bytes(ds);
   timelo=fd_dtsread_4bytes(ds);
   if (timehi)
-    return fd_err(fd_BadMetaData,"time warp",u8_strdup(ds->fd_dtsid),FD_VOID);
+    return fd_err(fd_BadMetaData,"time warp",u8s(ds->dts_idstring),FD_VOID);
   u8_init_xtime(&_packtime,timelo,u8_second,0,0,0);
   timehi=fd_dtsread_4bytes(ds);
   timelo=fd_dtsread_4bytes(ds);
   if (timehi)
-    return fd_err(fd_BadMetaData,"time warp",u8_strdup(ds->fd_dtsid),FD_VOID);
+    return fd_err(fd_BadMetaData,"time warp",u8s(ds->dts_idstring),FD_VOID);
   u8_init_xtime(&_modtime,timelo,u8_second,0,0,0);
   mdpos=fd_dtsread_4bytes(ds);
   if (mdpos) {
@@ -235,7 +235,7 @@ static fdtype write_metadata(fd_dtype_stream ds,fd_off_t mdblockpos,fdtype metad
   fd_setpos(ds,mdblockpos);
   mdversion=fd_dtsread_4bytes(ds);
   if (mdversion != 0xFFFFFFFE)
-    return fd_err(fd_BadMetaData,NULL,u8_strdup(ds->fd_dtsid),FD_VOID);
+    return fd_err(fd_BadMetaData,NULL,u8s(ds->dts_idstring),FD_VOID);
   fd_dtswrite_4bytes(ds,40);
   fd_dtswrite_4bytes(ds,rev);
   fd_dtswrite_4bytes(ds,0);
@@ -286,11 +286,11 @@ int fd_make_file_pool
   struct FD_DTYPE_STREAM *stream=
     fd_init_dtype_file_stream(&_stream,filename,FD_DTSTREAM_CREATE,8192);
   if (stream==NULL) return -1;
-  else if ((stream->fd_dts_flags)&FD_DTSTREAM_READ_ONLY) {
+  else if ((stream->bs_flags)&FD_DTSTREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_pool",u8_strdup(filename));
     fd_dtsclose(stream,FD_DTS_FREE);
     return -1;}
-  stream->fd_mallocd=0;
+  stream->dts_mallocd=0;
   fd_setpos(stream,0);
   hi=FD_OID_HI(base); lo=FD_OID_LO(base);
   fd_dtswrite_4bytes(stream,magicno);
@@ -327,11 +327,11 @@ int fd_make_file_index
   struct FD_DTYPE_STREAM *stream=
     fd_init_dtype_file_stream(&_stream,filename,FD_DTSTREAM_CREATE,8192);
   if (stream==NULL) return -1;
-  else if ((stream->fd_dts_flags)&FD_DTSTREAM_READ_ONLY) {
+  else if ((stream->bs_flags)&FD_DTSTREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(filename));
     fd_dtsclose(stream,FD_DTS_FREE);
     return -1;}
-  stream->fd_mallocd=0;
+  stream->dts_mallocd=0;
   if (n_slots_arg<0) n_slots=-n_slots_arg;
   else n_slots=fd_get_hashtable_size(n_slots_arg);
   fd_setpos(stream,0);
@@ -465,7 +465,7 @@ static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
     rstream=fd_init_dtype_file_stream
       (&stream,file,FD_DTSTREAM_CREATE,fd_filedb_bufsize);
     if (rstream==NULL) return -1;
-    stream.fd_mallocd=0;
+    stream.dts_mallocd=0;
     fd_set_read(&stream,0);
     fd_write_dtype((fd_byte_output)&stream,(fdtype)&(ix->index_cache));
     fd_dtsclose(&stream,FD_DTS_FREE);
@@ -480,7 +480,7 @@ static fd_index open_memindex(u8_string file,int read_only,int consed)
   struct FD_DTYPE_STREAM stream;
   fd_init_dtype_file_stream
     (&stream,file,FD_DTSTREAM_READ,fd_filedb_bufsize);
-  stream.fd_mallocd=0;
+  stream.dts_mallocd=0;
   lispval=fd_read_dtype((fd_byte_input)&stream);
   fd_dtsclose(&stream,FD_DTS_FREE);
   if (FD_HASHTABLEP(lispval)) h=(fd_hashtable)lispval;

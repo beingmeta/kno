@@ -114,6 +114,9 @@
 #include "defines.h"
 #include "fddb.h"
 
+#define fd_lock_pool(p) u8_lock_mutex(&((p)->pool_lock))
+#define fd_unlock_pool(p) u8_unlock_mutex(&((p)->pool_lock))
+
 FD_EXPORT fd_exception
 fd_CantLockOID, fd_InvalidPoolPtr, fd_PoolRangeError,
   fd_NotAFilePool, fd_AnonymousOID, fd_UnallocatedOID,

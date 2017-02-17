@@ -51,8 +51,8 @@ static int write_dtype_to_file(fdtype x,char *file)
   struct FD_BYTE_OUTPUT out;
   FD_INIT_BYTE_OUTPUT(&out,1024);
   fd_write_dtype(&out,x);
-  retval=fwrite(out.fd_bufstart,out.fd_bufptr-out.fd_bufstart,1,f);
-  u8_free(out.fd_bufstart);
+  retval=fwrite(out.bs_bufstart,out.bs_bufptr-out.bs_bufstart,1,f);
+  u8_free(out.bs_bufstart);
   fclose(f);
   return retval;
 }

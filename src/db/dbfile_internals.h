@@ -62,9 +62,9 @@ static FD_CHUNK_REF get_chunk_ref(struct FD_DTYPE_STREAM *stream,
   else if ((stream)&&(stream_locked)) 
     result=read_chunk_ref(stream,256,offtype,offset);
   else if (stream) {
-    u8_lock_mutex(&(stream->fd_lock));
+    u8_lock_mutex(&(stream->stream_lock));
     result=read_chunk_ref(stream,256,offtype,offset);
-    u8_unlock_mutex(&(stream->fd_lock));}
+    u8_unlock_mutex(&(stream->stream_lock));}
   else {
     u8_seterr("NoStream","get_chunkref",NULL);
     result.off=-1; result.size=-1;}

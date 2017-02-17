@@ -20,6 +20,9 @@ FD_EXPORT fd_exception
 
 FD_EXPORT u8_condition fd_IndexCommit;
 
+#define fd_lock_index(p) u8_lock_mutex(&((p)->index_lock))
+#define fd_unlock_index(p) u8_unlock_mutex(&((p)->index_lock))
+
 #define FD_INDEX_CACHE_INIT 73
 #define FD_INDEX_EDITS_INIT 73
 #define FD_INDEX_ADDS_INIT 123
@@ -134,7 +137,7 @@ typedef struct FD_NETWORK_INDEX {
   FD_INDEX_FIELDS;
   int sock; fdtype xname;
   int capabilities;
-  struct U8_CONNPOOL *fd_connpool;} FD_NETWORK_INDEX;
+  struct U8_CONNPOOL *index_connpool;} FD_NETWORK_INDEX;
 typedef struct FD_NETWORK_INDEX *fd_network_index;
 
 FD_EXPORT fd_index fd_open_network_index
@@ -174,7 +177,7 @@ FD_EXPORT struct FD_INDEX_HANDLER fd_extindex_handler;
 typedef struct FD_COMPOUND_INDEX {
   FD_INDEX_FIELDS;
   unsigned int n_indices; fd_index *indices;
-  U8_MUTEX_DECL(fd_lock);} FD_COMPOUND_INDEX;
+  U8_MUTEX_DECL(index_lock);} FD_COMPOUND_INDEX;
 typedef struct FD_COMPOUND_INDEX *fd_compound_index;
 
 FD_EXPORT int fd_add_to_compound_index(fd_compound_index ix,fd_index add);

@@ -24,7 +24,7 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
   struct FD_COMPOUND_INDEX *cix=(struct FD_COMPOUND_INDEX *)ix;
   fdtype combined=FD_EMPTY_CHOICE;
   int i=0, lim;
-  fd_lock_struct(cix);
+  fd_lock_index(cix);
   lim=cix->n_indices;
   while (i < lim) {
     fd_index eix=cix->indices[i++];
@@ -39,10 +39,10 @@ static fdtype compound_fetch(fd_index ix,fdtype key)
       value=fd_index_get(eix,key);
     else value=eix->index_handler->fetch(eix,key);
     if (FD_ABORTP(value)) {
-      fd_decref(combined); fd_unlock_struct(cix);
+      fd_decref(combined); fd_unlock_index(cix);
       return value;}
     else {FD_ADD_TO_CHOICE(combined,value);}}
-  fd_unlock_struct(cix);
+  fd_unlock_index(cix);
   return combined;
 }
 
@@ -58,7 +58,7 @@ static int compound_prefetch(fd_index ix,fdtype keys)
   if (n_fetches==0) {
     u8_free(keyv); u8_free(valuev);
     return 0;}
-  fd_lock_struct(cix);
+  fd_lock_index(cix);
   lim=cix->n_indices;
   while (i < lim) {
     int j=0; fd_index eix=cix->indices[i];
@@ -66,13 +66,13 @@ static int compound_prefetch(fd_index ix,fdtype keys)
       eix->index_handler->fetchn(eix,n_fetches,keyv);
     if (values==NULL) {
       u8_free(keyv); u8_free(valuev);
-      fd_unlock_struct(cix);
+      fd_unlock_index(cix);
       return -1;}
     while (j<n_fetches) {
       FD_ADD_TO_CHOICE(valuev[j],values[j]); j++;}
     u8_free(values);
     i++;}
-  fd_unlock_struct(cix);
+  fd_unlock_index(cix);
   i=0; while (i<n_fetches)
     if (FD_ACHOICEP(valuev[i])) {
       valuev[i]=fd_simplify_choice(valuev[i]); i++;}
@@ -104,7 +104,7 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
   if (n_fetches==0) {
     u8_free(keyv); u8_free(posmap);
     return valuev;}
-  fd_lock_struct(cix);
+  fd_lock_index(cix);
   lim=cix->n_indices;
   while (i < lim) {
     int j=0; fd_index eix=cix->indices[i];
@@ -112,13 +112,13 @@ static fdtype *compound_fetchn(fd_index ix,int n,fdtype *keys)
       eix->index_handler->fetchn(eix,n_fetches,keyv);
     if (values==NULL) {
       u8_free(keyv); u8_free(posmap); u8_free(valuev);
-      fd_unlock_struct(cix);
+      fd_unlock_index(cix);
       return NULL;}
     while (j<n_fetches) {
       FD_ADD_TO_CHOICE(valuev[posmap[j]],values[j]); j++;}
     u8_free(values);
     i++;}
-  fd_unlock_struct(cix);
+  fd_unlock_index(cix);
   i=0; while (i<n_fetches)
     if (FD_ACHOICEP(valuev[i])) {
       valuev[i]=fd_simplify_choice(valuev[i]); i++;}
@@ -134,18 +134,18 @@ static fdtype *compound_fetchkeys(fd_index ix,int *n)
   struct FD_COMPOUND_INDEX *cix=(struct FD_COMPOUND_INDEX *)ix;
   fdtype combined=FD_EMPTY_CHOICE;
   int i=0, lim;
-  fd_lock_struct(cix);
+  fd_lock_index(cix);
   lim=cix->n_indices;
   while (i < lim) {
     fd_index eix=cix->indices[i++];
     fdtype keys=fd_index_keys(eix);
     if (FD_ABORTP(keys)) {
       fd_decref(combined);
-      fd_unlock_struct(cix);
+      fd_unlock_index(cix);
       fd_interr(keys);
       return NULL;}
     else {FD_ADD_TO_CHOICE(combined,keys);}}
-  fd_unlock_struct(cix);
+  fd_unlock_index(cix);
   {
     fdtype simple=fd_simplify_choice(combined);
     int j=0, n_elts=FD_CHOICE_SIZE(simple);
@@ -184,7 +184,7 @@ FD_EXPORT fd_index fd_make_compound_index(int n_indices,fd_index *indices)
   struct FD_COMPOUND_INDEX *cix=u8_alloc(struct FD_COMPOUND_INDEX);
   u8_string cid=get_compound_id(n_indices,indices);
   fd_init_index((fd_index)cix,&compoundindex_handler,cid,0);
-  fd_init_mutex(&(cix->fd_lock)); u8_free(cid);
+  fd_init_mutex(&(cix->index_lock)); u8_free(cid);
   cix->n_indices=n_indices; cix->indices=indices;
   fd_register_index((fd_index)cix);
   return (fd_index) cix;
@@ -196,7 +196,7 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
     int i=0, n=cix->n_indices;
     while (i < n)
       if (cix->indices[i] == add) {
-        fd_unlock_struct(cix); return 0;}
+        fd_unlock_index(cix); return 0;}
       else i++;
     if (cix->indices)
       cix->indices=u8_realloc_n(cix->indices,cix->n_indices+1,fd_index);

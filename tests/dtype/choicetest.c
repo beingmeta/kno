@@ -31,9 +31,9 @@ int main(int argc,char **argv)
     u8_fprintf(stdout,"Containment is true\n");
   else u8_fprintf(stdout,"Containment is false\n");
   fd_write_dtype(&out,svalue);
-  retval=fwrite(out.fd_bufstart,1,out.fd_bufptr-out.fd_bufstart,f);
+  retval=fwrite(out.bs_bufstart,1,out.bs_bufptr-out.bs_bufstart,f);
   if (retval<0) exit(1);
-  fd_decref(value); fd_decref(svalue); u8_free(out.fd_bufstart);
+  fd_decref(value); fd_decref(svalue); u8_free(out.bs_bufstart);
   value=FD_VOID; svalue=FD_VOID;
   exit(0);
 }

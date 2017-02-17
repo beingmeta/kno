@@ -45,7 +45,7 @@ static fdtype doencrypt(fdtype data,fdtype key,
   else {
     FD_INIT_BYTE_OUTPUT(&tmp,512);
     fd_write_dtype(&tmp,data);
-    payload=tmp.fd_bufstart; payload_len=tmp.fd_bufptr-tmp.fd_bufstart;
+    payload=tmp.bs_bufstart; payload_len=tmp.bs_bufptr-tmp.bs_bufstart;
     free_payload=1;}
   if (FD_PACKETP(iv)) {
     ivdata=FD_PACKET_DATA(iv);
