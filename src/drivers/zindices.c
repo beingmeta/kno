@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/dbfile.h"
+#include "framerd/dbdrivers.h"
 
 #include <sys/stat.h>
 #include <errno.h>
@@ -49,7 +49,7 @@ static fd_dtype_stream reopen_stream(fd_file_pool fp)
   fd_dtstream_mode mode=
     ((fp->fd_read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_lock_pool(fp);
-  fd_init_dtype_file_stream(&(fp->index_stream),fp->pool_source,mode,fd_filedb_bufsize);
+  fd_init_dtype_file_stream(&(fp->index_stream),fp->pool_source,mode,fd_dbdriver_bufsize);
   fd_unlock_pool(fp);
   return &(fp->index_stream);
 }
@@ -214,7 +214,7 @@ static fd_index open_zindex(u8_string fname,int read_only,int consed)
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_init_index((fd_index)index,&zindex_handler,fname,consed);
-  if (fd_init_dtype_file_stream(s,fname,mode,fd_filedb_bufsize)==NULL) {
+  if (fd_init_dtype_file_stream(s,fname,mode,fd_dbdriver_bufsize)==NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_zindex",u8_strdup(fname));
     return NULL;}

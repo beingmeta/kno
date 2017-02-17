@@ -11,7 +11,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/dbfile.h"
+#include "framerd/dbdrivers.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8stringfns.h>
@@ -31,7 +31,7 @@ fd_exception fd_FileSizeOverflow=_("File pool overflowed file size");
 fd_exception fd_RecoveryRequired=_("RECOVERY");
 
 int fd_acid_files=1;
-size_t fd_filedb_bufsize=FD_FILEDB_BUFSIZE;
+size_t fd_dbdriver_bufsize=FD_DBDRIVER_BUFSIZE;
 
 /* Opening file pools */
 
@@ -463,7 +463,7 @@ static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
   struct FD_DTYPE_STREAM stream, *rstream;
   if ((ix->index_adds.table_n_keys>0) || (ix->index_edits.table_n_keys>0)) {
     rstream=fd_init_dtype_file_stream
-      (&stream,file,FD_DTSTREAM_CREATE,fd_filedb_bufsize);
+      (&stream,file,FD_DTSTREAM_CREATE,fd_dbdriver_bufsize);
     if (rstream==NULL) return -1;
     stream.dts_mallocd=0;
     fd_set_read(&stream,0);
@@ -479,7 +479,7 @@ static fd_index open_memindex(u8_string file,int read_only,int consed)
   fdtype lispval; struct FD_HASHTABLE *h;
   struct FD_DTYPE_STREAM stream;
   fd_init_dtype_file_stream
-    (&stream,file,FD_DTSTREAM_READ,fd_filedb_bufsize);
+    (&stream,file,FD_DTSTREAM_READ,fd_dbdriver_bufsize);
   stream.dts_mallocd=0;
   lispval=fd_read_dtype((fd_byte_input)&stream);
   fd_dtsclose(&stream,FD_DTS_FREE);
@@ -550,9 +550,9 @@ FD_EXPORT int fd_init_dbfile()
 
   fd_register_config("ACIDFILES","Maintain acidity of individual file pools and indices",
                      fd_boolconfig_get,fd_boolconfig_set,&fd_acid_files);
-  fd_register_config("DBFILEBUFSIZE",
+  fd_register_config("DBDRIVERBUFSIZE",
                      "The size of file streams used in database files",
-                     fd_sizeconfig_get,fd_sizeconfig_set,&fd_filedb_bufsize);
+                     fd_sizeconfig_get,fd_sizeconfig_set,&fd_dbdriver_bufsize);
 
 
   return fddbfile_initialized;

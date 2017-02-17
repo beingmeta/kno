@@ -1654,7 +1654,7 @@ static int stackdump_config_set(fdtype var,fdtype val,void *ignored)
 
 static int scheme_fileio_initialized=0;
 
-FD_EXPORT void fd_init_filedb_c(void);
+FD_EXPORT void fd_init_driverfns_c(void);
 FD_EXPORT void fd_init_loader_c(void);
 
 FD_EXPORT void fd_init_fileio_c()
@@ -1884,7 +1884,7 @@ FD_EXPORT void fd_init_fileio_c()
            ("OPEN-SOCKET",open_socket_prim,1,
             fd_string_type,FD_VOID,-1,FD_VOID));
 
-  fd_init_filedb_c();
+  fd_init_driverfns_c();
 
   fd_register_config
     ("TEMPROOT","Template for generating temporary directory names",
@@ -1922,7 +1922,7 @@ FD_EXPORT void fd_init_fileio_c()
 FD_EXPORT void fd_init_schemeio()
 {
   fd_init_fileio_c();
-  fd_init_filedb_c();
+  fd_init_driverfns_c();
   fd_init_loader_c();
 }
 

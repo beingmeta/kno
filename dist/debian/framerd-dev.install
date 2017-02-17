@@ -2,8 +2,8 @@ usr/lib/libfdtype.a
 usr/lib/libfdtype.so
 usr/lib/libfddb.a
 usr/lib/libfddb.so
-usr/lib/libfddbfile.a
-usr/lib/libfddbfile.so
+usr/lib/libfddbdrivers.a
+usr/lib/libfddbdrivers.so
 usr/lib/libfdbserv.a
 usr/lib/libfdscheme.a
 usr/lib/libfdscheme.so

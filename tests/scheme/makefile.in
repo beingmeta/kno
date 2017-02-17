@@ -33,7 +33,7 @@ LIBS=$(XLIBS) $(BMLIBS) $(BASELIBS)
 EXELDFLAGS = @EXELDFLAGS@
 CORE_LIBS	= ../../lib/libfdscheme@suffix@.a       \
 	  	  	../../lib/libfdbserv@suffix@.a  \
-	 		../../lib/libfddbfile@suffix@.a \
+	 		../../lib/libfddbdrivers@suffix@.a \
 			../../lib/libfddb@suffix@.a     \
 			../../lib/libfdtype@suffix@.a
 EXTRA_LIBS	= ../../lib/libtexttools@suffix@.a \
@@ -68,7 +68,7 @@ TESTBIN=fdeval fdconsole fdexec fdbatch fdserver fdservlet fdcgiexec # fdsh
 %.shared: %.c
 	@echo MKTEST_SHARED $@
 	@$(CC) $(CFLAGS) $(EXELDFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) \
-		-lfdtype@suffix@ -lfddb@suffix@ -lfddbfile@suffix@ \
+		-lfdtype@suffix@ -lfddb@suffix@ -lfddbdrivers@suffix@ \
 		-lfdscheme@suffix@ -lfdschemeio@suffix@
 
 %: %.c $(EXTRA_LIBS) $(CORE_LIBS)
@@ -141,8 +141,8 @@ testclean:
 	cd ../..; make lib/libfdtype@suffix@.a
 ../../lib/libfddb@suffix@.a:
 	cd ../..; make lib/libfddb@suffix@.a
-../../lib/libfddbfile@suffix@.a:
-	cd ../..; make lib/libfddbfile@suffix@.a
+../../lib/libfddbdrivers@suffix@.a:
+	cd ../..; make lib/libfddbdrivers@suffix@.a
 ../../lib/libtexttools@suffix@.a:
 	cd ../..; make lib/libtexttools@suffix@.a
 ../../lib/libfdbserv@suffix@.a:

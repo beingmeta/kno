@@ -16,8 +16,8 @@
 #include "framerd/fddb.h"
 #include "framerd/eval.h"
 #include "framerd/ports.h"
-#include "framerd/dbfile.h"
 #include "framerd/sequences.h"
+#include "framerd/dbdrivers.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -666,133 +666,133 @@ static fdtype dtype_outputp(fdtype arg)
 
 /* The init function */
 
-static int scheme_filedb_initialized=0;
+static int scheme_driverfns_initialized=0;
 
-FD_EXPORT void fd_init_filedb_c()
+FD_EXPORT void fd_init_driverfns_c()
 {
-  fdtype filedb_module;
+  fdtype driverfns_module;
 
   baseoids_symbol=fd_intern("%BASEOIDS");
 
-  if (scheme_filedb_initialized) return;
-  scheme_filedb_initialized=1;
+  if (scheme_driverfns_initialized) return;
+  scheme_driverfns_initialized=1;
   fd_init_fdscheme();
   fd_init_dbfile();
-  filedb_module=fd_new_module("FILEDB",(FD_MODULE_DEFAULT));
+  driverfns_module=fd_new_module("DRIVERFNS",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
 
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim3x("MAKE-ZINDEX",make_zindex,2,
                            fd_string_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            fd_slotmap_type,FD_VOID));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim3x("MAKE-FILE-INDEX",make_file_index,2,
                            fd_string_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            fd_slotmap_type,FD_VOID));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim3x("MAKE-LEGACY-FILE-INDEX",make_legacy_file_index,2,
                            fd_string_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            fd_slotmap_type,FD_VOID));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim5x("MAKE-FILE-POOL",make_file_pool,3,
                            fd_string_type,FD_VOID,
                            fd_oid_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim5x("MAKE-ZPOOL",make_zpool,3,
                            fd_string_type,FD_VOID,
                            fd_oid_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID));
 
-  fd_idefn(filedb_module,fd_make_cprim1("LOAD-CACHES",load_caches_prim,0));
+  fd_idefn(driverfns_module,fd_make_cprim1("LOAD-CACHES",load_caches_prim,0));
 
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprimn("MAKE-OIDPOOL",make_oidpool,3));
 
-  fd_idefn(filedb_module,fd_make_cprim2x("LABEL-FILE-POOL!",label_file_pool,2,
+  fd_idefn(driverfns_module,fd_make_cprim2x("LABEL-FILE-POOL!",label_file_pool,2,
                                          fd_string_type,FD_VOID,
                                          fd_string_type,FD_VOID));
 
-  fd_idefn(filedb_module,fd_make_cprim1x("OPEN-FILE-POOL",open_file_pool,1,
+  fd_idefn(driverfns_module,fd_make_cprim1x("OPEN-FILE-POOL",open_file_pool,1,
                                          fd_string_type,FD_VOID));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_ndprim
            (fd_make_cprim2x("FILE-POOL-PREFETCH!",file_pool_prefetch,2,
                             fd_raw_pool_type,FD_VOID,-1,FD_VOID)));
   
 
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim4x("POPULATE-HASH-INDEX",populate_hash_index,2,
                            -1,FD_VOID,-1,FD_VOID,
                            fd_fixnum_type,FD_VOID,-1,FD_VOID));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim6x("MAKE-HASH-INDEX",make_hash_index,2,
                            fd_string_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
                            -1,FD_VOID,-1,FD_VOID,-1,FD_VOID,
                            -1,FD_FALSE));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim3x("HASH-INDEX-BUCKET",hash_index_bucket,2,
                            -1,FD_VOID,-1,FD_VOID));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim1("HASH-INDEX-SLOTIDS",hash_index_slotids,1));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim1("HASH-INDEX-STATS",hash_index_stats,1));
 
 
-  fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));
-  fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE2",lisphashdtype2,1));
-  fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE3",lisphashdtype3,1));
-  fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE1",lisphashdtype1,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE",lisphashdtype2,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE2",lisphashdtype2,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE3",lisphashdtype3,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE1",lisphashdtype1,1));
 
-  fd_idefn(filedb_module,fd_make_cprim1("HASH-DTYPE-REP",lisphashdtyperep,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("HASH-DTYPE-REP",lisphashdtyperep,1));
 
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_ndprim(fd_make_cprim3("DTYPE->FILE",dtype2file,2)));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_ndprim(fd_make_cprim2("DTYPE->FILE+",add_dtype2file,2)));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_ndprim(fd_make_cprim3("DTYPE->ZFILE",dtype2zipfile,2)));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_ndprim(fd_make_cprim2("DTYPE->ZFILE+",add_dtype2zipfile,2)));
 
   /* We make these aliases because the output file isn't really a zip
      file, but we don't want to break code which uses the old
      names. */
-  fd_defalias(filedb_module,"DTYPE->ZIPFILE","DTYPE->ZFILE");
-  fd_defalias(filedb_module,"DTYPE->ZIPFILE+","DTYPE->ZFILE+");
-  fd_idefn(filedb_module,
+  fd_defalias(driverfns_module,"DTYPE->ZIPFILE","DTYPE->ZFILE");
+  fd_defalias(driverfns_module,"DTYPE->ZIPFILE+","DTYPE->ZFILE+");
+  fd_idefn(driverfns_module,
            fd_make_cprim1("FILE->DTYPE",file2dtype,1));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim1("FILE->DTYPES",file2dtypes,1));
-  fd_idefn(filedb_module,fd_make_cprim1("ZFILE->DTYPE",zipfile2dtype,1));
-  fd_idefn(filedb_module,fd_make_cprim1("ZFILE->DTYPES",zipfile2dtypes,1));
-  fd_defalias(filedb_module,"ZIPFILE->DTYPE","ZFILE->DTYPE");
-  fd_defalias(filedb_module,"ZIPFILE->DTYPES","ZFILE->DTYPES");
+  fd_idefn(driverfns_module,fd_make_cprim1("ZFILE->DTYPE",zipfile2dtype,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("ZFILE->DTYPES",zipfile2dtypes,1));
+  fd_defalias(driverfns_module,"ZIPFILE->DTYPE","ZFILE->DTYPE");
+  fd_defalias(driverfns_module,"ZIPFILE->DTYPES","ZFILE->DTYPES");
 
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim1x("OPEN-DTYPE-FILE",open_dtype_input_file,1,
                            fd_string_type,FD_VOID));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim1x("OPEN-DTYPE-INPUT",open_dtype_input_file,1,
                            fd_string_type,FD_VOID));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim1x("OPEN-DTYPE-OUTPUT",open_dtype_output_file,1,
                            fd_string_type,FD_VOID));
-  fd_idefn(filedb_module,
+  fd_idefn(driverfns_module,
            fd_make_cprim1x("EXTEND-DTYPE-FILE",extend_dtype_file,1,
                            fd_string_type,FD_VOID));
 
-  fd_idefn(filedb_module,fd_make_cprim1("DTYPE-STREAM?",dtype_streamp,1));
-  fd_idefn(filedb_module,fd_make_cprim1("DTYPE-INPUT?",dtype_inputp,1));
-  fd_idefn(filedb_module,fd_make_cprim1("DTYPE-OUTPUT?",dtype_outputp,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("DTYPE-STREAM?",dtype_streamp,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("DTYPE-INPUT?",dtype_inputp,1));
+  fd_idefn(driverfns_module,fd_make_cprim1("DTYPE-OUTPUT?",dtype_outputp,1));
 
-  fd_finish_module(filedb_module);
+  fd_finish_module(driverfns_module);
 }
 
 

@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/dbfile.h"
+#include "framerd/dbdrivers.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -54,7 +54,7 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
   u8_string rname=u8_realpath(fname,NULL);
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_dtype_file_stream(&(pool->pool_stream),fname,mode,fd_filedb_bufsize);
+  fd_init_dtype_file_stream(&(pool->pool_stream),fname,mode,fd_dbdriver_bufsize);
   /* See if it ended up read only */
   if ((((pool)->pool_stream).bs_flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
   pool->pool_stream.dts_mallocd=0;

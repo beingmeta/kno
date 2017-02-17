@@ -8,7 +8,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
-#include "framerd/dbfile.h"
+#include "framerd/dbdriver.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>

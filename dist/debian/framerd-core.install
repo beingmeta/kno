@@ -1,6 +1,6 @@
 usr/lib/libfdtype.so.*
 usr/lib/libfddb.so.*
-usr/lib/libfddbfile.so.*
+usr/lib/libfddbdrivers.so.*
 usr/lib/libfdbserv.so*
 usr/lib/libfdscheme.so.*
 usr/lib/libfdschemeio.so.*

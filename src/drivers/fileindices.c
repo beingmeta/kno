@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/dbfile.h"
+#include "framerd/dbdrivers.h"
 #include <errno.h>
 #include <sys/stat.h>
 
@@ -54,7 +54,7 @@ static fd_index open_file_index(u8_string fname,int read_only,int consed)
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_init_index((fd_index)index,&file_index_handler,fname,consed);
-  if (fd_init_dtype_file_stream(s,fname,mode,fd_filedb_bufsize) == NULL) {
+  if (fd_init_dtype_file_stream(s,fname,mode,fd_dbdriver_bufsize) == NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
     return NULL;}

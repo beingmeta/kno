@@ -23,7 +23,7 @@
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/dtypestream.h"
-#include "framerd/dbfile.h"
+#include "framerd/dbdrivers.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8pathfns.h>
@@ -39,7 +39,7 @@
 #define MMAP_FLAGS MAP_SHARED
 #endif
 
-#include "dbfile_internals.h"
+#include "dbdriver_internals.h"
 
 /* Locking oid pool streams */
 
@@ -191,7 +191,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   u8_string rname=u8_realpath(fname,NULL);
-  fd_init_dtype_file_stream(stream,fname,mode,fd_filedb_bufsize);
+  fd_init_dtype_file_stream(stream,fname,mode,fd_dbdriver_bufsize);
   /* See if it ended up read only */
   if ((stream->bs_flags)&(FD_DTSTREAM_READ_ONLY)) read_only=1;
   pool->pool_stream.dts_mallocd=0;
@@ -206,7 +206,7 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   if ((read_only==0) && ((flags)&(FD_OIDPOOL_READ_ONLY))) {
     /* If the pool is intrinsically read-only make it so. */
     read_only=1; fd_dtsclose(stream,1);
-    fd_init_dtype_file_stream(stream,fname,FD_DTSTREAM_READ,fd_filedb_bufsize);
+    fd_init_dtype_file_stream(stream,fname,FD_DTSTREAM_READ,fd_dbdriver_bufsize);
     fd_setpos(stream,FD_OIDPOOL_LABEL_POS);}
   pool->pool_offtype=(fd_offset_type)((flags)&(FD_OIDPOOL_OFFMODE));
   pool->pool_compression=

@@ -68,8 +68,8 @@
 #include "framerd/dtype.h"
 #include "framerd/dtypeio.h"
 #include "framerd/dtypestream.h"
-#include "framerd/dbfile.h"
 #include "framerd/numbers.h"
+#include "framerd/dbdrivers.h"
 
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
@@ -97,7 +97,7 @@
 #define LOCK_STREAM 1
 #define DONT_LOCK_STREAM 0
 
-#include "dbfile_internals.h"
+#include "dbdriver_internals.h"
 
 #if FD_DEBUG_HASHINDICES
 #define CHECK_POS(pos,stream)                                      \
@@ -229,7 +229,7 @@ static fd_index open_hash_index(u8_string fname,int read_only,int consed)
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_init_index((fd_index)index,&hash_index_handler,fname,consed);
-  if (fd_init_dtype_file_stream(s,fname,mode,fd_filedb_bufsize)
+  if (fd_init_dtype_file_stream(s,fname,mode,fd_dbdriver_bufsize)
       == NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_hash_index",u8_strdup(fname));
