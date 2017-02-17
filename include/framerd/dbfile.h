@@ -32,6 +32,7 @@ typedef enum FD_COMPRESSION_TYPE { FD_NOCOMPRESS=0, FD_ZLIB=1, FD_BZ2=2 }
 FD_EXPORT fd_exception fd_FileIndexError;
 FD_EXPORT fd_exception fd_FileSizeOverflow;
 FD_EXPORT fd_exception fd_CorruptedPool;
+FD_EXPORT fd_exception fd_InvalidOffsetType;
 FD_EXPORT fd_exception fd_BadMetaData, fd_FutureMetaData;
 FD_EXPORT fd_exception fd_MMAPError, fd_MUNMAPError;
 FD_EXPORT fd_exception fd_RecoveryRequired;

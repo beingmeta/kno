@@ -172,10 +172,10 @@ static fdtype write_bytes(fdtype object,fdtype stream)
   struct FD_DTSTREAM *ds=
     fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
   if (FD_STRINGP(object)) {
-    fd_dtswrite_bytes(ds->dt_stream,FD_STRDATA(object),FD_STRLEN(object));
+    dts_write_bytes(ds->dt_stream,FD_STRDATA(object),FD_STRLEN(object));
     return FD_STRLEN(object);}
   else if (FD_PACKETP(object)) {
-    fd_dtswrite_bytes
+    dts_write_bytes
       (ds->dt_stream,FD_PACKET_DATA(object),FD_PACKET_LENGTH(object));
     return FD_PACKET_LENGTH(object);}
   else {

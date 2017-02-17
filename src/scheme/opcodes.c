@@ -28,7 +28,7 @@ const u8_string fd_opcode_names[256]={
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0x60 */
   "numeq","numgt","numgte","numle","numlte",
-  "plus","subtract","multiple","flodiv",
+  "plus","subtract","multiply","flodiv",
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   /* 0x70 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,

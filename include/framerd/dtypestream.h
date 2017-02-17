@@ -100,16 +100,19 @@ FD_EXPORT fd_off_t _dts_getpos(fd_dtype_stream s,int unlock);
     (_dts_getpos(s,unlock)))						\
    : (-1))
 
-
 FD_EXPORT fd_off_t fd_setpos(fd_dtype_stream s,fd_off_t pos);
-FD_EXPORT fd_off_t dts_setpos(fd_dtype_stream s,fd_off_t pos,int unlock);
+FD_EXPORT fd_off_t dts_setpos(fd_dtype_stream s,fd_off_t pos);
 FD_EXPORT fd_off_t fd_movepos(fd_dtype_stream s,int delta);
 FD_EXPORT fd_off_t fd_endpos(fd_dtype_stream s);
+FD_EXPORT fd_off_t dts_endpos(fd_dtype_stream s);
 
 FD_EXPORT int fd_set_read(fd_dtype_stream s,int read);
 FD_EXPORT int fd_dtsflush(fd_dtype_stream s);
 FD_EXPORT int dts_set_read(fd_dtype_stream s,int read,int unlock);
 FD_EXPORT int dts_dtsflush(fd_dtype_stream s,int unlock);
+
+FD_EXPORT void dts_lock(struct FD_DTYPE_STREAM *s);
+FD_EXPORT void dts_unlock(struct FD_DTYPE_STREAM *s);
 
 FD_EXPORT int fd_dts_lockfile(fd_dtype_stream s);
 FD_EXPORT int fd_dts_unlockfile(fd_dtype_stream s);
@@ -142,10 +145,10 @@ FD_EXPORT int fd_dtswrite_dtype(fd_dtype_stream s,fdtype x);
 FD_EXPORT int dts_write_dtype(fd_dtype_stream s,fdtype x,int unlock);
 
 FD_EXPORT int fd_dtsread_ints(fd_dtype_stream s,int len,unsigned int *words);
-FD_EXPORT int dts_read_ints(fd_dtype_stream s,int len,unsigned int *words,int unlock);
+FD_EXPORT int dts_read_ints(fd_dtype_stream s,int len,unsigned int *words);
 
 FD_EXPORT int fd_dtswrite_ints(fd_dtype_stream s,int len,unsigned int *words);
-FD_EXPORT int dts_write_ints(fd_dtype_stream s,int len,unsigned int *words,int unlock);
+FD_EXPORT int dts_write_ints(fd_dtype_stream s,int len,unsigned int *words);
 
 FD_EXPORT int fd_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x);
 FD_EXPORT int dts_zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x,int unlock);
@@ -164,15 +167,19 @@ FD_EXPORT fd_8bytes _fd_dtsread_8bytes(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT int _fd_dtsread_bytes
   (struct FD_DTYPE_STREAM *stream,unsigned char *bytes,int len);
 FD_EXPORT int _dts_read_bytes
-  (struct FD_DTYPE_STREAM *stream,unsigned char *bytes,int len,int unlock);
+  (struct FD_DTYPE_STREAM *stream,unsigned char *bytes,int len,u8_mutex *unlock);
 FD_EXPORT fd_off_t _fd_dtsread_off_t(struct FD_DTYPE_STREAM *stream);
 FD_EXPORT fd_4bytes _fd_dtsread_zint(fd_dtype_stream s);
 FD_EXPORT fd_8bytes _fd_dtsread_zint8(fd_dtype_stream s);
 
 FD_EXPORT int _fd_dtswrite_byte(struct FD_DTYPE_STREAM *stream,int b);
 FD_EXPORT int _fd_dtswrite_4bytes(struct FD_DTYPE_STREAM *stream,fd_4bytes w);
-FD_EXPORT int _fd_dtswrite_bytes(struct FD_DTYPE_STREAM *stream,
-				 const unsigned char *bytes,int len);
+FD_EXPORT int fd_dtswrite_bytes(struct FD_DTYPE_STREAM *stream,
+				const unsigned char *bytes,int len);
+
+FD_EXPORT int _dts_write_bytes(struct FD_DTYPE_STREAM *stream,
+			       const unsigned char *bytes,int len);
+
 FD_EXPORT int _fd_dtswrite_zint(struct FD_DTYPE_STREAM *stream,fd_4bytes w);
 FD_EXPORT int _fd_dtswrite_zint8(struct FD_DTYPE_STREAM *stream,fd_8bytes b);
 
@@ -230,7 +237,7 @@ FD_FASTOP int fd_dtsread_bytes
    else return _fd_dtsread_bytes(s,bytes,len);
 }
 FD_FASTOP int dts_read_bytes
-   (fd_dtype_stream s,unsigned char *bytes,int len,int unlock)
+   (fd_dtype_stream s,unsigned char *bytes,int len,u8_mutex *unlock)
 {
   dts_start_read(s,FD_DTS_LOCKED);
   /* This is special because we don't use the intermediate buffer
@@ -238,7 +245,7 @@ FD_FASTOP int dts_read_bytes
   if (fd_has_bytes(s,len)) {
     memcpy(bytes,s->fd_bufptr,len);
     s->fd_bufptr=s->fd_bufptr+len;
-    if (unlock) u8_unlock_mutex(&(s->fd_lock));
+    if (unlock) u8_unlock_mutex(unlock);
     return len;}
   else return _dts_read_bytes(s,bytes,len,unlock);
 }
@@ -310,25 +317,14 @@ FD_FASTOP int fd_dtswrite_8bytes(fd_dtype_stream s,unsigned long long w)
   return 8;
 }
 
-FD_FASTOP int fd_dtswrite_bytes
+FD_FASTOP int dts_write_bytes
   (fd_dtype_stream s,const unsigned char *bytes,int n)
 {
   fd_dts_start_write(s);
   if (s->fd_bufptr+n>=s->fd_buflim)
     if (fd_dtsflush(s)<0) return -1;
   if (s->fd_bufptr+n>=s->fd_buflim)
-    return _fd_dtswrite_bytes(s,bytes,n);
-#if 0
-  {
-    int bytes_written=0;
-    while (bytes_written < n) {
-      int delta=write(s->fd,bytes,n);
-      if (delta<0)
-        if (errno==EAGAIN) errno=0;
-        else return delta;
-      else bytes_written=bytes_written+delta;}
-    s->fd_filepos=s->fd_filepos+bytes_written;}
-#endif
+    return _dts_write_bytes(s,bytes,n);
   else {
     memcpy(s->fd_bufptr,bytes,n); s->fd_bufptr=s->fd_bufptr+n;}
   return n;
@@ -434,7 +430,7 @@ static U8_MAYBE_UNUSED int fd_dtswrite_zint8(fd_dtype_stream s,fd_8bytes n)
 
 #define fd_dtswrite_byte   _fd_dtswrite_byte
 #define fd_dtswrite_4bytes _fd_dtswrite_4bytes
-#define fd_dtswrite_bytes  _fd_dtswrite_bytes
+#define dts_write_bytes    _dts_write_bytes
 #define fd_dtswrite_zint  _fd_dtswrite_zint
 
 #endif  /* FD_INLINE_DTYPEIO */

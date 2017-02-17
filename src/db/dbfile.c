@@ -23,6 +23,13 @@
 
 static fdtype rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
 
+fd_exception fd_MMAPError=_("MMAP Error");
+fd_exception fd_MUNMAPError=_("MUNMAP Error");
+fd_exception fd_CorruptedPool=_("Corrupted file pool");
+fd_exception fd_InvalidOffsetType=_("Invalid offset type");
+fd_exception fd_FileSizeOverflow=_("File pool overflowed file size");
+fd_exception fd_RecoveryRequired=_("RECOVERY");
+
 int fd_acid_files=1;
 size_t fd_filedb_bufsize=FD_FILEDB_BUFSIZE;
 

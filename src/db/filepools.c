@@ -37,12 +37,6 @@
 #define set_offset(offvec,offset,v) (offvec)[offset]=(v)
 #endif
 
-fd_exception fd_MMAPError=_("MMAP Error");
-fd_exception fd_MUNMAPError=_("MUNMAP Error");
-fd_exception fd_CorruptedPool=_("Corrupted file pool");
-fd_exception fd_FileSizeOverflow=_("File pool overflowed file size");
-fd_exception fd_RecoveryRequired=_("RECOVERY");
-
 static void update_modtime(struct FD_FILE_POOL *fp);
 static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock);
 

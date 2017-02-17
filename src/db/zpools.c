@@ -290,7 +290,7 @@ static int zwrite_dtype(struct FD_DTYPE_STREAM *s,fdtype x)
     u8_free(out.fd_bufstart);
     return FD_ERROR_VALUE;}
   size=fd_dtswrite_zint(s,zlen); size=size+zlen;
-  if (fd_dtswrite_bytes(s,zbytes,zlen)<0) size=-1;
+  if (dts_write_bytes(s,zbytes,zlen)<0) size=-1;
   u8_free(zbytes); u8_free(out.fd_bufstart);
   return size;
 }
@@ -317,7 +317,7 @@ static int U8_MAYBE_UNUSED zwrite_dtypes(struct FD_DTYPE_STREAM *s,fdtype x)
     if (zbytes) u8_free(zbytes); u8_free(out.fd_bufstart);
     return -1;}
   size=fd_dtswrite_zint(s,zlen); size=size+zlen;
-  retval=fd_dtswrite_bytes(s,zbytes,zlen);
+  retval=dts_write_bytes(s,zbytes,zlen);
   u8_free(zbytes); u8_free(out.fd_bufstart);
   if (retval<0) return retval;
   else return size;
@@ -395,7 +395,7 @@ int write_oid_value
     if (zlen<0) {
       u8_free(out.fd_bufstart);
       return FD_ERROR_VALUE;}
-    retval=fd_dtswrite_bytes(s,zbytes,zlen);
+    retval=dts_write_bytes(s,zbytes,zlen);
     if (retval<0) {
       u8_free(out.fd_bufstart); u8_free(zbytes);
       return FD_ERROR_VALUE;}

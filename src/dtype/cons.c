@@ -144,8 +144,7 @@ void fd_recycle_cons(fd_cons c)
           FD_LOCK_PTR(xcdr);
           while (FD_CONS_REFCOUNT(xcdr)==1) {
             car=xcdr->fd_car; cdr=xcdr->fd_cdr;
-            u8_free(xcdr);
-            FD_UNLOCK_PTR(xcdr);
+            FD_UNLOCK_PTR(xcdr); u8_free(xcdr);
             fd_decref(car);
             if (FD_PAIRP(cdr)) {
               xcdr=(fd_pair)cdr;
