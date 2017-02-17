@@ -206,7 +206,7 @@ FD_EXPORT int _fd_write_8bytes(struct FD_BYTE_OUTPUT *,fd_8bytes);
 
 FD_FASTOP int fd_write_zint(struct FD_BYTE_OUTPUT *s,int n)
 {
-  if (n < (1<<7)) {
+  if (n < (0x80)) {
     return fd_write_byte(s,n);}
   else if (n < (1<<14)) {
     if (fd_write_byte(s,((0x80)|(n>>7)))<0) return -1;

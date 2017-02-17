@@ -40,8 +40,6 @@ FD_EXPORT fd_exception fd_RecoveryRequired;
 #define FD_FILE_POOL_MAGIC_NUMBER 67179521
 #define FD_FILE_POOL_TO_RECOVER 67179523
 
-#define FD_ZPOOL_MAGIC_NUMBER 436491265
-
 #define FD_OIDPOOL_MAGIC_NUMBER ((0x17<<24)|(0x11<<16)|(0x04<<8)|(0x10))
 #define FD_OIDPOOL_TO_RECOVER ((0x11<<24)|(0x09<<16)|(0x04<<8)|(0x12))
 
@@ -70,17 +68,6 @@ typedef struct FD_SCHEMA_TABLE {
   int fdst_nslots;
   fdtype *fdst_schema;} FD_SCHEMA_TABLE;
 typedef struct FD_SCHEMA_TABLE *fd_schema_table;
-
-typedef struct FD_ZPOOL {
-  FD_POOL_FIELDS;
-  time_t pool_modtime;
-  unsigned int pool_load, *pool_offsets, pool_offsets_size;
-  struct FD_DTYPE_STREAM pool_stream;
-  int pool_n_schemas;
-  struct FD_SCHEMA_TABLE *pool_schemas, *pool_pool_schemas_byptr;
-  struct FD_SCHEMA_TABLE *pool_schemas_byval;
-  U8_MUTEX_DECL(pool_lock);} FD_ZPOOL;
-typedef struct FD_ZPOOL *fd_zpool;
 
 /* OID Pools */
 
@@ -158,8 +145,6 @@ typedef struct FD_INDEX_OPENER *fd_index_opener;
 #define FD_FILE_INDEX_TO_RECOVER 0x90e0438
 #define FD_MULT_FILE_INDEX_TO_RECOVER 0x90e0439
 #define FD_MULT_FILE3_INDEX_TO_RECOVER 0x90e043a
-#define FD_ZINDEX_MAGIC_NUMBER 437126168
-#define FD_ZINDEX3_MAGIC_NUMBER 437126169
 
 #define FD_HASH_INDEX_MAGIC_NUMBER 0x8011308
 #define FD_HASH_INDEX_TO_RECOVER 0x8011328
@@ -173,14 +158,6 @@ typedef struct FD_FILE_INDEX {
   fdtype slotids;
   U8_MUTEX_DECL(index_lock);} FD_FILE_INDEX;
 typedef struct FD_FILE_INDEX *fd_file_index;
-
-typedef struct FD_ZINDEX {
-  FD_INDEX_FIELDS;
-  unsigned int index_n_slots, index_hashv, *index_offsets;
-  struct FD_DTYPE_STREAM index_stream;
-  fdtype slotids; FD_OID *index_baseoids; int index_n_baseoids;
-  U8_MUTEX_DECL(index_lock);} FD_ZINDEX;
-typedef struct FD_ZINDEX *fd_zindex;
 
 FD_EXPORT fdtype fd_read_index_metadata(struct FD_DTYPE_STREAM *ds);
 FD_EXPORT fdtype fd_write_index_metadata(fd_dtype_stream,fdtype);

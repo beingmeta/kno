@@ -94,14 +94,11 @@ pooltests:
 filepooltests:
 	@echo "***" Running file pool tests
 	make BRICOPOOL=$(FILEBRICOPOOL) pooltests
-zfilepooltests:
-	@echo "***" Running zpool tests
-	make BRICOPOOL=$(ZFILEBRICOPOOL) pooltests
 netpooltests:
 	@echo "***" Running netpool tests
 	make BRICOPOOL=$(NETBRICOPOOL) pooltests
 
-allpooltests: filepooltests zfilepooltests netpooltests
+allpooltests: filepooltests netpooltests
 
 indextests:
 	$(RUNTEST) ./index-get $(BRICOINDEX) "(@1/2c1c7 . \"example\")"
@@ -111,11 +108,8 @@ indextests:
 fileindextests:
 	@echo "***" Running file index tests
 	make BRICOINDEX=$(FILEBRICOINDEX) indextests
-zfileindextests:
-	@echo "***" Running zindex tests
-	make BRICOINDEX=$(ZFILEBRICOINDEX) indextests
 netindextests:
 	@echo "***" Running netindex tests
 	make BRICOINDEX=$(NETBRICOINDEX) indextests
 
-allindextests: fileindextests zfileindextests netindextests
+allindextests: fileindextests netindextests

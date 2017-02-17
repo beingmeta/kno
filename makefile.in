@@ -112,10 +112,9 @@ DB_OBJS=src/db/fddb.o src/db/dtypestream.o		\
 	src/db/methods.o src/db/xtables.o 		\
 	src/db/cachecall.o src/db/threadcache.o 	\
 	@ipevalo@ src/db/frames.o
-DBDRIVER_OBJS=src/drivers/dbdrivers.o src/drivers/filepools.o 	\
-	    src/drivers/zpools.o 				\
-	    src/drivers/fileindices.o src/drivers/zindices.o	\
-	    src/drivers/hashindices.o src/drivers/oidpools.o
+DBDRIVER_OBJS=src/drivers/dbdrivers.o 			\
+	src/drivers/filepools.o src/drivers/oidpools.o 	\
+	src/drivers/fileindices.o src/drivers/hashindices.o 
 FDBSERV_OBJS=src/db/dbserv.o
 CORE_SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o           \
                  src/scheme/threadprims.o src/scheme/quasiquote.o \
@@ -260,7 +259,7 @@ FRAMERD_HEADERS= \
 FRAMERD_SOURCES=\
 	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c          \
         src/dtype/choices.c src/dtype/tables.c src/dtype/fcnids.c       \
-        src/dtype/dtypeio.c src/dtype/textio.c                         \
+        src/dtype/dtypeio.c src/dtype/textio.c src/dtype/hashdtype.c	\
 	src/dtype/fdtype.c src/dtype/support.c 				\
 	src/dtype/apply.c src/dtype/ffi.c       			\
 	src/db/fddb.c src/db/dtypestream.c  src/db/dbserv.c            \
@@ -269,10 +268,9 @@ FRAMERD_SOURCES=\
 	src/db/dtproc.c src/db/dtcall.c src/db/ipeval.c 	       \
 	src/db/cachecall.c src/db/threadcache.c 			\
 	src/db/frames.c src/db/methods.c          			\
-	src/drivers/dbdrivers.c src/dtype/hashdtype.c			\
-	src/drivers/filepools.c src/drivers/zpools.c 			\
-	src/drivers/oidpools.c src/drivers/fileindices.c 		\
-	src/drivers/hashindices.c src/drivers/zindices.c    		\
+	src/drivers/dbdrivers.c						\
+	src/drivers/filepools.c src/drivers/oidpools.c 			\
+	src/drivers/fileindices.c src/drivers/hashindices.c		\
 	src/scheme/eval.c src/scheme/binders.c src/scheme/errors.c     \
 	src/scheme/conditionals.c src/scheme/iterators.c               \
         src/scheme/threadprims.c src/scheme/quasiquote.c               \
