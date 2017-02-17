@@ -188,9 +188,9 @@ int main(int argc,char **argv)
   args=handle_argv(argc,argv,&n_args,&exe_name,&source_file,"_");
 
   fd_register_config("LOGAPPEND",
-                     _("Whether to truncate existing log files"),
-                     fd_boolconfig_get,fd_boolconfig_set,
-                     &logappend);
+		     _("Whether to truncate existing log files"),
+		     fd_boolconfig_get,fd_boolconfig_set,
+		     &logappend);
 
   if (!(logappend)) logopen_flags=O_WRONLY|O_CREAT|O_TRUNC;
 

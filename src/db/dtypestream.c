@@ -137,7 +137,7 @@ FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
     return NULL;}
 }
 
-FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
+FD_EXPORT fd_dtype_stream fd_open_dtype_file
    (u8_string fname,fd_dtstream_mode mode,int bufsiz)
 {
   struct FD_DTYPE_STREAM *stream=

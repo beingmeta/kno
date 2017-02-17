@@ -58,10 +58,10 @@ FD_EXPORT fd_dtype_stream fd_init_dtype_file_stream
    (struct FD_DTYPE_STREAM *stream,
     u8_string filename,fd_dtstream_mode mode,int bufsiz);
 
-FD_EXPORT fd_dtype_stream fd_open_dtype_file_x
+FD_EXPORT fd_dtype_stream fd_open_dtype_file
   (u8_string filename,fd_dtstream_mode mode,int bufsiz);
 #define fd_dtsopen(filename,mode) \
-  fd_open_dtype_file_x(filename,mode,FD_DTSTREAM_BUFSIZ_DEFAULT)
+  fd_open_dtype_file(filename,mode,FD_DTSTREAM_BUFSIZ_DEFAULT)
 
 #define FD_DTS_UNLOCK 1
 #define FD_STREAM_LOCKED 0

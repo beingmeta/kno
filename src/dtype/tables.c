@@ -2263,9 +2263,9 @@ FD_EXPORT int fd_resize_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 /* VOIDs all values which only have one incoming pointer (from the table
    itself).  This is helpful in conjunction with fd_devoid_hashtable, which
    will then reduce the table to remove such entries. */
-FD_EXPORT int fd_remove_deadwood_x(struct FD_HASHTABLE *ptr,
-                                   int (*testfn)(fdtype,fdtype,void *),
-                                   void *testdata)
+FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr,
+                                 int (*testfn)(fdtype,fdtype,void *),
+                                 void *testdata)
 {
   struct FD_HASH_BUCKET **scan, **lim;
   int n_slots=ptr->ht_n_buckets, n_keys=ptr->table_n_keys; int unlock=0;
@@ -2297,13 +2297,8 @@ FD_EXPORT int fd_remove_deadwood_x(struct FD_HASHTABLE *ptr,
   if (unlock) fd_unlock_table(ptr);
   return n_slots;
 }
-FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr)
-{
-  return fd_remove_deadwood_x(ptr,NULL,NULL);
-}
 
-
-FD_EXPORT int fd_devoid_hashtable_x(struct FD_HASHTABLE *ptr,int locked)
+FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr,int locked)
 {
   int n_slots=ptr->ht_n_buckets, n_keys=ptr->table_n_keys; int unlock=0;
   FD_CHECK_TYPE_RET(ptr,fd_hashtable_type);
@@ -2341,11 +2336,6 @@ FD_EXPORT int fd_devoid_hashtable_x(struct FD_HASHTABLE *ptr,int locked)
     ptr->table_n_keys=remaining_keys;}
   if (unlock) fd_unlock_table(ptr);
   return n_slots;
-}
-
-FD_EXPORT int fd_devoid_hashtable(struct FD_HASHTABLE *ptr)
-{
-  return fd_devoid_hashtable_x(ptr,-1);
 }
 
 FD_EXPORT int fd_hashtable_stats

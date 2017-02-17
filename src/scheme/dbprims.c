@@ -297,7 +297,7 @@ static fdtype open_index(fdtype arg,fdtype consed_arg)
       u8_byte *copy=u8_strdup(FD_STRDATA(arg));
       u8_byte *start=copy, *end=strchr(start,';');
       *end='\0'; while (start) {
-        fd_index ix=fd_open_index_x(start,consed);
+        fd_index ix=fd_open_index(start,consed);
         if (ix==NULL) {
           u8_free(copy);
           fd_decref(results);
@@ -311,7 +311,7 @@ static fdtype open_index(fdtype arg,fdtype consed_arg)
         else start=NULL;}
       u8_free(copy);
       return results;}
-    else return fd_index2lisp(fd_open_index_x(FD_STRDATA(arg),consed));
+    else return fd_index2lisp(fd_open_index(FD_STRDATA(arg),consed));
   else if (FD_INDEXP(arg)) return arg;
   else if (FD_TYPEP(arg,fd_raw_index_type))
     return fd_incref(arg);
@@ -404,12 +404,12 @@ static fdtype make_compound_index(int n,fdtype *args)
   int i=0; while (i<n) {
     FD_DO_CHOICES(source,args[i]) {
       fd_index ix=NULL;
-      if (FD_STRINGP(source)) ix=fd_open_index(fd_strdata(source));
+      if (FD_STRINGP(source)) ix=fd_open_index(fd_strdata(source),0);
       else if (FD_INDEXP(source)) ix=fd_indexptr(source);
       else if (FD_TYPEP(source,fd_raw_index_type)) ix=fd_indexptr(source);
       else if (FD_SYMBOLP(source)) {
         fdtype val=fd_config_get(FD_SYMBOL_NAME(source));
-        if (FD_STRINGP(val)) ix=fd_open_index(fd_strdata(val));
+        if (FD_STRINGP(val)) ix=fd_open_index(fd_strdata(val),0);
         else if (FD_INDEXP(val)) ix=fd_indexptr(source);
         else if (FD_TYPEP(val,fd_raw_index_type)) ix=fd_indexptr(val);}
       else {}
@@ -635,7 +635,7 @@ static fdtype adjunct_symbol;
 static fdtype use_adjunct(fdtype adjunct,fdtype slotid,fdtype pool_arg)
 {
   if (FD_STRINGP(adjunct)) {
-    fd_index ix=fd_open_index(FD_STRDATA(adjunct));
+    fd_index ix=fd_open_index(FD_STRDATA(adjunct),0);
     if (ix) adjunct=fd_index2lisp(ix);
     else return fd_type_error("adjunct spec","use_adjunct",adjunct);}
   if ((FD_VOIDP(slotid)) && (FD_TABLEP(adjunct)))

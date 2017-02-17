@@ -724,7 +724,7 @@ FD_EXPORT int fd_swapout_oids(fdtype oids)
              FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),FD_VOID);
           /* These are values we can unlock */
           fd_pool_commit(p,oids,COMMIT_FINISHED);
-          fd_devoid_hashtable(&(p->pool_changes));}
+          fd_devoid_hashtable(&(p->pool_changes),0);}
         fd_decref(oids);}
       i++;}}
   return n_pools;
@@ -863,7 +863,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
              "Voiding lock table entries for %s",p->pool_cid);
       fd_hashtable_iterkeys(locks,fd_table_replace,n,oidv,FD_VOID);
       u8_log(fddb_loglevel+1,"Unlock","Devoiding lock table for %s",p->pool_cid);
-      if (fd_devoid_hashtable(locks)<0) {
+      if (fd_devoid_hashtable(locks,0)<0) {
         fd_decref(needy);
         return -1;}
       fd_decref(needy);
@@ -874,7 +874,7 @@ FD_EXPORT int fd_pool_unlock(fd_pool p,fdtype oids,int commit)
     if (retval<0) return -1;
     else if (retval) {
       fd_hashtable_op(locks,fd_table_replace,oids,FD_VOID);
-      if (fd_devoid_hashtable(locks)<0) return -1;
+      if (fd_devoid_hashtable(locks,0)<0) return -1;
       return 1;}
     else return 0;}
   else return 1;
@@ -1089,7 +1089,7 @@ struct FD_POOL_WRITES choice2writes(fd_pool p,fdtype oids,
   writes.len=n_writes;
   xchoice->choice_size=n_writes;
   if ((unlock)&&(writes.len))
-    fd_devoid_hashtable_x(locks,1);
+    fd_devoid_hashtable(locks,1);
   return writes;
 }
 
@@ -1129,7 +1129,7 @@ struct FD_POOL_WRITES locks2writes(fd_pool p,fd_pool_commit_flags flags)
     writes.len=oidv-writes.oids;}
   else writes.len=0;
   if ((unlock)&&(writes.len))
-    fd_devoid_hashtable_x(locks,1);
+    fd_devoid_hashtable(locks,1);
   fd_unlock_table(locks);
   return writes;
 }
@@ -1155,7 +1155,7 @@ static int just_unlock(fd_pool p,fdtype oids,fd_pool_commit_flags flags)
       const fdtype *oids=FD_CHOICE_DATA(oids);
       fd_hashtable_iterkeys(&(p->pool_changes),fd_table_replace,
                             choice_size,oids,FD_VOID);
-      fd_devoid_hashtable(&(p->pool_changes));}
+      fd_devoid_hashtable(&(p->pool_changes),0);}
     else if (choice_size==1) {
       fd_hashtable_store(&(p->pool_changes),choice,FD_VOID);}
     else {}
@@ -1260,7 +1260,7 @@ FD_EXPORT void fd_pool_swapout(fd_pool p)
   if (p) {
     /* Commit and unlock all of the finished OIDs */
     fd_pool_commit(p,FD_VOID,COMMIT_FINISHED);
-    fd_devoid_hashtable(&(p->pool_changes));}
+    fd_devoid_hashtable(&(p->pool_changes),0);}
 }
 
 /* Callable versions of simple functions */
@@ -2015,7 +2015,7 @@ static int mempool_swapout(fd_pool p,fdtype oidvals)
       fd_hashtable_iterkeys
         (&(p->pool_changes),fd_table_replace,
          FD_CHOICE_SIZE(oids),FD_CHOICE_DATA(oids),FD_VOID);
-      fd_devoid_hashtable(&(p->pool_changes));}
+      fd_devoid_hashtable(&(p->pool_changes),0);}
     fd_decref(oids);
     return 1;}
 }
@@ -2043,10 +2043,10 @@ FD_EXPORT int fd_clean_mempool(fd_pool p)
       (fd_TypeError,"fd_clean_mempool",
        _("mempool"),fd_pool2lisp(p));
   else {
-    fd_remove_deadwood(&(p->pool_changes));
-    fd_devoid_hashtable(&(p->pool_changes));
-    fd_remove_deadwood(&(p->pool_cache));
-    fd_devoid_hashtable(&(p->pool_cache));
+    fd_remove_deadwood(&(p->pool_changes),NULL,NULL);
+    fd_devoid_hashtable(&(p->pool_changes),0);
+    fd_remove_deadwood(&(p->pool_cache),NULL,NULL);
+    fd_devoid_hashtable(&(p->pool_cache),0);
     return p->pool_cache.table_n_keys+p->pool_changes.table_n_keys;}
 }
 

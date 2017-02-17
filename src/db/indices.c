@@ -160,7 +160,7 @@ FD_EXPORT fd_index fd_lisp2index(fdtype lix)
   else if (FD_TYPEP(lix,fd_raw_index_type))
     return (fd_index) lix;
   else if (FD_STRINGP(lix))
-    return fd_open_index(FD_STRDATA(lix));
+    return fd_open_index(FD_STRDATA(lix),0);
   else {
     fd_seterr(fd_TypeError,_("not an index"),NULL,lix);
     return NULL;}
@@ -182,7 +182,7 @@ FD_EXPORT fd_index fd_find_index_by_cid(u8_string cid)
   return NULL;
 }
 
-FD_EXPORT fd_index fd_open_index_x(u8_string spec,int consed)
+FD_EXPORT fd_index fd_open_index(u8_string spec,int consed)
 {
   if (strchr(spec,';')) {
     fd_seterr(fd_BadIndexSpec,"fd_open_index",u8_strdup(spec),FD_VOID);
@@ -210,11 +210,6 @@ FD_EXPORT fd_index fd_open_index_x(u8_string spec,int consed)
   else {
     fd_seterr3(fd_NoFileIndices,"fd_open_index",u8_strdup(spec));
     return NULL;}
-}
-
-FD_EXPORT fd_index fd_open_index(u8_string spec)
-{
-  return fd_open_index_x(spec,0);
 }
 
 /* Background indices */
@@ -246,7 +241,7 @@ FD_EXPORT fd_index fd_use_index(u8_string spec)
     u8_byte *copy=u8_strdup(spec);
     u8_byte *start=copy, *end=strchr(start,';');
     *end='\0'; while (start) {
-      ix=fd_open_index(start);
+      ix=fd_open_index(start,0);
       if (ix==NULL) {
         u8_free(copy); return NULL;}
       else fd_add_to_background(ix);
@@ -257,7 +252,7 @@ FD_EXPORT fd_index fd_use_index(u8_string spec)
     u8_free(copy);
     return ix;}
   else {
-    fd_index ix=fd_open_index(spec);
+    fd_index ix=fd_open_index(spec,0);
     if (ix) fd_add_to_background(ix);
     return ix;}
 }
@@ -907,7 +902,7 @@ static fdtype index_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
   fd_index ix=NULL;
   if (n<2) return FD_VOID;
   else if (FD_STRINGP(args[2]))
-    ix=fd_open_index(FD_STRING_DATA(args[2]));
+    ix=fd_open_index(FD_STRING_DATA(args[2]),0);
   if (ix) return fd_index2lisp(ix);
   else return fd_err(fd_CantParseRecord,"index_parsefn",NULL,FD_VOID);
 }

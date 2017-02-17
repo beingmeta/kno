@@ -301,7 +301,7 @@ static fdtype config_get_indices(fdtype var,void *data)
 static int config_open_index(fdtype var,fdtype spec,void *data)
 {
   if (FD_STRINGP(spec))
-    if (fd_open_index(FD_STRDATA(spec))) return 1;
+    if (fd_open_index(FD_STRDATA(spec),0)) return 1;
     else return -1;
   else {
     fd_seterr(fd_TypeError,"config_open_index",NULL,fd_incref(spec));
@@ -392,7 +392,8 @@ static int fast_swapout_pool(fd_pool p,void *data)
 {
   struct HASHVECS_TODO *todo=(struct HASHVECS_TODO *)data;
   fast_reset_hashtable(&(p->pool_cache),67,todo);
-  if (p->pool_changes.table_n_keys) fd_devoid_hashtable(&(p->pool_changes));
+  if (p->pool_changes.table_n_keys)
+    fd_devoid_hashtable(&(p->pool_changes),0);
   return 0;
 }
 

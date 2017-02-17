@@ -289,14 +289,14 @@ static int add_to_server_locks_file(fdtype key,fdtype value,void *outfilep)
 static void open_server_lock_stream(u8_string file)
 {
   if (u8_file_existsp(file)) {
-    FD_DTYPE_STREAM *in=fd_open_dtype_file_x(file,FD_DTSTREAM_READ,65536);
+    FD_DTYPE_STREAM *in=fd_open_dtype_file(file,FD_DTSTREAM_READ,65536);
     fdtype a=fd_dtsread_dtype(in), b=fd_dtsread_dtype(in);
     while (!(FD_EOFP(a))) {
       if (FD_OIDP(a)) lock_oid(a,b); else clear_server_lock(b,a);
       a=fd_dtsread_dtype(in); b=fd_dtsread_dtype(in);}
     fd_dtsclose(in,1);
     u8_removefile(file);}
-  locks_file=fd_open_dtype_file_x(file,FD_DTSTREAM_CREATE,65536);
+  locks_file=fd_open_dtype_file(file,FD_DTSTREAM_CREATE,65536);
   locks_filename=u8_strdup(file);
   fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
   fd_dtsflush(locks_file);
@@ -315,7 +315,7 @@ static void update_server_lock_file()
   temp_file=u8_mkstring("%s.bak",locks_filename);
   if (locks_file) fd_dtsclose(locks_file,1);
   u8_movefile(locks_filename,temp_file);
-  locks_file=fd_open_dtype_file_x(locks_filename,FD_DTSTREAM_CREATE,65536);
+  locks_file=fd_open_dtype_file(locks_filename,FD_DTSTREAM_CREATE,65536);
   fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
   fd_dtsflush(locks_file);
   u8_removefile(temp_file);
@@ -782,7 +782,7 @@ static int serve_index(fdtype var,fdtype val,void *data)
     return 1;}
   else if (FD_INDEXP(val)) ix=fd_indexptr(val);
   else if (FD_STRINGP(val))
-    ix=fd_open_index(FD_STRDATA(val));
+    ix=fd_open_index(FD_STRDATA(val),0);
   else if (val==FD_TRUE)
     if (fd_background) ix=(fd_index)fd_background;
     else {

@@ -110,8 +110,7 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix);
 FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys);
 
-FD_EXPORT fd_index fd_open_index(u8_string);
-FD_EXPORT fd_index fd_open_index_x(u8_string,int);
+FD_EXPORT fd_index fd_open_index(u8_string,int);
 FD_EXPORT fd_index fd_find_index_by_cid(u8_string);
 
 FD_EXPORT void fd_index_swapout(fd_index ix);

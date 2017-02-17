@@ -462,12 +462,10 @@ FD_EXPORT fdtype fd_init_hashtable
 FD_EXPORT int fd_reset_hashtable(fd_hashtable ht,int n_slots,int lock);
 FD_EXPORT struct FD_KEYVAL *fd_hashvec_get(fdtype,struct FD_HASH_BUCKET **,int);
 FD_EXPORT int fd_fast_reset_hashtable(fd_hashtable,int,int,struct FD_HASH_BUCKET ***,int *);
-FD_EXPORT int fd_remove_deadwood_x(struct FD_HASHTABLE *ptr,
-                                   int (*testfn)(fdtype,fdtype,void *),
-                                   void *testdata);
-FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr);
-FD_EXPORT int fd_devoid_hashtable_x(fd_hashtable ht,int locked);
-FD_EXPORT int fd_devoid_hashtable(fd_hashtable ht);
+FD_EXPORT int fd_remove_deadwood(struct FD_HASHTABLE *ptr,
+				 int (*testfn)(fdtype,fdtype,void *),
+				 void *testdata);
+FD_EXPORT int fd_devoid_hashtable(fd_hashtable ht,int locked);
 FD_EXPORT int fd_static_hashtable(struct FD_HASHTABLE *ptr,int);
 
 FD_EXPORT fdtype fd_copy_hashtable(FD_HASHTABLE *nptr,FD_HASHTABLE *ptr);
