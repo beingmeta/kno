@@ -583,7 +583,7 @@ static fdtype get_oid_value(fd_leveldb_pool ldp,unsigned int offset)
   ssize_t data_size; char *errmsg=NULL;
   leveldb_t *dbptr=ldp->leveldb.dbptr;
   leveldb_readoptions_t *readopts=ldp->leveldb.readopts;
-  unsigned char keybuf[8];
+  unsigned char keybuf[5];
   keybuf[0]=0xFE;
   keybuf[1]=((offset>>24)&0XFF);
   keybuf[2]=((offset>>16)&0XFF);
