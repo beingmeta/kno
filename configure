@@ -12352,7 +12352,7 @@ if (test ! -f src/modules/gpath.scm); then
    if (which git 2>&1 > /dev/null) && (test -d .git); then
      git submodule update --init;
    else
-     echo "Can't initialize gut submmodules";
+     echo "Can't initialize git submodules";
    fi;
 fi;
 
