@@ -898,10 +898,12 @@ FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids,
   double start=u8_elapsed_time();
 
   if (locks->table_n_keys==0) {
-    u8_log(fddb_loglevel+1,fd_PoolCommit,"####### No locked oids in %s",p->pool_cid);
+    u8_log(fddb_loglevel+1,fd_PoolCommit,
+           "####### No locked oids in %s",p->pool_cid);
     return 0;}
   else if (p->pool_handler->storen==NULL) {
-    u8_log(fddb_loglevel+1,fd_PoolCommit,"####### Unlocking OIDs in %s",p->pool_cid);
+    u8_log(fddb_loglevel+1,fd_PoolCommit,
+           "####### Unlocking OIDs in %s",p->pool_cid);
     int rv=just_unlock(p,oids,flags);
     return rv;}
   else if (FD_OIDP(oids)) {

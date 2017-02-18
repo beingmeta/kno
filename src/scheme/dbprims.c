@@ -749,13 +749,11 @@ fd_pool_commit_flags get_commit_flags(fdtype opts)
   else if (fd_testopt(opts,fd_intern("KEEP"),FD_VOID)) {}
   else if (fd_testopt(opts,fd_intern("FINAL"),FD_VOID)) {
     flags|=FD_POOL_COMMIT_UNLOCK;}
-  else flags|=FD_POOL_COMMIT_UNLOCK;
+  else {}
 
   if (fd_testopt(opts,fd_intern("FINISHED"),FD_VOID)) {
     flags|=FD_POOL_COMMIT_FINISHED;}
-  else if (fd_testopt(opts,fd_intern("FORCE"),FD_VOID)) {}
-  else if (fd_testopt(opts,fd_intern("ALL"),FD_VOID)) {}
-  else flags|=FD_POOL_COMMIT_FINISHED;
+  else {}
 
   return flags;
 }
@@ -794,6 +792,19 @@ static fdtype commit_pool(fdtype pool,fdtype opts)
   if (!(p))
     return fd_type_error("pool","commit_pool",pool);
   else {
+    int rv=fd_pool_commit(p,FD_VOID,flags);
+    if (rv<0)
+      return FD_ERROR_VALUE;
+    else return FD_VOID;}
+}
+
+static fdtype commit_finished(fdtype pool)
+{
+  fd_pool p=fd_lisp2pool(pool);
+  if (!(p))
+    return fd_type_error("pool","commit_finished",pool);
+  else {
+    int flags=FD_POOL_COMMIT_UNLOCK|FD_POOL_COMMIT_FINISHED;
     int rv=fd_pool_commit(p,FD_VOID,flags);
     if (rv<0)
       return FD_ERROR_VALUE;
@@ -3038,6 +3049,9 @@ FD_EXPORT void fd_init_dbfns_c()
   fd_idefn(fd_xscheme_module,
            fd_make_cprim2x("COMMIT-POOL",commit_pool,1,
                            fd_pool_type,FD_VOID,-1,FD_VOID));
+  fd_idefn(fd_xscheme_module,
+           fd_make_cprim1x("COMMIT-FINISHED",commit_finished,1,
+                           fd_pool_type,FD_VOID));
 
   fd_idefn(fd_xscheme_module,fd_make_cprim1("POOL-CLOSE",pool_close_prim,1));
   fd_idefn(fd_xscheme_module,
