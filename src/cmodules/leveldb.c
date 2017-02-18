@@ -210,25 +210,26 @@ struct FRAMERD_LEVELDB *fd_setup_leveldb
     return NULL;}
 }
 
-static int fd_close_leveldb(struct FRAMERD_LEVELDB *db)
+FD_EXPORT
+int fd_close_leveldb(framerd_leveldb db)
 {
   int closed=0;
   if ( (db->dbstatus == leveldb_opened) ||
        (db->dbstatus == leveldb_opening) ) {
-    u8_lock_mutex(&(db->leveldb_lock)); {
-      if ((db->dbstatus == leveldb_opened) ) {
-	db->dbstatus=leveldb_closing;
-	leveldb_close(db->dbptr);
-	db->dbstatus=leveldb_closed;
-	leveldb_free(db->dbptr);
-	db->dbptr=NULL;
-	closed=1;}
-      u8_unlock_mutex(&(db->leveldb_lock));}}
+    u8_lock_mutex(&(db->leveldb_lock));
+    if ((db->dbstatus == leveldb_opened) ) {
+      db->dbstatus=leveldb_closing;
+      leveldb_close(db->dbptr);
+      db->dbstatus=leveldb_closed;
+      leveldb_free(db->dbptr);
+      db->dbptr=NULL;
+      closed=1;}
+    u8_unlock_mutex(&(db->leveldb_lock));}
   return closed;
 }
 
 FD_EXPORT
-struct FRAMERD_LEVELDB *fd_reopen_leveldb(struct FRAMERD_LEVELDB *db)
+framerd_leveldb fd_open_leveldb(framerd_leveldb db)
 {
   char *errmsg;
   if ( (db->dbstatus==leveldb_opened) ||
@@ -236,19 +237,20 @@ struct FRAMERD_LEVELDB *fd_reopen_leveldb(struct FRAMERD_LEVELDB *db)
     return db;
   else {
     char *errmsg;
-    u8_lock_mutex(&(db->leveldb_lock)); {
-      if ( (db->dbstatus==leveldb_opened) ||
-	   (db->dbstatus==leveldb_opening) )
-	return db;
-      db->dbstatus=leveldb_opening;
-      if (db->dbptr=leveldb_open(db->optionsptr,db->path,&errmsg)) {
-	db->dbstatus=leveldb_opened;
-	u8_unlock_mutex(&(db->leveldb_lock));
-	return db;}
-      else {
-	u8_unlock_mutex(&(db->leveldb_lock));
-	fd_seterr("OpenFailed","leveldb_reopen_prim",errmsg,FD_VOID);
-	return NULL;}}}
+    u8_lock_mutex(&(db->leveldb_lock));
+    if ( (db->dbstatus==leveldb_opened) ||
+	 (db->dbstatus==leveldb_opening) ) {
+      u8_unlock_mutex(&(db->leveldb_lock));
+      return db;}
+    db->dbstatus=leveldb_opening;
+    if (db->dbptr=leveldb_open(db->optionsptr,db->path,&errmsg)) {
+      db->dbstatus=leveldb_opened;
+      u8_unlock_mutex(&(db->leveldb_lock));
+      return db;}
+    else {
+      u8_unlock_mutex(&(db->leveldb_lock));
+      fd_seterr("OpenFailed","fd_open_leveldb",errmsg,FD_VOID);
+      return NULL;}}
 }
 
 /* DType object methods */
@@ -300,7 +302,7 @@ static fdtype leveldb_close_prim(fdtype leveldb)
 static fdtype leveldb_reopen_prim(fdtype leveldb)
 {
   struct FD_LEVELDB *db=(fd_leveldb)leveldb;
-  struct FRAMERD_LEVELDB *reopened=fd_reopen_leveldb(&(db->leveldb));
+  struct FRAMERD_LEVELDB *reopened=fd_open_leveldb(&(db->leveldb));
   if (reopened) {
     fd_incref(leveldb);
     return leveldb;}
@@ -569,7 +571,14 @@ static fdtype read_oid_value(fd_leveldb_pool p,struct FD_BYTE_INPUT *in)
   return fd_read_dtype(in);
 }
 
-static fdtype get_oidvalue(fd_leveldb_pool ldp,unsigned int offset)
+static int write_oid_value(fd_leveldb_pool p,
+			   struct FD_BYTE_OUTPUT *out,
+			   fdtype value)
+{
+  return fd_write_dtype(out,value);
+}
+
+static fdtype get_oid_value(fd_leveldb_pool ldp,unsigned int offset)
 {
   ssize_t data_size; char *errmsg=NULL;
   leveldb_t *dbptr=ldp->leveldb.dbptr;
@@ -579,7 +588,7 @@ static fdtype get_oidvalue(fd_leveldb_pool ldp,unsigned int offset)
   keybuf[1]=((offset>>24)&0XFF);
   keybuf[2]=((offset>>16)&0XFF);
   keybuf[3]=((offset>>8)&0XFF);
-  keybuf[3]=(offset&0XFF);
+  keybuf[4]=(offset&0XFF);
   unsigned char *buf=leveldb_get
     (dbptr,readopts,keybuf,5,&data_size,&errmsg);
   if (buf) {
@@ -594,22 +603,22 @@ static fdtype get_oidvalue(fd_leveldb_pool ldp,unsigned int offset)
   else return FD_VOID;
 }
 
-static int set_oidvalue(fd_leveldb_pool ldp,
-			unsigned int offset,
-			fdtype value,
-			leveldb_writeoptions_t *writeopts)
+static int set_oid_value(fd_leveldb_pool ldp,
+			 unsigned int offset,
+			 fdtype value,
+			 leveldb_writeoptions_t *writeopts)
 {
   struct FD_BYTE_OUTPUT out; ssize_t dtype_len;
   leveldb_t *dbptr=ldp->leveldb.dbptr;
   if (writeopts==NULL) writeopts=ldp->leveldb.writeopts;
   FD_INIT_BYTE_OUTPUT(&out,512);
-  unsigned char buf[8];
+  unsigned char buf[5];
   buf[0]=0xFE;
   buf[1]=((offset>>24)&0XFF);
   buf[2]=((offset>>16)&0XFF);
   buf[3]=((offset>>8)&0XFF);
-  buf[3]=(offset&0XFF);
-  if ((dtype_len=fd_write_dtype(&out,value))>0) {
+  buf[4]=(offset&0XFF);
+  if ((dtype_len=write_oid_value(ldp,&out,value))>0) {
     char *errmsg=NULL;
     leveldb_put
       (dbptr,writeopts,buf,5,
@@ -620,6 +629,28 @@ static int set_oidvalue(fd_leveldb_pool ldp,
       return dtype_len;
     fd_seterr("LevelDB pool save error","set_oidvalue",errmsg,FD_VOID);
     return -1;}
+  else return -1;
+}
+
+static int queue_oid_value(fd_leveldb_pool ldp,
+			   unsigned int offset,
+			   fdtype value,
+			   leveldb_writebatch_t *batch)
+{
+  struct FD_BYTE_OUTPUT out; ssize_t dtype_len;
+  leveldb_t *dbptr=ldp->leveldb.dbptr;
+  unsigned char buf[5];
+  buf[0]=0xFE;
+  buf[1]=((offset>>24)&0XFF);
+  buf[2]=((offset>>16)&0XFF);
+  buf[3]=((offset>>8)&0XFF);
+  buf[4]=(offset&0XFF);
+  FD_INIT_BYTE_OUTPUT(&out,512);
+  if ((dtype_len=write_oid_value(ldp,&out,value))>0) {
+    leveldb_writebatch_put
+      (batch,buf,5,out.bs_bufstart,out.bs_bufptr-out.bs_bufstart);
+    u8_free(out.bs_bufstart);
+    return dtype_len;}
   else return -1;
 }
 
@@ -650,7 +681,64 @@ static fdtype leveldb_pool_fetchoid(fd_pool p,fdtype oid)
   struct FD_LEVELDB_POOL *pool=(struct FD_LEVELDB_POOL *)p;
   FD_OID addr=FD_OID_ADDR(oid);
   unsigned int offset=FD_OID_DIFFERENCE(addr,pool->pool_base);
-  return get_oidvalue(pool,offset);
+  return get_oid_value(pool,offset);
+}
+
+struct OFFSET_ENTRY {
+  unsigned int oid_offset;
+  unsigned int fetch_offset;};
+
+static int off_compare(const void *x,const void *y)
+{
+  const struct OFFSET_ENTRY *ex=x, *ey=y;
+  if (ex->oid_offset<ey->oid_offset) return -1;
+  else if (ex->oid_offset>ey->oid_offset) return 1;
+  else return 0;
+}
+
+static fdtype *leveldb_pool_fetchn(fd_pool p,int n,fdtype *oids)
+{
+  struct FD_LEVELDB_POOL *pool=(struct FD_LEVELDB_POOL *)p;
+  struct OFFSET_ENTRY *entries=u8_zalloc_n(n,struct OFFSET_ENTRY);
+  leveldb_readoptions_t *readopts=pool->leveldb.readopts;
+  unsigned int largest_offset=0, offsets_sorted=1;
+  fdtype *values=u8_zalloc_n(n,fdtype);
+  FD_OID base=p->pool_base;
+  int i=0; while (i<n) {
+    FD_OID addr=FD_OID_ADDR(oids[i]);
+    unsigned int offset=FD_OID_DIFFERENCE(addr,base);
+    entries[i].oid_offset=FD_OID_DIFFERENCE(addr,base);
+    entries[i].fetch_offset=i;
+    if (offsets_sorted) {
+      if (offset>=largest_offset) largest_offset=offset;
+      else offsets_sorted=0;}
+    i++;}
+  if (!(offsets_sorted)) {
+    qsort(entries,n,sizeof(struct OFFSET_ENTRY),off_compare);}
+  leveldb_iterator_t *iterator=
+    leveldb_create_iterator(pool->leveldb.dbptr,readopts);
+  i=0; while (i<n) {
+    unsigned char keybuf[5];
+    unsigned int offset=entries[i].oid_offset;
+    unsigned int fetch_offset=entries[i].fetch_offset;
+    keybuf[0]=0xFE;
+    keybuf[1]=((offset>>24)&0XFF);
+    keybuf[2]=((offset>>16)&0XFF);
+    keybuf[3]=((offset>>8)&0XFF);
+    keybuf[4]=(offset&0XFF);
+    leveldb_iter_seek(iterator,keybuf,5);
+    ssize_t bytes_len;
+    const unsigned char *bytes=leveldb_iter_value(iterator,&bytes_len);
+    if (bytes) {
+      struct FD_BYTE_INPUT in;
+      FD_INIT_BYTE_INPUT(&in,bytes,bytes_len);
+      fdtype oidvalue=read_oid_value(pool,&in);
+      values[fetch_offset]=oidvalue;}
+    else values[fetch_offset]=FD_VOID;
+    i++;}
+  leveldb_iter_destroy(iterator);
+  u8_free(entries);
+  return values;
 }
 
 static int leveldb_pool_getload(fd_pool p)
@@ -681,15 +769,30 @@ static void leveldb_pool_close(fd_pool p)
 static int leveldb_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 {
   struct FD_LEVELDB_POOL *pool=(struct FD_LEVELDB_POOL *)p;
-  leveldb_writeoptions_t *writeopts=leveldb_writeoptions_create();
   leveldb_t *dbptr=pool->leveldb.dbptr;
   int i=0, errval=0;
-  leveldb_writeoptions_set_sync(writeopts,1);
-  while (i<n) {
+  if (n>7) {
+    char *errmsg=NULL;
+    leveldb_writebatch_t *batch=leveldb_writebatch_create();
+    ssize_t n_bytes=0;
+    while (i<n) {
+      fdtype oid=oids[i], value=values[i];
+      FD_OID addr=FD_OID_ADDR(oid);
+      unsigned int offset=FD_OID_DIFFERENCE(addr,pool->pool_base);
+      ssize_t len=queue_oid_value(pool,offset,value,batch);
+      if (len<0) {errval=len; break;}
+      else {n_bytes+=len; i++;}}
+    if (errval>=0) {
+      leveldb_write(dbptr,sync_writeopts,batch,&errmsg);
+      if (errmsg) {
+	u8_seterr("LevelDBError","leveldb_pool_storen",errmsg);
+	errval=-1;}}
+    leveldb_writebatch_destroy(batch);}
+  else while (i<n) {
     fdtype oid=oids[i], value=values[i];
     FD_OID addr=FD_OID_ADDR(oid);
     unsigned int offset=FD_OID_DIFFERENCE(addr,pool->pool_base);
-    if (errval=set_oidvalue(pool,offset,value,writeopts)<0)
+    if ((errval=set_oid_value(pool,offset,value,sync_writeopts))<0)
       break;
     else i++;}
   if (errval>=0) {
@@ -699,7 +802,6 @@ static int leveldb_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       fd_decref(loadval);
       u8_unlock_mutex(&(pool->pool_lock));
       if (retval<0) return retval;}}
-  leveldb_writeoptions_destroy(writeopts);
   if (errval<0)
     return errval;
   else return n;
@@ -714,7 +816,7 @@ static struct FD_POOL_HANDLER leveldb_pool_handler={
   NULL, /* setbuf */
   leveldb_pool_alloc, /* alloc */
   leveldb_pool_fetchoid, /* fetch */
-  NULL, /* fetchn */
+  leveldb_pool_fetchn, /* fetchn */
   leveldb_pool_getload, /* getload */
   leveldb_pool_lock, /* lock */
   leveldb_pool_unlock, /* release */
