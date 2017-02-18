@@ -1,11 +1,21 @@
 typedef struct FRAMERD_LEVELDB {
-  u8_string path;
-  fdtype opts;
-  unsigned int closed:1, readonly;
+  u8_string path; fdtype opts;
+  unsigned int readonly:1;
+  enum leveldb_status {
+    leveldb_raw=0,
+    leveldb_sketchy,
+    leveldb_closed,
+    leveldb_opened,
+    leveldb_opening,
+    leveldb_closing,
+    leveldb_error } dbstatus;
+  U8_MUTEX_DECL(leveldb_lock);
   struct leveldb_t *dbptr;
   struct leveldb_options_t *optionsptr;
-  struct leveldb_env_t *envptr;
-  struct leveldb_cache_t *cacheptr;} *framerd_leveldb;
+  struct leveldb_readoptions_t *readopts;
+  struct leveldb_writeoptions_t *writeopts;
+  struct leveldb_cache_t *cacheptr;
+  struct leveldb_env_t *envptr;} *framerd_leveldb;
 
 typedef struct FD_LEVELDB {
   FD_CONS_HEADER;
@@ -19,7 +29,7 @@ typedef struct FD_LEVELDB_POOL {
   FD_POOL_FIELDS;
   unsigned int pool_load; time_t pool_modtime;
   unsigned int read_only:1, locked:1;
-  int pool_n_schemas, pool_max_slotids;
+  fdtype *pool_slots; ssize_t n_pool_slots;
   struct FD_SCHEMA_ENTRY *pool_schemas;
   struct FD_SCHEMA_LOOKUP *pool_schbyval;
   U8_MUTEX_DECL(pool_lock);
