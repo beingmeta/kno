@@ -44,8 +44,8 @@ static int server_supportsp(struct FD_NETWORK_INDEX *ni,fdtype operation)
   else {fd_decref(response); return 1;}
 }
 
-FD_EXPORT fd_index fd_open_network_index_x
-  (u8_string spec,u8_string source,fdtype xname,int consed)
+FD_EXPORT fd_index fd_open_network_index
+  (u8_string spec,u8_string source,fdtype xname,fddb_flags flags)
 {
   struct FD_NETWORK_INDEX *ix;
   fdtype writable_response; u8_string xid=NULL;
@@ -54,14 +54,16 @@ FD_EXPORT fd_index fd_open_network_index_x
                                   fd_dbconn_init_default);
   if (cp==NULL) return NULL;
   ix=u8_alloc(struct FD_NETWORK_INDEX); memset(ix,0,sizeof(*ix));
-  fd_init_index((fd_index)ix,&netindex_handler,spec,consed);
+  fd_init_index((fd_index)ix,&netindex_handler,spec,flags);
   ix->index_connpool=cp;
   ix->xname=xname; ix->index_xid=xid;
   if (FD_VOIDP(xname))
     writable_response=fd_dtcall(ix->index_connpool,1,iserver_writable);
   else writable_response=fd_dtcall_x(ix->index_connpool,3,2,ixserver_writable,xname);
-  if (FD_ABORTP(writable_response)) ix->index_read_only=1;
-  else if (!(FD_FALSEP(writable_response))) ix->index_read_only=0;
+  if ((FD_ABORTP(writable_response))||
+      (!(FD_FALSEP(writable_response))))
+    U8_SETBITS(ix->index_flags,(FDB_INIT_READ_ONLY|FDB_READ_ONLY));
+  else U8_CLEARBITS(ix->index_flags,(FDB_INIT_READ_ONLY|FDB_READ_ONLY));
   fd_decref(writable_response);
 
   ix->capabilities=0;
@@ -70,15 +72,10 @@ FD_EXPORT fd_index fd_open_network_index_x
   if (server_supportsp(ix,iserver_drop)) ix->capabilities|=FD_ISERVER_DROP;
   if (server_supportsp(ix,iserver_reset)) ix->capabilities|=FD_ISERVER_RESET;
 
-  if ((ix)&&(!(consed))) fd_register_index((fd_index)ix);
+  if ((ix)&&(!(U8_BITP(flags,FDB_ISCONSED))))
+    fd_register_index((fd_index)ix);
 
   return (fd_index) ix;
-}
-
-FD_EXPORT fd_index fd_open_network_index
-  (u8_string spec,u8_string source,fdtype xname)
-{
-  return fd_open_network_index_x(spec,source,xname,0);
 }
 
 static fdtype netindex_fetch(fd_index ix,fdtype key)

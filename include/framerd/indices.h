@@ -11,12 +11,11 @@
 #define FRAMERD_INDICES_H_INFO "include/framerd/indices.h"
 #endif
 
-#include "fddb.h"
 #include "dtypestream.h"
 
 FD_EXPORT fd_exception
   fd_FileIndexOverflow, fd_NotAFileIndex, fd_NoFileIndices, fd_BadIndexSpec,
-  fd_IndexCommitError;
+  fd_IndexCommitError, fd_EphemeralIndex;
 
 FD_EXPORT u8_condition fd_IndexCommit;
 
@@ -40,8 +39,9 @@ FD_EXPORT int fd_index_adds_init;
 
 #define FD_INDEX_FIELDS \
   FD_CONS_HEADER;						   \
-  int index_serialno, index_read_only;				   \
-  int index_cache_level, index_flags;				   \
+  int index_serialno;						   \
+  fddb_flags index_flags;					   \
+  short index_cache_level;					   \
   u8_string index_source, index_cid, index_xid;                    \
   struct FD_INDEX_HANDLER *index_handler;			   \
   struct FD_HASHTABLE index_cache, index_adds, index_edits;        \
@@ -52,6 +52,8 @@ typedef struct FD_INDEX *fd_index;
 
 FD_EXPORT fd_index fd_primary_indices[], *fd_secondary_indices;
 FD_EXPORT int fd_n_primary_indices, fd_n_secondary_indices;
+
+fd_index (*fd_file_index_opener)(u8_string spec,fddb_flags flags);
 
 typedef struct FD_KEY_SIZE {
   fdtype keysizekey; unsigned int keysizenvals;} FD_KEY_SIZE;
@@ -92,8 +94,9 @@ struct FD_INDEX_HANDLER some_handler={
 FD_EXPORT int fd_for_indices(int (*fcn)(fd_index,void *),void *data);
 
 FD_EXPORT void fd_init_index
-  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,int consed);
-FD_EXPORT void fd_reset_index_tables(fd_index ix,ssize_t csize,ssize_t esize,ssize_t asize);
+  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,fddb_flags flags);
+FD_EXPORT void fd_reset_index_tables
+  (fd_index ix,ssize_t cache,ssize_t edits,ssize_t adds);
 
 FD_EXPORT void fd_register_index(fd_index ix);
 
@@ -110,13 +113,14 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix);
 FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value);
 FD_EXPORT int fd_index_prefetch(fd_index ix,fdtype keys);
 
-FD_EXPORT fd_index fd_open_index(u8_string,int);
+FD_EXPORT fd_index fd_open_index(u8_string,fddb_flags);
+FD_EXPORT fd_index fd_get_index(u8_string,fddb_flags);
 FD_EXPORT fd_index fd_find_index_by_cid(u8_string);
 
 FD_EXPORT void fd_index_swapout(fd_index ix);
 FD_EXPORT void fd_index_setcache(fd_index ix,int level);
 
-FD_EXPORT fd_index fd_use_index(u8_string spec);
+FD_EXPORT fd_index fd_use_index(u8_string spec,fddb_flags);
 
 FD_EXPORT void fd_swapout_indices(void);
 FD_EXPORT void fd_close_indices(void);
@@ -140,9 +144,7 @@ typedef struct FD_NETWORK_INDEX {
 typedef struct FD_NETWORK_INDEX *fd_network_index;
 
 FD_EXPORT fd_index fd_open_network_index
-  (u8_string spec,u8_string source,fdtype xname);
-FD_EXPORT fd_index fd_open_network_index_x
-  (u8_string spec,u8_string source,fdtype xname,int consed);
+  (u8_string spec,u8_string source,fdtype xname,fddb_flags flags);
 
 /* Server capabilities */
 #define FD_ISERVER_FETCHN 1
@@ -157,7 +159,7 @@ typedef struct FD_MEM_INDEX {
   int (*commitfn)(struct FD_MEM_INDEX *,u8_string);} FD_MEM_INDEX;
 typedef struct FD_MEM_INDEX *fd_mem_index;
 
-FD_EXPORT fd_index fd_make_mem_index(int consed);
+FD_EXPORT fd_index fd_make_mem_index(fddb_flags flags);
 
 /* EXTernal indices */
 
@@ -216,7 +218,7 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
   FDTC *fdtc=(FD_WRITETHROUGH_THREADCACHE)?(fd_threadcache):(NULL);
   fd_hashtable adds=&(ix->index_adds);
   fd_hashtable cache=&(ix->index_cache);
-  if (ix->index_read_only)
+  if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) 
     /* This will signal an error */
     return _fd_index_add(ix,key,value);
   else if (FD_CHOICEP(key)) {
@@ -289,10 +291,6 @@ FD_FASTOP U8_MAYBE_UNUSED fd_index fd_indexptr(fdtype x)
 #define fd_index_add(ix,key,val) _fd_index_add(ix,key,val)
 #define fd_indexptr(ix) _fd_indexptr(ix)
 #endif
-
-/* Opening file indices */
-
-FD_EXPORT fd_index (*fd_file_index_opener)(u8_string,int);
 
 /* IPEVAL delays */
 

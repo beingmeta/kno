@@ -13,7 +13,10 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/dbdrivers.h"
+#include "framerd/fddb.h"
+#include "framerd/pools.h"
+#include "framerd/indices.h"
+#include "framerd/drivers.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -44,17 +47,19 @@ static struct FD_POOL_HANDLER file_pool_handler;
 
 static int recover_file_pool(struct FD_FILE_POOL *);
 
-static fd_pool open_std_file_pool(u8_string fname,int read_only)
+static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
 {
   struct FD_FILE_POOL *pool=u8_alloc(struct FD_FILE_POOL);
   struct FD_DTYPE_STREAM *s=&(pool->pool_stream);
   FD_OID base=FD_NULL_OID_INIT;
+  unsigned int read_only=(U8_BITP(flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY));
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc; fdtype label;
   u8_string rname=u8_realpath(fname,NULL);
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_dtype_file_stream(&(pool->pool_stream),fname,mode,fd_dbdriver_bufsize);
+  fd_init_dtype_file_stream(&(pool->pool_stream),fname,mode,
+                            fd_driver_bufsize);
   /* See if it ended up read only */
   if ((((pool)->pool_stream).bs_flags)&FD_DTSTREAM_READ_ONLY) read_only=1;
   pool->pool_stream.dts_mallocd=0;
@@ -79,43 +84,20 @@ static fd_pool open_std_file_pool(u8_string fname,int read_only)
       else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_dtype2string(label));
       fd_decref(label);}
     else {
-      fd_seterr(fd_BadFilePoolLabel,"open_std_file_pool",
+      fd_seterr(fd_BadFilePoolLabel,"open_file_pool",
                 u8_strdup("bad label loc"),
                 FD_INT(label_loc));
       fd_dtsclose(&(pool->pool_stream),1);
       u8_free(rname); u8_free(pool);
       return NULL;}}
   pool->pool_load=load; pool->pool_offsets=NULL; pool->pool_offsets_size=0;
-  pool->pool_read_only=read_only;
-  fd_init_mutex(&(pool->pool_lock));
+  if (read_only) U8_SETBITS(pool->pool_flags,FDB_INIT_READ_ONLY|FDB_READ_ONLY);
+  else U8_CLEARBITS(pool->pool_flags,FDB_INIT_READ_ONLY|FDB_READ_ONLY);
+  fd_init_mutex(&(pool->file_lock));
+  if (!(U8_BITP(pool->pool_flags,FDB_UNREGISTERED)))
+    fd_register_pool((fd_pool)pool);
   update_modtime(pool);
   return (fd_pool)pool;
-}
-
-static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
-{
-  if (FD_FILE_POOL_LOCKED(fp)) return 1;
-  else if ((fp->pool_stream.bs_flags)&(FD_DTSTREAM_READ_ONLY)) return 0;
-  else {
-    struct FD_DTYPE_STREAM *s=&(fp->pool_stream);
-    struct stat fileinfo;
-    if (use_mutex) fd_lock_pool(fp);
-    /* Handle race condition by checking when locked */
-    if (FD_FILE_POOL_LOCKED(fp)) {
-      if (use_mutex) fd_unlock_pool(fp);
-      return 1;}
-    if (fd_dts_lockfile(s)==0) {
-      fd_unlock_pool(fp);
-      return 0;}
-    fstat(s->fd_fileno,&fileinfo);
-    if (fileinfo.st_mtime>fp->pool_modtime) {
-      /* Make sure we're up to date. */
-      if (fp->pool_offsets) reload_file_pool_cache(fp,0);
-      else {
-        fd_reset_hashtable(&(fp->pool_cache),-1,1);
-        fd_reset_hashtable(&(fp->pool_changes),32,1);}}
-    if (use_mutex) fd_unlock_pool(fp);
-    return 1;}
 }
 
 static void update_modtime(struct FD_FILE_POOL *fp)
@@ -126,20 +108,86 @@ static void update_modtime(struct FD_FILE_POOL *fp)
   else fp->pool_modtime=fileinfo.st_mtime;
 }
 
+/* These assume that the pool itself is locked */
+static int write_file_pool_load(fd_file_pool fp)
+{
+  if (FD_POOLFILE_LOCKEDP(fp)) {
+    /* Update the load */
+    unsigned int load; int err=0;
+    fd_dtype_stream stream=&(fp->pool_stream);
+    dts_lock(stream);
+    load=dts_read4_at(stream,16,&err);
+    if (err) {
+      dts_unlock(stream);
+      return -1;}
+    else if (fp->pool_load>load) {
+      int rv=dts_write4_at(stream,16,fp->pool_load);
+      dts_unlock(stream);
+      if (rv<0) return rv;}
+    else {
+      dts_unlock(stream);
+      return 0;}}
+  else return 0;
+}
+
+static int read_file_pool_load(fd_file_pool fp)
+{
+  int load, err=0;
+  fd_dtype_stream stream=&(fp->pool_stream);
+  if (FD_POOLFILE_LOCKEDP(fp)) {
+    return fp->pool_load;}
+  else dts_lock(stream);
+  if (dts_lockfile(stream)<0) return -1;
+  load=dts_read4_at(stream,16,&err);
+  if (err) {
+    dts_unlockfile(stream);
+    dts_unlock(stream);
+    return -1;}
+  dts_unlockfile(stream);
+  dts_unlock(stream);
+  fp->pool_load=load;
+  fd_unlock_pool(fp);
+  return load;
+}
+
 static int file_pool_load(fd_pool p)
 {
   fd_file_pool fp=(fd_file_pool)p;
-  if (FD_FILE_POOL_LOCKED(fp)) return fp->pool_load;
+  if (FD_POOLFILE_LOCKEDP(fp))
+    return fp->pool_load;
   else {
-    int load;
+    int pool_load, err=0;
     fd_lock_pool(fp);
-    if (fd_setpos(&(fp->pool_stream),16)<0) {
-      fd_unlock_pool(fp);
-      return -1;}
-    load=fd_dtsread_4bytes(&(fp->pool_stream));
-    fp->pool_load=load;
+    pool_load=read_file_pool_load(fp);
     fd_unlock_pool(fp);
-    return load;}
+    return pool_load;}
+}
+
+static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
+{
+  if (FD_POOLFILE_LOCKEDP(fp)) return 1;
+  else if ((fp->pool_stream.bs_flags)&(FD_DTSTREAM_READ_ONLY)) return 0;
+  else {
+    struct FD_DTYPE_STREAM *s=&(fp->pool_stream);
+    struct stat fileinfo;
+    if (use_mutex) fd_lock_pool(fp);
+    /* Handle race condition by checking when locked */
+    if (FD_POOLFILE_LOCKEDP(fp)) {
+      if (use_mutex) fd_unlock_pool(fp);
+      return 1;}
+    if (fd_dtslockfile(s)==0) {
+      fd_unlock_pool(fp);
+      return 0;}
+    fstat(s->fd_fileno,&fileinfo);
+    if (fileinfo.st_mtime>fp->pool_modtime) {
+      /* Make sure we're up to date. */
+      if (fp->pool_offsets) reload_file_pool_cache(fp,0);
+      else {
+        fd_reset_hashtable(&(fp->pool_cache),-1,1);
+        fd_reset_hashtable(&(fp->pool_changes),32,1);}}
+    read_file_pool_load(fp);
+    if (use_mutex) fd_unlock_pool(fp);
+    return 1;}
 }
 
 static fdtype file_pool_fetch(fd_pool p,fdtype oid)
@@ -344,8 +392,8 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     u8_free(changed_offsets);}
   if (retcode>=0) {
     /* Now we update the load and do other cleanup.  */
-    fd_setpos(stream,16);
-    fd_dtswrite_4bytes(stream,fp->pool_load);
+    if (write_file_pool_load(fp)<0)
+      u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->pool_cid);
     update_modtime(fp);
     /* Now, we set the file's magic number back to something
        that doesn't require recovery and truncate away the saved
@@ -433,7 +481,7 @@ static fdtype file_pool_alloc(fd_pool p,int n)
   fdtype results=FD_EMPTY_CHOICE; int i=0;
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   fd_lock_pool(fp);
-  if (!(FD_FILE_POOL_LOCKED(fp))) lock_file_pool(fp,0);
+  if (!(FD_POOLFILE_LOCKEDP(fp))) lock_file_pool(fp,0);
   if (fp->pool_load+n>=fp->pool_capacity) {
     fd_unlock_pool(fp);
     return fd_err(fd_ExhaustedPool,"file_pool_alloc",p->pool_cid,FD_VOID);}
@@ -441,7 +489,8 @@ static fdtype file_pool_alloc(fd_pool p,int n)
     FD_OID new_addr=FD_OID_PLUS(fp->pool_base,fp->pool_load);
     fdtype new_oid=fd_make_oid(new_addr);
     FD_ADD_TO_CHOICE(results,new_oid);
-    fp->pool_load++; i++; fp->pool_n_locked++;}
+    i++;}
+  fp->pool_load+=n;
   fd_unlock_pool(fp);
   return results;
 }
@@ -450,23 +499,14 @@ static int file_pool_lock(fd_pool p,fdtype oids)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   int retval=lock_file_pool(fp,1);
-  if (retval)
-    fp->pool_n_locked=fp->pool_n_locked+FD_CHOICE_SIZE(oids);
   return retval;
 }
 
 static int file_pool_unlock(fd_pool p,fdtype oids)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
-  if (fp->pool_n_locked == 0) return 0;
-  else if (!(FD_FILE_POOL_LOCKED(fp))) return 0;
-  else if (FD_CHOICEP(oids))
-    fp->pool_n_locked=fp->pool_n_locked-FD_CHOICE_SIZE(oids);
-  else if (FD_EMPTY_CHOICEP(oids)) {}
-  else fp->pool_n_locked--;
-  if (fp->pool_n_locked == 0) {
-    fd_dts_unlockfile(&(fp->pool_stream));
-    fd_reset_hashtable(&(fp->pool_changes),0,1);}
+  if (fp->pool_changes.table_n_keys == 0)
+    fd_dtsunlockfile(&(fp->pool_stream));
   return 1;
 }
 
@@ -554,6 +594,8 @@ static void file_pool_close(fd_pool p)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   fd_lock_pool(fp);
+  if (write_file_pool_load(fp)<0)
+    u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->pool_cid);
   fd_dtsfree(&(fp->pool_stream),1);
   if (fp->pool_offsets) {
 #if HAVE_MMAP
@@ -579,12 +621,42 @@ static void file_pool_setbuf(fd_pool p,int bufsiz)
   fd_unlock_pool(fp);
 }
 
-static fdtype file_pool_metadata(fd_pool p,fdtype md)
+/* Making file pools */
+
+FD_EXPORT
+/* fd_make_file_pool:
+    Arguments: a filename string, a magic number (usigned int), an FD_OID,
+    a capacity, and a dtype pointer to a metadata description (a slotmap).
+    Returns: -1 on error, 1 on success. */
+int fd_make_file_pool
+  (u8_string filename,unsigned int magicno,
+   FD_OID base,unsigned int capacity,unsigned int load)
 {
-  struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
-  if (FD_VOIDP(md))
-    return fd_read_pool_metadata(&(fp->pool_stream));
-  else return fd_write_pool_metadata((&(fp->pool_stream)),md);
+  int i, hi, lo;
+  struct FD_DTYPE_STREAM _stream;
+  struct FD_DTYPE_STREAM *stream=
+    fd_init_dtype_file_stream(&_stream,filename,FD_DTSTREAM_CREATE,8192);
+  if (stream==NULL) return -1;
+  else if ((stream->bs_flags)&FD_DTSTREAM_READ_ONLY) {
+    fd_seterr3(fd_CantWrite,"fd_make_file_pool",u8_strdup(filename));
+    fd_dtsclose(stream,FD_DTS_FREE);
+    return -1;}
+  stream->dts_mallocd=0;
+  fd_setpos(stream,0);
+  hi=FD_OID_HI(base); lo=FD_OID_LO(base);
+  fd_dtswrite_4bytes(stream,magicno);
+  fd_dtswrite_4bytes(stream,hi);
+  fd_dtswrite_4bytes(stream,lo);
+  fd_dtswrite_4bytes(stream,capacity);
+  fd_dtswrite_4bytes(stream,load); /* load */
+  fd_dtswrite_4bytes(stream,0); /* label pos */
+  i=0; while (i<capacity) {fd_dtswrite_4bytes(stream,0); i++;}
+  /* Write an initially empty metadata block */
+  fd_dtswrite_4bytes(stream,0xFFFFFFFE);
+  fd_dtswrite_4bytes(stream,40);
+  i=0; while (i<8) {fd_dtswrite_4bytes(stream,0); i++;}
+  fd_dtsclose(stream,FD_DTS_FREE);
+  return 1;
 }
 
 
@@ -603,7 +675,7 @@ static struct FD_POOL_HANDLER file_pool_handler={
   file_pool_unlock, /* release */
   file_pool_storen, /* storen */
   NULL, /* swapout */
-  file_pool_metadata, /* metadata */
+  NULL, /* metadata */
   NULL}; /* sync */
 
 /* Module (file) Initialization */
@@ -613,11 +685,15 @@ FD_EXPORT void fd_init_file_pools_c()
   u8_register_source_file(_FILEINFO);
 
   fd_register_pool_opener
-    (FD_FILE_POOL_MAGIC_NUMBER,
-     open_std_file_pool,fd_read_pool_metadata,fd_write_pool_metadata);
+    (&file_pool_handler,
+     open_file_pool,
+     fd_match4bytes,
+     (void *)FD_FILE_POOL_MAGIC_NUMBER);
   fd_register_pool_opener
-    (FD_FILE_POOL_TO_RECOVER,
-     open_std_file_pool,fd_read_pool_metadata,fd_write_pool_metadata);
+    (&file_pool_handler,
+     open_file_pool,
+     fd_match4bytes,
+     (void *)FD_FILE_POOL_TO_RECOVER);
 }
 
 

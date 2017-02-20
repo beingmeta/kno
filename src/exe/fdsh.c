@@ -359,8 +359,8 @@ int main(int argc,char **argv)
       exit(-1);}
     newstream=u8_alloc(struct FD_DTYPE_STREAM);
     fd_init_dtype_stream(newstream,sock,65536);
-    fd_use_pool(source_file);
-    fd_use_index(source_file);
+    fd_use_pool(source_file,0);
+    fd_use_index(source_file,0);
     eval_server=newstream;}
   else {
     fdtype sourceval=fdstring(u8_realpath(source_file,NULL));

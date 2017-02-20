@@ -112,6 +112,9 @@ FD_EXPORT void fd_init_choices_c(void);
 FD_EXPORT void fd_init_support_c(void);
 FD_EXPORT void fd_init_ffi_c(void);
 FD_EXPORT void fd_init_fcnids_c(void);
+FD_EXPORT void fd_init_dtypestream_c(void);
+FD_EXPORT void fd_init_hashdtype_c(void);
+FD_EXPORT void fd_init_apply_c(void);
 
 FD_EXPORT void fd_boot_message()
 {
@@ -187,6 +190,7 @@ FD_EXPORT int fd_init_dtypelib()
   fd_init_numbers_c();
   fd_init_choices_c();
   fd_init_support_c();
+  fd_init_apply_c();
   fd_init_ffi_c();
   fd_init_fcnids_c();
 

@@ -8,7 +8,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
-#include "framerd/dbdriver.h"
+#include "framerd/drivers.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -48,7 +48,7 @@ static void print_table(fdtype frames,fdtype slotids)
 
 int main(int argc,char **argv)
 {
-  int fd_version=fd_init_dbfile();
+  int fd_version=fd_init_dbs();
   if (fd_version<0) exit(1);
   fd_set_config("OIDDISPLAY",FD_INT(3));
   if (argc==2) {

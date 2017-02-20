@@ -114,8 +114,13 @@ FD_EXPORT int dts_dtsflush(fd_dtype_stream s,int unlock);
 FD_EXPORT void dts_lock(struct FD_DTYPE_STREAM *s);
 FD_EXPORT void dts_unlock(struct FD_DTYPE_STREAM *s);
 
-FD_EXPORT int fd_dts_lockfile(fd_dtype_stream s);
-FD_EXPORT int fd_dts_unlockfile(fd_dtype_stream s);
+FD_EXPORT int fd_dtslockfile(fd_dtype_stream s);
+FD_EXPORT int fd_dtsunlockfile(fd_dtype_stream s);
+FD_EXPORT int dts_lockfile(fd_dtype_stream s);
+FD_EXPORT int dts_unlockfile(fd_dtype_stream s);
+
+#define fd_dts_lockfile(s) fd_dtslockfile(s)
+#define fd_dts_unlockfile(s) fd_dtsunlockfile(s)
 
 #define FD_DTS_ISREADING(s) (U8_BITP((s->bs_flags),(FD_DTSTREAM_READING)))
 #define FD_DTS_ISWRITING(s) (!(U8_BITP((s->bs_flags),(FD_DTSTREAM_READING))))
@@ -182,6 +187,11 @@ FD_EXPORT int _dts_write_bytes(struct FD_DTYPE_STREAM *stream,
 
 FD_EXPORT int _fd_dtswrite_zint(struct FD_DTYPE_STREAM *stream,fd_4bytes w);
 FD_EXPORT int _fd_dtswrite_zint8(struct FD_DTYPE_STREAM *stream,fd_8bytes b);
+
+FD_EXPORT int dts_write4_at(fd_dtype_stream s,fd_off_t off,fd_4bytes w);
+FD_EXPORT int dts_write8_at(fd_dtype_stream s,fd_off_t off,fd_8bytes w);
+FD_EXPORT fd_4bytes dts_read4_at(fd_dtype_stream s,fd_off_t off,int *err);
+FD_EXPORT fd_8bytes dts_read8_at(fd_dtype_stream s,fd_off_t off,int *err);
 
 #if FD_INLINE_DTYPEIO
 FD_FASTOP int fd_dtsread_byte(fd_dtype_stream s)

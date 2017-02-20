@@ -8,7 +8,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
-#include "framerd/dbdriver.h"
+#include "framerd/drivers.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -23,7 +23,7 @@
 int main(int argc,char **argv)
 {
   u8_socket socket;
-  int fd_version=fd_init_dbfile(), i=0;
+  int fd_version=fd_init_dbs(), i=0;
   struct FD_DTYPE_STREAM ds;
   fdtype expr=FD_EMPTY_LIST, result;
   if (fd_version<0) {

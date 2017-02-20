@@ -13,6 +13,9 @@
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/apply.h"
+#include "framerd/pools.h"
+#include "framerd/indices.h"
+#include "framerd/drivers.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -276,7 +279,7 @@ static fdtype config_get_pools(fdtype var,void *data)
 static int config_use_pool(fdtype var,fdtype spec,void *data)
 {
   if (FD_STRINGP(spec))
-    if (fd_use_pool(FD_STRDATA(spec))) return 1;
+    if (fd_use_pool(FD_STRDATA(spec),0)) return 1;
     else return -1;
   else return fd_reterr(fd_TypeError,"config_use_pool",
                         u8_strdup(_("pool spec")),FD_VOID);
@@ -301,7 +304,7 @@ static fdtype config_get_indices(fdtype var,void *data)
 static int config_open_index(fdtype var,fdtype spec,void *data)
 {
   if (FD_STRINGP(spec))
-    if (fd_open_index(FD_STRDATA(spec),0)) return 1;
+    if (fd_get_index(FD_STRDATA(spec),0)) return 1;
     else return -1;
   else {
     fd_seterr(fd_TypeError,"config_open_index",NULL,fd_incref(spec));
@@ -325,7 +328,7 @@ static fdtype config_get_background(fdtype var,void *data)
 static int config_use_index(fdtype var,fdtype spec,void *data)
 {
   if (FD_STRINGP(spec))
-    if (fd_use_index(FD_STRDATA(spec))) return 1;
+    if (fd_use_index(FD_STRDATA(spec),0)) return 1;
     else return -1;
   else if (FD_INDEXP(spec))
     if (fd_add_to_background(fd_indexptr(spec))) return 1;
@@ -382,7 +385,7 @@ static int fast_swapout_index(fd_index ix,void *data)
 {
   struct HASHVECS_TODO *todo=(struct HASHVECS_TODO *)data;
   if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) && (ix->index_cache.table_n_keys)) {
-    if ((ix->index_flags)&(FD_STICKY_CACHESIZE))
+    if ((ix->index_flags)&(FDB_STICKY_CACHESIZE))
       fast_reset_hashtable(&(ix->index_cache),-1,todo);
     else fast_reset_hashtable(&(ix->index_cache),0,todo);}
   return 0;
@@ -465,8 +468,11 @@ static void register_header_files()
   u8_register_source_file(FRAMERD_FDDB_H_INFO);
   u8_register_source_file(FRAMERD_POOLS_H_INFO);
   u8_register_source_file(FRAMERD_INDICES_H_INFO);
+  u8_register_source_file(FRAMERD_DBDRIVER_H_INFO);
 }
 
+FD_EXPORT void fd_init_dtypestream_c(void);
+FD_EXPORT void fd_init_hashdtype_c(void);
 FD_EXPORT void fd_init_threadcache_c(void);
 FD_EXPORT void fd_init_pools_c(void);
 FD_EXPORT void fd_init_indices_c(void);
@@ -474,38 +480,39 @@ FD_EXPORT void fd_init_dtcall_c(void);
 FD_EXPORT void fd_init_netpools_c(void);
 FD_EXPORT void fd_init_netindices_c(void);
 FD_EXPORT void fd_init_xtables_c(void);
-FD_EXPORT void fd_init_apply_c(void);
 FD_EXPORT void fd_init_dtproc_c(void);
 FD_EXPORT void fd_init_frames_c(void);
 FD_EXPORT void fd_init_cachecall_c(void);
 FD_EXPORT void fd_init_ipeval_c(void);
 FD_EXPORT void fd_init_methods_c(void);
+FD_EXPORT int fd_init_drivers_c(void);
 
-FD_EXPORT int fd_init_db()
+FD_EXPORT int fd_init_dblib()
 {
   if (fddb_initialized) return fddb_initialized;
   fddb_initialized=211*fd_init_dtypelib();
-
-  fd_init_dtypelib();
 
   register_header_files();
   u8_register_source_file(_FILEINFO);
 
   fd_init_threadcache_c();
+  fd_init_dtypestream_c();
+  fd_init_hashdtype_c();
+  fd_init_xtables_c();
+  fd_init_cachecall_c();
   fd_init_pools_c();
   fd_init_indices_c();
+  fd_init_frames_c();
+  fd_init_drivers_c();
   fd_init_dtcall_c();
   fd_init_netpools_c();
   fd_init_netindices_c();
-  fd_init_xtables_c();
-  fd_init_apply_c();
   fd_init_dtproc_c();
-  fd_init_frames_c();
-  fd_init_cachecall_c();
 #if FD_IPEVAL_ENABLED
   fd_init_ipeval_c();
 #endif
   fd_init_methods_c();
+
   id_symbol=fd_intern("%ID");
   fd_set_oid_parser(better_parse_oid);
   fd_unparsers[fd_oid_type]=better_unparse_oid;

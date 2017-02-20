@@ -369,32 +369,38 @@ FD_EXPORT void dts_unlock(struct FD_DTYPE_STREAM *s)
   unlock_stream(s);
 }
 
-FD_EXPORT int fd_dts_lockfile(fd_dtype_stream s)
+FD_EXPORT int dts_lockfile(fd_dtype_stream s)
 {
   if (s->bs_flags&FD_DTSTREAM_LOCKED)
     return 1;
-  else {
-    int rv=-1;
-    lock_stream(s);
-    if ((rv=u8_lock_fd(s->fd_fileno,1))>=0) {
-      s->bs_flags=s->bs_flags|FD_DTSTREAM_LOCKED;
-      rv=1;}
-    else rv=0;
+  else if ((u8_lock_fd(s->fd_fileno,1))>=0) {
+    s->bs_flags=s->bs_flags|FD_DTSTREAM_LOCKED;
+    return 1;}
+  return 0;
+}
+
+FD_EXPORT int dts_unlockfile(fd_dtype_stream s)
+{
+  if (!(s->bs_flags&FD_DTSTREAM_LOCKED))
+    return 1;
+  else if ((u8_unlock_fd(s->fd_fileno))>=0) {
+    s->bs_flags=s->bs_flags|FD_DTSTREAM_LOCKED;
+    return 1;}
+  return 0;
+}
+
+FD_EXPORT int fd_dtslockfile(fd_dtype_stream s)
+{
+  lock_stream(s); {
+    int rv=dts_lockfile(s);
     unlock_stream(s);
     return rv;}
 }
 
-FD_EXPORT int fd_dts_unlockfile(fd_dtype_stream s)
+FD_EXPORT int fd_dtsunlockfile(fd_dtype_stream s)
 {
-  if (!((s->bs_flags)&FD_DTSTREAM_LOCKED))
-    return 1;
-  else {
-    int rv=-1;
-    lock_stream(s);
-    if ((rv=u8_unlock_fd(s->fd_fileno))>=0) {
-      s->bs_flags=s->bs_flags&(~FD_DTSTREAM_LOCKED);
-      rv=1;}
-    else rv=0;
+  lock_stream(s); {
+    int rv=dts_unlockfile(s);
     unlock_stream(s);
     return rv;}
 }
@@ -735,6 +741,70 @@ FD_EXPORT int _fd_dtswrite_8bytes(fd_dtype_stream s,fd_8bytes w)
   *(s->bs_bufptr++)=((w>>8)&0xFF);
   *(s->bs_bufptr++)=((w>>0)&0xFF);
   return 8;
+}
+
+FD_EXPORT int dts_write4_at(fd_dtype_stream s,fd_off_t off,fd_4bytes w)
+{
+  if ((s->bs_flags)&FD_DTSTREAM_READING)
+    if (fd_set_read(s,0)<0) return -1;
+  dtsflush(s,FD_STREAM_LOCKED);
+  dts_setpos(s,off);
+  *(s->bs_bufptr++)=w>>24;
+  *(s->bs_bufptr++)=((w>>16)&0xFF);
+  *(s->bs_bufptr++)=((w>>8)&0xFF);
+  *(s->bs_bufptr++)=((w>>0)&0xFF);
+  dtsflush(s,FD_STREAM_LOCKED);
+  return 4;
+}
+
+FD_EXPORT fd_4bytes dts_read4_at(fd_dtype_stream s,fd_off_t off,int *err)
+{
+  if (!((s->bs_flags)&FD_DTSTREAM_READING))
+    if (fd_set_read(s,1)<0) {
+      if (err) *err=-1;
+      return 0;}
+  dts_setpos(s,off);
+  if (fd_needs_bytes((fd_byte_input)s,4)) {
+    fd_8bytes bytes=fd_get_4bytes(s->bs_bufptr);
+    s->bs_bufptr=s->bs_bufptr+4;
+    return bytes;}
+  else {
+    if (err) *err=-1;
+    return 0;}
+}
+
+FD_EXPORT int dts_write8_at(fd_dtype_stream s,fd_off_t off,fd_8bytes w)
+{
+  if ((s->bs_flags)&FD_DTSTREAM_READING)
+    if (fd_set_read(s,0)<0) return -1;
+  dtsflush(s,FD_STREAM_LOCKED);
+  dts_setpos(s,off);
+  *(s->bs_bufptr++)=((w>>56)&0xFF);
+  *(s->bs_bufptr++)=((w>>48)&0xFF);
+  *(s->bs_bufptr++)=((w>>40)&0xFF);
+  *(s->bs_bufptr++)=((w>>32)&0xFF);
+  *(s->bs_bufptr++)=((w>>24)&0xFF);
+  *(s->bs_bufptr++)=((w>>16)&0xFF);
+  *(s->bs_bufptr++)=((w>>8)&0xFF);
+  *(s->bs_bufptr++)=((w>>0)&0xFF);
+  dtsflush(s,FD_STREAM_LOCKED);
+  return 4;
+}
+
+FD_EXPORT fd_8bytes dts_read8_at(fd_dtype_stream s,fd_off_t off,int *err)
+{
+  if (!((s->bs_flags)&FD_DTSTREAM_READING))
+    if (fd_set_read(s,1)<0) {
+      if (err) *err=-1;
+      return 0;}
+  dts_setpos(s,off);
+  if (fd_needs_bytes((fd_byte_input)s,8)) {
+    fd_8bytes bytes=fd_get_8bytes(s->bs_bufptr);
+    s->bs_bufptr=s->bs_bufptr+8;
+    return bytes;}
+  else {
+    if (err) *err=-1;
+    return 0;}
 }
 
 FD_EXPORT int _fd_dtswrite_zint(struct FD_DTYPE_STREAM *s,fd_4bytes val)

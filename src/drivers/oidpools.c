@@ -23,7 +23,10 @@
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
 #include "framerd/dtypestream.h"
-#include "framerd/dbdrivers.h"
+#include "framerd/fddb.h"
+#include "framerd/pools.h"
+#include "framerd/indices.h"
+#include "framerd/drivers.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8pathfns.h>
@@ -107,10 +110,10 @@ static fd_exception InvalidOffset=_("Invalid offset in OIDPOOL");
    0x14 XXXX     Pool information bits/flags
    0x18 XXXX     file offset of the pool label (8 bytes)
         XXXX
-   0x20 XXXX     size of label dtype representation (in bytes)
+   0x20 XXXX     byte length of label dtype representation (4 bytes)
    0x24 XXXX     file offset of pool metadata (8 bytes)
         XXXX
-   0x2c XXXX     size of pool metadata dtype representation
+   0x2c XXXX     byte length of pool metadata dtype representation (4 bytes)
    0x30 XXXX     file offset of the schemas record (8 bytes)
         XXXX
    0x38 XXXX     size of schemas record dtype representation
@@ -181,17 +184,18 @@ static size_t get_maxpos(fd_oidpool p)
 
 static int init_schemas(fd_oidpool,fdtype);
 
-static fd_pool open_oidpool(u8_string fname,int read_only)
+static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
 {
   FD_OID base=FD_NULL_OID_INIT;
-  unsigned int hi, lo, magicno, capacity, load, flags;
+  unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc, schemas_loc; fdtype label;
   struct FD_OIDPOOL *pool=u8_alloc(struct FD_OIDPOOL);
   struct FD_DTYPE_STREAM *stream=&(pool->pool_stream);
+  int read_only=U8_BITP(flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   u8_string rname=u8_realpath(fname,NULL);
-  fd_init_dtype_file_stream(stream,fname,mode,fd_dbdriver_bufsize);
+  fd_init_dtype_file_stream(stream,fname,mode,fd_driver_bufsize);
   /* See if it ended up read only */
   if ((stream->bs_flags)&(FD_DTSTREAM_READ_ONLY)) read_only=1;
   pool->pool_stream.dts_mallocd=0;
@@ -203,10 +207,10 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   pool->pool_load=load=fd_dtsread_4bytes(stream);
   flags=fd_dtsread_4bytes(stream);
   pool->pool_xformat=flags;
-  if ((read_only==0) && ((flags)&(FD_OIDPOOL_READ_ONLY))) {
+  if (U8_BITP(flags,FDB_INIT_READ_ONLY)) {
     /* If the pool is intrinsically read-only make it so. */
-    read_only=1; fd_dtsclose(stream,1);
-    fd_init_dtype_file_stream(stream,fname,FD_DTSTREAM_READ,fd_dbdriver_bufsize);
+    fd_dtsclose(stream,1);
+    fd_init_dtype_file_stream(stream,fname,FD_DTSTREAM_READ,fd_driver_bufsize);
     fd_setpos(stream,FD_OIDPOOL_LABEL_POS);}
   pool->pool_offtype=(fd_offset_type)((flags)&(FD_OIDPOOL_OFFMODE));
   pool->pool_compression=
@@ -250,9 +254,12 @@ static fd_pool open_oidpool(u8_string fname,int read_only)
   /* Offsets size is the malloc'd size (in unsigned ints) of the offsets.
      We don't fill this in until we actually need it. */
   pool->pool_offsets=NULL; pool->pool_offsets_size=0;
-  pool->pool_read_only=read_only;
+  if (read_only) U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
+  else U8_CLEARBITS(pool->pool_flags,FDB_READ_ONLY);
   pool->pool_mmap=NULL; pool->pool_mmap_size=0;
-  fd_init_mutex(&(pool->pool_lock));
+  fd_init_mutex(&(pool->file_lock));
+  if (!(U8_BITP(pool->pool_flags,FDB_UNREGISTERED)))
+    fd_register_pool((fd_pool)pool);
   update_modtime(pool);
   return (fd_pool)pool;
 }
@@ -406,16 +413,54 @@ U8_MAYBE_UNUSED static int schema_sortedp(fdtype *v,int n)
   return 1;
 }
 
+/* These assume that the pool itself is locked */
+static int write_oidpool_load(fd_oidpool op)
+{
+  if (FD_POOLFILE_LOCKEDP(op)) {
+    /* Update the load */
+    unsigned int load; int err=0;
+    fd_dtype_stream stream=&(op->pool_stream);
+    dts_lock(stream);
+    load=dts_read4_at(stream,16,&err);
+    if (err) {
+      dts_unlock(stream);
+      return -1;}
+    else if (op->pool_load>load) {
+      int rv=dts_write4_at(stream,16,op->pool_load);
+      dts_unlock(stream);
+      if (rv<0) return rv;}
+    else {
+      dts_unlock(stream);
+      return 0;}}
+  else return 0;
+}
+
+static int read_oidpool_load(fd_oidpool op)
+{
+  int load, err=0;
+  fd_dtype_stream stream=&(op->pool_stream);
+  if (FD_POOLFILE_LOCKEDP(op)) {
+    return op->pool_load;}
+  else dts_lock(stream);
+  if (dts_lockfile(stream)<0) return -1;
+  load=dts_read4_at(stream,16,&err);
+  if (err) {
+    dts_unlockfile(stream);
+    dts_unlock(stream);
+    return -1;}
+  dts_unlockfile(stream);
+  dts_unlock(stream);
+  op->pool_load=load;
+  fd_unlock_pool(op);
+  return load;
+}
+
 /* Lock the underlying OIDpool */
 
 static int lock_oidpool_file(struct FD_OIDPOOL *op,int use_mutex)
 {
-  if (FD_OIDPOOL_LOCKED(op)) return 1;
-  else if ((op->pool_stream.bs_flags)&(FD_DTSTREAM_READ_ONLY))
-    return 0;
-  /* Locked here means that the underlying file is locked */
   if (POOLFILE_LOCKEDP(op)) return 1;
-  else if (U8_BITP((op->pool_stream.bs_flags),FD_DTSTREAM_READ_ONLY))
+  else if ((op->pool_stream.bs_flags)&(FD_DTSTREAM_READ_ONLY))
     return 0;
   else {
     struct FD_DTYPE_STREAM *s=&(op->pool_stream);
@@ -426,15 +471,14 @@ static int lock_oidpool_file(struct FD_OIDPOOL *op,int use_mutex)
       if (use_mutex) fd_unlock_pool(op);
       return 1;}
     LOCK_POOLSTREAM(op,"lock_oidpool_file");
-    if (fd_dts_lockfile(s)==0) {
+    if (fd_dtslockfile(s)==0) {
       if (use_mutex) fd_unlock_pool(op);
       UNLOCK_POOLSTREAM(op);
       return 0;}
     fstat( s->fd_fileno, &fileinfo);
     if ( fileinfo.st_mtime > op->pool_modtime ) {
       /* Make sure we're up to date. */
-      fd_setpos(&(op->pool_stream),FD_OIDPOOL_LOAD_POS);
-      op->pool_load=fd_dtsread_4bytes(&(op->pool_stream));
+      read_oidpool_load(op);
       if (op->pool_offsets) reload_offsets(op,0,0);
       else {
         fd_reset_hashtable(&(op->pool_cache),-1,1);
@@ -449,7 +493,7 @@ static int lock_oidpool_file(struct FD_OIDPOOL *op,int use_mutex)
 FD_EXPORT int fd_make_oidpool
   (u8_string fname,u8_string label,
    FD_OID base,unsigned int capacity,unsigned int load,
-   unsigned int flags,fdtype schemas_init,fdtype metadata_init,
+   unsigned int flags,fdtype schemas_init,
    time_t ctime,time_t mtime,int cycles)
 {
   time_t now=time(NULL);
@@ -528,12 +572,6 @@ FD_EXPORT int fd_make_oidpool
     dts_write_bytes(stream,label,len);
     label_size=fd_getpos(stream)-label_pos;}
 
-  /* Write the metdata */
-  if (FD_SLOTMAPP(metadata_init)) {
-    metadata_pos=fd_getpos(stream);
-    fd_dtswrite_dtype(stream,metadata_init);
-    metadata_size=fd_getpos(stream)-metadata_pos;}
-
   /* Write the schemas */
   if (FD_VECTORP(schemas_init)) {
     schemas_pos=fd_getpos(stream);
@@ -562,23 +600,17 @@ FD_EXPORT int fd_make_oidpool
 
 static int oidpool_load(fd_pool p)
 {
-  fd_oidpool fp=(fd_oidpool)p;
-  if (FD_OIDPOOL_LOCKED(fp))
+  fd_oidpool op=(fd_oidpool)p;
+  if (FD_OIDPOOL_LOCKED(op))
     /* If we have the file locked, the stored load is good. */
-    return fp->pool_load;
+    return op->pool_load;
   else {
     /* Otherwise, we need to read the load from the file */
     int load;
-    if (LOCK_POOLSTREAM(fp,"oidpool_load")<0)
-      return -1;
-    else if (fd_setpos(&(fp->pool_stream),16)<0) {
-      UNLOCK_POOLSTREAM(fp);
-      return -1;}
-    else {
-      load=fd_dtsread_4bytes(&(fp->pool_stream));
-      fp->pool_load=load;
-      UNLOCK_POOLSTREAM(fp);
-      return load;}}
+    fd_lock_pool(op);
+    load=read_oidpool_load(op);
+    fd_unlock_pool(op);
+    return load;}
 }
 
 static fdtype read_oid_value(fd_oidpool op,
@@ -1084,8 +1116,7 @@ static int oidpool_finalize(struct FD_OIDPOOL *op,fd_dtype_stream stream,
       u8_log(LOG_WARN,"Bad offset type for %s",op->pool_cid);
       u8_free(saveinfo);
       exit(-1);}
-  fd_setpos(stream,FD_OIDPOOL_LOAD_POS);
-  fd_dtswrite_4bytes(stream,op->pool_load);
+  write_oidpool_load(op);
   if (op->pool_mmap) {
     int retval=munmap(op->pool_mmap,op->pool_mmap_size);
     if (retval<0) {
@@ -1136,7 +1167,8 @@ static fdtype oidpool_alloc(fd_pool p,int n)
     FD_OID new_addr=FD_OID_PLUS(op->pool_base,op->pool_load);
     fdtype new_oid=fd_make_oid(new_addr);
     FD_ADD_TO_CHOICE(results,new_oid);
-    op->pool_load++; i++; op->pool_n_locked++;}
+    i++;}
+  op->pool_load+=n;
   fd_unlock_pool(op);
   return fd_simplify_choice(results);
 }
@@ -1145,24 +1177,15 @@ static int oidpool_lock(fd_pool p,fdtype oids)
 {
   struct FD_OIDPOOL *fp=(struct FD_OIDPOOL *)p;
   int retval=lock_oidpool_file(fp,1);
-  if (retval)
-    fp->pool_n_locked=fp->pool_n_locked+FD_CHOICE_SIZE(oids);
   return retval;
 }
 
 static int oidpool_unlock(fd_pool p,fdtype oids)
 {
   struct FD_OIDPOOL *fp=(struct FD_OIDPOOL *)p;
-  if (fp->pool_n_locked == 0) return 0;
-  else if (!(FD_OIDPOOL_LOCKED(fp))) return 0;
-  else if (FD_CHOICEP(oids))
-    fp->pool_n_locked=fp->pool_n_locked-FD_CHOICE_SIZE(oids);
-  else if (FD_EMPTY_CHOICEP(oids)) {}
-  else fp->pool_n_locked--;
-  if (fp->pool_n_locked == 0) {
+  if (fp->pool_changes.table_n_keys == 0)
     /* This unlocks the underlying file, not the stream itself */
     fd_dts_unlockfile(&(fp->pool_stream));
-    fd_reset_hashtable(&(fp->pool_changes),0,1);}
   return 1;
 }
 
@@ -1391,7 +1414,9 @@ static void oidpool_close(fd_pool p)
       u8_log(LOG_WARN,u8_strerror(errno),"oidpool_close:munmap %s",op->pool_cid);
       errno=0;}}
 #endif
-  fd_dtsfree(&(op->pool_stream),1);
+  if (POOLFILE_LOCKEDP(op))
+    write_oidpool_load(op);
+  fd_dtsclose(&(op->pool_stream),0);
   fd_unlock_pool(op);
 }
 
@@ -1401,35 +1426,6 @@ static void oidpool_setbuf(fd_pool p,int bufsiz)
   fd_lock_pool(op);
   fd_dtsbufsize(&(op->pool_stream),bufsiz);
   fd_unlock_pool(op);
-}
-
-static fdtype oidpool_metadata(fd_pool p,fdtype md)
-{
-  fd_oidpool op=(fd_oidpool)p;
-  if (FD_VOIDP(md)) {
-    fdtype metadata; fd_off_t metadata_pos;
-    fd_dtype_stream stream=&(op->pool_stream);
-    fd_lock_pool(op);
-    fd_setpos(stream,FD_OIDPOOL_METADATA_POS);
-    metadata_pos=fd_dtsread_off_t(stream);
-    if (metadata_pos) {
-      fd_setpos(stream,metadata_pos);
-      metadata=fd_dtsread_dtype(stream);
-      fd_unlock_pool(op);
-      return metadata;}
-    else {
-      fd_unlock_pool(op);
-      return FD_VOID;}}
-  else if (op->pool_read_only)
-    return fd_err(fd_ReadOnlyPool,"oidpool_metadata",op->pool_cid,FD_VOID);
-  else {
-    fd_dtype_stream stream=&(op->pool_stream);
-    fd_off_t metadata_pos=fd_endpos(stream);
-    fd_dtswrite_dtype(stream,md);
-    fd_setpos(stream,FD_OIDPOOL_METADATA_POS);
-    fd_dtswrite_8bytes(stream,metadata_pos);
-    fd_dtsflush(stream); fsync(stream->fd_fileno);
-    return fd_incref(md);}
 }
 
 /* Module (file) Initialization */
@@ -1447,7 +1443,7 @@ static struct FD_POOL_HANDLER oidpool_handler={
   oidpool_unlock, /* release */
   oidpool_storen, /* storen */
   NULL, /* swapout */
-  oidpool_metadata, /* metadata */
+  NULL, /* metadata */
   NULL}; /* sync */
 
 
@@ -1456,11 +1452,15 @@ FD_EXPORT void fd_init_oidpools_c()
   u8_register_source_file(_FILEINFO);
 
   fd_register_pool_opener
-    (FD_OIDPOOL_MAGIC_NUMBER,
-     open_oidpool,fd_read_pool_metadata,fd_write_pool_metadata);
+    (&oidpool_handler,
+     open_oidpool,
+     fd_match4bytes,
+     (void*)FD_OIDPOOL_MAGIC_NUMBER);
   fd_register_pool_opener
-    (FD_OIDPOOL_TO_RECOVER,
-     open_oidpool,fd_read_pool_metadata,fd_write_pool_metadata);
+    (&oidpool_handler,
+     open_oidpool,
+     fd_match4bytes,
+     (void*)FD_OIDPOOL_TO_RECOVER);
 }
 
 

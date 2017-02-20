@@ -13,7 +13,10 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/dbdrivers.h"
+#include "framerd/fddb.h"
+#include "framerd/pools.h"
+#include "framerd/indices.h"
+#include "framerd/drivers.h"
 #include <errno.h>
 #include <sys/stat.h>
 
@@ -46,15 +49,17 @@ static struct FD_INDEX_HANDLER file_index_handler;
 
 static fdtype file_index_fetch(fd_index ix,fdtype key);
 
-static fd_index open_file_index(u8_string fname,int read_only,int consed)
+static fd_index open_file_index(u8_string fname,fddb_flags flags)
 {
   struct FD_FILE_INDEX *index=u8_alloc(struct FD_FILE_INDEX);
   struct FD_DTYPE_STREAM *s=&(index->index_stream);
+  int read_only=U8_BITP(flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
+  int consed=U8_BITP(flags,FDB_ISCONSED);
   unsigned int magicno;
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
   fd_init_index((fd_index)index,&file_index_handler,fname,consed);
-  if (fd_init_dtype_file_stream(s,fname,mode,fd_dbdriver_bufsize) == NULL) {
+  if (fd_init_dtype_file_stream(s,fname,mode,fd_driver_bufsize) == NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
     return NULL;}
@@ -76,7 +81,9 @@ static fd_index open_file_index(u8_string fname,int read_only,int consed)
     fd_seterr3(fd_NotAFileIndex,"open_file_index",u8_strdup(fname));
     u8_free(index);
     return NULL;}
-  index->index_offsets=NULL; index->index_read_only=read_only;
+  index->index_offsets=NULL;
+  if (read_only)
+    U8_SETBITS(index->index_flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
   fd_init_mutex(&(index->index_lock));
   index->slotids=FD_VOID;
   {
@@ -1128,12 +1135,36 @@ static void file_index_setbuf(fd_index ix,int bufsiz)
   fd_unlock_index(fx);
 }
 
-static fdtype file_index_metadata(fd_index ix,fdtype md)
+/* Making file indices */
+
+FD_EXPORT
+/* fd_make_file_index:
+    Arguments: a filename string, a magic number (usigned int), an FD_OID,
+    a capacity, and a dtype pointer to a metadata description (a slotmap).
+    Returns: -1 on error, 1 on success. */
+int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
 {
-  struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
-  if (FD_VOIDP(md))
-    return fd_read_index_metadata(&(fx->index_stream));
-  else return fd_write_index_metadata((&(fx->index_stream)),md);
+  int i, n_slots;
+  struct FD_DTYPE_STREAM _stream;
+  struct FD_DTYPE_STREAM *stream=
+    fd_init_dtype_file_stream(&_stream,filename,FD_DTSTREAM_CREATE,8192);
+  if (stream==NULL) return -1;
+  else if ((stream->bs_flags)&FD_DTSTREAM_READ_ONLY) {
+    fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(filename));
+    fd_dtsclose(stream,FD_DTS_FREE);
+    return -1;}
+  stream->dts_mallocd=0;
+  if (n_slots_arg<0) n_slots=-n_slots_arg;
+  else n_slots=fd_get_hashtable_size(n_slots_arg);
+  fd_setpos(stream,0);
+  fd_dtswrite_4bytes(stream,magicno);
+  fd_dtswrite_4bytes(stream,n_slots);
+  i=0; while (i<n_slots) {fd_dtswrite_4bytes(stream,0); i++;}
+  fd_dtswrite_4bytes(stream,0xFFFFFFFE);
+  fd_dtswrite_4bytes(stream,40);
+  i=0; while (i<8) {fd_dtswrite_4bytes(stream,0); i++;}
+  fd_dtsclose(stream,FD_DTS_FREE);
+  return 1;
 }
 
 
@@ -1151,7 +1182,7 @@ static struct FD_INDEX_HANDLER file_index_handler={
   file_index_fetchn, /* fetchn */
   file_index_fetchkeys, /* fetchkeys */
   file_index_fetchsizes, /* fetchsizes */
-  file_index_metadata, /* fetchsizes */
+  NULL, /* fetchsizes */
   NULL /* sync */
 };
 
@@ -1162,10 +1193,22 @@ FD_EXPORT void fd_init_fileindices_c()
   set_symbol=fd_intern("SET");
   drop_symbol=fd_intern("DROP");
   slotids_symbol=fd_intern("%%SLOTIDS");
-  fd_register_index_opener(FD_FILE_INDEX_MAGIC_NUMBER,open_file_index,NULL,NULL);
-  fd_register_index_opener(FD_MULT_FILE_INDEX_MAGIC_NUMBER,open_file_index,NULL,NULL);
-  fd_register_index_opener(FD_FILE_INDEX_TO_RECOVER,open_file_index,NULL,NULL);
-  fd_register_index_opener(FD_MULT_FILE_INDEX_TO_RECOVER,open_file_index,NULL,NULL);
+  fd_register_index_opener(&file_index_handler,
+                           open_file_index,
+                           fd_match4bytes,
+                           (void*)FD_FILE_INDEX_MAGIC_NUMBER);
+  fd_register_index_opener(&file_index_handler,
+                           open_file_index,
+                           fd_match4bytes,
+                           (void *)FD_MULT_FILE_INDEX_MAGIC_NUMBER);
+  fd_register_index_opener(&file_index_handler,
+                           open_file_index,
+                           fd_match4bytes,
+                           (void *)FD_FILE_INDEX_TO_RECOVER);
+  fd_register_index_opener(&file_index_handler,
+                           open_file_index,
+                           fd_match4bytes,
+                           (void *)FD_MULT_FILE_INDEX_TO_RECOVER);
 }
 
 

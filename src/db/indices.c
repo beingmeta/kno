@@ -16,6 +16,8 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
+#include "framerd/indices.h"
+#include "framerd/drivers.h"
 #include "framerd/apply.h"
 
 #include <libu8/libu8.h>
@@ -32,7 +34,7 @@ fd_exception fd_IndexCommitError=_("can't save changes to index");
 u8_condition fd_IndexCommit=_("Index/Commit");
 static u8_condition ipeval_ixfetch="IXFETCH";
 
-fd_index (*fd_file_index_opener)(u8_string,int)=NULL;
+fd_index (*fd_file_index_opener)(u8_string,fddb_flags)=NULL;
 
 int fd_index_cache_init  = FD_INDEX_CACHE_INIT;
 int fd_index_edits_init  = FD_INDEX_EDITS_INIT;
@@ -46,15 +48,6 @@ static u8_mutex background_lock;
 #endif
 
 struct FD_COMPOUND_INDEX *fd_background=NULL;
-
-static int _goodfunarg(fdtype fn)
-{
-  if ((fn==FD_VOID)||(fn==FD_FALSE)||(FD_APPLICABLEP(fn)))
-    return 1;
-  else return 0;
-}
-
-#define goodfunarg(fn) (FD_EXPECT_TRUE(_goodfunarg(fn)))
 
 #if FD_GLOBAL_IPEVAL
 static fdtype *index_delays;
@@ -160,7 +153,7 @@ FD_EXPORT fd_index fd_lisp2index(fdtype lix)
   else if (FD_TYPEP(lix,fd_raw_index_type))
     return (fd_index) lix;
   else if (FD_STRINGP(lix))
-    return fd_open_index(FD_STRDATA(lix),0);
+    return fd_get_index(FD_STRDATA(lix),0);
   else {
     fd_seterr(fd_TypeError,_("not an index"),NULL,lix);
     return NULL;}
@@ -182,34 +175,28 @@ FD_EXPORT fd_index fd_find_index_by_cid(u8_string cid)
   return NULL;
 }
 
-FD_EXPORT fd_index fd_open_index(u8_string spec,int consed)
+FD_EXPORT fd_index fd_get_index(u8_string spec,fddb_flags flags)
 {
   if (strchr(spec,';')) {
-    fd_seterr(fd_BadIndexSpec,"fd_open_index",u8_strdup(spec),FD_VOID);
-    return NULL;}
-  else if ((strchr(spec,'@'))||(strchr(spec,':'))) {
+    fd_index ix=NULL;
+    u8_byte *copy=u8_strdup(spec), *start=copy, *brk=strchr(start,';');
+    while (brk) {
+      if (ix==NULL) {
+        *brk='\0'; ix=fd_get_index(start,flags);
+        if (ix) {brk=NULL; start=NULL;}
+        else {
+          start=brk+1;
+          brk=strchr(start,';');}}}
+    if (ix) return ix;
+    else if ((start)&&(*start)) {
+      int start_off=start-copy;
+      u8_free(copy);
+      return fd_get_index(spec+start_off,flags);}
+    else return NULL;}
+  else {
     fd_index known=fd_find_index_by_cid(spec);
     if (known) return known;
-    else {
-      u8_byte buf[64]; fdtype xname;
-      u8_byte *at=strchr(spec,'@');
-      if (!(at))
-        return fd_open_network_index(spec,spec,FD_VOID);
-      else if ((strchr(at+1,'@'))||(strchr(at+1,':'))) {
-        if (at-spec>63) return NULL;
-        strncpy(buf,spec,at-spec); buf[at-spec]='\0';
-        xname=fd_parse(buf);
-        if (consed)
-          return fd_open_network_index_x(spec,at+1,xname,consed);
-        else return fd_open_network_index(spec,at+1,xname);}
-      else if (consed)
-        return fd_open_network_index_x(spec,spec,FD_VOID,consed);
-      else return fd_open_network_index(spec,spec,FD_VOID);}}
-  else if (fd_file_index_opener)
-    return fd_file_index_opener(spec,consed);
-  else {
-    fd_seterr3(fd_NoFileIndices,"fd_open_index",u8_strdup(spec));
-    return NULL;}
+    else return fd_open_index(spec,flags);}
 }
 
 /* Background indices */
@@ -234,14 +221,14 @@ FD_EXPORT int fd_add_to_background(fd_index ix)
   return 1;
 }
 
-FD_EXPORT fd_index fd_use_index(u8_string spec)
+FD_EXPORT fd_index fd_use_index(u8_string spec,fddb_flags flags)
 {
   if (strchr(spec,';')) {
     fd_index ix=NULL;
     u8_byte *copy=u8_strdup(spec);
     u8_byte *start=copy, *end=strchr(start,';');
     *end='\0'; while (start) {
-      ix=fd_open_index(start,0);
+      ix=fd_get_index(start,flags);
       if (ix==NULL) {
         u8_free(copy); return NULL;}
       else fd_add_to_background(ix);
@@ -252,7 +239,7 @@ FD_EXPORT fd_index fd_use_index(u8_string spec)
     u8_free(copy);
     return ix;}
   else {
-    fd_index ix=fd_open_index(spec,0);
+    fd_index ix=fd_get_index(spec,flags);
     if (ix) fd_add_to_background(ix);
     return ix;}
 }
@@ -616,7 +603,7 @@ FD_EXPORT int _fd_index_add(fd_index ix,fdtype key,fdtype value)
 {
   FDTC *fdtc=fd_threadcache;
   fd_hashtable adds=&(ix->index_adds), cache=&(ix->index_cache);
-  if (ix->index_read_only) {
+  if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->index_cid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
@@ -674,7 +661,7 @@ static int table_indexadd(fdtype ixarg,fdtype key,fdtype value)
 
 FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
 {
-  if (ix->index_read_only) {
+  if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->index_cid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
@@ -716,7 +703,7 @@ static int table_indexdrop(fdtype ixarg,fdtype key,fdtype value)
 
 FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
 {
-  if (ix->index_read_only) {
+  if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",u8_strdup(ix->index_cid),FD_VOID);
     return -1;}
   else init_cache_level(ix);
@@ -772,7 +759,7 @@ FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
      (fd_background->index_cache.table_n_keys));
   fdtype keys=FD_EMPTY_CHOICE;
   fd_hashtable adds=&(ix->index_adds);
-  if (ix->index_read_only) {
+  if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
               u8_strdup(ix->index_cid),FD_VOID);
     return -1;}
@@ -825,7 +812,7 @@ FD_EXPORT int fd_index_commit(fd_index ix)
 FD_EXPORT void fd_index_swapout(fd_index ix)
 {
   if ((((ix->index_flags)&FD_INDEX_NOSWAP)==0) && (ix->index_cache.table_n_keys)) {
-    if ((ix->index_flags)&(FD_STICKY_CACHESIZE))
+    if ((ix->index_flags)&(FDB_STICKY_CACHESIZE))
       fd_reset_hashtable(&(ix->index_cache),-1,1);
     else fd_reset_hashtable(&(ix->index_cache),0,1);}
 }
@@ -839,12 +826,15 @@ FD_EXPORT void fd_index_close(fd_index ix)
 /* Common init function */
 
 FD_EXPORT void fd_init_index
-  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,int consed)
+  (fd_index ix,struct FD_INDEX_HANDLER *h,u8_string source,fddb_flags flags)
 {
-  if (consed) {FD_INIT_CONS(ix,fd_raw_index_type);}
+  U8_SETBITS(flags,FDB_ISINDEX);
+  if (U8_BITP(flags,FDB_ISCONSED)) {
+    FD_INIT_CONS(ix,fd_raw_index_type);}
   else {FD_INIT_STATIC_CONS(ix,fd_raw_index_type);}
-  ix->index_serialno=-1; ix->index_cache_level=-1; ix->index_read_only=1;
-  ix->index_flags=((h->fetchn)?(FDB_BATCHABLE):(0));
+  if (U8_BITP(flags,FDB_INIT_READ_ONLY)) { U8_SETBITS(flags,FDB_READ_ONLY); };
+  if (h->fetchn) { U8_SETBITS(flags,FDB_BATCHABLE); };
+  ix->index_serialno=-1; ix->index_cache_level=-1; ix->index_flags=flags;
   FD_INIT_STATIC_CONS(&(ix->index_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(ix->index_adds),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(ix->index_edits),fd_hashtable_type);
@@ -858,10 +848,13 @@ FD_EXPORT void fd_init_index
   ix->index_has_slotids=FD_VOID;
 }
 
-FD_EXPORT void fd_reset_index_tables(fd_index ix,ssize_t csize,ssize_t esize,ssize_t asize)
+FD_EXPORT void fd_reset_index_tables
+  (fd_index ix,ssize_t csize,ssize_t esize,ssize_t asize)
 {
-  int readonly=ix->index_read_only;
-  fd_hashtable cache=&(ix->index_cache), edits=&(ix->index_edits), adds=&(ix->index_adds);
+  int readonly=U8_BITP(ix->index_flags,FDB_READ_ONLY);
+  fd_hashtable cache=&(ix->index_cache);
+  fd_hashtable edits=&(ix->index_edits);
+  fd_hashtable adds=&(ix->index_adds);
   fd_reset_hashtable(cache,((csize==0)?(fd_index_cache_init):(csize)),1);
   if (edits->table_n_keys==0) {
     ssize_t level=(readonly)?(0):(esize==0)?(fd_index_edits_init):(esize);
@@ -902,7 +895,7 @@ static fdtype index_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
   fd_index ix=NULL;
   if (n<2) return FD_VOID;
   else if (FD_STRINGP(args[2]))
-    ix=fd_open_index(FD_STRING_DATA(args[2]),0);
+    ix=fd_get_index(FD_STRING_DATA(args[2]),0);
   if (ix) return fd_index2lisp(ix);
   else return fd_err(fd_CantParseRecord,"index_parsefn",NULL,FD_VOID);
 }
@@ -1046,270 +1039,6 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
     else return 0;}
 }
 
-/* The in-memory index */
-
-static fdtype *memindex_fetchn(fd_index ix,int n,fdtype *keys)
-{
-  fdtype *results=u8_alloc_n(n,fdtype);
-  int i=0; while (i<n) {
-    results[i]=fd_hashtable_get(&(ix->index_cache),keys[i],FD_EMPTY_CHOICE);
-    i++;}
-  return results;
-}
-
-static fdtype *memindex_fetchkeys(fd_index ix,int *n)
-{
-  fdtype keys=fd_hashtable_keys(&(ix->index_cache));
-  int n_elts=FD_CHOICE_SIZE(keys);
-  fdtype *result=u8_alloc_n(n_elts,fdtype);
-  int j=0;
-  FD_DO_CHOICES(key,keys) {result[j++]=key;}
-  *n=n_elts;
-  return result;
-}
-
-static int memindex_fetchsizes_helper(fdtype key,fdtype value,void *ptr)
-{
-  struct FD_KEY_SIZE **key_size_ptr=(struct FD_KEY_SIZE **)ptr;
-  (*key_size_ptr)->keysizekey=fd_incref(key);
-  (*key_size_ptr)->keysizenvals=FD_CHOICE_SIZE(value);
-  *key_size_ptr=(*key_size_ptr)+1;
-  return 0;
-}
-
-static struct FD_KEY_SIZE *memindex_fetchsizes(fd_index ix,int *n)
-{
-  if (ix->index_cache.table_n_keys) {
-    struct FD_KEY_SIZE *sizes, *write; int n_keys;
-    n_keys=ix->index_cache.table_n_keys;
-    sizes=u8_alloc_n(n_keys,FD_KEY_SIZE); write=&(sizes[0]);
-    fd_for_hashtable(&(ix->index_cache),memindex_fetchsizes_helper,
-                     (void *)write,1);
-    *n=n_keys;
-    return sizes;}
-  else {
-    *n=0; return NULL;}
-}
-
-static int memindex_commit(fd_index ix)
-{
-  struct FD_MEM_INDEX *mix=(struct FD_MEM_INDEX *)ix;
-  if ((mix->index_source) && (mix->commitfn))
-    return (mix->commitfn)(mix,mix->index_source);
-  else {
-    fd_seterr(fd_EphemeralIndex,"memindex_commit",u8_strdup(ix->index_cid),FD_VOID);
-    return -1;}
-}
-
-static struct FD_INDEX_HANDLER memindex_handler={
-  "memindex", 1, sizeof(struct FD_MEM_INDEX), 12,
-  NULL, /* close */
-  memindex_commit, /* commit */
-  NULL, /* setcache */
-  NULL, /* setbuf */
-  NULL, /* fetch */
-  NULL, /* fetchsize */
-  NULL, /* prefetch */
-  memindex_fetchn, /* fetchn */
-  memindex_fetchkeys, /* fetchkeys */
-  memindex_fetchsizes, /* fetchsizes */
-  NULL, /* metadata */
-  NULL /* sync */
-};
-
-FD_EXPORT
-fd_index fd_make_mem_index(int consed)
-{
-  struct FD_MEM_INDEX *mix=u8_alloc(struct FD_MEM_INDEX);
-  FD_INIT_STRUCT(mix,struct FD_MEM_INDEX);
-  fd_init_index((fd_index)mix,&memindex_handler,"ephemeral",consed);
-  mix->index_cache_level=1; mix->index_read_only=0; mix->index_flags=FD_INDEX_NOSWAP;
-  fd_register_index((fd_index)mix);
-  return (fd_index)mix;
-}
-
-/* FETCH indices */
-
-FD_EXPORT
-fd_index fd_make_extindex
-  (u8_string name,fdtype fetchfn,fdtype commitfn,fdtype state,int reg)
-{
-  if (!(FD_EXPECT_TRUE(FD_APPLICABLEP(fetchfn)))) {
-    fd_seterr(fd_TypeError,"fd_make_extindex","fetch function",
-              fd_incref(fetchfn));
-    return NULL;}
-  else if (!(goodfunarg(commitfn))) {
-    fd_seterr(fd_TypeError,"fd_make_extindex","commit function",
-              fd_incref(commitfn));
-    return NULL;}
-  else {
-    struct FD_EXTINDEX *fetchix=u8_alloc(struct FD_EXTINDEX);
-    FD_INIT_STRUCT(fetchix,struct FD_EXTINDEX);
-    fd_init_index((fd_index)fetchix,&fd_extindex_handler,name,(!(reg)));
-    fetchix->index_cache_level=1;
-    fetchix->index_read_only=(FD_VOIDP(commitfn));
-    fetchix->fetchfn=fd_incref(fetchfn);
-    fetchix->commitfn=fd_incref(commitfn);
-    fetchix->state=fd_incref(state);
-    if (reg) fd_register_index((fd_index)fetchix);
-    else fetchix->index_serialno=-1;
-    return (fd_index)fetchix;}
-}
-
-static fdtype extindex_fetch(fd_index p,fdtype oid)
-{
-  struct FD_EXTINDEX *xp=(fd_extindex)p;
-  fdtype state=xp->state, fetchfn=xp->fetchfn, value;
-  struct FD_FUNCTION *fptr=((FD_FUNCTIONP(fetchfn))?
-                            ((struct FD_FUNCTION *)fetchfn):
-                            (NULL));
-  if ((FD_VOIDP(state))||(FD_FALSEP(state))||
-      ((fptr)&&(fptr->fcn_arity==1)))
-    value=fd_apply(fetchfn,1,&oid);
-  else {
-    fdtype args[2]; args[0]=oid; args[1]=state;
-    value=fd_apply(fetchfn,2,args);}
-  return value;
-}
-
-/* This assumes that the FETCH function handles a vector intelligently,
-   and just calls it on the vector of OIDs and extracts the data from
-   the returned vector.  */
-static fdtype *extindex_fetchn(fd_index p,int n,fdtype *keys)
-{
-  struct FD_EXTINDEX *xp=(fd_extindex)p;
-  struct FD_VECTOR vstruct; fdtype vecarg;
-  fdtype state=xp->state, fetchfn=xp->fetchfn, value=FD_VOID;
-  struct FD_FUNCTION *fptr=((FD_FUNCTIONP(fetchfn))?
-                            ((struct FD_FUNCTION *)fetchfn):
-                            (NULL));
-  if (!((p->index_flags)&(FDB_BATCHABLE))) return NULL;
-  FD_INIT_STATIC_CONS(&vstruct,fd_vector_type);
-  vstruct.fd_veclen=n; vstruct.fd_vecelts=keys; vstruct.fd_freedata=0;
-  vecarg=FDTYPE_CONS(&vstruct);
-  if ((FD_VOIDP(state))||(FD_FALSEP(state))||
-      ((fptr)&&(fptr->fcn_arity==1)))
-    value=fd_apply(xp->fetchfn,1,&vecarg);
-  else {
-    fdtype args[2]; args[0]=vecarg; args[1]=state;
-    value=fd_apply(xp->fetchfn,2,args);}
-  if (FD_ABORTP(value)) return NULL;
-  else if (FD_VECTORP(value)) {
-    struct FD_VECTOR *vstruct=(struct FD_VECTOR *)value;
-    fdtype *results=u8_alloc_n(n,fdtype);
-    memcpy(results,vstruct->fd_vecelts,sizeof(fdtype)*n);
-    /* Free the CONS itself (and maybe data), to avoid DECREF/INCREF
-       of values. */
-    if (vstruct->fd_freedata) u8_free(vstruct->fd_vecelts);
-    u8_free((struct FD_CONS *)value);
-    return results;}
-  else {
-    fdtype *values=u8_alloc_n(n,fdtype);
-    if ((FD_VOIDP(state))||(FD_FALSEP(state))||
-        ((fptr)&&(fptr->fcn_arity==1))) {
-      int i=0; while (i<n) {
-        fdtype key=keys[i];
-        fdtype value=fd_apply(fetchfn,1,&key);
-        if (FD_ABORTP(value)) {
-          int j=0; while (j<i) {fd_decref(values[j]); j++;}
-          u8_free(values);
-          return NULL;}
-        else values[i++]=value;}
-      return values;}
-    else {
-      fdtype args[2]; int i=0; args[1]=state;
-      i=0; while (i<n) {
-        fdtype key=keys[i], value;
-        args[0]=key; value=fd_apply(fetchfn,2,args);
-        if (FD_ABORTP(value)) {
-          int j=0; while (j<i) {fd_decref(values[j]); j++;}
-          u8_free(values);
-          return NULL;}
-        else values[i++]=value;}
-      return values;}}
-}
-
-static int extindex_commit(fd_index ix)
-{
-  struct FD_EXTINDEX *exi=(fd_extindex)ix;
-  fdtype *adds, *drops, *stores;
-  int n_adds=0, n_drops=0, n_stores=0;
-  fd_write_lock_table(&(exi->index_adds));
-  fd_write_lock_table(&(exi->index_edits));
-  if (exi->index_edits.table_n_keys) {
-    drops=u8_alloc_n(exi->index_edits.table_n_keys,fdtype);
-    stores=u8_alloc_n(exi->index_edits.table_n_keys,fdtype);}
-  else {drops=NULL; stores=NULL;}
-  if (exi->index_adds.table_n_keys)
-    adds=u8_alloc_n(exi->index_adds.table_n_keys,fdtype);
-  else adds=NULL;
-  if (exi->index_edits.table_n_keys) {
-    int n_edits;
-    struct FD_KEYVAL *kvals=fd_hashtable_keyvals(&(exi->index_edits),&n_edits,0);
-    struct FD_KEYVAL *scan=kvals, *limit=kvals+n_edits;
-    while (scan<limit) {
-      fdtype key=scan->fd_kvkey;
-      if (FD_PAIRP(key)) {
-        fdtype kind=FD_CAR(key), realkey=FD_CDR(key), value=scan->fd_keyval;
-        fdtype assoc=fd_conspair(realkey,value);
-        if (FD_EQ(kind,set_symbol)) {
-          stores[n_stores++]=assoc; fd_incref(realkey);}
-        else if (FD_EQ(kind,drop_symbol)) {
-          drops[n_drops++]=assoc; fd_incref(realkey);}
-        else u8_raise(_("Bad edit key in index"),"fd_extindex_commit",NULL);}
-      else u8_raise(_("Bad edit key in index"),"fd_extindex_commit",NULL);
-      scan++;}
-    scan=kvals; while (scan<kvals) {
-      fd_decref(scan->fd_kvkey);
-      /* Not neccessary because we used the pointer above. */
-      /* fd_decref(scan->fd_keyval); */
-      scan++;}}
-  if (exi->index_adds.table_n_keys) {
-    int add_len;
-    struct FD_KEYVAL *kvals=fd_hashtable_keyvals(&(exi->index_adds),&add_len,0);
-    /* Note that we don't have to decref these kvals because
-       their pointers will become in the assocs in the adds vector. */
-    struct FD_KEYVAL *scan=kvals, *limit=kvals+add_len;
-    while (scan<limit) {
-      fdtype key=scan->fd_kvkey, value=scan->fd_keyval;
-      fdtype assoc=fd_conspair(key,value);
-      adds[n_adds++]=assoc;
-      scan++;}}
-  {
-    fdtype avec=fd_init_vector(NULL,n_adds,adds);
-    fdtype dvec=fd_init_vector(NULL,n_drops,drops);
-    fdtype svec=fd_init_vector(NULL,n_stores,stores);
-    fdtype argv[4], result=FD_VOID;
-    argv[0]=avec;
-    argv[1]=dvec;
-    argv[2]=svec;
-    argv[3]=exi->state;
-    result=fd_apply(exi->commitfn,((FD_VOIDP(exi->state))?(3):(4)),argv);
-    fd_decref(argv[0]); fd_decref(argv[1]); fd_decref(argv[2]);
-    fd_reset_hashtable(&(exi->index_adds),fd_index_adds_init,0);
-    fd_reset_hashtable(&(exi->index_edits),fd_index_edits_init,0);
-    fd_unlock_table(&(exi->index_adds));
-    fd_unlock_table(&(exi->index_edits));
-    if (FD_ABORTP(result)) return -1;
-    else {fd_decref(result); return 1;}
-  }
-}
-
-struct FD_INDEX_HANDLER fd_extindex_handler={
-  "extindexhandler", 1, sizeof(struct FD_EXTINDEX), 4,
-  NULL, /* close */
-  extindex_commit, /* commit */
-  NULL, /* setcache */
-  NULL, /* setbuf */
-  extindex_fetch, /* fetch */
-  NULL, /* fetchsize */
-  NULL, /* prefetch */
-  extindex_fetchn, /* fetchn */
-  NULL, /* fetchkeys */
-  NULL, /* fetchsizes */
-  NULL /* sync */
-};
-
 static void recycle_raw_index(struct FD_CONS *c)
 {
   struct FD_INDEX *ix=(struct FD_INDEX *)c;
@@ -1408,8 +1137,8 @@ FD_EXPORT void fd_init_indices_c()
     fd_calltrack_sensor cts=fd_get_calltrack_sensor("KEYS",1);
     cts->enabled=1; cts->intfcn=fd_index_cache_load;}
 #endif
-}
 
+}
 
 /* Emacs local variables
    ;;;  Local variables: ***

@@ -28,11 +28,11 @@ FD_EXPORT int fd_init_leveldb(void) FD_LIBINIT_FN;
 typedef struct FD_LEVELDB_POOL {
   FD_POOL_FIELDS;
   unsigned int pool_load; time_t pool_modtime;
-  unsigned int read_only:1, locked:1;
+  unsigned int locked:1;
   fdtype *pool_slots; ssize_t n_pool_slots;
+  struct FD_HASHTABLE slot_table;
   struct FD_SCHEMA_ENTRY *pool_schemas;
   struct FD_SCHEMA_LOOKUP *pool_schbyval;
-  U8_MUTEX_DECL(pool_lock);
   struct FRAMERD_LEVELDB leveldb;} FD_LEVELDB_POOL;
 typedef struct FD_LEVELDB_POOL *fd_leveldb_pool;
 

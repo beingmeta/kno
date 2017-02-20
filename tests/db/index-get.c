@@ -8,7 +8,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
-#include "framerd/dbdriver.h"
+#include "framerd/drivers.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -21,8 +21,8 @@
 
 int main(int argc,char **argv)
 {
-  int fd_version=fd_init_dbfile();
-  fd_index ix=((fd_version>0)?(fd_open_index(argv[1],0)):(NULL));
+  int fd_version=fd_init_dbs();
+  fd_index ix=((fd_version>0)?(fd_get_index(argv[1],0)):(NULL));
   fdtype keys=FD_EMPTY_CHOICE;
   int i=2;
   if (ix==NULL) {

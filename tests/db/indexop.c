@@ -8,7 +8,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
-#include "framerd/dbdriver.h"
+#include "framerd/drivers.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -21,7 +21,7 @@
 
 int main(int argc,char **argv)
 {
-  int fd_version=fd_init_dbfile();
+  int fd_version=fd_init_dbs();
   fd_index ix; fdtype key;
   if (fd_version<0) {
     u8_fprintf(stderr,_("Unable to initialize FramerD\n"));
@@ -30,7 +30,7 @@ int main(int argc,char **argv)
     u8_fprintf(stderr,_("Too few (<3) args\n"));
     exit(1);}
   else {
-    ix=fd_open_index(argv[1],0);
+    ix=fd_get_index(argv[1],0);
     key=fd_parse(argv[2]);}
   if (argc == 3) {
     fdtype value=fd_index_get(ix,key);

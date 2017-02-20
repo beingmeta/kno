@@ -11,17 +11,21 @@
 	 filename created contents-as-choice contents-as-frames
 	 has %id))
 
+(define (add-suffix file suffix)
+  (if (has-suffix file suffix) file
+      (glom file suffix)))
+
 (define (initdb source)
   (cond ((or (position #\@ source)
-	     (file-exists? (append source ".pool")))
+	     (file-exists? (add-suffix source ".pool")))
 	 (set! dbsource source)
-	 (set! testpool (use-pool source))
-	 (set! testindex (open-index source)))
+	 (set! testpool (use-pool (add-suffix source ".pool")))
+	 (set! testindex (open-index (add-suffix source ".index"))))
 	(else
 	 (if (config 'oidpool)
 	     (let ((flags (fix-flags (config 'oidpool #()))))
-	       (make-oidpool (append source ".pool") @17/0 64000 0 flags))
-	     (make-file-pool (append source ".pool") @17/0 64000))
+	       (make-oidpool (add-suffix source ".pool") @17/0 64000 0 flags))
+	     (make-file-pool (add-suffix source ".pool") @17/0 64000))
 	 (if (config 'hashindex #f)
 	     (let ((flags (fix-flags (config 'hashindex #()))))
 	       (if (position 'COMPRESS flags)
@@ -33,8 +37,8 @@
 				      #() #() #f flags))))
 	     (make-file-index (append source ".index") -500000))
 	 (set! dbsource source)
-	 (set! testpool (use-pool source))
-	 (set! testindex (open-index source))))
+	 (set! testpool (use-pool (add-suffix source ".pool")))
+	 (set! testindex (open-index (add-suffix source ".index")))))
   (logwarn |Pool| testpool)
   (logwarn |Index| testindex))
 
@@ -259,7 +263,7 @@
 (define (main source (operation "test") . files)
   (cond ((not (equal? operation "init")))
 	((position #\@ source)
-	 (unless (zero? (pool-load (use-pool source)))
+	 (unless (zero? (pool-load (use-pool (add-suffix source ".pool"))))
 	   (message "Doing init on non-virgin pool")))
 	(else (remove-file
 	       (append source {".pool" ".index"

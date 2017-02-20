@@ -83,7 +83,7 @@ DB_HEADERS=\
  include/framerd/dtcall.h                            \
  include/framerd/frames.h                            \
  include/framerd/methods.h
-DBDRIVER_HEADERS=include/framerd/dbdriver.h
+DRIVERS_H=include/framerd/drivers.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
 LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
 		include/framerd/mongodb.h include/framerd/leveldb.h
@@ -97,24 +97,27 @@ DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/fcnids.o	\
 	  src/dtype/apply.o src/dtype/ffi.o			\
           src/dtype/choices.o src/dtype/tables.o		\
           src/dtype/dtypeio.o src/dtype/textio.o		\
-	  src/dtype/fdtype.o src/dtype/support.o		\
-	  src/dtype/hashdtype.o 
+	  src/dtype/fdtype.o src/dtype/support.o
 
 REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-DB_OBJS=src/db/fddb.o src/db/dtypestream.o		\
-	src/db/indices.o src/db/netindices.o 		\
-	src/db/compoundindices.o     			\
-	src/db/pools.o src/db/netpools.o		\
-	src/db/dtproc.o src/db/dtcall.o 		\
-	src/db/methods.o src/db/xtables.o 		\
-	src/db/cachecall.o src/db/threadcache.o 	\
+DB_OBJS=src/db/fddb.o src/db/dtypestream.o src/db/hashdtype.o 		\
+	src/db/pools.o src/db/indices.o	src/db/compoundindices.o	\
+	src/db/dtproc.o src/db/dtcall.o 				\
+	src/db/methods.o src/db/xtables.o 				\
+	src/db/cachecall.o src/db/threadcache.o 			\
+	src/db/drivers.o 						\
 	@ipevalo@ src/db/frames.o
-DBDRIVER_OBJS=src/drivers/dbdrivers.o 			\
-	src/drivers/filepools.o src/drivers/oidpools.o 	\
-	src/drivers/fileindices.o src/drivers/hashindices.o 
+DBDRIVERS_OBJS=\
+	src/drivers/builtindbs.o 					\
+	src/drivers/filepools.o src/drivers/oidpools.o 		\
+	src/drivers/netpools.o src/drivers/extpools.o 		\
+	src/drivers/mempools.o 					\
+	src/drivers/fileindices.o src/drivers/hashindices.o 	\
+	src/drivers/memindices.o src/drivers/extindices.o 	\
+	src/drivers/netindices.o
 FDBSERV_OBJS=src/db/dbserv.o
 CORE_SCHEME_OBJS=src/scheme/eval.o src/scheme/binders.o           \
                  src/scheme/threadprims.o src/scheme/quasiquote.o \
@@ -254,23 +257,27 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config $(DESTDIR)@share_d
 	$(DESTDIR)@local_module_dir@ $(DESTDIR)@local_safe_module_dir@
 
 FRAMERD_HEADERS= \
-       $(DTYPE_HEADERS) $(DB_HEADERS) $(DBDRIVER_HEADERS) $(SCHEME_HEADERS)
+       $(DTYPE_HEADERS) $(DB_HEADERS) $(DBDRIVERS_HEADERS) $(SCHEME_HEADERS)
 
 FRAMERD_SOURCES=\
-	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c          \
+	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c           \
         src/dtype/choices.c src/dtype/tables.c src/dtype/fcnids.c       \
-        src/dtype/dtypeio.c src/dtype/textio.c src/dtype/hashdtype.c	\
+        src/dtype/dtypeio.c src/dtype/textio.c 				\
 	src/dtype/fdtype.c src/dtype/support.c 				\
 	src/dtype/apply.c src/dtype/ffi.c       			\
-	src/db/fddb.c src/db/dtypestream.c  src/db/dbserv.c            \
-	src/db/indices.c src/db/netindices.c src/db/compoundindices.c  \
-	src/db/pools.c src/db/netpools.c src/db/xtables.c              \
-	src/db/dtproc.c src/db/dtcall.c src/db/ipeval.c 	       \
-	src/db/cachecall.c src/db/threadcache.c 			\
-	src/db/frames.c src/db/methods.c          			\
-	src/drivers/dbdrivers.c						\
+	src/db/fddb.c src/db/dtypestream.c src/db/hashdtype.c		\
+	src/db/drivers.c src/db/indices.c src/db/pools.c 		\
+	src/db/xtables.c src/db/cachecall.c  				\
+	src/db/compoundindices.c  			\
+	src/db/threadcache.c src/db/frames.c src/db/methods.c		\
+	src/db/dtproc.c src/db/dtcall.c		\
+	src/db/ipeval.c 	       					\
+	src/drivers/builtindbs.c  					\
 	src/drivers/filepools.c src/drivers/oidpools.c 			\
 	src/drivers/fileindices.c src/drivers/hashindices.c		\
+	src/drivers/memindices.c src/drivers/extindices.c		\
+	src/drivers/mempools.c src/drivers/extpools.c			\
+	src/drivers/netpools.c src/drivers/netindices.c			\
 	src/scheme/eval.c src/scheme/binders.c src/scheme/errors.c     \
 	src/scheme/conditionals.c src/scheme/iterators.c               \
         src/scheme/threadprims.c src/scheme/quasiquote.c               \
@@ -757,16 +764,16 @@ lib/libfddb@suffix@.a: $(DB_OBJS)
 lib/libfddb@suffix@.so: $(DB_OBJS) lib/libfdtype@suffix@.so
 lib/libfddb@suffix@.dylib: $(DB_OBJS) lib/libfdtype@suffix@.dylib
 
-lib/libfddbdrivers@suffix@.a: $(DBDRIVER_OBJS)
-lib/libfddbdrivers@suffix@.so: $(DBDRIVER_OBJS) \
+lib/libfddbdrivers@suffix@.a: $(DBDRIVERS_OBJS)
+lib/libfddbdrivers@suffix@.so: $(DBDRIVERS_OBJS) \
 	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so
-lib/libfddbdrivers@suffix@.dylib: $(DBDRIVER_OBJS) \
+lib/libfddbdrivers@suffix@.dylib: $(DBDRIVERS_OBJS) \
 	lib/libfddb@suffix@.dylib lib/libfdtype@suffix@.dylib
 
 lib/libfdbserv@suffix@.a: $(FDBSERV_OBJS)
 lib/libfdbserv@suffix@.so: $(FDBSERV_OBJS) \
 	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so
+	lib/libfddbdrivers@suffix@.so
 lib/libfdbserv@suffix@.dylib: $(FDBSERV_OBJS) \
 	lib/libfdscheme@suffix@.dylib         \
 	lib/libfddbdrivers@suffix@.dylib         \
@@ -776,28 +783,29 @@ lib/libfdbserv@suffix@.dylib: $(FDBSERV_OBJS) \
 	@$(MSG) MACLIBTOOL $@
 
 lib/libfdscheme@suffix@.a: $(SCHEME_OBJS)
-lib/libfdscheme@suffix@.so: $(SCHEME_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so
-lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) \
-	lib/libfddb@suffix@.dylib             \
-        lib/libfdtype@suffix@.dylib
+lib/libfdscheme@suffix@.so: $(SCHEME_OBJS) 		\
+	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so	\
+	lib/libfddbdrivers@suffix@.so
+lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
+	lib/libfdtype@suffix@.so  lib/libfddb@suffix@.so	\
+        lib/libfddbdrivers@suffix@.so
 
 lib/libfdschemeio@suffix@.a: $(SCHEMEIO_OBJS)
-lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so lib/libfddbdrivers@suffix@.so \
+lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS) 			\
+	lib/libfdtype@suffix@.so  lib/libfddb@suffix@.so	\
+        lib/libfddbdrivers@suffix@.so 				\
 	lib/libfdscheme@suffix@.so
-lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) \
-	lib/libfdscheme@suffix@.dylib             \
-	lib/libfddbdrivers@suffix@.dylib             \
-	lib/libfddb@suffix@.dylib                 \
-	lib/libfdtype@suffix@.dylib 
+lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) 		\
+	lib/libfdscheme@suffix@.dylib             		\
+	lib/libfdtype@suffix@.so  lib/libfddb@suffix@.dylib	\
+        lib/libfddbdrivers@suffix@.dylib
 
 lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
 lib/libfdweb@suffix@.so: $(FDWEB_OBJS) \
-	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so \
-	lib/libfddb@suffix@.so lib/libfdscheme@suffix@.so \
+	lib/libfdtype@suffix@.so \
+	lib/libfddb@suffix@.so \
+	lib/libfddbdrivers@suffix@.so \
+	lib/libfdscheme@suffix@.so \
 	lib/libfdschemeio@suffix@.so
 lib/libfdweb@suffix@.dylib: $(FDWEB_OBJS) \
 	lib/libfdscheme@suffix@.dylib     \
@@ -825,7 +833,6 @@ lib/libtexttools@suffix@.dylib: $(TEXTTOOLS_OBJS) \
 		$(DYLIB_FLAGS) \
 		-o $@ $(TEXTTOOLS_OBJS)
 	@$(MSG) MACLIBTOOL $@
-
 
 src/cmodules/mysql.o: src/cmodules/mysql.c ${CONFIG_HDRS}
 	@$(CC) @MYSQL_CFLAGS@ $(CFLAGS)  -o $@ -c $<
@@ -1180,7 +1187,7 @@ install-shared: shared-libs $(LIBINSTALLDIR) 				\
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
 		   $(DTYPE_HEADERS) $(DB_HEADERS)	\
-		   $(DBDRIVER_HEADERS) $(SCHEME_HEADERS)	\
+		   $(DRIVERS_H) $(SCHEME_HEADERS)	\
 		   $(LIB_HEADERS) $(REVISION_H)		\
 		$(INCINSTALLDIR)
 
@@ -1521,14 +1528,14 @@ $(EXECUTABLES) $(STATIC_EXECUTABLES): buildmode $(REVISION_H)
 #$(STATIC_LIBS) $(SHARED_LIBS): buildmode
 $(DTYPE_OBJS): $(DTYPE_HEADERS) $(REVISION_H)
 $(DB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(REVISION_H)
-$(DBDRIVER_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBDRIVER_HEADERS) $(REVISION_H)
-$(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBDRIVER_HEADERS) \
+$(DBDRIVERS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) $(REVISION_H)
+$(SCHEME_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H)
-$(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBDRIVER_HEADERS) \
+$(FDWEB_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	$(SCHEME_HEADERS) $(REVISION_H) ./include/framerd/fdweb.h
-$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DBDRIVER_HEADERS) \
+$(TEXTTOOLS_OBJS): $(DTYPE_HEADERS) $(DB_HEADERS) $(DRIVERS_H) \
 	 $(REVISION_H) $(SCHEME_HEADERS) ./include/framerd/texttools.h
-$(DTYPE_OBJS) $(DB_OBJS) $(DBDRIVER_OBJS):  buildmode
+$(DTYPE_OBJS) $(DB_OBJS) $(DBDRIVERS_OBJS):  buildmode
 $(SCHEME_OBJS) $(SCHEMEIO_OBJS): buildmode
 $(FDWEB_OBJS) $(TEXTTOOLS_OBJS): buildmode
 $(CMODULE_OBJS): buildmode

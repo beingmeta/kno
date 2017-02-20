@@ -69,7 +69,10 @@
 #include "framerd/dtypeio.h"
 #include "framerd/dtypestream.h"
 #include "framerd/numbers.h"
-#include "framerd/dbdrivers.h"
+#include "framerd/fddb.h"
+#include "framerd/pools.h"
+#include "framerd/indices.h"
+#include "framerd/drivers.h"
 
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
@@ -219,17 +222,19 @@ static int init_baseoids
   (struct FD_HASH_INDEX *hx,int n_baseoids,fdtype *baseoids_init);
 static int recover_hash_index(struct FD_HASH_INDEX *hx);
 
-static fd_index open_hash_index(u8_string fname,int read_only,int consed)
+static fd_index open_hash_index(u8_string fname,fddb_flags flags)
 {
   struct FD_HASH_INDEX *index=u8_alloc(struct FD_HASH_INDEX);
   struct FD_DTYPE_STREAM *s=&(index->index_stream);
+  int read_only=U8_BITP(flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
+  int consed=U8_BITP(flags,FDB_ISCONSED);
   unsigned int magicno, n_keys;
   fd_off_t slotids_pos, baseoids_pos;
   fd_size_t slotids_size, baseoids_size;
   fd_dtstream_mode mode=
     ((read_only) ? (FD_DTSTREAM_READ) : (FD_DTSTREAM_MODIFY));
-  fd_init_index((fd_index)index,&hash_index_handler,fname,consed);
-  if (fd_init_dtype_file_stream(s,fname,mode,fd_dbdriver_bufsize)
+  fd_init_index((fd_index)index,&hash_index_handler,fname,flags);
+  if (fd_init_dtype_file_stream(s,fname,mode,fd_driver_bufsize)
       == NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_hash_index",u8_strdup(fname));
@@ -244,9 +249,10 @@ static fd_index open_hash_index(u8_string fname,int read_only,int consed)
     u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the hash index %s",fname);
     recover_hash_index(index);
     magicno=magicno&(~0x20);}
-  index->index_offdata=NULL; index->index_read_only=read_only;
+  index->index_offdata=NULL;
   index->fdb_xformat=fd_dtsread_4bytes(s);
-
+  if (read_only)
+    U8_SETBITS(index->index_flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
   if (((index->fdb_xformat)&(FD_HASH_INDEX_FN_MASK))!=0) {
     u8_free(index);
     fd_seterr3(BadHashFn,"open_hash_index",NULL);
@@ -378,7 +384,7 @@ static int init_baseoids(fd_hash_index hx,int n_baseoids,fdtype *baseoids_init)
 FD_EXPORT int fd_make_hash_index
   (u8_string fname,int n_buckets_arg,
    unsigned int flags,unsigned int hashconst,
-   fdtype slotids_init,fdtype baseoids_init,fdtype metadata_init,
+   fdtype slotids_init,fdtype baseoids_init,
    time_t ctime,time_t mtime)
 {
   int n_buckets;
@@ -456,12 +462,6 @@ FD_EXPORT int fd_make_hash_index
     baseoids_pos=fd_getpos(stream);
     fd_dtswrite_dtype(stream,baseoids_init);
     baseoids_size=fd_getpos(stream)-baseoids_pos;}
-
-  /* Write the metdata */
-  if (FD_SLOTMAPP(metadata_init)) {
-    metadata_pos=fd_getpos(stream);
-    fd_dtswrite_dtype(stream,metadata_init);
-    metadata_size=fd_getpos(stream)-metadata_pos;}
 
   if (slotids_pos) {
     fd_setpos(stream,FD_HASH_INDEX_SLOTIDS_POS);
@@ -2525,14 +2525,6 @@ static void hash_index_setbuf(fd_index ix,int bufsiz)
   fd_unlock_index(fx);
 }
 
-static fdtype hash_index_metadata(fd_index ix,fdtype md)
-{
-  struct FD_HASH_INDEX *fx=(struct FD_HASH_INDEX *)ix;
-  if (FD_VOIDP(md))
-    return fd_read_index_metadata(&(fx->index_stream));
-  else return fd_write_index_metadata((&(fx->index_stream)),md);
-}
-
 
 /* The handler struct */
 
@@ -2548,7 +2540,7 @@ static struct FD_INDEX_HANDLER hash_index_handler={
   hash_index_fetchn, /* fetchn */
   hash_index_fetchkeys, /* fetchkeys */
   hash_index_fetchsizes, /* fetchsizes */
-  hash_index_metadata, /* metadata */
+  NULL, /* metadata */
   NULL /* sync */
 };
 
@@ -2586,8 +2578,14 @@ FD_EXPORT void fd_init_hashindices_c()
 
   u8_register_source_file(_FILEINFO);
 
-  fd_register_index_opener(FD_HASH_INDEX_MAGIC_NUMBER,open_hash_index,NULL,NULL);
-  fd_register_index_opener(FD_HASH_INDEX_TO_RECOVER,open_hash_index,NULL,NULL);
+  fd_register_index_opener(&hash_index_handler,
+                           open_hash_index,
+                           fd_match4bytes,
+                           (void *)FD_HASH_INDEX_MAGIC_NUMBER);
+  fd_register_index_opener(&hash_index_handler,
+                           open_hash_index,
+                           fd_match4bytes,
+                           (void *)FD_HASH_INDEX_TO_RECOVER);
 }
 
 /* TODO:

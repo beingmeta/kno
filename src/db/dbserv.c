@@ -358,7 +358,7 @@ static fdtype unlock_oid_prim(fdtype oid,fdtype id,fdtype value)
     fd_pool p=fd_oid2pool(oid);
     fd_set_oid_value(oid,value);
     add_to_changelog(&oid_changelog,oid);
-    fd_pool_commit(p,oid,1);
+    fd_pool_unlock(p,oid,commit_modified);
     return FD_TRUE;}
   else {
     fd_pool p=fd_oid2pool(oid);
@@ -366,7 +366,7 @@ static fdtype unlock_oid_prim(fdtype oid,fdtype id,fdtype value)
       fd_set_oid_value(oid,value);
       clear_server_lock(oid,id);
       add_to_changelog(&oid_changelog,oid);
-      fd_pool_commit(p,oid,1);
+      fd_pool_unlock(p,oid,commit_modified);
       return FD_TRUE;}
     else return FD_FALSE;}
 }
@@ -413,15 +413,18 @@ static fdtype store_oid_proc(fdtype oid,fdtype value)
       add_to_changelog(&oid_changelog,oid);
       /* Commit the pool.  Journalling should now happen on a per-pool
          rather than a server-wide basis. */
-      fd_pool_commit(p,oid,1);
-      return FD_TRUE;}
+      if (fd_pool_commit(p,oid)>=0) {
+        fd_pool_unlock(p,oid,leave_modified);
+        return FD_TRUE;}
+      else i++;}
     else i++;
   return FD_FALSE;
 }
 
 static fdtype bulk_commit_cproc(fdtype id,fdtype vec)
 {
-  int i=0, l=FD_VECTOR_LENGTH(vec); fdtype changed_oids=FD_EMPTY_CHOICE;
+  int i=0, l=FD_VECTOR_LENGTH(vec);
+  fdtype changed_oids=FD_EMPTY_CHOICE;
   /* First check that all the OIDs were really locked under the assigned ID. */
   if (locking) {
     i=0; while (i < l) {
@@ -437,7 +440,8 @@ static fdtype bulk_commit_cproc(fdtype id,fdtype vec)
       fd_set_oid_value(oid,value);
       FD_ADD_TO_CHOICE(changed_oids,oid);}
     i=i+2;}
-  fd_commit_oids(changed_oids,1);
+  fd_commit_oids(changed_oids);
+  fd_unlock_oids(changed_oids,leave_modified);
   if (locking) {
     i=0; while (i < l) {
       fdtype oid=FD_VECTOR_REF(vec,i);
@@ -585,7 +589,7 @@ static fdtype server_pool_data(fdtype session_id)
     fd_pool p=served_pools[i];
     fdtype base=fd_make_oid(p->pool_base);
     fdtype capacity=FD_INT(p->pool_capacity);
-    fdtype ro=((p->pool_read_only) ? (FD_FALSE) : (FD_TRUE));
+    fdtype ro=(U8_BITP(p->pool_flags,FDB_READ_ONLY)) ? (FD_FALSE) : (FD_TRUE);
     elts[i++]=
       ((p->pool_label) ?
        (fd_make_list(4,base,capacity,ro,fdtype_string(p->pool_label))) :
@@ -728,7 +732,7 @@ static int serve_pool(fdtype var,fdtype val,void *data)
   else if (FD_POOLP(val)) p=fd_lisp2pool(val);
   else if (FD_STRINGP(val)) {
     if ((p=fd_name2pool(FD_STRDATA(val)))==NULL)
-      p=fd_use_pool(FD_STRDATA(val));}
+      p=fd_use_pool(FD_STRDATA(val),0);}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
   if (p)
     if (served_poolp(p)) return 0;
@@ -758,7 +762,7 @@ static int serve_primary_pool(fdtype var,fdtype val,void *data)
   if (FD_POOLP(val)) p=fd_lisp2pool(val);
   else if (FD_STRINGP(val)) {
     if ((p=fd_name2pool(FD_STRDATA(val)))==NULL)
-      p=fd_use_pool(FD_STRDATA(val));}
+      p=fd_use_pool(FD_STRDATA(val),0);}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
   if (p)
     if (p==primary_pool) return 0;
@@ -782,7 +786,7 @@ static int serve_index(fdtype var,fdtype val,void *data)
     return 1;}
   else if (FD_INDEXP(val)) ix=fd_indexptr(val);
   else if (FD_STRINGP(val))
-    ix=fd_open_index(FD_STRDATA(val),0);
+    ix=fd_get_index(FD_STRDATA(val),0);
   else if (val==FD_TRUE)
     if (fd_background) ix=(fd_index)fd_background;
     else {
@@ -902,7 +906,7 @@ static int fddbserv_initialized=0;
 FD_EXPORT int fd_init_fddbserv()
 {
   if (fddbserv_initialized) return fddbserv_initialized;
-  fddbserv_initialized=211*fd_init_db();
+  fddbserv_initialized=211*fd_init_dblib();
 
   u8_register_source_file(_FILEINFO);
   fd_init_dbserv_c();

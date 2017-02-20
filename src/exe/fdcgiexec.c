@@ -594,7 +594,7 @@ static int simplecgi(fdtype path)
 
 /* The main() event */
 
-FD_EXPORT void fd_init_dbfile(void);
+FD_EXPORT int fd_init_dbs(void);
 
 int main(int argc,char **argv)
 {
@@ -658,7 +658,7 @@ int main(int argc,char **argv)
 #endif
 
   fd_init_fdweb();
-  fd_init_dbfile();
+  fd_init_dbs();
 
   init_webcommon_data();
   init_webcommon_symbols();

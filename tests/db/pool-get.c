@@ -8,7 +8,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
-#include "framerd/dbdriver.h"
+#include "framerd/drivers.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -22,8 +22,8 @@
 
 int main(int argc,char **argv)
 {
-  int fd_version=fd_init_dbfile();
-  fd_pool p=((fd_version>0)?(fd_use_pool(argv[1])):(NULL));
+  int fd_version=fd_init_dbs();
+  fd_pool p=((fd_version>0)?(fd_use_pool(argv[1],0)):(NULL));
   fdtype oids=FD_EMPTY_CHOICE;
   int i=2;
   if (p==NULL) {
@@ -38,7 +38,7 @@ int main(int argc,char **argv)
       u8_fprintf(stderr,_("Value of %q is %q\n"),oid,value);
       fd_decref(value);}}
   fd_decref(oids);
-  fd_pool_swapout(p);
+  fd_pool_swapout(p,FD_VOID);
   fd_pool_close(p);
   return 0;
 }

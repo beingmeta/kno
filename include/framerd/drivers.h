@@ -8,22 +8,18 @@
 #ifndef FRAMERD_DBDRIVER_H
 #define FRAMERD_DBDRIVER_H 1
 #ifndef FRAMERD_DBDRIVER_H_INFO
-#define FRAMERD_DBDRIVER_H_INFO "include/framerd/dbfile.h"
+#define FRAMERD_DBDRIVER_H_INFO "include/framerd/drivers.h"
 #endif
 
-#include "fddb.h"
-#include "pools.h"
-#include "indices.h"
-
-#ifndef FD_FILEDB_BUFSIZE
-#define FD_FILEDB_BUFSIZE 256*1024
+#ifndef FD_DRIVER_BUFSIZE
+#define FD_DRIVER_BUFSIZE 256*1024
 #endif
 
-FD_EXPORT size_t fd_filedb_bufsize;
+FD_EXPORT size_t fd_driver_bufsize;
 
 FD_EXPORT int fd_acid_files;
 
-FD_EXPORT int fd_init_dbfile(void) FD_LIBINIT_FN;
+FD_EXPORT int fd_init_dbs(void) FD_LIBINIT_FN;
 
 typedef enum FD_OFFSET_TYPE { FD_B32=0, FD_B40=1, FD_B64=2 } fd_offset_type;
 typedef enum FD_COMPRESSION_TYPE { FD_NOCOMPRESS=0, FD_ZLIB=1, FD_BZ2=2 }
@@ -43,25 +39,40 @@ FD_EXPORT fd_exception fd_RecoveryRequired;
 #define FD_OIDPOOL_MAGIC_NUMBER ((0x17<<24)|(0x11<<16)|(0x04<<8)|(0x10))
 #define FD_OIDPOOL_TO_RECOVER ((0x11<<24)|(0x09<<16)|(0x04<<8)|(0x12))
 
+FD_EXPORT int fd_match4bytes(u8_string file,void *data);
+FD_EXPORT int fd_netspecp(u8_string file,void *data);
+
 /* File Pools */
 
 typedef struct FD_POOL_OPENER {
-  unsigned int initial_word;
-  fd_pool (*opener)(u8_string filename,int read_only);
-  fdtype (*read_metadata)(FD_DTYPE_STREAM *);
-  fdtype (*write_metadata)(FD_DTYPE_STREAM *,fdtype);} FD_POOL_OPENER;
+  fd_pool_handler handler;
+  fd_pool (*opener)(u8_string filename,fddb_flags flags);
+  int (*matcher)(u8_string filename,void *);
+  void *matcher_data;} FD_POOL_OPENER;
 typedef struct FD_POOL_OPENER *fd_pool_opener;
+
+FD_EXPORT void fd_register_pool_opener
+ (fd_pool_handler pool_handler,
+  fd_pool (*opener)(u8_string path,fddb_flags flags),
+  int (*matcher)(u8_string path,void *),
+  void *matcher_data);
 
 typedef struct FD_FILE_POOL {
   FD_POOL_FIELDS;
   time_t pool_modtime;
   unsigned int pool_load, *pool_offsets, pool_offsets_size;
   struct FD_DTYPE_STREAM pool_stream;
-  U8_MUTEX_DECL(pool_lock);} FD_FILE_POOL;
+  U8_MUTEX_DECL(file_lock);} FD_FILE_POOL;
 typedef struct FD_FILE_POOL *fd_file_pool;
 
-#define FD_FILE_POOL_LOCKED(fp) \
+FD_EXPORT int fd_make_file_pool(u8_string,unsigned int,
+                                FD_OID,unsigned int,unsigned int);
+
+#define FD_POOLFILE_LOCKEDP(fp) \
   (((fp)->pool_stream.bs_flags)&FD_DTSTREAM_LOCKED)
+#define FD_LOCK_POOLFILE(fp) fd_dts_lockfile(&((fp)->pool_stream))
+#define FD_UNLOCK_POOLFILE(fp) fd_dts_unlockfile(&((fp)->pool_stream))
+
 
 typedef struct FD_SCHEMA_TABLE {
   int fdst_index;
@@ -76,7 +87,7 @@ typedef struct FD_SCHEMA_TABLE *fd_schema_table;
 #define FD_OIDPOOL_READ_ONLY   0x80
 #define FD_OIDPOOL_DTYPEV2     0x100
 
-#define FD_OIDPOOL_LOCKED(x) (FD_FILE_POOL_LOCKED(x))
+#define FD_OIDPOOL_LOCKED(x) (FD_POOLFILE_LOCKEDP(x))
 
 typedef struct FD_SCHEMA_ENTRY {
   int fd_nslots, fd_schema_id;
@@ -102,22 +113,15 @@ typedef struct FD_OIDPOOL {
   unsigned int pool_load, *pool_offsets, pool_offsets_size;
   struct FD_DTYPE_STREAM pool_stream;
   size_t pool_mmap_size; unsigned char *pool_mmap;
-  U8_MUTEX_DECL(pool_lock);} FD_OIDPOOL;
+  U8_MUTEX_DECL(file_lock);} FD_OIDPOOL;
 typedef struct FD_OIDPOOL *fd_oidpool;
 
-FD_EXPORT fdtype fd_read_pool_metadata(struct FD_DTYPE_STREAM *ds);
-FD_EXPORT fdtype fd_write_pool_metadata(fd_dtype_stream,fdtype);
-FD_EXPORT int fd_make_file_pool(u8_string,unsigned int,
-                                FD_OID,unsigned int,unsigned int,
-                                fdtype);
-
 FD_EXPORT fd_pool fd_unregistered_file_pool(u8_string filename);
-
 
 FD_EXPORT int fd_make_oidpool
   (u8_string fname,u8_string label,
    FD_OID base,unsigned int capacity,unsigned int load,
-   unsigned int flags,fdtype schemas_init,fdtype metadata_init,
+   unsigned int flags,fdtype schemas_init,
    time_t ctime,time_t mtime,int cycles);
 
 FD_EXPORT fd_exception fd_InvalidSchemaDef;
@@ -126,18 +130,18 @@ FD_EXPORT fd_exception fd_SchemaInconsistency;
 
 /* File indices */
 
-FD_EXPORT void fd_register_index_opener
-  (unsigned int id,
-   fd_index (*opener)(u8_string filename,int read_only,int consed),
-   fdtype (*mdreader)(FD_DTYPE_STREAM *),
-   fdtype (*mdwriter)(FD_DTYPE_STREAM *,fdtype));
-
 typedef struct FD_INDEX_OPENER {
-  unsigned int initial_word;
-  fd_index (*opener)(u8_string filename,int read_only,int consed);
-  fdtype (*read_metadata)(FD_DTYPE_STREAM *);
-  fdtype (*write_metadata)(FD_DTYPE_STREAM *,fdtype);} FD_INDEX_OPENER;
+  fd_index_handler handler;
+  fd_index (*opener)(u8_string filename,fddb_flags flags);
+  int (*matcher)(u8_string filename,void *);
+  void *matcher_data;} FD_INDEX_OPENER;
 typedef struct FD_INDEX_OPENER *fd_index_opener;
+
+FD_EXPORT void fd_register_index_opener
+  (fd_index_handler handler,
+   fd_index (*opener)(u8_string filename,fddb_flags flags),
+   int (*matcher)(u8_string filename,void *),
+   void *matcher_data);
 
 #define FD_FILE_INDEX_MAGIC_NUMBER 0x90e0418
 #define FD_MULT_FILE_INDEX_MAGIC_NUMBER 0x90e0419
@@ -161,7 +165,7 @@ typedef struct FD_FILE_INDEX *fd_file_index;
 
 FD_EXPORT fdtype fd_read_index_metadata(struct FD_DTYPE_STREAM *ds);
 FD_EXPORT fdtype fd_write_index_metadata(fd_dtype_stream,fdtype);
-FD_EXPORT int fd_make_file_index(u8_string,unsigned int,int,fdtype metadata);
+FD_EXPORT int fd_make_file_index(u8_string,unsigned int,int);
 
 unsigned int fd_hash_dtype1(fdtype x);
 unsigned int fd_hash_dtype2(fdtype x);
@@ -223,10 +227,16 @@ FD_EXPORT int fd_populate_hash_index
    const fdtype *keys,int n_keys, int blocksize);
 FD_EXPORT int fd_make_hash_index
   (u8_string,int,unsigned int,unsigned int,
-   fdtype,fdtype,fdtype,time_t,time_t);
+   fdtype,fdtype,time_t,time_t);
 FD_EXPORT int fd_hash_index_bucket
    (struct FD_HASH_INDEX *hx,fdtype key,int modulate);
 FD_EXPORT int fd_hash_indexp(struct FD_INDEX *ix);
 FD_EXPORT fdtype fd_hash_index_stats(struct FD_HASH_INDEX *ix);
+
+/* Functional arguments */
+
+#define FD_ISFUNARG(fn) \
+  (FD_EXPECT_TRUE((fn==FD_VOID)||(fn==FD_FALSE)||(FD_APPLICABLEP(fn))))
+
 
 #endif /* #ifndef FRAMERD_DBDRIVER_H */

@@ -925,7 +925,9 @@ FD_EXPORT fdtype fd_make_cprim0(u8_string name,fd_cprim0 fn,int min_arity)
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
-  f->fcn_min_arity=min_arity; f->fcn_arity=0; f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_min_arity=min_arity; f->fcn_arity=0; 
+  f->fcn_typeinfo=NULL;
+  f->fcn_defaults=NULL;
   f->fcn_handler.call0=fn;
   return FDTYPE_CONS(f);
 }
@@ -935,7 +937,9 @@ FD_EXPORT fdtype fd_make_cprim1(u8_string name,fd_cprim1 fn,int min_arity)
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
-  f->fcn_min_arity=min_arity; f->fcn_arity=1; f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_min_arity=min_arity; f->fcn_arity=1; 
+  f->fcn_typeinfo=NULL;
+  f->fcn_defaults=NULL;
   f->fcn_handler.call1=fn;
   return FDTYPE_CONS(f);
 }
@@ -945,7 +949,9 @@ FD_EXPORT fdtype fd_make_cprim2(u8_string name,fd_cprim2 fn,int min_arity)
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
-  f->fcn_min_arity=min_arity; f->fcn_arity=2; f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_min_arity=min_arity; f->fcn_arity=2; 
+  f->fcn_typeinfo=NULL;
+  f->fcn_defaults=NULL;
   f->fcn_handler.call2=fn;
   return FDTYPE_CONS(f);
 }
@@ -955,7 +961,9 @@ FD_EXPORT fdtype fd_make_cprim3(u8_string name,fd_cprim3 fn,int min_arity)
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
-  f->fcn_min_arity=min_arity; f->fcn_arity=3; f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_min_arity=min_arity; f->fcn_arity=3; 
+  f->fcn_typeinfo=NULL;
+  f->fcn_defaults=NULL;
   f->fcn_handler.call3=fn;
   return FDTYPE_CONS(f);
 }
@@ -965,7 +973,9 @@ FD_EXPORT fdtype fd_make_cprim4(u8_string name,fd_cprim4 fn,int min_arity)
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
-  f->fcn_min_arity=min_arity; f->fcn_arity=4; f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_min_arity=min_arity; f->fcn_arity=4; 
+  f->fcn_typeinfo=NULL;
+  f->fcn_defaults=NULL;
   f->fcn_handler.call4=fn;
   return FDTYPE_CONS(f);
 }
@@ -975,7 +985,9 @@ FD_EXPORT fdtype fd_make_cprim5(u8_string name,fd_cprim5 fn,int min_arity)
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
-  f->fcn_min_arity=min_arity; f->fcn_arity=5; f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_min_arity=min_arity; f->fcn_arity=5; 
+  f->fcn_typeinfo=NULL;
+  f->fcn_defaults=NULL;
   f->fcn_handler.call5=fn;
   return FDTYPE_CONS(f);
 }
@@ -985,7 +997,9 @@ FD_EXPORT fdtype fd_make_cprim6(u8_string name,fd_cprim6 fn,int min_arity)
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
-  f->fcn_min_arity=min_arity; f->fcn_arity=6; f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_min_arity=min_arity; f->fcn_arity=6; 
+  f->fcn_typeinfo=NULL;
+  f->fcn_defaults=NULL;
   f->fcn_handler.call6=fn;
   return FDTYPE_CONS(f);
 }
@@ -995,7 +1009,9 @@ FD_EXPORT fdtype fd_make_cprim7(u8_string name,fd_cprim7 fn,int min_arity)
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
-  f->fcn_min_arity=min_arity; f->fcn_arity=7; f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_min_arity=min_arity; f->fcn_arity=7; 
+  f->fcn_typeinfo=NULL;
+  f->fcn_defaults=NULL;
   f->fcn_handler.call7=fn;
   return FDTYPE_CONS(f);
 }
@@ -1005,7 +1021,9 @@ FD_EXPORT fdtype fd_make_cprim8(u8_string name,fd_cprim8 fn,int min_arity)
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
-  f->fcn_min_arity=min_arity; f->fcn_arity=8; f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_min_arity=min_arity; f->fcn_arity=8;
+  f->fcn_typeinfo=NULL;
+  f->fcn_defaults=NULL;
   f->fcn_handler.call8=fn;
   return FDTYPE_CONS(f);
 }
@@ -1015,7 +1033,9 @@ FD_EXPORT fdtype fd_make_cprim9(u8_string name,fd_cprim9 fn,int min_arity)
   struct FD_FUNCTION *f=u8_alloc(struct FD_FUNCTION);
   FD_INIT_CONS(f,fd_primfcn_type);
   f->fcn_name=name; f->fcn_filename=NULL; f->fcn_ndcall=0; f->fcn_xcall=0;
-  f->fcn_min_arity=min_arity; f->fcn_arity=9; f->fcn_typeinfo=NULL; f->fcn_defaults=NULL;
+  f->fcn_min_arity=min_arity; f->fcn_arity=9;
+  f->fcn_typeinfo=NULL;
+  f->fcn_defaults=NULL;
   f->fcn_handler.call9=fn;
   return FDTYPE_CONS(f);
 }

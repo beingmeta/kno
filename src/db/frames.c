@@ -345,7 +345,7 @@ static int overlay_config_set(fdtype ignored,fdtype v,void *vptr)
   if ((FD_HASHTABLEP(v)) || (FD_INDEXP(v))) {
     new=v; fd_incref(v);}
   else if (FD_STRINGP(v)) {
-    fd_index ix=fd_open_index(FD_STRDATA(v),0);
+    fd_index ix=fd_get_index(FD_STRDATA(v),0);
     if (ix==NULL) return FD_ERROR_VALUE;
     new=fd_index2lisp(ix);}
   else if (FD_TRUEP(v))

@@ -17,7 +17,7 @@
 #include "framerd/eval.h"
 #include "framerd/ports.h"
 #include "framerd/sequences.h"
-#include "framerd/dbdrivers.h"
+#include "framerd/drivers.h"
 
 #include <libu8/u8pathfns.h>
 #include <libu8/u8filefns.h>
@@ -38,26 +38,7 @@ static fdtype make_file_pool
     return fd_type_error(_("slotmap"),"make_file_pool",metadata);
   retval=fd_make_file_pool(FD_STRDATA(fname),FD_FILE_POOL_MAGIC_NUMBER,
                            FD_OID_ADDR(base),fd_getint(capacity),
-                           load,metadata);
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_TRUE;
-}
-
-static fdtype make_zpool
-  (fdtype fname,fdtype base,fdtype capacity,fdtype opt1,fdtype opt2)
-{
-  fdtype metadata; unsigned int load;
-  int retval;
-  if (FD_FIXNUMP(opt1)) {
-    load=FD_FIX2INT(opt1); metadata=opt2;}
-  else {load=0; metadata=opt1;}
-  if (FD_VOIDP(metadata)) {}
-  else if (!(FD_SLOTMAPP(metadata)))
-    return fd_type_error(_("slotmap"),"make_file_pool",metadata);
-  retval=
-    fd_make_file_pool(FD_STRDATA(fname),FD_ZPOOL_MAGIC_NUMBER,
-                      FD_OID_ADDR(base),fd_getint(capacity),
-                      load,metadata);
+                           load);
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
@@ -153,7 +134,7 @@ static fdtype make_oidpool(int n,fdtype *args)
   
   retval=fd_make_oidpool(filename,label,
                          base,cap,load,flags,
-                         schemas,metadata,
+                         schemas,
                          time(NULL),time(NULL),1);
 
   if (retval<0)
@@ -165,7 +146,7 @@ static fdtype make_file_index(fdtype fname,fdtype size,fdtype metadata)
 {
   int retval=
     fd_make_file_index(FD_STRDATA(fname),FD_MULT_FILE_INDEX_MAGIC_NUMBER,
-                       fd_getint(size),metadata);
+                       fd_getint(size));
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
@@ -174,16 +155,7 @@ static fdtype make_legacy_file_index(fdtype fname,fdtype size,fdtype metadata)
 {
   int retval=
     fd_make_file_index(FD_STRDATA(fname),FD_FILE_INDEX_MAGIC_NUMBER,
-                       fd_getint(size),metadata);
-  if (retval<0) return FD_ERROR_VALUE;
-  else return FD_TRUE;
-}
-
-static fdtype make_zindex(fdtype fname,fdtype size,fdtype metadata)
-{
-  int retval=
-    fd_make_file_index(FD_STRDATA(fname),FD_ZINDEX_MAGIC_NUMBER,
-                       fd_getint(size),metadata);
+                       fd_getint(size));
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_TRUE;
 }
@@ -221,7 +193,7 @@ static fdtype make_hash_index(fdtype fname,fdtype size,
   int retval=
     fd_make_hash_index(FD_STRDATA(fname),FD_FIX2INT(size),
                        get_make_hash_index_flags(flags_arg),0,
-                       slotids,baseoids,metadata,-1,-1);
+                       slotids,baseoids,-1,-1);
   if (retval<0) return FD_ERROR_VALUE;
   else return FD_VOID;
 }
@@ -677,15 +649,10 @@ FD_EXPORT void fd_init_driverfns_c()
   if (scheme_driverfns_initialized) return;
   scheme_driverfns_initialized=1;
   fd_init_fdscheme();
-  fd_init_dbfile();
+  fd_init_dbs();
   driverfns_module=fd_new_module("DRIVERFNS",(FD_MODULE_DEFAULT));
   u8_register_source_file(_FILEINFO);
 
-  fd_idefn(driverfns_module,
-           fd_make_cprim3x("MAKE-ZINDEX",make_zindex,2,
-                           fd_string_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           fd_slotmap_type,FD_VOID));
   fd_idefn(driverfns_module,
            fd_make_cprim3x("MAKE-FILE-INDEX",make_file_index,2,
                            fd_string_type,FD_VOID,
@@ -698,12 +665,6 @@ FD_EXPORT void fd_init_driverfns_c()
                            fd_slotmap_type,FD_VOID));
   fd_idefn(driverfns_module,
            fd_make_cprim5x("MAKE-FILE-POOL",make_file_pool,3,
-                           fd_string_type,FD_VOID,
-                           fd_oid_type,FD_VOID,
-                           fd_fixnum_type,FD_VOID,
-                           -1,FD_VOID,-1,FD_VOID));
-  fd_idefn(driverfns_module,
-           fd_make_cprim5x("MAKE-ZPOOL",make_zpool,3,
                            fd_string_type,FD_VOID,
                            fd_oid_type,FD_VOID,
                            fd_fixnum_type,FD_VOID,
