@@ -148,12 +148,42 @@ static int write_opaque(struct FD_BYTE_OUTPUT *out,fdtype x)
   output_byte(out,dt_compound);
   output_byte(out,dt_symbol);
   output_4bytes(out,11);
-  output_bytes(out,"OPAQUEDTYPE",11); /* 17 bytes up to here */
+  output_bytes(out,"OPAQUEDTYPE",11);
   output_byte(out,dt_string);
-  output_4bytes(out,slen);
+  output_4bytes(out,slen);  /* 22 bytes up to here */
   output_bytes(out,srep,slen);
   u8_free(srep);
-  return 17+5+slen;
+  return 22+slen;
+}
+
+static int write_choice_dtype(fd_byte_output out,fd_choice ch)
+{
+  fdtype _natsorted[17], *natsorted=_natsorted;
+  int dtype_len=0, n_choices=FD_XCHOICE_SIZE(ch);
+  const fdtype *data; int i=0;
+  if  ((out->bs_flags)&(FD_DTYPE_NATSORT)) {
+    natsorted=fd_natsort_choice(ch,_natsorted,17);
+    data=(const fdtype *)natsorted;}
+  else data=FD_XCHOICE_DATA(ch);
+  if (n_choices < 256)
+    if ((out->bs_flags)&(FD_DTYPEV2)) {
+      dtype_len=2;
+      output_byte(out,dt_tiny_choice);
+      output_byte(out,n_choices);}
+    else {
+      dtype_len=3;
+      output_byte(out,dt_framerd_package);
+      output_byte(out,dt_small_choice);
+      output_byte(out,n_choices);}
+  else {
+    dtype_len=6;
+    output_byte(out,dt_framerd_package);
+    output_byte(out,dt_choice);
+    output_4bytes(out,n_choices);}
+  while (i < n_choices) {
+    output_dtype(dtype_len,out,data[i]); i++;}
+  if (natsorted!=_natsorted) u8_free(natsorted);
+  return dtype_len;
 }
 
 FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
@@ -312,28 +342,8 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTPUT *out,fdtype x)
       while (i < length) {
         output_dtype(dtype_len,out,v->fd_vecelts[i]); i++;}
       return dtype_len;}
-    case fd_choice_type: {
-      struct FD_CHOICE *v=(struct FD_CHOICE *) cons;
-      const fdtype *data=FD_XCHOICE_DATA(v);
-      int i=0, len=FD_CHOICE_SIZE(x), dtype_len;
-      if (len < 256)
-        if ((out->bs_flags)&(FD_DTYPEV2)) {
-          dtype_len=2;
-          output_byte(out,dt_tiny_choice);
-          output_byte(out,len);}
-        else {
-          dtype_len=3;
-          output_byte(out,dt_framerd_package);
-          output_byte(out,dt_small_choice);
-          output_byte(out,len);}
-      else {
-        dtype_len=6;
-        output_byte(out,dt_framerd_package);
-        output_byte(out,dt_choice);
-        output_4bytes(out,len);}
-      while (i < len) {
-        output_dtype(dtype_len,out,data[i]); i++;}
-      return dtype_len;}
+    case fd_choice_type:
+      return write_choice_dtype(out,(fd_choice)cons);
     case fd_qchoice_type: {
       struct FD_QCHOICE *qv=(struct FD_QCHOICE *) cons;
       output_byte(out,dt_framerd_package);
