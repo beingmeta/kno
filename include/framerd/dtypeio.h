@@ -125,9 +125,11 @@ FD_FASTOP unsigned int fd_flip_ushort(unsigned short _w)
 typedef struct FD_BYTE_OUTPUT *fd_byte_output;
 typedef struct FD_BYTE_INPUT *fd_byte_input;
 
-#define FD_BYTEBUF_MALLOCD 1
-#define FD_DTYPEV2         ((FD_BYTEBUF_MALLOCD)<<1)
-#define FD_WRITE_OPAQUE    ((FD_DTYPEV2)<<1)
+#define FD_DTYPE_FLAG_BASE (1 << 0 )
+#define FD_BYTEBUF_MALLOCD (FD_DTYPE_FLAG_BASE * 1)
+#define FD_DTYPEV2         (FD_DTYPE_FLAG_BASE * 2)
+#define FD_WRITE_OPAQUE    (FD_DTYPE_FLAG_BASE * 4)
+#define FD_DTYPE_NATSORT   ((FD_WRITE_OPAQUE)  * 8)
 
 typedef struct FD_BYTE_OUTPUT {
   unsigned char *bs_bufstart, *bs_bufptr, *bs_buflim;
