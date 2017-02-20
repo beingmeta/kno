@@ -54,7 +54,7 @@ int skip_whitespace(u8_input in)
   else return c;
 }
 
-static fd_dtype_stream eval_server=NULL;
+static fd_bytestream eval_server=NULL;
 
 static u8_input inconsole=NULL;
 static u8_output outconsole=NULL;
@@ -352,13 +352,13 @@ int main(int argc,char **argv)
   if (source_file==NULL) {}
   else if (strchr(source_file,'@')) {
     int sock=u8_connect(source_file);
-    struct FD_DTYPE_STREAM *newstream;
+    struct FD_BYTESTREAM *newstream;
     if (sock<0) {
       u8_log(LOG_WARN,"Connection failed","Couldn't open connection to %s",
              source_file);
       exit(-1);}
-    newstream=u8_alloc(struct FD_DTYPE_STREAM);
-    fd_init_dtype_stream(newstream,sock,65536);
+    newstream=u8_alloc(struct FD_BYTESTREAM);
+    fd_init_bytestream(newstream,sock,65536);
     fd_use_pool(source_file,0);
     fd_use_index(source_file,0);
     eval_server=newstream;}
@@ -433,9 +433,9 @@ int main(int argc,char **argv)
       u8_flush((u8_output)out);}
     else {
       if (eval_server) {
-        fd_dtswrite_dtype(eval_server,expr);
-        fd_dtsflush(eval_server);
-        result=fd_dtsread_dtype(eval_server);}
+        fd_bytestream_write_dtype(eval_server,expr);
+        fd_bytestream_flush(eval_server);
+        result=fd_bytestream_read_dtype(eval_server);}
       else result=fd_eval(expr,env);}
     if (FD_ACHOICEP(result)) result=fd_simplify_choice(result);
     finish_time=u8_elapsed_time();
@@ -515,7 +515,7 @@ int main(int argc,char **argv)
     /* u8_printf(out,EVAL_PROMPT); */
     u8_flush(out);}
   if (eval_server) 
-    fd_dtsclose(eval_server,FD_DTSFREE);
+    fd_bytestream_close(eval_server,FD_BYTESTREAM_FREE);
   u8_free(eval_server);
   fd_decref(lastval);
   fd_decref(result);

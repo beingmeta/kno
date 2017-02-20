@@ -6,7 +6,7 @@
 */
 
 #include "framerd/dtype.h"
-#include "framerd/dtypestream.h"
+#include "framerd/bytestream.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -18,20 +18,20 @@
 int main(int argc,char **argv)
 {
   fdtype object, copied;
-  struct FD_DTYPE_STREAM *in, *out;
+  struct FD_BYTESTREAM *in, *out;
   int bytes=0;
   FD_DO_LIBINIT(fd_init_dtypelib);
-  in=fd_dtsopen(argv[1],FD_DTSTREAM_READ);
-  out=fd_dtsopen(argv[2],FD_DTSTREAM_CREATE);
-  object=fd_dtsread_dtype(in);
-  fd_dtsclose(in,FD_DTSCLOSE_FULL);
+  in=fd_bytestream_open(argv[1],FD_BYTESTREAM_READ);
+  out=fd_bytestream_open(argv[2],FD_BYTESTREAM_CREATE);
+  object=fd_bytestream_read_dtype(in);
+  fd_bytestream_close(in,FD_BYTESTREAM_CLOSE_FULL);
   copied=fd_copy(object); fd_decref(copied);
   copied=fd_deep_copy(object);
-  bytes=fd_dtswrite_dtype(out,copied);
+  bytes=fd_bytestream_write_dtype(out,copied);
   if (bytes<0)
     u8_fprintf(stdout,"Error writing %q\n",object);
   else u8_fprintf(stdout,"Wrote %d bytes:\n %q\n",bytes,object);
-  fd_dtsclose(out,FD_DTSCLOSE_FULL);
+  fd_bytestream_close(out,FD_BYTESTREAM_CLOSE_FULL);
   fd_decref(object); object=FD_VOID;
   fd_decref(copied); copied=FD_VOID;
   exit(0);

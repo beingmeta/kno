@@ -6,7 +6,7 @@
 */
 
 #include "framerd/dtype.h"
-#include "framerd/dtypestream.h"
+#include "framerd/bytestream.h"
 
 #include <strings.h>
 #include <stdlib.h>
@@ -77,13 +77,13 @@ int main(int argc,char **argv)
   unsigned int n_slots, n_keys, *hashv;
   unsigned int *tmpbuf, tmpbuf_size;
   int best_size, best_buckets;
-  struct FD_DTYPE_STREAM *in, *out;
+  struct FD_BYTESTREAM *in, *out;
   fdtype ht, keys, watch_for=FD_VOID;
   FD_DO_LIBINIT(fd_init_dtypelib);
   n_tries=atol(argv[2]);
-  in=fd_dtsopen(argv[1],FD_DTSTREAM_READ);
-  ht=fd_dtsread_dtype(in);
-  fd_dtsclose(in,FD_DTSCLOSE_FULL);
+  in=fd_bytestream_open(argv[1],FD_BYTESTREAM_READ);
+  ht=fd_bytestream_read_dtype(in);
+  fd_bytestream_close(in,FD_BYTESTREAM_CLOSE_FULL);
   report_on_hashtable(ht);
   n_keys=FD_HASHTABLE_SIZE(ht);
   n_slots=FD_HASHTABLE_SLOTS(ht);
@@ -138,10 +138,10 @@ int main(int argc,char **argv)
     i++;}
   fd_resize_hashtable(FD_XHASHTABLE(ht),best_size);
   report_on_hashtable(ht);
-  if (argc>3) out=fd_dtsopen(argv[3],FD_DTSTREAM_CREATE);
-  else out=fd_dtsopen(argv[1],FD_DTSTREAM_CREATE);
-  fd_dtswrite_dtype(out,ht);
-  fd_dtsclose(out,FD_DTSCLOSE_FULL);
+  if (argc>3) out=fd_bytestream_open(argv[3],FD_BYTESTREAM_CREATE);
+  else out=fd_bytestream_open(argv[1],FD_BYTESTREAM_CREATE);
+  fd_bytestream_write_dtype(out,ht);
+  fd_bytestream_close(out,FD_BYTESTREAM_CLOSE_FULL);
   report_on_hashtable(ht);
   fd_decref(ht); ht=FD_VOID;
   exit(0);

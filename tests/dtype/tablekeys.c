@@ -6,7 +6,7 @@
 */
 
 #include "framerd/dtype.h"
-#include "framerd/dtypestream.h"
+#include "framerd/bytestream.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -16,18 +16,18 @@
 
 int main(int argc,char **argv)
 {
-  struct FD_DTYPE_STREAM *in, *out;
+  struct FD_BYTESTREAM *in, *out;
   fdtype ht, keys;
   FD_DO_LIBINIT(fd_init_dtypelib);
-  in=fd_dtsopen(argv[1],FD_DTSTREAM_READ);
-  ht=fd_dtsread_dtype(in);
-  fd_dtsclose(in,FD_DTSCLOSE_FULL);
+  in=fd_bytestream_open(argv[1],FD_BYTESTREAM_READ);
+  ht=fd_bytestream_read_dtype(in);
+  fd_bytestream_close(in,FD_BYTESTREAM_CLOSE_FULL);
   keys=fd_hashtable_keys(FD_XHASHTABLE(ht));
   fprintf(stderr,_("Found %d keys\n"),FD_CHOICE_SIZE(keys));
-  out=fd_dtsopen(argv[2],FD_DTSTREAM_CREATE);
-  fd_dtswrite_dtype(out,keys);
+  out=fd_bytestream_open(argv[2],FD_BYTESTREAM_CREATE);
+  fd_bytestream_write_dtype(out,keys);
   fd_decref(keys); keys=FD_VOID;
   fd_decref(ht); ht=FD_VOID;
-  fd_dtsclose(out,FD_DTSCLOSE_FULL);
+  fd_bytestream_close(out,FD_BYTESTREAM_CLOSE_FULL);
   return 0;
 }

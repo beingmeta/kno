@@ -76,15 +76,15 @@ static int memindex_commit(fd_index ix)
 
 static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
 {
-  struct FD_DTYPE_STREAM stream, *rstream;
+  struct FD_BYTESTREAM stream, *rstream;
   if ((ix->index_adds.table_n_keys>0) || (ix->index_edits.table_n_keys>0)) {
-    rstream=fd_init_dtype_file_stream
-      (&stream,file,FD_DTSTREAM_CREATE,fd_driver_bufsize);
+    rstream=fd_init_file_bytestream
+      (&stream,file,FD_BYTESTREAM_CREATE,fd_driver_bufsize);
     if (rstream==NULL) return -1;
-    stream.dts_mallocd=0;
+    stream.bytestream_mallocd=0;
     fd_set_read(&stream,0);
     fd_write_dtype((fd_byte_output)&stream,(fdtype)&(ix->index_cache));
-    fd_dtsclose(&stream,FD_DTS_FREE);
+    fd_bytestream_close(&stream,FD_BYTESTREAM_FREE);
     return 1;}
   else return 0;
 }
@@ -93,12 +93,12 @@ static fd_index open_memindex(u8_string file,fddb_flags flags)
 {
   struct FD_MEM_INDEX *mix=(fd_mem_index)fd_make_mem_index(flags);
   fdtype lispval; struct FD_HASHTABLE *h;
-  struct FD_DTYPE_STREAM stream;
-  fd_init_dtype_file_stream
-    (&stream,file,FD_DTSTREAM_READ,fd_driver_bufsize);
-  stream.dts_mallocd=0;
+  struct FD_BYTESTREAM stream;
+  fd_init_file_bytestream
+    (&stream,file,FD_BYTESTREAM_READ,fd_driver_bufsize);
+  stream.bytestream_mallocd=0;
   lispval=fd_read_dtype((fd_byte_input)&stream);
-  fd_dtsclose(&stream,FD_DTS_FREE);
+  fd_bytestream_close(&stream,FD_BYTESTREAM_FREE);
   if (FD_HASHTABLEP(lispval)) h=(fd_hashtable)lispval;
   else {
     fd_decref(lispval);

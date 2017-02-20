@@ -8,7 +8,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/eval.h"
-#include "framerd/dtypestream.h"
+#include "framerd/bytestream.h"
 #include "framerd/support.h"
 
 #include <libu8/libu8io.h>

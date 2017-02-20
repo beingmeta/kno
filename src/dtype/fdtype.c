@@ -112,7 +112,7 @@ FD_EXPORT void fd_init_choices_c(void);
 FD_EXPORT void fd_init_support_c(void);
 FD_EXPORT void fd_init_ffi_c(void);
 FD_EXPORT void fd_init_fcnids_c(void);
-FD_EXPORT void fd_init_dtypestream_c(void);
+FD_EXPORT void fd_init_bytestream_c(void);
 FD_EXPORT void fd_init_hashdtype_c(void);
 FD_EXPORT void fd_init_apply_c(void);
 

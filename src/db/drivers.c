@@ -204,15 +204,15 @@ int fd_file_indexp(u8_string filename)
 
 static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
 {
-  struct FD_DTYPE_STREAM stream, *rstream;
+  struct FD_BYTESTREAM stream, *rstream;
   if ((ix->index_adds.table_n_keys>0) || (ix->index_edits.table_n_keys>0)) {
-    rstream=fd_init_dtype_file_stream
-      (&stream,file,FD_DTSTREAM_CREATE,fd_driver_bufsize);
+    rstream=fd_init_file_bytestream
+      (&stream,file,FD_BYTESTREAM_CREATE,fd_driver_bufsize);
     if (rstream==NULL) return -1;
-    stream.dts_mallocd=0;
+    stream.bytestream_mallocd=0;
     fd_set_read(&stream,0);
     fd_write_dtype((fd_byte_output)&stream,(fdtype)&(ix->index_cache));
-    fd_dtsclose(&stream,FD_DTS_FREE);
+    fd_bytestream_close(&stream,FD_BYTESTREAM_FREE);
     return 1;}
   else return 0;
 }

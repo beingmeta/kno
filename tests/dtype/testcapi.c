@@ -7,7 +7,7 @@
 
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
-#include "framerd/dtypestream.h"
+#include "framerd/bytestream.h"
 
 #include <string.h>
 #include <stdlib.h>

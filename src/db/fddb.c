@@ -471,7 +471,7 @@ static void register_header_files()
   u8_register_source_file(FRAMERD_DBDRIVER_H_INFO);
 }
 
-FD_EXPORT void fd_init_dtypestream_c(void);
+FD_EXPORT void fd_init_bytestream_c(void);
 FD_EXPORT void fd_init_hashdtype_c(void);
 FD_EXPORT void fd_init_threadcache_c(void);
 FD_EXPORT void fd_init_pools_c(void);
@@ -496,7 +496,7 @@ FD_EXPORT int fd_init_dblib()
   u8_register_source_file(_FILEINFO);
 
   fd_init_threadcache_c();
-  fd_init_dtypestream_c();
+  fd_init_bytestream_c();
   fd_init_hashdtype_c();
   fd_init_xtables_c();
   fd_init_cachecall_c();

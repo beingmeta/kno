@@ -24,12 +24,13 @@ typedef struct FD_PORT {
   u8_output fd_outport;} FD_PORT;
 typedef struct FD_PORT *fd_port;
 
-typedef struct FD_DTSTREAM {
-  FD_CONS_HEADER; int fd_owns_socket;
-  struct FD_DTYPE_STREAM *dt_stream;} FD_DTSTREAM;
-typedef struct FD_DTSTREAM *fd_dtstream;
+typedef struct FD_BYTEPORT {
+  FD_CONS_HEADER;
+  int fd_owns_socket;
+  struct FD_BYTESTREAM *dt_stream;} FD_BYTEPORT;
+typedef struct FD_BYTEPORT *fd_byteport;
 
-FD_EXPORT fd_ptr_type fd_dtstream_type;
+FD_EXPORT fd_ptr_type fd_byteport_type;
 
 FD_EXPORT fd_exception fd_UnknownEncoding;
 

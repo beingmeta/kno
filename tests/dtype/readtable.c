@@ -6,7 +6,7 @@
 */
 
 #include "framerd/dtype.h"
-#include "framerd/dtypestream.h"
+#include "framerd/bytestream.h"
 
 #include <strings.h>
 #include <stdlib.h>
@@ -50,11 +50,11 @@ static void report_on_hashtable(fdtype ht)
 
 int main(int argc,char **argv)
 {
-  struct FD_DTYPE_STREAM *in; fdtype ht;
+  struct FD_BYTESTREAM *in; fdtype ht;
   FD_DO_LIBINIT(fd_init_dtypelib);
-  in=fd_dtsopen(argv[1],FD_DTSTREAM_READ);
-  ht=fd_dtsread_dtype(in);
-  fd_dtsclose(in,FD_DTSCLOSE_FULL);
+  in=fd_bytestream_open(argv[1],FD_BYTESTREAM_READ);
+  ht=fd_bytestream_read_dtype(in);
+  fd_bytestream_close(in,FD_BYTESTREAM_CLOSE_FULL);
   report_on_hashtable(ht);
   fd_decref(ht); ht=FD_VOID;
   exit(0);

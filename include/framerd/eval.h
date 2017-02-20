@@ -89,13 +89,13 @@ typedef struct FD_MACRO *fd_macro;
 
 /* DT servers */
 
-FD_EXPORT fd_ptr_type fd_dtserver_type;
+FD_EXPORT fd_ptr_type fd_bytestream_erver_type;
 
-typedef struct FD_DTSERVER {
+typedef struct FD_BYTESTREAM_ERVER {
   FD_CONS_HEADER;
   u8_string fd_serverid, fd_server_address;
-  struct U8_CONNPOOL *fd_connpool;} FD_DTSERVER;
-typedef struct FD_DTSERVER *fd_dtserver;
+  struct U8_CONNPOOL *fd_connpool;} FD_BYTESTREAM_ERVER;
+typedef struct FD_BYTESTREAM_ERVER *fd_bytestream_erver;
 
 /* Modules */
 

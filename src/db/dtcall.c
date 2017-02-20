@@ -12,7 +12,7 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/dtcall.h"
-#include "framerd/dtypestream.h"
+#include "framerd/bytestream.h"
 
 #include <libu8/u8netfns.h>
 
@@ -28,25 +28,25 @@ static int default_async=FD_DEFAULT_ASYNC;
 static fdtype dteval_sock(u8_socket conn,fdtype expr)
 {
   int retval;
-  struct FD_DTYPE_STREAM stream;
-  fd_init_dtype_stream(&stream,conn,8192);
-  stream.bs_flags=stream.bs_flags|FD_DTSTREAM_DOSYNC;
+  struct FD_BYTESTREAM stream;
+  fd_init_bytestream(&stream,conn,8192);
+  stream.bs_flags=stream.bs_flags|FD_BYTESTREAM_DOSYNC;
   if (log_eval_request)
     u8_log(LOG_DEBUG,"DTEVAL","On #%d: %q",conn,expr);
-  retval=fd_dtswrite_dtype(&stream,expr);
-  if ((retval<0) || (fd_dtsflush(&stream)<0)) {
+  retval=fd_bytestream_write_dtype(&stream,expr);
+  if ((retval<0) || (fd_bytestream_flush(&stream)<0)) {
     return FD_ERROR_VALUE;}
   if (log_eval_response) {
-    fdtype response=fd_dtsread_dtype(&stream);
+    fdtype response=fd_bytestream_read_dtype(&stream);
     u8_log(LOG_DEBUG,"DTEVAL","On #%d: REQUEST %q\n\t==>\t%q",
            conn,response);
     return response;}
-  else return fd_dtsread_dtype(&stream);
+  else return fd_bytestream_read_dtype(&stream);
 }
 static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
 {
   fdtype result; int retval;
-  struct FD_DTYPE_STREAM stream;
+  struct FD_BYTESTREAM stream;
   u8_socket conn=u8_get_connection(cpool);
   if (conn<0) return FD_ERROR_VALUE;
   if (log_eval_request)
@@ -54,7 +54,7 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
            (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
             (async)?(" (async) "):("")),
            cpool->u8cp_id,conn,expr);
-  fd_init_dtype_stream(&stream,conn,8192);
+  fd_init_bytestream(&stream,conn,8192);
   if ((async)&&(fd_use_dtblock)) { /*  */
     size_t dtype_len;
     struct FD_BYTE_OUTPUT *binout=
@@ -67,9 +67,9 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
     fd_write_4bytes(binout,dtype_len);
     binout->bs_bufptr=binout->bs_bufstart+(dtype_len+5);}
   else {
-    stream.bs_flags=stream.bs_flags|FD_DTSTREAM_DOSYNC;
-    retval=fd_dtswrite_dtype(&stream,expr);}
-  if ((retval<0)||(fd_dtsflush(&stream)<0)) {
+    stream.bs_flags=stream.bs_flags|FD_BYTESTREAM_DOSYNC;
+    retval=fd_bytestream_write_dtype(&stream,expr);}
+  if ((retval<0)||(fd_bytestream_flush(&stream)<0)) {
     u8_log(LOG_ERR,"DTEVAL","Error with request to %s%s#%d for: %q",
            (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
             (async)?(" (async) "):("")),
@@ -91,16 +91,16 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
              (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
               (async)?(" (async) "):("")),
              cpool->u8cp_id,conn,expr);}
-    fd_dtsflush(&stream);}
-  result=fd_dtsread_dtype(&stream);
+    fd_bytestream_flush(&stream);}
+  result=fd_bytestream_read_dtype(&stream);
   if (FD_EQ(result,FD_EOD)) {
     fd_clear_errors(1);
     if (((conn=u8_reconnect(cpool,conn))<0) ||
-        (fd_dtswrite_dtype(&stream,expr)<0) ||
-        (fd_dtsflush(&stream)<0)) {
+        (fd_bytestream_write_dtype(&stream,expr)<0) ||
+        (fd_bytestream_flush(&stream)<0)) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}
-    else result=fd_dtsread_dtype(&stream);
+    else result=fd_bytestream_read_dtype(&stream);
     if (FD_EQ(result,FD_EOD)) {
       u8_discard_connection(cpool,conn);
       return fd_err(fd_UnexpectedEOD,"",NULL,expr);}}
@@ -114,7 +114,7 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
                 (((async)&&(fd_use_dtblock))?(" (async/dtblock) "):
                  (async)?(" (async) "):("")),
                 cpool->u8cp_id,conn,result);}
-  fd_dtsclose(&stream,0);
+  fd_bytestream_close(&stream,0);
   u8_return_connection(cpool,conn);
   return result;
 }

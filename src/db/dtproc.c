@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/dtypestream.h"
+#include "framerd/bytestream.h"
 #include "framerd/apply.h"
 #include "framerd/fddb.h"
 #include "framerd/dtproc.h"
@@ -70,12 +70,12 @@ static void recycle_dtproc(FD_CONS *c)
 
 static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
 {
-  struct FD_DTYPE_STREAM stream;
+  struct FD_BYTESTREAM stream;
   u8_connpool cpool=dtp->fd_connpool;
   fdtype expr=FD_EMPTY_LIST, result; int i=n-1;
   u8_socket conn=u8_get_connection(cpool);
   if (conn<0) return FD_ERROR_VALUE;
-  fd_init_dtype_stream(&stream,conn,8192);
+  fd_init_bytestream(&stream,conn,8192);
   while (i>=0) {
     if ((FD_SYMBOLP(args[i])) || (FD_PAIRP(args[i])))
       expr=fd_conspair(fd_make_list(2,quote_symbol,fd_incref(args[i])),
@@ -84,21 +84,21 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
     i--;}
   expr=fd_conspair(dtp->fd_dtprocname,expr);
   /* u8_log(LOG_DEBUG,"DTPROC","Using connection %d",conn); */
-  if ((fd_dtswrite_dtype(&stream,expr)<0) ||
-      (fd_dtsflush(&stream)<0)) {
+  if ((fd_bytestream_write_dtype(&stream,expr)<0) ||
+      (fd_bytestream_flush(&stream)<0)) {
     fd_clear_errors(1);
     if ((conn=u8_reconnect(cpool,conn))<0) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}}
-  result=fd_dtsread_dtype(&stream);
+  result=fd_bytestream_read_dtype(&stream);
   if (FD_EQ(result,FD_EOD)) {
     fd_clear_errors(1);
     if (((conn=u8_reconnect(cpool,conn))<0) ||
-        (fd_dtswrite_dtype(&stream,expr)<0) ||
-        (fd_dtsflush(&stream)<0)) {
+        (fd_bytestream_write_dtype(&stream,expr)<0) ||
+        (fd_bytestream_flush(&stream)<0)) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}
-    else result=fd_dtsread_dtype(&stream);
+    else result=fd_bytestream_read_dtype(&stream);
     if (FD_EQ(result,FD_EOD)) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return fd_err(fd_UnexpectedEOD,"",dtp->fd_dtprocserver,expr);}}

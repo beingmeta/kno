@@ -8,11 +8,11 @@
 typedef long long int ll;
 typedef unsigned long long ull;
 
-static FD_CHUNK_REF read_chunk_ref(struct FD_DTYPE_STREAM *stream,
+static FD_CHUNK_REF read_chunk_ref(struct FD_BYTESTREAM *stream,
                                    fd_off_t base,fd_offset_type offtype,
                                    unsigned int offset);
 
-static FD_CHUNK_REF get_chunk_ref(struct FD_DTYPE_STREAM *stream,
+static FD_CHUNK_REF get_chunk_ref(struct FD_BYTESTREAM *stream,
 				  unsigned int *offsets,
 				  fd_off_t base,fd_offset_type offtype,
 				  unsigned int offset,
@@ -79,29 +79,29 @@ static int chunk_ref_size(fd_offset_type offtype)
   return -1;
 }
 
-static FD_CHUNK_REF read_chunk_ref(struct FD_DTYPE_STREAM *stream,
+static FD_CHUNK_REF read_chunk_ref(struct FD_BYTESTREAM *stream,
                                    fd_off_t base,fd_offset_type offtype,
 				   unsigned int offset)
 {
   FD_CHUNK_REF result; int chunk_size = chunk_ref_size(offtype);
   fd_off_t ref_off = offset*chunk_size; int error=0;
-  if ( (dts_setpos(stream,base+ref_off)) < 0 ) {
+  if ( (bytestream_setpos(stream,base+ref_off)) < 0 ) {
     result.off=(fd_off_t)-1; result.size=(size_t)-1;}
   else switch (offtype) {
     case FD_B32:
-      result.off=fd_dtsread_off_t(stream);
-      result.size=fd_dtsread_4bytes(stream);
+      result.off=bytestream_read_4bytes(stream);
+      result.size=bytestream_read_4bytes(stream);
       break;
     case FD_B40: {
       unsigned int word1, word2;
-      word1=fd_dtsread_4bytes(stream);
-      word2=fd_dtsread_4bytes(stream);
+      word1=bytestream_read_4bytes(stream);
+      word2=bytestream_read_4bytes(stream);
       result.off=((((ll)((word2)&(0xFF000000)))<<8)|word1);
       result.size=(ll)((word2)&(0x00FFFFFF));
       break;}
     case FD_B64:
-      result.off=fd_dtsread_8bytes(stream);
-      result.size=fd_dtsread_4bytes(stream);
+      result.off=bytestream_read_8bytes(stream);
+      result.size=bytestream_read_4bytes(stream);
       break;
     default:
       u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
@@ -124,7 +124,7 @@ static int convert_FD_B40_ref(FD_CHUNK_REF ref,
   return 0;
 }
 
-static unsigned char *read_chunk(fd_dtype_stream stream,
+static unsigned char *read_chunk(fd_bytestream stream,
                                  unsigned char *mmap,
                                  fd_off_t off,uint size,
                                  uchar *usebuf,
@@ -135,9 +135,9 @@ static unsigned char *read_chunk(fd_dtype_stream stream,
     memcpy(buf,mmap+off,size);
     return buf;}
   else {
-    fd_off_t rv=dts_setpos(stream,off);
+    fd_off_t rv=bytestream_setpos(stream,off);
     int bytes_read = (rv<0) ? (-1) :
-      dts_read_bytes(stream,buf, (int) size,unlock);
+      bytestream_read_bytes(stream,buf, (int) size,unlock);
     if (bytes_read<0) {
       if (usebuf==NULL) u8_free(buf);
       return NULL;}

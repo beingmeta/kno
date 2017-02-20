@@ -18,7 +18,7 @@
 #include "framerd/pools.h"
 #include "framerd/indices.h"
 #include "framerd/frames.h"
-#include "framerd/dtypestream.h"
+#include "framerd/bytestream.h"
 #include "framerd/dtypeio.h"
 #include "framerd/ports.h"
 
@@ -133,53 +133,53 @@ static fdtype eofp(fdtype x)
 
 /* DTYPE streams */
 
-fd_ptr_type fd_dtstream_type;
+fd_ptr_type fd_byteport_type;
 
-static int unparse_dtstream(struct U8_OUTPUT *out,fdtype x)
+static int unparse_bytstrtream(struct U8_OUTPUT *out,fdtype x)
 {
   u8_printf(out,"#<DTStream #!%x>",x);
   return 1;
 }
 
-static void recycle_dtstream(struct FD_CONS *c)
+static void recycle_bytstrtream(struct FD_CONS *c)
 {
-  struct FD_DTSTREAM *ds=(struct FD_DTSTREAM *)c;
+  struct FD_BYTEPORT *ds=(struct FD_BYTEPORT *)c;
   if (ds->dt_stream) {
-    fd_dtsclose(ds->dt_stream,ds->fd_owns_socket);}
+    fd_bytestream_close(ds->dt_stream,ds->fd_owns_socket);}
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 static fdtype read_dtype(fdtype stream)
 {
-  struct FD_DTSTREAM *ds=
-    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
-  fdtype object=fd_dtsread_dtype(ds->dt_stream);
+  struct FD_BYTEPORT *ds=
+    fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
+  fdtype object=fd_bytestream_read_dtype(ds->dt_stream);
   if (object == FD_EOD) return FD_EOF;
   else return object;
 }
 
 static fdtype write_dtype(fdtype object,fdtype stream)
 {
-  struct FD_DTSTREAM *ds=
-    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
-  int bytes=fd_dtswrite_dtype(ds->dt_stream,object);
+  struct FD_BYTEPORT *ds=
+    fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
+  int bytes=fd_bytestream_write_dtype(ds->dt_stream,object);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
 }
 
 static fdtype write_bytes(fdtype object,fdtype stream)
 {
-  struct FD_DTSTREAM *ds=
-    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
+  struct FD_BYTEPORT *ds=
+    fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
   if (FD_STRINGP(object)) {
-    dts_write_bytes(ds->dt_stream,FD_STRDATA(object),FD_STRLEN(object));
+    bytestream_write_bytes(ds->dt_stream,FD_STRDATA(object),FD_STRLEN(object));
     return FD_STRLEN(object);}
   else if (FD_PACKETP(object)) {
-    dts_write_bytes
+    bytestream_write_bytes
       (ds->dt_stream,FD_PACKET_DATA(object),FD_PACKET_LENGTH(object));
     return FD_PACKET_LENGTH(object);}
   else {
-    int bytes=fd_dtswrite_dtype(ds->dt_stream,object);
+    int bytes=fd_bytestream_write_dtype(ds->dt_stream,object);
     if (bytes<0) return FD_ERROR_VALUE;
     else return FD_INT(bytes);}
 }
@@ -206,26 +206,27 @@ static fdtype dtype2packet(fdtype object,fdtype initsize)
 
 static fdtype read_int(fdtype stream)
 {
-  struct FD_DTSTREAM *ds=
-    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
-  unsigned int ival=fd_dtsread_4bytes(ds->dt_stream);
+  struct FD_BYTEPORT *ds=
+    fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
+  unsigned int ival=fd_read_4bytes_at(ds->dt_stream,-1);
+  bytestream_unlock(ds->dt_stream);
   return FD_INT(ival);
 }
 
 static fdtype write_int(fdtype object,fdtype stream)
 {
-  struct FD_DTSTREAM *ds=
-    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
+  struct FD_BYTEPORT *ds=
+    fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
   int ival=fd_getint(object);
-  int bytes=fd_dtswrite_4bytes(ds->dt_stream,ival);
+  int bytes=fd_write_4bytes_at(ds->dt_stream,ival,-1);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
 }
 
 static fdtype zread_dtype(fdtype stream)
 {
-  struct FD_DTSTREAM *ds=
-    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
+  struct FD_BYTEPORT *ds=
+    fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
   fdtype object=fd_zread_dtype(ds->dt_stream);
   if (object == FD_EOD) return FD_EOF;
   else return object;
@@ -233,8 +234,8 @@ static fdtype zread_dtype(fdtype stream)
 
 static fdtype zwrite_dtype(fdtype object,fdtype stream)
 {
-  struct FD_DTSTREAM *ds=
-    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
+  struct FD_BYTEPORT *ds=
+    fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
   int bytes=fd_zwrite_dtype(ds->dt_stream,object);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
@@ -242,8 +243,8 @@ static fdtype zwrite_dtype(fdtype object,fdtype stream)
 
 static fdtype zwrite_dtypes(fdtype object,fdtype stream)
 {
-  struct FD_DTSTREAM *ds=
-    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
+  struct FD_BYTEPORT *ds=
+    fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
   int bytes=fd_zwrite_dtypes(ds->dt_stream,object);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
@@ -251,18 +252,18 @@ static fdtype zwrite_dtypes(fdtype object,fdtype stream)
 
 static fdtype zread_int(fdtype stream)
 {
-  struct FD_DTSTREAM *ds=
-    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
-  unsigned int ival=fd_dtsread_zint(ds->dt_stream);
+  struct FD_BYTEPORT *ds=
+    fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
+  unsigned int ival=bytestream_read_zint(ds->dt_stream);
   return FD_INT(ival);
 }
 
 static fdtype zwrite_int(fdtype object,fdtype stream)
 {
-  struct FD_DTSTREAM *ds=
-    fd_consptr(struct FD_DTSTREAM *,stream,fd_dtstream_type);
+  struct FD_BYTEPORT *ds=
+    fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
   int ival=fd_getint(object);
-  int bytes=fd_dtswrite_zint(ds->dt_stream,ival);
+  int bytes=bytestream_write_zint(ds->dt_stream,ival);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
 }
@@ -1684,10 +1685,10 @@ FD_EXPORT void fd_init_portfns_c()
   fd_unparsers[fd_port_type]=unparse_port;
   fd_recyclers[fd_port_type]=recycle_port;
 
-  fd_dtstream_type=fd_register_cons_type("DTSTREAM");
+  fd_byteport_type=fd_register_cons_type("DTSTREAM");
 
-  fd_unparsers[fd_dtstream_type]=unparse_dtstream;
-  fd_recyclers[fd_dtstream_type]=recycle_dtstream;
+  fd_unparsers[fd_byteport_type]=unparse_bytstrtream;
+  fd_recyclers[fd_byteport_type]=recycle_bytstrtream;
 
   quote_symbol=fd_intern("QUOTE");
   unquote_symbol=fd_intern("UNQUOTE");
@@ -1771,14 +1772,14 @@ FD_EXPORT void fd_init_portfns_c()
   fd_defspecial(fd_scheme_module,"LOGIF+",logifplus_handler);
 
   fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("READ-DTYPE",read_dtype,1,fd_dtstream_type,FD_VOID));
+           fd_make_cprim1x("READ-DTYPE",read_dtype,1,fd_byteport_type,FD_VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("WRITE-DTYPE",write_dtype,2,
-                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
+                           -1,FD_VOID,fd_byteport_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("WRITE-BYTES",write_bytes,2,
-                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
+                           -1,FD_VOID,fd_byteport_type,FD_VOID));
 
 
   fd_idefn(fd_scheme_module,
@@ -1789,27 +1790,27 @@ FD_EXPORT void fd_init_portfns_c()
                            -1,FD_VOID,fd_fixnum_type,FD_INT(128)));
 
   fd_idefn(fd_scheme_module,
-           fd_make_cprim1x("READ-INT",read_int,1,fd_dtstream_type,FD_VOID));
+           fd_make_cprim1x("READ-INT",read_int,1,fd_byteport_type,FD_VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("WRITE-INT",write_int,2,
-                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
+                           -1,FD_VOID,fd_byteport_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("ZREAD-DTYPE",
-                           zread_dtype,1,fd_dtstream_type,FD_VOID));
+                           zread_dtype,1,fd_byteport_type,FD_VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ZWRITE-DTYPE",zwrite_dtype,2,
-                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
+                           -1,FD_VOID,fd_byteport_type,FD_VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ZWRITE-DTYPES",zwrite_dtypes,2,
-                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
+                           -1,FD_VOID,fd_byteport_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("ZREAD-INT",
-                           zread_int,1,fd_dtstream_type,FD_VOID));
+                           zread_int,1,fd_byteport_type,FD_VOID));
   fd_idefn(fd_scheme_module,
            fd_make_cprim2x("ZWRITE-INT",zwrite_int,2,
-                           -1,FD_VOID,fd_dtstream_type,FD_VOID));
+                           -1,FD_VOID,fd_byteport_type,FD_VOID));
 
   fd_idefn(fd_scheme_module,
            fd_make_cprim1x("BASE64->PACKET",from_base64_prim,1,
