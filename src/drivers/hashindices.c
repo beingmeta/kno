@@ -537,8 +537,9 @@ FD_FASTOP int get_slotid_index(fd_hash_index hx,fdtype slotid)
   return -1;
 }
 
-static int fast_write_dtype(fd_byte_output out,fdtype key,int v2)
+static int fast_write_dtype(fd_byte_output out,fdtype key)
 {
+  int v2=((out->bs_flags)&FD_DTYPEV2);
   if (FD_OIDP(key)) {
     FD_OID addr=FD_OID_ADDR(key);
     fd_write_byte(out,dt_oid);
@@ -576,19 +577,23 @@ static int fast_write_dtype(fd_byte_output out,fdtype key,int v2)
   else return fd_write_dtype(out,key);
 }
 
-FD_FASTOP int write_zkey(fd_hash_index hx,fd_byte_output out,fdtype key)
+FD_FASTOP ssize_t write_zkey(fd_hash_index hx,fd_byte_output out,fdtype key)
 {
-  int slotid_index=-1;
+  unsigned int cur_flags=out->bs_flags;
+  int slotid_index=-1; size_t retval=-1;
+  out->bs_flags|=FD_DTYPE_NATSORT;
   if (FD_PAIRP(key)) {
     fdtype car=FD_CAR(key);
     if ((FD_OIDP(car)) || (FD_SYMBOLP(car))) {
       slotid_index=get_slotid_index(hx,car);
       if (slotid_index<0)
-        return fd_write_byte(out,0)+fd_write_dtype(out,key);
-      else return fd_write_zint(out,slotid_index+1)+
-             fast_write_dtype(out,FD_CDR(key),((out->bs_flags)&(FD_DTYPEV2)));}
-    else return fd_write_byte(out,0)+fd_write_dtype(out,key);}
-  else return fd_write_byte(out,0)+fd_write_dtype(out,key);
+        retval=fd_write_byte(out,0)+fd_write_dtype(out,key);
+      else retval=fd_write_zint(out,slotid_index+1)+
+             fast_write_dtype(out,FD_CDR(key));}
+    else retval=fd_write_byte(out,0)+fd_write_dtype(out,key);}
+  else retval=fd_write_byte(out,0)+fd_write_dtype(out,key);
+  out->bs_flags=cur_flags;
+  return retval;
 }
 
 static fdtype fast_read_dtype(fd_byte_input in)
@@ -2157,7 +2162,8 @@ static int hash_index_commit(struct FD_INDEX *ix)
       out.bs_bufptr=out.bs_bufstart;
       write_zkey(hx,&out,key);
       schedule[i].fd_bucketno=bucket=
-        hash_bytes(out.bs_bufstart,out.bs_bufptr-out.bs_bufstart)%(hx->index_n_buckets);
+        hash_bytes(out.bs_bufstart,out.bs_bufptr-out.bs_bufstart)%
+        (hx->index_n_buckets);
       i++;}
     /* Get all the bucket locations.  It may be that we can fold this
        into the phase above when we have the offsets table in
