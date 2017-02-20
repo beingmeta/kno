@@ -160,7 +160,7 @@ fdcgiexec: ../../src/exe/webcommon.h
 # Test targets
 
 alltests: schemetests exectests tabletests \
-	  indextests hashindextests dbtests optmods \
+	  indextests hashindextests alldbtests optmods \
 	  chaintests batchtests batchchaintests
 	@echo "*** Done with alltests"
 
@@ -279,6 +279,8 @@ hashindextests:
 	@echo "*** Completed scheme tests to exercise hash indices "
 
 
+alldbtests: dbtests dbhashtests dbhash32tests dbxtests
+
 dbtests:
 	@echo "*** Running scheme tests to exercise the database layer"
 	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) \
@@ -304,7 +306,7 @@ dbhash32tests:
 	make FD_HASHINDEX="(COMPRESS B32)" dbtests
 	@echo "*** Completed scheme tests to exercise hashindices with B32 reprepresentation "***""
 
-oidpooltests:
+dbxtests:
 	@echo "*** Running scheme tests to exercise hashindices with B32 reprepresentation "***""
 	make FD_HASHINDEX=yes FD_OIDPOOL=yes dbtests
 	make FD_HASHINDEX="(B32)" FD_OIDPOOL="FD_OIDPOOL=(B40)" dbtests
