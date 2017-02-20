@@ -70,10 +70,10 @@ static int unparse_achoice(struct U8_OUTPUT *s,fdtype x)
   return 1;
 }
 
-static int compare_achoice(fdtype x,fdtype y,int quick)
+static int compare_achoice(fdtype x,fdtype y,fd_compare_flags flags)
 {
   fdtype sx=fd_make_simple_choice(x), sy=fd_make_simple_choice(y);
-  int compare=fdtype_compare(sx,sy,quick);
+  int compare=FDTYPE_COMPARE(sx,sy,flags);
   fd_decref(sx); fd_decref(sy);
   return compare;
 }
@@ -637,8 +637,10 @@ fdtype fd_merge_choices(struct FD_CHOICE **choices,int n_choices)
   /* Where we write */
   write=(fdtype *)FD_XCHOICE_DATA(new_choice);
   if (atomicp)
-    qsort(scanners,n_scanners,sizeof(struct FD_CHOICE_SCANNER),compare_scanners_atomic);
-  else qsort(scanners,n_scanners,sizeof(struct FD_CHOICE_SCANNER),compare_scanners);
+    qsort(scanners,n_scanners,sizeof(struct FD_CHOICE_SCANNER),
+          compare_scanners_atomic);
+  else qsort(scanners,n_scanners,sizeof(struct FD_CHOICE_SCANNER),
+             compare_scanners);
   if (atomicp)
     new_size=atomic_scanner_loop(scanners,n_scanners,write);
   else new_size=scanner_loop(scanners,n_scanners,write);
@@ -752,10 +754,10 @@ static fdtype copy_qchoice(fdtype x,int deep)
   return FDTYPE_CONS(copied);
 }
 
-static int compare_qchoice(fdtype x,fdtype y,int quick)
+static int compare_qchoice(fdtype x,fdtype y,fd_compare_flags flags)
 {
   struct FD_QCHOICE *xqc=FD_XQCHOICE(x), *yqc=FD_XQCHOICE(y);
-  return (fdtype_compare(xqc->fd_choiceval,yqc->fd_choiceval,quick));
+  return (FDTYPE_COMPARE(xqc->fd_choiceval,yqc->fd_choiceval,flags));
 }
 
 /* Set operations (intersection, union, difference) on choices */
@@ -1094,6 +1096,20 @@ int fd_containsp(fdtype xarg,fdtype yarg)
     if (FD_ACHOICEP(yarg)) fd_decref(y);
     return retval;}
 }
+
+/* Natsorting CHOICES */
+
+FD_EXPORT
+fdtype *fd_natsort_choice(fd_choice ch,fdtype *tmpbuf,ssize_t tmp_len)
+{
+  int i=0, len=FD_XCHOICE_SIZE(ch), dtype_len;
+  const fdtype *data=FD_XCHOICE_DATA(ch);
+  fdtype *natsorted=(tmp_len>len) ? (tmpbuf) : u8_alloc_n(len,fdtype);
+  memcpy(natsorted,data,len*sizeof(fdtype));
+  fdtype_sort(natsorted,len,FD_COMPARE_NATSORT);
+  return natsorted;
+}
+
 
 /* Type initializations */
 

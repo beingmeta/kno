@@ -359,4 +359,7 @@ FD_EXPORT int fd_containsp(fdtype,fdtype);
 
 FD_EXPORT fdtype fd_intersect_choices(struct FD_CHOICE **,int);
 
+FD_EXPORT fdtype *fd_natsort_choice(fd_choice ch,fdtype *,ssize_t);
+
+
 #endif /* FRAMERD_CHOICES_H */
