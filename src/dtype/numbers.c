@@ -1923,7 +1923,7 @@ static int dtype_bigint(struct FD_BYTE_OUTPUT *out,fdtype x)
     return dtype_size;}
 }
 
-static int compare_bigint(fdtype x,fdtype y,int f)
+static int compare_bigint(fdtype x,fdtype y,fd_compare_flags flags)
 {
   fd_bigint bx=fd_consptr(fd_bigint,x,fd_bigint_type);
   fd_bigint by=fd_consptr(fd_bigint,y,fd_bigint_type);
@@ -2042,7 +2042,7 @@ static void recycle_flonum(struct FD_CONS *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
-static int compare_flonum(fdtype x,fdtype y,int f)
+static int compare_flonum(fdtype x,fdtype y,fd_compare_flags flags)
 {
   struct FD_FLONUM *dx=
     fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
@@ -3029,7 +3029,7 @@ static size_t nvec_elt_size(enum fd_num_elt_type elt_type)
     return sizeof(fd_double);}
 }
 
-static int compare_numeric_vector(fdtype x,fdtype y,int f)
+static int compare_numeric_vector(fdtype x,fdtype y,fd_compare_flags flags)
 {
   struct FD_NUMERIC_VECTOR *vx=(struct FD_NUMERIC_VECTOR *)x;
   struct FD_NUMERIC_VECTOR *vy=(struct FD_NUMERIC_VECTOR *)y;

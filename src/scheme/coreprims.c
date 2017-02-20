@@ -83,7 +83,7 @@ static fdtype equalp(fdtype x,fdtype y)
 */
 static fdtype comparefn(fdtype x,fdtype y)
 {
-  int n=FDTYPE_COMPARE(x,y);
+  int n=FDTYPE_COMPARE(x,y,FD_COMPARE_FULL);
   return FD_INT(n);
 }
 

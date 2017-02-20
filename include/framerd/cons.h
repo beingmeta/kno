@@ -633,7 +633,7 @@ static int cons_compare(fdtype x,fdtype y)
     if (FD_ATOMICP(y))
       if (x < y) return -1;
       else if (x == y)
-        return 0;
+	return 0;
       else return 1;
     else return -1;
   else if (FD_ATOMICP(y))
@@ -643,23 +643,23 @@ static int cons_compare(fdtype x,fdtype y)
     fd_ptr_type ytype=FD_PTR_TYPE(y);
     if (FD_NUMBER_TYPEP(xtype))
       if (FD_NUMBER_TYPEP(ytype))
-        return fd_numcompare(x,y);
+	return fd_numcompare(x,y);
       else return -1;
     else if (FD_NUMBER_TYPEP(ytype))
       return 1;
     else if (xtype<ytype) return -1;
     else if (xtype>ytype) return 1;
     else switch (xtype) {
-    case fd_pair_type: {
-      int car_cmp=FD_QCOMPARE(FD_CAR(x),FD_CAR(y));
-      if (car_cmp == 0) return (FD_QCOMPARE(FD_CDR(x),FD_CDR(y)));
-      else return car_cmp;}
-    case fd_string_type: {
-      int xlen=FD_STRLEN(x), ylen=FD_STRLEN(y);
-      if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
-      else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
-    default:
-      return fdtype_compare(x,y,1);}}
+      case fd_pair_type: {
+	int car_cmp=FD_QCOMPARE(FD_CAR(x),FD_CAR(y));
+	if (car_cmp == 0) return (FD_QCOMPARE(FD_CDR(x),FD_CDR(y)));
+	else return car_cmp;}
+      case fd_string_type: {
+	int xlen=FD_STRLEN(x), ylen=FD_STRLEN(y);
+	if (xlen>ylen) return 1; else if (xlen<ylen) return -1;
+	else return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
+      default:
+	return FDTYPE_COMPARE(x,y,FD_COMPARE_QUICK);}}
 }
 #endif
 

@@ -20,7 +20,8 @@ static int _fd_sort_helper(const void *vx,const void *vy)
   const struct FD_SORT_ENTRY *sy=(struct FD_SORT_ENTRY *)vy;
   if (sx->fd_sortkey==sy->fd_sortkey) return 0;
   else {
-    fd_ptr_type xtype=FD_PTR_TYPE(sx->fd_sortkey), ytype=FD_PTR_TYPE(sy->fd_sortkey);
+    fd_ptr_type xtype=FD_PTR_TYPE(sx->fd_sortkey);
+    fd_ptr_type ytype=FD_PTR_TYPE(sy->fd_sortkey);
     if (xtype==ytype)
       if (FD_OIDP(sx->fd_sortkey)) {
         FD_OID xaddr=FD_OID_ADDR(sx->fd_sortkey);
@@ -30,7 +31,7 @@ static int _fd_sort_helper(const void *vx,const void *vy)
         int xval=FD_FIX2INT(sx->fd_sortkey);
         int yval=FD_FIX2INT(sy->fd_sortkey);
         if (xval<yval) return -1; else return 1;}
-      else return FDTYPE_COMPARE(sx->fd_sortkey,sy->fd_sortkey);
+      else return FD_FULL_COMPARE(sx->fd_sortkey,sy->fd_sortkey);
     else if ((xtype==fd_fixnum_type) || (xtype==fd_bigint_type) ||
               (xtype==fd_flonum_type) || (xtype==fd_rational_type) ||
               (xtype==fd_complex_type))
@@ -58,7 +59,8 @@ static int _fd_lexsort_helper(const void *vx,const void *vy)
   const struct FD_SORT_ENTRY *sy=(struct FD_SORT_ENTRY *)vy;
   if (sx->fd_sortkey==sy->fd_sortkey) return 0;
   else {
-    fd_ptr_type xtype=FD_PTR_TYPE(sx->fd_sortkey), ytype=FD_PTR_TYPE(sy->fd_sortkey);
+    fd_ptr_type xtype=FD_PTR_TYPE(sx->fd_sortkey);
+    fd_ptr_type ytype=FD_PTR_TYPE(sy->fd_sortkey);
     if (xtype==ytype)
       if (FD_OIDP(sx->fd_sortkey)) {
         FD_OID xaddr=FD_OID_ADDR(sx->fd_sortkey);
@@ -69,10 +71,12 @@ static int _fd_lexsort_helper(const void *vx,const void *vy)
         int yval=FD_FIX2INT(sy->fd_sortkey);
         if (xval<yval) return -1; else return 1;}
       else if (xtype==fd_string_type)
-        return (strcoll(FD_STRDATA(sx->fd_sortkey),FD_STRDATA(sy->fd_sortkey)));
+        return (strcoll(FD_STRDATA(sx->fd_sortkey),
+			FD_STRDATA(sy->fd_sortkey)));
       else if (xtype==fd_symbol_type)
-        return (strcoll(FD_XSYMBOL_NAME(sx->fd_sortkey),FD_XSYMBOL_NAME(sy->fd_sortkey)));
-      else return FDTYPE_COMPARE(sx->fd_sortkey,sy->fd_sortkey);
+        return (strcoll(FD_XSYMBOL_NAME(sx->fd_sortkey),
+			FD_XSYMBOL_NAME(sy->fd_sortkey)));
+      else return FD_FULL_COMPARE(sx->fd_sortkey,sy->fd_sortkey);
     else if ((xtype==fd_fixnum_type) || (xtype==fd_bigint_type) ||
               (xtype==fd_flonum_type) || (xtype==fd_rational_type) ||
               (xtype==fd_complex_type))

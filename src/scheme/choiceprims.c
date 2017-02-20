@@ -490,7 +490,7 @@ static int compare_lisp(fdtype x,fdtype y)
       FD_OID xval=FD_OID_ADDR(x), yval=FD_OID_ADDR(y);
       return FD_OID_COMPARE(xval,yval);}
     default:
-      return FDTYPE_COMPARE(x,y);}
+      return FD_FULL_COMPARE(x,y);}
   else if (xtype<ytype) return -1;
   else return 1;
 }
@@ -1118,7 +1118,7 @@ static fdtype select_helper(fdtype choices,fdtype keyfn,
                             struct FD_SORT_ENTRY **ep)
 {
 #define BETTERP(x) ((maximize)?((x)>0):((x)<0))
-#define IS_BETTER(x,y) (BETTERP(FD_COMPARE((x),(y),1)))
+#define IS_BETTER(x,y) (BETTERP(FD_QCOMPARE((x),(y))))
   fdtype worst=FD_VOID; 
   int worst_off=(maximize)?(0):(k-1);
   if (FD_EMPTY_CHOICEP(choices))

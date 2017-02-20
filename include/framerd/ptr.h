@@ -620,10 +620,20 @@ static fdtype _fd_fcnid_ref(fdtype ref)
 
 /* Generic handlers */
 
+typedef unsigned int fd_compare_flags;
+#define FD_COMPARE_QUICK    ((fd_compare_flags)(0))
+#define FD_COMPARE_ATOMIC   ((fd_compare_flags)(1))
+#define FD_COMPARE_ELTS     ((fd_compare_flags)(2))
+#define FD_COMPARE_NATSORT  ((fd_compare_flags)(4))
+#define FD_COMPARE_SLOTS    ((fd_compare_flags)(8))
+#define FD_COMPARE_NUMERIC  ((fd_compare_flags)(16))
+#define FD_COMPARE_FULL     ((fd_compare_flags)(31))
+#define FD_COMPARE_NOCASE   ((fd_compare_flags)(32))
+
 typedef void (*fd_recycle_fn)(struct FD_CONS *x);
 typedef int (*fd_unparse_fn)(u8_output,fdtype);
 typedef int (*fd_dtype_fn)(struct FD_BYTE_OUTPUT *,fdtype);
-typedef int (*fd_compare_fn)(fdtype,fdtype,int);
+typedef int (*fd_compare_fn)(fdtype,fdtype,fd_compare_flags);
 typedef fdtype (*fd_copy_fn)(fdtype,int);
 
 FD_EXPORT u8_string fd_type_names[FD_TYPE_MAX];
@@ -637,28 +647,40 @@ typedef u8_string (*fd_oid_info_fn)(fdtype x);
 FD_EXPORT fd_oid_info_fn _fd_oid_info;
 
 #define fd_intcmp(x,y) ((x<y) ? (-1) : (x>y) ? (1) : (0))
-FD_EXPORT int fdtype_compare(fdtype x,fdtype y,int);
+FD_EXPORT int fdtype_compare(fdtype x,fdtype y,fd_compare_flags);
 FD_EXPORT int fdtype_equal(fdtype x,fdtype y);
 FD_EXPORT int fd_numcompare(fdtype x,fdtype y);
 
 #define FD_EQUAL FDTYPE_EQUAL
 #define FD_EQUALP FDTYPE_EQUAL
 #if FD_PROFILING_ENABLED
-#define FDTYPE_EQUAL(x,y) (fdtype_equal(x,y))
-#define FD_QCOMPARE(x,y) (fdtype_compare(x,y,1))
-#define FDTYPE_COMPARE(x,y) (fdtype_compare(x,y,0))
-#define FD_COMPARE(x,y,fast) (fdtype_compare(x,y,fast))
+#define FDTYPE_EQUAL(x,y)          (fdtype_equal(x,y))
+#define FDTYPE_EQUALV(x,y)         (fdtype_equal(x,y))
+#define FDTYPE_COMPARE(x,y,flags)  (fdtype_compare(x,y,flags))
+#define FD_QUICK_COMPARE(x,y)      (fdtype_compare(x,y,FD_COMPARE_QUICK))
+#define FD_FULL_COMPARE(x,y)       (fdtype_compare(x,y,(FD_COMPARE_FULL)))
 #else
 #define FDTYPE_EQUAL(x,y) \
   ((x==y) || ((FD_CONSP(x)) && (FD_CONSP(y)) && (fdtype_equal(x,y))))
-#define FD_QCOMPARE(x,y) \
+#define FDTYPE_EQUALV(x,y) \
+  ((x==y) ? (1) :			  \
+   (((FD_FIXNUMP(x)) && (FD_CONSP(x))) || \
+    ((FD_FIXNUMP(y)) && (FD_CONSP(y))) || \
+    ((FD_CONSP(x)) && (FD_CONSP(y)))) ?	  \
+   (fdtype_equal(x,y)) :		  \
+   (0)
+#define FDTYPE_COMPARE(x,y,flags)  ((x==y) ? (0) : (fdtype_compare(x,y,flags)))
+#define FD_QUICK_COMPARE(x,y) \
   (((FD_ATOMICP(x)) && (FD_ATOMICP(y))) ? (fd_intcmp(x,y)) : \
-   (fdtype_compare(x,y,1)))
-#define FDTYPE_COMPARE(x,y) \
-  (fdtype_compare(x,y,0))
-#define FD_COMPARE(x,y,fast) \
-  ((fast) ? (FD_QCOMPARE(x,y)) : (FDTYPE_COMPARE(x,y)))
+   (fdtype_compare(x,y,FD_COMPARE_QUICK)))
+#define FD_FULL_COMPARE(x,y) \
+  ((x==y) ? (0) : (FDTYPE_COMPARE(x,y,(FD_COMPARE_FULL))))
 #endif
+
+#define FD_QCOMPARE(x,y) FD_QUICK_COMPARE(x,y)
+#define FD_COMPARE(x,y) FD_FULL_COMPARE(x,y)
+
+FD_EXPORT void fdtype_sort(fdtype *v,size_t n,fd_compare_flags flags);
 
 /* Debugging support */
 

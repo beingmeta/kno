@@ -258,19 +258,41 @@ FD_EXPORT
     Arguments: two dtype pointers
     Returns: 1, 0, or -1 (an int)
   Returns a function corresponding to a generic sort of two dtype pointers. */
-int fdtype_compare(fdtype x,fdtype y,int quick)
+int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
 {
+  int quick=(flags==FD_COMPARE_QUICK);
+  int compare_atomic=(!((flags&FD_COMPARE_ATOMIC)));
+  int compare_lengths=(!((flags&FD_COMPARE_ELTS)));
+  int natural_sort=(flags&FD_COMPARE_NATSORT);
 
   /* This is just defined for this function */
 #define DOCOMPARE(x,y) \
-  ((quick) ? (FD_QCOMPARE(x,y)) : (FDTYPE_COMPARE(x,y)))
+  (((quick)&&(x==y)) ? (0) : (FDTYPE_COMPARE(x,y,flags)))
 
   if (x == y) return 0;
-  else if ((quick) && (FD_ATOMICP(x)))
+  else if ((natural_sort)&&(FD_OIDP(x))&&(FD_OIDP(y))) {
+    if ((FD_OID_BASE_ID(x))==(FD_OID_BASE_ID(y))) {
+      unsigned int ox=FD_OID_BASE_OFFSET(x);
+      unsigned int oy=FD_OID_BASE_OFFSET(y);
+      if (x<y) return -1;
+      else return 1;}
+    else {
+      FD_OID xaddr=FD_OID_ADDR(x), yaddr=FD_OID_ADDR(y);
+      return FD_OID_COMPARE(xaddr,yaddr);}}
+  else if ((natural_sort)&&(FD_SYMBOLP(x))&&(FD_SYMBOLP(y))) {
+    u8_string xname=FD_SYMBOL_NAME(x), yname=FD_SYMBOL_NAME(y);
+    if (compare_lengths) {
+      size_t xlen=strlen(xname), ylen=strlen(yname);
+      if (xlen<ylen) return -1;
+      else if (ylen<xlen) return 1;
+      else return strcmp(xname,yname);}
+    else return strcmp(xname,yname);}
+  else if ((natural_sort)&&(FD_OIDP(x))&&(FD_OIDP(y))) {}
+  else if ((compare_atomic) && (FD_ATOMICP(x)))
     if (FD_ATOMICP(y))
       if (x>y) return 1; else if (x<y) return -1; else return 0;
     else return -1;
-  else if ((quick) && (FD_ATOMICP(y))) return 1;
+  else if ((compare_atomic) && (FD_ATOMICP(y))) return 1;
   else if ((FD_FIXNUMP(x)) && (FD_FIXNUMP(y))) {
     int xval=FD_FIX2INT(x), yval=FD_FIX2INT(y);
     /* The == case is handled by the x==y above. */
@@ -313,7 +335,7 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
         else return car_cmp;}
       case fd_string_type: {
         int xlen=FD_STRLEN(x), ylen=FD_STRLEN(y);
-        if (quick) {
+        if (compare_lengths) {
           if (xlen>ylen) return 1; else if (xlen<ylen) return -1;}
         return strncmp(FD_STRDATA(x),FD_STRDATA(y),xlen);}
       case fd_packet_type: case fd_secret_type: {
@@ -338,32 +360,74 @@ int fdtype_compare(fdtype x,fdtype y,int quick)
       case fd_choice_type: {
         struct FD_CHOICE *xc=fd_consptr(struct FD_CHOICE *,x,fd_choice_type);
         struct FD_CHOICE *yc=fd_consptr(struct FD_CHOICE *,y,fd_choice_type);
-        if ((quick) && (xc->choice_size>yc->choice_size)) return 1;
-        else if ((quick) && (xc->choice_size<yc->choice_size)) return -1;
+        size_t xlen=FD_XCHOICE_SIZE(xc), ylen=FD_XCHOICE_SIZE(yc);
+        if ((compare_lengths) && (xlen>ylen))
+          return 1;
+        else if ((compare_lengths) && (xlen<ylen))
+          return -1;
         else {
-          int xlen=FD_XCHOICE_SIZE(xc), ylen=FD_XCHOICE_SIZE(yc);
-          const fdtype *xscan=FD_XCHOICE_DATA(xc);
-          const fdtype *yscan=FD_XCHOICE_DATA(yc), *xlim=xscan+xlen;
+          int cmp;
+          const fdtype *xscan, *yscan, *xlim;
+          fdtype _xnatsorted[17], *xnatsorted=_xnatsorted;
+          fdtype _ynatsorted[17], *ynatsorted=_ynatsorted;
+          if (natural_sort) {
+            xnatsorted=fd_natsort_choice(xc,_xnatsorted,17);
+            ynatsorted=fd_natsort_choice(yc,_ynatsorted,17);
+            xscan=(const fdtype *)xnatsorted;
+            yscan=(const fdtype *)ynatsorted;}
+          else {
+            xscan=FD_XCHOICE_DATA(xc);
+            yscan=FD_XCHOICE_DATA(yc);}
           if (ylen<xlen) xlim=xscan+ylen;
+          else xlim=xscan+xlen;
           while (xscan<xlim) {
-            int cmp=DOCOMPARE(*xscan,*yscan);
-            if (cmp) return cmp;
-            xscan++; yscan++;}
-          if (xlen<ylen) return -1;
+            cmp=DOCOMPARE(*xscan,*yscan);
+            if (cmp) break;
+            xscan++;
+            yscan++;}
+          if (xnatsorted!=_xnatsorted) u8_free(xnatsorted);
+          if (ynatsorted!=_ynatsorted) u8_free(ynatsorted);
+          if (xscan<xlim) return cmp;
+          else if (xlen<ylen) return -1;
           else if (xlen>ylen) return 1;
           else return 0;}}
       default: {
         fd_ptr_type ctype=FD_CONS_TYPE(FD_CONS_DATA(x));
         if (fd_comparators[ctype])
-          return fd_comparators[ctype](x,y,quick);
+          return fd_comparators[ctype](x,y,flags);
         else if (x<y) return -1;
         else if (x>y) return 1;
         else return 0;}}
     else if (x<y) return -1;
     else return 1;}
+
 #undef DOCOMPARE
 }
 
+/* Sorting DTYPEs based on a set of comparison flags */
+
+static int dtype_sort_compare(const void *x,const void *y,void *flags);
+
+FD_EXPORT
+/* fdtype_sort:
+    Arguments: a vector of dtypes, a length, and a comparison flag value
+    Returns: 1, 0, or -1 (an int)
+  Returns a function corresponding to a generic sort of two dtype pointers. */
+void fdtype_sort(fdtype *v,size_t n,fd_compare_flags flags)
+{
+  qsort_r(v,n,sizeof(fdtype),dtype_sort_compare,
+          (void *)((unsigned long long)flags));
+}
+
+static int dtype_sort_compare(const void *vx,const void *vy,void *vflags)
+{
+  fdtype *xp=(fdtype *)vx, *yp=(fdtype *)vy;
+  unsigned long long flagv=(unsigned long long)vflags;
+  fd_compare_flags flags=(fd_compare_flags)(flagv&0xFFF);
+  return fdtype_compare(*xp,*yp,flags);
+}
+
+
 FD_EXPORT
 /* fd_deep_copy:
     Arguments: a dtype pointer
@@ -940,15 +1004,16 @@ static void recycle_compound(struct FD_CONS *c)
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
-static int compare_compounds(fdtype x,fdtype y,int quick)
+static int compare_compounds(fdtype x,fdtype y,fd_compare_flags flags)
 {
   struct FD_COMPOUND *xc=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
   struct FD_COMPOUND *yc=fd_consptr(struct FD_COMPOUND *,y,fd_compound_type);
+  fdtype xtag=xc->compound_typetag, ytag=yc->compound_typetag;
   int cmp;
   if (xc == yc) return 0;
   else if ((xc->compound_isopaque) || (yc->compound_isopaque))
     if (xc>yc) return 1; else return -1;
-  else if ((cmp=(FD_COMPARE(xc->compound_typetag,yc->compound_typetag,quick))))
+  else if ((cmp=(FDTYPE_COMPARE(xtag,ytag,flags))))
     return cmp;
   else if (xc->fd_n_elts<yc->fd_n_elts) return -1;
   else if (xc->fd_n_elts>yc->fd_n_elts) return 1;
@@ -956,7 +1021,7 @@ static int compare_compounds(fdtype x,fdtype y,int quick)
     int i=0, len=xc->fd_n_elts;
     fdtype *xdata=&(xc->compound_0), *ydata=&(yc->compound_0);
     while (i<len)
-      if ((cmp=(FD_COMPARE(xdata[i],ydata[i],quick)))==0)
+      if ((cmp=(FDTYPE_COMPARE(xdata[i],ydata[i],flags)))==0)
         i++;
       else return cmp;
     return 0;}
@@ -1336,7 +1401,7 @@ static fdtype copy_timestamp(fdtype x,int deep)
   return FDTYPE_CONS(newtm);
 }
 
-static int compare_timestamps(fdtype x,fdtype y,int quick)
+static int compare_timestamps(fdtype x,fdtype y,fd_compare_flags flags)
 {
   struct FD_TIMESTAMP *xtm=
     fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
@@ -1472,7 +1537,7 @@ static fdtype copy_uuid(fdtype x,int deep)
   return FDTYPE_CONS(nuuid);
 }
 
-static int compare_uuids(fdtype x,fdtype y,int quick)
+static int compare_uuids(fdtype x,fdtype y,fd_compare_flags flags)
 {
   struct FD_UUID *xuuid=fd_consptr(struct FD_UUID *,x,fd_uuid_type);
   struct FD_UUID *yuuid=fd_consptr(struct FD_UUID *,y,fd_uuid_type);
@@ -1615,7 +1680,8 @@ void fd_init_cons_c()
                      fd_intern("RESTOREFN")),
      FD_FALSE,FD_FALSE,FD_FALSE,FD_FALSE,
      FD_FALSE,FD_FALSE);
-  ((fd_compound)fd_compound_descriptor_type)->compound_typetag=fd_compound_descriptor_type;
+  ((fd_compound)fd_compound_descriptor_type)->compound_typetag=
+    fd_compound_descriptor_type;
   fd_incref(fd_compound_descriptor_type);
 }
 
