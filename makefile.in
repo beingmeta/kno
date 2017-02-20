@@ -659,12 +659,11 @@ TAGS: makefile.in configure.ac include/framerd/config.h.in                \
 		etc/*.in ${SRC_HEADERS} ${SCHEME_MODULES} tests/scheme/*.scm 
 	@echo Building TAGS file
 	@etags makefile.in configure.ac include/framerd/config.h.in     \
-	      tests/dtype/*.c tests/db/*.c tests/scheme/*.c src/exe/*.c \
-	      src/dtype/*.c src/db/*.c src/drivers/*.c src/drivers/*.h	\
-	      src/scheme/*.c src/fdweb/*.c src/texttools/*.c 		\
-	      src/cmodules/*.c src/cmodules/sundown/sundown.c 		\
-	      include/framerd/*.h ${SRC_HEADERS} 			\
-	      etc/*.in tests/scheme/*.scm 
+	      etc/*.in include/framerd/*.h ${SRC_HEADERS};
+	@etags -o TAGS -a src/dtype/*.c src/db/*.c src/drivers/*.c src/scheme/*.c;
+	@etags -o TAGS -a src/fdweb/*.c src/texttools/*.c src/cmodules/*.c;
+	@etags -o TAGS -a src/cmodules/sundown/sundown.c;
+	@etags -o TAGS -a tests/dtype/*.c tests/db/*.c tests/scheme/*.c tests/scheme/*.scm;
 	@# We skip module.scm files because they are always links
 	@#  to other files (with more distinctive names).
 	@find src/modules src/modules/safe src/fdweb/xhtml -name "*.scm" | \

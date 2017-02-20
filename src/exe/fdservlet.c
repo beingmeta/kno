@@ -864,12 +864,12 @@ static int webservefn(u8_client ucl)
 
   /* Reset the streams */
   outstream->u8_write=outstream->u8_outbuf;
-  stream->bs_bufptr=stream->bs_buflim=stream->bs_bufstart;
+  stream->bufpoint=stream->bs_buflim=stream->bufbase;
   /* Handle async reading (where the server buffers incoming and outgoing data) */
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
     /* We got the whole payload, set up the stream
        for reading it without waiting.  */
-    stream->bs_buflim=stream->bs_bufstart+client->len;}
+    stream->bs_buflim=stream->bufbase+client->len;}
   else if (client->reading>0)
     /* We shouldn't get here, but just in case.... */
     return 1;
@@ -885,8 +885,8 @@ static int webservefn(u8_client ucl)
        need. */
     bytestream_start_read(stream);
     if ((async)&&
-        (havebytes((fd_byte_input)stream,1))&&
-        ((*(stream->bs_bufptr))==dt_block)) {
+        (havebytes((fd_byte_inbuf)stream,1))&&
+        ((*(stream->bufpoint))==dt_block)) {
       /* If we can be asynchronous, let's try */
       int U8_MAYBE_UNUSED dtcode=bytestream_read_byte(stream);
       int nbytes=bytestream_read_4bytes(stream);
@@ -896,14 +896,14 @@ static int webservefn(u8_client ucl)
         int need_size=5+nbytes;
         /* Allocate enough space for what we need to read */
         if (stream->bytestream_bufsiz<need_size) {
-          fd_grow_byte_input((fd_byte_input)stream,need_size);
+          fd_grow_byte_input((fd_byte_inbuf)stream,need_size);
           stream->bytestream_bufsiz=need_size;}
         /* Set up the client for async input */
-        if (u8_client_read(ucl,stream->bs_bufstart,5+nbytes,
-                           (stream->bs_buflim-stream->bs_bufstart))) {
+        if (u8_client_read(ucl,stream->bufbase,5+nbytes,
+                           (stream->bs_buflim-stream->bufbase))) {
           /* We got the whole payload, set up the stream
              for reading it without waiting.  */
-          stream->bs_buflim=stream->bs_bufstart+client->len;}
+          stream->bs_buflim=stream->bufbase+client->len;}
         else return 1;}}
     else {}}
   /* Do this ASAP to avoid session leakage */

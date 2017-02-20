@@ -19,11 +19,11 @@
 
 static void write_dtype_to_file(fdtype object,FILE *f)
 {
-  struct FD_BYTE_OUTPUT out;
-  FD_INIT_BYTE_OUTPUT(&out,1024);
+  struct FD_BYTE_OUTBUF out;
+  FD_INIT_BYTE_OUTBUF(&out,1024);
   fd_write_dtype(&out,object);
-  fwrite(out.bs_bufstart,1,out.bs_bufptr-out.bs_bufstart,f);
-  u8_free(out.bs_bufstart);
+  fwrite(out.bufbase,1,out.bufpoint-out.bufbase,f);
+  u8_free(out.bufbase);
 }
 
 int main(int argc,char **argv)

@@ -488,11 +488,11 @@ FD_EXPORT
 */
 unsigned int fd_hash_dtype_rep(fdtype x)
 {
-  struct FD_BYTE_OUTPUT out; unsigned int hashval;
-  FD_INIT_BYTE_OUTPUT(&out,1024);
+  struct FD_BYTE_OUTBUF out; unsigned int hashval;
+  FD_INIT_BYTE_OUTBUF(&out,1024);
   fd_write_dtype(&out,x);
-  hashval=mult_hash_string(out.bs_bufstart,out.bs_bufptr-out.bs_bufstart);
-  u8_free(out.bs_bufstart);
+  hashval=mult_hash_string(out.bufbase,out.bufpoint-out.bufbase);
+  u8_free(out.bufbase);
   return hashval;
 }
 

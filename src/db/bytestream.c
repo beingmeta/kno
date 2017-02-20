@@ -90,11 +90,11 @@ FD_EXPORT struct FD_BYTESTREAM *fd_init_bytestream
     if (buf==NULL) bufsiz=0;
     /* Initialize the on-demand reader */
     FD_INIT_BYTE_INPUT(s,buf,bufsiz);
-    s->bs_buflim=s->bs_bufptr; s->bytestream_bufsiz=bufsiz;
+    s->bs_buflim=s->bufpoint; s->bytestream_bufsiz=bufsiz;
     s->bytestream_mallocd=0; s->fd_fileno=sock; s->bytestream_idstring=NULL;
     s->bytestream_diskpos=-1; s->bytestream_maxpos=-1;
-    s->bs_fillfn=fill_bytestream; s->bs_flushfn=NULL;
-    s->bs_flags|=FD_BYTESTREAM_READING|FD_BYTEBUF_MALLOCD;
+    s->buf_fillfn=fill_bytestream; s->buf_flushfn=NULL;
+    s->bs_flags|=FD_BYTESTREAM_READING|FD_MALLOCD_BUFFER;
     u8_init_mutex(&(s->stream_lock));
     return s;}
 }
@@ -176,9 +176,9 @@ FD_EXPORT void fd_bytestream_close(fd_bytestream s,int flags)
     if (s->bytestream_idstring) {
       u8_free(s->bytestream_idstring);
       s->bytestream_idstring=NULL;}
-    if (s->bs_bufstart) {
-      u8_free(s->bs_bufstart);
-      s->bs_bufstart=s->bs_bufptr=s->bs_buflim=NULL;}
+    if (s->bufbase) {
+      u8_free(s->bufbase);
+      s->bufbase=s->bufpoint=s->bs_buflim=NULL;}
     unlock_stream(s);
     u8_destroy_mutex(&(s->stream_lock));
     if (s->bytestream_mallocd) u8_free(s);}
@@ -195,10 +195,10 @@ FD_EXPORT void fd_bytestream_bufsize(fd_bytestream s,int bufsiz)
   lock_stream(s);
   bytestream_flush(s);
   {
-    unsigned int ptroff=s->bs_bufptr-s->bs_bufstart;
-    unsigned int endoff=s->bs_buflim-s->bs_bufstart;
-    s->bs_bufstart=u8_realloc(s->bs_bufstart,bufsiz);
-    s->bs_bufptr=s->bs_bufstart+ptroff; s->bs_buflim=s->bs_bufstart+endoff;
+    unsigned int ptroff=s->bufpoint-s->bufbase;
+    unsigned int endoff=s->bs_buflim-s->bufbase;
+    s->bufbase=u8_realloc(s->bufbase,bufsiz);
+    s->bufpoint=s->bufbase+ptroff; s->bs_buflim=s->bufbase+endoff;
     s->bytestream_bufsiz=bufsiz;
   }
   unlock_stream(s);
@@ -223,7 +223,7 @@ FD_EXPORT fdtype bytestream_read_dtype(fd_bytestream s,int unlock)
     fd_seterr("NYI","fd_bytestream_read_type/zip",s->bytestream_idstring,FD_VOID);
     return FD_ERROR_VALUE;}
   else {
-    fdtype result=fd_read_dtype((struct FD_BYTE_INPUT *)s);
+    fdtype result=fd_read_dtype((struct FD_BYTE_INBUF *)s);
     if (unlock) unlock_stream(s);
     return result;}
 }
@@ -243,7 +243,7 @@ FD_EXPORT int bytestream_write_dtype(fd_bytestream s,fdtype x,int unlock)
   if (fd_check_dtsize)
     start=fd_getpos(s);
   else start=(fd_off_t)-1;
-  n_bytes=fd_write_dtype((struct FD_BYTE_OUTPUT *)s,x);
+  n_bytes=fd_write_dtype((struct FD_BYTE_OUTBUF *)s,x);
   if ((fd_check_dtsize) && (start>=0)) {
     fd_off_t end=fd_getpos(s);
     if ((end-start)!= n_bytes)
@@ -263,7 +263,7 @@ FD_EXPORT int bytestream_write_dtype(fd_bytestream s,fdtype x,int unlock)
                n_bytes,end-start,
                fd_dtype2buf(x,FD_DEBUG_OUTBUF_SIZE,_dbg_outbuf));}}
   if (unlock) {
-    if ((s->bs_bufptr-s->bs_bufstart)*4>=(s->bytestream_bufsiz*3))
+    if ((s->bufpoint-s->bufbase)*4>=(s->bytestream_bufsiz*3))
       bytestream_flush(s);
     unlock_stream(s);}
   return n_bytes;
@@ -284,25 +284,25 @@ static int fill_bytestream(struct FD_BYTESTREAM *df,int n)
 
   lock_stream(df);
 
-  bytes_read=(df->bs_bufptr-df->bs_bufstart);
-  n_buffered=(df->bs_buflim-df->bs_bufptr);
-  memmove(df->bs_bufstart,df->bs_bufptr,n_buffered);
-  df->bs_buflim=(df->bs_bufstart)+n_buffered;
-  df->bs_bufptr=df->bs_bufstart;
+  bytes_read=(df->bufpoint-df->bufbase);
+  n_buffered=(df->bs_buflim-df->bufpoint);
+  memmove(df->bufbase,df->bufpoint,n_buffered);
+  df->bs_buflim=(df->bufbase)+n_buffered;
+  df->bufpoint=df->bufbase;
   bytes_read=0;
 
   /* Make sure that there's enough space */
   if (n>df->bytestream_bufsiz) {
     int new_size=df->bytestream_bufsiz;
     unsigned char *newbuf;
-    size_t end_pos=df->bs_buflim-df->bs_bufstart;
-    size_t ptr_pos=df->bs_bufptr-df->bs_bufstart;
+    size_t end_pos=df->bs_buflim-df->bufbase;
+    size_t ptr_pos=df->bufpoint-df->bufbase;
     while (new_size<n)
       if (new_size>=0x40000) new_size=new_size+0x40000;
       else new_size=new_size*2;
-    newbuf=u8_realloc(df->bs_bufstart,new_size);
-    df->bs_bufstart=newbuf;
-    df->bs_bufptr=newbuf+ptr_pos;
+    newbuf=u8_realloc(df->bufbase,new_size);
+    df->bufbase=newbuf;
+    df->bufpoint=newbuf+ptr_pos;
     df->bs_buflim=newbuf+end_pos;
     df->bytestream_bufsiz=new_size;}
   n_to_read=n-n_buffered;
@@ -327,12 +327,12 @@ FD_EXPORT
 int bytestream_flush(fd_bytestream s)
 {
   if (FD_BYTESTREAM_ISREADING(s)) {
-    if (s->bs_buflim==s->bs_bufptr) return 0;
+    if (s->bs_buflim==s->bufpoint) return 0;
     else {
-      s->bs_bufptr=s->bs_buflim=s->bs_bufstart;
+      s->bufpoint=s->bs_buflim=s->bufbase;
       return 0;}}
-  else if (s->bs_bufptr>s->bs_bufstart) {
-    int bytes_written=writeall(s->fd_fileno,s->bs_bufstart,s->bs_bufptr-s->bs_bufstart);
+  else if (s->bufpoint>s->bufbase) {
+    int bytes_written=writeall(s->fd_fileno,s->bufbase,s->bufpoint-s->bufbase);
     if (bytes_written<0) {
       return -1;}
     if ((s->bs_flags)&FD_BYTESTREAM_DOSYNC) fsync(s->fd_fileno);
@@ -341,7 +341,7 @@ int bytestream_flush(fd_bytestream s)
     if ((s->bytestream_maxpos>=0) && (s->bytestream_diskpos>s->bytestream_maxpos))
       s->bytestream_maxpos=s->bytestream_diskpos;
     /* Reset the buffer pointers */
-    s->bs_bufptr=s->bs_bufstart;
+    s->bufpoint=s->bufbase;
     return bytes_written;}
   else {
     return 0;}
@@ -422,8 +422,8 @@ FD_EXPORT int bytestream_set_read(fd_bytestream s,int read)
       /* If we were reading, in order to start writing, we need
          to reset the pointer and make the ->bs_buflim point to the
          end of the allocated buffer. */
-      s->bs_bufptr=s->bs_bufstart;
-      s->bs_buflim=s->bs_bufstart+s->bytestream_bufsiz;
+      s->bufpoint=s->bufbase;
+      s->bs_buflim=s->bufbase+s->bytestream_bufsiz;
       /* Now we clear the bit */
       (s->bs_flags)=(s->bs_flags)&(~FD_BYTESTREAM_READING);
       return 1;}
@@ -436,9 +436,9 @@ FD_EXPORT int bytestream_set_read(fd_bytestream s,int read)
     if (bytestream_flush(s)<0) {
       return -1;}
     /* Now we reset bufsiz in case we grew the buffer */
-    s->bytestream_bufsiz=s->bs_buflim-s->bs_bufstart;
+    s->bytestream_bufsiz=s->bs_buflim-s->bufbase;
     /* Finally, we reset the pointers */
-    s->bs_buflim=s->bs_bufptr=s->bs_bufstart;
+    s->bs_buflim=s->bufpoint=s->bufbase;
     /* And set the reading bit */
     (s->bs_flags)=(s->bs_flags)|FD_BYTESTREAM_READING;
     return 1;}
@@ -464,13 +464,13 @@ FD_EXPORT fd_off_t _bytestream_getpos(fd_bytestream s,int unlock)
     /* If we are reading, we subtract the amount buffered from the
        actual filepos */
     s->bytestream_diskpos=current;
-    pos=current-(s->bs_buflim-s->bs_bufstart);}
+    pos=current-(s->bs_buflim-s->bufbase);}
   else {
     current=lseek(s->fd_fileno,0,SEEK_CUR);
     s->bytestream_diskpos=current;
     /* If we are writing, we add the amount buffered for output to the
        actual filepos */
-    pos=current+(s->bs_bufptr-s->bs_bufstart);}
+    pos=current+(s->bufpoint-s->bufbase);}
   if (unlock) unlock_stream(s);
   return pos;
 }
@@ -498,8 +498,8 @@ FD_EXPORT fd_off_t bytestream_setpos(fd_bytestream s,fd_off_t pos)
   if ( (s->bytestream_diskpos>=0) && (FD_BYTESTREAM_ISREADING(s)) ) {
     fd_off_t delta=(pos-s->bytestream_diskpos);
     unsigned char *relptr=s->bs_buflim+delta;
-    if ( (relptr >= s->bs_bufstart) && (relptr < s->bs_buflim )) {
-      s->bs_bufptr=relptr;
+    if ( (relptr >= s->bufbase) && (relptr < s->bs_buflim )) {
+      s->bufpoint=relptr;
       return pos;}}
   /* We're jumping out of what we have buffered */
   if (bytestream_flush(s)<0) {
@@ -569,8 +569,8 @@ FD_EXPORT int _bytestream_read_byte(fd_bytestream s)
 {
   if (((s->bs_flags)&FD_BYTESTREAM_READING) == 0)
     if (bytestream_set_read(s,1)<0) return -1;
-  if (fd_needs_bytes((fd_byte_input)s,1))
-    return (*(s->bs_bufptr++));
+  if (fd_needs_bytes((fd_byte_inbuf)s,1))
+    return (*(s->bufpoint++));
   else return -1;
 }
 
@@ -578,17 +578,17 @@ FD_EXPORT int _bytestream_probe_byte(fd_bytestream s)
 {
   if (((s->bs_flags)&FD_BYTESTREAM_READING) == 0)
     if (bytestream_set_read(s,1)<0) return -1;
-  if (fd_needs_bytes((fd_byte_input)s,1))
-    return (*(s->bs_bufptr));
+  if (fd_needs_bytes((fd_byte_inbuf)s,1))
+    return (*(s->bufpoint));
   else return -1;
 }
 
 FD_EXPORT unsigned int _bytestream_read_4bytes(fd_bytestream s)
 {
   bytestream_start_read(s);
-  if (fd_needs_bytes((fd_byte_input)s,4)) {
-    unsigned int bytes=fd_get_4bytes(s->bs_bufptr);
-    s->bs_bufptr=s->bs_bufptr+4;
+  if (fd_needs_bytes((fd_byte_inbuf)s,4)) {
+    unsigned int bytes=fd_get_4bytes(s->bufpoint);
+    s->bufpoint=s->bufpoint+4;
     return bytes;}
   else {fd_whoops(fd_UnexpectedEOD); return 0;}
 }
@@ -596,9 +596,9 @@ FD_EXPORT unsigned int _bytestream_read_4bytes(fd_bytestream s)
 FD_EXPORT fd_8bytes _fd_bytestream_read_8bytes(fd_bytestream s)
 {
   bytestream_start_read(s);
-  if (fd_needs_bytes((fd_byte_input)s,8)) {
-    fd_8bytes bytes=fd_get_8bytes(s->bs_bufptr);
-    s->bs_bufptr=s->bs_bufptr+8;
+  if (fd_needs_bytes((fd_byte_inbuf)s,8)) {
+    fd_8bytes bytes=fd_get_8bytes(s->bufpoint);
+    s->bufpoint=s->bufpoint+8;
     return bytes;}
   else {fd_whoops(fd_UnexpectedEOD); return 0;}
 }
@@ -611,16 +611,16 @@ FD_EXPORT int _bytestream_read_bytes(fd_bytestream s,
   /* This is special because we don't use the intermediate buffer
      if the data isn't fully buffered. */
   if (fd_has_bytes(s,len)) {
-    memcpy(bytes,s->bs_bufptr,len);
-    s->bs_bufptr=s->bs_bufptr+len;
+    memcpy(bytes,s->bufpoint,len);
+    s->bufpoint=s->bufpoint+len;
     if (unlock) u8_unlock_mutex(unlock);
     return len;}
   else {
-    int n_buffered=s->bs_buflim-s->bs_bufptr;
+    int n_buffered=s->bs_buflim-s->bufpoint;
     int n_read=0, n_to_read=len-n_buffered;
     unsigned char *start=bytes+n_buffered;
-    memcpy(bytes,s->bs_bufptr,n_buffered);
-    s->bs_buflim=s->bs_bufptr=s->bs_bufstart;
+    memcpy(bytes,s->bufpoint,n_buffered);
+    s->bs_buflim=s->bufpoint=s->bufbase;
     while (n_read<n_to_read) {
       int delta=read(s->fd_fileno,start,n_to_read);
       if (delta<0) {
@@ -648,9 +648,9 @@ FD_EXPORT fd_8bytes _bytestream_read_zint(fd_bytestream stream)
 FD_EXPORT fd_off_t _bytestream_read_off_t(fd_bytestream s)
 {
   bytestream_start_read(s);
-  if (fd_needs_bytes((fd_byte_input)s,4)) {
-    unsigned int bytes=fd_get_4bytes(s->bs_bufptr);
-    s->bs_bufptr=s->bs_bufptr+4;
+  if (fd_needs_bytes((fd_byte_inbuf)s,4)) {
+    unsigned int bytes=fd_get_4bytes(s->bufpoint);
+    s->bufpoint=s->bufpoint+4;
     return (fd_off_t) bytes;}
   else return ((fd_off_t)(-1));
 }
@@ -679,7 +679,7 @@ FD_EXPORT int bytestream_read_ints(fd_bytestream s,int n_words,unsigned int *wor
         words[i]=fd_host_order(words[i]); i++;}}
 #endif
     return bytes_read;}
-  else if (fd_needs_bytes((fd_byte_input)s,n_words*4)) {
+  else if (fd_needs_bytes((fd_byte_inbuf)s,n_words*4)) {
     int i=0; while (i<n_words) {
       int word=bytestream_read_4bytes(s);
       words[i++]=word;}
@@ -703,9 +703,9 @@ FD_EXPORT int _bytestream_write_byte(fd_bytestream s,int b)
 {
   if ((s->bs_flags)&FD_BYTESTREAM_READING)
     if (fd_set_read(s,0)<0) return -1;
-  if (s->bs_bufptr>=s->bs_buflim)
+  if (s->bufpoint>=s->bs_buflim)
     bytestream_flush(s);
-  *(s->bs_bufptr++)=b;
+  *(s->bufpoint++)=b;
   return 1;
 }
 
@@ -713,12 +713,12 @@ FD_EXPORT int _bytestream_write_4bytes(fd_bytestream s,fd_4bytes w)
 {
   if ((s->bs_flags)&FD_BYTESTREAM_READING)
     if (fd_set_read(s,0)<0) return -1;
-  if (s->bs_bufptr+4>=s->bs_buflim)
+  if (s->bufpoint+4>=s->bs_buflim)
     bytestream_flush(s);
-  *(s->bs_bufptr++)=w>>24;
-  *(s->bs_bufptr++)=((w>>16)&0xFF);
-  *(s->bs_bufptr++)=((w>>8)&0xFF);
-  *(s->bs_bufptr++)=((w>>0)&0xFF);
+  *(s->bufpoint++)=w>>24;
+  *(s->bufpoint++)=((w>>16)&0xFF);
+  *(s->bufpoint++)=((w>>8)&0xFF);
+  *(s->bufpoint++)=((w>>0)&0xFF);
   return 4;
 }
 
@@ -726,16 +726,16 @@ FD_EXPORT int _bytestream_write_8bytes(fd_bytestream s,fd_8bytes w)
 {
   if ((s->bs_flags)&FD_BYTESTREAM_READING)
     if (fd_set_read(s,0)<0) return -1;
-  if (s->bs_bufptr+8>=s->bs_buflim)
+  if (s->bufpoint+8>=s->bs_buflim)
     bytestream_flush(s);
-  *(s->bs_bufptr++)=((w>>56)&0xFF);
-  *(s->bs_bufptr++)=((w>>48)&0xFF);
-  *(s->bs_bufptr++)=((w>>40)&0xFF);
-  *(s->bs_bufptr++)=((w>>32)&0xFF);
-  *(s->bs_bufptr++)=((w>>24)&0xFF);
-  *(s->bs_bufptr++)=((w>>16)&0xFF);
-  *(s->bs_bufptr++)=((w>>8)&0xFF);
-  *(s->bs_bufptr++)=((w>>0)&0xFF);
+  *(s->bufpoint++)=((w>>56)&0xFF);
+  *(s->bufpoint++)=((w>>48)&0xFF);
+  *(s->bufpoint++)=((w>>40)&0xFF);
+  *(s->bufpoint++)=((w>>32)&0xFF);
+  *(s->bufpoint++)=((w>>24)&0xFF);
+  *(s->bufpoint++)=((w>>16)&0xFF);
+  *(s->bufpoint++)=((w>>8)&0xFF);
+  *(s->bufpoint++)=((w>>0)&0xFF);
   return 8;
 }
 
@@ -745,10 +745,10 @@ FD_EXPORT int bytestream_write4_at(fd_bytestream s,fd_4bytes w,fd_off_t off)
     if (fd_set_read(s,0)<0) return -1;
   bytestream_flush(s);
   if (off>=0) bytestream_setpos(s,off);
-  *(s->bs_bufptr++)=w>>24;
-  *(s->bs_bufptr++)=((w>>16)&0xFF);
-  *(s->bs_bufptr++)=((w>>8)&0xFF);
-  *(s->bs_bufptr++)=((w>>0)&0xFF);
+  *(s->bufpoint++)=w>>24;
+  *(s->bufpoint++)=((w>>16)&0xFF);
+  *(s->bufpoint++)=((w>>8)&0xFF);
+  *(s->bufpoint++)=((w>>0)&0xFF);
   bytestream_flush(s);
   return 4;
 }
@@ -766,9 +766,9 @@ FD_EXPORT long long bytestream_read4_at(fd_bytestream s,fd_off_t off)
     if (fd_set_read(s,1)<0) {
       return -1;}
   if (off>=0) bytestream_setpos(s,off);
-  if (fd_needs_bytes((fd_byte_input)s,4)) {
-    fd_8bytes bytes=fd_get_4bytes(s->bs_bufptr);
-    s->bs_bufptr=s->bs_bufptr+4;
+  if (fd_needs_bytes((fd_byte_inbuf)s,4)) {
+    fd_8bytes bytes=fd_get_4bytes(s->bufpoint);
+    s->bufpoint=s->bufpoint+4;
     return bytes;}
   else return -1;
 }
@@ -786,14 +786,14 @@ FD_EXPORT int bytestream_write8_at(fd_bytestream s,fd_8bytes w,fd_off_t off)
     if (fd_set_read(s,0)<0) return -1;
   bytestream_flush(s);
   if (off>=0) bytestream_setpos(s,off);
-  *(s->bs_bufptr++)=((w>>56)&0xFF);
-  *(s->bs_bufptr++)=((w>>48)&0xFF);
-  *(s->bs_bufptr++)=((w>>40)&0xFF);
-  *(s->bs_bufptr++)=((w>>32)&0xFF);
-  *(s->bs_bufptr++)=((w>>24)&0xFF);
-  *(s->bs_bufptr++)=((w>>16)&0xFF);
-  *(s->bs_bufptr++)=((w>>8)&0xFF);
-  *(s->bs_bufptr++)=((w>>0)&0xFF);
+  *(s->bufpoint++)=((w>>56)&0xFF);
+  *(s->bufpoint++)=((w>>48)&0xFF);
+  *(s->bufpoint++)=((w>>40)&0xFF);
+  *(s->bufpoint++)=((w>>32)&0xFF);
+  *(s->bufpoint++)=((w>>24)&0xFF);
+  *(s->bufpoint++)=((w>>16)&0xFF);
+  *(s->bufpoint++)=((w>>8)&0xFF);
+  *(s->bufpoint++)=((w>>0)&0xFF);
   bytestream_flush(s);
   return 4;
 }
@@ -812,9 +812,9 @@ FD_EXPORT fd_8bytes bytestream_read8_at(fd_bytestream s,fd_off_t off,int *err)
       if (err) *err=-1;
       return 0;}
   if (off>=0) bytestream_setpos(s,off);
-  if (fd_needs_bytes((fd_byte_input)s,8)) {
-    fd_8bytes bytes=fd_get_8bytes(s->bs_bufptr);
-    s->bs_bufptr=s->bs_bufptr+8;
+  if (fd_needs_bytes((fd_byte_inbuf)s,8)) {
+    fd_8bytes bytes=fd_get_8bytes(s->bufpoint);
+    s->bufpoint=s->bufpoint+8;
     return bytes;}
   else {
     if (err) *err=-1;
@@ -839,25 +839,25 @@ FD_EXPORT int _bytestream_write_bytes(fd_bytestream s,const unsigned char *bytes
     if (bytestream_set_read(s,0)<0) {
       return -1;}
   /* If there isn't space, flush the stream */
-  if (s->bs_bufptr+n>=s->bs_buflim)
+  if (s->bufpoint+n>=s->bs_buflim)
     bytestream_flush(s);
   /* If there still isn't space (bufsiz too small),
      call writeall and advance the filepos to reflect the
      written bytes. */
-  if (s->bs_bufptr+n>=s->bs_buflim) {
+  if (s->bufpoint+n>=s->bs_buflim) {
     int bytes_written=writeall(s->fd_fileno,bytes,n);
 #if FD_DEBUG_DTYPE_IO
     u8_log(LOG_DEBUG,"DTSWRITE",
            "Wrote %d/%d bytes to %s#%d, %d/%d bytes in buffer",
            bytes_written,n,
            s->fd_bytestream_id,s->fd_fileno,
-           s->bs_bufptr-s->bs_bufstart,
-           s->bs_buflim-s->bs_bufstart);
+           s->bufpoint-s->bufbase,
+           s->bs_buflim-s->bufbase);
 #endif
     if (bytes_written<0) return bytes_written;
     s->bytestream_diskpos=s->bytestream_diskpos+bytes_written;}
   else {
-    memcpy(s->bs_bufptr,bytes,n); s->bs_bufptr=s->bs_bufptr+n;}
+    memcpy(s->bufpoint,bytes,n); s->bufpoint=s->bufpoint+n;}
   return n;
 }
 FD_EXPORT int fd_bytestream_write_bytes
@@ -962,7 +962,7 @@ static unsigned char *do_compress(unsigned char *bytes,size_t n_bytes,
 static fdtype zread_dtype(struct FD_BYTESTREAM *s,int unlock)
 {
   fdtype result;
-  struct FD_BYTE_INPUT in;
+  struct FD_BYTE_INBUF in;
   ssize_t n_bytes=fd_bytestream_read_zint(s), dbytes;
   unsigned char *bytes;
   int retval=-1;
@@ -975,15 +975,15 @@ static fdtype zread_dtype(struct FD_BYTESTREAM *s,int unlock)
     if (unlock) unlock_stream(s);
     return FD_ERROR_VALUE;}
   memset(&in,0,sizeof(in));
-  in.bs_bufptr=in.bs_bufstart=do_uncompress(bytes,n_bytes,&dbytes);
-  in.bs_flags=FD_BYTEBUF_MALLOCD;
-  if (in.bs_bufstart==NULL) {
+  in.bufpoint=in.bufbase=do_uncompress(bytes,n_bytes,&dbytes);
+  in.bs_flags=FD_MALLOCD_BUFFER;
+  if (in.bufbase==NULL) {
     u8_free(bytes);
     if (unlock) unlock_stream(s);
     return FD_ERROR_VALUE;}
-  in.bs_buflim=in.bs_bufstart+dbytes; in.bs_fillfn=NULL;
+  in.bs_buflim=in.bufbase+dbytes; in.buf_fillfn=NULL;
   result=fd_read_dtype(&in);
-  u8_free(bytes); u8_free(in.bs_bufstart);
+  u8_free(bytes); u8_free(in.bufbase);
   if (unlock) unlock_stream(s);
   return result;
 }
@@ -998,24 +998,24 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_BYTESTREAM *s)
 static int zwrite_dtype(struct FD_BYTESTREAM *s,fdtype x,int unlock)
 {
   unsigned char *zbytes; ssize_t zlen=-1, size;
-  struct FD_BYTE_OUTPUT out; memset(&out,0,sizeof(out));
-  out.bs_bufptr=out.bs_bufstart=u8_malloc(2048);
-  out.bs_buflim=out.bs_bufstart+2048;
-  out.bs_flags=FD_BYTEBUF_MALLOCD;
+  struct FD_BYTE_OUTBUF out; memset(&out,0,sizeof(out));
+  out.bufpoint=out.bufbase=u8_malloc(2048);
+  out.bs_buflim=out.bufbase+2048;
+  out.bs_flags=FD_MALLOCD_BUFFER;
   if (fd_write_dtype(&out,x)<0) {
-    u8_free(out.bs_bufstart);
+    u8_free(out.bufbase);
     if (unlock) unlock_stream(s);
     return FD_ERROR_VALUE;}
-  zbytes=do_compress(out.bs_bufstart,out.bs_bufptr-out.bs_bufstart,&zlen);
+  zbytes=do_compress(out.bufbase,out.bufpoint-out.bufbase,&zlen);
   if (zlen<0) {
-    u8_free(out.bs_bufstart);
+    u8_free(out.bufbase);
     if (unlock) unlock_stream(s);
     return FD_ERROR_VALUE;}
   bytestream_write_byte(s,dt_ztype);
   size=bytestream_write_zint(s,zlen); size=size+zlen;
   if (bytestream_write_bytes(s,zbytes,zlen)<0) size=-1;
   bytestream_flush(s);
-  u8_free(zbytes); u8_free(out.bs_bufstart);
+  u8_free(zbytes); u8_free(out.bufbase);
   if (unlock) unlock_stream(s);
   return size;
 }
@@ -1029,10 +1029,10 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_BYTESTREAM *s,fdtype x)
 static int zwrite_dtypes(struct FD_BYTESTREAM *s,fdtype x,int unlock)
 {
   unsigned char *zbytes=NULL; ssize_t zlen=-1, size; int retval=0;
-  struct FD_BYTE_OUTPUT out; memset(&out,0,sizeof(out));
-  out.bs_bufptr=out.bs_bufstart=u8_malloc(2048);
-  out.bs_buflim=out.bs_bufstart+2048;
-  out.bs_flags=FD_BYTEBUF_MALLOCD;
+  struct FD_BYTE_OUTBUF out; memset(&out,0,sizeof(out));
+  out.bufpoint=out.bufbase=u8_malloc(2048);
+  out.bs_buflim=out.bufbase+2048;
+  out.bs_flags=FD_MALLOCD_BUFFER;
   if (FD_CHOICEP(x)) {
     FD_DO_CHOICES(v,x) {
       retval=fd_write_dtype(&out,v);
@@ -1044,15 +1044,15 @@ static int zwrite_dtypes(struct FD_BYTESTREAM *s,fdtype x,int unlock)
       if (retval<0) break;}}
   else retval=fd_write_dtype(&out,x);
   if (retval>=0)
-    zbytes=do_compress(out.bs_bufstart,out.bs_bufptr-out.bs_bufstart,&zlen);
+    zbytes=do_compress(out.bufbase,out.bufpoint-out.bufbase,&zlen);
   if ((retval<0)||(zlen<0)) {
-    if (zbytes) u8_free(zbytes); u8_free(out.bs_bufstart);
+    if (zbytes) u8_free(zbytes); u8_free(out.bufbase);
     if (unlock) unlock_stream(s);
     return -1;}
   bytestream_write_byte(s,dt_ztype);
   size=1+bytestream_write_zint(s,zlen); size=size+zlen;
   retval=bytestream_write_bytes(s,zbytes,zlen);
-  u8_free(zbytes); u8_free(out.bs_bufstart);
+  u8_free(zbytes); u8_free(out.bufbase);
   if (unlock) unlock_stream(s);
   if (retval<0) return retval;
   else return size;
@@ -1085,8 +1085,8 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
       fdtype result=FD_VOID;
       int byte1=bytestream_read_byte(opened);
       int zip=(byte1>=0x80);
-      if (opened->bs_bufptr > opened->bs_bufstart)
-        opened->bs_bufptr--;
+      if (opened->bufpoint > opened->bufbase)
+        opened->bufpoint--;
       else fd_setpos(opened,0);
       if (zip)
         result=zread_dtype(opened,FD_STREAM_LOCKED);

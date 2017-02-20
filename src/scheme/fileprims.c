@@ -155,10 +155,10 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
   else if (FD_PACKETP(object)) {
     bytes=FD_PACKET_DATA(object); len=FD_PACKET_LENGTH(object);}
   else if ((FD_FALSEP(enc)) || (FD_VOIDP(enc))) {
-    struct FD_BYTE_OUTPUT out;
-    FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out;
+    FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,object);
-    bytes=out.bs_bufstart; len=out.bs_bufptr-out.bs_bufstart;
+    bytes=out.bufbase; len=out.bufpoint-out.bufbase;
     free_bytes=1;}
   else {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);

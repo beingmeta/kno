@@ -193,9 +193,9 @@ static fdtype file_config_lookup(fdtype symbol,void *pathdata)
     int n_bytes; fdtype result;
     unsigned char *content=u8_filedata(filename,&n_bytes);
     if (content[0]==0) {
-      struct FD_BYTE_INPUT in;
-      in.bs_bufstart=in.bs_bufptr=content+1; in.bs_buflim=in.bs_bufstart+n_bytes;
-      in.bs_fillfn=NULL;
+      struct FD_BYTE_INBUF in;
+      in.bufbase=in.bufpoint=content+1; in.bs_buflim=in.bufbase+n_bytes;
+      in.buf_fillfn=NULL;
       result=fd_read_dtype(&in);}
     else {
       /* Zap any trailing newlines */

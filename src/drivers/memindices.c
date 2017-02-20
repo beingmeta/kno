@@ -83,7 +83,7 @@ static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
     if (rstream==NULL) return -1;
     stream.bytestream_mallocd=0;
     fd_set_read(&stream,0);
-    fd_write_dtype((fd_byte_output)&stream,(fdtype)&(ix->index_cache));
+    fd_write_dtype((fd_byte_outbuf)&stream,(fdtype)&(ix->index_cache));
     fd_bytestream_close(&stream,FD_BYTESTREAM_FREE);
     return 1;}
   else return 0;
@@ -97,7 +97,7 @@ static fd_index open_memindex(u8_string file,fddb_flags flags)
   fd_init_file_bytestream
     (&stream,file,FD_BYTESTREAM_READ,fd_driver_bufsize);
   stream.bytestream_mallocd=0;
-  lispval=fd_read_dtype((fd_byte_input)&stream);
+  lispval=fd_read_dtype((fd_byte_inbuf)&stream);
   fd_bytestream_close(&stream,FD_BYTESTREAM_FREE);
   if (FD_HASHTABLEP(lispval)) h=(fd_hashtable)lispval;
   else {

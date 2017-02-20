@@ -211,7 +211,7 @@ static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
     if (rstream==NULL) return -1;
     stream.bytestream_mallocd=0;
     fd_set_read(&stream,0);
-    fd_write_dtype((fd_byte_output)&stream,(fdtype)&(ix->index_cache));
+    fd_write_dtype((fd_byte_outbuf)&stream,(fdtype)&(ix->index_cache));
     fd_bytestream_close(&stream,FD_BYTESTREAM_FREE);
     return 1;}
   else return 0;

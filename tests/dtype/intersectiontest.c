@@ -49,11 +49,11 @@ static fdtype read_choice(char *file)
 static int write_dtype_to_file(fdtype x,char *file)
 {
   FILE *f=fopen(file,"wb"); int retval;
-  struct FD_BYTE_OUTPUT out;
-  FD_INIT_BYTE_OUTPUT(&out,1024);
+  struct FD_BYTE_OUTBUF out;
+  FD_INIT_BYTE_OUTBUF(&out,1024);
   fd_write_dtype(&out,x);
-  retval=fwrite(out.bs_bufstart,1,out.bs_bufptr-out.bs_bufstart,f);
-  u8_free(out.bs_bufstart);
+  retval=fwrite(out.bufbase,1,out.bufpoint-out.bufbase,f);
+  u8_free(out.bufbase);
   fclose(f);
   return retval;
 }

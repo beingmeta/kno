@@ -16,9 +16,9 @@
 
 int main(int argc,char **argv)
 {
-  struct FD_BYTE_OUTPUT out; FILE *f=fopen(argv[1],"wb");
+  struct FD_BYTE_OUTBUF out; FILE *f=fopen(argv[1],"wb");
   fdtype value=FD_EMPTY_CHOICE, svalue, tval; int i=2, retval;
-  FD_INIT_BYTE_OUTPUT(&out,1024);
+  FD_INIT_BYTE_OUTBUF(&out,1024);
   FD_DO_LIBINIT(fd_init_dtypelib);
   tval=fd_parse(argv[i++]);
   while (i < argc) {
@@ -31,9 +31,9 @@ int main(int argc,char **argv)
     u8_fprintf(stdout,"Containment is true\n");
   else u8_fprintf(stdout,"Containment is false\n");
   fd_write_dtype(&out,svalue);
-  retval=fwrite(out.bs_bufstart,1,out.bs_bufptr-out.bs_bufstart,f);
+  retval=fwrite(out.bufbase,1,out.bufpoint-out.bufbase,f);
   if (retval<0) exit(1);
-  fd_decref(value); fd_decref(svalue); u8_free(out.bs_bufstart);
+  fd_decref(value); fd_decref(svalue); u8_free(out.bufbase);
   value=FD_VOID; svalue=FD_VOID;
   exit(0);
 }

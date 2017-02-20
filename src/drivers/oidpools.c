@@ -618,7 +618,7 @@ static int oidpool_load(fd_pool p)
 }
 
 static fdtype read_oid_value(fd_oidpool op,
-                             fd_byte_input in,
+                             fd_byte_inbuf in,
                              const u8_string cxt)
 {
   int zip_code;
@@ -650,7 +650,7 @@ static fdtype read_oid_value_at(fd_oidpool op,
 {
   if (ref.off==0) return FD_VOID;
   else if ( (op->pool_compression==FD_NOCOMPRESS) && (op->pool_mmap) ) {
-      FD_BYTE_INPUT in;
+      FD_BYTE_INBUF in;
       if (unlock) u8_unlock_mutex(unlock);
       FD_INIT_BYTE_INPUT(&in,op->pool_mmap+ref.off,ref.size);
       return read_oid_value(op,&in,cxt);}
@@ -666,13 +666,13 @@ static fdtype read_oid_value_at(fd_oidpool op,
     if (buf==NULL) return FD_ERROR_VALUE;
     else if (op->pool_compression==FD_NOCOMPRESS)
       if (free_buf) {
-        FD_BYTE_INPUT in;
+        FD_BYTE_INBUF in;
         FD_INIT_BYTE_INPUT(&in,buf,ref.size);
         fdtype result=read_oid_value(op,&in,cxt);
         u8_free(buf);
         return result;}
       else {
-        FD_BYTE_INPUT in;
+        FD_BYTE_INBUF in;
         FD_INIT_BYTE_INPUT(&in,buf,ref.size);
         return read_oid_value(op,&in,cxt);}
     else {
@@ -694,14 +694,14 @@ static fdtype read_oid_value_at(fd_oidpool op,
         if (ubuf!=_ubuf) u8_free(ubuf);
         return FD_ERROR_VALUE;}
       else if ((free_buf) || (ubuf!=_ubuf)) {
-        FD_BYTE_INPUT in; fdtype result;
+        FD_BYTE_INBUF in; fdtype result;
         FD_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);
         result=read_oid_value(op,&in,cxt);
         if (free_buf) u8_free(buf);
         if (ubuf!=_ubuf) u8_free(ubuf);
         return result;}
       else {
-        FD_BYTE_INPUT in;
+        FD_BYTE_INBUF in;
         FD_INIT_BYTE_INPUT(&in,ubuf,ubuf_size);
         return read_oid_value(op,&in,cxt);}}}
 }
@@ -855,13 +855,13 @@ static int get_schema_id(fd_oidpool op,fdtype value)
 }
 
 static int oidpool_write_value(fdtype value,fd_bytestream stream,
-                               fd_oidpool p,struct FD_BYTE_OUTPUT *tmpout,
+                               fd_oidpool p,struct FD_BYTE_OUTBUF *tmpout,
                                unsigned char **zbuf,int *zbuf_size)
 {
   if ((p->pool_compression==FD_NOCOMPRESS) && (p->pool_n_schemas==0)) {
     bytestream_write_byte(stream,0);
     return 1+fd_bytestream_write_dtype(stream,value);}
-  tmpout->bs_bufptr=tmpout->bs_bufstart;
+  tmpout->bufpoint=tmpout->bufbase;
   if (p->pool_n_schemas==0) {
     fd_write_byte(tmpout,0);
     fd_write_dtype(tmpout,value);}
@@ -893,12 +893,12 @@ static int oidpool_write_value(fdtype value,fd_bytestream stream,
     fd_write_byte(tmpout,0);
     fd_write_dtype(tmpout,value);}
   if (p->pool_compression==FD_NOCOMPRESS) {
-    bytestream_write_bytes(stream,tmpout->bs_bufstart,tmpout->bs_bufptr-tmpout->bs_bufstart);
-    return tmpout->bs_bufptr-tmpout->bs_bufstart;}
+    bytestream_write_bytes(stream,tmpout->bufbase,tmpout->bufpoint-tmpout->bufbase);
+    return tmpout->bufpoint-tmpout->bufbase;}
   else if (p->pool_compression==FD_ZLIB) {
     unsigned char _cbuf[FD_OIDPOOL_FETCHBUF_SIZE], *cbuf;
     int cbuf_size=FD_OIDPOOL_FETCHBUF_SIZE;
-    cbuf=do_zcompress(tmpout->bs_bufstart,tmpout->bs_bufptr-tmpout->bs_bufstart,
+    cbuf=do_zcompress(tmpout->bufbase,tmpout->bufpoint-tmpout->bufbase,
                       &cbuf_size,_cbuf,9);
     bytestream_write_bytes(stream,cbuf,cbuf_size);
     if (cbuf!=_cbuf) u8_free(cbuf);
@@ -924,7 +924,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
          "Storing %d oid values in oidpool %s",n,p->pool_cid);
   struct OIDPOOL_SAVEINFO *saveinfo=
     u8_alloc_n(n,struct OIDPOOL_SAVEINFO);
-  struct FD_BYTE_OUTPUT tmpout;
+  struct FD_BYTE_OUTBUF tmpout;
   unsigned char *zbuf=u8_malloc(FD_INIT_ZBUF_SIZE);
   unsigned int i=0, zbuf_size=FD_INIT_ZBUF_SIZE;
   unsigned int init_buflen=2048*n;
@@ -932,7 +932,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   size_t maxpos=get_maxpos(op);
   FD_OID base=op->pool_base;
   if (init_buflen>262144) init_buflen=262144;
-  FD_INIT_BYTE_OUTPUT(&tmpout,init_buflen);
+  FD_INIT_BYTE_OUTBUF(&tmpout,init_buflen);
   endpos=bytestream_endpos(stream);
   if ((op->pool_xformat)&(FD_OIDPOOL_DTYPEV2))
     tmpout.bs_flags=tmpout.bs_flags|FD_DTYPEV2;
@@ -943,11 +943,11 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     if (n_bytes<0) {
       u8_free(zbuf);
       u8_free(saveinfo);
-      u8_free(tmpout.bs_bufstart);
+      u8_free(tmpout.bufbase);
       UNLOCK_POOLSTREAM(op);
       return n_bytes;}
     if ((endpos+n_bytes)>=maxpos) {
-      u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.bs_bufstart);
+      u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.bufbase);
       u8_seterr(fd_DataFileOverflow,"oidpool_storen",
                 u8_strdup(p->pool_cid));
       UNLOCK_POOLSTREAM(op);
@@ -958,7 +958,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 
     endpos=endpos+n_bytes;
     i++;}
-  u8_free(tmpout.bs_bufstart);
+  u8_free(tmpout.bufbase);
   u8_free(zbuf);
 
   /* Now, write recovery information, which lets the state of the pool

@@ -57,15 +57,15 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
   fd_init_bytestream(&stream,conn,8192);
   if ((async)&&(fd_use_dtblock)) { /*  */
     size_t dtype_len;
-    struct FD_BYTE_OUTPUT *binout=
-      (struct FD_BYTE_OUTPUT *)&stream;
+    struct FD_BYTE_OUTBUF *binout=
+      (struct FD_BYTE_OUTBUF *)&stream;
     retval=fd_write_byte(binout,dt_block);
     if (retval>0) retval=fd_write_4bytes(binout,0);
     if (retval>0) retval=fd_write_dtype(binout,expr);
-    dtype_len=(binout->bs_bufptr-binout->bs_bufstart)-5;
-    binout->bs_bufptr=binout->bs_bufstart+1;
+    dtype_len=(binout->bufpoint-binout->bufbase)-5;
+    binout->bufpoint=binout->bufbase+1;
     fd_write_4bytes(binout,dtype_len);
-    binout->bs_bufptr=binout->bs_bufstart+(dtype_len+5);}
+    binout->bufpoint=binout->bufbase+(dtype_len+5);}
   else {
     stream.bs_flags=stream.bs_flags|FD_BYTESTREAM_DOSYNC;
     retval=fd_bytestream_write_dtype(&stream,expr);}

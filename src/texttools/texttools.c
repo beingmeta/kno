@@ -2231,10 +2231,10 @@ static fdtype md5_prim(fdtype input)
   else if (FD_PACKETP(input))
     digest=u8_md5(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
   else {
-    struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out; FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,input);
-    digest=u8_md5(out.bs_bufstart,out.bs_bufptr-out.bs_bufstart,NULL);
-    u8_free(out.bs_bufstart);}
+    digest=u8_md5(out.bufbase,out.bufpoint-out.bufbase,NULL);
+    u8_free(out.bufbase);}
   if (digest==NULL)
     return FD_ERROR_VALUE;
   else return fd_init_packet(NULL,16,digest);
@@ -2249,10 +2249,10 @@ static fdtype sha1_prim(fdtype input)
   else if (FD_PACKETP(input))
     digest=u8_sha1(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
   else {
-    struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out; FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,input);
-    digest=u8_sha1(out.bs_bufstart,out.bs_bufptr-out.bs_bufstart,NULL);
-    u8_free(out.bs_bufstart);}
+    digest=u8_sha1(out.bufbase,out.bufpoint-out.bufbase,NULL);
+    u8_free(out.bufbase);}
   if (digest==NULL)
     return FD_ERROR_VALUE;
   else return fd_init_packet(NULL,20,digest);
@@ -2267,10 +2267,10 @@ static fdtype sha256_prim(fdtype input)
   else if (FD_PACKETP(input))
     digest=u8_sha256(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
   else {
-    struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out; FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,input);
-    digest=u8_sha256(out.bs_bufstart,out.bs_bufptr-out.bs_bufstart,NULL);
-    u8_free(out.bs_bufstart);}
+    digest=u8_sha256(out.bufbase,out.bufpoint-out.bufbase,NULL);
+    u8_free(out.bufbase);}
   if (digest==NULL)
     return FD_ERROR_VALUE;
   else return fd_init_packet(NULL,32,digest);
@@ -2285,10 +2285,10 @@ static fdtype sha384_prim(fdtype input)
   else if (FD_PACKETP(input))
     digest=u8_sha384(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
   else {
-    struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out; FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,input);
-    digest=u8_sha384(out.bs_bufstart,out.bs_bufptr-out.bs_bufstart,NULL);
-    u8_free(out.bs_bufstart);}
+    digest=u8_sha384(out.bufbase,out.bufpoint-out.bufbase,NULL);
+    u8_free(out.bufbase);}
   if (digest==NULL)
     return FD_ERROR_VALUE;
   else return fd_init_packet(NULL,48,digest);
@@ -2303,10 +2303,10 @@ static fdtype sha512_prim(fdtype input)
   else if (FD_PACKETP(input))
     digest=u8_sha512(FD_PACKET_DATA(input),FD_PACKET_LENGTH(input),NULL);
   else {
-    struct FD_BYTE_OUTPUT out; FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out; FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,input);
-    digest=u8_sha512(out.bs_bufstart,out.bs_bufptr-out.bs_bufstart,NULL);
-    u8_free(out.bs_bufstart);}
+    digest=u8_sha512(out.bufbase,out.bufpoint-out.bufbase,NULL);
+    u8_free(out.bufbase);}
   if (digest==NULL)
     return FD_ERROR_VALUE;
   else return fd_init_packet(NULL,64,digest);
@@ -2322,19 +2322,19 @@ static fdtype hmac_sha1_prim(fdtype key,fdtype input)
   else if (FD_PACKETP(input)) {
     data=FD_PACKET_DATA(input); data_len=FD_PACKET_LENGTH(input);}
   else {
-    struct FD_BYTE_OUTPUT out;
-    FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out;
+    FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,input);
-    data=out.bs_bufstart; data_len=out.bs_bufptr-out.bs_bufstart; free_data=1;}
+    data=out.bufbase; data_len=out.bufpoint-out.bufbase; free_data=1;}
   if (FD_STRINGP(key)) {
     keydata=FD_STRDATA(key); key_len=FD_STRLEN(key);}
   else if (FD_PACKETP(key)) {
     keydata=FD_PACKET_DATA(key); key_len=FD_PACKET_LENGTH(key);}
   else {
-    struct FD_BYTE_OUTPUT out;
-    FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out;
+    FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,key);
-    keydata=out.bs_bufstart; key_len=out.bs_bufptr-out.bs_bufstart; free_key=1;}
+    keydata=out.bufbase; key_len=out.bufpoint-out.bufbase; free_key=1;}
   digest=u8_hmac_sha1(keydata,key_len,data,data_len,NULL,&digest_len);
   if (free_data) u8_free(data);
   if (free_key) u8_free(keydata);
@@ -2352,19 +2352,19 @@ static fdtype hmac_sha256_prim(fdtype key,fdtype input)
   else if (FD_PACKETP(input)) {
     data=FD_PACKET_DATA(input); data_len=FD_PACKET_LENGTH(input);}
   else {
-    struct FD_BYTE_OUTPUT out;
-    FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out;
+    FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,input);
-    data=out.bs_bufstart; data_len=out.bs_bufptr-out.bs_bufstart; free_data=1;}
+    data=out.bufbase; data_len=out.bufpoint-out.bufbase; free_data=1;}
   if (FD_STRINGP(key)) {
     keydata=FD_STRDATA(key); key_len=FD_STRLEN(key);}
   else if (FD_PACKETP(key)) {
     keydata=FD_PACKET_DATA(key); key_len=FD_PACKET_LENGTH(key);}
   else {
-    struct FD_BYTE_OUTPUT out;
-    FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out;
+    FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,key);
-    keydata=out.bs_bufstart; key_len=out.bs_bufptr-out.bs_bufstart; free_key=1;}
+    keydata=out.bufbase; key_len=out.bufpoint-out.bufbase; free_key=1;}
   digest=u8_hmac_sha256(keydata,key_len,data,data_len,NULL,&digest_len);
   if (free_data) u8_free(data);
   if (free_key) u8_free(keydata);
@@ -2382,19 +2382,19 @@ static fdtype hmac_sha384_prim(fdtype key,fdtype input)
   else if (FD_PACKETP(input)) {
     data=FD_PACKET_DATA(input); data_len=FD_PACKET_LENGTH(input);}
   else {
-    struct FD_BYTE_OUTPUT out;
-    FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out;
+    FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,input);
-    data=out.bs_bufstart; data_len=out.bs_bufptr-out.bs_bufstart; free_data=1;}
+    data=out.bufbase; data_len=out.bufpoint-out.bufbase; free_data=1;}
   if (FD_STRINGP(key)) {
     keydata=FD_STRDATA(key); key_len=FD_STRLEN(key);}
   else if (FD_PACKETP(key)) {
     keydata=FD_PACKET_DATA(key); key_len=FD_PACKET_LENGTH(key);}
   else {
-    struct FD_BYTE_OUTPUT out;
-    FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out;
+    FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,key);
-    keydata=out.bs_bufstart; key_len=out.bs_bufptr-out.bs_bufstart; free_key=1;}
+    keydata=out.bufbase; key_len=out.bufpoint-out.bufbase; free_key=1;}
   digest=u8_hmac_sha384(keydata,key_len,data,data_len,NULL,&digest_len);
   if (free_data) u8_free(data);
   if (free_key) u8_free(keydata);
@@ -2412,19 +2412,19 @@ static fdtype hmac_sha512_prim(fdtype key,fdtype input)
   else if (FD_PACKETP(input)) {
     data=FD_PACKET_DATA(input); data_len=FD_PACKET_LENGTH(input);}
   else {
-    struct FD_BYTE_OUTPUT out;
-    FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out;
+    FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,input);
-    data=out.bs_bufstart; data_len=out.bs_bufptr-out.bs_bufstart; free_data=1;}
+    data=out.bufbase; data_len=out.bufpoint-out.bufbase; free_data=1;}
   if (FD_STRINGP(key)) {
     keydata=FD_STRDATA(key); key_len=FD_STRLEN(key);}
   else if (FD_PACKETP(key)) {
     keydata=FD_PACKET_DATA(key); key_len=FD_PACKET_LENGTH(key);}
   else {
-    struct FD_BYTE_OUTPUT out;
-    FD_INIT_BYTE_OUTPUT(&out,1024);
+    struct FD_BYTE_OUTBUF out;
+    FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,key);
-    keydata=out.bs_bufstart; key_len=out.bs_bufptr-out.bs_bufstart; free_key=1;}
+    keydata=out.bufbase; key_len=out.bufpoint-out.bufbase; free_key=1;}
   digest=u8_hmac_sha512(keydata,key_len,data,data_len,NULL,&digest_len);
   if (free_data) u8_free(data);
   if (free_key) u8_free(keydata);

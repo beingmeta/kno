@@ -53,7 +53,7 @@ static fdtype label_file_pool(fdtype fname,fdtype label)
       int bytes=fd_bytestream_write_dtype(stream,label);
       if (bytes>0) {
         fd_setpos(stream,20);
-        if (fd_write_4bytes(((fd_byte_output)stream),(unsigned int)endpos)>=0) {
+        if (fd_write_4bytes(((fd_byte_outbuf)stream),(unsigned int)endpos)>=0) {
           retval=1; 
           fd_bytestream_free(stream,1);}}}}
   if (retval<0) return FD_ERROR_VALUE;

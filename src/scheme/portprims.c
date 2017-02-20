@@ -187,7 +187,7 @@ static fdtype write_bytes(fdtype object,fdtype stream)
 static fdtype packet2dtype(fdtype packet)
 {
   fdtype object;
-  struct FD_BYTE_INPUT in;
+  struct FD_BYTE_INBUF in;
   FD_INIT_BYTE_INPUT(&in,FD_PACKET_DATA(packet),
                      FD_PACKET_LENGTH(packet));
   object=fd_read_dtype(&in);
@@ -197,11 +197,11 @@ static fdtype packet2dtype(fdtype packet)
 static fdtype dtype2packet(fdtype object,fdtype initsize)
 {
   int size=FD_FIX2INT(initsize);
-  struct FD_BYTE_OUTPUT out;
-  FD_INIT_BYTE_OUTPUT(&out,size);
+  struct FD_BYTE_OUTBUF out;
+  FD_INIT_BYTE_OUTBUF(&out,size);
   int bytes=fd_write_dtype(&out,object);
   if (bytes<0) return FD_ERROR_VALUE;
-  else return fd_init_packet(NULL,bytes,out.bs_bufstart);
+  else return fd_init_packet(NULL,bytes,out.bufbase);
 }
 
 static fdtype read_int(fdtype stream)
@@ -1602,9 +1602,9 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
       ((FD_STRINGP(arg))?(FD_STRDATA(arg)):(FD_PACKET_DATA(arg)));
     unsigned int data_len=
       ((FD_STRINGP(arg))?(FD_STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
-    struct FD_BYTE_OUTPUT out; int flags=0; /* FDPP_FHCRC */
+    struct FD_BYTE_OUTBUF out; int flags=0; /* FDPP_FHCRC */
     time_t now=time(NULL); u8_int4 crc, intval;
-    FD_INIT_BYTE_OUTPUT(&out,1024); memset(out.bs_bufstart,0,1024);
+    FD_INIT_BYTE_OUTBUF(&out,1024); memset(out.bufbase,0,1024);
     fd_write_byte(&out,31); fd_write_byte(&out,139);
     fd_write_byte(&out,8); /* Using default */
     /* Compute flags */
@@ -1664,12 +1664,12 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
       u8_free(cbuf);}
     if (error) {
       fd_seterr(error,"x2zipfile",NULL,FD_VOID);
-      u8_free(out.bs_bufstart);
+      u8_free(out.bufbase);
       return FD_ERROR_VALUE;}
     crc=u8_crc32(0,data,data_len);
     intval=fd_flip_word(crc); fd_write_4bytes(&out,intval);
     intval=fd_flip_word(data_len); fd_write_4bytes(&out,intval);
-    return fd_init_packet(NULL,out.bs_bufptr-out.bs_bufstart,out.bs_bufstart);}
+    return fd_init_packet(NULL,out.bufpoint-out.bufbase,out.bufbase);}
 }
 
 /* The init function */

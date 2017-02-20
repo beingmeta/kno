@@ -18,27 +18,27 @@
 static fdtype read_dtype_from_file(FILE *f)
 {
   fdtype object;
-  struct FD_BYTE_OUTPUT out; struct FD_BYTE_INPUT in;
+  struct FD_BYTE_OUTBUF out; struct FD_BYTE_INBUF in;
   char buf[1024]; int delta=0;
-  FD_INIT_BYTE_OUTPUT(&out,1024);
+  FD_INIT_BYTE_OUTBUF(&out,1024);
   while ((delta=fread(buf,1,1024,f))) {
     if (delta<0)
       if (errno==EAGAIN) {}
       else u8_raise("Read error","u8recode",NULL);
     else fd_write_bytes(&out,buf,delta);}
-  FD_INIT_BYTE_INPUT(&in,out.bs_bufstart,out.bs_bufptr-out.bs_bufstart);
+  FD_INIT_BYTE_INPUT(&in,out.bufbase,out.bufpoint-out.bufbase);
   object=fd_read_dtype(&in);
-  u8_free(out.bs_bufstart);
+  u8_free(out.bufbase);
   return object;
 }
 
 static int write_dtype_to_file(fdtype object,FILE *f)
 {
-  struct FD_BYTE_OUTPUT out; int retval;
-  FD_INIT_BYTE_OUTPUT(&out,1024);
+  struct FD_BYTE_OUTBUF out; int retval;
+  FD_INIT_BYTE_OUTBUF(&out,1024);
   fd_write_dtype(&out,object);
-  retval=fwrite(out.bs_bufstart,1,out.bs_bufptr-out.bs_bufstart,f);
-  u8_free(out.bs_bufstart);
+  retval=fwrite(out.bufbase,1,out.bufpoint-out.bufbase,f);
+  u8_free(out.bufbase);
   return retval;
 }
 
