@@ -95,8 +95,8 @@ typedef int (*fd_kvfn)(struct FD_KEYVAL *,void *);
 
 typedef struct FD_SLOTMAP {
   FD_CONS_HEADER;
-  unsigned int table_size:12;
-  unsigned int table_freespace:12;
+  unsigned short table_size;
+  unsigned short table_freespace;
   unsigned int table_readonly:1;
   unsigned int table_modified:1;
   unsigned int table_uselock:1;
@@ -110,15 +110,18 @@ typedef struct FD_SLOTMAP *fd_slotmap;
   (fd_consptr(struct FD_SLOTMAP *,x,fd_slotmap_type))
 #define FD_XSLOTMAP_SIZE(sm) (sm->table_size)
 #define FD_XSLOTMAP_SPACE(sm) (sm->table_freespace)
+#define FD_XSLOTMAP_KEYVALS(sm) ((sm)->sm_keyvals)
 #define FD_XSLOTMAP_USELOCKP(sm) (sm->table_uselock)
 #define FD_XSLOTMAP_MODIFIEDP(sm) (sm->table_modified)
 #define FD_XSLOTMAP_READONLYP(sm) (sm->table_readonly)
+
 #define FD_XSLOTMAP_SET_READONLY(sm) (sm)->table_readonly=1
 #define FD_XSLOTMAP_CLEAR_READONLY(sm) (sm)->table_readonly=0
 #define FD_XSLOTMAP_MARK_MODIFIED(sm) (sm)->table_modified=1
 #define FD_XSLOTMAP_CLEAR_MODIFIED(sm) (sm)->table_modified=0
 #define FD_XSLOTMAP_SET_SIZE(sm,sz) (sm)->table_size=sz
 #define FD_XSLOTMAP_SET_SPACE(sm,sz) (sm)->table_freespace=sz
+
 
 #define FD_SLOTMAP_SIZE(x) (FD_XSLOTMAP_SIZE(FD_XSLOTMAP(x)))
 #define FD_SLOTMAP_MODIFIEDP(x) (FD_XSLOTMAP_MODIFIEDP(FD_XSLOTMAP(x)))
@@ -155,42 +158,55 @@ FD_EXPORT fdtype fd_make_slotmap(int space,int len,struct FD_KEYVAL *data);
 FD_EXPORT fdtype fd_slotmap_max
   (struct FD_SLOTMAP *sm,fdtype scope,fdtype *maxvalp);
 
+FD_EXPORT struct FD_KEYVAL *_fd_keyvec_get
+   (fdtype key,struct FD_KEYVAL *keyvals,int size);
+FD_EXPORT struct FD_KEYVAL *_fd_keyvec_insert
+   (fdtype key,struct FD_KEYVAL *keyvals,int size);
+
 FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
   (fdtype key,struct FD_KEYVAL **kvp,int *sizep,int *spacep,int freedata);
+FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
+   (fdtype key,struct FD_KEYVAL *keyvals,int size);
+
 
 #if FD_INLINE_TABLES
-static struct FD_KEYVAL *fd_sortvec_get
-   (fdtype fd_key,struct FD_KEYVAL *keyvals,int size)
+static struct FD_KEYVAL *fd_keyvec_get
+   (fdtype key,struct FD_KEYVAL *keyvals,int size)
 {
-  if (size<4) {
-    const struct FD_KEYVAL *scan=keyvals, *limit=scan+size;
-    if (FD_ATOMICP(fd_key))
-      while (scan<limit)
-        if (scan->fd_kvkey==fd_key)
-          return (struct FD_KEYVAL *)scan;
-        else scan++;
-    else while (scan<limit)
-      if (FDTYPE_EQUAL(scan->fd_kvkey,fd_key))
-        return (struct FD_KEYVAL *) scan;
+  const struct FD_KEYVAL *scan=keyvals, *limit=scan+size;
+  if (FD_ATOMICP(key))
+    while (scan<limit)
+      if (scan->fd_kvkey==key)
+	return (struct FD_KEYVAL *)scan;
       else scan++;
-    return NULL;}
+  else while (scan<limit)
+	 if (FDTYPE_EQUAL(scan->fd_kvkey,key))
+	   return (struct FD_KEYVAL *) scan;
+	 else scan++;
+  return NULL;
+}
+static struct FD_KEYVAL *fd_sortvec_get
+   (fdtype key,struct FD_KEYVAL *keyvals,int size)
+{
+  if (size<4)
+    return fd_keyvec_get(key,keyvals,size);
   else {
     int found=0;
     const struct FD_KEYVAL
       *bottom=keyvals, *limit=bottom+size, *top=limit-1, *middle;
-    if (FD_ATOMICP(fd_key))
+    if (FD_ATOMICP(key))
       while (top>=bottom) {
         middle=bottom+(top-bottom)/2;
         if (middle>=limit) break;
-        else if (fd_key==middle->fd_kvkey) {found=1; break;}
+        else if (key==middle->fd_kvkey) {found=1; break;}
         else if (FD_CONSP(middle->fd_kvkey)) top=middle-1;
-        else if (fd_key<middle->fd_kvkey) top=middle-1;
+        else if (key<middle->fd_kvkey) top=middle-1;
         else bottom=middle+1;}
     else while (top>=bottom) {
       int comparison;
       middle=bottom+(top-bottom)/2;
       if (middle>=limit) break;
-      comparison=cons_compare(fd_key,middle->fd_kvkey);
+      comparison=cons_compare(key,middle->fd_kvkey);
       if (comparison==0) {found=1; break;}
       else if (comparison<0) top=middle-1;
       else bottom=middle+1;}
@@ -199,8 +215,7 @@ static struct FD_KEYVAL *fd_sortvec_get
     else return NULL;}
 }
 #else
-FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
-   (fdtype key,struct FD_KEYVAL *keyvals,int size);
+#define fd_keyvec_get _fd_keyvec_get
 #define fd_sortvec_get _fd_sortvec_get
 #endif
 
@@ -220,7 +235,7 @@ static U8_MAYBE_UNUSED fdtype fd_slotmap_get
       (!(FD_XSLOTMAP_READONLYP(sm)))) {
     fd_read_lock(&sm->table_rwlock); unlock=1;}
   size=FD_XSLOTMAP_SIZE(sm);
-  result=fd_sortvec_get(key,sm->sm_keyvals,size);
+  result=fd_keyvec_get(key,sm->sm_keyvals,size);
   if (result) {
     fdtype v=fd_incref(result->fd_keyval);
     if (unlock) fd_rw_unlock(&sm->table_rwlock);
