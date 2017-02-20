@@ -699,7 +699,7 @@ FD_EXPORT void fd_init_driverfns_c()
                            -1,FD_FALSE));
   fd_idefn(driverfns_module,
            fd_make_cprim3x("HASH-INDEX-BUCKET",hash_index_bucket,2,
-                           -1,FD_VOID,-1,FD_VOID));
+                           -1,FD_VOID,-1,FD_VOID,-1,FD_VOID));
   fd_idefn(driverfns_module,
            fd_make_cprim1("HASH-INDEX-SLOTIDS",hash_index_slotids,1));
   fd_idefn(driverfns_module,
