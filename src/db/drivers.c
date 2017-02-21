@@ -209,10 +209,9 @@ static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
     rstream=fd_init_file_bytestream
       (&stream,file,FD_BYTESTREAM_CREATE,fd_driver_bufsize);
     if (rstream==NULL) return -1;
-    stream.bytestream_mallocd=0;
-    fd_set_read(&stream,0);
-    fd_write_dtype((fd_byte_outbuf)&stream,(fdtype)&(ix->index_cache));
-    fd_bytestream_close(&stream,FD_BYTESTREAM_FREE);
+    stream.stream_mallocd=0;
+    fd_write_dtype(fd_writebuf(&stream),(fdtype)&(ix->index_cache));
+    fd_close_bytestream(&stream,FD_BYTESTREAM_FREE);
     return 1;}
   else return 0;
 }

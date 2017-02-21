@@ -62,8 +62,8 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
   fd_init_file_bytestream(&(pool->pool_stream),fname,mode,
                             fd_driver_bufsize);
   /* See if it ended up read only */
-  if ((((pool)->pool_stream).bs_flags)&FD_BYTESTREAM_READ_ONLY) read_only=1;
-  pool->pool_stream.bytestream_mallocd=0;
+  if ((((pool)->pool_stream).buf_flags)&FD_STREAM_READ_ONLY) read_only=1;
+  pool->pool_stream.stream_mallocd=0;
   magicno=fd_read_4bytes_at(s,0);
   hi=fd_read_4bytes_at(s,4); lo=fd_read_4bytes_at(s,8);
   FD_SET_OID_HI(base,hi); FD_SET_OID_LO(base,lo);
@@ -79,7 +79,7 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
   label_loc=(fd_off_t)fd_read_4bytes_at(s,20);
   if (label_loc) {
     if (fd_setpos(s,label_loc)>0) {
-      label=bytestream_read_dtype(s,0);
+      label=fd_read_dtype(fd_readbuf(s));
       if (FD_STRINGP(label))
         pool->pool_label=u8_strdup(FD_STRDATA(label));
       else u8_log(LOG_WARN,fd_BadFilePoolLabel,fd_dtype2string(label));
@@ -88,7 +88,7 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
       fd_seterr(fd_BadFilePoolLabel,"open_file_pool",
                 u8_strdup("bad label loc"),
                 FD_INT(label_loc));
-      fd_bytestream_close(&(pool->pool_stream),1);
+      fd_close_bytestream(&(pool->pool_stream),1);
       u8_free(rname); u8_free(pool);
       return NULL;}}
   pool->pool_load=load; pool->pool_offsets=NULL; pool->pool_offsets_size=0;
@@ -104,7 +104,7 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
 static void update_modtime(struct FD_FILE_POOL *fp)
 {
   struct stat fileinfo;
-  if ((fstat(fp->pool_stream.fd_fileno,&fileinfo))<0)
+  if ((fstat(fp->pool_stream.stream_fileno,&fileinfo))<0)
     fp->pool_modtime=(time_t)-1;
   else fp->pool_modtime=fileinfo.st_mtime;
 }
@@ -116,22 +116,22 @@ static int write_file_pool_load(fd_file_pool fp)
     /* Update the load */
     long long load; int err=0;
     fd_bytestream stream=&(fp->pool_stream);
-    bytestream_lock(stream);
-    load=bytestream_read4_at(stream,16);
+    fd_lock_stream(stream);
+    load=fd_read_4bytes_at(stream,16);
     if (load<0) {
-      bytestream_unlock(stream);
+      fd_unlock_stream(stream);
       return -1;}
     else if (load>fp->pool_capacity) {
       u8_seterr("InvalidLoad","write_file_pool_load",u8_strdup(fp->pool_cid));
-      bytestream_unlockfile(stream);
-      bytestream_unlock(stream);
+      fd_unlockfile(stream);
+      fd_unlock_stream(stream);
       return -1;}
     else if (fp->pool_load>load) {
-      int rv=bytestream_write4_at(stream,16,fp->pool_load);
-      bytestream_unlock(stream);
+      int rv=fd_write_4bytes_at(stream,16,fp->pool_load);
+      fd_unlock_stream(stream);
       if (rv<0) return rv;}
     else {
-      bytestream_unlock(stream);
+      fd_unlock_stream(stream);
       return 0;}}
   else return 0;
 }
@@ -142,20 +142,20 @@ static int read_file_pool_load(fd_file_pool fp)
   fd_bytestream stream=&(fp->pool_stream);
   if (FD_POOLFILE_LOCKEDP(fp)) {
     return fp->pool_load;}
-  else bytestream_lock(stream);
-  if (bytestream_lockfile(stream)<0) return -1;
-  load=bytestream_read4_at(stream,16);
+  else fd_lock_stream(stream);
+  if (fd_lockfile(stream)<0) return -1;
+  load=fd_read_4bytes_at(stream,16);
   if (load<0) {
-    bytestream_unlockfile(stream);
-    bytestream_unlock(stream);
+    fd_unlockfile(stream);
+    fd_unlock_stream(stream);
     return -1;}
   else if (load>fp->pool_capacity) {
     u8_seterr("InvalidLoad","read_file_pool_load",u8_strdup(fp->pool_cid));
-    bytestream_unlockfile(stream);
-    bytestream_unlock(stream);
+    fd_unlockfile(stream);
+    fd_unlock_stream(stream);
     return -1;}
-  bytestream_unlockfile(stream);
-  bytestream_unlock(stream);
+  fd_unlockfile(stream);
+  fd_unlock_stream(stream);
   fp->pool_load=load;
   fd_unlock_pool(fp);
   return load;
@@ -177,7 +177,7 @@ static int file_pool_load(fd_pool p)
 static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
 {
   if (FD_POOLFILE_LOCKEDP(fp)) return 1;
-  else if ((fp->pool_stream.bs_flags)&(FD_BYTESTREAM_READ_ONLY)) return 0;
+  else if ((fp->pool_stream.buf_flags)&(FD_STREAM_READ_ONLY)) return 0;
   else {
     struct FD_BYTESTREAM *s=&(fp->pool_stream);
     struct stat fileinfo;
@@ -186,10 +186,10 @@ static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
     if (FD_POOLFILE_LOCKEDP(fp)) {
       if (use_mutex) fd_unlock_pool(fp);
       return 1;}
-    if (fd_bytestream_lockfile(s)==0) {
+    if (fd_lockfile(s)==0) {
       fd_unlock_pool(fp);
       return 0;}
-    fstat(s->fd_fileno,&fileinfo);
+    fstat(s->stream_fileno,&fileinfo);
     if (fileinfo.st_mtime>fp->pool_modtime) {
       /* Make sure we're up to date. */
       if (fp->pool_offsets) reload_file_pool_cache(fp,0);
@@ -215,13 +215,13 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
     return fd_err(fd_UnallocatedOID,"file_pool_fetch",fp->pool_cid,oid);}
   else if (fp->pool_offsets) data_pos=offget(fp->pool_offsets,offset);
   else {
-    bytestream_lock(stream);
+    fd_lock_stream(stream);
     stream_locked=1;
-    if (bytestream_setpos(stream,24+4*offset)<0) {
-      bytestream_unlock(stream);
+    if (fd_setpos(stream,24+4*offset)<0) {
+      fd_unlock_stream(stream);
       fd_unlock_pool(fp);
       return FD_ERROR_VALUE;}
-    data_pos=bytestream_read_4bytes(stream);}
+    data_pos=fd_read_4bytes(fd_readbuf(stream));}
   if (data_pos == 0) value=FD_EMPTY_CHOICE;
   else if (FD_EXPECT_FALSE(data_pos<24+fp->pool_load*4)) {
     /* We got a data pointer into the file header.  This will
@@ -231,13 +231,13 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
     fd_unlock_pool(fp);
     return fd_err(fd_CorruptedPool,"file_pool_fetch",fp->pool_cid,FD_VOID);}
   else {
-    if (!(stream_locked)) bytestream_lock(stream);
-    if (bytestream_setpos(&(fp->pool_stream),data_pos)<0) {
-      bytestream_unlock(stream);
+    if (!(stream_locked)) fd_lock_stream(stream);
+    if (fd_setpos(&(fp->pool_stream),data_pos)<0) {
+      fd_unlock_stream(stream);
       fd_unlock_pool(fp);
       return FD_ERROR_VALUE;}
-    value=bytestream_read_dtype(stream,0);
-    bytestream_unlock(stream);}
+    value=fd_read_dtype(fd_readbuf(stream));
+    fd_unlock_stream(stream);}
   fd_unlock_pool(fp);
   return value;
 }
@@ -289,14 +289,14 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
     int i=0; while (i < n) {
       fdtype oid=oids[i]; FD_OID addr=FD_OID_ADDR(oid);
       unsigned int off=FD_OID_DIFFERENCE(addr,base), file_off;
-      schedule[i].vpos=i; bytestream_lock(stream);
-      if (bytestream_setpos(stream,24+4*off)<0) {
+      schedule[i].vpos=i; fd_lock_stream(stream);
+      if (fd_setpos(stream,24+4*off)<0) {
         u8_free(schedule);
         u8_free(result);
-        bytestream_unlock(stream);
+        fd_unlock_stream(stream);
         fd_unlock_pool(fp);
         return NULL;}
-      file_off=bytestream_read_4bytes(stream);
+      file_off=fd_read_4bytes(fd_readbuf(stream));
       if (FD_EXPECT_FALSE(file_off==0))
         /* This is okay, just an allocated but unassigned OID. */
         schedule[i].filepos=file_off;
@@ -304,7 +304,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
         /* As above, we have a data pointer into the header.
            This should never happen unless a file is corrupted. */
         u8_free(result); u8_free(schedule);
-        bytestream_unlock(stream);
+        fd_unlock_stream(stream);
         fd_unlock_pool(fp);
         fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->pool_cid),oid);
         return NULL;}
@@ -314,19 +314,19 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
         compare_filepos);
   i=0; while (i < n)
     if (schedule[i].filepos) {
-      if (bytestream_setpos(stream,schedule[i].filepos)<0) {
+      if (fd_setpos(stream,schedule[i].filepos)<0) {
         int j=0; while (j<i) {
           fd_decref(result[schedule[j].vpos]); j++;}
         u8_free(schedule);
         u8_free(result);
         fd_unlock_pool(fp);
-        bytestream_unlock(stream);
+        fd_unlock_stream(stream);
         return NULL;}
-      result[schedule[i].vpos]=bytestream_read_dtype(stream,0);
+      result[schedule[i].vpos]=fd_read_dtype(fd_readbuf(stream));
       i++;}
     else result[schedule[i++].vpos]=FD_EMPTY_CHOICE;
   u8_free(schedule);
-  bytestream_unlock(stream);
+  fd_unlock_stream(stream);
   fd_unlock_pool(fp);
   return result;
 }
@@ -341,18 +341,19 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
      has been written, indexed by the OIDs position in *oids. */
   unsigned int *changed_offsets=u8_alloc_n(n,unsigned int);
   struct FD_BYTESTREAM *stream=&(fp->pool_stream);
+  struct FD_BYTE_OUTBUF *outstream=fd_writebuf(stream);
   /* Make sure that pos_limit fits into an int, in case fd_off_t is an int. */
   fd_off_t endpos, pos_limit=0xFFFFFFFF;
   int i=0, retcode=n, load;
   unsigned int *tmp_offsets=NULL, old_size=0;
   fd_lock_pool(fp); load=fp->pool_load;
   /* Get the endpos after the file pool structure is locked. */
-  bytestream_lock(stream);
-  endpos=bytestream_endpos(stream);
+  fd_lock_stream(stream);
+  endpos=fd_endpos(stream);
   while (i<n) {
     FD_OID oid=FD_OID_ADDR(oids[i]);
     unsigned int oid_off=FD_OID_DIFFERENCE(oid,base);
-    int delta=bytestream_write_dtype(stream,values[i],0);
+    int delta=fd_write_dtype(fd_writebuf(stream),values[i]);
     if (FD_EXPECT_FALSE(oid_off>=load)) {
       fd_seterr(fd_UnallocatedOID,
                 "file_pool_storen",u8_strdup(fp->pool_cid),
@@ -400,17 +401,17 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     /* Now write the new offset values to the end of the file. */
     write_file_pool_recovery_data(fp,tmp_offsets);
     /* Now write the real data */
-    bytestream_setpos(stream,24);
-    bytestream_write_ints(stream,fp->pool_load,tmp_offsets);}
+    fd_setpos(stream,24);
+    fd_write_ints(stream,fp->pool_load,tmp_offsets);}
   else {
     /* If we don't have an offsets cache, we don't bother
        with ACID and just write the changed offsets directly */
     int i=0; while (i<n) {
       FD_OID addr=FD_OID_ADDR(oids[i]);
       unsigned int reloff=FD_OID_DIFFERENCE(addr,base);
-      if (bytestream_setpos(stream,24+4*reloff)<0) {
+      if (fd_setpos(stream,24+4*reloff)<0) {
         retcode=-1; break;}
-      bytestream_write_4bytes(stream,changed_offsets[i]);
+      fd_write_4bytes(outstream,changed_offsets[i]);
       i++;}
     u8_free(changed_offsets);}
   if (retcode>=0) {
@@ -423,16 +424,16 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
        recovery information. */
     if (fp->pool_offsets) {
       fd_off_t end=fd_endpos(stream); int retval;
-      bytestream_setpos(stream,0);
+      fd_setpos(stream,0);
       /* This was overwritten with FD_FILE_POOL_TO_RECOVER by
          fd_write_file_pool_recovery_data. */
-      bytestream_write_4bytes(stream,FD_FILE_POOL_MAGIC_NUMBER);
-      bytestream_flush(stream); fsync(stream->fd_fileno);
-      bytestream_endpos(stream); bytestream_movepos(stream,-(4*(fp->pool_capacity+1)));
-      retval=ftruncate(stream->fd_fileno,end-(4*(fp->pool_capacity+1)));
+      fd_write_4bytes(fd_writebuf(stream),FD_FILE_POOL_MAGIC_NUMBER);
+      fd_flush_bytestream(stream); fsync(stream->stream_fileno);
+      fd_endpos(stream); fd_movepos(stream,-(4*(fp->pool_capacity+1)));
+      retval=ftruncate(stream->stream_fileno,end-(4*(fp->pool_capacity+1)));
       if (retval<0) {
         retcode=-1; u8_graberr(errno,"file_pool_storen",fp->pool_cid);}}
-    else bytestream_flush(stream);
+    else fd_flush_bytestream(stream);
     /* Update the offsets, if you have any */
     if (fp->pool_offsets==NULL) {}
     else if (HAVE_MMAP) {
@@ -442,7 +443,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:munmap %s",fp->pool_cid);
         fp->pool_offsets=NULL; errno=0;}
       newmmap=mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
-                   MAP_SHARED|MAP_NORESERVE,stream->fd_fileno,0);
+                   MAP_SHARED|MAP_NORESERVE,stream->stream_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->pool_cid);
         fp->pool_offsets=NULL; fp->pool_offsets_size=0; errno=0;}
@@ -455,7 +456,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       fp->pool_offsets=tmp_offsets;
       fp->pool_offsets_size=fp->pool_load;}}
   /* Note that if we exited abnormally, the file is still intact. */
-  bytestream_unlock(stream);
+  fd_unlock_stream(stream);
   fd_unlock_pool(fp);
   return retcode;
 }
@@ -465,14 +466,14 @@ static void write_file_pool_recovery_data
 {
   struct FD_BYTESTREAM *stream=&(fp->pool_stream);
   int i=0, load=fp->pool_load, len=fp->pool_capacity;
-  bytestream_endpos(stream);
-  bytestream_write_4bytes(stream,load);
+  fd_endpos(stream);
+  fd_write_4bytes(fd_writebuf(stream),load);
   while (i<load) {
-    bytestream_write_4bytes(stream,offsets[i]); i++;}
-  while (i<len) {bytestream_write_4bytes(stream,0); i++;}
-  bytestream_setpos(stream,0);
-  bytestream_write_4bytes(stream,FD_FILE_POOL_TO_RECOVER);
-  bytestream_flush(stream);
+    fd_write_4bytes(fd_writebuf(stream),offsets[i]); i++;}
+  while (i<len) {fd_write_4bytes(fd_writebuf(stream),0); i++;}
+  fd_setpos(stream,0);
+  fd_write_4bytes(fd_writebuf(stream),FD_FILE_POOL_TO_RECOVER);
+  fd_flush_bytestream(stream);
 }
 
 static int recover_file_pool(struct FD_FILE_POOL *fp)
@@ -482,24 +483,27 @@ static int recover_file_pool(struct FD_FILE_POOL *fp)
   int i=0, len=fp->pool_capacity, load; fd_off_t new_end, retval;
   unsigned int *offsets=u8_malloc(4*len);
   struct FD_BYTESTREAM *s=&(fp->pool_stream);
-  bytestream_lock(s);
-  bytestream_endpos(s);
-  new_end=bytestream_movepos(s,-(4+4*len));
-  load=bytestream_read_4bytes(s);
+  struct FD_BYTE_INBUF *instream=fd_readbuf(s);
+  struct FD_BYTE_OUTBUF *outstream;
+  fd_lock_stream(s);
+  fd_endpos(s);
+  new_end=fd_movepos(s,-(4+4*len));
+  load=fd_read_4bytes(instream);
   while (i<len) {
-    offsets[i]=bytestream_read_4bytes(s); i++;}
-  bytestream_setpos(s,16);
-  bytestream_write_4bytes(s,load);
+    offsets[i]=fd_read_4bytes(instream); i++;}
+  fd_setpos(s,16);
+  outstream=fd_writebuf(s);
+  fd_write_4bytes(outstream,load);
   fd_setpos(s,24);
   i=0; while (i<len) {
-    bytestream_write_4bytes(s,offsets[i]); i++;}
-  bytestream_setpos(s,0);
-  bytestream_write_4bytes(s,FD_FILE_POOL_MAGIC_NUMBER);
-  bytestream_flush(s); fp->pool_load=load;
-  retval=ftruncate(s->fd_fileno,new_end);
-  bytestream_unlock(s);
+    fd_write_4bytes(outstream,offsets[i]); i++;}
+  fd_setpos(s,0);
+  fd_write_4bytes(outstream,FD_FILE_POOL_MAGIC_NUMBER);
+  fd_flush_bytestream(s); fp->pool_load=load;
+  retval=ftruncate(s->stream_fileno,new_end);
+  fd_unlock_stream(s);
   if (retval<0) return retval;
-  else retval=fsync(s->fd_fileno);
+  else retval=fsync(s->stream_fileno);
   return retval;
 }
 
@@ -533,7 +537,7 @@ static int file_pool_unlock(fd_pool p,fdtype oids)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   if (fp->pool_changes.table_n_keys == 0)
-    fd_bytestream_unlockfile(&(fp->pool_stream));
+    fd_unlockfile(&(fp->pool_stream));
   return 1;
 }
 
@@ -544,6 +548,7 @@ static void file_pool_setcache(fd_pool p,int level)
     if (fp->pool_offsets) return;
     else {
       fd_bytestream s=&(fp->pool_stream);
+      fd_byte_inbuf ins=fd_readbuf(s);
       unsigned int *offsets, *newmmap;
       fd_lock_pool(fp);
       if (fp->pool_offsets) {
@@ -554,7 +559,7 @@ static void file_pool_setcache(fd_pool p,int level)
         /* When allocating an offset buffer to read, we only have to make it as
            big as the file pools load. */
         mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
-             MAP_SHARED|MAP_NORESERVE,s->fd_fileno,0);
+             MAP_SHARED|MAP_NORESERVE,s->stream_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",fp->pool_cid);
         fp->pool_offsets=NULL; fp->pool_offsets_size=0; errno=0;}
@@ -563,10 +568,10 @@ static void file_pool_setcache(fd_pool p,int level)
 #else
       fd_bytestream_start_read(s);
       fd_setpos(s,12);
-      fp->pool_load=load=bytestream_read_4bytes(s);
+      fp->pool_load=load=fd_read_4bytes(ins);
       offsets=u8_alloc_n(load,unsigned int);
       fd_setpos(s,24);
-      fd_bytestream_read_ints(s,load,offsets);
+      fd_read_ints(ins,load,offsets);
       fp->pool_offsets=offsets; fp->pool_offsets_size=load;
 #endif
       fd_unlock_pool(fp);}
@@ -594,15 +599,16 @@ static void reload_file_pool_cache(struct FD_FILE_POOL *fp,int lock)
   /* This should grow the offsets if the load has changed. */
 #else
   fd_bytestream s=&(fp->pool_stream);
+  fd_byte_inbuf ins=fd_readbuf(s);
   /* Read new offsets table, compare it with the current, and
      only void those OIDs */
   unsigned int new_load, *offsets, *nscan, *oscan, *olim;
   if (lock) fd_lock_pool(fp);
   oscan=fp->pool_offsets; olim=oscan+fp->pool_offsets_size;
-  fd_setpos(s,16); new_load=bytestream_read_4bytes(s);
+  fd_setpos(s,16); new_load=fd_read_4bytes(ins);
   nscan=offsets=u8_alloc_n(new_load,unsigned int);
   fd_setpos(s,24);
-  fd_bytestream_read_ints(s,new_load,offsets);
+  fd_read_ints(ins,new_load,offsets);
   while (oscan < olim)
     if (*oscan == *nscan) {oscan++; nscan++;}
     else {
@@ -623,7 +629,7 @@ static void file_pool_close(fd_pool p)
   fd_lock_pool(fp);
   if (write_file_pool_load(fp)<0)
     u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->pool_cid);
-  fd_bytestream_free(&(fp->pool_stream),1);
+  fd_free_bytestream(&(fp->pool_stream),1);
   if (fp->pool_offsets) {
 #if HAVE_MMAP
     /* Since we were just reading, the buffer was only as big
@@ -644,7 +650,7 @@ static void file_pool_setbuf(fd_pool p,int bufsiz)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   fd_lock_pool(fp);
-  fd_bytestream_bufsize(&(fp->pool_stream),bufsiz);
+  fd_bytestream_setbuf(&(fp->pool_stream),bufsiz);
   fd_unlock_pool(fp);
 }
 
@@ -663,26 +669,27 @@ int fd_make_file_pool
   struct FD_BYTESTREAM _stream;
   struct FD_BYTESTREAM *stream=
     fd_init_file_bytestream(&_stream,filename,FD_BYTESTREAM_CREATE,8192);
+  struct FD_BYTE_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL) return -1;
-  else if ((stream->bs_flags)&FD_BYTESTREAM_READ_ONLY) {
+  else if ((stream->buf_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_pool",u8_strdup(filename));
-    fd_bytestream_close(stream,FD_BYTESTREAM_FREE);
+    fd_close_bytestream(stream,FD_BYTESTREAM_FREE);
     return -1;}
-  stream->bytestream_mallocd=0;
+  stream->stream_mallocd=0;
   fd_setpos(stream,0);
   hi=FD_OID_HI(base); lo=FD_OID_LO(base);
-  bytestream_write_4bytes(stream,magicno);
-  bytestream_write_4bytes(stream,hi);
-  bytestream_write_4bytes(stream,lo);
-  bytestream_write_4bytes(stream,capacity);
-  bytestream_write_4bytes(stream,load); /* load */
-  bytestream_write_4bytes(stream,0); /* label pos */
-  i=0; while (i<capacity) {bytestream_write_4bytes(stream,0); i++;}
+  fd_write_4bytes(outstream,magicno);
+  fd_write_4bytes(outstream,hi);
+  fd_write_4bytes(outstream,lo);
+  fd_write_4bytes(outstream,capacity);
+  fd_write_4bytes(outstream,load); /* load */
+  fd_write_4bytes(outstream,0); /* label pos */
+  i=0; while (i<capacity) {fd_write_4bytes(outstream,0); i++;}
   /* Write an initially empty metadata block */
-  bytestream_write_4bytes(stream,0xFFFFFFFE);
-  bytestream_write_4bytes(stream,40);
-  i=0; while (i<8) {bytestream_write_4bytes(stream,0); i++;}
-  fd_bytestream_close(stream,FD_BYTESTREAM_FREE);
+  fd_write_4bytes(outstream,0xFFFFFFFE);
+  fd_write_4bytes(outstream,40);
+  i=0; while (i<8) {fd_write_4bytes(outstream,0); i++;}
+  fd_close_bytestream(stream,FD_BYTESTREAM_FREE);
   return 1;
 }
 

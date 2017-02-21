@@ -852,6 +852,7 @@ static int webservefn(u8_client ucl)
   int forcelog=0, retval=0;
   size_t http_len=0, head_len=0, content_len=0;
   fd_bytestream stream=&(client->in);
+  fd_byte_inbuf instream=fd_readbuf(stream);
   u8_output outstream=&(client->out);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
   int return_code=0, buffered=0, recovered=1, http_status=-1;
@@ -864,12 +865,12 @@ static int webservefn(u8_client ucl)
 
   /* Reset the streams */
   outstream->u8_write=outstream->u8_outbuf;
-  stream->bufpoint=stream->bs_buflim=stream->bufbase;
+  stream->bufpoint=stream->buflim=stream->bufbase;
   /* Handle async reading (where the server buffers incoming and outgoing data) */
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
     /* We got the whole payload, set up the stream
        for reading it without waiting.  */
-    stream->bs_buflim=stream->bufbase+client->len;}
+    stream->buflim=stream->bufbase+client->len;}
   else if (client->reading>0)
     /* We shouldn't get here, but just in case.... */
     return 1;
@@ -883,27 +884,25 @@ static int webservefn(u8_client ucl)
   else {
     /* We read a little to see if we can just queue up what we
        need. */
-    bytestream_start_read(stream);
-    if ((async)&&
-        (havebytes((fd_byte_inbuf)stream,1))&&
-        ((*(stream->bufpoint))==dt_block)) {
+    if ( (async) && (havebytes(instream,1)) &&
+         ((*(instream->bufpoint))==dt_block)) {
       /* If we can be asynchronous, let's try */
-      int U8_MAYBE_UNUSED dtcode=bytestream_read_byte(stream);
-      int nbytes=bytestream_read_4bytes(stream);
+      int U8_MAYBE_UNUSED dtcode=fd_read_byte(instream);
+      int nbytes=fd_read_4bytes(instream);
       if (fd_has_bytes(stream,nbytes)) {
         /* We can execute without waiting */}
       else {
         int need_size=5+nbytes;
         /* Allocate enough space for what we need to read */
-        if (stream->bytestream_bufsiz<need_size) {
-          fd_grow_byte_input((fd_byte_inbuf)stream,need_size);
-          stream->bytestream_bufsiz=need_size;}
+        if (stream->buflen<need_size) {
+          fd_grow_byte_input(fd_readbuf(stream),need_size);
+          stream->buflen=need_size;}
         /* Set up the client for async input */
         if (u8_client_read(ucl,stream->bufbase,5+nbytes,
-                           (stream->bs_buflim-stream->bufbase))) {
+                           (stream->buflim-stream->bufbase))) {
           /* We got the whole payload, set up the stream
              for reading it without waiting.  */
-          stream->bs_buflim=stream->bufbase+client->len;}
+          stream->buflim=stream->bufbase+client->len;}
         else return 1;}}
     else {}}
   /* Do this ASAP to avoid session leakage */
@@ -924,7 +923,7 @@ static int webservefn(u8_client ucl)
       proc=fd_err(c,cxt,details,irritant);
     if (details) u8_free(details); fd_decref(irritant);
     setup_time=u8_elapsed_time();
-    cgidata=fd_bytestream_read_dtype(stream);}
+    cgidata=fd_read_dtype(instream);}
   else if (update_preloads()<0) {
     u8_condition c; u8_context cxt; u8_string details=NULL;
     fdtype irritant;
@@ -934,14 +933,14 @@ static int webservefn(u8_client ucl)
       proc=fd_err(c,cxt,details,irritant);
     if (details) u8_free(details); fd_decref(irritant);
     setup_time=u8_elapsed_time();
-    cgidata=fd_bytestream_read_dtype(stream);}
+    cgidata=fd_read_dtype(instream);}
   else {
     /* This is where we usually end up, when all the updates
        and preloads go without a hitch. */
     setup_time=u8_elapsed_time();
     /* Now we extract arguments and figure out what we're going to
        run to respond to the request. */
-    cgidata=fd_bytestream_read_dtype(stream);
+    cgidata=fd_read_dtype(instream);
     if (cgidata==FD_EOD) {
       if (traceweb>0)
         u8_log(LOG_NOTICE,"FDServlet/webservefn",
@@ -1515,7 +1514,7 @@ static int webservefn(u8_client ucl)
     /* If we're calling traceweb, keep the log files up to date also. */
     fd_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
-    if (reqlog) fd_bytestream_flush(reqlog);
+    if (reqlog) fd_flush_bytestream(reqlog);
     fd_unlock_mutex(&log_lock);
     fd_decref(xredirect);
     fd_decref(redirect);
@@ -1539,7 +1538,7 @@ static int close_webclient(u8_client ucl)
   u8_log(LOG_INFO,"FDServlet/close","Closing web client %s (#%lx#%d.%d)",
          ucl->idstring,ucl,ucl->clientid,ucl->socket);
   fd_decref(client->cgidata); client->cgidata=FD_VOID;
-  fd_bytestream_close(&(client->in),0);
+  fd_close_bytestream(&(client->in),0);
   u8_close((u8_stream)&(client->out));
   return 1;
 }

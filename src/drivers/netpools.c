@@ -69,20 +69,21 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   u8_socket c=u8_connect_x(spec,xid);
   struct FD_BYTESTREAM _stream, *stream=
     fd_init_bytestream(&_stream,c,FD_NET_BUFSIZE);
+  struct FD_BYTE_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL)
     return FD_ERROR_VALUE;
   if (FD_VOIDP(client_id)) init_client_id();
-  stream->bs_flags=stream->bs_flags|FD_BYTESTREAM_DOSYNC;
+  stream->buf_flags=stream->buf_flags|FD_STREAM_DOSYNC;
   request=fd_make_list(2,pool_data_symbol,fd_incref(client_id));
   /* u8_log(LOG_WARN,"GETPOOLDATA","Making request (on #%d) for %q",c,request); */
-  if (fd_bytestream_write_dtype(stream,request)<0) {
-    fd_bytestream_close(stream,1);
+  if (fd_write_dtype(outstream,request)<0) {
+    fd_close_bytestream(stream,1);
     fd_decref(request);
     return FD_ERROR_VALUE;}
   fd_decref(request);
-  result=fd_bytestream_read_dtype(stream);
+  result=fd_read_dtype(fd_readbuf(stream));
   /* u8_log(LOG_WARN,"GETPOOLDATA","Got result (on #%d)",c,request); */
-  fd_bytestream_close(stream,1);
+  fd_close_bytestream(stream,1);
   return result;
 }
 

@@ -31,6 +31,9 @@
 
 fd_exception fd_UnknownEncoding=_("Unknown encoding");
 
+#define dts_writebuf(s) (fd_writebuf((s)->dt_stream))
+#define dts_readbuf(s)  (fd_readbuf((s)->dt_stream))
+
 /* The port type */
 
 fd_ptr_type fd_port_type;
@@ -145,7 +148,7 @@ static void recycle_bytstrtream(struct FD_CONS *c)
 {
   struct FD_BYTEPORT *ds=(struct FD_BYTEPORT *)c;
   if (ds->dt_stream) {
-    fd_bytestream_close(ds->dt_stream,ds->fd_owns_socket);}
+    fd_close_bytestream(ds->dt_stream,ds->fd_owns_socket);}
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -153,7 +156,7 @@ static fdtype read_dtype(fdtype stream)
 {
   struct FD_BYTEPORT *ds=
     fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
-  fdtype object=fd_bytestream_read_dtype(ds->dt_stream);
+  fdtype object=fd_read_dtype(dts_readbuf(ds));
   if (object == FD_EOD) return FD_EOF;
   else return object;
 }
@@ -162,7 +165,7 @@ static fdtype write_dtype(fdtype object,fdtype stream)
 {
   struct FD_BYTEPORT *ds=
     fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
-  int bytes=fd_bytestream_write_dtype(ds->dt_stream,object);
+  int bytes=fd_write_dtype(dts_writebuf(ds),object);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
 }
@@ -172,14 +175,14 @@ static fdtype write_bytes(fdtype object,fdtype stream)
   struct FD_BYTEPORT *ds=
     fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
   if (FD_STRINGP(object)) {
-    bytestream_write_bytes(ds->dt_stream,FD_STRDATA(object),FD_STRLEN(object));
+    fd_write_bytes(dts_writebuf(ds),FD_STRDATA(object),FD_STRLEN(object));
     return FD_STRLEN(object);}
   else if (FD_PACKETP(object)) {
-    bytestream_write_bytes
-      (ds->dt_stream,FD_PACKET_DATA(object),FD_PACKET_LENGTH(object));
+    fd_write_bytes
+      (dts_writebuf(ds),FD_PACKET_DATA(object),FD_PACKET_LENGTH(object));
     return FD_PACKET_LENGTH(object);}
   else {
-    int bytes=fd_bytestream_write_dtype(ds->dt_stream,object);
+    int bytes=fd_write_dtype(dts_writebuf(ds),object);
     if (bytes<0) return FD_ERROR_VALUE;
     else return FD_INT(bytes);}
 }
@@ -209,7 +212,7 @@ static fdtype read_int(fdtype stream)
   struct FD_BYTEPORT *ds=
     fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
   unsigned int ival=fd_read_4bytes_at(ds->dt_stream,-1);
-  bytestream_unlock(ds->dt_stream);
+  fd_unlock_stream(ds->dt_stream);
   return FD_INT(ival);
 }
 
@@ -227,7 +230,7 @@ static fdtype zread_dtype(fdtype stream)
 {
   struct FD_BYTEPORT *ds=
     fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
-  fdtype object=fd_zread_dtype(ds->dt_stream);
+  fdtype object=fd_zread_dtype(dts_readbuf(ds));
   if (object == FD_EOD) return FD_EOF;
   else return object;
 }
@@ -236,7 +239,7 @@ static fdtype zwrite_dtype(fdtype object,fdtype stream)
 {
   struct FD_BYTEPORT *ds=
     fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
-  int bytes=fd_zwrite_dtype(ds->dt_stream,object);
+  int bytes=fd_zwrite_dtype(dts_writebuf(ds),object);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
 }
@@ -245,7 +248,7 @@ static fdtype zwrite_dtypes(fdtype object,fdtype stream)
 {
   struct FD_BYTEPORT *ds=
     fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
-  int bytes=fd_zwrite_dtypes(ds->dt_stream,object);
+  int bytes=fd_zwrite_dtypes(dts_writebuf(ds),object);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
 }
@@ -254,7 +257,7 @@ static fdtype zread_int(fdtype stream)
 {
   struct FD_BYTEPORT *ds=
     fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
-  unsigned int ival=bytestream_read_zint(ds->dt_stream);
+  unsigned int ival=fd_read_zint(dts_readbuf(ds));
   return FD_INT(ival);
 }
 
@@ -263,7 +266,7 @@ static fdtype zwrite_int(fdtype object,fdtype stream)
   struct FD_BYTEPORT *ds=
     fd_consptr(struct FD_BYTEPORT *,stream,fd_byteport_type);
   int ival=fd_getint(object);
-  int bytes=bytestream_write_zint(ds->dt_stream,ival);
+  int bytes=fd_write_zint(dts_writebuf(ds),ival);
   if (bytes<0) return FD_ERROR_VALUE;
   else return FD_INT(bytes);
 }

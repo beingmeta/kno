@@ -479,10 +479,10 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   fd_init_bytestream(&(client->fd_clientstream),sock,4096);
   /* To help debugging, move the client->idstring (libu8)
      into the stream's id (fdb). */
-  if (client->fd_clientstream.bytestream_idstring==NULL) {
+  if (client->fd_clientstream.streamid==NULL) {
     if (client->idstring)
-      client->fd_clientstream.bytestream_idstring=u8_strdup(client->idstring);
-    else client->fd_clientstream.bytestream_idstring=u8_strdup("fdserver/bytestream");}
+      client->fd_clientstream.streamid=u8_strdup(client->idstring);
+    else client->fd_clientstream.streamid=u8_strdup("fdserver/bytestream");}
   client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
   client->elapsed=0; client->lastlive=((time_t)(-1));
   u8_set_nodelay(sock,1);
@@ -497,6 +497,7 @@ static int dtypeserver(u8_client ucl)
   fdtype expr;
   fd_client client=(fd_client)ucl;
   fd_bytestream stream=&(client->fd_clientstream);
+  fd_byte_inbuf instream=fd_readbuf(stream);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
 
   /* Set the signal mask for the current thread.  By default, this
@@ -507,13 +508,13 @@ static int dtypeserver(u8_client ucl)
 
   if (auto_reload) fd_update_file_modules(0);
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
-    expr=fd_bytestream_read_dtype(stream);}
+    expr=fd_read_dtype(fd_readbuf(stream));}
   else if ((client->writing>0)&&(u8_client_finished(ucl))) {
     /* Reset the stream */
     stream->bufpoint=stream->bufbase;
     /* Update the stream if we were doing asynchronous I/O */
     if ((client->buf==stream->bufbase)&&(client->len))
-      stream->bs_buflim=stream->bufpoint+client->len;
+      stream->buflim=stream->bufpoint+client->len;
     /* And report that we're finished */
     return 0;}
   else if ((client->reading>0)||(client->writing>0))
@@ -521,23 +522,22 @@ static int dtypeserver(u8_client ucl)
     return 1;
   else if (async) {
     /* See if we can use asynchronous reading */
-    bytestream_start_read(stream);
-    if (nobytes((fd_byte_inbuf)stream,1)) expr=FD_EOD;
-    else if ((*(stream->bufpoint))==dt_block) {
-      int U8_MAYBE_UNUSED dtcode=bytestream_read_byte(stream);
-      int nbytes=bytestream_read_4bytes(stream);
-      if (fd_has_bytes(stream,nbytes))
-        expr=fd_bytestream_read_dtype(stream);
+    if (nobytes(instream,1)) expr=FD_EOD;
+    else if ((*(instream->bufpoint))==dt_block) {
+      int U8_MAYBE_UNUSED dtcode=fd_read_byte(instream);
+      int nbytes=fd_read_4bytes(instream);
+      if (fd_has_bytes(instream,nbytes))
+        expr=fd_read_dtype(instream);
       else {
         /* Allocate enough space */
-        fd_needs_space((struct FD_BYTE_OUTBUF *)(stream),nbytes);
+        fd_grow_inbuf(instream,nbytes);
         /* Set up the client for async input */
         if (u8_client_read(ucl,stream->bufbase,nbytes,
-                           stream->bs_buflim-stream->bufbase))
-          expr=fd_bytestream_read_dtype(stream);
+                           stream->buflim-stream->bufbase))
+          expr=fd_read_dtype(instream);
         else return 1;}}
-    else expr=fd_bytestream_read_dtype(stream);}
-  else expr=fd_bytestream_read_dtype(stream);
+    else expr=fd_read_dtype(instream);}
+  else expr=fd_read_dtype(instream);
   fd_reset_threadvars();
   if (expr == FD_EOD) {
     u8_client_closed(ucl);
@@ -550,6 +550,7 @@ static int dtypeserver(u8_client ucl)
     u8_client_close(ucl);
     return -1;}
   else {
+    fd_byte_outbuf outstream=fd_writebuf(stream);
     fdtype value;
     int tracethis=((logtrans) &&
                    ((client->n_trans==1) ||
@@ -610,21 +611,21 @@ static int dtypeserver(u8_client ucl)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Request executed in %fs",
              client->idstring,sock,trans_id,elapsed);
     client->elapsed=client->elapsed+elapsed;
-    /* Currently, fd_bytestream_write_dtype writes the whole thing at once,
+    /* Currently, fd_write_dtype writes the whole thing at once,
        so we just use that. */
-    bytestream_start_write(stream);
+
     stream->bufpoint=stream->bufbase;
     if (fd_use_dtblock) {
       int nbytes; unsigned char *ptr;
-      bytestream_write_byte(stream,dt_block);
-      bytestream_write_4bytes(stream,0);
-      nbytes=fd_bytestream_write_dtype(stream,value);
+      fd_write_byte(outstream,dt_block);
+      fd_write_4bytes(outstream,0);
+      nbytes=fd_write_dtype(outstream,value);
       ptr=stream->bufpoint; {
         /* Rewind temporarily to write the length information */
         stream->bufpoint=stream->bufbase+1;
-        bytestream_write_4bytes(stream,nbytes);
+        fd_write_4bytes(outstream,nbytes);
         stream->bufpoint=ptr;}}
-    else fd_bytestream_write_dtype(stream,value);
+    else fd_write_dtype(outstream,value);
     if (async) {
       u8_client_write(ucl,
                       stream->bufbase,
@@ -632,8 +633,8 @@ static int dtypeserver(u8_client ucl)
                       0);
       return 1;}
     else {
-      fd_bytestream_write_dtype(stream,value);
-      fd_bytestream_flush(stream);}
+      fd_write_dtype(outstream,value);
+      fd_flush_bytestream(stream);}
     time(&(client->lastlive));
     if (tracethis)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Response sent after %fs",
@@ -646,7 +647,7 @@ static int dtypeserver(u8_client ucl)
 static int close_fdclient(u8_client ucl)
 {
   fd_client client=(fd_client)ucl;
-  fd_bytestream_close(&(client->fd_clientstream),0);
+  fd_close_bytestream(&(client->fd_clientstream),0);
   fd_decref((fdtype)((fd_client)ucl)->env);
   ucl->socket=-1;
   return 1;

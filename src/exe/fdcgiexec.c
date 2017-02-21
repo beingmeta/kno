@@ -341,7 +341,7 @@ static int fcgiservefn(FCGX_Request *req,U8_OUTPUT *out)
     /* If we're calling traceweb, keep the log files up to date also. */
     fd_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
-    if (reqlog) fd_bytestream_flush(reqlog);
+    if (reqlog) fd_flush_bytestream(reqlog);
     fd_unlock_mutex(&log_lock);
     fd_decref(query);}
   fd_decref(proc); fd_decref(cgidata);
@@ -584,7 +584,7 @@ static int simplecgi(fdtype path)
     /* If we're calling traceweb, keep the log files up to date also. */
     fd_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
-    if (reqlog) fd_bytestream_flush(reqlog);
+    if (reqlog) fd_flush_bytestream(reqlog);
     fd_unlock_mutex(&log_lock);
     fd_decref(query);}
   fd_decref(proc); fd_decref(cgidata);

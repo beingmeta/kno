@@ -21,8 +21,8 @@ int main(int argc,char **argv)
   struct FD_BYTESTREAM *in; u8_string srep;
   FD_DO_LIBINIT(fd_init_dtypelib);
   in=fd_bytestream_open(argv[1],FD_BYTESTREAM_READ);
-  object=fd_bytestream_read_dtype(in);
-  fd_bytestream_close(in,FD_BYTESTREAM_CLOSE_FULL);
+  object=fd_read_dtype(fd_readbuf(in));
+  fd_close_bytestream(in,FD_BYTESTREAM_CLOSE_FULL);
   /* For coverage tests */
   srep=fd_dtype2string(object); u8_free(srep);
   /* Print it out */

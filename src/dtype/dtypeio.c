@@ -41,30 +41,69 @@ static u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
 
 /* Byte output */
 
-static int grow_output_buffer(struct FD_BYTE_OUTBUF *b,int delta)
+static int grow_output_buffer(struct FD_BYTE_OUTBUF *b,size_t delta)
 {
   size_t current_size=b->bufpoint-b->bufbase;
-  size_t current_limit=b->bs_buflim-b->bufbase, new_limit=current_limit;
+  size_t current_limit=b->buflim-b->bufbase;
+  size_t new_limit=current_limit;
   size_t need_size=current_size+delta;
   unsigned char *new;
   while (new_limit < need_size)
     if (new_limit>=0x40000) new_limit=new_limit+0x40000;
     else new_limit=new_limit*2;
-  if ((b->bs_flags)&(FD_MALLOCD_BUFFER))
+  if ((b->buf_flags)&(FD_MALLOCD_BUFFER))
     new=u8_realloc(b->bufbase,new_limit);
   else {
     new=u8_malloc(new_limit);
     if (new) memcpy(new,b->bufbase,current_size);
-    b->bs_flags=b->bs_flags|FD_MALLOCD_BUFFER;}
+    b->buf_flags=b->buf_flags|FD_MALLOCD_BUFFER;}
   if (new == NULL) return 0;
   b->bufbase=new; b->bufpoint=new+current_size;
-  b->bs_buflim=b->bufbase+new_limit;
+  b->buflim=b->bufbase+new_limit;
+  b->buflen=new_limit;
   return 1;
 }
+
+static int grow_input_buffer(struct FD_BYTE_INBUF *in,int delta)
+{
+  struct FD_BYTE_RAWBUF *b=(struct FD_BYTE_RAWBUF *)in;
+  size_t current_size=b->bufpoint-b->bufbase;
+  size_t current_limit=b->buflim-b->bufbase;
+  size_t new_limit=current_limit;
+  size_t need_size=current_size+delta;
+  unsigned char *new;
+  while (new_limit < need_size)
+    if (new_limit>=0x40000) new_limit=new_limit+0x40000;
+    else new_limit=new_limit*2;
+  if ((b->buf_flags)&(FD_MALLOCD_BUFFER))
+    new=u8_realloc(b->bufbase,new_limit);
+  else {
+    new=u8_malloc(new_limit);
+    if (new) memcpy(new,b->bufbase,current_size);
+    b->buf_flags=b->buf_flags|FD_MALLOCD_BUFFER;}
+  if (new == NULL) return 0;
+  b->bufbase=new; b->bufpoint=new+current_size;
+  b->buflim=b->bufbase+new_limit;
+  b->buflen=new_limit;
+  return 1;
+}
+
 FD_EXPORT int fd_needs_space(struct FD_BYTE_OUTBUF *b,size_t delta)
 {
-  if (b->bufpoint+delta > b->bs_buflim)
+  if (b->bufpoint+delta > b->buflim)
     return grow_output_buffer(b,delta);
+  else return 1;
+}
+FD_EXPORT int _fd_grow_outbuf(struct FD_BYTE_OUTBUF *b,size_t delta)
+{
+  if (b->bufpoint+delta > b->buflim)
+    return grow_output_buffer(b,delta);
+  else return 1;
+}
+FD_EXPORT int _fd_grow_inbuf(struct FD_BYTE_INBUF *b,size_t delta)
+{
+  if (b->bufpoint+delta > b->buflim)
+    return grow_input_buffer(b,delta);
   else return 1;
 }
 
@@ -161,12 +200,12 @@ static int write_choice_dtype(fd_byte_outbuf out,fd_choice ch)
   fdtype _natsorted[17], *natsorted=_natsorted;
   int dtype_len=0, n_choices=FD_XCHOICE_SIZE(ch);
   const fdtype *data; int i=0;
-  if  ((out->bs_flags)&(FD_DTYPE_NATSORT)) {
+  if  ((out->buf_flags)&(FD_DTYPE_NATSORT)) {
     natsorted=fd_natsort_choice(ch,_natsorted,17);
     data=(const fdtype *)natsorted;}
   else data=FD_XCHOICE_DATA(ch);
   if (n_choices < 256)
-    if ((out->bs_flags)&(FD_DTYPEV2)) {
+    if ((out->buf_flags)&(FD_DTYPEV2)) {
       dtype_len=2;
       output_byte(out,dt_tiny_choice);
       output_byte(out,n_choices);}
@@ -207,7 +246,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTBUF *out,fdtype x)
       fdtype name=fd_symbol_names[data];
       struct FD_STRING *s=fd_consptr(struct FD_STRING *,name,fd_string_type);
       int len=s->fd_bytelen;
-      if (((out->bs_flags)&(FD_DTYPEV2)) && (len<256)) {
+      if (((out->buf_flags)&(FD_DTYPEV2)) && (len<256)) {
         {output_byte(out,dt_tiny_symbol);}
         {output_byte(out,len);}
         {output_bytes(out,s->fd_bytes,len);}
@@ -250,7 +289,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTBUF *out,fdtype x)
       case 1: output_byte(out,dt_boolean); output_byte(out,0); return 2;
       case 2: output_byte(out,dt_boolean); output_byte(out,1); return 2;
       case 3:
-        if ((out->bs_flags)&(FD_DTYPEV2)) {
+        if ((out->buf_flags)&(FD_DTYPEV2)) {
           output_byte(out,dt_empty_choice);
           return 1;}
         else {
@@ -264,7 +303,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTBUF *out,fdtype x)
         return -1;}
     else if ((FD_VALID_TYPEP(itype)) && (fd_dtype_writers[itype]))
       return fd_dtype_writers[itype](out,x);
-    else if ((out->bs_flags)&(FD_WRITE_OPAQUE))
+    else if ((out->buf_flags)&(FD_WRITE_OPAQUE))
       return write_opaque(out,x);
     else if ((fd_dtype_error) &&
              (retval=fd_dtype_error(out,x,"no handler")))
@@ -279,7 +318,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTBUF *out,fdtype x)
     switch (ctype) {
     case fd_string_type: {
       struct FD_STRING *s=(struct FD_STRING *) cons; int len=s->fd_bytelen;
-      if (((out->bs_flags)&(FD_DTYPEV2)) && (len<256)) {
+      if (((out->buf_flags)&(FD_DTYPEV2)) && (len<256)) {
         output_byte(out,dt_tiny_string);
         output_byte(out,len);
         output_bytes(out,s->fd_bytes,len);
@@ -380,7 +419,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTBUF *out,fdtype x)
       fd_ptr_type ctype=FD_CONS_TYPE(cons); int dtype_len;
       if ((FD_VALID_TYPEP(ctype)) && (fd_dtype_writers[ctype]))
         return fd_dtype_writers[ctype](out,x);
-      else if ((out->bs_flags)&(FD_WRITE_OPAQUE))
+      else if ((out->buf_flags)&(FD_WRITE_OPAQUE))
         return write_opaque(out,x);
       else if ((fd_dtype_error) &&
                (dtype_len=fd_dtype_error(out,x,"no handler")))
@@ -602,7 +641,7 @@ static int validate_dtype(int pos,const unsigned char *ptr,
 
 FD_EXPORT int fd_validate_dtype(struct FD_BYTE_INBUF *in)
 {
-  return validate_dtype(0,in->bufpoint,in->bs_buflim);
+  return validate_dtype(0,in->bufpoint,in->buflim);
 }
 
 /* Resurrecting compounds */
@@ -620,17 +659,17 @@ static fdtype read_packaged_dtype(int,struct FD_BYTE_INBUF *);
 FD_EXPORT int fd_grow_byte_input(struct FD_BYTE_INBUF *b,size_t len)
 {
   unsigned int current_off=b->bufpoint-b->bufbase;
-  unsigned int current_limit=b->bs_buflim-b->bufbase;
+  unsigned int current_limit=b->buflim-b->bufbase;
   unsigned char *old=(unsigned char *)b->bufbase, *new;
-  if ((b->bs_flags)&(FD_MALLOCD_BUFFER))
+  if ((b->buf_flags)&(FD_MALLOCD_BUFFER))
     new=u8_realloc(old,len);
   else {
     new=u8_malloc(len);
     if (new) memcpy(new,old,current_limit);
-    b->bs_flags=b->bs_flags|FD_MALLOCD_BUFFER;}
+    b->buf_flags=b->buf_flags|FD_MALLOCD_BUFFER;}
   if (new == NULL) return 0;
   b->bufbase=new; b->bufpoint=new+current_off;
-  b->bs_buflim=b->bufbase+current_limit;
+  b->buflim=b->bufbase+current_limit;
   return 1;
 }
 

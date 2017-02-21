@@ -84,21 +84,21 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
     i--;}
   expr=fd_conspair(dtp->fd_dtprocname,expr);
   /* u8_log(LOG_DEBUG,"DTPROC","Using connection %d",conn); */
-  if ((fd_bytestream_write_dtype(&stream,expr)<0) ||
-      (fd_bytestream_flush(&stream)<0)) {
+  if ((fd_write_dtype(fd_writebuf(&stream),expr)<0) ||
+      (fd_flush_bytestream(&stream)<0)) {
     fd_clear_errors(1);
     if ((conn=u8_reconnect(cpool,conn))<0) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}}
-  result=fd_bytestream_read_dtype(&stream);
+  result=fd_read_dtype(fd_readbuf(&stream));
   if (FD_EQ(result,FD_EOD)) {
     fd_clear_errors(1);
     if (((conn=u8_reconnect(cpool,conn))<0) ||
-        (fd_bytestream_write_dtype(&stream,expr)<0) ||
-        (fd_bytestream_flush(&stream)<0)) {
+        (fd_write_dtype(fd_writebuf(&stream),expr)<0) ||
+        (fd_flush_bytestream(&stream)<0)) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}
-    else result=fd_bytestream_read_dtype(&stream);
+    else result=fd_read_dtype(fd_readbuf(&stream));
     if (FD_EQ(result,FD_EOD)) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return fd_err(fd_UnexpectedEOD,"",dtp->fd_dtprocserver,expr);}}

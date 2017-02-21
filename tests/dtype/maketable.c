@@ -59,6 +59,7 @@ int main(int argc,char **argv)
 {
   fdtype ht, item, key=FD_VOID; int i=0;
   struct FD_BYTESTREAM *in, *out;
+  struct FD_BYTE_INBUF *inbuf;
   double span;
   FD_DO_LIBINIT(fd_init_dtypelib);
   span=get_elapsed(); /* Start the timer */
@@ -67,8 +68,9 @@ int main(int argc,char **argv)
   if (in==NULL) {
     u8_log(LOG_ERR,"No such file","Couldn't open file %s",argv[1]);
     exit(1);}
-  fd_bytestream_bufsize(in,65536*2);
-  item=fd_bytestream_read_dtype(in); i=1;
+  else inbuf=fd_readbuf(in);
+  fd_bytestream_setbuf(in,65536*2);
+  item=fd_read_dtype(inbuf); i=1;
   while (!(FD_EODP(item))) {
     if (i%100000 == 0) {
       double tmp=get_elapsed();
@@ -79,13 +81,15 @@ int main(int argc,char **argv)
     else fd_hashtable_add
 	   (fd_consptr(struct FD_HASHTABLE *,ht,fd_hashtable_type),
             key,item);
-    fd_decref(item); item=fd_bytestream_read_dtype(in);
+    fd_decref(item); item=fd_read_dtype(inbuf);
     i=i+1;}
   report_on_hashtable(ht);
-  fd_bytestream_close(in,FD_BYTESTREAM_CLOSE_FULL);
+  fd_close_bytestream(in,FD_BYTESTREAM_CLOSE_FULL);
   out=fd_bytestream_open(argv[2],FD_BYTESTREAM_CREATE);
-  fd_bytestream_write_dtype(out,ht);
-  fd_bytestream_close(out,FD_BYTESTREAM_CLOSE_FULL);
+  if (out) {
+    struct FD_BYTE_OUTBUF *outbuf=fd_writebuf(out);
+    fd_write_dtype(outbuf,ht);
+    fd_close_bytestream(out,FD_BYTESTREAM_CLOSE_FULL);}
   fd_decref(ht); ht=FD_VOID;
   exit(0);
 }

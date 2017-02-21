@@ -36,10 +36,10 @@ int main(int argc,char **argv)
   fd_init_bytestream(&ds,socket,1024);
   i=argc-1; while (i>1) expr=fd_make_pair(fd_parse(argv[i--]),expr);
   u8_fprintf(stderr,_("Sending: %q\n"),expr);
-  fd_bytestream_write_dtype(&ds,expr);
-  result=fd_bytestream_read_dtype(&ds);
+  fd_write_dtype(fd_writebuf(&ds),expr);
+  result=fd_read_dtype(fd_readbuf(&ds));
   u8_fprintf(stderr,_("Result is: %q\n"),result);
   fd_decref(expr); fd_decref(result);
-  fd_bytestream_close(&ds,FD_BYTESTREAM_CLOSE_FULL);
+  fd_close_bytestream(&ds,FD_BYTESTREAM_CLOSE_FULL);
   return 0;
 }

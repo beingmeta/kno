@@ -23,15 +23,15 @@ int main(int argc,char **argv)
   FD_DO_LIBINIT(fd_init_dtypelib);
   in=fd_bytestream_open(argv[1],FD_BYTESTREAM_READ);
   out=fd_bytestream_open(argv[2],FD_BYTESTREAM_CREATE);
-  object=fd_bytestream_read_dtype(in);
-  fd_bytestream_close(in,FD_BYTESTREAM_CLOSE_FULL);
+  object=fd_read_dtype(fd_readbuf(in));
+  fd_close_bytestream(in,FD_BYTESTREAM_CLOSE_FULL);
   copied=fd_copy(object); fd_decref(copied);
   copied=fd_deep_copy(object);
-  bytes=fd_bytestream_write_dtype(out,copied);
+  bytes=fd_write_dtype(fd_writebuf(out),copied);
   if (bytes<0)
     u8_fprintf(stdout,"Error writing %q\n",object);
   else u8_fprintf(stdout,"Wrote %d bytes:\n %q\n",bytes,object);
-  fd_bytestream_close(out,FD_BYTESTREAM_CLOSE_FULL);
+  fd_close_bytestream(out,FD_BYTESTREAM_CLOSE_FULL);
   fd_decref(object); object=FD_VOID;
   fd_decref(copied); copied=FD_VOID;
   exit(0);

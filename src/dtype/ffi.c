@@ -14,10 +14,6 @@
 #include "framerd/apply.h"
 #include "framerd/ffi.h"
 #include "framerd/eval.h"
-#include "framerd/fddb.h"
-#include "framerd/pools.h"
-#include "framerd/indices.h"
-#include "framerd/frames.h"
 #include "framerd/numbers.h"
 #include "framerd/support.h"
 

@@ -498,14 +498,14 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
       u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
              temp_name,abspath);
       u8_free(temp_name);}
-    else bytes=fd_bytestream_write_dtype(out,backtrace);
+    else bytes=fd_write_dtype(fd_writebuf(out),backtrace);
     if (bytes<0) {
-      fd_bytestream_close(out,FD_BYTESTREAM_CLOSE_FULL);
+      fd_close_bytestream(out,FD_BYTESTREAM_CLOSE_FULL);
       u8_free(temp_name);
       u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
              temp_name,abspath);}
     else {
-      fd_bytestream_close(out,FD_BYTESTREAM_CLOSE_FULL);
+      fd_close_bytestream(out,FD_BYTESTREAM_CLOSE_FULL);
       u8_movefile(temp_name,abspath);
       u8_free(temp_name);
       changemode(abspath,0444);
@@ -949,9 +949,9 @@ int main(int argc,char **argv)
       u8_flush((u8_output)out);}
     else {
       if (eval_server) {
-        fd_bytestream_write_dtype(eval_server,expr);
-        fd_bytestream_flush(eval_server);
-        result=fd_bytestream_read_dtype(eval_server);}
+        fd_write_dtype(fd_writebuf(eval_server),expr);
+        fd_flush_bytestream(eval_server);
+        result=fd_read_dtype(fd_readbuf(eval_server));}
       else result=fd_eval(expr,env);}
     if (FD_ACHOICEP(result)) result=fd_simplify_choice(result);
     finish_time=u8_elapsed_time();
@@ -1048,7 +1048,7 @@ int main(int argc,char **argv)
         (!(FDTYPE_CONSTANTP(lastval))))
       fd_bind_value(that_symbol,lastval,env);}
   if (eval_server)
-    fd_bytestream_close(eval_server,FD_BYTESTREAM_FREE);
+    fd_close_bytestream(eval_server,FD_BYTESTREAM_FREE);
   u8_free(eval_server);
   fd_decref(lastval);
   fd_decref(result);

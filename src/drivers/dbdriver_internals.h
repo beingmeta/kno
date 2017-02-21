@@ -85,28 +85,31 @@ static FD_CHUNK_REF read_chunk_ref(struct FD_BYTESTREAM *stream,
 {
   FD_CHUNK_REF result; int chunk_size = chunk_ref_size(offtype);
   fd_off_t ref_off = offset*chunk_size; int error=0;
-  if ( (bytestream_setpos(stream,base+ref_off)) < 0 ) {
+  if ( (fd_setpos(stream,base+ref_off)) < 0 ) {
     result.off=(fd_off_t)-1; result.size=(size_t)-1;}
-  else switch (offtype) {
+  else {
+    fd_byte_inbuf in=fd_readbuf(stream);
+    switch (offtype) {
     case FD_B32:
-      result.off=bytestream_read_4bytes(stream);
-      result.size=bytestream_read_4bytes(stream);
+      result.off=fd_read_4bytes(in);
+      result.size=fd_read_4bytes(in);
       break;
     case FD_B40: {
       unsigned int word1, word2;
-      word1=bytestream_read_4bytes(stream);
-      word2=bytestream_read_4bytes(stream);
+      word1=fd_read_4bytes(in);
+      word2=fd_read_4bytes(in);
       result.off=((((ll)((word2)&(0xFF000000)))<<8)|word1);
       result.size=(ll)((word2)&(0x00FFFFFF));
       break;}
     case FD_B64:
-      result.off=bytestream_read_8bytes(stream);
-      result.size=bytestream_read_4bytes(stream);
+      result.off=fd_read_8bytes(in);
+      result.size=fd_read_4bytes(in);
       break;
     default:
       u8_seterr("Invalid Offset type","read_chunk_ref",NULL);
       result.off=-1;
       result.size=-1;} /* switch (p->fdb_offtype) */
+  }
   return result;
 }
 
@@ -135,9 +138,10 @@ static unsigned char *read_chunk(fd_bytestream stream,
     memcpy(buf,mmap+off,size);
     return buf;}
   else {
-    fd_off_t rv=bytestream_setpos(stream,off);
+    fd_off_t rv=fd_setpos(stream,off);
+    fd_byte_inbuf in=fd_readbuf(stream);
     int bytes_read = (rv<0) ? (-1) :
-      bytestream_read_bytes(stream,buf, (int) size,unlock);
+      fd_read_bytes(buf,in,size);
     if (bytes_read<0) {
       if (usebuf==NULL) u8_free(buf);
       return NULL;}

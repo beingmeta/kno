@@ -64,8 +64,8 @@ static fd_index open_file_index(u8_string fname,fddb_flags flags)
     fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
-  if (index->index_stream.bs_flags&FD_BYTESTREAM_READ_ONLY) read_only=1;
-  index->index_stream.bytestream_mallocd=0;
+  if (index->index_stream.buf_flags&FD_STREAM_READ_ONLY) read_only=1;
+  index->index_stream.stream_mallocd=0;
   magicno=fd_read_4bytes_at(s,0);
   index->index_n_slots=fd_read_4bytes_at(s,4);
   if ((magicno==FD_FILE_INDEX_TO_RECOVER) ||
@@ -96,8 +96,9 @@ static fd_index open_file_index(u8_string fname,fddb_flags flags)
 
 static unsigned int get_offset(fd_file_index ix,int slotno)
 {
-  bytestream_setpos(&(ix->index_stream),slotno*4+8);
-  return bytestream_read_4bytes(&(ix->index_stream));
+  fd_bytestream stream=&(ix->index_stream);
+  fd_setpos(stream,slotno*4+8);
+  return fd_read_4bytes(fd_readbuf(stream));
 }
 
 static void file_index_setcache(fd_index ix,int level)
@@ -107,6 +108,7 @@ static void file_index_setcache(fd_index ix,int level)
     if (fx->index_offsets) return;
     else {
       fd_bytestream s=&(fx->index_stream);
+      fd_byte_inbuf ins=fd_readbuf(s);
       unsigned int *offsets, *newmmap;
       fd_lock_index(fx);
       if (fx->index_offsets) {
@@ -115,7 +117,7 @@ static void file_index_setcache(fd_index ix,int level)
 #if HAVE_MMAP
       newmmap=
         mmap(NULL,(fx->index_n_slots*SLOTSIZE)+8,
-             PROT_READ,MMAP_FLAGS,s->fd_fileno,0);
+             PROT_READ,MMAP_FLAGS,s->stream_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
         u8_log(LOG_CRIT,u8_strerror(errno),
                "file_index_setcache:mmap %s",fx->index_source);
@@ -125,7 +127,7 @@ static void file_index_setcache(fd_index ix,int level)
       fd_bytestream_start_read(s);
       offsets=u8_malloc(SLOTSIZE*(fx->ht_n_buckets));
       fd_setpos(s,8);
-      fd_bytestream_read_ints(s,fx->ht_n_buckets,offsets);
+      fd_read_ints(ins,fx->ht_n_buckets,offsets);
       fx->index_offsets=offsets;
 #endif
       fd_unlock_index(fx);}
@@ -197,6 +199,7 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
   else  fd_lock_index(fx);
   {
     fd_bytestream stream=&(fx->index_stream);
+    fd_byte_inbuf instream=fd_readbuf(stream);
     unsigned int hashval=file_index_hash(fx,key);
     unsigned int n_probes=0;
     unsigned int probe=hashval%(fx->index_n_slots);
@@ -207,13 +210,13 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
       ((offsets) ? (offget(offsets,probe)) : (get_offset(fx,probe)));
     while (keypos) {
       fdtype thiskey; unsigned int n_vals; fd_off_t val_start;
-      bytestream_setpos(stream,keypos+pos_offset);
-      n_vals=bytestream_read_4bytes(stream);
-      val_start=bytestream_read_4bytes(stream);
+      fd_setpos(stream,keypos+pos_offset);
+      n_vals=fd_read_4bytes(instream);
+      val_start=fd_read_4bytes(instream);
       if (FD_EXPECT_FALSE((n_vals==0) && (val_start)))
         u8_log(LOG_CRIT,fd_FileIndexError,
                "file_index_fetch %s",u8_strdup(ix->index_cid));
-      thiskey=fd_bytestream_read_dtype(stream);
+      thiskey=fd_read_dtype(instream);
       if (FDTYPE_EQUAL(key,thiskey)) {
         if (n_vals==0) {
           fd_unlock_mutex(&fx->index_lock); fd_decref(thiskey);
@@ -229,10 +232,10 @@ static fdtype file_index_fetch(fd_index ix,fdtype key)
               u8_raise(_("inconsistent file index"),
                        "file_index_fetch",u8_strdup(ix->index_cid));
             if (next_pos>1) fd_setpos(stream,next_pos+pos_offset);
-            v=fd_bytestream_read_dtype(stream);
+            v=fd_read_dtype(instream);
             if ((atomicp) && (FD_CONSP(v))) atomicp=0;
             values[i++]=v;
-            next_pos=bytestream_read_4bytes(stream);}
+            next_pos=fd_read_4bytes(instream);}
           fd_unlock_mutex(&fx->index_lock); fd_decref(thiskey);
           return fd_init_choice(result,i,NULL,
                                 FD_CHOICE_DOSORT|
@@ -261,6 +264,7 @@ static int file_index_fetchsize(fd_index ix,fdtype key)
   fd_lock_index(fx);
   {
     fd_bytestream stream=&(fx->index_stream);
+    fd_byte_inbuf instream=fd_readbuf(stream);
     unsigned int hashval=file_index_hash(fx,key);
     unsigned int n_probes=0;
     unsigned int probe=hashval%(fx->index_n_slots),
@@ -271,9 +275,9 @@ static int file_index_fetchsize(fd_index ix,fdtype key)
     while (keypos) {
       fdtype thiskey; unsigned int n_vals; /* fd_off_t val_start; */
       fd_setpos(stream,keypos+(fx->index_n_slots)*4);
-      n_vals=bytestream_read_4bytes(stream);
-      /* val_start=*/ bytestream_read_4bytes(stream);
-      thiskey=fd_bytestream_read_dtype(stream);
+      n_vals=fd_read_4bytes(instream);
+      /* val_start=*/ fd_read_4bytes(instream);
+      thiskey=fd_read_dtype(instream);
       if (FDTYPE_EQUAL(key,thiskey)) {
         fd_unlock_index(fx);
         return n_vals;}
@@ -302,12 +306,13 @@ static fdtype *file_index_fetchkeys(fd_index ix,int *n)
   fdtype *result=NULL;
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   struct FD_BYTESTREAM *stream=&(fx->index_stream);
+  struct FD_BYTE_INBUF *instream=fd_readbuf(stream);
   unsigned int n_slots, i=0, j=0, *offsets, pos_offset, n_keys=0;
   fd_lock_index(fx);
   n_slots=fx->index_n_slots; offsets=u8_malloc(SLOTSIZE*n_slots);
   pos_offset=SLOTSIZE*n_slots;
   fd_setpos(&(fx->index_stream),8);
-  fd_bytestream_read_ints(&(fx->index_stream),fx->index_n_slots,offsets);
+  fd_read_ints(&(fx->index_stream),fx->index_n_slots,offsets);
   while (i<n_slots) if (offsets[i]) {n_keys++; i++;} else i++;
   if (n_keys==0) {
     fd_unlock_index(fx); u8_free(offsets);
@@ -318,7 +323,7 @@ static fdtype *file_index_fetchkeys(fd_index ix,int *n)
     if (offsets[i]) {
       fdtype key;
       fd_setpos(stream,pos_offset+offsets[i]+8);
-      key=fd_bytestream_read_dtype(stream);
+      key=fd_read_dtype(instream);
       result[j++]=key;
       i++;}
     else i++;
@@ -344,21 +349,22 @@ static struct FD_KEY_SIZE *file_index_fetchsizes(fd_index ix,int *n)
   struct FD_KEY_SIZE *sizes;
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   struct FD_BYTESTREAM *stream=&(fx->index_stream);
+  struct FD_BYTE_INBUF *instream=fd_readbuf(stream);
   unsigned int n_slots, i=0, pos_offset, *offsets, n_keys;
   fd_lock_index(fx);
   n_slots=fx->index_n_slots; offsets=u8_malloc(SLOTSIZE*n_slots);
   pos_offset=SLOTSIZE*n_slots;
   fd_setpos(&(fx->index_stream),8);
-  fd_bytestream_read_ints(&(fx->index_stream),fx->index_n_slots,offsets);
+  fd_read_ints(&(fx->index_stream),fx->index_n_slots,offsets);
   n_keys=compress_offsets(offsets,fx->index_n_slots);
   sizes=u8_alloc_n(n_keys,FD_KEY_SIZE);
   qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
   while (i < n_keys) {
     fdtype key; int size;
     fd_setpos(stream,pos_offset+offsets[i]);
-    size=bytestream_read_4bytes(stream);
-    /* vpos=*/ bytestream_read_4bytes(stream);
-    key=fd_bytestream_read_dtype(stream);
+    size=fd_read_4bytes(instream);
+    /* vpos=*/ fd_read_4bytes(instream);
+    key=fd_read_dtype(instream);
     sizes[i].keysizekey=key; sizes[i].keysizenvals=size;
     i++;}
   *n=n_keys;
@@ -412,6 +418,8 @@ static int run_schedule(struct FD_FILE_INDEX *fx,int n,
                         unsigned int *offsets,
                         fdtype *values)
 {
+  struct FD_BYTESTREAM *stream=&(fx->index_stream);
+  struct FD_BYTE_INBUF *instream=fd_readbuf(stream);
   unsigned i=0, pos_offset=fx->index_n_slots*4;
   while (i < n) {
     if (schedule[i].fs.filepos<=0) return i;
@@ -419,7 +427,7 @@ static int run_schedule(struct FD_FILE_INDEX *fx,int n,
       /* When the probe offset is negative, it means we are reading
          the offset itself. */
       fd_setpos(&(fx->index_stream),schedule[i].fs.filepos);
-      schedule[i].fs.filepos=(fd_off_t)(bytestream_read_4bytes(&(fx->index_stream)));
+      schedule[i].fs.filepos=(fd_off_t)(fd_read_4bytes(instream));
       if (schedule[i].fs.filepos)
         schedule[i].fs.probe=(-schedule[i].fs.probe)-1;
       else {
@@ -439,9 +447,9 @@ static int run_schedule(struct FD_FILE_INDEX *fx,int n,
         (struct KEY_FETCH_SCHEDULE *)(&(schedule[i]));
       /* Go to the key location and read the keydata */
       fd_setpos(&(fx->index_stream),schedule[i].fs.filepos+pos_offset);
-      n_values=bytestream_read_4bytes(&(fx->index_stream));
-      vpos=(fd_off_t)bytestream_read_4bytes(&(fx->index_stream));
-      key=fd_bytestream_read_dtype(&(fx->index_stream));
+      n_values=fd_read_4bytes(instream);
+      vpos=(fd_off_t)fd_read_4bytes(instream);
+      key=fd_read_dtype(instream);
       if (FD_ABORTP(key)) return fd_interr(key);
       else if (FDTYPE_EQUAL(key,schedule[i].fs.key)) {
         /* If you found the key, morph the entry into a value
@@ -491,15 +499,16 @@ static int run_schedule(struct FD_FILE_INDEX *fx,int n,
       struct VALUE_FETCH_SCHEDULE *vs=
         (struct VALUE_FETCH_SCHEDULE *)(&(schedule[i]));
       fd_off_t vpos=vs->filepos; fdtype val; int index=vs->index;
-      fd_setpos(&(fx->index_stream),vpos); val=fd_bytestream_read_dtype(&(fx->index_stream));
+      fd_setpos(stream,vpos); 
+      val=fd_read_dtype(instream);
       if (FD_ABORTP(val)) return fd_interr(val);
       FD_ADD_TO_CHOICE(values[index],val);
-      vpos=(fd_off_t)bytestream_read_4bytes(&(fx->index_stream));
+      vpos=(fd_off_t)fd_read_4bytes(instream);
       while (vpos==1) {
-        val=fd_bytestream_read_dtype(&(fx->index_stream));
+        val=fd_read_dtype(instream);
         if (FD_ABORTP(val)) return fd_interr(val);
         FD_ADD_TO_CHOICE(values[index],val);
-        vpos=(fd_off_t)bytestream_read_4bytes(&(fx->index_stream));}
+        vpos=(fd_off_t)fd_read_4bytes(instream);}
       if (vpos==0) {vs->filepos=-1;}
       else vs->filepos=vpos+pos_offset;
       assert(((vs->filepos)<((fd_off_t)(0x100000000LL))));}
@@ -676,6 +685,7 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n,
 {
   struct RESERVATIONS reserved;
   struct FD_BYTESTREAM *stream=&(fx->index_stream);
+  struct FD_BYTE_INBUF *instream=fd_readbuf(stream);
   unsigned int pos_offset=fx->index_n_slots*4, chain_length=0;
   int i=0, max=n, new_keys=0;
   if (offsets == NULL) {
@@ -726,7 +736,7 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n,
       if (kdata[i].chain_width<0) break;
       fd_setpos(stream,kdata[i].pos);
       if (kdata[i].slotno<0) { /* fetching offset */
-        unsigned int off=bytestream_read_4bytes(stream);
+        unsigned int off=fd_read_4bytes(instream);
         unsigned int slotno=(-(kdata[i].slotno)-1);
         if (off) {
           kdata[i].slotno=slotno;
@@ -742,9 +752,9 @@ static int fetch_keydata(struct FD_FILE_INDEX *fx,struct KEYDATA *kdata,int n,
         i++;}
       else {
         unsigned int n_vals, vpos; fdtype key;
-        n_vals=bytestream_read_4bytes(stream);
-        vpos=bytestream_read_4bytes(stream);
-        key=fd_bytestream_read_dtype(stream);
+        n_vals=fd_read_4bytes(instream);
+        vpos=fd_read_4bytes(instream);
+        key=fd_read_dtype(instream);
         if (FDTYPE_EQUAL(key,kdata[i].key)) {
           kdata[i].pos=vpos; kdata[i].chain_width=-1;
           if (kdata[i].n_values<0) kdata[i].n_values=n_vals;}
@@ -796,9 +806,10 @@ static void check_reservations(unsigned int *iv,int len)
 }
 #endif
 
-static int write_values(struct FD_BYTESTREAM *stream,fdtype values,
+static int write_values(fd_bytestream stream,fdtype values,
                         unsigned int nextpos,int *n_valuesp)
 {
+  struct FD_BYTE_OUTBUF *outstream=fd_writebuf(stream);
   fdtype realval=((FD_ACHOICEP(values)) ? (fd_make_simple_choice(values)) :
                    (values));
   if (FD_EMPTY_CHOICEP(realval)) {
@@ -809,16 +820,16 @@ static int write_values(struct FD_BYTESTREAM *stream,fdtype values,
     int size=0;
     const fdtype *scan=FD_XCHOICE_DATA(ch), *limit=scan+FD_XCHOICE_SIZE(ch);
     while (scan < limit) {
-      size=size+fd_bytestream_write_dtype(stream,*scan)+4; scan++;
-      if (scan == limit) bytestream_write_4bytes(stream,nextpos);
-      else bytestream_write_4bytes(stream,1);}
+      size=size+fd_write_dtype(outstream,*scan)+4; scan++;
+      if (scan == limit) fd_write_4bytes(outstream,nextpos);
+      else fd_write_4bytes(outstream,1);}
     *n_valuesp=FD_XCHOICE_SIZE(ch);
     if (FD_ACHOICEP(values)) fd_decref(realval);
     return size;}
   else {
-    int size=fd_bytestream_write_dtype(stream,realval);
+    int size=fd_write_dtype(outstream,realval);
     *n_valuesp=1;
-    bytestream_write_4bytes(stream,nextpos);
+    fd_write_4bytes(outstream,nextpos);
     return size+4;}
 }
 
@@ -829,6 +840,7 @@ static int write_values(struct FD_BYTESTREAM *stream,fdtype values,
 static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
 {
   struct FD_BYTESTREAM *stream=&(f->index_stream);
+  struct FD_BYTE_OUTBUF *outstream=fd_writebuf(stream);
   int i=0, n_edits=0, n_drops=0; fd_off_t filepos;
   fdtype *dropkeys, *dropvals;
   struct FD_HASH_BUCKET **scan, **limit;
@@ -887,8 +899,8 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
             fdtype new_value=fd_difference(dropvals[i],kvscan->fd_keyval);
             if (FD_EMPTY_CHOICEP(new_value)) {
               kdata[n_edits].n_values=0; kdata[n_edits].pos=0;}
-            else filepos=filepos+write_values(stream,new_value,0,
-                                              &(kdata[n_edits].n_values));
+            else filepos=filepos+write_values
+                   (stream,new_value,0,&(kdata[n_edits].n_values));
             fd_decref(new_value);}
           n_edits++; kvscan++;}
         else kvscan++;}
@@ -901,37 +913,41 @@ static int commit_edits(struct FD_FILE_INDEX *f,struct KEYDATA *kdata)
   return n_edits;
 }
 
-static void write_keys(struct FD_FILE_INDEX *fx,int n,struct KEYDATA *kdata,unsigned int *offsets)
+static void write_keys(struct FD_FILE_INDEX *fx,int n,struct KEYDATA *kdata,
+                       unsigned int *offsets)
 {
   unsigned int pos_offset=fx->index_n_slots*4;
   struct FD_BYTESTREAM *stream=&(fx->index_stream);
+  struct FD_BYTE_OUTBUF *outstream=fd_writebuf(stream);
   fd_off_t pos=fd_endpos(stream);
   int i=0; while (i<n) {
     fd_off_t kpos=pos;
-    bytestream_write_4bytes(stream,kdata[i].n_values);
-    bytestream_write_4bytes(stream,(unsigned int)kdata[i].pos);
-    pos=pos+fd_bytestream_write_dtype(stream,kdata[i].key)+8;
+    fd_write_4bytes(outstream,kdata[i].n_values);
+    fd_write_4bytes(outstream,(unsigned int)kdata[i].pos);
+    pos=pos+fd_write_dtype(outstream,kdata[i].key)+8;
     if (offsets)
       offsets[kdata[i].slotno]=(kpos-pos_offset);
     else kdata[i].pos=(kpos-pos_offset);
     i++;}
 }
 
-static void write_offsets(struct FD_FILE_INDEX *fx,int n,struct KEYDATA *kdata,unsigned int *offsets)
+static void write_offsets(struct FD_FILE_INDEX *fx,int n,struct KEYDATA *kdata,
+                          unsigned int *offsets)
 {
   struct FD_BYTESTREAM *stream=&(fx->index_stream);
+  struct FD_BYTE_OUTBUF *outstream=fd_writebuf(stream);
   if (offsets) {
     fd_setpos(stream,8);
-    fd_bytestream_write_ints(stream,fx->index_n_slots,offsets);
-    fd_bytestream_flush(stream);}
+    fd_write_ints(stream,fx->index_n_slots,offsets);
+    fd_flush_bytestream(stream);}
   else {
     int i=0;
     qsort(kdata,n,sizeof(struct KEYDATA),sort_keydata_pos);
     while (i < n) {
       fd_setpos(stream,8+kdata[i].slotno*4);
-      bytestream_write_4bytes(stream,(unsigned int)kdata[i].pos);
+      fd_write_4bytes(outstream,(unsigned int)kdata[i].pos);
       i++;}
-    fd_bytestream_flush(stream);}
+    fd_flush_bytestream(stream);}
 }
 
 /* Putting it all together */
@@ -940,12 +956,12 @@ static int file_index_commit(struct FD_INDEX *ix)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   struct FD_BYTESTREAM *stream=&(fx->index_stream);
+  struct FD_BYTE_INBUF *instream=fd_readbuf(stream);
   unsigned int *new_offsets=NULL, gc_new_offsets=0;
   int pos_offset=fx->index_n_slots*4, newcount;
   fd_write_lock_table(&(ix->index_adds));
   fd_write_lock_table(&(ix->index_edits));
   fd_lock_index(fx);
-  bytestream_start_write(stream);
   /* Get the current offsets from the index */
 #if HAVE_MMAP
   if (fx->index_offsets) {
@@ -960,10 +976,11 @@ static int file_index_commit(struct FD_INDEX *ix)
   if (fx->index_offsets) {
     new_offsets=fx->index_offsets;
     fd_setpos(stream,8);
-    fd_bytestream_read_ints(stream,fx->ht_n_buckets,new_offsets);}
+    fd_read_ints(instream,fx->ht_n_buckets,new_offsets);}
 #endif
   {
     fd_off_t filepos;
+    struct FD_BYTE_OUTBUF *outstream=fd_writebuf(stream);
     int n_adds=ix->index_adds.table_n_keys, n_edits=ix->index_edits.table_n_keys;
     int i=0, n=0, n_changes=n_adds+n_edits, add_index;
     struct KEYDATA *kdata=u8_alloc_n(n_changes,struct KEYDATA);
@@ -1044,15 +1061,15 @@ static int file_index_commit(struct FD_INDEX *ix)
       if (new_offsets) fd_setpos(stream,0);
       if (new_offsets==NULL) {}
       else if (fx->index_hashv==1)
-        bytestream_write_4bytes(stream,FD_FILE_INDEX_MAGIC_NUMBER);
+        fd_write_4bytes(outstream,FD_FILE_INDEX_MAGIC_NUMBER);
       else if (fx->index_hashv==2)
-        bytestream_write_4bytes(stream,FD_MULT_FILE_INDEX_MAGIC_NUMBER);
-      fd_bytestream_flush(stream);
+        fd_write_4bytes(outstream,FD_MULT_FILE_INDEX_MAGIC_NUMBER);
+      fd_flush_bytestream(stream);
       /* Now erase the recovery information, since we don't need it anymore. */
       if (new_offsets) {
         fd_off_t end=fd_endpos(stream);
         fd_movepos(stream,-(4*(fx->index_n_slots)));
-        retval=ftruncate(stream->fd_fileno,end-(4*(fx->index_n_slots)));
+        retval=ftruncate(stream->stream_fileno,end-(4*(fx->index_n_slots)));
         if (retval<0)
           u8_log(LOG_ERR,"file_index_commit",
                  "Trouble truncating recovery information from %s",
@@ -1072,17 +1089,19 @@ static void write_file_index_recovery_data(struct FD_FILE_INDEX *fx,
                                            unsigned int *offsets)
 {
   struct FD_BYTESTREAM *stream=&(fx->index_stream);
+  struct FD_BYTE_OUTBUF *outstream=fd_writebuf(stream);
+  struct FD_BYTE_INBUF *instream=fd_readbuf(stream);
   int i=0, n_slots=fx->index_n_slots; unsigned int magic_no;
   fd_endpos(stream);
   while (i<n_slots) {
     unsigned int off=offget(offsets,i);
-    bytestream_write_4bytes(stream,off); i++;}
-  fd_setpos(stream,0); magic_no=bytestream_read_4bytes(stream);
+    fd_write_4bytes(outstream,off); i++;}
+  fd_setpos(stream,0); magic_no=fd_read_4bytes(instream);
   /* Compute a variant magic number indicating that the
      index needs to be restored. */
   magic_no=magic_no|0x20;
-  fd_setpos(stream,0); bytestream_write_4bytes(stream,magic_no);
-  fd_bytestream_flush(stream);
+  fd_setpos(stream,0); fd_write_4bytes(outstream,magic_no);
+  fd_flush_bytestream(stream);
 }
 
 static int recover_file_index(struct FD_FILE_INDEX *fx)
@@ -1092,18 +1111,25 @@ static int recover_file_index(struct FD_FILE_INDEX *fx)
   int i=0, len=fx->index_n_slots, retval=0; fd_off_t new_end;
   unsigned int *offsets=u8_malloc(4*len), magic_no;
   struct FD_BYTESTREAM *s=&(fx->index_stream);
+  fd_byte_outbuf outstream; fd_byte_inbuf instream;
   fd_endpos(s); new_end=fd_movepos(s,-(4*len));
+  instream=fd_readbuf(s);
   while (i<len) {
-    offsets[i]=bytestream_read_4bytes(s); i++;}
+    offsets[i]=fd_read_4bytes(instream); i++;}
+  outstream=fd_writebuf(s);
   fd_setpos(s,24);
   i=0; while (i<len) {
-    bytestream_write_4bytes(s,offsets[i]); i++;}
-  fd_setpos(s,0); magic_no=bytestream_read_4bytes(s);
-  bytestream_write_4bytes(s,(magic_no&(~0x20)));
-  fd_bytestream_flush(s);
-  retval=ftruncate(s->fd_fileno,new_end);
+    fd_write_4bytes(outstream,offsets[i]); i++;}
+  instream=fd_readbuf(s);
+  fd_setpos(s,0);
+  magic_no=fd_read_4bytes(instream);
+  outstream=fd_writebuf(s);
+  fd_setpos(s,0);
+  fd_write_4bytes(outstream,(magic_no&(~0x20)));
+  fd_flush_bytestream(s);
+  retval=ftruncate(s->stream_fileno,new_end);
   if (retval<0) return retval;
-  else retval=fsync(s->fd_fileno);
+  else retval=fsync(s->stream_fileno);
   return retval;
 }
 
@@ -1111,7 +1137,7 @@ static void file_index_close(fd_index ix)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   fd_lock_index(fx);
-  fd_bytestream_free(&(fx->index_stream),1);
+  fd_free_bytestream(&(fx->index_stream),1);
   if (fx->index_offsets) {
 #if HAVE_MMAP
     int retval=munmap(fx->index_offsets-2,(SLOTSIZE*fx->index_n_slots)+8);
@@ -1131,7 +1157,7 @@ static void file_index_setbuf(fd_index ix,int bufsiz)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   fd_lock_index(fx);
-  fd_bytestream_bufsize(&(fx->index_stream),bufsiz);
+  fd_bytestream_setbuf(&(fx->index_stream),bufsiz);
   fd_unlock_index(fx);
 }
 
@@ -1148,22 +1174,23 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
   struct FD_BYTESTREAM _stream;
   struct FD_BYTESTREAM *stream=
     fd_init_file_bytestream(&_stream,filename,FD_BYTESTREAM_CREATE,8192);
+  struct FD_BYTE_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL) return -1;
-  else if ((stream->bs_flags)&FD_BYTESTREAM_READ_ONLY) {
+  else if ((stream->buf_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(filename));
-    fd_bytestream_close(stream,FD_BYTESTREAM_FREE);
+    fd_close_bytestream(stream,FD_BYTESTREAM_FREE);
     return -1;}
-  stream->bytestream_mallocd=0;
+  stream->stream_mallocd=0;
   if (n_slots_arg<0) n_slots=-n_slots_arg;
   else n_slots=fd_get_hashtable_size(n_slots_arg);
   fd_setpos(stream,0);
-  bytestream_write_4bytes(stream,magicno);
-  bytestream_write_4bytes(stream,n_slots);
-  i=0; while (i<n_slots) {bytestream_write_4bytes(stream,0); i++;}
-  bytestream_write_4bytes(stream,0xFFFFFFFE);
-  bytestream_write_4bytes(stream,40);
-  i=0; while (i<8) {bytestream_write_4bytes(stream,0); i++;}
-  fd_bytestream_close(stream,FD_BYTESTREAM_FREE);
+  fd_write_4bytes(outstream,magicno);
+  fd_write_4bytes(outstream,n_slots);
+  i=0; while (i<n_slots) {fd_write_4bytes(outstream,0); i++;}
+  fd_write_4bytes(outstream,0xFFFFFFFE);
+  fd_write_4bytes(outstream,40);
+  i=0; while (i<8) {fd_write_4bytes(outstream,0); i++;}
+  fd_close_bytestream(stream,FD_BYTESTREAM_FREE);
   return 1;
 }
 

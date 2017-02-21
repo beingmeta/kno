@@ -69,9 +69,9 @@ FD_EXPORT int fd_make_file_pool(u8_string,unsigned int,
                                 FD_OID,unsigned int,unsigned int);
 
 #define FD_POOLFILE_LOCKEDP(fp) \
-  (((fp)->pool_stream.bs_flags)&FD_BYTESTREAM_LOCKED)
-#define FD_LOCK_POOLFILE(fp) fd_bytestream_lockfile(&((fp)->pool_stream))
-#define FD_UNLOCK_POOLFILE(fp) fd_bytestream_unlockfile(&((fp)->pool_stream))
+  (((fp)->pool_stream.buf_flags)&FD_STREAM_FILE_LOCKED)
+#define FD_LOCK_POOLFILE(fp) fd_lockfile(&((fp)->pool_stream))
+#define FD_UNLOCK_POOLFILE(fp) fd_unlockfile(&((fp)->pool_stream))
 
 
 typedef struct FD_SCHEMA_TABLE {
@@ -163,7 +163,7 @@ typedef struct FD_FILE_INDEX {
   U8_MUTEX_DECL(index_lock);} FD_FILE_INDEX;
 typedef struct FD_FILE_INDEX *fd_file_index;
 
-FD_EXPORT fdtype fd_read_index_metadata(struct FD_BYTESTREAM *ds);
+FD_EXPORT fdtype fd_read_index_metadata(fd_bytestream ds);
 FD_EXPORT fdtype fd_write_index_metadata(fd_bytestream,fdtype);
 FD_EXPORT int fd_make_file_index(u8_string,unsigned int,int);
 
