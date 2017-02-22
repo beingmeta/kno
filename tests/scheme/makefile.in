@@ -52,7 +52,7 @@ TESTPROG	=
 TESTENV		= @TESTENV@
 TESTSIZE	= 512
 SMALLTESTSIZE	= 64
-TESTCONFIG	= 
+TESTCONFIG	= LOADPATH=../../src/modules/%/module.scm:../../src/modules/%.scm
 RUNTEST		= $(TESTENV) $(TESTPROG)
 DBTEST_FILES	= r4rs.scm misctest.scm seqtest.scm choicetest.scm dbtest.scm
 
@@ -169,151 +169,149 @@ cmdtests: exectests chaintests batchtests batchchaintests
 
 schemetests:
 	@echo "*** Running scheme tests to exercise the data/eval layer"
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) r4rs.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes r4rs.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) exceptions.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) choicetest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes choicetest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) seqtest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes seqtest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) numvecs.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) picktest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cachecall.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) texttest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) fdwebtest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) timefns.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) threadtest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) i18n.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) misctest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes misctest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) xmltest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) cryptotest.scm
+	$(RUNTEST) ./fdexec@suffix@ r4rs.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes r4rs.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ exceptions.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ choicetest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes choicetest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ seqtest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes seqtest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ numvecs.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ picktest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ cachecall.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ texttest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ fdwebtest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ timefns.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ threadtest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ i18n.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ misctest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes misctest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ xmltest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ cryptotest.scm ${TESTCONFIG}
 	@echo "*** Completed scheme tests to exercise the data/eval layer"
 optimizer-tests:
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes r4rs.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes choicetest.scm
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) TESTOPTIMIZED=yes seqtest.scm
+	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes r4rs.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes choicetest.scm ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ TESTOPTIMIZED=yes seqtest.scm ${TESTCONFIG}
 
 loadmods: optmods
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) loadmods.scm
+	$(RUNTEST) ./fdexec@suffix@ loadmods.scm ${TESTCONFIG}
 optmods:
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) optmods.scm
+	$(RUNTEST) ./fdexec@suffix@ optmods.scm ${TESTCONFIG}
 
 tabletests:
 	@echo "*** Running scheme tests to exercise the table/index layer"
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.table $(TESTSIZE)
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.table
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.table $(TESTSIZE) ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.table ${TESTCONFIG}
 	@echo "*** Completed scheme tests to exercise the table/index layer"
 
 indextests:
 	@echo "*** Running scheme tests to exercise file indices "
 	@rm -f edit.dtype
 	# The cache is off by default
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE)
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index $(TESTSIZE) ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index ${TESTCONFIG}
 	# Test reading with the cache on, consed indices, and both
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index CACHELEVEL=2 
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index CONSINDEX=yes 
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index \
-		CACHELEVEL=2 CONSINDEX=yes
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index CACHELEVEL=2  ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index CONSINDEX=yes  ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index \
+		${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
 	# Do test edits (no cache)
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype ${TESTCONFIG}
 	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype ${TESTCONFIG}
 	# New test, building with cache enabled
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE) CACHELEVEL=2
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index CACHELEVEL=2
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index $(TESTSIZE) CACHELEVEL=2 ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index CACHELEVEL=2 ${TESTCONFIG}
 	# Try testing without the cache
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index ${TESTCONFIG}
 	# Do test edits (with cache)
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype \
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype ${TESTCONFIG}
 	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype ${TESTCONFIG}
 	# Build with both cache and consindices
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index $(TESTSIZE) \
-		CACHELEVEL=2 CONSINDEX=yes
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index \
-		CACHELEVEL=2 CONSINDEX=yes
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index $(TESTSIZE) \
+		 ${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index \
+		${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index ${TESTCONFIG}
 	# Do test edits (with cache and consindex)
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype \
-		CACHELEVEL=2 CONSINDEX=yes
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype
+		 ${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
 	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.index edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.index edit.dtype ${TESTCONFIG}
 	@echo "*** Completed scheme tests to exercise file indices "
 
 hashindextests:
 	@echo "*** Running scheme tests to exercise hash indices "
 	# The cache is off by default
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE)
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex $(TESTSIZE) ${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex ${TESTCONFIG}
 	# Test reading with the cache on, consed indices, and both
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex CACHELEVEL=2 
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex CONSINDEX=yes 
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex \
-		CACHELEVEL=2 CONSINDEX=yes
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex \
+		${TESTCONFIG} CACHELEVEL=2  
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex \
+		${TESTCONFIG} CONSINDEX=yes 
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex \
+		 ${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
 	# Do test edits (no cache)
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype ${TESTCONFIG}
 	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype ${TESTCONFIG}
 	# New test, building with cache enabled
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE) CACHELEVEL=2
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex CACHELEVEL=2
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex $(TESTSIZE) \
+		${TESTCONFIG} CACHELEVEL=2
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex \
+		${TESTCONFIG} CACHELEVEL=2
 	# Try testing without the cache
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex ${TESTCONFIG}
 	# Do test edits (with cache)
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype \
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype ${TESTCONFIG}
 	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype ${TESTCONFIG}
 	# Build with both cache and consindices
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex $(TESTSIZE) \
-		CACHELEVEL=2 CONSINDEX=yes
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex \
-		CACHELEVEL=2 CONSINDEX=yes
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex $(TESTSIZE) \
+		 ${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex ${TESTCONFIG} \
+		 ${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex ${TESTCONFIG}
 	# Do test edits (with cache and consindex)
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype \
-		CACHELEVEL=2 CONSINDEX=yes
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype \
+		${TESTCONFIG} CACHELEVEL=2 CONSINDEX=yes
 	# Verify test edits
-	$(RUNTEST) ./fdexec@suffix@ $(TESTCONFIG) tabletest.scm temp.hashindex edit.dtype
+	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype ${TESTCONFIG}
 	@echo "*** Completed scheme tests to exercise hash indices "
 
-
-alldbtests: dbtests dbhashtests dbhash32tests dbxtests
-
 dbtests:
-	@echo "*** Running scheme tests to exercise the database layer"
-	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) \
-		COUNT=$(TESTSIZE) testdb init $(DBTEST_FILES)
-	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) COUNT=$(TESTSIZE) testdb
-	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) \
-		COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
-	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) \
-		COUNT=$(TESTSIZE) CACHELEVEL=2 testdb init $(DBTEST_FILES)
-	$(RUNTEST) ./fdexec@suffix@ dbtest.scm $(TESTCONFIG) \
-		COUNT=$(TESTSIZE) CACHELEVEL=2 testdb
-	@echo "*** Finished scheme tests to exercise the database layer"
+	@echo "*** Running database layer tests"
+	$(RUNTEST) ./fdexec@suffix@ dbtest.scm testdb init COUNT=$(TESTSIZE) \
+		$(DBTEST_FILES) \
+		${TESTCONFIG}
+	$(RUNTEST) ./fdexec@suffix@ dbtest.scm testdb COUNT=$(TESTSIZE) ${TESTCONFIG} 
+	$(RUNTEST) ./fdexec@suffix@ dbtest.scm testdb COUNT=$(TESTSIZE) \
+		 ${TESTCONFIG} CACHELEVEL=2 
+	@echo "*** Testing database creation with CACHELEVEL=2"
+	$(RUNTEST) ./fdexec@suffix@ dbtest.scm testdb init COUNT=$(TESTSIZE) 	\
+		$(DBTEST_FILES) 						\
+		${TESTCONFIG} CACHELEVEL=2 	
+	$(RUNTEST) ./fdexec@suffix@ dbtest.scm testdb COUNT=$(TESTSIZE) \
+		 ${TESTCONFIG} CACHELEVEL=2
+	@echo "*** Finished database layer tests"
 
-dbhashtests:
-	@echo "*** Running scheme tests to exercise the database layer with hashindices"
+alldbtests:
+	@echo "*** Database layer tests with oidpool/hashindex cofigurations ***"
+	make dbtests
 	make FD_HASHINDEX=yes dbtests
-	make FD_HASHINDEX="(COMPRESS B40)" dbtests
-	@echo "*** Completed scheme tests to exercise the database layer with hashindices"
-
-dbhash32tests:
-	@echo "*** Running scheme tests to exercise hashindices with B32 reprepresentation "***""
-	make FD_HASHINDEX=yes dbtests
-	make FD_HASHINDEX="(COMPRESS B32)" dbtests
-	@echo "*** Completed scheme tests to exercise hashindices with B32 reprepresentation "***""
-
-dbxtests:
-	@echo "*** Running scheme tests to exercise hashindices with B32 reprepresentation "***""
+	make FD_HASHINDEX="(B32)" dbtests
+	#make FD_OIDPOOL=yes dbtests
+	#make FD_OIDPOOL=(B40 COMPRESS) dbtests
+	make FD_HASHINDEX="(B64)" dbtests
+	#make FD_OIDPOOL="(B32)" dbtests
 	make FD_HASHINDEX=yes FD_OIDPOOL=yes dbtests
 	make FD_HASHINDEX="(B32)" FD_OIDPOOL="FD_OIDPOOL=(B40)" dbtests
 	make FD_HASHINDEX="(B40)" FD_OIDPOOL="FD_OIDPOOL=(B40)" dbtests
 	make FD_HASHINDEX="(B64)" FD_OIDPOOL="FD_OIDPOOL=(B64)" dbtests
-	make FD_HASHINDEX="(COMPRESS B32)" FD_OIDPOOL="FD_OIDPOOL=(B32)" dbtests
-	@echo "*** Completed scheme tests to exercise hashindices with B32 reprepresentation "***""
+	@echo "*** Completed hashindex tests with B32 reprepresentation "***""
 
 cryptotests:
 	@echo "*** Running crypto tests ***"
@@ -489,7 +487,7 @@ builtin_heapoptmods:
 
 randomtests:
 	@echo "*** Running alltests with a really random seed"
-	make "TESTCONFIG=RANDOMSEED=TIME" alltests
+	make TESTCONFIG="RANDOMSEED=TIME ${TESTCONFIG}" alltests
 	@echo "*** Finished alltests with a really random seed"
 
 chaintests:
