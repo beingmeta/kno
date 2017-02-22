@@ -29,6 +29,9 @@ fd_exception fd_UnexpectedEOD=_("Unexpected end of data");
 fd_exception fd_DTypeError=_("Malformed DTYPE representation");
 fd_exception fd_InconsistentDTypeSize=_("Inconsistent DTYPE size");
 
+fd_exception fd_IsWriteBuf=_("Reading from a write buffer");
+fd_exception fd_IsReadBuf=_("Writing to a read buffer");
+
 static fd_exception BadUnReadByte=_("Inconsistent read/unread byte");
 
 static fdtype error_symbol;
@@ -48,15 +51,16 @@ static int grow_output_buffer(struct FD_BYTE_OUTBUF *b,size_t delta)
   size_t new_limit=current_limit;
   size_t need_size=current_size+delta;
   unsigned char *new;
+  if (new_limit<=0) new_limit=1000;
   while (new_limit < need_size)
-    if (new_limit>=0x40000) new_limit=new_limit+0x40000;
+    if (new_limit>=250000) new_limit=new_limit+250000;
     else new_limit=new_limit*2;
-  if ((b->buf_flags)&(FD_MALLOCD_BUFFER))
+  if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
     new=u8_realloc(b->bufbase,new_limit);
   else {
     new=u8_malloc(new_limit);
     if (new) memcpy(new,b->bufbase,current_size);
-    b->buf_flags=b->buf_flags|FD_MALLOCD_BUFFER;}
+    b->buf_flags=b->buf_flags|FD_BUFFER_IS_MALLOCD;}
   if (new == NULL) return 0;
   b->bufbase=new; b->bufpoint=new+current_size;
   b->buflim=b->bufbase+new_limit;
@@ -72,20 +76,57 @@ static int grow_input_buffer(struct FD_BYTE_INBUF *in,int delta)
   size_t new_limit=current_limit;
   size_t need_size=current_size+delta;
   unsigned char *new;
+  if (new_limit<=0) new_limit=1000;
   while (new_limit < need_size)
-    if (new_limit>=0x40000) new_limit=new_limit+0x40000;
+    if (new_limit>=250000) new_limit=new_limit+25000;
     else new_limit=new_limit*2;
-  if ((b->buf_flags)&(FD_MALLOCD_BUFFER))
+  if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
     new=u8_realloc(b->bufbase,new_limit);
   else {
     new=u8_malloc(new_limit);
     if (new) memcpy(new,b->bufbase,current_size);
-    b->buf_flags=b->buf_flags|FD_MALLOCD_BUFFER;}
+    b->buf_flags=b->buf_flags|FD_BUFFER_IS_MALLOCD;}
   if (new == NULL) return 0;
   b->bufbase=new; b->bufpoint=new+current_size;
   b->buflim=b->bufbase+new_limit;
   b->buflen=new_limit;
   return 1;
+}
+
+FD_EXPORT int fd_isreadbuf(struct FD_BYTE_OUTBUF *b)
+{
+  u8_log(LOGCRIT,fd_IsReadBuf,
+         "Trying to write to an input buffer 0x%llx",
+         (unsigned long long)b);
+  u8_seterr(fd_IsReadBuf,NULL,NULL);
+  return -1;
+}
+
+FD_EXPORT int fd_iswritebuf(struct FD_BYTE_INBUF *b)
+{
+  u8_log(LOGCRIT,fd_IsWriteBuf,
+         "Trying to read from an output buffer 0x%llx",
+         (unsigned long long)b);
+  u8_seterr(fd_IsWriteBuf,NULL,NULL);
+  return -1;
+}
+
+FD_EXPORT fdtype fdt_isreadbuf(struct FD_BYTE_OUTBUF *b)
+{
+  u8_log(LOGCRIT,"WriteToRead",
+         "Trying to write to an input buffer 0x%llx",
+         (unsigned long long)b);
+  u8_seterr(fd_IsReadBuf,"ReturningDType",NULL);
+  return FD_ERROR_VALUE;
+}
+
+FD_EXPORT fdtype fdt_iswritebuf(struct FD_BYTE_INBUF *b)
+{
+  u8_log(LOGCRIT,fd_IsWriteBuf,
+         "Trying to read from an output buffer 0x%llx",
+         (unsigned long long)b);
+  u8_seterr(fd_IsWriteBuf,"ReturningDType",NULL);
+  return FD_ERROR_VALUE;
 }
 
 FD_EXPORT int fd_needs_space(struct FD_BYTE_OUTBUF *b,size_t delta)
@@ -109,7 +150,8 @@ FD_EXPORT int _fd_grow_inbuf(struct FD_BYTE_INBUF *b,size_t delta)
 
 FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTBUF *b,unsigned char byte)
 {
-  if (fd_needs_space(b,1)) {
+  if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
+  else if (fd_needs_space(b,1)) {
     *(b->bufpoint++)=byte; 
     return 1;}
   else return -1;
@@ -117,7 +159,8 @@ FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTBUF *b,unsigned char byte)
 
 FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTBUF *b,fd_4bytes w)
 {
-  if (fd_needs_space(b,4)==0)
+  if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
+  else if (fd_needs_space(b,4)==0)
     return -1;
   *(b->bufpoint++)=(((w>>24)&0xFF));
   *(b->bufpoint++)=(((w>>16)&0xFF));
@@ -128,7 +171,8 @@ FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTBUF *b,fd_4bytes w)
 
 FD_EXPORT int _fd_write_8bytes(struct FD_BYTE_OUTBUF *b,fd_8bytes w)
 {
-  if (fd_needs_space(b,8)==0)
+  if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
+  else if (fd_needs_space(b,8)==0)
     return -1;
   *(b->bufpoint++)=((w>>56)&0xFF);
   *(b->bufpoint++)=((w>>48)&0xFF);
@@ -144,7 +188,8 @@ FD_EXPORT int _fd_write_8bytes(struct FD_BYTE_OUTBUF *b,fd_8bytes w)
 FD_EXPORT int _fd_write_bytes
    (struct FD_BYTE_OUTBUF *b,const unsigned char *data,int size)
 {
-  if (fd_needs_space(b,size)==0) return -1;
+  if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
+  else if (fd_needs_space(b,size)==0) return -1;
   memcpy(b->bufpoint,data,size); b->bufpoint=b->bufpoint+size;
   return size;
 }
@@ -178,7 +223,8 @@ static ssize_t try_dtype_output(int *len,struct FD_BYTE_OUTBUF *out,fdtype x)
   return dlen;
 }
 #define output_dtype(len,out,x) \
-  if (try_dtype_output(&len,out,x)<0) return -1; else {}
+  if (FD_EXPECT_FALSE(FD_ISREADING(out))) return fd_isreadbuf(out); \
+  else if (try_dtype_output(&len,out,x)<0) return -1; else {}
 
 static int write_opaque(struct FD_BYTE_OUTBUF *out,fdtype x)
 {
@@ -200,12 +246,12 @@ static int write_choice_dtype(fd_byte_outbuf out,fd_choice ch)
   fdtype _natsorted[17], *natsorted=_natsorted;
   int dtype_len=0, n_choices=FD_XCHOICE_SIZE(ch);
   const fdtype *data; int i=0;
-  if  ((out->buf_flags)&(FD_DTYPE_NATSORT)) {
+  if  ((out->buf_flags)&(FD_NATSORT_VALUES)) {
     natsorted=fd_natsort_choice(ch,_natsorted,17);
     data=(const fdtype *)natsorted;}
   else data=FD_XCHOICE_DATA(ch);
   if (n_choices < 256)
-    if ((out->buf_flags)&(FD_DTYPEV2)) {
+    if ((out->buf_flags)&(FD_USE_DTYPEV2)) {
       dtype_len=2;
       output_byte(out,dt_tiny_choice);
       output_byte(out,n_choices);}
@@ -227,210 +273,211 @@ static int write_choice_dtype(fd_byte_outbuf out,fd_choice ch)
 
 FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTBUF *out,fdtype x)
 {
-  switch (FD_PTR_MANIFEST_TYPE(x)) {
-  case fd_oid_ptr_type: { /* output OID */
-    FD_OID addr=FD_OID_ADDR(x);
-    output_byte(out,dt_oid);
-    output_4bytes(out,FD_OID_HI(addr));
-    output_4bytes(out,FD_OID_LO(addr));
-    return 9;}
-  case fd_fixnum_ptr_type: { /* output fixnum */
-    int val=FD_FIX2INT(x);
-    output_byte(out,dt_fixnum);
-    output_4bytes(out,val);
-    return 5;}
-  case fd_immediate_ptr_type: { /* output constant */
-    fd_ptr_type itype=FD_IMMEDIATE_TYPE(x);
-    int data=FD_GET_IMMEDIATE(x,itype), retval=0;
-    if (itype == fd_symbol_type) { /* output symbol */
-      fdtype name=fd_symbol_names[data];
-      struct FD_STRING *s=fd_consptr(struct FD_STRING *,name,fd_string_type);
-      int len=s->fd_bytelen;
-      if (((out->buf_flags)&(FD_DTYPEV2)) && (len<256)) {
-        {output_byte(out,dt_tiny_symbol);}
-        {output_byte(out,len);}
-        {output_bytes(out,s->fd_bytes,len);}
-        return len+2;}
-      else {
-        {output_byte(out,dt_symbol);}
-        {output_4bytes(out,len);}
-        {output_bytes(out,s->fd_bytes,len);}
-        return len+5;}}
-    else if (itype == fd_character_type) { /* Output unicode character */
-      output_byte(out,dt_character_package);
-      if (data<128) {
-        output_byte(out,dt_ascii_char);
-        output_byte(out,1); output_byte(out,data);
-        return 4;}
-      else {
-        output_byte(out,dt_unicode_char);
-        if (data<0x100) {
-          output_byte(out,1);
-          output_byte(out,data);
-          return 4;}
-        else if (data<0x10000) {
-          output_byte(out,2);
-          output_byte(out,((data>>8)&0xFF));
-          output_byte(out,(data&0xFF));
-          return 5;}
-        else if (data<0x1000000) {
-          output_byte(out,3);
-          output_byte(out,((data>>16)&0xFF));
-          output_byte(out,((data>>8)&0xFF));
-          output_byte(out,(data&0xFF));
-          return 6;}
-        else {
-          output_byte(out,3); output_4bytes(out,data);
-          return 7;}}
+  if (FD_EXPECT_FALSE(FD_ISREADING(out))) return fd_isreadbuf(out);
+  else switch (FD_PTR_MANIFEST_TYPE(x)) {
+    case fd_oid_ptr_type: { /* output OID */
+      FD_OID addr=FD_OID_ADDR(x);
+      output_byte(out,dt_oid);
+      output_4bytes(out,FD_OID_HI(addr));
+      output_4bytes(out,FD_OID_LO(addr));
+      return 9;}
+    case fd_fixnum_ptr_type: { /* output fixnum */
+      int val=FD_FIX2INT(x);
+      output_byte(out,dt_fixnum);
+      output_4bytes(out,val);
       return 5;}
-    else if (itype==fd_constant_type)
-      switch (data) {
-      case 0: output_byte(out,dt_void); return 1;
-      case 1: output_byte(out,dt_boolean); output_byte(out,0); return 2;
-      case 2: output_byte(out,dt_boolean); output_byte(out,1); return 2;
-      case 3:
-        if ((out->buf_flags)&(FD_DTYPEV2)) {
-          output_byte(out,dt_empty_choice);
-          return 1;}
+    case fd_immediate_ptr_type: { /* output constant */
+      fd_ptr_type itype=FD_IMMEDIATE_TYPE(x);
+      int data=FD_GET_IMMEDIATE(x,itype), retval=0;
+      if (itype == fd_symbol_type) { /* output symbol */
+        fdtype name=fd_symbol_names[data];
+        struct FD_STRING *s=fd_consptr(struct FD_STRING *,name,fd_string_type);
+        int len=s->fd_bytelen;
+        if (((out->buf_flags)&(FD_USE_DTYPEV2)) && (len<256)) {
+          {output_byte(out,dt_tiny_symbol);}
+          {output_byte(out,len);}
+          {output_bytes(out,s->fd_bytes,len);}
+          return len+2;}
         else {
-          output_byte(out,dt_framerd_package);
-          output_byte(out,dt_small_choice);
-          output_byte(out,0);
-          return 3;}
-      case 4: output_byte(out,dt_empty_list); return 1;
-      default:
-        fd_seterr(_("Invalid constant"),NULL,NULL,x);
-        return -1;}
-    else if ((FD_VALID_TYPEP(itype)) && (fd_dtype_writers[itype]))
-      return fd_dtype_writers[itype](out,x);
-    else if ((out->buf_flags)&(FD_WRITE_OPAQUE))
-      return write_opaque(out,x);
-    else if ((fd_dtype_error) &&
-             (retval=fd_dtype_error(out,x,"no handler")))
-      return retval;
-    else {
-      fd_seterr(fd_NoMethod,_("Can't write DTYPE"),NULL,x);
-      return -1;}
-    break;}
-  case fd_cons_ptr_type: {/* output cons */
-    struct FD_CONS *cons=FD_CONS_DATA(x);
-    int ctype=FD_CONS_TYPE(cons);
-    switch (ctype) {
-    case fd_string_type: {
-      struct FD_STRING *s=(struct FD_STRING *) cons; int len=s->fd_bytelen;
-      if (((out->buf_flags)&(FD_DTYPEV2)) && (len<256)) {
-        output_byte(out,dt_tiny_string);
-        output_byte(out,len);
-        output_bytes(out,s->fd_bytes,len);
-        return 2+len;}
-      else {
-        output_byte(out,dt_string);
-        output_4bytes(out,len);
-        output_bytes(out,s->fd_bytes,len);
-        return 5+len;}}
-    case fd_packet_type: {
-      struct FD_STRING *s=(struct FD_STRING *) cons;
-      output_byte(out,dt_packet);
-      output_4bytes(out,s->fd_bytelen);
-      output_bytes(out,s->fd_bytes,s->fd_bytelen);
-      return 5+s->fd_bytelen;}
-    case fd_secret_type: {
-      struct FD_STRING *s=(struct FD_STRING *) cons;
-      const unsigned char *data=s->fd_bytes;
-      unsigned int len=s->fd_bytelen, sz=0;
-      output_byte(out,dt_character_package);
-      if (len<256) {
-        output_byte(out,dt_short_secret_packet);
-        output_byte(out,len);
-        sz=3;}
-      else {
-        output_byte(out,dt_secret_packet);
-        output_4bytes(out,len);
-        sz=6;}
-      output_bytes(out,data,len);
-      return sz+len;}
-    case fd_pair_type: {
-      int len=0; fdtype scan=x;
-      while (1) {
-        struct FD_PAIR *p=(struct FD_PAIR *) scan;
-        fdtype cdr=p->fd_cdr;
-        {output_byte(out,dt_pair); len++;}
-        {output_dtype(len,out,p->fd_car);}
-        if (FD_PAIRP(cdr)) scan=cdr;
+          {output_byte(out,dt_symbol);}
+          {output_4bytes(out,len);}
+          {output_bytes(out,s->fd_bytes,len);}
+          return len+5;}}
+      else if (itype == fd_character_type) { /* Output unicode character */
+        output_byte(out,dt_character_package);
+        if (data<128) {
+          output_byte(out,dt_ascii_char);
+          output_byte(out,1); output_byte(out,data);
+          return 4;}
         else {
-          output_dtype(len,out,cdr);
-          return len;}}
-      return len;}
-    case fd_rational_type:  case fd_complex_type: {
-      fdtype car, cdr;
-      unsigned int len=1;
-      if (ctype == fd_rational_type) {
-        _fd_unpack_rational((fdtype)cons,&car,&cdr);
-        output_byte(out,dt_rational);}
-      else {
-        _fd_unpack_complex((fdtype)cons,&car,&cdr);
-        output_byte(out,dt_complex);}
-      output_dtype(len,out,car);
-      output_dtype(len,out,cdr);
-      return len;}
-    case fd_vector_type: {
-      struct FD_VECTOR *v=(struct FD_VECTOR *) cons;
-      int i=0, length=v->fd_veclen, dtype_len=5;
-      output_byte(out,dt_vector);
-      output_4bytes(out,length);
-      while (i < length) {
-        output_dtype(dtype_len,out,v->fd_vecelts[i]); i++;}
-      return dtype_len;}
-    case fd_choice_type:
-      return write_choice_dtype(out,(fd_choice)cons);
-    case fd_qchoice_type: {
-      struct FD_QCHOICE *qv=(struct FD_QCHOICE *) cons;
-      output_byte(out,dt_framerd_package);
-      if (FD_EMPTY_CHOICEP(qv->fd_choiceval)) {
-        output_byte(out,dt_small_qchoice);
-        output_byte(out,0);
-        return 3;}
-      else {
-        struct FD_CHOICE *v=(struct FD_CHOICE *) (qv->fd_choiceval);
-        const fdtype *data=FD_XCHOICE_DATA(v);
-        int i=0, len=FD_XCHOICE_SIZE(v), dtype_len;
-        if (len < 256) {
-          dtype_len=3;
-          output_byte(out,dt_small_qchoice);
-          output_byte(out,len);}
-        else {
-          dtype_len=6;
-          output_byte(out,dt_qchoice);
-          output_4bytes(out,len);}
-        while (i < len) {
-          output_dtype(dtype_len,out,data[i]); i++;}
-        return dtype_len;}}
-    case fd_hashset_type:
-      return write_hashset(out,(struct FD_HASHSET *) cons);
-    case fd_slotmap_type:
-      return write_slotmap(out,(struct FD_SLOTMAP *) cons);
-    case fd_schemap_type:
-      return write_schemap(out,(struct FD_SCHEMAP *) cons);
-    case fd_hashtable_type:
-      return write_hashtable(out,(struct FD_HASHTABLE *) cons);
-    case fd_mystery_type:
-      return write_mystery(out,(struct FD_MYSTERY_DTYPE *) cons);
-    default: {
-      fd_ptr_type ctype=FD_CONS_TYPE(cons); int dtype_len;
-      if ((FD_VALID_TYPEP(ctype)) && (fd_dtype_writers[ctype]))
-        return fd_dtype_writers[ctype](out,x);
+          output_byte(out,dt_unicode_char);
+          if (data<0x100) {
+            output_byte(out,1);
+            output_byte(out,data);
+            return 4;}
+          else if (data<0x10000) {
+            output_byte(out,2);
+            output_byte(out,((data>>8)&0xFF));
+            output_byte(out,(data&0xFF));
+            return 5;}
+          else if (data<0x1000000) {
+            output_byte(out,3);
+            output_byte(out,((data>>16)&0xFF));
+            output_byte(out,((data>>8)&0xFF));
+            output_byte(out,(data&0xFF));
+            return 6;}
+          else {
+            output_byte(out,3); output_4bytes(out,data);
+            return 7;}}
+        return 5;}
+      else if (itype==fd_constant_type)
+        switch (data) {
+        case 0: output_byte(out,dt_void); return 1;
+        case 1: output_byte(out,dt_boolean); output_byte(out,0); return 2;
+        case 2: output_byte(out,dt_boolean); output_byte(out,1); return 2;
+        case 3:
+          if ((out->buf_flags)&(FD_USE_DTYPEV2)) {
+            output_byte(out,dt_empty_choice);
+            return 1;}
+          else {
+            output_byte(out,dt_framerd_package);
+            output_byte(out,dt_small_choice);
+            output_byte(out,0);
+            return 3;}
+        case 4: output_byte(out,dt_empty_list); return 1;
+        default:
+          fd_seterr(_("Invalid constant"),NULL,NULL,x);
+          return -1;}
+      else if ((FD_VALID_TYPEP(itype)) && (fd_dtype_writers[itype]))
+        return fd_dtype_writers[itype](out,x);
       else if ((out->buf_flags)&(FD_WRITE_OPAQUE))
         return write_opaque(out,x);
       else if ((fd_dtype_error) &&
-               (dtype_len=fd_dtype_error(out,x,"no handler")))
-        return dtype_len;
+               (retval=fd_dtype_error(out,x,"no handler")))
+        return retval;
       else {
         fd_seterr(fd_NoMethod,_("Can't write DTYPE"),NULL,x);
-        return -1;}}
-    }}
-  default:
-    return -1;
-  }
+        return -1;}
+      break;}
+    case fd_cons_ptr_type: {/* output cons */
+      struct FD_CONS *cons=FD_CONS_DATA(x);
+      int ctype=FD_CONS_TYPE(cons);
+      switch (ctype) {
+      case fd_string_type: {
+        struct FD_STRING *s=(struct FD_STRING *) cons; int len=s->fd_bytelen;
+        if (((out->buf_flags)&(FD_USE_DTYPEV2)) && (len<256)) {
+          output_byte(out,dt_tiny_string);
+          output_byte(out,len);
+          output_bytes(out,s->fd_bytes,len);
+          return 2+len;}
+        else {
+          output_byte(out,dt_string);
+          output_4bytes(out,len);
+          output_bytes(out,s->fd_bytes,len);
+          return 5+len;}}
+      case fd_packet_type: {
+        struct FD_STRING *s=(struct FD_STRING *) cons;
+        output_byte(out,dt_packet);
+        output_4bytes(out,s->fd_bytelen);
+        output_bytes(out,s->fd_bytes,s->fd_bytelen);
+        return 5+s->fd_bytelen;}
+      case fd_secret_type: {
+        struct FD_STRING *s=(struct FD_STRING *) cons;
+        const unsigned char *data=s->fd_bytes;
+        unsigned int len=s->fd_bytelen, sz=0;
+        output_byte(out,dt_character_package);
+        if (len<256) {
+          output_byte(out,dt_short_secret_packet);
+          output_byte(out,len);
+          sz=3;}
+        else {
+          output_byte(out,dt_secret_packet);
+          output_4bytes(out,len);
+          sz=6;}
+        output_bytes(out,data,len);
+        return sz+len;}
+      case fd_pair_type: {
+        int len=0; fdtype scan=x;
+        while (1) {
+          struct FD_PAIR *p=(struct FD_PAIR *) scan;
+          fdtype cdr=p->fd_cdr;
+          {output_byte(out,dt_pair); len++;}
+          {output_dtype(len,out,p->fd_car);}
+          if (FD_PAIRP(cdr)) scan=cdr;
+          else {
+            output_dtype(len,out,cdr);
+            return len;}}
+        return len;}
+      case fd_rational_type:  case fd_complex_type: {
+        fdtype car, cdr;
+        unsigned int len=1;
+        if (ctype == fd_rational_type) {
+          _fd_unpack_rational((fdtype)cons,&car,&cdr);
+          output_byte(out,dt_rational);}
+        else {
+          _fd_unpack_complex((fdtype)cons,&car,&cdr);
+          output_byte(out,dt_complex);}
+        output_dtype(len,out,car);
+        output_dtype(len,out,cdr);
+        return len;}
+      case fd_vector_type: {
+        struct FD_VECTOR *v=(struct FD_VECTOR *) cons;
+        int i=0, length=v->fd_veclen, dtype_len=5;
+        output_byte(out,dt_vector);
+        output_4bytes(out,length);
+        while (i < length) {
+          output_dtype(dtype_len,out,v->fd_vecelts[i]); i++;}
+        return dtype_len;}
+      case fd_choice_type:
+        return write_choice_dtype(out,(fd_choice)cons);
+      case fd_qchoice_type: {
+        struct FD_QCHOICE *qv=(struct FD_QCHOICE *) cons;
+        output_byte(out,dt_framerd_package);
+        if (FD_EMPTY_CHOICEP(qv->fd_choiceval)) {
+          output_byte(out,dt_small_qchoice);
+          output_byte(out,0);
+          return 3;}
+        else {
+          struct FD_CHOICE *v=(struct FD_CHOICE *) (qv->fd_choiceval);
+          const fdtype *data=FD_XCHOICE_DATA(v);
+          int i=0, len=FD_XCHOICE_SIZE(v), dtype_len;
+          if (len < 256) {
+            dtype_len=3;
+            output_byte(out,dt_small_qchoice);
+            output_byte(out,len);}
+          else {
+            dtype_len=6;
+            output_byte(out,dt_qchoice);
+            output_4bytes(out,len);}
+          while (i < len) {
+            output_dtype(dtype_len,out,data[i]); i++;}
+          return dtype_len;}}
+      case fd_hashset_type:
+        return write_hashset(out,(struct FD_HASHSET *) cons);
+      case fd_slotmap_type:
+        return write_slotmap(out,(struct FD_SLOTMAP *) cons);
+      case fd_schemap_type:
+        return write_schemap(out,(struct FD_SCHEMAP *) cons);
+      case fd_hashtable_type:
+        return write_hashtable(out,(struct FD_HASHTABLE *) cons);
+      case fd_mystery_type:
+        return write_mystery(out,(struct FD_MYSTERY_DTYPE *) cons);
+      default: {
+        fd_ptr_type ctype=FD_CONS_TYPE(cons); int dtype_len;
+        if ((FD_VALID_TYPEP(ctype)) && (fd_dtype_writers[ctype]))
+          return fd_dtype_writers[ctype](out,x);
+        else if ((out->buf_flags)&(FD_WRITE_OPAQUE))
+          return write_opaque(out,x);
+        else if ((fd_dtype_error) &&
+                 (dtype_len=fd_dtype_error(out,x,"no handler")))
+          return dtype_len;
+        else {
+          fd_seterr(fd_NoMethod,_("Can't write DTYPE"),NULL,x);
+          return -1;}}
+      }}
+    default:
+      return -1;
+    }
 }
 
 static int write_mystery(struct FD_BYTE_OUTBUF *out,struct FD_MYSTERY_DTYPE *v)
@@ -661,12 +708,12 @@ FD_EXPORT int fd_grow_byte_input(struct FD_BYTE_INBUF *b,size_t len)
   unsigned int current_off=b->bufpoint-b->bufbase;
   unsigned int current_limit=b->buflim-b->bufbase;
   unsigned char *old=(unsigned char *)b->bufbase, *new;
-  if ((b->buf_flags)&(FD_MALLOCD_BUFFER))
+  if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
     new=u8_realloc(old,len);
   else {
     new=u8_malloc(len);
     if (new) memcpy(new,old,current_limit);
-    b->buf_flags=b->buf_flags|FD_MALLOCD_BUFFER;}
+    b->buf_flags=b->buf_flags|FD_BUFFER_IS_MALLOCD;}
   if (new == NULL) return 0;
   b->bufbase=new; b->bufpoint=new+current_off;
   b->buflim=b->bufbase+current_limit;
@@ -691,7 +738,9 @@ static fdtype *read_dtypes(int n,struct FD_BYTE_INBUF *in,
 
 FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INBUF *in)
 {
-  if (havebytes(in,1)) {
+  if (FD_EXPECT_FALSE(FD_ISWRITING(in)))
+    return fdt_iswritebuf(in);
+  else if (havebytes(in,1)) {
     int code=*(in->bufpoint++);
     switch (code) {
     case dt_empty_list: return FD_EMPTY_LIST;
@@ -1211,63 +1260,64 @@ fdtype (*_fd_make_double)(double)=default_make_double;
 
 /* Exported functions */
 
-FD_EXPORT int _fd_read_byte(struct FD_BYTE_INBUF *stream)
+FD_EXPORT int _fd_read_byte(struct FD_BYTE_INBUF *buf)
 {
-  if (fd_needs_bytes(stream,1)) return (*(stream->bufpoint++));
+  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  else if (fd_needs_bytes(buf,1)) return (*(buf->bufpoint++));
   else return -1;
 }
 
-FD_EXPORT int _fd_unread_byte(struct FD_BYTE_INBUF *stream,int byte)
+FD_EXPORT int _fd_unread_byte(struct FD_BYTE_INBUF *buf,int byte)
 {
-  if (stream->bufpoint==stream->bufbase) {
+  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  else if (buf->bufpoint==buf->bufbase) {
     fd_seterr(BadUnReadByte,"_fd_unread_byte",NULL,FD_VOID);
     return -1;}
-  else if (stream->bufpoint[-1]!=byte) {
+  else if (buf->bufpoint[-1]!=byte) {
     fd_seterr(BadUnReadByte,"_fd_unread_byte",NULL,FD_VOID);
     return -1;}
-  else {stream->bufpoint--; return 0;}
+  else {buf->bufpoint--; return 0;}
 }
 
-FD_EXPORT unsigned int _fd_read_4bytes(struct FD_BYTE_INBUF *stream)
+FD_EXPORT unsigned int _fd_read_4bytes(struct FD_BYTE_INBUF *buf)
 {
-  if (fd_needs_bytes(stream,4)) {
-    unsigned int bytes=fd_get_4bytes(stream->bufpoint);
-    stream->bufpoint=stream->bufpoint+4;
-    return bytes;}
+  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  else if (fd_needs_bytes(buf,4)) {
+    fd_4bytes value=fd_get_4bytes(buf->bufpoint);
+    buf->bufpoint=buf->bufpoint+4;
+    return value;}
   else {
     fd_seterr1(fd_UnexpectedEOD);
     return 0;}
 }
 
-FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_BYTE_INBUF *stream)
+FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_BYTE_INBUF *buf)
 {
-  if (fd_needs_bytes(stream,8)) {
-    unsigned int bytes=fd_get_8bytes(stream->bufpoint);
-    stream->bufpoint=stream->bufpoint+8;
-    return bytes;}
+  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  else if (fd_needs_bytes(buf,8)) {
+    fd_8bytes value=fd_get_8bytes(buf->bufpoint);
+    buf->bufpoint=buf->bufpoint+8;
+    return value;}
   else {
     fd_seterr1(fd_UnexpectedEOD);
     return 0;}
 }
 
 FD_EXPORT int
-  _fd_read_bytes(unsigned char *bytes,struct FD_BYTE_INBUF *stream,int len)
+  _fd_read_bytes(unsigned char *bytes,struct FD_BYTE_INBUF *buf,int len)
 {
-  if (fd_needs_bytes(stream,len)) {
-    memcpy(bytes,stream->bufpoint,len);
-    stream->bufpoint=stream->bufpoint+len;
+  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  else if (fd_needs_bytes(buf,len)) {
+    memcpy(bytes,buf->bufpoint,len);
+    buf->bufpoint=buf->bufpoint+len;
     return len;}
   else return -1;
 }
 
-FD_EXPORT int _fd_read_zint(struct FD_BYTE_INBUF *stream)
+FD_EXPORT int _fd_read_zint(struct FD_BYTE_INBUF *buf)
 {
-  return fd_read_zint(stream);
-}
-
-FD_EXPORT fd_8bytes _fd_read_zint8(struct FD_BYTE_INBUF *stream)
-{
-  return fd_read_zint8(stream);
+  if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
+  else return fd_read_zint(buf);
 }
 
 /* File initialization */

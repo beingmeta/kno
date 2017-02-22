@@ -889,7 +889,7 @@ static int webservefn(u8_client ucl)
       /* If we can be asynchronous, let's try */
       int U8_MAYBE_UNUSED dtcode=fd_read_byte(instream);
       int nbytes=fd_read_4bytes(instream);
-      if (fd_has_bytes(stream,nbytes)) {
+      if (fd_has_bytes(instream,nbytes)) {
         /* We can execute without waiting */}
       else {
         int need_size=5+nbytes;

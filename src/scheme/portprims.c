@@ -1724,12 +1724,9 @@ FD_EXPORT void fd_init_portfns_c()
   fd_idefn(fd_scheme_module,
            fd_make_cprim1("OPEN-INPUT-STRING",open_input_string,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("PORTDATA",portdata,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1("PORT?",input_portp,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1("INPUT-PORT?",input_portp,1));
-  fd_idefn(fd_scheme_module,
-           fd_make_cprim1("OUTPUT-PORT?",output_portp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("PORT?",portp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("INPUT-PORT?",input_portp,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("OUTPUT-PORT?",output_portp,1));
 
   fd_idefn(fd_scheme_module,fd_make_cprim2("WRITE",write_prim,1));
   fd_idefn(fd_scheme_module,fd_make_cprim2("DISPLAY",display_prim,1));

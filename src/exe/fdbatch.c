@@ -272,7 +272,7 @@ int main(int argc,char **argv)
     /* The child process redirects stdio, runs fdexec, and
        removes the pid file and writes the done file when
        when it exits normally. */
-    int retval=-1, free_i=0;
+    int retval=-1;
     if (log_file) {
       dup2(log_fd,1); u8_free(log_file); close(log_fd);}
     if (err_file) {

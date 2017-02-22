@@ -85,11 +85,13 @@ static fdtype dns_query(fdtype domain_arg,fdtype type_arg)
   ldns_rr_type rr_type = ldns_get_rr_type_by_name( FD_SYMBOL_NAME( type_arg ) );
   ldns_rdf *domain = ldns_dname_new_frm_str( FD_STRDATA(domain_arg) );
   ldns_status s = ldns_resolver_new_frm_file( &res, NULL );
-  ldns_pkt *p = ldns_resolver_query ( res, domain, rr_type, LDNS_RR_CLASS_IN, LDNS_RD );
+  ldns_pkt *p = 
+    ldns_resolver_query ( res, domain, rr_type, LDNS_RR_CLASS_IN, LDNS_RD );
 
   if (!(p)) {}
   else {
-      ldns_rr_list *result_list = ldns_pkt_rr_list_by_type( p, rr_type, LDNS_SECTION_ANSWER );
+      ldns_rr_list *result_list = 
+        ldns_pkt_rr_list_by_type( p, rr_type, LDNS_SECTION_ANSWER );
       if (!(result_list)) {}
       else {
         size_t i=0, lim=result_list->_rr_count;

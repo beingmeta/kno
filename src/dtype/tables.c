@@ -191,8 +191,10 @@ static void sort_keyvals(struct FD_KEYVAL *v,int n)
 {
   int i=0; while (i<n)
     if (FD_ATOMICP(v[i].fd_kvkey)) i++;
-    else return cons_sort_keyvals(v,n);
-  return atomic_sort_keyvals(v,n);
+    else {
+      cons_sort_keyvals(v,n);
+      return;}
+  atomic_sort_keyvals(v,n);
 }
 
 FD_EXPORT struct FD_KEYVAL *_fd_sortvec_get
@@ -1105,7 +1107,6 @@ static int unparse_schemap(u8_output out,fdtype x)
 static int compare_schemaps(fdtype x,fdtype y,fd_compare_flags flags)
 {
   int result=0;
-  int quick=(flags==FD_COMPARE_QUICK);
   struct FD_SCHEMAP *smx=(struct FD_SCHEMAP *)x;
   struct FD_SCHEMAP *smy=(struct FD_SCHEMAP *)y;
   fd_read_lock_table(smx); fd_read_lock_table(smy);
@@ -1534,7 +1535,7 @@ FD_EXPORT int fd_hashtable_probe_novoid(struct FD_HASHTABLE *ht,fdtype key)
 
 static void setup_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 {
-  struct FD_HASH_BUCKET **slots; int i=0;
+  struct FD_HASH_BUCKET **slots;
   if (n_slots < 0) n_slots=fd_get_hashtable_size(-n_slots);
   ptr->ht_n_buckets=n_slots; ptr->table_n_keys=0; ptr->table_modified=0;
   ptr->ht_buckets=slots=
@@ -1612,7 +1613,6 @@ static int add_to_hashtable(fd_hashtable ht,fdtype key,fdtype value)
 
 static int check_hashtable_size(fd_hashtable ht,ssize_t delta)
 {
-  int loading=ht->table_load_factor;
   size_t n_keys=ht->table_n_keys, n_slots=ht->ht_n_buckets; 
   size_t need_keys=(delta<0) ? 
     (n_keys+fd_init_hash_size+3) : 
@@ -1629,8 +1629,7 @@ static int check_hashtable_size(fd_hashtable ht,ssize_t delta)
 
 FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
 {
-  struct FD_KEYVAL *result;
-  int n_keys, added=0;
+  int added=0;
   KEY_CHECK(key,ht); FD_CHECK_TYPE_RET(ht,fd_hashtable_type);
   if (ht->table_readonly) {
     fd_seterr(fd_ReadOnlyHashtable,"fd_hashtable_add",NULL,key);
@@ -1647,7 +1646,6 @@ FD_EXPORT int fd_hashtable_add(fd_hashtable ht,fdtype key,fdtype value)
   else if (FD_ACHOICEP(key))
     check_hashtable_size(ht,FD_ACHOICE_SIZE(key));
   else check_hashtable_size(ht,3);
-  n_keys=ht->table_n_keys;
   /* These calls unlock the hashtable */
   if ( (FD_CHOICEP(key)) || (FD_ACHOICEP(key)) ) {
     FD_DO_CHOICES(eachkey,key) {

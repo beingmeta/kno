@@ -1354,7 +1354,7 @@ FD_EXPORT void fd_init_binders_c()
   fd_defspecial(fd_scheme_module,"DO",do_handler);
 
   fd_defspecial(fd_scheme_module,"DEFAULT!",set_default_handler);
-  fd_defspecial(fd_scheme_module,"SETFALSE!",set_default_handler);
+  fd_defspecial(fd_scheme_module,"SETFALSE!",set_false_handler);
   fd_defspecial(fd_scheme_module,"BIND-DEFAULT!",bind_default_handler);
 
 #if FD_IPEVAL_ENABLED

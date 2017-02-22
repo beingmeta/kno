@@ -421,7 +421,7 @@ static int write_oidpool_load(fd_oidpool op)
 {
   if (FD_POOLFILE_LOCKEDP(op)) {
     /* Update the load */
-    long long load; int err=0;
+    long long load;
     fd_bytestream stream=&(op->pool_stream);
     fd_lock_stream(stream);
     load=fd_read_4bytes_at(stream,16);
@@ -429,9 +429,10 @@ static int write_oidpool_load(fd_oidpool op)
       fd_unlock_stream(stream);
       return -1;}
     else if (op->pool_load>load) {
-      int rv=fd_write_4bytes_at(stream,16,op->pool_load);
+      int rv=fd_write_4bytes_at(stream,op->pool_load,16);
       fd_unlock_stream(stream);
-      if (rv<0) return rv;}
+      if (rv<0) return rv;
+      else return rv;}
     else {
       fd_unlock_stream(stream);
       return 0;}}
@@ -939,7 +940,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   FD_INIT_BYTE_OUTBUF(&tmpout,init_buflen);
   endpos=fd_endpos(stream);
   if ((op->pool_xformat)&(FD_OIDPOOL_DTYPEV2))
-    tmpout.buf_flags=tmpout.buf_flags|FD_DTYPEV2;
+    tmpout.buf_flags=tmpout.buf_flags|FD_USE_DTYPEV2;
   while (i<n) {
     FD_OID addr=FD_OID_ADDR(oids[i]);
     fdtype value=values[i];

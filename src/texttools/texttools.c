@@ -215,7 +215,8 @@ static fdtype encode_entities_prim(fdtype input,fdtype chars,fdtype nonascii)
           int c=u8_sgetc(&scan);
           while (c>=0) {
             if (c<128) {
-              if (strchr(buf,c)<0) u8_putc(&ascii_chars,c);}
+              if (strchr(buf,c))
+                u8_putc(&ascii_chars,c);}
             else {
               fdtype xch=FD_CODE2CHAR(c);
               FD_ADD_TO_CHOICE(other_chars,xch);}

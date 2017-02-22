@@ -51,7 +51,7 @@ ssize_t fd_max_strlen=-1;
 
 const char *fd_constant_names[]={
   "#?","#f","#t","{}","()","#eof","#eod","#eox",
-  "#baddtype","badparse","#oom","#typeerror","#rangeerror",
+  "#bad_dtype","bad_parse","#oom","#type_error","#range_error",
   "#error","#badptr","#throw","#exception_tag","#unbound",
   "#neverseen","#lockholder","#default",        /* 21 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 30 */
@@ -261,7 +261,7 @@ FD_EXPORT
 int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
 {
   int quick=(flags==FD_COMPARE_QUICK);
-  int compare_atomic=(!((flags&FD_COMPARE_ATOMIC)));
+  int compare_atomic=(!((flags&FD_COMPARE_CODES)));
   int compare_lengths=(!((flags&FD_COMPARE_ELTS)));
   int natural_sort=(flags&FD_COMPARE_NATSORT);
 
@@ -274,7 +274,7 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
     if ((FD_OID_BASE_ID(x))==(FD_OID_BASE_ID(y))) {
       unsigned int ox=FD_OID_BASE_OFFSET(x);
       unsigned int oy=FD_OID_BASE_OFFSET(y);
-      if (x<y) return -1;
+      if (ox<oy) return -1;
       else return 1;}
     else {
       FD_OID xaddr=FD_OID_ADDR(x), yaddr=FD_OID_ADDR(y);
@@ -287,7 +287,9 @@ int fdtype_compare(fdtype x,fdtype y,fd_compare_flags flags)
       else if (ylen<xlen) return 1;
       else return strcmp(xname,yname);}
     else return strcmp(xname,yname);}
-  else if ((natural_sort)&&(FD_OIDP(x))&&(FD_OIDP(y))) {}
+  else if ((natural_sort)&&(FD_OIDP(x))&&(FD_OIDP(y))) {
+    FD_OID xaddr=FD_OID_ADDR(x), yaddr=FD_OID_ADDR(y);
+    return FD_OID_COMPARE(xaddr,yaddr);}
   else if ((compare_atomic) && (FD_ATOMICP(x)))
     if (FD_ATOMICP(y))
       if (x>y) return 1; else if (x<y) return -1; else return 0;
@@ -1582,7 +1584,7 @@ static fdtype uuid_restore(fdtype MU tag,fdtype x,fd_compound_typeinfo MU e)
 
 /* Testing */
 
-static int some_false(fdtype arg)
+static U8_MAYBE_UNUSED int some_false(fdtype arg)
 {
   int some_false=0;
   FD_DOELTS(elt,arg,count) {

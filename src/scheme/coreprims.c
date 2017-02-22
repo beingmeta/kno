@@ -1005,6 +1005,7 @@ FD_EXPORT void fd_init_corefns_c()
   fd_idefn(fd_scheme_module,fd_make_cprim1("OPCODE?",opcodep,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("ERROR?",errorp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("APPLICABLE?",applicablep,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("FCNID?",fcnidp,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("FLONUM?",flonump,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("NAN?",isnanp,1));
 

@@ -1102,7 +1102,7 @@ int fd_containsp(fdtype xarg,fdtype yarg)
 FD_EXPORT
 fdtype *fd_natsort_choice(fd_choice ch,fdtype *tmpbuf,ssize_t tmp_len)
 {
-  int i=0, len=FD_XCHOICE_SIZE(ch), dtype_len;
+  int len=FD_XCHOICE_SIZE(ch);
   const fdtype *data=FD_XCHOICE_DATA(ch);
   fdtype *natsorted=(tmp_len>len) ? (tmpbuf) : u8_alloc_n(len,fdtype);
   memcpy(natsorted,data,len*sizeof(fdtype));

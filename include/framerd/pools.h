@@ -135,7 +135,7 @@ FD_EXPORT int fd_ignore_anonymous_oids;
 typedef enum fdb_unlock_flags {
   commit_modified=1,
   leave_modified=0,
-  discard_modified=-1} fdb_unlock_flag;
+  discard_modified=-1 } fdb_unlock_flag;
 
 typedef struct FD_ADJUNCT {
   struct FD_POOL *pool; fdtype slotid; fdtype table;} FD_ADJUNCT;
@@ -156,7 +156,7 @@ typedef struct FD_ADJUNCT *fd_adjunct;
   struct FD_ADJUNCT *pool_adjuncts;			\
   struct FD_HASHTABLE *oid_handlers;			\
   struct FD_POOL_HANDLER *pool_handler;			\
-  fdtype pool_namefn;
+  fdtype pool_namefn
 
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;
 typedef struct FD_POOL *fd_pool;

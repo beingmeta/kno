@@ -48,12 +48,17 @@ static fdtype getoption(fdtype opts,u8_string optstring,fdtype dflt)
   else return fd_getopt(opts,fd_intern(optstring),dflt);
 }
 
-static int tidySetBoolOpt(TidyDoc tdoc,TidyOptionId optname,fdtype value){
+static U8_MAYBE_UNUSED int tidySetBoolOpt(TidyDoc tdoc,
+                                          TidyOptionId optname,
+                                          fdtype value) {
   if (FD_FALSEP(value))
     return tidyOptSetBool(tdoc,optname,no);
   else return tidyOptSetBool(tdoc,optname,yes);}
-static int copyBoolOpt(fdtype opts,TidyDoc tdoc,TidyOptionId optname,
-                       u8_string optstring,fdtype dflt){
+static U8_MAYBE_UNUSED int copyBoolOpt(fdtype opts,
+                                       TidyDoc tdoc,
+                                       TidyOptionId optname,
+                                       u8_string optstring,
+                                       fdtype dflt){
   fdtype value=getoption(opts,optstring,dflt); int rc;
   if (FD_FALSEP(value))
     rc=tidyOptSetBool(tdoc,optname,no);
@@ -61,7 +66,9 @@ static int copyBoolOpt(fdtype opts,TidyDoc tdoc,TidyOptionId optname,
   fd_decref(value);
   return rc;}
 
-static int tidySetIntOpt(TidyDoc tdoc,TidyOptionId optname,fdtype value){
+static U8_MAYBE_UNUSED int tidySetIntOpt(TidyDoc tdoc,
+                                         TidyOptionId optname,
+                                         fdtype value){
   if (FD_FIXNUMP(value))
     return tidyOptSetInt(tdoc,optname,FD_FIX2INT(value));
   else {
@@ -69,8 +76,10 @@ static int tidySetIntOpt(TidyDoc tdoc,TidyOptionId optname,fdtype value){
     fd_seterr(fd_TypeError,"tidySetIntOpt",
               u8_strdup("integer"),value);
     return -1;}}
-static int copyIntOpt(fdtype opts,TidyDoc tdoc,TidyOptionId optname,
-                      u8_string optstring,int dflt){
+static U8_MAYBE_UNUSED int copyIntOpt(fdtype opts,TidyDoc tdoc,
+                                      TidyOptionId optname,
+                                      u8_string optstring,
+                                      int dflt){
   int rc=-1;
   fdtype value=getoption(opts,optstring,FD_VOID);
   if (FD_VOIDP(value))
@@ -85,15 +94,20 @@ static int copyIntOpt(fdtype opts,TidyDoc tdoc,TidyOptionId optname,
   fd_decref(value);
   return rc;}
 
-static int tidySetStringOpt(TidyDoc tdoc,TidyOptionId optname,fdtype value){
+static U8_MAYBE_UNUSED int tidySetStringOpt(TidyDoc tdoc,
+                                            TidyOptionId optname,
+                                            fdtype value){
   if (FD_STRINGP(value))
     return tidyOptSetValue(tdoc,optname,FD_STRDATA(value));
   else {
     fd_incref(value);
     fd_seterr(fd_TypeError,"tidySetIntOpt",u8_strdup("string"),value);
     return -1;}}
-static int copyStringOpt(fdtype opts,TidyDoc tdoc,TidyOptionId optname,
-                         u8_string optstring,u8_string dflt){
+static U8_MAYBE_UNUSED int copyStringOpt(fdtype opts,
+                                         TidyDoc tdoc,
+                                         TidyOptionId optname,
+                                         u8_string optstring,
+                                         u8_string dflt) {
   int rc=-1;
   fdtype value=getoption(opts,optstring,FD_VOID);
   if (FD_VOIDP(value))
@@ -107,11 +121,7 @@ static int copyStringOpt(fdtype opts,TidyDoc tdoc,TidyOptionId optname,
     return -1;}
   return rc;}
 
-/* The main primitive */
-
-static fdtype doctype_symbol, dontfix_symbol, wrap_symbol, xhtml_symbol;
-
-static int testopt(fdtype opts,fdtype sym,int dflt)
+static U8_MAYBE_UNUSED int testopt(fdtype opts,fdtype sym,int dflt)
 {
   fdtype v=fd_getopt(opts,sym,FD_VOID);
   if (FD_VOIDP(v)) return dflt;
@@ -120,6 +130,10 @@ static int testopt(fdtype opts,fdtype sym,int dflt)
     fd_decref(v);
     return 1;}
 }
+
+/* The main primitive */
+
+static fdtype doctype_symbol, dontfix_symbol, wrap_symbol, xhtml_symbol;
 
 static fdtype tidy_prim_helper(fdtype string,fdtype opts,fdtype diag,
                                int do_fixes,int xhtml)

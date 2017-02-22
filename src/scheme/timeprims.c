@@ -1088,7 +1088,6 @@ static fdtype secs2string(fdtype secs,fdtype prec_arg)
 static fdtype secs2short(fdtype secs)
 {
   struct U8_OUTPUT out;
-  int elts=0;
   double seconds, reduce;
   int days, hours, minutes;
   if (FD_FIXNUMP(secs))

@@ -512,11 +512,11 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     fd_hashtable changes=&(p->pool_changes);
     if ( (changes->table_n_keys==0) ||
          /* This will store it in changes if it's already there (i.e. 'locked') */
-         (fd_hashtable_op(changes,fd_table_replace_novoid,oids,v)==0) ) 
-      if (fdtc) fd_hashtable_op(&(fdtc->oids),fd_table_store,oids,v);
-      if (cachelevel>0) fd_hashtable_store(&(p->pool_cache),oids,v);
-      fd_decref(v);
-      return 1;}
+         (fd_hashtable_op(changes,fd_table_replace_novoid,oids,v)==0) ) {
+      if (fdtc) fd_hashtable_op(&(fdtc->oids),fd_table_store,oids,v);}
+    if (cachelevel>0) fd_hashtable_store(&(p->pool_cache),oids,v);
+    fd_decref(v);
+    return 1;}
 }
 
 /* Swapping out OIDs */
@@ -698,7 +698,6 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes);
 FD_EXPORT int fd_pool_commit(fd_pool p,fdtype oids)
 {
   struct FD_HASHTABLE *locks=&(p->pool_changes);
-  double start=u8_elapsed_time();
 
   if (locks->table_n_keys==0) {
     u8_log(fddb_loglevel+1,fd_PoolCommit,
@@ -794,6 +793,9 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
   if (p->pool_handler->unlock) {
     fdtype to_unlock=fd_init_choice(NULL,unlock_count,oids,FD_CHOICE_ISATOMIC);
     int retval=p->pool_handler->unlock(p,to_unlock);
+    if (retval<0) {
+      u8_log(LOGCRIT,"UnlockFailed","Error unlocking pool %s",p->pool_cid);
+      fd_clear_errors(1);}
     fd_decref(to_unlock);}
   fd_hashtable_iterkeys(changes,fd_table_replace,unlock_count,oids,FD_VOID);
   fd_devoid_hashtable(changes,0);
@@ -942,7 +944,6 @@ static int apply_poolop(fd_pool_op fn,fdtype oids_arg)
     else return 0;}
   else {
     int n=FD_CHOICE_SIZE(oids), sum=0;
-    fd_pool p;
     fdtype *allocd=u8_alloc_n(n,fdtype), *oidv=allocd, *write=oidv;
     {FD_DO_CHOICES(oid,oids) {
         if (FD_OIDP(oid)) *write++=oid;}}
@@ -995,7 +996,7 @@ FD_EXPORT int fd_unlock_oids(fdtype oids_arg,fdb_unlock_flag flags)
   case commit_modified:
     return apply_poolop(commit_and_unlock,oids_arg);
   case leave_modified:
-    return apply_poolop(fd_pool_commit,oids_arg);
+    return apply_poolop(unlock_unmodified,oids_arg);
   case discard_modified:
     return apply_poolop(unlock_and_discard,oids_arg);
   default:

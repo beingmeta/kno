@@ -221,7 +221,7 @@ FD_FASTOP int count_envrefs(fdtype obj,fd_lispenv env,int depth)
 static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
 {
   struct FD_CONS *cons=(struct FD_CONS *)obj;
-  int refcount=FD_CONS_REFCOUNT(cons), constype=FD_CONS_TYPE(cons);
+  int constype=FD_CONS_TYPE(cons);
   if (1) /* (refcount==1) */
     switch (constype) {
     case fd_pair_type:

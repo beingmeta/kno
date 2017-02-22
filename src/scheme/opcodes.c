@@ -664,6 +664,7 @@ static fdtype xref_opcode(fdtype x,int i,fdtype tag)
   else return fd_err(fd_TypeError,"xref",fd_dtype2string(tag),x);
 }
 
+/* TODO */
 static fdtype fd_rail_eval(int n,fdtype *start,fd_lispenv env)
 {
   fdtype opcode=start[0];

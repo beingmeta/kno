@@ -114,7 +114,7 @@ static int write_file_pool_load(fd_file_pool fp)
 {
   if (FD_POOLFILE_LOCKEDP(fp)) {
     /* Update the load */
-    long long load; int err=0;
+    long long load;
     fd_bytestream stream=&(fp->pool_stream);
     fd_lock_stream(stream);
     load=fd_read_4bytes_at(stream,16);
@@ -127,9 +127,10 @@ static int write_file_pool_load(fd_file_pool fp)
       fd_unlock_stream(stream);
       return -1;}
     else if (fp->pool_load>load) {
-      int rv=fd_write_4bytes_at(stream,16,fp->pool_load);
+      int rv=fd_write_4bytes_at(stream,fp->pool_load,16);
       fd_unlock_stream(stream);
-      if (rv<0) return rv;}
+      if (rv<0) return rv;
+      return 1;}
     else {
       fd_unlock_stream(stream);
       return 0;}}
@@ -167,7 +168,7 @@ static int file_pool_load(fd_pool p)
   if (FD_POOLFILE_LOCKEDP(fp))
     return fp->pool_load;
   else {
-    int pool_load, err=0;
+    int pool_load;
     fd_lock_pool(fp);
     pool_load=read_file_pool_load(fp);
     fd_unlock_pool(fp);
@@ -548,7 +549,6 @@ static void file_pool_setcache(fd_pool p,int level)
     if (fp->pool_offsets) return;
     else {
       fd_bytestream s=&(fp->pool_stream);
-      fd_byte_inbuf ins=fd_readbuf(s);
       unsigned int *offsets, *newmmap;
       fd_lock_pool(fp);
       if (fp->pool_offsets) {
@@ -566,7 +566,7 @@ static void file_pool_setcache(fd_pool p,int level)
       fp->pool_offsets=offsets=newmmap+6;
       fp->pool_offsets_size=fp->pool_load;
 #else
-      fd_bytestream_start_read(s);
+      fd_byte_inbuf ins=fd_readbuf(s);
       fd_setpos(s,12);
       fp->pool_load=load=fd_read_4bytes(ins);
       offsets=u8_alloc_n(load,unsigned int);

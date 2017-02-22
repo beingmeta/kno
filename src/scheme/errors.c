@@ -395,8 +395,6 @@ static int thunkp(fdtype x)
     else return 0;}
 }
 
-static u8_condition UnwindError=_("Unwind error");
-
 static fdtype dynamic_wind_handler(fdtype expr,fd_lispenv env)
 {
   fdtype wind=fd_get_arg(expr,1);

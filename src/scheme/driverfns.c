@@ -637,7 +637,7 @@ static fdtype dtype_inputp(fdtype arg)
 {
   if (FD_TYPEP(arg,fd_byteport_type)) {
     struct FD_BYTEPORT *dts=(fd_byteport)arg;
-    if (U8_BITP(dts->dt_stream->buf_flags,FD_ISWRITING))
+    if (U8_BITP(dts->dt_stream->buf_flags,FD_IS_WRITING))
       return FD_FALSE;
     else return FD_TRUE;}
   else return FD_FALSE;
@@ -647,7 +647,7 @@ static fdtype dtype_outputp(fdtype arg)
 {
   if (FD_TYPEP(arg,fd_byteport_type)) {
     struct FD_BYTEPORT *dts=(fd_byteport)arg;
-    if (U8_BITP(dts->dt_stream->buf_flags,FD_ISWRITING))
+    if (U8_BITP(dts->dt_stream->buf_flags,FD_IS_WRITING))
       return FD_TRUE;
     else return FD_FALSE;}
   else return FD_FALSE;

@@ -495,7 +495,8 @@ FD_EXPORT fdtype fd_index_keys(fd_index ix)
     else {
       fd_choice result; int n_total;
       fdtype *write_start, *write_at;
-      n_total=n_fetched+ix->index_adds.table_n_keys+ix->index_edits.table_n_keys;
+      n_total=n_fetched+ix->index_adds.table_n_keys+
+        ix->index_edits.table_n_keys;
       result=fd_alloc_choice(n_total);
       memcpy(&(result->choice_0),fetched,sizeof(fdtype)*n_fetched);
       write_start=&(result->choice_0); write_at=write_start+n_fetched;
@@ -754,10 +755,6 @@ static int merge_kv_into_adds(struct FD_KEYVAL *kv,void *data)
 FD_EXPORT int fd_index_merge(fd_index ix,fd_hashtable table)
 {
   /* Ignoring this for now */
-  int in_background=
-    ((ix->index_flags&FD_INDEX_IN_BACKGROUND) &&
-     (fd_background->index_cache.table_n_keys));
-  fdtype keys=FD_EMPTY_CHOICE;
   fd_hashtable adds=&(ix->index_adds);
   if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
     fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",

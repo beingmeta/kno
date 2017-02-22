@@ -570,7 +570,7 @@ FD_EXPORT fdtype fd_err(fd_exception,u8_context,u8_string,fdtype);
 FD_EXPORT fd_exception fd_InvalidFCNID, fd_FCNIDOverflow;
 
 #if FD_INLINE_FCNIDS
-static fdtype _fd_fcnid_ref(fdtype ref)
+static U8_MAYBE_UNUSED fdtype _fd_fcnid_ref(fdtype ref)
 {
   if (FD_TYPEP(ref,fd_fcnid_type)) {
     int serialno=FD_GET_IMMEDIATE(ref,fd_fcnid_type);
@@ -622,7 +622,7 @@ static fdtype _fd_fcnid_ref(fdtype ref)
 
 typedef unsigned int fd_compare_flags;
 #define FD_COMPARE_QUICK    ((fd_compare_flags)(0))
-#define FD_COMPARE_ATOMIC   ((fd_compare_flags)(1))
+#define FD_COMPARE_CODES   ((fd_compare_flags)(1))
 #define FD_COMPARE_ELTS     ((fd_compare_flags)(2))
 #define FD_COMPARE_NATSORT  ((fd_compare_flags)(4))
 #define FD_COMPARE_SLOTS    ((fd_compare_flags)(8))

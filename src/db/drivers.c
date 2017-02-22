@@ -44,7 +44,7 @@ int fd_match4bytes(u8_string file,void *data)
   u8_wideint magic_number = (u8_wideint) data;
   if (u8_file_existsp(file)) {
     FILE *f=u8_fopen(file,"rb");
-    unsigned int i=0, word=0, read_only=0; unsigned char byte;
+    unsigned int word=0; unsigned char byte;
     if (f==NULL) return 0;
     byte=getc(f); word=word|(byte<<24);
     byte=getc(f); word=word|(byte<<16);
@@ -60,7 +60,6 @@ int fd_match4bytes(u8_string file,void *data)
 FD_EXPORT
 int fd_netspecp(u8_string spec,void *ignored)
 {
-  u8_byte buf[64]; fdtype xname;
   u8_byte *at=strchr(spec,'@'), *col=strchr(at,':');
   if ((at==NULL)&&(col==NULL))
     return 0;
@@ -116,7 +115,6 @@ FD_EXPORT void fd_register_pool_opener
 FD_EXPORT
 fd_pool fd_open_pool(u8_string spec,fddb_flags flags)
 {
-  fd_pool p;
   int i=0, n=n_pool_openers;
   while (i<n) {
     struct FD_POOL_OPENER *po=&pool_openers[i];
@@ -182,12 +180,11 @@ FD_EXPORT void fd_register_index_opener
 FD_EXPORT
 fd_index fd_open_index(u8_string spec,fddb_flags flags)
 {
-  fd_index p;
   int i=0, n=n_index_openers;
   while (i<n) {
-    struct FD_INDEX_OPENER *po=&index_openers[i];
-    if ((po->matcher) && (po->matcher(spec,po->matcher_data)))
-      return po->opener(spec,flags);
+    struct FD_INDEX_OPENER *io=&index_openers[i];
+    if ((io->matcher) && (io->matcher(spec,io->matcher_data)))
+      return io->opener(spec,flags);
     else i++;}
   /* TODO */
   fd_seterr("NotAnIndex","fd_get_index",spec,FD_VOID);
@@ -198,22 +195,6 @@ FD_EXPORT
 int fd_file_indexp(u8_string filename)
 {
   return 1;
-}
-
-/* Reading memindices from disk */
-
-static int memindex_commitfn(struct FD_MEM_INDEX *ix,u8_string file)
-{
-  struct FD_BYTESTREAM stream, *rstream;
-  if ((ix->index_adds.table_n_keys>0) || (ix->index_edits.table_n_keys>0)) {
-    rstream=fd_init_file_bytestream
-      (&stream,file,FD_BYTESTREAM_CREATE,fd_driver_bufsize);
-    if (rstream==NULL) return -1;
-    stream.stream_mallocd=0;
-    fd_write_dtype(fd_writebuf(&stream),(fdtype)&(ix->index_cache));
-    fd_close_bytestream(&stream,FD_BYTESTREAM_FREE);
-    return 1;}
-  else return 0;
 }
 
 /* Initialization */

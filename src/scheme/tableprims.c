@@ -760,7 +760,7 @@ static fdtype table_modifiedp(fdtype table)
 static fdtype table_set_modified(fdtype table,fdtype flag_arg)
 {
   int flag=((FD_FALSEP(flag_arg))||(FD_ZEROP(flag_arg)))?(0):
-    (FD_VOIDP(flag))?(0):(1);
+    (FD_VOIDP(flag_arg))?(0):(1);
   int retval=fd_set_modified(table,flag);
   if (retval == 0)
     return FD_FALSE;

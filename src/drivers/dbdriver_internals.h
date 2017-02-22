@@ -84,7 +84,7 @@ static FD_CHUNK_REF read_chunk_ref(struct FD_BYTESTREAM *stream,
 				   unsigned int offset)
 {
   FD_CHUNK_REF result; int chunk_size = chunk_ref_size(offtype);
-  fd_off_t ref_off = offset*chunk_size; int error=0;
+  fd_off_t ref_off = offset*chunk_size;
   if ( (fd_setpos(stream,base+ref_off)) < 0 ) {
     result.off=(fd_off_t)-1; result.size=(size_t)-1;}
   else {
@@ -136,12 +136,12 @@ static unsigned char *read_chunk(fd_bytestream stream,
   uchar *buf = (usebuf) ? (usebuf) : (u8_malloc(size)) ;
   if (mmap) {
     memcpy(buf,mmap+off,size);
+    if (unlock) u8_unlock_mutex(unlock);
     return buf;}
   else {
-    fd_off_t rv=fd_setpos(stream,off);
-    fd_byte_inbuf in=fd_readbuf(stream);
-    int bytes_read = (rv<0) ? (-1) :
-      fd_read_bytes(buf,in,size);
+    fd_byte_inbuf in=fd_start_read(stream,off);
+    int bytes_read = (in) ? (fd_read_bytes(buf,in,size)) : (-1);
+    if (unlock) u8_unlock_mutex(unlock);
     if (bytes_read<0) {
       if (usebuf==NULL) u8_free(buf);
       return NULL;}
@@ -150,7 +150,7 @@ static unsigned char *read_chunk(fd_bytestream stream,
 
 /* Compression functions */
 
-static unsigned char *do_zuncompress
+static U8_MAYBE_UNUSED unsigned char *do_zuncompress
    (unsigned char *bytes,int n_bytes,
     unsigned int *dbytes,
     unsigned char *init_dbuf)
@@ -186,7 +186,7 @@ static unsigned char *do_zuncompress
     return NULL;}
 }
 
-static unsigned char *do_zcompress
+static U8_MAYBE_UNUSED unsigned char *do_zcompress
    (unsigned char *bytes,int n_bytes,
     int *cbytes,unsigned char *init_cbuf,
     int level)
