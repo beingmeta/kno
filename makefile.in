@@ -4,6 +4,7 @@
 
 CC	      = @CC@
 XCFLAGS       =
+OPTFLAGS      = -O3
 ARCHFLAGS     = @archflags@
 EXECFLAGS     = @CFLAGS@ @PROFILING@ @DREENTRANT@ -I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG = @dynamic_cflag@
@@ -75,7 +76,7 @@ DTYPE_HEADERS=\
  include/framerd/ffi.h                               \
  include/framerd/dtypeio.h
 DB_HEADERS=\
- include/framerd/bytestream.h                       \
+ include/framerd/bytestream.h                        \
  include/framerd/fddb.h                              \
  include/framerd/pools.h                             \
  include/framerd/indices.h                           \
@@ -83,14 +84,18 @@ DB_HEADERS=\
  include/framerd/dtcall.h                            \
  include/framerd/frames.h                            \
  include/framerd/methods.h
+
 DRIVERS_H=include/framerd/drivers.h
 SCHEME_HEADERS=include/framerd/eval.h include/framerd/sequences.h
 LIB_HEADERS   =include/framerd/texttools.h include/framerd/fdweb.h \
 		include/framerd/mongodb.h include/framerd/leveldb.h
 
 # Headers which don't live in include/framerd
-SRC_HEADERS=src/dtype/biginternals.h src/scheme/eval_internals.h \
-	src/exe/webcommon.h src/cmodules/fdsqlite.h 
+SRC_HEADERS=src/dtype/biginternals.h 		\
+	src/scheme/eval_internals.h 		\
+	src/drivers/dbdriver_internals.h 	\
+	src/exe/webcommon.h 			\
+	src/cmodules/fdsqlite.h
 
 DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/fcnids.o	\
 	  src/dtype/symbols.o src/dtype/numbers.o 		\
@@ -355,10 +360,10 @@ normal:
 	@+make testbin exe cmodules etc @TAGS@
 debugging:
 	@echo Building DEBUGGING configuration
-	@+make XCFLAGS="@debugcflags@ $(XCFLAGS)"    \
-	     XLDFLAGS="@debugldflags@ $(XLDFLAGS)" \
-	     XLIBS="@debuglibs@ $(XLIBS)"          \
-		testbin exe cmodules etc @TAGS@
+	@+make XCFLAGS="@debugcflags@ -Wall -Wpedantic $(XCFLAGS)"	\
+	       XLDFLAGS="@debugldflags@ $(XLDFLAGS)" 			\
+	       OPTFLAGS="" XLIBS="@debuglibs@ $(XLIBS)"          	\
+	  testbin exe cmodules etc @TAGS@
 optimizing:
 	@echo Building OPTIMIZING configuration
 	@+make XCFLAGS="-O3" testbin exe cmodules etc @TAGS@
@@ -468,7 +473,7 @@ dbginstall:
 # Make rules
 
 %.o: %.c @abs_top_srcdir@/fileinfo ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
+	$(CC) $(CFLAGS) @definefileinfo@ -o $@ -c $<
 	@$(MSG) CC $@ $<
 
 exe/scripts/%: src/scripts/%.scm
@@ -747,11 +752,11 @@ src/scheme/eval.o: src/scheme/eval.c src/scheme/opcodes.c \
 src/scheme/binders.o src/scheme/conditionals.o src/scheme/iterators.o: \
 	src/scheme/eval_internals.h
 
-src/dtype/dtypeio.o src/dtype/apply.o : XCFLAGS="-O3"
-src/db/bytestream.o : XCFLAGS="-O3"
-src/scheme/eval.o : XCFLAGS="-O3"
-src/scheme/conditionals.o src/scheme/iterators.o : XCFLAGS="-O3"
-src/scheme/opcodes.o : XCFLAGS="-O3"
+src/dtype/dtypeio.o src/dtype/apply.o : XCFLAGS="${OPTFLAGS}"
+src/db/bytestream.o : XCFLAGS="${OPTFLAGS}"
+src/scheme/eval.o : XCFLAGS="${OPTFLAGS}"
+src/scheme/conditionals.o src/scheme/iterators.o : XCFLAGS="${OPTFLAGS}"
+src/scheme/opcodes.o : XCFLAGS="${OPTFLAGS}"
 
 # Library targets
 
