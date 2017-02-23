@@ -510,11 +510,11 @@ static int dtypeserver(u8_client ucl)
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
     expr=fd_read_dtype(fd_readbuf(stream));}
   else if ((client->writing>0)&&(u8_client_finished(ucl))) {
-    struct FD_RAWBUF *buf=fd_rawbuf(stream);
+    struct FD_RAWBUF *buf=fd_streambuf(stream);
     /* Reset the stream */
-    buf->bufpoint=buf->bufbase;
+    buf->bufpoint=buf->bytebuf;
     /* Update the stream if we were doing asynchronous I/O */
-    if ((client->buf==buf->bufbase)&&(client->len))
+    if ((client->buf==buf->bytebuf)&&(client->len))
       buf->buflim=buf->bufpoint+client->len;
     /* And report that we're finished */
     return 0;}
@@ -530,12 +530,12 @@ static int dtypeserver(u8_client ucl)
       if (fd_has_bytes(inbuf,nbytes))
         expr=fd_read_dtype(inbuf);
       else {
-        struct FD_RAWBUF *rawbuf=fd_rawbuf(stream);
+        struct FD_RAWBUF *rawbuf=fd_streambuf(stream);
         /* Allocate enough space */
         fd_grow_inbuf(inbuf,nbytes);
         /* Set up the client for async input */
-        if (u8_client_read(ucl,rawbuf->bufbase,nbytes,
-                           rawbuf->buflim-rawbuf->bufbase))
+        if (u8_client_read(ucl,rawbuf->bytebuf,nbytes,
+                           rawbuf->buflim-rawbuf->bytebuf))
           expr=fd_read_dtype(inbuf);
         else return 1;}}
     else expr=fd_read_dtype(inbuf);}
@@ -616,7 +616,7 @@ static int dtypeserver(u8_client ucl)
     /* Currently, fd_write_dtype writes the whole thing at once,
        so we just use that. */
 
-    outbuf->bufpoint=outbuf->bufbase;
+    outbuf->bufpoint=outbuf->bytebuf;
     if (fd_use_dtblock) {
       int nbytes; unsigned char *ptr;
       fd_write_byte(outbuf,dt_block);
@@ -624,14 +624,14 @@ static int dtypeserver(u8_client ucl)
       nbytes=fd_write_dtype(outbuf,value);
       ptr=outbuf->bufpoint; {
         /* Rewind temporarily to write the length information */
-        outbuf->bufpoint=outbuf->bufbase+1;
+        outbuf->bufpoint=outbuf->bytebuf+1;
         fd_write_4bytes(outbuf,nbytes);
         outbuf->bufpoint=ptr;}}
     else fd_write_dtype(outbuf,value);
     if (async) {
       struct FD_RAWBUF *rawbuf=(struct FD_RAWBUF *)inbuf;
-      size_t n_bytes=rawbuf->bufpoint-rawbuf->bufbase;
-      u8_client_write(ucl,rawbuf->bufbase,n_bytes,0);
+      size_t n_bytes=rawbuf->bufpoint-rawbuf->bytebuf;
+      u8_client_write(ucl,rawbuf->bytebuf,n_bytes,0);
       return 1;}
     else {
       fd_write_dtype(outbuf,value);

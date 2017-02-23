@@ -19,8 +19,8 @@ static int write_dtype_to_file(fdtype object,FILE *f)
   struct FD_OUTBUF out; int n;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   fd_write_dtype(&out,object);
-  n=fwrite(out.bufbase,1,out.bufpoint-out.bufbase,f);
-  u8_free(out.bufbase);
+  n=fwrite(out.bytebuf,1,out.bufpoint-out.bytebuf,f);
+  u8_free(out.bytebuf);
   return n;
 }
 

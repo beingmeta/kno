@@ -131,7 +131,7 @@ FD_FASTOP fd_off_t fd_getpos(fd_stream s)
 	/* If you're reading, subtract what's buffered from the file pos. */
 	return (((s)->stream_filepos)-(((s)->buf.raw.buflim)-((s)->buf.raw.bufpoint)));
       /* If you're writing, add what's buffered to the file pos. */
-      else return (((s)->stream_filepos)+(((s)->buf.raw.bufpoint)-((s)->buf.raw.bufbase)));}
+      else return (((s)->stream_filepos)+(((s)->buf.raw.bufpoint)-((s)->buf.raw.bytebuf)));}
     else return _fd_getpos(s);}
   else return -1;
 }
@@ -145,7 +145,7 @@ FD_FASTOP fd_off_t fd_setpos(fd_stream s,fd_off_t pos)
   if ((s->stream_filepos>=0)&&
       (!((s->buf.raw.buf_flags)&(FD_IS_WRITING)))&&
       (pos<s->stream_filepos)&&
-      (pos>=(s->stream_filepos-(s->buf.raw.buflim-s->buf.raw.bufbase)))) {
+      (pos>=(s->stream_filepos-(s->buf.raw.buflim-s->buf.raw.bytebuf)))) {
     fd_off_t delta=pos-s->stream_filepos;
     s->buf.raw.bufpoint=s->buf.raw.buflim+delta;
     return pos;}
@@ -161,7 +161,7 @@ FD_FASTOP fd_off_t fd_endpos(fd_stream s)
   else if ((s->stream_filepos>=0)&&(s->stream_maxpos>=0)&&
 	   (s->stream_filepos==s->stream_maxpos))
     if ((s->buf.raw.buf_flags)&(FD_IS_WRITING))
-      return s->stream_maxpos+(s->buf.raw.bufpoint-s->buf.raw.bufbase);
+      return s->stream_maxpos+(s->buf.raw.bufpoint-s->buf.raw.bytebuf);
     else return s->stream_maxpos;
   else return _fd_endpos(s);
 }
@@ -206,7 +206,7 @@ FD_FASTOP fd_outbuf fd_start_write(fd_stream s,fd_off_t pos)
 #define fd_start_write(s,p) _fd_start_write(s,p)
 #endif
 
-#define fd_rawbuf(stream) (&((stream)->buf.raw))
+#define fd_streambuf(stream) (&((stream)->buf.raw))
 
 /* Structure functions and macros */
 

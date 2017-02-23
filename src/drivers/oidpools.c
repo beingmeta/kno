@@ -866,7 +866,7 @@ static int oidpool_write_value(fdtype value,fd_stream stream,
   if ((p->pool_compression==FD_NOCOMPRESS) && (p->pool_n_schemas==0)) {
     fd_write_byte(outstream,0);
     return 1+fd_write_dtype(outstream,value);}
-  tmpout->bufpoint=tmpout->bufbase;
+  tmpout->bufpoint=tmpout->bytebuf;
   if (p->pool_n_schemas==0) {
     fd_write_byte(tmpout,0);
     fd_write_dtype(tmpout,value);}
@@ -898,12 +898,12 @@ static int oidpool_write_value(fdtype value,fd_stream stream,
     fd_write_byte(tmpout,0);
     fd_write_dtype(tmpout,value);}
   if (p->pool_compression==FD_NOCOMPRESS) {
-    fd_write_bytes(outstream,tmpout->bufbase,tmpout->bufpoint-tmpout->bufbase);
-    return tmpout->bufpoint-tmpout->bufbase;}
+    fd_write_bytes(outstream,tmpout->bytebuf,tmpout->bufpoint-tmpout->bytebuf);
+    return tmpout->bufpoint-tmpout->bytebuf;}
   else if (p->pool_compression==FD_ZLIB) {
     unsigned char _cbuf[FD_OIDPOOL_FETCHBUF_SIZE], *cbuf;
     int cbuf_size=FD_OIDPOOL_FETCHBUF_SIZE;
-    cbuf=do_zcompress(tmpout->bufbase,tmpout->bufpoint-tmpout->bufbase,
+    cbuf=do_zcompress(tmpout->bytebuf,tmpout->bufpoint-tmpout->bytebuf,
                       &cbuf_size,_cbuf,9);
     fd_write_bytes(outstream,cbuf,cbuf_size);
     if (cbuf!=_cbuf) u8_free(cbuf);
@@ -949,11 +949,11 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     if (n_bytes<0) {
       u8_free(zbuf);
       u8_free(saveinfo);
-      u8_free(tmpout.bufbase);
+      u8_free(tmpout.bytebuf);
       UNLOCK_POOLSTREAM(op);
       return n_bytes;}
     if ((endpos+n_bytes)>=maxpos) {
-      u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.bufbase);
+      u8_free(zbuf); u8_free(saveinfo); u8_free(tmpout.bytebuf);
       u8_seterr(fd_DataFileOverflow,"oidpool_storen",
                 u8_strdup(p->pool_cid));
       UNLOCK_POOLSTREAM(op);
@@ -964,7 +964,7 @@ static int oidpool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
 
     endpos=endpos+n_bytes;
     i++;}
-  u8_free(tmpout.bufbase);
+  u8_free(tmpout.bytebuf);
   u8_free(zbuf);
 
   /* Now, write recovery information, which lets the state of the pool

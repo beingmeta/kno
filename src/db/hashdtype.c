@@ -491,8 +491,8 @@ unsigned int fd_hash_dtype_rep(fdtype x)
   struct FD_OUTBUF out; unsigned int hashval;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   fd_write_dtype(&out,x);
-  hashval=mult_hash_string(out.bufbase,out.bufpoint-out.bufbase);
-  u8_free(out.bufbase);
+  hashval=mult_hash_string(out.bytebuf,out.bufpoint-out.bytebuf);
+  u8_free(out.bytebuf);
   return hashval;
 }
 

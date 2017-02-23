@@ -865,12 +865,12 @@ static int webservefn(u8_client ucl)
 
   /* Reset the streams */
   outstream->u8_write=outstream->u8_outbuf;
-  inbuf->bufpoint=inbuf->buflim=inbuf->bufbase;
+  inbuf->bufpoint=inbuf->buflim=inbuf->bytebuf;
   /* Handle async reading (where the server buffers incoming and outgoing data) */
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
     /* We got the whole payload, set up the stream
        for reading it without waiting.  */
-    inbuf->buflim=inbuf->bufbase+client->len;}
+    inbuf->buflim=inbuf->bytebuf+client->len;}
   else if (client->reading>0)
     /* We shouldn't get here, but just in case.... */
     return 1;
@@ -898,12 +898,12 @@ static int webservefn(u8_client ucl)
           fd_grow_byte_input(fd_readbuf(stream),need_size);
           inbuf->buflen=need_size;}
         struct FD_RAWBUF *raw=(struct FD_RAWBUF *)inbuf;
-        size_t byte_offset=raw->buflim-raw->bufbase;
+        size_t byte_offset=raw->buflim-raw->bytebuf;
         /* Set up the client for async input */
-        if (u8_client_read(ucl,raw->bufbase,need_size,byte_offset)) {
+        if (u8_client_read(ucl,raw->bytebuf,need_size,byte_offset)) {
           /* We got the whole payload, set up the stream
              for reading it without waiting.  */
-          raw->buflim=raw->bufbase+client->len;}
+          raw->buflim=raw->bytebuf+client->len;}
         else return 1;}}
     else {}}
   /* Do this ASAP to avoid session leakage */
