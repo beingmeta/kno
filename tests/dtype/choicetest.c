@@ -16,7 +16,7 @@
 
 int main(int argc,char **argv)
 {
-  struct FD_BYTE_OUTBUF out; FILE *f=fopen(argv[1],"wb");
+  struct FD_OUTBUF out; FILE *f=fopen(argv[1],"wb");
   fdtype value=FD_EMPTY_CHOICE, svalue, tval; int i=2, retval;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   FD_DO_LIBINIT(fd_init_dtypelib);

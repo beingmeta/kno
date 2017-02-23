@@ -632,7 +632,7 @@ typedef unsigned int fd_compare_flags;
 
 typedef void (*fd_recycle_fn)(struct FD_CONS *x);
 typedef int (*fd_unparse_fn)(u8_output,fdtype);
-typedef int (*fd_dtype_fn)(struct FD_BYTE_OUTBUF *,fdtype);
+typedef int (*fd_dtype_fn)(struct FD_OUTBUF *,fdtype);
 typedef int (*fd_compare_fn)(fdtype,fdtype,fd_compare_flags);
 typedef fdtype (*fd_copy_fn)(fdtype,int);
 

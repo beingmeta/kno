@@ -465,7 +465,7 @@ static void cleanup_state_files()
 /* This represents a live client connection and its environment. */
 typedef struct FD_CLIENT {
   U8_CLIENT_FIELDS;
-  struct FD_BYTESTREAM fd_clientstream;
+  struct FD_STREAM fd_clientstream;
   time_t lastlive; double elapsed;
   fd_lispenv env;} FD_CLIENT;
 typedef struct FD_CLIENT *fd_client;
@@ -476,13 +476,13 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
 {
   fd_client client=(fd_client)
     u8_client_init(NULL,sizeof(FD_CLIENT),addr,len,sock,srv);
-  fd_init_bytestream(&(client->fd_clientstream),sock,4096);
+  fd_init_stream(&(client->fd_clientstream),sock,4096);
   /* To help debugging, move the client->idstring (libu8)
      into the stream's id (fdb). */
   if (client->fd_clientstream.streamid==NULL) {
     if (client->idstring)
       client->fd_clientstream.streamid=u8_strdup(client->idstring);
-    else client->fd_clientstream.streamid=u8_strdup("fdserver/bytestream");}
+    else client->fd_clientstream.streamid=u8_strdup("fdserver/stream");}
   client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
   client->elapsed=0; client->lastlive=((time_t)(-1));
   u8_set_nodelay(sock,1);
@@ -496,8 +496,8 @@ static int dtypeserver(u8_client ucl)
 {
   fdtype expr;
   fd_client client=(fd_client)ucl;
-  fd_bytestream stream=&(client->fd_clientstream);
-  fd_byte_inbuf instream=fd_readbuf(stream);
+  fd_stream stream=&(client->fd_clientstream);
+  fd_inbuf instream=fd_readbuf(stream);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
 
   /* Set the signal mask for the current thread.  By default, this
@@ -550,7 +550,7 @@ static int dtypeserver(u8_client ucl)
     u8_client_close(ucl);
     return -1;}
   else {
-    fd_byte_outbuf outstream=fd_writebuf(stream);
+    fd_outbuf outstream=fd_writebuf(stream);
     fdtype value;
     int tracethis=((logtrans) &&
                    ((client->n_trans==1) ||
@@ -634,7 +634,7 @@ static int dtypeserver(u8_client ucl)
       return 1;}
     else {
       fd_write_dtype(outstream,value);
-      fd_flush_bytestream(stream);}
+      fd_flush_stream(stream);}
     time(&(client->lastlive));
     if (tracethis)
       u8_log(LOG_INFO,Outgoing,"%s[%d/%d]: Response sent after %fs",
@@ -647,7 +647,7 @@ static int dtypeserver(u8_client ucl)
 static int close_fdclient(u8_client ucl)
 {
   fd_client client=(fd_client)ucl;
-  fd_close_bytestream(&(client->fd_clientstream),0);
+  fd_close_stream(&(client->fd_clientstream),0);
   fd_decref((fdtype)((fd_client)ucl)->env);
   ucl->socket=-1;
   return 1;

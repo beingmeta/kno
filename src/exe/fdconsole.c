@@ -108,7 +108,7 @@ int swallow_whitespace(u8_input in)
   else return c;
 }
 
-static fd_bytestream eval_server=NULL;
+static fd_stream eval_server=NULL;
 
 static u8_input inconsole=NULL;
 static u8_output outconsole=NULL;
@@ -490,22 +490,22 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
     u8_log(LOG_WARN,"BACKTRACE","No built-in support for HTML backtraces");}
 #endif
   else if (u8_has_suffix(dumpfile,".dtype",1)) {
-    struct FD_BYTESTREAM *out; int bytes=0;
+    struct FD_STREAM *out; int bytes=0;
     fdtype backtrace=fd_exception_backtrace(ex);
     u8_string temp_name=u8_mkstring("%s.part",abspath);
-    out=fd_bytestream_open(temp_name,FD_BYTESTREAM_CREATE);
+    out=fd_stream_open(temp_name,FD_STREAM_CREATE);
     if (out==NULL) {
       u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
              temp_name,abspath);
       u8_free(temp_name);}
     else bytes=fd_write_dtype(fd_writebuf(out),backtrace);
     if (bytes<0) {
-      fd_close_bytestream(out,FD_BYTESTREAM_CLOSE_FULL);
+      fd_close_stream(out,FD_STREAM_CLOSE_FULL);
       u8_free(temp_name);
       u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
              temp_name,abspath);}
     else {
-      fd_close_bytestream(out,FD_BYTESTREAM_CLOSE_FULL);
+      fd_close_stream(out,FD_STREAM_CLOSE_FULL);
       u8_movefile(temp_name,abspath);
       u8_free(temp_name);
       changemode(abspath,0444);
@@ -835,13 +835,13 @@ int main(int argc,char **argv)
   if (source_file==NULL) {}
   else if (strchr(source_file,'@')) {
     int sock=u8_connect(source_file);
-    struct FD_BYTESTREAM *newstream;
+    struct FD_STREAM *newstream;
     if (sock<0) {
       u8_log(LOG_WARN,"Connection failed","Couldn't open connection to %s",
              source_file);
       exit(-1);}
-    newstream=u8_alloc(struct FD_BYTESTREAM);
-    fd_init_bytestream(newstream,sock,65536);
+    newstream=u8_alloc(struct FD_STREAM);
+    fd_init_stream(newstream,sock,65536);
     fd_use_pool(source_file,0);
     fd_use_index(source_file,0);
     eval_server=newstream;}
@@ -950,7 +950,7 @@ int main(int argc,char **argv)
     else {
       if (eval_server) {
         fd_write_dtype(fd_writebuf(eval_server),expr);
-        fd_flush_bytestream(eval_server);
+        fd_flush_stream(eval_server);
         result=fd_read_dtype(fd_readbuf(eval_server));}
       else result=fd_eval(expr,env);}
     if (FD_ACHOICEP(result)) result=fd_simplify_choice(result);
@@ -1048,7 +1048,7 @@ int main(int argc,char **argv)
         (!(FDTYPE_CONSTANTP(lastval))))
       fd_bind_value(that_symbol,lastval,env);}
   if (eval_server)
-    fd_close_bytestream(eval_server,FD_BYTESTREAM_FREE);
+    fd_close_stream(eval_server,FD_STREAM_FREE);
   u8_free(eval_server);
   fd_decref(lastval);
   fd_decref(result);

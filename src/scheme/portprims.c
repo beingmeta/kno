@@ -18,7 +18,7 @@
 #include "framerd/pools.h"
 #include "framerd/indices.h"
 #include "framerd/frames.h"
-#include "framerd/bytestream.h"
+#include "framerd/stream.h"
 #include "framerd/dtypeio.h"
 #include "framerd/ports.h"
 
@@ -148,7 +148,7 @@ static void recycle_bytstrtream(struct FD_CONS *c)
 {
   struct FD_BYTEPORT *ds=(struct FD_BYTEPORT *)c;
   if (ds->dt_stream) {
-    fd_close_bytestream(ds->dt_stream,ds->fd_owns_socket);}
+    fd_close_stream(ds->dt_stream,ds->fd_owns_socket);}
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
@@ -190,7 +190,7 @@ static fdtype write_bytes(fdtype object,fdtype stream)
 static fdtype packet2dtype(fdtype packet)
 {
   fdtype object;
-  struct FD_BYTE_INBUF in;
+  struct FD_INBUF in;
   FD_INIT_BYTE_INPUT(&in,FD_PACKET_DATA(packet),
                      FD_PACKET_LENGTH(packet));
   object=fd_read_dtype(&in);
@@ -200,7 +200,7 @@ static fdtype packet2dtype(fdtype packet)
 static fdtype dtype2packet(fdtype object,fdtype initsize)
 {
   int size=FD_FIX2INT(initsize);
-  struct FD_BYTE_OUTBUF out;
+  struct FD_OUTBUF out;
   FD_INIT_BYTE_OUTBUF(&out,size);
   int bytes=fd_write_dtype(&out,object);
   if (bytes<0) return FD_ERROR_VALUE;
@@ -1607,7 +1607,7 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
       ((FD_STRINGP(arg))?(FD_STRDATA(arg)):(FD_PACKET_DATA(arg)));
     unsigned int data_len=
       ((FD_STRINGP(arg))?(FD_STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
-    struct FD_BYTE_OUTBUF out; int flags=0; /* FDPP_FHCRC */
+    struct FD_OUTBUF out; int flags=0; /* FDPP_FHCRC */
     time_t now=time(NULL); u8_int4 crc, intval;
     FD_INIT_BYTE_OUTBUF(&out,1024); memset(out.bufbase,0,1024);
     fd_write_byte(&out,31); fd_write_byte(&out,139);

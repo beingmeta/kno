@@ -18,7 +18,7 @@
 static fdtype read_dtype_from_file(FILE *f)
 {
   fdtype object;
-  struct FD_BYTE_OUTBUF out; struct FD_BYTE_INBUF in;
+  struct FD_OUTBUF out; struct FD_INBUF in;
   char buf[1024]; int delta=0;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   while ((delta=fread(buf,1,1024,f))) {
@@ -34,7 +34,7 @@ static fdtype read_dtype_from_file(FILE *f)
 
 static int write_dtype_to_file(fdtype object,FILE *f)
 {
-  struct FD_BYTE_OUTBUF out; int retval;
+  struct FD_OUTBUF out; int retval;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   fd_write_dtype(&out,object);
   retval=fwrite(out.bufbase,1,out.bufpoint-out.bufbase,f);

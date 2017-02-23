@@ -23,7 +23,7 @@
 int fd_use_dtblock=FD_USE_DTBLOCK;
 
 int (*fd_dtype_error)
-     (struct FD_BYTE_OUTBUF *,fdtype x,u8_string details)=NULL;
+     (struct FD_OUTBUF *,fdtype x,u8_string details)=NULL;
 
 fd_exception fd_UnexpectedEOD=_("Unexpected end of data");
 fd_exception fd_DTypeError=_("Malformed DTYPE representation");
@@ -44,7 +44,7 @@ static u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
 
 /* Byte output */
 
-FD_EXPORT int fd_isreadbuf(struct FD_BYTE_OUTBUF *b)
+FD_EXPORT int fd_isreadbuf(struct FD_OUTBUF *b)
 {
   u8_log(LOGCRIT,fd_IsReadBuf,
          "Trying to write to an input buffer 0x%llx",
@@ -53,7 +53,7 @@ FD_EXPORT int fd_isreadbuf(struct FD_BYTE_OUTBUF *b)
   return -1;
 }
 
-FD_EXPORT int fd_iswritebuf(struct FD_BYTE_INBUF *b)
+FD_EXPORT int fd_iswritebuf(struct FD_INBUF *b)
 {
   u8_log(LOGCRIT,fd_IsWriteBuf,
          "Trying to read from an output buffer 0x%llx",
@@ -62,7 +62,7 @@ FD_EXPORT int fd_iswritebuf(struct FD_BYTE_INBUF *b)
   return -1;
 }
 
-FD_EXPORT fdtype fdt_isreadbuf(struct FD_BYTE_OUTBUF *b)
+FD_EXPORT fdtype fdt_isreadbuf(struct FD_OUTBUF *b)
 {
   u8_log(LOGCRIT,"WriteToRead",
          "Trying to write to an input buffer 0x%llx",
@@ -71,7 +71,7 @@ FD_EXPORT fdtype fdt_isreadbuf(struct FD_BYTE_OUTBUF *b)
   return FD_ERROR_VALUE;
 }
 
-FD_EXPORT fdtype fdt_iswritebuf(struct FD_BYTE_INBUF *b)
+FD_EXPORT fdtype fdt_iswritebuf(struct FD_INBUF *b)
 {
   u8_log(LOGCRIT,fd_IsWriteBuf,
          "Trying to read from an output buffer 0x%llx",
@@ -92,7 +92,7 @@ FD_EXPORT size_t _fd_raw_closebuf(struct FD_BYTE_RAWBUF *buf)
 
 /* Growing buffers */
 
-static int grow_output_buffer(struct FD_BYTE_OUTBUF *b,size_t delta)
+static int grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
 {
   size_t current_size=b->bufpoint-b->bufbase;
   size_t current_limit=b->buflim-b->bufbase;
@@ -116,7 +116,7 @@ static int grow_output_buffer(struct FD_BYTE_OUTBUF *b,size_t delta)
   return 1;
 }
 
-static int grow_input_buffer(struct FD_BYTE_INBUF *in,int delta)
+static int grow_input_buffer(struct FD_INBUF *in,int delta)
 {
   struct FD_BYTE_RAWBUF *b=(struct FD_BYTE_RAWBUF *)in;
   size_t current_size=b->bufpoint-b->bufbase;
@@ -141,19 +141,19 @@ static int grow_input_buffer(struct FD_BYTE_INBUF *in,int delta)
   return 1;
 }
 
-FD_EXPORT int fd_needs_space(struct FD_BYTE_OUTBUF *b,size_t delta)
+FD_EXPORT int fd_needs_space(struct FD_OUTBUF *b,size_t delta)
 {
   if (b->bufpoint+delta > b->buflim)
     return grow_output_buffer(b,delta);
   else return 1;
 }
-FD_EXPORT int _fd_grow_outbuf(struct FD_BYTE_OUTBUF *b,size_t delta)
+FD_EXPORT int _fd_grow_outbuf(struct FD_OUTBUF *b,size_t delta)
 {
   if (b->bufpoint+delta > b->buflim)
     return grow_output_buffer(b,delta);
   else return 1;
 }
-FD_EXPORT int _fd_grow_inbuf(struct FD_BYTE_INBUF *b,size_t delta)
+FD_EXPORT int _fd_grow_inbuf(struct FD_INBUF *b,size_t delta)
 {
   if (b->bufpoint+delta > b->buflim)
     return grow_input_buffer(b,delta);
@@ -162,7 +162,7 @@ FD_EXPORT int _fd_grow_inbuf(struct FD_BYTE_INBUF *b,size_t delta)
 
 /* Writing stuff */
 
-FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTBUF *b,unsigned char byte)
+FD_EXPORT int _fd_write_byte(struct FD_OUTBUF *b,unsigned char byte)
 {
   if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
   else if (fd_needs_space(b,1)) {
@@ -171,7 +171,7 @@ FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTBUF *b,unsigned char byte)
   else return -1;
 }
 
-FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTBUF *b,fd_4bytes w)
+FD_EXPORT int _fd_write_4bytes(struct FD_OUTBUF *b,fd_4bytes w)
 {
   if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
   else if (fd_needs_space(b,4)==0)
@@ -183,7 +183,7 @@ FD_EXPORT int _fd_write_4bytes(struct FD_BYTE_OUTBUF *b,fd_4bytes w)
   return 4;
 }
 
-FD_EXPORT int _fd_write_8bytes(struct FD_BYTE_OUTBUF *b,fd_8bytes w)
+FD_EXPORT int _fd_write_8bytes(struct FD_OUTBUF *b,fd_8bytes w)
 {
   if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
   else if (fd_needs_space(b,8)==0)
@@ -200,7 +200,7 @@ FD_EXPORT int _fd_write_8bytes(struct FD_BYTE_OUTBUF *b,fd_8bytes w)
 }
 
 FD_EXPORT int _fd_write_bytes
-   (struct FD_BYTE_OUTBUF *b,const unsigned char *data,int size)
+   (struct FD_OUTBUF *b,const unsigned char *data,int size)
 {
   if (FD_EXPECT_FALSE(FD_ISREADING(b))) return fd_isreadbuf(b);
   else if (fd_needs_space(b,size)==0) return -1;
@@ -208,11 +208,11 @@ FD_EXPORT int _fd_write_bytes
   return size;
 }
 
-static int write_hashtable(struct FD_BYTE_OUTBUF *out,struct FD_HASHTABLE *v);
-static int write_hashset(struct FD_BYTE_OUTBUF *out,struct FD_HASHSET *v);
-static int write_slotmap(struct FD_BYTE_OUTBUF *out,struct FD_SLOTMAP *v);
-static int write_schemap(struct FD_BYTE_OUTBUF *out,struct FD_SCHEMAP *v);
-static int write_mystery(struct FD_BYTE_OUTBUF *out,struct FD_MYSTERY_DTYPE *v);
+static int write_hashtable(struct FD_OUTBUF *out,struct FD_HASHTABLE *v);
+static int write_hashset(struct FD_OUTBUF *out,struct FD_HASHSET *v);
+static int write_slotmap(struct FD_OUTBUF *out,struct FD_SLOTMAP *v);
+static int write_schemap(struct FD_OUTBUF *out,struct FD_SCHEMAP *v);
+static int write_mystery(struct FD_OUTBUF *out,struct FD_MYSTERY_DTYPE *v);
 
 #define output_byte(out,b) \
   if (fd_write_byte(out,b)<0) return -1; else {}
@@ -220,7 +220,7 @@ static int write_mystery(struct FD_BYTE_OUTBUF *out,struct FD_MYSTERY_DTYPE *v);
   if (fd_write_4bytes(out,w)<0) return -1; else {}
 #define output_bytes(out,bytes,n)                               \
   if (fd_write_bytes(out,bytes,n)<0) return -1; else {}
-static ssize_t try_dtype_output(int *len,struct FD_BYTE_OUTBUF *out,fdtype x)
+static ssize_t try_dtype_output(int *len,struct FD_OUTBUF *out,fdtype x)
 {
   ssize_t olen=out->bufpoint-out->bufbase;
   ssize_t dlen=fd_write_dtype(out,x);
@@ -240,7 +240,7 @@ static ssize_t try_dtype_output(int *len,struct FD_BYTE_OUTBUF *out,fdtype x)
   if (FD_EXPECT_FALSE(FD_ISREADING(out))) return fd_isreadbuf(out); \
   else if (try_dtype_output(&len,out,x)<0) return -1; else {}
 
-static int write_opaque(struct FD_BYTE_OUTBUF *out,fdtype x)
+static int write_opaque(struct FD_OUTBUF *out,fdtype x)
 {
   u8_string srep=fd_dtype2string(x);
   int slen=strlen(srep);
@@ -255,7 +255,7 @@ static int write_opaque(struct FD_BYTE_OUTBUF *out,fdtype x)
   return 22+slen;
 }
 
-static int write_choice_dtype(fd_byte_outbuf out,fd_choice ch)
+static int write_choice_dtype(fd_outbuf out,fd_choice ch)
 {
   fdtype _natsorted[17], *natsorted=_natsorted;
   int dtype_len=0, n_choices=FD_XCHOICE_SIZE(ch);
@@ -285,7 +285,7 @@ static int write_choice_dtype(fd_byte_outbuf out,fd_choice ch)
   return dtype_len;
 }
 
-FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTBUF *out,fdtype x)
+FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
 {
   if (FD_EXPECT_FALSE(FD_ISREADING(out))) return fd_isreadbuf(out);
   else switch (FD_PTR_MANIFEST_TYPE(x)) {
@@ -494,7 +494,7 @@ FD_EXPORT int fd_write_dtype(struct FD_BYTE_OUTBUF *out,fdtype x)
     }
 }
 
-static int write_mystery(struct FD_BYTE_OUTBUF *out,struct FD_MYSTERY_DTYPE *v)
+static int write_mystery(struct FD_OUTBUF *out,struct FD_MYSTERY_DTYPE *v)
 {
   int size=v->fd_dtlen, dtype_size=2;
   int vectorp=(v->fd_dtcode)&0x80;
@@ -517,7 +517,7 @@ static int write_mystery(struct FD_BYTE_OUTBUF *out,struct FD_MYSTERY_DTYPE *v)
     return dtype_size+size;}
 }
 
-static int write_slotmap(struct FD_BYTE_OUTBUF *out,struct FD_SLOTMAP *v)
+static int write_slotmap(struct FD_OUTBUF *out,struct FD_SLOTMAP *v)
 {
   int dtype_len;
   fd_read_lock_table(v);
@@ -544,7 +544,7 @@ static int write_slotmap(struct FD_BYTE_OUTBUF *out,struct FD_SLOTMAP *v)
   return dtype_len;
 }
 
-static int write_schemap(struct FD_BYTE_OUTBUF *out,struct FD_SCHEMAP *v)
+static int write_schemap(struct FD_OUTBUF *out,struct FD_SCHEMAP *v)
 {
   int dtype_len;
   fd_read_lock_table(v);
@@ -571,7 +571,7 @@ static int write_schemap(struct FD_BYTE_OUTBUF *out,struct FD_SCHEMAP *v)
   return dtype_len;
 }
 
-static int write_hashtable(struct FD_BYTE_OUTBUF *out,struct FD_HASHTABLE *v)
+static int write_hashtable(struct FD_OUTBUF *out,struct FD_HASHTABLE *v)
 {
   int dtype_len;
   fd_read_lock_table(v);
@@ -605,7 +605,7 @@ static int write_hashtable(struct FD_BYTE_OUTBUF *out,struct FD_HASHTABLE *v)
   return dtype_len;
 }
 
-static int write_hashset(struct FD_BYTE_OUTBUF *out,struct FD_HASHSET *v)
+static int write_hashset(struct FD_OUTBUF *out,struct FD_HASHSET *v)
 {
   int dtype_len;
   u8_lock_mutex(&(v->hs_lock));
@@ -700,7 +700,7 @@ static int validate_dtype(int pos,const unsigned char *ptr,
       else return -1;}}
 }
 
-FD_EXPORT int fd_validate_dtype(struct FD_BYTE_INBUF *in)
+FD_EXPORT int fd_validate_dtype(struct FD_INBUF *in)
 {
   return validate_dtype(0,in->bufpoint,in->buflim);
 }
@@ -715,9 +715,9 @@ FD_EXPORT int fd_validate_dtype(struct FD_BYTE_INBUF *in)
 static fdtype restore_dtype_exception(fdtype content);
 FD_EXPORT fdtype fd_make_mystery_packet(int,int,unsigned int,unsigned char *);
 FD_EXPORT fdtype fd_make_mystery_vector(int,int,unsigned int,fdtype *);
-static fdtype read_packaged_dtype(int,struct FD_BYTE_INBUF *);
+static fdtype read_packaged_dtype(int,struct FD_INBUF *);
 
-FD_EXPORT int fd_grow_byte_input(struct FD_BYTE_INBUF *b,size_t len)
+FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len)
 {
   unsigned int current_off=b->bufpoint-b->bufbase;
   unsigned int current_limit=b->buflim-b->bufbase;
@@ -734,7 +734,7 @@ FD_EXPORT int fd_grow_byte_input(struct FD_BYTE_INBUF *b,size_t len)
   return 1;
 }
 
-static fdtype *read_dtypes(int n,struct FD_BYTE_INBUF *in,
+static fdtype *read_dtypes(int n,struct FD_INBUF *in,
                            fdtype *why_not,fdtype *into)
 {
   if (n==0) return NULL;
@@ -750,7 +750,7 @@ static fdtype *read_dtypes(int n,struct FD_BYTE_INBUF *in,
     return vec;}
 }
 
-FD_EXPORT fdtype fd_read_dtype(struct FD_BYTE_INBUF *in)
+FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(in)))
     return fdt_iswritebuf(in);
@@ -1056,7 +1056,7 @@ FD_EXPORT int fd_register_packet_unpacker
 static fdtype make_character_type(int code,int len,unsigned char *data);
 
 static fdtype read_packaged_dtype
-   (int package,struct FD_BYTE_INBUF *in)
+   (int package,struct FD_INBUF *in)
 {
   fdtype *vector=NULL; unsigned char *packet=NULL;
   unsigned int code, lenlen, len, vectorp;
@@ -1274,14 +1274,14 @@ fdtype (*_fd_make_double)(double)=default_make_double;
 
 /* Exported functions */
 
-FD_EXPORT int _fd_read_byte(struct FD_BYTE_INBUF *buf)
+FD_EXPORT int _fd_read_byte(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (fd_needs_bytes(buf,1)) return (*(buf->bufpoint++));
   else return -1;
 }
 
-FD_EXPORT int _fd_unread_byte(struct FD_BYTE_INBUF *buf,int byte)
+FD_EXPORT int _fd_unread_byte(struct FD_INBUF *buf,int byte)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (buf->bufpoint==buf->bufbase) {
@@ -1293,7 +1293,7 @@ FD_EXPORT int _fd_unread_byte(struct FD_BYTE_INBUF *buf,int byte)
   else {buf->bufpoint--; return 0;}
 }
 
-FD_EXPORT unsigned int _fd_read_4bytes(struct FD_BYTE_INBUF *buf)
+FD_EXPORT unsigned int _fd_read_4bytes(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (fd_needs_bytes(buf,4)) {
@@ -1305,7 +1305,7 @@ FD_EXPORT unsigned int _fd_read_4bytes(struct FD_BYTE_INBUF *buf)
     return 0;}
 }
 
-FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_BYTE_INBUF *buf)
+FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (fd_needs_bytes(buf,8)) {
@@ -1318,7 +1318,7 @@ FD_EXPORT fd_8bytes _fd_read_8bytes(struct FD_BYTE_INBUF *buf)
 }
 
 FD_EXPORT int
-  _fd_read_bytes(unsigned char *bytes,struct FD_BYTE_INBUF *buf,int len)
+  _fd_read_bytes(unsigned char *bytes,struct FD_INBUF *buf,int len)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else if (fd_needs_bytes(buf,len)) {
@@ -1328,7 +1328,7 @@ FD_EXPORT int
   else return -1;
 }
 
-FD_EXPORT int _fd_read_zint(struct FD_BYTE_INBUF *buf)
+FD_EXPORT int _fd_read_zint(struct FD_INBUF *buf)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
   else return fd_read_zint(buf);

@@ -1029,7 +1029,7 @@ static int compare_compounds(fdtype x,fdtype y,fd_compare_flags flags)
     return 0;}
 }
 
-static int dtype_compound(struct FD_BYTE_OUTBUF *out,fdtype x)
+static int dtype_compound(struct FD_OUTBUF *out,fdtype x)
 {
   struct FD_COMPOUND *xc=fd_consptr(struct FD_COMPOUND *,x,fd_compound_type);
   int n_bytes=1;
@@ -1105,7 +1105,7 @@ static void recycle_exception(struct FD_CONS *c)
   if (!(FD_STATIC_CONSP(exo))) u8_free(exo);
 }
 
-static int dtype_exception(struct FD_BYTE_OUTBUF *out,fdtype x)
+static int dtype_exception(struct FD_OUTBUF *out,fdtype x)
 {
   struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)x;
   if (exo->fd_u8ex==NULL) {
@@ -1415,7 +1415,7 @@ static int compare_timestamps(fdtype x,fdtype y,fd_compare_flags flags)
   else return 1;
 }
 
-static int dtype_timestamp(struct FD_BYTE_OUTBUF *out,fdtype x)
+static int dtype_timestamp(struct FD_OUTBUF *out,fdtype x)
 {
   struct FD_TIMESTAMP *xtm=
     fd_consptr(struct FD_TIMESTAMP *,x,fd_timestamp_type);
@@ -1548,7 +1548,7 @@ static int compare_uuids(fdtype x,fdtype y,fd_compare_flags flags)
 
 #define MU U8_MAYBE_UNUSED
 
-static int uuid_dtype(struct FD_BYTE_OUTBUF *out,fdtype x)
+static int uuid_dtype(struct FD_OUTBUF *out,fdtype x)
 {
   int size=0;
   struct FD_UUID *uuid=fd_consptr(struct FD_UUID *,x,fd_uuid_type);

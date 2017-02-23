@@ -76,7 +76,7 @@ DTYPE_HEADERS=\
  include/framerd/ffi.h                               \
  include/framerd/dtypeio.h
 DB_HEADERS=\
- include/framerd/bytestream.h                        \
+ include/framerd/stream.h                        \
  include/framerd/fddb.h                              \
  include/framerd/pools.h                             \
  include/framerd/indices.h                           \
@@ -108,7 +108,7 @@ REVISION_H   =include/framerd/revision.h
 CONFIG_H     =include/framerd/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
-DB_OBJS=src/db/fddb.o src/db/bytestream.o src/db/hashdtype.o 		\
+DB_OBJS=src/db/fddb.o src/db/stream.o src/db/hashdtype.o 		\
 	src/db/pools.o src/db/indices.o	src/db/compoundindices.o	\
 	src/db/dtproc.o src/db/dtcall.o 				\
 	src/db/methods.o src/db/xtables.o 				\
@@ -270,7 +270,7 @@ FRAMERD_SOURCES=\
         src/dtype/dtypeio.c src/dtype/textio.c 				\
 	src/dtype/fdtype.c src/dtype/support.c 				\
 	src/dtype/apply.c src/dtype/ffi.c       			\
-	src/db/fddb.c src/db/bytestream.c src/db/hashdtype.c		\
+	src/db/fddb.c src/db/stream.c src/db/hashdtype.c		\
 	src/db/drivers.c src/db/indices.c src/db/pools.c 		\
 	src/db/xtables.c src/db/cachecall.c  				\
 	src/db/compoundindices.c  			\
@@ -753,7 +753,7 @@ src/scheme/binders.o src/scheme/conditionals.o src/scheme/iterators.o: \
 	src/scheme/eval_internals.h
 
 src/dtype/dtypeio.o src/dtype/apply.o : XCFLAGS="${OPTFLAGS}"
-src/db/bytestream.o : XCFLAGS="${OPTFLAGS}"
+src/db/stream.o : XCFLAGS="${OPTFLAGS}"
 src/scheme/eval.o : XCFLAGS="${OPTFLAGS}"
 src/scheme/conditionals.o src/scheme/iterators.o : XCFLAGS="${OPTFLAGS}"
 src/scheme/opcodes.o : XCFLAGS="${OPTFLAGS}"

@@ -332,7 +332,7 @@ static fdtype leveldb_get_prim(fdtype leveldb,fdtype key,fdtype opts)
       return fd_err("LevelDBError","leveldb_get_prim",errmsg,FD_VOID);
     else return FD_EMPTY_CHOICE;}
   else {
-    struct FD_BYTE_OUTBUF keyout; FD_INIT_BYTE_OUTBUF(&keyout,1024);
+    struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTBUF(&keyout,1024);
     if (fd_write_dtype(&keyout,key)>0) {
       fdtype result=FD_VOID;
       ssize_t binary_size;
@@ -349,7 +349,7 @@ static fdtype leveldb_get_prim(fdtype leveldb,fdtype key,fdtype opts)
 	  result=fd_err("LevelDBError","leveldb_get_prim",errmsg,FD_VOID);
 	else result=FD_EMPTY_CHOICE;}
       else {
-	struct FD_BYTE_INBUF valuein;
+	struct FD_INBUF valuein;
 	FD_INIT_BYTE_INPUT(&valuein,binary_data,binary_size);
 	result=fd_read_dtype(&valuein);
 	u8_free(binary_data);}
@@ -379,8 +379,8 @@ static fdtype leveldb_put_prim(fdtype leveldb,fdtype key,fdtype value,
       return fd_err("LevelDBError","leveldb_put_prim",errmsg,FD_VOID);
     else return FD_VOID;}
   else {
-    struct FD_BYTE_OUTBUF keyout; FD_INIT_BYTE_OUTBUF(&keyout,1024);
-    struct FD_BYTE_OUTBUF valout; FD_INIT_BYTE_OUTBUF(&valout,1024);
+    struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTBUF(&keyout,1024);
+    struct FD_OUTBUF valout; FD_INIT_BYTE_OUTBUF(&valout,1024);
     if (fd_write_dtype(&keyout,key)<0) {
       u8_free(keyout.bufbase);
       u8_free(valout.bufbase);
@@ -422,7 +422,7 @@ static fdtype leveldb_drop_prim(fdtype leveldb,fdtype key,fdtype opts)
       return fd_err("LevelDBError","leveldb_put_prim",errmsg,FD_VOID);
     else return FD_VOID;}
   else {
-    struct FD_BYTE_OUTBUF keyout; FD_INIT_BYTE_OUTBUF(&keyout,1024);
+    struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTBUF(&keyout,1024);
     if (fd_write_dtype(&keyout,key)<0) {
       u8_free(keyout.bufbase);
       return FD_ERROR_VALUE;}
@@ -450,7 +450,7 @@ static fdtype get_prop(leveldb_t *dbptr,char *key,fdtype dflt)
     (dbptr,default_readopts,key,strlen(key),&data_size,&errmsg);
   if (buf) {
     fdtype result=FD_VOID;
-    struct FD_BYTE_INBUF in;
+    struct FD_INBUF in;
     FD_INIT_BYTE_INPUT(&in,buf,data_size);
     result=fd_read_dtype(&in);
     u8_free(buf);
@@ -464,7 +464,7 @@ static ssize_t set_prop(leveldb_t *dbptr,char *key,fdtype value,
 			leveldb_writeoptions_t *writeopts)
 {
   ssize_t data_size; ssize_t dtype_len; char *errmsg=NULL;
-  struct FD_BYTE_OUTBUF out;
+  struct FD_OUTBUF out;
   FD_INIT_BYTE_OUTBUF(&out,512);
   if ((dtype_len=fd_write_dtype(&out,value))>0) {
     leveldb_put(dbptr,writeopts,key,strlen(key),
@@ -566,13 +566,13 @@ fd_pool fd_make_leveldb_pool(u8_string path,fdtype base,fdtype cap,fdtype opts)
     return (fd_pool)NULL;}
 }
 
-static fdtype read_oid_value(fd_leveldb_pool p,struct FD_BYTE_INBUF *in)
+static fdtype read_oid_value(fd_leveldb_pool p,struct FD_INBUF *in)
 {
   return fd_read_dtype(in);
 }
 
 static int write_oid_value(fd_leveldb_pool p,
-			   struct FD_BYTE_OUTBUF *out,
+			   struct FD_OUTBUF *out,
 			   fdtype value)
 {
   return fd_write_dtype(out,value);
@@ -593,7 +593,7 @@ static fdtype get_oid_value(fd_leveldb_pool ldp,unsigned int offset)
     (dbptr,readopts,keybuf,5,&data_size,&errmsg);
   if (buf) {
     fdtype result=FD_VOID;
-    struct FD_BYTE_INBUF in;
+    struct FD_INBUF in;
     FD_INIT_BYTE_INPUT(&in,buf,data_size);
     result=read_oid_value(ldp,&in);
     u8_free(buf);
@@ -608,7 +608,7 @@ static int set_oid_value(fd_leveldb_pool ldp,
 			 fdtype value,
 			 leveldb_writeoptions_t *writeopts)
 {
-  struct FD_BYTE_OUTBUF out; ssize_t dtype_len;
+  struct FD_OUTBUF out; ssize_t dtype_len;
   leveldb_t *dbptr=ldp->leveldb.dbptr;
   if (writeopts==NULL) writeopts=ldp->leveldb.writeopts;
   FD_INIT_BYTE_OUTBUF(&out,512);
@@ -637,7 +637,7 @@ static int queue_oid_value(fd_leveldb_pool ldp,
 			   fdtype value,
 			   leveldb_writebatch_t *batch)
 {
-  struct FD_BYTE_OUTBUF out; ssize_t dtype_len;
+  struct FD_OUTBUF out; ssize_t dtype_len;
   leveldb_t *dbptr=ldp->leveldb.dbptr;
   unsigned char buf[5];
   buf[0]=0xFE;
@@ -727,7 +727,7 @@ static fdtype *leveldb_pool_fetchn(fd_pool p,int n,fdtype *oids)
     ssize_t bytes_len;
     const unsigned char *bytes=leveldb_iter_value(iterator,&bytes_len);
     if (bytes) {
-      struct FD_BYTE_INBUF in;
+      struct FD_INBUF in;
       FD_INIT_BYTE_INPUT(&in,bytes,bytes_len);
       fdtype oidvalue=read_oid_value(pool,&in);
       values[fetch_offset]=oidvalue;}

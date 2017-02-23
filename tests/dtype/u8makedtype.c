@@ -19,7 +19,7 @@
 
 static void write_dtype_to_file(fdtype object,FILE *f)
 {
-  struct FD_BYTE_OUTBUF out;
+  struct FD_OUTBUF out;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   fd_write_dtype(&out,object);
   fwrite(out.bufbase,1,out.bufpoint-out.bufbase,f);

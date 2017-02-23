@@ -188,7 +188,7 @@ static fdtype ixserver_changes(fdtype index,fdtype sid,fdtype xid)
 
 static struct FD_HASHTABLE server_locks, server_locks_inv;
 static unsigned int n_locks=0;
-static FD_BYTESTREAM *locks_file=NULL;
+static FD_STREAM *locks_file=NULL;
 static u8_string locks_filename=NULL;
 static void update_server_lock_file();
 
@@ -214,7 +214,7 @@ static int lock_oid(fdtype oid,fdtype id)
     if (locks_file) {
       fd_write_dtype(fd_writebuf(locks_file),oid);
       fd_write_dtype(fd_writebuf(locks_file),id);
-      fd_flush_bytestream(locks_file);}
+      fd_flush_stream(locks_file);}
     fd_unlock_mutex(&server_locks_lock);
     return 1;}
   else if (FDTYPE_EQUAL(id,holder)) {
@@ -256,7 +256,7 @@ static int clear_server_lock(fdtype oid,fdtype id)
     if (locks_file) {
       fd_write_dtype(fd_writebuf(locks_file),id);
       fd_write_dtype(fd_writebuf(locks_file),oid);
-      fd_flush_bytestream(locks_file);}
+      fd_flush_stream(locks_file);}
     fd_unlock_mutex(&server_locks_lock);
     return 1;}
   else {
@@ -281,7 +281,7 @@ static void remove_all_server_locks(fdtype id)
 
 static int add_to_server_locks_file(fdtype key,fdtype value,void *outfilep)
 {
-  struct FD_BYTESTREAM *out=(fd_bytestream )outfilep;
+  struct FD_STREAM *out=(fd_stream )outfilep;
   fd_write_dtype(fd_writebuf(out),key);
   fd_write_dtype(fd_writebuf(out),value);
   return 0;
@@ -290,19 +290,19 @@ static int add_to_server_locks_file(fdtype key,fdtype value,void *outfilep)
 static void open_server_lock_stream(u8_string file)
 {
   if (u8_file_existsp(file)) {
-    struct FD_BYTESTREAM *stream=
-      fd_open_dtype_file(file,FD_BYTESTREAM_READ,65536);
-    fd_byte_inbuf in=fd_readbuf(stream);
+    struct FD_STREAM *stream=
+      fd_open_dtype_file(file,FD_STREAM_READ,65536);
+    fd_inbuf in=fd_readbuf(stream);
     fdtype a=fd_read_dtype(in), b=fd_read_dtype(in);
     while (!(FD_EOFP(a))) {
       if (FD_OIDP(a)) lock_oid(a,b); else clear_server_lock(b,a);
       a=fd_read_dtype(in); b=fd_read_dtype(in);}
-    fd_close_bytestream(stream,1);
+    fd_close_stream(stream,1);
     u8_removefile(file);}
-  locks_file=fd_open_dtype_file(file,FD_BYTESTREAM_CREATE,65536);
+  locks_file=fd_open_dtype_file(file,FD_STREAM_CREATE,65536);
   locks_filename=u8_strdup(file);
   fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
-  fd_flush_bytestream(locks_file);
+  fd_flush_stream(locks_file);
 }
 
 /* This writes out the current state of locks in memory to an external file.
@@ -316,11 +316,11 @@ static void update_server_lock_file()
   if (locks_filename == NULL) return;
   fd_lock_mutex(&server_locks_lock);
   temp_file=u8_mkstring("%s.bak",locks_filename);
-  if (locks_file) fd_close_bytestream(locks_file,1);
+  if (locks_file) fd_close_stream(locks_file,1);
   u8_movefile(locks_filename,temp_file);
-  locks_file=fd_open_dtype_file(locks_filename,FD_BYTESTREAM_CREATE,65536);
+  locks_file=fd_open_dtype_file(locks_filename,FD_STREAM_CREATE,65536);
   fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);
-  fd_flush_bytestream(locks_file);
+  fd_flush_stream(locks_file);
   u8_removefile(temp_file);
   u8_free(temp_file);
   fd_unlock_mutex(&server_locks_lock);

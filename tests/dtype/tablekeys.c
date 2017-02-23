@@ -6,7 +6,7 @@
 */
 
 #include "framerd/dtype.h"
-#include "framerd/bytestream.h"
+#include "framerd/stream.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -16,22 +16,22 @@
 
 int main(int argc,char **argv)
 {
-  struct FD_BYTESTREAM *in, *out;
-  struct FD_BYTE_INBUF *inbuf;
-  struct FD_BYTE_OUTBUF *outbuf;
+  struct FD_STREAM *in, *out;
+  struct FD_INBUF *inbuf;
+  struct FD_OUTBUF *outbuf;
   fdtype ht, keys;
   FD_DO_LIBINIT(fd_init_dtypelib);
-  in=fd_bytestream_open(argv[1],FD_BYTESTREAM_READ);
+  in=fd_stream_open(argv[1],FD_STREAM_READ);
   inbuf=fd_readbuf(in);
   ht=fd_read_dtype(inbuf);
-  fd_close_bytestream(in,FD_BYTESTREAM_CLOSE_FULL);
+  fd_close_stream(in,FD_STREAM_CLOSE_FULL);
   keys=fd_hashtable_keys(FD_XHASHTABLE(ht));
   fprintf(stderr,_("Found %d keys\n"),FD_CHOICE_SIZE(keys));
-  out=fd_bytestream_open(argv[2],FD_BYTESTREAM_CREATE);
+  out=fd_stream_open(argv[2],FD_STREAM_CREATE);
   outbuf=fd_writebuf(out);
   fd_write_dtype(outbuf,keys);
   fd_decref(keys); keys=FD_VOID;
   fd_decref(ht); ht=FD_VOID;
-  fd_close_bytestream(out,FD_BYTESTREAM_CLOSE_FULL);
+  fd_close_stream(out,FD_STREAM_CLOSE_FULL);
   return 0;
 }

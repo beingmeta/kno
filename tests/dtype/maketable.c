@@ -6,7 +6,7 @@
 */
 
 #include "framerd/dtype.h"
-#include "framerd/bytestream.h"
+#include "framerd/stream.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -58,18 +58,18 @@ static void report_on_hashtable(fdtype ht)
 int main(int argc,char **argv)
 {
   fdtype ht, item, key=FD_VOID; int i=0;
-  struct FD_BYTESTREAM *in, *out;
-  struct FD_BYTE_INBUF *inbuf;
+  struct FD_STREAM *in, *out;
+  struct FD_INBUF *inbuf;
   double span;
   FD_DO_LIBINIT(fd_init_dtypelib);
   span=get_elapsed(); /* Start the timer */
   ht=fd_make_hashtable(NULL,64);
-  in=fd_bytestream_open(argv[1],FD_BYTESTREAM_READ);
+  in=fd_stream_open(argv[1],FD_STREAM_READ);
   if (in==NULL) {
     u8_log(LOG_ERR,"No such file","Couldn't open file %s",argv[1]);
     exit(1);}
   else inbuf=fd_readbuf(in);
-  fd_bytestream_setbuf(in,65536*2);
+  fd_stream_setbuf(in,65536*2);
   item=fd_read_dtype(inbuf); i=1;
   while (!(FD_EODP(item))) {
     if (i%100000 == 0) {
@@ -84,12 +84,12 @@ int main(int argc,char **argv)
     fd_decref(item); item=fd_read_dtype(inbuf);
     i=i+1;}
   report_on_hashtable(ht);
-  fd_close_bytestream(in,FD_BYTESTREAM_CLOSE_FULL);
-  out=fd_bytestream_open(argv[2],FD_BYTESTREAM_CREATE);
+  fd_close_stream(in,FD_STREAM_CLOSE_FULL);
+  out=fd_stream_open(argv[2],FD_STREAM_CREATE);
   if (out) {
-    struct FD_BYTE_OUTBUF *outbuf=fd_writebuf(out);
+    struct FD_OUTBUF *outbuf=fd_writebuf(out);
     fd_write_dtype(outbuf,ht);
-    fd_close_bytestream(out,FD_BYTESTREAM_CLOSE_FULL);}
+    fd_close_stream(out,FD_STREAM_CLOSE_FULL);}
   fd_decref(ht); ht=FD_VOID;
   exit(0);
 }

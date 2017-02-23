@@ -8,11 +8,11 @@
 typedef long long int ll;
 typedef unsigned long long ull;
 
-static FD_CHUNK_REF read_chunk_ref(struct FD_BYTESTREAM *stream,
+static FD_CHUNK_REF read_chunk_ref(struct FD_STREAM *stream,
                                    fd_off_t base,fd_offset_type offtype,
                                    unsigned int offset);
 
-static FD_CHUNK_REF get_chunk_ref(struct FD_BYTESTREAM *stream,
+static FD_CHUNK_REF get_chunk_ref(struct FD_STREAM *stream,
 				  unsigned int *offsets,
 				  fd_off_t base,fd_offset_type offtype,
 				  unsigned int offset,
@@ -79,7 +79,7 @@ static int chunk_ref_size(fd_offset_type offtype)
   return -1;
 }
 
-static FD_CHUNK_REF read_chunk_ref(struct FD_BYTESTREAM *stream,
+static FD_CHUNK_REF read_chunk_ref(struct FD_STREAM *stream,
                                    fd_off_t base,fd_offset_type offtype,
 				   unsigned int offset)
 {
@@ -88,7 +88,7 @@ static FD_CHUNK_REF read_chunk_ref(struct FD_BYTESTREAM *stream,
   if ( (fd_setpos(stream,base+ref_off)) < 0 ) {
     result.off=(fd_off_t)-1; result.size=(size_t)-1;}
   else {
-    fd_byte_inbuf in=fd_readbuf(stream);
+    fd_inbuf in=fd_readbuf(stream);
     switch (offtype) {
     case FD_B32:
       result.off=fd_read_4bytes(in);
@@ -127,7 +127,7 @@ static int convert_FD_B40_ref(FD_CHUNK_REF ref,
   return 0;
 }
 
-static unsigned char *read_chunk(fd_bytestream stream,
+static unsigned char *read_chunk(fd_stream stream,
                                  unsigned char *mmap,
                                  fd_off_t off,uint size,
                                  uchar *usebuf,
@@ -139,7 +139,7 @@ static unsigned char *read_chunk(fd_bytestream stream,
     if (unlock) u8_unlock_mutex(unlock);
     return buf;}
   else {
-    fd_byte_inbuf in=fd_start_read(stream,off);
+    fd_inbuf in=fd_start_read(stream,off);
     int bytes_read = (in) ? (fd_read_bytes(buf,in,size)) : (-1);
     if (unlock) u8_unlock_mutex(unlock);
     if (bytes_read<0) {

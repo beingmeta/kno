@@ -155,7 +155,7 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
   else if (FD_PACKETP(object)) {
     bytes=FD_PACKET_DATA(object); len=FD_PACKET_LENGTH(object);}
   else if ((FD_FALSEP(enc)) || (FD_VOIDP(enc))) {
-    struct FD_BYTE_OUTBUF out;
+    struct FD_OUTBUF out;
     FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,object);
     bytes=out.bufbase; len=out.bufpoint-out.bufbase;
@@ -1176,7 +1176,7 @@ static fdtype close_prim(fdtype portarg)
     struct FD_BYTEPORT *dts=
       fd_consptr(struct FD_BYTEPORT *,portarg,fd_byteport_type);
     if (dts->dt_stream) {
-      fd_close_bytestream(dts->dt_stream,1);
+      fd_close_stream(dts->dt_stream,1);
       dts->dt_stream=NULL;}
     return FD_VOID;}
   else if (FD_PORTP(portarg)) {
@@ -1207,7 +1207,7 @@ static fdtype flush_prim(fdtype portarg)
   if (FD_TYPEP(portarg,fd_byteport_type)) {
     struct FD_BYTEPORT *dts=
       fd_consptr(struct FD_BYTEPORT *,portarg,fd_byteport_type);
-    fd_flush_bytestream(dts->dt_stream);
+    fd_flush_stream(dts->dt_stream);
     return FD_VOID;}
   else if (FD_TYPEP(portarg,fd_port_type)) {
     U8_OUTPUT *out=get_output_port(portarg);
@@ -1224,7 +1224,7 @@ static fdtype setbuf_prim(fdtype portarg,fdtype insize,fdtype outsize)
   if (FD_TYPEP(portarg,fd_byteport_type)) {
     struct FD_BYTEPORT *dts=
       fd_consptr(struct FD_BYTEPORT *,portarg,fd_byteport_type);
-    fd_bytestream_setbuf(dts->dt_stream,FD_FIX2INT(insize));
+    fd_stream_setbuf(dts->dt_stream,FD_FIX2INT(insize));
     return FD_VOID;}
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
@@ -1429,7 +1429,7 @@ int fd_snapshot(fd_lispenv env,u8_string filename)
     u8_message("No snapshot information to save");
     return FD_VOID;}
   else {
-    struct FD_BYTESTREAM *out; int bytes;
+    struct FD_STREAM *out; int bytes;
     fdtype slotmap=(fdtype)fd_empty_slotmap();
     if (FD_VOIDP(vars)) vars=FD_EMPTY_CHOICE;
     if (FD_VOIDP(configvars)) configvars=FD_EMPTY_CHOICE;
@@ -1456,12 +1456,12 @@ int fd_snapshot(fd_lispenv env,u8_string filename)
        else {
          fd_decref(slotmap);
          return fd_type_error("symbol","fd_snapshot",sym);}}
-    out=fd_bytestream_open(filename,FD_BYTESTREAM_CREATE);
+    out=fd_stream_open(filename,FD_STREAM_CREATE);
     if (out==NULL) {
       fd_decref(slotmap);
       return -1;}
     else bytes=fd_write_dtype(fd_writebuf(out),slotmap);
-    fd_close_bytestream(out,FD_BYTESTREAM_CLOSE_FULL);
+    fd_close_stream(out,FD_STREAM_CLOSE_FULL);
     u8_log(LOG_INFO,SnapshotSaved,
            "Saved snapshot of %d items to %s",
            FD_SLOTMAP_SIZE(slotmap),filename);
@@ -1477,13 +1477,13 @@ FD_EXPORT
 */
 int fd_snapback(fd_lispenv env,u8_string filename)
 {
-  struct FD_BYTESTREAM *in;
+  struct FD_STREAM *in;
   fdtype slotmap; int actions=0;
-  in=fd_bytestream_open(filename,FD_BYTESTREAM_READ);
+  in=fd_stream_open(filename,FD_STREAM_READ);
   if (in==NULL) return -1;
   else slotmap=fd_read_dtype(fd_readbuf(in));
   if (FD_ABORTP(slotmap)) {
-    fd_close_bytestream(in,FD_BYTESTREAM_CLOSE_FULL);
+    fd_close_stream(in,FD_STREAM_CLOSE_FULL);
     return slotmap;}
   else if (FD_SLOTMAPP(slotmap)) {
     fdtype keys=fd_getkeys(slotmap);

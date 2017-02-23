@@ -13,7 +13,7 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/bytestream.h"
+#include "framerd/stream.h"
 #include "framerd/apply.h"
 #include "framerd/fddb.h"
 #include "framerd/dtproc.h"
@@ -70,12 +70,12 @@ static void recycle_dtproc(FD_CONS *c)
 
 static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
 {
-  struct FD_BYTESTREAM stream;
+  struct FD_STREAM stream;
   u8_connpool cpool=dtp->fd_connpool;
   fdtype expr=FD_EMPTY_LIST, result; int i=n-1;
   u8_socket conn=u8_get_connection(cpool);
   if (conn<0) return FD_ERROR_VALUE;
-  fd_init_bytestream(&stream,conn,8192);
+  fd_init_stream(&stream,conn,8192);
   while (i>=0) {
     if ((FD_SYMBOLP(args[i])) || (FD_PAIRP(args[i])))
       expr=fd_conspair(fd_make_list(2,quote_symbol,fd_incref(args[i])),
@@ -85,7 +85,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   expr=fd_conspair(dtp->fd_dtprocname,expr);
   /* u8_log(LOG_DEBUG,"DTPROC","Using connection %d",conn); */
   if ((fd_write_dtype(fd_writebuf(&stream),expr)<0) ||
-      (fd_flush_bytestream(&stream)<0)) {
+      (fd_flush_stream(&stream)<0)) {
     fd_clear_errors(1);
     if ((conn=u8_reconnect(cpool,conn))<0) {
       if (conn>0) u8_discard_connection(cpool,conn);
@@ -95,7 +95,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
     fd_clear_errors(1);
     if (((conn=u8_reconnect(cpool,conn))<0) ||
         (fd_write_dtype(fd_writebuf(&stream),expr)<0) ||
-        (fd_flush_bytestream(&stream)<0)) {
+        (fd_flush_stream(&stream)<0)) {
       if (conn>0) u8_discard_connection(cpool,conn);
       return FD_ERROR_VALUE;}
     else result=fd_read_dtype(fd_readbuf(&stream));

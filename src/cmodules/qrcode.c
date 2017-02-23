@@ -55,7 +55,7 @@ static int geteclevel(fdtype level_arg)
 
 static void packet_write_data(png_structp pngptr,png_bytep data,png_size_t len)
 {
-  struct FD_BYTE_OUTBUF *out=(struct FD_BYTE_OUTBUF *)png_get_io_ptr(pngptr);
+  struct FD_OUTBUF *out=(struct FD_OUTBUF *)png_get_io_ptr(pngptr);
   int retval=fd_write_bytes(out,(unsigned char *)data,(size_t)len);
   if (retval<0)
     u8_log(LOG_CRIT,"PNG write error","Error writing PNG file");
@@ -93,7 +93,7 @@ static fdtype write_png_packet(QRcode *qrcode,fdtype opts)
     png_destroy_write_struct(&png_ptr, &info_ptr);
     return fd_err("PNG problem","write_png_packet",NULL,FD_VOID);}
   else {
-    struct FD_BYTE_OUTBUF buf;
+    struct FD_OUTBUF buf;
     int qrwidth=qrcode->width, qrheight=qrwidth;
     int fullwidth=(qrwidth+(margin*2))*dotsize;
     int rowlen=(fullwidth+7)/8;

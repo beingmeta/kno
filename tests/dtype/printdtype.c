@@ -6,7 +6,7 @@
 */
 
 #include "framerd/dtype.h"
-#include "framerd/bytestream.h"
+#include "framerd/stream.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8stdio.h>
@@ -18,11 +18,11 @@
 int main(int argc,char **argv)
 {
   fdtype object;
-  struct FD_BYTESTREAM *in; u8_string srep;
+  struct FD_STREAM *in; u8_string srep;
   FD_DO_LIBINIT(fd_init_dtypelib);
-  in=fd_bytestream_open(argv[1],FD_BYTESTREAM_READ);
+  in=fd_stream_open(argv[1],FD_STREAM_READ);
   object=fd_read_dtype(fd_readbuf(in));
-  fd_close_bytestream(in,FD_BYTESTREAM_CLOSE_FULL);
+  fd_close_stream(in,FD_STREAM_CLOSE_FULL);
   /* For coverage tests */
   srep=fd_dtype2string(object); u8_free(srep);
   /* Print it out */

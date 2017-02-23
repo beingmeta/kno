@@ -1890,7 +1890,7 @@ static void output_bigint_byte(unsigned char **scan,int digit)
 {
   **scan=digit; (*scan)++;
 }
-static int dtype_bigint(struct FD_BYTE_OUTBUF *out,fdtype x)
+static int dtype_bigint(struct FD_OUTBUF *out,fdtype x)
 {
   fd_bigint bi=fd_consptr(fd_bigint,x,fd_bigint_type);
   if (fd_bigint_fits_in_word_p(bi,32,1)) {
@@ -2020,7 +2020,7 @@ static fdtype unpack_flonum(unsigned int n,unsigned char *packet)
   return fd_init_flonum(NULL,*f);
 }
 
-static int dtype_flonum(struct FD_BYTE_OUTBUF *out,fdtype x)
+static int dtype_flonum(struct FD_OUTBUF *out,fdtype x)
 {
   struct FD_FLONUM *d=fd_consptr(struct FD_FLONUM *,x,fd_flonum_type);
   unsigned char bytes[8]; int i=0;

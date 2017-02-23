@@ -1686,11 +1686,11 @@ static fdtype make_dtproc(fdtype name,fdtype server,fdtype min_arity,fdtype arit
 /* Remote evaluation */
 
 static fd_exception ServerUndefined=_("Server unconfigured");
-fd_ptr_type fd_bytestream_erver_type;
+fd_ptr_type fd_stream_erver_type;
 
 FD_EXPORT fdtype fd_open_bytstrerver(u8_string server,int bufsiz)
 {
-  struct FD_BYTESTREAM_ERVER *dts=u8_alloc(struct FD_BYTESTREAM_ERVER);
+  struct FD_STREAM_ERVER *dts=u8_alloc(struct FD_STREAM_ERVER);
   u8_string server_addr; u8_socket socket;
   /* Start out by parsing the address */
   if ((*server)==':') {
@@ -1727,21 +1727,21 @@ FD_EXPORT fdtype fd_open_bytstrerver(u8_string server,int bufsiz)
     u8_free(dts);
     return FD_ERROR_VALUE;}
   /* Otherwise, returh a dtserver object */
-  FD_INIT_CONS(dts,fd_bytestream_erver_type);
+  FD_INIT_CONS(dts,fd_stream_erver_type);
   return FDTYPE_CONS(dts);
 }
 
 static fdtype dteval(fdtype server,fdtype expr)
 {
-  if (FD_TYPEP(server,fd_bytestream_erver_type))  {
-    struct FD_BYTESTREAM_ERVER *dtsrv=
-      fd_consptr(fd_bytestream_erver,server,fd_bytestream_erver_type);
+  if (FD_TYPEP(server,fd_stream_erver_type))  {
+    struct FD_STREAM_ERVER *dtsrv=
+      fd_consptr(fd_stream_erver,server,fd_stream_erver_type);
     return fd_dteval(dtsrv->fd_connpool,expr);}
   else if (FD_STRINGP(server)) {
     fdtype s=fd_open_bytstrerver(FD_STRDATA(server),-1);
     if (FD_ABORTED(s)) return s;
     else {
-      fdtype result=fd_dteval(((fd_bytestream_erver)s)->fd_connpool,expr);
+      fdtype result=fd_dteval(((fd_stream_erver)s)->fd_connpool,expr);
       fd_decref(s);
       return result;}}
   else return fd_type_error(_("server"),"dteval",server);
@@ -1751,7 +1751,7 @@ static fdtype dtcall(int n,fdtype *args)
 {
   fdtype server; fdtype request=FD_EMPTY_LIST, result; int i=n-1;
   if (n<2) return fd_err(fd_SyntaxError,"dtcall",NULL,FD_VOID);
-  if (FD_TYPEP(args[0],fd_bytestream_erver_type))
+  if (FD_TYPEP(args[0],fd_stream_erver_type))
     server=fd_incref(args[0]);
   else if (FD_STRINGP(args[0])) server=fd_open_bytstrerver(FD_STRDATA(args[0]),-1);
   else return fd_type_error(_("server"),"eval/dtcall",args[0]);
@@ -1762,7 +1762,7 @@ static fdtype dtcall(int n,fdtype *args)
       request=fd_conspair(fd_make_list(2,quote_symbol,param),request);
     else request=fd_conspair(param,request);
     fd_incref(param); i--;}
-  result=fd_dteval(((fd_bytestream_erver)server)->fd_connpool,request);
+  result=fd_dteval(((fd_stream_erver)server)->fd_connpool,request);
   fd_decref(request);
   fd_decref(server);
   return result;
@@ -1869,7 +1869,7 @@ void fd_init_eval_c()
 
   fd_environment_type=fd_register_cons_type(_("scheme environment"));
   fd_specform_type=fd_register_cons_type(_("scheme special form"));
-  fd_bytestream_erver_type=fd_register_cons_type(_("DType server"));
+  fd_stream_erver_type=fd_register_cons_type(_("DType server"));
 
   fd_tablefns[fd_environment_type]=fns;
   fd_copiers[fd_environment_type]=lisp_copy_environment;

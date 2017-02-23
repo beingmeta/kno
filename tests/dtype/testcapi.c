@@ -7,7 +7,7 @@
 
 #include "framerd/dtype.h"
 #include "framerd/numbers.h"
-#include "framerd/bytestream.h"
+#include "framerd/stream.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -15,7 +15,7 @@
 
 static int write_dtype_to_file(fdtype object,FILE *f)
 {
-  struct FD_BYTE_OUTBUF out; int retval;
+  struct FD_OUTBUF out; int retval;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   retval=fd_write_dtype(&out,object);
   retval=fwrite(out.bufbase,1,out.bufpoint-out.bufbase,f);

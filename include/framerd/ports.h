@@ -27,7 +27,7 @@ typedef struct FD_PORT *fd_port;
 typedef struct FD_BYTEPORT {
   FD_CONS_HEADER;
   int fd_owns_socket;
-  struct FD_BYTESTREAM *dt_stream;} FD_BYTEPORT;
+  struct FD_STREAM *dt_stream;} FD_BYTEPORT;
 typedef struct FD_BYTEPORT *fd_byteport;
 
 FD_EXPORT fd_ptr_type fd_byteport_type;

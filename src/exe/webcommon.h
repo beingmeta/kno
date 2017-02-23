@@ -6,7 +6,7 @@ static u8_mutex log_lock;
 static u8_string urllogname=NULL;
 static FILE *urllog=NULL;
 static u8_string reqlogname=NULL;
-static fd_bytestream reqlog=NULL;
+static fd_stream reqlog=NULL;
 static int reqloglevel=0;
 static int traceweb=0;
 static int webdebug=0;
@@ -276,14 +276,14 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
     u8_string filename=FD_STRDATA(val);
     fd_lock_mutex(&log_lock);
     if ((reqlogname) && (strcmp(filename,reqlogname)==0)) {
-      fd_flush_bytestream(reqlog);
+      fd_flush_stream(reqlog);
       fd_unlock_mutex(&log_lock);
       return 0;}
     else if (reqlog) {
-      fd_close_bytestream(reqlog,1); reqlog=NULL;
+      fd_close_stream(reqlog,1); reqlog=NULL;
       u8_free(reqlogname); reqlogname=NULL;}
-    reqlog=u8_alloc(struct FD_BYTESTREAM);
-    if (fd_init_file_bytestream(reqlog,filename,FD_BYTESTREAM_WRITE,16384)) {
+    reqlog=u8_alloc(struct FD_STREAM);
+    if (fd_init_file_stream(reqlog,filename,FD_STREAM_WRITE,16384)) {
       u8_string logstart=
 	u8_mkstring("# Log open %*lt for %s",u8_sessionid());
       fdtype logstart_entry=fd_lispstring(logstart);
@@ -299,7 +299,7 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
   else if (FD_FALSEP(val)) {
     fd_lock_mutex(&log_lock);
     if (reqlog) {
-      fd_close_bytestream(reqlog,1); reqlog=NULL;
+      fd_close_stream(reqlog,1); reqlog=NULL;
       u8_free(reqlogname); reqlogname=NULL;}
     fd_unlock_mutex(&log_lock);
     return 0;}

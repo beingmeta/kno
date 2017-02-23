@@ -24,7 +24,7 @@ int main(int argc,char **argv)
 {
   u8_socket socket;
   int fd_version=fd_init_dbs(), i=0;
-  struct FD_BYTESTREAM ds;
+  struct FD_STREAM ds;
   fdtype expr=FD_EMPTY_LIST, result;
   if (fd_version<0) {
     u8_fprintf(stderr,"Couldn't initialize FramerD\n");
@@ -33,13 +33,13 @@ int main(int argc,char **argv)
   if (socket<0) {
     u8_fprintf(stderr,"Couldn't open socket to %s\n",argv[1]);
     exit(1);}
-  fd_init_bytestream(&ds,socket,1024);
+  fd_init_stream(&ds,socket,1024);
   i=argc-1; while (i>1) expr=fd_make_pair(fd_parse(argv[i--]),expr);
   u8_fprintf(stderr,_("Sending: %q\n"),expr);
   fd_write_dtype(fd_writebuf(&ds),expr);
   result=fd_read_dtype(fd_readbuf(&ds));
   u8_fprintf(stderr,_("Result is: %q\n"),result);
   fd_decref(expr); fd_decref(result);
-  fd_close_bytestream(&ds,FD_BYTESTREAM_CLOSE_FULL);
+  fd_close_stream(&ds,FD_STREAM_CLOSE_FULL);
   return 0;
 }

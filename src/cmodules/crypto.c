@@ -33,7 +33,7 @@ static fdtype doencrypt(fdtype data,fdtype key,
                         u8_string ciphername,fdtype iv,
                         int dtype)
 {
-  struct FD_BYTE_OUTBUF tmp;
+  struct FD_OUTBUF tmp;
   const unsigned char *payload; size_t payload_len; int free_payload=0;
   const unsigned char *ivdata; size_t iv_len;
   unsigned char *outbuf; size_t outlen;
@@ -148,7 +148,7 @@ static fdtype decrypt2dtype_prim(fdtype data,fdtype key,fdtype cipher,fdtype iv)
                     FD_PACKET_DATA(key),FD_PACKET_LENGTH(key),
                     ivdata,iv_len,&outlen);
   if (outbuf) {
-    struct FD_BYTE_INBUF in; fdtype result;
+    struct FD_INBUF in; fdtype result;
     FD_INIT_BYTE_INPUT(&in,outbuf,outlen);
     result=fd_read_dtype(&in);
     u8_free(outbuf);

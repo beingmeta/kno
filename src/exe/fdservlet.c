@@ -126,7 +126,7 @@ static int ignore_leftovers=0;
 typedef struct FD_WEBCONN {
   U8_CLIENT_FIELDS;
   fdtype cgidata;
-  struct FD_BYTESTREAM in;
+  struct FD_STREAM in;
   struct U8_OUTPUT out;} FD_WEBCONN;
 typedef struct FD_WEBCONN *fd_webconn;
 
@@ -824,7 +824,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   /* We could do access control here. */
   fd_webconn consed=(fd_webconn)
     u8_client_init(NULL,sizeof(FD_WEBCONN),addr,len,sock,srv);
-  fd_init_bytestream(&(consed->in),sock,4096);
+  fd_init_stream(&(consed->in),sock,4096);
   U8_INIT_STATIC_OUTPUT((consed->out),8192);
   u8_set_nodelay(sock,1);
   consed->cgidata=FD_VOID;
@@ -851,8 +851,8 @@ static int webservefn(u8_client ucl)
   double start_load[]={-1,-1,-1}, end_load[]={-1,-1,-1};
   int forcelog=0, retval=0;
   size_t http_len=0, head_len=0, content_len=0;
-  fd_bytestream stream=&(client->in);
-  fd_byte_inbuf instream=fd_readbuf(stream);
+  fd_stream stream=&(client->in);
+  fd_inbuf instream=fd_readbuf(stream);
   u8_output outstream=&(client->out);
   int async=((async_mode)&&((client->server->flags)&U8_SERVER_ASYNC));
   int return_code=0, buffered=0, recovered=1, http_status=-1;
@@ -1514,7 +1514,7 @@ static int webservefn(u8_client ucl)
     /* If we're calling traceweb, keep the log files up to date also. */
     fd_lock_mutex(&log_lock);
     if (urllog) fflush(urllog);
-    if (reqlog) fd_flush_bytestream(reqlog);
+    if (reqlog) fd_flush_stream(reqlog);
     fd_unlock_mutex(&log_lock);
     fd_decref(xredirect);
     fd_decref(redirect);
@@ -1538,7 +1538,7 @@ static int close_webclient(u8_client ucl)
   u8_log(LOG_INFO,"FDServlet/close","Closing web client %s (#%lx#%d.%d)",
          ucl->idstring,ucl,ucl->clientid,ucl->socket);
   fd_decref(client->cgidata); client->cgidata=FD_VOID;
-  fd_close_bytestream(&(client->in),0);
+  fd_close_stream(&(client->in),0);
   u8_close((u8_stream)&(client->out));
   return 1;
 }

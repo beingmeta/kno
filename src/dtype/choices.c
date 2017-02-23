@@ -49,7 +49,7 @@ static void recycle_achoice_wrapper(struct FD_ACHOICE *ch)
   fd_destroy_mutex(&(ch->achoice_lock));
   if (!(FD_STATIC_CONSP(ch))) u8_free(ch);
 }
-static int write_achoice_dtype(struct FD_BYTE_OUTBUF *s,fdtype x)
+static int write_achoice_dtype(struct FD_OUTBUF *s,fdtype x)
 {
   fdtype sc=fd_make_simple_choice(x);
   int n_bytes=fd_write_dtype(s,sc);
@@ -728,7 +728,7 @@ fdtype fd_init_qchoice(struct FD_QCHOICE *ptr,fdtype choice)
   return FDTYPE_CONS(ptr);
 }
 
-static int write_qchoice_dtype(struct FD_BYTE_OUTBUF *s,fdtype x)
+static int write_qchoice_dtype(struct FD_OUTBUF *s,fdtype x)
 {
   struct FD_QCHOICE *qc=FD_XQCHOICE(x);
   return fd_write_dtype(s,qc->fd_choiceval);

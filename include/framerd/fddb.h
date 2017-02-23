@@ -11,7 +11,7 @@
 #define FRAMERD_FDDB_H_INFO "include/framerd/fddb.h"
 #endif
 
-#include "bytestream.h"
+#include "stream.h"
 
 FD_EXPORT fd_exception fd_InternalError, fd_AmbiguousObjectName,
   fd_UnknownObjectName, fd_BadServerResponse, fd_NoBackground;
