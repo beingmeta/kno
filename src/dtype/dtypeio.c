@@ -44,55 +44,6 @@ static u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
 
 /* Byte output */
 
-static int grow_output_buffer(struct FD_BYTE_OUTBUF *b,size_t delta)
-{
-  size_t current_size=b->bufpoint-b->bufbase;
-  size_t current_limit=b->buflim-b->bufbase;
-  size_t new_limit=current_limit;
-  size_t need_size=current_size+delta;
-  unsigned char *new;
-  if (new_limit<=0) new_limit=1000;
-  while (new_limit < need_size)
-    if (new_limit>=250000) new_limit=new_limit+250000;
-    else new_limit=new_limit*2;
-  if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
-    new=u8_realloc(b->bufbase,new_limit);
-  else {
-    new=u8_malloc(new_limit);
-    if (new) memcpy(new,b->bufbase,current_size);
-    b->buf_flags=b->buf_flags|FD_BUFFER_IS_MALLOCD;}
-  if (new == NULL) return 0;
-  b->bufbase=new; b->bufpoint=new+current_size;
-  b->buflim=b->bufbase+new_limit;
-  b->buflen=new_limit;
-  return 1;
-}
-
-static int grow_input_buffer(struct FD_BYTE_INBUF *in,int delta)
-{
-  struct FD_BYTE_RAWBUF *b=(struct FD_BYTE_RAWBUF *)in;
-  size_t current_size=b->bufpoint-b->bufbase;
-  size_t current_limit=b->buflim-b->bufbase;
-  size_t new_limit=current_limit;
-  size_t need_size=current_size+delta;
-  unsigned char *new;
-  if (new_limit<=0) new_limit=1000;
-  while (new_limit < need_size)
-    if (new_limit>=250000) new_limit=new_limit+25000;
-    else new_limit=new_limit*2;
-  if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
-    new=u8_realloc(b->bufbase,new_limit);
-  else {
-    new=u8_malloc(new_limit);
-    if (new) memcpy(new,b->bufbase,current_size);
-    b->buf_flags=b->buf_flags|FD_BUFFER_IS_MALLOCD;}
-  if (new == NULL) return 0;
-  b->bufbase=new; b->bufpoint=new+current_size;
-  b->buflim=b->bufbase+new_limit;
-  b->buflen=new_limit;
-  return 1;
-}
-
 FD_EXPORT int fd_isreadbuf(struct FD_BYTE_OUTBUF *b)
 {
   u8_log(LOGCRIT,fd_IsReadBuf,
@@ -129,6 +80,67 @@ FD_EXPORT fdtype fdt_iswritebuf(struct FD_BYTE_INBUF *b)
   return FD_ERROR_VALUE;
 }
 
+/* Closing (freeing) buffers */
+
+FD_EXPORT size_t _fd_raw_closebuf(struct FD_BYTE_RAWBUF *buf)
+{
+  if (buf->buf_flags&FD_BUFFER_IS_MALLOCD) {
+    u8_free(buf->bufbase);
+    return buf->buflen;}
+  else return 0;
+}
+
+/* Growing buffers */
+
+static int grow_output_buffer(struct FD_BYTE_OUTBUF *b,size_t delta)
+{
+  size_t current_size=b->bufpoint-b->bufbase;
+  size_t current_limit=b->buflim-b->bufbase;
+  size_t new_limit=current_limit;
+  size_t need_size=current_size+delta;
+  unsigned char *new;
+  if (new_limit<=0) new_limit=1000;
+  while (new_limit < need_size)
+    if (new_limit>=250000) new_limit=new_limit+250000;
+    else new_limit=new_limit*2;
+  if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
+    new=u8_realloc(b->bufbase,new_limit);
+  else {
+    new=u8_malloc(new_limit);
+    if (new) memcpy(new,b->bufbase,current_size);
+    b->buf_flags|=FD_BUFFER_IS_MALLOCD;}
+  if (new == NULL) return 0;
+  b->bufbase=new; b->bufpoint=new+current_size;
+  b->buflim=b->bufbase+new_limit;
+  b->buflen=new_limit;
+  return 1;
+}
+
+static int grow_input_buffer(struct FD_BYTE_INBUF *in,int delta)
+{
+  struct FD_BYTE_RAWBUF *b=(struct FD_BYTE_RAWBUF *)in;
+  size_t current_size=b->bufpoint-b->bufbase;
+  size_t current_limit=b->buflim-b->bufbase;
+  size_t new_limit=current_limit;
+  size_t need_size=current_size+delta;
+  unsigned char *new;
+  if (new_limit<=0) new_limit=1000;
+  while (new_limit < need_size)
+    if (new_limit>=250000) new_limit=new_limit+25000;
+    else new_limit=new_limit*2;
+  if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
+    new=u8_realloc(b->bufbase,new_limit);
+  else {
+    new=u8_malloc(new_limit);
+    if (new) memcpy(new,b->bufbase,current_size);
+    b->buf_flags=b->buf_flags|FD_BUFFER_IS_MALLOCD;}
+  if (new == NULL) return 0;
+  b->bufbase=new; b->bufpoint=new+current_size;
+  b->buflim=b->bufbase+new_limit;
+  b->buflen=new_limit;
+  return 1;
+}
+
 FD_EXPORT int fd_needs_space(struct FD_BYTE_OUTBUF *b,size_t delta)
 {
   if (b->bufpoint+delta > b->buflim)
@@ -147,6 +159,8 @@ FD_EXPORT int _fd_grow_inbuf(struct FD_BYTE_INBUF *b,size_t delta)
     return grow_input_buffer(b,delta);
   else return 1;
 }
+
+/* Writing stuff */
 
 FD_EXPORT int _fd_write_byte(struct FD_BYTE_OUTBUF *b,unsigned char byte)
 {

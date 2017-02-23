@@ -1017,7 +1017,7 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
     /* If it's not an sproc, we add an entry to the backtrace
        that shows the arguments, since they probably don't show
        up in an environment on the backtrace. */
-    fdtype *avec=u8_alloc_n((arg_count+1),fdtype);
+    fdtype *avec=u8_alloc_n((arg_count+1),fdtype), call_context;
     memcpy(avec+1,argv,sizeof(fdtype)*(arg_count));
     if (fcn->fcn_filename)
       if (fcn->fcn_name)
@@ -1027,8 +1027,8 @@ static fdtype apply_normal_function(fdtype fn,fdtype expr,fd_lispenv env)
     else if (fcn->fcn_name) avec[0]=fd_intern(fcn->fcn_name);
     else avec[0]=fd_intern("LAMBDA");
     if (free_argv) u8_free(argv);
-    fd_push_error_context
-      (fd_apply_context,fd_init_vector(NULL,arg_count+1,avec));
+    call_context=fd_init_vector(NULL,arg_count+1,avec);
+    fd_push_error_context(fd_apply_context,call_context);
     return result;}
   else if (args_need_gc) {
     int i=0; while (i < arg_count) {

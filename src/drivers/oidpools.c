@@ -190,13 +190,14 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc, schemas_loc; fdtype label;
   struct FD_OIDPOOL *pool=u8_alloc(struct FD_OIDPOOL);
-  struct FD_BYTESTREAM *stream=&(pool->pool_stream);
-  struct FD_BYTE_INBUF *instream=fd_readbuf(stream);
   int read_only=U8_BITP(flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
   fd_bytestream_mode mode=
     ((read_only) ? (FD_BYTESTREAM_READ) : (FD_BYTESTREAM_MODIFY));
   u8_string rname=u8_realpath(fname,NULL);
-  fd_init_file_bytestream(stream,fname,mode,fd_driver_bufsize);
+  struct FD_BYTESTREAM *stream=
+    fd_init_file_bytestream(&(pool->pool_stream),fname,mode,fd_driver_bufsize);
+  struct FD_BYTE_INBUF *instream=fd_readbuf(stream);
+ 
   /* See if it ended up read only */
   if ((stream->buf_flags)&(FD_STREAM_READ_ONLY)) read_only=1;
   pool->pool_stream.stream_mallocd=0;

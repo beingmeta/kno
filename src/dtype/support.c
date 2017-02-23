@@ -1125,8 +1125,8 @@ FD_EXPORT fdtype fd_err
 
 FD_EXPORT void fd_push_error_context(u8_context cxt,fdtype data)
 {
-  if ( ( u8_current_exception ) &&
-       ( u8_current_exception->u8x_cond == fd_StackOverflow ) ) {
+  u8_exception ex=u8_current_exception;
+  if ( ( ex ) && ( ex->u8x_cond == fd_StackOverflow ) ) {
     fd_decref(data);
     return;}
   else u8_push_exception(NULL,cxt,NULL,(void *)data,fd_free_exception_xdata);

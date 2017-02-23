@@ -314,7 +314,6 @@ static int compress_offsets(unsigned int *offsets,int n)
 
 static fdtype *file_index_fetchkeys(fd_index ix,int *n)
 {
-  fdtype *keys;
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   struct FD_BYTESTREAM *stream=&(fx->index_stream);
   struct FD_BYTE_INBUF *instream=fd_readbuf(stream);
@@ -325,19 +324,23 @@ static fdtype *file_index_fetchkeys(fd_index ix,int *n)
   fd_start_read(stream,8);
   fd_read_ints(stream,fx->index_n_slots,offsets);
   n_keys=compress_offsets(offsets,fx->index_n_slots);
-  keys=u8_alloc_n(n_keys,fdtype);
-  qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
-  while (i < n_keys) {
-    keys[i]=fd_read_dtype(fd_start_read(stream,pos_offset+offsets[i]+8));
-    i++;}
-  *n=n_keys;
-  u8_free(offsets);
-  return keys;
+  if (n_keys==0) {
+    *n=n_keys;
+    u8_free(offsets);
+    return NULL;}
+  else {
+    fdtype *keys=u8_alloc_n(n_keys,fdtype);
+    qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
+    while (i < n_keys) {
+      keys[i]=fd_read_dtype(fd_start_read(stream,pos_offset+offsets[i]+8));
+      i++;}
+    *n=n_keys;
+    u8_free(offsets);
+    return keys;}
 }
 
 static struct FD_KEY_SIZE *file_index_fetchsizes(fd_index ix,int *n)
 {
-  struct FD_KEY_SIZE *sizes;
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   struct FD_BYTESTREAM *stream=&(fx->index_stream);
   struct FD_BYTE_INBUF *instream=fd_readbuf(stream);
@@ -348,19 +351,24 @@ static struct FD_KEY_SIZE *file_index_fetchsizes(fd_index ix,int *n)
   fd_start_read(stream,8);
   fd_read_ints(stream,fx->index_n_slots,offsets);
   n_keys=compress_offsets(offsets,fx->index_n_slots);
-  sizes=u8_alloc_n(n_keys,FD_KEY_SIZE);
-  qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
-  while (i < n_keys) {
-    fdtype key; int size;
-    instream=fd_start_read(stream,pos_offset+offsets[i]);
-    size=fd_read_4bytes(instream);
-    /* vpos=*/ fd_read_4bytes(instream);
-    key=fd_read_dtype(instream);
-    sizes[i].keysizekey=key; sizes[i].keysizenvals=size;
-    i++;}
-  *n=n_keys;
-  u8_free(offsets);
-  return sizes;
+  if (n_keys==0) {
+    *n=0;
+    u8_free(offsets);
+    return NULL;}
+  else {
+    struct FD_KEY_SIZE *sizes=u8_alloc_n(n_keys,FD_KEY_SIZE);
+    qsort(offsets,n_keys,SLOTSIZE,sort_offsets);
+    while (i < n_keys) {
+      fdtype key; int size;
+      instream=fd_start_read(stream,pos_offset+offsets[i]);
+      size=fd_read_4bytes(instream);
+      /* vpos=*/ fd_read_4bytes(instream);
+      key=fd_read_dtype(instream);
+      sizes[i].keysizekey=key; sizes[i].keysizenvals=size;
+      i++;}
+    *n=n_keys;
+    u8_free(offsets);
+    return sizes;}
 }
 
 /* Fetch N */

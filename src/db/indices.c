@@ -498,7 +498,8 @@ FD_EXPORT fdtype fd_index_keys(fd_index ix)
       n_total=n_fetched+ix->index_adds.table_n_keys+
         ix->index_edits.table_n_keys;
       result=fd_alloc_choice(n_total);
-      memcpy(&(result->choice_0),fetched,sizeof(fdtype)*n_fetched);
+      if (n_fetched)
+        memcpy(&(result->choice_0),fetched,sizeof(fdtype)*n_fetched);
       write_start=&(result->choice_0); write_at=write_start+n_fetched;
       if (ix->index_adds.table_n_keys)
         fd_for_hashtable(&(ix->index_adds),add_key_fn,&write_at,1);
@@ -523,7 +524,8 @@ FD_EXPORT fdtype fd_index_sizes(fd_index ix)
   if (ix->index_handler->fetchsizes) {
     int n_fetched=0;
     struct FD_KEY_SIZE *fetched=ix->index_handler->fetchsizes(ix,&n_fetched);
-    if ((n_fetched==0) && (ix->index_adds.table_n_keys)) return FD_EMPTY_CHOICE;
+    if ((n_fetched==0) && (ix->index_adds.table_n_keys==0))
+      return FD_EMPTY_CHOICE;
     else if ((ix->index_adds.table_n_keys)==0) {
       fd_choice result=fd_alloc_choice(n_fetched);
       fdtype *write=&(result->choice_0);

@@ -368,6 +368,29 @@ FD_EXPORT int _fd_read_bytes
   (unsigned char *bytes,struct FD_BYTE_INBUF *buf,int len);
 FD_EXPORT int _fd_read_zint(struct FD_BYTE_INBUF *buf);
 
+FD_EXPORT size_t _fd_raw_closebuf(struct FD_BYTE_RAWBUF *buf);
+
+#if FD_INLINE_DTYPEIO
+FD_FASTOP size_t fd_raw_closebuf(struct FD_BYTE_RAWBUF *buf)
+{
+  if (buf->buf_flags&FD_BUFFER_IS_MALLOCD) {
+    u8_free(buf->bufbase);
+    return buf->buflen;}
+  else return 0;
+}
+#else
+#define fd_raw_closebuf(buf) _fd_raw_closebuf(buf)
+#endif
+
+FD_FASTOP size_t fd_close_inbuf(struct FD_BYTE_INBUF *buf)
+{
+  return fd_raw_closebuf((struct FD_BYTE_RAWBUF *)buf);
+}
+FD_FASTOP size_t fd_close_outbuf(struct FD_BYTE_OUTBUF *buf)
+{
+  return fd_raw_closebuf((struct FD_BYTE_RAWBUF *)buf);
+}
+
 #if FD_INLINE_DTYPEIO
 #define fd_read_byte(buf) \
   ((FD_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :	\

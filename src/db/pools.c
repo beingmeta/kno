@@ -771,7 +771,7 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
   fd_hashtable changes=&(p->pool_changes);
   int i=0, n=writes.len, unlock_count;
   fdtype *oids=writes.oids;
-  fdtype *values=writes.oids;
+  fdtype *values=writes.values;
   fdtype *unlock=oids;
   while (i<n) {
     fdtype v=values[i];
@@ -789,6 +789,7 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
     else {}
     fd_decref(v);
     i++;}
+  u8_free(writes.values); writes.values=NULL;
   unlock_count=unlock-oids;
   if (p->pool_handler->unlock) {
     fdtype to_unlock=fd_init_choice(NULL,unlock_count,oids,FD_CHOICE_ISATOMIC);
@@ -798,6 +799,7 @@ static void finish_commit(fd_pool p,struct FD_POOL_WRITES writes)
       fd_clear_errors(1);}
     fd_decref(to_unlock);}
   fd_hashtable_iterkeys(changes,fd_table_replace,unlock_count,oids,FD_VOID);
+  u8_free(writes.oids); writes.oids=NULL;
   fd_devoid_hashtable(changes,0);
 }
 
@@ -873,7 +875,9 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
 {
   struct FD_POOL_WRITES writes;
   fd_hashtable changes=&(p->pool_changes); int unlock=0;
-  if (changes->table_uselock) {fd_read_lock(&(changes->table_rwlock)); unlock=1;}
+  if (changes->table_uselock) {
+    fd_read_lock(&(changes->table_rwlock)); 
+    unlock=1;}
   int n=changes->table_n_keys;
   fdtype *oidv, *values;
   u8_zero_struct(writes);
@@ -899,6 +903,9 @@ struct FD_POOL_WRITES pick_modified(fd_pool p,int finished)
   }
   if (unlock) fd_rw_unlock(&(changes->table_rwlock));
   writes.len=oidv-writes.oids;
+  if (writes.len==0) {
+    u8_free(writes.oids); writes.oids=NULL;
+    u8_free(writes.values); writes.values=NULL;}
   return writes;
 }
 
@@ -940,8 +947,9 @@ static int apply_poolop(fd_pool_op fn,fdtype oids_arg)
   fdtype oids=fd_make_simple_choice(oids_arg);
   if (FD_OIDP(oids)) {
     fd_pool p=fd_oid2pool(oids);
-    if (p) return fn(p,oids);
-    else return 0;}
+    int rv=(p)?(fn(p,oids)):(0);
+    fd_decref(oids);
+    return rv;}
   else {
     int n=FD_CHOICE_SIZE(oids), sum=0;
     fdtype *allocd=u8_alloc_n(n,fdtype), *oidv=allocd, *write=oidv;
@@ -967,6 +975,8 @@ static int apply_poolop(fd_pool_op fn,fdtype oids_arg)
         else sum=sum+rv;
         fd_decref(oids_in_pool);
         n=keep-oidv;}}
+    fd_decref(oids);
+    u8_free(allocd);
     return sum;}
 }
 

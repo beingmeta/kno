@@ -183,6 +183,7 @@ static fdtype onerror_handler(fdtype expr,fd_lispenv env)
         return handler_result;}
       else {
         fd_decref(value); fd_decref(handler); fd_decref(err_value);
+        fd_clear_errors(1);
         return handler_result;}}
     else {
       u8_free_exception(ex,1);
