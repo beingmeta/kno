@@ -124,7 +124,7 @@ FD_EXPORT
     Arguments: a pointer to an FD_CONS struct
     Returns: void
  Recycles a cons cell */
-void fd_recycle_cons(fd_cons c)
+void fd_recycle_cons(fd_raw_cons c)
 {
   int ctype=FD_CONS_TYPE(c);
   switch (ctype) {
@@ -996,7 +996,7 @@ FD_EXPORT fdtype fd_init_compound_from_elts
   else return FDTYPE_CONS(p);
 }
 
-static void recycle_compound(struct FD_CONS *c)
+static void recycle_compound(struct FD_RAW_CONS *c)
 {
   struct FD_COMPOUND *compound=(struct FD_COMPOUND *)c;
   int i=0, n=compound->fd_n_elts; fdtype *data=&(compound->compound_0);
@@ -1096,7 +1096,7 @@ FD_EXPORT fdtype fd_make_exception
   return FDTYPE_CONS(exo);
 }
 
-static void recycle_exception(struct FD_CONS *c)
+static void recycle_exception(struct FD_RAW_CONS *c)
 {
   struct FD_EXCEPTION_OBJECT *exo=(struct FD_EXCEPTION_OBJECT *)c;
   if (exo->fd_u8ex) {
@@ -1190,7 +1190,7 @@ static int unparse_mystery(u8_output out,fdtype x)
   return 1;
 }
 
-static void recycle_mystery(struct FD_CONS *c)
+static void recycle_mystery(struct FD_RAW_CONS *c)
 {
   struct FD_MYSTERY_DTYPE *myst=(struct FD_MYSTERY_DTYPE *)c;
   if (myst->fd_dtcode&0x80)
@@ -1387,7 +1387,7 @@ static fdtype timestamp_parsefn(int n,fdtype *args,fd_compound_typeinfo e)
   return FDTYPE_CONS(tm);
 }
 
-static void recycle_timestamp(struct FD_CONS *c)
+static void recycle_timestamp(struct FD_RAW_CONS *c)
 {
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
@@ -1517,7 +1517,7 @@ FD_EXPORT fdtype fd_fresh_uuid(struct FD_UUID *ptr)
   return FDTYPE_CONS(ptr);
 }
 
-static void recycle_uuid(struct FD_CONS *c)
+static void recycle_uuid(struct FD_RAW_CONS *c)
 {
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }

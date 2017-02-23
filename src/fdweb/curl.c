@@ -362,7 +362,7 @@ static char *getcurlerror(char *buf,int code)
   */
 }
 
-static void recycle_curl_handle(struct FD_CONS *c)
+static void recycle_curl_handle(struct FD_RAW_CONS *c)
 {
   struct FD_CURL_HANDLE *ch=(struct FD_CURL_HANDLE *)c;
   if (debugging_curl) {
@@ -716,7 +716,7 @@ static fdtype curl_arg(fdtype arg,u8_context cxt)
       fdtype setval=set_curlopt(h,key,values);
       if (FD_ABORTP(setval)) {
         fd_decref(keys);
-        recycle_curl_handle((struct FD_CONS *)h);
+        recycle_curl_handle((fd_raw_cons)h);
         return setval;}
       fd_decref(values);}
     fd_decref(keys);

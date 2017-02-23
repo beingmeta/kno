@@ -1965,7 +1965,7 @@ static fdtype unpack_bigint(unsigned int n,unsigned char *packet)
   else return FD_VOID;
 }
 
-static void recycle_bigint(struct FD_CONS *c)
+static void recycle_bigint(struct FD_RAW_CONS *c)
 {
   if (FD_MALLOCD_CONSP(c)) {
     u8_free(c);}
@@ -2037,7 +2037,7 @@ static int dtype_flonum(struct FD_OUTBUF *out,fdtype x)
   return 11;
 }
 
-static void recycle_flonum(struct FD_CONS *c)
+static void recycle_flonum(struct FD_RAW_CONS *c)
 {
   if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
@@ -2974,7 +2974,7 @@ int fd_exactp(fdtype x)
 
 /* Numeric vector handlers */
 
-static void recycle_numeric_vector(struct FD_CONS *c)
+static void recycle_numeric_vector(struct FD_RAW_CONS *c)
 {
   struct FD_NUMERIC_VECTOR *v=(struct FD_NUMERIC_VECTOR *)c;
   enum fd_num_elt_type elt_type=v->fd_numvec_elt_type;

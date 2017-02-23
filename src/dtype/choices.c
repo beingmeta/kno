@@ -26,7 +26,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice);
 
 /* Basic operations on ACHOICES */
 
-static void recycle_achoice(struct FD_CONS *c)
+static void recycle_achoice(struct FD_RAW_CONS *c)
 {
   struct FD_ACHOICE *ch=(struct FD_ACHOICE *)c;
   if (ch->achoice_data) {
@@ -379,14 +379,14 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
     /* If it's really empty, just return the empty choice. */
     else if ((ch->achoice_write-ch->achoice_data) == 0) {
       if (ch->achoice_uselock) unlock_achoice(ch);
-      if (free_achoice) recycle_achoice((struct FD_CONS *)ch);
+      if (free_achoice) recycle_achoice((fd_raw_cons)ch);
       else ch->achoice_normalized=FD_EMPTY_CHOICE;
       return FD_EMPTY_CHOICE;}
     /* If it's only got one value, return it. */
     else if ((ch->achoice_write-ch->achoice_data) == 1) {
       fdtype value=fd_incref(*(ch->achoice_data));
       if (ch->achoice_uselock) unlock_achoice(ch);
-      if (free_achoice) recycle_achoice((struct FD_CONS *)ch);
+      if (free_achoice) recycle_achoice((fd_raw_cons)ch);
       ch->achoice_normalized=fd_incref(value);
       return value;}
     /* If you're going to free the achoice and it's not nested, you
@@ -473,7 +473,7 @@ static fdtype normalize_choice(fdtype x,int free_achoice)
       if (n_choices>16) u8_free(choices);
       if (ch->achoice_uselock) unlock_achoice(ch);
       if (free_achoice) {
-        recycle_achoice((struct FD_CONS *)ch);
+        recycle_achoice((fd_raw_cons)ch);
         return result;}
       else {
         ch->achoice_normalized=result;

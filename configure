@@ -12356,7 +12356,7 @@ if (test ! -f src/modules/gpath.scm); then
    fi;
 fi;
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/dtype/makefile tests/db/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/gheaptest tests/scheme/vgheaptest tests/scheme/runtest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include tests/dtype/makefile tests/db/makefile tests/scheme/makefile DIY/makefile etc/gdbinit exe/.gdbinit tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog etc/fdreload etc/fdrestart etc/fdctl etc/fdsetconfig etc/fdgetconfig etc/fdconfig tests/scheme/vgleaktest tests/scheme/gheaptest tests/scheme/vgheaptest tests/scheme/runtest tests/scheme/fdexectest src/scripts/fdpkg.scm etc/OSXStartupItem/FramerD etc/logrotate etc/framerd-rc.d etc/framerd.conf etc/framerd.service etc/FramerD.plist etc/fdserv.conf etc/fdserv.load etc/install-script dist/framerd-4.0.spec"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -13088,6 +13088,7 @@ do
     "tests/scheme/gheaptest") CONFIG_FILES="$CONFIG_FILES tests/scheme/gheaptest" ;;
     "tests/scheme/vgheaptest") CONFIG_FILES="$CONFIG_FILES tests/scheme/vgheaptest" ;;
     "tests/scheme/runtest") CONFIG_FILES="$CONFIG_FILES tests/scheme/runtest" ;;
+    "tests/scheme/fdexectest") CONFIG_FILES="$CONFIG_FILES tests/scheme/fdexectest" ;;
     "src/scripts/fdpkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/fdpkg.scm" ;;
     "etc/OSXStartupItem/FramerD") CONFIG_FILES="$CONFIG_FILES etc/OSXStartupItem/FramerD" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;

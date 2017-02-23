@@ -3790,7 +3790,7 @@ static int unparse_txclosure(u8_output ss,fdtype x)
   return 1;
 }
 
-static void recycle_txclosure(FD_CONS *c)
+static void recycle_txclosure(FD_RAW_CONS *c)
 {
   struct FD_TXCLOSURE *txc=(fd_txclosure)c;
   fd_decref(txc->fd_txpattern); fd_decref((fdtype)(txc->fd_txenv));

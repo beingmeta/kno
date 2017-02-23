@@ -197,7 +197,7 @@ FD_EXPORT fd_lispenv fd_copy_env(fd_lispenv env)
     return fresh;}
 }
 
-static void recycle_environment(struct FD_CONS *envp)
+static void recycle_environment(struct FD_RAW_CONS *envp)
 {
   struct FD_ENVIRONMENT *env=(struct FD_ENVIRONMENT *)envp;
   fd_decref(env->env_bindings); fd_decref(env->env_exports);
@@ -369,9 +369,10 @@ int fd_recycle_environment(fd_lispenv env)
   else {
     int sproc_count=count_envrefs(env->env_bindings,env,env_recycle_depth);
     if (sproc_count+1==refcount) {
+      struct FD_RAW_CONS *envstruct=(struct FD_RAW_CONS *)env;
       fd_decref(env->env_bindings); fd_decref(env->env_exports);
       if (env->env_parent) fd_decref((fdtype)(env->env_parent));
-      env->fd_conshead=(0xFFFFFF80|(env->fd_conshead&0x7F));
+      envstruct->fd_conshead=(0xFFFFFF80|(env->fd_conshead&0x7F));
       u8_free(env);
       return 1;}
     else {fd_decref((fdtype)env); return 0;}}
@@ -1538,7 +1539,7 @@ static int unparse_environment(u8_output out,fdtype x)
   return 1;
 }
 
-FD_EXPORT void recycle_specform(struct FD_CONS *c)
+FD_EXPORT void recycle_specform(struct FD_RAW_CONS *c)
 {
   struct FD_SPECIAL_FORM *sf=(struct FD_SPECIAL_FORM *)c;
   u8_free(sf->fexpr_name);

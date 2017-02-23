@@ -265,7 +265,7 @@ static int unparse_stream(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static void recycle_stream(struct FD_CONS *c)
+static void recycle_stream(struct FD_RAW_CONS *c)
 {
   struct FD_STREAM *stream=(struct FD_STREAM *)c;
   fd_close_stream(stream,(stream->stream_flags&FD_STREAM_OWNS_FILENO));

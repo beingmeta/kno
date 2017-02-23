@@ -69,7 +69,7 @@ static int unparse_thread_struct(u8_output out,fdtype x)
   return 1;
 }
 
-FD_EXPORT void recycle_thread_struct(struct FD_CONS *c)
+FD_EXPORT void recycle_thread_struct(struct FD_RAW_CONS *c)
 {
   struct FD_THREAD_STRUCT *th=(struct FD_THREAD_STRUCT *)c;
   if (th->flags&FD_EVAL_THREAD) {
@@ -180,7 +180,7 @@ static int unparse_condvar(u8_output out,fdtype cvar)
   return 1;
 }
 
-FD_EXPORT void recycle_condvar(struct FD_CONS *c)
+FD_EXPORT void recycle_condvar(struct FD_RAW_CONS *c)
 {
   struct FD_CONSED_CONDVAR *cv=
     (struct FD_CONSED_CONDVAR *)c;

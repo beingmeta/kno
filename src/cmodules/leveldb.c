@@ -262,7 +262,7 @@ static int unparse_leveldb(struct U8_OUTPUT *out,fdtype x)
   u8_printf(out,"#<LevelDB %s>",db->leveldb.path);
   return 1;
 }
-static void recycle_leveldb(struct FD_CONS *c)
+static void recycle_leveldb(struct FD_RAW_CONS *c)
 {
   struct FD_LEVELDB *db=(fd_leveldb)c;
   u8_free(db->leveldb.path); db->leveldb.path=NULL;

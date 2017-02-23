@@ -1710,7 +1710,7 @@ static int unparse_port(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static void recycle_port(struct FD_CONS *c)
+static void recycle_port(struct FD_RAW_CONS *c)
 {
   struct FD_PORT *p=(struct FD_PORT *)c;
   if (p->fd_inport) {

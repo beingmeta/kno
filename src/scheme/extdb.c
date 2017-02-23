@@ -138,10 +138,10 @@ static int unparse_extdb(u8_output out,fdtype x)
   return 1;
 }
 
-static void recycle_extdb(struct FD_CONS *c)
+static void recycle_extdb(struct FD_RAW_CONS *c)
 {
   struct FD_EXTDB *dbp=(struct FD_EXTDB *)c;
-  dbp->extdb_handler->recycle_extdb(dbp);
+  dbp->extdb_handler->recycle_db(dbp);
   if (!(FD_STATIC_CONSP(c))) u8_free(c);
 }
 
@@ -153,13 +153,13 @@ static int unparse_extdb_proc(u8_output out,fdtype x)
   return 1;
 }
 
-static void recycle_extdb_proc(struct FD_CONS *c)
+static void recycle_extdb_proc(struct FD_RAW_CONS *c)
 {
   struct FD_EXTDB_PROC *dbproc=(struct FD_EXTDB_PROC *)c;
   if (dbproc->extdb_handler == NULL)
     u8_log(LOG_WARN,_("recycle failed"),"Bad extdb proc");
-  else if (dbproc->extdb_handler->recycle_extdb_proc)
-    dbproc->extdb_handler->recycle_extdb_proc(dbproc);
+  else if (dbproc->extdb_handler->recycle_proc)
+    dbproc->extdb_handler->recycle_proc(dbproc);
   else u8_log(LOG_WARN,_("recycle failed"),
               _("No recycle method for %s database procs"),
               dbproc->extdb_handler->name);

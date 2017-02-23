@@ -1594,7 +1594,8 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
 	   etc/fdreload etc/fdrestart etc/fdctl
 	   etc/fdsetconfig etc/fdgetconfig etc/fdconfig
-	   tests/scheme/vgleaktest tests/scheme/gheaptest tests/scheme/vgheaptest tests/scheme/runtest
+	   tests/scheme/vgleaktest tests/scheme/gheaptest tests/scheme/vgheaptest
+	   tests/scheme/runtest tests/scheme/fdexectest
 	   src/scripts/fdpkg.scm
 	   etc/OSXStartupItem/FramerD
 	   etc/logrotate

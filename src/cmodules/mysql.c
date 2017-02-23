@@ -1454,8 +1454,8 @@ FD_EXPORT int fd_init_mysql()
 
   mysql_handler.execute=mysqlexechandler;
   mysql_handler.makeproc=mysqlmakeprochandler;
-  mysql_handler.recycle_extdb=recycle_mysqldb;
-  mysql_handler.recycle_extdb_proc=recycle_mysqlproc;
+  mysql_handler.recycle_db=recycle_mysqldb;
+  mysql_handler.recycle_proc=recycle_mysqlproc;
 
   fd_register_extdb_handler(&mysql_handler);
 

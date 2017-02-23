@@ -529,8 +529,8 @@ FD_EXPORT int fd_init_odbc()
 
   odbc_handler.execute=odbcexechandler;
   odbc_handler.makeproc=odbcmakeprochandler;
-  odbc_handler.recycle_extdb=recycle_odbconn;
-  odbc_handler.recycle_extdb_proc=recycle_odbcproc;
+  odbc_handler.recycle_db=recycle_odbconn;
+  odbc_handler.recycle_proc=recycle_odbcproc;
 
   fd_idefn(module,fd_make_cprim2x("ODBC/OPEN",odbcopen,1,
                                   fd_string_type,FD_VOID,

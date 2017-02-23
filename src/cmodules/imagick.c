@@ -144,7 +144,7 @@ static int unparse_imagick(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static void recycle_imagick(struct FD_CONS *c)
+static void recycle_imagick(struct FD_RAW_CONS *c)
 {
   struct FD_IMAGICK *wrapper=(struct FD_IMAGICK *)c;
   DestroyMagickWand(wrapper->wand);

@@ -42,7 +42,7 @@ FD_EXPORT fdtype fd_cachecall(fdtype fcn,int n,fdtype *args)
   fdtype vec, cached;
   struct FD_HASHTABLE *cache=get_fcn_cache(fcn,1);
   struct FD_VECTOR vecstruct;
-  vecstruct.fd_conshead=0;
+  memset(&vecstruct,0,sizeof(vecstruct));
   vecstruct.fd_veclen=n;
   vecstruct.fd_freedata=0;
   vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
@@ -74,7 +74,7 @@ FD_EXPORT fdtype fd_xcachecall
 {
   fdtype vec, cached;
   struct FD_VECTOR vecstruct;
-  vecstruct.fd_conshead=0;
+  memset(&vecstruct,0,sizeof(vecstruct));
   vecstruct.fd_veclen=n;
   vecstruct.fd_freedata=0;
   vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
@@ -142,7 +142,7 @@ FD_EXPORT int fd_cachecall_probe(fdtype fcn,int n,fdtype *args)
   fdtype vec; int iscached=0;
   struct FD_HASHTABLE *cache=get_fcn_cache(fcn,1);
   struct FD_VECTOR vecstruct;
-  vecstruct.fd_conshead=0;
+  memset(&vecstruct,0,sizeof(vecstruct));
   vecstruct.fd_veclen=n;
   vecstruct.fd_freedata=0;
   vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
@@ -157,7 +157,7 @@ FD_EXPORT int fd_xcachecall_probe(struct FD_HASHTABLE *cache,fdtype fcn,int n,fd
 {
   fdtype vec; int iscached=0;
   struct FD_VECTOR vecstruct;
-  vecstruct.fd_conshead=0;
+  memset(&vecstruct,0,sizeof(vecstruct));
   vecstruct.fd_veclen=n;
   vecstruct.fd_freedata=0;
   vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
@@ -172,7 +172,7 @@ FD_EXPORT fdtype fd_cachecall_try(fdtype fcn,int n,fdtype *args)
   fdtype vec; fdtype value;
   struct FD_HASHTABLE *cache=get_fcn_cache(fcn,1);
   struct FD_VECTOR vecstruct;
-  vecstruct.fd_conshead=0;
+  memset(&vecstruct,0,sizeof(vecstruct));
   vecstruct.fd_veclen=n;
   vecstruct.fd_freedata=0;
   vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
@@ -188,7 +188,7 @@ FD_EXPORT fdtype fd_xcachecall_try(struct FD_HASHTABLE *cache,fdtype fcn,int n,f
 {
   fdtype vec; fdtype value;
   struct FD_VECTOR vecstruct;
-  vecstruct.fd_conshead=0;
+  memset(&vecstruct,0,sizeof(vecstruct));
   vecstruct.fd_veclen=n;
   vecstruct.fd_freedata=0;
   vecstruct.fd_vecelts=((n==0) ? (NULL) : (args));
@@ -210,7 +210,7 @@ FD_EXPORT fdtype fd_tcachecall(fdtype fcn,int n,fdtype *args)
     struct FD_VECTOR vecstruct;
     fdtype _elts[TCACHECALL_STACK_ELTS], *elts=NULL, vec, cached;
     /* Initialize the stack vector */
-    vecstruct.fd_conshead=0;
+    memset(&vecstruct,0,sizeof(vecstruct));
     vecstruct.fd_freedata=0;
     vecstruct.fd_veclen=n+1;
     FD_SET_CONS_TYPE(&vecstruct,fd_vector_type);

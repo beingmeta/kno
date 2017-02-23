@@ -795,8 +795,8 @@ FD_EXPORT int fd_init_sqlite()
 
   sqlite_handler.execute=sqliteexechandler;
   sqlite_handler.makeproc=sqlitemakeprochandler;
-  sqlite_handler.recycle_extdb=recycle_fdsqlite;
-  sqlite_handler.recycle_extdb_proc=recycle_fdsqliteproc;
+  sqlite_handler.recycle_db=recycle_fdsqlite;
+  sqlite_handler.recycle_proc=recycle_fdsqliteproc;
 
   fd_register_extdb_handler(&sqlite_handler);
 

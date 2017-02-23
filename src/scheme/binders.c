@@ -605,7 +605,7 @@ FD_EXPORT fdtype fd_make_sproc(u8_string name,
 }
 
 
-FD_EXPORT void recycle_sproc(struct FD_CONS *c)
+FD_EXPORT void recycle_sproc(struct FD_RAW_CONS *c)
 {
   struct FD_SPROC *sproc=(struct FD_SPROC *)c;
   int mallocd=FD_MALLOCD_CONSP(c);
@@ -744,7 +744,7 @@ static fdtype macro_handler(fdtype expr,fd_lispenv env)
   else return fd_err(fd_SyntaxError,"MACRO",NULL,expr);
 }
 
-FD_EXPORT void recycle_macro(struct FD_CONS *c)
+FD_EXPORT void recycle_macro(struct FD_RAW_CONS *c)
 {
   struct FD_MACRO *mproc=(struct FD_MACRO *)c;
   if (mproc->fd_macro_name) u8_free(mproc->fd_macro_name);

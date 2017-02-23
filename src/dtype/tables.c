@@ -659,7 +659,7 @@ static fdtype copy_slotmap(fdtype smap,int flags)
   return FDTYPE_CONS(fresh);
 }
 
-static void recycle_slotmap(struct FD_CONS *c)
+static void recycle_slotmap(struct FD_RAW_CONS *c)
 {
   struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)c;
   fd_write_lock_table(sm);
@@ -1068,7 +1068,7 @@ FD_EXPORT fdtype fd_schemap_keys(struct FD_SCHEMAP *sm)
                                  FD_CHOICE_INCREF|FD_CHOICE_DOSORT);}}
 }
 
-static void recycle_schemap(struct FD_CONS *c)
+static void recycle_schemap(struct FD_RAW_CONS *c)
 {
   struct FD_SCHEMAP *sm=(struct FD_SCHEMAP *)c;
   fd_write_lock_table(sm);

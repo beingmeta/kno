@@ -93,7 +93,7 @@ FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
 
 /* Generic object methods */
 
-static void recycle_ffi_proc(struct FD_CONS *c)
+static void recycle_ffi_proc(struct FD_RAW_CONS *c)
 {
   struct FD_FFI_PROC *ffi=(struct FD_FFI_PROC *)c;
   int arity=ffi->fd_ffi_arity;

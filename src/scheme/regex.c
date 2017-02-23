@@ -95,7 +95,7 @@ static fdtype regexp_prim(fdtype x)
   else return FD_FALSE;
 }
 
-static void recycle_regex(struct FD_CONS *c)
+static void recycle_regex(struct FD_RAW_CONS *c)
 {
   struct FD_REGEX *rx=(struct FD_REGEX *)c;
   regfree(&(rx->fd_rxcompiled));

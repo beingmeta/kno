@@ -57,7 +57,7 @@ static int unparse_dtproc(u8_output out,fdtype x)
   return 1;
 }
 
-static void recycle_dtproc(FD_CONS *c)
+static void recycle_dtproc(struct FD_RAW_CONS *c)
 {
   struct FD_DTPROC *f=(fd_dtproc)c;
   u8_free(f->fcn_name); 

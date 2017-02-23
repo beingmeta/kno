@@ -1622,7 +1622,7 @@ static fdtype raw_pool_keys(fdtype arg)
   return results;
 }
 
-static void recycle_raw_pool(struct FD_CONS *c)
+static void recycle_raw_pool(struct FD_RAW_CONS *c)
 {
   struct FD_POOL *p=(struct FD_POOL *)c;
   if (p->pool_handler==&fd_extpool_handler) {

@@ -36,8 +36,8 @@ typedef struct FD_EXTDB_HANDLER {
   u8_string name;
   fdtype (*execute)(struct FD_EXTDB *,fdtype,fdtype);
   fdtype (*makeproc)(struct FD_EXTDB *,u8_string,int,fdtype,int,fdtype *);
-  void (*recycle_extdb)(struct FD_EXTDB *c);
-  void (*recycle_extdb_proc)(struct FD_EXTDB_PROC *c);
+  void (*recycle_db)(struct FD_EXTDB *c);
+  void (*recycle_proc)(struct FD_EXTDB_PROC *c);
   } FD_EXTDB_HANDLER;
 
 

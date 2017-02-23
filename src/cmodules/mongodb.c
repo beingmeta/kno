@@ -388,7 +388,7 @@ static fdtype mongodb_open(fdtype arg,fdtype opts)
     mongoc_uri_destroy(info); fd_decref(opts); u8_free(uri);
     return fd_type_error("MongoDB client URI","mongodb_open",arg);}
 }
-static void recycle_server(struct FD_CONS *c)
+static void recycle_server(struct FD_RAW_CONS *c)
 {
   struct FD_MONGODB_DATABASE *s=(struct FD_MONGODB_DATABASE *)c;
   mongoc_uri_destroy(s->dburi_info);
@@ -485,7 +485,7 @@ static fdtype mongodb_collection(fdtype server,fdtype name_arg,fdtype opts_arg)
   result->domain_flags=flags;
   return (fdtype) result;
 }
-static void recycle_collection(struct FD_CONS *c)
+static void recycle_collection(struct FD_RAW_CONS *c)
 {
   struct FD_MONGODB_COLLECTION *collection=(struct FD_MONGODB_COLLECTION *)c;
   fd_decref(collection->domain_db);
@@ -1299,7 +1299,7 @@ static fdtype mongodb_cursor(fdtype arg,fdtype query,fdtype opts_arg)
 }
 #endif
 
-static void recycle_cursor(struct FD_CONS *c)
+static void recycle_cursor(struct FD_RAW_CONS *c)
 {
   struct FD_MONGODB_CURSOR *cursor= (struct FD_MONGODB_CURSOR *)c;
   struct FD_MONGODB_COLLECTION *domain= CURSOR2DOMAIN(cursor);

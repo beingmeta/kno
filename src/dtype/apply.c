@@ -897,7 +897,7 @@ FD_EXPORT int unparse_primitive(u8_output out,fdtype x)
                  U8OPTSTR("'",fcn->fcn_filename,"'"));
   return 1;
 }
-static void recycle_primitive(struct FD_CONS *c)
+static void recycle_primitive(struct FD_RAW_CONS *c)
 {
   struct FD_FUNCTION *fn=(struct FD_FUNCTION *)c;
   if (fn->fcn_typeinfo) u8_free(fn->fcn_typeinfo);
@@ -1255,8 +1255,6 @@ FD_EXPORT fdtype fd_step_call(fdtype c)
   else return result;
 }
 
-static void recycle_tail_call(struct FD_CONS *c);
-
 FD_EXPORT fdtype _fd_finish_call(fdtype call)
 {
   if (FD_TAILCALLP(call)) {
@@ -1291,7 +1289,7 @@ static int unparse_tail_call(struct U8_OUTPUT *out,fdtype x)
   return 1;
 }
 
-static void recycle_tail_call(struct FD_CONS *c)
+static void recycle_tail_call(struct FD_RAW_CONS *c)
 {
   struct FD_TAILCALL *tc=(struct FD_TAILCALL *)c;
   int mallocd=FD_MALLOCD_CONSP(c), n_elts=tc->tailcall_arity;

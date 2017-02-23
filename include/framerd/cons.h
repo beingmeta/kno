@@ -148,7 +148,7 @@ FD_EXPORT u8_mutex _fd_ptr_locks[FD_N_PTRLOCKS];
 #define FD_MALLOCD_CONS 0
 #define FD_STACK_CONS   1
 
-FD_EXPORT void fd_recycle_cons(struct FD_CONS *);
+FD_EXPORT void fd_recycle_cons(struct FD_RAW_CONS *);
 FD_EXPORT fdtype fd_copy(fdtype x);
 FD_EXPORT fdtype fd_copier(fdtype x,int flags);
 FD_EXPORT fdtype fd_deep_copy(fdtype x);
@@ -178,7 +178,7 @@ FD_EXPORT void fd_free_vec(fdtype *vec,int n,int free_vec);
 */
 
 #if (!(FD_NO_GC))
-FD_INLINE_FCN fdtype _fd_incref(struct FD_CONS *x)
+FD_INLINE_FCN fdtype _fd_incref(struct FD_RAW_CONS *x)
 {
   FD_LOCK_PTR(x);
   if (FD_CONSBITS(x)>0xFFFFFF80) {
@@ -198,7 +198,7 @@ FD_INLINE_FCN fdtype _fd_incref(struct FD_CONS *x)
     return (fdtype) x;}
 }
 
-FD_INLINE_FCN fdtype _fd_getref(struct FD_CONS *x)
+FD_INLINE_FCN fdtype _fd_getref(struct FD_RAW_CONS *x)
 {
   FD_LOCK_PTR(x);
   if (FD_CONSBITS(x)>0xFFFFFF80) {
@@ -218,7 +218,7 @@ FD_INLINE_FCN fdtype _fd_getref(struct FD_CONS *x)
     return (fdtype) x;}
 }
 
-FD_INLINE_FCN void _fd_decref(struct FD_CONS *x)
+FD_INLINE_FCN void _fd_decref(struct FD_RAW_CONS *x)
 {
   FD_LOCK_PTR(x);
   if (FD_CONSBITS(x)>=0xFFFFFF80) {
@@ -236,9 +236,10 @@ FD_INLINE_FCN void _fd_decref(struct FD_CONS *x)
 }
 
 #define fd_incref(x) \
-   ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref(FD_CONS_DATA(x))))
+   ((FD_PTR_MANIFEST_TYPE(x)) ? (x) : (_fd_incref(FD_RAW_CONS(x))))
 #define fd_decref(x) \
-  ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : (_fd_decref(FD_CONS_DATA(x)),FD_VOID)))
+  ((void)((FD_PTR_MANIFEST_TYPE(x)) ? (FD_VOID) : \
+	  (_fd_decref(FD_RAW_CONS(x)),FD_VOID)))
 #else
 #define fd_incref(x) (x)
 #define fd_decref(x) ((void)(x))

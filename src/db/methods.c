@@ -55,7 +55,8 @@ FD_EXPORT int
 fd_walk_tree(fdtype roots,fdtype slotids,fd_tree_walkfn walk,void *data)
 {
   struct FD_HASHSET ht; int retval=0;
-  ht.fd_conshead=0; fd_init_hashset(&ht,1024,FD_STACK_CONS);
+  memset(&ht,0,sizeof(ht));
+  fd_init_hashset(&ht,1024,FD_STACK_CONS);
   {FD_DO_CHOICES(root,roots)
      if ((retval=keep_walking(&ht,root,slotids,walk,data))<=0) {
        fd_recycle_hashset(&ht);
@@ -80,7 +81,8 @@ FD_EXPORT fdtype fd_get_basis(fdtype collection,fdtype lattice)
 {
   struct FD_HASHSET ht;
   fdtype root=FD_EMPTY_CHOICE, result=FD_EMPTY_CHOICE;
-  ht.fd_conshead=0; fd_init_hashset(&ht,1024,FD_STACK_CONS);
+  memset(&ht,0,sizeof(ht));
+  fd_init_hashset(&ht,1024,FD_STACK_CONS);
   {FD_DO_CHOICES(node,collection) {
     FD_DO_CHOICES(slotid,lattice) {
       fdtype v=fd_frame_get(node,slotid);
@@ -384,7 +386,7 @@ static fdtype kleene_star_get_method(fdtype root,fdtype slotid)
   fdtype slotids=fd_frame_get(slotid,closure_of_slot), results;
   if (FD_ABORTP(slotids)) return slotids;
   else {
-    struct FD_HASHSET hs; hs.fd_conshead=0;
+    struct FD_HASHSET hs; memset(&hs,0,sizeof(hs));
     fd_init_hashset(&hs,1024,FD_STACK_CONS);
     if (kleene_get_helper(&hs,root,slotids)<0) {
       fd_recycle_hashset(&hs);
@@ -401,7 +403,7 @@ static fdtype kleene_plus_get_method(fdtype root,fdtype slotid)
   fdtype slotids=fd_frame_get(slotid,closure_of_slot), results;
   if (FD_ABORTP(slotids)) return slotids;
   else {
-    struct FD_HASHSET hs; hs.fd_conshead=0;
+    struct FD_HASHSET hs; memset(&hs,0,sizeof(hs));
     fd_init_hashset(&hs,1024,FD_STACK_CONS);
     if (kleene_get_helper(&hs,root,slotids)<0) {
       fd_recycle_hashset(&hs);

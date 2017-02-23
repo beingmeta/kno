@@ -1038,7 +1038,7 @@ FD_EXPORT int fd_execute_index_delays(fd_index ix,void *data)
     else return 0;}
 }
 
-static void recycle_raw_index(struct FD_CONS *c)
+static void recycle_raw_index(struct FD_RAW_CONS *c)
 {
   struct FD_INDEX *ix=(struct FD_INDEX *)c;
   if (ix->index_handler==&fd_extindex_handler) {
