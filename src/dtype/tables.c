@@ -237,7 +237,7 @@ FD_EXPORT struct FD_KEYVAL *fd_sortvec_insert
     else bottom=middle+1;}
   if (found) return middle;
   else if (size+1<space) {
-    struct FD_KEYVAL *insert_point=kvp[size+1];
+    struct FD_KEYVAL *insert_point=&(keyvals[size+1]);
     *sizep=size+1;
     insert_point->fd_kvkey=fd_incref(key);
     insert_point->fd_keyval=FD_EMPTY_CHOICE;
