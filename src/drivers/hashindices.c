@@ -229,7 +229,7 @@ static int recover_hash_index(struct FD_HASH_INDEX *hx);
 static fd_index open_hash_index(u8_string fname,fddb_flags flags)
 {
   struct FD_HASH_INDEX *index=u8_alloc(struct FD_HASH_INDEX);
-  struct FD_STREAM *s=&(index->index_stream);
+  struct FD_STREAM *stream=&(index->index_stream);
   int read_only=U8_BITP(flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
   int consed=U8_BITP(flags,FDB_ISCONSED);
   unsigned int magicno, n_keys;
@@ -238,23 +238,23 @@ static fd_index open_hash_index(u8_string fname,fddb_flags flags)
   fd_stream_mode mode=
     ((read_only) ? (FD_STREAM_READ) : (FD_STREAM_MODIFY));
   fd_init_index((fd_index)index,&hash_index_handler,fname,flags);
-  if (fd_init_file_stream(s,fname,mode,fd_driver_bufsize)
+  if (fd_init_file_stream(stream,fname,mode,fd_driver_bufsize)
       == NULL) {
     u8_free(index);
     fd_seterr3(fd_CantOpenFile,"open_hash_index",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
-  if (index->index_stream.buf_flags&FD_STREAM_READ_ONLY) read_only=1;
-  index->index_stream.stream_mallocd=0;
+  if (index->index_stream.stream_flags&FD_STREAM_READ_ONLY) read_only=1;
+  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   index->index_mmap=NULL;
-  magicno=fd_read_4bytes_at(s,0);
-  index->index_n_buckets=fd_read_4bytes_at(s,4);
+  magicno=fd_read_4bytes_at(stream,0);
+  index->index_n_buckets=fd_read_4bytes_at(stream,4);
   if (magicno==FD_HASH_INDEX_TO_RECOVER) {
     u8_log(LOG_WARN,fd_RecoveryRequired,"Recovering the hash index %s",fname);
     recover_hash_index(index);
     magicno=magicno&(~0x20);}
   index->index_offdata=NULL;
-  index->fdb_xformat=fd_read_4bytes_at(s,8);
+  index->fdb_xformat=fd_read_4bytes_at(stream,8);
   if (read_only)
     U8_SETBITS(index->index_flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
   if (((index->fdb_xformat)&(FD_HASH_INDEX_FN_MASK))!=0) {
@@ -265,23 +265,23 @@ static fd_index open_hash_index(u8_string fname,fddb_flags flags)
   index->index_offtype=(fd_offset_type)
     (((index->fdb_xformat)&(FD_HASH_INDEX_OFFTYPE_MASK))>>4);
 
-  index->index_custom=fd_read_4bytes_at(s,12);
+  index->index_custom=fd_read_4bytes_at(stream,12);
 
   /* Currently ignored */
-  index->table_n_keys=n_keys=fd_read_4bytes_at(s,16);
+  index->table_n_keys=n_keys=fd_read_4bytes_at(stream,16);
 
-  slotids_pos=fd_read_8bytes_at(s,20,NULL);
-  slotids_size=fd_read_4bytes_at(s,28);
+  slotids_pos=fd_read_8bytes_at(stream,20,NULL);
+  slotids_size=fd_read_4bytes_at(stream,28);
 
-  baseoids_pos=fd_read_8bytes_at(s,32,NULL);
-  baseoids_size=fd_read_4bytes_at(s,40);
+  baseoids_pos=fd_read_8bytes_at(stream,32,NULL);
+  baseoids_size=fd_read_4bytes_at(stream,40);
 
-  /* metadata_pos=*/ fd_read_8bytes_at(s,44,NULL);
-  /* metadata_size=*/ fd_read_4bytes_at(s,52);
+  /* metadata_pos=*/ fd_read_8bytes_at(stream,44,NULL);
+  /* metadata_size=*/ fd_read_4bytes_at(stream,52);
 
   /* Initialize the slotids field used for storing feature keys */
   if (slotids_size) {
-    fdtype slotids_vector=read_dtype_at_pos(s,slotids_pos);
+    fdtype slotids_vector=read_dtype_at_pos(stream,slotids_pos);
     if (FD_VOIDP(slotids_vector)) {
       index->index_n_slotids=0; index->index_new_slotids=0;
       index->index_slotids=NULL;
@@ -294,7 +294,7 @@ static fd_index open_hash_index(u8_string fname,fddb_flags flags)
     else {
       fd_seterr("Bad SLOTIDS data","open_hash_index",
                 u8_strdup(fname),FD_VOID);
-      fd_close_stream(s,1);
+      fd_close_stream(stream,1);
       u8_free(index);
       return NULL;}}
   else {
@@ -304,7 +304,7 @@ static fd_index open_hash_index(u8_string fname,fddb_flags flags)
 
   /* Initialize the baseoids field used for compressed OID values */
   if (baseoids_size) {
-    fdtype baseoids_vector=read_dtype_at_pos(s,baseoids_pos);
+    fdtype baseoids_vector=read_dtype_at_pos(stream,baseoids_pos);
     if (FD_VOIDP(baseoids_vector)) {
       index->index_n_baseoids=0; index->index_new_baseoids=0;
       index->index_baseoid_ids=NULL;
@@ -317,7 +317,7 @@ static fd_index open_hash_index(u8_string fname,fddb_flags flags)
     else {
       fd_seterr("Bad BASEOIDS data","open_hash_index",
                 u8_strdup(fname),FD_VOID);
-      fd_close_stream(s,1);
+      fd_close_stream(stream,1);
       u8_free(index);
       return NULL;}}
   else {
@@ -401,11 +401,11 @@ FD_EXPORT int fd_make_hash_index
     fd_init_file_stream(&_stream,fname,FD_STREAM_CREATE,8192);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL) return -1;
-  else if ((stream->buf_flags)&FD_STREAM_READ_ONLY) {
+  else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_hash_index",u8_strdup(fname));
     fd_close_stream(stream,1);
     return -1;}
-  stream->stream_mallocd=0;
+  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   if (n_buckets_arg<0) n_buckets=-n_buckets_arg;
   else n_buckets=fd_get_hashtable_size(n_buckets_arg);
   fd_setpos(stream,0);

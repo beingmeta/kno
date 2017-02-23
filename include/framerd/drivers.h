@@ -69,7 +69,7 @@ FD_EXPORT int fd_make_file_pool(u8_string,unsigned int,
                                 FD_OID,unsigned int,unsigned int);
 
 #define FD_POOLFILE_LOCKEDP(fp) \
-  (((fp)->pool_stream.buf_flags)&FD_STREAM_FILE_LOCKED)
+  (((fp)->pool_stream.stream_flags)&FD_STREAM_FILE_LOCKED)
 #define FD_LOCK_POOLFILE(fp) fd_lockfile(&((fp)->pool_stream))
 #define FD_UNLOCK_POOLFILE(fp) fd_unlockfile(&((fp)->pool_stream))
 

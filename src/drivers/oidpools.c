@@ -47,7 +47,7 @@
 /* Locking oid pool streams */
 
 #define POOLFILE_LOCKEDP(op) \
-  (U8_BITP((op->pool_stream.buf_flags),FD_STREAM_FILE_LOCKED))
+  (U8_BITP((op->pool_stream.stream_flags),FD_STREAM_FILE_LOCKED))
 
 FD_FASTOP int LOCK_POOLSTREAM(fd_oidpool op,u8_string caller)
 {
@@ -199,8 +199,8 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
   struct FD_INBUF *instream=fd_readbuf(stream);
  
   /* See if it ended up read only */
-  if ((stream->buf_flags)&(FD_STREAM_READ_ONLY)) read_only=1;
-  pool->pool_stream.stream_mallocd=0;
+  if ((stream->stream_flags)&(FD_STREAM_READ_ONLY)) read_only=1;
+  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   magicno=fd_read_4bytes(instream);
   /* Read POOL base etc. */
   hi=fd_read_4bytes(instream); lo=fd_read_4bytes(instream);
@@ -465,7 +465,7 @@ static int read_oidpool_load(fd_oidpool op)
 static int lock_oidpool_file(struct FD_OIDPOOL *op,int use_mutex)
 {
   if (POOLFILE_LOCKEDP(op)) return 1;
-  else if ((op->pool_stream.buf_flags)&(FD_STREAM_READ_ONLY))
+  else if ((op->pool_stream.stream_flags)&(FD_STREAM_READ_ONLY))
     return 0;
   else {
     struct FD_STREAM *s=&(op->pool_stream);
@@ -509,11 +509,11 @@ FD_EXPORT int fd_make_oidpool
   fd_outbuf outstream=fd_writebuf(stream);
   fd_offset_type offtype=(fd_offset_type)((flags)&(FD_OIDPOOL_OFFMODE));
   if (stream==NULL) return -1;
-  else if ((stream->buf_flags)&FD_STREAM_READ_ONLY) {
+  else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_oidpool",u8_strdup(fname));
     fd_close_stream(stream,1);
     return -1;}
-  stream->stream_mallocd=0;
+  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   fd_lock_stream(stream);
   fd_setpos(stream,0);
   fd_write_4bytes(outstream,FD_OIDPOOL_MAGIC_NUMBER);

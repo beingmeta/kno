@@ -67,8 +67,8 @@ static fd_index open_file_index(u8_string fname,fddb_flags flags)
     fd_seterr3(fd_CantOpenFile,"open_file_index",u8_strdup(fname));
     return NULL;}
   /* See if it ended up read only */
-  if (index->index_stream.buf_flags&FD_STREAM_READ_ONLY) read_only=1;
-  index->index_stream.stream_mallocd=0;
+  if (index->index_stream.stream_flags&FD_STREAM_READ_ONLY) read_only=1;
+  s->stream_flags&=~FD_STREAM_IS_MALLOCD;
   magicno=fd_read_4bytes_at(s,0);
   index->index_n_slots=fd_read_4bytes_at(s,4);
   if ((magicno==FD_FILE_INDEX_TO_RECOVER) ||
@@ -1193,11 +1193,11 @@ int fd_make_file_index(u8_string filename,unsigned int magicno,int n_slots_arg)
     fd_init_file_stream(&_stream,filename,FD_STREAM_CREATE,8192);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL) return -1;
-  else if ((stream->buf_flags)&FD_STREAM_READ_ONLY) {
+  else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_index",u8_strdup(filename));
     fd_close_stream(stream,FD_STREAM_FREE);
     return -1;}
-  stream->stream_mallocd=0;
+  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   if (n_slots_arg<0) n_slots=-n_slots_arg;
   else n_slots=fd_get_hashtable_size(n_slots_arg);
   fd_setpos(stream,0);

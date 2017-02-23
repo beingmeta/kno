@@ -64,7 +64,7 @@ int main(int argc,char **argv)
   FD_DO_LIBINIT(fd_init_dtypelib);
   span=get_elapsed(); /* Start the timer */
   ht=fd_make_hashtable(NULL,64);
-  in=fd_stream_open(argv[1],FD_STREAM_READ);
+  in=fd_open_stream(argv[1],FD_STREAM_READ);
   if (in==NULL) {
     u8_log(LOG_ERR,"No such file","Couldn't open file %s",argv[1]);
     exit(1);}
@@ -85,7 +85,7 @@ int main(int argc,char **argv)
     i=i+1;}
   report_on_hashtable(ht);
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);
-  out=fd_stream_open(argv[2],FD_STREAM_CREATE);
+  out=fd_open_stream(argv[2],FD_STREAM_CREATE);
   if (out) {
     struct FD_OUTBUF *outbuf=fd_writebuf(out);
     fd_write_dtype(outbuf,ht);

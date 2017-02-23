@@ -82,7 +82,7 @@ FD_EXPORT fdtype fdt_iswritebuf(struct FD_INBUF *b)
 
 /* Closing (freeing) buffers */
 
-FD_EXPORT size_t _fd_raw_closebuf(struct FD_BYTE_RAWBUF *buf)
+FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf)
 {
   if (buf->buf_flags&FD_BUFFER_IS_MALLOCD) {
     u8_free(buf->bufbase);
@@ -118,7 +118,7 @@ static int grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
 
 static int grow_input_buffer(struct FD_INBUF *in,int delta)
 {
-  struct FD_BYTE_RAWBUF *b=(struct FD_BYTE_RAWBUF *)in;
+  struct FD_RAWBUF *b=(struct FD_RAWBUF *)in;
   size_t current_size=b->bufpoint-b->bufbase;
   size_t current_limit=b->buflim-b->bufbase;
   size_t new_limit=current_limit;

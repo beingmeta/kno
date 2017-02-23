@@ -15,38 +15,39 @@ fd_exception fd_IsWriteBuf, fd_IsReadBuf;
 
 /* Byte Streams */
 
+typedef struct FD_RAWBUF *fd_rawbuf;
 typedef struct FD_OUTBUF *fd_outbuf;
 typedef struct FD_INBUF *fd_inbuf;
 
 typedef struct FD_OUTBUF {
-  int buf_flags; size_t buflen;
+  int buf_flags; size_t buflen; void *buf_data;
   unsigned char *bufbase, *bufpoint, *buflim;
   /* FD_OUTBUF has a fillfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
-  size_t (*buf_fillfn)(fd_inbuf,size_t);
-  size_t (*buf_flushfn)(fd_outbuf);} FD_OUTBUF;
+  ssize_t (*buf_fillfn)(fd_inbuf,size_t,void *);
+  ssize_t (*buf_flushfn)(fd_outbuf,void *);} FD_OUTBUF;
 
 typedef struct FD_INBUF {
-  int buf_flags; size_t buflen;
+  int buf_flags; size_t buflen; void *buf_data;
   const unsigned char *bufbase, *bufpoint, *buflim;
   /* FD_INBUF has a flushfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
-  size_t (*buf_fillfn)(fd_inbuf,size_t);
-  size_t (*buf_flushfn)(fd_outbuf);} FD_INBUF;
+  ssize_t (*buf_fillfn)(fd_inbuf,size_t,void *);
+  ssize_t (*buf_flushfn)(fd_outbuf,void *);} FD_INBUF;
 
-struct FD_BYTE_RAWBUF {
-  int buf_flags; size_t buflen;
+typedef struct FD_RAWBUF {
+  int buf_flags; size_t buflen; void *buf_data;
   unsigned char *bufbase, *bufpoint, *buflim;
   /* FD_INBUF has a flushfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
-  size_t (*buf_fillfn)(fd_inbuf,size_t);
-  size_t (*buf_flushfn)(fd_outbuf);};
+  ssize_t (*buf_fillfn)(fd_inbuf,size_t,void *);
+  ssize_t (*buf_flushfn)(fd_outbuf,void *);} fd_rawbuf;
 
-typedef size_t (*fd_byte_fillfn)(fd_inbuf,size_t);
-typedef size_t (*fd_byte_flushfn)(fd_outbuf);
+typedef size_t (*fd_byte_fillfn)(fd_inbuf,size_t,void *);
+typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 
 /* Flags for all byte I/O buffers */
 
@@ -56,7 +57,7 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf);
 #define FD_USE_DTYPEV2         (FD_BYTEBUF_FLAGS << 2)
 #define FD_WRITE_OPAQUE        (FD_BYTEBUF_FLAGS << 3)
 #define FD_NATSORT_VALUES      (FD_BYTEBUF_FLAGS << 4)
-#define FD_IS_STREAM       (FD_BYTEBUF_FLAGS << 5)
+#define FD_IN_STREAM       (FD_BYTEBUF_FLAGS << 5)
 
 #define FD_ISWRITING(buf) (((buf)->buf_flags)&(FD_IS_WRITING))
 #define FD_ISREADING(buf) (!(FD_ISWRITING(buf)))
@@ -337,8 +338,8 @@ FD_FASTOP fd_8bytes fd_get_8bytes(const unsigned char *membuf)
 
 FD_EXPORT int _fd_grow_outbuf(struct FD_OUTBUF *b,size_t delta);
 #define fd_grow_outbuf(b,d) \
-  if (((b)->bufpoint+(d)) > ((b)->buflim)) \
-    return _fd_grow_outbuf(b,d);	   \
+  if (((b)->bufpoint+(d)) > ((b)->buflim))	\
+    return _fd_grow_outbuf(b,d,b->buf_data);	\
   else return 1
 
 FD_EXPORT int _fd_grow_inbuf(struct FD_INBUF *b,size_t delta);
@@ -351,9 +352,10 @@ FD_EXPORT int _fd_grow_inbuf(struct FD_INBUF *b,size_t delta);
   ((U8_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) : \
    (FD_EXPECT_TRUE((buf)->bufpoint+n <= (buf)->buflim)) ? (1) :	 \
    ((buf)->buf_fillfn) ?					 \
-   (((buf)->buf_fillfn)(((fd_inbuf)buf),n)) :		 \
+   (((buf)->buf_fillfn)(((fd_inbuf)buf),n,buf->buf_data)) :	 \
    (0))
-#define fd_needs_bytes(buf,n) (FD_EXPECT_TRUE(_fd_needs_bytes((buf),n)))
+#define fd_needs_bytes(buf,n) \
+  (FD_EXPECT_TRUE(_fd_needs_bytes((buf),n)))
 
 #define _fd_has_bytes(buf,n)						\
   ((FD_EXPECT_FALSE(FD_ISWRITING(buf))) ? (fd_iswritebuf(buf)) :	\
@@ -368,10 +370,10 @@ FD_EXPORT int _fd_read_bytes
   (unsigned char *bytes,struct FD_INBUF *buf,int len);
 FD_EXPORT int _fd_read_zint(struct FD_INBUF *buf);
 
-FD_EXPORT size_t _fd_raw_closebuf(struct FD_BYTE_RAWBUF *buf);
+FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf);
 
 #if FD_INLINE_DTYPEIO
-FD_FASTOP size_t fd_raw_closebuf(struct FD_BYTE_RAWBUF *buf)
+FD_FASTOP size_t fd_raw_closebuf(struct FD_RAWBUF *buf)
 {
   if (buf->buf_flags&FD_BUFFER_IS_MALLOCD) {
     u8_free(buf->bufbase);
@@ -384,11 +386,11 @@ FD_FASTOP size_t fd_raw_closebuf(struct FD_BYTE_RAWBUF *buf)
 
 FD_FASTOP size_t fd_close_inbuf(struct FD_INBUF *buf)
 {
-  return fd_raw_closebuf((struct FD_BYTE_RAWBUF *)buf);
+  return fd_raw_closebuf((struct FD_RAWBUF *)buf);
 }
 FD_FASTOP size_t fd_close_outbuf(struct FD_OUTBUF *buf)
 {
-  return fd_raw_closebuf((struct FD_BYTE_RAWBUF *)buf);
+  return fd_raw_closebuf((struct FD_RAWBUF *)buf);
 }
 
 #if FD_INLINE_DTYPEIO

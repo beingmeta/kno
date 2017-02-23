@@ -29,7 +29,7 @@ FD_EXPORT fdtype _fd_comment_symbol;
 
 FD_EXPORT int fd_load_fdscheme(void) FD_LIBINIT0_FN;
 FD_EXPORT int fd_init_fdscheme(void);
-FD_EXPORT void fd_init_schemeio(void);
+FD_EXPORT void fd_init_schemeio(void) FD_LIBINIT0_FN;
 
 FD_EXPORT u8_context fd_eval_context;
 
@@ -86,6 +86,11 @@ typedef struct FD_MACRO {
   u8_string fd_macro_name;
   fdtype fd_macro_transformer;} FD_MACRO;
 typedef struct FD_MACRO *fd_macro;
+
+/* These should probably get their own header file */
+
+FD_EXPORT fdtype fd_printout(fdtype,fd_lispenv);
+FD_EXPORT fdtype fd_printout_to(U8_OUTPUT *,fdtype,fd_lispenv);
 
 /* DT servers */
 

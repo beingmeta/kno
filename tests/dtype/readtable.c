@@ -53,7 +53,7 @@ int main(int argc,char **argv)
   struct FD_STREAM *in; fdtype ht;
   struct FD_INBUF *inbuf;
   FD_DO_LIBINIT(fd_init_dtypelib);
-  in=fd_stream_open(argv[1],FD_STREAM_READ);
+  in=fd_open_stream(argv[1],FD_STREAM_READ);
   inbuf=fd_readbuf(in);
   ht=fd_read_dtype(inbuf);
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);

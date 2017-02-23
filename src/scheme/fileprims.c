@@ -1172,12 +1172,10 @@ static fdtype readdir_prim(fdtype dirname,fdtype fullpath)
 
 static fdtype close_prim(fdtype portarg)
 {
-  if (FD_TYPEP(portarg,fd_byteport_type)) {
-    struct FD_BYTEPORT *dts=
-      fd_consptr(struct FD_BYTEPORT *,portarg,fd_byteport_type);
-    if (dts->dt_stream) {
-      fd_close_stream(dts->dt_stream,1);
-      dts->dt_stream=NULL;}
+  if (FD_TYPEP(portarg,fd_stream_type)) {
+    struct FD_STREAM *dts=
+      fd_consptr(struct FD_STREAM *,portarg,fd_stream_type);
+    fd_close_stream(dts,1);
     return FD_VOID;}
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
@@ -1204,10 +1202,10 @@ static fdtype close_prim(fdtype portarg)
 
 static fdtype flush_prim(fdtype portarg)
 {
-  if (FD_TYPEP(portarg,fd_byteport_type)) {
-    struct FD_BYTEPORT *dts=
-      fd_consptr(struct FD_BYTEPORT *,portarg,fd_byteport_type);
-    fd_flush_stream(dts->dt_stream);
+  if (FD_TYPEP(portarg,fd_stream_type)) {
+    struct FD_STREAM *dts=
+      fd_consptr(struct FD_STREAM *,portarg,fd_stream_type);
+    fd_flush_stream(dts);
     return FD_VOID;}
   else if (FD_TYPEP(portarg,fd_port_type)) {
     U8_OUTPUT *out=get_output_port(portarg);
@@ -1221,10 +1219,10 @@ static fdtype flush_prim(fdtype portarg)
 
 static fdtype setbuf_prim(fdtype portarg,fdtype insize,fdtype outsize)
 {
-  if (FD_TYPEP(portarg,fd_byteport_type)) {
-    struct FD_BYTEPORT *dts=
-      fd_consptr(struct FD_BYTEPORT *,portarg,fd_byteport_type);
-    fd_stream_setbuf(dts->dt_stream,FD_FIX2INT(insize));
+  if (FD_TYPEP(portarg,fd_stream_type)) {
+    struct FD_STREAM *dts=
+      fd_consptr(struct FD_STREAM *,portarg,fd_stream_type);
+    fd_stream_setbuf(dts,FD_FIX2INT(insize));
     return FD_VOID;}
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
@@ -1258,9 +1256,9 @@ static fdtype getpos_prim(fdtype portarg)
     else if (result<FD_MAX_FIXNUM)
       return FD_INT(result);
     else return fd_make_bigint(result);}
-  else if (FD_TYPEP(portarg,fd_byteport_type)) {
-    fd_byteport ds=fd_consptr(fd_byteport,portarg,fd_byteport_type);
-    fd_off_t pos=fd_getpos(ds->dt_stream);
+  else if (FD_TYPEP(portarg,fd_stream_type)) {
+    fd_stream ds=fd_consptr(fd_stream,portarg,fd_stream_type);
+    fd_off_t pos=fd_getpos(ds);
     if (pos<0) return FD_ERROR_VALUE;
     else if (pos<FD_MAX_FIXNUM) return FD_INT(pos);
     else return fd_make_bigint(pos);}
@@ -1283,9 +1281,9 @@ static fdtype endpos_prim(fdtype portarg)
     else if (result<FD_MAX_FIXNUM)
       return FD_INT(result);
     else return fd_make_bigint(result);}
-  else if (FD_TYPEP(portarg,fd_byteport_type)) {
-    fd_byteport ds=fd_consptr(fd_byteport,portarg,fd_byteport_type);
-    fd_off_t pos=fd_endpos(ds->dt_stream);
+  else if (FD_TYPEP(portarg,fd_stream_type)) {
+    fd_stream ds=fd_consptr(fd_stream,portarg,fd_stream_type);
+    fd_off_t pos=fd_endpos(ds);
     if (pos<0) return FD_ERROR_VALUE;
     else if (pos<FD_MAX_FIXNUM) return FD_INT(pos);
     else return fd_make_bigint(pos);}
@@ -1331,8 +1329,8 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
     else if (result<FD_MAX_FIXNUM)
       return FD_INT(off);
     else return fd_make_bigint(result);}
-  else if (FD_TYPEP(portarg,fd_byteport_type)) {
-    fd_byteport ds=fd_consptr(fd_byteport,portarg,fd_byteport_type);
+  else if (FD_TYPEP(portarg,fd_stream_type)) {
+    fd_stream ds=fd_consptr(fd_stream,portarg,fd_stream_type);
     fd_off_t off, result;
     if (FD_FIXNUMP(off_arg)) off=FD_FIX2INT(off_arg);
     else if (FD_BIGINTP(off_arg))
@@ -1342,7 +1340,7 @@ static fdtype setpos_prim(fdtype portarg,fdtype off_arg)
     off=(fd_off_t)fd_bigint_to_long((fd_bigint)off_arg);
 #endif
     else return fd_type_error(_("offset"),"setpos_prim",off_arg);
-    result=fd_setpos(ds->dt_stream,off);
+    result=fd_setpos(ds,off);
     if (result<0) return FD_ERROR_VALUE;
     else if (result<FD_MAX_FIXNUM) return FD_INT(result);
     else return fd_make_bigint(result);}
@@ -1456,7 +1454,7 @@ int fd_snapshot(fd_lispenv env,u8_string filename)
        else {
          fd_decref(slotmap);
          return fd_type_error("symbol","fd_snapshot",sym);}}
-    out=fd_stream_open(filename,FD_STREAM_CREATE);
+    out=fd_open_stream(filename,FD_STREAM_CREATE);
     if (out==NULL) {
       fd_decref(slotmap);
       return -1;}
@@ -1479,7 +1477,7 @@ int fd_snapback(fd_lispenv env,u8_string filename)
 {
   struct FD_STREAM *in;
   fdtype slotmap; int actions=0;
-  in=fd_stream_open(filename,FD_STREAM_READ);
+  in=fd_open_stream(filename,FD_STREAM_READ);
   if (in==NULL) return -1;
   else slotmap=fd_read_dtype(fd_readbuf(in));
   if (FD_ABORTP(slotmap)) {

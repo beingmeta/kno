@@ -83,7 +83,7 @@ int main(int argc,char **argv)
   fdtype ht, keys, watch_for=FD_VOID;
   FD_DO_LIBINIT(fd_init_dtypelib);
   n_tries=atol(argv[2]);
-  in=fd_stream_open(argv[1],FD_STREAM_READ);
+  in=fd_open_stream(argv[1],FD_STREAM_READ);
   inbuf=fd_readbuf(in);
   ht=fd_read_dtype(inbuf);
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);
@@ -141,8 +141,8 @@ int main(int argc,char **argv)
     i++;}
   fd_resize_hashtable(FD_XHASHTABLE(ht),best_size);
   report_on_hashtable(ht);
-  if (argc>3) out=fd_stream_open(argv[3],FD_STREAM_CREATE);
-  else out=fd_stream_open(argv[1],FD_STREAM_CREATE);
+  if (argc>3) out=fd_open_stream(argv[3],FD_STREAM_CREATE);
+  else out=fd_open_stream(argv[1],FD_STREAM_CREATE);
   outbuf=fd_writebuf(out);
   fd_write_dtype(outbuf,ht);
   fd_close_stream(out,FD_STREAM_CLOSE_FULL);

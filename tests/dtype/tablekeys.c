@@ -21,13 +21,13 @@ int main(int argc,char **argv)
   struct FD_OUTBUF *outbuf;
   fdtype ht, keys;
   FD_DO_LIBINIT(fd_init_dtypelib);
-  in=fd_stream_open(argv[1],FD_STREAM_READ);
+  in=fd_open_stream(argv[1],FD_STREAM_READ);
   inbuf=fd_readbuf(in);
   ht=fd_read_dtype(inbuf);
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);
   keys=fd_hashtable_keys(FD_XHASHTABLE(ht));
   fprintf(stderr,_("Found %d keys\n"),FD_CHOICE_SIZE(keys));
-  out=fd_stream_open(argv[2],FD_STREAM_CREATE);
+  out=fd_open_stream(argv[2],FD_STREAM_CREATE);
   outbuf=fd_writebuf(out);
   fd_write_dtype(outbuf,keys);
   fd_decref(keys); keys=FD_VOID;

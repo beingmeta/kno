@@ -493,7 +493,7 @@ static void dump_backtrace(u8_exception ex,u8_string dumpfile)
     struct FD_STREAM *out; int bytes=0;
     fdtype backtrace=fd_exception_backtrace(ex);
     u8_string temp_name=u8_mkstring("%s.part",abspath);
-    out=fd_stream_open(temp_name,FD_STREAM_CREATE);
+    out=fd_open_stream(temp_name,FD_STREAM_CREATE);
     if (out==NULL) {
       u8_log(LOG_ERROR,"BACKTRACE","Can't open %s to write %s",
              temp_name,abspath);

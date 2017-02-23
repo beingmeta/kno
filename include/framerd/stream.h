@@ -25,27 +25,30 @@ FD_EXPORT fd_exception fd_CantWrite, fd_CantRead, fd_CantSeek;
 FD_EXPORT fd_exception fd_BadLSEEK, fd_OverSeek, fd_UnderSeek;
 
 typedef struct FD_STREAM {
-  int buf_flags; size_t buflen;
-  unsigned char *bufbase, *bufpoint, *buflim;
-  size_t (*buf_fillfn)(fd_inbuf,size_t);
-  size_t (*buf_flushfn)(fd_outbuf);
-  int stream_fileno;
-  u8_mutex stream_lock;
-  u8_string streamid; int stream_mallocd;
-  fd_off_t stream_filepos, stream_maxpos;} FD_STREAM;
+  FD_CONS_HEADER;
+  int stream_flags, stream_fileno;
+  fd_off_t stream_filepos, stream_maxpos;
+  u8_string streamid;
+  union {
+    struct FD_INBUF in;
+    struct FD_OUTBUF out;
+    struct FD_RAWBUF raw;} buf;
+  u8_mutex stream_lock;} FD_STREAM;
 typedef struct FD_STREAM *fd_stream;
 
 #define FD_STREAM_BUFSIZ_DEFAULT 32*1024
 
-#define FD_STREAM_FLAGS          (0x1000)
+#define FD_STREAM_FLAGS          (0x1)
 #define FD_STREAM_LOCKED         (FD_STREAM_FLAGS << 0)
 #define FD_STREAM_READ_ONLY      (FD_STREAM_FLAGS << 1)
 #define FD_STREAM_WRITE_ONLY     (FD_STREAM_FLAGS << 2)
-#define FD_STREAM_CAN_SEEK        (FD_STREAM_FLAGS << 3)
+#define FD_STREAM_CAN_SEEK       (FD_STREAM_FLAGS << 3)
 #define FD_STREAM_NEEDS_LOCK     (FD_STREAM_FLAGS << 4)
 #define FD_STREAM_FILE_LOCKED    (FD_STREAM_FLAGS << 5)
 #define FD_STREAM_SOCKET         (FD_STREAM_FLAGS << 6)
 #define FD_STREAM_DOSYNC         (FD_STREAM_FLAGS << 7)
+#define FD_STREAM_IS_MALLOCD     (FD_STREAM_FLAGS << 8)
+#define FD_STREAM_OWNS_FILENO    (FD_STREAM_FLAGS << 9)
 
 typedef enum FD_STREAM_MODE {
   FD_STREAM_READ, /* Read only, must exist */
@@ -58,10 +61,12 @@ typedef enum FD_BYTEFLOW {
   fd_byteflow_read = 0,
   fd_byteflow_write = 1 } fd_byteflow;
 
-#define FD_STREAM_ISREADING(s) (!(U8_BITP((s->buf_flags),(FD_IS_WRITING))))
-#define FD_STREAM_ISWRITING(s) (U8_BITP((s->buf_flags),(FD_IS_WRITING)))
+#define FD_STREAM_ISREADING(s) \
+  (!(U8_BITP((s->buf.raw.buf_flags),(FD_IS_WRITING))))
+#define FD_STREAM_ISWRITING(s) \
+  (U8_BITP((s->buf.raw.buf_flags),(FD_IS_WRITING)))
 
-FD_EXPORT size_t fd_fill_stream(fd_stream df,size_t n);
+FD_EXPORT ssize_t fd_fill_stream(fd_stream df,size_t n);
 
 FD_EXPORT
 struct FD_STREAM *fd_init_stream(fd_stream s,int fileno,int bufsiz);
@@ -71,11 +76,11 @@ fd_stream fd_init_file_stream (fd_stream stream,
 				       u8_string filename,
 				       fd_stream_mode mode,int bufsiz);
 
-FD_EXPORT fd_stream fd_open_dtype_file
+FD_EXPORT fd_stream fd_open_filestream
   (u8_string filename,fd_stream_mode mode,int bufsiz);
 
-#define fd_stream_open(filename,mode) \
-  fd_open_dtype_file(filename,mode,FD_STREAM_BUFSIZ_DEFAULT)
+#define fd_open_stream(filename,mode) \
+  fd_open_filestream(filename,mode,FD_STREAM_BUFSIZ_DEFAULT)
 
 #define FD_STREAM_FREE    1
 #define FD_STREAM_NOCLOSE 2
@@ -120,13 +125,13 @@ FD_EXPORT fd_off_t _fd_getpos(fd_stream s);
 
 FD_FASTOP fd_off_t fd_getpos(fd_stream s)
 {
-  if (((s)->buf_flags)&FD_STREAM_CAN_SEEK) {
+  if (((s)->stream_flags)&FD_STREAM_CAN_SEEK) {
     if (((s)->stream_filepos)>=0) {
       if (FD_STREAM_ISREADING(s))
 	/* If you're reading, subtract what's buffered from the file pos. */
-	return (((s)->stream_filepos)-(((s)->buflim)-((s)->bufpoint)));
+	return (((s)->stream_filepos)-(((s)->buf.raw.buflim)-((s)->buf.raw.bufpoint)));
       /* If you're writing, add what's buffered to the file pos. */
-      else return (((s)->stream_filepos)+(((s)->bufpoint)-((s)->bufbase)));}
+      else return (((s)->stream_filepos)+(((s)->buf.raw.bufpoint)-((s)->buf.raw.bufbase)));}
     else return _fd_getpos(s);}
   else return -1;
 }
@@ -134,15 +139,15 @@ FD_FASTOP fd_off_t fd_getpos(fd_stream s)
 FD_FASTOP fd_off_t fd_setpos(fd_stream s,fd_off_t pos)
 {
   /* Have the common version do the error handling. */
-  if ((((s->buf_flags)&FD_STREAM_CAN_SEEK) == 0)||(pos<0))
+  if ((((s->stream_flags)&FD_STREAM_CAN_SEEK) == 0)||(pos<0))
     return _fd_setpos(s,pos);
 
   if ((s->stream_filepos>=0)&&
-      (!((s->buf_flags)&(FD_IS_WRITING)))&&
+      (!((s->buf.raw.buf_flags)&(FD_IS_WRITING)))&&
       (pos<s->stream_filepos)&&
-      (pos>=(s->stream_filepos-(s->buflim-s->bufbase)))) {
+      (pos>=(s->stream_filepos-(s->buf.raw.buflim-s->buf.raw.bufbase)))) {
     fd_off_t delta=pos-s->stream_filepos;
-    s->bufpoint=s->buflim+delta;
+    s->buf.raw.bufpoint=s->buf.raw.buflim+delta;
     return pos;}
   else if ((s->stream_filepos>=0)&&(fd_getpos(s)==pos))
     return pos;
@@ -151,45 +156,45 @@ FD_FASTOP fd_off_t fd_setpos(fd_stream s,fd_off_t pos)
 FD_FASTOP fd_off_t fd_endpos(fd_stream s)
 {
   /* Have the common version do the error handling. */
-  if (((s->buf_flags)&FD_STREAM_CAN_SEEK) == 0)
+  if (((s->stream_flags)&FD_STREAM_CAN_SEEK) == 0)
     return _fd_endpos(s);
   else if ((s->stream_filepos>=0)&&(s->stream_maxpos>=0)&&
 	   (s->stream_filepos==s->stream_maxpos))
-    if ((s->buf_flags)&(FD_IS_WRITING))
-      return s->stream_maxpos+(s->bufpoint-s->bufbase);
+    if ((s->buf.raw.buf_flags)&(FD_IS_WRITING))
+      return s->stream_maxpos+(s->buf.raw.bufpoint-s->buf.raw.bufbase);
     else return s->stream_maxpos;
   else return _fd_endpos(s);
 }
 FD_FASTOP fd_inbuf fd_readbuf(fd_stream s)
 {
-  if ((s->buf_flags)&(FD_IS_WRITING))
+  if ((s->buf.raw.buf_flags)&(FD_IS_WRITING))
     fd_set_direction(s,fd_byteflow_read);
-  return (struct FD_INBUF *)s;
+  return &(s->buf.in);
 }
 
 FD_FASTOP fd_outbuf fd_writebuf(fd_stream s)
 {
-  if (!((s->buf_flags)&(FD_IS_WRITING)))
+  if (!((s->buf.raw.buf_flags)&(FD_IS_WRITING)))
     fd_set_direction(s,fd_byteflow_write);
-  return (struct FD_OUTBUF *)s;
+  return &(s->buf.out);
 }
 FD_FASTOP fd_inbuf fd_start_read(fd_stream s,fd_off_t pos)
 {
-  if ((s->buf_flags)&(FD_IS_WRITING))
+  if ((s->buf.raw.buf_flags)&(FD_IS_WRITING))
     fd_set_direction(s,fd_byteflow_read);
   if (pos<0)
     fd_setpos(s,s->stream_maxpos+pos);
   else fd_setpos(s,pos);
-  return (struct FD_INBUF *)s;
+  return &(s->buf.in);
 }
 
 FD_FASTOP fd_outbuf fd_start_write(fd_stream s,fd_off_t pos)
 {
-  if (!((s->buf_flags)&(FD_IS_WRITING)))
+  if (!((s->buf.raw.buf_flags)&(FD_IS_WRITING)))
     fd_set_direction(s,fd_byteflow_write);
   if (pos<0) fd_endpos(s);
   else fd_setpos(s,pos);
-  return (struct FD_OUTBUF *)s;
+  return &(s->buf.out);
 }
 #else
 #define fd_getpos(s) _fd_getpos(s)
@@ -200,6 +205,8 @@ FD_FASTOP fd_outbuf fd_start_write(fd_stream s,fd_off_t pos)
 #define fd_start_read(s,p) _fd_start_read(s,p)
 #define fd_start_write(s,p) _fd_start_write(s,p)
 #endif
+
+#define fd_rawbuf(stream) (&((stream)->buf.raw))
 
 /* Structure functions and macros */
 

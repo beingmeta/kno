@@ -62,8 +62,8 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
   fd_init_file_stream(&(pool->pool_stream),fname,mode,
                             fd_driver_bufsize);
   /* See if it ended up read only */
-  if ((((pool)->pool_stream).buf_flags)&FD_STREAM_READ_ONLY) read_only=1;
-  pool->pool_stream.stream_mallocd=0;
+  if (s->stream_flags&FD_STREAM_READ_ONLY) read_only=1;
+  s->stream_flags&=~FD_STREAM_IS_MALLOCD;
   magicno=fd_read_4bytes_at(s,0);
   hi=fd_read_4bytes_at(s,4); lo=fd_read_4bytes_at(s,8);
   FD_SET_OID_HI(base,hi); FD_SET_OID_LO(base,lo);
@@ -178,7 +178,7 @@ static int file_pool_load(fd_pool p)
 static int lock_file_pool(struct FD_FILE_POOL *fp,int use_mutex)
 {
   if (FD_POOLFILE_LOCKEDP(fp)) return 1;
-  else if ((fp->pool_stream.buf_flags)&(FD_STREAM_READ_ONLY)) return 0;
+  else if ((fp->pool_stream.stream_flags)&(FD_STREAM_READ_ONLY)) return 0;
   else {
     struct FD_STREAM *s=&(fp->pool_stream);
     struct stat fileinfo;
@@ -671,11 +671,11 @@ int fd_make_file_pool
     fd_init_file_stream(&_stream,filename,FD_STREAM_CREATE,8192);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL) return -1;
-  else if ((stream->buf_flags)&FD_STREAM_READ_ONLY) {
+  else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_file_pool",u8_strdup(filename));
     fd_close_stream(stream,FD_STREAM_FREE);
     return -1;}
-  stream->stream_mallocd=0;
+  stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   fd_setpos(stream,0);
   hi=FD_OID_HI(base); lo=FD_OID_LO(base);
   fd_write_4bytes(outstream,magicno);

@@ -14,6 +14,7 @@
 #define U8_INLINE_IO 1
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
+#include "framerd/ports.h"
 
 #include <libu8/u8printf.h>
 #include <libu8/u8streamio.h>
@@ -1690,6 +1691,36 @@ u8_string fd_unparse_arg(fdtype arg)
   return out.u8_outbuf;
 }
 
+/* The port type */
+
+static int unparse_port(struct U8_OUTPUT *out,fdtype x)
+{
+  struct FD_PORT *p=fd_consptr(fd_port,x,fd_port_type);
+  if ((p->fd_inport) && (p->fd_outport) && (p->fd_portid))
+    u8_printf(out,"#<I/O Port (%s) #!%x>",p->fd_portid,x);
+  else if ((p->fd_inport) && (p->fd_outport))
+    u8_printf(out,"#<I/O Port #!%x>",x);
+  else if ((p->fd_inport)&&(p->fd_portid))
+    u8_printf(out,"#<Input Port (%s) #!%x>",p->fd_portid,x);
+  else if (p->fd_inport)
+    u8_printf(out,"#<Input Port #!%x>",x);
+  else if (p->fd_portid)
+    u8_printf(out,"#<Output Port (%s) #!%x>",p->fd_portid,x);
+  else u8_printf(out,"#<Output Port #!%x>",x);
+  return 1;
+}
+
+static void recycle_port(struct FD_CONS *c)
+{
+  struct FD_PORT *p=(struct FD_PORT *)c;
+  if (p->fd_inport) {
+    u8_close_input(p->fd_inport);}
+  if (p->fd_outport) {
+    u8_close_output(p->fd_outport);}
+  if (p->fd_portid) u8_free(p->fd_portid);
+ if (FD_MALLOCD_CONSP(c)) u8_free(c);
+}
+
 /* U8_PRINTF extensions */
 
 static u8_string lisp_printf_handler
@@ -1723,6 +1754,9 @@ FD_EXPORT void fd_init_textio_c()
   fd_unparsers[fd_rail_type]=unparse_rail;
   fd_unparsers[fd_pair_type]=unparse_pair;
   fd_unparsers[fd_choice_type]=unparse_choice;
+
+  fd_unparsers[fd_port_type]=unparse_port;
+  fd_recyclers[fd_port_type]=recycle_port;
 
   quote_symbol=fd_intern("QUOTE");
   quasiquote_symbol=fd_intern("QUASIQUOTE");
