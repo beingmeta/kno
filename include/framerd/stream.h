@@ -25,8 +25,8 @@ FD_EXPORT fd_exception fd_CantWrite, fd_CantRead, fd_CantSeek;
 FD_EXPORT fd_exception fd_BadLSEEK, fd_OverSeek, fd_UnderSeek;
 
 typedef struct FD_STREAM {
-  unsigned char *bufbase, *bufpoint, *buflim;
   int buf_flags; size_t buflen;
+  unsigned char *bufbase, *bufpoint, *buflim;
   size_t (*buf_fillfn)(fd_inbuf,size_t);
   size_t (*buf_flushfn)(fd_outbuf);
   int stream_fileno;
