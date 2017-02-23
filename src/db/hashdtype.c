@@ -13,7 +13,10 @@
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
-#include "framerd/dbfile.h"
+#include "framerd/fddb.h"
+#include "framerd/pools.h"
+#include "framerd/indices.h"
+#include "framerd/drivers.h"
 
 /* Used to generate hash codes */
 #define MAGIC_MODULUS 16777213 /* 256000001 */
