@@ -524,7 +524,7 @@ static int dtypeserver(u8_client ucl)
   else if (async) {
     /* See if we can use asynchronous reading */
     if (nobytes(inbuf,1)) expr=FD_EOD;
-    else if ((*(inbuf->bufpoint))==dt_block) {
+    else if ((*(inbuf->bufread))==dt_block) {
       int U8_MAYBE_UNUSED dtcode=fd_read_byte(inbuf);
       int nbytes=fd_read_4bytes(inbuf);
       if (fd_has_bytes(inbuf,nbytes))
@@ -616,17 +616,17 @@ static int dtypeserver(u8_client ucl)
     /* Currently, fd_write_dtype writes the whole thing at once,
        so we just use that. */
 
-    outbuf->bufpoint=outbuf->bytebuf;
+    outbuf->bufwrite=outbuf->bytebuf;
     if (fd_use_dtblock) {
       int nbytes; unsigned char *ptr;
       fd_write_byte(outbuf,dt_block);
       fd_write_4bytes(outbuf,0);
       nbytes=fd_write_dtype(outbuf,value);
-      ptr=outbuf->bufpoint; {
+      ptr=outbuf->bufwrite; {
         /* Rewind temporarily to write the length information */
-        outbuf->bufpoint=outbuf->bytebuf+1;
+        outbuf->bufwrite=outbuf->bytebuf+1;
         fd_write_4bytes(outbuf,nbytes);
-        outbuf->bufpoint=ptr;}}
+        outbuf->bufwrite=ptr;}}
     else fd_write_dtype(outbuf,value);
     if (async) {
       struct FD_RAWBUF *rawbuf=(struct FD_RAWBUF *)inbuf;

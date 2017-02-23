@@ -194,7 +194,7 @@ static fdtype file_config_lookup(fdtype symbol,void *pathdata)
     unsigned char *content=u8_filedata(filename,&n_bytes);
     if (content[0]==0) {
       struct FD_INBUF in;
-      in.bytebuf=in.bufpoint=content+1; in.buflim=in.bytebuf+n_bytes;
+      in.bytebuf=in.bufread=content+1; in.buflim=in.bytebuf+n_bytes;
       in.buf_fillfn=NULL;
       result=fd_read_dtype(&in);}
     else {

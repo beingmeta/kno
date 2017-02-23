@@ -1623,7 +1623,7 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
     crc=u8_crc32(0,data,data_len);
     intval=fd_flip_word(crc); fd_write_4bytes(&out,intval);
     intval=fd_flip_word(data_len); fd_write_4bytes(&out,intval);
-    return fd_init_packet(NULL,out.bufpoint-out.bytebuf,out.bytebuf);}
+    return fd_init_packet(NULL,out.bufwrite-out.bytebuf,out.bytebuf);}
 }
 
 /* The init function */

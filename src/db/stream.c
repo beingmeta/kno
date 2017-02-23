@@ -135,7 +135,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,int fileno,int bufsi
     u8_init_mutex(&(stream->stream_lock));
     if (buf==NULL) bufsiz=0;
     /* Initialize the buffer fields */
-    FD_INIT_BYTE_INPUT(bufptr,buf,bufsiz);
+    FD_INIT_BYTE_INPUT((struct FD_INBUF *)bufptr,buf,bufsiz);
     bufptr->buflim=bufptr->bufpoint; bufptr->buflen=bufsiz;
     bufptr->buf_fillfn=stream_fillfn;
     bufptr->buf_flushfn=NULL;
@@ -508,10 +508,10 @@ FD_EXPORT fd_off_t fd_movepos(fd_stream s,fd_off_t delta)
 FD_EXPORT int fd_write_4bytes_at(fd_stream s,fd_4bytes w,fd_off_t off)
 {
   fd_outbuf out= (off>=0) ? (fd_start_write(s,off)) : (fd_writebuf(s)) ;
-  *(out->bufpoint++)=w>>24;
-  *(out->bufpoint++)=((w>>16)&0xFF);
-  *(out->bufpoint++)=((w>>8)&0xFF);
-  *(out->bufpoint++)=((w>>0)&0xFF);
+  *(out->bufwrite++)=w>>24;
+  *(out->bufwrite++)=((w>>16)&0xFF);
+  *(out->bufwrite++)=((w>>8)&0xFF);
+  *(out->bufwrite++)=((w>>0)&0xFF);
   fd_flush_stream(s);
   return 4;
 }
@@ -520,8 +520,8 @@ FD_EXPORT long long fd_read_4bytes_at(fd_stream s,fd_off_t off)
 {
   struct FD_INBUF *in=(off>=0) ? (fd_start_read(s,off)) : (fd_readbuf(s));
   if (fd_needs_bytes(in,4)) {
-    fd_8bytes bytes=fd_get_4bytes(in->bufpoint);
-    in->bufpoint=in->bufpoint+4;
+    fd_8bytes bytes=fd_get_4bytes(in->bufread);
+    in->bufread=in->bufread+4;
     return bytes;}
   else return -1;
 }
@@ -529,14 +529,14 @@ FD_EXPORT long long fd_read_4bytes_at(fd_stream s,fd_off_t off)
 FD_EXPORT int fd_write8bytes_at(fd_stream s,fd_8bytes w,fd_off_t off)
 {
   fd_outbuf out= (off>=0) ? (fd_start_write(s,off)) : (fd_writebuf(s)) ;
-  *(out->bufpoint++)=((w>>56)&0xFF);
-  *(out->bufpoint++)=((w>>48)&0xFF);
-  *(out->bufpoint++)=((w>>40)&0xFF);
-  *(out->bufpoint++)=((w>>32)&0xFF);
-  *(out->bufpoint++)=((w>>24)&0xFF);
-  *(out->bufpoint++)=((w>>16)&0xFF);
-  *(out->bufpoint++)=((w>>8)&0xFF);
-  *(out->bufpoint++)=((w>>0)&0xFF);
+  *(out->bufwrite++)=((w>>56)&0xFF);
+  *(out->bufwrite++)=((w>>48)&0xFF);
+  *(out->bufwrite++)=((w>>40)&0xFF);
+  *(out->bufwrite++)=((w>>32)&0xFF);
+  *(out->bufwrite++)=((w>>24)&0xFF);
+  *(out->bufwrite++)=((w>>16)&0xFF);
+  *(out->bufwrite++)=((w>>8)&0xFF);
+  *(out->bufwrite++)=((w>>0)&0xFF);
   fd_flush_stream(s);
   return 4;
 }
@@ -545,8 +545,8 @@ FD_EXPORT fd_8bytes fd_read_8bytes_at(fd_stream s,fd_off_t off,int *err)
 {
   struct FD_INBUF *in=(off>=0) ? (fd_start_read(s,off)) : (fd_readbuf(s));
   if (fd_needs_bytes(in,8)) {
-    fd_8bytes bytes=fd_get_8bytes(in->bufpoint);
-    in->bufpoint=in->bufpoint+8;
+    fd_8bytes bytes=fd_get_8bytes(in->bufread);
+    in->bufread=in->bufread+8;
     return bytes;}
   else {
     if (err) *err=-1;
@@ -617,7 +617,7 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_INBUF *in)
     u8_free(bytes);
     return FD_ERROR_VALUE;}
   memset(&tmp,0,sizeof(tmp));
-  tmp.bufpoint=tmp.bytebuf=do_uncompress(bytes,n_bytes,&dbytes);
+  tmp.bufread=tmp.bytebuf=do_uncompress(bytes,n_bytes,&dbytes);
   tmp.buf_flags=FD_BUFFER_IS_MALLOCD;
   tmp.buflim=tmp.bytebuf+dbytes;
   result=fd_read_dtype(&tmp);
@@ -631,13 +631,13 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,fdtype x)
   unsigned char *zbytes; ssize_t zlen=-1, size;
   struct FD_OUTBUF out;
   memset(&out,0,sizeof(out));
-  out.bufpoint=out.bytebuf=u8_malloc(2048);
+  out.bufwrite=out.bytebuf=u8_malloc(2048);
   out.buflim=out.bytebuf+2048;
   out.buf_flags=FD_BUFFER_IS_MALLOCD;
   if (fd_write_dtype(&out,x)<0) {
     u8_free(out.bytebuf);
     return FD_ERROR_VALUE;}
-  zbytes=do_compress(out.bytebuf,out.bufpoint-out.bytebuf,&zlen);
+  zbytes=do_compress(out.bytebuf,out.bufwrite-out.bytebuf,&zlen);
   if (zlen<0) {
     u8_free(out.bytebuf);
     return FD_ERROR_VALUE;}
@@ -652,7 +652,7 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,fdtype x)
 {
   unsigned char *zbytes=NULL; ssize_t zlen=-1, size; int retval=0;
   struct FD_OUTBUF out; memset(&out,0,sizeof(out));
-  out.bufpoint=out.bytebuf=u8_malloc(2048);
+  out.bufwrite=out.bytebuf=u8_malloc(2048);
   out.buflim=out.bytebuf+2048;
   out.buf_flags=FD_BUFFER_IS_MALLOCD;
   if (FD_CHOICEP(x)) {
@@ -666,7 +666,7 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,fdtype x)
       if (retval<0) break;}}
   else retval=fd_write_dtype(&out,x);
   if (retval>=0)
-    zbytes=do_compress(out.bytebuf,out.bufpoint-out.bytebuf,&zlen);
+    zbytes=do_compress(out.bytebuf,out.bufwrite-out.bytebuf,&zlen);
   if ((retval<0)||(zlen<0)) {
     if (zbytes) u8_free(zbytes); u8_free(out.bytebuf);
     return -1;}

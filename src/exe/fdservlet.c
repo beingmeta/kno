@@ -865,7 +865,7 @@ static int webservefn(u8_client ucl)
 
   /* Reset the streams */
   outstream->u8_write=outstream->u8_outbuf;
-  inbuf->bufpoint=inbuf->buflim=inbuf->bytebuf;
+  inbuf->bufread=inbuf->buflim=inbuf->bytebuf;
   /* Handle async reading (where the server buffers incoming and outgoing data) */
   if ((client->reading>0)&&(u8_client_finished(ucl))) {
     /* We got the whole payload, set up the stream
@@ -885,7 +885,7 @@ static int webservefn(u8_client ucl)
     /* We read a little to see if we can just queue up what we
        need. */
     if ( (async) && (havebytes(inbuf,1)) &&
-         ((*(inbuf->bufpoint))==dt_block)) {
+         ((*(inbuf->bufread))==dt_block)) {
       /* If we can be asynchronous, let's try */
       int U8_MAYBE_UNUSED dtcode=fd_read_byte(inbuf);
       int nbytes=fd_read_4bytes(inbuf);

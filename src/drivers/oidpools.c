@@ -866,7 +866,7 @@ static int oidpool_write_value(fdtype value,fd_stream stream,
   if ((p->pool_compression==FD_NOCOMPRESS) && (p->pool_n_schemas==0)) {
     fd_write_byte(outstream,0);
     return 1+fd_write_dtype(outstream,value);}
-  tmpout->bufpoint=tmpout->bytebuf;
+  tmpout->bufwrite=tmpout->bytebuf;
   if (p->pool_n_schemas==0) {
     fd_write_byte(tmpout,0);
     fd_write_dtype(tmpout,value);}
@@ -898,12 +898,12 @@ static int oidpool_write_value(fdtype value,fd_stream stream,
     fd_write_byte(tmpout,0);
     fd_write_dtype(tmpout,value);}
   if (p->pool_compression==FD_NOCOMPRESS) {
-    fd_write_bytes(outstream,tmpout->bytebuf,tmpout->bufpoint-tmpout->bytebuf);
-    return tmpout->bufpoint-tmpout->bytebuf;}
+    fd_write_bytes(outstream,tmpout->bytebuf,tmpout->bufwrite-tmpout->bytebuf);
+    return tmpout->bufwrite-tmpout->bytebuf;}
   else if (p->pool_compression==FD_ZLIB) {
     unsigned char _cbuf[FD_OIDPOOL_FETCHBUF_SIZE], *cbuf;
     int cbuf_size=FD_OIDPOOL_FETCHBUF_SIZE;
-    cbuf=do_zcompress(tmpout->bytebuf,tmpout->bufpoint-tmpout->bytebuf,
+    cbuf=do_zcompress(tmpout->bytebuf,tmpout->bufwrite-tmpout->bytebuf,
                       &cbuf_size,_cbuf,9);
     fd_write_bytes(outstream,cbuf,cbuf_size);
     if (cbuf!=_cbuf) u8_free(cbuf);

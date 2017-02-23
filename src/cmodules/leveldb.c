@@ -339,7 +339,7 @@ static fdtype leveldb_get_prim(fdtype leveldb,fdtype key,fdtype opts)
       unsigned char *binary_data=
 	leveldb_get(db->leveldb.dbptr,readopts,
 		    keyout.bytebuf,
-		    keyout.bufpoint-keyout.bytebuf,
+		    keyout.bufwrite-keyout.bytebuf,
 		    &binary_size,&errmsg);
       u8_free(keyout.bytebuf);
       if (readopts!=fdldb->readopts)
@@ -393,8 +393,8 @@ static fdtype leveldb_put_prim(fdtype leveldb,fdtype key,fdtype value,
       leveldb_writeoptions_t *useopts=get_write_options(fdldb,opts);
       leveldb_writeoptions_t *writeopts=(useopts)?(useopts):(fdldb->writeopts);
       leveldb_put(db->leveldb.dbptr,writeopts,
-		  keyout.bytebuf,keyout.bufpoint-keyout.bytebuf,
-		  valout.bytebuf,valout.bufpoint-valout.bytebuf,
+		  keyout.bytebuf,keyout.bufwrite-keyout.bytebuf,
+		  valout.bytebuf,valout.bufwrite-valout.bytebuf,
 		  &errmsg);
       u8_free(keyout.bytebuf);
       u8_free(valout.bytebuf);
@@ -430,7 +430,7 @@ static fdtype leveldb_drop_prim(fdtype leveldb,fdtype key,fdtype opts)
       leveldb_writeoptions_t *useopts=get_write_options(fdldb,opts);
       leveldb_writeoptions_t *writeopts=(useopts)?(useopts):(fdldb->writeopts);
       leveldb_delete(db->leveldb.dbptr,writeopts,
-		     keyout.bytebuf,keyout.bufpoint-keyout.bytebuf,
+		     keyout.bytebuf,keyout.bufwrite-keyout.bytebuf,
 		     &errmsg);
       u8_free(keyout.bytebuf);
       if (useopts) leveldb_writeoptions_destroy(useopts);
@@ -468,7 +468,7 @@ static ssize_t set_prop(leveldb_t *dbptr,char *key,fdtype value,
   FD_INIT_BYTE_OUTBUF(&out,512);
   if ((dtype_len=fd_write_dtype(&out,value))>0) {
     leveldb_put(dbptr,writeopts,key,strlen(key),
-		out.bytebuf,out.bufpoint-out.bytebuf,
+		out.bytebuf,out.bufwrite-out.bytebuf,
 		&errmsg);
     u8_free(out.bytebuf);
     if (errmsg)
@@ -622,7 +622,7 @@ static int set_oid_value(fd_leveldb_pool ldp,
     char *errmsg=NULL;
     leveldb_put
       (dbptr,writeopts,buf,5,
-       out.bytebuf,out.bufpoint-out.bytebuf,
+       out.bytebuf,out.bufwrite-out.bytebuf,
        &errmsg);
     u8_free(out.bytebuf);
     if (errmsg==NULL)
@@ -648,7 +648,7 @@ static int queue_oid_value(fd_leveldb_pool ldp,
   FD_INIT_BYTE_OUTBUF(&out,512);
   if ((dtype_len=write_oid_value(ldp,&out,value))>0) {
     leveldb_writebatch_put
-      (batch,buf,5,out.bytebuf,out.bufpoint-out.bytebuf);
+      (batch,buf,5,out.bytebuf,out.bufwrite-out.bytebuf);
     u8_free(out.bytebuf);
     return dtype_len;}
   else return -1;
