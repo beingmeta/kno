@@ -1321,7 +1321,8 @@ static u8_exception print_backtrace_entry(U8_OUTPUT *out,u8_exception ex,int wid
   return ex->u8x_prev;
 }
 
-static void log_backtrace_env(int loglevel,u8_condition label,u8_exception ex,int width)
+static void log_backtrace_env(int loglevel,u8_condition label,
+                              u8_exception ex,int width)
 {
   fdtype entry=exception_data(ex);
   fdtype keys=fd_getkeys(entry);
@@ -1390,7 +1391,8 @@ void fd_print_backtrace(U8_OUTPUT *out,u8_exception ex,int width)
     scan=print_backtrace_entry(out,scan,width);}
 }
 
-FD_EXPORT void fd_log_backtrace(u8_exception ex,int level,u8_condition label,int width)
+FD_EXPORT void fd_log_backtrace(u8_exception ex,int level,u8_condition label,
+                                int width)
 {
   u8_exception scan=ex;
   while (scan) {
