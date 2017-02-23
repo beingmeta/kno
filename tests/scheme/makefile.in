@@ -160,7 +160,7 @@ fdcgiexec: ../../src/exe/webcommon.h
 # Test targets
 
 alltests: schemetests exectests tabletests \
-	  indextests hashindextests alldbtests optmods \
+	  indextests hashindextests dbtests optmods \
 	  chaintests batchtests batchchaintests
 	@echo "*** Done with alltests"
 
@@ -282,7 +282,7 @@ hashindextests:
 	$(RUNTEST) ./fdexec@suffix@ tabletest.scm temp.hashindex edit.dtype ${TESTCONFIG}
 	@echo "*** Completed scheme tests to exercise hash indices "
 
-dbtests:
+dbtest:
 	@echo "*** Running database layer tests"
 	$(RUNTEST) ./fdexec@suffix@ dbtest.scm testdb init COUNT=$(TESTSIZE) \
 		$(DBTEST_FILES) \
@@ -298,19 +298,14 @@ dbtests:
 		 ${TESTCONFIG} CACHELEVEL=2
 	@echo "*** Finished database layer tests"
 
-alldbtests:
+dbtests:
 	@echo "*** Database layer tests with oidpool/hashindex cofigurations ***"
-	make dbtests
-	make FD_HASHINDEX=yes dbtests
-	make FD_HASHINDEX="(B32)" dbtests
-	#make FD_OIDPOOL=yes dbtests
-	#make FD_OIDPOOL=(B40 COMPRESS) dbtests
-	make FD_HASHINDEX="(B64)" dbtests
-	#make FD_OIDPOOL="(B32)" dbtests
-	make FD_HASHINDEX=yes FD_OIDPOOL=yes dbtests
-	make FD_HASHINDEX="(B32)" FD_OIDPOOL="FD_OIDPOOL=(B40)" dbtests
-	make FD_HASHINDEX="(B40)" FD_OIDPOOL="FD_OIDPOOL=(B40)" dbtests
-	make FD_HASHINDEX="(B64)" FD_OIDPOOL="FD_OIDPOOL=(B64)" dbtests
+	make dbtest
+	make FD_HASHINDEX="(B32)" dbtest
+	make FD_HASHINDEX="(B64)" dbtest
+	make FD_OIDPOOL="FD_OIDPOOL=(B32)" dbtest
+	make FD_OIDPOOL="FD_OIDPOOL=(B64)" dbtest
+	make FD_OIDPOOL="FD_OIDPOOL=(COMPRESS)" dbtest
 	@echo "*** Completed hashindex tests with B32 reprepresentation "***""
 
 cryptotests:
@@ -365,12 +360,7 @@ vg_memhashindextests:
 
 vg_memdbtests:
 	@echo "*** Running tests on database layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) dbtests dbhashtests
-	@echo "*** Finished running tests on database layers with valgrind memory debugging"
-
-vg_memdbhashtests:
-	@echo "*** Running tests on database layers with valgrind memory debugging"
-	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) dbhashtests
+	make "TESTPROG=$(VALGRIND)" TESTSIZE=$(SMALLTESTSIZE) dbtests
 	@echo "*** Finished running tests on database layers with valgrind memory debugging"
 
 vg_memcryptotests:
@@ -403,12 +393,7 @@ builtin_memhashindextests:
 
 builtin_memdbtests:
 	@echo "*** Running tests on database layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 dbtests dbhashtests
-	@echo "*** Finished running tests on database layers with memory debugging"
-
-builtin_memdbhashtests:
-	@echo "*** Running tests on database layers with memory debugging"
-	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 dbhashtests
+	make @memtest_env@ TESTSIZE=$(TESTSIZE)/4 dbtests
 	@echo "*** Finished running tests on database layers with memory debugging"
 
 builtin_memcryptotests:
@@ -443,7 +428,7 @@ vg_heapindextests:
 
 vg_heapdbtests:
 	@echo "*** Running tests on database layers with valgrind heap debugging"
-	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) dbtests dbhashtests
+	make TESTPROG="$(VALGRINDHEAP)" TESTSIZE=$(SMALLTESTSIZE) dbtests
 	@echo "*** Finished running tests on database layers with valgrind heap debugging"
 
 vg_heapcryptotests:
@@ -476,7 +461,7 @@ builtin_heapindextests:
 
 builtin_heapdbtests:
 	@echo "*** Running tests on database layers with gperftools memory debugging"
-	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) dbtests dbhashtests
+	make @heaptest_env@ TESTSIZE=$(SMALLTESTSIZE) dbtests
 	@echo "*** Finished running tests on database layers with gperftools memory debugging"
 
 builtin_heapcryptotests:
