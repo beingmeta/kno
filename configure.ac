@@ -1586,30 +1586,27 @@ if (test ! -f src/modules/gpath.scm); then
    fi;
 fi;
 
-AC_OUTPUT(makefile exe/.gdbinit DIY/makefile etc/version
-          tests/dtype/makefile tests/db/makefile tests/scheme/makefile
-	  tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
-	  tests/scheme/runtest tests/scheme/gheaptest 
-	  tests/scheme/vgheaptest tests/scheme/vgleaktest
-	  etc/gdbinit etc/fdsetconfig etc/fdgetconfig etc/fdconfig
-	  etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
-	  etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
-	  etc/fdreload etc/fdrestart etc/fdctl
-	  src/scripts/fdpkg.scm
-	  etc/OSXStartupItem/FramerD
-	  etc/logrotate etc/framerd-rc.d
-	  etc/framerd.conf etc/framerd.service etc/FramerD.plist
-	  etc/fdserver.conf etc/fdservlet.conf etc/fdservlets.conf
-	  etc/fdserv.conf etc/fdserv.load
-	  etc/makefile.include
-	  etc/install-script dist/framerd-4.0.spec)
-
-chmod a+x etc/fdsetconfig etc/fdgetconfig etc/framerd-rc.d etc/install-script
-chmod a+x etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
-chmod a+x etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
-chmod a+x etc/fdconfig etc/fdreload etc/fdrestart etc/fdctl
-chmod a+x tests/scheme/runtest tests/scheme/gheaptest 
-chmod a+x tests/scheme/vgheaptest tests/scheme/vgleaktest
+AC_OUTPUT([makefile etc/version etc/makefile.include
+           tests/dtype/makefile tests/db/makefile tests/scheme/makefile DIY/makefile 
+           etc/gdbinit
+	   exe/.gdbinit tests/dtype/.gdbinit tests/db/.gdbinit tests/scheme/.gdbinit
+	   etc/fdstart etc/fdstop etc/fdstartall etc/fdstopall etc/fdcleanup
+	   etc/fdsignal etc/fdinject etc/fdstatus etc/fdlog 
+	   etc/fdreload etc/fdrestart etc/fdctl
+	   etc/fdsetconfig etc/fdgetconfig etc/fdconfig
+	   tests/scheme/vgleaktest tests/scheme/gheaptest tests/scheme/vgheaptest tests/scheme/runtest
+	   src/scripts/fdpkg.scm
+	   etc/OSXStartupItem/FramerD
+	   etc/logrotate
+	   etc/framerd-rc.d
+	   etc/framerd.conf
+	   etc/framerd.service
+	   etc/FramerD.plist
+	   etc/fdserv.conf 
+	   etc/fdserv.load
+	   etc/install-script 
+	   dist/framerd-4.0.spec],
+	   [chmod a+x etc/fd* tests/scheme/*test])
 
 if test "$enable_ipeval" == "yes"; then
    echo "+++ You've configured FramerD to use iterated partial evaluation";
