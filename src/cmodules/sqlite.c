@@ -251,8 +251,7 @@ static void recycle_fdsqlite(struct FD_EXTDB *c)
     u8_free(dbp->extdb_spec);
     fd_decref(dbp->extdb_options);
     fd_decref(dbp->extdb_colinfo);
-    u8_destroy_mutex(&(dbp->fd_lock));
-    if (FD_MALLOCD_CONSP(c)) u8_free(c);}
+    u8_destroy_mutex(&(dbp->fd_lock));}
 }
 
 #if HAVE_SQLITE3_OPEN_V2
@@ -461,7 +460,6 @@ static void recycle_fdsqliteproc(struct FD_EXTDB_PROC *c)
     fd_decref(dbp->extdb_paramtypes[j]); j++;}}
   u8_free(dbp->sqltypes); u8_free(dbp->extdb_paramtypes);
   fd_decref(dbp->extdbptr); dbp->extdbptr=FD_VOID;
-  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 /* Calling a SQLITE proc */

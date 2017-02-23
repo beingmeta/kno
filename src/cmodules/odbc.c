@@ -132,7 +132,6 @@ static void recycle_odbconn(struct FD_EXTDB *c)
   SQLFreeHandle(SQL_HANDLE_DBC,dbp->conn);
   SQLFreeHandle(SQL_HANDLE_ENV,dbp->env);
   u8_free(dbp->extdb_info); u8_free(dbp->extdb_spec);
-  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 static fdtype odbcopen(fdtype spec,fdtype colinfo)
@@ -223,7 +222,6 @@ static void recycle_odbcproc(struct FD_EXTDB_PROC *c)
   fd_decref(dbproc->extdb_colinfo);
   u8_free(dbproc->extdb_spec); u8_free(dbproc->extdb_qtext);
   u8_free(dbproc->sqltypes); fd_decref(dbproc->extdbptr);
-  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 /* Getting attributes from connections */

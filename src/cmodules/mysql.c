@@ -358,8 +358,6 @@ static void recycle_mysqldb(struct FD_EXTDB *c)
   u8_mutex_destroy(&(dbp->fd_lock));
 
   mysql_close(dbp->mysqldb);
-
-  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 static fdtype refresh_mysqldb(fdtype c,fdtype flags)
@@ -1084,7 +1082,6 @@ static void recycle_mysqlproc(struct FD_EXTDB_PROC *c)
   u8_mutex_destroy(&(dbproc->fd_lock));
 
   fd_decref(dbproc->extdbptr);
-  if (FD_MALLOCD_CONSP(c)) u8_free(c);
 }
 
 /* Actually calling a MYSQL proc */
