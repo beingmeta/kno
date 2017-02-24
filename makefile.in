@@ -74,6 +74,7 @@ DTYPE_HEADERS=\
  include/framerd/fdregex.h  			     \
  include/framerd/apply.h                             \
  include/framerd/ffi.h                               \
+ include/framerd/bufio.h			     \
  include/framerd/dtypeio.h
 DB_HEADERS=\
  include/framerd/stream.h                        \
@@ -97,7 +98,8 @@ SRC_HEADERS=src/dtype/biginternals.h 		\
 	src/exe/webcommon.h 			\
 	src/cmodules/fdsqlite.h
 
-DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o src/dtype/fcnids.o	\
+DTYPE_OBJS=src/dtype/cons.o src/dtype/oids.o 			\
+	  src/dtype/fcnids.o src/dtype/bufio.o			\
 	  src/dtype/symbols.o src/dtype/numbers.o 		\
 	  src/dtype/apply.o src/dtype/ffi.o			\
           src/dtype/choices.o src/dtype/tables.o		\
@@ -267,7 +269,7 @@ FRAMERD_HEADERS= \
 FRAMERD_SOURCES=\
 	src/dtype/cons.c src/dtype/oids.c src/dtype/symbols.c           \
         src/dtype/choices.c src/dtype/tables.c src/dtype/fcnids.c       \
-        src/dtype/dtypeio.c src/dtype/textio.c 				\
+        src/dtype/bufio.c src/dtype/dtypeio.c src/dtype/textio.c 	\
 	src/dtype/fdtype.c src/dtype/support.c 				\
 	src/dtype/apply.c src/dtype/ffi.c       			\
 	src/db/fddb.c src/db/stream.c src/db/hashdtype.c		\
@@ -752,7 +754,7 @@ src/scheme/eval.o: src/scheme/eval.c src/scheme/opcodes.c \
 src/scheme/binders.o src/scheme/conditionals.o src/scheme/iterators.o: \
 	src/scheme/eval_internals.h
 
-src/dtype/dtypeio.o src/dtype/apply.o : XCFLAGS="${OPTFLAGS}"
+src/dtype/dtypeio.o src/dtype/bufio.o src/dtype/apply.o : XCFLAGS="${OPTFLAGS}"
 src/db/stream.o : XCFLAGS="${OPTFLAGS}"
 src/scheme/eval.o : XCFLAGS="${OPTFLAGS}"
 src/scheme/conditionals.o src/scheme/iterators.o : XCFLAGS="${OPTFLAGS}"

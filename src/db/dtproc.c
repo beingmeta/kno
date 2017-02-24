@@ -9,7 +9,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define FD_INLINE_DTYPEIO 1
+#define FD_INLINE_BUFIO 1
 
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"

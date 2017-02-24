@@ -121,7 +121,7 @@ FD_EXPORT fd_off_t _fd_endpos(fd_stream s);
 
 FD_EXPORT fd_off_t _fd_getpos(fd_stream s);
 
-#if FD_INLINE_DTYPEIO
+#if FD_INLINE_BUFIO
 
 FD_FASTOP fd_off_t fd_getpos(fd_stream s)
 {

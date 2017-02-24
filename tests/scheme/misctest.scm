@@ -39,6 +39,16 @@
 (applytest #f eq? f1 f3)
 (applytest #t equal? f1 f3)
 
+(applytest #f test f1 'baz)
+(applytest #f test f1 'baz 9)
+(applytest #t test f1 'bar)
+(applytest #t test f1 'bar 8)
+(applytest #f test f1 'bar 9)
+
+(applytest 8 get f1 'bar)
+(applytest 3 get f1 'foo)
+(applytest {} get f1 'quux)
+
 ;;; Testing iterative environments
 
 (define intfns '())
