@@ -86,7 +86,9 @@ static fdtype dns_query(fdtype domain_arg,fdtype type_arg)
   ldns_rdf *domain = ldns_dname_new_frm_str( FD_STRDATA(domain_arg) );
   ldns_status s = ldns_resolver_new_frm_file( &res, NULL );
   ldns_pkt *p = 
-    ldns_resolver_query ( res, domain, rr_type, LDNS_RR_CLASS_IN, LDNS_RD );
+    (s == LDNS_STATUS_OK) ?
+    (ldns_resolver_query ( res, domain, rr_type, LDNS_RR_CLASS_IN, LDNS_RD )) :
+    (NULL);
 
   if (!(p)) {}
   else {
@@ -116,7 +118,7 @@ static fdtype dns_query(fdtype domain_arg,fdtype type_arg)
 
   ldns_rdf_deep_free( domain );
   ldns_resolver_deep_free( res );
-  ldns_pkt_free( p );
+  if (p) ldns_pkt_free( p );
   
   return results;
 }
