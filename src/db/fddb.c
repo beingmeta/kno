@@ -524,45 +524,57 @@ FD_EXPORT int fd_init_dblib()
 
   u8_threadcheck();
 
-  fd_register_config("CACHELEVEL",_("Sets a level of time/memory tradeoff [0-3], default 1"),
-                     get_default_cache_level,
-                     set_default_cache_level,
-                     NULL);
-  fd_register_config("OIDDISPLAY",_("Default oid display level [0-3]"),
-                     get_oid_display_level,
-                     set_oid_display_level,
-                     NULL);
-  fd_register_config("FDDBLOGLEVEL",_("Default log level for database messages"),
-                     fd_intconfig_get,fd_intconfig_set,&fddb_loglevel);
-
-  fd_register_config("PREFETCH",_("Whether to prefetch for large operations"),
-                     get_prefetch,
-                     set_prefetch,
-                     NULL);
-  fd_register_config("POOLS",_("pools used for OID resolution"),
-                     config_get_pools,config_use_pool,NULL);
-  fd_register_config("INDICES",_("indices opened"),
-                     config_get_indices,config_open_index,NULL);
-  fd_register_config("BACKGROUND",_("indices in the default search background"),
-                     config_get_background,config_use_index,NULL);
-
-  fd_register_config("DBCONNRESERVE",_("Number of connections (default) to keep for each DB server"),
-                     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_reserve_default);
-  fd_register_config("DBCONNCAP",_("Max number of connections (default) for each DB server"),
-                     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_cap_default);
-  fd_register_config("DBCONNINIT",_("Number of connections (default) to initially create for each DB server"),
-                     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_init_default);
-
-  fd_register_config("LOOKUPOID",
-                     _("Functions and slotids for lookup up objects by name (@?name)"),
-                     fd_lconfig_get,fd_lconfig_push,&lookupfns);
+  fd_register_config
+    ("CACHELEVEL",_("Sets a level of time/memory tradeoff [0-3], default 1"),
+     get_default_cache_level,
+     set_default_cache_level,
+     NULL);
+  fd_register_config
+    ("OIDDISPLAY",_("Default oid display level [0-3]"),
+     get_oid_display_level,
+     set_oid_display_level,
+     NULL);
+  fd_register_config
+    ("FDDBLOGLEVEL",_("Default log level for database messages"),
+     fd_intconfig_get,fd_intconfig_set,&fddb_loglevel);
+  
+  fd_register_config
+    ("PREFETCH",_("Whether to prefetch for large operations"),
+     get_prefetch,
+     set_prefetch,
+     NULL);
+  fd_register_config
+    ("POOLS",_("pools used for OID resolution"),
+     config_get_pools,config_use_pool,NULL);
+  fd_register_config
+    ("INDICES",_("indices opened"),
+     config_get_indices,config_open_index,NULL);
+  fd_register_config
+    ("BACKGROUND",_("indices in the default search background"),
+     config_get_background,config_use_index,NULL);
+  
+  fd_register_config
+    ("DBCONNRESERVE",
+     _("Number of connections to keep for each DB server"),
+     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_reserve_default);
+  fd_register_config
+    ("DBCONNCAP",_("Max number of connections (default) for each DB server"),
+     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_cap_default);
+  fd_register_config
+    ("DBCONNINIT",
+     _("Number of connections to initially create for each DB server"),
+     fd_intconfig_get,fd_intconfig_set,&fd_dbconn_init_default);
+  fd_register_config
+    ("LOOKUPOID",
+     _("Functions and slotids for lookup up objects by name (@?name)"),
+     fd_lconfig_get,fd_lconfig_push,&lookupfns);
 
   return fddb_initialized;
 }
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
