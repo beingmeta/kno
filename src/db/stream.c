@@ -228,9 +228,9 @@ FD_EXPORT void fd_close_stream(fd_stream s,int flags)
     if (s->streamid) {
       u8_free(s->streamid);
       s->streamid=NULL;}
-    if (buf->bytebuf) {
-      u8_free(buf->bytebuf);
-      buf->bytebuf=buf->bufpoint=buf->buflim=NULL;}
+    if (buf->buffer) {
+      u8_free(buf->buffer);
+      buf->buffer=buf->bufpoint=buf->buflim=NULL;}
     unlock_stream(s);
     u8_destroy_mutex(&(s->stream_lock));
     if (s->stream_flags&(FD_STREAM_IS_MALLOCD)) u8_free(s);}
@@ -248,10 +248,10 @@ FD_EXPORT void fd_stream_setbuf(fd_stream s,int bufsiz)
   fd_flush_stream(s);
   {
     struct FD_RAWBUF *buf=&(s->buf.raw);
-    unsigned int ptroff=buf->bufpoint-buf->bytebuf;
-    unsigned int endoff=buf->buflim-buf->bytebuf;
-    buf->bytebuf=u8_realloc(buf->bytebuf,bufsiz);
-    buf->bufpoint=buf->bytebuf+ptroff; buf->buflim=buf->bytebuf+endoff;
+    unsigned int ptroff=buf->bufpoint-buf->buffer;
+    unsigned int endoff=buf->buflim-buf->buffer;
+    buf->buffer=u8_realloc(buf->buffer,bufsiz);
+    buf->bufpoint=buf->buffer+ptroff; buf->buflim=buf->buffer+endoff;
     buf->buflen=bufsiz;
   }
   fd_unlock_stream(s);
@@ -284,25 +284,25 @@ ssize_t fd_fill_stream(fd_stream stream,size_t n)
   int n_buffered, n_to_read, read_request, bytes_read=0;
   int fileno=stream->stream_fileno;
 
-  bytes_read=(buf->bufpoint-buf->bytebuf);
+  bytes_read=(buf->bufpoint-buf->buffer);
   n_buffered=(buf->buflim-buf->bufpoint);
-  memmove(buf->bytebuf,buf->bufpoint,n_buffered);
-  buf->buflim=(buf->bytebuf)+n_buffered;
-  buf->bufpoint=buf->bytebuf;
+  memmove(buf->buffer,buf->bufpoint,n_buffered);
+  buf->buflim=(buf->buffer)+n_buffered;
+  buf->bufpoint=buf->buffer;
   bytes_read=0;
 
   /* Make sure that there's enough space */
   if (n>buf->buflen) {
     int new_size=buf->buflen;
     unsigned char *newbuf;
-    size_t end_pos=(buf->bytebuf) ? (buf->buflim-buf->bytebuf) : (0);
-    size_t ptr_pos=(buf->bytebuf) ? (buf->bufpoint-buf->bytebuf) : (0);
+    size_t end_pos=(buf->buffer) ? (buf->buflim-buf->buffer) : (0);
+    size_t ptr_pos=(buf->buffer) ? (buf->bufpoint-buf->buffer) : (0);
     if (new_size<=0) new_size=256;
     while (new_size<n)
       if (new_size>=0x40000) new_size=new_size+0x40000;
       else new_size=new_size*2;
-    newbuf=u8_realloc(buf->bytebuf,new_size);
-    buf->bytebuf=newbuf;
+    newbuf=u8_realloc(buf->buffer,new_size);
+    buf->buffer=newbuf;
     buf->bufpoint=newbuf+ptr_pos;
     buf->buflim=newbuf+end_pos;
     buf->buflen=new_size;}
@@ -333,12 +333,12 @@ int fd_flush_stream(fd_stream stream)
   if (FD_STREAM_ISREADING(stream)) {
     if (buf->buflim==buf->bufpoint) return 0;
     else {
-      buf->bufpoint=buf->buflim=buf->bytebuf;
+      buf->bufpoint=buf->buflim=buf->buffer;
       return 0;}}
-  else if (buf->bufpoint>buf->bytebuf) {
+  else if (buf->bufpoint>buf->buffer) {
     int fileno=stream->stream_fileno;
-    size_t n_buffered=buf->bufpoint-buf->bytebuf;
-    int bytes_written=writeall(fileno,buf->bytebuf,n_buffered);
+    size_t n_buffered=buf->bufpoint-buf->buffer;
+    int bytes_written=writeall(fileno,buf->buffer,n_buffered);
     if (bytes_written<0) {
       return -1;}
     if ((stream->stream_flags)&FD_STREAM_DOSYNC) fsync(fileno);
@@ -348,7 +348,7 @@ int fd_flush_stream(fd_stream stream)
         (stream->stream_filepos>stream->stream_maxpos))
       stream->stream_maxpos=stream->stream_filepos;
     /* Reset the buffer pointers */
-    buf->bufpoint=buf->bytebuf;
+    buf->bufpoint=buf->buffer;
     return bytes_written;}
   else {
     return 0;}
@@ -401,8 +401,8 @@ FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction)
         if (u8_lock_fd(s->stream_fileno,1)) {
           (s->stream_flags)=(s->stream_flags)|FD_STREAM_FILE_LOCKED;}
         else return -1;}
-      buf->bufpoint=buf->bytebuf;
-      buf->buflim=buf->bytebuf+buf->buflen;
+      buf->bufpoint=buf->buffer;
+      buf->buflim=buf->buffer+buf->buflen;
       /* Now we clear the bit */
       buf->buf_flags|=FD_IS_WRITING;
       return 1;}}
@@ -421,9 +421,9 @@ FD_EXPORT int fd_set_direction(fd_stream s,fd_byteflow direction)
       if (fd_flush_stream(s)<0) {
         return -1;}
       /* Now we reset bufsiz in case we grew the buffer */
-      buf->buflen=buf->buflim-buf->bytebuf;
+      buf->buflen=buf->buflim-buf->buffer;
       /* Finally, we reset the pointers */
-      buf->buflim=buf->bufpoint=buf->bytebuf;
+      buf->buflim=buf->bufpoint=buf->buffer;
       buf->buf_flags&=~FD_IS_WRITING;
       return 1;}}
   else return 0;
@@ -441,13 +441,13 @@ FD_EXPORT fd_off_t _fd_getpos(fd_stream s)
     /* If we are reading, we subtract the amount buffered from the
        actual filepos */
     s->stream_filepos=current;
-    pos=current-(buf->buflim-buf->bytebuf);}
+    pos=current-(buf->buflim-buf->buffer);}
   else {
     current=lseek(s->stream_fileno,0,SEEK_CUR);
     s->stream_filepos=current;
     /* If we are writing, we add the amount buffered for output to the
        actual filepos */
-    pos=current+(buf->bufpoint-buf->bytebuf);}
+    pos=current+(buf->bufpoint-buf->buffer);}
   return pos;
 }
 FD_EXPORT fd_off_t _fd_setpos(fd_stream s,fd_off_t pos)
@@ -466,7 +466,7 @@ FD_EXPORT fd_off_t _fd_setpos(fd_stream s,fd_off_t pos)
   if ( (s->stream_filepos>=0) && (FD_STREAM_ISREADING(s)) ) {
     fd_off_t delta=(pos-s->stream_filepos);
     unsigned char *relptr=buf->buflim+delta;
-    if ( (relptr >= buf->bytebuf) && (relptr < buf->buflim )) {
+    if ( (relptr >= buf->buffer) && (relptr < buf->buflim )) {
       buf->bufpoint=relptr;
       return pos;}}
   /* We could check here that we're not jumping back to something in
@@ -619,11 +619,11 @@ FD_EXPORT fdtype fd_zread_dtype(struct FD_INBUF *in)
     u8_free(bytes);
     return FD_ERROR_VALUE;}
   memset(&tmp,0,sizeof(tmp));
-  tmp.bufread=tmp.bytebuf=do_uncompress(bytes,n_bytes,&dbytes);
+  tmp.bufread=tmp.buffer=do_uncompress(bytes,n_bytes,&dbytes);
   tmp.buf_flags=FD_BUFFER_IS_MALLOCD;
-  tmp.buflim=tmp.bytebuf+dbytes;
+  tmp.buflim=tmp.buffer+dbytes;
   result=fd_read_dtype(&tmp);
-  u8_free(bytes); u8_free(tmp.bytebuf);
+  u8_free(bytes); u8_free(tmp.buffer);
   return result;
 }
 
@@ -633,20 +633,20 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,fdtype x)
   unsigned char *zbytes; ssize_t zlen=-1, size;
   struct FD_OUTBUF out;
   memset(&out,0,sizeof(out));
-  out.bufwrite=out.bytebuf=u8_malloc(2048);
-  out.buflim=out.bytebuf+2048;
+  out.bufwrite=out.buffer=u8_malloc(2048);
+  out.buflim=out.buffer+2048;
   out.buf_flags=FD_BUFFER_IS_MALLOCD;
   if (fd_write_dtype(&out,x)<0) {
-    u8_free(out.bytebuf);
+    u8_free(out.buffer);
     return FD_ERROR_VALUE;}
-  zbytes=do_compress(out.bytebuf,out.bufwrite-out.bytebuf,&zlen);
+  zbytes=do_compress(out.buffer,out.bufwrite-out.buffer,&zlen);
   if (zlen<0) {
-    u8_free(out.bytebuf);
+    u8_free(out.buffer);
     return FD_ERROR_VALUE;}
   fd_write_byte(s,dt_ztype);
   size=fd_write_zint(s,zlen); size=size+zlen;
   if (fd_write_bytes(s,zbytes,zlen)<0) size=-1;
-  u8_free(zbytes); u8_free(out.bytebuf);
+  u8_free(zbytes); u8_free(out.buffer);
   return size;
 }
 
@@ -654,8 +654,8 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,fdtype x)
 {
   unsigned char *zbytes=NULL; ssize_t zlen=-1, size; int retval=0;
   struct FD_OUTBUF out; memset(&out,0,sizeof(out));
-  out.bufwrite=out.bytebuf=u8_malloc(2048);
-  out.buflim=out.bytebuf+2048;
+  out.bufwrite=out.buffer=u8_malloc(2048);
+  out.buflim=out.buffer+2048;
   out.buf_flags=FD_BUFFER_IS_MALLOCD;
   if (FD_CHOICEP(x)) {
     FD_DO_CHOICES(v,x) {
@@ -668,14 +668,14 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,fdtype x)
       if (retval<0) break;}}
   else retval=fd_write_dtype(&out,x);
   if (retval>=0)
-    zbytes=do_compress(out.bytebuf,out.bufwrite-out.bytebuf,&zlen);
+    zbytes=do_compress(out.buffer,out.bufwrite-out.buffer,&zlen);
   if ((retval<0)||(zlen<0)) {
-    if (zbytes) u8_free(zbytes); u8_free(out.bytebuf);
+    if (zbytes) u8_free(zbytes); u8_free(out.buffer);
     return -1;}
   fd_write_byte(s,dt_ztype);
   size=1+fd_write_zint(s,zlen); size=size+zlen;
   retval=fd_write_bytes(s,zbytes,zlen);
-  u8_free(zbytes); u8_free(out.bytebuf);
+  u8_free(zbytes); u8_free(out.buffer);
   if (retval<0) return retval;
   else return size;
 }

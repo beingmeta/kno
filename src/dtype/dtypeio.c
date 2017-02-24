@@ -45,16 +45,16 @@ static u8_byte _dbg_outbuf[FD_DEBUG_OUTBUF_SIZE];
 
 static ssize_t try_dtype_output(int *len,struct FD_OUTBUF *out,fdtype x)
 {
-  ssize_t olen=out->bufwrite-out->bytebuf;
+  ssize_t olen=out->bufwrite-out->buffer;
   ssize_t dlen=fd_write_dtype(out,x);
   if (dlen<0)
     return -1;
   else if ((out->buf_flushfn==NULL) &&
-           ((olen+dlen) != (out->bufwrite-out->bytebuf)))
+           ((olen+dlen) != (out->bufwrite-out->buffer)))
     /* If you're writing straight to memory, check dtype size argument */
     u8_log(LOG_WARN,fd_InconsistentDTypeSize,
            "Call returned %lld, buffer got %lld for %s",
-           dlen,((out->bufwrite-out->bytebuf)-olen),
+           dlen,((out->bufwrite-out->buffer)-olen),
            fd_dtype2buf(x,FD_DEBUG_OUTBUF_SIZE,_dbg_outbuf));
   *len=*len+dlen;
   return dlen;

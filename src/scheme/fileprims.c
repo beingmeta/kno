@@ -158,7 +158,7 @@ static fdtype writefile_prim(fdtype filename,fdtype object,fdtype enc)
     struct FD_OUTBUF out;
     FD_INIT_BYTE_OUTBUF(&out,1024);
     fd_write_dtype(&out,object);
-    bytes=out.bytebuf; len=out.bufwrite-out.bytebuf;
+    bytes=out.buffer; len=out.bufwrite-out.buffer;
     free_bytes=1;}
   else {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,1024);

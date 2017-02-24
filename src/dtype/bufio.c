@@ -68,7 +68,7 @@ FD_EXPORT fdtype fdt_iswritebuf(struct FD_INBUF *b)
 FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf)
 {
   if (buf->buf_flags&FD_BUFFER_IS_MALLOCD) {
-    u8_free(buf->bytebuf);
+    u8_free(buf->buffer);
     return buf->buflen;}
   else return 0;
 }
@@ -77,8 +77,8 @@ FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf)
 
 static int grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
 {
-  size_t current_size=b->bufwrite-b->bytebuf;
-  size_t current_limit=b->buflim-b->bytebuf;
+  size_t current_size=b->bufwrite-b->buffer;
+  size_t current_limit=b->buflim-b->buffer;
   size_t new_limit=current_limit;
   size_t need_size=current_size+delta;
   unsigned char *new;
@@ -87,14 +87,14 @@ static int grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
     if (new_limit>=250000) new_limit=new_limit+250000;
     else new_limit=new_limit*2;
   if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
-    new=u8_realloc(b->bytebuf,new_limit);
+    new=u8_realloc(b->buffer,new_limit);
   else {
     new=u8_malloc(new_limit);
-    if (new) memcpy(new,b->bytebuf,current_size);
+    if (new) memcpy(new,b->buffer,current_size);
     b->buf_flags|=FD_BUFFER_IS_MALLOCD;}
   if (new == NULL) return 0;
-  b->bytebuf=new; b->bufwrite=new+current_size;
-  b->buflim=b->bytebuf+new_limit;
+  b->buffer=new; b->bufwrite=new+current_size;
+  b->buflim=b->buffer+new_limit;
   b->buflen=new_limit;
   return 1;
 }
@@ -102,8 +102,8 @@ static int grow_output_buffer(struct FD_OUTBUF *b,size_t delta)
 static int grow_input_buffer(struct FD_INBUF *in,int delta)
 {
   struct FD_RAWBUF *b=(struct FD_RAWBUF *)in;
-  size_t current_size=b->bufpoint-b->bytebuf;
-  size_t current_limit=b->buflim-b->bytebuf;
+  size_t current_size=b->bufpoint-b->buffer;
+  size_t current_limit=b->buflim-b->buffer;
   size_t new_limit=current_limit;
   size_t need_size=current_size+delta;
   unsigned char *new;
@@ -112,14 +112,14 @@ static int grow_input_buffer(struct FD_INBUF *in,int delta)
     if (new_limit>=250000) new_limit=new_limit+25000;
     else new_limit=new_limit*2;
   if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
-    new=u8_realloc(b->bytebuf,new_limit);
+    new=u8_realloc(b->buffer,new_limit);
   else {
     new=u8_malloc(new_limit);
-    if (new) memcpy(new,b->bytebuf,current_size);
+    if (new) memcpy(new,b->buffer,current_size);
     b->buf_flags=b->buf_flags|FD_BUFFER_IS_MALLOCD;}
   if (new == NULL) return 0;
-  b->bytebuf=new; b->bufpoint=new+current_size;
-  b->buflim=b->bytebuf+new_limit;
+  b->buffer=new; b->bufpoint=new+current_size;
+  b->buflim=b->buffer+new_limit;
   b->buflen=new_limit;
   return 1;
 }
@@ -198,9 +198,9 @@ FD_EXPORT int _fd_write_bytes
 
 FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len)
 {
-  unsigned int current_off=b->bufread-b->bytebuf;
-  unsigned int current_limit=b->buflim-b->bytebuf;
-  unsigned char *old=(unsigned char *)b->bytebuf, *new;
+  unsigned int current_off=b->bufread-b->buffer;
+  unsigned int current_limit=b->buflim-b->buffer;
+  unsigned char *old=(unsigned char *)b->buffer, *new;
   if ((b->buf_flags)&(FD_BUFFER_IS_MALLOCD))
     new=u8_realloc(old,len);
   else {
@@ -208,8 +208,8 @@ FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len)
     if (new) memcpy(new,old,current_limit);
     b->buf_flags=b->buf_flags|FD_BUFFER_IS_MALLOCD;}
   if (new == NULL) return 0;
-  b->bytebuf=new; b->bufread=new+current_off;
-  b->buflim=b->bytebuf+current_limit;
+  b->buffer=new; b->bufread=new+current_off;
+  b->buflim=b->buffer+current_limit;
   return 1;
 }
 
@@ -225,7 +225,7 @@ FD_EXPORT int _fd_read_byte(struct FD_INBUF *buf)
 FD_EXPORT int _fd_unread_byte(struct FD_INBUF *buf,int byte)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf))) return fd_iswritebuf(buf);
-  else if (buf->bufread==buf->bytebuf) {
+  else if (buf->bufread==buf->buffer) {
     fd_seterr(BadUnReadByte,"_fd_unread_byte",NULL,FD_VOID);
     return -1;}
   else if (buf->bufread[-1]!=byte) {

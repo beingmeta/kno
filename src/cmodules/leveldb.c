@@ -338,10 +338,10 @@ static fdtype leveldb_get_prim(fdtype leveldb,fdtype key,fdtype opts)
       ssize_t binary_size;
       unsigned char *binary_data=
 	leveldb_get(db->leveldb.dbptr,readopts,
-		    keyout.bytebuf,
-		    keyout.bufwrite-keyout.bytebuf,
+		    keyout.buffer,
+		    keyout.bufwrite-keyout.buffer,
 		    &binary_size,&errmsg);
-      u8_free(keyout.bytebuf);
+      u8_free(keyout.buffer);
       if (readopts!=fdldb->readopts)
 	leveldb_readoptions_destroy(readopts);
       if (binary_data==NULL) {
@@ -382,22 +382,22 @@ static fdtype leveldb_put_prim(fdtype leveldb,fdtype key,fdtype value,
     struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTBUF(&keyout,1024);
     struct FD_OUTBUF valout; FD_INIT_BYTE_OUTBUF(&valout,1024);
     if (fd_write_dtype(&keyout,key)<0) {
-      u8_free(keyout.bytebuf);
-      u8_free(valout.bytebuf);
+      u8_free(keyout.buffer);
+      u8_free(valout.buffer);
       return FD_ERROR_VALUE;}
     else if (fd_write_dtype(&valout,value)<0) {
-      u8_free(keyout.bytebuf);
-      u8_free(valout.bytebuf);
+      u8_free(keyout.buffer);
+      u8_free(valout.buffer);
       return FD_ERROR_VALUE;}
     else {
       leveldb_writeoptions_t *useopts=get_write_options(fdldb,opts);
       leveldb_writeoptions_t *writeopts=(useopts)?(useopts):(fdldb->writeopts);
       leveldb_put(db->leveldb.dbptr,writeopts,
-		  keyout.bytebuf,keyout.bufwrite-keyout.bytebuf,
-		  valout.bytebuf,valout.bufwrite-valout.bytebuf,
+		  keyout.buffer,keyout.bufwrite-keyout.buffer,
+		  valout.buffer,valout.bufwrite-valout.buffer,
 		  &errmsg);
-      u8_free(keyout.bytebuf);
-      u8_free(valout.bytebuf);
+      u8_free(keyout.buffer);
+      u8_free(valout.buffer);
       if (useopts) leveldb_writeoptions_destroy(useopts);
       if (errmsg)
 	return fd_err("LevelDBError","leveldb_put_prim",errmsg,FD_VOID);
@@ -424,15 +424,15 @@ static fdtype leveldb_drop_prim(fdtype leveldb,fdtype key,fdtype opts)
   else {
     struct FD_OUTBUF keyout; FD_INIT_BYTE_OUTBUF(&keyout,1024);
     if (fd_write_dtype(&keyout,key)<0) {
-      u8_free(keyout.bytebuf);
+      u8_free(keyout.buffer);
       return FD_ERROR_VALUE;}
     else {
       leveldb_writeoptions_t *useopts=get_write_options(fdldb,opts);
       leveldb_writeoptions_t *writeopts=(useopts)?(useopts):(fdldb->writeopts);
       leveldb_delete(db->leveldb.dbptr,writeopts,
-		     keyout.bytebuf,keyout.bufwrite-keyout.bytebuf,
+		     keyout.buffer,keyout.bufwrite-keyout.buffer,
 		     &errmsg);
-      u8_free(keyout.bytebuf);
+      u8_free(keyout.buffer);
       if (useopts) leveldb_writeoptions_destroy(useopts);
       if (errmsg)
 	return fd_err("LevelDBError","leveldb_put_prim",errmsg,FD_VOID);
@@ -468,9 +468,9 @@ static ssize_t set_prop(leveldb_t *dbptr,char *key,fdtype value,
   FD_INIT_BYTE_OUTBUF(&out,512);
   if ((dtype_len=fd_write_dtype(&out,value))>0) {
     leveldb_put(dbptr,writeopts,key,strlen(key),
-		out.bytebuf,out.bufwrite-out.bytebuf,
+		out.buffer,out.bufwrite-out.buffer,
 		&errmsg);
-    u8_free(out.bytebuf);
+    u8_free(out.buffer);
     if (errmsg)
       return fd_reterr("LevelDBerror","set_prop",errmsg,FD_VOID);
     else return dtype_len;}
@@ -622,9 +622,9 @@ static int set_oid_value(fd_leveldb_pool ldp,
     char *errmsg=NULL;
     leveldb_put
       (dbptr,writeopts,buf,5,
-       out.bytebuf,out.bufwrite-out.bytebuf,
+       out.buffer,out.bufwrite-out.buffer,
        &errmsg);
-    u8_free(out.bytebuf);
+    u8_free(out.buffer);
     if (errmsg==NULL)
       return dtype_len;
     fd_seterr("LevelDB pool save error","set_oidvalue",errmsg,FD_VOID);
@@ -648,8 +648,8 @@ static int queue_oid_value(fd_leveldb_pool ldp,
   FD_INIT_BYTE_OUTBUF(&out,512);
   if ((dtype_len=write_oid_value(ldp,&out,value))>0) {
     leveldb_writebatch_put
-      (batch,buf,5,out.bytebuf,out.bufwrite-out.bytebuf);
-    u8_free(out.bytebuf);
+      (batch,buf,5,out.buffer,out.bufwrite-out.buffer);
+    u8_free(out.buffer);
     return dtype_len;}
   else return -1;
 }

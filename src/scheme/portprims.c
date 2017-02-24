@@ -153,7 +153,7 @@ static fdtype dtype2packet(fdtype object,fdtype initsize)
   FD_INIT_BYTE_OUTBUF(&out,size);
   int bytes=fd_write_dtype(&out,object);
   if (bytes<0) return FD_ERROR_VALUE;
-  else return fd_init_packet(NULL,bytes,out.bytebuf);
+  else return fd_init_packet(NULL,bytes,out.buffer);
 }
 
 static fdtype read_int(fdtype stream)
@@ -1558,7 +1558,7 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
       ((FD_STRINGP(arg))?(FD_STRLEN(arg)):(FD_PACKET_LENGTH(arg)));
     struct FD_OUTBUF out; int flags=0; /* FDPP_FHCRC */
     time_t now=time(NULL); u8_int4 crc, intval;
-    FD_INIT_BYTE_OUTBUF(&out,1024); memset(out.bytebuf,0,1024);
+    FD_INIT_BYTE_OUTBUF(&out,1024); memset(out.buffer,0,1024);
     fd_write_byte(&out,31); fd_write_byte(&out,139);
     fd_write_byte(&out,8); /* Using default */
     /* Compute flags */
@@ -1618,12 +1618,12 @@ static fdtype gzip_prim(fdtype arg,fdtype filename,fdtype comment)
       u8_free(cbuf);}
     if (error) {
       fd_seterr(error,"x2zipfile",NULL,FD_VOID);
-      u8_free(out.bytebuf);
+      u8_free(out.buffer);
       return FD_ERROR_VALUE;}
     crc=u8_crc32(0,data,data_len);
     intval=fd_flip_word(crc); fd_write_4bytes(&out,intval);
     intval=fd_flip_word(data_len); fd_write_4bytes(&out,intval);
-    return fd_init_packet(NULL,out.bufwrite-out.bytebuf,out.bytebuf);}
+    return fd_init_packet(NULL,out.bufwrite-out.buffer,out.buffer);}
 }
 
 /* The init function */

@@ -18,8 +18,8 @@ static int write_dtype_to_file(fdtype object,FILE *f)
   struct FD_OUTBUF out; int retval;
   FD_INIT_BYTE_OUTBUF(&out,1024);
   retval=fd_write_dtype(&out,object);
-  retval=fwrite(out.bytebuf,1,out.bufwrite-out.bytebuf,f);
-  u8_free(out.bytebuf);
+  retval=fwrite(out.buffer,1,out.bufwrite-out.buffer,f);
+  u8_free(out.buffer);
   return retval;
 }
 

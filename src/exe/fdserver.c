@@ -509,9 +509,9 @@ static int dtypeserver(u8_client ucl)
   else if ((client->writing>0)&&(u8_client_finished(ucl))) {
     struct FD_RAWBUF *buf=fd_streambuf(stream);
     /* Reset the stream */
-    buf->bufpoint=buf->bytebuf;
+    buf->bufpoint=buf->buffer;
     /* Update the stream if we were doing asynchronous I/O */
-    if ((client->buf==buf->bytebuf)&&(client->len))
+    if ((client->buf==buf->buffer)&&(client->len))
       buf->buflim=buf->bufpoint+client->len;
     /* And report that we're finished */
     return 0;}
@@ -531,8 +531,8 @@ static int dtypeserver(u8_client ucl)
         /* Allocate enough space */
         fd_grow_inbuf(inbuf,nbytes);
         /* Set up the client for async input */
-        if (u8_client_read(ucl,rawbuf->bytebuf,nbytes,
-                           rawbuf->buflim-rawbuf->bytebuf))
+        if (u8_client_read(ucl,rawbuf->buffer,nbytes,
+                           rawbuf->buflim-rawbuf->buffer))
           expr=fd_read_dtype(inbuf);
         else return 1;}}
     else expr=fd_read_dtype(inbuf);}
@@ -613,7 +613,7 @@ static int dtypeserver(u8_client ucl)
     /* Currently, fd_write_dtype writes the whole thing at once,
        so we just use that. */
 
-    outbuf->bufwrite=outbuf->bytebuf;
+    outbuf->bufwrite=outbuf->buffer;
     if (fd_use_dtblock) {
       int nbytes; unsigned char *ptr;
       fd_write_byte(outbuf,dt_block);
@@ -621,15 +621,14 @@ static int dtypeserver(u8_client ucl)
       nbytes=fd_write_dtype(outbuf,value);
       ptr=outbuf->bufwrite; {
         /* Rewind temporarily to write the length information */
-        outbuf->bufwrite=outbuf->bytebuf+1;
-        fd_write_4bytes(outbuf,nbytes);
+        outbuf->bufwrite=outbuf->buffer+1;
         outbuf->bufwrite=ptr;}}
     else fd_write_dtype(outbuf,value);
     if (async) {
       struct FD_RAWBUF *rawbuf=(struct FD_RAWBUF *)inbuf;
-      size_t n_bytes=rawbuf->bufpoint-rawbuf->bytebuf;
-      u8_client_write(ucl,rawbuf->bytebuf,n_bytes,0);
-      rawbuf->bufpoint=rawbuf->bytebuf;
+      size_t n_bytes=rawbuf->bufpoint-rawbuf->buffer;
+      u8_client_write(ucl,rawbuf->buffer,n_bytes,0);
+      rawbuf->bufpoint=rawbuf->buffer;
       return 1;}
     else {
       fd_write_dtype(outbuf,value);

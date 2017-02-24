@@ -23,7 +23,7 @@ typedef struct FD_INBUF *fd_inbuf;
 
 typedef struct FD_OUTBUF {
   int buf_flags; size_t buflen; void *buf_data;
-  unsigned char *bytebuf, *bufwrite, *buflim;
+  unsigned char *buffer, *bufwrite, *buflim;
   /* FD_OUTBUF has a fillfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
@@ -32,7 +32,7 @@ typedef struct FD_OUTBUF {
 
 typedef struct FD_INBUF {
   int buf_flags; size_t buflen; void *buf_data;
-  const unsigned char *bytebuf, *bufread, *buflim;
+  const unsigned char *buffer, *bufread, *buflim;
   /* FD_INBUF has a flushfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
@@ -41,7 +41,7 @@ typedef struct FD_INBUF {
 
 typedef struct FD_RAWBUF {
   int buf_flags; size_t buflen; void *buf_data;
-  unsigned char *bytebuf, *bufpoint, *buflim;
+  unsigned char *buffer, *bufpoint, *buflim;
   /* FD_INBUF has a flushfn because DTYPE streams
      alias as both input and output streams, so we need
      to have both pointers. */
@@ -53,13 +53,13 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 
 /* Flags for all byte I/O buffers */
 
-#define FD_BYTEBUF_FLAGS       (1 << 0 )
-#define FD_IS_WRITING          (FD_BYTEBUF_FLAGS << 0)
-#define FD_BUFFER_IS_MALLOCD   (FD_BYTEBUF_FLAGS << 1)
-#define FD_USE_DTYPEV2         (FD_BYTEBUF_FLAGS << 2)
-#define FD_WRITE_OPAQUE        (FD_BYTEBUF_FLAGS << 3)
-#define FD_NATSORT_VALUES      (FD_BYTEBUF_FLAGS << 4)
-#define FD_IN_STREAM       (FD_BYTEBUF_FLAGS << 5)
+#define FD_BUFIO_FLAGS       (1 << 0 )
+#define FD_IS_WRITING        (FD_BUFIO_FLAGS << 0)
+#define FD_BUFFER_IS_MALLOCD (FD_BUFIO_FLAGS << 1)
+#define FD_USE_DTYPEV2       (FD_BUFIO_FLAGS << 2)
+#define FD_WRITE_OPAQUE      (FD_BUFIO_FLAGS << 3)
+#define FD_NATSORT_VALUES    (FD_BUFIO_FLAGS << 4)
+#define FD_IN_STREAM         (FD_BUFIO_FLAGS << 5)
 
 #define FD_ISWRITING(buf) (((buf)->buf_flags)&(FD_IS_WRITING))
 #define FD_ISREADING(buf) (!(FD_ISWRITING(buf)))
@@ -68,21 +68,21 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 
 /* These are for input or output */
 #define FD_INIT_BYTE_OUTBUF(bo,sz)			\
-  (bo)->bufwrite=(bo)->bytebuf=u8_malloc(sz);		\
-  (bo)->buflim=(bo)->bytebuf+sz;			\
+  (bo)->bufwrite=(bo)->buffer=u8_malloc(sz);		\
+  (bo)->buflim=(bo)->buffer+sz;			\
   (bo)->buflen=sz;					\
   (bo)->buf_flags=FD_BUFFER_IS_MALLOCD|FD_IS_WRITING;	\
   (bo)->buf_fillfn=NULL; (bo)->buf_flushfn=NULL;
 
 #define FD_INIT_FIXED_BYTE_OUTBUF(bo,buf,sz) \
-  (bo)->bufwrite=(bo)->bytebuf=buf;	     \
-  (bo)->buflim=(bo)->bytebuf+sz;	     \
+  (bo)->bufwrite=(bo)->buffer=buf;	     \
+  (bo)->buflim=(bo)->buffer+sz;	     \
   (bo)->buf_fillfn=NULL;		     \
   (bo)->buf_flushfn=NULL;		     \
   (bo)->buf_flags=FD_IS_WRITING
 
 #define FD_INIT_BYTE_INPUT(bi,b,sz) \
-  (bi)->bufread=(bi)->bytebuf=b;   \
+  (bi)->bufread=(bi)->buffer=b;   \
   (bi)->buflim=b+(sz);		    \
   (bi)->buf_fillfn=NULL;	    \
   (bi)->buf_flushfn=NULL;	    \
@@ -92,7 +92,6 @@ typedef size_t (*fd_byte_flushfn)(fd_outbuf,void *);
 
 FD_EXPORT int fd_needs_space(struct FD_OUTBUF *b,size_t delta);
 FD_EXPORT int fd_grow_byte_input(struct FD_INBUF *b,size_t len);
-
 
 /* Read/write error signalling functions */
 
@@ -301,7 +300,7 @@ FD_EXPORT size_t _fd_raw_closebuf(struct FD_RAWBUF *buf);
 FD_FASTOP size_t fd_raw_closebuf(struct FD_RAWBUF *buf)
 {
   if (buf->buf_flags&FD_BUFFER_IS_MALLOCD) {
-    u8_free(buf->bytebuf);
+    u8_free(buf->buffer);
     return buf->buflen;}
   else return 0;
 }
@@ -333,7 +332,7 @@ FD_FASTOP int fd_unread_byte(struct FD_INBUF *buf,int byte)
 {
   if (FD_EXPECT_FALSE(FD_ISWRITING(buf)))
     return fd_iswritebuf(buf);
-  else if ( (buf->bufread>buf->bytebuf) &&
+  else if ( (buf->bufread>buf->buffer) &&
        (buf->bufread[-1]==byte)) {
     buf->bufread--; return 0;}
   else return _fd_unread_byte(buf,byte);
