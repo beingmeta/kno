@@ -1202,7 +1202,13 @@ static fdtype close_prim(fdtype portarg)
 
 static fdtype flush_prim(fdtype portarg)
 {
-  if (FD_TYPEP(portarg,fd_stream_type)) {
+  if ((FD_VOIDP(portarg))||
+      (FD_FALSEP(portarg))||
+      (FD_TRUEP(portarg))) {
+    u8_flush_xoutput(&u8stdout);
+    u8_flush_xoutput(&u8stderr);
+    return FD_VOID;}
+  else if (FD_TYPEP(portarg,fd_stream_type)) {
     struct FD_STREAM *dts=
       fd_consptr(struct FD_STREAM *,portarg,fd_stream_type);
     fd_flush_stream(dts);
