@@ -629,6 +629,7 @@ static int dtypeserver(u8_client ucl)
       struct FD_RAWBUF *rawbuf=(struct FD_RAWBUF *)inbuf;
       size_t n_bytes=rawbuf->bufpoint-rawbuf->bytebuf;
       u8_client_write(ucl,rawbuf->bytebuf,n_bytes,0);
+      rawbuf->bufpoint=rawbuf->bytebuf;
       return 1;}
     else {
       fd_write_dtype(outbuf,value);
