@@ -37,6 +37,14 @@
 #include <sys/wait.h>
 #endif
 
+#ifndef FD_DTBLOCK_THRESH
+#define FD_DTBLOCK_THRESH 256
+#endif
+
+#ifndef FD_BACKTRACE_WIDTH
+#define FD_BACKTRACE_WIDTH 120
+#endif
+
 #include "main.h"
 
 FD_EXPORT int fd_update_file_modules(int force);
@@ -102,6 +110,7 @@ static int shutdown_grace=30000000; /* 30 seconds */
 /* Controlling trace activity: logeval prints expressions, logtrans reports
    transactions (request/response pairs). */
 static int logeval=0, logerrs=0, logtrans=0, logbacktrace=0;
+static int backtrace_width=FD_BACKTRACE_WIDTH;
 
 static int no_fddb=0;
 
@@ -593,7 +602,7 @@ static int dtypeserver(u8_client ucl)
         if (logbacktrace) {
           struct U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,1024);
           out.u8_write=out.u8_outbuf; out.u8_outbuf[0]='\0';
-          fd_print_backtrace(&out,ex,120);
+          fd_print_backtrace(&out,ex,backtrace_width);
           u8_logger(LOG_ERR,Outgoing,out.u8_outbuf);
           if ((out.u8_streaminfo)&(U8_STREAM_OWNS_BUF))
             u8_free(out.u8_outbuf);}}
@@ -615,14 +624,16 @@ static int dtypeserver(u8_client ucl)
 
     outbuf->bufwrite=outbuf->buffer;
     if (fd_use_dtblock) {
-      int nbytes; unsigned char *ptr;
-      fd_write_byte(outbuf,dt_block);
-      fd_write_4bytes(outbuf,0);
-      nbytes=fd_write_dtype(outbuf,value);
-      ptr=outbuf->bufwrite; {
-        /* Rewind temporarily to write the length information */
-        outbuf->bufwrite=outbuf->buffer+1;
-        outbuf->bufwrite=ptr;}}
+      unsigned char *start=outbuf->bufwrite;
+      size_t nbytes=fd_write_dtype(outbuf,value);
+      if (nbytes>FD_DTBLOCK_THRESH) {
+        unsigned char headbuf[6];
+        unsigned char *headstart=outbuf->bufwrite;
+        fd_write_byte(outbuf,dt_block);
+        fd_write_4bytes(outbuf,nbytes);
+        memcpy(headbuf,headstart,5);
+        memmove(start+5,start,nbytes);
+        memcpy(start,headbuf,5);}}
     else fd_write_dtype(outbuf,value);
     if (async) {
       struct FD_RAWBUF *rawbuf=(struct FD_RAWBUF *)inbuf;
@@ -954,14 +965,14 @@ int main(int argc,char **argv)
 
   /* Find the server spec */
   while (i<argc) {
-    if (isconfig(argv[i])) 
+    if (isconfig(argv[i]))
       u8_log(LOGNOTICE,"FDServerConfig","    %s",argv[i++]);
     else if (server_spec) i++;
     else {
       if (i<32) arg_mask = arg_mask | (1<<i);
       server_spec=argv[i++];}} /* while (i<argc) */
   i=1;
-  
+
   if (!(server_spec)) {
     fprintf(stderr,
             "Usage: fdserver [conf=val]* (port|control_file) [conf=val]*\n");
@@ -1092,84 +1103,110 @@ int main(int argc,char **argv)
 
 static void init_configs()
 {
-  fd_register_config("FOREGROUND",_("Whether to run in the foreground"),
-                     fd_boolconfig_get,fd_boolconfig_set,&foreground);
-  fd_register_config("RESTART",_("Whether to enable auto-restart"),
-                     fd_boolconfig_get,fd_boolconfig_set,&daemonize);
-  fd_register_config("PIDWAIT",_("Whether to wait for the servlet PID file"),
-                     fd_boolconfig_get,fd_boolconfig_set,&pidwait);
-  fd_register_config("FASTFAIL",_("Threshold for daemon fastfails"),
-                     fd_intconfig_get,fd_intconfig_set,&fastfail_threshold);
-  fd_register_config("FASTFAIL_WAIT",
-                     _("How long (secs) to wait after a fastfail"),
-                     fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
-  fd_register_config("BACKLOG",
-                     _("Number of pending connection requests allowed"),
-                     fd_intconfig_get,fd_intconfig_set,&max_backlog);
-  fd_register_config("MAXQUEUE",_("Max number of requests to keep queued"),
-                     fd_intconfig_get,fd_intconfig_set,&max_queue);
-  fd_register_config("INITCLIENTS",
-                     _("Number of clients to prepare for/grow by"),
-                     fd_intconfig_get,fd_intconfig_set,&init_clients);
-  fd_register_config("REQTHREADS",_("Number of threads in the thread pool"),
-                     fd_intconfig_get,fd_intconfig_set,&n_threads);
-  /* This version is deprecated. */
-  fd_register_config("NTHREADS",_("Number of threads in the thread pool"),
-                     fd_intconfig_get,fd_intconfig_set,&n_threads);
-  fd_register_config("MODULE",_("modules to provide in the server environment"),
-                     config_get_modules,config_use_module,NULL);
-  fd_register_config("FULLSCHEME",_("whether to provide full scheme interpreter"),
-                     config_get_fullscheme,config_set_fullscheme,NULL);
-  fd_register_config("LOGEVAL",_("Whether to log each request and response"),
-                     fd_boolconfig_get,fd_boolconfig_set,&logeval);
-  fd_register_config("LOGTRANS",_("Whether to log each transaction"),
-                     fd_intconfig_get,fd_boolconfig_set,&logtrans);
-  fd_register_config("LOGERRS",
-                     _("Whether to log errors returned by the server to clients"),
-                     fd_boolconfig_get,fd_boolconfig_set,&logerrs);
-  fd_register_config("LOGBACKTRACE",
-                     _("Whether to include a detailed backtrace when logging errors"),
-                     fd_boolconfig_get,fd_boolconfig_set,&logbacktrace);
-  fd_register_config("U8LOGCONNECT",
-                     _("Whether to have libu8 log each connection"),
-                     config_get_dtype_server_flag,config_set_dtype_server_flag,
-                     (void *)(U8_SERVER_LOG_CONNECT));
-  fd_register_config("U8LOGTRANSACT",
-                     _("Whether to have libu8 log each transaction"),
-                     config_get_dtype_server_flag,config_set_dtype_server_flag,
-                     (void *)(U8_SERVER_LOG_TRANSACT));
+  fd_register_config
+    ("FOREGROUND",_("Whether to run in the foreground"),
+     fd_boolconfig_get,fd_boolconfig_set,&foreground);
+  fd_register_config
+    ("RESTART",_("Whether to enable auto-restart"),
+     fd_boolconfig_get,fd_boolconfig_set,&daemonize);
+  fd_register_config
+    ("PIDWAIT",_("Whether to wait for the servlet PID file"),
+     fd_boolconfig_get,fd_boolconfig_set,&pidwait);
+  fd_register_config
+    ("FASTFAIL",_("Threshold for daemon fastfails"),
+     fd_intconfig_get,fd_intconfig_set,&fastfail_threshold);
+  fd_register_config
+    ("FASTFAIL_WAIT",
+     _("How long (secs) to wait after a fastfail"),
+     fd_intconfig_get,fd_intconfig_set,&fastfail_wait);
+  fd_register_config
+    ("BACKLOG",
+     _("Number of pending connection requests allowed"),
+     fd_intconfig_get,fd_intconfig_set,&max_backlog);
+  fd_register_config
+    ("MAXQUEUE",_("Max number of requests to keep queued"),
+     fd_intconfig_get,fd_intconfig_set,&max_queue);
+  fd_register_config
+    ("INITCLIENTS",
+     _("Number of clients to prepare for/grow by"),
+     fd_intconfig_get,fd_intconfig_set,&init_clients);
+  fd_register_config
+    ("SERVERTHREADS",_("Number of threads in the thread pool"),
+     fd_intconfig_get,fd_intconfig_set,&n_threads);
+  fd_register_config
+    ("MODULE",_("modules to provide in the server environment"),
+     config_get_modules,config_use_module,NULL);
+  fd_register_config
+    ("FULLSCHEME",_("whether to provide full scheme interpreter"),
+     config_get_fullscheme,config_set_fullscheme,NULL);
+  fd_register_config
+    ("LOGEVAL",_("Whether to log each request and response"),
+     fd_boolconfig_get,fd_boolconfig_set,&logeval);
+  fd_register_config
+    ("LOGTRANS",_("Whether to log each transaction"),
+     fd_intconfig_get,fd_boolconfig_set,&logtrans);
+  fd_register_config
+    ("LOGERRS",
+     _("Whether to log errors returned by the server to clients"),
+     fd_boolconfig_get,fd_boolconfig_set,&logerrs);
+  fd_register_config
+    ("LOGBACKTRACE",
+     _("Whether to include a detailed backtrace when logging errors"),
+     fd_boolconfig_get,fd_boolconfig_set,&logbacktrace);
+  fd_register_config
+    ("BACKTRACEWIDTH",_("Line width for logged backtraces"),
+     fd_intconfig_get,fd_intconfig_set,&backtrace_width);
+  fd_register_config
+    ("U8LOGCONNECT",
+     _("Whether to have libu8 log each connection"),
+     config_get_dtype_server_flag,config_set_dtype_server_flag,
+     (void *)(U8_SERVER_LOG_CONNECT));
+  fd_register_config
+    ("U8LOGTRANSACT",
+     _("Whether to have libu8 log each transaction"),
+     config_get_dtype_server_flag,config_set_dtype_server_flag,
+     (void *)(U8_SERVER_LOG_TRANSACT));
 #ifdef U8_SERVER_LOG_TRANSFER
-  fd_register_config("U8LOGTRANSFER",
-                     _("Whether to have libu8 log all data transfers for fine-grained debugging"),
-                     config_get_dtype_server_flag,config_set_dtype_server_flag,
-                     (void *)(U8_SERVER_LOG_TRANSFER));
+  fd_register_config
+    ("U8LOGTRANSFER",
+     _("Whether to have libu8 log all data transfers"),
+     config_get_dtype_server_flag,config_set_dtype_server_flag,
+     (void *)(U8_SERVER_LOG_TRANSFER));
 #endif
-  fd_register_config("U8ASYNC",
-                     _("Whether to support thread-asynchronous transactions"),
-                     config_get_dtype_server_flag,config_set_dtype_server_flag,
-                     (void *)(U8_SERVER_ASYNC));
+  fd_register_config
+    ("U8ASYNC",
+     _("Whether to support thread-asynchronous transactions"),
+     config_get_dtype_server_flag,config_set_dtype_server_flag,
+     (void *)(U8_SERVER_ASYNC));
 
-  fd_register_config("DEBUGMAXCHARS",
-                     _("Max number of string characters to display in debug message"),
-                     fd_intconfig_get,fd_intconfig_set,
-                     &debug_maxchars);
-  fd_register_config("DEBUGMAXELTS",
-                     _("Max number of list/vector/choice elements to display in debug message"),
-                     fd_intconfig_get,fd_intconfig_set,
-                     &debug_maxelts);
-  fd_register_config("STATEDIR",_("Where to write server pid/nid files"),
-                     fd_sconfig_get,fd_sconfig_set,&state_dir);
-  fd_register_config("ASYNCMODE",_("Whether to run in asynchronous mode"),
-                     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
-  fd_register_config("GRACEFULDEATH",
-                     _("How long (μs) to wait for tasks during shutdown"),
-                     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
-  fd_register_config("AUTORELOAD",
-                     _("Whether to automatically reload changed files"),
-                     fd_boolconfig_get,fd_boolconfig_set,&auto_reload);
-  fd_register_config("NOFDDB",
-                     _("Whether to disable exported FramerD DB API"),
-                     fd_boolconfig_get,fd_boolconfig_set,&no_fddb);
+  fd_register_config
+    ("DEBUGMAXCHARS",
+     _("Max number of string characters to display in debug messages"),
+     fd_intconfig_get,fd_intconfig_set,
+     &debug_maxchars);
+  fd_register_config
+    ("DEBUGMAXELTS",
+     _("Max number of object elements to display in debug messages"),
+     fd_intconfig_get,fd_intconfig_set,
+     &debug_maxelts);
+  fd_register_config
+    ("STATEDIR",_("Where to write server pid/nid files"),
+     fd_sconfig_get,fd_sconfig_set,&state_dir);
+  fd_register_config
+    ("ASYNCMODE",_("Whether to run in asynchronous mode"),
+     fd_boolconfig_get,fd_boolconfig_set,&async_mode);
+  fd_register_config
+    ("GRACEFULDEATH",
+     _("How long (μs) to wait for tasks during shutdown"),
+     fd_intconfig_get,fd_intconfig_set,&shutdown_grace);
+  fd_register_config
+    ("AUTORELOAD",
+     _("Whether to automatically reload changed files"),
+     fd_boolconfig_get,fd_boolconfig_set,&auto_reload);
+  fd_register_config
+    ("NOFDDB",
+     _("Whether to disable exported FramerD DB API"),
+     fd_boolconfig_get,fd_boolconfig_set,&no_fddb);
 }
 
 static fd_lispenv init_core_env()
@@ -1260,7 +1297,8 @@ static int fork_server(u8_string server_spec,fd_lispenv env)
       errno=0;
       exit(1);}
     else u8_log(LOG_INFO,ServerFork,
-                "Process %d become session leader for %s",getpid(),server_spec);
+                "Process %d become session leader for %s",
+                getpid(),server_spec);
     /* Now we fork again.  In the normal case, this fork (the grandchild) is
        the actual server.  If we're auto-restarting, this fork is the one which
        does the restarting. */
@@ -1387,13 +1425,16 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
       fdtype startup_proc=fd_symeval(fd_intern("STARTUP"),env);
       shutdown_proc=fd_symeval(fd_intern("SHUTDOWN"),env);
       fd_decref(result); result=FD_VOID;
-      /* If the init file did any exporting, expose those exports to clients.
-         Otherwise, expose all the definitions in the init file.  Note that the clients
-         won't be able to get at the unsafe "empowered" environment but that the
-         procedures defined are closed in that environment. */
+      /* If the init file did any exporting, expose those exports to
+         clients.  Otherwise, expose all the definitions in the init
+         file.  Note that the clients won't be able to get at the
+         unsafe "empowered" environment but that the procedures
+         defined are closed in that environment. */
       if (FD_HASHTABLEP(env->env_exports))
-        server_env=fd_make_env(fd_incref(env->env_exports),exposed_environment);
-      else server_env=fd_make_env(fd_incref(env->env_bindings),exposed_environment);
+        server_env=fd_make_env(fd_incref(env->env_exports),
+                               exposed_environment);
+      else server_env=fd_make_env(fd_incref(env->env_bindings),
+                                  exposed_environment);
       if (fullscheme==0) {
         /* Cripple the core environment if requested */
         fd_decref((fdtype)(core_env->env_parent));
@@ -1404,7 +1445,8 @@ static int launch_server(u8_string server_spec,fd_lispenv core_env)
           fdtype result=fd_apply(p,0,NULL);
           if (FD_ABORTP(result)) {
             u8_exception ex=u8_erreify(), root=ex;
-            int old_maxelts=fd_unparse_maxelts, old_maxchars=fd_unparse_maxchars;
+            int old_maxelts=fd_unparse_maxelts;
+            int old_maxchars=fd_unparse_maxchars;
             U8_OUTPUT out; U8_INIT_STATIC_OUTPUT(out,512);
             while (root->u8x_prev) root=root->u8x_prev;
             fd_unparse_maxchars=debug_maxchars;

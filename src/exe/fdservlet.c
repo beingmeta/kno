@@ -53,7 +53,6 @@
 #include <fcntl.h>
 #endif
 
-
 #include "main.h"
 
 /* This is the size of file to return all at once. */
@@ -182,7 +181,7 @@ static int check_for_injection()
                    "Error %s (%s) processing injection %s: %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,
                    ex->u8x_details,content);
-          else if (ex->u8x_context!=NULL) 
+          else if (ex->u8x_context!=NULL)
             u8_log(LOGCRIT,"FDServlet/InjectionError",
                    "Error %s (%s) processing injection %s\n\"%s\"",
                    ex->u8x_cond,ex->u8x_context,inject_file,content);
