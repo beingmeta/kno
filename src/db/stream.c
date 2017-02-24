@@ -120,6 +120,7 @@ FD_EXPORT fd_outbuf _fd_start_write(fd_stream s,fd_off_t pos)
 FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
                                            u8_string streamid,
                                            int fileno,
+                                           int flags,
                                            int bufsiz)
 {
   if (fileno<0) return NULL;
@@ -135,7 +136,7 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
     stream->streamid=u8dup(streamid);
     stream->stream_filepos=-1;
     stream->stream_maxpos=-1;
-    stream->stream_flags=0;
+    stream->stream_flags=flags;
     u8_init_mutex(&(stream->stream_lock));
     if (buf==NULL) bufsiz=0;
     /* Initialize the buffer fields */
@@ -164,14 +165,12 @@ FD_EXPORT fd_stream fd_init_file_stream
     flags=flags|O_CREAT|O_TRUNC|O_RDWR; lock=1; writing=1; break;
   }
   fd=open(localname,flags,0666);
-  stream->stream_fileno=fd;
-  stream->stream_flags=FD_STREAM_OWNS_FILENO;
   /* If we fail and we're modifying, try to open read-only */
   if ((fd<0) && (mode == FD_STREAM_MODIFY)) {
     fd=open(localname,O_RDONLY,0666);
     if (fd>0) writing=0;}
   if (fd>0) {
-    fd_init_stream(stream,fname,fd,bufsiz);
+    fd_init_stream(stream,fname,fd,FD_STREAM_OWNS_FILENO,bufsiz);
     stream->streamid=u8_strdup(fname);
     stream->stream_flags|=FD_STREAM_CAN_SEEK;
     if (lock) stream->stream_flags|=FD_STREAM_NEEDS_LOCK;
@@ -339,7 +338,6 @@ int fd_flush_stream(fd_stream stream)
   else if (buf->bufpoint>buf->bytebuf) {
     int fileno=stream->stream_fileno;
     size_t n_buffered=buf->bufpoint-buf->bytebuf;
-    unsigned char *bytebuf=buf->bytebuf;
     int bytes_written=writeall(fileno,buf->bytebuf,n_buffered);
     if (bytes_written<0) {
       return -1;}

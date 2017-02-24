@@ -442,7 +442,7 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
       else {
         FD_ADD_TO_CHOICE(*delays,oid);
         n_to_fetch++;}
-    fd_ipeval_delay(n_to_fetch);
+    (void)fd_ipeval_delay(n_to_fetch);
     /* fd_decref(oidschoice); */
     return 0;}
   else if (FD_CHOICEP(oids)) {

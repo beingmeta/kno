@@ -300,7 +300,7 @@ static void delay_index_fetch(fd_index ix,fdtype keys)
       fd_incref(key);
       FD_ADD_TO_CHOICE((*delayp),key);
       delay_count++;}}
-  if (delay_count) fd_ipeval_delay(delay_count);
+  if (delay_count) (void)fd_ipeval_delay(delay_count);
 }
 
 FD_EXPORT void fd_delay_index_fetch(fd_index ix,fdtype keys)

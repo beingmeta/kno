@@ -347,7 +347,7 @@ FD_EXPORT fdtype _fd_symeval(fdtype,fd_lispenv);
   else {}
 
 #define FD_DOBINDINGS(var,val,bindings)					\
-  fdtype var, val, _scan=bindings, _binding=FD_VOID;			\
+  U8_MAYBE_UNUSED fdtype var, val, _scan=bindings, _binding=FD_VOID;	\
   for (_scan=bindings,							\
 	 _binding=FD_PAIRP(_scan)?(FD_CAR(_scan)):(FD_VOID),		\
 	 var=FD_PAIRP(_binding)?(FD_CAR(_binding)):(FD_VOID),		\

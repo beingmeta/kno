@@ -38,6 +38,7 @@ typedef struct FD_STREAM *fd_stream;
 
 #define FD_STREAM_BUFSIZ_DEFAULT 32*1024
 
+#define FD_STREAM_NOFLAGS        (0x00)
 #define FD_STREAM_FLAGS          (0x1)
 #define FD_STREAM_LOCKED         (FD_STREAM_FLAGS << 0)
 #define FD_STREAM_READ_ONLY      (FD_STREAM_FLAGS << 1)
@@ -69,7 +70,8 @@ typedef enum FD_BYTEFLOW {
 FD_EXPORT ssize_t fd_fill_stream(fd_stream df,size_t n);
 
 FD_EXPORT
-struct FD_STREAM *fd_init_stream(fd_stream s,u8_string id,int fileno,int bufsiz);
+struct FD_STREAM *fd_init_stream(fd_stream s,u8_string id,
+				 int fileno,int flags,int bufsiz);
 
 FD_EXPORT
 fd_stream fd_init_file_stream (fd_stream stream,

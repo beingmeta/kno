@@ -73,12 +73,13 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   fdtype request, result;
   u8_socket c=u8_connect_x(spec,xid);
   struct FD_STREAM _stream, *stream=
-    fd_init_stream(&_stream,spec,c,FD_NET_BUFSIZE);
+    fd_init_stream(&_stream,spec,c,
+                   FD_STREAM_DOSYNC|FD_STREAM_SOCKET,
+                   FD_NET_BUFSIZE);
   struct FD_OUTBUF *outstream=(stream) ? (fd_writebuf(stream)) :(NULL);
   if (stream==NULL)
     return FD_ERROR_VALUE;
   if (FD_VOIDP(client_id)) init_client_id();
-  stream->stream_flags=stream->stream_flags|FD_STREAM_DOSYNC;
   request=fd_make_list(2,pool_data_symbol,fd_incref(client_id));
   /* u8_log(LOG_WARN,"GETPOOLDATA","Making request (on #%d) for %q",c,request); */
   if (fd_write_dtype(outstream,request)<0) {

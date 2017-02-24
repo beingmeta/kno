@@ -316,7 +316,6 @@ static fdtype *file_index_fetchkeys(fd_index ix,int *n)
 {
   struct FD_FILE_INDEX *fx=(struct FD_FILE_INDEX *)ix;
   struct FD_STREAM *stream=&(fx->index_stream);
-  struct FD_INBUF *instream=fd_readbuf(stream);
   unsigned int n_slots, i=0, pos_offset, *offsets, n_keys;
   fd_lock_index(fx);
   n_slots=fx->index_n_slots; offsets=u8_malloc(SLOTSIZE*n_slots);

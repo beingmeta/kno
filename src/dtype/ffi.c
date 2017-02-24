@@ -85,7 +85,7 @@ FD_EXPORT struct FD_FFI_PROC *fd_make_ffi_proc
 FD_EXPORT fdtype fd_ffi_call(struct FD_FUNCTION *fn,int n,fdtype *args)
 {
   if (FD_CONS_TYPE(fn)==fd_ffi_type) {
-    struct FD_FFI_PROC *proc=(struct FD_FFI_PROC *) fn;
+    /* struct FD_FFI_PROC *proc=(struct FD_FFI_PROC *) fn; */
     return FD_VOID;}
   else return fd_err(_("Not an foreign function interface"),
 		     "ffi_caller",u8_strdup(fn->fcn_name),FD_VOID);

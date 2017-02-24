@@ -183,7 +183,7 @@ static struct FD_KEYVAL *fd_keyvec_get
 	 else scan++;
   return NULL;
 }
-static struct FD_KEYVAL *fd_sortvec_get
+static U8_MAYBE_UNUSED struct FD_KEYVAL *fd_sortvec_get
    (fdtype key,struct FD_KEYVAL *keyvals,int size)
 {
   if (size<4)
