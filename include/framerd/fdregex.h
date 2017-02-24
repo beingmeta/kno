@@ -17,8 +17,10 @@ FD_EXPORT fd_exception fd_RegexError;
 
 typedef struct FD_REGEX {
   FD_CONS_HEADER;
-  u8_string fd_rxsrc; int fd_rxflags;
-  u8_mutex fd_lock; int fd_rxactive:1;
+  u8_string fd_rxsrc;
+  unsigned int fd_rxactive;
+  int fd_rxflags;
+  u8_mutex fd_lock;
   regex_t fd_rxcompiled;} FD_REGEX;
 typedef struct FD_REGEX *fd_regex;
 
