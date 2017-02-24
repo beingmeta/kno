@@ -88,8 +88,8 @@ int main(int argc,char **argv)
   ht=fd_read_dtype(inbuf);
   fd_close_stream(in,FD_STREAM_CLOSE_FULL);
   report_on_hashtable(ht);
-  n_keys=FD_HASHTABLE_SIZE(ht);
-  n_slots=FD_HASHTABLE_SLOTS(ht);
+  n_keys=FD_HASHTABLE_NKEYS(ht);
+  n_slots=FD_HASHTABLE_NBUCKETS(ht);
   tmpbuf=u8_alloc_n(n_keys*6,unsigned int);
   tmpbuf_size=n_keys*6;
   hashv=u8_alloc_n(n_keys,unsigned int);

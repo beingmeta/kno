@@ -126,7 +126,7 @@ end
 define showschemap
   printf "schema=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->fd_schema))
   printf "values=%d\n",(&(((struct FD_SCHEMAP *)$arg0)->schema_values))
-  printf "size=%d\n",(((struct FD_SCHEMAP *)$arg0)->table_size)
+  printf "size=%d\n",(((struct FD_SCHEMAP *)$arg0)->schema_length)
   print (*((struct FD_SCHEMAP *)$arg0))
 end
 define showschemapk

@@ -523,7 +523,7 @@ static int write_slotmap(struct FD_OUTBUF *out,struct FD_SLOTMAP *v)
   fd_read_lock_table(v);
   {
     struct FD_KEYVAL *keyvals=v->sm_keyvals;
-    int i=0, kvsize=FD_XSLOTMAP_SIZE(v), len=kvsize*2;
+    int i=0, kvsize=FD_XSLOTMAP_NUSED(v), len=kvsize*2;
     output_byte(out,dt_framerd_package);
     if (len < 256) {
       dtype_len=3;
@@ -863,12 +863,14 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
         if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
         else {
           u8_byte data[257];
-          memcpy(data,in->bufread,len); data[len]='\0'; in->bufread=in->bufread+len;
+          memcpy(data,in->bufread,len); data[len]='\0';
+          in->bufread=in->bufread+len;
           return fd_make_symbol(data,len);}}
     case dt_tiny_string:
       if (nobytes(in,1)) return fd_return_errcode(FD_EOD);
       else {
-        int len=fd_get_byte(in->bufread); in->bufread=in->bufread+1;
+        int len=fd_get_byte(in->bufread);
+        in->bufread=in->bufread+1;
         if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
         else {
           fdtype result= fd_make_string(NULL,len,in->bufread);
@@ -877,12 +879,15 @@ FD_EXPORT fdtype fd_read_dtype(struct FD_INBUF *in)
     case dt_symbol: case dt_zstring:
       if (nobytes(in,4)) return fd_return_errcode(FD_EOD);
       else {
-        int len=fd_get_4bytes(in->bufread); in->bufread=in->bufread+4;
-        if (nobytes(in,len)) return fd_return_errcode(FD_EOD);
+        int len=fd_get_4bytes(in->bufread);
+        in->bufread=in->bufread+4;
+        if (nobytes(in,len))
+          return fd_return_errcode(FD_EOD);
         else {
           unsigned char buf[64], *data;
           if (len >= 64) data=u8_malloc(len+1); else data=buf;
-          memcpy(data,in->bufread,len); data[len]='\0'; in->bufread=in->bufread+len;
+          memcpy(data,in->bufread,len); data[len]='\0';
+          in->bufread=in->bufread+len;
           if (data != buf) {
             fdtype result=fd_make_symbol(data,len);
             u8_free(data);

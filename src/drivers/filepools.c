@@ -88,7 +88,7 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
       fd_seterr(fd_BadFilePoolLabel,"open_file_pool",
                 u8_strdup("bad label loc"),
                 FD_INT(label_loc));
-      fd_close_stream(&(pool->pool_stream),1);
+      fd_close_stream(&(pool->pool_stream),0);
       u8_free(rname); u8_free(pool);
       return NULL;}}
   pool->pool_load=load; pool->pool_offsets=NULL; pool->pool_offsets_size=0;

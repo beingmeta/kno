@@ -212,7 +212,7 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
   if (U8_BITP(flags,FDB_INIT_READ_ONLY)) {
     /* If the pool is intrinsically read-only make it so. */
     fd_unlock_stream(stream);
-    fd_close_stream(stream,1);
+    fd_close_stream(stream,0);
     fd_init_file_stream(stream,fname,FD_STREAM_READ,fd_driver_bufsize);
     fd_lock_stream(stream);
     fd_setpos(stream,FD_OIDPOOL_LABEL_POS);}
@@ -245,7 +245,7 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
       fd_seterr(fd_BadFilePoolLabel,"open_oidpool",
                 u8_strdup("bad label loc"),
                 FD_INT(label_loc));
-      fd_close_stream(stream,1);
+      fd_close_stream(stream,0);
       u8_free(rname); u8_free(pool);
       return NULL;}}
   if (schemas_loc) {
@@ -511,7 +511,7 @@ FD_EXPORT int fd_make_oidpool
   if (stream==NULL) return -1;
   else if ((stream->stream_flags)&FD_STREAM_READ_ONLY) {
     fd_seterr3(fd_CantWrite,"fd_make_oidpool",u8_strdup(fname));
-    fd_close_stream(stream,1);
+    fd_close_stream(stream,0);
     return -1;}
   stream->stream_flags&=~FD_STREAM_IS_MALLOCD;
   fd_lock_stream(stream);
@@ -600,7 +600,7 @@ FD_EXPORT int fd_make_oidpool
 
   fd_flush_stream(stream);
   fd_unlock_stream(stream);
-  fd_close_stream(stream,1);
+  fd_close_stream(stream,0);
   return 0;
 }
 
@@ -831,7 +831,7 @@ static int get_schema_id(fd_oidpool op,fdtype value)
 {
   if ( (FD_SCHEMAPP(value)) && (FD_SCHEMAP_SORTEDP(value)) ) {
     struct FD_SCHEMAP *sm=(fd_schemap)value;
-    fdtype *slotids=sm->table_schema, size=sm->table_size;
+    fdtype *slotids=sm->table_schema, size=sm->schema_length;
     if (sm->schemap_tagged) {
       fdtype pos=slotids[size];
       int intpos=fd_getint(pos);
@@ -842,7 +842,7 @@ static int get_schema_id(fd_oidpool op,fdtype value)
   else if (FD_SLOTMAPP(value)) {
     fdtype _tmp_slotids[32], *tmp_slotids;
     struct FD_SLOTMAP *sm=(fd_slotmap)value;
-    int i=0, size=FD_XSLOTMAP_SIZE(sm);
+    int i=0, size=FD_XSLOTMAP_NUSED(sm);
     if (size<32)
       tmp_slotids=_tmp_slotids;
     else tmp_slotids=u8_alloc_n(size,fdtype);
@@ -881,7 +881,7 @@ static int oidpool_write_value(fdtype value,fd_stream stream,
       if (FD_SCHEMAPP(value)) {
         struct FD_SCHEMAP *sm=(fd_schemap)value;
         fdtype *values=sm->schema_values;
-        int i=0, size=sm->table_size;
+        int i=0, size=sm->schema_length;
         fd_write_zint(tmpout,size);
         while (i<size) {
           fd_write_dtype(tmpout,values[se->fd_slotmapout[i]]);
@@ -889,7 +889,7 @@ static int oidpool_write_value(fdtype value,fd_stream stream,
       else {
         struct FD_SLOTMAP *sm=(fd_slotmap)value;
         struct FD_KEYVAL *data=sm->sm_keyvals;
-        int i=0, size=FD_XSLOTMAP_SIZE(sm);
+        int i=0, size=FD_XSLOTMAP_NUSED(sm);
         fd_write_zint(tmpout,size);
         while (i<size) {
           fd_write_dtype(tmpout,data[se->fd_slotmapin[i]].fd_keyval);

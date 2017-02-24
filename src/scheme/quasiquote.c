@@ -226,7 +226,7 @@ static fdtype quasiquote_vector(fdtype obj,fd_lispenv env,int level)
 
 static fdtype quasiquote_slotmap(fdtype obj,fd_lispenv env,int level)
 {
-  int i=0, len=FD_SLOTMAP_SIZE(obj);
+  int i=0, len=FD_SLOTMAP_NUSED(obj);
   struct FD_KEYVAL *keyvals=FD_XSLOTMAP(obj)->sm_keyvals;
   fdtype result=fd_empty_slotmap();
   struct FD_SLOTMAP *new_slotmap=FD_XSLOTMAP(result);

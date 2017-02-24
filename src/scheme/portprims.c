@@ -953,7 +953,7 @@ int fd_pprint(u8_output out,fdtype x,u8_string prefix,
     struct FD_SLOTMAP *sm=FD_XSLOTMAP(x);
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size, first_kv=1;
-    slotmap_size=FD_XSLOTMAP_SIZE(sm);
+    slotmap_size=FD_XSLOTMAP_NUSED(sm);
     if (slotmap_size==0) {
       if (is_initial) {
         u8_printf(out,"#[]"); return col+3;}
@@ -1079,7 +1079,7 @@ int fd_xpprint(u8_output out,fdtype x,u8_string prefix,
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size, first_pair=1;
     fd_read_lock_table(sm);
-    slotmap_size=FD_XSLOTMAP_SIZE(sm);
+    slotmap_size=FD_XSLOTMAP_NUSED(sm);
     if (slotmap_size==0) fd_unlock_table(sm);
     if (slotmap_size==0) {
       if (is_initial) {
@@ -1195,7 +1195,7 @@ static int embeddedp(fdtype focus,fdtype expr)
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size;
     fd_read_lock_table(sm);
-    slotmap_size=FD_XSLOTMAP_SIZE(sm);
+    slotmap_size=FD_XSLOTMAP_NUSED(sm);
     scan=sm->sm_keyvals; limit=sm->sm_keyvals+slotmap_size;
     while (scan<limit)
       if (embeddedp(focus,scan->fd_kvkey)) {

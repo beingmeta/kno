@@ -69,7 +69,7 @@ typedef enum FD_BYTEFLOW {
 FD_EXPORT ssize_t fd_fill_stream(fd_stream df,size_t n);
 
 FD_EXPORT
-struct FD_STREAM *fd_init_stream(fd_stream s,int fileno,int bufsiz);
+struct FD_STREAM *fd_init_stream(fd_stream s,u8_string id,int fileno,int bufsiz);
 
 FD_EXPORT
 fd_stream fd_init_file_stream (fd_stream stream,

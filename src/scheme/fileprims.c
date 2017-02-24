@@ -1175,7 +1175,7 @@ static fdtype close_prim(fdtype portarg)
   if (FD_TYPEP(portarg,fd_stream_type)) {
     struct FD_STREAM *dts=
       fd_consptr(struct FD_STREAM *,portarg,fd_stream_type);
-    fd_close_stream(dts,1);
+    fd_close_stream(dts,0);
     return FD_VOID;}
   else if (FD_PORTP(portarg)) {
     struct FD_PORT *p=
@@ -1462,7 +1462,7 @@ int fd_snapshot(fd_lispenv env,u8_string filename)
     fd_close_stream(out,FD_STREAM_CLOSE_FULL);
     u8_log(LOG_INFO,SnapshotSaved,
            "Saved snapshot of %d items to %s",
-           FD_SLOTMAP_SIZE(slotmap),filename);
+           FD_SLOTMAP_NUSED(slotmap),filename);
     fd_decref(slotmap);
     return bytes;}
 }
@@ -1513,7 +1513,7 @@ int fd_snapback(fd_lispenv env,u8_string filename)
     return fd_reterr(fd_TypeError,"fd_snapback", u8_strdup("slotmap"),
                      slotmap);}
   u8_log(LOG_INFO,SnapshotRestored,"Restored snapshot of %d items from %s",
-         FD_SLOTMAP_SIZE(slotmap),filename);
+         FD_SLOTMAP_NUSED(slotmap),filename);
   fd_decref(slotmap);
   return actions;
 }

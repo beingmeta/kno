@@ -280,7 +280,7 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
       fd_unlock_mutex(&log_lock);
       return 0;}
     else if (reqlog) {
-      fd_close_stream(reqlog,1); reqlog=NULL;
+      fd_close_stream(reqlog,0); reqlog=NULL;
       u8_free(reqlogname); reqlogname=NULL;}
     reqlog=u8_alloc(struct FD_STREAM);
     if (fd_init_file_stream(reqlog,filename,FD_STREAM_WRITE,16384)) {
@@ -299,7 +299,7 @@ static int reqlog_set(fdtype var,fdtype val,void *data)
   else if (FD_FALSEP(val)) {
     fd_lock_mutex(&log_lock);
     if (reqlog) {
-      fd_close_stream(reqlog,1); reqlog=NULL;
+      fd_close_stream(reqlog,0); reqlog=NULL;
       u8_free(reqlogname); reqlogname=NULL;}
     fd_unlock_mutex(&log_lock);
     return 0;}

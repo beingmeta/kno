@@ -117,7 +117,10 @@ FD_EXPORT fd_outbuf _fd_start_write(fd_stream s,fd_off_t pos)
 
 /* Initialization functions */
 
-FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,int fileno,int bufsiz)
+FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
+                                           u8_string streamid,
+                                           int fileno,
+                                           int bufsiz)
 {
   if (fileno<0) return NULL;
   else {
@@ -129,9 +132,10 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,int fileno,int bufsi
     FD_SET_CONS_TYPE(stream,fd_stream_type);
     /* Initializing the stream fields */
     stream->stream_fileno=fileno;
-    stream->streamid=NULL;
+    stream->streamid=u8dup(streamid);
     stream->stream_filepos=-1;
     stream->stream_maxpos=-1;
+    stream->stream_flags=0;
     u8_init_mutex(&(stream->stream_lock));
     if (buf==NULL) bufsiz=0;
     /* Initialize the buffer fields */
@@ -167,7 +171,7 @@ FD_EXPORT fd_stream fd_init_file_stream
     fd=open(localname,O_RDONLY,0666);
     if (fd>0) writing=0;}
   if (fd>0) {
-    fd_init_stream(stream,fd,bufsiz);
+    fd_init_stream(stream,fname,fd,bufsiz);
     stream->streamid=u8_strdup(fname);
     stream->stream_flags|=FD_STREAM_CAN_SEEK;
     if (lock) stream->stream_flags|=FD_STREAM_NEEDS_LOCK;

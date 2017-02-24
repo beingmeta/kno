@@ -1542,7 +1542,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.table_schema=vars; bindings.schema_values=vals; 
-  bindings.table_size=1; bindings.schemap_onstack=1;
+  bindings.schema_length=1; bindings.schemap_onstack=1;
   fd_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent=env;
   envstruct.env_bindings=(fdtype)(&bindings); envstruct.env_exports=FD_VOID;
@@ -1550,7 +1550,7 @@ static fdtype fdxml_seq_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv e
   vars[0]=var; vals[0]=FD_VOID;
   if (!(FD_VOIDP(count_var))) {
     vars[1]=count_var; vals[1]=FD_INT(0);
-    bindings.table_size=2; iterval=&(vals[1]);}
+    bindings.schema_length=2; iterval=&(vals[1]);}
   while (i<lim) {
     fdtype elt=fd_seq_elt(seq,i);
     if (envstruct.env_copy) {
@@ -1595,11 +1595,11 @@ static fdtype fdxml_choice_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispen
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   if (FD_VOIDP(count_var)) {
-    bindings.table_size=1;
+    bindings.schema_length=1;
     vars[0]=var; vals[0]=FD_VOID;
     vloc=&(vals[0]);}
   else {
-    bindings.table_size=2;
+    bindings.schema_length=2;
     vars[0]=var; vals[0]=FD_VOID; vloc=&(vals[0]);
     vars[1]=count_var; vals[1]=FD_INT(0); iloc=&(vals[1]);}
   bindings.table_schema=vars; bindings.schema_values=vals;
@@ -1654,7 +1654,7 @@ static fdtype fdxml_range_loop(fdtype var,fdtype count_var,fdtype xpr,fd_lispenv
   else limit=FD_FIX2INT(limit_val);
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
-  bindings.table_schema=vars; bindings.schema_values=vals; bindings.table_size=1;
+  bindings.table_schema=vars; bindings.schema_values=vals; bindings.schema_length=1;
   bindings.schemap_onstack=1;
   fd_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_parent=env;

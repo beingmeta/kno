@@ -297,7 +297,7 @@ static void open_server_lock_stream(u8_string file)
     while (!(FD_EOFP(a))) {
       if (FD_OIDP(a)) lock_oid(a,b); else clear_server_lock(b,a);
       a=fd_read_dtype(in); b=fd_read_dtype(in);}
-    fd_close_stream(stream,1);
+    fd_close_stream(stream,0);
     u8_removefile(file);}
   locks_file=fd_open_filestream(file,FD_STREAM_CREATE,65536);
   locks_filename=u8_strdup(file);
@@ -316,7 +316,7 @@ static void update_server_lock_file()
   if (locks_filename == NULL) return;
   fd_lock_mutex(&server_locks_lock);
   temp_file=u8_mkstring("%s.bak",locks_filename);
-  if (locks_file) fd_close_stream(locks_file,1);
+  if (locks_file) fd_close_stream(locks_file,0);
   u8_movefile(locks_filename,temp_file);
   locks_file=fd_open_filestream(locks_filename,FD_STREAM_CREATE,65536);
   fd_for_hashtable(&server_locks,add_to_server_locks_file,(void *)locks_file,1);

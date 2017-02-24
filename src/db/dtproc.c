@@ -75,7 +75,7 @@ static fdtype dtapply(struct FD_DTPROC *dtp,int n,fdtype *args)
   fdtype expr=FD_EMPTY_LIST, result; int i=n-1;
   u8_socket conn=u8_get_connection(cpool);
   if (conn<0) return FD_ERROR_VALUE;
-  fd_init_stream(&stream,conn,8192);
+  fd_init_stream(&stream,NULL,conn,8192);
   while (i>=0) {
     if ((FD_SYMBOLP(args[i])) || (FD_PAIRP(args[i])))
       expr=fd_conspair(fd_make_list(2,quote_symbol,fd_incref(args[i])),

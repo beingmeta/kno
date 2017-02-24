@@ -668,7 +668,7 @@ static int slotify_nodep(FD_XML *node)
   else if (!(FD_SLOTMAPP(node->fdxml_attribs)))
     /* Not sure this case ever happens */
     return 1;
-  else if (FD_SLOTMAP_SIZE(node->fdxml_attribs)>1) return 1;
+  else if (FD_SLOTMAP_NUSED(node->fdxml_attribs)>1) return 1;
   else return 0;
 }
 
@@ -709,7 +709,7 @@ static void cleanup_attribs(fdtype table)
     struct FD_SLOTMAP *sm=(struct FD_SLOTMAP *)table;
     struct FD_KEYVAL *scan, *limit; int unlock=0, size;
     if (sm->table_uselock) { fd_read_lock(&sm->table_rwlock); unlock=1;}
-    size=FD_XSLOTMAP_SIZE(sm); scan=sm->sm_keyvals; limit=scan+size;
+    size=FD_XSLOTMAP_NUSED(sm); scan=sm->sm_keyvals; limit=scan+size;
     if (size==0) {
       if (unlock) fd_rw_unlock(&sm->table_rwlock);
       return;}

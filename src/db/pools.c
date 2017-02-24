@@ -35,7 +35,7 @@ fd_exception fd_InvalidPoolPtr=_("Invalid pool PTR");
 fd_exception fd_NotAFilePool=_("not a file pool");
 fd_exception fd_NoFilePools=_("file pools are not supported");
 fd_exception fd_AnonymousOID=_("no pool covers this OID");
-fd_exception fd_NotAPool=_("pool");
+fd_exception fd_NotAPool=_("Not a pool");
 fd_exception fd_BadFilePoolLabel=_("file pool label is not a string");
 fd_exception fd_ExhaustedPool=_("pool has no more OIDs");
 fd_exception fd_InvalidPoolRange=_("pool overlaps 0x100000 boundary");
@@ -414,6 +414,8 @@ FD_EXPORT int fd_pool_prefetch(fd_pool p,fdtype oids)
     fd_seterr(fd_NotAPool,"fd_pool_prefetch",
               u8_strdup("NULL pool ptr"),FD_VOID);
     return -1;}
+  else if (FD_EMPTY_CHOICEP(oids))
+    return 0;
   else init_cache_level(p);
   cachelevel=p->pool_cache_level;
   /* if (p->pool_cache_level<1) return 0; */
@@ -960,7 +962,7 @@ static int apply_poolop(fd_pool_op fn,fdtype oids_arg)
       fd_pool p=fd_oid2pool(oidv[0]);
       if (p==NULL) {oidv++; n--; continue;}
       else {
-        fdtype oids_in_pool=FD_EMPTY_CHOICE;
+        fdtype oids_in_pool=oidv[0];
         fdtype *keep=oidv;
         int rv=0, i=1; while (i<n) {
           fdtype oid=oidv[i++];
@@ -970,7 +972,8 @@ static int apply_poolop(fd_pool_op fn,fdtype oids_arg)
             FD_ADD_TO_CHOICE(oids_in_pool,oid);}
           else *keep++=oid;}
         oids_in_pool=fd_simplify_choice(oids_in_pool);
-        rv=fn(p,oids_in_pool);
+        if (FD_EMPTY_CHOICEP(oids_in_pool)) rv=0;
+        else rv=fn(p,oids_in_pool);
         if (rv<0) {}
         else sum=sum+rv;
         fd_decref(oids_in_pool);

@@ -222,7 +222,7 @@ FD_FASTOP fd_lispenv init_static_env
   bindings->schemap_onstack=1;
   bindings->table_schema=vars;
   bindings->schema_values=vals;
-  bindings->table_size=n;
+  bindings->schema_length=n;
   fd_init_rwlock(&(bindings->table_rwlock));
   envstruct->env_bindings=FDTYPE_CONS((bindings));
   envstruct->env_exports=FD_VOID;
@@ -434,7 +434,7 @@ FD_EXPORT fdtype fd_apply_sproc(struct FD_SPROC *fn,int n,fdtype *args)
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   bindings.table_schema=fn->sproc_vars;
-  bindings.table_size=n_vars;
+  bindings.schema_length=n_vars;
   bindings.schemap_onstack=1;
   fd_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_bindings=FDTYPE_CONS(&bindings);
@@ -1027,7 +1027,7 @@ fdtype fd_xapply_sproc
   FD_INIT_STATIC_CONS(&envstruct,fd_environment_type);
   FD_INIT_STATIC_CONS(&bindings,fd_schemap_type);
   bindings.table_schema=fn->sproc_vars;
-  bindings.table_size=fn->sproc_n_vars;
+  bindings.schema_length=fn->sproc_n_vars;
   fd_init_rwlock(&(bindings.table_rwlock));
   envstruct.env_bindings=FDTYPE_CONS(&bindings);
   envstruct.env_exports=FD_VOID;

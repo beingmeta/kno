@@ -14,6 +14,9 @@
 #include "framerd/fdsource.h"
 #include "framerd/dtype.h"
 #include "framerd/fddb.h"
+#include "framerd/pools.h"
+#include "framerd/indices.h"
+#include "framerd/drivers.h"
 #include "framerd/dtcall.h"
 
 #include <libu8/libu8.h>
@@ -45,15 +48,17 @@ static int server_supportsp(struct FD_NETWORK_POOL *np,fdtype operation)
 }
 
 static void init_network_pool
-  (struct FD_NETWORK_POOL *p,fdtype scan,u8_string spec,u8_string cid)
+  (struct FD_NETWORK_POOL *p,fdtype netinfo,
+   u8_string spec,u8_string cid,fddb_flags flags)
 {
+  fdtype scan=netinfo;
   FD_OID addr; unsigned int capacity; u8_string label;
   addr=FD_OID_ADDR(FD_CAR(scan)); scan=FD_CDR(scan);
   capacity=fd_getint(FD_CAR(scan)); scan=FD_CDR(scan);
   fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,spec,cid);
   /* Network pool specific stuff */
-  if (FD_FALSEP(FD_CAR(scan))) 
-    p->pool_flags|=FDB_READ_ONLY;
+  if (FD_FALSEP(FD_CAR(scan)))
+    p->pool_flags=flags|FDB_READ_ONLY;
   scan=FD_CDR(scan);
   if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan))))
     label=FD_STRDATA(FD_CAR(scan));
@@ -68,7 +73,7 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   fdtype request, result;
   u8_socket c=u8_connect_x(spec,xid);
   struct FD_STREAM _stream, *stream=
-    fd_init_stream(&_stream,c,FD_NET_BUFSIZE);
+    fd_init_stream(&_stream,spec,c,FD_NET_BUFSIZE);
   struct FD_OUTBUF *outstream=fd_writebuf(stream);
   if (stream==NULL)
     return FD_ERROR_VALUE;
@@ -77,17 +82,17 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   request=fd_make_list(2,pool_data_symbol,fd_incref(client_id));
   /* u8_log(LOG_WARN,"GETPOOLDATA","Making request (on #%d) for %q",c,request); */
   if (fd_write_dtype(outstream,request)<0) {
-    fd_close_stream(stream,1);
+    fd_close_stream(stream,0);
     fd_decref(request);
     return FD_ERROR_VALUE;}
   fd_decref(request);
   result=fd_read_dtype(fd_readbuf(stream));
   /* u8_log(LOG_WARN,"GETPOOLDATA","Got result (on #%d)",c,request); */
-  fd_close_stream(stream,1);
+  fd_close_stream(stream,0);
   return result;
 }
 
-FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
+FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fddb_flags flags)
 {
   struct FD_NETWORK_POOL *np=u8_alloc(struct FD_NETWORK_POOL);
   u8_string xid=NULL;
@@ -124,10 +129,10 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only)
       struct FD_NETWORK_POOL *p; fdtype pd=*scan++;
       if (n_pools==0) p=np;
       else p=u8_alloc(struct FD_NETWORK_POOL);
-      init_network_pool(p,pd,spec,cid);
+      init_network_pool(p,pd,spec,cid,flags);
       p->pool_xid=xid; p->pool_connpool=np->pool_connpool;
       n_pools++;}}
-  else init_network_pool(np,pooldata,spec,cid);
+  else init_network_pool(np,pooldata,spec,cid,flags);
   u8_free(cid);
   np->bulk_commitp=server_supportsp(np,bulk_commit_symbol);
   fd_decref(pooldata);
@@ -255,6 +260,13 @@ static struct FD_POOL_HANDLER netpool_handler={
   NULL, /* metadata */
   NULL}; /* sync */
 
+static int network_poolp(u8_string spec,void *data)
+{
+  if ((strchr(spec,'@'))||(strchr(spec,':')))
+    return 1;
+  else return 0;
+}
+
 static void init_client_id()
 {
   fd_lock_mutex(&client_id_lock);
@@ -281,6 +293,14 @@ FD_EXPORT void fd_init_netpools_c()
   get_load_symbol=fd_intern("GET-LOAD");
   boundp=fd_intern("BOUND?");
   quote_symbol=fd_intern("QUOTE");
+
+  fd_register_pool_opener
+    (&netpool_handler,
+     fd_open_network_pool,
+     network_poolp,
+     (void*)NULL);
+
+
 }
 
 /* Emacs local variables

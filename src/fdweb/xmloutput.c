@@ -881,7 +881,7 @@ static int embeddedp(fdtype focus,fdtype expr)
     struct FD_KEYVAL *scan, *limit;
     int slotmap_size;
     fd_read_lock_table(sm);
-    slotmap_size=FD_XSLOTMAP_SIZE(sm);
+    slotmap_size=FD_XSLOTMAP_NUSED(sm);
     scan=sm->sm_keyvals; limit=sm->sm_keyvals+slotmap_size;
     while (scan<limit)
       if (embeddedp(focus,scan->fd_kvkey)) {

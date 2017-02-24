@@ -476,13 +476,9 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
 {
   fd_client client=(fd_client)
     u8_client_init(NULL,sizeof(FD_CLIENT),addr,len,sock,srv);
-  fd_init_stream(&(client->fd_clientstream),sock,4096);
+  fd_init_stream(&(client->fd_clientstream),client->idstring,sock,4096);
   /* To help debugging, move the client->idstring (libu8)
      into the stream's id (fdb). */
-  if (client->fd_clientstream.streamid==NULL) {
-    if (client->idstring)
-      client->fd_clientstream.streamid=u8_strdup(client->idstring);
-    else client->fd_clientstream.streamid=u8_strdup("fdserver/stream");}
   client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);
   client->elapsed=0; client->lastlive=((time_t)(-1));
   u8_set_nodelay(sock,1);
@@ -648,7 +644,7 @@ static int dtypeserver(u8_client ucl)
 static int close_fdclient(u8_client ucl)
 {
   fd_client client=(fd_client)ucl;
-  fd_close_stream(&(client->fd_clientstream),0);
+  fd_close_stream(&(client->fd_clientstream),FD_STREAM_NOCLOSE);
   fd_decref((fdtype)((fd_client)ucl)->env);
   ucl->socket=-1;
   return 1;

@@ -243,7 +243,7 @@ static int count_cons_envrefs(fdtype obj,fd_lispenv env,int depth)
       return envcount;}
     case fd_slotmap_type: {
       int envcount=0;
-      int i=0, len=FD_SLOTMAP_SIZE(obj);
+      int i=0, len=FD_SLOTMAP_NUSED(obj);
       struct FD_KEYVAL *kv=(FD_XSLOTMAP(obj))->sm_keyvals;
       while (i<len) {
         envcount=envcount+count_envrefs(kv[i].fd_keyval,env,depth-1); i++;}
