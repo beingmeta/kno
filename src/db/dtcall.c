@@ -47,7 +47,7 @@ static fdtype dteval_sock(u8_socket conn,fdtype expr)
   fd_close_stream(stream,FD_STREAM_NOCLOSE);
   return response;
 }
-static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
+static fdtype dteval_connpool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
 {
   fdtype result; int retval;
   struct FD_STREAM stream;
@@ -125,15 +125,15 @@ static fdtype dteval_pool(struct U8_CONNPOOL *cpool,fdtype expr,int async)
 }
 FD_EXPORT fdtype fd_dteval(struct U8_CONNPOOL *cp,fdtype expr)
 {
-  return dteval_pool(cp,expr,default_async);
+  return dteval_connpool(cp,expr,default_async);
 }
 FD_EXPORT fdtype fd_dteval_sync(struct U8_CONNPOOL *cp,fdtype expr)
 {
-  return dteval_pool(cp,expr,0);
+  return dteval_connpool(cp,expr,0);
 }
 FD_EXPORT fdtype fd_dteval_async(struct U8_CONNPOOL *cp,fdtype expr)
 {
-  return dteval_pool(cp,expr,1);
+  return dteval_connpool(cp,expr,1);
 }
 FD_EXPORT fdtype fd_sock_dteval(u8_socket sock,fdtype expr)
 {
@@ -160,7 +160,7 @@ static fdtype dtapply(struct U8_CONNPOOL *cp,int n,int dorefs,int doeval,
     n--;}
   if (dorefs) fd_incref(args[0]);
   request=fd_conspair(args[0],request);
-  result=dteval_pool(cp,request,default_async);
+  result=dteval_connpool(cp,request,default_async);
   fd_decref(request);
   return result;
 }

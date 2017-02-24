@@ -74,7 +74,7 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   u8_socket c=u8_connect_x(spec,xid);
   struct FD_STREAM _stream, *stream=
     fd_init_stream(&_stream,spec,c,FD_NET_BUFSIZE);
-  struct FD_OUTBUF *outstream=fd_writebuf(stream);
+  struct FD_OUTBUF *outstream=(stream) ? (fd_writebuf(stream)) :(NULL);
   if (stream==NULL)
     return FD_ERROR_VALUE;
   if (FD_VOIDP(client_id)) init_client_id();
