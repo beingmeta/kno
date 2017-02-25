@@ -1131,28 +1131,35 @@ static int compare_schemaps(fdtype x,fdtype y,fd_compare_flags flags)
 
 /* This is the point at which we resize hashtables. */
 #define hashtable_needs_resizep(ht)\
-   ((ht->table_n_keys*ht->table_load_factor)>(ht->ht_n_buckets*4))
+   ((ht->table_n_keys*ht->table_load_factor)>(ht->ht_n_buckets))
 /* This is the target size for resizing. */
 #define hashtable_resize_target(ht) \
-   ((ht->table_n_keys*ht->table_load_factor)/2)
+   ((ht->table_n_keys*ht->table_load_factor))
 
 #define hashset_needs_resizep(hs)\
-   ((hs->hs_n_elts*hs->hs_load_factor)>(hs->hs_n_slots*4))
+   ((hs->hs_n_elts*hs->hs_load_factor)>(hs->hs_n_slots))
 /* This is the target size for resizing. */
 #define hashset_resize_target(hs) \
-   ((hs->hs_n_elts*hs->hs_load_factor)/2)
+   (hs->hs_n_elts*hs->hs_load_factor)
 
-static int default_hashtable_loading=8;
-static int default_hashset_loading=8;
+static double default_hashtable_loading=1.2;
+static double default_hashset_loading=1.7;
 
 /* These are all the higher of prime pairs around powers of 2.  They are
     used to select good hashtable sizes. */
-static unsigned int hashtable_sizes[]=
+/* static unsigned int hashtable_sizes[]=
  {19, 43, 73, 139, 271, 523, 1033, 2083, 4129, 8221, 16453,
   32803, 65539, 131113, 262153, 524353, 1048891, 2097259,
   4194583,
   8388619, 16777291, 32000911, 64000819, 128000629,
-  256001719, 0};
+  256001719, 0}; */
+
+/* These are the new numbers, based on interweb research */
+static unsigned int hashtable_sizes[]={
+  53, 97, 193, 389, 769, 1543, 3079, 6151, 12289, 24593, 49157,
+  98317, 196613, 393241, 786433, 1572869, 3145739, 6291469,
+  12582917, 25165843, 50331653, 100663319, 201326611, 402653189,
+  805306457, 1610612741};
 
 /* This finds a hash table size which is larger than min */
 FD_EXPORT unsigned int fd_get_hashtable_size(unsigned int min)

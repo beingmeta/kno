@@ -429,7 +429,8 @@ typedef struct FD_HASH_BUCKET *fd_hash_bucket;
 
 typedef struct FD_HASHTABLE {
   FD_CONS_HEADER;
-  unsigned int ht_n_buckets, table_n_keys, table_load_factor;
+  unsigned int ht_n_buckets, table_n_keys;
+  double table_load_factor;
   unsigned int table_readonly:1, table_modified:1, table_uselock:1;
   struct FD_HASH_BUCKET **ht_buckets;
   U8_RWLOCK_DECL(table_rwlock);} FD_HASHTABLE;
@@ -550,7 +551,9 @@ FD_EXPORT int fd_hashtable_set_readonly(FD_HASHTABLE *ht,int readonly);
 
 typedef struct FD_HASHSET {
   FD_CONS_HEADER;
-  int hs_n_elts, hs_n_slots, hs_load_factor, hs_allatomic, hs_modified;
+  int hs_n_elts, hs_n_slots;
+  char hs_allatomic, hs_modified;
+  double hs_load_factor;
   fdtype *hs_slots;
   U8_MUTEX_DECL(hs_lock);} FD_HASHSET;
 typedef struct FD_HASHSET *fd_hashset;
