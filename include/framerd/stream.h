@@ -34,8 +34,6 @@ FD_EXPORT size_t fd_stream_bufsize;
 FD_EXPORT size_t fd_network_bufsize;
 FD_EXPORT size_t fd_filestream_bufsize;
 
-FD_EXPORT unsigned int fd_check_dtsize;
-
 FD_EXPORT fd_exception fd_ReadOnlyStream;
 FD_EXPORT fd_exception fd_CantWrite, fd_CantRead, fd_CantSeek;
 FD_EXPORT fd_exception fd_BadLSEEK, fd_OverSeek, fd_UnderSeek;

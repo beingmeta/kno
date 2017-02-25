@@ -13,6 +13,8 @@
 
 #include "bufio.h"
 
+FD_EXPORT unsigned int fd_check_dtsize;
+
 #define FD_DTYPEIO_FLAGS     (FD_BUFIO_MAX_FLAG)
 #define FD_WRITE_OPAQUE      (FD_DTYPEIO_FLAGS << 0)
 #define FD_NATSORT_VALUES    (FD_DTYPEIO_FLAGS << 1)

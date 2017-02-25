@@ -26,6 +26,8 @@
 
 int fd_use_dtblock=FD_USE_DTBLOCK;
 
+unsigned int fd_check_dtsize=1;
+
 int (*fd_dtype_error)
      (struct FD_OUTBUF *,fdtype x,u8_string details)=NULL;
 
@@ -52,13 +54,14 @@ static ssize_t try_dtype_output(int *len,struct FD_OUTBUF *out,fdtype x)
   ssize_t olen=out->bufwrite-out->buffer;
   ssize_t dlen=fd_write_dtype(out,x);
   if (dlen<0)
-    return -1;
-  else if ((out->buf_flushfn==NULL) &&
+    return dlen;
+  else if ((fd_check_dtsize) && (out->buf_flushfn==NULL) &&
            ((olen+dlen) != (out->bufwrite-out->buffer)))
     /* If you're writing straight to memory, check dtype size argument */
     u8_log(LOG_WARN,fd_InconsistentDTypeSize,
-           "Call returned %lld, buffer got %lld for %s",
-           dlen,((out->bufwrite-out->buffer)-olen),
+           "Expecting %lld off=%lld, buffer is %lld != %lld=%lld+%lld for %s",
+           dlen,olen,(out->bufwrite-out->buffer),
+           (olen+dlen),olen,dlen,
            fd_dtype2buf(x,FD_DEBUG_OUTBUF_SIZE,_dbg_outbuf));
   *len=*len+dlen;
   return dlen;
@@ -174,8 +177,14 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
       else if (itype==fd_constant_type)
         switch (data) {
         case 0: fd_output_byte(out,dt_void); return 1;
-        case 1: fd_output_byte(out,dt_boolean); fd_output_byte(out,0); return 2;
-        case 2: fd_output_byte(out,dt_boolean); fd_output_byte(out,1); return 2;
+        case 1: 
+          fd_output_byte(out,dt_boolean);
+          fd_output_byte(out,0);
+          return 2;
+        case 2: 
+          fd_output_byte(out,dt_boolean); 
+          fd_output_byte(out,1); 
+          return 2;
         case 3:
           if ((out->buf_flags)&(FD_USE_DTYPEV2)) {
             fd_output_byte(out,dt_empty_choice);
@@ -205,7 +214,8 @@ FD_EXPORT int fd_write_dtype(struct FD_OUTBUF *out,fdtype x)
       int ctype=FD_CONS_TYPE(cons);
       switch (ctype) {
       case fd_string_type: {
-        struct FD_STRING *s=(struct FD_STRING *) cons; int len=s->fd_bytelen;
+        struct FD_STRING *s=(struct FD_STRING *) cons;
+        int len=s->fd_bytelen;
         if (((out->buf_flags)&(FD_USE_DTYPEV2)) && (len<256)) {
           fd_output_byte(out,dt_tiny_string);
           fd_output_byte(out,len);
@@ -1213,8 +1223,12 @@ FD_EXPORT void fd_init_dtypeio_c()
 
   error_symbol=fd_intern("%ERROR");
 
-  fd_register_config("USEDTBLOCK",_("Use the DTBLOCK dtype code when appropriate"),
-                     fd_boolconfig_get,fd_boolconfig_set,&fd_use_dtblock);
+  fd_register_config
+    ("USEDTBLOCK",_("Use the DTBLOCK dtype code when appropriate"),
+     fd_boolconfig_get,fd_boolconfig_set,&fd_use_dtblock);
+  fd_register_config
+    ("CHECKDTSIZE",_("whether to check returned and real dtype sizes"),
+     fd_boolconfig_get,fd_boolconfig_set,&fd_check_dtsize);
 
 #if FD_THREADS_ENABLED
   fd_init_mutex(&(dtype_unpacker_lock));

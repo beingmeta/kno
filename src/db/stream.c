@@ -39,7 +39,6 @@
 #define lock_stream(s) u8_lock_mutex(&(s->stream_lock))
 #define unlock_stream(s) u8_unlock_mutex(&(s->stream_lock))
 
-unsigned int fd_check_dtsize=0;
 size_t fd_stream_bufsize=FD_STREAM_BUFSIZE;
 size_t fd_filestream_bufsize=FD_FILESTREAM_BUFSIZE;
 
@@ -683,10 +682,6 @@ FD_EXPORT ssize_t fd_write_zdtype_to_file(fdtype object,u8_string filename)
 
 FD_EXPORT void fd_init_stream_c()
 {
-  fd_register_config
-    ("CHECKDTSIZE",_("whether to check returned and real dtype sizes"),
-     fd_boolconfig_get,fd_boolconfig_set,&fd_check_dtsize);
-
   fd_unparsers[fd_stream_type]=unparse_stream;
   fd_recyclers[fd_stream_type]=recycle_stream;
 
