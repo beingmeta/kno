@@ -331,7 +331,7 @@ FD_EXPORT int fd_slotmap_add(struct FD_SLOTMAP *sm,fdtype key,fdtype value)
       FD_XSLOTMAP_SET_NALLOCATED(sm,space); }
     if (cur_size  != size) {
       FD_XSLOTMAP_SET_NSLOTS(sm,size);
-      return retval=1;}}
+      retval=1;}}
   if (unlock) fd_rw_unlock(&sm->table_rwlock);
   return retval;
 }
