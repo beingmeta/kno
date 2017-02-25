@@ -91,7 +91,7 @@ DEFUN (bigint_malloc, (fd_veclen), int length)
 {
   char * result = (malloc (sizeof(struct FD_CONS)+((length + 1) * (sizeof (bigint_digit_type)))));
   BIGINT_ASSERT (result != ((char *) 0));
-  FD_INIT_CONS(((struct FD_CONS *)result),fd_bigint_type);
+  FD_INIT_CONS(((struct FD_RAW_CONS *)result),fd_bigint_type);
   return ((fd_bigint) result);
 }
 
@@ -3692,7 +3692,7 @@ void fd_init_numbers_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
