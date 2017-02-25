@@ -640,7 +640,7 @@ FD_EXPORT int fd_zwrite_dtype(struct FD_OUTBUF *s,fdtype x)
   memset(&out,0,sizeof(out));
   out.bufwrite=out.buffer=u8_malloc(2048);
   out.buflim=out.buffer+2048;
-  out.buf_flags=FD_BUFFER_IS_MALLOCD;
+  out.buf_flags=FD_BUFFER_IS_MALLOCD|FD_IS_WRITING;
   if (fd_write_dtype(&out,x)<0) {
     u8_free(out.buffer);
     return FD_ERROR_VALUE;}
@@ -661,7 +661,7 @@ FD_EXPORT int fd_zwrite_dtypes(struct FD_OUTBUF *s,fdtype x)
   struct FD_OUTBUF out; memset(&out,0,sizeof(out));
   out.bufwrite=out.buffer=u8_malloc(2048);
   out.buflim=out.buffer+2048;
-  out.buf_flags=FD_BUFFER_IS_MALLOCD;
+  out.buf_flags=FD_BUFFER_IS_MALLOCD|FD_IS_WRITING;
   if (FD_CHOICEP(x)) {
     FD_DO_CHOICES(v,x) {
       retval=fd_write_dtype(&out,v);
