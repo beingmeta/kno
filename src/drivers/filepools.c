@@ -54,7 +54,7 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
   struct FD_FILE_POOL *pool=u8_alloc(struct FD_FILE_POOL);
   struct FD_STREAM *s=&(pool->pool_stream);
   FD_OID base=FD_NULL_OID_INIT;
-  unsigned int read_only=(U8_BITP(flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY));
+  unsigned int read_only=(U8_BITP(flags,FDB_READ_ONLY));
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc; fdtype label;
   u8_string rname=u8_realpath(fname,NULL);
@@ -93,8 +93,9 @@ static fd_pool open_file_pool(u8_string fname,fddb_flags flags)
       u8_free(rname); u8_free(pool);
       return NULL;}}
   pool->pool_load=load; pool->pool_offsets=NULL; pool->pool_offsets_size=0;
-  if (read_only) U8_SETBITS(pool->pool_flags,FDB_INIT_READ_ONLY|FDB_READ_ONLY);
-  else U8_CLEARBITS(pool->pool_flags,FDB_INIT_READ_ONLY|FDB_READ_ONLY);
+  if (read_only)
+    U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
+  else U8_CLEARBITS(pool->pool_flags,FDB_READ_ONLY);
   fd_init_mutex(&(pool->file_lock));
   if (!(U8_BITP(pool->pool_flags,FDB_UNREGISTERED)))
     fd_register_pool((fd_pool)pool);
@@ -531,8 +532,10 @@ static fdtype file_pool_alloc(fd_pool p,int n)
 static int file_pool_lock(fd_pool p,fdtype oids)
 {
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
-  int retval=lock_file_pool(fp,1);
-  return retval;
+  if (FD_POOLFILE_LOCKEDP(fp)) return 1;
+  else {
+    int retval=lock_file_pool(fp,1);
+    return retval;}
 }
 
 static int file_pool_unlock(fd_pool p,fdtype oids)

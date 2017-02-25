@@ -58,7 +58,7 @@ static void init_network_pool
   fd_init_pool((fd_pool)p,addr,capacity,&netpool_handler,spec,cid);
   /* Network pool specific stuff */
   if (FD_FALSEP(FD_CAR(scan)))
-    p->pool_flags=flags|FDB_READ_ONLY;
+    p->pool_flags|=FDB_READ_ONLY;
   scan=FD_CDR(scan);
   if ((FD_PAIRP(scan)) && (FD_STRINGP(FD_CAR(scan))))
     label=FD_STRDATA(FD_CAR(scan));

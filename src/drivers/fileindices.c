@@ -60,7 +60,7 @@ static fd_index open_file_index(u8_string fname,fddb_flags flags)
 {
   struct FD_FILE_INDEX *index=u8_alloc(struct FD_FILE_INDEX);
   struct FD_STREAM *s=&(index->index_stream);
-  int read_only=U8_BITP(flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
+  int read_only=U8_BITP(flags,FDB_READ_ONLY);
   int consed=U8_BITP(flags,FDB_ISCONSED);
   unsigned int magicno;
   fd_stream_mode mode=
@@ -90,7 +90,7 @@ static fd_index open_file_index(u8_string fname,fddb_flags flags)
     return NULL;}
   index->index_offsets=NULL;
   if (read_only)
-    U8_SETBITS(index->index_flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
+    U8_SETBITS(index->index_flags,FDB_READ_ONLY);
   fd_init_mutex(&(index->index_lock));
   index->slotids=FD_VOID;
   {

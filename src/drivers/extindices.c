@@ -41,7 +41,7 @@ fd_index fd_make_extindex
     fd_init_index((fd_index)fetchix,&fd_extindex_handler,name,(!(reg)));
     fetchix->index_cache_level=1;
     if (FD_VOIDP(commitfn))
-      U8_SETBITS(fetchix->index_flags,FDB_INIT_READ_ONLY|FDB_READ_ONLY);
+      U8_SETBITS(fetchix->index_flags,FDB_READ_ONLY);
     fetchix->fetchfn=fd_incref(fetchfn);
     fetchix->commitfn=fd_incref(commitfn);
     fetchix->state=fd_incref(state);

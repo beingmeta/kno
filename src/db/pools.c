@@ -119,7 +119,7 @@ static void pool_conflict(fd_pool upstart,fd_pool holder);
 static struct FD_GLUEPOOL *make_gluepool(FD_OID base);
 static int add_to_gluepool(struct FD_GLUEPOOL *gp,fd_pool p);
 
-FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,int read_only);
+FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fddb_flags flags);
 
 int fd_ignore_anonymous_oids=0;
 
@@ -541,7 +541,7 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
     return rv;}
   else {
     int rv=cache->table_n_keys;
-    if ((p->pool_flags)&(FDB_STICKY_CACHESIZE)) 
+    if ((p->pool_flags)&(FDB_STICKY_CACHESIZE))
       fd_reset_hashtable(cache,-1,1);
     else fd_reset_hashtable(cache,fd_pool_cache_init,1);
     return rv;}
@@ -552,29 +552,25 @@ FD_EXPORT int fd_pool_swapout(fd_pool p,fdtype oids)
 
 FD_EXPORT fdtype fd_pool_alloc(fd_pool p,int n)
 {
-  if (U8_BITP(p->pool_flags,FDB_READ_ONLY))
-    return fd_err(fd_ReadOnlyPool,"fd_pool_alloc",
-                  u8_strdup(p->pool_source),FD_VOID);
-  else {
-    fdtype result=p->pool_handler->alloc(p,n);
-    if (FD_OIDP(result)) {
-      if (p->pool_handler->lock)
-        fd_hashtable_store(&(p->pool_changes),result,FD_EMPTY_CHOICE);
-      else fd_hashtable_store(&(p->pool_cache),result,FD_EMPTY_CHOICE);
-      return result;}
-    else if (FD_CHOICEP(result)) {
-      if (p->pool_handler->lock)
-        fd_hashtable_iterkeys(&(p->pool_changes),fd_table_store,
-                              FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
-                              FD_EMPTY_CHOICE);
-      else fd_hashtable_iterkeys(&(p->pool_cache),fd_table_store,
-                                 FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
-                                 FD_EMPTY_CHOICE);
-      return result;}
-    else if (FD_ABORTP(result)) return result;
-    else if (FD_EXCEPTIONP(result)) return result;
-    else return fd_err("BadDriverResult","fd_pool_alloc",
-                       u8_strdup(p->pool_source),FD_VOID);}
+  fdtype result=p->pool_handler->alloc(p,n);
+  if (FD_OIDP(result)) {
+    if (p->pool_handler->lock)
+      fd_hashtable_store(&(p->pool_changes),result,FD_EMPTY_CHOICE);
+    else fd_hashtable_store(&(p->pool_cache),result,FD_EMPTY_CHOICE);
+    return result;}
+  else if (FD_CHOICEP(result)) {
+    if (p->pool_handler->lock)
+      fd_hashtable_iterkeys(&(p->pool_changes),fd_table_store,
+                            FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
+                            FD_EMPTY_CHOICE);
+    else fd_hashtable_iterkeys(&(p->pool_cache),fd_table_store,
+                               FD_CHOICE_SIZE(result),FD_CHOICE_DATA(result),
+                               FD_EMPTY_CHOICE);
+    return result;}
+  else if (FD_ABORTP(result)) return result;
+  else if (FD_EXCEPTIONP(result)) return result;
+  else return fd_err("BadDriverResult","fd_pool_alloc",
+                     u8_strdup(p->pool_source),FD_VOID);
 }
 
 /* Locking and unlocking OIDs within pools */
@@ -1369,7 +1365,7 @@ FD_EXPORT void fd_init_pool(fd_pool p,FD_OID base,unsigned int capacity,
   FD_INIT_CONS(p,fd_raw_pool_type);
   p->pool_base=base; p->pool_capacity=capacity;
   p->pool_serialno=-1; p->pool_cache_level=-1;
-  p->pool_flags=((h->fetchn)?(FDB_BATCHABLE):(0))|FDB_READ_ONLY;
+  p->pool_flags=((h->fetchn)?(FDB_BATCHABLE):(0));
   FD_INIT_STATIC_CONS(&(p->pool_cache),fd_hashtable_type);
   FD_INIT_STATIC_CONS(&(p->pool_changes),fd_hashtable_type);
   fd_make_hashtable(&(p->pool_cache),fd_pool_cache_init);

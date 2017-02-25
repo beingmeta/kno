@@ -664,7 +664,8 @@ static int table_indexadd(fdtype ixarg,fdtype key,fdtype value)
 FD_EXPORT int fd_index_drop(fd_index ix,fdtype key,fdtype value)
 {
   if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",u8_strdup(ix->index_idstring),FD_VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_add",
+              u8_strdup(ix->index_idstring),FD_VOID);
     return -1;}
   else init_cache_level(ix);
   if (FD_CHOICEP(key)) {
@@ -706,7 +707,8 @@ static int table_indexdrop(fdtype ixarg,fdtype key,fdtype value)
 FD_EXPORT int fd_index_store(fd_index ix,fdtype key,fdtype value)
 {
   if (U8_BITP(ix->index_flags,FDB_READ_ONLY)) {
-    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",u8_strdup(ix->index_idstring),FD_VOID);
+    fd_seterr(fd_ReadOnlyIndex,"_fd_index_store",
+              u8_strdup(ix->index_idstring),FD_VOID);
     return -1;}
   else init_cache_level(ix);
   if (FD_CHOICEP(key)) {
@@ -830,7 +832,7 @@ FD_EXPORT void fd_init_index
   if (U8_BITP(flags,FDB_ISCONSED)) {
     FD_INIT_CONS(ix,fd_raw_index_type);}
   else {FD_INIT_STATIC_CONS(ix,fd_raw_index_type);}
-  if (U8_BITP(flags,FDB_INIT_READ_ONLY)) { U8_SETBITS(flags,FDB_READ_ONLY); };
+  if (U8_BITP(flags,FDB_READ_ONLY)) { U8_SETBITS(flags,FDB_READ_ONLY); };
   if (h->fetchn) { U8_SETBITS(flags,FDB_BATCHABLE); };
   ix->index_serialno=-1; ix->index_cache_level=-1; ix->index_flags=flags;
   FD_INIT_STATIC_CONS(&(ix->index_cache),fd_hashtable_type);

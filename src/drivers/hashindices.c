@@ -230,7 +230,7 @@ static fd_index open_hash_index(u8_string fname,fddb_flags flags)
 {
   struct FD_HASH_INDEX *index=u8_alloc(struct FD_HASH_INDEX);
   struct FD_STREAM *stream=&(index->index_stream);
-  int read_only=U8_BITP(flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
+  int read_only=U8_BITP(flags,FDB_READ_ONLY);
   int consed=U8_BITP(flags,FDB_ISCONSED);
   unsigned int magicno, n_keys;
   fd_off_t slotids_pos, baseoids_pos;
@@ -256,7 +256,7 @@ static fd_index open_hash_index(u8_string fname,fddb_flags flags)
   index->index_offdata=NULL;
   index->fdb_xformat=fd_read_4bytes_at(stream,8);
   if (read_only)
-    U8_SETBITS(index->index_flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
+    U8_SETBITS(index->index_flags,FDB_READ_ONLY);
   if (((index->fdb_xformat)&(FD_HASH_INDEX_FN_MASK))!=0) {
     u8_free(index);
     fd_seterr3(BadHashFn,"open_hash_index",NULL);

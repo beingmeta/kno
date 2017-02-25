@@ -191,7 +191,7 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
   unsigned int hi, lo, magicno, capacity, load;
   fd_off_t label_loc, schemas_loc; fdtype label;
   struct FD_OIDPOOL *pool=u8_alloc(struct FD_OIDPOOL);
-  int read_only=U8_BITP(flags,FDB_READ_ONLY|FDB_INIT_READ_ONLY);
+  int read_only=U8_BITP(flags,FDB_READ_ONLY);
   fd_stream_mode mode=
     ((read_only) ? (FD_STREAM_READ) : (FD_STREAM_MODIFY));
   u8_string rname=u8_realpath(fname,NULL);
@@ -210,7 +210,7 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
   pool->pool_load=load=fd_read_4bytes(instream);
   flags=fd_read_4bytes(instream);
   pool->pool_xformat=flags;
-  if (U8_BITP(flags,FDB_INIT_READ_ONLY)) {
+  if (U8_BITP(flags,FDB_READ_ONLY)) {
     /* If the pool is intrinsically read-only make it so. */
     fd_unlock_stream(stream);
     fd_close_stream(stream,0);
@@ -259,7 +259,8 @@ static fd_pool open_oidpool(u8_string fname,fddb_flags flags)
   /* Offsets size is the malloc'd size (in unsigned ints) of the offsets.
      We don't fill this in until we actually need it. */
   pool->pool_offsets=NULL; pool->pool_offsets_size=0;
-  if (read_only) U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
+  if (read_only)
+    U8_SETBITS(pool->pool_flags,FDB_READ_ONLY);
   else U8_CLEARBITS(pool->pool_flags,FDB_READ_ONLY);
   pool->pool_mmap=NULL; pool->pool_mmap_size=0;
   fd_init_mutex(&(pool->file_lock));

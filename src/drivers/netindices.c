@@ -60,8 +60,8 @@ FD_EXPORT fd_index fd_open_network_index(u8_string spec,fddb_flags flags)
   writable_response=fd_dtcall(ix->index_connpool,1,iserver_writable);
   if ((FD_ABORTP(writable_response))||
       (!(FD_FALSEP(writable_response))))
-    U8_SETBITS(ix->index_flags,(FDB_INIT_READ_ONLY|FDB_READ_ONLY));
-  else U8_CLEARBITS(ix->index_flags,(FDB_INIT_READ_ONLY|FDB_READ_ONLY));
+    U8_SETBITS(ix->index_flags,(FDB_READ_ONLY));
+  else U8_CLEARBITS(ix->index_flags,(FDB_READ_ONLY));
   fd_decref(writable_response);
 
   ix->capabilities=0;

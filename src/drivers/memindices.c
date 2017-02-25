@@ -135,9 +135,8 @@ fd_index fd_make_mem_index(fddb_flags flags)
   struct FD_MEM_INDEX *mix=u8_alloc(struct FD_MEM_INDEX);
   FD_INIT_STRUCT(mix,struct FD_MEM_INDEX);
   fd_init_index((fd_index)mix,&memindex_handler,"ephemeral",flags);
-  mix->index_cache_level=1; 
-  U8_SETBITS(mix->index_flags,
-             (FD_INDEX_NOSWAP|FDB_READ_ONLY|FDB_INIT_READ_ONLY));
+  mix->index_cache_level=1;
+  U8_SETBITS(mix->index_flags,(FD_INDEX_NOSWAP|FDB_READ_ONLY));
   fd_register_index((fd_index)mix);
   return (fd_index)mix;
 }
