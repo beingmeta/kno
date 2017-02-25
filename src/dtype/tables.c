@@ -1337,12 +1337,12 @@ FD_EXPORT struct FD_KEYVAL *fd_hashvec_insert
     he->fd_keyval0.fd_keyval=FD_EMPTY_CHOICE;
     slots[offset]=he; if (n_keys) (*n_keys)++;
     return &(he->fd_keyval0);}
-  else if (he->fd_n_entries == 1)
+  else if (he->fd_n_entries == 1) {
     if (FDTYPE_EQUAL(key,he->fd_keyval0.fd_kvkey))
       return &(he->fd_keyval0);
     else {
       if (n_keys) (*n_keys)++;
-      return fd_hash_bucket_insert(key,&slots[offset]);}
+      return fd_hash_bucket_insert(key,&slots[offset]);}}
   else {
     int size=he->fd_n_entries;
     struct FD_KEYVAL *kv=fd_hash_bucket_insert(key,&slots[offset]);
@@ -1783,7 +1783,7 @@ static int do_hashtable_op
     fd_decref(result->fd_keyval); result->fd_keyval=newv;
     break;}
   case fd_table_store_noref:
-    fd_decref(result->fd_keyval); 
+    fd_decref(result->fd_keyval);
     result->fd_keyval=value; 
     break;
   case fd_table_add_if_present:
@@ -2305,23 +2305,27 @@ FD_EXPORT fdtype fd_make_hashtable(struct FD_HASHTABLE *ptr,int n_slots)
 }
 
 /* Note that this does not incref the values passed to it. */
-FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,int fd_n_entries,
-                                    struct FD_KEYVAL *inits)
+FD_EXPORT fdtype fd_init_hashtable(struct FD_HASHTABLE *ptr,
+                                   int init_keys,
+                                   struct FD_KEYVAL *inits)
 {
-  int i=0, n_slots=fd_get_hashtable_size(fd_n_entries*2), n_keys=0;
+  int n_slots=fd_get_hashtable_size(init_keys);
   struct FD_HASH_BUCKET **slots;
   if (ptr == NULL) {
     ptr=u8_alloc(struct FD_HASHTABLE);
     FD_INIT_FRESH_CONS(ptr,fd_hashtable_type);}
-  ptr->ht_n_buckets=n_slots; ptr->table_n_keys=fd_n_entries;
+  ptr->ht_n_buckets=n_slots; ptr->table_n_keys=0;
   ptr->table_load_factor=default_hashtable_loading;
   ptr->table_modified=0; ptr->table_readonly=0; ptr->table_uselock=1;
   ptr->ht_buckets=slots=u8_zalloc_n(n_slots,struct FD_HASH_BUCKET *);
   memset(slots,0,sizeof(struct FD_HASH_BUCKET *)*n_slots);
-  i=0; while (i<fd_n_entries) {
-    struct FD_KEYVAL *ki=&(inits[i]);
-    struct FD_KEYVAL *hv=fd_hashvec_insert(ki->fd_kvkey,slots,n_slots,&n_keys);
-    hv->fd_keyval=fd_incref(ki->fd_keyval); i++;}
+  if (inits) {
+    int i=0; while (i<init_keys) {
+      struct FD_KEYVAL *ki=&(inits[i]);
+      struct FD_KEYVAL *hv=
+        fd_hashvec_insert(ki->fd_kvkey,slots,n_slots,&(ptr->table_n_keys));
+      hv->fd_keyval=fd_incref(ki->fd_keyval);
+      i++;}}
 #if FD_THREADS_ENABLED
   ptr->table_uselock=1;
   fd_init_rwlock(&(ptr->table_rwlock));
@@ -2689,7 +2693,8 @@ FD_EXPORT int fd_for_hashtable_kv
 
 /* Hashsets */
 
-FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size,int stack_cons)
+FD_EXPORT void fd_init_hashset(struct FD_HASHSET *hashset,int size,
+                               int stack_cons)
 {
   fdtype *slots;
   int i=0, n_slots=fd_get_hashtable_size(size);
