@@ -815,7 +815,7 @@ FD_EXPORT void fd_init_stream_c()
 
 /* Emacs local variables
    ;;;  Local variables: ***
-   ;;;  compile-command: "if test -f ../../makefile; then make -C ../.. debug; fi;" ***
+   ;;;  compile-command: "make -C ../.. debug;" ***
    ;;;  indent-tabs-mode: nil ***
    ;;;  End: ***
 */
