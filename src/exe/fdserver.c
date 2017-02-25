@@ -624,16 +624,17 @@ static int dtypeserver(u8_client ucl)
 
     outbuf->bufwrite=outbuf->buffer;
     if (fd_use_dtblock) {
-      unsigned char *start=outbuf->bufwrite;
+      size_t start_off=outbuf->bufwrite-outbuf->buffer;
       size_t nbytes=fd_write_dtype(outbuf,value);
       if (nbytes>FD_DTBLOCK_THRESH) {
         unsigned char headbuf[6];
-        unsigned char *headstart=outbuf->bufwrite;
+        size_t head_off=outbuf->bufwrite-outbuf->buffer;
+        unsigned char *buf=outbuf->buffer;
         fd_write_byte(outbuf,dt_block);
         fd_write_4bytes(outbuf,nbytes);
-        memcpy(headbuf,headstart,5);
-        memmove(start+5,start,nbytes);
-        memcpy(start,headbuf,5);}}
+        memcpy(headbuf,buf+head_off,5);
+        memmove(buf+start_off+5,buf+start_off,nbytes);
+        memcpy(buf+start_off,headbuf,5);}}
     else fd_write_dtype(outbuf,value);
     if (async) {
       struct FD_RAWBUF *rawbuf=(struct FD_RAWBUF *)inbuf;
