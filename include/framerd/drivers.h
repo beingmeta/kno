@@ -11,10 +11,6 @@
 #define FRAMERD_DBDRIVER_H_INFO "include/framerd/drivers.h"
 #endif
 
-#ifndef FD_DRIVER_BUFSIZE
-#define FD_DRIVER_BUFSIZE 256*1024
-#endif
-
 FD_EXPORT size_t fd_driver_bufsize;
 
 FD_EXPORT int fd_acid_files;

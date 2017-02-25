@@ -18,6 +18,22 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#ifndef FD_STREAM_BUFSIZE
+#define FD_STREAM_BUFSIZE 8000
+#endif
+
+#ifndef FD_FILESTREAM_BUFSIZE
+#define FD_FILESTREAM_BUFSIZE 16000
+#endif
+
+#ifndef FD_NETWORK_BUFSIZE
+#define FD_NETWORK_BUFSIZE 16000
+#endif
+
+FD_EXPORT size_t fd_stream_bufsize;
+FD_EXPORT size_t fd_network_bufsize;
+FD_EXPORT size_t fd_filestream_bufsize;
+
 FD_EXPORT unsigned int fd_check_dtsize;
 
 FD_EXPORT fd_exception fd_ReadOnlyStream;
@@ -35,8 +51,6 @@ typedef struct FD_STREAM {
     struct FD_RAWBUF raw;} buf;
   u8_mutex stream_lock;} FD_STREAM;
 typedef struct FD_STREAM *fd_stream;
-
-#define FD_STREAM_BUFSIZ_DEFAULT 32*1024
 
 #define FD_STREAM_NOFLAGS        (0x00)
 #define FD_STREAM_FLAGS          (0x1)
@@ -70,19 +84,23 @@ typedef enum FD_BYTEFLOW {
 FD_EXPORT ssize_t fd_fill_stream(fd_stream df,size_t n);
 
 FD_EXPORT
-struct FD_STREAM *fd_init_stream(fd_stream s,u8_string id,
-				 int fileno,int flags,int bufsiz);
+struct FD_STREAM *fd_init_stream(fd_stream s,
+				 u8_string id,
+				 int fileno,
+				 int flags,
+				 ssize_t bufsiz);
 
 FD_EXPORT
 fd_stream fd_init_file_stream (fd_stream stream,
 				       u8_string filename,
-				       fd_stream_mode mode,int bufsiz);
+				       fd_stream_mode mode,
+			       ssize_t bufsiz);
 
 FD_EXPORT fd_stream fd_open_filestream
-  (u8_string filename,fd_stream_mode mode,int bufsiz);
+  (u8_string filename,fd_stream_mode mode,ssize_t bufsiz);
 
 #define fd_open_stream(filename,mode) \
-  fd_open_filestream(filename,mode,FD_STREAM_BUFSIZ_DEFAULT)
+  fd_open_filestream(filename,mode,fd_filestream_bufsize)
 
 #define FD_STREAM_FREE    1
 #define FD_STREAM_NOCLOSE 2

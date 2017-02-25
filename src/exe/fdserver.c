@@ -486,7 +486,8 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   fd_client client=(fd_client)
     u8_client_init(NULL,sizeof(FD_CLIENT),addr,len,sock,srv);
   fd_init_stream(&(client->fd_clientstream),
-                 client->idstring,sock,FD_STREAM_SOCKET,4096);
+                 client->idstring,sock,FD_STREAM_SOCKET,
+                 FD_NETWORK_BUFSIZE);
   /* To help debugging, move the client->idstring (libu8)
      into the stream's id (fdb). */
   client->env=fd_make_env(fd_make_hashtable(NULL,16),server_env);

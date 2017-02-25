@@ -11,7 +11,13 @@
 #define FRAMERD_FDDB_H_INFO "include/framerd/fddb.h"
 #endif
 
+#ifndef FD_DBDRIVER_BUFSIZE
+#define FD_DBDRIVER_BUFSIZE 100000
+#endif
+
 #include "stream.h"
+
+FD_EXPORT size_t fd_dbdriver_bufsize;
 
 FD_EXPORT fd_exception fd_InternalError, fd_AmbiguousObjectName,
   fd_UnknownObjectName, fd_BadServerResponse, fd_NoBackground;
@@ -55,11 +61,11 @@ typedef unsigned int fddb_flags;
 #define FDB_STICKY_CACHESIZE       0x10
 #define FDB_ISCONSED               0x20
 #define FDB_UNREGISTERED           0x20
+#define FDB_CACHE_VALUES           0x40
 #define FDB_MAX_INIT_BITS          0x100
 /* Whether the database is currently readonly. */
 #define FDB_READ_ONLY              0x100
-/* Whether the cachelevel has been explicitly set */
-#define FDB_CACHELEVEL_SET         0x200
+#define FDB_CACHE_OFFSETS          0x200
 #define FDB_MAX_STATE_BITS         0x1000
 
 #define FDB_POOL_FLAG(n)           ((0x1000)<<n)
@@ -67,10 +73,6 @@ typedef unsigned int fddb_flags;
 
 #ifndef FDBSERV_MAX_POOLS
 #define FDBSERV_MAX_POOLS 128
-#endif
-
-#ifndef FD_NET_BUFSIZE
-#define FD_NET_BUFSIZE 64*1024
 #endif
 
 #ifndef FD_DBCONN_RESERVE_DEFAULT

@@ -34,7 +34,7 @@ fd_exception fd_FileSizeOverflow=_("File pool overflowed file size");
 fd_exception fd_RecoveryRequired=_("RECOVERY");
 
 int fd_acid_files=1;
-size_t fd_driver_bufsize=FD_DRIVER_BUFSIZE;
+size_t fd_driver_bufsize=FD_DBDRIVER_BUFSIZE;
 
 /* Matching word prefixes */
 
@@ -60,7 +60,7 @@ u8_string fd_match4bytes(u8_string file,void *data)
 FD_EXPORT
 u8_string fd_netspecp(u8_string spec,void *ignored)
 {
-  u8_byte *at=strchr(spec,'@'), *col=strchr(at,':');
+  u8_byte *at=strchr(spec,'@'), *col=strchr(spec,':');
   if ((at==NULL)&&(col==NULL))
     return NULL;
   else return spec;

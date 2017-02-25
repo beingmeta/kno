@@ -42,6 +42,9 @@ int fd_oid_display_level=2;
 int fddb_loglevel=LOG_NOTICE;
 int fd_prefetch=FD_PREFETCHING_ENABLED;
 
+size_t fd_dbdriver_bufsize=FD_DBDRIVER_BUFSIZE;
+size_t fd_network_bufsize=FD_NETWORK_BUFSIZE;
+
 int fd_dbconn_reserve_default=FD_DBCONN_RESERVE_DEFAULT;
 int fd_dbconn_cap_default=FD_DBCONN_CAP_DEFAULT;
 int fd_dbconn_init_default=FD_DBCONN_INIT_DEFAULT;

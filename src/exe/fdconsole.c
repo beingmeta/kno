@@ -841,7 +841,9 @@ int main(int argc,char **argv)
              source_file);
       exit(-1);}
     newstream=u8_alloc(struct FD_STREAM);
-    fd_init_stream(newstream,source_file,sock,FD_STREAM_SOCKET,65536);
+    fd_init_stream(newstream,source_file,sock,
+                   FD_STREAM_SOCKET|FD_STREAM_DOSYNC,
+                   fd_network_bufsize);
     fd_use_pool(source_file,0);
     fd_use_index(source_file,0);
     eval_server=newstream;}
