@@ -743,7 +743,7 @@ static int serve_pool(fdtype var,fdtype val,void *data)
       fd_seterr(_("too many pools to serve"),"serve_pool",NULL,val);
       return -1;}
     else {
-      u8_log(LOG_INFO,"SERVE_POOL","Serving objects from %s",p->pool_cid);
+      u8_log(LOG_INFO,"SERVE_POOL","Serving objects from %s",p->pool_idstring);
       served_pools[n_served_pools++]=p;
       return n_served_pools;}
   else return fd_reterr(fd_NotAPool,"serve_pool",NULL,val);
@@ -797,7 +797,7 @@ static int serve_index(fdtype var,fdtype val,void *data)
       return 0;}
   else {}
   if (ix) {
-    u8_log(LOG_NOTICE,"SERVE_INDEX","Serving index %s",ix->index_cid);
+    u8_log(LOG_NOTICE,"SERVE_INDEX","Serving index %s",ix->index_idstring);
     fd_add_to_compound_index(primary_index,ix);
     return 1;}
   else return fd_reterr(fd_BadIndexSpec,"serve_index",NULL,val);

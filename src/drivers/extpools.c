@@ -83,7 +83,7 @@ static fdtype extpool_fetch(fd_pool p,fdtype oid)
   else if ((FD_EMPTY_CHOICEP(value))||(FD_VOIDP(value)))
     if ((p->pool_flags)&FD_OIDHOLES_OKAY)
       return FD_EMPTY_CHOICE;
-    else return fd_err(fd_UnallocatedOID,"extpool_fetch",xp->pool_cid,oid);
+    else return fd_err(fd_UnallocatedOID,"extpool_fetch",xp->pool_idstring,oid);
   else return value;
 }
 
@@ -167,7 +167,7 @@ static int extpool_lock(fd_pool p,fdtype oids)
       fd_decref(cur); fd_decref(value);}}
   else if (FD_FALSEP(xp->lockfn)) {
     fd_seterr(fd_CantLockOID,"fd_pool_lock",
-              u8_strdup(p->pool_cid),fd_incref(oids));
+              u8_strdup(p->pool_idstring),fd_incref(oids));
     return -1;}
   else {
     FD_DO_CHOICES(oid,oids) {

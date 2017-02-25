@@ -909,13 +909,13 @@ static fdtype pool_label(fdtype arg,fdtype use_source)
   else return FD_FALSE;
 }
 
-static fdtype pool_cid(fdtype arg)
+static fdtype pool_idstring(fdtype arg)
 {
   fd_pool p=arg2pool(arg);
   if (p==NULL)
-    return fd_type_error(_("pool spec"),"pool_cid",arg);
-  else if (p->pool_cid)
-    return fdtype_string(p->pool_cid);
+    return fd_type_error(_("pool spec"),"pool_idstring",arg);
+  else if (p->pool_idstring)
+    return fdtype_string(p->pool_idstring);
   else return FD_FALSE;
 }
 
@@ -938,8 +938,8 @@ static fdtype pool_id(fdtype arg)
     return fdtype_string(p->pool_label);
   else if (p->pool_xinfo)
     return fdtype_string(p->pool_xinfo);
-  else if (p->pool_cid)
-    return fdtype_string(p->pool_cid);
+  else if (p->pool_idstring)
+    return fdtype_string(p->pool_idstring);
   else if (p->pool_source)
     return fdtype_string(p->pool_source);
   else if (p->pool_prefix)
@@ -983,7 +983,7 @@ static fdtype pool_source(fdtype arg)
     return fd_type_error(_("pool spec"),"pool_label",arg);
   else if (p->pool_source)
     return fdtype_string(p->pool_source);
-  else if (p->pool_cid)
+  else if (p->pool_idstring)
     return fdtype_string(p->pool_source);
   else return FD_FALSE;
 }
@@ -2846,7 +2846,7 @@ FD_EXPORT void fd_init_dbfns_c()
            ("SET-POOL-PREFIX!",set_pool_prefix,2,
             -1,FD_VOID,fd_string_type,FD_VOID));
 
-  fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-CID",pool_cid,1));
+  fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-CID",pool_idstring,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-XID",pool_xinfo,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-SOURCE",pool_source,1));
   fd_idefn(fd_scheme_module,fd_make_cprim1("POOL-ID",pool_id,1));

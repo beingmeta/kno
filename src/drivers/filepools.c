@@ -123,7 +123,7 @@ static int write_file_pool_load(fd_file_pool fp)
       fd_unlock_stream(stream);
       return -1;}
     else if (load>fp->pool_capacity) {
-      u8_seterr("InvalidLoad","write_file_pool_load",u8_strdup(fp->pool_cid));
+      u8_seterr("InvalidLoad","write_file_pool_load",u8_strdup(fp->pool_idstring));
       fd_unlockfile(stream);
       fd_unlock_stream(stream);
       return -1;}
@@ -152,7 +152,7 @@ static int read_file_pool_load(fd_file_pool fp)
     fd_unlock_stream(stream);
     return -1;}
   else if (load>fp->pool_capacity) {
-    u8_seterr("InvalidLoad","read_file_pool_load",u8_strdup(fp->pool_cid));
+    u8_seterr("InvalidLoad","read_file_pool_load",u8_strdup(fp->pool_idstring));
     fd_unlockfile(stream);
     fd_unlock_stream(stream);
     return -1;}
@@ -214,7 +214,7 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
   fd_lock_pool(fp);
   if (FD_EXPECT_FALSE(offset>=fp->pool_load)) {
     fd_unlock_pool(fp);
-    return fd_err(fd_UnallocatedOID,"file_pool_fetch",fp->pool_cid,oid);}
+    return fd_err(fd_UnallocatedOID,"file_pool_fetch",fp->pool_idstring,oid);}
   else if (fp->pool_offsets) data_pos=offget(fp->pool_offsets,offset);
   else {
     fd_lock_stream(stream);
@@ -231,7 +231,7 @@ static fdtype file_pool_fetch(fd_pool p,fdtype oid)
        we've stored a >32 bit offset into a 32-bit sized location
        and it got truncated down. */
     fd_unlock_pool(fp);
-    return fd_err(fd_CorruptedPool,"file_pool_fetch",fp->pool_cid,FD_VOID);}
+    return fd_err(fd_CorruptedPool,"file_pool_fetch",fp->pool_idstring,FD_VOID);}
   else {
     if (!(stream_locked)) fd_lock_stream(stream);
     if (fd_setpos(&(fp->pool_stream),data_pos)<0) {
@@ -272,7 +272,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
       if (FD_EXPECT_FALSE(off>=load)) {
         u8_free(result); u8_free(schedule);
         fd_unlock_pool(fp);
-        fd_seterr(fd_UnallocatedOID,"file_pool_fetchn",u8_strdup(fp->pool_cid),oid);
+        fd_seterr(fd_UnallocatedOID,"file_pool_fetchn",u8_strdup(fp->pool_idstring),oid);
         return NULL;}
       file_off=offget(offsets,off);
       schedule[i].vpos=i;
@@ -283,7 +283,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
            This should never happen unless a file is corrupted. */
         u8_free(result); u8_free(schedule);
         fd_unlock_pool(fp);
-        fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->pool_cid),oid);
+        fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->pool_idstring),oid);
         return NULL;}
       else schedule[i].filepos=file_off;
       i++;}}
@@ -308,7 +308,7 @@ static fdtype *file_pool_fetchn(fd_pool p,int n,fdtype *oids)
         u8_free(result); u8_free(schedule);
         fd_unlock_stream(stream);
         fd_unlock_pool(fp);
-        fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->pool_cid),oid);
+        fd_seterr(fd_CorruptedPool,"file_pool_fetchn",u8_strdup(fp->pool_idstring),oid);
         return NULL;}
       else schedule[i].filepos=file_off;
       i++;}}
@@ -358,13 +358,13 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
     int delta=fd_write_dtype(fd_writebuf(stream),values[i]);
     if (FD_EXPECT_FALSE(oid_off>=load)) {
       fd_seterr(fd_UnallocatedOID,
-                "file_pool_storen",u8_strdup(fp->pool_cid),
+                "file_pool_storen",u8_strdup(fp->pool_idstring),
                 oids[i]);
       retcode=-1; break;}
     else if (FD_EXPECT_FALSE(delta<0)) {retcode=-1; break;}
     else if (FD_EXPECT_FALSE(((fd_off_t)(endpos+delta))>pos_limit)) {
       fd_seterr(fd_FileSizeOverflow,
-                "file_pool_storen",u8_strdup(fp->pool_cid),
+                "file_pool_storen",u8_strdup(fp->pool_idstring),
                 oids[i]);
       retcode=-1; break;}
     changed_offsets[i]=endpos; endpos=endpos+delta;
@@ -375,7 +375,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   else if ((fp->pool_offsets) && ((endpos+((fp->pool_load)*4))>=pos_limit)) {
     /* No space to write the recovery information! */
     fd_seterr(fd_FileSizeOverflow,
-              "file_pool_storen",u8_strdup(fp->pool_cid),
+              "file_pool_storen",u8_strdup(fp->pool_idstring),
               FD_VOID);
     retcode=-1;}
   else if (fp->pool_offsets) {
@@ -419,7 +419,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
   if (retcode>=0) {
     /* Now we update the load and do other cleanup.  */
     if (write_file_pool_load(fp)<0)
-      u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->pool_cid);
+      u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->pool_idstring);
     update_modtime(fp);
     /* Now, we set the file's magic number back to something
        that doesn't require recovery and truncate away the saved
@@ -434,7 +434,7 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       fd_endpos(stream); fd_movepos(stream,-(4*(fp->pool_capacity+1)));
       retval=ftruncate(stream->stream_fileno,end-(4*(fp->pool_capacity+1)));
       if (retval<0) {
-        retcode=-1; u8_graberr(errno,"file_pool_storen",fp->pool_cid);}}
+        retcode=-1; u8_graberr(errno,"file_pool_storen",fp->pool_idstring);}}
     else fd_flush_stream(stream);
     /* Update the offsets, if you have any */
     if (fp->pool_offsets==NULL) {}
@@ -442,12 +442,12 @@ static int file_pool_storen(fd_pool p,int n,fdtype *oids,fdtype *values)
       int retval=munmap((fp->pool_offsets)-6,4*old_size+24);
       unsigned int *newmmap;
       if (retval<0) {
-        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:munmap %s",fp->pool_cid);
+        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:munmap %s",fp->pool_idstring);
         fp->pool_offsets=NULL; errno=0;}
       newmmap=mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
                    MAP_SHARED|MAP_NORESERVE,stream->stream_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->pool_cid);
+        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_storen:mmap %s",fp->pool_idstring);
         fp->pool_offsets=NULL; fp->pool_offsets_size=0; errno=0;}
       else {
         fp->pool_offsets=newmmap+6;
@@ -517,7 +517,7 @@ static fdtype file_pool_alloc(fd_pool p,int n)
   if (!(FD_POOLFILE_LOCKEDP(fp))) lock_file_pool(fp,0);
   if (fp->pool_load+n>=fp->pool_capacity) {
     fd_unlock_pool(fp);
-    return fd_err(fd_ExhaustedPool,"file_pool_alloc",p->pool_cid,FD_VOID);}
+    return fd_err(fd_ExhaustedPool,"file_pool_alloc",p->pool_idstring,FD_VOID);}
   while (i < n) {
     FD_OID new_addr=FD_OID_PLUS(fp->pool_base,fp->pool_load);
     fdtype new_oid=fd_make_oid(new_addr);
@@ -562,7 +562,7 @@ static void file_pool_setcache(fd_pool p,int level)
         mmap(NULL,(4*fp->pool_load)+24,PROT_READ,
              MAP_SHARED|MAP_NORESERVE,s->stream_fileno,0);
       if ((newmmap==NULL) || (newmmap==((void *)-1))) {
-        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",fp->pool_cid);
+        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:mmap %s",fp->pool_idstring);
         fp->pool_offsets=NULL; fp->pool_offsets_size=0; errno=0;}
       fp->pool_offsets=offsets=newmmap+6;
       fp->pool_offsets_size=fp->pool_load;
@@ -586,7 +586,7 @@ static void file_pool_setcache(fd_pool p,int level)
          as the load, not the capacity. */
       retval=munmap((fp->pool_offsets)-6,4*fp->pool_load+24);
       if (retval<0) {
-        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:munmap %s",fp->pool_cid);
+        u8_log(LOG_WARN,u8_strerror(errno),"file_pool_setcache:munmap %s",fp->pool_idstring);
         fp->pool_offsets=NULL; errno=0;}
 #else
       u8_free(fp->pool_offsets);
@@ -629,7 +629,7 @@ static void file_pool_close(fd_pool p)
   struct FD_FILE_POOL *fp=(struct FD_FILE_POOL *)p;
   fd_lock_pool(fp);
   if (write_file_pool_load(fp)<0)
-    u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->pool_cid);
+    u8_log(LOG_CRIT,"FileError","Can't update load for %s",fp->pool_idstring);
   fd_free_stream(&(fp->pool_stream),1);
   if (fp->pool_offsets) {
 #if HAVE_MMAP
@@ -637,7 +637,7 @@ static void file_pool_close(fd_pool p)
        as the load, not the capacity. */
     int retval=munmap((fp->pool_offsets)-6,4*fp->pool_offsets_size+24);
     if (retval<0) {
-      u8_log(LOG_WARN,u8_strerror(errno),"file_pool_close:munmap %s",fp->pool_cid);
+      u8_log(LOG_WARN,u8_strerror(errno),"file_pool_close:munmap %s",fp->pool_idstring);
       errno=0;}
 #else
     u8_free(fp->pool_offsets);

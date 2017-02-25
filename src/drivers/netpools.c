@@ -75,7 +75,7 @@ static fdtype get_pool_data(u8_string spec,u8_string *xid)
   struct FD_STREAM _stream, *stream=
     fd_init_stream(&_stream,spec,c,
                    FD_STREAM_DOSYNC|FD_STREAM_SOCKET,
-                   FD_NET_BUFSIZE);
+                   FD_NETWORK_BUFSIZE);
   struct FD_OUTBUF *outstream=(stream) ? (fd_writebuf(stream)) :(NULL);
   if (stream==NULL)
     return FD_ERROR_VALUE;
@@ -103,7 +103,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fddb_flags flags)
     u8_free(np); u8_free(cid);
     return NULL;}
   if (FD_VOIDP(client_id)) init_client_id();
-  np->pool_cid=cid; np->pool_xid=xid;
+  np->pool_idstring=cid; np->pool_xinfo=xid;
   np->pool_connpool=
     u8_open_connpool(spec,fd_dbconn_reserve_default,
                      fd_dbconn_cap_default,fd_dbconn_init_default);
@@ -131,7 +131,7 @@ FD_EXPORT fd_pool fd_open_network_pool(u8_string spec,fddb_flags flags)
       if (n_pools==0) p=np;
       else p=u8_alloc(struct FD_NETWORK_POOL);
       init_network_pool(p,pd,spec,cid,flags);
-      p->pool_xid=xid; p->pool_connpool=np->pool_connpool;
+      p->pool_xinfo=xid; p->pool_connpool=np->pool_connpool;
       n_pools++;}}
   else init_network_pool(np,pooldata,spec,cid,flags);
   u8_free(cid);
@@ -173,7 +173,7 @@ static fdtype *network_pool_fetchn(fd_pool p,int n,fdtype *oids)
     return values;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-              u8_strdup(np->pool_cid),fd_incref(value));
+              u8_strdup(np->pool_idstring),fd_incref(value));
     return NULL;}
 }
 

@@ -173,7 +173,7 @@ static u8_string get_compound_id(int n,fd_index *indices)
     U8_INIT_OUTPUT(&out,80);
     while (i < n) {
       if (i) u8_puts(&out,"|"); else u8_puts(&out,"{");
-      u8_puts(&out,indices[i]->index_cid); i++;}
+      u8_puts(&out,indices[i]->index_idstring); i++;}
     u8_puts(&out,"}");
     return out.u8_outbuf;}
   else return u8_strdup("compound");
@@ -204,13 +204,13 @@ FD_EXPORT int fd_add_to_compound_index(fd_compound_index cix,fd_index add)
     cix->indices[cix->n_indices++]=add;
     if (add->index_serialno<0) {
       fdtype alix=(fdtype)add; fd_incref(alix);}
-    if ((cix->index_cid) || (cix->index_source)) {
-      if ((cix->index_cid)==(cix->index_source)) {
-        u8_free(cix->index_cid); cix->index_cid=cix->index_source=NULL;}
+    if ((cix->index_idstring) || (cix->index_source)) {
+      if ((cix->index_idstring)==(cix->index_source)) {
+        u8_free(cix->index_idstring); cix->index_idstring=cix->index_source=NULL;}
       else {
-        if (cix->index_cid) {u8_free(cix->index_cid); cix->index_cid=NULL;}
+        if (cix->index_idstring) {u8_free(cix->index_idstring); cix->index_idstring=NULL;}
         if (cix->index_source) {u8_free(cix->index_source); cix->index_source=NULL;}}}
-    cix->index_cid=cix->index_source=get_compound_id(cix->n_indices,cix->indices);
+    cix->index_idstring=cix->index_source=get_compound_id(cix->n_indices,cix->indices);
     fd_reset_hashtable(&(cix->index_cache),-1,1);
     return 1;}
   else return fd_reterr(fd_TypeError,("compound_index"),NULL,FD_VOID);

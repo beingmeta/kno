@@ -661,7 +661,7 @@ static fdtype leveldb_pool_alloc(fd_pool p,int n)
   u8_lock_mutex(&(pool->pool_lock));
   if (pool->pool_load+n>=pool->pool_capacity) {
     u8_unlock_mutex(&(pool->pool_lock));
-    return fd_err(fd_ExhaustedPool,"leveldb_pool_alloc",pool->pool_cid,FD_VOID);}
+    return fd_err(fd_ExhaustedPool,"leveldb_pool_alloc",pool->pool_idstring,FD_VOID);}
   start=pool->pool_load;
   pool->pool_load=start+n;
   u8_unlock_mutex(&(pool->pool_lock));

@@ -98,7 +98,7 @@ static fdtype *gpool_fetchn(fd_pool p,int n,fdtype *oids)
     return results;}
   else {
     fd_seterr(fd_BadServerResponse,"netpool_fetchn",
-              u8_strdup(np->pool_cid),fd_incref(value));
+              u8_strdup(np->pool_idstring),fd_incref(value));
     return NULL;}
 }
 

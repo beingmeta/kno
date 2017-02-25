@@ -42,6 +42,8 @@
 #define unlock_stream(s) u8_unlock_mutex(&(s->stream_lock))
 
 unsigned int fd_check_dtsize=0;
+size_t fd_stream_bufsize=FD_STREAM_BUFSIZE;
+size_t fd_filestream_bufsize=FD_FILESTREAM_BUFSIZE;
 
 fd_exception fd_ReadOnlyStream=_("Read-only stream");
 fd_exception fd_WriteOnlyStream=_("Write-only stream");
@@ -121,8 +123,9 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
                                            u8_string streamid,
                                            int fileno,
                                            int flags,
-                                           int bufsiz)
+                                           ssize_t bufsiz)
 {
+  if (bufsiz<0) bufsiz=fd_stream_bufsize;
   if (fileno<0) return NULL;
   else {
     unsigned char *buf=u8_malloc(bufsiz);
@@ -150,8 +153,9 @@ FD_EXPORT struct FD_STREAM *fd_init_stream(fd_stream stream,
 }
 
 FD_EXPORT fd_stream fd_init_file_stream
-   (fd_stream stream,u8_string fname,fd_stream_mode mode,int bufsiz)
+   (fd_stream stream,u8_string fname,fd_stream_mode mode,ssize_t bufsiz)
 {
+  if (bufsiz<0) bufsiz=fd_filestream_bufsize;
   int fd, flags=POSIX_OPEN_FLAGS, lock=0, writing=0;
   char *localname=u8_localpath(fname);
   switch (mode) {
@@ -187,8 +191,9 @@ FD_EXPORT fd_stream fd_init_file_stream
 }
 
 FD_EXPORT fd_stream fd_open_filestream
-   (u8_string fname,fd_stream_mode mode,int bufsiz)
+   (u8_string fname,fd_stream_mode mode,ssize_t bufsiz)
 {
+  if (bufsiz<0) bufsiz=fd_filestream_bufsize;
   struct FD_STREAM *stream=u8_alloc(struct FD_STREAM);
   struct FD_STREAM *opened=
     fd_init_file_stream(stream,fname,mode,bufsiz);
@@ -774,7 +779,7 @@ FD_EXPORT fdtype fd_read_dtype_from_file(u8_string filename)
 }
 
 FD_EXPORT ssize_t fd_dtype2file(fdtype object, u8_string filename,
-                                size_t bufsize,int zip)
+                                ssize_t bufsize,int zip)
 {
   struct FD_STREAM *stream=u8_alloc(struct FD_STREAM);
   struct FD_STREAM *opened=

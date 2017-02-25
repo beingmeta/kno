@@ -70,7 +70,7 @@ static int memindex_commit(fd_index ix)
     return (mix->commitfn)(mix,mix->index_source);
   else {
     fd_seterr(fd_EphemeralIndex,"memindex_commit",
-	      u8_strdup(ix->index_cid),FD_VOID);
+	      u8_strdup(ix->index_idstring),FD_VOID);
     return -1;}
 }
 
@@ -102,8 +102,8 @@ static fd_index open_memindex(u8_string file,fddb_flags flags)
   else {
     fd_decref(lispval);
     return NULL;}
-  if (mix->index_cid) u8_free(mix->index_cid);
-  mix->index_source=mix->index_cid=u8_strdup(file);
+  if (mix->index_idstring) u8_free(mix->index_idstring);
+  mix->index_source=mix->index_idstring=u8_strdup(file);
   mix->commitfn=memindex_commitfn;
   mix->index_cache.ht_n_buckets=h->ht_n_buckets;
   mix->index_cache.table_n_keys=h->table_n_keys;

@@ -144,18 +144,18 @@ typedef struct FD_ADJUNCT *fd_adjunct;
 #define FD_POOL_FIELDS \
   FD_CONS_HEADER;					\
   FD_OID pool_base;					\
-  unsigned int pool_capacity, read_only;		\
+  unsigned int pool_capacity;				\
+  u8_string pool_label, pool_idstring, pool_source;	\
+  fddb_flags pool_flags, modified_flags;		\
+  struct FD_POOL_HANDLER *pool_handler;			\
   int pool_serialno;					\
-  fddb_flags pool_flags;				\
   short pool_cache_level;				\
   U8_MUTEX_DECL(pool_lock);				\
-  u8_string pool_label, pool_prefix;			\
   struct FD_HASHTABLE pool_cache, pool_changes;		\
-  u8_string pool_source, pool_cid, pool_xid;		\
   int pool_n_adjuncts, pool_adjuncts_len;		\
   struct FD_ADJUNCT *pool_adjuncts;			\
   struct FD_HASHTABLE *oid_handlers;			\
-  struct FD_POOL_HANDLER *pool_handler;			\
+  u8_string pool_prefix, pool_xinfo;			\
   fdtype pool_namefn
 
 typedef struct FD_POOL {FD_POOL_FIELDS;} FD_POOL;

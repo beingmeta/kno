@@ -39,13 +39,13 @@ FD_EXPORT int fd_index_adds_init;
 
 #define FD_INDEX_FIELDS \
   FD_CONS_HEADER;						   \
-  int index_serialno;						   \
-  fddb_flags index_flags;					   \
-  short index_cache_level;					   \
-  u8_string index_source, index_cid, index_xid;                    \
+  u8_string index_idstring, index_source, index_xinfo;		   \
   struct FD_INDEX_HANDLER *index_handler;			   \
+  fddb_flags index_flags, modified_flags;			   \
+  int index_serialno;						   \
+  short index_cache_level;					   \
   struct FD_HASHTABLE index_cache, index_adds, index_edits;        \
-  fdtype index_has_slotids
+  fdtype index_covers_slotids
 
 typedef struct FD_INDEX {FD_INDEX_FIELDS;} FD_INDEX;
 typedef struct FD_INDEX *fd_index;
@@ -203,8 +203,8 @@ FD_FASTOP fdtype fd_index_get(fd_index ix,fdtype key)
     if (!(FD_VOIDP(cached))) return cached;}
 #endif
   if (ix->index_cache_level==0) cached=FD_VOID;
-  else if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->index_has_slotids))) &&
-      (!(atomic_choice_containsp(FD_CAR(key),ix->index_has_slotids))))
+  else if ((FD_PAIRP(key)) && (!(FD_VOIDP(ix->index_covers_slotids))) &&
+      (!(atomic_choice_containsp(FD_CAR(key),ix->index_covers_slotids))))
     return FD_EMPTY_CHOICE;
   else cached=fd_hashtable_get(&(ix->index_cache),key,FD_VOID);
   if (FD_VOIDP(cached)) cached=fd_index_fetch(ix,key);
@@ -264,13 +264,13 @@ FD_FASTOP int fd_index_add(fd_index ix,fdtype key,fdtype value)
 
   if (rv<0) return rv;
 
-  if ((!(FD_VOIDP(ix->index_has_slotids))) &&
+  if ((!(FD_VOIDP(ix->index_covers_slotids))) &&
       (FD_EXPECT_TRUE(FD_PAIRP(key))) &&
       (FD_EXPECT_TRUE((FD_OIDP(FD_CAR(key))) ||
 		      (FD_SYMBOLP(FD_CAR(key)))))) {
-    if (!(atomic_choice_containsp(FD_CAR(key),ix->index_has_slotids))) {
-      fd_decref(ix->index_has_slotids);
-      ix->index_has_slotids=FD_VOID;}}
+    if (!(atomic_choice_containsp(FD_CAR(key),ix->index_covers_slotids))) {
+      fd_decref(ix->index_covers_slotids);
+      ix->index_covers_slotids=FD_VOID;}}
 
   return rv;
 }
