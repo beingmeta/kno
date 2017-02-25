@@ -142,8 +142,8 @@ static int stackcheck()
   if (stack_limit>16384) {
     ssize_t depth=u8_stack_depth();
     if ((u8_stack_direction>0) ?
-        (depth>apply_stack_limit) :
-        (apply_stack_limit>depth))
+        (depth>stack_limit) :
+        (stack_limit>depth))
       return 0;
     else return 1;}
   else return 1;

@@ -793,8 +793,8 @@ lib/libfdscheme@suffix@.so: $(SCHEME_OBJS) 		\
 	lib/libfdtype@suffix@.so lib/libfddb@suffix@.so	\
 	lib/libfddbdrivers@suffix@.so
 lib/libfdscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
-	lib/libfdtype@suffix@.so  lib/libfddb@suffix@.so	\
-        lib/libfddbdrivers@suffix@.so
+	lib/libfdtype@suffix@.dylib  lib/libfddb@suffix@.dylib	\
+        lib/libfddbdrivers@suffix@.dylib
 
 lib/libfdschemeio@suffix@.a: $(SCHEMEIO_OBJS)
 lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS) 			\
@@ -803,7 +803,7 @@ lib/libfdschemeio@suffix@.so: $(SCHEMEIO_OBJS) 			\
 	lib/libfdscheme@suffix@.so
 lib/libfdschemeio@suffix@.dylib: $(SCHEMEIO_OBJS) 		\
 	lib/libfdscheme@suffix@.dylib             		\
-	lib/libfdtype@suffix@.so  lib/libfddb@suffix@.dylib	\
+	lib/libfdtype@suffix@.dylib  lib/libfddb@suffix@.dylib	\
         lib/libfddbdrivers@suffix@.dylib
 
 lib/libfdweb@suffix@.a: $(FDWEB_OBJS)
